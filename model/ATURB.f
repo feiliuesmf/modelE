@@ -24,7 +24,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
+      USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
       USE TRACER_DIAG_COM, only: tajln,jlnt_turb
       USE FLUXES, only : trflux1
 #endif
@@ -255,7 +255,7 @@ c             ! p4(l)=km(l)*as2(l)-kh(l)*an2(l)
 c         end do
 c         x_surf=0.5d0*b123*ustar2
 c         call de_solver_edge(e,e0,ke,p3,p4,
-c    &        rhobydze,bydzrhoe,x_surf,dtime,lm)
+c    &        rhobydze,bydzrhoe,x_surf,dtime,lm,.true.)
 
           do l=1,lm
               qturb(l)=sqrt(2.d0*e(l))
@@ -269,7 +269,7 @@ c    &        rhobydze,bydzrhoe,x_surf,dtime,lm)
           flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
           flux_top=0.
           call de_solver_main(t,t0,kh,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
 
 C**** also diffuse moments
 cc        call diff_mom(tmomij)
@@ -288,7 +288,7 @@ C****         check on physicality of non-local fluxes....
           flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
           flux_top=0.
           call de_solver_main(q,q0,kh,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.true.)
           do l=1,lm
               if(q(l).lt.qmin) q(l)=qmin
           end do
@@ -314,7 +314,7 @@ C**** check on physicality of non-local fluxes....
             flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
             flux_top=0.
             call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
-     &           rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,t_qlimit(n))
 cc          call diff_mom(trmomij)
           end do
 #endif
@@ -408,10 +408,10 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
           flux_bot=rhoe(1)*uflx
           flux_top=0.d0
           call de_solver_main(u,u0,km,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
           flux_bot=rhoe(1)*vflx
           call de_solver_main(v,v0,km,p4,
-     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+     &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
 
           ! update u and v
           do l=1,lm
@@ -649,7 +649,7 @@ C**** Save additional changes in KE for addition as heat later
       end subroutine dout
 
       subroutine de_solver_main(x,x0,p1,p4,
-     &    rhoebydz,bydzerho,flux_bot,flux_top,dtime,n)
+     &    rhoebydz,bydzerho,flux_bot,flux_top,dtime,n,qlimit)
 !@sum differential eqn solver for x using tridiagonal method
 !@+   d/dt x = d/dz (P1 d/dz x) + P4
 !@auth  Ye Cheng/G. Hartke
@@ -663,7 +663,7 @@ C**** Save additional changes in KE for addition as heat later
 !@var flux_top flux at the top
 !@var dtime time step
 !@var n number of main grid
-
+!@var qlimit true if tracer must be positive definite
       implicit none
 
       integer, intent(in) :: n
@@ -675,6 +675,7 @@ C**** Save additional changes in KE for addition as heat later
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
       integer :: j  !@var j loop variable
+      logical, intent(in) :: qlimit 
 
       !sub(j)*x_jm1_kp1+dia(j)*x_j_kp1+sup(j)*x_jp1_kp1 = rhs(j)
       !k refers to time step, j refers to main grid
@@ -685,6 +686,7 @@ C**** Save additional changes in KE for addition as heat later
           sup(j)=-dtime*p1(j+1)*rhoebydz(j+1)*bydzerho(j)
           dia(j)=1.d0-(sub(j)+sup(j))
           rhs(j)=x0(j)+dtime*p4(j)
+          if (qlimit.and. rhs(j).lt.0) rhs(j)=0.  ! prevent roundoff error
       end do
 
       ! Lower boundary conditions(x=T) :
