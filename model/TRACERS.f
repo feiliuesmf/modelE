@@ -662,6 +662,10 @@ C**** check whether air mass is conserved
 !@ver  1.0
       USE MODEL_COM, only: ioread,iowrite,irsfic,irerun,lhead
       USE TRACER_COM
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
+     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+#endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -691,6 +695,10 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      *     ,TRWM
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2
+     *     ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+#endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)   ! initial conditions
@@ -699,6 +707,10 @@ C**** check whether air mass is conserved
           READ (kunit,err=10) HEADER,TRM,TRmom
 #ifdef TRACERS_WATER
      *       ,TRWM
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2
+     *     ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
