@@ -956,7 +956,7 @@ c formation of sulfate
 #endif
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF)
+     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix)
 
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
@@ -1055,7 +1055,7 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
           TRCOND(N,L) = 0.d0
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
-          CALL GET_EVAP_FACTOR(N,TNX,LHX,.FALSE.,1d0,FQEVP,FQEVPT)
+          CALL GET_EVAP_FACTOR(N,TNX,LHX,.FALSE.,1d0,FQEVP,FQEVPT,ntix)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
           TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
         END IF
@@ -1331,7 +1331,8 @@ C**** estimate effective humidity
           heff=1.
         end if
         DO N=1,NTX
-          CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT)
+          CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
+     *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
@@ -1357,7 +1358,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
 cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRCOND,THLAW)
+     *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRCOND,THLAW,pl(l),ntix)
           TRCOND(N,L) = FWASHT*TM(L,N)+TRCOND(N,L)+THLAW
           IF (TM(L,N).GT.teeny) THEN
             TMFAC=THLAW/TM(L,N)
@@ -2033,8 +2034,8 @@ c ---------------------- initialize fractions ------------------------
         THWASH=0.
 c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT)
-        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT)
+        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
+        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
 #ifdef TRACERS_AEROSOLS_Koch
         TR_LEF=TR_LEFT(N)
@@ -2046,14 +2047,14 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH) !washout
+     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
-     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF)
+     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix)
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
@@ -2063,7 +2064,7 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip CLW
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
@@ -2081,15 +2082,15 @@ c ---------------------- apply fluxes ------------------------
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of the CLW and water vapour
         IF (LHX.eq.LHE .and. WMX(L).gt.0) THEN  ! only if liquid
-          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),WMX(L),TM(L,N)
-     *         ,TRWML(N,L),1d0)
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L)*FSSL(L),WMX(L),
+     *         TM(L,N),TRWML(N,L),1d0)
         END IF
 C**** Isotopic equilibration of Precip (if liquid) and water vapour
 C**** Note that precip is either all water or all ice
         IF (LHP(L).eq.LHE .AND. PREBAR(L).gt.0 .AND. QL(L).gt.0) THEN
           PRLIQ=PREBAR(L)*DTSrc*BYAM(L)*GRAV
-          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N)
-     *         ,TRPRBAR(N,L),1d0)
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L)*FSSL(L),PRLIQ,
+     *         TM(L,N),TRPRBAR(N,L),1d0)
         END IF
 #endif
       END DO
@@ -2138,7 +2139,7 @@ c   processes - this should be all in-cloud
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
         CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
-     *       ,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF)
+     *       ,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF,pl(l),ntix)
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
         ELSE

@@ -5166,7 +5166,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
       SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
-     *  TR_CONV,TRWML,TM,THLAW,TR_LEF)
+     *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -5180,7 +5180,7 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
 #endif
-      USE CLOUDS, only: PL, NTIX
+c      USE CLOUDS, only: PL, NTIX
 c
       IMPLICIT NONE
 c
@@ -5214,10 +5214,11 @@ c     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3
 c     *     , by3 /)
 #endif
       REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX, TR_LEF
+     *     , pl
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: L, N
+      INTEGER, INTENT(IN) :: L, N, ntix(ntm)
       LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
@@ -5229,7 +5230,7 @@ c
           fq = 0.D0                           ! frozen and default case
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
           IF(LHX.eq.LHE) THEN                 ! if not frozen then:
-            Ppas = PL(L)*1.D2                 ! pressure to pascals
+            Ppas = PL*1.D2                 ! pressure to pascals
             tfac = (1.D0/TEMP - BY298K)*BYGASC
             IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
               RKD=tr_RKD(NTIX(N))*DEXP(-tr_DHD(NTIX(N))*tfac)
@@ -5320,7 +5321,7 @@ c
       END SUBROUTINE GET_COND_FACTOR
 
 
-      SUBROUTINE GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FQ0,fq)
+      SUBROUTINE GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FQ0,fq,ntix)
 !@sum  GET_PREC_FACTOR calculation of the precipitation scavenging
 !@+    fraction for tracers WITHIN large scale clouds. Current version
 !@+    uses the first order removal rate based on [Giorgi and
@@ -5330,8 +5331,8 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: dtsrc
-      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE
-      USE CLOUDS, only: NTIX
+      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,ntm
+c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
 c
@@ -5343,7 +5344,7 @@ C**** Local parameters and variables and arguments:
 !@var CM conversion rate for large cloud water content
 !@var BELOW_CLOUD logical- is the current level below cloud?
       LOGICAL, INTENT(IN) :: BELOW_CLOUD
-      INTEGER, INTENT(IN) :: N
+      INTEGER, INTENT(IN) :: N,ntix(ntm)
       REAL*8,  INTENT(IN) :: FQ0, FCLD, CM
       REAL*8,  INTENT(OUT):: FQ
 c
@@ -5379,7 +5380,7 @@ c
 
 
       SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq
-     * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRCOND,THLAW)
+     * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRCOND,THLAW,pl,ntix)
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -5392,7 +5393,7 @@ C**** GLOBAL parameters and variables:
      * ,trname,n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
-      USE CLOUDS, only: NTIX,PL
+c      USE CLOUDS, only: NTIX,PL
       USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
 c
       IMPLICIT NONE
@@ -5405,10 +5406,10 @@ C**** Local parameters and variables and arguments:
 !@+   percipitating layer.
 !@+   The name was chosen to correspond to Koch et al. p. 23,802.
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: N,L
+      INTEGER, INTENT(IN) :: N,L,ntix(ntm)
       REAL*8, INTENT(OUT):: FQ,THLAW
       REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
-     *  TM(LM,NTM),TRCOND(NTM,LM)
+     *  TM(LM,NTM),TRCOND(NTM,LM),pl
       REAL*8, PARAMETER :: rc_wash = 1.D-1, BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac, RKD
 C
@@ -5418,7 +5419,7 @@ C
           fq = 0.D0                           ! frozen and default case
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
           IF(LHX.EQ.LHE) THEN                 ! if not frozen then:
-            Ppas = PL(L)*1.D2                 ! pressure to pascals
+            Ppas = PL*1.D2                 ! pressure to pascals
             tfac = (1.D0/TEMP - BY298K)*BYGASC
             IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
               RKD=tr_RKD(NTIX(N))*DEXP(-tr_DHD(NTIX(N))*tfac)
@@ -5458,7 +5459,7 @@ c
       RETURN
       END SUBROUTINE GET_WASH_FACTOR
 
-      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,LHX,QBELOW,HEFF,FQ0,fq)
+      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,LHX,QBELOW,HEFF,FQ0,fq,ntix)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -5466,8 +5467,8 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE,nwater,trname
-      USE CLOUDS, only: NTIX
+      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_TYPE,nwater,trname
+c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
 c
@@ -5475,7 +5476,7 @@ C**** Local parameters and variables and arguments:
 !@var FQ            fraction of tracer evaporated
 !@var FQ0 [default] fraction of tracer evaporated
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: N
+      INTEGER, INTENT(IN) :: N,ntix(ntm)
       REAL*8,  INTENT(OUT):: FQ
       REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
 !@var QBELOW true if evap is occuring below cloud
