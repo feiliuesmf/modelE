@@ -48,7 +48,7 @@ $subj_msg = "'$runID: $error_message'";
 
 ## extracting the date
 ($dummy, $tau, $date) = 
-    split " ",`$runID.exe -r | grep QCRESTART_DATA`;
+    split " ",`./$runID.exe -r | grep QCRESTART_DATA`;
 #    split " ",`$EXECDIR/qc_e -r fort.[12] | grep QCRESTART_DATA`; #old
 if ( $dummy !~ /^QCRESTART_DATA/ ) { $tau = 0; $date = ''; }
 
@@ -113,9 +113,9 @@ print <<`EOC`;
     echo 'Trying automatic fixup' >> I
     mv $runID.PRT ERR.$runID.PRT.$date
     touch lock
-    ${runID}ln
-    $runID.exe < Ix > $runID.PRT.dt$dt.$date; rc=\$?
-    ${runID}uln
+    ./${runID}ln
+    ./$runID.exe < Ix > $runID.PRT.dt$dt.$date; rc=\$?
+    ./${runID}uln
     rm -f lock
     exit \$rc
 EOC
