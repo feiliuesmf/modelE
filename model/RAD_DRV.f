@@ -660,12 +660,11 @@ C****
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+      if (wearth.gt.1.) wearth=1.
       DO K=1,11
         PVT(K)=VDATA(I,J,K)
       END DO
       WS=WSAVG(I,J)
-C-OLD FGOLDU(2)=XFRADJ*(1.-PEARTH)
-C-OLD FGOLDU(3)=XFRADJ*PEARTH
       ILON=NINT(.5+(I-.5)*72./IM)
       CALL RCOMPX
       FSF(1,I,J)=FSRNFG(1)   !  ocean
@@ -751,7 +750,7 @@ C****
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
-               IH=1+MOD(JHOUR+INCH-1,24) 
+               IH=1+MOD(JHOUR+INCH-1,24)
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
      *              (1.-SNFS(4,I,J)/S0)
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+

@@ -1080,7 +1080,7 @@ c
       ir_ij(k) = ir_m3975_1425
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
       lname_ij(k) = '10 mb HEIGHT'
       units_ij(k) = 'm-30000'
@@ -1091,7 +1091,7 @@ c
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
       lname_ij(k) = '3.4 mb HEIGHT'
       units_ij(k) = 'm-40000'
@@ -1102,7 +1102,7 @@ c
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
       lname_ij(k) = '0.7 mb HEIGHT'
       units_ij(k) = 'm-50000'
@@ -1113,7 +1113,7 @@ c
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
       lname_ij(k) = '0.16 mb HEIGHT'
       units_ij(k) = 'm-61000'
@@ -1124,7 +1124,7 @@ c
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
       lname_ij(k) = '0.07 mb HEIGHT'
       units_ij(k) = 'm-67000'
@@ -1135,7 +1135,7 @@ c
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1 
+      k=k+1
       IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
       lname_ij(k) = '0.03 mb HEIGHT'
       units_ij(k) = 'm-72000'
@@ -1188,6 +1188,7 @@ c
       name_ij(k) = 'DSEV'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.d-14*100.*BYGRAV/16.
+      jgrid_ij(k) = 2
       ir_ij(k) = ir_m95_265
 c
       k=k+1 !  'AIJ021'
@@ -2076,7 +2077,7 @@ c
       k=k+1
       IJ_G16 = k
       name_ij(k) = 'AIJG16'
-      lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
+      lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'degC'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
@@ -2211,12 +2212,12 @@ c
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_0_3550
 c
-c Gravity Wave diagnostics   
+c Gravity Wave diagnostics
       iDO_GWDRAG = 0
       if (DO_GWDRAG) then
 c
       k=k+1                ! ij diags from gwdrag calculations
-      IJ_GW1 = k 
+      IJ_GW1 = k
       name_ij(k) = 'ij_def_drag_mom_flux'
       lname_ij(k) = 'DEFORM. DRAG MOM FLUX'
       units_ij(k) = '.1 N/M**2'
@@ -2808,7 +2809,7 @@ c
 c
       k=k+1
       jl_mcdtotw = k
-      sname_jl(k) = 'mc_del_tot_wat' !'AJL51' 'CLHE*DQ(MC BEFORE COND)*P'
+      sname_jl(k) = 'mc_del_tot_wat' !'AJL51''CLHE*DQ(MC BEFORE COND)*P'
       lname_jl(k) = 'CHANGE IN TOTAL WATER BY MOIST CONV'
       units_jl(k) = '100 PA*K'
 c

@@ -20,7 +20,12 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
       REAL*8  :: DLAT    !=.5*TWOPI/(JM-1)
 !@param  FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
-
+!@var  J1U index of southernmost latitude (currently 2, later 1)
+      INTEGER, parameter :: J1U = 2
+!@var  JRANGE_HEMI lowest,highest lat index for SH,NH for A,B grid
+      INTEGER, parameter, dimension(2,2,2) :: JRANGE_HEMI = reshape(
+     *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
+     *  (/2,2,2/))
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
@@ -161,6 +166,8 @@ C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
       END DO
       WTJ(JMHALF+1,1,2)=.5
       WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
+      WTJ(1,1,2)=0.
+      WTJ(1,2,2)=0.
 C**** CALCULATE CORIOLIS PARAMETER
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
@@ -174,7 +181,7 @@ C**** adjacent velocity points
 
 C**** Calculate relative directions of polar box to nearby U,V points
       DO I=1,IM
-         SINIV(I)=SIN((I-1)*DLON) 
+         SINIV(I)=SIN((I-1)*DLON)
          COSIV(I)=COS((I-1)*TWOPI*BYIM)  ! DLON)
          LON(I)=DLON*(I-.5)
          SINIP(I)=SIN(LON(I))
