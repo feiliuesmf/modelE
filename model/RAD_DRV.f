@@ -512,6 +512,7 @@ C****                                         even if the year is fixed
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
+      if(KYEARV.eq.-2000) KYEARV=JYEAR
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
@@ -748,7 +749,7 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
       if(volc_yr.eq.-2000) then ! create some future volcanos
-         if(JYEAR.LE.2000) KYEARV=JYEAR
+         KYEARV=JYEAR
          if(JYEAR.GT.2000) KYEARV=JYEAR-50
          if(JYEAR.GT.2050) KYEARV=JYEAR-150
       end if
