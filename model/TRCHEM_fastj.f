@@ -204,9 +204,6 @@ c
       enddo
 c
 c Select appropriate monthly and latitudinal profiles
-C HEY! WHERE IS THIS MONTH VARIABLE DEFINED !?
-      if(nslon.eq.1.and.nslat.eq.1)
-     &write(6,*)'HEY! WHERE IS int_prof MONTH VARIABLE DEFINED !?'
       m = max(1,min(12,month))
       l = max(1,min(18,(int(ydgrd)+99)/10))
 c
