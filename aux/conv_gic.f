@@ -41,7 +41,7 @@ C**** Note that old GDATA file only has GDATA(1:14)!!
      *     ((HSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
      *     (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
      *     (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
-c     *     (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
+     *     (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
      *     (((wbare(L,I,J),I=1,IM),J=1,JM),L=1,NGM),
      *     (((wvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
      *     (((htbare(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
@@ -55,11 +55,8 @@ C**** define sea ice defaults: Use AC2OIM instead of MSI.
       DO J=1,JM
         DO I=1,IM
           MSI1=SNOWI(I,J)+ACE1I
-          HSI(1,I,J) = (SHI*HSI(1,I,J)-LHM)*XSI(1)*MSI1
-          HSI(2,I,J) = (SHI*HSI(2,I,J)-LHM)*XSI(2)*MSI1
-          HSI(3,I,J) = (SHI*HSI(3,I,J)-LHM)*XSI(3)*AC2OIM
-          HSI(4,I,J) = (SHI*HSI(4,I,J)-LHM)*XSI(4)*AC2OIM
           MSI(I,J) = AC2OIM
+          RSI(I,J) = MIN(MAX(0d0,RSI(I,J)),1d0)
           TOCEAN(2:3,I,J) = TOCEAN(1,I,J)
           POND_MELT(I,J)=0.
           FLAG_DSWS(I,J)=.FALSE.
@@ -75,10 +72,14 @@ C**** define sea ice defaults: Use AC2OIM instead of MSI.
           ELSE
             SSI(1:4,I,J) = 0
           END IF
+          HSI(1:2,I,J) = (SHI*MIN(0d0,HSI(1:2,I,J))-LHM)*XSI(1:2)*MSI1
+     *         +LHM*SSI(1:2,I,J)
+          HSI(3:4,I,J) = (SHI*MIN(0d0,HSI(3:4,I,J))-LHM)*XSI(3:4)*AC2OIM
+     *         +LHM*SSI(3:4,I,J) 
         END DO
       END DO
 
-      print*,TOCEAN(1,45,2),RSI(45,2),SNOWI(45,2)
+      print*,TOCEAN(1,JM-1,2),RSI(45,2),SNOWI(45,2)
 
 C**** set default values for evaporation limiting arrays
       evap_max_ij(:,:) = 1.d0

@@ -115,9 +115,6 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
             MSI1=SNOWI(I,J)+ACE1I
             IF (FOCEAN(I,J).gt.0) THEN
               TFO=tfrez(sss0)   ! use default salinity
-              HSI(1:2,I,J)=(SHI*MIN(HSI(1:2,I,J),TFO)-LHM)*XSI(1:2)*MSI1
-              HSI(3:4,I,J)=(SHI*MIN(HSI(3:4,I,J),TFO)-LHM)*XSI(3:4)
-     *             *MSI(I,J)
               SSI(3:4,I,J)=SSI0 * XSI(3:4)*MSI(I,J)
               IF (ACE1I*XSI(1).gt.SNOWI(I,J)*XSI(2)) THEN
                 SSI(1,I,J)=SSI0 * (ACE1I-(ACE1I+SNOWI(I,J))* XSI(2))
@@ -126,6 +123,10 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
                 SSI(1,I,J)=0.
                 SSI(2,I,J)=SSI0 * ACE1I
               END IF
+              HSI(1:2,I,J)=(SHI*MIN(HSI(1:2,I,J),TFO)-LHM)*XSI(1:2)*MSI1
+     *             +LHM*SSI(1:2,I,J)
+              HSI(3:4,I,J)=(SHI*MIN(HSI(3:4,I,J),TFO)-LHM)*XSI(3:4)
+     *             *MSI(I,J)+LHM*SSI(3:4,I,J)
             ELSE
               HSI(1:2,I,J)=(SHI*MIN(HSI(1:2,I,J),0d0)-LHM)*XSI(1:2)*MSI1
               HSI(3:4,I,J)=(SHI*MIN(HSI(3:4,I,J),0d0)-LHM)*XSI(3:4)
@@ -137,8 +138,8 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
             SNOWI(I,J)=0.
             IF (FOCEAN(I,J).gt.0) THEN
               TFO=tfrez(sss0)   ! use default salinity
-              HSI(1:2,I,J) = (SHI*TFO-LHM)*XSI(1:2)*ACE1I
-              HSI(3:4,I,J) = (SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+              HSI(1:2,I,J) = (SHI*TFO-LHM*(1.-SSI0))*XSI(1:2)*ACE1I
+              HSI(3:4,I,J) = (SHI*TFO-LHM*(1.-SSI0))*XSI(3:4)*AC2OIM
               SSI(1:2,I,J)=SSI0 * ACE1I  * XSI(1:2)
               SSI(3:4,I,J)=SSI0 * AC2OIM * XSI(3:4)
             ELSE
