@@ -272,7 +272,9 @@
       logical flag
 
       flag = .false.
-      if ( present(opt) .and. opt=='o' ) flag = .true.
+      if ( present(opt) ) then
+        if ( opt=='o' ) flag = .true.
+      endif
 
       call set_pstr( name, np, 'i', PStr, flag )
       Idata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
@@ -366,7 +368,9 @@
       logical flag
 
       flag = .false.
-      if ( present(opt) .and. opt=='o' ) flag = .true.
+      if ( present(opt) ) then
+        if ( opt=='o' ) flag = .true.
+      endif
 
       call set_pstr( name, np, 'r', PStr, flag )
       Rdata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
@@ -464,7 +468,9 @@
       logical flag
 
       flag = .false.
-      if ( present(opt) .and. opt=='o' ) flag = .true.
+      if ( present(opt) ) then
+        if ( opt=='o' ) flag = .true.
+      endif
 
       do n=1,np
         if ( len(value(n)) > MAX_CHAR_LEN ) then
