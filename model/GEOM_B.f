@@ -106,7 +106,7 @@ c      DLON=TWOPI*BYIM
          COSP(J) = COS(LAT(J))
          DXP(J)  = RADIUS*DLON*COSP(J)
       END DO
-      BYDXP(:) = 1.D0/DXP(:)
+      BYDXP(2:JM-1) = 1.D0/DXP(2:JM-1)
       DO J=2,JM
          COSV(J) = .5*(COSP(J-1)+COSP(J))
          DXV(J)  = .5*(DXP(J-1)+DXP(J))

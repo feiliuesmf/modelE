@@ -8,6 +8,7 @@ C****
       USE SLE001, ONLY: NGM
       USE RADNCB, only : LM_REQ
       IMPLICIT REAL*8 (A-H,O-Z)
+      SAVE
 c     PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
 c    *     )
       parameter (npbl=8)

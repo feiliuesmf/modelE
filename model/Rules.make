@@ -106,8 +106,11 @@ F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
-FFLAGS = -O -B100 
+FFLAGS = -O2
 LFLAGS = -lf90math -lV77 -lU77
+# uncomment next two lines for extensive debugging
+#FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
+#LFLAGS += -lefence -g
 endif
 
 # IBM - specific options here

@@ -198,6 +198,7 @@ C**** weighting functions for surface types
      *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX 
       INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
       INTEGER, SAVE :: IFIRST = 1
+      integer, external :: NINTlimit
 
       IF (IFIRST.EQ.1) THEN
         IFIRST=0
@@ -288,7 +289,7 @@ C**** Sum over types
           QJ=QJ*SCALE_J(N)
           WTX=WTX*IACC
           FLAT(J)=QJ/(WTX+teeny)
-          MLAT(J)=NINT(FLAT(J))
+          MLAT(J)=NINTlimit( FLAT(J) )
           HSUM=HSUM+QJ*DXYP(J)*(FIM+1.-S1(J))
           HWT=HWT+WTX*DXYP(J)*(FIM+1.-S1(J))
         END DO
@@ -4690,3 +4691,12 @@ C****
       RETURN
       END SUBROUTINE IJKMAP
 
+      function NINTlimit( x )
+      real*8 x
+      integer NINTlimit
+      real*8 y
+      y = min (  2147483647.d0, x )
+      y = max ( -2147483647.d0, y )
+      NINTlimit = NINT( y )
+      return
+      end function NINTlimit

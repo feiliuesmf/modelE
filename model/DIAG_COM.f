@@ -549,7 +549,8 @@ c idacc-indices of various processes
      *    ,Kradia
       USE DAGCOM
       IMPLICIT NONE
-      REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF),AFLXS(LM+LM_REQ+1,IM,JM,5)
+      REAL*4, save :: ACCS(KACC)
+      REAL*4 TSFREZS(IM,JM,KTSF),AFLXS(LM+LM_REQ+1,IM,JM,5)
 c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
       integer monac1(12),i_ida,i_xtra
 !@var Kcomb counts acc-files as they are added up

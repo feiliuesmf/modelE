@@ -76,7 +76,7 @@
 !@ver  1.0 (Absoft version)
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
-      REAL*4 :: ETIME, TARR        !@var ETIME intrinsic function
+      REAL*4 :: ETIME, TARR(2)       !@var ETIME intrinsic function
       MNOW = NINT(ETIME(TARR)*100.)
       RETURN
       END SUBROUTINE GETTIME
