@@ -630,7 +630,8 @@ c
       real*8 frac
       integer l,i,j,iu,k,ll
       integer :: jdlast=0
-      save jdlast,tlca,tlcb,mon_units,imon
+      logical :: ifirst = .true.
+      save jdlast,tlca,tlcb,mon_units,imon,ifirst
       REAL*8, DIMENSION(IM,JM,Laircr,1)    :: src
       REAL*8, DIMENSION(LM)                :: pres
       REAL*4, PARAMETER, DIMENSION(Laircr) :: PAIRL =
@@ -650,7 +651,8 @@ C**** Monthly sources are interpolated to the current day
 C**** The titles of the input files say this is in KG/m2/s, so no
 C**** conversion is necessary:
 C****
-      call openunits(mon_files,mon_units,mon_bins,nmons)
+      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst=.false.
       j = 0
       do k=nanns+1,1
         j = j+1
@@ -658,7 +660,6 @@ C****
      *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
       end do
       jdlast = jday
-      call closeunits(mon_units,nmons)
       write(6,*)trname(n_NOx)
      *     ,'from aircraft interpolated to current day',frac
       call sys_flush(6)
@@ -720,6 +721,7 @@ c
       integer ann_units(nanns),mon_units(nmons),imon(nmons)
       integer i,j,iu,k,l
       integer      :: jdlast=0  
+      logical :: ifirst=.true.
       character*80 title   
       character*10 :: mon_files(nmons) = (/'SULFATE_SA'/)
       logical      :: mon_bins(nmons)=(/.true./) ! binary file?
@@ -727,14 +729,15 @@ c
       REAL*8, DIMENSION(LM)    :: pres,srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(IM,JM,Lsulf,1) :: src
-      save jdlast,tlca,tlcb,mon_units,imon
+      save jdlast,tlca,tlcb,mon_units,imon,ifirst
 c
 C**** Sulfate surface area input file is monthly, on LM levels.
 C     Read it in here and interpolated each day.
 C     I belive no conversion of the sulfate input file is expected,
 C     other than interpolation in the vertical.
 C
-      call openunits(mon_files,mon_units,mon_bins,nmons)
+      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst = .false.
       j = 0
       do k=nanns+1,1
         j = j+1
@@ -742,7 +745,6 @@ C
      *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
       end do
       jdlast = jday
-      call closeunits(mon_units,nmons)
       write(6,*) 'Sulfate surface area interpolated to current day',frac
       call sys_flush(6) 
 C====
@@ -798,7 +800,7 @@ C
   120     imon=imon+1
           if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
           DO L=1,Ldim-1
-            call readt(iu,0,A2D,im*jm,A2D,(imon-1)*Ldim+L)
+            call readt(iu,0,A2D,im*jm,A2D,(imon-2)*Ldim+L)
             tlca(:,:,L)=A2d(:,:)
             rewind iu
           END DO
