@@ -56,8 +56,8 @@
       REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
       REAL*8 :: silmpow = 1.36d0
-!@dbparam snow_ice =1 to allow for snow ice formation (default=0)
-      INTEGER :: snow_ice = 0
+!@dbparam snow_ice =1 to allow for snow ice formation (default=1)
+      INTEGER :: snow_ice = 1
 !@var osurf_tilt controls calc. of ocean surface tilt for ice dyn:
 !@+       from geostrophy (=0) or from free surface (=1, default)
       INTEGER :: osurf_tilt = 1

@@ -22,7 +22,7 @@
 !@var HC2LI heat capacity of second layer land ice (J/m^2)
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
 !@dbparam glmelt_on determines whether glacial melt is used for oceans
-      INTEGER :: glmelt_on = 0   ! default is 'off'
+      INTEGER :: glmelt_on = 1   ! default is 'on'
 
       CONTAINS
 
