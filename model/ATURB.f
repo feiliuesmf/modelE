@@ -159,7 +159,6 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
               n=ntix(nx)
               trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
 cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
-              if(trij(l,nx).lt.teeny) trij(l,nx)=teeny
               tr0ij(l,nx)=trij(l,nx)
             end do
 #endif
@@ -279,6 +278,12 @@ cc        call diff_mom(tmomij)
           do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wq_nl(l+1)-rhoe(l)*wq_nl(l))
      &              *bydzerho(l)
+C****         check on physicality of non-local fluxes....
+              if ( p4(l)*dtime+q0(l).lt.0 ) then
+                p4(l)=-q(l)/dtime
+                wt_nl(l+1)=(q0(l)/(dtime*bydzerho(l))+rhoe(l)
+     *               *wt_nl(l))/rhoe(l+1)
+              end if
           end do
           flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
           flux_top=0.
@@ -299,15 +304,18 @@ C**** parallel to the case of Q
             do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
      &             *bydzerho(l)
+C**** check on physicality of non-local fluxes....
+              if ( p4(l)*dtime+tr0ij(l,n).lt.0 ) then
+                p4(l)=-tr0ij(l,n)/dtime
+                wc_nl(l+1,n)=(tr0ij(l,n)/(dtime*bydzerho(l))+rhoe(l)
+     *               *wc_nl(l,n))/rhoe(l+1)
+              end if
             end do
             flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
             flux_top=0.
             call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
      &           rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
 cc          call diff_mom(trmomij)
-            do l=1,lm
-                if(trij(l,n).lt.teeny) trij(l,n)=teeny
-            end do
           end do
 #endif
           call find_pbl_top(e,ze,dbl,ldbl,lm)
