@@ -229,7 +229,7 @@ C**** ADVECT ICE
          CALL CHECKT ('ADVSI ')
 C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
-      CALL DIFFUS (2,LM-1,dtsrc)
+      CALL ATM_DIFFUS (2,LM-1,dtsrc)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (MNOW,MSURF)

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE DIFFUS(LBASE_MIN,LBASE_MAX,DTIME)
-!@sum  DIFFUS(DRYCNV) mixes air caused by dry convection.
+      SUBROUTINE ATM_DIFFUS(LBASE_MIN,LBASE_MAX,DTIME)
+!@sum  ATM_DIFFUS(DRYCNV) mixes air caused by dry convection.
 !@+    this version checks base layers lbase_min to lbase_max.
 !@auth Original Development Team
 !@ver  1.0
@@ -176,5 +176,5 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       ENDDO ILOOP
       ENDDO JLOOP
       RETURN
-      END SUBROUTINE DIFFUS
+      END SUBROUTINE ATM_DIFFUS
 

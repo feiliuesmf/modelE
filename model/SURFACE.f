@@ -736,7 +736,7 @@ c****
       end do
       end do
 C**** Call dry convection or aturb depending on rundeck
-      CALL DIFFUS(1,1,dtsurf)
+      CALL ATM_DIFFUS(1,1,dtsurf)
 C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****

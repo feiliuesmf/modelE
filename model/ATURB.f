@@ -1,11 +1,11 @@
-      Subroutine diffus(lbase_min,lbase_max,dtime)
-!@sum  diffus updates u,v,t,q due to
+      Subroutine atm_diffus(lbase_min,lbase_max,dtime)
+!@sum  atm_diffus updates u,v,t,q due to
 !@+  turbulent transport throughout all GCM layers
 !@+  using a second order closure (SOC)
 !@+  turbulence model developed at GISS, 2000.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
-!@cont diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_,diff_t2
+!@cont atm_diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_,diff_t2
 !@cont lgcm,kgcm,find_pbl_top,find_ew,ave_uv_to_agrid,ave_s_to_bgrid
 !@var lbase_min/max levels through which to apply turbulence (dummy)
 !@var dtime time step
@@ -351,7 +351,7 @@ c
 cccccc end testing
 
       return
-      end subroutine diffus
+      end subroutine atm_diffus
 
       subroutine getdz(tv,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
