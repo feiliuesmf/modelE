@@ -802,7 +802,7 @@ C
         else              ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
           if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
-          do L=1,LDim*(imon-1)
+          do L=1,Ldim*(imon-2)
             read(iu)
           end do
           DO L=1,Ldim
