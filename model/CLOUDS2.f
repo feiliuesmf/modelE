@@ -64,6 +64,7 @@ C**** Set-able variables
       integer, dimension(ntm) :: ntix
       integer ntx
 #endif
+      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
 
 C**** input variables
       LOGICAL DEBUG
@@ -100,8 +101,8 @@ C**** input variables
 !@var FSUB subsiding fraction
 !@var FMCL grid fraction for moist convection
 !@var VLAT dummy variable
-!@var WTURB turbulent vertical velocity (m)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
+!@var WTURB turbulent vertical velocity (m)
 !@var PRECNVL convective precip entering the layer top
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
       REAL*8, DIMENSION(LM) :: SDL,WML
@@ -201,7 +202,8 @@ C**** output variables
       REAL*8 AIRXL,PRHEAT
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 !@var prebar1 copy of variable prebar
       REAL*8 prebar1(Lm+1)
 #endif
@@ -233,7 +235,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
      *  ,prebar1
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
@@ -427,7 +430,7 @@ c for sulfur chemistry
       INTEGER,  PARAMETER :: ITMAX=50
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
-!@var WV convetive vertical velocity
+!@var WV convective vertical velocity
 !@var VT precip terminal velocity
 !@var DCW,DCG,DCI critical cloud particle sizes
 !@var FG, FI fraction for graupel and ice
@@ -978,7 +981,7 @@ C**** save plume temperature after possible condensation
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
-        FG=(TP-TF+40.)*0.025d0
+        FG=(TP-TI)/(TF-TI)
         FI=1.-FG
         CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
@@ -1289,16 +1292,16 @@ C**** diagnostics
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
-        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
-     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
-        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
+c        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
+c     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
+c        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
-        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
+c        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
       END DO
@@ -1369,7 +1372,7 @@ C                             ! WTURB=SQRT(.66666667*EGCM(L,I,J))
       FEVAP=.5*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
-      CLDMCL(L+1)=CLDMCL(L+1)+FCLOUD*FMC1
+      CLDMCL(L+1)=MIN(CLDMCL(L+1)+FCLOUD*FMC1,1d0)
       CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
@@ -1421,8 +1424,8 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       IF(FPRCP.eq.1.) THEN      !total evaporation
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
-          if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
-     *         *FEVAP
+c         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
+c     *         *FEVAP
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -1438,8 +1441,8 @@ C**** estimate effective humidity
           CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
      *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
-          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
-     *         ,FPRCPT,TRPRCP(N)
+c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
+c     *         ,FPRCPT,TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
       END IF
@@ -1482,8 +1485,8 @@ cdmk GET_WASH now has gas dissolution, extra arguments
             TMFAC=0.
           ENDIF
           TM(L,N)=TM(L,N)*(1.-FWASHT)-THLAW
-          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
-     *         ,THLAW
+c          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
+c     *         ,THLAW
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
      &                (1.-FWASHT-TMFAC)
         END DO
@@ -1510,7 +1513,8 @@ C**** Isotopic equilibration of liquid precip with water vapour
 #endif
   540 CONTINUE
 C****
-      IF(PRCP.GT.0.) CLDMCL(1)=CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
+      IF(PRCP.GT.0.) CLDMCL(1)=MIN(CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)*FMC1
+     *     ,1d0)
       PRCPMC=PRCPMC+PRCP*FMC1
 #ifdef TRACERS_WATER
       TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
@@ -2467,7 +2471,8 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         END IF
         WMX(L)=0.
       END IF
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
       prebar1(l)=prebar(l)
 #endif
 C**** set phase of condensation for next box down
@@ -2807,6 +2812,7 @@ C-----------------------------------------------------------------------
       USE CONSTANT, only : bygrav, wtmair=>mair, bymrat,avog
       USE RANDOM, only : rinit,rfinal,randu
       USE MODEL_COM, only : nlev=>lm,qcheck
+      USE CLOUDS, only : ncol
       implicit none
 !@var  overlap type: 1=max, 2=rand,  3=max/rand
 !@var  top_height 1 = adjust top height, that is compute infrared
@@ -2816,7 +2822,6 @@ C-----------------------------------------------------------------------
       INTEGER, PARAMETER :: top_height=1, overlap=3
 !@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
       REAL*8, PARAMETER :: emsfc_lw=0.99d0
-      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
       REAL*8, PARAMETER :: byncol = 1d0/ncol
 !@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
       REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4
@@ -2905,6 +2910,7 @@ C-----------------------------------------------------------------------
       real*8, dimension(ncol) :: tau,tb,ptop,emcld,fluxtop,
      *     trans_layers_above
       real*8, parameter :: isccp_taumin = 0.1d0
+      real*8 :: randxx
 
       INTEGER  JERR
 
@@ -3018,6 +3024,7 @@ cc    CALL RFINAL(SEED)
 
         if (ilev.eq.1) then
           do ibox=1,ncol
+            randxx = randu(xx)
             ! if max overlap
             if (overlap.eq.1) then
               ! select pixels spread evenly
@@ -3028,7 +3035,7 @@ cc    CALL RFINAL(SEED)
               ! part the gridbox ( some will be converted into
               ! convective pixels below )
               threshold(ibox)=
-     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randu(xx)
+     *        cca(ibox,ilev)+(1-cca(ibox,ilev))*randxx
             endif
           enddo
         endif
@@ -3389,7 +3396,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 C**** accumulate ptop/tauopt over columns for output
           if (itau.gt.1) then
             ctp   = ctp  +ptop(ibox)
-            tauopt=tauopt+ exp(-tau(ibox))
+            tauopt=tauopt+ max(exp(-tau(ibox)),1d-16)
             nbox = nbox + 1
           end if
         end if
