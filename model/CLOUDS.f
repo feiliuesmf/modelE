@@ -1977,8 +1977,7 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !was
-hout
+     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
@@ -1995,8 +1994,7 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !preci
-p CLW
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
