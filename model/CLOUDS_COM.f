@@ -192,26 +192,27 @@ C**** Initialise some output used in dynamics
         END IF
 
       CASE (IOREAD:)            ! input from restart file
-        if (AM_I_ROOT()) 
-     *  READ (kunit,err=10) HEADER,
-     *     TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+        if (AM_I_ROOT()) THEN
+           READ (kunit,err=10) HEADER,
+     *          TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-     *     ,OLDNO_glob,OLDNL_glob,SMFPM_glob
+     *          ,OLDNO_glob,OLDNL_glob,SMFPM_glob
 #endif
-        IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+          IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+       END IF
 C***ESMF: Unpack global arrays into distributed local arrays.
-        CALL UNPACK_COLUMN(grid, TTOLD_glob , TTOLD , local=.false.)
-        CALL UNPACK_COLUMN(grid, QTOLD_glob , QTOLD , local=.false.)
-        CALL UNPACK_COLUMN(grid, SVLHX_glob , SVLHX , local=.false.)
-        CALL UNPACK_COLUMN(grid, RHSAV_glob , RHSAV , local=.false.)
-        CALL UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV, local=.false.)
+        CALL UNPACK_COLUMN(grid, TTOLD_glob , TTOLD)
+        CALL UNPACK_COLUMN(grid, QTOLD_glob , QTOLD)
+        CALL UNPACK_COLUMN(grid, SVLHX_glob , SVLHX)
+        CALL UNPACK_COLUMN(grid, RHSAV_glob , RHSAV)
+        CALL UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV)
 #ifdef CLD_AER_CDNC
-        CALL UNPACK_COLUMN(grid, OLDNO_glob , OLDNO , local=.false.)
-        CALL UNPACK_COLUMN(grid, OLDNL_glob , OLDNL , local=.false.)
-        CALL UNPACK_COLUMN(grid, SMFPM_glob , SMFPM , local=.false.)
+        CALL UNPACK_COLUMN(grid, OLDNO_glob , OLDNO)
+        CALL UNPACK_COLUMN(grid, OLDNL_glob , OLDNL)
+        CALL UNPACK_COLUMN(grid, SMFPM_glob , SMFPM)
 #endif
       END SELECT
 

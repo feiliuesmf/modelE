@@ -364,6 +364,15 @@ CPPFLAGS += -DUSE_ESMF
 LIBS += -lesmf -lmpi
 endif
 
+ifeq ($(FVCORE),YES)
+  ifndef FVCORE_ROOT
+     FVCORE_ROOT = false
+  endif
+  CPPFLAGS += -DUSE_FVCORE
+  FVINC = -I$(FVCORE_ROOT)/$(UNAME)/include
+  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio $(FVINC)/GMAO_cfio $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp
+  LIBS += -L$(FVCORE_ROOT)/$(UNAME)/lib -lGMAO_gfio -lGMAO_cfio -lGEOS_Base -lGEOS_Shared -lGMAO_pilgrim -lFVdycore_GridComp
+endif
 #
 # Check for extra options specified in modelErc
 #
@@ -375,11 +384,12 @@ else
   LIBS += -L$(NETCDFHOME)/lib -lnetcdf
 endif
   FFLAGS += -I$(NETCDFHOME)/include
-  INCS += -I $(NETCDFHOME)/include
+  INCS += -I$(NETCDFHOME)/include
 endif
 
 # access new interfaces in sub-directory.
-FFLAGS+= -I$(ESMF_Interface)
+FFLAGS+= -I$(ESMF_Interface) $(INCS)
+CPPFLAGS+=$(INCS)
 
 #
 # Pattern  rules
@@ -444,6 +454,35 @@ else
 endif
 endif
 endif
+endif
+endif
+	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
+	  do if [ ! -s $$i.sig ] || [ `find $$i -newer $$i.sig` ] ; then \
+	  echo $@ > $$i.sig; fi; done; fi 
+	@touch -r .timestamp $@
+	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
+ifdef COMP_OUTPUT
+	@if [ -s $*.ERR ] ; then cat $*.ERR; else  rm -f $*.ERR; fi
+endif
+
+%.o: %.F90
+	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
+	@touch .timestamp
+ifeq ($(MACHINE),MAC)
+	$(CPP) $(CPPFLAGS) $*.F90 | sed -n '/^#pragma/!p' > $*_cpp.F90
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
+	  -o $*.o $(COMP_OUTPUT)
+	rm -f $*_cpp.F90
+else
+ifeq ($(COMPILER),Absoft)
+	$(CPP) $(CPPFLAGS) $*.F90 $*_cpp.F90
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
+	  -o $*.o $(COMP_OUTPUT)
+	rm -f $*_cpp.F90
+else
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F90 \
+	  $(COMP_OUTPUT)
+	echo "  name for $*.F90 "
 endif
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \

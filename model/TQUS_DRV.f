@@ -848,7 +848,7 @@ C
       IF(ICKERR.GT.0)  call stop_model('Stopped in XSTEP',11)
 C
       RETURN
-      END
+      END SUBROUTINE XSTEP
 
 
       SUBROUTINE YSTEP (M,NSTEPY)
@@ -957,7 +957,7 @@ C
       IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)
 C
       RETURN
-      END
+      END SUBROUTINE YSTEP
 
 
       SUBROUTINE ZSTEP (M,NSTEPZ)
@@ -1042,7 +1042,7 @@ C
       IF(ICKERR.GT.0)  call stop_model('Stopped in ZSTEP',11)
 C
       RETURN
-      END
+      END SUBROUTINE ZSTEP
 
       SUBROUTINE ALLOC_TRACER_ADV(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at

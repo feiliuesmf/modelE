@@ -68,7 +68,7 @@
 #endif
 #endif
 #endif
-      USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
+      USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subs
      *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj,lp50
      *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
@@ -98,6 +98,7 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
+      integer rc
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
@@ -246,8 +247,8 @@ C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
 C
 C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
-      CALL HALO_UPDATE(grid, U, from= NORTH)
-      CALL HALO_UPDATE(grid, V, from= NORTH)
+      CALL HALO_UPDATE(GRID,U,from= NORTH)
+      CALL HALO_UPDATE(GRID,V,from= NORTH)
 C 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U

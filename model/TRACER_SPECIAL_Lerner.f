@@ -278,7 +278,7 @@ C---- CTM layers LM down
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT, ESMF_BCAST
       USE GEOM, only: imaxj
       USE DYNAMICS, only: ltropo
       USE TRACER_COM
@@ -303,52 +303,63 @@ C****
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 C**** Create interpolated table for this resolution
-      if (ifirst ) then
+      if (AM_I_ROOT()) THEN
+        if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
          call get_Trop_chem_CH4_freq(infile,FRQfile)
-      end if
+        end if
 C**** Read chemical loss rate dataset (5-day frequency)
-      if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
-      if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 550
-      ifirst = .false.
-  510 continue
-      read (FRQfile,end=515) taux,frqlos
-      tauy = nint(taux)+(jyear-1950)*8760.
-c     IF (itime+ 60..gt.tauy+120.) go to 510
-      IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
-      IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
-        write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,JYEAR
-        call stop_model(
+        if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
+        if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 550
+        ifirst = .false.
+  510   continue
+        read (FRQfile,end=515) taux,frqlos
+        tauy = nint(taux)+(jyear-1950)*8760.
+c       IF (itime+ 60..gt.tauy+120.) go to 510
+        IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
+        IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
+          write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
+     &    JYEAR
+          call stop_model(
      &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
-      end if
-      rewind (FRQfile)
-      go to 518
+        end if
+        rewind (FRQfile)
+        go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
-  515 continue
-      rewind (FRQfile)
-      read (FRQfile,end=515) taux,frqlos
-      rewind (FRQfile)
-      tauy = nint(taux)+(jyear-1950)*8760.
-  518 continue
-      WRITE(6,'(2A,2F10.0,2I10)')
+  515   continue
+        rewind (FRQfile)
+        read (FRQfile,end=515) taux,frqlos
+        rewind (FRQfile)
+        tauy = nint(taux)+(jyear-1950)*8760.
+  518   continue
+        WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-      IF (HAVE_SOUTH_POLE) THEN
+        IF (HAVE_SOUTH_POLE) THEN
          do l=1,lm
             frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
          end do
-      ENDIF
-      IF (HAVE_NORTH_POLE) THEN
+        ENDIF
+        IF (HAVE_NORTH_POLE) THEN
          do l=1,lm
             frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
          end do
-      ENDIF
+        ENDIF
 
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
-      frqlos(:,:,:) = frqlos(:,:,:)*tune
+        frqlos(:,:,:) = frqlos(:,:,:)*tune
 C**** Apply the chemistry
-  550 continue
+        call ESMF_BCAST( grid, frqlos)
+  550   continue
+      else
+        if (mod(jday,5).gt.0 .and. .not.ifirst) go to 551
+        if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 551
+        ifirst = .false.
+        call ESMF_BCAST( grid, frqlos)
+  551   continue
+      endif 
+
       do j=J_0,J_1
       do i=1,imaxj(j)
         do l=1,ltropo(i,j)

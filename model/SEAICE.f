@@ -1892,7 +1892,7 @@ C**** albedo calculations
               GO TO 10
             END IF
           end if
-         CALL UNPACK_BLOCK(grid, TRSI_GLOB, TRSI, local=.false.)
+         CALL UNPACK_BLOCK(grid, TRSI_GLOB, TRSI)
         END SELECT
 #endif
       END SELECT

@@ -118,10 +118,10 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
             GO TO 10
           END IF
         end if
-        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK, local=.false.)
-        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  , local=.false.)
-        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE, local=.false.)
-        CALL UNPACK_DATA(grid,    GML_GLOB, GML  , local=.false.)
+        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK)
+        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  )
+        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE)
+        CALL UNPACK_DATA(grid,    GML_GLOB, GML  )
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
@@ -134,7 +134,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
               GO TO 10
             END IF
           end if
-          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE, local=.false.)
+          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE)
         END SELECT
 #endif
       END SELECT

@@ -177,8 +177,7 @@ Contains
          & name = "modelE default ESMF grid", rc=rc)
 
     Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=n_pet, rc=rc)
-    modelE_DElayout = ESMF_DELayoutCreate(modelE_vm, dePetList = (/ (pet,pet=0,n_pet) /), &
-         & deCountList = (/ 1, n_PET /))
+    modelE_DElayout = ESMF_DELayoutCreate(modelE_vm, deCountList = (/ 1, n_PET /))
     call ESMF_GridDistribute(grid = modelE_grid, delayout=modelE_DElayout, rc=rc)
 
     !!$$ Call ESMF_GridGetDELocalAI(modelE_grid, AIPerDim=AI, horzrelloc=ESMF_CELL_CENTER, rc=rc)
@@ -336,7 +335,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -455,7 +454,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -574,7 +573,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -693,7 +692,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -812,7 +811,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -931,7 +930,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -1050,7 +1049,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -1169,7 +1168,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 
@@ -1288,7 +1287,7 @@ Contains
       hzRelLoc = ESMF_CELL_CENTER 
       If (Present(horzRelLoc)) hzRelLoc = horzRelLoc 
 #endif 
-      hwidth   = 0 
+      hwidth   = 1 
       name_    = 'unnamed' 
  
       If (Present(halo_width)) Then 

@@ -48,6 +48,7 @@ C**** Check for reasonable values for ocean variables
       USE STATIC_OCEAN
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_COLUMN, PACK_DATA
+      USE DOMAIN_DECOMP, only : UNPACK_COLUMN, UNPACK_DATA
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -71,13 +72,18 @@ C**** Check for reasonable values for ocean variables
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,TOCEAN_glob,Z1O_glob
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,TOCEAN_glob,Z1O_glob
-        TOCEAN(:,:,J_0:J_1) = TOCEAN_glob(:,:,J_0:J_1)
-        Z1O(:,J_0:J_1) = Z1O_glob(:,J_0:J_1)
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
+        If (AM_I_ROOT()) Then
+          READ (kunit,err=10) HEADER,TOCEAN_glob,Z1O_glob
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
         END IF
+
+        CALL UNPACK_COLUMN(grid, TOCEAN_glob, TOCEAN)
+        CALL UNPACK_DATA(grid, Z1O_glob, Z1O)
+c***        TOCEAN(:,:,J_0:J_1) = TOCEAN_glob(:,:,J_0:J_1)
+c***        Z1O(:,J_0:J_1) = Z1O_glob(:,J_0:J_1)
       END SELECT
 
       RETURN

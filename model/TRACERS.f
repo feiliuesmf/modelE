@@ -1025,12 +1025,12 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
 C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
        DO ITM=1,NTM
          CALL UNPACK_DATA  (grid,   TRM_GLOB(:,:,:,  itm),
-     &                              TRM(:,:,:,  itm),   local=.true.)
+     &                              TRM(:,:,:,  itm))
          CALL UNPACK_COLUMN(grid, TRMOM_GLOB(:,:,:,:,itm),
-     &                              TRmom(:,:,:,:,itm), local=.true.)
+     &                              TRmom(:,:,:,:,itm))
 #ifdef TRACERS_WATER
          CALL UNPACK_DATA  (grid,  TRWM_GLOB(:,:,:,  itm),
-     &                              TRWM(:,:,:,  itm),  local=.true.)
+     &                              TRWM(:,:,:,  itm))
 #endif
         END DO
 

@@ -390,10 +390,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,fearth,jday
-      USE MODEL_COM, only : field_FEARTH
       USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
-      USE ESMF_CUSTOM_MOD, Only: Field_Halo
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
@@ -554,10 +552,10 @@ C**** read in named rivers (if any)
 
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
-      CALL Field_Halo( field_FEARTH, direction=NORTH+SOUTH, rc=rc)
-      CALL HALO_UPDATE(grid, FLICE,  FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, FLAKE0, FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, FOCEAN, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FEARTH, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)
 
       ! Use unusual loop bounds to fill KDIREC in halo
       DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
@@ -673,7 +671,7 @@ C**** South Pole is a special case
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
-      CALL HALO_UPDATE(grid, zatmo, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, zatmo, FROM=NORTH+SOUTH)
 
       SPEED0= .35d0
       SPMIN = .15d0
@@ -756,6 +754,7 @@ C****
 #endif
 
       INTEGER :: J_start, J_stop
+      integer rc
 
 C****
 C**** LAKECB  MWL  Liquid lake mass  (kg)
@@ -777,10 +776,10 @@ C****
       TRFLOWO = 0.
 #endif
 
-      CALL HALO_UPDATE(grid,  FLAND,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, FOCEAN,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  HLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  FLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID,FLAND,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID,FOCEAN,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID,HLAKE,FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,    FLAKE,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,    MWL,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,  TLAKE,FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH)

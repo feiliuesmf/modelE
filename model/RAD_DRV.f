@@ -928,7 +928,6 @@ C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 :: AREGSUM(NREG)
 
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       REAL*8, DIMENSION(NLOC_DIU_VAR,
@@ -956,7 +955,10 @@ C
       REAL*8 :: AIL_J50_SUM(IM,LM)
       REAL*8 :: AIL_J70_SUM(IM,LM)
       REAL*8 ::
-     &     AREG_part(grid%J_STRT_HALO:grid%J_STOP_HALO,SIZE(AREG,1),17)
+     &     AREG_part(NREG,grid%J_STRT_HALO:grid%J_STOP_HALO,17)
+      REAL*8 :: AREGSUM(NREG,17)
+      Integer :: idx1(7)
+      Integer :: idx2(17)
       character(len=300) :: out_line
 
 C
@@ -1848,33 +1850,23 @@ C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
 C       delayed accumulation to preserve order of summation
          DO J=J_0,J_1
-           AREG_part(J,:,:) = 0
+           AREG_part(:,J,:) = 0
          DO I=1,IMAXJ(J)
            JR=JREG(I,J)
-           AREG_part(J,JR,1) = AREG_part(J,JR,1) + AREGIJ(1,I,J)
-           AREG_part(J,JR,2) = AREG_part(J,JR,2) + AREGIJ(2,I,J)
-           AREG_part(J,JR,3) = AREG_part(J,JR,3) + AREGIJ(3,I,J)
-           AREG_part(J,JR,4) = AREG_part(J,JR,4) + AREGIJ(4,I,J)
-           AREG_part(J,JR,5) = AREG_part(J,JR,5) + AREGIJ(5,I,J)
-           AREG_part(J,JR,6) = AREG_part(J,JR,6) + AREGIJ(6,I,J)
-           AREG_part(J,JR,7) = AREG_part(J,JR,7) + AREGIJ(7,I,J)
+           AREG_part(JR,J,1) = AREG_part(JR,J,1) + AREGIJ(1,I,J)
+           AREG_part(JR,J,2) = AREG_part(JR,J,2) + AREGIJ(2,I,J)
+           AREG_part(JR,J,3) = AREG_part(JR,J,3) + AREGIJ(3,I,J)
+           AREG_part(JR,J,4) = AREG_part(JR,J,4) + AREGIJ(4,I,J)
+           AREG_part(JR,J,5) = AREG_part(JR,J,5) + AREGIJ(5,I,J)
+           AREG_part(JR,J,6) = AREG_part(JR,J,6) + AREGIJ(6,I,J)
+           AREG_part(JR,J,7) = AREG_part(JR,J,7) + AREGIJ(7,I,J)
          END DO
          END DO
-
-         CALL GLOBALSUM(grid, AREG_part(:,:,1), AREGSUM)
-         AREG(:,J_PCLDSS) = AREG(:,J_PCLDSS) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,2), AREGSUM)
-         AREG(:,J_PCLDMC) = AREG(:,J_PCLDMC) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,3), AREGSUM)
-         AREG(:,J_CLDDEP) = AREG(:,J_CLDDEP) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,4), AREGSUM)
-         AREG(:,J_PCLD) = AREG(:,J_PCLD) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,5), AREGSUM)
-         AREG(:,J_CLRTOA) = AREG(:,J_CLRTOA) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,6), AREGSUM)
-         AREG(:,J_CLRTRP) = AREG(:,J_CLRTRP) + AREGSUM
-         CALL GLOBALSUM(grid, AREG_part(:,:,7), AREGSUM)
-         AREG(:,J_TOTTRP) = AREG(:,J_TOTTRP) + AREGSUM
+         
+         CALL GLOBALSUM(grid, AREG_PART(:,:,1:7), AREGSUM(:,1:7))
+         idx1 = (/ J_PCLDSS, J_PCLDMC, J_CLDDEP, J_PCLD, 
+     &        J_CLRTOA, J_CLRTRP, J_TOTTRP /)
+         AREG(:,idx1) = AREG(:,idx1) + AREGSUM(:,1:7)
 C
          AREG_part = 0 ! reset
 
@@ -1935,10 +1927,10 @@ c***             END DO
          AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J)
          END DO
-         AREG_part(J,JR,1)=AREG_part(J,JR,1)+(S0*CSZ2)*DXYPJ
-         AREG_part(J,JR,2)=AREG_part(J,JR,2)+(SNFS(3,I,J)*CSZ2)*DXYPJ
-         AREG_part(J,JR,3)=AREG_part(J,JR,3)+(SNFS(2,I,J)*CSZ2)*DXYPJ
-         AREG_part(J,JR,4)=AREG_part(J,JR,4)+
+         AREG_part(JR,J,1)=AREG_part(JR,J,1)+(S0*CSZ2)*DXYPJ
+         AREG_part(JR,J,2)=AREG_part(JR,J,2)+(SNFS(3,I,J)*CSZ2)*DXYPJ
+         AREG_part(JR,J,3)=AREG_part(JR,J,3)+(SNFS(2,I,J)*CSZ2)*DXYPJ
+         AREG_part(JR,J,4)=AREG_part(JR,J,4)+
      *     (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
 C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*CSZ2)
@@ -1954,19 +1946,19 @@ C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
-         AREG_part(J,JR,5)=AREG_part(J,JR,5)  -(TNFS(2,I,J)-TNFS(1,I,J))
+         AREG_part(JR,J,5)=AREG_part(JR,J,5)  -(TNFS(2,I,J)-TNFS(1,I,J))
      *        *DXYPJ
-         AREG_part(J,JR,6) =AREG_part(J,JR,6) +(SRHR(0,I,J)*CSZ2)*DXYPJ
-         AREG_part(J,JR,7) =AREG_part(J,JR,7) -(TNFS(3,I,J)-TNFS(1,I,J))
+         AREG_part(JR,J,6) =AREG_part(JR,J,6) +(SRHR(0,I,J)*CSZ2)*DXYPJ
+         AREG_part(JR,J,7) =AREG_part(JR,J,7) -(TNFS(3,I,J)-TNFS(1,I,J))
      *        *DXYPJ
-         AREG_part(J,JR,8)=AREG_part(J,JR,8)+  BTMPW(I,J)      *DXYPJ
-         AREG_part(J,JR,9)=AREG_part(J,JR,9)+ TRINCG(I,J)      *DXYPJ
+         AREG_part(JR,J,8)=AREG_part(JR,J,8)+  BTMPW(I,J)      *DXYPJ
+         AREG_part(JR,J,9)=AREG_part(JR,J,9)+ TRINCG(I,J)      *DXYPJ
          DO K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREG_part(J,JR,10+k-2)=AREG_part(J,JR,10+k-2)+
+           AREG_part(JR,J,10+k-2)=AREG_part(JR,J,10+k-2)+
      *          (S0*CSZ2)*ALB(I,J,K)*DXYPJ
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
@@ -2111,30 +2103,12 @@ c longwave forcing at surface (if required)
   770    CONTINUE
   780    CONTINUE
 
-           CALL GLOBALSUM(grid, AREG_part(:,:,1), AREGSUM)
-           AREG(:,J_SRINCP0) = AREG(:,J_SRINCP0) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,2), AREGSUM)
-           AREG(:,J_SRNFP0) = AREG(:,J_SRNFP0) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,3), AREGSUM)
-           AREG(:,J_SRNFP1) = AREG(:,J_SRNFP1) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,4), AREGSUM)
-           AREG(:,J_SRINCG) = AREG(:,J_SRINCG) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,5), AREGSUM)
-           AREG(:,J_HATM) = AREG(:,J_HATM) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,6), AREGSUM)
-           AREG(:,J_SRNFG) = AREG(:,J_SRNFG) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,7), AREGSUM)
-           AREG(:,J_HSURF) = AREG(:,J_HSURF) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,8), AREGSUM)
-           AREG(:,J_BRTEMP) = AREG(:,J_BRTEMP) + AREGSUM
-           CALL GLOBALSUM(grid, AREG_part(:,:,9), AREGSUM)
-           AREG(:,J_TRINCG) = AREG(:,J_TRINCG) + AREGSUM
+         CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
+         idx2 = (/ J_SRINCP0, J_SRNFP0, J_SRNFP1,
+     &     J_SRINCG, J_HATM, J_SRNFG, J_HSURF, J_BRTEMP, J_TRINCG,
+     &     (J_PLAVIS+i, i=0,7) /)
+         AREG(:,idx2) = AREG(:,idx2) + AREGSUM
 
-           DO K=2,9
-             JK=K+J_PLAVIS-2
-             CALL GLOBALSUM(grid, AREG_part(:,:,10+k-2), AREGSUM)
-             AREG(:,JK)=AREG(:,JK)+AREGSUM
-           END DO
 
       CALL GLOBALSUM(grid, DIURN_partb, DIURNSUMb, ALL=.true.)
 

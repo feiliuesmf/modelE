@@ -75,6 +75,9 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       INTEGER, DIMENSION(2) :: t_aflux, t_advecm, t_advecv
       INTEGER, DIMENSION(2) :: t_PGF, t_filter, t_fltruv, t_calc_pijl
       INTEGER, DIMENSION(2) :: t_sdrag, t_calc_trop
+
+      REAL*8, PARAMETER :: COS_LIMIT = 0.15d0
+
       END MODULE DYNAMICS
 
 

@@ -1153,7 +1153,7 @@ C****
      *     ,byim,sig,itime,psf,pmtop
       USE GEOM, only : areag,dxyp
       USE SOMTQ_COM, only : tmom,qmom
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk, COS_LIMIT
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
 #endif
@@ -1192,7 +1192,7 @@ C****
       END DO
 !$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
-      call isotropslp(x,.15d0)
+      call isotropslp(x,COS_LIMIT)
 !$OMP  PARALLEL DO PRIVATE(I,J,PSUMO,PSUMN,PDIF)
       DO J=J_0S,J_1S
         PSUMO=0.
@@ -1309,7 +1309,7 @@ C
      *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
      &  ,do_polefix
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
-      USE DYNAMICS, only : pdsig,pk
+      USE DYNAMICS, only : pdsig,pk, COS_LIMIT
       USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
@@ -1535,7 +1535,7 @@ C****   be re-thought for others.
       END IF
 
       if(do_polefix.eq.1) then
-         call isotropuv(u,v,.15d0)
+         call isotropuv(u,v,COS_LIMIT)
 c         if(have_south_pole) call isotropuv(u,v,-1)
 c         if(have_north_pole) call isotropuv(u,v,+1)
       endif
@@ -1593,35 +1593,23 @@ C**** Add in dissipiated KE as heat locally
 
       subroutine isotropslp(slp,coscut)
       use MODEL_COM, only : im,jm,dt
-      USE DOMAIN_DECOMP, Only : grid
+      USE DOMAIN_DECOMP, Only : GET,grid
       use GEOM, only : cosp,dxp
       implicit none
       real*8, parameter :: k=1d3
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: slp
       real*8 :: coscut,fac
       integer :: ipole,j,jcut,jinc,jp
+      integer :: j_0s, j_1s, hemi
 
-      do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jp = 1
-         jinc = 1
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jp = jm
-         jinc = -1
-      else
-         cycle
-      endif
-c find cutoff latitude
-      j = jp
-      do while(cosp(j+jinc).lt.coscut)
-         j = j+jinc
+      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+
+      Do j = j_0s, j_1s
+        If (far_from_pole(j, cosp, coscut)) Cycle
+        fac = k*dt/(dxp(j)*dxp(j))
+        Call shap1(slp(1,j),im,fac)
       enddo
-      jcut = j
-      do j=jp+jinc,jcut,jinc ! +jinc because of polar cap
-         fac = k*dt/(dxp(j)*dxp(j))
-         call shap1(slp(1,j),im,fac)
-      enddo
-      enddo
+
       return
       end subroutine isotropslp
 
@@ -1630,7 +1618,7 @@ c find cutoff latitude
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,dt
-      USE DOMAIN_DECOMP, Only : grid
+      USE DOMAIN_DECOMP, Only : GET, grid
       USE GEOM, only : cosv,dxv,cosi=>cosiv,sini=>siniv
       implicit none
       real*8, parameter :: klo=1d3,khi=1d7
@@ -1640,67 +1628,84 @@ c find cutoff latitude
       real*8, dimension(im) :: ua,va
       real*8, dimension(0:imh) :: an,bn
       integer :: i,j,l,hemi,jp,jinc,jcut,ipole
+      Integer :: J_0STG, J_1STG
 
-
-      do ipole=1,2
-      if(grid%have_south_pole .and. ipole.eq.1) then
-         jp = 2
-         jinc = 1
-         hemi = -1
-      else if(grid%have_north_pole .and. ipole.eq.2) then
-         jp = jm
-         jinc = -1
-         hemi = +1
-      else
-         cycle
-      endif
-c find cutoff latitude
-      j = jp
-      do while(cosv(j+jinc).lt.coscut)
-         j = j+jinc
-      enddo
-      jcut = j
+      CALL GET(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
       do l=1,lm
+        do j = J_0STG, J_1STG
+          hemi = Hemisphere(j)
+          If (far_from_pole(j, cosv, coscut)) Cycle
 
-      do j=jp,jcut,jinc
 c compute xy velocities
-      do i=1,im
-         ua(i) = cosi(i)*u(i,j,l)-hemi*sini(i)*v(i,j,l)
-         va(i) = cosi(i)*v(i,j,l)+hemi*sini(i)*u(i,j,l)
-      enddo
+          do i=1,im
+            ua(i) = cosi(i)*u(i,j,l)-hemi*sini(i)*v(i,j,l)
+            va(i) = cosi(i)*v(i,j,l)+hemi*sini(i)*u(i,j,l)
+          enddo
 c filter the xy velocities
-      k = maxval(abs(u(:,j,l)))*2.*dt/dxv(j)
-      if(k.lt.0.5) then
-         k = klo
-      else if(k.gt.1d0) then
-         k = khi
-      else
-         k = klo + 2d0*(k-0.5)*(khi-klo)
-      endif
-      fac = k*dt/(dxv(j)*dxv(j))
-      call shap1(ua,im,fac)
-      call shap1(va,im,fac)
-      if(j.eq.jp) then ! really strong filtering right at the pole
-         call fft(ua,an,bn)
-         an(2:imh) = 0.
-         bn(2:imh) = 0.
-         call ffti(an,bn,ua)
-         call fft(va,an,bn)
-         an(2:imh) = 0.
-         bn(2:imh) = 0.
-         call ffti(an,bn,va)
-      endif
+          
+          k = maxval(abs(u(:,j,l)))*2.*dt/dxv(j)
+          if(k.lt.0.5) then
+            k = klo
+          else if(k.gt.1d0) then
+            k = khi
+          else
+            k = klo + 2d0*(k-0.5)*(khi-klo)
+          endif
+          fac = k*dt/(dxv(j)*dxv(j))
+          call shap1(ua,im,fac)
+          call shap1(va,im,fac)
+          if(at_pole(j)) then   ! really strong filtering right at the pole
+            call fft(ua,an,bn)
+            an(2:imh) = 0.
+            bn(2:imh) = 0.
+            call ffti(an,bn,ua)
+            call fft(va,an,bn)
+            an(2:imh) = 0.
+            bn(2:imh) = 0.
+            call ffti(an,bn,va)
+          endif
 c convert xy velocities back to polar coordinates
-      do i=1,im
-         u(i,j,l) = cosi(i)*ua(i)+hemi*sini(i)*va(i)
-         v(i,j,l) = cosi(i)*va(i)-hemi*sini(i)*ua(i)
-      enddo
-      enddo ! j
-      enddo ! l
-      enddo ! ipole
+          do i=1,im
+            u(i,j,l) = cosi(i)*ua(i)+hemi*sini(i)*va(i)
+            v(i,j,l) = cosi(i)*va(i)-hemi*sini(i)*ua(i)
+          enddo
+        enddo                   ! j
+      enddo                     ! l
+
       return
       end subroutine isotropuv
+
+      Integer Function Hemisphere(j)
+      Use GEOM, only: FJEQ
+      Integer :: j
+
+      If (J < FJEQ) Then
+        hemisphere = -1
+      Else
+        hemisphere = +1
+      End If
+      End Function Hemisphere
+
+      ! Detect whether at the pole on staggered grid
+      Logical Function at_pole(j)
+      Use model_com, only : jm
+      Integer :: j
+      If (j == jm .or. j == 2) Then
+        at_pole = .true.
+      else
+        at_pole = .false.
+      end if
+      End Function at_pole
+
+      Logical Function far_from_pole(j, cosj, coscut)
+      Use MODEL_COM, only: JM
+        Integer :: j
+        Real*8 :: cosj(JM), coscut
+
+        far_from_pole = (cosj(j) >= coscut)
+
+      End Function far_from_pole
 
       subroutine shap1(x,im,fac)
       implicit none

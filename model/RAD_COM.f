@@ -198,6 +198,7 @@ C**** Local variables initialised in init_RAD
       KLIQ = 1
       dH2O = 0.
       SALB => ALB(:,:,1)
+      SRVISSURF = 0
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
 
@@ -213,6 +214,7 @@ C**** Local variables initialised in init_RAD
       USE DOMAIN_DECOMP, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP, ONLY : UNPACK_BLOCK , PACK_BLOCK 
       USE DOMAIN_DECOMP, ONLY : UNPACK_DATA  , PACK_DATA  
+      USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -252,13 +254,13 @@ C**** Local variables initialised in init_RAD
           CASE (ioread,irerun,ioread_single)  ! input for restart
             if (AM_I_ROOT() )
      &        READ (kunit,err=10) HEADER_F,Tchg_glob,kliq_glob
-            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg, local=.false.)
-            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.false.)
+            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq)
           CASE (IRSFIC)  ! only way to start frc. runs
             if (AM_I_ROOT() )
      &        READ (kunit,err=10) HEADER,RQT_glob,kliq_glob ; Tchg = 0.
-            CALL UNPACK_COLUMN(grid, RQT_glob, RQT, local=.false.)
-            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.false.)
+            CALL UNPACK_COLUMN(grid, RQT_glob, RQT)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq)
             call sync_param( "Ikliq", Ikliq )
             if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
             if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry
@@ -310,6 +312,7 @@ C**** Local variables initialised in init_RAD
             END IF
           end if
 
+          CALL ESMF_BCAST(grid, S0)
           CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           CALL UNPACK_COLUMN(grid, SRHR_glob, SRHR)

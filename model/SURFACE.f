@@ -97,6 +97,7 @@ C**** Interface to PBL
 #endif
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
+      integer rc
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
@@ -226,8 +227,8 @@ C**** Set up tracers for PBL calculation if required
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID, u     , FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID, v     , FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID,u,FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID,v,FROM=SOUTH+NORTH)
 
       diurn_part=0
 
@@ -1046,7 +1047,7 @@ C****
 #endif
 c****
 c**** apply surface fluxes to the first layer of the atmosphere
-c****  (replaced with dummy subroutine when ATURB is used)
+c****  (replaced with dummy sub when ATURB is used)
 c****
       call apply_fluxes_to_atm(dtsurf)
 
@@ -1098,4 +1099,3 @@ C**** Save for tracer dry deposition conservation quantity:
       RETURN
 C****
       END SUBROUTINE SURFCE
-

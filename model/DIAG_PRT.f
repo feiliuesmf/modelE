@@ -6141,23 +6141,23 @@ C****
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       IMPLICIT NONE
 
-      CALL UNPACK_DATAj(GRID, AJ,  AJ_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, APJ, APJ_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, AJK, AJK_loc,local=.false.)
-      CALL UNPACK_DATA (GRID, AIJ, AIJ_loc,local=.false.)
-      CALL UNPACK_DATA (GRID, AIJK, AIJK_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, AJL,  AJL_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc,local=.false.)
-      CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
+      CALL UNPACK_DATAj(GRID, APJ, APJ_loc)
+      CALL UNPACK_DATAj(GRID, AJK, AJK_loc)
+      CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)
+      CALL UNPACK_DATA (GRID, AIJK, AIJK_loc)
+      CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
+      CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)
+      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc)
+      CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc)
 
 #ifdef TRACERS_ON
-      CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc,local=.false.)
-      CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc,local=.false.)
-      CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc,local=.false.)
-      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
+      CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
+      CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
+      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc)
+      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
+      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
 #endif
 
 

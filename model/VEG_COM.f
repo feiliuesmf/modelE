@@ -76,9 +76,9 @@
             go to 10
           end if
         end if
-        call unpack_data(grid, cint_glob,   cint  , local=.false.)
-        call unpack_data(grid, qfol_glob,   qfol  , local=.false.)
-        call unpack_data(grid, cnc_ij_glob, cnc_ij, local=.false.)
+        call unpack_data(grid, cint_glob,   cint)
+        call unpack_data(grid, qfol_glob,   qfol)
+        call unpack_data(grid, cnc_ij_glob, cnc_ij)
       end select
 
       return

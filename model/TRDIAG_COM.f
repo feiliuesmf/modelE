@@ -557,12 +557,12 @@ C****     Accumulate diagnostics (converting back to real*8)
             END IF
           end if
 C*** Unpack read global data into local distributed arrays
-          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc, local=.false. )
-          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc , local=.false. )
-          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc , local=.false. )
-          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc,    local=.false. )
-          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc,    local=.false. )
-          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc,  local=.false. )
+          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc)
+          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc)
+          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc)
+          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc)
+          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc)
+          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc)
           CALL ESMF_BCAST( grid, it )
         END SELECT
       END SELECT

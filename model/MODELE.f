@@ -39,6 +39,7 @@ C**** Command line options
       LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
+      real*8 :: tloopbegin, tloopend
 
         call init_app(grid,im,jm)
         call alloc_drv()
@@ -120,6 +121,7 @@ C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
 C****
 C**** MAIN LOOP
 C****
+      tloopbegin=secnds(0.0)
       DO WHILE (Itime.lt.ItimeE)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
@@ -462,6 +464,8 @@ C**** Flag to continue run has been turned off
       END IF
 
       END DO
+      tloopend=secnds(tloopbegin)
+      print *, "Time spent in the main loop in seconds:", tloopend
 C****
 C**** END OF MAIN LOOP
 C****

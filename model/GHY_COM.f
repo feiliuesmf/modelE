@@ -339,9 +339,9 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
               GO TO 10
             END IF
           end if
-          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE ,local=.false.)
-          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE ,local=.false.)
-          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0,local=.false.)
+          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE )
+          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE )
+          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
         END SELECT
 #endif
@@ -432,9 +432,9 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
           end if
 
           CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,1,:,:)
-     &                          , TR_WSN_IJ(:,:,1,:,:), local=.false. )
+     &                          , TR_WSN_IJ(:,:,1,:,:))
           CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,2,:,:)
-     &                          , TR_WSN_IJ(:,:,2,:,:), local=.false. )
+     &                          , TR_WSN_IJ(:,:,2,:,:))
         END SELECT
 #endif
       END SELECT

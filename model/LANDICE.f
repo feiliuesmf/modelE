@@ -274,7 +274,7 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP, only : grid, ARRAYGATHER, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
       USE DOMAIN_DECOMP, only : UNPACK_COLUMN
       USE LANDICE_COM
@@ -331,8 +331,8 @@ C**** Gather into global arrays
 C****** Get useful ESMF parameters
         CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 C****** Load data into distributed arrays
-        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI,local=.false. )
-        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI,local=.false. )
+        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI)
+        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI)
 !       SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
 !       TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
 
@@ -348,13 +348,8 @@ C****** Load data into distributed arrays
             END IF
           end if    !..am_i_root
 C********* Load data into distributed arrays
-          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI,
-     &         local=.false. )
-          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI,local=.false.)
-!         TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
-!    &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
-!         TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 
-!    &  = TRLNDI_GLOB(  1:NTM,1:IM,J_0H:J_1H)
+          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI)
+          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI)
         END SELECT
 #endif
 

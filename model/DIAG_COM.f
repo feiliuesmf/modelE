@@ -751,22 +751,23 @@ c idacc-indices of various processes
             WRITE (kunit,err=10) MODULE_HEADER,it
           END IF
         CASE (ioread)           ! input from restart file
-          if (AM_I_ROOT())
-     *       READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
-          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST, local=.false.)
+          if (AM_I_ROOT()) THEN
+           READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
+           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+           END IF
+          endif 
+          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
           CALL ESMF_BCAST(grid, idacc)
           CALL ESMF_BCAST(grid, it   )
           
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
         CASE (IOREAD_SINGLE)      !
 !ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
           if (AM_I_ROOT())
      *       READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
           CALL UNPACK_COLUMN(grid, REAL(AFLX4,KIND=8),
-     *                                          AFLX_ST, local=.false.)
+     *                                          AFLX_ST)
 	  CALL ESMF_BCAST(grid,idac1)
           CALL ESMF_BCAST(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
@@ -848,68 +849,74 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
         END IF
       CASE (ioread)           ! input from restart file
-        if (AM_I_ROOT())
-     *     READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
+        if (AM_I_ROOT()) Then
+          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,
      *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
      *       TDIURN_glob,OA_glob,it
-
-        CALL ESMF_BCAST(grid, keyct )
-        CALL ESMF_BCAST(grid, KEYNR )
-        CALL ESMF_BCAST(grid, idacc )
-        CALL ESMF_BCAST(grid, AREG  )
-        CALL ESMF_BCAST(grid, AIL   )
-        CALL ESMF_BCAST(grid, ENERGY)
-        CALL ESMF_BCAST(grid, SPECA )
-        CALL ESMF_BCAST(grid, ATPE  )
-        CALL ESMF_BCAST(grid, ADIURN)
-        CALL ESMF_BCAST(grid, WAVE  )
-        CALL ESMF_BCAST(grid, AISCCP)
-        CALL ESMF_BCAST(grid, HDIURN)
-        CALL ESMF_BCAST(grid, it    )
-        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc, local=.false.)
-        CALL UNPACK_DATAj(grid, AJ,     AJ_loc,     local=.false.)
-        CALL UNPACK_DATAj(grid, APJ,    APJ_loc,    local=.false.)
-        CALL UNPACK_DATAj(grid, AJL,    AJL_loc,    local=.false.)
-        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc,   local=.false.)
-        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc,    local=.false.)
-        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc, local=.false.)
-        CALL UNPACK_DATAj(grid, AJK,    AJK_loc,    local=.false.)
-        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc,   local=.false.)
-        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN, local=.false.)
-        CALL UNPACK_DATA(grid,  OA_glob,     OA,     local=.false.)
-        
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+        END IF
+
+        Call BCAST_Scalars()
+        Call Scatter_Diagnostics()
+        
       CASE (IOREAD_SINGLE)      !
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *     idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
-     *     SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
-     *     monac1,it_check
-        if(it.ne.it_check) then
-          PRINT*,"io_diags: compare aj,aj4, ... dimensions"
-          GO TO 10 ! or should that be just a warning ??
-        end if
-        TSFREZ(:,J_0:J_1,:)=TSFREZ4(:,J_0:J_1,:)
-        AJ_loc(J_0:J_1,:,:)=AJ_loc(J_0:J_1,:,:)+AJ4(J_0:J_1,:,:)
-        AREG=AREG+AREG4
-        APJ_loc(J_0:J_1,:)=APJ_loc(J_0:J_1,:)+APJ4(J_0:J_1,:)
-        AJL_loc(J_0:J_1,:,:)=AJL_loc(J_0:J_1,:,:)+AJL4(J_0:J_1,:,:)
-        ASJL_loc(J_0:J_1,:,:)=ASJL_loc(J_0:J_1,:,:)+ASJL4(J_0:J_1,:,:)
-        AIJ_loc(:,J_0:J_1,:)=AIJ_loc(:,J_0:J_1,:)+AIJ4(:,J_0:J_1,:)
-        AIL=AIL+AIL4
-        ENERGY=ENERGY+ENERGY4
-        CONSRV_loc(J_0:J_1,:)=CONSRV_loc(J_0:J_1,:)+CONSRV4(J_0:J_1,:)
-        SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
-        WAVE=WAVE+WAVE4
-        AJK_loc(J_0:J_1,:,:)=AJK_loc(J_0:J_1,:,:)+AJK4(J_0:J_1,:,:)
+        If (AM_I_ROOT()) Then
+          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
+     *       idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
+     *       SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
+     *       monac1,it_check
+          if(it.ne.it_check) then
+            PRINT*,"io_diags: compare aj,aj4, ... dimensions"
+            GO TO 10            ! or should that be just a warning ??
+          end if
+        End If
+
+        ! copy to full precision variables
+        ! First "non-distributed" arrays
+        If (AM_I_ROOT()) Then
+          AREG=AREG+AREG4
+          AIL=AIL+AIL4
+          ENERGY=ENERGY+ENERGY4
+          SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
+          WAVE=WAVE+WAVE4
+          AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
+          IDACC = IDACC + IDAC1
+        End If
+
+        ! Send to other processors
+        Call BCAST_Scalars()
+
+        ! Now for the distributed arrays
+        TSFREZ= TSFREZ4
+        AJ    = AJ4
+        APJ   = APJ4
+        AJL   = AJL4
+        ASJL  = ASJL4
+        AIJ   = AIJ4
+        CONSRV= CONSRV4
+        AJK   = AJK4
+        AIJK  = AIJK4
+
+        Call Scatter_Diagnostics()
+
+        TSFREZ_LOC(:,J_0:J_1,:)=TSFREZ(:,J_0:J_1,:)
+        AJ_loc(J_0:J_1,:,:)=AJ_loc(J_0:J_1,:,:)+AJ(J_0:J_1,:,:)
+        APJ_loc(J_0:J_1,:)=APJ_loc(J_0:J_1,:)+APJ(J_0:J_1,:)
+        AJL_loc(J_0:J_1,:,:)=AJL_loc(J_0:J_1,:,:)+AJL(J_0:J_1,:,:)
+        ASJL_loc(J_0:J_1,:,:)=ASJL_loc(J_0:J_1,:,:)+ASJL(J_0:J_1,:,:)
+        AIJ_loc(:,J_0:J_1,:)=AIJ_loc(:,J_0:J_1,:)+AIJ(:,J_0:J_1,:)
+        CONSRV_loc(J_0:J_1,:)=CONSRV_loc(J_0:J_1,:)+CONSRV(J_0:J_1,:)
+        AJK_loc(J_0:J_1,:,:)=AJK_loc(J_0:J_1,:,:)+AJK(J_0:J_1,:,:)
         AIJK_loc(:,J_0:J_1,:,:)=AIJK_loc(:,J_0:J_1,:,:)+
-     *       AIJK4(:,J_0:J_1,:,:)
-        AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
-        IDACC = IDACC + IDAC1
+     *       AIJK(:,J_0:J_1,:,:)
+
+          
+
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,
 !****   we average their beginnings (up to the length of the shortest)
@@ -927,6 +934,39 @@ C**** The regular model (Kradia le 0)
       RETURN
  10   IOERR=1
       RETURN
+      Contains
+
+      Subroutine BCAST_Scalars()
+        CALL ESMF_BCAST(grid, keyct )
+        CALL ESMF_BCAST(grid, KEYNR )
+        CALL ESMF_BCAST(grid, idacc )
+        CALL ESMF_BCAST(grid, AREG  )
+        CALL ESMF_BCAST(grid, AIL   )
+        CALL ESMF_BCAST(grid, ENERGY)
+        CALL ESMF_BCAST(grid, SPECA )
+        CALL ESMF_BCAST(grid, ATPE  )
+        CALL ESMF_BCAST(grid, ADIURN)
+        CALL ESMF_BCAST(grid, WAVE  )
+        CALL ESMF_BCAST(grid, AISCCP)
+        CALL ESMF_BCAST(grid, HDIURN)
+        CALL ESMF_BCAST(grid, it    )
+      End Subroutine BCAST_Scalars
+
+      Subroutine Scatter_Diagnostics()
+        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
+        CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
+        CALL UNPACK_DATAj(grid, APJ,    APJ_loc)
+        CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
+        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
+        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
+        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
+        CALL UNPACK_DATAj(grid, AJK,    AJK_loc)
+        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
+        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
+        CALL UNPACK_DATA(grid,  OA_glob,     OA)
+      End Subroutine Scatter_Diagnostics
+
+
       END SUBROUTINE io_diags
 
       SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)

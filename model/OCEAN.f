@@ -1231,8 +1231,7 @@ C****
       CASE (IOREAD:)            ! input
         if ( AM_I_ROOT() )
      *    READ (kunit,err=10) it,AIJ_tmp_glob
-          CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2), 
-     *         local=.false.)
+          CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2))
       END SELECT
 
       RETURN

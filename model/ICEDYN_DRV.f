@@ -180,10 +180,10 @@ C**** stencils.
               GO TO 10
             END IF
           end if
-          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX, local=.false.)
-          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY, local=.false.)
-          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI, local=.false.)
-          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI, local=.false.)
+          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX)
+          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY)
+          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI)
+          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI)
         END SELECT
       END SELECT
 
@@ -287,7 +287,7 @@ C**** accumulate diagnostics
               GO TO 10
             END IF
           end if
-          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ, local=.false.)
+          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ)
           call ESMF_BCAST(grid_MIC, it)
 #ifdef TRACERS_WATER
           if ( AM_I_ROOT() ) then	
@@ -298,7 +298,7 @@ C**** accumulate diagnostics
               GO TO 10
             END IF
           end if
-          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ, local=.false.)
+          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ)
           call ESMF_BCAST(grid_MIC, it)
 #endif
         CASE (IRSFIC)  ! initial conditions
@@ -825,10 +825,10 @@ C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
 C**** Currently this is on atmospheric grid
       MHS(1,:,J_0:J_1) = ACE1I + SNOWI(:,J_0:J_1)
-      MHS(2,:,:) = MSI
+      MHS(2,:,J_0:J_1) = MSI(:,J_0:J_1)
       DO L=1,LMI
-        MHS(L+2,:,:) = HSI(L,:,:)
-        MHS(L+2+LMI,:,:) = SSI(L,:,:)
+        MHS(L+2,:,J_0:J_1) = HSI(L,:,J_0:J_1)
+        MHS(L+2+LMI,:,J_0:J_1) = SSI(L,:,J_0:J_1)
       END DO
 #ifdef TRACERS_WATER
 C**** add tracers to advected arrays

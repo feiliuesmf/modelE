@@ -1430,8 +1430,8 @@ C****
             GO TO 10
           END IF
         end if
-        CALL UNPACK_DATA(grid, AIRX_GLOB, AIRX, local=.false.)
-        CALL UNPACK_COLUMN(grid,LMC_GLOB, LMC , local=.false.)
+        CALL UNPACK_DATA(grid, AIRX_GLOB, AIRX)
+        CALL UNPACK_COLUMN(grid,LMC_GLOB, LMC)
       END SELECT
       RETURN
  10   IOERR=1

@@ -76,8 +76,8 @@
             GO TO 10
           END IF
         end if
-        CALL UNPACK_COLUMN(grid, TMOM_GLOB, TMOM, local=.false.)
-        CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM, local=.false.)
+        CALL UNPACK_COLUMN(grid, TMOM_GLOB, TMOM)
+        CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM)
       END SELECT
 
       RETURN

@@ -69,7 +69,7 @@
 #endif
 #endif
 #endif
-      USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
+      USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subs
      *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj,lp50,hcndss
      *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss

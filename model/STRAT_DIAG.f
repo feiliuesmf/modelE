@@ -337,7 +337,7 @@ C****
 C**** RX(J,L) ..... ([V'TH']/[DTH/DP]) TRANSFORMATION GAUGE
 C****               (U-wind grid, level edges)  (m mb s-1)
 
-      CALL HALO_UPDATE(grid, T, from = SOUTH)
+      CALL HALO_UPDATE(grid,T,FROM=SOUTH)
 
 
       CALL HALO_UPDATE(grid, TI(:,1)  , from = SOUTH)
@@ -546,7 +546,7 @@ CW          CALL WRITJL ('U - FINAL       ',AX,1.)
 CW          CALL WRITJL ('DU - TOTAL      ',AEP(1,1,KEP-1,1.)
 CW         WRITE (36,'('' TAU='',F12.0,''  IDUM(1)='',I6)') TAU,IDUM(1)
       RETURN
-      END
+      END SUBROUTINE EPFLUX
 
       SUBROUTINE EPFLXP
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
@@ -812,7 +812,7 @@ CW      CALL WRITJL ('DUDT: MEAN TRANS',DMFR,SCALEP)
 CW      CALL WRITJL ('DUDT: EDDY TRANS',DEFR,SCALEP)
 CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
       RETURN
-      END
+      END SUBROUTINE EPFLXP
 
       SUBROUTINE AVGI (X,XI)
 !@sum  AVGI average a 3-dimensional array in the x-direction
@@ -876,5 +876,4 @@ C****
       END DO
 C****
       RETURN
-      END
-
+      END SUBROUTINE AVGI

@@ -1400,19 +1400,23 @@ Contains
     Integer :: stride, n_blocks, blocklen
     Integer :: ext_lb
     Integer :: base_byte_len, new_len
-    Integer :: vector_type
+    Integer :: vector_type, vector_temp
     Integer :: ier
 
     n_blocks = Product(counts(dist_idx+1:))
     blocklen = Product(counts(:dist_idx-1))
     stride = counts(dist_idx) * blocklen
 
-    Call MPI_Type_vector(n_blocks, blocklen, stride, base_type, vector_type, ier)
+!   Call MPI_Type_vector(n_blocks, blocklen, stride, base_type, vector_type, ier)
+    Call MPI_Type_vector(n_blocks, blocklen, stride, base_type, vector_temp, ier)
+    Call MPI_Type_Commit(vector_temp, ier)
+
     Call MPI_Type_extent(base_type, base_byte_len, ier)
     new_len = base_byte_len * blocklen
     Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /), &
-         & (/ vector_type, MPI_UB /), vector_type, ier)
+         & (/ vector_temp, MPI_UB /), vector_type, ier)
     Call MPI_Type_Commit(vector_type, ier)
+    Call MPI_Type_free(vector_temp, ier)
 
     new_type = vector_type
 

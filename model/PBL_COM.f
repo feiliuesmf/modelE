@@ -152,7 +152,7 @@
               GO TO 10
             END IF
           end if
-          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL, local=.false.)
+          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL)
         END SELECT
 #endif
       END SELECT
@@ -166,9 +166,10 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : GET, grid, ARRAYGATHER, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : GET, grid, AM_I_ROOT
       USE DOMAIN_DECOMP, only : CHECKSUM, CHECKSUM_COLUMN
       USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
+      USE DOMAIN_DECOMP, only : PACK_DATA, PACK_COLUMN
       USE PBLCOM
       IMPLICIT NONE
 
@@ -192,23 +193,20 @@
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        CALL ARRAYGATHER(grid, wsavg, wsavg_glob)
-        CALL ARRAYGATHER(grid, tsavg, tsavg_glob)
-        CALL ARRAYGATHER(grid, qsavg, qsavg_glob)
-        CALL ARRAYGATHER(grid, dclev, dclev_glob)
-        CALL ARRAYGATHER(grid, usavg, usavg_glob)
-        CALL ARRAYGATHER(grid, vsavg, vsavg_glob)
-        CALL ARRAYGATHER(grid, tauavg, tauavg_glob)
-        CALL ARRAYGATHER(grid, tgvavg, tgvavg_glob)
-        CALL ARRAYGATHER(grid, qgavg(:,:), qgavg_glob(:,:))
+        CALL PACK_DATA(grid, wsavg, wsavg_glob)
+        CALL PACK_DATA(grid, tsavg, tsavg_glob)
+        CALL PACK_DATA(grid, qsavg, qsavg_glob)
+        CALL PACK_DATA(grid, dclev, dclev_glob)
+        CALL PACK_DATA(grid, usavg, usavg_glob)
+        CALL PACK_DATA(grid, vsavg, vsavg_glob)
+        CALL PACK_DATA(grid, tauavg, tauavg_glob)
+        CALL PACK_DATA(grid, tgvavg, tgvavg_glob)
+        CALL PACK_DATA(grid, qgavg, qgavg_glob)
 
-        DO K=1,4
-          CALL ARRAYGATHER(grid,ustar_pbl(:,:,K),ustar_pbl_glob(:,:,K))
-        END DO
-        DO L = 1, LM
-          CALL ARRAYGATHER(grid, egcm(L,:,:), egcm_glob(L,:,:))
-          CALL ARRAYGATHER(grid, w2gcm(L,:,:), w2gcm_glob(L,:,:))
-        END DO
+        CALL PACK_DATA(grid, ustar_pbl, ustar_pbl_glob)
+        CALL PACK_COLUMN(grid, egcm, egcm_glob)
+        CALL PACK_COLUMN(grid, w2gcm, w2gcm_glob)
+
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,wsavg_glob,tsavg_glob
      *         ,qsavg_glob,dclev_glob,usavg_glob,vsavg_glob,tauavg_glob
@@ -237,23 +235,10 @@
         call UNPACK_DATA(grid, tauavg_glob, tauavg)
         call UNPACK_DATA(grid, tgvavg_glob, tgvavg)
         call UNPACK_DATA(grid, qgavg_glob, qgavg)
-        CALL CHECKSUM(grid, wsavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, tsavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, qsavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, dclev, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, usavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, vsavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, tauavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, tgvavg, __LINE__, __FILE__)
-        CALL CHECKSUM(grid, qgavg, __LINE__, __FILE__)
 
         call UNPACK_DATA(grid, ustar_pbl_glob, ustar_pbl)
         call UNPACK_COLUMN(grid, egcm_glob, egcm)
         call UNPACK_COLUMN(grid, w2gcm_glob, w2gcm)
-
-        CALL CHECKSUM       (grid, ustar_pbl, __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, egcm, __LINE__, __FILE__)
-        CALL CHECKSUM_COLUMN(grid, w2gcm, __LINE__, __FILE__)
 
       END SELECT
 
