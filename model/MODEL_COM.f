@@ -153,6 +153,8 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       INTEGER, DIMENSION(2,IM,JM) :: LMC
 !@var DO_GWDRAG when true, prints Gravity Wave diagnostics
       LOGICAL :: DO_GWDRAG = .false.
+!@var iDO_GWDRAG number if AIJ Gravity wave diagnostics
+      INTEGER :: iDO_GWDRAG = 0
 
 !@var LSDRAG level above which SDRAG is applied (above 1 mb)
       INTEGER :: LSDRAG=LM  ! default=LM

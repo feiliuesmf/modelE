@@ -153,7 +153,8 @@ c
 
       subroutine j_defs
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
-      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige, DO_GWDRAG
+      use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige, DO_GWDRAG,
+     *  iDO_GWDRAG
       use DAGCOM
       use DAGPCOM, only : p1000k
       implicit none
@@ -2213,15 +2214,14 @@ c
       ir_ij(k) = ir_0_3550
 c
 c Gravity Wave diagnostics   
-!     if (DO_GWDRAG) then
-!     ij_gwdrag = k+1       ! <<<<
+      iDO_GWDRAG = 0
+      if (DO_GWDRAG) then
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW1 = k 
       name_ij(k) = 'ij_def_drag_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT DEFORM WAVE MOM FLX'
       lname_ij(k) = 'DEFORM. DRAG MOM FLUX'
-      units_ij(k) = '.1 NT/M**2'
+      units_ij(k) = '.1 N/M**2'
       scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2229,9 +2229,8 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW2 = k
       name_ij(k) = 'ij_mtn_wave_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT MTN WAVE MOM FLX'
       lname_ij(k) = 'MTN WAVE MOM. FLUX'
-      units_ij(k) = '.1 NT/M**2'  ! dynes/cm^2
+      units_ij(k) = '.1 N/M**2'  ! dynes/cm^2
       scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2239,9 +2238,8 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW3 = k
       name_ij(k) = 'ij_shr_wave_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT SHR WAVE MOM FLX'
       lname_ij(k) = 'SHEAR WAVE MOM. FLUX'
-      units_ij(k) = '.001 NT/M**2'
+      units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2249,9 +2247,8 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW4 = k
       name_ij(k) = 'ij_mc_c_m10r_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT MC C=-10 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-10R MOM. FLUX'
-      units_ij(k) = '.001 NT/M**2'
+      units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2259,9 +2256,8 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW5 = k
       name_ij(k) = 'ij_mc_c_m20r_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT MC C=-20 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-20R MOM. FLUX'
-      units_ij(k) = '.001 NT/M**2'
+      units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2269,9 +2265,8 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW6 = k
       name_ij(k) = 'ij_mc_c_m40r_mom_flux'
-!     lname_ij(k) = 'E/W INCIDENT MC C=-40 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-40R MOM. FLUX'
-      units_ij(k) = '.001 NT/M**2'
+      units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
@@ -2279,8 +2274,7 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW7 = k
       name_ij(k) = 'ij_phase_speed_of_wind_shear'
-!     lname_ij(k) = 'PHASE SPEED OF SHEAR WAVE'
-      lname_ij(k) = 'PHASE SPEED OF WIND SHEAR'
+      lname_ij(k) = 'PHASE SPEED OF SHEAR WAVE'
       units_ij(k) = 'M/S'
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m45_130
@@ -2288,7 +2282,7 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW8 = k
       name_ij(k) = 'ij_source_speed_of_mc'
-      lname_ij(k) = 'SOURCE SPEED OF MC'
+      lname_ij(k) = 'MC SOURCE WIND SPEED'
       units_ij(k) = 'M/S'
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m45_130
@@ -2296,12 +2290,13 @@ c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW9 = k
       name_ij(k) = 'ij_exit_tot_mom_flux'
-!     lname_ij(k) = 'EXIT MOM. FLUX OF ALL WAVES'   !???
       lname_ij(k) = 'EXIT TOT. MOM. FLUX'
-      units_ij(k) = '.0001 NT/M**2'
+      units_ij(k) = '.0001 N/M**2'
       scale_ij(k) = 10000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
+      iDO_GWDRAG = k-IJ_GW1+1
+      END IF
 
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k

@@ -3102,7 +3102,7 @@ c     USE DAGCOM, only : QCHECK,acc_period,iu_ij
      &     im,jm,lm,byim,
      &     FLAND,FLICE,FEARTH,FOCEAN,vdata,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
 c     USE DAGCOM, only :
@@ -3127,7 +3127,7 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
 
-      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange,iu_Iij
+      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange,iu_Iij,koff
 
       DOUBLE PRECISION ::
      &     DAYS,ZNDE16,ZS,DPTI,PVTI,gm,
@@ -3139,8 +3139,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      kmaplets = 51
-      nmaplets = kmaplets+(kgz_max-1)*2 ; nmaps = 2
+      kmaplets = 42
+      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 ; nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
@@ -3155,15 +3155,17 @@ C**** standard printout
      *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld,    !        row 2
-     *  ij_gw1,     ij_gw2,     ij_gw3,      ! pg  8  row 1
-     *  ij_gw4,     ij_gw5,     ij_gw6,      !        row 2
-     *  ij_gw7,     ij_gw8,     ij_gw9/)     ! pg  9  row 1
+     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
 
+C**** Fill in maplet indices for gravity wave diagnostics
+      do k=1,iDO_GWDRAG
+        iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
+      end do
 C**** Fill in maplet indices for geoptential heights and thickness T's
+      koff = kmaplets+iDO_GWDRAG
       do k=1,kgz_max-1
-        iord(k+kmaplets) = ij_phi1k+k  !i.e. first entry is ij_phi850
-        iord(k+kmaplets+kgz_max-1) = ij_dzt1+k-1
+        iord(k+koff) = ij_phi1k+k  !i.e. first entry is ij_phi850
+        iord(k+koff+kgz_max-1) = ij_dzt1+k-1
       end do
 
 C**** Add the full-page maps (nmaps)
