@@ -285,7 +285,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8, DIMENSION(LMI) :: TSIL
       REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
       REAL*8 DEW, CMPRS, DEW1, DEW2, EVAP1
-      REAL*8 SMELT1, SMELT12, SMELT3, SMELT4, FSSI1, FSSI2, FSSI3, SS12
+      REAL*8 SMELT1, SMELT2, SMELT3, SMELT4, FSSI1, FSSI2, FSSI3, SS12
       REAL*8 FMSI1, FMSI2, FMSI3, FHSI1, FHSI2, FHSI3
       REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3, FO
@@ -293,7 +293,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       IF (ROICE .EQ. 0.) RETURN
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
       FHSI1=0. ; FHSI2=0. ; FHSI3=0.
-      SMELT12=0; SMELT3=0.; SMELT4=0.
+      SMELT1=0 ; SMELT2=0. ; SMELT3=0.; SMELT4=0.
       FSSI2=0. ; FSSI3=0.
 #ifdef TRACERS_WATER
       FTRSI1=0. ; FTRSI2=0. ; FTRSI3=0. 
@@ -388,31 +388,25 @@ C**** CMPRS is amount of snow turned to ice during melting
 C**** Calculate remaining snow and necessary mass flux using
 C**** SNOW =SNOW -       SNMELT        + DEW1 - CMPRS
 C**** ACE1I=ACE1I-(MELT1+MELT2-SNMELT) + DEW2 + CMPRS - FMSI2
-C**** SS12=SS12- SMELT12                            - FSSI2
+C**** SS12=SS12- SMELT1 -SMELT2                       - FSSI2
 C****
       IF (SNOW.GT.SNMELT+EVAP1) THEN ! some snow remains
         CMPRS = MIN(dSNdML*SNMELT, SNOW-EVAP1-SNMELT) ! > 0.
         DSNOW = - (SNMELT+EVAP1+CMPRS)
-        SMELT12=(MELT1+MELT2-SNMELT)*SS12/ACE1I
+        SMELT2=(MELT1+MELT2-SNMELT)*SS12/ACE1I
         SMELT1=0.
-#ifdef TRACERS_WATER
-C**** tracer melt1 is calculated only from snow concentration (not ice)
-        TRMELT1(:)=MELT1*TRSIL(:,1)/(XSI(1)*MSI1+DEW1-SSIL(1))
-        TRMELT2(:)=MELT2*TRSIL(:,2)/(XSI(2)*MSI1+DEW2)
-#endif
       ELSE ! all snow and some ice melts or evaporates
         CMPRS = 0.
         DSNOW = -SNOW
-        SMELT12=(MELT1+MELT2+MIN(0d0,EVAP1-SNOW))*SS12/(ACE1I-MAX(0d0
-     *       ,EVAP1-SNOW))
         SMELT1=(MELT1+MIN(0d0,EVAP1-SNOW))*SS12/(ACE1I-MAX(0d0
      *       ,EVAP1-SNOW))
-#ifdef TRACERS_WATER
-C**** tracer melt1 is calculated using fresh water concentration 
-        TRMELT1(:)=(MELT1-SMELT1)*TRSIL(:,1)/(XSI(1)*MSI1+DEW1-SSIL(1))
-        TRMELT2(:)=MELT2*TRSIL(:,2)/(XSI(2)*MSI1+DEW2)
-#endif
+        SMELT2= MELT2*SS12/(ACE1I-MAX(0d0,EVAP1-SNOW))
       END IF
+#ifdef TRACERS_WATER
+C**** tracer melt is calculated using fresh water concentration 
+      TRMELT1(:)=(MELT1-SMELT1)*TRSIL(:,1)/(XSI(1)*MSI1+DEW1-SSIL(1))
+      TRMELT2(:)=(MELT2-SMELT2)*TRSIL(:,2)/(XSI(2)*MSI1+DEW2-SSIL(2)) 
+#endif
 
 C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = -DSNOW+DEW-MELT1-MELT2 ! either up or down
@@ -447,7 +441,7 @@ C**** Fluxes between first two layers are complicated because salinty
 C**** is evenly shared over the ice portion, and zero for the snow, 
 C**** while tracers have distinct concentrations with respect to the 
 C**** fresh water mass in both layers
-      SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT12
+      SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT1-SMELT2
       FSSI1=SSIL(1)-SMELT1-SS12*MAX(0d0,
      *     XSI(1)*ACE1I-(SNOW+DSNOW)*XSI(2))/ACE1I
 
@@ -461,7 +455,7 @@ C**** fresh water mass in both layers
         FHSI1 = FMSI1*HSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
 #ifdef TRACERS_WATER
         FTRSI1(:)=(FMSI1-FSSI1)*(TRSIL(:,2)-TRMELT2(:))/
-     *       (XSI(2)*MSI1+DEW2-MELT2-SSIL(2)+SMELT12-SMELT1)
+     *       (XSI(2)*MSI1+DEW2-MELT2-SSIL(2)+SMELT2)
 #endif
       END IF
 
@@ -493,7 +487,7 @@ C**** Apply fluxes
 
 C**** Note salinity is evenly shared over ice portion
       SSIL(1)=SSIL(1)-SMELT1 - FSSI1
-      SSIL(2)=SSIL(2)-(SMELT12-SMELT1)+(FSSI1-FSSI2)
+      SSIL(2)=SSIL(2)-SMELT2 +(FSSI1-FSSI2)
       SSIL(3)=SSIL(3)-SMELT3 +(FSSI2-FSSI3)
       SSIL(4)=SSIL(4)-SMELT4 + FSSI3
 
@@ -507,7 +501,7 @@ C**** Apply the tracer fluxes
 
 C**** Calculate additional runoff output fluxes 
       RUN = MELT1+MELT2+MELT3+MELT4 ! mass flux to ocean
-      SRUN= SMELT12+SMELT3+SMELT4   ! salt flux to ocean
+      SRUN= SMELT1+SMELT2+SMELT3+SMELT4   ! salt flux to ocean
 c HMELT currently assumed to be zero since melting is at 0 deg 
       ERUN= SROX(2)        ! + HMELT 
 #ifdef TRACERS_WATER
@@ -1061,14 +1055,6 @@ c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
         Sb = min(max(Sib,Sb0 - f0/df),40d0)
         Sb0=Sb
       end do
-#ifdef TRACERS_WATER
-C**** Tracers use salinity turbulent diffusion term
-      if (m.gt.0) then
-        Trib(:)=Tri(:)
-      else
-        Trib(:)=tralpha(:)*rhow*g_S*Trm(:)/(rhow*g_S+m*(1.-tralpha(:)))
-      end if
-#endif
 C**** define fluxes (positive down)
 C**** Cap mass flux at at 90% of bottom layer
       if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
@@ -1078,7 +1064,14 @@ C**** Cap mass flux at at 90% of bottom layer
       sflux = 1d-3*m*Sib              ! (kg/m^2 s)
       hflux = alamdh*(Ti-Tb) - m*lh +m*shw*Tb ! (J/m^2 s)
 #ifdef TRACERS_WATER
-      trflux(:) = (m - sflux) * Trib(:)
+C**** Tracers use salinity turbulent diffusion term
+      if (m.gt.0) then
+        Trib(:)=Tri(:)
+      else
+        Trib(:)=tralpha(:)*rhow*g_S*Trm(:)/(rhow*g_S+(m-sflux)*(1.
+     *       -tralpha(:)))
+      end if
+      trflux(:) = (m - sflux) * Trib(:)  ! (kg/m^2 s)
 #endif
 C****
       return

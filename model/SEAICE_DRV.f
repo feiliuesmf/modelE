@@ -121,7 +121,8 @@ C****
       USE GEOM, only : sinp,imaxj,dxyp
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
 #ifdef TRACERS_WATER
-     *     ,ntm,trsi
+     *     ,trsi
+      USE TRACER_COM, only : ntm, trname
 #endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
       USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
@@ -138,6 +139,9 @@ C****
      *     ,mlsh,tofrez   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
+#ifdef TRACERS_SPECIAL_O18           
+      REAL*8 fracls
+#endif
 #endif
 
       DO J=1,JM
@@ -150,7 +154,11 @@ C**** Set mixed layer conditions
 #ifdef TRACERS_WATER
             Trm(:)=GTRACER(:,1,I,J)
             Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J)-SSI(LMI,I,J))
+#ifdef TRACERS_SPECIAL_O18           
+            tralpha(:)=fracls(trname(:))
+#else
             tralpha(:)=1.
+#endif
 #endif
             dh = 0.5*(XSI(LMI)*MSI(I,J))/RHOI
 c            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
