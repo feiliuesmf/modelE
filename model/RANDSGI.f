@@ -47,4 +47,30 @@ C**** functions are in the same place, for ease of change on other
 C**** platforms
       MNOW = MCLOCK()
       RETURN
-      END
+      END SUBROUTINE GETTIME
+
+      SUBROUTINE exit_rc (code)
+!@sum  exit_rc stops the run and sets a return code
+!@auth Reto A Ruedy
+!@ver  1.0 (SGI version)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: code !@var return code set by user
+C**** Note this routine is only here so that all MCLOCK related
+C**** functions are in the same place, for ease of change on other
+C**** platforms
+      SELECT CASE (code)
+      CASE (:10)
+        stop     ! not used yet: rc=0
+      CASE (11)
+        call exit (11)
+      CASE (12)
+        call exit (12)
+      CASE (13)
+        call exit (13)
+      CASE (14:250,252:)
+        stop ! not used yet: rc=0
+      CASE (251)
+        call exit (251)
+      END SELECT
+      RETURN
+      END SUBROUTINE exit_rc

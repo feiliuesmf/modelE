@@ -108,8 +108,8 @@ C**** IO read/write flags used by the io_xyz routines
 !@param IOREAD Flag used for reading in (composite) restart files
 !@param IRSFIC Flag used for reading in restart part to start NEW run
 !@param IRERUN Flag used for reading in restart part to extend OLD run
-      INTEGER, PARAMETER :: ioread=1,irsfic=2,irerun=3,
-     *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
+      INTEGER, PARAMETER :: ioread=1,ioread_single=2,irerun=3,irsfic=4
+     *    ,iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
@@ -230,7 +230,7 @@ C****
 !@var itime input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 !@var JC1 dummy array
-      INTEGER JC1(100)
+      INTEGER JC1(100),k,kk
 !@var RC1 dummy array
       REAL*8 RC1(161)
 !@var CLABEL1 dummy label
@@ -238,6 +238,9 @@ C****
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
+!@var ITmin,ITmax minimal/maximal Itime of acc files to be summed up
+      INTEGER, SAVE :: ITmin , ITmax=-1
+      INTEGER, DIMENSION(5) :: IDtim0=(/10,36,38,40,42/) ! tmporary ????
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
@@ -254,15 +257,40 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         READ (kunit,err=10)
         SELECT CASE (IACTION)   ! set model common according to iaction
-        CASE (ioread)       ! use parameters and label from restart file
+        CASE (ioread) ! parameters/label from restartefile
           JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
         CASE (IRSFIC)       ! use defaults, rundeck label
          ! switch 'it' to 'ihour' using 'nday' of restart file ?????
-        CASE (IRERUN)       ! use params from rsfile, label from rundec
-          JC=JC1 ; RC=RC1
+        CASE (IRERUN)  ! params: rsfile, label: rundeck
+          JC=JC1 ; RC=RC1 ; CLABEL(133:156)=CLABEL1(133:156)
+        CASE (IOREAD_SINGLE) ! parameters/label from restart file
+          if (ITmax.lt.0) then
+            JC=JC1 ; RC=RC1 ; CLABEL=CLABEL1 ; ITmax=it ; ITmin=it
+            NTIMEACC=NTIM1
+            TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
+            TIMING(1:NTIM1)=TIM1(1:NTIM1)
+          else
+            do k=89,100
+               jc(k) = jc(k) + jc1(k)
+            end do
+            jc(93) = min(jc1(93),jc(93)-jc1(93))
+            jc1(89:100) = jc(89:100)   ! temporary ????
+            if (it.gt.ITmax) then
+               do k=1,5
+                  JC1(IDtim0(k)) = JC(IDtim0(k))
+               end do
+               JC=JC1 ; CLABEL(149:152)=CLABEL1(149:152) ; ITmax=it
+            else if (it.lt.ITmin) then
+               CLABEL(153:156)=CLABEL1(153:156)          ; ITmin=it
+               do k=1,5
+                  JC(IDtim0(k)) = JC1(IDtim0(k))
+               end do
+            end if
+            it=ITmax
+          end if
         END SELECT ! namelist parameters may still be changed in rundeck
       END SELECT
       RETURN

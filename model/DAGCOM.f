@@ -7,6 +7,17 @@
 
       IMPLICIT NONE
       SAVE
+!@var iu_ij,iu_jl,iu_il !  units for selected diag. output
+      INTEGER iu_ij,iu_jl,iu_il
+C**** Accumulating_period information
+!ny   INTEGER, PARAMETER :: NSAMPL  !@var NSAMPL # of sampling schemes
+!ny   INTEGER, DIMENSION(nsampl) :: IDACC   !@var IDACC acc-counters
+      INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
+      CHARACTER*12 ACC_PERIOD           !@var string MONyyr1-yyr2
+!@var AMON0,JMON0,JDAY0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
+!ny   CHARACTER*4 AMON0
+!ny   INTEGER JMON0,JDATE0,JYEAR0,JHOUR0,Itime0
+
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=94
@@ -57,9 +68,9 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER :: NPTS = 11  ! 9
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=18   ! 20?
+      INTEGER, PARAMETER :: NQUANT=18  ! 7 20?
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=125    !54
+      INTEGER, PARAMETER :: KCON=125   ! 54
 !@var CONSRV conservation diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
@@ -74,7 +85,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,icon_LKE
      *     ,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_MSI,icon_HSI
-     *     ,icon_SSI 
+     *     ,icon_SSI
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 23 ! take up first 23 indexes for special cases
 
@@ -96,6 +107,9 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: NDLYVAR=63
 !@param NDLYPT number of points where daily diagnostics are kept
       INTEGER, PARAMETER :: NDLYPT=4
+!@var IJD6,NAMD6 (i,j)-coord.,4-char names of boxes w/diurnal cycle diag
+!ny   INTEGER, DIMENSION(2,NDLYPT) :: IJD6
+!ny   CHARACTER*4, DIMENSION(NDLYPT) :: NAMD6
 !@var ADAILY daily diagnostics (24 hour cycles at selected points)
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDLYVAR,NDLYPT) :: ADAILY
 
@@ -115,7 +129,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER :: NWAV_DAG=9   !min(9,imh)
+      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
 !@param KAJLSP number of spectral diagnostics
       INTEGER, PARAMETER :: KAJLSP=3
 !@var AJLSP spectral diagnostics
@@ -139,6 +153,12 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
 
+      COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
+     &  ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
+     &  AJK,AIJK,AIJL,AJLSP
+      DOUBLE PRECISION, DIMENSION(KACC) :: ACC
+      EQUIVALENCE (ACC,AJ)
+
 !@var TSFREZ freezing temperature diagnostics
       integer, parameter :: ktsf=4
       DOUBLE PRECISION, DIMENSION(IM,JM,KTSF) :: TSFREZ
@@ -157,6 +177,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER :: NKEYMO=50
 !@var KEYNR time-series of key numbers
       INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR
+!ny   KEYCT !@var index of next line in KEYNR to be used (1->nkeymo)
 
 !@var IWRITE,JWRITE,ITWRITE grid point and surface type for diag. output
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
@@ -183,7 +204,7 @@ C****
       REAL*8, DIMENSION(IM,JM,12) :: OA
 
 C****
-C**** Information about acc-arrays:  
+C**** Information about acc-arrays:
 C****      names, indices, units, idacc-numbers, etc.
 
 !@var iparm/dparm int/double global parameters written to acc-file
@@ -299,12 +320,19 @@ c idacc-indices of various processes
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,irerun,irsfic,
+      USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic,
      *     iowrite,iowrite_mon,iowrite_single
       USE DAGCOM
       IMPLICIT NONE
+      REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
+      integer monac1(12)
+!@var cDATE0 beg.of acc-period date as string 'DY MNTH(MM) YEARhrHR'
+!ny   character*20 cDATE0,cDATE01    !@var Cdate01 dummy date string
+!@var ITmin minimal Itime of acc files to be summed up
+!ny   INTEGER, SAVE :: ITmin=-1
 
       INTEGER kunit   !@var kunit unit number of read/write
+!ny   INTEGER k,idac1(12)
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
@@ -315,6 +343,10 @@ c idacc-indices of various processes
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
+!ny     WRITE (cDATE0,'(i2,1x,a4,  a1,i2,a1,      i5,    a2,i2)')
+!ny  *                JDATE0,AMON0,'(',JMON0,')',JYEAR0,'hr',JHOUR0
+!ny     WRITE (kunit,err=10) MODULE_HEADER,cDATE0,keyct,KEYNR,TSFREZ,
+!old
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,
      *       ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
      *       AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it
@@ -323,7 +355,7 @@ c idacc-indices of various processes
      *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
      *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
-     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
+     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),monacc,
      *     it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
@@ -335,16 +367,81 @@ c idacc-indices of various processes
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-      CASE (Irsfic)      ! no diag-info at beginning of new run needed
+      CASE (IOREAD_SINGLE)      !
+        READ (kunit,err=10) HEADER,KEYNR,TSFREZS,ACCS,monac1
+        TSFREZ=TSFREZS
+        ACC=ACC+ACCS
+        monacc = monacc + monac1
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
         READ (kunit,err=10) HEADER,KEYNR,TSFREZ  ! 'it' is not read in
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+      CASE (Irsfic)      ! no diag-info at beginning of new run needed
       END SELECT
 
       RETURN
  10   IOERR=1
       RETURN
       END SUBROUTINE io_diags
+
+      SUBROUTINE aPERIOD (JMON1,JYR1,months,years,  aDATE,LDATE)
+!@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
+!@auth Reto A. Ruedy
+!@ver  1.0
+      USE MODEL_COM, only : AMONTH
+      implicit none
+
+      INTEGER JMON1,JYR1      !@var month,year of beginning of period 1
+      INTEGER JMONM,JMONL     !@var middle,last month of period
+      INTEGER months,years    !@var length of 1 period,number of periods
+      INTEGER yr1,yr2         !@var (end)year of 1st and last period
+      character*12 aDATE      !@var date string: MONyyr1(-yyr2)
+      INTEGER LDATE           !@var length of date string (7 or 12)
+
+      yr1=JYR1
+      JMONL=JMON1+months-1
+      if(JMONL.GT.12) then
+         JMONL=JMONL-12
+         yr1=JYR1+1
+      end if
+      yr2=yr1+years-1
+      JMONM = JMONL-1
+      IF(JMONM.eq.0) JMONM=12
+      LDATE=7
+      if(years.gt.1) LDATE=12
+
+      aDATE(1:3)=AMONTH(JMON1)                 ! letters 1-3 of month 1
+      write(aDATE(4:12),'(i4.4,a1,i4.4)') yr1,'-',yr2
+      if(months.gt.12) aDATE(1:1)='x'
+      if(months.le.1 .or. months.gt.12) return
+
+C**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
+C****    =F+L                                        for 2 month periods
+C****    =FML where M=letter 1 of Middle month       for 3 month periods
+C****    =FnL where n=length of period if n>3         4-11 month periods
+      IF (months.gt.1) aDATE(3:3)=AMONTH(JMONL)(1:1)
+      IF (months.eq.2) aDATE(2:2)='+'
+      IF (months.eq.3) aDATE(2:2)=AMONTH(JMONM)(1:1)
+      IF (months.ge.4.and.months.le.9) write (aDATE(2:2),'(I1)') months
+      IF (months.eq.10) aDATE(2:2)='X'         ! roman 10
+      IF (months.eq.11) aDATE(2:2)='B'         ! hex   11
+      IF (months.eq.6) THEN                    !    exceptions:
+         IF (JMON1.eq. 5) aDATE(1:3)='NHW'     ! NH warm season May-Oct
+         IF (JMON1.eq.11) aDATE(1:3)='NHC'     ! NH cold season Nov-Apr
+      END IF
+      IF (months.eq.7) THEN                    !    to avoid ambiguity:
+         IF (JMON1.eq. 1) aDATE(1:3)='J7L'     ! Jan-Jul J7J->J7L
+         IF (JMON1.eq. 7) aDATE(1:3)='L7J'     ! Jul-Jan J7J->L7J
+      END IF
+      IF (months.eq.12) THEN
+C****    beg=ANn where the period ends with month n if n<10 (except 4)
+         aDATE(1:3)='ANN'                      ! regular annual mean
+         IF (JMONL.le. 9) WRITE(aDATE(3:3),'(I1)') JMONL
+         IF (JMONL.eq. 4) aDATE(1:3)='W+C'     ! NH warm+cold seasons
+         IF (JMONL.eq.10) aDATE(1:3)='C+W'     ! NH cold+warm seasons
+         IF (JMONL.eq.11) aDATE(1:3)='ANM'     ! meteor. annual mean
+      END IF
+      return
+      end SUBROUTINE aPERIOD

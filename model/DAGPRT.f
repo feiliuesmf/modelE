@@ -1204,7 +1204,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       END SUBROUTINE DIAGJK
 
       SUBROUTINE JKMAP (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
-c      USE PRTCOM, only :
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
@@ -1237,9 +1237,12 @@ c      USE PRTCOM, only :
       CHARACTER*4 DASH,WORD(4),TITLE*64
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
-      INTEGER :: IWORD,J,J0,JH,JHEMI,K,L
+      INTEGER :: IWORD,J,J0,JH,JHEMI,K,L ,ksx,klmax
       DOUBLE PRECISION :: AGLOB,FGLOB,FLATJ,G1,H1,H2,SUMFAC
 
+      REAL*4, dimension(jm+3,lm+4) :: xjl ! for binary output
+      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16
+      DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
@@ -1251,9 +1254,14 @@ C****
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
+         DO 40 L=1,LM+4
+         DO 40 J=1,JM+3
+   40    XJL(J,L) = -1.E30
+         KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
   100 DO 110 J=J1,JM
       DO 110 K=1,KMAX
   110 CX(J,K)=AX(J,K)*SCALE*SCALEJ(J)*SCALEK(K)
+         KLMAX = KMAX+KSX
 C**** HORIZONTAL SUMS AND TABLE ENTRIES
       DO 140 K=KMAX,1,-1
       AGLOB=0.
@@ -1262,12 +1270,17 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       DO 120 JH=1,JMHALF
       J=(JHEMI-1)*(JMHALF-J0)+JH+J0
       FLAT(J)=CX(J,K)/(DSJK(J,K,J1)+1.D-20)
+         XJL(J,K) = FLAT(J)
+         IF (DSJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
       MLAT(J)=NINT(FLAT(J))
   120 AHEM(JHEMI)=AHEM(JHEMI)+CX(J,K)*WTJ(J,JWT,J1)
   130 AGLOB=AGLOB+AHEM(JHEMI)/JWT
       H1=AHEM(1)/(DSHEM(1,K,J1)+1.D-20)
       H2=AHEM(2)/(DSHEM(2,K,J1)+1.D-20)
       G1=AGLOB/(DSGLOB(K,J1)+1.D-20)
+         XJL(JM+3,K)=H1   ! SOUTHERN HEM
+         XJL(JM+2,K)=H2   ! NORTHERN HEM
+         XJL(JM+1,K)=G1   ! GLOBAL
       WRITE (6,902) PM(K),G1,H2,H1,(MLAT(J),J=JM,J1,-INC)
          IF (NT.EQ.5) CALL KEYJKJ (K,FLAT)
   140 CONTINUE
@@ -1285,6 +1298,7 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
       ASUM(J)=0.
       DO 170 K=1,KMAX
   170 ASUM(J)=ASUM(J)+CX(J,K)
+         XJL(J,LM+4)=ASUM(J)
   180 MLAT(J)=NINT(ASUM(J)*SUMFAC)
       AGLOB=0.
       DO 200 JHEMI=1,2
@@ -1294,6 +1308,15 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
       AHEM(JHEMI)=AHEM(JHEMI)+ASUM(J)*WTJ(J,JWT,J1)*SUMFAC
   190 CONTINUE
   200 AGLOB=AGLOB+AHEM(JHEMI)/JWT
+         XJL(JM+3,LM+4)=AHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,LM+4)=AHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,LM+4)=AGLOB     ! GLOBAL
+         XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
+         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
+     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
+     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PM(L)),L=1,KLMAX),1.,1.,
+     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
+     *     (XJL(J,LM+4),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1,KLMAX)
       WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
          IF (NT.EQ.1) CALL KEYJKT (AGLOB,ASUM)
@@ -1303,6 +1326,10 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
 C****
       ENTRY JKMAPS (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
+         KSX = 3
+         DO 205 L=1,LM+4
+         DO 205 J=1,JM+3
+  205    XJL(J,L) = -1.E30
       LINECT=LINECT+KMAX+10
       IF (LINECT.LE.60) GO TO 230
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
@@ -1319,9 +1346,13 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       DO 240 JH=1,JMHALF
       J=(JHEMI-1)*(JMHALF-J0)+JH-J0
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
+         XJL(J,L+KMAX) = FLATJ
       MLAT(J)=NINT(FLATJ)
   240 AHEM(JHEMI)=AHEM(JHEMI)+FLATJ*WTJ(J,JWT,J1)
   250 FGLOB=FGLOB+AHEM(JHEMI)/JWT
+         XJL(JM+3,L+KMAX)=AHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,L+KMAX)=AHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,L+KMAX)=FGLOB     ! GLOBAL
   260 WRITE (6,902) PM(L+LM),FGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
       GO TO 100
@@ -1857,7 +1888,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-c      USE PRTCOM, only :
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -1884,9 +1915,12 @@ c      USE PRTCOM, only :
       CHARACTER*4 DASH,WORD(4),TITLE*64
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
-      INTEGER :: IWORD,J,J0,JH,JHEMI,K,L
+      INTEGER :: IWORD,J,J0,JH,JHEMI,K,L  ,ksx,klmax
       DOUBLE PRECISION :: FGLOB,FLATJ,GSUM,SDSIG,SUMFAC
 
+      REAL*4, dimension(jm+3,lm+4) :: xjl ! for binary output
+      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16
+      DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
@@ -1898,7 +1932,12 @@ C****
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
+         DO 40 L=1,LM+4
+         DO 40 J=1,JM+3
+   40    XJL(J,L) = -1.E30
+         KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
   100 SDSIG=1.-SIGE(LMAX+1)
+         KLMAX = LMAX+KSX
       DO 110 J=1,JM
   110 ASUM(J)=0.
       HSUM(1)=0.
@@ -1917,10 +1956,14 @@ C****
       DO 120 JH=1,JMHALF
       J=(JHEMI-1)*(JMHALF-J0)+JH+J0
       FLAT(J)=AX(J,L)*SCALE*SCALEJ(J)*SCALEL(L)
+         XJL(J,L) = FLAT(J)
       MLAT(J)=NINT(FLAT(J))
   115 ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
   120 FHEM(JHEMI)=FHEM(JHEMI)+FLAT(J)*WTJ(J,JWT,J1)
   130 FGLOB=FGLOB+FHEM(JHEMI)/JWT
+         XJL(JM+3,L)=FHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,L)=FGLOB     ! GLOBAL
       WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),(MLAT(J),J=JM,J1,-INC)
 C        IF (NT.EQ.5) CALL KEYJLJ (L,FLAT)
          IF (NT.EQ.61) CALL KEYJLS (L,FLAT)
@@ -1932,6 +1975,17 @@ C        IF (NT.EQ.5) CALL KEYJLJ (L,FLAT)
       ASUM(JMHALF+1)=ASUM(JMHALF+1)/J1
       DO 150 J=J1,JM
   150 MLAT(J)=NINT(ASUM(J)*SUMFAC)
+         DO 180 J=J1,JM
+  180    XJL(J   ,LM+4)=ASUM(J)
+         XJL(JM+3,LM+4)=HSUM(1)   ! SOUTHERN HEM
+         XJL(JM+2,LM+4)=HSUM(2)   ! NORTHERN HEM
+         XJL(JM+1,LM+4)=GSUM      ! GLOBAL
+         XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
+         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
+     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
+     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PL(L)),L=1,KLMAX),1.,1.,
+     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
+     *     (XJL(J,LM+4),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1,KLMAX)
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (MLAT(J),J=JM,J1,-INC)
 C        IF (NT.EQ.1) CALL KEYJLT (GSUM,ASUM)
@@ -1941,6 +1995,10 @@ C        IF (NT.GE.22.AND.NT.LE.33) CALL KEYJLN (NT,ASUM,SUMFAC)
 C****
       ENTRY JLMAPS (NT,PL,AX,SCALE,SCALEJ,SCALEL,LMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
+         KSX = 3
+         DO 205 L=1,LM+3
+         DO 205 J=1,JM
+  205    XJL(J,L) = -1.E30
       LINECT=LINECT+LMAX+10
       IF (LINECT.LE.60) GO TO 200
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
@@ -1957,9 +2015,13 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       DO 210 JH=1,JMHALF
       J=(JHEMI-1)*(JMHALF-J0)+JH-J0
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
+         XJL(J,L+LMAX) = FLATJ
       MLAT(J)=NINT(FLATJ)
   210 FHEM(JHEMI)=FHEM(JHEMI)+FLATJ*WTJ(J,JWT,J1)
   220 FGLOB=FGLOB+FHEM(JHEMI)/JWT
+         XJL(JM+3,L+LMAX)=FHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,L+LMAX)=FHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,L+LMAX)=FGLOB     ! GLOBAL
   230 WRITE (6,902) PL(L+LM),FGLOB,FHEM(2),FHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
       GO TO 100
@@ -2001,7 +2063,6 @@ C****                                                              9-16
       END BLOCK DATA BDIL
 
       SUBROUTINE DIAGIL
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,sha,bygrav
       USE MODEL_COM, only :
@@ -2085,7 +2146,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       END SUBROUTINE DIAGIL
 
       SUBROUTINE ILMAP (TITLE,PL,AX,SCALE,SCALEL,LMAX,JWT,ISHIFT)
-c      USE PRTCOM, only :
+      USE DAGCOM, only : QCHECK,acc_period,iu_il
       USE CONSTANT, only :
      &     twopi
       USE MODEL_COM, only :
@@ -2155,14 +2216,15 @@ C**** ISHIFT: When=2, print longitude indices off center (U-grid)
 C**** Output for post-processing
          CWORD=WORD(JWT)  ! pads out to 8 characters
          XLB=TITLE
-         WRITE(XLB(65:),'(1X,A3,I5)') AMON0,JYEAR0
+         XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
 c     IF (Q_GISS) THEN
-c        WRITE (85) XLB,IM,LMAX,1,1,
-c    *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-c    *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
-c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
-c    *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
-c     END IF
+      IF (QCHECK) THEN
+         WRITE (iu_il) XLB,IM,LMAX,1,1,
+     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
+     *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
+     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
+     *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
+      END IF
       IF (Q_GISS) CALL POUT_GISS
      *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
      *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
@@ -2424,40 +2486,40 @@ C****
       CHARACTER*32 TITLE1
       DATA TITLE1/
      1   'TOPOGRAPHY (METERS)            ',
-     *   'LAND COVERAGE                  ',
-     *   'OCEAN ICE COVERAGE             ',
-     *   'SNOW COVERAGE                  ',
+     *   'LAND COVERAGE (%)              ',
+     *   'OCEAN ICE COVERAGE (%)         ',
+     *   'SNOW COVERAGE (%)              ',
      *   'SNOW DEPTH (MM H2O)            ',
-     *   'SNOW AND ICE COVERAGE          ',
+     *   'SNOW AND ICE COVERAGE (%)      ',
 C
      7   'PRECIPITATION (MM/DAY)         ',
      *   'EVAPORATION (MM/DAY)           ',
      *   'SENSIBLE HEAT FLUX (WATTS/M**2)',
-     *   'GROUND WETNESS                 ',
+     *   'GROUND WETNESS (%)             ',
      *   'GROUND RUNOFF (MM/DAY)         ',
      *   'GROUND TEMPERATURE (DEGREES C) ',
 C
      3   'SURFACE WIND SPEED (METERS/SEC)',
-     *   'JET SPEED (METERS/SEC          ',
+     *   'JET SPEED (METERS/SEC)         ',
      *   'SURF WIND SPEED FROM U,V (M/S) ',
      *   'MTN WAVE MOM. FLUX (D/CM**2)   ',
      *   'JET DIRECTION (CW NOR)         ',
      *   'SURFACE WIND DIRECTION (CW NOR)'/
       CHARACTER*32 TITLE2
       DATA TITLE2/
-     9   'TOTAL CLOUD COVER               ',
-     *   'CONVECTIVE CLOUD COVER          ',
+     9   'TOTAL CLOUD COVER (%)           ',
+     *   'CONVECTIVE CLOUD COVER (%)      ',
      *   'CLOUD TOP PRESSURE (MB)         ',
-     *   'LOW LEVEL CLOUDINESS            ',
-     *   'MIDDLE LEVEL CLOUDINESS         ',
-     *   'HIGH LEVEL CLOUDINESS           ',
+     *   'LOW LEVEL CLOUDINESS (%)        ',
+     *   'MIDDLE LEVEL CLOUDINESS (%)     ',
+     *   'HIGH LEVEL CLOUDINESS (%)       ',
 C
      5   'NET RAD. OF PLANET (WATTS/M**2) ',
      *   'NET RADIATION AT Z0 (WATTS/M**2)',
      *   'BRIGHTNESS TEMP THRU WNDW(DEG C)',
-     *   'PLANETARY ALBEDO                ',
-     *   'GROUND ALBEDO                   ',
-     *   'VISUAL ALBEDO                   ',
+     *   'PLANETARY ALBEDO (%)            ',
+     *   'GROUND ALBEDO (%)               ',
+     *   'VISUAL ALBEDO (%)               ',
 C
      1   'NET THRML RADIATION (WATTS/M**2)',
      *   'NET HEAT AT Z0 (WATTS/M**2)     ',
@@ -2483,9 +2545,9 @@ C
 C
      9   'TOTAL EARTH WATER (KG/M**2)    ',
      *   'LIQUID WATER PATH  (.1 KG/M**2)',
-     *   'DEEP CONV CLOUD FREQUENCY      ',
-     *   'SHALLOW CONV CLOUD FREQUENCY   ',
-     *   'DEEP CONVECTIVE CLOUD COVER    ',
+     *   'DEEP CONV CLOUD FREQUENCY (%)  ',
+     *   'SHALLOW CONV CLOUD FREQUENCY(%)',
+     *   'DEEP CONVECTIVE CLOUD COVER (%)',
      *   'SHALLOW CONVECTIVE CLOUD COVER '/
       CHARACTER*32 TITLE4
       DATA TITLE4/
@@ -2604,7 +2666,7 @@ C****  82  SHALLOW CONVECTIVE CLOUD COVER (%)
 C****
 C**55  98  DU/DT BY SDRAG (10**-6 M S-2)
 C****
-c      USE PRTCOM, only :
+      USE DAGCOM, only : QCHECK,acc_period,iu_ij
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf
       USE MODEL_COM, only :
@@ -2623,6 +2685,9 @@ c      USE PRTCOM, only :
       common/ntdse/ende16 ! aka sendeg
       INTEGER, DIMENSION(3) :: MLAT,MGLOBE
       DOUBLE PRECISION, DIMENSION(3) :: FLAT,FNH,FGLOBE,GNUM,GDEN
+      REAL*4, DIMENSION(IM,JM,3) :: SMAP
+      REAL*4, DIMENSION(JM,3) :: SMAPJ
+      CHARACTER XLB*48
 
       COMMON/DIJCOM/TITLE(3,19)
       COMMON/DIJCOMX/LEGEND(10,24),ACHAR(38),BCHAR(23),
@@ -2667,7 +2732,7 @@ C**** IA now set from DEFACC
       DOUBLE PRECISION, PARAMETER :: P1000=1000.
 
       INTEGER ::
-     &     I,IFRSTP,ILINE,INC,IQ1,IQ2,IQ3,J,K,
+     &     I,IFRSTP,ILINE,INC,IQ1,IQ2,IQ3,J,K,  kxlb,
      &     KC,KCOLMN,KPAGE,KR,KROW,KT,L,LASTP,M,N,NDEX,NDEX2,KM
 
       DOUBLE PRECISION ::
@@ -2676,6 +2741,12 @@ C**** IA now set from DEFACC
      &     DE4TI,BYDPK,SZNDEG
 
 C**** INITIALIZE CERTAIN QUANTITIES
+c      SHA=RGAS/KAPA
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(39:38+KXLB) = XLABEL(1:KXLB)
+      XLB(25:37)=acc_period(1:3)//' '//acc_period(4:12)
       INC=1+(JM-1)/24
       ILINE=36*INC
       IQ1=1+IM/(4*INC)
@@ -2684,7 +2755,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       LONGTD(IQ2)=LONGTD(1)
       IQ3=1+3*IM/(4*INC)
       LONGTD(IQ3)=LONGTD(1)
-
       SCALE(7)=SDAY/DTsrc
       SCALE(8)=SDAY/DTSRC
       SCALE(9)=1./DTSRC
@@ -2793,7 +2863,7 @@ C**** Blanks
 C**** SUM OF TWO ARRAYS
   220 DO 230 I=1,IM
       A=(AIJ(I,J,IJ_TRNFP0)+AIJ(I,J,IJ_SRNFP0))*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=28.5+A*FAC(K)
       IF (N.LT.1 ) N=1
@@ -2804,7 +2874,7 @@ C**** WIND DIRECTION
   240 IF (J.EQ.1) GO TO 500
       DO 250 I=1,IM
       A=360.*ATAN2(AIJ(I,J,NDEX)+1.D-20,AIJ(I,J,NDEX+1)+1.D-20)/TWOPI
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (N.LT.2) N=N+36
@@ -2824,7 +2894,7 @@ C**** RATIO OF 2 ARRAYS (MAINLY FOR ALBEDO)
       IF (A*FAC(K).GE.20.) N=23
       IF (AIJ(I,J,NDEX2).LE.0.) N=1
          IF (AIJ(I,J,NDEX2).LE.0.) A=0.
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
   270 LINE(I,KCOLMN)=ACHAR(N)
       FLAT(KCOLMN)=SCALE(K)*FNUM/(FDEN+1.D-20)
       IF (NDEX.EQ.24 .OR. NDEX.EQ.26) FLAT(KCOLMN)=100.-FLAT(KCOLMN)
@@ -2841,7 +2911,7 @@ C**** STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORTS OF DSE
   280 IF (SKIPSE.EQ.1.) GO TO 510
       DO 290 I=1,IM
       A=ENDE16(I,J,NDEX)*SCALE(K)/(IDACC(4)+1d-20)
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=11.5+A*FAC(K)
       IF (N.LT.1) N=1
@@ -2854,7 +2924,7 @@ C**** MAGNITUDE OF TWO PERPENDICULAR COMPONENTS
   300 IF (K.NE.15.AND.J.EQ.1) GO TO 500
       DO 310 I=1,IM
       A=SQRT(AIJ(I,J,NDEX)**2+AIJ(I,J,NDEX+1)**2)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (N.GT.38) N=38
@@ -2863,6 +2933,7 @@ CB       DIJMAP(I,J,K)=A
 C**** SURFACE TOPOGRAPHY
   320 DO 330 I=1,IM
       ZS=ZATMO(I,J)*BYGRAV
+          SMAP(I,J,KCOLMN)=ZS
       FLATK=FLATK+ZS
       N=2.5+.01*ZS
       IF (ZS.LE.0.) N=1
@@ -2872,6 +2943,7 @@ C**** SURFACE TOPOGRAPHY
 C**** LAND COVERAGE
   340 DO 350 I=1,IM
       PLAND=FLAND(I,J)*100.
+          SMAP(I,J,KCOLMN)=PLAND
       FLATK=FLATK+PLAND
       N=2.5+PLAND*.2
       IF (PLAND.LE.0.) N=1
@@ -2882,7 +2954,7 @@ C**** THICKNESS TEMPERATURES
   360 DO 370 I=1,IM
       A=((AIJ(I,J,NDEX+1)-AIJ(I,J,NDEX))*BYIACC
      *  +(GHT(NDEX-7)-GHT(NDEX-8))*GRAV)*SCALE(K)-TF
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=28.5+A*FAC(K)
       IF (N.LT.1) N=1
@@ -2892,7 +2964,7 @@ CB       DIJMAP(I,J,K)=A
 C**** POSITIVE QUANTITIES UNIFORMLY SCALED
   380 DO 390 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (A.EQ.0.) N=1
@@ -2902,7 +2974,7 @@ CB       DIJMAP(I,J,K)=A
 C**** PERCENTAGES
   400 DO 410 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (A.LE.0.) N=1
@@ -2912,7 +2984,7 @@ CB       DIJMAP(I,J,K)=A
 C**** SIGNED QUANTITIES UNIFORMLY SCALED (LETTERS +, NUMBERS -)
   420 DO 430 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=11.5+A*FAC(K)
       IF (N.LT.1) N=1
@@ -2923,7 +2995,7 @@ CB       DIJMAP(I,J,K)=A
 C**** PRECIPITATION AND EVAPORATION
   440 DO 450 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=1
       IF (A.LE.0.) GO TO 450
@@ -2936,7 +3008,7 @@ CB       DIJMAP(I,J,K)=A
 C**** SIGNED QUANTITIES UNIFORMLY SCALED (NUMBERS +, LETTERS -)
   460 DO 470 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=28.5+A*FAC(K)
       IF (N.LT.1 ) N=1
@@ -2946,7 +3018,7 @@ CB       DIJMAP(I,J,K)=A
 C**** ABSOLUTE VALUE OF QUANTITIES UNIFORMLY SCALED
   475 DO 477 I=1,IM
       A=ABS(AIJ(I,J,NDEX)*SCALE(K)*BYIACC)
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF(A.EQ.0.) N=1
@@ -2956,7 +3028,7 @@ CB       DIJMAP(I,J,K)=A
 C**** POSITIVE QUANTITIES NON-UNIFORMLY SCALED
   480 DO 490 I=1,IM
       A=AIJ(I,J,NDEX)*SCALE(K)*BYIACC
-CB       DIJMAP(I,J,K)=A
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (N.GE.13) N=(N+123)/10
@@ -2967,6 +3039,7 @@ C**** LENGTH OF GROWING SEASON
   491 DO 492 I=1,IM
       A=TSFREZ(I,J,2)-TSFREZ(I,J,1)
       IF (A.LT.0.) A=A+365.
+          SMAP(I,J,KCOLMN)=A
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (A.LE.0.) N=1
@@ -2989,6 +3062,9 @@ C**** PALMER DROUGHT INDEX
 CB       DIJMAP(IM+1,J,K)=FLAT(KCOLMN)
       MLAT(KCOLMN)=NINT(FLAT(KCOLMN))
   510 CONTINUE
+          DO KCOLMN=1,3
+             SMAPJ(J,KCOLMN) = FLAT(KCOLMN)
+          END DO
       IF (MOD(J,INC).NE.0) GO TO 550
       GO TO (524,520, 520,520, 520,520, 521,520, 526,520, 526,524,
      *       527,527, 520,520, 524,520, 527,527),KR
@@ -3033,6 +3109,13 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
   577 WRITE (6,917) (MGLOBE(KC),LONGTD,KC=1,3)
   600 WRITE (6,909) ((LEGEND(KT,ILEG(KCOLMN,KR)),KT=1,10),KCOLMN=1,2),
      *  (LEGEND(KT,ILEG(3,KR)),KT=1,9)
+         IF(QCHECK) THEN
+            DO KC=1,3
+              IF(TITLE(KC,KR).ne.' ')
+     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
+     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
+            END DO
+         END IF
   610 CONTINUE
   690 CONTINUE
 C****
@@ -3043,6 +3126,7 @@ C****
       CALL IJMAP (2,AIJ(1,1,IJ_TS),BYIACN)
 C     CALL IJMAP (4,AIJ(1,1,IJ_SLP1),BYIADA)
 C     CALL IJMAP (5,AIJ(1,1,IJ_TS1),BYIADA)
+         IF(QCHECK) CALL SIJMAP
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -3060,7 +3144,7 @@ C****
       END SUBROUTINE DIAGIJ
 
       SUBROUTINE IJMAP (NT,ARRAY,BYIACC)
-c      USE PRTCOM, only :
+      USE DAGCOM, only : QCHECK,acc_period,iu_ij
       USE MODEL_COM, only :
      &     im,jm,BYIM,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL
@@ -3068,12 +3152,12 @@ c      USE PRTCOM, only :
      &     LAT_DG,LON_DG
       IMPLICIT NONE
 
-      INTEGER :: NT
+      INTEGER :: NT,KXLB
       DOUBLE PRECISION :: BYIACC
       DOUBLE PRECISION, DIMENSION(IM,JM) :: ARRAY
 
 
-      CHARACTER*1 IDX(12),BLANK,TITLE(5)*48
+      CHARACTER*1 IDX(12),BLANK,TITLE(5)*48,xlb*32
       CHARACTER(LEN=3), DIMENSION(IM) :: LINE
       CHARACTER(LEN=9) :: AVG
       DATA IDX/'0','1','2','3','4','5','6','7','8','9','-','*'/
@@ -3088,6 +3172,8 @@ C****
      *  'SEA LEVEL PRESSURE (MB-1000)  (USING T1)',
      *  'SURFACE TEMPERATURE (DEG C)  (LAPSE RATE FROM T1'/
 
+      REAL*4, DIMENSION(IM,JM) :: SMAP
+      REAL*4, DIMENSION(JM) :: SMAPJ
       DOUBLE PRECISION :: A,FLAT,DAYS
       INTEGER :: I,IA,INC,J,JA,JX,K,LD
 
@@ -3095,6 +3181,11 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
 c      BYIM=1./IM
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(8:20)=acc_period(1:3)//' '//acc_period(4:12)
+      XLB(23:22+KXLB) = XLABEL(1:KXLB)
       INC=(IM+35)/36
       LD=360/IM
       DO 40 I=1,IM
@@ -3114,7 +3205,7 @@ C**** OUTSIDE J LOOP
       FLAT=0.
       DO 250 I=1,IM
       A=ARRAY(I,J)*BYIACC
-CB       QIJMAP(I,J,NT)=A
+           SMAP(I,J)=A
       FLAT=FLAT+A
       IF (A.LT.999.5.AND.A.GE.-99.5) GO TO 140
       DO 100 K=1,3
@@ -3138,7 +3229,7 @@ CB       QIJMAP(I,J,NT)=A
   245 LINE(I)(2:2)=IDX(11)
   250 CONTINUE
       FLAT=FLAT*BYIM
-CB       QIJMAP(IM+1,J,NT)=FLAT
+         SMAPJ(J)=FLAT
       WRITE(AVG,'(F9.2)') FLAT
       WRITE (6,920) NINT(LAT_DG(J,1)),J,(LINE(I),I=1,IM,INC),AVG
       DO 260 I=1,IM
@@ -3151,6 +3242,7 @@ C     WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
   300 IF (JM.LE.24) WRITE (6,940)
       WRITE (6,930) (LON_DG(I,1),I=1,IM,INC*2)
+         IF(QCHECK) WRITE(iu_ij) TITLE(NT),XLB,SMAP,SMAPJ,-1.E30
       RETURN
 C****
   900 FORMAT('0',45X,A48)
@@ -3998,3 +4090,214 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
      *  '  Model-Time:',I9,5X,'Dif:',F7.2,' Days')
   915 FORMAT('0')
       END SUBROUTINE DIAGKS
+
+      SUBROUTINE SIJMAP
+C****
+C**** CALCULATE EXTRA QUANTITIES FOR SAVING
+C****
+      USE CONSTANT, only :
+     &     grav,rgas,kapa
+      USE MODEL_COM, only :
+     &     im,jm,lm,
+     &     IDACC,PSF,PTOP,SIG,PSFMPT,
+     &     AMON0,JYEAR0,
+     &     BYIM,XLABEL
+      USE DAGCOM, only :
+     &     ajk,kdiag,aij,kaij,aijk,tsfrez,acc_period,iu_ij,
+     &     IJ_US,IJ_VS,IJ_TAUS,IJ_TAUUS,IJ_TAUVS !not a generic subr.
+      IMPLICIT NONE
+
+      CHARACTER XLB*24,TITLEX*56
+      REAL*4 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat,press,dp
+      CHARACTER*4 CPRESS(LM)
+      INTEGER i,j,l,kxlb,ni
+C****
+C**** INITIALIZE CERTAIN QUANTITIES
+C****
+      UNDEF = -1.E30
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
+      XLB(15:14+KXLB) = XLABEL(1:KXLB)
+C****
+      TITLEX = 'U COMPONENT OF COMPOSITE SURFACE AIR WIND  (m/s)'
+      DO J=1,JM
+      FLAT = 0.
+      DO I=1,IM
+        SMAP(I,J) =AIJ(I,J,IJ_US)/(IDACC(3)+1.E-20)
+        FLAT =FLAT+AIJ(I,J,IJ_US)/(IDACC(3)+1.E-20)
+      END DO
+      SMAPJ(J) = FLAT*byIM
+      END DO
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEX = 'V COMPONENT OF COMPOSITE SURFACE AIR WIND  (m/s)'
+      DO J=1,JM
+      FLAT = 0.
+      DO I=1,IM
+        SMAP(I,J) =AIJ(I,J,IJ_VS)/(IDACC(3)+1.E-20)
+        FLAT =FLAT+AIJ(I,J,IJ_VS)/(IDACC(3)+1.E-20)
+      END DO
+      SMAPJ(J) = FLAT*byIM
+      END DO
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+C****
+      TITLEX = 'MAG OF COMPOSITE MOMENTUM SURFACE DRAG  (kg/m*s**2)'
+      DO J=1,JM
+      FLAT = 0.
+      DO I=1,IM
+        SMAP(I,J) =AIJ(I,J,IJ_TAUS)/(IDACC(3)+1.E-20)
+        FLAT =FLAT+AIJ(I,J,IJ_TAUS)/(IDACC(3)+1.E-20)
+      END DO
+      SMAPJ(J) = FLAT*byIM
+      END DO
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEX = 'U COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
+      DO J=1,JM
+      FLAT = 0.
+      DO I=1,IM
+        SMAP(I,J) =AIJ(I,J,IJ_TAUUS)/(IDACC(3)+1.E-20)
+        FLAT =FLAT+AIJ(I,J,IJ_TAUUS)/(IDACC(3)+1.E-20)
+      END DO
+      SMAPJ(J) = FLAT*byIM
+      END DO
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEX = 'V COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
+      DO J=1,JM
+      FLAT = 0.
+      DO I=1,IM
+        SMAP(I,J) =AIJ(I,J,IJ_TAUVS)/(IDACC(3)+1.E-20)
+        FLAT =FLAT+AIJ(I,J,IJ_TAUVS)/(IDACC(3)+1.E-20)
+      END DO
+      SMAPJ(J) = FLAT*byIM
+      END DO
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+C****
+C**** Complete 3D-field titles  and select fields
+C****
+      DO L=1,LM
+      PRESS = PTOP+PSFMPT*SIG(L)
+      IF (PRESS.GE.1.) THEN
+        WRITE(CPRESS(L),'(I4)') NINT(PRESS)
+      ELSE
+        WRITE(CPRESS(L),'(F4.3)') PRESS
+      END IF
+      END DO
+C****
+      TITLEX = '     U-WIND           at        mb (m/s, UV G)'
+      DO 715 L=1,LM
+      DO 710 I=1,IM*JM
+      DP=AIJK(I,1,L,4)
+      SMAP(I,1) = UNDEF
+      IF(DP.GT.0.) SMAP(I,1) = AIJK(I,1,L,1)/DP
+  710 CONTINUE
+      DO J=1,JM
+        SMAPJ(J) = UNDEF
+        NI = 0
+        FLAT = 0.
+        DO I=1,IM
+        IF (SMAP(I,J).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J)
+          NI = NI+1
+        END IF
+        END DO
+        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+      END DO
+      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+  715 CONTINUE
+C****
+      TITLEX = '     V-WIND           at        mb (m/s, UV G)'
+      DO 725 L=1,LM
+      DO 720 I=1,IM*JM
+      DP=AIJK(I,1,L,4)
+      SMAP(I,1) = UNDEF
+      IF(DP.GT.0.) SMAP(I,1) = AIJK(I,1,L,2)/DP
+  720 CONTINUE
+      DO J=1,JM
+        SMAPJ(J) = UNDEF
+        NI = 0
+        FLAT = 0.
+        DO I=1,IM
+        IF (SMAP(I,J).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J)
+          NI = NI+1
+        END IF
+        END DO
+        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+      END DO
+      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+  725 CONTINUE
+C****
+      TITLEX = '     TEMPERATURE      at        mb (C, UV Grid)'
+      DO 735 L=1,LM
+      DO 730 I=1,IM*JM
+      DP=AIJK(I,1,L,4)
+      SMAP(I,1) = UNDEF
+      IF(DP.GT.0.) SMAP(I,1) = (.25*AIJK(I,1,L,5)/DP - 273.16)
+  730 CONTINUE
+      DO J=1,JM
+        SMAPJ(J) = UNDEF
+        NI = 0
+        FLAT = 0.
+        DO I=1,IM
+        IF (SMAP(I,J).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J)
+          NI = NI+1
+        END IF
+        END DO
+        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+      END DO
+      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+  735 CONTINUE
+C****
+      TITLEX = '    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
+      DO 745 L=1,LM
+      DO 740 I=1,IM*JM
+      DP=AIJK(I,1,L,4)
+      SMAP(I,1) = UNDEF
+      IF(DP.GT.0.) SMAP(I,1) = .25*1.E5*AIJK(I,1,L,6)/DP
+  740 CONTINUE
+      DO J=1,JM
+        SMAPJ(J) = UNDEF
+        NI = 0
+        FLAT = 0.
+        DO I=1,IM
+        IF (SMAP(I,J).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J)
+          NI = NI+1
+        END IF
+        END DO
+        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+      END DO
+      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+  745 CONTINUE
+C****
+      TITLEX = '       HEIGHT         at        mb (m, UV Grid)'
+      DO 755 L=1,LM
+      DO 750 I=1,IM*JM
+      DP=AIJK(I,1,L,4)
+      SMAP(I,1) = UNDEF
+      IF(DP.GT.0.) SMAP(I,1) = .25*(AIJK(I,1,L,3)-
+     *   (RGAS/KAPA)*AIJK(I,1,L,5))/(GRAV*DP)
+  750 CONTINUE
+      DO J=1,JM
+        SMAPJ(J) = UNDEF
+        NI = 0
+        FLAT = 0.
+        DO I=1,IM
+        IF (SMAP(I,J).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J)
+          NI = NI+1
+        END IF
+        END DO
+        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+      END DO
+      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+  755 CONTINUE
+      RETURN
+      END SUBROUTINE SIJMAP

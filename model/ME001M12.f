@@ -4,18 +4,18 @@
 !@ver  1.0 (Based originally on B399)
       USE MODEL_COM
       USE RANDOM
-      USE DAGCOM, only : keynr,kdiag,oa
+      USE DAGCOM, only : keynr,kdiag,oa,monacc
       USE FILEMANAGER, only : getunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr
+      INTEGER I,J,L,K,M,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
       INTEGER iu_VFLXO,iu_SLP
       INTEGER :: MDUM = 0
-      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT 
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
-      CHARACTER CDATE*7
+      CHARACTER aDATE*14
       CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
 C****
 C**** INITIALIZATIONS
@@ -23,6 +23,25 @@ C****
          CALL TIMER (MNOW,MDUM)
 
       CALL INPUT
+C****
+C**** If run is already done, just produce diagnostic printout
+C****
+      IF (Itime.GE.ItimeE) then
+         WRITE (6,'("1"/64(1X/))')
+         IF (KDIAG(1).LT.9) CALL DIAGJ
+         IF (KDIAG(2).LT.9) CALL DIAGJK
+         IF (KDIAG(2).LT.9) CALL DIAGJL
+         IF (KDIAG(10).LT.9) CALL DIAGIL
+         IF (KDIAG(7).LT.9) CALL DIAG7P
+         IF (KDIAG(3).LT.9) CALL DIAGIJ
+         IF (KDIAG(9).LT.9) CALL DIAG9P
+         IF (KDIAG(5).LT.9) CALL DIAG5P
+         IF (KDIAG(6).LT.9) CALL DIAG6
+         IF (KDIAG(4).LT.9) CALL DIAG4
+         IF (KDIAG(11).LT.9) CALL diag_RIVER
+         CALL DIAGKN
+         CALL exit_rc (13)  ! no output files are affected
+      END IF
       WRITE (3) OFFSSW
       CLOSE (3)
          MSTART=MNOW
@@ -34,7 +53,7 @@ C**** INITIALIZE TIME PARAMETERS
          MODD5K=1000
 
       CALL DAILY(0)
-      if (itime.eq.itimei) call reset_diag
+      if (itime.eq.itimei) call reset_diag(0)
       CALL daily_EARTH(0)
       CALL daily_OCEAN(0)
       CALL CALC_AMPK(LS1-1)
@@ -42,39 +61,20 @@ C**** INITIALIZE TIME PARAMETERS
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
-     *   'Year',JYEAR,AMON,JDATE,', Hr',JHOUR,
+     *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',IYEAR0,ITIME
          CALL TIMER (MNOW,MELSE)
-C****
-C**** If run is already done, just produce diagnostic printout
-C****
-      IF (Itime.GE.ItimeE) then
-         WRITE (6,'("1"/64(1X/))')
-         IF (KDIAG(1).LT.9) CALL DIAGJ
-         IF (KDIAG(2).LT.9) CALL DIAGJK
-         IF (KDIAG(2).LT.9) CALL DIAGJL
-         IF (KDIAG(10).EQ.0) CALL DIAGIL
-         IF (KDIAG(7).LT.9) CALL DIAG7P
-         IF (KDIAG(3).LT.9) CALL DIAGIJ
-         IF (KDIAG(9).LT.9) CALL DIAG9P
-         IF (KDIAG(5).LT.9) CALL DIAG5P
-         IF (KDIAG(6).LT.9) CALL DIAG6
-         IF (KDIAG(4).LT.9) CALL DIAG4
-         IF (KDIAG(11).LT.9) CALL diag_RIVER
-         CALL DIAGKN
-         STOP 13          ! no output files are affected
-      END IF
 C****
 C**** Open and position output history files if needed
 C****
       if (Kvflxo.ne.0) then
-        write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
-        call getunit('VFLXO'//CDATE,iu_VFLXO,.true.,.false.)
+        write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+        call getunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
         call IO_pos(iu_VFLXO,Itime,2*im*jm*12,Nday)
       end if
       if (Nslp.ne.0) then
-        write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
-        call getunit('SLP'//CDATE,iu_SLP,.true.,.false.)
+        write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+        call getunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
         call IO_pos(iu_SLP,Itime,im*jm,Nslp)
       end if
 C****
@@ -89,7 +89,7 @@ C**** write restart information alternatingly onto 2 disk files
          call io_rsf(KDISK,Itime,iowrite,ioerr)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     ' Restart file written on fort.',KDISK,'Year',
-     *     JYEAR,AMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
          KDISK=3-KDISK
          CALL TIMER (MNOW,MELSE)
       END IF
@@ -99,16 +99,16 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
 C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) ) then
-          call reset_DIAG
+          call reset_DIAG(0)
           if (Kvflxo.ne.0) then
             close (iu_VFLXO)
-            write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
-            open (iu_VFLXO,file='VFLXO'//CDATE,form='unformatted')
+            write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+            open (iu_VFLXO,file='VFLXO'//aDATE(1:7),form='unformatted')
           end if
           if (Nslp.ne.0) then
             close (iu_SLP)
-            write(CDATE,'(a3,I4.4)') Amon0(1:3),Jyear0
-            open (iu_SLP,file='SLP'//CDATE,form='unformatted')
+            write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+            open (iu_SLP,file='SLP'//aDATE(1:7),form='unformatted')
           end if
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -170,10 +170,10 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
          CALL CHECKT ('SURFCE')
+         CALL CHECKT ('GRDNSI')
 C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE
       CALL GROUND_SI
       CALL GROUND_LI
-         CALL CHECKT ('GRDNSI')
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
          IF (MODD5S.EQ.0) CALL DIAG9A (6)
@@ -188,7 +188,7 @@ C**** CALCULATE ICE DYNAMICS
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
          CALL CHECKT ('FORMSI')
-C**** ADVECT ICE 
+C**** ADVECT ICE
       CALL ADVSI
          CALL CHECKT ('ADVSI ')
 C**** if aturb_on=.false., CALCULATE DRY CONVECTION ABOVE PBL
@@ -206,7 +206,6 @@ C**** STRATOSPHERIC MOMENTUM DRAG
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (9)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?
-
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
@@ -239,7 +238,7 @@ C****
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
            CALL DIAG9A (10)
-        call flush(6)   
+        call flush(6)
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
@@ -289,11 +288,11 @@ C****    done at the end of (selected) months
       IF (months.ge.NMONAV .and.   ! next 2 conditions are rarely needed
      *    JDAY.eq.1+JDendOfM(JMON-1) .and. MOD(Itime,NDAY).eq.0) THEN
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
-        WRITE (6,'("1"/64(1X/))')
+c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(1).LT.9) CALL DIAGJ
         IF (KDIAG(2).LT.9) CALL DIAGJK
         IF (KDIAG(2).LT.9) CALL DIAGJL
-        IF (KDIAG(10).EQ.0) CALL DIAGIL
+        IF (KDIAG(10).LT.9) CALL DIAGIL
         IF (KDIAG(7).LT.9) CALL DIAG7P
         IF (KDIAG(3).LT.9) CALL DIAGIJ
         IF (KDIAG(9).LT.9) CALL DIAG9P
@@ -305,46 +304,34 @@ C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
-          LLAB1 = INDEX(LABEL1,'(') -1
+          LLAB1 = INDEX(XLABEL(1:16),'(') -1
           IF (LLAB1.LT.1) LLAB1=16
-          WRITE (CDATE(4:7),'(I4)') JYEAR0
-          IF (JMON.gt.1) WRITE (CDATE(4:7),'(I4)') JYEAR
-          CDATE(1:3)=AMON0(1:3)
-          IF (months.gt.1) CDATE(3:3)=AMONTH(JMON-1)(1:1)
-          IF (months.eq.2) CDATE(2:2)='+'
-          IF (months.eq.3) CDATE(2:2)=AMONTH(JMON-2)(1:1)
-          IF (months.eq.4) CDATE(2:2)='4'
-          IF (months.eq.6) THEN
-             CDATE(2:2)='6'
-             IF (JMON0.eq. 5) CDATE(1:3)='NHW' ! NH warm season
-             IF (JMON0.eq.11) CDATE(1:3)='NHC' ! NH cold season
-          END IF
-          IF (months.eq.12) THEN
-             CDATE(1:3)='ANN'
-             IF (JMON.le.10) WRITE(CDATE(3:3),'(I1)') JMON-1
-             IF (JMON.eq. 1) CDATE(1:3)='ANN'  ! annual mean
-             IF (JMON.eq.11) CDATE(1:3)='C+W'  ! NH cold+warm seasons
-             IF (JMON.eq.12) CDATE(1:3)='ANM'  ! meteor. annual mean
-             IF (JMON.eq. 5) CDATE(1:3)='W+C'  ! NH warm+cold seasons
-          END IF
+          if (index(XLABEL(1:LLAB1),' ').gt.0)
+     *      LLAB1=index(XLABEL(1:LLAB1),' ')-1
+          call aPERIOD (JMON0,JYEAR0,months,1,aDATE(1:12),Ldate)
+          WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
-          OPEN (30,FILE=CDATE//'.acc'//LABEL1(1:LLAB1),
+          monacc = 0
+          do k=JMON0,JMON0+NMONAV-1
+            m = k
+            if(m.gt.12) m = m-12
+            monacc(m) = 1
+          end do
+          OPEN (30,FILE=aDATE(1:7)//'.acc'//XLABEL(1:LLAB1),
      *         FORM='UNFORMATTED')
-          call io_label (30,Itime,iowrite,ioerr)
-          call io_diags (30,Itime,iowrite_single,ioerr)
-          call io_ocdiag(30,Itime,iowrite_single,ioerr)
+          call io_rsf (30,Itime,iowrite_single,ioerr)
           CLOSE (30)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
-            OPEN(30,FILE=CDATE//'.rsf'//LABEL1(1:LLAB1),
-     *           FORM='UNFORMATTED')
+            OPEN(30,FORM='UNFORMATTED',
+     *              FILE='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LLAB1))
             call io_rsf(30,Itime,iowrite_mon,ioerr)
             CLOSE (30)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
-            OPEN (30,FILE=CDATE//'.oda'//LABEL1(1:LLAB1),
+            OPEN (30,FILE=aDATE(1:7)//'.oda'//XLABEL(1:LLAB1),
      *           FORM='UNFORMATTED')
             call io_oda(30,Itime,iowrite,ioerr)
             CLOSE (30)
@@ -369,7 +356,7 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
   210 CLOSE (3)
-      IF (LABSSW.EQ.LABEL1(1:8)) THEN
+      IF (LABSSW.EQ.XLABEL(1:8)) THEN
 C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
          KSS6=1
          WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
@@ -386,14 +373,14 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       call io_rsf(KDISK,Itime,iowrite,ioerr)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  ' Restart file written on fort.',KDISK,'Year',JYEAR,
-     *     AMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
-      IF (Itime.ge.ItimeE) STOP 13
-      STOP 12                       ! stopped because of SSW6
+      IF (Itime.ge.ItimeE) CALL exit_rc (13)
+      CALL exit_rc (12)             ! stopped because of SSW6
       END
 
       BLOCK DATA BDINP
@@ -435,9 +422,9 @@ C****
      *  TAUTR0,SIG,SIGE,  RDM2
 
 
-      CHARACTER*4 NAMD6,AMON,AMON0
+      CHARACTER*4 NAMD6,aMON,aMON0
       CHARACTER*132 XLABEL
-      COMMON /TEXT/ XLABEL,NAMD6(4),AMON,AMON0
+      COMMON /TEXT/ XLABEL,NAMD6(4),aMON,aMON0
 
       DATA IM0,JM0,LM0, KACC0/         ! KTACC0 should be here too ???
      *     IM ,JM ,LM , KACC /,
@@ -475,15 +462,15 @@ C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
-     *     ,bydsig,xlabel,clabel,namd6,ijd6,niprnt,nmonav
+     *     ,bydsig,xlabel,namd6,ijd6,niprnt,nmonav
      *     ,skipse,keyct,mfiltr,irand,psf,ptop
      *     ,xcdlm,ndasf,nda4,nda5s,nda5k,nda5d,ndaa,nfiltr
-     *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk
+     *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear0,itime,itimei,itimee,Kvflxo,nslp,ndisk,nssw,kcopy
      *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
-     *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,ioread,irerun
-     *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse,ftype,itearth
-     *     ,itlandi
+     *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
+     *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
+     *     ,mdyn,mcnds,mrad,msurf,mdiag,melse
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
       USE RANDOM
@@ -492,10 +479,11 @@ C****
      *     U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-      USE DAGCOM, only : kacc,tsfrez,kdiag,keynr,jreg
+      USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
+     &  ,iu_ij,iu_jl,iu_il
       USE LAKES_COM, only : flake
-      USE FILEMANAGER, only : getunit
+      USE FILEMANAGER, only : getunit,closeunits
       USE TIMINGS, only : timing,ntimeacc
 
       IMPLICIT NONE
@@ -503,26 +491,26 @@ C****
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC     ! ? ktacc ?
-     *     ,IR,IREC,NOFF,ioerr
+     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
-      REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X   
+      REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X
       REAL*4 XX4
-      INTEGER Itime1,Itime2,ItimeX,IhrX
+      INTEGER Itime1,Itime2,ItimeX,IhrX,llab1,iargc
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
      &           ,iniOCEAN = .FALSE.
- 
-      CHARACTER NLREC*80
+
+      CHARACTER NLREC*80,filenm*100
 C****    List of parameters that CANNOT be changed during a run:
       NAMELIST/INPUTZ/ KOCEAN,PTOP,PSF,LS1,DTsrc
 C****    List of parameters that COULD be changed during a run:
      *     ,ISTART,DT,  NRAD,NIsurf,NFILTR, MFILTR
      *     ,SKIPSE,  NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF
      *     ,U00wtr,U00ice,LMCM, S0X,CO2,XCDLM,IRAND
-     *     ,Nslp,Kvflxo,KCOPY,Ndisk, Nssw        ,keyct ! keyct??
+     *     ,Nslp,Kvflxo,KCOPY,Ndisk, Nssw
      *     ,KDIAG,NIPRNT,NMONAV,IJD6,NAMD6
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK
      *     ,IYEAR0,IHOURE, HOURE,DATEE,MONTHE,YEARE
@@ -584,7 +572,7 @@ C****
       REWIND 8
       READ (8,NML=INPUTZ)
       REWIND 8
-
+      IF (ISTART.LT.0) GO TO 600  !  just do the diagnostics
       IF (ISTART.GE.9) GO TO 400
 C***********************************************************************
 C****                                                               ****
@@ -614,13 +602,13 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (IhrI.lt.0) then
         WRITE(6,*) 'Please set a proper start time; current values:',
      *     'yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
-        STOP 'ERROR: No proper start date'
+        STOP 'INPUT: No proper start date - set IYEARI'
       END IF
 C**** The vertical layering
       IF (PLTOP(1).lt.0.) then
          write(6,*) 'Please specify PLTOP(1->12) (mb) and if PTOP=',
      *      PTOP,' is not ok also specify either PTOP or LS1'
-         STOP 'ERROR: Vertical layering not defined'
+         STOP 'INPUT: Vertical layering not defined - PLBOT'
       END IF
       IF (LS1.gt.0) PTOP=PLTOP(LS1-1)
       DO L=1,LM    !  SIGE(1)=1.
@@ -649,7 +637,7 @@ C**** Read in ground initial conditions
         call io_landice(iu_GIC,ioread,ioerr)
         if (ioerr.eq.1) then
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
-          STOP "GIC READ IN ERROR"
+          STOP "INPUT: GIC READ IN ERROR"
         end if
         close (iu_GIC)
       END IF
@@ -761,7 +749,7 @@ C****
         CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
-        iniOCEAN= .TRUE.      ! read in ocean i.c.
+        iniOCEAN = .TRUE. ! read in ocean ic
 C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
@@ -769,14 +757,14 @@ C****
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
-        iniOCEAN= .TRUE.      ! read in ocean i.c.
+        iniOCEAN = .TRUE. ! read in ocean ic
       END SELECT
 C**** Check consistency of starting time
       IF (ISTART.ge.3.and.(MOD(IHRI-IHRX,8760).ne.0)) THEN
         WRITE (6,*) ' Difference in hours between ',
      *       'Starting date and Data date:',MOD(IHRI-IHRX,8760)
         WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
-        STOP 'ERROR: start date inconsistent with data'
+        STOP 'INPUT: start date inconsistent with data'
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
@@ -798,8 +786,8 @@ C****                              perturbation is at most 1 degree C
         IRAND=123456789  ! old Rand#gen: all seeds were >0 (RANDIBM)
       END IF
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
-     *  '0Model started on',datei,amonth(monthi),yeari,' Hr',houri,
-     *  'ISTART =',ISTART,CLABEL(1:80)
+     *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
+     *  'ISTART =',ISTART,XLABEL(1:80)
 
       GO TO 600
 C***********************************************************************
@@ -822,7 +810,7 @@ C****                          used for REPEATS and delayed EXTENSIONS
         call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
-     *    ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
+     *    ISTART,', HOUR=',ItimeX,' ',XLABEL(1:80)
         TIMING = 0
         GO TO 500
 C****
@@ -866,7 +854,7 @@ C**** reason not to use ISTART=10 is trouble with the other file.)
       IF (istart.gt.10) KDISK=3-KDISK
 
       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
-     *   KDISK,', HOUR=',ItimeX,' ',CLABEL(1:80)
+     *   KDISK,', HOUR=',ItimeX,' ',XLABEL(1:80)
   500 CONTINUE
 C**** UPDATE C ARRAY FROM INPUTZ
       REWIND 8
@@ -884,6 +872,7 @@ C****                                                              *****
 C***********************************************************************
   600 CONTINUE
       IF (KEYCT.LE.1) KEYNR=0
+      IF (KEYCT.LE.1) KEYCT=1
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
@@ -891,6 +880,50 @@ C****
      *    JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY + HourE )*NDAY/24
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
+
+      IF(ISTART.LT.0) THEN
+        call reset_diag(1)
+        monacc = 0
+        write(6,*) iargc(),' files are summed up'
+        do k=1,iargc()
+          call getarg(k,filenm)
+          call getunit(filenm,iu_AIC,.true.,.true.)
+          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
+          write(6,*) 'read: ',filenm(1:70)
+          call closeunits
+        end do
+        write(acc_period,'(a3,i4,a5)') aMON0(1:3),jyear0,'     '
+        Ldate=7
+        LLAB1 = INDEX(XLABEL(1:17),'(') -1
+        IF (LLAB1.LT.1) LLAB1=16
+        if (index(XLABEL(1:LLAB1),' ').gt.0)
+     *    LLAB1=index(XLABEL(1:LLAB1),' ')-1
+        if (iargc().gt.1) then    ! save the summed acc-file
+          keyct=1 ; KEYNR=0
+          months=0 ; years=monacc(jmon0)
+          do k=1,12
+             if (monacc(k).eq.years) months=months+1
+          end do
+          call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
+          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:12)
+          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LLAB1),
+     *         FORM='UNFORMATTED')
+          call io_rsf (30,Itime,iowrite_single,ioerr)
+          CLOSE (30)
+        end if
+        if(qcheck) then          ! open the giss output files
+          call getunit(acc_period(1:Ldate)//'.ij'//XLABEL(1:LLAB1),
+     *                 iu_ij,.true.,.false.)
+          call getunit(acc_period(1:Ldate)//'.jk'//XLABEL(1:LLAB1),
+     *                 iu_jl,.true.,.false.)
+          call getunit(acc_period(1:Ldate)//'.il'//XLABEL(1:LLAB1),
+     *                 iu_il,.true.,.false.)
+        end if
+        ItimeE = -1
+        close (6)
+        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LLAB1)//'.PRT',
+     *     FORM='FORMATTED')
+      END IF
 C****
 C**** Make sure  dtsrc/dt(dyn)  is a multiple of 2
 C****
@@ -938,15 +971,15 @@ C****
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
-      CALL init_ice
+      CALL init_ice              !???? needed if istart<0 ????
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN)
+      CALL init_OCEAN(iniOCEAN)  !???? needed if istart<0 ????
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI
+      CALL init_LI               !???? needed if istart<0 ????
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
@@ -974,26 +1007,28 @@ C**** cases where Earth and Land Ice are lumped together
       FTYPE(ITLANDI,:,:)=FTYPE(ITLANDI,:,:)+FLICE
 
 C**** READ IN VEGETATION DATA SET: VDATA
-      call getunit("VEG",iu_VEG,.true.,.true.)
-      DO K=1,11
-         CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
-      END DO
-      CLOSE (iu_VEG)
+c     if(istart.gt.0) then
+        call getunit("VEG",iu_VEG,.true.,.true.)
+        DO K=1,11
+          CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
+        END DO
+        CLOSE (iu_VEG)
+c     end if
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS
 C**** Recompute GHDATA if redoGH (new soils data)
 C****
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW)
 C**** Initialize pbl (and read in file containing roughness length data)
-      CALL init_pbl(iniPBL)
+      if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
-      CALL RINIT (IRAND)
+      if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
-      CALL init_CLD
+      if(istart.gt.0) CALL init_CLD
       CALL init_DIAG
-      CALL init_QUS(im,jm,lm)
+      if(istart.gt.0) CALL init_QUS(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
-      WRITE (6,INPUTZ)
+      if(istart.gt.0) WRITE (6,INPUTZ)
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
       WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM
@@ -1002,15 +1037,15 @@ C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
 C****
   800 WRITE (6,'(A,I4/" ",A)')
-     *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,CLABEL(1:80)
-      STOP 'READ ERROR FOR AIC'
+     *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,XLABEL(1:80)
+      STOP 'INPUT: READ ERROR FOR AIC'
   830 WRITE(6,*) 'READ ERROR FOR GIC'
-      STOP 'READ ERROR FOR GIC'
+      STOP 'INPUT: READ ERROR FOR GIC'
   850 WRITE (6,'(A)')
      *  '0ERRORS ON BOTH RESTART DATA SETS. TERMINATE THIS JOB'
-      STOP 'ERRORS ON BOTH RESTART FILES'
+      STOP 'INPUT: ERRORS ON BOTH RESTART FILES'
   890 WRITE (6,'(A,I5)') '0INCORRECT VALUE OF ISTART',ISTART
-      STOP 'ERROR: ISTART-SPECIFICATION INVALID'
+      STOP 'INPUT: ISTART-SPECIFICATION INVALID'
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(IEND)
@@ -1019,7 +1054,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : orbit
       USE MODEL_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
-     *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,amon,amonth
+     *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,aMON,aMONTH
       USE GEOM, only : areag,dxyp
       USE RADNCB, only : RSDIST,COSD,SIND
 
@@ -1065,7 +1100,7 @@ C****
          JMON=JMON+1
       END DO
       JDATE=JDAY-JDendOfM(JMON-1)
-      AMON=AMONTH(JMON)
+      aMON=aMONTH(JMON)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
@@ -1096,24 +1131,24 @@ C**** Check all prog. arrays for Non-numbers
         CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
         CALL CHECK3(P,IM,JM,1,SUBR,'p ')
         CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
-         
+
         DO J=1,JM
-          DO I=1,IM
-            IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
-            IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
-          END DO
+        DO I=1,IM
+          IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
+          IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
         END DO
-        
+        END DO
+
 C**** Check PBL arrays
-        CALL CHECKPBL(SUBR)
+         CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
-        CALL CHECKO(SUBR)
+         CALL CHECKO(SUBR)
 C**** Check Ice arrays
-        CALL CHECKI(SUBR)
+         CALL CHECKI(SUBR)
 C**** Check Lake arrays
-        CALL CHECKL(SUBR)
+         CALL CHECKL(SUBR)
 C**** Check Earth arrays
-c       CALL CHECKE(SUBR)
+c        CALL CHECKE(SUBR)
       END IF
       RETURN
       END SUBROUTINE CHECKT
@@ -1135,16 +1170,15 @@ c       CALL CHECKE(SUBR)
       LOGICAL QCHECK3
       INTEGER I,J,L !@var I,J,L loop variables
 
-      QCHECK3 = .FALSE.
       DO L=1,LN
-        DO J=1,JN
-          DO I=1,IN
-            IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-              WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after ',SUBR
-              IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
-            END IF
-          END DO
-        END DO
+      DO J=1,JN
+      DO I=1,IN
+        IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
+          WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after ',SUBR
+          IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
+        END IF
+      END DO
+      END DO
       END DO
       IF (QCHECK3) STOP 'CHECK3'
       RETURN
@@ -1157,6 +1191,7 @@ c       CALL CHECKE(SUBR)
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@calls io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@calls io_ocdiag
+      USE MODEL_COM, only : ioread_single,iowrite_single
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -1178,19 +1213,21 @@ C**** Particular values may produce variations in indiv. i/o routines
 C**** Calls to individual i/o routines
       call io_label  (kunit,it,iaction,ioerr)
       it1=it
-      call io_model  (kunit,iaction,ioerr)
-      call io_ocean  (kunit,iaction,ioerr)
-      call io_lakes  (kunit,iaction,ioerr)
-      call io_seaice (kunit,iaction,ioerr)
-      call io_earth  (kunit,iaction,ioerr)
-      call io_soils  (kunit,iaction,ioerr)
-      call io_snow   (kunit,iaction,ioerr)
-      call io_landice(kunit,iaction,ioerr)
-      call io_bldat  (kunit,iaction,ioerr)
-      call io_pbl    (kunit,iaction,ioerr)
-      call io_clouds (kunit,iaction,ioerr)
-      call io_somtq  (kunit,iaction,ioerr)
-      call io_rad    (kunit,iaction,ioerr)
+      if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then
+        call io_model  (kunit,iaction,ioerr)
+        call io_ocean  (kunit,iaction,ioerr)
+        call io_lakes  (kunit,iaction,ioerr)
+        call io_seaice (kunit,iaction,ioerr)
+        call io_earth  (kunit,iaction,ioerr)
+        call io_soils  (kunit,iaction,ioerr)
+        call io_snow   (kunit,iaction,ioerr)
+        call io_landice(kunit,iaction,ioerr)
+        call io_bldat  (kunit,iaction,ioerr)
+        call io_pbl    (kunit,iaction,ioerr)
+        call io_clouds (kunit,iaction,ioerr)
+        call io_somtq  (kunit,iaction,ioerr)
+        call io_rad    (kunit,iaction,ioerr)
+      end if
       call io_diags  (kunit,it,iaction,ioerr)
       call io_ocdiag (kunit,it,iaction,ioerr)
 

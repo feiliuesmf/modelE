@@ -357,7 +357,7 @@ C****
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
      *     ,psfmpt,mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
-     *     ,imaxj,ravpn,ravps,sinp 
+     *     ,imaxj,ravpn,ravps,sinp
       USE DAGPCOM, only : PMTOP
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
@@ -2553,7 +2553,7 @@ C****
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig, pmid, pk
       IMPLICIT NONE
-      REAL*8, PARAMETER :: HSCALE = 7.8 ! km ????? 
+      REAL*8, PARAMETER :: HSCALE = 7.8 ! km ?????
       REAL*8, DIMENSION(JM) :: EWATER
       INTEGER :: I,J,L
       REAL*8 W
@@ -2567,7 +2567,7 @@ C****
             W = (Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
 c this calculation needs to be checked!
             EWATER(J)=EWATER(J)+SHV*W*T(I,J,L)*PK(L,I,J)+W*GRAV*HSCALE
-     *           *LOG(P(I,J)/PMID(L,I,J))  
+     *           *LOG(P(I,J)/PMID(L,I,J))
           END DO
         END DO
       END DO
@@ -3018,7 +3018,7 @@ c**** Initialize acc-array names, units, idacc-indices
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
-         CALL reset_DIAG
+         CALL reset_DIAG(0)
          CALL daily_DIAG
       END IF
 
@@ -3104,7 +3104,7 @@ C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
      *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
-C**** Atmospheric water energy  
+C**** Atmospheric water energy
 C**** This is not currently a conserved quantity, but it should be.
 C**** Hence this diagnostic gives the error
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
@@ -3114,7 +3114,7 @@ C**** Hence this diagnostic gives the error
       RETURN
       END SUBROUTINE init_DIAG
 
-      SUBROUTINE reset_DIAG
+      SUBROUTINE reset_DIAG(isum)
 !@sum  reset_DIAG resets/initiallises diagnostics
 !@auth Original Development Team
 !@ver  1.0
@@ -3122,6 +3122,7 @@ C**** Hence this diagnostic gives the error
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
       USE DAGCOM
       IMPLICIT NONE
+      INTEGER :: isum  !@var if =1 preparation for adding up acc-files
 
       Itime0=Itime
       JHOUR0=JHOUR
@@ -3137,7 +3138,9 @@ C**** Hence this diagnostic gives the error
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
 
-      AIJ(:,:,IJ_TMNMX)=1000.
+      if (isum.eq.1) return
+
+      AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 
       RETURN
       END SUBROUTINE reset_DIAG

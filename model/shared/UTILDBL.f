@@ -134,7 +134,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       LOGICAL, INTENT(IN) :: QBIN,QOLD
 
       IF (IUNIT0+NUNIT.gt.IUNITMX)
-     *     STOP "Maximum file number reached"
+     *     STOP "GETUNIT: Maximum file number reached"
 C**** Set unit number
       IUNIT = IUNIT0 + NUNIT
 C**** Open file
@@ -159,7 +159,7 @@ C**** increment no of files
       NUNIT = NUNIT + 1
       RETURN
  10   WRITE(6,*) "Error opening file ",TRIM(FILENM)
-      STOP 'FILE OPENING ERROR IN GETUNIT'
+      STOP 'GETUNIT: FILE OPENING ERROR'
       END SUBROUTINE GETUNIT
 
       SUBROUTINE GETUNITS(FILENM,IUNIT,QBIN,NREQ)
@@ -179,7 +179,7 @@ C**** increment no of files
       INTEGER I !@var I loop variable
 
       IF (IUNIT0+NUNIT+NREQ-1.gt.IUNITMX)
-     *     STOP "Maximum file number reached"
+     *     STOP "GETUNITS: Maximum file number reached"
 
       DO I=1,NREQ
 C**** Set unit number
@@ -199,11 +199,11 @@ C**** increment no of files
       END DO
       RETURN
  10   WRITE(6,*) "Error opening file ",TRIM(FILENM(I))
-      STOP 'FILE OPENING ERROR IN GETUNITS'
+      STOP 'GETUNITS: FILE OPENING ERROR'
       END SUBROUTINE GETUNITS
 
       SUBROUTINE CLOSEUNITS
-!@sum  CLOSEUNIT closes all previously opened files
+!@sum  CLOSEUNIT closes all previously opened files and resets NUNIT
 !@auth Gavin Schmidt
 !@ver  1.0
       IMPLICIT NONE
@@ -212,6 +212,7 @@ C**** increment no of files
       DO IUNIT=IUNIT0,IUNIT0+NUNIT-1
         CLOSE(IUNIT)
       END DO
+      NUNIT = 0
 
       RETURN
       END SUBROUTINE CLOSEUNITS
@@ -238,9 +239,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME(IUNIT))
-      STOP 'READ ERROR IN DREAD'
+      STOP 'dREAD: READ ERROR'
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',TRIM(NAME(IUNIT))
-      STOP 'NO DATA TO READ'
+      STOP 'dREAD: No data found'
       RETURN
       END
 
@@ -267,9 +268,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
-      STOP 'READ ERROR IN MREAD'
+      STOP 'mREAD: READ ERROR'
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
-      STOP 'NO DATA TO READ'
+      STOP 'mREAD: No data found'
       RETURN
       END
 
@@ -300,9 +301,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       WRITE(6,*) "Read from file ",TRIM(NAME(IUNIT)),": ",TRIM(TITLE)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
-      STOP 'READ ERROR IN READT'
+      STOP 'tREAD: READ ERROR'
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
-      STOP 'NO DATA TO READ'
+      STOP 'tREAD: No data found'
       END
 
       subroutine WRITEI (iunit,it,aout,len4)
@@ -344,13 +345,13 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
    30 if (it2 .ne. it1) then
         write(6,*) 'file ',TRIM(NAME(IUNIT)),' damaged: it/it1/it2=',
      *    it,it1,it2
-        stop 1
+        stop 'io_POS: damaged file'
       end if
       if (it .ge. it1+itdif) go to 20
       write (6,*) "positioned ",TRIM(NAME(IUNIT)),", it1/itime=",it1,it
       return
    40 write (6,*) "file ",TRIM(NAME(IUNIT))," too short, it1/it=",it1,it
-      stop 1
+      stop 'io_POS: file too short'
    50 write (6,*) "Read error on: ",TRIM(NAME(IUNIT)),", it1/it=",it1,it
-      stop 1
+      stop 'io_POS: read error'
       END subroutine io_POS
