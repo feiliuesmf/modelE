@@ -28,7 +28,7 @@ C
       read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
  100  format(/3(50x,l1/),3(50x,i8/))
       read(iu_data,110)ay
- 110  format(3(///10(2a4)),(///5(2a4)))
+ 110  format(3(///10(a8)),(///5(a8)))
       CLOSE(iu_data)
 C
 C     Read JPL chemical reactions/rates from unit JPLRX:
@@ -88,10 +88,10 @@ c
 c
 C**** Local parameters and variables and arguments:
 C
-!@var ate temporary reaction rates array?
+!@var ate temporary reactants names array
 !@var i,ii,j dummy loop variable
 !@var iu_data temporary unit number
-      REAL*4, DIMENSION(2,4) :: ate
+      CHARACTER*8, DIMENSION(4) :: ate
       INTEGER i,ii,j,iu_data
 C
 C     Read in the number of each type of reaction:
@@ -106,42 +106,38 @@ C
            if(i.gt.nr2-nmm) then ! read monomolecular reactions
              if(i.eq.nr2-nmm+1)read(iu_data,22)ate
              read(iu_data,16)ate,pe(i),ea(i),nst(i-nr2+nmm)
-             write(6,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),ate(2,2),
-     *       ' --> ',ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
+             write(6,30) i,ate(1),' + ',ate(2),
+     *       ' --> ',ate(3),' + ',ate(4)
            else                  ! read bimolecular reactions
    5         read(iu_data,16)ate,pe(i),ea(i)
-             write(6,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),ate(2,2),
-     *       ' --> ',ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
+             write(6,30) i,ate(1),' + ',ate(2),
+     *       ' --> ',ate(3),' + ',ate(4)
            end if
          else                    ! read trimolecular reactions
  20        if(i.eq.nr2+1)read(iu_data,22)ate
            ii=i-nr2
            read(iu_data,21)ate,ro(ii),sn(ii),r1(ii),sb(ii)
-           write(6,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),ate(2,2),
-     *     ' --> ',ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
+           write(6,30) i,ate(1),' + ',ate(2),
+     *     ' --> ',ate(3),' + ',ate(4)
          end if
        else                     ! read heterogeneous reactions
          if(i.eq.nr-(nhet-1))read(iu_data,22)ate
          call stop_model('jplrts not set up to read hetero. rxns.', 255)
-c        read(iu_data,31)ate
-c        write(*,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),' --> ',
-c    *   ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
        end if ! (i.le.nr-nhet)
 c
       do j=1,2
-        call lstnum(ate(1,j),nn(j,i))
-        call lstnum(ate(1,j+2),nnr(j,i))
+        call lstnum(ate(j),nn(j,i))
+        call lstnum(ate(j+2),nnr(j,i))
       end do
       end do                ! >>> end loop over total reactions <<<
 C
  124  format(///5(/43x,i3)///)
   27  format(/(30x,i2))
-  21  format(4x,2a4,1x,2a4,3x,2a4,1x,2a4,e8.2,f5.2,e9.2,f4.1)
-  22  format(/10x,8a4/)
+  21  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f5.2,e9.2,f4.1)
+  22  format(/10x,4a8/)
   25  format(//32x,2f7.1,i6)
-  16  format(4x,2a4,1x,2a4,3x,2a4,1x,2a4,e8.2,f8.0,i4)
-  31  format(4x,2a4,1x,2a4,3x,2a4,1x,2a4)
-  30  format(1x,i2,2x,a4,a4,a3,a4,a4,a5,a4,a4,a3,a4,a4)
+  16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0,i4)
+  30  format(1x,i2,2x,a8,a3,a8,a5,a8,a3,a8)
       close(iu_data)
       return
       end SUBROUTINE jplrts
@@ -160,23 +156,23 @@ c
 c
 C**** Local parameters and variables and arguments:
 C
-!@var at subset of passed ate-array (temporary reaction rates array?)
+!@var at local copy of species name
 !@var ks local variable to be passed back to jplrts nnr or nn array.
 !@var j dummy loop variable
       INTEGER j
-      INTEGER,              INTENT(OUT) :: ks
-      REAL*4, DIMENSION(2), INTENT(IN)  :: at
+      INTEGER,     INTENT(OUT) :: ks
+      CHARACTER*8, INTENT(IN)  :: at
 C     This code could probably be cleaned up in some kind of while-loop:
       j=0
    1  j=j+1
       if(j.gt.nc)goto2
-      if(at(1).ne.ay(1,j))goto1
-      if(at(2).ne.ay(2,j))goto1
+      if(at.ne.ay(j))goto1
       ks=j
       goto3
    2  ks=nc+1
 C
-   3  return
+   3  continue
+      return
       end SUBROUTINE lstnum
 C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -195,11 +191,11 @@ c
 c
 C**** Local parameters and variables and arguments:
 C
-!@var ate temporary reaction rates array?
+!@var ate species name
 !@var nabs,al,nll,nhu,o2up,o3up currently read from JPLPH, but not used
 !@var i,j dummy loop variables
 !@var iu_data temporary unit number
-      REAL*8, DIMENSION(2,3) :: ate
+      CHARACTER*8, DIMENSION(3) :: ate
       INTEGER nabs,nll,nhu,i,j,iu_data
       REAL*8  al,o2up,o3up
 C
@@ -215,16 +211,15 @@ c     assign ks and kss gas numbers of photolysis reactants from list
       write(6,*) 'Photolysis reactions used in the model: '
       do i=1,JPPJ
         read(iu_data,112)ate
-        write(6,172) i,ate(1,1),ate(2,1),' + hv   --> ',
-     *  ate(1,2),ate(2,2),' + ',ate(1,3)
-        call lstnum(ate(1,1),ks(i))
+        write(6,172) i,ate(1),' + hv   --> ',ate(2),' + ',ate(3)
+        call lstnum(ate(1),ks(i))
         do j=2,3
-           call lstnum(ate(1,j),kss(j-1,i))
+           call lstnum(ate(j),kss(j-1,i))
         end do
       end do
  121  format(//2(45x,i2/),43x,f4.2/44x,i3/45x,i2/2(40x,e7.1/))
- 112  format(4x,2a4,3x,2a4,1x,2a4)
- 172  format(1x,i2,2x,a4,a4,a12,a4,a4,a3,a4)
+ 112  format(4x,a8,3x,a8,1x,a8)
+ 172  format(1x,i2,2x,a8,a12,a8,a3,a8)
       close(iu_data)
 C
       return
@@ -406,14 +401,13 @@ c     print reaction lists
       ireac=0
       do igas=1,ny
         write(6,*)
-        write(6,10) ay(1,igas),ay(2,igas)
+        write(6,10) ay(igas)
         ichange=kpnr(igas+1)-kpnr(igas)
         if(ichange.ge.1) then
           do ii=1,ichange
             ireac=ireac+1
             write(6,20) ' Reaction # ',npnr(ireac),' produces ',
-     *      ay(1,nnr(1,npnr(ireac))),ay(2,nnr(1,npnr(ireac))),' and  ',
-     *      ay(1,nnr(2,npnr(ireac))),ay(2,nnr(2,npnr(ireac)))
+     *      ay(nnr(1,npnr(ireac))),' and  ',ay(nnr(2,npnr(ireac)))
           enddo
         end if
       end do
@@ -422,14 +416,13 @@ c     print reaction lists
       ireac=0
       do igas=1,ny
         write(6,*)
-        write(6,10) ay(1,igas),ay(2,igas)
+        write(6,10) ay(igas)
         ichange=kdnr(igas+1)-kdnr(igas)
         if(ichange.ge.1) then
           do ii=1,ichange
             ireac=ireac+1
             write(6,20) ' Reaction # ',ndnr(ireac),' destroys ',
-     *      ay(1,nn(1,ndnr(ireac))),ay(2,nn(1,ndnr(ireac))),' and  ',
-     *      ay(1,nn(2,ndnr(ireac))),ay(2,nn(2,ndnr(ireac)))
+     *      ay(nn(1,ndnr(ireac))),' and  ',ay(nn(2,ndnr(ireac)))
           enddo
         end if
       end do
@@ -438,14 +431,13 @@ c     print reaction lists
       ireac=0
       do igas=1,ny
         write(6,*)
-        write(6,10) ay(1,igas),ay(2,igas)
+        write(6,10) ay(igas)
         ichange=kps(igas+1)-kps(igas)
         if(ichange.ge.1) then
           do ii=1,ichange
             ireac=ireac+1
             write(6,20) ' Reaction # ',nps(ireac),' produces ',
-     *      ay(1,kss(1,nps(ireac))),ay(2,kss(1,nps(ireac))),' and  ',
-     *      ay(1,kss(2,nps(ireac))),ay(2,kss(2,nps(ireac)))
+     *      ay(kss(1,nps(ireac))),' and  ', ay(kss(2,nps(ireac)))
           enddo
         end if
       end do
@@ -454,20 +446,20 @@ c     print reaction lists
       ireac=0
       do igas=1,ny
         write(6,*)
-        write(6,10) ay(1,igas),ay(2,igas)
+        write(6,10) ay(igas)
         ichange=kds(igas+1)-kds(igas)
         if(ichange.ge.1) then
           do ii=1,ichange
             ireac=ireac+1
             write(6,30) ' Reaction # ',nds(ireac),' destroys ',
-     *      ay(1,ks(nds(ireac))),ay(2,ks(nds(ireac)))
+     *      ay(ks(nds(ireac)))
           enddo
         end if
       end do
       return
-  10  format(1x,2a4)
-  20  format(a12,i4,a10,2a4,a6,2a4)
-  30  format(a12,i4,a10,2a4)
+  10  format(1x,a8)
+  20  format(a12,i4,a10,a8,a6,a8)
+  30  format(a12,i4,a10,a8)
 C
       end SUBROUTINE printls
 C

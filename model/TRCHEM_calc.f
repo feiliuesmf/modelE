@@ -246,7 +246,7 @@ c
        if(prnrts.and.J.eq.jprn.and.I.eq.iprn)then
         do igas=1,ntm
          total=0.
-         write(6,108) ' Species: ',ay(1,igas),ay(2,igas)
+         write(6,108) ' Species: ',ay(igas)
 c
          call chem1prn
      *   (kdnr,2,nn,ndnr,chemrate,1,-1,igas,total,maxl,I,J)
@@ -313,14 +313,14 @@ c
          if(igas.eq.n_Paraffin) write(6,'(a48,a6,e10.3)')
      *    'destruction from RXPAR ',
      *    'dy = ',-y(nRXPAR,lprn)*y(n_Paraffin,lprn)*8.E-11*dt2
-         write(6,118) ' Total change in ',ay(1,igas),ay(2,igas),
+         write(6,118) ' Total change in ',ay(igas),
      *  ' is ',total,' percent; dy= ',dest(igas,lprn)+prod(igas,lprn)
          write(6,*)
         enddo ! igas
        endif  ! chem diags
- 108  format(a10,2x,2a4)
+ 108  format(a10,2x,a8)
  110  format(a68,e10.3)
- 118  format(a17,2a4,a4,f10.0,a14,e12.3)
+ 118  format(a17,a8,a4,f10.0,a14,e12.3)
 c
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)write(6,'(a35,3(2x,i2))')
      * ' Total change by species at I, J, L',i,j,lprn
@@ -533,10 +533,9 @@ cc    Print chemical changes in a particular grid box if desired
          changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      *   bydxyp(J)*byam(lprn,I,J)
          if(y(igas,lprn).eq.0.)then
-            write(6,156) ay(1,igas),ay(2,igas),': ',changeA
-     *            ,' molecules;  y=0'
+            write(6,156) ay(igas),': ',changeA,' molecules;  y=0'
          else
-            write(6,155) ay(1,igas),ay(2,igas),': ',changeA
+            write(6,155) ay(igas),': ',changeA
      *           ,' molecules produced; ',
      *   (100.*changeA)/y(igas,lprn),' percent of'
      *   ,y(igas,lprn),'(',1.E9*y(igas,lprn)/y(nM,lprn),' ppbv)'
@@ -599,9 +598,8 @@ c
        end do    ! L
       end do     ! igas
 
- 155  format(1x,2a4,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
- 156  format(1x,2a4,a2,e13.3,a16)
- 157  format(1x,2a4,a32,e13.3,a11)
+ 155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
+ 156  format(1x,a8,a2,e13.3,a16)
 c
       return
       end SUBROUTINE chemstep
@@ -774,7 +772,7 @@ c     FAMILIES
            if(y(igas,lprn).ne.0.)per=multip*100.*
      *     chemrate(ndnr(ireac),lprn)/y(igas,lprn)
            write(6,177) label,ndnr(ireac),' percent change from ',
-     *     ay(1,nn(1,ndnr(ireac))),ay(2,nn(1,ndnr(ireac))),' = ',per,
+     *     ay(nn(1,ndnr(ireac))),' = ',per,
      *     ' dy=',multip*chemrate(ndnr(ireac),lprn)
            total=total+per
          endif
@@ -785,7 +783,7 @@ c     FAMILIES
            if(y(igas,lprn).ne.0.)per=multip*100.*
      *     chemrate(ndnr(ireac),lprn)/y(igas,lprn)
            write(6,177) label,ndnr(ireac),' percent change from ',
-     *     ay(1,nn(2,ndnr(ireac))),ay(2,nn(2,ndnr(ireac))),' = ',per,
+     *     ay(nn(2,ndnr(ireac))),' = ',per,
      *     ' dy=',multip*chemrate(ndnr(ireac),lprn)
            total=total+per
           endif
@@ -822,7 +820,7 @@ c       skip same reaction if written twice
           endif
          endif  !end numel=2 loop
  106     format(a17,i3,a18,f10.0,a4,e12.3)
- 177     format(a17,i3,a21,2a4,a3,f10.0,a4,e12.3)
+ 177     format(a17,i3,a21,a8,a3,f10.0,a4,e12.3)
   20    end if
   30  end do ! ireac
   40  continue
