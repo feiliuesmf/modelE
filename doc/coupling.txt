@@ -101,6 +101,9 @@ use is encouraged, but not demanded.
 GTEMP(1,1,I,J) : surface ocean temperature (i.e layer 1) for ocean on
   atmospheric grid.  This must be set during the initialisation, and
   after any call to the ocean model (PRECIP_OC, OCEANS, daily_OCEAN)). 
+  GTEMP(2,1,I,J) is the second layer ocean temperature, but this is
+  only used for diagnostic purposes. Some compilers require this to be
+  set regardless.
 
 SSS(I,J) : surface salinity on atmospheric grid. This is used to
   estimate the salinity at the ice ocean interface and hence the

@@ -260,8 +260,8 @@ which one can set in <tt>~/.modelErc</tt>:</p>
   otherwise it will be unnecessary waste of resources (and your model can 
   actually run slower on one cpu). Also keep in mind that one can not mix 
   OpenMP and non-OpenMP objects, so if you change this option you have to 
-  recompile the entire model. This option has effect only on SGI.<br>
-  (default: <tt>MP=NO</tt>)<br>
+  recompile the entire model. This option has effect currently on SGI
+  and Compaq only.<br>  (default: <tt>MP=NO</tt>)<br>
 </UL>
 
 <p><A name="part0_3"><b>3) System requirements</b></a></p>
@@ -276,11 +276,11 @@ to be able to set up and compile the model.</p>
 tested with the SGI, IBM, and COMPAQ/DEC compilers on their respective
 workstations. For Linux, Macs or PCs, the choice of compiler is wider,
 and we have not been able to test all possibilities. The Absoft
-ProFortran compiler works well, as does the Lahey/Fujitsu compiler. We
-have been unable (as yet) to get the model to compile with the Intel
-compiler due to internal errors in that product. Please let us know if
-you succeed (or more importantly, fail) in compiling the code using
-any other compiler.</p>
+ProFortran compiler works well, as do the Lahey/Fujitsu and Portland
+Group compilers. We have been unable (as yet) to get the model to
+compile with the Intel or VAST compilers due to internal errors in
+those products. Please let us know if you succeed (or more
+importantly, fail) in compiling the code using any other compiler.</p>
 
 <p> Note that the parallelization used in the code is based on the
 OpenMP shared memory architecture. This is not appropriate for
@@ -937,8 +937,10 @@ will be no seasonality there). Possibly there is another way....</p>
 <p>A number of things can change depending on the time period concerned.
 
 <ol>
-  <li> orbital parameters. Change these in CONST.f (note LGM and 6K BP
-       versions will soon be made available).
+  <li> orbital parameters. These can be changed directly in CONST.f,
+	or by setting 'calc_orb_par=1' in the rundeck, and then using
+	'paleo_orb_yr' to define a year (Before Present) from which the values
+	can be calculated. 
   <li> trace gas amounts. (see Q6) Note that for really large changes,
        the mean atmospheric composition will change (and thus so will RVAP
        etc. See CONST.f for details)
@@ -1212,9 +1214,9 @@ to append records as would be expected.</p>
 <p>You can easily keep track of the running average of all the
 printout diagnostics using the NIPRNT switch in the parameter
 database. By setting this to a positive number, the diagnostics will
-be printed out that number of days. (i.e. setting NIPRNT=10, will
+be printed out that number of hours. (i.e. setting NIPRNT=10, will
 print out the running average of the accumulated diagnostics at the
-end of each of the next ten days).</p>
+end of each of the next ten hours).</p>
 
 <p><A name="part2_4"><b>4) HOW-TO control the format of the binary output
 (i.e. GISS/netcdf/hdf etc.)</b></a></p>

@@ -1,6 +1,10 @@
 Major changes from version modelE-2-0-1 to modelE-2-1
 =====================================================
 
+- Qflux model now has option to include ice advection.
+
+- new options for controling cloud optical thickness
+
 - Energy conservation now guaranteed
 
 - New physics for deciding on phase of precip (i.e. how quickly

@@ -141,6 +141,10 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 		</P>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part5_2">Snow model </A>
 		</P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part5_3">Lake model </A>
+		</P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part5_4">Rivers </A>
+		</P>
 	</OL>
 	<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6">Ocean models </A>
 	</P>
@@ -154,21 +158,6 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3">GISS Dynamic
 		ocean model (Russell) </A>
 		</P>
-		<OL>
-			<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3_1">Dynamics </A>
-			</P>
-			<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3_2">Vertical
-			mixing (KPP) </A>
-			</P>
-			<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3_3">Isopycnal
-			diffusion and Mesoscale Eddy parameterisation</A> 
-			</P>
-			<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3_4">Momentum
-			diffusion </A>
-			</P>
-			<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3_5">Straits </A>
-			</P>
-		</OL>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_4">HYCOM (Bleck
 		and Sun) </A>
 		</P>
@@ -290,7 +279,7 @@ of the source code files:
 	Ground hydrology column model, common variables and driver routines.
 		</P>
 	<LI><P STYLE="margin-bottom: 0in"><TT>ICEDYN.f, ICEDYN_DRV.f:</TT>
-	Ice dynamics 
+	Ice dynamics (<TT>ICEDYN_DUM.f</TT> is a dummy version)
 	</P>
 	<LI><P STYLE="margin-bottom: 0in"><TT>IORSF.f:</TT> Controls I/O for
 	reading and writing restart files and monthly diagnostics 
@@ -648,23 +637,57 @@ downdrafts (which can also entrain environmental air), subsidence
 al 1996, with some modifications to improve the simulation of the
 nucleation of super-cooled precipitation and the estimate of
 near-surface cloud formation in very shallow pbl conditions.</P>
-<H3><A NAME="part3_3"></A>Radiation 
-</H3>
+<H3><A NAME="part3_3"></A>Radiation </H3>
+
+<p> The radiation code is based on the k-correlation methodology using
+33 correlated spectral intervals in the solar and long wave bands
+(Lacis and Oinas, 1991, Oinas et al, 2001) </p>
+
 <H3><A NAME="part3_4"></A>Surface fluxes (incl. planetary boundary
 layer physics) 
 </H3>
+
+<p> Surface fluxes are calculated separately for each land surface
+type (open water, ice, earth and land ice). For each type, a different
+high resolution PBL calculation is done to extrapolate the first layer
+atmospheric properites to the surface (defined as 10m above the
+ground). The diffusion parameters in the PBL layers are functions of
+the local turbulence closure scheme (Cheng et al, 2002) and are
+iterated to get a robust estimate of the surface properties
+(temperature, humidity, and tracer concentration) and
+fluxes. Generally, 2 or 4 surface flux time steps are done every hour,
+depending on the vertical resolution.</p>
+
 <H3><A NAME="part3_5"></A>Turbulence and Dry convection 
 </H3>
+
+<p> There are two methods of vertical mixing outside of the surface
+layer: Either, complete mixing is performed if two boxes are statically
+unstable (using the virtual potential temperature) (DRYCNV), or a
+turbulence closure is used to estimate the amount of mixing based on
+on the grid-scale properties and available TKE (ATURB). </p>
+
 <H3><A NAME="part3_6"></A>Stratospheric drag (incl. Gravity Wave Drag
 schemes) 
 </H3>
+
+<p> Stratopsheric drag is applied in two ways. Firstly, using a simple
+formulation as a Ralyeigh damping near the top of the model (SDRAG).
+Secondly, and generally only if the stratsophere is being properly
+resolved, we have a physically-based estimate of gravity-wave drag
+detemined from the model simulation of moist convection, mountain
+waves, shear and deformation (in STRATDYN) (Rind et al, 1988). When
+gravity waves break, there is also some vertical mixing assoicated
+with that. Both GWDRAG and SDRAG are applied within the dynamical leap
+frog tiome steps to improve stability.</p>  
+
 <HR>
 <H2><A NAME="part4"></A>4. Sea ice model </H2>
 
 <p>The sea ice model is configured so that it works suitably for the
 fixed sea ice concentration cases, and also for fully prognostic ocean
-code. Ice advection is only turned on for dynamic oceans (i.e. not the
-Qflux model). A full calculation is always done for lake ice. </P>
+code. A full calculation is always done for lake ice. Ice advection can
+be optionally turned on for both dynamic oceans and the Qflux model).  </P> 
 
 <H3><A NAME="part4_1"></A>Basic thermodynamics </H3>
 
@@ -679,7 +702,7 @@ zero in the snow.  At the surface, heat and mass fluxes calculated in
 the SURFCE routine and the precipitation are applied
 first to the snow layer and then to the ice. There is advection of
 heat, salt and mass as a function of the regridding of the mass layers
-in order to preserve the fixed ratios. Essentially there is a
+in order to preserve the fixed ratios, i.e. there is a
 sigma-coordinate for sea ice properties.</P>
 
 <p>The basal fluxes are calculated in the ocean only for the
@@ -713,12 +736,56 @@ surface flux calculation we calculate the ice velocities and ice-ocean
 momentum stress at the beginning of the calculation (in DYNSI), but
 the ice mass fluxes are not applied until afterwards (in ADVSI). The
 advection is done using the linear upstream scheme in the two
-horizontal directions. </p>
+horizontal directions. This code is turned on by using the 
+ICEDYN_DRV ICEDYN modules instead of the ICEDYN_DUM module, and works with 
+any ocean configuration. </p>
+
+<p> In the fixed SST case, using the ice advection does not change the
+ice variables, but does allow the ice and energy convergences due to
+advection to be calculated, nad subsequently used in the the q-flux
+model. The q-fluxes need to be consistent with the ice advection, and
+so if ICEDYN_DRV ICEDYN is used in the spin-up, it must also be used
+in the q-flux model (and vice versa).</p>
 
 <HR>
 <H2><A NAME="part5"></A>5. Land Surface model </H2>
 <H3><A NAME="part5_1"></A>Soil physics </H3>
+
+<p> The soils are modelled separately for bare and vegetated
+soil. Additionally, there is a canpoy layer over the vegatated
+portion. The soils are modelled using 6 variable depth
+layers. Evapotransiration takes water from the surface pools, and from
+below as a function of rooting depths. Runoff is calculated using a
+TOPmodel approach.
+</p>
+
 <H3><A NAME="part5_2"></A>Snow model </H3>
+
+<p> The snow model (over land) is a 3-layer snow model (Stieglitz,
+1994), that can have a variable extent. </p>
+
+<H3><A NAME="part5_3"></A>Lake model </H3>
+
+<p> The lakes are modelled using a two layer code. The first layer has
+a minimum depth of 1m, while the second layer is unlimited. Lake mass
+is effected by precipitation, evporation and lake ice melt and
+freeze. In addition, river inflow from upstream boxes and outflow to
+the downstream box modify the first layer properties. There is a small
+amount of heat diffusion at the interface, and convective overturning
+occurs if the temperature stratification is unstable.<p>
+
+<H3><A NAME="part5_4"></A>Rivers </H3>
+
+<p> Rivers exist in all land grid boxes and collect runoff from the
+soil and land ice models. Where there is a lake fraction, the water is
+considered a lake (as above). Where there is not, there is no
+intereaction with the atmosphere. Tranpsort of river water depends on
+the (fixed) downstream direction file and mean slope, and the depth of
+the upstream river/lake above a predefined sill depth. Some boxes do
+not contain an outlet, and so can accumulate water indefinitely. As
+the river water reaches an ocean box, the water is deposited uniformly
+within that box. </p>
+
 <HR>
 <H2><A NAME="part6"></A>6. Ocean models </H2>
 
@@ -747,11 +814,14 @@ ocean heat convergence at the base of the mixed layer. This will
 incorporate the actual ocean heat transports, but also a residual
 component related to any errors in the surface heat or mass fluxes.
 This ocean heat convergence can be input into a thermodynamic mixed
-layer to give a Q-flux model. Note that horizontal transport of the
-sea ice is incorporated into the ocean heat convergence. A full sea
-ice thermodynamic calculation is performed for this model. Generally
-this model takes 20 to 30 years to come into thermal equilibrium with
-any change in forcing.</P>
+layer to give a Q-flux model. Depending on whether ice advection is
+turned on (see <a href="#part4_2">above</a>), the horizontal transport
+of the sea ice is or is not incorporated into the ocean heat
+convergence. A full sea  ice thermodynamic calculation is performed
+for this model. Generally this model takes 20 to 30 years to come into
+thermal equilibrium with any change in forcing, but this can be
+changed by specifying the maximum mixed layer depth (smaller implies a
+faster equilibration).</P>
 
 <P> There is an option to allow diffusion into the deep ocean by
 replacing OCNML with ODEEP in the run deck. This requires a 10 year
@@ -761,16 +831,37 @@ spin up of the Q-flux model in order to properly set the deeper layers
 <H3><A NAME="part6_3"></A>GISS Dynamic ocean model (Russell) </H3>
 
 <P> This model is a fully dynamic, non-Boussinesq, mass-conserving
-free surface ocean model (Russell et al, 1995, 1999, Liu et al 2002,
-2003).</P>
+free surface ocean model (Russell et al, 1995, 2000, Liu et al 2002,
+2003). The dynamics is based on a modified Arakawa scheme on the
+C-grid, with a linear upstream scheme for advecting tracers. Vertical
+mixing uses the KPP scheme of Large et al (1996). Momentum mixing is
+modelled as a spatically varying laplacian as in Wajsowicz (1993). The
+effects of mesoscale eddies and isopycnal diffusion are parameterised
+as in Gent and McWilliams (1996), but using variable coefficients
+(Visbeck et al, 1997), and coded as in Griffies (1998).
+</P>
 
-<H4><A NAME="part6_3_1"></A>Dynamics </H4> 
-<H4><A NAME="part6_3_2"></A>Vertical mixing (KPP) </H4>
-<H4><A NAME="part6_3_3"></A>Isopycnal diffusion and Mesoscale Eddy parameterisation</H4>
-<H4><A NAME="part6_3_4"></A>Momentum diffusion </H4>
-<H4><A NAME="part6_3_5"></A>Straits </H4>
-<H3><A NAME="part6_4"></A>HYCOM (Bleck and Sun) </H3>
+<p> The model contains up to 12 variable depth subgrid scale straits
+which contect ocean grid boxes, which would not be connected at the
+resolution used. In particular, the Straits of Gibraltar, Hormuz, and
+Nares straits are so modelled. All ocean components are fluxed through
+these straits as a function of the end to end pressure gradients,
+balanced against a drag proportional to the straits 'width' which
+serves as a tuning parameter to get reasonable fluxes. </p>
+
+<H3><A NAME="part6_4"></A>HYCOM</H3>
+
+<p> HYCOM is an isopyncal model based on MICOM that has a hybrid mixed
+layer scheme near the surface. This has been fully coupled to the
+modelE atmosphere. For more details contact <a
+mailto="ssun@giss.nasa.gov">ssun@giss.nasa.gov</a>. </p> 
+
 <H3><A NAME="part6_5"></A>MOM3 </H3>
+
+<p> MOM3 is the Modular Ocean Model version 3 from GFDL. For more
+details on the coupled version please contact <a
+mailto="ntausnev@giss.nasa.gov">ntausnev@giss.nasa.gov</a>.
+
 <HR>
 <H2><A NAME="part7"></A>7. Tracers</H2>
 
@@ -848,19 +939,51 @@ developers.</p>
 <HR>
 <H2><A NAME="part8"></A>8. References </H2>
 <UL>
-	<LI><P>Del Genio et al, 1996</P>
+	<LI><P>Del Genio, A. D., M. S. Yao, W. Kovari and K. K. Lo,
+	1996. A prognostic cloud water parameterization for General
+	Circulation Models, <em> J. Clim. </em>, <em> 9 </em>, 270-304
+	</P>
 	<LI><P>Hansen, J., R. Ruedy, A. Lacis, Mki. Sato, L. Nazarenko, N.
-	Tausnev, I. Tegen, and D. Koch 2000. Climate modeling in the global
+	Tausnev, I. Tegen, and D. Koch, 2000. Climate modeling in the global
 	warming debate. In General Circulation Model Development (D.
 	Randall, Ed.), pp. 127-164. Academic Press. San Diego. 
 	</P>
-	<LI><P>Hansen et al, 2002</P>
-	<LI><P>Liu et al 2002</P>
-	<LI><P>Liu et al 2003</P>
-	<LI><P>Russell et al 1995</P>
-	<LI><P>Russell et al 1999</P>
-	<LI><P>Yao and Del Genio, 1995</P>
-	<LI><P>Zhang and Rothrock, 1999</P>
+	<LI><P>Hansen, J. E.  ,Mki. Sato ,L. Nazarenko ,R. Ruedy,
+        A. Lacis ,I. Tegen ,T. Hall, D. Shindell , P. Stone , T. Novakov,
+        L. Thomason , R. Wang , Y. Wang, D.J. Jacob , S. Hollandsworth-Frith,
+        L. Bishop , J. Logan , A. Thompson, R. Stolarski , J. Lean ,
+        R. Willson, S. Levitus , J. Antonov , N. Rayner, D. Parker and
+        J. Christy. 2002. Climate forcings in Goddard Institute for
+        Space Studies SI2000 simulations, <em> J. Geophys. Res.</em>,
+        <em>107</em>, 4347, DOI 10.1029/2001JD001143 
+	</P>
+	<LI><P>Liu, J., G. A. Schmidt, D. G. Martinson, D. Rind,
+	G. L. Russell and X. Yuan, Sensitivity of sea ice to physical
+	parameterisations in the GISS global climate model, <em>
+	J. Geophys. Res. </em>, (in press) 
+	</P>
+	<LI><P>Liu, J., G. A. Schmidt, D. G. Martinson, D. Rind and
+	G. L. Russell, Sensitivity of sea ice to physical
+	parameterisations in the GISS global climate model: Part
+	II. Sea ice thermodynamics, <em>J. Geophys. Res.</em>, (in preparation)
+	</P>
+	<LI><P>Russell, G.L., J. R. Miller, D. H. Rind,1995. A coupled
+	atmosphere-ocean model for transient climate change,
+	<em>Atmos. Ocean</em>, <em>33 </em>,683-730
+	</P>
+	<LI><P>Russell, G.L., J. R. Miller, D. H. Rind, R. A. Ruedy,
+	G. A. Schmidt and S. Sheth, 2000. Comparison of model and observed
+	regional temperature changes during the past 40 years,
+	<em>J. Geophys. Res.</em>, <em>105</em>, 14,891-14,898
+	</P>
+	<LI><P>Yao, M.S. and A. D. Del Genio, 1989. Effects of cumulus
+	Entrainment and multiple cloud types on a January global
+	climate model simulation, <em> J. Clim.</em>,  <em> 2</em>, 850-863 
+	</P>	
+	<LI><P>Zhang, J. and D. Rothrock, 2000. Modeling Arctic sea
+	ice with an efficient plastic solution, <em>J. Geophys. Res.</em>, 
+	<em>105</em>, 3325-3338
+	</P>
 </UL>
 <HR>
 </BODY>
