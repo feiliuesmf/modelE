@@ -569,14 +569,14 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
-C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       call reset_diag(1)
 
 c     write( 6, INPUTZ )
 c     call print_param( 6 )
 
-      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400 
+      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
 C***********************************************************************
 C****                                                               ****
 C****                  INITIAL STARTS - ISTART: 1 to 8              ****
@@ -891,7 +891,7 @@ C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
 C??   if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
-      if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
+C??   if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
 C??   if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
 
 C***********************************************************************
@@ -903,7 +903,7 @@ C***********************************************************************
 
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
       IF (KEYCT.LE.1) KEYNR=0
-      IF (KEYCT.LE.1) KEYCT=1     !!??
+      IF (KEYCT.LE.1) KEYCT=1        
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
@@ -938,12 +938,12 @@ C****
 C**** Overwrite rundeck parameters in the DB that were changed
       call set_param( "DTsrc", DTsrc, 'o' )
       call set_param( "DT", DT, 'o' )
-      call set_param( "keyct", keyct, 'o' )  !!??
+      call set_param( "keyct", keyct, 'o' )     
       call set_param( "NMONAV", NMONAV, 'o' )
 
 C**** Overwrite non-rundeck parameters that were changed
 C??   call set_param( "ItimeE", ItimeE, 'o' ) !input
-      call set_param( "NIdyn", NIdyn, 'o' ) !input
+C??   call set_param( "NIdyn", NIdyn, 'o' ) !input
 C??   call set_param( "Itime", Itime, 'o' ) !main
 
 C**** Get the rest of parameters from DB or put defaults to DB
