@@ -1585,22 +1585,29 @@ C****
       case ('CH4')
       tr3Dsource(:,:,:,:,n) = 0.
       call Trop_chem_CH4(n,1)
-      call Strat_chem_CH4(n,2)
+      call apply_tracer_3Dsource(n,1)
+      call Strat_chem_Prather(n,2)
+      call apply_tracer_3Dsource(n,2)
 C****
       case ('O3')
       tr3Dsource(:,:,:,:,n) = 0.
       call Trop_chem_O3(n,1)
+      call apply_tracer_3Dsource(n,1)
       call Strat_chem_O3(n,2)
+      call apply_tracer_3Dsource(n,2)
 C****
       case ('N2O')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Strat_chem_N2O(n,1)
+      call Strat_chem_Prather(n,1)
+      call apply_tracer_3Dsource(n,1)
 C****
       case ('CFC')
       tr3Dsource(:,:,:,:,n) = 0.
-      call Strat_chem_CFC(n,1)
+      call Strat_chem_Prather(n,1)
+      call apply_tracer_3Dsource(n,1)
 C****
       end select
+
       end do
       return
       END SUBROUTINE set_tracer_3Dsource
@@ -1784,17 +1791,6 @@ C**** Apply the chemistry
       END SUBROUTINE Trop_chem_CH4
 
 
-      SUBROUTINE Strat_chem_CH4(n,ns)
-!@sum Trop_chem_CH4 calculates stratospheric chemistry for CH4
-!@auth Jean Lerner
-      USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
-      implicit none
-      integer n,ns
-      return
-      END SUBROUTINE Strat_chem_CH4
-
-
       SUBROUTINE Trop_chem_O3(n,ns)
 !@sum Trop_chem_O3 calculates tropospheric chemistry for O3
 !@auth Jean Lerner
@@ -1817,26 +1813,17 @@ C**** Apply the chemistry
       END SUBROUTINE Strat_chem_O3
 
 
-      SUBROUTINE Strat_chem_N2O(n,ns)
-!@sum Trop_chem_N2O calculates stratospheric chemistry for N2O
-!@auth Jean Lerner
+      SUBROUTINE Strat_chem_Prather(n,ns)
+!@sum Strat_chem_Prather calculates stratospheric chemistry for 
+!@+        CFC, N2O and CH4
+!@auth Michael Prather (J.Lerner adopted code)
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
       implicit none
       integer n,ns
       return
-      END SUBROUTINE Strat_chem_N2O
+      END SUBROUTINE Strat_chem_Prather
 
-
-      SUBROUTINE Strat_chem_CFC(n,ns)
-!@sum Trop_chem_CFC calculates stratospheric chemistry for CFC
-!@auth Jean Lerner
-      USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
-      implicit none
-      integer n,ns
-      return
-      END SUBROUTINE Strat_chem_CFC
 #endif
 
 
