@@ -84,7 +84,11 @@ c****
      &     ,dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE
+#endif
+#if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_DUST)
+     &     ,trname
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
@@ -92,10 +96,13 @@ c****
       use tracer_diag_com, only : taijn,tij_surf
      *  ,taijs,ijts_isrc,jls_isrc,tajls
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,jls_source,tij_soil
+     *     ,tij_evap,tij_grnd,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
+#endif
+#if (defined TRACERS_WATER) || (defined TRACERS_DUST)
+     &     ,jls_source
 #endif
 #ifdef TRACERS_DUST
      &     ,ijts_source,nDustEmij,nDustEmjl
@@ -104,9 +111,6 @@ c****
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
-#ifdef TRACERS_DUST
-     &     ,dustflux
-#endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
       use tracers_DRYDEP, only : dtr_dd
@@ -114,6 +118,9 @@ c****
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
+#ifdef TRACERS_DUST
+     &     ,pprec,pevap
+#endif
       use ghycom, only : ngm,nlsn,
      &     gdeep,wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
@@ -145,15 +152,14 @@ c****
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
+#ifdef TRACERS_DUST
+     &     ,dust_flux
+#endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
 #endif
       use snow_drvm, only : snow_cover_same_as_rad
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : dust_emission_constraints,
-     &     local_dust_emission
-#endif
 
       implicit none
 
@@ -602,6 +608,12 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
       !evap=aevapw+aevapd+aevapb
       evap = aevap
       evapor(i,j,4)=evapor(i,j,4)+evap
+#ifdef TRACERS_DUST
+c     saves precipitation for dust emission calculation at next time step
+      pprec(i,j)=prec(i,j)
+c     saves evaporation for dust emission calculation at next time step
+      pevap(i,j,itype)=evap
+#endif
       evhdt=-alhg
 C**** hack to correct energy flux
 ccc      evhdt=-evap*lhe ! hopefully not needed any more
@@ -629,11 +641,6 @@ ccc accumulate tracer evaporation and runoff
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
-#endif
-
-#ifdef TRACERS_DUST
-ccc dust emission from earth
-      CALL dust_emission_constraints(i,j)
 #endif
 
 #ifdef TRACERS_ON
@@ -669,14 +676,13 @@ ccc dust emission from earth
         SELECT CASE (trname(n))
         CASE ('Clay','Silt1','Silt2','Silt3')
           n1=n-n_clay+1
-          CALL local_dust_emission(i,j,n1)
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dustflux(i,j,n1)
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
           taijs(i,j,ijts_source(nDustEmij,n))=
-     &         taijs(i,j,ijts_source(nDustEmij,n))+dustflux(i,j,n1)*
-     &         dtsurf
+     &         taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*
+     &         dxyp(j)*ptype*dtsurf
           tajls(j,1,jls_source(nDustEmjl,n))=
-     &         tajls(j,1,jls_source(nDustEmjl,n))+dustflux(i,j,n1)*
-     &         dtsurf
+     &         tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)*
+     &         ptype*dtsurf
         END SELECT
 #endif
 

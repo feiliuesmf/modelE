@@ -149,8 +149,10 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRDRYDEP 
 #endif
 #ifdef TRACERS_DUST
-!@var source flux of dust tracers [kg/s]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dustflux
+!@var pprec precipitation at previous time step [kg/m^2]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
+!@var pevap evaporation at previous time step [kg/m^2]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: pevap
 #endif
 #endif
 
@@ -299,7 +301,8 @@ C**** sea ice melt and iceberg/glacial melt.
          TRDRYDEP = 0.   !Initialize to 0.
 #endif
 #ifdef TRACERS_DUST
-      ALLOCATE(dustflux(I_0H:I_1H,J_0H:J_1H,NTM),STAT=IER)
+      ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
+      ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H,NSTYPE),STAT = IER)
 #endif
 #endif
 
