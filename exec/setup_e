@@ -71,17 +71,23 @@
 ## Create the proper environment
    umask 002
 
-## Create the directory (symbolic link) ./RUNID if necessary
-   if [[ ! -d $Xdisk/$RUNID ]]; then mkdir $Xdisk/$RUNID; fi
-   chmod ugo+rxw $Xdisk/$RUNID
-## Check that link is not already correct (added by gavin)
-   if [[ -L $RUNID ]]; then
-     if [[ `ls -l $RUNID | awk '{print $11}'` != $Xdisk/$RUNID ]] ; then
-       rm $RUNID; fi
-   else
-     if [[ -d $RUNID ]]; then cp -rp $RUNID/* $Xdisk/$RUNID; fi
-     rm -rf $RUNID 2> /dev/null ; ln -s $Xdisk/$RUNID $RUNID
+## Create the run directory if necessary
+   if [[ ! -d $Xdisk/$RUNID ]]; then mkdir $Xdisk/$RUNID
+     if [[ $? -ne 0 ]]; then
+       echo "Can't create $Xdisk/$RUNID. Aborting setup."
+       exit 1; fi
    fi
+   chmod ugo+rxw $Xdisk/$RUNID
+
+## Check that link is not already correct (added by gavin)
+   if [[ -e $RUNID ]]; then
+     if [[ `ls -l $RUNID | awk '{print $11}'` != $Xdisk/$RUNID ]] ; then
+       echo "./$RUNID exists and is pointing to something else."
+       echo "Please check. Aborting setup.";  exit 1; fi
+   else
+     ln -s $Xdisk/$RUNID $RUNID
+   fi
+
 ## Also link to $CMRUN  (added by gavin)
    if [[ -L $CMRUN/$RUNID ]]; then
      if [[ `ls -l "$CMRUN/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
@@ -90,6 +96,13 @@
        ln -s $Xdisk/$RUNID $CMRUN/$RUNID ; fi
    else
       ln -s $Xdisk/$RUNID $CMRUN/$RUNID
+   fi
+
+## Make sure that we really can write to dir/link $RUNID
+   if [[ ! ( -d $RUNID && -r $RUNID && -w $RUNID && -x $RUNID ) ]] ; then
+     echo "Couldn't create the link $RUNID"
+     echo "or run directory has wrong permissions. Aborting setup."
+     exit 1
    fi
 
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
