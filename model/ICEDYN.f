@@ -1757,7 +1757,7 @@ C**** Set atmospheric arrays
       END DO
 C****
       RETURN
-      END
+      END SUBROUTINE ADVSI   
 
       SUBROUTINE AT2IT(FIELDA,FIELDI,NF,QCONSERV)
 !@sum  AT2IT interpolates Atm Tracer grid to Dynamic Ice Tracer grid
