@@ -4300,15 +4300,15 @@ C     SIL(15)=-1.D-13*BYIARD
       DO K=1,K_PIL
       SELECT CASE (CASEIL(K))
       CASE DEFAULT 
-      CASE (1)  ! CASE 1: TITLE,PL,AIL(n),SCALE,ONES,LM,2,2)
+      CASE (1)  ! Centered in L; secondary grid; hor. mean; vert. sum
         CALL ILMAP(TITLE(K),PL,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,2,2)
-      CASE (2)  ! CASE 2: TITLE,PLE,AIL(n),SCALE,ONES,LM-1,2,1)
+      CASE (2)  ! Vertical edges; primary grid; hor. mean; vert. sum
         CALL ILMAP(TITLE(K),PLE,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM-1,2,1)
-      CASE (3)  ! CASE 3: TITLE,PL,AIL(n),SCALE,ONES,LM,2,1)
+      CASE (3)  ! Centered in L; primary grid; hor. mean; vert. sum
         CALL ILMAP(TITLE(K),PL,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,2,1)
-      CASE (4)  ! CASE 4: TITLE,PL,AIL(n),SCALE,ONES,LM,1,1)
+      CASE (4)  ! Centered in L; primary grid; hor. sum; vert. sum
         CALL ILMAP(TITLE(K),PL,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,1,1)
-      CASE (5)  ! CASE 5: TITLE,PL,AIL(n),SCALE,BYDSIG,LM,1,1)
+      CASE (5)  ! Centered in L; primary grid; hor. sum; vert. mean
         CALL ILMAP(TITLE(K),PL,AIL(1,1,KNDEX(K)),SIL(K),BYDSIG,LM,1,1)
       END SELECT
       END DO
