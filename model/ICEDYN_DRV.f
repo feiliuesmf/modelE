@@ -711,9 +711,8 @@ C**** VSIDT(J-1)=0, VSIDT(J)<0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) - FXSI(J)*BYFOA(I,J)
-      DO 226 K=1,NTRICE
-  226 MHS(K,I,J) = AMSI(K)/ASI
-      GO TO 310   ! UP TO HERE
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
+      GO TO 310 
 C**** VSIDT(J-1)=0, VSIDT(J)>0.
   230 RSI(I,J)  =  RSI(I,J) -  FASI(J)*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(J)*BYDXYP(J))
@@ -738,8 +737,7 @@ C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + (FXSI(J-1)-FXSI(J))*BYFOA(I,J)
-      DO 266 K=1,NTRICE
-  266 MHS(K,I,J) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
       GO TO 310
 C**** VSIDT(J-1)<0, VSIDT(J)>0.
   270 RSI(I,J)  =  RSI(I,J) + (FASI(J-1)-FASI(J))*BYFOA(I,J)
@@ -760,8 +758,7 @@ C**** VSIDT(J-1)>0, VSIDT(J)=0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + FXSI(J-1)*BYFOA(I,J)
-      DO 286 K=1,NTRICE
-  286 MHS(K,I,J) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
 C**** Limit RSIX and RSIY so that sea ice is positive at the edges
   310 RSI(I,J) = MAX(0d0,RSI(I,J))
       IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
@@ -874,8 +871,7 @@ C**** USIDT(IM1)=0, USIDT(I)<0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) - FYSI(I)*BYFOA(I,J)
-      DO 526 K=1,NTRICE
-  526 MHS(K,I,J) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
       GO TO 610
 C**** USIDT(IM1)=0, USIDT(I)>0.
   530 RSI(I,J)  =  RSI(I,J) -  FASI(I)*BYFOA(I,J)
@@ -901,8 +897,7 @@ C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I) not 0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) + (FYSI(IM1)-FYSI(I))*BYFOA(I,J)
-      DO 566 K=1,NTRICE
-  566 MHS(K,I,J) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
       GO TO 610
 C**** USIDT(IM1)<0, USIDT(I)>0.
   570 RSI(I,J)  =  RSI(I,J) + (FASI(IM1)-FASI(I))*BYFOA(I,J)
@@ -923,8 +918,7 @@ C**** USIDT(IM1)>0, USIDT(I)=0.
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) + FYSI(IM1)*BYFOA(I,J)
-      DO 586 K=1,NTRICE
-  586 MHS(K,I,J) = AMSI(K)/ASI
+      IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
 C**** Limit RSIX and RSIY so that sea ice is positive at the edges
   610 RSI(I,J) = MAX(0d0,RSI(I,J))
       IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
