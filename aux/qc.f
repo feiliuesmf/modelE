@@ -10,7 +10,7 @@
       CHARACTER*80 FILEIN
       INTEGER N,NARGS,K,iargc,KFILE,I,days_togo,itm,iu_RSF
       INTEGER :: ioerr=0, KSTART=1, ItimeMax=0
-      REAL*8 TOT,yrs_togo,FAC,FACT,xfac
+      REAL*8 TOT,yrs_togo,FAC,FACT,xfac,hour
       LOGICAL :: QCALL = .FALSE., QCMIN=.FALSE., QCRESTART=.FALSE.
 !@var QCRESTART if TRUE compute max Itime and do printout for "runpm"
 
@@ -53,8 +53,9 @@ C**** check for arguments
       endif
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      hour=mod(itime,nday)*24./nday
 
-      WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
+      WRITE (6,900) ITIME,JMON,JDATE,JYEAR,HOUR,XLABEL(1:50)
       TOT=0
       DO N=1,NTIMEACC
         TOT = TOT + TIMING(N)
@@ -77,18 +78,21 @@ C**** check for arguments
         call print_param(6)
 c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
         call getdte(ItimeI,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-        WRITE (6,900) ITIMEI,JMON,JDATE,JYEAR,JHOUR,' = start of run'
+        hour=mod(itime,nday)*24./nday
+        WRITE (6,900) ITIMEI,JMON,JDATE,JYEAR,HOUR,' = start of run'
         call getdte(ItimeE,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-        WRITE (6,900) ITIMEE,JMON,JDATE,JYEAR,JHOUR,' =   end of run'
+        hour=mod(itime,nday)*24./nday
+        WRITE (6,900) ITIMEE,JMON,JDATE,JYEAR,HOUR,' =   end of run'
         if(itimee.ge.itime) then
           days_togo = (Itimee-itime+nday-1)/nday
           yrs_togo  = (Itimee-itime)/(365.*nday)
           write(XLABEL(29:50),'(I10,a12)') days_togo,'  days to go'
           if (days_togo.eq.1) XLABEL(44:44) = ' '
          call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+         hour=mod(itime,nday)*24./nday
           if (yrs_togo.ge.2.)
      *    write(XLABEL(29:50),'(f10.1,a12)') yrs_togo,' years to go'
-        WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
+        WRITE (6,900) ITIME,JMON,JDATE,JYEAR,HOUR,XLABEL(1:50)
       end if
       END IF
       END DO
@@ -117,7 +121,7 @@ c        write(6,*)
   860 continue
       write(6,*) "Error reading file ", FILEIN
       STOP
- 900  FORMAT (I10,1X,I2,'/',I2.2,'/',I4.4,' hr',I2,2X,A)
+ 900  FORMAT (I10,1X,I2,'/',I2.2,'/',I4.4,' hr',f4.1,1X,A)
  906  FORMAT (' TIME',F7.2,' (MINUTES)',3(1X,A12,F5.1))
  907  FORMAT (10(22X,3(1X,A12,F5.1) / ))
       end
