@@ -30,7 +30,7 @@ C****
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
-      IF (Itime.GE.ItimeE) then        !??? istart<0 ???
+      IF (Itime.GE.ItimeE) then     ! includes ISTART<1 case
          WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
@@ -134,7 +134,7 @@ C**** calculate some dynamic variables for the PBL
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MDYN)
 
-         IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)           ! ?
+         IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)             
          IF (MODD5D.EQ.0) CALL DIAG9A (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
 C****
@@ -150,13 +150,13 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE ')
          CALL TIMER (MNOW,MCNDS)
-         IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)           ! ?
+         IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)             
          IF (MODD5S.EQ.0) CALL DIAG9A (3)
 C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (MNOW,MRAD)
-         IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)          ! ?
+         IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)            
          IF (MODD5S.EQ.0) CALL DIAG9A (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -196,7 +196,7 @@ C**** ADVECT ICE
       CALL ADVSI
          CALL CHECKT ('ADVSI ')
 C**** IF ATURB is used in rundeck then this is a dummy call
-C**** CALCULATE DRY CONVECTION ABOVE PBL 
+C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL DIFFUS (2,LM-1,dtsrc)
          IF (MODD5S.EQ.0) CALL DIAG9A (7)
          CALL CHECKT ('DRYCNV')
@@ -207,7 +207,7 @@ C**** CALL OCEAN DYNAMIC ROUTINES
          CALL CHECKT ('OCEAN ')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (9)
-         IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?
+         IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)            
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
@@ -223,7 +223,6 @@ C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
-CC??  Jyear=Itime/(Nday*JDperY) + iyear1  !  calendar year (A.D.)
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
@@ -239,7 +238,7 @@ CC??  Jyear=Itime/(Nday*JDperY) + iyear1  !  calendar year (A.D.)
         call daily_OCEAN(1)
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
-           CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
+           CALL DIAG5A (16,NDAY*NIdyn)                        
            CALL DIAG9A (10)
         call flush(6)
       END IF
@@ -265,7 +264,7 @@ C****
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
-      IF (MOD(Itime-ItimeI,NDA4).EQ.0) CALL DIAG4A ! at hr 23 ?
+      IF (MOD(Itime-ItimeI,NDA4).EQ.0) CALL DIAG4A ! at hr 23 E-history
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
          IF (KDIAG(1).LT.9) CALL DIAGJ
@@ -576,10 +575,23 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       call reset_diag(1)
 
-c     write( 6, INPUTZ )
-c     call print_param( 6 )
+C***********************************************************************
+C****                                                               ****
+C****        Post-process one or more ACC-files : ISTART < 1        ****
+C****                                                               ****
+C***********************************************************************
+      if (istart.le.0) then
+        monacc = 0
+        do k=1,iargc()
+          call getarg(k,filenm)
+          call openunit(filenm,iu_AIC,.true.,.true.)
+          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
+          call closeunit(iu_AIC)
+        end do
+        GO TO 500 
+      end if
 
-      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
+      if (istart.ge.9) go to 400
 C***********************************************************************
 C****                                                               ****
 C****                  INITIAL STARTS - ISTART: 1 to 8              ****
@@ -768,7 +780,7 @@ C**** Check consistency of starting time
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 C****
-!@var IRANDI seed for random perturbation of initial conditions (if/=0)
+!**** IRANDI seed for random perturbation of initial conditions (if/=0)
 C****        perturbation is at most 1 degree C
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
@@ -796,8 +808,8 @@ C**** Sending parameters which had just been set to the DB
       GO TO 600
 C***********************************************************************
 C****                                                               ****
-C****   Post-process ACC-files : ISTART < 0                         ****
 C****                  RESTARTS: ISTART > 8                         ****
+C****                                                               ****
 C****   Current settings: 9 - from own model M-file                 ****
 C****                    10 - from later of fort.1 or fort.2        ****
 C****                    11 - from fort.1                           ****
@@ -806,21 +818,9 @@ C****               13 & up - from earlier of fort.1 or fort.2      ****
 C****                                                               ****
 C***********************************************************************
   400 SELECT CASE (ISTART)
-      CASE (:0)
-C****
-C****   SUM DIAGNOSTICS OVER INPUT FILES     ISTART<0
-C****
-        monacc = 0
-        do k=1,iargc()
-          call getarg(k,filenm)
-          call openunit(filenm,iu_AIC,.true.,.true.)
-          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
-          call closeunit(iu_AIC)
-        end do
-        GO TO 500
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
-C****                          used for REPEATS and delayed EXTENSIONS
+C****        mainly used for REPEATS and delayed EXTENSIONS
       CASE (9)    ! no need to read diag.arrays
         call openunit("AIC",iu_AIC,.true.,.true.)
         call io_rsf(iu_AIC,Itime,irerun,ioerr)
@@ -832,20 +832,20 @@ C****                          used for REPEATS and delayed EXTENSIONS
 C****
 !**** IRANDI seed for random perturbation of current state (if/=0)
 C****        perturbation is at most 1 degree C
-      IF (IRANDI.NE.0) THEN
-        CALL RINIT (IRANDI)
-        DO L=1,LM
-        DO J=1,JM
-        DO I=1,IM
-           TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
-           T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
-        END DO
-        END DO
-        END DO
-        WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
-      END IF
+        IF (IRANDI.NE.0) THEN
+          CALL RINIT (IRANDI)
+          DO L=1,LM
+          DO J=1,JM
+          DO I=1,IM
+             TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
+             T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
+          END DO
+          END DO
+          END DO
+          WRITE(6,*) 'Current temperatures were perturbed !!',IRANDI
+        END IF
         TIMING = 0
-        GO TO 500
+        GO TO 500 
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
 C****
@@ -904,10 +904,6 @@ C****
       if (index(XLABEL(1:LRUNID),' ').gt.0)
      *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
 
-C**** Recompute date information related to Itime0
-C****
-      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
-
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
       IF (yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
@@ -947,6 +943,7 @@ C**** Get the rest of parameters from DB or put defaults to DB
 
 C**** Set julian date information
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
 C****
 C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS
@@ -978,15 +975,15 @@ C****
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
-      CALL init_ice              !???? needed if istart<0 ????
+      CALL init_ice        
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN)  !???? needed if istart<0 ????
+      CALL init_OCEAN(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI               !???? needed if istart<0 ????
+      CALL init_LI             
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
