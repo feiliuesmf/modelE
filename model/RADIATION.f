@@ -5375,6 +5375,8 @@ C                                             --------------------------
 C                                             Ocean Albedo Specification
 C                                             --------------------------
 C
+      BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
+      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
       IF(POCEAN.LT.1.D-04) GO TO 400
       X=0.5D0+(0.5D0-COSZ)*ZOCSRA
       BOCVIS=BVH2O(WMAG)  +AVSCAT+AVSCUM
