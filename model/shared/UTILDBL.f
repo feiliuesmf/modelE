@@ -572,7 +572,7 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
 #ifdef USE_ESMF
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
-        call abort
+        call sys_abort
 #endif
       else
 #ifdef USE_ESMF

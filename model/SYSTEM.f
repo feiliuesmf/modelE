@@ -9,7 +9,8 @@
 
       CONTAINS
 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
 !@calls RAN
@@ -19,7 +20,8 @@
       RANDU=RAN(IX)
       RETURN
       END FUNCTION RANDU
-#elif defined( MACHINE_IBM )
+#elif defined( MACHINE_IBM ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
       REAL*8 X                       !@var X      dummy variable
@@ -100,9 +102,13 @@
 !@sum  exit_rc stops the run and sets a return code
 !@auth Reto A Ruedy
 !@ver  1.0 (SGI,IBM,Linux,DEC)
+#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+      use f90_unix_proc
+#endif
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: code !@var code return code set by user
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+ || defined(MACHINE_MAC)
       call exit(code) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
       call exit_(code)
@@ -119,7 +125,8 @@
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+ || defined(MACHINE_MAC)
       call flush(unit) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
       call flush_(unit)
@@ -139,13 +146,56 @@
       INTEGER, INTENT(IN) :: sig
 !@var prog handler subroutine for given signal
       EXTERNAL prog
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       call signal( sig, prog, -1 ) 
 #elif defined( MACHINE_IBM )
       call signal( sig, prog )
+#elif ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+      ! do nothing if "signal" is not supported by NAG
 #else
       None of supported architectures was specified.
       This will crash the compiling process.
 #endif
       RETURN
       END SUBROUTINE sys_signal
+
+
+      SUBROUTINE sys_abort
+!@sum system call to "abort" (to dump core)
+#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+      use f90_unix_proc
+#endif
+      call abort
+      END SUBROUTINE sys_abort
+
+
+      subroutine nextarg( arg, opt )
+!@sum returns next argument on the command line
+!@+  arg - returned argument, or returns "" if no more arguments
+!@+  if opt==1 return arg only if it is an option (starts with -)
+#if ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+      use f90_unix_env
+#endif
+      implicit none
+      character(*), intent(out) :: arg
+      integer, external :: iargc
+      integer, intent(in) :: opt
+      integer, save :: count = 1
+      if ( count > iargc() ) then
+        arg=""
+        return
+      endif
+      call getarg( count, arg )
+      !if ( present(opt) ) then
+        if ( opt == 1 .and. arg(1:1) .ne. '-' ) then
+          arg=""
+          return
+        endif
+      !endif
+      count = count + 1
+      return
+      end subroutine nextarg
+
+
+

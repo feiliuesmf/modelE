@@ -244,7 +244,7 @@ ifeq ($(COMPILER),Absoft)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
-CPPFLAGS = -DMACHINE_MAC
+CPPFLAGS = -DMACHINE_MAC -DCOMPILER_ABSOFT
 FFLAGS = -O2
 FFLAGSF = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
@@ -260,7 +260,7 @@ ifeq ($(COMPILER),NAG)
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
-CPPFLAGS = -DMACHINE_MAC
+CPPFLAGS = -DMACHINE_MAC -DCOMPILER_NAG
 FFLAGS = -O2
 FFLAGSF = -O2 -f free
 LFLAGS = 

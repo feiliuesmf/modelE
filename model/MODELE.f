@@ -800,23 +800,11 @@ C****
       write(6,*) '...and regional Ox tracers'
 #endif
 C****
-C**** Print and Copy Namelist parameter changes to disk so they may be
-C**** read in repeatedly. Then read them in to overwrite the defaults
+C**** Read parameters from the rundeck to database and namelist
 C****
-      DO WHILE (NLREC(1:5).NE.' &END')
-        READ  (iu_IFILE,'    (A80)') NLREC
-        WRITE (6,'(35X,A80)') NLREC
-        WRITE (8,'(A)') NLREC
-      END DO
+      call parse_params(iu_IFILE)
+      READ (iu_IFILE,NML=INPUTZ,ERR=900)
       call closeunit(iu_IFILE)
-      REWIND 8
-CCCC      call closeunit(stdin)
-C****
-C**** Read parameters from the rundeck to the database
-C****
-      call parse_params( 8 )
-      READ (8,NML=INPUTZ,ERR=900)
-      REWIND 8
 
 C**** Get those parameters which are needed in this subroutine
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
@@ -1579,28 +1567,6 @@ C**** check tracers
 
       RETURN
       END SUBROUTINE CHECKT
-
-
-      subroutine nextarg( arg, opt )
-      implicit none
-      character(*), intent(out) :: arg
-      integer, external :: iargc
-      integer, intent(in) :: opt
-      integer, save :: count = 1
-      if ( count > iargc() ) then
-        arg=""
-        return
-      endif
-      call getarg( count, arg )
-      !if ( present(opt) ) then
-        if ( opt == 1 .and. arg(1:1) .ne. '-' ) then
-          arg=""
-          return
-        endif
-      !endif
-      count = count + 1
-      return
-      end
 
 
       subroutine read_options( qcrestart, ifile )
