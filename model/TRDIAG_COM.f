@@ -164,8 +164,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
       INTEGER, DIMENSION(NTM) :: jls_grav
-!@var jls_index: Number of source/sink tracer JL diagnostics/tracer
-      integer, dimension(ktajls) :: jls_index
+!@var jwt_jls: Weighting index for jls diags 1=by area, 2=simple average
+      integer, dimension(ktajls) :: jwt_jls
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
       character(len=30), dimension(ktajls) :: sname_jls
 !@var LNAME_JLS,UNITS_JLS: descriptions/units of tracer JLS diags

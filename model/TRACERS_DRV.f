@@ -448,10 +448,10 @@ C**** Defaults for jls (sources, sinks, etc.)
 C**** These need to be 'hand coded' depending on circumstances
       do k=1,ktajls  ! max number of sources and sinks
         jgrid_jls(k) = 1
+        jwt_jls(k) = 1
         ia_jls(k) = ia_src
         scale_jls(k) = 1./DTsrc
       end do
-      jls_index(:) = 0
 
 C****
 C**** Set some diags that are the same regardless
@@ -466,7 +466,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
         lname_jls(k) = 'SF6 CFC-GRID SOURCE, LAYER 1'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -3.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -476,7 +475,6 @@ C****
         jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -12.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -484,7 +482,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'Ground_Source_of_'//trname(n)
         lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -10.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -495,7 +492,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'Fossil_fuel_source_'//trname(n)
         lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -503,7 +499,6 @@ C****
         jls_source(2,n) = k
         sname_jls(k) = 'fertilization_sink_'//trname(n)
         lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -511,7 +506,6 @@ C****
         jls_source(3,n) = k
         sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_jls(k) = 'CO2 Northern forest regrowth sink'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -519,7 +513,6 @@ C****
         jls_source(4,n) = k
         sname_jls(k) = 'Land_Use_Modification_'//trname(n)
         lname_jls(k) = 'CO2 from Land use modification (Houton)'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -527,7 +520,6 @@ C****
         jls_source(5,n) = k
         sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
         lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -535,7 +527,6 @@ C****
         jls_source(6,n) = k
         sname_jls(k) = 'Ocean_exchange_'//trname(n)
         lname_jls(k) = 'CO2 Ocean exchange'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -545,7 +536,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trname(n)
         lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -553,7 +543,6 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -563,7 +552,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trname(n)
         lname_jls(k) = 'CHANGE OF CFC-11 BY SOURCE, L1'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -571,7 +559,6 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -581,7 +568,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trname(n)
         lname_jls(k) = 'CHANGE OF 14CO2 by SINK, L1'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -4
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -592,7 +578,6 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -600,7 +585,6 @@ C****
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -608,7 +592,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'Animal_source_of'//trname(n)
         lname_jls(k) = 'CH4 Animal source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -616,7 +599,6 @@ C****
         jls_source(2,n) = k
         sname_jls(k) = 'Coal_Mine_source_'//trname(n)
         lname_jls(k) = 'CH4 Coal Mine source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -624,7 +606,6 @@ C****
         jls_source(3,n) = k
         sname_jls(k) = 'Gas_Leak_source_'//trname(n)
         lname_jls(k) = 'CH4 Gas Leak source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -632,7 +613,6 @@ C****
         jls_source(4,n) = k
         sname_jls(k) = 'Gas_Venting_source_'//trname(n)
         lname_jls(k) = 'CH4 Gas Venting source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -640,7 +620,6 @@ C****
         jls_source(5,n) = k
         sname_jls(k) = 'Municipal_solid_waste_source_'//trname(n)
         lname_jls(k) = 'CH4 Municipal solid waste source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -648,7 +627,6 @@ C****
         jls_source(6,n) = k
         sname_jls(k) = 'Soil_sink_'//trname(n)
         lname_jls(k) = 'CH4 sink due to soil absorption'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -656,7 +634,6 @@ C****
         jls_source(7,n) = k
         sname_jls(k) = 'Termite_source_'//trname(n)
         lname_jls(k) = 'CH4 Termite source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -664,7 +641,6 @@ C****
         jls_source(8,n) = k
         sname_jls(k) = 'Coal_combustion_source_'//trname(n)
         lname_jls(k) = 'CH4 Coal combustion source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -672,7 +648,6 @@ C****
         jls_source(9,n) = k
         sname_jls(k) = 'Ocean_source_'//trname(n)
         lname_jls(k) = 'CH4 Ocean source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -680,7 +655,6 @@ C****
         jls_source(10,n) = k
         sname_jls(k) = 'Fresh_Water_lake_source_'//trname(n)
         lname_jls(k) = 'CH4 Fresh Water lake source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -688,7 +662,6 @@ C****
         jls_source(11,n) = k
         sname_jls(k) = 'Misc_Ground_source_'//trname(n)
         lname_jls(k) = 'CH4 Misc_Ground source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -696,15 +669,13 @@ C****
         jls_source(12,n) = k
         sname_jls(k) = 'Biomass_burning_source_'//trname(n)
         lname_jls(k) = 'CH4 Biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(13,n) = k
-        sname_jls(k) = 'Rice Cultivation_source_'//trname(n)
+        sname_jls(k) = 'Rice_Cultivation_source_'//trname(n)
         lname_jls(k) = 'CH4 Rice Cultivation source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -712,7 +683,6 @@ C****
         jls_source(14,n) = k
         sname_jls(k) = 'Wetlands+Tundra_source_'//trname(n)
         lname_jls(k) = 'CH4 Wetlands+Tundra source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -721,7 +691,6 @@ C****
         jls_source(1,n) = k
         sname_jls(k) = 'Animal_source_'//trname(n)
         lname_jls(k) = 'CH4 Animal source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -729,7 +698,6 @@ C****
         jls_source(2,n) = k
         sname_jls(k) = 'Coal_Mine_source_'//trname(n)
         lname_jls(k) = 'CH4 Coal Mine source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -737,7 +705,6 @@ C****
         jls_source(3,n) = k
         sname_jls(k) = 'Gas_Leak_source_'//trname(n)
         lname_jls(k) = 'CH4 Gas Leak source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -745,7 +712,6 @@ C****
         jls_source(4,n) = k
         sname_jls(k) = 'Gas_Venting_source_'//trname(n)
         lname_jls(k) = 'CH4 Gas Venting source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -753,7 +719,6 @@ C****
         jls_source(5,n) = k
         sname_jls(k) = 'Municipal_solid_waste_source_'//trname(n)
         lname_jls(k) = 'CH4 Municipal solid waste source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -761,7 +726,6 @@ C****
         jls_source(6,n) = k
         sname_jls(k) = 'Soil_sink_'//trname(n)
         lname_jls(k) = 'CH4 sink due to soil absorption'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -769,7 +733,6 @@ C****
         jls_source(7,n) = k
         sname_jls(k) = 'Termite_source_'//trname(n)
         lname_jls(k) = 'CH4 Termite source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -777,7 +740,6 @@ C****
         jls_source(8,n) = k
         sname_jls(k) = 'Coal_combustion_source_'//trname(n)
         lname_jls(k) = 'CH4 Coal combustion source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -785,7 +747,6 @@ C****
         jls_source(9,n) = k
         sname_jls(k) = 'Ocean_source_'//trname(n)
         lname_jls(k) = 'CH4 Ocean source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -793,7 +754,6 @@ C****
         jls_source(10,n) = k
         sname_jls(k) = 'Fresh_Water_lake_source_'//trname(n)
         lname_jls(k) = 'CH4 Fresh Water lake source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -801,7 +761,6 @@ C****
         jls_source(11,n) = k
         sname_jls(k) = 'Misc_Ground_source_'//trname(n)
         lname_jls(k) = 'CH4 Misc_Ground source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -809,15 +768,13 @@ C****
         jls_source(12,n) = k
         sname_jls(k) = 'Biomass_burning_source_'//trname(n)
         lname_jls(k) = 'CH4 Biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(13,n) = k
-        sname_jls(k) = 'Rice Cultivation_source_'//trname(n)
+        sname_jls(k) = 'Rice_Cultivation_source_'//trname(n)
         lname_jls(k) = 'CH4 Rice Cultivation source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -825,7 +782,6 @@ C****
         jls_source(14,n) = k
         sname_jls(k) = 'Wetlands+Tundra_source_'//trname(n)
         lname_jls(k) = 'CH4 Wetlands+Tundra source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -833,7 +789,6 @@ C****
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN STRATOS'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -841,7 +796,6 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSPHERE'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -849,7 +803,6 @@ C****
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'Total_Chem_change'//trname(n)
         lname_jls(k) = 'TOTAL CHANGE OF CH4 BY CHEMISTRY'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -860,7 +813,6 @@ C****
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN STRATOS'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -868,7 +820,6 @@ C****
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
         lname_jls(k) = 'CHANGE OF O3 BY CHEMISTRY IN TROPOSPHERE'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -876,7 +827,6 @@ C****
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'Total_Chem_change'//trname(n)
         lname_jls(k) = 'TOTAL CHANGE OF O3 BY CHEMISTRY'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -888,7 +838,6 @@ C**** generic ones for many water tracers
         jls_source(1,n)=k
         sname_jls(k) = 'Evap_'//trname(n)
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -897,7 +846,6 @@ C**** generic ones for many water tracers
         jls_source(2,n)=k
         sname_jls(k) = 'Ocn_Evap_'//trname(n)
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -906,7 +854,6 @@ C**** generic ones for many water tracers
         jls_source(3,n)=k
         sname_jls(k) = 'Precip_'//trname(n)
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -915,7 +862,6 @@ C**** generic ones for many water tracers
         jls_source(4,n)=k
         sname_jls(k) = 'Ocn_Precip_'//trname(n)
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -927,7 +873,6 @@ C**** special unique to HTO
         jls_source(1,n)=k
         sname_jls(k) = 'Evap_'//trname(n)
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -936,7 +881,6 @@ C**** special unique to HTO
         jls_source(2,n)=k
         sname_jls(k) = 'Ocn_Evap_'//trname(n)
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -945,7 +889,6 @@ C**** special unique to HTO
         jls_source(3,n)=k
         sname_jls(k) = 'Precip_'//trname(n)
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -954,7 +897,6 @@ C**** special unique to HTO
         jls_source(4,n)=k
         sname_jls(k) = 'Ocn_Precip_'//trname(n)
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SDAY*byim/DTsrc
@@ -963,7 +905,6 @@ C**** special unique to HTO
         jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'LOSS OF '//TRIM(trname(n))//' BY DECAY'
-        jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = ntm_power(n)+8
         scale_jls(k) = 1./DTsrc
@@ -975,7 +916,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -983,7 +923,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -993,7 +932,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1001,7 +939,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1009,7 +946,6 @@ C**** special unique to HTO
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'lightning_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY LIGHTNING'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1017,7 +953,6 @@ C**** special unique to HTO
         jls_3Dsource(4,n) = k
         sname_jls(k) = 'aircraft_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY AIRCRAFT'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1025,7 +960,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Fossil_Fuel_Source_of_'//trname(n)
         lname_jls(k) = 'NOx fossil fuel source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1033,7 +967,6 @@ C**** special unique to HTO
         jls_source(2,n) = k
         sname_jls(k) = 'Biomass_Burning_Source_of_'//trname(n)
         lname_jls(k) = 'NOx biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1041,7 +974,6 @@ C**** special unique to HTO
         jls_source(3,n) = k
         sname_jls(k) = 'Soil_Source_of_'//trname(n)
         lname_jls(k) = 'NOx soil source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1051,7 +983,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1059,7 +990,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1069,7 +999,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1077,7 +1006,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1087,7 +1015,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1095,7 +1022,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1105,7 +1031,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1113,7 +1038,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1123,7 +1047,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1131,7 +1054,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1141,7 +1063,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1149,7 +1070,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1159,7 +1079,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1167,7 +1086,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1175,7 +1093,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_Source_of'//trname(n)
         lname_jls(k) = 'CO industrial source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1183,7 +1100,6 @@ C**** special unique to HTO
         jls_source(2,n) = k
         sname_jls(k) = 'Biomass_Burning_Source_of'//trname(n)
         lname_jls(k) = 'CO biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1193,7 +1109,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1201,7 +1116,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1211,7 +1125,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1219,7 +1132,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1227,7 +1139,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Vegetation_source_of'//trname(n)
         lname_jls(k) = 'Isoprene vegetation source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1238,7 +1149,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1246,7 +1156,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1256,7 +1165,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1264,7 +1172,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1272,7 +1179,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_source_of'//trname(n)
         lname_jls(k) = 'Alkenes industrial source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1280,7 +1186,6 @@ C**** special unique to HTO
         jls_source(2,n) = k
         sname_jls(k) = 'Biomass_Burning_source_of'//trname(n)
         lname_jls(k) = 'Alkenes biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1288,7 +1193,6 @@ C**** special unique to HTO
         jls_source(3,n) = k
         sname_jls(k) = 'Vegetation_source_of'//trname(n)
         lname_jls(k) = 'Alkenes vegetation source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1298,7 +1202,6 @@ C**** special unique to HTO
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY IN TROPOSHPERE'
-        jls_index(k) = n
         jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1306,7 +1209,6 @@ C**** special unique to HTO
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'strat_overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY STRATOSPHERIC OVERWRITE'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1314,7 +1216,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_source_of'//trname(n)
         lname_jls(k) = 'Paraffin industrial source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1322,7 +1223,6 @@ C**** special unique to HTO
         jls_source(2,n) = k
         sname_jls(k) = 'Biomass_Burning_source_of'//trname(n)
         lname_jls(k) = 'Paraffin biomass burning source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1330,7 +1230,6 @@ C**** special unique to HTO
         jls_source(3,n) = k
         sname_jls(k) = 'Vegetation_source_of'//trname(n)
         lname_jls(k) = 'Paraffin vegetation source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1340,7 +1239,6 @@ C**** special unique to HTO
         jls_source(1,n) = k
         sname_jls(k) = 'Ocean_source_of'//trname(n)
         lname_jls(k) = 'DMS ocean source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1349,27 +1247,30 @@ C
         jls_source(2,n) = k
         sname_jls(k) = 'TKE_Contribution'//trname(n)
         lname_jls(k) = 'SGSWSP TKE'
-        jls_index(k) = n
+        jwt_jls(k) = 2
         jls_ltop(k) = 1
         jls_power(k) =0 
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'Wet_Conv_Contr'//trname(n)
         lname_jls(k) = 'SGSWSP Wet Conv'
-        jls_index(k) = n
+        jwt_jls(k) = 2
         jls_ltop(k) = 1
         jls_power(k) =0 
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
         jls_source(4,n) = k
         sname_jls(k) = 'Dry_Conv_Contr'//trname(n)
         lname_jls(k) = 'SGSWSP Dry Conv'
-        jls_index(k) = n
+        jwt_jls(k) = 2
         jls_ltop(k) = 1
         jls_power(k) =0 
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
 
@@ -1377,16 +1278,16 @@ C
         jls_source(5,n) = k
         sname_jls(k) = 'SGSWSP-old'//trname(n)
         lname_jls(k) = 'DMS SGSWP-old/old'
-        jls_index(k) = n
+        jwt_jls(k) = 2
         jls_ltop(k) = 1
         jls_power(k) =0 
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Chemical_sink_of'//trname(n)
         lname_jls(k) = 'DMS chemical loss'
-        jls_index(k) = n
         jls_ltop(k) =LM
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1397,7 +1298,6 @@ c put in chemical production of MSA
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'chemistry_source_of'//trname(n)
         lname_jls(k) = 'Chemical production of MSA'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1406,7 +1306,6 @@ c sink of MSA to dry dep
         jls_source(1,n) = k
         sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
         lname_jls(k) = 'MSA dry dep sink'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =-1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1417,7 +1316,6 @@ c put in chemical production of SO2
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'dms_source_of'//trname(n)
         lname_jls(k) = 'production of SO2 from DMS'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) =  1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1426,7 +1324,6 @@ c convective chem cloud phase sink of SO2
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'SO2 used in convective cloud chem'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1435,7 +1332,6 @@ c stratiform chem cloud phase sink of SO2
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'SO2 used in stratiform cloud chem'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1444,7 +1340,6 @@ c volcanic production of SO2
         jls_3Dsource(4,n) = k
         sname_jls(k) = 'volcanic_source_of'//trname(n)
         lname_jls(k) = 'production of SO2 from volcanos'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1453,7 +1348,6 @@ c aircraft production of SO2
         jls_3Dsource(5,n) = k
         sname_jls(k) = 'aircraft_source_of'//trname(n)
         lname_jls(k) = 'production of SO2 from aircraft'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1462,7 +1356,6 @@ c Oxidants
         jls_3Dsource(6,n) = k
         sname_jls(k) = 'OH'//trname(n)
         lname_jls(k) = 'OH'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) =3
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
@@ -1470,7 +1363,6 @@ c Oxidants
         jls_3Dsource(7,n) = k
         sname_jls(k) = 'HO2'//trname(n)
         lname_jls(k) = 'HO2'
-        jls_index(k) = n
         jls_ltop(k) =LM
         jls_power(k) =5
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
@@ -1478,7 +1370,6 @@ c Oxidants
         jls_3Dsource(8,n) = k
         sname_jls(k) = 'photolysis_rate_of_H2O2'//trname(n)
         lname_jls(k) = 'photolysis rate of H2O2'
-        jls_index(k) = n
         jls_ltop(k) =LM
         jls_power(k) =-8
         units_jls(k) = unit_string(jls_power(k),'/s')
@@ -1486,7 +1377,6 @@ c Oxidants
         jls_3Dsource(9,n) = k
         sname_jls(k) = 'NO3'//trname(n)
         lname_jls(k) = 'NO3'
-        jls_index(k) = n
         jls_ltop(k) =LM
         jls_power(k) =5
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
@@ -1495,7 +1385,6 @@ c industrial source
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_src_of'//trname(n)
         lname_jls(k) = 'SO2 industrial source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1504,7 +1393,6 @@ c biomass burning source
         jls_source(2,n) = k
         sname_jls(k) = 'Biomass_src_of'//trname(n)
         lname_jls(k) = 'SO2 biomass source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1513,7 +1401,6 @@ c sink of SO2 to dry dep
         jls_source(3,n) = k
         sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
         lname_jls(k) = 'SO2 dry dep sink'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1524,7 +1411,6 @@ c gas phase source of SO4
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'gas_phase_source_of'//trname(n)
         lname_jls(k) = 'SO4 gas phase source'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1533,7 +1419,6 @@ c convective cloud phase source of SO4
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'mc_cloud_source_of'//trname(n)
         lname_jls(k) = 'SO4 made in convective clouds'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1542,7 +1427,6 @@ c stratiform cloud phase source of SO4
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'ss_cloud_source_of'//trname(n)
         lname_jls(k) = 'SO4 made in stratiform clouds'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1551,7 +1435,6 @@ c heterogeneous source of SO4
         jls_3Dsource(4,n) = k
         sname_jls(k) = 'heterogeneous_source_of'//trname(n)
         lname_jls(k) = 'SO4 made in SO4'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = -3 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1560,7 +1443,6 @@ c industrial source
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_src_of'//trname(n)
         lname_jls(k) = 'SO4 industrial source'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1569,7 +1451,6 @@ c sink of SO2 to dry dep
         jls_source(2,n) = k
         sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
         lname_jls(k) = 'SO4 dry dep sink'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1579,7 +1460,6 @@ c gas phase source and sink of H2O2
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'gas_phase_source_of'//trname(n)
         lname_jls(k) = 'H2O2 gas phase source'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1588,7 +1468,6 @@ c convective chem cloud phase sink of H2O2
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 used in convective cloud chem'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1597,7 +1476,6 @@ c stratiform chem cloud phase sink of H2O2
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 used in stratiform cloud chem'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1606,7 +1484,6 @@ C
         jls_3Dsource(4,n) = k
         sname_jls(k) = 'gas_phase_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 gas phase sink'
-        jls_index(k) = n
         jls_ltop(k) = LM
         jls_power(k) = 2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1615,7 +1492,6 @@ c sink of H2O2 to dry dep
         jls_source(1,n) = k
         sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 dry dep sink'
-        jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1626,7 +1502,6 @@ c        k = k + 1
 c        jls_grav(n) = k   ! special array grav. settling sinks
 c        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
 c        lname_jls(k) = 'LOSS OF DUST BY SETTLING'
-c        jls_index(k) = n
 c        jls_ltop(k) = lm
 c        jls_power(k) = -11.
 c        units_jls(k) = unit_string(jls_power(k),'kg/s')
