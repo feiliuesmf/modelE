@@ -322,7 +322,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
+     *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
@@ -373,6 +373,9 @@ C**** sync radiation parameters from input
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "aermix", aermix , 13 )
+      call sync_param( "FS8OPX", FS8OPX , 8 )
+      call sync_param( "FT8OPX", FT8OPX , 8 )
+      call sync_param( "RHfix", RHfix )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "KSOLAR", KSOLAR )
@@ -661,11 +664,12 @@ C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
-     &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS, SRDVIS
-     &          ,BTEMPW ,O3_OUT ,TTAUSV
+     &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
+     &          ,BTEMPW ,O3_OUT ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
+     &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq
+     *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -730,6 +734,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
+     *     ,tauex5,tauex6,tausct,taugcb
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
@@ -896,7 +901,7 @@ C****
       KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,
+!$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1099,6 +1104,7 @@ C---- shl(L)=Q(I,J,L)        ! already defined
           shl(l)=0.
         end if
         RHL(L) = shl(L)/QSAT(TLm(L),LHE,PMID(L,I,J))
+        if(RHfix.ge.0.) RHL(L)=RHfix
 C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
@@ -1284,7 +1290,22 @@ C**** Save optical depth diags
           AFLX_ST(L,I,J,3)=AFLX_ST(L,I,J,3)+TRUFLB(L)
           AFLX_ST(L,I,J,4)=AFLX_ST(L,I,J,4)+TRDFLB(L)
         end do
-        if(kradia.eq.1) cycle
+        if(kradia.eq.1) then
+          tauex6=0. ; tauex5=0. ; tausct=0. ; taugcb=0.
+          do L=1,LM
+            AFLX_ST(L,I,J,5)=AFLX_ST(L,I,J,5)+1.d2*RHL(L)
+            tauex6=tauex6+SRAEXT(L,6)+SRDEXT(L,6)+SRVEXT(L,6)
+            tauex5=tauex5+SRAEXT(L,5)+SRDEXT(L,5)+SRVEXT(L,5)
+            tausct=tausct+SRASCT(L,6)+SRDSCT(L,6)+SRVSCT(L,6)
+            taugcb=taugcb+SRASCT(L,6)*SRAGCB(L,6)+
+     +        SRDSCT(L,6)*SRDGCB(L,6)+SRVSCT(L,6)*SRVGCB(L,6)
+          end do
+          AFLX_ST(LM+1,I,J,5)=AFLX_ST(LM+1,I,J,5)+tauex5
+          AFLX_ST(LM+2,I,J,5)=AFLX_ST(LM+2,I,J,5)+tauex6
+          AFLX_ST(LM+3,I,J,5)=AFLX_ST(LM+3,I,J,5)+tausct
+          AFLX_ST(LM+4,I,J,5)=AFLX_ST(LM+4,I,J,5)+taugcb
+          cycle
+        end if
         do l=LS1_loc,ls1-1
           tchg(l,i,j) = tchg(l,i,j) + ( srfhrl(l)*csz2-srhra(l,i,j) +
      *      (-trfcrl(l)-trhra(l,i,j)) ) * coe(l)/p(i,j)

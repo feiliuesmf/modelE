@@ -67,6 +67,10 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: O3_tracer_save!saved rsf
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
+!@dbparam Ikliq 0,1,-1 initialize kliq as dry,equil,current model state
+      INTEGER :: Ikliq = -1  !  get kliq-array from restart file
+!@dbparam RHfix const.rel.humidity passed to radiation for aeros. tests
+      REAL*8 :: RHfix = -1.  !  pass the current model rel.humidity
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -198,6 +202,9 @@ C**** Local variables initialised in init_RAD
             READ (kunit,err=10) HEADER_F,Tchg,kliq
           CASE (IRSFIC)  ! only way to start frc. runs
             READ (kunit,err=10) HEADER,RQT,kliq ; Tchg = 0.
+            call sync_param( "Ikliq", Ikliq )
+            if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
+            if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry
           END SELECT
         END SELECT
       else
@@ -224,6 +231,9 @@ C**** Local variables initialised in init_RAD
           END IF
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
           READ (kunit,err=10) HEADER,RQT,KLIQ
+          call sync_param( "Ikliq", Ikliq )
+          if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
+          if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry
         END SELECT
       END SELECT
       end if
