@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       subroutine def_acc
 c-----------------------------------------------------------------------
 c define acc names, units, etc
@@ -1134,6 +1135,40 @@ c
       name_ij(k) = 'pcldt'
       ia_ij(k) = ia_rad
       scale_ij(k) = 100.
+c
+#ifdef CLD_AER_CDNC
+      k=k+1 
+      IJ_3dNWM = k 
+      lname_ij(k) = '3D Warm Moist Cnv CDNC '    
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = '3dNwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 
+      IJ_3dNIM = k 
+      lname_ij(k) = '3D Cold Moist Cnv CDNC '    
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = '3dNim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 
+      IJ_3dNWS = k 
+      lname_ij(k) = '3D Warm Large-scale CDNC '    
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = '3dNws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 
+      IJ_3dNIS = k 
+      lname_ij(k) = '3D Cold Large-scale CDNC '    
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = '3dNis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+#endif
 c
       k=k+1 !
       IJ_DSEV  = k
@@ -3191,6 +3226,45 @@ c
       scale_jl(k) = byim
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
+#ifdef CLD_AER_CDNC
+c ! Menon added diag for CDNC
+c
+      k=k+1
+      jl_cnumwm= k
+      sname_jl(k) = 'cnumwm'
+      lname_jl(k) = 'WARM MOIST CONVECTIVE CLOUD DROPLET NUMBER'
+      units_jl(k) = 'cm^-3'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c                                    
+      k=k+1
+      jl_cnumws= k
+      sname_jl(k) = 'cnumws'
+      lname_jl(k) = 'WARM LARGE-SCALE CLOUD DROPLET NUMBER'
+      units_jl(k) = 'cm^-3'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_cnumim= k
+      sname_jl(k) = 'cnumim'
+      lname_jl(k) = 'COLD MOIST CONVECTIVE CLOUD DROPLET NUMBER'
+      units_jl(k) = 'cm^-3'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_cnumis= k
+      sname_jl(k) = 'cnumis'
+      lname_jl(k) = 'COLD LARGE-SCALE CLOUD DROPLET NUMBER'
+      units_jl(k) = 'cm^-3'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+#endif 
 c
       k=k+1
       jl_wcld = k
