@@ -1061,14 +1061,6 @@ C**** CALCULATIONS FOR STANDING EDDIES
 C****
   120 DO J=2,JM
       DO K=1,KM
-        DO I=1,IM
-          IF (AIJL(I,J,K,IJL_DP).LE.1.D-20) THEN
-            AIJL(I,J,K,IJL_U)=0.
-            AIJL(I,J,K,IJL_V)=0.
-            AIJL(I,J,K,IJL_DSE)=0.
-            AIJL(I,J,K,IJL_Q)=0.
-          ENDIF
-        END DO
         EX(J,K)=0.
         AX(J,K)=0.
         BX(J,K)=0.
@@ -2572,7 +2564,7 @@ C**FREQUENCY BAND AVERAGE
 
       use MODEL_COM, only : IM,JM
       use DAGCOM, only : kaij,kaijx,lname_ij,name_ij,units_ij
-     *  ,kgz_max,pmb,ght,pmname
+     *  ,kgz_max,pmb,ght
 
       IMPLICIT NONE
 
@@ -2582,9 +2574,7 @@ C**FREQUENCY BAND AVERAGE
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1, ij_gwdrag, ij_mtn_wmf, ij_shr_wmf,
-     *  ij_mc_c_m10r_mf, ij_mc_c_m40r_mf, ij_phase_v_of_wind_shr,
-     *  ij_source_v_of_mc, ij_exit_tot_mom_flux, ij_def_drag_mom_flux 
+     *  ij_ntdsete, ij_dzt1 
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/ !
@@ -2711,7 +2701,6 @@ c          if (n .gt. 13) n = (n+123)/10
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE BDIJ
-      USE MODEL_COM, only : DO_GWDRAG
       IMPLICIT NONE
       INTEGER :: k,k1
 c
@@ -2792,10 +2781,12 @@ c
 
       ij_dzt1 = k+1
       do k1 = 1,kgz_max-1
-        name_ij(k+k1) = 'dztemp_'//TRIM(PMNAME(k1))//
-     *       '-'//TRIM(PMNAME(k1+1))
-        lname_ij(k+k1) = 'THICKNESS TEMP '//PMNAME(k1)//"-"//
-     *       PMNAME(k1+1)
+        name_ij(k+k1) = 'dztemp_1000-850'
+        if(k1.gt.1) write(name_ij(k+k1)(8:15),
+     *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
+        lname_ij(k+k1) = 'THICKNESS TEMP 1000-850'
+        if(k1.gt.1) write(lname_ij(k+k1)(16:23),
+     *     '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
         units_ij(k+k1) = 'C'
       end do
       k = k + kgz_max -1
@@ -2805,58 +2796,6 @@ c
       name_ij(k) = 'grow_seas'
       lname_ij(k) = 'GROWING SEASON'
       units_ij(k) = 'days'
-
-c Gravity Wave diagnostics   
-      if (DO_GWDRAG) then
-      k = k + 1
-      ij_gwdrag = k       ! <<<<
-      ij_def_drag_mom_flux = k
-      name_ij(k) = 'ij_def_drag_mom_flux'
-      lname_ij(k) = 'DEF DRAG MOM. FLUX'
-      units_ij(k) = 'D/CM**2'
-
-      k = k + 1
-      ij_mtn_wmf = k
-      name_ij(k) = 'ij_mtn_wave_mom_flux'
-      lname_ij(k) = 'MTN WAVE MOM. FLUX'
-      units_ij(k) = 'D/CM**2'
-
-      k = k + 1
-      ij_shr_wmf = k
-      name_ij(k) = 'ij_shr_wave_mom_flux'
-      lname_ij(k) = 'SHR WAVE MOM. FLUX'
-      units_ij(k) = '.01 D/CM**2'
-
-      k = k + 1
-      ij_mc_c_m10r_mf = k
-      name_ij(k) = 'ij_mc_c_m10r_mom_flux'
-      lname_ij(k) = 'MC C=-10R MOM. FLUX'
-      units_ij(k) = '.01 D/CM**2'
-
-      k = k + 1
-      ij_mc_c_m40r_mf = k
-      name_ij(k) = 'ij_mc_c_m40r_mom_flux'
-      lname_ij(k) = 'MC C=-40R MOM. FLUX'
-      units_ij(k) = '.01 D/CM**2'
-
-      k = k + 1
-      ij_phase_v_of_wind_shr = k
-      name_ij(k) = 'ij_phase_speed_of_wind_shear'
-      lname_ij(k) = 'PHASE SPEED OF WIND SHEAR'
-      units_ij(k) = 'M/S'
-
-      k = k + 1
-      ij_source_v_of_mc = k
-      name_ij(k) = 'ij_source_speed_of_mc'
-      lname_ij(k) = 'SOURCE SPEED OF MC'
-      units_ij(k) = 'M/S'
-
-      k = k + 1
-      ij_exit_tot_mom_flux = k
-      name_ij(k) = 'ij_exit_tot_mom_flux'
-      lname_ij(k) = 'EXIT TOT. MOM. FLUX'
-      units_ij(k) = 'E-3 D/CM*2'
-      end if
 
 c Check the count
       if (k .gt. kaijx) then
@@ -3157,6 +3096,7 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
 !@+     only important for fields 1->nmaplets+nmaps (appear in printout)
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
       INTEGER Iord(kaijx+10),nmaplets,nmaps ! 10 extra blank maplets
+      INTEGER kmaplets
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48,lname*80,name*30,units*30
@@ -3175,8 +3115,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      nmaplets = 42+(kgz_max-1)*2 ; nmaps = 2
-      iord(1:42) = (/
+      kmaplets = 51
+      nmaplets = kmaplets+(kgz_max-1)*2 ; nmaps = 2
+      iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
@@ -3190,12 +3131,15 @@ C**** standard printout
      *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
      *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
+     *  ij_scnvfrq, ij_pdcld,   ij_pscld,    !        row 2
+     *  ij_gw1,     ij_gw2,     ij_gw3,      ! pg  8  row 1
+     *  ij_gw4,     ij_gw5,     ij_gw6,      !        row 2
+     *  ij_gw7,     ij_gw8,     ij_gw9/)     ! pg  9  row 1
 
 C**** Fill in maplet indices for geoptential heights and thickness T's
       do k=1,kgz_max-1
-        iord(k+42) = ij_phi1k+k  !i.e. first entry is ij_phi850
-        iord(k+42+kgz_max-1) = ij_dzt1+k-1
+        iord(k+kmaplets) = ij_phi1k+k  !i.e. first entry is ij_phi850
+        iord(k+kmaplets+kgz_max-1) = ij_dzt1+k-1
       end do
 
 C**** Add the full-page maps (nmaps)
@@ -3263,7 +3207,7 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
 
 C**** Fill in the undefined pole box duplicates
       DO N=1,KAIJ
-      IF (JGRID_ij(n).EQ.2) CYCLE
+      IF (JGRID_ij(N).EQ.2) CYCLE
       DO I=1,IM
         AIJ(I,1,N)=AIJ(1,1,N)
         AIJ(I,JM,N)=AIJ(1,JM,N)
@@ -3731,7 +3675,6 @@ c      USE PRTCOM, only :
       CHARACTER*16 :: SPHERE(4)=
      *     (/'TROPOSPHERE     ','LOW STRATOSPHERE',
      *       'MID STRATOSPHERE','UPP STRATOSPHERE'/)
-      REAL*8, DIMENSION(4) :: SCALEK = (/ 1., 1., 10., 10./)
 
       INTEGER ::
      &     I,IUNITJ,IUNITW,J,J45N,
@@ -3803,20 +3746,20 @@ C**** WRITE HEADINGS
       WRITE (6,901) XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR,
      *  IUNITJ,IUNITW
-      DO 670 KROW=1,2+ISTRAT  ! one for each level (trp/lstr/mstr/ustr)
+      DO 670 KROW=1,2+ISTRAT
       IF (JM.GE.25.AND.KROW.EQ.2) WRITE (6,901)
       WRITE (6,903) LATITD(KPAGE),SPHERE(KROW)
       KSPHER=4*(KROW-1)+KPAGE
 C**** WRITE KINETIC AND AVAILABLE POTENTIAL ENERGY BY WAVE NUMBER
       DO 610 M=1,KSPECA
-      F0(M)=SPECA(1,M,KSPHER)*SCALET(M)*SCALEK(KROW)
+      F0(M)=SPECA(1,M,KSPHER)*SCALET(M)
       MN(M)=NINT(F0(M))
   610 FNSUM(M)=0.
       WRITE (6,904) MN
       DO 630 N=2,NM
       KSPHER=4*(KROW-1)+KPAGE
       DO 620 M=1,KSPECA
-      FNM=SPECA(N,M,KSPHER)*SCALET(M)*SCALEK(KROW)
+      FNM=SPECA(N,M,KSPHER)*SCALET(M)
       MN(M)=NINT(FNM)
   620 FNSUM(M)=FNSUM(M)+FNM
       NM1=N-1

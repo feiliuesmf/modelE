@@ -1238,10 +1238,9 @@ C****
      *     ,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,aijl,speca,adiurn,nspher,
+      USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer,idd_w,ijdd,ijl_u, ijl_v, ijl_dse, ijl_dp,
-     *     ijl_q,
+     *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
      &      JK_RH,JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
      &      JK_TOTNTSH,JK_ZMFNTGEO,JK_TOTNTGEO,JK_ZMFNTLH,
@@ -1275,11 +1274,11 @@ C****
      &     LUP,MBEGIN,N,NM
 
       DOUBLE PRECISION ::
-     &     BYDP,BYFIM,DELP,DP,DPDN,DPDX,DPDY,
+     &     BYDP,BYFIM,DP,DPDN,DPDX,DPDY,
      &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
-     &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQ4L,PQV4I,PS,PS4I,
-     &     PS4K,PSIY,PSV4I,PT4I,PT4K,PT4L,PTK,PTV4I,PUI,PUK,PUP,
-     &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,PZ4L,PZM,
+     &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
+     &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
+     &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
      &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,
      &     SMALL,SP,SP2,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,UDX,UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
@@ -1425,11 +1424,9 @@ C****
 C**** CONSTANT PRESSURE DIAGNOSTICS:  FLUX, ENERGY, ANGULAR MOMENTUM
 C****
       DO 390 J=2,JM
-      PZM=0.
       I=IM
       DO 280 IP1=1,IM
       PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
-      PZM=PZM+PSEC(I)
       DO 270 K=1,KM
   270 ZX(I,J,K)=0.
       DO 275 L=1,LS1-1
@@ -1439,23 +1436,6 @@ C****
       DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
   276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
   280 I=IP1
-C**** ACCUMULATE AIJL ARRAYS
-      PZM=PZM/FIM
-      DO 285 L=1,LM
-      I=IM
-      IF(L.EQ.LS1) PZM=PSFMPT
-      DELP=PZM*DSIG(L)
-      DO 284 IP1=1,IM
-      PT4L=DELP*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
-      PZ4L=DELP*(PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L))
-      PQ4L=DELP*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
-      AIJL(I,J,L,IJL_U)=AIJL(I,J,L,IJL_U)+DELP*U(I,J,L)
-      AIJL(I,J,L,IJL_V)=AIJL(I,J,L,IJL_V)+DELP*V(I,J,L)
-      AIJL(I,J,L,IJL_DSE)=AIJL(I,J,L,IJL_DSE)+SHA*PT4L+PZ4L
-      AIJL(I,J,L,IJL_Q)=AIJL(I,J,L,IJL_Q)+PQ4L
-      AIJL(I,J,L,IJL_DP)=AIJL(I,J,L,IJL_DP)+DELP
-  284 I=IP1
-  285 CONTINUE
       DO 350 K=1,KM
       DPI=0.
       DPSQI=0.
@@ -3195,7 +3175,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
-      AJK=0   ; AIJK=0 ; AIJL=0   
+      AJK=0   ; AIJK=0 
       call reset_ODIAG(isum)
 
       if (isum.eq.1) return

@@ -210,15 +210,6 @@ c-----------------------------------------------------------------------
       call ncdefarr(name_ijk,lname_ijk,units_ijk,
      &     ncid,kaijk,nf_real,3,dimids)
 c-----------------------------------------------------------------------
-c aijl
-c-----------------------------------------------------------------------
-      dimids(1)=lon_did
-      dimids(2)=lat_did
-      dimids(3)=sig_did
-      call ncdefarr(name_ijl,lname_ijl,units_ijl,
-     &     ncid,kaijl,nf_real,3,dimids)
-
-c-----------------------------------------------------------------------
 c end netcdf definitions
 c-----------------------------------------------------------------------
 
@@ -261,7 +252,6 @@ c-----------------------------------------------------------------------
      &     kwp,wave)
       call ncwrtdbl(name_jk,ncid,jm*lm,kajk,ajk)
       call ncwrtdbl(name_ijk,ncid,im*jm*lm,kaijk,aijk)
-      call ncwrtdbl(name_ijl,ncid,im*jm*lm,kaijl,aijl)
 c-----------------------------------------------------------------------
 c close netcdf file
 c-----------------------------------------------------------------------
