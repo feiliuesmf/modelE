@@ -476,7 +476,6 @@ C**** Calculate mean cosine of zenith angle for the current physics step
       ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
-      IH=1+JHOUR
       IF (MODRD.NE.0) GO TO 900
       IDACC(2)=IDACC(2)+1
 C****
@@ -608,7 +607,7 @@ C****
   285    DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
-               IF (IH.GT.24) IH=IH-24
+               IH=MOD(JHOUR+INCH,24)
                ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
                ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
                ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
@@ -617,7 +616,6 @@ C****
                ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
                ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
                ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
-               IH=IH+1
              END DO
            END IF
          END DO
@@ -753,7 +751,7 @@ C****
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              DO INCH=1,NRAD
-               IF (IH.GT.24) IH=IH-24
+               IH=MOD(JHOUR+INCH,24) 
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
      *              (1.-SNFS(4,I,J)/S0)
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
@@ -761,7 +759,6 @@ C****
                ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
      *              ((SNFS(4,I,J)-SNFS(1,I,J))*COSZ-TNFS(4,I,J)
      *              +TNFS(1,I,J))
-               IH=IH+1
              END DO
            END IF
          END DO
@@ -857,6 +854,7 @@ C****
         END DO
       END DO
 C**** daily diagnostics
+      IH=1+JHOUR
       DO KR=1,NDIUPT
         ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
      *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))

@@ -3068,7 +3068,7 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF AM BY ADVEC + COR    ',
      *  ' CHANGE OF AM BY PRESSURE GRAD  ',
      *  ' CHANGE OF AM BY DYNAMICS       ',
-     *  ' CHANGE OF AM BY SURFACE FRIC   ',
+     *  ' CHANGE OF AM BY SURF FRIC+TURB ',
      *  ' CHANGE OF AM BY FILTER         ',
      *  ' CHANGE OF AM BY STRATOS DRAG   ',
      *  ' CHANGE OF AM BY DAILY RESTOR   ',
@@ -3080,7 +3080,7 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF KE BY PRESSURE GRAD  ',
      *  ' CHANGE OF KE BY DYNAMICS       ',
      *  ' CHANGE OF KE BY MOIST CONVEC   ',
-     *  ' CHANGE OF KE BY SURF + DRY CONV',
+     *  ' CHANGE OF KE BY SURF + DC/TURB ',
      *  ' CHANGE OF KE BY FILTER         ',
      *  ' CHANGE OF KE BY STRATOS DRAG   ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
@@ -3123,7 +3123,7 @@ C**** Atmospheric total potential energy
      *     "(10**-2 W/M**2) ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
+      CALL SET_CON(QCON,"ATM WATR","(10**-2 KG/M**2)",
      *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
 C**** Atmospheric water energy
 C**** This is not currently a conserved quantity, but it should be.

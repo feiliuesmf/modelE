@@ -949,7 +949,7 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 c
       k=k+1 !  'AIJ001'
       IJ_RSOI = k ! POICE (1)            1 GD
-      lname_ij(k) = 'OCEAN ICE COVERAGE'
+      lname_ij(k) = 'OCEAN/LAKE ICE COVERAGE'
       units_ij(k) = '%'
       name_ij(k) = 'RSOI'
       ia_ij(k) = ia_src
