@@ -1774,7 +1774,7 @@ C**** Apply the chemistry
       do i=1,imaxj(j)
         do l = 1,ltropo(i,j)
           if (l.le.ls1) 
-    *     tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
+     *     tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
         end do
       end do
       end do
