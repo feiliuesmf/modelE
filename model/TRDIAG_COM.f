@@ -87,29 +87,25 @@ C**** TAIJN
       character(len=80), dimension(ktaij,ntm) :: lname_tij = 'unused'
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
-!@parm KTAIJS number of special lat/lon tracer diagnostics
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
-      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
-#ifdef regional_Ox_tracers
-      integer, parameter :: ktaijs=46
-      INTEGER ijs_Oxloss, ijs_Oxprod
-#else
-      integer, parameter :: ktaijs=44
-#endif
-#else
-#ifdef TRACERS_SPECIAL_Shindell
 !@var ijs_XXX index for diags not specific to a certain tracer
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
 #ifdef regional_Ox_tracers
       INTEGER ijs_Oxloss, ijs_Oxprod
+#endif
+#endif
+
+!@parm KTAIJS number of special lat/lon tracer diagnostics
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#ifdef regional_Ox_tracers
       integer, parameter :: ktaijs=74
 #else
       integer, parameter :: ktaijs=60
 #endif
 #else
-      integer, parameter :: ktaijs=25
+      integer, parameter :: ktaijs=35
 #endif
-#endif
+
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
@@ -165,33 +161,25 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
 !@var jls_XXX index for non-tracer specific or special diags
+#ifdef regional_Ox_tracers
+      INTEGER jls_Oxloss, jls_Oxprod
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
       INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
       INTEGER, PARAMETER :: ktajls=108
-      INTEGER jls_Oxloss, jls_Oxprod
 #else
       INTEGER, PARAMETER :: ktajls=94
 #endif
 #else
-#ifdef TRACERS_AEROSOLS_Koch
-!@var jls_XXX index for non-tracer specific or special diags
-      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-!@var jls_XXX index for diags not specific to a certain tracer
-      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
-#ifdef regional_Ox_tracers
-      INTEGER jls_Oxloss, jls_Oxprod
-      INTEGER, PARAMETER :: ktajls=76
-#else
-      INTEGER, PARAMETER :: ktajls=62
-#endif
-#else
       INTEGER, PARAMETER :: ktajls=34
-#endif
 #endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS

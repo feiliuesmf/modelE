@@ -959,9 +959,10 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
-        call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c      nc_tr=nc_tr+1
 c     if (nc_tr.eq.25) then
@@ -973,7 +974,6 @@ c      a_sulf(:,:)=0.
 c      cc_sulf(:,:)=0.
 c      nc_tr=1
 c     endif
-#endif
 #endif
 
 C**** Delayed summations (to control order of summands)

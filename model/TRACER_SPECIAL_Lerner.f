@@ -128,9 +128,10 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE QUSDEF, only : mz,mzz
       USE DYNAMICS, only: ltropo
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE TRACER_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
       USE PRATHER_CHEM_COM, only: nstrtc
+      USE FLUXES, only: tr3Dsource
       implicit none
       integer i,j,l,lr,n,ns,najl,nsc
       real*8, parameter :: by7=1./7.d0
@@ -176,20 +177,21 @@ C---  to this change (T0L):
           g2l = t2l/t0l
           t0l = (1.0 - exp(-g0l*dtsrc*tcscale(nsc)))*trm(i,j,l,n)
           t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
-          trm(i,j,l,n) = trm(i,j,l,n) - t0l
-          trmom( mz,i,j,l,n) = trmom( mz,i,j,l,n) - t0l*g1l
-          trmom(mzz,i,j,l,n) = trmom(mzz,i,j,l,n) - t0l*g2l
+          tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
+cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
+cc          trmom( mz,i,j,l,n) = trmom( mz,i,j,l,n) - t0l*g1l
+cc          trmom(mzz,i,j,l,n) = trmom(mzz,i,j,l,n) - t0l*g2l
   130     CONTINUE
   140     CONTINUE
   150   CONTINUE
-      najl = jls_3Dsource(ns,n)
-      do l=1,lm
-      do j=1,jm
-      do i=1,imaxj(j)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l))
-      end do
-      end do
-      end do
+cc      najl = jls_3Dsource(ns,n)
+cc      do l=1,lm
+cc      do j=1,jm
+cc      do i=1,imaxj(j)
+cc        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l))
+cc      end do
+cc      end do
+cc      end do
       return
       END SUBROUTINE Strat_chem_Prather
 
@@ -403,7 +405,7 @@ c
       USE GEOM, only: imaxj,dxyp
       USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE LINOZ_CHEM_COM, only: lbc,dtchem,tmmvv
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -417,7 +419,7 @@ c using a lifetime of taubc(n) for lowest lbc levels
 
       coeff = 1.0-exp(-dtchem/taubc)
       ratio = tmrbc / tmmvv(n)
-      najl = jls_3Dsource(ns,n)
+cc      najl = jls_3Dsource(ns,n)
         do l=1,lbc
         do j=1,jm
         sdmass = 0.
@@ -429,19 +431,19 @@ c using a lifetime of taubc(n) for lowest lbc levels
      *        ' Negative tracer in Trop_chem_O3',
      *        i,j,l,trm(i,j,l,n),dmass,itime
               dmass = -trm(i,j,l,n)
-              trm(i,j,l,n) = 0.d0
-            else
-              trm(i,j,l,n) = trm(i,j,l,n) + dmass
+cc              trm(i,j,l,n) = 0.d0
+cc            else
+cc              trm(i,j,l,n) = trm(i,j,l,n) + dmass
           end if
-!         tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
-          sdmass = sdmass+dmass
+          tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
+cc          sdmass = sdmass+dmass
 c scale moments by fractional change in total tracer mass
-          if (dmass.lt.0.d0) then
-            scalmom = trm(i,j,l,n)/T0Mold
-            trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
-          end if
+cc          if (dmass.lt.0.d0) then
+cc            scalmom = trm(i,j,l,n)/T0Mold
+cc            trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
+cc          end if
         enddo
-          tajls(j,l,najl) = tajls(j,l,najl) + sdmass
+cc          tajls(j,l,najl) = tajls(j,l,najl) + sdmass
         enddo
         enddo
       RETURN
@@ -481,7 +483,7 @@ c
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,dxyp
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: dtchem,tmmvv,tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
@@ -492,7 +494,7 @@ c
       real*8 dmass,T0Mold
       integer i,j,l,lr,n,ns,najl   ,kx
 
-      najl = jls_3Dsource(ns,n)
+cc      najl = jls_3Dsource(ns,n)
 c start at top layer and continue to lowest layer for strat. chem
       DO 330 l = lm,lm+1-nstrtc,-1
         LR = LM+1-L
@@ -546,17 +548,17 @@ c update ozone mass
      *           ' Negative tracer in Strat_chem_O3',
      *                i,j,l,T0Mold,dmass,itime
                dmass = -T0Mold
-               trm(i,j,l,n) = 0.d0
-            else
-               trm(i,j,l,n) = T0Mold + dmass
+cc               trm(i,j,l,n) = 0.d0
+cc            else
+cc               trm(i,j,l,n) = T0Mold + dmass
             end if
-!           tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
-            tajls(j,l,najl) = tajls(j,l,najl) + dmass
+           tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
+cc            tajls(j,l,najl) = tajls(j,l,najl) + dmass
 c scale moments by fractional change in total tracer mass
-        if (dmass.lt.0.d0) then
-          scalmom = trm(i,j,l,n)/T0Mold
-          trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
-        end if
+cc        if (dmass.lt.0.d0) then
+cc          scalmom = trm(i,j,l,n)/T0Mold
+cc          trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
+cc        end if
   310 continue
   320 continue
   330 continue

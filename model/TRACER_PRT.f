@@ -373,12 +373,9 @@ C****
       REAL*8, DIMENSION(JM,LM) :: A
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
-      INTEGER :: J,L,N,K,jtpow,kw
-#if (defined TRACERS_SPECIAL_O18) || (defined TRACERS_COSMO)
-      INTEGER :: n1,n2
+      INTEGER :: J,L,N,K,jtpow,kw,n1,n2
       CHARACTER :: lname*80,sname*30,units*50
       REAL*8 :: dD, d18O
-#endif
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jlt'//XLABEL(1:LRUNID)
@@ -435,6 +432,15 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
 
 #ifdef TRACERS_WATER
       end if
+#endif
+
+#ifdef TRACERS_AEROSOL_Koch
+C****
+C**** Mass diagnostic
+C****
+      k=jlnt_mass
+
+
 #endif
 
 #ifdef TRACERS_WATER
@@ -544,6 +550,33 @@ C****
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,tajls(1
      *     ,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
       end do
+
+#ifdef TRACERS_SPECIAL_Lerner
+C**** some special combination diagnostics
+
+C**** total chemical change for CH4
+      if (n_CH4.gt.0) then
+        k=jls_3Dsource(1,n_CH4)
+        a(:,:) = tajls(:,:,jls_3Dsource(1,n_CH4))
+     *         + tajls(:,:,jls_3Dsource(2,n_CH4))
+        sname = 'Total_Chem_change'//trname(n)
+        lname = 'TOTAL CHANGE OF CH4 BY CHEMISTRY'
+        scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
+        CALL JLMAP_t (lname,sname,units_jls(k),plm,a
+     *     ,scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
+      end if
+C**** total chemical change for O3
+      if (n_O3.gt.0) then
+        k=jls_3Dsource(1,n_O3)
+        a(:,:) = tajls(:,:,jls_3Dsource(1,n_O3))
+     *         + tajls(:,:,jls_3Dsource(2,n_O3))
+        sname = 'Total_Chem_change'//trname(n)
+        lname = 'TOTAL CHANGE OF O3 BY CHEMISTRY'
+        scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
+        CALL JLMAP_t (lname,sname,units_jls(k),plm,a
+     *     ,scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
+      end if
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** some special JL diags for chemistry

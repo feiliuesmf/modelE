@@ -28,10 +28,10 @@ c want kg SO2/m2/s
       USE MODEL_COM, only: im,jm,ls1,jmon,jday,dtsrc,zatmo,t,lm
       USE GEOM, only: dxyp
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: SO2_src,SO2_src_3d,nso2src,
-     * nso2src_3d
+     *     nso2src_3d
       USE DYNAMICS, only: pmid,pk
       implicit none
 c biomass burning parameters:
@@ -451,7 +451,7 @@ c    * Y,BESSI0,X,AX
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+      USE TRACER_DIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,jhour,dtsrc,t,q,jday
       USE DYNAMICS, only: pmid,am,pk
@@ -1288,7 +1288,7 @@ c can't be more than moles going in:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
       USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,n_SO4,trm,trmom
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+c      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE MODEL_COM, only: im,jm,lm,dtsrc,t,p
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk

@@ -435,7 +435,7 @@ C****
       USE MODEL_COM, only : jm,im,lm,dtsrc
       USE GEOM, only : imaxj,bydxyp
       USE QUSDEF, only: nmom
-      USE TRACER_COM, only : ntm,trm,trmom
+      USE TRACER_COM, only : ntm,trm,trmom,trname
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs
@@ -447,7 +447,6 @@ C****
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
-C**** tracer moments are modified elsewhere
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
       do l=1,lm
@@ -461,11 +460,7 @@ C**** calculate fractional loss
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
         tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
-#ifdef TRACERS_AEROSOLS_Koch
-C**** this code should be for everyone, but only the aerosols have 
-C**** been properly defined.
         taijs(i,j,naij)=taijs(i,j,naij)+tr3Dsource(i,j,l,ns,n)*dtsrc
-#endif
       end do; end do; end do
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
