@@ -837,7 +837,7 @@ c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
       USE MODEL_COM, only :
-     &     im,jm,lm,fim, xlabel,lrunid,istrat,
+     &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
      &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR
       USE GEOM, only :
@@ -1581,7 +1581,7 @@ C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
       END IF
 C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
       SCALET=scale_jl(jl_dudfmdrg)/idacc(ia_jl(jl_dudfmdrg))
-      if (istrat.eq.2) then
+      if (DO_GWDRAG) then
       CALL JLMAP (LNAME_JL(jl_dumtndrg),SNAME_JL(jl_dumtndrg),
      *  UNITS_JL(jl_dumtndrg),PLM,AJL(1,1,jl_dumtndrg),
      *  SCALET,ONES,ONES,LM,2,JGRID_JL(jl_dumtndrg))

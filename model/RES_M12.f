@@ -55,6 +55,7 @@ C**** models.
       SUBROUTINE DUMMY_STRAT
 !@sum DUMMY dummy routines for non-stratospheric models
 C**** Dummy routines in place of STRATDYN
+      ENTRY init_GWDRAG
       ENTRY GWDRAG
       ENTRY VDIFF
       ENTRY io_strat

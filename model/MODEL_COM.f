@@ -146,10 +146,13 @@ C**** Define surface types (mostly used for weighting diagnostics)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
 
+C**** Variables specific for stratosphere and/or strat diagnostics
 !@var AIRX, AIRMX*DXYP(J) Used in stratosphere model. (kg?)
       REAL*8 AIRX(IM,JM)
 !@var LMC max layer of mc convective mass flux. (Strat model)
       INTEGER, DIMENSION(2,IM,JM) :: LMC
+!@var DO_GWDRAG when true, prints Gravity Wave diagnostics
+      LOGICAL :: DO_GWDRAG = .false.
 
 !@var LSDRAG level above which SDRAG is applied (above 1 mb)
       INTEGER :: LSDRAG=LM  ! default=LM

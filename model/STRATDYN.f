@@ -32,6 +32,16 @@ C**** (must be in common due to read statement)
       END MODULE
 
 
+      SUBROUTINE init_GWDRAG
+!@sum init_GWDRAG
+!@auth Jean Lerner
+C**** DO_GWDRAG=true activates the printing of the diagnostics 
+C**** accumulated in the routines contained herein
+      USE MODEL_COM, only : DO_GWDRAG
+      DO_GWDRAG = .true.
+      END SUBROUTINE init_GWDRAG
+
+
       SUBROUTINE VDIFF (P,U,V,T,Q,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
