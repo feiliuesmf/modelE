@@ -11827,8 +11827,8 @@ c**** obtained using the vegetation masking.
         XEAVN(L)=BEAVN(L)
       END DO
       DO L=1,2
-        BEAVN(L)=BEAVN(L)+max(0.,BSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
-        XEAVN(L)=XEAVN(L)+max(0.,XSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+        BEAVN(L)=BEAVN(L)+max(0.d0,BSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+        XEAVN(L)=XEAVN(L)+max(0.d0,XSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
       END DO
       DO L=3,6
         BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
@@ -11958,8 +11958,8 @@ C**** set zenith angle dependence
 
 c**** Reduce the Ocean Ice albedo by dalbsn
         DO L=1,2
-          BOIVN(L) = max(0.,BOIVN(L)+dalbsn/L)
-          XOIVN(L) = max(0.,XOIVN(L)+dalbsn/L)
+          BOIVN(L) = max(0.d0,BOIVN(L)+dalbsn/L)
+          XOIVN(L) = max(0.d0,XOIVN(L)+dalbsn/L)
         END DO
       end if  !  KSIALB.ne.1:  Schramm/Hansen
 C*
@@ -12039,8 +12039,8 @@ C**** zenith angle dependence if required
 
 c**** Reduce the Land Ice albedo by dalbsn
       DO L=1,2
-        BLIVN(L) = max(0.,BLIVN(L)+dalbsn/L)
-        XLIVN(L) = max(0.,XLIVN(L)+dalbsn/L)
+        BLIVN(L) = max(0.d0,BLIVN(L)+dalbsn/L)
+        XLIVN(L) = max(0.d0,XLIVN(L)+dalbsn/L)
       END DO
 
       ITLI=TGLI
