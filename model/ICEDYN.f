@@ -1334,7 +1334,7 @@ C NOW THE SECOND HALF
       USE OCEAN, only : dxyp=>dxypo,dyp=>dypo,dxp=>dxpo,dxv=>dxvo,
      *     bydxyp=>bydxypo
       USE ICEDYN, only : usidt,vsidt,rsix,rsiy,rsisave
-      USE SEAICE, only : ace1i,xsi_glob=>xsi
+      USE SEAICE, only : ace1i,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -1355,7 +1355,7 @@ C NOW THE SECOND HALF
 #endif
       REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
       INTEGER I,J,L,IM1,IP1,K
-      REAL*8 SFASI,DMHSI,ASI,YSI,XSI,FRSI
+      REAL*8 SFASI,DMHSI,ASI,YSI,XRSI,FRSI
 !@var MHS mass/heat/salt content of sea ice
       REAL*8, DIMENSION(NTRICE,IM,JM) :: MHS
 C****
@@ -1551,9 +1551,9 @@ C**** Sea ice crunches into itself and completely covers grid box
         DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
      *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0 / ASI )
         MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(3)*DMHSI
+     *       XSI(3)*DMHSI
         MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(4)*DMHSI
+     *       XSI(4)*DMHSI
       END DO
 C**** End of loop over J
   330 CONTINUE
@@ -1580,9 +1580,9 @@ C**** Sea ice crunches into itself at North Pole box
         DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
      *       +AMSI(6+LMI*(K-1)))*(BYDXYP(JM) -1d0/ ASI)
         MHS(5+LMI*(K-1),1,JM) = AMSI(5+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(3)*DMHSI
+     *       XSI(3)*DMHSI
         MHS(6+LMI*(K-1),1,JM) = AMSI(6+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(4)*DMHSI
+     *       XSI(4)*DMHSI
       END DO
 C****
 C**** East-West Advection of Sea Ice
@@ -1625,10 +1625,10 @@ C**** USIDT(IM1)=0, USIDT(I)<0.
       DO 525 K=1,NTRICE
   525 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) - FMSI(K,I)
       IF(ASI.gt.DXYP(J))  GO TO 620
-      XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) - FXSI(I)
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J) - FXSI(I)
      *    + 3d0*(FAW(I)*ASI-DXYP(J)*FASI(I))) / (DXYP(J)-FAW(I))
       RSI(I,J)  = ASI*BYDXYP(J)
-      RSIX(I,J) = XSI*BYDXYP(J)
+      RSIX(I,J) = XRSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) - FYSI(I)*BYDXYP(J)
       DO 526 K=1,NTRICE
   526 MHS(K,I,J) = AMSI(K)/ASI
@@ -1650,11 +1650,11 @@ C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
       DO 565 K=1,NTRICE
   565 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + (FMSI(K,IM1)-FMSI(K,I))
       IF(ASI.gt.DXYP(J))  GO TO 620
-      XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + (FXSI(IM1)-FXSI(I))
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + (FXSI(IM1)-FXSI(I))
      *    + 3d0*((FAW(IM1)+FAW(I))*ASI-DXYP(J)*(FASI(IM1)+FASI(I))))
      *    / (DXYP(J) + (FAW(IM1)-FAW(I)))
       RSI(I,J)  = ASI*BYDXYP(J)
-      RSIX(I,J) = XSI*BYDXYP(J)
+      RSIX(I,J) = XRSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) + (FYSI(IM1)-FYSI(I))*BYDXYP(J)
       DO 566 K=1,NTRICE
   566 MHS(K,I,J) = AMSI(K)/ASI
@@ -1671,10 +1671,10 @@ C**** USIDT(IM1)>0, USIDT(I)=0.
       DO 585 K=1,NTRICE
   585 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J) + FMSI(K,IM1)
       IF(ASI.gt.DXYP(J))  GO TO 620
-      XSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + FXSI(IM1)
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J) + FXSI(IM1)
      *    + 3d0*(FAW(IM1)*ASI-DXYP(J)*FASI(IM1))) / (DXYP(J)+FAW(IM1))
       RSI(I,J)  = ASI*BYDXYP(J)
-      RSIX(I,J) = XSI*BYDXYP(J)
+      RSIX(I,J) = XRSI*BYDXYP(J)
       RSIY(I,J) = RSIY(I,J) + FYSI(IM1)*BYDXYP(J)
       DO 586 K=1,NTRICE
   586 MHS(K,I,J) = AMSI(K)/ASI
@@ -1701,9 +1701,9 @@ C**** Sea ice crunches into itself and completely covers grid box
         DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
      *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0/ ASI)
         MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(3)*DMHSI
+     *       XSI(3)*DMHSI
         MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
-     *       XSI_GLOB(4)*DMHSI
+     *       XSI(4)*DMHSI
       END DO
 C**** End of loop over I
   630 IM1=I
@@ -1726,10 +1726,11 @@ C**** Set atmospheric arrays
       DO J=1,JM
         DO I=1,IM
           IF (FOCEAN(I,J).gt.0) THEN
-            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI_GLOB(1:2)*(ACE1I
-     *           +SNOWI(I,J)))+LHM)*BYSHI
+            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MHS(1,I,J))
+     *           +LHM)*BYSHI
 #ifdef TRACERS_WATER
-            GTRACER(:,1,I,J)=TRSI(:,1,I,J)/(MHS(1,I,J)-SSI(1,I,J))
+            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
+     *           -SSI(1,I,J))
 #endif
           END IF
         END DO

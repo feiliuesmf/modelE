@@ -561,6 +561,7 @@ c**** Interpolate two months of data to current day
       USE GEOM, only : dxyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE DYNAMICS, only : am
+      USE FLUXES, only : gtracer
       USE TRACER_COM
       IMPLICIT NONE
       LOGICAL QCHECKT
@@ -569,6 +570,7 @@ c**** Interpolate two months of data to current day
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
+      CALL CHECK3(gtracer(1,1,1,1),NTM,4,IM*JM,SUBR,'GTRACE')
       do n=1,ntm
         CALL CHECK3(trmom(1,1,1,1,n),NMOM,IM,JM*LM,SUBR,
      *       'X'//trname(n))
@@ -627,7 +629,7 @@ C**** check whether air mass is conserved
      *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*dxyp(j))
      *           /(wm(i,j,l)*am(l,i,j)*dxyp(j)))
             if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
-     *           .gt.0 .and.trwm(i,j,l,n).eq.0))
+     *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
      *           ,n),wm(i,j,l)*am(l,i,j)*dxyp(j) 
             do m=1,nmom

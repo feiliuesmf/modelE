@@ -80,7 +80,7 @@ c****
      *     ,runoe,erunoe,gtemp
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     snowe,tearth,wearth,aiearth,
+     *     snowe,tearth,wearth,aiearth,afb,
      &     evap_max_ij, fr_sat_ij, qg_ij
 #ifdef TRACERS_WATER
      *     ,trvege,trbare,trsnowbv
@@ -91,10 +91,12 @@ c****
      &     ,khs,ppbl,ug,vg,wg,zmix   ! ,kq=>kqs
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use pbl_drv, only : pbl, evap_max,fr_sat
+#ifdef TRACERS_ON
+     *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
-
+#endif
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -111,22 +113,18 @@ c****
       real*8 rhosrf0
 
 #ifdef TRACERS_ON
-C**** Tracer input/output common block for PBL
-!@var trsfac, trconstflx factors in surface flux boundary cond.
-!@var ntx number of tracers that need pbl calculation
-      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      integer n,nx,ntx
-      integer, dimension(ntm) :: ntix
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+      integer n,nx,nsrc
       real*8 totflux
-      integer nsrc
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trgrnd,trsoil_tot,tevapw,tevapd,
      *     tevapb,trruns,trrunu,trpr,trsoil_rat
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
-      real*8  tdp, tdt1, wsoil_tot, frac, tevap, fracvl
+      real*8  tdp, tdt1, wsoil_tot, frac, tevap
       integer ibv
+#ifdef TRACERS_SPECIAL_O18
+      real*8 fracvl
+#endif
 #endif
 #endif
       real*8 qsat
@@ -181,7 +179,7 @@ C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV
 #ifdef TRACERS_ON
-C$OMP*   ,trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix,totflux,nsrc
+C$OMP*   ,n,nx,totflux,nsrc
 #ifdef TRACERS_WATER
 C$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
 C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
@@ -312,6 +310,7 @@ C**** soils to ensure conservation. Should be replaced with proper
 C**** calculation at some point
 C**** Calculate mean tracer ratio
       trsoil_tot = 0 ; wsoil_tot = 0
+      fb=afb(i,j) ; fv=1.-fb
       do ibv=1,2
         frac=fb
         if (ibv.eq.2) frac=fv

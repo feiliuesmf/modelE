@@ -2364,7 +2364,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
      *     ,flowo,eflowo,sflowo,srunosi
 #ifdef TRACERS_OCEAN
-     *     ,trflowo,trevapor,dtrsi,trunosi,gtracer
+     *     ,trflowo,trevapor,dtrsi,trunosi
 #endif
       USE SEAICE_COM, only : rsi
       IMPLICIT NONE
@@ -3071,17 +3071,18 @@ C**** Done!
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
+      USE TRACER_COM, only : trw0
       USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
       USE SEAICE, only : ace1i, xsi
       USE SEAICE_COM, only : rsi,hsi,snowi,ssi
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
      *     ,trsi
 #endif
       USE FLUXES, only : gtemp, sss, mlhc
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
      *     ,gtracer
 #endif
 
@@ -3109,10 +3110,14 @@ C****
 C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+#ifdef TRACERS_WATER
+            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
      *           S0M(I,J,1))
-            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
+#else
+            GTRACER(:,1,I,J)=trw0(:)
+#endif
 #endif
           END IF
         END DO
@@ -3123,15 +3128,15 @@ C**** do poles
           GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
-#ifdef TRACERS_OCEAN
-        GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
+#ifdef TRACERS_WATER
+          GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
 #endif
         END IF
 c       IF (FOCEAN(1,1).gt.0) THEN
 c         GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
 c         SSS(I,1)=SSS(1,1)
 c         MLHC(I,1)=MLHC(1,1)
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 c         GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
 #endif
 c       END IF

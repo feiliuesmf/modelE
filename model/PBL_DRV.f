@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
-#ifdef TRACERS_WATER
+#ifdef TRACERS_ON
       use tracer_com, only : ntm
 #endif
       implicit none
@@ -21,6 +21,20 @@ c     input data:
 
 C$OMP  THREADPRIVATE (/pbl_loc/)
 
+#ifdef TRACERS_ON
+C**** Tracer input/output common block for PBL
+!@var trtop,trs tracer mass ratio in level 1/surface
+!@var trsfac, trconstflx factors in surface flux boundary cond.
+!@var ntx number of tracers that need pbl calculation
+!@var ntix index array to map local tracer number to global
+      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
+      integer ntx
+      integer, dimension(ntm) :: ntix
+      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+
+!$OMP  THREADPRIVATE (/trspec/)
+#endif
+
       contains
 
       SUBROUTINE PBL(I,J,ITYPE,PTYPE)
@@ -38,9 +52,6 @@ C          ,UG,VG,WG,ZMIX
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-#ifdef TRACERS_ON
-      USE TRACER_COM, only : needtrs,itime_tr0
-#endif
       USE SOCPBL, only : npbl=>n,e
      &     ,dpdxr,dpdyr
      &     ,dpdxr0,dpdyr0
@@ -51,8 +62,9 @@ C          ,UG,VG,WG,ZMIX
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
-     &     ,tr
+     *     ,tr
 #endif
+
       USE PBLCOM
       IMPLICIT NONE
 
@@ -63,13 +75,7 @@ C          ,UG,VG,WG,ZMIX
       REAL*8 Ts
 
 #ifdef TRACERS_ON
-C**** Tracer input/output common block
-!@var trsfac, trconstflx factors in surface flux boundary cond.
-!@var ntx number of tracers that need pbl calculation
-      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      integer, dimension(ntm) :: ntix
-      integer itr,n,ntx
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+      integer nx
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
@@ -197,12 +203,8 @@ C *********************************************************************
       qpbl(:)=qabl(:,i,j,itype)
       e(1:npbl-1)=eabl(1:npbl-1,i,j,itype)
 #ifdef TRACERS_ON
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
-          n=n+1
-          tr(:,n)=trabl(:,itr,i,j,itype)
-        end if
+      do nx=1,ntx
+        tr(:,nx)=trabl(:,ntix(nx),i,j,itype)
       end do
 #endif
 
@@ -215,8 +217,6 @@ C *********************************************************************
       dpdxr0 = DPDX_BY_RHO_0(i,j)
       dpdyr0 = DPDY_BY_RHO_0(i,j)
 
-c     write(67,1003) "p-gradients: ",dpdxr,dpdyr,dpdxr0,dpdyr0
-c1003 format(a,4(1pe14.4))
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
@@ -233,12 +233,8 @@ c1003 format(a,4(1pe14.4))
       qabl(:,i,j,itype)=qpbl(:)
       eabl(1:npbl-1,i,j,itype)=e(1:npbl-1)
 #ifdef TRACERS_ON
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime.and.needtrs(itr)) then
-          n=n+1
-          trabl(:,itr,i,j,itype)=tr(:,n)
-        end if
+      do nx=1,ntx
+        trabl(:,ntix(nx),i,j,itype)=tr(:,nx)
       end do
 #endif
 

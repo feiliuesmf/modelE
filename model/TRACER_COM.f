@@ -18,9 +18,9 @@ C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
 #ifdef TRACERS_SPECIAL_O18
-      integer, parameter :: ntm=5
+      integer, parameter :: ntm=4
       character*8, parameter :: trname(ntm)=(/
-     *     'Air     ','Water   ','H2O18   ','HDO     ','HTO     '/)
+     *     'Water   ','H2O18   ','HDO     ','HTO     '/)
 #else     
 #ifdef TRACERS_SPECIAL_Lerner     
      !@param NTM number of tracers

@@ -31,8 +31,11 @@ C**** Interface to PBL
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
       USE PBL_DRV, only : pbl,evap_max,fr_sat
+#ifdef TRACERS_ON
+     *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
+#endif
 #endif
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
@@ -87,17 +90,14 @@ C**** Interface to PBL
       REAL*8 AREGIJ(7,3,IM,JM)
 c
 #ifdef TRACERS_ON
-C**** Tracer input/output common block for PBL
-!@var trsfac, trconstflx factors in surface flux boundary cond.
-!@var ntx number of tracers that need pbl calculation
-      real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
       real*8 rhosrf0, totflux
-      integer n,nx,ntx,nsrc
-      integer, dimension(ntm) :: ntix
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+      integer n,nx,nsrc
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim,trgrnd
-      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,FRACVL,FRACVS,FRACLK
+      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1
+#ifdef TRACERS_SPECIAL_O18
+     *     ,FRACVL,FRACVS,FRACLK
+#endif
 #endif
 #endif
 
@@ -153,7 +153,7 @@ C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
 C$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TH1,TFS,TS,
 C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L
 #ifdef TRACERS_ON
-C$OMP*  ,trtop,trsfac,trconstflx,n,nx,ntx,nsrc,ntix
+C$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #ifdef TRACERS_WATER
 C$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
 #endif
@@ -795,6 +795,7 @@ c****  (replaced with dummy subroutine when ATURB is used)
 c****
       call apply_fluxes_to_atm(dtsurf)
 c****
+      CALL CHECKT ('applyF')
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
 C****

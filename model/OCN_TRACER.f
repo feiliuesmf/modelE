@@ -48,10 +48,12 @@ C**** only TRACERS_WATER is true.
         select case (trname(n))
 
         case default
+#ifdef TRACERS_OCEAN
           trmo(:,:,:,n)=0.
           txmo(:,:,:,n)=0.
           tymo(:,:,:,n)=0.
           tzmo(:,:,:,n)=0.
+#endif
           do j=1,jm
           do i=1,im
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=0.
@@ -182,7 +184,7 @@ C**** Balance tracers so that average concentration is TRW0
           do j=1,jm
           do i=1,im
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=trmo(i,j,1,n)/(mo(i,j
-     *           ,l)*dxypo(j)-s0m(i,j,1))
+     *           ,1)*dxypo(j)-s0m(i,j,1))
           do l=lmm(i,j)+1,lmo
             trmo(i,j,l,n)=0. ; txmo(i,j,l,n)=0.
             tymo(i,j,l,n)=0. ; tzmo(i,j,l,n)=0.

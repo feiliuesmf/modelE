@@ -76,6 +76,10 @@ C**** boundary layer parameters
 !@var  e  local turbulent kinetic energy
 c     real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n-1) :: e
+#ifdef TRACERS_ON
+!@var  tr local tracer profile (passive scalars)
+      real*8, dimension(n,ntm) :: tr
+#endif
 
 C***
 C***  Thread-Private Common
@@ -84,18 +88,15 @@ C***
      * ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
      * ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8
      * ,e   !  ,u,v,t,q 
+#ifdef TRACERS_ON
+     * ,tr
+#endif
 C$OMP  THREADPRIVATE (/PBLTPC/)
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
       COMMON /PBLOUT/US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
      *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX
 C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
-
-
-#ifdef TRACERS_ON
-!@var  tr local tracer profile (passive scalars)
-      real*8, dimension(n,ntm) :: tr
-#endif
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
@@ -1779,6 +1780,7 @@ c     integer, parameter ::  n=8
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n) :: u,v,t,q
       common/pbluvtq/u,v,t,q
+
 C$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
