@@ -1028,7 +1028,7 @@ C**** EVEN PRESSURES
         PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
-        IF(TLm(L).LT.130..OR.TLm(L).GT.370.) THEN
+        IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
           WRITE(6,*) 'GTEMP:',GTEMP(:,:,I,J)
 CCC       STOP 'In Radia: Temperature out of range'
