@@ -30,7 +30,7 @@ DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! land ice modules
+ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
