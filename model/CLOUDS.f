@@ -6,7 +6,7 @@
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha
-     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny
+     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd
       USE MODEL_COM, only : im,lm,dtsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
@@ -645,9 +645,9 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
       DMR(L)=DMR(L)-EPLUME
       SMP=SMP+EPLUME*SUP
-       SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
+      SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
       QMP=QMP+EPLUME*QUP
-       QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
+      QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
 #ifdef TRACERS_ON
       DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
       DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
@@ -686,24 +686,24 @@ C     IF(DMMIX.LT.1d-10) GO TO 291
       SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
       SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
       SMP=FLEFT*SMP
-       SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
+      SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
       QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
       QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       QMP=FLEFT*QMP
-       QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
+      QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
       DMR(L) = DMR(L)-.5*DDRAFT
       DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
       DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
       DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
       DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
 #ifdef TRACERS_ON
-       Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
-       tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
-     *                       tmomp(xymoms,  1:NTX)*fddp
-       dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
-       dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
-       Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
-       tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
+      Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
+      tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
+     *     tmomp(xymoms,  1:NTX)*fddp
+      dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
+      dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
+      Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
+      tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
 #endif
       DO K=1,KMAX !vref
          UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L)) !vref
@@ -1138,7 +1138,7 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
      *     (PLK(L)*SM(L))
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
-       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
+      SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
@@ -1359,7 +1359,7 @@ C**** functions
 !@var FUNI the probablity for ice cloud to form
 !@var FUNIL,FUNIO FUNI over land, ocean
 !@var HCHANG,HPHASE latent heats for changing phase
-!@var HDEP,HDEP1 layer depth (Km)
+!@var HDEP,HDEP1 layer depth (m)  (note change of unit km-->m)
 !@var OLDLAT,OLDLHX previous LHX
 !@var PFR PROBABLITY OF GLACIATION OF SUPER-COOLED WATER
 !@var PMI icy precip entering the layer top
@@ -1514,21 +1514,21 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RH00(L)=U00wtr
       IF(LHX.EQ.LHS) RH00(L)=U00ice
       IF(L.EQ.1) THEN
-        HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
-        RH00(L)=1.-GRAV*LHE*HDEP/(RVAP*TS*TS)
+        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
         IF(DCL.LE.1) THEN
-         IF(RIS.GT.1.) HDEP1=.01d0
-         IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=.05d0
-         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=.1d0
+         IF(RIS.GT.1.) HDEP1=10d0
+         IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=50d0
+         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=100d0
          IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
-         RH00(L)=1.-GRAV*LHE*HDEP1/(RVAP*TS*TS)
+         RH00(L)=1.-GAMD*LHE*HDEP1/(RVAP*TS*TS)
         ENDIF
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
       IF(L.GT.1.AND.L.LE.DCL) THEN
-        HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
+        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
         IF(L.EQ.DCL) HDEP=.5*HDEP
-        RH00(L)=1.-9.8d0*LHE*HDEP/(RVAP*TS*TS)
+        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
 !obso IF(L.LE.LPBL) RH00(L)=.75
@@ -1548,6 +1548,8 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
      *   PRECNVL(L+1)*BYDTsrc)
       IF(CM.GT.BYDTsrc) CM=BYDTsrc
       PREP(L)=WMX(L)*CM
+      ELSE
+        CM=0.
       END IF
 C**** FORM CLOUDS ONLY IF RH GT RH00
   219 IF(RH1(L).LT.RH00(L)) GO TO 220
@@ -1672,7 +1674,7 @@ C**** Only Calculate fractional changes of Q to W
       END IF
       QL(L)=QNEW
 C**** adjust gradients down if Q decreases
-       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
+      QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/SHA
       TH(L)=TL(L)/PLK(L)
