@@ -19,11 +19,15 @@ BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 GCMLIB = $(BIN_DIR)/$(RUN).a
 
-# netcdf library
-NCLIB = /usr/local/netcdf-3.4/lib64/libnetcdf.a
+# getting options from configuration files
+# default modelE configuration file:
+include $(SCRIPTS_DIR)/modelErc
+# configuration file with user-defined options:
+sinclude ~/.modelErc
+
 
 # list of targets to be built by default
-all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS # $(BIN_DIR)/acc2nc 
+all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_gic $(BIN_DIR)/rsf2gic $(BIN_DIR)/conv_strat_rsf  $(BIN_DIR)/RMS $(BIN_DIR)/acc2nc 
 qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/dec31.exe $(BIN_DIR)/otspec.E001.exe 
 # $(BIN_DIR)/rsfE001.addO.exe obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
@@ -101,9 +105,14 @@ mkdeep.o: $(GCMLIB)
 $(GCMLIB): FORCE
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
 
-$(BIN_DIR)/acc2nc: acc2nc.o $(GCMLIB) $(NCLIB)
-	$(F90) $(FFLAGS) $(LFLAGS) -o $@ $^
-
+ifdef NETCDFHOME
+$(BIN_DIR)/acc2nc: acc2nc.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+else
+$(BIN_DIR)/acc2nc:
+	@echo "NetCDF library is not specified"
+	@echo "will skip $(BIN_DIR)/acc2nc"
+endif
 
 acc2nc.o: $(GCMLIB)
 
