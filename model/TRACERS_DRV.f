@@ -1910,6 +1910,7 @@ c Oxidants
         lname_jls(k) = 'OH'
         jls_ltop(k) = LM
         jls_power(k) =3
+        scale_jls(k) =byim 
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
         k = k + 1
@@ -1918,6 +1919,7 @@ c Oxidants
         lname_jls(k) = 'HO2'
         jls_ltop(k) =LM
         jls_power(k) =5
+        scale_jls(k) =byim 
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
         k = k + 1
@@ -1926,6 +1928,7 @@ c Oxidants
         lname_jls(k) = 'NO3'
         jls_ltop(k) =LM
         jls_power(k) =5
+        scale_jls(k) =byim 
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif
         
@@ -2680,6 +2683,7 @@ c put in loss of SO4 from heter chem
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_AEROSOLS_Koch
 c SO4 optical thickness 
         k = k + 1
         ijts_tau(n) = k
@@ -2687,10 +2691,10 @@ c SO4 optical thickness
         ia_ijts(k) = ia_src   !? 
         lname_ijts(k) = 'SO4 optical thickness'
         sname_ijts(k) = 'SO4_tau'
-        ijts_power(k) = -3.
+        ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
       case ('H2O2_s')
 c put in production of H2O2 from gas phase
         k = k + 1
@@ -2769,6 +2773,7 @@ c source of Pb210 from Rn222 decay
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_AEROSOLS_Koch
 c ss1 optical thickness 
         k = k + 1
         ijts_tau(n) = k
@@ -2777,9 +2782,10 @@ c ss1 optical thickness
         ia_ijts(k) = ia_src   !? 
         lname_ijts(k) = 'ss1 optical thickness'
         sname_ijts(k) = 'ss1_tau'
-        ijts_power(k) = -3.
+        ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
        case ('seasalt2')
         k = k + 1
         ijts_isrc(1,n) = k
@@ -2790,6 +2796,7 @@ c ss1 optical thickness
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_AEROSOLS_Koch
 c ss2 optical thickness 
         k = k + 1
         ijts_tau(n) = k
@@ -2797,9 +2804,10 @@ c ss2 optical thickness
         ia_ijts(k) = ia_src   !? 
         lname_ijts(k) = 'ss2 optical thickness'
         sname_ijts(k) = 'ss2_tau'
-        ijts_power(k) = -3.
+        ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
       end select
       end do
       
@@ -4869,6 +4877,9 @@ c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
       end select
 
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+      CALL GET_TAU
+#endif
 C****
       END SUBROUTINE set_tracer_2Dsource
 
