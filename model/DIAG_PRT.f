@@ -894,6 +894,7 @@ c Check the count
            if(.not.Qk(kk)) sname_jk(kk)='skip'
          end do
        end if
+       call closeunit(iu_Ijk)
 
       RETURN
       END SUBROUTINE JKJL_TITLEX
