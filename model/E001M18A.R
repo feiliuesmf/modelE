@@ -3,8 +3,8 @@ E001M18A.R GISS Model E  2002 modelE                 rar  6/20/02
 modelE 2.3.4+ with 18 lyrs, top at .1 mb - 1880 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
-       lost ang.mom is added in below 150 mb
-sealevel pressure filter applied every hour, U-filter used
+       ang.mom loss is added in below 150 mb
+sea level pressure filter applied every hour, UV-filter used
 6-band oice albedo; Hogstrom(1984) pbl drag
 Note: Many of these choices may be changed using the PARAMETERs below.
 
@@ -49,11 +49,11 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 ! OSST=OST4X5.B.1990-99avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 ! SICE=SICE4X5.B.1990-99avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:
-! OSST=OST4X5.B.1950.M02.Hadl1.1  ! ocean data   Feb 1950 - 1999
-! SICE=SICE4X5.B.1950.M02.Hadl1.1 ! ocean data   Feb 1950 - 1999
+! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - 2002
+! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - 2002
     ! the next 3 files are specific to q-flux ocean runs
-! AIC=E001/1JAN1956.rsfE001M18A.O250D      ! AIC/OHT made by aux/mkOTSPEC.E001.M250D
-! OHT=E001/OTSPEC.E001M18A.M250D.1951-1955 ! horizontal ocean heat transport
+! AIC=E001M18A/1JAN1960.rsfE001M18A.MXL65m   ! AIC/OHT made by aux/mkOTSPEC
+! OHT=E001M18A/OTSPEC.E001M18A.MXL65m.1951-1960 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
     ! files needed for all models
 CDN=CD4X500S                      ! surf.drag coefficient
@@ -94,7 +94,7 @@ DTFIX=180
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
-Kvflxo=0        ! save VFLXO (daily) if ocn prescribed
+Kvflxo=0        ! don't save VFLXO (daily) (use 1 to prepare for q-flux run)
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! parameters usually not changed when switching to q-flux ocean:
@@ -110,7 +110,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
 xCDpbl=1.
-cond_scheme=2    ! more elaborate conduction scheme
+cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
 U00wtrX=1.12    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
@@ -155,9 +155,9 @@ Ndisk=24        ! use =240 on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1   ! use =0 to save cpu time
-nda5d=1         ! use =7 to save cpu time
-nda5s=1         ! use =7 to save cpu time
+isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
+nda5d=1         ! use =7 to save cpu time, but energy cons. diag may not be accurate
+nda5s=1         ! use =7 to save cpu time, but energy cons. diag may not be accurate
 &&END_PARAMETERS
 
  &INPUTZ
