@@ -38,6 +38,9 @@ C**** boundary layer parameters
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
      *     cmin=smin*smin
 
+!@param twoby3 2/3 constant
+      real*8, parameter :: twoby3 = 2d0/3d0
+
       CONTAINS
 
       subroutine advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
@@ -366,8 +369,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           dudz=(u(i+1)-u(i))/dzh(i)
           dvdz=(v(i+1)-v(i))/dzh(i)
           as2=dudz*dudz+dvdz*dvdz
-          lmax  =0.53*sqrt(2.*e(i)/(an2+1d-40))
-          lmax2 =1.95*sqrt(2.*e(i)/(as2+1d-40))
+          lmax  =0.53d0*sqrt(2.*e(i)/(an2+1d-40))
+          lmax2 =1.95d0*sqrt(2.*e(i)/(as2+1d-40))
           lmax=min(lmax,lmax2)
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
@@ -750,8 +753,8 @@ c     find ghmin,ghmax,gmmax0:
       del=(s4+2*d1)**2-8*(s5+2*d3)
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
       ghmin=int(ghmin*10000.)/10000.
-      ghmax=(b1*0.53)**2
-      gmmax0=(b1*1.95)**2
+      ghmax=(b1*0.53d0)**2
+      gmmax0=(b1*1.95d0)**2
 
       return
       end subroutine ccoeff0
@@ -983,7 +986,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2d0/3d0)
+        wstar2 = wstar3**twoby3
       else
         wstar2 = 0.
       endif
@@ -1062,7 +1065,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2d0/3d0)
+        wstar2 = wstar3**twoby3
       else
         wstar2 = 0.
       endif
@@ -1212,7 +1215,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kh(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2d0/3d0)
+        wstar2 = wstar3**twoby3
       else
         wstar2 = 0.
       endif
@@ -1282,7 +1285,7 @@ c     M.J.Miller et al. 1992:
       wstar3=-1000.*grav*kq(1)*( 2.*(t(2)-t(1))/(t(2)+t(1))
      &                        -(q(2)-q(1)) )/dzh(1)
       if(wstar3.gt.0.) then
-        wstar2 = wstar3**(2d0/3d0)
+        wstar2 = wstar3**twoby3
       else
         wstar2 = 0.
       endif

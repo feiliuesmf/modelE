@@ -178,8 +178,13 @@ C**** parse options
 
       call findunit( iunit )
 
+#ifdef CONVERT_BIGENDIAN
+      open( iunit, FILE=filename, FORM=form, STATUS=status, RECL=1024,
+     *     CONVERT='BIG_ENDIAN', ERR=10 )
+#else
       open( iunit, FILE=filename, FORM=form, STATUS=status, RECL=1024,
      *     ERR=10 )
+#endif
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)

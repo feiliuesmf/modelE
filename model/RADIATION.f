@@ -626,9 +626,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE1
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) GTAU,TGDATA
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C
 C-----------------------------------------------------------------------
@@ -642,9 +642,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE2
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) TAUTB4,PLANC4,XKCF4,H2OCN4
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
       DO 200 I=1,148000
       TAUTBL(I)=TAUTB4(I)
@@ -704,7 +704,7 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE3
 CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
+cg      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
 C                               GCM 11 background aerosol Mie parameters
 C                               ----------------------------------------
@@ -868,7 +868,7 @@ C                               ----------------------------------------
       READ (NRFU,3005) (TRSQAL(K,N),K=1,33)
   324 CONTINUE
   399 CONTINUE
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C
 C-----------------------------------------------------------------------
@@ -882,7 +882,7 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE4
 CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
+cg      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
       DO 410 I=1,27
       READ (NRFU,5401) TITLE
@@ -995,7 +995,7 @@ C
   429 CONTINUE
   430 CONTINUE
   431 CONTINUE
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C
 C-----------------------------------------------------------------------
@@ -1010,7 +1010,7 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILEA
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
 C
       NLO3=45
       DO 432 L=1,NLO3
@@ -1059,7 +1059,7 @@ C
       END DO
 C
   440 CONTINUE
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C
 C-----------------------------------------------------------------------
@@ -1074,7 +1074,7 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILEB
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
 C
       DO 444 M=1,12
       DO 443 L=1,7
@@ -1136,7 +1136,7 @@ C
   458 CONTINUE
   459 CONTINUE
   460 CONTINUE
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
   470 CONTINUE
 C
@@ -1147,12 +1147,12 @@ CF    RFILEF(38:39)=NLCHAR
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILEF
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='UNKNOWN')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='UNKNOWN')         ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='UNKNOWN')         ! CF
       WRITE(NRFU) (((O3CLIM(M,L,J),M=1,MO3X),L=1,NL),J=1,46)
       WRITE(NRFU) ((((WJ1890(I,J,L,M),I=1,72),J=1,46),L=1,7),M=1,12)
       WRITE(NRFU) ((((WJ1979(I,J,L,M),I=1,72),J=1,46),L=1,7),M=1,12)
       WRITE(NRFU) PO3,O3AVE,AO3AV1,SO3JFS
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
       ENDIF
 C
       IF(MOZONE.EQ.7) THEN
@@ -1162,12 +1162,12 @@ CF    RFILEF(38:39)=NLCHAR
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILEF
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='UNKNOWN')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='UNKNOWN')         ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='UNKNOWN')         ! CF
       READ (NRFU) (((O3CLIM(M,L,J),M=1,MO3X),L=1,NL),J=1,46)
       READ (NRFU) ((((WJ1890(I,J,L,M),I=1,72),J=1,46),L=1,7),M=1,12)
       READ (NRFU) ((((WJ1979(I,J,L,M),I=1,72),J=1,46),L=1,7),M=1,12)
       READ (NRFU) PO3,O3AVE,AO3AV1,SO3JFS
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
       ENDIF
 C
 C                -------------------------------------------------------
@@ -1214,9 +1214,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE5
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) TROAER,VDBCSU
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C     ------------------------------------------------------------------
 C     VDBCSU Input Data Adjustment:
@@ -1262,9 +1262,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE6
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) TDUST
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
   699 CONTINUE
 C
@@ -1294,14 +1294,14 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE7
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) TITLE,ATAU98
       READ (NRFU) TITLE,SIZE98
       READ (NRFU) TITLE,HTFA98
       READ (NRFU) TITLE,HTFB98
       READ (NRFU) TITLE,HTFC98
       READ (NRFU) TITLE,HTFD98
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
   799 CONTINUE
 C
@@ -1331,9 +1331,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE8
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) EPSTAG,EPLMHC
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
       DO 811 N=1,4
       DO 810 M=1,12
@@ -1394,9 +1394,9 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILEE
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
+cg      OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) RIJTPG,FDXTPG,FEMTPG
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
 C
 C
 C-----------------------------------------------------------------------
@@ -1410,7 +1410,7 @@ C
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE9
 CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
-      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
+cg      OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
       READ(NRFU,9000) TITLE
  9000 FORMAT(1A80)
@@ -1440,7 +1440,7 @@ C
       UVLEAN(I,J)=FSLEAN(J)*SFNORM
   903 CONTINUE
   904 CONTINUE
-      CLOSE(NRFU)
+cg      CLOSE(NRFU)
       GO TO 949
   909 CONTINUE
       DO 911 I=1,190

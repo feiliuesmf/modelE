@@ -14,7 +14,7 @@
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
-      INTEGER iu_VFLXO,iu_SLP
+      INTEGER iu_VFLXO,iu_SLP,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
@@ -320,25 +320,25 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             if(m.gt.12) m = m-12
             monacc(m) = 1
           end do
-          OPEN (30,FILE=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),
-     *         FORM='UNFORMATTED')
-          call io_rsf (30,Itime,iowrite_single,ioerr)
-          CLOSE (30)
+          call openunit(aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),iu_ACC,
+     *         .true.,.false.) 
+          call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
+          call closeunit(iu_ACC)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
-            OPEN(30,FORM='UNFORMATTED',
-     *              FILE='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID))
-            call io_rsf(30,Itime,iowrite_mon,ioerr)
-            CLOSE (30)
+            call openunit('1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
+     *           ,iu_RSF,.true.,.false.) 
+            call io_rsf(iu_RSF,Itime,iowrite_mon,ioerr)
+            call closeunit(iu_RSF)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
           IF (KCOPY.GT.2) THEN
-            OPEN (30,FILE=aDATE(1:7)//'.oda'//XLABEL(1:LRUNID),
-     *           FORM='UNFORMATTED')
-            call io_oda(30,Itime,iowrite,ioerr)
-            CLOSE (30)
+            call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
+     *           ,iu_ODA,.true.,.false.) 
+            call io_oda(iu_ODA,Itime,iowrite,ioerr)
+            call closeunit(iu_ODA)
           END IF
         END IF
 

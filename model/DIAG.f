@@ -2963,7 +2963,7 @@ C****
       USE FILEMANAGER
       IMPLICIT NONE
       INTEGER L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
-     *     ,ISTART,jday0,jday,moff,kb
+     *     ,ISTART,jday0,jday,moff,kb,iu_ACC
       CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
@@ -2999,10 +2999,10 @@ C****
           keyct=1 ; KEYNR=0
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID),
-     *         FORM='UNFORMATTED')
-          call io_rsf (30,Itime,iowrite_single,ioerr)
-          CLOSE (30)
+          call openunit(acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
+     *         ,iu_ACC,.true.,.false.) 
+          call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
+          call closeunit(iu_ACC)
         end if
         ItimeE = -1
         close (6)
