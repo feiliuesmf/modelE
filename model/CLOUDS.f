@@ -6,7 +6,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
-     *     ,twopi               
+     *     ,twopi
       USE MODEL_COM, only : im,lm,dtsrc,itime,coupled_chem
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
@@ -112,9 +112,9 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var CSIZEL cloud particle radius (micron)
 #ifdef CLD_AER_CDNC
       REAL*8, DIMENSION(LM) :: CDNCWM,CDNCIM
-!@var CDNCWM,CDNCIM -CDNC - warm and cold moist cnv clouds (cm^-3)      
+!@var CDNCWM,CDNCIM -CDNC - warm and cold moist cnv clouds (cm^-3)
       REAL*8, DIMENSION(LM) :: CDNCWS,CDNCIS
-!@var CDNCWS,CDNCIS -CDNC - warm and cold large scale clouds (cm^-3)      
+!@var CDNCWS,CDNCIS -CDNC - warm and cold large scale clouds (cm^-3)
 #endif
 C**** new arrays must be set to model arrays in driver (before LSCOND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
@@ -124,7 +124,7 @@ C**** new arrays must be set to model arrays in driver (before LSCOND)
       REAL*8, DIMENSION(LM)::OLDCDO,OLDCDL,SMFPML
 !@var OLDCDO and OLDCDL are saved CDNC for land and ocean
 !@var SMFPML saved CTEI for CDNC modulation
-#endif 
+#endif
 C**** new arrays must be set to model arrays in driver (after LSCOND)
       REAL*8, DIMENSION(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
 !@var SSHR,DCTEI height diagnostics of dry and latent heating by MC
@@ -1462,7 +1462,7 @@ C**   Set CDNC for moist conv. clds (const at present)
               MNdL=174.d0
               MNdI=0.06417127d0
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
-              MCDNCI=MNdI             
+              MCDNCI=MNdI
             IF(SVLATL(L).EQ.LHE)  THEN
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
                RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
@@ -1476,7 +1476,7 @@ C**   Set CDNC for moist conv. clds (const at present)
 #ifdef CLD_AER_CDNC
             CDNCWM(L)=MCDNCW   !water cloud droplet number in convective clouds
             CDNCIM(L)=MCDNCI   !ice cloud droplet number in convective clouds
-#endif 
+#endif
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
             IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
          END IF
@@ -1598,9 +1598,9 @@ c for sulfur chemistry
      *     ,PRATW,PRATM,SMN12,SMO12
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
-!@auth Menon  - storing var for cloud droplet number 
+!@auth Menon  - storing var for cloud droplet number
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU,QCRIT
-       real*8 dynvis(LM),DSGL(LM) 
+       real*8 dynvis(LM),DSGL(LM)
 #endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
@@ -1839,7 +1839,7 @@ C**** is ice and temperatures are below TFrez
       LHP(L)=LHX
       IF (LHP(L+1).eq.LHS .and. TL(L).lt.TF) LHP(L)=LHP(L+1)
 #ifdef TRACERS_AEROSOLS_Koch
-!@auth Menon  saving aerosols mass for CDNC prediction                     
+!@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,NTX
        select case (trname(ntix(n)))
        case('SO4')
@@ -1853,16 +1853,16 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdO = 59.68d0/(RWCLDOX**3)
       SNdL = 174.d0
       SNdI = 0.06417127d0
-      
+
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
      *FCLD,CAREA(L),CLDSAVL(L),DSGL(L),SMFPML(L),OLDCDO(L),OLDCDL(L),
      *DSU,CDNL1,CDNO1)
-      SNdO=CDNO1  
+      SNdO=CDNO1
       SNdL=CDNL1
 #endif
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI = SNdI          
+      SCDNCI = SNdI
 #ifdef CLD_AER_CDNC
       IF (SCDNCW.le.40.d0) SCDNCW=40.d0     !set min CDNC, sensitivity test
 #endif
@@ -1940,7 +1940,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
 !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
-            RCLD=1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3 
+            RCLD=1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3*
@@ -2042,11 +2042,11 @@ C**** Only Calculate fractional changes of Q to W
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
-      if(abs(DTsrc*(QHEAT(L)-HPHASE)*BYSHA).gt.100.) then  ! warning
-        write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
-     *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)*BYSHA,QHEAT(L),HPHASE
-        debug_out=.true.
-      end if
+!     if(abs(DTsrc*(QHEAT(L)-HPHASE)*BYSHA).gt.100.) then  ! warning
+!       write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
+!    *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)*BYSHA,QHEAT(L),HPHASE
+!       debug_out=.true.
+!     end if
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)*BYSHA
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
@@ -2060,7 +2060,7 @@ c CLDSAVT is current FCLD
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
-        IF (WMX(L).LE.0.) CLDSAVT=0. 
+        IF (WMX(L).LE.0.) CLDSAVT=0.
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
@@ -2100,7 +2100,7 @@ c CLDSAVT is current FCLD
       END DO
 
 #endif
-        
+
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
         FPRT  =0.
@@ -2211,7 +2211,7 @@ C**** CONDENSING MORE TRACERS
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
-        IF (WMX(L).LE.0.) CLDSAVT=0. 
+        IF (WMX(L).LE.0.) CLDSAVT=0.
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
@@ -2259,7 +2259,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
-      if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
+!     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
@@ -2277,7 +2277,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
           HCHANG=WMX(L)*LHM
           TL(L)=TL(L)+HCHANG*BYSHA
-          if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
+!         if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
           TH(L)=TL(L)/PLK(L)
         END IF
         WMX(L)=0.
@@ -2440,7 +2440,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         QL(L+1)=QL(L+1)+WMX(L+1)
         TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
         TL(L+1)=TH(L+1)*PLK(L+1)
-        if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
+!       if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
         RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
@@ -2479,18 +2479,18 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 !@auth Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
      *CLDSAVL(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),CDNL1,CDNO1)
-      OLDCDL(L) = CDNL1  
+      OLDCDL(L) = CDNL1
       OLDCDO(L) = CDNO1
       SNdO=CDNO1
       SNdL=CDNL1
-#endif  
+#endif
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI = SNdI               
+      SCDNCI = SNdI
 #ifdef CLD_AER_CDNC
       If (SCDNCW.le.40.d0) SCDNCW=40.d0   !set min CDNC sensitivity test
 !      if(SCDNCW.gt.1200.d0)
 !    * write(6,*) "SCND CDNC",SCDNCW,DSU,OLDCDL(l),OLDCDO(l)
-#endif  
+#endif
 
         IF(LHX.EQ.LHE) THEN
 
@@ -2515,7 +2515,7 @@ C** for spectral dispersion effects on droplet size distribution
 #endif
         RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE
-#ifdef CLD_AER_CDNC  !save for diag purposes 
+#ifdef CLD_AER_CDNC  !save for diag purposes
         CDNCWS(L)=SCDNCW
         CDNCIS(L)=SCDNCI
 #endif

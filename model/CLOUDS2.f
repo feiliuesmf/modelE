@@ -1518,9 +1518,9 @@ C**** CALCULATE OPTICAL THICKNESS
 C**   Set CDNC for moist conv. clds (const at present)
               MNdO = 59.68d0/(RWCLDOX**3)
               MNdL = 174.d0
-              MNdI = 0.06417127d0          
+              MNdI = 0.06417127d0
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
-              MCDNCI=MNdI                  
+              MCDNCI=MNdI
             IF(SVLATL(L).EQ.LHE)  THEN
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
                RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
@@ -1926,7 +1926,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdL=CDNL1
 #endif
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI=SNdI               
+      SCDNCI=SNdI
 #ifdef CLD_AER_CDNC
       IF (SCDNCW.le.40.d0) SCDNCW=40.d0     !set min CDNC, sensitivity test
 #endif
@@ -2109,12 +2109,12 @@ C**** Only Calculate fractional changes of Q to W
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
-      if(abs(DTsrc*(QHEAT(L)-HPHASE)).gt.100.*SHA*FSSL(L)) then ! warn
-        write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
-     *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny),
-     *    QHEAT(L),HPHASE
-        debug_out=.true.
-      end if
+!     if(abs(DTsrc*(QHEAT(L)-HPHASE)).gt.100.*SHA*FSSL(L)) then ! warn
+!       write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
+!    *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny),
+!    *    QHEAT(L),HPHASE
+!       debug_out=.true.
+!     end if
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
@@ -2326,7 +2326,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
-      if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
+!     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
@@ -2344,7 +2344,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
           HCHANG=WMX(L)*LHM
           TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
-          if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
+!         if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
           TH(L)=TL(L)/PLK(L)
         END IF
         WMX(L)=0.
@@ -2473,7 +2473,7 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
         SMN2=SMN2-(SMN12-SMO12)*AIRM(L+1)/((AIRM(L)+AIRM(L+1))*PLK(L+1))
         TH(L)=SMN1*BYAM(L)
         TL(L)=TH(L)*PLK(L)
-        if(debug_out) write(0,*) 'after CTEI: l,tlnew',l,tl(l)
+!       if(debug_out) write(0,*) 'after CTEI: l,tlnew',l,tl(l)
         QL(L)=QMN1*BYAM(L)
         LHX=SVLHXL(L)
         RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
@@ -2509,7 +2509,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         QL(L+1)=QL(L+1)+WMX(L+1)/(FSSL(L)+teeny)
         TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
         TL(L+1)=TH(L+1)*PLK(L+1)
-        if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
+!       if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
         RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
@@ -2556,7 +2556,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdL=CDNL1
 #endif
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI=SNdI           
+      SCDNCI=SNdI
 #ifdef CLD_AER_CDNC
       If (SCDNCW.le.40.d0) SCDNCW=40.d0   !set min CDNC sensitivity test
 !      if(SCDNCW.gt.1200.d0)
