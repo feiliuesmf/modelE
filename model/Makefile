@@ -114,12 +114,13 @@ sinclude $(DEPENDFILE)
 FSRCS = $(OBJ_LIST:=.f)
 FSRCS_CPP = $(OBJ_LIST:=.cpp)
 OBJS = $(OBJ_LIST:=.o)
+# OBJSA - list of objects to include into gcmlib.a
+OBJSA = $(OBJS)
+ifneq ($(NETCDFHOME)blank,blank)
+OBJSA += NCACC.o
 endif
 endif
-
-
-info:
-	echo $(MAKECMDGOALS)
+endif
 
 
 #
@@ -131,17 +132,15 @@ sinclude $(MODEL_DIR)/Rules.make
 #
 # extract list of modules from fortran files
 #
-# !!! only SGI and IBM are supported so far
-# !!! this may create problems when compiling gcmlib.a for Linux,DEC
+# !!! only SGI, IBM and Linux(Absoft) are supported so far
+# !!! may cause problems when compiling gcmlib.a for DEC or Linux(non-Absoft)
 ifneq ($(FSRCS)empty,empty)
-MODS = MODULE_INFO_IS_NOT_SUPPORTED_FOR_THIS_MACHINE_YET
-ifeq ($(MACHINE),SGI)
+ifneq ($(MACHINE),IBM)
 MODS = $(sort $(shell perl \
 	-e 'while(<>){ tr/a-z/A-Z/;'\
 	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
 	$(FSRCS)))
-endif
-ifeq ($(MACHINE),IBM)
+else
 MODS = $(sort $(shell perl \
 	-e 'while(<>){ tr/A-Z/a-z/;'\
 	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
@@ -197,8 +196,8 @@ endif
 	@echo '---------    executable $(RUN).exe was created     ---------'
 	@echo '--------------------------------------------------------------'
 
-gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJS) NCACC.o
-	ar cr $(RUN).a $(OBJS) NCACC.o
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
+	ar cr $(RUN).a $(OBJSA)
 	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
