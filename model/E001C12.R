@@ -1,13 +1,16 @@
-E010F12.R GISS Model E                                 gas 06/00
+E010C12.R GISS Model E                                 gas 06/00
 
-E010F12: new modelE 2x2.5
+WARNING: The boundary conditions used here may not be what you want
+         and no tuning has yet been done.
+	 Please check and see before running
+E010C12: modelE 8x10 
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_F12                             ! horiz/vert resolution
+RES_C12                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -28,20 +31,21 @@ OCEAN OCNML                         ! ocean modules
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-CONST FFT144 UTILDBL SYSTEM         ! utilities
+CONST FFT36 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_F12.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01     ! initial ground conditions      ISTART=2
+! AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7
+! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
+GIC=GIC.8X10.modelE         ! initial ground conditions              ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
-! OCNML=Z1O.B144X90         ! mixed layer depth,needed for post-processing only
-OSST=OST144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr data)
-SICE=SICE144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD144X90 VEG=VEG144X90M
-SOIL=S144X900098M TOPO=Z144X90N.1 ! bdy.cond
-REG=REG2X2.5_CAFE     ! special regions-diag
-RVR=RD144X90.RVR      ! river direction file
+! OCNML=Z1O.B4X5.cor        ! mixed layer depth,needed for post-processing only
+OSST=OST8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
+SICE=SICE8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
+CDN=CD8X10.modelE VEG=V8X10.modelE
+SOIL=S8X10.modelE TOPO=Z8X10.modelE ! bdy.cond
+REG=REG8X10          ! special regions-diag
+RVR=RD8X10.RVR       ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4
 RADN3=miescatpar.abcdv
@@ -58,20 +62,20 @@ RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4
-TOP_INDEX=top_index_144x90.ij.ext
+TOP_INDEX=top_index_8x10.ij
 
 Label and Namelist:
-E010F12 (modelE 2x2.5 version)
+E010C12 (modelE 8x10)
 
-DTFIX=112.5
+DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
 C_SDRAG=0.
 KOCEAN=0
-U00ice=.45   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
-DT=200.,      ! from default: DTsrc=3600.,
+DT=450.,        ! from default: DTsrc=3600.,
 SUBDD=' '     ! save SLP at sub-daily frequency
 NSUBDD=0       ! saving sub-daily diags 12hrly
 Kvflxo=0        ! saving VFLXO (daily)
@@ -80,8 +84,9 @@ isccp_diags=1
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
+   !  YEARI=1950,MONTHI=12,DATEI=1,HOURI=0, ! to be used with ISTART=2
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,
    YEARE=1950,MONTHE=2,
-   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=1,
+   ISTART=1,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END
