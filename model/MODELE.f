@@ -489,12 +489,13 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD
+      USE MODEL_COM, only : LM,NIPRNT,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,UVfilter_Vstrength
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM
+     *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,QUVfilter
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -502,8 +503,9 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
-      call sync_param( "dt_UVfilter", dt_UVfilter )
-      call sync_param( "UVfilter_Vstrength", UVfilter_Vstrength )
+      call sync_param( "DT_XVfilter", DT_XVfilter )
+      call sync_param( "DT_XUfilter", DT_XUfilter )
+      call sync_param( "DT_YVfilter", DT_YVfilter )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
@@ -554,6 +556,11 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
       WRITE(6,*) "Levels for L_SDRAG =",LSDRAG ,"->",LM
       WRITE(6,*) "Levels for L_SDRAG =",LPSDRAG,"->",LM," near poles"
       WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
+
+C**** Determine if FLTRUV is called.
+      QUVfilter = .false.
+      if (DT_XUfilter.gt.0..or.DT_XVfilter.gt.0..or.DT_YVfilter.gt.0.)
+     *    QUVfilter = .true.
       RETURN
 C****
       end subroutine init_Model

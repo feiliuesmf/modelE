@@ -107,6 +107,12 @@ volc_yr=1979
 volc_day=182
 aero_yr=1979
 o3_yr=1979
+
+! parameters that control the Shapiro filter
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT
+DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+
          ! most other parameters are irrelevant
 NSUBDD=0            ! don't touch this line
 KCOPY=2             ! saving acc + rsf

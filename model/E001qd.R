@@ -113,7 +113,10 @@ volc_day=182
 aero_yr=1979
 o3_yr=1979
 
-DT_UVfilter=450.  ! usually same as DT (below)
+! parameters that control the Shapiro filter
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DT=450.         ! from default: DTsrc=3600.,

@@ -35,10 +35,16 @@
       integer :: KOCEAN = 1, MFILTR = 1
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
-!@dbparam dt_UVfilter dU,dV are multiplied by dt/dt_UVfilter
-      REAL*8 :: dt_UVfilter = 0. ! UV-filter is NOT used
-!@dbparam UVfilter_Vstrength multiplies UV-filter in N-S direction
-      REAL*8 :: UVfilter_Vstrength=0. ! UV-filter N-S direction NOT used
+
+**** Controls on FLTRUV (momentum/velocity filter)
+!@dbparam DT_XUfilter dU is multiplied by dt/DT_XUfilter in E-W
+!@dbparam DT_XVfilter dV is multiplied by dt/DT_XVfilter in E-W
+!@dbparam DT_YVfilter dV is multiplied by dt/DT_YVfilter in N-S
+      REAL*8 :: DT_XUfilter=0. ! U-filter is NOT used in E-W direction
+      REAL*8 :: DT_XVfilter=0. ! V-filter is NOT used in E-W direction
+      REAL*8 :: DT_YVfilter=0. ! V-filter is NOT used in N-S direction
+!@var QUVfilter: True if any of DT_[XY][UV]filter are not=0
+      LOGICAL :: QUVfilter
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter
       INTEGER :: ang_uv = 1 ! UV-filter conserves ang mom
 

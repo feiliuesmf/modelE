@@ -6,7 +6,7 @@
 !@ver  1.0
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,dt_UVfilter,psf
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,QUVfilter,psf
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
@@ -78,7 +78,7 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      if (dt_UVfilter.gt.0.) CALL FLTRUV(UX,VX,U,V)
+      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
@@ -92,7 +92,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
-      if (dt_UVfilter.gt.0.) CALL FLTRUV(UT,VT,UX,VX)
+      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
@@ -107,7 +107,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
-      if (dt_UVfilter.gt.0.) CALL FLTRUV(UT,VT,U,V)
+      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
@@ -182,7 +182,7 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
          END DO
          END DO
       CALL CALC_AMPK(LS1-1)
-      if (dt_UVfilter.gt.0.) CALL FLTRUV(U,V,UT,VT)
+      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
       CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
@@ -993,40 +993,46 @@ C
 !@auth Original development team
 !@ver  1.0
       USE CONSTANT, only : sha
-      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t,ang_uv
-     *  ,UVfilter_Vstrength
+      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
+     *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter  ! ,DT_YUfilter
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
       USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
-C**** THE SMALLEST SCALES. (2D filter commented out 'cq')
+C**** THE SMALLEST SCALES.
 C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE,DKE
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP(IM),Xby4toN,Yby4toN
+      REAL*8 X(IM),YV(max(2*JM,IM)),DP(IM)
+      REAL*8 XUby4toN,XVby4toN,YVby4toN
       REAL*8 :: DT1=0.
-cq    LOGICAL*4 QFIL2D
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
-      REAL*8 YJ,YJM1,X1,XI,XIM1
-      INTEGER, PARAMETER :: NSHAP=8, ISIGN=(-1.0)**(NSHAP-1)
+      REAL*8 YV,YV2,YVJ,YVJM1,X1,XI,XIM1
+      INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
       REAL*8 ediff,angm,dpt
 C****
-cq       QFIL2D = .FALSE.
-C****
       USAVE=U ; VSAVE=V
-      Xby4toN=(DT/DT_UVfilter)*by4toN
+      if (DT_XUfilter.gt.0.) then
+        XUby4toN = (DT/DT_XUfilter)*by4toN
+      else
+        XUby4toN = 0.
+      end if
+      if (DT_XVfilter.gt.0.) then
+        XVby4toN = (DT/DT_XVfilter)*by4toN
+      else
+        XVby4toN = 0.
+      end if
 C****
 C**** Filtering in east-west direction
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1,F2D)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1)
       DO 350 L=1,LM
-C**** Filter U component of momentum
-cq    IF(QFIL2D) GOTO 250
+C**** Filter U component of velocity
       DO 240 J=2,JM
       DO 210 I=1,IM
   210 X(I) = U(I,J,L)
@@ -1039,30 +1045,8 @@ cq    IF(QFIL2D) GOTO 250
   220 XIM1 = XI
   230 X(IM)= XIM1-X(IM)-X(IM)+X1
       DO 240 I=1,IM
-  240 U(I,J,L) = U(I,J,L) + ISIGN*X(I)*Xby4toN
-cq    GOTO 270
-cq250 DO 255,J=2,JM-1
-cq    F2D(1,J)=.125*(U(IM,J,L)+U(1,J+1,L)+U(2,J,L)+
-cq   *                  U(1,J-1,L)-4.*U(1,J,L))+
-cq   *        BY16*(U(IM,J-1,L)+U(IM,J+1,L)+U(2,J+1,L)+
-cq   *              U(2,J-1,L)-4.*U(1,J,L))
-cq    DO 260,I=2,IM-1
-cq    F2D(I,J)=.125*(U(I-1,J,L)+U(I,J+1,L)+U(I+1,J,L)+
-cq   *                  U(I,J-1,L)-4.*U(I,J,L))+
-cq   *        BY16*(U(I-1,J-1,L)+U(I-1,J+1,L)+U(I+1,J+1,L)+
-cq   *              U(I+1,J-1,L)-4.*U(I,J,L))
-cq260 CONTINUE
-cq    F2D(IM,J)=.125*(U(IM-1,J,L)+U(IM,J+1,L)+U(1,J,L)+
-cq   *                  U(IM,J-1,L)-4.*U(IM,J,L))+
-cq   *        BY16*(U(IM-1,J-1,L)+U(IM-1,J+1,L)+U(1,J+1,L)+
-cq   *              U(1,J-1,L)-4.*U(IM,J,L))
-cq255 CONTINUE
-cq    DO 265,J=2,JM-1
-cq    DO 265,I=1,IM
-cq      U(I,J,L)=U(I,J,L)+F2D(I,J)
-cq265 CONTINUE
-cq270 CONTINUE
-C**** Filter V component of momentum
+  240 U(I,J,L) = U(I,J,L) - X(I)*XUby4toN
+C**** Filter V component of velocity
       DO 340 J=2,JM
       DO 310 I=1,IM
   310 X(I) = V(I,J,L)
@@ -1075,59 +1059,46 @@ C**** Filter V component of momentum
   320 XIM1 = XI
   330 X(IM)= XIM1-X(IM)-X(IM)+X1
       DO 340 I=1,IM
-  340 V(I,J,L) = V(I,J,L) + ISIGN*X(I)*Xby4toN
+  340 V(I,J,L) = V(I,J,L) - X(I)*XVby4toN
   350 CONTINUE
 !$OMP  END PARALLEL DO
 C****
 C**** Filtering in north-south direction
 C****
-      IF (UVfilter_Vstrength.gt.0.) then
-c old Y4TO8 = 1./(4.**NSHAP)
-      Yby4toN=(DT/DT_UVfilter)*by4toN*UVfilter_Vstrength
-C**** Filter U component of momentum
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,Y,YJ,YJM1)
+      IF (DT_YVfilter.gt.0.) THEN
+      YVby4toN = (DT/DT_YVfilter)*by4toN
+C**** Filter V component of velocity
+C**** Filtering longitudes on opposite sides of the globe simultaneously
+C**** This is designed for resolutions with 1/2 boxes at poles and must
+C****   be re-thought for others.
+!$OMP  PARALLEL DO PRIVATE (I,J,L,N,YV,YV2,YVJ,YVJm1)
       DO 650 L=1,LM
-      DO 540 I=1,IM
-      DO 510 J=1,JM
-  510 Y(J) = U(I,J,L)
-      DO 530 N=1,NSHAP
-         Y(0)    = Y(2)
-         Y(JM+1) = Y(JM-1)
-         YJM1 = Y(0)
-         DO 520 J=1,JM
-            YJ   = Y(J)
-            Y(J) = YJM1-YJ-YJ+Y(J+1)
-  520    YJM1 = YJ
-  530 CONTINUE
-      DO 540 J=1,JM
-  540 U(I,J,L) = U(I,J,L) + ISIGN*Y(J)*Yby4toN
-C**** Make U winds at poles to be uniform
-      DO 560 J=1,JM,JM-1
-      YJ = 0.
-      DO 550 I=1,IM
-  550 YJ = YJ + U(I,J,L)
-      DO 560 I=1,IM
-  560 U(I,J,L) = YJ*BYIM
-C**** Filter V component of momentum
-      DO 640 I=1,IM
-      DO 610 J=1,JM-1
-  610 Y(J) = V(I,J,L)
+      DO 650 I=1,IM/2
+      DO 610 J=2,JM
+      YV(J) = V(I,J,L)
+      YV(2*JM+1-J) = -V(I+IM/2,J,L)
+  610 CONTINUE
+
       DO 630 N=1,NSHAP
-      YJM1 = Y(1)
-      Y(1) = Y(2)-Y(1)
-      DO 620 J=2,JM-2
-      YJ   = Y(J)
-      Y(J) = YJM1-YJ-YJ+Y(J+1)
-  620 YJM1 = YJ
-  630 Y(JM-1)= YJM1-Y(JM-1)
-      DO 640 J=1,JM-1
-  640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Yby4toN
+      YV2   = YV(2)
+      YVJm1 = YV(2*JM-1)
+      DO 620 J=2,2*JM-2
+      YVJ   = YV(J)
+      YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
+      YVJm1 = YVJ
+  620 CONTINUE
+      YV(2*JM-1)= YVJm1-YV(JM)-YV(JM)+YV2
+  630 CONTINUE
+
+      DO 640 J=2,JM
+      V(I,J,L) = V(I,J,L) - YV(J)*YVby4toN
+      V(I+IM/2,J,L) = V(I+IM/2,J,L) + YV(2*JM+1-J)*YVby4toN
+  640 CONTINUE
   650 CONTINUE
 !$OMP  END PARALLEL DO
       END IF
-C****
+
 C**** Conserve angular momentum along latitudes
-C****
 !$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=2,JM

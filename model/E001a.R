@@ -121,7 +121,10 @@ volc_day=0  ! use =182  to fix it at that day's value
 aero_yr=0   ! use =1979 to fix it at that year's value
 o3_yr=0     ! use =1979 to fix it at that year's value
 
-DT_UVfilter=450.  ! usually same as DT (below)
+! parameters that control the Shapiro filter
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DT=450.         ! from default: DTsrc=3600.,
