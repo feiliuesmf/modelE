@@ -339,6 +339,7 @@ C****
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
 C****
+      IF (Kvflxo.EQ.0.) OA(:,:,4:KOA)=0. ! to prepare for future saves
       IF (Kvflxo.NE.0.) THEN
          IF (MOD(Itime,NDAY).eq.0) THEN
             call WRITEI8 (iu_vflxo,Itime,OA,im*jm*koa)
