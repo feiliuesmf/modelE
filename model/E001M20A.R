@@ -95,24 +95,23 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001M20A (ModelE1 1880 atm/ocn)
 
-DTFIX=180
+DTFIX=300
 
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
-Kvflxo=0        ! do NOT save VFLXO (daily) (use 1 to prepare for q-flux run)
+Kvflxo=1  !  0  ! save VFLXO daily to prepare for q-flux runs; use 0 for tests !!
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! parameters usually not changed when switching to q-flux ocean:
 
 ! drag params if grav.wave drag is not used and top is at .01mb
-X_SDRAG=.001,.0001  ! used above P(P)_sdrag mb (and in top layer)
+X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
 C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
 P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
-PP_sdrag=20.        ! linear SDRAG above PP_sdrag mb near poles
+PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
-
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
@@ -120,8 +119,8 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.345   ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
+U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 !        U00wtrX=1.345    ! use with 1880 atmosphere/ocean
 !1979    U00wtrX=1.22     ! use with 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
@@ -149,14 +148,14 @@ aero_yr=1880
 o3_yr=1880
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DTsrc=1800.,
-DT=300.
+DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:

@@ -12689,8 +12689,9 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
      E                 ,RHDATA)                     !  RH info   (190,9)
 
       USE FILEMANAGER, only : openunit,closeunit
-      IMPLICIT REAL*8(A-H,O-Z)
+      implicit none 
 
+      integer NAER,KDREAD
       real*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
      A            ,TRUQEX(33,110),TRUQSC(33,110),TRUQCB(33,110)
      B            ,REFU22(110),Q55U22(110),FRSULF(8)
@@ -12712,6 +12713,14 @@ C     ------------------------------------------------------------------
 
       character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'
       logical, parameter :: qbinary=.false.  ; logical qexist
+      integer i,j,j1,k,k1,in1,ir1,jdry,jwet,jhimax,khimax,maxdry,maxwet
+      integer n,n0,n1,nn,np,nrhn1
+      real*8 x,xx,xi,xn0,xn1,xr1,ff,fi,gi,gd1,gd2,gw1,gw2,grh,qrh,rrh
+      real*8 rh,rhi,rr0,rd1,rd2,rw1,rw2,dwr,qd1,qd2,qw1,qw2,xdry,sdry
+      real*8 xwet,swet,qqdmax,qqwmax,rqdmax,rqwmax,q55dry,q63dry,dwn
+      real*8 aermas,ddry,dwet,reffi,rhrhi,sum,sumw,vd1,vd2,vw1,vw2
+      real*8 w1,w2,w3,w4,wd1,wd2,ww1,ww2,wtx,wty,wtz,wts,wta,xfdry
+      real*8 q55rh1,q55rh2,q55rh3,q55rh4,q550,q633,qgaerx,qscqcb
 
 C     Output variables (RHDATA/RHINFO)
 

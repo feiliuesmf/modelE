@@ -65,8 +65,8 @@
       INTEGER :: ANG_SDRAG=1  ! default: SDRAG does conserve ang.mom
 !@dbparam Wc_JDRAG critical velocity for J.Hansen/Judith Perlwitz drag
       REAL*8 :: Wc_JDRAG=30.d0  !  if 0.: no JDRAG-feature in Sdrag
-!@dbparam do_polefix if =1 then u,v tendencies corrected next to the pole
-      INTEGER :: do_polefix=0     ! default is to disable corrections
+!@dbparam do_polefix if =1 : u,v tendencies are corrected near the pole
+      INTEGER :: do_polefix=1     ! default is to enable corrections
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
@@ -209,7 +209,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       END MODULE MODEL_COM
 
       SUBROUTINE ALLOC_MODEL_COM(grid)
-!@sum  To allocate arrays whose sizes now need to be determined at 
+!@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
@@ -227,7 +227,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE( ZATMO(IM,J_0H:J_1H), 
+      ALLOCATE( ZATMO(IM,J_0H:J_1H),
      *          HLAKE(IM,J_0H:J_1H),
      *          FLAND(IM,J_0H:J_1H),
      *         FOCEAN(IM,J_0H:J_1H),
@@ -243,7 +243,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
      *              Q(IM,J_0H:J_1H,LM),
      *             WM(IM,J_0H:J_1H,LM),
      *         STAT=IER)
-      ALLOCATE( FTYPE(NTYPE,IM,J_0H:J_1H), 
+      ALLOCATE( FTYPE(NTYPE,IM,J_0H:J_1H),
      *         STAT=IER)
 
 ! initialize non-initialized arrays
