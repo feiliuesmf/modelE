@@ -1096,7 +1096,7 @@ C**** Save surface values
 #endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
-     *     ,dxypo,cosic,sinic,uo,vo,ramvn
+     *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
      *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
@@ -1133,20 +1133,12 @@ C**** KPP variables
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
       REAL*8 UKJM(LMO,IM+1),UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
       LOGICAL, PARAMETER :: LDD = .FALSE.
-      INTEGER, SAVE :: IFIRST=1
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
-      REAL*8, SAVE :: BYDTS
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
 
-C**** initiallise kpp routines
-      IF (IFIRST.eq.1) THEN
-        call kmixinit(ZE)
-        BYDTS = 1d0/DTS
-        IFIRST = 0.
-      END IF
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
 !$OMP PARALLEL DO PRIVATE(L)

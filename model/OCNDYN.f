@@ -182,7 +182,7 @@ c        CALL CHECKO ('STADVI')
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno,imaxj,bydxypo,ogeoz_sv
+     *     ,ndyno,imaxj,bydxypo,ogeoz_sv,bydts
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       IMPLICIT NONE
@@ -205,6 +205,7 @@ C****
       call sync_param("DTO",DTO)
 
       DTS=DTSRC
+      BYDTS=1d0/DTS
       NDYNO=2*NINT(.5*DTS/DTO)
       DTO=DTS/NDYNO
       DTOLF=2.*DTO
@@ -374,6 +375,9 @@ C**** Initialize solar radiation penetration arrays
 
 C**** Initialize ocean diagnostics
       call init_ODIAG
+
+C**** Initialize KPP mixing scheme
+      call kmixinit(ZE)
 
 #ifdef TRACERS_OCEAN
 C**** Set diagnostics for ocean tracers

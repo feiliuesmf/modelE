@@ -45,7 +45,7 @@ C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
 !@dbparam DTO timestep for ocean dynamics (s)
       REAL*8 :: DTO=450.        ! default. setable parameter
-      REAL*8 DTOFS,DTOLF,DTS
+      REAL*8 DTOFS,DTOLF,DTS,BYDTS
 
 !@var OPRESS Anomalous pressure at surface of ocean (under ice) (Pa)
       REAL*8, DIMENSION(IM,JM) :: OPRESS
