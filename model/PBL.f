@@ -723,19 +723,19 @@ c
       s5 = 2*g4
       s6 = 2.d0/3*g5*(3*g3**2-g2**2)-1.d0/2*g1*g5*(3*g3-g2)
      &     +3.d0/4*g1*(g6-g7)
-      write(99,*) "      d0=",d0
-      write(99,*) "      d1=",d1
-      write(99,*) "      d2=",d2
-      write(99,*) "      d3=",d3
-      write(99,*) "      d4=",d4
-      write(99,*) "      d5=",d5
-      write(99,*) "      s0=",s0
-      write(99,*) "      s1=",s1
-      write(99,*) "      s2=",s2
-      write(99,*) "      s3=",s3
-      write(99,*) "      s4=",s4
-      write(99,*) "      s5=",s5
-      write(99,*) "      s6=",s6
+c      write(99,*) "      d0=",d0
+c      write(99,*) "      d1=",d1
+c      write(99,*) "      d2=",d2
+c      write(99,*) "      d3=",d3
+c      write(99,*) "      d4=",d4
+c      write(99,*) "      d5=",d5
+c      write(99,*) "      s0=",s0
+c      write(99,*) "      s1=",s1
+c      write(99,*) "      s2=",s2
+c      write(99,*) "      s3=",s3
+c      write(99,*) "      s4=",s4
+c      write(99,*) "      s5=",s5
+c      write(99,*) "      s6=",s6
 c
 c     find rimax:
 c
@@ -746,35 +746,35 @@ c
       c5=-s0+2*d2
       c6=2*d0
 
-      write(99,*) "c1=",c1
-      write(99,*) "c2=",c2
-      write(99,*) "c3=",c3
+c      write(99,*) "c1=",c1
+c      write(99,*) "c2=",c2
+c      write(99,*) "c3=",c3
 c     c4-c6 are used in subroutine level2
-      write(99,*) "c4=",c4
-      write(99,*) "c5=",c5
-      write(99,*) "c6=",c6
+c      write(99,*) "c4=",c4
+c      write(99,*) "c5=",c5
+c      write(99,*) "c6=",c6
       if(c3.eq.0.) then ! the case of Mellor-Yamada mdel
           rimax=-c2/c1
       else
           rimax=(-c2+sqrt(c2**2-4.*c1*c3))/(2*c1)
       endif
-      write(99,*) "rimax=",rimax
+c      write(99,*) "rimax=",rimax
       rimax=int(rimax*1000.)/1000.
-      write(99,*) "rimax=",rimax
+c      write(99,*) "rimax=",rimax
 c
 c     find ghmin:
 c
       del=(s4+2*d1)**2-8.*d0*(s5+2*d3)
-      write(99,*) "del=",del
+c      write(99,*) "del=",del
       ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
-      write(99,*) "ghmin=",ghmin
+c      write(99,*) "ghmin=",ghmin
       ghmin=int(ghmin*10000.)/10000.
-      write(99,*) "ghmin=",ghmin
-      write(99,*) "ghmin/B1**2=",ghmin/B1**2
+c      write(99,*) "ghmin=",ghmin
+c      write(99,*) "ghmin/B1**2=",ghmin/B1**2
       ghmax=(0.53*b1)**2
       gmmax0=(1.95*b1)**2
-      write(99,*) "ghmax=",ghmax
-      write(99,*) "gmmax0=",gmmax0
+c      write(99,*) "ghmax=",ghmax
+c      write(99,*) "gmmax0=",gmmax0
       return
       end subroutine ccoeff0
 
@@ -1229,7 +1229,7 @@ c     M.J.Miller et al. 1992:
 
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
-      write(99,*) factx,facty
+c      write(99,*) factx,facty
       do i=2,n-1
         dpdx=factx*(z(i)-z(1))+dpdxr0
         dpdy=facty*(z(i)-z(1))+dpdyr0
@@ -1355,7 +1355,7 @@ c     integer, parameter ::  n=8
       z0m=zgrnd
       z0h=z0m
       z0q=z0m
-      write(99,*) "inside inits"
+c      write(99,*) "inside inits"
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n)
 
 c Initialization for iteration:

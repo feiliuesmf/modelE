@@ -451,8 +451,8 @@ C**** CALCULATE EVAPORATION
 C**** Limit evaporation if lake mass is at minimum
       IF (ITYPE.EQ.1 .and. PLK.GT.0 .and.
      *     (EVAPOR(I,J,1)-DQ1X*RMBYA).gt.EVAPLIM) THEN
-        WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J,EVAPOR(I,J,1)
-     *       -DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
+c        WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J,EVAPOR(I,J,1)
+c     *       -DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
         DQ1X=(EVAPOR(I,J,1)-EVAPLIM)/RMBYA
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
         DQ1X=(Q1+DQ1(I,J))
