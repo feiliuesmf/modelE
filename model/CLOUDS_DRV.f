@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
@@ -21,6 +23,11 @@
      *     ,mstcnv,qs,us,vs,dcl
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
+#ifdef TRACERS_ON
+     *     ,tm,trmomij=>tmom,ntx,ntix
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond
+#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -38,6 +45,12 @@
       USE FLUXES, only : prec,eprec,precss,gtemp
 
       IMPLICIT NONE
+
+#ifdef TRACERS_ON
+!@var tmsave holds tracer value (for diagnostics)
+      REAL*8 tmsave(lm,ntm)
+      INTEGER NX,N
+#endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
       REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
@@ -160,6 +173,20 @@ c      QL(L)=Q(I,J,L)
   150 CONTINUE
       ETAL(LM)=ETAL(LM-1)
       PLE(LM+1)=PEDN(LM+1,I,J)
+#ifdef TRACERS_ON
+C**** TRACERS: Use only the active ones
+      nx = 0
+      do n=1,ntm
+        if (itime.lt.itime_tr0(n)) cycle
+        nx = nx+1
+        ntix(nx) = n
+        do l=1,lm
+          tm(l,nx) = trm(i,j,l,n)
+          trmomij(:,l,nx) = trmom(:,i,j,l,n)
+        end do
+      end do
+      ntx = nx
+#endif
 C**** SURROUNDING WINDS
       DO L=1,LM
          DO K=1,KMAX
@@ -232,6 +259,17 @@ C**** WRITE TO SOME GLOBAL ARRAYS
          LMC(1,I,J) = LMCMIN
          LMC(2,I,J) = LMCMAX+1
       END IF
+#ifdef TRACERS_ON
+C**** TRACERS: Use only the active ones
+      do nx=1,ntx
+      n = ntix(nx)
+        do l=1,lm
+          tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
+     &          (tm(l,nx)-trm(i,j,l,n))
+          tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
+        end do
+      end do
+#endif
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
@@ -434,6 +472,20 @@ C**** UPDATE MODEL WINDS
      &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
          ENDDO
       ENDDO
+
+#ifdef TRACERS_ON
+C**** TRACERS: Use only the active ones
+      do nx=1,ntx
+        n = ntix(nx)
+        if (itime.lt.itime_tr0(n)) cycle
+        do l=1,lm
+          trm(i,j,l,n) = tm(l,nx)
+          trmom(:,i,j,l,n) = trmomij(:,l,nx)
+          tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
+     &          (tm(l,nx)-tmsave(l,nx))
+        end do
+      end do
+#endif
 
       IM1=I
       END DO
