@@ -8,7 +8,7 @@ C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,sha,tf,rhow,rhoi,shv,shw,shi,edpery
+     *     ,sha,tf,rhow,rhoi,shw,shi,edpery
       USE E001M12_COM, only : im,jm,lm,t,p,q,gdata,DTsrc,NIsurf,dsig
      *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6
       USE GEOM, only : imaxj,dxyp
@@ -54,7 +54,7 @@ C****
      *     ,RTAUVS,RTAUUS,RTAUS,TAUS,WSS,TSS,QSS,USS,VSS,RHOSRF,RMBYA
      *     ,TFS,TH1,THV1,P1K,PSK,TS,PS,PIJ,PSOIL,PEARTH,WARMER,BRUN0
      *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
-     *     ,TIMEZ,SPRING,ZS1CO,RVX,QLH,PM,TM,QSAT
+     *     ,TIMEZ,SPRING,ZS1CO,RVX
 
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
       COMMON /WORK1d/DTH1,DQ1
@@ -76,7 +76,7 @@ C**** Interface to PBL
       COMMON /PBLOUT/US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC,EDS1,
      2               PPBL,UG,VG,WG,ZMIX
 
-      QSAT(TM,PM,QLH)=3.797915*EXP(QLH*(7.93252D-6-2.166847D-3/TM))/PM
+      REAL*8 QSAT
 C****
 C**** FEARTH    SOIL COVERED LAND FRACTION (1)
 C****
@@ -111,8 +111,6 @@ C****
          SPRING=-1.
          IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
          IHOUR=1+JHOUR
-C        COSDAY=COS(TWOPI*JDAY/EDPERY)
-C        SINDAY=SIN(TWOPI*JDAY/EDPERY)
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NISURF TIMES EVERY HOUR
 C****
@@ -146,7 +144,6 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
          BEDIFS=0.
          BERUNU=0.
          BRUNU=0.
-c         JEQ=1+JM/2
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
@@ -154,8 +151,6 @@ c         JEQ=1+JM/2
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
-c     PLAND=FLAND(I,J)
-c     PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
       PSOIL=PEARTH
       PIJ=P(I,J)
@@ -236,8 +231,6 @@ c      ZGS=10.
       PRS=PRCSS(I,J)/(DTsrc*RHOW)
       HTPR=0.
       IF(TPREC(I,J).LT.0.) HTPR=-LHM*PREC(I,J)/DTsrc
-c      DO 2410 L=1,4*NGM+5
-c 2410 GW(L,1)=GHDATA(I,J,L)
       GW(1:NGM,1) = WBARE(I,J,1:NGM)
       GW(0:NGM,2) = WVEGE(I,J,0:NGM)
       HT(0:NGM,1) = HTBARE(I,J,0:NGM)
@@ -267,7 +260,7 @@ C**** LOOP OVER GROUND TIME STEPS
       TG=TG1+TF
       ELHX=LHE
       IF(TG1.LT.0.)  ELHX=LHS
-      QG=QSAT(TG,PS,ELHX)
+      QG=QSAT(TG,ELHX,PS)
       TGV=TG*(1.+QG*RVX)
 C***********************************************************************
 C***
@@ -379,7 +372,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       QSS=QSS+QS*PTYPE
       QSAVG(I,J)=QSAVG(I,J)+QSS
       TAUS=TAUS+CDM*WS*WS*PTYPE
-         QSATS=QSAT(TS,PS,ELHX)
+         QSATS=QSAT(TS,ELHX,PS)
          RTAUS=RTAUS+RCDMWS*WS*PTYPE
          RTAUUS=RTAUUS+RCDMWS*US*PTYPE
          RTAUVS=RTAUVS+RCDMWS*VS*PTYPE
@@ -526,7 +519,8 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
 
       SUBROUTINE init_GH(DTSURF,redoGH,iniSNOW)
 C**** Modifications needed for split of bare soils into 2 types
-      USE CONSTANT, only : twopix=>twopi,rhow,edpery
+      USE CONSTANT, only : twopi,rhow,edpery,sha,shw_const=>shw,
+     *     shi_const=>shi,lhe,lhm
       USE E001M12_COM, only : im,jm,fearth,vdata,gdata,Itime,Nday,jeq
       USE GHYCOM
       USE SLE001, sinday=>sint,cosday=>cost
@@ -580,28 +574,28 @@ C**** WATER QUANTITIES ARE DENSITY TIMES USUAL VALUES IN MKS
 C**** TO GET VOLUMETRIC UNITS
 C**** 1M WATER = 1000 KG M-2; 1M3 WATER = 1000 KG
 C FSN IS THE HEAT OF FUSION
-      FSN=3.34 E+8
+      FSN= lhm * rhow
 C ELH IS THE HEAT OF VAPORIZATION
-      ELH=2.50 E+9
+      ELH= lhe * rhow
 C THE SH'S ARE THE SPECIFIC HEAT CAPACATIES
-      SHW=4.185 E+6
-      SHI=2.060 E+6
-      SHA=1003.4965
-      SHV=1911.
+      SHW= shw_const * rhow
+      SHI= shi_const * rhow
+c      SHA= sha_const
+c      SHV=1911.
 C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
-      ALAMW=.573345
-      ALAMI=2.1762
-      ALAMA=.025
-      ALAMSN=0.088
-      ALAMBR=2.9
-      ALAMS(1)=8.8
-      ALAMS(2)=2.9
-      ALAMS(3)=2.9
-      ALAMS(4)=.25
+      ALAMW=.573345d0 
+      ALAMI=2.1762d0
+      ALAMA=.025d0
+      ALAMSN=0.088d0
+      ALAMBR=2.9d0
+      ALAMS(1)=8.8d0
+      ALAMS(2)=2.9d0
+      ALAMS(3)=2.9d0
+      ALAMS(4)=.25d0
 C HW IS THE WILTING POINT IN METERS
       HW=-100
 C TFRZ IS 0 C IN K
-c      TFRZ=273.16
+c      TFRZ=273.16d0
 C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
       IF(Q(4,1).LT..01)THEN
       ZHTB=6.
@@ -609,18 +603,18 @@ C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
       ZHTB=6.
       ENDIF
 C SPGSN IS THE SPECIFIG GRAVITY OF SNOW
-      SPGSN=.1
+      SPGSN=.1d0
 C
 C****
 C**** Initialize global arrays  ALA, ACS, AFB, AFR
 C****
-      TWOPI=6.283185    ! should be taken from CONSTANT
+c      TWOPI=6.283185    ! should be taken from CONSTANT
 
       ALA(:,:,:)=0.
       ACS(:,:,:)=0.
       AFB(:,:)=0.
       AFR(:,:,:)=0.
-      ACS(1,:,:)=.01
+      ACS(1,:,:)=.01d0
       DO J=1,JM
         DO I=1,IM
           PEARTH=FEARTH(I,J)
@@ -694,8 +688,8 @@ C code transplanted from subroutine INPUT
 C**** Recompute GHDATA if necessary (new soils data)
       IF (redoGH) THEN
         JDAY=1+MOD(ITime/NDAY,365)  
-        COSDAY=COS(TWOPIx/EDPERY*JDAY)
-        SINDAY=SIN(TWOPIx/EDPERY*JDAY)
+        COSDAY=COS(TWOPI/EDPERY*JDAY)
+        SINDAY=SIN(TWOPI/EDPERY*JDAY)
 
         DO J=1,JM
         DO I=1,IM
@@ -762,8 +756,8 @@ ccc!!! restart file (without snow model data)
             FR_SNOW_IJ(I,J,:) = 0.
           ELSE
             JDAY=1+MOD(ITime/NDAY,365)
-            COSDAY=COS(TWOPIx/EDPERY*JDAY)
-            SINDAY=SIN(TWOPIx/EDPERY*JDAY)
+            COSDAY=COS(TWOPI/EDPERY*JDAY)
+            SINDAY=SIN(TWOPI/EDPERY*JDAY)
 
             W(1:NGM,1) = WBARE(I,J,1:NGM)
             W(0:NGM,2) = WVEGE(I,J,0:NGM)

@@ -35,8 +35,8 @@ C****
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
-      USE LANDICE, only : hc2li,hc1de,z1e,z2li,hc1li
-      USE OCEAN, only : oa,odata,tfo
+      USE LANDICE, only : hc2li,z1e,z2li,hc1li
+      USE OCEAN, only : odata,oa,tfo
       USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
 
       IMPLICIT NONE
@@ -87,8 +87,7 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
 
-      REAL*8 QSAT,QLH,PR,TM
-      QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
+      REAL*8 QSAT,DQSATDT
 C****
 C**** ZATMO     GEOPOTENTIAL (G*Z)
 C**** FLAND     LAND COVERAGE (1)
@@ -336,7 +335,7 @@ C**** LOOP OVER GROUND TIME STEPS *************************************
 C**********************************************************************
       DO 3600 NG=1,NGRNDZ
       TG=TG1+TF
-      QG=QSAT(TG,PS,ELHX)
+      QG=QSAT(TG,ELHX,PS)
       TGV=TG*(1.+QG*RVX)
 C =====================================================================
       CALL PBL(I,J,ITYPE,PTYPE)
@@ -368,7 +367,7 @@ C*
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
       F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
       DSHDTG=-RCDHWS*KH*SHA/(DHGS+KH)
-      DQGDTG=QG*ELHX/(RVAP*TG*TG)
+      DQGDTG=QG*DQSATDT(TG,ELHX)
       DEVDTG=-RCDQWS*KH*LHE*BETAUP*DQGDTG/(DQGS+KH)
       DTRDTG=-4.*STBO*TG*TG*TG
       DF0DTG=DSHDTG+DEVDTG+DTRDTG
@@ -388,7 +387,7 @@ C*
       EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
       dSNdTG=-RCDHWS*KH*SHA/(DHGS+KH)
-      dQGdTG = QG*ELHX/(RVAP*TG*TG) ! d(QG)/dTG
+      dQGdTG=QG*DQSATDT(TG,ELHX) ! d(QG)/dTG
       dEVdTG = -dQGdTG*LHE*RCDQWS*KH/(DGS+KH) ! d(EVHEAH)/dTG
       dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
       dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG

@@ -277,26 +277,19 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       END SUBROUTINE CONDSE
 
       SUBROUTINE init_CLD
-!@sum  init_CLD initialises parameters for MSTCNV and CONDSE
+!@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-      USE CONSTANT, only : rgas,grav,lhe,lhs,kapa,bysha,sday  !,by3
-      USE E001M12_COM, only : DTsrc,LS1
-      USE CLD01
+      USE CONSTANT, only : grav,by3
+      USE E001M12_COM, only : dtsrc,ls1
+      USE CLD01, only : lmcm,bydtsrc,xmass,brcld,bybr
 
       IMPLICIT NONE
 
       LMCM = LS1-1
       BYDTsrc=1./DTsrc
-
-      BXCONS=.622d0/RGAS
-      AXCONS=LOG(6.1071D0)
       XMASS=0.1d0*DTsrc*GRAV
+
       BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**BY3
-      SLHE=LHE*BYSHA
-      SLHS=LHS*BYSHA
-      DQDTX=.622d0*LHE/RGAS
-      DTPERD=DTsrc/SDAY
-      AGESNX=1.-DTPERD/50.
 
       END SUBROUTINE init_CLD

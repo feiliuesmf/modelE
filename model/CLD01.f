@@ -2,7 +2,7 @@
 !@sum  CLD01 column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@cont MSTCNV,LSCOND
+!@cont MSTCNV,LSCOND,CTMIX
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav
       USE E001M12_COM, only : IM,LM,Itime,DTsrc
@@ -10,19 +10,15 @@
       IMPLICIT NONE
       SAVE
 C**** parameters and constants
-c      REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
-c      REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-c      REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP
-c      REAL*8, PARAMETER :: BY3=1.d0/3.d0 !@param BY3 = 1/3
-c      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
       REAL*8, PARAMETER :: WMU=.25       !@param WMU
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
+      REAL*8, PARAMETER :: SLHE=LHE*BYSHA
+      REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 
-      REAL*8 :: BYBR,SLHE,SLHS
-     *     ,BYDTsrc,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
+      REAL*8 :: BYBR,BYDTsrc,XMASS
 
 C**** Set-able variables from NAMELIST
 !@var LMCM max level for originating MC plumes (set in init_CLD)
@@ -76,7 +72,8 @@ C**** output variables
       REAL*8 :: CLDSLWIJ,CLDDEPIJ
       INTEGER :: LMCMAX,LMCMIN
 
-      PRIVATE QSAT,CTMIX
+      REAL*8 :: QSAT, DQSATDT
+      PRIVATE CTMIX
 
       CONTAINS
 
@@ -84,7 +81,7 @@ C**** output variables
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@calls SUBSID,QSAT,THBAR
+!@calls SUBSID,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
       REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO
 
@@ -232,7 +229,7 @@ C****
       QMP=QMO1*FPLUME
       TP=SMO1*PLK(LMIN+1)*BYAM(LMIN)
       QSATMP=FMP2*QSAT(TP,LHX,PL(LMIN+1))
-      GAMA=SLH*LHX*BXCONS*QSATMP/(TP*TP*FMP2)
+      GAMA=SLH*QSATMP*DQSATDT(TP,LHX)/FMP2
       DQSUM=(QMP-QSATMP)/(1.+GAMA)
       IF(DQSUM.LE.0.) GO TO 205
       FEVAP=.5*FPLUME
@@ -240,7 +237,7 @@ C****
       TNX=SMO2*PLK(LMIN+1)*BYAM(LMIN+1)
       QNX=QMO2*BYAM(LMIN+1)
       QSATC=QSAT(TNX,LHX,PL(LMIN+1))
-      DQ=MCLOUD*(QSATC-QNX)/(1.+SLH*LHX*BXCONS*QSATC/(TNX*TNX))
+      DQ=MCLOUD*(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
       IF(DQ.GT.DQSUM) DQ=DQSUM
       SMN2=SMN2-SLH*DQ/PLK(LMIN+1)
       QMN2=QMN2+DQ
@@ -250,7 +247,7 @@ C****
       TNX=SMO1*PLK(LMIN)*BYAM(LMIN)
       QNX=QMO1*BYAM(LMIN)
       QSATC=QSAT(TNX,LHX,PL(LMIN))
-      DQ=MCLOUD*(QSATC-QNX)/(1.+SLH*LHX*BXCONS*QSATC/(TNX*TNX))
+      DQ=MCLOUD*(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX)) ! new function
       IF(DQ.GT.DQSUM) DQ=DQSUM
       SMN1=SMN1-SLH*DQ/PLK(LMIN)
       QMN1=QMN1+DQ
@@ -602,7 +599,7 @@ C****
       DO 292 N=1,3
       TP=SMP*PLK(L)/MPLUME
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
-      GAMA=SLH*LHX*BXCONS*QSATMP/(TP*TP*MPLUME)
+      GAMA=SLH*QSATMP*DQSATDT(TP,LHX)/MPLUME
       DQ=(QMP-QSATMP)/(1.+GAMA)
       SMP=SMP+SLH*DQ/PLK(L)
       QMP=QMP-DQ
@@ -688,7 +685,7 @@ C****
       IF(TPSAV(LMIN).LT.TF) LHX=LHS
       SLH=LHX*BYSHA
       QSATC=QSAT(TNX,LHX,PL(LMIN))
-      DQ=(QSATC-QNX)/(1.+SLH*LHX*BXCONS*QSATC/(TNX*TNX))
+      DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
       DQRAT=DQ*DDRAFT/(CONSUM+1.E-20)
       DO 346 L=LDRAFT,LMIN,-1
 C     TNX=SMDN*PLK(L)/DDRAFT
@@ -697,7 +694,7 @@ C     QNX=QMDN/DDRAFT
       IF(TPSAV(L).LT.TF) LHX=LHS
       SLH=LHX*BYSHA
 C     QSATC=QSAT(TNX,LHX,PL(L))
-C     DQ=(QSATC-QNX)/(1.+SLH*LHX*BXCONS*QSATC/(TNX*TNX))
+c     DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
 C     IF(DQ.LT.0.) DQ=0.
 C     DQEVP=DQ*DDRAFT
       DQEVP=DQRAT*COND(L)
@@ -936,7 +933,7 @@ C     IF(QN-QSATC.LE.0.) GO TO 520
       DQSUM=0.
       DO 510 N=1,3
       QSATC=QSAT(TNX,LHX,PL(L))
-      DQ=(QSATC-QNX)/(1.+SLH*LHX*BXCONS*QSATC/(TNX*TNX))
+      DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
       TNX=TNX-SLH*DQ
       QNX=QNX+DQ
   510 DQSUM=DQSUM+DQ*MCLOUD
@@ -1035,7 +1032,7 @@ C**** CALCULATE OPTICAL THICKNESS
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@calls CTMIX,QSAT,THBAR
+!@calls CTMIX,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
 
 !@var I0,J0 grid point for diagnostic purposes
@@ -1211,7 +1208,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 C**** FORM CLOUDS ONLY IF RH GT RH00
   219 IF(RH1(L).LT.RH00(L)) GO TO 220
 C**** COMPUTE THE CONVERGENCE OF AVAILABLE LATENT HEAT
-      SQ(L)=EPS*LHX*LHX*QSATL(L)/(RGAS*SHA*TL(L)*TL(L))
+      SQ(L)=LHX*QSATL(L)*DQSATDT(TL(L),LHX)*BYSHA
       TEM=-LHX*DPDT(L)/PL(L)
       QCONV=LHX*AQ(L)-RH(L)*SQ(L)*SHA*PLK(L)*ATH(L)
      *  -TEM*QSATL(L)*RH(L)
@@ -1239,6 +1236,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
       IF(LHX.EQ.LHS) RCLD=25.d-6*(WTEM/4.2d-3)**BY3
       CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
       CK2=1000.*RVAP*TL(L)/(2.4d-3*QSATL(L)*PL(L)/.622d0)
+c      CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))    ! new
       TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
       WMX1=WMX(L)-PREP(L)*DTsrc
       ECRATE=(1.-RHF(L))/(TEVAP*FCLD+1.E-20)
@@ -1332,7 +1330,7 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       DQSUM=0.
       DO 231 N=1,3
       IF(N.NE.1) QSATC=QSAT(TL(L),LHX,PL(L))
-      DQ=(QL(L)-QSATC)/(1.+SLH*LHX*BXCONS*QSATC/(TL(L)*TL(L)))
+      DQ=(QL(L)-QSATC)/(1.+SLH*QSATC*DQSATDT(TL(L),LHX))
       TL(L)=TL(L)+SLH*DQ
       QL(L)=QL(L)-DQ
   231 DQSUM=DQSUM+DQ
@@ -1396,7 +1394,7 @@ C     DO 310 L=1,LM
       DSE=(TH(L+1)-SEDGE)*PLK(L+1)+(SEDGE-TH(L))*PLK(L)+
      *  SLHE*(QL(L+1)-QL(L))
       DWM=QL(L+1)-QL(L)+(WMX(L+1)-WMX(L))/FCLD
-      DQSDT=DQDTX*QL(L)/(RH(L)*TL(L)*TL(L)+1.E-30)
+      DQSDT=DQSATDT(TL(L),LHE)*QL(L)/(RH(L)+1d-30)
       BETA=(1.+1.608d0*TL(L)*DQSDT)/(1.+SLHE*DQSDT)
       CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TL(L)/SLHE)/
      *  (2.+(1.+1.608d0*TL(L)/SLHE)*SLHE*DQSDT)
@@ -1459,7 +1457,7 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       SEDGE=THBAR(THT2,THT1)
       DSE=(THT2-SEDGE)*PLK(L+1)+(SEDGE-THT1)*PLK(L)+SLHE*(QLT2-QLT1)
       DWM=QLT2-QLT1+(WMT2-WMT1)/FCLD
-      DQSDT=DQDTX*QLT1/(RHT1*TLT1*TLT1+1.E-30)
+      DQSDT=DQSATDT(TLT1,LHE)*QLT1/(RHT1+1d-30)
       BETA=(1.+1.608d0*TLT1*DQSDT)/(1.+SLHE*DQSDT)
       CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TLT1/SLHE)/
      *  (2.+(1.+1.608d0*TLT1/SLHE)*SLHE*DQSDT)
@@ -1616,20 +1614,5 @@ C ZZ
       RYZ(L+1) = RYZ(L+1)*(1.-FMAIR)
       RETURN
       END SUBROUTINE CTMIX
-
-C**** This function to be replaced by standard version in UTILDBL
-      FUNCTION QSAT (TM,QL,PR)
-!@sum   QSAT calculates saturation vapour mixing ratio
-!@auth  Original development team
-!@ver   1.0 (CLOUDS ONLY)
-      USE CONSTANT, only : RGAS
-      IMPLICIT NONE
-      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)
-      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-      QSAT = .622d0*EXP(AXCONS+QL*BXCONS*(BYTF-1./TM))/PR
-      RETURN
-      END FUNCTION QSAT
 
       END MODULE CLD01

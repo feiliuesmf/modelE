@@ -297,8 +297,7 @@ c -------------------------------------------------------------
       real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
      *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd,hemi
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
-      real*8 qsat,tm,pm,qlh
-      qsat(tm,pm,qlh)=3.797915*exp(qlh*(7.93252d-6-2.166847d-3/tm))/pm
+      real*8 qsat
 
 C things to be done regardless of inipbl
       call getunit("CDN",iu_CDN,.TRUE.)
@@ -360,7 +359,7 @@ C things to be done regardless of inipbl
             pij=p(i,j)
             ps=pedn(1,i,j)    !pij+ptop
             psk=pek(1,i,j)    !expbyk(ps)
-            qgrnd=qsat(tgrnd,ps,elhx)
+            qgrnd=qsat(tgrnd,elhx,ps)
 
             if (j.eq.1) then
 c ******************************************************************

@@ -29,7 +29,7 @@ C****
       RETURN
       END
 
-      FUNCTION QSAT_NEW (TM,QL,PR)
+      FUNCTION QSAT (TM,QL,PR)
 !@sum   QSAT calculates saturation vapour mixing ratio
 !@auth  Gary Russell
 !@ver   1.0
@@ -39,11 +39,14 @@ C****
       REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
       REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6
       REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
+C**** Note that if QL is considered to be a function of temperature, the
+C**** correct argument in QSAT is the average QL from t=0 (C) to TM, ie.
+C**** QL = 0.5*(QL(0)+QL(t))
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-      REAL*8 :: QSAT_NEW        !@var QSAT sat. vapour mixing ratio
-      QSAT_NEW = A*EXP(QL*(B-C/TM))/PR
+      REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
+      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
+      QSAT = A*EXP(QL*(B-C/TM))/PR
       RETURN
       END
 
@@ -55,13 +58,14 @@ C**** Note that d(qsat)/dt = qsat * ql * c / T*T
 C**** Only the factor of qsat is given here
       USE CONSTANT, only : rvap
       IMPLICIT NONE
-!@var C expansion coefficient for QSAT
-      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
+!@var C coefficient for QSAT
+      REAL*8, PARAMETER :: C = 1./RVAP        !2.166847d-3
+C**** Note that if QL is considered to be a function of temperature, the
+C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
       REAL*8 :: DQSATDT         !@var DQSATDT d(qsat)/dT factor only.
-      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-      DQSATDT = QL*C/(TM*TM)   ! * QSAT(TM,QL,PR)
+      DQSATDT = QL*C/(TM*TM)    ! * QSAT(TM,QL,PR)
       RETURN
       END
 
