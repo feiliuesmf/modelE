@@ -1488,7 +1488,6 @@ c stratiform chem cloud phase sink of SO2
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
-
         case ('SO4')
 c gas phase source of SO4
         k = k + 1
@@ -1540,7 +1539,6 @@ c gravitational settling of SO4
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-
         case ('H2O2_s')
 c gas phase source and sink of H2O2
         k = k + 1
@@ -3197,6 +3195,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      &  ,corrOx,COalt,JCOlat,O3DLJI,O3DLJI_clim
       USE RADPAR, only: O3DLJ
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only: dmsinput
+#endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
       CHARACTER*80 title
@@ -3212,6 +3213,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_SPECIAL_Shindell
 !@var imonth dummy index for choosing the right month
       INTEGER imonth, J2
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      REAL*8 dmsconc,dmstx
+      INTEGER mon_unit, mont,ii,jj,ir,mm
 #endif
 
       do n=1,ntm
@@ -3613,6 +3618,22 @@ C**** Initialise ocean tracers if necessary
       call tracer_ic_ocean
 #endif
 C****
+#ifdef TRACERS_AEROSOLS_Koch
+c read in DMS source
+      call openunit('DMS_SEA',mon_unit,.false.)
+      DO 8 mm =1,12   
+      READ(mon_unit,*) mont 
+      do ir=1,9999
+      read(mon_unit,901) ii,jj,dmsconc,dmstx,dmstx,dmstx,
+     * dmstx,dmstx  
+c I'm not using the moments
+      IF (II.EQ.0) GO TO 8     
+      dmsinput(ii,jj,mm)=dmsconc
+      end do
+  8   CONTINUE  
+        call closeunit(mon_unit)                       
+ 901  FORMAT(3X,2(I4),E11.3,5F9.2)  
+#endif
       end subroutine tracer_IC
 
 

@@ -5,7 +5,7 @@
       USE TRACER_COM
       INTEGER, PARAMETER :: ndmssrc  = 1
 !@var DMS_src           DMS ocean source (kg/s)
-      real*8 DMS_src(im,jm,ndmssrc)
+      real*8 DMS_src(im,jm,ndmssrc),DMSinput(im,jm,12)
       INTEGER, PARAMETER :: nso2src  = 2
 !@var SO2_src    SO2 industry, biomass: surface sources (kg/s)
       real*8 SO2_src(im,jm,nso2src)
@@ -15,12 +15,9 @@
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
-c      common /SGWSP/ PBLH,MDF,SHDTT
-c!$OMP  THREADPRIVATE (/SGWSP/)
 c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
-      real*8 ohr(im,jm,lm),dho2r(im,jm,lm),perjr(im,jm,lm),
-     *   tno3r(im,jm,lm),oh(im,jm,lm),dho2(im,jm,lm),
-     *   perj(im,jm,lm),tno3(im,jm,lm)
+      real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
+     *   tno3r,oh,dho2,perj,tno3
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt,iact)
@@ -248,51 +245,27 @@ c want kg DMS/m2/s
       USE PBLCOM, only: wsavg,eabl,tsavg
       USE CLOUDS_COM, only : airx
       USE FLUXES, only : gtemp
-      USE AEROSOL_SOURCES, only: DMS_src,PBLH,SHDTT ! ,MDF
+      USE AEROSOL_SOURCES, only: DMSinput,DMS_src,PBLH,SHDTT ! ,MDF
       USE DYNAMICS, only: BYAM,pmid,pk
       implicit none
       logical :: ifirst=.true.
       integer, parameter :: nanns=0, nmons=1
-      integer mon_unit,najl
+      integer najl
       REAL*8 swind,ot,schm,scrat,akw,erate,conc,steppd,
-     *  tx,txx,ty,tyy,txy,foc,f_ice_free,
-     *  dmsinput(im,jm,6,12),grdi,dms1(jm),
-     *  dms2(jm)
+     *  foc,f_ice_free,grdi,dms1(jm)
       real*8 wt,aa,wtke,wd,arho,cp,wm,sig,wdf,
      * x,bess,dydx,yy,erate2,w1,w2,besf,bessi0,exx
 
       integer i,j,jj,nt,iact,iu,k,m,mont,ii
-      save ifirst,dmsinput
 
        cp=1005.20d0 !J/kg/K
-      if (ifirst) then
-      call openunit('DMS_SEA',mon_unit,.false.)
-      DO 8 M =1,12   
-      READ(mon_unit,*) mont 
-      do ii=1,9999
-      read(mon_unit,901) i,j,conc,tx,txx,ty,tyy,txy  
-c I don't know what to do with the moments
-      IF (I.EQ.0) GO TO 8     
-      dmsinput(i,j,1,m)=conc
-      dmsinput(i,j,2,m)=tx
-      dmsinput(i,j,3,m)=txx
-      dmsinput(i,j,4,m)=ty
-      dmsinput(i,j,5,m)=tyy
-      dmsinput(i,j,6,m)=txy
-      end do
-  8   CONTINUE  
-        call closeunit(mon_unit)                       
-        ifirst=.false.
- 901  FORMAT(3X,2(I4),E11.3,5F9.2)  
-       endif
 
-        steppd = 1./sday
+      steppd = 1./sday
       dms1(:)=0.d0
-      dms2(:)=0.d0
 c
       do j=1,jm
       do i=1,im
-      if (dmsinput(i,j,1,jmon).gt.teeny) then
+      if (dmsinput(i,j,jmon).gt.teeny) then
       dms1(j)=dms1(j)+1
       endif
       end do
@@ -323,7 +296,7 @@ c     IF (SWIND.GT.2.) AKW=0.86*(SWIND-2.)*(1.-ot)*SQRT(SCRAT)
 c Wanninkov                           
 c     SCRAT = 660./SCHM     
 c     AKW = 0.074*SWIND*SWIND*SQRT(SCRAT)*(1.-ot) 
-      erate=akw*dmsinput(i,j,1,jmon)*1.d-9*tr_mm(nt)*
+      erate=akw*dmsinput(i,j,jmon)*1.d-9*tr_mm(nt)*
      *  steppd*foc*f_ice_free  !*dtsrc
 c use this for Tans et al. source     
 c     AKW = 0.0                     
@@ -383,7 +356,7 @@ c integrate
          if (bess.lt.teeny) go to 23
          enddo
  23    continue
-       erate2=aa*yy*dmsinput(i,j,1,jmon)*1.d-9*tr_mm(nt)*
+       erate2=aa*yy*dmsinput(i,j,jmon)*1.d-9*tr_mm(nt)*
      *  steppd*foc*f_ice_free
 c we can augment this by a factor of order 1
        erate2=erate2*4.d0
@@ -403,7 +376,7 @@ c       write(6,*) aa,tr_mm(nt),foc,f_ice_free
 c       write(6,*) mdf(i,j),arho,
 c    *  shdtt(i,j),pblh(i,j),tsavg(i,j),wdf
 c
-        if (sig.gt.teeny.and.dmsinput(i,j,1,jmon).gt.teeny) then 
+        if (sig.gt.teeny.and.dmsinput(i,j,jmon).gt.teeny) then 
         najl = jls_source(2,nt)
         tajls(j,1,najl) = tajls(j,1,najl)+wtke/sig*100.d0/dms1(j)
         najl = jls_source(3,nt)
@@ -412,7 +385,7 @@ c
         tajls(j,1,najl) = tajls(j,1,najl)+wd/sig*100.d0/dms1(j)
         endif
         najl = jls_source(5,nt)
-        if (erate2.gt.erate.and.dmsinput(i,j,1,jmon).gt.teeny) then
+        if (erate2.gt.erate.and.dmsinput(i,j,jmon).gt.teeny) then
         tajls(j,1,najl)=tajls(j,1,najl)
      *      +(erate2*1.D12-erate*1.D12)/(1.D12*erate)*100.d0/dms1(j)
         erate=erate2
@@ -808,7 +781,10 @@ cg       trm(i,j,l,n) = trm(i,j,l,n)*d5*d6
 cg        najl = jls_3Dsource(2,n)
 cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-ttemp(i,j,l))
 
-       tr3Dsource(i,j,l,2,n) = (trm(i,j,l,n) + tr_mm(n)*xk9)*(d5*d6-1.)
+c      tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n)+tr_mm(n)*xk9)*(d5*d6-1.d0)
+c    *      /dtsrc
+       
+       tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n))*(d5*d6-1.d0)
      *      /dtsrc
 
 c      if (i.eq.30.and.j.eq.35.and.l.eq.2) write(6,*) 'hchemn',
@@ -1412,11 +1388,8 @@ c    * tv,pn,wv,y,ss
        sulfin=max(-1d0,sulfin)
 cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
 cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/tso2
-
+       if (sulfin.eq.-1d0) sulfin = -.998d0
        tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
-
-c      if (l.eq.2.and.j.eq.34) write(6,*)'HetSO2',i,sulfin,tso2,
-c    * trm(i,j,l,n),trm(i,j,l,n)-tso2,n,n_so2
 c       tt2=tt2+trm(i,j,l,n)-tso2 
        sulfin=0.
        case('H2O2_s')
