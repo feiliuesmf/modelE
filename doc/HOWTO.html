@@ -1192,8 +1192,11 @@ is no simple way to pick and choose exactly which diagnostics appear,
 although we are working on a scheme to do just that. Some of the
 following options are rarely used, and may soon be made obsolete.
 These switches can also be used in 'Ipd' input for pdE to control
-which binary output to produce. If QDIAG=.true. some binary files</p>
-are created accompanying the printed output</p>
+which output to produce. If QDIAG=.true. some binary files
+are created accompanying the printed output. If QDIAG_ratios=.true.
+fields which are the products of q1 and q2 and whose titles are
+of the form "q1 x q2" are replaced by the ratios field/q2, the
+title being shortened to "q1" (default).</p>
 
 <p>Current options are:
 <pre>
