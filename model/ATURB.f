@@ -72,6 +72,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !@var trflx surface tracer flux (-w tr) (kg/kg m/s)
       real*8, dimension(ntm) :: trflx
+      integer nta,nx,ntix(ntm)
 #endif
 
       ! Note that lbase_min/max are here for backwards compatibility
@@ -96,6 +97,17 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       end do
 !$OMP  END PARALLEL DO
 
+#ifdef TRACERS_ON
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).gt.itime) then
+          nx=nx+1
+          ntix(nx)=n
+        end if
+      end do
+      nta=nx
+#endif
+
       ! integrate equations other than u,v at agrids
 
       ! get u_3d_agrid and v_3d_agrid
@@ -110,10 +122,10 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,uw,vw,
 !$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl
 #ifdef TRACERS_ON
-!$OMP*   ,n,trij,tr0ij,trflx,wc_nl
+!$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
 #endif
 !$OMP*    ) 
-!$OMP*    SHARED(dtime)
+!$OMP*    SHARED(dtime,nta)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 
       loop_j_tq: do j=1,jm
@@ -141,12 +153,11 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
             bydzerho(l)=1.d0/(dze(l)*rho(l))
             rhobydze(l)=rho(l)/dze(l)
 #ifdef TRACERS_ON
-            do n=1,ntm
-              if (itime_tr0(n).le.itime) then
-                trij(l,n)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
-cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
-                tr0ij(l,n)=trij(l,n)
-              end if
+            do nx=1,nta
+              n=ntix(nx)
+              trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
+cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
+              tr0ij(l,nx)=trij(l,nx)
             end do
 #endif
           end do
@@ -169,11 +180,10 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx
 #ifdef TRACERS_ON
-          do n=1,ntm
-            if (itime_tr0(n).le.itime) then
+          do nx=1,nta
+            n=ntix(nx)
 C**** minus sign needed for ATURB conventions
-              trflx(n)=-trflux1(i,j,n)*bydxyp(j)/rhoe(1)
-            end if
+            trflx(nx)=-trflux1(i,j,n)*bydxyp(j)/rhoe(1)
           end do
 #endif
 
@@ -226,7 +236,7 @@ C**** minus sign needed for ATURB conventions
      &        ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
      &        ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
-     &        ,trflx,wc_nl,ntm
+     &        ,trflx,wc_nl,nta
 #endif
      &        ,lm)
 
@@ -282,18 +292,16 @@ cc        call diff_mom(qmomij)
 C**** Use q diffusion coefficient for tracers
 C**** Note that non-local effects for tracers can be included
 C**** parallel to the case of Q
-          do n=1,ntm
-            if (itime_tr0(n).le.itime) then
-              do l=2,lm-1
-                p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
-     &                *bydzerho(l)
-              end do
-              flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n)  !tr0ij(1,n)
-              flux_top=0.
-              call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
-     &             rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
-c     c        call diff_mom(trmomij)
-            end if
+          do n=1,nta
+            do l=2,lm-1
+              p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
+     &             *bydzerho(l)
+            end do
+            flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
+            flux_top=0.
+            call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
+     &           rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
+cc          call diff_mom(trmomij)
           end do
 #endif
           call find_pbl_top(e,ze,dbl,ldbl,lm)
@@ -320,13 +328,12 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
      2                 +(q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA
             AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+e(l)
 #ifdef TRACERS_ON
-            do n=1,ntm
-              if (itime_tr0(n).le.itime) then
-                tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
-     &               (trij(l,n)-tr0ij(l,n))*am(l,i,j)*dxyp(j)
-                trm(i,j,l,n)=trij(l,n)*am(l,i,j)*dxyp(j)
-cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
-              end if
+            do nx=1,nta
+              n=ntix(nx)
+              tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
+     &             (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*dxyp(j)
+              trm(i,j,l,n)=trij(l,nx)*am(l,i,j)*dxyp(j)
+cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
             end do
 #endif
           end do
@@ -1011,7 +1018,7 @@ C****
      &  ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
      &  ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
-     &  ,trflx,wc_nl,ntm
+     &  ,trflx,wc_nl,nta
 #endif
      &  ,n)
 
@@ -1051,9 +1058,9 @@ C****
 
       integer, intent(in) :: n
 #ifdef TRACERS_ON
-      integer, intent(in) :: ntm
-      real*8, dimension(n,ntm),intent(out) :: wc_nl
-      real*8, dimension(ntm),intent(in) :: trflx
+      integer, intent(in) :: nta
+      real*8, dimension(n,nta),intent(out) :: wc_nl
+      real*8, dimension(nta),intent(in) :: trflx
       integer nt
 #endif
 
@@ -1096,7 +1103,7 @@ C****
               wt_nl(j)=tmp*tvflx
               wq_nl(j)=tmp*qflx
 #ifdef TRACERS_ON
-              do nt=1,ntm
+              do nt=1,nta
                 wc_nl(j,nt)=tmp*trflx(nt)
               end do
 #endif
@@ -1106,7 +1113,7 @@ C****
               wt_nl(j)=0.
               wq_nl(j)=0.
 #ifdef TRACERS_ON
-              do nt=1,ntm
+              do nt=1,nta
                 wc_nl(j,nt)=0.
               end do
 #endif
