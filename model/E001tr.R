@@ -5,6 +5,7 @@ E001tr: new modelE (based on B402A with 4 sample tracers)
  T2=SF6
  T3=RN222
  T4=CO2
+ T5=14CO2
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
@@ -74,6 +75,8 @@ CO2_REGROWTH=CO2_sources/gcm_data/CO2_Nforest_4X5
 CO2_LAND_USE=CO2_sources/gcm_data/CO2DEF_HOU_4X5
 CO2_VEG=CO2_sources/gcm_data/CO2VEG_MON_4X5        ! Monthly source
 CO2_OCEAN=CO2_sources/gcm_data/CO2_4X5_Ocean_flux02  ! Monthly source  x 1.749
+14CO2_IC_DATA=workshop.14co2      ! for 14CO2 Oct. 1963
+
 
 Label and Namelist:
 E001tr (new modelE based on B402A, uses dry adiab. adjustment; tracers)
