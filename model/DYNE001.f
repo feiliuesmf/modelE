@@ -2,7 +2,7 @@
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,fim,byim
+      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,byim
       USE GEOM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       IMPLICIT NONE
@@ -52,8 +52,8 @@ C**** COMPUTE PU*3 AT THE POLES
  1110 PVN=PVN+PV(I,JM,L)
       PUS=.25*DYP(2)*PUS*PIJL(1,1,L)*BYIM
       PUN=.25*DYP(JM-1)*PUN*PIJL(1,JM,L)*BYIM
-      PVS=PVS/FIM
-      PVN=PVN/FIM
+      PVS=PVS*BYIM
+      PVN=PVN*BYIM
       DUMMYS(1)=0.
       DUMMYN(1)=0.
       DO 1120 I=2,IM
@@ -168,7 +168,7 @@ C****
       USE DYNAMICS, only : pu,pv,pit,sd,spa,fd,dut,dvt
       IMPLICIT NONE
 
-      REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
+      REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM,LM)
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),PA(IM,JM),PB(IM,JM)
       REAL*8, SAVE :: SMASS(JM)
 
@@ -301,8 +301,7 @@ C**** Set the Coriolis term to zero at the Poles:
   415 CONTINUE
       DO 425 J=2,JM
       DO 420 I=1,IM
-      PDT4=DT8*(P(I,J-1)+P(I,J))
-      IF(L.GE.LS1) PDT4=DT4*PSFMPT
+      PDT4=DT8*(P(I,J-1,L)+P(I,J,L))
       ALPH=PDT4*(FD(I,J)+FD(I,J-1))*DSIG(L)
       DUT(I,J,L)=DUT(I,J,L)+ALPH*V(I,J,L)
       DUT(IM1,J,L)=DUT(IM1,J,L)+ALPH*V(IM1,J,L)
@@ -357,16 +356,17 @@ C****
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
-      REAL*8, DIMENSION(IM,JM) :: P,RFDUX
+      REAL*8, DIMENSION(IM,JM) :: RFDUX
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
-     *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
+     *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM),P(IM,JM,LM)
+      REAL*8, DIMENSION(IM,JM,1) :: PU0
+      real*8 :: rho1
 
       REAL*8 PKE(LM+1)
       REAL*8 SZ(IM,JM,LM),DT4,DT1
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
      *     ,BYDP
-!     REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN,FACTORS
-      REAL*8 TZBYDP,FLUX,FDNP,FDSP,      RFDU,PHIDN,FACTORS
+      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
       INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
 C****
       DT4=DT1/4.
@@ -380,9 +380,8 @@ C****
       DO 100 I=1,IM
   100 SPA(I,J,L)=0.
       DO 330 J=1,JM
-      IMAX=IMAXJ(J)
-      DO 330 I=1,IMAX
-      PIJ=P(I,J)
+      DO 330 I=1,IMAXJ(J)
+      PIJ=P(I,J,1)
       PDN=PIJ+PTOP
       PKDN=PDN**KAPA
       PHIDN=ZATMO(I,J)
@@ -440,73 +439,46 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
-C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
-      DO 3236 L=1,LS1-1
+      DO 3236 L=1,LM  
       DO 3236 J=2,JM
+      FACTOR = DT4*DXV(J)*DSIG(L)
       IM1=IM
       DO 3234 I=1,IM
-      FLUX=DT4*((P(I,J)+P(I,J-1))*(PHI(I,J,L)-PHI(I,J-1,L))+
-     *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J)-P(I,J-1)))*DXV(J)*DSIG(L)
+      FLUX=    ((P(I,J,L)+P(I,J-1,L))*(PHI(I,J,L)-PHI(I,J-1,L))+
+     *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J,L)-P(I,J-1,L)))*FACTOR
       DVT(I,J,L)  =DVT(I,J,L)  -FLUX
       DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3234 IM1=I
  3236 CONTINUE
-      DO 3246 L=LS1,LM
-      DO 3246 J=2,JM
-!     FACTORS = 2.*DT4*PSFMPT*DXV(J)*DSIG(L)
-!     FACTORS =               DXV(J)*DSIG(L)
-      IM1=IM
-      DO 3244 I=1,IM
-      FLUX=2.*DT4*PSFMPT*(PHI(I,J,L)-PHI(I,J-1,L))*DXV(J)*DSIG(L)
-!     FLUX=2.*DT4*PSFMPT*(PHI(I,J,L)-PHI(I,J-1,L))*FACTORS
-      DVT(I,J,L)  =DVT(I,J,L)  -FLUX
-      DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
- 3244 IM1=I
- 3246 CONTINUE
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
-      DO 3295 L=1,LS1-1
+      DO 3300 L=1,LM
       DO 3275 I=1,IM
       PU(I,1,L)=0.
  3275 PU(I,JM,L)=0.
       I=IM
       DO 3290 J=2,JM-1
       DO 3280 IP1=1,IM
-      PU(I,J,L)=(P(IP1,J)+P(I,J))*(PHI(IP1,J,L)-PHI(I,J,L))+
-     *  (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J)-P(I,J))
+      PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
+     *  (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
  3280 I=IP1
  3290 CONTINUE
       CALL AVRX (PU(1,1,L))
       DO 3294 J=2,JM
-!     FACTORS = -DT4*DYV(J)*DSIG(L)
+      FACTOR = -DT4*DYV(J)*DSIG(L)
       DO 3294 I=1,IM
- 3294 DUT(I,J,L)=DUT(I,J,L)-DT4*DYV(J)*(PU(I,J,L)+PU(I,J-1,L))*DSIG(L)
-!3294 DUT(I,J,L)=DUT(I,J,L)-FACTORS   *(PU(I,J,L)+PU(I,J-1,L))
- 3295 CONTINUE
-      DO 3340 L=LS1,LM
-      DO 3315 I=1,IM
-      PU(I,1,L)=0.
- 3315 PU(I,JM,L)=0.
-      I=IM
-      DO 3325 J=2,JM-1
-      DO 3320 IP1=1,IM
-      PU(I,J,L)=2.*PSFMPT*(PHI(IP1,J,L)-PHI(I,J,L))
- 3320 I=IP1
- 3325 CONTINUE
-      CALL AVRX (PU(1,1,L))
-      DO 3330 J=2,JM
-      DO 3330 I=1,IM
- 3330 DUT(I,J,L)=DUT(I,J,L)-DT4*DYV(J)*(PU(I,J,L)+PU(I,J-1,L))*DSIG(L)
- 3340 CONTINUE
+ 3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
+ 3300 CONTINUE
+
 C**** CALL DIAGNOSTICS
-      IF(MRCH.LE.0) GO TO 500
+      IF(MRCH.GT.0) THEN
          IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
          IF(MODD5K.LT.MRCH) CALL DIAG9D (3,DT1,U,V,DUT,DVT,PIT)
+      ENDIF
 C****
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF DYNAM
 C****
-  500 CONTINUE
       DO 3410 J=2,JM-1
       DO 3410 I=1,IM
  3410 FD(I,J)=PB(I,J)*DXYP(J)
@@ -690,8 +662,9 @@ C**********************************************************************
       INTEGER, SAVE :: NSHAP,ISIGN
       REAL*8, SAVE :: X4TON
       INTEGER I,J,L,N  !@var I,J,L,N  loop variables
-      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
+      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1, BY16
       INTEGER,SAVE :: IFIRST = 1
+      PARAMETER (BY16=1./16.)
 C****
       IF(IFIRST.EQ.1) THEN
          IFIRST = 0
@@ -726,17 +699,17 @@ C**** Filter U component of momentum
   250 DO 255,J=2,JM-1
       F2D(1,J)=.125*(U(IM,J,L)+U(1,J+1,L)+U(2,J,L)+
      *                  U(1,J-1,L)-4.*U(1,J,L))+
-     *      1./16.*(U(IM,J-1,L)+U(IM,J+1,L)+U(2,J+1,L)+
+     *        BY16*(U(IM,J-1,L)+U(IM,J+1,L)+U(2,J+1,L)+
      *              U(2,J-1,L)-4.*U(1,J,L))
       DO 260,I=2,IM-1
       F2D(I,J)=.125*(U(I-1,J,L)+U(I,J+1,L)+U(I+1,J,L)+
      *                  U(I,J-1,L)-4.*U(I,J,L))+
-     *      1./16.*(U(I-1,J-1,L)+U(I-1,J+1,L)+U(I+1,J+1,L)+
+     *        BY16*(U(I-1,J-1,L)+U(I-1,J+1,L)+U(I+1,J+1,L)+
      *              U(I+1,J-1,L)-4.*U(I,J,L))
   260 CONTINUE
       F2D(IM,J)=.125*(U(IM-1,J,L)+U(IM,J+1,L)+U(1,J,L)+
      *                  U(IM,J-1,L)-4.*U(IM,J,L))+
-     *      1./16.*(U(IM-1,J-1,L)+U(IM-1,J+1,L)+U(1,J+1,L)+
+     *        BY16*(U(IM-1,J-1,L)+U(IM-1,J+1,L)+U(1,J+1,L)+
      *              U(1,J-1,L)-4.*U(IM,J,L))
   255 CONTINUE
       DO 265,J=2,JM-1
@@ -981,8 +954,8 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL CALC_PIJL(LM,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
-      CALL ADVECV (P,UX,VX,PB,U,V,P,DTFS)
-      CALL PGF (UX,VX,PB,U,V,T,TZ,P,DTFS)
+      CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
+      CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
       CALL FLTRUV(UX,VX)
 !?    IF (NIdynO.EQ.1) GO TO 320
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
@@ -991,8 +964,8 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL CALC_PIJL(LS1-1,PB,PIJL)
       CALL AFLUX (UX,VX,PIJL)
       CALL ADVECM (P,PA,DT)
-      CALL ADVECV (P,UT,VT,PA,UX,VX,PB,DT)
-      CALL PGF (UT,VT,PA,UX,VX,T,TZ,PB,DT)
+      CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
+      CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
       CALL FLTRUV(UT,VT)
       GO TO 360
 C**** INITIAL BACKWARD STEP IS EVEN, Q = Q + DT*F(QX)
@@ -1007,8 +980,8 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL CALC_PIJL(LS1-1,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
-      CALL ADVECV (PA,UT,VT,PB,U,V,P,DTLF)
-      CALL PGF (UT,VT,PB,U,V,T,TZ,P,DTLF)
+      CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
+      CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
       CALL FLTRUV(UT,VT)
 C**** LOAD PB TO PA
       PA(:,:) = PB(:,:)
@@ -1020,7 +993,7 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL CALC_PIJL(LS1-1,PA,PIJL)
       CALL AFLUX (UT,VT,PIJL)
       CALL ADVECM (PC,P,DTLF)
-      CALL ADVECV (PC,U,V,P,UT,VT,PA,DTLF)
+      CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
          FPEU(:,:) = 0.
          FPEV(:,:) = 0.
          FWVU(:,:) = 0.
@@ -1046,7 +1019,8 @@ C*** copy z-moment of temperature into contiguous memory
            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
            AIJ(:,2:JM-1,IJ_FMU)=AIJ(:,2:JM-1,IJ_FMU)+PU(:,2:JM-1,L)*DTLF
          END DO
-      CALL PGF (U,V,P,UT,VT,TT,TZT,PC,DTLF)
+      CALL CALC_PIJL(LS1-1,PC,PIJL)
+      CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
          DO L=1,LM
          DO J=2,JM
          IM1=IM
