@@ -17,26 +17,29 @@ C**** SENSIBLE HEAT, EVAPORATION, THERMAL RADIATION, AND MOMENTUM
 C**** DRAG.  IT ALSO CALCULATES INSTANTANEOUS SURFACE TEMPERATURE,
 C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
+     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
       USE E001M12_COM, only : im,jm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
      *     ,idacc,dsig,jday,gdata,tofday,ndasf,iday,jeq,fland,flice
-     *     ,fearth,ngrnd,modrd,ijd6,tau,sige
+     *     ,fearth,ngrnd,modrd,ijd6,tau,sige,byim
       USE SOMTQ_COM
-      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs
+      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs,sini
+     *     ,cosi
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-      USE SOCPBL, only : omega2,zgs
+      USE SOCPBL, only : zgs
       USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
-      USE OCEAN, only : OA,ODATA,XSI1,XSI2,Z1I,ACE1I,TFO
+      USE LANDICE, only : hc2li,hc1de,z1e,z2li
+      USE OCEAN, only : oa,odata,xsi1,xsi2,z1i,ace1i,tfo,hc1i,alami
+     *     ,byrli,byrls,rhos
 
       IMPLICIT NONE
 
       INTEGER I,J,L,K,IM1,IP1,LMAX,KR,JR,IHOUR,NS,NSTEPS,MODDSF,MODD6
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
-      REAL*8 DTSRCE,BYRLI,BYRLS,HC1I,HC2LI,HC1DE,HC2DE,ATRHDT,BTRHDT
+      REAL*8 DTSRCE,ATRHDT,BTRHDT
      *     ,CTRHDT,ASHDT,BSHDT,CSHDT,AEVHDT,BEVHDT,CEVHDT,ATS,BTS,CTS
      *     ,PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1,PGK,HS,PKDN
      *     ,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,DGSS,EDS1S,PPBLS,EVAPS,DBLS
@@ -44,7 +47,7 @@ C****
      *     ,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0
      *     ,F1,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dEVdQS,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP
-     *     ,F0DT,FTEVAP,VAP,PKMS,SHCD,RVX,SPRING,TIMEZ,PWATER
+     *     ,F0DT,FTEVAP,VAP,PKMS,SPRING,TIMEZ,PWATER
      *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS
      *     ,RTAUS,RTAUUS,RTAUVS,TG1S,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE
      *     ,TG1,SRHEAT,SNOW,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS
@@ -63,10 +66,8 @@ C****
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
       REAL*8, DIMENSION(IM) :: RA !@var
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
-      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
+      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND,TGRN2
       COMMON/WORK3/E0,E1,EVAPOR,TGRND
-
-      REAL*8 SINI(IM),COSI(IM),TGRN2(IM,JM,4)
 
 C**** Interface to PBL
       REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QS,PSI,DBL,KM,KH,
@@ -79,10 +80,8 @@ C**** Interface to PBL
 
       REAL*8, PARAMETER :: qmin=1.e-12
 
-      REAL*8 ALAMI,Z2LI,Z1E,Z2E,RHOS,ALAMS,S1BYG1
-      DATA ALAMI/2.1762/
-      DATA Z2LI/2.9/,Z1E/.1/,Z2E/4./,RHOS/300.0/,ALAMS/.35/,
-     A     S1BYG1 /0.57735/
+      REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
+     *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI)
 
       REAL*8 QSAT,QLH,PR,TM
       QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
@@ -112,30 +111,13 @@ C****       15  OCEAN ICE TEMPERATURE OF THIRD LAYER (C)
 C****       16  OCEAN ICE TEMPERATURE OF FOURTH LAYER (C)
 C****
       NSTEPS=NSURF*NSTEP/NDYN
-      OMEGA2=2.*OMEGA
       DTSURF=NDYN*DT/NSURF
       DTSRCE=DT*NDYN
-C*
-      SHCD = SHA ! specific heat capacity for dry air - J/(kg*degC)
-      BYRLI = 1./(RHOI*ALAMI) ! (m^4*degC*sec)/(J*kg)
-      BYRLS = 1./(RHOS*ALAMS) ! (m^4*degC*sec)/(J*kg)
-C*
-      RVX=0.
 
-      HC1I=ACE1I*SHI
-      HC2LI=Z2LI*RHOI*SHI
-      HC1DE=Z1E*1129950.
-      HC2DE=Z2E*1129950.+3.5*.125*RHOW*3100.
-      Z1IBYL=Z1I/ALAMI
-      Z2LI3L=Z2LI/(3.*ALAMI)
-      ZS1CO=.5*DSIG(1)*RGAS/GRAV
-      DO I=1,IM
-         SINI(I)=SIN((I-1)*TWOPI/FIM)
-         COSI(I)=COS((I-1)*TWOPI/FIM)
-      END DO
+      ZS1CO=.5*DSIG(1)*RGAS*BYGRAV
 
-         SPRING=-1.
-         IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
+      SPRING=-1.
+      IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
         DO I=1,IM
@@ -220,20 +202,17 @@ C****
       THV1=TH1*(1.+Q1*RVX)
          TFS=TF*PXSOIL
       RMBYA=100.*PDSIG(1,I,J)/GRAV
-C*
 C      THZ1 = TZ(I,J,1) ! vertical gradient of potential temperature
 C      QZ1 = QZ(I,J,1) ! vertical gradient of specific humidity
       MSUM = (PS*100.)/GRAV ! total column mass of atmosphere (kg/m^2)
       MA1 = RMBYA ! mass of lowest atmospheric layer (kg/m^2)
-      H0M1 = TH1*SHCD*MA1*DXYP(J) ! mean pot.enthalpy of lowest atm. (J)
-      HZM1 = THZ1*SHCD*MA1*DXYP(J) ! vert. grad. of lowest pot. enth.(J)
+      H0M1 = TH1*SHA*MA1*DXYP(J) ! mean pot.enthalpy of lowest atm. (J)
+      HZM1 = THZ1*SHA*MA1*DXYP(J) ! vert. grad. of lowest pot. enth.(J)
       Q0M1 = Q1*MA1*DXYP(J) ! mean water vapor of lowest atmosphere (kg)
       QZM1 = QZ1*MA1*DXYP(J) ! vert. grad. of lowest layer  vapor (kg)
       PGK = (PS*100.)**KAPA
       HS = (H0M1-HZM1*S1BYG1)*PGK/(DXYP(J)*MA1) ! pot. spec. enth.(J/kg)
-C      QS = (Q0M1-QZM1*S1BYG1)/(DXYP(J)*MA1)
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
-C*
 C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
       USS=0.
       VSS=0.
@@ -305,7 +284,7 @@ C****
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
-      Z1BY6L=(Z1IBYL+SNOW*BYRLS)*.1666667
+      Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
       CDTERM=1.5*TG2-.5*TFO
       CDENOM=1./(2.*Z1BY6L+Z2BY4L)
       HC1=HC1I+SNOW*SHI
@@ -333,7 +312,7 @@ C****
       TG1=TGRND(I,J,3)
       TG2=GDATA(I,J,14)
       SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
-      Z1BY6L=(Z1IBYL+SNOW*BYRLS)*.1666667
+      Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2
       CDENOM=1./(2.*Z1BY6L+Z2LI3L)
       HCG1=HC1I+SNOW*SHI
@@ -376,14 +355,12 @@ C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SHEAT=SHA*RCDHWS*(TS-TG)
-C*
       BETAUP = BETA
       IF (QS .GT. QG) BETAUP = 1.
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QS-QG)
       TRHEAT=TRHR(I,J,1)-STBO*(TG*TG)*(TG*TG)
       IF(ITYPE.EQ.1) GO TO 3620
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
-C*
       IF (ITYPE .EQ. 2) GO TO 3550
 C*
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
@@ -405,54 +382,39 @@ C*
       GO TO 3600
 C*
  3550 CONTINUE
-C*
       F1 = (TG1-TG2)*dF1dTG ! heat flux on first/second layers (W/m^2)
-C*
       EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
-C*
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
-C*
       dSNdTG=-RCDHWS*KH*SHA/(DHGS+KH)
-C*
       dQGdTG = QG*ELHX/(RVAP*TG*TG) ! d(QG)/dTG
       dEVdTG = -dQGdTG*LHE*RCDQWS*KH/(DGS+KH) ! d(EVHEAH)/dTG
-C*
       dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
       dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
 C     dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
       dEVdQS = LHE*RCDQWS ! d(EVHEAH)/dQS
-C*
-      HSDEN = -(1.+2.*S1BYG1)*DTGRND*PGK*BETA*dSNdTG+MA1*PKDN*SHCD
+      HSDEN = -(1.+2.*S1BYG1)*DTGRND*PGK*BETA*dSNdTG+MA1*PKDN*SHA
       HSCON = -(1.+2.*S1BYG1)*DTGRND*PGK*SHEAT/HSDEN ! (J*sec)/kg
       HSMUL = -(1.+2.*S1BYG1)*DTGRND*PGK*BETA*dSNdTG/HSDEN ! J/(kg*degC)
-C*
       QSDEN = (1.+2.*S1BYG1)*BETA*DTGRND*dEVdQS+MA1*LHE
       QSCON = -(1.+2.*S1BYG1)*DTGRND*EVHEAT/QSDEN
       QSMUL = -(1.+2.*S1BYG1)*DTGRND*BETA*dEVdTG/QSDEN
-C*
       T2DEN = HCG2+BETA*DTGRND*dF1dTG
       T2CON = DTGRND*F1/T2DEN
       T2MUL = BETA*DTGRND*dF1dTG/T2DEN
-C*
       TGDEN = HCG1-BETA*DTGRND*(dF0dTG-dF1dTG-
      A        HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)
       dTG = DTGRND*(F0-F1+BETA*
      A      (QSCON*dEVdQS-HSCON*dSNdTG+T2CON*dF1dTG))/TGDEN ! degC
-C*
       IF (TG1+dTG .GT. 0.) dTG = -TG1
-C*
       dHS = HSCON+HSMUL*dTG ! (J*sec)/kg
       dQS = QSCON+QSMUL*dTG
       dT2 = T2CON+T2MUL*dTG
-C*
       SHDT = DTGRND*(SHEAT+BETA*((dTG-dHS)*dSNdTG)) ! sensible
-C*
       EVHDT = DTGRND*(EVHEAT+BETA*(dTG*dEVdTG+dQS*dEVdQS)) ! latent
       TRHDT = DTGRND*(TRHEAT+BETA*dTG*dTRdTG) ! thermal flux (J/m^2)
       F1DT = DTGRND*(F1+BETA*(dTG*dF1dTG-dT2*dF1dTG))
       DU1(I,J)=DU1(I,J)+PTYPE*DTGRND*RCDMWS*US/RMBYA
       DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
-C*
       TG1 = TG1+dTG ! first layer sea ice temperature (degC)
       TG2 = TG2+dT2 ! second layer sea ice temperature (degC)
       TGRN2(I,J,ITYPE) = TG2
@@ -460,30 +422,23 @@ C*
       GO TO 3700
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP ALSO FOR OCEAN POINTS
  3620 CONTINUE
-C*
       DSHDTG=-RCDHWS*SHA
       dEVdQS = LHE*RCDQWS
       dHS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
      A      ((1.+2.*S1BYG1)*DTSURF*PGK*RCDHWS+MA1*PKDN)
-C*
       dTS = -(1.+2.*S1BYG1)*DTSURF*PGK*SHEAT/
-     A      (MA1*PKDN*SHCD-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
-C*
+     A      (MA1*PKDN*SHA-(1.+2.*S1BYG1)*DTSURF*PGK*DSHDTG)
       dQS = -(1.+2.*S1BYG1)*DTSURF*EVHEAT/
      A      ((1.+2.*S1BYG1)*DTSURF*dEVdQS+MA1*LHE)
-C*
       SHDT = DTSURF*(SHEAT-dTS*DSHDTG)
       EVHDT=DTSURF*(EVHEAT+dQS*dEVdQS) ! latent heat flux
       TRHDT=DTSURF*TRHEAT
-C*
       DU1(I,J)=DU1(I,J)+PTYPE*DTGRND*RCDMWS*US/RMBYA
       DV1(I,J)=DV1(I,J)+PTYPE*DTGRND*RCDMWS*VS/RMBYA
-C
 C**** CALCULATE EVAPORATION
  3700 CONTINUE
       DQ1X =EVHDT/((LHE+TG1*SHV)*RMBYA)
       EVHDT0=EVHDT
-C*
       IF (DQ1X .LE. Q1+DQ1(I,J)) GO TO 3720
       DQ1X = Q1+DQ1(I,J)
       EVHDT=DQ1X*(LHE+TG1*SHV)*RMBYA
@@ -522,11 +477,6 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
          EDS1S=EDS1S+KH*PTYPE
          PPBLS=PPBLS+PPBL*PTYPE
          EVAPS=EVAPS+EVAP*PTYPE
-C****
-C         EKMS  =EKMS  +EKMAN*PTYPE
-C         RNLDS =RNLDS +REYNLD*PTYPE
-C         FRCTVS=FRCTVS+USTAR*PTYPE
-C         PSIS=PSIS+PSI*DEGREE*PTYPE
          DBLS  =DBLS  +DBL*PTYPE
 5666  GO TO (4000,4100,4400),ITYPE
 C****
@@ -705,22 +655,32 @@ C****
 C****
 C**** ADD IN SURFACE FRICTION TO FIRST LAYER WIND
 C****
-      DO I=1,IM
-      U(I,2,1)=U(I,2,1)-2.*(DU1(1,1)*COSI(I)-DV1(1,1)*SINI(I))*RAPVN(1)
-      V(I,2,1)=V(I,2,1)-2.*(DV1(1,1)*COSI(I)+DU1(1,1)*SINI(I))*RAPVN(1)
-      U(I,JM,1)=U(I,JM,1)
-     *  -2.*(DU1(1,JM)*COSI(I)+DV1(1,JM)*SINI(I))*RAPVS(JM)
-      V(I,JM,1)=V(I,JM,1)
-     *  -2.*(DV1(1,JM)*COSI(I)-DU1(1,JM)*SINI(I))*RAPVS(JM)
+C**** Polar boxes
+      DO J=1,JM,JM-1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        HEMI=1.
+        IF(J.LE.JM/2) HEMI=-1.
+        DO I=1,IMAX
+          DO K=1,KMAX
+            U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1)-RAJ(K
+     *           ,J)*(DU1(I,J)*COSI(K)+DV1(I,J)*SINI(K)*HEMI)
+            V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1)-RAJ(K
+     *           ,J)*(DV1(I,J)*COSI(K)-DU1(I,J)*SINI(K)*HEMI)
+          END DO
+        END DO
       END DO
+C**** non polar boxes      
       DO J=2,JM-1
-        I=IM
-        DO IP1=1,IM
-          U(I,J,1)=U(I,J,1)-(DU1(I,J)+DU1(IP1,J))*RAPVS(J)
-          V(I,J,1)=V(I,J,1)-(DV1(I,J)+DV1(IP1,J))*RAPVS(J)
-          U(I,J+1,1)=U(I,J+1,1)-(DU1(I,J)+DU1(IP1,J))*RAPVN(J)
-          V(I,J+1,1)=V(I,J+1,1)-(DV1(I,J)+DV1(IP1,J))*RAPVN(J)
-          I=IP1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        DO I=1,IMAX
+          DO K=1,KMAX
+            U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1)
+     *           - RAJ(K,J)*DU1(I,J)
+            V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1)
+     *           - RAJ(K,J)*DV1(I,J)
+          END DO
         END DO
       END DO
 C****
@@ -828,16 +788,15 @@ C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER
       UMS(1:KMAX)=UMS(1:KMAX)*RDP
       VMS(1:KMAX)=VMS(1:KMAX)*RDP
       DO L=1,LMAX
-         PIJ=PLIJ(L,I,J)
-         DO K=1,KMAX
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
-c the following line gives bytewise different ajl
-            AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
-     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
-         END DO
+        PIJ=PLIJ(L,I,J)
+        DO K=1,KMAX
+          U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &         +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
+          V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &         +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
+          AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
+     &         +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
+        END DO
       END DO
 C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
  8400   IF(MODD6.EQ.0) THEN
