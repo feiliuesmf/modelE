@@ -641,7 +641,7 @@ C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
       SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
       QMP  =  QMOLD(LMIN)*FPLUME
       QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
-      TPSAV(LMIN)=SMP*PLK(LMIN)/MPLUME
+      TPSAV(LMIN)=SMP*PLK(LMIN)/(MPLUME+teeny)
       DMR(LMIN)=-MPLUME
         DSMR(LMIN)=-SMP
       DSMOMR(xymoms,LMIN)=-SMOMP(xymoms)
