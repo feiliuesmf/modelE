@@ -1010,12 +1010,12 @@ C**** and save changes in KE for addition as heat later
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
       USE CLOUDS_COM, only : llow,lmid,lhi
-      USE DAGCOM, only : nisccp,isccp_reg
+      USE DAGCOM, only : nisccp,isccp_reg,isccp_late
       USE PARAM
 
       IMPLICIT NONE
       REAL*8 PLE
-      INTEGER L,J
+      INTEGER L,J,n
       INTEGER :: J_0,J_1
 
       J_0 =GRID%J_STRT
@@ -1064,17 +1064,24 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
 
 C**** Define regions for ISCCP diagnostics
       do j=J_0,J_1
-        isccp_reg(j)=0.
-        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
-     *       isccp_reg(j)=1
-        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
-     *       isccp_reg(j)=2
-        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
-     *       isccp_reg(j)=3
-        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
-     *       isccp_reg(j)=4
-        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
-     *       isccp_reg(j)=5
+        isccp_reg(j)=0
+        do n=1,nisccp
+           if(lat_dg(j,1).ge.isccp_late(n) .and.
+     &        lat_dg(j,1).lt.isccp_late(n+1)) then
+              isccp_reg(j)=n
+              exit
+           endif
+        enddo
+c        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
+c     *       isccp_reg(j)=1
+c        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
+c     *       isccp_reg(j)=2
+c        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
+c     *       isccp_reg(j)=3
+c        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
+c     *       isccp_reg(j)=4
+c        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
+c     *       isccp_reg(j)=5
       end do
 
       END SUBROUTINE init_CLD

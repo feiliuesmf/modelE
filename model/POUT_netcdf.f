@@ -27,10 +27,10 @@ C**** have to wait.
      &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
-     &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl
+     &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
-      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req
 !@var JMMAX maximum conceivable JM
@@ -371,7 +371,6 @@ C**** set dimensions
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
 
-      integer :: nvars, status
       character(len=30) :: var_name,lon_name,lat_name
 
 ! (re)set shape of output array
@@ -911,7 +910,6 @@ C**** set dimensions
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 
-      integer :: nvars, status
       character(len=30) :: var_name,dim_name
 
       integer :: j,l,jpack,lpack
@@ -964,6 +962,110 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
 
       return
       end
+
+      subroutine open_isccp(filename,ntau,npres,nisccp)
+!@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : isccp_press,isccp_tau,isccp_lat
+      USE NCOUT, only : im,jm,lm,iu_isccp,set_dim_out,def_dim_out,
+     &     out_fid,outfile,units,long_name,ndims_out,open_out,prog_dtype
+      IMPLICIT NONE
+c temporary, to see nf_int
+      include 'netcdf.inc'
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var ntau,npres,nisccp dimensions for isccp output
+      INTEGER, INTENT(IN) :: ntau,npres,nisccp
+!
+      character(len=30) :: var_name,dim_name
+
+      outfile = trim(filename)//".nc"
+
+! define output file
+      call open_out
+      iu_isccp = out_fid
+
+C**** set dimensions
+      im=ntau
+      jm=npres
+      lm=nisccp
+
+      dim_name='tau'; call def_dim_out(dim_name,im)
+      dim_name='p'; call def_dim_out(dim_name,jm)
+      dim_name='lat'; call def_dim_out(dim_name,lm)
+
+      ndims_out = 1
+
+      dim_name='tau'; call set_dim_out(dim_name,1)
+      units='1'
+      long_name='lower bound of optical depth for each tau category'
+      var_name='tau';call wrtarr(var_name,isccp_tau)
+
+      dim_name='p'; call set_dim_out(dim_name,1)
+      units='mb'
+      long_name='midpoint pressure for each pressure category'
+      prog_dtype = nf_int ! isccp_press is an integer array for now
+      var_name='p';call wrtarr(var_name,isccp_press)
+
+      dim_name='lat'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      long_name='midpoint latitude for each latitude category'
+      var_name='lat'; call wrtarr(var_name,isccp_lat)
+
+      return
+      end subroutine open_isccp
+
+      subroutine close_isccp
+!@sum  CLOSE_ISCCP closes the binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_isccp
+      call close_out
+
+      return
+      end subroutine close_isccp
+
+      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS_IN,XIJK)
+!@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
+!@var XIJK tau/height/lat output field
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
+
+      character(len=30) :: var_name,dim_name
+
+! (re)set shape of output array
+      ndims_out = 3
+
+      dim_name = 'tau'
+      call set_dim_out(dim_name,1)
+      dim_name = 'p'
+      call set_dim_out(dim_name,2)
+      dim_name = 'lat'
+      call set_dim_out(dim_name,3)
+
+      var_name=sname
+      long_name=lname
+      units=units_in
+
+      call wrtarr(var_name,xijk)
+
+      return
+      end subroutine pout_isccp
 
 C**** These entries are to allow model compilation with netcdf output.
 C**** These subroutines need to be filled in so that diurn and hdiurn

@@ -5198,48 +5198,51 @@ C****
 !@sum diag_isccp prints out binary and prt output for isccp histograms
 !@auth Gavin Schmidt
       USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc
-      USE GEOM, only : dyp
+      USE GEOM, only : dxyp
       USE DAGCOM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
-     *     ,qdiag,ia_src
-      USE FILEMANAGER
+     *     ,qdiag,ia_src,isccp_tau,isccp_press
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 60S-45S",
-     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 45S-30S",
+     *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 60S-30S",
      *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30S-15S",
      *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15S-15N",
      *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15N-30N",
      *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
-!@var isccp_press pressure mid points for isccp histogram
-      INTEGER, PARAMETER :: isccp_press(npres) = (/ 90, 245, 375, 500,
-     *     630, 740, 900 /)
       REAL*8 area(nisccp)
-      REAL*4 AX(ntau,npres)
+      REAL*8 AX(ntau,npres,nisccp)
       INTEGER N,ITAU,IPRESS,J,IU_ISCCP
+
+      character*30 :: sname
+      character*50 :: lname,units
 
 C**** calculate area weightings
       area(:)=0.
       do j=1,jm
         n=isccp_reg(j)
-        if (n.gt.0) area(n)=area(n)+dyp(j)
+        if (n.gt.0) area(n)=area(n)+dxyp(j)
       end do
 
-C**** temporarily use a fixed binary format, needs to be tranferred to
-C**** POUT so that netcdf output can also be used
-      if (qdiag) call openunit(trim(acc_period)//'.isccp'//
-     *     XLABEL(1:LRUNID),iu_isccp,.true.,.false.)
+C**** write out scaled results
       do n=nisccp,1,-1   ! north to south
         title(n)(61:72) = acc_period
         write(6,100) title(n)
-        AX=100.*AISCCP(:,:,n)/(fim*idacc(ia_src)*area(n))
+        AX(:,:,n)=100.*AISCCP(:,:,n)/(fim*idacc(ia_src)*area(n))
         do ipress=1,npres
-          write(6,101) isccp_press(ipress),(AX(itau,ipress),itau=2,ntau)
+        write(6,101) isccp_press(ipress),(AX(itau,ipress,n),itau=2,ntau)
         end do
         write(6,*)
-        if (qdiag) write(iu_isccp) TITLE(n),AX
       end do
-      if (qdiag) call closeunit(iu_isccp)
+C**** write the binary file
+      if (qdiag) then
+         call open_isccp(trim(acc_period)//'.isccp'//
+     *        XLABEL(1:LRUNID),ntau,npres,nisccp)
+         sname='pcld'
+         lname='cloud cover histogram'
+         units='%'
+         call pout_isccp(title,sname,lname,units,ax)
+         call close_isccp
+      endif
       RETURN
 
  100  FORMAT (1X,A80/1X,72('-')/3X,

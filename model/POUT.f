@@ -15,7 +15,7 @@ C**** have to wait.
 !@auth G. Schmidt
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
-      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req,ndiuvar
 !@var JMMAX maximum conceivable JM
@@ -399,6 +399,75 @@ C**** set dimensions
       ENDDO
       return
       end subroutine POUT_IJK
+
+      subroutine open_isccp(filename,ntau,npres,nisccp)
+!@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM,LM_GCM dimensions for ij output
+      INTEGER, INTENT(IN) :: ntau,npres,nisccp
+
+      call openunit(filename,iu_isccp,.true.,.false.)
+
+C**** set dimensions
+      im=ntau
+      jm=npres
+      lm=nisccp
+
+      return
+      end subroutine open_isccp
+
+      subroutine close_isccp
+!@sum  CLOSE_ISCCP closes the binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+      call closeunit(iu_isccp)
+      return
+      end subroutine close_isccp
+
+      subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS,XIJK)
+!@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
+!@auth M. Kelley
+!@ver  1.0
+      USE GISSOUT
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS*50
+!@var XIJK lat/lon/height output field
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
+      INTEGER :: K
+      CHARACTER*16, PARAMETER ::
+     &     CX = 'OPTICAL DEPTH   ',
+     &     CY = 'PRESSURE        ',
+     &     CBLANK = '                '
+      do k=1,lm
+c restore commented lines for "GISS 4D format"
+c add isccp_tau, isccp_press to subroutine argument list
+c (remember to also alter POUT_netcdf.f et al.)
+         write(iu_isccp) title(k)
+c             ,im,jm,1,1,
+     &       ,real(xijk(:,:,k),kind=4)
+c     &       ,real(isccp_tau,kind=4)
+c     &       ,real(isccp_press,kind=4)
+c     &       ,real(1.,kind=4),real(1.,kind=4)
+c     &       ,cx,cy,cblank,cblank,'NASAGISS'
+      enddo
+      return
+      end subroutine POUT_ISCCP
 
       subroutine close_diurn
 !@sum  CLOSE_DIURN closes the hourly diurnal_cycle ascii output file

@@ -166,6 +166,19 @@ C**** parameters and variables for ISCCP diags
       integer, parameter :: ntau=7,npres=7
 !@param nisccp number of ISCCP histogram regions
       integer, parameter :: nisccp = 5
+!@var isccp_press pressure mid points for isccp histogram
+      INTEGER, PARAMETER :: isccp_press(npres) = (/ 90, 245, 375, 500,
+     *     630, 740, 900 /)
+!@var isccp_tau lower bound of optical depth for each isccp tau category
+      REAL*8, PARAMETER :: isccp_tau(ntau) = (/ 0d0,.1d0,1.3d0,3.6d0,
+     *     9.4d0,23d0,60d0 /)
+!@var isccp_late edge latitudes for each isccp lat category (region)
+!@var isccp_lat midpoint latitudes for each isccp lat category (region)
+! calculation of midpoints is hard-coded until all fortran compilers
+! allow array arithmetic in PARAMETERS
+      REAL*8, PARAMETER ::
+     &  isccp_late(nisccp+1)=(/-60,-30,-15,15,30,60/)
+     & ,isccp_lat(nisccp)=(/-45.,-22.5,0.,22.5,45./)
 !@var isccp_reg latitudinal index for ISCCP histogram regions
       integer :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
