@@ -22,6 +22,8 @@ C**** (used to be FMC)
       REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7 
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
+!@dbparam DEFTHRESH threshold for deformation wave (1/s)
+      REAL*8 :: DEFTHRESH = 15d-6  ! default is 15x10^-6 s^-1
 !@dbparam PBREAKTOP p. level to force GW breaking in top layer
 C**** This should be set to 100. (or something similar) to force
 C**** breaking of remaining gravity waves in top layer. Otherwise, 
@@ -63,7 +65,7 @@ C**** accumulated in the routines contained herein
       USE CONSTANT, only : twopi,kapa
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn,
-     *     cdef,cmc,pbreak,pbreaktop
+     *     cdef,cmc,pbreak,pbreaktop,defthresh
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
       USE GEOM, only : areag,dxyv
       USE FILEMANAGER
@@ -82,6 +84,7 @@ C**** sync gwdrag parameters from input
       call sync_param( "CMC", CMC)
       call sync_param( "PBREAK", PBREAK)
       call sync_param( "PBREAKTOP", PBREAKTOP)
+      call sync_param( "DEFTHRESH", DEFTHRESH)
 
 C**** sync more gwdrag parameters from input
       call sync_param( "QGWMTN", QGWMTN)
@@ -221,7 +224,6 @@ C****
       DO 300 J=2,JM
       I=IM
       DO 300 IP1=1,IM
-C     IF(DEFRM(I,J).LE.25.E-6) GO TO 300
 C**** Surface values are used for F(0)
 C**** Note area weighting for four point means 
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
@@ -419,7 +421,7 @@ C****
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv,
-     *     cmtn,cdef,cmc,pbreaktop
+     *     cmtn,cdef,cmc,pbreaktop,defthresh
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
@@ -588,8 +590,8 @@ C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
 C**** DEFORMATION WAVE (X    d cm-2)
       IF (QGWDEF.eq.1) THEN
         IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
-        IF (DEFRM(I,J).LT. 15d-6) GO TO 155 !  Threshold= 15e-6
-        FDEFRM=- CDEF*GRAV/(1000.*15d-6)*DEFRM(I,J) !  3 d cm-2 x 15e-6
+        IF (DEFRM(I,J).LT. DEFTHRESH) GO TO 155 !  deform. Threshold
+        FDEFRM=- CDEF*GRAV/(1000.*DEFTHRESH)*DEFRM(I,J)   
         DU=UL(LDEF +1)-UL(LDEF )
         DV=VL(LDEF +1)-VL(LDEF )
         DW=SQRT(DU**2        + DV**2       )
