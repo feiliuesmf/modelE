@@ -10,6 +10,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
+C     USE RADPAR, only     : LX
       USE TRACER_COM, only : ntm, trm, TR_MM
 c
       IMPLICIT NONE
@@ -77,13 +78,16 @@ C
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the COaltIN array 
 !@param LCH4alt number of levels in the CH4altIN array
+!@param LcorrOx number of levels in the corrOxIN array
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
+!@param PcorrOx pressures at LcorrOx levels
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    4,
+     & LcorrOX=    4,
      & p_1   =     2,
      & p_2   =   111,
      & p_3   =   200,
@@ -180,8 +184,10 @@ C
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
-      REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = (/
-     & 100.d0, 32.d0, 3.2d0, 0.23d0/)
+      REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
+     & (/100.d0, 32.d0, 3.2d0, 0.23d0/)
+      REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx = 
+     & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
@@ -351,8 +357,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var change change due to chemistry in mass/time
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
-!@var OxIC initial conditions for Ox in KG read from file (Jan 1st?)
+!@var corrOxIN correction factor to tweak inital Ox in stratosphere 
+!@+   on LcorrOx levels
 !@var corrOx correction factor to tweak inital Ox in stratosphere 
+!@+   on LM levels
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -387,7 +395,8 @@ C
      & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
      & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor,F75P,F75M,
      & F569P,F569M
-      REAL*8, DIMENSION(JM,4,12)       :: corrOx ! JM,(L=12,15),month
+      REAL*8, DIMENSION(JM,LcorrOx,12) :: corrOxIN ! 12=month
+      REAL*8, DIMENSION(JM,LM,12)      :: corrOx
       REAL*8, DIMENSION(n_spc,LM)      :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
@@ -401,7 +410,7 @@ C
       REAL*8, DIMENSION(n_oig,n_bnd3)  :: sech
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     &                                TX,sulfate,OxIC
+     &                                TX,sulfate
       REAL*8, DIMENSION(LM,IM,JM)      :: RCLOUDFJ
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
       REAL*8, DIMENSION(M__), PARAMETER ::
@@ -450,7 +459,8 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
       REAL*8, DIMENSION(JPNL,JPPJ)      :: zj, JFASTJ
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
       REAL*8, DIMENSION(IM,JM)          :: SALBFJ
-      REAL*8, DIMENSION(40,JM,IM)       :: O3DLJI, O3DLJI_clim
+C     REAL*8, DIMENSION(LX,JM,IM)       :: O3DLJI, O3DLJI_clim
+      REAL*8, DIMENSION(LM,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
 C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(JCOlat), PARAMETER  :: COlat = (/40.,40.,40.,40.
