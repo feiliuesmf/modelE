@@ -5242,7 +5242,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
       SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
-     *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix)
+     *  TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -5277,7 +5277,7 @@ c
 !@var LHX latent heat flag for whether condensation is to ice or water
 !@var RKD dummy variable (= tr_RKD*EXP[ ])
       REAL*8, PARAMETER :: BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac, RKD
+      REAL*8 Ppas, tfac, ssfac, RKD,CLDINC
 #ifdef TRACERS_SPECIAL_O18
       real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice,fqi,gint
       integer i
@@ -5290,7 +5290,7 @@ c     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3
 c     *     , by3 /)
 #endif
       REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX, TR_LEF
-     *     , pl
+     *     , pl,CLDSAVT
       REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
@@ -5315,7 +5315,7 @@ c
             END IF
 c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
 c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
-            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
             if (.not.tr_conv) then  !stratiform
               thlaw=(ssfac*tr_lef*tm(l,NTIX(N))
      *        -TRWML(NTIX(N),L))/(1.D0+ssfac)
@@ -5380,7 +5380,13 @@ C**** this is a parameterisation from Georg Hoffmann
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
           if(LHX.EQ.LHE.and.fq0.gt.0.) then
-            fq = fq_aer(NTIX(N))*FCLOUD
+c only dissolve if the cloud has grown
+           CLDINC=CLDSAVT-FCLOUD 
+           if (CLDINC.gt.0.) then
+            fq = fq_aer(NTIX(N))*CLDINC
+           else
+            fq=0.
+           endif
 c complete dissolution in convective clouds
             if (TR_CONV) fq=1.d0
           endif
