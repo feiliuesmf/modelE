@@ -1,0 +1,297 @@
+HOW-TO document for the GCM
+===========================
+
+This document outlines how to acheive some common sought results with
+the new modelE. Some of the procedures will be the same as previously,
+but it is more likely that the details will have become slightly more
+straightforward (hopefully!). However, due to the modularization that
+has been done, you are no longer free to do things in an arbitrary
+way, see the notes below for more details. Please feel free to add to
+this document.
+
+This is only part of the documentation, you can find additional
+information in the glossary of terms, the Frequently Asked Questions
+(FAQ) file, the description of current functionality and options, or
+the index of all prognostic variables.
+
+The document is set up in three parts: Part I deals with running the
+model for basic users who do not need to know how to alter the
+code. Part II dealing with examining the diagnostics, while Part III
+deals with more technical issues involved in adding functionality or
+diagnostics.
+
+PART I: Basic user information
+
+1) HOW-TO setup and run the GISS GCM:
+2) HOW-TO produce a rundeck
+3) HOW-TO alter NAMELIST INPUT parameters
+4) HOW-TO restart the GCM
+5) HOW-TO change boundary conditions
+6) HOW-TO change trace gas amounts
+7) HOW-TO have a perpetual winter
+8) HOW-TO travel back/forward in time
+9) HOW-TO move to Mars
+10) HOW-TO get help
+11) HOW-TO report a problem
+12) HOW-TO keep up-to-date
+13) HOW-TO add to this documentation
+
+Part II: Getting information from the diagnostics
+
+1) HOW-TO analyse the printout
+2) HOW-TO change what is included in the printout
+3) HOW-TO produce daily/monthly or seasonal diagnostics
+3) HOW-TO produce useful diagnostics from the ACC file
+4) HOW-TO produce netcdf/hdf output
+ 
+Part III: The model code
+
+1) HOW-TO find where a variable is defined
+2) HOW-TO follow the program structure
+3) HOW-TO use or add to the automatic documentation
+4) HOW-TO ensure that your code meets the new standards
+5) HOW-TO add functionality - A: variations on existing code
+6) HOW-TO add functionality - B: introducing new sub-modules
+7) HOW-TO add functionality - C: introducing a new NAMELIST parameter
+8) HOW-TO read in an external file
+9) HOW-TO add new variabiles to the restart files
+10) HOW-TO access variables that are already calculated somewhere else
+11) HOW-TO deal with the inevitable bugs you introduce
+12) HOW-TO get an innovation included in everybody's versions
+	 
+=====================================================================
+
+Part I: Basic user tasks
+
+1) HOW-TO setup and run the GISS GCM:
+
+
+2) HOW-TO produce a rundeck
+
+
+3) HOW-TO alter NAMELIST parameters
+
+
+4) HOW-TO restart the GCM
+
+
+5) HOW-TO change boundary conditions
+
+6) HOW-TO change trace gas amounts
+
+7) HOW-TO have a perpetual winter
+
+8) HOW-TO travel back/forward in time
+
+9) HOW-TO move to Mars
+
+10) HOW-TO get help
+
+11) HOW-TO report a problem
+
+12) HOW-TO keep up-to-date
+
+13) HOW-TO add to this documentation
+
+
+Part II: Getting information from the diagnostics
+
+1) HOW-TO analyse the printout
+2) HOW-TO change what is included in the printout
+3) HOW-TO produce daily/monthly or seasonal diagnostics
+3) HOW-TO produce useful diagnostics from the ACC file
+4) HOW-TO produce netcdf/hdf output
+
+
+
+Part III: The model code
+
+1) HOW-TO find where a variable is defined
+
+Variables (other than purely local variables) are defined in three
+main ways. Physical constants (real constants, not tuning parameters),
+are defined in const.f, model related variables (i.e. variables to do
+with how the model is run) are defined in E001M12_COM.f, and all other
+variables are defined in the physics MODULES. Variables that are on
+the model grid will be defined in the PHYS_COM module, while
+parameters and options for the local physics will be defined in the
+PHYS module. Thus decide to which physics module your variable is most
+related to and look there.
+
+For more brute force efforts, run the utility 'gcmdoc RUNNAME'. This
+will create a html document that indexes and defines all important
+variables (well not all, but most, ok some!). Alternatively grep -i
+"varname.*=" *.[fSU] will probably find it for you.
+
+2) HOW-TO follow the program structure
+
+The model is essentially on three levels. MAIN in ME001M12 is the
+top level and controls the time-stepping and deals with most of the
+model overhead. The time-step loop in MAIN is the principal path that
+the model follows. This is a very linear loop, and therefore is not
+difficult to understand.
+
+The level below this is the level of the drivers. These are routines
+that translate model variables (ie. those defined on the model grid),
+to local variables (usually, but not always, vertical arrays), save
+diagnostics and save variables/fluxes for later use.
+
+Finally the third level is the level at which the actual physics gets
+done. This level generally is oblivious to the previous two levels and
+is code that could be used in many different contexts. It is very
+important to keep this true. DO NOT write directly to model arrays
+within a local physics subroutine. (Some outstanding cases may appear
+to do that, but this is being written out of the model).
+
+3) HOW-TO use or add to the automatic documentation
+
+You will have noticed that modelE has multiple documentation
+directives such as !@var or !@sum. These are key words that can be
+read by a script and turned into useful documentation. Each
+subroutine, and each important variable should have such a declaration
+(which should indclude a definiton, units, etc.). The utility 'gcmdoc'
+makes html output from a rundeck containing (and sorting out) all this
+information. The various directives are all defined in the main model
+common block. If you introduce new varaibles or subroutines, you MUST
+define similar documentation.  
+
+4) HOW-TO ensure that your code meets the new standards
+
+Please check the document "Coding standards for ModelE" and try to
+conform as nearly as possible to the (not very onerous)
+conditions. Unfortunatley, we do not have anybody whose job it is to
+make sure that added code conforms. However, every time this happens
+it makes it harder to keep the model consistent, and leads to the
+creation of unnecessary complications in keeping things straight.
+
+5) HOW-TO add functionality - A: variations on existing code
+
+
+6) HOW-TO add functionality - B: introducing new sub-modules
+
+
+7) HOW-TO add functionality - C: introducing a new NAMELIST parameter
+
+Only introduce a new NAMELIST parameter if you would like to be able
+to vary it's value at run time without recompiling the model (i.e. an
+adjustable parameter, or an option switch for instance). Firstly,
+decide who should own the parameter. That is likely to be one of the
+physics modules. Since it is likely to be a fundamental part of a
+local physics process, it should be declared and defined in the local
+physics module. You now need to USE it in the physics COM block (this
+is to allow the input/ouput routines to access it easily). In INPUT,
+you should then USE this parameter from the COM block. This is a
+little indirect but it cuts down on dependencies and is neater. Then
+the variable can be added to the NAMELIST. You will probably also need
+to add this parameter to the rsf/acc files for future reference - see
+Q9 for details.
+
+8) HOW-TO read in an external file
+
+ModelE has introduced a FILEMANAGER system that controls the
+assignment of unit numbers and the opening of files. To add a new file
+to be read in, first define a short mnemonic for the file
+(i.e. "TRSRC" for the tracer source file). This is the name
+that you will assign in the rundeck to the file you wish to
+open. Secondly, prior to reading in the file, use the routine
+'getunit' to assign a unit number for the file using the mnemonic you
+gave it. ie.
+
+     USE FILEMANAGER
+     INTEGER iu_trc1
+     ....
+     call getunit("TRSRC",iu_trc1,.TRUE.)
+     READ(iu_trc1) DATA1,DATA2.... 
+
+The logical variable argument is true if the file is to be opened for
+unformatted (binary) read/write, .FALSE. for ASCII input. The line in
+the rundeck should look something like (depending on the filename of
+course):
+
+TRSRC=tracer_sources.1970_1980.dat 
+
+The setup script looks automatically in /u/cmrun, /u/raid and in the
+current directory. If the file is elsewhere an absolute or relative
+pathname is needed.
+ 
+9) HOW-TO add new variabiles to the restart files
+
+Each module now has only one place that needs to be changed to
+accomodate extra variables in the rsf files: io_xyz (where xyz is a
+descriptor for the module like ocean, rad, lakes etc.). All
+input/output is controlled by these routines. Thus to add a new
+variable, simply add it to the list of variables for both the read and
+the write statements. Note that you MUST change the MODULE_HEADER
+character string if you change what is in the rsf (ie. increment the
+number by 1 each time you do this). This is necessary to ensure that
+we can distinguish various versions. 
+
+There are some complications for variables that can be set in the
+NAMELIST, namely, you must decide who how this variable gets set as a
+function of the initialisation method. Look at io_rad as an example to
+follow.  
+
+10) HOW-TO access variables that are already calculated somewhere else
+
+One of the main changes to modelE was to replace common blocks with
+Fortan 90 modules. The functionality is much the same, but since they
+do not assume anything about where in memory variables are kept, many
+of the problems associated with common blocks are alleviated. In order
+to make use of a variable from somwehwere else in the code, that
+variable must be in the relevant MODULE (usually called PHYS_COM, for
+ease of remembering). Then in the routine of module where you wish to
+use it you must specifically declare what you want using the USE
+statement. For clarity, we are insiting upon using 'USE, only' so
+that each variable that you require is explicitly declared, ie.
+
+    USE PHYS_COM, only : var1,var2
+
+If the name of the variable conflicts with a local variable, you can
+use the 'points-to' feature to map the PHYS_COM variable to a new name
+(as you may have done with common blocks), i.e.
+
+    USE PHYS_COM, only : var1,var2_phys=>var2
+
+The arrow should be read as 'points to', and thus var2_phys will be an
+alias for var2 in this routine/module only.
+
+11) HOW-TO deal with the inevitable bugs you introduce
+
+Nobody's code is perfect (least of all ours) and so when coding it is
+inevitable that errors are introduced. Some are minor and cause no
+obvious sign of distress (these are very difficult to find!), while
+others cause the model to crash and burn.
+
+Let's say you've changed something in the model that seemed innocuous,
+and then the model crashes. There are three common points that seem to
+trap errors: the dynamics, the radiation and the PBL scheme. These
+errors will be flagged as either "A>1 in AADVTX" or similar (for
+crashes in the dynamics), "In Radia: TL out of range"  or similar (in
+the radiation), and finally "stop zbrent", for a crash in the PBL. 
+
+Do not go looking for errors in any of these routines. What has
+generally happened is that you have introduced some wild fluctuation
+in some main variable (the temperature, humidity or velocities), or
+overwritten some the model variables that control advection and the
+like. Check that coming out of the routine you modified, everything is
+as it should be (set QCHECK in the rundeck, and include a call to
+CHECKT immediately before and after). Also do not bother commenting
+out the routine that actually crashed to see if the model can continue
+on okay. This routine is the sympton, not the disease.
+
+One additional problem that arises mainly with tracer code is that the
+advection code can sometimes produce wild oscillations of the tracer
+concentration, which for sensitive tracer physics, can cause no end of
+problems. Again, the advection is not to blame! What has happened here
+is that the second order moments for the tracer field (the first and
+second derivatives at the centre of the grid-box) have somehow become
+uncoupled from the mean tracer amount, giving rise to an implied
+sub-grid scale profile that is seriously wrong. The biggest mistake is
+not to reduce the gradients by the same fraction by which the mean was
+reduced in some process. See the document "Using the GISS GCM tracer
+moments" for more details on how to do this properly. The CLD01.f
+tracer code is a good example of what to do.
+
+12) HOW-TO get an innovation included in everybody's versions
+
+Still working on this one!
