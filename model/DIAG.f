@@ -42,7 +42,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-     *     ,rvap,gamd,teeny
+     *     ,rvap,gamd,teeny,undef
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q
@@ -128,7 +128,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
         END DO
         LDNA(1)=1
         LUPA(LM)=LM
-        END IF
+      END IF
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
@@ -202,6 +202,8 @@ C**** Select pressure levels on which to save temperature and humidity
 C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
           q500=.false.
+          rh_inst(i,j,1:3) = undef
+          z500(i,j) = undef
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
@@ -2522,7 +2524,8 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD) hours.
-!@+   Current options: SLP, SAT, PREC, QS, Z500
+!@+   Current options: SLP, SAT, PREC, QS, Z500, RH850, RH500, RH300,
+!@+                    LCLD, MCLD, HCLD
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
@@ -2541,7 +2544,7 @@ C**** depending on namedd string choose what variables to output
         select case (namedd(k))
         case ("SLP")      ! sea level pressure
           do j=1,jm
-          do i=1,im
+          do i=1,imaxj(j)
             data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
      *           **gbyrb
           end do
@@ -2567,8 +2570,8 @@ C**** depending on namedd string choose what variables to output
               do l=1,llow
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
+              data(i,j)=data(i,j)*100./real(llow,kind=8)
             end do
-            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
           end do
         case ("MCLD")         ! mid level cloud cover
           data=0.
@@ -2577,8 +2580,8 @@ C**** depending on namedd string choose what variables to output
               do l=llow+1,lmid
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
+              data(i,j)=data(i,j)*100./real(lmid-llow,kind=8)
             end do
-            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
           end do
         case ("HCLD")         ! high level cloud cover
           data=0.
@@ -2587,12 +2590,16 @@ C**** depending on namedd string choose what variables to output
               do l=lmid+1,lhi
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
+              data(i,j)=data(i,j)*100./real(lhi-lmid,kind=8)
             end do
-            data(:,j)=data(:,j)*100./real(imaxj(j),kind=8)
           end do
         case default
           cycle
         end select
+C**** fix polar values
+        data(2:im,1) =data(1,1)
+        data(2:im,jm)=data(1,jm)
+C**** write out
         call writei(iu_subdd(k),itime,data,im*jm)
       end do
 c****
