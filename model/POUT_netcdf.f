@@ -1053,7 +1053,7 @@ C**** set dimensions
       return
       end subroutine close_ijk
 
-      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS_IN,XIJK,XJK,XK)
+      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS_IN,XIJK,XJK,XK,IJGRID)
 !@sum  POUT_IJK output lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
@@ -1073,6 +1073,8 @@ C**** set dimensions
       REAL*8, DIMENSION(JM,LM), INTENT(INOUT) :: XJK
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
 
       character(len=30) :: dim_name
 
@@ -1351,10 +1353,9 @@ c      var_name='hour';call wrtdarr(hours)
       character(len=1), parameter :: nl=achar(10)
       integer :: nhrs
 !
-      nhrs = hr_in_day*(idacc(ia_12hr)/2)
+      nhrs = min(hr_in_month,hr_in_day*(idacc(ia_12hr)/2))
+      im_data = hr_in_month ! input arrays always dimensioned the same
       call open_diurn(filename,nhrs,NDIUVAR_gcm)
-! input arrays will have extra 4 hours b/c radiation end-of-month wraparound
-      im_data=hr_in_month+4
 
       att_name='note'
       att_str=nl//
