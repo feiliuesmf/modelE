@@ -592,6 +592,7 @@ C**** need to do some diagnostic initialisation here
       call reset_diag(1)
  
       write( 6, INPUTZ )
+      call print_param( 6 )
 
       IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
 C***********************************************************************
@@ -1069,6 +1070,7 @@ C****
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
       if(istart.gt.0) WRITE (6,INPUTZ)
+      if(istart.gt.0) call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
       WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM

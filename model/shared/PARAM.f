@@ -20,7 +20,8 @@
       private
 
       public set_param, get_param, get_pparam, read_param, write_param
-      public is_set_param, alloc_param, sync_param
+      public is_set_param, alloc_param, sync_param, print_param
+      public query_param
 
       integer, parameter :: MAX_PARAMS = 256
       integer, parameter :: MAX_RPARAMS = 64
@@ -109,7 +110,7 @@
       if ( len(name_in) > MAX_NAME_LEN ) then
         print *, 'PARAM: parameter name too long: ', name_in
         print *, 'PARAM: maximal length allowed: ', MAX_NAME_LEN
-        stop 255
+        stop 'PARAM: parameter name too long: '
       endif
 
       name = name_in
@@ -121,7 +122,7 @@
         if ( .not. flag ) then
           print *, 'PARAM: attempt to set param which is already set'
           print *, 'name: ', name
-          stop 255
+          stop 'PARAM: attempt to set param which is already set'
         else
           return  ! return PStr found by get_pstr
         endif
@@ -130,7 +131,7 @@
       if ( num_param >= MAX_PARAMS ) then
         print *, 'PARAM: Maximal number of parameters exceeded'
         print *, 'PARAM: Please recompile param with bigger MAX_PARAMS'
-        stop 255
+        stop 'PARAM: Maximal number of parameters exceeded'
       endif
 
       num_param = num_param + 1
@@ -144,7 +145,7 @@
           if ( num_iparam+dim >= MAX_IPARAMS ) then
             print *, 'PARAM: Maximal number of int parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_IPARAMS'
-            stop 255
+            stop 'PARAM: Maximal number of int parameters exceeded'
           endif
           PStr%index = num_iparam + 1
           num_iparam = num_iparam + dim
@@ -152,7 +153,7 @@
           if ( num_rparam+dim >= MAX_RPARAMS ) then
             print *, 'PARAM: Maximal number of real parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_RPARAMS'
-            stop 255
+            stop 'PARAM: Maximal number of real parameters exceeded'
           endif
           PStr%index = num_rparam + 1
           num_rparam = num_rparam + dim
@@ -160,7 +161,7 @@
           if ( num_cparam+dim >= MAX_CPARAMS ) then
             print *, 'PARAM: Maximal number of char parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_CPARAMS'
-            stop 255
+            stop 'PARAM: Maximal number of char parameters exceeded'
           endif
           PStr%index = num_cparam + 1
           num_cparam = num_cparam + dim
@@ -194,7 +195,7 @@
         print *, 'PARAM: wrong type or dim of parameter: ', name
         print *, 'ATT: set: ', Params(n)%attrib, ' called: ', attrib
         print *, 'DIM: set: ', Params(n)%dim, ' called: ', dim
-        stop 255
+        stop 'PARAM: wrong type or dim of parameter'
       endif
     
       PStr => Params(n)
@@ -258,7 +259,7 @@
       call get_pstr( name, np, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       value(1:np) = Idata( PStr%index : PStr%index+np-1 )
       return
@@ -274,7 +275,7 @@
       call get_pstr( name, 1, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Idata( PStr%index )
       return
@@ -290,7 +291,7 @@
       call get_pstr( name, np, 'i', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Idata( PStr%index:PStr%index+np-1 )
       return
@@ -352,7 +353,7 @@
       call get_pstr( name, np, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       value(1:np) = Rdata( PStr%index : PStr%index+np-1 )
       return
@@ -368,7 +369,7 @@
       call get_pstr( name, 1, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Rdata( PStr%index )
       return
@@ -384,7 +385,7 @@
       call get_pstr( name, np, 'r', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Rdata( PStr%index:PStr%index+np-1 )
       return
@@ -401,24 +402,12 @@
       character*(MAX_CHAR_LEN) v(1)
       if ( len(value) > MAX_CHAR_LEN ) then
         print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
-        stop 255
+        stop 'PARAM: Char string too long'
       endif
       v(1) = value
       call set_acparam( name, v, 1, opt )
       return
       end subroutine set_cparam
-
-c$$$      subroutine set_cparam( name, value )
-c$$$      implicit none
-c$$$      character*(*), intent(in) :: name
-c$$$      character*(*), intent(in) :: value
-c$$$      integer np
-c$$$      type (ParamStr), pointer :: PStr
-c$$$      np = len (value )
-c$$$      call set_pstr( name, np, 'c', PStr )
-c$$$      Cdata( PStr%index : PStr%index+np-1 ) = value(1:np)
-c$$$      return
-c$$$      end subroutine set_cparam
     
 
       subroutine set_acparam( name, value, np, opt )
@@ -437,8 +426,8 @@ c$$$      end subroutine set_cparam
       do n=1,np
         if ( len(value(n)) > MAX_CHAR_LEN ) then
           print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
-          print *, 'You submitted LEN = ', len(value)
-          stop 255
+          print *, 'You submitted LEN = ', len(value(n))
+          stop 'PARAM: Char string too long'
         endif
       enddo
       call set_pstr( name, np, 'c', PStr, flag )
@@ -469,7 +458,7 @@ c$$$      end subroutine set_cparam
       call get_pstr( name, np, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       value(1:np) = Cdata( PStr%index : PStr%index+np-1 )
       return
@@ -485,7 +474,7 @@ c$$$      end subroutine set_cparam
       call get_pstr( name, 1, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Cdata( PStr%index )
       return
@@ -501,7 +490,7 @@ c$$$      end subroutine set_cparam
       call get_pstr( name, np, 'c', PStr )
       if ( .not. associated( PStr) ) then
         print *, 'PARAM: Can''t get - not in database : ', name
-        stop 255
+        stop 'PARAM: Can''t get parameter - not in database'
       endif
       pvalue => Cdata( PStr%index:PStr%index+np-1 )
       return
@@ -696,7 +685,7 @@ c      print *, 'READING PARAMETERS from rsf'
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
         print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
-        stop 255
+        stop 'PARAM: parameter list in input file too long'
       endif
 
       ! now merge the data just read with existing database
@@ -718,7 +707,7 @@ c      print *, 'READING PARAMETERS from rsf'
       enddo
       return
  10   print *, 'PARAM: Error reading, unit = ', kunit
-      stop 255
+      stop 'PARAM: Error reading'
       end subroutine read_param
   
 
@@ -735,11 +724,94 @@ c      print *, 'READING PARAMETERS from rsf'
      *     ( Cdata(n), n=1,min(num_cparam,MAX_CPARAMS) )
       return
  10   print *, 'PARAM: Error writing, unit = ', kunit
-      stop 255
+      stop 'PARAM: Error writing'
       end subroutine write_param
 
 
+      subroutine print_param1( kunit )
+      implicit none
+      integer, intent(in) :: kunit
+      integer, parameter :: nf = 7
+      integer n, i
+
+      write( kunit, * ) '&&PARAMETERS'
+      do n=1, num_param
+        select case( Params(n)%attrib )
+        case ('i')
+          write( kunit, '(1x,a16,a3,8i16)' )
+     $         Params(n)%name, ' = ',
+     $        ( Idata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+          if ( Params(n)%dim > nf )
+     $         write( kunit, '(20x,,8i16)' )
+     $        ( Idata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+        case ('r')
+          write( kunit, '(1x,a16,a3,8g16.6)' )
+     $         Params(n)%name, ' = ',
+     $        ( Rdata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+          if ( Params(n)%dim > nf )
+     $         write( kunit, '(20x,,8g16.6)' )
+     $        ( Rdata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+        case ('c')
+          write( kunit, '(1x,a16,a3,8a16)' )
+     $         Params(n)%name, ' = ',
+     $        ( Cdata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+          if ( Params(n)%dim > nf )
+     $         write( kunit, '(20x,,8a16)' )
+     $        ( Cdata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+        end select
+      enddo
+      write( kunit, * ) '&&END_PARAMETERS'
+      end subroutine print_param1
+
+
+      subroutine print_param( kunit )
+      implicit none
+      integer, intent(in) :: kunit
+      integer, parameter :: nf = 7
+      integer n, i
+
+      write( kunit, * ) '&&PARAMETERS'
+      do n=1, num_param
+        select case( Params(n)%attrib )
+        case ('i')
+          write( kunit, * )
+     $         trim(Params(n)%name), ' = ',
+     $        ( Idata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+       case ('r')
+          write( kunit, * )
+     $         trim(Params(n)%name), ' = ',
+     $        ( Rdata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+        case ('c')
+          write( kunit, * )
+     $         trim(Params(n)%name), ' = ',
+     $        ( Cdata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+        end select
+      enddo
+      write( kunit, * ) '&&END_PARAMETERS'
+      end subroutine print_param
+
+
+      subroutine query_param( n, name, dim, ptype )
+      integer, intent(in) :: n
+      character*(*), intent(out) :: name
+      integer, intent(out) :: dim
+      character*1, intent(out) :: ptype
+
+      if ( n>0 .and. n<=num_param ) then
+        name = Params(n)%name
+        dim = Params(n)%dim
+        ptype = Params(n)%attrib
+      else
+        name = 'EMPTY'
+        dim = 0
+        ptype = 'U'
+      endif
+
+      end subroutine query_param
+
+
       subroutine lowcase( str )
+      ! converts string str to lower case
       implicit none
       character*(*) str
       integer n, i

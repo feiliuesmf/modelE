@@ -34,7 +34,6 @@ ccc JC doesh't contain any data and will be removed soon
       !EQUIVALENCE (JC,IM0)
 
 C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
-c      pointer PTOP, PSF, DTsrc, DT, SKIPSE
       DOUBLE PRECISION ::
      *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG, SKIPSE
       DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
@@ -48,8 +47,7 @@ ccc RC doesh't contain any data and will be removed soon
       DOUBLE PRECISION, DIMENSION(161) :: RC
       !EQUIVALENCE (RC,DTsrc)
 
-c      pointer NAMD6
-      CHARACTER*4 NAMD6(4),AMON,AMON0
+      CHARACTER*4 :: NAMD6(4),AMON='none',AMON0='none'
       CHARACTER*132 XLABEL
 
 !@var LABEL1,CLABEL,XLABEL handles for referring to text parameters
