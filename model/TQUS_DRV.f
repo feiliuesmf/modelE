@@ -405,6 +405,8 @@ c****   mass (kg) = fluid mass
 c****
       use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSDEF
+      use GEOM, only : imaxj
+      use MODEL_COM, only : fim
       implicit none
       double precision, dimension(im,jm,lm) :: rm,mass,mw
       double precision, dimension(nmom,im,jm,lm) :: rmom
@@ -417,7 +419,7 @@ c****
 
 c**** loop over latitudes and longitudes
       do j=1,jm
-      do i=1,im
+      do i=1,imaxj(j)
       fqw(:) = 0.
       cm(:) = mw(i,j,:)/nstep(i,j)
       cm(lm)= 0.
@@ -439,6 +441,11 @@ c****
         scf (j,l) = scf (j,l) + fqw(l)
       enddo
       enddo ! i
+      if (j.eq.1.or.j.eq.jm) then
+        sfcm(j,:) = fim*sfcm(j,:)
+        scm(j,:)  = fim*scm(j,:)
+        scf(j,:)  = fim*scf(j,:)
+      end if
       enddo ! j
       return
 c****

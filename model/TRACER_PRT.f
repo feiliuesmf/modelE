@@ -361,7 +361,7 @@ C****
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  pm,tajln(1,1,k,n),scalet,onespo,ones,lm-1,1,jgrid_jlq(k))
+     *  pm,tajln(1,1,k,n),scalet,ones,ones,lm-1,1,jgrid_jlq(k))
       a(:,:) = 0.
       do 260 l=1,lm-1
       do 260 j=1,jm
@@ -371,7 +371,7 @@ C****
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  pm,a,scalet,onespo,ones,lm-1,1,jgrid_jlq(k))
+     *  pm,a,scalet,ones,ones,lm-1,1,jgrid_jlq(k))
 C****
 C**** Convective Processes
 C****

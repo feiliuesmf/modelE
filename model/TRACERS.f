@@ -441,7 +441,7 @@ C**** Surface concentration
 
       if (k .gt. ktaijk) then
         write (6,*) 
-     &   'tjl_defs: Increase ktaijk=',ktaijk,' to at least ',k
+     &   'tij_defs: Increase ktaijk=',ktaijk,' to at least ',k
         stop 'ktaijk too small'
       end if
 
