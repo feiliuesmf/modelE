@@ -332,6 +332,8 @@ C***
 !----------------------------------------------------------------------!
 ! adf
      &     ,fdir,Ci,Qf,nm,nf,alai
+! added by ia
+     &     ,Cin,Qfn,qv,vh
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
