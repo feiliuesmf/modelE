@@ -498,12 +498,15 @@ C****
 !@sum  JKJL_TITLEX titles etc for composite jl, jk output
 !@auth G. Schmidt/M. Kelley/J. Lerner
 !@ver  1.0
+      use filemanager
       USE CONSTANT, only : sday,bygrav,sha,lhe
       USE MODEL_COM, only : byim,DTsrc
       USE BDjkjl
       USE DAGCOM
       IMPLICIT NONE
-      INTEGER :: K
+      INTEGER :: K,kk,iu_Ijk
+      LOGICAL qIjk,Ql(KAJLx),Qk(KAJKx)
+      character*80 line
 c
 c derived JL-arrays
 c
@@ -600,6 +603,27 @@ c Check the count
         call stop_model('JL_TITLES: KAJLx too small',255)
       end if
 
+      inquire(file='Ijk',exist=qIjk)
+      if(.not.qIjk) then
+         call openunit('Ijk',iu_Ijk,.false.,.false.)
+         write (iu_Ijk,'(a)') 'List of JL-fields'
+         do kk = 1,k
+           write (iu_Ijk,'(i3,1x,a)') kk,lname_jl(kk)
+         end do
+      else if(kdiag(2).gt.0) then
+         Ql=.false.
+         call openunit('Ijk',iu_Ijk,.false.,.true.)
+         read (iu_Ijk,'(a)',end=20) line
+   10    read (iu_Ijk,'(a)',end=20) line
+         if(line(1:1).eq.'L') go to 20
+         read(line,'(i3)') kk
+         Ql(kk)=.true.
+         go to 10
+   20    continue
+         do kk=1,KAJLx
+           if(.not.Ql(kk)) sname_jl(kk)='skip'
+         end do
+       end if
 c
 c derived JK-arrays
 c
@@ -853,6 +877,23 @@ c Check the count
         write (6,*) 'Increase KAJKx=',KAJKx,' to at least ',k
         call stop_model('JK_TITLES: KAJKx too small',255)
       end if
+
+      if(.not.qIjk) then
+         write (iu_Ijk,'(a)') 'List of JK-fields'
+         do kk = 1,k
+           write (iu_Ijk,'(i3,1x,a)') kk,lname_jk(kk)
+         end do
+      else if(kdiag(2).gt.0) then
+         Qk=.false.
+   30    read (iu_Ijk,'(a)',end=40) line
+         read(line,'(i3)') kk
+         Qk(kk)=.true.
+         go to 30
+   40    continue
+         do kk=1,KAJKx
+           if(.not.Qk(kk)) sname_jk(kk)='skip'
+         end do
+       end if
 
       RETURN
       END SUBROUTINE JKJL_TITLEX
@@ -2091,6 +2132,7 @@ C****
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
+      if(sname.eq.'skip') return
 C form title string
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
@@ -2183,6 +2225,7 @@ C****
       ENTRY JKMAPS(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
+      if(sname.eq.'skip') return
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
       PRTFAC = 10.**(-pow10p)
@@ -2283,6 +2326,7 @@ C****
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
+      if(sname.eq.'skip') return
 C form title string
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
@@ -2368,6 +2412,7 @@ C****
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
 
+      if(sname.eq.'skip') return
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
       PRTFAC = 10.**(-pow10p)
@@ -2466,6 +2511,7 @@ C****
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 
+      if(sname.eq.'skip') return
 C form title string
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
@@ -3533,7 +3579,7 @@ c**** find hemispheric and global means
       CHARACTER xlb*32,title*48,lname*80,name*30,units*30
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-
+      logical qIij
       INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange,iu_Iij,koff
 
       REAL*8 ::
@@ -3593,8 +3639,11 @@ c**** always skip unused fields
         if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
       end do
 
-      if (kdiag(3).gt.0) call set_ijout (kdiag(3),nmaplets,nmaps,
-     *  Iord,Qk,iu_Iij)
+      inquire (file='Iij',exist=qIij)
+      if (.not.qIij .and. kdiag(3).lt.8) kdiag(3)=8 ! ->0 in set_ijout
+      if (     qIij .and. kdiag(3).gt.7) kdiag(3)=0 ! ignore Iij
+      if (.not.qIij .or.  kdiag(3).gt.0)
+     *    call set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
       DAYS=(Itime-Itime0)/DFLOAT(nday)
@@ -3875,7 +3924,7 @@ C****
       END SUBROUTINE IJMAP
 
 
-      subroutine set_ijout (iopt,nmaplets,nmaps,Iord,Qk,iu_Iij)
+      subroutine set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
 !@sum set_ijout either lists or sets the fields to be processed
 !@auth Reto A. Ruedy
 !@ver  1.0
@@ -3885,17 +3934,18 @@ C****
 
       IMPLICIT NONE
       character*80 line
-      logical Qk(kaijx)
-      INTEGER Iord(kaijx+10),nmaplets,nmaps,iopt,iu_Iij,k,
+      logical Qk(kaijx),Qktmp(kaijx)
+      INTEGER Iord(kaijx+10),nmaplets,nmaps,iu_Iij,k,
      *   n,kmap(3)
 
-c**** Just list what's available - then do same for ijk-fields ???
-      if (iopt .eq. 8) then
+c**** Just list what's available - then do same for ijk-fields
+      if (kdiag(3) .eq. 8) then
+        Qktmp = Qk
         call openunit('Iij',iu_Iij,.false.,.false.)
         write (iu_Iij,'(a)') 'List of fields shown as maplets'
         do n=1,nmaplets
           k = Iord(n)
-          Qk(k) = .false.
+          Qktmp(k) = .false.
           if (k.le.0) then
              write (iu_Iij,'(i3,1x,a)') k, '  blank maplet'
           else
@@ -3905,7 +3955,7 @@ c**** Just list what's available - then do same for ijk-fields ???
         write (iu_Iij,'(a)') 'List of fields shown as 1-pg maps'
         do n=nmaplets+1,nmaplets+nmaps
           k = Iord(n)
-          Qk(k) = .false.
+          Qktmp(k) = .false.
           if (k.le.0) then
              cycle
           else
@@ -3914,11 +3964,12 @@ c**** Just list what's available - then do same for ijk-fields ???
         end do
         write (iu_Iij,'(a)') 'List of other fields in binary output'
         do k=1,kaijx
-          if (.not.Qk(k)) cycle
+          if (.not.Qktmp(k)) cycle
           write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
         end do
-        Qk = .false.
         CALL IJKMAP (iu_Iij)
+        kdiag(3)=0
+        return
       end if
 
 c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
@@ -4858,8 +4909,6 @@ C**** All titles/names etc. implicitly assume that this will be done.
       INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
       logical, dimension (kaijkx) :: Qk
 
-C**** OPEN PLOTTABLE OUTPUT FILE
-      call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID),im,jm,lm)
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
@@ -4875,7 +4924,7 @@ C****
            if (lname_ijk(k).ne.'unused')
      *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
          end do
-         call stop_model('created file Iij',255)
+         return
       else if (kdiag(3).gt.1) then
          Qk = .false.
    10    read (iu_Iij,'(i3)',end=20) k
@@ -4885,6 +4934,8 @@ C****
          call closeunit(iu_Iij)
       end if
 
+C**** OPEN PLOTTABLE OUTPUT FILE
+      call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID),im,jm,lm)
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
       XLB = ' '
