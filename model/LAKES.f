@@ -316,8 +316,8 @@ C**** Set FTYPE array for lakes
       DO J=1,JM
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
-            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
-            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J) 
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J))
      *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
@@ -459,12 +459,13 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,shw,rhow
-      USE E001M12_COM, only : im,jm,focean,zatmo,hlake
+      USE E001M12_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
+     *     ,ftype
       USE GEOM, only : dxyp
       USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
       USE SEAICE_COM, only : rsi
-      USE FLUXES, only : flowo,eflowo
+      USE FLUXES, only : flowo,eflowo,gtemp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr
 
       IMPLICIT NONE
@@ -567,6 +568,18 @@ C****
       END IF
 
       CALL PRINTLK("RV")
+C**** Set FTYPE array for lakes
+      DO J=1,JM
+        DO I=1,IM
+          IF (FLAKE(I,J).gt.0) THEN
+            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+c            GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J))
+c     *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
+          END IF
+        END DO
+      END DO
 
       RETURN
 C****
@@ -753,8 +766,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
               SNOWI(I,J)=SNOW
               HSI(:,I,J)=HSIL(:)
 C**** set ftype/gtemp arrays
-              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
-              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
               GTEMP(1:2,2,I,J) = TSIL(1:2)
               GTEMP(1  ,1,I,J) = TLAKE(I,J)
             END IF
@@ -780,8 +793,8 @@ c              IF (FLAKE(I,J).lt.0.005) THEN
 c             PRINT*,"Lake removal (too small)",I,J,MWL(I,J),GML(I,J),MLDLK(I,K)
 c                FLAKE(I,J) = 0.
 c              MLDLK(I,J)=MIN(MLDLK(I,J),MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)))
-c              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
-c              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+c              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+c              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
 c            END IF
 c          END DO
 c        END DO
@@ -1011,8 +1024,8 @@ C****
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=6
       INTEGER I,J,N,IDIAG(NDIAG),JDIAG(NDIAG)
-      DATA IDIAG/53,15,18,22,23,10/,
-     *     JDIAG/32,37,33,25,22,40/
+      DATA IDIAG/57,53,15,18,22,23/,  !10/,
+     *     JDIAG/31,32,37,33,25,22/  !,40/
       REAL*8 HLK2,TLK2
 
       IF (.NOT.QCHECK) RETURN

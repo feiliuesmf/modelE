@@ -481,6 +481,7 @@ C**** save output diagnostics
       REAL*8 DIFS1
 
       EDIFSI=0. ; DIFSI=0. 
+      MSI1=SNOW+ACE1I
       IF (.not.QFIXR .and. ROICE.LE.0. .and. ACEFO.gt.0) THEN
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
@@ -493,7 +494,6 @@ C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
         MSI2=AC2OIM
       ELSEIF (ROICE.gt.0) THEN
 
-      MSI1=SNOW+ACE1I
       IF (.not. QFIXR) THEN
       IF (ACE2F.le.0) GO TO 250 ! go to no freezing case
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE

@@ -205,6 +205,7 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_type
       USE FLUXES, only : dmsi,dhsi,gtemp
+      USE LAKES_COM, only : flake
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
@@ -217,7 +218,7 @@ C****
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
       DO I=1,IMAX
-      PWATER=1.-FLAND(I,J)
+      PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       JR=JREG(I,J)
@@ -258,8 +259,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
 C**** set ftype arrays
-          FTYPE(ITYPE ,I,J)=(1.-FLAND(I,J))*RSI(I,J)
-          FTYPE(ITYPEO,I,J)=(1.-FLAND(I,J))-FTYPE(ITYPE,I,J)
+          FTYPE(ITYPE ,I,J)=PWATER*RSI(I,J)
+          FTYPE(ITYPEO,I,J)=PWATER - FTYPE(ITYPE ,I,J)
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
@@ -342,13 +343,13 @@ C****
 C****   set defaults for no ice case
         DO J=1,JM
         DO I=1,IM
-           IF (RSI(I,J).eq.0) THEN
-             MSI1        =ACE1I
-             MSI(I,J)    =AC2OIM
-             SNOWI(I,J)  =0.
-             HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
-             HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
-           END IF
+          IF (RSI(I,J).le.0) THEN
+            MSI1        =ACE1I
+            MSI(I,J)    =AC2OIM
+            SNOWI(I,J)  =0.
+            HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
+            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+          END IF
         END DO
         END DO
       END IF

@@ -36,7 +36,6 @@ C**** INITIALIZE TIME PARAMETERS
       CALL DAILY(0)
       if (itime.eq.itimei) call reset_diag
       CALL daily_EARTH(0)
-      CALL daily_LAKE(0)
       CALL daily_OCEAN(0)
       CALL CALC_AMPK(LS1-1)
          CALL CHECKT ('INPUT ')
@@ -232,6 +231,7 @@ C****
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
            CALL DIAG9A (10)
+        call flush(6)   
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
