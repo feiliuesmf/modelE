@@ -269,6 +269,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
      *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
      *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
+!@var SCALE_IJ scaling for weighted AIJ diagnostics
+      REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=20), dimension(kaij) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
@@ -285,8 +287,15 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kajk) :: name_jk,units_jk
       character(len=80), dimension(kajk) :: lname_jk
 
+!@var IJK_xxx AIJK diagnostic names
+      INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q
+!@var SCALE_IJK scaling for weighted AIJK diagnostics
+      REAL*8, DIMENSION(KAIJK) :: SCALE_IJK
+!@var OFF_IJK offset for weighted AIJK diagnostics
+      REAL*8, DIMENSION(KAIJK) :: OFF_IJK
+
       character(len=20), dimension(kaijk) :: name_ijk,units_ijk
-      character(len=80), dimension(kaijk) :: lname_ijk
+      character(len=80), dimension(kaijk) :: lname_ijk,scname_ijk
 
       character(len=20), dimension(kaijl) :: name_ijl,units_ijl
       character(len=80), dimension(kaijl) :: lname_ijl

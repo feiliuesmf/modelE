@@ -352,7 +352,7 @@ C****
       SUBROUTINE DIAGA (U,V,T,P,Q,PIT,SD)
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
-!@ve   1.0
+!@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
@@ -1241,7 +1241,8 @@ C****
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
-     &     nwav_dag,ndlypt,hr_in_day
+     &     nwav_dag,ndlypt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
+     *     ,ijk_dse
       USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
@@ -1544,12 +1545,12 @@ C**** ACCUMULATE HERE
       DUTI=DUTI+DUTK
       UDUTI=UDUTI+BYDP*PUK*DUTK
 !!    IF(SKIPSE.EQ.1.) GO TO 334
-      AIJK(I,J,K,1)=AIJK(I,J,K,1)+PUK
-      AIJK(I,J,K,2)=AIJK(I,J,K,2)+PVK
-      AIJK(I,J,K,3)=AIJK(I,J,K,3)+SHA*PT4K+PZ4K
-      AIJK(I,J,K,4)=AIJK(I,J,K,4)+DPK
-      AIJK(I,J,K,5)=AIJK(I,J,K,5)+PT4K
-      AIJK(I,J,K,6)=AIJK(I,J,K,6)+PQ4K
+      AIJK(I,J,K,IJK_U)  =AIJK(I,J,K,IJK_U)  +PUK
+      AIJK(I,J,K,IJK_V)  =AIJK(I,J,K,IJK_V)  +PVK
+      AIJK(I,J,K,IJK_DSE)=AIJK(I,J,K,IJK_DSE)+SHA*PT4K+PZ4K
+      AIJK(I,J,K,IJK_DP) =AIJK(I,J,K,IJK_DP) +DPK
+      AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
+      AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
 C**** EDDY TRANSPORT OF THETA;  VORTICITY
   334 PS4I=PS4I+PS4K
       PSV4I=PSV4I+BYDP*PVK*PS4K
@@ -2156,7 +2157,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 
       SUBROUTINE DIAG9A (M)
 !@sum  DIAG9A Keeps track of the conservation properties of angular
-!@sum  momentum, kinetic energy, mass, total potential energy and water
+!@+    momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : mdiag
@@ -2227,7 +2228,7 @@ C****
 
       SUBROUTINE DIAG9D (M,DT1,UX,VX,DUT,DVT,PIT)
 !@sum  DIAG9D Keeps track of the conservation properties of angular
-!@sum  momentum and kinetic energy inside dynamics routines
+!@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : omega,mb2kg
@@ -2911,7 +2912,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1          !! ,SKIPSE
       USE GEOM, only : DXYV
-      USE DAGCOM, only : energy,speca,ajk,aijk
+      USE DAGCOM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp
       IMPLICIT NONE
 
       INTEGER ::
@@ -2939,10 +2940,11 @@ C**** CALCULATE CURRENT SEKE
       PV4TI=0.
       SKE4I=0.
       DO 510 I=1,IM
-      PU4TI=PU4TI+AIJK(I,J,L,1)
-      PV4TI=PV4TI+AIJK(I,J,L,2)
-  510 SKE4I=SKE4I+(AIJK(I,J,L,1)*AIJK(I,J,L,1)
-     *            +AIJK(I,J,L,2)*AIJK(I,J,L,2))/(AIJK(I,J,L,4)+1.D-20)
+      PU4TI=PU4TI+AIJK(I,J,L,IJK_U)
+      PV4TI=PV4TI+AIJK(I,J,L,IJK_V)
+  510 SKE4I=SKE4I+(AIJK(I,J,L,IJK_U)*AIJK(I,J,L,IJK_U)
+     *            +AIJK(I,J,L,IJK_V)*AIJK(I,J,L,IJK_V))
+     *            /(AIJK(I,J,L,IJK_DP)+1.D-20)
       SEKE=(SKE4I-(PU4TI*PU4TI+PV4TI*PV4TI)/AJK(J,L,2))*DXYV(J)*BYIADA
       IF (J.EQ.JEQ) GO TO 520
       ENERGY(KS,IDACC5)=ENERGY(KS,IDACC5)+SEKE

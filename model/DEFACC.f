@@ -1078,14 +1078,14 @@ c
 c
       k=k+1 !  'AIJ036'
       IJ_US   = k ! US (M/S)                                  3 SF
-      lname_ij(k) = 'ACCUMULATED EASTWARD COMP. OF SURFACE WIND'
+      lname_ij(k) = 'U COMPONENT OF COMPOSITE SURFACE AIR WIND'
       units_ij(k) = 'm/s'
       name_ij(k) = 'US'
       ia_ij(k) = ia_srf
 c
       k=k+1 !  'AIJ037'
       IJ_VS   = k ! VS (M/S)                                  3 SF
-      lname_ij(k) = 'ACCUMULATED NORTHWARD COMP. OF SURFACE WIND'
+      lname_ij(k) = 'V COMPONENT OF COMPOSITE SURFACE AIR WIND'
       units_ij(k) = 'm/s'
       name_ij(k) = 'VS'
       ia_ij(k) = ia_srf
@@ -1155,21 +1155,21 @@ c
 c
       k=k+1 !  'AIJ047'
       IJ_TAUS = k ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'ACCUMULATED MAG. OF SURFACE STRESS'
+      lname_ij(k) = 'MAG OF COMPOSITE MOMENTUM SURFACE DRAG'
       units_ij(k) = 'kg/m*s^2'
       name_ij(k) = 'TAUS'
       ia_ij(k) = ia_srf
 c
       k=k+1 !  'AIJ048'
       IJ_TAUUS = k ! TAUUS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'ACCUMULATED EASTWARD COMP. OF SURFACE STRESS'
+      lname_ij(k) = 'U COMPON OF COMPOSITE MOMENTUM SRF DRAG'
       units_ij(k) = 'kg/m*s^2'
       name_ij(k) = 'TAUUS'
       ia_ij(k) = ia_srf
 c
       k=k+1 !  'AIJ049'
       IJ_TAUVS = k ! TAUVS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'ACCUMULATED NORTHWARD COMP. OF SURFACE STRESS'
+      lname_ij(k) = 'V COMPON OF COMPOSITE MOMENTUM SRF DRAG'
       units_ij(k) = 'kg/m*s^2'
       name_ij(k) = 'TAUVS'
       ia_ij(k) = ia_srf
@@ -2730,6 +2730,7 @@ c
       end subroutine consrv_defs
 
       subroutine ijk_defs
+      use CONSTANT, only : bygrav,tf
       use DAGCOM
       implicit none
       integer :: k
@@ -2738,39 +2739,66 @@ c
          write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
          lname_ijk(k) = 'unused'
          units_ijk(k) = 'unused'
+         scname_ijk(k)= 'unused'
+         scale_ijk(k) = 1.
+         off_ijk(k)   = 0.
       enddo
 c
       k=0
 c
       k=k+1
+      IJK_U=k
       name_ijk(k) = 'UDPB'
-      lname_ijk(k) = 'u-wind x delta p, b-grid'
+      lname_ijk(k) = 'U-WIND            x delta p, b-grid'
       units_ijk(k) = '100 PA*m/s'
+      scname_ijk(k)= '     U-WIND           at        mb (m/s, UV G)'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
 c
       k=k+1
+      IJK_V=k
       name_ijk(k) = 'VDPB'
-      lname_ijk(k) = 'v-wind x delta p, b-grid'
+      lname_ijk(k) = 'V-WIND            x delta p, b-grid'
       units_ijk(k) = '100 PA*m/s'
+      scname_ijk(k)= '     V-WIND           at        mb (m/s, UV G)'
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
 c
       k=k+1
+      IJK_DSE=k
       name_ijk(k) = 'DSEDPBx4'
-      lname_ijk(k) = 'dry stat. energy x delta p x 4, b-grid'
+      lname_ijk(k) = 'dry stat. energy  x delta p x 4, b-grid'
       units_ijk(k) = '100 N/s^2'
+      scname_ijk(k)='       HEIGHT         at        mb (m, UV Grid)' 
+      scale_ijk(k) = .25*BYGRAV
+      off_ijk(k)   = 0.
 c
       k=k+1
+      IJK_DP=k
       name_ijk(k) = 'DPB'
       lname_ijk(k) = 'delta p, b-grid'
       units_ijk(k) = '100 PA'
+      scname_ijk(k)='       DELTA-P        at        mb (m, UV Grid)' 
+      scale_ijk(k) = 1.
+      off_ijk(k)   = 0.
 c
       k=k+1
+      IJK_T=k
       name_ijk(k) = 'TDPBx4'
-      lname_ijk(k) = 'temperature x delta p x 4, b-grid'
+      lname_ijk(k) = 'TEMPERATURE       x delta p x 4, b-grid'
       units_ijk(k) = '100 K*PA'
+      scname_ijk(k)= '     TEMPERATURE      at        mb (C, UV Grid)'
+      scale_ijk(k) = 0.25
+      off_ijk(k)   = -TF
 c
       k=k+1
+      IJK_Q=k
       name_ijk(k) = 'QDPBx4'
-      lname_ijk(k) = 'spec. humidity x delta p x 4, b-grid'
+      lname_ijk(k) = 'SPECIFIC HUMIDITY x delta p x 4, b-grid'
       units_ijk(k) = '100 PA'
+      scname_ijk(k)='    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
+      scale_ijk(k) = 0.25*1d5
+      off_ijk(k)   = 0.
 c
       return
       end subroutine ijk_defs

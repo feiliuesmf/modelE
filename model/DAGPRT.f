@@ -1057,7 +1057,7 @@ c      USE PRTCOM, only :
      &     PLM
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
-     &    ,qcheck, acc_period
+     &    ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENDEG
@@ -1274,9 +1274,9 @@ C     DO 125 K=1,KM
 C     DEL(I,J)=DEL(I,J)+AIJL(I,J,K,3)
 C     ELL(I,J)=ELL(I,J)+AIJL(I,J,K,4)
 C     AML(I,J)=AML(I,J)+AIJL(I,J,K,1)
-C     DEK(I,J)=DEK(I,J)+AIJK(I,J,K,3)
-C     ELK(I,J)=ELK(I,J)+AIJK(I,J,K,6)
-C 125 AMK(I,J)=AMK(I,J)+AIJK(I,J,K,1)
+C     DEK(I,J)=DEK(I,J)+AIJK(I,J,K,IJK_DSE)    
+C     ELK(I,J)=ELK(I,J)+AIJK(I,J,K,IJK_Q)
+C 125 AMK(I,J)=AMK(I,J)+AIJK(I,J,K,IJK_U)
 C     IF(J.GT.40.OR.J.LT.38) GO TO 129
 C     IF(I.GT.70) THEN
 C       WRITE(6,126) I,J,DEK(I,J),DEL(I,J),ELK(I,J),ELL(I,J),
@@ -1316,20 +1316,20 @@ C     CALL FFTI(FCJKA(0,J,K),FCJKB(0,J,K),ACHK(1,J,K))
       SNELGI=0.
       SNAMI=0.
       DO 160 I=1,IM
-      IF (AIJK(I,J,K,4).EQ.0.) GO TO 160
-      DPTI=DPTI+AIJK(I,J,K,4)
-      BYDPK=1./(AIJK(I,J,K,4)+1.D-20)
-      PUTI=PUTI+AIJK(I,J,K,1)
-      PVTI=PVTI+AIJK(I,J,K,2)
-      DE4TI=DE4TI+AIJK(I,J,K,3)
-      EL4QI=EL4QI+AIJK(I,J,K,6)
-      SKEI=SKEI+(AIJK(I,J,K,1)*AIJK(I,J,K,1)
-     *            +AIJK(I,J,K,2)*AIJK(I,J,K,2))*BYDPK
-      SNDEGI=SNDEGI+(AIJK(I,J,K,3)*AIJK(I,J,K,2)*BYDPK)
+      IF (AIJK(I,J,K,IJK_DP).EQ.0.) GO TO 160
+      DPTI=DPTI+AIJK(I,J,K,IJK_DP)
+      BYDPK=1./(AIJK(I,J,K,IJK_DP)+1.D-20)
+      PUTI=PUTI+AIJK(I,J,K,IJK_U)
+      PVTI=PVTI+AIJK(I,J,K,IJK_V)
+      DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
+      EL4QI=EL4QI+AIJK(I,J,K,IJK_Q)
+      SKEI=SKEI+(AIJK(I,J,K,IJK_U)*AIJK(I,J,K,IJK_U)
+     *            +AIJK(I,J,K,IJK_V)*AIJK(I,J,K,IJK_V))*BYDPK
+      SNDEGI=SNDEGI+(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_V)*BYDPK)
       SENDEG(I,J)=SENDEG(I,J)
-     *  +(AIJK(I,J,K,3)*AIJK(I,J,K,2)*BYDPK)
-      SNELGI=SNELGI+(AIJK(I,J,K,6)*AIJK(I,J,K,2)*BYDPK)
-      SNAMI=SNAMI+AIJK(I,J,K,1)*AIJK(I,J,K,2)*BYDPK
+     *  +(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_V)*BYDPK)
+      SNELGI=SNELGI+(AIJK(I,J,K,IJK_Q)*AIJK(I,J,K,IJK_V)*BYDPK)
+      SNAMI=SNAMI+AIJK(I,J,K,IJK_U)*AIJK(I,J,K,IJK_V)*BYDPK
   160 CONTINUE
       AX(J,K)=SKEI-(PUTI*PUTI+PVTI*PVTI)/(DPTI+1.D-20)
       SZNDEG=DE4TI*PVTI/(DPTI+1.D-20)
@@ -3870,6 +3870,7 @@ C****
      &     AREAG,DXV,DXYP,DXYV
       USE DAGCOM, only :
      &     ajk,kdiag,aij,kaij,aijk,tsfrez,ia_ij,
+     *     ijk_v,ijk_dse,ijk_u,ijk_dp,
      &     IJ_PEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       USE BDIJ, only :
      &     title,nt_ij
@@ -3987,13 +3988,13 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       PVTI=0.
       DE4TI=0.
       DO 105 I=1,IM
-      IF (AIJK(I,J,K,4).EQ.0.) GO TO 105
-      DPTI=DPTI+AIJK(I,J,K,4)
-      BYDPK=1./(AIJK(I,J,K,4)+1.D-20)
-      PVTI=PVTI+AIJK(I,J,K,2)
-      DE4TI=DE4TI+AIJK(I,J,K,3)
+      IF (AIJK(I,J,K,IJK_DP).EQ.0.) GO TO 105
+      DPTI=DPTI+AIJK(I,J,K,IJK_DP)
+      BYDPK=1./(AIJK(I,J,K,IJK_DP)+1.D-20)
+      PVTI=PVTI+AIJK(I,J,K,IJK_V)
+      DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
       ENDE16(I,J,1)=ENDE16(I,J,1)
-     *  +(AIJK(I,J,K,3)*AIJK(I,J,K,2)*BYDPK)
+     *  +(AIJK(I,J,K,3)*AIJK(I,J,K,IJK_V)*BYDPK)
   105 CONTINUE
       SZNDEG=DE4TI*PVTI/(DPTI+1.D-20)
       DO 110 I=1,IM
@@ -4604,7 +4605,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     DLON,DXYV
       USE DAGCOM, only :
-     &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher
+     &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM) :: X
@@ -4650,7 +4651,7 @@ C****
       FACTOR=FIM*DXYV(J)/AJK(J,L,2)
       DO 769 K=IZERO,LM,LM
       DO 720 I=1,IM
-  720 X(I)=AIJK(I,J,L+K,1)
+  720 X(I)=AIJK(I,J,L+K,IJK_U)
       CALL FFTE (X,X)
       IF (J.EQ.JEQ) GO TO 750
       DO 730 N=1,NM
@@ -5291,7 +5292,7 @@ C****
       USE MODEL_COM, only :
      &     im,jm,IDACC,BYIM,XLABEL
       USE DAGCOM, only :
-     &     aij,acc_period,
+     &     aij,acc_period,ia_ij,kaij,
      &     IJ_US,IJ_VS,IJ_TAUS,IJ_TAUUS,IJ_TAUVS !not a generic subr.
       USE BDIJ, only :
      &     title,nt_ij
@@ -5299,7 +5300,7 @@ C****
 
       CHARACTER XLB*32
       REAL*8 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat
-      INTEGER i,j,kxlb
+      INTEGER i,j,k,kxlb,nt(kaij)
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
@@ -5309,63 +5310,31 @@ C****
       XLB = ' '
       XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
       XLB(15:14+KXLB) = XLABEL(1:KXLB)
+C**** Set up index for output index (temporary expedient)
+      nt(ij_us)=63
+      nt(ij_vs)=64
+      nt(ij_taus)=65
+      nt(ij_tauus)=66
+      nt(ij_tauvs)=67
 C****
-      DO J=1,JM
-      FLAT = 0.
-      DO I=1,IM
-        SMAP(I,J) =AIJ(I,J,IJ_US)/(IDACC(3)+1.E-20)
-        FLAT =FLAT+AIJ(I,J,IJ_US)/(IDACC(3)+1.E-20)
-      END DO
-      SMAPJ(J) = FLAT*byIM
-      END DO
-      nt_ij=63
-      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      DO J=1,JM
-      FLAT = 0.
-      DO I=1,IM
-        SMAP(I,J) =AIJ(I,J,IJ_VS)/(IDACC(3)+1.E-20)
-        FLAT =FLAT+AIJ(I,J,IJ_VS)/(IDACC(3)+1.E-20)
-      END DO
-      SMAPJ(J) = FLAT*byIM
-      END DO
-      nt_ij=64
-      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+C**** Print simple selected AIJ diagnostics
 C****
-      DO J=1,JM
-      FLAT = 0.
-      DO I=1,IM
-        SMAP(I,J) =AIJ(I,J,IJ_TAUS)/(IDACC(3)+1.E-20)
-        FLAT =FLAT+AIJ(I,J,IJ_TAUS)/(IDACC(3)+1.E-20)
+      DO K=1,KAIJ
+        IF (K.eq.IJ_US .or. K.eq.IJ_VS .or. K.eq.IJ_TAUS .or. K.eq
+     *       .IJ_TAUUS .or. K.eq.IJ_TAUVS) THEN
+          DO J=1,JM
+            FLAT = 0.
+            DO I=1,IM
+              SMAP(I,J) =AIJ(I,J,K)/(IDACC(ia_ij(K))+1.E-20)
+              FLAT =FLAT+AIJ(I,J,K)/(IDACC(ia_ij(K))+1.E-20)
+            END DO
+            SMAPJ(J) = FLAT*byIM
+          END DO
+          nt_ij=nt(K)
+          CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
+        END IF
       END DO
-      SMAPJ(J) = FLAT*byIM
-      END DO
-      nt_ij=65
-      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      DO J=1,JM
-      FLAT = 0.
-      DO I=1,IM
-        SMAP(I,J) =AIJ(I,J,IJ_TAUUS)/(IDACC(3)+1.E-20)
-        FLAT =FLAT+AIJ(I,J,IJ_TAUUS)/(IDACC(3)+1.E-20)
-      END DO
-      SMAPJ(J) = FLAT*byIM
-      END DO
-      nt_ij=66
-      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      DO J=1,JM
-      FLAT = 0.
-      DO I=1,IM
-        SMAP(I,J) =AIJ(I,J,IJ_TAUVS)/(IDACC(3)+1.E-20)
-        FLAT =FLAT+AIJ(I,J,IJ_TAUVS)/(IDACC(3)+1.E-20)
-      END DO
-      SMAPJ(J) = FLAT*byIM
-      END DO
-      nt_ij=67
-      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+C****
       RETURN
       END SUBROUTINE SIJMAP
 
@@ -5434,7 +5403,7 @@ C****
      &     im,jm,lm,
      &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
       USE DAGCOM, only :
-     &     aijk,acc_period
+     &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
       USE BDIJK, only :
      &     nt_ijk
       IMPLICIT NONE
@@ -5477,9 +5446,9 @@ C****
 
       DO J=1,JM-1
       DO I=1,IM
-      DP=AIJK(I,J+1,L,4)
+      DP=AIJK(I,J+1,L,IJK_DP)
       SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,1)/DP
+      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,IJK_U)/DP
       ENDDO
       ENDDO
 
@@ -5506,9 +5475,9 @@ C****
 
       DO J=1,JM-1
       DO I=1,IM
-      DP=AIJK(I,J+1,L,4)
+      DP=AIJK(I,J+1,L,IJK_DP)
       SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,2)/DP
+      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,IJK_V)/DP
       ENDDO
       ENDDO
 
@@ -5535,9 +5504,9 @@ C****
 
       DO J=1,JM-1
       DO I=1,IM
-      DP=AIJK(I,J+1,L,4)
+      DP=AIJK(I,J+1,L,IJK_DP)
       SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = (.25*AIJK(I,J+1,L,5)/DP - 273.16)
+      IF(DP.GT.0.) SMAP(I,J,L) = (.25*AIJK(I,J+1,L,IJK_T)/DP - 273.16)
       ENDDO
       ENDDO
 
@@ -5564,9 +5533,9 @@ C****
 
       DO J=1,JM-1
       DO I=1,IM
-      DP=AIJK(I,J+1,L,4)
+      DP=AIJK(I,J+1,L,IJK_DP)
       SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = .25*1.E5*AIJK(I,J+1,L,6)/DP
+      IF(DP.GT.0.) SMAP(I,J,L) = .25*1.E5*AIJK(I,J+1,L,IJK_Q)/DP
       ENDDO
       ENDDO
 
@@ -5593,10 +5562,10 @@ C****
 
       DO J=1,JM-1
       DO I=1,IM
-      DP=AIJK(I,J+1,L,4)
+      DP=AIJK(I,J+1,L,IJK_DP)
       SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = .25*(AIJK(I,J+1,L,3)-
-     *   SHA*AIJK(I,J+1,L,5))/(GRAV*DP)
+      IF(DP.GT.0.) SMAP(I,J,L) = .25*(AIJK(I,J+1,L,IJK_DSE)-
+     *   SHA*AIJK(I,J+1,L,IJK_T))/(GRAV*DP)
       ENDDO
       ENDDO
 
