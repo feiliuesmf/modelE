@@ -740,10 +740,10 @@ C****
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
-      USE ICEDYN, only : grid_MIC
 #ifdef TRACERS_WATER
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
+      USE ICEDYN, only : grid_MIC
       USE SEAICE, only : ace1i,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
