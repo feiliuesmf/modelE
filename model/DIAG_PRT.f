@@ -1,18 +1,23 @@
       MODULE BDJ
-C
+!@sum  stores information for outputting latitude diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE DIAGJ
-C****
+
+!@param nj_out number of j-format output fields = (kd1m+10)
       integer, parameter :: nj_out=79
 
-c no checks whether total length of lname+units exceeds length of title
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(nj_out) :: SNAME
 
-      integer, dimension(nj_out) :: nt_j ! tells pout_j output field
-c nstype_out=nr of output surf types, iotype=current output surf type
+!@var nt_j expanded version of diagj: ndex that includes albedo-indices
+      integer, dimension(nj_out) :: nt_j
+!@var nstype_out set to diagj: ntype+1 since indexing in diagj is 0:ntype
+!@var iotype current output surf type (1 through nstype_out)
       integer :: nstype_out,iotype
       END MODULE BDJ
 
@@ -834,20 +839,28 @@ C****
       END SUBROUTINE DIAGJ
 
       MODULE BDJK
-C
+!@sum  stores information for outputting lat-pressure diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE DIAGJK
-C****
+
+!@param njk_out number of jk-format output fields (not all used)
       integer, parameter :: njk_out=44
+
+!@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64), DIMENSION(njk_out) :: TITLE
-c no checks whether total length of lname+units exceeds length of title
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(njk_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(njk_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(njk_out) :: SNAME
 
-      logical :: in_jkmap ! flag telling pout_jl to use jk titles
-      integer :: nt_jk ! index telling pout_jl which title to use
+!@var in_jkmap flag telling pout_jl to use jk titles
+      logical :: in_jkmap
+!@var nt_jk index telling pout_jl which field is being output
+      integer :: nt_jk
+
       END MODULE BDJK
 
       SUBROUTINE JK_TITLES
@@ -1035,6 +1048,7 @@ c
       units(k) = '10**13 WATTS/DSIG'
 
 c create titles by concatenating long names with units
+c no checks whether total length of lname+units exceeds length of title
       do k=1,njk_out
          title(k)=''
          if(lname(k).ne.'')
@@ -1871,19 +1885,28 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       END SUBROUTINE JKMAP
 
       MODULE BDJL
-C
+!@sum  stores information for outputting lat-sigma diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE DIAGJL
-C****
+
+!@param njl_out number of jl-format output fields (not all used)
       integer, parameter :: njl_out=156
+
+!@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64), DIMENSION(njl_out) :: TITLE
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(njl_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(njl_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(njl_out) :: SNAME
 
-      logical :: in_jlmap ! flag telling pout_jl to use jl titles
-      integer :: nt_jl ! index telling pout_jl which title to use
+!@var in_jlmap flag telling pout_jl to use jl titles
+      logical :: in_jlmap
+!@var nt_jl index telling pout_jl which field is being output
+      integer :: nt_jl
+
       END MODULE BDJL
 
       SUBROUTINE JL_TITLES
@@ -2519,6 +2542,7 @@ c
       units(k) = '10**18 JOULES/DS'
 
 c create titles by concatenating long names with units
+c no checks whether total length of lname+units exceeds length of title
       do k=1,njl_out
          title(k)=''
          if(lname(k).ne.'')
@@ -2952,18 +2976,26 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       END SUBROUTINE JLMAP
 
       MODULE BDIL
-C
+!@sum  stores information for outputting lon-height diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE DIAGIL
-C****
+
+!@param nil_out number of il-format output fields
       integer, parameter :: nil_out=16
+
+!@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64), DIMENSION(nil_out) :: TITLE
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(nil_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(nil_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(nil_out) :: SNAME
 
-      integer :: nt_il ! tells pout_il which title to use
+!@var nt_il index telling pout_il which field is being output
+      integer :: nt_il
+
       END MODULE BDIL
 
       SUBROUTINE IL_TITLES
@@ -3437,68 +3469,66 @@ C**FREQUENCY BAND AVERAGE
       END SUBROUTINE MEM
 
       MODULE BDIJ
-C
+!@sum  stores information for outputting lon-lat diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE DIAGIJ
-C****
+
+!@param nij_out number of ij-format output fields
       integer, parameter :: nij_out=67
+
+!@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=48), DIMENSION(nij_out) :: TITLE
-c no checks whether total length of lname+units exceeds length of title
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(nij_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(nij_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(nij_out) :: SNAME
 
-      integer :: nt_ij ! tells pout_ij which output field
+!@var nt_ij index telling pout_ij which field is being output
+      integer :: nt_ij
+
+!@param LEGEND "contour levels" for ij-maps
+      CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/
+     *  '0=0,1=5...9=45,A=50...K=100             ',
+     *  '0=0...9=90,A=100...I=180...R=270        ',
+     *  '1=.5...9=4.5,A=5...Z=17.5,+=MORE        ',
+     *  '1=.1...9=.9,A=1...Z=3.5,+=MORE          ',
+     *  '1=2...9=18,A=20...Z=70,+=MORE           ',
+     *  '1=50...9=450,A=500...Z=1750,+=MORE      ',
+     *  '1=100...9=900,A=1000...Z=3500,+=MORE    ',
+     *  '1=20...9=180,A=200...Z=700,+=MORE       ',
+     *  'A=1...Z=26,3=30...9=90,+=100-150,*=MORE ',
+     *  '0=0,A=.1...Z=2.6,3=3...9=9,+=10-15      ',
+     *  '-=LESS,Z=-78...0=0...9=27,+=MORE        ',
+     *  '-=LESS,Z=-260...0=0...9=90,+=MORE       ',
+     *  '-=LESS,Z=-520...0=0...9=180,+=MORE      ',
+     *  '-=LESS,Z=-1300...0=0...9=450,+=MORE     ',
+     *  '-=LESS,Z=-2600...0=0...9=900,+=MORE     ',
+     *  '-=LESS,Z=-3900...0=0...9=1350,+=MORE    ',
+     *  '-=LESS,Z=-5200...0=0...9=1800,+=MORE    ',
+     *  '-=LESS,9=-.9...0=0,A=.1...Z=2.6,+=MORE  ',
+     *  '-=LESS,9=-45...0=0,A=5...K=45...+=MORE  ',
+     *  '-=LESS,9=-90...0=0,A=10...Z=260,+=MORE  ',
+     *  '-=LESS,9=-180...A=20...Z=520,+=MORE     ',
+     *  '-=LESS,9=-9...0=0,A=1...Z=26,+=MORE     ',
+     *  '-=LESS,9=-36...0=0,A=4...Z=104,+=MOR    ',
+     *  '1=5...9=45,A=50...Z=175,+=MORE          ' /)
+
+!@param [ABCDE]CHAR "color bars" for ij-maps
+      CHARACTER(LEN=38), PARAMETER :: ACHAR=
+     &     ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+'
+      CHARACTER(LEN=23), PARAMETER :: BCHAR=
+     &     ' 0123456789ABCDEFGHIJKX'
+      CHARACTER(LEN=38), PARAMETER :: CCHAR=
+     &     '-9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZ+'
+      CHARACTER(LEN=37), PARAMETER :: DCHAR=
+     &     ' 0ABCDEFGHIJKLMNOPQRSTUVWXYZ3456789+*'
+      CHARACTER(LEN=38), PARAMETER :: ECHAR=
+     &     '-ZYXWVUTSRQPONMLKJIHGFEDCBA0123456789+'
 
       END MODULE BDIJ
-
-      BLOCK DATA BDIJX
-C****
-C**** LEGENDS AND CHARACTERS FOR DIAGIJ
-C****
-      COMMON/DIJCOMX/LEGND1(10),LEGND2(14),ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
-C****
-      CHARACTER*40 LEGND1
-      DATA LEGND1/
-     *  '0=0,1=5...9=45,A=50...K=100            ',
-     *  '0=0...9=90,A=100...I=180...R=270       ',
-     *  '1=.5...9=4.5,A=5...Z=17.5,+=MORE       ',
-     *  '1=.1...9=.9,A=1...Z=3.5,+=MORE         ',
-     *  '1=2...9=18,A=20...Z=70,+=MORE          ',
-C
-     *  '1=50...9=450,A=500...Z=1750,+=MORE     ',
-     *  '1=100...9=900,A=1000...Z=3500,+=MORE   ',
-     *  '1=20...9=180,A=200...Z=700,+=MORE      ',
-     *  'A=1...Z=26,3=30...9=90,+=100-150,*=MORE',
-     *  '0=0,A=.1...Z=2.6,3=3...9=9,+=10-15     '/
-      CHARACTER*40 LEGND2
-      DATA LEGND2/
-     *  '-=LESS,Z=-78...0=0...9=27,+=MORE       ',
-     *  '-=LESS,Z=-260...0=0...9=90,+=MORE      ',
-     *  '-=LESS,Z=-520...0=0...9=180,+=MORE     ',
-     *  '-=LESS,Z=-1300...0=0...9=450,+=MORE    ',
-     *  '-=LESS,Z=-2600...0=0...9=900,+=MORE    ',
-C
-     *  '-=LESS,Z=-3900...0=0...9=1350,+=MORE   ',
-     *  '-=LESS,Z=-5200...0=0...9=1800,+=MORE   ',
-     *  '-=LESS,9=-.9...0=0,A=.1...Z=2.6,+=MORE ',
-     *  '-=LESS,9=-45...0=0,A=5...K=45...+=MORE ',
-     *  '-=LESS,9=-90...0=0,A=10...Z=260,+=MORE ',
-C
-     *  '-=LESS,9=-180...A=20...Z=520,+=MORE    ',
-     *  '-=LESS,9=-9...0=0,A=1...Z=26,+=MORE    ',
-     *  '-=LESS,9=-36...0=0,A=4...Z=104,+=MOR   ',
-     *  '1=5...9=45,A=50...Z=175,+=MORE         '/
-C****
-      CHARACTER ACHAR*38,BCHAR*23,CCHAR*38,DCHAR*37,ECHAR*38
-      DATA ACHAR/' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+'/
-      DATA BCHAR/' 0123456789ABCDEFGHIJKX'/
-      DATA CCHAR/'-9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZ+'/
-      DATA DCHAR/' 0ABCDEFGHIJKLMNOPQRSTUVWXYZ3456789+*'/
-      DATA ECHAR/'-ZYXWVUTSRQPONMLKJIHGFEDCBA0123456789+'/
-
-      END BLOCK DATA BDIJX
 
       SUBROUTINE IJ_TITLES
       USE BDIJ
@@ -3779,6 +3809,7 @@ c imported from sijmap
       units(k) = 'kg/m*S**2'
 
 c create titles by concatenating long names with units
+c no checks whether total length of lname+units exceeds length of title
       do k=1,nij_out
          title(k)=''
          if(lname(k).ne.'')
@@ -3873,7 +3904,7 @@ C****
      *     ijk_v,ijk_dse,ijk_u,ijk_dp,
      &     IJ_PEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       USE BDIJ, only :
-     &     title,nt_ij
+     &     title,nt_ij,legend,achar,bchar,cchar,dchar,echar
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM,2) :: ENDE16
@@ -3884,15 +3915,6 @@ C****
       REAL*8, DIMENSION(JM,3) :: SMAPJ
       CHARACTER XLB*32
 
-      COMMON/DIJCOMX/LEGEND(10,24),ACHAR(38),BCHAR(23),
-     *  CCHAR(38),DCHAR(37),ECHAR(38)
-      CHARACTER*4 LEGEND
-      CHARACTER*1 ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
-C**** ACHAR/ ,0,1,...,8,9,A,B,...,Y,Z,+/
-C**** BCHAR/ ,0,1,...,8,9,A,B,...,K,X/
-C**** CCHAR/-,9,8,...,1,0,A,B,...,Y,Z,+/
-C**** DCHAR/ ,0,A,B,...,Y,Z,3,4,...,8,9,+,*/
-C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
       CHARACTER*1 LINE(IM,3),LONGTD(36)
       DATA LONGTD/'+',35*' '/
 
@@ -4063,7 +4085,7 @@ C**** SUM OF TWO ARRAYS
       N=28.5+A*FAC(K)
       IF (N.LT.1 ) N=1
       IF (N.GT.38) N=38
-  230 LINE(I,KCOLMN)=ECHAR(N)
+  230 LINE(I,KCOLMN)=ECHAR(N:N)
       GO TO 500
 C**** WIND DIRECTION
   240 IF (J.EQ.1) GO TO 500
@@ -4073,7 +4095,7 @@ C**** WIND DIRECTION
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (N.LT.2) N=N+36
-  250 LINE(I,KCOLMN)=ACHAR(N)
+  250 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** RATIO OF 2 ARRAYS (MAINLY FOR ALBEDO)
   260 FNUM=0.
@@ -4090,7 +4112,7 @@ C**** RATIO OF 2 ARRAYS (MAINLY FOR ALBEDO)
       IF (AIJ(I,J,NDEX2).LE.0.) N=1
          IF (AIJ(I,J,NDEX2).LE.0.) A=0.
           SMAP(I,J,KCOLMN)=A
-  270 LINE(I,KCOLMN)=ACHAR(N)
+  270 LINE(I,KCOLMN)=ACHAR(N:N)
       FLAT(KCOLMN)=SCALE(K)*FNUM/(FDEN+1.D-20)
       IF (NDEX.EQ.24 .OR. NDEX.EQ.26) FLAT(KCOLMN)=100.-FLAT(KCOLMN)
 CB       DIJMAP(IM+1,J,K)=FLAT(KCOLMN)
@@ -4112,7 +4134,7 @@ c     IF (SKIPSE.EQ.1.) GO TO 510
       N=11.5+A*FAC(K)
       IF (N.LT.1) N=1
       IF (N.GT.38) N=38
-  290 LINE(I,KCOLMN)=CCHAR(N)
+  290 LINE(I,KCOLMN)=CCHAR(N:N)
       FLAT(KCOLMN)=FLATK
       DAREA=DXYV(J)
       GO TO 505
@@ -4124,7 +4146,7 @@ C**** MAGNITUDE OF TWO PERPENDICULAR COMPONENTS
       FLATK=FLATK+A
       N=2.5+A*FAC(K)
       IF (N.GT.38) N=38
-  310 LINE(I,KCOLMN)=ACHAR(N)
+  310 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** SURFACE TOPOGRAPHY
   320 DO 330 I=1,IM
@@ -4134,7 +4156,7 @@ C**** SURFACE TOPOGRAPHY
       N=2.5+.01*ZS
       IF (ZS.LE.0.) N=1
       IF (N.GT.38) N=38
-  330 LINE(I,KCOLMN)=ACHAR(N)
+  330 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** LAND COVERAGE
   340 DO 350 I=1,IM
@@ -4144,7 +4166,7 @@ C**** LAND COVERAGE
       N=2.5+PLAND*.2
       IF (PLAND.LE.0.) N=1
       IF (PLAND.GE.100.) N=23
-  350 LINE(I,KCOLMN)=BCHAR(N)
+  350 LINE(I,KCOLMN)=BCHAR(N:N)
       GO TO 500
 C**** THICKNESS TEMPERATURES
   360 DO 370 I=1,IM
@@ -4155,7 +4177,7 @@ C**** THICKNESS TEMPERATURES
       N=28.5+A*FAC(K)
       IF (N.LT.1) N=1
       IF (N.GT.38) N=38
-  370 LINE(I,KCOLMN)=ECHAR(N)
+  370 LINE(I,KCOLMN)=ECHAR(N:N)
       GO TO 500
 C**** POSITIVE QUANTITIES UNIFORMLY SCALED
   380 DO 390 I=1,IM
@@ -4165,7 +4187,7 @@ C**** POSITIVE QUANTITIES UNIFORMLY SCALED
       N=2.5+A*FAC(K)
       IF (A.EQ.0.) N=1
       IF (N.GT.38) N=38
-  390 LINE(I,KCOLMN)=ACHAR(N)
+  390 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** PERCENTAGES
   400 DO 410 I=1,IM
@@ -4175,7 +4197,7 @@ C**** PERCENTAGES
       N=2.5+A*FAC(K)
       IF (A.LE.0.) N=1
       IF (A*FAC(K).GE.20.) N=23
-  410 LINE(I,KCOLMN)=BCHAR(N)
+  410 LINE(I,KCOLMN)=BCHAR(N:N)
       GO TO 500
 C**** SIGNED QUANTITIES UNIFORMLY SCALED (LETTERS +, NUMBERS -)
   420 DO 430 I=1,IM
@@ -4185,7 +4207,7 @@ C**** SIGNED QUANTITIES UNIFORMLY SCALED (LETTERS +, NUMBERS -)
       N=11.5+A*FAC(K)
       IF (N.LT.1) N=1
       IF (N.GT.38) N=38
-  430 LINE(I,KCOLMN)=CCHAR(N)
+  430 LINE(I,KCOLMN)=CCHAR(N:N)
       IF (K.EQ.34) FLATK=FLATK*FIM
       GO TO 500
 C**** PRECIPITATION AND EVAPORATION
@@ -4199,7 +4221,7 @@ C**** PRECIPITATION AND EVAPORATION
       IF (N.GT.28) N=(N+263)/10
       IF (N.GT.35) N=(N+180)/6
       IF (N.GT.37) N=37
-  450 LINE(I,KCOLMN)=DCHAR(N)
+  450 LINE(I,KCOLMN)=DCHAR(N:N)
       GO TO 500
 C**** SIGNED QUANTITIES UNIFORMLY SCALED (NUMBERS +, LETTERS -)
   460 DO 470 I=1,IM
@@ -4209,7 +4231,7 @@ C**** SIGNED QUANTITIES UNIFORMLY SCALED (NUMBERS +, LETTERS -)
       N=28.5+A*FAC(K)
       IF (N.LT.1 ) N=1
       IF (N.GT.38) N=38
-  470 LINE(I,KCOLMN)=ECHAR(N)
+  470 LINE(I,KCOLMN)=ECHAR(N:N)
       GO TO 500
 C**** ABSOLUTE VALUE OF QUANTITIES UNIFORMLY SCALED
   475 DO 477 I=1,IM
@@ -4219,7 +4241,7 @@ C**** ABSOLUTE VALUE OF QUANTITIES UNIFORMLY SCALED
       N=2.5+A*FAC(K)
       IF(A.EQ.0.) N=1
       IF (N.GT.38) N=38
-  477 LINE(I,KCOLMN)=ACHAR(N)
+  477 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** POSITIVE QUANTITIES NON-UNIFORMLY SCALED
   480 DO 490 I=1,IM
@@ -4229,7 +4251,7 @@ C**** POSITIVE QUANTITIES NON-UNIFORMLY SCALED
       N=2.5+A*FAC(K)
       IF (N.GE.13) N=(N+123)/10
       IF (N.GT.38) N=38
-  490 LINE(I,KCOLMN)=ACHAR(N)
+  490 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** LENGTH OF GROWING SEASON
   491 DO 492 I=1,IM
@@ -4240,7 +4262,7 @@ C**** LENGTH OF GROWING SEASON
       N=2.5+A*FAC(K)
       IF (A.LE.0.) N=1
       IF (N.GT.38) N=38
-  492 LINE(I,KCOLMN)=ACHAR(N)
+  492 LINE(I,KCOLMN)=ACHAR(N:N)
       GO TO 500
 C**** PALMER DROUGHT INDEX
   493 DO 494 I=1,IM
@@ -4249,7 +4271,7 @@ C**** PALMER DROUGHT INDEX
       N=11.5+A*FAC(K)
       IF (N.LT.1 ) N=1
       IF (N.GT.38) N=38
-  494 LINE(I,KCOLMN)=CCHAR(N)
+  494 LINE(I,KCOLMN)=CCHAR(N:N)
   500 FLAT(KCOLMN)=FLATK*BYIM
       DAREA=DXYP(J)
       IF (JGRID(NDEX).EQ.2) DAREA=DXYV(J)
@@ -4304,8 +4326,8 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
   576 WRITE (6,916) MGLOBE(1),LONGTD,MGLOBE(2),LONGTD,FGLOBE(3),LONGTD
       GO TO 600
   577 WRITE (6,917) (MGLOBE(KC),LONGTD,KC=1,3)
-  600 WRITE (6,909) ((LEGEND(KT,ILEG(KCOLMN,KR)),KT=1,10),KCOLMN=1,2),
-     *  (LEGEND(KT,ILEG(3,KR)),KT=1,9)
+  600 WRITE (6,909) (LEGEND(ILEG(KCOLMN,KR))(1:40),KCOLMN=1,2),
+     *  LEGEND(ILEG(3,KR))(1:36)
       IF(QCHECK) THEN
         DO KC=1,3
           nt_ij = 3*(KR-1)+KC
@@ -4341,7 +4363,7 @@ C****
      *  'Dif:',F7.2,' Days')
   903 FORMAT ('0',6X,A32,13X,A32,13X,A32)
   906 FORMAT ('+',6X,36A1,9X,36A1,9X,36A1)
-  909 FORMAT (7X,10A4,5X,10A4,5X,9A4)
+  909 FORMAT (7X,A40,5X,A40,5X,A36)
   910 FORMAT (1X,F5.1,1X,36A1,F8.1,1X,36A1,F8.1,1X,36A1)
   911 FORMAT (1X,F5.1,1X,36A1,F8.1,1X,36A1,I8,1X,36A1)
   914 FORMAT (1X,I5,1X,36A1,F8.1,1X,36A1,F8.1,1X,36A1)
@@ -5339,19 +5361,25 @@ C****
       END SUBROUTINE SIJMAP
 
       MODULE BDIJK
-C
+!@sum  stores information for outputting lon-lat-press diagnostics
+!@auth M. Kelley
+
       IMPLICIT NONE
-C****
-C**** TITLES/UNITS FOR SUBROUTINE IJKMAP
-C****
+
+!@param nijk_out number of ijk-format output fields
       integer, parameter :: nijk_out=5
+
+!@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=48), DIMENSION(nijk_out) :: TITLE
-c no checks whether total length of lname+units exceeds length of title
+!@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS
+!@var lname string describing output field
       CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME
+!@var sname string referencing output field in self-desc. output file
       CHARACTER(LEN=30), DIMENSION(nijk_out) :: SNAME
 
-      integer :: nt_ijk ! tells pout_ijk which output field
+!@var nt_ijk index telling pout_ijk which field is being output
+      integer :: nt_ijk
 
       END MODULE BDIJK
 
@@ -5384,6 +5412,7 @@ c
       units(k) = 'm'
 
 c create titles by concatenating long names with units
+c no checks whether total length of lname+units exceeds length of title
       do k=1,nijk_out
          title(k)=''
          if(lname(k).ne.'')
