@@ -3,7 +3,7 @@
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
-      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
+      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat
       USE MODEL_COM, only : IM,LM,DTsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir

@@ -308,7 +308,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhe,lhs,twopi,tf,stbo
+      USE CONSTANT, only : grav,sday,lhe,lhs,twopi,tf,stbo,bysha
       USE MODEL_COM
       USE GEOM
       USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2,RSDIST
@@ -394,7 +394,7 @@ C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       LMR=LM+3
       LMRP=LMR+1
-      COEX=.01*GRAV*KAPA/RGAS
+      COEX=.01*GRAV*BYSHA
       DO L=1,LM
          COE(L)=DTsrc*COEX/DSIG(L)
          PLE(L)=SIGE(L)*PSFMPT+PTOP

@@ -19,7 +19,7 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-     *     ,byrhoi,deltx
+     *     ,byrhoi,deltx,byrt3
       USE MODEL_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
@@ -39,7 +39,8 @@ C****
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos,kext
+      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos,kiext
+     *     ,ksext 
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
@@ -60,7 +61,7 @@ C****
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
-     *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,F2,FSRI(2)
+     *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
      *     ,rvx
 
       REAL*8 MSUM, MA1, MSI1, MSI2
@@ -74,8 +75,8 @@ C**** Interface to PBL
 
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,UG,VG,WG,ZMIX
 
-      REAL*8, PARAMETER :: qmin=1.e-12
-      REAL*8, PARAMETER :: S1BYG1 = 0.57735,
+      REAL*8, PARAMETER :: qmin=1.d-12
+      REAL*8, PARAMETER :: S1BYG1 = BYRT3, 
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
 C****
@@ -265,14 +266,17 @@ C****
       SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
+        HSNOW = SNOW/RHOS
+        HICE  = ACE1I*BYRHOI
         IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN 
 C**** first thermal layer is snow and ice
-          HICE = (SNOW/RHOS) + (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI   
+          HICE1 = (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI
+	  FSRI(1) = EXP(-KSEXT*HSNOW-KIEXT*HICE1)
         ELSE ! all snow			   
-          HICE = (ACE1I+SNOW)*XSI(1)/RHOS				   
+          HSNOW1 = (ACE1I+SNOW)*XSI(1)/RHOS
+          FSRI(1) = EXP(-KSEXT*HSNOW1)
         END IF
-        FSRI(1) = EXP(-KEXT*HICE)
-        FSRI(2) = EXP(-KEXT*(ACE1I*BYRHOI+SNOW/RHOS))
+        FSRI(2) = EXP(-KSEXT*HSNOW-KIEXT*HICE)
       ELSE
         FSRI(1:2) = 0
       END IF

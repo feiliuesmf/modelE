@@ -429,12 +429,13 @@ C**** Rundeck parameters:
       ! used in input but not changed
       call sync_param( "PSF", PSF )
       call sync_param( "NIsurf", NIsurf )
-      ! IYEAR0 always comes from rundeck or rsf file (no default)
-      call get_param( "IYEAR0", IYEAR0 )
+C**** IYEAR0 always comes from rundeck or rsf file 
+C**** (default necessary for pdE)
+      call sync_param( "IYEAR0", IYEAR0 )
       ! the following were set only at initial start - udating
-      call get_param( "PTOP", PTOP )
-      call get_param( "LS1", LS1 )
-      call get_param( "IRAND", IRAND )
+      call sync_param( "PTOP", PTOP )
+      call sync_param( "LS1", LS1 )
+      call sync_param( "IRAND", IRAND )
 
       call sync_param( "S0X", S0X ) !!
       call sync_param( "CO2", CO2 ) !!
@@ -445,11 +446,11 @@ C**** Rundeck parameters:
 
 C**** Non-Rundeck parameters
       ! the following were set only at initial start - udating
-      call get_param( "ItimeI", ItimeI ) !input
-      call get_param( "PSFMPT", PSFMPT ) !input
-      call get_param( "PSTRAT", PSTRAT ) !input
-      call get_param( "SIG", SIG, LM ) !input
-      call get_param( "SIGE", SIGE, LM+1 ) !input
+      call sync_param( "ItimeI", ItimeI ) !input
+      call sync_param( "PSFMPT", PSFMPT ) !input
+      call sync_param( "PSTRAT", PSTRAT ) !input
+      call sync_param( "SIG", SIG, LM )   !input
+      call sync_param( "SIGE", SIGE, LM+1 ) !input
 
       end subroutine init_Model
 
@@ -480,7 +481,7 @@ C****
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
-     &  ,iu_ij,iu_jl,iu_il
+     &  ,iu_ij,iu_jl,iu_il,iu_j
       USE LAKES_COM, only : flake
       USE FILEMANAGER, only : getunit,closeunits
       USE TIMINGS, only : timing,ntimeacc
@@ -586,12 +587,13 @@ C**** Get those parameters which are needed in this subroutine
 
       if(is_set_param("PLTOP"))  call get_param( "PLTOP", PLTOP, 12 ) !!
       if(is_set_param("IYEAR0")) call get_param( "IYEAR0", IYEAR0 ) !!
-
-
+C**** need to do some diagnostic initialisation here
+      call alloc_param( "IDACC", IDACC, (/12*0/), 12) 
+      call reset_diag(1)
+ 
       write( 6, INPUTZ )
 
-      IF (ISTART.LT.0) GO TO 600  !  just do the diagnostics
-      IF (ISTART.GE.9) GO TO 400
+      IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
 C***********************************************************************
 C****                                                               ****
 C****                  INITIAL STARTS - ISTART: 1 to 8              ****
@@ -823,8 +825,9 @@ C**** Sending parameters which had just been set to the DB
       GO TO 600
 C***********************************************************************
 C****                                                               ****
+C****                  RESTARTS: ISTART < 0                         ****
+C****   Post-processing call for diagnostic output                  ****
 C****                  RESTARTS: ISTART > 8                         ****
-C****                                                               ****
 C****   Current settings: 9 - from own model M-file                 ****
 C****                    10 - from later of fort.1 or fort.2        ****
 C****                    11 - from fort.1                           ****
@@ -832,10 +835,23 @@ C****                    12 - from fort.2                           ****
 C****               13 & up - from earlier of fort.1 or fort.2      ****
 C****                                                               ****
 C***********************************************************************
+  400 SELECT CASE (ISTART)
+      CASE (:0)
+C****
+C****   SUM DIAGNOSTICS OVER INPUT FILES     ISTART<0
+C****   
+        monacc = 0
+        do k=1,iargc()
+          call getarg(k,filenm)
+          call getunit(filenm,iu_AIC,.true.,.true.)
+          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
+          write(6,*) 'read: ',filenm(1:70)
+          call closeunits
+        end do
+        GO TO 500
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****                          used for REPEATS and delayed EXTENSIONS
-  400 SELECT CASE (ISTART)
       CASE (9)    ! no need to read diag.arrays
         call getunit("AIC",iu_AIC,.true.,.true.)
         call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
@@ -922,65 +938,6 @@ C****
 C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
 
-      IF(ISTART.LT.0) THEN
-        ! this part looks strange. Does it belong here? 
-        ! reset_diag called before init_DIAG - is it correct?
-        call reset_diag(1)
-        monacc = 0
-        do k=1,iargc()
-          call getarg(k,filenm)
-          call getunit(filenm,iu_AIC,.true.,.true.)
-          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
-          write(6,*) 'read: ',filenm(1:70)
-          call closeunits       !!! - this doesn't look right 
-        end do
-        call get_param("NDAY",Nday)
-        call get_param("IYEAR0",Iyear0)
-        call get_param("Itime0",Itime0)
-        call getdte(Itime0,Nday,Iyear0,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
-     *       ,amon0)
-        months=0 ; years=monacc(jmon0) ; mswitch=0
-        do k=1,12
-          if (monacc(k).eq.years) then
-            months=months+1
-          else if (monacc(k).ne.0) then
-            write(6,*) 'uneven period:',monacc
-            stop 'uneven period'
-          end if
-          if(k.gt.1.and.monacc(k).ne.monacc(k-1)) mswitch = mswitch+1
-        end do
-        if (mswitch.gt.2) then
-          write(6,*) 'non-consecutive period:',monacc
-          stop 'non-consecutive period'
-        end if
-        call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
-        LLAB1 = INDEX(XLABEL(1:17),'(') -1
-        IF (LLAB1.LT.1) LLAB1=16
-        if (index(XLABEL(1:LLAB1),' ').gt.0)
-     *    LLAB1=index(XLABEL(1:LLAB1),' ')-1
-        if (iargc().gt.1) then    ! save the summed acc-file
-          write(6,*) iargc(),' files are summed up'
-          keyct=1 ; KEYNR=0
-          XLABEL(128:132)='     '
-          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LLAB1),
-     *         FORM='UNFORMATTED')
-          call io_rsf (30,Itime,iowrite_single,ioerr)
-          CLOSE (30)
-        end if
-        if(qcheck) then          ! open the giss output files
-          call getunit(acc_period(1:Ldate)//'.ij'//XLABEL(1:LLAB1),
-     *                 iu_ij,.true.,.false.)
-          call getunit(acc_period(1:Ldate)//'.jk'//XLABEL(1:LLAB1),
-     *                 iu_jl,.true.,.false.)
-          call getunit(acc_period(1:Ldate)//'.il'//XLABEL(1:LLAB1),
-     *                 iu_il,.true.,.false.)
-        end if
-        ItimeE = -1
-        close (6)
-        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LLAB1)//'.PRT',
-     *     FORM='FORMATTED')
-      END IF
 C****
 C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
@@ -1108,7 +1065,7 @@ C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
       if(istart.gt.0) CALL init_CLD
-      CALL init_DIAG
+      CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
       if(istart.gt.0) WRITE (6,INPUTZ)

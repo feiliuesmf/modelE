@@ -101,7 +101,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     dxyp,lat,LAT_DG
       USE DAGCOM, only :
-     &     aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
+     &     QCHECK,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
@@ -162,6 +162,9 @@ C**** possible expanded version (including composites)
      *  ' PLAN ALB NEARIR', ' SURFACE G ALBDO', ' SURF ALB VISUAL',
      *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
      *  ' ATMO ABS VISUAL', ' ATMO ABS NEARIR'/
+C**** Arrays needed for full output
+      REAL*4, DIMENSION(JM+3,KAJ) :: BUDG
+      CHARACTER*16,DIMENSION(KAJ) :: TITLEO
 C**** weighting functions for surface types
       DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE) ::
 c     *     WT=RESHAPE(         ! old version with NTYPE=3
@@ -335,11 +338,12 @@ C**** Sum over types
       END DO
       FGLOB=GSUM/(GWT+1.D-20)
       IF (M.EQ.0) CALL KEYDJ (N,FGLOB,FHEM(2))
-CF       DO 323 J=1,JM
-CF323    GBUDG(J,K,M)=FLAT(J)
-CF       GBUDG(JM+1,K,M)=FHEM(1)
-CF       GBUDG(JM+2,K,M)=FHEM(2)
-CF       GBUDG(JM+3,K,M)=FGLOB
+C**** Save BUDG for full output
+      BUDG(1:JM,K)=FLAT(1:JM)
+      BUDG(JM+1,K)=FHEM(1)
+      BUDG(JM+2,K)=FHEM(2)
+      BUDG(JM+3,K)=FGLOB
+      TITLEO(K)=TITLE(N)
 c     GO TO (350,350,350,350,350,350,  350,350,350,350,350,350,
 c    *       350,350,348,348,350,350,  345,345,350,350,350,350,
 c    *       340,350,350,345,345,350,  350,340,348,350,350,350,
@@ -381,8 +385,6 @@ C**** Sum over types
               QNUM=QNUM+WT(M,IT)*AJ(J,NN,IT)
               QDEN=QDEN+WT(M,IT)*AJ(J,ND,IT)
             END DO
-c      QNUM=AJ(J,NN,1)*WT(1,M)+AJ(J,NN,2)*WT(2,M)+AJ(J,NN,3)*WT(3,M)
-c      QDEN=AJ(J,ND,1)*WT(1,M)+AJ(J,ND,2)*WT(2,M)+AJ(J,ND,3)*WT(3,M)
             FLAT(J)=AMULT*(100.*     QNUM/(QDEN    +1.D-20)-50.)+50.
             MLAT(J)=FLAT(J)+.5
             HSUM=HSUM+QNUM*DXYP(J)*(FIM+1.-S1(J))
@@ -394,18 +396,20 @@ c      QDEN=AJ(J,ND,1)*WT(1,M)+AJ(J,ND,2)*WT(2,M)+AJ(J,ND,3)*WT(3,M)
         END DO
         FGLOB=50.+AMULT*(100.*GSUM/(GSUM2+1.D-20)-50.)
         IF (M.EQ.0.AND.KA.EQ.1) CALL KEYDJA (FGLOB)
-CF       DO 423 J=1,JM
-CF423    GBUDG(J,KA+KD1M,M)=FLAT(J)
-CF       GBUDG(JM+1,KA+KD1M,M)=FHEM(1)
-CF       GBUDG(JM+2,KA+KD1M,M)=FHEM(2)
-CF       GBUDG(JM+3,KA+KD1M,M)=FGLOB
-        WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
-     *       (MLAT(J),J=JM,INC,-INC)
+C**** Save BUDG for full output
+      BUDG(1:JM,KA+KD1M)=FLAT(1:JM)
+      BUDG(JM+1,KA+KD1M)=FHEM(1)
+      BUDG(JM+2,KA+KD1M)=FHEM(2)
+      BUDG(JM+3,KA+KD1M)=FGLOB
+      TITLEO(KA+KD1M)=TITLE(KA)
+      WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
+     *     (MLAT(J),J=JM,INC,-INC)
       END DO
       END IF
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
+      IF (QCHECK) CALL POUT_J(TITLEO,BUDG,KD1M+10,TERRAIN(M))
       IF (KDIAG(1).GT.1) RETURN
       END DO
   510 IF (KDIAG(1).GT.0.AND.KDIAG(1).NE.8) RETURN
@@ -560,10 +564,8 @@ c      USE PRTCOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
      &     PLM,PMTOP
-      USE RADNCB, only :
-     &     LM_REQ
       USE DAGCOM, only :
-     &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp
+     &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SENDEG
@@ -615,9 +617,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       KMM1=KM-1
       INC=1+(JM-1)/24
       JMHALF=JM/2
-c      BYIM=1./FIM
       BY100G=.01*BYGRAV
-c      SHA=RGAS/KAPA
       P1000K=P1000**KAPA
       DO 30 L=1,LM
       PKM(L)=PLM(L)**KAPA
@@ -1204,7 +1204,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       END SUBROUTINE DIAGJK
 
       SUBROUTINE JKMAP (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl,lm_req
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
@@ -1227,11 +1227,11 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       INTEGER :: J1,JWT,KMAX,NT
       DOUBLE PRECISION :: SCALE,SCALER
       DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! pass 3 as arg ??
+      DOUBLE PRECISION, DIMENSION(JM,LM_REQ) :: ARQX
       DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ,SCALJR
       DOUBLE PRECISION, DIMENSION(LM) :: SCALEK
-      DOUBLE PRECISION, DIMENSION(3) :: SCALLR ! pass 3 as arg ??
-      DOUBLE PRECISION, DIMENSION(LM+3) :: PM ! pass 3 as arg ??
+      DOUBLE PRECISION, DIMENSION(LM_REQ) :: SCALLR
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PM
 
       COMMON/DJKTTL/TITLE(1)
       CHARACTER*4 DASH,WORD(4),TITLE*64
@@ -1240,8 +1240,8 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L ,ksx,klmax
       DOUBLE PRECISION :: AGLOB,FGLOB,FLATJ,G1,H1,H2,SUMFAC
 
-      REAL*4, dimension(jm+3,lm+4) :: xjl ! for binary output
-      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16
+      REAL*4, DIMENSION(JM+3,LM+4) :: XJL ! for binary output
+      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
@@ -1254,7 +1254,7 @@ C****
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
-         DO 40 L=1,LM+4
+         DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
    40    XJL(J,L) = -1.E30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
@@ -1298,7 +1298,7 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
       ASUM(J)=0.
       DO 170 K=1,KMAX
   170 ASUM(J)=ASUM(J)+CX(J,K)
-         XJL(J,LM+4)=ASUM(J)
+         XJL(J,LM+LM_REQ+1)=ASUM(J)
   180 MLAT(J)=NINT(ASUM(J)*SUMFAC)
       AGLOB=0.
       DO 200 JHEMI=1,2
@@ -1308,15 +1308,20 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
       AHEM(JHEMI)=AHEM(JHEMI)+ASUM(J)*WTJ(J,JWT,J1)*SUMFAC
   190 CONTINUE
   200 AGLOB=AGLOB+AHEM(JHEMI)/JWT
-         XJL(JM+3,LM+4)=AHEM(1)   ! SOUTHERN HEM
-         XJL(JM+2,LM+4)=AHEM(2)   ! NORTHERN HEM
-         XJL(JM+1,LM+4)=AGLOB     ! GLOBAL
+         XJL(JM+3,LM+LM_REQ+1)=AHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,LM+LM_REQ+1)=AHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,LM+LM_REQ+1)=AGLOB     ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
-     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
-     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PM(L)),L=1,KLMAX),1.,1.,
-     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
-     *     (XJL(J,LM+4),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1,KLMAX)
+         TITLEO=TITLE(NT)//XLB
+         IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PM,CLAT
+     *        ,CPRES)
+
+c         WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
+c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
+c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PM(L)),L=1,KLMAX),1.,1.,
+c     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
+c     *        (XJL(J,LM+LM_REQ+1),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1
+c     *        ,KLMAX) 
       WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
          IF (NT.EQ.1) CALL KEYJKT (AGLOB,ASUM)
@@ -1327,7 +1332,7 @@ C****
       ENTRY JKMAPS (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
          KSX = 3
-         DO 205 L=1,LM+4
+         DO 205 L=1,LM+LM_REQ+1
          DO 205 J=1,JM+3
   205    XJL(J,L) = -1.E30
       LINECT=LINECT+KMAX+10
@@ -1339,7 +1344,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
-      DO 260 L=3,1,-1
+      DO 260 L=LM_REQ,1,-1
       FGLOB=0.
       DO 250 JHEMI=1,2
       AHEM(JHEMI)=0.
@@ -1627,10 +1632,8 @@ c      USE PRTCOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,FCOR,RADIUS,WTJ
       USE DAGPCOM, only :
      &     PLE,PLM,PMTOP
-      USE RADNCB, only :
-     &     LM_REQ
       USE DAGCOM, only :
-     &     ajl,apj,asjl,kdiag,aij
+     &     ajl,apj,asjl,kdiag,aij,LM_REQ
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -1662,9 +1665,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       XWON=TWOPI/(DLON*FIM)
       INC=1+(JM-1)/24
       JMHALF=JM/2
-c      BYIM=1./FIM
       BY100G=.01*BYGRAV
-c      SHA=RGAS/KAPA
       P1000K=P1000**KAPA
       KM=0
       DO 5 K=1,7
@@ -1888,7 +1889,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DAGCOM, only : QCHECK,acc_period,iu_jl
+      USE DAGCOM, only : QCHECK,acc_period,iu_jl,LM_REQ
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -1905,11 +1906,11 @@ C****
       INTEGER :: J1,JWT,LMAX,NT
       DOUBLE PRECISION :: SCALE,SCALER
       DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! pass 3 as arg ??
+      DOUBLE PRECISION, DIMENSION(JM,LM_REQ) :: ARQX 
       DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ,SCALJR
       DOUBLE PRECISION, DIMENSION(LM) :: SCALEL
-      DOUBLE PRECISION, DIMENSION(3) :: SCALLR
-      DOUBLE PRECISION, DIMENSION(LM+3) :: PL
+      DOUBLE PRECISION, DIMENSION(LM_REQ) :: SCALLR
+      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PL
 
       COMMON/DJLTTL/TITLE(1)
       CHARACTER*4 DASH,WORD(4),TITLE*64
@@ -1918,8 +1919,8 @@ C****
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L  ,ksx,klmax
       DOUBLE PRECISION :: FGLOB,FLATJ,GSUM,SDSIG,SUMFAC
 
-      REAL*4, dimension(jm+3,lm+4) :: xjl ! for binary output
-      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16
+      REAL*4, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
+      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
@@ -1932,7 +1933,7 @@ C****
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
-         DO 40 L=1,LM+4
+         DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
    40    XJL(J,L) = -1.E30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
@@ -1976,16 +1977,21 @@ C        IF (NT.EQ.5) CALL KEYJLJ (L,FLAT)
       DO 150 J=J1,JM
   150 MLAT(J)=NINT(ASUM(J)*SUMFAC)
          DO 180 J=J1,JM
-  180    XJL(J   ,LM+4)=ASUM(J)
-         XJL(JM+3,LM+4)=HSUM(1)   ! SOUTHERN HEM
-         XJL(JM+2,LM+4)=HSUM(2)   ! NORTHERN HEM
-         XJL(JM+1,LM+4)=GSUM      ! GLOBAL
+  180    XJL(J   ,LM+LM_REQ+1)=ASUM(J)
+         XJL(JM+3,LM+LM_REQ+1)=HSUM(1)   ! SOUTHERN HEM
+         XJL(JM+2,LM+LM_REQ+1)=HSUM(2)   ! NORTHERN HEM
+         XJL(JM+1,LM+LM_REQ+1)=GSUM      ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
-     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
-     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PL(L)),L=1,KLMAX),1.,1.,
-     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
-     *     (XJL(J,LM+4),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1,KLMAX)
+         TITLEO=TITLE(NT)//XLB
+         IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PL,CLAT
+     *        ,CPRES)
+
+c         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
+c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
+c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PL(L)),L=1,KLMAX),1.,1.,
+c     *     CLAT,CPRES,CBLANK,CBLANK,'NASAGISS',
+c     *        (XJL(J,LM+LM_REQ+1),J=J1,JM+3),((XJL(J,L),J=JM+1,JM+3),L=1
+c     *        ,KLMAX) 
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (MLAT(J),J=JM,J1,-INC)
 C        IF (NT.EQ.1) CALL KEYJLT (GSUM,ASUM)
@@ -2008,7 +2014,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
-      DO 230 L=3,1,-1
+      DO 230 L=LM_REQ,1,-1
       FGLOB=0.
       DO 220 JHEMI=1,2
       FHEM(JHEMI)=0.
@@ -2071,12 +2077,11 @@ C****                                                              9-16
      &     PSF,PTOP,SIG,SIGE
       USE GEOM, only :
      &     AREAG,DXYP,DXYV
-      USE RADNCB, only :
-     &     LM_REQ
       USE DAGPCOM, only :
      &     PLM,PLE
       USE DAGCOM, only :
-     &     ail
+     &     ail, LM_REQ
+
       IMPLICIT NONE
 
       INTEGER :: LINECT,JMHALF,INC
@@ -2151,13 +2156,12 @@ C**** INITIALIZE CERTAIN QUANTITIES
      &     twopi
       USE MODEL_COM, only :
      &     im,jm,lm,
-     &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL,
-     &     Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
+     &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     DLON,LON_DG
       IMPLICIT NONE
 
-      DOUBLE PRECISION :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
+      REAL*4 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
       CHARACTER XLB*80,CWORD*8
       CHARACTER*16, PARAMETER :: CBLANK=' ',
      &  CLAT='LONGITUDE',CPRES='PRESSURE (MB)'
@@ -2217,23 +2221,15 @@ C**** Output for post-processing
          CWORD=WORD(JWT)  ! pads out to 8 characters
          XLB=TITLE
          XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-c     IF (Q_GISS) THEN
-      IF (QCHECK) THEN
-         WRITE (iu_il) XLB,IM,LMAX,1,1,
-     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-     *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
-     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
-     *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
-      END IF
-      IF (Q_GISS) CALL POUT_GISS
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
-     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
-      IF (Q_HDF) CALL POUT_HDF
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
-     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
-      IF (Q_NETCDF) CALL POUT_NETCDF
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
-     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
+         IF(QCHECK) CALL POUT_IL(XLB,ISHIFT,LMAX,XIL,PL,CLAT,CPRES
+     *        ,SNGL(ASUM),SNGL(GSUM),ZONAL)
+
+c      IF (QCHECK) WRITE (iu_il) XLB,IM,LMAX,1,1,
+c     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
+c     *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
+c     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
+c     *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
+
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)
@@ -2741,7 +2737,6 @@ C**** IA now set from DEFACC
      &     DE4TI,BYDPK,SZNDEG
 
 C**** INITIALIZE CERTAIN QUANTITIES
-c      SHA=RGAS/KAPA
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
       XLB = ' '
@@ -3109,11 +3104,12 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
   577 WRITE (6,917) (MGLOBE(KC),LONGTD,KC=1,3)
   600 WRITE (6,909) ((LEGEND(KT,ILEG(KCOLMN,KR)),KT=1,10),KCOLMN=1,2),
      *  (LEGEND(KT,ILEG(3,KR)),KT=1,9)
-         IF(QCHECK) THEN
-            DO KC=1,3
-              IF(TITLE(KC,KR).ne.' ')
-     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
-     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
+      IF(QCHECK) THEN
+        DO KC=1,3
+          IF(TITLE(KC,KR).ne.' ') CALL POUT_IJ(TITLE(KC,KR)//XLB,
+     *         SMAP(1,1,KC),SMAPJ(1,KC),SNGL(FGLOBE(KC))) 
+c     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
+c     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
             END DO
          END IF
   610 CONTINUE
@@ -3242,7 +3238,8 @@ C     WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
   300 IF (JM.LE.24) WRITE (6,940)
       WRITE (6,930) (LON_DG(I,1),I=1,IM,INC*2)
-         IF(QCHECK) WRITE(iu_ij) TITLE(NT),XLB,SMAP,SMAPJ,-1.E30
+         IF(QCHECK) CALL POUT_IJ(TITLE(NT)//XLB,SMAP,SMAPJ,-1.E30)
+c                   WRITE(iu_ij) TITLE(NT),XLB,SMAP,SMAPJ,-1.E30
       RETURN
 C****
   900 FORMAT('0',45X,A48)
@@ -3589,7 +3586,7 @@ C**** THIS SUBROUTINE PRINTS THE DIURNAL CYCLE OF SOME QUANTITIES
 C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
-     &     grav,rgas,kapa,sday,twopi
+     &     grav,sha,sday,twopi
       USE MODEL_COM, only :
      &     dtsrc,idacc,
      &     IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,
@@ -3617,7 +3614,7 @@ C****
       IF (NDAYS.LE.0) RETURN
       DTSURF=DTsrc/NISURF
       BYIDAC=1./NDAYS
-      SCALE(5)=100.*RGAS/(KAPA*GRAV*DTsrc)
+      SCALE(5)=100.*SHA/(GRAV*DTsrc)
       SCALE(28)=1./DTSURF
       SCALE(29)=1./DTSURF
       SCALE(30)=1./DTSURF
@@ -4099,7 +4096,7 @@ C****
 C**** CALCULATE EXTRA QUANTITIES FOR SAVING
 C****
       USE CONSTANT, only :
-     &     grav,rgas,kapa
+     &     grav,sha
       USE MODEL_COM, only :
      &     im,jm,lm,
      &     IDACC,PSF,PTOP,SIG,PSFMPT,
@@ -4133,7 +4130,8 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       TITLEX = 'V COMPONENT OF COMPOSITE SURFACE AIR WIND  (m/s)'
       DO J=1,JM
       FLAT = 0.
@@ -4143,7 +4141,8 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
 C****
       TITLEX = 'MAG OF COMPOSITE MOMENTUM SURFACE DRAG  (kg/m*s**2)'
       DO J=1,JM
@@ -4154,7 +4153,8 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       TITLEX = 'U COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
       DO J=1,JM
       FLAT = 0.
@@ -4164,7 +4164,8 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       TITLEX = 'V COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
       DO J=1,JM
       FLAT = 0.
@@ -4174,7 +4175,8 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
 C****
 C**** Complete 3D-field titles  and select fields
 C****
@@ -4207,7 +4209,8 @@ C****
         IF (NI.GT.0) SMAPJ(J) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
   715 CONTINUE
 C****
       TITLEX = '     V-WIND           at        mb (m/s, UV G)'
@@ -4230,7 +4233,8 @@ C****
         IF (NI.GT.0) SMAPJ(J) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
   725 CONTINUE
 C****
       TITLEX = '     TEMPERATURE      at        mb (C, UV Grid)'
@@ -4253,7 +4257,8 @@ C****
         IF (NI.GT.0) SMAPJ(J) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
   735 CONTINUE
 C****
       TITLEX = '    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
@@ -4276,7 +4281,8 @@ C****
         IF (NI.GT.0) SMAPJ(J) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
   745 CONTINUE
 C****
       TITLEX = '       HEIGHT         at        mb (m, UV Grid)'
@@ -4285,7 +4291,7 @@ C****
       DP=AIJK(I,1,L,4)
       SMAP(I,1) = UNDEF
       IF(DP.GT.0.) SMAP(I,1) = .25*(AIJK(I,1,L,3)-
-     *   (RGAS/KAPA)*AIJK(I,1,L,5))/(GRAV*DP)
+     *   SHA*AIJK(I,1,L,5))/(GRAV*DP)
   750 CONTINUE
       DO J=1,JM
         SMAPJ(J) = UNDEF
@@ -4300,7 +4306,8 @@ C****
         IF (NI.GT.0) SMAPJ(J) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
   755 CONTINUE
       RETURN
       END SUBROUTINE SIJMAP

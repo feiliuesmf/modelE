@@ -297,12 +297,11 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
           call read_param(kunit,.false.)
         CASE (IOREAD_SINGLE) ! parameters/label from restart file
                              ! accumulate idacc and keep track of Itmax/min
-          call read_param(kunit,.true.)
+          IDACC0=IDACC
           XLABEL=XLABEL1
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIMING(1:NTIM1)+TIM1(1:NTIM1)
-          IDACC0=IDACC
           call read_param(kunit,.true.)
 
 C**** keep track of min/max time and earliest diagnostic period
@@ -318,7 +317,7 @@ C**** keep track of min/max time and earliest diagnostic period
 
 C**** This should probably be moved to io_diags
           IDACC(idind) = IDACC(idind) + IDACC0(idind)
-          IDACC(5) = MIN(IDACC(5),IDACC0(5))
+          IF (IDACC0(5).gt.0) IDACC(5) = MIN(IDACC(5),IDACC0(5))
 
         END SELECT ! namelist parameters may still be changed in rundeck
       END SELECT

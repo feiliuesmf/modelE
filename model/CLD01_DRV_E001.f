@@ -4,7 +4,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls MSTCNV and LSCOND
 
-      USE CONSTANT, only : bygrav,lhm,rgas,grav,kapa
+      USE CONSTANT, only : bygrav,lhm,rgas,grav
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc

@@ -7,8 +7,8 @@
 
       IMPLICIT NONE
       SAVE
-!@var iu_ij,iu_jl,iu_il !  units for selected diag. output
-      INTEGER iu_ij,iu_jl,iu_il
+!@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
+      INTEGER iu_ij,iu_jl,iu_il,iu_j
 C**** Accumulating_period information
 !ny   INTEGER, PARAMETER :: NSAMPL  !@var NSAMPL # of sampling schemes
 !ny   INTEGER, DIMENSION(nsampl) :: IDACC   !@var IDACC acc-counters
@@ -392,13 +392,21 @@ c idacc-indices of various processes
 !@ver  1.0
       USE MODEL_COM, only : AMONTH
       implicit none
-
-      INTEGER JMON1,JYR1      !@var month,year of beginning of period 1
-      INTEGER JMONM,JMONL     !@var middle,last month of period
-      INTEGER months,years    !@var length of 1 period,number of periods
-      INTEGER yr1,yr2         !@var (end)year of 1st and last period
-      character*12 aDATE      !@var date string: MONyyr1(-yyr2)
-      INTEGER LDATE           !@var length of date string (7 or 12)
+!@var JMON1,JYR1 month,year of beginning of period 1
+      INTEGER JMON1,JYR1  
+!@var JMONM,JMONL middle,last month of period
+      INTEGER JMONM,JMONL 
+!@var months,years length of 1 period,number of periods
+      INTEGER months,years 
+!@var yr1,yr2 (end)year of 1st and last period
+      INTEGER yr1,yr2
+!@var aDATE date string: MONyyr1(-yyr2)
+      character*12 aDATE
+!@var LDATE length of date string (7 or 12)
+      INTEGER LDATE
+C**** Defaults
+      aDATE = "MONyear"
+      LDATE = 7 
 
       yr1=JYR1
       JMONL=JMON1+months-1

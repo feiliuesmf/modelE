@@ -106,7 +106,7 @@ c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
 
 !@param srat ratio of specific heats at const. press. and vol. (=1.401)
       real*8,parameter :: srat = 1.401d0
-!@param kapa ideal gas law exponent  (.2862)
+!@param kapa ideal gas law exponent for dry air (.2862)
 c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
       real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa

@@ -2680,7 +2680,7 @@ C****  18  UNUSED
 C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
-      USE CONSTANT, only : kapa,sha
+      USE CONSTANT, only : sha
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
      &     P,PSF,PTOP,PSFMPT,SIG,T,U,V,ZATMO
@@ -3000,19 +3000,24 @@ C****
       RETURN
       END SUBROUTINE get_SLP
 
-      SUBROUTINE init_DIAG
+      SUBROUTINE init_DIAG(ISTART)
 !@sum  init_DIAG initiallises the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
-     *     ,nfiltr,dtsrc
-     *     ,Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
+     *     ,nfiltr,dtsrc,jhour,jdate,jmon,amon,jyear
+     *     ,jhour0,jdate0,jmon0,amon0,jyear0,idacc,ioread_single
+     *     ,xlabel,keyct,iowrite_single,iyear0,nday,dtsrc,dt,nmonav
+     *     ,ItimeE
       USE DAGCOM
       USE DAGPCOM, only : ple,plm,pmtop
       USE PARAM
+      USE FILEMANAGER
       IMPLICIT NONE
-      INTEGER L
+      INTEGER L,K,iargc,ioerr,months,years,mswitch,ldate,iu_AIC,llab1
+     *     ,ISTART,jday0,jday
+      CHARACTER FILENM*100
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
 c**** Initialize acc-array names, units, idacc-indices
@@ -3020,18 +3025,68 @@ c**** Initialize acc-array names, units, idacc-indices
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
-         call alloc_param( "IDACC", IDACC, (/11*0,1/), 12) 
-!!!! it looks like IDACC(11) was never set - am I correct?
-         CALL reset_DIAG(0)
-         CALL daily_DIAG
+        IF (ISTART.gt.0) THEN
+          CALL reset_DIAG(0)
+          CALL daily_DIAG
+        END IF
       ELSE  ! get parameters from restart file
-         call get_param( "Itime0", Itime0 )
-         call get_param( "JYEAR0", JYEAR0 )
-         call get_param( "JMON0", JMON0 )
-         call get_param( "JDATE0", JDATE0 )
-         call get_param( "JHOUR0", JHOUR0 )
-         call get_param( "AMON0", AMON0 )
-         call get_pparam( "IDACC", IDACC, 12) 
+        call get_param( "Itime0", Itime0 )
+        call get_param( "JYEAR0", JYEAR0 )
+        call get_param( "JMON0", JMON0 )
+        call get_param( "JDATE0", JDATE0 )
+        call get_param( "JHOUR0", JHOUR0 )
+        call get_param( "AMON0", AMON0 )
+        call get_pparam( "IDACC", IDACC, 12) 
+      END IF
+
+      IF(ISTART.LT.0) THEN
+        call getdte(Itime0,Nday,Iyear0,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
+     *       ,amon0)
+        call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour
+     *       ,amon)
+        months=0 ; years=monacc(jmon0) ; mswitch=0
+        do k=1,12
+          if (monacc(k).eq.years) then
+            months=months+1
+          else if (monacc(k).ne.0) then
+            write(6,*) 'uneven period:',monacc
+            stop 'uneven period'
+          end if
+          if(k.gt.1.and.monacc(k).ne.monacc(k-1)) mswitch = mswitch+1
+        end do
+        if (mswitch.gt.2) then
+          write(6,*) 'non-consecutive period:',monacc
+          stop 'non-consecutive period'
+        end if
+        call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
+        LLAB1 = INDEX(XLABEL(1:17),'(') -1
+        IF (LLAB1.LT.1) LLAB1=16
+        if (index(XLABEL(1:LLAB1),' ').gt.0)
+     *       LLAB1=index(XLABEL(1:LLAB1),' ')-1
+        if (iargc().gt.1) then  ! save the summed acc-file
+          write(6,*) iargc(),' files are summed up'
+          keyct=1 ; KEYNR=0
+          XLABEL(128:132)='     '
+          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
+          OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LLAB1),
+     *         FORM='UNFORMATTED')
+          call io_rsf (30,Itime,iowrite_single,ioerr)
+          CLOSE (30)
+        end if
+        if(qcheck) then         ! open the binary output files
+          call getunit(acc_period(1:Ldate)//'.ij'//XLABEL(1:LLAB1),
+     *         iu_ij,.true.,.false.)
+          call getunit(acc_period(1:Ldate)//'.jk'//XLABEL(1:LLAB1),
+     *         iu_jl,.true.,.false.)
+          call getunit(acc_period(1:Ldate)//'.il'//XLABEL(1:LLAB1),
+     *         iu_il,.true.,.false.)
+          call getunit(acc_period(1:Ldate)//'.j'//XLABEL(1:LLAB1),
+     *         iu_j,.false.,.false.)
+        end if
+        ItimeE = -1
+        close (6)
+        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LLAB1)//'.PRT',
+     *       FORM='FORMATTED')
       END IF
 
 C**** Initialize certain arrays used by more than one print routine
@@ -3135,7 +3190,7 @@ C**** Hence this diagnostic gives the error
       USE DAGCOM
       USE PARAM
       IMPLICIT NONE
-      INTEGER :: isum  !@var if =1 preparation for adding up acc-files
+      INTEGER :: isum  !@var isum if =1 preparation for adding up acc-files
 
       Itime0=Itime
       JHOUR0=JHOUR
@@ -3151,18 +3206,17 @@ C**** Hence this diagnostic gives the error
       call set_param( "JHOUR0", JHOUR0, 'o' )
       call set_param( "AMON0", AMON0, 'o' )
 
-      IDACC(1:10)=0
+      IDACC(1:12)=0
       AJ=0    ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
-
      
       CALL EPFLXI (U)  ! strat
-      if (isum.eq.1) return
-
-      AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      if (isum.ne.1) then
+        AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      end if
 
       RETURN
       END SUBROUTINE reset_DIAG
