@@ -822,8 +822,10 @@ C****
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
         jls_ltop(k) = lm
-        jls_power(k) = -10.
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -26
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k)=3
+
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Ground_Source_of_'//trname(n)
@@ -1743,25 +1745,27 @@ c cosmogenic source from file
         sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
         lname_jls(k) = 'Be7 cosmogenic src'
         jls_ltop(k) = lm
-        jls_power(k) = -13.   !may need changing around
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -28
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'Loss of Be7 by decay'
         jls_ltop(k) = lm
-        jls_power(k) = -13
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -28
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Be7 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -13
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
+        jls_power(k) = -28
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 
         case ('Be10')
 c cosmogenic source from file/same as Be7
@@ -1770,16 +1774,18 @@ c cosmogenic source from file/same as Be7
         sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
         lname_jls(k) = 'Be10 cosmogenic src'
         jls_ltop(k) = lm
-        jls_power(k) = -13  !may need changing around
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -28  !may need changing around
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Be10 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -13
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -28  !may need changing around
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 
         case ('Pb210')
 c source of Pb210 from Rn222 decay
@@ -1788,24 +1794,27 @@ c source of Pb210 from Rn222 decay
         sname_jls(k) = 'Radioactive_src_of'//trname(n)
         lname_jls(k) = 'Pb210 radioactive src'
         jls_ltop(k) = lm
-        jls_power(k) =-10  !may need to be changed
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) =-26   ! -10  !may need to be changed
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
         sname_jls(k) = 'Decay_of_'//trname(n)
         lname_jls(k) = 'Loss of Pb210 by decay'
         jls_ltop(k) = lm
-        jls_power(k) = -12
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) =-26   ! -10  !may need to be changed
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
         sname_jls(k) = 'Grav_Settle_of_'//trname(n)
         lname_jls(k) = 'Loss of Pb210 by grav settling'
         jls_ltop(k) = lm
-        jls_power(k) = -12
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_power(k) = -28
+        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+        jwt_jls(k) = 3
 
         case ('H2O2_s')
 c gas phase source and sink of H2O2

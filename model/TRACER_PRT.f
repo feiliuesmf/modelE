@@ -44,7 +44,8 @@ C****
 C**** Latitude-longitude by layer concentration
 !$OMP PARALLEL DO PRIVATE (L)
       do l=1,lm
-        taijln(:,:,l,n) = taijln(:,:,l,n) + trm(:,:,l,n)*byam(l,:,:)
+        taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1,l
+     *       ,n)*byam(l,:,J_0:J_1)
       end do
 !$OMP END PARALLEL DO
 C**** Average concentration; surface concentration; total mass
@@ -392,6 +393,7 @@ C****
       SAVE
 !@param names of derived JLt/JLs tracer output fields
       INTEGER jlnt_nt_eddy,jlnt_vt_eddy
+
       END MODULE BDjlt
 
 
@@ -450,15 +452,16 @@ C****
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
-     &   ,sige,ptop
+     &   ,sige,ptop,bydsig,dsig,ls1
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
-      USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req
+      USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
       USE TRACER_DIAG_COM
       USE BDJLT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ONESPO
+     *     ,BYAPO
       REAL*8, DIMENSION((GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)+LM) :: 
      &                                                          ONES
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: A
@@ -497,6 +500,15 @@ C****
       IF (HAVE_SOUTH_POLE) onespo(1)  = fim
       IF (HAVE_NORTH_POLE) onespo(jm) = fim
       ones(:) = 1.d0
+      byapo(J_0:J_1)=bydxyp(J_0:J_1)*onespo(J_0:J_1)/fim 
+      do L=1,LS1-1
+        pdsigjl(J_0:J_1,L)=dsig(l)*onespo(J_0:J_1)*APJ(J_0:J_1,1)/
+     *     (fim*IDACC(ia_dga)+teeny)
+      end do
+      do L=LS1,LM
+        pdsigjl(J_0:J_1,L)=psfmpt*dsig(l)
+      end do
+
       linect = 65
 C****
 C**** LOOP OVER TRACERS
@@ -530,7 +542,6 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
-
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
 
@@ -652,14 +663,31 @@ C**** TURBULENCE (or Dry Convection)
   400 CONTINUE
 C****
 C**** JL Specials (incl. Sources and sinks)
+C**** Partial move towards correct units (kg/(mb m^2 s)). 
+C**** Plot depends on jwt_jls. 
+C**** Note that only jwt_jls=3 is resolution independent.
 C****
       do k=1,ktajls
         if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr"
      *       .or. lname_jls(k).eq."unused") cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
-        CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,tajls(1
-     *     ,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
-      end do
+        select case (jwt_jls(k))
+        case (1)   !  simple sum (like kg/s),
+          CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,
+     *         tajls(1,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k)
+     *         ,jgrid_jls(k))
+          
+        case (2)   !  area weighting (like kg/m^2 s)
+          CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
+     *         ,tajls(1,1,k),scalet,bydxyp,ones,jls_ltop(k),jwt_jls(k)
+     *         ,jgrid_jls(k))
+          
+        case (3)   !  area + pressure weighting (like kg/mb m^2 s)
+          CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
+     *         ,tajls(1,1,k),scalet,byapo,ones,jls_ltop(k),jwt_jls(k)
+     *         ,jgrid_jls(k))
+        end select
+        end do
 
 #ifdef TRACERS_SPECIAL_Lerner
 C**** some special combination diagnostics
@@ -819,14 +847,18 @@ C****               AX * SCALET * SCALEJ * SCALEL.
 C**** WHEN JWT=1, THE INSIDE NUMBERS ARE NOT AREA WEIGHTED AND THE
 C****    HEMISPHERIC AND GLOBAL NUMBERS ARE SUMMATIONS.
 C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
+C**** WHEN JWT=3, ALL NUMBERS ARE PER UNIT AREA AND PRESSURE, THE
+C****    VERTICAL INTEGRAL GIVES TOTAL 
 C**** JG INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE
 C****
+      USE CONSTANT, only : undef
       USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DAGCOM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
+      USE TRACER_DIAG_COM, only : pdsigjl
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -844,12 +876,13 @@ C****
       REAL*8, DIMENSION(JM) :: SCALEJ
       REAL*8, DIMENSION(LM) :: SCALEL,PL
 
-      CHARACTER*4 DASH,WORD(4)
-      DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
+      CHARACTER*4 :: DASH = '----',
+     *     WORD(4) = (/ 'SUM ','MEAN','MEAN','.1* '/),
+     *     BWORD(4)*6= (/ ' SUM  ',' MEAN ','INT/1K',' .1*  '/)
 
       INTEGER, DIMENSION(JM) :: MLAT
       REAL*8, DIMENSION(JM) :: ASUM
-      REAL*8, DIMENSION(2) :: FHEM,HSUM
+      REAL*8, DIMENSION(2) :: FHEM,HSUM,PJSUM
       INTEGER :: IWORD,J,JHEMI,K,L
       REAL*8 :: FGLOB,FLATJ,GSUM,SDSIG
 
@@ -875,7 +908,7 @@ C****
 C****
 C**** CALCULATE TABLE NUMBERS AND WRITE THEM TO THE LINE PRINTER
 C****
-         XJL(:,:) = -1.E30
+      XJL(:,:) = undef
       SDSIG = 1.-SIGE(LMAX+1)
       ASUM(:) = 0.
       HSUM(:) = 0.
@@ -889,39 +922,56 @@ c   N-Hemi, S-Hemi, and Global Sums
 
       DO 230 JHEMI=1,2
       FHEM(JHEMI) = 0.
+      PJSUM(JHEMI)= 0.
       DO 220 J=JRANGE_HEMI(1,JHEMI,JG),JRANGE_HEMI(2,JHEMI,JG)
       FLATJ = AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
+      IF (JWT.eq.3) FLATJ=FLATJ/PDSIGJL(J,L)
          XJL(J,L) = FLATJ
       MLAT(J) = NINT(MAX(-1d5,MIN(FLATJ,1d5))) ! prevent integer overflow
       IF (JWT.EQ.1) THEN
         ASUM(J) = ASUM(J)+FLATJ  !!!!most
-      ELSE
+        FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
+      ELSEIF (JWT.EQ.2) THEN
         ASUM(J) = ASUM(J)+FLATJ*DSIG(L)/SDSIG  !!!! concentration
+        FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
+      ELSEIF (JWT.EQ.3) THEN   !! mass and area weighting
+        ASUM(J) = ASUM(J)+FLATJ*PDSIGJL(J,L)
+        FHEM(JHEMI)=FHEM(JHEMI)+FLATJ*WTJ(J,2,JG)*PDSIGJL(J,L)
+        PJSUM(JHEMI)=PJSUM(JHEMI)+WTJ(J,2,JG)*PDSIGJL(J,L)
       ENDIF
-      FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
-  220 CONTINUE
-  230 FGLOB = FGLOB+FHEM(JHEMI)/JWT
-         XJL(JM+3,L)=FHEM(1)   ! SOUTHERN HEM
-         XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
-         XJL(JM+1,L)=FGLOB     ! GLOBAL
-      WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),(MLAT(J),J=JM,JG,-INC)
+  220 CONTINUE   ! loop over J
+      FGLOB = FGLOB+FHEM(JHEMI)/REAL(MIN(JWT,2),KIND=8)
+      IF (JWT.eq.3) FHEM(JHEMI) = FHEM(JHEMI) / PJSUM(JHEMI)
+ 230  CONTINUE   ! loop over hemisphere
+
       IF (JWT.EQ.1) THEN
         HSUM(1) = HSUM(1)+FHEM(1)
         HSUM(2) = HSUM(2)+FHEM(2)
         GSUM    = GSUM   +FGLOB
-      ELSE
+      ELSEIF (JWT.EQ.2) THEN
         HSUM(1) = HSUM(1)+FHEM(1)*DSIG(L)/SDSIG
         HSUM(2) = HSUM(2)+FHEM(2)*DSIG(L)/SDSIG
         GSUM    = GSUM   +FGLOB  *DSIG(L)/SDSIG
+      ELSE
+        HSUM(1) = HSUM(1)+FHEM(1)*PJSUM(1) 
+        HSUM(2) = HSUM(2)+FHEM(2)*PJSUM(2)
+        GSUM    = GSUM   +FGLOB 
+        FGLOB=2.*FGLOB/(PJSUM(1)+PJSUM(2))
       ENDIF
-  240 CONTINUE
+C**** Output for each layer
+         XJL(JM+3,L)=FHEM(1)   ! SOUTHERN HEM
+         XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
+         XJL(JM+1,L)=FGLOB     ! GLOBAL
+      WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),(MLAT(J),J=JM,JG,-INC)
+  240 CONTINUE   ! loop over Layer
       WRITE (6,905) (DASH,J=JG,JM,INC)
+      IF (JWT.eq.3) THEN ! scale integrated sums to look neater
+        ASUM(:)= ASUM(:)*1d-3 
+        HSUM(:)= HSUM(:)*1d-3
+        GSUM   = GSUM   *1d-3
+      END IF
       ASUM(jmby2+1) = ASUM(jmby2+1)/JG
          DO 180 J=JG,JM
-! 180    XJL(J   ,LM+LM_REQ+1)=ASUM(J)
-!        XJL(JM+3,LM+LM_REQ+1)=HSUM(1)   ! SOUTHERN HEM
-!        XJL(JM+2,LM+LM_REQ+1)=HSUM(2)   ! NORTHERN HEM
-!        XJL(JM+1,LM+LM_REQ+1)=GSUM      ! GLOBAL
   180    XJL(J   ,LM+1)=ASUM(J)
          XJL(JM+3,LM+1)=HSUM(1)   ! SOUTHERN HEM
          XJL(JM+2,LM+1)=HSUM(2)   ! NORTHERN HEM
@@ -935,13 +985,13 @@ c   N-Hemi, S-Hemi, and Global Sums
          RETURN
       ENDIF
       IF (LMAX.EQ.1) RETURN
-      WRITE (6,903) WORD(JWT),GSUM,HSUM(2),HSUM(1),
+      WRITE (6,903) BWORD(JWT),GSUM,HSUM(2),HSUM(1),
      *    (NINT(MAX(-1d5,MIN(ASUM(J),1d5))),J=JM,JG,-INC)
       RETURN
 C****
   901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
   902 FORMAT (1X,F8.3,3F8.1,1X,24I4)
-  903 FORMAT (1X,A6,2X,3F8.1,1X,24I4)
+  903 FORMAT (2X,A6,1X,3F8.1,1X,24I4)
   904 FORMAT ('  P(MB)    ',A4,' G     NH      SH  ',24I4)
   905 FORMAT (2X,32('-'),24A4)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
@@ -1107,7 +1157,7 @@ C**** Be10/Be7
         name(k) = "be10be7_ij"
         lname(k) = "surface ratio Be10 to Be7"
         units(k) = " "
-        irange(k) = ir_0_180
+        irange(k) = ir_0_18
         iacc(k) = ia_srf
         iord(k) = 1
         aij1(:,:,k) = taijn(:,:,tij_surf,n_Be10) !set as numerator

@@ -277,6 +277,9 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntmxcon) :: itcon_dd
 #endif
 #endif
+!@var PDSIGJL temporary storage for mean pressures for jl diags
+      REAL*8, DIMENSION(JM,LM) :: PDSIGJL
+
       END MODULE TRACER_DIAG_COM
 
 #ifdef TRACERS_ON
