@@ -701,7 +701,7 @@ c GISS-ESMF EXCEPTIONAL CASE
       END DO
       DO L=1,LS1-1
       DO J=J_0STG,J_1STG
-        BYDPJL(J,L)=(.25*FIM*IDACC(4))/(APJ(J,2)+1.D-20)
+        BYDPJL(J,L)=(FIM*IDACC(4))/(0.25*DSIG(L)*APJ(J,2)+1.D-20)
       END DO
       END DO
       DO L=LS1,LM
