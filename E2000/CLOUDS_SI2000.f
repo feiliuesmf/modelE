@@ -1552,7 +1552,6 @@ cc       IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
 cc       RH00(L)=1.-GAMD*LHE*HDEP1/(RVAP*TS*TS)
 cc      ENDIF
         IF(RH00(L).LT.0.) RH00(L)=0.
-        if (debug) print*,"rh00_1",rh00(l),hdep,tl(l),pl(l),ts
       ENDIF
 C**** Special formulation for PBL layers
 cc    IF(L.GT.1.AND.L.LE.DCL) THEN
@@ -1611,8 +1610,6 @@ C**** FORM CLOUDS ONLY IF RH GT RH00
      *       -TEM*QSATL(L)*RH(L)
         FORM_CLOUDS= (QCONV.GT.0. .OR. WMX(L).GT.0.)
       END IF
-      if (debug.and.l.eq.1) print*,"rh",rh1(l),rh00(l),form_clouds,qconv
-      if (debug.and.l.eq.1) print*,"rhq",ql(l),wmx(l),lhx
 C****
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF (FORM_CLOUDS) THEN
@@ -1679,16 +1676,17 @@ C**** a super-cooled water cloud (that has not had B-F occur).
 C**** Note: on rare occasions we have ice clouds even if T>0
 C**** In such a case, no energy of phase change is needed.
       HPHASE=0.
-      IF (LHP(L+1).EQ.LHS.AND.LHP(L).EQ.LHE.AND.PREICE(L+1).GT.0) THEN
+cSI2K      IF (LHP(L+1).EQ.LHS.AND.LHP(L).EQ.LHE.AND.PREICE(L+1).GT.0) THEN
+      IF(L.LT.LM.AND.TL(L).GT.TF) THEN    ! back to SI2000
         HPHASE=HPHASE+LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
       ENDIF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
-      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0)
-     *     HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+cSI2K      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0)
+cSI2K     *     HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
 C**** Make sure energy is conserved for transfers between P and CLW
-      IF (LHP(L).NE.LHX)
-     *     HPHASE=HPHASE+(ER(L)*CAREA(L)/LHX-PREP(L))*LHM
+cSI2K      IF (LHP(L).NE.LHX)
+cSI2K     *     HPHASE=HPHASE+(ER(L)*CAREA(L)/LHX-PREP(L))*LHM
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
         PREBAR(L)=PREBAR(L+1)*(1.-CAREA(L))+AIRM(L)*PREP(L)*BYGRAV
@@ -1844,19 +1842,20 @@ C**** CONDENSING MORE TRACERS
       IF(RH(L).GT.1.) CAREA(L)=0.
       IF(WMX(L).LE.0.) CAREA(L)=1.
       IF(CAREA(L).LT.0.) CAREA(L)=0.
-      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
-      IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
+cSI2K      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
+cSI2K      IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
+      IF(RH(L).LE.RHF(L)) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
         TRWML(1:NTX,L) = 0.
 #endif
         PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-        IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
-          HCHANG=WMX(L)*LHM
-          TL(L)=TL(L)+HCHANG/SHA
-          TH(L)=TL(L)/PLK(L)
-        END IF
+cSI2K        IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
+cSI2K          HCHANG=WMX(L)*LHM
+cSI2K          TL(L)=TL(L)+HCHANG/SHA
+cSI2K          TH(L)=TL(L)/PLK(L)
+cSI2K        END IF
         WMX(L)=0.
       END IF
 C**** set phase of condensation for next box down
@@ -2050,7 +2049,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
           QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
-          RCLD=25.0*(WTEM/4.2d-3)**BY3 * 500./(pl(l)+500.) 
+          RCLD=25.0*(WTEM/4.2d-3)**BY3 ! * 500./(pl(l)+500.) 
         ENDIF
         RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE
@@ -2058,15 +2057,13 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
         TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
         IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
-        if (debug.and.l.eq.1) print*,"rhc",rh(l),cldssl(l),taussl(l)
-     *       ,wmx(l),rcld 
       END DO
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
         CLDSAVL(L)=CLDSSL(L)
         IF(WMX(L).LE.0.) SVLHXL(L)=0.
-        IF(TAUMCL(L).EQ.0..OR.CKIJ.NE.1.) THEN
+        IF(TAUMCL(L).LE.0..OR.CKIJ.NE.1.) THEN
           BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
           IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
           IF(L.EQ.1) THEN
