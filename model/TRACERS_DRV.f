@@ -6786,23 +6786,25 @@ C**** no fractionation for ice evap
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR
 #endif
+
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
       SUBROUTINE GET_SULF_GAS_RATES
 !@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
 !@+    gas phase sulfur oxidation chemistry 
 !@auth Bell
 !@ver  1.0
-        USE MODEL_COM, only: im,jm,lm,t
-        USE DYNAMICS, only: pmid,am,pk,LTROPO
-        USE GEOM, only: dxyp,imaxj
-        USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4 
+      USE MODEL_COM, only: im,jm,lm,t
+      USE DYNAMICS, only: pmid,am,pk,LTROPO
+      USE GEOM, only: dxyp,imaxj
+      USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4 
 
       real*8 ppres,te,tt,mm,dmm,rk4,ek4
  
 C Initialise
-       rsulf1(:,:,:)=0.0
-       rsulf2(:,:,:)=0.0
-       rsulf3(:,:,:)=0.0
-       rsulf4(:,:,:)=0.0
+      rsulf1(:,:,:)=0.0
+      rsulf2(:,:,:)=0.0
+      rsulf3(:,:,:)=0.0
+      rsulf4(:,:,:)=0.0
 
 C Reactions
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
@@ -6818,33 +6820,33 @@ c
 
 C Calculate effective temperature
 
-      ppres=pmid(l,i,j)*9.869d-4 !in atm
-      te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*dxyp(j)
-      tt = 1.d0/te
+        ppres=pmid(l,i,j)*9.869d-4 !in atm
+        te=pk(l,i,j)*t(i,j,l)
+        mm=am(l,i,j)*dxyp(j)
+        tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3
-      dmm=ppres/(.082d0*te)*6.02d20
+        dmm=ppres/(.082d0*te)*6.02d20
 
-       rsulf1(i,j,l) = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
-     * (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)
+        rsulf1(i,j,l) = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
+     *       (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)
+        
+        rsulf2(i,j,l) = 9.6d-12*exp(-234.d0*tt)
+        
+        rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
+        
+        rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
+        ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
+        
+        rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
 
-       rsulf2(i,j,l) = 9.6d-12*exp(-234.d0*tt)
+      endif
 
-       rsulf3(i,j,l) = 1.9d-13*exp(520.d0*tt)
-
-       rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
-       ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
-          
-       rsulf4(i,j,l) = (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
-
-       endif
-
-        end do
-        end do
-        end do
-
+      end do
+      end do
+      end do
+      
       END SUBROUTINE GET_SULF_GAS_RATES
-
+#endif
 
 
