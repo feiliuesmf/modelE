@@ -2236,12 +2236,12 @@ C**** Output for post-processing
      *     ,PL,CLAT,CPRES,ASUM,GSUM,ZONAL)
       RETURN
 C****
-  901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
-  902 FORMAT (F6.1,F8.1,1X,36I3)
-  903 FORMAT (F14.1,1X,36I3)
-  904 FORMAT (' P(MB)',4X,A4,1X,36I3)  ! U-grid (i.e., centers)
-  905 FORMAT (1X,14('-'),36A3)
-  906 FORMAT (' P(MB)',4X,A4,36I3)     ! V-grid (i.e., edges)
+  901 FORMAT ('0',30X,A64,2('-'),/1X,16('-'),36A3)
+  902 FORMAT (F8.3,F8.1,1X,36I3)
+  903 FORMAT (F16.1,1X,36I3)
+  904 FORMAT (' P(MB)',6X,A4,1X,36I3)  ! U-grid (i.e., centers)
+  905 FORMAT (1X,16('-'),36A3)
+  906 FORMAT (' P(MB)',6X,A4,36I3)     ! V-grid (i.e., edges)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
 C****
       END SUBROUTINE ILMAP
