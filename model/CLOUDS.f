@@ -405,7 +405,7 @@ c for sulfur chemistry
       INTEGER,  PARAMETER :: ITMAX=50
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
-!@var WV convetive vertical velocity
+!@var WV convective vertical velocity
 !@var VT precip terminal velocity
 !@var DDCW,DCW,DCG,DCI critical cloud particle sizes
 !@var FG, FI fraction for graupel and ice
@@ -3261,7 +3261,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
 C**** accumulate ptop/tauopt over columns for output
           if (itau.gt.1) then
             ctp   = ctp  +ptop(ibox)
-            tauopt=tauopt+ exp(-tau(ibox))
+            tauopt=tauopt+ max(exp(-tau(ibox)),1d-16)
             nbox = nbox + 1
           end if
         end if
