@@ -11,7 +11,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      
+
 C**** variables used in advection (on ICE grid)
 !@var RSIX,RSIY first order moments for seaice concentration
 !@var USI,VSI east-west, and north-south sea ice velocities (m/s)
@@ -198,7 +198,7 @@ C****
 !@auth Gavin Schmidt
       USE ICEDYN_COM
       IMPLICIT NONE
-      
+
       ICIJ=0.
 #ifdef TRACERS_OCEAN
       TICIJ=0.
@@ -243,7 +243,7 @@ C**** save current value of sea ice concentration for ADVSI
 C**** RSISAVE is on atmospheric grid
       RSISAVE(:,:)=RSI(:,:)
 
-C**** Calculate pressure anomaly at surface 
+C**** Calculate pressure anomaly at surface
 C**** APRESS is on atmospheric grid
       DO J=1,JM
         DO I=1,IMAXJ(J)
@@ -259,26 +259,26 @@ C**** on atmospheric C grid (using OGEOZA on atmospheric grid)
 C**** PGF is an accelaration
       PGFU(1:IM,JM)=0
       DO J=2,JM-1
-        I=IM   
+        I=IM
         DO IP1=1,IM
           IF(FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      *         RSI(I,J)+RSI(IP1,J).gt.0.) THEN
             PGFU(I,J)=-((APRESS(IP1,J)-APRESS(I,J))*BYRHOI
      *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
           ELSE
-            PGFU(I,J)=0. 
+            PGFU(I,J)=0.
           END IF
-          I=IP1 
+          I=IP1
         END DO
       END DO
-      DO J=1,JM-1 
-        DO I=1,IM 
+      DO J=1,JM-1
+        DO I=1,IM
           IF(FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      *         RSI(I,J)+RSI(I,J+1).gt.0.) THEN
             PGFV(I,J)=-((APRESS(I,J+1)-APRESS(I,J))*BYRHOI
      *           +OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
           ELSE
-            PGFV(I,J)=0. 
+            PGFV(I,J)=0.
           END IF
         END DO
       END DO
@@ -345,7 +345,7 @@ C**** NOTE: UOSURF, VOSURF are expected to be on the C-grid
           UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
           GWATX(i,j)=0.5*(UOSURF(im1,j)+UOSURF(im1,j+1)) ! ocnC--> iceB
           PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! atmC--> iceB
-          VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))       
+          VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))
           GWATY(i,j)=0.5*(VOSURF(im1,j)+VOSURF(i,j))
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))
           im1=i
@@ -463,9 +463,9 @@ C**** UI2rho = | tau |
           if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
 C**** calculate 4 point average of B grid values of stresses
             duA = 0.5*(DXYN(J)*(dmu(i+1,j)+dmu(i,j))+DXYS(j)*(dmu(i+1
-     *           ,j-1)+dmu(i,j-1)))*BYDXYP(J)   
+     *           ,j-1)+dmu(i,j-1)))*BYDXYP(J)
             dvA = 0.5*(DXYN(J)*(dmv(i+1,j)+dmv(i,j))+DXYS(j)*(dmv(i+1
-     *           ,j-1)+dmv(i,j-1)))*BYDXYP(J)   
+     *           ,j-1)+dmv(i,j-1)))*BYDXYP(J)
             UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
           end if
         end do
@@ -524,7 +524,7 @@ C****
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
 !@+    on the AGCM grid, and RSI/MSI/HSI etc. are unchanged)
 !@+    At some point this will change (USIDT/VSIDT on ice grid, and RSI
-!@+    etc. will need to be interpolated back and forth). 
+!@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : im,jm,focean
@@ -657,7 +657,7 @@ C****
 C**** Calculate south-north sea ice fluxes near North Pole
 C****
       IF(VSIDT(I,JM-1).eq.0.)  GO TO 200
-      FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM) ! be careful with atm. grid index
+      FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM) ! be careful with atm.grid index
       IF(VSIDT(I,JM-1).le.0.) THEN
 C**** Sea ice velocity is southward from North Pole box
         FASI(JM-1) = FAW(JM-1)*RSI(1,JM)*FOCEAN(1,JM)
@@ -718,7 +718,7 @@ C**** VSIDT(J-1)<0, VSIDT(J)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(J-1)*FOCEAN(I,J-1)*BYFOA(I,J))
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(J-1)*FOCEAN(I,J-1)*BYFOA(I,J))**2
       GO TO 310
-C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J)?0.
+C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
   260 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + ( FASI(J-1)- FASI(J))
       DO 265 K=1,NTRICE
   265 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) +
@@ -882,7 +882,7 @@ C**** USIDT(IM1)<0, USIDT(I)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(IM1)*FOCEAN(IM1,J)*BYFOA(I,J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(IM1)*FOCEAN(IM1,J)*BYFOA(I,J))
       GO TO 610
-C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
+C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I) not 0.
   560 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + (FASI(IM1)- FASI(I))
       DO 565 K=1,NTRICE
   565 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) +
@@ -1132,7 +1132,7 @@ C**** set properties for ICIJ diagnostics
 C**** simple tracer diags same description for all tracers
 C**** set properties for TICIJ diagnostics
       k=0
-     
+
       k=k+1
       TICIJ_TUSI=k
       lname_ticij(k)="Sea ice NS tracer flux"
@@ -1193,7 +1193,7 @@ C**** determine label to be added to all titles
 
 C**** Open output files
       call open_ij(trim(acc_period)//'.icij'//
-     *     XLABEL(1:LRUNID),imic,jmic) 
+     *     XLABEL(1:LRUNID),imic,jmic)
 C****
 C**** Simple scaled ICIJ diagnostics
 C****
@@ -1229,7 +1229,7 @@ C****
           lname(k1:50) = ' '
         end if
 
-        Q=UNDEF
+        Q=UNDEF ; QJ=UNDEF ; QSUM=UNDEF
         DO J=1,JMIC
           DO I=1,IMIC
             IF (ADENOM(I,J).gt.0 .and. FOCEAN(I,J).gt.0.5)

@@ -1111,7 +1111,7 @@ C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN(iniOCEAN)
-C**** Initialize ice dynamaics code (if required)
+C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
       CALL init_LI

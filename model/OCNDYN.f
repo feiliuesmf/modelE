@@ -2801,7 +2801,7 @@ C**** Solve diffusion equations semi implicitly
       DT2=DTDIFF*5d-1     ! half time-step
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
 !$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
-!$OMP&  UU,UV,UT,UY,UX, VT,VY,VX) 
+!$OMP&  UU,UV,UT,UY,UX, VT,VY,VX)
       DO L=1,LMO
 C**** Save (0.5*) mass reciprical for velocity points
       DO J=2,JM-1
@@ -3101,7 +3101,7 @@ C**** Note that currently everything is on same grid
 C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (FOCEAN(I,J).gt.0) THEN
+          IF (FOCEAN(I,J).gt.0.and.MO(I,J,1).gt.0) THEN
             GO= G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)

@@ -100,7 +100,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       IF (TKV.EQ.TGV) TGV=1.0001d0*TGV
 
       ! find PBL height dbl (in meters) and the GCM layer (L) at which
-      ! to compute ug, vg and wg 
+      ! to compute ug, vg and wg
 
 c     IF (TKV.GE.TGV) THEN
 
@@ -595,7 +595,7 @@ c ******* itype=4: Land
             endif
           endif
 
-C**** initialise some pbl common variables          
+C**** initialise some pbl common variables
           WSAVG(I,J)=0.
           TSAVG(I,J)=0.
           QSAVG(I,J)=0.
@@ -622,7 +622,7 @@ C**** initialise some pbl common variables
 !@+  This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
 !@+  average value for zs1. The quantity theta was computed on the
 !@+  assumption of zs1=200 m from the original 9-layer model (actually
-!@+  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)
+!@+  was misconstrued as z1 = 200m when it should have been zs1 = 200m)
 !@+  and is then applied to all vertical resolutions.
 !@auth Greg. Hartke/Ye Cheng
 !@var zgs The height of the surface layer.
