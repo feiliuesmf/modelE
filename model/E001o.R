@@ -42,7 +42,7 @@ OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1 ! ocean bdy.cond
-CDN=CD4X500S.ext VEG=V72X46.1.cor.ext
+CDN=CD4X500S.ext VEG=V72X46.1.cor2.ext
 SOIL=S4X50093.ext TOPO=Z72X46N_gas.1 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.gas1.RVR      ! river direction file
@@ -72,8 +72,9 @@ R=00BG/B
 X_SDRAG=.00025,.000025
 C_SDRAG=0.
 KOCEAN=1
-U00ice=.55   ! use same value as corresponding run with prescribed ocean
-HRMAX=1000.  ! use same value as corresponding run with prescribed ocean
+U00ice=.60   ! use same value as corresponding run with prescribed ocean
+U00wtr=.80   ! use same value as corresponding run with prescribed ocean
+HRMAX=550.   ! use same value as corresponding run with prescribed ocean
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
 dt_UVfilter=450.

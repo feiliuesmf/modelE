@@ -46,7 +46,7 @@ SICE=SICE4X5.B.1950.M02.Hadl1.1 ! ocean data   Feb 1950 - 1999
 ! OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
     ! files needed for all models
-CDN=CD4X500S VEG=V72X46.1.cor     ! surf.drag - vegetation fractions
+CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR                   ! river direction file
@@ -90,7 +90,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 xCDpbl=1.
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
 U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
-HRMAX=1000.     ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
+HRMAX=550.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)

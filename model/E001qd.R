@@ -38,7 +38,7 @@ OHT=OTSPEC.E001.M250D.1951-1955     ! horizontal ocean heat transports
 TG3M=TG3M.E001q.19711980            ! created by 'mkdeep'
 ! OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
-CDN=CD4X500S VEG=V72X46.1.cor
+CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file
@@ -68,8 +68,9 @@ DTFIX=300
 X_SDRAG=.00025,.000025
 C_SDRAG=0.
 KOCEAN=1
-U00ice=.55   ! use same values as in corr. run with climatological ocean
-HRMAX=1000.  ! use same values as in corr. run with climatological ocean
+U00ice=.60   ! use same values as in corr. run with climatological ocean
+U00wtr=.80   ! use same values as in corr. run with climatological ocean
+HRMAX=550.   ! use same values as in corr. run with climatological ocean
 KSOLAR=1
 isccp_diags=1
 DT=450.,        ! from default: DTsrc=3600.,

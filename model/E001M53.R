@@ -39,7 +39,7 @@ GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
 ! OHT=OTSPEC.RB399AM12.M250D ! not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
-CDN=CD4X500S VEG=V72X46.1.cor
+CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file

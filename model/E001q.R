@@ -43,7 +43,7 @@ AIC=E001/1JAN1956.rsfE001.O250D      ! AIC/OHT made by aux/mkOTSPEC.E001.M250D
 OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                   ! ocn mixed layer depth
     ! files needed for all models
-CDN=CD4X500S VEG=V72X46.1.cor     ! surf.drag - vegetation fractions
+CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR                   ! river direction file
@@ -85,7 +85,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 xCDpbl=1.
 U00ice=.60
 U00wtrX=.80
-HRMAX=1000.
+HRMAX=550.
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
@@ -99,7 +99,7 @@ KSOLAR=2
 
 ! parameters that control the atmospheric composition
 ! if set to 0, the current (day/) year is used: transient run
-s0_yr=1979      
+s0_yr=1979
 s0_day=182
 ghg_yr=1979
 ghg_day=182

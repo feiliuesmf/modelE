@@ -38,7 +38,7 @@ GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD4X500S VEG=V72X46.1.cor
+CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file

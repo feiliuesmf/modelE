@@ -45,7 +45,7 @@ AIC=DEC1958.rsfB394M12.modelE.16 ! initial conditions (atm. and ground)
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD4X500S VEG=V72X46.1.cor
+CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file
@@ -101,8 +101,9 @@ DTFIX=300
 X_SDRAG=.00025,.000025
 C_SDRAG=0.
 KOCEAN=0
-U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
+U00ice=.60   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+U00wtr=.80   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+HRMAX=550.   ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
 dt_UVfilter=450.
