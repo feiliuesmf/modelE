@@ -1,7 +1,7 @@
       MODULE RANDOM
 !@sum   RANDOM generates random numbers 
 !@auth  Reto Ruedy
-!@ver   1.0 (SGI version)
+!@ver   1.0 (IBM version)
 !@cont  RANDU, RINIT, RFINAL
       IMPLICIT NONE
       INTEGER, SAVE :: IX            !@var IX     random number seed
@@ -10,11 +10,19 @@
 
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
-!@calls RAN  
       REAL*8 X                       !@var X      dummy variable
-      REAL*4 RAN                     !@fun RAN    random number intrinsic func.
       REAL*8 :: RANDU                !@var RANDU  random number
-      RANDU=RAN(IX)
+      INTEGER :: IY                  !@var IY     dummy integer
+   10 IY=IX*65539
+      SELECT CASE (IY)
+      CASE (:-1)
+         IY=(IY+2147483647)+1
+      CASE (0)
+         IX=1
+         GO TO 10
+      END SELECT
+      IX=IY
+      RANDU=DFLOAT(IY)*.465661287308D-9
       RETURN
       END FUNCTION RANDU
 

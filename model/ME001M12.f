@@ -13,6 +13,7 @@ C**** Quadratic upstream scheme + 4th order scheme, Cor.term=0 at poles
 C**** Routines included: MAIN,INPUT,DYNAM,ADV...,FLTRUV,SHAP1D,DAILY,CHT
 C**** f90 changes
 *****
+      USE RANDOM
       IMPLICIT REAL*8 (A-H,O-Z)
       INCLUDE 'E001M12.COM'
       COMMON U,V,T,P,Q
@@ -545,6 +546,7 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
+      USE RANDOM
       IMPLICIT REAL*8 (A-H,O-Z)
       INCLUDE 'E001M12.COM'
       COMMON U,V,T,P,Q

@@ -4,30 +4,12 @@ C**** semi-random cloud overlap (+snow age updates+computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
 C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
-C**** Routines included:  RANDU, PRECIP, COSZ0, RADIA,
+C**** Routines included:  PRECIP, COSZ0, RADIA,
 C****                     GROUND, DRYCNV, SDRAG, ORBIT, OSTRUC
 *****
 C*    Sea ice has four thermal layers
 C*    The lead fraction is ice thickness dependent
 C*
-      FUNCTION RANDU (X)
-      IMPLICIT REAL*8 (A-H,O-Z)
-C**** THIS FUNCTION GENERATES RANDOM NUMBERS ON AN IBM 360 OR 370
-   10 IY=IX*65539
-      IF (IY) 20,40,30
-   20 IY=(IY+2147483647)+1
-   30 IX=IY
-      RANDU=DFLOAT(IY)*.465661287308D-9
-      RETURN
-   40 IX=1
-      GO TO 10
-      ENTRY RINIT (INIT)
-      IX=INIT
-      RETURN
-      ENTRY RFINAL (IFINAL)
-      IFINAL=IX
-      RETURN
-      END
       SUBROUTINE PRECIP
 C****
 C**** THIS SUBROUTINE USES THE PRECIPITATION TO CALCULATE THE GROUND
@@ -848,6 +830,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 C****
 C**** THIS SUBROUTINES ADDS THE RADIATION HEATING TO THE TEMPERATURES
 C****
+      USE RANDOM
       IMPLICIT REAL*8 (A-H,O-Z)
       INCLUDE 'E001M12.COM'
       COMMON U,V,T,P,Q
