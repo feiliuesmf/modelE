@@ -114,8 +114,8 @@ C**** using the rad_forc_lev parameter.
 !@dbparam cloud_rad_forc = 1 for calculation of cloud radiative forcing
       INTEGER :: cloud_rad_forc = 0
 
-!@var co2ppm Current CO2 level as seen by radiation.
-      REAL*8 :: co2ppm
+!     @var co2ppm Current CO2 level as seen by radiation 
+      REAL*8 :: co2ppm = 280.    ! set a resaonable default value
 
 C**** Local variables initialised in init_RAD
 !@var COE
