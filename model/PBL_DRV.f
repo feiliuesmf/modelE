@@ -4,49 +4,11 @@
 !@sum  PBL calculate pbl profiles for each surface type
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
-C --------------------------------------------------------------------
-C     Variable definitions:
-C
-C The variables passed thru the common block PBLPAR are parameters
-C  necessary to do the PBL solution. These variables have been passed
-C  from subroutine SURFCE or subroutine EARTH. The variables are:
-C
-!@var ZGS    = height of the surface layer which is 10 m everywhere.
-!@var ZS1    = height of the first model layer (m)
-!@var PIJ    = surface pressure at gridpoint (i,j) (mb)
-!@var PSK    = surface pressure to the power KAPA
-!@var TGV    = virtual potential temperature of the ground (K)
-!@var TKV    = virtual potential temperature of first model layer (K)
-!@var THV1   = virtual temperature of the first model layer (K)
-!@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
-!@var SHA    = specific heat at constant pressure (RGAS/KAPA)
-!@var OMEGA2 = 2.* angular frequency of the earth (1/s)
-!@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-C
-C The quantities passed thru common block PBLOUT constitute the output
-C  from this PBL subroutine. The variables are:
-C
-!@var US     = x component of surface wind, postive eastward (m/s)
-!@var VS     = y component of surface wind, positive northward (m/s)
-!@var WS     = magnitude of the surface wind (m/s)
-!@var WSH    = magnitude of the surface wind needed for heat flux (m/s)
-!@var WSQ    = magnitude of the surface wind needed for moisture (m/s)
-!@var TSV    = virtual potential temperature of the surface (K)
-!@var QS     = surface value of the specific moisture
-!@var PSI    = angular diff. btw geostrophic and surface winds (rads)
-!@var DBL    = boundary layer height (m)
-!@var KM     = momentum transport coefficient in the b.l. (m**2/s)
-!@var KH     = heat transport coefficient evaluated at ZGS (m**2/s)
-!@var USTAR  = friction speed (square root of momentum flux) (m/s)
-!@var PPBL   = pressure at DBL (mb)
-!@var CM     = drag coefficient (dimensionless surface momentum flux)
-!@var CH     = Stanton number   (dimensionless surface heat flux)
-!@var CQ     = Dalton number    (dimensionless surface moisture flux)
-!@var UG     = eastward component of the geostrophic wind (m/s)
-!@var VG     = northward component of the geostrophic wind (m/s)
-!@var WG     = magnitude of the geostrophic wind (m/s)
-C
-C --------------------------------------------------------------------
+
+C    input: ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+C    output:US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+C          ,UG,VG,WG,ZMIX
+
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,itime
@@ -58,6 +20,10 @@ C --------------------------------------------------------------------
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
      &     ,zgs,advanc
+     &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+     &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,UG,VG,WG,ZMIX
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
      &     ,trij=>tr
       USE TRACER_COM, only : ntm,itime_tr0,needtrs
@@ -68,17 +34,8 @@ C --------------------------------------------------------------------
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
-      REAL*8 KMSURF,KHSURF,KQSURF
-      LOGICAL POLE
+      REAL*8 Ts
 
-      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,USURFH,USURFQ
-      REAL*8 US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,USTAR,PPBL,
-     2               CM,CH,CQ,UG,VG,WG,ZMIX, TS
-
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-
-      COMMON /PBLOUT/US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,
-     2               UG,VG,WG,ZMIX
 #ifdef TRACERS_ON
 C**** Tracer input/output common block
 !@var trsfac, trconstflx factors in surface flux boundary cond.
@@ -88,8 +45,8 @@ C**** Tracer input/output common block
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
 #endif
 
-      REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
-      REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
+      REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
+      REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 
@@ -227,13 +184,12 @@ C *********************************************************************
 
 c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
-      call advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
-     2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,usurfh,usurfq,
+      call advanc(
+     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
-     4     zgs,ztop,zmix,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
+     4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 
       uabl(:,i,j,itype)=uij(:)
       vabl(:,i,j,itype)=vij(:)
@@ -255,13 +211,9 @@ c1003 format(a,4(1pe14.4))
       cqgs(i,j,itype)=cq
       ipbl(i,j,itype)=1
 
-      wsh   =usurfh
-      wsq   =usurfq
       ws    =sqrt(us*us+vs*vs)
       wg    =sqrt(ug*ug+vg*vg)
-      km    =kmsurf
-      kh    =khsurf
-      kq    =kqsurf
+
       psitop=atan2(vg,ug+teeny)
       psisrf=atan2(vs,us+teeny)
       psi   =psisrf-psitop

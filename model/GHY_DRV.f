@@ -54,6 +54,11 @@ c****
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use socpbl, only : zgs
+      USE SOCPBL, only : zgs
+     &     ,zs1,tgv,tkv,qg,hemi,dtsurf,pole
+     &     ,us,vs,ws,wsh,wsq,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
+     &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
+
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
@@ -87,13 +92,6 @@ c****
 
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
-c**** interface to pbl
-      real*8 zs1,tgv,tkv,qg,hemi,dtsurf,us,vs,ws,wsh,wsq,tsv,qsrf,psi
-     *     ,dbl,edvisc,eds1,kq,ppbl,ug,vg,wg,zmix
-      logical pole
-      common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
-      common /pblout/us,vs,ws,wsh,wsq,tsv,qsrf,psi,dbl,edvisc,eds1,kq,
-     *     ppbl,ug,vg,wg,zmix
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL

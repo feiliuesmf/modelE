@@ -15,8 +15,46 @@
 #endif
       IMPLICIT NONE
       SAVE
+
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: nlevel=25  !@param nlevel level of the model
+
+!@var ZS1    = height of the first model layer (m)
+!@var TGV    = virtual potential temperature of the ground (K)
+!@var TKV    = virtual potential temperature of first model layer (K)
+!@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
+!@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
+
+!@var US     = x component of surface wind, postive eastward (m/s)
+!@var VS     = y component of surface wind, positive northward (m/s)
+!@var WS     = magnitude of the surface wind (m/s)
+!@var WSH    = magnitude of the surface wind needed for heat flux (m/s)
+!@var WSQ    = magnitude of the surface wind needed for moisture (m/s)
+!@var TSV    = virtual potential temperature of the surface (K)
+!@var QS     = surface value of the specific moisture
+!@var PSI    = angular diff. btw geostrophic and surface winds (rads)
+!@var DBL    = boundary layer height (m)
+!@var KMS    = momentum transport coefficient at ZGS (m**2/s)
+!@var KHS    = heat transport coefficient at ZGS (m**2/s)
+!@var KHQ    = moist transport coefficient at ZGS (m**2/s)
+!@var PPBL   = pressure at DBL (mb)
+!@var USTAR  = friction speed (square root of momentum flux) (m/s)
+!@var CM     = drag coefficient (dimensionless surface momentum flux)
+!@var CH     = Stanton number   (dimensionless surface heat flux)
+!@var CQ     = Dalton number    (dimensionless surface moisture flux)
+!@var z0m   = roughness length for momentum,
+!@+           prescribed for itype=3,4 but computed for itype=1,2 (m)
+!@var z0h   = roughness length for temperature (m)
+!@var z0q   = roughness length for water vapor (m)
+!@var UG     = eastward component of the geostrophic wind (m/s)
+!@var VG     = northward component of the geostrophic wind (m/s)
+!@var WG     = magnitude of the geostrophic wind (m/s)
+!@var ZMIX   = a height used to match ground and surface fluxes
+
+      real*8 :: zs1,tgv,tkv,qg,hemi,dtsurf
+      real*8 :: us,vs,ws,wsh,wsq,tsv,qs,psi,dbl,kms,khs,kqs,ppbl
+     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix
+      logical :: pole
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
@@ -58,29 +96,26 @@ C**** boundary layer parameters
 
       CONTAINS
 
-      subroutine advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
-     2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,usurfh,usurfq,
+      subroutine advanc(
+     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
-     4     zgs,ztop,zmix,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat
+     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat
      *     ,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c    input:
 !@var  z0m  roughness height for momentum (if itype>2)
+!@var  zgs  height of the surface layer (nominally 10 m)
 !@var  coriol  2.*omega*sin(latitude), the coriolis factor
-!@var  ug   x component of the geostrophic wind
-!@var  vg   y component of the geostrophic wind
 !@var  utop  x component of wind at the top of the layer
 !@var  vtop  y component of wind at the top of the layer
 !@var  ttop  temperature at the top of the layer
 !@var  qtop  moisture at the top of the layer
 !@var  tgrnd  temperature of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
-!@var  zgs  height of the surface layer (nominally 10 m)
 !@var  ztop height of the first model layer, approx 200 m if lm=9
 !@var  dtime  time step
 !@var  ilong  longitude identifier
@@ -91,11 +126,11 @@ c   output:
 !@var  vs  y component of the surface wind (i.e., due north)
 !@var  tsv  virtual potential surface temperature
 !@var  qs  surface specific moisture
-!@var  kmsurf  surface value of km
-!@var  khsurf  surface value of kh
-!@var  kqsurf  surface value of kq
-!@var  usurfh magnitude of the surface wind needed for heat flux (m/s)
-!@var  usurfq magnitude of the surface wind needed for moisture (m/s)
+!@var  kms  surface value of km
+!@var  khs  surface value of kh
+!@var  kqs  surface value of kq
+!@var  wsh  magnitude of the surface wind needed for heat flux (m/s)
+!@var  wsq  magnitude of the surface wind needed for moisture (m/s)
 !@var  ustar  friction speed
 !@var  zmix  magic quantity needed in surfce
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)
@@ -125,11 +160,8 @@ c  internals:
 !@var  ipbl  stores bl properties of last time step
       implicit none
 
-      real*8, intent(in) :: ug,vg,coriol,utop,vtop,ttop,qtop
-      real*8, intent(in) :: tgrnd,qgrnd,zgs,ztop,dtime
-      real*8, intent(inout) :: z0m
-      real*8, intent(out) :: us,vs,tsv,qs,kmsurf,khsurf,kqsurf
-      real*8, intent(out) :: ustar,zmix,z0h,z0q,cm,ch,cq
+      real*8, intent(in) :: coriol,utop,vtop,ttop,qtop
+      real*8, intent(in) :: tgrnd,qgrnd,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
 #ifdef TRACERS_ON
@@ -141,10 +173,10 @@ c  internals:
 #endif
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
-     *     ,wstar2q,usurfq,usurfh
+     *     ,wstar2q
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
-      integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
+      integer, parameter :: iprint=52,jprint=33  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
      *     ,esave
@@ -202,12 +234,12 @@ C**** For heat and mositure
         wstar2h = 0.
         wstar2q = 0.
       endif
-      usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-      usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+      wsh = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+      wsq = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
       
-      call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,usurfh,tgrnd,ttop,dtime,n)
+      call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
       
-      call q_eqn(qsave,q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,dtime,n)
+      call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n)
         
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -255,12 +287,12 @@ C**** For heat and mositure
           wstar2h = 0.
           wstar2q = 0.
         endif
-        usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-        usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+        wsh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+        wsq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
         
-        call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,usurfh,tgrnd,ttop,dtime,n)
+        call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
-        call q_eqn(qsave,q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,dtime,n)
+        call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n)
         
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -285,13 +317,13 @@ C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
       end do
 #endif
 
-      us    = u(1)
-      vs    = v(1)
-      tsv   = t(1)
-      qs    = q(1)
-      kmsurf= km(1)
-      khsurf= kh(1)
-      kqsurf= kq(1)
+      us  = u(1)
+      vs  = v(1)
+      tsv = t(1)
+      qs  = q(1)
+      kms = km(1)
+      khs = kh(1)
+      kqs = kq(1)
 
       ufluxs=km(1)*(u(2)-u(1))/dzh(1)
       vfluxs=km(1)*(v(2)-v(1))/dzh(1)
@@ -1555,7 +1587,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
-      integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
+      integer, parameter ::  iprint=0,jprint=33 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-4
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 

@@ -20,7 +20,11 @@
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux
      &     ,uflux1,vflux1,tflux1,qflux1
+C**** Interface to PBL
       USE SOCPBL, only : zgs
+     &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+     &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,UG,VG,WG,ZMIX
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -70,15 +74,6 @@
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
-
-C**** Interface to PBL
-      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL
-     *     ,KM,KH,KQ,PPBL,UG,VG,WG,ZMIX
-      LOGICAL POLE
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-
-      COMMON /PBLOUT/US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,UG,VG
-     *     ,WG,ZMIX
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -389,9 +384,9 @@ C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
 C*
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
       F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
-      DSHDTG=-RCDHWS*KH*SHA/(DHGS+KH)
+      DSHDTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
       DQGDTG=QG*DQSATDT(TG,ELHX)
-      DEVDTG=-RCDQWS*KH*LHE*BETAUP*DQGDTG/(DQGS+KH)
+      DEVDTG=-RCDQWS*KHS*LHE*BETAUP*DQGDTG/(DQGS+KHS)
       DTRDTG=-4.*STBO*TG*TG*TG
       DF0DTG=DSHDTG+DEVDTG+DTRDTG
       DFDTG=DF0DTG-(1.-DF0DTG*Z1BY6L)*CDENOM
@@ -411,9 +406,9 @@ C*
       F2 = SRHEAT*FSRI(2)
       EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
-      dSNdTG=-RCDHWS*KH*SHA/(DHGS+KH)
+      dSNdTG=-RCDHWS*KHS*SHA/(DHGS+KHS)
       dQGdTG=QG*DQSATDT(TG,ELHX) ! d(QG)/dTG
-      dEVdTG = -dQGdTG*LHE*RCDQWS*KH/(DGS+KH) ! d(EVHEAH)/dTG
+      dEVdTG = -dQGdTG*LHE*RCDQWS*KHS/(DGS+KHS) ! d(EVHEAH)/dTG
       dTRdTG = -4*STBO*TG*TG*TG ! d(TRHEAT)/dTG
       dF0dTG = dSNdTG+dEVdTG+dTRdTG ! d(F0)/dTG
 C     dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
@@ -521,7 +516,7 @@ C**** Limit heat fluxes out of lakes if near minimum depth
          CDMS=CDMS+CM*PTYPE
          CDHS=CDHS+CH*PTYPE
          CDQS=CDQS+CQ*PTYPE
-         EDS1S=EDS1S+KH*PTYPE
+         EDS1S=EDS1S+KHS*PTYPE
          PPBLS=PPBLS+PPBL*PTYPE
          EVAPS=EVAPS+EVAP*PTYPE
          F1DTS=F1DTS+F1DT*PTYPE
