@@ -178,7 +178,7 @@ c   output:
 !@var  z0h  roughness height for heat
 !@var  z0q  roughness height for moisture
 !@var  psurf surface pressure
-!@var  trhr0 incident long wave radiation 
+!@var  trhr0 incident long wave radiation
 #if defined(TRACERS_ON)
 !@var  trtop  tracer conc. at the top of the layer
 !@var  trs  surface tracer conc.
@@ -242,7 +242,7 @@ c  internals:
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
-     *       ,usave1,vsave1,tsave1,qsave1             
+     *       ,usave1,vsave1,tsave1,qsave1
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
      *     ,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
@@ -379,8 +379,8 @@ csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
 csgsC**** possibly tracer specific coding
 csgs      wt = 3.                 ! threshold velocity
 csgs      wmin = wt               ! minimum wind velocity (usually wt?)
-csgs      wmax = 50.              ! maxmimum wind velocity 
-csgs      icase=3                 ! icase=3 ==> w^3 dependency  
+csgs      wmax = 50.              ! maxmimum wind velocity
+csgs      icase=3                 ! icase=3 ==> w^3 dependency
 csgs      call integrate_sgswind(sig0,wt,wmin,wmax,wsh,icase,wint)
 
 #ifdef TRACERS_ON
@@ -389,7 +389,7 @@ C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
       ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
       tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
-      rhosrf=100.*psurf/(rgas*t(1)) ! surface air density 
+      rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
       byrho=1d0/rhosrf
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
 
@@ -431,7 +431,7 @@ C**** get fractionation for isotopes
 C****   3) dry deposited tracers (inlcuding gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(ntix(itr))) then
-C****   get setling velocity  
+C****   get setling velocity
           if (trradius(ntix(itr)).gt.0.) then
             gs_vel(ntix(itr))=vgs(rhosrf,rh1,ntix(itr))
           else
@@ -588,15 +588,15 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@+   on the secondary grid
 !@auth  Ye Cheng/G. Hartke
       implicit none
-  
+
       integer, intent(in) :: n     !@var n  array dimension
       real*8, dimension(n-1), intent(in) :: e,zhat,dzh
       real*8, dimension(n-1), intent(out) :: lscale
       real*8, parameter :: alpha=0.2d0
-  
+
       real*8 :: sum1,sum2,l0,l1
       integer :: j
-  
+
       sum1=0.
       sum2=0.
       do j=1,n-1
@@ -604,12 +604,12 @@ c     To compute the drag coefficient,Stanton number and Dalton number
         sum2=sum2+sqrt(e(j))*dzh(j)
       end do
       l0=alpha*sum1/sum2
-  
+
       do j=1,n-1
         l1=kappa*zhat(j)
         lscale(j)=l0*l1/(l0+l1)
       end do
-  
+
       return
       end subroutine getl1
 
@@ -935,7 +935,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
 !$OMP  THREADPRIVATE(/GRIDS_99/)
-      external :: fgrid2
+      external fgrid2
       real*8 rtsafe
       integer i,j,iter  !@var i,j,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
@@ -1012,7 +1012,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
-      
+
       return
       end subroutine tfix
 
@@ -2424,7 +2424,7 @@ c ----------------------------------------------------------------------
 C**** Functions and subroutines for sub-gridscale wind distribution calc
 
       subroutine sig(tke,mdf,dbl,delt,ch,ws,tsv,wtke,wd,wm)
-!@sum calculate sub grid scale velocities      
+!@sum calculate sub grid scale velocities
 !@auth Reha Cakmur/Gavin Schmidt
       use constant, only : by3,grav
       implicit none
@@ -2433,7 +2433,7 @@ C**** Functions and subroutines for sub-gridscale wind distribution calc
 !@var dbl boundary layer height (m)
 !@var delt difference between surface and ground T (ts-tg) (K)
 !@var tsv virtual surface temperature (K)
-!@var ch local heat exchange coefficient 
+!@var ch local heat exchange coefficient
 !@var ws grid box mean wind speed (m/s)
       real*8, intent(in):: tke,mdf,dbl,delt,tsv,ch,ws
       real*8, intent(out):: wtke,wd,wm
@@ -2515,7 +2515,7 @@ C**** Use approximate value for small sig and unresolved delta function
         sgsw=(x)**(icase)*(x-wt)*bysig2*exp(-0.5d0*(x-ws)**2*bysig2)
      *       /sqrt(besf*2*pi)
       end if
-      
+
       return
       end
 

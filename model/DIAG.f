@@ -122,7 +122,7 @@ C**** Some local constants
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, 
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE,
      &                          CHECKSUM_COLUMN, HALO_UPDATE_COLUMN,
      &                          GRID, SOUTH, NORTH, GLOBALSUM
       IMPLICIT NONE
@@ -139,8 +139,8 @@ C**** Some local constants
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
-      REAL*8, 
-     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
+      REAL*8,
+     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      & :: AREG_part
       REAL*8 :: AREGSUM
       CHARACTER*16 TITLE
@@ -212,7 +212,7 @@ C****
             TX(I,1,L)=TX(1,1,L)
           END DO
         END DO
-      ENDIF        ! HAVE_SOUTH_POLE 
+      ENDIF        ! HAVE_SOUTH_POLE
       IF(HAVE_NORTH_POLE) THEN
         DO L=1,LM
           TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
@@ -945,7 +945,7 @@ C****
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
       REAL*8, DIMENSION
      &  (IMH+1,NSPHER,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE_part
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     ZX,STB,UDX
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
@@ -1175,7 +1175,7 @@ C from the previous halo call.
       PS=SP+PTOP
       DO 286 L=1,LS1-1
   286 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.PS) THEN 
+      IF (PM(K+1).GE.PS) THEN
         pm_ge_ps(i,j-1,k)=.true.
         UDX(I,J,K)=BIG
       ELSE
@@ -1913,9 +1913,9 @@ C****
 
       DO KQ=1,6
         DO N=1,NMAX
-          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:), 
+          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:),
      &                   WAVE(1,IDACC9,N,KQ), ALL=.TRUE.)
-          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:), 
+          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:),
      &                   WAVE(2,IDACC9,N,KQ), ALL=.TRUE.)
         ENDDO
       ENDDO
@@ -1950,9 +1950,9 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       ENDIF
       DO KQ=7,KQMAX
         DO N=1,NMAX
-          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:), 
+          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:),
      &                   WAVE(1,IDACC9,N,KQ), ALL=.TRUE.)
-          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:), 
+          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:),
      &                   WAVE(2,IDACC9,N,KQ), ALL=.TRUE.)
         ENDDO
       ENDDO
@@ -1994,7 +1994,7 @@ C****  10  AFTER DAILY
 C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
-      EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
+      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI
@@ -2084,15 +2084,15 @@ C****
 !@var DT1 current time step
       REAL*8, INTENT(IN) :: DT1
 !@var UX,VX current velocities
-      REAL*8, INTENT(IN), 
-     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(IN),
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        UX,VX
 !@var DUT,DVT current momentum changes
-      REAL*8, INTENT(IN), 
-     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(IN),
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
 !@var PIT current pressure tendency
-      REAL*8, INTENT(IN), OPTIONAL, 
+      REAL*8, INTENT(IN), OPTIONAL,
      &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PIT
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PI
       INTEGER :: I,J,L,MBEGIN,N,IP1
@@ -2295,7 +2295,7 @@ C****
       REAL*8 :: RKEI,RKEIL
       LOGICAL :: HAVE_SOUTH_POLE
 
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG, 
+      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
 C****
@@ -2499,7 +2499,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM, WRITE_PARALLEL
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
 
 c      REAL*8, DIMENSION(0:IMH,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,2) :: FCUVA,FCUVB
@@ -2830,7 +2830,7 @@ C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
           END DO
         END IF
       END DO
-        
+
       CALL GLOBALSUM(grid, GMSUM, GMEAN, ALL=.TRUE.)
       GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
 
@@ -2917,7 +2917,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        UX,VX
 c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
 c      COMMON/WORK7/FCUVA,FCUVB
@@ -2999,7 +2999,7 @@ C****
 #ifdef TRACERS_HETCHEM
      *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
 #endif
-#endif 
+#endif
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -3293,7 +3293,7 @@ C**** simple diags
         case ("SO4")      ! sulfate in L=1
           do j=1,jm
           do i=1,imaxj(j)
-            data(i,j)=trm(i,j,1,n_SO4)                
+            data(i,j)=trm(i,j,1,n_SO4)
 #ifdef TRACERS_HETCHEM
      *               +trm(i,j,1,n_SO4_d1)
      *               +trm(i,j,1,n_SO4_d2)
