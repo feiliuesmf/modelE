@@ -597,8 +597,8 @@ c restore defaults
       return
       end subroutine close_il
 
-      subroutine POUT_IL(TITLE,ISHIFT,KLMAX,XIL,PM,CX,CY,
-     *     ASUM,GSUM,ZONAL)
+      subroutine POUT_IL(TITLE,sname,lname,unit,ISHIFT,KLMAX,XIL,PM,CX
+     *     ,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
@@ -607,8 +607,6 @@ c restore defaults
       USE DAGCOM, only : lm_req,iu_il
       USE DAGPCOM, only : plm,ple,ple_dn
       USE NCOUT
-      USE BDIL, title_il=>title,units_il=>units,
-     &          lname_il=>lname,sname_il=>sname
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
@@ -630,6 +628,8 @@ c restore defaults
       INTEGER I,L
 
       character(len=30) :: var_name,dim_name
+      character(len=20), intent(in) :: sname,unit
+      character(len=80), intent(in) :: lname
       
 ! (re)set shape of output arrays
       ndims_out = 2
@@ -659,9 +659,10 @@ c restore defaults
       endif
       call set_dim_out(dim_name,2)
 
-      var_name=sname_il(nt_il)
-      long_name=lname_il(nt_il)
-      units=units_il(nt_il)
+      var_name=sname
+      long_name=lname
+      units=unit
+
       real_att_name='mean'
       real_att(1)=gsum
 

@@ -152,8 +152,8 @@ C**** have to wait.
       return
       end subroutine close_il
 
-      subroutine POUT_IL(TITLE,ISHIFT,KLMAX,XIL,PM,CX,CY,
-     *     ASUM,GSUM,ZONAL)
+      subroutine POUT_IL(TITLE,sname,lname,unit,ISHIFT,KLMAX,XIL
+     *     ,PM,CX,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -177,6 +177,8 @@ C**** have to wait.
 !@var ZONAL zonal sum/mean
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL
 
+      character(len=20), intent(in) :: sname,unit
+      character(len=80), intent(in) :: lname
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
       REAL*8 XCOOR(IM)

@@ -439,9 +439,9 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
-     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,
+     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n,il_r70n,
      *     ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
-     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa
+     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -828,15 +828,14 @@ C****
   780    CONTINUE
          DO L=1,LM
            DO I=1,IM
-             AIL(I,L,7)=AIL(I,L,7)+((SRHR(L+1,I,JEQ-2)*COSZ2(I,JEQ-2)+
-     *            TRHR(L+1,I,JEQ-2))*DXYP(JEQ-2)+(SRHR(L+1,I,JEQ-1)*
-     *            COSZ2(I,JEQ-1)+TRHR(L+1,I,JEQ-1))*DXYP(JEQ-1)+
-     *            (SRHR(L+1,I,JEQ)*COSZ2(I,JEQ)+TRHR(L+1,I,JEQ))
-     *            *DXYP(JEQ))
-             AIL(I,L,11)=AIL(I,L,11)+(SRHR(L+1,I,J50N)*COSZ2(I,J50N)+
-     *            TRHR(L+1,I,J50N))*DXYP(J50N)
-             AIL(I,L,15)=AIL(I,L,15)+(SRHR(L+1,I,J70N)*COSZ2(I,J70N)+
-     *            TRHR(L+1,I,J70N))*DXYP(J70N)
+             DO J=J5S,J5N
+               AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+
+     *              (SRHR(L+1,I,J)*COSZ2(I,J)+TRHR(L+1,I,J))*DXYP(J)
+             END DO
+             AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L+1,I,J50N)*COSZ2(I
+     *            ,J50N)+TRHR(L+1,I,J50N))*DXYP(J50N)
+             AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L+1,I,J70N)*COSZ2(I
+     *            ,J70N)+TRHR(L+1,I,J70N))*DXYP(J70N)
            END DO
          END DO
 C****

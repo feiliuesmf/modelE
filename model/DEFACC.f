@@ -2045,97 +2045,143 @@ c
       end subroutine ij_defs
 
       subroutine il_defs
+      USE CONSTANT, only : grav,rgas,by3,sha,bygrav
+      USE MODEL_COM, only : dtsrc,jeq
+      USE GEOM, only : dxyp
       use DAGCOM
       implicit none
-      integer :: k
+      real*8 :: bydj,bydjuv,daeq
+      integer :: k,j
 c
       do k=1,kail
          write(name_il(k),'(a3,i3.3)') 'AIL',k
          lname_il(k) = 'unused'
          units_il(k) = 'unused'
+         scale_il(k) = 1.
+         ia_il(k)    = 0.
       enddo
-c
+
+C**** some scaling numbers for the equatorial diags.
+      bydj   = 1./dble(j5n-j5s+1)
+      bydjuv = 1./dble(j5nuv-j5suv+1)
+      daeq=0.
+      do j=j5s,j5n
+        daeq=daeq+DXYP(J)
+      end do
+C****
       k=0
 c
-      k=k+1
-      name_il(k) = 'AIL01'
-      lname_il(k) = 'U (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2) (PU GRID)'
-      units_il(k) = 'm/s'
-c
-      k=k+1
-      name_il(k) = 'AIL02'
-      lname_il(k) = 'U (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2) (PU GRID)'
-      units_il(k) = 'm/s'
-c
-      k=k+1
-      name_il(k) = 'AIL03'
-      lname_il(k) = 'SD (SUM FOR J=JEQ,JEQ-1,JEQ-2)'
-      units_il(k) = '100 N/s'
-c
-      k=k+1
-      name_il(k) = 'AIL04'
-      lname_il(k) = 'TX (SUM FOR J=JEQ,JEQ-1,JEQ-2)'
-      units_il(k) = 'degC'
-c
-      k=k+1
-      name_il(k) = 'AIL05'
-      lname_il(k) = 'RH (SUM FOR J=JEQ,JEQ-1,JEQ-2)'
-      units_il(k) = '1'
-c
-      k=k+1
-      name_il(k) = 'AIL06'
-      lname_il(k) = 'DTX(MC)*P*DA (SUM FOR J=JEQ,JEQ-1,JEQ-2)'
-      units_il(k) = '100 K*N'
-c
-      k=k+1
-      name_il(k) = 'AIL07'
-      lname_il(k) = '(SRHR+TRHR)*DA (SUM FOR J=JEQ,JEQ-1,JEQ-2)'
-      units_il(k) = 'W'
-c
-      k=k+1
-      name_il(k) = 'AIL08'
-      lname_il(k) = 'unknown'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL09'
-      lname_il(k) = 'SD (AT LAT 50 N) (COMMENTED OUT)'
-      units_il(k) = '100 N/s'
-c
-      k=k+1
-      name_il(k) = 'AIL10'
-      lname_il(k) = 'TX-273.16  (AT LAT 50 N)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL11'
-      lname_il(k) = 'SR+TR  (AT LAT 50 N)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL12'
-      lname_il(k) = '2*U  (AT LAT 50 N)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL13'
-      lname_il(k) = 'SD  (AT LAT 70 N) (COMMENTED OUT)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL14'
-      lname_il(k) = 'TX-273.16  (AT LAT 70 N)  (COMMENTED OUT)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL15'
-      lname_il(k) = 'SR+TR  (AT LAT 70 N)'
-      units_il(k) = 'unknown'
-c
-      k=k+1
-      name_il(k) = 'AIL16'
-      lname_il(k) = '2*U  (AT LAT 70 N)        (COMMENTED OUT)'
-      units_il(k) = 'unknown'
+      k = k + 1
+      IL_UEQ=k
+      name_il(k) = 'u_equator'
+      lname_il(k) = 'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG'
+      units_il(k) = 'METERS/SECOND'
+      scale_il(k) = bydjuv
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_VEQ=k
+      name_il(k) = 'v_equator'
+      lname_il(k) = 'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG'
+      units_il(k) = 'METERS/SECOND'
+      scale_il(k) = bydjuv
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_WEQ=k
+      name_il(k) = 'vvel_equator'
+      lname_il(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
+      units_il(k) = '10**-4 METERS/SECOND'
+      scale_il(k) = -1d4*RGAS*BYGRAV/daeq
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_TEQ=k
+      name_il(k) = 'temp_equator'
+      lname_il(k) = 'TEMPERATURE AROUND +/- 5 DEG'
+      units_il(k) = 'DEGREES CENTIGRADE'
+      scale_il(k) = bydj
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_QEQ=k
+      name_il(k) = 'rh_equator'
+      lname_il(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG'
+      units_il(k) = 'PERCENT'
+      scale_il(k) = 1d2*bydj
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_MCEQ=k
+      name_il(k) = 'mcheat_equator'
+      lname_il(k) = 'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG'
+      units_il(k) = '10**13 WATTS/DSIG'
+      scale_il(k) = 100d-13*SHA/(GRAV*DTsrc)
+      ia_il(k)    = ia_src
+      k = k + 1
+      IL_REQ=k
+      name_il(k) = 'rad_cool_equator'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG'
+      units_il(k) = '10**13 WATTS/DSIG'
+      scale_il(k) = -1d-13
+      ia_il(k)    = ia_rad
+      k = k + 1
+c      name_il(k) = ''
+c      lname_il(k) = ''
+c      units_il(k) = ''
+c      scale_il(k) = 1.
+c      ia_il(k)    = 0
+      k = k + 1
+      IL_W50N=k
+      name_il(k) = 'vvel_50N'
+      lname_il(k) = 'VERTICAL VELOCITY AT 50 N'
+      units_il(k) = '10**-4 METERS/SECOND'
+      scale_il(k) = 1d4*RGAS/(GRAV*DXYP(J50N))
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_T50N=k
+      name_il(k) = 'temp_50N'
+      lname_il(k) = 'TEMPERATURE AT 50 N'
+      units_il(k) = 'DEGREES CENTIGRADE'
+      scale_il(k) = 1.
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_R50N=k
+      name_il(k) = 'rad_cool_50N'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AT 50 N'
+      units_il(k) = '10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = 1d-13
+      ia_il(k)    = ia_rad
+      k = k + 1
+      IL_U50N=k
+      name_il(k) = 'u_50N'
+      lname_il(k) = 'ZONAL WIND AT 50 N'
+      units_il(k) = 'METERS/SECOND'
+      scale_il(k) = 0.5
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_W70N=k
+      name_il(k) = 'vvel_70N'
+      lname_il(k) = 'VERTICAL VELOCITY AT 70 N'
+      units_il(k) = '10**-4 METERS/SECOND'
+      scale_il(k) = -1d4*RGAS/(GRAV*DXYP(J70N))
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_T70N=k
+      name_il(k) = 'temp_70N'
+      lname_il(k) = 'TEMPERATURE AT 70 N'
+      units_il(k) = 'DEGREES CENTIGRADE'
+      scale_il(k) = 1.
+      ia_il(k)    = ia_dga
+      k = k + 1
+      IL_R70N=k
+      name_il(k) = 'rad_cool_70N'
+      lname_il(k) = 'TOTAL RADIATIVE COOLING AT 70 N'
+      units_il(k) = '10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = -1d-13
+      ia_il(k)    = ia_rad
+      k = k + 1
+      IL_U70N=k
+      name_il(k) = 'u_70N'
+      lname_il(k) = 'ZONAL WIND AT 70 N'
+      units_il(k) = 'METERS/SECOND'
+      scale_il(k) = 0.5
+      ia_il(k)    = ia_dga
 c
       return
       end subroutine il_defs

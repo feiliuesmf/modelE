@@ -308,21 +308,21 @@ C**** 129  SNOW OVER VEGETATED SOIL                                1 EA
 C****
 C**** CONTENTS OF AIL(I,L,N)  (SUM OVER TIME OF)
 C**** WE ARE NOT TAKING INTO ACCOUNT THE VARIATION OF MASS
-C****   1  U (M/S) (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2)  (PU GRID)    4 DA
-C****   2  V (M/S) (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2)  (PU GRID)    4 DA
-C****   3  SD (100 N/S) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                4 DA
-C****   4  TX (K-TF) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                   4 DA
-C****   5  RH (1) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                      4 DA
-C****   6  DTX(MC)*P*DA (100 K*N) (SUM FOR J=JEQ,JEQ-1,JEQ-2)      1 CN
-C****   7  (SRHR+TRHR)*DA (W) (SUM FOR J=JEQ,JEQ-1,JEQ-2)          2 RD
-C****   9  SD (100 N/S) (AT LAT 50 N) (COMMENTED OUT)              4 DA
+C****   1  U (M/S) (SUM FOR J=J5SUV,J5NUV)            (PU GRID)    4 DA
+C****   2  V (M/S) (SUM FOR J=J5SUV,J5NUV)            (PU GRID)    4 DA
+C****   3  SD (100 N/S) (SUM FOR J=J5S,J5N)                        4 DA
+C****   4  TX (K-TF) (SUM FOR J=J5S,J5N)                           4 DA
+C****   5  RH (1) (SUM FOR J=J5S,J5N)                              4 DA
+C****   6  DTX(MC)*P*DA (100 K*N) (SUM FOR J=J5S,J5N)              1 CN
+C****   7  (SRHR+TRHR)*DA (W) (SUM FOR J=J5S,J5N)                  2 RD
+C****   9  SD (100 N/S) (AT LAT 50 N)                              4 DA
 C****  10  TX-TF  (AT LAT 50 N)                                    4 DA
-C****  11  SR+TR  (AT LAT 50 N)                                    2 RD
+C****  11  SR+TR  (AT LAT 50 N)  (COMMENTED OUT)                   2 RD
 C****  12  2*U  (AT LAT 50 N)                                      4 DA
-C****  13  SD  (AT LAT 70 N)         (COMMENTED OUT)               4 DA
-C****  14  TX-TF  (AT LAT 70 N)  (COMMENTED OUT)                   4 DA
-C****  15  SR+TR  (AT LAT 70 N)                                    2 RD
-C****  16  2*U  (AT LAT 70 N)        (COMMENTED OUT)               4 DA
+C****  13  SD  (AT LAT 70 N)                                       4 DA
+C****  14  TX-TF  (AT LAT 70 N)                                    4 DA
+C****  15  SR+TR  (AT LAT 70 N)  (COMMENTED OUT)                   2 RD
+C****  16  2*U  (AT LAT 70 N)                                      4 DA
 C****
 C****
 C**** CONTENTS OF IDACC(N), NUMBER OF ACCUMULATION TIMES OF
@@ -354,6 +354,7 @@ C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
 C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****
+
       SUBROUTINE DIAGA (U,V,T,P,Q,PIT,SD)
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
@@ -364,12 +365,13 @@ C****
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
-      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,
-     &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
-     &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
-     *     j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
-     *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,
-     *     lstr
+      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,J5NUV
+     *     ,J5SUV,J5S,J5N,aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq
+     *     ,ij_pvq,ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp
+     *     ,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro
+     *     ,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq
+     *     ,il_veq,il_weq,il_teq,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n
+     *     ,il_t70n,il_u70n
       USE DYNAMICS, only : pk,phi
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
@@ -411,7 +413,7 @@ C****
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
      &     IP1,IMAX,LM1,LP1,LR,MBEGIN,
-     &     I150E,I110W,I135W,J5NUV,J5SUV,J5N,J5S,IT
+     &     I150E,I110W,I135W,IT
       DOUBLE PRECISION THBAR ! external
       DOUBLE PRECISION ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
@@ -447,10 +449,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       I150E = IM*(180+150)/360+1   ! WEST EDGE OF 150 EAST
       I110W = IM*(180-110)/360+1   ! WEST EDGE OF 110 WEST
       I135W = IM*(180-135)/360+1   ! WEST EDGE OF 135 WEST
-      J5NUV = (90.+5.)*(JM-1.)/180.+2.
-      J5SUV = (90.-5.)*(JM-1.)/180.+2.
-      J5N   = (90.+5.)*(JM-1.)/180.+1.5
-      J5S   = (90.-5.)*(JM-1.)/180.+1.5
       PRQ1=.75*PMTOP
       DLNP12=LOG(.75/.35)
       DLNP23=LOG(.35/.1)
@@ -1043,47 +1041,59 @@ C        IF (JM.NE.24) GO TO 850
 C****
 C**** CERTAIN HORIZONTAL WIND AVERAGES
 C****
-      DO 790 L=1,LM
-      DO 780 J=2,JM
-      DO 776 I=I135W,I110W                ! EAST PACIFIC
-      AJL(J,L,41)=AJL(J,L,41)+U(I,J,L)
-  776 AJL(J,L,42)=AJL(J,L,42)+V(I,J,L)
-      DO 778 I=I150E,IM                   ! WEST PACIFIC
-      AJL(J,L,44)=AJL(J,L,44)+U(I,J,L)
-  778 AJL(J,L,45)=AJL(J,L,45)+V(I,J,L)
-  780 CONTINUE
-      DO 785 J=J5S,J5N
-      DO 785 I=1,IM
-      PIJ=P(I,J)
-      IF(L.GE.LS1) PIJ=PSFMPT
-      AIL(I,L,1)=AIL(I,L,1)+U(I,J,L)
-      AIL(I,L,2)=AIL(I,L,2)+V(I,J,L)
-      AIL(I,L,4)=AIL(I,L,4)+(TX(I,J,L)-TF)
-  785 AIL(I,L,5)=AIL(I,L,5)+Q(I,J,L)/QSAT(TX(I,J,L),LHE,SIG(L)*PIJ+PTOP)
-      DO 788 I=1,IM
-      AIL(I,L,10)=AIL(I,L,10)+(TX(I,J50N,L)-TF)
-      AIL(I,L,12)=AIL(I,L,12)+(U(I,J50N,L)+U(I,J50N+1,L))
-      AIL(I,L,14)=AIL(I,L,14)+(TX(I,J70N,L)-TF)
-      AIL(I,L,16)=AIL(I,L,16)+(U(I,J70N,L)+U(I,J70N+1,L))
-  788 CONTINUE
-  790 CONTINUE
+      DO L=1,LM
+      DO J=2,JM
+      DO I=I135W,I110W      ! EAST PACIFIC
+        AJL(J,L,41)=AJL(J,L,41)+U(I,J,L)
+        AJL(J,L,42)=AJL(J,L,42)+V(I,J,L)
+      END DO
+      DO I=I150E,IM             ! WEST PACIFIC
+        AJL(J,L,44)=AJL(J,L,44)+U(I,J,L)
+        AJL(J,L,45)=AJL(J,L,45)+V(I,J,L)
+      END DO
+      END DO
+      DO J=J5SUV,J5NUV
+      DO I=1,IM
+        AIL(I,L,IL_UEQ)=AIL(I,L,IL_UEQ)+U(I,J,L)
+        AIL(I,L,IL_VEQ)=AIL(I,L,IL_VEQ)+V(I,J,L)
+      END DO
+      END DO
+      DO J=J5S,J5N
+      DO I=1,IM
+        PIJ=P(I,J)
+        IF(L.GE.LS1) PIJ=PSFMPT
+        AIL(I,L,IL_TEQ)=AIL(I,L,IL_TEQ)+(TX(I,J,L)-TF)
+        AIL(I,L,IL_QEQ)=AIL(I,L,IL_QEQ)+Q(I,J,L)/QSAT(TX(I,J,L),LHE
+     *       ,SIG(L)*PIJ+PTOP)
+      END DO
+      END DO
+      DO I=1,IM
+        AIL(I,L,IL_T50N)=AIL(I,L,IL_T50N)+(TX(I,J50N,L)-TF)
+        AIL(I,L,IL_U50N)=AIL(I,L,IL_U50N)+(U(I,J50N,L)+U(I,J50N+1,L))
+        AIL(I,L,IL_T70N)=AIL(I,L,IL_T70N)+(TX(I,J70N,L)-TF)
+        AIL(I,L,IL_U70N)=AIL(I,L,IL_U70N)+(U(I,J70N,L)+U(I,J70N+1,L))
+      END DO
+      END DO
 C****
 C**** CERTAIN VERTICAL WIND AVERAGES
 C****
-      DO 820 L=1,LM-1
-      DO 820 J=2,JM-1
-      DO 810 I=I135W,I110W                ! EAST PACIFIC
-  810 AJL(J,L,43)=AJL(J,L,43)+W(I,J,L)
-      DO 815 I=I150E,IM                   ! WEST PACIFIC
-  815 AJL(J,L,46)=AJL(J,L,46)+W(I,J,L)
-  820 CONTINUE
-      DO 840 L=1,LM-1
-      DO 840 I=1,IM
-      DO 835 J=J5SUV,J5NUV                ! +/1 5 DEG (APPROX.)
-  835 AIL(I,L, 3)=AIL(I,L, 3)+W(I,J,L)
-      AIL(I,L, 9)=AIL(I,L, 9)+W(I,J50N,L)
-      AIL(I,L,13)=AIL(I,L,13)+W(I,J70N,L)
-  840 CONTINUE
+      DO L=1,LM-1
+      DO J=2,JM-1
+        DO I=I135W,I110W        ! EAST PACIFIC
+          AJL(J,L,43)=AJL(J,L,43)+W(I,J,L)
+        END DO
+        DO I=I150E,IM           ! WEST PACIFIC
+          AJL(J,L,46)=AJL(J,L,46)+W(I,J,L)
+        END DO
+      END DO
+      DO I=1,IM
+        DO J=J5S,J5N        ! +/- 5 DEG (APPROX.)
+          AIL(I,L,IL_WEQ) =AIL(I,L,IL_WEQ)+W(I,J,L)
+        END DO
+        AIL(I,L,IL_W50N)=AIL(I,L,IL_W50N)+W(I,J50N,L)
+        AIL(I,L,IL_W70N)=AIL(I,L,IL_W70N)+W(I,J70N,L)
+      END DO
+      END DO
 C****
 C**** ELIASSEN PALM FLUX
 C****
@@ -3195,6 +3205,10 @@ C**** Hence this diagnostic gives the error
 C**** initialise longitudinal diagnostic special latitudes
       J50N=(50.+90.)*(JM-1)/180.+1.5
       J70N=(70.+90.)*(JM-1)/180.+1.5
+      J5NUV = (90.+5.)*(JM-1.)/180.+2.
+      J5SUV = (90.-5.)*(JM-1.)/180.+2.
+      J5N   = (90.+5.)*(JM-1.)/180.+1.5
+      J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
 C**** initiallise layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes

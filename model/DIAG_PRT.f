@@ -2144,217 +2144,83 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JLMAP
 
-      MODULE BDIL
-!@sum  stores information for outputting lon-height diagnostics
-!@auth M. Kelley
-
-      IMPLICIT NONE
-
-!@param nil_out number of il-format output fields
-      integer, parameter :: nil_out=16
-
-!@var title string, formed as concatentation of lname//units
-      CHARACTER(LEN=64), DIMENSION(nil_out) :: TITLE
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nil_out) :: UNITS
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nil_out) :: LNAME
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nil_out) :: SNAME
-
-!@var nt_il index telling pout_il which field is being output
-      integer :: nt_il
-
-      END MODULE BDIL
-
-      SUBROUTINE IL_TITLES
-      USE BDIL
-      IMPLICIT NONE
-      INTEGER :: K
-c
-      k = 0
-c
-      k = k + 1
-      sname(k) = 'u_equator'
-      lname(k) = 'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG'
-      units(k) = 'METERS/SECOND'
-      k = k + 1
-      sname(k) = 'v_equator'
-      lname(k) = 'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG'
-      units(k) = 'METERS/SECOND'
-      k = k + 1
-      sname(k) = 'vvel_equator'
-      lname(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
-      units(k) = '10**-4 METERS/SECOND'
-      k = k + 1
-      sname(k) = 'temp_equator'
-      lname(k) = 'TEMPERATURE AROUND +/- 5 DEG'
-      units(k) = 'DEGREES CENTIGRADE'
-      k = k + 1
-      sname(k) = 'rh_equator'
-      lname(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG'
-      units(k) = 'PERCENT'
-      k = k + 1
-      sname(k) = 'mcheat_equator'
-      lname(k) = 'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG'
-      units(k) = '10**13 WATTS/DSIG'
-      k = k + 1
-      sname(k) = 'rad_cool_equator'
-      lname(k) = 'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG'
-      units(k) = '10**13 WATTS/DSIG'
-      k = k + 1
-      sname(k) = ''
-      lname(k) = ''
-      units(k) = ''
-      k = k + 1
-      sname(k) = 'vvel_50N'
-      lname(k) = 'VERTICAL VELOCITY AT 50 N'
-      units(k) = '10**-4 METERS/SECOND'
-      k = k + 1
-      sname(k) = 'temp_50N'
-      lname(k) = 'TEMPERATURE AT 50 N'
-      units(k) = 'DEGREES CENTIGRADE'
-      k = k + 1
-      sname(k) = 'rad_cool_50N'
-      lname(k) = 'TOTAL RADIATIVE COOLING AT 50 N'
-      units(k) = '10**13 WATTS/UNIT SIGMA'
-      k = k + 1
-      sname(k) = 'u_50N'
-      lname(k) = 'ZONAL WIND AT 50 N'
-      units(k) = 'METERS/SECOND'
-      k = k + 1
-      sname(k) = 'vvel_70N'
-      lname(k) = 'VERTICAL VELOCITY AT 70 N'
-      units(k) = '10**-4 METERS/SECOND'
-      k = k + 1
-      sname(k) = 'temp_70N'
-      lname(k) = 'TEMPERATURE AT 70 N'
-      units(k) = 'DEGREES CENTIGRADE'
-      k = k + 1
-      sname(k) = 'rad_cool_70N'
-      lname(k) = 'TOTAL RADIATIVE COOLING AT 70 N'
-      units(k) = '10**13 WATTS/UNIT SIGMA'
-      k = k + 1
-      sname(k) = 'u_70N'
-      lname(k) = 'ZONAL WIND AT 70 N'
-      units(k) = 'METERS/SECOND'
-
-c create titles by concatenating long names with units
-      do k=1,nil_out
-         title(k)=''
-         if(lname(k).ne.'')
-     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
-      enddo
-
-      return
-      END SUBROUTINE IL_TITLES
-
       SUBROUTINE DIAGIL
-      USE CONSTANT, only : grav,rgas,sha,bygrav
-      USE MODEL_COM, only : im,jm,lm,fim,bydsig,dsig,dtsrc,idacc,jeq,psf
-     *     ,ptop,sig,sige,xlabel,lrunid
-      USE GEOM, only :  areag,dxyp,dxyv
+!@sum  DIAGIL prints out longitude/height diagnostics
+!@auth Original Development Team
+!@ver  1.0
+      USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
       USE DAGPCOM, only : plm,ple
-      USE DAGCOM, only : ail,lm_req,j50n,j70n,acc_period, qcheck
-      USE BDIL, only :
-     &     title,nt_il
+      USE DAGCOM, only : ail,lm_req,acc_period, qcheck,lname_il,name_il
+     *     ,units_il,scale_il,ia_il,kail
       IMPLICIT NONE
-
-      INTEGER :: LINECT,JMHALF,INC
-      COMMON/DILCOM/LINECT,JMHALF,INC
+      CHARACTER sname*20,unit*20,lname*80
       DOUBLE PRECISION, DIMENSION(LM) :: ONES
-      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PL
-      INTEGER :: J,L,K
-      DOUBLE PRECISION :: BYIACN,BYIADA,BYIARD,SCALE
-      INTEGER, PARAMETER :: K_PIL=16
-      INTEGER, DIMENSION(K_PIL) ::
-     *  KNDEX=(/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16/),
-     *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 0,1,2,3,0, 1/)
-c    *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 5,1,2,3,5, 1/)
-      DOUBLE PRECISION SIL(K_PIL)
+      DOUBLE PRECISION, DIMENSION(IM,LM) :: XIL
+      INTEGER :: K
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
-      call il_titles
-      INC=1+(JM-1)/24
-      JMHALF=JM/2
-      DO 20 L=1,LM
-      ONES(L)=1.
-   20 CONTINUE
-      LINECT=65
-      BYIACN=1./(IDACC(1)+1.D-20)
-      BYIARD=1./(IDACC(2)+1.D-20)
-      BYIADA=1./(IDACC(4)+1.D-20)
-      SIL( 1)=BYIADA/3.
-      SIL( 2)=BYIADA/3.
-      SIL( 3)=
-     *  -1.D4*BYIADA*RGAS*BYGRAV/(DXYP(JEQ)+DXYP(JEQ-1)+DXYP(JEQ-2))
-      SIL( 4)=BYIADA/3.
-      SIL( 5)=1.D2*BYIADA/3.
-      SIL( 6)=100.D-13*SHA*BYIACN/(GRAV*DTsrc)
-      SIL( 7)=-1.D-13*BYIARD
-      SIL( 9) =-1.D4*BYIADA*RGAS/(GRAV* DXYP(J50N))
-      SIL(10)=BYIADA
-      SIL(11)=-1.D-13*BYIARD
-      SIL(12)=BYIADA/2.
-      SIL(13) =-1.D4*BYIADA*RGAS/(GRAV* DXYP(J70N))
-      SIL(14)=BYIADA
-      SIL(15)=-1.D-13*BYIARD
-      SIL(16)=BYIADA/2.
+      ONES(1:LM)=1.
 
-      DO K=1,K_PIL
-      nt_il = k
-      SELECT CASE (CASEIL(K))
-      CASE DEFAULT
-      CASE (1)  ! Centered in L; secondary grid; hor. mean; vert. sum
-        CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,2,2)
-      CASE (2)  ! Vertical edges; primary grid; hor. mean; vert. sum
-        CALL ILMAP(TITLE(K),PLE,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM-1,2,1)
-      CASE (3)  ! Centered in L; primary grid; hor. mean; vert. sum
-        CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,2,1)
-      CASE (4)  ! Centered in L; primary grid; hor. sum; vert. sum
-        CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,1,1)
-      CASE (5)  ! Centered in L; primary grid; hor. sum; vert. mean
-        CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),BYDSIG,LM,1,1)
-      END SELECT
+      DO K=1,KAIL
+        XIL=AIL(:,:,K)*SCALE_IL(K)/IDACC(IA_IL(K))
+        sname=name_il(k)
+        lname=lname_il(k)
+        unit=units_il(k)
+        SELECT CASE (sname)
+! Centered in L; secondary grid; hor. mean; vert. sum
+        CASE ('u_equator','v_equator','u_70N','u_50N') 
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,2)
+! Vertical edges; primary grid; hor. mean; vert. sum
+        CASE ('vvel_equator','vvel_50N','vvel_70N')  
+          CALL ILMAP(sname,lname,unit,PLE,XIL,ONES,LM-1,2,1)
+! Centered in L; primary grid; hor. mean; vert. sum
+        CASE ('temp_equator','rh_equator','temp_50N','temp_70N')
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,1)
+! Centered in L; primary grid; hor. sum; vert. sum
+        CASE ('mcheat_equator')
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,1,1)
+! Centered in L; primary grid; hor. sum; vert. mean
+        CASE ('rad_cool_equator') ! also 'rad_cool_50N','rad_cool_70N'
+          CALL ILMAP(sname,lname,unit,PLM,XIL,BYDSIG,LM,1,1)
+        END SELECT
       END DO
       if(qcheck) call close_il
       RETURN
       END SUBROUTINE DIAGIL
 
-      SUBROUTINE ILMAP (TITLE,PL,AX,SCALE,SCALEL,LMAX,JWT,ISHIFT)
+      SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
+     *     ,ISHIFT)
       USE DAGCOM, only : qcheck,acc_period,iu_il
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
       USE GEOM, only : dlon,lon_dg
       IMPLICIT NONE
-
-      REAL*8 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
       CHARACTER XLB*80,CWORD*8
-      CHARACTER*16, PARAMETER :: CBLANK=' ',
-     &  CLAT='LONGITUDE',CPRES='PRESSURE (MB)'
-
-      DOUBLE PRECISION :: FGLOB,FLON,GSUM,SDSIG, SCALE
-      INTEGER :: I,K,L, LMAX,JWT,ISHIFT
-
-      INTEGER, DIMENSION(IM) :: MLON
-      DOUBLE PRECISION, DIMENSION(IM) :: ASUM
-
-      INTEGER :: LINECT,JMHALF,INC
-      COMMON/DILCOM/LINECT,JMHALF,INC
-
-      DOUBLE PRECISION, DIMENSION(IM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(LM) :: PL,SCALEL
-
-      CHARACTER*64 TITLE
+      character(len=20), intent(in) :: sname,unit
+      character(len=80), intent(in) :: lname
+      CHARACTER*64 :: TITLE
       CHARACTER*4, PARAMETER :: DASH='----'
       CHARACTER*4, DIMENSION(2), PARAMETER :: WORD=(/'SUM ','MEAN'/)
+      CHARACTER*16, PARAMETER :: CBLANK=' ', CLAT='LONGITUDE',
+     *     CPRES='PRESSURE (MB)'
+      DOUBLE PRECISION, DIMENSION(LM), INTENT(IN) :: PL,SCALEL
+      DOUBLE PRECISION, DIMENSION(IM,LM), INTENT(IN) :: AX
+      REAL*8 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
+      DOUBLE PRECISION :: FGLOB,FLON,GSUM,SDSIG
+      DOUBLE PRECISION, DIMENSION(IM) :: ASUM
+      INTEGER, DIMENSION(IM) :: MLON
+      INTEGER, INTENT(IN) :: JWT,ISHIFT
+      INTEGER :: I,K,L,LMAX,LINECT,JMHALF,INC
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
 C****
+      INC=1+(JM-1)/24
+      JMHALF=JM/2
+      LINECT=65
 C**** ISHIFT: When=2, print longitude indices off center (U-grid)
       LINECT=LINECT+LMAX+7
       IF (LINECT.GT.60) THEN
@@ -2362,40 +2228,41 @@ C**** ISHIFT: When=2, print longitude indices off center (U-grid)
         LINECT=LMAX+8
       END IF
       SDSIG=1.-SIGE(LMAX+1)
+
+      TITLE=trim(lname)//" ("//trim(unit)//")"
       WRITE (6,901) TITLE,(DASH,I=1,IM,INC)
       IF (ISHIFT.EQ.1) WRITE (6,904) WORD(JWT),(I,I=1,IM,INC)
       IF (ISHIFT.EQ.2) WRITE (6,906) WORD(JWT),(I,I=1,IM,INC)
       WRITE (6,905) (DASH,I=1,IM,INC)
-      ASUM(:)=0.
-      GSUM=0.
-      DO 130 L=LMAX,1,-1
-      FGLOB=0.
-      DO 120 I=1,IM
-      FLON=AX(I,L)*SCALE*SCALEL(L)
-         XIL(I,L)=FLON
-      MLON(I)=NINT(FLON)
-      ASUM(I)=ASUM(I)+FLON*DSIG(L)/SDSIG
-      FGLOB=FGLOB+FLON
-  120 CONTINUE
-      FGLOB=FGLOB/IM
-      IF (JWT.EQ.1) FGLOB=FGLOB*TWOPI/DLON
-         ZONAL(L)=FGLOB
-      WRITE (6,902) PL(L),FGLOB,(MLON(I),I=1,IM,INC)
-      GSUM=GSUM+FGLOB*DSIG(L)/SDSIG
-  130 CONTINUE
-      DO 140 I=1,IM
-      MLON(I)=NINT(ASUM(I))
-  140 CONTINUE
+
+      ASUM(:)=0. ; GSUM=0.
+      DO L=LMAX,1,-1
+        FGLOB=0.
+        DO I=1,IM
+          FLON=AX(I,L)*SCALEL(L)
+          XIL(I,L)=FLON
+          MLON(I)=NINT(FLON)
+          ASUM(I)=ASUM(I)+FLON*DSIG(L)/SDSIG
+          FGLOB=FGLOB+FLON
+        END DO
+        FGLOB=FGLOB/IM
+        IF (JWT.EQ.1) FGLOB=FGLOB*TWOPI/DLON
+        ZONAL(L)=FGLOB
+        WRITE (6,902) PL(L),FGLOB,(MLON(I),I=1,IM,INC)
+        GSUM=GSUM+FGLOB*DSIG(L)/SDSIG
+      END DO
+      MLON(:)=NINT(ASUM(:))
+
       WRITE (6,905) (DASH,I=1,IM,INC)
       WRITE (6,903) GSUM,(MLON(I),I=1,IM,INC)
 C**** Output for post-processing
-         CWORD=WORD(JWT)  ! pads out to 8 characters
-         XLB=TITLE
-         XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-         IF(QCHECK) CALL POUT_IL(XLB,ISHIFT,LMAX,XIL,PL,CLAT,CPRES
-     *        ,ASUM,GSUM,ZONAL)
-
+      CWORD=WORD(JWT)           ! pads out to 8 characters
+      XLB=TITLE
+      XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
+      IF(QCHECK) CALL POUT_IL(XLB,sname,lname,unit,ISHIFT,LMAX,XIL
+     *     ,PL,CLAT,CPRES,ASUM,GSUM,ZONAL)
       RETURN
+C****
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)
   903 FORMAT (F14.1,1X,36I3)
@@ -2403,6 +2270,7 @@ C**** Output for post-processing
   905 FORMAT (1X,14('-'),36A3)
   906 FORMAT (' P(MB)',4X,A4,36I3)     ! V-grid (i.e., edges)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
+C****
       END SUBROUTINE ILMAP
 
       BLOCK DATA BDWP

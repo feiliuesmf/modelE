@@ -24,7 +24,7 @@
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,
+     *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
@@ -176,7 +176,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
             AJL(J,L,13)=AJL(J,L,13)+AJ13(L)*BYDSIG(L)
             AJL(J,L,50)=AJL(J,L,50)+AJ50(L)*BYDSIG(L)
             AJL(J,L,51)=AJL(J,L,51)+AJ51(L)*BYDSIG(L)
-            IF(J.GE.JEQ-2.AND.J.LE.JEQ) AIL(I,L,6)=AIL(I,L,6)+
+            IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
      *           (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
             AJL(J,L,56)=AJL(J,L,56)+(AJ50(L)+AJ13(L))*BYDSIG(L)
             AJL(J,L,57)=AJL(J,L,57)+(AJ52(L)-AJ57(L))*BYDSIG(L)

@@ -53,8 +53,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       INTEGER, PARAMETER :: KAIL=16
 !@var AIL longitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
-!@var J50N,J70N special longitudes for AIL diagnostics
-      INTEGER :: J50N,J70N
+!@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
+      INTEGER :: J50N,J70N,J5NUV,J5SUV,J5S,J5N
 
 C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics
@@ -348,6 +348,12 @@ C****      names, indices, units, idacc-numbers, etc.
 
       character(len=20), dimension(kail) :: name_il,units_il
       character(len=80), dimension(kail) :: lname_il
+      real*8, dimension(kail) :: scale_il
+      integer, dimension(kail) :: ia_il
+!@var IL_xxx names for longitude height diagnostics
+      INTEGER :: IL_UEQ,IL_VEQ,IL_WEQ,IL_TEQ,IL_QEQ,IL_MCEQ,IL_REQ
+     *     ,IL_W50N,IL_T50N,IL_R50N,IL_U50N,IL_W70N,IL_T70N,IL_R70N
+     *     ,IL_U70N
 
       character(len=20), dimension(ndiuvar) :: name_dd,units_dd
       character(len=80), dimension(ndiuvar) :: lname_dd
