@@ -24,10 +24,8 @@ C**** Calculate pressure at ocean surface (and scale for areas)
       DO J=1,JM
         RAO=DXYP(J)*BYDXYPO(J)
         DO I=1,IMAXJ(J)
-c          OPRESS(I,J) = RAO*(100.*(P(I,J)-PSF)+RSI(I,J)
-c     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) !  ?????
-          OPRESS(I,J) = RAO*(100.*(P(I,J)+PTOP)-101325.+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
+          OPRESS(I,J) = RAO*(100.*(P(I,J)-PSF)+RSI(I,J)
+     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) !  ?????
         END DO
       END DO
 C**** Apply ice/ocean and air/ocean stress to ocean
@@ -368,56 +366,51 @@ c            AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
 c          END DO
 c        END DO
 
-C**** Melt sea ice from base (should be moved to SEAICE)
+C**** Add glacial melt from Antarctica and Greenland
+        CALL GLMELT
+
+C**** Melt very small amounts of sea ice
         DO J=1,JM
         DO I=1,IMAXJ(J)
 C**** Only melting of ocean ice (not lakes)
-          IF (FOCEAN(I,J)*RSI(I,J) .GT. 0.) THEN
-C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN TFO
-C**** (FREEZING POINT OF WATER)
-C**** Calculate temperature (on atmos. grid)
-            GO1=G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
+          IF (FOCEAN(I,J)*RSI(I,J) .GT. 0 .and. RSI(I,J).lt.1d-4) THEN
+C**** Calculate freezing temperature (on atmos. grid)
             SO1=S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
-            TGW=TEMGS(GO1,SO1)
             TFO=TFREZS(SO1)
-            IF (TGW.GT.TFO .or. RSI(I,J).lt.1d-4) THEN
-              ROICE=RSI(I,J)
-              MSI2=MSI(I,J)
-              SNOW=SNOWI(I,J)   ! snow mass
-              HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
-              SSIL(:)= SSI(:,I,J) ! sea ice salt
-C**** calculate energy available for melting
-              ENRGW=(GO1-GFREZS(SO1))*MO(I,J,1)*FDAILY
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
-     *             ,ENRGW,ENRGUSED,RUN0,SALT)
+            ROICE=RSI(I,J)
+            MSI2=MSI(I,J)
+            SNOW=SNOWI(I,J)     ! snow mass
+            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
+            SSIL(:)= SSI(:,I,J) ! sea ice salt
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+     *           ,ENRGUSED,RUN0,SALT)
 C**** RESAVE PROGNOSTIC QUANTITIES
-              G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
-               MO(I,J,1)= MO(I,J,1) + RUN0
-c              S0M(I,J,1)=S0M(I,J,1) + SALT    *DXYPO(J)
-              RSI(I,J)=ROICE
-              MSI(I,J)=MSI2
-              SNOWI(I,J)=SNOW
-              HSI(:,I,J)=HSIL(:)
-              SSI(:,I,J)=SSIL(:)
+            G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
+            MO(I,J,1)= MO(I,J,1) + RUN0
+            S0M(I,J,1)=S0M(I,J,1) + SALT    *DXYPO(J)
+            RSI(I,J)=ROICE
+            MSI(I,J)=MSI2
+            SNOWI(I,J)=SNOW
+            HSI(:,I,J)=HSIL(:)
+            SSI(:,I,J)=SSIL(:)
 C**** limit RSIX/Y
-              IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =     RSI(I,J)
-              IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =    -RSI(I,J)
-              IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =     RSI(I,J)-1d0
-              IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) = 1d0-RSI(I,J)
-              IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =     RSI(I,J)
-              IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =    -RSI(I,J)
-              IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =     RSI(I,J)-1d0
-              IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) = 1d0-RSI(I,J)
+            IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =     RSI(I,J)
+            IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =    -RSI(I,J)
+            IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =     RSI(I,J)-1d0
+            IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) = 1d0-RSI(I,J)
+            IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =     RSI(I,J)
+            IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =    -RSI(I,J)
+            IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =     RSI(I,J)-1d0
+            IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) = 1d0-RSI(I,J)
 C**** set ftype/gtemp arrays for ice
-              FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-              FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
-              GTEMP(1:2,2,I,J) = TSIL(1:2)
-            END IF
+            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
+            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
+            GTEMP(1:2,2,I,J) = TSIL(1:2)
           END IF
         END DO
         END DO
 C**** set gtemp arrays for ocean
-      CALL TOC2SST
+        CALL TOC2SST
       END IF
 C****
       RETURN
@@ -570,7 +563,7 @@ C****
       USE CONSTANT, only : shw,rhow
       USE OCEAN, only : im,jm,lmo,fim,imaxj,focean,mo,uo,vo,lmm
       IMPLICIT NONE
-!@var OKE zonal ocean kinetic energy per unit area (4*J/m**2)
+!@var OKE zonal ocean kinetic energy per unit area (J/m**2)
       REAL*8, DIMENSION(JM) :: OKE
       INTEGER I,J,L,IP1
       REAL*8 OKEIN
@@ -585,6 +578,7 @@ C****
           END DO
           I=IP1
         END DO
+        OKE(J)=OKE(J)*0.25
       END DO
       DO L=1,LMO
         OKEIN = UO(1,JM,L)*UO(1,JM,L)*IM
@@ -593,16 +587,17 @@ C****
         END DO
         OKE(JM)= OKE(JM)+ OKEIN*MO(1,JM,L)
       END DO
-      OKE(JM)= OKE(JM)*2.
+      OKE(JM)= OKE(JM)*0.5
 C****
       RETURN
       END SUBROUTINE conserv_OKE
 
       SUBROUTINE conserv_OCE(OCEANE)
-!@sum  conserv_OCE calculates zonal ocean potential enthalpy
+!@sum  conserv_OCE calculates zonal ocean potential enthalpy(atmos grid)
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm,bydxypo
+      USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
+      USE GEOM, only : bydxyp
       IMPLICIT NONE
 !@var OCEANE zonal ocean potential enthalpy (J/m^2)
       REAL*8, DIMENSION(JM) :: OCEANE
@@ -612,7 +607,7 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OCEANE(J) = OCEANE(J) + G0M(I,J,L)*FOCEAN(I,J)*BYDXYPO(J)
+            OCEANE(J) = OCEANE(J) + G0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
           END DO
         END DO
       END DO
@@ -622,6 +617,35 @@ C****
       RETURN
       END SUBROUTINE conserv_OCE
 
+      SUBROUTINE conserv_OMS(OMASS)
+!@sum  conserv_OMS calculates zonal ocean mass (on atmos grid)
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
+      USE GEOM, only : bydxyp
+      IMPLICIT NONE
+!@var OMASS zonal ocean mass (kg/m^2)
+      REAL*8, DIMENSION(JM) :: OMASS,OMSSV
+      COMMON /OCCONS/OMSSV
+      INTEGER I,J,L
+
+      OMASS=0
+      DO J=1,JM
+        DO I=1,IMAXJ(J)
+          DO L=1,LMM(I,J)
+            OMASS(J) = OMASS(J) + MO(I,J,L)
+          END DO
+        END DO
+        OMASS(J)=OMASS(J)*DXYPO(J)*BYDXYP(J)
+      END DO
+      OMASS(1) =FIM*OMASS(1)
+      OMASS(JM)=FIM*OMASS(JM)
+C**** save mass for AM calculation
+      OMSSV=OMASS
+C****
+      RETURN
+      END SUBROUTINE conserv_OMS
+
       SUBROUTINE conserv_OAM(OAM)
 !@sum  conserv_OAM calculates zonal ocean angular momentum
 !@auth Gavin Schmidt
@@ -629,7 +653,7 @@ C****
       USE CONSTANT, only : radius,omega
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosvo,cospo,lmu
       IMPLICIT NONE
-!@var OAM ocean angular momentum divided by radius and area (2*kg/s*m)
+!@var OAM ocean angular momentum divided by area (kg/s)
       REAL*8, DIMENSION(JM) :: OAM,OMSSV
       COMMON /OCCONS/OMSSV
       INTEGER I,J,L,IP1
@@ -647,6 +671,7 @@ C****
         END DO
         OAM(J) = UMIL*COSPO(J) + OMSSV(J)*RADIUS*OMEGA*(COSVO(J-1)
      *       *COSVO(J-1)+COSVO(J)*COSVO(J))
+        OAM(J)=0.5*RADIUS*OAM(J)
       END DO
       UMIL = 0.
       DO L=1,LMU(1,JM)
@@ -654,42 +679,17 @@ C****
       END DO
       OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
      *     *COSVO(JM-1)*COSVO(JM-1)
+      OAM(JM)=0.5*RADIUS*OAM(JM)
 C****
       RETURN
       END SUBROUTINE conserv_OAM
 
-      SUBROUTINE conserv_OMS(OMASS)
-!@sum  conserv_OMS calculates zonal ocean mass
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm
-      IMPLICIT NONE
-!@var OMASS zonal ocean mass (kg/m^2)
-      REAL*8, DIMENSION(JM) :: OMASS,OMSSV
-      COMMON /OCCONS/OMSSV
-      INTEGER I,J,L
-
-      OMASS=0
-      DO J=1,JM
-        DO I=1,IMAXJ(J)
-          DO L=1,LMM(I,J)
-            OMASS(J) = OMASS(J) + MO(I,J,L)
-          END DO
-        END DO
-      END DO
-      OMASS(1) =FIM*OMASS(1)
-      OMASS(JM)=FIM*OMASS(JM)
-C**** save mass for AM calculation
-      OMSSV=OMASS
-C****
-      RETURN
-      END SUBROUTINE conserv_OMS
-
       SUBROUTINE conserv_OSL(OSALT)
-!@sum  conserv_OSL calculates zonal ocean salt
+!@sum  conserv_OSL calculates zonal ocean salt on atmos grid
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm,bydxypo
+      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
+      USE GEOM, only : bydxyp
       IMPLICIT NONE
 !@var OSALT zonal ocean salt (kg/m^2)
       REAL*8, DIMENSION(JM) :: OSALT
@@ -699,7 +699,7 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OSALT(J) = OSALT(J) + S0M(I,J,L)*BYDXYPO(J)
+            OSALT(J) = OSALT(J) + S0M(I,J,L)*BYDXYP(J)
           END DO
         END DO
       END DO
@@ -2125,7 +2125,7 @@ C**** Surface stress is applied to V component at the North Pole
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : itocean,itoice
-      USE GEOM, only : dxyp
+      USE GEOM, only : dxyp,bydxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
      *     ,lmo,lmm
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
@@ -2137,23 +2137,24 @@ C**** Surface stress is applied to V component at the North Pole
       INTEGER I,J,IMAX,JR
       REAL*8 DXYPJ,BYDXYPJ,RAO,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,FSICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),TGW,TGW2,TEMGS
-     *     ,SRUNI,DSOO,DSOI
+     *     ,SRUNI,DSOO,DSOI,ROA
 C****
 C**** Add surface source of fresh water and heat
 C****
       DO J=2,JM
-      DO I=1,IMAXJ(J)
-      IF(FOCEAN(I,J).gt.0.) THEN
-        FSICE = RSI(I,J)
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
         RAO=DXYP(J)*BYDXYPJ
-C**** set mass and energy fluxes (incl. river/sea ice runoff)
-        RUNO =  FLOWO(I,J)*(1.-FSICE)*BYDXYPJ -  RAO*EVAPOR(I,J,1)
-        RUNI =  FLOWO(I,J)*    FSICE *BYDXYPJ +  RAO*RUNOSI(I,J)
-        ERUNO= EFLOWO(I,J)*(1.-FSICE)*BYDXYPJ +  RAO*E0(I,J,1)
-        ERUNI= EFLOWO(I,J)*    FSICE *BYDXYPJ +  RAO*ERUNOSI(I,J)
-        SRUNI=  0. ! RAO*SRUNOSI(I,J)
+        ROA=DXYPO(J)*BYDXYP(J)
+      DO I=1,IMAXJ(J)
+      IF(FOCEAN(I,J).gt.0.) THEN
+        FSICE = RSI(I,J)
+C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
+        RUNO = FLOWO(I,J)*(1.-FSICE)*BYDXYPJ-RAO*EVAPOR(I,J,1)
+        RUNI = FLOWO(I,J)*    FSICE *BYDXYPJ+RAO*RUNOSI(I,J)
+        ERUNO=EFLOWO(I,J)*(1.-FSICE)*BYDXYPJ+RAO*E0(I,J,1)
+        ERUNI=EFLOWO(I,J)*    FSICE *BYDXYPJ+RAO*ERUNOSI(I,J)
+        SRUNI= RAO*SRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
         SROX(1)=SOLAR(1,I,J)*RAO ! open water
@@ -2197,23 +2198,23 @@ C**** update ocean variables
         GZMO(I,J,:) = GZML(:)
 
 C**** Store mass and energy fluxes for formation of sea ice
-        DMSI(1,I,J)=DMOO
-        DMSI(2,I,J)=DMOI
-        DHSI(1,I,J)=DEOO
-        DHSI(2,I,J)=DEOI
-        DSSI(1,I,J)=DSOO
-        DSSI(2,I,J)=DSOI
+        DMSI(1,I,J)=DMOO*ROA
+        DMSI(2,I,J)=DMOI*ROA
+        DHSI(1,I,J)=DEOO*ROA
+        DHSI(2,I,J)=DEOI*ROA
+        DSSI(1,I,J)=DSOO*ROA
+        DSSI(2,I,J)=DSOI*ROA
 
 C**** diagnostics on the atmospheric grid
 c         AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4O *POCEAN
 c         AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4O*POCEAN
-          AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-DEOO*(1.-FSICE)
-          AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-DMOO*(1.-FSICE)
+        AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-DEOO*ROA*(1.-FSICE)
+        AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-DMOO*ROA*(1.-FSICE)
 C**** Ice-covered ocean diagnostics
 c         AJ(J,J_RUN2 ,ITOICE)=AJ(J,J_RUN2 ,ITOICE)+RUN4I *POICE
 c         AJ(J,J_DWTR2,ITOICE)=AJ(J,J_DWTR2,ITOICE)+ERUN4I*POICE
-          AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-DEOI*FSICE
-          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-DMOI*FSICE
+          AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-DEOI*ROA*FSICE
+          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-DMOI*ROA*FSICE
         END IF
       END DO
       END DO
@@ -2231,6 +2232,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shci=>shi,elhm=>lhm
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
+      USE SEAICE, only : fsss
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
      *     ,SROX(2),SRUNI
@@ -2265,7 +2267,7 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
         TFOO = TFREZS(SOO)
         DMOO = MOO*(GOO-GFOO)/(TFOO*SHCI-ELHM-GFOO)
         DEOO = (TFOO*SHCI-ELHM)*DMOO
-        DSOO = 0.
+        DSOO = FSSS*SOO*DMOO
       END IF
       END IF
 C****
@@ -2288,13 +2290,13 @@ C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHCI-ELHM)*DMOI
           TFOI = TFREZS(SOI)
           DMOI = MOI*(GOI-GFOI)/(TFOI*SHCI-ELHM-GFOI)
           DEOI = (TFOI*SHCI-ELHM)*DMOI
-          DSOI = 0.
+          DSOI = FSSS*SOI*DMOI
         END IF
       END IF
 C**** Update first layer variables
       MO     =  (MOI-DMOI)*ROICE + (1.-ROICE)*( MOO-DMOO)
       G0ML(1)=((GMOI-DEOI)*ROICE + (1.-ROICE)*(GMOO-DEOO))*DXYPJ
-c     S0M    =((SMOI-DSOI)*ROICE + (1.-ROICE)*(SMOO-DSOO))*DXYPJ
+      S0M    =((SMOI-DSOI)*ROICE + (1.-ROICE)*(SMOO-DSOO))*DXYPJ
 C**** add insolation to lower layers
       TSOL=(SROX(1)*(1.-ROICE)+SROX(2)*ROICE)*DXYPJ
       DO L=2,LSR-1
@@ -2312,11 +2314,12 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE GEOM, only : dxyp
-      USE OCEAN, only : im,jm,mo,g0m,bydxypo,focean,imaxj
+      USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
       USE SEAICE_COM, only : rsia=>rsi
-      USE FLUXES, only : runpsia=>runpsi,preca=>prec,epreca=>eprec
+      USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
+     *     ,epreca=>eprec
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM) :: PREC,EPREC,RUNPSI,RSI
+      REAL*8, DIMENSION(IM,JM) :: PREC,EPREC,RUNPSI,RSI,SRUNPSI
       INTEGER I,J
 C**** save surface variables before any fluxes are added
       CALL KVINIT
@@ -2325,21 +2328,23 @@ C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
 C**** of fluxes is necessary anyway
-      DO J=2,JM
+      DO J=1,JM
         DO I=1,IMAXJ(J)
-          PREC  (I,J)=PRECA  (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          EPREC (I,J)=EPRECA (I,J)*DXYP(J)             ! J
-          RUNPSI(I,J)=RUNPSIA(I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          RSI   (I,J)=RSIA   (I,J)
+          PREC   (I,J)=PRECA   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          EPREC  (I,J)=EPRECA  (I,J)*DXYP(J)             ! J
+          RUNPSI (I,J)=RUNPSIA (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          RSI    (I,J)=RSIA    (I,J)
         END DO
       END DO
 C****
-      DO J=2,JM
+      DO J=1,JM
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. PREC(I,J).gt.0.)  THEN
             MO (I,J,1)= MO(I,J,1) + (1d0-RSI(I,J))*PREC(I,J) +
      *           RSI(I,J)*RUNPSI(I,J)
             G0M(I,J,1)=G0M(I,J,1) + (1d0-RSI(I,J))*EPREC(I,J)
+            S0M(I,J,1)=S0M(I,J,1) + (1d0-RSI(I,J))*SRUNPSI(I,J)
           END IF
         END DO
       END DO
@@ -2783,10 +2788,10 @@ C**** Done!
       USE MODEL_COM, only : ftype,itocean,itoice
       USE OCEAN, only : im,jm,g0m,s0m,mo,dxypo,focean,lmm
       USE SEAICE_COM, only : rsi
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp, sss, mlhc
       IMPLICIT NONE
       INTEGER I,J
-      REAL*8 TEMGS,GO,SO,GO2,SO2,TO
+      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
 C****
 C**** Note that currently everything is on same grid
 C****
@@ -2797,6 +2802,8 @@ C****
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TO= TEMGS(GO,SO)
             GTEMP(1,1,I,J)= TO
+            SSS(I,J) = 1d3*SO
+            MLHC(I,J)= MO(I,J,1)*SHCGS(GO,SO)
 c            IF (LMM(I,J).gt.1) THEN
 c              GO2= G0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
 c              SO2= S0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
@@ -2981,3 +2988,72 @@ C**** do poles
 C****
       RETURN
       END SUBROUTINE AT2OV
+
+      SUBROUTINE GLMELT
+!@sum  GLMELT adds glacial melt around Greenland and Antarctica to ocean
+!@auth Sukeshi Sheth/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : lhm
+      USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo
+      IMPLICIT NONE
+!@var ACCPDA total accumulation per day for Antarctica (kg/day)
+!@var ACCPDG total accumulation per day for Greenland (kg/day)
+      REAL*8, PARAMETER :: ACCPDA = 2016.d12/365., ACCPDG = 316d12/365.
+C**** Note thes parameters are highly resolution dependent!
+      INTEGER, PARAMETER :: JML=4, JMU=8, IML1=24, IMU1=36, IML2=69,
+     *     IMU2=11, MAXL=5, NBOX=10, NGRID=111
+      INTEGER IFW(NBOX),JFW(NBOX)
+      DATA IFW/26,25,25,25,29,29,30,31,32,33/
+      DATA JFW/39,40,41,42,39,40,40,40,41,42/
+      REAL*8 ACCPCA,ACCPMA,ACCPCG,ACCPMG,DGM,DMM
+      INTEGER I,J,L,N
+C**** the net accumulation from IPCC2 report is 2016X10**12 kg/year
+C**** for Antarctica and for Greenland it is 316X10**12 kg/year
+C****
+C****  here fresh water is being added to the Ross and Weddell
+C****  seas. this is the net accumulation on the continent, because
+C****  there is no iceberg calving in the model and the ice sheets
+C****  are not assumed to be growing.
+C****  fresh water is being added from 78S to 62S and from 0-60W
+C****  and 135W to 165E for Antarctica
+C****  Note that water goes in with as if it is ice at 0 deg.
+C****  Possibly this should be a function of in-situ freezing temp?
+C****
+      ACCPCA = ACCPDA/FLOAT(NGRID) ! accumulation per water column
+C**** this accumulation is distributed in the water column in a way
+C**** that is proportional to the depth of the column
+      ACCPMA = ACCPCA/ZE(MAXL)
+      DO L=1,MAXL
+        DGM = LHM*ACCPMA*(ZE(L)-ZE(L-1))
+        DO J=JML,JMU
+          DMM = BYDXYPO(J)*ACCPMA*(ZE(L)-ZE(L-1))
+          DO I=1,IM
+            IF (FOCEAN(I,J).GT.0.) THEN
+              IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
+     *             .IMU2) THEN
+                MO(I,J,L)  =  MO(I,J,L) + DMM
+                G0M(I,J,L) = G0M(I,J,L) - DGM
+              END IF
+            END IF
+          END DO
+        END DO
+      END DO
+C**** around greenland the freshwater is added to both the east and
+C**** west coasts in the one grid box closest to the coast which is
+C**** determined by the direction in the river flow file.
+      ACCPCG = ACCPDG/FLOAT(NBOX) ! accum per water column
+C**** this accumulation is again distributed as above
+      ACCPMG = ACCPCG/ZE(MAXL)
+      DO L=1,MAXL
+        DGM = LHM*ACCPMG*(ZE(L)-ZE(L-1))
+        DO N=1,NBOX
+          I=IFW(N)
+          J=JFW(N)
+          DMM = BYDXYPO(J)*ACCPMG*(ZE(L)-ZE(L-1))
+          MO(I,J,L)  =  MO(I,J,L) + DMM
+          G0M(I,J,L) = G0M(I,J,L) - DGM
+        END DO
+      END DO
+C****
+      RETURN
+      END

@@ -110,21 +110,6 @@ C****
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called
       INTEGER, INTENT(IN) :: M
-C****
-C**** THE PARAMETER M INDICATES WHEN DIAGCO IS BEING CALLED
-C**** M=1  INITIALIZE CURRENT QUANTITY
-C****   2  AFTER DYNAMICS
-C****   3  AFTER CONDENSATION
-C****   4  AFTER RADIATION
-C****   5  AFTER PRECIPITATION
-C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
-C****   7  AFTER FULL SURFACE INTERACTION
-C****   8  AFTER FILTER
-C****   9  AFTER STRATOSPHERIC DRAG
-C****  10  AFTER OCEAN DYNAMICS
-C****  11  AFTER OCEAN SUB-GRIDSCALE PHYS
-C****  12  AFTER DAILY
-C****
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
 
@@ -173,23 +158,23 @@ C**** Set names for OL diagnostics
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN MASS","(10^2 KG/M**2)  ",
+      CALL SET_CON(QCON,"OCN MASS","(10^2 KG/M^2)  ",
      *     "(10^-8 KG/S/M^2)",1d-2,1d8,icon_OMS)
 C**** Oceanic angular momentum
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN ANGM","(10^12 J S/M**2)",
+      CALL SET_CON(QCON,"OCN ANGM","(10^12 J S/M^2)",
      *     "(10^2 W/M^2)    ",1d-12,1d-2,icon_OAM)
 C**** Oceanic kinetic energy
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCEAN KE","(J/M**2)        ",
+      CALL SET_CON(QCON,"OCEAN KE","(J/M^2)        ",
      *     "(10^-6 W/M^2)   ",1d0,1d6,icon_OKE)
 C**** Oceanic potential enthalpy (heat)
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M**2)   ",
+      CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M^2)   ",
      *     "(10^-2 KG/S/M^2)",1d-6,1d2,icon_OCE)
 C**** Oceanic salt mass
       QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN SALT","(10 KG/M**2)    ",
+      CALL SET_CON(QCON,"OCN SALT","(10 KG/M^2)    ",
      *     "(10^-8 KG/S/M^2)",1d-1,1d8,icon_OSL)
 C**** Initialise ocean basins
       CALL OBASIN

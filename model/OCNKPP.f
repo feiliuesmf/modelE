@@ -10,7 +10,7 @@
       INTEGER, DIMENSION(IM,JM) :: KPL
 
       REAL*8, DIMENSION(IM,JM,LSRPD) :: G0M1
-      REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1
+      REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
 
       END MODULE
 C****
@@ -1044,8 +1044,9 @@ C**** Is this still necessary now that fluxes are saved?
       SUBROUTINE KVINIT
 !@sum KVINIT Initialise KMIX and save pre-source term surface values of
 !@+   enthalpy, mass and horizontal gradients for kppmix calculation
-      USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,mo,uo,vo
-      USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1,lsrpd
+      USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,s0m,mo,uo,vo
+      USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
+     *     ,lsrpd
       IMPLICIT NONE
       INTEGER I,J
 C**** Save surface values
@@ -1054,6 +1055,7 @@ C**** Save surface values
             G0M1(I,J,1:LSRPD) = G0M(I,J,1:LSRPD)
             GXM1(I,J) = GXMO(I,J,1)
             GYM1(I,J) = GYMO(I,J,1)
+            S0M1(I,J) = S0M(I,J,1)
             SXM1(I,J) = SXMO(I,J,1)
             SYM1(I,J) = SYMO(I,J,1)
             MO1(I,J)  = MO(I,J,1)
@@ -1075,7 +1077,7 @@ C**** Save surface values
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
      *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt
-      USE KPP_COM, only : g0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
+      USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
       USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
       USE SW2OCEAN, only : fsr,lsrpd
       IMPLICIT NONE
@@ -1103,9 +1105,9 @@ C**** KPP variables
       INTEGER :: ILAST=0,JLAST=0
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL
       REAL*8, SAVE :: BYDTS
-      REAL*8 CORIOL,BYDTS,UISTR,VISTR,U2rho,DELTAFW,DELTAE,DELTASR,ANSTR
+      REAL*8 CORIOL,BYDTS,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
-     *     ,RHOM,RHO1,Bo
+     *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
 C**** initiallise kpp routines
       IF (IFIRST.eq.1) THEN
@@ -1162,7 +1164,7 @@ C****
       UL(1,IM+1)  = UO1(1,JM)
       MMLT(1)     = MO1(1,JM)*DXYPO(JM)
       BYMMLT(1)   = 1d0/MMLT(1)
-      S0ML(1,1,1) = S0M(1,JM,1)
+      S0ML(1,1,1) = S0M1(1,JM)
       DO L=2,LMIJ
         UL0(L,IM+1) = UT(1,JM,L)
         MML0(L)     = MO(1,JM,L)*DXYPO(JM)
@@ -1200,10 +1202,11 @@ C**** DMUA/I now defined over whole box, not just surface type
       U2rho = SQRT(
      *     (DMUA(1,JM,1) + UISTR)**2+
      *     (DMVA(1,JM,1) + VISTR)**2)*BYDTS
-C**** Calculate surface freshwater and heat fluxes
-      DELTAFW = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
-      DELTAE  = (G0ML0(1,1,1) - G0ML(1,1,1))*BYDXYPO(JM)*BYDTS
-      DELTASR = (SOLAR(1,1,JM)*(1d0-RSI(1,JM))+SOLAR(3,1,JM)*RSI(1,JM))
+C**** Calculate surface mass, salt and heat fluxes
+      DELTAM = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
+      DELTAE = (G0ML0(1,1,1) - G0ML(1,1,1))*BYDXYPO(JM)*BYDTS
+      DELTAS = (S0ML0(1,1,1) - S0ML(1,1,1))*BYDXYPO(JM)*BYDTS
+      DELTASR= (SOLAR(1,1,JM)*(1d0-RSI(1,JM))+SOLAR(3,1,JM)*RSI(1,JM))
      *     *BYDTS               ! W/m^2
       KPL(1,JM) = 1  ! Initialize mixed layer depth
       I=1
@@ -1257,8 +1260,8 @@ C**** DMUA/I now defined over whole box, not just surface type
       END IF
       U2rho = SQRT((DMUA(I,J,1) + UISTR)**2 +
      *             (DMVA(I,J,1) + VISTR)**2)*BYDTS
-C**** Calculate surface freshwater flux and Solar forcing
-      DELTAFW = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
+C**** Calculate surface mass flux and Solar forcing
+      DELTAM = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
       DELTASR = (SOLAR(1,I,J)*(1d0-RSI(I,J))+SOLAR(3,I,J)*RSI(I,J))
      *     *BYDTS               ! W/m^2
       KPL(I,J) = 1  ! Initialize mixed layer depth
@@ -1288,7 +1291,7 @@ C**** Loop over quarter boxes
       UL(1,2) = UO1(I  ,J)
       UL(1,3) = VO1(I,J-1)
       UL(1,4) = VO1(I,J  )
-      S0ML(1,IQ,JQ)=2.5d-1*(S0M(I,J,1) + RI*SXM1(I,J) + RJ*SYM1(I,J))
+      S0ML(1,IQ,JQ)=2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))
       DO 250 L=2,LMIJ
       UL0(L,1) = UT(IM1,J,L)
       UL0(L,2) = UT(I  ,J,L)
@@ -1311,8 +1314,9 @@ C**** Loop over quarter boxes
       DO L=LSRPD,LMIJ
         G0ML(L,IQ,JQ) = G0ML0(L,IQ,JQ)
       END DO
-C**** Calculate surface heat flux
+C**** Calculate surface heat and salt flux
       DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !W/m^2
+      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2
 C****
 C**** Vertical mixing dependent on KPP boundary layer scheme
 C****
@@ -1419,8 +1423,9 @@ C**** Bo includes all buoyancy and heat forcing
 
       BYSHC = 1d0/SHCGS(G(1),S(1))
 
-      Bo    = - GRAV*BYRHO(1)**2 *(talpha(1)*BYSHC*DELTAE -
-     *       ( sbeta(1)*S(1)*1d3 + talpha(1)*BYSHC*G(1) ) * DELTAFW)
+      Bo    = - GRAV*BYRHO(1)**2 *(
+     *       sbeta(1)*DELTAS*1d3 + talpha(1)*BYSHC*DELTAE -
+     *     ( sbeta(1)*S(1)*1d3   + talpha(1)*BYSHC*G(1) )*DELTAM)
       Bosol = - GRAV*BYRHO(1)**2 * talpha(1)*BYSHC*DELTASR
 
 C**** Double diffusive option (ddmix) needs alphaDT,betaDS
@@ -1454,7 +1459,7 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          GHATM(L) = 0.          ! no non-local momentum transport
 C**** GHAT terms must be zero for consistency with OSOURC
          GHATG(L) = 0. !AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
-         GHATS(L) = 0. !AKVS(L)*GHAT(L)*DELTAFW*S(1)*DXYPO(J)
+         GHATS(L) = 0. !AKVS(L)*GHAT(L)*DELTAM*S(1)*DXYPO(J) CHECK!
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
@@ -1479,11 +1484,11 @@ C**** Implicitly apply interpolated KV to linear profile
 C**** Surface tracer + mass fluxes included (no solar flux)
 C**** Note that FL[GS] are upward fluxes.
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
-      DM = DELTAFW*DTBYDZ(1)
+      DM = DELTAM*DTBYDZ(1)
       GZML(1,IQ,JQ)=(GZML(1,IQ,JQ)+3d0*(FLG(1)
      *     +0.25*DTS*DELTAE*DXYPO(J)))/(1d0+DTBYDZ2*AKVG(1))
       SZML(1,IQ,JQ)=(SZML(1,IQ,JQ)+3d0*(FLS(1)
-     *     +DM*2.5d-1*(S0M(I,J,1) + RI*SXM1(I,J) + RJ*SYM1(I,J))))
+     *     +DM*2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))))
      *     /(1d0+DTBYDZ2*AKVS(1))
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS

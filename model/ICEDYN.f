@@ -88,12 +88,12 @@ C****
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
      *     ,dxypo,lmm,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz
-      USE GEOM, only : dxyp
+      USE GEOM, only : dxyp,imaxj
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm,out
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
      *     ,ratic,ricat
-      USE FLUXES, only : dmua,dmva,dmui,dmvi
+      USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice
@@ -115,7 +115,7 @@ C**** should be defined based on ocean grid
       REAL*8 :: dlat,dlon,phit,phiu,hemi
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,J,n,k,kki,ip1,im1
-      REAL*8 DOIN,USINP,DMUINP,RAT
+      REAL*8 DOIN,USINP,DMUINP,RAT,duA,dvA
 
 C**** set up initial parameters
       IF(IFIRST.gt.0) THEN
@@ -500,6 +500,23 @@ C**** Rescale DMVI to be net momentum into ocean
       vsi(1:im,jm)=0.
       dmui(1:im,1)=0.
       dmvi(1:im,jm)=0.
+
+C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
+C**** UI2rho = | tau |
+
+      do j=1,jm
+        do i=1,imaxj(j)
+          UI2rho(i,j)=0
+          if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
+C**** calculate 4 point average of B grid values of stresses (CHECK!)
+            duA = 0.5*(DXYNO(J)*(dmu(i+1,j)+dmu(i,j))+DXYSO(j)*(dmu(i+1
+     *           ,j-1)+dmu(i,j-1)))*BYDXYPO(J)   
+            dvA = 0.5*(DXYNO(J)*(dmv(i+1,j)+dmv(i,j))+DXYSO(j)*(dmv(i+1
+     *           ,j-1)+dmv(i,j-1)))*BYDXYPO(J)   
+            UI2rho(i,j)= sqrt (duA**2 + dvA**2)
+          end if
+        end do
+      end do
 
 C**** set north pole in C grid
       USINP=0.

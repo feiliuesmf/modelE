@@ -19,6 +19,8 @@
 !@var DHSI energy flux of sea ice under ice and on open water (J/m^2)
 !@var DSSI salt flux in sea ice under ice and on open water (kg/m^2)
       REAL*8, DIMENSION(2,IM,JM) :: DMSI, DHSI, DSSI
+!@var fmsi_io,fhsi_io,fssi_io ice-ocean fluxes under ice (kg or J/m^2)
+      REAL*8, DIMENSION(IM,JM) :: fmsi_io,fhsi_io,fssi_io
 !@var RUNOLI run off from land ice (kg/m^2) (Energy always=0)
       REAL*8, DIMENSION(IM,JM) :: RUNOLI
 
@@ -41,6 +43,8 @@ C**** Momemtum stresses are calculated as if they were over whole box
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: DMUA,DMVA
 !@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
       REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
+!@var UI2rho Ustar*2*rho ice-ocean friction velocity on atmospheric grid
+      REAL*8, DIMENSION(IM,JM) :: UI2rho
 
 C**** currently saved - should be replaced by fluxed quantities
 !@var DU1,DV1 momentum flux from atmosphere summed over type (m/s)
@@ -60,6 +64,10 @@ C**** currently saved - should be replaced by fluxed quantities
 
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
       REAL*8, DIMENSION(2,NSTYPE,IM,JM) :: GTEMP
+!@var SSS sea surface salinity on atmospheric grid (kg/kg)
+      REAL*8, DIMENSION(IM,JM) :: SSS
+!@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
+      REAL*8, DIMENSION(IM,JM) :: MLHC
 
       END MODULE FLUXES
 

@@ -759,43 +759,36 @@ C**** set ice on/off days
         END DO
       END DO
 
-C**** Melt lake ice if energy is available in mixed layer
+C**** Melt too small lake ice 
       DO J=1,JM
         IMAX=IMAXJ(J)
         DO I=1,IMAX
-          IF (FLAKE(I,J)*RSI(I,J) .GT. 0.) THEN
-C**** REDUCE ICE EXTENT IF LAKE TEMPERATURE IS GREATER THAN ZERO
-C**** (MELTING POINT OF ICE)
-C**** Also remove ice fractions less than 0.0001
-            IF (TLAKE(I,J).GT.0. .or. RSI(I,J).lt.1d-4) THEN
-              ROICE=RSI(I,J)
-              MSI2 =MSI(I,J)
-              SNOW =SNOWI(I,J)   ! snow mass
-              HSIL =HSI(:,I,J) ! sea ice enthalpy
-              SSIL =0.         ! sea ice salt (always 0)
-              POCEAN=0.        ! ocean fraction (always 0)
-              TFO = 0.         ! freezing point (always 0)
-C**** energy of water available for melting
-              ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW*FDAILY
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
-     *             ,ENRGW,ENRGUSED,RUN0,SALT)
+          IF (FLAKE(I,J)*RSI(I,J) .GT. 0 .and. RSI(I,J).lt.1d-4) THEN
+            ROICE=RSI(I,J)
+            MSI2 =MSI(I,J)
+            SNOW =SNOWI(I,J)    ! snow mass
+            HSIL =HSI(:,I,J)    ! sea ice enthalpy
+            SSIL =0.            ! sea ice salt (always 0)
+            POCEAN=0.           ! ocean fraction (always 0)
+            TFO = 0.            ! freezing point (always 0)
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
+     *           ,ENRGUSED,RUN0,SALT)
 C**** SALT always 0 for lakes
 C**** RESAVE PROGNOSTIC QUANTITIES
-              GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
-              MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0
-              MLDLK(I,J)=MLDLK(I,J)+RUN0/RHOW
-              TLAKE(I,J)=TLAKE(I,J)-ENRGUSED/(MLDLK(I,J)*SHW*RHOW)
-              RSI(I,J)=ROICE
-              MSI(I,J)=MSI2
-              SNOWI(I,J)=SNOW
-              HSI(:,I,J)=HSIL(:)
-              SSI(:,I,J)=0.
+            GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
+            MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0
+            MLDLK(I,J)=MLDLK(I,J)+RUN0/RHOW
+            TLAKE(I,J)=TLAKE(I,J)-ENRGUSED/(MLDLK(I,J)*SHW*RHOW)
+            RSI(I,J)=ROICE
+            MSI(I,J)=MSI2
+            SNOWI(I,J)=SNOW
+            HSI(:,I,J)=HSIL(:)
+            SSI(:,I,J)=0.
 C**** set ftype/gtemp arrays
-              FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-              FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
-              GTEMP(1:2,2,I,J) = TSIL(1:2)
-              GTEMP(1  ,1,I,J) = TLAKE(I,J)
-            END IF
+            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
+            GTEMP(1:2,2,I,J) = TSIL(1:2)
+            GTEMP(1  ,1,I,J) = TLAKE(I,J)
           END IF
         END DO
       END DO
@@ -898,7 +891,8 @@ C****
      *     ,fearth,dtsrc,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,evapor, dmsi,dhsi,dssi,
-     *     runoli, runoe, erunoe, solar, dmua, dmva,gtemp
+     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp,
+     *     fmsi_io, fhsi_io
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : ustar
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
@@ -960,8 +954,8 @@ C**** calculate flux over whole box
         SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
-        RUN0 =RUNOSI(I,J)        ! includes ACE2M term
-        F2DT =ERUNOSI(I,J)
+        RUN0 =RUNOSI(I,J) + FMSI_IO(I,J) ! includes ACE2M + basal term
+        F2DT =ERUNOSI(I,J)+ FHSI_IO(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(1)=MLDLK(I,J)*RHOW
         MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYPJ)-MLAKE(1),0d0)
@@ -984,7 +978,7 @@ C**** Limit FSR2 in the case of thin second layer
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POLAKE
 
-C**** Apply fluxes and calculate the amount of ice formation
+C**** Apply fluxes and calculate the amount of frazil ice formation
         CALL LKSOURC (I,J,ROICE,MLAKE,ELAKE,RUN0,F0DT,F2DT,SROX,FSR2
      *       ,EVAPO,ENRGFO,ACEFO,ACEFI,ENRGFI)
 

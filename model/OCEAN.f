@@ -17,7 +17,7 @@
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
-
+      USE DAGCOM, only : aij, ij_smfx
       IMPLICIT NONE
       SAVE
 
@@ -111,14 +111,14 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       RETURN
       END SUBROUTINE OSTRUC
 
-      SUBROUTINE OCLIM(IDOZ1O)
+      SUBROUTINE OCLIM(IEND)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
       IMPLICIT NONE
-
+      
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
-      INTEGER, INTENT(IN) :: IDOZ1O
+      INTEGER, INTENT(IN) :: IEND
 
       INTEGER n,J,I,LSTMON,K,IMAX,m,m1
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
@@ -258,12 +258,14 @@ C**** RSI uses quadratic fit
             CASE (0)
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
             END SELECT
-            RSI(I,J)=RSINEW
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
-C**** adjust enthalpy so that temperature remains constant
+C**** adjust enthalpy and salt so that temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-C**** adjust salt so that salinity remains constant
             SSI(3:4,I,J)=SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+            IF (IEND.eq.1) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
+     *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
+     *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
+            RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
 C**** set ftype arrays
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
@@ -310,7 +312,7 @@ C**** SAVE PREVIOUS DAY'S MIXED LAYER DEPTH
  500  Z1OOLD=Z1O
 C**** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT ItimeI)
 C**** Check mark to see if Z1O needs to be set initially
-      IF (IDOZ1O.eq.0.and. Z1O(IM,1).eq.-9999.) RETURN
+      IF (IEND.eq.0.and. Z1O(IM,1).eq.-9999.) RETURN
 C**** Read in climatological ocean mixed layer depths efficiently
       IF (JDLAST.eq.0) THEN ! need to read in first month climatology
         IMON=1          ! IMON=January
@@ -500,12 +502,14 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
+      USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
       USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
      *     ,tocean,ocn_cycl
+      USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,sss,ui2rho
       USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
       USE PARAM
@@ -582,9 +586,18 @@ C**** Set ftype array for oceans
           FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
+          SSS(I,J) = 34.7d0
+        ELSE
+          SSS(I,J) = 0.
         END IF
       END DO
       END DO
+C**** keep salinity in sea ice constant for fixed-SST and qflux models
+      qsfix = .true.
+
+C**** set up a default ice-ocean stress field (ustar=0.005 m/s)
+      UI2rho = rhow*(5d-3)**2
+
       RETURN
 C****
       END SUBROUTINE init_OCEAN
@@ -608,8 +621,7 @@ C****
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE,RUN0
-     *     ,SALT
+      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT
 
 C**** update ocean related climatologies
       CALL OCLIM(IEND)
@@ -644,35 +656,29 @@ C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
           IMAX=IMAXJ(J)
           DO I=1,IMAX
 C**** Only melting of ocean ice (not lakes)
-            IF (FOCEAN(I,J)*RSI(I,J) .GT. 0.) THEN
-C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN THAN TFO
-C**** (FREEZING POINT OF WATER)
-            TGW=TOCEAN(1,I,J)
-            IF (TGW.GT.TFO .or. RSI(I,J).lt.1d-4) THEN
-            ROICE=RSI(I,J)
-            MSI2=MSI(I,J)
-            SNOW=SNOWI(I,J)   ! snow mass
-            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
-            SSIL(:)= SSI(:,I,J) ! sea ice salt
-            WTRO=Z1O(I,J)*RHOW
-            WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
-            ENRGW=WTRW*(TGW-TFO)*SHW*FDAILY ! energy avail. for melting
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
-     *           ,ENRGW,ENRGUSED,RUN0,SALT)
-C****       RUN0, SALT not needed for Qflux ocean
+            IF (FOCEAN(I,J)*RSI(I,J) .GT.0 .and.RSI(I,J).lt.1d-4) THEN
+              TGW=TOCEAN(1,I,J)
+              ROICE=RSI(I,J)
+              MSI2=MSI(I,J)
+              SNOW=SNOWI(I,J)   ! snow mass
+              HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
+              SSIL(:)= SSI(:,I,J) ! sea ice salt
+              WTRO=Z1O(I,J)*RHOW
+              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+     *             ,ENRGUSED,RUN0,SALT)
+C**** RUN0, SALT not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
-            TGW=TGW-ENRGUSED/(WTRO*SHW)
-            TOCEAN(1,I,J)=TGW
-            RSI(I,J)=ROICE
-            MSI(I,J)=MSI2
-            SNOWI(I,J)=SNOW
-            HSI(:,I,J)=HSIL(:)
-            SSI(:,I,J)=SSIL(:)
+              TGW=TGW-ENRGUSED/(WTRO*SHW)
+              TOCEAN(1,I,J)=TGW
+              RSI(I,J)=ROICE
+              MSI(I,J)=MSI2
+              SNOWI(I,J)=SNOW
+              HSI(:,I,J)=HSIL(:)
+              SSI(:,I,J)=SSIL(:)
 C**** set ftype/gtemp arrays
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
-            GTEMP(1:2,2,I,J) = TSIL(1:2)
-            END IF
+              FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
+              FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
+              GTEMP(1:2,2,I,J) = TSIL(1:2)
             END IF
           END DO
         END DO
@@ -695,7 +701,7 @@ C****
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runpsi,prec,eprec,gtemp
+      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc
       USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -742,6 +748,7 @@ C****
             AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4*POCEAN
             AJ(J,J_RUN2 ,ITOICE) =AJ(J,J_RUN2 ,ITOICE) +RUN4 *POICE
             AJ(J,J_DWTR2,ITOICE) =AJ(J,J_DWTR2,ITOICE) +ERUN4*POICE
+            MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
         END IF
@@ -761,7 +768,7 @@ C****
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
-     *     flowo,eflowo,gtemp
+     *     flowo,eflowo,gtemp, fmsi_io, fhsi_io, fssi_io
       USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -797,8 +804,9 @@ C**** output from OSOURC
           F0DT =E0(I,J,1)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
-          RUN0=RUNOSI(I,J) ! includes ACE2M
-          F2DT=ERUNOSI(I,J)
+          RUN0=RUNOSI(I,J) + FMSI_IO(I,J) ! includes ACE2M + basal term
+          F2DT=ERUNOSI(I,J)+ FHSI_IO(I,J)
+c          SALT=SRUNOSI(I,J)+FSSI_IO(I,J)  ???
 C**** get river runoff
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
@@ -876,12 +884,17 @@ C**** This is here so that a coupled ocean is easier to implement
 !@sum  TOFREZ returns the value of the seawater freezing temp
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE MODEL_COM, only : focean
       USE OCEAN, only : tfo
 !@var I,J atmospheric grid point
       INTEGER, INTENT(IN) :: I,J
 
 C**** for Q-flux ocean no variation with salinity is required
-      TOFREZ = tfo
+      IF (FOCEAN(I,J).gt.0) THEN
+        TOFREZ = tfo
+      ELSE
+        TOFREZ = 0.
+      END IF
 
       RETURN
       END FUNCTION TOFREZ

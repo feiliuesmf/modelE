@@ -1183,7 +1183,7 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q300'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
+      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_180
 c
       k=k+1 
@@ -1192,7 +1192,7 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q500'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
+      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_180
 c
       k=k+1 
@@ -2413,6 +2413,40 @@ c
       name_ij(k) = 'PTROP'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+
+      k=k+1 
+      IJ_TSI = k 
+      lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2) x POICE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'TEMPSI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1 
+      IJ_SSI1 = k 
+      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 1) x POICE'
+      units_ij(k) = 'psu'
+      name_ij(k) = 'SSI1'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1d3
+
+      k=k+1 
+      IJ_SSI2 = k 
+      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 2) x POICE'
+      units_ij(k) = 'psu'
+      name_ij(k) = 'SSI2'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1d3
+
+      IF (KOCEAN.eq.0) THEN
+        k=k+1 
+        IJ_SMFX = k 
+        lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
+        units_ij(k) = 'kg/m^2'
+        name_ij(k) = 'SIMSFX'
+        ia_ij(k) = ia_12hr
+        scale_ij(k) = 2.
+      END IF
 
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k

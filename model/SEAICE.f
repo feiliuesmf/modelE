@@ -3,7 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
-      USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm
+      USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
       IMPLICIT NONE
       SAVE
 !@param LMI number of temperature layers in ice
@@ -40,12 +40,17 @@
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0
 !@param SSI0 default value for sea ice salinity (kg/kg) (=3.2ppt)
-      REAL*8, PARAMETER :: SSI0 = 0.0032
+      REAL*8, PARAMETER :: SSI0 = 0.0032d0
+!@param FSSS fraction of ocean salinity found in new-formed ice
+      REAL*8, PARAMETER :: FSSS = 13d0/35d0
+!@var qsfix flag is true if salinity of sea ice is constant
+      LOGICAL :: QSFIX = .false.
+!@var alpha implicitness for heat diffusion in sea ice (1=fully implicit)
+      REAL*8, PARAMETER :: ALPHA = 1.0
 
       CONTAINS
 
-      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,TFO,RUN0
-     *     ,SALT,FMOC,FHOC,FSOC,QFIXR)
+      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SALT)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
 !@ver  1.0
@@ -56,8 +61,6 @@
 !@var ENRGP total energy of precip (C),(J/m^2)
 !@var PRCP amount of precip (kg/m^2)
       REAL*8, INTENT(IN) :: ENRGP, PRCP
-!@var QFIXR true if RSI and MSI2 are fixed (ie. for a fixed SST run)
-      LOGICAL, INTENT(IN) :: QFIXR
 !@var SNOW snow mass (kg/m^2)
 !@var MSI1 first layer ice mass (= SNOW + ACE1I) (kg/m^2)
 !@var MSI2 second layer ice mass (kg/m^2)
@@ -67,20 +70,12 @@
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
 !@var TSIL temperature of ice layers (J/m^2) (DIAGNOSTIC ONLY)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
-!@var TFO temperature of freezing of water below ice (C)
-      REAL*8, INTENT(IN) :: TFO
-!@var FHOC implied energy flux at base to keep fixed ice mass (J/m^2)
-      REAL*8, INTENT(OUT) :: FHOC
-!@var FSOC implied salt flux at base to keep fixed ice mass (J/m^2)
-      REAL*8, INTENT(OUT) :: FSOC
-!@var FMOC  implied ice mass flux at base to keep fixed ice (kg/m^2)
-      REAL*8, INTENT(OUT) :: FMOC
 !@var RUN0 runoff from ice (kg/m^2)
 !@var SALT salt in runoff from ice (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SALT
-      REAL*8 :: BYMSI2, FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3,
-     *     FHSI4, CMPRS, SNWF, MELT1, RAIN, FREZ1, MSI1, FSSI2,
-     *     FSSI3, FSSI4, SMELT1, DSNOW, SS12
+      REAL*8 :: BYMSI2, FMSI1, FMSI2, FMSI3, FHSI1, FHSI2, FHSI3,
+     *     CMPRS, SNWF, MELT1, RAIN, FREZ1, MSI1, FSSI2,
+     *     FSSI3, SMELT12, DSNOW, SS12
 
 C**** reciprocal of ice thickness for efficiency
       MSI1=SNOW+ACE1I
@@ -107,7 +102,7 @@ C**** Calculate whether rain causes freezing or melting in first layer
 C**** Calculate remaining snow and necessary mass flux using
 C**** SNOW =SNOW  + SNWF  - CMPRS - MELT1
 C**** ACE1I=ACE1I + FREZ1 + CMPRS - FMSI2
-C**** SALTI=SALTI - SMELT1        - FSSI2
+C**** SALTI=SALTI - SMELT12        - FSSI2
 
 C**** Calculate changes to snow
       IF (SNOW+SNWF.GT.MELT1) THEN ! some snow remains
@@ -119,12 +114,12 @@ C**** RAIN and MELT COMRESSES SNOW INTO ICE
           CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1) ! cmpression
         END IF
         DSNOW = SNWF - (MELT1+CMPRS)
-        SMELT1= 0.
+        SMELT12= 0.
       ELSE
 C**** RAIN MELTS ALL SNOW AND SOME ICE
         CMPRS = 0.
         DSNOW = -SNOW
-        SMELT1=(MELT1-SNOW-SNWF)*(SSIL(1)+SSIL(2))/ACE1I
+        SMELT12=(MELT1-SNOW-SNWF)*(SSIL(1)+SSIL(2))/ACE1I
       END IF
 C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = SNWF+FREZ1-MELT1-DSNOW ! either up or down
@@ -144,24 +139,8 @@ C***** Calculate consequential heat/salt flux between layers
         FSSI2  = FMSI2*SSIL(3)/(XSI(3)*MSI2)
       END IF
 
-C**** Calculate mass/heat flux at base if required
-      IF (QFIXR) THEN ! fixed sea ice, calculate implicit base fluxes
-        FMSI4 = FMSI2
-        IF (FMSI4.gt.0) THEN   ! downward flux to ocean
-          FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2)
-          FSSI4 = FMSI4*SSIL(4)/(XSI(4)*MSI2)
-        ELSE                   ! upward flux, at freezing point of ocean
-          FHSI4 = FMSI4*(SHI*TFO-LHM)
-          FSSI4 = FMSI4*SSI0
-        END IF
-      ELSE                     ! coupled models allow MSI2 to melt
-        FMSI4 = 0.
-        FHSI4 = 0.
-        FSSI4 = 0.
-      END IF
-
 C**** Calculate mass/heat flux between layers 3 and 4
-      FMSI3 = XSI(3)*FMSI4 + XSI(4)*FMSI2
+      FMSI3 = XSI(4)*FMSI2
       IF (FMSI3.gt.0) THEN      ! downward flux to layer 4
         FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2)
         FSSI3 = FMSI3*SSIL(3)/(XSI(3)*MSI2)
@@ -173,15 +152,15 @@ C**** Calculate mass/heat flux between layers 3 and 4
 C**** Adjust amounts resulting from fluxes.
       SNOW = MAX(0d0,SNOW+DSNOW)
       MSI1 = ACE1I + SNOW
-      IF (.not. QFIXR) MSI2 = MSI2+FMSI2
+      MSI2 = MSI2 + FMSI2
 
       HSIL(1)=HSIL(1)- FHSI1
       HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+      HSIL(4)=HSIL(4)+ FHSI3
 
 C**** salinity is evenly shared over ice portion
-      SS12=(SSIL(1)+SSIL(2))-FSSI2
+      SS12=(SSIL(1)+SSIL(2))-FSSI2-SMELT12
       IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
         SSIL(1)=0.
       ELSE
@@ -189,14 +168,12 @@ C**** salinity is evenly shared over ice portion
       END IF
       SSIL(2)=SS12-SSIL(1)
       SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
-      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
+      SSIL(4)=SSIL(4)+ FSSI3
 
 C**** Diagnostics for output
       RUN0 = MELT1+RAIN-FREZ1   ! runoff mass to ocean
-      SALT = SMELT1             ! salt in runoff
-      FMOC = FMSI4              ! implicit mass flux
-      FHOC = FHSI4              ! implicit heat flux
-      FSOC = FSSI4              ! implicit salt flux
+      SALT = SMELT12             ! salt in runoff
+c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)      
 
       TSIL(1:2) = (HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI ! ice temp L=1,2
       TSIL(3:4) = (HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI ! ice temp L=3,4
@@ -205,13 +182,13 @@ C**** Diagnostics for output
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
-     *    ,SROX,TFO,RUN0,SMELT,FMOC,FHOC,FSOC,FO,QFIXR,QFLUXLIM,FLUXLIM)
+     *    ,SROX,FMOC,FHOC,FSOC)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
       IMPLICIT NONE
 
-      REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML =0.
+      REAL*8, PARAMETER :: dSNdML =0.
       REAL*8, INTENT(IN) :: DTSRCE
 !@var F0DT heat flux on the ice top surface (J/m^2)
       REAL*8, INTENT(IN) :: F0DT
@@ -223,27 +200,19 @@ C**** Diagnostics for output
       REAL*8, INTENT(IN) :: EVAP
 !@var FSRI fraction of solar radiation that goes through the bottom
       REAL*8 :: FSRI(LMI)
-!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
-!@var QFLUXLIM true if the flux at base of ice is limited
-      LOGICAL,INTENT(IN) :: QFIXR, QFLUXLIM
-!@var FLUXLIM limit of water-ice flux if QFLUXLIM is true
-      REAL*8, INTENT(IN) :: FLUXLIM
-!@var TFO freezing temperature of water below ice (C)
-      REAL*8, INTENT(IN) :: TFO
+!@var FMOC,FHOC,FSOC basal fluxes down of mass,heat,salt (J or kg/m^2)
+      REAL*8, INTENT(INOUT) :: FMOC, FHOC, FSOC
 
       REAL*8, INTENT(IN) :: ROICE
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
       REAL*8, DIMENSION(LMI) :: TSIL
-      REAL*8, INTENT(OUT) :: FO, RUN0, SMELT, FMOC, FHOC, FSOC
       REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
       REAL*8 DEW, CMPRS, DEW1, DEW2, EVAP1
-      REAL*8 SMELT12,SMELT3,SMELT4,SALTI, FSSI2, FSSI3, FSSI4, SS12
-      REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
+      REAL*8 SMELT12,SMELT3,SMELT4,SALTI, FSSI2, FSSI3, SS12
+      REAL*8 FMSI1, FMSI2, FMSI3, FHSI1, FHSI2, FHSI3
       REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW
-      REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
-C**** Initiallise output
-      FO=0. ; RUN0=0.  ; SMELT=0. ; FMOC=0. ; FHOC=0. ; FSOC=0.
+      REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3, FO
 
       IF (ROICE .EQ. 0.) RETURN
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
@@ -292,16 +261,21 @@ c     *    +HC1*SROX(1)*FSRI(1))/(HC1+ALPHA*dF1dTI) ! already calculated
      *     /(HC2+ALPHA*dF2dTI)
       F3=(dF3dTI*(HC3*(TSIL(3)-TSIL(4))+ALPHA*F2)+HC3*SROX(1)*FSRI(3))/
      *     (HC3+ALPHA*dF3dTI)
-      FO=(dF4dTI*(HC4*(TSIL(4)-TFO)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
-     *     (HC4+ALPHA*dF4dTI)
+c      FO=(dF4dTI*(HC4*(TSIL(4)-TFO)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
+c     *     (HC4+ALPHA*dF4dTI)
+c      FHOC=(dF4dTI*ALPHA*F3+HC4*(SROX(1)*FSRI(4)+FHOC))/
+c     *     (HC4+ALPHA*dF4dTI)
+C**** Add solar flux through bottom to basal heat flux already calculated
+      FHOC=SROX(1)*FSRI(4)+FHOC
       SROX(2) = SROX(1)*FSRI(4)
-C**** limit flux if necessary
-      IF (QFLUXLIM.and.FO.lt.FLUXLIM) FO = FLUXLIM
 
       HSIL(1) = HSIL(1)+(F0DT-F1DT)
       HSIL(2) = HSIL(2)+(F1DT-F2)
       HSIL(3) = HSIL(3)+(F2-F3)
-      HSIL(4) = HSIL(4)+(F3-FO)
+      HSIL(4) = HSIL(4)+(F3-FHOC)
+
+C**** add basal salt flux 
+      SSIL(4) = SSIL(4)-FSOC
 
       DEW = -EVAP               ! dew/evap to the surface
       EVAP1= MAX(0d0,EVAP)      ! positive evaporation
@@ -346,9 +320,9 @@ C**** Mass fluxes required to keep first layer ice = ACE1I
 
 C**** Check for melting in levels 3 and 4
       MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2)
-      MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2)
+      MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2-FMOC)
       SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
-      SMELT4 = MELT3*SSIL(4)/(XSI(4)*MSI2)
+      SMELT4 = MELT4*SSIL(4)/(XSI(4)*MSI2-FMOC)
 
 C***** Calculate consequential heat flux between layers
       IF (FMSI1.gt.0) THEN ! downward flux to thermal layer 2
@@ -364,60 +338,42 @@ C***** Calculate consequential heat flux between layers
         FSSI2  = FMSI2*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
       END IF
 
-C**** Calculate mass/heat flux at base if required
-      IF (QFIXR) THEN ! fixed sea ice, calculate implicit base fluxes
-        FMSI4 = FMSI2 - MELT3 - MELT4
-        IF (FMSI4.gt.0) THEN ! downward flux to ocean
-          FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2-MELT4)
-          FSSI4 = FMSI4*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4)
-        ELSE ! upward flux, at freezing point of ocean
-          FHSI4 = FMSI4*(SHI*TFO-LHM)
-          FSSI4 = FMSI4*SSI0
-        END IF
-      ELSE   ! coupled models allow MSI2 to melt
-        FMSI4 = 0.
-        FHSI4 = 0.
-        FSSI4 = 0.
-      END IF
-
 C**** Calculate mass/heat flux between layers 3 and 4
-      FMSI3 = XSI(3)*(FMSI4+MELT4) + XSI(4)*(FMSI2-MELT3)
+      FMSI3 = XSI(3)*(MELT4+FMOC) + XSI(4)*(FMSI2-MELT3)
       IF (FMSI3.gt.0) THEN ! downward flux to layer 4
         FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-MELT3)
         FSSI3 = FMSI3*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
       ELSE                 ! upward flux
-        FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-MELT4)
-        FSSI3 = FMSI3*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4)
+        FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-MELT4-FMOC)
+        FSSI3 = FMSI3*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4-FMOC)
       END IF
 
 C**** Apply fluxes
       SNOW = MAX(0d0,SNOW+DSNOW)
       MSI1 = ACE1I+ SNOW
-C**** MSI2 = MSI2 -(MELT3+MELT4)+(FMSI2-FMSI4)
-      IF (.not. QFIXR) MSI2=MSI2-(MELT3+MELT4)+FMSI2
+      MSI2=MSI2-(MELT3+MELT4)+FMSI2-FMOC
 
       HSIL(1)=HSIL(1)- FHSI1
       HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
       HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+      HSIL(4)=HSIL(4)+ FHSI3
 
 C**** salinity is evenly shared over ice portion
-      SS12=(SSIL(1)+SSIL(2))-FSSI2
+      SS12=(SSIL(1)+SSIL(2))-SMELT12-FSSI2
       IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
         SSIL(1)=0.
       ELSE
         SSIL(1)=SS12*(XSI(1)*ACE1I-SNOW*XSI(2))/ACE1I
       END IF
       SSIL(2)=SS12-SSIL(1)
-      SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
-      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
+      SSIL(3)=SSIL(3)-SMELT3+(FSSI2-FSSI3)
+      SSIL(4)=SSIL(4)-SMELT4+ FSSI3
 
-C**** Calculate output diagnostics
-      RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
-      SMELT = SMELT12+SMELT3+SMELT3  ! salt flux to ocean
-      FMOC = FMSI4              ! implicit mass flux
-      FHOC = FHSI4              ! implicit heat flux
-      FSOC = FSSI4              ! implicit salt flux
+C**** Calculate net output fluxes 
+      FMOC = FMOC+MELT1+MELT2+MELT3+MELT4 ! mass flux to ocean
+      FSOC = FSOC+SMELT12+SMELT3+SMELT4   ! salt flux to ocean
+c HMELT currently assumed to be zero since melting is at 0 deg 
+c     FHOC = FHOC+HMELT 
 C****
       RETURN
       END SUBROUTINE SEA_ICE
@@ -444,7 +400,7 @@ C****
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL,SSIL
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 
-      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4,
+      REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4,
      *     FSSI2, FSSI3, FSSI4
       REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
 
@@ -560,14 +516,12 @@ C**** Calculate temperatures for diagnostics and radiation
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL,ENRGW
+      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
      *     ,ENRGUSED,RUN0,SALT)
-!@sum  SIMELT melts sea ice if surrounding water is warm
+!@sum  SIMELT melts sea ice if it is too small
 !@auth Original Development Team
-!@ver  1.0
+!@ver  1.1
       IMPLICIT NONE
-!@var ENRGW energy available to melt ice (J/m^2)
-      REAL*8, INTENT(IN) :: ENRGW
 !@var POCEAN ocean fraction (zero if lake)
       REAL*8, INTENT(IN) :: POCEAN
 !@var TFO freezing temperature of water (C)
@@ -577,77 +531,300 @@ C**** Calculate temperatures for diagnostics and radiation
 !@var HSIL ice enthalpy  (J/m^2)
 !@var SSIL ice salt (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
-!@var TSIL ice enthalpy  (J/m^2)
+!@var TSIL ice temperature (C)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 !@var ENRGUSED energy used to melt ice (J/m^2)
       REAL*8, INTENT(OUT) :: ENRGUSED
 !@var RUN0 amount of sea ice melt (kg/m^2)
 !@var SALT amount of salt in sea ice melt (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SALT
-      REAL*8, DIMENSION(LMI) :: HSI
-      REAL*8 MSI1,MELT,DRSI,ROICEN,FHSI4,FHSI3,ENRGI,FSSI3,FSSI4
-c      REAL*8 E_BOTTOM,GAMMA,HCRIT,HICE,ACE
 
-      MSI1 = SNOW + ACE1I
-      ENRGI = HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4) ! energy in seaice [J/m^2]
-      IF (ROICE*ENRGI+ENRGW.GE.0. .or. ROICE.lt.1d-4) THEN
-C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
-      ENRGUSED=-ROICE*ENRGI     ! only some energy is used
-      RUN0=ROICE*(MSI1+MSI2)    ! all ice is melted
-      SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
-      ROICE=0.
+      IF (ROICE.lt.1d-4) THEN   ! remove too small ice
+        ENRGUSED=-ROICE*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
+        RUN0=ROICE*(SNOW + ACE1I + MSI2)  ! all ice is melted
+        SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
+        ROICE=0.
 C**** set defaults
-      SNOW=0.
-      MSI2=AC2OIM
-      HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
-      HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
-      IF (POCEAN.gt.0) THEN
-        SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
-        SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
-      ELSE
-        SSIL(:) = 0.
+        SNOW=0.
+        MSI2=AC2OIM
+        HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+        HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+        IF (POCEAN.gt.0) THEN
+          SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
+          SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+        ELSE
+          SSIL(:) = 0.
+        END IF
+        TSIL=TFO
       END IF
-      TSIL=TFO
-      RETURN
-      END IF
-C**** THE WARM OCEAN COOLS TO FREEZING POINT MELTING SOME SNOW AND ICE
-C**** Reduce the ice depth
- 230  ENRGUSED=ENRGW            ! all energy is used
-C**** This is not currently used, but it could be
-C**** I think this prescription is wrong though
-c      ACE = SNOW + ACE1I + MSI2 ! total ice mass
-c      HCRIT = 1.                ! critical ice thickness [m]
-c      HICE = ACE*BYRHOI           ! sea ice thickness [m]
-c      GAMMA = MAX(1d0,HICE/HCRIT)
-c      E_BOTTOM = ENRGW*(ROICE/(1.+GAMMA)) ! for bottom melting
-C**** MELT ICE VERTICALLY, AND THEN HORIZONTALLY
-      MELT = -XSI(4)*MSI2*ENRGW/HSIL(4) ! melted ice at the bottom
-c      MELT = -XSI(4)*MSI2*E_BOTTOM/HSIL(4) ! melted ice at the bottom
-      IF (MSI2-MELT .LT. AC2OIM) MELT = MAX(MSI2-AC2OIM,0d0)
-C     FMSI3 = XSI(3)*MELT ! > 0.
-      FHSI3 = HSIL(3)*MELT/MSI2
-      FHSI4 = HSIL(4)*MELT*BYXSI(4)/MSI2
-      FSSI3 = SSIL(3)*MELT/MSI2
-      FSSI4 = SSIL(4)*MELT*BYXSI(4)/MSI2
-C**** MELT SOME ICE HORIZONTALLY WITH REMAINING ENERGY
-      DRSI = (ENRGW+ROICE*FHSI4)/(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)-FHSI4)
-      ROICEN = MIN(ROICE+DRSI,1d0)  ! new sea ice concentration (DRSI<0)
-c     SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
-      MSI2 = MSI2-MELT
-      HSIL(3) = HSIL(3)-FHSI3
-      HSIL(4) = HSIL(4)+FHSI3-FHSI4
-      SSIL(3) = SSIL(3)-FSSI3
-      SSIL(4) = SSIL(4)+FSSI3-FSSI4
-      SALT = FSSI4  ! salt flux to ocean
-C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
-      TSIL(1) = (HSIL(1)/(XSI(1)*MSI1) +LHM)*BYSHI ! temperature of L=1
-      TSIL(2) = (HSIL(2)/(XSI(2)*MSI1) +LHM)*BYSHI ! temperature of L=2
-      TSIL(3) = (HSIL(3)/(XSI(3)*MSI2) +LHM)*BYSHI ! temperature of L=3
-      TSIL(4) = (HSIL(4)/(XSI(4)*MSI2) +LHM)*BYSHI ! temperature of L=4
-      RUN0=ROICE*MELT
-      ROICE=ROICEN
+C****
       RETURN
       END SUBROUTINE SIMELT
+
+      SUBROUTINE SSIDEC(MSI1,MSI2,HSIL,SSIL,DT,MFLUX,HFLUX,SFLUX)
+!@sum  SSIDEC decays salinity in sea ice 
+!@auth Jiping Liu
+!@ver  1.0
+      IMPLICIT NONE
+
+      REAL*8, INTENT(INOUT), DIMENSION(LMI) :: SSIL,HSIL
+      REAL*8, INTENT(INOUT) :: MSI2
+      REAL*8, INTENT(IN) :: DT, MSI1
+      REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
+
+      REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI),S12,DS12
+      REAL*8 FMSI1,FMSI2,FMSI3,FMSI4,FSSI1,FSSI2,FSSI3,FSSI4,
+     *       FHSI1,FHSI2,FHSI3,FHSI4
+      INTEGER L
+!@var dtssi decay time scale for sea ice salinity (days)
+!@var bydtssi decay constant for sea ice salinity (1/s)
+      REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
+
+      DSSI = 0. ; DMSI = 0. ;  DHSI = 0.          
+C**** salinity in sea ice decays if it is above threshold level ssi0
+
+C**** check first layer (default ice and snow)
+      IF(SSIL(1)+SSIL(2).GT.ssi0*ACE1I) THEN
+        DS12 = (SSIL(1)+SSIL(2)-ACE1I*ssi0)*DT*BYDTSSI
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN 
+          DSSI(1) = (ACE1I-XSI(2)*MSI1)*DS12
+          DSSI(2) = XSI(2)*MSI1*DS12
+        ELSE
+          DSSI(1) = 0.
+          DSSI(2) = ACE1I*MSI1*DS12
+        END IF
+        DMSI(1:2) = DSSI(1:2)
+        DHSI(1:2) = DMSI(1:2)*HSIL(1:2)/(XSI(1:2)*MSI1)
+        SSIL(1:2) = SSIL(1:2)-DSSI(1:2)
+        HSIL(1:2) = HSIL(1:2)-DHSI(1:2)
+      END IF
+C**** check remaining layers
+      DO L=3,LMI
+        IF (SSIL(L).GT.ssi0*XSI(L)*MSI2) THEN 
+          DSSI(L) = (SSIL(L)-ssi0*XSI(L)*MSI2)*DT*BYDTSSI
+          DMSI(L) = DSSI(L)
+          DHSI(L) = DMSI(L)*HSIL(L)/(XSI(L)*MSI2)
+          SSIL(L) = SSIL(L) - DSSI(L)
+          HSIL(L) = HSIL(L) - DHSI(L)
+        END IF
+      END DO
+      
+C**** Calculate fluxes required to rebalance layers
+C**** Mass/heat moves from layer 2 to 1 (salt as well, but this is
+C**** dealt with later)
+      FMSI1 = -DMSI(1)
+      FHSI1 = FMSI1*HSIL(2)/(XSI(2)*MSI1-DMSI(2))
+C**** Mass/heat/salt moves from layer 3 to 2 
+      FMSI2 = -(DMSI(1)+DMSI(2))
+      FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
+      FSSI2 = FMSI2*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
+C**** Mass/heat moves between layers 3 to 4
+      FMSI3 = XSI(3)*(FMSI4+DMSI(4))+XSI(4)*(FMSI2-DMSI(3))
+      IF (FMSI3.gt.0) THEN      ! downward flux to layer 4
+        FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-DMSI(3))
+        FSSI3 = FMSI3*SSIL(3)/(XSI(3)*MSI2-DMSI(3))
+      ELSE                      ! upward flux
+        FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-DMSI(4))
+        FSSI3 = FMSI3*SSIL(4)/(XSI(4)*MSI2-DMSI(4))
+      END IF
+      
+C**** Apply the fluxes
+      HSIL(1)=HSIL(1)- FHSI1
+      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
+      HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
+      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+C**** salinity spread evenly over upper ice layer
+      S12=(SSIL(1)+SSIL(2))-FSSI2
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN 
+        SSIL(1)=S12*(ACE1I-XSI(2)*MSI1)/ACE1I
+      ELSE
+        SSIL(1)= 0.
+      END IF
+      SSIL(2)=S12-SSIL(1)
+      SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
+      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
+c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI2 ! stays fixed
+      MSI2 = MSI2 - (DMSI(3)+DMSI(4)) + FMSI2
+C**** output fluxes and diagnostics 
+      MFLUX = SUM(DMSI)         ! mass flux to ocean
+      HFLUX = SUM(DHSI)         ! energy flux to ocean
+      SFLUX = SUM(DSSI)         ! salt flux to ocean
+C****
+      RETURN
+      END SUBROUTINE SSIDEC
+
+      subroutine iceocean(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc,mfluxmax
+     *     ,mlsh,mflux,sflux,hflux)
+!@sum  iceocean calculates fluxes at base of sea ice 
+!@auth Gavin Schmidt
+!@ver  1.0
+!@usage At the ice-ocean interface the following equations hold:
+!@+                                              Tb = -mu Sb         (1)
+!@+ -lam_i(Ti,Si)(Ti-Tb)/dh + rho_m shw g_T (Tb-Tm) = -m Lh(Tib,Sib)
+!@+                                                  + m shw (Tib-Tb)(2)
+!@+                           rho_m     g_S (Sb-Sm) =  m (Sib-Sb )   (3)
+!@+  with  Sib=Si, Tib=Ti m>0,  or Sib = fsss Sm, Tib=Tb m<0        (4)
+!@+ This routine iteratively solves for m, Tb, Sb and Sib, Tib using
+!@+ Newton's method. The form of the latent heat and conductivity  
+!@+ can optionally include salinity effects.
+!@+ The actual fluxes (positive down) are then:
+!@+     mflux = m   ; sflux = 1d-3 m Sib (kg/m^2/s)
+!@+     hflux = lam_i(Ti,Si) (Ti-Tb)/dh -m Lh(Tib,Sib)+m shw Tib  (J/m^2/s)
+!@+
+      implicit none
+!@var alamdS salinity coefficient for conductivity (from common?)
+      real*8, parameter :: alamdS=0.117d0
+
+!@var G_mole_T,G_mole_S molecular diffusion terms for heat/salt
+C****  G_mole_T = 12.5 * 13.8d0**(2d0/3d0) - 6. = 65.9d0
+C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
+      real*8, parameter :: G_mole_T = 65.9d0 , G_mole_S = 2255d0
+!@var Si salinity in lowest ice layer (psu)
+!@var Ti,Tm temperatures in ice and mixed layer (C)
+!@var dh distance from center of bottom ice layer to base of ice (m)
+      real*8, intent(in) :: Ti,Si,Tm,Sm,dh
+!@var coriol Corilos parameter (used in turbulent flux calc) (1/s)
+!@var ustar friction velocity at ice-ocean interface (m/s)
+      real*8, intent(in) :: ustar,Coriol
+!@var dtsrc source time step (s)
+!@var mfluxmax maximum melt rate allowed (kg/m^2 s)
+!@var mlsh mixed layer specific heat capactity (J/m^2 C) 
+      real*8, intent(in) :: dtsrc,mfluxmax,mlsh
+!@var mflux,sflux,hflux mass, salt and heat fluxes at base of ice
+      real*8, intent(out) :: mflux,sflux,hflux
+!@var g_T,g_S turbulent exchange velocities (m/s)
+!@var Sb,Sb0 final and initial estimate for salinity at interface (psu)
+      real*8 :: G_turb,g_T,g_S,Sb,Sb0
+!@var dSbdSb differential of Sb with respect to initial Sb0
+      real*8 :: dSbdSb
+!@var m melt rate (negative implies freezing) (kg/m^2/s)
+!@var Tb temperature at interface (C)
+!@var Tib,Sib actual temperature/salinity in melting/freezing ice (psu)
+      real*8 :: m,Tb,Sib,Tib
+      real*8 :: lh,left2,df3dm,dmdTb,dmdSi,alamdh,f0,df,rsg
+      integer, parameter :: niter=5 !@param niter number of iterations 
+      integer :: i
+
+C**** Calculate turbulent exchange velocities g_T, g_S
+
+C****  G_turb = (1/k) ln (u* E n^2 / f h) + 1 / (2 E n) - (1/k)
+C****         = 2.5 ln ( 5300*(u*)^2/coriol ) + 9.62 - 2.5 (assuming n=1)
+C**** Note: n should theoretically depend on the buoyancy flux and
+C****       therfore this should be included in the iteration below.
+      G_turb = 2.5d0 * log ( 5300.*ustar*ustar/coriol ) + 7.12d0
+C****  g  = u* / ( G_turb + G_mole )
+      g_T = ustar / ( G_turb + G_mole_T )
+      g_S = ustar / ( G_turb + G_mole_S )
+
+C**** set conductivity term
+C**** Diffusive flux is implicit in ice + ml temperature
+      rsg=rhow*shw*g_T/(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
+c no salinity effects
+      alamdh = alami/(2.*dh*dh*rhoi+alpha*dtsrc*alami*byshi)
+c S thermo 
+c      alamdh = (alami*Ti+alamdS*Si)/(dh*Ti+alpha*dtsrc*(alami*Ti+alamdS*Si)
+c     *          *byshi/(2.*rhoi*dh))
+
+C**** solve for boundary values (uses Newton-Rapheson with bounds)
+C**** Estimate initial boundary salinity
+      Sb0 = 0.75d0*Sm+0.25d0*Si   
+      do i=1,niter
+        Tb = -mu*Sb0            ! freezing point at salinity Sb0
+C**** calculate left hand side of equation 2
+        left2 = -alamdh*(Ti-Tb) + rsg*(Tb-Tm)
+C**** depending on whether there is freezing or melting, the sea ice
+C**** salinity in the melt/freeze fraction is set to be the original
+C**** ice salinity or is a function of the boundary salinity. 
+C**** Similarly for temperature Tib
+        if (left2.gt.0) then    ! freezing   
+          if (qsfix) then   ! keep salinity in ice constant
+            Sib = ssi0
+          else              ! it is a function of boundary value
+            Sib = Sb0*fsss
+          end if
+c no salinity effects
+          lh = lhm+ Tb*(shw-shi)
+c S thermo
+c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi) 
+          m = -left2/lh
+
+c no salinity effects
+          dmdTb = (left2*(shw-shi)-lh*(alamdh + rsg))/(lh*lh)
+          dmdSi = 0.
+c S thermo
+c         dmdTb = (left2*(-lhm*mu*Sib/Tb**2+shw-shi)-lh*(alamdh + rsg
+c    *       ))/(lh*lh) 
+c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
+
+          if (qsfix) then   ! keep salinity in ice constant
+            Sb = (rhow*g_S*Sm+m*Sib)/(rhow*g_S+m)
+            df3dm= rhow*g_S*(Sib-Sm)/(rhow*g_S+m)**2
+            dSbdSb= -mu*dmdTb*df3dm
+          else              ! it is a function of boundary value
+            Sb = rhow*g_S*Sm/(rhow*g_S+m*(1.-fsss))
+            df3dm= -rhow*g_S*Sm*(1.-fsss)/(rhow*g_S+m*(1.-fsss))**2
+            dSbdSb= (fsss*dmdSi-mu*dmdTb)*df3dm
+          end if
+        else                    ! melting
+          Sib = Si
+c no salinity effects
+          lh = lhm + Tb*shw - Ti*shi
+c S thermo
+c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
+          m = -left2/lh
+          Sb = (m*Sib+rhow*g_S*Sm)/(rhow*g_S+m)
+          df3dm= (Sib*(rhow*g_S+m)-(m*Sib+rhow*g_S*Sm))/(rhow*g_S+m)**2
+          dmdTb = -(alamdh + rsg)/lh + left2*shw/lh**2
+          dSbdSb= -mu*dmdTb*df3dm
+        end if
+
+        f0=Sb-Sb0
+        df=dSbdSb-1.+1d-20
+        Sb = min(max(Sib,Sb0 - f0/df),40.)
+        Sb0=Sb
+      end do
+C**** define fluxes (positive down)
+C**** Cap mass flux at to prevent MSI2 going below minimum
+      m = min(m,mfluxmax)
+      mflux = m                       ! (kg/m^2 s)
+      sflux = 1d-3*m*Sib              ! (kg/m^2 s)
+      hflux = alamdh*(Ti-Tb) - m*lh +m*shw*Tb ! (J/m^2 s)
+C****
+      return
+      end subroutine iceocean
+
+      subroutine icelake(Ti,Tm,dh,dtsrc,mfluxmax,mlsh,mflux,hflux)
+!@sum  icelake calculates fluxes at base of lake ice (no salinity)
+!@auth Gavin Schmidt
+!@ver  1.0
+!@usage At the ice-lake interface the following equations hold:
+!@+   interface is at freezing point (Tb=0.)   (1)
+!@+   -lam_i Ti/dh - rho_m shw g_T Tm = -m Lh(Tib) + m shw Tib   (2)
+!@+     with  Tib=Ti m>0,  or Tib=0. m<0        (4)
+      implicit none
+      real*8, intent(out) :: mflux,hflux
+      real*8, intent(in) :: Ti,Tm,dh,dtsrc,mfluxmax,mlsh
+!@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 s)
+      real*8, parameter ::  rsg = rhow*shw*5d-5 
+      real*8 left2, lh, m, alamdh
+
+C**** Diffusive flux is implicit in ice temperature
+      alamdh = alami/(2.*dh*dh*rhoi+alpha*dtsrc*byshi*alami)
+C**** calculate left hand side of equation 2
+      left2 = -alamdh*Ti - rsg*Tm/(1.+alpha*dtsrc*rsg/mlsh)
+      if (left2.gt.0) then      ! freezing   
+        lh = lhm
+      else                      ! melting
+        lh = lhm -  Ti*shi
+      end if
+C**** define fluxes (positive down)
+C**** Cap mass flux at to prevent MSI2 going below minimum
+      m = min(m,mfluxmax)
+      mflux = m                 ! (kg/m^2 s)
+      hflux = alamdh*Ti - m*lh  ! (J/m^2 s)
+C****
+      return
+      end subroutine icelake
 
       END MODULE SEAICE
 
@@ -663,14 +840,13 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
       REAL*8, DIMENSION(IM,JM) :: RSI
 !@var SNOWI snow amount on sea ice (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: SNOWI
-!@var MSI thickness of ice second layer (layer 1=const) (kg/m^2)
+!@var MSI mass of ice second layer (layer 1=const) (kg/m^2)
+C**** Note that MSI includes the mass of salt in sea ice
       REAL*8, DIMENSION(IM,JM) :: MSI
 !@var HSI enthalpy of each ice layer (J/m^2)
       REAL*8, DIMENSION(LMI,IM,JM) :: HSI
 !@var SSI sea ice salt content (kg/m^2)
       REAL*8, DIMENSION(LMI,IM,JM) :: SSI
-!@var TSI temperature of each ice layer (J/m^2) (DIAGNOSTIC ONLY)
-      REAL*8, DIMENSION(LMI,IM,JM) :: TSI
 
       END MODULE SEAICE_COM
 
