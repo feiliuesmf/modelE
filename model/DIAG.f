@@ -100,7 +100,7 @@ C**** Some local constants
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-     *     ,rvap,gamd,teeny,undef
+     *     ,rvap,gamd,teeny,undef,lhs
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q
@@ -110,7 +110,7 @@ C**** Some local constants
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
-     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300
+     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_rh700,ij_t700,ij_q700
      *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
      *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
      *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
@@ -274,6 +274,8 @@ C**** Use masking for 850 mb temp/humidity
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
             if (.not. qabove) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
+          CASE (700)            ! 700 mb
+            nT = IJ_T700 ; nQ = IJ_Q700 ; nRH = IJ_RH700 ; qpress=.true.
           CASE (500)            ! 500 mb
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
           CASE (300)            ! 300 mb
@@ -308,7 +310,11 @@ C**** calculate geopotential heights + temperatures
             if (qpress) then
               AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
               AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-              AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+              if (PMB(K).ge.500) then  ! w.r.t. water
+                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+              else                     ! w.r.t ice above 500mb
+                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHS,PMB(K))
+              end if
             end if
           end if
 C****
