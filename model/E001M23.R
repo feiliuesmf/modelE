@@ -52,7 +52,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=o3trend.1850-2050 
+RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
@@ -64,7 +64,7 @@ E001M23 (new modelE based on B402A - strat. version)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
+XCDLM=.00025,.000025
 KOCEAN=0
 U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=300.   ! tune this to get rad.equilibrium (range: 100.-1500. meters)

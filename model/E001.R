@@ -65,7 +65,7 @@ E001 (new modelE based on B402A, uses dry adiab. adjustment)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
+XCDLM=.00025,.000025
 KOCEAN=0
 U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)

@@ -83,7 +83,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=o3trend.1850-2050 
+RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
@@ -131,7 +131,7 @@ R=00BG/B
 
 &&PARAMETERS
 CO2=-6.
-XCDLM=.0005,.00005
+XCDLM=.00025,.000025
 KOCEAN=0
 U00wtr=.49
 U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
