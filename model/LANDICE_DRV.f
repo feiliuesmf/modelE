@@ -55,6 +55,7 @@ C****
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
+
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
 
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0)
@@ -96,11 +97,13 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
      *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_difs,j_wtr1
      *     ,j_ace1,j_wtr2,j_ace2,j_snow,j_run1,j_f2dt,j_edifs,j_f1dt
-     *     ,j_erun2,j_imelt,j_run2,j_evap
+     *     ,j_erun2,j_imelt,j_run2,j_evap,j_rsnow,ij_rsnw
+     *     ,ij_rsit,ij_snow
       USE FLUXES, only : e0,e1,evapor,gtemp
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ
+     *     ,SCOVLI
       INTEGER I,J,IMAX,JR
 
       DO J=1,JM
@@ -130,6 +133,14 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         RUNOLI(I,J) = RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 C**** ACCUMULATE DIAGNOSTICS
+        SCOVLI=0
+        IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
+        AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
+        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVLI*DXYPJ
+        AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
+        AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
+        AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
+
         AJ(J,J_TG1,ITLANDI)  =AJ(J,J_TG1,ITLANDI)  +TG1  *PLICE
         AJ(J,J_TG2,ITLANDI)  =AJ(J,J_TG2,ITLANDI)  +TG2  *PLICE
         AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW *PLICE

@@ -50,7 +50,7 @@ C****  27  .0625*DTH*DLNP/(DU*DU+DV*DV)  (TROPOSPHERE)             4 DA
 C****  28  4*UMAX/(DX*SINJ)  (STRATOSPHERE)                        4 DA
 C****  29  4*UMAX/(DX*SINJ)  (TROPOSPHERE)                         4 DA
 C****  30  POICE (1)                                               1 GD
-C****  31  PSNOW (1)                                               4 DA
+C****  31  PSNOW (1)                                               1 GD
 C****  32  SW CORRECTION                                           2 RD
 C****  33  OCEAN TRANSPORT                                         1 GD
 C****  34  OCEAN TEMPERATURE AT MAX. MIXED LAYER DEPTH             1 GD
@@ -169,8 +169,8 @@ C****   4  TRHR (W/M**2)                                           2 RD
 C****
 C**** CONTENTS OF AIJ(I,J,N)  (SUM OVER TIME OF)
 C****   1  POICE (1)                                               1 GD
-C****   2  PSNOW (1)                                               4 DA
-C****   3  SNOW (KG/M**2)                                          4 DA
+C****   2  PSNOW (1)                                               1 GD
+C****   3  SNOW (KG/M**2)                                          1 GD
 C****   4  SHDT (J/M**2)                                           1 SF
 C****   5  PREC (KG/M**2)                                          1 CN
 C****   6  EVAP (KG/M**2)                                          1 SF
@@ -198,7 +198,7 @@ C****  25  SRINCP0 (W/M**2)                                        2 RD
 C****  26  SRNFG (W/M**2)                                          2 RD
 C****  27  SRINCG (W/M**2)                                         2 RD
 C****  28  TG1 (K-TF)                                              1 GD
-C****  29  POICE+PLICE+(IF SNOW)PEARTH                             4 DA
+C****  29  POICE+PLICE+(IF SNOW)PEARTH                             1 GD
 C****  30  DIURNAL DELTA TS (K) OVER SOIL       (NO PRINTOUT)   .5*9 MN
 C****  31  DTHETA/DPHI (K S**2/M**2) IN TROPOSPHERE                4 DA
 C****  32  RUN1 OVER EARTH  (KG/M**2)                              1 PG
@@ -354,27 +354,19 @@ C****
 !@auth Original Development Team
 !@ve   1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-      USE MODEL_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
-     &     mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,fland,flice,fearth,WM,
-     *     ntype,itocean,itoice,itearth,itlandi,itlake,itlkice,ftype
-     *     ,focean
-      USE GEOM, only :
-     &     AREAG,COSP,DLAT,DXV,DXYN,DXYP,DXYS,
-     &     DXYV,DYP,FCOR,IMAXJ,RAVPN,RAVPS,SINP
+      USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop
+     *     ,psfmpt,mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,WM,ntype,ftype
+      USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
+     *     ,imaxj,ravpn,ravps,sinp 
       USE DAGPCOM, only : PMTOP
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
-     &     ij_rsit,ij_rsnw,ij_slp,ij_snow,ij_t850,ij_ujet,ij_vjet,j_tx1,
-     *     j_rsnow,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
+     &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
+     *     j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
      *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc
       USE DYNAMICS, only : pk,phi
-      USE SEAICE_COM, only : snowi,rsi
-      USE GHYCOM, only : snowe
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
-      USE LANDICE_COM, only : snowli
-      USE LAKES_COM, only : flake
 
       IMPLICIT NONE
       SAVE
@@ -412,12 +404,10 @@ C****
      &     BBYGV,BDTDL,BYDXYV,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,EPSLON,
      *     ESEPS,FPHI,GAMC,GAMD,GAMM,GAMX,GMEANL,P1,P4,P4I,
-     &     PDN,PE,PEARTH,PEQ,PEQM1,PEQM2,PHIRI,
-     &     PIBYIM,PIJ,PITIJ,PITMN,PKE,PL,PLICE,
-     &     POICE,PRQ1,PRT,PSMPT4,PSNOW,PU4I,PUP,
-     &     PUV4I,PV4I,PVTHP,QLH,ROSSX,SCOVE,SCOVLI,SCOVOI,SCOVLKI,
-     &     SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,TZL,
-     *     UAMAX,UMN,UPE,VPE,X,Z4
+     &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
+     *     PKE,PL,PRQ1,PRT,PSMPT4,PU4I,PUP,PUV4I,PV4I,PVTHP,
+     *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
+     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4
 
       REAL*8 QSAT
 
@@ -520,39 +510,14 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       PI(J)=0.
       SPTYPE(:,J)=0
       DO 120 I=1,IMAX
-        POICE =RSI(I,J)*(1.-FLAND(I,J))
-        PEARTH=FEARTH(I,J)
-        PLICE =FLICE(I,J)
       JR=JREG(I,J)
       DO IT=1,NTYPE
         SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
         AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
       END DO
       AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
-      SCOVE=0.
-      IF (SNOWE(I,J).GT.0.) SCOVE=PEARTH
-      AJ(J,J_RSNOW,ITEARTH)=AJ(J,J_RSNOW,ITEARTH)+SCOVE
-      SCOVLI=0
-      IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
-      AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
-      SCOVOI=0.
-      IF (SNOWI(I,J).GT.0..and.FOCEAN(I,J).gt.0)
-     *     SCOVOI=FTYPE(ITOICE ,I,J)
-      AJ(J,J_RSNOW,ITOICE)=AJ(J,J_RSNOW,ITOICE)+SCOVOI
-      SCOVLKI=0.
-      IF (SNOWI(I,J).GT.0..and.FLAKE(I,J).gt.0)
-     *     SCOVLKI=FTYPE(ITLKICE ,I,J)
-      AJ(J,J_RSNOW,ITLKICE)=AJ(J,J_RSNOW,ITLKICE)+SCOVLKI
-      AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+(SCOVE+SCOVLI+SCOVOI+SCOVLKI)
-     *     *DXYPJ
       PI(J)=PI(J)+P(I,J)
-      AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+(SCOVOI+SCOVLKI+SCOVE+SCOVLI)
-      AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+(SNOWI(I,J)*POICE+SNOWE(I,J)
-     *     *PEARTH+SNOWLI(I,J)*PLICE)
       AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
-      PSNOW=0.
-      IF (SNOWE(I,J).GT.0.) PSNOW=PEARTH
-      AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE+PLICE+PSNOW
       AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)
      *     /TSAVG(I,J))**GBYRB-P1000)
   120 CONTINUE

@@ -380,9 +380,9 @@ c  AJ31
       k=k+1
       J_RSNOW = k ! PSNOW (1)                                     4 DA
       name_j(k) = 'RSNOW'
-      lname_j(k) = 'PSNOW'
+      lname_j(k) = 'SNOW COVER FRACTION'
       units_j(k) = '1'
-      ia_j(k) = ia_dga
+      ia_j(k) = ia_src
 c  AJ32
       k=k+1
       J_SWCOR = k ! SW CORRECTION   (obsolete)                    2 RD
@@ -837,14 +837,14 @@ c
       lname_ij(k) = 'ACCUMULATED SNOW FRACTION'
       units_ij(k) = '1'
       name_ij(k) = 'RSNW'
-      ia_ij(k) = ia_dga
+      ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ003'
       IJ_SNOW = k ! SNOW (KG/M**2)       4 DA
       lname_ij(k) = 'ACCUMULATED SNOW MASS'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'SNOW'
-      ia_ij(k) = ia_dga
+      ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ004'
       IJ_SHDT = k ! SHDT (J/M**2)        1 SF
@@ -1027,7 +1027,7 @@ c
       lname_ij(k) = 'POICE+PLICE+(IF SNOW)PEARTH'
       units_ij(k) = '1'
       name_ij(k) = 'RSIT'
-      ia_ij(k) = ia_dga
+      ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ030'
       IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT) .5*9 MN

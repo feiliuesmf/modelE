@@ -1176,13 +1176,13 @@ C****
       USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,
-     *     ij_g01,ij_g07,ij_g28,ij_g29
+     *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,ij_g01,ij_g07,ij_g28
+     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       USE FLUXES, only : e0,e1,evapor,eprec
       IMPLICIT NONE
 
-      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ
-     *     ,WTR1,WTR2,ACE1,ACE2,PEARTH,ENRGP
+      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ,WTR1,WTR2,ACE1,ACE2
+     *     ,PEARTH,ENRGP,SCOVE
       INTEGER I,J,IMAX,JR,K
       REAL*8, DIMENSION(IM,JM,3) :: GDEEP
       COMMON/oldDAG/GDEEP
@@ -1208,6 +1208,14 @@ C****
         ENRGP=EPREC(I,J)      ! including latent heat
 
 C**** ACCUMULATE DIAGNOSTICS
+        SCOVE=0.
+        IF (SNOWE(I,J).GT.0.) SCOVE=PEARTH
+        AJ(J,J_RSNOW,ITEARTH)=AJ(J,J_RSNOW,ITEARTH)+SCOVE
+        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVE*DXYPJ
+        AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVE
+        AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PEARTH
+        AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+SCOVE
+
         AJ(J,J_WTR1,ITEARTH)=AJ(J,J_WTR1,ITEARTH)+WTR1*PEARTH
         AJ(J,J_ACE1,ITEARTH)=AJ(J,J_ACE1,ITEARTH)+ACE1*PEARTH
         AJ(J,J_WTR2,ITEARTH)=AJ(J,J_WTR2,ITEARTH)+WTR2*PEARTH

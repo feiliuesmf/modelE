@@ -93,14 +93,14 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
       USE SEAICE, only : sea_ice,lmi,xsi,ace1i
       USE LAKES_COM, only : mwl,gml,flake
-      USE DAGCOM, only : aj,areg,aij,jreg,
-     *     ij_f0oi,ij_erun2,ij_rsoi,ij_msi2,ij_evapi,j_difs
-     *     ,j_run1,j_edifs,j_erun2,j_imelt,j_f1dt,j_f2dt,j_evap,ij_evap
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
+     *     ij_msi2,ij_evapi,j_difs,j_run1,j_edifs,j_erun2,j_imelt,
+     *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,TFO,RUN0,SROX(2)
-     *     ,FMOC,FHOC,F2DT,DXYPJ,POICE,PWATER
+     *     ,FMOC,FHOC,F2DT,DXYPJ,POICE,PWATER,SCOVI
       LOGICAL QFIXR, QFLUXLIM
       REAL*8 FLUXLIM, TOFREZ
       INTEGER I,J,IMAX,JR,ITYPE
@@ -157,13 +157,22 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         RUNOSI(I,J) = RUN0
         ERUNOSI(I,J)= F2DT
         SOLAR(3,I,J)= SROX(2)
+
 C**** ACCUMULATE DIAGNOSTICS
+          SCOVI=0.
+          IF (SNOWI(I,J).GT.0) SCOVI=POICE
+          AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
+          AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYPJ
+          AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI      
+          AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
+          AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
+          
           AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+FMOC*POICE
           AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+FHOC*POICE
           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+FMOC*POICE
-          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+FHOC *POICE
+          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+FHOC*POICE
           IF (JR.ne.24) THEN
-            AREG(JR,J_DIFS) =AREG(JR,J_DIFS) +FMOC *POICE*DXYPJ
+            AREG(JR,J_DIFS) =AREG(JR,J_DIFS) +FMOC*POICE*DXYPJ
             AREG(JR,J_ERUN2)=AREG(JR,J_ERUN2)+FHOC*POICE*DXYPJ
           END IF
           AJ(J,J_RUN1,ITYPE)=AJ(J,J_RUN1,ITYPE)+RUN0*POICE
