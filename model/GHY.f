@@ -795,6 +795,7 @@ c     Get canopy conductivity cnc and gpp
  !!!       print *,'trans_sw = ', trans_sw
 
  !!!       trans_sw = .1d0
+ !       trans_sw = min( trans_sw, .9d0 )
 
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
@@ -1833,8 +1834,8 @@ ccc   main fluxes which should conserve water/energy
      &                  + fv*max(tp(1,2),0.d0)*rnf(2) )*dts
       do k=1,n
         arunu=arunu+(rnff(k,1)*fb+rnff(k,2)*fv)*dts
-        aerunu=aerunu+ shw*( max(tp(k,1),1.d0)*rnff(k,1)*fb
-     *                     + max(tp(k,2),1.d0)*rnff(k,2)*fv )*dts
+        aerunu=aerunu+ shw*( max(tp(k,1),0.d0)*rnff(k,1)*fb
+     *                     + max(tp(k,2),0.d0)*rnff(k,2)*fv )*dts
       end do
 ccc   end of main fluxes
 ccc   the rest of the fluxes (mostly for diagnostics)
