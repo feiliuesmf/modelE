@@ -87,7 +87,7 @@ C**** some B-grid conservation quantities
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAVPO,DLAT_DG
+      REAL*8  :: RAVPO
 
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
