@@ -24,7 +24,7 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
-      INTEGER, DIMENSION(JM,2) :: LAT_DG
+      REAL*8, DIMENSION(JM,2) :: LAT_DG
 !@var  LON longitude of mid points of primary grid box (radians)
       REAL*8, DIMENSION(IM) :: LON
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
