@@ -7,20 +7,22 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit
-      USE MODEL_COM, only: Itime, ItimeI
+      USE MODEL_COM, only: Itime, ItimeI, IM, LM
+      USE RADPAR, only: O3DLJ
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &                          ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,
      &                          nr2,nr3,nmm,nhet,prnls,prnrts,prnchg,
      &                          lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
      &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,
-     &                          yRXPAR,yXO2N,O3DLJI,O3DLJI_clim
+     &                          yRXPAR,yXO2N
 c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
 !@var title read in from file
-      integer iu_data
+!@var i,l loop dummy
+      integer iu_data,i,l
       character*80 title
 C
 C     Read chem diagnostics parameters and molecule names
@@ -63,10 +65,6 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
         yNO3     =0.
         yXO2N    =0.
         yRXPAR   =0.
-C       Also, initialize the ozone-radiation interaction fields:
-        call openunit('O3D_IC',iu_data,.true.,.true.)
-        READ(iu_data)O3DLJI,O3DLJI_clim 
-        close(iu_data)
       END IF
 C
       return
