@@ -19,7 +19,7 @@ C
 !@var az,bz,P1 dummy variables
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
-!@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
+!@var lmax maximum altitude for chemistry
 !@var iO3form O3 formation reaction from O + O2
       real*8 az, bz, P1
       integer, intent(IN) :: lmax,I,J
@@ -59,18 +59,15 @@ C
 !@+   equilibrium at a given concentration of NOx. Only called during
 !@+   daylight, then assume NO3=HONO=1.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
+!@ver  1.0 (based on famchem0C8_M23p)
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  ls1
       USE TRACER_COM, only : n_NOx
-#ifdef Shindell_Strat_chem
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
-     &      ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,nClO,nOClO,nBrO
-#else
-      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
-     &                           ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
+     &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,LS1J
+#ifdef Shindell_Strat_chem     
+     &                        ,nClO,nOClO,nBrO
 #endif
 C
       IMPLICIT NONE
@@ -79,7 +76,7 @@ C**** Local parameters and variables and arguments:
 !@var b,c,p1,p2 dummy variables
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
-!@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
+!@var lmax maximum altitude for chemistry
 !@var iNO2form NO2 formation reaction from O + NO
       real*8 b,c,p1,p2
       integer L,iNO2form
@@ -99,7 +96,7 @@ c       B is for NO->NO2 reactions :
      &   +rr(iNO2form,L)*y(nO,L)
 
 c       Troposphere
-        if(l.lt.LS1)then
+        if(l.lt.LS1J(J))then
          B=B+rr(20,L)*yCH3O2(I,J,L)
      &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
         else
@@ -130,7 +127,7 @@ c     &   +rr(17,L)*y(nNO3,L)
 c
 C       C is for NO2->NO reactions :
         C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
-        if(l.lt.LS1)C=C
+        if(l.lt.LS1J(J))C=C
      &   +rr(7,L)*y(nO3,L)*0.25 !forms NO3, assume some goes to NO
 c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
 c     &   +rr(24,L)*y(nNO3,L) !no NO3 during day
@@ -157,24 +154,21 @@ C
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
+!@ver  1.0 (based on famchem0C8_M23p)
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  ls1
-#ifdef Shindell_Strat_chem
-      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
-     &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
-     &                       n_HBr,n_HOCl,n_HCl
-      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
-     &    nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,ta,ss,nC2O3,nROR,
-     &    nBrO,nClO,nOClO,nBr,nCl,SF3
-#else
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
+#ifdef Shindell_Strat_chem
+     &                       ,n_HBr,n_HOCl,n_HCl
+#endif
+
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
-     &                           nXO2N,ta,ss,nC2O3,nROR
+     &                           nXO2N,ta,ss,nC2O3,nROR,LS1J
+#ifdef Shindell_Strat_chem
+     &                           ,nBrO,nClO,nOClO,nBr,nCl,SF3
 #endif
 C
       IMPLICIT NONE
@@ -183,7 +177,7 @@ C**** Local parameters and variables and arguments:
 !@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,rcqqz,ratio dummy vars
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
-!@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
+!@var lmax maximum altitude for chemistry
 !@var iH2O2form H2O2 formation reaction from OH + OH
 !@var iHNO3form HNO3 formation reaction from OH + NO2
 !@var iHONOform HONO formation reaction from NO + OH
@@ -200,7 +194,7 @@ c
 #endif
 C
 cc    Troposphere
-      do L=1,LS1-1   ! >> beginning of altitude loop <<
+      do L=1,LS1J(J)-1   ! >> beginning of altitude loop <<
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
@@ -273,7 +267,7 @@ C
 c
 #ifdef Shindell_Strat_chem
 cc    Stratosphere
-      do L=LS1,lmax
+      do L=LS1J(J),lmax
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
