@@ -178,7 +178,8 @@ C**** parse options
 
       call findunit( iunit )
 
-      open( iunit, FILE=filename, FORM=form, STATUS=status, ERR=10 )
+      open( iunit, FILE=filename, FORM=form, STATUS=status, RECL=1024,
+     *     ERR=10 )
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)
