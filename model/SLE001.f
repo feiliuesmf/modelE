@@ -141,26 +141,21 @@ c**** public variables:
      $     sdstnc, c1, prfr, so_
 
       real*8, external :: qsat,dqsatdt
-      integer, parameter :: nexp=6
-      real*8, parameter :: c=2.3025851d0
-      real*8 a1,a2,a3
-     *     ,ak1,ak2
-     *     ,alph0o,alpls1,arg
-     *     ,ba,beta,betab,betas,betat,betav,cc
-      real*8 cna,cpfac,d1,d2,day,dd,dedifs,delh1,delhn,denom
+      real*8 beta,betab,betat,betav  ! used only in qsbal but may need in accm
+      real*8 d1,d2,day,dd,dedifs,delh1,delhn,denom
      *     ,dfh,dflux,dfunc,diff,dl,dldz2,dqdt,drnf
      *     ,dtm,dtm1,dtm2,dtpl,ed,el0
      *     ,epen,eps,ficec
      *     ,flmt,func,gaa,gabc
       real*8 gca,gm,h0,hcwt,hcwta,hcwtb,hcwti,hcwtw,hl,hmat,hmin
      *     ,hs,hz,one,pfac,pm,pmax
-     *     ,prfac,ptmp,ptmps,qg
+     *     ,prfac,ptmp,ptmps
      *     ,qso,rho3,rnfs,s,sat,scnds
      *     ,sgmm,shcc
       real*8 srht0,sxtn,t450,tb0,tc0,temp
      *     ,testh,thr,thr0,thr1,thr2
      *     ,tol,trunc,u1,v1
-     *     ,xa,xb,xden,xi,xk1,xk2
+     *     ,xa,xb,xden,xi,xk1
      *     ,xkl,xklu,xku1,xku2,xkud,xl,xlw,xnum
      *     ,xs,xsh,xsha,xtol,xw,zero
       integer ibv,ichn,iday,ihour,ith,itr,j1,j2,jcm,l
@@ -196,13 +191,10 @@ c     common/weight/a(4,imt-1),b(4,imt-1),p(4,imt-1)
      &     tg,t1,vg,eddy
       real*8 thrm(2),snsh(2),xlth(2)
       real*8 top_index, xkus(ng,2), xkusa(2)
-      dimension arg(imt-1)
       dimension sat(imt-1)
       data sat/.394d0,.537d0,.577d0,.885d0/
       !dimension snowdu(2)
       dimension xsha(ng,2),xsh(ng,2),gabc(3),hcwt(imt-1)
-      dimension qg(2),xk2(2),ak2(2)
-      dimension betas(2)
 
 ccc   i hate to do it, but as a quick solution i declare snow variables
 ccc   as global ones ...
@@ -426,6 +418,8 @@ c**** xklm(j,i) - conductivity at j'th h point for texture i
 c**** dlm(j,i) - diffusivity at j'th h point for texture i
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      integer, parameter :: nexp=6
+      real*8, parameter :: c=2.3025851d0
       real*8, dimension(4,imt-1), parameter :: a=reshape(
      &     (/                   ! matric potential coefficients for
      &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
@@ -447,6 +441,7 @@ c**** soils28   common block     9/25/90
      &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
      &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
+      real*8 a1,a2,a3,alph0o,alpls1,arg(imt-1)
       integer i,j
 
       sxtn=16.d0
@@ -583,6 +578,7 @@ c**** soils28   common block     9/25/90
       real*8 evap_max(2)
 ccc   added declarations for local vars:
       real*8 qm1dt, xkf, tbs1, tcs1, qcv, qcs, epcs
+      real*8 cna
 
       zero=0.d0
 ccc   first compute maximal amount of water available for evaporation
@@ -1086,6 +1082,7 @@ c****
 c**** add excess flux to flux of layer below
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      real*8 cc
       dtpl=1.0d0
       do ibv=1,2
        ll=2-ibv
@@ -1128,6 +1125,7 @@ c
 c     calculate with changing ga for air. ga is the depolarization
 c     factor for air, calculated by linear interpolation from .333d0
 c     at saturation to .035 at 0 water, following devries.
+      real*8,save :: ba
       integer i, j
       do ibv=1,2
         do l=1,n
@@ -1475,6 +1473,7 @@ c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
       real*8 qsats,derun
+      real*8 cpfac
 
       derun=shw*(fb*tp(1,1)*rnf(1)+fv*tp(1,2)*rnf(2))*dts
 c**** need fix for negative energy because rain sometimes runs off
@@ -1573,8 +1572,8 @@ c**** calculation of penman value of potential evaporation, aepp
 c     h0=-atrg/dt+srht+trht
 ccc   h0=-thrm(2)+srht+trht
       el0=elh*1d-3
-      cna=ch*vsm
-      cpfac=sha*rho*cna
+ccc   cna=ch*vsm
+      cpfac=sha*rho * ch*vsm
 c**** replaced by standard function
 c      t0=ts-tfrz
 c      edelt=100.d0*pres*(qsat(ts,lhe,pres)-qs)/0.622d0
@@ -1660,6 +1659,7 @@ c**** calculates the maximum time step allowed by stability
 c**** considerations.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      real*8 ak1,ak2(2),betas(2),cna,xk2(2)
       real*8 dtm,dtm3,dtm4
 ccc         dimension qg(2),xk2(2),ak2(2),ak3(2)
 ccc         dimension betas(2)
@@ -1675,8 +1675,8 @@ c     *       -0.000019d0*1.8d0)*100.0d0
 c      end if
 c      dqdt=.622d0*delt/(100.d0*pres)
       dqdt=dqsatdt(ts,pres)*qsat(ts,lhe,pres)
-      qg(1)=qb
-      qg(2)=qc
+      !qg(1)=qb
+      !qg(2)=qc
 c****
 c**** first calculate timestep for water movement in soil.
       sgmm=1.0d0

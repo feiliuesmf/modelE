@@ -24,11 +24,10 @@ c****
 c**** this subroutine calculates surface fluxes of sensible heat,
 c**** evaporation, thermal radiation, and momentum drag.
 c****
-      use constant, only : grav,rgas,sday,lhm,lhe,lhs,twopi,omega
-     *     ,sha,tf,rhow,rhoi,shw,shi,edpery,deltx
+      use constant, only : grav,rgas,lhe,lhs
+     *     ,sha,tf,rhow
       use model_com, only : t,p,q,dtsrc,nisurf,dsig
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,ijd6,itearth
-     *     ,vt_on
       use geom, only : imaxj,dxyp
       use radncb, only : trhr,fsf,cosz1
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
@@ -61,7 +60,7 @@ c****
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
      *     ij_g24,ij_g25,ij_g26,ij_g27
-      use dynamics, only : pmid,pk,pek,pedn,pdsig
+      use dynamics, only : pk,pek,pedn,pdsig !,pmid
       use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
 
@@ -70,20 +69,14 @@ c****
       integer, intent(in) :: ns,moddsf,modd6
       integer i,j,l,kr,jr,itype,imax,ihour
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
-     *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,qsatss
-     *     ,evaps,ppbls,eds1s,dbls,dgss,cdhs,cdms,qgs,srhdts,shdts
-     *     ,evhdts,tg1s,dxypj,trheat,wtr2av,wfc1,wgs,vgs,ugs,trhdts
-     *     ,rtauvs,rtauus,rtaus,taus,wss,tss,qss,uss,vss,rhosrf,rmbya
+     *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype
+     *     ,dxypj,trheat,wtr2av,wfc1
+     *     ,rhosrf,rmbya
      *     ,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth,warmer,brun0
      *     ,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu,bshdt,btrhdt
-     *     ,timez,spring,zs1co,f1dts
+     *     ,timez,spring,zs1co
      *     ,rvx
 
-c      real*8, dimension(im,jm) :: dth1,dq1,du1,dv1
-c      common /work1d/dth1,dq1
-c      common /work2/du1,dv1
-c      real*8, dimension(im,jm,4) :: e0,e1,evapor,tgrnd
-c      common/work3/e0,e1,evapor,tgrnd
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
 c**** interface to pbl
@@ -91,11 +84,11 @@ c**** interface to pbl
      *     ,eds1,ppbl,ug,vg,wg,zmix
       logical pole
       common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
-
       common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,
-     2               ppbl,ug,vg,wg,zmix
+     *     ppbl,ug,vg,wg,zmix
 
       real*8 qsat
+      real*8 srhdt
 c****
 c**** fearth    soil covered land fraction (1)
 c****
@@ -147,19 +140,9 @@ c****
       pole=.false.
 c**** conditions at the south/north pole
       if( j.eq.1 .or. j.eq.jm ) pole = .true.
-c**** zero out surface diagnostics which will be summed over longitude
-         btrhdt=0.
-         bshdt=0.
-         bevhdt=0.
-         bts=0.
-         brun0=0.
-         berun0=0.
-         bdifs=0.
-         bedifs=0.
-         berunu=0.
-         brunu=0.
-         if(j.lt.jeq) warmer=-spring
-         if(j.ge.jeq) warmer=spring
+
+      if(j.lt.jeq) warmer=-spring
+      if(j.ge.jeq) warmer=spring
       loop_i: do i=1,imax
 c****
 c**** determine surface conditions
@@ -180,39 +163,8 @@ c****
       qm1=q1*rmbya
 c     rhosrf=100.*ps/(rgas*tkv)
       rhosrf=100.*ps/(rgas*tsv)
-c**** zero out quantities to be summed over surface types
-      uss=0.
-      vss=0.
-      wss=0.
-      tss=0.
-      qss=0.
-      taus=0.
-         rtaus=0.
-         rtauus=0.
-         rtauvs=0.
-c        sinaps=0.
-c        cosaps=0.
-         jr=jreg(i,j)
-         dxypj=dxyp(j)
-         tg1s=0.
-         qgs=0.
-         srhdts=0.
-         trhdts=0.
-         shdts=0.
-         evhdts=0.
-         ugs=0.
-         vgs=0.
-         wgs=0.
-c        usrs=0.
-         cdms=0.
-         cdhs=0.
-         dgss=0.
-         eds1s=0.
-         ppbls=0.
-         dbls=0.
-         evaps=0.
-         f1dts=0.
-         qsatss=0.
+      jr=jreg(i,j)
+      dxypj=dxyp(j)
 c**** new quantities to be zeroed out over ground timesteps
          aruns=0.
          arunu=0.
@@ -249,6 +201,7 @@ c      zgs=10.
       pr=prec(i,j)/(dtsrc*rhow)
       prs=prcss(i,j)/(dtsrc*rhow)
       htpr=eprec(i,j)/dtsrc
+!!! insert htprs here
       gw(1:ngm,1) =  wbare(1:ngm,i,j)
       gw(0:ngm,2) =  wvege(0:ngm,i,j)
       ht(0:ngm,1) = htbare(0:ngm,i,j)
@@ -268,7 +221,9 @@ c     call hydra
 c??   snow = snowd(1)*fb + snowd(2)*fv
       tg1=tbcs
       srheat=fsf(itype,i,j)*cosz1(i,j)
-      srhdts=srhdts+srheat*dtsurf*ptype
+      !srhdts=srhdts+srheat*dtsurf*ptype
+! need this
+      srhdt=srheat*dtsurf
 c****
 c**** boundary layer interaction
 c****
@@ -289,7 +244,7 @@ c***
       cdq = cqgs(i,j,itype)
 c***********************************************************************
 c**** calculate qs
-         dhgs=(zmix-zgs)*cdh*ws
+      dhgs=(zmix-zgs)*cdh*ws
 c****    dqgs=(zmix-zgs)*cdq*ws
       qs=qsrf
       ts=tsv/(1.+qs*rvx)
@@ -382,159 +337,120 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
       shdt=-ashg
       dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*rmbya*p1k)
       dq1(i,j) =dq1(i,j)+evap*ptype/rmbya
-      uss=uss+us*ptype
-      vss=vss+vs*ptype
-      wss=wss+ws*ptype
-      tss=tss+ts*ptype
-      qss=qss+qs*ptype
-      qsavg(i,j)=qsavg(i,j)+qss
-      taus=taus+cdm*ws*ws*ptype
-         qsats=qsat(ts,elhx,ps)
-         rtaus=rtaus+rcdmws*ws*ptype
-         rtauus=rtauus+rcdmws*us*ptype
-         rtauvs=rtauvs+rcdmws*vs*ptype
-c        sinaps=sinaps+sinap*ptype
-c        cosaps=cosaps+cosap*ptype
-         tg1s=tg1s+tg1*ptype
-         qgs=qgs+qg*ptype
-         trhdts=trhdts+trhdt*ptype
-         shdts=shdts+shdt*ptype
-         evhdts=evhdts+evhdt*ptype
-         ugs=ugs+ug*ptype
-         vgs=vgs+vg*ptype
-         wgs=wgs+wg*ptype
-c        usrs=usrs+usr*ptype
-         cdms=cdms+cdm*ptype
-         cdhs=cdhs+cdh*ptype
-         dgss=dgss+dhgs*ptype
-         eds1s=eds1s+eds1*ptype
-         ppbls=ppbls+ppbl*ptype
-         dbls=dbls+dbl*ptype
-         evaps=evaps+evap*ptype
-         f1dts=f1dts+af1dt*ptype
-         qsatss=qsatss+qsats*ptype
-c****
-c**** earth
-c****
-         bshdt=bshdt+shdt*pearth
-         bevhdt=bevhdt+evhdt*pearth
-         btrhdt=btrhdt+trhdt*pearth
-         bts=bts+(ts-tf)*pearth
-         brun0=brun0+aruns*pearth
-         berun0=berun0+aeruns*pearth
-         brunu=brunu+arunu*pearth
-         berunu=berunu+aerunu*pearth
+      qsavg(i,j)=qsavg(i,j)+qs*ptype
+      qsats=qsat(ts,elhx,ps)
 c**** save runoff for addition to lake mass/energy resevoirs
-         runoe (i,j)=runoe (i,j)+ aruns+ arunu
-         erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
+      runoe (i,j)=runoe (i,j)+ aruns+ arunu
+      erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
 c****
-         aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
-         aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
-         aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
-         bdifs=bdifs+difs*pearth
-         bedifs=bedifs+edifs*pearth
-         e0(i,j,4)=e0(i,j,4)+af0dt
-         e1(i,j,4)=e1(i,j,4)+af1dt
+      aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
+      aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
+      aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
+         !bdifs=bdifs+difs*pearth
+         !bedifs=bedifs+edifs*pearth
+      e0(i,j,4)=e0(i,j,4)+af0dt
+      e1(i,j,4)=e1(i,j,4)+af1dt
 
-         if ( warmer >= 0 ) then
-           if(ts.lt.tf) tsfrez(i,j,1)=timez
-           tsfrez(i,j,2)=timez
-         else
-         if ( tsfrez(i,j,2)+.03 >= timez .and. ts >= tf )
-     $        tsfrez(i,j,2)=timez
-         endif
+      if ( warmer >= 0 ) then
+        if(ts.lt.tf) tsfrez(i,j,1)=timez
+        tsfrez(i,j,2)=timez
+      else
+        if ( tsfrez(i,j,2)+.03 >= timez .and. ts >= tf )
+     $       tsfrez(i,j,2)=timez
+      endif
 
-         if(tg1.lt.tdiurn(i,j,1)) tdiurn(i,j,1)=tg1
-         if(tg1.gt.tdiurn(i,j,2)) tdiurn(i,j,2)=tg1
-         if(ts.lt.tdiurn(i,j,3)) tdiurn(i,j,3)=ts
-         if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
+      if(tg1.lt.tdiurn(i,j,1)) tdiurn(i,j,1)=tg1
+      if(tg1.gt.tdiurn(i,j,2)) tdiurn(i,j,2)=tg1
+      if(ts.lt.tdiurn(i,j,3)) tdiurn(i,j,3)=ts
+      if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 c**** non-ocean points which are not melting or freezing water use
 c****   implicit time steps
 c****
 c**** update surface and first layer quantities
 c****
-         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
-         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
+      tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
+      if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
 c        if(tsavg(i,j).gt.aij(i,j,ij_tmax)) aij(i,j,ij_tmax)=tsavg(i,j)
 c        if(tsavg(i,j).lt.aij(i,j,ij_tmin)) aij(i,j,ij_tmin)=tsavg(i,j)
 c****
 c**** accumulate diagnostics
 c****
 c**** quantities accumulated for regions in diagj
-         if ( jr /= 24 ) then 
-           areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdts*dxypj
-           areg(jr,j_shdt )=areg(jr,j_shdt )+shdts*dxypj
-           areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdts*dxypj
-           areg(jr,j_evap )=areg(jr,j_evap )+evaps*dxypj
-           areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxypj
-           areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxypj
-           areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxypj
-           areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxypj
-           areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxypj
-           areg(jr,j_f1dt )=areg(jr,j_f1dt )+f1dts*dxypj
-           if ( moddsf == 0 )
-     $          areg(jr,j_tsrf )=areg(jr,j_tsrf )+(tss-tfs)*dxypj
+      if ( jr /= 24 ) then 
+        areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxypj
+        areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxypj
+        areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxypj
+        areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxypj
+        areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxypj
+        areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxypj
+        areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxypj
+        areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxypj
+        areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxypj
+        areg(jr,j_f1dt )=areg(jr,j_f1dt )+af1dt*ptype*dxypj
+        if ( moddsf == 0 )
+     $       areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxypj
 c**** quantities accumulated for latitude-longitude maps in diagij
-         endif
-         aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdts
-         aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
-         if(modrd.eq.0) aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdts
-     *        /dtsrc
-         aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdts+trhdts)
-         aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdts+trhdts+shdts+evhdts)
-         if ( moddsf == 0 ) then
-           aij(i,j,ij_ws)=aij(i,j,ij_ws)+wss ! added 3/3/95 -rar-
-           aij(i,j,ij_ts)=aij(i,j,ij_ts)+(tss-tfs)
-           aij(i,j,ij_us)=aij(i,j,ij_us)+uss
-           aij(i,j,ij_vs)=aij(i,j,ij_vs)+vss
-           aij(i,j,ij_taus)=aij(i,j,ij_taus)+rtaus
-           aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rtauus
-           aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rtauvs
-           aij(i,j,ij_qs)=aij(i,j,ij_qs)+qss
+      endif
+      aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
+      aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
+      if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
+     *     /dtsrc
+      aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
+      aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdt+trhdt+shdt+evhdt)*ptype
+      if ( moddsf == 0 ) then
+        aij(i,j,ij_ws)=aij(i,j,ij_ws)+ws*ptype ! added 3/3/95 -rar-
+        aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
+        aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
+        aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
+        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*ws*ptype
+        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*us*ptype
+        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*vs*ptype
+        aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 c**** quantities accumulated hourly for diag6
-         endif
-         if ( modd6 == 0 ) then
-           do kr=1,4
-             if(i.eq.ijd6(1,kr).and.j.eq.ijd6(2,kr)) then
-               adaily(ihour,12,kr)=adaily(ihour,12,kr)+tss
-               adaily(ihour,13,kr)=adaily(ihour,13,kr)+(tg1s+tfs)
-               adaily(ihour,19,kr)=adaily(ihour,19,kr)+qss
-               adaily(ihour,20,kr)=adaily(ihour,20,kr)+qgs
-               adaily(ihour,28,kr)=adaily(ihour,28,kr)+srhdts
-               adaily(ihour,29,kr)=adaily(ihour,29,kr)+trhdts
-               adaily(ihour,30,kr)=adaily(ihour,30,kr)+shdts
-               adaily(ihour,31,kr)=adaily(ihour,31,kr)+evhdts
-               adaily(ihour,32,kr)=adaily(ihour,32,kr)
-     *              +srhdts+trhdts+shdts+evhdts
-               adaily(ihour,33,kr)=adaily(ihour,33,kr)+ugs
-               adaily(ihour,34,kr)=adaily(ihour,34,kr)+vgs
-               adaily(ihour,35,kr)=adaily(ihour,35,kr)+wgs
-               adaily(ihour,36,kr)=adaily(ihour,36,kr)+uss
-               adaily(ihour,37,kr)=adaily(ihour,37,kr)+vss
-               adaily(ihour,38,kr)=adaily(ihour,38,kr)+wss
-               adaily(ihour,42,kr)=adaily(ihour,42,kr)+cdms
-               adaily(ihour,43,kr)=adaily(ihour,43,kr)+cdhs
-               adaily(ihour,44,kr)=adaily(ihour,44,kr)+dgss
-               adaily(ihour,45,kr)=adaily(ihour,45,kr)+eds1s
-               adaily(ihour,46,kr)=adaily(ihour,46,kr)+dbls
-               adaily(ihour,50,kr)=adaily(ihour,50,kr)+evaps
-             end if
-           end do
-         endif
-      end do loop_i
+      endif
+      if ( modd6 == 0 ) then
+        do kr=1,4
+          if(i.eq.ijd6(1,kr).and.j.eq.ijd6(2,kr)) then
+            adaily(ihour,12,kr)=adaily(ihour,12,kr)+ts*ptype
+            adaily(ihour,13,kr)=adaily(ihour,13,kr)+(tg1+tf)*ptype
+            adaily(ihour,19,kr)=adaily(ihour,19,kr)+qs*ptype
+            adaily(ihour,20,kr)=adaily(ihour,20,kr)+qg*ptype
+            adaily(ihour,28,kr)=adaily(ihour,28,kr)+srhdt*ptype
+            adaily(ihour,29,kr)=adaily(ihour,29,kr)+trhdt*ptype
+            adaily(ihour,30,kr)=adaily(ihour,30,kr)+shdt*ptype
+            adaily(ihour,31,kr)=adaily(ihour,31,kr)+evhdt*ptype
+            adaily(ihour,32,kr)=adaily(ihour,32,kr)
+     *           +(srhdt+trhdt+shdt+evhdt)*ptype
+            adaily(ihour,33,kr)=adaily(ihour,33,kr)+ug*ptype
+            adaily(ihour,34,kr)=adaily(ihour,34,kr)+vg*ptype
+            adaily(ihour,35,kr)=adaily(ihour,35,kr)+wg*ptype
+            adaily(ihour,36,kr)=adaily(ihour,36,kr)+us*ptype
+            adaily(ihour,37,kr)=adaily(ihour,37,kr)+vs*ptype
+            adaily(ihour,38,kr)=adaily(ihour,38,kr)+ws*ptype
+            adaily(ihour,42,kr)=adaily(ihour,42,kr)+cdm*ptype
+            adaily(ihour,43,kr)=adaily(ihour,43,kr)+cdh*ptype
+            adaily(ihour,44,kr)=adaily(ihour,44,kr)+dhgs*ptype
+            adaily(ihour,45,kr)=adaily(ihour,45,kr)+eds1*ptype
+            adaily(ihour,46,kr)=adaily(ihour,46,kr)+dbl*ptype
+            adaily(ihour,50,kr)=adaily(ihour,50,kr)+evap*ptype
+          end if
+        end do
+      endif
 c**** quantities accumulated for surface type tables in diagj
-         aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+btrhdt
-         aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+bshdt
-         aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+bevhdt
-         aj(j,j_erun1,itearth)=aj(j,j_erun1,itearth)+berun0
-         aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+bedifs
-         aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+bdifs
-         aj(j,j_run2 ,itearth)=aj(j,j_run2 ,itearth)+brunu
-         aj(j,j_dwtr2,itearth)=aj(j,j_dwtr2,itearth)+berunu
-         aj(j,j_run1 ,itearth)=aj(j,j_run1 ,itearth)+brun0
-         if(moddsf.eq.0) aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+bts
+      aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*pearth
+      aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+shdt*pearth
+      aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*pearth
+      aj(j,j_erun1,itearth)=aj(j,j_erun1,itearth)+aeruns*pearth
+      aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+edifs*pearth
+      aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+difs*pearth
+      aj(j,j_run2 ,itearth)=aj(j,j_run2 ,itearth)+arunu*pearth
+      aj(j,j_dwtr2,itearth)=aj(j,j_dwtr2,itearth)+aerunu*pearth
+      aj(j,j_run1 ,itearth)=aj(j,j_run1 ,itearth)+aruns*pearth
+      if(moddsf.eq.0)
+     $     aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
+      end do loop_i
       end do loop_j
       return
       end subroutine earth
