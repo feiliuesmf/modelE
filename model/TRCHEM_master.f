@@ -26,18 +26,24 @@ c
 c
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
-      REAL*8, PARAMETER :: by35=1.d0/35.d0
+!@param JN J around 30 N
+!@param JS J around 30 S
+      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+      REAL*8, PARAMETER  :: by35=1.d0/35.d0
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
 !@var bydtsrc reciprocal of the timestep dtsrc
 !@var imonth month index for Ox strat correction factor
 !@var m dummy loop variable for Ox strat correction factor
 !@var local logical for error checking 
-      REAL*8 FASTJ_PFACT, FACT1, bydtsrc
+!@var byam75 the reciprocal air mass near 75 hPa level
+!@var average tropospheric ch4 value near 569 hPa level
+      REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
+      REAL*8, DIMENSION(IM,JM):: CH4_569
       INTEGER imonth, m
       LOGICAL error
-!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3 dummy loop variables
-      INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3
+!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2 dummy loop variables
+      INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2
 c
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
@@ -588,11 +594,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 cc    Stratospheric Overwrite of tracers                cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
-C W A R N I N G :Unfortunately, there is still a hardcoded dependence
-C                on the verticle resolution in how we deal with the
-C                stratospheric overwriting of basically all the tracers.
-C                Not worth fixing, since we'll soon have stratospheric
-C                chemistry instead?
 C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
 C                'change' variable for L>LS1-1 is non-zero at this point
 C                in the code), then the stratospheric changes below
@@ -600,20 +601,15 @@ C                should be altered.  Currently, they are functions of
 C                tracer mass UNCHANGED by chemistry !
 C
 C     Make sure that change is zero:
-      change = 0.
+      change(:,:,:,:) = 0.
+C 
+C Calculate an average CH4 value near 569 hPa:
 C
-c Calculate non-weighted average of layer 6 and 7 CH4, for M23 models,
-c in mixing ratio units, for every 3rd latitude:
-c
-      jj=0
-      do j=(1+3),(JM-3),3
-       jj=jj+1
-       FACTj=(0.5*mass2vol(n_CH4)*1.d6*bydxyp(j))
-       do i=1,im
-         avg67(i,jj)=FACTj*(trm(i,j,6,n_CH4)*byam(6,i,j) +
-     &   trm(i,j,7,n_CH4)*byam(7,i,j))
-       end do
-      end do
+      DO J=1,JM
+       FACTj=(mass2vol(n_CH4)*1.d6*bydxyp(j))
+       CH4_569(:,J)=FACTJ*(F569M*trm(:,J,L569M,n_CH4)*byam(L569M,:,J)
+     & + F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))
+      END DO
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
       r179m2v=0.55866d0*bymass2vol(n_CH4)
 
@@ -630,9 +626,6 @@ C
       do L=LS1,LM                  ! >> BEGIN LOOP OVER STRATOSPHERE <<
        do j=1,jm
         J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
-        jj=NINT((FLOAT(j)-1.)/3.)  ! index for CH4
-        if(j.le.2) jj=1            ! index for CH4
-        if(j.ge.45)jj=14           ! index for CH4
         do i=1,im
           if(L.le.15) then
             change(I,J,L,n_Ox)=
@@ -640,8 +633,8 @@ C
           else
             change(I,J,L,n_Ox)= OxIC(I,J,L)   - trm(I,J,L,n_Ox)
           end if
-C         note: layer 14 in M23 is between layers 8 and 9 in M9 model:
-          FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam(14,I,J)
+          byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
+          FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
           change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4 - trm(I,J,L,n_NOx)
 C      dts 12/19/01:NOx strat-trop flux too big, alter lower strat NOx:
           if((L.eq.LS1).or.(L.eq.LS1+1)) change(I,J,L,n_NOx)=
@@ -662,23 +655,24 @@ C         note above: 70. = 1.4E-7/2.0E-9
           change(I,J,L,n_Paraffin)= FACT1*1.d-4 - trm(I,J,L,n_Paraffin)
 c
 c         Overwrite stratospheric ch4 based on HALOE obs for tropics
-c         and extratropics and scale by the ratio of nearby lvls 6 & 7
-c         mixing ratios to 1.79. The 12 "stratospheric" levels are
-c         grouped into 4 categories: L={12,13,14} based on 100mb obs.
-c         L={15,16,17} on 32mb obs, L={18,19,20} on 3.2mb obs and
-c         L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
+c         and extratropics and scale by the ratio of near-569hPa
+c         mixing ratios to 1.79:
 c
-          CH4FACT=avg67(i,jj)*r179m2v
-          IF((J.LE.16).OR.(J.GT.30)) THEN                ! extratropics
-            IF((L.GE.LS1).AND.(L.LE.14)) CH4FACT=CH4FACT* 1.7d0!was1.44
-            IF((L.GE.15).AND.(L.LE.17))  CH4FACT=CH4FACT*   1.130d0
-            IF((L.GE.18).AND.(L.LE.20))  CH4FACT=CH4FACT*   0.473d0
-            IF((L.GE.21).AND.(L.LE.LM))  CH4FACT=CH4FACT*   0.202d0
-          ELSE IF((J.GT.16).AND.(J.LE.30)) THEN           ! tropics
-            IF((L.GE.LS1).AND.(L.LE.14)) CH4FACT=CH4FACT*   1.620d0
-            IF((L.GE.15).AND.(L.LE.17))  CH4FACT=CH4FACT*   1.460d0
-            IF((L.GE.18).AND.(L.LE.20))  CH4FACT=CH4FACT*   0.812d0
-            IF((L.GE.21).AND.(L.LE.LM))  CH4FACT=CH4FACT*   0.230d0
+          CH4FACT=CH4_569(i,j)*r179m2v
+          IF((J.LE.JS).OR.(J.GT.JN)) THEN                ! extratropics
+            DO L2=L,LS1,-1
+              IF(CH4altX(L2).ne.0.) THEN
+                CH4FACT=CH4FACT*CH4altX(L2)
+                EXIT
+              END IF
+            END DO
+          ELSE IF((J.GT.JS).AND.(J.LE.JN)) THEN           ! tropics
+            DO L2=L,LS1,-1
+              IF(CH4altT(L2).ne.0.) THEN
+                CH4FACT=CH4FACT*CH4altT(L2)
+                EXIT
+              END IF
+            END DO
           END IF
           change(I,J,L,n_CH4)=
      &    (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6) - trm(I,J,L,n_CH4)
