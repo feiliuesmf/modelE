@@ -512,7 +512,7 @@ C****                                         even if the year is fixed
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
-      if(KYEARV.eq.-2000) KYEARV=JYEAR
+      if(KYEARV.eq.-2000) KYEARV=0  
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
