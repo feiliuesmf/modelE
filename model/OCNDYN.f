@@ -526,7 +526,7 @@ C**** Check for varaibles out of bounds
       DO J=2,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
-C**** Check potential specific enthalpy/salinity 
+C**** Check potential specific enthalpy/salinity
           DO L=1,LMM(I,J)
           GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           SO1 = S0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
@@ -1015,7 +1015,7 @@ C****
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
       JXMAX=2*J40S-1
-      JNOF=JM-2*J40S 
+      JNOF=JM-2*J40S
 C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
       DO 10 I=1,NMAX
       AVCOS(I,1) = COS(DLON*I)
@@ -1392,7 +1392,7 @@ C
         END IF
       END DO
 !$OMP END PARALLEL DO
-C**** 
+C****
 C**** Add changes to momentum
 C****
 !$OMP PARALLEL DO  PRIVATE(I,L,DUMS,DUMN)
@@ -1976,8 +1976,8 @@ C****
       end if
 C****
       MO(I,J,L) = MO(I,J,L) +  BM(J-1)-BM(J)
-         IF(MO(I,J,L).LE.0.)  GO TO 800
-         IF(QLIMIT.AND.RM(I,J,L).LT.0.)  GO TO 810
+         IF(MO(I,J,L).LE.0.)             ICKERR=ICKERR+1
+         IF(QLIMIT.AND.RM(I,J,L).LT.0.)  ICKERR=ICKERR+1
   310 CONTINUE
          DO 320 J=1,JM-1
   320    OIJL(I,J,L) = OIJL(I,J,L) + FM(J)
