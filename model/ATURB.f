@@ -159,6 +159,7 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
               n=ntix(nx)
               trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*bydxyp(j)
 cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
+              if(trij(l,nx).lt.teeny) trij(l,nx)=teeny
               tr0ij(l,nx)=trij(l,nx)
             end do
 #endif
@@ -304,6 +305,9 @@ C**** parallel to the case of Q
             call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
      &           rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm)
 cc          call diff_mom(trmomij)
+            do l=1,lm
+                if(trij(1,n).lt.teeny) trij(1,n)=teeny
+            end do
           end do
 #endif
           call find_pbl_top(e,ze,dbl,ldbl,lm)
