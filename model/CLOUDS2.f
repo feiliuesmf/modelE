@@ -122,6 +122,11 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
       REAL*8, DIMENSION(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
+!@var CTTEM,CD3DL,CL3DL,SMLWP are cld temp, cld LWC, cld thickness, LWP
+      REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CDN3DL,CRE3DL
+      REAL*8 SMLWP 
+!@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
+      REAL*8, DIMENSION(LM)::SME
       INTEGER NLSW,NLSI,NMCW,NMCI
 #endif
 C**** new arrays must be set to model arrays in driver (before LSCOND)
@@ -220,6 +225,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,ACDNWM,ACDNIM,ACDNWS,ACDNIS
      *  ,AREWM,AREIM,AREWS,AREIS
      *  ,OLDCDL,OLDCDO,SMFPML
+     *  ,SME
+     *  ,CTEML,CD3DL,CL3DL,SMLWP,CDN3DL,CRE3DL
 #endif
      *  ,FSUB,FCONV,FSSL,FMCL
 #ifdef CLD_AER_CDNC
@@ -1696,6 +1703,8 @@ c for sulfur chemistry
 !@auth Menon  - storing var for cloud droplet number
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(9),QCRIT
        real*8 dynvis(LM),DSGL(LM,9),DSS(9)
+       real*8 DPP,TEMPR,RHODK,SMLWP,PPRES,PRS  ! for 3 hrly diag
+       real*8 D3DL(LM)                         ! for 3 hrly diag
 #endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
@@ -1791,6 +1800,12 @@ C**** initialise vertical arrays
 #endif
 #endif
 #ifdef CLD_AER_CDNC
+       CTEML=0.
+       CD3DL=0.
+       CL3DL=0.
+       CDN3DL=0.
+       CRE3DL=0.
+       SMLWP=0.
        DSGL(1:9,:)=0.
 #endif
       DO L=1,LP50
@@ -1961,7 +1976,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
 c     if(tm(l,12).gt.1.d6)write(6,*)"CL1",tm(l,12),l,n,DSS(4),DSGL(L,4)
        case('OCB')
        DSGL(L,5)=tm(l,n)  !n=13
-       DSS(5) = DSGL(L,1)
+       DSS(5) = DSGL(L,5)
 
        case('BCIA')
        DSGL(L,6)=tm(l,n)  !n=9
@@ -1990,15 +2005,15 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPJ,
      *FCLD,CAREA(L),CLDSAVL(L),DSS,SMFPML(L),OLDCDO(L),OLDCDL(L),
-     *DSU,CDNL1,CDNO1)
+     *VVEL,SME(L),DSU,CDNL1,CDNO1)
       SNdO=CDNO1
       SNdL=CDNL1
 #endif
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
 #ifdef CLD_AER_CDNC
-      IF (SCDNCW.le.40.d0) SCDNCW=40.d0     !set min CDNC, sensitivity test
-      IF (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
+      IF (SCDNCW.le.20.d0) SCDNCW=20.d0     !set min CDNC, sensitivity test
+c     IF (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
 #endif
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
@@ -2630,7 +2645,8 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
 !@auth Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
-     *CLDSAVL(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),CDNL1,CDNO1)
+     *CLDSAVL(L),VVEL,SME(L),DSU,SMFPML(L),OLDCDO(L),OLDCDL(L),
+     *CDNL1,CDNO1)
       OLDCDL(L) = CDNL1
       OLDCDO(L) = CDNO1
       SNdO=CDNO1
@@ -2639,10 +2655,10 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
 #ifdef CLD_AER_CDNC
-      If (SCDNCW.le.40.d0) SCDNCW=40.d0   !set min CDNC sensitivity test
+      If (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
 c     if(SCDNCW.gt.1400.d0)
 c    * write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l)
-      If (SCDNCW.ge.1400.d0) SCDNCW=1400.d0   !set max CDNC sensitivity test
+c     If (SCDNCW.ge.1400.d0) SCDNCW=1400.d0   !set max CDNC sensitivity test
 #endif
 
         IF(LHX.EQ.LHE) THEN
@@ -2686,6 +2702,9 @@ c    * SCDNCW,NLSW
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
         IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
       END DO
+#ifdef CLD_AER_CDNC
+        SMLWP=WMSUM
+#endif 
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
@@ -2705,6 +2724,39 @@ C**** CALCULATE OPTICAL THICKNESS
           END IF
         END IF
       END DO
+
+#ifdef CLD_AER_CDNC
+!Save variables for 3 hrly diagnostics
+      DO L=1,LP50
+
+       IF(LHX.EQ.LHE) CDN3DL=SCDNCW
+       IF(LHX.EQ.LHE) CRE3DL=RCLDE 
+       IF(LHX.EQ.LHS) CRE3DL=RCLDE 
+       PRS = (PL(1)-PTOP)/SIG(1)
+
+       IF (L.GE.ls1) THEN                                       
+         PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm       
+         DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)*9.869d-4           
+         TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA         
+       ELSE                                                
+         PPRES = (SIG(L)*PRS+PTOP)*9.869d-4 !in atm    
+         DPP= (SIGE(L+1)-SIGE(L))*PRS*9.869d-4          
+         TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA       
+       ENDIF                                                 
+
+       RHODK=PPRES/.082d0/TEMPR*28.97d0                                 
+       IF (CLDSSL(L).GT.0.d0) CL3DL(L)=WMX(L)*RHODK/CLDSSL(L)
+       CTEML(L)=TEMPR                                           
+       D3DL(L)=DPP/PPRES*TEMPR/GRAV*0.082d0*101325.d0/1000.d0/0.029d0
+       IF(CLDSSL(L).GT.0.d0) CD3DL(L)=-1.d0*D3DL(L)*CLDSAVL(L)/CLDSSL(L)
+c      write(6,*)"CT",D3DL(l),CD3DL(l),CLDSAVL(L),CLDSSL(L),L,DPP,
+c    * PPRES,TEMPR,GRAV
+
+c      if(CTEML(L).gt.290.)write(6,*)"CE",CTEML(L),CD3Dl(L),CL3DL(L),L
+
+      END DO
+
+#endif 
 
       RETURN
       END SUBROUTINE LSCOND
