@@ -797,8 +797,8 @@ C
       ND = 2*NCFASTJ + 3 - 2*J1
 c
 C-------CLEAR THE POMEGA'S
-      DO I=1,MFIT
-        DO K=1,N__
+      DO K=1,N__
+        DO I=1,MFIT
           POMEGA(I,K) = 0.0D0
         ENDDO
       ENDDO
