@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module soil_drv
-!@sum soil_drv contains variables and routines for the ground 
+!@sum soil_drv contains variables and routines for the ground
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
@@ -1174,7 +1174,7 @@ c**** check for reasonable temperatures over earth
 
       end subroutine checke
 
-      subroutine daily_earth(iend)
+      subroutine daily_earth(end_of_day)
 !@sum  daily_earth performs daily tasks for earth related functions
 !@auth original development team
 !@ver  1.0
@@ -1187,7 +1187,7 @@ c**** check for reasonable temperatures over earth
       implicit none
       real*8 tsavg,wfc1
       integer i,j,imax,itype
-      integer, intent(in) :: iend  !@var iend 1 if at end of day
+      logical, intent(in) :: end_of_day
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
 c****
@@ -1203,7 +1203,7 @@ c****
         end do
       end do
 
-      if (iend.eq.1) then
+      if (end_of_day) then
 c****
 c**** increase snow age each day (independent of ts)
 c****

@@ -111,7 +111,7 @@ C****
       END SUBROUTINE PRECIP_SI
 
       SUBROUTINE UNDERICE
-!@sum  underice calculates basal fluxes under sea and lake ice 
+!@sum  underice calculates basal fluxes under sea and lake ice
 !@+    saves the resulting fluxes
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -168,7 +168,7 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
 #ifdef TRACERS_WATER
      *               Tri,Trm,trflux,tralpha,
 #endif
-     *               mflux,sflux,hflux) 
+     *               mflux,sflux,hflux)
               ELSE ! for fixed SST assume freezing temp at base,implicit
                 hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
      *               /(XSI(LMI)*MSI(I,J)))
@@ -186,7 +186,7 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
      *             mflux,hflux)
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
-                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J)) 
+                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J))
                 IF (hflux.lt.FLUXLIM) THEN
                   hflux = FLUXLIM
                   mflux = 0.
@@ -198,7 +198,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
                 END IF
               END IF
             END IF
-            FMSI_IO(I,J) = mflux*dtsrc   ! positive down 
+            FMSI_IO(I,J) = mflux*dtsrc   ! positive down
             FHSI_IO(I,J) = hflux*dtsrc
             FSSI_IO(I,J) = sflux*dtsrc
 #ifdef TRACERS_WATER
@@ -214,7 +214,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
           END IF
         END DO
       END DO
-      
+
 C****
       RETURN
       END
@@ -296,14 +296,13 @@ C****
         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
-        
+
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
      *       ,TRSIL,TREVAP,FTROC
 #endif
      *       ,FMOC,FHOC,FSOC,MELT12)
-
-C**** Decay sea ice salinity 
+C**** Decay sea ice salinity
         MSI1 = ACE1I + SNOW
         if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
           CALL SSIDEC(I,J,MSI1,MSI2,HSIL,SSIL,DTsrc,
@@ -312,7 +311,7 @@ C**** Decay sea ice salinity
 #endif
      *         MFLUX,HFLUX,SFLUX)
         else
-          MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
+          MFLUX=0. ; SFLUX=0. ; HFLUX=0.
 #ifdef TRACERS_WATER
           TRFLUX = 0.
 #endif
@@ -516,8 +515,8 @@ C**** replicate ice values at the north pole
         SNOWI(I,JM)=SNOWI(1,JM)
         GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 #ifdef TRACERS_WATER
-        TRSI(:,:,I,JM) = TRSI(:,:,1,JM) 
-        GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM) 
+        TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
+        GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
 #endif
       END DO
 C****
@@ -556,7 +555,7 @@ C****
 C****
       END SUBROUTINE vflx_OCEAN
 
-      SUBROUTINE init_ice
+      SUBROUTINE init_ice(iniOCEAN)
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
@@ -573,11 +572,11 @@ C****
 #endif
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
       IMPLICIT NONE
-      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       INTEGER I,J
       REAL*8 MSI1,TFO,TOFREZ
 
-      IF (KOCEAN.EQ.0) THEN
+      IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
         DO J=1,JM
         DO I=1,IM
@@ -722,9 +721,9 @@ C**** Every day reset snow flag and adjust pond-melt
 
 C**** reset snow flag to dry snow
         FLAG_DSWS(I,J)=.FALSE.
-        
+
 C**** pond_melt decreases linearly in shoulder season
-        if (J.gt.JM/2 .and. (jday.ge.212 .and. jday.lt.244)) then 
+        if (J.gt.JM/2 .and. (jday.ge.212 .and. jday.lt.244)) then
           pond_melt(i,j)=pond_melt(i,j)*(1.-1./(244.-jday))
         elseif (J.lt.JM/2 .and. (jday.ge.31 .and. jday.lt.60)) then
           pond_melt(i,j)=pond_melt(i,j)*(1.-1./(60.-jday))

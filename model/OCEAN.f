@@ -1,8 +1,8 @@
 #include "rundeck_opts.h"
 
       MODULE STATIC_OCEAN
-!@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux and
-!@+    fixed SST runs
+!@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux
+!@+    and fixed SST runs
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO,TOFREZ,
@@ -10,7 +10,7 @@
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice,ftype
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
-     *     ,kocean,itocean,itoice,itlandi,itearth
+     *     ,ItimeI,kocean,itocean,itoice,itlandi,itearth
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl
       USE GEOM
@@ -115,14 +115,14 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       RETURN
       END SUBROUTINE OSTRUC
 
-      SUBROUTINE OCLIM(IEND)
+      SUBROUTINE OCLIM(end_of_day)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
       IMPLICIT NONE
 
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
-      INTEGER, INTENT(IN) :: IEND
+      LOGICAL, INTENT(IN) :: end_of_day
 
       INTEGER n,J,I,LSTMON,K,IMAX,m,m1
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
@@ -135,6 +135,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       INTEGER, SAVE :: IMON = 0
 
       IF (KOCEAN.EQ.1) GO TO 500
+      if(.not.(end_of_day.or.itime.eq.itimei)) return
 C****
 C**** OOBS AOST     monthly Average Ocean Surface Temperature
 C****      BOST     1st order Moment of Ocean Surface Temperature
@@ -269,7 +270,7 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
 #ifdef TRACERS_WATER
             TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
-            IF (IEND.eq.1) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
+            IF (end_of_day) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
             RSI(I,J)=RSINEW
@@ -323,9 +324,8 @@ C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
 C****
 C**** SAVE PREVIOUS DAY'S MIXED LAYER DEPTH
  500  Z1OOLD=Z1O
-C**** COMPUTE Z1O ONLY AT THE BEGINNING OF A DAY (OR AT ItimeI)
-C**** Check mark to see if Z1O needs to be set initially
-      IF (IEND.eq.0.and. Z1O(IM,1).eq.-9999.) RETURN
+C**** COMPUTE Z1O ONLY AT THE END OF A DAY OR AT ItimeI
+      IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 C**** Read in climatological ocean mixed layer depths efficiently
       IF (JDLAST.eq.0) THEN ! need to read in first month climatology
         IMON=1          ! IMON=January
@@ -426,8 +426,6 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
           IF (Z1O(I,J).GT.Z12O(I,J)-.01) Z1O(I,J)=Z12O(I,J)
         END DO
       END DO
-C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
-      Z1O(IM,1)=-9999.
       RETURN
       END SUBROUTINE OCLIM
 
@@ -615,7 +613,7 @@ C**** set up a default ice-ocean stress field (ustar=0.005 m/s)
 C****
       END SUBROUTINE init_OCEAN
 
-      SUBROUTINE daily_OCEAN(IEND)
+      SUBROUTINE daily_OCEAN(end_of_day)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
@@ -636,7 +634,8 @@ C****
      *     ,gtracer
 #endif
       IMPLICIT NONE
-      INTEGER I,J,IEND,IMAX
+      INTEGER I,J,IMAX
+      LOGICAL, INTENT(IN) :: end_of_day
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -647,7 +646,7 @@ C****
 #endif
 
 C**** update ocean related climatologies
-      CALL OCLIM(IEND)
+      CALL OCLIM(end_of_day)
 
 C**** Set fourier coefficients for heat transport calculations
       IF (KOCEAN.eq.1) THEN
@@ -663,7 +662,7 @@ C**** Set fourier coefficients for heat transport calculations
       END IF
 
 C**** Only do this at end of the day
-      IF (KOCEAN.EQ.1.and.IEND.eq.1) THEN
+      IF (KOCEAN.EQ.1.and.end_of_day) THEN
         DO J=1,JM
           DO I=1,IM
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
@@ -687,7 +686,7 @@ C**** Only melting of ocean ice (not lakes)
               HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
               SSIL(:)= SSI(:,I,J) ! sea ice salt
 #ifdef TRACERS_WATER
-              TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice 
+              TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
               WTRO=Z1O(I,J)*RHOW
               CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL

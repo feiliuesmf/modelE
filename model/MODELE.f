@@ -75,10 +75,10 @@ C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
          MODD5K=1000
 
-      CALL DAILY(0)
+      CALL DAILY(.false.)                  ! not end_of_day
       if (itime.eq.itimei) call reset_diag(0)
-      CALL daily_EARTH(0)
-      CALL daily_OCEAN(0)
+      CALL daily_EARTH(.false.)            ! not end_of_day
+      CALL daily_OCEAN(.false.)            ! not end_of_day
       CALL CALC_AMPK(LS1-1)
 #ifdef TRACERS_ON
       CALL daily_tracer(0)
@@ -277,12 +277,12 @@ C****
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
            CALL DIAGCA (1)
-        CALL DAILY(1)
+        CALL DAILY(.true.)                 ! end_of_day
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
-        call daily_EARTH(1)
-        call daily_LAKE(1)
-        call daily_OCEAN(1)
+        call daily_EARTH(.true.)           ! end_of_day
+        call daily_LAKE
+        call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
 #ifdef TRACERS_ON
         call daily_tracer(1)
@@ -494,7 +494,7 @@ C**** Rundeck parameters:
 C**** Non-Rundeck parameters
 
 C**** Calculate level for application of SDRAG
-C**** All levels above and including P_SDRAG mb, or LM 
+C**** All levels above and including P_SDRAG mb, or LM
       DO L=1,LM
         IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.P_SDRAG .and.
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.P_SDRAG) EXIT
@@ -1072,7 +1072,7 @@ C****
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
-      CALL init_ice
+      CALL init_ice(iniOCEAN)
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)
 C**** Initialize ocean variables
@@ -1162,7 +1162,7 @@ C****
       stop 'Error in NAMELIST parameters'
       END SUBROUTINE INPUT
 
-      SUBROUTINE DAILY(IEND)
+      SUBROUTINE DAILY(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
 !@ver  1.0
@@ -1175,7 +1175,8 @@ C****
       USE RADNCB, only : RSDIST,COSD,SIND
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM
-      INTEGER I,J,IEND
+      INTEGER I,J
+      LOGICAL, INTENT(IN) :: end_of_day
 
 C**** Tasks to be done at end of day and at each start or restart
 C****
@@ -1186,7 +1187,7 @@ C****
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
 
-      IF (IEND.eq.0.and.Itime.gt.ItimeI) RETURN
+      IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 
 C**** Tasks to be done at end of day and at initial starts only
 C****
@@ -1211,7 +1212,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
       IF (ABS(DELTAP).gt.1d-6)
      *     WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
 
-      IF (IEND.eq.0) RETURN
+      IF (.not.end_of_day) RETURN
 
 C**** Tasks to be done at end of day only (none so far)
 

@@ -93,7 +93,7 @@ C**** Bring up mass from second layer if required/allowed
         DM2 = MIN(MLAKE(2),MINMLD*RHOW-(MLAKE(1)+RUNO))
         DH2 = DM2*(ELAKE(2)+(1.-ROICE)*ENRGO2+ROICE*ENRGI2)/MLAKE(2)
 #ifdef TRACERS_WATER
-        DTR2(:) = DM2*TRLAKEL(:,2)/MLAKE(2) 
+        DTR2(:) = DM2*TRLAKEL(:,2)/MLAKE(2)
 #endif
       ELSE
         DM2 = 0.
@@ -876,7 +876,7 @@ C**** Check total lake mass (<10%, >10x orig depth)
 C****
       END SUBROUTINE CHECKL
 
-      SUBROUTINE daily_LAKE(IEND)
+      SUBROUTINE daily_LAKE
 !@sum  daily_LAKE does lake things at the end of every day
 !@auth G. Schmidt
 !@ver  1.0
@@ -898,7 +898,7 @@ C****
 #endif
       USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
-      INTEGER IEND,IMAX,I,J,L
+      INTEGER IMAX,I,J,L
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -928,9 +928,9 @@ C**** Note that for continuity across the new year, the julian days
 C**** are counted from July 1 (NH only).
             IF (JDAY.eq.182 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
               AIJ(I,J,IJ_LKON)  = 12.*MOD(NINT(TSFREZ(I,J,TF_LKON))+184
-     *             ,365) 
+     *             ,365)
               AIJ(I,J,IJ_LKOFF) = 12.*MOD(NINT(TSFREZ(I,J,TF_LKOFF))+184
-     *             ,365) 
+     *             ,365)
               TSFREZ(I,J,TF_LKOFF) = undef
             END IF
           END IF
@@ -943,7 +943,7 @@ C**** set ice on/off days
         END DO
       END DO
 
-C**** Melt too small lake ice 
+C**** Melt too small lake ice
       DO J=1,JM
         IMAX=IMAXJ(J)
         DO I=1,IMAX
@@ -956,7 +956,7 @@ C**** Melt too small lake ice
             POCEAN=0.           ! ocean fraction (always 0)
             TFO = 0.            ! freezing point (always 0)
 #ifdef TRACERS_WATER
-            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice 
+            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
             CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL,
 #ifdef TRACERS_WATER
@@ -995,7 +995,6 @@ C**** Update lake fraction as a function of lake mass at end of day
 C**** Assume lake is conical
 C****   => A = pi*(h*tanlk)^2, M=(1/3)*pi*rho*h*(h*tanlk)^2
 C****
-c      IF (IEND.gt.0) THEN
 c        PRINT*,"TEST FLAKE CHANGE"
 c        DO J=1,JM
 c        DO I=1,IMAXJ(J)
@@ -1013,7 +1012,6 @@ c            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
 c          END IF
 c        END DO
 c        END DO
-c      END IF
 C****
       CALL PRINTLK("DY")
 C****
