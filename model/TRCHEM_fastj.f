@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 c  NOTE: Fastj photolysis scheme obtained from Oliver Wild (UCI) for
 c  incorporation into the GISS 4x5 GCM with 10 tracer chemistry.
 c  jlg. Sept. 98.
@@ -27,6 +28,10 @@ C**** Local parameters and variables and arguments:
 !@var NCFASTJ Number of levels in atmosphere
       INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER i,j,k
+C
+#ifdef Shindell_Strat_chem
+      call stop_model('ifdef Shindell_Strat_chem use TRCHEM_fastj2',255)
+#endif
 C
       zj(:,:)    =0.d0
       JFASTJ(:,:)=0.d0
