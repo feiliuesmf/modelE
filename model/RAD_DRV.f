@@ -1137,13 +1137,13 @@ C**** more than one tracer is lumped together for radiation purposes
           case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
           CASE ('Clay')
-            IF (n == n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
-     &           *0.01D0
-            IF (n == n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+            IF (ntrix(n)==n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))
+     *           *BYDXYP(J)*0.01D0
+            IF (ntrix(n)==n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
      &           BYDXYP(J)*0.08D0
-            IF (n == n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+            IF (ntrix(n)==n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
      &           BYDXYP(J)*0.23D0
-            IF (n == n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+            IF (ntrix(n)==n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
      &           BYDXYP(J)*0.66D0
           case default
             TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
@@ -1250,7 +1250,7 @@ C**** Aerosols incl. Dust:
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
-          IF (trname(ntrix(n)) == 'Clay' .AND. n > n_clay) cycle
+          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n) > n_clay) cycle
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
@@ -1258,7 +1258,7 @@ C**** one before seasalt2 in NTRACE array
             FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
 c**** Do radiation calculations for all clay classes at once
-          IF (trname(ntrix(n)) == 'Clay' .AND. n == n_clay) THEN
+          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n)==n_clay) THEN
             fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
           END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
@@ -1271,7 +1271,7 @@ c**** Do radiation calculations for all clay classes at once
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
           END IF
-          IF (trname(ntrix(n)) == 'Clay' .AND. n == n_clay) THEN
+          IF (trname(ntrix(n)) == 'Clay' .AND. ntrix(n)==n_clay) THEN
             fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
           END IF
         end do
