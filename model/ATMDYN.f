@@ -504,7 +504,7 @@ C****
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q
+      USE MODEL_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q,ptop
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit
       IMPLICIT NONE
