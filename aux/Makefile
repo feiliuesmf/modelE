@@ -6,7 +6,7 @@
 
 .PHONY: clean vclean
 
-all: cmp conv_rsf
+all: qc cmp conv_rsf
 
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
@@ -35,6 +35,11 @@ conv_rsf: conv_rsf.o $(MODEL_DIR)/gcmlib.a
 	$(F90) $(FFLAGS) -o $(BIN_DIR)/conv_rsf $^
 
 conv_rsf.o: $(MODEL_DIR)/gcmlib.a
+
+qc: qc.o $(MODEL_DIR)/gcmlib.a
+	$(F90) $(FFLAGS) -o $(BIN_DIR)/qc $^
+
+qc.o: $(MODEL_DIR)/gcmlib.a
 
 $(MODEL_DIR)/gcmlib.a: FORCE
 	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN)
