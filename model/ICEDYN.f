@@ -157,6 +157,16 @@ C**** Geometry
      &           BYCSU(J_0H:J_1H),
      $   STAT = IER)
 
+! correct or wrong, but being static all arrays were initialized
+! to zero by default. They have to be initialized to something now 
+! to avoid floating point exceptions...
+
+      AMASS(1:NX1,J_0H:J_1H)=0.
+      COR(1:NX1,J_0H:J_1H)=0.
+      DWATN(1:NX1,J_0H:J_1H)=0.
+      ZETA(1:NX1,J_0H:J_1H)=0.
+      UVM(1:NX1,J_0H:J_1H)=0.
+
       RETURN
       END SUBROUTINE INIT_ICEDYN
 
@@ -181,20 +191,20 @@ C****
 C****
 C**** Set up non linear water drag
 C****
-       DO J=J_0,J_1S
+      DO J=J_0,J_1S
       DO I=1,NX1-1
         DWATN(I,J)=5.5*SQRT((UICE(I,J,1)-GWATX(I,J))**2
      1       +(VICE(I,J,1)-GWATY(I,J))**2)
       END DO
       END DO
 C NOW SET UP SYMMETRIC DRAG
-       DO J=J_0,J_1S
+      DO J=J_0,J_1S
       DO I=1,NX1-1
         DRAGS(I,J)=DWATN(I,J)*COSWAT
       END DO
       END DO
 C NOW SET UP ANTI SYMMETRIC DRAG PLUS CORIOLIS
-       DO J=J_0,J_1
+      DO J=J_0,J_1
       DO I=1,NX1
         IF(J.GT.NY1/2) THEN
           DRAGA(I,J)=DWATN(I,J)*SINWAT+COR(I,J)
@@ -204,7 +214,7 @@ C NOW SET UP ANTI SYMMETRIC DRAG PLUS CORIOLIS
       END DO
       END DO
 C NOW SET UP FORCING FIELD
-       DO J=J_0,J_1
+      DO J=J_0,J_1
       DO I=1,NX1
 
 C FIRST DO WIND
@@ -238,7 +248,7 @@ C**** Otherwise estimate tilt using geostrophy
       END DO
 
 C NOW SET UP ICE PRESSURE AND VISCOSITIES
-       DO J=J_0,J_1
+      DO J=J_0,J_1
       DO I=1,NX1
         PRESS(I,J)=PSTAR*HEFF(I,J)*EXP(-20.0*(1.0-AREA(I,J)))
         ZMAX(I,J)=(5d12/2d4)*PRESS(I,J)
@@ -262,14 +272,14 @@ c       ZMIN(I,J)=0.0D+00
 
  8481 CONTINUE
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         PRESS(1,J)=PRESS(NX1-1,J)
         PRESS(NX1,J)=PRESS(2,J)
       END DO
 
 C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
       DO I=1,NX1
         PRESS(I,J)=PRESS(I,J)*HEFFM(I,J)
         ETA(I,J)=ETA(I,J)*HEFFM(I,J)
@@ -281,17 +291,17 @@ C NOW CALCULATE PRESSURE FORCE AND ADD TO EXTERNAL FORCE
 C**** Update halo of PRESS for distributed memory implementation
 c      CALL CHECKSUM(grid, PRESS,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PRESS, FROM=NORTH)
-       DO J=J_0,J_1S
+      DO J=J_0,J_1S
         DO I=1,NX1-1
           FORCEX(I,J)=FORCEX(I,J)-(0.25/(DXU(I)*CSU(J)))
      1     *(PRESS(I+1,J)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I,J+1))
           FORCEY(I,J)=FORCEY(I,J)-0.25/DYU(J)
      1     *(PRESS(I,J+1)+PRESS(I+1,J+1)-PRESS(I,J)-PRESS(I+1,J))
 C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
-         END DO
-       END DO
-
-       DO J=J_0,J_1
+        END DO
+      END DO
+      
+      DO J=J_0,J_1
         FORCEX(1,J)=FORCEX(NX1-1,J)
         FORCEY(1,J)=FORCEY(NX1-1,J)
         FORCEX(NX1,J)=FORCEX(2,J)
@@ -352,7 +362,7 @@ C NOW EVALUATE VISCOSITIES
       END DO
 
 C NOW PUT MIN AND MAX VISCOSITIES IN
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         DO I=1,NX1
           ZETA(I,J)=MIN(ZMAX(I,J),ZETA(I,J))
           ZETA(I,J)=MAX(ZMIN(I,J),ZETA(I,J))
@@ -368,14 +378,14 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         DO I=1,NX1
           ZETA(I,NY1)=AAA
         END DO
-       end if
+      end if
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         ZETA(1,J)=ZETA(NX1-1,J)
         ZETA(NX1,J)=ZETA(2,J)
       END DO
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         DO I=1,NX1
           ETA(I,J)=ECM2*ZETA(I,J)
 c         E11(I,J)=E11(I,J)*HEFFM(I,J)
@@ -423,7 +433,7 @@ C**** Modify if NYPOLE definition is modified.
 C****
       J_NYP=J_1S
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         DO I=1,NX1
           FORCEX(I,J)=FORCEX(I,J)*UVM(I,J)
           FORCEY(I,J)=FORCEY(I,J)*UVM(I,J)
@@ -431,7 +441,7 @@ C****
       END DO
 C MUST UPDATE HEFF BEFORE CALLING RELAX
 C FIRST SET U(2)=U(1)
-       DO J=J_0,J_1
+      DO J=J_0,J_1
         DO I=1,NX1
 C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
           UICE(I,J,2)=UICE(I,J,1)
@@ -1143,7 +1153,7 @@ C FIRST DO PREDICTOR
       CALL FORM
       CALL RELAX
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
        UICE(1,J,1)=UICE(NX1-1,J,1)
        VICE(1,J,1)=VICE(NX1-1,J,1)
        UICE(NX1,J,1)=UICE(2,J,1)
@@ -1176,7 +1186,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
 
       CALL RELAX
 
-       DO J=J_0,J_1
+      DO J=J_0,J_1
        UICE(1,J,1)=UICE(NX1-1,J,1)
        VICE(1,J,1)=VICE(NX1-1,J,1)
        UICE(NX1,J,1)=UICE(2,J,1)

@@ -340,7 +340,7 @@ C**** fill in overlap regions
       END DO
 
 C****
-C**** Set up mass per unit area and coriolis term (on ice grid A)
+C**** Set up mass per unit area and coriolis term (on ice grid B)
 C****
       DO J=1,NY1-1
       DO I=1,NX1-1
