@@ -1,7 +1,7 @@
 c f90 -c -64 NCACC.f
       subroutine write_nc_acc(fileout)
       use E001M12_COM
-      use GEOM, lon_rad=>lon,lat_rad=>lat
+      use GEOM, lat_radians=>lat,lonab_deg=>lon, dlat_radians=>dlat
       use DAGCOM
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
@@ -20,17 +20,12 @@ c f90 -c -64 NCACC.f
 
       integer :: i,j,k
 
-      double precision, dimension(im) :: lon  ! add to gcm
-      double precision, dimension(jm) :: lat  ! add to gcm
-      double precision, dimension(im) :: lonb ! add to gcm
-      double precision, dimension(jm) :: latb ! add to gcm
+      double precision, dimension(jm) :: lat_deg,latb_deg
       double precision, dimension(lm) :: plm_gcm
       double precision, dimension(lm+1) :: ple_gcm
 
-      lat = (/(-90.+(j*180.-180.)/(jm-1) ,j=1,jm)/)
-      latb= (/(-90.+(j*180.-270.)/(jm-1) ,j=1,jm)/)
-      lon = (/(-180.+(i*360.-180.)/im ,i=1,im)/)
-      lonb= (/(-180.+(i*360.     )/im ,i=1,im)/)
+      lat_deg = lat_radians*360./twopi
+      latb_deg = lat_deg - dlat_radians*180./twopi
       plm_gcm = (psf-ptop)*sig(1:lm)+ptop
       ple_gcm = (psf-ptop)*sige(1:lm+1)+ptop
 
@@ -255,11 +250,11 @@ c------------------------------------------------------------------------
 c------------------------------------------------------------------------
 c write data to netcdf file
 c------------------------------------------------------------------------
-      var_name='longitude';    call ncwrtdbl1(var_name,ncid,lon)
-      var_name='latitude';    call ncwrtdbl1(var_name,ncid,lat)
+      var_name='longitude'; call ncwrtdbl1(var_name,ncid,lonab_deg(1,1))
+      var_name='latitude';    call ncwrtdbl1(var_name,ncid,lat_deg)
       var_name='area';   call ncwrtdbl1(var_name,ncid,dxyp)
-      var_name='lonb';   call ncwrtdbl1(var_name,ncid,lonb)
-      var_name='latb';   call ncwrtdbl1(var_name,ncid,latb)
+      var_name='lonb';   call ncwrtdbl1(var_name,ncid,lonab_deg(1,2))
+      var_name='latb';   call ncwrtdbl1(var_name,ncid,latb_deg)
       var_name='areab';  call ncwrtdbl1(var_name,ncid,dxyv)
       var_name='dxv';  call ncwrtdbl1(var_name,ncid,dxv)
       var_name='sig';    call ncwrtdbl1(var_name,ncid,sig)
