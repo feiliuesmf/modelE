@@ -2444,7 +2444,7 @@ C****
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
       USE SEAICE, only : fsss
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm,trname
 #endif
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
@@ -2456,7 +2456,10 @@ C****
       REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM
       REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI 
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI 
-      REAL*8, DIMENSION(NTM) :: TMOO,TMOI
+      REAL*8, DIMENSION(NTM) :: TMOO,TMOI,FRAC
+#ifdef TRACERS_SPECIAL_O18
+      REAL*8 fracls
+#endif
 #endif
       REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
      *     ,TFOI
@@ -2466,6 +2469,13 @@ C****
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
 #ifdef TRACERS_OCEAN
       DTROI(:) = 0. ; DTROO(:) = 0.
+      do n=1,ntm
+#ifdef TRACERS_SPECIAL_O18
+        FRAC(n)=fracls(trname(n))
+#else
+        FRAC(n)=1.
+#endif
+      end do
 #endif
 
       LSR = MIN(LSRPD,LMIJ)
@@ -2494,7 +2504,7 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
         DEOO = (TFOO*SHCI-ELHM)*DMOO
         DSOO = FSSS*SOO*DMOO
 #ifdef TRACERS_OCEAN
-        DTROO(:) = TMOO(:) * (DMOO-DSOI)/(MOO-SMOO)
+        DTROO(:) = TMOO(:)*FRAC(n)*(DMOO-DSOI)/(MOO-SMOO)
 #endif
       END IF
       END IF
@@ -2523,7 +2533,7 @@ C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHCI-ELHM)*DMOI
           DEOI = (TFOI*SHCI-ELHM)*DMOI
           DSOI = FSSS*SOI*DMOI
 #ifdef TRACERS_OCEAN
-          DTROI(:) = TMOI(:) * (DMOI-DSOI)/(MOI-SMOI)
+          DTROI(:) = TMOI(:)*FRAC(:)*(DMOI-DSOI)/(MOI-SMOI)
 #endif
         END IF
       END IF

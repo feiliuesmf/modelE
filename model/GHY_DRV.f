@@ -88,7 +88,7 @@ c****
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
 #endif
       use tracer_diag_com, only : taijn,tij_surf
 #ifdef TRACERS_WATER
@@ -393,7 +393,7 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
       !print *, "evap lim. = ", evap_max, fr_sat
 #ifdef TRACERS_WATER
 c**** water tracers are also flux limited
-      tr_evap_max(1:ntx) = evap_max * trsoil_rat(nx)
+      tr_evap_max(1:ntx) = evap_max * trsoil_rat(1:ntx)
 #endif
       call pbl(i,j,itype,ptype)
 c****
@@ -554,10 +554,10 @@ C****
           tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
           tdp = tevap*dxyp(j)*ptype
           tdt1 = trsrfflx(i,j,n)*dtsurf
-          if (trm(i,j,1,n)+tdt1+tdp.lt.1d-5*trw0(n).and.tdp.lt.0) then
-            write(99,*) "limiting tevap earth",i,j,n,tdp,trm(i,j,1,n)
-            tevap=- (trm(i,j,1,n)+tdt1-1d-5*trw0(n))/(dxyp(j)*ptype)
-            trsrfflx(i,j,n)= - trm(i,j,1,n)+1d-5*trw0(n)
+          if (trm(i,j,1,n)+tdt1+tdp.lt.0.and.tdp.lt.0) then
+            write(99,*) "limiting trdew earth",i,j,n,tdp,trm(i,j,1,n)
+            tevap=- (trm(i,j,1,n)+tdt1)/(dxyp(j)*ptype)
+            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdp/dtsurf
           end if
@@ -715,7 +715,7 @@ c**** modifications needed for split of bare soils into 2 types
       use fluxes, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
-      use tracer_com, only : trw0
+      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0
 #endif
       use dagcom, only : npts,icon_wtg,icon_htg
       use filemanager
@@ -733,6 +733,9 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
       integer iv, l
+#ifdef TRACERS_WATER
+      real*8 trsoil_tot,wsoil_tot
+#endif
 
       real*8, parameter :: alamax(8) =
      $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
@@ -1018,7 +1021,22 @@ c**** set gtemp array
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
 #ifdef TRACERS_WATER
-            gtracer(:,4,i,j)=trw0(:)    ! temporary assignment
+C**** Quick and dirty calculation of water tracer amounts to calculate
+C**** gtracer. Should be replaced with proper calculation at some point 
+C**** Calculate mean tracer ratio
+            fb=afb(i,j) ; fv=1.-fb
+            wsoil_tot = 0
+            wsoil_tot=wsoil_tot+snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
+     *           sum(wbare(1:ngm,i,j))*fb+sum(wvege(0:ngm,i,j))*fv
+            trsoil_tot = 0 
+            do n=1,ntm
+              if(itime_tr0(n).le.itime) then
+                trsoil_tot=trsoil_tot+trsnowbv(n,1,i,j)*fb
+     *               +trsnowbv(n,2,i,j)*fv+sum(trbare(n,1:ngm,i,j))*fb
+     *               +sum(trvege(n,0:ngm,i,j))*fv
+                gtracer(n,4,i,j)=trsoil_tot/(rhow*wsoil_tot)
+              end if
+            end do
 #endif
           end if
         end do

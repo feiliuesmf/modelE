@@ -847,8 +847,8 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L)
          Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
          T(I,J,L)= T(I,J,L)*PRAT(I,J)
         WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
         IF (PRAT(I,J).lt.1.) THEN
-          QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
           TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
         END IF
       END DO

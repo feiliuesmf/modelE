@@ -168,9 +168,9 @@ C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
           TRUN0(:)=RUN0*TRSNOW(:)/(SNOW-EVAP)
           TRSNOW(:)=TRSNOW(:)-TRUN0(:)
         ELSE ! all snow + some ice melts 
-          TRUN0(:)=TRSNOW(:)+(SNANDI-ACE1LI)*TRLI(:)/(ACE2LI+ACE1LI)
+          TRUN0(:)=TRSNOW(:)+(ACE1LI-SNANDI)*TRLI(:)/(ACE2LI+ACE1LI)
           TRSNOW(:)=0.
-c         TRLI(:)=TRLI(:)*(1.- ((SNANDI-ACE1LI)/(ACE2LI+ACE1LI)))
+c         TRLI(:)=TRLI(:)*(1.- ((ACE1LI-SNANDI)/(ACE2LI+ACE1LI)))
         END IF
 #endif
       ELSE

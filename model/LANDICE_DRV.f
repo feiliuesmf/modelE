@@ -13,7 +13,7 @@
       USE LANDICE, only: ace1li,ace2li
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi
+     *     ,trsnowli,trlndi,trli0
 #endif
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
@@ -28,10 +28,10 @@ C**** set GTEMP array for landice
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 #ifdef TRACERS_WATER
-            IF (SNOWLI(I,J).gt.0) THEN
+            IF (SNOWLI(I,J).gt.1d-5) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
-              GTRACER(:,3,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
+              GTRACER(:,3,I,J)=trli0(:) !TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
             END IF
 #endif
           END IF
@@ -54,7 +54,7 @@ C****
       USE LANDICE, only: ace1li,ace2li
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,trsnowli,trlndi,ntm
+     *     ,trsnowli,trlndi,ntm,trli0
 #endif
       USE LANDICE, only : precli
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
@@ -116,10 +116,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
 c       TRDIFS(:)     !  diagnostic?
-        IF (SNOW.gt.0) THEN
+        IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
-          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+          GTRACER(:,3,I,J)=trli0(:)  !TRLI(:)/(ACE1LI+ACE2LI)
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
@@ -150,7 +150,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
       USE FLUXES, only : runoli
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi
+     *     ,ntm,trsnowli,trlndi,trli0
 #endif
       USE LANDICE, only : lndice,ace1li,ace2li
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
@@ -198,7 +198,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,I,J,3)
+        TREVAP(:)=TREVAPOR(:,3,I,J)
 #endif
 
         CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,
@@ -218,10 +218,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TRSNOWLI(:,I,J)=TRSNOW(:)
         TRUNOLI(:,I,J)=TRUN0(:)
 c       TRDIFS(:)     !  diagnostic?
-        IF (SNOW.gt.0) THEN
+        IF (SNOW.gt.1d-5) THEN
           GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
         ELSE
-          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+          GTRACER(:,3,I,J)=trli0(:) !TRLI(:)/(ACE1LI+ACE2LI)
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS

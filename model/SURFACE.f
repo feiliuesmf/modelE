@@ -13,7 +13,7 @@
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck
-      USE SOMTQ_COM, only : tmom,qmom,mz
+      USE SOMTQ_COM, only : tmom,qmom,mz,nmom
       USE GEOM, only : dxyp,imaxj,bydxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
@@ -98,7 +98,6 @@ C**** Tracer input/output common block for PBL
       real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,FRACVL,FRACVS,FRACLK
 #endif
 #endif
-
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -557,10 +556,10 @@ C**** Limit evaporation if lake mass is at minimum
           END IF
           TDP = TEVAP*DXYP(J)*ptype
           TDT1 = trsrfflx(I,J,n)*DTSURF
-          IF (TRM(I,J,1,n)+TDT1+TDP.lt.1d-5*trw0(n).and.tdp.lt.0) THEN
-            WRITE(99,*) "LIMITING TEVAP",I,J,N,TDP,TRM(I,J,1,n)
-            TEVAP = -(TRM(I,J,1,n)+TDT1-1d-5*trw0(n))/(DXYP(J)*ptype)
-            trsrfflx(I,J,n)= - TRM(I,J,1,n)+1d-5*trw0(n)
+          IF (TRM(I,J,1,n)+TDT1+TDP.lt.0..and.tdp.lt.0) THEN
+            WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
+            TEVAP = -(TRM(I,J,1,n)+TDT1)/(DXYP(J)*ptype)
+            trsrfflx(I,J,n)= - TRM(I,J,1,n)/DTSURF
           ELSE
             trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
           END IF
@@ -775,7 +774,7 @@ C****
       call apply_tracer_2Dsource(dtsurf)
 #endif
 c****
-c**** apply earth fluxes to the first layer of the atmosphere
+c**** apply surface fluxes to the first layer of the atmosphere
 c****  (replaced with dummy subroutine when ATURB is used)
 c****
       call apply_fluxes_to_atm(dtsurf)

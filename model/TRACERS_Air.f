@@ -17,7 +17,7 @@
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
       use DAGCOM, only: ia_src,ia_12hr,ir_log2
-      USE MODEL_COM, only: dtsrc
+      USE MODEL_COM, only: dtsrc,byim
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE CONSTANT, only: mair,mwat,sday
@@ -47,11 +47,11 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0 = 0
       t_qlimit = .true.
       needtrs = .false.
-      trdecay = 0.d0
+      trdecay = 0.
       nt3Dsrc = 0
       ntsurfsrc = 0
-      trpdens = 0
-      trradius = 0
+      trpdens = 0.
+      trradius = 0.
 #ifdef TRACERS_SPECIAL_Lerner
       n_MPtable = 0
       tcscale = 0.
@@ -60,9 +60,10 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tr_wd_TYPE = nGas         ! or  nPART  or nWATER
       tr_DHD = 0.
       tr_RKD = 0.
-      trw0 = 0
-      trli0 = 0
-      trsi0 = 0
+      trw0 = 0.
+      trli0 = 0.
+      trsi0 = 0.
+      tr_H2ObyCH4 = 0.
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
@@ -73,25 +74,14 @@ C**** Define individual tracer characteristics
           itime_tr0(n) = 0.
           ntm_power(n) = -2
           tr_mm(n) = mair
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 0;  ntsurfsrc(n) = 0
-          trpdens(n) = 0;  trradius(n) = 0
 
       case ('SF6')
       n_SF6 = n
           itime_tr0(n) = 0.
           ntm_power(n) = -14
           tr_mm(n) = 146.01d0
-          t_qlimit(n) = .true.
-          needtrs(n) = .false.
-          trdecay(n) = 0.d0
-          nt3Dsrc(n) = 0;  ntsurfsrc(n) = 1
-          trpdens(n) = 0;  trradius(n) = 0
-#ifdef TRACERS_WATER
-          tr_wd_TYPE = nGas
-#endif
+          ntsurfsrc(n) = 1
+
       case ('Rn222')
       n_Rn222 = n
           ntm_power(n) = -21
@@ -176,7 +166,6 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -7
           tr_mm(n) = 20.
           needtrs(n) = .true.
-          ntsurfsrc(n) = 0
           tr_wd_TYPE(n) = nWater
           trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
@@ -188,9 +177,8 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -8
           tr_mm(n) = 19.
           needtrs(n) = .true.
-          ntsurfsrc(n) = 0
           tr_wd_TYPE(n) = nWater
-          trw0(n) = 3.19d-4    ! SMOW mass ratio of water molecules
+          trw0(n) = 3.29d-4    ! SMOW mass ratio of water molecules
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
           trsi0(n) = fracls(trname(n))*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)
@@ -200,13 +188,12 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -18
           tr_mm(n) = 20.
           needtrs(n) = .true.
-          ntsurfsrc(n) = 0
           tr_wd_TYPE(n) = nWater
           trw0(n) = 0. !2.22d-18   ! SMOW mass ratio of water molecules
           trli0(n) = 0.
           trsi0(n) = 0.
           tr_H2ObyCH4(n) = 0.
-          trdecay = 1.77d-9      ! =5.59d-2 /yr
+          trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
 #endif
 #endif
 
@@ -513,8 +500,8 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(2,n)=k
@@ -522,8 +509,8 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(3,n)=k
@@ -531,8 +518,8 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(4,n)=k
@@ -540,8 +527,8 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
 
 C**** special unique to HTO
@@ -552,8 +539,8 @@ C**** special unique to HTO
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(2,n)=k
@@ -561,8 +548,8 @@ C**** special unique to HTO
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(3,n)=k
@@ -570,8 +557,8 @@ C**** special unique to HTO
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_source(4,n)=k
@@ -579,8 +566,8 @@ C**** special unique to HTO
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0
-        scale_jls(k) = SDAY/DTsrc 
+        jls_power(k) = ntm_power(n)+4
+        scale_jls(k) = SDAY*byim/DTsrc 
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
@@ -588,7 +575,7 @@ C**** special unique to HTO
         lname_jls(k) = 'LOSS OF '//TRIM(trname(n))//' BY DECAY'
         jls_index(k) = n
         jls_ltop(k) = lm
-        jls_power(k) = -18
+        jls_power(k) = ntm_power(n)+8
         scale_jls(k) = 1./DTsrc 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
@@ -1147,6 +1134,11 @@ C**** print out total tracer diagnostic array size
       do n=1,ntm
 
       if (itime.eq.itime_tr0(n)) then
+
+#ifdef TRACERS_WATER
+C**** set default atmospheric liquid water amount to zero for most tracers        
+      trwm(:,:,:,n)=0.
+#endif
       select case (trname(n)) 
           
         case default            
@@ -1712,7 +1704,7 @@ C****
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION----------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,FCLOUD,FQ0,fq)
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,FCLOUD,FQ0,fq)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas 
 !@+    condensation uses Henry's Law if not freezing.
@@ -1720,9 +1712,10 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION----------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CLOUDS, only: PL, TL, NTIX
+      USE CLOUDS, only: PL, NTIX
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
-      USE CONSTANT, only: TF, BYGASC, MAIR
+     *     ,trname
+      USE CONSTANT, only: TF, BYGASC, MAIR,teeny
 c      
       IMPLICIT NONE
 c      
@@ -1742,7 +1735,10 @@ c
 !@var RKD dummy variable (= tr_RKD*EXP[ ])
       REAL*8, PARAMETER :: BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac, RKD
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR
+#ifdef TRACERS_SPECIAL_O18
+      real*8 tdegc,alph,fracvs,fracvl
+#endif
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP
       REAL*8,  INTENT(OUT):: fq
       INTEGER, INTENT(IN) :: L, N
 c
@@ -1751,21 +1747,40 @@ c
       SELECT CASE(tr_wd_TYPE(NTIX(N)))                 
         CASE(nGAS)                            ! gas tracer
           fq = 0.D0                           ! frozen case
-          IF(TL(L).ge.TF) THEN                ! if not frozen then: 
+          IF(TEMP.ge.TF) THEN                ! if not frozen then: 
             Ppas = PL(L)*1.D2                 ! pressure to pascals
-            tfac = (1.D0/TL(L) - BY298K)*BYGASC
+            tfac = (1.D0/TEMP - BY298K)*BYGASC
             IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
               RKD=tr_RKD(NTIX(N))*DEXP(-tr_DHD(NTIX(N))*tfac)
             ELSE  
               RKD=tr_RKD(NTIX(N))
             END IF
-c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TL(L)*FCLOUD)
-c           ssfac=RKD*GASC*TL(L)*clwc   ! Henry's Law
-            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/FCLOUD
+c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
+c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
+            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
             fq=ssfac / (1.D0 + ssfac)
           END IF
         CASE(nWATER)                          ! water tracer
-          fq = FQ0                                  
+#ifdef TRACERS_SPECIAL_O18
+C**** calculate condensate in equilibrium with source vapour
+          if (fq0.gt.0.) then
+            tdegc=temp-tf
+            if (tdegc.ge.0) then
+              alph=1./fracvl(tdegc,trname(ntix(n)))
+            else
+              alph=1./fracvs(tdegc,trname(ntix(n)))
+            end if
+            if (fq0.ne.1.) then ! just to be safe
+              fq = alph * fq0/(1.+(alph-1.)*fq0)
+            else
+              fq = fq0
+            end if
+          else
+            fq = 0.
+          end if
+#else
+          fq = fq0                                  
+#endif
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! temporarily zero.
 c NOTE 1: Dorothy has some code that will be put here to condense 
@@ -1822,7 +1837,7 @@ c           minus preserves FPRT sign convention in LSCOND
             fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
           END IF
         CASE(nWATER)                          ! water/original method
-          fq = FQ0                               
+          fq = FQ0                            ! no fractionation
         CASE(nPART)                           ! aerosols
           IF(BELOW_CLOUD) THEN
             fq = 0.D0
@@ -1878,7 +1893,7 @@ c
       END SUBROUTINE GET_WASH_FACTOR
 
 
-      SUBROUTINE GET_EVAP_FACTOR(N,FQ0,fq)
+      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,FQ0,fq)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -1886,7 +1901,8 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE CLOUDS, only: NTIX
-      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE
+      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE,nwater,trname
+      USE CONSTANT, only : tf
 c
       IMPLICIT NONE
 c      
@@ -1896,10 +1912,36 @@ C**** Local parameters and variables and arguments:
 !@var N index for tracer number loop
       INTEGER, INTENT(IN) :: N
       REAL*8,  INTENT(OUT):: FQ
-      REAL*8,  INTENT(IN) :: FQ0
+      REAL*8,  INTENT(IN) :: FQ0,TEMP
+#ifdef TRACERS_SPECIAL_O18
+      real*8 tdegc,alph,fracvl,fracvs
+#endif
 c
-      fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+      select case (tr_wd_TYPE(NTIX(N)))
+      case default
+        fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
 c
+      case (nWater)
+#ifdef TRACERS_SPECIAL_O18
+          tdegc=temp-tf
+          if (tdegc.ge.0) then
+            alph=fracvl(tdegc,trname(ntix(n)))
+          else
+            alph=fracvs(tdegc,trname(ntix(n)))
+          end if
+          if (fq0.ne.1.) then 
+c           if (fq0.lt.0.9) then ! approximate 
+              fq = alph * fq0
+c           else ! calculate actual rayleigh curve (necessary?)
+c             fq = 1. - (1.-fq0)**alph
+c           end if
+          else
+            fq = fq0
+          end if
+#else
+          fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+#endif
+      end select
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR 
 #endif

@@ -275,15 +275,19 @@ C
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
 !@ver  1.0
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
-      USE DYNAMICS, only : byam
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
+      USE DYNAMICS, only : byam,am
       USE FLUXES, only : dth1,dq1,uflux1,vflux1,qflux1
 #ifdef TRACERS_ON
      *     ,trflux1
-      USE TRACER_COM, only : ntm,trm
+      USE TRACER_COM, only : ntm,trm,trmom,trname
+#ifdef TRACERS_WATER
+     *     ,trw0,t_qlimit
+#endif
 #endif
       USE MODEL_COM, only : im,jm,u,v,t,q
       implicit none
+      REAL*8, PARAMETER :: qmin=1.d-12
       integer i,j,k,n
       real*8, intent(in) :: dt
       real*8 hemi
@@ -297,7 +301,20 @@ C
 
 #ifdef TRACERS_ON
       do n=1,ntm
-        trm(:,:,1,n) = trm(:,:,1,n) + trflux1(:,:,n)*dt
+        do j=1,jm
+          do i=1,imaxj(j)
+            trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
+#ifdef TRACERS_WATER
+            if (t_qlimit(n).and.trm(i,j,1,n).lt.qmin*trw0(n)*am(1,i,j)
+     *           *dxyp(j)) then
+              write(99,*) trname(n),I,J,' TR1:',trm(i,j,1,n),'->'
+     *             ,qmin*trw0(n)*am(1,i,j)*dxyp(j)
+              trm(i,j,1,n) = qmin*trw0(n)*am(1,i,j)*dxyp(j)
+              trmom(:,i,j,1,n)=0.
+            end if
+#endif
+          end do
+        end do
       end do
 #endif
 c****

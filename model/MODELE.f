@@ -15,7 +15,7 @@
       USE GEOM, only : dxyp
       USE RADNCB, only : dimrad_sv
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: mtrace,trm
+      USE TRACER_COM, only: mtrace
 #endif
       IMPLICIT NONE
 
@@ -234,7 +234,7 @@ C**** APPLY SURFACE/BASE FLUXES TO SEA/LAKE ICE
       CALL GROUND_SI
 C**** APPLY SURFACE FLUXES TO LAND ICE
       CALL GROUND_LI
-         CALL CHECKT ('GRDNSI')
+         CALL CHECKT ('GRNDSI')
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
          CALL TIMER (MNOW,MSURF)
@@ -284,6 +284,7 @@ C**** Calculate 3D tracers sources and sinks
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (MNOW,MTRACE)
+         CALL CHECKT ('T3DSRC')
 #endif
       end if                                  ! full model,kradia le 0
 C****
@@ -678,10 +679,20 @@ C****
       write(6,*) 'This program includes tracers code'
 #endif
 #ifdef TRACERS_WATER
-      write(6,*) 'This program includes water tracer code'
+      write(6,*) '...and water tracer code'
 #ifndef TRACERS_ON
       STOP 'Water tracers need TRACERS_ON as well as TRACERS_WATER'
 #endif
+#endif
+#ifdef TRACERS_SPECIAL_O18
+      write(6,*) '...and water isotope code'
+#ifndef TRACERS_WATER
+      STOP 'Water isotope tracers need TRACERS_WATER '//
+     *     'as well as TRACERS_SPECIAL_O18'
+#endif
+#endif
+#ifdef TRACERS_SPECIAL_Lerner
+      write(6,*) '...and Jean/David tracers and chemistry'
 #endif
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be
@@ -1113,6 +1124,10 @@ C****   READ SPECIAL REGIONS FROM UNIT 29
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
+#ifdef TRACERS_ON
+C**** Initialise tracer parameters and diagnostics
+      call init_tracer
+#endif
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
@@ -1201,10 +1216,6 @@ C****
       CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
-#ifdef TRACERS_ON
-C**** Initialise tracer parameters and diagnostics
-      call init_tracer
-#endif
       if(istart.gt.0) CALL init_RAD
       WRITE (6,INPUTZ)
       call print_param( 6 )

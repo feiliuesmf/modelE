@@ -302,8 +302,8 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
 #ifdef TRACERS_WATER
               DO N=1,NTM
-                TRSI(N,1:2,I,J)=TRSI0(N)*XSI(1:2)*(ACE1I-SSI0)
-                TRSI(N,3:4,I,J)=TRSI0(N)*XSI(3:4)*(AC2OIM-SSI0)
+                TRSI(N,1:2,I,J)=(TRSI0(N)-SSI0)*XSI(1:2)*ACE1I
+                TRSI(N,3:4,I,J)=(TRSI0(N)-SSI0)*XSI(3:4)*AC2OIM
               END DO
 #endif
               SNOWI(I,J)=0.
@@ -313,20 +313,23 @@ C**** SET DEFAULTS IF NO OCEAN ICE
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE (for prescribed data only)
-      DO I=2,IM
-        IF (FOCEAN(1,JM).gt.0) THEN
+      IF (FOCEAN(1,JM).gt.0) THEN
+        DO I=2,IM
           SNOWI(I,JM)=SNOWI(1,JM)
           TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
           RSI(I,JM)=RSI(1,JM)
           MSI(I,JM)=MSI(1,JM)
           HSI(:,I,JM)=HSI(:,1,JM)
           SSI(:,I,JM)=SSI(:,1,JM)
+#ifdef TRACERS_WATER
+          TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
+#endif
           GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 C**** set ftype arrays
           FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
           FTYPE(ITOCEAN,I,JM)=FOCEAN(1,JM)-FTYPE(ITOICE ,I,JM)
-        END IF
-      END DO
+        END DO
+      END IF
       RETURN
 C****
 C**** CALCULATE DAILY OCEAN MIXED LAYER DEPTHS FROM CLIMATOLOGY
@@ -530,6 +533,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp,sss,ui2rho
+#ifdef TRACERS_WATER
+     *     ,gtracer
+      USE TRACER_COM, only : trw0
+#endif
       USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
       USE PARAM
@@ -607,6 +614,9 @@ C**** Set ftype array for oceans
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = 34.7d0
+#ifdef TRACERS_WATER
+          gtracer(:,1,i,j)=trw0(:)
+#endif          
         ELSE
           SSS(I,J) = 0.
         END IF

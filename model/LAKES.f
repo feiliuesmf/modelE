@@ -7,7 +7,7 @@
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
       USE MODEL_COM, only : IM,JM
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : trname,ntm
 #endif
       IMPLICIT NONE
       SAVE
@@ -68,7 +68,11 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       REAL*8, INTENT(INOUT), DIMENSION(NTM,2) :: TRLAKEL
       REAL*8, INTENT(IN), DIMENSION(NTM) :: TRUN0,TREVAP
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRO,TRI
-      REAL*8, DIMENSION(NTM) :: DTR2,TRUNO,TRUNI,TRF1,TRF2
+      REAL*8, DIMENSION(NTM) :: DTR2,TRUNO,TRUNI,TRF1,TRF2,FRAC
+#ifdef TRACERS_SPECIAL_O18
+      REAL*8 fracls
+      INTEGER N
+#endif      
 #endif
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
       REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
@@ -86,6 +90,12 @@ C**** Calculate heat and mass fluxes to lake
 #ifdef TRACERS_WATER
       TRUNO(:)=-TREVAP(:)
       TRUNI(:)= TRUN0(:)
+      FRAC(:)=1.
+#ifdef TRACERS_SPECIAL_O18
+      do n=1,ntm
+        FRAC(n)=fracls(trname(n)) ! fractionation when freezing
+      end do
+#endif      
 #endif
 
 C**** Bring up mass from second layer if required/allowed
@@ -142,8 +152,8 @@ C**** Calculate energy in mixed layer (under ice)
         END IF
       END IF
 #ifdef TRACERS_WATER
-      TRO(:)=ACEFO*TRLAKEL(:,1)/MLAKE(1)
-      TRI(:)=ACEFI*TRLAKEL(:,1)/MLAKE(1)
+      TRO(:)=ACEFO*FRAC(:)*TRLAKEL(:,1)/MLAKE(1)
+      TRI(:)=ACEFI*FRAC(:)*TRLAKEL(:,1)/MLAKE(1)
 #endif
 
 C**** Update first layer variables
@@ -192,8 +202,8 @@ C**** limit freezing if lake is between 50 and 20cm depth
         END IF
       END IF
 #ifdef TRACERS_WATER
-      TRF1(:) = ACEF1*TRLAKEL(:,1)/(MLAKE(1)+ACEF1)
-      TRF2(:) = ACEF2*TRLAKEL(:,2)/(MLAKE(2)+ACEF2+teeny)
+      TRF1(:) = ACEF1*FRAC(:)*TRLAKEL(:,1)/(MLAKE(1)+ACEF1)
+      TRF2(:) = ACEF2*FRAC(:)*TRLAKEL(:,2)/(MLAKE(2)+ACEF2+teeny)
       TRLAKEL(:,1)=TRLAKEL(:,1)-TRF1(:)
       TRLAKEL(:,2)=TRLAKEL(:,2)-TRF2(:)
 #endif
@@ -848,12 +858,12 @@ C**** convert kg/(source time step) to km^3/mon
                 TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
      *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
-     *               ))+teeny) -1.)
+     *               ))) -1.)
               else
                 TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM))
-     *               +teeny)
+     *               )
               end if
             END DO
             WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
@@ -864,7 +874,7 @@ C**** convert kg/(source time step) to km^3/mon
 
       RETURN
 C****
- 900  FORMAT ('0* River Outflow (km^3/mon) **  From:',I6,A6,I2,',  Hr'
+ 900  FORMAT ('1* River Outflow (km^3/mon) **  From:',I6,A6,I2,',  Hr'
      *     ,I3,6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X
      *     ,'Dif:',F7.2,' Days')
  901  FORMAT (' ',A8,':',F8.3,5X,A8,':',F8.3,5X,A8,':',F8.3,5X,
@@ -950,10 +960,10 @@ C**** Check conservation of water tracers in lake
             end if
           end do
           end do
-          print*,"Relative error in lake mass after ",subr,":",imax
-     *         ,jmax,errmax,trlake(n,:,imax,jmax),mldlk(imax,jmax)*rhow
-     *         *flake(imax,jmax)*dxyp(jmax),mwl(imax,jmax)-mldlk(imax
-     *         ,jmax)*rhow*flake(imax,jmax)*dxyp(jmax)
+          print*,"Relative error in lake mass after ",trim(subr),":"
+     *         ,imax,jmax,errmax,trlake(n,:,imax,jmax),mldlk(imax,jmax)
+     *         *rhow*flake(imax,jmax)*dxyp(jmax),mwl(imax,jmax)
+     *         -mldlk(imax,jmax)*rhow*flake(imax,jmax)*dxyp(jmax)
         end if
       end do
 #endif

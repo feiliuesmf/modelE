@@ -152,8 +152,13 @@ C****        TML (M*M * KG TRACER/KG AIR)
 C**** Set defaults that are true for all tracers and layers
       ia_ijt    = ia_src
       ir_ijt(:) = ir_log2   !n
-      ijtc_power(:) = ntm_power(:)+1   !n for concentration
       ijtm_power(:) = ntm_power(:)+4   !n for integrated mass
+      do n=1,ntm
+        ijtc_power(n) = ntm_power(n)+1 !n for concentration
+#ifdef TRACERS_WATER
+        if (to_per_mil(n) .eq.1) ijtc_power(n) = 0
+#endif
+      end do
 C**** Tracer concentrations (AIJLN)
       do n=1,ntm
       do l=1,lm
@@ -161,9 +166,6 @@ C**** Tracer concentrations (AIJLN)
         write(lname_ijt(l,n),'(a,i2)')   trim(TRNAME(n))//' L ',l
         units_ijt(l,n) = unit_string(ijtc_power(n),cmr(n))
         scale_ijt(l,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
-#ifdef TRACERS_WATER
-        if (to_per_mil(n) .eq.1) units_ijt(l,n)=unit_string(0,cmr(n))
-#endif
       end do
       end do
 
@@ -194,9 +196,8 @@ C**** Surface concentration
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/dble(NIsurf)
 #ifdef TRACERS_WATER
-C**** the following diagnostics are only set if the particular tracer
-C**** exists in water. (WHAT ABOUT SOLUBLE GAS?)
-      if (tr_wd_TYPE(n).eq.nWater) then  
+C**** the following diagnostics are set assuming that the particular tracer
+C**** exists in water. 
 C**** Tracers in precipitation
       k = k+1
       tij_prec = k
@@ -219,16 +220,26 @@ C**** Tracers in river runoff
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_rvr'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in River Outflow'
-        units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        end if
 C**** Tracers in sea ice
       k = k+1
       tij_seaice = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_ice'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Sea Ice  x POICE'
-        units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        end if
 C**** Tracers conc. in ground component (ie. water or ice surfaces)
       k = k+1
       tij_grnd = k
@@ -241,7 +252,6 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
         end if
         scale_tij(k,n)=10.**(-ijtc_power(n)-3)/dble(NIsurf)
-      end if  
 #endif
       end do
 
@@ -269,6 +279,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
       REAL*8, DIMENSION(JM) :: dtracer
+      REAL*8 ftr1
 
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
@@ -307,14 +318,26 @@ c     *         *dtstep
 c        end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
 
-C**** Accumulate interactive sources as well
-        trflux1(:,:,n) = trflux1(:,:,n)+trsrfflx(:,:,n)
-
-C**** modify vertical moments        
+C**** modify vertical moments (only from non-interactive sources)
         trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
      *       *dtstep
         trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*trflux1(:,:,n)
      *       *dtstep
+
+C**** Accumulate interactive sources as well
+        trflux1(:,:,n) = trflux1(:,:,n)+trsrfflx(:,:,n)
+
+C**** Technically speaking the vertical moments should be modified here 
+C**** as well. But for consistency with water vapour we only modify
+C**** moments for dew.
+        do j=1,jm
+          do i=1,imaxj(j)
+            if (trsrfflx(i,j,n).lt.0 .and. trm(i,j,1,n).gt.0) then
+              ftr1=-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n)
+              trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
+            end if
+          end do
+        end do
       end do
 C****
       RETURN
@@ -533,23 +556,41 @@ c**** Interpolate two months of data to current day
 !@ver  1.0
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
+      USE SOMTQ_COM, only : qmom
       USE DYNAMICS, only : am
       USE GEOM, only : dxyp,imaxj
       USE TRACER_COM
       IMPLICIT NONE
-      LOGICAL QCHECKO
-      INTEGER I,J,L,N, imax,jmax,lmax
-      REAL*8 relerr, errmax
+      LOGICAL QCHECKT
+      INTEGER I,J,L,N,m, imax,jmax,lmax
+      REAL*8 relerr, errmax,errsc
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
       do n=1,ntm
-        CALL CHECK3(trm(1,1,1,n),IM,JM,LM,SUBR,trname(n)(1:3))
         CALL CHECK3(trmom(1,1,1,1,n),NMOM,IM,JM*LM,SUBR,
-     *       'X'//trname(n)(1:2))
+     *       'X'//trname(n))
+        CALL CHECK3(trm(1,1,1,n),IM,JM,LM,SUBR,trname(n))
 #ifdef TRACERS_WATER
-        CALL CHECK3(trwm(1,1,1,n),IM,JM,LM,SUBR,'W'//trname(n)(1:2))
+        CALL CHECK3(trwm(1,1,1,n),IM,JM,LM,SUBR,'WM'//trname(n))
 #endif
+
+C**** check for negative tracer amounts (if t_qlimit is set)
+        if (t_qlimit(n)) then
+          QCHECKT=.false.
+          do l=1,lm
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (trm(i,j,l,n).lt.0) then
+              write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
+     *             ,n) 
+              QCHECKT=.true.
+            end if
+          end do
+          end do
+          end do
+          if (QCHECKT) STOP "CHECKTR: Negative tracer amount"
+        end if
 
 C**** check whether air mass is conserved
         
@@ -566,7 +607,7 @@ C**** check whether air mass is conserved
           end do
           end do
           end do
-          print*,"Relative error in air mass after ",subr,":",imax
+          print*,"Relative error in air mass after ",trim(subr),":",imax
      *         ,jmax,lmax,errmax,trm(imax,jmax,lmax,n),am(lmax,imax
      *         ,jmax)*dxyp(jmax)
         end if
@@ -577,20 +618,32 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)
-            relerr=max(abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*dxyp(j))/
-     *           (q(i,j,l)*am(l,i,j)*dxyp(j)+teeny), abs(trwm(i,j,l,n)
-     *           -wm(i,j,l)*am(l,i,j)*dxyp(j))/max(trwm(i,j,l,n),wm(i,j
-     *           ,l)*am(l,i,j)*dxyp(j)))
-            if (relerr.gt.errmax .and. trwm(i,j,l,n).gt.1.) then
+            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*dxyp(j)
+            if (errsc.eq.0.) errsc=1.
+            relerr=abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*dxyp(j))/errsc
+            if (wm(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
+     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*dxyp(j))
+     *           /(wm(i,j,l)*am(l,i,j)*dxyp(j)))
+            if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
+     *           .gt.0 .and.trwm(i,j,l,n).eq.0))
+     *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
+     *           ,n),wm(i,j,l)*am(l,i,j)*dxyp(j) 
+            do m=1,nmom
+              relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*am(l,i,j
+     *             )*dxyp(j))/errsc)
+            end do
+            if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
             end if
           end do
           end do
           end do
-          print*,"Relative error in water mass after ",subr,":",imax
-     *         ,jmax,lmax,errmax,trm(imax,jmax,lmax,n),trwm(imax,jmax
-     *         ,lmax,n),q(imax,jmax,lmax)*am(lmax,imax,jmax)*dxyp(jmax)
-     *         ,wm(imax,jmax,lmax)*am(lmax,imax,jmax)*dxyp(jmax)
+          print*,"Relative error in water mass after ",trim(subr),":"
+     *         ,imax,jmax,lmax,errmax,trm(imax,jmax,lmax,n),q(imax,jmax
+     *         ,lmax)*am(lmax,imax,jmax)*dxyp(jmax),trwm(imax,jmax,lmax
+     *         ,n),wm(imax,jmax,lmax)*am(lmax,imax,jmax)*dxyp(jmax)
+     *         ,(trmom(m,imax,jmax,lmax,n),qmom(m,imax,jmax,lmax)
+     *         *am(lmax,imax,jmax)*dxyp(jmax),m=1,nmom)
         end if
 #endif
       end do

@@ -837,6 +837,10 @@ c**** tracer sums and means (no division by area)
         end do
 c**** ratios (i.e. per mil diags)
       else if (nmap.eq.3) then
+        if (index(lname,' x POICE') .gt. 0) then  ! ignore weighting
+          k1 = index(lname,' x ')
+          lname(k1:80)=''
+        end if
         do j=1,jm
         do i=1,im
           anum(i,j)=aij1(i,j)
