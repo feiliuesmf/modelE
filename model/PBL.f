@@ -79,6 +79,17 @@ c     real*8, dimension(n) :: u,v,t,q
       real*8, dimension(n,ntm) :: tr
 #endif
 
+C**** parameters for surface fluxes
+      !Hogstrom 1988:
+c     real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
+c     real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
+c    *     gamahs=7.8d0/sigma
+
+      ! Businger 1971:
+      real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
+      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
+     *     gamahs=4.7d0/sigma
+
 C***
 C***  Thread-Private Common
 C***
@@ -592,16 +603,6 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,nuh=0.395d0*nu,
      *     nuq=0.624d0*nu
 
-      !Hogstrom 1988:
-c     real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-c     real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
-c    *     gamahs=7.8d0/sigma
-
-      ! Businger 1971:
-      real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
-     *     gamahs=4.7/sigma
-
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
      *     ,lzgsbyz0h,lzgsbyz0q
@@ -719,10 +720,6 @@ c *********************************************************************
       real*8,  intent(in) :: z,ustar,tstar,qstar,z0m,z0h,z0q
       real*8,  intent(in) :: lmonin,tg,qg
       real*8,  intent(out) :: u,t,q
-
-      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
-     *     gamahs=4.7/sigma
 
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
      *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
@@ -2013,7 +2010,6 @@ c ----------------------------------------------------------------------
 !@ver   1.0
       implicit none
       real*8, parameter :: psistb=15.*radian, psiuns=5.*radian
-      real*8, parameter :: gammau=15.0d0, gammas=4.7d0
 
       integer, intent(in) :: n  !@var n array dimension
       real*8, dimension(n),intent(inout) :: u,v,z
@@ -2057,10 +2053,10 @@ c  set the wind magnitude to that given by similarity theory:
           zbyl=z(i)/lmonin
           z0byl=z0m/lmonin
           if (lmonin.gt.0.) then
-            dpsim=-gammas*(zbyl-z0byl)
+            dpsim=-gamams*(zbyl-z0byl)
             else
-            x  = (1.-gammau* zbyl)**0.25
-            x0 = (1.-gammau*z0byl)**0.25
+            x  = (1.-gamamu* zbyl)**0.25
+            x0 = (1.-gamamu*z0byl)**0.25
             dpsim=log((1.+x )*(1.+x )*(1.+x *x )/
      2               ((1.+x0)*(1.+x0)*(1.+x0*x0)))-
      3            2.*(atan(x)-atan(x0))
@@ -2133,10 +2129,7 @@ c  set the wind magnitude to that given by similarity theory:
       implicit none
       real*8, parameter :: degree=1./radian
 
-      real*8, parameter :: gammah=9.d0
-      real*8, parameter :: gammam=15.0d0
-      real*8, parameter :: sigmat=0.95d0
-      real*8, parameter :: betah=8./sigmat
+      real*8, parameter :: betah=8./sigma
       real*8, parameter :: betam=4.8d0
 
       integer, intent(in) :: n,itype,iter,jlat,ilong
@@ -2206,11 +2199,11 @@ c  set the wind magnitude to that given by similarity theory:
         dtdz=(t(i+1)-t(i))/dzh(i)
         dqdz=(q(i+1)-q(i))/dzh(i)
         if (lmonin.lt.0.) then
-          phim = 1./((1.-gammam*zhat(i)/lmonin)**0.25)
-          phih = sigmat/sqrt(1.-gammah*zhat(i)/lmonin)
+          phim = 1./((1.-gamamu*zhat(i)/lmonin)**0.25)
+          phih = sigma/sqrt(1.-gamahu*zhat(i)/lmonin)
           else
           phim = 1.+betam*zhat(i)/lmonin
-          phih = sigmat*(1.+betah*zhat(i)/lmonin)
+          phih = sigma*(1.+betah*zhat(i)/lmonin)
         endif
         dudzs=ustar*phim/(kappa*zhat(i))
         dtdzs=tstar*phih/(kappa*zhat(i))
