@@ -579,12 +579,12 @@ C**** set dimensions
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
       dim_name='p'; call def_dim_out(dim_name,lm)
+      dim_name='ple'; call def_dim_out(dim_name,lm-1)
       if(lm_req.gt.0) then
          dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
       endif
       dim_name='ple_up'; call def_dim_out(dim_name,lm)
       dim_name='ple_dn'; call def_dim_out(dim_name,lm)
-      dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
       dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
       dim_name='odepth'; call def_dim_out(dim_name,lm)
       dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
@@ -600,6 +600,9 @@ C**** set dimensions
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='p'; call wrtdarr(plm)
+      dim_name='ple'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='ple'; call wrtdarr(ple)
       if(lm_req.gt.0) then
          dim_name='prqt'; call set_dim_out(dim_name,1)
          units='mb'
@@ -611,9 +614,6 @@ C**** set dimensions
       dim_name='ple_dn'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='ple_dn'; call wrtdarr(ple_dn)
-      dim_name='ple_int'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_int'; call wrtdarr(ple)
       dim_name='pgz'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='pgz'; call wrtdarr(pmb(1:kgz_max))
@@ -701,7 +701,7 @@ C**** set dimensions
       else if(klmax.eq.lm .and. all(pm(1:lm).eq.ple_dn(1:lm))) then
          dim_name='ple_dn'
       else if(klmax.eq.lm-1 .and. all(pm(1:lm-1).eq.ple(1:lm-1))) then
-         dim_name='ple_int'
+         dim_name='ple'
       else if(klmax.eq.kgz_max) then
          dim_name='pgz'
       else if(klmax.eq.1) then
