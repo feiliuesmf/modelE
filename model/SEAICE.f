@@ -241,9 +241,9 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
      *     ,SROX,
 #ifdef TRACERS_WATER
-     *     TRSIL,TREVAP,FTROC,
+     *     TRSIL,TREVAP,FTROC,TRUN,
 #endif
-     *     FMOC,FHOC,FSOC,MELT12)
+     *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,MELT12)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
@@ -262,7 +262,9 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 !@var FSRI fraction of solar radiation that goes through the bottom
       REAL*8 :: FSRI(LMI)
 !@var FMOC,FHOC,FSOC basal fluxes down of mass,heat,salt (J or kg/m^2)
-      REAL*8, INTENT(INOUT) :: FMOC, FHOC, FSOC
+      REAL*8, INTENT(IN) :: FMOC, FHOC, FSOC
+!@var RUN,ERUN,SRUN runoff fluxes down of mass,heat,salt (J or kg/m^2)
+      REAL*8, INTENT(OUT) :: RUN,ERUN,SRUN
 !@var MELT12 amount of surface melting (kg/m^2) (Used for albedo calc)
       REAL*8, INTENT(OUT) :: MELT12
 #ifdef TRACERS_WATER
@@ -270,8 +272,10 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8, DIMENSION(NTM,LMI), INTENT(INOUT) :: TRSIL
 !@var TREVAP tracer amount in evap (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(IN) :: TREVAP
-!@var FTROC tracer flux to ocean (kg/m^2)
-      REAL*8, DIMENSION(NTM), INTENT(INOUT) :: FTROC
+!@var FTROC basal tracer flux to ocean (kg/m^2)
+      REAL*8, DIMENSION(NTM), INTENT(IN) :: FTROC
+!@var TRUN tracer runoff flux to ocean (kg/m^2)
+      REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRUN
       REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,
      *     TRMELT1,TRMLET2,TRMELT3,TRMELT4,TRDEW,TRMELT2
 #endif
@@ -343,13 +347,12 @@ c     *     (HC4+ALPHA*dF4dTI)
 c      FHOC=(dF4dTI*ALPHA*F3+HC4*(SROX(1)*FSRI(4)+FHOC))/
 c     *     (HC4+ALPHA*dF4dTI)
 C**** Add solar flux through bottom to basal heat flux already calculated
-      FHOC=SROX(1)*FSRI(4)+FHOC
       SROX(2) = SROX(1)*FSRI(4)
 
       HSIL(1) = HSIL(1)+(F0DT-F1DT)
       HSIL(2) = HSIL(2)+(F1DT-F2)
       HSIL(3) = HSIL(3)+(F2-F3)
-      HSIL(4) = HSIL(4)+(F3-FHOC)
+      HSIL(4) = HSIL(4)+(F3-SROX(2)-FHOC)
 
 C**** add basal salt flux 
       SSIL(4) = SSIL(4)-FSOC
@@ -495,13 +498,13 @@ C**** Apply the tracer fluxes
       TRSIL(:,4)=TRSIL(:,4)- TRMELT4(:)+ FTRSI3(:)
 #endif
 
-C**** Calculate net output fluxes 
-      FMOC = FMOC+MELT1+MELT2+MELT3+MELT4 ! mass flux to ocean
-      FSOC = FSOC+SMELT12+SMELT3+SMELT4   ! salt flux to ocean
+C**** Calculate additional runoff output fluxes 
+      RUN = MELT1+MELT2+MELT3+MELT4 ! mass flux to ocean
+      SRUN= SMELT12+SMELT3+SMELT4   ! salt flux to ocean
 c HMELT currently assumed to be zero since melting is at 0 deg 
-c     FHOC = FHOC+HMELT 
+      ERUN= SROX(2)        ! + HMELT 
 #ifdef TRACERS_WATER
-      FTROC(:)=FTROC(:)+TRMELT1(:)+TRMELT2(:)+TRMELT3(:)+TRMELT4(:) 
+      TRUN(:)=TRMELT1(:)+TRMELT2(:)+TRMELT3(:)+TRMELT4(:) 
                                 ! tracer flux to ocean
 #endif
 c Save MELT12 separately for albedo calculations
@@ -1276,7 +1279,8 @@ C**** Check for reasonable values for ice variables
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),sqrt(UI2RHO(I,J)
      *             /rhow)
-              QCHECKI = .TRUE.
+              if (HSI(L,I,J).gt.0.or.TICE.gt.0.01.or.TICE.lt.-80.)
+     *             QCHECKI = .TRUE.
             END IF
             IF (SSI(L,I,J).lt.0) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I

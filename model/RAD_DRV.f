@@ -449,7 +449,7 @@ C****
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
-     *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
+     *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
@@ -674,12 +674,12 @@ CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
          DO IT=1,NTYPE
            AJ(J,J_PCLDSS,IT)=AJ(J,J_PCLDSS,IT)+CSS  *FTYPE(IT,I,J)
            AJ(J,J_PCLDMC,IT)=AJ(J,J_PCLDMC,IT)+CMC  *FTYPE(IT,I,J)
-           AJ(J,J_CDLDEP,IT)=AJ(J,J_CDLDEP,IT)+DEPTH*FTYPE(IT,I,J)
+           AJ(J,J_CLDDEP,IT)=AJ(J,J_CLDDEP,IT)+DEPTH*FTYPE(IT,I,J)
            AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
          END DO
 CCC      AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
 CCC      AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
-CCC      AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+DEPTH*DXYP(J)
+CCC      AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+DEPTH*DXYP(J)
 CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
          AREGIJ(I,J,1)=CSS  *DXYP(J)
          AREGIJ(I,J,2)=CMC  *DXYP(J)
@@ -858,7 +858,7 @@ C
          JR=JREG(I,J)
          AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(I,J,1)
          AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(I,J,2)
-         AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+AREGIJ(I,J,3)
+         AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+AREGIJ(I,J,3)
          AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +AREGIJ(I,J,4)
          AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+AREGIJ(I,J,5)
          AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+AREGIJ(I,J,6)

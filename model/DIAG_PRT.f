@@ -1,11 +1,10 @@
       MODULE BDJ
 !@sum  stores information for outputting composite zonal diagnostics
 !@auth M. Kelley
-
       IMPLICIT NONE
-
-!@param nj_out number of j-format output fields = 10
-      integer, parameter :: nj_out=10
+      SAVE
+!@param nj_out number of j-format output fields = 11
+      integer, parameter :: nj_out=11
 !@var units string containing output field units
       CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS_J_O
 !@var lname string describing output field
@@ -16,6 +15,8 @@
       CHARACTER(LEN=16), DIMENSION(nj_out) :: STITLE_J_O
 !@var INUM_J_O,IDEN_J_O numerator and denominator for calculated J diags
       INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
+!@var SCALE_J_O scale for calculated J diags
+      REAL*8, DIMENSION(nj_out) :: SCALE_J_O
 
       END MODULE BDJ
 
@@ -25,7 +26,7 @@
 !@ver  1.0
       USE DAGCOM, only : j_srincp0,j_srnfp0,j_plavis,j_planir,j_srnfg
      *     ,j_srincg,j_albvis,j_albnir,j_srrvis,j_srrnir,j_sravis
-     *     ,j_sranir
+     *     ,j_sranir,j_clddep,j_pcldmc
       USE BDJ
       IMPLICIT NONE
       INTEGER :: K
@@ -42,6 +43,7 @@ c
       stitle_j_o(k)= ' PLANETARY ALBDO'
       inum_j_o(k)  = J_SRNFP0
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'plan_alb_vis'
@@ -50,6 +52,7 @@ c
       stitle_j_o(k)= ' PLAN ALB VISUAL'
       inum_j_o(k)  = J_PLAVIS
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'plan_alb_nir'
@@ -58,6 +61,7 @@ c
       stitle_j_o(k)= ' PLAN ALB NEARIR'
       inum_j_o(k)  = J_PLANIR
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'surf_alb'
@@ -66,6 +70,7 @@ c
       stitle_j_o(k)= ' SURFACE G ALBDO'
       inum_j_o(k)  = J_SRNFG
       iden_j_o(k)  = J_SRINCG
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'surf_alb_vis'
@@ -74,6 +79,7 @@ c
       stitle_j_o(k)= ' SURF ALB VISUAL'
       inum_j_o(k)  = J_ALBVIS
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'surf_alb_nir'
@@ -82,6 +88,7 @@ c
       stitle_j_o(k)= ' SURF ALB NEARIR'
       inum_j_o(k)  = J_ALBNIR
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'atm_alb_vis'
@@ -90,6 +97,7 @@ c
       stitle_j_o(k)= '0ATMO ALB VISUAL'
       inum_j_o(k)  = J_SRRVIS
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'atm_alb_nir'
@@ -98,6 +106,7 @@ c
       stitle_j_o(k)= ' ATMO ALB NEARIR'
       inum_j_o(k)  = J_SRRNIR
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'atm_abs_vis'
@@ -106,6 +115,7 @@ c
       stitle_j_o(k)= ' ATMO ABS VISUAL'
       inum_j_o(k)  = J_SRAVIS
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
 c
       k = k + 1
       name_j_o(k) = 'atm_abs_nir'
@@ -114,138 +124,53 @@ c
       stitle_j_o(k)= ' ATMO ABS NEARIR'
       inum_j_o(k)  = J_SRANIR
       iden_j_o(k)  = J_SRINCP0
+      scale_j_o(k) = 100.
+c
+      k = k + 1
+      name_j_o(k) = 'mc_clddp'
+      lname_j_o(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
+      units_j_o(k) = 'mb'
+      stitle_j_o(k)= ' MC CLD DPTH(MB)'
+      inum_j_o(k)  = J_CLDDEP
+      iden_j_o(k)  = J_PCLDMC
+      scale_j_o(k) = 1.
 
       RETURN
       END SUBROUTINE J_TITLES
 
-
       SUBROUTINE DIAGJ
-C****
-C**** THIS ROUTINE PRODUCES AREA WEIGHTED STATISTICS OF
-C****
-C   K   N
-C****
-C***1   1  SOLAR RADIATION INCIDENT ON PLANET (W/M**2)
-C****
-C**1A   2/1  PLANETARY ALBEDO (10**-2)
-C**1B  72/1  PLANETARY ALBEDO VISUAL (10**-2)
-C**1C  73/1  PLANETARY ALBEDO NEAR IR (10**-2)
-C**1D   6/5  GROUND ALBEDO (10**-2)
-C**1E  74/1  GROUND ALBEDO VISUAL (10**-2)
-C**1F  75/1  GROUND ALBEDO NEAR IR (10**-2)
-C**1G  76/1  ATMOSPHERIC ALBEDO VISUAL (10**-2)
-C**1H  77/1  ATMOSPHERIC ALBEDO NEAR IR (10**-2)
-C**1I  78/1  ATMOSPHERIC ABSORPTION VISUAL (10**-2)
-C**1J  79/1  ATMOSPHERIC ABSORPTION NEAR IR (10**-2)
-C****
-C***2   2  SOLAR RADIATION ABSORBED BY PLANET (W/M**2)
-C***3   3  SOLAR RADIATION ABSORBED BELOW PTOP (W/M**2)
-C***4   4  SOLAR RADIATION ABSORBED BY ATMOSPHERE (W/M**2)
-C***5   5  SOLAR RADIATION INCIDENT ON GROUND (W/M**2)
-C***6   6  SOLAR RADIATION ABSORBED BY GROUND (W/M**2)
-C***7   7  THERMAL RADIATION EMITTED BY PLANET (W/M**2)
-C***8   8  THERMAL RADIATION AT PTOP (W/M**2)
-C***9   9  THERMAL RADIATION EMITTED BY GROUND (W/M**2)
-C**10  67  THERMAL RADIATION INCIDENT ON GROUND (W/M**2)
-C****
-C**11  55  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-TF)
-C****  10  NET RADIATION ABSORBED BY PLANET (W/M**2)
-C****  11  NET RADIATION ABSORBED BELOW PTOP (W/M**2)
-C****  12  NET RADIATION ABSORBED BY GROUND (W/M**2)
-C****  81  NET CLEAR SKY RADIATION AT P0 W/M**2
-C****  82  NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO) W/M**2
-C****  83  NET RADIATION AT TROPOPAUSE (WMO) W/M**2
-C****  13  SENSIBLE HEAT FLUX INTO THE GROUND (W/M**2)
-C****  14  EVAPORATION HEAT FLUX INTO THE GROUND (W/M**2)
-C****  39  PRECIPITATION HEAT FLUX INTO THE GROUND (W/M**2)
-C****
-C**21  40  HEAT RUNOFF FROM FIRST GROUND LAYER (W/M**2)
-C****  44  NET HEATING AT Z0 (W/M**2)
-C****  42  CONDUCTION AT -Z1 (W/M**2)
-C****  41  HEAT OF WATER OR ICE DUFFUSION AT -Z1 (W/M**2)
-C****  16  NET HEATING AT -Z1 (W/M**2)
-C****  15  CONDUCTION AT -Z1-Z2 (W/M**2)
-C****  43  ENERGY OF ICE MELTING (OR TRANSPORTING) AT -Z1-Z2 (W/M**2)
-C****  56  NET HEATING AT -Z1-Z2 (W/M**2)
-C****  33  OCEAN TRANSPORT (W/M**2)
-C****  48  HEAT RUNOFF THROUGH THE MIXED LAYER DEPTH (W/M**2)
-C****
-C**31  68  ENERGY DIFFUSION INTO THE THERMOCLINE (W/M**2)
-C****  18  MEAN TEMPERATURE OF FIRST GROUND LAYER (.1 K-TF)
-C****  17  MEAN TEMPERATURE OF SECOND GROUND LAYER (.1 K-TF)
-C****  34  OCEAN TEMPERATURE AT THE MAXIMUM MIXED LAYER DEPTH
-C****  23  SURFACE AIR TEMPERATURE (.1 K-TF)
-C****  22  FIRST LAYER AIR TEMPERATURE (.1 K-TF)
-C****  21  COMPOSITE AIR TEMPERATURE (.1 K-TF)
-C****  35  STRATO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
-C****  36  TROPO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
-C****  24  STRATOSPHERIC STATIC STABILITY (10**-3 K/M)
-C****
-C**41  25  TROPOSPHERIC STATIC STABILITY (10**-3 K/M)
-C****  26  STRATOSPHERIC RICHARDSON NUMBER (1)
-C****  27  TROPOSPHERIC RICHARDSON NUMBER (1)
-C****  28  STRATOSPHERIC ROSSBY NUMBER (1)
-C****  29  TROPOSPHERIC ROSSBY NUMBER (1)
-C****  37  L IN THE STRATOSPHERE (10**5 M)
-C****  38  L IN THE TROPOSPHERE (10**5 M)
-C****  64  GAM  (10**-3 K/M)
-C****  65  GAMM  (10**-3 K/M)
-C****  66  GAMC  (10**-3 K/M)
-C****
-C**51  57  INTEGRATED SUPER-SATURATION CLOUD COVER (10**-2)
-C****  58  INTEGRATED MOIST CONVECTIVE CLOUD COVER (10**-2)
-C****  59  INTEGRATED TOTAL CLOUD COVER (10**-2)
-C****  60  MOIST CONVECTIVE CLOUD DEPTH (100 N)
-C****  61  SUPER SATURATION PRECIPITATION (KG/M**2/86400 S)
-C****  62  MOIST CONVECTIVE PRECIPITATION (KG/M**2/86400 S)
-C****  20  PRECIPITATION (KG/M**2/86400 S)
-C****  19  EVAPORATION (KG/M**2/86400 S)
-C****  63  WATER CONTENT OF ATMOSPHERE (KG/M**2)
-C****  54  WATER RUNOFF AT Z0 (KG/M**2/86400 S)
-C****
-C**61  45  WATER OR ICE DIFFUSION AT -Z1 (KG/M**2/86400 S)
-C****  46  ICE MELTING (OR TRANSPORTING) AT -Z1-Z2 (KG/M**2/86400 S)
-C****  47  WATER RUNOFF THROUGH MIXED LAYER DEPTH (KG/M**2/86400 S)
-C****  49  WATER CONTAINED IN FIRST GROUND LAYER (KG/M**2)
-C****  50  ICE CONTAINED IN FIRST GROUND LAYER (KG/M**2)
-C****  51  WATER CONTAINED IN SECOND GROUND LAYER (KG/M**2)
-C****  52  ICE CONTAINED IN SECOND GROUND LAYER (KG/M**2)
-C****  53  SNOW DEPTH (KG/M**2)
-C****  31  SNOW COVER (10**-2)
-C****  30  OCEAN ICE COVER (10**-2)
-C**71  69  SURFACE TYPE FRACTION (1)
-C****
-      USE CONSTANT, only :
-     &     grav,rgas,sday,omega,kapa,bygrav
-      USE MODEL_COM, only :
-     &     im,jm,lm,fim,flice,
+!@sum DIAGJ produces area weighted statistics of zonal budget diags
+!@+   based on settings and quantities found in j_defs
+!@auth G. Schmidt/R. Reto/G. Russell
+      USE CONSTANT, only : teeny
+      USE MODEL_COM, only : im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
-      USE GEOM, only :
-     &     dxyp,lat,LAT_DG
+      USE GEOM, only : dxyp,lat,lat_dg
       USE DAGCOM, only :
      &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
-     &     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
-     &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
-     &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
-     &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type,
-     *     scale_j,stitle_j,lname_j,name_j,units_j
+     &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
+     *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
+     *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
+     *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
+     *     k_j_out
       USE BDJ
       IMPLICIT NONE
-      SAVE
-      DOUBLE PRECISION, DIMENSION(JM) ::
-     &     CONTJ,CONTO,CONTL,CONTOI,S1,FLAT
+      DOUBLE PRECISION, DIMENSION(JM), SAVE ::S1
+      DOUBLE PRECISION, DIMENSION(NREG), SAVE :: SAREA
+      DOUBLE PRECISION, DIMENSION(JM) :: CONTJ,CONTO,CONTL,CONTOI,S1
+     *     ,FLAT
       DOUBLE PRECISION, DIMENSION(NTYPE,JM) :: SPTYPE
-      INTEGER, DIMENSION(JM) :: MLAT
-      DOUBLE PRECISION, DIMENSION(NREG) :: SAREA
-      INTEGER, DIMENSION(2) :: MHEM
       DOUBLE PRECISION, DIMENSION(2) :: FHEM
-      INTEGER III
+      INTEGER, DIMENSION(JM) :: MLAT
+      INTEGER, DIMENSION(2) :: MHEM
+      LOGICAL QALB
+      INTEGER, PARAMETER :: INC=1+(JM-1)/24,JMHALF=JM/2
 !@param NTYPE_OUT number of output budgets pages
       INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+2  ! to include composites
 C**** Expanded version of surfaces (including composites)
 !@var TERRAIN name of surface type
-      CHARACTER*16, DIMENSION(0:NTYPE_OUT) :: TERRAIN = (/
+      CHARACTER*16, DIMENSION(0:NTYPE_OUT), PARAMETER :: TERRAIN = (/
      *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
      *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
      *     '     (LAKES)'/)
@@ -256,43 +181,38 @@ C**** Arrays needed for full output
       CHARACTER*30, DIMENSION(KAJ) :: SNAMEO
       CHARACTER*50, DIMENSION(KAJ) :: UNITSO
 C**** weighting functions for surface types
-      DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE) ::
-     *     WT=RESHAPE(          ! seperate types + composites
+      DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE), PARAMETER ::
+     *     WT=RESHAPE(          ! separate types + composites
      *     (/1.,1.,0.,1.,0.,0.,0.,0.,0., 1.,0.,1.,1.,0.,0.,0.,0.,0.,
      *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
      *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
      *     (/NTYPE_OUT+1,NTYPE/) )
-      INTEGER, DIMENSION(71) :: NDEX = (/
-     *  1,2,3,4,5,6,7,8,9,67,           55,10,11,12,81,82,83,13,14,39,
-     *     40,44,
-     *  42,41,16,15,43,56,33,48,68,18,  17,34,23,22,21,35,36,24,25,26,
-     *  27,28,29,37,38,64,65,66,57,58,  59,60,61,62,20,19,63,54,45,46,
-     *  47,49,50,51,52,53,31,30,69/)
+!@var DERPOS character array that determines where derived arrays go
+!@var NDERN how many of the derived arrays go in
+      INTEGER, DIMENSION(2), PARAMETER ::  ! currently only two points  
+     *     NDERN = (/10, 1/)    ! 10 rad/alb diags and 1 cld diag
+      CHARACTER*20, DIMENSION(2), PARAMETER ::
+     *     DERPOS = (/'inc_sw','totcld'/)
 
-      DOUBLE PRECISION :: A1BYA2,A2BYA1,AMULT,BYA1,BYIACC,
-     &     FGLOB,GSUM,GSUM2,GWT,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
+      DOUBLE PRECISION :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
+     *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX 
+      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
+      INTEGER, SAVE :: IFIRST = 1
 
-      INTEGER :: I,IACC,INC,J,JH,JHEMI,JMHALF,JR,K,KA,KD1M,M,MD,N,ND,NN
-     *     ,IT
-      INTEGER :: IFIRST = 1
       IF (IFIRST.EQ.1) THEN
-      IFIRST=0
+        IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES
-      call j_titles
-      KD1M=71  ! was 68, now includes J_TYPE,J_CLRTOA,J_CLRTPR,J_TOTTRP
-               ! removed J_SWCOR
-      INC=1+(JM-1)/24
-      JMHALF=JM/2
-      SAREA=0.
-      DO J=1,JM
-        S1(J)=IM
-        DO I=1,IM
-          JR=JREG(I,J)
-          SAREA(JR)=SAREA(JR)+DXYP(J)
+        call j_titles
+        SAREA=0.
+        DO J=1,JM
+          S1(J)=IM
+          DO I=1,IM
+            JR=JREG(I,J)
+            SAREA(JR)=SAREA(JR)+DXYP(J)
+          END DO
         END DO
-      END DO
-      S1(1)=1.
-      S1(JM)=1.
+        S1(1)=1.
+        S1(JM)=1.
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  ! the +1 is because types dimensioned 0:ntype_out
@@ -300,9 +220,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
      *     ,ntype_out+1,jm,lat_dg)
 
 C**** CALCULATE THE DERIVED QUANTTIES
-      BYA1=1./(IDACC(1)+1.D-20)
+      BYA1=1./(IDACC(1)+teeny)
       A2BYA1=DFLOAT(IDACC(2))/DFLOAT(IDACC(1))
-      A1BYA2=IDACC(1)/(IDACC(2)+1.D-20)
+      A1BYA2=IDACC(1)/(IDACC(2)+teeny)
       DO JR=1,23 ! only 23 will fit on a green sheet
         AREG(JR,J_TRNFP0)=AREG(JR,J_HSURF)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
         AREG(JR,J_TRNFP1)=AREG(JR,J_HATM)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
@@ -311,31 +231,25 @@ C**** CALCULATE THE DERIVED QUANTTIES
         AREG(JR,J_RNFP1) =AREG(JR,J_SRNFP1)+AREG(JR,J_TRNFP1)
         AREG(JR,J_RHDT)  =A1BYA2*AREG(JR,J_SRNFG)*DTSRC+AREG(JR,J_TRHDT)
         AREG(JR,J_PRCP)  =AREG(JR,J_PRCPSS)+AREG(JR,J_PRCPMC)
-        AREG(JR,J_HZ1)   =AREG(JR,J_EDIFS)+AREG(JR,J_F1DT)
-        AREG(JR,J_HZ0)   =AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+
-     *       AREG(JR,J_EVHDT)+AREG(JR,J_EPRCP)-AREG(JR,J_ERUN1)
-        AREG(JR,J_HZ2)   =AREG(JR,J_F2DT)+AREG(JR,J_ERUN2)
-        AREG(JR,J_CTOPP) =IDACC(2)*SAREA(JR)*AREG(JR,J_CDLDEP)/
-     *       (AREG(JR,J_PCLDMC)+1.D-20)
+        AREG(JR,J_HZ0)=AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+
+     *                 AREG(JR,J_EVHDT)+AREG(JR,J_EPRCP)
+        AREG(JR,J_HZ1)=AREG(JR,J_HZ0)+AREG(JR,J_ERVR)
+        AREG(JR,J_HZ2)=AREG(JR,J_HZ1)-AREG(JR,J_ERUN)-AREG(JR,J_IMPLH)
       END DO
       DO J=1,JM
       DO IT=1,NTYPE
         SPTYPE(IT,J) =AJ(J,J_TYPE,IT)*BYA1
         AJ(J,J_TRNFP0,IT)=AJ(J,J_HSURF,IT)+A2BYA1*AJ(J,J_TRHDT,IT)/DTSRC
         AJ(J,J_TRNFP1,IT)=AJ(J,J_HATM,IT) +A2BYA1*AJ(J,J_TRHDT,IT)/DTSRC
-c       AJ(J,J_SWCOR,IT) =(1.-SRCOR)*AJ(J,J_SRNFG,IT)   !obsolete
         AJ(J,J_SRABS ,IT)=AJ(J,J_SRNFP0,IT)-AJ(J,J_SRNFG,IT)
         AJ(J,J_RNFP0 ,IT)=AJ(J,J_SRNFP0,IT)+AJ(J,J_TRNFP0,IT)
         AJ(J,J_RNFP1 ,IT)=AJ(J,J_SRNFP1,IT)+AJ(J,J_TRNFP1,IT)
         AJ(J,J_RHDT  ,IT)=A1BYA2*AJ(J,J_SRNFG,IT)*DTSRC+AJ(J,J_TRHDT,IT)
         AJ(J,J_PRCP  ,IT)=AJ(J,J_PRCPSS,IT)+AJ(J,J_PRCPMC,IT)
-        AJ(J,J_HZ1   ,IT)=AJ(J,J_EDIFS,IT)+AJ(J,J_F1DT,IT)
-        AJ(J,J_HZ0   ,IT)=AJ(J,J_RHDT,IT)+AJ(J,J_SHDT,IT)+
-     *       AJ(J,J_EVHDT,IT)+AJ(J,J_EPRCP,IT)-AJ(J,J_ERUN1,IT)
-        AJ(J,J_HZ2,   IT)=AJ(J,J_F2DT,IT)+AJ(J,J_ERUN2,IT)
-C**** this is incorrect: ratios should not be summed over type
-        AJ(J,J_CTOPP,IT) =IDACC(2)*SPTYPE(IT,J)*AJ(J,J_CDLDEP,IT)/
-     *       (AJ(J,J_PCLDMC,IT)+1.D-20)
+        AJ(J,J_HZ0,IT)=AJ(J,J_RHDT,IT)+AJ(J,J_SHDT,IT)+
+     *                 AJ(J,J_EVHDT,IT)+AJ(J,J_EPRCP,IT)
+        AJ(J,J_HZ1,IT)=AJ(J,J_HZ0,IT)+AJ(J,J_ERVR,IT)
+        AJ(J,J_HZ2,IT)=AJ(J,J_HZ1,IT)-AJ(J,J_ERUN,IT)-AJ(J,J_IMPLH,IT)
       END DO
       END DO
       DAYS=(Itime-Itime0)/DFLOAT(nday)
@@ -350,8 +264,9 @@ C****
 
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
-      DO K=1,KD1M
-      N=NDEX(K)
+      NDER=1
+      KDER=1
+      DO N=1,k_j_out
       IACC=IDACC(IA_J(N))
 C**** set weighting for denominator (different only for J_TYPE)
       MD=M
@@ -372,56 +287,53 @@ C**** Sum over types
           END DO
           QJ=QJ*SCALE_J(N)
           WTX=WTX*IACC
-          FLAT(J)=QJ/(WTX+1.D-20)
+          FLAT(J)=QJ/(WTX+teeny)
           MLAT(J)=NINT(FLAT(J))
           HSUM=HSUM+QJ*DXYP(J)*(FIM+1.-S1(J))
           HWT=HWT+WTX*DXYP(J)*(FIM+1.-S1(J))
         END DO
-        FHEM(JHEMI)=HSUM/(HWT+1.D-20)
+        FHEM(JHEMI)=HSUM/(HWT+teeny)
         GSUM=GSUM+HSUM
         GWT=GWT+HWT
       END DO
-      FGLOB=GSUM/(GWT+1.D-20)
+      FGLOB=GSUM/(GWT+teeny)
       IF (M.EQ.0) CALL KEYDJ (N,FGLOB,FHEM(2))
 C**** Save BUDG for full output
-      BUDG(1:JM,K)=FLAT(1:JM)
-      BUDG(JM+1,K)=FHEM(1)
-      BUDG(JM+2,K)=FHEM(2)
-      BUDG(JM+3,K)=FGLOB
-      TITLEO(K)=STITLE_J(N)
-      LNAMEO(K)=LNAME_J(N)
-      SNAMEO(K)=NAME_J(N)
-      UNITSO(K)=UNITS_J(N)
+      BUDG(1:JM,N)=FLAT(1:JM)
+      BUDG(JM+1,N)=FHEM(1)
+      BUDG(JM+2,N)=FHEM(2)
+      BUDG(JM+3,N)=FGLOB
+      TITLEO(N)=STITLE_J(N)
+      LNAMEO(N)=LNAME_J(N)
+      SNAMEO(N)=NAME_J(N)
+      UNITSO(N)=UNITS_J(N)
 C**** select output format depending on field name
       SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
-      CASE ('sstab_trop','SWCOR')
+      CASE ('sstab_trop')
         WRITE (6,906) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
       CASE ('evap','prec','ross_num_strat','ross_num_trop'
-     *       ,'ross_radius_strat','ross_radius_trop','ht_runoff_z0'
-     *       ,'h2o_difs_z1','ice_thru_z1z2','h2o_runoff_mld'
-     *       ,'ht_runoff_mld','wat_runoff_z0','ssprec','mcprec'
+     *       ,'ross_radius_strat','ross_radius_trop','ht_runoff'
+     *       ,'river_discharge','ice_melt','impl_m_flux','ht_rvr_disch',
+     *       'wat_runoff','ssprec','mcprec'
      *       ,'lapse_rate','lapse_rate_m','lapse_rate_c'
-     *       ,'ht_thermocline')
+     *       ,'ht_thermocline','salt_runoff','s_ice_melt')
         WRITE (6,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (FLAT(J),J=JM,INC,-INC)
-      CASE ('ht_cond_z1z2','net_ht_z1','ocn_ht_trans','prec_ht_flx'
-     *       ,'ht_wtr_difs_z1','ht_cond_z1','ht_ice_z1z2','nt_ht_z0'
-     *       ,'net_ht_z1z2')
+      CASE ('ocn_ht_trans','prec_ht_flx','ht_ice_melt')
         WRITE (6,912) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
       CASE DEFAULT
         WRITE (6,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
       END SELECT
-      IF (N.EQ.1) THEN
-C**** CALCULATE AND PRINT ALBEDOS
-      DO KA=1,nj_out
+      IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
+C**** CALCULATE AND PRINT DERIVED RATIOS
+      DO KA=KDER,KDER+NDERN(NDER)-1 
         NN=INUM_J_O(KA)
         ND=IDEN_J_O(KA)
-        AMULT=1.
-        IF (name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
-     *       AMULT=-1.
+C**** differentiate normal ratios from albedo calculations
+        QALB=(name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
         GSUM=0.
         GSUM2=0.
         DO JHEMI=1,2
@@ -436,36 +348,48 @@ C**** Sum over types
               QNUM=QNUM+WT(M,IT)*AJ(J,NN,IT)
               QDEN=QDEN+WT(M,IT)*AJ(J,ND,IT)
             END DO
-            FLAT(J)=AMULT*(100.*QNUM/(QDEN+1.D-20)-50.)+50.
+            QNUM=QNUM*SCALE_J_O(KA)
+            FLAT(J)=QNUM/(QDEN+teeny)
+            if (QALB) FLAT(J)=100.-FLAT(J)
             MLAT(J)=FLAT(J)+.5
             HSUM=HSUM+QNUM*DXYP(J)*(FIM+1.-S1(J))
             HSUM2=HSUM2+QDEN*DXYP(J)*(FIM+1.-S1(J))
           END DO
-          FHEM(JHEMI)=50.+AMULT*(100.*HSUM/(HSUM2+1.D-20)-50.)
+          FHEM(JHEMI)=HSUM/(HSUM2+teeny)
+          if (QALB) FHEM(JHEMI)=100.-FHEM(JHEMI)
           GSUM=GSUM+HSUM
           GSUM2=GSUM2+HSUM2
         END DO
-        FGLOB=50.+AMULT*(100.*GSUM/(GSUM2+1.D-20)-50.)
+        FGLOB=GSUM/(GSUM2+teeny)
+        if (QALB) FGLOB=100.-FGLOB
         IF (M.EQ.0.AND.name_j_o(ka).eq.'plan_alb') CALL KEYDJA (FGLOB)
 C**** Save BUDG for full output
-      BUDG(1:JM,KA+KD1M)=FLAT(1:JM)
-      BUDG(JM+1,KA+KD1M)=FHEM(1)
-      BUDG(JM+2,KA+KD1M)=FHEM(2)
-      BUDG(JM+3,KA+KD1M)=FGLOB
-      TITLEO(KA+KD1M)=STITLE_J_O(KA)
-      LNAMEO(KA+KD1M)=LNAME_J_O(KA)
-      SNAMEO(KA+KD1M)=NAME_J_O(KA)
-      UNITSO(KA+KD1M)=UNITS_J_O(KA)
+      BUDG(1:JM,KA+k_j_out)=FLAT(1:JM)
+      BUDG(JM+1,KA+k_j_out)=FHEM(1)
+      BUDG(JM+2,KA+k_j_out)=FHEM(2)
+      BUDG(JM+3,KA+k_j_out)=FGLOB
+      TITLEO(KA+k_j_out)=STITLE_J_O(KA)
+      LNAMEO(KA+k_j_out)=LNAME_J_O(KA)
+      SNAMEO(KA+k_j_out)=NAME_J_O(KA)
+      UNITSO(KA+k_j_out)=UNITS_J_O(KA)
 C****
-      WRITE (6,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
-     *     (MLAT(J),J=JM,INC,-INC)
+      SELECT CASE (name_j_o(ka))
+      CASE ('mc_clddp')
+        WRITE (6,907) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+     *       (MLAT(J),J=JM,INC,-INC)
+      CASE DEFAULT
+        WRITE (6,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+     *       (MLAT(J),J=JM,INC,-INC)
+      END SELECT
       END DO
+      KDER=KDER+NDERN(NDER)
+      NDER=NDER+1
       END IF
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
-      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,KD1M+10
-     *     ,TERRAIN(M),M+1) ! the +1 is because M starts at 0
+      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out 
+     *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
       IF (KDIAG(1).GT.1) RETURN
       END DO
       if(qdiag) call close_j
@@ -477,43 +401,48 @@ C****
       WRITE (6,902) '   (REGIONS)    ',JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
       WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
-      DO K=1,KD1M
-      N=NDEX(K)
-      BYIACC=1./(IDACC(IA_J(N))+1.D-20)
+      NDER=1
+      KDER=1
+      DO N=1,k_j_out
+      BYIACC=1./(IDACC(IA_J(N))+teeny)
       DO JR=1,23
         FLAT(JR)=AREG(JR,N)*SCALE_J(N)*BYIACC/SAREA(JR)
         MLAT(JR)=NINT(FLAT(JR))
       END DO
-CF       DO 523 J=1,23
-CF523    RBUDG(J,K)=FLAT(J)
 C**** select output format based on field name
       SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
-      CASE ('evap','prec','sstab_trop','ross_num_strat','ross_num_trop',
-     *     'ocn_lak_ice_frac','snow_cover','SWCOR','ross_radius_strat'
-     *     ,'ross_radius_trop','ht_runoff_z0','h2o_difs_z1'
-     *     ,'ice_thru_z1z2','h2o_runoff_mld','ht_runoff_mld','wat_g1'
-     *     ,'ice_g1','snowdp','wat_runoff_z0','ssprec','mcprec','atmh2o'
-     *     ,'lapse_rate','lapse_rate_m','lapse_rate_c','ht_thermocline')
+      CASE ('evap','prec','ocn_lak_ice_frac','snow_cover'
+     *     ,'ht_ice_melt','impl_m_flux','impl_ht'
+     *     ,'ice_melt','ht_runoff','wat_g1','river_discharge'
+     *     ,'ht_rvr_disch','ice_g1','snowdp','wat_runoff','ssprec'
+     *     ,'mcprec','atmh2o','ht_thermocline','salt_runoff'
+     *     ,'s_ice_melt')
         WRITE (6,910) STITLE_J(N),(FLAT(JR),JR=1,23)
+      CASE ('sstab_trop','sstab_strat','ross_num_strat'
+     *       ,'ross_num_trop','ross_radius_strat','ross_radius_trop'
+     *       ,'surf_type_frac','lapse_rate','lapse_rate_m'
+     *       ,'lapse_rate_c','rich_num_trop','rich_num_strat'
+     *       ,'dtdlat_strat','dtdlat_trop')
+        CONTINUE     ! no output for not-calculated quantities
       CASE DEFAULT
         WRITE (6,909) STITLE_J(N),(MLAT(JR),JR=1,23)
       END SELECT
-      IF (N.EQ.1) THEN ! do albedo printout next
-C**** CALCULATE AND PRINT ALBEDOS FOR REGIONAL STATISTICS
-      DO KA=1,nj_out
+      IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
+C**** CALCULATE AND PRINT DERIVED RATIOS FOR REGIONAL STATISTICS
+      DO KA=KDER,KDER+NDERN(NDER)-1 
         NN=INUM_J_O(KA)
         ND=IDEN_J_O(KA)
-        AMULT=1.
-        IF (name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
-     *       AMULT=-1.
+C**** differentiate normal ratios from albedo calculations
+        QALB=(name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
         DO JR=1,23
-          FLAT(JR)=AMULT*(100.*AREG(JR,NN)/(AREG(JR,ND)+1.D-20)-50.)+50.
+          FLAT(JR)=SCALE_J_O(KA)*AREG(JR,NN)/(AREG(JR,ND)+teeny)
+          IF (QALB) FLAT(JR)=100.-FLAT(JR)
           MLAT(JR)=FLAT(JR)+.5
         END DO
-CF       DO 613 J=1,23
-CF613    RBUDG(J,KA+KD1M)=FLAT(J)
         WRITE (6,909) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
       END DO
+      KDER=KDER+NDERN(NDER)
+      NDER=NDER+1
       END IF
       END DO
       WRITE (6,905)
@@ -521,18 +450,17 @@ CF613    RBUDG(J,KA+KD1M)=FLAT(J)
       RETURN
 C****
   901 FORMAT ('1',A)
-  902 FORMAT ('0** BUDGETS',A16,'**   From:',I6,A6,I2,',  Hr',I3,
+  902 FORMAT ('0** BUDGETS ',A16,'**  From:',I6,A6,I2,',  Hr',I3,
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
      *  'Dif:',F7.2,' Days')
-  903 FORMAT ('0',131('-')/20X,'G     NH    SH  ',24I4)
-  904 FORMAT (A16,3I6,2X,24I4)
+  903 FORMAT ('0',131('-')/20X,'G      NH     SH   ',24I4)
   905 FORMAT (1X,131('-'))
-  906 FORMAT (A16,3F6.1,2X,24F4.1)
-  907 FORMAT (A16,3F6.1,2X,24I4)
+  906 FORMAT (A16,3F7.2,2X,24F4.1)
+  907 FORMAT (A16,3F7.2,2X,24I4)
   909 FORMAT (A16,1X,23I5)
   910 FORMAT (A16,1X,23F5.1)
-  911 FORMAT (A16,3F6.2,2X,24F4.1)
-  912 FORMAT (A16,3F6.2,2X,24I4)
+  911 FORMAT (A16,3F7.3,2X,24F4.1)
+  912 FORMAT (A16,3F7.3,2X,24I4)
   918 FORMAT ('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))
       END SUBROUTINE DIAGJ
 
@@ -540,7 +468,7 @@ C****
 !@sum  stores information for outputting lat-sigma/pressure diagnostics
 !@auth M. Kelley
       IMPLICIT NONE
-
+      SAVE
 !@param names of derived jk/jl output fields
       INTEGER :: jl_rad_cool,jk_dudt_econv,jl_nt_lh_e,jl_vt_lh_e,
      *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
@@ -924,7 +852,7 @@ c Check the count
 
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
-     &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
+     &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
@@ -1011,15 +939,15 @@ c      BYDXYP(J)=1./DXYP(J)
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
       DO J=1,JM
-        BYP(J)=IDACC(4)/(APJ(J,1)+1.D-20)
-        BYPV(J)=IDACC(4)/(.25*APJ(J,2)+1.D-20)
+        BYP(J)=IDACC(4)/(APJ(J,1)+teeny)
+        BYPV(J)=IDACC(4)/(.25*APJ(J,2)+teeny)
       ENDDO
       BYPPO(:) = BYP(:)
       BYPPO(1 ) = BYP(1 )*BYIM
       BYPPO(JM) = BYP(JM)*BYIM
       LINECT=65
       WRITE (6,901)
-      BYIADA=1./(IDACC(4)+1.D-20)
+      BYIADA=1./(IDACC(4)+teeny)
       BYIMDA=BYIADA*BYIM
       DO J=1,JM
         PJ(J,1)=0
@@ -1028,8 +956,8 @@ c      BYDXYP(J)=1./DXYP(J)
           PJ(J,1)=PJ(J,1)+AJK(J,K,JK_DPA)
           PJ(J,2)=PJ(J,2)+AJK(J,K,JK_DPB)
         END DO
-        COSBYPV(J)=COSV(J)/(PJ(J,2)+1.D-20)
-        COSBYPDA(J)=COSV(J)*BYDXYP(J)/(PJ(J,1)+1.D-20)
+        COSBYPV(J)=COSV(J)/(PJ(J,2)+teeny)
+        COSBYPDA(J)=COSV(J)*BYDXYP(J)/(PJ(J,1)+teeny)
       END DO
 C****
 C**** INITIALIZE DELTA SIGMA IN PRESSURE COORDINATES
@@ -1043,33 +971,33 @@ C****
       PIH=0.
       DO 55 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
       DPJK(J,K,J1) = AJK(J,K,J1)
-      DSJK(J,K,J1)=AJK(J,K,J1)/(PJ(J,J1)+1.D-20)
+      DSJK(J,K,J1)=AJK(J,K,J1)/(PJ(J,J1)+teeny)
       DPH=DPH+AJK(J,K,J1)*WTJ(J,2,J1)
    55 PIH=PIH+PJ(J,J1)*WTJ(J,2,J1)
       DPHEM(JHEMI,K,J1)=DPH
-      DSHEM(JHEMI,K,J1)=DPH/(PIH+1.D-20)
+      DSHEM(JHEMI,K,J1)=DPH/(PIH+teeny)
       DPG=DPG+DPH
    58 PIG=PIG+PIH
       DPGLOB(K,J1)=DPG
-   60 DSGLOB(K,J1)=DPG/(PIG+1.D-20)
+   60 DSGLOB(K,J1)=DPG/(PIG+teeny)
 C****
 C**** Calculate a density field on tracer grid, edge pressure
 C**** (Check this!)
       DO K=1,KM-1
       DO J=1,JM
         IF (K.eq.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J,K,jk_temp)/
-     *       (AJK(J,K,jk_dpa)+1.D-20)))
+     *       (AJK(J,K,jk_dpa)+teeny)))
         IF (K.gt.1) RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J,K-1,jk_temp)/
-     *       (AJK(J,K-1,jk_dpa)+1.D-20)+
-     *       (AJK(J,K  ,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20)
-     *       -AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20))
+     *       (AJK(J,K-1,jk_dpa)+teeny)+
+     *       (AJK(J,K  ,jk_temp)/(AJK(J,K-1,jk_dpa)+teeny)
+     *       -AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+teeny))
      *       *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
         IF(RHO(J,K).LE.1.D-10) THEN
 c          print*,"rho<1d-10",j,k,rho(j,k)
           RHO(J,K)=100.*PME(K)/(RGAS*(tf+AJK(J+1,K-1,jk_temp)/
-     *         (AJK(J+1,K-1,jk_dpa)+1.D-20)+
-     *         (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20)
-     *         -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20))
+     *         (AJK(J+1,K-1,jk_dpa)+teeny)+
+     *         (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+teeny)
+     *         -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+teeny))
      *         *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
         END IF
       END DO
@@ -1081,7 +1009,7 @@ C****
       KDN=1
       DO 70 K=1,KM
       CX(J,K)=FIM*IDACC(4)
-      AX(J,K)=AJK(J,K,JK_SHETH)/(AJK(J,K,JK_DPB)+1.D-20)
+      AX(J,K)=AJK(J,K,JK_SHETH)/(AJK(J,K,JK_DPB)+teeny)
       KUP=K+1
       IF (K.EQ.KM) KUP=KM
       VX(J,K)=0.
@@ -1096,7 +1024,7 @@ C     DX(J,K)=AX*CX=4*(TRANSFORMED STREAM FUNCTION-STREAM FUNCTION)
    90 DO 95 J=2,JM
       DX(J,KM)=AX(J,KM)*CX(J,KM)
       DO 95 K=1,KM-1
-      WTKP1=AJK(J,K,JK_DPB)/(AJK(J,K+1,JK_DPB)+AJK(J,K,JK_DPB)+1.D-20)
+      WTKP1=AJK(J,K,JK_DPB)/(AJK(J,K+1,JK_DPB)+AJK(J,K,JK_DPB)+teeny)
    95 DX(J,K)=(AX(J,K)*(1.-WTKP1)+AX(J,K+1)*WTKP1)*CX(J,K)
 C****
 C**** PROGNOSTIC QUANTITIES AT CONSTANT PRESSURE
@@ -1219,7 +1147,7 @@ C****
       DO 160 I=1,IM
       IF (AIJK(I,J,K,IJK_DP).EQ.0.) GO TO 160
       DPTI=DPTI+AIJK(I,J,K,IJK_DP)
-      BYDPK=1./(AIJK(I,J,K,IJK_DP)+1.D-20)
+      BYDPK=1./(AIJK(I,J,K,IJK_DP)+teeny)
       PUTI=PUTI+AIJK(I,J,K,IJK_U)
       PVTI=PVTI+AIJK(I,J,K,IJK_V)
       DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
@@ -1230,12 +1158,12 @@ C****
       SNELGI=SNELGI+(AIJK(I,J,K,IJK_Q)*AIJK(I,J,K,IJK_V)*BYDPK)
       SNAMI=SNAMI+AIJK(I,J,K,IJK_U)*AIJK(I,J,K,IJK_V)*BYDPK
   160 CONTINUE
-      AX(J,K)=SKEI-(PUTI*PUTI+PVTI*PVTI)/(DPTI+1.D-20)
-      SZNDEG=DE4TI*PVTI/(DPTI+1.D-20)
-      SZNELG=EL4QI*PVTI/(DPTI+1.D-20)
+      AX(J,K)=SKEI-(PUTI*PUTI+PVTI*PVTI)/(DPTI+teeny)
+      SZNDEG=DE4TI*PVTI/(DPTI+teeny)
+      SZNELG=EL4QI*PVTI/(DPTI+teeny)
       EX(J,K)=SNELGI-SZNELG
       BX(J,K)=SNDEGI-SZNDEG
-      CX(J,K)=SNAMI-PUTI*PVTI/(DPTI+1.D-20)
+      CX(J,K)=SNAMI-PUTI*PVTI/(DPTI+teeny)
   170 CONTINUE
       IF (KDIAG(2).GE.8) RETURN
 C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
@@ -1504,11 +1432,11 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
       DX(JM,K)=0.
       DO 490 J=2,JM-1
       AX(J,K)=((AJK(J,K,JK_TOTNTMOM)-AJK(J,K,JK_ZMFNTMOM))*
-     &          DXCOSV(J)/(AJK(J,K,JK_DPB)+1.D-20)-
+     &          DXCOSV(J)/(AJK(J,K,JK_DPB)+teeny)-
      *  (AJK(J+1,K,JK_TOTNTMOM)-AJK(J+1,K,JK_ZMFNTMOM))*DXCOSV(J+1)/
-     *  (AJK(J+1,K,JK_DPB)+1.D-20))/COSP(J)
+     *  (AJK(J+1,K,JK_DPB)+teeny))/COSP(J)
       DX(J,K)=FCOR(J)*(VX(J,K)+VX(J+1,K))/
-     &     (AJK(J,K,JK_DPB)+AJK(J+1,K,JK_DPB)+1.D-20)
+     &     (AJK(J,K,JK_DPB)+AJK(J+1,K,JK_DPB)+teeny)
   490 CONTINUE
       DO 500 K=1,KM
       DO 500 J=2,JM-1
@@ -1520,11 +1448,11 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
 C****
 C**** Wave Energy (ELIASSEN PALM) FLUX:  NORTHWARD, VERTICAL, DIVERGENCE
 C****
-c      SMALL=1.D-20
+c      SMALL=teeny
 c      DO 510 K=1,KM
 c      AX(1,K)=0.
 c      DO 510 J=2,JM
-c      UX=AJK(J,K,JK_U)/(AJK(J,K,JK_DPB)+1.D-20)
+c      UX=AJK(J,K,JK_U)/(AJK(J,K,JK_DPB)+teeny)
 c      IF (ABS(UX).GE.SMALL) GO TO 510
 c      SN=+1.
 c      IF (UX.LT.0.) SN=-1.
@@ -1540,14 +1468,14 @@ c      BX(JM,K)=0.
 c      DO 520 J=1,JM
 c      IF (J.NE.1.AND.J.NE.JM) GO TO 516  ! corrected 4-25-2000
 c      IF (J.EQ.1) UX=.5*(AJK(J+1,K,JK_U)+AJK(J+1,K+1,JK_U))/
-c     *     (AJK(J+1,K,JK_DPB)+AJK(J+1,K+1,JK_DPB)+1.D-20)
+c     *     (AJK(J+1,K,JK_DPB)+AJK(J+1,K+1,JK_DPB)+teeny)
 c      IF (J.EQ.JM) UX=.5*(AJK(J,K,JK_U)+AJK(J,K+1,JK_U))/
-c     *     (AJK(J,K,JK_DPB)+AJK(J,K+1,JK_DPB)+1.D-20)
+c     *     (AJK(J,K,JK_DPB)+AJK(J,K+1,JK_DPB)+teeny)
 c      GO TO 518
 c  516 UX=(AJK(J,K,JK_U)+AJK(J+1,K,JK_U)
 c     &   +AJK(J,K+1,JK_U)+AJK(J+1,K+1,JK_U))/
 c     *   (AJK(J,K,JK_DPB)+AJK(J+1,K,JK_DPB)+
-c     &    AJK(J,K+1,JK_DPB)+AJK(J+1,K+1,JK_DPB)+1.D-20)
+c     &    AJK(J,K+1,JK_DPB)+AJK(J+1,K+1,JK_DPB)+teeny)
 c  518 IF (ABS(UX).GE.SMALL) GO TO 520
 c      SN=+1.
 c      IF (UX.LT.0.) SN=-1.
@@ -1576,44 +1504,44 @@ C****
 C**** PRELIMINARIES:  VERTICAL DERIVATIVES AND N**2
       GSQ=GRAV*GRAV
       GBYRSQ=GRAV*GRAV/(RGAS*RGAS)
-      IF (AJK(2,KM,JK_DPA).LT.1.D-20) GO TO 670  ! ISTART=4,...
+      IF (AJK(2,KM,JK_DPA).LT.teeny) GO TO 670  ! ISTART=4,...
       DO 600 J=1,JM
       K1=1
-  580 IF (AJK(J,K1,JK_DPA).GT.1.D-20) GO TO 590
+  580 IF (AJK(J,K1,JK_DPA).GT.teeny) GO TO 590
       AX(J,K1)=0.
       BX(J,K1)=0.
       DX(J,K1)=0.
       K1=K1+1
       GO TO 580
   590 KDN=K1
-      PDN=PM(KDN)+.5*AJK(J,KDN,JK_DPA)/(AJK(J,KDN,JK_NPTSAVG1)+1.D-20)
+      PDN=PM(KDN)+.5*AJK(J,KDN,JK_DPA)/(AJK(J,KDN,JK_NPTSAVG1)+teeny)
       DO 600 K=K1,KM
       DP=AJK(J,K,JK_DPA)
-      PMK=PM(K)+.5*AJK(J,K,JK_DPA)/(AJK(J,K,JK_NPTSAVG1)+1.D-20)
+      PMK=PM(K)+.5*AJK(J,K,JK_DPA)/(AJK(J,K,JK_NPTSAVG1)+teeny)
       KUP=K+1
       IF (K.EQ.KM) KUP=KM
-      PUP=PM(KUP)+.5*AJK(J,KUP,JK_DPA)/(AJK(J,KUP,JK_NPTSAVG1)+1.D-20)
-      DALPHA=(AJK(J,KUP,JK_TEMP)/(AJK(J,KUP,JK_DPA)+1.D-20)+TF)/PUP-
-     *  (AJK(J,KDN,JK_TEMP)/(AJK(J,KDN,JK_DPA)+1.D-20)+TF)/PDN
-      DTHETA=AJK(J,KUP,JK_THETA)/(AJK(J,KUP,JK_DPA)+1.D-20)-
-     *  AJK(J,KDN,JK_THETA)/(AJK(J,KDN,JK_DPA)+1.D-20)
-      THETA=AJK(J,K,JK_THETA)/(AJK(J,K,JK_DPA)+1.D-20)
-      TX=AJK(J,K,JK_TEMP)/(AJK(J,K,JK_DPA)+1.D-20)+TF
-      IF (ABS(DTHETA).GE.1.D-20) GO TO 595
+      PUP=PM(KUP)+.5*AJK(J,KUP,JK_DPA)/(AJK(J,KUP,JK_NPTSAVG1)+teeny)
+      DALPHA=(AJK(J,KUP,JK_TEMP)/(AJK(J,KUP,JK_DPA)+teeny)+TF)/PUP-
+     *  (AJK(J,KDN,JK_TEMP)/(AJK(J,KDN,JK_DPA)+teeny)+TF)/PDN
+      DTHETA=AJK(J,KUP,JK_THETA)/(AJK(J,KUP,JK_DPA)+teeny)-
+     *  AJK(J,KDN,JK_THETA)/(AJK(J,KDN,JK_DPA)+teeny)
+      THETA=AJK(J,K,JK_THETA)/(AJK(J,K,JK_DPA)+teeny)
+      TX=AJK(J,K,JK_TEMP)/(AJK(J,K,JK_DPA)+teeny)+TF
+      IF (ABS(DTHETA).GE.teeny) GO TO 595
       SN=+1.
       IF (DTHETA.LT.0.) SN=-1.
-      DTHETA=SN*1.D-20
+      DTHETA=SN*teeny
   595 DX(J,K)=DP*FCOR(J)*PMK*THETA*(PUP-PDN)/(TX*DTHETA*DXYP(J))
-      AX(J,K)=DALPHA/(PUP-PDN-1.D-20)
+      AX(J,K)=DALPHA/(PUP-PDN-teeny)
 C**** CALCULATE N**2 AT PRESSURE LATITUDES
-      BX(J,K)=-DP*GSQ*PMK*DTHETA/(RGAS*TX*THETA*(PUP-PDN-1.D-20))
+      BX(J,K)=-DP*GSQ*PMK*DTHETA/(RGAS*TX*THETA*(PUP-PDN-teeny))
       KDN=K
   600 PDN=PMK
 C**** CALCULATE  Q12 = (D(UDX) + F*DA)/DA
       DO 620 K=1,KM
       UDXS=0.
       DO 610 J=1,JM-1
-      UDXN=AJK(J+1,K,JK_U)/(AJK(J+1,K,JK_DPB)+1.D-20)*DXV(J+1)
+      UDXN=AJK(J+1,K,JK_U)/(AJK(J+1,K,JK_DPB)+teeny)*DXV(J+1)
       CX(J,K)=(UDXS-UDXN+FCOR(J))/DXYP(J)
   610 UDXS=UDXN
       CX(JM,K)=(UDXS+FCOR(JM))/DXYP(JM)
@@ -1622,7 +1550,7 @@ C**** FIND DQ/DY = (Q12(J)-Q12(J-1)+Q3(J)-Q3(J-1))/DY
       DP=AJK(J,K,JK_DPB)
       AX(J,K)=DP*(CX(J,K)-CX(J-1,K) + (AX(J,K)-AX(J-1,K))*
      *  (DX(J,K)+DX(J-1,K))/
-     &     (AJK(J,K,JK_DPA)+AJK(J-1,K,JK_DPA)+1.D-20))/DYP(3)
+     &     (AJK(J,K,JK_DPA)+AJK(J-1,K,JK_DPA)+teeny))/DYP(3)
   620 CONTINUE
       n = jk_del_qgpv
       SCALET = scale_jk(n)
@@ -1632,16 +1560,16 @@ C**** TERMS FOR THE REFRACTION INDEX EXPRESSION
       DO 640 J=2,JM
       BYFSQ=2.*DXYV(J)*DXYV(J)/(FCOR(J-1)*FCOR(J-1)+FCOR(J)*FCOR(J))
       DO 640 K=1,KM
-      BYDP2=1./(AJK(J-1,K,JK_DPA)+AJK(J,K,JK_DPA)+1.D-20)
+      BYDP2=1./(AJK(J-1,K,JK_DPA)+AJK(J,K,JK_DPA)+teeny)
       TX=BYDP2*(AJK(J-1,K,JK_TEMP)+AJK(J,K,JK_TEMP))+TF
       DX(J,K)=GBYRSQ/(TX*TX)
       SQN=BYDP2*(BX(J-1,K)+BX(J,K))
       CX(J,K)=SQN*BYFSQ
       UX=AJK(J,K,JK_U)
-      IF (ABS(UX).GE.1.D-20) GO TO 635
+      IF (ABS(UX).GE.teeny) GO TO 635
       SN=+1.
       IF (UX.LT.0.) SN=-1.
-      UX=SN*1.D-20
+      UX=SN*teeny
   635 AX(J,K)=AX(J,K)/UX
   640 CONTINUE
 C**** COMBINE TERMS, PRINT OUT REFRACTION INDICES
@@ -1682,11 +1610,11 @@ C**** output full or approximate version
       AX(J,K)=((AJK(J,K,JK_TOTNTMOM)-
      &  AJK(J,K,JK_ZMFNTMOM))*DXV(J)-(AJK(J+1,K,JK_TOTNTMOM)-
      *  AJK(J+1,K,JK_ZMFNTMOM))*DXV(J+1))/
-     &        (AJK(J,K,JK_DPA)*DXYP(J)+1.D-20)+
+     &        (AJK(J,K,JK_DPA)*DXYP(J)+teeny)+
      *  .125*((AJK(J,K,JK_VTAMEDDY)-AJK(J,K-1,JK_VTAMEDDY))/
-     &        (AJK(J,K,JK_DPB)*DXYV(J)+1.D-20)+
+     &        (AJK(J,K,JK_DPB)*DXYV(J)+teeny)+
      * (AJK(J+1,K,JK_VTAMEDDY)-AJK(J+1,K-1,JK_VTAMEDDY))/
-     &        (AJK(J+1,K,JK_DPB)*DXYV(J+1)+1.D-20))
+     &        (AJK(J+1,K,JK_DPB)*DXYV(J+1)+teeny))
       BX(J,K)=(AJK(J+1,K,JK_EPFLXNCP)*DXCOSV(J+1)-
      &         AJK(J,K,JK_EPFLXNCP)*DXCOSV(J))/
      *  (DXYP(J)*COSP(J))+.5*(AJK(J,K-1,JK_EPFLXVCP)-
@@ -1768,7 +1696,7 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
         CX(J,K)=.25*(
      &     (AJK(J,  K,JK_TOTNTSH)-AJK(J,  K,JK_ZMFNTSH))*DXV(J)-
      &     (AJK(J+1,K,JK_TOTNTSH)-AJK(J+1,K,JK_ZMFNTSH))*DXV(J+1))/
-     &     (AJK(J,K,JK_DPA)*DXYP(J)+1.D-20)+
+     &     (AJK(J,K,JK_DPA)*DXYP(J)+teeny)+
      *     (AJK(J,K,JK_EDDVTPT)  -AJK(J,K-1,JK_EDDVTPT))/
      &     (PM(K-1)-PM(K))*BYIADA*PKM(K)
       end do
@@ -1835,7 +1763,7 @@ C**** SOLAR AND THERMAL RADIATION HEATING
      &     PLM,AX,SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n),
      &     ARQX,SCALES,ONESPO,BYDPS)
 
-C**** TOTAL, SUPER SATURATION, AND CONVECTIVE CLOUD COVER
+C**** TOTAL, SUPER SATURATION, CONVECTIVE CLOUD COVER, EFFECTIVE RH
       n = JL_TOTCLD
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
@@ -1845,6 +1773,10 @@ C**** TOTAL, SUPER SATURATION, AND CONVECTIVE CLOUD COVER
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
       n = JL_MCCLD
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+      n = JL_RHE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
@@ -1866,7 +1798,7 @@ C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n))
-      n = jl_mcdlht
+      n = jl_mcldht
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,BYP,BYDSIG,LM,2,JGRID_JL(n))
@@ -2030,7 +1962,6 @@ C****
 
       RETURN
   901 FORMAT (
-     *  '010**14 WATTS = .2067 * 10**19 CALORIES/DAY'/
      *  ' DEG K/DAY  = 0.01*SDAY*GRAV/SHA (= 8.445) W/(m^2*mb)'/
      *  ' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY')
       END SUBROUTINE DIAGJK
@@ -2038,6 +1969,7 @@ C****
 
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
+      USE CONSTANT, only : teeny
       USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
@@ -2118,7 +2050,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       DO 130 JHEMI=1,2
       AHEML(JHEMI)=0.
       DO 120 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
-      FLAT(J)=CX(J,K)/(DPJK(J,K,J1)+1.D-20)
+      FLAT(J)=CX(J,K)/(DPJK(J,K,J1)+teeny)
          XJL(J,K) = FLAT(J)*PRTFAC
       FLAT(J)=FLAT(J)*PRTFAC
          IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
@@ -2126,9 +2058,9 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
   120 AHEML(JHEMI)=AHEML(JHEMI)+CX(J,K)*WTJ(J,JWT,J1)*PRTFAC
   130 AGLOB=AGLOB+AHEML(JHEMI) !/JWT no longer needed?
       AHEM(:) = AHEM(:) + AHEML(:)
-      H1=AHEML(1)/(DPHEM(1,K,J1)+1.D-20)
-      H2=AHEML(2)/(DPHEM(2,K,J1)+1.D-20)
-      G1=AGLOB/(DPGLOB(K,J1)+1.D-20)
+      H1=AHEML(1)/(DPHEM(1,K,J1)+teeny)
+      H2=AHEML(2)/(DPHEM(2,K,J1)+teeny)
+      G1=AGLOB/(DPGLOB(K,J1)+teeny)
          XJL(JM+3,K)=H1   ! SOUTHERN HEM
          XJL(JM+2,K)=H2   ! NORTHERN HEM
          XJL(JM+1,K)=G1   ! GLOBAL
@@ -3888,7 +3820,7 @@ C****
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only :
-     &     grav,rgas
+     &     grav,rgas,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
@@ -3938,7 +3870,7 @@ C****
       DO 770 L=1,LM
         KSPHER=KLAYER(L)
       DO 770 J=2,JM
-      IF (AJK(J,L,JK_DPB).LE.1.D-20) GO TO 770
+      IF (AJK(J,L,JK_DPB).LE.teeny) GO TO 770
       FACTOR=FIM*DXYV(J)/AJK(J,L,JK_DPB)
       DO 769 K=IZERO,LM,LM
       DO 720 I=1,IM
@@ -3959,26 +3891,26 @@ C****
   769 CONTINUE
   770 CONTINUE
 C****
-  600 SCALET(1)=100.D-17/(GRAV*IDACC(4)+1.D-20)
+  600 SCALET(1)=100.D-17/(GRAV*IDACC(4)+teeny)
       SCALET(19)=100.D-17/(GRAV*IDACC(12))
       SCALET(20)=SCALET(19)*RGAS
-      SCALET(2)=SCALET(19)*IDACC(12)/(IDACC(7)+1.D-20)
+      SCALET(2)=SCALET(19)*IDACC(12)/(IDACC(7)+teeny)
       SCALET(3)=SCALET(2)*RGAS
-      SCALET(4)=100.D-12/(GRAV*DT*IDACC(6)+1.D-20)
+      SCALET(4)=100.D-12/(GRAV*DT*IDACC(6)+teeny)
       SCALET(5)=SCALET(4)
       SCALET(6)=SCALET(4)
-      SCALET(7)=100.D-12/(GRAV*DT*(IDACC(7)+1.D-20))
+      SCALET(7)=100.D-12/(GRAV*DT*(IDACC(7)+teeny))
       SCALET(8)=SCALET(7)*RGAS
-      SCALET(9)=100.D-12/(GRAV*DT*(IDACC(8)+1.D-20))
+      SCALET(9)=100.D-12/(GRAV*DT*(IDACC(8)+teeny))
       SCALET(10)=SCALET(9)*RGAS
       SCALET(11)=SCALET(10)
       SCALET(12)=SCALET(9)
       SCALET(13)=SCALET(10)
-      SCALET(14)=100.D-12/(GRAV*DT*(IDACC(10)+1.D-20))
+      SCALET(14)=100.D-12/(GRAV*DT*(IDACC(10)+teeny))
       SCALET(15)=SCALET(14)*RGAS
-      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(9)+1.D-20))
+      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(9)+teeny))
       SCALET(17)=SCALET(16)*RGAS
-      SCALET(18)=100.D-17/(GRAV*IDACC(4)+1.D-20)
+      SCALET(18)=100.D-17/(GRAV*IDACC(4)+teeny)
       DO 605 K=1,KSPECA
   605 SCALET(K)=XWON*SCALET(K)
       IUNITJ=17

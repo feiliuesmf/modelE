@@ -23,8 +23,8 @@
      *     ,ntm,trsi
 #endif
       USE SEAICE, only : prec_si, ace1i, lmi,xsi
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2
-     *     ,j_difs,j_run1,j_edifs,j_erun2,j_imelt
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
+     *     ,j_smelt
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -95,14 +95,12 @@ C**** set gtemp array
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
-c          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+FMOC*POICE
-c          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+FHOC*POICE
-c         AJ(J,J_SRUN2,ITYPE)=AJ(J,J_SRUN2,ITYPE)+FSOC*POICE
-c          AREG(JR,J_DIFS)    =AREG(JR,J_DIFS)    +FMOC*POICE*DXYPJ
-c         AREG(JR,J_ERUN2)=AREG(JR,J_ERUN2)+FHOC*POICE*DXYPJ  ! why not?
-c         AREG(JR,J_SRUN2)=AREG(JR,J_SRUN2)+FSOC*POICE*DXYPJ
-        AJ(J,J_RUN1,ITYPE)=AJ(J,J_RUN1,ITYPE)+RUN0*POICE
-        AREG(JR,J_RUN1)   =AREG(JR,J_RUN1)   +RUN0*POICE*DXYPJ
+        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-RUN0 *POICE
+        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SRUN0*POICE
+c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ERUN*POICE  ! ==0
+        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-RUN0 *POICE*DXYPJ
+        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-SRUN0*POICE*DXYPJ
+c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ERUN*POICE*DXYPJ  ! ==0
 
       END IF
       END DO
@@ -243,19 +241,18 @@ C****
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
       USE LAKES_COM, only : mwl,gml,flake
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
-     *     ij_msi2,ij_evapi,j_difs,j_run1,j_edifs,j_erun2,j_imelt,
-     *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,
-     *     ij_snow,ij_mltp
+     *     ij_msi2,ij_evapi,j_imelt,j_hmelt,j_smelt,
+     *     j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow,ij_mltp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,DXYPJ,POICE,PWATER,SCOVI
-      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,MELT12
+      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,MELT12,RUN,ERUN,SRUN
       INTEGER I,J,IMAX,JR,ITYPE
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
-      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap
+      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trun
 #endif
 
       DO J=1,JM
@@ -302,9 +299,9 @@ C****
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
-     *       ,TRSIL,TREVAP,FTROC
+     *       ,TRSIL,TREVAP,FTROC,TRUN
 #endif
-     *       ,FMOC,FHOC,FSOC,MELT12)
+     *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,MELT12)
 
 C**** Decay sea ice salinity
         MSI1 = ACE1I + SNOW
@@ -338,43 +335,38 @@ C**** pond_melt accumulates in melt season only
         end if
 
 C**** Net fluxes to ocean
-        RUNOSI(I,J) = FMOC + MFLUX
-        ERUNOSI(I,J)= FHOC + HFLUX
-        SRUNOSI(I,J)= FSOC + SFLUX
+        RUNOSI(I,J) = FMOC + RUN  + MFLUX
+        ERUNOSI(I,J)= FHOC + ERUN + HFLUX
+        SRUNOSI(I,J)= FSOC + SRUN + SFLUX
         SOLAR(3,I,J)= SROX(2)
 #ifdef TRACERS_WATER
-        TRUNOSI(:,I,J) = FTROC(:) + TRFLUX(:)
+        TRUNOSI(:,I,J) = FTROC(:) + TRRUN(:) + TRFLUX(:)
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
           SCOVI=0.
           IF (SNOWI(I,J).GT.0) SCOVI=POICE
-          AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
-          AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYPJ
+
           AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
+          AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
 
-          AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+FMOC*POICE
-          AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+FHOC*POICE
-          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+FMOC*POICE
-          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+FHOC*POICE
-c         AJ(J,J_SRUN2,ITYPE)=AJ(J,J_SRUN2,ITYPE)+FSOC*POICE
-          IF (JR.ne.24) THEN
-            AREG(JR,J_DIFS) =AREG(JR,J_DIFS) +FMOC*POICE*DXYPJ
-            AREG(JR,J_ERUN2)=AREG(JR,J_ERUN2)+FHOC*POICE*DXYPJ
-c           AREG(JR,J_SRUN2)=AREG(JR,J_SRUN2)+FSOC*POICE*DXYPJ
-          END IF
-          AJ(J,J_RUN1,ITYPE)=AJ(J,J_RUN1,ITYPE)+FMOC*POICE
-          AJ(J,J_F1DT,ITYPE)=AJ(J,J_F1DT,ITYPE)+F1DT*POICE
-          AJ(J,J_F2DT,ITYPE)=AJ(J,J_F2DT,ITYPE)+FHOC*POICE
-          AJ(J,J_EVAP,ITYPE)=AJ(J,J_EVAP,ITYPE)+EVAP*POICE
-          IF (JR.ne.24) THEN
-            AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+FMOC*POICE*DXYPJ
-            AREG(JR,J_F2DT)=AREG(JR,J_F2DT)+FHOC*POICE*DXYPJ
-          END IF
-          AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
+          AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
+          AJ(J,J_EVAP ,ITYPE)=AJ(J,J_EVAP ,ITYPE)+EVAP*POICE
+          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX)*POICE
+          AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX)
+     *         *POICE
+          AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX)
+     *         *POICE
+
+          AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYPJ
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+(FMOC+RUN+MFLUX)*POICE*DXYPJ
+          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+(FHOC+ERUN+HFLUX)*POICE
+     *         *DXYPJ
+          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+(FSOC+SRUN+SFLUX)*POICE
+     *         *DXYPJ
 
       END IF
       END DO
@@ -491,6 +483,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_TG1, ITYPE)=AJ(J,J_TG1, ITYPE)+TSIL(1)*POICE
         AJ(J,J_TG2, ITYPE)=AJ(J,J_TG2, ITYPE)+TSIL(2)*POICE
         AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
+        AJ(J,J_ACE1,ITYPE)=AJ(J,J_ACE1,ITYPE)+ACE1I  *POICE
         AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
         AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
         IF (JR.ne.24) THEN

@@ -16,7 +16,7 @@ C**** Accumulating_period information
 
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
-      INTEGER, PARAMETER :: KAJ=94
+      INTEGER, PARAMETER :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
       DOUBLE PRECISION, DIMENSION(JM,KAJ,NTYPE) :: AJ
 
@@ -30,12 +30,12 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       INTEGER, DIMENSION(IM,JM) :: JREG
 
 !@param KAPJ number of zonal pressure diagnostics
-      INTEGER, PARAMETER :: KAPJ=3  ! why isn't this 2?
+      INTEGER, PARAMETER :: KAPJ=2
 !@var APJ zonal pressure diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KAPJ) :: APJ
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER :: KAJL=57+KEP, KAJLX=KAJL+50
+      INTEGER, PARAMETER :: KAJL=50+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJL) :: AJL
 
@@ -50,7 +50,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
 
 !@param KAIL number of AIL diagnostics
-      INTEGER, PARAMETER :: KAIL=16
+      INTEGER, PARAMETER :: KAIL=15
 !@var AIL longitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
@@ -71,11 +71,11 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
 !@var NPTS number of points at which standard conserv. diags are called
-      INTEGER, PARAMETER :: NPTS = 11  ! 9
+      INTEGER, PARAMETER :: NPTS = 11  
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=18  ! 7 20?
+      INTEGER, PARAMETER :: NQUANT=18 
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=125   ! 54
+      INTEGER, PARAMETER :: KCON=125
 !@var CONSRV conservation diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
@@ -122,7 +122,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER :: HR_IN_DAY=24
 !@param NDIUVAR number of diurnal diagnostics
-      INTEGER, PARAMETER :: NDIUVAR=63
+      INTEGER, PARAMETER :: NDIUVAR=56
 !@param NDIUPT number of points where diurnal diagnostics are kept
       INTEGER, PARAMETER :: NDIUPT=4
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
@@ -157,7 +157,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
 !@param KGZ number of pressure levels for geopotential height diag
-      INTEGER, PARAMETER :: KGZ = 13   !7
+      INTEGER, PARAMETER :: KGZ = 13 
 !@param kgz_max is the actual number of geopotential heights saved
       INTEGER kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
@@ -264,17 +264,17 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var J_xxx zonal J diagnostic names
       INTEGER :: J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
      *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
-     *     J_RHDT, J_SHDT, J_EVHDT, J_F2DT, J_HZ1, J_TG2, J_TG1, J_EVAP,
+     *     J_RHDT, J_SHDT, J_EVHDT, J_HZ1, J_TG2, J_TG1, J_EVAP,
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
-     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, J_SWCOR,
-     *     J_OHT,J_TG3, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
-     *     J_ERUN1,J_EDIFS, J_F1DT, J_ERUN2, J_HZ0, J_DIFS, J_IMELT,
-     *     J_RUN2,J_DWTR2, J_WTR1, J_ACE1, J_WTR2, J_ACE2, J_SNOW,
-     *     J_RUN1,J_BRTEMP, J_HZ2, J_PCLDSS, J_PCLDMC, J_PCLD, J_CTOPP
-     *     ,J_PRCPSS, J_PRCPMC, J_QP, J_GAM, J_GAMM, J_GAMC, J_TRINCG
-     *     ,J_FTHERM, J_HSURF, J_HATM, J_PLAVIS, J_PLANIR, J_ALBVIS
-     *     ,J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP,
-     *     J_CLRTOA, J_CLRTRP, J_TOTTRP
+     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, 
+     *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
+     *     J_RUN, J_ERUN, J_SRUN, J_HZ0,
+     *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
+     *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
+     *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
+     *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
+     *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
+     *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=20), dimension(kaj) :: name_j,units_j
 !@var LNAME_J Long names of zonal J diagnostics
@@ -285,6 +285,8 @@ C****      names, indices, units, idacc-numbers, etc.
       real*8, dimension(kaj) :: scale_j
 !@var IA_J IDACC indexes for zonal J diagnostics
       integer, dimension(kaj) :: ia_j
+!@var k_j_out number of directly printed out budget diags
+      integer k_j_out
 
       character(len=20), dimension(kaj) :: name_reg
       character(len=20), dimension(kapj) :: name_pj,units_pj
@@ -405,19 +407,15 @@ C****      names, indices, units, idacc-numbers, etc.
 
 !@var JL_xxx names for JL diagnostic indices
       INTEGER ::
-     &     JL_mcmflx,JL_srhr,JL_trcr,JL_sshr,JL_trbhr,JL_mchr
-     &    ,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,JL_ape
-     &    ,JL_dtdyn,JL_dudfmdrg,JL_totcld,JL_dumtndrg
-     &    ,JL_dushrdrg,JL_dumcdrgm10,JL_dumcdrgp10,JL_dumcdrgm40
-     &    ,JL_dumcdrgp40,JL_dumcdrgm20,JL_dumcdrgp20,JL_sscld
-     &    ,JL_mccld,JL_sdifcoef,JL_dudtsdif,JL_gwFirst
-     &    ,JL_dtdtsdrg,JL_epflxv
-     &    ,JL_epflxn,JL_damdc,JL_dammc,JL_40
-     &    ,JL_uepac,JL_vepac,JL_wepac,JL_uwpac
-     &    ,JL_vwpac,JL_wwpac,JL_47,JL_zmfntmom
-     &    ,JL_totntmom,JL_mchphas,JL_mcdtotw,JL_dudtsdrg
-     &    ,JL_mcdlht,JL_trbke,JL_trbdlht,JL_mcheat
-     &    ,JL_mcdry
+     &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr,jl_totntlh
+     *     ,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,jl_dtdyn,jl_dudfmdrg
+     *     ,jl_totcld,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
+     *     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
+     *     ,jl_dumcdrgp20,jl_sscld,jl_mccld,jl_sdifcoef,jl_dudtsdif
+     *     ,jl_gwfirst,jl_dtdtsdrg,jl_epflxv,jl_rhe,jl_epflxn,jl_damdc
+     *     ,jl_dammc,jl_40,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac
+     *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
+     *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx) :: sname_jl

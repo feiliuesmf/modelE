@@ -59,7 +59,7 @@ C**** input variables
 !@var Miscellaneous vertical arrays set in driver
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT
+     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT,RH1
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -68,6 +68,7 @@ C**** input variables
 !@var TL, QL temperature, specific humidity of the layer
 !@var TH potential temperature (K)
 !@var RH relative humidity
+!@var RH1 relative humidity to compare with the threshold humidity
 !@var WMX cloud water mixing ratio (kg/Kg)
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var AJ8, AJ13, AJ50, AJ52, AJ57 dummy variables
@@ -165,7 +166,7 @@ CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
 CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
+     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
@@ -1282,11 +1283,10 @@ C**** functions
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
-     *     QSATL,RHF,RH1,ATH,SQ,ER,QHEAT,
+     *     QSATL,RHF,ATH,SQ,ER,QHEAT,
      *     CAREA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
-!@var RH1 relative humidity to compare with the threshold humidity
 !@var ATH change in potential temperature
 !@var SQ ERMAX dummy variables
 !@var ER evaporation of precip

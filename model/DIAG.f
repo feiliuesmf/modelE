@@ -3,310 +3,24 @@
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lenrer/R. Ruedy/M. Kelley
 !@ver  1.0
+C**** AJ(J,N)  (ZONAL SUM OVER LONGITUDE AND TIME)
+C****   See j_defs for contents
 C****                                                             IDACC
-C**** CONTENTS OF AJ(J,N)  (SUM OVER LONGITUDE AND TIME OF)
-C****   1  SRINCP0 (W/M**2)                                        2 RD
-C****   2  SRNFP0 (W/M**2)                                         2 RD
-C****   3  SRNFP1 (W/M**2)                                         2 RD
-C****   4  SRABSATM=AJ(2)-AJ(6) (W/M**2)                           2 D1
-C****   5  SRINCG (W/M**2)                                         2 RD
-C****   6  SRNFG (W/M**2)                                          2 RD
-C****   7  TRNFP0=AJ(74)+A2BYA1*AJ(9)/DTSRC  (W/M**2)              2 D1
-C****   8  TRNFP1=AJ(75)+A2BYA1*AJ(9)/DTSRC  (W/M**2)              2 D1
-C****   9  TRHDT (J/M**2)                                          1 SF
-C****  10  RNFP0=AJ(2)+AJ(7) (W/M**2)                              2 D1
-C****  11  RNFP1=AJ(3)+AJ(8) (W/M**2)                              2 D1
-C****  12  RHDT=A1BYA2*AJ(6)*DTSRC+AJ(9) (J/M**2)                  1 D1
-C****  13  SHEATDT (J/M**2)                                        1 SF
-C****  14  EVHDT (J/M**2)                                          1 SF
-C****  15  F2DT (J/M**2)                                           1 GD
-C****  16  HEATZ1=AJ(41)+AJ(42)                                    1 D1
-C****  17  TG2 (K-TF)                                              1 GD
-C****  18  TG1 (K-TF)                                              1 GD
-C****  19  EVAP (KG/M**2)                                          1 GD
-C****  20  PRCP=AJ(61)+AJ(62) (100 PA)                             1 D1
-C****  21  TX (K-TF)  (INTEGRAL OVER ATMOSPHERE OF)                4 DA
-C****  22  TX1 (K-TF)                                              4 DA
-C****  23  TS (K-TF)                                               3 SF
-C****  24  DTH/DPHI  (STRATOSPHERE)                                4 DA
-C****  25  DTH/DPHI  (TROPOSPHERE)                                 4 DA
-C****  26  .0625*DTH*DLNP/(DU*DU+DV*DV)  (STRATOSPHERE)            4 DA
-C****  27  .0625*DTH*DLNP/(DU*DU+DV*DV)  (TROPOSPHERE)             4 DA
-C****  28  4*UMAX/(DX*SINJ)  (STRATOSPHERE)                        4 DA
-C****  29  4*UMAX/(DX*SINJ)  (TROPOSPHERE)                         4 DA
-C****  30  POICE (1)                                               1 GD
-C****  31  PSNOW (1)                                               1 GD
-C****  32  SW CORRECTION                                           2 RD
-C****  33  OCEAN TRANSPORT                                         1 GD
-C****  34  OCEAN TEMPERATURE AT MAX. MIXED LAYER DEPTH             1 GD
-C****  35  T(J+1)-T(J-1)  (SUM OVER STRATOSPHERE OF)               4 DA
-C****  36  T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)                4 DA
-C****  37  SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)                     4 DA
-C****  38  SQRT(DTH/DLNP)/SINJ  (TROPOSPHERE)                      4 DA
-C****  39  ENERGP (J/M**2)                                         1 CN
-C****  40  ERUN1 (J/M**2)                                          1 GP
-C****  41  EDIFS (J/M**2)                                          1 GP
-C****  42  F1DT (J/M**2)                                           1 GD
-C****  43  ERUN2 (J/M**2)                                          1 GP
-C****  44  HEATZ0=AJ(12)+AJ(13)+AJ(14)+AJ(39)-AJ(40) (J/M**2)      1 D1
-C****  45  DIFS (KG/M**2)                                          1 GP
-C****  46  AIFO ; BRUN2 ; CRUN2+CIFI                               1 GP
-C****  47  RUN2 (KG/M**2)                                          1 GP
-C****  48  DWTR2=AJ(45)-AJ(47) (KG/M**2)                           1 D1
-C****  49  WTR1 (KG/M**2)                                          1 GD
-C****  50  ACE1 (KG/M**2)                                          1 GD
-C****  51  WTR2 (KG/M**2)                                          1 GD
-C****  52  ACE2 (KG/M**2)                                          1 GD
-C****  53  SNOW (KG/M**2)                                          1 GD
-C****  54  RUN1 (KG/M**2)                                          1 GP
-C****  55  BTEMPW-TF                                               2 RD
-C****  56  HEATZ2=AJ(15)+AJ(43) (J/M**2)                           1 D1
-C****  57  PCLDSS (1)  (COMPOSITE OVER ATMOSPHERE)                 2 RD
-C****  58  PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE)                 2 RD
-C****  59  PCLD (1)  (COMPOSITE OVER ATMOSPHERE)                   2 RD
-C****  60  CLDTOPMC=AJ(80)/AJ(58) (100 PA)                         0 D1
-C****  61  PRCPSS (100 PA)                                         1 CN
-C****  62  PRCPMC (100 PA)                                         1 CN
-C****  63  Q*P (100 PA)  (INTEGRAL OVER ATMOSPHERE OF)             4 DA
-C****  64  GAM  (K/M)  (*SIG(TROPOSPHERE)/GRAV)                    4 DA
-C****  65  GAMM  (K-S**2/M**2)  (SIG(TROPOSPHERE)/GAMD)            4 DA
-C****  66  GAMC  (K/M)                                             4 DA
-C****  67  TRINCG (W/M**2)                                         2 RD
-C****  68  ENERGY DIFFUSION INTO THERMOCLINE (W/M**2)           .5*9 MN
-C****  69  PTYPE                                                   1 GD
-C****  70  TRNFP0-TRNFG (W/M**2)                                   2 RD
-C****  71  TRNFP1-TRNFG (W/M**2)                                   2 RD
-C****  72  PLAVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  73  PLANIR*S0*COSZ (W/M**2)                                 2 RD
-C****  74  ALBVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  75  ALBNIR*S0*COSZ (W/M**2)                                 2 RD
-C****  76  SRRVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  77  SRRNIR*S0*COSZ (W/M**2)                                 2 RD
-C****  78  SRAVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  79  SRANIR*S0*COSZ (W/M**2)                                 2 RD
-C****  80  PBOTMC-PTOPMC (100 PA)                                  2 RD
-C****
 C**** CONTENTS OF APJ(J,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****   1  P (100 PA)                                              4 DA
 C****   2  4*P4I (100 PA)  (UV GRID)                               4 DA
 C****
 C**** CONTENTS OF AJL(J,L,N)  (SUM OVER LONGITUDE AND TIME OF)
-C****   1  FREE                                                    4 DA
-C****   2  FREE                                                    4 DA
-C****   3  FREE                                                    4 DA
-C****   4  FREE                                                    4 DA
-C****   5  FREE                                                    4 DA
-C****   6  FREE                                                    4 DA
-C****   7  FREE                                                    4 DA
-C****   8  FMX(MC)*P (100 PA)                                      1 CN
-C****   9  SRHR (W/M**2)                                           2 RD
-C****  10  TRHR (W/M**2)                                           2 RD
-C****  11  DTX(SS)*P (100 K*PA)                                    1 CN
-C****  12  DT(DC)*P                                                1 CN
-C****  13  DT(MC)*P (100 PA*K)  DRY HEATING                        1 CN
-C****  14  FREE                                                    4 DA
-C****  15  FREE                                                    4 DA
-C****  16  (TH*SQRT(P)-THGM)**2/GMEAN(PR**(1-KAPA)*DTH/DPR)        4 DA
-C****  17  T-T0 (change of Th by dynamics)                         4 DA
-C****  18  PCLD*P (TOTAL)                                          1 CN
-C****  19  DU/DT BY STRAT DEFORM DRAG (M/S)                        1 SD
-C****  20  DU/DT BY STRAT MTN DRAG (M S)                           1 SD
-C****  21  DU/DT BY STRAT SHR DRAG (M S)                           1 SD
-C****  22  DU/DT BY STRAT MC DRAG C=-10 (M/S)                      1 SD
-C****  23  DU/DT BY STRAT MC DRAG C=+10 (M/S)                      1 SD
-C****  24  DU/DT BY STRAT MC DRAG C=-40 (M/S)                      1 SD
-C****  25  DU/DT BY STRAT MC DRAG C=+40 (M/S)                      1 SD
-C****  26  DU/DT BY STRAT MC DRAG C=-20 (M/S)                      1 SD
-C****  27  DU/DT BY STRAT MC DRAG C=+20 (M/S)                      1 SD
-C****  28  PCLD*P (SS)                                             1 CN
-C****  29  PCLD*P (MC)                                             1 CN
-C****  30  FREE                                                    4 DA
-C****  31  D  (M*M/S *       ) STRAT. DIFFUSION COEFF.             1 SD
-C****  32  DU  (M/S)  STRATOSPHERIC DIFFUSION                      1 SD
-C****  33  DT  (DEG-K/TIMESTEP)  HEATING BY STRATOSPHERIC DRAG     1 SD
-C****  34  FREE                                                    4 DA
-C****  35  FREE                                                    4 DA
-C****  36  (2F-2D(UDX))*16PV(TH-THMEAN)/(DTH/DSIG)+(SD-SDMEAN)*8U  4 DA
-C****  37  P*V*((TH-THMEAN) * (DU/DP) / (DTH/DP) - U+UMEAN )       4 DA
-C****  38  DU(DC)*P  (UV GRID)                                       GD
-C****  39  DU(MC)*P (100 N/M/S)  (UV GRID)                         1 CN
-C****  40  DU(ED)*P*(DTSURF*DSIG*ED/DZ**2)  (UV GRID)                SF
-C****  41  U  (SUM OVER I, 135W to 110W)(PV GRID)                  4 DA
-C****  42  V  (SUM OVER I, 135W to 110W)(PV GRID)                  4 DA
-C****  43  SD  (SUM OVER I, 135W to 110W                           4 DA
-C****  44  U  (SUM OVER I, 150E TO IM)   (PV GRID)                 4 DA
-C****  45  V  (SUM OVER I, 150E TO IM)   (PV GRID)                 4 DA
-C****  46  SD  (SUM OVER I, 150E TO IM)                            4 DA
-C****  47  V-V*  =D((V-VI)*(T-TI)/DTHDP)/DP                        4 DA
-C****  48  4*PU4I*PV4I/P4I (100 N/S**2)  (UV GRID)                 4 DA
-C****  49  4*PUV4I (100 N/S**2)  (UV GRID)                         4 DA
-C****  50  DT(MC)*P (100 PA*K)  CHANGE OF PHASE                    1 CN
-C****  51  CLHE*DQ(MC BEFORE COND)*P (100 PA*K)                    1 CN
-C****  52  DU/DT BY SDRAG (M S-2)                                  1 SD
-C****  53  CHANGE OF LATENT HEAT BY MOSIT CONV.                    1 CN
-C****  54  TURBULENT KINETIC ENERGY (W/M^2)                        1 AT
-C****  55  CHANGE OF LATENT HEAT BY TURBULENCE                     1 AT
-C****  56  TOTAL HEATING BY MOIST CONVECTION (Q1)                  1 CN
-C****  57  TOTAL DRYING BY MOIST CONVECTION (Q2)                   1 CN
+C****   See jl_defs for contents
 C****
 C**** CONTENTS OF ASJL(J,L,N)  (SUM OVER LONGITUDE AND TIME OF)
-C****   1  TX (C)                                                  4 DA
-C****   2  PHI (M**2/S**2)                                         4 DA
-C****   3  SRHR (W/M**2)                                           2 RD
-C****   4  TRHR (W/M**2)                                           2 RD
+C****   See jls_defs for contents
 C****
 C**** CONTENTS OF AIJ(I,J,N)  (SUM OVER TIME OF)
-C****   1  POICE (1)                                               1 GD
-C****   2  PSNOW (1)                                               1 GD
-C****   3  SNOW (KG/M**2)                                          1 GD
-C****   4  SHDT (J/M**2)                                           1 SF
-C****   5  PREC (KG/M**2)                                          1 CN
-C****   6  EVAP (KG/M**2)                                          1 SF
-C****   7  BETA (1)                                                1 GD
-C****   8  SLP (100 PA-1000) (USING T1) (COMMENTED OUT)            4 DA
-C****   8  4*P4 (100 PA)  (UV GRID)     (COMMENTED) (NO PRINTOUT)  4 DA
-C****   8  PIJ (100 PA)                             (NO PRINTOUT)  4 DA
-C****   9  PHI1000 (M**2/S**2)                                     4 DA
-C****  10  PHI850 (M**2/S**2-1500*GRAV)                            4 DA
-C****  11  PHI700-3000*GRAV                                        4 DA
-C****  12  PHI500-5600*GRAV                                        4 DA
-C****  13  PHI300-9500*GRAV                                        4 DA
-C****  14  PHI100-16400*GRAV                                       4 DA
-C****  15  PHI30-24000*GRAV                                        4 DA
-C****  16  T850-TF (K-TF)*GRAV)             (NO PRINTOUT)          4 DA
-C****  17  PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE)                 2 RD
-C****  18  P-CLOUD TOP   (100 PA)                                  2 RD
-C****  19  PCLD (1)  (COMPOSITE OVER ATMOSPHERE)                   2 RD
-C****  20  16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2)  (UV GRID) 4 DA
-C****  21  TRNFP0 (W/M**2)                                         2 RS
-C****  22  SRHDT+TRHDT (J/M**2)                                    1 SF
-C****  23  SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)                   1 SC
-C****  24  SRNFP0 (W/M**2)                                         2 RD
-C****  25  SRINCP0 (W/M**2)                                        2 RD
-C****  26  SRNFG (W/M**2)                                          2 RD
-C****  27  SRINCG (W/M**2)                                         2 RD
-C****  28  TG1 (K-TF)                                              1 GD
-C****  29  POICE+PLICE+(IF SNOW)PEARTH                             1 GD
-C****  30  DIURNAL DELTA TS (K) OVER SOIL       (NO PRINTOUT)   .5*9 MN
-C****  31  DTHETA/DPHI (K S**2/M**2) IN TROPOSPHERE                4 DA
-C****  32  RUN1 OVER EARTH  (KG/M**2)                              1 PG
-C****  33  TS (K-TF)  (USING LAPSE RATE FROM TX1)  (COMM'D OUT)    4 DA
-C****  33  RUN1 OVER LAND ICE  (KG/M**2)            (NO PRINTOUT)  1 PG
-C****  34  SURFACE WIND SPEED (M/S)                                3 SF
-C****  35  TS (K-TF)                                               3 SF
-C****  36  US (M/S)                                                3 SF
-C****  37  VS (M/S)                                                3 SF
-C****  38  PSL (100 PA-1000)  (USING TS)                           4 DA
-C****  39  UJET (M/S)                                              4 DA
-C****  40  VJET (M/S)                                              4 DA
-C****  41  PCLD(LOW) (1)                                           2 RD
-C****  42  PCLD(MID) (1)                                           2 RD
-C****  43  PCLD(HIGH) (1)                                          2 RD
-C****  44  BTEMPW-TF (K-TF)                                        2 RD
-C****  45  PLAVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  46  TGO2=TOCEAN(2) (C)                                   .5*9 MN
-C****  47  TAUS  (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
-C****  48  TAUUS (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
-C****  49  TAUVS (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
-C****  50  WATER1+WATER2+ICE1+ICE2  (FOR EARTH POINTS ONLY)        1 GD
-C****  51  QS                                       (NO PRINTOUT)  3 SF
-C****  52  MAX(0,33-1.8*DAILY MEAN ON TS IN C)                  .5*9 MN
-C****  53  40.6+.72*(2TS(C)-(QSATS-QS)*LHA/SHA)                    3 SF
-C****  54  18*(DEL(TG)/DEL(TS)-1), DEL=DIURNAL MAX-MIN          .5*9 MN
-C****  55  8*P*U*Q (VERTICALLY INTEGRATED)  (12.5 PA*M/S)          4 DA
-C****  56  8*P*V*Q (VERTICALLY INTEGRATED)  (12.5 PA*M/S)          4 DA
-C****  57  TGO=TOCEAN(1)  (C)                                      1 GD
-C****  58  ACE2OI=MSI2*POICE  (KG/M**2)                            1 GD
-C****  59  WIND SPEED IN TOP LAYER (M/S)                           1 SD
-C****  60  TGO12=TOCEAN(3)  (C)                                 .5*9 MN
-C****  61  EVAP*POCEAN  (KG/M**2)                                  1 GD
-C****  62  EVAP*POICE  (KG/M**2)                                   1 GD
-C****  63  EVAP OVER LAND ICE  (KG/M**2)                           1 GD
-C****  64  EVAP OVER EARTH  (KG/M**2)                              1 GD
-C****  65  F0DT*POCEAN, NET HEAT AT Z0  (J/M**2)                   1 GD
-C****  66  F0DT*POICE, NET HEAT AT Z0  (J/M**2)                    1 GD
-C****  67  F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/M**2)            1 GD
-C****  68  F0DT, NET HEAT AT Z0 OVER EARTH  (J/M**2)               1 GD
-C****  69  F1DT OVER LAND ICE  (J/M**2)                            1 PG
-C****  70  SNOW FALL  (KG/M**2)                                    1 PR
-C****  71  SURF AIR TEMP OVER LAND ICE  (C)                 NISURF*1 SF
-C****  72  F2DT OVER LAND ICE  (J/M**2)                            1 PG
-C****  73  SHDT OVER LAND ICE  (J/M**2)                            3 SF
-C****  74  EVHDT OVER LAND ICE  (J/M**2)                           3 SF
-C****  75  TRHDT OVER LAND ICE  (J/M**2)                           3 SF
-C****  76  MAX(COMPOSITE TS)                                      12 SF
-C****  77  MIN(COMPOSITE TS)                                      12 SF
-C****  78  MIN(DIURNAL MAX OF COMPOSITE TS)                       12 MN
-C****  79  POTENTIAL EVAPORATION (KG/M**2)                         1 EA
-C****  80  MAX TS OVER EARTH FOR CURRENT DAY (K)                .5*9 MN
-C****  81  LIQUID WATER PATH (kg/M**2)                             1 CL
-C****  82  SHALLOW CONVECTIVE CLOUD COVER  (1)                     1 CL
-C****  83  DEEP CONVECTIVE CLOUD COVER     (1)                     1 CL
-C****  84  DEEP CONVECTIVE CLOUD FREQUENCY (1)                     1 CL
-C****  85  SHALLOW CONVECTIVE CLOUD FREQUENCY (1)                  1 CL
-C****  86  INCIDENT MTN EAST MOMENTUM FLUX   (MB-M/S**2)           1 SD
-C****  87  INCIDENT MTN SOUTH MOMENTUM FLUX  (MB-M/S**2)           1 SD
-C****  88  EAST-WEST POTENTIAL ENTHALPY FLUX (W)            /3600.*1 DY
-C****  89  NORTH-SOUTH POTENTIAL ENTHALPY FLUX (W)          /3600.*1 DY
-C****  90  EAST-WEST MASS FLUX (KG/S)              100./GRAV/3600.*1 DY
-C****  91  NORTH-SOUTH MASS FLUX (KG/S)            100./GRAV/3600.*1 DY
-C****  92  EAST-WEST WATER VAPOR FLUX (KG/S)                /3600.*1 DY
-C****  93  NORTH-SOUTH WATER VAPOR FLUX (KG/S)              /3600.*1 DY
-C****  94  EAST-WEST GEOPOTENTIAL FLUX (W)                  /3600.*1 DY
-C****  95  NORTH-SOUTH GEOPOTENTIAL FLUX (W)                /3600.*1 DY
-C****  96  Energy Outflow by Rivers (10**10 W)     E-10/DTS*IDACC(1) RV
-C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
-C****  98  DU/DT BY SDRAG (M S-2)                                  1 SD
-C****  99  LAST DAY OF ICE-FREE LAKE (DAYS)                       12 DA
-C**** 100  LAST DAY OF ICED-UP LAKE (DAYS)                        12 DA
-C**** 101  LAYER 1 REL SAT OF BARE AMD VEG. SOIL (%)               1 EA
-C**** 102  LAYER 2 REL SATURATION OF BARE SOIL (%)                 1 EA
-C**** 103  LAYER 3 REL SATURATION OF BARE SOIL (%)                 1 EA
-C**** 104  LAYER 4 REL SATURATION OF BARE SOIL (%)                 1 EA
-C**** 105  BETA (BARE SOIL) (%)                                    1 EA
-C**** 106  BETA (PENMAN) (%)                                       1 EA
-C**** 107  CANOPY  REL SATURATION (%)                              1 EA
-C**** 108  LAYER 1 REL SATURATION OF VEG. SOIL (%)                 1 EA
-C**** 109  LAYER 2 REL SATURATION OF VEG. SOIL (%)                 1 EA
-C**** 110  LAYER 3 REL SATURATION OF VEG. SOIL (%)                 1 EA
-C**** 111  BETA (BARE SOIL & VEGETATION) (%)                       1 EA
-C**** 112  CONDUCTANCE OF ATMOSPHERE (.01M/S)                      1 EA
-C**** 113  CONDUCTANCE OF CANOPY (.01M/S)                          1 EA
-C**** 114  PENMAN POTENTIAL EVAPORATION (KG/M**2)                  1 EA
-C**** 115  TEMP OF LAYER 1 BARE SOIL AND SNOW (C)                  1 EA
-C**** 116  TEMP OF SOIL LAYER 2 - BARE SOIL (C)                    1 EA
-C**** 117  TEMP OF SOIL LAYER 3 - BARE SOIL (C)                    1 EA
-C**** 118  BARE SOIL EVAPORATION (KG/M**2)                         1 EA
-C**** 119  DRY CANOPY EVAPORATION (KG/M**2)                        1 EA
-C**** 120  WET CANOPY EVAPORATION (KG/M**2)                        1 EA
-C**** 121  TEMP OF CANOPY AND SNOW (C)                             1 EA
-C**** 123  TEMP OF SOIL LAYER 2 1 VEGETATED SOIL (C)               1 EA
-C**** 123  TEMP OF SOIL LAYER 2 - VEGETATED SOIL (C)               1 EA
-C**** 124  TEMP OF SOIL LAYER 3 - VEGETATED SOIL (C)               1 EA
-C**** 125  AVERAGE WATER TABLE (M)                                 1 EA
-C**** 126  BETAV, OVER VEGETATION (PERCENT)                        1 EA
-C**** 127  BETAT, TRANSPIRATION (PERCENT)                          1 EA
-C**** 128  SNOW OVER BARE SOIL                                     1 EA
-C**** 129  SNOW OVER VEGETATED SOIL                                1 EA
+C****   See ij_defs for contents
 C****
 C**** CONTENTS OF AIL(I,L,N)  (SUM OVER TIME OF)
-C**** WE ARE NOT TAKING INTO ACCOUNT THE VARIATION OF MASS
-C****   1  U (M/S) (SUM FOR J=J5SUV,J5NUV)            (PU GRID)    4 DA
-C****   2  V (M/S) (SUM FOR J=J5SUV,J5NUV)            (PU GRID)    4 DA
-C****   3  SD (100 N/S) (SUM FOR J=J5S,J5N)                        4 DA
-C****   4  TX (K-TF) (SUM FOR J=J5S,J5N)                           4 DA
-C****   5  RH (1) (SUM FOR J=J5S,J5N)                              4 DA
-C****   6  DTX(MC)*P*DA (100 K*N) (SUM FOR J=J5S,J5N)              1 CN
-C****   7  (SRHR+TRHR)*DA (W) (SUM FOR J=J5S,J5N)                  2 RD
-C****   9  SD (100 N/S) (AT LAT 50 N)                              4 DA
-C****  10  TX-TF  (AT LAT 50 N)                                    4 DA
-C****  11  SR+TR  (AT LAT 50 N)  (COMMENTED OUT)                   2 RD
-C****  12  2*U  (AT LAT 50 N)                                      4 DA
-C****  13  SD  (AT LAT 70 N)                                       4 DA
-C****  14  TX-TF  (AT LAT 70 N)                                    4 DA
-C****  15  SR+TR  (AT LAT 70 N)  (COMMENTED OUT)                   2 RD
-C****  16  2*U  (AT LAT 70 N)                                      4 DA
-C****
+C****   See il_defs for contents
 C****
 C**** CONTENTS OF IDACC(N), NUMBER OF ACCUMULATION TIMES OF
 C****   1  SOURCE TERMS  (dt: DTSRC)
@@ -386,63 +100,72 @@ C****
 
       CALL GETTIME(MBEGIN)
       IDACC(4)=IDACC(4)+1
-      IF (IFIRST.NE.1) GO TO 50
-      IFIRST=0
+
+      IF (IFIRST.EQ.1) THEN
+        IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES
-      L=LM+1
-    3 L=L-1
-      IF (L.EQ.1) GO TO 4
-      IF (.25*(SIGE(L-1)+2*SIGE(L)+SIGE(L+1))*PSFMPT+PTOP.LT.250.)
-     *   GO TO 3
-    4 JET=L
-      WRITE (6,888) JET
-  888 FORMAT (' JET WIND LEVEL FOR DIAG',I3)
-      BYSDSG=1./(1.-SIGE(LM+1))
-      EPSLON=1.
-      I150E = IM*(180+150)/360+1   ! WEST EDGE OF 150 EAST
-      I110W = IM*(180-110)/360+1   ! WEST EDGE OF 110 WEST
-      I135W = IM*(180-135)/360+1   ! WEST EDGE OF 135 WEST
-      PRQ1=.75*PMTOP
-      DLNP12=LOG(.75/.35)
-      DLNP23=LOG(.35/.1)
-      DO 10 L=1,LM
-      LUPA(L)=L+1
-   10 LDNA(L)=L-1
-      LDNA(1)=1
-      LUPA(LM)=LM
-   50 CONTINUE
+        L=LM+1
+ 3      L=L-1
+        IF (L.EQ.1) GO TO 4
+        IF (.25*(SIGE(L-1)+2*SIGE(L)+SIGE(L+1))*PSFMPT+PTOP.LT.250.)
+     *       GO TO 3
+ 4      JET=L
+        WRITE (6,888) JET
+ 888    FORMAT (' JET WIND LEVEL FOR DIAG',I3)
+
+        BYSDSG=1./(1.-SIGE(LM+1))
+        EPSLON=1.
+        I150E = IM*(180+150)/360+1 ! WEST EDGE OF 150 EAST
+        I110W = IM*(180-110)/360+1 ! WEST EDGE OF 110 WEST
+        I135W = IM*(180-135)/360+1 ! WEST EDGE OF 135 WEST
+        PRQ1=.75*PMTOP
+        DLNP12=LOG(.75/.35)
+        DLNP23=LOG(.35/.1)
+        DO L=1,LM
+          LUPA(L)=L+1
+          LDNA(L)=L-1
+        END DO
+        LDNA(1)=1
+        LUPA(LM)=LM
+        END IF
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
-      DO 65 L=1,LM
-      DO 65 I=2,IM
-      Q(I,1,L)=Q(1,1,L)
-   65 Q(I,JM,L)=Q(1,JM,L)
+      DO L=1,LM
+        DO I=2,IM
+          Q(I,1,L)=Q(1,1,L)
+          Q(I,JM,L)=Q(1,JM,L)
+        END DO
+      END DO
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
-      DO 84 L=1,LM
-      TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-      TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
-      DO 70 I=2,IM
-      T(I,1,L)=T(1,1,L)
-      T(I,JM,L)=T(1,JM,L)
-      TX(I,1,L)=TX(1,1,L)
-   70 TX(I,JM,L)=TX(1,JM,L)
-      DO 80 J=2,JM-1
-      DO 80 I=1,IM
-   80 TX(I,J,L)=T(I,J,L)*PK(L,I,J)
-   84 CONTINUE
+      DO L=1,LM
+        TX(1,1,L)=T(1,1,L)*PK(L,1,1)
+        TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
+        DO I=2,IM
+          T(I,1,L)=T(1,1,L)
+          T(I,JM,L)=T(1,JM,L)
+          TX(I,1,L)=TX(1,1,L)
+          TX(I,JM,L)=TX(1,JM,L)
+        END DO
+        DO J=2,JM-1
+          DO I=1,IM
+            TX(I,J,L)=T(I,J,L)*PK(L,I,J)
+          END DO
+        END DO
+      END DO
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
 C****
-      DO 90 J=2,JM
-      I=IM
-      DO 85 IP1=1,IM
-      PUV(I,J)=RAVPN(J-1)*(P(I,J-1)+P(IP1,J-1))+
-     *         RAVPS(  J)*(P(I,  J)+P(IP1,  J))
-   85 I=IP1
-   90 CONTINUE
+      DO J=2,JM
+        I=IM
+        DO IP1=1,IM
+          PUV(I,J)=RAVPN(J-1)*(P(I,J-1)+P(IP1,J-1))+
+     *             RAVPS(  J)*(P(I,  J)+P(IP1,  J))
+          I=IP1
+        END DO
+      END DO
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
@@ -694,188 +417,101 @@ C**** MEAN TROPOSPHERIC LAPSE RATES:  MOIST CONVECTIVE, ACTUAL,
 C****    DRY ADIABATIC
 C****
       X=RGAS*LHE*LHE/(SHA*RVAP)
-      DO 570 J=1,JM
-      GAMM=0.
-      DO 560 L=1,LS1-1
-      TZL=TPI(J,L)/PI(J)+TF
-      PRT=(SIG(L)*PI(J)*BYIM+PTOP)*RGAS*TZL
-      ESEPS=QSAT(TZL,LHE,ONE)
-      GAMM=GAMM+(PRT+LHE*ESEPS)/(PRT+X*ESEPS/TZL)*DSIG(L)
-  560 CONTINUE
-      GAMX=(TPI(J,1)-TPI(J,LS1-1))/(PHIPI(J,LS1-1)-PHIPI(J,1))
-      DO IT=1,NTYPE
-        AJ(J,J_GAMM,IT)=AJ(J,J_GAMM,IT)+GAMM*SPTYPE(IT,J)
-        AJ(J,J_GAM ,IT)=AJ(J,J_GAM ,IT)+GAMX*SPTYPE(IT,J)
+      DO J=1,JM
+        GAMM=0.
+        DO L=1,LS1-1
+          TZL=TPI(J,L)/PI(J)+TF
+          PRT=(SIG(L)*PI(J)*BYIM+PTOP)*RGAS*TZL
+          ESEPS=QSAT(TZL,LHE,ONE)
+          GAMM=GAMM+(PRT+LHE*ESEPS)/(PRT+X*ESEPS/TZL)*DSIG(L)
+        END DO
+        GAMX=(TPI(J,1)-TPI(J,LS1-1))/(PHIPI(J,LS1-1)-PHIPI(J,1))
+        DO IT=1,NTYPE
+          AJ(J,J_GAMM,IT)=AJ(J,J_GAMM,IT)+GAMM*SPTYPE(IT,J)
+          AJ(J,J_GAM ,IT)=AJ(J,J_GAM ,IT)+GAMX*SPTYPE(IT,J)
+        END DO
       END DO
-  570 CONTINUE
 C**** DRY ADIABATIC LAPSE RATE
-      DO 580 J=1,JM
-      TPIL=0.
-      DO 575 L=1,LS1-1
-  575 TPIL=TPIL+TPI(J,L)*DSIG(L)
-      TIL(J)=TPIL/(PI(J)*(SIGE(1)-SIGE(LS1)))
-  580 CONTINUE
-      DO 590 J=2,JM-1
-      X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
-      DT2=TIL(J+1)-TIL(J-1)
-      GAMC=GAMD+X*DT2/(TIL(J)+TF)
-      DO IT=1,NTYPE
-        AJ(J,J_GAMC,IT)=AJ(J,J_GAMC,IT)+GAMC*SPTYPE(IT,J)
+      DO J=1,JM
+        TPIL=0.
+        DO L=1,LS1-1
+          TPIL=TPIL+TPI(J,L)*DSIG(L)
+        END DO
+        TIL(J)=TPIL/(PI(J)*(SIGE(1)-SIGE(LS1)))
       END DO
-  590 CONTINUE
+      DO J=2,JM-1
+        X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
+        DT2=TIL(J+1)-TIL(J-1)
+        GAMC=GAMD+X*DT2/(TIL(J)+TF)
+        DO IT=1,NTYPE
+          AJ(J,J_GAMC,IT)=AJ(J,J_GAMC,IT)+GAMC*SPTYPE(IT,J)
+        END DO
+      END DO
 C****
 C**** EASTWARD TRANSPORTS
 C****
       I=IM
-      DO 600 L=1,LM
-      DO 600 J=2,JM-1
-      DO 600 IP1=1,IM
-      AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
-     *   (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
-  600 I=IP1
+      DO L=1,LM
+      DO J=2,JM-1
+      DO IP1=1,IM
+        AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
+     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
+        I=IP1
+      END DO
+      END DO
+      END DO
 C****
 C**** MOMENTUM, KINETIC ENERGY, NORTHWARD TRANSPORTS, ANGULAR MOMENTUM
 C****
-      DO 640 J=2,JM
+      DO J=2,JM
       P4I=0.
       I=IM
-      DO 610 IP1=1,IM
-      P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
-      P4I=P4I+P4
-C     AIJ(I,J,IJ_P4UV)=AIJ(I,J,IJ_P4UV)+P4
-      AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+U(I,J,JET)
-      AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
-  610 I=IP1
+      DO IP1=1,IM
+        P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
+        P4I=P4I+P4
+        AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+U(I,J,JET)
+        AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
+        I=IP1
+      END DO
       APJ(J,2)=APJ(J,2)+P4I
-      DO 640 L=1,LM
-      PU4I=0.
-      PV4I=0.
-C     PWW4I=0.
-C     PT16I=0.
-C     PTV16I=0.
-C     PZ16I=0.
-C     PZV16I=0.
-C     PQ16I=0.
-C     PQV16I=0.
-C     PWWV4I=0.
-      PUV4I=0.
-      I=IM
-      DO 620 IP1=1,IM
-      P4=PLIJ(L,I,J-1)+PLIJ(L,IP1,J-1)+PLIJ(L,I,J)+PLIJ(L,IP1,J)
-      IF(L.EQ.LS1) P4I=FIM*P4
-      PU4I=PU4I+P4*U(I,J,L)
-      PV4I=PV4I+P4*V(I,J,L)
-C     PWW4I=PWW4I+P4*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-C     PWWV4I=PWWV4I+P4*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*V(I,J,L)
-      PUV4I=PUV4I+P4*U(I,J,L)*V(I,J,L)
-      T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
-C     PT16I=PT16I+P4*T4
-C     PTV16I=PTV16I+P4*T4*V(I,J,L)
-      Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
-C     PZ16I=PZ16I+P4*Z4
-C     PZV16I=PZV16I+P4*Z4*V(I,J,L)
-C     Q4=Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L)
-C     PQ16I=PQ16I+P4*Q4
-C     PQV16I=PQV16I+P4*Q4*V(I,J,L)
-      AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)
-     *     *DXV(J)
-      SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
-      AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+SP2
-     *  *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
-  620 I=IP1
-C     AJL(J,L,JL_04)=AJL(J,L,JL_04)+PU4I
-C     AJL(J,L,JL_05)=AJL(J,L,JL_05)+PV4I
-C     AJL(J,L,JL_14)=AJL(J,L,JL_14)+(PU4I*PU4I+PV4I*PV4I)/P4I
-C     AJL(J,L,JL_15)=AJL(J,L,JL_15)+PWW4I
-C     AJL(J,L,JL_20)=AJL(J,L,JL_20)+PT16I*PV4I/P4I
-C     AJL(J,L,JL_21)=AJL(J,L,JL_21)+PTV16I
-C     AJL(J,L,JL_22)=AJL(J,L,JL_22)+PZ16I*PV4I/P4I
-C     AJL(J,L,JL_23)=AJL(J,L,JL_23)+PZV16I
-C     AJL(J,L,JL_24)=AJL(J,L,JL_24)+PQ16I*PV4I/P4I
-C     AJL(J,L,JL_25)=AJL(J,L,JL_25)+PQV16I
-C     AJL(J,L,JL_26)=AJL(J,L,JL_26)+PWW4I*PV4I/P4I
-C     AJL(J,L,JL_27)=AJL(J,L,JL_27)+PWWV4I
-      AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+PU4I*PV4I/P4I
-      AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+PUV4I
-  640 CONTINUE
+      DO L=1,LM
+        PU4I=0.
+        PV4I=0.
+        PUV4I=0.
+        I=IM
+        DO IP1=1,IM
+          P4=PLIJ(L,I,J-1)+PLIJ(L,IP1,J-1)+PLIJ(L,I,J)+PLIJ(L,IP1,J)
+          IF(L.EQ.LS1) P4I=FIM*P4
+          PU4I=PU4I+P4*U(I,J,L)
+          PV4I=PV4I+P4*V(I,J,L)
+          PUV4I=PUV4I+P4*U(I,J,L)*V(I,J,L)
+          T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
+          Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
+          AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)
+     *         *DSIG(L)*DXV(J)
+          SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
+          AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+SP2
+     *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
+          I=IP1
+        END DO
+        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+PU4I*PV4I/P4I
+        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+PUV4I
+      END DO
+      END DO
 C****
 C**** EVEN LEVEL GEOPOTENTIALS, VERTICAL WINDS AND VERTICAL TRANSPORTS
 C****
-      DO 655 J=1,JM
-C     PITI=0.
-C     DO 648 I=1,IMAXJ(J)
-C 648 PITI=PITI+PIT(I,J)
-      DO 655 L=1,LM-1
-C     SDI=0.
-C     PZI=0.
-C     SDZI=0.
-C     PDSE2I=0.
-C     SDDS2I=0.
-C     PQ2I=0.
-C     SDQ2I=0.
-      DO 650 I=1,IMAXJ(J)
-C     SDI=SDI+SD(I,J,L)
-      PIJ=PLIJ(L,I,J)
-c      PE=PEDN(L+1,I,J)  ! SIGE(L+1)*PIJ+PTOP
-c      PKE=PEK(L+1,I,J)  ! PE**KAPA
-      PE=SIGE(L+1)*PIJ+PTOP
-      PKE=PE**KAPA
-      THETA=THBAR(T(I,J,L+1),T(I,J,L))
-      W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
-C     PHIE(I,J,L)=PHI(I,J,L)+SHA*THETA*(PK(L,I,J)-PKE)
-C     PZI=PZI+PHIE(I,J,L)*P(I,J)
-C     SDZI=SDZI+PHIE(I,J,L)*SD(I,J,L)
-C     PDSE2I=PDSE2I+(SHA*(TX(I,J,L)+TX(I,J,L+1))+2.*PHIE(I,J,L))*P(I,J)
-C     SDDS2I=SDDS2I+(SHA*(TX(I,J,L)+TX(I,J,L+1))+2.*PHIE(I,J,L))*
-C    *  SD(I,J,L)
-C     PQ2I=PQ2I+(Q(I,J,L)*Q(I,J,L+1)/(Q(I,J,L)+Q(I,J,L+1)+teeny))*
-C    *   P(I,J)
-C     SDQ2I=SDQ2I+(Q(I,J,L)*Q(I,J,L+1)/(Q(I,J,L)+Q(I,J,L+1)+
-C    *  teeny))*SD(I,J,L)
-  650 CONTINUE
-C     SDMEAN(J,L)=SDI*BYIM
-C     AJL(J,L,JL_06)=AJL(J,L,JL_06)+SDI+DSIG(L+1)*PITI
-C     AJL(J,L,JL_34)=AJL(J,L,JL_34)+(SDZI-PZI*SDI/PI(J))
-C     AJL(J,L,JL_30)=AJL(J,L,JL_30)+PDSE2I*SDI/PI(J)
-C     AJL(J,L,JL_31)=AJL(J,L,JL_31)+SDDS2I
-C     AJL(J,L,JL_32)=AJL(J,L,JL_32)+PQ2I*SDI/PI(J)
-C     AJL(J,L,JL_33)=AJL(J,L,JL_33)+SDQ2I
-  655 CONTINUE
-C****
-C**** VERTICAL TRANSPORT OF KINETIC ENERGY AND ANGULAR MOMENTUM
-C****
-C**** FILL IN AND/OR DOUBLE SD AND SDMEAN AT THE POLES
-C     DO 657 L=1,LM-1
-C     SDMEAN(1,L)=2.*FIM*SDMEAN(1,L)
-C     SDMEAN(JM,L)=2.*FIM*SDMEAN(JM,L)
-C     SDSP=2.*SD(1,1,L)
-C     SDNP=2.*SD(1,JM,L)
-C     DO 657 I=1,IM
-C     SD(I,1,L)=SDSP
-C 657 SD(I,JM,L)=SDNP
-C     DO 670 J=2,JM
-C     AMA=RADIUS*OMEGA*COSV(J)
-C     DO 670 L=1,LM-1
-C     TKEM=0.
-C     TKET=0.
-C     UM=0.
-C     UT=0.
-C     I=IM
-C     DO 660 IP1=1,IM
-C     SDU=SD(I,J,L)+SD(IP1,J,L)+SD(I,J-1,L)+SD(IP1,J-1,L)
-C     UE=U(I,J,L)+U(I,J,L+1)
-C     TKE=UE*UE+(V(I,J,L)+V(I,J,L+1))*(V(I,J,L)+V(I,J,L+1))
-C     TKEM=TKEM+TKE
-C     TKET=TKET+TKE*SDU
-C     UM=UM+UE
-C     UT=UT+UE*SDU
-C 660 I=IP1
-C     AJL(J,L,JL_35)=AJL(J,L,JL_35)+TKET
-C     AJL(J,L,JL_EPFLXV)=
-C    *   AJL(J,L,JL_EPFLXV)+(UT-2.*UM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
-C     AJL(J,L,JL_EPFLXN)=
-C    *  AJL(J,L,JL_EPFLXN)+(UT+4*AMA*FIM*(SDMEAN(J,L)+SDMEAN(J-1,L)))
-C 670 CONTINUE
+      DO L=1,LM-1
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        PIJ=PLIJ(L,I,J)
+        PE=SIGE(L+1)*PIJ+PTOP
+        PKE=PE**KAPA
+        THETA=THBAR(T(I,J,L+1),T(I,J,L))
+        W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
+      END DO
+      END DO
+      END DO
 C****
 C**** AVAILABLE POTENTIAL ENERGY
 C****
@@ -914,57 +550,6 @@ C**** CALCULATE APE
   760 AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+
      &        (THSQJL(J,L)-2.*THJL(J,L)*THGM+THGM*THGM*
      *  FIM)/GMEANL
-C****
-C**** OMEGA'*ALPHA' ;  BAROCLINIC EKE GENERATION
-C****
-C     DO 770 L=1,LM
-C     DO 770 J=2,JM-1
-C     PWAI=0.
-C     SPAI=0.
-C     PWI=0.
-C     IM1=IM
-C     DO 766 I=1,IM
-C     PL=SIG(L)*P(I,J)+PTOP
-C     SPA=SIG(L)*P(I,J)*RGAS*TX(I,J,L)/PL
-C     SVDX=(V(IM1,J+1,L)+V(I,J+1,L))*DXV(J+1)-(V(IM1,J,L)+V(I,J,L))*
-C    *   DXV(J)
-C     SUDY=(U(I,J+1,L)+U(I,J,L)-U(IM1,J+1,L)-U(IM1,J,L))*DYP(J)
-C     PWA=-.5*SPA*(SUDY+SVDX)*DSIG(L)*P(I,J)
-C     IF (L.NE.LM) PWA=PWA+SD(I,J,L)*((PHIE(I,J,L)-PHI(I,J,L))
-C    *    +SPA)
-C     IF (L.NE.1) PWA=PWA+SD(I,J,L-1)*((PHI(I,J,L)-PHIE(I,J,L-1))
-C    *    -SPA)
-C     PWAI=PWAI+PWA
-C     SPAI=SPAI+SPA
-C     PWI=PWI+PWA*P(I,J)/SPA
-C 766 IM1=I
-C 770 AJL(J,L,JL_07)=AJL(J,L,JL_07)-(PWAI-PWI*SPAI/PI(J))
-C****
-C**** P-K BY PRESSURE GRADIENT FORCE
-C****
-C     DO 774 L=1,LM
-C     DO 774 J=2,JM
-C     PDA4I=0.
-C     VPDA4I=0.
-C     DVTI=0.
-C     VDVTI=0.
-C     DUTI=0.
-C     UDUTI=0.
-C     UPDA4I=0.
-C     I=IM
-C     DO 772 IP1=1,IM
-C     PDA4=(P(I,J)+P(IP1,J))*DXYP(J) + (P(I,J-1)+P(IP1,J-1))*DXYP(J-1)
-C     PDA4I=PDA4I+PDA4
-C     VPDA4I=VPDA4I+V(I,J,L)*PDA4
-C     DVTI=DVTI+DVT(I,J,L)
-C     VDVTI=VDVTI+V(I,J,L)*DVT(I,J,L)
-C     DUTI=DUTI+DUT(I,J,L)
-C     UDUTI=UDUTI+U(I,J,L)*DUT(I,J,L)
-C     UPDA4I=UPDA4I+U(I,J,L)*PDA4
-C 772 I=IP1
-C 774 AJL(J,L,JL_53)=AJL(J,L,JL_53)+VDVTI+UDUTI
-C    *   -(UPDA4I*DUTI+VPDA4I*DVTI)/PDA4I
-C        IF (JM.NE.24) GO TO 850
 C****
 C**** CERTAIN HORIZONTAL WIND AVERAGES
 C****
@@ -1099,26 +684,8 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+
      &     (.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU
   878 CONTINUE
-C****
-C**** POTENTIAL VORTICITY  (10/30/81)
-C****
-C     DO 895 L=1,LM
-C     LUP=LUPA(L)
-C     LDN=LDNA(L)
-C     DO 895 J=2,JM-1
-C     PV2I=0.
-C     I=IM
-C     DO 890 IP1=1,IM
-C     DS2=T(I,J,LUP)+T(IP1,J,LUP)-T(I,J,LDN)-T(IP1,J,LDN)
-C     PV2I=PV2I+DS2*(U(I,J+1,L)*DXV(J+1)-U(I,J,L)*DXV(J) - FCOR(J))
-C 890 I=IP1
-C 895 AJL(J,L,JL_52)=AJL(J,L,JL_52)+PV2I
-C****
-C**** TRANSFORMED STREAM FUNCTION
-C****
-C---- skip for now lines 1132-1163
-C**** ACCUMULATE TIME USED IN DIAGA
 
+C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
   999 FORMAT (' DTHETA/DP IS TOO SMALL AT J=',I4,' L=',I4,2F15.6)
@@ -1142,66 +709,13 @@ C****
 
 
       SUBROUTINE DIAGB
+!@sum DIAGB calculate constant pressure diagnostics from within DYNAM 
 C****
 C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
-C**CP   1  DP  (PDN-PM(K+1);  PDN=MAX(PM(K+1),PS)
-C**CP   2  DP4  (PDN-PM(K+1))   (UV GRID)
-C***1   3  (TX-TF)*DP
-C***2   4  PHI*DP
-C***3   5  Q*DP
-C**17   6  TH*DP
-C**18   7  RH*DP
-C***4   8  U*DP4 (100 PA*M/S)  (UV GRID)
-C***5   9  V*DP4 (100 PA*M/S)  (UV GRID)
-C**14  10  (PUI*PUI+PVI*PVI)/DPI (100 N/S**2)  (UV GRID) ..I=SUM OVER I
-C**15  11  (U*DP4*U*DP4+V*DP4*V*DP4)/DP4 (100 N/S**2)  (UV GRID)
-C**20  12  4*PT4I*PVI/DPI (100 PA*K*M/S)  (UV GRID)
-C**21  13  4*PTV4I (100 PA*K*M/S)  (UV GRID)
-C**22  14  4*PZ4I*PVI/DPI (100 W/S**2)  (UV GRID)
-C**23  15  4*PZV4I (100 W/S**2)  (UV GRID)
-C**24  16  4*PQ4I*PVI/DPI (100 PA*M/S)  (UV GRID)
-C**25  17  4*PQV4I (100 PA*M/S)  (UV GRID)
-C**26  18  PWWI*PVI/DPI (100 W/S**2)  (UV GRID)
-C**27  19  PWWVI (100 W/S**2)  (UV GRID)
-C**48  20  PUI*PVI/DPI (100 N/S**2)  (UV GRID)
-C**49  21  PUVI (100 N/S**2)  (UV GRID)
-C**53  22  VDVT - VDPI*DVT/DPI
-C****  23  DP**2  (UV GRID)
-C****  24  IM  (UV GRID)
-C***6  25  W*DA  (100 NT/S)
-C**30  26  WI*(SHA*TI+ZI)/FIM
-C**31  27  SHA*WTI+WZI
-C**32  28  WI*QI/FIM
-C**33  29  WQI
-C**34  30  WZI-WI*ZI/FIM
-C***7  31  2*(WPA2I-W2I*PAI/FIM)  (ODD LAYERS)
-C**52  32  PV = STB*(D(UDX)-F*DA)
-C****  33  WPV4I
-C****  33  WPV4I - W2I*PV2I/FIM
-C****  35  IM  (PT GRID)
-C**35  36  WKE4I  (UV GRID)
-C**36  37  WU4I - W4I*UKI/FIM  (UV GRID)
-C**37  38  WU4I+W4I*UEARTH  (UV GRID)
-C****  39     4*(PSV4I-PS4I*PVI/DPI)/STB (MB*MB M/S)
-C****  40     ADVU=-(DUDY-F)*V-DUDP*W  (M/S/S)
-C****  41     ADVT=-DTDY*V-DTDP*W   (DEGK/S)
-C****  42     LADVU=-(DUDY-F)*V* - DUDP*W*  (M/S/S)
-C****  43     LADVT=-DTDY*V* - DTDP*W*  (DEGK/S)
-C****  44     FY= V'T'/DTDP*DUDP - U'V'
-C****  45     FP= -U'W' - V'T'/DTDP*(DUDY-F)
-C****  46     U1 = U AT IDACC(4)=1  (M/S) (NOT SUM OVER TIME)
-C****  47     U-U1   (M/S)                (NOT SUM OVER TIME)
-C****  48     T1 = T AT IDACC(4)=1  (DEG K  THETA) (NOT SUM OVER TIME)
-C****  49     T-T1    (DEG K   THETA)              (NOT SUM OVER TIME)
-C****  50     W'TH'      (DEG K-MB/S)
+C****   See jks_defs for contents
 C****
 C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
-C****   1  DP4*U (100 PA*M/S)  (UV GRID)
-C****   2  DP4*V (100 PA*M/S)  (UV GRID)
-C****   3  4*DP4*(SHA*T4+Z4) (100 N/S**2)  (UV GRID)
-C****   4  DP4 (100 PA)  (UV GRID)
-C****   5  4*DP4*T4 (100 K*PA)  (UV GRID)
-C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
+C****   See ijks_defs for contents
 C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :

@@ -21,7 +21,7 @@
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
-      USE DAGCOM, only : aij, ij_smfx
+      USE DAGCOM, only : aij, ij_smfx, aj, j_implh, j_implm
       IMPLICIT NONE
       SAVE
 
@@ -63,7 +63,7 @@
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
       IMPLICIT NONE
-      INTEGER I,J,IMAX
+      INTEGER I,J
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
 !@var QTCHNG true if TOCEAN(1) is changed (needed for qflux calculation)
       LOGICAL, INTENT(IN) :: QTCHNG
@@ -82,8 +82,7 @@ C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
@@ -124,7 +123,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
-      INTEGER n,J,I,LSTMON,K,IMAX,m,m1
+      INTEGER n,J,I,LSTMON,K,m,m1
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
      *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
 !@var JDLAST julian day that OCLIM was last called
@@ -202,8 +201,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           BOST(I,J)=EOST1(I,J)-EOST0(I,J)
           COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
           BRSI(I,J)=0.
@@ -234,8 +232,7 @@ C**** Calculate OST, RSI and MSI for current day
         ZIMIN=Z1I+Z2OIM
         ZIMAX=2d0
         IF(J.GT.JM/2) ZIMAX=3.5d0
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
 C**** OST always uses quadratic fit
             TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME
@@ -264,15 +261,27 @@ C**** RSI uses quadratic fit
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
             END SELECT
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+C**** accumulate diagnostics
+            IF (end_of_day) THEN
+              AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
+     *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
+     *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
+              AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-
+     *             (MSINEW-MSI(I,J))*RSI(I,J)*FOCEAN(I,J)
+              AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-SUM(HSI(3:4,I,J)
+     *             )*(MSINEW/MSI(I,J)-1.)*RSI(I,J)*FOCEAN(I,J)
+              AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-(1.-RSI(I,J))
+     *             *FOCEAN(I,J)*(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I
+     *             ,J))
+              AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-(1.-RSI(I,J))
+     *             *FOCEAN(I,J)*(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J))
+            END IF
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J)=SSI(3:4,I,J)*(MSINEW/MSI(I,J))
 #ifdef TRACERS_WATER
             TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
-            IF (end_of_day) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
-     *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
-     *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
             RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
 C**** set ftype arrays
@@ -626,24 +635,25 @@ C****
      *     ,itoice,fland
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DAGCOM, only : aij,ij_toc2,ij_tgo2
+      USE DAGCOM, only : aij,ij_toc2,ij_tgo2,aj,j_imelt,j_hmelt,j_smelt
+     *     ,areg,jreg
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
       USE SEAICE, only : simelt,ace1i,lmi,xsi
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
       IMPLICIT NONE
-      INTEGER I,J,IMAX
+      INTEGER I,J,JR
       LOGICAL, INTENT(IN) :: end_of_day
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT
+      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT,POCEAN
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
@@ -679,44 +689,53 @@ C**** RESTRUCTURE THE OCEAN LAYERS
         CALL OSTRUC(.TRUE.)
 C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
         DO J=1,JM
-          IMAX=IMAXJ(J)
-          DO I=1,IMAX
+        DO I=1,IMAXJ(J)
 C**** Only melting of ocean ice (not lakes)
-            IF (FOCEAN(I,J)*RSI(I,J) .GT.0 .and.RSI(I,J).lt.1d-4) THEN
-              TGW=TOCEAN(1,I,J)
-              ROICE=RSI(I,J)
-              MSI2=MSI(I,J)
-              SNOW=SNOWI(I,J)   ! snow mass
-              HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
-              SSIL(:)= SSI(:,I,J) ! sea ice salt
+          IF (FOCEAN(I,J)*RSI(I,J) .GT.0 .and.RSI(I,J).lt.1d-4) THEN
+            JR=JREG(I,J)
+            TGW=TOCEAN(1,I,J)
+            ROICE=RSI(I,J)
+            POCEAN=FOCEAN(I,J)
+            MSI2=MSI(I,J)
+            SNOW=SNOWI(I,J)     ! snow mass
+            HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
+            SSIL(:)= SSI(:,I,J) ! sea ice salt
 #ifdef TRACERS_WATER
-              TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
+            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
-              WTRO=Z1O(I,J)*RHOW
-              CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+            WTRO=Z1O(I,J)*RHOW
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
 #ifdef TRACERS_WATER
-     *             ,TRSIL,TRUN0
+     *           ,TRSIL,TRUN0
 #endif
-     *             ,ENRGUSED,RUN0,SALT)
+     *           ,ENRGUSED,RUN0,SALT)
 C**** RUN0, SALT not needed for Qflux ocean
+C**** accumulate diagnostics
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED*POCEAN
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT*POCEAN
+            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0*POCEAN
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*POCEAN*DXYP(J)
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*POCEAN*DXYP(J)
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*POCEAN*DXYP(J)
 C**** RESAVE PROGNOSTIC QUANTITIES
-              TGW=TGW-ENRGUSED/(WTRO*SHW)
-              TOCEAN(1,I,J)=TGW
-              RSI(I,J)=ROICE
-              MSI(I,J)=MSI2
-              SNOWI(I,J)=SNOW
-              HSI(:,I,J)=HSIL(:)
-              SSI(:,I,J)=SSIL(:)
+            TGW=TGW-ENRGUSED/(WTRO*SHW)
+            TOCEAN(1,I,J)=TGW
+            RSI(I,J)=ROICE
+            MSI(I,J)=MSI2
+            SNOWI(I,J)=SNOW
+            HSI(:,I,J)=HSIL(:)
+            SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
-              TRSI(:,:,I,J)=TRSIL(:,:)
-              GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
+            TRSI(:,:,I,J)=TRSIL(:,:)
+            GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
+              
 C**** set ftype/gtemp arrays
-              FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-              FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
-              GTEMP(1:2,2,I,J) = TSIL(1:2)
-            END IF
-          END DO
+            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
+            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
+            GTEMP(1:2,2,I,J) = TSIL(1:2)
+          END IF
+        END DO
         END DO
       END IF
 
@@ -741,30 +760,30 @@ C****
       USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
-      USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2,oa
+      USE DAGCOM, only : aj,aij,ij_f0oc,j_implm,j_implh,oa,areg,jreg
+     *     ,j_imelt,j_smelt
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,ENRGO,POCEAN,POICE,SNOW
-     *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,DXYPJ,ROICE
-      INTEGER I,J,IMAX
+     *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE
+      INTEGER I,J,JR
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
+        JR=JREG(I,J)
         IF (FOCEAN(I,J).gt.0) THEN
 
           PRCP=PREC(I,J)
           ENRGP=EPREC(I,J)
+          RUN0=RUNPSI(I,J)
           OA(I,J,4)=OA(I,J,4)+ENRGP
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POCEAN
 
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOW
-            RUN0=RUNPSI(I,J)
             SNOW=SNOWI(I,J)
             SMSI=MSI(I,J)+ACE1I+SNOW
             RUN4=PRCP
@@ -780,13 +799,19 @@ C****
             END IF
             TGW=ENRGW/(WTRW*SHW)
             TOCEAN(1,I,J)=TGW
-            AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4 *POCEAN
-            AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4*POCEAN
-            AJ(J,J_RUN2 ,ITOICE) =AJ(J,J_RUN2 ,ITOICE) +RUN4 *POICE
-            AJ(J,J_DWTR2,ITOICE) =AJ(J,J_DWTR2,ITOICE) +ERUN4*POICE
+            AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
+            AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
+            AJ(J,J_IMPLM,ITOICE) =AJ(J,J_IMPLM,ITOICE) +RUN4 *POICE
+            AJ(J,J_IMPLH,ITOICE) =AJ(J,J_IMPLH,ITOICE) +ERUN4*POICE
+            AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+RUN4 *FOCEAN(I,J)*DXYP(J)
+            AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+ERUN4*FOCEAN(I,J)*DXYP(J)
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
+          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0 *POICE
+c         AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SRUN0*POICE
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0 *POICE*DXYP(J)
+c         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUN0*POICE*DXYP(J)
         END IF
       END DO
       END DO
@@ -815,9 +840,9 @@ C****
      *     ,trsi0
 #endif
       USE SEAICE, only : ace1i,ssi0
-      USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
-     *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_tg3,j_erun2,j_imelt
-     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type,oa
+      USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_implm,j_implh,j_tg1
+     *     ,j_tg2,j_evap,j_oht,j_imelt,j_hmelt,j_smelt,j_rvrd,ij_tgo
+     *     ,ij_tg1,ij_evap,ij_evapo,j_type,oa,j_ervr,j_imelt
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ
@@ -828,18 +853,16 @@ C**** fluxes
 C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI
 
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,JR
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
         JR=JREG(I,J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
         IF (FOCEAN(I,J).gt.0) THEN
-
           TGW  =TOCEAN(1,I,J)
           EVAPO=EVAPOR(I,J,1)
           EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
@@ -848,17 +871,30 @@ C**** output from OSOURC
 C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J) + FMSI_IO(I,J) ! includes ACE2M + basal term
           F2DT=ERUNOSI(I,J)+ FHSI_IO(I,J)
-c          SALT=SRUNOSI(I,J)+FSSI_IO(I,J)  ???
+c         SALT=SRUNOSI(I,J)+FSSI_IO(I,J)
 C**** get river runoff
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
 
-          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW  *POCEAN
-          AJ(J,J_EVAP,ITOCEAN)=AJ(J,J_EVAP,ITOCEAN)+EVAPO*POCEAN
-          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+      POCEAN
-          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +      POICE
-          IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*POCEAN*DXYPJ
+          AJ(J,J_EVAP,ITOCEAN)=AJ(J,J_EVAP,ITOCEAN)+EVAPO  *POCEAN
+          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW    *POCEAN
+          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+        POCEAN
+          AJ(J,J_RVRD,ITOCEAN)=AJ(J,J_RVRD,ITOCEAN)+RVRRUN *POCEAN
+          AJ(J,J_ERVR,ITOCEAN)=AJ(J,J_ERVR,ITOCEAN)+RVRERUN*POCEAN
+          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
+c         AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
+          AJ(J,J_TG1, ITOICE) =AJ(J,J_TG1, ITOICE) +TGW    *POICE
+          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +        POICE
+          AJ(J,J_RVRD,ITOICE) =AJ(J,J_RVRD,ITOICE) +RVRRUN *POICE
+          AJ(J,J_ERVR,ITOICE) =AJ(J,J_ERVR,ITOICE) +RVRERUN*POICE
+
+          AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*FOCEAN(I,J)*DXYPJ
+          AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+FLOWO(I,J)
+          AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOWO(I,J)
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0*POICE*DXYP(J)
+c         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SALT*POICE*DXYP(J)
+
           AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
           AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POCEAN
           AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POCEAN
@@ -882,21 +918,33 @@ C**** Open Ocean diagnostics
             AJ(J,J_TG2  ,ITOCEAN)=AJ(J,J_TG2  ,ITOCEAN)+TOCEAN(2,I,J)
      *           *POCEAN
             AJ(J,J_OHT  ,ITOCEAN)=AJ(J,J_OHT  ,ITOCEAN)+OTDT  *POCEAN
-            AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4O *POCEAN
-            AJ(J,J_TG3  ,ITOCEAN)=AJ(J,J_TG3  ,ITOCEAN)+TOCEAN(3,I,J)
-     *           *POCEAN
-            AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4O*POCEAN
-            AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-ENRGFO*POCEAN
+            AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4O *POCEAN
+            AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4O*POCEAN
             AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-ACEFO *POCEAN
-            IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TOCEAN(2,I,J)
-     *           *POCEAN*DXYPJ
-            AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
+            AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)-ENRGFO*POCEAN
+            AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)-SSI0*ACEFO
+     *           *POCEAN
 C**** Ice-covered ocean diagnostics
             AJ(J,J_OHT  ,ITOICE)=AJ(J,J_OHT  ,ITOICE)+OTDT  *POICE
-            AJ(J,J_RUN2 ,ITOICE)=AJ(J,J_RUN2 ,ITOICE)+RUN4I *POICE
-            AJ(J,J_DWTR2,ITOICE)=AJ(J,J_DWTR2,ITOICE)+ERUN4I*POICE
-            AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-ENRGFI*POICE
+            AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4I *POICE
+            AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-ACE2F *POICE
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGFI*POICE
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-SSI0*ACE2F*POICE
+C**** regional diagnostics
+            AREG(JR,J_TG2)=AREG(JR,J_TG2)+TOCEAN(2,I,J)*FOCEAN(I,J)
+     *             *DXYPJ
+            AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+
+     *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
+            AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+
+     *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
+     *             (ACEFO *POCEAN+ACE2F *POICE)*DXYPJ
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
+     *             (ENRGFO*POCEAN+ENRGFI*POICE)*DXYPJ
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
+     *             SSI0*(ACEFO*POCEAN+ACE2F *POICE)*DXYPJ
+            AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
           ELSE
             ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
             AJ(J,J_TG2,ITOCEAN)  =AJ(J,J_TG2,ITOCEAN)  +TGW   *POCEAN

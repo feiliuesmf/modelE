@@ -27,7 +27,7 @@ C**** Interface to PBL
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
-     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
+     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
      *     ,ijdd,idd_spr,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts
      *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
      *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
@@ -537,15 +537,13 @@ C****
         IF(MODDSF.EQ.0)
      *       AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-        IF(JR.LT.24) THEN
-          AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
-          AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
-          AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
-          AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
-          AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DT *PTYPE*DXYP(J)
-          IF(MODDSF.EQ.0)
-     *         AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-        END IF
+        AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
+        AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
+        AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
+        AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
+        IF(MODDSF.EQ.0)
+     *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
+
         IF (PLICE.gt.0) THEN
           AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
           AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT

@@ -41,8 +41,8 @@ ccc  *     ,tm,trmomij=>tmom      ! local  (i,j)
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
-     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,
-     &     jl_mchphas,jl_mcdtotw,jl_mcdlht,jl_mcheat,jl_mcdry,
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
+     &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
      *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
      *     isccp_diags
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -65,7 +65,7 @@ C**** input variables               (except for lines starting with !)
 
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE pressure at layer edge
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
-     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT
+     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57,AQ,DPDT,RH1
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
       REAL*8, DIMENSION(LM) :: SDL,WML
@@ -108,15 +108,15 @@ C**** output variables
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
+CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
-CCOMP*  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL !
+CCOMP*  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL 
 CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,AJ8,AJ11,AJ13,AJ50,AJ51,AJ52,AJ53,AJ57
-     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL
+     *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
-     *  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL !
+     *  ,SM,QM,SMOMij,QMOMij,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL 
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX
 C$OMP  THREADPRIVATE (/CLDPRV/)
 C???? end of piece repeated from CLOUDS (with SMOM,QMOM,TMOM renamed)
@@ -637,7 +637,8 @@ C**** WRITE TO GLOBAL ARRAYS
 
       DO L=1,LM
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
-        AJL(J,L,JL_MCDLHT)=AJL(J,L,JL_MCDLHT)+AJ53(L)
+        AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+AJ53(L)
+        AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
 
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)

@@ -382,6 +382,8 @@ C****
 !@ver  1.0
       USE CONSTANT, only : by3,shw
       USE MODEL_COM, only : ftype,itoice,itocean
+      USE GEOM, only : dxyp
+      USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
      *     ,trmo
@@ -407,7 +409,7 @@ c      USE DAGCOM, only : aij,IJ_TGO2
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
       INTEGER, INTENT(IN) :: IEND
-      INTEGER I,J
+      INTEGER I,J,JR
 
 C**** Only do this at end of the day
       IF (IEND.eq.1) THEN
@@ -426,6 +428,7 @@ C**** Melt very small amounts of sea ice
         DO I=1,IMAXJ(J)
 C**** Only melting of ocean ice (not lakes)
           IF (FOCEAN(I,J)*RSI(I,J) .GT. 0 .and. RSI(I,J).lt.1d-4) THEN
+            JR=JREG(I,J)
 C**** Calculate freezing temperature (on atmos. grid)
             SO1=S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             TFO=TFREZS(SO1)
@@ -443,9 +446,16 @@ C**** Calculate freezing temperature (on atmos. grid)
      *           TRSIL,TRUN0,
 #endif
      *           ENRGUSED,RUN0,SALT)
+C**** accumulate diagnostics
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED*RSI(I,J)
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT*RSI(I,J)
+            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0*RSI(I,J)
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*RSI(I,J)*DXYP(J)
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*RSI(I,J)*DXYP(J)
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*RSI(I,J)*DXYP(J)
 C**** RESAVE PROGNOSTIC QUANTITIES
             G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
-            MO(I,J,1)= MO(I,J,1) + RUN0
+            MO(I,J,1) = MO(I,J,1) + RUN0
             S0M(I,J,1)=S0M(I,J,1) + SALT    *DXYPO(J)
 #ifdef TRACERS_OCEAN
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+TRUN0(:)*DXYPO(J)
@@ -2289,12 +2299,13 @@ C**** Surface stress is applied to V component at the North Pole
 #endif
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,aij,areg,j_evap,j_type,ij_evap,ij_evapo
-     *     ,j_erun2,j_imelt,j_tg1,j_tg2,ij_tgo,ij_tg1,ij_f0oc,jreg
+     *     ,j_imelt,j_hmelt,j_smelt,j_tg1,j_tg2,ij_tgo,ij_tg1,ij_f0oc
+     *     ,jreg,j_rvrd,j_ervr
       IMPLICIT NONE
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,JR
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,FSICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),TGW,TGW2,TEMGS
-     *     ,SRUNI,DSOO,DSOI
+     *     ,SRUNI,DSOO,DSOI,POCEAN,POICE
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
 #endif
@@ -2306,7 +2317,10 @@ C****
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
       IF(FOCEAN(I,J).gt.0.) THEN
+        JR=JREG(I,J)
         FSICE = RSI(I,J)
+        POCEAN=FOCEAN(I,J)*(1.-FSICE)
+        POICE =FOCEAN(I,J)*FSICE
 C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
         RUNO = FLOWO(I,J)*(1.-FSICE)*BYDXYPJ-RATOC(J)*EVAPOR(I,J,1)
         RUNI = FLOWO(I,J)*    FSICE *BYDXYPJ+RATOC(J)*RUNOSI(I,J)
@@ -2334,22 +2348,32 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
 C**** Diagnostics on atmospheric grid
-          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *(1.-FSICE)
-          AJ(J,J_TG2, ITOCEAN)=AJ(J,J_TG2, ITOCEAN)+TGW2*(1.-FSICE)
+          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *POCEAN
+          AJ(J,J_TG2, ITOCEAN)=AJ(J,J_TG2, ITOCEAN)+TGW2*POCEAN
           AJ(J,J_EVAP,ITOCEAN)=AJ(J,J_EVAP,ITOCEAN)+EVAPOR(I,J,1)
-     *         *(1.-FSICE)
-          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+(1.-FSICE)
-          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +    FSICE
-          JR=JREG(I,J)
-          IF (JR.ne.24) THEN
-            AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW *(1.-FSICE)*DXYPJ
-            AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW2*(1.-FSICE)*DXYPJ
-          END IF
+     *         *POCEAN
+          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+POCEAN
+          AJ(J,J_RVRD,ITOCEAN)=AJ(J,J_RVRD,ITOCEAN)+(1.-FSICE)
+     *         * FLOWO(I,J)*BYDXYPJ
+          AJ(J,J_ERVR,ITOCEAN)=AJ(J,J_ERVR,ITOCEAN)+(1.-FSICE)
+     *         *EFLOWO(I,J)*BYDXYPJ
+
+          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +POICE
+          AJ(J,J_TG1, ITOICE) =AJ(J,J_TG1, ITOICE) +TGW*POICE
+          AJ(J,J_RVRD,ITOICE) =AJ(J,J_RVRD,ITOICE) +FSICE* FLOWO(I,J)
+     *         *BYDXYPJ
+          AJ(J,J_ERVR,ITOICE) =AJ(J,J_ERVR,ITOICE) +FSICE*EFLOWO(I,J)
+     *         *BYDXYPJ
+          AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW *FOCEAN(I,J)*DXYPJ
+          AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW2*FOCEAN(I,J)*DXYPJ
+          AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+ FLOWO(I,J)
+          AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOWO(I,J)
+
           AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
-          AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *(1.-FSICE)
-          AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPOR(I,J,1)*(1.-FSICE)
-          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPOR(I,J,1)*(1.-FSICE)
-          AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +    E0(I,J,1)*(1.-FSICE)
+          AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW*POCEAN
+          AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPOR(I,J,1)*POCEAN
+          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPOR(I,J,1)*POCEAN
+          AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +    E0(I,J,1)*POCEAN
 
         CALL OSOURC(FSICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNI,SROX,
@@ -2378,19 +2402,26 @@ C**** Store mass and energy fluxes for formation of sea ice
 #endif
 
 C**** diagnostics on the atmospheric grid
-c         AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4O *POCEAN
-c         AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4O*POCEAN
-        AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-
+        AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)-
+     *       DSOO*ROCAT(J)*(1.-FSICE)
+        AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)-
      *       DEOO*ROCAT(J)*(1.-FSICE)
         AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-
      *       DMOO*ROCAT(J)*(1.-FSICE)
 C**** Ice-covered ocean diagnostics
-c         AJ(J,J_RUN2 ,ITOICE)=AJ(J,J_RUN2 ,ITOICE)+RUN4I *POICE
-c         AJ(J,J_DWTR2,ITOICE)=AJ(J,J_DWTR2,ITOICE)+ERUN4I*POICE
-        AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-
+        AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-
+     *       DSOI*ROCAT(J)*FSICE
+        AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-
      *       DEOI*ROCAT(J)*FSICE
         AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-
      *       DMOI*ROCAT(J)*FSICE
+C**** regional diagnostics
+        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
+     *       (DMOO*(1.-FSICE)+DMOI*FSICE)*DXYPJ*ROCAT(J)
+        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
+     *       (DEOO*(1.-FSICE)+DEOI*FSICE)*DXYPJ*ROCAT(J)
+        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
+     *       (DSOO*(1.-FSICE)+DSOI*FSICE)*DXYPJ*ROCAT(J)
         END IF
       END DO
       END DO
@@ -2521,6 +2552,7 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+      USE MODEL_COM, only : itocean
       USE GEOM, only : dxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
 #ifdef TRACERS_OCEAN
@@ -2529,6 +2561,7 @@ C****
       USE SEAICE_COM, only : rsia=>rsi
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
      *     ,epreca=>eprec
+      USE DAGCOM, only : jreg,areg,aj,j_imelt,j_smelt,j_hmelt
 #ifdef TRACERS_OCEAN
      *     ,trpreca=>trprec,trunpsia=>trunpsi
       USE TRACER_COM, only : ntm
@@ -2538,8 +2571,9 @@ C****
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM,IM,JM) :: trprec,trunpsi
 #endif
+      REAL*8 POCEAN
+      INTEGER I,J,N,JR
 
-      INTEGER I,J,N
 C**** save surface variables before any fluxes are added
       CALL KVINIT
 
@@ -2558,6 +2592,21 @@ C**** of fluxes is necessary anyway
           TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
           TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg 
 #endif
+C**** save some atmos diagnostics
+          POCEAN=FOCEAN(I,J)*(1.-RSIA(I,J))
+          AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)+RUNPSIA(I,J)
+     *         *POCEAN
+          AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)+SRUNPSIA(I,J)
+     *         *POCEAN
+c         AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)+ERUNPSIA(I,J)
+c    *         *POCEAN
+          JR=JREG(I,J)
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUNPSIA(I,J)*FOCEAN(I,J)
+     *         *DXYP(J)
+          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUNPSIA(I,J)*FOCEAN(I,J)
+     *         *DXYP(J)
+c         AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+ERUNPSIA(I,J)*FOCEAN(I,J)
+c    *         *DXYP(J)
         END DO
       END DO
 C****

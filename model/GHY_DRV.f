@@ -67,8 +67,8 @@ c****
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt,
+     *     ij_tauus, ij_tauvs, ij_qs, j_trhdt, j_shdt, j_evhdt,
+     *     j_evap,j_erun,j_run,j_tsrf,
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
      *     ij_g24,ij_g25,ij_g26,ij_g27,
@@ -208,8 +208,6 @@ c**** new quantities to be zeroed out over ground timesteps
          arunu=0.
          aeruns=0.
          aerunu=0.
-         difs=0.
-         edifs=0.
       evapw=0.
       evapd=0.
       evapb=0.
@@ -511,21 +509,15 @@ C**** Save surface tracer concentration whether calculated or not
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-      if ( jr /= 24 ) then
-        areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
-        areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
-        areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
-        areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
-        areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxyp(j)
-        areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxyp(j)
-        areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxyp(j)
-        areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxyp(j)
-        areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxyp(j)
-        areg(jr,j_f1dt )=areg(jr,j_f1dt )+af1dt*ptype*dxyp(j)
-        if ( moddsf == 0 )
-     $       areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+      areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
+      areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
+      areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
+      areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
+      areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
+      areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
+      if ( moddsf == 0 )
+     $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
 c**** quantities accumulated for latitude-longitude maps in diagij
-      endif
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
       if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
@@ -576,16 +568,13 @@ c**** quantities accumulated hourly for diagDD
       endif
 c**** quantities accumulated for surface type tables in diagj
       aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*pearth
-      aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+shdt*pearth
       aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*pearth
-      aj(j,j_erun1,itearth)=aj(j,j_erun1,itearth)+aeruns*pearth
-      aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+edifs*pearth
-      aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+difs*pearth
-      aj(j,j_run2 ,itearth)=aj(j,j_run2 ,itearth)+arunu*pearth
-      aj(j,j_dwtr2,itearth)=aj(j,j_dwtr2,itearth)+aerunu*pearth
-      aj(j,j_run1 ,itearth)=aj(j,j_run1 ,itearth)+aruns*pearth
+      aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+ shdt*pearth
+      aj(j,j_erun ,itearth)=aj(j,j_erun ,itearth)+(aeruns+aerunu)*pearth
+      aj(j,j_run  ,itearth)=aj(j,j_run  ,itearth)+(aruns+arunu)*pearth
       if(moddsf.eq.0)
      $     aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
+
       end do loop_i
       end do loop_j
       return
@@ -1340,7 +1329,7 @@ c****
      *     ,fr_snow_ij,afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,ij_g01,ij_g07,ij_g28
+     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
@@ -1386,9 +1375,7 @@ c**** accumulate diagnostics
         aj(j,j_tg2 ,itearth)=aj(j,j_tg2, itearth)+tg2 *pearth
         aj(j,j_type,itearth)=aj(j,j_type,itearth)+     pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-        aj(j,j_f1dt,itearth)=aj(j,j_f1dt,itearth)+f1dt*pearth
         aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
-        if (jr.ne.24) then
         areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxyp(j)
         areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
         areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxyp(j)
@@ -1396,7 +1383,7 @@ c**** accumulate diagnostics
         areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxyp(j)
         areg(jr,j_wtr2)=areg(jr,j_wtr2)+wtr2*pearth*dxyp(j)
         areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxyp(j)
-        end if
+
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
