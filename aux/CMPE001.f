@@ -17,6 +17,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: JPPJ, n_rx
 #endif
+#ifdef TRACERS_OCEAN
+      USE ODIAG, only : ktoijl
+#endif
 #endif
       IMPLICIT NONE
       SAVE
@@ -141,6 +144,15 @@ C**** compatibility across model configurations)
      &     yAldehyde2,yXO2N2,yRXPAR2,temp1,temp2
       REAL*8, DIMENSION(jppj,IM,JM,LM) :: ss1,ss2
 #endif
+#ifdef TRACERS_OCEAN
+      real*8 trocn1(im,jm,lmo*ntm),trocn2(im,jm,lmo*ntm)
+      real*8 trmocn1(im,jm,lmo*3*ntm),trmocn2(im,jm,lmo*3*ntm)
+      real*8 trstrti1(ntm,lmi,nmst),trstrti2(ntm,lmi,nmst)
+      real*8 trstrt1(lmo,nmst,3*ntm),trstrt2(lmo,nmst,3*ntm)
+      real*8 trocdiag1(IM,JM,LMO*KTOIJL*NTM),trocdiag2(IM,JM,LMO*KTOIJL
+     *     *NTM)
+      real*8 trlnst1(LMO,NMST,KOLNST*NTM),trlnst2(LMO,NMST,KOLNST*NTM)
+#endif
 #endif
 C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2,KOCEAN1,KOCEAN2,IARGC
@@ -185,11 +197,18 @@ C**** check which ocean
            KOCEAN1 = 2
            if (debug) write(0,*) 'trying to read ocea2'
            READ(1) HEADER,OCEAN1
+#ifdef TRACERS_OCEAN
+           READ(1) HEADER,TROCN1,TRMOCN1
+#endif
            READ(1) HEADER,STRAITS1,STRAITI1
+#ifdef TRACERS_OCEAN
+           READ(1) HEADER,TRSTRTI1,TRSTRT1
+#endif
          END IF
          if (debug) write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
 #ifdef TRACERS_WATER
+         if (debug) write(0,*) 'trying to read lake tracer'
          READ (1) HEADER,TRLK1
 #endif
          if (debug) write(0,*) 'trying to read sice'
@@ -254,15 +273,24 @@ C**** check which ocean
          READ (1) HEADER,KEYNR,TSFREZ1,ITAU2
  200     IF (KOCEAN1.gt.0) THEN
            if (debug) write(0,*) 'trying to read ocn3'
-           IF (KOCEAN1.eq.2) READ(1) HEADER,ODIAG1,itau2
+           IF (KOCEAN1.eq.2) THEN
+             READ(1) HEADER,ODIAG1,itau2
+#ifdef TRACERS_OCEAN
+             READ(1) HEADER,TROCDIAG1,TRLNST1,itau2
+#endif
+           END IF
+           if (debug) write(0,*) 'trying to read iced diag'
            READ(1) HEADER,ICDIAG1
 #ifdef TRACERS_WATER
+           if (debug) write(0,*) 'trying to read iced tracer diag'
            READ (1) HEADER,TRICDG1
 #endif
          END IF
 #ifdef TRACERS_ON
-         READ (1) HEADER,TRACC1
+         if (debug) write(0,*) 'trying to read diag tracer'
+         READ (1) HEADER,TRACC1,itau2
 #endif
+         if (debug) write(0,*) 'done'
          IF (ITAU1.ne.ITAU2) then
            WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
      *          ,itau2
@@ -302,7 +330,14 @@ c        if (debug) write(0,*) 'trying to read ocea1'
            KOCEAN2 = 2
 c        if (debug) write(0,*) 'trying to read ocea2'
            READ(2) HEADER,OCEAN2
+#ifdef TRACERS_OCEAN
+c        if (debug) write(0,*) 'trying to read tracer ocea2'
+           READ(2) HEADER,TROCN2,TRMOCN2
+#endif
            READ(2) HEADER,STRAITS2,STRAITI2
+#ifdef TRACERS_OCEAN
+           READ(2) HEADER,TRSTRTI2,TRSTRT2
+#endif
          END IF
 c        if (debug) write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
@@ -370,7 +405,12 @@ c        if (debug) write(0,*) 'trying to read diag'
          READ (2) HEADER,KEYNR,TSFREZ2,ITAU2
  400     IF (KOCEAN2.gt.0) THEN
 c        if (debug) write(0,*) 'trying to read ocn3'
-           IF (KOCEAN2.eq.2) READ(2) HEADER,ODIAG2,itau2
+           IF (KOCEAN2.eq.2) THEN
+             READ(2) HEADER,ODIAG2,itau2
+#ifdef TRACERS_OCEAN
+             READ(2) HEADER,TROCDIAG2,TRLNST2,itau2
+#endif
+           END IF
            READ(2) HEADER,ICDIAG2
 #ifdef TRACERS_WATER
            READ (2) HEADER,TRICDG2
@@ -506,6 +546,14 @@ C****
         ERRQ=COMP8('ss    ',IM,JM,LM,temp1,temp2) .or. ERRQ
       END DO
 #endif
+#ifdef TRACERS_OCEAN
+      IF (KOCEAN1.eq.2) THEN
+      ERRQ=COMP8('TROCN  ',IM,JM,LM*NTM   ,TROCN1 ,TROCN2 ) .or. ERRQ
+      ERRQ=COMP8('TRMOCN ',IM,JM,3*LM*NTM ,TRMOCN1,TRMOCN2) .or. ERRQ
+      ERRQ=COMP8('TRSTRTI',NTM,LMI,NMST   ,TRSTRTI1,TRSTRTI2) .or. ERRQ
+      ERRQ=COMP8('TRSTRT ',LMO,NMST,3*NTM ,TRSTRT1 ,TRSTRT2) .or. ERRQ
+      END IF
+#endif
 #endif
 
       print*," Diagnostic variables:"
@@ -572,6 +620,14 @@ c      else
 #ifdef TRACERS_WATER
       ERRQ=COMP8('TRICDG',IMIC,JMIC,KTICIJ*NTM,TRICDG1,TRICDG2) .or.
      *     ERRQ
+#endif
+#ifdef TRACERS_OCEAN
+      IF (KOCEAN1.eq.2) THEN
+        ERRQ=COMP8('TROCDAG',IM,JM,LMO*NTM*KTOIJL,TROCDIAG1 ,TROCDIAG2 )
+     *       .or. ERRQ
+        ERRQ=COMP8('TRLNST ',LMO,NMST,KOLNST*NTM,TRLNST1,TRLNST1) .or.
+     *       ERRQ
+      END IF
 #endif
       END IF
 

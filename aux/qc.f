@@ -115,7 +115,7 @@ c        write(6,*)
       write(6,*) "Error reading file ", FILEIN
       STOP
  900  FORMAT (I10,1X,I2,'/',I2.2,'/',I4.4,' hr',I2,2X,A)
- 906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
- 907  FORMAT (10(22X,3(X,A12,F5.1) / ))
+ 906  FORMAT (' TIME',F7.2,' (MINUTES)',3(1X,A12,F5.1))
+ 907  FORMAT (10(22X,3(1X,A12,F5.1) / ))
       end
 

@@ -232,10 +232,10 @@ C****
         END DO
         WRITE (3,942) ( '  -----',K=1,KMAX/7)
         WRITE (3,943) (NINT(TOTAL(K,M)),K=1,KMAX/7)
-        IF(M.eq.1)  WRITE (3,944) CHAR(12) !  write form feed
+        IF(M.eq.1)  WRITE (3,*) 
         WRITE (4,942) ( '  -----',K=1,KMAX/7)
         WRITE (4,945) (TOTALA(K,M),K=1,KMAX/7)
-        IF(M.eq.1)  WRITE (4,944) CHAR(12) !  write form feed
+        IF(M.eq.1)  WRITE (4,*)
       END DO
       CLOSE (3)
       CLOSE (4)
@@ -260,7 +260,6 @@ C****
   941 FORMAT ('----  ---- ------',1X,20A7)
   942 FORMAT (19X,20A7)
   943 FORMAT (19X,20I7)
-  944 FORMAT (A1,$)
   945 FORMAT (19X,20F7.2)
   999 END
 
