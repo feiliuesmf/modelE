@@ -1242,6 +1242,11 @@ C****
 C**** Initialize the use of gravity wave drag diagnostics
 C****
       CALL init_GWDRAG
+C
+C**** Initialize nuding
+#ifdef NUDGE_ON
+       CALL NUDGE_INIT
+#endif
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
