@@ -21,7 +21,7 @@
    CMRUNDIR="/u/cmrun"
    EXECDIR="/u/exec"
    SAVEDISK="/raid1"
-   $GCMSEARCHPATH="/u/cmrun"
+   GCMSEARCHPATH="/u/cmrun"
 
 ## if ~/.modelErc is present get settings from there
    if [[ -f ~/.modelErc ]]; then
