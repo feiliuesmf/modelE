@@ -679,9 +679,9 @@ c  Here the atmosphere is unstable with respect to the ground:
 c *********************************************************************
       endif
 
-      dm=      1./(1.-min(dpsim/lzgsbyz0m,.9))**2
-      dh=sqrt(dm)/(1.-min(dpsih/lzgsbyz0h,.9))
-      dq=sqrt(dm)/(1.-min(dpsiq/lzgsbyz0q,.9))
+      dm=      1./(1.-min(dpsim/lzgsbyz0m,.9d0))**2
+      dh=sqrt(dm)/(1.-min(dpsih/lzgsbyz0h,.9d0))
+      dq=sqrt(dm)/(1.-min(dpsiq/lzgsbyz0q,.9d0))
 
       cm=XCDpbl*dm*cmn
       ch=dh*chn
