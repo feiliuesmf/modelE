@@ -245,10 +245,14 @@ C**** RSISAVE is on atmospheric grid
       RSISAVE(:,:)=RSI(:,:)
 
 C**** Pressure anomaly at surface APRESS is calculated by sea ice routines
-C**** APRESS is on atmospheric grid
+C**** APRESS is on atmospheric grid. We are now no longer using this as
+C**** a forcing in the sea ice dynamics because it is partially
+C**** included ready in the internal ice pressure gradient. The
+C**** atmospheric pressure graident term does not in general produce a
+C**** horizontal force in a solid (such as ice).
 
-C**** calculate sea surface tilt (incl. atmospheric pressure term)
-C**** on atmospheric C grid (using OGEOZA on atmospheric grid)
+C**** calculate sea surface tilt on atmospheric C grid 
+C**** (using OGEOZA on atmospheric grid)
 C**** PGF is an accelaration
       PGFU(1:IM,JM)=0
       DO J=2,JM-1
@@ -256,8 +260,9 @@ C**** PGF is an accelaration
         DO IP1=1,IM
           IF(FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      *         RSI(I,J)+RSI(IP1,J).gt.0.) THEN
-            PGFU(I,J)=-((APRESS(IP1,J)-APRESS(I,J))*BYRHOI
-     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
+c            PGFU(I,J)=-((APRESS(IP1,J)-APRESS(I,J))*BYRHOI
+c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
+            PGFU(I,J)=-(OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
           ELSE
             PGFU(I,J)=0.
           END IF
@@ -268,8 +273,9 @@ C**** PGF is an accelaration
         DO I=1,IM
           IF(FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      *         RSI(I,J)+RSI(I,J+1).gt.0.) THEN
-            PGFV(I,J)=-((APRESS(I,J+1)-APRESS(I,J))*BYRHOI
-     *           +OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
+c            PGFV(I,J)=-((APRESS(I,J+1)-APRESS(I,J))*BYRHOI
+c     *           +OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
+            PGFV(I,J)=-(OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
           ELSE
             PGFV(I,J)=0.
           END IF
@@ -966,7 +972,7 @@ C**** Set atmospheric arrays
 C**** set total atmopsheric pressure anomaly in case needed by ocean
             APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *           *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
+            GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
      *           (XSI(1:2)*MHS(1,I,J))+LHM)*BYSHI
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
