@@ -1365,6 +1365,156 @@ C
       END SUBROUTINE get_sulfate_N2O5
 C
 C
+      SUBROUTINE get_dms_offline
+!@sum get_dms_offline read in monthly mean fields of DMS concentration
+!@+ for use in chemistry. This source is not applied directly to the tracer
+!@+    mass like other 3D sources are but used for HOx chemistry.
+!@auth Drew Shindell / Greg Faluvegi
+!@ver  1.0 
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      use TRACER_SOURCES, only: Lsulf
+      USE TRCHEM_Shindell_COM, only: dms_offline
+C
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+c
+!@var nanns,nmons: number of annual and monthly input files
+!@param Psulf pressure levels of the DMS input file
+      real*8, parameter, dimension(Lsulf) :: Psulf = (/
+     & 0.9720D+03,0.9445D+03,0.9065D+03,
+     & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
+     & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
+     & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
+     & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
+      integer, parameter :: nanns=0,nmons=1
+      integer ann_units(nanns),mon_units(nmons),imon(nmons)
+      integer i,j,iu,k,l
+      integer      :: jdlast=0  
+      logical :: ifirst=.true.
+      character*80 title   
+      character*10 :: mon_files(nmons) = (/'DMS_FIELD'/)
+      logical      :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 tlca(im,jm,Lsulf,nmons),tlcb(im,jm,Lsulf,nmons),frac
+      REAL*8, DIMENSION(LM)    :: pres,srcLout
+      REAL*8, DIMENSION(Lsulf) :: srcLin
+      REAL*8, DIMENSION(IM,JM,Lsulf,1) :: src
+      save jdlast,tlca,tlcb,mon_units,imon,ifirst
+c
+C**** DMS input file is monthly, on LM levels.
+C     Read it in here and interpolated each day.
+C     Interpolation in the vertical.
+C
+      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst = .false.
+      j = 0
+      do k=nanns+1,1
+        j = j+1
+        call read_monthly_3Dsources(Lsulf,mon_units(j),jdlast,
+     *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
+
+      end do
+      jdlast = jday
+      write(6,*) 'DMS concentration interpolated to current day',frac
+      call sys_flush(6) 
+C====
+C====   Place DMS onto model levels
+C====              
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      do k=nanns+1,1; DO J=1,JM; DO I=1,IM
+        DO L=1,Lsulf
+          srcLin(L)=src(I,J,L,k)
+        END DO
+        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
+        DO L=1,LM
+          dms_offline(I,J,L)=srcLout(L)
+
+        ENDDO         
+      end do        ; END DO   ; END DO     
+C
+      return
+      END SUBROUTINE get_dms_offline
+
+      SUBROUTINE get_so2_offline
+!@sum get_so2_offline read in monthly mean fields of SO2 concentration
+!@+ for use in chemistry. This source is not applied directly to the tracer
+!@+    mass like other 3D sources are but used for HOx chemistry.
+!@auth Drew Shindell / Greg Faluvegi
+!@ver  1.0 
+c
+C**** GLOBAL parameters and variables:
+C
+      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
+      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
+      use TRACER_SOURCES, only: Lsulf
+      USE TRCHEM_Shindell_COM, only: so2_offline
+C
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+c
+!@var nanns,nmons: number of annual and monthly input files
+!@param Psulf pressure levels of the SO2 input file
+      real*8, parameter, dimension(Lsulf) :: Psulf = (/
+     & 0.9720D+03,0.9445D+03,0.9065D+03,
+     & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
+     & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
+     & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
+     & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
+      integer, parameter :: nanns=0,nmons=1
+      integer ann_units(nanns),mon_units(nmons),imon(nmons)
+      integer i,j,iu,k,l
+      integer      :: jdlast=0  
+      logical :: ifirst=.true.
+      character*80 title   
+      character*10 :: mon_files(nmons) = (/'SO2_FIELD'/)
+      logical      :: mon_bins(nmons)=(/.true./) ! binary file?
+      real*8 tlca(im,jm,Lsulf,nmons),tlcb(im,jm,Lsulf,nmons),frac
+      REAL*8, DIMENSION(LM)    :: pres,srcLout
+      REAL*8, DIMENSION(Lsulf) :: srcLin
+      REAL*8, DIMENSION(IM,JM,Lsulf,1) :: src
+      save jdlast,tlca,tlcb,mon_units,imon,ifirst
+c
+C**** Sulfate surface area input file is monthly, on LM levels.
+C     Read it in here and interpolated each day.
+C     I belive no conversion of the sulfate input file is expected,
+C     other than interpolation in the vertical.
+C
+      if (ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
+      ifirst = .false.
+      j = 0
+      do k=nanns+1,1
+        j = j+1
+        call read_monthly_3Dsources(Lsulf,mon_units(j),jdlast,
+     *    tlca(1,1,1,j),tlcb(1,1,1,j),src(1,1,1,k),frac,imon(j))
+
+      end do
+      jdlast = jday
+      write(6,*) 'SO2 concentration interpolated to current day',frac
+      call sys_flush(6) 
+C====
+C====   Place SO2 onto model levels
+C====              
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      do k=nanns+1,1; DO J=1,JM; DO I=1,IM
+        DO L=1,Lsulf
+          srcLin(L)=src(I,J,L,k)
+        END DO
+        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
+        DO L=1,LM
+          so2_offline(I,J,L)=srcLout(L)
+
+        ENDDO         
+      end do        ; END DO   ; END DO     
+C
+      return
+      END SUBROUTINE get_so2_offline
+C
+C
       SUBROUTINE read_monthly_3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
      & frac,imon)
 !@sum Read in monthly sources and interpolate to current day

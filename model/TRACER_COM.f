@@ -265,6 +265,10 @@ C****    The following are set in tracer_IC
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
 !@var MCHEM: timing index for chemistry
       integer mchem
+!@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
+c for gas phase sulfur chemistry used by aerosol and chemistry models
+      real*8, DIMENSION(IM,JM,LM):: rsulf1, rsulf2,
+     *  rsulf3,rsulf4 
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
 !@dbparam imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise

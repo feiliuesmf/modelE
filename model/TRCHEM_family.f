@@ -166,14 +166,16 @@ c
 #endif
       USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
-     &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
+     &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
+     &                      rsulf1,rsulf2,rsulf4,n_SO2,n_DMS
 #ifdef SHINDELL_STRAT_CHEM
      &                       ,n_HBr,n_HOCl,n_HCl
 #endif
 
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
-     &                           nXO2N,ta,ss,nC2O3,nROR
+     &                           nXO2N,ta,ss,nC2O3,nROR,
+     &                           yso2,ydms
 #ifdef SHINDELL_STRAT_CHEM
      &                           ,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
 #endif
@@ -228,7 +230,10 @@ C
      & +rr(30,L)*y(n_Isoprene,L)*0.15d0+rr(33,L)*y(n_AlkylNit,L))
      & +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
      & (rr(44,L)*rr(43,L)/(4.2d-12*exp(180./ta(L))))
-C
+C oxidation of DMS,SO2 
+     & +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
+     & rsulf2(i,j,l)*ydms(i,j,l))
+
        cqqz=(2.d0*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
      & ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
      & (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
@@ -256,6 +261,8 @@ c      CZ: OH->HO2 reactions :
      & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)*
      & *0.11d0+rr(30,L)*y(n_Isoprene,L)*0.85d0
      & +rr(34,L)*y(n_Alkenes,L)
+C SO2 oxidation 
+     & + rsulf4(i,j,l)*yso2(i,j,l)
 C
 C      DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)

@@ -98,7 +98,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_SPECIAL_Shindell
       INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
 #endif
-
+#if (defined TRACERS_AEROSOLS_Koch)
+      INTEGER, DIMENSION(LM) :: ijs_dms_dens, ijs_so2_dens, 
+     & ijs_so4_dens
+#endif
 !@param KTAIJS number of special lat/lon tracer diagnostics
       integer, parameter :: ktaijs= 182
 

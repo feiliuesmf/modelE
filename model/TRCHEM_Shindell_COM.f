@@ -442,6 +442,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var SZA the solar zenith angle (degrees)
 !@var JFASTJ photolysis rates
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
+!@var dms_offline DMS concentration for HOx sink reactions
+!@var so2_offline SO2 concentration for HOx conversion reactions
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
@@ -522,7 +524,9 @@ C
       REAL*8, DIMENSION(n_oig,n_bnd3)  :: sech
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     &                                TX,sulfate,OxIC
+     &                                TX,sulfate,OxIC,
+     &                                dms_offline,so2_offline,
+     &                                yso2,ydms
 #ifdef SHINDELL_STRAT_CHEM
      &                                ,pClOx,pClx,pOClOx,pBrOx
 #endif

@@ -339,10 +339,11 @@ c if after Feb 28 skip the leapyear day
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
+     *     , taijs, ijs_dms_dens,ijs_so2_dens,ijs_so4_dens
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
-      USE DYNAMICS, only: pmid,am,pk,LTROPO
-      USE GEOM, only: dxyp,imaxj
+      USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
+      USE GEOM, only: dxyp,imaxj,BYDXYP
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
@@ -355,6 +356,7 @@ c Aerosol chemistry
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
+      real*8, DIMENSION(IM,JM,LM):: dms_dens,so2_dens,so4_dens
 #ifdef TRACERS_HETCHEM
      *       ,d41,d42,d43,d44
 #endif
@@ -421,6 +423,14 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
         CALL SCALERAD
       endif
 
+C Calculation of gas phase reaction rates
+C In coupled chemistry case, routine called from masterchem
+c      if (coupled_chem.eq.0) then
+#ifndef  TRACERS_SPECIAL_Shindell  
+      CALL GET_SULF_GAS_RATES
+#endif
+c      endif
+
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST
@@ -431,6 +441,11 @@ C**** THIS LOOP SHOULD BE PARALLELISED
       do 21 j=1,jm
       do 22 i=1,imaxj(j)
 c
+C Initialise       
+        dms_dens(i,j,l)=0.0D0
+        so2_dens(i,j,l)=0.0D0
+        so4_dens(i,j,l)=0.0D0
+
       if(l.le.ltropo(i,j)) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
@@ -460,11 +475,12 @@ c    Aging of industrial carbonaceous aerosols
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
-          r1 = 1.7d-22*dmm*0.21d0*1.d-20*exp(7810.d0*tt)/
-     *         (1.d0+5.5d-20*exp(7460.d0*tt)*dmm*0.21d0*1.d-11)*ohmc
+
+          r1=rsulf1(i,j,l)*ohmc  
           d1 = exp(-r1*dtsrc)
-          r2 = 9.6d-12 * exp(-234.d0*tt)*ohmc
+          r2=rsulf2(i,j,l)*ohmc
           d2 = exp(-r2*dtsrc)
+
 c     NO3 is in mixing ratio: convert to molecules/cm3
 c - not necessary for Shindell source
           if (l.gt.8) then
@@ -472,7 +488,7 @@ c - not necessary for Shindell source
             go to 87
           endif
           ttno3 = tno3(i,j,l)   !*6.02d20*ppres/(.082056d0*te)
- 87       r3 = ttno3*1.9d-13*exp(520.d0*tt)
+ 87       r3=rsulf3(i,j,l)*ttno3
           d3= exp(-r3*dtsrc)
           ddno3=r3*trm(i,j,l,n)/tr_mm(n)*1000.d0*dtsrc
           dddms=trm(i,j,l,n)/tr_mm(n)*1000.d0
@@ -537,10 +553,10 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 
         case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-          rk4 = 4.0d-20 *((tt*300.d0)**(3.3d0))*dmm*1.d-11
-          ek4 = 1.d0/(1.d0 + ((log10(rk4/2.0d-12))**2.d0))
-          r4 = ohmc * (rk4/(1.d0 + rk4/2.0d-12))*(0.45d0**ek4)
+
+          r4=rsulf4(i,j,l)*ohmc
           d4 = exp(-r4*dtsrc)
+
 c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
 c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
@@ -640,7 +656,28 @@ c H2O2 losses:5 and 6
  140    CONTINUE
 
  33   CONTINUE
-        endif
+
+C Calculate diagnostics for chemistry
+C Number density (molecule/cm3) of DMS,SO2,SO4 
+          dms_dens(i,j,l)=trm(I,J,L,n_DMS)*dmm*(28.0D0/62.0D0)*
+     *   BYDXYP(J)*BYAM(L,I,J)
+          so2_dens(i,j,l)=trm(I,J,L,n_SO2)*dmm*(28.0D0/64.0D0)*
+     *   BYDXYP(J)*BYAM(L,I,J)
+          so4_dens(i,j,l)=trm(I,J,L,n_SO4)*dmm*(28.0D0/96.0D0)*
+     *   BYDXYP(J)*BYAM(L,I,J)
+
+        endif           ! end troposphere 
+
+C Accumulate diagnostics for chemistry
+          taijs(i,j,ijs_dms_dens(l))=taijs(i,j,ijs_dms_dens(l))
+     * + dms_dens(i,j,l)
+
+          taijs(i,j,ijs_so2_dens(l))=taijs(i,j,ijs_so2_dens(l))
+     * + so2_dens(i,j,l)
+
+          taijs(i,j,ijs_so4_dens(l))=taijs(i,j,ijs_so4_dens(l))
+     * + so4_dens(i,j,l)
+
  32   CONTINUE
  31   CONTINUE
  30   CONTINUE
