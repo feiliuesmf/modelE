@@ -9,6 +9,7 @@
 C --------------------------------------------------------------------
 C     ABL model using second order closure model -- Greg Hartke
 C --------------------------------------------------------------------
+      USE CONSTANT, only : grav,omega
       IMPLICIT NONE
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
@@ -25,8 +26,8 @@ C**** boundary layer parameters
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 C**** model related constants (should really be taken from E001M12_COM)
-      real*8, parameter :: grav=9.81   !@var grav gravitational accel.
-      real*8, save :: omega2          !@var omega2 2*omega (s^-1)
+c      real*8, parameter :: grav=9.81   !@var grav gravitational accel.
+      real*8, save :: omega2 = 2.*omega    !@var omega2 2*omega (s^-1)
 
 c      real*8 expbyk
 

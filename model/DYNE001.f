@@ -7,8 +7,9 @@
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
      *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice
-     *     ,gdata,modd5k,psfmpt
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,gdata,modd5k,psfmpt,bydsig,byim
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
+     *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
       USE SOMTQ_COM
       USE PBLCOM, only : tsavg
       USE OCEAN, only : odata
@@ -110,22 +111,22 @@ C**** COMPUTE PU*3 AT THE POLES
       PUN=PUN+U(I,JM,L)
       PVS=PVS+PV(I,2,L)
  1110 PVN=PVN+PV(I,JM,L)
-      PUS=.25*DYP(2)*PUS*P(1,1)/FIM
-      PUN=.25*DYP(JM-1)*PUN*P(1,JM)/FIM
+      PUS=.25*DYP(2)*PUS*P(1,1)*BYIM
+      PUN=.25*DYP(JM-1)*PUN*P(1,JM)*BYIM
       PVS=PVS/FIM
       PVN=PVN/FIM
       DUMMYS(1)=0.
       DUMMYN(1)=0.
       DO 1120 I=2,IM
-      DUMMYS(I)=DUMMYS(I-1)+(PV(I,2,L)-PVS)/DSIG(L)
- 1120 DUMMYN(I)=DUMMYN(I-1)+(PV(I,JM,L)-PVN)/DSIG(L)
+      DUMMYS(I)=DUMMYS(I-1)+(PV(I,2,L)-PVS)*BYDSIG(L)
+ 1120 DUMMYN(I)=DUMMYN(I-1)+(PV(I,JM,L)-PVN)*BYDSIG(L)
       PBS=0.
       PBN=0.
       DO 1130 I=1,IM
       PBS=PBS+DUMMYS(I)
  1130 PBN=PBN+DUMMYN(I)
-      PBS=PBS/FIM
-      PBN=PBN/FIM
+      PBS=PBS*BYIM
+      PBN=PBN*BYIM
       DO 1140 I=1,IM
       SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*P(1,1))
       SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*P(1,JM))
@@ -203,11 +204,11 @@ C****
       REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
-      PA(1,1)=P(1,1)+(DT1*PIT(1,1)/DXYP(1)+PTRUNC)
+      PA(1,1)=P(1,1)+(DT1*PIT(1,1)*BYDXYP(1)+PTRUNC)
          IF (PA(1,1).GT.1150.) WRITE(6,991) 1,1,MRCH,P(1,1),PA(1,1),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
-      PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)/DXYP(JM)+PTRUNC)
+      PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)*BYDXYP(JM)+PTRUNC)
          IF (PA(1,JM).GT.1150.) WRITE(6,991) 1,JM,MRCH,P(1,JM),PA(1,JM),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
@@ -216,7 +217,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
  2424 PA(I,JM)=PA(1,JM)
       DO 2426 J=2,JM-1
       DO 2426 I=1,IM
-      PA(I,J)=P(I,J)+(DT1*PIT(I,J)/DXYP(J)+PTRUNC)
+      PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J)+PTRUNC)
          IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),
@@ -447,17 +448,15 @@ C****
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
 
       REAL*8 PKE(LM+1)
-      REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM),DT4,DT1,PSMPT2
+      REAL*8 SZ(IM,JM,LM),DT4,DT1
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
+     *     ,BYDP
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
       INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
 C****
-      KAPAP1=KAPA+1.
       DT4=DT1/4.
-      KAPAP2=KAPA+2.
       DO 10 L=1,LM+1
    10 PKE(L)=(SIGE(L)*PSFMPT+PTOP)**KAPA
-      PSMPT2=2.*PSFMPT
 C****
 C**** VERTICAL DIFFERENCING
 C****
@@ -478,8 +477,9 @@ C**** LOOP OVER THE LAYERS
       PKPDN=PKDN*PDN
       PKPPDN=PKPDN*PDN
       DP=DSIG(L)*PSFMPT
+      BYDP=1./DP
       P0=SIG(L)*PSFMPT+PTOP
-      TZBYDP=2.*SZ(I,J,L)/DP
+      TZBYDP=2.*SZ(I,J,L)*BYDP
       X=T(I,J,L)+TZBYDP*P0
       PUP=SIGE(L+1)*PSFMPT+PTOP
       PKUP=PKE(L+1)
@@ -489,22 +489,25 @@ C**** LOOP OVER THE LAYERS
   290 PKPDN=PKDN*PDN
       PKPPDN=PKPDN*PDN
       DP=DSIG(L)*PIJ
+      BYDP=1./DP
       P0=SIG(L)*PIJ+PTOP
-      TZBYDP=2.*SZ(I,J,L)/DP
+      TZBYDP=2.*SZ(I,J,L)*BYDP
       X=T(I,J,L)+TZBYDP*P0
       PUP=SIGE(L+1)*PIJ+PTOP
       PKUP=PUP**KAPA
       PKPUP=PKUP*PUP
       PKPPUP=PKPUP*PUP
 C**** CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
-      SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)/KAPAP1
-     *  -X*PTOP*(PKDN-PKUP)/KAPA-TZBYDP*(PKPPDN-PKPPUP)/KAPAP2)/DP
+      SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
+     *     -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *     *BYDP
 C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-  300 PHI(I,J,L)=PHIDN+RGAS*(X*PKDN/KAPA-TZBYDP*PKPDN/KAPAP1
-     *  -(X*(PKPDN-PKPUP)/KAPA-TZBYDP*(PKPPDN-PKPPUP)/KAPAP2)
-     *  /(DP*KAPAP1))
+  300 PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
+     *  -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *  *BYDP*BYKAPAP1)
 C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-      PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)/KAPA-TZBYDP*(PKPDN-PKPUP)/KAPAP1)
+      PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
+     *     *BYKAPAP1)
       PDN=PUP
   310 PKDN=PKUP
   330 CONTINUE
@@ -535,7 +538,7 @@ C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
       DO 3246 L=LS1,LM
       DO 3246 I=1,IM
       DO 3244 J=2,JM
-      FLUX=DT4*PSMPT2*(PHI(I,J,L)-PHI(I,J-1,L))*DXV(J)*DSIG(L)
+      FLUX=2.*DT4*PSFMPT*(PHI(I,J,L)-PHI(I,J-1,L))*DXV(J)*DSIG(L)
       DVT(I,J,L)=DVT(I,J,L)-FLUX
  3244 DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3246 IM1=I
@@ -559,7 +562,7 @@ C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
       PU(I,1,L)=0.
       PU(I,JM,L)=0.
       DO 3310 J=2,JM-1
- 3310 PU(I,J,L)=PSMPT2*(PHI(IP1,J,L)-PHI(I,J,L))
+ 3310 PU(I,J,L)=2.*PSFMPT*(PHI(IP1,J,L)-PHI(I,J,L))
  3313 I=IP1
       CALL AVRX (PU(1,1,L))
       DO 3314 J=2,JM
@@ -593,7 +596,7 @@ C****
       IF(L.GE.LS1) THEN
           RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
       ELSE
-          RFDU=RFDUX/DSIG(L)
+          RFDU=RFDUX*BYDSIG(L)
       ENDIF
       VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)*RFDU
  3530 UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
@@ -661,15 +664,15 @@ C****
       REAL*8 PSUMO(JM)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
-      REAL*8 BBYG,GBYRB,PSUMN,PDIF,AKAP
+      REAL*8 PSUMN,PDIF,AKAP
       INTEGER I,J,L  !@var I,J,L  loop variables
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-      BBYG=.0065/GRAV
-      GBYRB=GRAV/(RGAS*.0065)
+c      BBYG=.0065/GRAV
+c      GBYRB=GRAV/(RGAS*.0065)
       DO 120 J=2,JM-1
          PSUMO(J)=0.
       DO 120 I=1,IM
@@ -683,7 +686,7 @@ C****
       DO 140 I=1,IM
       P(I,J)=X(I,J)/Y(I,J)-PTOP+PTRUNC
   140 PSUMN=PSUMN+P(I,J)
-         PDIF=(PSUMN-PSUMO(J))/IM
+         PDIF=(PSUMN-PSUMO(J))*BYIM
       DO 145 I=1,IM
   145    P(I,J)=P(I,J)-PDIF
   150 CONTINUE
@@ -859,7 +862,7 @@ C**** Make U winds at poles to be uniform
       DO 550 I=1,IM
   550 YJ = YJ + U(I,J,L)
       DO 560 I=1,IM
-  560 U(I,J,L) = YJ/IM
+  560 U(I,J,L) = YJ*BYIM
 C**** Filter V component of momentum
       DO 640 I=1,IM
       DO 610 J=1,JM-1
@@ -962,6 +965,7 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
 C****
 C**** INTEGRATE DYNAMIC TERMS
 C****
+      USE CONSTANT, only : by3
       USE E001M12_COM
       USE GEOM
       USE SOMTQ_COM
@@ -1087,8 +1091,8 @@ C     DO 352 L=1,LM
       AIJ(I,J,IJ_FMV)=AIJ(I,J,IJ_FMV)+PV(I,J,L)*DTLF
   361 CONTINUE
       DO 362 I=1,IM
-         AIJ(I,1,IJ_FMU)=AIJ(I,1,IJ_FMU)+PU(I,1,L)*DTLF/3.
-         AIJ(I,JM,IJ_FMU)=AIJ(I,JM,IJ_FMU)+PU(I,JM,L)*DTLF/3.
+         AIJ(I,1,IJ_FMU)=AIJ(I,1,IJ_FMU)+PU(I,1,L)*DTLF*BY3
+         AIJ(I,JM,IJ_FMU)=AIJ(I,JM,IJ_FMU)+PU(I,JM,L)*DTLF*BY3
       DO 362 J=2,JM-1
       AIJ(I,J,IJ_FMU)=AIJ(I,J,IJ_FMU)+PU(I,J,L)*DTLF
   362 CONTINUE

@@ -31,12 +31,9 @@ C**** Numerical constants
 
 C**** Physical constants
 
-!@param sday  sec per day (s)
-      real*8,parameter :: sday = 86400.
-
 !@param stbo Stefan-Boltzmann constant (W/m^2 K^4) 
-c      real*8,parameter :: stbo =5.67051d-8 !current best estimate
-      real*8,parameter :: stbo = 5.67032E-8
+      real*8,parameter :: stbo =5.67051d-8 !current best estimate
+c      real*8,parameter :: stbo = 5.67032e-8
 
 !@param lhe   latent heat of evap at 0 C (J/kg)
 c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C) 
@@ -50,10 +47,10 @@ c**** lhm(T) = 334590 + 2.05d3 T (in C)
 !@param rhow density of pure water (1000 kg/m^3)
       real*8,parameter :: rhow = 1d3
 !@param rhoi density of pure ice (916.6 kg/m^3)
-      real*8,parameter :: rhoi = 916.6   !d0
+      real*8,parameter :: rhoi = 916.6d0
 
 !@param tf freezing point of water at 1 atm (273.16 K)
-      real*8,parameter :: tf = 273.16   !d0
+      real*8,parameter :: tf = 273.16d0
 !@param bytf 1/tf (K^-1)
       real*8,parameter :: bytf = 1d0/tf
 
@@ -77,29 +74,29 @@ c**** where n is multiple of present day CO2 conc (350 ppm)
 c**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
 c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
 !@param gasc  gas constant (8.314510 J/mol K)
-c     real*8,parameter :: gasc = 8.314510d0
+      real*8,parameter :: gasc = 8.314510d0
 !@param mair molecular weight of dry air (28.9655 g/mol)
-c     real*8,parameter :: mair = 28.9655d0 
+      real*8,parameter :: mair = 28.9655d0 
 !@param rgas gas constant (287.05 J/K kg)
-c     real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
-      real*8,parameter :: rgas = 287.
+      real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
+c      real*8,parameter :: rgas = 287.
 
 !@param mwat molecular weight of water vapour 
-c     real*8,parameter :: mwat = 18.015d0 
+      real*8,parameter :: mwat = 18.015d0 
 !@param rvap  gas constant for water vapour (461.5 J/K kg)
 c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
-c     real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
-      real*8,parameter :: rvap = 461.5
+      real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
+c      real*8,parameter :: rvap = 461.5
 
 !@param mrat  mass ratio of air to water vapour (0.62197)
-c     real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
+      real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
 
-!@param srat ratio of specific heats of air and vapour (1401.0)
-c     real*8,parameter :: srat = 1401d0
+!@param srat ratio of specific heats of air and vapour (1.401)
+      real*8,parameter :: srat = 1.401d0
 !@param kapa ideal gas law exponent  (.2862)
-c**** kapa = (g-1)/g where g=1401 = c_p/c_v 
-c     real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
-      real*8,parameter :: kapa = .286     !d0
+c**** kapa = (g-1)/g where g=1.401 = c_p/c_v 
+      real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
+c      real*8,parameter :: kapa = .286d0
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
       real*8,parameter :: bykapa = 1./kapa
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
@@ -126,6 +123,12 @@ C**** Useful conversion factors
 
 C**** Astronomical constants
 
+!@param sday  sec per day (s)
+      real*8,parameter :: sday = 86400.
+
+!@param hrday  hours in a day (hrs)
+      real*8,parameter :: hrday = sday/3600.
+
 !@param omega earth's rotation rate (7.29 s^-1)
 c      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
       real*8,parameter :: EDPERD = 1.
@@ -138,10 +141,18 @@ c**** radius of spherical earth, same volume = 6371000 m
       real*8,parameter :: radius = 6375000.
 !@param grav gravitaional accelaration (9.80665 m/s^2)
 c**** SI reference gravity (at 45 deg) = 9.80665
-      real*8,parameter :: grav = 9.81    !d0
+      real*8,parameter :: grav = 9.80665d0
 !@param bygrav 1/grav 
       real*8,parameter :: bygrav = 1d0/grav
 
+C**** variables for extrapolating surface pressure to sea level)
+!@param BMOIST moist adiabatic lapse rate (K/m)
+      real*8, parameter :: bmoist = 0.0065d0
+!@param BBYG moist adiabatic lapse rate divided by grav
+      real*8, parameter :: bbyg = bmoist*bygrav
+!@param GBYRB grav divided by rgas and bmoist
+      real*8, parameter :: gbyrb = grav/(rgas*bmoist)
+  
       CONTAINS
 
       SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)

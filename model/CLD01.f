@@ -4,18 +4,18 @@
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV_loc,CONDSE_loc
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
-     *     !,by3,tf,bytf,rvap,bygrav
+     *     ,by3,tf,bytf,rvap,bygrav
       USE E001M12_COM, only : IM,LM,TAU
       USE RANDOM
       IMPLICIT NONE
       SAVE
 C**** parameters and constants
-      REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
-      REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF
+c      REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
+c      REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-      REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP
-      REAL*8, PARAMETER :: BY3=1.d0/3.d0 !@param BY3 = 1/3
-      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
+c      REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP
+c      REAL*8, PARAMETER :: BY3=1.d0/3.d0 !@param BY3 = 1/3
+c      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
       REAL*8, PARAMETER :: WMU=.25       !@param WMU
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI

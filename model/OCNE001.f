@@ -468,10 +468,9 @@ C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       END SUBROUTINE OCLIM
 
       SUBROUTINE PREC_OC(TGW,WTRO,PRCP,ENRGP,ERUN4)
-C****                                                                      
-C**** THIS SUBROUTINE USES THE PRECIPITATION TO CALCULATE                 
-C**** THE OCEAN SURFACE TEMPERATURE                                
-C****                                                                
+!@sum  PREC_OC Adds the precipitation to ocean arrays
+!@auth Gary Russell
+!@ver  1.0
       IMPLICIT NONE
       REAL*8 TGW, PRCP, WTRO, ENRGP, ERUN4, ENRGO 
 
@@ -483,10 +482,9 @@ C****
 
       SUBROUTINE PREC_SI(SNOW,MSI2,MSI1,TG1,TG2,TG3,TG4,PRCP,TPRCP
      *     ,EPRCP,RUN0,DIFS,EDIFS,ERUN2)
-C****                                                                      
-C**** THIS SUBROUTINE USES THE PRECIPITATION TO CALCULATE                 
-C**** THE OCEAN ICE SNOW COVER AND RUNOFF                               
-C****                                                                
+!@sum  PREC_SI Adds the precipitation to sea/lake ice
+!@auth Gary Russell
+!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: SNOMAX=100.0, dSNdRN=0.
@@ -495,7 +493,7 @@ C****
       REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4, 
      *       FMSI1, FMSI2, FHSI1, FHSI2, FHSI3, H2, CMPRS
       REAL*8 DIFS, EDIFS, ERUN2 ! for diagnostics 
-      REAL*8 RUN0 ! for SST calculation 
+      REAL*8 RUN0 ! runoff for ocean/lake
       REAL*8 HC_1 
 
       RUN0=0. ; DIFS=0. ; EDIFS=0. ; ERUN2=0.
@@ -699,11 +697,10 @@ C**** ADVECT ICE (usually downwards)
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,PLAKE,TG1,TG2,TG3,TG4,
      *     MSI2,F0DT,F1DT,EVAP,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,ERUN4,
      *     DIFSI,EDIFSI,DIFS,EDIFS,ENRGFO,ACEFO,ACE2M,ACE2F,ENRGFI,F2DT)
-C****                                                                      
-C**** THIS SUBROUTINE USES THE SURFACE FLUXES TO PREDICT IN TIME THE       
-C**** SEA ICE TEMPERATURE, SEA ICE AND SNOW GROWTH/MELTING,          
-C**** AND FREEZING ON THE OPEN OCEAN AND BELOW SEA ICE 
-C****                                                                     
+!@sum  SEA_ICE applies surface fluxes to ice coevered and ice free areas
+!@auth Gary Russell
+!@ver  1.0
+
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: ALAMI=2.1762, ALAMS=0.35, ! J/(m*degC*sec)

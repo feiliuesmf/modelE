@@ -20,8 +20,7 @@ C**** f90 changes
 
       USE DAGCOM, only : aj,kacc,aij,tsfrez,keynr,kdiag,ij_tgo2
       USE DYNAMICS, only : FILTER,CALC_AMPK
-      USE OCEAN, only : ODATA,OA,dm,iu_osst,iu_sice,iu_ocnml
-      USE FILEMANAGER, only : getunit
+      USE OCEAN, only : ODATA,OA
 
       IMPLICIT NONE
 
@@ -48,6 +47,7 @@ C**** STATEMENT FUNCTION EVENT IS TRUE IF TAU IS A MULTIPLE OF XTAU
       CLOSE (3)
       MSTART=MNOW-MDYN-MCNDS-MRAD-MSURF-MDIAG-MELSE
 C**** INITIALIZE TIME PARAMETERS
+      NDAILY=SDAY/DT
       DTHR=DT/3600.
       IDTHR=INTFX(DTHR)
       I24=INTFX(HR24)
@@ -120,6 +120,7 @@ C****
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
+         IDACC(1)=IDACC(1)+1
          MODRD=MOD(NSTEP,NRAD)
          MODD5S=MOD(NSTEP,NDA5S)
          IF (MODD5S.EQ.0) IDACC(8)=IDACC(8)+1
@@ -186,7 +187,6 @@ C****
          CALL DIAG9A (1)
       CALL DAILY(1)
       CALL TIMER (MNOW,MINC,MELSE)
-         NDAILY=SDAY/DT
          CALL DIAG5A (16,NDAILY)
          CALL DIAG9A (8)
       call daily_EARTH(1)

@@ -37,8 +37,8 @@ C****
       IMPLICIT NONE
 !@var A,B,C   expansion coefficients for QSAT
       REAL*8, PARAMETER :: A=3.797915d0
-      REAL*8, PARAMETER :: B=7.93252d-6
-      REAL*8, PARAMETER :: C=2.166847d-3
+      REAL*8, PARAMETER :: B=7.93252d-6  ! = 1./(rvap*tf)
+      REAL*8, PARAMETER :: C=2.166847d-3 ! = 1./rvap
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)

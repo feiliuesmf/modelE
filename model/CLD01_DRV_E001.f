@@ -6,7 +6,7 @@
 !@calls MSTCNV_loc
 
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
-      USE E001M12_COM, only : im,jm,lm,idacc,p,u,v,t,q,wm,tofday,fearth
+      USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,tofday,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig
       USE SOMTQ_COM
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
@@ -37,8 +37,6 @@
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
 
       REAL*8 :: HCNDMC,PRCP
-C****
-      IDACC(1)=IDACC(1)+1
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U

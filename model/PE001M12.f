@@ -601,7 +601,7 @@ C****
 C**** THIS SUBROUTINES ADDS THE RADIATION HEATING TO THE TEMPERATURES
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,tf
+     *     ,tf,stbo
       USE E001M12_COM
       USE GEOM, Jdummy=>JLAT
       USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2
@@ -653,8 +653,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 
       REAL*8, DIMENSION(LM+3) :: COE
 
-      REAl*8 TCIR,STBO
-      DATA TCIR/258.16/,STBO/.567257D-7/
+c      REAl*8 STBO
+c      DATA STBO/.567257D-7/
       INTEGER :: IFIRST = 1, JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,INCHM,J50N,J70N,LLOW,LMID
      *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK

@@ -398,7 +398,7 @@ C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = fluid mass
 C****
       USE E001M12_COM
-     &   , ONLY : IM,JM,LM,bytest=>BYIM
+     &   , ONLY : IM,JM,LM,BYIM
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: DT
@@ -411,10 +411,9 @@ C****
       COMMON /WORK04/ B,BM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
       REAL*8, INTENT(OUT) :: FQV(IM,JM)
       INTEGER I,J,L
-      REAL*8 BYIM,SBMS,SBMN,SFS,SFZS,SFZZS,SFN,SFZN,SFZZN,MOT2,RMFJM1
+      REAL*8 SBMS,SBMN,SFS,SFZS,SFZZS,SFN,SFZN,SFZZN,MOT2,RMFJM1
      *     ,MNEW,BYMNEW,G13AB,GAMMA,RMCEN
 
-      BYIM = 1./IM  ! to be replaced by BYIM from E001M12_COM
 C**** Loop over layers and longitudes
       DO 440 L=1,LM
       SBMS  = 0.

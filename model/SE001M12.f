@@ -18,7 +18,7 @@ C**** DRAG.  IT ALSO CALCULATES INSTANTANEOUS SURFACE TEMPERATURE,
 C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap
+     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo
       USE E001M12_COM, only : im,jm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
      *     ,idacc,dsig,jday,gdata,tofday,ndasf,iday,jeq,fland,flice
      *     ,fearth,ngrnd,modrd,ijd6,tau,sige
@@ -79,8 +79,8 @@ C**** Interface to PBL
 
       REAL*8, PARAMETER :: qmin=1.e-12
 
-      REAL*8 ALAMI,STBO,Z2LI,Z1E,Z2E,RHOS,ALAMS,S1BYG1
-      DATA ALAMI/2.1762/,STBO/.5672573E-7/
+      REAL*8 ALAMI,Z2LI,Z1E,Z2E,RHOS,ALAMS,S1BYG1
+      DATA ALAMI/2.1762/
       DATA Z2LI/2.9/,Z1E/.1/,Z2E/4./,RHOS/300.0/,ALAMS/.35/,
      A     S1BYG1 /0.57735/
 
