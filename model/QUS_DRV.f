@@ -27,13 +27,13 @@ cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_J
 C**** WORKSPACE FOR AADVTZ
 cc    REAL*8, DIMENSION(:), ALLOCATABLE :: CM,F_L
 cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
-
       END MODULE QUSCOM
 
       SUBROUTINE init_QUS(IM_GCM,JM_GCM,LM_GCM)
 !@sum  init_QUS sets gcm-specific advection parameters/workspace
 !@auth Maxwell Kelley
       use QUSCOM
+      USE PARAM
       INTEGER, INTENT(IN) :: IM_GCM,JM_GCM,LM_GCM
 C**** SET RESOLUTION
       IM = IM_GCM
@@ -51,6 +51,9 @@ C**** ALLOCATE WORKSPACE FOR AADVTY
 cc    ALLOCATE(BM(JM),F_J(JM),FMOM_J(NMOM,JM))
 C**** ALLOCATE WORKSPACE FOR AADVTZ
 cc    ALLOCATE(CM(LM),F_L(LM),FMOM_L(NMOM,LM))
+
+      call sync_param("prather_limits",prather_limits)
+
       RETURN
       END SUBROUTINE init_QUS
 

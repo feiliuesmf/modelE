@@ -32,6 +32,9 @@ C**** x-x, x-y, x-z switches
       integer, dimension(nmom), parameter ::
      &     zdir=(/mz,my,mx,mzz,myy,mxx,myz,mxy,mzx/)
 
+!@dbparam prather_limits forces +ve sub-grid scale profiles (default=0)
+      integer :: prather_limits = 0.
+
       END MODULE QUSDEF
 
       subroutine adv1d(s,smom, f,fmom, mass,dm, nx,qlimit,stride,dir
@@ -42,8 +45,7 @@ c--------------------------------------------------------------
 c adv1d advects tracers in x-direction using the qus
 c the order of the moments in dir is: x,y,z,xx,yy,zz,xy,yz,zx
 c--------------------------------------------------------------
-      use QUSDEF
-     &    , only : nmom
+      use QUSDEF, only : nmom,prather_limits
       implicit none
       !
 !@var s      mean tracer amount (kg or J)
@@ -201,6 +203,13 @@ c------------------------------------------------------------------
             s(ns)=0.
             smom(:,ns)=0.
          endif
+         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
+           smom(mx,ns)=min(1.5*s(ns),max(-1.5*s(ns),smom(mx,ns)))
+           smom(mxx,ns)=min(2.*s(ns)-abs(smom(mx,ns))/3.,max(abs(smom(mx
+     *          ,ns))-s(ns),smom(mxx,ns)))
+           smom(mxy,ns)=min(s(ns),max(-s(ns),smom(mxy,ns)))
+           smom(mzx,ns)=min(s(ns),max(-s(ns),smom(mzx,ns)))
+         end if
 c-----------------------------------------------------------------
          nm1 = n
       enddo
