@@ -62,7 +62,7 @@
      $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
       real*8, parameter :: vhght(8) =
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
-! Mean canopy nitrogen (nmv; g/m2) and Rubisco factors (nfv) for each
+! Mean canopy nitrogen (nmv; g/m2[leaf]) and Rubisco factors (nfv) for each
 ! vegetation type (adf)
       real*8, parameter :: nmv(8) =
      $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0/)
@@ -376,7 +376,7 @@ c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
       end do
 c**** vh: vegetation height
       vh=avh(i0,j0)
-      nm=anm(i0,j0) ! mean canopy nitrogen (g/m2) (adf)
+      nm=anm(i0,j0) ! mean canopy nitrogen (g/m2[leaf]) (adf)
       nf=anf(i0,j0) ! canopy nitrogen factor (adf)
       snowm=vh*spgsn
 
