@@ -1715,7 +1715,7 @@ c ---------------------- calculate fluxes ------------------------
         DTERT = FERT  *TRPRBAR(N,L+1)
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
-     &   FQTOWT*(TM(L,N)+DTERT) - FWTOQT*(TRWML(N,L)-DTPRT)
+     &   FQTOWT*(TM(L,N)+DTERT) - FWTOQT*TRWML(N,L)*(1.-FPRT)
 c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)                   + DTQWT
         TM(L,N)    = TM(L,N)                + DTERT - DTWRT - DTQWT
