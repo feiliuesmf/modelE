@@ -388,7 +388,7 @@ C**** Set diagnostics for ocean tracers
 #endif
 
 C**** Set atmospheric surface variables
-      CALL TOC2SST
+      IF (ISTART.gt.0) CALL TOC2SST
 
       RETURN
 C**** Terminate because of improper start up
