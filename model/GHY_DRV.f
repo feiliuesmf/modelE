@@ -145,7 +145,7 @@ c****
 
 #ifdef TRACERS_ON
       integer n,nx,nsrc
-      real*8 totflux
+      real*8 totflux(ntm)
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
      *     tevapb,trruns,trrunu,trsoil_rat  ! trpr,
@@ -424,17 +424,16 @@ C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
           trsfac(nx)=0.
-          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) trsfac(nx) = 1.   ! rhosrf0
+          if(dodrydep(n)) trsfac(nx) = 1.
           !then multiplied by deposition velocity in PBL
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          totflux=0.
+          totflux(nx)=0.
           do nsrc=1,ntsurfsrc(n)
-            totflux = totflux+trsource(i,j,nsrc,n)
+            totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
-          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
+          trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
 #ifdef TRACERS_WATER
 !        end select
         end if
@@ -665,24 +664,20 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
-#ifdef TRACERS_WATER
-          if (tr_wd_TYPE(n).eq.nWATER) call stop_model
-     &    ('A water tracer should not undergo dry deposition.',255)
-#endif
-          tdryd=-rhosrf0*dep_vel(n)*trs(nx)*dtsurf
-          tdd = tdryd*dxyp(j)*ptype
-          td1 = trsrfflx(i,j,n)*dtsurf
+          tdryd=-rhosrf*dep_vel(n)*trs(nx)*dtsurf      ! kg/m2
+          tdd = tdryd*dxyp(j)*ptype                    ! kg
+          td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
-     *           ,trm(i,j,1,n)
+     *           ,trm(i,j,1,n),td1,trs(nx),trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd= tdd/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
-          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - ! positive down
-     &      tdryd*ptype/(dtsurf*NIsurf)
+! trdrydep downward flux by surface type (kg/m^2)
+          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
      &      tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd

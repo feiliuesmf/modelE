@@ -196,7 +196,7 @@ c  internals:
 !@var  dxi   (z(n)-z(1))/(n-1)
 !@var  km    turbulent momentum tranport coefficient.
 !@var  kh    turbulent thermometric conductivity. computed
-!@var  ke    tranport coefficient for the turbulent kinetic energy.
+!@var  ke    transport coefficient for the turbulent kinetic energy.
 !@var  ipbl  stores bl properties of last time step
       implicit none
 
@@ -213,13 +213,13 @@ c  internals:
       integer, intent(in) :: ntx
       integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,ts
+      real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
 #ifdef TRACERS_SPECIAL_O18
-      real*8 fk,fraclk,fracvl,fracvs,tg1,tg,frac,qnet,rhosrf
+      real*8 :: trc1,trs1   ! could be passed out....
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
@@ -368,74 +368,85 @@ csgs      call integrate_sgswind(sig0,wt,wmin,wmax,wsh,icase,wint)
 
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
-C**** be inside the iteration. Use moisture diffusivity
+C**** be inside the iteration. Use moisture diffusivity.
+C**** First, define some useful quantities
+      ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
+      tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
+      rhosrf=100.*psurf/(rgas*t(1))  ! surface air density 
+      byrho=1d0/rhosrf
 
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
-      ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
 #endif
 
+C**** loop over tracers
       do itr=1,ntx
-        trcnst=trconstflx(itr)
+C**** Define boundary conditions
+
+C****   1) default air mass tracers
+        trcnst=trconstflx(itr)*byrho   ! convert to (conc * m/s)
         trsf=trsfac(itr)
+
 #ifdef TRACERS_WATER
+C****   2) water mass tracers
 C**** Water tracers need to multiply trsfac and trconstflx by cq*Usurf
         if (tr_wd_TYPE(ntix(itr)).eq.nWATER) then
           trcnst=trconstflx(itr)*cqsave*wsh
           trsf=trsfac(itr)*cqsave*wsh
 #ifdef TRACERS_SPECIAL_O18
-C**** Isotope tracers have different fractionations dependent on
-C**** type and direction of flux
-          tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
-          tg =tg1+tf
-          select case (itype)
-          case (1)              ! ocean: kinetic fractionation
-            fk = fraclk(wsm,trname(ntix(itr)))
-            trcnst = trcnst * fk * fracvl(tg1,trname(ntix(itr)))
-            trsf = trsf * fk
-          case (2:4)          ! other types
-C**** tracers are now passive, so use 'upstream' concentration
-            if (q(1)-qgrnd.gt.0.) then ! dew
-              trcnst = 0.
-              if (tg1.gt.0) then
-                frac=fracvl(tg1,trname(ntix(itr)))
-              else
-                frac=fracvs(tg1,trname(ntix(itr)))
-              end if
-              trsf=trsf*(q(1)-qgrnd)/(q(1)*frac)
-            else
-              trcnst = trcnst*(1.-q(1)/qgrnd)
-              trsf = 0.
-            end if
-          end select
+C**** get fractionation for isotopes
+          call get_frac(itype,wsm,tg1,q(1),qgrnd,trname(ntix(itr)),trc1
+     *         ,trs1)
+          trcnst=trc1*trcnst
+          trsf  =trs1*trsf
 #endif
         end if
 #endif
+
 #ifdef TRACERS_DRYDEP
+C****   3) dry deposited tracers
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(ntix(itr))) trsf=trsfac(itr)*dep_vel(ntix(itr))
 #endif
+
+C****   4) tracers with interactive sources
 #ifdef TRACERS_AEROSOLS_Koch
         select case (trname(ntix(itr)))
 	case ('DMS')
-	call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
-	trcnst=trconstflx(itr)*DMS_flux
+          call read_DMS_sources(wsm,itype,ilong,jlat,DMS_flux)
+          trcnst=DMS_flux*byrho
 	case ('seasalt1')
-	call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
-	trcnst=trconstflx(itr)*ss1_flux
+          call read_seasalt_sources(wsm,itype,1,ilong,jlat,ss1_flux)
+          trcnst=ss1_flux*byrho
 	case ('seasalt2')
-	call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
-	trcnst=trconstflx(itr)*ss2_flux 
+          call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
+          trcnst=ss2_flux *byrho
 	end select
 #endif
+
+C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),
 #ifdef TRACERS_WATER
      *       tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
+
+#ifdef TRACERS_DRYDEP
+C**** put in a check to prevent unphysical solutions. If too much
+C**** tracer is being taken out, replace profile with linear one
+C**** with maximum allowed flux.
+        if (dodrydep(ntix(itr))) then
+          if ((trsf*tr(1,itr)-trcnst)*dtime.gt.trtop(itr)*ztop) then
+            do i=1,n
+              tr(i,itr)=(trtop(itr)*ztop/dtime+trcnst)/trsf+(i-1)
+     *             *trtop(itr)/float(n-1)
+            end do
+          end if
+        end if
+#endif
         trs(itr) = tr(1,itr)
       end do
 #endif
@@ -860,8 +871,8 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 !@+   the accuracy and stability.
 !@+   The new value of bgrid is then calculated below which
 !@+   also depends on ztop (i.e., depends on pe(2)).
-!@var  z       hieght of main grids (meter)
-!@var  zhat    hieght of secondary grids (meter)
+!@var  z       height of main grids (meter)
+!@var  zhat    height of secondary grids (meter)
 !@var  xi      an uniformly spaced coordinate mapped to z
 !@var  xihat   an uniformly spaced coordinate mapped to zhat
 !@var  dz   dxi/(dxi/dz)

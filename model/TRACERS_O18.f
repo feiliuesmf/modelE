@@ -289,4 +289,42 @@ C****
 
       return
       end function delta
+
+      subroutine get_frac(itype,ws,tg1,q1,qg,trname,trc1,trs1)
+!@sum get_frac calculated fractionation factors during evaporation
+!@auth Gavin Schmidt
+      use const, only :: tf
+      implicit none
+      real*8, intent(in) :: ws,tg1,q1,qg
+      integer, intent(in) :: itype
+      character*8, intent(in) :: trname
+!@var trc1 factor multiplying trcnst in PBL
+!@var trs1 factor multiplying trsf in PBL
+      real*8, intent(out) :: trc1,trs1
+      real*8 frac,fk
+
+C**** Isotope tracers have different fractionations dependent on
+C**** type and direction of flux
+      select case (itype)
+      case (1)                  ! ocean: kinetic fractionation
+        fk = fraclk(ws,trname)
+        trc1 = fk * fracvl(tg1,trname)
+        trs1 = fk
+      case (2:4)              ! other types
+C**** tracers are now passive, so use 'upstream' concentration
+        if (q1-qg.gt.0.) then ! dew
+          trc1 = 0.
+          if (tg1.gt.0) then
+            frac=fracvl(tg1,trname)
+          else
+            frac=fracvs(tg1,trname)
+          end if
+          trs1=(q1-qg)/(q1*frac)
+        else
+          trc1 = (1.-q1/qg)
+          trs1 = 0.
+        end if
+      end select
+      return
+      end subroutine get_frac
 #endif

@@ -703,6 +703,10 @@ C**** Any tracers that dry deposits needs the surface concentration:
       if(HSTAR(n).GT.0..OR.F0(n).GT.0..OR.tr_wd_TYPE(n).eq.nPART) then
         dodrydep(n)=.true.
         needtrs(n)=.true.
+#ifdef TRACERS_WATER
+        if (tr_wd_TYPE(n).eq.nWATER) call stop_model
+     &       ('A water tracer should not undergo dry deposition.',255)
+#endif
       end if
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -4471,10 +4475,10 @@ C**** Initialise pbl profile if necessary
           if(tr_wd_TYPE(n).eq.nWATER)THEN
             trabl(ipbl,n,:,j,it) = trinit*qabl(ipbl,:,j,it)
           ELSE
+#endif
             trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
+#ifdef TRACERS_WATER
           END IF
-#else
-          trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
 #endif
         end do
         end do

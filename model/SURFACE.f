@@ -79,10 +79,8 @@ C**** Interface to PBL
      *     ,trdrydep
       USE tracers_DRYDEP, only : dtr_dd
 #endif
-      USE TRACER_DIAG_COM, only : taijn,tij_surf
-#ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,tajls,jls_source
-#endif
+      USE TRACER_DIAG_COM, only : taijn,tij_surf,taijs,ijts_isrc
+     *     ,tij_evap,tij_grnd,tajls,jls_source,jls_isrc
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,itcon_dd
 #endif
@@ -110,7 +108,7 @@ C**** Interface to PBL
       REAL*8 AREGIJ(7,3,IM,JM)
 c
 #ifdef TRACERS_ON
-      real*8 rhosrf0, totflux
+      real*8 rhosrf0, totflux(ntm)
       integer n,nx,nsrc
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim,trgrnd
@@ -459,17 +457,12 @@ C**** Calculate trsfac (set to zero for const flux)
           end if
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          totflux=0.
+C**** Now send kg/m^2/s to PBL, and dived by rho there.
+          totflux(nx)=0.
           do nsrc=1,ntsurfsrc(n)
-            totflux = totflux+trsource(i,j,nsrc,n)
+            totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
-          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
-#ifdef TRACERS_AEROSOLS_Koch
-          select case (trname(ntix(nx)))
-	  case ('DMS','seasalt1','seasalt2')
-            trconstflx(nx)=1.d0/rhosrf0
-          end select
-#endif
+          trconstflx(nx)=totflux(nx)*bydxyp(j)   ! kg/m^2/s
 #ifdef TRACERS_WATER
 !!!        end select
         endif
@@ -666,10 +659,22 @@ C**** Limit evaporation if lake mass is at minimum
         select case (trname(n))
 	case ('DMS')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         DMS_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         DMS_flux*dxyp(j)*ptype*dtsurf
 	case ('seasalt1')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss1_flux*dxyp(j)*ptype*dtsurf
 	case ('seasalt2')
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss2_flux*dxyp(j)*ptype*dtsurf
 	end select
 #endif
 #ifdef TRACERS_DRYDEP
@@ -677,24 +682,20 @@ C****
 C**** Calculate Tracer Dry Deposition
 C****
         if(dodrydep(n))then
-#ifdef TRACERS_WATER
-          if (tr_wd_TYPE(n).eq.nWATER) call stop_model
-     &    ('A water tracer should not undergo dry deposition.',255)
-#endif
-          tdryd=-rhosrf0*dep_vel(n)*trs(nx)*dtsurf     ! kg/m2
+          tdryd=-rhosrf*dep_vel(n)*trs(nx)*dtsurf      ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
-          td1 = trsrfflx(i,j,n)*dtsurf                 ! kg
+          td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
-     *           ,trm(i,j,1,n),td1,trs(nx),trgrnd(nx),trtop(nx)
+     *           ,trm(i,j,1,n),td1,trs(nx),trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
-          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - !positive down
-     &       tdryd*ptype/(dtsurf*NIsurf)
+! trdrydep downward flux by surface type (kg/m^2)
+          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
      &       tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
