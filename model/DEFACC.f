@@ -361,7 +361,7 @@ c
       ia_j(k) = ia_src
 c
       k=k+1
-      J_SRUN = k ! SRUNOFF (kg/m**2/day)                             1 GP
+      J_SRUN = k ! SRUNOFF (kg/m**2/day)                            1 GP
       name_j(k) = 'salt_runoff'
       lname_j(k) = 'SALT IN RUNOFF'
       units_j(k) = '10^-3 kg/m^2/day'
@@ -1232,7 +1232,7 @@ c
 c
       k=k+1
       IJ_TDCOMP = k
-      lname_ij(k) = 'DIURNAL SURF AIR TEMP'
+      lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE' ! composite
       units_ij(k) = 'C'
       name_ij(k) = 'TDCOMP'
       ia_ij(k) = ia_12hr
