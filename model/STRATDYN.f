@@ -1001,8 +1001,8 @@ C**** Save AM change
         DO L=1,LMAX
           DPT=DPT+DP(L)
         END DO
+        DUANG = ANGM/DPT
         DO L=1,LMAX
-          DUANG = ANGM/DPT
           IF (MRCH.eq.2) THEN
             DKE(I,J,L) = DKE(I,J,L) + DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
             DUT3(I,J,L)=DUT3(I,J,L) + DUANG*DP(L)*DXYV(J)
