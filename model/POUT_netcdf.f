@@ -24,7 +24,7 @@ C**** have to wait.
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing,real_att_name,real_att
-     &    ,nf_disk_type,nf_arr_type
+     &    ,disk_dtype,prog_dtype
 
       character(len=80) :: outfile
       integer :: status_out,out_fid
