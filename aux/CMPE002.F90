@@ -176,6 +176,10 @@
       use CMP
       use filemanager
       use model_com, only : ioread
+#ifdef GSFC_COMPAT
+      use model_com, only : im,jm,init_model_com
+      use domain_decomp, only : init_decomp, grid, finish_decomp
+#endif
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -253,6 +257,12 @@
          print *,"Usage: CMPE002 file_1 file_2"
          call stop_model("Incorrect arguments",255)
       endif
+
+!** initialize domain decomposition if necessary
+#ifdef GSFC_COMPAT
+      call init_decomp(im,jm)
+      call init_model_com(grid)
+#endif
 !C****
 !C**** Read ReStartFiles
 !C****
@@ -484,6 +494,11 @@
 
       print *," ------     Comparing data     -----"
       call do_compare
+
+!** not sure if this is needed, but just in case ...
+#ifdef GSFC_COMPAT
+      call finish_decomp()
+#endif
 
       end
 
