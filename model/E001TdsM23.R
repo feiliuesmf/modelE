@@ -65,8 +65,9 @@ POUT                                ! post-processing output
 
 Data input files:
 AIC=DEC1986.rsfB436TM23.modelE.15
-OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
-MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
+! OHT=OTSPEC.RB399AM12.M250D   !  not needed if KOCEAN=0
+OCNML=Z1O.B4X5.cor ! needed for post-processing only
+MLMAX=Z1OMAX.B4X5.250M.cor ! needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
