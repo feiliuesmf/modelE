@@ -296,8 +296,14 @@ c Does not currently have the capability to write any real_atts.
       integer :: n
       if(outer_pos.eq.1) then ! check for missing values
          prog_dtype=nf_double
-         n = product(file_dimlens(dimids_out(1:ndims_out)))
-         if(any(var(1:n).eq.missing)) def_missing=.true.
+         if(write_whole_array) then
+            write(6,*) 'ndims_out',ndims_out
+            n = product(file_dimlens(dimids_out(1:ndims_out)))
+            if(any(var(1:n).eq.missing)) def_missing=.true.
+         else ! we can only check var(:,...,:,1) at this point,
+c so just assume that there will be some missing values
+            def_missing=.true.
+         endif
       endif
       call setup_arrn(outer_pos)
       status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
@@ -313,8 +319,13 @@ c like wrtdarrn but for real*4 data
       integer :: n
       if(outer_pos.eq.1) then ! check for missing values
          prog_dtype=nf_real
-         n = product(file_dimlens(dimids_out(1:ndims_out)))
-         if(any(var(1:n).eq.missing)) def_missing=.true.
+         if(write_whole_array) then
+            n = product(file_dimlens(dimids_out(1:ndims_out)))
+            if(any(var(1:n).eq.missing)) def_missing=.true.
+         else ! we can only check var(:,...,:,1) at this point,
+c so just assume that there will be some missing values
+            def_missing=.true.
+         endif
       endif
       call setup_arrn(outer_pos)
       status_out = nf_put_vara_real(out_fid,varid_out,srt,cnt,var)
@@ -1328,8 +1339,8 @@ c      var_name='hour';call wrtdarr(hours)
 ! to avoid file unit conflicts, open_hdiurn cannot be called if
 ! any files are currently open through open_diurn
       use NCOUT
-      use MODEL_COM, only : idacc ! get the number of hours in this month
-      use DAGCOM, only : ia_src
+      use MODEL_COM, only : idacc ! get # of hours in this month
+      use DAGCOM, only : ia_12hr,hr_in_day
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -1338,8 +1349,10 @@ c      var_name='hour';call wrtdarr(hours)
       integer, parameter :: lenatt=300
       character(len=lenatt) :: att_str
       character(len=1), parameter :: nl=achar(10)
+      integer :: nhrs
 !
-      call open_diurn(filename,idacc(ia_src),NDIUVAR_gcm)
+      nhrs = hr_in_day*(idacc(ia_12hr)/2)
+      call open_diurn(filename,nhrs,NDIUVAR_gcm)
 ! input arrays will have extra 4 hours b/c radiation end-of-month wraparound
       im_data=hr_in_month+4
 
