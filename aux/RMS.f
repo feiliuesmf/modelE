@@ -5,6 +5,7 @@ C**** Currently this is only good for 72x46 model, should be more general.
 C**** If you want to add a target, increase NDIAG and LMAX, enter
 C**** the TITLE for the diagnostic, and set up a releavnt OBS line that
 C**** describes the observations.
+C**** Now includes the Arcsin Mielke skill score
       USE MODEL_COM, only : im,jm,fearth
       USE GEOM, only : geom_b
       USE FILEMANAGER, only : openunit,closeunit
@@ -14,11 +15,13 @@ C**** describes the observations.
       INTEGER, PARAMETER :: LMAX=33, NDIAG=25
 C****
       CHARACTER OBS(LMAX)*63, RMS(0:LMAX,2)*140, TITLE1*80,
-     *     TITLE2*80, RUN*20, DATE*8, MONFILE(2)*80
-      REAL*4 TOTAL(20,2),DATA1(IM,JM),DATA2(IM,JM)
+     *     TITLE2*80, RUN*20, DATE*8, MONFILE(2)*80,
+     *     AMS(0:LMAX,2)*140
+      REAL*4 TOTAL(20,2),DATA1(IM,JM),DATA2(IM,JM),TOTALA(20,2)
       CHARACTER*7, DIMENSION(2) :: MONTH =(/'January','   July'/)
       CHARACTER*6 :: BLANK ='      '
       DATA RMS /' ',LMAX*' ', ' ',LMAX*' '/
+      DATA AMS /' ',LMAX*' ', ' ',LMAX*' '/
 !@var NREC array of positions of targets in diagnostic file      
       INTEGER, DIMENSION(NDIAG) :: NREC
 !@var TITLE array of target diagnostics to be found in output
@@ -95,7 +98,7 @@ C****
      4'UVS   Oort NHGrnd  7 OORT4X5.UVSURF      1 7    5  1    0    '/
 C****
       INTEGER IARGC,NARGS,M,N,L,NRUN,IREC,K,KM,KMIN,KMAX,NMOD,iu_TOPO
-      REAL*4 WRMS,RMSDIF,RRMS,XRMS
+      REAL*4 WRMS,RMSDIF,RRMS,XRMS,AMSCORE,XAMS
 C****
       NARGS = IARGC()
       IF(NARGS.lt.3)  GO TO 800
@@ -141,6 +144,7 @@ C****
         KMAX = LEN_TRIM(RMS(0,M)) + 11
         KMIN = KMAX-10
         RMS(0,M)(KMIN:KMAX) = RUN(1:NRUN)
+        AMS(0,M)(KMIN:KMAX) = RUN(1:NRUN)
 
         OPEN(3,FILE=MONFILE(M),STATUS="OLD",FORM="UNFORMATTED")
           
@@ -160,11 +164,14 @@ C**** find appropriate target
               READ(3) TITLE1,DATA1
             END IF
             
-            RRMS = RMSDIF (M,OBS(L),DATA1,DATA2)
+            CALL SCORE(RRMS,AMSCORE,M,OBS(L),DATA1,DATA2)
+c            RRMS = RMSDIF (M,OBS(L),DATA1,DATA2)
             
             WRITE (RMS(L,M)(KMIN:KMAX),921) RRMS
+            WRITE (AMS(L,M)(KMIN:KMAX),921) AMSCORE
           ELSE
             WRITE (RMS(L,M)(KMIN:KMAX),'(a)') "*****" 
+            WRITE (AMS(L,M)(KMIN:KMAX),'(a)') "*****" 
           END IF
         END DO
         CLOSE (3)
@@ -176,12 +183,20 @@ C****
         KM = LEN_TRIM(RMS(0,M))/7
         DO K=1,KM
           TOTAL(K,M) = 0.
+          TOTALA(K,M) = 0.
+          N = 0
           DO L=1,LMAX
-            if (RMS(L,M)(K*7-6:K*7-6).ne."I" .and. RMS(L,M)(K*7-6:K*7-6)
-     *           .ne."*") READ (RMS(L,M)(K*7-6:K*7),921) XRMS 
-            READ (OBS(L)(47:49),*) WRMS
-            TOTAL(K,M) = TOTAL(K,M) + XRMS*WRMS
+            IF (RMS(L,M)(K*7-6:K*7-6).ne."I" .and. RMS(L,M)(K*7-6:K*7-6)
+     *           .ne."*") THEN
+              READ (RMS(L,M)(K*7-6:K*7),921) XRMS 
+              READ (AMS(L,M)(K*7-6:K*7),921) XAMS
+              READ (OBS(L)(47:49),*) WRMS
+              TOTAL(K,M) = TOTAL(K,M) + XRMS*WRMS
+              TOTALA(K,M) = TOTALA(K,M) + XAMS
+              N = N + 1
+            END IF
           END DO
+          TOTALA(K,M)= TOTALA(K,M)/REAL(N)
         END DO
       END DO
 C****
@@ -189,32 +204,48 @@ C**** Write RMS file to database
 C****
       OPEN (3,FILE='/u/cmrun/modelE/RMS/'//trim(RUN),STATUS="UNKNOWN"
      *     ,FORM="FORMATTED") 
+      OPEN (4,FILE='/u/cmrun/modelE/AMS/'//trim(RUN),STATUS="UNKNOWN"
+     *     ,FORM="FORMATTED") 
       DO M=1,2
         KMAX = LEN_TRIM(RMS(0,M))
         KMIN = KMAX-6
         CALL DATE_AND_TIME (DATE)
         WRITE (3,940) 'RMS    RMS differences for various runs    ' //
      *       DATE(1:4) // '/' // DATE(5:6) // '/' // DATE(7:8)
+        WRITE (4,940) 'AMS  Arcsin Mielke scores for various runs ' //
+     *       DATE(1:4) // '/' // DATE(5:6) // '/' // DATE(7:8)
         WRITE (3,940)
         WRITE (3,940) MONTH(M)
         WRITE (3,940)
         WRITE (3,901) 'Diag  Obsr Domain',RMS(0,M)(1:KMAX)
         WRITE (3,941) ('   ----',K=1,KMAX/7)
+        WRITE (4,940)
+        WRITE (4,940) MONTH(M)
+        WRITE (4,940)
+        WRITE (4,901) 'Diag  Obsr Domain',RMS(0,M)(1:KMAX)
+        WRITE (4,941) ('   ----',K=1,KMAX/7)
         DO L=1,LMAX
           WRITE (3,901) OBS(L)(1:18),RMS(L,M)(1:KMAX)
           IF(OBS(L)(46:46).eq.'Y')  WRITE (3,901)
+          WRITE (4,901) OBS(L)(1:18),AMS(L,M)(1:KMAX)
+          IF(OBS(L)(46:46).eq.'Y')  WRITE (4,901)
         END DO
         WRITE (3,942) ( '  -----',K=1,KMAX/7)
         WRITE (3,943) (NINT(TOTAL(K,M)),K=1,KMAX/7)
         IF(M.eq.1)  WRITE (3,944) CHAR(12) !  write form feed
+        WRITE (4,942) ( '  -----',K=1,KMAX/7)
+        WRITE (4,945) (TOTALA(K,M),K=1,KMAX/7)
+        IF(M.eq.1)  WRITE (4,944) CHAR(12) !  write form feed
       END DO
       CLOSE (3)
+      CLOSE (4)
       STOP
 C****
   800 WRITE (0,*)
      *' Usage: RMS run jan_diag_file jul_diag_file           2001/10/03'
       WRITE (0,*)
-     *' Calculate RMS statistics for JAN and JUL diagnostics from RUN'
+     *' Calculate RMS and Arcsin Mielke statistics for JAN and JUL'
+     *     // ' diagnostics from RUN'
       WRITE (0,*)
      *' The DIAG_FILES should be the lat-lon diagnostics for the '
       WRITE (0,*)
@@ -230,24 +261,27 @@ C****
   942 FORMAT (19X,20A7)
   943 FORMAT (19X,20I7)
   944 FORMAT (A1,$)
+  945 FORMAT (19X,20F7.2)
   999 END
 
-      FUNCTION RMSDIF (M,OBS,UM,VM)
-!@sum RMSDIF calculates the RMS difference between a model data record
-!@+ and an observation data record
+      SUBROUTINE SCORE(RMSDIF,AMSCORE,M,OBS,UM,VM)
+!@sum SCORE calculates the RMS difference and Arcsin Mielke score 
+!@+   between a model data record and an observation data record
 !@auth Gary Russell/Gavin Schmidt
 C**** Input: M = 1 for January, 2 for July
 C****      UM,VM data arrays
-      USE CONSTANT, only : SKIP=>undef
+      USE CONSTANT, only : SKIP=>undef,pi
       USE MODEL_COM, only : im,jm,fearth
-      USE GEOM,only : dxyp
+      USE GEOM,only : dxyp,imaxj
       IMPLICIT NONE
       REAL*4, PARAMETER :: SKIPOBS=-999999.
       CHARACTER OBS*64, FILEIN*80, TITLE*80
-      REAL*4 UM(IM,JM),VM(IM,JM), UO(IM,JM),VO(IM,JM),FAC,OFFSET,W,Q
-     *     ,RMSDIF,DLAT
+      REAL*4, DIMENSION(IM,JM) :: UM,VM, UO,VO, WEIGHTS
+      REAL*4 FAC,OFFSET,DLAT
+      REAL*4 W,Q,M2,O2,MBAR,OBAR,MDIFF,VARM,VARO,MSE,RMSDIF,AMSCORE
       INTEGER N,NOBS,I,J,J60,M
-C**** factors and offsets to transform model output to commensurate units	
+C**** factors and offsets to transform model output to commensurate
+C**** units
       READ(OBS(56:61),*) OFFSET
       READ(OBS(51:54),*) FAC
 C****
@@ -263,80 +297,81 @@ C****
         READ (2)
       END DO
 C****
-C**** Determine kind of RMS
+C**** Determine weights 
 C****
-      IF(OBS( 1: 3).eq.'UVS'   )  GO TO 400
-      IF(OBS(12:17).eq.'NHGrnd')  GO TO 300
-      IF(OBS(12:17).eq.'Glob60')  GO TO 200
-C     IF(OBS(12:17).eq.'Global')  GO TO 100
+      IF(OBS(12:17).eq.'NHGrnd' .or. OBS( 1: 3).eq.'UVS')  THEN
+        DO I=1,IM
+          WEIGHTS(I,JM/2+1:JM) = DXYP(JM/2+1:JM)*FEARTH(I,JM/2+1:JM)
+          WEIGHTS(I,1:JM/2) = 0.
+        END DO
+      END IF
+      IF(OBS(12:17).eq.'Glob60')  THEN
+        DLAT = .5*NINT(360./JM)
+        J60  = 1 + NINT(JM/2 - 60./DLAT)
+        WEIGHTS(:,1:J60-1) = 0.
+        WEIGHTS(:,2+JM-J60:JM) = 0.
+        DO I=1,IM
+          WEIGHTS(I,J60:1+JM-J60) = DXYP(J60:1+JM-J60)
+        END DO
+      END IF
+      IF(OBS(12:17).eq.'Global')  THEN
+        DO I=1,IM
+          WEIGHTS(I,:)=DXYP(:)
+        END DO
+      END IF
 C****
-C**** Calculate global RMS
+C**** Calculate global scores
 C****
-c  100 READ (1,ERR=810) TITLE,UM
- 100  READ (2,ERR=810) TITLE,UO
-      W = 0.
-      Q = 0.
-      DO J=1,JM
-      DO I=1,IM
-        IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS) CYCLE
-        W = W + DXYP(J)
-        Q = Q + DXYP(J)*(UM(I,J)*FAC+OFFSET-UO(I,J))**2
-      END DO
-      END DO
-      GO TO 500
+      IF (OBS( 1: 3).ne.'UVS') THEN
+        READ (2,ERR=810) TITLE,UO
+        W = 0. ; Q = 0.
+        MBAR = 0. ; OBAR = 0.
+        M2 = 0. ; O2 = 0.
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS .or.
+     *           WEIGHTS(I,J).eq.0.) CYCLE 
+            W = W + WEIGHTS(I,J)
+            Q = Q + WEIGHTS(I,J)*(UM(I,J)*FAC+OFFSET-UO(I,J))**2
+            MBAR = MBAR + WEIGHTS(I,J)*(UM(I,J)*FAC+OFFSET)
+            OBAR = OBAR + WEIGHTS(I,J)* UO(I,J)
+            M2 = M2 + WEIGHTS(I,J)*(UM(I,J)*FAC+OFFSET)**2
+            O2 = O2 + WEIGHTS(I,J)*UO(I,J)**2 
+          END DO
+        END DO
+      ELSE
+C**** 
+C**** Calculate vector RMS 
+C**** 
+        READ (2,ERR=810) TITLE,UO,VO
+        W = 0. ; Q = 0.
+        MBAR = 0. ; OBAR = 0.
+        M2 = 0. ; O2 = 0.
+        DO J=1,JM
+          DO I=1,IM
+            IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS .or.
+     *           VM(I,J).le.SKIP .or. VO(I,J).eq.SKIPOBS .or. 
+     *           WEIGHTS(I,J).eq.0) CYCLE
+            W = W + WEIGHTS(I,J)
+            Q = Q + WEIGHTS(I,J)*((UM(I,J)*FAC+OFFSET-UO(I,J))**2
+     *           +(VM(I,J)*FAC+OFFSET-VO(I,J))**2)
+            MBAR = MBAR + WEIGHTS(I,J)*((UM(I,J)+VM(I,J))*FAC+OFFSET)
+            OBAR = OBAR + WEIGHTS(I,J)*(UO(I,J)+VO(I,J))
+            M2 = M2 + WEIGHTS(I,J)*((UM(I,J)*FAC+OFFSET)**2+
+     *           (VM(I,J)*FAC+OFFSET)**2)
+            O2 = O2 + WEIGHTS(I,J)*(UO(I,J)**2 + VO(I,J)**2)
+          END DO
+        END DO
+      END IF
 C****
-C**** Calculate global RMS from -60 to +60
+C**** Final calculation of RMS and AMSCORE and close datafiles
 C****
-c  200 READ (1,ERR=810) TITLE,UM
- 200  READ (2,ERR=810) TITLE,UO
-      DLAT = .5*NINT(360./JM)
-      J60  = 1 + NINT(JM/2 - 60./DLAT)
-      W = 0.
-      Q = 0.
-      DO J=J60,1+JM-J60
-      DO I=1,IM
-        IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS) CYCLE
-        W = W + DXYP(J)
-        Q = Q + DXYP(J)*(UM(I,J)*FAC+OFFSET-UO(I,J))**2
-      END DO
-      END DO
-      GO TO 500
-C****
-C**** Calculate RMS over northern hemisphere ground
-C****
-c  300 READ (1,ERR=810) TITLE,UM
- 300  READ (2,ERR=810) TITLE,UO
-      W = 0.
-      Q = 0.
-      DO J=JM/2+1,JM
-      DO I=1,IM
-        IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS) CYCLE
-        W = W + FEARTH(I,J)*DXYP(J)
-        Q = Q + FEARTH(I,J)*DXYP(J)*(UM(I,J)*FAC+OFFSET-UO(I,J))**2
-      END DO
-      END DO
-      GO TO 500
-C****
-C**** Calculate vector RMS over northern hemisphere ground
-C****
-c  400 READ (1,ERR=810) TITLE,UM
-c      READ (1,ERR=810) TITLE,VM
- 400  READ (2,ERR=810) TITLE,UO,VO
-      W = 0.
-      Q = 0.
-      DO J=JM/2+1,JM
-      DO I=1,IM
-        IF(UM(I,J).le.SKIP .or. UO(I,J).eq.SKIPOBS .or.
-     *       VM(I,J).le.SKIP .or. VO(I,J).eq.SKIPOBS) CYCLE
-        W = W + FEARTH(I,J)*DXYP(J)
-        Q = Q + FEARTH(I,J)*DXYP(J)*((UM(I,J)*FAC+OFFSET-UO(I,J))**2 +
-     +       (VM(I,J)*FAC+OFFSET-VO(I,J))**2)
-      END DO
-      END DO
-C****
-C**** Final calculation of RMS and close datafiles
-C****
-  500 RMSDIF = SQRT(Q/(W+1.e-20))
+      MSE = Q/(W+1.e-20)
+      RMSDIF = SQRT(MSE)
+      VARM = M2/(W+1.e-20) - (MBAR/(W+1.e-20))**2
+      VARO = O2/(W+1.e-20) - (OBAR/(W+1.e-20))**2
+      MDIFF = ((MBAR-OBAR)/(W+1.e-20))**2
+      AMSCORE = (2./PI)*ASIN(1.- MSE/(VARO + VARM + MDIFF)) 
       CLOSE (2)
       RETURN
 C****
