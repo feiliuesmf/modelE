@@ -132,8 +132,7 @@ C****
         do month = months, monthe
           tmonth = month_name(month)
           write (tyear, '(i4.4)') year
-          file_name=
-     *         '/u/cmrun/'//trim(RunID)//'/VFLXO'//trim(tmonth)//tyear
+          file_name = 'VFLXO'//trim(tmonth)//tyear
           call openunit(file_name,iu_VFLX,.true.,.true.)
           last_day = month_day(month)
           do kday = 1,last_day
@@ -151,12 +150,12 @@ C*
             kocean = 0
             jmon = month
             jdate = kday
-            CALL OCLIM (1)
+            CALL OCLIM (.true.)
 
 C***  Read in the ocean mixed layer depth data
 C***  and interpolate them for the current day
             kocean = 1
-            CALL OCLIM (1)
+            CALL OCLIM (.true.)
 C*
             DO J = 1,JM
               DO I = 1,IM

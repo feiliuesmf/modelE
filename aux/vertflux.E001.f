@@ -100,8 +100,7 @@ C****
         do month = months, monthe
           tmonth = month_name(month)
           write (tyear, '(i4.4)') year
-          file_name=
-     *         '/u/cmrun/'//trim(RunID)//'/VFLXO'//trim(tmonth)//tyear
+          file_name='VFLXO'//trim(tmonth)//tyear
           call openunit(file_name,iu_VFLX,.true.,.true.)
           last_day = month_day(month)
           do kday = 1,last_day
@@ -111,7 +110,7 @@ C*
             jdate = kday
 
             kocean = 0
-            CALL OCLIM (1)
+            CALL OCLIM (.true.)
 C****
 C**** Accumulate ASR, the daily flux of solar radiation,
 C****     and AVFXSR, the vertical flux excluding solar radiation

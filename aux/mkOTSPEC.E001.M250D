@@ -1,6 +1,6 @@
 #!/bin/ksh
 ## create otspec and IC for a 4x5 Bgrid run - 5 harmonics  02/09/01
-if [[ $# -lt 5 ]] ; then 
+if [[ $# -lt 5 ]] ; then
     echo "Usage: $0 runID first_month first_year last_month last_year"
     echo "       All months, and years are integer arguments"
     echo "Please ensure that relevant aux executables are up-to-date by"
@@ -16,27 +16,30 @@ MODEL_E_ROOT=$PWD
 DECKS_DIR=${MODEL_E_ROOT}/decks
 AUX_DIR=${MODEL_E_ROOT}/aux
 BIN_DIR=${DECKS_DIR}/$1_bin
+CMRUNDIR=/u/cmrun
+if [[ ! -d ${CMRUNDIR} ]] ; then CMRUNDIR=/giss ; fi
+if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
 
-runID=$1 
-cd /u/cmrun/$runID
+runID=$1
+cd $CMRUNDIR/$runID
 rm -f RSFIC OHT
 
 do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
 
 echo 'Enter rsf file for new initial conditions'
 echo "   (path from `pwd` or absolute pathname):"
-read rsfic 
+read rsfic
 ln -s $rsfic RSFIC
 if [[ -s RSFIC ]]
-then 
+then
   if ( $BIN_DIR/qc RSFIC ) then
       echo "This RSF file contains part of the I.C. for the new run"
       echo "It will be used to create a new i.c. file by this program"
-  else 
+  else
     echo "Error in 'qc' program. "
-    echo "Ensure that it is up-to-date with a 'gmake aux RUN=${runID}' command from ../decks."  
+    echo "Ensure that it is up-to-date with a 'gmake aux RUN=${runID}' command from ../decks."
     exit
-  fi  
+  fi
 else echo "RSF file not found, please start over"
      exit
 fi
@@ -78,12 +81,12 @@ outfile=OTSPEC.$1.M250D.$3-$5
 mv OHT $outfile
 echo "Saved ocean heat transports in file: " $outfile
 
-mv OHTLP oht$1.$3-$5.lpl   
+mv OHTLP oht$1.$3-$5.lpl
 echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl
 
 icfile=IMJAN.$1.O250D
-mv RSFNEW $icfile ;       #do--put on raid, link to /u/cmrun
-echo "Saved modified init. condition file: " $icfile 
+mv RSFNEW $icfile ;       #do--put on raid, link to /giss
+echo "Saved modified init. condition file: " $icfile
 $BIN_DIR/qc $icfile
 
 echo "Surface heat flux imbalance: "
