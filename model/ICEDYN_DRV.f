@@ -71,7 +71,7 @@ C**** Ice advection diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
-     *     ,irerun,lhead 
+     *     ,irerun,lhead
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -184,7 +184,7 @@ C**** accumulate diagnostics
             GO TO 10
           END IF
 #endif
-        CASE (IRSFIC)  ! initial conditions 
+        CASE (IRSFIC)  ! initial conditions
           READ (kunit)
 #ifdef TRACERS_WATER
           READ (kunit)
@@ -622,7 +622,7 @@ C**** add tracers to advected arrays
       DO J=1,JM
         DO I=1,IM
           DO ITR=1,NTM
-          IF (SNOWI(I,J)*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
+          IF (SNOWI(I,J)*XSI(2).gt.XSI(1)*ACE1I) THEN ! layer 1:all snow
             SICE=SSI(1,I,J)+SSI(2,I,J)
             TRSNOW(ITR) = TRSI(ITR,1,I,J) + TRSI(ITR,2,I,J)*MAX(1.
      *           -(ACE1I-SICE)/(XSI(2)*(ACE1I+SNOWI(I,J))-SICE),0d0)
@@ -1035,7 +1035,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
               APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
               GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *             (XSI(1:2)*MHS(1,I,J))+LHM)*BYSHI
+     *             (XSI(1:2)*(SNOWI(I,J)+ACE1I))+LHM)*BYSHI
 #ifdef TRACERS_WATER
               GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
      *             -SSI(1,I,J))
