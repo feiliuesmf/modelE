@@ -590,16 +590,16 @@ C  from the level we're at upwards - (WTAU(i,j),i=j,nc)
 C-----WEIGHTED LENGTHS TO SUN STARTING AT ZFASTJ(J);MU>0
         IF (RZ(J).LT.TANHT) GOTO 16
         XMU1=ABS(U0)
-        DO I=J+1,NCFASTJ
-          XMU2=DSQRT(max(0.d0,1.0D0-RQ(I-1)*(1.0D0-XMU1**2.)))
-          XL=RZ(I)*XMU2-RZ(I-1)*XMU1
-          WTAU(I-1,J)=WTAU(I-1,J)+XL*0.5D0
+        DO I=J,NCFASTJ-1
+          XMU2=DSQRT(max(0.d0,1.D0-RQ(I)*(1.D0-XMU1**2.)))
+          XL=RZ(I+1)*XMU2-RZ(I)*XMU1
           WTAU(I,J)=WTAU(I,J)+XL*0.5D0
+          WTAU(I+1,J)=WTAU(I+1,J)+XL*0.5D0
           XMU1=XMU2
         END DO
 C-----SCALE HEIGHT AT TOP POINT
         WTAU(NCFASTJ,J)=WTAU(NCFASTJ,J) +
-     &  ZZHT*AIRMAS(XMU2,ZZHT/(RADIUS*1.D2))
+     &  ZZHT*AIRMAS(XMU1,ZZHT/(RADIUS*1.D2))
         IF (U0.GE.0.0D0) GOTO 16
 C-----TWILIGHT CASE - Emergent Beam
         XMU1=ABS(U0)
