@@ -246,7 +246,7 @@ C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
       INTEGER :: KEYCT = 1
 
 !@nlparam IWRITE,JWRITE,ITWRITE control rad.debug output (i,j,amount)
-      INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
+      INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 23
 !@nlparam QDIAG TRUE for outputting binary diagnostics
       LOGICAL :: QDIAG = .FALSE.
 !@nlparam QDIAG_ratios TRUE for forming ratios if title="q1 x q2"
@@ -349,7 +349,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
-#endif 
+#endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
@@ -455,7 +455,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
-#endif 
+#endif
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx) :: sname_jl

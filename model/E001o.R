@@ -45,14 +45,15 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
-OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
+! AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
+! GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
+! OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
+AIC=1DEC1969.rsfE050AoM20A           ! full IC (GIC,OIC not needed) ISTART=8 (spun up 320 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
-CDN=CD4X500S.ext 
+CDN=CD4X500S.ext
   ! VEG=V72X46.1.cor2.ext
 VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
@@ -89,8 +90,8 @@ TOP_INDEX=top_index_72x46.ij.ext
 
 Label and Namelist:
 E001o (ModelE1 1880 atm/ocn - coupled version)
-R=00BG/B
 
+DTFIX=300
 &&PARAMETERS
 ! parameters set for coupled ocean runs:
 KOCEAN=1        ! ocn is prognostic
@@ -98,22 +99,21 @@ KOCEAN=1        ! ocn is prognostic
 ! parameters usually not changed when switching to coupled ocean:
 
 ! drag params if grav.wave drag is not used and top is at .01mb
-X_SDRAG=.001,.0001  ! used above P(P)_sdrag mb (and in top layer)
+X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
 C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
 P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
-PP_sdrag=20.        ! linear SDRAG above PP_sdrag mb near poles
+PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
+ANG_SDRAG=1         ! conserve ang. mom.
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.345   ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
-!        U00wtrX=1.345   ! use with 1880 atmosphere/ocean
-!1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
+U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
+U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.   !  wtr cld particle size *RWCLDx over ocean
@@ -139,14 +139,14 @@ aero_yr=1880
 o3_yr=1880
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 DTsrc=1800.
-DT=300.         
+DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
@@ -154,16 +154,16 @@ Ndisk=48        ! use =480 on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1   ! use =0 to save cpu time
-nda5d=1         ! use =7 to save cpu time
-nda5s=1         ! use =7 to save cpu time
+isccp_diags=1   ! use =0 to save cpu time if isccp-diags are not essential
+nda5d=13        ! use =1 for more exact cons. diags
+nda5s=13        ! use =1 for more exact cons. diags
 ndaa=13
 nda5k=13
 nda4=48
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1880,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
+   YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=2000,MONTHE=1,DATEE=1,HOURE=0, KDIAG=0,2,2,9*0,9,
-   ISTART=2,IRANDI=0, YEARE=1880,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=8,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
