@@ -3165,9 +3165,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
 #endif
+      USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *   tr_mm
-      USE SOMTQ_COM, only : qmom,mz,mzz
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
       USE LANDICE, only : ace1li,ace2li
