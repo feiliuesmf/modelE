@@ -16,6 +16,9 @@
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,ia_rad
+#endif
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRACER_DIAG_COM
@@ -1782,7 +1785,7 @@ c photolysis rate
         sname_jls(k) = 'photolysis_rate_of_H2O2'//trname(n)
         lname_jls(k) = 'photolysis rate of H2O2'
         jls_ltop(k) =LM
-        jls_power(k) =-8
+        jls_power(k) =-9
         units_jls(k) = unit_string(jls_power(k),'/s')
 #endif
       case ('seasalt1')
@@ -1909,7 +1912,7 @@ c Oxidants
         sname_jls(k) = 'OH_conc'
         lname_jls(k) = 'OH Concentration'
         jls_ltop(k) = LM
-        jls_power(k) =3
+        jls_power(k) =5
         scale_jls(k) =byim 
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
@@ -1918,7 +1921,7 @@ c Oxidants
         sname_jls(k) = 'HO2_conc'
         lname_jls(k) = 'HO2 Concentration'
         jls_ltop(k) =LM
-        jls_power(k) =5
+        jls_power(k) =7
         scale_jls(k) =byim 
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
@@ -2688,11 +2691,31 @@ c SO4 optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_src   !? 
+        ia_ijts(k) = ia_rad   !? 
         lname_ijts(k) = 'SO4 optical thickness'
-        sname_ijts(k) = 'SO4_tau'
-        ijts_power(k) = -2.
+        sname_ijts(k) = 'TAU'
+        ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SO4 shortwave radiative forcing 
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !? 
+        lname_ijts(k) = 'SO4 SW radiative forcing'
+        sname_ijts(k) = 'SWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SO4 longwave radiative forcing 
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !? 
+        lname_ijts(k) = 'SO4 LW radiative forcing'
+        sname_ijts(k) = 'LWRF'
+        ijts_power(k) = -6.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
       case ('H2O2_s')
@@ -2779,11 +2802,31 @@ c ss1 optical thickness
         ijts_tau(n) = k
         write(6,*) 'tau scale',k
         ijts_index(k) = n
-        ia_ijts(k) = ia_src   !? 
+        ia_ijts(k) = ia_rad   !? 
         lname_ijts(k) = 'ss1 optical thickness'
-        sname_ijts(k) = 'ss1_tau'
+        sname_ijts(k) = 'TAU'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SS shortwave radiative forcing 
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  !? 
+        lname_ijts(k) = 'SS SW radiative forcing'
+        sname_ijts(k) = 'SWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c SS longwave radiative forcing 
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  !? 
+        lname_ijts(k) = 'SS LW radiative forcing'
+        sname_ijts(k) = 'LWRF'
+        ijts_power(k) = -6.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
        case ('seasalt2')
@@ -2803,7 +2846,7 @@ c ss2 optical thickness
         ijts_index(k) = n
         ia_ijts(k) = ia_src   !? 
         lname_ijts(k) = 'ss2 optical thickness'
-        sname_ijts(k) = 'ss2_tau'
+        sname_ijts(k) = 'TAU'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -4883,9 +4926,6 @@ c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
       end select
 
       end do
-#ifdef TRACERS_AEROSOLS_Koch
-      CALL GET_TAU
-#endif
 C****
       END SUBROUTINE set_tracer_2Dsource
 
@@ -5000,7 +5040,6 @@ C****
        call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
        call apply_tracer_3Dsource(2,n_SO4) ! SO4 het chem source
        call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink 
-       
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5266,6 +5305,10 @@ c
 C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
      * tr_RKD,tr_DHD,LM,NTM
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,trname,n_seasalt1,n_seasalt2
+c     USE PBLCOM, only: wsavg
+#endif
       USE CLOUDS, only: NTIX,PL
       USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
 c
@@ -5315,6 +5358,14 @@ C
           fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
+c         if (wsavg(i,j).gt.10.and.PREC.gt.0.and.l.eq.1) then
+c         select case (trname(n))
+c          case('seasalt1')
+c          fq=0.
+c          case('seasalt2')
+c          fq=0.
+c         end select
+c         endif
 #endif
         CASE DEFAULT                          ! error
           call stop_model(
