@@ -88,9 +88,12 @@ $(ROBJ):	$(RCOM)
 # Compile the gcm
 gcm:	$(OBJ)
 
+# Make a current rundeck
+mkrun:	
+	mkrun $(RUNSRC) $(RUN) 
+
 # Setup the gcm
 setup:	gcm
-	mkrun $(RUNSRC) $(RUN) 
 	$(EXECDIR)/$(SETUP) $(RUN)
 
 # Mkexe the gcm
