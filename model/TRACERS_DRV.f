@@ -4665,7 +4665,7 @@ C****
       case ('SO2')
         do ns=1,ntsurfsrc(n)
          do j=1,jm
-            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.97
+            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.97d0
          end do
         end do
 c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
@@ -4673,7 +4673,7 @@ c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
       case ('SO4')
         do ns=1,ntsurfsrc(n)
          do j=1,jm
-            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.045
+            trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.045d0
          end do
         end do
 #endif

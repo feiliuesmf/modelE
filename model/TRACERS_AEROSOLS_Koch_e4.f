@@ -3,6 +3,8 @@
 !@sum repository for Koch aerosol sources, features, etc.
 !@auth Dorothy Koch
       USE TRACER_COM
+      IMPLICIT NONE
+      SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
 !@var DMS_src           DMS ocean source (kg/s)
       real*8 DMS_src(im,jm,ndmssrc),DMSinput(im,jm,12)
@@ -62,6 +64,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
 
       if (ifirst) then
       call openunit('SO2_IND',iuc,.false.)
+      so2_ind_input(:,:,:)=0.   ! initiallise
       DO 10 ij = 1,9999
       read(iuc,902)   I,J,TMAS,TX,TXX,TY,TYY,TXY      
  902  FORMAT(3X,2(I4),E11.3,5F9.2)  
@@ -78,9 +81,9 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
       endif
 c I think units are: Kg S/box/yr
 c We need kg SO2/m2/s
-      do i=1,im
-      do j=1,jm
       cfac=tr_mm(nt)/32.d0/365.d0/sday  !*dtsrc
+      do j=1,jm
+      do i=1,im
       so2_src(i,j,1)=so2_ind_input(i,j,1)*cfac
       end do
       end do
@@ -89,6 +92,7 @@ c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
 C  Read in emissions from biomass burning 
       call openunit('SO2_BIOMASS',iuc2,.false.)
+      so2_src(:,:,2)=0.   ! initiallise
 
       DO 154 ij=1,9999   
 Cewg  SDDAY -- first day (as day of the year) of the 90 driest days 
