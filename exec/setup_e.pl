@@ -313,7 +313,7 @@ print RUNID <<EOF;
     rm -f error_message 2> /dev/null
     . ./runtime_opts
     ./${runID}ln
-    ./${runID}.exe -i \$IFILE > \$PRTFILE
+    ./${runID}.exe -i ./\$IFILE > \$PRTFILE
     rc=\$?
     ./${runID}uln
     rm -f lock
