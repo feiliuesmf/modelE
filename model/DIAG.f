@@ -239,7 +239,6 @@ C****
 C****
 C**** CALCULATE PUV, THE MASS WEIGHTED PRESSURE
 C****
-      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
@@ -399,7 +398,6 @@ C****            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, TX, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_1S
@@ -495,7 +493,6 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
         END DO
       END DO
 
-      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
 
       DO J=J_0S,J_1S
@@ -514,7 +511,6 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
           END DO
         END DO
 
-        CALL CHECKSUM(grid, UI, __LINE__, __FILE__,STGR=.true.)
         CALL HALO_UPDATE(grid, UI, FROM=NORTH)
 
         DO J=J_0S,J_1S
@@ -544,7 +540,6 @@ C**** the different model tops
         END DO
       END DO
 
-      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
 
       DO J=J_0S,J_1S
@@ -563,7 +558,6 @@ C**** the different model tops
           END DO
         END DO
 
-        CALL CHECKSUM(grid, UI, __LINE__, __FILE__,STGR=.true.)
         CALL HALO_UPDATE(grid, UI, FROM=NORTH)
 
         DO J=J_0S,J_1S
@@ -608,7 +602,6 @@ C**** DRY ADIABATIC LAPSE RATE
         TIL(J)=TPIL/(PI(J)*(SIGE(1)-SIGE(LS1)))
       END DO
 
-      CALL CHECKSUM(grid, TIL, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, TIL, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_1S
@@ -623,7 +616,6 @@ C****
 C**** EASTWARD TRANSPORTS
 C****
 
-      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, U, FROM=NORTH)
 
       DO L=1,LM
@@ -642,11 +634,9 @@ C****
 
 !Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL CHECKSUM_COLUMN(grid, PLIJ, __LINE__, __FILE__)
       CALL HALO_UPDATE_COLUMN(grid, PLIJ, FROM=SOUTH)
 !Not necessary here, done above      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
-      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
 
@@ -816,7 +806,6 @@ C****
 C**** NORTHWARD TRANSPORT
 !Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL CHECKSUM(grid, T, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
 
       DO 868 J=J_0STG,J_1STG
@@ -856,7 +845,6 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
 C**** VERTICAL TRANSPORT
 !Not necessary here, done above      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, U, FROM=NORTH)
-      CALL CHECKSUM(grid, V, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, V, FROM=NORTH)
 
       DO 878 J=J_0S,J_1S
@@ -999,7 +987,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
       REAL*8 :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GETTIME(MBEGIN)
@@ -1007,6 +995,7 @@ c      REAL*8 :: ADIURNSUM,HDIURNSUM
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
@@ -1141,18 +1130,12 @@ C and since DIAGB is called immediately after DIAGA
 C there may not be a need for these calls if
 C the concerned arrays have not been updated
 C from the previous halo call.
-      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
-      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-      CALL CHECKSUM(grid, Q, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
-      CALL CHECKSUM(grid, T, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
       DO L=1,LM
-         CALL CHECKSUM(grid, STJK(:,L), __LINE__, __FILE__)
          CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
       END DO
 
@@ -1340,7 +1323,6 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
 
 C**** ZX for distributed parallelization
 c****
-      CALL CHECKSUM(GRID,UDX,__LINE__,__FILE__)
       CALL HALO_UPDATE( grid, UDX, from=NORTH )
       CALL HALO_UPDATE( grid, pm_ge_ps, from=NORTH)
 
@@ -1389,7 +1371,7 @@ C**** INTERPOLATE HERE
  850        PUP=PL(L+1)
             IF (LUP.EQ.L) PUP=PM(K+1)
             DPK=DPK+(PDN-PUP)
-            SDK=SDK+(PDN-PUP)*SD(I,J,L)
+            SDK=SDK+(PDN-PUP)*SD(I,JJ(J),L)
             IF (LUP.EQ.L) GO TO 860
             L=L+1
             PDN=PL(L)
@@ -1677,7 +1659,6 @@ C****
       IF (K.EQ.1) KDN=1
 
       DO L=1,LM
-         CALL CHECKSUM(grid, TJK(:,L), __LINE__, __FILE__)
          CALL HALO_UPDATE(grid, TJK(:,L), FROM=SOUTH)
       END DO
 
@@ -1690,21 +1671,14 @@ C**** E-P FLUX NORTHWARD COMPONENT
   780 CONTINUE
 
       DO L=1,LM
-         CALL CHECKSUM(grid, PSIJK(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, PSIJK(:,L), FROM=NORTH)
-         CALL CHECKSUM(grid, UJK(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, UJK(:,L), FROM=NORTH)
-         CALL CHECKSUM(grid, VJK(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, VJK(:,L), FROM=NORTH)
          If (L > 1) THEN
-           CALL CHECKSUM(grid, WJK(:,L), __LINE__, __FILE__,STGR=.true.)
            CALL HALO_UPDATE(grid, WJK(:,L), FROM=NORTH)
          END IF
-         CALL CHECKSUM(grid, UP(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, UP(:,L), FROM=NORTH)
-         CALL CHECKSUM(grid, TY(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, TY(:,L), FROM=NORTH)
-         CALL CHECKSUM(grid, PSIP(:,L), __LINE__, __FILE__,STGR=.true.)
          CALL HALO_UPDATE(grid, PSIP(:,L), FROM=NORTH)
       END DO
 
@@ -2092,7 +2066,6 @@ C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
 C****
       IF (M.eq.1) THEN
         dopit=.true.
-        CALL CHECKSUM(grid,PIT, __LINE__, __FILE__)
         IF(HAVE_SOUTH_POLE) PI(1)=FIM*PIT(1,1)
         IF(HAVE_NORTH_POLE) PI(JM)=FIM*PIT(1,JM)
         DO J=J_0S,J_1S
@@ -2108,7 +2081,6 @@ C**** PROCESSES IN DYNAMICS
 C****
 C****
 
-      CALL CHECKSUM(grid, PI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
 
 !$OMP PARALLEL DO PRIVATE (J,L,I,DUTIL,RKEIL,DUTI,RKEI,N)
@@ -2223,9 +2195,7 @@ C****
         END DO
       END DO
 
-      CALL CHECKSUM(grid, PI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
-      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
@@ -2276,7 +2246,6 @@ C****
 C**** KINETIC ENERGY
 C****
 
-      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       IF (HAVE_SOUTH_POLE) RKE(1)=0.
@@ -2669,7 +2638,6 @@ C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
 C**** MASS FOR KINETIC ENERGY
   200 I=IM
 
-      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       DO 202 J=J_0STG,J_1STG
@@ -3987,12 +3955,12 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRDIAG_COM, only: TAIJLN_loc
-      USE TRDIAG_COM, only: TAIJN_loc
-      USE TRDIAG_COM, only: taijs=>TAIJS_loc
-      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc
-      USE TRDIAG_COM, only: TAJLS=>TAJLS_loc
-      USE TRDIAG_COM, only: TCONSRV=>TCONSRV_loc
+      USE TRDIAG_COM, only: taijln, TAIJLN_loc
+      USE TRDIAG_COM, only: taijn,  TAIJN_loc
+      USE TRDIAG_COM, only: taijs,  TAIJS_loc
+      USE TRDIAG_COM, only: TAJLN,  TAJLN_loc
+      USE TRDIAG_COM, only: TAJLS,  TAJLS_loc
+      USE TRDIAG_COM, only: TCONSRV,TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, only: grid, CHECKSUM
       IMPLICIT NONE
@@ -4013,8 +3981,10 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       AJK_loc=0   ; AIJK_loc=0 ; HDIURN=0
       AISCCP=0
 #ifdef TRACERS_ON
-       TAJLN=0 ; TAJLS=0 ; TCONSRV=0
-      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS=0.
+       TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
+       TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
+       TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.
+      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
