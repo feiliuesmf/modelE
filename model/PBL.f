@@ -293,10 +293,9 @@ C**** end special threadprivate common block
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,uocean,vocean,n)
 
-        if ((itype.eq.4).or.(itype.eq.3)) then
-          if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
-            call tfix(t,z,ttop,tgrnd,lmonin,n) !why should we do this?
-          endif
+        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
+          call tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,kh(1),
+     *              ilong,jlat,n)
         endif
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
@@ -822,27 +821,42 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       return
       end subroutine griddr
 
-      subroutine tfix(t,z,ttop,tgrnd,lmonin,n)
+      subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,
+     *                ilong,jlat,n)
 !@sum   tfix
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
+      use QUSDEF, only : mz
+      use SOMTQ_COM, only : tmom,qmom
+
       implicit none
 
-      integer, intent(in) :: n    !@var n  array dimension
+      real*8, parameter :: S1byG1=.57735d0
+      integer, intent(in) :: ilong,jlat,n    !@var n  array dimension
       real*8, dimension(n),intent(in) :: z
       real*8, dimension(n),intent(inout) :: t
-      real*8, intent(in) :: ttop, tgrnd
-      real*8, intent(inout) :: lmonin
+      real*8, intent(in) :: ttop,tgrnd,ustar,khs
+      real*8, intent(inout) :: lmonin,tstar
 
-      real*8 tsurf
+      real*8 tsurf,dtdz
       integer i  !@var i loop variable
 
-      tsurf=tgrnd+0.2d0*(ttop-tgrnd)
+      dtdz = tmom(mz,ilong,jlat,1)
+      tsurf = ttop - dtdz*S1byG1
+
       t(1)=tsurf
       do i=2,n-1
         t(i)=tsurf+(z(i)-z(1))*(ttop-tsurf)/(z(n)-z(1))
       end do
-      lmonin=abs(lmonin)
+
+      dtdz   = (t(2)-t(1))/(z(2)-z(1))
+      tstar  = khs*dtdz/ustar
+      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
+      if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
+
+      lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
+      if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
+      
       return
       end subroutine tfix
 
