@@ -75,7 +75,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NQUANT Number of conserved quantities in conservation diags
       INTEGER, PARAMETER :: NQUANT=22
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=150
+      INTEGER, PARAMETER :: KCON=170
 !@var CONSRV conservation diagnostics
       REAL*8, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
