@@ -796,7 +796,7 @@ c        define O3 from Ox:
 c
 c        calculate change in NO3:
          dNO3=rr(7,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,L)*y(nNO2,L)+
-     &        2*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L)
+     &        2.d0*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L)
          dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(99,L)*y(nNO2,L))
      &        *yNO3(I,J,L)+rr(92,L)*y(n_N2O5,L)
          dNO3=dNO3*dt2
@@ -837,8 +837,8 @@ C
          changeClOx=-changeClONO2
 c
 c        Convert some changes to molecules/cm3/s:(w/o ClONO2->HNO3 het or PSC)
-         changeHNO3=gwprodHNO3+2*wprod_sulf  !always positive
-         changeNOx=-gwprodHNO3-2*gwprodN2O5
+         changeHNO3=gwprodHNO3+2.d0*wprod_sulf  !always positive
+         changeNOx=-gwprodHNO3-2.d0*gwprodN2O5
          if(-changeNOx.gt.y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)
 
          changeN2O5=gwprodN2O5-wprod_sulf
@@ -858,9 +858,9 @@ c
           rprodN=rprodN+changeHNO3
          endif
          if(changeN2O5.lt.0.d0)then
-          rlossN=rlossN+2*changeN2O5
+          rlossN=rlossN+2.d0*changeN2O5
          else
-          rprodN=rprodN+2*changeN2O5
+          rprodN=rprodN+2.d0*changeN2O5
          endif
          if(rprodN.gt.rlossN)then
           ratioN=-rlossN/rprodN
