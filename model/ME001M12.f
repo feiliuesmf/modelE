@@ -226,7 +226,6 @@ CC??  Jyear=Itime/(Nday*JDperY) + iyear1  !  calendar year (A.D.)
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
-C??   call set_param( "Itime", Itime, 'o' )
 
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
@@ -430,7 +429,6 @@ C**** Rundeck parameters:
 
 C**** Non-Rundeck parameters
       ! the following were set only at initial start - udating
-C??   call sync_param( "ItimeI", ItimeI ) !input
 
       end subroutine init_Model
 
@@ -456,7 +454,6 @@ C****
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
-!     *    ,U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
@@ -476,8 +473,13 @@ C****
 
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1
      *     ,IR,IREC,NOFF,ioerr
+!@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
+!@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
+!@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *             HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
+!@nlparam ISTART  postprocessing(-1)/start(1-8)/restart(>8)  option
+!@nlparam IRANDI  random number seed to perturb init.state (if>0)
      *             ISTART=10, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
       REAL*4 XX4
@@ -776,8 +778,6 @@ C**** Close "AIC" here if it was opened
 C**** Sending parameters which had just been set to the DB
       ! the following lines overwrite rundeck parameters
       ! the following are NON-rundeck parameters
-C??   call set_param( "ItimeI", ItimeI ) !input 1     ??
-C??   call set_param( "NDAY", NDAY ) !input 1         ??
 
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
@@ -880,9 +880,6 @@ C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
-C??   if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
-C??   if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
-C??   if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
 
 C***********************************************************************
 C****                                                              *****
@@ -901,7 +898,7 @@ C****
 C**** Recompute date information related to Itime0
 C****
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
-    
+
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
       IF (yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
@@ -932,7 +929,7 @@ C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
         stop 'INPUT: nmonav inappropriately set'
       end if
       write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
-    
+
 C**** Updating Parameters: If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database (DB)
 

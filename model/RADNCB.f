@@ -19,9 +19,9 @@
       DOUBLE PRECISION, DIMENSION(4,IM,JM) :: FSF
 !@var COSZ1 Integral of Solar Zenith angle over time (????)
       DOUBLE PRECISION, DIMENSION(IM,JM) :: COSZ1
-!@var S0X solar constant multiplication factor                 DB-param
+!@dbparam S0X solar constant multiplication factor     
       REAL*8 :: S0X = 1.
-!@var CO2 carbon dioxide multiplication factor                 DB-param
+!@dbparam CO2 carbon dioxide multiplication factor      
       REAL*8 :: CO2 = 1.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD

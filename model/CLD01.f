@@ -25,11 +25,11 @@ C**** parameters and constants
 !@var XMASS dummy variable
 
 C**** Set-able variables
-!@var LMCM max level for originating MC plumes                  DB-param
+!@dbparam LMCM max level for originating MC plumes          
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
-!@var U00wtr critical humidity for water cloud condensation     DB-param
+!@dbparam U00wtr critical humidity for water cloud condensation   
       REAL*8 :: U00wtr = .7d0       ! default
-!@var U00ice critical humidity for ice cloud condensation       DB-param
+!@dbparam U00ice critical humidity for ice cloud condensation     
       REAL*8 :: U00ice = .7d0       ! default
 
 C**** input variables

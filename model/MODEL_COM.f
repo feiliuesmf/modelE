@@ -19,10 +19,10 @@
       INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers
 
 !**** Model control parameters:
-!@var KOCEAN: if 0 => specified, if 1 => predicted ocean        DB-param
-!@var MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered DB-param
+!@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
+!@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
       integer :: KOCEAN = 1, MFILTR = 1
-!@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude           DB-param
+!@dbparam XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
       double precision, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
 !@var ATURB_ON switches diffus on/off, drycnv off/on
       logical :: ATURB_ON = .TRUE.
@@ -31,14 +31,14 @@ c**** not working yet for EARTH
       logical :: VT_ON = .TRUE.
 
 !**** Diagnostic control parameters
-!@var IJD6,NAMD6 coord,names of 4 pts for diurnal cycle diag    DB-param
+!@dbparam IJD6,NAMD6 coord,names of 4 pts for diurnal cycle diag
       INTEGER, DIMENSION(2,4)  :: IJD6
       DATA                        IJD6    /63,17, 17,34, 37,27, 13,23/
       CHARACTER*4,DIMENSION(4) :: NAMD6=(/'AUSD','MWST','SAHL','EPAC'/)
-!@var KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved   DB-param
-!@var NMONAV number of months in a diagnostic accuml. period    DB-param
-!@var Kvflxo if 1 => vert.fluxes into ocean are saved daily     DB-param
-!@var NIPRNT number of instantaneous initial printouts          DB-param
+!@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
+!@dbparam NMONAV number of months in a diagnostic accuml. period
+!@dbparam Kvflxo if 1 => vert.fluxes into ocean are saved daily
+!@dbparam NIPRNT number of instantaneous initial printouts
       integer :: KCOPY=2, NMONAV=1, Kvflxo=0, NIPRNT=1
 
 C**** (Simplified) Calendar Related Terms
@@ -59,7 +59,7 @@ C**** (Simplified) Calendar Related Terms
 
 !@var NDAY and IYEAR1 relate CALENDAR TIME and INTERNAL TIME Itime :
 !@var NDAY number of Internal Time Units per day (1 ITU = DTsrc sec)
-!@var IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)    NL-param
+!@nlparam IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)
       INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
@@ -70,9 +70,9 @@ C**** (Simplified) Calendar Related Terms
 !@var JMON0,JDATE0,JYEAR0,JHOUR0 date-info about Itime0 (beg.of acc.per)
       INTEGER :: ItimeI,ItimeE,   Itime0,JMON0,JDATE0,JYEAR0,JHOUR0
 
-!@var DTSRC source time step (s)   = 1 ITU                      DB-param
+!@dbparam DTSRC source time step (s)   = 1 ITU
       DOUBLE PRECISION :: DTsrc = 3600.
-!@var DT (atmospheric) dynamics time step (s)                   DB-param
+!@dbparam DT (atmospheric) dynamics time step (s)
       DOUBLE PRECISION :: DT    =  450.         ! DT = DTdyn_atm
 
 C**** Time step related multipliers:  N... NI...
@@ -81,26 +81,26 @@ C**** except that the time steps related to NDAa, NDA5k, NDAsf are
 C**** slightly larger, to sample all points within the cycle
 
 !@var NIdyn:  DT atm_dyn  =  DTsrc/NIdyn     (NIdyn=DTsrc/DT)
-!@var NIsurf: DT_Surface  =  DTsrc/NIsurf                       DB-param
-!@var NRad:   DT_Rad      =  NRad*DTsrc                         DB-param
-!@var NFILTR: DT_filter   =  NFILTR*DTsrc                       DB-param
+!@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
+!@dbparam NRad:   DT_Rad      =  NRad*DTsrc
+!@dbparam NFILTR: DT_filter   =  NFILTR*DTsrc
       INTEGER :: NIdyn, NIsurf = 2, NRad = 5 , NFILTR = 2
 
-!@var Ndisk:  DT_saversf  =  Ndisk *DTsrc fort.1/fort.2 saves   DB-param
-!@var Nssw:   DT_checkSsw =  Nssw  *DTsrc                       DB-param
-!@var Nslp:   DT_save_SLP =  Nslp  *DTsrc                       DB-param
+!@dbparam Ndisk:  DT_saversf  =  Ndisk *DTsrc fort.1/fort.2 saves
+!@dbparam Nssw:   DT_checkSsw =  Nssw  *DTsrc
+!@dbparam Nslp:   DT_save_SLP =  Nslp  *DTsrc
       INTEGER :: NDisk = 24, Nssw = 1 , Nslp = 0
 
-!@var NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)             DB-param
-!@var NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE  DB-param
-!@var NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn DB-param
-!@var NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src DB-param
-!@var NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf         DB-param
-!@var NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history       DB-param
+!@dbparam NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)
+!@dbparam NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE
+!@dbparam NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn
+!@dbparam NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src
+!@dbparam NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf
+!@dbparam NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history
       INTEGER :: NDAa=7, NDA5d=7, NDA5k=7, NDA5s=7, NDASf=1, NDA4=24
 
 !**** Accounting variables
-!@var IRAND last seed used by rand.number generator             DB-param
+!@dbparam IRAND last seed used by rand.number generator
 !@var KDISK next rsf (fort.)1 or 2 to be written to
 !@var NSTEP number of dynamics steps since start of run
 !@var MRCH  flags position in dynamics cycle (>0 fw, <0 bw step)
@@ -154,7 +154,7 @@ C**** Define surface types (mostly used for weighting diagnostics)
 
 !@var AIRX, AIRMX*DXYP(J) Used in stratosphere model. (kg?)
       REAL*8 AIRX(IM,JM)
-!@var LMC max layer of mc convective mass flux. (Strat model)   DB-param
+!@var LMC max layer of mc convective mass flux. (Strat model)
       INTEGER, DIMENSION(2,IM,JM) :: LMC
 
       END MODULE MODEL_COM
