@@ -1181,6 +1181,22 @@ c
       scale_ij(k) = 1.
 c
       k=k+1
+      IJ_3dRWM = k
+      lname_ij(k) = '3D Warm Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRIM = k
+      lname_ij(k) = '3D Cold Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
       IJ_3dNWS = k
       lname_ij(k) = '3D Warm Large-scale CDNC '
       units_ij(k) = 'cm^-3'
@@ -1193,6 +1209,22 @@ c
       lname_ij(k) = '3D Cold Large-scale CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = '3dNis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRWS = k
+      lname_ij(k) = '3D Warm Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dRIS = k
+      lname_ij(k) = '3D Cold Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = '3dRis'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 #endif
