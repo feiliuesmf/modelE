@@ -36,7 +36,9 @@ c      enddo
       USE model_com,ONLY : Dtsrc,fearth,im,jm,jmon,wfcs,itime
       USE fluxes,ONLY : prec,evapor,trsrfflx
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
-      USE trdiag_com,ONLY : ijts_source,jls_source,taijs,tajls
+      USE trdiag_com,ONLY : ijts_source,jls_source
+      USE trdiag_com,ONLY : taijs=>taijs_loc
+      USE trdiag_com,ONLY : tajls=>tajls_loc
       USE geom,ONLY : dxyp,imaxj
       USE ghy_com,ONLY : snowe !earth snow amount
       USE pblcom,ONLY : wsavg
@@ -353,7 +355,9 @@ c     &       sigma,vtrshij,wsavgij,workij
       USE model_com,ONLY : Dtsrc,zatmo
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
-      USE trdiag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
+      USE trdiag_com,ONLY : ijts_source,jls_3Dsource
+      USE trdiag_com,ONLY : taijs=>taijs_loc
+      USE trdiag_com,ONLY : tajls=>tajls_loc
       USE tracers_dust_com,ONLY : Z
       USE tracers_dust,ONLY : nDustWetij,nDustWet3Djl,prelay
       USE CLOUDS_COM, ONLY : cldmc,cldss
@@ -626,11 +630,13 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
 
 #ifdef TRACERS_DUST
       USE resolution,ONLY : Jm
-      USE MODEL_COM, only: dtsrc
+      USE model_com,ONLY : dtsrc
       USE fluxes,ONLY : trsrfflx
-      USE tracer_com, ONLY : n_clay,Ntm_dust,trm,trmom
-      USE TRDIAG_COM, only : ijts_source,jls_source,taijs,tajls
-      USE tracers_dust_com, only: nDustTurbij,nDustTurbjl
+      USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
+      USE trdiag_com,ONLY : ijts_source,jls_source
+      USE trdiag_com,ONLY : taijs=>taijs_loc
+      USE trdiag_com,ONLY : tajls=>tajls_loc
+      USE tracers_dust_com,ONLY : nDustTurbij,nDustTurbjl
 
       IMPLICIT NONE
 
