@@ -82,9 +82,9 @@
      *       dtr_ss(GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm)
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
-        real*8 a_sulf(im,jm),cc_sulf(im,jm)
-        integer iuc_s
-         logical :: ifirst=.true.
+      real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
+      integer iuc_s
+      logical, save :: ifirst=.true.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
@@ -830,11 +830,10 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_ss(n,l)
           end if
 c save for cloud-sulfate correlation
-           select case (trname(n))
-           case('SO4')
-       if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,n)/24.
-       cc_sulf(i,j)=cc_sulf(i,j)+cc(l)/24.
-           end select
+          if (trname(n).eq.'SO4') then
+            if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
+            cc_sulf(i,j)=cc_sulf(i,j)+(cldmcl(L)+cldssl(L))/24.
+           end if
 #endif
 #endif
         end do
