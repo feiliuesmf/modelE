@@ -100,7 +100,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 #ifdef TRACERS_ON
       nx=0
       do n=1,ntm
-        if (itime_tr0(n).gt.itime) then
+        if (itime_tr0(n).le.itime) then
           nx=nx+1
           ntix(nx)=n
         end if
