@@ -12,7 +12,7 @@ c
       USE MODEL_COM, only: q,JDAY,IM,JM
       USE DYNAMICS, only: pedn
       USE RADNCB, only : ALB,COSZ1
-      USE GEOM, only : BYDXYP, DXYP
+      USE GEOM, only : BYDXYP, DXYP, LAT_DG
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
@@ -212,7 +212,7 @@ C And fill in the photolysis coefficients: ZJ --> ss:
         DO L=1,JPNL
           do inss=1,JPPJ
            ss(inss,L,I,J)=zj(L,inss)*
-     &     by35 * SQRT(1.224d3*(cos(sza*radian))**2. + 1.d0)
+     &     by35*SQRT(1.224d3*(cos(ABS(LAT_DG(J,1))*radian))**2.+1.d0)
           enddo
         END DO
 
