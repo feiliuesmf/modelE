@@ -83,6 +83,7 @@
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
+      real*8 cm_sulf,cm_sulft
       integer iuc_s
       logical, save :: ifirst=.true.
 #endif
@@ -806,6 +807,9 @@ CCC     ENDDO
       ENDDO
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_AEROSOLS_Koch
+      cm_sulft=0.
+#endif
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
@@ -832,7 +836,9 @@ C**** TRACERS: Use only the active ones
 c save for cloud-sulfate correlation
           if (trname(n).eq.'SO4') then
             if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
-            cc_sulf(i,j)=cc_sulf(i,j)+(cldmcl(L)+cldssl(L))/24.
+            cm_sulft=cldmcl(l)+cldssl(l)
+            if (cm_sulft.gt.1.) cm_sulft=1.
+            if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
            end if
 #endif
 #endif
@@ -848,6 +854,9 @@ c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
      *       trprec(n,i,j)*bydxyp(j)
 #endif
       end do
+#ifdef TRACERS_AEROSOLS_Koch
+            cc_sulf(i,j)=cc_sulf(i,j)+cm_sulft/24.
+#endif
 #endif
 
       END DO
