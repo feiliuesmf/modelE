@@ -112,3 +112,20 @@
 #endif
       RETURN
       END SUBROUTINE exit_rc
+
+      SUBROUTINE sys_flush (unit)
+!@sum system call to flush corresponding I/O unit
+!@auth I. Aleinov
+!@ver  1.0 (SGI,IBM,Linux,DEC)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: unit !@var unit 
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+      call flush(unit) !!! should check if it works for Absoft and DEC
+#elif defined( MACHINE_IBM )
+      call flush_(unit)
+#else
+      None of supported architectures was specified.
+      This will crash the compiling process.
+#endif
+      RETURN
+      END SUBROUTINE sys_flush

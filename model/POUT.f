@@ -330,7 +330,7 @@ C**** output hemispheric and global means
       DO K=1,LM
          WRITE(iu_ijk) TITLE(K),
 c fill in missing first row for GISS format(should put in missing value)
-     &        ((0.,i=1,im)),SNGL(XIJK(:,:,K)),
+     &        (0.,i=1,im),SNGL(XIJK(:,:,K)),
      &        0.           , SNGL(XJK(:,K)),
      &        SNGL(XK(K))
       ENDDO

@@ -296,7 +296,7 @@ C**** Write data to PRinT file
 C****
 c      TITLE = TRIM(NAMESF(KB))//' ('//trim(units)//')'
       PRINT*,NAMESF(KB),units
-      call flush(6)
+      call sys_flush(6)
 c      WRITE (6,920) TITLE
       WRITE (6,921) 'Southern Hemisphere',(JLAT(J),J=1,JEQ)
       DO 220 L=0,LMO
@@ -380,7 +380,7 @@ C****
           ELSE
             CALL STABLE (LMST,name_st,AS,TITLE,SUMORMN(N))
           END IF
-          call flush(6)
+          call sys_flush(6)
         END IF
       END DO
 C****

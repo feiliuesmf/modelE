@@ -42,7 +42,7 @@ endif
 #  targets
 #
 
-$(BIN_DIR)/CMPE001:    CMPE001.f
+$(BIN_DIR)/CMPE001: CMPE001.f $(GCMLIB)
 	$(F90) $(FFLAGS) $(LFLAGS) -o $@ $^
 
 $(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)

@@ -114,11 +114,6 @@ sinclude $(DEPENDFILE)
 FSRCS = $(OBJ_LIST:=.f)
 FSRCS_CPP = $(OBJ_LIST:=.cpp)
 OBJS = $(OBJ_LIST:=.o)
-
-MODS = $(sort $(shell perl \
-	-e 'while(<>){ tr/a-z/A-Z/;'\
-	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
-	$(FSRCS)))
 endif
 endif
 
@@ -133,7 +128,26 @@ info:
 
 sinclude $(MODEL_DIR)/Rules.make
 
-
+#
+# extract list of modules from fortran files
+#
+# !!! only SGI and IBM are supported so far
+# !!! this may create problems when compiling gcmlib.a for Linux,DEC
+ifneq ($(FSRCS)empty,empty)
+MODS = MODULE_INFO_IS_NOT_SUPPORTED_FOR_THIS_MACHINE_YET
+ifeq ($(MACHINE),SGI)
+MODS = $(sort $(shell perl \
+	-e 'while(<>){ tr/a-z/A-Z/;'\
+	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
+	$(FSRCS)))
+endif
+ifeq ($(MACHINE),IBM)
+MODS = $(sort $(shell perl \
+	-e 'while(<>){ tr/A-Z/a-z/;'\
+	-e 'if(/^\s*module\s+(\w+)\s*$$/i) {print "$$1.mod ";} };' \
+	$(FSRCS)))
+endif
+endif
 
 #########             TARGETS               ########
 

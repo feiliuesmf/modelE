@@ -244,7 +244,7 @@ C****
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAGCA (10)
-        call flush(6)
+        call sys_flush(6)
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS

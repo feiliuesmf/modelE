@@ -58,6 +58,7 @@ CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
+CPPFLAGS = -DMACHINE_SGI
 FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 endif
@@ -78,7 +79,7 @@ COMPILER = Absoft
 F90 = f90
 CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
-CPPFLAGS= -DCONVERT_BIGENDIAN
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
 FFLAGS = -O -B100 
 LFLAGS = -lf90math -lV77 -lU77
 endif
@@ -89,7 +90,9 @@ MACHINE = IBM
 F90 = xlf90_r
 CPP = /lib/cpp -P
 FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
-FFLAGS = -O2 -qfixed
+# ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
+CPPFLAGS =
+FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
 LFLAGS = -O2
 endif
 
@@ -100,13 +103,12 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CPPFLAGS= -DCONVERT_BIGENDIAN
+CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
 FFLAGS = -O2
 LFLAGS = -O2
 endif
 
 
-CPPFLAGS += -DMACHINE_$(MACHINE)
 
 # end of machine - specific options
 
@@ -129,6 +131,10 @@ FORCE:
 %.mod: 
 	@echo -n checking $@:
 #	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
+	@if [ "$<empty" = "empty" ]; then \
+	echo "No dependency for $@ : ";\
+	echo "Unsupported architecture or Makefile error";\
+	exit 1; fi
 	@if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
 	echo "  dependencies for $@ have changed - recompiling"; \
 	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi

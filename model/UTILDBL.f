@@ -369,7 +369,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       REAL*4,  INTENT(IN) :: AOUT(LEN4)  !@var  AOUT   real*4 array
 
       write (iunit) it,aout,it
-      call flush(iunit)
+      call sys_flush(iunit)
       write (6,*) "Wrote to file ",TRIM(NAME(IUNIT)),", time=",it
       return
       END subroutine WRITEI
@@ -435,7 +435,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       END DO
       END DO
       END DO
-      CALL FLUSH(6)
+      CALL SYS_FLUSH(6)
       IF (QCHECK3) STOP 'CHECK3'
       RETURN
       END SUBROUTINE CHECK3

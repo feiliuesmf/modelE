@@ -784,21 +784,21 @@
      $         Params(n)%name, ' = ',
      $        ( Idata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
-     $         write( kunit, '(20x,,8i16)' )
+     $         write( kunit, '(20x,8i16)' )
      $        ( Idata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('r')
           write( kunit, '(1x,a16,a3,8g16.6)' )
      $         Params(n)%name, ' = ',
      $        ( Rdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
-     $         write( kunit, '(20x,,8g16.6)' )
+     $         write( kunit, '(20x,8g16.6)' )
      $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('c')
           write( kunit, '(1x,a16,a3,8a16)' )
      $         Params(n)%name, ' = ',
      $        ( Cdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
-     $         write( kunit, '(20x,,8a16)' )
+     $         write( kunit, '(20x,8a16)' )
      $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         end select
       enddo
