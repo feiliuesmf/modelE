@@ -111,10 +111,10 @@ E001TM53 (4x5, 53 layer model, sample tracers)
 R=00BG/B
 
 &&PARAMETERS
-X_SDRAG=.0005,.00005  ! used for lin. sdrag above P_SDRAG mb
+X_SDRAG=.0075,.00075  ! used for lin. sdrag above P_SDRAG mb
 C_SDRAG=0.     ! no constant sdrag
-P_SDRAG=.1     ! lin. sdrag above .1mb (top 2 layers) except near poles
-PP_SDRAG=1.    ! lin. sdrag above 1.mb near poles (top 4 layers)
+P_SDRAG=.01    ! lin. sdrag above .01mb (top 2 layers) except near poles
+PP_SDRAG=1.    ! lin. sdrag above 1.mb near poles
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
 
 KOCEAN=0
@@ -141,7 +141,7 @@ Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=0
 
-DEFTHRESH=0.00003   ! deformation threshold (default = 15d-6)
+DEFTHRESH=0.000015  ! deformation threshold (default = 15d-6)
 PBREAK=200.         ! p level for breaking gravity waves
 CDEF=3.             ! parameter for GW DEF drag
 CMTN=.5             ! parameter for GW MTN drag

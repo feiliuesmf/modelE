@@ -546,8 +546,8 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
          CSDRAGL(L) = C_SDRAG + max( 0.d0 , (X_SDRAG(1)-C_SDRAG) *
      *     LOG(P_CSDRAG/(PTOP+PSFMPT*SIG(L))) / LOG(P_CSDRAG/P_SDRAG) )
       END DO
-      WRITE(6,*) "Levels for L_SDRAG =",LSDRAG ,"->",LM
-      WRITE(6,*) "Levels for L_SDRAG =",LPSDRAG,"->",LM," near poles"
+      WRITE(6,*) "Levels for  LSDRAG =",LSDRAG ,"->",LM
+      WRITE(6,*) "Levels for LPSDRAG =",LPSDRAG,"->",LM," near poles"
       WRITE(6,*) "C_SDRAG coefficients:",CSDRAGL(LS1:LSDRAG-1)
 
 C**** Determine if FLTRUV is called.
