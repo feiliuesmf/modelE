@@ -1007,8 +1007,8 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
      &  ,sq,sq_by_sh,taue
       integer :: i,j  !@var i,j loop variable
-      integer, save :: ifirst=0
-      real*8, save :: tau_qt_by_tau_t,g9,c15,c16,c17
+c     integer, save :: ifirst=0
+c     real*8, save :: tau_qt_by_tau_t,g9,c15,c16,c17
 
 c     if(ifirst.eq.0) then
 c         ifirst=1
@@ -2253,7 +2253,7 @@ c ----------------------------------------------------------------------
 C$OMP  THREADPRIVATE(/GRIDS_99/)
 
       f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
-      df=1.-bgrid*lznbyz1+bgrid*(zn-z1)/z
+      df=1.+bgrid*((zn-z1)/z-lznbyz1)
 
       return
       end subroutine fgrid2

@@ -627,18 +627,34 @@ c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
       USE CONSTANT, only : rgas,grav
       USE MODEL_COM, only : sige,psf,ptop,psfmpt
+      USE SOCPBL, only : n
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
       REAL*8, INTENT(OUT) :: ZTOP,BGRID
-      real*8 theta,z1,x
+      real*8, parameter :: byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
+      real*8 theta,z1,x,dxi
 
       theta=269.0727251d0
       z1=zgs+0.5*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
       x=z1/100.
       ztop=z1
-      bgrid=(((0.177427d0*x - 1.0504d0)*x + 2.34169d0)*x -
-     2      2.4772d0)*x + 1.44509d0
+c     bgrid=(((0.177427d0*x - 1.0504d0)*x + 2.34169d0)*x -
+c    2      2.4772d0)*x + 1.44509d0
+      !
+      ! The following values of z and dz are obtained from a call
+      ! to the routine griddr with bgrid=0.2927; this value of
+      ! bgrid has been tested as appropriate for pe(2)=934mb.
+      ! Now we require that for other pe(2)s, at the same
+      ! lowest height z, dz be the same as when pe(2)=934mb, so as to
+      ! maintain the balance between the accuracy and stability.
+      ! The new value of bgrid is then calculated below which
+      ! depends on ztop (i.e., depends on pe(2)).
+      ! The relations used are from the routine griddr.
+      !
+       dxi=(ztop-zgs)/float(n-1)
+       bgrid=max((dxi*bydzs-1.)/((ztop-zgs)*byzs-log(ztop/zgs)),0.d0)
+
       return
       end subroutine getb
 
