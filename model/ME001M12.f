@@ -1025,7 +1025,7 @@ c     if(istart.gt.0) then
 c     end if
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS
-C**** Recompute GHDATA if redoGH (new soils data)
+C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW)
 C**** Initialize pbl (and read in file containing roughness length data)

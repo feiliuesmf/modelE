@@ -94,16 +94,15 @@ C****        6  EARTH ICE OF FIRST LAYER (KG/M**2)
 C**** SNOWLI      LAND ICE SNOW AMOUNT (KG/M**2)
 C**** TLANDI(1:2) LAND ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
 C****
-C**** GHDATA
-C****      1-6  WATER OF BARE SOIL LAYER 1-6 (M)
-C****        7  WATER OF VEGETATION CANOPY (M)
-C****     8-13  WATER OF VEGETATED SOIL LAYER 1-6 (M)
-C****       14  BARE SOIL LAYER 0 IS UNUSED
-C****    15-20  HEAT CONTENT OF BARE SOIL LAYER 1-6 (J M-2)
-C****       21  HEAT CONTENT OF VEGETATION CANOPY (J M-2)
-C****    22-27  HEAT CONTENT OF VEGETATED SOIL LAYER 1-6 (J M-2)
-C****       28  SNOW DEPTH OVER BARE SOIL (M)
-C****       29  SNOW DEPTH OVER VEGETATED SOIL (M)
+C**** WBARE  1-6 WATER OF BARE SOIL LAYER 1-6 (M)
+C**** WVEGE   0  WATER OF VEGETATION CANOPY (M)
+C****        1-6 WATER OF VEGETATED SOIL LAYER 1-6 (M)
+C**** HTBARE  0  BARE SOIL LAYER 0 IS UNUSED
+C****        1-6 HEAT CONTENT OF BARE SOIL LAYER 1-6 (J M-2)
+C**** HTVEGE  0  HEAT CONTENT OF VEGETATION CANOPY (J M-2)
+C****        1-6 HEAT CONTENT OF VEGETATED SOIL LAYER 1-6 (J M-2)
+C**** SNOWBV  1  SNOW DEPTH OVER BARE SOIL (M)
+C****         2  SNOW DEPTH OVER VEGETATED SOIL (M)
 C****
 c     if(.not. vt_on) then
           rvx=0.
@@ -238,11 +237,11 @@ c      ZGS=10.
       PR=PREC(I,J)/(DTsrc*RHOW)
       PRS=PRCSS(I,J)/(DTsrc*RHOW)
       HTPR=EPREC(I,J)/DTsrc
-      GW(1:NGM,1) = WBARE(I,J,1:NGM)
-      GW(0:NGM,2) = WVEGE(I,J,0:NGM)
-      HT(0:NGM,1) = HTBARE(I,J,0:NGM)
-      HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
-      SNOWD(1:2) = SNOWBV(I,J,1:2)
+      GW(1:NGM,1) =  WBARE(1:NGM,I,J)
+      GW(0:NGM,2) =  WVEGE(0:NGM,I,J)
+      HT(0:NGM,1) = HTBARE(0:NGM,I,J)
+      HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
+      SNOWD(1:2)  = SNOWBV(1:2,I,J)  
 ccc extracting snow variables
       NSN(1:2)          = NSN_IJ    (1:2, I, J)
       ISN(1:2)          = ISN_IJ    (1:2, I, J)
@@ -314,13 +313,12 @@ C**** Calculate ground fluxes
 C     CALL QSBAL
       CALL ADVNC
       TG1=TBCS
-C      DO 3410 L=1,4*NGM+5
-C 3410 GHDATA(I,J,L)=GW(L,1)
-      WBARE(I,J,1:NGM) = GW(1:NGM,1)
-      WVEGE(I,J,0:NGM) = GW(0:NGM,2)
-      HTBARE(I,J,0:NGM) = HT(0:NGM,1)
-      HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
-      SNOWBV(I,J,1:2) = SNOWD(1:2)
+
+        WBARE(1:NGM,I,J) = GW(1:NGM,1)
+        WVEGE(0:NGM,I,J) = GW(0:NGM,2)
+       HTBARE(0:NGM,I,J) = HT(0:NGM,1)
+       HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
+       SNOWBV(1:2,I,J)   = SNOWD(1:2)
 ccc copy snow variables back to storage
       NSN_IJ    (1:2, I, J)         = NSN(1:2)
       ISN_IJ    (1:2, I, J)         = ISN(1:2)
@@ -679,12 +677,12 @@ C**** CALCULATE ROOT FRACTION AFR AVERAGED OVER VEGETATION TYPES
               FRDN=AROOT(IV)*Z**BROOT(IV)
               FRDN=MIN(FRDN,ONE)
               IF(L.EQ.N)FRDN=1.
-              AFR(I,J,L) = AFR(I,J,L) + FV*(FRDN-FRUP)
+              AFR(L,I,J) = AFR(L,I,J) + FV*(FRDN-FRUP)
               FRUP=FRDN
             END DO
           END DO
           DO L=1,N
-            AFR(I,J,L) = AFR(I,J,L)/(1.-AFB(I,J))
+            AFR(L,I,J) = AFR(L,I,J)/(1.-AFB(I,J))
           END DO
         END DO
       END DO
@@ -698,7 +696,7 @@ C****
       CALL HL0
 C****
 C code transplanted from subroutine INPUT
-C**** Recompute GHDATA if necessary (new soils data)
+C**** Recompute ground hydrology data if necessary (new soils data)
       IF (redoGH) THEN
         JDAY=1+MOD(ITime/NDAY,365)
         COSDAY=COS(TWOPI/EDPERY*JDAY)
@@ -709,19 +707,19 @@ C**** Recompute GHDATA if necessary (new soils data)
         PEARTH=FEARTH(I,J)
         IF(PEARTH.LE.0.) THEN
 
-          WBARE(I,J,:)=0.
-          WVEGE(I,J,:)=0.
-          HTBARE(I,J,:)=0.
-          HTVEGE(I,J,:)=0.
-          SNOWBV(I,J,:)=0.
+          WBARE(:,I,J)=0.
+          WVEGE(:,I,J)=0.
+          HTBARE(:,I,J)=0.
+          HTVEGE(:,I,J)=0.
+          SNOWBV(:,I,J)=0.
 
         ELSE
 ccc??? remove next 5 lines? -check the old version
-           W(1:NGM,1) = WBARE(I,J,1:NGM)
-           W(0:NGM,2) = WVEGE(I,J,0:NGM)
-           HT(0:NGM,1) = HTBARE(I,J,0:NGM)
-           HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
-           SNOWD(1:2) = SNOWBV(I,J,1:2)
+           W(1:NGM,1) =   WBARE(1:NGM,I,J)
+           W(0:NGM,2) =   WVEGE(0:NGM,I,J)
+           HT(0:NGM,1) = HTBARE(0:NGM,I,J)
+           HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
+           SNOWD(1:2) =  SNOWBV(1:2,I,J)  
 
 C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
           CALL GHINIJ (I,J,WFC1)
@@ -738,16 +736,16 @@ c          ACE2=GDATA(I,J,10)
 c          TG2 =GDATA(I,J,8)
           CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
 
-C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
-          WBARE(I,J,1:NGM) = W(1:NGM,1)
-          WVEGE(I,J,0:NGM) = W(0:NGM,2)
-          HTBARE(I,J,0:NGM) = HT(0:NGM,1)
-          HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
-          SNOWBV(I,J,1:2) = SNOWD(1:2)
+C****     COPY SOILS PROGNOSTIC QUANTITIES TO MODEL VARIABLES
+            WBARE(1:NGM,I,J) = W(1:NGM,1)
+            WVEGE(0:NGM,I,J) = W(0:NGM,2)
+           HTBARE(0:NGM,I,J) = HT(0:NGM,1)
+           HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
+           SNOWBV(1:2,I,J)   = SNOWD(1:2)
         END IF
       END DO
       END DO
-      WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
+      WRITE (*,*) 'GROUND HYDROLOGY DATA WAS MADE FROM GROUND DATA'
       END IF
 C**** set gtemp array
       DO J=1,JM
@@ -784,11 +782,11 @@ ccc!!! restart file (without snow model data)
             COSDAY=COS(TWOPI/EDPERY*JDAY)
             SINDAY=SIN(TWOPI/EDPERY*JDAY)
 
-            W(1:NGM,1) = WBARE(I,J,1:NGM)
-            W(0:NGM,2) = WVEGE(I,J,0:NGM)
-            HT(0:NGM,1) = HTBARE(I,J,0:NGM)
-            HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
-            SNOWD(1:2) = SNOWBV(I,J,1:2)
+            W(1:NGM,1) =   WBARE(1:NGM,I,J)
+            W(0:NGM,2) =   WVEGE(0:NGM,I,J)
+            HT(0:NGM,1) = HTBARE(0:NGM,I,J)
+            HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
+            SNOWD(1:2) =  SNOWBV(1:2,I,J)  
 
             CALL GHINIJ (I,J,WFC1)
             CALL SET_SNOW
@@ -800,12 +798,12 @@ ccc!!! restart file (without snow model data)
             HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
             FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
 
-C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
-            WBARE(I,J,1:NGM) = W(1:NGM,1)
-            WVEGE(I,J,0:NGM) = W(0:NGM,2)
-            HTBARE(I,J,0:NGM) = HT(0:NGM,1)
-            HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
-            SNOWBV(I,J,1:2) = SNOWD(1:2)
+C****     COPY SOILS PROGNOSTIC QUANTITIES TO MODEL VARIABLES
+              WBARE(1:NGM,I,J) = W(1:NGM,1)
+              WVEGE(0:NGM,I,J) = W(0:NGM,2)
+             HTBARE(0:NGM,I,J) = HT(0:NGM,1)
+             HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
+             SNOWBV(1:2,I,J)   = SNOWD(1:2)
 
           END IF
         END DO
@@ -872,7 +870,7 @@ C**** CALCULATE THE LAYER CENTERS, BASED ON THE BOUNDARIES.
       END DO
 C**** FR: ROOT FRACTION IN LAYER L  (1=FR(1)+FR(2)+...+FR(N))
       DO L=1,N
-        FR(L)=AFR(I0,J0,L)
+        FR(L)=AFR(L,I0,J0)
       END DO
 C**** VH: VEGETATION HEIGHT
       VH=AVH(I0,J0)
@@ -1080,7 +1078,8 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fearth,ITime,wfcs
       USE GEOM, only : imaxj
-      USE GHYCOM, only : ghdata,tearth,wearth,aiearth,snowe
+      USE GHYCOM, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
+     *     ,htvege,snowbv,ngm
       IMPLICIT NONE
 
       REAL*8 X,TGL,WTRL,ACEL
@@ -1089,7 +1088,11 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
       CHARACTER*6, INTENT(IN) :: SUBR
 
 C**** Check for NaN/INF in earth data
-      CALL CHECK3(GHDATA,IM,JM,29,SUBR,'gh')
+      CALL CHECK3(WBARE ,NGM  ,IM,JM,SUBR,'wb')
+      CALL CHECK3(WVEGE ,NGM+1,IM,JM,SUBR,'wv')
+      CALL CHECK3(HTBARE,NGM+1,IM,JM,SUBR,'hb')
+      CALL CHECK3(HTVEGE,NGM+1,IM,JM,SUBR,'hv')
+      CALL CHECK3(SNOWBV,2    ,IM,JM,SUBR,'sn')
 
 C**** Check for reasonable temperatures over earth
       X=1.001
@@ -1179,7 +1182,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fearth,itearth
       USE GEOM, only : imaxj,dxyp
-      USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
+      USE GHYCOM, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,ij_g01,ij_g07,ij_g28
@@ -1247,13 +1250,11 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH
         AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
         DO K=1,4
-          AIJ(I,J,IJ_G01+K-1)=AIJ(I,J,IJ_G01+K-1)+GHDATA(I,J,K)
+          AIJ(I,J,IJ_G01+K-1)=AIJ(I,J,IJ_G01+K-1)+WBARE(K,I,J)
+          AIJ(I,J,IJ_G07+K-1)=AIJ(I,J,IJ_G07+K-1)+WVEGE(K-1,I,J)
         END DO
-        DO K=7,10
-          AIJ(I,J,IJ_G07+K-1)=AIJ(I,J,IJ_G07+K-1)+GHDATA(I,J,K)
-        END DO
-        AIJ(I,J,IJ_G28)=AIJ(I,J,IJ_G28)+GHDATA(I,J,28)
-        AIJ(I,J,IJ_G29)=AIJ(I,J,IJ_G29)+GHDATA(I,J,29)
+        AIJ(I,J,IJ_G28)=AIJ(I,J,IJ_G28)+SNOWBV(1,I,J)
+        AIJ(I,J,IJ_G29)=AIJ(I,J,IJ_G29)+SNOWBV(2,I,J)
       END IF
 C****
       END DO
@@ -1280,9 +1281,9 @@ C****
         DO I=1,IMAXJ(J)
           IF (FEARTH(I,J).gt.0) THEN
             FB=AFB(I,J)
-            WIJ=(1.-FB)*WVEGE(I,J,0)
+            WIJ=(1.-FB)*WVEGE(0,I,J)
             DO N=1,NGM
-              WIJ=WIJ+FB*WBARE(I,J,N)+(1.-FB)*WVEGE(I,J,N)
+              WIJ=WIJ+FB*WBARE(N,I,J)+(1.-FB)*WVEGE(N,I,J)
             END DO
             WATERG(J)=WATERG(J)+FEARTH(I,J)*WIJ*RHOW
           END IF
@@ -1314,7 +1315,7 @@ C****
             FB=AFB(I,J)
             HIJ=0.
             DO N=0,NGM
-              HIJ=HIJ+FB*HTBARE(I,J,N)+(1.-FB)*HTVEGE(I,J,N)
+              HIJ=HIJ+FB*HTBARE(N,I,J)+(1.-FB)*HTVEGE(N,I,J)
             END DO
             HEATG(J)=HEATG(J)+FEARTH(I,J)*HIJ
           END IF

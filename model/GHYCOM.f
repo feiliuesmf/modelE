@@ -8,15 +8,12 @@
       SAVE
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons
-      DOUBLE PRECISION, DIMENSION(IM,JM,  NGM) :: WBARE
-      DOUBLE PRECISION, DIMENSION(IM,JM,0:NGM) :: WVEGE
-      DOUBLE PRECISION, DIMENSION(IM,JM,0:NGM) :: HTBARE
-      DOUBLE PRECISION, DIMENSION(IM,JM,0:NGM) :: HTVEGE
-      DOUBLE PRECISION, DIMENSION(IM,JM,2) :: SNOWBV
-      common/soils3/ wbare,wvege,htbare,htvege,snowbv
-C handle for reading/writing ghdata
-      DOUBLE PRECISION, DIMENSION(IM,JM,4*NGM+5) :: GHDATA
-      equivalence (ghdata(1,1,1),wbare(1,1,1))
+      DOUBLE PRECISION, DIMENSION(  NGM,IM,JM) :: WBARE
+      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: WVEGE
+      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: HTBARE
+      DOUBLE PRECISION, DIMENSION(0:NGM,IM,JM) :: HTVEGE
+      DOUBLE PRECISION, DIMENSION(2,IM,JM) :: SNOWBV
+
       DOUBLE PRECISION, DIMENSION(IM,JM,NGM) :: DZ_IJ
       DOUBLE PRECISION, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ,QK_IJ
       DOUBLE PRECISION, DIMENSION(IM,JM) :: SL_IJ
@@ -25,7 +22,7 @@ C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
-      DOUBLE PRECISION, DIMENSION(IM,JM,NGM) :: AFR
+      DOUBLE PRECISION, DIMENSION(NGM,IM,JM) :: AFR
       DOUBLE PRECISION, DIMENSION(3,IM,JM) :: ALA,ACS
       DOUBLE PRECISION, DIMENSION(IM,JM) :: AFB,AVH
 
