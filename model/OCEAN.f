@@ -263,10 +263,12 @@ C**** RSI uses quadratic fit
 C**** Set new mass
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** Ensure that lead fraction is consistent with kocean=1 case
-            OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
-            IF (RSINEW.GT.1.-OPNOCN) THEN
-              RSINEW = 1.-OPNOCN
-              MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            IF (RSINEW.gt.0) THEN
+              OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
+              IF (RSINEW.GT.1.-OPNOCN) THEN
+                RSINEW = 1.-OPNOCN
+                MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+              END IF
             END IF
 C**** accumulate diagnostics
             IF (end_of_day) THEN
