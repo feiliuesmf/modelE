@@ -106,7 +106,7 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trw0,trname,ntrocn
+      USE TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
@@ -221,8 +221,10 @@ C**** Loop over layers
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) THEN
         if (to_per_mil(n).gt.0) THEN
-          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
-     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
+          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/(TOIJL(I,J,L,TOIJL_CONC
+     *         ,n_water)*trw0(n))-1.)
+c          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
+c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
         else
           Q(I,J)=10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC,N)/
      *         (OIJL(I,J,L,IJL_MO)*DXYPO(J))
@@ -1100,7 +1102,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : idacc
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trw0,trname,ntrocn
+      USE TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo
@@ -1181,7 +1183,9 @@ C****
               do n=1,ntm
               if (to_per_mil(n).gt.0) then
                 XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
+     *               (XBT(j,l,kb,n_water)*trw0(n))-1.)
+c                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
+c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
               else
                 XBT(j,l,kb,n)= 10.**(-ntrocn(n))*XBT(j,l,kb,n)/
      *               (XB0(J,L,KB)*DXYPO(J))
@@ -1265,8 +1269,10 @@ C****
                 do n=1,ntm
                   if (to_per_mil(n).gt.0) then
                     XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-     *                   *trw0(n))-1.) 
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.) 
+c                    XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
+c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
+c     *                   *trw0(n))-1.) 
                   else
                     XBT(j,l,1,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L
      *                   ,TOIJL_CONC,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
@@ -1393,8 +1399,10 @@ C****
                 do n=1,ntm
                   if (to_per_mil(n).gt.0) then
                     XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-     *                   *trw0(n))-1.)
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
+c                    XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
+c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
+c     *                   *trw0(n))-1.)
                   else
                     XT(II,l,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC
      *                   ,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
