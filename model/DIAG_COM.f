@@ -9,8 +9,6 @@
 
       IMPLICIT NONE
       SAVE
-!@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
-      INTEGER iu_ij,iu_jl,iu_il,iu_j,iu_ijk
 C**** Accumulating_period information
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
       CHARACTER*12 ACC_PERIOD           !@var string MONyyr1-yyr2

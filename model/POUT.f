@@ -9,18 +9,41 @@ C**** same interface
 C****
 C**** Note: it would be nice to amalgamate IL and JL, but that will
 C**** have to wait.
+      
+      module gissout
+!@sum gissout contains variables for outputting GISS format binaries
+!@auth G. Schmidt
+      implicit none
+!@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl
+!@var im,jm,lm,lm_req local dimensions set in open_* routines
+      integer :: im,jm,lm,lm_req
+!@var JMMAX maximum conceivable JM
+      INTEGER, PARAMETER :: JMMAX=200
+!@var LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+      REAL*8, DIMENSION(JMMAX,2) :: LAT_DG
 
-      subroutine open_ij(filename)
+      end module
+
+      subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ij
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM dimensions for ij output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm
 
+C**** open unit for ij
       call openunit(filename,iu_ij,.true.,.false.)
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
+
       return
       end subroutine open_ij
 
@@ -28,7 +51,7 @@ C**** have to wait.
 !@sum  CLOSE_IJ closes the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ij
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
       call closeunit(iu_ij)
@@ -39,8 +62,7 @@ C**** have to wait.
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM
-      USE DAGCOM, only : iu_ij
+      USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
@@ -63,17 +85,28 @@ C**** have to wait.
       return
       end
 
-      subroutine open_jl(filename)
+      subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_jl
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var LM_GCM,JM_GCM,lm_req_gcm dimensions for jl output
+      INTEGER, INTENT(IN) :: lm_gcm,jm_gcm,lm_req_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
       call openunit(filename,iu_jl,.true.,.false.)
+
+C**** set dimensions
+      jm=jm_gcm
+      lm=lm_gcm
+      lm_req=lm_req_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+
       return
       end subroutine open_jl
 
@@ -81,7 +114,7 @@ C**** have to wait.
 !@sum  CLOSE_JL closes the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_jl
+      USE GISSOUT
       IMPLICIT NONE
       close(iu_jl)
       return
@@ -92,9 +125,7 @@ C**** have to wait.
 !@sum  POUT_JL output lat-height binary records
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : JM,LM
-      USE GEOM, only : lat_dg
-      USE DAGCOM, only : lm_req,iu_jl
+      USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
@@ -133,17 +164,25 @@ C**** have to wait.
       return
       end
 
-      subroutine open_il(filename)
+      subroutine open_il(filename,im_gcm,lm_gcm,lm_req_gcm)
 !@sum  OPEN_IL opens the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_il
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,LM_GCM,lm_req_gcm dimensions for il output
+      INTEGER, INTENT(IN) :: im_gcm,lm_gcm,lm_req_gcm
 
       call openunit(filename,iu_il,.true.,.false.)
+
+C**** set units
+      im=im_gcm
+      lm=lm_gcm
+      lm_req=lm_req_gcm
+
       return
       end subroutine open_il
 
@@ -151,7 +190,7 @@ C**** have to wait.
 !@sum  CLOSE_IL closes the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_il
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
       call closeunit(iu_il)
@@ -163,9 +202,8 @@ C**** have to wait.
 !@sum  POUT_IL output lon-height binary records
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : IM,LM
+      USE GISSOUT
       USE GEOM, only : lon_dg
-      USE DAGCOM, only : lm_req,iu_il
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
@@ -203,26 +241,35 @@ C**** have to wait.
 !@sum  CLOSE_J closes the latitudinal budget-page ascii output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_j
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
       call closeunit(iu_j)
       return
       end subroutine close_j
 
-      subroutine open_j(filename,ntypes)
+      subroutine open_j(filename,ntypes,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_J opens the latitudinal budget-page ascii output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_j
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var ntypes number of surface types to be output
       integer, intent(in) :: ntypes
+!@var JM_GCM dimensions for j output
+      INTEGER, INTENT(IN) :: jm_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
       call openunit(filename,iu_j,.false.,.false.)
+
+C**** set dimensions
+      jm=jm_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+
       return
       end subroutine open_j
 
@@ -231,9 +278,8 @@ C**** have to wait.
 !@sum  POUT_J output zonal budget ascii file (aplot format)
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : JM
-      USE DAGCOM, only : KAJ,iu_j
-      USE GEOM, only : lat_dg
+      USE GISSOUT
+      USE DAGCOM, only : KAJ
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16 :: NEWTIT
@@ -279,17 +325,25 @@ C**** output hemispheric and global means
       return
       end
 
-      subroutine open_ijk(filename)
+      subroutine open_ijk(filename,im_gcm,jm_gcm,lm_gcm)
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ijk
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM,LM_GCM dimensions for ij output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
 
       call openunit(filename,iu_ijk,.true.,.false.)
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
+      lm=lm_gcm
+
       return
       end subroutine open_ijk
 
@@ -297,7 +351,7 @@ C**** output hemispheric and global means
 !@sum  CLOSE_IJK closes the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ijk
+      USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
       call closeunit(iu_ijk)
@@ -308,8 +362,7 @@ C**** output hemispheric and global means
 !@sum  POUT_IJK outputs lat-lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM,LM
-      USE DAGCOM, only : iu_ijk
+      USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80

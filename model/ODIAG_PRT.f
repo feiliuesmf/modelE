@@ -6,10 +6,11 @@ C**** Note this is an incorporation and modification of the stand alone
 C**** ocean diagnostic programs from Gary. All diagnostics are on the
 C**** ocean grid.
       USE CONSTANT, only : skip=>undef
-      USE MODEL_COM, only : xlabel,jmon0,jyear0,idacc,jdate0,amon0
-     *     ,jdate,amon,jyear 
+      USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
+     *     ,amon0,jdate,amon,jyear 
       USE OCEAN, only : im,jm,lmo,focean,dxyp=>dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze
+      USE DAGCOM, only : qdiag,acc_period
       USE ODIAG
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       IMPLICIT NONE
@@ -23,7 +24,7 @@ C**** ocean grid.
       REAL*4 R4LEV(0:LMO)
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
      *     ,SCALEO(10),TSUM,TEMGS,scalej(jm),scalel(lmo),AJLTMP(JM,LMO)
-      CHARACTER NAME(KOLNST)*50,OUTMON,OUTYR,NAMESF(8)*50,TITLE*80
+      CHARACTER NAME(KOLNST)*40,OUTMON,OUTYR,NAMESF(8)*50,TITLE*80
      *     ,NAMEL(20)*80,sname*30,units*50
       LOGICAL QKV
 C**** depth/latitude diagnostics by basin
@@ -44,9 +45,13 @@ C**** Calculate latitudes
         JLAT(J)  = JDLAT*(J-JEQ)
       END DO
       R4LEV = ZE
-C****
+
+C**** Open output files
+c      IF(QDIAG) call open_oij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
+
+
+
 C**** lat/lon diagnostics
-C****
       WRITE (6,*)
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
@@ -368,7 +373,7 @@ C****
         if (n.eq.LN_MFLX .or. n.eq.LN_GFLX.or. n.eq.LN_SFLX.or. n.eq
      *       .LN_KVM.or. n.eq.LN_ICFL) THEN 
           AS = 0.
-          TITLE(1:50) = NAME(N)
+          TITLE(1:40) = NAME(N)
           DO NS=1,NMST
             DO L=1,LMST(NS)
               AS(L,NS) = OLNST(L,NS,N)*SCALEO(N)/IDACC(1)

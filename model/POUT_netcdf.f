@@ -28,6 +28,15 @@ C**** have to wait.
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype
 
+!@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl
+!@var im,jm,lm,lm_req local dimensions set in open_* routines
+      integer :: im,jm,lm,lm_req
+!@var JMMAX maximum conceivable JM
+      INTEGER, PARAMETER :: JMMAX=200
+!@var LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+      REAL*8, DIMENSION(JMMAX,2) :: LAT_DG
+
       character(len=80) :: outfile
 !@var status_out return code from netcdf calls
 !@var out_fid ID-number of output file
@@ -271,17 +280,17 @@ c restore defaults
       return
       end subroutine wrtarrn
 
-      subroutine open_ij(filename)
+      subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
       USE GEOM, only : lon_dg,lat_dg
-      USE DAGCOM, only : iu_ij
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM dimensions for ij output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm
 !
       character(len=30) :: var_name,dim_name
 
@@ -290,6 +299,10 @@ c restore defaults
 ! define output file
       call open_out
       iu_ij = out_fid
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='latitude'; call def_dim_out(dim_name,jm)
@@ -317,7 +330,6 @@ c restore defaults
 !@sum  OPEN_IJ closes the lat-lon binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ij
       USE NCOUT
       IMPLICIT NONE
 
@@ -331,8 +343,6 @@ c restore defaults
 !@sum  POUT_IJ output lat-lon binary records
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM
-      USE DAGCOM, only : iu_ij
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -382,22 +392,31 @@ c restore defaults
       return
       end
 
-      subroutine open_jl(filename)
+      subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : jm,lm, sig,sige
-      USE DAGCOM, only : iu_jl,lm_req,plm,ple,ple_dn
-      USE GEOM, only : lat_dg
+      USE MODEL_COM, only : sig,sige
+      USE DAGCOM, only : plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       character(len=30) :: var_name,dim_name
+!@var LM_GCM,JM_GCM,lm_req_gcm dimensions for jl output
+      INTEGER, INTENT(IN) :: lm_gcm,jm_gcm,lm_req_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
       outfile = filename
       call open_out
       iu_jl = out_fid
+
+C**** set dimensions
+      jm=jm_gcm
+      lm=lm_gcm
+      lm_req=lm_req_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
@@ -438,7 +457,6 @@ c restore defaults
 !@sum  OPEN_JL closes the lat-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_jl
       USE NCOUT
       IMPLICIT NONE
 
@@ -453,8 +471,8 @@ c restore defaults
 !@sum  POUT_JL output lat-height binary records
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : JM,LM,LS1
-      USE DAGCOM, only : lm_req,iu_jl,plm,ple,ple_dn
+      USE MODEL_COM, only : LS1
+      USE DAGCOM, only : lm_req,plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -532,22 +550,29 @@ c restore defaults
       return
       end
 
-      subroutine open_il(filename)
+      subroutine open_il(filename,im_gcm,lm_gcm,lm_req_gcm)
 !@sum  OPEN_IL opens the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : im,lm, sig,sige
-      USE DAGCOM, only : iu_il,lm_req,plm,ple,ple_dn
+      USE MODEL_COM, only : sig,sige
+      USE DAGCOM, only : plm,ple,ple_dn
       USE GEOM, only : lon_dg
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
       character(len=30) :: var_name,dim_name
+!@var IM_GCM,LM_GCM,lm_req_gcm dimensions for il output
+      INTEGER, INTENT(IN) :: im_gcm,lm_gcm,lm_req_gcm
 
       outfile = filename
       call open_out
       iu_il = out_fid
+
+C**** set units
+      im=im_gcm
+      lm=lm_gcm
+      lm_req=lm_req_gcm
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='lonb'; call def_dim_out(dim_name,im)
@@ -588,7 +613,6 @@ c restore defaults
 !@sum  OPEN_IL closes the lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_il
       USE NCOUT
       IMPLICIT NONE
 
@@ -603,9 +627,9 @@ c restore defaults
 !@sum  POUT_IL output lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : IM,LM,LS1
+      USE MODEL_COM, only : LS1
       USE GEOM, only : lon_dg
-      USE DAGCOM, only : lm_req,iu_il,plm,ple,ple_dn
+      USE DAGCOM, only : plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -671,25 +695,30 @@ c restore defaults
       return
       end
 
-      subroutine open_j(filename,ntypes)
+      subroutine open_j(filename,ntypes,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_J opens the latitudinal binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : jm
-      USE GEOM, only : lat_dg
-      USE DAGCOM, only : iu_j
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var ntypes number of surface types to be output
       integer, intent(in) :: ntypes
+!@var JM_GCM dimensions for j output
+      INTEGER, INTENT(IN) :: jm_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
 
       character(len=30) :: var_name,dim_name
 
       outfile = filename
       call open_out
       iu_j = out_fid
+
+C**** set dimensions
+      jm=jm_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='stype'; call def_dim_out(dim_name,ntypes)
@@ -707,7 +736,6 @@ c restore defaults
 !@sum  OPEN_J closes the latitudinal binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_j
       USE NCOUT
       IMPLICIT NONE
 
@@ -722,9 +750,7 @@ c restore defaults
 !@sum  POUT_J output zonal budget file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : JM
       USE DAGCOM, only : KAJ
-      USE GEOM, only : lat_dg
       USE NCOUT
       IMPLICIT NONE
 c temporary, to see nf_char
@@ -766,17 +792,18 @@ c
       return
       end
 
-      subroutine open_ijk(filename)
+      subroutine open_ijk(filename,im_gcm,jm_gcm,lm_gcm)
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
       USE GEOM, only : lon_dg,lat_dg
-      USE DAGCOM, only : iu_ijk,plm
+      USE DAGCOM, only : plm
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
+!@var IM_GCM,JM_GCM,LM_GCM dimensions for ijk output
+      INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
 !
       character(len=30) :: var_name,dim_name
 
@@ -785,6 +812,11 @@ c
 ! define output file
       call open_out
       iu_ijk = out_fid
+
+C**** set dimensions
+      im=im_gcm
+      jm=jm_gcm
+      lm=lm_gcm
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='latitude'; call def_dim_out(dim_name,jm-1)
@@ -808,7 +840,6 @@ c
 !@sum  OPEN_IJK closes the lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : iu_ijk
       USE NCOUT
       IMPLICIT NONE
 
@@ -822,8 +853,6 @@ c
 !@sum  POUT_IJK output lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM,LM
-      USE DAGCOM, only : iu_ijk
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period

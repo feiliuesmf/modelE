@@ -296,7 +296,8 @@ C**** INITIALIZE CERTAIN QUANTITIES
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  ! the +1 is because types dimensioned 0:ntype_out
-     & call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID),ntype_out+1)
+     &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
+     *     ,ntype_out+1,jm,lat_dg)
 
 C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(1)+1.D-20)
@@ -914,7 +915,7 @@ c Check the count
      &     PTOP,PMTOP,PSFMPT,SIG,SIGE,JHOUR
       USE GEOM, only : JRANGE_HEMI,
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
-     &    ,BYDXYV
+     &    ,BYDXYV,lat_dg
       USE DAGCOM
       USE BDjkjl
       IMPLICIT NONE
@@ -958,7 +959,8 @@ c Check the count
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QDIAG) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID)
+     *     ,jm,lm,lm_req,lat_dg)
 
 C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
@@ -1992,8 +1994,7 @@ C****
 
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
-      USE DAGCOM, only : QDIAG,acc_period,iu_jl,lm_req
-     &     ,inc=>incj,linect
+      USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
@@ -2195,8 +2196,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DAGCOM, only : QDIAG,acc_period,iu_jl,LM_REQ,inc=>incj,linect
-     *     ,jmby2
+      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -2379,7 +2379,8 @@ c      FLAT(J)=FLAT(J)*PRTFAC
       INTEGER :: K
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QDIAG) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID)
+     *     ,im,lm,lm_req)
 
 C**** INITIALIZE CERTAIN QUANTITIES
       ONES(1:LM)=1.
@@ -2416,7 +2417,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
 
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
-      USE DAGCOM, only : qdiag,acc_period,iu_il,inc=>inci,linect
+      USE DAGCOM, only : qdiag,acc_period,inc=>inci,linect
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
@@ -3255,7 +3256,6 @@ c**** find hemispheric and global means
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
-c     USE DAGCOM, only : QDIAG,acc_period,iu_ij
       USE CONSTANT, only : sha,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
@@ -3293,7 +3293,8 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
      &     DE4TI,BYDPK,SZNDEG
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
+      IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID)
+     *     ,im,jm)
 
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
@@ -4612,7 +4613,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       logical, dimension (kaijkx) :: Qk
 
 C**** OPEN PLOTTABLE OUTPUT FILE
-      call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID))
+      call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID),im,jm,lm)
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
@@ -4712,174 +4713,3 @@ C****
       RETURN
       END SUBROUTINE IJKMAP
 
-c      SUBROUTINE JKMAP_old(LNAME,SNAME,UNITS,
-c     &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
-c      USE DAGCOM, only : QDIAG,acc_period,iu_jl,lm_req,inc=>incj,linect
-c     *     ,jmby2
-c      USE MODEL_COM, only :
-c     &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
-c      USE GEOM, only :
-c     &     LAT_DG,WTJ,JRANGE_HEMI
-c      IMPLICIT NONE
-c
-c!@var units string containing output field units
-c      CHARACTER(LEN=50) :: UNITS
-c!@var lname string describing output field
-c      CHARACTER(LEN=50) :: LNAME
-c!@var sname string referencing output field
-c      CHARACTER(LEN=30) :: SNAME
-c!@var title string, formed as concatentation of lname//units
-c      CHARACTER(LEN=64) :: TITLE
-c
-c      INTEGER, DIMENSION(JM) :: MLAT
-c      DOUBLE PRECISION, DIMENSION(JM) :: FLAT,ASUM
-c      DOUBLE PRECISION, DIMENSION(2) :: AHEM
-c
-c      DOUBLE PRECISION, DIMENSION(JM,LM,2) :: DSJK
-c      DOUBLE PRECISION, DIMENSION(2,LM,2) :: DSHEM
-c      DOUBLE PRECISION, DIMENSION(LM,2) :: DSGLOB
-c      COMMON/WORK5/DSJK,DSHEM,DSGLOB
-c
-c
-c      INTEGER :: J1,JWT,KMAX
-c      DOUBLE PRECISION :: SCALET,SCALER
-c      DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-c      DOUBLE PRECISION, DIMENSION(JM,LM_REQ) :: ARQX
-c      DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ,SCALJR
-c      DOUBLE PRECISION, DIMENSION(LM) :: SCALEK
-c      DOUBLE PRECISION, DIMENSION(LM_REQ) :: SCALLR
-c      DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PM
-c
-c      DOUBLE PRECISION, DIMENSION(JM,LM) :: CX
-c
-c      CHARACTER*4 DASH,WORD(4)
-c      DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
-c
-c      INTEGER :: IWORD,J,JHEMI,K,L ,ksx,klmax
-c      DOUBLE PRECISION :: AGLOB,FGLOB,FLATJ,G1,H1,H2,SUMFAC
-c
-c      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
-c      CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
-c      DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
-c
-cC form title string
-c      title = trim(lname)//' ('//trim(units)//')'
-cC****
-cC**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
-cC****
-c   10 LINECT=LINECT+KMAX+7
-c      IF (LINECT.LE.60) GO TO 20
-c      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-c      LINECT=KMAX+8
-c   20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
-c      WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
-c      WRITE (6,905) (DASH,J=J1,JM,INC)
-c         DO 40 L=1,LM+LM_REQ+1
-c         DO 40 J=1,JM+3
-c   40    XJL(J,L) = -1.E30
-c         KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
-c  100 DO 110 J=J1,JM
-c      DO 110 K=1,KMAX
-c  110 CX(J,K)=AX(J,K)*SCALET*SCALEJ(J)*SCALEK(K)
-c         KLMAX = KMAX+KSX
-cC**** HORIZONTAL SUMS AND TABLE ENTRIES
-c      DO 140 K=KMAX,1,-1
-c      AGLOB=0.
-c      DO 130 JHEMI=1,2
-c      AHEM(JHEMI)=0.
-c      DO 120 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
-c      FLAT(J)=CX(J,K)/(DSJK(J,K,J1)+1.D-20)
-c         XJL(J,K) = FLAT(J)
-c         IF (DSJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
-c      MLAT(J)=NINT(FLAT(J))
-c  120 AHEM(JHEMI)=AHEM(JHEMI)+CX(J,K)*WTJ(J,JWT,J1)
-c  130 AGLOB=AGLOB+AHEM(JHEMI)/JWT
-c      H1=AHEM(1)/(DSHEM(1,K,J1)+1.D-20)
-c      H2=AHEM(2)/(DSHEM(2,K,J1)+1.D-20)
-c      G1=AGLOB/(DSGLOB(K,J1)+1.D-20)
-c         XJL(JM+3,K)=H1   ! SOUTHERN HEM
-c         XJL(JM+2,K)=H2   ! NORTHERN HEM
-c         XJL(JM+1,K)=G1   ! GLOBAL
-c      WRITE (6,902) PM(K),G1,H2,H1,(MLAT(J),J=JM,J1,-INC)
-c         CALL KEYNRL (SNAME,K,FLAT)
-c  140 CONTINUE
-cC**** VERTICAL SUMS
-c      WRITE (6,905) (DASH,J=J1,JM,INC)
-c      SUMFAC=1.
-c      IWORD=3
-c      IF ( SNAME.EQ.'temp' .OR. ! make sumfac an argument to avoid this
-c     &     SNAME.EQ.'v' .OR.
-c     &     SNAME.EQ.'tot_nt_dse' .OR.
-c     &     SNAME.EQ.'tot_nt_lh' .OR.
-c     &     SNAME.EQ.'tot_nt_se' .OR.
-c     &     SNAME.EQ.'tot_nt_am') THEN
-c         SUMFAC=10.
-c         IWORD=4
-c      ENDIF
-c      DO 180 J=1,JM     ! really J=J1,JM
-c      ASUM(J)=0.
-c      DO 170 K=1,KMAX
-c  170 ASUM(J)=ASUM(J)+CX(J,K)
-c         XJL(J,LM+LM_REQ+1)=ASUM(J)
-c  180 MLAT(J)=NINT(ASUM(J)*SUMFAC)
-c      AGLOB=0.
-c      DO 200 JHEMI=1,2
-c      AHEM(JHEMI)=0.
-c      DO 190 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
-c      AHEM(JHEMI)=AHEM(JHEMI)+ASUM(J)*WTJ(J,JWT,J1)*SUMFAC
-c  190 CONTINUE
-c  200 AGLOB=AGLOB+AHEM(JHEMI)/JWT
-c         XJL(JM+3,LM+LM_REQ+1)=AHEM(1)   ! SOUTHERN HEM
-c         XJL(JM+2,LM+LM_REQ+1)=AHEM(2)   ! NORTHERN HEM
-c         XJL(JM+1,LM+LM_REQ+1)=AGLOB     ! GLOBAL
-c         XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-c         TITLEO=TITLE//XLB
-c         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
-c     *        J1,KLMAX,XJL,PM,CLAT,CPRES)
-c      WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
-c     *  (MLAT(J),J=JM,J1,-INC)
-c         CALL KEYVSUMS(SNAME,AGLOB,AHEM,ASUM,SUMFAC)
-c      RETURN
-cC****
-c      ENTRY JKMAPS_old(LNAME,SNAME,UNITS,
-c     &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
-c     *  ARQX,SCALER,SCALJR,SCALLR)
-cC form title string
-c      title = trim(lname)//' ('//trim(units)//')'
-c         KSX = 3
-c         DO 205 L=1,LM+LM_REQ+1
-c         DO 205 J=1,JM+3
-c  205    XJL(J,L) = -1.E30
-c      LINECT=LINECT+KMAX+10
-c      IF (LINECT.LE.60) GO TO 230
-c      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-c      LINECT=KMAX+11
-c  230 J0=J1-1
-cC**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
-c      WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
-c      WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
-c      WRITE (6,905) (DASH,J=J1,JM,INC)
-c      DO 260 L=LM_REQ,1,-1
-c      FGLOB=0.
-c      DO 250 JHEMI=1,2
-c      AHEM(JHEMI)=0.
-c      DO 240 JH=1,jmby2
-c      J=(JHEMI-1)*(jmby2-J0)+JH-J0
-c      FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
-c         XJL(J,L+KMAX) = FLATJ
-c      MLAT(J)=NINT(FLATJ)
-c  240 AHEM(JHEMI)=AHEM(JHEMI)+FLATJ*WTJ(J,JWT,J1)
-c  250 FGLOB=FGLOB+AHEM(JHEMI)/JWT
-c         XJL(JM+3,L+KMAX)=AHEM(1)   ! SOUTHERN HEM
-c         XJL(JM+2,L+KMAX)=AHEM(2)   ! NORTHERN HEM
-c         XJL(JM+1,L+KMAX)=FGLOB     ! GLOBAL
-c  260 WRITE (6,902) PM(L+LM),FGLOB,AHEM(2),AHEM(1),
-c     *  (MLAT(J),J=JM,J1,-INC)
-c      GO TO 100
-c  901 FORMAT ('0',30X,A64,'  CP'/1X,32('-'),24A4)
-c  902 FORMAT (1X,F7.3,3F8.1,1X,24I4)
-c  903 FORMAT (A6,2X,3F8.1,1X,24I4)
-c  904 FORMAT (' P(MB)   ',A4,' G      NH      SH  ',24I4)
-c  905 FORMAT (1X,32('-'),24A4)
-c  907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
-c      END SUBROUTINE JKMAP_old
