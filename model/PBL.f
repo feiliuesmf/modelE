@@ -69,7 +69,7 @@ C**** boundary layer parameters
 
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
-!@var  t  local potential temperature
+!@var  t  local virtual potential temperature
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
 c     real*8, dimension(n) :: u,v,t,q
@@ -138,7 +138,7 @@ c    input:
 !@var  coriol  2.*omega*sin(latitude), the coriolis factor
 !@var  utop  x component of wind at the top of the layer
 !@var  vtop  y component of wind at the top of the layer
-!@var  ttop  temperature at the top of the layer
+!@var  ttop  virtual potential temperature at the top of the layer
 !@var  qtop  moisture at the top of the layer
 !@var  tgrnd  virt. pot. temp. of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
@@ -429,15 +429,13 @@ c Diagnostics printed at a selected point:
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3                 km,kh,kq,dzh,itype,n)
 !@sum computes USTAR,TSTAR and QSTAR
-!@sum Momentum flux = USTAR*USTAR
-!@sum Heat flux     = USTAR*TSTAR
-!@sum MOISTURE flux = USTAR*QSTAR
-!@sum
-!@sum
+!@+   Momentum flux = USTAR*USTAR
+!@+   Heat flux     = USTAR*TSTAR
+!@+   MOISTURE flux = USTAR*QSTAR
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
 !@var USTAR the friction speed
-!@var TSTAR the temperature scale
+!@var TSTAR the virtual potential temperature scale
 !@var QSTAR the moisture scale
 !@var LMONIN the Monin-Obukhov length scale
       USE CONSTANT, only : teeny
@@ -461,7 +459,7 @@ c Diagnostics printed at a selected point:
       dtdz   = (t(2)-t(1))/dz
       dqdz   = (q(2)-q(1))/dz
       ustar  = sqrt(km(1)*dudz)
-      ustar  = max(ustar,1.d-20)
+      ustar  = max(ustar,teeny)
       tstar  = kh(1)*dtdz/ustar
       qstar  = kq(1)*dqdz/ustar
       zgs    = z(1)
@@ -482,7 +480,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 
       subroutine getl1(e,zhat,dzh,lscale,n)
 !@sum   getl1 computes the master length scale of the turbulence model
-!@sum   on the secondary grid using Balckdard model
+!@+     on the secondary grid using Balckdard model
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
@@ -521,15 +519,15 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 
       subroutine getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 !@sum   getl2 computes the master length scale of the turbulence model
-!@sum   on the secondary grid. l0 in this routine is
-!@sum   computed via an analytic approximation to the l0 computed in the
-!@sum   full domain simulation.
+!@+     on the secondary grid. l0 in this routine is
+!@+     computed via an analytic approximation to the l0 computed in the
+!@+     full domain simulation.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var lscale z-profile of the turbulent dissipation length scale
 !@var z vertical grids (main, meter)
 !@var zhat vertical grids (secondary, meter)
@@ -569,7 +567,6 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
         if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
-        if (lscale(i).gt.dzh(i)) lscale(i)=dzh(i)
       end do
 
       return
@@ -578,8 +575,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       subroutine dflux(lmonin,ustar,vsurf,z0m,z0h,z0q,zgs,
      2                 cm,ch,cq,itype)
 !@sum   dflux computes (dimensionless) surface fluxes of momemtun,
-!@sum   heat and moisture (drag coefficient, Stanton number,
-!@sum   and Dalton number)
+!@+     heat and moisture (drag coefficient, Stanton number,
+!@+     and Dalton number)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var lmonin = Monin-Obukhov length (m)
@@ -700,7 +697,8 @@ c *********************************************************************
       subroutine simil(u,t,q,z,ustar,tstar,qstar,
      2                 z0m,z0h,z0q,lmonin,tg,qg)
 !@sum   simil calculates the similarity solutions for wind speed,
-!@sum   temperature, and moisture mixing ratio at height z.
+!@+     virtual potential temperature, and moisture mixing ratio 
+!@+     at height z.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var     z       height above ground at which solution is computed (m)
@@ -714,7 +712,8 @@ c *********************************************************************
 !@var     tg      ground temperature (K)
 !@var     qg      ground moisture mixing ratio
 !@var     u       computed similarity solution for wind speed (m/sec)
-!@var     t       computed similarity solution for temperature (K)
+!@var     t       computed similarity solution for virtual potential
+!@+               temperature (K)
 !@var     q       computed similarity solution for moisture mixing ratio
       implicit none
 
@@ -904,7 +903,7 @@ C$OMP  THREADPRIVATE(/GRIDS_99/)
 
       subroutine ccoeff0
 !@sum   ccoeff0 sets/calculates model coefficients for the
-!@sum   Giss 2000 turbulence model (level2 2/2.5)
+!@+     Giss 2000 turbulence model (level2 2/2.5)
 !@auth  Ye Cheng
 !@ver   1.0
       implicit none
@@ -978,7 +977,7 @@ c     find ghmin,ghmax,gmmax0:
 
       subroutine getk(km,kh,kq,ke,gma,gha,u,v,t,e,lscale,dzh,n)
 !@sum   getk calculates eddy diffusivities Km, Kh and Ke
-!@sum   Giss 2000 turbulence model at level 2.5
+!@+     Giss 2000 turbulence model at level 2.5
 !@auth  Ye Cheng
 !@ver   1.0
 c     Grids:
@@ -1019,6 +1018,9 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var se stability constant for e, adjustable
+
+      USE CONSTANT, only : teeny
+
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
@@ -1050,7 +1052,7 @@ c     endif
         as2=dudz*dudz+dvdz*dvdz
         ell=lscale(i)
         qturb=sqrt(2.*e(i))
-        tau=B1*ell/max(qturb,1.d-20)
+        tau=B1*ell/max(qturb,teeny)
         gh=tau*tau*an2
         gm=tau*tau*as2
         if(gh.lt.ghmin) gh=ghmin
@@ -1086,7 +1088,7 @@ c       sq=sq_by_sh*sh
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var km z-profile of turbulent viscosity
 !@var kh z-profile of turbulent conductivity
 !@var ke z-profile of turbulent diffusion in eqn for e
@@ -1181,12 +1183,12 @@ c     rhs(n-1)=0.
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
 !@+   kh * dt/dz = ch * usurf * (t - tg)
-!@+   at the top, the potential temperature is prescribed.
+!@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var kh z-profile of heat conductivity
@@ -1495,12 +1497,12 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
 !@+    kh * dt/dz = ch * usurf * (t - tg)
-!@+    at the top, potential temperature is prescribed.
+!@+    at the top, virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var q z-profle of specific humidity
 !@var kh z-profile of heat conductivity
 !@var z vertical grids (main, meter)
@@ -1559,7 +1561,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var q z-profle of specific humidity
 !@var kq z-profile of moisture diffusivity
 !@var z vertical grids (main, meter)
@@ -1693,11 +1695,14 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 !@var e z-profle of turbulent kinetic energy
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
-!@var t z-profle of potential temperature
+!@var t z-profle of virtual potential temperature
 !@var lscale z-profile of the turbulent dissipation length scale
 !@var z vertical grids (main, meter)
 !@var dzh(j)  z(j+1)-z(j)
 !@var n number of vertical subgrid main layers
+
+      USE CONSTANT, only : teeny
+
       implicit none
 
       integer, intent(in) :: n     !@var n array dimension
@@ -1712,7 +1717,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
         dudz=(u(i+1)-u(i))/dzh(i)
         dvdz=(v(i+1)-v(i))/dzh(i)
-        as2=max(dudz*dudz+dvdz*dvdz,1.d-20)
+        as2=max(dudz*dudz+dvdz*dvdz,teeny)
         ri=an2/as2
         if(ri.gt.rimax) ri=rimax
         aa=c1*ri*ri-c2*ri+c3
@@ -1734,7 +1739,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
      3                 ilong,jlat,itype)
-!@sum  inits initializes the winds, potential temperature,
+!@sum  inits initializes the winds, virtual potential temperature,
 !@+    and humidity using static solutions of the GISS 2000
 !@+    turbulence model at level 2
 !@var  n number of sub-grid levels for the PBL
