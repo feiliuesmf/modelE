@@ -39,6 +39,7 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
+ALLOC_DRV                           ! allocate global distributed arrays
 
 Data input files:
     ! the first group of files is specific to prescribed ocean runs

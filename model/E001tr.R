@@ -52,6 +52,7 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
+ALLOC_DRV                           ! allocate global distributed arrays
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
@@ -193,6 +194,6 @@ to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
+  YEARE=1950,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
