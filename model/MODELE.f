@@ -486,7 +486,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
       USE PARAM
       implicit none
@@ -552,8 +552,26 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
 
 C**** Determine if FLTRUV is called.
       QUVfilter = .false.
-      if (DT_XUfilter.gt.0..or.DT_XVfilter.gt.0.
-     *.or.DT_YUfilter.gt.0..or.DT_YVfilter.gt.0.)  QUVfilter = .true.
+      if (DT_XUfilter>0. .or. DT_XVfilter>0. .or.
+     *    DT_YUfilter>0. .or. DT_YVfilter>0.)  QUVfilter = .true.
+      if (QUVfilter) then
+         if (DT_XUfilter > 0. .and. DT_XUfilter < DT) then
+             DT_XUfilter = DT
+             WRITE(6,*) "DT_XUfilter too small; reset to :",DT_XUfilter
+         end if
+         if (DT_XVfilter > 0. .and. DT_XVfilter < DT) then
+             DT_XVfilter = DT
+             WRITE(6,*) "DT_XVfilter too small; reset to :",DT_XVfilter
+         end if
+         if (DT_YUfilter > 0. .and. DT_YUfilter < DT) then
+             DT_YUfilter = DT
+             WRITE(6,*) "DT_YUfilter too small; reset to :",DT_YUfilter
+         end if
+         if (DT_YVfilter > 0. .and. DT_YVfilter < DT) then
+             DT_YVfilter = DT
+             WRITE(6,*) "DT_YVfilter too small; reset to :",DT_YVfilter
+         end if
+      end if
       RETURN
 C****
       end subroutine init_Model
@@ -1534,8 +1552,4 @@ C**** check tracers
 
       return
       end subroutine print_restart_info
-
-
-
-
 
