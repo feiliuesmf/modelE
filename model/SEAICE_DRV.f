@@ -116,8 +116,8 @@ c                print*,"underice0",i,j,Ti,Si,Tm,Sm,dh
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mfluxmax
      *               ,mlsh,mflux,sflux,hflux)
               ELSE ! for fixed SST assume freezing temp at base,implicit
-                hflux=alami*(Ti-tofrez(i,j))/(dh*XSI(LMI)*MSI(I,J)+alpha
-     *               *dtsrc*alami*byshi)
+                hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
+     *               /(XSI(LMI)*MSI(I,J)))
                 mflux=0.
                 sflux=0.
               END IF
@@ -128,9 +128,10 @@ c                print*,"underice0",i,j,Ti,Si,Tm,Sm,dh
               call icelake(Ti,Tm,dh,dtsrc,mfluxmax,mlsh,mflux,hflux)
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
-                FLUXLIM= GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J)) 
-                IF (hflux.gt.FLUXLIM) THEN
+                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J)) 
+                IF (hflux.lt.FLUXLIM) THEN
                   hflux = FLUXLIM
+                  mflux = 0.
                   if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
      *                 (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM*DTSRC
                 END IF
@@ -223,11 +224,13 @@ c        print*,"seaice1",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)/(XSI(4)
 c     *       *MSI2)+LHM)*BYSHI
 C**** Decay sea ice salinity 
         MSI1 = ACE1I + SNOW
-        if (.not. qsfix) then
+        if (.not. qsfix .or. FLAKE(I,J).gt.0) then
           CALL SSIDEC(MSI1,MSI2,HSIL,SSIL,DTsrc,MFLUX,HFLUX,SFLUX)
 
 c          print*,"seaice2",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)
 c     *         /(XSI(4)*MSI2)+LHM)*BYSHI
+        else
+          MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
         end if
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J)=SNOW

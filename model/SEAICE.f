@@ -720,7 +720,7 @@ C**** set conductivity term
 C**** Diffusive flux is implicit in ice + ml temperature
       rsg=rhow*shw*g_T/(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
 c no salinity effects
-      alamdh = alami/(2.*dh*dh*rhoi+alpha*dtsrc*alami*byshi)
+      alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
 c S thermo 
 c      alamdh = (alami*Ti+alamdS*Si)/(dh*Ti+alpha*dtsrc*(alami*Ti+alamdS*Si)
 c     *          *byshi/(2.*rhoi*dh))
@@ -809,7 +809,7 @@ C****
       real*8 left2, lh, m, alamdh
 
 C**** Diffusive flux is implicit in ice temperature
-      alamdh = alami/(2.*dh*dh*rhoi+alpha*dtsrc*byshi*alami)
+      alamdh = alami/(dh+alpha*dtsrc*byshi*alami/(2.*dh*rhoi))
 C**** calculate left hand side of equation 2
       left2 = -alamdh*Ti - rsg*Tm/(1.+alpha*dtsrc*rsg/mlsh)
       if (left2.gt.0) then      ! freezing   

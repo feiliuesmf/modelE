@@ -890,9 +890,8 @@ C****
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi, erunosi, e0,evapor, dmsi,dhsi,dssi,
-     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp,
-     *     fmsi_io, fhsi_io
+      USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
+     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : ustar
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
@@ -954,8 +953,8 @@ C**** calculate flux over whole box
         SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
-        RUN0 =RUNOSI(I,J) + FMSI_IO(I,J) ! includes ACE2M + basal term
-        F2DT =ERUNOSI(I,J)+ FHSI_IO(I,J)
+        RUN0 =RUNOSI(I,J) ! includes ACE2M + basal term
+        F2DT =ERUNOSI(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(1)=MLDLK(I,J)*RHOW
         MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYPJ)-MLAKE(1),0d0)
