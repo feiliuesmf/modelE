@@ -65,6 +65,7 @@ CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
+FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000 -freeform
 ifeq ($(MP),YES)
 FFLAGS += -mp
 LFLAGS += -mp
@@ -139,6 +140,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
 FFLAGS = -O2
+FFLAGSF = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
 # uncomment next two lines for extensive debugging
 #FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
