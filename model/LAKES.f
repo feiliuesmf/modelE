@@ -402,7 +402,7 @@ c            FLAKE(I,J) = FLAKE0(I,J)
             IF (FLAKE(I,J).gt.0) THEN
               IF (HLAKE(I,J).lt.1.) print*,
      *             "HLAKE too small for lake fraction",i,j,HLAKE(I,J)
-     *             ,FLAKE(I,J) 
+     *             ,FLAKE(I,J)
               TLAKE(I,J) = MAX(0d0,TSAVG(I,J)-TF)
               MWL(I,J)   = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
               MLK1       = MINMLD*RHOW*FLAKE(I,J)*DXYP(J)
@@ -488,7 +488,7 @@ C**** Create integral direction array KDIREC from CDIREC
       DO J=1,JM
       DO I=1,IM
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
-        KD= ICHAR(CDIREC(I,J)) - 48    
+        KD= ICHAR(CDIREC(I,J)) - 48
 C**** If land but no ocean, and no direction, print warning
         IF (FLAND(I,J).gt.0 .and. FOCEAN(I,J).le.0 .and.
      *       (KD.gt.8 .or. KD.lt.0)) THEN
@@ -517,7 +517,7 @@ C**** Check for specified river mouths
           IF (FOCEAN(I,J).le.0) THEN
             WRITE(6,*) "Warning: Named river outlet must be in ocean",i
      *           ,j,NAMERVR(INM),FOCEAN(I,J),FLAND(I,J),FLICE(I,J)
-     *           ,FLAKE0(I,J),FEARTH(I,J) 
+     *           ,FLAKE0(I,J),FEARTH(I,J)
           END IF
         END IF
       END DO
@@ -616,7 +616,7 @@ C****
 
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
-      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP" 
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
       CONPT(5)="SURFACE"   ; CONPT(8)="RIVERS"
       QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
       CALL SET_CON(QCON,CONPT,"LAK MASS","(10**10 KG)     ",
@@ -672,14 +672,14 @@ C****
       FLOW = 0. ; EFLOW = 0.
 c      FLOWO = 0. ; EFLOWO = 0.  ! arrays now initialised in MELTSI
 #ifdef TRACERS_WATER
-      TRFLOW = 0.   
-c      TRFLOWO = 0.              ! array now initialised in MELTSI 
+      TRFLOW = 0.
+c      TRFLOWO = 0.              ! array now initialised in MELTSI
 #endif
       DO JU=2,JM-1
         DO IU=1,IM
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
           IF (KDIREC(IU,JU).gt.0 .or.
-     *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN 
+     *       (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))  THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
 C**** Only overflow if lake mass is above sill height (HLAKE (m))
@@ -711,8 +711,8 @@ c              END IF
               ELSE ! Save river mouth flow to for output to oceans
 C**** DPE: also add potential energy change to ocean.
 C**** Normally ocean is at sea level (Duh!), but in some boxes ZATMO
-C**** may not be zero if there is land as well, while in the Caspian, the
-C**** ocean level is below zero. 
+C**** may not be zero if there is land as well, while in the Caspian,
+C**** the ocean level is below zero.
                 DPE=DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
                 EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
@@ -1220,7 +1220,7 @@ C****
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
-      USE TRACER_DIAG_COM,only: taijn,tij_lk1,tij_lk2 
+      USE TRACER_DIAG_COM,only: taijn,tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
       IMPLICIT NONE

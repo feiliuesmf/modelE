@@ -520,42 +520,42 @@ C$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
         DKE(:,:,L)=0. ; DUT3(:,:,L)=0. ; DVT3(:,:,L)=0.
       END DO
-C$OMP  END PARALLEL DO                                                  
-C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)                                   
-      DO L=1,LM                                                     
-      DO J=2,JM                                                     
-      I=IM                                                              
-      DO IP1=1,IM                                                   
-         TLS(I,J,L) =                                                   
-     *    .25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+       
-     *     PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))                   
-         THLS(I,J,L) =                                                  
-     *    .25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))             
-         BVS(I,J,L) =                                                   
-     *    .5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))          
-         I=IP1                                                          
+C$OMP  END PARALLEL DO
+C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)
+      DO L=1,LM
+      DO J=2,JM
+      I=IM
+      DO IP1=1,IM
+         TLS(I,J,L) =
+     *    .25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
+     *     PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
+         THLS(I,J,L) =
+     *    .25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
+         BVS(I,J,L) =
+     *    .5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))
+         I=IP1
        END DO
        END DO
        END DO
-C$OMP  END PARALLEL DO                                                  
+C$OMP  END PARALLEL DO
 C****
 C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
-C$OMP  PARALLEL DO PRIVATE(ALFA,AIRX4,BVF,BVFSQ,BV0,BVEDGE,BYFACS,      
+C$OMP  PARALLEL DO PRIVATE(ALFA,AIRX4,BVF,BVFSQ,BV0,BVEDGE,BYFACS,
 C$OMP*  CN,CU,DP,DL,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,DUTN,DX,
-C$OMP*  DLIMIT,DKEX,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD, 
-C$OMP*  I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP, MU,MUB,MDN,MUP,MUR,           
-C$OMP*  N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,              
-C$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, WL,W0,WSRC,WCHECK,    
+C$OMP*  DLIMIT,DKEX,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD,
+C$OMP*  I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP, MU,MUB,MDN,MUP,MUR,
+C$OMP*  N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,
+C$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, WL,W0,WSRC,WCHECK,
 C$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
-C$OMP*  UIL,VIL, TLIL,THIL,BVIL)                                      
+C$OMP*  UIL,VIL, TLIL,THIL,BVIL)
       DO J=2,JM
 C**** parallel reductions
-         UIL(:,:)=U(:,J,:)                                              
-         VIL(:,:)=V(:,J,:)                                              
-         TLIL(:,:)=TLS(:,J,:)                                           
-         THIL(:,:)=THLS(:,J,:)                                          
-         BVIL(:,:)=BVS(:,J,:)                                           
+         UIL(:,:)=U(:,J,:)
+         VIL(:,:)=V(:,J,:)
+         TLIL(:,:)=TLS(:,J,:)
+         THIL(:,:)=THLS(:,J,:)
+         BVIL(:,:)=BVS(:,J,:)
 
       CN(1)=0.
       FCORU=(ABS(FCOR(J-1))+ABS(FCOR(J)))*BYDXYV(J)
@@ -807,7 +807,7 @@ C**** DIAGNOSTICS
 C****
 C**** CALCULATE THE DRAG
 C****
-      LDRAGA(I,J)=LDRAG                                                 
+      LDRAGA(I,J)=LDRAG
       IF (LDRAG.GT.LM) GO TO 500
       DO 400 N=1,NM
       IF (LD(N).GT.LM) GO TO 400
@@ -966,47 +966,47 @@ C**** END OF LOOP OVER I
   500 I=IP1
       END DO
 
-         U(:,J,:)=UIL(:,:)                                              
-         V(:,J,:)=VIL(:,:)                                              
+         U(:,J,:)=UIL(:,:)
+         V(:,J,:)=VIL(:,:)
 C**** END OF LOOP OVER J
       END DO
-C$OMP  END PARALLEL DO                                                  
+C$OMP  END PARALLEL DO
 C****
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
 
-C**** RECONSTRUCT DKE AS ORIGINALLY COMPUTED                
-        DO J=2,JM                                                     
-        DO K=1,2                                                   
-          RA(K)=RAVPN(J-1)                                            
-          RA(K+2)=RAVPS(J)                                            
-          JO(K)=J-1                                                   
-          JO(K+2)=J                                                   
+C**** RECONSTRUCT DKE AS ORIGINALLY COMPUTED
+        DO J=2,JM
+        DO K=1,2
+          RA(K)=RAVPN(J-1)
+          RA(K+2)=RAVPS(J)
+          JO(K)=J-1
+          JO(K+2)=J
         END DO
-        IF(J.EQ.2)  THEN                                               
-          RA(1)=RA(1)*BYIM                                            
-          RA(2)=RA(2)*BYIM                                            
-        ELSE IF(J.EQ.JM)  THEN                                        
-          RA(3)=RA(3)*BYIM                                            
-          RA(4)=RA(4)*BYIM                                            
-        END IF                                                         
-        I=IM                                                           
-        DO IP1=1,IM                                                
-          LDRAG=LDRAGA(I,J)                                           
+        IF(J.EQ.2)  THEN
+          RA(1)=RA(1)*BYIM
+          RA(2)=RA(2)*BYIM
+        ELSE IF(J.EQ.JM)  THEN
+          RA(3)=RA(3)*BYIM
+          RA(4)=RA(4)*BYIM
+        END IF
+        I=IM
+        DO IP1=1,IM
+          LDRAG=LDRAGA(I,J)
           IF(LDRAG.LE.LM) THEN
-            DO K=1,2                                                
-              IO(2*K-1)=I                                              
-              IO(2*K)=IP1                                              
+            DO K=1,2
+              IO(2*K-1)=I
+              IO(2*K)=IP1
             END DO
             IF(J.EQ.2)  THEN
-              IO(1)=1                                                  
-              IO(2)=1                                                  
-            ELSE IF(J.EQ.JM)  THEN                                     
-              IO(3)=1                                                  
-              IO(4)=1                                                  
+              IO(1)=1
+              IO(2)=1
+            ELSE IF(J.EQ.JM)  THEN
+              IO(3)=1
+              IO(4)=1
             END IF
-            DO L=LDRAG-1,LM                                         
+            DO L=LDRAG-1,LM
               DO K=1,4
                 IA=IO(K)
                 JA=JO(K)
@@ -1014,11 +1014,11 @@ C**** RECONSTRUCT DKE AS ORIGINALLY COMPUTED
               END DO
             END DO
           END IF
-          I=IP1                                                       
+          I=IP1
         END DO
       END DO
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
-C$OMP  PARALLEL DO PRIVATE(I,J,L)                                  
+C$OMP  PARALLEL DO PRIVATE(I,J,L)
         DO L=LDRAG-1,LM
           DO J=1,JM
             DO I=1,IMAXJ(J)
@@ -1029,7 +1029,7 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L)
             AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(L,J)
           END DO
         END DO
-C$OMP  END PARALLEL DO                                                  
+C$OMP  END PARALLEL DO
       END IF
 C****
       RETURN

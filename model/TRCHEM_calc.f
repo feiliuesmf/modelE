@@ -2,9 +2,9 @@
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
-!@calls rates,chem1,chem1prn    
+!@calls rates,chem1,chem1prn
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only    : im,jm,lm,ls1
       USE DYNAMICS, only      : am, byam
@@ -20,7 +20,7 @@ C
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -55,10 +55,10 @@ C     TROPOSPHERIC CHEMISTRY ONLY:
        y(nAldehyde,L)=yAldehyde(I,J,L)
        y(nROR,L)     =yROR(I,J,L)
       enddo
-C      
+C
 cc    calculate reaction rates with present concentrations
       call rates(maxl,I,J)
-c      
+c
 c     chem1 call sample:
 c     (klist,l,numel,nlist,ndlist,rate,change,multip)
 c              numel=number of elements in reaction list nlist (1 or 2)
@@ -78,10 +78,10 @@ c     set CH3O2 values (concentration = production/specific loss)
         iter=1
         qqqCH3O2=(rr(11,I,J,L)*y(nO1D,L)+rr(12,I,J,L)*y(nOH,L))
      &  *y(n_CH4,L)+rr(23,I,J,L)*y(n_CH3OOH,L)*y(nOH,L)
-     
+
        tempiter=rr(20,I,J,L)*y(nNO,L)+rr(22,I,J,L)*y(nHO2,L)
  10    CH3O2loss=tempiter+rr(27,I,J,L)*yCH3O2(I,J,L)
-       if(CH3O2loss.gt.1E-7)then     
+       if(CH3O2loss.gt.1E-7)then
           y(nCH3O2,L)=qqqCH3O2/CH3O2loss
         else
           y(nCH3O2,L)=1.0
@@ -101,7 +101,7 @@ c        First set various specific loss rates
      &   rr(43,I,J,L)/XO2_NO
          RXPAR_PAR=y(n_Paraffin,L)*8.E-11
          ROR_CH2=1.6E3
-c     
+c
 c       Set value for C2O3
         iter=1
         C2O3prod=rr(38,I,J,L)*yAldehyde(I,J,L)*y(nOH,L)+
@@ -110,7 +110,7 @@ c       Set value for C2O3
         tempiter=rr(39,I,J,L)*y(nNO,L)+rr(54,I,J,L)*y(nNO2,L)+
      &   rr(41,I,J,L)*y(nHO2,L)
  20     C2O3dest=tempiter+rr(40,I,J,L)*yC2O3(I,J,L)
-        if(C2O3dest.gt.1E-7)then     
+        if(C2O3dest.gt.1E-7)then
           y(nC2O3,L)=(C2O3prod/C2O3dest)
         else
           y(nC2O3,L)=1.0
@@ -118,7 +118,7 @@ c       Set value for C2O3
         yC2O3(I,J,L)=y(nC2O3,L)
         iter=iter+1
         if(iter.le.7)goto20     ! replace with while loop?
-c        
+c
 c       Set value for XO2
         iter=1
         XO2prod=ss(16,I,J,L)*yAldehyde(I,J,L)+
@@ -129,12 +129,12 @@ c       Set value for XO2
      &  y(n_Alkenes,L)+rr(30,I,J,L)*y(n_Isoprene,L)*0.85+
      &  rr(33,I,J,L)*y(n_AlkylNit,L))+
      &  y(nO3,L)*(rr(35,I,J,L)*y(n_Alkenes,L)*0.29+
-     &  rr(31,I,J,L)*y(n_Isoprene,L)*0.18)  
+     &  rr(31,I,J,L)*y(n_Isoprene,L)*0.18)
         tempiter=XO2_NO+rr(43,I,J,L)*y(nHO2,L)
         tempiter2=1.7E-14*exp(1300./ta(L))
  30     XO2_XO2=yXO2(I,J,L)*tempiter2
         XO2dest=tempiter+XO2_XO2
-        if(XO2dest.gt.1E-7.and.ss(16,I,J,L).gt.5E-5)then     
+        if(XO2dest.gt.1E-7.and.ss(16,I,J,L).gt.5E-5)then
           y(nXO2,L)=(XO2prod/XO2dest)
         else
           y(nXO2,L)=1.0
@@ -142,7 +142,7 @@ c       Set value for XO2
         yXO2(I,J,L)=y(nXO2,L)
         iter=iter+1
         if(iter.le.7)goto30   ! replace with while loop?
-c                            
+c
 c       Set value for XO2N
         XO2Nprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.13+
      &  rr(42,I,J,L)*yROR(I,J,L)*0.04+rr(30,I,J,L)*y(n_Isoprene,L)*
@@ -154,7 +154,7 @@ c       Set value for XO2N
           y(nXO2N,L)=1.0
         endif
         yXO2N(I,J,L)=y(nXO2N,L)
-c                                  
+c
 c       Set value for RXPAR
         RXPARprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.11+
      &  rr(34,I,J,L)*yROR(I,J,L)*2.1+rr(35,I,J,L)*y(n_Alkenes,L)*
@@ -173,7 +173,7 @@ c       Set value for Aldehyde
      &  rr(42,I,J,L)*yROR(I,J,L)*1.1+rr(35,I,J,L)*y(n_Alkenes,L)*
      &  y(nO3,L)*0.44
         Aldehydedest=rr(38,I,J,L)*y(nOH,L)+ss(16,I,J,L)
-                
+
 c       Check for equilibrium
         if(Aldehydedest*y(nAldehyde,L)*dt2.lt.y(nAldehyde,L))then
          changeAldehyde=
@@ -186,7 +186,7 @@ c       Check for equilibrium
           y(nAldehyde,L)=(Aldehydeprod/(Aldehydedest+0.5E-5))
         endif
         yAldehyde(I,J,L)=y(nAldehyde,L)
-c               
+c
 c       Set value for ROR
         RORprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.76+
      &  rr(42,I,J,L)*yROR(I,J,L)*0.02
@@ -246,7 +246,7 @@ c
          if(igas.eq.n_NOx.and.-dest(n_PAN,lprn).ge.y(n_PAN,lprn))
      *    write(6,110)'losses by reaction 54 (PAN formation) removed',
      *    chemrate(54,lprn)
-c     
+c
          call chem1prn
      &   (kpnr,2,nnr,npnr,chemrate,2,1,igas,total,maxl,I,J)
 c
@@ -261,7 +261,7 @@ c
          if(igas.eq.n_NOx.and.-dest(n_PAN,lprn).ge.y(n_PAN,lprn))
      *    write(6,110)'gain by reaction 29 (from PAN) removed',
      *    rr(29,I,J,lprn)*y(nM,lprn)*y(n_PAN,lprn)*dt2
-c     
+c
          call chem1prn(kds,1,ks,nds,photrate,3,-1,igas,total,maxl,I,J)
 c
          call chem1prn(kps,2,kss,nps,photrate,4,1,igas,total,maxl,I,J)
@@ -309,7 +309,7 @@ c
  110  format(a68,e10.3)
  118  format(a17,2a4,a4,f10.0,a14,e12.3)
  119  format(a45,7x,f10.0,a5,e12.3)
-c    
+c
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)write(6,'(a35,3(2x,i2))')
      * ' Total change by species at I, J, L',i,j,lprn
 c
@@ -331,7 +331,7 @@ c        N2O5 is thermally unstable, has a very short lifetime)
      &     bymass2vol(igas)/y(nM,L)
 c          endif
          endif
-c         
+c
 c        Conserve NOx with respect to N2O5
          if(igas.eq.n_NOx.and.-dest(n_N2O5,L).ge.y(n_N2O5,L))then
           rnewval=(rr(52,I,J,L)*y(nNO3,L)*y(nNO2,L))/
@@ -340,7 +340,7 @@ c        Conserve NOx with respect to N2O5
      &    change(I,J,L,igas)+2.*(y(n_N2O5,L)-rnewval)
      &    *dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
          endif
-c         
+c
 c        Set HO2NO2 to equil when necessary
          if(igas.eq.n_HO2NO2.and.-dest(igas,L).ge.y(n_HO2NO2,L))then
           rnewval=(rr(51,I,J,L)*y(nHO2,L)*y(nNO2,L))/
@@ -360,7 +360,7 @@ c        Conserve NOx with respect to HO2NO2
      &    change(I,J,L,igas)+(y(n_HO2NO2,L)-rnewval)*
      &    dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
          endif
-c         
+c
 c        Set PAN to equilibrium when necessary (near ground,
 c         PAN is thermally unstable, has a very short lifetime)
          if(igas.eq.n_PAN.and.-dest(igas,L).ge.y(n_PAN,L))then
@@ -370,16 +370,16 @@ c         PAN is thermally unstable, has a very short lifetime)
           change(I,J,L,igas)=(rnewval-y(n_PAN,L))*dxyp(J)*AM(L,I,J)
      &    *bymass2vol(igas)/y(nM,L)
          endif
-c         
+c
 c        Conserve NOx with respect to PAN
          if(igas.eq.n_NOx.and.-dest(n_PAN,L).ge.y(n_PAN,L))then
           rnewval=(rr(54,I,J,L)*y(nC2O3,L)*y(nNO2,L))/
      *    (rr(29,I,J,L)*y(nM,L)+ss(15,I,J,L))
           if(rnewval.lt.1.)rnewval=1.
           change(I,J,L,igas)=change(I,J,L,igas)+(y(n_PAN,L)-rnewval)*
-     &    dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)  
+     &    dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
          endif
-c        
+c
        end do ! L
       end do  ! igas
 c
@@ -407,7 +407,7 @@ c       First check for nitrogen loss > 100%
      &  change(I,J,L,n_PAN)=1.-trm(I,J,L,n_PAN)
         if(-change(I,J,L,n_AlkylNit).gt.trm(I,J,L,n_AlkylNit))
      &  change(I,J,L,n_AlkylNit)=1.-trm(I,J,L,n_AlkylNit)
-c          
+c
 c       Next insure balance between dNOx and sum of dOthers
         sumN=(2.*change(I,J,L,n_N2O5))*mass2vol(n_N2O5)+
      *  (change(I,J,L,n_HNO3))*mass2vol(n_HNO3)+
@@ -420,7 +420,7 @@ c       Next insure balance between dNOx and sum of dOthers
         ratio=-sumN/dNOx
         IF(ratio.le.0.999 .OR. ratio.ge.1.001) THEN
          if(dNOx.gt.0.)then
-c         NOx being produced (net positive change)         
+c         NOx being produced (net positive change)
           if (ratio.gt.1.)then
            sumD=0.
 c          reduce N destruction to match NOx prodcution
@@ -468,7 +468,7 @@ c          reduce N production to match NOx loss
            if(change(I,J,L,n_AlkylNit).gt.0.)sumP=sumP+
      *     change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
            newP=(sumN/ratio)+sumP-sumN
-           ratioP=newP/sumP 
+           ratioP=newP/sumP
            if(change(I,J,L,n_N2O5).gt.0)     change(I,J,L,n_N2O5)=
      *        change(I,J,L,n_N2O5)*ratioP
            if(change(I,J,L,n_HO2NO2).gt.0.)  change(I,J,L,n_HO2NO2)=
@@ -507,17 +507,17 @@ c          increase N production to match NOx loss (12/4/2001)
      *     change(I,J,L,n_AlkylNit)*ratioP
           endif
          endif
-         
+
         END IF ! skipped section above if ratio very close to one
 C
         if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
      &  write(*,*) 'ratio for conservation =',ratio
-C     
+C
       end do ! L
 C
 cc    Print chemical changes in a particular grid box if desired
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
-        do igas=1,ntm                                   
+        do igas=1,ntm
          changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      *   bydxyp(J)*byam(lprn,I,J)
          if(y(igas,lprn).eq.0.)then
@@ -539,7 +539,7 @@ c
      *    y(nM,LPRN))*1.E9,' ppbv'
           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
      *    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.E9,
-     *    ' ppbv'           
+     *    ' ppbv'
           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
      *    ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/y(nM,LPRN))*1.E9,
      *    ' ppbv'
@@ -562,14 +562,14 @@ c
 c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
       do igas=1,ntm
        do L=1,maxl
-        if(change(I,J,L,igas).gt.1.E20 .OR. 
+        if(change(I,J,L,igas).gt.1.E20 .OR.
      &    -change(I,J,L,igas).gt.trm(I,J,L,igas)) THEN
            WRITE(6,*)'>>change set to 0 in chemstep: I,J,L,igas,change'
      &    ,I,J,L,igas,change(I,J,L,igas)
            change(I,J,L,igas) = 0.
         endif
 c
-c Leaving this here to reinstate it later in some form. GSF 2/14/02 : 
+c Leaving this here to reinstate it later in some form. GSF 2/14/02 :
 c         if(change(I,J,L,igas).le.1.E20) THEN
 c           if(L.eq.1.and.igas.eq.1)then
 c             changeA=(change(I,J,1,igas)*y(nM,1)*mass2vol(igas))*
@@ -590,20 +590,20 @@ c
  155  format(1x,2a4,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,2a4,a2,e13.3,a16)
  157  format(1x,2a4,a32,e13.3,a11)
-c 
-      return 
+c
+      return
       end SUBROUTINE chemstep
 cc    __________________________________________________________________
       SUBROUTINE rates(maxl,I,J)
 !@sum rates calculate reaction rates with present concentrations
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23) 
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: nr,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ks,ny,dest,prod,JPPJ                       
-c     
+     &                          ss,ks,ny,dest,prod,JPPJ
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -630,17 +630,17 @@ c       Initialize change arrays
       enddo
       return
       end SUBROUTINE rates
-      
+
 cc    __________________________________________________________________
       SUBROUTINE chem1(kdnr,maxl,numel,nn,ndnr,chemrate,dest,multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)  
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: p_2, p_3, p_4, n_igas, numfam,nfam
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -717,11 +717,11 @@ cc    __________________________________________________________________
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, p_4, numfam, y,
      &                              p_2, p_3
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -789,7 +789,7 @@ c     INDIVIDUAL SPECIES
         if(index.le.2)label=' chem reaction # '
         if(index.gt.2)label=' phot reaction # '
 c       skip same reaction if written twice
-        if(ireac.eq.1 . or. ndnr(ireac).ne.ndnr(ireac-1) .or. 
+        if(ireac.eq.1 . or. ndnr(ireac).ne.ndnr(ireac-1) .or.
      &  total.eq.0.) then
          if(nn(1,ndnr(ireac)).eq.igas)then
            per=0.

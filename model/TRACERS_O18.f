@@ -4,7 +4,7 @@
 !@auth Gavin Schmidt
 
       FUNCTION FRACVL(TEMP,trname)
-!@sum FRACVL Calculate vapour --> liquid equilibrium fractionation factor
+!@sum FRACVL Calculate vapor-->liquid equilibrium fractionation factor
 !@+          by a quadratic fit to Majoube'71
 !@auth Gavin Schmidt
       IMPLICIT NONE
@@ -146,7 +146,7 @@ C****
 
 #ifdef TRACERS_SPECIAL_O18
       SUBROUTINE ISOEQUIL(N,TEMP,QMV,QML,TRMV,TRML)
-!@sum ISOEQUIL equilibrates isotopes in vapour and liquid/solid reservoirs
+!@sum ISOEQUIL equilibrates isotopes in vapor & liquid/solid reservoirs
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
       USE TRACER_COM, only: trname,tr_wd_TYPE,nWATER
@@ -154,7 +154,7 @@ C****
       INTEGER, INTENT(IN) :: N
       REAL*8, INTENT(IN) :: TEMP  !@var TEMP temperature (K)
 !@var QMV,QML vapour and liquid water masses (kg or kg/m^2)
-      REAL*8, INTENT(IN) :: QMV,QML  
+      REAL*8, INTENT(IN) :: QMV,QML
 !@var TRMV,TRML vapour and liquid tracer mass (kg or kg/m^2)
       REAL*8, INTENT(INOUT) :: TRMV,TRML
       REAL*8 TDEGC,ZALPH,ZDELEQU,ZXFAC,FRACVL,FRACVS
@@ -164,7 +164,7 @@ C****
           TDEGC = TEMP - TF
           IF (QMV.GT.0.) THEN
             IF (TDEGC.GE.0.) THEN
-              ZALPH = 1./FRACVL(TDEGC,trname(N)) 
+              ZALPH = 1./FRACVL(TDEGC,trname(N))
             ELSE
               ZALPH = 1./FRACVS(TDEGC,trname(N))
             END IF

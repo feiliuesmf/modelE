@@ -184,7 +184,7 @@ C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
               IF (KOCEAN.eq.1) THEN
 C**** should we calculate ocean rho(Tm,Sm) here?
-                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW)) 
+                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
@@ -313,7 +313,7 @@ C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
      *           ,TRSIL,TRUN0
 #endif
      *           ,ENRGUSED,RUN0,SALT)
-            
+
 C**** accumulate diagnostics
             AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED
             AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT
@@ -333,7 +333,7 @@ C**** Update prognostic sea ice variables
           END IF
 C**** Save fluxes (in kg, J etc.), positive into ocean
           FLOWO(I,J) = RUN0*PWATER*DXYP(J)
-          EFLOWO(I,J)=-ENRGUSED*PWATER*DXYP(J) 
+          EFLOWO(I,J)=-ENRGUSED*PWATER*DXYP(J)
           SFLOWO(I,J)= SALT*PWATER*DXYP(J)
 #ifdef TRACERS_WATER
           TRFLOWO(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
@@ -725,9 +725,9 @@ C****
       INTEGER I,J
       REAL*8 MSI1,TFO
 
-C**** set up a default ice-ocean stress field. This can be changed by 
-C**** adjusting oi_ustar0 in the parameter list. If ice dynamics is used,
-C**** this is overwritten.  
+C**** set up a default ice-ocean stress field. This can be changed by
+C**** adjusting oi_ustar0 in the parameter list. If ice dynamics
+C**** is used, this is overwritten.
       call sync_param("oi_ustar0",oi_ustar0)
       UI2rho = rhow*(oi_ustar0)**2
 
@@ -775,9 +775,9 @@ C**** set GTEMP array for ice
 
 C**** Set conservation diagnostics for ice mass, energy, salt
       CONPT=CONPT0
-      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP" 
-      CONPT(5)="THERMO"    ; CONPT(6)="ADVECT" 
-      CONPT(8)="OCN FORM" 
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
+      CONPT(5)="THERMO"    ; CONPT(6)="ADVECT"
+      CONPT(8)="OCN FORM"
       QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
       CALL SET_CON(QCON,CONPT,"ICE MASS","(KG/M^2)        ",
      *     "(10**-9 KG/SM^2)",1d0,1d9,icon_MSI)

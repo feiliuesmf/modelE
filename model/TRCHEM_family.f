@@ -8,8 +8,8 @@ C
 !@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
 c
 C**** GLOBAL parameters and variables:
-c 
-      USE TRACER_COM, only : n_CH4, n_Ox   
+c
+      USE TRACER_COM, only : n_CH4, n_Ox
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
 C
       IMPLICIT NONE
@@ -27,7 +27,7 @@ C
       do L=1,lmax
 c       for concentration of O:
         az=(ss(2,I,J,L)+ss(3,I,J,L))/(rr(47,I,J,L)*y(nO2,L))
-c       for concentration of O(1D):                             
+c       for concentration of O(1D):
         bz=ss(2,I,J,L)/
      &  (rr(8,I,J,L)*y(nO2,L)+rr(9,I,J,L)*y(nM,L)+
      &  rr(10,I,J,L)*y(nH2O,L)+rr(11,I,J,L)*y(n_CH4,L))
@@ -45,17 +45,17 @@ c
       return
       END SUBROUTINE OXinit
 C
-c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
-C  
+c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+C
       SUBROUTINE NOxfam(lmax,I,J)
 !@sum NOxfam Find NOx family (NO,NO2,NO3,HONO) partitioning assuming
-!@+   equilibrium at a given concentration of NOx. Only called during 
+!@+   equilibrium at a given concentration of NOx. Only called during
 !@+   daylight, then assume NO3=HONO=1.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
 c
 C**** GLOBAL parameters and variables:
-c 
+c
       USE TRACER_COM, only : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                           ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
@@ -73,8 +73,8 @@ C**** Local parameters and variables and arguments:
 
       do L=1,lmax
 c       If dawn then set NO3 back to zero:
-        IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.     
-c       B is for NO->NO2 reactions : 
+        IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.
+c       B is for NO->NO2 reactions :
         B=rr(5,I,J,L)*y(nO3,L)+rr(6,I,J,L)*y(nHO2,L)
      &   +rr(20,I,J,L)*yCH3O2(I,J,L) + rr(48,I,J,L)*y(nO,L)
      &   +rr(39,I,J,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
@@ -91,13 +91,13 @@ C       Set limits on NO, NO2, NOx:
         pNOx(I,J,L)=y(nNO2,L)/y(n_NOx,L)
         y(nNO3,L) =1.0
         y(nHONO,L)=1.0
-      enddo 
+      enddo
 
       return
       END SUBROUTINE NOxfam
 C
-c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    
-C  
+c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+C
       SUBROUTINE HOxfam(lmax,I,J)
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
@@ -105,12 +105,12 @@ C
 !@ver  1.0 (based on ds3ch4_famchem_apr1902_M23)
 c
 C**** GLOBAL parameters and variables:
-c 
+c
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
-     &                           nXO2N,ta,ss,nC2O3,nROR                    
+     &                           nXO2N,ta,ss,nC2O3,nROR
 C
       IMPLICIT NONE
 c
@@ -142,8 +142,8 @@ C
      & *y(n_Paraffin,L)*0.89+rr(34,I,J,L)*y(n_Alkenes,L)
      & +rr(30,I,J,L)*y(n_Isoprene,L)*0.15+rr(33,I,J,L)*y(n_AlkylNit,L))
      & +rr(43,I,J,L)*y(nXO2,L)+y(nXO2N,L)*
-     & (rr(44,I,J,L)*rr(43,I,J,L)/(4.2E-12*exp(180./ta(L))))     
-C  
+     & (rr(44,I,J,L)*rr(43,I,J,L)/(4.2E-12*exp(180./ta(L))))
+C
        cqqz=(2.*ss(4,I,J,L)*y(n_H2O2,L)+ss(9,I,J,L)*y(n_HNO3,L)+
      & ss(13,I,J,L)*y(n_HCHO,L)+ss(14,I,J,L)*y(n_CH3OOH,L)+
      & (rr(20,I,J,L)*y(nNO,L)+0.66*rr(27,I,J,L)*yCH3O2(I,J,L))
@@ -165,13 +165,13 @@ c
        temp_yHOx=y(nOH,L)+y(nHO2,L)
 c
 c      Now partition HOx into OH and HO2:
-c      CZ: OH->HO2 reactions : 
+c      CZ: OH->HO2 reactions :
        cz=rr(2,I,J,L)*y(nO3,L)+rr(13,I,J,L)*y(n_CO,L)
      & +rr(14,I,J,L)*y(n_H2O2,L)+rr(19,I,J,L)*y(nH2,L)
      & +rr(21,I,J,L)*y(n_HCHO,L)+rr(37,I,J,L)*y(n_Paraffin,L)*
      & *0.11+rr(30,I,J,L)*y(n_Isoprene,L)*0.85
      & +rr(34,I,J,L)*y(n_Alkenes,L)
-C     
+C
 C      DZ: HO2->OH reactions :
        dz=rr(4,I,J,L)*y(nO3,L)+rr(6,I,J,L)*y(nNO,L)
      & +rr(41,I,J,L)*0.79*y(nC2O3,L)+rr(15,I,J,L)*y(nHO2,L)

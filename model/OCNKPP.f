@@ -1262,7 +1262,7 @@ C**** Calculate surface mass, salt and heat fluxes
       DELTASR= (SOLAR(1,1,JM)*(1d0-RSI(1,JM))+SOLAR(3,1,JM)*RSI(1,JM))
      *     *BYDTS               ! W/m^2
 #ifdef TRACERS_OCEAN
-      DELTATR(:) = (TRML(1,:,1,1)-TRML1(:,1,1))*BYDXYPO(JM)*BYDTS ! kg/m^2/s
+      DELTATR(:)=(TRML(1,:,1,1)-TRML1(:,1,1))*BYDXYPO(JM)*BYDTS !kg/m2/s
 #endif
       KPL(1,JM) = 1  ! Initialize mixed layer depth
       I=1
@@ -1387,11 +1387,11 @@ C****
       END DO
 #endif
 
-C**** Calculate surface heat and salt flux
-      DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !W/m^2
-      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2/s
+C**** Calculate surface heat and salt flux: dE(W/m^2);dS,dTr(kg/m^2/s)
+      DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS 
+      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS 
 #ifdef TRACERS_OCEAN
-      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2/s
+      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS 
 #endif
 C****
 C**** Vertical mixing dependent on KPP boundary layer scheme
@@ -1648,7 +1648,7 @@ CCC     *       (UL(1:LMUV(4),4)-VT(I,J  ,1:LMUV(4)))
 CCC      END IF
 
       IF(QPOLE)  THEN
-         DO II=1,IM      
+         DO II=1,IM
            UKJM(1:LMUV(II),II) = RAMV(II)*(UL(1:LMUV(II),II)-
      *          VT(II,JM-1,1:LMUV(II)))
          END DO
@@ -1723,10 +1723,10 @@ C****
         TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) +
      *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
 c        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) =
-c     *       SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+c     *      SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
 c        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) =
-c     *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+c     *      SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
         TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
      *                  TZML(L,N,1,2) + TZML(L,N,1,1)
@@ -2014,7 +2014,7 @@ C**** Tracers are diffused after iteration (GHAT always zero)
       END DO
 #endif
 C**** Implicitly apply interpolated KV to linear profile
-C**** No surface fluxes 
+C**** No surface fluxes
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
       GZML(1,IQ)=(GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
       SZML(1,IQ)=(SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
@@ -2085,7 +2085,7 @@ C****
         NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42 + 3
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
 c        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) =
-c     *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
+c     *     SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
         CALL REDUCE_FIG(NSIGT,TXMST(L,N,ITR))
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
 C****
@@ -2198,7 +2198,7 @@ C****
       INTEGER, INTENT(IN) :: NSIG
       REAL*8, INTENT(INOUT) :: RX
 
-      IF (NSIG+30.gt.EXPONENT(RX)) RX = 
+      IF (NSIG+30.gt.EXPONENT(RX)) RX =
      *     SCALE(REAL(NINT(SCALE(RX,-NSIG)),KIND=8),NSIG)
 
       RETURN

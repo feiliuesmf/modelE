@@ -210,7 +210,6 @@ c     ENDIF
       dpdyr  = DPDY_BY_RHO(i,j)
       dpdxr0 = DPDX_BY_RHO_0(i,j)
       dpdyr0 = DPDY_BY_RHO_0(i,j)
-
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
@@ -277,10 +276,11 @@ c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
       USE FILEMANAGER
+      USE PARAM
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
-      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0
+      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
      &     ,e,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
@@ -315,6 +315,7 @@ C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
       call closeunit(iu_CDN)
+      call sync_param( 'XCDpbl', XCDpbl )
 
       do j=1,jm
         do i=1,im
@@ -437,7 +438,6 @@ c ******************************************************************
 
  200      end do
         end do
-c     write (99,1000) itype
       end do
 
       return

@@ -138,9 +138,16 @@ MACHINE = DEC
 F90 = f90
 CPP = /lib/cpp -P
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
-FFLAGS = -O2 -cpp
-LFLAGS = -O2
+# CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_DEC
+# FFLAGS = -O2 -cpp
+# LFLAGS = -O2
+CPPFLAGS = -DMACHINE_DEC
+FFLAGS = -O2 -cpp -convert big_endian
+LFLAGS = -O2 -convert big_endian
+ifeq ($(MP),YES)
+FFLAGS += -omp
+LFLAGS += -omp
+endif
 endif
 
 

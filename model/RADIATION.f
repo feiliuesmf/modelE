@@ -1,4 +1,4 @@
-
+   
       MODULE RE001
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -1266,7 +1266,7 @@ CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE5
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
-      READ (NRFU) TROAER      
+      READ (NRFU) TROAER
       READ (NRFU) VDBCSU
 cg    CLOSE(NRFU)
 C
@@ -9480,7 +9480,7 @@ ceq   DIMENSION XNOW(5),YNOW(5),ZNOW(5)
       DIMENSION XDT0(5)                   !obso ,YDT0(5),ZDT0(5)
       DIMENSION XRAT(5)                   !obso ,XDAT(5),XFOR(5)
       DIMENSION WREF(7),WDAT(7),WPPM(7),DWM2(7)  ! ,kfor(5)
-      DIMENSION QX(49,15),QS(49,15),QG(49,15),QP(49,15),O3(49,15)
+      DIMENSION QX(49,LX),QS(49,LX),QG(49,LX),QP(49,LX),O3(49,LX)
       DIMENSION QXCOL(49),QSCOL(49),QGCOL(49),QPCOL(49),O3COL(49)
       DIMENSION SFL0(5),SFLX(5),DFLX(5),RFLX(5),O3L(46,72),LO3(36)
 C
@@ -9696,19 +9696,19 @@ C
       IF(JMONTH.LT.1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO)
       DO 450 J=1,46
-      DO 410 L=1,15
+      DO 410 L=1,NL
       O3(J,L)=0.D0
   410 CONTINUE
       JLAT=J
       DO 430 I=1,72
       ILON=I
       CALL GETO3D
-      DO 420 L=1,15
+      DO 420 L=1,NL
       O3(J,L)=O3(J,L)+U0GAS(L,3)/72.D0
   420 CONTINUE
   430 CONTINUE
       SUMO3=0.D0
-      DO 440 L=1,15
+      DO 440 L=1,NL
       SUMO3=SUMO3+O3(J,L)
   440 CONTINUE
       O3COL(J)=SUMO3
@@ -9719,7 +9719,7 @@ C
       O3COL(47)=QOSH
       O3COL(48)=QONH
       O3COL(49)=QOGL
-      DO 460 L=1,15
+      DO 460 L=1,NL
       CALL BOXAV1(DLAT46,O3(1,L),46, 1,23,QOSH)
       CALL BOXAV1(DLAT46,O3(1,L),46,24,46,QONH)
       CALL BOXAV1(DLAT46,O3(1,L),46, 1,46,QOGL)
@@ -11008,7 +11008,7 @@ C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
           IDEC=1
           JDEC=1
           BCWTID=XDEC
-          BCWTJD=0. 
+          BCWTJD=0.
         END IF
       ELSE IF(XJYEAR.GE.1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
@@ -11017,9 +11017,9 @@ C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
         BCWTJD=1.D0*EXP(DYEAR/POST90)
         IDEC=8
         JDEC=8
-      ELSE    
+      ELSE
 C**** lin. interpolate obs. data (every 10 years) 1950-1990
-        DYEAR=XJYEAR-1950.D0                                  
+        DYEAR=XJYEAR-1950.D0
         IYEAR=DYEAR
         DELTAY=DYEAR-IYEAR
         DELDEC=DYEAR/10.D0-IYEAR/10
@@ -11036,7 +11036,7 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
         BCWTJD=RATYD*DELDEC
         IDEC=IDEC+3
         JDEC=JDEC+3
-      END IF 
+      END IF
 C
       RETURN
       END SUBROUTINE BCTAUW
@@ -11148,7 +11148,7 @@ C**** 0 until 1850, then lin. interpolate obs. data (every 25 years)
           IDEC=1
           JDEC=1
           SUWTID=XDEC
-          SUWTJD=0. 
+          SUWTJD=0.
         END IF
       ELSE IF(XJYEAR.GE.1990.D0) THEN
 C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
@@ -11157,7 +11157,7 @@ C**** Slow reduction after 1990 (POST90=-250 years e-folding time)
         SUWTJD=1.D0*EXP(DYEAR/POST90)
         IDEC=8
         JDEC=8
-      ELSE    
+      ELSE
 C**** lin. interpolate obs. data (every 10 years) 1950-1990
         DYEAR=XJYEAR-1950.D0
         IYEAR=DYEAR
@@ -11174,9 +11174,9 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
         RATYD=SUEY/SUED
         SUWTID=RATYD*(1.D0-DELDEC)
         SUWTJD=RATYD*DELDEC
-        IDEC=IDEC+3 
-        JDEC=JDEC+3 
-      END IF 
+        IDEC=IDEC+3
+        JDEC=JDEC+3
+      END IF
 C
       RETURN
       END SUBROUTINE SUTAUW
@@ -13181,8 +13181,8 @@ C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
 C                                          -----------------------------
 c**** In the following code when computing albedo for snow covered soil
-c**** we use snow_frac(1:2) which is the snow fraction cover for 
-c**** bare/vegetated soil. It is computed in GHY_DRV.f in accordance 
+c**** we use snow_frac(1:2) which is the snow fraction cover for
+c**** bare/vegetated soil. It is computed in GHY_DRV.f in accordance
 c**** with the surface topography.
 c**** The final snow cover is minimum of snow_frac and the snow fraction
 c**** obtained using the vegetation masking.

@@ -1326,10 +1326,6 @@ C*
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         TL=T(I,J,L)*PK(L,I,J)
 C**** check Q and T to make sure they are within physical bounds
-        if (Q(i,j,l).lt.0.) then
-          write(99,*) 'SDRAG:',itime,i,j,l,'Q=',Q(I,J,L),'-> 0.'
-          Q(i,j,l)=0
-        end if
         if (TL.lt.100..or.TL.gt.373.) then
           write(99,*) 'SDRAG:',itime,i,j,l,'T=',TL
           call exit_rc(11)
@@ -1339,10 +1335,10 @@ C**** check Q and T to make sure they are within physical bounds
         IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*WL
         X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
         IF(X.GT.1) THEN
-          write(99,*)'SDRAG: ITime,I,J,PSFMPT,X,RHO,CDN,U,V'
-     *         ,ITime,I,J,PSFMPT,X,RHO,CDN,U(I,J,L),V(I,J,L)
-     *         ,' If problem persists, winds are too high! '
-     *         ,'Try setting X_SDRAG smaller.'
+          write(99,*)'SDRAG: ITime,I,J,L,PSFMPT,X,RHO,CDN,U,V'
+     *         ,ITime,I,J,L,PSFMPT,X,RHO,CDN,U(I,J,L),V(I,J,L)
+c    *         ,' If problem persists, winds are too high! '
+c    *         ,'Try setting X_SDRAG smaller.'
           X=1.
         END IF
 C**** adjust diags for possible difference between DT1 and DTSRC

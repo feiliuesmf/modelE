@@ -272,10 +272,10 @@ ccc checking if the model conserves energy (part 2) (for debugging)
         stop 'snow_adv: total energy error' ! call abort
       end if
 
-c$$$      if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
-c$$$        print*, "total energy error",i_earth, j_earth,total_energy
-c$$$        call abort
-c$$$      endif
+c$$$    if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
+c$$$      print*, "total energy error",i_earth, j_earth,total_energy
+c$$$      call abort
+c$$$    endif
 
 ccc for tracers
       tr_flux(0) = pr - evaporation
@@ -417,7 +417,7 @@ ccc partial cover
           if ( DEB_CH == 0 )
      $         call openunit("snow_debug", DEB_CH, .false., .false.)
           write(DEB_CH,*) 'ERROR: fract_cover= ', fract_cover
-          write(DEB_CH,*) dz(1), fresh_snow
+          write(DEB_CH,*) 'dz1,fresh_snow=',dz(1), fresh_snow
           if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS
         endif

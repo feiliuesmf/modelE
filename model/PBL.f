@@ -50,7 +50,7 @@
 
       real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf
       real*8 :: us,vs,ws,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
-     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix
+     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix,XCDpbl=1d0
       logical :: pole
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
@@ -85,7 +85,7 @@ C***
       COMMON /PBLTPC/ dpdxr,dpdyr,dpdxr0,dpdyr0
      * ,g0,d1_3,d2_3,d3_3,d4_3,d5_3
      * ,s0_3,s1_3,s2_3,s3_3,s4_3,s5_3,s6_3,  g1,g2,g3,g4,g5,g6,g7,g8
-     * ,e   !  ,u,v,t,q 
+     * ,e   !  ,u,v,t,q
 #ifdef TRACERS_ON
      * ,tr
 #endif
@@ -592,9 +592,15 @@ c     To compute the drag coefficient,Stanton number and Dalton number
       real*8, parameter :: nu=1.5d-5,num=0.135d0*nu,nuh=0.395d0*nu,
      *     nuq=0.624d0*nu
 
-      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=4.8d0,
-     *     gamahs=8./sigma
+      !Hogstrom 1988:
+c     real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
+c     real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
+c    *     gamahs=7.8d0/sigma
+
+      ! Businger 1971:
+      real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
+      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
+     *     gamahs=4.7/sigma
 
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
@@ -671,12 +677,11 @@ c  Here the atmosphere is unstable with respect to the ground:
 c *********************************************************************
       endif
 
-      dm = 1. ; dh = 1. ; dq = 1.  !  prevent divide checks
-      if(dpsim/lzgsbyz0m.lt..9) dm=1./(1.-dpsim/lzgsbyz0m)**2
-      if(dpsih/lzgsbyz0h.lt..9) dh=sqrt(dm)/(1.-dpsih/lzgsbyz0h)
-      if(dpsiq/lzgsbyz0q.lt..9) dq=sqrt(dm)/(1.-dpsiq/lzgsbyz0q)
+      dm=      1./(1.-min(dpsim/lzgsbyz0m,.9))**2
+      dh=sqrt(dm)/(1.-min(dpsih/lzgsbyz0h,.9))
+      dq=sqrt(dm)/(1.-min(dpsiq/lzgsbyz0q,.9))
 
-      cm=dm*cmn
+      cm=XCDpbl*dm*cmn
       ch=dh*chn
       cq=dq*cqn
       if (cm.gt.cmax) cm=cmax
@@ -716,8 +721,8 @@ c *********************************************************************
       real*8,  intent(out) :: u,t,q
 
       real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=4.8d0,
-     *     gamahs=8./sigma
+      real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
+     *     gamahs=4.7/sigma
 
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
      *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
@@ -2008,7 +2013,7 @@ c ----------------------------------------------------------------------
 !@ver   1.0
       implicit none
       real*8, parameter :: psistb=15.*radian, psiuns=5.*radian
-      real*8, parameter :: gammau=19.3d0, gammas=4.8d0
+      real*8, parameter :: gammau=15.0d0, gammas=4.7d0
 
       integer, intent(in) :: n  !@var n array dimension
       real*8, dimension(n),intent(inout) :: u,v,z
@@ -2128,8 +2133,8 @@ c  set the wind magnitude to that given by similarity theory:
       implicit none
       real*8, parameter :: degree=1./radian
 
-      real*8, parameter :: gammah=11.6d0
-      real*8, parameter :: gammam=19.3d0
+      real*8, parameter :: gammah=9.d0
+      real*8, parameter :: gammam=15.0d0
       real*8, parameter :: sigmat=0.95d0
       real*8, parameter :: betah=8./sigmat
       real*8, parameter :: betam=4.8d0
