@@ -40,13 +40,17 @@
 !@var USAVG     COMPOSITE SURFACE U WIND
 !@var VSAVG     COMPOSITE SURFACE V WIND
 !@var TAUAVG    COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
+!@var w2_l1     COMPOSITE vertical component of t.k.e. at gcm layer 1
 !@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
       REAL*8, dimension(im,jm) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,tgvavg,qgavg
+     &    ,w2_l1
       REAL*8, dimension(im,jm,4) :: ustar_pbl
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
-      real*8, dimension(lm,im,jm) :: egcm,t2gcm
+!@var w2gcm vertical component of egcm
+!@var t2gcm 3-d turbulent temperature variance in the whole atmosphere
+      real*8, dimension(lm,im,jm) :: egcm,w2gcm,t2gcm
 
 !@var uflux surface turbulent u-flux (=-<uw>)
 !@var vflux surface turbulent v-flux (=-<vw>)
@@ -132,10 +136,10 @@
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
-     *       ,usavg,vsavg,tauavg,ustar_pbl,egcm,tgvavg,qgavg
+     *       ,usavg,vsavg,tauavg,ustar_pbl,egcm,w2gcm,tgvavg,qgavg
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
-     *       ,vsavg,tauavg,ustar_pbl,egcm,tgvavg,qgavg
+     *       ,vsavg,tauavg,ustar_pbl,egcm,w2gcm,tgvavg,qgavg
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

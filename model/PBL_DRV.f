@@ -60,7 +60,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
      &     ,US,VS,WS,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q
+     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
      *     ,tr
 #endif
@@ -259,6 +259,7 @@ C ******************************************************************
 
       tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
       qgAVG(I,J)=qgAVG(I,J)+qg_sat*PTYPE
+      w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
 
       RETURN
       END SUBROUTINE PBL
@@ -487,7 +488,7 @@ c ----------------------------------------------------------------------
       USE GEOM, only : imaxj
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_pbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
+     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
 #ifdef TRACERS_ON
      *     ,trabl
 #endif
@@ -606,6 +607,7 @@ C**** initialise some pbl common variables
           TAUAVG(I,J)=0.
           TGVAVG(I,J)=0.
           QGAVG(I,J)=0.
+          w2_l1(I,J)=0.
 
           uflux(I,J)=0.
           vflux(I,J)=0.
@@ -651,7 +653,7 @@ C**** initialise some pbl common variables
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg
+     *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -674,6 +676,7 @@ C**** Check for NaN/INF in boundary layer data
 
       CALL CHECK3(tgvavg,IM,JM,1,SUBR,'tgvavg')
       CALL CHECK3(qgavg,IM,JM,1,SUBR,'qgavg')
+      CALL CHECK3(w2_l1,IM,JM,1,SUBR,'w2_l1')
 
       END SUBROUTINE CHECKPBL
 

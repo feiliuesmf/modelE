@@ -10,6 +10,7 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
+     &                     ,by3      
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
 #endif
@@ -48,7 +49,7 @@
 !@var WG     = magnitude of the geostrophic wind (m/s)
 !@var ZMIX   = a height used to match ground and surface fluxes
 
-      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf
+      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1
       real*8 :: us,vs,ws,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix,XCDpbl=1d0
       logical :: pole
@@ -214,7 +215,7 @@ c  internals:
 #endif
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
-      real*8 :: bgrid
+      real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
       integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
@@ -413,6 +414,15 @@ C**** tracers are now passive, so use 'upstream' concentration
       vfluxs=km(1)*(v(2)-v(1))/dzh(1)
       tfluxs=kh(1)*(t(2)-t(1))/dzh(1)
       qfluxs=kq(1)*(q(2)-q(1))/dzh(1)
+
+      an2=2.*grav*(t(n)-t(n-1))/((t(n)+t(n-1))*dzh(n-1))
+      dudz=(u(n)-u(n-1))/dzh(n-1)
+      dvdz=(v(n)-v(n-1))/dzh(n-1)
+      as2=dudz*dudz+dvdz*dvdz
+      tau=B1*lscale(n-1)/max(sqrt(2.*e(n-1)),teeny)
+      !@var w2_1 the vertical component of e at GCM layer 1
+      w2_1=twoby3*e(n-1)-tau*by3
+     &     *((3*g3-g2)*km(n-1)*as2+4.*g4*kh(n-1)*an2)
 
 c     call check1(ustar,1,ilong,jlat,2)
 

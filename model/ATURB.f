@@ -34,7 +34,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
 #endif
       USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
-     *     ,e_3d=>egcm,t2_3d=>t2gcm
+     *     ,e_3d=>egcm,w2_3d=>w2gcm,t2_3d=>t2gcm
       USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
 
 
@@ -52,7 +52,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,tau,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze,gm,gh
      &    ,km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
-     &    ,lscale,qturb,p2,p3,p4,rhobydze,bydzrhoe,uw,vw,wt,wt0
+     &    ,lscale,qturb,p2,p3,p4,rhobydze,bydzrhoe,uw,vw,w2,wt,wt0
      &    ,w2,gc_wt_by_t2,wq,wq0
 
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
@@ -209,7 +209,7 @@ C**** minus sign needed for ATURB conventions
           ! calculate turbulent diffusivities km,kh,kq,ke and kt2
           call kgcm(km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      1        ,gc_wt_by_t2,gm,gh
-     2        ,uw,vw,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2,dtdz
+     2        ,uw,vw,w2,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2,dtdz
      3        ,dqdz,g_alpha,an2,lscale,dz,dze,non_local,level,lm)
 
           ! integrate differential eqn for e
@@ -318,6 +318,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
 
             q_3d(i,j,l)=q(l)
             e_3d(l,i,j)=e(l)
+            w2_3d(l,i,j)=w2(l)
             t2_3d(l,i,j)=t2(l)
             km_3d(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
@@ -863,7 +864,7 @@ c     trapezoidal rule
 
       subroutine kgcm(km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t
      2    ,gc_wt2,gc_wt_by_t2
-     3    ,gm,gh,uw,vw,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2
+     3    ,gm,gh,uw,vw,w2,wt,wq,tau,u,v,t,e,qturb,t2,dudz,dvdz,as2
      4    ,dtdz,dqdz,g_alpha,an2,lscale,dz,dze,non_local,level,n)
 c     dz(j)==z(j+1)-z(j), dze(j)==ze(j+1)-ze(j)
 c     at main: u,v,t,q,ke
@@ -901,14 +902,14 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n), intent(inout) :: t2,kwt
       real*8, dimension(n), intent(out) ::
      &     km,kh,kq,ke,kt2,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
-     &    ,gc_wt_by_t2,gm,gh,uw,vw,wt,wq,tau
+     &    ,gc_wt_by_t2,gm,gh,uw,vw,w2,wt,wq,tau
       logical, intent(in) :: non_local
 
       real*8, parameter :: se=0.1d0,st2=0.06d0,kmax=600.d0
      &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5
      &  ,kemin=1.5d-5,kt2min=1.5d-5
 
-      real*8, dimension(n) :: u2,v2,w2,uv,ut,vt
+      real*8, dimension(n) :: u2,v2,uv,ut,vt
       real*8 :: ell,byden,ghj,gmj,gmmax
      &    ,sm,sh,sq,taue,e_lpbl
      &    ,kh_canuto,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
@@ -1023,6 +1024,8 @@ c       ke(j)=min(max(taue*se,kemin),kmax)
         vw(j)=-km(j)*dvdz(j)
         wt(j)=-kh(j)*dtdz(j)+gc_wt(j)
         wq(j)=-kq(j)*dqdz(j)+gc_wq(j)
+        w2(j)=twoby3*e(j)+tauj*(c7*(
+     2    dudz(j)*uw(j)+dvdz(j)*vw(j))+c8*g_alpha(j)*wt(j))
       enddo
       if(level.eq.25) then
         do j=1,n

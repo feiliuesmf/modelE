@@ -16,7 +16,7 @@
       USE TRACER_DIAG_COM, only: TAJLN,JLNT_TURB
 #endif
       USE DYNAMICS, only : pk,pdsig,plij
-      USE PBLCOM, only : dclev
+      USE PBLCOM, only : dclev,w2gcm,w2_l1
       IMPLICIT NONE
 
       integer, intent(in) :: LBASE_MIN,LBASE_MAX
@@ -45,6 +45,14 @@ C
 #endif
 
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
+
+      ! update w2gcm at 1st GCM layer
+      do j=1,jm
+      do i=1,im
+         w2gcm(1,i,j)=w2_l1(i,j)
+      end do
+      end do
+
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
 
