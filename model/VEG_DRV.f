@@ -9,8 +9,8 @@
       private
       save
 
-      public init_vegetation,reset_veg_to_defaults,veg_set_cell
-     &     ,upd_gh
+      public init_vegetation,reset_veg_to_defaults
+     &     ,veg_set_cell, veg_save_cell,upd_gh
 
       real*8,public :: cosday,sinday
 
@@ -38,6 +38,7 @@
       integer i, j, k
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 almass0, almassre, almassim  !nyk
+!      real*8 sla0f, slimf, slref !nyk
       real*8 slim,slre,svh,z
       real*8 snm,snf  ! temporary sums (adf)
       real*8 cwc_sum
@@ -158,6 +159,8 @@ c****
 c**** set the global arrays  ala, acs, afb, afr, anm, anf
 c****
       ala(:,:,:)=0.
+      alaf(:,:,:,:)=0.          !nyk lai by veg functional type
+      alaif(:,:,:)=0.
       acs(:,:,:)=0.
       avh(:,:)=0.
       afb(:,:)=0.
@@ -182,12 +185,15 @@ c****
           if(pearth.le.0..or.afb(i,j).ge.1.) cycle
 c**** calculate lai, cs coefficicents
           sfv=0.d0
-          sla0=0.
-          slre=0.
-          slim=0.
-          almass0=0.  !nyk
-          almassre=0. !nyk
-          almassim=0. !nyk
+          sla0=0.     !For calculating sla
+          slre=0.     !For calculating sla
+          slim=0.     !For calculating sla
+          !sla0f=0.     !For calculating alaf
+          !slref=0.     !For calculating alaf
+          !slimf=0.     !For calculating alaf
+          almass0=0.  !nyk For specific leaf area
+          almassre=0. !nyk For specific leaf area
+          almassim=0. !nyk For specific leaf area
           scs0=0.
           scsre=0.
           scsim=0.
@@ -208,6 +214,13 @@ c**** calculate lai, cs coefficicents
             slre=slre+fv*dif*cos(phase)
             slim=slim+fv*dif*sin(phase)
             !nyk-------------
+            !alaf and alaif
+            alaf(1,iv,i,j) = 0.5*(alamax(iv) + alamin(iv))
+            alaf(2,iv,i,j) = 0.5*dif*cos(phase)
+            alaf(3,iv,i,j) = 0.5*dif*sin(phase)
+            alaif(iv,i,j)= alaf(1,iv,i,j)+
+     $           cosday*alaf(2,iv,i,j)+sinday*alaf(3,iv,i,j) !save ij
+           !nyk-------------
             !almaxmin = almaxmin + sleafa(iv)*fv*(alamax(iv)-alamin(iv))
             almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
             !almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) + alamin(iv))
@@ -222,6 +235,7 @@ c**** calculate lai, cs coefficicents
           ala(1,i,j)=.5/sfv*sla0
           ala(2,i,j)=.5/sfv*slre
           ala(3,i,j)=.5/sfv*slim
+
           acs(1,i,j)=.5/sfv*scs0
           acs(2,i,j)=.5/sfv*scsre
           acs(3,i,j)=.5/sfv*scsim
@@ -298,10 +312,21 @@ c**** recompute ground hydrology data if necessary (new soils data)
 !@sum resets the vegetation module to a new cell i0,j0
       use sle001, only : fr,snowm,ngm,ws,shc,shw
       use vegetation, only : alaie,rs,nm,nf,alai,vh
-      use veg_com !, only:  vdata
-!      use surf_albedo, only: albvnh  !nyk
+     &     ,alait,vfraction
+     &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
+     &     ,cond_scheme         !nyk
+     &     ,cnc
+      use veg_com
+      use radncb, only : cosz1
+     &    ,FSRDIR,SRVISSURF  !adf, nyk
+      use veg_com, only : 
+     &     Cint,Qfol           ! added by adf
+     $     ,cnc_ij
+     &     ,aalbveg    ! nyk
+
 
       implicit none
+
       integer, intent(in) :: i0,j0
       real*8, parameter :: spgsn=.1d0
       integer l
@@ -320,9 +345,17 @@ c**** vh: vegetation height
       nm=anm(i0,j0) ! mean canopy nitrogen (g/m2) (adf)
       nf=anf(i0,j0) ! canopy nitrogen factor (adf)
       snowm=vh*spgsn
+
 c**** alai: leaf area index
       alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
       alai=max(alai,1.d0)
+      !lai by functional type, not normalized by cover fraction!
+      do L=1,8
+        alaif(L,i0,j0)=alaf(1,L,i0,j0)+
+     &       cosday*alaf(2,L,i0,j0)+sinday*alaf(3,L,i0,j0) !save ij
+        alait(L) = alaif(L,i0,j0)  !for VEGETATION.f
+        vfraction(L)=vdata(i0,j0,L+1) !for VEGETATION.f
+      end do
 
       alaic=5.0
       alaie=alaic*(1.-exp(-alai/alaic))
@@ -356,11 +389,54 @@ c???  cnc=alai/rs   redefined before being used (qsbal,cond)
 c shc(0,2) is the heat capacity of the canopy
       aa=ala(1,i0,j0)
       shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+
+!----------------------------------------------------------------------!
+      if (cond_scheme.eq.2) then  !new conductance scheme
+! Sine of solar elevation (rad).
+        sbeta=cosz1(i0,j0)
+! adf Fraction of solar radiation at ground that is direct beam.
+        fdir=FSRDIR(i0,j0)
+! nyk Calculate incident PAR, photosynthetically active radiation.
+!     *SRVISSURF is from SRDVIS:
+!     = incident visible solar radiation (dir+dif) on the surface
+!     = estimated as 53% of total solar flux density, so wavelength
+!       range is UV through ~760 or 770 nm cutoff (not strict)
+!     *SRDVIS is normalized to solar zenith = 0.
+!     *From integrating solar flux density (TOA) over solar spectrum,
+!       PAR(400-700 nm) is ~ 82% of the flux density of SRDVIS.
+        parinc=0.82*SRVISSURF(i0,j0)*sbeta
+! nyk Get vegetation grid albedo, temporary until canopy scheme in place
+        vegalbedo = aalbveg(i0,j0)
+! Internal foliage CO2 concentration (mol/m3).
+        Ci=Cint(i0,j0)
+! Foliage surface mixing ratio (kg/kg).
+        Qf=Qfol(i0,j0)
+        CNC = cnc_ij(i0,j0)
+      end if
+!----------------------------------------------------------------------!
       return
       end subroutine veg_set_cell
 
+
+      subroutine veg_save_cell(i,j)
+      !Save vegetation arrays for cell.
+      use vegetation, only: cond_scheme, Ci, Qf, CNC
+      use veg_com, only:  Cint, Qfol, cnc_ij
+
+      integer, intent(in):: i,j
+
+      if (cond_scheme.eq.2) then      !new conductance scheme only
+        Cint(i,j)=Ci                  ! Save last value
+        Qfol(i,j)=Qf                  ! Save last value
+        cnc_ij(i,j)=CNC
+      end if
+      end subroutine veg_save_cell
+
+
+
       end module veg_drv
 
+!****************************************************************************
 
       subroutine updveg (year,reset_veg)
 !@sum  reads appropriate crops data and updates the vegetation file
@@ -435,4 +511,6 @@ C**** Modify the vegetation fractions
 
       return
       end subroutine updveg
+
+
 

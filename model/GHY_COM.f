@@ -9,10 +9,7 @@
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
-!  #define VEGETATION_OLD
-#ifdef VEGETATION_OLD
-      use veg_com, only : Cint, Qfol, cnc_ij
-#endif
+
 
       IMPLICIT NONE
       SAVE
@@ -32,26 +29,6 @@ C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
-#ifdef VEGETATION_OLD_1
-!----------------------------------------------------------------------!
-! adf
-!@var Cint Internal foliage CO2 concentration (mol/m3)
-      REAL*8, DIMENSION(IM,JM) :: Cint
-!@var Qfol Foliage surface mixing ratio (kg/kg)
-      REAL*8, DIMENSION(IM,JM) :: Qfol
-!----------------------------------------------------------------------!
-
-      REAL*8, DIMENSION(NGM,IM,JM) :: AFR
-      REAL*8, DIMENSION(3,IM,JM) :: ALA,ACS,ALMASS !nyk almass
-      REAL*8, DIMENSION(IM,JM) :: AFB,AVH,AALBVEG !nyk aalbveg
-      real*8 can_w_capacity(im,jm)
-!----------------------------------------------------------------------!
-! adf
-      REAL*8, DIMENSION(IM,JM) :: ANM,ANF
-!----------------------------------------------------------------------!
-#endif
-
-
 
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
@@ -65,6 +42,8 @@ ccc FR_SNOW_RAD_IJ is snow fraction for albedo computations
 ccc actually it should be the same as FR_SNOW_IJ but currently the snow
 ccc model can't handle fractional cover for thick snow (will fix later)
       REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_RAD_IJ
+C**** Canopy temperature (C)
+      REAL*8, DIMENSION(IM,JM)      :: CANOPY_TEMP_IJ
 C**** replacements for GDATA
       REAL*8, DIMENSION(IM,JM) :: SNOWE
       REAL*8, DIMENSION(IM,JM) :: TEARTH
@@ -173,24 +152,16 @@ ccc TRSNOWBV is not used
 
       write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a,a)') 'R8 Wb(',
      *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm),'
-     *     ,'Cint,Qfol,cnc'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
      *       ,snowbv
-#ifdef VEGETATION_OLD
-     &       ,Cint,Qfol,cnc_ij
-#endif
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
 #endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
-#ifdef VEGETATION_OLD
-     *     ,Cint,Qfol ! ,cnc_ij
-        cnc_ij = 0.d0
-#endif
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

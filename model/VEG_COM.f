@@ -26,7 +26,9 @@
 
 !---  work arrays (recomputed for each restart)
       real*8, dimension(ngm,im,jm) :: afr
-      real*8, dimension(3,im,jm) :: ala,acs,almass !nyk almass
+      real*8, dimension(3,im,jm) :: ala,acs,almass !nyk almass=leaf mass
+      real*8, dimension(3,8,im,jm) :: alaf     !nyk lai components by vegtype
+      real*8, dimension(8,im,jm) :: alaif   !nyk lai by vegtype (not * vdata!)
       real*8, dimension(im,jm) :: afb,avh,aalbveg !nyk aalbveg
       real*8, dimension(im,jm) :: can_w_capacity
       real*8, dimension(im,jm) :: anm,anf ! adf

@@ -10,7 +10,7 @@
       private
 
 c**** public functions:
-      public veg_conductance
+      public veg_conductance, update_veg_locals
 
 ccc   rundeck parameters  5/1/03 nyk
 !@dbparam cond_scheme selects vegetation conductance scheme:
@@ -23,7 +23,9 @@ ccc   rundeck parameters  5/1/03 nyk
 !input from driver:
 !from veg_set_cell:
       real*8, public :: alaie,rs,alai,nm,nf,vh
-
+!nyk alait is lai by functional type.  Must multiply by vfraction
+!     to get fraction cover per grid cell
+      real*8, dimension(8), public :: alait, vfraction
 !from earth:
       real*8, public :: srht,pres,ch,vsm
 
@@ -45,25 +47,24 @@ ccc   rundeck parameters  5/1/03 nyk
       real*8, public :: Ci
 !@var Qf Original foliage surface mixing ratio (kg/kg) (adf)
       real*8, public :: Qf
-!@var Cin Updated internal foliage CO2 (adf)
-      real*8, public :: Cin
-!@var Qfn Updated foliage surface mixing ratio (kg/kg) (adf)
-!ghy      real*8, public :: Qfn
 
+!out:
+      real*8, public :: CNC
 
 !input from ghy:
       real*8 betad,tcan,qv
 !@var qv Canopy saturated mixing ratio (kg/kg)
 
 !out:
-      real*8 gpp,cnc
+      real*8 GPP
+
 
       common /veg_private/
      &      alaie,rs,alai,nm,nf,vh
      &     ,srht,pres,ch,vsm
-     &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf,Cin
+     &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf
      &     ,betad,tcan,qv
-     &     ,gpp,cnc
+     &     ,GPP,CNC
 !$OMP  THREADPRIVATE (/veg_private/)
 
 
@@ -71,7 +72,7 @@ ccc   rundeck parameters  5/1/03 nyk
 
 
       subroutine veg_conductance(
-     &      cnc_in_out 
+     &      cnc_out 
      &     ,gpp_out 
      &     ,betad_in ! evaporation efficiency
      &     ,tcan_in ! canopy temperature C
@@ -79,14 +80,13 @@ ccc   rundeck parameters  5/1/03 nyk
      $     ,dt_in  ! GHY time step
      &     )
       implicit none
-      real*8, intent(inout) :: cnc_in_out
+      real*8, intent(out) :: cnc_out
       real*8, intent(out) :: gpp_out
       real*8, intent(in) :: betad_in,tcan_in,qv_in,dt_in
 
       betad = betad_in
       tcan = tcan_in
       qv = qv_in
-      cnc = cnc_in_out
 
       if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
         gpp=0                   ! dummy value for GPP if old cond_scheme
@@ -94,8 +94,8 @@ ccc   rundeck parameters  5/1/03 nyk
       else         ! cond_scheme=2 or anything else
         call veg(dt_in)                ! added by adf
       endif
-      cnc_in_out = cnc
-      gpp_out = gpp
+      cnc_out = CNC
+      gpp_out = GPP
       end subroutine veg_conductance
 
 
@@ -116,11 +116,11 @@ c**** adjust canopy conductance for soil water potential
 !@var c1 canopy conductance related parameter
       real*8, parameter :: c1 = 90.d0
       real*8 srht0
-      cnc=betad*alaie/rs
+      CNC=betad*alaie/rs
 c**** adjust canopy conductance for incoming solar radiation
       srht0=max(srht,zero)
-      cnc=cnc*(srht0/c1)/(1.d0+srht0/c1)
-      cnc=cnc/(1.d0+((tcan+tfrz-296.d0)/15.d0)**4)
+      CNC=CNC*(srht0/c1)/(1.d0+srht0/c1)
+      CNC=CNC/(1.d0+((tcan+tfrz-296.d0)/15.d0)**4)
       return
       end subroutine cond
 
@@ -134,8 +134,12 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
       implicit none
 !----------------------------------------------------------------------!
+!****************************************************
+!NEED TO REPLACE Ca WITH CO2 FROM THE CLIMATE MODEL TRACERS
 !@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
+
       real*8, parameter :: Ca=0.0127D0
+!****************************************************
 !@var sigma Leaf scattering coefficient (?unitless).
       real*8, parameter :: sigma=0.2D0
       real*8  temp
@@ -297,9 +301,7 @@ c**** adjust canopy conductance for incoming solar radiation
       dQs=Qv-Qf
       if(dQs.lt.zero)dQs=zero
 !----------------------------------------------------------------------!
-! New equilibrium canopy conductance to moisture (m/s). betaD removed
-! from here to allow Ci to be calculated.
-! *betaD put back here, otherwise inconsistent calculation of dCNC
+! New equilibrium canopy conductance to moisture (m/s). 
       CNCN=betad*(1.0D0-0.0075D0*vh)*650.0D-6*Anet_max*
      &   ((Ci+0.004D0)/(Ci+EPS))*2.8D0**(-80.0D0*dQs)
 ! Required change in canopy conductance to reach equilibrium (m/s).
@@ -310,28 +312,28 @@ c**** adjust canopy conductance for incoming solar radiation
       IF(-dCNC.gt.dCNC_max)CNCN=CNC-dCNC_max
 ! Biological limits of absolute CNC (m/s).
       if(CNCN.gt.0.006*alai)CNCN=0.006*alai
-! Following should be included, but causes the GCM to crash. Need to ask
-! Igor about this (seems to result in transpiration of non-existent
-! soil water). This left in to allow Ci to be calculated, and so
-! betaD moved from CNCN above to CNC below.
 !NOTE:  Water balance issue due to not modeling canopy water content
 !       explicitly.  This needs to be considered at some point. -nyk
       if(CNCN.lt.0.00006*alai)CNCN=0.00006*alai
+!----------------------------------------------------------------------!
+! Update Ci.
 ! Total conductance from inside foliage to surface height at 30m (m/s),
 ! where CO2 is assumed at Ca.
       gt=1.0D0/(1.42D0/CNCN+1.65D0/(ch*vsm+EPS))
-!----------------------------------------------------------------------!
 ! Foliage internal CO2 concentration for next timestep (mol/m3).
-      Cin=Ca-1.0D-6*Anet/gt
+      Ci=Ca-1.0D-6*Anet/gt
 ! Limit Cin to physical realism (mol/m3). It is possible that
 ! oscilliations could occur due the Ci<>CNC feedback. Also, something
 ! to watch out for is that setting Ci like this does not conserve CO2.
-      if(Cin.lt.EPS)Cin=EPS
+      if(Ci.lt.EPS)Ci=EPS
+! NOTE:  Cannot update Qf here, because requires evap_tot calculated by
+!        ground hydrology.  Therefore updated through update_veg_locals.
+!----------------------------------------------------------------------!
+! OUTPUTS:
 ! Gross primary productivity (kg[C]/m2/s).
       GPP=0.012D-6*Anet   ! should be dependent on conductance ??
 ! Canopy conductance for next timestep (m/s).
       CNC=CNCN
-!----------------------------------------------------------------------!
       return
       end subroutine veg
 !----------------------------------------------------------------------!
@@ -525,6 +527,24 @@ c**** adjust canopy conductance for incoming solar radiation
       end subroutine phot
 !----------------------------------------------------------------------!
 
+      !----------------------------------------------------------------
+      subroutine update_veg_locals(evap_tot2, rho, rhow, ch, vsm,qs)
+      !Update vegetation input variables that require values external
+      !to vegetation module to update.  For values that change within
+      !the smaller time step of the GHY modules.
+
+      real*8,intent(in):: evap_tot2
+      real*8,intent(in):: rho, rhow, ch, vsm, qs
+      real*8 rho3,cna
+      
+      !adf Get new Qf
+      rho3=rho/rhow
+      cna=ch*vsm
+      Qf=evap_tot2/(rho3*cna)+qs  ! New mixing ratio for next timestep (adf)
+      end subroutine update_veg_locals
+      !----------------------------------------------------------------
+
+
       subroutine veg_accm
 
       ! agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
@@ -538,3 +558,11 @@ c**** adjust canopy conductance for incoming solar radiation
 
 
       end module vegetation
+
+
+
+
+
+
+
+

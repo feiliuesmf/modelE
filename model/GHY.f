@@ -193,6 +193,15 @@ ccc   soil internal variables wchich need to be passed from/to ghinij
 
 ccc   soil internal variables wchich need to be passed to driver anyway
       real*8, public :: snowd(2),tp(0:ngm,2),fice(0:ngm,2)
+      !tp(:,:) is the temperature (C) of soil layers numbered from top
+      !to bottom for both bare and vegetated fractions.
+      !tp(:,1) - temperature for bare soil fraction
+      !tp(:,2) - temperature for vegetated fraction
+
+      !tp(0,2) - canopy
+      !tp(0,1) - not used
+      !tp(1,:) - upper soil layer
+      !tp(2,:) - second soil layer
 
 ccc   snow prognostic variables
       integer, parameter, public :: nlsn=3
@@ -285,9 +294,6 @@ ccc   i.e. they are not multiplied by any fr_...
 !@var thrm_tot total T^4 heat (weighted with fr_snow,fm)(bare/veg)(m/s)
       real*8 evap_tot(2), snsh_tot(2), thrm_tot(2)
 
-!@var Qfn Updated foliage surface mixing ratio (kg/kg) (adf)
-      real*8, public :: Qfn
-
 ccc data for tracers
 !@var flux_snow water flux between snow layers (>0 down) (m/s)
 !@var wsn_for_tr snow water before call to snow_adv
@@ -326,7 +332,7 @@ C***
      &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu !veg alaie,
-     &     ,ashg,atrg,betad,betat,ch,cnc,gpp,d,devapbs_dt,devapvs_dt
+     &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
      &     ,epb_dt,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
      &     ,evapbs,evapdl,evaps_dt,evapvd,evapvs,evapvw,f !evapor,
@@ -339,9 +345,7 @@ C***
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr
-!veg     &     ,fdir,sbeta,Ci,Qf,nm,nf !,alai ! added by adf
-!veg     &     ,Cin,Qfn,qv,vh,parinc,vegalbedo    ! added by ia
-     &     ,Qfn
+
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
@@ -696,7 +700,7 @@ ccc   local variables
 !@var betadl transpiration efficiency for each soil layer
       real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
-
+      real*8 cnc         ! local cnc from veg_conductance, nyk
 
 c     cna is the conductance of the atmosphere
       cna=ch*vsm
@@ -710,7 +714,6 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       betadl(:) = 0.d0
       betad = 0.d0
       abetad = 0.d0
-      ! cnc = 0.  ! is set in GHY_DRV for cond_scheme=2
       acna = 0.d0
       acnc = 0.d0
 
@@ -772,14 +775,7 @@ c     Get canopy conductivity cnc and gpp
      &       ,qv
      &       ,dts
      &       )
-cddd        if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
-cddd          gpp=0       ! dummy value for GPP if old cond_scheme
-cddd          call cond
-cddd        else        ! cond_scheme=2 or anything else
-cddd          ! veg uses qv, so it should be computed before "call veg"
-cddd          qv  = qsat(tp(0,2)+tfrz,lhe,pres)
-cddd          call veg              ! added by adf
-cddd        endif
+
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
         acna=cna                ! return to old diagnostics
@@ -822,7 +818,7 @@ ccc not sure if all this should be in one subroutine, but otherwise
 ccc one has to pass all these flux limits
 
       if ( .not. ( evap_max_out > 0. .or.  evap_max_out <= 0. ) )then
-        write(99,*)evap_max_out,CNC,evap_max(2)
+        write(99,*)evap_max_out,cnc,evap_max(2)
         call stop_model("GHY::evap_limits: evap_max_out = NaN",255)
       endif
 
@@ -1015,7 +1011,7 @@ ccc   for bare soil drip is precipitation
 
       subroutine flg
 !@sum computes the water fluxes at the surface
-      real*8 rho3,cna
+
 c     bare soil
       if ( process_bare ) then
         f(1,1) = -flmlt(1)*fr_snow(1) - flmlt_scale(1)
@@ -1039,12 +1035,7 @@ c     compute evap_tot for accumulators
       evap_tot(1) = evapb*(1.d0-fr_snow(1)) + evapbs*fr_snow(1)
       evap_tot(2) = (evapvw*fw + evapvd*fd)*(1.d0-fr_snow(2)*fm)
      &     + evapvs*fr_snow(2)*fm
-!----------------------------------------------------------------------!
-! adf
-      rho3=rho/rhow
-      cna=ch*vsm
-      Qfn=evap_tot(2)/(rho3*cna)+qs
-!----------------------------------------------------------------------!
+
       return
       end subroutine flg
 
@@ -1456,25 +1447,27 @@ c**** fm - snow vegetation masking fraction (requires reth called first)
 c**** output:
 c**** tp - temperature of layers, c
 c**** fice - fraction of ice of layers
-ccc   include 'soils45.com'
+ccc   include 'soils45.com'http://www.giss.nasa.gov/internal/
 c**** soils28   common block     9/25/90
       integer ibv, l, ll
       tp(:,:) = 0.d0
       fice(:,:) = 0.d0
       do ibv=i_bare,i_vege
-        ll=2-ibv
-        do l=ll,n
+        LL=2-ibv
+        do l=LL,n
           ! tp(l,ibv)=0.d0
           !if(w(l,ibv).ge.1d-12)then
           !  fice(l,ibv)=-ht(l,ibv)/(fsn*w(l,ibv))
-          !else
+          !elsehttp://www.giss.nasa.gov/internal/
           !  fice(l,ibv)=0.d0
           !endif
           if( fsn*w(l,ibv)+ht(l,ibv) .lt. 0.d0 ) then ! all frozen
             tp(l,ibv)=(ht(l,ibv)+w(l,ibv)*fsn)/(shc(l,ibv)+w(l,ibv)*shi)
             fice(l,ibv)=1.d0
           else if( ht(l,ibv) .gt. 0.d0 ) then ! all melted
-            tp(l,ibv)=ht(l,ibv)/(shc(l,ibv)+w(l,ibv)*shw)
+            tp(l,ibv)=ht(l,ibv)/(shc(l,ibv)+w(l,ibv)*shw)  !##Canopy temp
+            !shc -- specific heat of canopy
+            !shw -- specific heat of water
             ! fice(l,ibv)=0.d0
           else if( w(l,ibv) .ge. 1d-12 )then  ! part frozen
             fice(l,ibv)=-ht(l,ibv)/(fsn*w(l,ibv))
@@ -1593,6 +1586,8 @@ c**** retp,reth,fl,flg,runoff,sink,sinkh,fllmt,flh,flhg.
 c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      use vegetation, only: update_veg_locals
+
       real*8 dtm,tb0,tc0,dtr
       integer ibv,l,ll,limit,nit
       real*8 dum1, dum2
@@ -1713,6 +1708,10 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
         call retp
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
+
+        call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
+
+
       enddo
 
       call accmf

@@ -39,8 +39,8 @@ c****
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
-      use radncb, only : trhr,fsf,cosz1
-     &    ,FSRDIR,SRVISSURF  !adf, nyk
+      use radncb, only : trhr,fsf, cosz1
+
       use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001
@@ -58,9 +58,9 @@ c****
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
      &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
      &     ,ghy_debug
-!veg     &    ,fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin,Qfn ! added by adf, nyk
-!veg     &    ,cond_scheme  !nyk
-     &     ,Qfn,cnc
+      use veg_drv, only: veg_set_cell, veg_save_cell
+      use vegetation, only: update_veg_locals
+
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -104,7 +104,7 @@ c****
      *     ,runoe,erunoe,gtemp,precss
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     snowe,tearth,wearth,aiearth,
+     *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
 #ifdef TRACERS_WATER
      &     ,tr_wbare,tr_wvege,tr_wsn_ij
@@ -112,14 +112,9 @@ c****
 !#ifdef TRACERS_WATER
 !     *     ,trvege,trbare,trsnowbv
 !#endif
-      use veg_com, only : afb
-     &     ,Cint,Qfol           ! added by adf
-     $     ,cnc_ij
-     &     ,aalbveg    ! nyk
       use vegetation, only :
-     &     fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin     ! added by adf, nyk
-     &    ,cond_scheme  !nyk
-     &    ,veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm
+     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
+
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
      &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
@@ -492,32 +487,6 @@ c  define extra variables to be passed in surfc:
       srht  =srheat
       veg_srht = srheat
       trht  =trheat
-!----------------------------------------------------------------------!
-      if (cond_scheme.eq.2) then  !new conductance scheme
-! Sine of solar elevation (rad).
-        sbeta=cosz1(i,j)
-! adf Fraction of solar radiation at ground that is direct beam.
-        fdir=FSRDIR(i,j)
-! nyk Calculate incident PAR, photosynthetically active radiation.
-!     *SRVISSURF is from SRDVIS:
-!     = incident visible solar radiation (dir+dif) on the surface
-!     = estimated as 53% of total solar flux density, so wavelength
-!       range is UV through ~760 or 770 nm cutoff (not strict)
-!     *SRDVIS is normalized to solar zenith = 0.
-!     *From integrating solar flux density (TOA) over solar spectrum,
-!       PAR(400-700 nm) is ~ 82% of the flux density of SRDVIS.
-        parinc=0.82*SRVISSURF(i,j)*sbeta
-! nyk Get vegetation grid albedo, temporary until canopy scheme in place
-        vegalbedo = aalbveg(i,j)
-! Internal foliage CO2 concentration (mol/m3).
-        Ci=Cint(i,j)
-        Cin = Ci  ! initialize it for cases when "veg" is not called
-! Foliage surface mixing ratio (kg/kg).
-        Qf=Qfol(i,j)
-        Qfn = Qf  ! initialize it for cases when "veg" is not called
-        cnc = cnc_ij(i,j)
-      end if
-!----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    eddy  =khs   !!! will not need after qsbal is replaced
 c     tspass=ts
@@ -525,15 +494,16 @@ c***********************************************************************
 c****
 c**** calculate ground fluxes
 c     call qsbal
+
+
+      call veg_set_cell(i,j)
+
       call ghinij (i,j,wfc1)
+      !call init_localveg
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
-      if (cond_scheme.eq.2) then            !new conductance scheme only
-        Cint(i,j)=Cin                  ! New CO2 for next timestep (adf)
-        Qfol(i,j)=Qfn         ! New mixing ratio for next timestep (adf)
-        cnc_ij(i,j)=cnc
-      end if
+      call veg_save_cell(i,j)
 
       tg1=tbcs
       !qg_ij(i,j) = qs  !!! - this seemed to work ok
@@ -596,6 +566,8 @@ ccc copy snow variables back to storage
       wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
+ccc Save canopy temperature.
+      canopy_temp_ij(i,j) = tp(0,2)  !nyk
 ccc tracers
 #ifdef TRACERS_WATER
       do nx=1,ntg
@@ -1355,9 +1327,6 @@ c****
       ijdebug=i0*1000+j0
       i_earth = i0
       j_earth = j0
-
-ccc setting vegetation
-      call veg_set_cell(i0,j0)
 
 
 ccc passing topmodel parameters
