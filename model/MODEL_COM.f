@@ -235,6 +235,9 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       ALLOCATE( FTYPE(NTYPE,IM,J_0H:J_1H), 
      *         STAT=IER)
 
+! initialize non-initialized arrays
+      FTYPE(:,:,:) = 0.d0
+
       END SUBROUTINE INIT_MODEL_COM
 
       END MODULE MODEL_COM
