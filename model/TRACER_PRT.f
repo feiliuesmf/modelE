@@ -27,7 +27,9 @@
       USE TRDIAG_COM, only : tij_conc
       USE TRDIAG_COM, only : jlnt_conc
       USE TRDIAG_COM, only : jlnt_mass
+#ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
+#endif
       USE DYNAMICS, only: am,byam
       implicit none
 
@@ -487,7 +489,9 @@ C****
 
       USE TRDIAG_COM, only : jlnt_conc
       USE TRDIAG_COM, only : jlnt_mass
+#ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
+#endif
       USE TRDIAG_COM, only : jlnt_nt_tot
       USE TRDIAG_COM, only : jlnt_nt_mm 
       USE TRDIAG_COM, only : jlnt_lscond
@@ -500,7 +504,9 @@ C****
       USE TRDIAG_COM, only :    ia_jlq
       USE TRDIAG_COM, only : scale_jlq
       USE TRDIAG_COM, only : jlq_power
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
+#endif
       USE TRDIAG_COM, only : ktajls
       USE BDJLT
       IMPLICIT NONE
@@ -1081,8 +1087,10 @@ C****
       USE TRDIAG_COM, only : tij_drydep
       USE TRDIAG_COM, only : tij_gsdep 
 #endif
+#ifdef TRACERS_WATER
       USE TRDIAG_COM, only : tij_prec
       USE TRDIAG_COM, only : tij_grnd
+#endif
 
       USE TRDIAG_COM, only : lname_ijts
       USE TRDIAG_COM, only : sname_ijts
@@ -1090,8 +1098,10 @@ C****
       USE TRDIAG_COM, only : scale_ijts
       USE TRDIAG_COM, only : ia_ijts
 
-      USE TRDIAG_COM, only : ktaij, ktaijs, to_per_mil, ijts_index
-
+      USE TRDIAG_COM, only : ktaij, ktaijs, ijts_index
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+     &     ,to_per_mil
+#endif
 
       USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
