@@ -39,7 +39,7 @@ C****
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf
+     *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe
@@ -55,7 +55,7 @@ C****
      *     ,RTAUVS,RTAUUS,RTAUS,TAUS,WSS,TSS,QSS,USS,VSS,RHOSRF,RMBYA
      *     ,TFS,TH1,THV1,P1K,PSK,TS,PS,PIJ,PSOIL,PEARTH,WARMER,BRUN0
      *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
-     *     ,TIMEZ,SPRING,ZS1CO,RVX
+     *     ,TIMEZ,SPRING,ZS1CO,RVX,F1DTS
 
 c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
 c      COMMON /WORK1d/DTH1,DQ1
@@ -194,6 +194,7 @@ C        USRS=0.
          PPBLS=0.
          DBLS=0.
          EVAPS=0.
+         F1DTS=0.
          QSATSS=0.
 C**** New quantities to be zeroed out over ground timesteps
          ARUNS=0.
@@ -390,6 +391,7 @@ C        USRS=USRS+USR*PTYPE
          PPBLS=PPBLS+PPBL*PTYPE
          DBLS=DBLS+DBL*PTYPE
          EVAPS=EVAPS+EVAP*PTYPE
+         F1DTS=F1DTS+AF1DT*PTYPE
          QSATSS=QSATSS+QSATS*PTYPE
 C****
 C**** EARTH
@@ -448,6 +450,7 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          AREG(JR,J_RUN2 )=AREG(JR,J_RUN2 )+ARUNU*PEARTH*DXYPJ
          AREG(JR,J_DWTR2)=AREG(JR,J_DWTR2)+AERUNU*PEARTH*DXYPJ
          AREG(JR,J_RUN1 )=AREG(JR,J_RUN1 )+ARUNS*PEARTH*DXYPJ
+         AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
          IF(MODDSF.NE.0) GO TO 5700
          AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ

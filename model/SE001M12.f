@@ -32,7 +32,7 @@ C****
       USE DAGCOM, only : aij,tdiurn,aj,areg,adaily,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
-     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
+     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : tlandi,snowli
@@ -57,7 +57,7 @@ C****
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,WARMER,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
-     *     ,PLK,PLKI
+     *     ,PLK,PLKI,F1DTS
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(IM,JM,4) :: TGRND,TGRN2
@@ -205,6 +205,7 @@ C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
          EDS1S=0.
          PPBLS=0.
          EVAPS=0.
+         F1DTS=0.
          DBLS=0.
 C****
       IF (POCEAN.LE.0.) then
@@ -439,6 +440,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
          EDS1S=EDS1S+KH*PTYPE
          PPBLS=PPBLS+PPBL*PTYPE
          EVAPS=EVAPS+EVAP*PTYPE
+         F1DTS=F1DTS+F1DT*PTYPE
          DBLS=DBLS+DBL*PTYPE
 5666  GO TO (4000,4100,4400),ITYPE
 C****
@@ -507,6 +509,7 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDTS*DXYPJ
          AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDTS*DXYPJ
          AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAPS*DXYPJ
+         AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
          IF(MODDSF.NE.0) GO TO 5700
          AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ

@@ -161,7 +161,7 @@ c only check diagnostics if no prognostic errors
 c      else
       DAGPOS=1
       ERRQ=COMP8 ('AJ    ',JM,94,6  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94*3
+      DAGPOS=DAGPOS+JM*94*6
       ERRQ=COMP8 ('AREG  ',24,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+24*94
       ERRQ=COMP8 ('APJ   ',JM,3,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
