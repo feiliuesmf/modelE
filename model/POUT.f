@@ -437,7 +437,7 @@ C**** set dimensions
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME
       CHARACTER*4, INTENT(IN) :: NAMDD !names of boxes
       INTEGER, INTENT(IN) :: HR_IN_DAY,KP,IJDD1,IJDD2
-      REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR), INTENT(IN) :: FHOUR
+      REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR), INTENT(IN) :: FHOUR
       INTEGER K,N,I
 
 C**** Convert spaces in TITLE to underscore
