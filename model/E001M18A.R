@@ -68,7 +68,7 @@ TOP_INDEX=top_index_72x46.ij
 Label and Namelist:
 E001M18A (2002 standard model)
 R=00BG/B
-DTfix=180
+DTFIX=180
 
 &&PARAMETERS
 X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
