@@ -35,7 +35,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=1JAN1951.rsfE001 ! just label records of control run are needed
+AIC=1JAN1951.rsfE001.frc ! just 3 label records + radia-record (use fcop1)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S    ! surf.drag coefficient

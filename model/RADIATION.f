@@ -418,10 +418,9 @@ C----------------   in multi-cpu mode, each cpu needs its own copy !!
       real*8, dimension(LX,6) ::
      *     SRAEXT,SRASCT,SRAGCB,SRBEXT,SRBSCT,SRBGCB,
      *     SRDEXT,SRDSCT,SRDGCB,SRVEXT,SRVSCT,SRVGCB,
-     *     SRCEXT,SRCSCT,SRCGCB,DBLEXT,DBLSCT,DBLGCB,DBLPI0,SRCPI0,
-     *     QDUST,SDUST,CDUST                    !nu ,QAERO,SAERO,CAERO
+     *     SRCEXT,SRCSCT,SRCGCB,DBLEXT,DBLSCT,DBLGCB,DBLPI0,SRCPI0
       real*8, dimension(LX,33) :: TRCALK,TRAALK,TRBALK,TRTAUK,TRDALK
-     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB,ADUST  !nu ,AAERO
+     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB
       real*8, dimension(33) :: TRCTCA,DFSL,UFSL,WFSL,CLPI0,TXCTPG,TSCTPG
      *     ,TGCTPG,AVH2S,TRGALB,BGFEMT,BGFEMD
       real*8, dimension(LX) :: PL,DPL,WTLB,WTLT
@@ -457,8 +456,6 @@ C**** local except for special radiative aerosol diagnostics aadiag
      Q             ,DNA,DNB,DNC,Q55H2S
      R             ,RIJTCK,FDXTCK,ALBTCK,CLPI0
      S             ,FEMTCK,TXCTPG,TSCTPG,TGCTPG
-!nu  T             ,QAERO,SAERO,CAERO,AAERO
-     U             ,QDUST,SDUST,CDUST,ADUST
      V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X
      W             ,O2FHRB,AO3D,AO3U
      X             ,HTPROF,QVH2S,SVH2S,GVH2S,AVH2S
@@ -3981,9 +3978,9 @@ C                              ----------------------------------------
       DO 270 L=1,NL
       DO 260 K=1,6
       DO 250 N=1,8
-      SRDEXT(L,K)=SRDEXT(L,K)+QDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDSCT(L,K)=SRDSCT(L,K)+SDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDGQL     = CDUST(L,K)*SDUST(L,K)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDEXT(L,K)=SRDEXT(L,K)+QXDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDSCT(L,K)=SRDSCT(L,K)+QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
+      SRDGQL     =QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
       SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
   250 CONTINUE
   260 CONTINUE
@@ -3992,7 +3989,7 @@ C                              ----------------------------------------
       DO 300 L=1,NL
       DO 290 K=1,33
       DO 280 N=1,8
-      TRDALK(L,K)=TRDALK(L,K)+ADUST(L,K)*DTAULX(L,N)*FTXTAU*FT8OPX(7)
+      TRDALK(L,K)=TRDALK(L,K)+ATDUST(K,N)*DTAULX(L,N)*FTXTAU*FT8OPX(7)
   280 CONTINUE
   290 CONTINUE
   300 CONTINUE
