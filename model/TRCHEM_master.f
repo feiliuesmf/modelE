@@ -804,7 +804,7 @@ C
 C
 C ACCUMULATE 3D NO3 diagnostic: -------------------
          if (yNO3(I,J,L).gt.0.d0 .and. yNO3(I,J,L).lt.1.d20)
-     &   taijs(i,j,ijs_NO3(l))=taijs(i,j,ijs_NO3(l))+y(nNO3,l)
+     &   taijs(i,j,ijs_NO3(l))=taijs(i,j,ijs_NO3(l))+yNO3(i,j,l)
 C -------------------------------------------------
        enddo  ! troposphere loop
 C
