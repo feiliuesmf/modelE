@@ -927,9 +927,12 @@ C
 !@var zlt ?
 !@var I model longitude index
 !@var J model latitude index
+!@param tune_land multiplier of flash rate over land to match observ.
+!@param tune_ocean multiplier of flash rate over land to match observ.
       INTEGER, INTENT(IN) :: LMAX,LFRZ,I,J
       INTEGER lmax_temp
       REAL*8 HTCON,HTFRZ,flash,th,th2,th3,th4,zlt,CG
+      REAL*8, PARAMETER :: tune_land=2.0944d0, tune_ocean=3.1416d0
 C
 c The folowing simple algorithm calculates the lightning
 c frequency in each gridbox using the moist convective cloud
@@ -962,9 +965,9 @@ c 4x5 degrees).  We use a threshold of 1% for continental
 c gridboxes. The units are flashes per minute.
 
       If (fland(i,j).le.0.01) then
-        flash=2.17d0*6.2d-4*(htcon**1.73d0)  ! ocean
+        flash=tune_ocean*2.17d0*6.2d-4*(htcon**1.73d0)  ! ocean
       else
-        flash=2.17d0*3.44d-5*(htcon**4.92d0) ! continent
+        flash= tune_land*2.17d0*3.44d-5*(htcon**4.92d0) ! continent
       end if
 
 c The formulation by Price and Rind (1993) in Geophysical Res.
