@@ -884,7 +884,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.5d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -894,7 +894,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -904,7 +904,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=4.4D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -914,7 +914,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65d3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=6.7D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -926,7 +926,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.61D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -936,7 +936,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.63D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -946,7 +946,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.35D3     ! for Montmorillonite
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -956,7 +956,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.71D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -966,7 +966,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.75D-06
+          trradius(n)=0.46D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -976,7 +976,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -986,7 +986,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65D3     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -996,7 +996,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.71D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1006,7 +1006,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1016,7 +1016,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=1.47D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1026,7 +1026,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1036,7 +1036,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65D3     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1046,7 +1046,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.71D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1056,7 +1056,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1066,7 +1066,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=2.94D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1076,7 +1076,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1086,7 +1086,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.65D3     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1096,7 +1096,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.71D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1106,7 +1106,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
@@ -1116,7 +1116,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n)=-9
           trpdens(n)=2.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.2D-06
+          trradius(n)=5.88D-06
 #endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
