@@ -67,6 +67,6 @@ C**** loop over remaining arguments (assumed to be files)
       Stop
  900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A50)
  906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
- 907  FORMAT (22X,3(X,A12,F5.1) / 22X,3(X,A12,F5.1))
+ 907  FORMAT (10(22X,3(X,A12,F5.1) / ))
       end
 
