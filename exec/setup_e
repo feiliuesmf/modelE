@@ -216,7 +216,7 @@
    echo "./$RUNID"uln >> $RUNID
    echo 'rm -f lock' >> $RUNID
    echo "exec $EXECDIR/runpmE $RUNID" '$rc' "$MAILTO" >> $RUNID
-   rm -f E ; ln $RUNID E 
+   ln -sf $RUNID E 
 ## end of RUNID script
 
    chmod ugo+x  $RUNID

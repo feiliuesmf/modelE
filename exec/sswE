@@ -15,5 +15,12 @@
       exit ; fi
 
   cd "$CMRUNDIR/$RUNID"
-  echo "___OFF__" > sswOnOff
-  echo "Set the switch to OFF position. Please wait for $RUNID to stop."
+  if [[ -s flagGoStop ]] ; then
+    echo "__STOP__" > flagGoStop
+    echo "Set the flag to STOP position. Please wait for $RUNID to stop."
+  elif [[ -s sswOnOff ]] ; then  # be compatible with older runs
+    echo "___OFF__" > sswOnOff
+    echo "Set the switch to OFF position. Please wait for $RUNID to stop."
+  else
+    echo "flagGoStop not found. $RUNID not running?  No action ..."
+  fi
