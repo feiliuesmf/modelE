@@ -1577,8 +1577,6 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-
-      rhs1(1)  = 0.
       rhs1(n)  = vtop
 
       call TRIDIAG(sub,dia,sup,rhs,u,n)
@@ -1775,8 +1773,6 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-
-      rhs1(1)  = 0.
       rhs1(n)  = vtop
 
       call TRIDIAG(sub,dia,sup,rhs,u,n)
