@@ -66,16 +66,17 @@ $path_output_doc = relpath($abs_output_dir,$abs_doc_dir);
 if ( ! $run_name ) { $run_name = $output_dir; }
 
 #init global hashes:
-%db_vars = {};       #var name: module:sub:var
-%db_subs = {};       #sub name: module:sub
-%db_modules = {};
-%db_files = {};
+%db_vars = ();       #var name: module:sub:var
+%db_subs = ();       #sub name: module:sub
+%db_modules = ();
+%db_files = ();
 
 
 if ( $#ARGV < 0 ) {
     print_main_index();
     exit;
 }
+
 
 while( $current_file = shift ) {
     open(SRCFILE, $current_file) or die "can't open $current_file\n";
@@ -377,7 +378,7 @@ sub relpath {
 
 
 sub print_main_index {
-    my %run_index = {};
+    my %run_index = ();
     print  "printing main index\n";
     if ( open ( IND, "$doc_dir/index.html" ) ) {
 	while ( <IND> ) {
