@@ -90,6 +90,14 @@ C**** INITIALIZE TIME PARAMETERS
 C****
 C**** Open and position output history files if needed
 C****
+C**** Monthly files
+      if (Kradia.ne.0) then
+        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+        if (Kradia.gt.0) aDATE(4:7)='    '
+        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
+      end if
+C**** Files for an accumulation period (1-12 months)
       write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
       if (Kvflxo.ne.0) then
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
@@ -98,11 +106,6 @@ C****
       if (Nslp.ne.0) then
         call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
         call io_POS(iu_SLP,Itime,im*jm,Nslp)
-      end if
-      if (Kradia.ne.0) then
-        if (Kradia.gt.0) aDATE(4:7)='    '
-        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
-        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
       end if
 C****
 C**** MAIN LOOP
@@ -124,28 +127,31 @@ C**** write restart information alternatingly onto 2 disk files
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
-C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-        IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) ) then
-          call reset_DIAG(0)
-            write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-          if (Kvflxo.ne.0) then
-            call closeunit( iu_VFLXO )
-            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
-          end if
-          if (Nslp.ne.0) then
-            call closeunit( iu_SLP )
-            call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
-          end if
+C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
+        if (kradia.le.0) call daily_DIAG
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
+        IF ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
+          write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
           if (Kradia.ne.0) then
             if (Kradia.gt.0) aDATE(4:7)='    '
             call closeunit( iu_RAD )
             call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
           end if
-        end if
-C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-        if (kradia.le.0) call daily_DIAG
-      END IF
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
+          months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+          if ( months.ge.NMONAV ) then
+            call reset_DIAG(0)
+            if (Kvflxo.ne.0) then
+              call closeunit( iu_VFLXO )
+              call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+            end if
+            if (Nslp.ne.0) then
+              call closeunit( iu_SLP )
+              call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
+            end if
+          end if   !  beginning of acc.period
+        END IF     !  beginning of month
+      END IF       !  beginning of day
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
@@ -960,14 +966,14 @@ C***********************************************************************
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****        mainly used for REPEATS and delayed EXTENSIONS
-      CASE (8:9)    ! no need to read diag.arrays
+      CASE (1:9)                      !  diag.arrays are not read in ...
+        call reset_diag(0)            !  ... but reset to 0
         call openunit("AIC",iu_AIC,.true.,.true.)
-        if(istart.eq.8) then   !  initial start of rad.forcing run
+        if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
+        if(istart.le.8) then         !  initial start of rad.forcing run
           call io_label(iu_AIC,Itime,irerun,ioerr)
           if (Kradia.gt.1) call io_rad (iu_AIC,Itime,irsfic,ioerr)
-          call reset_diag(0)
         end if
-        if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
         call closeunit(iu_AIC)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
@@ -976,7 +982,7 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
 C****
 !**** IRANDI seed for random perturbation of current state (if/=0)
 C****        tropospheric temperatures are changed by at most 1 degree C
-        IF (IRANDI.NE.0) THEN
+        IF (IRANDI.ne.0 .and. Kradia.le.0) THEN
           CALL RINIT (IRANDI)
           DO L=1,LS1-1
           DO J=1,JM
