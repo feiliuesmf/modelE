@@ -4399,7 +4399,7 @@ CCC   SAVE
 C
       COMMON /SVOLCM/ E24LAT,EJMLAT,HLATKM,REFF0,
      *                 FSXTAU,FTXTAU,NJ25,NJJM
-      PARAMETER (HTPLIM=1.D-03)
+CCC   PARAMETER (HTPLIM=1.D-03)
 C
 CCC   DATA HLATKM/ 15.0, 20.0, 25.0, 30.0, 35.0/
 CCC   DATA LATVOL/0/
@@ -4432,14 +4432,14 @@ C
 C                   Set Grid-Box Edge Latitudes for Data Repartitioning
 C                   ---------------------------------------------------
       NJ25=25
-      DO 110 J=1,24
-      E24LAT(J+1)=-90.D0+(J-1.5D0)*180.D0/23.D0
+      DO 110 J=2,24
+      E24LAT(J)=-90.D0+(J-1.5D0)*180.D0/23.D0
   110 CONTINUE
       E24LAT( 1)=-90.D0
       E24LAT(25)= 90.D0
       NJJM=46+1
-      DO 120 J=1,46
-      EJMLAT(J+1)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
+      DO 120 J=2,46
+      EJMLAT(J)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
   120 CONTINUE
       EJMLAT(   1)=-90.D0
       EJMLAT(NJJM)= 90.D0
@@ -4514,16 +4514,16 @@ C
       HLATTF(K)=HTFLAT(JLAT,K)
   310 CONTINUE
       CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NLP)
-      LHPMAX=0
-      LHPMIN=NL
+ccc   LHPMAX=0       ! not used
+ccc   LHPMIN=NL      ! not used
       DO 320 L=1,NL
       N=NLP-L
-      IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
-      IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
+ccc   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
+ccc   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
   320 CONTINUE
       SUMHTF=1.D-10
       DO 330 L=1,NL
-      IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
+ccc   IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
       SUMHTF=SUMHTF+HTPROF(L)
   330 CONTINUE
 C
@@ -5597,7 +5597,7 @@ C**** Snow:
           if(hsn.ge.0.1d0)then
             patchy=1d0
           else
-            patchy=hsn/0.1d0 
+            patchy=hsn/0.1d0
           endif
           if(flags)then         ! wet snow
             alsf(1)=.871d0
@@ -5616,7 +5616,7 @@ C**** Snow:
             alsd(4)=.053d0-.0047d0*cosz
 C**** consider snow age for dry snow (not yet fully tested)
 cC**** As dry snow ages it moves towards wet snow value (Who knows?)
-c            snfac(1)=.104d0 ; snfac(2)=.130d0  
+c            snfac(1)=.104d0 ; snfac(2)=.130d0
 c            snfac(3)=.171d0 ; snfac(4)=.024d0
 c            ASNAGE=EXP(-0.2D0*AGESN(2))-1.
 c            alsf(1:4)=alsf(1:4)+snfac(1:4)*ASNAGE
@@ -5635,13 +5635,13 @@ c**** combined sea ice albedo
         albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
 
         IF(KVEGA6.GT.0) THEN
-C**** 6 band albedo: take 4 Schramm wavelength intervals, map to GISS ones
-C****  (1)  250-690    -->  330-770  (1) 
+C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
+C****  (1)  250-690    -->  330-770  (1)
 C****  (2) 690-1190    -->  770-860   (2)
 C****                  -->  860-1250  (3)
-C****  (3) 1190-2380   --> 1250-1500  (4) 
-C****                  --> 1500-2200  (5) 
-C****  (4) 2380-4000   --> 2200-4400  (6) 
+C****  (3) 1190-2380   --> 1250-1500  (4)
+C****                  --> 1500-2200  (5)
+C****  (4) 2380-4000   --> 2200-4400  (6)
           BOIVN(1)=albtf(1)
           XOIVN(1)=albtr(1)
           BOIVN(2:3)=albtf(2)
@@ -5660,7 +5660,7 @@ C**** create a composite NIR value.
         END IF
         EXPSNO=1.-patchy
 C**** end of Schramm's version
-      else        
+      else
 C**** original version
       EXPSNO=EXP(-SNOWOI/DMOICE)
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
