@@ -1,9 +1,9 @@
-C**** EE001M12 E001M12 SOMTQ EB357M12
-C****
-C**** Subroutine EARTH used by new land surface model.
-C**** Coded to use new SOC PBL routines.
+c**** EE001M12 E001M12 SOMTQ EB357M12
+c****
+c**** subroutine earth used by new land surface model.
+c**** coded to use new soc pbl routines.
       module soil_drv
-      use MODEL_COM, only : im,jm
+      use model_com, only : im,jm
       implicit none
       private
       save
@@ -12,48 +12,48 @@ C**** Coded to use new SOC PBL routines.
      $     ,conserv_htg
 
       real*8 cosday,sinday
-!@var GDEEP keeps average (2:n) values of temperature, water and ice
-      REAL*8, DIMENSION(IM,JM,3) :: GDEEP 
+!@var gdeep keeps average (2:n) values of temperature, water and ice
+      real*8, dimension(im,jm,3) :: gdeep 
 
       real*8 spgsn !@var specific gravity of snow
 
 
       contains
-      SUBROUTINE EARTH (NS,MODDSF,MODD6)
-C****
-C**** This subroutine calculates surface fluxes of sensible heat,
-C**** evaporation, thermal radiation, and momentum drag.
-C****
-      USE CONSTANT, only : grav,rgas,sday,lhm,lhe,lhs,twopi,omega
+      subroutine earth (ns,moddsf,modd6)
+c****
+c**** this subroutine calculates surface fluxes of sensible heat,
+c**** evaporation, thermal radiation, and momentum drag.
+c****
+      use constant, only : grav,rgas,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shw,shi,edpery,deltx
-      USE MODEL_COM, only : t,p,q,DTsrc,NIsurf,dsig
-     *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6,itearth
+      use model_com, only : t,p,q,dtsrc,nisurf,dsig
+     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,ijd6,itearth
      *     ,vt_on
-      USE GEOM, only : imaxj,dxyp
-      USE RADNCB, only : trhr,fsf,cosz1
-      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
+      use geom, only : imaxj,dxyp
+      use radncb, only : trhr,fsf,cosz1
+      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth
-      USE SLE001
+      use sle001
      &    , only : reth,retp,advnc,
-     &    NGM,
-     &    PR,HTPR,PRS,HTPRS,GW=>W,HT,SNOWD,TP,FICE,GHOUR=>HOUR,
-     &    FV,FB,ATRG,ASHG,ALHG,
-     &    BETAD=>ABETAD,BETAV=>ABETAV,BETAT=>ABETAT,
-     &    BETAP=>ABETAP,BETAB=>ABETAB,BETA=>ABETA,
-     &    ACNA,ACNC,
-     &    EVAPW=>AEVAPW,EVAPD=>AEVAPD,EVAPB=>AEVAPB,
-     &    ARUNS,ARUNU,AERUNS,AERUNU,
-     &    DIFS=>ADIFS,EDIFS=>AEDIFS,
-     &    AEPC,AEPB,AEPP,AFHG,AF0DT,AF1DT,ZW,TBCS,
-     &    QM1,Q1,QS,
-     &    PRES,RHO,TSPASS=>TS,VSM,CH,SRHT,TRHT,ZS, !CD,SNHT,
-     &    ZMIXE=>Z1, !CN=>CDN,P1,PBLP=>PPBL,
-     &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY,
-     &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
-      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      USE SOCPBL, only : zgs
-      USE DAGCOM , only : aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
+     &    ngm,
+     &    pr,htpr,prs,htprs,gw=>w,ht,snowd,tp,fice,ghour=>hour,
+     &    fv,fb,atrg,ashg,alhg,
+     &    betad=>abetad,betav=>abetav,betat=>abetat,
+     &    betap=>abetap,betab=>abetab,beta=>abeta,
+     &    acna,acnc,
+     &    evapw=>aevapw,evapd=>aevapd,evapb=>aevapb,
+     &    aruns,arunu,aeruns,aerunu,
+     &    difs=>adifs,edifs=>aedifs,
+     &    aepc,aepb,aepp,afhg,af0dt,af1dt,zw,tbcs,
+     &    qm1,q1,qs,
+     &    pres,rho,tspass=>ts,vsm,ch,srht,trht,zs, !cd,snht,
+     &    zmixe=>z1, !cn=>cdn,p1,pblp=>ppbl,
+     &    tgpass=>tg,tkpass=>t1,vgm=>vg,eddy,
+     &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
+      use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
+      use socpbl, only : zgs
+      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
@@ -61,754 +61,754 @@ C****
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
      *     ij_g24,ij_g25,ij_g26,ij_g27
-      USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
-      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
+      use dynamics, only : pmid,pk,pek,pedn,pdsig
+      use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
 
-      IMPLICIT NONE
+      implicit none
 
-      INTEGER, INTENT(IN) :: NS,MODDSF,MODD6
-      INTEGER I,J,L,KR,JR,ITYPE,IMAX,IHOUR
-      REAL*8 SHDT,QSATS,EVAP,EVHDT,TG2AV,ACE2AV,TRHDT,RCDMWS
-     *     ,RCDHWS,DHGS,CDQ,CDM,CDH,ELHX,TG,SRHEAT,TG1,PTYPE,QSATSS
-     *     ,EVAPS,PPBLS,EDS1S,DBLS,DGSS,CDHS,CDMS,QGS,SRHDTS,SHDTS
-     *     ,EVHDTS,TG1S,DXYPJ,TRHEAT,WTR2AV,WFC1,WGS,VGS,UGS,TRHDTS
-     *     ,RTAUVS,RTAUUS,RTAUS,TAUS,WSS,TSS,QSS,USS,VSS,RHOSRF,RMBYA
-     *     ,TFS,TH1,THV1,P1K,PSK,TS,PS,PIJ,PSOIL,PEARTH,WARMER,BRUN0
-     *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
-     *     ,TIMEZ,SPRING,ZS1CO,F1DTS
+      integer, intent(in) :: ns,moddsf,modd6
+      integer i,j,l,kr,jr,itype,imax,ihour
+      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
+     *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,qsatss
+     *     ,evaps,ppbls,eds1s,dbls,dgss,cdhs,cdms,qgs,srhdts,shdts
+     *     ,evhdts,tg1s,dxypj,trheat,wtr2av,wfc1,wgs,vgs,ugs,trhdts
+     *     ,rtauvs,rtauus,rtaus,taus,wss,tss,qss,uss,vss,rhosrf,rmbya
+     *     ,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth,warmer,brun0
+     *     ,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu,bshdt,btrhdt
+     *     ,timez,spring,zs1co,f1dts
      *     ,rvx
 
-c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
-c      COMMON /WORK1d/DTH1,DQ1
-c      COMMON /WORK2/DU1,DV1
-c      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND
-c      COMMON/WORK3/E0,E1,EVAPOR,TGRND
-      REAL*8, DIMENSION(IM,JM) :: PRCSS
-      COMMON /WORKLS/PRCSS
-C**** Interface to PBL
-      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC
-     *     ,EDS1,PPBL,UG,VG,WG,ZMIX
-      LOGICAL POLE
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
+c      real*8, dimension(im,jm) :: dth1,dq1,du1,dv1
+c      common /work1d/dth1,dq1
+c      common /work2/du1,dv1
+c      real*8, dimension(im,jm,4) :: e0,e1,evapor,tgrnd
+c      common/work3/e0,e1,evapor,tgrnd
+      real*8, dimension(im,jm) :: prcss
+      common /workls/prcss
+c**** interface to pbl
+      real*8 zs1,tgv,tkv,qg,hemi,dtsurf,us,vs,ws,tsv,qsrf,psi,dbl,edvisc
+     *     ,eds1,ppbl,ug,vg,wg,zmix
+      logical pole
+      common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC,EDS1,
-     2               PPBL,UG,VG,WG,ZMIX
+      common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,
+     2               ppbl,ug,vg,wg,zmix
 
-      REAL*8 QSAT
-C****
-C**** FEARTH    SOIL COVERED LAND FRACTION (1)
-C****
-C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
-C**** SNOWE     EARTH SNOW AMOUNT (KG/M**2)
-C**** TSI(1:2)  OCEAN ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
-C****        4  EARTH TEMPERATURE OF FIRST LAYER (C)
-C****        5  EARTH WATER OF FIRST LAYER (KG/M**2)
-C****        6  EARTH ICE OF FIRST LAYER (KG/M**2)
-C**** SNOWLI      LAND ICE SNOW AMOUNT (KG/M**2)
-C**** TLANDI(1:2) LAND ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
-C****
-C**** WBARE  1-6 WATER OF BARE SOIL LAYER 1-6 (M)
-C**** WVEGE   0  WATER OF VEGETATION CANOPY (M)
-C****        1-6 WATER OF VEGETATED SOIL LAYER 1-6 (M)
-C**** HTBARE  0  BARE SOIL LAYER 0 IS UNUSED
-C****        1-6 HEAT CONTENT OF BARE SOIL LAYER 1-6 (J M-2)
-C**** HTVEGE  0  HEAT CONTENT OF VEGETATION CANOPY (J M-2)
-C****        1-6 HEAT CONTENT OF VEGETATED SOIL LAYER 1-6 (J M-2)
-C**** SNOWBV  1  SNOW DEPTH OVER BARE SOIL (M)
-C****         2  SNOW DEPTH OVER VEGETATED SOIL (M)
-C****
+      real*8 qsat
+c****
+c**** fearth    soil covered land fraction (1)
+c****
+c**** snowi     ocean ice snow amount (kg/m**2)
+c**** snowe     earth snow amount (kg/m**2)
+c**** tsi(1:2)  ocean ice temperature of first/second layer (c)
+c****        4  earth temperature of first layer (c)
+c****        5  earth water of first layer (kg/m**2)
+c****        6  earth ice of first layer (kg/m**2)
+c**** snowli      land ice snow amount (kg/m**2)
+c**** tlandi(1:2) land ice temperature of first/second layer (c)
+c****
+c**** wbare  1-6 water of bare soil layer 1-6 (m)
+c**** wvege   0  water of vegetation canopy (m)
+c****        1-6 water of vegetated soil layer 1-6 (m)
+c**** htbare  0  bare soil layer 0 is unused
+c****        1-6 heat content of bare soil layer 1-6 (j m-2)
+c**** htvege  0  heat content of vegetation canopy (j m-2)
+c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
+c**** snowbv  1  snow depth over bare soil (m)
+c****         2  snow depth over vegetated soil (m)
+c****
 c     if(.not. vt_on) then
           rvx=0.
 c     else
 c         rvx=deltx !not working yet
 c     endif
 
-      DTSURF=DTsrc/NISURF
-      ZS1CO=.5*DSIG(1)*RGAS/GRAV
+      dtsurf=dtsrc/nisurf
+      zs1co=.5*dsig(1)*rgas/grav
 
-      SPRING=-1.
-      IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
-      IHOUR=1+JHOUR
-C****
-C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NISURF TIMES EVERY HOUR
-C****
-      TIMEZ=JDAY+(MOD(ITime,NDAY)+(NS-1.)/NISURF)/NDAY ! -1 ??
-      IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
-      GHOUR=(ITime+(NS-1.)/NISURF) ! *(24./NDAY)
-C****
-C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
-C****
+      spring=-1.
+      if((jday.ge.32).and.(jday.le.212)) spring=1.
+      ihour=1+jhour
+c****
+c**** outside loop over time steps, executed nisurf times every hour
+c****
+      timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
+      if(jday.le.31) timez=timez+365.
+      ghour=(itime+(ns-1.)/nisurf) ! *(24./nday)
+c****
+c**** outside loop over j and i, executed once for each grid point
+c****
          
-      loop_j: DO J=1,JM
-      HEMI=1.
-      IF(J.LE.JM/2) HEMI=-1.
-      IMAX=IMAXJ(J)
-      POLE=.FALSE.
-C**** CONDITIONS AT THE SOUTH/NORTH POLE
-      IF( J.EQ.1 .or. J.EQ.JM ) POLE = .TRUE.
-C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
-         BTRHDT=0.
-         BSHDT=0.
-         BEVHDT=0.
-         BTS=0.
-         BRUN0=0.
-         BERUN0=0.
-         BDIFS=0.
-         BEDIFS=0.
-         BERUNU=0.
-         BRUNU=0.
-         IF(J.LT.JEQ) WARMER=-SPRING
-         IF(J.GE.JEQ) WARMER=SPRING
-      loop_i: DO I=1,IMAX
-C****
-C**** DETERMINE SURFACE CONDITIONS
-C****
-      PEARTH=FEARTH(I,J)
-      PSOIL=PEARTH
-      PIJ=P(I,J)
-      PS=PEDN(1,I,J)
-      PSK=PEK(1,I,J)
-      ! P1=PMID(1,I,J) ! not used
-      P1K=PK(1,I,J)
-      TH1=T(I,J,1)
-      Q1=Q(I,J,1)
-      THV1=TH1*(1.+Q1*RVX)
-      TKV=THV1*PSK
-      TFS=TF*PSOIL
-      RMBYA=100.*PDSIG(1,I,J)/GRAV
-      QM1=Q1*RMBYA
-c     RHOSRF=100.*PS/(RGAS*TKV)
-      RHOSRF=100.*PS/(RGAS*TSV)
-C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
-      USS=0.
-      VSS=0.
-      WSS=0.
-      TSS=0.
-      QSS=0.
-      TAUS=0.
-         RTAUS=0.
-         RTAUUS=0.
-         RTAUVS=0.
-C        SINAPS=0.
-C        COSAPS=0.
-         JR=JREG(I,J)
-         DXYPJ=DXYP(J)
-         TG1S=0.
-         QGS=0.
-         SRHDTS=0.
-         TRHDTS=0.
-         SHDTS=0.
-         EVHDTS=0.
-         UGS=0.
-         VGS=0.
-         WGS=0.
-C        USRS=0.
-         CDMS=0.
-         CDHS=0.
-         DGSS=0.
-         EDS1S=0.
-         PPBLS=0.
-         DBLS=0.
-         EVAPS=0.
-         F1DTS=0.
-         QSATSS=0.
-C**** New quantities to be zeroed out over ground timesteps
-         ARUNS=0.
-         ARUNU=0.
-         AERUNS=0.
-         AERUNU=0.
-         DIFS=0.
-         EDIFS=0.
-      EVAPW=0.
-      EVAPD=0.
-      EVAPB=0.
-         ALHG=0.
-         AEPC=0.
-         AEPB=0.
-         AFHG=0.
-         ATRG=0.
-      ASHG=0.
-         AF0DT=0.
-         AF1DT=0.
-C****
-C**** EARTH
-C****
-      IF (PEARTH.LE.0.) then
+      loop_j: do j=1,jm
+      hemi=1.
+      if(j.le.jm/2) hemi=-1.
+      imax=imaxj(j)
+      pole=.false.
+c**** conditions at the south/north pole
+      if( j.eq.1 .or. j.eq.jm ) pole = .true.
+c**** zero out surface diagnostics which will be summed over longitude
+         btrhdt=0.
+         bshdt=0.
+         bevhdt=0.
+         bts=0.
+         brun0=0.
+         berun0=0.
+         bdifs=0.
+         bedifs=0.
+         berunu=0.
+         brunu=0.
+         if(j.lt.jeq) warmer=-spring
+         if(j.ge.jeq) warmer=spring
+      loop_i: do i=1,imax
+c****
+c**** determine surface conditions
+c****
+      pearth=fearth(i,j)
+      psoil=pearth
+      pij=p(i,j)
+      ps=pedn(1,i,j)
+      psk=pek(1,i,j)
+      ! p1=pmid(1,i,j) ! not used
+      p1k=pk(1,i,j)
+      th1=t(i,j,1)
+      q1=q(i,j,1)
+      thv1=th1*(1.+q1*rvx)
+      tkv=thv1*psk
+      tfs=tf*psoil
+      rmbya=100.*pdsig(1,i,j)/grav
+      qm1=q1*rmbya
+c     rhosrf=100.*ps/(rgas*tkv)
+      rhosrf=100.*ps/(rgas*tsv)
+c**** zero out quantities to be summed over surface types
+      uss=0.
+      vss=0.
+      wss=0.
+      tss=0.
+      qss=0.
+      taus=0.
+         rtaus=0.
+         rtauus=0.
+         rtauvs=0.
+c        sinaps=0.
+c        cosaps=0.
+         jr=jreg(i,j)
+         dxypj=dxyp(j)
+         tg1s=0.
+         qgs=0.
+         srhdts=0.
+         trhdts=0.
+         shdts=0.
+         evhdts=0.
+         ugs=0.
+         vgs=0.
+         wgs=0.
+c        usrs=0.
+         cdms=0.
+         cdhs=0.
+         dgss=0.
+         eds1s=0.
+         ppbls=0.
+         dbls=0.
+         evaps=0.
+         f1dts=0.
+         qsatss=0.
+c**** new quantities to be zeroed out over ground timesteps
+         aruns=0.
+         arunu=0.
+         aeruns=0.
+         aerunu=0.
+         difs=0.
+         edifs=0.
+      evapw=0.
+      evapd=0.
+      evapb=0.
+         alhg=0.
+         aepc=0.
+         aepb=0.
+         afhg=0.
+         atrg=0.
+      ashg=0.
+         af0dt=0.
+         af1dt=0.
+c****
+c**** earth
+c****
+      if (pearth.le.0.) then
         ipbl(i,j,4)=0
-        TDIURN(I,J,5)=TDIURN(I,J,5)+(TSAVG(I,J)-TF)
-        IF(TSAVG(I,J).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=TSAVG(I,J)
-C       IF(TSAVG(I,J).GT.AIJ(I,J,IJ_TMAX)) AIJ(I,J,IJ_TMAX)=TSAVG(I,J)
-C       IF(TSAVG(I,J).LT.AIJ(I,J,IJ_TMIN)) AIJ(I,J,IJ_TMIN)=TSAVG(I,J)
+        tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
+        if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
+c       if(tsavg(i,j).gt.aij(i,j,ij_tmax)) aij(i,j,ij_tmax)=tsavg(i,j)
+c       if(tsavg(i,j).lt.aij(i,j,ij_tmin)) aij(i,j,ij_tmin)=tsavg(i,j)
         cycle loop_i
       endif
-C     NGRNDZ=NGRND HAS TO BE 1
-c      ZGS=10.
-      ITYPE=4
-      PTYPE=PEARTH
-      PR=PREC(I,J)/(DTsrc*RHOW)
-      PRS=PRCSS(I,J)/(DTsrc*RHOW)
-      HTPR=EPREC(I,J)/DTsrc
-      GW(1:NGM,1) =  WBARE(1:NGM,I,J)
-      GW(0:NGM,2) =  WVEGE(0:NGM,I,J)
-      HT(0:NGM,1) = HTBARE(0:NGM,I,J)
-      HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-      SNOWD(1:2)  = SNOWBV(1:2,I,J)
+c     ngrndz=ngrnd has to be 1
+c      zgs=10.
+      itype=4
+      ptype=pearth
+      pr=prec(i,j)/(dtsrc*rhow)
+      prs=prcss(i,j)/(dtsrc*rhow)
+      htpr=eprec(i,j)/dtsrc
+      gw(1:ngm,1) =  wbare(1:ngm,i,j)
+      gw(0:ngm,2) =  wvege(0:ngm,i,j)
+      ht(0:ngm,1) = htbare(0:ngm,i,j)
+      ht(0:ngm,2) = htvege(0:ngm,i,j)
+      snowd(1:2)  = snowbv(1:2,i,j)
 ccc extracting snow variables
-      NSN(1:2)          = NSN_IJ    (1:2, I, J)
-      ISN(1:2)          = ISN_IJ    (1:2, I, J)
-      DZSN(1:NLSN, 1:2) = DZSN_IJ   (1:NLSN, 1:2, I, J)
-      WSN(1:NLSN, 1:2)  = WSN_IJ    (1:NLSN, 1:2, I, J)
-      HSN(1:NLSN, 1:2)  = HSN_IJ    (1:NLSN, 1:2, I, J)
-      FR_SNOW(1:2)      = FR_SNOW_IJ(1:2, I, J)
-      CALL GHINIJ (I,J,WFC1)
-      CALL RETH
-      CALL RETP
-C     CALL HYDRA
-C??   SNOW = SNOWD(1)*FB + SNOWD(2)*FV
-      TG1=TBCS
-      SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-      SRHDTS=SRHDTS+SRHEAT*DTSURF*PTYPE
-C****
-C**** BOUNDARY LAYER INTERACTION
-C****
-      ZS1=ZS1CO*TKV*PIJ/PS
-      !P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP  - not used
-C**** LOOP OVER GROUND TIME STEPS
-      TG=TG1+TF
-      ELHX=LHE
-      IF(TG1.LT.0.)  ELHX=LHS
-      QG=QSAT(TG,ELHX,PS)
-      TGV=TG*(1.+QG*RVX)
-C***********************************************************************
-C***
-      CALL PBL(I,J,ITYPE,PTYPE)
-C***
-      CDM = cmgs(i,j,itype)
-      CDH = chgs(i,j,itype)
-      CDQ = cqgs(i,j,itype)
-C***********************************************************************
-C**** CALCULATE QS
+      nsn(1:2)          = nsn_ij    (1:2, i, j)
+      isn(1:2)          = isn_ij    (1:2, i, j)
+      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i, j)
+      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i, j)
+      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i, j)
+      fr_snow(1:2)      = fr_snow_ij(1:2, i, j)
+      call ghinij (i,j,wfc1)
+      call reth
+      call retp
+c     call hydra
+c??   snow = snowd(1)*fb + snowd(2)*fv
+      tg1=tbcs
+      srheat=fsf(itype,i,j)*cosz1(i,j)
+      srhdts=srhdts+srheat*dtsurf*ptype
+c****
+c**** boundary layer interaction
+c****
+      zs1=zs1co*tkv*pij/ps
+      !p1=pmid(1,i,j)    ! sig(1)*pij+ptop  - not used
+c**** loop over ground time steps
+      tg=tg1+tf
+      elhx=lhe
+      if(tg1.lt.0.)  elhx=lhs
+      qg=qsat(tg,elhx,ps)
+      tgv=tg*(1.+qg*rvx)
+c***********************************************************************
+c***
+      call pbl(i,j,itype,ptype)
+c***
+      cdm = cmgs(i,j,itype)
+      cdh = chgs(i,j,itype)
+      cdq = cqgs(i,j,itype)
+c***********************************************************************
+c**** calculate qs
          dhgs=(zmix-zgs)*cdh*ws
-C****    dqgs=(zmix-zgs)*cdq*ws
-      QS=QSRF
-      TS=TSV/(1.+QS*RVX)
-C**** CALCULATE RHOSRF*CDM*WS
-      RCDMWS=CDM*WS*RHOSRF
-      RCDHWS=CDH*WS*RHOSRF
-C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
-C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
-c      SNHT=-SHA*RCDHWS*(TS-TG)  ! -not used
-      TRHEAT=TRHR(1,I,J)
-C **********************************************************************
-C *****
-C  Define extra variables to be passed in SURFC:
-      PRES  =PS
-      RHO   =RHOSRF
-      VSM   =WS
-      CH    =CDH
-      ! CD    =CDM  ! - not used
-      SRHT  =SRHEAT
-      TRHT  =TRHEAT
-      ZS    =ZGS
-      ZMIXE =ZMIX
-      !PBLP  =PPBL ! not used
-      VGM   =WG
-      EDDY  =EDS1
-      ! CN    =CDN ! not used
-      TGPASS=TGV
-      TSPASS=TSV
-      TKPASS=TKV
-C **********************************************************************
-C *****
-C**** Calculate ground fluxes
-C     CALL QSBAL
-      CALL ADVNC
-      TG1=TBCS
+c****    dqgs=(zmix-zgs)*cdq*ws
+      qs=qsrf
+      ts=tsv/(1.+qs*rvx)
+c**** calculate rhosrf*cdm*ws
+      rcdmws=cdm*ws*rhosrf
+      rcdhws=cdh*ws*rhosrf
+c**** calculate fluxes of sensible heat, latent heat, thermal
+c****   radiation, and conduction heat (watts/m**2)
+c      snht=-sha*rcdhws*(ts-tg)  ! -not used
+      trheat=trhr(1,i,j)
+c **********************************************************************
+c *****
+c  define extra variables to be passed in surfc:
+      pres  =ps
+      rho   =rhosrf
+      vsm   =ws
+      ch    =cdh
+      ! cd    =cdm  ! - not used
+      srht  =srheat
+      trht  =trheat
+      zs    =zgs
+      zmixe =zmix
+      !pblp  =ppbl ! not used
+      vgm   =wg
+      eddy  =eds1
+      ! cn    =cdn ! not used
+      tgpass=tgv
+      tspass=tsv
+      tkpass=tkv
+c **********************************************************************
+c *****
+c**** calculate ground fluxes
+c     call qsbal
+      call advnc
+      tg1=tbcs
 
-      WBARE(1:NGM,I,J) = GW(1:NGM,1)
-      WVEGE(0:NGM,I,J) = GW(0:NGM,2)
-      HTBARE(0:NGM,I,J) = HT(0:NGM,1)
-      HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
-      SNOWBV(1:2,I,J)   = SNOWD(1:2)
+      wbare(1:ngm,i,j) = gw(1:ngm,1)
+      wvege(0:ngm,i,j) = gw(0:ngm,2)
+      htbare(0:ngm,i,j) = ht(0:ngm,1)
+      htvege(0:ngm,i,j) = ht(0:ngm,2)
+      snowbv(1:2,i,j)   = snowd(1:2)
 ccc copy snow variables back to storage
-      NSN_IJ    (1:2, I, J)         = NSN(1:2)
-      ISN_IJ    (1:2, I, J)         = ISN(1:2)
-      DZSN_IJ   (1:NLSN, 1:2, I, J) = DZSN(1:NLSN,1:2)
-      WSN_IJ    (1:NLSN, 1:2, I, J) = WSN(1:NLSN,1:2)
-      HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
-      FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
+      nsn_ij    (1:2, i, j)         = nsn(1:2)
+      isn_ij    (1:2, i, j)         = isn(1:2)
+      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
+      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
+      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
+      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
-      AIJ(I,J,IJ_G05)=AIJ(I,J,IJ_G05)+BETAB/NIsurf
-      AIJ(I,J,IJ_G06)=AIJ(I,J,IJ_G06)+BETAP/NIsurf
-      AIJ(I,J,IJ_G11)=AIJ(I,J,IJ_G11)+BETA/NIsurf
-      AIJ(I,J,IJ_G12)=AIJ(I,J,IJ_G12)+ACNA/NIsurf
-      AIJ(I,J,IJ_G13)=AIJ(I,J,IJ_G13)+ACNC/NIsurf
-      AIJ(I,J,IJ_G14)=AIJ(I,J,IJ_G14)+AEPP
-      AIJ(I,J,IJ_G15)=AIJ(I,J,IJ_G15)+TP(1,1)
-      AIJ(I,J,IJ_G16)=AIJ(I,J,IJ_G16)+TP(2,1)
-      AIJ(I,J,IJ_G17)=AIJ(I,J,IJ_G17)+TP(3,1)
-      AIJ(I,J,IJ_G18)=AIJ(I,J,IJ_G18)+EVAPB
-      AIJ(I,J,IJ_G19)=AIJ(I,J,IJ_G19)+EVAPD
-      AIJ(I,J,IJ_G20)=AIJ(I,J,IJ_G20)+EVAPW
-      AIJ(I,J,IJ_G21)=AIJ(I,J,IJ_G21)+TP(0,2)
-      AIJ(I,J,IJ_G22)=AIJ(I,J,IJ_G22)+TP(1,2)
-      AIJ(I,J,IJ_G23)=AIJ(I,J,IJ_G23)+TP(2,2)
-      AIJ(I,J,IJ_G24)=AIJ(I,J,IJ_G24)+TP(3,2)
-      AIJ(I,J,IJ_G25)=AIJ(I,J,IJ_G25)+FB*ZW(1)+FV*ZW(2)
-      AIJ(I,J,IJ_G26)=AIJ(I,J,IJ_G26)+BETAV/NIsurf
-      AIJ(I,J,IJ_G27)=AIJ(I,J,IJ_G27)+BETAT/NIsurf
-      TRHDT=TRHEAT*DTSURF-ATRG
-C     FOR RADIATION FIND COMPOSITE VALUES OVER EARTH
-C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
-      SNOWE(I,J)=1000.*(SNOWD(1)*FB+SNOWD(2)*FV)
-      TEARTH(I,J)=TG1
-      WEARTH(I,J)=1000.*( FB*GW(1,1)*(1.-FICE(1,1)) +
-     &     FV*(GW(1,2)*(1.-FICE(1,2))+GW(0,2)*(1.-FICE(0,2))) )
-      AIEARTH(I,J)=1000.*( FB*GW(1,1)*FICE(1,1) +
-     &     FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)) )
-      CALL RETP2 (TG2AV,WTR2AV,ACE2AV)
-      GDEEP(I,J,1)=TG2AV
-      GDEEP(I,J,2)=WTR2AV
-      GDEEP(I,J,3)=ACE2AV
-      GTEMP(1,4,I,J)=TEARTH(I,J)
-C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
-      DU1(I,J)=DU1(I,J)+PTYPE*DTSURF*RCDMWS*US/RMBYA
-      DV1(I,J)=DV1(I,J)+PTYPE*DTSURF*RCDMWS*VS/RMBYA
-C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
-      EVAP=EVAPW+EVAPD+EVAPB
-      EVAPOR(I,J,4)=EVAPOR(I,J,4)+EVAP
-      EVHDT=-ALHG
-      SHDT=-ASHG
-      DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*RMBYA*P1K)
-      DQ1(I,J) =DQ1(I,J)+EVAP*PTYPE/RMBYA
-      USS=USS+US*PTYPE
-      VSS=VSS+VS*PTYPE
-      WSS=WSS+WS*PTYPE
-      TSS=TSS+TS*PTYPE
-      QSS=QSS+QS*PTYPE
-      QSAVG(I,J)=QSAVG(I,J)+QSS
-      TAUS=TAUS+CDM*WS*WS*PTYPE
-         QSATS=QSAT(TS,ELHX,PS)
-         RTAUS=RTAUS+RCDMWS*WS*PTYPE
-         RTAUUS=RTAUUS+RCDMWS*US*PTYPE
-         RTAUVS=RTAUVS+RCDMWS*VS*PTYPE
-C        SINAPS=SINAPS+SINAP*PTYPE
-C        COSAPS=COSAPS+COSAP*PTYPE
-         TG1S=TG1S+TG1*PTYPE
-         QGS=QGS+QG*PTYPE
-         TRHDTS=TRHDTS+TRHDT*PTYPE
-         SHDTS=SHDTS+SHDT*PTYPE
-         EVHDTS=EVHDTS+EVHDT*PTYPE
-         UGS=UGS+UG*PTYPE
-         VGS=VGS+VG*PTYPE
-         WGS=WGS+WG*PTYPE
-C        USRS=USRS+USR*PTYPE
-         CDMS=CDMS+CDM*PTYPE
-         CDHS=CDHS+CDH*PTYPE
-         DGSS=DGSS+DHGS*PTYPE
-         EDS1S=EDS1S+EDS1*PTYPE
-         PPBLS=PPBLS+PPBL*PTYPE
-         DBLS=DBLS+DBL*PTYPE
-         EVAPS=EVAPS+EVAP*PTYPE
-         F1DTS=F1DTS+AF1DT*PTYPE
-         QSATSS=QSATSS+QSATS*PTYPE
-C****
-C**** EARTH
-C****
-         BSHDT=BSHDT+SHDT*PEARTH
-         BEVHDT=BEVHDT+EVHDT*PEARTH
-         BTRHDT=BTRHDT+TRHDT*PEARTH
-         BTS=BTS+(TS-TF)*PEARTH
-         BRUN0=BRUN0+ARUNS*PEARTH
-         BERUN0=BERUN0+AERUNS*PEARTH
-         BRUNU=BRUNU+ARUNU*PEARTH
-         BERUNU=BERUNU+AERUNU*PEARTH
-C**** Save runoff for addition to lake mass/energy resevoirs
-         RUNOE (I,J)=RUNOE (I,J)+ ARUNS+ ARUNU
-         ERUNOE(I,J)=ERUNOE(I,J)+AERUNS+AERUNU
-C****
-         AIJ(I,J,IJ_RUNE)=AIJ(I,J,IJ_RUNE)+ARUNS
-         AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)+ARUNU
-         AIJ(I,J,IJ_PEVAP)=AIJ(I,J,IJ_PEVAP)+(AEPC+AEPB)
-         BDIFS=BDIFS+DIFS*PEARTH
-         BEDIFS=BEDIFS+EDIFS*PEARTH
-         E0(I,J,4)=E0(I,J,4)+AF0DT
-         E1(I,J,4)=E1(I,J,4)+AF1DT
+      aij(i,j,ij_g05)=aij(i,j,ij_g05)+betab/nisurf
+      aij(i,j,ij_g06)=aij(i,j,ij_g06)+betap/nisurf
+      aij(i,j,ij_g11)=aij(i,j,ij_g11)+beta/nisurf
+      aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
+      aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
+      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
+      aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
+      aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
+      aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
+      aij(i,j,ij_g18)=aij(i,j,ij_g18)+evapb
+      aij(i,j,ij_g19)=aij(i,j,ij_g19)+evapd
+      aij(i,j,ij_g20)=aij(i,j,ij_g20)+evapw
+      aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
+      aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
+      aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
+      aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
+      aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
+      aij(i,j,ij_g26)=aij(i,j,ij_g26)+betav/nisurf
+      aij(i,j,ij_g27)=aij(i,j,ij_g27)+betat/nisurf
+      trhdt=trheat*dtsurf-atrg
+c     for radiation find composite values over earth
+c           for diagnostic purposes also compute gdeep 1 2 3
+      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+      tearth(i,j)=tg1
+      wearth(i,j)=1000.*( fb*gw(1,1)*(1.-fice(1,1)) +
+     &     fv*(gw(1,2)*(1.-fice(1,2))+gw(0,2)*(1.-fice(0,2))) )
+      aiearth(i,j)=1000.*( fb*gw(1,1)*fice(1,1) +
+     &     fv*(gw(1,2)*fice(1,2)+gw(0,2)*fice(0,2)) )
+      call retp2 (tg2av,wtr2av,ace2av)
+      gdeep(i,j,1)=tg2av
+      gdeep(i,j,2)=wtr2av
+      gdeep(i,j,3)=ace2av
+      gtemp(1,4,i,j)=tearth(i,j)
+c**** calculate fluxes using implicit time step for non-ocean points
+      du1(i,j)=du1(i,j)+ptype*dtsurf*rcdmws*us/rmbya
+      dv1(i,j)=dv1(i,j)+ptype*dtsurf*rcdmws*vs/rmbya
+c**** accumulate surface fluxes and prognostic and diagnostic quantities
+      evap=evapw+evapd+evapb
+      evapor(i,j,4)=evapor(i,j,4)+evap
+      evhdt=-alhg
+      shdt=-ashg
+      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*rmbya*p1k)
+      dq1(i,j) =dq1(i,j)+evap*ptype/rmbya
+      uss=uss+us*ptype
+      vss=vss+vs*ptype
+      wss=wss+ws*ptype
+      tss=tss+ts*ptype
+      qss=qss+qs*ptype
+      qsavg(i,j)=qsavg(i,j)+qss
+      taus=taus+cdm*ws*ws*ptype
+         qsats=qsat(ts,elhx,ps)
+         rtaus=rtaus+rcdmws*ws*ptype
+         rtauus=rtauus+rcdmws*us*ptype
+         rtauvs=rtauvs+rcdmws*vs*ptype
+c        sinaps=sinaps+sinap*ptype
+c        cosaps=cosaps+cosap*ptype
+         tg1s=tg1s+tg1*ptype
+         qgs=qgs+qg*ptype
+         trhdts=trhdts+trhdt*ptype
+         shdts=shdts+shdt*ptype
+         evhdts=evhdts+evhdt*ptype
+         ugs=ugs+ug*ptype
+         vgs=vgs+vg*ptype
+         wgs=wgs+wg*ptype
+c        usrs=usrs+usr*ptype
+         cdms=cdms+cdm*ptype
+         cdhs=cdhs+cdh*ptype
+         dgss=dgss+dhgs*ptype
+         eds1s=eds1s+eds1*ptype
+         ppbls=ppbls+ppbl*ptype
+         dbls=dbls+dbl*ptype
+         evaps=evaps+evap*ptype
+         f1dts=f1dts+af1dt*ptype
+         qsatss=qsatss+qsats*ptype
+c****
+c**** earth
+c****
+         bshdt=bshdt+shdt*pearth
+         bevhdt=bevhdt+evhdt*pearth
+         btrhdt=btrhdt+trhdt*pearth
+         bts=bts+(ts-tf)*pearth
+         brun0=brun0+aruns*pearth
+         berun0=berun0+aeruns*pearth
+         brunu=brunu+arunu*pearth
+         berunu=berunu+aerunu*pearth
+c**** save runoff for addition to lake mass/energy resevoirs
+         runoe (i,j)=runoe (i,j)+ aruns+ arunu
+         erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
+c****
+         aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
+         aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
+         aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
+         bdifs=bdifs+difs*pearth
+         bedifs=bedifs+edifs*pearth
+         e0(i,j,4)=e0(i,j,4)+af0dt
+         e1(i,j,4)=e1(i,j,4)+af1dt
 
-         if ( WARMER >= 0 ) then
-           IF(TS.LT.TF) TSFREZ(I,J,1)=TIMEZ
-           TSFREZ(I,J,2)=TIMEZ
+         if ( warmer >= 0 ) then
+           if(ts.lt.tf) tsfrez(i,j,1)=timez
+           tsfrez(i,j,2)=timez
          else
-         if ( TSFREZ(I,J,2)+.03 >= TIMEZ .and. TS >= TF )
-     $        TSFREZ(I,J,2)=TIMEZ
+         if ( tsfrez(i,j,2)+.03 >= timez .and. ts >= tf )
+     $        tsfrez(i,j,2)=timez
          endif
 
-         IF(TG1.LT.TDIURN(I,J,1)) TDIURN(I,J,1)=TG1
-         IF(TG1.GT.TDIURN(I,J,2)) TDIURN(I,J,2)=TG1
-         IF(TS.LT.TDIURN(I,J,3)) TDIURN(I,J,3)=TS
-         IF(TS.GT.TDIURN(I,J,4)) TDIURN(I,J,4)=TS
-C**** NON-OCEAN POINTS WHICH ARE NOT MELTING OR FREEZING WATER USE
-C****   IMPLICIT TIME STEPS
-C****
-C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
-C****
-         TDIURN(I,J,5)=TDIURN(I,J,5)+(TSAVG(I,J)-TF)
-         IF(TSAVG(I,J).GT.TDIURN(I,J,6)) TDIURN(I,J,6)=TSAVG(I,J)
-C        IF(TSAVG(I,J).GT.AIJ(I,J,IJ_TMAX)) AIJ(I,J,IJ_TMAX)=TSAVG(I,J)
-C        IF(TSAVG(I,J).LT.AIJ(I,J,IJ_TMIN)) AIJ(I,J,IJ_TMIN)=TSAVG(I,J)
-C****
-C**** ACCUMULATE DIAGNOSTICS
-C****
-C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
-         if ( JR /= 24 ) then 
-           AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDTS*DXYPJ
-           AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDTS*DXYPJ
-           AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDTS*DXYPJ
-           AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAPS*DXYPJ
-           AREG(JR,J_ERUN1)=AREG(JR,J_ERUN1)+AERUNS*PEARTH*DXYPJ
-           AREG(JR,J_DIFS )=AREG(JR,J_DIFS )+DIFS*PEARTH*DXYPJ
-           AREG(JR,J_RUN2 )=AREG(JR,J_RUN2 )+ARUNU*PEARTH*DXYPJ
-           AREG(JR,J_DWTR2)=AREG(JR,J_DWTR2)+AERUNU*PEARTH*DXYPJ
-           AREG(JR,J_RUN1 )=AREG(JR,J_RUN1 )+ARUNS*PEARTH*DXYPJ
-           AREG(JR,J_F1DT )=AREG(JR,J_F1DT )+F1DTS*DXYPJ
-           if ( MODDSF == 0 )
-     $          AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+(TSS-TFS)*DXYPJ
-C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
+         if(tg1.lt.tdiurn(i,j,1)) tdiurn(i,j,1)=tg1
+         if(tg1.gt.tdiurn(i,j,2)) tdiurn(i,j,2)=tg1
+         if(ts.lt.tdiurn(i,j,3)) tdiurn(i,j,3)=ts
+         if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
+c**** non-ocean points which are not melting or freezing water use
+c****   implicit time steps
+c****
+c**** update surface and first layer quantities
+c****
+         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
+         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
+c        if(tsavg(i,j).gt.aij(i,j,ij_tmax)) aij(i,j,ij_tmax)=tsavg(i,j)
+c        if(tsavg(i,j).lt.aij(i,j,ij_tmin)) aij(i,j,ij_tmin)=tsavg(i,j)
+c****
+c**** accumulate diagnostics
+c****
+c**** quantities accumulated for regions in diagj
+         if ( jr /= 24 ) then 
+           areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdts*dxypj
+           areg(jr,j_shdt )=areg(jr,j_shdt )+shdts*dxypj
+           areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdts*dxypj
+           areg(jr,j_evap )=areg(jr,j_evap )+evaps*dxypj
+           areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxypj
+           areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxypj
+           areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxypj
+           areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxypj
+           areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxypj
+           areg(jr,j_f1dt )=areg(jr,j_f1dt )+f1dts*dxypj
+           if ( moddsf == 0 )
+     $          areg(jr,j_tsrf )=areg(jr,j_tsrf )+(tss-tfs)*dxypj
+c**** quantities accumulated for latitude-longitude maps in diagij
          endif
-         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
-         AIJ(I,J,IJ_BETA)=AIJ(I,J,IJ_BETA)+BETAD/NIsurf
-         IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
-     *        /DTSRC
-         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
-         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-         if ( MODDSF == 0 ) then
-           AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WSS ! added 3/3/95 -rar-
-           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TSS-TFS)
-           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+USS
-           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VSS
-           AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RTAUS
-           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
-           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
-           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
-CHYD       AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)
-CHYD      *  +   (40.6*PSOIL+.72*(2.*(TSS-TFS)-(QSATSS-QSS)*LHE/SHA))
-C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
+         aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdts
+         aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
+         if(modrd.eq.0) aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdts
+     *        /dtsrc
+         aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdts+trhdts)
+         aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdts+trhdts+shdts+evhdts)
+         if ( moddsf == 0 ) then
+           aij(i,j,ij_ws)=aij(i,j,ij_ws)+wss ! added 3/3/95 -rar-
+           aij(i,j,ij_ts)=aij(i,j,ij_ts)+(tss-tfs)
+           aij(i,j,ij_us)=aij(i,j,ij_us)+uss
+           aij(i,j,ij_vs)=aij(i,j,ij_vs)+vss
+           aij(i,j,ij_taus)=aij(i,j,ij_taus)+rtaus
+           aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rtauus
+           aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rtauvs
+           aij(i,j,ij_qs)=aij(i,j,ij_qs)+qss
+chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
+chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
+c**** quantities accumulated hourly for diag6
          endif
-         if ( MODD6 == 0 ) then
-           DO KR=1,4
-             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(IHOUR,12,KR)=ADAILY(IHOUR,12,KR)+TSS
-               ADAILY(IHOUR,13,KR)=ADAILY(IHOUR,13,KR)+(TG1S+TFS)
-               ADAILY(IHOUR,19,KR)=ADAILY(IHOUR,19,KR)+QSS
-               ADAILY(IHOUR,20,KR)=ADAILY(IHOUR,20,KR)+QGS
-               ADAILY(IHOUR,28,KR)=ADAILY(IHOUR,28,KR)+SRHDTS
-               ADAILY(IHOUR,29,KR)=ADAILY(IHOUR,29,KR)+TRHDTS
-               ADAILY(IHOUR,30,KR)=ADAILY(IHOUR,30,KR)+SHDTS
-               ADAILY(IHOUR,31,KR)=ADAILY(IHOUR,31,KR)+EVHDTS
-               ADAILY(IHOUR,32,KR)=ADAILY(IHOUR,32,KR)
-     *              +SRHDTS+TRHDTS+SHDTS+EVHDTS
-               ADAILY(IHOUR,33,KR)=ADAILY(IHOUR,33,KR)+UGS
-               ADAILY(IHOUR,34,KR)=ADAILY(IHOUR,34,KR)+VGS
-               ADAILY(IHOUR,35,KR)=ADAILY(IHOUR,35,KR)+WGS
-               ADAILY(IHOUR,36,KR)=ADAILY(IHOUR,36,KR)+USS
-               ADAILY(IHOUR,37,KR)=ADAILY(IHOUR,37,KR)+VSS
-               ADAILY(IHOUR,38,KR)=ADAILY(IHOUR,38,KR)+WSS
-               ADAILY(IHOUR,42,KR)=ADAILY(IHOUR,42,KR)+CDMS
-               ADAILY(IHOUR,43,KR)=ADAILY(IHOUR,43,KR)+CDHS
-               ADAILY(IHOUR,44,KR)=ADAILY(IHOUR,44,KR)+DGSS
-               ADAILY(IHOUR,45,KR)=ADAILY(IHOUR,45,KR)+EDS1S
-               ADAILY(IHOUR,46,KR)=ADAILY(IHOUR,46,KR)+DBLS
-               ADAILY(IHOUR,50,KR)=ADAILY(IHOUR,50,KR)+EVAPS
-             END IF
-           END DO
+         if ( modd6 == 0 ) then
+           do kr=1,4
+             if(i.eq.ijd6(1,kr).and.j.eq.ijd6(2,kr)) then
+               adaily(ihour,12,kr)=adaily(ihour,12,kr)+tss
+               adaily(ihour,13,kr)=adaily(ihour,13,kr)+(tg1s+tfs)
+               adaily(ihour,19,kr)=adaily(ihour,19,kr)+qss
+               adaily(ihour,20,kr)=adaily(ihour,20,kr)+qgs
+               adaily(ihour,28,kr)=adaily(ihour,28,kr)+srhdts
+               adaily(ihour,29,kr)=adaily(ihour,29,kr)+trhdts
+               adaily(ihour,30,kr)=adaily(ihour,30,kr)+shdts
+               adaily(ihour,31,kr)=adaily(ihour,31,kr)+evhdts
+               adaily(ihour,32,kr)=adaily(ihour,32,kr)
+     *              +srhdts+trhdts+shdts+evhdts
+               adaily(ihour,33,kr)=adaily(ihour,33,kr)+ugs
+               adaily(ihour,34,kr)=adaily(ihour,34,kr)+vgs
+               adaily(ihour,35,kr)=adaily(ihour,35,kr)+wgs
+               adaily(ihour,36,kr)=adaily(ihour,36,kr)+uss
+               adaily(ihour,37,kr)=adaily(ihour,37,kr)+vss
+               adaily(ihour,38,kr)=adaily(ihour,38,kr)+wss
+               adaily(ihour,42,kr)=adaily(ihour,42,kr)+cdms
+               adaily(ihour,43,kr)=adaily(ihour,43,kr)+cdhs
+               adaily(ihour,44,kr)=adaily(ihour,44,kr)+dgss
+               adaily(ihour,45,kr)=adaily(ihour,45,kr)+eds1s
+               adaily(ihour,46,kr)=adaily(ihour,46,kr)+dbls
+               adaily(ihour,50,kr)=adaily(ihour,50,kr)+evaps
+             end if
+           end do
          endif
-      END DO loop_i
-C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
-         AJ(J,J_TRHDT,ITEARTH)=AJ(J,J_TRHDT,ITEARTH)+BTRHDT
-         AJ(J,J_SHDT ,ITEARTH)=AJ(J,J_SHDT ,ITEARTH)+BSHDT
-         AJ(J,J_EVHDT,ITEARTH)=AJ(J,J_EVHDT,ITEARTH)+BEVHDT
-         AJ(J,J_ERUN1,ITEARTH)=AJ(J,J_ERUN1,ITEARTH)+BERUN0
-         AJ(J,J_EDIFS,ITEARTH)=AJ(J,J_EDIFS,ITEARTH)+BEDIFS
-         AJ(J,J_DIFS ,ITEARTH)=AJ(J,J_DIFS ,ITEARTH)+BDIFS
-         AJ(J,J_RUN2 ,ITEARTH)=AJ(J,J_RUN2 ,ITEARTH)+BRUNU
-         AJ(J,J_DWTR2,ITEARTH)=AJ(J,J_DWTR2,ITEARTH)+BERUNU
-         AJ(J,J_RUN1 ,ITEARTH)=AJ(J,J_RUN1 ,ITEARTH)+BRUN0
-         IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITEARTH)=AJ(J,J_TSRF,ITEARTH)+BTS
-      END DO loop_j
-      RETURN
-      END SUBROUTINE EARTH
+      end do loop_i
+c**** quantities accumulated for surface type tables in diagj
+         aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+btrhdt
+         aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+bshdt
+         aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+bevhdt
+         aj(j,j_erun1,itearth)=aj(j,j_erun1,itearth)+berun0
+         aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+bedifs
+         aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+bdifs
+         aj(j,j_run2 ,itearth)=aj(j,j_run2 ,itearth)+brunu
+         aj(j,j_dwtr2,itearth)=aj(j,j_dwtr2,itearth)+berunu
+         aj(j,j_run1 ,itearth)=aj(j,j_run1 ,itearth)+brun0
+         if(moddsf.eq.0) aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+bts
+      end do loop_j
+      return
+      end subroutine earth
 
-      SUBROUTINE init_GH(DTSURF,redoGH,iniSNOW)
-C**** Modifications needed for split of bare soils into 2 types
-      USE CONSTANT, only : twopi,rhow,edpery,sha,shw_const=>shw,
+      subroutine init_gh(dtsurf,redogh,inisnow)
+c**** modifications needed for split of bare soils into 2 types
+      use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
-      USE MODEL_COM, only : fearth,vdata,Itime,Nday,jeq
-      USE GHYCOM
-      USE SLE001
-      USE FLUXES, only : gtemp
-      USE DAGCOM, only : npts,icon_WTG,icon_HTG
-      USE FILEMANAGER
-      IMPLICIT NONE
+      use model_com, only : fearth,vdata,itime,nday,jeq
+      use ghycom
+      use sle001
+      use fluxes, only : gtemp
+      use dagcom, only : npts,icon_wtg,icon_htg
+      use filemanager
+      implicit none
 
-      REAL*8 DTSURF
-      INTEGER iu_SOIL,iu_TOP_INDEX
-      INTEGER JDAY
-      REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
-      LOGICAL redoGH, iniSNOW
-      LOGICAL :: QCON(NPTS)
-      INTEGER I, J
-      real*8 ONE,WFC1
+      real*8 dtsurf
+      integer iu_soil,iu_top_index
+      integer jday
+      real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
+      logical redogh, inisnow
+      logical :: qcon(npts)
+      integer i, j
+      real*8 one,wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
-      integer iv, L
+      integer iv, l
 
-      real*8, parameter :: ALAMAX(8) =
+      real*8, parameter :: alamax(8) =
      $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
-      real*8, parameter :: ALAMIN(8) =
+      real*8, parameter :: alamin(8) =
      $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
-      real*8, parameter :: AROOT(8) =
+      real*8, parameter :: aroot(8) =
      $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
-      real*8, parameter :: BROOT(8) =
+      real*8, parameter :: broot(8) =
      $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
-      real*8, parameter :: RSAR(8) =
+      real*8, parameter :: rsar(8) =
      $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
-      real*8, parameter :: VHGHT(8) = 
+      real*8, parameter :: vhght(8) = 
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
-      integer, parameter :: LADAY(8) =
+      integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
 
 
-C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
-C****
-C**** LADAY(veg type, lat belt) = day of peak LAI
-C OLD PEAK LAI:  2ND LINE IS FOR LATITUDES < 23.5 DEG
-C****    1  temperate latitudes
-C****    2  non-temperate latitudes
-C     DATA  LADAY/ 196,  196,  196,  196,  196,  196,  105,  196/
-C     DATA  LADAY/ 196,  288,  288,  288,  288,  196,  105,  288/
-C****
-C**** CONTENTS OF ALA(K,I,J),  LAI coefficients
-C****   1  AVERAGE LEAF AREA INDEX
-C****   2  REAL AMPLITUDE OF LEAF AREA INDEX
-C****   3  IMAGINARY AMPLITUDE OF LEAF AREA INDEX
-C****
-C**** CONTENTS OF ACS(K,I,J),  CS coefficients
-C****   1  AVERAGE STOMATAL CONDUCTANCE
-C****   2  REAL AMPLITUDE OF STOMATAL CONDUCTANCE
-C****   3  IMAGINARY AMPLITUDE OF STOMATAL CONDUCTANCE
-C****
-C**** CONTENTS OF SDATA(I,J,K):
-C****       1 -   NGM   DZ(NGM)
-C****   NGM+1 - 6*NGM   Q(IS,NGM)
-C**** 6*NGM+1 - 11*NGM   QK(IS,NGM)
-C**** 11*NGM+1           SL
-C
-C READ SOILS PARAMETERS
+c****             tundr grass shrub trees decid evrgr rainf crops
+c****
+c**** laday(veg type, lat belt) = day of peak lai
+c old peak lai:  2nd line is for latitudes < 23.5 deg
+c****    1  temperate latitudes
+c****    2  non-temperate latitudes
+c     data  laday/ 196,  196,  196,  196,  196,  196,  105,  196/
+c     data  laday/ 196,  288,  288,  288,  288,  196,  105,  288/
+c****
+c**** contents of ala(k,i,j),  lai coefficients
+c****   1  average leaf area index
+c****   2  real amplitude of leaf area index
+c****   3  imaginary amplitude of leaf area index
+c****
+c**** contents of acs(k,i,j),  cs coefficients
+c****   1  average stomatal conductance
+c****   2  real amplitude of stomatal conductance
+c****   3  imaginary amplitude of stomatal conductance
+c****
+c**** contents of sdata(i,j,k):
+c****       1 -   ngm   dz(ngm)
+c****   ngm+1 - 6*ngm   q(is,ngm)
+c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
+c**** 11*ngm+1           sl
+c
+c read soils parameters
       call openunit("SOIL",iu_SOIL,.true.,.true.)
-      CALL DREAD (iu_SOIL,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
+      call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
       call closeunit (iu_SOIL)
 ccc read topmodel parameters
       call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
-      call READT(iu_TOP_INDEX,0,TOP_INDEX_IJ,IM*JM,TOP_INDEX_IJ,1)
+      call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
       call closeunit (iu_TOP_INDEX)
 C
 ccc  for debug:
 c      do j=1,46
-c       print '(72f6.2)', ( TOP_INDEX_IJ(i,j), i=1,72 )
+c       print '(72f6.2)', ( top_index_ij(i,j), i=1,72 )
 c      enddo
 ccc      stop 77
-      ONE=1.
+      one=1.
       igcm = 0
-C****
-C**** INITIALIZE CONSTANTS
-C****
-C**** Time step for ground hydrology
-      DT=DTSURF
-C**** UNITS ARE MKS
-C**** WATER QUANTITIES ARE DENSITY TIMES USUAL VALUES IN MKS
-C**** TO GET VOLUMETRIC UNITS
-C**** 1M WATER = 1000 KG M-2; 1M3 WATER = 1000 KG
-C FSN IS THE HEAT OF FUSION
-      FSN= lhm * rhow
-C ELH IS THE HEAT OF VAPORIZATION
-      ELH= lhe * rhow
-C THE SH'S ARE THE SPECIFIC HEAT CAPACATIES
-      SHW= shw_const * rhow
-      SHI= shi_const * rhow
-c      SHA= sha_const
-c      SHV=1911.
-C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
-      ALAMW=.573345d0
-      ALAMI=2.1762d0
-      ALAMA=.025d0
-ccc ALAMSN is not used
-c      ALAMSN=0.088d0
-      ALAMBR=2.9d0
-      ALAMS(1)=8.8d0
-      ALAMS(2)=2.9d0
-      ALAMS(3)=2.9d0
-      ALAMS(4)=.25d0
-C HW IS THE WILTING POINT IN METERS
-      HW=-100
-C TFRZ IS 0 C IN K
-c      TFRZ=273.16d0
-C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
-ccc looks like ZHTB is not used
-c      IF(Q(4,1).LT..01)THEN
-c      ZHTB=6.
-c      ELSE
-c      ZHTB=6.
-cc     ENDIF
-C SPGSN IS THE SPECIFIG GRAVITY OF SNOW
-      SPGSN=.1d0
-C
-C****
-C**** Initialize global arrays  ALA, ACS, AFB, AFR
-C****
-c      TWOPI=6.283185    ! should be taken from CONSTANT
+c****
+c**** initialize constants
+c****
+c**** time step for ground hydrology
+      dt=dtsurf
+c**** units are mks
+c**** water quantities are density times usual values in mks
+c**** to get volumetric units
+c**** 1m water = 1000 kg m-2; 1m3 water = 1000 kg
+c fsn is the heat of fusion
+      fsn= lhm * rhow
+c elh is the heat of vaporization
+      elh= lhe * rhow
+c the sh's are the specific heat capacaties
+      shw= shw_const * rhow
+      shi= shi_const * rhow
+c      sha= sha_const
+c      shv=1911.
+c the alam's are the heat conductivities
+      alamw=.573345d0
+      alami=2.1762d0
+      alama=.025d0
+ccc alamsn is not used
+c      alamsn=0.088d0
+      alambr=2.9d0
+      alams(1)=8.8d0
+      alams(2)=2.9d0
+      alams(3)=2.9d0
+      alams(4)=.25d0
+c hw is the wilting point in meters
+      hw=-100
+c tfrz is 0 c in k
+c      tfrz=273.16d0
+c zhtb is depth for combining heat layers for stability
+ccc looks like zhtb is not used
+c      if(q(4,1).lt..01)then
+c      zhtb=6.
+c      else
+c      zhtb=6.
+cc     endif
+c spgsn is the specifig gravity of snow
+      spgsn=.1d0
+c
+c****
+c**** initialize global arrays  ala, acs, afb, afr
+c****
+c      twopi=6.283185    ! should be taken from constant
 
-      ALA(:,:,:)=0.
-      ACS(:,:,:)=0.
-      AFB(:,:)=0.
-      AFR(:,:,:)=0.
-      ACS(1,:,:)=.01d0
-      DO J=1,JM
-        DO I=1,IM
-          PEARTH=FEARTH(I,J)
-          AFB(I,J)=VDATA(I,J,1)+VDATA(I,J,10)
-          IF(AFB(I,J).GT..999) AFB(I,J)=1.
-          IF(PEARTH.LE.0..OR.AFB(I,J).GE.1.) CYCLE
-C**** CALCULATE LAI, CS COEFFICICENTS
-          SFV=0.
-          SLA0=0.
-          SLRE=0.
-          SLIM=0.
-          SCS0=0.
-          SCSRE=0.
-          SCSIM=0.
-          SVH=0.
-          DO IV=1,8
-            PHASE=TWOPI*LADAY(IV)/365.
-            IF(J.LT.JEQ) PHASE=PHASE+TWOPI/2.
-            FV=VDATA(I,J,IV+1)
-            SFV=SFV+FV
-            SVH=SVH+FV*VHGHT(IV)
-            DIF=(ALAMAX(IV) - ALAMIN(IV))
-            SLA0=SLA0+FV*(ALAMAX(IV) + ALAMIN(IV))
-            SLRE=SLRE+FV*DIF*COS(PHASE)
-            SLIM=SLIM+FV*DIF*SIN(PHASE)
-            SCS0=SCS0+FV*(ALAMAX(IV) + ALAMIN(IV))/RSAR(IV)
-            SCSRE=SCSRE+FV*DIF*COS(PHASE)/RSAR(IV)
-            SCSIM=SCSIM+FV*DIF*SIN(PHASE)/RSAR(IV)
-          END DO
-          ALA(1,I,J)=.5/SFV*SLA0
-          ALA(2,I,J)=.5/SFV*SLRE
-          ALA(3,I,J)=.5/SFV*SLIM
-          ACS(1,I,J)=.5/SFV*SCS0
-          ACS(2,I,J)=.5/SFV*SCSRE
-          ACS(3,I,J)=.5/SFV*SCSIM
-          AVH(I,J)=SVH/SFV
-C**** CALCULATE ROOT FRACTION AFR AVERAGED OVER VEGETATION TYPES
-          DO N=1,NGM
-            DZ(N)=DZ_IJ(I,J,N)
-            IF(DZ(N).LE.0.) GO TO 320
-          END DO
- 320      N=N-1
-          DO IV=1,8
-            FV=VDATA(I,J,IV+1)
-            Z=0.
-            FRUP=0.
-            DO L=1,N
-              Z=Z+DZ(L)
-              FRDN=AROOT(IV)*Z**BROOT(IV)
-              FRDN=MIN(FRDN,ONE)
-              IF(L.EQ.N)FRDN=1.
-              AFR(L,I,J) = AFR(L,I,J) + FV*(FRDN-FRUP)
-              FRUP=FRDN
-            END DO
-          END DO
-          DO L=1,N
-            AFR(L,I,J) = AFR(L,I,J)/(1.-AFB(I,J))
-          END DO
-        END DO
-      END DO
-C****
-      PRINT *,' '
-      PRINT *,'Soils parameters'
-      SDSTNC=100.
-      PRINT *,'Interstream distance (m) SDSTNC:',SDSTNC
-      C1=90.
-      PRINT *,'Canopy conductance related parameter C1:',C1
-      PRFR=.1
-      PRINT *,'Fraction (by area) of precipitation PRFR:',PRFR
-      PRINT *,' '
-      CALL HL0
-C****
-C code transplanted from subroutine INPUT
-C**** Recompute ground hydrology data if necessary (new soils data)
-      IF (redoGH) THEN
-        JDAY=1+MOD(ITime/NDAY,365)
-        COSDAY=COS(TWOPI/EDPERY*JDAY)
-        SINDAY=SIN(TWOPI/EDPERY*JDAY)
+      ala(:,:,:)=0.
+      acs(:,:,:)=0.
+      afb(:,:)=0.
+      afr(:,:,:)=0.
+      acs(1,:,:)=.01d0
+      do j=1,jm
+        do i=1,im
+          pearth=fearth(i,j)
+          afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
+          if(afb(i,j).gt..999) afb(i,j)=1.
+          if(pearth.le.0..or.afb(i,j).ge.1.) cycle
+c**** calculate lai, cs coefficicents
+          sfv=0.
+          sla0=0.
+          slre=0.
+          slim=0.
+          scs0=0.
+          scsre=0.
+          scsim=0.
+          svh=0.
+          do iv=1,8
+            phase=twopi*laday(iv)/365.
+            if(j.lt.jeq) phase=phase+twopi/2.
+            fv=vdata(i,j,iv+1)
+            sfv=sfv+fv
+            svh=svh+fv*vhght(iv)
+            dif=(alamax(iv) - alamin(iv))
+            sla0=sla0+fv*(alamax(iv) + alamin(iv))
+            slre=slre+fv*dif*cos(phase)
+            slim=slim+fv*dif*sin(phase)
+            scs0=scs0+fv*(alamax(iv) + alamin(iv))/rsar(iv)
+            scsre=scsre+fv*dif*cos(phase)/rsar(iv)
+            scsim=scsim+fv*dif*sin(phase)/rsar(iv)
+          end do
+          ala(1,i,j)=.5/sfv*sla0
+          ala(2,i,j)=.5/sfv*slre
+          ala(3,i,j)=.5/sfv*slim
+          acs(1,i,j)=.5/sfv*scs0
+          acs(2,i,j)=.5/sfv*scsre
+          acs(3,i,j)=.5/sfv*scsim
+          avh(i,j)=svh/sfv
+c**** calculate root fraction afr averaged over vegetation types
+          do n=1,ngm
+            dz(n)=dz_ij(i,j,n)
+            if(dz(n).le.0.) go to 320
+          end do
+ 320      n=n-1
+          do iv=1,8
+            fv=vdata(i,j,iv+1)
+            z=0.
+            frup=0.
+            do l=1,n
+              z=z+dz(l)
+              frdn=aroot(iv)*z**broot(iv)
+              frdn=min(frdn,one)
+              if(l.eq.n)frdn=1.
+              afr(l,i,j) = afr(l,i,j) + fv*(frdn-frup)
+              frup=frdn
+            end do
+          end do
+          do l=1,n
+            afr(l,i,j) = afr(l,i,j)/(1.-afb(i,j))
+          end do
+        end do
+      end do
+c****
+      print *,' '
+      print *,'soils parameters'
+      sdstnc=100.
+      print *,'interstream distance (m) sdstnc:',sdstnc
+      c1=90.
+      print *,'canopy conductance related parameter c1:',c1
+      prfr=.1
+      print *,'fraction (by area) of precipitation prfr:',prfr
+      print *,' '
+      call hl0
+c****
+c code transplanted from subroutine input
+c**** recompute ground hydrology data if necessary (new soils data)
+      if (redogh) then
+        jday=1+mod(itime/nday,365)
+        cosday=cos(twopi/edpery*jday)
+        sinday=sin(twopi/edpery*jday)
 
-        DO J=1,JM
-        DO I=1,IM
-        PEARTH=FEARTH(I,J)
-        IF(PEARTH.LE.0.) THEN
+        do j=1,jm
+        do i=1,im
+        pearth=fearth(i,j)
+        if(pearth.le.0.) then
 
-          WBARE(:,I,J)=0.
-          WVEGE(:,I,J)=0.
-          HTBARE(:,I,J)=0.
-          HTVEGE(:,I,J)=0.
-          SNOWBV(:,I,J)=0.
+          wbare(:,i,j)=0.
+          wvege(:,i,j)=0.
+          htbare(:,i,j)=0.
+          htvege(:,i,j)=0.
+          snowbv(:,i,j)=0.
 
-        ELSE
+        else
 ccc??? remove next 5 lines? -check the old version
-           W(1:NGM,1) =   WBARE(1:NGM,I,J)
-           W(0:NGM,2) =   WVEGE(0:NGM,I,J)
-           HT(0:NGM,1) = HTBARE(0:NGM,I,J)
-           HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-           SNOWD(1:2) =  SNOWBV(1:2,I,J)
+           w(1:ngm,1) =   wbare(1:ngm,i,j)
+           w(0:ngm,2) =   wvege(0:ngm,i,j)
+           ht(0:ngm,1) = htbare(0:ngm,i,j)
+           ht(0:ngm,2) = htvege(0:ngm,i,j)
+           snowd(1:2) =  snowbv(1:2,i,j)
 
-C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
-          CALL GHINIJ (I,J,WFC1)
-C****     FILL IN SOILS COMMON BLOCKS
-          SNOWDP=SNOWE(I,J)/RHOW
-          WTR1=WEARTH(I,J)
-          ACE1=AIEARTH(I,J)
-          TG1 =TEARTH(I,J)
-          WTR2=WTR1
-          ACE2=ACE1
-          TG2 =TG1
-c          WTR2=GDATA(I,J,9)   ! this cannot be right
-c          ACE2=GDATA(I,J,10)
-c          TG2 =GDATA(I,J,8)
-          CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
+c****     compute soil heat capacity and ground water saturation gws
+          call ghinij (i,j,wfc1)
+c****     fill in soils common blocks
+          snowdp=snowe(i,j)/rhow
+          wtr1=wearth(i,j)
+          ace1=aiearth(i,j)
+          tg1 =tearth(i,j)
+          wtr2=wtr1
+          ace2=ace1
+          tg2 =tg1
+c          wtr2=gdata(i,j,9)   ! this cannot be right
+c          ace2=gdata(i,j,10)
+c          tg2 =gdata(i,j,8)
+          call ghinht (snowdp, tg1,tg2, wtr1,wtr2, ace1,ace2)
 
-C****     COPY SOILS PROGNOSTIC QUANTITIES TO MODEL VARIABLES
-            WBARE(1:NGM,I,J) = W(1:NGM,1)
-            WVEGE(0:NGM,I,J) = W(0:NGM,2)
-           HTBARE(0:NGM,I,J) = HT(0:NGM,1)
-           HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
-           SNOWBV(1:2,I,J)   = SNOWD(1:2)
-        END IF
-      END DO
-      END DO
-      WRITE (*,*) 'GROUND HYDROLOGY DATA WAS MADE FROM GROUND DATA'
-      END IF
-C**** set gtemp array
-      DO J=1,JM
-        DO I=1,IM
-          IF (FEARTH(I,J).gt.0) THEN
-            GTEMP(1,4,I,J)=TEARTH(I,J)
-          END IF
-        END DO
-      END DO
+c****     copy soils prognostic quantities to model variables
+            wbare(1:ngm,i,j) = w(1:ngm,1)
+            wvege(0:ngm,i,j) = w(0:ngm,2)
+           htbare(0:ngm,i,j) = ht(0:ngm,1)
+           htvege(0:ngm,i,j) = ht(0:ngm,2)
+           snowbv(1:2,i,j)   = snowd(1:2)
+        end if
+      end do
+      end do
+      write (*,*) 'ground hydrology data was made from ground data'
+      end if
+c**** set gtemp array
+      do j=1,jm
+        do i=1,im
+          if (fearth(i,j).gt.0) then
+            gtemp(1,4,i,j)=tearth(i,j)
+          end if
+        end do
+      end do
 
-ccc   some extra code from snowmodel GHINIT
-      SO_%ROSMP = 8.  ! no idea what this number means, but it is used
-                      ! in computation of RUNOFF
+ccc   some extra code from snowmodel ghinit
+      so_%rosmp = 8.  ! no idea what this number means, but it is used
+                      ! in computation of runoff
 
 ccc   init snow here
 ccc hope this is the right place to split first layer into soil
@@ -816,570 +816,570 @@ ccc and snow  and to set snow arrays
 ccc!!! this should be done only when restarting from an old
 ccc!!! restart file (without snow model data)
 
-      IF (iniSNOW) THEN
-      DO I=1,IM
-        DO J=1,JM
-          PEARTH=FEARTH(I,J)
-          IF(PEARTH.LE.0.) THEN
-            NSN_IJ(:,I,J)     = 0
-            ISN_IJ(:,I,J)     = 0
-            DZSN_IJ(:,:,I,J)  = 0.
-            WSN_IJ(:,:,I,J)   = 0.
-            HSN_IJ(:,:,I,J)   = 0.
-            FR_SNOW_IJ(:,I,J) = 0.
-          ELSE
-            JDAY=1+MOD(ITime/NDAY,365)
-            COSDAY=COS(TWOPI/EDPERY*JDAY)
-            SINDAY=SIN(TWOPI/EDPERY*JDAY)
+      if (inisnow) then
+      do i=1,im
+        do j=1,jm
+          pearth=fearth(i,j)
+          if(pearth.le.0.) then
+            nsn_ij(:,i,j)     = 0
+            isn_ij(:,i,j)     = 0
+            dzsn_ij(:,:,i,j)  = 0.
+            wsn_ij(:,:,i,j)   = 0.
+            hsn_ij(:,:,i,j)   = 0.
+            fr_snow_ij(:,i,j) = 0.
+          else
+            jday=1+mod(itime/nday,365)
+            cosday=cos(twopi/edpery*jday)
+            sinday=sin(twopi/edpery*jday)
 
-            W(1:NGM,1) =   WBARE(1:NGM,I,J)
-            W(0:NGM,2) =   WVEGE(0:NGM,I,J)
-            HT(0:NGM,1) = HTBARE(0:NGM,I,J)
-            HT(0:NGM,2) = HTVEGE(0:NGM,I,J)
-            SNOWD(1:2) =  SNOWBV(1:2,I,J)
+            w(1:ngm,1) =   wbare(1:ngm,i,j)
+            w(0:ngm,2) =   wvege(0:ngm,i,j)
+            ht(0:ngm,1) = htbare(0:ngm,i,j)
+            ht(0:ngm,2) = htvege(0:ngm,i,j)
+            snowd(1:2) =  snowbv(1:2,i,j)
 
-            CALL GHINIJ (I,J,WFC1)
-            CALL SET_SNOW
+            call ghinij (i,j,wfc1)
+            call set_snow
 
-            NSN_IJ    (1:2, I, J)         = NSN(1:2)
-            ISN_IJ    (1:2, I, J)         = ISN(1:2)
-            DZSN_IJ   (1:NLSN, 1:2, I, J) = DZSN(1:NLSN,1:2)
-            WSN_IJ    (1:NLSN, 1:2, I, J) = WSN(1:NLSN,1:2)
-            HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
-            FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
+            nsn_ij    (1:2, i, j)         = nsn(1:2)
+            isn_ij    (1:2, i, j)         = isn(1:2)
+            dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
+            wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
+            hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
+            fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
-C****     COPY SOILS PROGNOSTIC QUANTITIES TO MODEL VARIABLES
-              WBARE(1:NGM,I,J) = W(1:NGM,1)
-              WVEGE(0:NGM,I,J) = W(0:NGM,2)
-             HTBARE(0:NGM,I,J) = HT(0:NGM,1)
-             HTVEGE(0:NGM,I,J) = HT(0:NGM,2)
-             SNOWBV(1:2,I,J)   = SNOWD(1:2)
+c****     copy soils prognostic quantities to model variables
+              wbare(1:ngm,i,j) = w(1:ngm,1)
+              wvege(0:ngm,i,j) = w(0:ngm,2)
+             htbare(0:ngm,i,j) = ht(0:ngm,1)
+             htvege(0:ngm,i,j) = ht(0:ngm,2)
+             snowbv(1:2,i,j)   = snowd(1:2)
 
-          END IF
-        END DO
-      END DO
-      END IF
+          end if
+        end do
+      end do
+      end if
 
-C**** Set conservation diagnostics for ground water mass and energy
-      QCON=(/ .false., .false., .false., .false., .false., .true.
+c**** set conservation diagnostics for ground water mass and energy
+      qcon=(/ .false., .false., .false., .false., .false., .true.
      $     , .false., .false., .true., .false., .false./)
-      CALL SET_CON(QCON,"GRND WTR","(KG/M^2)        ",
-     *     "(10^-9 KG/S/M^2)",1d0,1d9,icon_WTG)
-      QCON=(/ .false., .false., .false., .false., .false., .true.
+      call set_con(qcon,"grnd wtr","(kg/m^2)        ",
+     *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
+      qcon=(/ .false., .false., .false., .false., .false., .true.
      $     , .false., .false., .true., .false., .false./)
-      CALL SET_CON(QCON,"GRND ENG","(10**6 J/M^2)   ",
-     *     "(10^-3 J/S/M^2) ",1d-6,1d3,icon_HTG)
+      call set_con(qcon,"grnd eng","(10**6 j/m^2)   ",
+     *     "(10^-3 j/s/m^2) ",1d-6,1d3,icon_htg)
 
-      RETURN
-      END SUBROUTINE init_GH
+      return
+      end subroutine init_gh
 
-      SUBROUTINE GHINIJ (I0,J0, WFCAP)
-C**** INPUT:
-C**** AVH(I,J) - ARRAY OF VEGETATION HEIGHTS
-C**** SPGSN - SPECIFIC GRAVITY OF SNOW
-C**** OUTPUT:
-C**** VH - VEGETATION HEIGHT
-C**** SNOWM - SNOW MASKING DEPTH
-C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
-C****
-      USE GHYCOM, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
+      subroutine ghinij (i0,j0, wfcap)
+c**** input:
+c**** avh(i,j) - array of vegetation heights
+c**** spgsn - specific gravity of snow
+c**** output:
+c**** vh - vegetation height
+c**** snowm - snow masking depth
+c**** wfcap - water field capacity of top soil layer, m
+c****
+      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
      *     ,top_index_ij
-      USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
+      use sle001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
      *     ,fb,fv,snowm,alai,alaie,rs,prs,ijdebug,n !alaic,vh,
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
-      USE snow_model, only : i_earth,j_earth
-      IMPLICIT NONE
-      INTEGER I0,J0
-      REAL*8 WFCAP
-      INTEGER L,IBV,K,I
-      REAL*8 AA,ONE
+      use snow_model, only : i_earth,j_earth
+      implicit none
+      integer i0,j0
+      real*8 wfcap
+      integer l,ibv,k,i
+      real*8 aa,one
       real*8 alaic,vh,shtpr
-      real*8, parameter :: SHCAP(IMT) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+      real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
-      ONE=1.
-      IJdebug=I0*100+J0
-      i_earth = I0
-      j_earth = J0
+      one=1.
+      ijdebug=i0*100+j0
+      i_earth = i0
+      j_earth = j0
 ccc passing topmodel parameters
-      TOP_INDEX = TOP_INDEX_IJ(I0, J0)
-C**** SET UP LAYERS
-      DZ(1:NGM)=DZ_IJ(I0,J0,1:NGM)
-      Q(1:IMT,1:NGM)=Q_IJ(I0,J0,1:IMT,1:NGM)
-      QK(1:IMT,1:NGM)=QK_IJ(I0,J0,1:IMT,1:NGM)
-      SL=SL_IJ(I0,J0)
-      DO N=1,NGM
-        IF(DZ(N).LE.0.) GO TO 21
-      END DO
-   21 N=N-1
-      IF(N.LE.0) THEN
-         WRITE (99,*) 'GHINIJ:  N <= 0:  I,J,N=',I0,J0,N,(DZ(K),K=1,43)
-         STOP
-      END IF
-C**** CALCULATE THE BOUNDARIES, BASED ON THE THICKNESSES.
-      ZB(1)=0.
-      DO L=1,N
-        ZB(L+1)=ZB(L)-DZ(L)
-      END DO
-C**** CALCULATE THE LAYER CENTERS, BASED ON THE BOUNDARIES.
-      DO L=1,N
-        ZC(L)=.5*(ZB(L)+ZB(L+1))
-      END DO
-C**** FR: ROOT FRACTION IN LAYER L  (1=FR(1)+FR(2)+...+FR(N))
-      DO L=1,N
-        FR(L)=AFR(L,I0,J0)
-      END DO
-C**** VH: VEGETATION HEIGHT
-      VH=AVH(I0,J0)
-      SNOWM=VH*SPGSN
-C**** FB,FV: BARE, VEGETATED FRACTION (1=FB+FV)
-      FB=AFB(I0,J0)
-      FV=1.-FB
-C**** ALAI: LEAF AREA INDEX
-      ALAI=ALA(1,I0,J0)+COSDAY*ALA(2,I0,J0)+SINDAY*ALA(3,I0,J0)
-      ALAI=MAX(ALAI,ONE)
-      ALAIC=5.0
-      ALAIE=ALAIC*(1.-EXP(-ALAI/ALAIC))
-C**** RS: MINIMUM STOMATAL RESISTANCE
-      RS=ALAI/(ACS(1,I0,J0)+COSDAY*ACS(2,I0,J0)+SINDAY*ACS(3,I0,J0))
-C???  CNC=ALAI/RS   REDEFINED BEFORE BEING USED (QSBAL,COND)
-C
-CW    WRITE(6,*)'N=',N,'  R=',R
-CW    WRITE(6,91)
-CW 91 FORMAT(1X,5X,'ZB',5X,'ZC',5X,'DZ'/1X,21('-'))
-CW    DO 95 L=1,N
-CW 95 WRITE(6,100)ZB(L),ZC(L),DZ(L)
-CW    WRITE(6,100)ZB(N+1)
-CW100 FORMAT(1X,3F7.3)
-CW    WRITE(6,*)
-C****
-      DO IBV=1,2
-        DO L=1,N
-          THETS(L,IBV)=0.
-          THETM(L,IBV)=0.
-          DO I=1,IMT-1
-            THETS(L,IBV)=THETS(L,IBV)+Q(I,L)*THM(0,I)
-            THETM(L,IBV)=THETM(L,IBV)+Q(I,L)*THM(NTH,I)
-          END DO
-          WS(L,IBV)=THETS(L,IBV)*DZ(L)
-        END DO
-      END DO
-      WS(0,2)=.0001*ALAI
-      WFCAP=FB*WS(1,1)+FV*(WS(0,2)+WS(1,2))
-C****
-      CALL XKLH0
-C****
-      DO IBV=1,2
-        DO L=1,N
-          SHC(L,IBV)=0.
-          DO I=1,IMT
-            SHC(L,IBV)=SHC(L,IBV)+Q(I,L)*SHCAP(I)
-          END DO
-          SHC(L,IBV)=(1.-THETS(L,IBV))*SHC(L,IBV)*DZ(L)
-        END DO
-      END DO
-C****
-C SHC(0,2) IS THE HEAT CAPACITY OF THE CANOPY
-      AA=ALA(1,I0,J0)
-      SHC(0,2)=(.010+.002*AA+.001*AA**2)*SHW
-C****
-C HTPR IS THE HEAT OF PRECIPITATION.
-C SHTPR IS THE SPECIFIC HEAT OF PRECIPITATION.
-      SHTPR=0.
-      IF(PR.GT.0.)SHTPR=HTPR/PR
-C HTPRS IS THE HEAT OF LARGE SCALE PRECIPITATION
-      HTPRS=SHTPR*PRS
-C****
-      RETURN
-      END SUBROUTINE GHINIJ
+      top_index = top_index_ij(i0, j0)
+c**** set up layers
+      dz(1:ngm)=dz_ij(i0,j0,1:ngm)
+      q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
+      qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
+      sl=sl_ij(i0,j0)
+      do n=1,ngm
+        if(dz(n).le.0.) go to 21
+      end do
+   21 n=n-1
+      if(n.le.0) then
+         write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
+         stop
+      end if
+c**** calculate the boundaries, based on the thicknesses.
+      zb(1)=0.
+      do l=1,n
+        zb(l+1)=zb(l)-dz(l)
+      end do
+c**** calculate the layer centers, based on the boundaries.
+      do l=1,n
+        zc(l)=.5*(zb(l)+zb(l+1))
+      end do
+c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
+      do l=1,n
+        fr(l)=afr(l,i0,j0)
+      end do
+c**** vh: vegetation height
+      vh=avh(i0,j0)
+      snowm=vh*spgsn
+c**** fb,fv: bare, vegetated fraction (1=fb+fv)
+      fb=afb(i0,j0)
+      fv=1.-fb
+c**** alai: leaf area index
+      alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
+      alai=max(alai,one)
+      alaic=5.0
+      alaie=alaic*(1.-exp(-alai/alaic))
+c**** rs: minimum stomatal resistance
+      rs=alai/(acs(1,i0,j0)+cosday*acs(2,i0,j0)+sinday*acs(3,i0,j0))
+c???  cnc=alai/rs   redefined before being used (qsbal,cond)
+c
+cw    write(6,*)'n=',n,'  r=',r
+cw    write(6,91)
+cw 91 format(1x,5x,'zb',5x,'zc',5x,'dz'/1x,21('-'))
+cw    do 95 l=1,n
+cw 95 write(6,100)zb(l),zc(l),dz(l)
+cw    write(6,100)zb(n+1)
+cw100 format(1x,3f7.3)
+cw    write(6,*)
+c****
+      do ibv=1,2
+        do l=1,n
+          thets(l,ibv)=0.
+          thetm(l,ibv)=0.
+          do i=1,imt-1
+            thets(l,ibv)=thets(l,ibv)+q(i,l)*thm(0,i)
+            thetm(l,ibv)=thetm(l,ibv)+q(i,l)*thm(nth,i)
+          end do
+          ws(l,ibv)=thets(l,ibv)*dz(l)
+        end do
+      end do
+      ws(0,2)=.0001*alai
+      wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+c****
+      call xklh0
+c****
+      do ibv=1,2
+        do l=1,n
+          shc(l,ibv)=0.
+          do i=1,imt
+            shc(l,ibv)=shc(l,ibv)+q(i,l)*shcap(i)
+          end do
+          shc(l,ibv)=(1.-thets(l,ibv))*shc(l,ibv)*dz(l)
+        end do
+      end do
+c****
+c shc(0,2) is the heat capacity of the canopy
+      aa=ala(1,i0,j0)
+      shc(0,2)=(.010+.002*aa+.001*aa**2)*shw
+c****
+c htpr is the heat of precipitation.
+c shtpr is the specific heat of precipitation.
+      shtpr=0.
+      if(pr.gt.0.)shtpr=htpr/pr
+c htprs is the heat of large scale precipitation
+      htprs=shtpr*prs
+c****
+      return
+      end subroutine ghinij
 
-      SUBROUTINE GHINHT (SNOWDP,TG1,TG2,WTR1,WTR2,ACE1,ACE2)
-C**** INITIALIZES NEW GROUND (W,HT,SNW) FROM OLD (T,W,ICE,SNW)
-C**** EVALUATES THE HEAT IN THE SOIL LAYERS BASED ON THE
-C**** TEMPERATURES.
-C**** INPUT:
-C**** W - WATER IN SOIL LAYERS, M
-C**** TP - TEMPERATURE OF LAYERS, C
-C**** FICE - FRACTION OF ICE OF LAYERS
-C**** FSN - HEAT OF FUSION OF WATER
-C**** SHC - SPECIFIC HEAT CAPACITY OF SOIL
-C**** SHI - SPECIFIC HEAT CAPACITY OF ICE
-C**** SHW - SPECIFIC HEAT CAPCITY OF WATER
-C**** SNOWD - SNOW DEPTH, EQUIVALENT WATER M
-C**** OUTPUT:
-C**** HT - HEAT IN SOIL LAYERS
-C**** ADD CALCULATION OF WFC2
-C**** BASED ON COMBINATION OF LAYERS 2-N, AS IN RETP2
-      USE SLE001
-      IMPLICIT NONE
+      subroutine ghinht (snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2)
+c**** initializes new ground (w,ht,snw) from old (t,w,ice,snw)
+c**** evaluates the heat in the soil layers based on the
+c**** temperatures.
+c**** input:
+c**** w - water in soil layers, m
+c**** tp - temperature of layers, c
+c**** fice - fraction of ice of layers
+c**** fsn - heat of fusion of water
+c**** shc - specific heat capacity of soil
+c**** shi - specific heat capacity of ice
+c**** shw - specific heat capcity of water
+c**** snowd - snow depth, equivalent water m
+c**** output:
+c**** ht - heat in soil layers
+c**** add calculation of wfc2
+c**** based on combination of layers 2-n, as in retp2
+      use sle001
+      implicit none
 
-      REAL*8 SNOWDP,TG1,TG2,WTR1,WTR2,ACE1,ACE2
-      real*8 WFC1, WFC2, WET1, WET2, WMIN, FBV
-      integer L, IBV, LL
+      real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
+      real*8 wfc1, wfc2, wet1, wet2, wmin, fbv
+      integer l, ibv, ll
 
-      WFC1=FB*WS(1,1)+FV*(WS(0,2)+WS(1,2))
-      WFC2=0.
-      FBV=FB
-      DO 30 IBV=1,2
-      DO 20 L=2,N
-      WFC2=WFC2+FBV*WS(L,IBV)
-   20 CONTINUE
-      FBV=FV
-   30 CONTINUE
-      WFC1=1000.*WFC1
-      WFC2=1000.*WFC2
-      FICE(0,2)=1.
-      FICE(1,1)=(ACE1+SNOWDP*1000.)/(WTR1+ACE1+SNOWDP*1000.+1.D-20)
-      FICE(1,2)=FICE(1,1)
-      TP(0,2)=TG1
-C**** W = SNOW(IF TOP LAYER) + WMIN + (WMAX-WMIN)*(WTR+ICE)/WFC
-      W(0,2)=0.
-      DO IBV=1,2
-        W(1,IBV)=SNOWDP
-        WMIN=THETM(1,IBV)*DZ(1)
-        WET1=(WTR1+ACE1)/(WFC1+1.D-20)
-        IF(WET1.GT.1.) WET1=1.
-        W(1,IBV)=W(1,IBV)+WMIN+(WS(1,IBV)-WMIN)*WET1
-        SNOWD(IBV)=SNOWDP
-        TP(1,IBV)=TG1
-        DO L=2,N
-          FICE(L,IBV)=ACE2/(WTR2+ACE2+1.D-20)
-          WMIN=THETM(L,IBV)*DZ(L)
-          WET2=(WTR2+ACE2)/(WFC2+1.D-20)
-          IF(WET2.GT.1.) WET2=1.
-          W(L,IBV)=WMIN+(WS(L,IBV)-WMIN)*WET2
-          TP(L,IBV)=TG2
-        END DO
-      END DO
-C****
-      ENTRY GHEXHT
-C****
-C**** COMPUTE HT (HEAT W/M+2)
-      DO IBV=1,2
-        LL=2-IBV
-        DO L=LL,N
-          IF(TP(L,IBV)) 2,4,6
- 2        HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHI)-W(L,IBV)*FSN
-          CYCLE
- 4        HT(L,IBV)=-FICE(L,IBV)*W(L,IBV)*FSN
-          CYCLE
- 6        HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHW)
-        END DO
-      END DO
-      IF(IJdebug.EQ.0)THEN
-       WRITE(99,*)'GHINHT ID CHECK',IJdebug
-       WRITE(99,*)'TG1,TG2',TG1,TG2
-       WRITE(99,*)'TP',TP
-       WRITE(99,*)'HT',HT
-       WRITE(99,*)'W',W
-       WRITE(99,*)'WTR1,WTR2',WTR1,WTR2
-       WRITE(99,*)'ACE1,ACE2',ACE1,ACE2
-       WRITE(99,*)'WFC1,WFC2',WFC1,WFC2
-       WRITE(99,*)'SHC',SHC
-       WRITE(99,*)'FICE',FICE
-      ENDIF
-      RETURN
-      END SUBROUTINE GHINHT
+      wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
+      wfc2=0.
+      fbv=fb
+      do 30 ibv=1,2
+      do 20 l=2,n
+      wfc2=wfc2+fbv*ws(l,ibv)
+   20 continue
+      fbv=fv
+   30 continue
+      wfc1=1000.*wfc1
+      wfc2=1000.*wfc2
+      fice(0,2)=1.
+      fice(1,1)=(ace1+snowdp*1000.)/(wtr1+ace1+snowdp*1000.+1.d-20)
+      fice(1,2)=fice(1,1)
+      tp(0,2)=tg1
+c**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
+      w(0,2)=0.
+      do ibv=1,2
+        w(1,ibv)=snowdp
+        wmin=thetm(1,ibv)*dz(1)
+        wet1=(wtr1+ace1)/(wfc1+1.d-20)
+        if(wet1.gt.1.) wet1=1.
+        w(1,ibv)=w(1,ibv)+wmin+(ws(1,ibv)-wmin)*wet1
+        snowd(ibv)=snowdp
+        tp(1,ibv)=tg1
+        do l=2,n
+          fice(l,ibv)=ace2/(wtr2+ace2+1.d-20)
+          wmin=thetm(l,ibv)*dz(l)
+          wet2=(wtr2+ace2)/(wfc2+1.d-20)
+          if(wet2.gt.1.) wet2=1.
+          w(l,ibv)=wmin+(ws(l,ibv)-wmin)*wet2
+          tp(l,ibv)=tg2
+        end do
+      end do
+c****
+      entry ghexht
+c****
+c**** compute ht (heat w/m+2)
+      do ibv=1,2
+        ll=2-ibv
+        do l=ll,n
+          if(tp(l,ibv)) 2,4,6
+ 2        ht(l,ibv)=tp(l,ibv)*(shc(l,ibv)+w(l,ibv)*shi)-w(l,ibv)*fsn
+          cycle
+ 4        ht(l,ibv)=-fice(l,ibv)*w(l,ibv)*fsn
+          cycle
+ 6        ht(l,ibv)=tp(l,ibv)*(shc(l,ibv)+w(l,ibv)*shw)
+        end do
+      end do
+      if(ijdebug.eq.0)then
+       write(99,*)'ghinht id check',ijdebug
+       write(99,*)'tg1,tg2',tg1,tg2
+       write(99,*)'tp',tp
+       write(99,*)'ht',ht
+       write(99,*)'w',w
+       write(99,*)'wtr1,wtr2',wtr1,wtr2
+       write(99,*)'ace1,ace2',ace1,ace2
+       write(99,*)'wfc1,wfc2',wfc1,wfc2
+       write(99,*)'shc',shc
+       write(99,*)'fice',fice
+      endif
+      return
+      end subroutine ghinht
 
-      SUBROUTINE RETP2 (TG2AV,WTR2AV,ACE2AV)
-C**** EVALUATES THE MEAN TEMPERATURE IN THE SOIL LAYERS 2-NGM
-C**** AS WELL AS THE WATER AND ICE CONTENT.
-C**** INPUT:
-C**** W - WATER IN SOIL LAYERS, M
-C**** HT - HEAT IN SOIL LAYERS
-C**** FSN - HEAT OF FUSION OF WATER
-C**** SHC - SPECIFIC HEAT CAPACITY OF SOIL
-C**** SHI - SPECIFIC HEAT CAPACITY OF ICE
-C**** SHW - SPECIFIC HEAT CAPCITY OF WATER
-C**** OUTPUT:
-C**** TG2AV - TEMPERATURE OF LAYERS 2 TO NGM, C
-C**** ICE2AV - ICE AMOUNT IN LAYERS 2 TO NGM, KG/M+2
-C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
-      USE SLE001
-      IMPLICIT NONE
-      REAL*8 TG2AV,WTR2AV,ACE2AV, WC,HTC,SHCC,TPC,FICEC,FTP
-      integer L, IBV
-      TG2AV=0.
-      WTR2AV=0.
-      ACE2AV=0.
-      DO 3500 IBV=1,2
-      WC=0.
-      HTC=0.
-      SHCC=0.
-      DO L=2,N
-        WC=WC+W(L,IBV)
-        HTC=HTC+HT(L,IBV)
-        SHCC=SHCC+SHC(L,IBV)
-      END DO
-      TPC=0.
-      FICEC=0.
-      IF(WC.NE.0.)  FICEC=-HTC/(FSN*WC)
-      IF(FSN*WC+HTC.GE.0.)GO TO 3430
-      TPC=(HTC+WC*FSN)/(SHCC+WC*SHI)
-      FICEC=1.
-      GO TO 3440
- 3430 IF(HTC.LE.0.) GO TO 3440
-      TPC=HTC/(SHCC+WC*SHW)
-      FICEC=0.
- 3440 CONTINUE
-      FTP=FB
-      IF(IBV.EQ.2) FTP=FV
-      TG2AV=TG2AV+TPC*FTP
-      WTR2AV=WTR2AV+WC*FTP*1000.*(1.-FICEC)
-      ACE2AV=ACE2AV+WC*FTP*1000.*FICEC
- 3500 CONTINUE
-      RETURN
-      END SUBROUTINE RETP2
+      subroutine retp2 (tg2av,wtr2av,ace2av)
+c**** evaluates the mean temperature in the soil layers 2-ngm
+c**** as well as the water and ice content.
+c**** input:
+c**** w - water in soil layers, m
+c**** ht - heat in soil layers
+c**** fsn - heat of fusion of water
+c**** shc - specific heat capacity of soil
+c**** shi - specific heat capacity of ice
+c**** shw - specific heat capcity of water
+c**** output:
+c**** tg2av - temperature of layers 2 to ngm, c
+c**** ice2av - ice amount in layers 2 to ngm, kg/m+2
+c**** wtr2av - water in layers 2 to ngm, kg/m+2
+      use sle001
+      implicit none
+      real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
+      integer l, ibv
+      tg2av=0.
+      wtr2av=0.
+      ace2av=0.
+      do 3500 ibv=1,2
+      wc=0.
+      htc=0.
+      shcc=0.
+      do l=2,n
+        wc=wc+w(l,ibv)
+        htc=htc+ht(l,ibv)
+        shcc=shcc+shc(l,ibv)
+      end do
+      tpc=0.
+      ficec=0.
+      if(wc.ne.0.)  ficec=-htc/(fsn*wc)
+      if(fsn*wc+htc.ge.0.)go to 3430
+      tpc=(htc+wc*fsn)/(shcc+wc*shi)
+      ficec=1.
+      go to 3440
+ 3430 if(htc.le.0.) go to 3440
+      tpc=htc/(shcc+wc*shw)
+      ficec=0.
+ 3440 continue
+      ftp=fb
+      if(ibv.eq.2) ftp=fv
+      tg2av=tg2av+tpc*ftp
+      wtr2av=wtr2av+wc*ftp*1000.*(1.-ficec)
+      ace2av=ace2av+wc*ftp*1000.*ficec
+ 3500 continue
+      return
+      end subroutine retp2
 
-      SUBROUTINE CHECKE(SUBR)
-!@sum  CHECKE Checks whether arrays are reasonable over earth
-!@auth Original Development Team
+      subroutine checke(subr)
+!@sum  checke checks whether arrays are reasonable over earth
+!@auth original development team
 !@ver  1.0
-      USE MODEL_COM, only : fearth,ITime,wfcs
-      USE GEOM, only : imaxj
-      USE GHYCOM, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
+      use model_com, only : fearth,itime,wfcs
+      use geom, only : imaxj
+      use ghycom, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
      *     ,htvege,snowbv,ngm
-      IMPLICIT NONE
+      implicit none
 
-      REAL*8 X,TGL,WTRL,ACEL
-      INTEGER I,J,K,IMAX
-!@var SUBR identifies where CHECK was called from
-      CHARACTER*6, INTENT(IN) :: SUBR
+      real*8 x,tgl,wtrl,acel
+      integer i,j,k,imax
+!@var subr identifies where check was called from
+      character*6, intent(in) :: subr
 
-C**** Check for NaN/INF in earth data
-      CALL CHECK3(WBARE ,NGM  ,IM,JM,SUBR,'wb')
-      CALL CHECK3(WVEGE ,NGM+1,IM,JM,SUBR,'wv')
-      CALL CHECK3(HTBARE,NGM+1,IM,JM,SUBR,'hb')
-      CALL CHECK3(HTVEGE,NGM+1,IM,JM,SUBR,'hv')
-      CALL CHECK3(SNOWBV,2    ,IM,JM,SUBR,'sn')
+c**** check for nan/inf in earth data
+      call check3(wbare ,ngm  ,im,jm,subr,'wb')
+      call check3(wvege ,ngm+1,im,jm,subr,'wv')
+      call check3(htbare,ngm+1,im,jm,subr,'hb')
+      call check3(htvege,ngm+1,im,jm,subr,'hv')
+      call check3(snowbv,2    ,im,jm,subr,'sn')
 
-C**** Check for reasonable temperatures over earth
-      X=1.001
-      DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
-          IF (FEARTH(I,J).GT.0.) THEN
-            TGL=TEARTH(I,J)
-            WTRL=WEARTH(I,J)
-            ACEL=AIEARTH(I,J)
-            IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,ITime
-     *           ,FEARTH(I,J),'TG1 ',SNOWE(I,J),TGL,WTRL,ACEL
-            IF (WTRL.LT.0..OR.ACEL.LT.0..OR.(WTRL+ACEL).GT.X*WFCS(I
-     *           ,J)) WRITE(6,901) SUBR,I,J,ITime,FEARTH(I,J),'WTR '
-     *           ,SNOWE(I,J),TGL,WTRL,ACEL,WFCS(I,J)
-          END IF
-        END DO
-      END DO
+c**** check for reasonable temperatures over earth
+      x=1.001
+      do j=1,jm
+        imax=imaxj(j)
+        do i=1,imax
+          if (fearth(i,j).gt.0.) then
+            tgl=tearth(i,j)
+            wtrl=wearth(i,j)
+            acel=aiearth(i,j)
+            if ((tgl+60.)*(60.-tgl).le.0.) write (6,901) subr,i,j,itime
+     *           ,fearth(i,j),'tg1 ',snowe(i,j),tgl,wtrl,acel
+            if (wtrl.lt.0..or.acel.lt.0..or.(wtrl+acel).gt.x*wfcs(i
+     *           ,j)) write(6,901) subr,i,j,itime,fearth(i,j),'wtr '
+     *           ,snowe(i,j),tgl,wtrl,acel,wfcs(i,j)
+          end if
+        end do
+      end do
 
-      RETURN
- 901  FORMAT ('0GDATA OFF, SUBR,I,J,I-Time,PEARTH,',A7,2I4,I10,F5.2,1X
-     *     ,A4/' SNW,x,TG1,WTR1,ICE1, WFC1 ',6F12.4)
+      return
+ 901  format ('0gdata off, subr,i,j,i-time,pearth,',a7,2i4,i10,f5.2,1x
+     *     ,a4/' snw,x,tg1,wtr1,ice1, wfc1 ',6f12.4)
 
-      END SUBROUTINE CHECKE
+      end subroutine checke
 
-      SUBROUTINE daily_EARTH(IEND)
-!@sum  daily_EARTH performs daily tasks for EARTH related functions
-!@auth Original Development Team
+      subroutine daily_earth(iend)
+!@sum  daily_earth performs daily tasks for earth related functions
+!@auth original development team
 !@ver  1.0
-      USE CONSTANT, only : rhow,twopi,edpery,tf
-      USE MODEL_COM, only : NDAY,NIsurf,jday,fearth,wfcs
-      USE GEOM, only : imaxj
-      USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
+      use constant, only : rhow,twopi,edpery,tf
+      use model_com, only : nday,nisurf,jday,fearth,wfcs
+      use geom, only : imaxj
+      use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx
-      USE GHYCOM, only : snoage
-      IMPLICIT NONE
-      REAL*8 TSAVG,WFC1
-      INTEGER I,J,IMAX,ITYPE
-      INTEGER, INTENT(IN) :: IEND  !@var IEND 1 if at end of day
-C****
-C**** FIND LEAF-AREA INDEX & WATER FIELD CAPACITY FOR GROUND LAYER 1
-C****
-      COSDAY=COS(TWOPI/EDPERY*JDAY)
-      SINDAY=SIN(TWOPI/EDPERY*JDAY)
-      DO J=1,JM
-        DO I=1,IM
-          WFCS(I,J)=24.
-          IF (FEARTH(I,J).GT.0.) THEN
-            CALL GHINIJ(I,J,WFC1)
-            WFCS(I,J)=RHOW*WFC1 ! canopy part changes
-          END IF
-        END DO
-      END DO
+      use ghycom, only : snoage
+      implicit none
+      real*8 tsavg,wfc1
+      integer i,j,imax,itype
+      integer, intent(in) :: iend  !@var iend 1 if at end of day
+c****
+c**** find leaf-area index & water field capacity for ground layer 1
+c****
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+      do j=1,jm
+        do i=1,im
+          wfcs(i,j)=24.
+          if (fearth(i,j).gt.0.) then
+            call ghinij(i,j,wfc1)
+            wfcs(i,j)=rhow*wfc1 ! canopy part changes
+          end if
+        end do
+      end do
 
-      IF (IEND.eq.1) THEN
-C****
-C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
-C****
-        DO J=1,JM
-          IMAX=IMAXJ(J)
-          DO I=1,IMAX
-            DO ITYPE=1,3
-              SNOAGE(ITYPE,I,J)=1.+.98*SNOAGE(ITYPE,I,J)
-            END DO
-            TSAVG=TDIURN(I,J,5)/(NDAY*NIsurf)
-            IF(32.+1.8*TSAVG.LT.65.)
-     *           AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)+(33.-1.8*TSAVG)
-            AIJ(I,J,IJ_DTGDTS)=AIJ(I,J,IJ_DTGDTS)+18.*((TDIURN(I,J,2)-
-     *           TDIURN(I,J,1))/(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
-            AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+
-     *           (TDIURN(I,J,4)-TDIURN(I,J,3))
-            AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-TF)
-            IF (TDIURN(I,J,6).LT.AIJ(I,J,IJ_TMNMX))
-     *           AIJ(I,J,IJ_TMNMX)=TDIURN(I,J,6)
-          END DO
-        END DO
-      END IF
+      if (iend.eq.1) then
+c****
+c**** increase snow age each day (independent of ts)
+c****
+        do j=1,jm
+          imax=imaxj(j)
+          do i=1,imax
+            do itype=1,3
+              snoage(itype,i,j)=1.+.98*snoage(itype,i,j)
+            end do
+            tsavg=tdiurn(i,j,5)/(nday*nisurf)
+            if(32.+1.8*tsavg.lt.65.)
+     *           aij(i,j,ij_strngts)=aij(i,j,ij_strngts)+(33.-1.8*tsavg)
+            aij(i,j,ij_dtgdts)=aij(i,j,ij_dtgdts)+18.*((tdiurn(i,j,2)-
+     *           tdiurn(i,j,1))/(tdiurn(i,j,4)-tdiurn(i,j,3)+1.d-20)-1.)
+            aij(i,j,ij_tdsl)=aij(i,j,ij_tdsl)+
+     *           (tdiurn(i,j,4)-tdiurn(i,j,3))
+            aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+(tdiurn(i,j,4)-tf)
+            if (tdiurn(i,j,6).lt.aij(i,j,ij_tmnmx))
+     *           aij(i,j,ij_tmnmx)=tdiurn(i,j,6)
+          end do
+        end do
+      end if
 
-      RETURN
-      END SUBROUTINE daily_EARTH
+      return
+      end subroutine daily_earth
 
-      SUBROUTINE GROUND_E
-!@sum  GROUND_E driver for applying surface fluxes to land fraction
-!@auth Original Development team
+      subroutine ground_e
+!@sum  ground_e driver for applying surface fluxes to land fraction
+!@auth original development team
 !@ver  1.0
-      USE MODEL_COM, only : fearth,itearth
-      USE GEOM, only : imaxj,dxyp
-      USE GHYCOM, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
+      use model_com, only : fearth,itearth
+      use geom, only : imaxj,dxyp
+      use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
+      use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,ij_g01,ij_g07,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
-      USE FLUXES, only : e0,e1,evapor,eprec
-      IMPLICIT NONE
+      use fluxes, only : e0,e1,evapor,eprec
+      implicit none
 
-      REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ,WTR1,WTR2,ACE1,ACE2
-     *     ,PEARTH,ENRGP,SCOVE
-      INTEGER I,J,IMAX,JR,K
+      real*8 snow,tg1,tg2,f0dt,f1dt,evap,dxypj,wtr1,wtr2,ace1,ace2
+     *     ,pearth,enrgp,scove
+      integer i,j,imax,jr,k
 
-      DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
-      PEARTH=FEARTH(I,J)
-      JR=JREG(I,J)
-      IF (PEARTH.gt.0) THEN
+      do j=1,jm
+      imax=imaxj(j)
+      dxypj=dxyp(j)
+      do i=1,imax
+      pearth=fearth(i,j)
+      jr=jreg(i,j)
+      if (pearth.gt.0) then
 
-        SNOW=SNOWE(I,J)
-        TG1 = TEARTH(I,J)
-        WTR1= WEARTH(I,J)
-        ACE1=AIEARTH(I,J)
-        TG2=GDEEP(I,J,1)
-        WTR2=GDEEP(I,J,2)
-        ACE2=GDEEP(I,J,3)
-        F0DT=E0(I,J,4)
-        F1DT=E1(I,J,4)
-        EVAP=EVAPOR(I,J,4)
-        ENRGP=EPREC(I,J)      ! including latent heat
+        snow=snowe(i,j)
+        tg1 = tearth(i,j)
+        wtr1= wearth(i,j)
+        ace1=aiearth(i,j)
+        tg2=gdeep(i,j,1)
+        wtr2=gdeep(i,j,2)
+        ace2=gdeep(i,j,3)
+        f0dt=e0(i,j,4)
+        f1dt=e1(i,j,4)
+        evap=evapor(i,j,4)
+        enrgp=eprec(i,j)      ! including latent heat
 
-C**** ACCUMULATE DIAGNOSTICS
-        SCOVE=0.
-        IF (SNOWE(I,J).GT.0.) SCOVE=PEARTH
-        AJ(J,J_RSNOW,ITEARTH)=AJ(J,J_RSNOW,ITEARTH)+SCOVE
-        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVE*DXYPJ
-        AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVE
-        AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PEARTH
-        AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+SCOVE
+c**** accumulate diagnostics
+        scove=0.
+        if (snowe(i,j).gt.0.) scove=pearth
+        aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
+        areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxypj
+        aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
+        aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
+        aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
 
-        AJ(J,J_WTR1,ITEARTH)=AJ(J,J_WTR1,ITEARTH)+WTR1*PEARTH
-        AJ(J,J_ACE1,ITEARTH)=AJ(J,J_ACE1,ITEARTH)+ACE1*PEARTH
-        AJ(J,J_WTR2,ITEARTH)=AJ(J,J_WTR2,ITEARTH)+WTR2*PEARTH
-        AJ(J,J_ACE2,ITEARTH)=AJ(J,J_ACE2,ITEARTH)+ACE2*PEARTH
-        AJ(J,J_TG1 ,ITEARTH)=AJ(J,J_TG1, ITEARTH)+TG1 *PEARTH
-        AJ(J,J_TG2 ,ITEARTH)=AJ(J,J_TG2, ITEARTH)+TG2 *PEARTH
-        AJ(J,J_TYPE,ITEARTH)=AJ(J,J_TYPE,ITEARTH)+     PEARTH
-        AJ(J,J_SNOW,ITEARTH)=AJ(J,J_SNOW,ITEARTH)+SNOW*PEARTH
-        AJ(J,J_F1DT,ITEARTH)=AJ(J,J_F1DT,ITEARTH)+F1DT*PEARTH
-        AJ(J,J_EVAP,ITEARTH)=AJ(J,J_EVAP,ITEARTH)+EVAP*PEARTH
-        IF (JR.ne.24) THEN
-        AREG(JR,J_TG1) =AREG(JR,J_TG1) +TG1 *PEARTH*DXYPJ
-        AREG(JR,J_TG2) =AREG(JR,J_TG2) +TG2 *PEARTH*DXYPJ
-        AREG(JR,J_SNOW)=AREG(JR,J_SNOW)+SNOW*PEARTH*DXYPJ
-        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+WTR1*PEARTH*DXYPJ
-        AREG(JR,J_ACE1)=AREG(JR,J_ACE1)+ACE1*PEARTH*DXYPJ
-        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+WTR2*PEARTH*DXYPJ
-        AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+ACE2*PEARTH*DXYPJ
-        END IF
-        AIJ(I,J,IJ_F0E)  =AIJ(I,J,IJ_F0E)  +F0DT+ENRGP
-        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TG1 *PEARTH
-        AIJ(I,J,IJ_GWTR) =AIJ(I,J,IJ_GWTR)+(WTR1+ACE1+WTR2+ACE2)
-        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH
-        AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
-        DO K=1,4
-          AIJ(I,J,IJ_G01+K-1)=AIJ(I,J,IJ_G01+K-1)+WBARE(K,I,J)
-          AIJ(I,J,IJ_G07+K-1)=AIJ(I,J,IJ_G07+K-1)+WVEGE(K-1,I,J)
-        END DO
-        AIJ(I,J,IJ_G28)=AIJ(I,J,IJ_G28)+SNOWBV(1,I,J)
-        AIJ(I,J,IJ_G29)=AIJ(I,J,IJ_G29)+SNOWBV(2,I,J)
-      END IF
-C****
-      END DO
-      END DO
-      END SUBROUTINE GROUND_E
+        aj(j,j_wtr1,itearth)=aj(j,j_wtr1,itearth)+wtr1*pearth
+        aj(j,j_ace1,itearth)=aj(j,j_ace1,itearth)+ace1*pearth
+        aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
+        aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
+        aj(j,j_tg1 ,itearth)=aj(j,j_tg1, itearth)+tg1 *pearth
+        aj(j,j_tg2 ,itearth)=aj(j,j_tg2, itearth)+tg2 *pearth
+        aj(j,j_type,itearth)=aj(j,j_type,itearth)+     pearth
+        aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
+        aj(j,j_f1dt,itearth)=aj(j,j_f1dt,itearth)+f1dt*pearth
+        aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
+        if (jr.ne.24) then
+        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxypj
+        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxypj
+        areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxypj
+        areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxypj
+        areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxypj
+        areg(jr,j_wtr2)=areg(jr,j_wtr2)+wtr2*pearth*dxypj
+        areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxypj
+        end if
+        aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
+        aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth
+        aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
+        aij(i,j,ij_evap) =aij(i,j,ij_evap) +evap*pearth
+        aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
+        do k=1,4
+          aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)
+          aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+wvege(k-1,i,j)
+        end do
+        aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
+        aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
+      end if
+c****
+      end do
+      end do
+      end subroutine ground_e
 
-      SUBROUTINE conserv_WTG(WATERG)
-!@sum  conserv_WTG calculates zonal ground water
+      subroutine conserv_wtg(waterg)
+!@sum  conserv_wtg calculates zonal ground water
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow
-      USE MODEL_COM, only : fim,fearth
-      USE GEOM, only : imaxj
-      USE GHYCOM, only : wbare,wvege,afb
-      USE SLE001, only : ngm
-      IMPLICIT NONE
-!@var WATERG zonal ground water (kg/m^2)
-      REAL*8, DIMENSION(JM) :: WATERG
-      INTEGER I,J,N
-      REAL*8 WIJ,FB
+      use constant, only : rhow
+      use model_com, only : fim,fearth
+      use geom, only : imaxj
+      use ghycom, only : wbare,wvege,afb
+      use sle001, only : ngm
+      implicit none
+!@var waterg zonal ground water (kg/m^2)
+      real*8, dimension(jm) :: waterg
+      integer i,j,n
+      real*8 wij,fb
 
-      DO J=1,JM
-        WATERG(J)=0
-        DO I=1,IMAXJ(J)
-          IF (FEARTH(I,J).gt.0) THEN
-            FB=AFB(I,J)
-            WIJ=(1.-FB)*WVEGE(0,I,J)
-            DO N=1,NGM
-              WIJ=WIJ+FB*WBARE(N,I,J)+(1.-FB)*WVEGE(N,I,J)
-            END DO
-            WATERG(J)=WATERG(J)+FEARTH(I,J)*WIJ*RHOW
-          END IF
-        END DO
-      END DO
-      WATERG(1) =FIM*WATERG(1)
-      WATERG(JM)=FIM*WATERG(JM)
-C****
-      END SUBROUTINE conserv_WTG
+      do j=1,jm
+        waterg(j)=0
+        do i=1,imaxj(j)
+          if (fearth(i,j).gt.0) then
+            fb=afb(i,j)
+            wij=(1.-fb)*wvege(0,i,j)
+            do n=1,ngm
+              wij=wij+fb*wbare(n,i,j)+(1.-fb)*wvege(n,i,j)
+            end do
+            waterg(j)=waterg(j)+fearth(i,j)*wij*rhow
+          end if
+        end do
+      end do
+      waterg(1) =fim*waterg(1)
+      waterg(jm)=fim*waterg(jm)
+c****
+      end subroutine conserv_wtg
 
-      SUBROUTINE conserv_HTG(HEATG)
-!@sum  conserv_HTG calculates zonal ground energy
+      subroutine conserv_htg(heatg)
+!@sum  conserv_htg calculates zonal ground energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : fim,fearth
-      USE GEOM, only : imaxj
-      USE GHYCOM, only : htbare,htvege,afb
-      USE SLE001, only : ngm
-      IMPLICIT NONE
-!@var HEATG zonal ground heat (J/m^2)
-      REAL*8, DIMENSION(JM) :: HEATG
-      INTEGER I,J,N
-      REAL*8 HIJ,FB
+      use model_com, only : fim,fearth
+      use geom, only : imaxj
+      use ghycom, only : htbare,htvege,afb
+      use sle001, only : ngm
+      implicit none
+!@var heatg zonal ground heat (j/m^2)
+      real*8, dimension(jm) :: heatg
+      integer i,j,n
+      real*8 hij,fb
 
-      DO J=1,JM
-        HEATG(J)=0
-        DO I=1,IMAXJ(J)
-          IF (FEARTH(I,J).gt.0) THEN
-            FB=AFB(I,J)
-            HIJ=0.
-            DO N=0,NGM
-              HIJ=HIJ+FB*HTBARE(N,I,J)+(1.-FB)*HTVEGE(N,I,J)
-            END DO
-            HEATG(J)=HEATG(J)+FEARTH(I,J)*HIJ
-          END IF
-        END DO
-      END DO
-      HEATG(1) =FIM*HEATG(1)
-      HEATG(JM)=FIM*HEATG(JM)
-C****
-      END SUBROUTINE conserv_HTG
+      do j=1,jm
+        heatg(j)=0
+        do i=1,imaxj(j)
+          if (fearth(i,j).gt.0) then
+            fb=afb(i,j)
+            hij=0.
+            do n=0,ngm
+              hij=hij+fb*htbare(n,i,j)+(1.-fb)*htvege(n,i,j)
+            end do
+            heatg(j)=heatg(j)+fearth(i,j)*hij
+          end if
+        end do
+      end do
+      heatg(1) =fim*heatg(1)
+      heatg(jm)=fim*heatg(jm)
+c****
+      end subroutine conserv_htg
 
       end module soil_drv
