@@ -1,4 +1,4 @@
-
+ 
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -306,7 +306,7 @@ C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
      A              TAUTBL(154000),PLANCK(8250),XKCFC(12,8,4)
      B             ,TAUWV0(154000),H2OCN8(33,8,14),H2OCF8(33,8,5)
      D             ,ULOX(285),DUX(285)
-     E           
+     E
      F            ,XUCH4(9,15),XUN2O(9,15),XTRUP(24,3,15),XTRDN(24,3,15)
      G             ,CXUO3(7,15),CXUCO2(7,15),XTU0(24,3)
      H             ,XTD0(24,3),XUCH40(9),XUN2O0(9)
@@ -409,7 +409,7 @@ C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
       real*8         V4TAUR(1800,24,5),FDATA(80),GDATA(80)
-     C              ,HTFLAT(49,4),TAULAT(49),SIZLAT(49)
+     C              ,HTFLAT(49,4),SIZLAT(49) !nu ,TAULAT(49)
 
 C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
       real*4 EPLMHC(72,46,12,4)
@@ -1261,9 +1261,12 @@ C                               ----------------------------------------
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
         DO J=1,24
+          SUM=0.  
         DO I=1,1800
           V4TAUR(I,J,K)=VTAUR4(I,J)
+          SUM=SUM+VTAUR4(I,J)
         END DO
+          if(kyearv.lt.0) V4TAUR(1,J,K)=SUM/1800
         END DO
       END DO
 
@@ -1623,7 +1626,7 @@ C----------------------------------------------
       JJDAYV=JDAY
       JYEARV=JYEAR
       IF(KJDAYV.GT.0)             JJDAYV=KJDAYV
-      IF(KYEARV.GT.0)             JYEARV=KYEARV
+      IF(KYEARV.NE.0)             JYEARV=KYEARV
 C----------------------------------------------
       IF(MADVOL.GT.0) CALL UPDVOL(JYEARV,JJDAYV)
 C----------------------------------------------
@@ -3961,12 +3964,12 @@ C                              ----------------------------------------
       REAL*8, PARAMETER :: HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
 cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
 
-      real*8, parameter :: htplim=1.d-3
+!nu   real*8, parameter :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
       INTEGER, SAVE :: NJ25,NJJM
       INTEGER, INTENT(IN) :: JYEARV,JDAYVA
       INTEGER J,L,MI,MJ,K
-      REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SUMHTF,SIZVOL
+      REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SIZVOL !nu ,SUMHTF
 
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
@@ -4041,13 +4044,13 @@ C                                          -------------------------
   260 CONTINUE
       CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
   270 CONTINUE
-      DO 290 J=1,24
-      SUM=0
-      DO 280 K=1,4
-      SUM=SUM+HTFLAT(J,K)
-  280 CONTINUE
-      TAULAT(J)=SUM
-  290 CONTINUE
+!nu   DO J=1,46
+!nu   SUM=0
+!nu   DO K=1,4
+!nu   SUM=SUM+HTFLAT(J,K)
+!nu   END DO 
+!nu   TAULAT(J)=SUM
+!nu   END DO 
 
       RETURN
 
@@ -4074,10 +4077,10 @@ cx300 CONTINUE
 !nu   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
 !nu   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
 !nu   END DO
-      SUMHTF=1.D-10
+!nu   SUMHTF=1.D-10
       DO 330 L=1,NL
-      IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
-      SUMHTF=SUMHTF+HTPROF(L)
+      IF(HTPROF(L).LT.0.) HTPROF(L)=0.D0
+!nu   SUMHTF=SUMHTF+HTPROF(L)
   330 CONTINUE
 
       SIZVOL=SIZLAT(JLAT)
