@@ -3,7 +3,7 @@
 .SUFFIXES: .o .U .S .GCM .OCN .f .F
 .SUFFIXES:
 
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R 
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc
 
 #
 # Print Usage if no targets were given
@@ -70,6 +70,7 @@ RUNDECK = $(DECKS_DIR)/$(RUN).R
 
 OBJ_DIR = .
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
+DOC_DIR = $(DECKS_DIR)/$(RUN)_doc
 
 DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
@@ -178,6 +179,10 @@ newstart:
         echo 'You should specify run name on a command line (i.e. RUN=...)'; \
         exit 1; fi
 	rm -i /u/cmrun/$(RUN)/*
+
+htmldoc:
+	[ -d $(DOC_DIR) ] || mkdir $(DOC_DIR)
+	$(SCRIPTDIR)/gcmdoc.pl -D $(DOC_DIR) $(FSRCS)
 
 clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L

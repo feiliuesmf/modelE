@@ -1,4 +1,8 @@
       module PARSER
+!@sum programs to read parameters from the rundeck into the database
+!@auth I. Aleinov
+!@ver 1.0     
+
       
       contains
 

@@ -1,7 +1,7 @@
       MODULE DAGCOM
 !@sum  DAGCOM Diagnostic model variables
 !@auth Original Development Team
-!@var  1.0
+!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,imh,ntype,kep,istrat
       USE RADNCB, only : LM_REQ
 
