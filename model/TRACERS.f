@@ -355,10 +355,14 @@ C**** Tracers dry deposition flux.
       USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
+      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
-     *     ,itcon_surf
+     *     ,itcon_surf,ijts_isrc,jls_isrc
+#ifdef TRACERS_AEROSOLS_Koch
+     *    ,ijts_tau
+      USE AEROSOL_SOURCES, only: aer_tau
+#endif
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
@@ -370,6 +374,9 @@ C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
 C**** in ATURB or explcitly in 'apply_fluxes_to_atm' call in SURFACE.
 
+#ifdef TRACERS_AEROSOLS_Koch
+      CALL GET_TAU
+#endif
       do n=1,ntm
 
         trflux1(:,:,n) = 0.
@@ -393,15 +400,21 @@ C**** trflux1 is total flux into first layer
         end do
 C**** Interactive sources
 C**** diagnostics
-c        naij = ijts_source(ns,n)  ????
-c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
-c        najl = jls_source(ns,n)   ????
-c        do j=1,jm
-c          tajls(j,1,najl) = tajls(j,1,najl)+
-c     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
-c        end do
+        do ns=1,ntisurfsrc(n)
+         naij = ijts_isrc(ns,n)  
+         taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
+         najl = jls_isrc(ns,n)   
+         do j=1,jm
+           tajls(j,1,najl) = tajls(j,1,najl)+
+     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
+         end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
-
+        end do
+#ifdef TRACERS_AEROSOLS_Koch
+c accumulate hydrated optical thickness
+         naij = ijts_tau(n)  
+         taijs(:,:,naij) = taijs(:,:,naij) + aer_tau(:,:,n)
+#endif     
 C**** modify vertical moments (only from non-interactive sources)
         trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
      *       *dtstep
@@ -578,6 +591,10 @@ C****
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,trname
+      USE CLOUDS_COM, only: rhsav
+#endif
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
 #ifdef TRACERS_DRYDEP
      *     ,taijn,tij_drydep
@@ -589,6 +606,11 @@ C****
       real*8, dimension(im,jm,lm) :: told
       real*8 fgrfluxd,fgrfluxu
       integer n,najl,i,j,l
+#ifdef TRACERS_AEROSOLS_Koch
+      real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
+     * c4=-1.424d0
+      real*8 r_h,den_h,rh
+#endif
 
       if (ifirst) then               
 C**** Calculate settling velocity based on Stokes' Law using particle
@@ -607,6 +629,30 @@ C**** Gravitational settling
           do j=1,jm
           do i=1,imaxj(j)
             told(i,j,l)=trm(i,j,l,n)
+c need to hydrate the sea salt before determining settling	    
+#ifdef TRACERS_AEROSOLS_Koch
+      rh=rhsav(l,i,j)
+      if (rhsav(l,i,j).le.0) rh=0.01
+      if (rhsav(l,i,j).ge.1.) rh=0.99
+      select case (trname(n))
+      case ('seasalt1')
+c hydrated radius
+      r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
+     * + (trradius(n))**(3.d0))**(0.33333d0)
+c hydrated density
+      den_h=((r_h**3.d0 - trradius(n)**3.d0)*1000.d0 
+     * + trradius(n)**3.d0*trpdens(n))/r_h**3.d0
+      stokevdt(n)=dtsrc*2.d0*grav*den_h*r_h**2.d0/(9.d0*visc_air)
+      case ('seasalt2')
+c hydrated radius
+      r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
+     * + (trradius(n))**(3.d0))**(0.33333d0)
+c hydrated density
+      den_h=((r_h**3.d0 - trradius(n)**3.d0)*1000.d0 
+     * + trradius(n)**3.d0*trpdens(n))/r_h**3.d0
+      stokevdt(n)=dtsrc*2.d0*grav*den_h*r_h**2.d0/(9.d0*visc_air)
+      end select
+#endif
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
 C**** should this operate in the first layer? Surely dry dep is dominant?
