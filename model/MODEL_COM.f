@@ -202,14 +202,18 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
 
-      CONTAINS 
+      END MODULE MODEL_COM
 
-      SUBROUTINE INIT_MODEL_COM(grid)
+      SUBROUTINE ALLOC_MODEL_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at 
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE RESOLUTION, ONLY : IM,LM
+      USE MODEL_COM, ONLY : NTYPE
+      USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
+     *                      FEARTH,WFCS,P,U,V,T,Q,WM,FTYPE
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
 
@@ -241,9 +245,8 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 ! initialize non-initialized arrays
       FTYPE(:,:,:) = 0.d0
 
-      END SUBROUTINE INIT_MODEL_COM
+      END SUBROUTINE ALLOC_MODEL_COM
 
-      END MODULE MODEL_COM
 
       MODULE TIMINGS
 !@sum  TIMINGS contains variables for keeping track of computing time
