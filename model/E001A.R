@@ -11,7 +11,7 @@ RES_M12                             ! horiz/vert resolution
 MODEL_COM GEOM_B                    ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database 
-DYN_COM ATMDYN MOMEN2ND             ! atmospheric dynamics
+ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes

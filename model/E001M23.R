@@ -11,7 +11,7 @@ RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B                    ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database 
-DYN_COM ATMDYN MOMEN2ND             ! atmospheric dynamics
+ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
