@@ -519,7 +519,6 @@ C****
       DTHR=2./NIdyn
       BYDT1 = 1./DT1
 
-C**** Start main loop
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
         IF (L.GE.LS1) THEN
@@ -566,7 +565,7 @@ C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
 !$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
-        DUT3(:,:,L)=0. ; DVT3(:,:,L)=0. ; DUJL(:,L)=0.
+        DUT3(:,:,L)=0. ; DVT3(:,:,L)=0. ; DUJL(:,L)=0.; DKE(:,:,L) = 0.
       END DO
 !$OMP  END PARALLEL DO
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)
