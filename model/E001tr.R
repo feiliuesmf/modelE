@@ -28,6 +28,9 @@ Preprocessor Options
 #define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
+Run Options
+STACKSIZE=131072
+
 Object modules: (in order of decreasing priority)
 RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
