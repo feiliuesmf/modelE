@@ -85,6 +85,8 @@ C**** is currently done for river flow and complete sea ice melt.
       REAL*8, DIMENSION(IM,JM) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, DIMENSION(IM,JM) :: MLHC
+!@var UOSURF, VOSURF ocean surface velocity (m/s)
+      REAL*8, DIMENSION(IM,JM) :: UOSURF,VOSURF
 
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)

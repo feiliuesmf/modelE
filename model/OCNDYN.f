@@ -3087,7 +3087,7 @@ C**** Done!
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
-      USE FLUXES, only : gtemp, sss, mlhc, ogeoza
+      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -3114,6 +3114,8 @@ C****
             END IF
             GTEMP(2,1,I,J)= TO
             OGEOZA(I,J)=OGEOZ(I,J)   ! atmospheric grid Ocean height
+            UOSURF(I,J)=UO(I,J,1)
+            VOSURF(I,J)=VO(I,J,1)
 C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
@@ -3135,6 +3137,8 @@ C**** do poles
           GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
+          UOSURF(I,JM)=UOSURF(1,JM)
+          VOSURF(1,JM)=0.
 #ifdef TRACERS_WATER
           GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
 #endif

@@ -211,14 +211,12 @@ C****
       USE CONSTANT, only : rhoi,grav,omega
       USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
-C**** This line should be changed for different oceans
-      USE OCEAN, only : uo,vo
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,uib,vib,dmu,dmv
       USE ICEDYN_COM, only : usi,vsi,usidt,vsidt,rsisave,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
-      USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho,ogeoza
+      USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho,ogeoza,uosurf,vosurf
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
@@ -235,8 +233,6 @@ C**** Start main loop
 C**** Replicate polar boxes
       RSI(2:IM,JM)=RSI(1,JM)
       MSI(2:IM,JM)=MSI(1,JM)
-      UO(2:IM,JM,1)=UO(1,JM,1)
-      VO(1:IM,JM,1)=0.
       DMUA(2:IM,JM,2) = DMUA(1,JM,2)
       DMVA(2:IM,JM,2) = DMVA(1,JM,2)
 
@@ -339,14 +335,15 @@ C****
 
 c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
+C**** NOTE: UOSURF, VOSURF are expected to be on the C-grid
       do j=1,jm-1
         im1=im
         do i=1,im
           UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
-          GWATX(i,j)=0.5*(UO  (im1,j,1)+UO  (im1,j+1,1)) ! ocnC--> iceB
+          GWATX(i,j)=0.5*(UOSURF(im1,j)+UOSURF(im1,j+1)) ! ocnC--> iceB
           PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! atmC--> iceB
           VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))       
-          GWATY(i,j)=0.5*(VO  (im1,j,1)+VO  (i,j,1))
+          GWATY(i,j)=0.5*(VOSURF(im1,j)+VOSURF(i,j))
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))
           im1=i
         enddo
@@ -354,7 +351,7 @@ C**** This should be more generally from ocean grid to ice grid
 c**** set north pole
       do i=1,im
         UIB  (i,jm)=USI(1,jm)
-        GWATX(i,jm)=UO(1,jm,1)
+        GWATX(i,jm)=UOSURF(1,jm,1)
         PGFUB(i,jm)=PGFU(1,jm)
         VIB  (i,jm)=0.
         GWATY(i,jm)=0.
