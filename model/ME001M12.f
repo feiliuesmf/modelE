@@ -530,8 +530,8 @@ C****    List of parameters that are disregarded at restarts
 C****
 C**** More default settings
 C****
+      LMCM=-1  ! if not set in rundeck it will default to LS1-1
       TEMP=250.
-      P(:,:)=PSF-PTOP
       TSAVG(:,:)=TEMP
       U(:,:,:)=0.
       V(:,:,:)=0.
@@ -619,7 +619,8 @@ C**** The vertical layering
         SIG(L)=.5*(SIGE(L)+SIGE(L+1))
       END DO
       PSFMPT = PSF-PTOP
-      PSTRAT = (PSF-PTOP)*(SIGE(LS1)-SIGE(LM+1))
+      PSTRAT = PSFMPT*(SIGE(LS1)-SIGE(LM+1))
+      P(:,:)=PSFMPT
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
