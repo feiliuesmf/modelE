@@ -30,7 +30,7 @@
 !@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
 
-!@var US     = x component of surface wind, postive eastward (m/s)
+!@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WS     = magnitude of the surface wind (m/s)
 !@var WSM    = magnitude of the surface wind - ocean currents (m/s)
