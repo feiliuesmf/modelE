@@ -297,11 +297,14 @@ C**** accumulate diagnostics
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
               AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *             *(MSINEW-MSI(I,J))*RSI(I,J)
+     *             *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
+     *               /MSI(I,J))
               AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *             *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*RSI(I,J)
               AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
-     *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J))
+     *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J)
+     *             -SUM(SSI(1:2,I,J)
+     *             -SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)))
               AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(SUM(HSI(1:2,I,J))+
      *             SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)))
@@ -418,19 +421,21 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
 #ifdef TRACERS_WATER
             TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
+            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*(MSINEW-MSI(I,J))
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
             AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *           *RSI(I,J)*(MSINEW-MSI(I,J))
+     *           *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
+     *           /MSI(I,J))
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
             JR=JREG(I,J)
             AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)-FOCEAN(I,J)*RSI(I,J)
-     *           *(MSINEW-MSI(I,J))*DXYP(J)
+     *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
+     *               /MSI(I,J))*DXYP(J)
             AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)-FOCEAN(I,J)*RSI(I,J)
      *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
             MSI(I,J)=MSINEW
@@ -955,18 +960,20 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
 #ifdef TRACERS_WATER
                 TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
-                AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
+                AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*(MSINEW-MSI(I,J))
-                AJ(J,J_HMELT,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+                AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AJ(J,J_SMELT,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+                AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
                 AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
-     *               *RSI(I,J)*(MSINEW-MSI(I,J))
+     *               *RSI(I,J)*(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
+     *               /MSI(I,J))
                 AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
                 AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)-FOCEAN(I,J)*RSI(I,J)
-     *               *(MSINEW-MSI(I,J))*DXYPJ
+     *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
+     *               /MSI(I,J))*DXYPJ
                 AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)-FOCEAN(I,J)*RSI(I,J)
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
                 MSI(I,J)=MSINEW
