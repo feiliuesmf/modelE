@@ -133,9 +133,9 @@ C**** compatibility across model configurations)
 #ifdef TRACERS_SPECIAL_Shindell
       INTEGER K1,K2
       REAL*8, DIMENSION(IM,JM,LM):: yNO31,pHOx1,pNOx1,pOx1,yCH3O21,
-     &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,
+     &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,
      &     yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22,
-     &     yAldehyde2,yXO2N2,yRXPAR2,OxIC2,temp1,temp2
+     &     yAldehyde2,yXO2N2,yRXPAR2,temp1,temp2
       REAL*8, DIMENSION(LM,IM,JM):: RCLOUDFJ1,RCLOUDFJ2
       REAL*8, DIMENSION(JM,4,12) :: corrOx1,corrOx2
       REAL*8, DIMENSION(IM,JM)   :: SALBFJ1,SALBFJ2
@@ -240,7 +240,7 @@ c        write(0,*) 'trying to read icedyn'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
-     *        ,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,corrOx1,SALBFJ1
+     *        ,yAldehyde1,yXO2N1,yRXPAR1,corrOx1,SALBFJ1
      *        ,RCLOUDFJ1,O3DLJI1,O3DLJI_clim1,ss1
 #endif
 #endif
@@ -354,7 +354,7 @@ c        write(0,*) 'trying to read icedyn'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
-     *        ,yAldehyde2,yXO2N2,yRXPAR2,OxIC2,corrOx2,SALBFJ2
+     *        ,yAldehyde2,yXO2N2,yRXPAR2,corrOx2,SALBFJ2
      *        ,RCLOUDFJ2,O3DLJI2,O3DLJI_clim2,ss2
 #endif
 #endif
@@ -491,7 +491,6 @@ C****
       ERRQ=COMP8('yAldeh',IM,JM,LM    ,yAldehyde1,yAldehyde2).or. ERRQ
       ERRQ=COMP8('yXO2N ',IM,JM,LM    , yXO2N1  , yXO2N2  )  .or. ERRQ
       ERRQ=COMP8('yRXPAR',IM,JM,LM    , yRXPAR1 , yRXPAR2 )  .or. ERRQ
-      ERRQ=COMP8('OxIC  ',IM,JM,LM    , OxIC1   , OxIC2   )  .or. ERRQ
       ERRQ=COMP8('corrOx',JM, 4,12    , corrOx1 , corrOx2 )  .or. ERRQ
       ERRQ=COMP8('SALBFJ',IM,JM,1     , SALBFJ1 , SALBFJ2 )  .or. ERRQ
       ERRQ=COMP8('RCLDFJ',LM,IM,JM    ,RCLOUDFJ1,RCLOUDFJ2)  .or. ERRQ
