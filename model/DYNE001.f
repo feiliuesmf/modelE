@@ -17,16 +17,20 @@
       IMPLICIT NONE
 
 C**** Some helpful arrays (arrays should be L first)
+!@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
+      REAL*8, DIMENSION(LM,IM,JM) :: PLIJ
+!@var  PDSIG  Surface pressure * DSIG(L) (mb)
+      REAL*8, DIMENSION(LM,IM,JM) :: PDSIG
 !@var  AM  Air mass of each box (kg/m^2)
-!      REAL*8, DIMENSION(LM,IM,JM) :: AM
+!      REAL*8, DIMENSION(LM,IM,JM) :: AM     ! PLIJ*DSIG(L)*100/grav
 !@var  BYAM  1/Air mass (m^2/kg)
 !      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
 !@var  PMID  Pressure at mid point of box (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PMID
+      REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA 
       REAL*8, SAVE,DIMENSION(LM,IM,JM) :: PK
 !@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN
+      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN  ! SIGE(L)*PLIJ+PTOP
 !@var  PEK  PEUP**KAPA
       REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
@@ -921,6 +925,8 @@ C**** subsequentaly with LMAX=LS1-1
          IMAX=IMAXJ(J)
          DO I=1,IMAX
             DO L=1,LS1-1
+               PLIJ(L,I,J) = P(I,J)
+               PDSIG(L,I,J) = P(I,J)*DSIG(L)
                PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
                PK  (L,I,J) = EXPBYK(PMID(L,I,J))
                PEDN(L,I,J) = SIGE(L)*P(I,J)+PTOP
@@ -929,6 +935,8 @@ c               AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
 c               BYAM(L,I,J) = 1./AM(L,I,J)
             END DO
             DO L=LS1,LMAX
+               PLIJ(L,I,J) = PSFMPT
+               PDSIG(L,I,J) = PSFMPT*DSIG(L)
                PMID(L,I,J) = SIG(L)*(PSF-PTOP)+PTOP
                PK  (L,I,J) = EXPBYK(PMID(L,I,J))
                PEDN(L,I,J) = SIGE(L)*(PSF-PTOP)+PTOP

@@ -1597,7 +1597,7 @@ C****
       USE GEOM
       USE SOMTQ_COM
       USE DAGCOM !, only : ajl
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk,PDSIG
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
@@ -1707,7 +1707,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO 180 L=LMIN,LMAX
       IF(L.GE.LS1) PIJ=PSF-PTOP
          AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PIJ
-         AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PIJ*LHE/SHA
+         AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
       T(I,J,L)=THM
        TX(I,J,L) = TXS/PKMS
        TY(I,J,L) = TYS/PKMS

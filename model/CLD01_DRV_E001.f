@@ -22,7 +22,7 @@
      *     prcpss,hcndss,aj55,bydtcn,condse_loc
       USE PBLCOM, only : tsavg
       USE DAGCOM  !, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg
-      USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
+      USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE OCEAN, only : odata
 
       IMPLICIT NONE
@@ -275,9 +275,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO L=1,LM
          DO J=2,JM
             DO I=1,IM
-               PIJ=P(I,J)
-               IF(L.GE.LS1) PIJ=PSF-PTOP
-               AJL(J,L,39)=AJL(J,L,39)+(U(I,J,L)-UC(I,J,L))*PIJ
+               AJL(J,L,39)=AJL(J,L,39)+(U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
             END DO
          END DO
       END DO
