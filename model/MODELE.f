@@ -205,7 +205,7 @@ C**** RADIATION, SOLAR AND THERMAL
       MODRD=MOD(Itime-ItimeI,NRAD)
       if (kradia.le.0. or. MODRD.eq.0) then
          CALL RADIA
-         CALL CHECKT ('RADIA ')
+         if (kradia.le.0) CALL CHECKT ('RADIA ')
       end if
          CALL TIMER (MNOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
@@ -632,7 +632,7 @@ C****
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
-      INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr,num_acc_files
+      INTEGER I,J,L,K,LID1,LID2,ITYPE,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam TIMEE,HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
@@ -1169,13 +1169,14 @@ C***********************************************************************
 
 C**** initialize Lrunid (length of the identifying part of XLABEL)
 C****
-      IF (INDEX(XLABEL,'(').gt.17) call stop_model
+      lid1 = INDEX(XLABEL,'(') -1
+      if (lid1.lt.1) lid1=17
+      lid2 = INDEX(XLABEL,' ') -1
+      if (lid2.lt.1) lid2=17
+      LRUNID = min(lid1,lid2)
+      IF (LRUNID.gt.16) call stop_model
      *     ('INPUT: Rundeck name too long. Shorten to 16 char or less'
      *     ,255)
-      LRUNID = INDEX(XLABEL(1:16),'(') -1
-      IF (LRUNID.LT.1) LRUNID=16
-      if (index(XLABEL(1:LRUNID),' ').gt.0)
-     *     LRUNID=index(XLABEL(1:LRUNID),' ')-1
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
