@@ -231,8 +231,6 @@ C**** parse options
       INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
 !@var FILENM name of file to open
       CHARACTER*(*), INTENT(IN), DIMENSION(*) :: FILENM
-!@var IUNIT unit numbers for files in current request
-      INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
 !@var QBIN true if binary file is to be opened (UNFORMATTED)
       LOGICAL, INTENT(IN), DIMENSION(*) :: QBIN
 !@var NREQ number of file unit numbers requested

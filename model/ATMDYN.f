@@ -1066,7 +1066,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@param zplimb min pressure at which to define tropopause (mb)
       real*8, parameter :: zgwmo  = -2d-3, zgwmo2=-3d-3,
      *     zdeltaz = 2000.0, zfaktor = -GRAV/RGAS, zplimb=500.
-      real*8 zplimb, zptph, zp2km, zag, zbg, zasum, zaquer, zptf
+      real*8 zptph, zp2km, zag, zbg, zasum, zaquer, zptf
       integer iplimb,iplimt, jk, jj, kcount, ltset,l
       logical ldtdz
 c****

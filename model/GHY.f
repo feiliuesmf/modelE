@@ -118,7 +118,7 @@ c**** public variables:
      *     ,htpr
      *     ,top_index
       public
-     &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,hour,
+     &    pr,prs,htprs,w,ht,snowd,tp,fice,hour,
      &    fv,fb,atrg,ashg,alhg,
      &    abetad,abetav,abetat,
      &    abetap,abetab,abeta,
@@ -894,7 +894,7 @@ ccc in the topmodel expression for the runoff
 !        enddo
         do l=1,n
           rnff(l,ibv)=xku(l,ibv)*sl*dz(l)/sdstnc
-/* #define do_topmodel_runoff */
+!/* #define do_topmodel_runoff */
 #ifdef do_topmodel_runoff
           if ( ws(l,ibv) > 1.d-16 ) then
             f_k0_exp_l = (1.d0-fice(l,ibv))

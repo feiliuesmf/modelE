@@ -105,7 +105,6 @@
       character buf(256)
       character*256 bufs
       character*256 ttt
-      integer i
       character*16 name
       character*1 type
       integer np, i
