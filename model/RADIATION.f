@@ -3,7 +3,7 @@
 !@sum SURF_ALBEDO contains parameters/variables needed for albedo calc
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       implicit none
-      save               
+      save
 !@var NKBAND number of K-bands
       integer, parameter :: NKBAND=33
 
@@ -1145,7 +1145,7 @@ C            + London (1976) Ozone Climatology with Longitude Dependence
 C            +Keating (1985) Upper Stratosphere Climatology O3 above 5mb
 C       ----------------------------------------------------------------
 
-      IF(MOZONE.EQ.0) GO TO 470  
+      IF(MOZONE.EQ.0) GO TO 470
       NRFU=NRFUN(4)
 CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE4
@@ -3221,14 +3221,14 @@ C                         Specification of  FULGAS  Scaled Gas Amounts
 C                         --------------------------------------------
 
       DO 230 L=1,NL0
-C**** Adjust all water levels
-      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-cc*** Only adjust stratospheric water levels (above LS1_loc)
-cc    IF (L.lt.LS1_loc) THEN
-cc      ULGAS(L,1)=U0GAS(L,1)
-cc    ELSE
-cc      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-cc    END IF
+Cc*** Adjust all water levels
+cc    ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+c**** Only adjust stratospheric water levels (above LS1_loc)
+      IF (L.lt.LS1_loc) THEN
+        ULGAS(L,1)=U0GAS(L,1)
+      ELSE
+        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      END IF
 C****
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
 !obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
@@ -3317,14 +3317,14 @@ C                -----------------------------------------------------
   312 CONTINUE
   313 CONTINUE
       DO 314 L=1,NL
-C**** Adjust ALL water levels
-      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-cc*** Only adjust stratospheric water levels (above LS1_loc)
-cc    IF (L.lt.LS1_loc) THEN
-cc      ULGAS(L,1)=U0GAS(L,1)
-cc    ELSE
-cc      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-cc    END IF
+Cc*** Adjust ALL water levels
+cc    ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+c**** Only adjust stratospheric water levels (above LS1_loc)
+      IF (L.lt.LS1_loc) THEN
+        ULGAS(L,1)=U0GAS(L,1)
+      ELSE
+        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      END IF
 C****
   314 CONTINUE
 
