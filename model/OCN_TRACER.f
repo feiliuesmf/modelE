@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@sum  OCN_TRACER: tracer-dependent routines for GISS Ocean tracers
 !@+    Routines included:
 !@+      Those that MUST EXIST for all tracers:
@@ -21,12 +21,15 @@
      *     ,trmo,txmo,tymo,tzmo,s0m,sxmo,symo,szmo
 #endif
       USE SEAICE, only : xsi,lmi
-      USE STRAITS, only : nmst,msist,ssist,trsist
+      USE STRAITS, only : nmst,msist,ssist
 #ifdef TRACERS_OCEAN
      *     ,lmst,ist,jst,xst,yst,mmst,s0mst,sxmst,szmst,trmst,txmst
      *     ,tzmst
 #endif
+#ifdef TRACERS_WATER
+     *     ,trsist
       USE FLUXES, only : gtracer
+#endif
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
       integer n,i,j,l,k,nst,i1,j1,i2,j2
@@ -54,14 +57,15 @@ C**** only TRACERS_WATER is true.
           tymo(:,:,:,n)=0.
           tzmo(:,:,:,n)=0.
 #endif
+#ifdef TRACERS_WATER
           do j=1,jm
           do i=1,im
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=0.
           end do
           end do
-
+#endif
         case ('Water', 'H2O18', 'HDO')
-#ifdef TRACERS_SPECIAL_O18
+#if (defined TRACERS_OCEAN) && (defined TRACERS_SPECIAL_O18)
 C**** Open ic file for isotope tracers
           call openunit("H2O18ic",iu_O18ic,.true.,.true.)
 #endif
@@ -184,8 +188,10 @@ C**** Balance tracers so that average concentration is TRW0
 #endif
           do j=1,jm
           do i=1,im
+#ifdef TRACERS_WATER
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=trmo(i,j,1,n)/(mo(i,j
      *           ,1)*dxypo(j)-s0m(i,j,1))
+#endif
           do l=lmm(i,j)+1,lmo
             trmo(i,j,l,n)=0. ; txmo(i,j,l,n)=0.
             tymo(i,j,l,n)=0. ; tzmo(i,j,l,n)=0.
@@ -214,10 +220,12 @@ C**** Initiallise strait values based on adjacent ocean boxes
               tzmst(l,nst,n) = 0.
             end do
 #endif
+#ifdef TRACERS_WATER
             trsist(n,1:2,nst) = trw0(n)*(msist(1,nst)*xsi(1:2)
      *           -ssist(1:2,nst))
             trsist(n,3:lmi,nst)=trw0(n)*(msist(2,nst)*xsi(3:lmi)
      *           -ssist(3:lmi,nst))
+#endif
           end do
 C****
         end select
@@ -238,4 +246,37 @@ C****
 !@sum Initialise ocean tracer diagnostics (none so far)
       return
       end subroutine init_tracer_ocean
+#endif
+
+#ifdef TRACERS_OCEAN
+      SUBROUTINE OC_TDECAY
+!@sum OC_TDECAY decays radioactive tracers in ocean
+!@auth Gavin Schmidt/Jean Lerner
+      USE MODEL_COM, only : itime,dtsrc
+      USE TRACER_COM, only : ntm,trdecay,itime_tr0
+      USE OCEAN, only : trmo,txmo,tymo,tzmo
+      IMPLICIT NONE
+      real*8, save, dimension(ntm) :: expdec = 1.
+      logical, save :: ifirst=.true.
+      integer n
+
+      if (ifirst) then               
+        do n=1,ntm
+          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
+        end do
+        ifirst = .false.
+      end if
+
+      do n=1,ntm
+        if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+C**** Oceanic decay
+          trmo(:,:,:,n)   = expdec(n)*trmo(:,:,:,n)
+          txmo(:,:,:,n)   = expdec(n)*txmo(:,:,:,n)
+          tymo(:,:,:,n)   = expdec(n)*tymo(:,:,:,n)
+          tzmo(:,:,:,n)   = expdec(n)*tzmo(:,:,:,n)
+        end if
+      end do
+C****
+      return
+      end subroutine oc_tdecay
 #endif

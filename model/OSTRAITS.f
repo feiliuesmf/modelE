@@ -661,7 +661,7 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TRMST,LMO,NMST,NTM,SUBR,'trmst')
       CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
       CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
-      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
+c      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
 #endif
 
 #ifdef TRACERS_OCEAN

@@ -164,6 +164,9 @@ C****
 C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
 c        CALL CHECKO ('STADVI')
+#ifdef TRACERS_OCEAN
+        CALL OC_TDECAY
+#endif
         CALL TIMER (MNOW,MSGSO)
       CALL TOC2SST
 
@@ -683,13 +686,14 @@ C****
 !@ver  1.0
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
+      USE STRAITS, only : nmst,jst,g0mst
       IMPLICIT NONE
 !@var OCEANE zonal ocean potential enthalpy (J/m^2)
       REAL*8, DIMENSION(JM) :: OCEANE
-      INTEGER I,J,L
+      INTEGER I,J,L,N
 
-      OCEANE=0
       DO J=1,JM
+        OCEANE(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
             OCEANE(J) = OCEANE(J) + G0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
@@ -698,6 +702,11 @@ C****
       END DO
       OCEANE(1) =FIM*OCEANE(1)
       OCEANE(JM)=FIM*OCEANE(JM)
+C**** include straits variables
+      DO N=1,NMST
+        J=JST(N,1)
+        OCEANE(J)=OCEANE(J)+SUM(G0MST(:,N))*BYDXYP(J)
+      END DO
 C****
       RETURN
       END SUBROUTINE conserv_OCE
@@ -708,14 +717,15 @@ C****
 !@ver  1.0
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
+      USE STRAITS, only : nmst,jst,mmst
       IMPLICIT NONE
 !@var OMASS zonal ocean mass (kg/m^2)
       REAL*8, DIMENSION(JM) :: OMASS,OMSSV
       COMMON /OCCONS/OMSSV
-      INTEGER I,J,L
+      INTEGER I,J,L,N
 
-      OMASS=0
       DO J=1,JM
+        OMASS(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
             OMASS(J) = OMASS(J) + MO(I,J,L)*FOCEAN(I,J)
@@ -725,6 +735,11 @@ C****
       END DO
       OMASS(1) =FIM*OMASS(1)
       OMASS(JM)=FIM*OMASS(JM)
+C**** include straits variables
+      DO N=1,NMST
+        J=JST(N,1)
+        OMASS(J)=OMASS(J)+SUM(MMST(:,N))*BYDXYP(J)
+      END DO
 C**** save mass for AM calculation
       OMSSV=OMASS
 C****
@@ -775,13 +790,14 @@ C****
 !@ver  1.0
       USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
+      USE STRAITS, only : nmst,jst,s0mst
       IMPLICIT NONE
 !@var OSALT zonal ocean salt (kg/m^2)
       REAL*8, DIMENSION(JM) :: OSALT
-      INTEGER I,J,L
+      INTEGER I,J,L,N
 
-      OSALT=0
       DO J=1,JM
+        OSALT(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
             OSALT(J) = OSALT(J) + S0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
@@ -790,6 +806,11 @@ C****
       END DO
       OSALT(1) =FIM*OSALT(1)
       OSALT(JM)=FIM*OSALT(JM)
+C**** include straits variables
+      DO N=1,NMST
+        J=JST(N,1)
+        OSALT(J)=OSALT(J)+SUM(S0MST(:,N))*BYDXYP(J)
+      END DO
 C****
       RETURN
       END SUBROUTINE conserv_OSL
@@ -2406,7 +2427,10 @@ C**** Surface stress is applied to V component at the North Pole
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
      *     ,flowo,eflowo,srunosi,apress,melti,emelti,smelti
 #ifdef TRACERS_OCEAN
-     *     ,trflowo,trevapor,dtrsi,trunosi,trmelti
+#ifdef TRACERS_WATER
+     *     ,trflowo,trevapor,trunosi,trmelti
+#endif
+     *     ,dtrsi
 #endif
       USE SEAICE_COM, only : rsi
       IMPLICIT NONE
@@ -2447,10 +2471,14 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         SO1 = S0M(I,J,1)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
+#ifdef TRACERS_WATER
         TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)-
      *       RATOC(J)*TREVAPOR(:,1,I,J)
         TRUNI(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)+
      *       RATOC(J)*TRUNOSI(:,I,J)
+#else
+        TRUNO(:)=0. ; TRUNI(:)=0.
+#endif
 #endif
 
         CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
@@ -2628,7 +2656,9 @@ C****
       USE GEOM, only : dxyp
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm
+#ifdef TRACERS_WATER
       USE FLUXES, only : trpreca=>trprec,trunpsia=>trunpsi
+#endif
 #endif
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
      *     ,epreca=>eprec
@@ -2659,8 +2689,12 @@ C**** of fluxes is necessary anyway
           SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)             ! kg
           RSI    (I,J)=RSIA    (I,J)
 #ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
           TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
           TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg
+#else
+          TRPREC(:,I,J)=0.  ; TRUNPSI(:,I,J)=0.
+#endif
 #endif
         END DO
       END DO
@@ -3124,7 +3158,7 @@ C**** Done!
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
 #endif
       USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz,uo

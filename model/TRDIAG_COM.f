@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 
-#ifdef TRACERS_ON
       MODULE TRACER_DIAG_COM
 !@sum Tracer diagnostic arrays
 !@+    Mostly tracer independent, but this may deped on applications
@@ -8,7 +7,10 @@
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
       USE DAGCOM, only: npts !npts are conservation quantities
-      USE TRACER_COM, only: ntm, ntsurfsrcmax, nt3Dsrcmax
+      USE TRACER_COM, only: ntm
+#ifdef TRACERS_ON
+     *     , ntsurfsrcmax, nt3Dsrcmax
+#endif
       IMPLICIT NONE
       SAVE
 
@@ -23,10 +25,11 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #else
       INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
 #endif
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #endif
+#ifdef TRACERS_ON
 !@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr
       REAL*8, DIMENSION(NTM) :: MMR_to_VMR
 
@@ -204,8 +207,10 @@ C----------------------------------------------------
       REAL*8, DIMENSION(KTACC) :: TACC
       EQUIVALENCE (TACC,TAIJLN)
 C----------------------------------------------------
+#endif
       END MODULE TRACER_DIAG_COM
 
+#ifdef TRACERS_ON
       SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT
      *     ,INST_SC,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
-#ifdef TRACERS_ON
-!@sum  TRACERS_DRV: tracer-dependent routines for air mass tracers
+!@sum  TRACERS_DRV: tracer-dependent routines for air/water mass 
+!@+    and ocean tracers
 !@+    Routines included:
 !@+      Those that MUST EXIST for all tracers:
 !@+        Diagnostic specs: init_tracer
@@ -18,7 +18,9 @@
       USE MODEL_COM, only: dtsrc,byim
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
       USE TRACER_COM
+#ifdef TRACERS_ON
       USE TRACER_DIAG_COM
+#endif
       USE PARAM
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale
@@ -34,7 +36,9 @@
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
+#ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
+#endif
       character*50 :: unit_string
 #ifdef TRACERS_WATER
       real*8 fracls
@@ -43,8 +47,9 @@
 C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0 = 0
       t_qlimit = .true.
-      needtrs = .false.
       trdecay = 0.
+#ifdef TRACERS_ON
+      needtrs = .false.
       ntsurfsrc = 0
       trpdens = 0.
       trradius = 0.
@@ -52,23 +57,27 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       n_MPtable = 0
       tcscale = 0.
 #endif
+#endif
 #ifdef TRACERS_WATER
       tr_wd_TYPE = nGas         ! or  nPART  or nWATER
       tr_DHD = 0.
       tr_RKD = 0.
-      trw0 = 0.
       trli0 = 0.
       trsi0 = 0.
       tr_H2ObyCH4 = 0.
-#ifdef TRACERS_OCEAN
-      trglac = 0.
+#endif
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+      trw0 = 0.
       ntrocn = 0
 #endif
+#ifdef TRACERS_OCEAN
+      trglac = 0.
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
       select case (trname(n))
 
+#ifdef TRACERS_ON
       case ('Air')
       n_Air = n
           itime_tr0(n) = 0.
@@ -147,23 +156,25 @@ C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
           call sync_param("dsol",dsol)
 #endif
-
-#ifdef TRACERS_WATER
+#endif
       case ('Water')
       n_Water = n
+          trw0(n) = 1.
+          ntrocn(n)= 0
+#ifdef TRACERS_WATER
           ntm_power(n) = -4
           tr_mm(n) = mwat
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
-          trw0(n) = 1.
           trli0(n) = 1.
           trsi0(n) = 1.
           tr_H2ObyCH4(n) = 1.
+#endif
 #ifdef TRACERS_OCEAN
           trglac(n) = 1.
-          ntrocn(n)= 0
 #endif
 
+#ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_O18
       case ('H2O18')
       n_H2O18 = n
@@ -175,9 +186,9 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
           trsi0(n) = fracls(trname(n))*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
+          ntrocn(n) = -3
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98d0   ! d=-20
-          ntrocn(n) = -3
 #endif
 
       case ('HDO')
@@ -190,9 +201,9 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
           trsi0(n) = fracls(trname(n))*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
+          ntrocn(n) = -4
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.84d0   ! d=-160
-          ntrocn(n) = -4
 #endif
 
       case ('HTO')
@@ -206,13 +217,11 @@ C**** Get solar variability coefficient from namelist if it exits
           trsi0(n) = 0.
           tr_H2ObyCH4(n) = 0.
           trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
+          ntrocn(n) = -18
 #ifdef TRACERS_OCEAN
           trglac(n) = 0.
-          ntrocn(n) = -18
 #endif
 #endif
-#endif
-
       case ('Ox')
       n_Ox = n
           ntm_power(n) = -8
@@ -307,10 +316,11 @@ C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
 C + 5.1% Ketones(3.6C)) = 4.95 C
 C
 C This number wasn't adjusted when the vegetation source was added.
-
+#endif
       end select
       end do
 
+#ifdef TRACERS_ON
 C**** Tracer sources and sinks
 C**** Defaults for jls (sources, sinks, etc.)
 C**** These need to be 'hand coded' depending on circumstances
@@ -1214,7 +1224,6 @@ c        jls_ltop(k) = lm
 c        jls_power(k) = -11.
 c        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-
       end select
 c
 C**** Checks
@@ -1232,7 +1241,6 @@ C**** Checks
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
         call stop_model('ktajls too small',255)
       end if
-
 
 C**** Tracer sources and sinks
 C**** Defaults for ijts (sources, sinks, etc.)
@@ -2242,6 +2250,7 @@ c      qsum(itcon_ss(n)) = .false.
 
 C**** print out total tracer diagnostic array size
       WRITE (6,'(A14,2I8)') "KTACC=",KTACC
+#endif
 
       return
       end subroutine init_tracer
@@ -2250,6 +2259,7 @@ C**** print out total tracer diagnostic array size
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
+#ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2670,7 +2680,9 @@ C**** Initialise pbl profile if necessary
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
       end if
       end do
-#ifdef TRACERS_WATER
+#endif
+
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
       call tracer_ic_ocean
 #endif
@@ -2792,7 +2804,7 @@ C****  at any time
       return
       end subroutine daily_tracer
 
-
+#ifdef TRACERS_ON
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
@@ -3139,7 +3151,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 
       return
       END SUBROUTINE tracer_3Dsource
-
+#endif
 
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
@@ -3393,15 +3405,11 @@ C**** below clouds kinetic effects with evap into unsaturated air
             if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
      *           ,trname(ntix(n)))
           else
-C**** no fractionation for ice evap?
-            alph=1.   ! fracvs(tdegc,trname(ntix(n)))
+C**** no fractionation for ice evap
+            alph=1.
           end if
           if (fq0.ne.1.) then
-           if (fq0.lt.0.9) then ! approximate
-              fq = alph * fq0
-           else ! calculate actual rayleigh curve
              fq = 1. - (1.-fq0)**alph
-           end if
           else
             fq = fq0
           end if
@@ -3411,5 +3419,4 @@ C**** no fractionation for ice evap?
       end select
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR
-#endif
 #endif

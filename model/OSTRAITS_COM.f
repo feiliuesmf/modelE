@@ -4,7 +4,7 @@
 !@sum  STRAITS ocean strait related variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only : ntm
 #endif
       USE SEAICE, only : lmi
@@ -87,11 +87,11 @@ C****
 !@param USIFAC ratio of strait sea ice velocity to current
       REAL*8 :: USIFAC = 0.1d0   ! used to be 1. (too much)
       
-#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
 #endif
+#ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
       REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
 #endif

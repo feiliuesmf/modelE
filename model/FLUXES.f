@@ -5,8 +5,11 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      USE TRACER_COM, only: ntm
+#endif
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,ntsurfsrcmax,nt3Dsrcmax
+     *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
       IMPLICIT NONE
 
@@ -124,11 +127,14 @@ C**** sea ice melt.
       REAL*8, DIMENSION(NTM,IM,JM) :: TRFLOWO
 !@var TRMELTI tracer from simelt into ocean (kg)
       REAL*8, DIMENSION(NTM,IM,JM) :: TRMELTI
-!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
-      REAL*8, DIMENSION(NTM,2,IM,JM) :: DTRSI
 !@var ftrsi_io ice-ocean tracer fluxes under ice (kg/m^2)
       REAL*8, DIMENSION(NTM,IM,JM) :: ftrsi_io
 #endif
+#endif
+
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
+      REAL*8, DIMENSION(NTM,2,IM,JM) :: DTRSI
 #endif
 
       END MODULE FLUXES

@@ -6,7 +6,7 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE ICEDYN, only : imic,jmic
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
       IMPLICIT NONE
@@ -43,7 +43,7 @@ C**** Ice advection diagnostics
       REAL*8, DIMENSION(KICIJ) :: SCALE_ICIJ
 !@var ijgrid_icij Grid descriptor for ICIJ diagnostics
        INTEGER, DIMENSION(KICIJ) :: IJGRID_ICIJ
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 !@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
 !@var TICIJ  lat/lon ice dynamic tracer diagnostics
@@ -124,7 +124,7 @@ C****
       INTEGER, INTENT(INOUT) :: it
 !@var ICIJ4 dummy arrays for reading diag. files
       REAL*4, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
@@ -137,13 +137,13 @@ C****
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,ICIJ,it
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
         WRITE (kunit,err=10) TR_MODULE_HEADER,TICIJ,it
 #endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ,KIND=4),it
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
         TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         WRITE (kunit,err=10) TR_MODULE_HEADER,REAL(TICIJ,KIND=4),it
 #endif
@@ -159,7 +159,7 @@ C**** accumulate diagnostics
      *           ,MODULE_HEADER
             GO TO 10
           END IF
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
           READ (kunit,err=10) TR_HEADER,TICIJ4,it
 C**** accumulate diagnostics
           TICIJ=TICIJ+TICIJ4
@@ -176,7 +176,7 @@ C**** accumulate diagnostics
      *           ,MODULE_HEADER
             GO TO 10
           END IF
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
           READ (kunit,err=10) TR_HEADER,TICIJ,it
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TR_HEADER
@@ -200,7 +200,7 @@ C****
       IMPLICIT NONE
 
       ICIJ=0.
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       TICIJ=0.
 #endif
       RETURN
@@ -528,7 +528,7 @@ C****
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
       USE SEAICE, only : ace1i,xsi
@@ -642,7 +642,7 @@ C**** Sea ice velocity is northward at grid box edge
          ICIJ(I,J,IJ_MVSI)=ICIJ(I,J,IJ_MVSI)+SUM(FMSI(1:2,J))
          ICIJ(I,J,IJ_HVSI)=ICIJ(I,J,IJ_HVSI)+SUM(FMSI(3:2+LMI,J))
          ICIJ(I,J,IJ_SVSI)=ICIJ(I,J,IJ_SVSI)+SUM(FMSI(3+LMI:2+2*LMI,J))
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
          DO ITR=1,NTM
            TICIJ(I,J,TICIJ_TVSI,ITR)=TICIJ(I,J,TICIJ_TVSI,ITR)+
      *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
@@ -676,7 +676,7 @@ C**** Accumulate sea ice leaving and entering North Pole box
        ICIJ(I,JM-1,IJ_HVSI)=ICIJ(I,JM-1,IJ_HVSI)+SUM(FMSI(3:2+LMI,JM-1))
        ICIJ(I,JM-1,IJ_SVSI)=ICIJ(I,JM-1,IJ_SVSI)+
      *      SUM(FMSI(3+LMI:2+2*LMI,JM-1))
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
          DO ITR=1,NTM
            TICIJ(I,JM-1,TICIJ_TVSI,ITR)=TICIJ(I,JM-1,TICIJ_TVSI,ITR)+
      *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
@@ -837,7 +837,7 @@ C**** Sea ice velocity is eastward at grid box edge
          ICIJ(I,J,IJ_MUSI)=ICIJ(I,J,IJ_MUSI)+SUM(FMSI(1:2,I))
          ICIJ(I,J,IJ_HUSI)=ICIJ(I,J,IJ_HUSI)+SUM(FMSI(3:2+LMI,I))
          ICIJ(I,J,IJ_SUSI)=ICIJ(I,J,IJ_SUSI)+SUM(FMSI(3+LMI:2+2*LMI,I))
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
          DO ITR=1,NTM
            TICIJ(I,J,TICIJ_TUSI,ITR)=TICIJ(I,J,TICIJ_TUSI,ITR)+
      *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
@@ -1139,7 +1139,7 @@ C**** set properties for ICIJ diagnostics
         call stop_model("ICIJ diagnostic error",255)
       end if
 
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 C**** simple tracer diags same description for all tracers
 C**** set properties for TICIJ diagnostics
       k=0
@@ -1178,7 +1178,7 @@ C**** set properties for TICIJ diagnostics
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,ntrocn
 #endif
       USE DAGCOM, only : qdiag,acc_period
@@ -1256,7 +1256,7 @@ C****
 
       END DO
 
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
 C**** simple tracer diags (no need for weighting)
 C**** Name and scale are tracer dependent
       DO K=1,KTICIJ

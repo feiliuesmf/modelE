@@ -430,6 +430,10 @@ C****
       USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0
 #ifdef TRACERS_WATER
      *     ,trwm
+      USE SEAICE_COM, only : trsi
+      USE LAKES_COM, only : trlake
+      USE LANDICE_COM, only : trlndi,trsnowli
+      USE GHYCOM, only : trbare,trvege,trsnowbv,trsn_ij
 #endif
       USE TRACER_DIAG_COM, only : tajls,jls_decay,itcon_decay
       IMPLICIT NONE
@@ -451,18 +455,33 @@ C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
 #ifdef TRACERS_WATER
      *               +trwm(:,:,:,n)
-          trwm(:,:,:,n)=expdec(n)*trwm(:,:,:,n)
+          trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
 #endif
-          trm(:,:,:,n)=expdec(n)*trm(:,:,:,n)
-          trmom(:,:,:,:,n)=expdec(n)*trmom(:,:,:,:,n)
+          trm(:,:,:,n)    = expdec(n)*trm(:,:,:,n)
+          trmom(:,:,:,:,n)= expdec(n)*trmom(:,:,:,:,n)
+#ifdef TRACERS_WATER
+C**** Note that ocean tracers are dealt with by separate ocean code.
+C**** Decay sea ice tracers
+          trsi(n,:,:,:)   = expdec(n)*trsi(n,:,:,:)
+C**** ...lake tracers
+          trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
+C**** ...land surface tracers
+          trbare(n,:,:,:) = expdec(n)*trbare(n,:,:,:)
+          trvege(n,:,:,:) = expdec(n)*trvege(n,:,:,:)
+          trsnowbv(n,:,:,:) = expdec(n)*trsnowbv(n,:,:,:)
+          trsn_ij(n,:,:,:,:)= expdec(n)*trsn_ij(n,:,:,:,:)
+          trsnowli(n,:,:) = expdec(n)*trsnowli(n,:,:)
+          trlndi(n,:,:)   = expdec(n)*trlndi(n,:,:)
+#endif
+C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
           do j=1,jm
-          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)
+            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)
 #ifdef TRACERS_WATER
-     *               +trwm(:,j,l,n)
+     *           +trwm(:,j,l,n)
 #endif
-     *               -told(:,j,l))
+     *           -told(:,j,l))
           enddo 
           enddo
           call DIAGTCA(itcon_decay(n),n)
@@ -703,6 +722,7 @@ C**** check whether air mass is conserved
 !@sum  io_tracer reads and writes tracer variables to file
 !@auth Jean Lerner
 !@ver  1.0
+#ifdef TRACERS_ON      
       USE MODEL_COM, only: ioread,iowrite,irsfic,irerun,lhead
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
@@ -764,5 +784,6 @@ C**** check whether air mass is conserved
 
       RETURN
  10   IOERR=1
+#endif
       RETURN
       END SUBROUTINE io_tracer

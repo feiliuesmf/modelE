@@ -6,6 +6,7 @@
 !@+   The other routines are for printing
 !@auth Jean Lerner (with ideas stolen from G.Schmidt, R. Ruedy, etc.)
 
+#ifdef TRACERS_ON
       SUBROUTINE TRACEA
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
@@ -517,7 +518,7 @@ C****
       if (qdiag) call close_jl
       RETURN
       END SUBROUTINE DIAGJLT
-
+#endif
 
       SUBROUTINE JLMAP_t (LNAME,SNAME,UNITS,
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,JG)
@@ -651,7 +652,7 @@ C****
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END
 
-
+#ifdef TRACERS_ON
       SUBROUTINE DIAGIJt
 !@sum  DIAGIJt produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
@@ -890,7 +891,7 @@ C****
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
      *  'Dif:',F7.2,' Days')
       END SUBROUTINE DIAGIJt
-
+#endif
 
       subroutine IJt_MAPk(nmap,n,k,aij1,aij2,smap,smapj,gm,jgrid
      *     ,scale,iacc,irange,name,lname,units)
@@ -899,8 +900,8 @@ C****
       USE CONSTANT, only: teeny
       USE MODEL_COM, only:im,jm, idacc
       USE GEOM, only: dxyp
+      USE TRACER_COM
       USE DAGCOM
-      USE TRACER_DIAG_COM
 
       IMPLICIT NONE
 
@@ -963,7 +964,7 @@ c**** Find final field and zonal, global, and hemispheric means
       return
       end subroutine ijt_mapk
 
-
+#ifdef TRACERS_ON
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
@@ -1018,6 +1019,6 @@ c**** Find final field and zonal, global, and hemispheric means
  10   IOERR=1
       RETURN
       END SUBROUTINE io_trdiag
-
+#endif
 
 

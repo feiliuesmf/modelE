@@ -10,7 +10,7 @@
       USE MODEL_COM
       USE RADNCB, only : dimrad_sv
       USE RANDOM
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
 #endif
       USE DAGCOM, only : oa,monacc,koa
@@ -69,7 +69,7 @@ C**** INITIALIZE TIME PARAMETERS
         CALL daily_EARTH(.false.)          ! not end_of_day
         CALL daily_OCEAN(.false.)          ! not end_of_day
         CALL CALC_AMPK(LS1-1)
-#ifdef TRACERS_ON
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
         CALL daily_tracer(0)
 #endif
            CALL CHECKT ('INPUT ')
@@ -310,7 +310,7 @@ C****
         call daily_LAKE
         call daily_OCEAN(.true.)           ! end_of_day
         call daily_ICE
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
         call daily_tracer(1)
            CALL TIMER (MNOW,MTRACE)
 #endif
@@ -543,7 +543,7 @@ C****
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
 #endif
       USE DAGCOM, only : acc_period,monacc,kacc,kdiag,jreg
@@ -625,7 +625,7 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER("     SURFACE",MSURF)
       CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
       CALL SET_TIMER("       OTHER",MELSE)
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       CALL SET_TIMER("     TRACERS",MTRACE)
 #endif
 C****
@@ -636,7 +636,7 @@ C****
       call set_param("LM",LM)
       call set_param("LS1",LS1)
       call set_param("PLBOT",Plbot,LM+1)
-#ifdef TRACERS_ON
+#ifdef (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call set_param("NTM",NTM)
       call set_param("TRNAME",TRNAME,ntm)
 #endif
@@ -653,8 +653,8 @@ C****
 C****
 C**** Print preprocessing options (if any are defined)
 C****
-#ifdef TRACERS_ON
-      write(6,*) 'This program includes tracers code'
+#ifdef (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+      write(6,*) 'This program includes tracer code'
 #endif
 #ifdef TRACERS_WATER
       write(6,*) '...and water tracer code'
@@ -1115,7 +1115,7 @@ C****   READ SPECIAL REGIONS FROM UNIT 29
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
       call init_tracer
 #endif
@@ -1401,7 +1401,7 @@ C**** Check Lake arrays
         CALL CHECKL(SUBR)
 C**** Check Earth arrays
 c       CALL CHECKE(SUBR)
-#ifdef TRACERS_ON
+#ifdef (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** check tracers
         CALL CHECKTR(SUBR)
 #endif
