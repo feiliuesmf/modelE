@@ -6,40 +6,47 @@
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
-!@var DMS_src           DMS ocean source (kg/s/m2)
+!@var DMSinput           DMS ocean source (kg/s/m2)
       real*8 DMSinput(im,jm,12)
-      INTEGER, PARAMETER :: nso2src  = 2
-!@var SO2_src    SO2 industry, biomass: surface sources (kg/s/box)
+c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
+      real*4 DMS_AER(im,jm,366)
+c!@var SS1_AER        SALT bin 1 prescribed by AERONET (kg S/day/box)
+      real*4 SS1_AER(im,jm,366)
+c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
+      real*4 SS2_AER(im,jm,366)
+      INTEGER, PARAMETER :: nso2src  = 1
+!@var SO2_src    SO2 industry: surface source (kg/s/box)
       real*8 SO2_src(im,jm,nso2src)
 !@var BCI_src    BC Industrial source (kg/s/box)
       real*8 BCI_src(im,jm)
 !@var BCB_src    BC Biomass source (kg/s/box)
-      real*8 BCB_src(im,jm,12)
+      real*8 BCB_src(im,jm,6,12)
 !@var OCI_src    OC Industrial source (kg/s/box)
       real*8 OCI_src(im,jm)
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8 OCT_src(im,jm,12)
 !@var OCB_src    OC Biomass source (kg/s/box)
-      real*8 OCB_src(im,jm,12)
-!@var BCII_src_3d  BCI aircraft source (kg/s)
-      real*8 BCI_src_3d(im,jm,lm)
+      real*8 OCB_src(im,jm,6,12)
+!@var BCII_src_3D  BCI aircraft source (kg/s)
+      real*8 BCI_src_3D(im,jm,lm)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8 ss_src(im,jm,nsssrc)
-      INTEGER, PARAMETER :: nso2src_3d  = 2
-!@var SO2_src_3d SO2 volcanic and aircraft sources (kg/s)
-      real*8 SO2_src_3d(im,jm,lm,nso2src_3d)
+      INTEGER, PARAMETER :: nso2src_3D  = 3
+!@var SO2_src_3D SO2 volcanic, aircraft sources (and biomass) (kg/s)
+      real*8 SO2_src_3D(im,jm,lm,nso2src_3D)
+!@var SO2_biosrc_3D SO2  biomass(kg/s)
+      real*8 SO2_biosrc_3D(im,jm,6,12)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
-c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt)
-!@sum reads in industrial and biomass SO2 sources
+!@sum reads in industrial, biomass, volcanic and aircraft SO2 sources
 !@auth Koch
 c want kg SO2/m2/s
       USE CONSTANT, only: sday
@@ -47,8 +54,8 @@ c want kg SO2/m2/s
       USE GEOM, only: dxyp
       USE TRACER_COM
       USE FILEMANAGER, only: openunit,closeunit
-      USE AEROSOL_SOURCES, only: SO2_src,SO2_src_3d,nso2src,
-     *     nso2src_3d,bci_src_3d
+      USE AEROSOL_SOURCES, only: SO2_src,SO2_src_3D,nso2src,
+     *     nso2src_3D,bci_src_3D,SO2_biosrc_3D
       USE DYNAMICS, only: pmid,pk
       implicit none
 c biomass burning parameters:
@@ -104,7 +111,7 @@ c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
 C  Read in emissions from biomass burning
       call openunit('SO2_BIOMASS',iuc2,.false.)
-      so2_src(:,:,2)=0.   ! initiallise
+      so2_biosrc_3D(:,:,:,:)=0.   ! initiallise
 
       DO 154 ij=1,9999
 Cewg  SDDAY -- first day (as day of the year) of the 90 driest days
@@ -150,14 +157,14 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
           IF (REAL(JDAY).LT.SDDAY.OR.REAL(JDAY).GT.ENDDAY) GOTO 154
         ENDIF
         ADDTC = TB*FDRY
- 165    so2_src(IB,JB,2) =  ADDTC
+ 165    SO2_biosrc_3D(IB,JB,1,jmon) =  ADDTC
  400  CONTINUE
  154  CONTINUE
  155  call closeunit(iuc2)
 
 c continuously erupting volcanic emissions
 c     from GEIA (Andres and Kasgnoc, 1998)
-      so2_src_3d(:,:,:,1)=0.
+      so2_src_3D(:,:,:,1)=0.
       call openunit('SO2_VOLCANO',iuc2,.false.)
       do 116 ir=1,49
       read(iuc2,*) iv,jv,ivht,vemis
@@ -181,14 +188,14 @@ C ZH is height in meters of top of layer above sea level
  21    CONTINUE
        GO TO 100
  24    CONTINUE
-       so2_src_3d(iv,jv,l,1)=so2_src_3d(iv,jv,l,1)+vemis
+       so2_src_3D(iv,jv,l,1)=so2_src_3D(iv,jv,l,1)+vemis
  100   CONTINUE
  116  CONTINUE
       call closeunit(iuc2)
 c Aircraft emissions
       if (ifirst) then
-      so2_src_3d(:,:,:,2)=0.
-      bci_src_3d(:,:,:)=0.d0
+      so2_src_3D(:,:,:,2)=0.
+      bci_src_3D(:,:,:)=0.d0
       call openunit('AIRCRAFT',iuc2,.true.)
 C Read 13 layer data file for 23 layer model
       if (lm.eq.23) then
@@ -215,9 +222,9 @@ c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
 c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
-      so2_src_3d(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
+      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
      *  /2.3d0/sday
-      bci_src_3d(:,:,:)=so2_src_3d(:,:,:,2)*0.1d0
+      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
       ifirst=.false.
       endif
 
@@ -231,10 +238,16 @@ c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: jmon
-      USE AEROSOL_SOURCES, only: DMSinput
+      USE GEOM, only: dxyp
+      USE TRACER_COM, only: tr_mm,n_DMS,imAER
+      USE MODEL_COM, only: jmon,jday
+      USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
+c     include 'netcdf.inc'
+c     integer start(3),count(3),status,ncidu,id1
+      integer jread
       REAL*8 akw,erate
+c     real*4 DMS_AER
       real*8, INTENT(OUT) :: DMS_flux
       real*8, INTENT(IN) :: swind
       integer, INTENT(IN) :: itype,i,j
@@ -242,11 +255,33 @@ c want kg DMS/m2/s
       DMS_flux=0
       if (itype.eq.1) then
         erate=0.d0
+        if (imAER.eq.0) then
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
-        erate=akw*dmsinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
+        erate=akw*DMSinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
      *       /sday
+        else !AEROCOM run, prescribed flux
+
+c         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+c         status=NF_INQ_VARID(ncidu,'dms',id1)
+
+c         start(1)=i
+c         start(2)=j
+c         start(3)=jday  
+
+c         count(1)=1
+c         count(2)=1
+c         count(3)=1
+
+c         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER)
+c         status=NF_CLOSE('DMS.2000_AEROCOM.nc',NCNOWRIT,ncidu)
+c        write(6,*)'DMS RRR',i,j,jday,DMS_AER(i,j,jday)
+c if after Feb 28 skip the leapyear day
+         jread=jday
+         if (jday.gt.59) jread=jday+1
+         erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
+        endif
         DMS_flux=erate          ! units are kg/m2/s
       endif
 c
@@ -257,8 +292,14 @@ c
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
+      USE TRACER_COM, only: imAER
+      USE CONSTANT, only: sday
+      USE GEOM, only: dxyp
+      USE MODEL_COM, only: jday
+      USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER
       implicit none
       REAL*8 erate
+      integer jread
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
@@ -266,6 +307,7 @@ c
       ss=0.
       if (itype.eq.1) then
         erate=0.d0
+       if (imAER.eq.0) then
 c Monahan 1971, bubble source, important for small (<10um) particles
         erate= 1.373d0 * swind**(3.41d0)
         if (ibin.eq.1) then
@@ -274,6 +316,16 @@ c Monahan 1971, bubble source, important for small (<10um) particles
           ss=erate*7.78d-14     ! supermicron (1. < r_d < 4.)
         endif
 c     units are kg salt/m2/s
+       else
+c if after Feb 28 skip the leapyear day
+         jread=jday
+         if (jday.gt.59) jread=jday+1
+        if (ibin.eq.1) then
+         ss=SS1_AER(i,j,jread)/sday/dxyp(j)
+        else 
+         ss=SS2_AER(i,j,jread)/sday/dxyp(j)
+        endif
+       endif
       endif
       return
       end subroutine read_seasalt_sources
@@ -443,7 +495,7 @@ C MSA gain: eqn 1
           
         case ('SO2')
 c SO2 production from DMS
-          tr3Dsource(i,j,l,3,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
+          tr3Dsource(i,j,l,4,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
      *         ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
      *         ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
      *         /tr_mm(n_dms))/dtsrc
@@ -502,7 +554,7 @@ c     *  PPRES,RK4,EK4,R4,D4,ohmc
      .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
  
 #else
-       tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #endif         
           
 c diagnostics to save oxidant fields
@@ -982,7 +1034,7 @@ c can't be more than moles going in:
 
 C**** initialise source arrays
         tr3Dsource(i,j,l,2,n_SO4)=0.
-        tr3Dsource(i,j,l,5,n_SO2)=0.
+        tr3Dsource(i,j,l,6,n_SO2)=0.
         tr3Dsource(i,j,l,3,n_H2O2_s)=0.
 
       if(l.le.ltropo(i,j)) then
@@ -1118,7 +1170,7 @@ c diagnostic
        sulfin=-dso4g*th2o2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
 
-       tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
+       tr3Dsource(i,j,l,6,n)=trm(i,j,l,n)*sulfin/dtsrc
 
        case('H2O2','H2O2_s')
         if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 403

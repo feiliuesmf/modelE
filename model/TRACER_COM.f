@@ -180,6 +180,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'Silt3   '/)
 #else
 #ifdef TRACERS_AEROSOLS_Koch
+      integer, parameter :: imAER=1
+!@var imAER is 1 for AEROCOM-prescribed simulations, 0 otherwise
       integer, parameter :: ntm=13
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
@@ -248,9 +250,6 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
 
-c!@var ntm_aero number of Koch-only tracers  ! is this needed?
-c      integer, parameter :: ntm_aero=5
-
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
@@ -310,7 +309,7 @@ C****
 !@var ntisurfsrc no. of interactive surface sources for each tracer
       integer, dimension(ntm) :: ntisurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: nt3Dsrcmax=5
+      integer, parameter :: nt3Dsrcmax=6
 
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
@@ -339,7 +338,7 @@ C****
 !@param tr_evap_fact fraction of re-evaporation by tracer type
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
-     *     (/1.d0, 1.0d0,  1.d0/)
+     *     (/1.d0, 0.5d0,  1.d0/)
 !@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
       real*8, dimension(ntm) :: tr_H2ObyCH4
 !@var dowetdep true if tracer has some form of wet deposition
