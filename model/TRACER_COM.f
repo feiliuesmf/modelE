@@ -189,6 +189,14 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
       character*8, parameter :: trname(ntm)=(/'Clay    ','Silt1   ',
      &     'Silt2   ','Silt3   '/)
 #else
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: Ntm=20,Ntm_dust=20
+      CHARACTER*8,PARAMETER :: TrName(Ntm)=(/
+     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps'/)
+#else
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
       character*8, parameter :: trname(ntm)=(/'Air     ','Water   '/)
@@ -199,6 +207,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else ! default for TRACERS_ON
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
