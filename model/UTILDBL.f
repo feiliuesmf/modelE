@@ -72,18 +72,17 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       RETURN
       END
 
-      SUBROUTINE TIMER (MNOW,MINC,MSUM)
+      SUBROUTINE TIMER (MNOW,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
 !@auth Gary Russell
 !@ver  1.0 (SGI version)
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
-      INTEGER, INTENT(OUT) :: MINC   !@var MINC time since last call
       INTEGER, INTENT(INOUT) :: MSUM !@var MSUM running total
-      INTEGER :: MCLOCK              !@var MCLOCK intrinsic function
+      INTEGER :: MINC                !@var MINC time since last call
       INTEGER, SAVE :: MLAST = 0     !@var MLAST  last CPU time
 
-      MNOW  = MCLOCK ()
+      CALL GETTIME(MNOW)
       MINC  = MNOW - MLAST
       MSUM  = MSUM + MINC
       MLAST = MNOW
@@ -101,9 +100,8 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       INTEGER, INTENT(INOUT) :: MOUT !@var MOUT counter to be taken from
       INTEGER :: MINC                !@var MINC time since MBEGIN
       INTEGER :: MNOW                !@var MNOW current CPU time (.01 s)
-      INTEGER :: MCLOCK              !@var MCLOCK intrinsic function
 
-      MNOW  = MCLOCK()
+      CALL GETTIME(MNOW)
       MINC  = MNOW - MBEGIN
       MIN   = MIN  + MINC
       MOUT  = MOUT - MINC

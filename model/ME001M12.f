@@ -11,8 +11,9 @@
       USE FILEMANAGER, only : getunit
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MODD5D,months,ioerr
+      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr
       INTEGER iu_VFLXO,iu_SLP
+      INTEGER :: MDUM = 0
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER CDATE*7
@@ -20,7 +21,7 @@
 C****
 C**** INITIALIZATIONS
 C****
-         CALL GETTIME (MNOW)
+         CALL TIMER (MNOW,MDUM)
       CALL INPUT
       WRITE (3) OFFSSW
       CLOSE (3)
@@ -41,7 +42,7 @@ C**** INITIALIZE TIME PARAMETERS
      *   '0NASA/GISS Climate Model (re)started',
      *   'Year',JYEAR,AMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',IYEAR0,ITIME
-         CALL TIMER (MNOW,MINC,MELSE)
+         CALL TIMER (MNOW,MELSE)
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -87,7 +88,7 @@ C**** write restart information alternatingly onto 2 disk files
      *     ' Restart file written on fort.',KDISK,'Year',
      *     JYEAR,AMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
          KDISK=3-KDISK
-         CALL TIMER (MNOW,MINC,MELSE)
+         CALL TIMER (MNOW,MELSE)
       END IF
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
@@ -121,7 +122,7 @@ C****
       CALL CALC_AMPK(LS1-1)
 
          CALL CHECKT ('DYNAM ')
-         CALL TIMER (MNOW,MINC,MDYN)
+         CALL TIMER (MNOW,MDYN)
 
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)           ! ?
          IF (MODD5D.EQ.0) CALL DIAG9A (2)
@@ -138,44 +139,54 @@ C****
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE ')
-         CALL TIMER (MNOW,MINC,MCNDS)
+         CALL TIMER (MNOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)           ! ?
          IF (MODD5S.EQ.0) CALL DIAG9A (3)
 C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
-         CALL TIMER (MNOW,MINC,MRAD)
+         CALL TIMER (MNOW,MRAD)
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)          ! ?
          IF (MODD5S.EQ.0) CALL DIAG9A (4)
+C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
-c      CALL PRECIP
+C****
+C**** NOTE THAT FLUXES ARE APPLIED IN TOP DOWN ORDER SO THAT THE
+C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED
+C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       CALL PRECIP_SI
       CALL PRECIP_LI
+C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_LK
       CALL PRECIP_OC
       CALL PRECIP_E    ! diagnostic only - should be merged
          CALL CHECKT ('PRECIP')
+C**** CALCULATE SURFACE FLUXES
       CALL SURFCE
          CALL CHECKT ('SURFCE')
-c      CALL GROUND
+C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE 
       CALL GROUND_SI
       CALL GROUND_LI
+C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
-      CALL GROUND_OC
-      CALL GROUND_E    ! diagnostic only - should be merged
-      CALL FORM_SI
-         CALL CHECKT ('GROUND')
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
-         CALL CHECKT ('RIVERF')
+      CALL GROUND_E    ! diagnostic only - should be merged
+C**** APPLY FLUXES TO OCEAN AND DETERMINE ICE FORMATION
+      CALL GROUND_OC
+C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
+      CALL FORM_SI
+         CALL CHECKT ('GROUND')
+C**** CALULATE DRY CONVECTION ABOVE PBL
       CALL DRYCNV (2,LM-1)
          CALL CHECKT ('DRYCNV')
-         CALL TIMER (MNOW,MINC,MSURF)
+C****
+         CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG9A (5)
 C**** STRATOSPHERIC MOMENTUM DRAG
-      CALL SDRAG(DTSRC)
+      CALL SDRAG(LM,DTSRC)
          CALL CHECKT ('SDRAG ')
-         CALL TIMER (MNOW,MINC,MSURF)
+         CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?
          IF (MODD5S.EQ.0) CALL DIAG9A (6)
 C**** SEA LEVEL PRESSURE FILTER
@@ -185,7 +196,7 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL DIAG9A (1)
         CALL FILTER
            CALL CHECKT ('FILTER')
-           CALL TIMER (MNOW,MINC,MDYN)
+           CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAG9A (7)
       END IF
@@ -202,14 +213,14 @@ C****
            CALL DIAG9A (1)
         CALL DAILY(1)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-           CALL TIMER (MNOW,MINC,MELSE)
+           CALL TIMER (MNOW,MELSE)
            CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
            CALL DIAG9A (8)
         call daily_EARTH(1)
         CALL daily_LAKE(1)
         call daily_OCEAN(1)
            CALL CHECKT ('DAILY ')
-           CALL TIMER (MNOW,MINC,MSURF)
+           CALL TIMER (MNOW,MSURF)
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
@@ -222,7 +233,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
             call vflx_OCEAN
          END IF
-         CALL TIMER (MNOW,MINC,MELSE)
+         CALL TIMER (MNOW,MELSE)
       END IF
 C****
 C**** WRITE SEA LEVEL PRESSURES EVERY NSLP DTSRC-TIME STEPS
@@ -321,7 +332,7 @@ C**** Note minor change of format to accomodate replacement of ODATA
         END IF
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
-        CALL TIMER (MNOW,MINC,MDIAG)
+        CALL TIMER (MNOW,MDIAG)
         TOTALT=.01*(MNOW-MSTART)      ! in seconds
         PDYN  = MDYN/TOTALT
         PCDNS = MCNDS/TOTALT
@@ -344,7 +355,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
       END IF
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
-      CALL TIMER (MNOW,MINC,MDIAG)
+      CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
   210 CLOSE (3)
