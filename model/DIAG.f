@@ -222,17 +222,21 @@ C**** calculate geopotential heights + temperatures
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
      *           *GRAV)
-            IF (qpress) TIJK=(TX(I,J,L)-TF
+            IF (qabove) then
+              TIJK=(TX(I,J,L)-TF
      *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-            IF (qabove) Z_inst(K,I,J)=(PHI(I,J,L)
+              Z_inst(K,I,J)=(PHI(I,J,L)
      *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
-     *           *GRAV)
+     *             *GRAV)
+            END IF
           ELSE
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-            IF (qpress) TIJK=TX(I,J,L)-TF
-            IF (qabove) Z_inst(K,I,J)=(PHI(I,J,L)
-     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+            IF (qabove) then
+              TIJK=TX(I,J,L)-TF
+              Z_inst(K,I,J)=(PHI(I,J,L)
+     *             -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+            END IF
           END IF
           if (qabove) then
             QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
