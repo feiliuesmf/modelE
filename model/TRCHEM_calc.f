@@ -37,7 +37,7 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
-     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde
+     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O
 #ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,changeCl
@@ -96,7 +96,7 @@ C**** Local parameters and variables and arguments:
      & total,rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,
      & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
-     & rNOprod
+     & rNOprod,changeAldehyde
 #if (defined regional_Ox_tracers) || (defined SHINDELL_STRAT_CHEM)
 !@var PRES local nominal pressure for regional Ox tracers
       REAL*8, DIMENSION(LM) :: PRES
