@@ -2966,7 +2966,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE CONSTANT, only: mair,rhow
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_SPECIAL_Shindell
-     & ,jday,JEQ,ptop,psf,sig
+     & ,jday,JEQ
 #endif
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
@@ -2997,8 +2997,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,COaltIN,MDOFM 
-     &  ,corrOx,LCOalt,PCOalt,COalt,JCOlat
+      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,MDOFM 
+     &  ,corrOx,COalt,JCOlat
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -3014,9 +3014,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
 #ifdef TRACERS_SPECIAL_Shindell
 !@var imonth dummy index for choosing the right month
-!@var PRES local nominal pressure for verticle interpolations
       INTEGER imonth, J2
-      REAL*8, DIMENSION(LM) :: PRES
 #endif
 
       do n=1,ntm
@@ -3326,12 +3324,7 @@ C         Apply the model-dependant stratospheric Ox corrections:
 #ifdef TRACERS_SPECIAL_Shindell
         case('CO')
 C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
-C         AM=kg/m2, and DXYP=m2, but first, interpolate COalt onto 
-C         model vertical grid:
-          DO L=1,LM
-            PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
-          END DO
-          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt) 
+C         AM=kg/m2, and DXYP=m2:
           DO L=1,LM
           DO J=1,JM
             J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
@@ -3446,6 +3439,9 @@ C****
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime
+#ifdef TRACERS_SPECIAL_Shindell
+     & ,ptop,psf,sig,lm
+#endif
       USE TRACER_COM, only: ntm,trname,itime_tr0
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
@@ -3454,11 +3450,16 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRACER_SOURCES, only: nLightning, nAircraft
-      USE TRCHEM_Shindell_COM, only:OxIC,corrOx
+      USE TRCHEM_Shindell_COM,only:OxIC,COaltIN,corrOx
+     &  ,LCOalt,PCOalt,COalt
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
       data last_month/-1/
+#ifdef TRACERS_SPECIAL_Shindell
+!@var PRES local nominal pressure for verticle interpolations
+      REAL*8, DIMENSION(LM) :: PRES
+#endif
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (iact.eq.0) then
@@ -3516,7 +3517,12 @@ C**** Tracer specific call for CH4
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-C**** Tracer specific calls to read 2D and 3D sources:
+C**** upon initialization only, interpolate COalt array:
+      if (iact.eq.0) then
+        PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+        CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt) 
+      end if
+C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         select case (trname(n))
         case ('NOx')
@@ -3564,6 +3570,7 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc
+
       USE GEOM, only: dxyp,areag
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
