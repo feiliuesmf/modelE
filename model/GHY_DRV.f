@@ -49,6 +49,7 @@ c****
      &    acna,acnc,
      &    evapw=>aevapw,evapd=>aevapd,evapb=>aevapb,
      &    aruns,arunu,aeruns,aerunu,
+     &    difs=>adifs,edifs=>aedifs,
      &    aepc,aepb,aepp,afhg,af0dt,af1dt,zw,tbcs,
      &    qm1,q1,qs,
      &    pres,rho,tspass=>ts,vsm,ch,srht,trht,zs, !cd,snht,
@@ -66,8 +67,8 @@ c****
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap,j_erun,j_run,j_tsrf,j_f1dt,
+     *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
+     *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt,
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
      *     ij_g24,ij_g25,ij_g26,ij_g27,
@@ -93,7 +94,8 @@ c****
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws,dhgs
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth
-     *     ,warmer,timez,spring,zs1co
+     *     ,warmer,brun0,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu
+     *     ,bshdt,btrhdt,timez,spring,zs1co
 
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
@@ -206,8 +208,8 @@ c**** new quantities to be zeroed out over ground timesteps
          arunu=0.
          aeruns=0.
          aerunu=0.
-c         difs=0.
-c         edifs=0.
+         difs=0.
+         edifs=0.
       evapw=0.
       evapd=0.
       evapb=0.
@@ -514,10 +516,12 @@ c**** quantities accumulated for regions in diagj
         areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
         areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
         areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
-        areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
-        areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
-c        areg(jr,j_difs)=areg(jr,j_difs)+difs*pearth*dxyp(j)
-        areg(jr,j_f1dt)=areg(jr,j_f1dt)+af1dt*ptype*dxyp(j)
+        areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxyp(j)
+        areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxyp(j)
+        areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxyp(j)
+        areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxyp(j)
+        areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxyp(j)
+        areg(jr,j_f1dt )=areg(jr,j_f1dt )+af1dt*ptype*dxyp(j)
         if ( moddsf == 0 )
      $       areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
 c**** quantities accumulated for latitude-longitude maps in diagij
@@ -574,10 +578,12 @@ c**** quantities accumulated for surface type tables in diagj
       aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*pearth
       aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+shdt*pearth
       aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*pearth
-      aj(j,j_erun ,itearth)=aj(j,j_erun ,itearth)+(aeruns+aerunu)*pearth
-      aj(j,j_run  ,itearth)=aj(j,j_run  ,itearth)+(aruns+arunu)*pearth
-c      aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+edifs*pearth
-c      aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+difs*pearth
+      aj(j,j_erun1,itearth)=aj(j,j_erun1,itearth)+aeruns*pearth
+      aj(j,j_edifs,itearth)=aj(j,j_edifs,itearth)+edifs*pearth
+      aj(j,j_difs ,itearth)=aj(j,j_difs ,itearth)+difs*pearth
+      aj(j,j_run2 ,itearth)=aj(j,j_run2 ,itearth)+arunu*pearth
+      aj(j,j_dwtr2,itearth)=aj(j,j_dwtr2,itearth)+aerunu*pearth
+      aj(j,j_run1 ,itearth)=aj(j,j_run1 ,itearth)+aruns*pearth
       if(moddsf.eq.0)
      $     aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
       end do loop_i
