@@ -46,9 +46,10 @@ C**** some B-grid conservation quantities
 !@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
       REAL*8, DIMENSION(JM) :: DXYV,BYDXYV
 
-!@var  DXP,DYP,BYDYP (+inverse) distance between points on primary grid
-      REAL*8, DIMENSION(JM) :: DXP,DYP,BYDYP
-!@var  DXP,DYP distance between velocity points (secondary grid)
+!@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
+!@+     (+inverse)
+      REAL*8, DIMENSION(JM) :: DXP,DYP,BYDXP,BYDYP
+!@var  DXV,DYV distance between velocity points (secondary grid)
       REAL*8, DIMENSION(JM) :: DXV,DYV
 !@var  DXYN,DXYS half box areas to the North,South of primary grid point
       REAL*8, DIMENSION(JM) :: DXYS,DXYN
@@ -105,6 +106,7 @@ c      DLON=TWOPI*BYIM
          COSP(J) = COS(LAT(J))
          DXP(J)  = RADIUS*DLON*COSP(J)
       END DO
+      BYDXP(:) = 1.D0/DXP(:)
       DO J=2,JM
          COSV(J) = .5*(COSP(J-1)+COSP(J))
          DXV(J)  = .5*(DXP(J-1)+DXP(J))
