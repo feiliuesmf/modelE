@@ -68,8 +68,9 @@ in adding functionality or diagnostics.</P>
   <LI> <A HREF="#part1_3"> HOW-TO stop and restart the GCM</A>
   <LI> <A HREF="#part1_4"> HOW-TO change boundary conditions</A>
        <OL>
-  <LI> <A HREF="#part1_4a"> HOW-TO alter the topography file
+       <LI> <A HREF="#part1_4a"> HOW-TO alter the topography file
        consistently</A>
+       <LI> <A HREF="#part1_4b"> HOW-TO run the model with a new land mask </A>
        </OL>
   <LI> <A HREF="#part1_5"> HOW-TO change trace gas amounts</A>
   <LI> <A HREF="#part1_6"> HOW-TO have a perpetual winter</A>
@@ -683,7 +684,7 @@ always be recreated if needed.</p>
 <p>Simply alter the file declarations in the rundeck appropriately!</p>
 
 <ol>
-  <li><A name="part1_4a"><b>a) HOW-TO alter the topography file
+  <li><A name="part1_4a"><b>HOW-TO alter the topography file
        consistently</b></a>
        <p> The topography file (TOPO) in the rundeck, must have a
        degree of internal consistency. Therefore if changes are made
@@ -720,7 +721,7 @@ always be recreated if needed.</p>
        FGRND, FLAKE, and HLAKE to zero. Note as well that the polar
        boxes must be homogenous (i.e. FOCEAN(2:IM,JM)=FOCEAN(1,JM)
        etc.)  </p>
-
+<!-- 
        <p>Some other external file data may not be consistent with the
        new land/ocean mask but the model code will extrapolate from a
        nearest neighbour to fill those points in. Make sure that the
@@ -732,7 +733,67 @@ always be recreated if needed.</p>
 	topography. We are working on this to make sure that defaults are
 	resaonable regardless of the topography file, but this is not yet
 	finished.</p>
+ -->
+  <li><A name="part1_4b"><b>HOW-TO run the model with a new land mask</b></a>
+    <p>If you changed the topography file you may have created new land cells.
+    These cells are missing both boundary conditions and prognostic variables
+    related to the land surface model. One has to extend the land surface
+    data to these cells before the model can run. 
 
+    <p>To remedy this problem we created a set of &quot;extended&quot; boundary
+    conditions files. These files are the same as original ones except
+    the data was spread all over the ocean cells using a nearest-neighbor
+    algorithm, so that each cell contains some reasonable land surface 
+    data. If you are working on Ra then these files are at the same location
+    and have the same name as originals with the suffix <tt>.ext</tt> appended
+    to them. Here is the list of the files which needed extension as they
+    would appear in the rundeck:
+    <pre>
+     CDN=CD4X500S.ext                     ! - roughness length
+     RVR=RD4X525.RVR.ext                  ! - river routing
+     SOIL=S4X50093.ext                    ! - soil data
+     VEG=V72X46.1.cor.ext                 ! - vegetation data
+     TOP_INDEX=top_index_72x46.ij.ext     ! - topographic index
+    </pre>
+    The above files provide boundary conditions. One also needs to use a
+    compatible restart file with extended prognostic variables, currently
+    <pre>
+    AIC=DEC1958.rsfB394M12.modelE.15.ext  ! - initial conditions
+    </pre>
+    One should keep in mind that the data should be extended in a compatible
+    way. At least the data in <tt>SOIL</tt> and <tt>AIC</tt> should be 
+    extended from the same &quot;nearest neighbors&quot;. To preserve the 
+    information about this &quot;extension&quot; process the file 
+    <tt>conv_index.ext</tt> was created (located on Ra in <tt>/u/cmrun</tt>).
+    It contains the coordinates of &quot;nearest neighbors&quot; used when 
+    extending the data. More precisely, the data <tt>array</tt> is extended 
+    as follows:
+    <pre>
+    integer :: conv_index(im,jm,2)
+    open(1,file='conv_index.ext')
+    read(1) conv_index
+    do j=1,jm
+      do i=1,im
+        if ( conv_index(i,j,1) .ne. 0 ) then
+          i0 = conv_index(i,j,1)
+          j0 = conv_index(i,j,2)
+          array(i,j)=array(i0,j0)
+        endif
+      end do
+    end do
+    </pre>
+    One can use this algorithm to extend any land surface data if necessary.
+    To create a new extended <tt>AIC</tt> file with <tt>conv_rsf</tt> one
+    has to pass to it <tt>conv_index.ext</tt>  as a third parameter. For
+    current setup on Ra it will look:
+    <pre>
+    conv_rsf /u/cmrun/DEC1958.rsfB394M12 new_rsf_file /u/cmrun/conv_index.ext
+    </pre>
+
+    <p>To summarize, when using a non-standard land mask one has to replace
+    the above mentioned files in the rundeck with their <tt>.ext</tt> 
+    equivalents. One also has to use ISTART=6 (instead of ISTART=7) to
+    force regeneration of PBL data.
 </ol>
 
 <p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
