@@ -3,7 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM
-      USE CLD01_COM_E001
+c     USE CLD01_COM_E001
       USE RADNCB
       USE DAGCOM
       USE TIMINGS
@@ -26,21 +26,6 @@ C**** check for argument
         QCALL=.TRUE.
         KSTART=2
       END IF
-C**** loop over remaining arguments
-c     DO KFILE=KSTART,NARGS
-c       CALL GETARG (KFILE,FILEIN(KFILE))
-c     END DO
-C**** Check first file
-c     K=KSTART
-c     OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=100)
-c     call io_label(10,Itime,ioread,ioerr)
-c     CLOSE (10)
-c     if (ioerr.eq.0) goto 150
-C**** problem reading file => assume a run directory in /u/cmrun
-c100  NARGS=KSTART+1
-c     DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
-c     FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
-c     FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
 
  150  DO K=KSTART,NARGS
       if (qcall .and. k.gt.kstart) write (6,*)
@@ -51,9 +36,6 @@ c     FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
       if (ioerr.eq.1) go to 860
       CLOSE (10)
 
-c     call get_param( "Itime", Itime)
-c     call get_param( "IYEAR0", IYEAR0)
-c     call get_param( "NDAY", NDAY )
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
@@ -63,9 +45,10 @@ c     call get_param( "NDAY", NDAY )
       END DO
       TOT = TOT/100.
       IF (TOT.gt.0) THEN
-      WRITE (6,906) 24.*TOT/(60.*(Itime-Itime0)),(TIMESTR(N),TIMING(N)
-     *     /TOT,N=1,3)
-      WRITE (6,907) (TIMESTR(N),TIMING(N)/TOT,N=4,NTIMEACC)
+      WRITE (6,906) 24.*TOT/(60.*(Itime-Itime0)),(TIMESTR(N),
+     *     24.*TIMING(N)/(6000.*(Itime-Itime0)),N=1,3)
+      WRITE (6,907) (TIMESTR(N),
+     *     24.*TIMING(N)/(6000.*(Itime-Itime0)),N=4,NTIMEACC)
       END IF
       IF (QCALL) THEN
         write (6,*) "IM,JM,LM = ",IM,JM,LM," LS1 = ",LS1," P_cp = ",PTOP
@@ -104,7 +87,7 @@ c    *     "DIR/fort.[12] are opened"
       write(6,*) "Error reading file ", FILEIN
       STOP
  900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A)
- 906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
- 907  FORMAT (10(22X,3(X,A12,F5.1) / ))
+ 906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F4.2))
+ 907  FORMAT (10(22X,3(X,A12,F4.2) / ))
       end
 

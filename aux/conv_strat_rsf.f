@@ -13,7 +13,7 @@ C**** must be compiled after the model
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm
       USE RADNCB, only : rqt,lm_req
-      USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
+      USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
@@ -27,7 +27,7 @@ C**** must be compiled after the model
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60               ,clabel*156
       INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO    ,jc(100)
-      REAL*8 TAUX,X                                 ,rc(161)    !(169)????
+      REAL*8 TAUX,X                                 ,rc(161)    !(169)??
       REAL*8 MSI1
       INTEGER ItimeX
 !@ egcm_init_max maximum initial vaule of egcm
