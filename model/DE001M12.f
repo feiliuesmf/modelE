@@ -3114,9 +3114,11 @@ C**** DYNAMIC CONVERGENCE OF ENERGY
 C****
       SCALE=25.D-1*BYIMDA*BYGRAV
       DO 370 K=1,KM
-      CX(1,K)=-BX(2,K)*SCALE*DXV(2)
+C     CX(1,K)=-BX(2,K)*SCALE*DXV(2)
+      CX(1,K)=0.
       CX(JM,K)=BX(JM,K)*SCALE*DXV(JM)
-      DX(1,K)=-(AJK(2,K,15)-AJK(2,K,14))*SCALE*DXV(2)
+C     DX(1,K)=-(AJK(2,K,15)-AJK(2,K,14))*SCALE*DXV(2)
+      DX(1,K)=0.
       DX(JM,K)=(AJK(JM,K,15)-AJK(JM,K,14))*SCALE*DXV(JM)
       DO 370 J=2,JM-1
       CX(J,K)=(BX(J,K)*DXV(J)-BX(J+1,K)*DXV(J+1))*SCALE
