@@ -88,7 +88,7 @@ C**** Interface to PBL
       IMPLICIT NONE
 
       INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
-      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K,PGK,PKDN
+      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS,HSDEN,HSCON
@@ -98,7 +98,7 @@ C**** Interface to PBL
      *     ,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP
      *     ,Z1BY6L,QZ1,EVAPLIM,F2,FSRI(2),HTLIM
 
-      REAL*8 MSUM, MA1, MSI1
+      REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
@@ -147,7 +147,7 @@ C**** Zero out fluxes summed over type and surface time step
 #ifdef TRACERS_DRYDEP
       TRDRYDEP = 0.
       dtr_dd=0.
-#endif      
+#endif
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
@@ -171,8 +171,8 @@ C****
 !$OMP*  DHS,DQS,DT2,DTS, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
 !$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,HSDEN,HSCON,
 !$OMP*  HSMUL,HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
-!$OMP*  KR, MSUM,MA1,MSI1, PS,P1K,PLAND,PWATER,
-!$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
+!$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
+!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,QSDEN,
 !$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TS,
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
@@ -407,8 +407,7 @@ C**** BOUNDARY LAYER INTERACTION
 C****
       TKV=THV1*PSK
 c     ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PS
-      if(TSV.eq.0.) TSV=TKV
-      ZS1=.5*DSIG(1)*PIJ*RGAS*BYGRAV*(THV1*P1K+TSV)/(PMID(1,I,J)+PS)
+      ZS1=.5*DSIG(1)*PIJ*RGAS*BYGRAV*(THV1*P1K+TKV)/(PMID(1,I,J)+PS)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
@@ -419,7 +418,7 @@ c     ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PS
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       TGV=TG*(1.+QG_SAT*deltx)
       psurf=PS   ! extra values to pass to PBL, possibly temporary
-      trhr0 = TRHR(0,I,J) 
+      trhr0 = TRHR(0,I,J)
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -447,7 +446,7 @@ C**** Calculate trsfac (set to zero for const flux)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            trsfac(nx)=1. ! rhosrf0 
+            trsfac(nx)=1. ! rhosrf0
      &      !then multiplied by deposition velocity in PBL
 #ifdef TRACERS_WATER
             tr_evap_max(nx)=1.d30
@@ -675,13 +674,13 @@ C****
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
-          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - !positive down 
+          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - !positive down
      &       tdryd*ptype/(dtsurf*NIsurf)
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
      &       tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
-#endif          
+#endif
 #ifdef TRACERS_WATER
       END DO
 #endif
@@ -967,13 +966,13 @@ C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
       END IF
 C****
       END DO   ! end of surface time step
-     
+
 #ifdef TRACERS_DRYDEP
 C**** Save for tracer dry deposition conservation quantity:
-      do n=1,ntm   
-        if(dodrydep(n)) call diagtcb(dtr_dd(1,n),itcon_dd(n),n)     
+      do n=1,ntm
+        if(dodrydep(n)) call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
       end do
-#endif      
+#endif
       RETURN
 C****
       END SUBROUTINE SURFCE
