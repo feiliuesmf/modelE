@@ -12,7 +12,8 @@
       USE CONSTANT, only : edpery,sday,lhm
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
       USE GEOM, only : dxyp
-      USE LANDICE, only: ace1li,ace2li,glmelt_on
+      USE LANDICE, only: ace1li,ace2li,glmelt_on,gmelt_fac_nh
+     *     ,gmelt_fac_sh
       USE LANDICE_COM, only : tlandi,snowli
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trli0
@@ -63,6 +64,8 @@ C**** set GTEMP array for landice
 
 C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_on",glmelt_on)
+      call sync_param("glmelt_fac_nh",glmelt_fac_nh)
+      call sync_param("glmelt_fac_sh",glmelt_fac_sh)
 
 C**** Note these parameters are highly resolution dependent!
 C**** Around Antarctica, fresh water is added from 78S to 62S 
@@ -102,6 +105,11 @@ C**** This information could be read in from a file.
 C****  Note that water goes in with as if it is ice at 0 deg.
 C****  Possibly this should be a function of in-situ freezing temp?
 C****
+C**** gmelt_fac_nh/sh should be used to match accumulation in control
+C**** run so that global mean sea level is nearly constant. We can't
+C**** get perfect values, but the drift should hopefully be less 
+C**** than 1 mm/year.
+C****
 C**** Antarctica
 ! accumulation (kg per source time step) per water column
 C**** integrate area (which will depend on resolution/landmask)
@@ -117,7 +125,7 @@ C**** integrate area (which will depend on resolution/landmask)
         END DO
       END DO
 
-      ACCPCA = ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA)      ! kg/m^2
+      ACCPCA = gmelt_fac_sh*ACCPDA*DTsrc/(EDPERY*SDAY*FWAREA) ! kg/m^2
       DO J=JML,JMU
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
@@ -143,7 +151,7 @@ C**** integrate area (which will depend on resolution/landmask)
         FWAREA=FWAREA+DXYP(J)*FOCEAN(I,J)      
       END DO
 
-      ACCPCG = ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
+      ACCPCG = gmelt_fac_nh*ACCPDG*DTsrc/(EDPERY*SDAY*FWAREA)  ! kg/m^2 
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)

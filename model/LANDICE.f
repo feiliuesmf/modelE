@@ -23,6 +23,10 @@
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
 !@dbparam glmelt_on determines whether glacial melt is used for oceans
       INTEGER :: glmelt_on = 1   ! default is 'on'
+!@dbparam glmelt_fac_nh is a factor to multiply glacial melt by in NH
+      INTEGER :: glmelt_fac_nh = 1. 
+!@dbparam glmelt_fac_sh is a factor to multiply glacial melt by in SH
+      INTEGER :: glmelt_fac_sh = 1. 
 
       CONTAINS
 
