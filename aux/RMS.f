@@ -14,7 +14,7 @@ C**** describes the observations.
       INTEGER, PARAMETER :: LMAX=33, NDIAG=25
 C****
       CHARACTER OBS(LMAX)*63, RMS(0:LMAX,2)*140, FILEIN*80, TITLE1*80,
-     *     TITLE2*80, RUN*10, DATE*8, MONFILE(2)*80
+     *     TITLE2*80, RUN*20, DATE*8, MONFILE(2)*80
       REAL*4 TOTAL(20,2),DATA1(IM,JM),DATA2(IM,JM)
       CHARACTER*7, DIMENSION(2) :: MONTH =(/'January','   July'/)
       CHARACTER*6 :: BLANK ='      '
@@ -119,13 +119,17 @@ C****
       DO N=1,NDIAG
         REWIND (3)
         IREC=1
- 10     READ(3,END=820) TITLE1
+ 10     READ(3,END=20) TITLE1
         IF (INDEX(TITLE1,TITLE(N)).gt.0) THEN
           NREC(N)=IREC
+          CYCLE
         ELSE
           IREC=IREC+1
           GOTO 10
         END IF
+ 20     WRITE (0,*) ' Target diagnostic not found: ',N,TITLE(N)
+        WRITE (0,*) ' RMS computation will not be complete.'
+        NREC(N)=-1
       END DO
 
       CLOSE (3)
@@ -134,8 +138,8 @@ C**** Calculate new RMS statistics and fill into RMS array
 C****
 
       DO M=1,2
-        KMAX = LEN_TRIM(RMS(0,M)) + 7
-        KMIN = KMAX-6
+        KMAX = LEN_TRIM(RMS(0,M)) + 11
+        KMIN = KMAX-10
         RMS(0,M)(KMIN:KMAX) = RUN(1:NRUN)
 
         OPEN(3,FILE=MONFILE(M),STATUS="OLD",FORM="UNFORMATTED")
@@ -145,19 +149,23 @@ C**** loop over calculations
 C**** find appropriate target
           READ (OBS(L)(19:21),*) NMOD    ! target index
           REWIND(3)
-          DO N=1,NREC(NMOD)-1
-            READ(3) 
-          END DO
-          IF(OBS(L)(1:3).eq.'UVS')  THEN
-            READ(3) TITLE1,DATA1
-            READ(3) TITLE2,DATA2
+          IF (NREC(NMOD).gt.-1) THEN
+            DO N=1,NREC(NMOD)-1
+              READ(3) 
+            END DO
+            IF(OBS(L)(1:3).eq.'UVS')  THEN
+              READ(3) TITLE1,DATA1
+              READ(3) TITLE2,DATA2
+            ELSE
+              READ(3) TITLE1,DATA1
+            END IF
+            
+            RRMS = RMSDIF (M,OBS(L),DATA1,DATA2)
+            
+            WRITE (RMS(L,M)(KMIN:KMAX),921) RRMS
           ELSE
-            READ(3) TITLE1,DATA1
+            WRITE (RMS(L,M)(KMIN:KMAX),'(a)') "*****" 
           END IF
-
-          RRMS = RMSDIF (M,OBS(L),DATA1,DATA2)
-
-          WRITE (RMS(L,M)(KMIN:KMAX),921) RRMS
         END DO
         CLOSE (3)
       END DO
@@ -216,9 +224,6 @@ C****
       GO TO 999
   801 WRITE (0,*) ' Error opening datafile: ',FILEIN(1:40)
       STOP 801
- 820  WRITE (0,*) ' Target diagnostic not found: ',N,TITLE(N)
-      WRITE (0,*) ' Check diag file, or target list.'
-      STOP 820
 C****
   901 FORMAT (A17,2X,A)
   921 FORMAT (F7.2)
