@@ -2622,7 +2622,7 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         IF (PTOP+PSFMPT*SIGE(L+1)+1d-5.lt.PSPEC(KL) .and.
      *      PTOP+PSFMPT*SIGE(L)+1d-5.gt.PSPEC(KL)) THEN
           IF (KL.eq.2) LSTR = L  ! approx. 10mb height
-          KL=KL+1
+          IF (KL.lt.3) KL=KL+1
         END IF
         KLAYER(L)=4*(KL-1)+1
       END DO

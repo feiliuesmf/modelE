@@ -927,7 +927,7 @@ C****
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         inipbl  = .TRUE.      ! initialise pbl profiles
-        iniOCEAN = .TRUE. ! read in ocean ic
+        iniOCEAN = .TRUE.     ! read in ocean ic
 C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
@@ -1183,9 +1183,8 @@ C**** as residual terms. (deals with SP=>DP problem)
         ELSE
           FLAND(I,J)=1.
         END IF
-        IF (FLICE(I,J).gt.FLAND(I,J)) THEN
-          WRITE(6,*) "LAND ICE greater than LAND fraction at i,j:",I,J
-     *         ,FLICE(I,J),FLAND(I,J),FOCEAN(I,J),FEARTH(I,J)
+C**** Ensure that no round off error effects land with ice and earth
+        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN 
           FLICE(I,J)=FLAND(I,J)
           FEARTH(I,J)=0.
         ELSE
