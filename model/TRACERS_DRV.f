@@ -2473,9 +2473,14 @@ C**** lakes
               trlake(n,1,i,j)=trw0(n)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
               trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
               gtracer(n,1,i,j)=trw0(n)
+            elseif (fearth(i,j).gt.0) then
+              trlake(n,1,i,j)=trw0(n)*mwl(i,j)
+              trlake(n,2,i,j)=0.
+            else
+              trlake(n,1:2,i,j)=0.
             end if
 c**** ice
-            if (rsi(i,j).gt.0) then
+            if (msi(i,j).gt.0) then
               trsi(n,1,i,j)=trsi0(n)*
      *             (xsi(1)*(snowi(i,j)+ace1i)-ssi(1,i,j))
               trsi(n,2,i,j)=trsi0(n)*
@@ -2483,8 +2488,6 @@ c**** ice
               trsi(n,3,i,j)=trsi0(n)*(xsi(3)*msi(i,j)-ssi(3,i,j))
               trsi(n,4,i,j)=trsi0(n)*(xsi(4)*msi(i,j)-ssi(4,i,j))
               gtracer(n,2,i,j)=trsi0(n)
-            else
-              gtracer(n,2,i,j)=0.
             end if
 c**** landice
             if (flice(i,j).gt.0) then
@@ -2492,6 +2495,8 @@ c**** landice
               trsnowli(n,i,j)=trli0(n)*snowli(i,j)
               gtracer(n,3,i,j)=trli0(n)
             else
+              trlndi(n,i,j)=0.
+              trsnowli(n,i,j)=0.
               gtracer(n,3,i,j)=0.
             end if
 c**** earth
@@ -2503,6 +2508,10 @@ c**** earth
               trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
               gtracer (n,4,i,j)=trw0(n)
             else
+              trbare  (n,:,i,j)=0.
+              trvege  (n,:,i,j)=0.
+              trsnowbv(n,1,i,j)=0.
+              trsnowbv(n,2,i,j)=0.
               gtracer(n,4,i,j)=0.
             end if
           end do
@@ -3129,7 +3138,8 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
-      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,FCLOUD,FQ0,fq)
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,SUPSAT,LHX,FCLOUD,FQ0,
+     *     fq)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -3137,7 +3147,7 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
-      USE CONSTANT, only: TF, BYGASC, MAIR,teeny
+      USE CONSTANT, only: TF, BYGASC, MAIR,teeny,lhe
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname
 #ifdef TRACERS_SPECIAL_Shindell
@@ -3160,13 +3170,15 @@ c
 !@var L index for altitude loop
 !@var N index for tracer number loop
 !@var WMXTR mixing ratio of water available for tracer condensation?
+!@var SUPSAT super-saturation ratio for cloud droplets
+!@var LHX latent heat flag for whether condensation is to ice or water
 !@var RKD dummy variable (= tr_RKD*EXP[ ])
       REAL*8, PARAMETER :: BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac, RKD
 #ifdef TRACERS_SPECIAL_O18
-      real*8 tdegc,alph,fracvs,fracvl
+      real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
 #endif
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, SUPSAT, LHX
       REAL*8,  INTENT(OUT):: fq
       INTEGER, INTENT(IN) :: L, N
 c
@@ -3196,10 +3208,13 @@ c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
 C**** calculate condensate in equilibrium with source vapour
           if (fq0.gt.0.) then
             tdegc=temp-tf
-            if (tdegc.ge.0) then
+            if (LHX.eq.LHE) then  ! cond to water
               alph=1./fracvl(tdegc,trname(ntix(n)))
-            else
+            else  ! cond to ice
               alph=1./fracvs(tdegc,trname(ntix(n)))
+C**** kinetic fractionation can occur as a function of supersaturation
+              if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
+     *             ,trname(ntix(n)))
             end if
             if (fq0.ne.1.) then ! just to be safe
               fq = alph * fq0/(1.+(alph-1.)*fq0)
@@ -3323,8 +3338,7 @@ c
       RETURN
       END SUBROUTINE GET_WASH_FACTOR
 
-
-      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,FQ0,fq)
+      SUBROUTINE GET_EVAP_FACTOR(N,TEMP,QBELOW,HEFF,FQ0,fq)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -3344,8 +3358,12 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: N
       REAL*8,  INTENT(OUT):: FQ
       REAL*8,  INTENT(IN) :: FQ0,TEMP
+!@var QBELOW true if evap is occuring below cloud
+      LOGICAL, INTENT(IN) :: QBELOW
+!@var HEFF effective relative humidity for evap occuring below cloud
+      REAL*8, INTENT(IN) :: HEFF
 #ifdef TRACERS_SPECIAL_O18
-      real*8 tdegc,alph,fracvl,fracvs
+      real*8 tdegc,alph,fracvl,fracvs,kin_evap_prec
 #endif
 c
       select case (tr_wd_TYPE(NTIX(N)))
@@ -3357,6 +3375,9 @@ c
           tdegc=temp-tf
           if (tdegc.ge.0) then
             alph=fracvl(tdegc,trname(ntix(n)))
+C**** below clouds kinetic effects with evap into unsaturated air
+            if (QBELOW.and.heff.lt.1.) alph=kin_evap_prec(alph,heff
+     *           ,trname(ntix(n)))
           else
             alph=fracvs(tdegc,trname(ntix(n)))
           end if

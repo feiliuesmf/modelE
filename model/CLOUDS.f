@@ -219,7 +219,7 @@ C**** functions
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM)      :: TRPRCP
       REAL*8, DIMENSION(NTM,LM)   :: TRCOND
-      REAL*8 DTSUM
+      REAL*8 DTSUM,HEFF
 #endif
 #endif
 
@@ -253,7 +253,7 @@ C**** functions
       REAL*8 TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
-     *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX
+     *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX,TNX1
      *     ,DQ,DMSE1,FCTYPE,BETAU,ALPHAU
      *     ,CDHDRT,DDRAFT,DELTA
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
@@ -263,7 +263,7 @@ C**** functions
      *     ,PRHEAT,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
-     *     ,SUMDP,DDRUP,EDRAFT
+     *     ,SUMDP,DDRUP,EDRAFT,SUPSAT
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
@@ -325,6 +325,8 @@ C**** functions
       REAL*8, DIMENSION(IM,LM) :: DUM,DVM
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
+!@var BELOW_CLOUD logical- is the current level below cloud?
+      LOGICAL BELOW_CLOUD
 C****
 C**** MOIST CONVECTION
 C****
@@ -743,8 +745,10 @@ C****
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
+      SUPSAT=1. ! no super-saturation effect here (yet)
       DO N=1,NTX
-        CALL GET_COND_FACTOR(L,N,WMXTR,TP,FPLUME,FQCOND,FQCONDT)
+        CALL GET_COND_FACTOR(L,N,WMXTR,TP,SUPSAT,LHX,FPLUME,FQCOND
+     *       ,FQCONDT)
         TRCOND(N,L) = FQCONDT * TMP(N)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
@@ -844,7 +848,7 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
           TRCOND(N,L) = 0.D0
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
-          CALL GET_EVAP_FACTOR(N,TNX,FQEVP,FQEVPT)
+          CALL GET_EVAP_FACTOR(N,TNX,.FALSE.,1d0,FQEVP,FQEVPT)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
           TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
         END IF
@@ -858,26 +862,46 @@ C**** ENTRAINMENT OF DOWNDRAFTS
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
      *    DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
         EDRAFT=DDRAFT-DDRUP
-        FENTRA=EDRAFT*BYAM(L)
-        SENV=SM1(L)/AIRM(L)
-        QENV=QM1(L)/AIRM(L)
-        SMDN=SMDN+EDRAFT*SENV
-        QMDN=QMDN+EDRAFT*QENV
-        SMOMDN(xymoms)= SMOMDN(xymoms)+ SMOM(xymoms,L)*FENTRA
-        QMOMDN(xymoms)= QMOMDN(xymoms)+ QMOM(xymoms,L)*FENTRA
-        DSMR(L)=DSMR(L)-EDRAFT*SENV
-        DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
-        DQMR(L)=DQMR(L)-EDRAFT*QENV
-        DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
-        DMR(L)=DMR(L)-EDRAFT
+        IF (EDRAFT.gt.0) THEN  ! usual case, entrainment into downdraft
+          FENTRA=EDRAFT*BYAM(L)
+          SENV=SM1(L)/AIRM(L)
+          QENV=QM1(L)/AIRM(L)
+          SMDN=SMDN+EDRAFT*SENV
+          QMDN=QMDN+EDRAFT*QENV
+          SMOMDN(xymoms)= SMOMDN(xymoms)+ SMOM(xymoms,L)*FENTRA
+          QMOMDN(xymoms)= QMOMDN(xymoms)+ QMOM(xymoms,L)*FENTRA
+          DSMR(L)=DSMR(L)-EDRAFT*SENV
+          DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
+          DQMR(L)=DQMR(L)-EDRAFT*QENV
+          DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
+          DMR(L)=DMR(L)-EDRAFT
 #ifdef TRACERS_ON
-        Tenv(1:NTX)=tm1(l,1:NTX)/airm(l)
-        TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
-        TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)+ TMOM(xymoms,L,1:NTX)
-     *       *FENTRA
-        DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
-        DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
+          Tenv(1:NTX)=tm1(l,1:NTX)/airm(l)
+          TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
+          TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)+ TMOM(xymoms,L
+     *         ,1:NTX)*FENTRA
+          DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
+          DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
 #endif
+        ELSE  ! occasionally detrain into environment if ddraft too big
+          FENTRA=EDRAFT/DDRUP  ! < 0
+          DSM(L)=DSM(L)-FENTRA*SMDN
+          DSMOM(xymoms,L)=DSMOM(xymoms,L)-SMOMDN(xymoms)*FENTRA
+          DQM(L)=DQM(L)-FENTRA*QMDN
+          DQMOM(xymoms,L)=DQMOM(xymoms,L)-QMOMDN(xymoms)*FENTRA
+          SMDN=SMDN*(1+FENTRA)
+          QMDN=QMDN*(1+FENTRA)
+          SMOMDN(xymoms)= SMOMDN(xymoms)*(1+FENTRA)
+          QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
+          DM(L)=DM(L)-EDRAFT
+#ifdef TRACERS_ON
+          DTM(L,1:NTX)=DTM(L,1:NTX)-FENTRA*TMDN(1:NTX)
+          DTMOM(xymoms,L,1:NTX)=DTMOM(xymoms,L,1:NTX)-
+     *         TMOMDN(xymoms,1:NTX)*FENTRA
+          TMDN(1:NTX)=TMDN(1:NTX)*(1.+FENTRA)
+          TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)*(1.+FENTRA)
+#endif
+        END IF
       ENDIF
       IF(L.GT.1) DDM(L-1)=DDRAFT
       LDMIN=L
@@ -1072,23 +1096,36 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
 C**** (If 100% evaporation, allow all tracers to evaporate completely.)
-      DO N=1,NTX
-        IF(FPRCP.eq.1.) THEN                 !total evaporation
+      BELOW_CLOUD = L.lt.LMIN
+      IF(FPRCP.eq.1.) THEN      !total evaporation
+        DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
           TRPRCP(N) = 0.D0
-        ELSE ! otherwise, tracers evaporate dependent on type of tracer
-          CALL GET_EVAP_FACTOR(N,TNX,FPRCP,FPRCPT)
+        END DO
+      ELSE ! otherwise, tracers evaporate dependent on type of tracer
+C**** estimate effective humidity
+        if (below_cloud) then
+          TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
+          HEFF=MIN(1d0,(QM(L)+DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
+     *         /QSAT(TNX1,LHX,PL(L)))
+        else
+          heff=1.
+        end if
+        DO N=1,NTX
+          CALL GET_EVAP_FACTOR(N,TNX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
-        END IF
-      END DO
+        END DO
+      END IF
 C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
-      IF(L.lt.LMIN) THEN ! BELOW CLOUD
+      IF(BELOW_CLOUD) THEN ! BELOW CLOUD
         WMXTR = PRCPMC*BYAM(L)
         precip_mm = PRCPMC*100.*bygrav
         b_beta_DT = FPLUME
+        SUPSAT=1.  ! no super-saturation function here (ever)
         DO N=1,NTX
-          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,FPLUME,0.,FQCONDT)
+          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,SUPSAT,LHX,FPLUME,0.
+     *         ,FQCONDT)
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT)
           TRCOND(N,L) = FPLUME * FQCONDT * TM(L,N)
           TRPRCP(N)=TRPRCP(N) + TM(L,N)*FWASHT
@@ -1108,10 +1145,12 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
 #ifdef TRACERS_WATER
       TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
 #ifdef TRACERS_SPECIAL_O18
-C**** Isotopic equilibration of the precip with water vapour
-      DO N=1,NTX
-        CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N))
-      END DO
+C**** Isotopic equilibration of liquid precip with water vapour
+      IF (TNX.gt.TF) THEN
+        DO N=1,NTX
+          CALL ISOEQUIL(NTIX(N),TNX,QM(L),PRCP,TM(L,N),TRPRCP(N),0.5d0)
+        END DO
+      END IF
 #endif
 #endif
   540 CONTINUE
@@ -1208,7 +1247,7 @@ C**** functions
 !@var DQSATDT dQSAT/dT
 
 !@param CM00 upper limit for autoconversion rate
-!@param AIRM0 scaling factor for computing rain evapration
+!@param AIRM0 scaling factor for computing rain evaporation
 !@param HEFOLD e-folding length for computing HRISE
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.
@@ -1246,7 +1285,8 @@ C**** functions
 !@var FWTOQ fraction of CLW that goes to water vapour
 !@var FPR fraction of CLW that precipitates
 !@var FER fraction of precipitate that evaporates
-      REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER
+!@var SUPSAT super-saturation of water vapour w.r.t. ice
+      REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER,SUPSAT
 !@var DTPRT tracer-specific change of tracer by precip (kg)
 !@var DTERT tracer-specific change of tracer by evaporation (kg)
 !@var DTWRT tracer-specific change of tracer by washout (kg)
@@ -1429,11 +1469,19 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
+#ifdef TRACERS_WATER
+      SUPSAT=1.
+#endif 
       IF(LHX.EQ.LHS) THEN
       QSATE=QSAT(TL(L),LHE,PL(L))
       RHW=.00536d0*TL(L)-.276d0
       RH1(L)=QL(L)/QSATE
-      IF(TL(L).LT.238.16) RH1(L)=QL(L)/(QSATE*RHW)
+      IF(TL(L).LT.238.16) THEN
+        RH1(L)=QL(L)/(QSATE*RHW)
+#ifdef TRACERS_WATER
+        SUPSAT=1./RHW
+#endif 
+      END IF
       END IF
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
       HCHANG=0.
@@ -1644,8 +1692,10 @@ c ---------------------- initialize fractions ------------------------
         FQTOWT=0.
         FWTOQT=0.
 c ----------------------- calculate fractions --------------------------
-        CALL GET_EVAP_FACTOR(N,TL(L),FER,FERT)  !precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),FWTOQ,FWTOQT) !cond. tracer evap
+c precip. tracer evap
+        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FER,FERT) 
+c clw tracer evap
+        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FWTOQ,FWTOQT)
         IF(BELOW_CLOUD) THEN
           precip_mm = PREBAR(L+1)
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT) !washout
@@ -1657,7 +1707,8 @@ c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
         END IF
         CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip CLW
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),FCLD,FQTOW,FQTOWT) !condens
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),SUPSAT,LHX,FCLD,FQTOW
+     *       ,FQTOWT)  !condens
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
@@ -1678,13 +1729,13 @@ C**** need seperate accounting for liquid/solid precip
         TRPRICE(N,L) = TRPRICE(N,L+1) - DTERTICE
         IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
 C**** Isotopic equilibration of the CLW and water vapour
-        CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L))
+        CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L),1d0)
 C**** Isotopic equilibration of the liquid Precip and water vapour
 C**** only if T> -20 deg ???
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
         IF (TL(L)-TF.GT.-20.AND.PRLIQ.gt.0) THEN
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
-          CALL ISOEQUIL(NTIX(N),TL(L),QL(L),PRLIQ,TM(L,N),TRPRLIQ)
+          CALL ISOEQUIL(NTIX(N),TL(L),QL(L),PRLIQ,TM(L,N),TRPRLIQ,1d0)
           TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)
         END IF
 #endif
@@ -1712,8 +1763,10 @@ C**** CONDENSING MORE TRACERS
       ELSE
         WMXTR = WMX(L)
       END IF
+      SUPSAT=1.  ! no super-saturation effects here (yet)
       DO N=1,NTX
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),FCLD,FCOND,FQCONDT)
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),SUPSAT,LHX,FCLD,FCOND
+     *       ,FQCONDT)
         TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)
         TM(L,N)     =TM(L,N)    *(1.-FQCONDT)
         TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT)

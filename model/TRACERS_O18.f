@@ -74,7 +74,7 @@ C****
       RETURN
       END FUNCTION FRACVS
 
-       FUNCTION FRACLS(trname)
+      FUNCTION FRACLS(trname)
 !@sum FRACLS Calculate liquid --> solid equilibrium fractionation factor
 !@auth Gavin Schmidt
       IMPLICIT NONE
@@ -145,7 +145,7 @@ C****
       END FUNCTION FRACLK
 
 #ifdef TRACERS_SPECIAL_O18
-      SUBROUTINE ISOEQUIL(N,TEMP,QMV,QML,TRMV,TRML)
+      SUBROUTINE ISOEQUIL(N,TEMP,QMV,QML,TRMV,TRML,FEQ)
 !@sum ISOEQUIL equilibrates isotopes in vapor & liquid/solid reservoirs
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
@@ -157,25 +157,99 @@ C****
       REAL*8, INTENT(IN) :: QMV,QML
 !@var TRMV,TRML vapour and liquid tracer mass (kg or kg/m^2)
       REAL*8, INTENT(INOUT) :: TRMV,TRML
+!@var FEQ fraction of condensate equilibrated (1. = all, 0. = none)
+      REAL*8, INTENT(IN) :: FEQ
       REAL*8 TDEGC,ZALPH,ZDELEQU,ZXFAC,FRACVL,FRACVS
 
       SELECT CASE(tr_wd_TYPE(N))
-        CASE(nWATER)
-          TDEGC = TEMP - TF
-          IF (QMV.GT.0.) THEN
-            IF (TDEGC.GE.0.) THEN
-              ZALPH = 1./FRACVL(TDEGC,trname(N))
-            ELSE
-              ZALPH = 1./FRACVS(TDEGC,trname(N))
-            END IF
-            ZXFAC = ZALPH*QML/QMV
-            ZDELEQU = (TRML - ZXFAC*TRMV)/(1.+ZXFAC)
-            TRML = TRML - ZDELEQU
-            TRMV = TRMV + ZDELEQU
+      CASE(nWATER)
+        TDEGC = TEMP - TF
+        IF (QMV.GT.0.) THEN
+          IF (TDEGC.GE.0.) THEN
+            ZALPH = 1./FRACVL(TDEGC,trname(N))
+          ELSE
+            ZALPH = 1./FRACVS(TDEGC,trname(N))
           END IF
+          ZXFAC = FEQ*ZALPH*QML/QMV
+          ZDELEQU = (FEQ*TRML - ZXFAC*TRMV)/(1.+ZXFAC)
+          TRML = TRML - ZDELEQU
+          TRMV = TRMV + ZDELEQU
+        END IF
       END SELECT
 
       RETURN
 C****
       END SUBROUTINE ISOEQUIL
+
+      FUNCTION KIN_COND_ICE(ALPH,SUPSAT,trname)
+!@sum calculate kinetic fractionation when condensing to ice in 
+!@+   super-saturated conditions
+!@auth Gavin Schmidt/Georg Hoffmann
+      USE CONSTANT, only : tf
+      IMPLICIT NONE
+      CHARACTER, INTENT(IN) :: trname*8
+!@var SUPSAT super_saturation factor from cloud scheme
+      REAL*8, INTENT(IN) :: SUPSAT
+!@var ALPH equilibrium fractionation
+      REAL*8, INTENT(IN) :: ALPH
+!@var ZDIFREL = inverse ratio of diffusion coeffs w.r.t normal water
+      real*8 :: ZDIFREL(4) = (/ 1d0 ,1.0285d0, 1.0251d0, 1.0331d0/)
+      integer itr
+      real*8 kin_cond_ice
+C****
+C**** Calculate kinetic condensation when condensing to ice
+C****
+      select case (trname)
+      case ('Water')
+        ITR=1
+      case ('H2O18')
+        ITR=2
+      case ('HDO')
+        ITR=3
+      case ('HTO')
+        ITR=4
+      case default
+        write(6,*) "Tracer name ",trname," not defined in KIN_COND"
+        stop
+      end select
+      KIN_COND_ICE=alph*SUPSAT/(1.+(SUPSAT-1.)*alph*ZDIFREL(ITR))
+
+      return
+      end function kin_cond_ice
+
+      FUNCTION KIN_EVAP_PREC(ALPH,HEFF,trname)
+!@sum calculate kinetic fractionation when evaporating into 
+!@+   undersaturated environment
+!@auth Gavin Schmidt/Georg Hoffmann
+      USE CONSTANT, only : tf
+      IMPLICIT NONE
+      CHARACTER, INTENT(IN) :: trname*8
+!@var HEFF effective relative humidity from cloud scheme
+      REAL*8, INTENT(IN) :: HEFF
+!@var alph equilibrium fractionation 
+      REAL*8, INTENT(IN) :: ALPH
+!@var ZDIFRELGAM = ZDIFREL^0.58 
+      real*8 :: ZDIFRELGAM(4) = (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0/)
+      integer itr
+      real*8 kin_evap_prec
+C****
+C**** Calculate kinetic condensation when evaporating below clouds
+C****
+      select case (trname)
+      case ('Water')
+        ITR=1
+      case ('H2O18')
+        ITR=2
+      case ('HDO')
+        ITR=3
+      case ('HTO')
+        ITR=4
+      case default
+        write(6,*) "Tracer name ",trname," not defined in KIN_EVAP"
+        stop
+      end select
+      KIN_EVAP_PREC=alph*HEFF/(1.+(HEFF-1.)*alph*ZDIFRELGAM(ITR))
+
+      return
+      end function kin_evap_prec
 #endif
