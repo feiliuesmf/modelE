@@ -151,9 +151,9 @@ c     Loop for calculating dust source flux for each tracer
             if (soilwet.gt.1.) soilwet=1.d0
             soilvtrsh=8.d0*(exp(0.25d0*soilwet))
 
-            WRITE(*,*) 'In dust_emission: itime,i,j,wearth,aiearth,',
-     &           'wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
-     &           wfcs(i,j),soilwet
+c            WRITE(*,*) 'In dust_emission: itime,i,j,wearth,aiearth,',
+c     &           'wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
+c     &           wfcs(i,j),soilwet
 
 #ifdef TRACERS_DUST_MINERAL8
 
@@ -166,8 +166,8 @@ c     default case
      &           fearth(i,j),gin_data(i,j),wsubtke(i,j),wsubwd(i,j),
      &           wsubwm(i,j),dsrcflx)
 
-            WRITE(*,*) 'In dust_emission: itime,i,j,dsrcflx:',itime,i,j,
-     &           dsrcflx
+c            WRITE(*,*) 'In dust_emission: itime,i,j,dsrcflx:',itime,i,j,
+c     &           dsrcflx
 
           END IF
 
@@ -361,8 +361,8 @@ c       only over 5% of the area.
           dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
         END SELECT
       END DO
-      WRITE(*,*) 'loc_dsrcflx_turb_sah: sigma,vtrshij,wsavgij,curint:',
-     &       sigma,vtrshij,wsavgij,workij
+c      WRITE(*,*) 'loc_dsrcflx_turb_sah: sigma,vtrshij,wsavgij,curint:',
+c     &       sigma,vtrshij,wsavgij,workij
 #endif
 
       RETURN
@@ -379,9 +379,10 @@ c       only over 5% of the area.
 !@sum  Computes dust wet deposition
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      USE constant,ONLY : Grav
       USE resolution,ONLY : Im,Jm,Lm
-      USE model_com,ONLY : Dtsrc
+      USE model_com,ONLY : Dtsrc,zatmo
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
       USE tracer_diag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
@@ -464,20 +465,6 @@ c**** Wet Deposition
         trsrfflx(:,:,n1)=0D0
         DO j=1,Jm
           DO i=1,im
-            sum1=0. 
-            cloudlay=0.
-            do l=1,lm
-              if (cldmc(i,j,l).gt.1.) then   
-                cldmc1(i,j,l)=1.
-                cloudlay=cldss(i,j,l)+cldmc1(i,j,l)-cldss(i,j,l)*
-     &               cldmc1(i,j,l)
-              else  
-                cloudlay=cldss(i,j,l)+cldmc(i,j,l)-cldss(i,j,l)*
-     &               cldmc(i,j,l)
-              endif
-              sum1=sum1+cloudlay-cloudlay*sum1
-            enddo   
-            cloudfrac(i,j)=sum1
 
             layer=0
             do l=lm,1,-1
@@ -488,8 +475,8 @@ c**** Wet Deposition
             enddo
 
             if (layer.eq.1) then
-              height=400.d0/9.81d0
-              y = Z*(prec(i,j)/height)*cloudfrac(i,j)
+              height=(gz(i,j,layer)-zatmo(i,j))/Grav
+              y = Z*(prec(i,j)/height)
               IF (y > 1.) y=1.
               DO l=1,layer
                 tr3Dsource(i,j,l,nDustWet3Djl,n1)=y*trm(i,j,l,n1)/Dtsrc
@@ -508,8 +495,8 @@ c**** Wet Deposition
               END DO
 
             else if (layer.ne.0) then
-              height=(gz(i,j,layer)-gz(i,j,1))/9.81d0
-              y = Z*(prec(i,j)/height)*cloudfrac(i,j) 
+              height=(gz(i,j,layer)-gz(i,j,1))/Grav
+              y = Z*(prec(i,j)/height)
               IF (y > 1.) y=1.
               DO l=1,layer
                 tr3Dsource(i,j,l,nDustWet3Djl,n1)=y*trm(i,j,l,n1)/Dtsrc
