@@ -2,6 +2,7 @@
 !@sum  qc query c-array and other parameters
 !@auth G. Schmidt/R. Ruedy
 !@ver  1.0
+      USE CONSTANT
       USE MODEL_COM
       USE TIMINGS
       USE PARAM
@@ -53,7 +54,7 @@ C**** check for arguments
       endif
 
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      hour=mod(itime,nday)*24./nday
+      hour=mod(itime,nday)*hrday/nday
 
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,HOUR,XLABEL(1:50)
       TOT=0
@@ -78,10 +79,10 @@ C**** check for arguments
         call print_param(6)
 c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
         call getdte(ItimeI,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-        hour=mod(itime,nday)*24./nday
+        hour=mod(itime,nday)*hrday/nday
         WRITE (6,900) ITIMEI,JMON,JDATE,JYEAR,HOUR,' = start of run'
         call getdte(ItimeE,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-        hour=mod(itime,nday)*24./nday
+        hour=mod(itime,nday)*hrday/nday
         WRITE (6,900) ITIMEE,JMON,JDATE,JYEAR,HOUR,' =   end of run'
         if(itimee.ge.itime) then
           days_togo = (Itimee-itime+nday-1)/nday
@@ -89,7 +90,7 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
           write(XLABEL(29:50),'(I10,a12)') days_togo,'  days to go'
           if (days_togo.eq.1) XLABEL(44:44) = ' '
          call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-         hour=mod(itime,nday)*24./nday
+         hour=mod(itime,nday)*hrday/nday
           if (yrs_togo.ge.2.)
      *    write(XLABEL(29:50),'(f10.1,a12)') yrs_togo,' years to go'
         WRITE (6,900) ITIME,JMON,JDATE,JYEAR,HOUR,XLABEL(1:50)
@@ -101,7 +102,7 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
      &       ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
         write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
 c        write(6,*)
-     &       ItimeMax*24/Nday, Jmon, Jdate, Jyear
+     &       ItimeMax*nint(hrday)/Nday, Jmon, Jdate, Jyear
       endif
       Stop
   800 continue
