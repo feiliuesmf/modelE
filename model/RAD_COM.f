@@ -96,7 +96,7 @@ C**** exactly the same as the default values.
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB
 
-!@var SALB broadband surface albedo saved in rsf
+!@var SALB broadband 1 - surface albedo saved in rsf
       REAL*8, POINTER, DIMENSION(:,:) :: SALB   ! = ABL(:,:,1)
 !      EQUIVALENCE (SALB,ALB)
 !@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)

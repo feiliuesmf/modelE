@@ -2870,18 +2870,18 @@ C**** simple diags
           data=qflux1*lhe 
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
-        case ("SWD")           ! solar downward flux at surface (W/m^2)
-          data=srdn*cosz1      ! multiply by instant cos zenith angle 
-        case ("SWU")     ! solar upward flux at surface (W/m^2)
+        case ("SWD")            ! solar downward flux at surface (W/m^2)
+          data=srdn*cosz1       ! multiply by instant cos zenith angle 
+        case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
-          data=srdn*salb*cosz1
-        case ("LWD")     ! thermal downward flux at surface (W/m^2)
+          data=srdn*(1.-salb)*cosz1
+        case ("LWD")            ! LW downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
         case ("ICEF")           ! ice fraction over open water (%)
           data=RSI*100.
-        case ("STX")          ! E-W surface stress (N/m^2)
+        case ("STX")            ! E-W surface stress (N/m^2)
           data=uflux1
-        case ("STY")          ! N-S surface stress (N/m^2)
+        case ("STY")            ! N-S surface stress (N/m^2)
           data=vflux1
         case ("LCLD")           ! low level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
