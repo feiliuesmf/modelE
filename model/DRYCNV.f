@@ -38,7 +38,7 @@ C
       INTEGER  LRANG(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C
       REAL*8, DIMENSION(NMOM) :: TMOMS,QMOMS
-      REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
+      REAL*8 DOK,PIJBOT,PIJ,PKMS,QMS
      *     ,TVMS,THETA,RDP,THM
 
 #ifdef TRACERS_ON
@@ -84,7 +84,7 @@ C**** OUTSIDE LOOPS OVER J AND I
 #ifdef TRACERS_ON
 !$OMP*   TRMS,TRMOMS,SDPL,BYSDPL,
 #endif
-!$OMP*   THM,TVMS,THETA,TMOMS,THPKMS, UMS,VMS)
+!$OMP*   THM,TVMS,THETA,TMOMS,UMS,VMS)
 !$OMP*   SCHEDULE(DYNAMIC,2)
       JLOOP: DO J=J_0,J_1
 
@@ -117,8 +117,9 @@ C**** MIX THROUGH TWO LOWER LAYERS
       PIJ=PLIJ(LMIN+1,I,J)
       DP(LMIN+1)=PDSIG(LMIN+1,I,J)
       PKMS=PK(LMIN,I,J)*DP(LMIN)+PK(LMIN+1,I,J)*DP(LMIN+1)
-      THPKMS=T(I,J,LMIN)*(PK(LMIN,I,J)*DP(LMIN))
-     *  +T(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
+      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx)*(PK(LMIN,I,J)*DP(LMIN))
+     *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)
+     *                                  *(PK(LMIN+1,I,J)*DP(LMIN+1))
       QMS=Q(I,J,LMIN)*DP(LMIN)+Q(I,J,LMIN+1)*DP(LMIN+1)
 C**** sum moments to mix over unstable layers
       TMOMS(XYMOMS) =
@@ -133,9 +134,6 @@ C**** sum moments to mix over unstable layers
      &     TRMOM(XYMOMS,I,J,LMIN,:)+TRMOM(XYMOMS,I,J,LMIN+1,:)
 #endif
       IF (LMIN+1.GE.LM) GO TO 150
-      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx)*(PK(LMIN,I,J)*DP(LMIN))
-     *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)
-     *                                  *(PK(LMIN+1,I,J)*DP(LMIN+1))
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO L=LMIN+2,LM
@@ -143,7 +141,6 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
         PIJ=PLIJ(L,I,J)
         DP(L)=PDSIG(L,I,J)
         PKMS=PKMS+(PK(L,I,J)*DP(L))
-        THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
         QMS=QMS+Q(I,J,L)*DP(L)
         TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*deltx)*(PK(L,I,J)*DP(L))
         TMOMS(XYMOMS) = TMOMS(XYMOMS) +
@@ -159,8 +156,8 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
   150 L=LM+1
   160 LMAX=L-1
       RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
-      THM=THPKMS/PKMS
       QMS=QMS*RDP
+      THM=TVMS/(PKMS*(1.+QMS*deltx))
 #ifdef TRACERS_ON
         SDPL = 0.d0
         DO L=LMIN,LMAX
