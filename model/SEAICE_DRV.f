@@ -376,7 +376,7 @@ C****
      *     ,ftrsi_io,trevapor,trunosi,gtracer
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
-     *     ,snowice, snow_ice
+     *     ,snowice, snow_ice, rhos
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -508,7 +508,8 @@ C**** Net fluxes to ocean
 
 C**** ACCUMULATE DIAGNOSTICS
           SCOVI=0.
-          IF (SNOWI(I,J).GT.0) SCOVI=POICE
+C**** snow cover diagnostic now matches that seen by the radiation
+          IF (SNOW.GT.0) SCOVI=MIN(1d0,SNOW/(RHOS*0.1d0))*POICE
 
           AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
