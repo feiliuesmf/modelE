@@ -94,7 +94,7 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
          PUA(:,:,:)=PUA(:,:,:)+PU(:,:,:)
-         PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:) 
+         PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:)
          SDA(:,:,1:LM-1)=SDA(:,:,1:LM-1)+SD(:,:,1:LM-1)
 C**** ADVECT Q AND T
       TT(:,:,:) = T(:,:,:)
@@ -102,7 +102,7 @@ C**** ADVECT Q AND T
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
-      tz(:,:,:) = tmom(mz,:,:,:) 
+      tz(:,:,:) = tmom(mz,:,:,:)
       CALL VDIFF (P,U,V,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
@@ -162,7 +162,7 @@ C**** Scale WM mixing ratios to conserve liquid water
       USE SOMTQ_COM, only : tmom,qmom
       USE DAGCOM, only: ajl,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
       USE DYNAMICS, only: ps,mb,ma
-      USE TRACER_ADV, only: 
+      USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       IMPLICIT NONE
       REAL*8 DTLF,byncyc,byma
@@ -1074,7 +1074,7 @@ C**** to be used in the PBL
         END DO
         IM1=I
       END DO
-c
+c   
       DPDX_BY_RHO=0.
       DPDX_BY_RHO_0=0.
       I=IM
@@ -1125,14 +1125,13 @@ C**** Note that this low level is only applied at the pole, elsewhere
 C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
       INTEGER, INTENT(IN) :: LMIN
       REAL*8 WL,RHO,CDN,X,BYPIJU
-      INTEGER I,J,IP1,L
+      INTEGER I,J,L
 
       BYPIJU=1./PSFMPT
-      DO L=LMIN,LM 
+      DO L=LMIN,LM
       DO J=2,JM
-      I=IM
       IF (COSV(J).LE..15.OR.L.GE.LM-1) THEN
-      DO IP1=1,IM
+      DO I=1,IM
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
         CDN=XCDLM(1)+XCDLM(2)*WL
@@ -1149,7 +1148,6 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
-        I=IP1
       END DO
       END IF
       END DO
@@ -1184,7 +1182,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
       LTROPO(2:IM,1) = LTROPO(1,1)
       PTROPO(2:IM,JM)= PTROPO(1,JM)
       LTROPO(2:IM,JM)= LTROPO(1,JM)
-        
+
       END SUBROUTINE CALC_TROP
 
 
@@ -1217,9 +1215,9 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@+   at least 1 km in any higher layer.
 !@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
 !@+   below 2 K/km. In such cases the failsafe level is that where the
-!@+   lapse rate first falls below 3 K/km. If this still doesn't work 
+!@+   lapse rate first falls below 3 K/km. If this still doesn't work
 !@+   (ever?), the level is set to the pressure level below 30mb.
-!@+ 
+!@+
       USE MODEL_COM, only : klev=>lm
       USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
       implicit none
@@ -1260,12 +1258,12 @@ c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
 
       do jk=iplimb+1,iplimt       ! -1 ?????
         zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
-        
+
         zpm(jk)=zpmk(jk)**zzkap ! p mitte
 
         za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
         zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
-          
+
         ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
         zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
       end do
@@ -1332,7 +1330,7 @@ c****
         print*,"In tropwmo ltropp not set, using default: ltropp ="
      *       ,ltropp
         write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
-     *       ,zpm(l),l=iplimb+1,iplimt-1) 
+     *       ,zpm(l),l=iplimb+1,iplimt-1)
       end if
       ptropo = papm1(ltropp)
 c****
