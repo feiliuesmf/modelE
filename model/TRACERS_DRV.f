@@ -295,7 +295,7 @@ C**** Get solar variability coefficient from namelist if it exits
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
           trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
-          trli0(n) = 0.980d0*trw0(n)  ! d=-20
+          trli0(n) = 0.975d0*trw0(n)  ! d=-25
           trsi0(n) = fracls(trname(n))*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
           ntrocn(n) = -3
@@ -310,7 +310,7 @@ C**** Get solar variability coefficient from namelist if it exits
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
           trw0(n) = 3.29d-4    ! SMOW mass ratio of water molecules
-          trli0(n) = 0.830d0*trw0(n)  ! d=-170
+          trli0(n) = 0.802d0*trw0(n)  ! d=-198 (for d-excess=2)
           trsi0(n) = fracls(trname(n))*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
           ntrocn(n) = -4
