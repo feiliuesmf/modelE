@@ -17,33 +17,28 @@ C**** and acc files
       REAL*8, DIMENSION(IM,JM) :: TPREC
 !@var PRECSS precipitation from super-saturation (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: PRECSS
-!@var TAUSS optical depth from super-saturated clouds
-      REAL*8, DIMENSION(IM,JM,LM) :: TAUSS
-!@var TAUMC optical depth from moist-convective clouds
-      REAL*8, DIMENSION(IM,JM,LM) :: TAUMC
 !@var TTOLD,QTOLD previous potential temperature, humidity
       REAL*8, DIMENSION(IM,JM,LM) :: TTOLD,QTOLD
 !@var SVLHX,SVLAT previous latent heat of evaporation
       REAL*8, DIMENSION(IM,JM,LM) :: SVLHX,SVLAT
 !@var RHSAV previous relative humidity
       REAL*8, DIMENSION(IM,JM,LM) :: RHSAV
-!@var SVWMX addition of liquid water from MC
-      REAL*8, DIMENSION(IM,JM,LM) :: SVWMX
 !@var CLDSAV previous cloud cover area (percent)
       REAL*8, DIMENSION(IM,JM,LM) :: CLDSAV
 !@var PBLTOP height of PBL (m) (NOT USED)
       REAL*8, DIMENSION(IM,JM) :: PBLTOP
 
+C**** variables saved for radiation calculations
+!@var TAUSS optical depth from super-saturated clouds
+      REAL*8, DIMENSION(LM,IM,JM) :: TAUSS
+!@var TAUMC optical depth from moist-convective clouds
+      REAL*8, DIMENSION(LM,IM,JM) :: TAUMC
 !@var CLDSS super-saturated cloud cover area (percent)
-      REAL*8, DIMENSION(IM,JM,LM) :: CLDSS
+      REAL*8, DIMENSION(LM,IM,JM) :: CLDSS
 !@var CLDMC moist convective cloud cover area (percent)
-      REAL*8, DIMENSION(IM,JM,LM) :: CLDMC
+      REAL*8, DIMENSION(LM,IM,JM) :: CLDMC
 !@var CSIZE effective cloud droplet radius (microns) 1:mc 2:ss
-      REAL*8, DIMENSION(IM,JM,LM,2) :: CSIZE
-
-!@var AQ1,AQ2 unused diagnostics?
-      REAL*8 :: AQ1,AQ2
-      DIMENSION AQ1(IM,JM,LM),AQ2(IM,JM,LM)
+      REAL*8, DIMENSION(2,LM,IM,JM) :: CSIZE
 
       END MODULE CLD01_COM_E001
 

@@ -41,8 +41,6 @@
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
       VC=V
-         AQ1=0.
-         AQ2=0.
          IHOUR=1.5+TOFDAY
 C****
 C**** MAIN J LOOP
@@ -140,8 +138,6 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          HCNDMC=0.
          DO L=1,LMCMAX
             HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
-            AQ1(I,J,L)=(AJ50(L)+AJ13(L))*(DXYP(J)*BYDSIG(L))
-            AQ2(I,J,L)=(AJ52(L)-AJ57(L))*(DXYP(J)*BYDSIG(L))
             AJL(J,L,13)=AJL(J,L,13)+AJ13(L)*BYDSIG(L)
             AJL(J,L,50)=AJL(J,L,50)+AJ50(L)*BYDSIG(L)
             AJL(J,L,51)=AJL(J,L,51)+AJ51(L)*BYDSIG(L)
@@ -216,17 +212,16 @@ C**** MODIFY SNOW AGES AFTER SNOW FALL
 
 C**** WRITE TO GLOBAL ARRAYS
       DO L=1,LM
-         TAUMC(I,J,L)=TAUMCL(L)
-         CLDMC(I,J,L)=CLDMCL(L)
-         SVWMX(I,J,L)=SVWMXL(L)
+         TAUMC(L,I,J)=TAUMCL(L)
+         CLDMC(L,I,J)=CLDMCL(L)
          SVLAT(I,J,L)=SVLATL(L)
-         CSIZE(I,J,L,1)=CSIZEL(L,1)
+         CSIZE(1,L,I,J)=CSIZEL(L,1)
 
-         TAUSS(I,J,L)=TAUSSL(L)
-         CLDSS(I,J,L)=CLDSSL(L)
+         TAUSS(L,I,J)=TAUSSL(L)
+         CLDSS(L,I,J)=CLDSSL(L)
          CLDSAV(I,J,L)=CLDSAVL(L)
          SVLHX(I,J,L)=SVLHXL(L)
-         CSIZE(I,J,L,2)=CSIZEL(L,2)
+         CSIZE(2,L,I,J)=CSIZEL(L,2)
          AJL(J,L,11)=AJL(J,L,11)+AJ11(L)
          AJL(J,L,55)=AJL(J,L,55)+AJ55(L)
 

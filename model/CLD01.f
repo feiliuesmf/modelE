@@ -178,7 +178,6 @@ C**** zero out diagnostics
          AJ51=0.
          AJ52=0.
          AJ57=0.
-c         AJ11=0.
 C**** save initial values
       SM1=SM
       QM1=QM

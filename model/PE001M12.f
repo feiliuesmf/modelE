@@ -784,27 +784,27 @@ C****
       IF(CLDSAV(I,J,L).LT.1.)
      *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(I,J,L))/(1.-CLDSAV(I,J,L))
       TL(L)=T(I,J,L)*PK(L,I,J)
-      IF(CLDSS(I,J,L).EQ.0.) RANDSS=RANDU(X)
+      IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
       TAUSSL=0.
       TAUMCL=0.
       TAUWC(L)=0.
       TAUIC(L)=0.
-      SIZEWC(L)=CSIZE(I,J,L,1)
-      SIZEIC(L)=CSIZE(I,J,L,1)
+      SIZEWC(L)=CSIZE(1,L,I,J)
+      SIZEIC(L)=CSIZE(1,L,I,J)
          TOTCLD(L)=0.
-      IF (CLDSS(I,J,L).LT.RANDSS.OR.TAUSS(I,J,L).LE.0.) GO TO 220
-      TAUSSL=TAUSS(I,J,L)
+      IF (CLDSS(L,I,J).LT.RANDSS.OR.TAUSS(L,I,J).LE.0.) GO TO 220
+      TAUSSL=TAUSS(L,I,J)
       QL(L)=QSS
          CSS=1.
          AJL(J,L,28)=AJL(J,L,28)+CSS
          TOTCLD(L)=1.
-  220 IF (CLDMC(I,J,L).LT.RANDMC.OR.TAUMC(I,J,L).LE.0.) GO TO 230
+  220 IF (CLDMC(L,I,J).LT.RANDMC.OR.TAUMC(L,I,J).LE.0.) GO TO 230
          CMC=1.
          AJL(J,L,29)=AJL(J,L,29)+CMC
          TOTCLD(L)=1.
          DEPTH=DEPTH+PDSIG(L,I,J)
-      IF(TAUMC(I,J,L).LE.TAUSSL) GO TO 230
-      TAUMCL=TAUMC(I,J,L)
+      IF(TAUMC(L,I,J).LE.TAUSSL) GO TO 230
+      TAUMCL=TAUMC(L,I,J)
       ELHX=LHE
       IF(TL(L).LE.TF) ELHX=LHS
       QL(L)=QSAT(TL(L),PMID(L,I,J),ELHX)
@@ -819,10 +819,10 @@ C****
          ELSE
            IF(SVLHX(I,J,L).EQ.LHE) THEN
              TAUWC(L)=TAUSSL
-             SIZEWC(L)=CSIZE(I,J,L,2)
+             SIZEWC(L)=CSIZE(2,L,I,J)
            ELSE
              TAUIC(L)=TAUSSL
-             SIZEIC(L)=CSIZE(I,J,L,2)
+             SIZEIC(L)=CSIZE(2,L,I,J)
            END IF
          END IF
       END IF
