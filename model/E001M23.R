@@ -4,10 +4,11 @@ E001M23: new modelE (based on B402A) Stratospheric version
          NOTE: this is not yet ready
 
 Object modules: (in order of decreasing priority)
-RES_M23 strat                       ! resolution
+RES_M23                             ! resolution
 MODEL_COM GEOM_B FLUXES             ! model modules
 ME001M12                            ! Main and model overhead
 DYNE001 DYNCOM                      ! dynamics
+STRATDYN strat                      ! stratos. (incl. gravity wave drag)
 SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
 SE001M12                            ! surface calculation

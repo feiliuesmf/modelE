@@ -1,6 +1,6 @@
       MODULE CLD01_COM_E001
 !@sum  CLD01_COM_E001 model variables for moist convction and
-!@sum          large-scale condensation
+!@+          large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE MODEL_COM, only : IM,JM,LM

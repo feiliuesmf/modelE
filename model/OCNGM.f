@@ -235,7 +235,7 @@ C**** Off-diagonal X:  May need to use IM2,IM1,I and F(IM1)
       FZX(I,J,L) = DT4DX * (AZX(I,J,L) * TR(IM1,J,L) +
      *              BZX(I,J,L) * TR(I,J,L)  +
      *              CZX(I,J,L) * TR(IP1,J,L)  +
-     *              EZX(I,J,L+1) * TR(I,J,L+1)) !EZX=0 @LMU(IorIM1)=0!
+     *              EZX(I,J,L+1) * TR(I,J,L+1)) !EZX=0 for LMU(IorIM1)=0
 C**** Skip for L+1 greater than LMM(I,J)
       IF(LMM(IM1,J).gt.L) FZX(I,J,L) =  FZX(I,J,L) +
      *     DT4DX * AEZX(I,J,L+1) * TR(IM1,J,L+1)
@@ -246,7 +246,7 @@ C**** Off-diagonal Y:  May need to use JM2,J-1,J and F(J-1)
       FZY(I,J,L) = DT4DY * (AZY(I,J,L) * TR(I,J-1,L) +
      *              BZY(I,J,L) * TR(I,J,L) +
      *              CZY(I,J,L) * TR(I,J+1,L) +
-     *              EZY(I,J,L+1) * TR(I,J,L+1)) !EZY=0 @LMV(JorJ-1)=0!
+     *              EZY(I,J,L+1) * TR(I,J,L+1)) !EZY=0 for LMV(JorJ-1)=0
 C**** Skip for L+1 greater than LMM(I,J)
       IF(LMM(I,J-1).gt.L) FZY(I,J,L) =  FZY(I,J,L) +
      *     DT4DY * AEZY(I,J,L+1) * TR(I,J-1,L+1)

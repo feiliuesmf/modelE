@@ -129,7 +129,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       contains
 
       function nameunit( unit )
-!@sum returns the name of the file corresponding to unit <unit>
+!@sum nameunit returns the name of the file corresponding to unit <unit>
       implicit none
       character*16 nameunit
       integer, intent(in) :: unit
@@ -144,7 +144,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       
 
       subroutine findunit( unit )
-!@sum finds available unit
+!@sum findunit finds available unit
       implicit none
       integer, intent(out) :: unit
 
@@ -158,7 +158,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 
 
       subroutine openunit( filename, iunit, qbin, qold )
-!@sum opens the file <filename> and returns its unit in <unit> 
+!@sum openunit opens the file <filename> and returns its unit in <unit> 
       implicit none
 !@var unit - unit of opened file
       integer, intent(out) :: iunit
@@ -190,7 +190,7 @@ C**** parse options
       end subroutine openunit
 
       subroutine closeunit( unit )
-!@sum closes the file the file corresponding to unit <unit>
+!@sum closeunit closes the file the file corresponding to unit <unit>
       implicit none
 !@var unit - unit of the file to close
       integer, intent(in) :: unit
@@ -208,7 +208,7 @@ C**** parse options
 
 
       subroutine print_open_units
-!@sum prints info on open units (for debugging)
+!@sum print_open_units prints info on open units (for debugging)
       implicit none
       integer unit
       

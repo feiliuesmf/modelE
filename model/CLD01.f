@@ -218,7 +218,7 @@ C**** functions
 !@var FSSUM
 !@var HEAT1 heating due to phase change
 !@var PRHEAT energy of condensate
-!@car PRCP precipipation
+!@var PRCP precipipation
 !@var QMDN,QMIX,SMDN,SMIX dummy variables
 !@var QMPMAX,SMPMAX detrainment of QMP, SMP
 !@var QMPT,SMPT dummy variables

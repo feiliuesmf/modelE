@@ -1,20 +1,20 @@
       module param
-!@sum does all the bookkeeping for input parameters
+!@sum  param does all the bookkeeping for input parameters
 !@auth I. Aleinov
 !@ver 1.0
-!@use Module param has the following public subroutines:
-!@use set_rparam( name, value ) - add parameter <name> to the database
-!@use                             and set it to <value>
-!@use get_rparam( name, value ) - get value of <name> from the database
-!@use read_param( kunit, flag ) - read parameters from <kunit> unit
-!@use write_param( kunit ) - write paramerers to <kunit> unit
-!@use
-!@use Here <name> is a character string with length up to 32
-!@use      <value> is real*8 or integer variable (recognized implicitly)
-!@use Each parameter can be set only once. If an attempt is made to set
-!@use a parameter which is already in the database, an error will be
-!@use generated.
-!@use Read FAQ's for the full description.
+!@cont This module has the following public subroutines:
+!@+   set_rparam( name, value ) - add parameter <name> to the database
+!@+                               and set it to <value>
+!@+   get_rparam( name, value ) - get value of <name> from the database
+!@+   read_param( kunit, flag ) - read parameters from <kunit> unit
+!@+   write_param( kunit ) - write paramerers to <kunit> unit
+!@+  
+!@+   Here <name> is a character string with length up to 32
+!@+        <value> is real*8 or integer variable (recognized implicitly)
+!@+   Each parameter can be set only once. If an attempt is made to set
+!@+   a parameter which is already in the database, an error will be
+!@+   generated.
+!@+   Read FAQ's for the full description.
 
       implicit none
       save

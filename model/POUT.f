@@ -234,7 +234,7 @@ C**** Convert spaces in TITLE to underscore
       WRITE(iu_j,*) "Zonal Budgets for surface type ",TERRAIN
       WRITE(iu_j,*) "Latitude"
       WRITE(iu_j,*) "Zonal Average"
-      WRITE(iu_j,*) "Lat",(TRIM(TITLE(K)),K=1,KMAX)
+      WRITE(iu_j,'(A4,100(1X,A))') "Lat",(TRIM(TITLE(K)),K=1,KMAX)
 
       DO J=1,JM
         WRITE(iu_j,'(I4,100(1X,F8.3))') NINT(LAT_DG(J,1)),

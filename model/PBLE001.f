@@ -803,10 +803,10 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 c     at main: u,v,t,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
 !@sum getk computes the turbulent viscosity, Km, and turbulent
-!@sum conductivity, Kh, and turbulent diffusivity , Ke,
-!@sum using the GISS second order closure model (2000)
-!@sum at main: u,v,t,q,ke
-!@sum at secondary: e,lscale,km,kh,gma,gha
+!@+   conductivity, Kh, and turbulent diffusivity , Ke,
+!@+   using the GISS second order closure model (2000)
+!@+   at main: u,v,t,q,ke
+!@+   at secondary: e,lscale,km,kh,gma,gha
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var u,v,t,e,lscale,t_real z-profiles
@@ -819,7 +819,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var gha normalized temperature gradient, tau**2*an2
 !@var tau B1*lscale/sqrt(2*e)
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
-!@car an2 Brunt-Vaisala frequency, grav/T*dTdz
+!@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var sq stability constant for e, adjustable
       implicit none
 
@@ -862,11 +862,11 @@ c-----------------------------------------------------------------------
 
       subroutine eeqns(esave,e,u,v,t,km,kh,ke,lscale,
      &                     dz,dzh,ustar,dtime,n)
-!@sum integrates differential eqns for e (tridiagonal method)
-!@sum between the surface and the first GCM layer.
-!@sum The boundary conditions at the bottom are:
-!@sum   e(1)=(1/2)*B1**(2/3)*ustar**2
-!@sum at the top, dedz is continuous
+!@sum eeqns integrates differential eqns for e (tridiagonal method)
+!@+   between the surface and the first GCM layer.
+!@+   The boundary conditions at the bottom are:
+!@+   e(1)=(1/2)*B1**(2/3)*ustar**2
+!@+   at the top, dedz is continuous
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -944,12 +944,12 @@ c
       subroutine tqeqns(u,v,t0,q0,t,q,z,kh,dz,dzh,
      2                  ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
      3                  ttop,qtop,dtime,n)
-!@sum integrates differential eqns for t AND q (tridiagonal method)
-!@sum between the surface and the first GCM layer.
-!@sum The boundary conditions at the bottom are:
-!@sum kh * dt/dz = ch * usurf * (t - tg)
-!@sum kh * dq/dz = cq * usurf * (q - qg)
-!@sum at the top, the temperature and moisture are prescribed.
+!@sum tqeqns integrates differential eqns for t AND q (tridiagonal method)
+!@+   between the surface and the first GCM layer.
+!@+   The boundary conditions at the bottom are:
+!@+   kh * dt/dz = ch * usurf * (t - tg)
+!@+   kh * dq/dz = cq * usurf * (q - qg)
+!@+   at the top, the temperature and moisture are prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -1030,12 +1030,12 @@ c     M.J.Miller et al. 1992:
       subroutine uveqns(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
      3                  ug,vg,n)
-!@sum integrates differential eqns for u and v (tridiagonal method)
-!@sum between the surface and the first GCM layer.
-!@sum The boundary conditions at the bottom are:
-!@sum km * du/dz = cm * usurf * u
-!@sum km * dv/dz = cm * usurf * v
-!@sum  at the top, the winds are prescribed.
+!@sum uveqns integrates differential eqns for u and v (tridiagonal method)
+!@+   between the surface and the first GCM layer.
+!@+   The boundary conditions at the bottom are:
+!@+   km * du/dz = cm * usurf * u
+!@+   km * dv/dz = cm * usurf * v
+!@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -1109,12 +1109,12 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 
       subroutine tqeqns_sta(u,v,t,q,kh,dz,dzh,
      2            ch,cq,tgrnd,qgrnd,ttop,qtop,n)
-!@sum  computes the static solutions of the t and q
-!@sum  between the surface and the first GCM layer.
-!@sum  The boundary conditions at the bottom are:
-!@sum  kh * dt/dz = ch * usurf * (t - tg)
-!@sum  kh * dq/dz = cq * usurf * (q - qg)
-!@sum  at the top, potential temperature and moisture are prescribed.
+!@sum  tqeqns_sta computes the static solutions of the t and q
+!@+    between the surface and the first GCM layer.
+!@+    The boundary conditions at the bottom are:
+!@+    kh * dt/dz = ch * usurf * (t - tg)
+!@+    kh * dq/dz = cq * usurf * (q - qg)
+!@+    at the top, potential temperature and moisture are prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -1186,12 +1186,12 @@ c     M.J.Miller et al. 1992:
 
       subroutine uveqns_sta(u,v,z,km,dz,dzh,
      2            ustar,cm,utop,vtop,coriol,n)
-!@sum  computes the static solutions of the u and v
-!@sum  between the surface and the first GCM layer.
-!@sum  The boundary conditions at the bottom are:
-!@sum  km * du/dz = cm * usurf * u
-!@sum  km * dv/dz = cm * usurf * v
-!@sum  at the top, the winds are prescribed.
+!@sum  uveqns_sta computes the static solutions of the u and v
+!@+    between the surface and the first GCM layer.
+!@+    The boundary conditions at the bottom are:
+!@+    km * du/dz = cm * usurf * u
+!@+    km * dv/dz = cm * usurf * v
+!@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -1261,7 +1261,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 
       subroutine level2(e,u,v,t,lscale,dzh,n)
 !@sum  level2 computes the turbulent kinetic energy e using the
-!@sum  GISS 2000 turbulence model at level 2
+!@+    GISS 2000 turbulence model at level 2
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
@@ -1309,8 +1309,8 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
      3                 ilong,jlat,itype)
 !@sum  inits initializes the winds, potential temperature,
-!@sum  and humidity using static solutions of the GISS 2000
-!@sum  turbulence model at level 2
+!@+    and humidity using static solutions of the GISS 2000
+!@+    turbulence model at level 2
 !@var  n number of sub-grid levels for the PBL
 !@var  tgrnd virtual potential temperature of ground,at roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
@@ -1550,14 +1550,14 @@ c ----------------------------------------------------------------------
       end subroutine tcheck
 
       subroutine ucheck(u,v,z,ustar,lmonin,z0m,hemi,psi0,psi1,n)
-!@sum  This routine makes sure that the winds remain within reasonable
-!@sum  bounds during the initialization process. (Sometimes the computed
-!@sum  wind speed iterated out in left field someplace, *way* outside
-!@sum  any reasonable range.) Tests and corrects both direction and
-!@sum  magnitude of the wind rotation with altitude. Tests the total
-!@sum  wind speed via comparison to similarity theory. Note that it
-!@sum  works from the top down so that it can assume that at level (i),
-!@sum  level (i+1) displays reasonable behavior.
+!@sum  ucheck makes sure that the winds remain within reasonable
+!@+    bounds during the initialization process. (Sometimes the computed
+!@+    wind speed iterated out in left field someplace, *way* outside
+!@+    any reasonable range.) Tests and corrects both direction and
+!@+    magnitude of the wind rotation with altitude. Tests the total
+!@+    wind speed via comparison to similarity theory. Note that it
+!@+    works from the top down so that it can assume that at level (i),
+!@+    level (i+1) displays reasonable behavior.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none
@@ -1826,7 +1826,7 @@ c ----------------------------------------------------------------------
 
       subroutine fgrid2(z,f,df)
 !@sum  fgrid2 computes functional relationship of z and xi + derivative
-!@sum  fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
+!@+    fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
       implicit none

@@ -1,8 +1,8 @@
       subroutine diffus(dtime)
 !@sum  diffus updates u,v,t,q due to 
-!@sum  turbulent transport throughout all GCM layers
-!@sum  using a second order closure (SOC)
-!@sum  turbulence model developed at GISS, 2000.
+!@+  turbulent transport throughout all GCM layers
+!@+  using a second order closure (SOC)
+!@+  turbulence model developed at GISS, 2000.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
 !@cont diffus,getdz,dout,diff_uv,diff_tq,diff_e
@@ -235,8 +235,8 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
       subroutine getdz(tv,p,sig,sige,dz,dzedge,rho,rhoe
      2          ,tsavg,qsavg,rvx,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
-!@sum  as well as the 3d density rho and rhoe
-!@sum  called at the primary cells (t-cells)
+!@+    as well as the 3d density rho and rhoe
+!@+    called at the primary cells (t-cells)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var  dz(l,i,j) z(l+1,i,j) - z(l,i,j)
@@ -327,7 +327,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
      2                rho,rhoe,u0,v0,t0,q0,
      3                km,kh,ke,gm,gh,lscale,reserv,tsurf,
      4                uflx,vflx,tflx,qflx,itest,jtest,n)
-!@sum writes out diagnostics at i=itest, j=jtest
+!@sum dout writes out diagnostics at i=itest, j=jtest
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var u z-profle of west-east   velocity component
@@ -486,7 +486,7 @@ c
 
       subroutine diff_uv(u0,v0,u,v,km,dz,dzedge,rho,rhoe
      2                   ,rhoebydz,bydzerho,uflx,vflx,dtime,n)
-!@sum integrates differential eqns for u and v (tridiagonal method)
+!@sum diff_uv integrates differential eqns for u and v (tridiagonal method)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
@@ -582,7 +582,7 @@ c
 
       subroutine diff_tq(tq0,tq,khq,dz,dzedge,rho,rhoe
      2                   ,rhoebydz,bydzerho,sflx,dtime,n)
-!@sum integrates differential eqns for t and q (tridiagonal method)
+!@sum diff_tq integrates differential eqns for t and q (tridiagonal method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var tq z-profle of potential temperature T or relative humidity Q
@@ -662,7 +662,7 @@ c
 
       subroutine diff_e(e0,e,km,kh,ke,lscale,u,v,t,dz,dzedge
      2          ,rho,rhoe,dtime,ustar2,n)
-!@sum integrates differential eqns for e (tridiagonal method)
+!@sum diff_e integrates differential eqns for e (tridiagonal method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var e z-profle of turbulent kinetic energy
@@ -836,7 +836,7 @@ c     dz(j)==z(j+1)-z(j), dzedge(j)==ze(j+1)-ze(j)
 c     at main: u,v,t,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
 !@sum kgcm computes the turbulent stability functions Km, Kh and Ke
-!@sum using the GISS second order closure model (2000)
+!@+   using the GISS second order closure model (2000)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var u,v,t,e,lscale z-profiles
@@ -849,7 +849,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var n number of GCM layers
 !@var tau B1*lscale/sqrt(2*e) 
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
-!@car an2 Brunt-Vaisala frequency, grav/T*dTdz
+!@var an2 Brunt-Vaisala frequency, grav/T*dTdz
 !@var sq stability constant for e, adjustable
       USE CONSTANT, only : grav
       USE SOCPBL, only : ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
@@ -901,11 +901,11 @@ c     at edge: e,lscale,km,kh,gm,gh
       end subroutine kgcm
 
       subroutine find_pbl_top(e,dbll,n)
-!@sum Find the pbl top (at main level lpbl)
-!@sum if e(i) le certain fraction of e(1), real(i) is pbl top
+!@sum find_pbl_top Find the pbl top (at main level lpbl)
+!@+   if e(i) le certain fraction of e(1), real(i) is pbl top
 !@auth  Ye Cheng
 !@ver   1.0
-!@car dbll the (real*8) layer number corresponds to the top of the pbl
+!@var dbll the (real*8) layer number corresponds to the top of the pbl
       real*8, dimension(n), intent(in) :: e
       real*8, intent(out) :: dbll
       real*8 :: e_1,e_i ! tke at primary layer 1,i
@@ -923,9 +923,9 @@ c     at edge: e,lscale,km,kh,gm,gh
       end subroutine find_pbl_top
 
       subroutine ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
-!@sum Computes u_tcell,v_tcell from u,v, where u and v may be the
-!@sum x and y components of a vector defined at secondary grids 
-!@sum Note that u_tcell,v_tcell are of dimension (lm,im,jm)
+!@sum ave_uv_to_tcell Computes u_tcell,v_tcell from u,v, where u and v
+!@+   may be the x and y components of a vector defined at secondary grids 
+!@+   Note that u_tcell,v_tcell are of dimension (lm,im,jm)
 !@var u an x-component at secondary grids (ucell)
 !@var v a  y-component at secondary grids (ucell)
 !@var u_tcell an x-component at primary grids (tcell)
@@ -983,8 +983,8 @@ C****
       end subroutine ave_uv_to_tcell
 
       subroutine ave_ufvf_to_ucell(uf,vf,uf_ucell,vf_ucell,im,jm)
-!@sum Computes uf_ucell,vf_ucell from uf,vf where uf and vf may be the
-!@sum x and y components of a vector defined at primary grids 
+!@sum ave_ufvf_to_ucell Computes uf_ucell,vf_ucell from uf,vf where uf and vf
+!@+   may be the x and y components of a vector defined at primary grids 
 !@var uf an x-component at primary grids (tcell)
 !@var vf a  y-component at primary grids (tcell)
 !@var uf_ucell an x-component at secondary grids (ucell)
@@ -1040,8 +1040,8 @@ C****
       end subroutine ave_ufvf_to_ucell
 
       subroutine ave_to_ucell(s,s_ucell,im,jm,lm)
-!@sum Computes s_ucell from s
-!@sum Note that all arrays here are of dimension (lm,im,jm)
+!@sum ave_to_ucell Computes s_ucell from s
+!@+   Note that all arrays here are of dimension (lm,im,jm)
 !@var s a scalar at primary grids (tcell)
 !@var s_ucell a scalar at secondary grids (ucell)
 !@aut  Ye Cheng/G. Hartke
@@ -1089,9 +1089,9 @@ C****
 ccccccccccccccccccccccccccccc
 
       subroutine ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
-!@sum Computes u_tcell,v_tcell from u,v
-!@sum u_tcell is the average of 4 nearest u
-!@sum v_tcell is the average of 4 nearest v
+!@sum ave_uv_to_tcell1 Computes u_tcell,v_tcell from u,v
+!@+   u_tcell is the average of 4 nearest u
+!@+   v_tcell is the average of 4 nearest v
 !@auth  Ye Cheng
 !@ver   1.0
 !@var u west-east   velocity component at secondary grids (ucell)
@@ -1143,11 +1143,11 @@ ccccccccccccccccccccccccccccc
       end subroutine ave_uv_to_tcell1
 
       subroutine ave_to_ucell1(s,s_ucell,im,jm,lm)
-!@sum Computes s_ucell from s
-!@sum s_ucell is the average of 4 nearest s
+!@sum ave_to_ucell1 Computes s_ucell from s
+!@+   s_ucell is the average of 4 nearest s
 !@var s scalar at primary grids (tcell)
 !@var s_ucell s at secondary grids (ucell)
-!@aut  Ye Cheng/G. Hartke
+!@auth Ye Cheng/G. Hartke
 !@ver  1.0
       implicit none
 

@@ -546,7 +546,7 @@ C**** DEFORMATION WAVE (X    d cm-2)
       IF (9.GT.NM)  GO TO 155
       IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
       IF (DEFRM(I,J).LT. 15d-6) GO TO 155         !  Threshold= 15e-6
-      FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J)  !  3 d cm-2 @ 15e-6
+      FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J)  !  3 d cm-2 x 15e-6
       DU=UL(LDEF +1)-UL(LDEF )
       DV=VL(LDEF +1)-VL(LDEF )
       DW=SQRT(DU**2        + DV**2       )

@@ -164,7 +164,7 @@ C****
 
       SUBROUTINE STBDRA
 !@sum  STBDRA exerts a bottom drag on the lowest layer and a side drag
-!@sum  on each layer of each strait.
+!@+    on each layer of each strait.
 !@auth Gary Russell
 !@ver  1.0
 C**** MUST = MUST*(1-x)  is approximated by  MUST = MUST/(1+x)

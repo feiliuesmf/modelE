@@ -41,16 +41,5 @@
 
 C**** The vertical resolution also determines whether
 C**** stratospheric wave drag will be applied or not.
-C**** Hence also included here are some dummy routines for non-strat
-C**** models.
-
-      SUBROUTINE DUMMY_STRAT
-!@sum DUMMY dummy routines for non-stratospheric models
-      ENTRY GWDRAG
-      ENTRY VDIFF
-      ENTRY EPFLUX
-      ENTRY EPFLXI
-      ENTRY diaga0
-      ENTRY io_strat
-      RETURN
-      END SUBROUTINE DUMMY_STRAT
+C**** This resolution is for a stratospheric model and so mut be used 
+C**** in conjunction with the strat. modules

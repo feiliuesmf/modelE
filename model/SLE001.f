@@ -50,10 +50,6 @@ c**** adds snow insulation
 c**** soils41 5/24/93
 c**** uses snow masking depth from vegetation height to determine
 c**** fraction of snow that is exposed.
-c**** the @process dpc directives are used instead of -qdpc=e
-c**** for double precision runs.   they should be changed
-c**** to the @process nodpc directives (or commented out)
-c**** for single precision runs.
 c**** reth must be called prior to retp.
 c**** soils40 5/10/93
 c**** removes snow from canopy and places it on vegetated soil.
@@ -2047,10 +2043,10 @@ ccc!!!        snshsn(ibv) = snsh(ibv)  ! potential confusion
       end subroutine snwlsi
 
       subroutine set_snow
-!@ extracts snow from the first soil layer and initializes
-!@ snow model prognostic variables
-!@ should be called when model restarts from the old restart file
-!@ ( which doesn't contain new snow model (i.e. 3 layer) data )
+!@sum set_snow extracts snow from the first soil layer and initializes
+!@+   snow model prognostic variables
+!@+   should be called when model restarts from the old restart file
+!@+   ( which doesn't contain new snow model (i.e. 3 layer) data )
 c
 c input:
 c snowd(2) - landsurface snow depth
