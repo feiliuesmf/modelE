@@ -1559,7 +1559,8 @@ ccc should be removed when program is rewritten in a more clean way...
 !         endif
       enddo
 
-      if(tp(1,1).gt.100.d0.or.tp(0,2).gt.100.d0)then
+      if(tp(1,1).gt.100.d0.or.tp(0,2).gt.100.d0
+     &     .or. tp(1,1)<-150.d0 .or. tp(0,2)<-150.d0 )then
         write(6,*)'retp tp bounds error'
         write(6,*)'ijdebug',ijdebug
         call reth

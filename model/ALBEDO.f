@@ -12,7 +12,7 @@
 
 !@var NVEG number of real vegetation types (not including bare soil)
 !@var NV total number of vegetation types
-      integer, parameter :: NVEG = 9, NV=11
+      integer, parameter :: NVEG = 12, NV=12
 
 !@var SRFOAM look up table for ocean foam as a function of wind speed
       real*8, parameter, dimension(25) :: SRFOAM = (/
@@ -29,59 +29,66 @@ C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
       real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
 C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
-     2 .500, .062, .100, .100, .073, .055, .067, .061, .100, .000, .200,
-     3 .500, .085, .091, .139, .085, .058, .083, .061, .091, .000, .200,
-     4 .500, .080, .090, .111, .064, .055, .061, .061, .090, .000, .200,
-C
+C        1    2    3    4    5    6    7    8    9   10   11    12  
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.067,.089,.089,.078,.100,.067,.061,.089,.000,.200,.089,
+     2 .500,.062,.100,.100,.073,.055,.067,.061,.100,.000,.200,.100,
+     3 .500,.085,.091,.139,.085,.058,.083,.061,.091,.000,.200,.091,
+     4 .500,.080,.090,.111,.064,.055,.061,.061,.090,.000,.200,.090,
+C                                                                  
 C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
+     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
+     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
+     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
+C                                                                  
 C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
+     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
+     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
+     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
+C                                                                  
 C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .080, .107, .107, .093, .120, .080, .073, .107, .000, .200,
-     2 .500, .082, .140, .120, .096, .083, .080, .073, .140, .000, .200,
-     3 .500, .119, .145, .167, .119, .115, .100, .073, .145, .000, .200,
-     4 .500, .102, .126, .132, .081, .087, .073, .073, .126, .000, .200,
-C
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.080,.107,.107,.093,.120,.080,.073,.107,.000,.200,.107,
+     2 .500,.082,.140,.120,.096,.083,.080,.073,.140,.000,.200,.140,
+     3 .500,.119,.145,.167,.119,.115,.100,.073,.145,.000,.200,.145,
+     4 .500,.102,.126,.132,.081,.087,.073,.073,.126,.000,.200,.126,
+C                                                                  
 C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .100, .133, .133, .116, .150, .100, .091, .133, .000, .200,
-     2 .500, .103, .175, .150, .120, .109, .100, .091, .175, .000, .200,
-     3 .500, .148, .182, .208, .148, .144, .125, .091, .182, .000, .200,
-     4 .500, .127, .157, .166, .102, .109, .091, .091, .157, .000, .200,
-C
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.100,.133,.133,.116,.150,.100,.091,.133,.000,.200,.133,
+     2 .500,.103,.175,.150,.120,.109,.100,.091,.175,.000,.200,.175,
+     3 .500,.148,.182,.208,.148,.144,.125,.091,.182,.000,.200,.182,
+     4 .500,.127,.157,.166,.102,.109,.091,.091,.157,.000,.200,.157,
+C                                                                  
 C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .020, .027, .027, .023, .030, .020, .018, .027, .000, .200,
-     2 .500, .021, .035, .030, .024, .022, .020, .018, .035, .000, .200,
-     3 .500, .030, .036, .042, .030, .029, .025, .018, .036, .000, .200,
-     4 .500, .026, .032, .033, .020, .022, .018, .018, .032, .000, .200
-     *     /), (/11,4,6/) )
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     1 .500,.020,.027,.027,.023,.030,.020,.018,.027,.000,.200,.027,
+     2 .500,.021,.035,.030,.024,.022,.020,.018,.035,.000,.200,.035,
+     3 .500,.030,.036,.042,.030,.029,.025,.018,.036,.000,.200,.036,
+     4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
+     *     /),(/NV,4,6/) )
 C
 !@var VTMASK vegetation depth mask by type (kg/m^2)
       real*8, parameter :: VTMASK(NV) = (/
-C        1     2     3     4     5     6     7     8     9    10    11
-C     BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     * 1d1,  2d1,  2d1,  5d1,  2d2,  5d2,  1d3, 25d2,  2d1,  1d1, .001d0
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+     * 1d1, 2d1, 2d1, 5d1, 2d2, 5d2, 1d3, 25d2,2d1, 1d1,.001d0,2d1
      *     /)
 
 !@var ASHZOI,ANHZOI hemisph.Ice Albedo half-max depth (m) (orig.version)
@@ -308,7 +315,7 @@ C**** input from driver
       integer ILON,JLAT
       real*8 AGESN(3),POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
-     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(11),
+     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
      &     dalbsn
       LOGICAL*4 :: flags
 C**** output
@@ -511,6 +518,7 @@ c**** obtained using the vegetation masking.
         BVSOIL=BEAVN(1)
         BNSOIL=BEAVN(2)
         DO K=2,NVEG
+          if ( k==10 .or. k==11 ) cycle
           DO L=1,6
             BEAVN(L)=BEAVN(L)+PVT(K)*ALBVNH(K,L,JH)
           END DO
@@ -532,6 +540,7 @@ c**** obtained using the vegetation masking.
           BEAVN(L)=VTFRAC*ALBVNH(1,L,JH)*(1.D0-0.5D0*WEARTH*WETSRA)
         END DO
         DO K=2,NVEG
+          if ( k==10 .or. k==11 ) cycle
           VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
           DO L=1,6
             BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,JH)

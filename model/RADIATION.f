@@ -126,7 +126,7 @@ C----------------
 !@var TGO           top layer water temperature (K) of ocean/lake
 !@var TGE,TGOI,TGLI top layer ground temperature (K) soil,seaice,landice
 !@var TSL           surface air temperature (K)
-      real*8 PVT(11),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
+      real*8 PVT(12),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
      *     ,PEARTH,POICE,PLICE,PLAKE,TGO,TGE,TGOI,TGLI,TSL
 !@var KZSNOW        =1 for snow/ice albedo zenith angle dependence
       integer :: KZSNOW=1

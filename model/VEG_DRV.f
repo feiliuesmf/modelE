@@ -49,29 +49,39 @@
       integer n
 !---  parameters for different types of vegetation
 !---          tundr  grass  shrub  trees  decid evrgr  rainf crops
-      real*8, parameter :: alamax(8) =
-     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
-      real*8, parameter :: alamin(8) =
-     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
+      real*8, parameter :: alamax(11) =
+     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+     &     ,0.d0, 0.d0, 2.d0 /)
+      real*8, parameter :: alamin(11) =
+     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+     &     ,0.d0, 0.d0, 1.d0 /)
 
-      real*8, parameter :: aroot(8) =
-     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
-      real*8, parameter :: broot(8) =
-     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
-      real*8, parameter :: rsar(8) =
-     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
-      real*8, parameter :: vhght(8) =
-     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
+      real*8, parameter :: aroot(11) =
+     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
+     &     ,0.d0, 0.d0, 0.9d0 /)
+      real*8, parameter :: broot(11) =
+     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
+     &     ,0.d0, 0.d0, 0.9d0 /)
+      real*8, parameter :: rsar(11) =
+     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0
+     &     ,0.d0, 0.d0, 100d0 /)
+      real*8, parameter :: vhght(11) =
+     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
+     &     ,0.d0, 0.d0, 1.5d0 /)
 ! Mean canopy nitrogen (nmv; g/m2[leaf]) and Rubisco factors (nfv) for each
 ! vegetation type (adf)
-      real*8, parameter :: nmv(8) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0/)
-      real*8, parameter :: nfv(8) =
-     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0 /)
-      integer, parameter :: laday(8) =
-     $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
-      real*8, parameter :: can_w_coef(8) =
-     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4 /)
+      real*8, parameter :: nmv(11) =
+     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
+     &     ,0.d0, 0.d0, 0.82d0 /)
+      real*8, parameter :: nfv(11) =
+     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0
+     &     ,0.d0, 0.d0, 1.5d0 /)
+      integer, parameter :: laday(11) =
+     $     (/ 196,  196,  196,  196,  196,  196,  196,  196
+     &     ,0, 0, 196 /)
+      real*8, parameter :: can_w_coef(11) =
+     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4
+     &     ,0.d0, 0.d0, 1.d-4 /)
 
 ! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
 ! Values below 1/(m2/kg) to get kg/m2 for multiplying.
@@ -80,9 +90,9 @@
 !               From winter wheat grown at 20 C (20 m2/kg[dry mass])
 !                                      and  5 C (13 m2/kg[dry mass])
 !          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
-      real*8, parameter :: sleafa(8) =
+      real*8, parameter :: sleafa(11) =
      $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
-     $        1./8.2d0,1./32.0d0,1./18.0d0/) 
+     $        1./8.2d0,1./32.0d0,1./18.0d0, 0.d0, 0.d0, 1./49.0d0 /) 
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -111,9 +121,12 @@ c****
       integer :: ghy_default_data = 0
       integer :: northsouth  !1=south, 2=north hemisphere
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      real*8, allocatable :: veg_c4(:,:)
+      real*8 :: vc4
+      integer :: read_c4_grass = 0
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -121,6 +134,7 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -128,6 +142,7 @@ c**** read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
       call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
+      call sync_param( "read_c4_grass", read_c4_grass)
 
 c**** read land surface parameters or use defaults
       call openunit("VEG",iu_VEG,.true.,.true.)
@@ -137,7 +152,29 @@ c**** read land surface parameters or use defaults
       end do
 c**** zero-out vdata(11) until it is properly read in
       vdata(:,:,11) = 0.
+      vdata(:,:,12) = 0.
       call closeunit(iu_VEG)
+c**** add data on c4 grass
+      if ( read_c4_grass >= 1 ) then
+        print *,"Adding c4 grass data"
+        call openunit("VEG_C4",iu_VEG,.true.,.true.)
+        allocate( veg_c4(im,J_0H:J_1H) )
+        CALL READT_PARALLEL
+     *       (grid,iu_VEG,NAMEUNIT(iu_VEG),0,veg_c4(:,:),1)
+        do j=J_0,J_1
+          do i=1,im
+            if (fearth(i,j).gt.0) then
+              ! convert form % and normalize to earth fraction
+              vc4 = veg_c4(i,j) / ( fearth(i,j)*100.d0 )
+              ! add c4 grass up to max amount of current grass
+              vdata(i,j,12) = min( vdata(i,j,3), vc4 )
+              vdata(i,j,3) = vdata(i,j,3) - vdata(i,j,12)
+            end if
+          enddo
+        enddo      
+        deallocate( veg_c4 )
+        call closeunit(iu_VEG)
+      endif
 C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
       if(crops_yr.eq.0) call updveg(jyear,.false.)
       if(crops_yr.gt.0) call updveg(crops_yr,.false.)
@@ -156,8 +193,8 @@ c**** check whether ground hydrology data exist at this point.
       do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
-            if ( sum(vdata(i,j,1:10)).eq.0 ) then
-              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:10)
+            if ( sum(vdata(i,j,1:12)).eq.0 ) then
+              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:12)
               veg_data_missing = .true.
             end if
           end if
@@ -226,7 +263,8 @@ c**** calculate lai, cs coefficicents
           snm=0. ! adf
           snf=0. ! adf
           cwc_sum = 0.d0
-          do iv=1,8
+          do iv=1,11
+            if ( iv==9 .or. iv==10 ) cycle
             phase=twopi*laday(iv)/365.
             if(j.lt.jeq) phase=phase+twopi/2.
             fv=vdata(i,j,iv+1)
@@ -281,7 +319,8 @@ c**** calculate root fraction afr averaged over vegetation types
             if(dz(n).le.0.) go to 320
           end do
  320      n=n-1
-          do iv=1,8
+          do iv=1,11
+            if ( iv==9 .or. iv==10 ) cycle
             fv=vdata(i,j,iv+1)
             z=0.
             frup=0.
@@ -328,10 +367,11 @@ C****
       do j=J_0,J_1
       do i=1,im
 
-      vdata(i,j,1:11)= (/  0.00000000d+00,  0.00000000d+00,
+      vdata(i,j,1:12)= (/  0.00000000d+00,  0.00000000d+00,
      &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
      &     0.62451148d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.37548852d+00,  0.00000000d+00,  0.00000000d+00 /)
+     &     0.37548852d+00,  0.00000000d+00,  0.00000000d+00,
+     &     0.00000000d+00 /)
       enddo
       enddo
 
@@ -387,7 +427,11 @@ c**** alai: leaf area index
       alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
       alai=max(alai,1.d0)
       !lai by functional type, not normalized by cover fraction!
-      do L=1,8
+      alaif(:,i0,j0) = 0.d0
+      alait(:) = 0.d0
+      vfraction(:) = 0.d0
+      do L=1,11
+        if ( L==9 .or. L==10 ) cycle
         alaif(L,i0,j0)=alaf(1,L,i0,j0)+
      &       cosday*alaf(2,L,i0,j0)+sinday*alaf(3,L,i0,j0) !save ij
         alait(L) = alaif(L,i0,j0)  !for VEGETATION.f
@@ -548,7 +592,7 @@ C****     open and read input file
 
         read(title,*) year1
         Allocate(crop1(IM,J_0H:J_1H), crop2(IM,J_0H:J_1H),
-     &           VDATA0(IM,J_0H:J_1H,11))
+     &           VDATA0(IM,J_0H:J_1H,12))
         crop1(:,J_0:J_1)=crop4(:,J_0:J_1) 
         crop2(:,J_0:J_1)=crop4(:,J_0:J_1)
         year2=year1
@@ -573,7 +617,7 @@ C**** Modify the vegetation fractions
       do i=1,imaxj(j)
          if (crop1(i,j).ge.0.) then
             crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
-            do k=1,11
+            do k=1,12
               vdata(i,j,k) = vdata0(i,j,k)*(1.-crops)
             end do
               vdata(i,j,9) = crops

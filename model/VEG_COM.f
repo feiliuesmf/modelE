@@ -13,7 +13,7 @@
       save
 
 !---  boundary conditions (read from file)
-!@var vdata(:,:,k)  fraction of gridbox of veg.type k=1-11
+!@var vdata(:,:,k)  fraction of gridbox of veg.type k=1-12
       real*8, ALLOCATABLE, dimension(:,:,:) :: vdata
 
 !---  prognostic variables (saved to restart file)
@@ -102,7 +102,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(    vdata(im,J_0H:J_1H,11),
+      ALLOCATE(    vdata(im,J_0H:J_1H,12),
      *              Cint(im,J_0H:J_1H),
      *              Qfol(im,J_0H:J_1H),
      *            cnc_ij(im,J_0H:J_1H),
@@ -112,8 +112,8 @@ C****
       ALLOCATE(    ala(3,  im,J_0H:J_1H),
      *             acs(3,  im,J_0H:J_1H),
      *          almass(3,  im,J_0H:J_1H),
-     *            alaf(3,8,im,J_0H:J_1H),
-     *           alaif(8,  im,J_0H:J_1H),
+     *            alaf(3,11,im,J_0H:J_1H),
+     *           alaif(11,  im,J_0H:J_1H),
      *         STAT=IER)
 
       ALLOCATE(   afb(im,J_0H:J_1H),

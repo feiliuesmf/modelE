@@ -1438,7 +1438,7 @@ C****
       else                            ! rad.frc. model
         wearth = wsoil(i,j)
       end if
-      DO K=1,11
+      DO K=1,12
         PVT(K)=VDATA(I,J,K)
       END DO
       WMAG=WSAVG(I,J)
