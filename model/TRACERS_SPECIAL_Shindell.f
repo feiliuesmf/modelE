@@ -469,16 +469,92 @@ c
 !@ver  1.0 (based on CB436Tds3M23 & DB396Tds3M23)
 c
 C**** GLOBAL parameters and variables:
-      USE FLUXES, only: tr3Dsource
-      USE TRACER_COM, only: n_NOx
+      USE FLUXES, only        : tr3Dsource
+      USE TRACER_COM, only    : n_NOx
       USE TRACER_SOURCES, only: nLightning
+      USE LIGHTNING, only     : HGT,JS,JN,SRCLIGHT,RNOx_lgt
+      USE CONSTANT, only      : bygrav
+      USE MODEL_COM, only     : fland,IM,JM,LS1
+      USE DYNAMICS, only      : LTROPO, PHI
+      USE GEOM, only          : BYDXYP
 c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 c
-      tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
-      WRITE(6,*) '>>>get_lightning_NOx still a dummy routine<<<'
+!@var LATINDX Pickering latitude index
+!@var LANDINDX Pickering surface type index
+!@var IH Picjering altitude index
+!@var HEIGHT Picjering HGT variable specific to I,J,L, point
+!@var LEVTROP local variable to hold the tropopause level
+!@var ALTTROP altitude of tropopause
+!@var ALTTOP altitude at the top of ?
+!@var I,J,L loop indicies in x,y,z directions
+!@var GCMHT altitude of gcm levels
+!@param pmin2psec to convert from min-1 to sec-1
+      REAL*8, PARAMETER :: pmin2psec = 1.D0/60.D0
+      INTEGER LATINDX,LANDINDX,IH,LEVTROP,I,J,L
+      REAL*8, DIMENSION(16) :: HEIGHT
+      REAL*8 :: ALTTROP,ALTTOP,GCMHT
+c
+      DO J=1,JM
+      DO I=1,IM
+C****    Lightning source function altitude dependence:
+C****    Determine if latitude is tropical:
+         IF(J.GT.JS.AND.J.LE.JN) THEN
+           LATINDX=1
+         ELSE
+           LATINDX=2
+         END IF
+C****    Determine if over land or ocean:
+         IF(fland(I,J).GE.0.5) THEN
+           LANDINDX=1
+         ELSE
+            LANDINDX=2
+         END IF
+C****    Choose appropriate height file:
+         DO IH=1,16
+          HEIGHT(IH)=HGT(LATINDX,LANDINDX,IH)*0.01
+         ENDDO
+C****    Store local tropopause
+         LEVTROP=LTROPO(I,J)
+         ALTTROP=PHI(I,J,LEVTROP)*BYGRAV*1.E-3
+         IF(ALTTROP.EQ.0.) GOTO 1510
+C****    Zero source accumulator
+         SRCLIGHT = 0. ! 1 to LS1+1 levels
+C        Determine which GCM level the height belongs to
+         DO 1505 IH=1,16
+           L=1
+ 1502      continue
+           GCMHT=PHI(I,J,L)*BYGRAV*1.E-3
+           IF(ALTTROP.LT.GCMHT)GCMHT=ALTTROP
+           ALTTOP=
+     &     (PHI(I,J,L)+(PHI(I,J,L+1)-PHI(I,J,L))*.5)*BYGRAV*1.E-3
+c          RNOx_lgt is gN/min added per grid box (lightning NOx):
+           IF(IH.LE.ALTTOP)THEN
+             SRCLIGHT(L)=SRCLIGHT(L)+RNOx_lgt(I,J)*HEIGHT(IH)
+             goto 1505
+           elseif(IH-1.LT.ALTTOP)then
+             SRCLIGHT(L)=SRCLIGHT(L)+RNOx_lgt(I,J)*HEIGHT(IH)*
+     &       (ALTTOP-IH+1.)
+             SRCLIGHT(L+1)=SRCLIGHT(L+1)+RNOx_lgt(I,J)*HEIGHT(IH)*
+     &       (IH-ALTTOP)
+             goto 1505
+           else
+             L=L+1
+           ENDIF
+           goto 1502
+ 1505    continue
+ 1510    continue    
+C        save tracer 3D source. convert from gN/min to kgN/s/m2 :
+         DO L=1,LS1+1
+           tr3Dsource(I,J,L,nLightning,n_NOx) = 
+     &     SRCLIGHT(L)*pmin2psec*BYDXYP(J)
+         END DO
+      END DO ! I
+      END DO ! J
+         
+C
       END SUBROUTINE get_lightning_NOx
 c
 c
@@ -783,3 +859,188 @@ c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
       j2=0
       RETURN
       end subroutine get_CH4_IC
+   
+
+      MODULE LIGHTNING
+!@sum  LIGHTNING_COM model variables lightning parameterization
+!@auth Colin Price (modelEification by Greg Faluvegi)
+!@ver  1.0 (taken from CB436Tds3M23)
+      USE RESOLUTION, only : IM,JM,LM,LS1
+
+      IMPLICIT NONE
+      SAVE
+      
+!@var i_lgt for saving current i index from CLOUDS_DRV
+!@var j_lgt for saving current j index from CLOUDS_DRV
+!@var JN J at 30 N
+!@var JS J at 30 S
+!@var I dummy
+
+      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+      INTEGER i_lgt, j_lgt, I
+      REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
+      REAL*8, DIMENSION(LS1+1) :: SRCLIGHT
+      
+!@var HGT Pickering vertical lightning distributions (1998)
+      REAL*8 HGT(2,2,16)
+      DATA (HGT(1,1,I),I=1,16)/8.2,1.9,2.1,1.6,1.1,1.6,3.0,5.8,
+     &  7.6,9.6,10.5,12.3,11.8,12.5,8.1,2.3/
+      DATA (HGT(1,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
+     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/
+      DATA (HGT(2,1,I),I=1,16)/20.1,2.3,0.8,1.5,3.4,5.3,3.6,3.8,
+     &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
+      DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
+     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
+          
+      END MODULE LIGHTNING      
+
+      
+      SUBROUTINE calc_lightning(LMAX,LFRZ,IC)
+!@sum calc_lightning to calculate lightning flash amount and cloud-
+!@+   to-ground amount, based on cloud top height. WARNING: this 
+!@+   routine is apparently resolution dependant.  See the comments.
+!@auth Colin Price (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436Tds3M23)
+C
+C**** GLOBAL parameters and variables:
+C
+      USE LIGHTNING, only : i_lgt,j_lgt,JN,JS,RNOx_lgt
+      USE MODEL_COM, only : fland
+      USE GEOM,      only : bydxyp
+      USE CONSTANT,  only : bygrav
+      USE DYNAMICS,  only : gz
+c
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments:
+C
+!@var LMAX highest layer of current convective cloud event
+!@var lmax_temp local copy of LMAX (alterable)
+!@var LFRZ freezing level
+!@var HTCON height of convection?
+!@var HTFRZ height of freezing?
+!@var lightning flashes per minute
+!@var th,th2,th3,th4 thickness of cold sector, squared, cubed, etc.
+!@var CG fraction of lightning that is cloud-to-ground
+!@var zlt ?
+!@var IC interger for cloud types
+      INTEGER, INTENT(IN) :: LMAX,LFRZ,IC
+      INTEGER lmax_temp
+      REAL*8 HTCON,HTFRZ,flash,th,th2,th3,th4,zlt,CG
+C
+c The folowing simple algorithm calculates the lightning
+c frequency in each gridbox using the moist convective cloud
+c scheme.  The algorithm is based on the Price and Rind (1992)
+c JGR paper, and differentiates between oceanic and continental
+c convective clouds.  Only the non-entraining plume is used for
+c the lightning:
+
+      If (IC.eq.2) RETURN
+      
+c The lightning calculation uses the maximum height of the cloud,
+c or the maximum depth of the mass flux penetration, LMAX, at
+c every timestep.  In each timestep there may be a number of
+c different values of LMAX, associated with clouds originating
+c from different levels.  However, there are always less values
+c of LMAX then the number of vertical layers. gz is the
+c geopotential height, used from DYNAMICS module.
+
+      lmax_temp=lmax
+      if(j_lgt.lt.JS.or.j_lgt.gt.JN)lmax_temp=lmax+1 !30 S to 30 N
+      HTCON=gz(i_lgt,j_lgt,lmax_temp)*bygrav*1.E-3
+      HTFRZ=gz(i_lgt,j_lgt,LFRZ+1)*bygrav*1.E-3
+
+c IF the gridbox is over land or coastline use the continental
+c parameterization.  The factor 2.17 is derived from Fig. 1
+c of the Price and Rind (1994) Mon. Wea. Rev. paper, and is
+c related to the horizontal resolution of the GCM (in this case
+c 4x5 degrees).  We use a threshold of 1% for continental
+c gridboxes. The units are flashes per minute.
+
+      If (fland(i_lgt,j_lgt).le.0.01) then
+        flash=2.17*6.2e-4*(htcon**1.73)
+      else
+        flash=2.17*3.44e-5*(htcon**4.92)
+      end if
+
+c The formulation by Price and Rind (1993) in Geophysical Res.
+c Letters is used to calculate the fraction of total lightning
+c that is cloud-to-ground lightning.  This uses the thickness of
+c cold sector of the cloud (Hmax-Hzero) as the determining
+c parameter.  The algorithm is only valid for thicknesses greater
+c than 5.5km and less than 14km.
+
+      th=(HTCON-HTFRZ)
+      If (th.lt.5.5) th=5.5
+      If (th.gt.14.) th=14.
+      th2=th*th
+      th3=th2*th
+      th4=th3*th
+      zlt=0.021*th4-0.648*th3+7.493*th2-36.544*th+63.088
+      CG=flash/(1.+zlt)
+
+c Given the number of cloud-to-ground flashes, we can now calculate
+c the NOx production rate based on the Price et al. (1997) JGR paper.
+c The units are grams of Nitrogen per minute:
+
+      RNOx_lgt(i_lgt,j_lgt)=15611.*(CG + 0.1*(flash-CG))
+
+C These diagnostics need to be put back in:      
+c note CG & flash OUTPUT now in units: flashes/[time]/m2
+c      AIJ(i,j,97)=aij(i,j,97) + flash*BYDXYP(J)
+c      AIJ(i,j,98)=aij(i,j,98) + CG*BYDXYP(J)
+
+      END SUBROUTINE calc_lightning
+c
+c
+      SUBROUTINE get_sza(I,J,tempsza)
+!@sum get_sza calculates the solar angle.  The intention is
+!@+   that this routine will only be used when the COSZ1 from the 
+!@+   radiation code is < 0, i.e. SZA > 90 deg.
+!@auth Greg Faluvegi, based on the Harvard CTM routine SCALERAD
+!@ver 1.0
+
+c
+C**** GLOBAL parameters and variables:  
+C
+      USE MODEL_COM, only: JDAY, JHOUR, IM, JM
+      USE CONSTANT, only: PI, radian
+      USE TRCHEM_Shindell_COM, only: byradian
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments
+C
+!@param ANG1 ?
+!@var DX degree width of a model grid cell (360/IM)
+!@var DY degree width of a model grid cell ~(180/JM)
+!@var tempsza the solar zenith angle, returned in degrees
+!@var P1,P2,P3 ? angles needed to compute COS(SZA) in degrees    
+!@var VLAT,VLOM latitude and longitude in degrees
+!@var current julian time in seconds
+!@var FACT,temp are temp variables
+      REAL*8, PARAMETER ::  ANG1 = 90.d0/91.3125d0
+      REAL*8 P1,P2,P3,VLAT,VLON,TIMEC,FACT,temp
+      REAL*8, INTENT(OUT) :: tempsza
+      INTEGER, INTENT(IN) :: I,J
+      INTEGER DX,DY
+      
+      DX   = NINT(360./REAL(IM))
+      DY   = NINT(180./REAL(JM))       
+      vlat = -90. + REAL((J-1)*DY)
+      if (J.eq.1)  vlat= -90. + 0.5*REAL(DY)
+      if (j.eq.JM) vlat=  90. - 0.5*REAL(DY)
+      VLON = 180. - REAL((I-1)*DX)
+C     This added 0.5 is to make the instantaneous zenith angle
+C     more representative throughout the 1 hour time step:
+      TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
+      P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
+      FACT = (TIMEC/86400. - 81.1875)*ANG1
+      P2 = 23.5*SIN(FACT*radian)
+      P3 = VLAT
+      temp = (SIN(P3*radian)*SIN(P2*radian)) +
+     &(COS(P1*radian)*COS(P2*radian)*COS(P3*radian))
+      tempsza = acos(temp)*byradian
+
+      RETURN
+      END SUBROUTINE get_sza
+
