@@ -273,8 +273,11 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt
 #ifdef TRACERS_WATER
-     *     ,trunoli,trevapor,gtracer,trgmelt
+     *     ,trunoli,trevapor,gtracer
+#ifdef TRACERS_OCEAN
+     *     ,trgmelt
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
+#endif
 #endif
       IMPLICIT NONE
 
@@ -381,7 +384,7 @@ C**** Accumulate diagnostics related to iceberg flux here also
       AREG(JR,J_ERVR) = AREG(JR,J_ERVR) + EGMELT(I,J)
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
-#ifdef TRACERS_WATER
+#ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
      *     *BYDXYP(J)
 #endif
