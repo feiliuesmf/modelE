@@ -281,7 +281,7 @@ C**** Only mix if there is a second layer!
 C**** Test for static stability
         IF ((TMAXRHO-TLK1)*(TLK2-TLK1).lt.0) THEN
 C**** mix uniformly and set MLD to minimum
-          MLAKE(1)=MAX(MINMLD*RHOW,(MLAKE(1)+MLAKE(2))-HLAKE*RHOW)
+          MLAKE(1)=MIN(MLT,MAX(MINMLD*RHOW,MLT-HLAKE*RHOW))
           MLAKE(2)=MLT-MLAKE(1)
           ELAKE(1)=HLT*MLAKE(1)/MLT
           ELAKE(2)=HLT*MLAKE(2)/MLT
@@ -1319,9 +1319,12 @@ C**** calculate kg/m^2, J/m^2 from saved variables
         TREVAP(:)=TREVAPOR(:,1,I,J)
 #endif
         IF (MLAKE(2).lt.1d-10) THEN
+          MLAKE(1)=MLAKE(1)+MLAKE(2)
           MLAKE(2)=0.
+          ELAKE(1)=ELAKE(1)+ELAKE(2)
           ELAKE(2)=0.
 #ifdef TRACERS_WATER
+          TRLAKEL(:,1)=TRLAKEL(:,1)+TRLAKEL(:,2)
           TRLAKEL(:,2)=0.
 #endif
         END IF
@@ -1421,8 +1424,8 @@ C****
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=1
       INTEGER I,J,N
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/24/),
-     *                             JDIAG = (/15/)
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/46/),
+     *                             JDIAG = (/32/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
