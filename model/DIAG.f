@@ -1309,8 +1309,8 @@ C**** CALCULATE HERE
       CALL CHECKSUM(grid, DVT, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, DVT, FROM=NORTH)
 
-C**** POLAR VERTICAL MASS FLUX
       DO 560 K=KM,1,-1
+C**** POLAR VERTICAL MASS FLUX
         IF(GRID%HAVE_SOUTH_POLE) THEN
           W(1,1,K)=0.
           IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
@@ -1333,8 +1333,19 @@ C**** NON-POLAR VERTICAL MASS FLUX
       IF (K.LT.KM) WUP=W(I,J,K+1)
       W(I,J,K)=WUP+.5*(DUT(IM1,J,K)-DUT(I,J,K)+
      *  DVT(I,J,K)-DVT(I,J+1,K))
-C**** ACCUMULATE ALL VERTICAL WINDS
   560 IM1=I
+C**** ZERO OUT SUBSURFACE VERTICAL WINDS
+      DO J=J_0,J_1
+      DO I=1,IM
+      PS=P(I,J)+PTOP
+      K=2
+      DO WHILE(PM(K+1).GE.PS)
+         W(I,J,K)=0.
+         K=K+1
+      ENDDO
+      ENDDO
+      ENDDO
+C**** ACCUMULATE ALL VERTICAL WINDS
       DO 558 J=J_0,J_1
       DO 558 I=1,IM
       DO KR=1,NDIUPT
@@ -1367,16 +1378,6 @@ C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
       DO 562 I=1,IMAXJ(J)
   562 WI=WI+W(I,J,K)
   565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
-C**** ZERO OUT SUBSURFACE VERTICAL WINDS
-      DO 568 J=J_0,J_1
-      DO 568 I=1,IM
-      PS=P(I,J)+PTOP
-      K=2
-  566 IF (PM(K+1).LT.PS) GO TO 568
-      W(I,J,K)=0.
-      K=K+1
-      GO TO 566
-  568 CONTINUE
 C****
 C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
 C****
