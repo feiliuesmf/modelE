@@ -455,7 +455,6 @@ C**** parse options
       if( present(momlog) ) then
         domom=momlog
       end if
-      print*,trname(n),n,ns,domom
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
