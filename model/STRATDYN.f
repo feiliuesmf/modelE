@@ -49,6 +49,9 @@ C**** (must be in common due to read statement)
 !@dbparam QGWCNV =1 turns on GW Convective drag terms
       INTEGER :: QGWMTN = 1, QGWSHR = 1, QGWDEF = 1, QGWCNV = 1
 
+!@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in below PTOP
+      INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
+
 !@var PK local P**Kapa array - should be done by DYNAMICS?
       REAL*8, DIMENSION(IM,JM,LM) :: PK
 !@param NM number of gravity wave drag sources
@@ -71,7 +74,7 @@ C**** accumulated in the routines contained herein
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
-     *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen
+     *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       INTEGER I,J,L,iu_zvar
@@ -94,6 +97,7 @@ C**** sync more gwdrag parameters from input
       call sync_param( "QGWSHR", QGWSHR)
       call sync_param( "QGWDEF", QGWDEF)
       call sync_param( "QGWCNV", QGWCNV)
+      call sync_param( "ANG_GWD", ANG_GWD)
 
 C**** Calculate levels for deformation etc.
 C**** Note: these levels work for the 23 layer model, but may
@@ -171,7 +175,7 @@ C****
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
       USE DAGCOM, only : ajl,jl_dudtsdif,JL_dTdtsdrg
-      USE STRAT, only : defrm,pk
+      USE STRAT, only : defrm,pk,ang_gwd
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -186,8 +190,8 @@ C****
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8 G2DT,PIJ,TPHYS,ediff
-      INTEGER I,J,K,L,IP1,NDT,N
+      REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT
+      INTEGER I,J,K,L,IP1,NDT,N,LMAX
 
       G2DT=GRAV*GRAV*DT1
 C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
@@ -290,14 +294,34 @@ C**** Update model winds
             AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
           END DO
         ENDIF
+        ANGM=0.
         DO L=1,LM
           DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
           DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
+          ANGM       = ANGM - DU(L)*AIRM(L)
           DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
      *                 DV(L)*(V(I,J,L)+0.5*DV(L))
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
+
+        IF (ANG_GWD.GT.0) THEN ! ADD IN ANG MOM
+          LMAX=LS1-1  ! BELOW PTOP
+          IF (ANG_GWD.GT.1) LMAX=LM  ! OVER WHOLE COLUMN
+          DPT=0
+          DO L=1,LMAX
+            DPT=DPT+AIRM(L)
+          END DO
+          DO L=1,LMAX
+            DU(L) = ANGM/DPT
+            DKE(I,J,L) = DKE(I,J,L) + DU(L)*(U(I,J,L)+0.5*DU(L))
+            DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
+            U(I,J,L) = U(I,J,L) + DU(L)
+            IF (MRCH.GT.0) AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) +
+     *           DU(L)
+          END DO
+        END IF
+
       END DO
   300 I=IP1
 C**** conservation diagnostic
@@ -445,7 +469,7 @@ C****
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
-     *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen
+     *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
@@ -476,12 +500,12 @@ C**** Do I need to put the common decalaration here also?
       DATA CN(1)/0./
       REAL*8 :: DTHR,BYDT1
       INTEGER LD(NM)
-      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1
+      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,LMAX
       REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
-     *     ,MUP,MUR,BVFSQ,ediff
+     *     ,MUP,MUR,BVFSQ,ediff,ANGM,DPT,DUANG
 C****
       DTHR=2./NIdyn
       BYDT1 = 1./DT1
@@ -533,7 +557,7 @@ C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
 !$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
-        DUT3(:,:,L)=0. ; DVT3(:,:,L)=0.
+        DUT3(:,:,L)=0. ; DVT3(:,:,L)=0. ; DUJL(:,L)=0.
       END DO
 !$OMP  END PARALLEL DO
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)
@@ -556,11 +580,11 @@ C****
 C****
 C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
-!$OMP  PARALLEL DO PRIVATE(ALFA,AIRX4,BVF,BVFSQ,BV0,BVEDGE,BYFACS,
-!$OMP*  CN,CU,DP,DL,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,DUTN,DX,
-!$OMP*  DLIMIT,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD,
-!$OMP*  I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP, MU,MUB,MDN,MUP,MUR,
-!$OMP*  N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,
+!$OMP  PARALLEL DO PRIVATE(AIRX4,ALFA,ANGM,BVF,BVFSQ,BV0,BVEDGE,BYFACS,
+!$OMP*  CN,CU,DL,DP,DPT,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,
+!$OMP*  DUTN,DUANG,DX,DLIMIT,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,
+!$OMP*  FLUXVD,I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP,LMAX, MU,MUB,
+!$OMP*  MDN,MUP,MUR,N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,
 !$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, W0,WSRC,WCHECK,
 !$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
 !$OMP*  UIL,VIL, TLIL,THIL,BVIL)
@@ -948,19 +972,38 @@ cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR
           DUJL(L,J)=DL(L)/(BVF(L)*BVF(L))*DTHR
         END DO
 C****
-C**** Save KE change and diffusion coefficient on A-grid
+C**** Save KE, AM change and diffusion coefficient on A-grid
 C****
+        ANGM = 0.
         DO L=LDRAG-1,LM
-          DKE(I,J,L)=.5*(((DUT(L)+UIL(I,L))**2+(DVT(L)+VIL(I,L))**2)-
-     *         (UIL(I,L)**2+VIL(I,L)**2))
+          ANGM = ANGM - DUT(L)*DP(L)
+          DKE(I,J,L)=DUT(L)*(0.5*DUT(L)+UIL(I,L)) +
+     *               DVT(L)*(0.5*DVT(L)+VIL(I,L))
           DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
           DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
         END DO
+
+        if (ang_gwd.gt.0) then ! add in ang mom
+          lmax=ls1-1  ! below PTOP
+          if (ang_gwd.gt.1) lmax=lm  ! over whole column
+          DPT=0
+          DO L=1,LMAX
+            DPT=DPT+DP(L)
+          END DO
+          DO L=1,LMAX
+            DUANG = ANGM/DPT
+            DKE(I,J,L) = DKE(I,J,L) + DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
+            DUT3(I,J,L)=DUT3(I,J,L) + DUANG*DP(L)*DXYV(J)
+            DUT(L) = DUT(L) + DUANG
+cc??            IF (MRCH.EQ.2) need ajl diag for du?
+          END DO
+        end if
+
       END IF
 C****
 C**** UPDATE THE U AND V WINDS
 C****
-      DO L=LDRAG-1,LM
+      DO L=1,LM
         UIL(I,L)=UIL(I,L)+DUT(L)
         VIL(I,L)=VIL(I,L)+DVT(L)
       END DO

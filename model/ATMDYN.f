@@ -967,7 +967,7 @@ C
 !@auth Original development team
 !@ver  1.0
       USE CONSTANT, only : sha
-      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t
+      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t,ang_uv
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
 C**********************************************************************
@@ -979,14 +979,14 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE,DKE
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP,Xby4toN
+      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP(IM),Xby4toN
       REAL*8 :: DT1=0.
 cq    LOGICAL*4 QFILY,QFIL2D
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
       REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8, ISIGN=(-1.0)**(NSHAP-1)
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
-      REAL*8 ediff
+      REAL*8 ediff,angm,dpt
 C****
 cq       QFILY  = .FALSE.
 cq       QFIL2D = .FALSE.
@@ -1101,18 +1101,25 @@ cq!$OMP  END PARALLEL DO
 cq    END IF
 C****
       IF (MRCH.eq.2) THEN
-!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP)
+!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
         DO L=1,LM
         DO J=2,JM
+        ANGM=0.
+        DPT=0.
         I=IM
         DO IP1=1,IM
-          DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
-     *           +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+          DP(I)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
+     *              +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+          ANGM=ANGM-DP(I)*(U(I,J,L)-USAVE(I,J,L))
+          DPT=DPT+DP(I)
+          I=IP1
+        END DO
+        DO I=1,IM
+          if (ang_uv.eq.1) U(I,J,L)=U(I,J,L)+ANGM/DPT
           DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)-USAVE(I,J
      *         ,L)*USAVE(I,J,L)-VSAVE(I,J,L)*VSAVE(I,J,L))
-          DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP
-          DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP
-          I=IP1
+          DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP(I)
+          DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP(I)
         END DO
         END DO
         END DO
@@ -1451,9 +1458,9 @@ C*
           do l = 1,lmax
             du = ang_mom(i,j)/sum_airm(i,j)
             DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
-            U(I,J,L)=U(I,J,L) + du
             AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG) + du
-            dke(i,j,l) = dke(i,j,l) + .5*du*(2*u(i,j,l)+du)
+            dke(i,j,l) = dke(i,j,l) + du*(u(i,j,l)+0.5*du)
+            U(I,J,L)=U(I,J,L) + du
           end do
           I=IP1
         end do

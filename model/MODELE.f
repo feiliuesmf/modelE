@@ -480,6 +480,7 @@ C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "dt_UVfilter", dt_UVfilter )
+      call sync_param( "ANG_UV", ANG_UV )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )

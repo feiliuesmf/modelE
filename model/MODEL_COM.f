@@ -34,6 +34,8 @@
       integer :: KOCEAN = 1, MFILTR = 1
 !@dbparam dt_UVfilter dU,dV are multiplied by dt/dt_UVfilter
       REAL*8 :: dt_UVfilter = 0. ! UV-filter is NOT used
+!@dbparam ang_uv =1 to conserve ang mom in UVfilter
+      INTEGER :: ang_uv = 1 ! UV-filter conserves ang mom
 
 !@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
       REAL*8, DIMENSION(2) :: X_SDRAG = (/2.5D-4,2.5D-5/)
@@ -47,7 +49,7 @@
 !@var L(P)SDRAG level above which SDRAG is applied (near pole)
       INTEGER :: LSDRAG=LM, LPSDRAG=LM  ! non-polar, polar limit
 !@var ANG_SDRAG if =1: ang.momentum lost by SDRAG is added in below PTOP
-      INTEGER :: ANG_SDRAG=0  ! default: SDRAG does NOT conserve ang.mom
+      INTEGER :: ANG_SDRAG=1  ! default: SDRAG does conserve ang.mom
 !@dbparam Wc_JDRAG critical velocity for J.Hansen/Judith Perlwitz drag
       REAL*8 :: Wc_JDRAG=30.d0  !  if 0.: no JDRAG-feature in Sdrag
 
