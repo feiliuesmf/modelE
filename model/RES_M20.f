@@ -52,6 +52,7 @@ C**** Dummy routines in place of STRATDYN
       ENTRY GWDRAG
       ENTRY VDIFF
       ENTRY io_strat
+      ENTRY alloc_strat_com
 C**** Dummy routines in place of STRAT_DIAG (EP flux calculations)
 C**** Note that KEP=0 is set to zero above for the dummy versions.
       ENTRY EPFLUX
