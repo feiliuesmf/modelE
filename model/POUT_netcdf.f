@@ -1162,7 +1162,8 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM,LM_GCM dimensions for ijl output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
-      INTEGER :: l,lev(lm_gcm)
+      INTEGER :: l
+      REAL*8 :: lev(lm_gcm)
 !
       character(len=30) :: dim_name
 
