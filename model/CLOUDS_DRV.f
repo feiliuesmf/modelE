@@ -33,7 +33,7 @@
      *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
      *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
-     *     ntau,npres,aisccp,isccp_reg
+     *     ntau,npres,aisccp,isccp_reg,ij_precmc,ij_cldw,ij_cldi
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -130,7 +130,7 @@
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep,TSV
+     *     ,E,E1,ep,TSV,WM1,WMI
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -262,7 +262,7 @@ C****
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
+!$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep,WM1,WMI)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
 C 
@@ -507,6 +507,7 @@ C         EPRCP=PRCP*TPRCP*SHI
           ENRGP=ENRGP+EPRCP-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
         END IF
+        AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
         DO L=1,LMCMAX
           T(I,J,L)=  SM(L)*BYAM(L)
@@ -709,6 +710,15 @@ CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
       END IF
+C**** some water diagnostics
+      WM1=0  ; WMI=0
+      DO L=1,LP50
+        WM1=WM1+WMX(L)*AIRM(L)
+        IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
+      END DO
+c is this the same as IJ_WMSUM?
+      AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
+      AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 
 C**** Calculate ISCCP cloud diagnostics if required
       if (isccp_diags.eq.1) then

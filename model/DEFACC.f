@@ -175,7 +175,7 @@ c
       k=k+1
       J_CLRTRP= k ! clear sky radiative forcing tropopause
       name_j(k) = 'net_clr_trp'
-      lname_j(k) = 'NET CLEAR SKY RADIATION AT TROPOPAUSE (WMO)'
+      lname_j(k) = 'NET CLEAR-SKY RADIATION AT TROPOPAUSE (WMO)'
       units_j(k) = 'W/m^2'
       stitle_j(k)= ' NET CLR RAD TRP'
       scale_j(k) = 1.
@@ -858,6 +858,15 @@ c
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
+      IJ_PRECMC = k ! PREC MC (KG/m**2)       1 CN
+      lname_ij(k) = 'CONVECTIVE PRECIPITATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'prec_mc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+c
+      k=k+1 !
       IJ_EVAP = k ! EVAP (KG/m**2)       1 SF
       lname_ij(k) = 'EVAPORATION'
       units_ij(k) = 'mm/day'
@@ -1270,6 +1279,24 @@ c
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
+      IJ_TRSDN = k ! (W/m**2)                         2 RS
+      lname_ij(k) = 'THERMAL RADIATION DOWN, SURF'   ! >0 if down !
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trdn_surf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
+      IJ_TRSUP = k ! (W/m**2)                         2 RS
+      lname_ij(k) = 'THERMAL RADIATION UP, SURF'   ! >0 if up !
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trup_surf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
       IJ_SRNFP0 = k ! SRNFP0 (W/m**2)                         2 RD
       lname_ij(k) = 'NET SOLAR RADIATION, TOA'
       units_ij(k) = 'W/m^2'
@@ -1322,6 +1349,42 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_SRNTP = k   ! SRNTP (W/m**2)                          2 RD
+      lname_ij(k) = 'NET SOLAR RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srn_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_TRNTP = k   ! TRNTP (W/m**2)                          2 RD
+      lname_ij(k) = 'NET THERMAL RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trn_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_SRNTP = k   ! SRNTP_CLR (W/m**2)                   2 RD
+      lname_ij(k) = 'NET CLEAR-SKY SOLAR RADIATION, TROPO x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srnclr_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m190_530
+c
+      k=k+1 !
+      IJ_CLR_TRNTP = k   ! TRNTP_CLR (W/m**2)                   2 RD
+      lname_ij(k) = 'NET CLEAR-SKY THERMAL RADIATION, TROPO x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trnclr_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
 c
       k=k+1 !
       IJ_TG1  = k ! TG1 (K-TF)                                1 GD
@@ -1898,6 +1961,15 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
+      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
+      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'qatm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
       IJ_PSCLD = k ! SHALLOW CONVECTIVE CLOUD COVER  (1)     1 CL
       lname_ij(k) = 'SHALLOW CONVECTIVE CLOUD COVER'
       units_ij(k) = '%'
@@ -1928,6 +2000,22 @@ c
       name_ij(k) = 'scnvfrq'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_CLDW = k ! CLOUD CONDENSED WATER                      1 CL
+      lname_ij(k) = 'CLOUD CONDENSED WATER'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'cldw'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_CLDI = k ! CLOUD CONDENSED ICE                        1 CL
+      lname_ij(k) = 'CLOUD CONDENSED ICE'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'cldi'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
 c
 c     k=k+1 !
 cfree IJ_EMTMOM = k ! INCIDENT MTN EAST MOM. FLUX (MB-M/S**2)  1 SD
@@ -2592,12 +2680,48 @@ c      scale_ij(k) = 1.
         ia_ij(k) = ia_12hr
         scale_ij(k) = 2.
       END IF
-
+c
       k=k+1 !
       IJ_CLR_SRINCG = k ! SRINCG*CLRSKY (W/m**2)            2 RD
       lname_ij(k) = 'CLR SKY INCIDENT SOLAR RADIATION, SRF x CLRSKY'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'incsw_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_SRNFG = k ! SRNFG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY NET SOLAR RADIATION, SRF x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swn_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_TRDNG = k ! TRDNG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY THERMAL RADIATION DOWN, SRF x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trdn_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_SRUPTOA = k ! SRUFP0*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY OUT SOLAR RADIATION, TOA x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swup_toa_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_TRUPTOA = k ! TRUFP0*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY OUT THERMAL RADIATION, TOA x CLRSKY'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trup_toa_clrsky'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710

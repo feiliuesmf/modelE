@@ -47,7 +47,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=180 , KAIJX=KAIJ+100
+      INTEGER, PARAMETER :: KAIJ=200 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ
 
@@ -343,11 +343,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
-     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS,
+     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4,
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF,
-     *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT
+     *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT,
+     *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
+     *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
+     *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris

@@ -749,7 +749,9 @@ C     OUTPUT DATA
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
-     *     ,AFLX_ST, hr_in_day,hr_in_month
+     *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
+     *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
+     *     ,ij_clr_sruptoa,ij_clr_truptoa
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1502,8 +1504,22 @@ C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
 C**** Save clear sky/tropopause diagnostics here
-        AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
-     +                                    OPNSKY*SRDFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+OPNSKY*
+     *     SRDFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_SRNFG)=AIJ(I,J,IJ_CLR_SRNFG)+OPNSKY*
+     *     SRNFLB(1)*CSZ2
+      AIJ(I,J,IJ_CLR_TRDNG)=AIJ(I,J,IJ_CLR_TRDNG)-OPNSKY*TRHR(0,I,J)
+      AIJ(I,J,IJ_CLR_SRUPTOA)=AIJ(I,J,IJ_CLR_SRUPTOA)+OPNSKY*
+     *     SRUFLB(LM+LM_REQ+1)*CSZ2
+      AIJ(I,J,IJ_CLR_TRUPTOA)=AIJ(I,J,IJ_CLR_TRUPTOA)+OPNSKY*
+     *     TRUFLB(LM+LM_REQ+1)
+      AIJ(I,J,IJ_CLR_SRNTP)=AIJ(I,J,IJ_CLR_SRNTP)+OPNSKY*
+     *     SRNFLB(LTROPO(I,J))*CSZ2
+      AIJ(I,J,IJ_CLR_TRNTP)=AIJ(I,J,IJ_CLR_TRNTP)+OPNSKY*
+     *     TRNFLB(LTROPO(I,J))
+      AIJ(I,J,IJ_SRNTP)=AIJ(I,J,IJ_SRNTP)+SRNFLB(LTROPO(I,J))*CSZ2
+      AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
+
       DO IT=1,NTYPE
         AJ(J,J_CLRTOA,IT)=AJ(J,J_CLRTOA,IT)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *CSZ2-TRNFLB(LM+LM_REQ+1))*FTYPE(IT,I,J)
