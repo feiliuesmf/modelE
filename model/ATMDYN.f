@@ -1311,11 +1311,11 @@ C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
       INTEGER I,J,L,IP1
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
-      REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_am
+      REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0
 
-      ang_mom=0. ;  sum_am=0. ! am=air mass
+      ang_mom=0. ;  sum_airm=0.
 C*
       BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
@@ -1334,7 +1334,7 @@ C**** check T to make sure it stayed within physical bounds
         end if
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-C**** WL is restricted to Wmax
+C**** WL is restricted to Wmax (incorporated in X for diag. purposes)
                     CDN=C_SDRAG
         IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmax)
         X=DT1*RHO*CDN*min(WL,wmax)*GRAV*BYDSIG(L)*BYPIJU
@@ -1353,21 +1353,22 @@ C**** adjust diags for possible difference between DT1 and DTSRC
       END DO
       END DO
 C*
-C***  Apply the angular momentum to layers 1 to LS1-1 if ang_sdrag=1
+C***  Add the lost angular momentum uniformly back in if ang_sdrag=1
+C???  currently only below 150mb - delete this line when this changes
 C*
       if (ang_sdrag.eq.1) then
         do j = 2,jm
         I=IM
         do ip1 = 1,im
-          do l = 1,ls1-1
+          do l = 1,ls1-1   !   soon: 1,lm   ???
             DPL(L)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
      *        +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
-            sum_am(i,j) = sum_am(i,j)+DPL(L)
+            sum_airm(i,j) = sum_airm(i,j)+DPL(L)
           end do
 C*
-          do l = 1,ls1-1
-            DUT(I,J,L)=(ang_mom(i,j)/sum_am(i,j))*dpl(l)
-            U(I,J,L)=U(I,J,L)+ang_mom(i,j)/sum_am(i,j)
+          do l = 1,ls1-1   !   soon: 1,lm   ???
+            DUT(I,J,L)=(ang_mom(i,j)/sum_airm(i,j))*dpl(l)
+            U(I,J,L)=U(I,J,L)+ang_mom(i,j)/sum_airm(i,j)
           end do
           I=IP1
         end do

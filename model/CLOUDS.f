@@ -1515,8 +1515,8 @@ C**** integrated HDEP over pbl depth
           HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
         END DO
 c       IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        HRISE=HRMAX 
-        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))   
+        HRISE=HRMAX
+        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))
         IF(HRISE.GT.HDEP) HRISE=HDEP
 C**** hdep is simply layer dependent (not used: resolution sensitive)
 c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
@@ -1697,7 +1697,7 @@ c ---------------------- initialize fractions ------------------------
         FWTOQT=0.
 c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FER,FERT) 
+        CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FER,FERT)
 c clw tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),.FALSE.,1d0,FWTOQ,FWTOQT)
         IF(BELOW_CLOUD) THEN
@@ -1742,7 +1742,7 @@ C**** only if T> pure ice limit temperature
         IF (LHX.eq.LHE .AND. PRLIQ.gt.0) THEN
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
           CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N),TRPRLIQ
-     *         ,1d0) 
+     *         ,1d0)
           TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)
         END IF
 #endif
@@ -1980,13 +1980,13 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
      *  WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1d-10) WTEM=1.d-10
-      IF(LHX.EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *  (WTEM*4.)**BY3
       IF(LHX.EQ.LHE) THEN
+         RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
          IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
+      ELSE
+         RCLD=25.0*(WTEM/4.2d-3)**BY3
       ENDIF
-      IF(LHX.EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
       RCLDE=RCLD/BYBR
       CSIZEL(L)=RCLDE
       TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
