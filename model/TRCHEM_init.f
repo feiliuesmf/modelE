@@ -402,7 +402,7 @@ C
 C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: kpnr,npnr,kdnr,ndnr,kps,nps,
-     &                         ny,nn,nnr,ks,kss,ay,kds,nds
+     &                         ny,nn,nnr,ks,kss,ay,kds,nds,nc
 c
       IMPLICIT NONE
 c
@@ -422,8 +422,13 @@ c     print reaction lists
         if(ichange.ge.1) then
           do ii=1,ichange
             ireac=ireac+1
-            write(6,20) ' Reaction # ',npnr(ireac),' produces ',
-     *      ay(nnr(1,npnr(ireac))),' and  ',ay(nnr(2,npnr(ireac)))
+            if (nnr(2,npnr(ireac)).gt.nc) then
+               write(6,20) ' Reaction # ',npnr(ireac),' produces ',
+     *         ay(nnr(1,npnr(ireac))),' and  ','X'
+            else
+               write(6,20) ' Reaction # ',npnr(ireac),' produces ',
+     *         ay(nnr(1,npnr(ireac))),' and  ',ay(nnr(2,npnr(ireac)))
+            end if
           enddo
         end if
       end do

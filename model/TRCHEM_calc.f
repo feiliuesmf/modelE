@@ -908,9 +908,9 @@ c     (since equilibration of short lived gases may alter this)
 #endif
        write(*,*) changeL(lprn,n_NOx),changeL(lprn,n_N2O5),
      & changeL(lprn,n_HO2NO2),changeL(lprn,n_HNO3),
-     & changeL(lprn,n_PAN),changeL(lprn,n_AlkylNit),
-     & changeL(lprn,n_N2O)
+     & changeL(lprn,n_PAN),changeL(lprn,n_AlkylNit)
 #ifdef SHINDELL_STRAT_CHEM
+     & ,changeL(lprn,n_N2O)
      & ,changeL(lprn,n_ClONO2),changeL(lprn,n_BrONO2)
        write(*,*) 'N2O change w/o rxns forming N2',sv_changeN2O(lprn)
 #endif

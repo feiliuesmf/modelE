@@ -155,6 +155,8 @@ C
 !$OMP* n2,
 #endif
 !$OMP* LL, I, igas, inss, J, L, Lqq, N, error )
+!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
+!$OMP* N_ALKYLNIT)
 c
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 #ifdef SHINDELL_STRAT_CHEM
@@ -1224,7 +1226,7 @@ C       Use Ox correction factor for the proper month:
 C
       do j=1,jm
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
-       do i=1,IM
+       do i=1,IMAXJ(J)
          changeL(:,:)=0.d0 ! initilize the change
          do L=LTROPO(I,J)+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
