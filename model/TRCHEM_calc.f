@@ -72,6 +72,23 @@ c     photolytic destruction:
       call chem1(kds,maxl,1,ks,nds,photrate,dest,-1)
 c     photolytic production:
       call chem1(kps,maxl,2,kss,nps,photrate,prod,1)
+C
+c     Oxidation of Isoprene and Alkenes produces less than one
+c      HCHO, Alkenes, and CO per rxn, correct here following Houweling
+      do L=1,maxl
+       prod(n_CO,L)=prod(n_CO,L)-0.63*rr(35,I,J,L)*y(n_Alkenes,L)*
+     &  y(nO3,L)*dt2
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.36*rr(35,I,J,L)*y(n_Alkenes,L)*
+     &  y(nO3,L)*dt2
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.39*rr(30,I,J,L)*y(n_Isoprene,L)*
+     &  y(nOH,L)*dt2
+       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42*rr(30,I,J,L)*
+     &  y(n_Isoprene,L)*y(nOH,L)*dt2
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.10*rr(31,I,J,L)*y(n_Isoprene,L)*
+     &  y(nO3,L)*dt2
+       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45*rr(31,I,J,L)*
+     &  y(n_Isoprene,L)*y(nO3,L)*dt2
+      enddo
 c
 c     set CH3O2 values (concentration = production/specific loss)
       do L=1,maxl
