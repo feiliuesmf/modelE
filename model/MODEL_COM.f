@@ -37,8 +37,11 @@
 
 !@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
       REAL*8, DIMENSION(2) :: X_SDRAG = (/2.5D-4,2.5D-5/)
-!@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.) for L=LS1 to L(P)SDRAG-1
+!@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.) for L=LS1 to LCSDRAG
       REAL*8 :: C_SDRAG = 2.5D-5
+      INTEGER :: LCSDRAG=LM   ! will be recomputed using P_CSDRAG
+!@dbparam P_CSDRAG pressure level above which no const.drag is used
+      REAL*8 :: P_CSDRAG=0.
 !@dbparam P(P)_SDRAG pressure level above which SDRAG is applied (mb)
       REAL*8 :: P_SDRAG=0., PP_SDRAG = 1.d0 ! (PP_... near poles)
 !@var L(P)SDRAG level above which SDRAG is applied (near pole)
@@ -147,7 +150,7 @@ C**** slightly larger, to sample all points within the cycle
 !@param IRERUN Flag used for reading in restart part to extend OLD run
       INTEGER, PARAMETER :: ioread=1,ioread_single=2,
      *     irerun=3,irsfic=4,irsficnt=5,ioreadnt=6,
-     *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3 
+     *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 !**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
@@ -325,7 +328,7 @@ C**** use doc-record to check the basic model parameters
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
-        CASE (IRSFIC,irsficnt)        ! use rundeck & defaults except label
+        CASE (IRSFIC,irsficnt)     ! use rundeck & defaults except label
           read(kunit,err=10)          ! skip parameters, dates
           it=it*24/nd1                ! switch itime to ihour
         CASE (IRERUN)           ! parameters from rundeck & restart file

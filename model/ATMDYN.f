@@ -1364,7 +1364,7 @@ C**** to be used in the PBL, at the promary grids
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
-     *  ,q,x_sdrag,c_sdrag,lsdrag,lpsdrag,ang_sdrag,itime
+     *  ,q,x_sdrag,c_sdrag,lcsdrag,lsdrag,lpsdrag,ang_sdrag,itime
       USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
       USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
@@ -1407,8 +1407,11 @@ C**** check T to make sure it stayed within physical bounds
         end if
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-C**** WL is restricted to Wmax (incorporated in X for diag. purposes)
+C**** WL is restricted to Wmax by adjusting X, if necessary;
+C**** the following is equivalent to first reducing (U,V), if necessary,
+C**** then finding the drag and applying it to the reduced winds
                     CDN=C_SDRAG
+        IF (L.gt.LCsdrag) CDN=0.
         IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj)
         X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*BYDSIG(L)*BYPIJU
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
