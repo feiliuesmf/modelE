@@ -15,9 +15,10 @@ C
      B             ,FSXAER(5),FTXAER(5),ZCLSRA,ECLTRA
      C             ,KWVCON,KEEPAL,KEEPRH,KEEP10,KCNORM,KCLDEP,ICE012
      D             ,MADVES,MRELAY,MOZONE,KO3LON,NO3COL,NORMS0,KSOLAR
-     E             ,KTREND,NTRACE,ITR(8),       MLAT46,MLON72,LASTVC
-C     INPUT DATA  not (i,j) dependent
-     X             ,S00WM2,RATLS0,S0,XXJDAY,           ISPARE(98)
+     E             ,KTREND,NTRACE,ITR(8),MLAT46,MLON72,LASTVC,ISPARE(99)
+C               adjust dimension of ISPARE (99/98) to get an even number
+C     INPUT DATA  not (i,j) dependent              of I*4s on lines C-E
+     X             ,S00WM2,RATLS0,S0,XXJDAY
 C     INPUT DATA  (i,j) dependent
             COMMON/RADCOM_local/JLAT,ILON
      F             ,PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)
