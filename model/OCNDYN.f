@@ -380,8 +380,8 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : ftype,itoice,itocean,focean,imaxj
-      USE GEOM, only : dxyp
+      USE MODEL_COM, only : ftype,itoice,itocean,focean
+      USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE OCEAN, only : im,jm,mo,g0m,s0m,dxypo
 #ifdef TRACERS_OCEAN
