@@ -5,6 +5,8 @@ Here are some frequently asked questions and some standard responses,
 please feel free to add new questions (and answers!), or amend the
 response to make it clearer or more complete.
 
+            1. General questions.
+
 1) Why does GISS use the line number format for fortran files?
 2) Is line number format is 'harder' to edit?
 3) Don't revision control systems (rcs or cvs) provide equal functionality?
@@ -18,6 +20,15 @@ response to make it clearer or more complete.
 11) Why should I switch to using modelE?
 12) Why do I get single precision answers from double precision
 variables?, and what are all those 'd0' doing?
+
+           2. FAQs about the Parameter database.
+
+1) What we did?
+2) Why we did this?
+3) How was it done?
+4) How does it work?
+5) So what are the actual interfaces?
+
 
 ===========================================================================
 
@@ -235,4 +246,223 @@ gives double precision (since the denominator is already double precision).
 On some compilers there is a compiler option that removes these
 problems, but not all. Hence for maximum portability we are trying to
 be explicit about writing those 'd0's out.
+
+
+          2. FAQs about the Parameter database.
+
+1) What we did?
+We replaced parameter lists JC and RC and corresponding common blocks
+with a Parameter Database.
+
+2) Why we did this?
+The following goals were pursued:
+  - make restart files more universal, so that they would remain
+    compatible if some parameters are added or removed
+  - make introduction of new parameters more simple and straightforward
+  - allow each module to work with its own parameters independently,
+    i.e. add/remove parameters without editing any source code outside
+    of the module which is using them
+  - make the code more readable and more self-documenting and get rid
+    of structures like BLOCK DATA which are not in Fortran 90 style
+
+3) How was it done?
+We created a module which keeps a database of all parameters used 
+in the model and provided a library of interface routines. These 
+interface routines are used to get the values of parameters from
+the database (or to set new parameters in the database). 
+Rundeck parameters are loaded automatically (with one call in INPUT)
+into this database when the program starts.
+This database is saved to restart file each time when restart file is 
+written.
+
+4) How does it work?
+For each parameter the database keeps its name as a character string
+and its value (or list of values for an array). To get a value of a
+parameter "my_param" and assign it to the variable var one would do:
+     call get_param( "my_param", var )
+If one wants to create a new parameter in the database with the name
+"new_par" and set it to the value var one would do:
+     call set_param( "new_par", var )
+It is recommended that you use the same name for the variable and for
+its name in the database, i.e.:
+     call set_param( "new_par", new_par )
+     call get_param( "my_param", my_param )
+This will improve the readability of the code.
+
+At the restart first all parameters from the rundeck are loaded to the 
+database with the names as they appear in the rundeck. Then the restart
+file is read and those parameters which were saved to it and were not
+present in the rundeck are added to the database. If some parameter 
+was present both in the rundeck and in the restart file then preference
+will be given to the rundeck and restart file value will be ignored.
+This is done so that you can always overwrite certain parameters using
+rundeck.
+
+5) So what are the actual interfaces?
+
+Rundeck:
+All parameters have been moved out of the namelist block to a new block
+which starts with 
+&&PARAMETERS
+and ends with 
+&&END_PARAMETERS
+This block is being read by a special parser (not a namelist). The syntax
+of this block is similar to that of the namelist with following restrictions:
+  - only one parameter per line can be specified
+  - character strings should be single quoted (like 'abc')
+  - arrays can be assigned only as a whole, no support for single elements
+  - all elements of an array should be on the same line
+  - only linear arrays are supported
+  - the only types supported are: 
+          integer, real*8, character*1 to character*16
+Since the parser reads parameters from the rundeck right into the database
+there is no need to describe those parameters in advance in any part 
+of the code. The drawback is that the parser has to derive the type of
+the data and the size of arrays from the information provided in the
+rundeck. The following convention is used:
+  - if single quoted (') strings are present on the line then the data
+    are character strings
+  - else if decimal points (.) are present then the data is real*8
+  - else the data is integer
+The number of data entries on the line specifies the dimension of the 
+array. If only one data entry is present then the parameter is a scalar
+(or an array of dimension one which is equivalent).
+
+PARAM library:
+The library utilizes Fortran 90 interface blocks in such a way that the
+type of parameters (i.e. integer, real*8, character) is recognized 
+automatically, so the the names of subroutines are the same for all types.
+If the dimension of the parameter is given then it is treated as an
+array. If dimension is omitted then it is a scalar. Beware that Fortran 90
+treats scalars and arrays of dimension one differently, so if you 
+confuse them it may generate an error.
+
+The formal arguments in the subroutines below are:
+  name - character*(*) - the name of the parameter which is a character 
+         string no longer than 32 bytes
+  value - a scalar variable or a linear array of type: 
+          integer, real*8,character*1 to character*16
+  dim   - integer - dimension of an array, should be omitted for scalars
+  opt   - character*1 - an optional "option"
+  kunut - integer - unit number for reading/writing
+  flag  - logical - reading "overwrite" option
+
+Simple copy routines to copy parameters to/from database:
+
+  set_param( name, value, dim, opt )
+    - put a parameter with the name <name> and the value <value> to the
+      database
+
+  get_param( name, value, dim )
+    - copy the value of the parameter <name> from the database to the
+      variable <value>
+
+    The arguments are:
+    name  - character*(*) - the name of the parameter which is a character 
+            string no longer than 32 bytes
+    value - a scalar variable or a linear array of type: 
+            integer, real*8,character*1 to character*16
+    dim   - integer - dimension of an array, should be omitted for scalars
+    opt   - character*1 - an optional "option" (opt='o' means "overwrite")
+
+These functions will check if the parameter is present in the database
+and will generate an error if you are trying to get parameter which is
+not in the database or if you are trying to set parameter which is already 
+set. If you really need to overwrite parameter which is already in the 
+database use opt='o'. Otherwise <opt> should always be omitted.
+
+Query logical function:
+
+  is_set_param( name )
+    - returns .true. if parameter <name> is present in the database,
+      .false. otherwise
+
+  The argument:
+  name  - character*(*) - the name of the parameter
+
+Some convenient function which is a combination of those above:
+
+  sync_param( name, value, dim )
+    - literally consists of the following lines:
+
+      if( is_set_param( name ) ) then
+          get_param( name, value, dim )
+      else
+          set_param( name, value, dim )
+
+So what it does, it checks if parameter <name> is in database and if so 
+copies it to the <value>. Otherwise it leaves <value> unchanged and 
+copies it to the database with the name <name>.
+This function is provided as a convenient tool, since this is what you
+will do most often. At the restart each module will check if certain
+parameters were provided in the rundeck or in the restart file (i.e.
+they are in the database already) and use those values. If not then
+it will use default values and will also copy them to the database so
+that they are saved to the restart file for future reference.
+
+Subroutines to work with pointers:
+
+  alloc_param( name, pvalue, initval, dim )
+    - allocates space in the database for the parameter <name>, fills
+      it with data provided in <initval> and returns pointer to it
+      in <pvalue>
+
+  get_pparam( name, pvalue, dim )
+    - returns pointer <pvalue> to the parameter data of the parameter
+      <name> in the database
+
+    The arguments:
+    name  - character*(*) - the name of the parameter which is a character 
+            string no longer than 32 bytes
+    pvalue - a pointer to a scalar variable or to a linear array of type: 
+            integer, real*8,character*1 to character*16
+    initval - initial data of the same type and length as pvalue
+    dim   - integer - dimension of an array, should be omitted for scalars
+
+These functions are provided as an additional tool and actually are not
+needed if parameters in the database are treated as "parameters", i.e.
+they are set only once at the beginning of the run and then used as 
+constants. But it appeared that some data which was in "parameters" 
+common block was changed during the run (some actually quite often and
+in different places). To keep the parameter database up-to-date with
+those changes one would have to call "set_param" each time after the
+data is changed which is rather awkward. Instead one can use pointers
+to the parameter data in the database. Pointers in Fortran 90 are 
+nothing else but aliases of the objects they point to. So if you 
+get a pointer to a parameter from the database and then work with it as 
+if it were a regular variable, you will automatically update it in the 
+database and there will be no need to call "set_param". So this 
+subroutines can be used if one wants to keep a dynamic variable in
+the database (so that it is automatically saved to the restart file).
+
+Reading/writing functions:
+
+  read_param( kunit, ovrwrt )
+    - reads the parameter database from the unit <kunit>
+
+  write_param( kunit )
+    - writes the parameter database to the unit <kunit>
+
+  The arguments:
+  kunit  - integer - the unit number from/to reading/writing is 
+           performed
+  ovrwrt - logical - if .true. then reading overwrites those parameters
+           that are already in the database. If .false. then those 
+           parameters which are already in the database are left unchanged
+           and only new parameters are added.
+
+Parser subroutine:
+
+  parse_params( kunit )
+    - parse the information in the file <kunit> and load the parameters 
+      into the database. It overwrites the existing parameters.
+
+    The argument:
+    kunit  - integer - the unit number corresponding to the file with
+             the rundeck information (it should contain a block
+             starting with &&PARAMETERS and ending with &&END_PARAMETERS)
+
+This subroutine is actually located in a separate module PARSER, but
+it seemed logical to describe it here.
+
 
