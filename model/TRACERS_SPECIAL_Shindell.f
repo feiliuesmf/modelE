@@ -961,9 +961,9 @@ c 4x5 degrees).  We use a threshold of 1% for continental
 c gridboxes. The units are flashes per minute.
 
       If (fland(i,j).le.0.01) then
-        flash=2.17*6.2d-4*(htcon**1.73)
+        flash=2.17d0*6.2d-4*(htcon**1.73d0)  ! ocean
       else
-        flash=2.17*3.44d-5*(htcon**4.92)
+        flash=2.17d0*3.44d-5*(htcon**4.92d0) ! continent
       end if
 
 c The formulation by Price and Rind (1993) in Geophysical Res.
