@@ -358,7 +358,7 @@ C****
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,fearth,fland,jday
+     *     ,focean,fearth,jday
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -501,10 +501,10 @@ C**** Create integral direction array KDIREC from CDIREC
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
 C**** If land but no ocean, and no direction, print warning
-        IF (FLAND(I,J).gt.0 .and. FOCEAN(I,J).le.0 .and.
-     *       (KD.gt.8 .or. KD.lt.0)) THEN
+        IF ((FEARTH(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
+     *       FOCEAN(I,J).le.0 .and. (KD.gt.8 .or. KD.lt.0)) THEN
           WRITE(6,*) "Land box has no river direction I,J: ",I,J
-     *     ,FOCEAN(I,J),FLAND(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
+     *     ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
         END IF
 C**** Default direction is down (if ocean box), or no outlet (if not)
 C**** Also ensure that all ocean boxes are done properly
@@ -527,8 +527,8 @@ C**** Check for specified river mouths
           END IF
           IF (FOCEAN(I,J).le.0) THEN
             WRITE(6,*) "Warning: Named river outlet must be in ocean",i
-     *           ,j,NAMERVR(INM),FOCEAN(I,J),FLAND(I,J),FLICE(I,J)
-     *           ,FLAKE0(I,J),FEARTH(I,J)
+     *           ,j,NAMERVR(INM),FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
+     *           ,FEARTH(I,J) 
           END IF
         END IF
       END DO
@@ -1131,7 +1131,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny
-      USE MODEL_COM, only : im,jm,fland,flice,itlake,itlkice
+      USE MODEL_COM, only : im,jm,flice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
