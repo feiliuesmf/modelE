@@ -38,13 +38,15 @@ c****
       integer :: I,J,L,n,nx
 
 C**** Fill in values at the poles
-C$OMP  PARALLEL DO PRIVATE (I,L)
+C$OMP  PARALLEL DO PRIVATE (I,L,N)
       do l=1,lm
-         rm(2:im,1 ,l) =   rm(1,1 ,l)
-         rm(2:im,jm,l) =   rm(1,jm,l)
          do i=2,im
-            rmom(:,i,1 ,l) =  rmom(:,1,1 ,l)
-            rmom(:,i,jm,l) =  rmom(:,1,jm,l)
+           rm(i,1 ,l) = rm(1,1 ,l)
+           rm(i,jm,l) = rm(1,jm,l)
+           do n=1,nmom
+             rmom(n,i,1 ,l) = rmom(n,1,1 ,l)
+             rmom(n,i,jm,l) = rmom(n,1,jm,l)
+           enddo
          enddo
       enddo
 C$OMP  END PARALLEL DO

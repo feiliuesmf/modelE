@@ -84,20 +84,22 @@ c****
 
       REAL*8, dimension(im,jm), intent(inout) :: fqu,fqv
 
-      INTEGER :: I,J,L
+      INTEGER :: I,J,L,N
       REAL*8 :: BYMA
 
 C**** Initialise diagnostics
       FQU=0.  ; FQV=0.
 
 C**** Fill in values at the poles
-C$OMP  PARALLEL DO PRIVATE(I,L)
+C$OMP  PARALLEL DO PRIVATE(I,L,N)
       DO L=1,LM
-         RM(2:IM,1 ,L) =   RM(1,1 ,L)
-         RM(2:IM,JM,L) =   RM(1,JM,L)
          DO I=2,IM
-            RMOM(:,I,1 ,L) =  RMOM(:,1,1 ,L)
-            RMOM(:,I,JM,L) =  RMOM(:,1,JM,L)
+           RM(I,1 ,L) =   RM(1,1 ,L)
+           RM(I,JM,L) =   RM(1,JM,L)
+           DO N=1,NMOM
+             RMOM(N,I,1 ,L) =  RMOM(N,1,1 ,L)
+             RMOM(N,I,JM,L) =  RMOM(N,1,JM,L)
+         enddo
          enddo
       enddo
 C$OMP  END PARALLEL DO
