@@ -108,7 +108,7 @@ C****
         PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
       END DO
 
-C**** define EK array for GWDRAG (what is this?)
+C**** define wave number array EK for GWDRAG
       EKS=0.
       DO J=2,JM
         EK1=TWOPI/SQRT(DXYV(J))
@@ -416,6 +416,9 @@ C**** Do I need to put the common decalaration here also?
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
       IMPLICIT NONE
+!@var FMC is a tuning coefficient
+!@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
+!@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
