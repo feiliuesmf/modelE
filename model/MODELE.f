@@ -550,7 +550,7 @@ C****
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
-     &  ,egcm,w2gcm
+     &  ,egcm,w2gcm,tgvavg,qgavg
       USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
@@ -839,7 +839,7 @@ C****                                                    currently
         IM1=I
         END DO
         END DO
-        CDM=.001
+        CDM=.001d0
         DO J=1,JM
         DO I=1,IM
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
@@ -848,6 +848,8 @@ C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
           DCLEV(I,J)=1.
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
           QSAVG(I,J)=Q(I,J,1)
+          QGAVG(I,J)=Q(I,J,1)
+          TGVAVG(:,:)=T(I,J,1)
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
           DO K=1,LM_REQ
             RQT(K,I,J)=T(I,J,LM)
