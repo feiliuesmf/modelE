@@ -1,30 +1,33 @@
-E001M23.R GISS Model E                                 jal 04/01
+E001M23.R GISS Model E                                 gas 06/00
 
-E001M23: new modelE (based on B402A) Stratospheric version
-         NOTE: this is not yet ready
+E001M23: new modelE (based on B402A - strat. version)
+
+Preprocessor Options
+!#define TRACERS_ON                  ! include tracers code
+End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M23                             ! resolution
-MODEL_COM GEOM_B FLUXES             ! model modules
-ME001M12                            ! Main and model overhead
-DYNE001 DYNCOM                      ! dynamics
-STRATDYN strat                      ! stratos. (incl. gravity wave drag)
-SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
-CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
-SE001M12                            ! surface calculation
-GHYCOM EE001M12 SLE001              ! land surface and soils
-PBLCOM PBLDRV PBLE001               ! atmospheric pbl
+RES_M23                             ! horiz/vert resolution
+MODEL_COM GEOM_B                    ! model variables and geometry
+MODELE                              ! Main and model overhead
+PARAM PARSER                        ! parameter database 
+DYN_COM ATMDYN MOMEN2ND             ! atmospheric dynamics
+STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gravity wave drag)
+QUS_COM QUSDEF QUS_DRV              ! advection of tracers
+CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+SURFACE FLUXES                      ! surface calculation and fluxes
+GHY_COM EARTH_DRV SOILS             ! land surface and soils
+PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-OCNE001                             ! ocean modules
-snowmodel                           ! snow model
-RADNCB PE001M12 RE001               ! radiation modules
-DAGCOM DE001M12 DEFACC DAGPRT       ! diagnostics
-const FFT72 UTILDBL RAND~           ! utilities
-POUT                                ! for post-processing
-PARAM PARSER
+OCEAN                               ! ocean modules
+SNOW                                ! snow model
+RAD_COM RAD_DRV RADIATION           ! radiation modules
+DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
+CONST FFT72 UTILDBL RAND~           ! utilities
+POUT                                ! post-processing output
 
 Data input files:
 AIC=DEC1986.rsfB436TM23.modelE
@@ -47,27 +50,29 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001M23 (new modelE based on B402A; stratospheric version)
+E001M23 (new modelE based on B402A - strat. version)
 R=00BG/B
 
 &&PARAMETERS
-   DT=180.,        ! from default: DTsrc=3600.,
-   NSLP=12,        ! saving SLP 12hrly
-   Kvflxo=1         ! saving VFLXO daily
-   KCOPY=2,    ! saving acc+rsf
-   CO2=-6.,
-   XCDLM=.0005,.00005,
-   NISURF=4,
-   KOCEAN=0,  
-   U00wtr=.50,
-   U00ice=.50,
+CO2=-6.
+XCDLM=.0005,.00005
+KOCEAN=0
+U00wtr=.50
+U00ice=.50
+
+DT=450.,        ! from default: DTsrc=3600.,
+NSLP=12         ! saving SLP 12hrly
+Kvflxo=1        ! saving VFLXO (daily)
+KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
+   YEARI=1950,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
+                       !  from default: IYEAR1=YEARI
    YEARE=1950,MONTHE=2,
-   ISTART=7,YEARE=1950,MONTHE=1,HOURE=1, IRANDI=0,
+   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,
  &END

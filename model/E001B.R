@@ -8,14 +8,15 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M12                             ! horiz/vert resolution
-MODEL_COM GEOM_B FLUXES             ! model modules
-ME001M12                            ! Main and model overhead
-MOMEN2ND DYNE001 DYNCOM             ! dynamics
-SOMTQ_COM QUSDEF QUSEM12            ! advection of tracers
-CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
-SE001M12                            ! surface calculation
-GHYCOM EE001M12 SLE001              ! land surface and soils
-PBLCOM PBLDRV PBLE001               ! atmospheric pbl
+MODEL_COM GEOM_B                    ! model variables and geometry
+MODELE                              ! Main and model overhead
+PARAM PARSER                        ! parameter database 
+DYN_COM ATMDYN MOMEN2ND             ! atmospheric dynamics
+QUS_COM QUSDEF QUS_DRV              ! advection of tracers
+CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+SURFACE FLUXES                      ! surface calculation and fluxes
+GHY_COM EARTH_DRV SOILS             ! land surface and soils
+PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
@@ -23,12 +24,11 @@ LANDICE LANDICE_DRV                 ! land ice modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP ICEDYN    ! dynamic ocean routines
 OCNFUNTAB                           ! ocean function look up table
-snowmodel                           ! snow model
-RADNCB PE001M12 RE001               ! radiation modules
-DAGCOM DE001M12 DEFACC DAGPRT       ! diagnostics
-const FFT72 UTILDBL RAND~           ! utilities
-POUT                                ! for post-processing
-PARAM PARSER
+SNOW                                ! snow model
+RAD_COM RAD_DRV RADIATION           ! radiation modules
+DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
+CONST FFT72 UTILDBL RAND~           ! utilities
+POUT                                ! post-processing output
 
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.12
