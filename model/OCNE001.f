@@ -600,9 +600,10 @@ C*
 C*
       HC_1 = XSI1*MSI1*SHI
       RUN0=0.
-      IF (KOCEAN.NE.1) GO TO 120
       DIFS=0.
       EDIFS=0.
+      ERUN2=0.
+      IF (KOCEAN.NE.1) GO TO 120
   120 HSI1 = HSI1+EPRE
       IF (TPRCP.LT.0.) GO TO 180
       IF (EPRCP.LT.-TG1*HC_1) GO TO 160
@@ -947,10 +948,15 @@ C*
 C      F0DT=E0(I,J,2)
 C      F1DT=E1(I,J,2)
 C      EVAP=EVAPOR(I,J,2)
-      IF (KOCEAN .EQ. 1) THEN
       RUN0=0.
       DIFSI=0.
-      EDIFSI=0.
+      EDIFSI=0
+      ERUN4=0
+      RUN4=0
+      DIFS=0
+      EDIFS=0
+
+      IF (KOCEAN .EQ. 1) THEN
       WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixed layer mass below ice (kg/m^2)
       EIW0=WTRI0*TGW*SHW ! energy of mixed layer below ice (J/m^2) 
       WTRW0=WTRO-ROICE*(SNOW+ACE1I+MSI2)
