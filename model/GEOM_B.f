@@ -159,8 +159,6 @@ C****
       RAPVS(1)  = 0.
       RAVPN(JM) = 0.
       RAPVN(JM) = 0.
-      acor = dxyv(2)/(.5*dxp(2)*dyv(2)) ! gridbox area correction factor
-      acor2 = dxyv(2)/(dxv(2)*dyv(2))
       DO J=2,JM
         DXYV(J) = DXYN(J-1)+DXYS(J)
         BYDXYV(J) = 1./DXYV(J)
@@ -169,6 +167,8 @@ C****
         RAVPS(J)   = .5*DXYS(J)/DXYP(J)
         RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
+      acor = dxyv(2)/(.5*dxp(2)*dyv(2)) ! gridbox area correction factor
+      acor2 = dxyv(2)/(dxv(2)*dyv(2))
 C**** LONGITUDES (degrees); used in ILMAP
       LON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
       LON_DG(1,2) = -180.+360./    FLOAT(IM)
