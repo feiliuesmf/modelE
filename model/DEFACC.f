@@ -2059,7 +2059,7 @@ c
       IJ_GPP = k    !kg[C]/m2/s
       lname_ij(k) = 'GROSS PRIMARY PRODUCTIVITY'
       !from kg[C]/m2/s, typical range to 30 gC/m2/year
-      units_ij(k) = 'g[C]/m2/day'  
+      units_ij(k) = 'g[C]/m2/day'
       name_ij(k) = 'GPP'
       !Scale for mg/m2/day
       ia_ij(k) = ia_src
@@ -2070,12 +2070,12 @@ c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.
 !      lname_ij(k) = 'LEAF MASS CHANGE'
-!      units_ij(k) = 'mg[C]/m2/day'  
+!      units_ij(k) = 'mg[C]/m2/day'
 !      name_ij(k) = 'DLEAF'
 !      ia_ij(k) = ia_12hr      !Accumulated once daily, put 2.* in scale
-!      scale_ij(k) = 2.*1000000.    !Scale for daily, scale from kg to mg
+!      scale_ij(k) = 2.*1000000.   !Scale for daily, scale from kg to mg
       lname_ij(k) = 'ANNUAL LEAF MAX GROWTH'
-      units_ij(k) = 'g[C]/m2/yr'  
+      units_ij(k) = 'g[C]/m2/yr'
       name_ij(k) = 'DLEAF'
       ia_ij(k) = ia_inst      !Accumulat instantaneous value for max-min
       scale_ij(k) = 1000.    !Scale from kg to g
@@ -2851,7 +2851,7 @@ c
       units_jl(k) = 'm^2/s'
 c
       k=k+1
-      jl_dudtsdif = k                   
+      jl_dudtsdif = k
       sname_jl(k) = 'dudt_sdiff' !     ! gwdrag
       lname_jl(k) = 'DU/DT BY GRAVITY WAVE MOMENTUM DIFFUSION'
       units_jl(k) = 'm/s^2'
@@ -2859,7 +2859,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
-      jl_dudtvdif = k                   
+      jl_dudtvdif = k
       sname_jl(k) = 'dudt_vdiff' !     ! vdiff
       lname_jl(k) = 'DU/DT BY VERTICAL DIFFUSION'
       units_jl(k) = 'm/s^2'
@@ -3443,8 +3443,8 @@ c
       sname_jk(k) = 'tot_nt_ke' !'AJK19'
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
       units_jk(k) = 'W/mb'
-      pow_jk(k) = 8
-      scale_jk(k) = .5*XWON*FIM
+      pow_jk(k) = 9
+      scale_jk(k) = .5*XWON*FIM*1d2*BYGRAV
       jgrid_jk(k) = 2
 c
       k=k+1

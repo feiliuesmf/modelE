@@ -775,8 +775,8 @@ c
       sname_jk(k) = 'nt_sheat_eddy'
       lname_jk(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*SHA*XWON*FIM
-      pow_jk(k) = 10
+      scale_jk(k) = .25*SHA*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 11
       k = k + 1
       jk_dyn_conv_dse = k                     ; jgrid_jk(k) = 1
       sname_jk(k) = 'dyn_conv_dse'
@@ -801,50 +801,50 @@ c
       sname_jk(k) = 'nt_dse_stand_eddy'
       lname_jk(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM
-      pow_jk(k) = 10
+      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 11
       k = k + 1
       jk_nt_dse_e = k                         ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_dse_eddy'
       lname_jk(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM
-      pow_jk(k) = 10
+      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 11
       k = k + 1
       jk_tot_nt_dse = k                       ; jgrid_jk(k) = 2
       sname_jk(k) = 'tot_nt_dse'
       lname_jk(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM
-      pow_jk(k) = 11
+      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 12
       k = k + 1
       jk_nt_lh_e = k                          ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_lh_e'
       lname_jk(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
+      scale_jk(k) = .25*lhe*XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 10
       k = k + 1
       jk_nt_lh_se = k
       sname_jk(k) = 'nt_lh_stand_eddy'        ; jgrid_jk(k) = 2
       lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
+      scale_jk(k) = .25*lhe*XWON*FIM*1d2*BYGRAV
       pow_jk(k) = 9
       k = k + 1
       jk_nt_see = k                           ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_se_eddy'
       lname_jk(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM
-      pow_jk(k) = 10
+      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 11
       k = k + 1
       jk_tot_nt_se = k                        ; jgrid_jk(k) = 2
       sname_jk(k) = 'tot_nt_se'
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*XWON*FIM
-      pow_jk(k) = 11
+      scale_jk(k) = .25*XWON*FIM*1d2*BYGRAV
+      pow_jk(k) = 12
       k = k + 1
       jk_nt_am_stand_eddy = k                 ; jgrid_jk(k) = 2
       sname_jk(k) = 'nt_u_stand_eddy'
@@ -1328,7 +1328,7 @@ C**** Individual wave transports commented out. (gas - 05/2001)
       SCALET = scale_jk(n)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,JGRID_jk(n))
-C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
+C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND.EDDY, EDDIES AND TOTAL
 C**** New way!
       n = jl_nt_lh_e
       dx = 0.
