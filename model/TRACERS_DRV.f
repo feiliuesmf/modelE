@@ -821,11 +821,10 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n) = -9
           tr_mm(n) = 75. !Na x 3.256
           trpdens(n)=2.2d3  !kg/m3 This is for non-hydrated
-          if (imAER.eq.0) then
-          trradius(n)=1.7d-6 ! This is non-hydrated
-          else
-          trradius(n)=5.0d-6 ! This is non-hydrated
-          endif 
+          trradius(n)=5.0d-6                 ! This is non-hydrated
+#ifdef TRACERS_AEROSOLS_Koch
+          if (imAER.eq.0) trradius(n)=1.7d-6 ! This is non-hydrated
+#endif
           fq_aer(n)=1.0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
