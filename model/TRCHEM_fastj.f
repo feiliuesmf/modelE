@@ -578,14 +578,11 @@ c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-!@var airmas ???
-!@var Ux ???
+!@var airmas - statement function with dummy arguments Ux,HFASTJ
 !@var xmu1,xmu2,xl,DIFF,WTING temp variables
 !@var i,ii,j,k dummy loop index
       REAL*8 AIRMAS,Ux,HFASTJ,xmu1,xmu2,xl, diff, wting
       INTEGER i,ii,j,k
-CWarning:To me, this is unclear, because I don't see where Ux and HFASTJ
-C are defined! but this is true of older models too. GSF 2/18/02
       AIRMAS(Ux,HFASTJ)=(1.0d0+HFASTJ)/SQRT(Ux*Ux+2.0d0*HFASTJ*(1.0d0-
      $       0.6817d0*EXP(-57.3d0*ABS(Ux)/SQRT(1.0d0+5500.d0*HFASTJ))/
      $                                  (1.0d0+0.625d0*HFASTJ)))
