@@ -126,8 +126,7 @@ C****
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
          READ (2) ITAU1,XLABEL
          READ (2)
-ccc uncomment following line when rsf files are updated
-         !READ (2) ! - skip parameters
+         READ (2) ! - skip parameters
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
 C**** check which ocean
          READ (2) HEADER
