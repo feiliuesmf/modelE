@@ -110,7 +110,7 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 LMCM=16              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
 DTsrc = 1800.        ! half-hour physics time step (default: DTsrc=3600.)
-DT=450.,             ! from default: DTsrc=3600.,
+DT=450.,             ! dynamic time step
 NIsurf=1,            ! number of surface time steps
 
 ! The next 4 parameters correspond to the half-hour physics time step

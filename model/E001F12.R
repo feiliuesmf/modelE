@@ -18,14 +18,14 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-! ATURB                             ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -86,6 +86,7 @@ DTFIX=112.5
 X_SDRAG=.00025,.000025
 C_SDRAG=0.
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+do_polefix=0    ! polefix enhancements not yet valid for 2x2.5 resolution
 
 KOCEAN=0
 U00ice=.45   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
