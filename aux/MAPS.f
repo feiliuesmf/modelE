@@ -114,6 +114,7 @@ C**** CMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 36 by JM.  If JM = 24 and KDSN > 0, the
 C**** output indicates the continents for the medium resolution.
 C****
+      PARAMETER (IM=36)
       REAL*4 A(36,1),WEIGHT(36,1)
       CHARACTER*80 TITLE,TITLEI
       COMMON /MAPCOM/ ALAT(24),HSUM(2),GSUM,APOINT(36,24)
@@ -122,12 +123,13 @@ C****
       CHARACTER*3 LAND(36),LINE(36),BLANK,PERIOD,MINUS,PLUS
       CHARACTER*5 XCHAR
 C****
-      DATA IM/36/, JMLAST/0/, KDLAST/0/
+      DATA JMLAST/0/, KDLAST/0/
       DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
       DATA BLANK/'   '/, PERIOD/' ..'/, MINUS/' --'/, PLUS/' ++'/
+      save jmlast,kdlast,skip,char,BLANK,PERIOD,MINUS,PLUS,FJEQ
 C****
       IF(JM.EQ.JMLAST)  GO TO 200
       JMLAST=JM
@@ -315,6 +317,7 @@ C****
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
       DATA BLANK/'   '/, MINUS/' --'/, PLUS/' ++'/
       DATA RCOL/'LAT ','MEAN'/
+      save jmlast,kdlast,skip,char,BLANK,PERIOD,MINUS,PLUS,FJEQ,rcol
 C****
       QLAND = JM.EQ.46 .AND. KDSN.GT.0
       IF(JM.EQ.JMLAST)  GO TO 200
@@ -377,7 +380,7 @@ C****
       DO 450 I=IMIN,IMAX
       WT(J) = WT(J) + WEIGHT(I,J)
 C**** If WEIGHT=0 or A=SKIP, blank out the grid point
-      if(j.eq.0)write(0,*) j,jmin,jmax,jhemi,jm,fjeq ! leave in, opt err
+c     if(j.eq.0)write(0,*) j,jmin,jmax,jhemi,jm,fjeq ! leave in, opt err
       IF(WEIGHT(I,J).NE.0. .AND. A(I,J).NE.SKIP)  GO TO 410
       LINE(I) = BLANK
       GO TO 450
@@ -514,6 +517,7 @@ C****
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
       DATA BLANK/'   '/, MINUS/' --'/, PLUS/' ++'/
       DATA RCOL/3*'LAT ','MEAN'/
+      save jmlast,kdlast,skip,char,BLANK,PERIOD,MINUS,PLUS,FJEQ,rcol
 C****
       QLAND = JM.EQ.90 .AND. KDSN.GT.0
       IF(JM.EQ.JMLAST)  GO TO 200
@@ -688,6 +692,7 @@ C**** WMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 12 by JM.  If JM = 24 and KDSN > 0, the
 C**** output indicates the continents for the wonder resolution.
 C****
+      PARAMETER (IM=12)
       REAL*4 A(12,1),WEIGHT(12,1)
       CHARACTER*80 TITLE,TITLEI
       COMMON /MAPCOM/ ALAT(24),ASHEMI,ANHEMI,AGLOB,APOINT(12,24)
@@ -696,12 +701,13 @@ C****
       CHARACTER*4 LAND(12),LINE(12),BLANK,PERIOD,MINUS,PLUS
       CHARACTER*6 XCHAR
 C****
-      DATA IM/12/, JMLAST/0/, KDLAST/0/
+      DATA JMLAST/0/, KDLAST/0/
       DATA SKIP /-1.e20/
       DATA CHAR/'1','2','3','4','5','6','7','8','9','A','B','C',
      *          'D','E','F','G','H','I','J','K','L','M','N','O',
      *          'P','Q','R','S','T','U','V','W','X','Y','Z'/
       DATA BLANK/'    '/, PERIOD/'  ..'/, MINUS/' ---'/, PLUS/' +++'/
+      save jmlast,kdlast,skip,char,BLANK,PERIOD,MINUS,PLUS
 C****
       IF(JM.EQ.JMLAST)  GO TO 200
       JMLAST = JM
