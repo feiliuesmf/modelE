@@ -631,6 +631,9 @@ C**** moved up.
          IF(FSSL_tmp.LT.CLDMIN) FSSL_tmp=CLDMIN
          IF(FSSL_tmp.GT.1.d0-CLDMIN) FSSL_tmp=1.d0-CLDMIN
          FMC1=1.d0-FSSL_tmp+teeny
+      ELSE
+C**** guard against possibility of too big a plume
+        MPLUME=MIN(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
       END IF
 
 C**** adjust MPLUME to take account of restricted area of subsidence
@@ -2039,7 +2042,7 @@ cdmk change GET_WASH below - extra arguments
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          if (CM.GT.teeny) b_beta_DT = FCLD*CM*dtsrc
+          b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF)
 cdmk added arguments above; THLAW added below (no way to factor this)

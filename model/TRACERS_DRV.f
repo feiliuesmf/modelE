@@ -5109,7 +5109,7 @@ C
           fq = 0.D0
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
-          fq = -b_beta_DT*(DEXP(-PREC*rc_wash)-1.D0)
+          fq = -b_beta_DT*(EXP(-PREC*rc_wash)-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
 #endif
         CASE DEFAULT                          ! error

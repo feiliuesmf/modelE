@@ -1884,7 +1884,7 @@ cdmk change GET_WASH below - extra arguments
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          if (CM.GT.teeny) b_beta_DT = FCLD*CM*dtsrc
+          b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF)
 cdmk added arguments above; THLAW added below (no way to factor this)
