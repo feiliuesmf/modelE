@@ -585,7 +585,7 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           do i=1,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
               write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
-     *             ,n) 
+     *             ,n)," in ",SUBR,"." 
               QCHECKT=.true.
             end if
           end do
