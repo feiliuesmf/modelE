@@ -1,4 +1,6 @@
 c f90 -c -64 NCACC.f
+!RKF: Mofified by Rosalinda de Fainchtein 7/16/03
+
       subroutine write_nc_acc(fileout)
       use MODEL_COM
       use GEOM
@@ -440,6 +442,7 @@ c-----------------------------------------------------------------------
       end subroutine ncget_iparm
 
       subroutine ncwrt_dparm(dparm_name,ncid,dparm,krc)
+!RKF: moved krc declaration up.
       implicit none
       include 'netcdf.inc'
       integer :: ncid,krc
@@ -455,6 +458,7 @@ c-----------------------------------------------------------------------
       end subroutine ncwrt_dparm
 
       subroutine ncget_dparm(dparm_name,ncid,dparm,krc)
+!RKF: moved krc declaration up.
       implicit none
       include 'netcdf.inc'
       integer :: ncid,krc

@@ -4,6 +4,7 @@
 !@ver  1.0
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
+      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 
@@ -137,11 +138,13 @@ C**** slightly larger, to sample all points within the cycle
 
 !**** Boundary condition arrays:
 !@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
-      REAL*8, DIMENSION(IM,JM) :: ZATMO,HLAKE,
+!AOO      REAL*8, DIMENSION(IM,JM) :: ZATMO,HLAKE,
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZATMO,HLAKE,
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
      *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
 !@var WFCS water field capacity of first ground layer (kg/m2)  ???
-      REAL*8, DIMENSION(IM,JM) :: WFCS
+!AOO      REAL*8, DIMENSION(IM,JM) :: WFCS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: WFCS
 
 !**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
@@ -162,15 +165,18 @@ C**** slightly larger, to sample all points within the cycle
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-      REAL*8, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
+!AOO      REAL*8, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: U,V,T,Q,WM
 !@var P surface pressure (hecto-Pascals - PTOP)
-      REAL*8, DIMENSION(IM,JM) :: P
+!AOO      REAL*8, DIMENSION(IM,JM) :: P
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: P
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types
       INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
 !@var FTYPE fractions of each surface type
-      REAL*8, DIMENSION(NTYPE,IM,JM) :: FTYPE
+!AOO      REAL*8, DIMENSION(NTYPE,IM,JM) :: FTYPE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FTYPE
 !@param ITxx indices of various types (used only when it matters)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
@@ -190,6 +196,44 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
+
+      CONTAINS 
+
+      SUBROUTINE INIT_MODEL_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at 
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      ALLOCATE( ZATMO(IM,J_0H:J_1H), 
+     *          HLAKE(IM,J_0H:J_1H),
+     *          FLAND(IM,J_0H:J_1H),
+     *         FOCEAN(IM,J_0H:J_1H),
+     *          FLICE(IM,J_0H:J_1H),
+     *         FLAKE0(IM,J_0H:J_1H),
+     *         FEARTH(IM,J_0H:J_1H),
+     *           WFCS(IM,J_0H:J_1H),
+     *              P(IM,J_0H:J_1H),
+     *         STAT=IER)
+      ALLOCATE(     U(IM,J_0H:J_1H,LM),
+     *              V(IM,J_0H:J_1H,LM),
+     *              T(IM,J_0H:J_1H,LM),
+     *              Q(IM,J_0H:J_1H,LM),
+     *             WM(IM,J_0H:J_1H,LM),
+     *         STAT=IER)
+      ALLOCATE( FTYPE(NTYPE,IM,J_0H:J_1H), 
+     *         STAT=IER)
+
+      END SUBROUTINE INIT_MODEL_COM
 
       END MODULE MODEL_COM
 

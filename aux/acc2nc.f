@@ -28,13 +28,15 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
       call getarg(0,cmdstr)
       if(iargc().ne.2) then
          stopstr=trim(cmdstr)//' infile outfile'
-         stop trim(stopstr)
+         stop 'iargc().ne.2'
+!        stop trim(stopstr)
       endif
       call getarg(1,accfile)
       inquire(file=accfile,exist=ex)
       if(.not.ex) then
          stopstr='file does not exist: '//trim(accfile)
-         stop trim(stopstr)
+         stop 'file does not exist'
+!        stop trim(stopstr)
       endif
       call getarg(2,outfile)
 C****

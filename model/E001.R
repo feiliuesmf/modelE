@@ -1,5 +1,8 @@
 E001.R GISS Model E  2002 modelE                 rar  6/20/02
 
+!RKF: This file modified by Rosalinda de Fainchtein 7/16/03
+!RKF: Added DOMAIN_DECOMP to the list of object modules below.
+
 modelE with 12 lyrs, top at 10 mb - 1979 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer
@@ -17,6 +20,7 @@ RES_M12                             ! horiz/vert resolution, 4x5deg, 12 layers -
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
+DOMAIN_DECOMP
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
@@ -142,6 +146,6 @@ nda5s=1         ! use =7 to save cpu time
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
+   YEARE=1950,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=1,
  &END

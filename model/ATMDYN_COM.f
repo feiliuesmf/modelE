@@ -2,67 +2,135 @@
 !@sum  DYNAMICS contains all the pressure and momentum related variables
 !@auth Original development team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE DOMAIN_DECOMP, ONLY : grid
+      USE RESOLUTION , ONLY : LM
       IMPLICIT NONE
       SAVE
 C**** Some helpful arrays (arrays should be L first)
 !@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PLIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PDSIG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
 !@var  AM  Air mass of each box (kg/m^2)
-      REAL*8, DIMENSION(LM,IM,JM) :: AM     ! PLIJ*DSIG(L)*100/grav
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AM     ! PLIJ*DSIG(L)*100/grav
 !@var  BYAM  1/Air mass (m^2/kg)
-      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: BYAM
 !@var  PMID  Pressure at mid point of box (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
-      REAL*8, DIMENSION(LM,IM,JM) :: PK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
 !@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN  ! SIGE(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
 !@var  PEK  PEUP**KAPA
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
-      REAL*8, DIMENSION(IM,JM) :: SQRTP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTP
 !@var  PTROPO  Pressure at mid point of tropopause level (mb)
-      REAL*8, DIMENSION(IM,JM) :: PTROPO
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
 !@var  LTROPO  Tropopause layer
-      INTEGER, DIMENSION(IM,JM) :: LTROPO
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: LTROPO
 
 C**** module should own dynam variables used by other routines
 !@var PTOLD pressure at beginning of dynamic time step (for clouds)
-      REAL*8, DIMENSION(IM,JM)    :: PTOLD
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: PTOLD
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
-      REAL*8, DIMENSION(IM,JM,LM) :: SD_CLOUDS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SD_CLOUDS
 !@var GZ geopotential height (for Clouds and Diagnostics)
-      REAL*8, DIMENSION(IM,JM,LM) :: GZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GZ
 !@var DPDX_BY_RHO,DPDY_BY_RHO (pressure gradients)/density at L=1
-      REAL*8, DIMENSION(IM,JM)  :: DPDX_BY_RHO,DPDY_BY_RHO
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO,DPDY_BY_RHO
 !@var DPDX_BY_RHO_0,DPDY_BY_RHO_0 surface (pressure gradients)/density
-      REAL*8, DIMENSION(IM,JM)  :: DPDX_BY_RHO_0,DPDY_BY_RHO_0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO_0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDY_BY_RHO_0
 
-      REAL*8, DIMENSION(IM,JM,LM) :: PU,PV,CONV
-      REAL*8, DIMENSION(IM,JM,LM-1) :: SD
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PU,PV,CONV
+c$$$      REAL*8, DIMENSION(IM,JM,LM-1) :: SD
+      REAL*8, POINTER :: SD(:,:,:)
 !@var PIT  pressure tendency (mb m^2/s)
-      REAL*8, DIMENSION(IM,JM) :: PIT
-      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
-      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
+      REAL*8, POINTER :: PIT(:,:)
+c$$$      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
+c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 
-      REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI,SPA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DUT,DVT
 !@var xAVRX scheme-depend. coefficient for AVRX: 1,byrt2 (2nd,4th order)
       REAL*8 xAVRX
 
 !@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)
 !@var MA Air mass array for tracers (updated during advection)
-      REAL*8, DIMENSION(IM,JM,LM) :: PUA,PVA,SDA,MB,MA
-      REAL*8, DIMENSION(IM,JM) :: PS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MA
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
-      REAL*8, DIMENSION(IM,JM,LM) :: DKE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
 !@var WSAVE vertical velocity (m/s)
-      REAL*8, DIMENSION(IM,JM,LM) :: WSAVE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
+
+      CONTAINS
+
+      SUBROUTINE INIT_DYNAMICS(grid)
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: I_0H, I_1H, J_1H, J_0H
+      INTEGER :: IER
+
+      INTEGER :: I,J,L
+
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+      
+      ! K-I-J arrays
+      ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 
+     $           PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
+     $             AM(LM,I_0H:I_1H,J_0H:J_1H),  
+     $           BYAM(LM,I_0H:I_1H,J_0H:J_1H),
+     $           PMID(LM,I_0H:I_1H,J_0H:J_1H),    
+     $           PK(LM,I_0H:I_1H,J_0H:J_1H),
+     $           PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 
+     $            PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
+     $   STAT = IER)
+      ! I-J-K arrays
+      ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                 GZ(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                 PU(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                 PV(I_0H:I_1H,J_0H:J_1H,LM), 
+     $               CONV(I_0H:I_1H,J_0H:J_1H,LM), 
+     $               PHI(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                SPA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                DUT(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                DVT(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                PUA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                PVA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                SDA(I_0H:I_1H,J_0H:J_1H,LM),  
+     $                MB(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                MA(I_0H:I_1H,J_0H:J_1H,LM), 
+     $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
+     $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM), 
+     $   STAT = IER)
+
+      ! F90 pointers replace EQUIVALENCE
+      SD  => CONV(:,:,2:)
+      PIT => CONV(:,:,1)
+
+      ! I-J arrays
+      ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
+     $          PTROPO(I_0H:I_1H,J_0H:J_1H),
+     $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
+     $          PTOLD(I_0H:I_1H,J_0H:J_1H),
+     $          DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H), 
+     $          DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
+     $          DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
+     $          DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
+     $          PS(I_0H:I_1H,J_0H:J_1H),
+     $   STAT = IER)
+
+
+      END SUBROUTINE INIT_DYNAMICS
 
       END MODULE DYNAMICS
 

@@ -8,6 +8,8 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE MODEL_COM
+      USE DOMAIN_DECOMP, ONLY : init_decomp, grid, finish_decomp
+      USE DYNAMICS
       USE RADNCB, only : dimrad_sv
       USE RANDOM
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -28,6 +30,12 @@
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       external sig_stop_model
       LOGICAL :: qcrestart
+
+!RKF   Allocate arrays
+!
+        call init_decomp(im,jm)
+        call init_dynamics(grid)
+        call init_model_com(grid)
 C****
 C**** Processing command line options
 C****
@@ -62,7 +70,6 @@ C****
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
          MODD5K=1000
-
       CALL DAILY(.false.)                  ! not end_of_day
       if (istart.le.9) call reset_diag(0)
       if (Kradia.le.0) then
@@ -451,6 +458,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
+      call finish_decomp()
+
       IF (Itime.ge.ItimeE) CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop

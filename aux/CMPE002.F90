@@ -175,11 +175,13 @@
       program compare
       use CMP
       use filemanager
-      use model_com, only : ioread
-#ifdef GSFC_COMPAT
-      use model_com, only : im,jm,init_model_com
+!ccc module to allocate dynamic arrays
+!AOO use statements added for domain_decomp and dynamics to pull in 
+!AOO dynamically allocated arrays
       use domain_decomp, only : init_decomp, grid, finish_decomp
-#endif
+      use dynamics, only : init_dynamics
+      use model_com, only : ioread
+      use model_com, only : im,jm,init_model_com
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -251,7 +253,10 @@
       integer ioerr
       character*120 file_name(2)
       integer fd,i
-
+!AOO added calls ti init routines for dynamically allocated arrays.
+      call init_decomp(im,jm)
+      call init_dynamics(grid)
+      call init_model_com(grid)
       IF(IARGC().NE.2) then
          print *,"CMPE002 compares data in two restart files"
          print *,"Usage: CMPE002 file_1 file_2"
