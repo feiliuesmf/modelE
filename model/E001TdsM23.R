@@ -101,6 +101,7 @@ O3file_07=aug2003_o3_shindelltrop_72x46x18x12_1970
 O3file_08=aug2003_o3_shindelltrop_72x46x18x12_1980
 O3file_09=aug2003_o3_shindelltrop_72x46x18x12_1990
 O3trend=aug2003_o3timetrend_46x18x2412_1850_2050
+Ox_corr=gsin/corrOx_modelE_v4
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
