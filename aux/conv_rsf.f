@@ -164,9 +164,8 @@ c     the subroutine diffus.
         end do
       end do
 
-C**** initialize TSFREZ to defaults
-      TSFREZ(:,:,1:2)=365.
-      TSFREZ(:,:,3:4)=-999.
+C**** set TSFREZ to zero (proper initalisation in init_diag)
+      TSFREZ(:,:,:)=0.
 
 C**** set default values for evaporation limiting arrays
       evap_max_ij(:,:) = 1.d0
