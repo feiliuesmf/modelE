@@ -589,7 +589,7 @@ c****
         do i=1,im
           pearth=fearth(i,j)
 c**** check whether data exist at this point. We should use a
-c**** nearest neighbour apporximation.
+c**** nearest neighbour approximation.
 c**** In the meantime, use arbitrary point 10,40 (TEMPORARY FIX)
           if (pearth.gt.0) then
             if (sum(vdata(i,j,1:10)).eq.0) then
