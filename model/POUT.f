@@ -480,7 +480,7 @@ c     &       ,cx,cy,cblank,cblank,'NASAGISS'
       return
       end subroutine close_diurn
 
-      subroutine open_diurn(filename,NDIUVAR_gcm)
+      subroutine open_diurn(filename,hr_in_day,NDIUVAR_gcm)
 !@sum  OPEN_DIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner     
 !@ver  1.0
@@ -489,13 +489,13 @@ c     &       ,cx,cy,cblank,cblank,'NASAGISS'
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      INTEGER, INTENT(IN) :: NDIUVAR_gcm
+      INTEGER, INTENT(IN) :: hr_in_day,NDIUVAR_gcm
       call openunit(filename,iu_diurn,.false.,.false.)
       NDIUVAR = NDIUVAR_gcm
       return
       end subroutine open_diurn
 
-      subroutine POUT_diurn(NAME,UNITS,FHOUR,NAMDD,IJDD1,IJDD2,
+      subroutine POUT_diurn(SNAME,NAME,UNITS,FHOUR,NAMDD,IJDD1,IJDD2,
      &     HR_IN_DAY,kp)
 !@sum  POUT_diurn output hourly diurnal_cycle ascii file (aplot format)
 !@auth J. Lerner     
@@ -503,7 +503,7 @@ c     &       ,cx,cy,cblank,cblank,'NASAGISS'
       USE GISSOUT
       IMPLICIT NONE
 !@var NAME,UNITS dummy strings
-      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME,SNAME
       CHARACTER*4, INTENT(IN) :: NAMDD !names of boxes
       INTEGER, INTENT(IN) :: HR_IN_DAY,KP,IJDD1,IJDD2
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR), INTENT(IN) :: FHOUR
@@ -552,7 +552,7 @@ C**** output daily mean
       return
       end subroutine close_hdiurn
 
-      subroutine open_hdiurn(filename,NDIUVAR_gcm)
+      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm)
 !@sum  OPEN_HDIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner
 !@ver  1.0
@@ -561,13 +561,13 @@ C**** output daily mean
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      INTEGER, INTENT(IN) :: NDIUVAR_gcm
+      INTEGER, INTENT(IN) :: hr_in_month,NDIUVAR_gcm
       call openunit(filename,iu_hdiurn,.false.,.false.)
       NDIUVAR = NDIUVAR_gcm
       return
       end subroutine open_hdiurn
 
-      subroutine POUT_hdiurn(NAME,UNITS,FHOUR,NAMDD,IJDD1,IJDD2,
+      subroutine POUT_hdiurn(SNAME,NAME,UNITS,FHOUR,NAMDD,IJDD1,IJDD2,
      &     HR_IN_period,kp)
 !@sum  POUT_hdiurn output hourly diurnal_cycle ascii file (aplot format)
 !@auth J. Lerner
@@ -575,7 +575,7 @@ C**** output daily mean
       USE GISSOUT
       IMPLICIT NONE
 !@var NAME,UNITS dummy strings
-      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME,SNAME
       CHARACTER*4, INTENT(IN) :: NAMDD !names of boxes
       INTEGER, INTENT(IN) :: HR_IN_period,KP,IJDD1,IJDD2
       REAL*8, DIMENSION(HR_IN_period+4,NDIUVAR), INTENT(IN) :: FHOUR

@@ -28,9 +28,10 @@ C**** have to wait.
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp
+     &    ,iu_diurn,iu_hdiurn
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
-      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req
 !@var JMMAX maximum conceivable JM
@@ -143,6 +144,20 @@ c-----------------------------------------------------------------------
       end subroutine close_out
 
       end module ncout
+
+      subroutine wrtgattc(att_name,att)
+      use ncout
+      implicit none
+      include 'netcdf.inc'
+      character(len=30) :: att_name
+      character(len=100) :: att
+c-----------------------------------------------------------------------
+c write global attribute of type character
+c-----------------------------------------------------------------------
+      status_out=nf_put_att_text(out_fid,nf_global,trim(att_name),
+     &     len_trim(att),att)
+      return
+      end subroutine wrtgattc
 
       subroutine wrtarr(var_name,var)
       use ncout
@@ -373,6 +388,8 @@ C**** set dimensions
 
       character(len=30) :: var_name,lon_name,lat_name
 
+      out_fid = iu_ij
+
 ! (re)set shape of output array
       ndims_out = 2
       if(ijgrid.eq.1) then
@@ -524,6 +541,8 @@ C**** set dimensions
 
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER J,L
+
+      out_fid = iu_jl
 
 ! (re)set shape of output arrays
       ndims_out = 2
@@ -687,6 +706,8 @@ C**** set units
       character(len=20), intent(in) :: sname,unit
       character(len=80), intent(in) :: lname
 
+      out_fid = iu_il
+
 ! (re)set shape of output arrays
       ndims_out = 2
 
@@ -807,6 +828,8 @@ c
 
       character(len=30) :: var_name,dim_name
 
+      out_fid = iu_j
+
 ! write out surface type name
       ndims_out = 2
       dim_name='stype_clen'; call set_dim_out(dim_name,1)
@@ -913,6 +936,8 @@ C**** set dimensions
       character(len=30) :: var_name,dim_name
 
       integer :: j,l,jpack,lpack
+
+      out_fid = iu_ijk
 
 c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
       lpack = 1
@@ -1048,6 +1073,8 @@ C**** set dimensions
 
       character(len=30) :: var_name,dim_name
 
+      out_fid = iu_isccp
+
 ! (re)set shape of output array
       ndims_out = 3
 
@@ -1067,16 +1094,148 @@ C**** set dimensions
       return
       end subroutine pout_isccp
 
-C**** These entries are to allow model compilation with netcdf output.
-C**** These subroutines need to be filled in so that diurn and hdiurn
-C**** output are available in netcdf format, following the example of
-C**** open_j/close_j/pout_j
+      subroutine open_diurn(filename,hr_in_period,NDIUVAR_gcm)
+!@sum  OPEN_DIURN opens the average diurnal cycle netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : ndiupt,namdd,ijdd
+      USE NCOUT, only : im,jm,lm,iu_diurn,set_dim_out,def_dim_out,
+     &     out_fid,outfile,units,long_name,ndims_out,open_out,prog_dtype
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+      INTEGER, INTENT(IN) :: hr_in_period,NDIUVAR_gcm
+!
+      character(len=3) :: istr,jstr
+      character(len=30) :: var_name,dim_name,att_name
+      character(len=100) :: loc_info
+      integer :: n
 
-      subroutine open_diurn
-      entry close_diurn
-      entry pout_diurn
-      entry open_hdiurn
-      entry close_hdiurn
-      entry pout_hdiurn
-      
+      outfile = trim(filename)//".nc"
+
+! define output file
+      call open_out
+      iu_diurn = out_fid
+
+C**** set dimensions
+      im=hr_in_period
+      jm=NDIUVAR_gcm
+
+      dim_name='hour'; call def_dim_out(dim_name,im)
+
+! write the names and i,j indices of diagnostic locations
+      loc_info=''
+      do n=1,ndiupt
+         write(istr,'(i3)') ijdd(1,n)
+         istr = adjustl(istr)
+         write(jstr,'(i3)') ijdd(2,n)
+         jstr = adjustl(jstr)
+         loc_info = trim(loc_info)//' '//namdd(n)//'='//
+     &        trim(istr)//','//trim(jstr)
+      enddo
+      att_name='locations'
+      call wrtgattc(att_name,loc_info)
+
+c      ndims_out = 1
+c      dim_name='hour'; call set_dim_out(dim_name,1)
+c      units='1'
+c      var_name='hour';call wrtarr(var_name,hours)
+
+      return
       end subroutine open_diurn
+
+      subroutine close_diurn
+!@sum  OPEN_DIURN closes the average diurnal cycle netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_diurn
+      call close_out
+
+      return
+      end subroutine close_diurn
+
+      subroutine POUT_diurn(SNAME_IN,NAME_IN,UNITS_IN,
+     &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD,kp)
+!@sum  POUT_diurn outputs the average diurnal_cycle netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var SNAME,NAME,UNITS short name, long name, and units strings
+      CHARACTER*16, DIMENSION(jm) :: UNITS_IN,NAME_IN,SNAME_IN
+      CHARACTER*4, INTENT(IN) :: NAMDD ! name of current output region
+      INTEGER, INTENT(IN) :: HR_IN_PERIOD,KP,IJDD1,IJDD2
+      REAL*8, DIMENSION(HR_IN_PERIOD+1,jm), INTENT(IN) :: FHOUR
+
+      character(len=30) :: var_name,dim_name
+      integer :: k
+
+      out_fid = iu_diurn
+
+! (re)set shape of output array
+      ndims_out = 1
+
+      dim_name = 'hour'
+      call set_dim_out(dim_name,1)
+
+      do k=1,kp
+         var_name = namdd//'_'//trim(sname_in(k))
+         long_name=trim(name_in(k))
+         units=trim(units_in(k))
+         call wrtarr(var_name,fhour(1,k))
+      enddo
+
+      return
+      end subroutine POUT_diurn
+
+      subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm)
+!@sum  OPEN_HDIURN opens the hour-by-hour history netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+! note: hdiurn output routines simply call diurn output routines;
+! to avoid file unit conflicts, open_hdiurn cannot be called if
+! any files are currently open through open_diurn
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+      INTEGER, INTENT(IN) :: hr_in_month,NDIUVAR_gcm
+!
+! extra 4 hours for radiation end-of-month wraparound
+      call open_diurn(filename,hr_in_month+4,NDIUVAR_gcm)
+
+      return
+      end subroutine open_hdiurn
+
+      subroutine close_hdiurn
+!@sum  OPEN_HDIURN closes the hour-by-hour history netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+      IMPLICIT NONE
+
+      call close_diurn
+      return
+      end subroutine close_hdiurn
+
+      subroutine POUT_hdiurn(SNAME_IN,NAME_IN,UNITS_IN,
+     &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD,kp)
+!@sum  POUT_hdiurn output hour-by-hour history netcdf output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var SNAME,NAME,UNITS short name, long name, and units strings
+      CHARACTER*16, DIMENSION(jm) :: UNITS_IN,NAME_IN,SNAME_IN
+      CHARACTER*4, INTENT(IN) :: NAMDD ! name of current output region
+      INTEGER, INTENT(IN) :: HR_IN_PERIOD,KP,IJDD1,IJDD2
+      REAL*8, DIMENSION(HR_IN_PERIOD+4,jm), INTENT(IN) :: FHOUR
+
+c the +3 is because pout_diurn expects fhour(hr_in_period+1,jm)
+      call pout_diurn(SNAME_IN,NAME_IN,UNITS_IN,
+     &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD+3,kp)
+
+      return
+      end subroutine POUT_hdiurn
+

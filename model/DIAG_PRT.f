@@ -4398,7 +4398,7 @@ C****
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
       REAL*8 :: AVE,AVED,AVEN,BYIDAC
       INTEGER :: I,IH,IREGF,IREGL,IS,K,KP,KQ,KR,NDAYS
-      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
 C****
       NDAYS=IDACC(ia_12hr)/2
@@ -4406,7 +4406,7 @@ C****
       BYIDAC=1./NDAYS
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  call open_diurn
-     &   (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),NDIUVAR)
+     &  (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),hr_in_day,NDIUVAR)
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
@@ -4448,10 +4448,11 @@ C**** RATIO OF TWO QUANTITIES
             MHOUR(IS)=NINT(XHOUR(IS))
           END DO
           WRITE (6,904) LNAME_DD(KQ),MHOUR
+          SNAMEO(KP)=NAME_DD(KQ)(1:16)
           LNAMEO(KP)=LNAME_DD(KQ)(1:16)
           UNITSO(KP)=UNITS_DD(KQ)(1:16)
         END DO
-        IF (QDIAG) CALL POUT_DIURN(LNAMEO,UNITSO,FHOUR,
+        IF (QDIAG) CALL POUT_DIURN(SNAMEO,LNAMEO,UNITSO,FHOUR,
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_DAY,KP)
       END DO
       IF (QDIAG) call close_diurn
@@ -4478,14 +4479,15 @@ C****
       REAL*8, DIMENSION(HR_IN_MONTH+4) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH+4) :: MHOUR
       INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS
-      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR) :: FHOUR
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  call open_hdiurn
-     &   (trim(acc_period)//'.hdiurn'//XLABEL(1:LRUNID),NDIUVAR)
+     &     (trim(acc_period)//'.hdiurn'//XLABEL(1:LRUNID),
+     &     hr_in_month,NDIUVAR)
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
       jdayofM = JDendOfM(jmon)-JDendOfM(jmon-1)
@@ -4525,10 +4527,11 @@ C**** RATIO OF TWO QUANTITIES
             ih0 = ih0+24
           end do
             WRITE (6,905) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+3)
+          SNAMEO(KP)=NAME_DD(KQ)(1:16)
           LNAMEO(KP)=LNAME_DD(KQ)(1:16)
           UNITSO(KP)=UNITS_DD(KQ)(1:16)
         END DO
-        IF (QDIAG) CALL POUT_HDIURN(LNAMEO,UNITSO,FHOUR,
+        IF (QDIAG) CALL POUT_HDIURN(SNAMEO,LNAMEO,UNITSO,FHOUR,
      *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_MONTH,KP)
       END DO
       IF (QDIAG) call close_hdiurn
