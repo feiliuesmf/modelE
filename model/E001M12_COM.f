@@ -88,7 +88,7 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
 
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
-!@var T potential temperature (referenced to 1 mb) (C)
+!@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
 !@var P surface pressure (centi-Pascals - PTOP) 

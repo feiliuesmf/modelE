@@ -25,7 +25,16 @@ C****   RXXM,RYYM,. (kg) = second moments of tracer mass
 C****
       USE E001M12_COM
      &   , ONLY : IM,JM,LM
-      IMPLICIT REAL*8 (A-H,M,O-Z)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: P
+      REAL*8, INTENT(IN) :: PSMPTP
+      REAL*8, INTENT(IN) :: DT
+      REAL*8, INTENT(OUT) :: FQU,FQV
+      INTEGER, INTENT(IN) :: LS1
+      REAL*8 :: MA,MU,MV,MW
+      REAL*8 :: PIT,SD,PU,PV
+
       LOGICAL*4 QLIMIT
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
@@ -36,6 +45,8 @@ C****
       COMMON /WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),
      *        PV(IM,JM,LM)
       DIMENSION P(IM,JM),FQU(IM,JM),FQV(IM,JM)
+      INTEGER I,J,L
+      REAL*8 BYMA
 
 C**** Fill in values at the poles
       DO 120 L=1,LM
@@ -149,16 +160,21 @@ C****                M (kg) = fluid mass
 C****
       USE E001M12_COM
      &   , ONLY : IM,JM,LM
-      IMPLICIT REAL*8 (A-H,M,O-Z)
-      REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
-     *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
-     *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
-      REAL*8  RM(IM,JM,LM),   M(IM,JM,LM)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: DT
+      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,RXXM
+     *     ,RYYM,RZZM,RXYM,RYZM,RZXM,M
+      REAL*8 MU(IM,JM,LM)
+      REAL*8, INTENT(OUT) :: FQU(IM,JM)
+
+      REAL*8, DIMENSION(IM) :: A,AM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
       LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU(IM,JM,LM)
-      COMMON /WORK04/ A(IM),AM(IM), F(IM),FX(IM),FY(IM),
-     *  FZ(IM),FXX(IM),FYY(IM),FZZ(IM),FXY(IM),FZX(IM),FYZ(IM)
-      DIMENSION FQU(IM,JM)
+      COMMON /FLUXCB/ MU
+      COMMON /WORK04/ A,AM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+
+      INTEGER I,J,L,IM1,IP1
+      REAL*8 RMFIM1,MOT2,BYMNEW,MNEW,G13AB,GAMMA,RMCEN
 C**** Loop over layers and latitudes
       DO 420 L=1,LM
       DO 420 J=2,JM-1
@@ -383,16 +399,21 @@ C****                M (kg) = fluid mass
 C****
       USE E001M12_COM
      &   , ONLY : IM,JM,LM,bytest=>BYIM
-      IMPLICIT REAL*8 (A-H,M,O-Z)
-      REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
-     *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
-     *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
-      REAL*8  RM(IM,JM,LM),   M(IM,JM,LM)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: DT
+      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,
+     *      RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,RM,M
+      REAL*8, DIMENSION(IM,JM,LM) :: MU,MV
       LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU(IM,JM,LM),MV(IM,JM,LM)
-      COMMON /WORK04/ B(JM),BM(JM), F(JM),FX(JM),FY(JM),
-     *  FZ(JM),FXX(JM),FYY(JM),FZZ(JM),FXY(JM),FZX(JM),FYZ(JM)
-      DIMENSION FQV(IM,JM)
+      COMMON /FLUXCB/ MU,MV
+      REAL*8, DIMENSION(JM) :: B,BM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+      COMMON /WORK04/ B,BM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+      REAL*8, INTENT(OUT) :: FQV(IM,JM)
+      INTEGER I,J,L
+      REAL*8 BYIM,SBMS,SBMN,SFS,SFZS,SFZZS,SFN,SFZN,SFZZN,MOT2,RMFJM1
+     *     ,MNEW,BYMNEW,G13AB,GAMMA,RMCEN
+
       BYIM = 1./IM  ! to be replaced by BYIM from E001M12_COM
 C**** Loop over layers and longitudes
       DO 440 L=1,LM
@@ -716,15 +737,21 @@ C****                M (kg) = air mass
 C****
       USE E001M12_COM
      &   , ONLY : IM,JM,LM
-      IMPLICIT REAL*8 (A-H,M,O-Z)
-      REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
-     *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
-     *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
-      REAL*8  RM(IM,JM,LM),   M(IM,JM,LM)
+      IMPLICIT NONE
+
+      REAL*8, INTENT(IN) :: DT
+      REAL*8, INTENT(INOUT),DIMENSION(IM,JM,LM) :: RM,RXM,RYM,RZM,
+     *      RXXM,RYYM,RZZM,RXYM,RYZM,RZXM,RM,M
+      REAL*8, DIMENSION(IM,JM,LM) :: MU,MV
+      REAL*8, DIMENSION(IM,JM,LM-1) :: MW
       LOGICAL*4 QLIMIT
-      COMMON /FLUXCB/ MU(IM,JM,LM),MV(IM,JM,LM),MW(IM,JM,LM-1)
-      COMMON /WORK04/ C(0:LM),CM(0:LM), F(0:LM),FX(LM),FY(LM),
-     *  FZ(LM),FXX(LM),FYY(LM),FZZ(LM),FXY(LM),FZX(LM),FYZ(LM)
+      COMMON /FLUXCB/ MU,MV,MW
+      REAL*8, DIMENSION(LM) :: FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+      REAL*8, DIMENSION(0:LM) :: C,CM,F
+      COMMON /WORK04/ C,CM,F,FX,FY,FZ,FXX,FYY,FZZ,FXY,FZX,FYZ
+      INTEGER I,J,L
+      REAL*8 MNEW,BYMNEW,MOT2,RMFLM1,G13AB,GAMMA,RMCEN
+
       C(0)   = 0.
       C(LM)  = 0.
       CM(0)  = 0.
