@@ -148,6 +148,10 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRDRYDEP 
 #endif
+#ifdef TRACERS_DUST
+!@var source flux of dust tracers [kg/s]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dustflux
+#endif
 #endif
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
@@ -293,6 +297,9 @@ C**** sea ice melt and iceberg/glacial melt.
        ALLOCATE(TRDRYDEP( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
          TRDRYDEP = 0.   !Initialize to 0.
+#endif
+#ifdef TRACERS_DUST
+      ALLOCATE(dustflux(I_0H:I_1H,J_0H:J_1H,NTM),STAT=IER)
 #endif
 #endif
 
