@@ -427,8 +427,11 @@ C****
       RETURN
       END SUBROUTINE apply_tracer_2Dsource
 
-
-      SUBROUTINE apply_tracer_3Dsource(ns,n)
+      MODULE apply3d
+!@sum apply3d is used simply so that I can get optional arguments
+!@+   to work. If anyone can some up with something neater, let me know.
+      CONTAINS
+      SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
@@ -440,34 +443,54 @@ C****
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs
       IMPLICIT NONE
-      REAL*8 fr3d
-      INTEGER, INTENT(IN) :: n,ns
-      INTEGER najl,i,j,l,naij
+!@var MOM true (default) if moments are to be modified
+      logical, optional, intent(in) :: momlog
+      integer, intent(in) :: n,ns
+      real*8 fr3d,taijsum(im,jm,lm)
+      logical :: domom
+      integer najl,i,j,l,naij
 
+C**** parse options
+      domom=.true.
+      if( present(momlog) ) then
+        domom=momlog
+      end if
+      print*,trname(n),n,ns,domom
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
+!$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
       do j=1,jm
       do i=1,imaxj(j)
 C**** calculate fractional loss
+        fr3d=0.
         if (tr3Dsource(i,j,l,ns,n).lt.0.) then
           fr3d = -tr3Dsource(i,j,l,ns,n)*dtsrc/(trm(i,j,l,n)+teeny)
-          trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)*(1.-fr3d)
+          if (domom) trmom(1:nmom,i,j,l,n) =
+     *         trmom(1:nmom,i,j,l,n)*(1.-fr3d)
         end if
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        if (1.-fr3d.le.1d-16) trm(i,j,l,n) = 0.
         tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
         taijs(i,j,naij)=taijs(i,j,naij)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
+!$OMP END PARALLEL DO
+      do j=1,jm
+        do i=1,imaxj(j)
+          taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
+        end do
+      end do
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
       RETURN
       END SUBROUTINE apply_tracer_3Dsource
 
-
+      end module apply3d
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner

@@ -4695,6 +4695,7 @@ C****
       USE MODEL_COM, only: itime
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
+      USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: nLightning, nAircraft, nChemistry
 #ifndef Shindell_Strat_chem
@@ -4724,7 +4725,7 @@ C****
       call Trop_chem_CH4(1,n)
       call apply_tracer_3Dsource(1,n)
       call Strat_chem_Prather(2,n)
-      call apply_tracer_3Dsource(2,n)
+      call apply_tracer_3Dsource(2,n,.false.)
 cc      call DIAGTCA(itcon_3Dsrc(2,n),n)
 C****
       case ('O3')
@@ -4739,13 +4740,13 @@ C****
       case ('N2O')
       tr3Dsource(:,:,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
-      call apply_tracer_3Dsource(1,n)
+      call apply_tracer_3Dsource(1,n,.FALSE.)
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
       case ('CFC11')
       tr3Dsource(:,:,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
-      call apply_tracer_3Dsource(1,n)
+      call apply_tracer_3Dsource(1,n,.FALSE.)
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
 #endif
@@ -4766,7 +4767,7 @@ C****
       case ('Be10')
 c 0.55 is ratio of Be10 to Be7 production
 c 10./7. is ratio of molecular weights
-        tr3Dsource(:,:,:,1,n) = 0.55*10./7.*be7_src_3d(:,:,:) !cosmogenic src
+        tr3Dsource(:,:,:,1,n) = 0.55d0*10./7.*be7_src_3d(:,:,:) !cosmogenic src
       call apply_tracer_3Dsource(1,n)
 C****
       case('Pb210')

@@ -179,8 +179,10 @@ C---  to this change (T0L):
           t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
           tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
 cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
-cc          trmom( mz,i,j,l,n) = trmom( mz,i,j,l,n) - t0l*g1l
-cc          trmom(mzz,i,j,l,n) = trmom(mzz,i,j,l,n) - t0l*g2l
+C**** moments are modified here since they are calculated specially
+C**** moments ARE NOT modified in apply_tracer_3Dsource
+          trmom( mz,i,j,l,n) = trmom( mz,i,j,l,n) - t0l*g1l
+          trmom(mzz,i,j,l,n) = trmom(mzz,i,j,l,n) - t0l*g2l
   130     CONTINUE
   140     CONTINUE
   150   CONTINUE
