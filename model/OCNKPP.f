@@ -1131,9 +1131,9 @@ C**** KPP variables
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
      *     alphaDT(LMO),betaDS(LMO),ghat(LMO),byhwide(0:LMO+1)
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
-      LOGICAL :: LDD = .FALSE.
+      REAL*8 UKJM(LMO,IM+1),UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
+      LOGICAL, PARAMETER :: LDD = .FALSE.
       INTEGER, SAVE :: IFIRST=1
-      INTEGER :: ILAST=0,JLAST=0
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
       REAL*8, SAVE :: BYDTS
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
@@ -1149,15 +1149,32 @@ C**** initiallise kpp routines
       END IF
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
-      UT(:,:,:) = UO(:,:,:)
-      VT(:,:,:) = VO(:,:,:)
+!$OMP PARALLEL DO PRIVATE(L)
+      DO L=1,LMO
+        UT(:,:,L) = UO(:,:,L)
+        VT(:,:,L) = VO(:,:,L)
+      END DO
+!$OMP END PARALLEL DO
 C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
 C****
+!$OMP PARALLEL DO  PRIVATE(ANSTR,AKVM,AKVS,AKVG,ALPHADT, BYMML,BYMMLT,
+!$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
+!$OMP&  DBSFC,DELTAFW,DELTAE,DELTAM,DELTAS,DELTASR,DTBYDZ,DTBYDZ2,DVSQ,
+!$OMP&  FLG,FLS,G,G0ML0,G0ML,GHAT,GHATM,GHATG,GHATS,GZML, HBL,HBLP,
+!$OMP&  HWIDE,I,II,IM1,ITER,IQ,J,JQ,K,KBL,KMUV,L,LMIJ,LMUV,MML,MML0,
+!$OMP&  MMLT, N,NSIGG,NSIGS, PO, QPOLE, R,R2,RAVM,RAMV,RJ,RI,RITOP,
+!$OMP&  RHO,RHO1,RHOM, S,S0ML0,S0ML,SBETA,SHSQ,SZML, TO,TALPHA,TXY,
+#ifdef TRACERS_OCEAN
+!$OMP&  TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT,
+#endif
+!$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
       DO 790 J=2,JM
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
+C**** initialise diagnostics saved over quarter boxes and longitude
+      OLJ(1:3,1:LMO,J) = 0.
 
       QPOLE = J.EQ.JM
       IF (QPOLE)  THEN
@@ -1381,7 +1398,7 @@ C**** Vertical mixing dependent on KPP boundary layer scheme
 C****
   500 IF(LMIJ.LE.1)  GO TO 725
 C**** Do not recalculate quantities good for all quarter boxes
-      IF (I.ne.ILAST .or. J.ne.JLAST) THEN
+      IF(IQ+JQ.EQ.2)  THEN
 
 C**** Z0 = OGEOZ/GRAV+HOCEAN Ocean depth (m)
 C****      scale depths using Z0/ZE(LMIJ)
@@ -1406,8 +1423,6 @@ c       OIJ(I,J,IJ_OGEOZ)=OIJ(I,J,IJ_OGEOZ)+OGEOZ(I,J)
       byhwide(LMO+1) = 0.
 
       END IF
-      ILAST = I
-      JLAST = J
 
 C**** If swfrac is not used add solar from next two levels to Bo
 C      DELTAE = DELTAE + FSR(2)*DELTASR
@@ -1598,35 +1613,56 @@ c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
        END DO
 C**** Also set vertical diagnostics
        DO L=1,LMIJ
-         OL(L,L_RHO) = OL(L,L_RHO) + RHO(L)
-         OL(L,L_TEMP)= OL(L,L_TEMP)+ TEMGS(G(L),S(L))
-         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
+CCC         OL(L,L_RHO) = OL(L,L_RHO) + RHO(L)
+CCC         OL(L,L_TEMP)= OL(L,L_TEMP)+ TEMGS(G(L),S(L))
+CCC         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
+         OLJ(1,L,J)= OLJ(1,L,J) + RHO(L) ! L_RHO
+         OLJ(2,L,J)= OLJ(2,L,J) + TEMGS(G(L),S(L)) ! L_TEMP
+         OLJ(3,L,J)= OLJ(3,L,J) + S(L) ! L_SALT
        END DO
 C**** Set diagnostics
-         OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
-         OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
-         OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
-         OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
-         IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL  ! save max. mixed layer depth
+       OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
+       OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
+       OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
+       OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
+       IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****
 C**** Update current prognostic variables
 C****
-      IF (QPOLE) THEN
-        DO II=1,IM
-          VO(II,JM-1,1:LMUV(II))=VO(II,JM-1,1:LMUV(II))+RAMV(II)*
-     *         (UL(1:LMUV(II),II)-VT(II,JM-1,1:LMUV(II)))
-        END DO
-        UO(1,JM,1:LMIJ)=UO(1,JM,1:LMIJ) + RAMV(IM+1)*
-     *       (UL(1:LMIJ,IM+1)-UT(1,JM,1:LMIJ))
+CCC      IF (QPOLE) THEN
+CCC        DO II=1,IM
+CCC          VO(II,JM-1,1:LMUV(II))=VO(II,JM-1,1:LMUV(II))+RAMV(II)*
+CCC     *         (UL(1:LMUV(II),II)-VT(II,JM-1,1:LMUV(II)))
+CCC        END DO
+CCC        UO(1,JM,1:LMIJ)=UO(1,JM,1:LMIJ) + RAMV(IM+1)*
+CCC     *       (UL(1:LMIJ,IM+1)-UT(1,JM,1:LMIJ))
+CCC      ELSE
+CCC        UO(IM1,J,1:LMUV(1))=UO(IM1,J,1:LMUV(1)) + RAMV(1)*
+CCC     *       (UL(1:LMUV(1),1)-UT(IM1,J,1:LMUV(1)))
+CCC        UO(I  ,J,1:LMUV(2))=UO(I  ,J,1:LMUV(2)) + RAMV(2)*
+CCC     *       (UL(1:LMUV(2),2)-UT(I  ,J,1:LMUV(2)))
+CCC        VO(I,J-1,1:LMUV(3))=VO(I,J-1,1:LMUV(3)) + RAMV(3)*
+CCC     *       (UL(1:LMUV(3),3)-VT(I,J-1,1:LMUV(3)))
+CCC        VO(I,J  ,1:LMUV(4))=VO(I,J  ,1:LMUV(4)) + RAMV(4)*
+CCC     *       (UL(1:LMUV(4),4)-VT(I,J  ,1:LMUV(4)))
+CCC      END IF
+
+      IF(QPOLE)  THEN
+         DO II=1,IM      
+           UKJM(1:LMUV(II),II) = RAMV(II)*(UL(1:LMUV(II),II)-
+     *          VT(II,JM-1,1:LMUV(II)))
+         END DO
+         UKJM(1:LMIJ,IM+1)= RAMV(IM+1)*(UL(1:LMIJ,IM+1)-
+     *        UT(1,JM,1:LMIJ))
       ELSE
-        UO(IM1,J,1:LMUV(1))=UO(IM1,J,1:LMUV(1)) + RAMV(1)*
-     *       (UL(1:LMUV(1),1)-UT(IM1,J,1:LMUV(1)))
-        UO(I  ,J,1:LMUV(2))=UO(I  ,J,1:LMUV(2)) + RAMV(2)*
-     *       (UL(1:LMUV(2),2)-UT(I  ,J,1:LMUV(2)))
-        VO(I,J-1,1:LMUV(3))=VO(I,J-1,1:LMUV(3)) + RAMV(3)*
-     *       (UL(1:LMUV(3),3)-VT(I,J-1,1:LMUV(3)))
-        VO(I,J  ,1:LMUV(4))=VO(I,J  ,1:LMUV(4)) + RAMV(4)*
-     *       (UL(1:LMUV(4),4)-VT(I,J  ,1:LMUV(4)))
+        UKM(1:LMUV(1),1,IQ,JQ,I,J) = RAMV(1)*(UL(1:LMUV(1),1)
+     *          -UT(IM1,J,1:LMUV(1)))
+        UKM(1:LMUV(2),2,IQ,JQ,I,J) = RAMV(2)*(UL(1:LMUV(2),2)
+     *          -UT(I  ,J,1:LMUV(2)))
+        UKM(1:LMUV(3),3,IQ,JQ,I,J) = RAMV(3)*(UL(1:LMUV(3),3)
+     *          -VT(I,J-1,1:LMUV(3)))
+        UKM(1:LMUV(4),4,IQ,JQ,I,J) = RAMV(4)*(UL(1:LMUV(4),4)
+     *          -VT(I,J  ,1:LMUV(4)))
       END IF
 
   725 IF(QPOLE)  GO TO 750
@@ -1725,8 +1761,46 @@ C****
       END DO
 C**** End of outside J loop
   790 CONTINUE
+!$OMP END PARALLEL DO
+
+C**** Update velocities outside parallel region
+
+C**** North pole
+      DO I=1,IM
+        VO(I,JM-1,1:LMV(I,JM-1))=VO(I,JM-1,1:LMV(I,JM-1))+
+     *       UKJM(1:LMV(I,JM-1),I)
+      END DO
+      UO(1,JM,1:LMU(1,JM))=UO(1,JM,1:LMU(1,JM)) + UKJM(1:LMU(1,JM),IM+1)
+C**** Everywhere else
+      DO J=2,JM-1
+        IM1=IM
+        DO I=1,IM
+          DO IQ=1,2
+          DO JQ=1,2
+            UO(IM1,J,1:LMU(IM1,J))=UO(IM1,J,1:LMU(IM1,J)) +
+     *           UKM(1:LMU(IM1,J),1,IQ,JQ,I,J)
+            UO(I  ,J,1:LMU(I  ,J))=UO(I  ,J,1:LMU(I  ,J)) +
+     *           UKM(1:LMU(I  ,J),2,IQ,JQ,I,J)
+            VO(I,J-1,1:LMV(I,J-1))=VO(I,J-1,1:LMV(I,J-1)) +
+     *           UKM(1:LMV(I,J-1),3,IQ,JQ,I,J)
+            VO(I,J  ,1:LMV(I,J  ))=VO(I,J  ,1:LMV(I,J  )) +
+     *           UKM(1:LMV(I,J  ),4,IQ,JQ,I,J)
+          END DO
+          END DO
+          IM1=I
+        END DO
+      END DO
+C**** sum global mean diagnostics
+      DO J=2,JM
+        DO L=1,LMO
+          OL(L,L_RHO) = OL(L,L_RHO) + OLJ(1,L,J)
+          OL(L,L_TEMP)= OL(L,L_TEMP)+ OLJ(2,L,J)
+          OL(L,L_SALT)= OL(L,L_SALT)+ OLJ(3,L,J)
+        END DO
+      END DO
+C****
       RETURN
-      END
+      END SUBROUTINE OCONV
 
       SUBROUTINE STCONV
 !@sum  STCONV uses vertical diffusion coefficients from KPP schmeme
@@ -1755,7 +1829,7 @@ C**** End of outside J loop
 #endif
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1,BYBETA=1d0/BETA
-      LOGICAL*4 :: LDD=.FALSE.
+      LOGICAL*4, PARAMETER :: LDD=.FALSE.
       REAL*8, SAVE :: zgrid(0:LMO+1),hwide(0:LMO+1),byhwide(0:LMO+1)
       REAL*8 Shsq(LMO),dVsq(LMO)
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
@@ -2019,7 +2093,7 @@ C****
 C**** End of outside loop over straits
   790 CONTINUE
       RETURN
-      END
+      END SUBROUTINE STCONV
 
       SUBROUTINE OVDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
 !@sum  OVDIFF Implicit vertical diff + non local transport for velocity

@@ -2653,7 +2653,8 @@ C****
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
       INTEGER, PARAMETER :: IIP=IM*(JM-2)+1
-      REAL*8, SAVE, DIMENSION(JM) :: KYPXP,KXPYV,KYVXV,KXVYP,BYDXYV,
+      REAL*8, DIMENSION(JM) :: KYPXP,KXPYV,KYVXV,KXVYP
+      REAL*8, SAVE, DIMENSION(JM) :: BYDXYV,
      *     KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
       REAL*8, DIMENSION(IM,JM,2) :: DUDX,DUDY,DVDX,DVDY
       REAL*8, DIMENSION(IM,JM) :: FUX,FUY,FVX,FVY,BYMU,BYMV
@@ -2794,6 +2795,9 @@ C**** At North Pole
       END IF
 C**** Solve diffusion equations semi implicitly
       DT2=DTDIFF*5d-1     ! half time-step
+!$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
+!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RE,RU,RV,
+!$OMP&  UU,UV,UT,UY,UX, VT,VY,VX) 
       DO L=1,LMO
 C**** Save (0.5*) mass reciprical for velocity points
       DO J=2,JM-1
@@ -3057,6 +3061,7 @@ C**** Call tridiagonal solver
       END DO
 C****
       END DO
+!$OMP END PARALLEL DO
 C**** Done!
       RETURN
       END SUBROUTINE ODIFF
