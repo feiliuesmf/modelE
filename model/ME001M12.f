@@ -2,9 +2,7 @@
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
-      USE CONSTANT, only : sday
       USE E001M12_COM
-      USE GEOM
       USE RANDOM
       USE DAGCOM, only : aij,keynr,kdiag,ij_tgo2
       USE DYNAMICS, only : filter,calc_ampk
@@ -12,7 +10,7 @@
       USE SEAICE_COM, only : rsi,msi
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MSUM,MODD5D,ioerr
+      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MODD5D,ioerr
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER CYEAR*4,CMMND*80
@@ -20,7 +18,7 @@
 C****
 C**** INITIALIZATIONS
 C****
-      CALL TIMER (MNOW,MINC,MSUM)
+      CALL GETTIME (MNOW)
       CALL INPUT
       WRITE (3) OFFSSW
       CLOSE (3)

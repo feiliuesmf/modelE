@@ -90,6 +90,40 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       RETURN
       END
 
+      SUBROUTINE TIMEOUT (MBEGIN,MIN,MOUT)
+!@sum  TIMEOUT redistributes timing info between counters
+!@auth Gary Russell
+!@ver  1.0 (SGI version)
+      IMPLICIT NONE
+!@var MBEGIN CPU time start of section (.01 s)
+      INTEGER, INTENT(IN) :: MBEGIN
+      INTEGER, INTENT(INOUT) :: MIN  !@var MIN counter to be added to
+      INTEGER, INTENT(INOUT) :: MOUT !@var MOUT counter to be taken from
+      INTEGER :: MINC                !@var MINC time since MBEGIN
+      INTEGER :: MNOW                !@var MNOW current CPU time (.01 s)
+      INTEGER :: MCLOCK              !@var MCLOCK intrinsic function
+
+      MNOW  = MCLOCK()
+      MINC  = MNOW - MBEGIN
+      MIN   = MIN  + MINC
+      MOUT  = MOUT - MINC
+      RETURN
+      END
+
+      SUBROUTINE GETTIME (MNOW)
+!@sum  GETTIME returns current CPU time
+!@auth Gary Russell
+!@ver  1.0 (SGI version)
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
+      INTEGER :: MCLOCK            !@var MCLOCK intrinsic function
+C**** Note this routine is only here so that all MCLOCK related
+C**** functions are in the same place, for ease of change on other
+C**** platforms
+      MNOW = MCLOCK()
+      RETURN
+      END
+
       SUBROUTINE TRIDIAG(A,B,C,R,U,N)
 !@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
 !@auth Numerical Recipes
