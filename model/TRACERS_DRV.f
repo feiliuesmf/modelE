@@ -5233,10 +5233,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_AEROSOLS_Koch
      *,sday
 #endif
-      USE MODEL_COM, only: itime,im,jm,lm,ls1
-#ifdef TRACERS_SPECIAL_Shindell
-     & ,jday,JEQ
-#endif
+      USE MODEL_COM, only: itime,im,jm,lm,ls1,jday,JEQ,ptop,psf,sig
 #ifdef TRACERS_AEROSOLS_Koch
      * ,dtsrc
 #endif
@@ -5317,6 +5314,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 !@var ICfactor varying factor for altering initial conditions
       INTEGER imonth, J2
       REAL*8 ICfactor
+!@var PRES local nominal pressure for vertical interpolations
+      REAL*8, DIMENSION(LM) :: PRES
 #ifdef regional_Ox_tracers
 !@var byNregOx reciprocal of the number of regional Ox tracers
       REAL*8 byNregOx
@@ -5348,6 +5347,9 @@ C****
 
 #ifdef regional_Ox_tracers
       byNregOx=1.d0/float(NregOx)
+#endif
+#ifdef SHINDELL_STRAT_CHEM
+      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
 #endif
       do n=1,ntm
       if (itime.eq.itime_tr0(n)) then
@@ -5611,13 +5613,18 @@ c**** earth
 #endif
 
         case ('NOx')
+#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11*ICfactor
+#ifdef SHINDELL_STRAT_CHEM
+            if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
+#endif
           end do; end do; end do
+#endif
 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
         case ('ClOx')
@@ -5646,6 +5653,7 @@ c**** earth
 #endif
 
         case ('N2O5')
+#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
@@ -5653,15 +5661,22 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12*ICfactor
           end do; end do; end do
+#endif
 
         case ('HNO3')
+#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10*ICfactor
+#ifdef SHINDELL_STRAT_CHEM
+            if(PRES(L).lt.50.and.PRES(L).gt.10.)
+     &      trm(i,j,l,n)=trm(i,j,l,n)*1.d2
+#endif
           end do; end do; end do
+#endif
 
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -5679,6 +5694,7 @@ c**** earth
           end do; end do; end do
 
         case ('HO2NO2')
+#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
@@ -5687,7 +5703,6 @@ c**** earth
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12*ICfactor
           end do; end do; end do
 
-#ifdef TRACERS_SPECIAL_Shindell
         case('CO')
 C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
 C         AM=kg/m2, and DXYP=m2:
@@ -5710,7 +5725,6 @@ C         AM=kg/m2, and DXYP=m2:
             END DO
           END DO
           J2=0
-#endif
 
         case ('PAN')
           select case(PI_run)
@@ -5761,6 +5775,7 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = 
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10*ICfactor
           end do; end do; end do
+#endif
 
         case ('CFC')
 #ifdef SHINDELL_STRAT_CHEM
