@@ -1,7 +1,7 @@
       MODULE RANDOM
-!@sum   RANDOM generates random numbers 
-!@auth  Reto Ruedy
-!@ver   1.0 (IBM version)
+!@sum   RANDOM generates random numbers: 0<RANDom_nUmber<1
+!@auth  Gary L. Russell
+!@ver   1.0 (IBM version, needs 32-bit architecture for integers!)
 !@cont  RANDU, RINIT, RFINAL
       IMPLICIT NONE
       INTEGER, SAVE :: IX            !@var IX     random number seed
@@ -28,13 +28,13 @@
 
       SUBROUTINE RINIT (INIT)
 !@sum   RINIT sets the initial seed IX
-      INTEGER, INTENT(IN)  :: INIT   !@var INIT   initial random no. seed
+      INTEGER, INTENT(IN)  :: INIT   !@var INIT   first random no. seed
       IX=INIT
       RETURN
       END SUBROUTINE RINIT
 
       SUBROUTINE RFINAL (IFINAL)
-!@sum   RFINAL retrieves final seed value 
+!@sum   RFINAL retrieves final seed value
       INTEGER, INTENT(OUT) :: IFINAL !@var IFINAL last random no. seed
       IFINAL=IX
       RETURN
