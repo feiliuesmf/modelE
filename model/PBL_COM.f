@@ -5,7 +5,7 @@
 !@auth Greg Hartke/Ye Cheng
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE SOCPBL, only : npbl=>n
+      USE SOCPBL, only : npbl=>n 
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm
 #endif

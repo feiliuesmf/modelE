@@ -58,8 +58,8 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
       USE MODEL_COM, only : im,jm,fim,focean
-      USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE GEOM, only : imaxj
+      USE STATIC_OCEAN, only : tocean,z1o,z12o
       IMPLICIT NONE
 !@var OCEANE zonal ocean energy (J/M^2)
       REAL*8, DIMENSION(JM) :: OCEANE

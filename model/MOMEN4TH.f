@@ -1,7 +1,7 @@
       subroutine init_MOM
 !@sum  init_MOM sets an order dependent coefficient for AVRX
-      USE DYNAMICS, only : XAVRX
       USE constant, only : byrt2
+      USE DYNAMICS, only : XAVRX
       XAVRX = byrt2 ! for 4th order scheme, 1 for 2nd order scheme
       CALL AVRX0
       RETURN
@@ -11,10 +11,10 @@
 !@sum  ADVECV Advects momentum (incl. coriolis) using 4-th order scheme
 !@auth Original development team
 !@ver  1.0
+      USE constant, only : by3,by6,by12
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
-      USE constant, only : by3,by6,by12
       IMPLICIT NONE
 
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM,LM)
@@ -283,8 +283,8 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L)
          END DO
          ASDU(IM,J,L)=DT2*((SD(IM,J-1,L)+SD(1,J-1,L))*RAVPN(J-1)+
      *                (SD(IM,J,L)+SD(1,J,L))*RAVPS(J))
-      END DO 
-      END DO 
+      END DO
+      END DO
 C$OMP  END PARALLEL DO
       L=1
       DO J=2,JM

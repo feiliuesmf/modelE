@@ -4,11 +4,11 @@
 !@sum  KPP_COM holds variables related to the KPP mixing scheme
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,lmo
-      USE SW2OCEAN, only : lsrpd
-#ifdef TRACERS_OCEAN      
+#ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm
 #endif
+      USE OCEAN, only : im,jm,lmo
+      USE SW2OCEAN, only : lsrpd
       IMPLICIT NONE
       SAVE
 !@var KPL level to which mixed layer descends (1)
@@ -16,11 +16,11 @@
 
       REAL*8, DIMENSION(IM,JM,LSRPD) :: G0M1
       REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
-#ifdef TRACERS_OCEAN      
+#ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM,IM,JM) :: TRMO1,TXMO1,TYMO1
 #endif
 
-      END MODULE
+      END MODULE KPP_COM
 C****
       MODULE KPPE
 !@sum  KPPE contains variables and routines for KPP mixing scheme
@@ -129,7 +129,7 @@ c     "wscale" to compute turbulent velocity scales:
 c
 !@var  nni     = number of values for zehat in the look up table
 !@var  nnj     = number of values for ustar in the look up table
-c    
+c
 !@var  wmt     = lookup table for wm, the turbulent velocity scale
 c               for momentum
 !@var  wst     = lookup table for ws, the turbulent velocity scale
@@ -201,7 +201,7 @@ c add variables for depth dependent mixing due to rough topography
       real*8 fz500
       common /topomix/FZ500(km,km)
 
-      END MODULE
+      END MODULE KPPE
 
       SUBROUTINE KPPMIX(LDD   , ZE    ,
      $                  zgrid , hwide , kmtj  , Shsq   , dVsq  ,
@@ -218,7 +218,7 @@ c     modified by: jan morzel,    june 30, 1994
 c                  bill large,  august 11, 1994
 c                  bill large, january 25, 1995 : "dVsq" and 1d code
 c     modified for GISS by Gavin Schmidt, march 1998
-c              for ModelE                 march 2001  
+c              for ModelE                 march 2001
 c
       USE KPPE
 !@var mdiff number of diffusivities for local arrays
@@ -237,21 +237,21 @@ c input
 !@var alphaDT alpha * DT  across interfaces (kg/m^3)
       real*8 alphaDT(km)
 !@var betaDS beta  * DS  across interfaces (kg/m^3)
-      real*8 betaDS(km) 
+      real*8 betaDS(km)
 !@var dbloc local delta buoyancy across interfaces (m/s^2)
       real*8 dbloc(km)
 !@var Ritop numerator of bulk Richardson Number (m/s)^2
 c          Ritop = (-z - -zref)* delta buoyancy w/ respect to sfc
       real*8 Ritop(km)
       real*8 Coriol   !@var Coriol Coriolis parameter            (1/s)
-      logical LDD     !@var LDD = TRUE for double diffusion 
+      logical LDD     !@var LDD = TRUE for double diffusion
 c output
 !@var visc vertical viscosity coefficient (m^2/s)
-      real*8 visc(0:km+1) 
+      real*8 visc(0:km+1)
 !@var difs vertical scalar diffusivity (m^2/s)
-      real*8 difs(0:km+1) 
+      real*8 difs(0:km+1)
 !@var dift vertical temperature diffusivity (m^2/s)
-      real*8 dift(0:km+1) 
+      real*8 dift(0:km+1)
       real*8 ghats(km)  !@var ghats nonlocal transport (s/m^2)
       real*8 hbl        !@var hbl boundary layer depth (m)
       real*8 byhbl      !@var byhbl 1/boundary layer depth (1/m)
@@ -1090,13 +1090,13 @@ C**** Save surface values
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
       USE CONSTANT, only : grav,omega
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : t_qlimit
+      USE OCEAN, only : trmo,txmo,tymo,tzmo,ntm
+#endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,ramvn
-#ifdef TRACERS_OCEAN
-     *     ,trmo,txmo,tymo,tzmo,ntm
-      USE TRACER_COM, only : t_qlimit
-#endif
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
      *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
@@ -1360,7 +1360,7 @@ C**** Loop over quarter boxes
           TRML(L,N,IQ,JQ) = 2.5d-1*(TRMO(I,J,L,N)+RI*TXMO(I,J,L,N)
      *         + RJ*TYMO(I,J,L,N))
           TZML(L,N,IQ,JQ) = 2.5d-1* TZMO(I,J,L,N)
-C**** 
+C****
           if (t_qlimit(N)) then
             TRML(L,N,IQ,JQ) = MAX(0d0,TRML(L,N,IQ,JQ))
             if (abs(TZML(L,N,IQ,JQ))>TRML(L,N,IQ,JQ))
@@ -1540,10 +1540,10 @@ C**** Salinity
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
 #ifdef TRACERS_OCEAN
-C**** Tracers are diffused after iteration and follow salinity 
+C**** Tracers are diffused after iteration and follow salinity
       DO L=1,LMIJ
         GHATT(L,:)=0.         !AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)*0.25
-      END DO 
+      END DO
       DO N=1,NTM
         CALL OVDIFFS(TRML(1,N,IQ,JQ),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2
      *       ,DTS,LMIJ,TRML(1,N,IQ,JQ),FLT(1,N))
@@ -1678,17 +1678,17 @@ C****
         TRMO(I,J,L,N) = TRML(L,N,2,2) + TRML(L,N,2,1) +
      *                  TRML(L,N,1,2) + TRML(L,N,1,1)
         NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
-        TXMO(I,J,L,N) =(TRML(L,N,2,2) + TRML(L,N,2,1) - 
-     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA 
-        TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) + 
-     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA 
-        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) = 
+        TXMO(I,J,L,N) =(TRML(L,N,2,2) + TRML(L,N,2,1) -
+     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
+        TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) +
+     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
+        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) =
      *       SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
-        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) = 
+        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) =
      *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
-     *                  TZML(L,N,1,2) + TZML(L,N,1,1) 
-C**** 
+     *                  TZML(L,N,1,2) + TZML(L,N,1,1)
+C****
         if (t_qlimit(n)) then   ! limit gradients
           TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
           if ( TXY > TRMO(I,J,L,N) ) then
@@ -1703,7 +1703,7 @@ C****
 C****
       END DO
       END DO
-#endif      
+#endif
 C**** End of I loop
   730 IM1=I
       I=I+1
@@ -1733,14 +1733,16 @@ C**** End of outside J loop
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
       USE CONSTANT, only : grav,omega
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : t_qlimit
+#endif
       USE OCEAN,only : lmo,dts,ze,sinpo
-      USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
 #ifdef TRACERS_OCEAN
      *     ,trmst,txmst,tzmst,ntm
-      USE TRACER_COM, only : t_qlimit
 #endif
+      USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
       IMPLICIT NONE
       REAL*8 MMLT,MML0
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
@@ -2000,10 +2002,10 @@ C****
         TRMST(L,N,ITR) = TRML(L,ITR,2) + TRML(L,ITR,1)
         NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42 + 3
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
-        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) = 
+        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) =
      *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
-C****  
+C****
         if (t_qlimit(itr)) then  ! limit gradients
           if ( abs(TXMST(L,N,ITR)) > TRMST(L,N,ITR) )
      *         TXMST(L,N,ITR) = sign(TRMST(L,N,ITR),TXMST(L,N,ITR))

@@ -3,10 +3,10 @@
 #ifdef TRACERS_WATER
 !@sum  OCN_TRACER: tracer-dependent routines for GISS Ocean tracers
 !@+    Routines included:
-!@+      Those that MUST EXIST for all tracers: 
+!@+      Those that MUST EXIST for all tracers:
 !@+        Diagnostic specs: init_tracer_ocean (if TRACERS_OCEAN true)
 !@+        Tracer initialisation + sources: tracer_ic_ocean
-!@+   
+!@+
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
 
@@ -15,6 +15,7 @@
 !@auth Gavin Schmidt
 !@ver 1.0
       USE MODEL_COM, only: itime
+      USE TRACER_COM, only : itime_tr0, ntm, trname, trw0
       USE OCEAN, only : im,jm,lmo,focean,dxypo,mo,lmm,imaxj
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo,tzmo,s0m,sxmo,symo,szmo
@@ -25,7 +26,6 @@
      *     ,lmst,ist,jst,xst,yst,mmst,s0mst,sxmst,szmst,trmst,txmst
      *     ,tzmst
 #endif
-      USE TRACER_COM, only : itime_tr0, ntm, trname, trw0
       USE FLUXES, only : gtracer
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
@@ -45,15 +45,15 @@ C**** only TRACERS_WATER is true.
       do n=1,ntm
 
         if (itime.eq.itime_tr0(n)) then
-        select case (trname(n)) 
-          
+        select case (trname(n))
+
         case default
           trmo(:,:,:,n)=0.
           txmo(:,:,:,n)=0.
           tymo(:,:,:,n)=0.
           tzmo(:,:,:,n)=0.
-          do j=1,jm                           
-          do i=1,im                         
+          do j=1,jm
+          do i=1,im
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=0.
           end do
           end do
@@ -63,7 +63,7 @@ C**** only TRACERS_WATER is true.
 C**** Open ic file for isotope tracers
           call openunit("H2O18ic",iu_O18ic,.true.,.true.)
 #endif
-          
+
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_SPECIAL_O18
 C**** main ocean variabiles and gradients
@@ -85,60 +85,60 @@ C**** data are now in 'per mil'
           rewind (iu_O18ic)
  10       read  (iu_O18ic,err=800,end=810) title,t0m4,tzm4
           if (index(title,trim(trname(n))).eq.0) goto 10
-          write (6,*) 'Read from H2O18ic: ',title 
+          write (6,*) 'Read from H2O18ic: ',title
           call closeunit(iu_O18ic)
 C**** Turn per mil data into mass ratios (using current standard)
           t0m4(:,:,:)=(t0m4(:,:,:)*1d-3+1.)*trw0(n)
           tzm4(:,:,:)=tzm4(:,:,:)*1d-3*trw0(n)
 C****
-          do l=1,lmo                              
-            txmo(:,:,l,n) = 0.                    
-            tymo(:,:,l,n) = 0.                    
-C**** Define East-West horizontal gradients   
-            im1=im-1                                
-            i=im                                    
-            do j=2,jm-1                         
-              do ip1=1,im                         
-                if (lmm(i,j).ge.l) then                 
-                  if (lmm(im1,j).ge.l) then             
-                    if (lmm(ip1,j).ge.l) then           
+          do l=1,lmo
+            txmo(:,:,l,n) = 0.
+            tymo(:,:,l,n) = 0.
+C**** Define East-West horizontal gradients
+            im1=im-1
+            i=im
+            do j=2,jm-1
+              do ip1=1,im
+                if (lmm(i,j).ge.l) then
+                  if (lmm(im1,j).ge.l) then
+                    if (lmm(ip1,j).ge.l) then
                       txmo(i,j,l,n)=2.5d-1*(t0m4(ip1,j,l)-t0m4(im1,j,l))
-                    else                                
+                    else
                       txmo(i,j,l,n)=  5d-1*(t0m4(  i,j,l)-t0m4(im1,j,l))
-                    end if                              
-                  else                                  
-                    if (lmm(ip1,j).ge.l)                
+                    end if
+                  else
+                    if (lmm(ip1,j).ge.l)
      *                   txmo(i,j,l,n)=5d-1*(t0m4(ip1,j,l)-t0m4(i,j,l))
-                  end if                                
-                end if                                  
-                im1=i                                   
+                  end if
+                end if
+                im1=i
                 i=ip1
               end do
             end do
-C**** Define North-South horizontal gradients 
-            do j=2,jm-1                         
-              do i=1,im                           
-                if (lmm(i,j).ge.l)  then                
-                  if (lmm(i,j-1).ge.l)  then            
-                    if (lmm(i,j+1).ge.l)  then          
+C**** Define North-South horizontal gradients
+            do j=2,jm-1
+              do i=1,im
+                if (lmm(i,j).ge.l)  then
+                  if (lmm(i,j-1).ge.l)  then
+                    if (lmm(i,j+1).ge.l)  then
                       tymo(i,j,l,n)=2.5d-1*(t0m4(i,j+1,l)-t0m4(i,j-1,l))
-                    else                                
+                    else
                       tymo(i,j,l,n)=  5d-1*(t0m4(i,  j,l)-t0m4(i,j-1,l))
-                    end if                              
-                  else                                  
-                    if (lmm(i,j+1).ge.l)                
+                    end if
+                  else
+                    if (lmm(i,j+1).ge.l)
      *                   tymo(i,j,l,n)=5d-1*(t0m4(i,j+1,l)-t0m4(i,j,l))
-                  end if                                
-                end if                                  
+                  end if
+                end if
               end do
             end do
-C**** Multiply ratios by freshwater mass      
-            do j=1,jm                           
-            do i=1,im                         
+C**** Multiply ratios by freshwater mass
+            do j=1,jm
+            do i=1,im
             if (focean(i,j).gt.0) then
               if (l.le.lmm(i,j)) then
-                fwm = mo(i,j,l)*dxypo(j)-s0m(i,j,l)               
-                trmo(i,j,l,n)=t0m4(i,j,l)*fwm               
+                fwm = mo(i,j,l)*dxypo(j)-s0m(i,j,l)
+                trmo(i,j,l,n)=t0m4(i,j,l)*fwm
                 txmo(i,j,l,n)=txmo(i,j,l,n)*fwm-sxmo(i,j,l)*t0m4(i,j,l)
                 tymo(i,j,l,n)=tymo(i,j,l,n)*fwm-symo(i,j,l)*t0m4(i,j,l)
                 tzmo(i,j,l,n)=tzm4(i,j,l)  *fwm-szmo(i,j,l)*t0m4(i,j,l)
@@ -149,40 +149,40 @@ C**** Multiply ratios by freshwater mass
                 tzmo(i,j,l,n)=0.
               end if
             end if
-            end do                                  
+            end do
             end do
           end do
-C**** Balance tracers so that average concentration is TRW0 
-          trsum = 0                               
-          do j=2,jm                             
-            afac = 1                            
-            if (j.eq.jm) afac = im                         
-            do i=1,imaxj(j)                         
+C**** Balance tracers so that average concentration is TRW0
+          trsum = 0
+          do j=2,jm
+            afac = 1
+            if (j.eq.jm) afac = im
+            do i=1,imaxj(j)
               do l=1,lmm(i,j)
-                trsum = trsum + afac*focean(i,j)*trmo(i,j,l,n)  
-              end do                              
-            end do                                
-          end do                                  
-          if (trname(n).eq.'Water') then              
-            wsum = trsum                          
-          else                                    
-            tdiff = trsum - wsum*trw0(n)              
-            write(6,*) "Average oceanic tracer concentration ",   
+                trsum = trsum + afac*focean(i,j)*trmo(i,j,l,n)
+              end do
+            end do
+          end do
+          if (trname(n).eq.'Water') then
+            wsum = trsum
+          else
+            tdiff = trsum - wsum*trw0(n)
+            write(6,*) "Average oceanic tracer concentration ",
      *           trname(n),(trsum/(wsum*trw0(n))-1d0)*1d3,tdiff,trsum
      *           ,wsum
-            do l=1,lmo                            
-              do j=2,jm                           
+            do l=1,lmo
+              do j=2,jm
                 do i=1,imaxj(j)
                   trmo(i,j,l,n) = trmo(i,j,l,n) * (1d0 - tdiff/trsum)
-                end do                            
-              end do                              
-            end do                                
-          end if                                  
+                end do
+              end do
+            end do
+          end if
 #endif
-          do j=1,jm                           
-          do i=1,im                         
+          do j=1,jm
+          do i=1,im
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=trmo(i,j,1,n)/(mo(i,j
-     *           ,l)*dxypo(j)-s0m(i,j,1)) 
+     *           ,l)*dxypo(j)-s0m(i,j,1))
           do l=lmm(i,j)+1,lmo
             trmo(i,j,l,n)=0. ; txmo(i,j,l,n)=0.
             tymo(i,j,l,n)=0. ; tzmo(i,j,l,n)=0.
@@ -190,7 +190,7 @@ C**** Balance tracers so that average concentration is TRW0
           end do
           end do
 #endif
-           
+
 C**** Initiallise strait values based on adjacent ocean boxes
           do nst=1,nmst
 #ifdef TRACERS_OCEAN
@@ -220,7 +220,7 @@ C**** Initiallise strait values based on adjacent ocean boxes
             trsist(n,3:lmi,nst)=trw0(n)*(msist(2,nst)*xsi(3:lmi)
      *           -ssist(3:lmi,nst))
           end do
-C**** 
+C****
         end select
         write(6,*) trname(n)," tracer initialised in ocean"
         end if

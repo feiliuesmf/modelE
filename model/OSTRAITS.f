@@ -63,6 +63,9 @@ C****
 !@sum  STADV advects tracers and water mass through the straits
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : t_qlimit
+#endif
       USE OCEAN, only : dts,mo,dxypo,bydxypo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo
 #ifdef TRACERS_OCEAN
@@ -76,7 +79,6 @@ C****
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 #ifdef TRACERS_OCEAN
      *     ,toijl,tlnst
-      USE TRACER_COM, only : t_qlimit
 #endif
       IMPLICIT NONE
       INTEGER I1,J1,I2,J2,N,L,ITR
@@ -103,7 +105,7 @@ C****
      *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR),
      *       t_qlimit(ITR))
       END DO
-#endif                                               
+#endif
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
       MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM
@@ -340,11 +342,11 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : im,jm,dts,dxypo,bydxypo
+      USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : xsi,ace1i
       USE STRAITS
       USE ICEDYN, only : rsix,rsiy
       USE ODIAG, only : olnst,ln_icfl

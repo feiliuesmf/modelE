@@ -19,19 +19,19 @@
 !@var level the turb. model level, 25 is to solve e differential eqn
 !@var non_local logical variable, true is to turn on non-local calc.
 
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
+      USE CONSTANT, only : grav,deltx,lhe,sha,by3
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,p,itime
-      USE CONSTANT, only : grav,deltx,lhe,sha,by3
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
+      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,t2_3d=>t2gcm
-      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
 #ifdef TRACERS_ON
-     *     ,trflux1
       USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
       USE TRACER_DIAG_COM, only: tajln,jlnt_turb
+      USE FLUXES, only : trflux1
 #endif
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
+      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
@@ -554,10 +554,10 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var n number of vertical main layers
 
       USE CONSTANT, only : grav,rgas
-      USE SOCPBL, only : b1,b2
-      USE MODEL_COM, only : sig,sige
       USE RESOLUTION, only : PTOP
+      USE MODEL_COM, only : sig,sige
       USE DYNAMICS, only : pmid,pedn,plij,pk,pek
+      USE SOCPBL, only : b1,b2
 
       implicit none
 

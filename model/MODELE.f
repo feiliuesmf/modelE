@@ -4,19 +4,19 @@
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
-      USE CONSTANT, only : bygrav,   lhm,byshi,rhow,shw
-      USE MODEL_COM
-      USE RANDOM
-      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
-      USE SOIL_DRV, only: daily_earth, ground_e
+      USE CONSTANT, only : bygrav,   lhm,byshi,rhow,shw
+      USE MODEL_COM
       USE GEOM, only : dxyp
       USE RADNCB, only : dimrad_sv
+      USE RANDOM
+      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace
 #endif
+      USE SOIL_DRV, only: daily_earth, ground_e
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n,istart
@@ -553,6 +553,10 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
+      USE FILEMANAGER, only : openunit,closeunit
+      USE TIMINGS, only : timing,ntimeacc
+      USE PARAM
+      USE PARSER
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,kradia
@@ -568,21 +572,17 @@ C****
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
-      USE PBLCOM
-     &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
-     &  ,egcm
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
-      USE LAKES_COM, only : flake
-      USE FILEMANAGER, only : openunit,closeunit
-      USE TIMINGS, only : timing,ntimeacc
-      USE PARAM
-      USE PARSER
-      USE SOIL_DRV, only: init_gh
-      USE FLUXES, only : gtemp   ! tmp. fix
 #ifdef TRACERS_ON
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
 #endif
+      USE PBLCOM
+     &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
+     &  ,egcm
+      USE LAKES_COM, only : flake
+      USE FLUXES, only : gtemp   ! tmp. fix
+      USE SOIL_DRV, only: init_gh
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG
@@ -1254,10 +1254,10 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH
-      USE DYNAMICS, only : byAM
       USE GEOM, only : areag,dxyp
-      USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr
+      USE DYNAMICS, only : byAM
       USE RE001, only : ghgam,ghgyr2,ghgyr1
+      USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm

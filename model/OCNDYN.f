@@ -6,21 +6,21 @@
 !@ver  1.0
       USE CONSTANT, only : grav
       USE MODEL_COM, only : idacc,modd5s,p,ptop
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : t_qlimit,ntm
+      USE OCEAN, only : trmo,txmo,tymo,tzmo
+#endif
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
      *     ,ratoc,imaxj,focean,ogeoz
-#ifdef TRACERS_OCEAN
-     *     ,trmo,txmo,tymo,tzmo
-      USE TRACER_COM, only : t_qlimit,ntm
-#endif
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
@@ -29,11 +29,11 @@ C****
 C**** Integrate Ocean Dynamics terms
 C****
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
-C**** Updated using latest sea ice 
+C**** Updated using latest sea ice
       DO J=1,JM
         DO I=1,IMAXJ(J)
           OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) 
+     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
         END DO
       END DO
       OPRESS(2:IM,1)  = OPRESS(1,1)
@@ -132,10 +132,10 @@ C**** Apply GM + Redi tracer fluxes
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,1,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE.,OIJL(1,1,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM                                                
+      DO N = 1,NTM
         CALL GMFEXP(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
      *       TZMO(1,1,1,N),t_qlimit(n),TOIJL(1,1,1,TOIJL_GMFL,N))
-      END DO                                                        
+      END DO
 #endif
         CALL CHECKO ('GMDIFF')
         CALL TIMER (MNOW,MSGSO)
@@ -163,6 +163,9 @@ C****
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
+      USE FILEMANAGER, only : openunit,closeunit
+      USE TIMINGS, only : timing,ntimeacc
+      USE PARAM
       USE CONSTANT, only : twopi,radius,by3,grav
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
@@ -170,10 +173,7 @@ C****
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,opress,imaxj,bydxypo
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
-      USE FILEMANAGER, only : openunit,closeunit
       USE SW2OCEAN, only : init_solar
-      USE TIMINGS, only : timing,ntimeacc
-      USE PARAM
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO
@@ -181,7 +181,7 @@ C****
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
-C**** 
+C****
 C**** Check that KOCEAN is set correctly
 C****
       IF (KOCEAN.eq.0) THEN
@@ -394,11 +394,11 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
+      USE SEAICE, only : simelt,xsi,ace1i
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : simelt,xsi,ace1i
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
@@ -436,7 +436,7 @@ C**** Calculate freezing temperature (on atmos. grid)
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             SSIL(:)= SSI(:,I,J) ! sea ice salt
 #ifdef TRACERS_WATER
-            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice 
+            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
 
             CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL,
@@ -581,10 +581,10 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
-      USE SEAICE_COM, only : msi,rsi
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm, trname
-#endif      
+#endif
+      USE SEAICE_COM, only : msi,rsi
       USE OCEAN
       IMPLICIT NONE
       REAL*8 SALIM,GO1,relerr,errmax
@@ -685,7 +685,7 @@ C**** Check conservation of water tracers in ocean
      *         ,jmax,lmax)*dxypo(jmax)-s0m(imax,jmax,lmax),txmo(imax
      *         ,jmax,lmax,n),-sxmo(imax,jmax,lmax),tymo(imax,jmax,lmax,n
      *         ),-symo(imax,jmax ,lmax),tzmo(imax,jmax,lmax,n),
-     *         -szmo(imax,jmax,lmax) 
+     *         -szmo(imax,jmax,lmax)
         end if
       end do
 #endif
@@ -736,8 +736,8 @@ C****
 !@sum  conserv_OCE calculates zonal ocean potential enthalpy(atmos grid)
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
       USE GEOM, only : bydxyp
+      USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
       IMPLICIT NONE
 !@var OCEANE zonal ocean potential enthalpy (J/m^2)
       REAL*8, DIMENSION(JM) :: OCEANE
@@ -761,8 +761,8 @@ C****
 !@sum  conserv_OMS calculates zonal ocean mass (on atmos grid)
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
       USE GEOM, only : bydxyp
+      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
       IMPLICIT NONE
 !@var OMASS zonal ocean mass (kg/m^2)
       REAL*8, DIMENSION(JM) :: OMASS,OMSSV
@@ -828,8 +828,8 @@ C****
 !@sum  conserv_OSL calculates zonal ocean salt on atmos grid
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
       USE GEOM, only : bydxyp
+      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
       IMPLICIT NONE
 !@var OSALT zonal ocean salt (kg/m^2)
       REAL*8, DIMENSION(JM) :: OSALT
@@ -2337,7 +2337,7 @@ C**** Surface stress is applied to V component at the North Pole
       INTEGER I,J
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,ROICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),SRUNI,DSOO,DSOI
-     *     ,POCEAN,POICE 
+     *     ,POCEAN,POICE
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
 #endif
@@ -2352,7 +2352,7 @@ C****
         ROICE = RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-ROICE)
         POICE =FOCEAN(I,J)*ROICE
-C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
+C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         RUNO = FLOWO(I,J)*POICE *BYDXYPJ-RATOC(J)*EVAPOR(I,J,1)
         RUNI = FLOWO(I,J)*POICE *BYDXYPJ+RATOC(J)*RUNOSI(I,J)
         ERUNO=EFLOWO(I,J)*POCEAN*BYDXYPJ+RATOC(J)*E0(I,J,1)
@@ -2417,11 +2417,11 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shci=>shi,elhm=>lhm
-      USE SW2OCEAN, only : lsrpd,fsr,fsrz
-      USE SEAICE, only : fsss
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm,trname
 #endif
+      USE SW2OCEAN, only : lsrpd,fsr,fsrz
+      USE SEAICE, only : fsss
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
      *     ,SROX(2),SRUNI
@@ -2430,8 +2430,8 @@ C****
       REAL*8, INTENT(OUT) :: DMOO,DMOI,DEOO,DEOI,DSOO,DSOI
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM
-      REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI 
-      REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI 
+      REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI
+      REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI
       REAL*8, DIMENSION(NTM) :: TMOO,TMOI,FRAC
 #ifdef TRACERS_SPECIAL_O18
       REAL*8 fracls
@@ -2539,17 +2539,17 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : itocean
       USE GEOM, only : dxyp
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm
+      USE FLUXES, only : trpreca=>trprec,trunpsia=>trunpsi
+#endif
+      USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
+     *     ,epreca=>eprec
       USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
 #ifdef TRACERS_OCEAN
      *     ,trmo,dxypo
 #endif
       USE SEAICE_COM, only : rsia=>rsi
-      USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
-     *     ,epreca=>eprec
-#ifdef TRACERS_OCEAN
-     *     ,trpreca=>trprec,trunpsia=>trunpsi
-      USE TRACER_COM, only : ntm
-#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: PREC,EPREC,RUNPSI,RSI,SRUNPSI
 #ifdef TRACERS_OCEAN
@@ -2574,7 +2574,7 @@ C**** of fluxes is necessary anyway
           RSI    (I,J)=RSIA    (I,J)
 #ifdef TRACERS_OCEAN
           TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
-          TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg 
+          TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg
 #endif
         END DO
       END DO
@@ -3037,11 +3037,11 @@ C**** Done!
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
+      USE SEAICE, only : ace1i, xsi
       USE SEAICE_COM, only : rsi,hsi,snowi,ssi
 #ifdef TRACERS_OCEAN
      *     ,trsi
 #endif
-      USE SEAICE, only : ace1i, xsi
       USE FLUXES, only : gtemp, sss, mlhc
 #ifdef TRACERS_OCEAN
      *     ,gtracer
@@ -3279,11 +3279,11 @@ C****
 !@auth Sukeshi Sheth/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : lhm
-      USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo,dxypo
 #ifdef TRACERS_OCEAN
-     *     ,trmo
       USE TRACER_COM, only : ntm,trglac
+      USE OCEAN, only : trmo
 #endif
+      USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo,dxypo
       IMPLICIT NONE
 !@var ACCPDA total accumulation per day for Antarctica (kg/day)
 !@var ACCPDG total accumulation per day for Greenland (kg/day)

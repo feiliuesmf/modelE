@@ -4,12 +4,12 @@
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : im,jm,lmo
-      USE STRAITS, only : nmst
       USE DAGCOM, only : npts  ! needed for conservation diags
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm
 #endif
+      USE OCEAN, only : im,jm,lmo
+      USE STRAITS, only : nmst
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,
@@ -27,17 +27,17 @@
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_HBL,IJ_BO
      *     ,IJ_BOSOL,IJ_USTAR,IJ_MUSI,IJ_MVSI
 !@var lname_oij Long names for OIJ diagnostics
-      CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ 
+      CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
-      CHARACTER*30, DIMENSION(KOIJ) :: SNAME_OIJ 
+      CHARACTER*30, DIMENSION(KOIJ) :: SNAME_OIJ
 !@var units_oij Units for OIJ diagnostics
-      CHARACTER*50, DIMENSION(KOIJ) :: UNITS_OIJ 
+      CHARACTER*50, DIMENSION(KOIJ) :: UNITS_OIJ
 !@var ia_oij IDACC numbers for OIJ diagnostics
-      INTEGER, DIMENSION(KOIJ) :: IA_OIJ 
+      INTEGER, DIMENSION(KOIJ) :: IA_OIJ
 !@var scale_oij scales for OIJ diagnostics
-      REAl*8, DIMENSION(KOIJ) :: SCALE_OIJ 
+      REAl*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var ijgrid_oij Grid descriptor for OIJ diagnostics
-       INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ 
+       INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ
 
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
@@ -52,12 +52,12 @@
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
 !@var kbasin integer index of which basin a particular ocean point is in
       INTEGER, DIMENSION(IM,JM) :: KBASIN
-!@var XLB label for diagnostic titles      
+!@var XLB label for diagnostic titles
       CHARACTER XLB*30
 !@var FLAT latitude values on primary and secondary ocean grids
-      REAL*8, DIMENSION(JM,2) :: FLAT 
+      REAL*8, DIMENSION(JM,2) :: FLAT
 !@var FLON longitude values on primary and secondary ocean grids
-      REAL*8, DIMENSION(IM,2) :: FLON 
+      REAL*8, DIMENSION(IM,2) :: FLON
 !@var FLEV depth values on primary and secondary ocean grids
       REAL*8, DIMENSION(0:LMO,2) :: FLEV
 !@var iu_otj unit number for ascii output of ocean transports
@@ -105,7 +105,7 @@ C****
       write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
      *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
      *  koijl,'),Ol(',lmo,   ',',kol,'),OLNST(',LMO*NMST*KOLNST,'),it'
-   
+
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
@@ -306,7 +306,7 @@ c      units_oij(k)="m"
 c      ia_oij(k)=ia_src
 c      scale_oij(k)=bygrav
 c      ijgrid_oij(k)=1
-    
+
 c      k=k+1
 c      IJ_RSI=k
 c      lname_oij(k)="Ocean ice fraction"
@@ -315,7 +315,7 @@ c      units_oij(k)="%"
 c      ia_oij(k)=ia_src
 c      scale_oij(k)=100.
 c      ijgrid_oij(k)=1
-     
+
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
      *       ,k

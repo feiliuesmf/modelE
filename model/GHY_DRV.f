@@ -31,15 +31,9 @@ c****
       use model_com, only : t,p,q,dtsrc,nisurf,dsig
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp,bydxyp
+      use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
-     &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     snowe,tearth,wearth,aiearth,
-     &     evap_max_ij, fr_sat_ij, qg_ij
-#ifdef TRACERS_WATER
-     *     ,trvege,trbare,trsnowbv
-#endif
       use sle001
      &    , only : reth,retp,advnc,evap_limits,
      &    ngm,
@@ -57,15 +51,6 @@ c****
      &    zmixe=>z1, !cn=>cdn,p1,pblp=>ppbl,
      &    tgpass=>tg,tkpass=>t1,vgm=>vg,eddy,
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
-      use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      USE SOCPBL, only : zgs,dtsurf              ! global
-     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,pole     ! rest local
-     &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
-     &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
-      use pbl_drv, only : pbl, evap_max,fr_sat
-#ifdef TRACERS_WATER
-     *     ,tr_evap_max
-#endif
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
@@ -78,14 +63,8 @@ c****
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev
-      use dynamics, only : pk,pek,pedn,pdsig,am,byam
-      use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp
+
 #ifdef TRACERS_ON
-     *     ,trsource
-#ifdef TRACERS_WATER
-     *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
-#endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname
@@ -94,6 +73,28 @@ c****
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,jls_source,tajls
 #endif
+      use fluxes, only : trsource
+#ifdef TRACERS_WATER
+     *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
+#endif
+#endif
+      use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
+     *     ,runoe,erunoe,gtemp
+      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
+     &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
+     *     snowe,tearth,wearth,aiearth,
+     &     evap_max_ij, fr_sat_ij, qg_ij
+#ifdef TRACERS_WATER
+     *     ,trvege,trbare,trsnowbv
+#endif
+      USE SOCPBL, only : zgs,dtsurf              ! global
+     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,pole     ! rest local
+     &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
+     &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
+      use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
+      use pbl_drv, only : pbl, evap_max,fr_sat
+#ifdef TRACERS_WATER
+     *     ,tr_evap_max
 #endif
       implicit none
 
@@ -723,18 +724,18 @@ C
 
       subroutine init_gh(dtsurf,redogh,inisnow,istart)
 c**** modifications needed for split of bare soils into 2 types
+      use filemanager
       use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
       use model_com, only : fearth,vdata,itime,nday,jeq
-      use ghycom
-      use sle001
-      use fluxes, only : gtemp
-#ifdef TRACERS_WATER
-     *     ,gtracer
-      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0
-#endif
       use dagcom, only : npts,icon_wtg,icon_htg
-      use filemanager
+      use sle001
+#ifdef TRACERS_WATER
+      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0
+      use fluxes, only : gtracer
+#endif
+      use fluxes, only : gtemp
+      use ghycom
       implicit none
 
       real*8, intent(in) :: dtsurf
@@ -1038,13 +1039,13 @@ c**** set gtemp array
             gtemp(1,4,i,j)=tearth(i,j)
 #ifdef TRACERS_WATER
 C**** Quick and dirty calculation of water tracer amounts to calculate
-C**** gtracer. Should be replaced with proper calculation at some point 
+C**** gtracer. Should be replaced with proper calculation at some point
 C**** Calculate mean tracer ratio
             fb=afb(i,j) ; fv=1.-fb
             wsoil_tot = 0
             wsoil_tot=wsoil_tot+snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
      *           sum(wbare(1:ngm,i,j))*fb+sum(wvege(0:ngm,i,j))*fv
-            trsoil_tot = 0 
+            trsoil_tot = 0
             do n=1,ntm
               if(itime_tr0(n).le.itime) then
                 trsoil_tot=trsoil_tot+trsnowbv(n,1,i,j)*fb
@@ -1124,14 +1125,14 @@ c**** vh - vegetation height
 c**** snowm - snow masking depth
 c**** wfcap - water field capacity of top soil layer, m
 c****
-      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
-     *     ,top_index_ij
+      use snow_model, only : i_earth,j_earth
       use sle001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
      *     ,fb,fv,snowm,alai,alaie,rs,prs,ijdebug,n !alaic,vh,
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index
-      use snow_model, only : i_earth,j_earth
+      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
+     *     ,top_index_ij
       implicit none
       integer i0,j0
       real*8 wfcap
@@ -1567,8 +1568,8 @@ c****
       use constant, only : rhow
       use model_com, only : fim,fearth
       use geom, only : imaxj
-      use ghycom, only : wbare,wvege,afb
       use sle001, only : ngm
+      use ghycom, only : wbare,wvege,afb
       implicit none
 !@var waterg zonal ground water (kg/m^2)
       real*8, dimension(jm) :: waterg
@@ -1599,8 +1600,8 @@ c****
 !@ver  1.0
       use model_com, only : fim,fearth
       use geom, only : imaxj
-      use ghycom, only : htbare,htvege,afb
       use sle001, only : ngm
+      use ghycom, only : htbare,htvege,afb
       implicit none
 !@var heatg zonal ground heat (J/m^2)
       real*8, dimension(jm) :: heatg

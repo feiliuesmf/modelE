@@ -780,9 +780,9 @@ c
       end subroutine j_defs
 
       subroutine ij_defs
-      use DAGCOM
-      use MODEL_COM
       use constant
+      use MODEL_COM
+      use DAGCOM
       implicit none
       integer :: k
 c

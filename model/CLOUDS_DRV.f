@@ -10,10 +10,28 @@
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
+      USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
+      USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+#ifdef TRACERS_WATER
+     *     ,trwm
+#endif
+      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
+     *     ,itcon_ss
+#ifdef TRACERS_WATER
+     *     ,jls_source,taijn,tajls,tij_prec
+#endif
+      USE CLOUDS, only : tm,trmomij=>tmom      ! local  (i,j)
+     *     ,ntx,ntix              ! global (same for all i,j)
+#ifdef TRACERS_WATER
+     *     ,trwml,trsvwml,trprmc,trprss
+#endif
+#endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
      *     ,tl,ris,ri1,ri2,aj8,aj11,aj13,aj50,aj51,aj52,aj53,aj57
@@ -22,26 +40,10 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l
-#ifdef TRACERS_ON
-#ifdef TRACERS_WATER
-     *     ,trwml,trsvwml,trprmc,trprss
-#endif
-     *     ,tm,trmomij=>tmom      ! local  (i,j)
-     *     ,ntx,ntix              ! global (same for all i,j)
-      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
-     *     ,itcon_ss
-#ifdef TRACERS_WATER
-     *     ,jls_source,taijn,tajls,tij_prec
-#endif
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
-#ifdef TRACERS_WATER
-     *     ,trwm
-#endif
-#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n, 
+     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
@@ -56,8 +58,6 @@
 #ifdef TRACERS_WATER
      *     ,trprec
 #endif
-      USE RANDOM
-      USE QUSDEF, only : nmom
       IMPLICIT NONE
 
 #ifdef TRACERS_ON

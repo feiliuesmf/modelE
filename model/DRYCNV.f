@@ -188,17 +188,17 @@ c     ENDDO
             DO K=1,KMAX
                UKP1(K,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
                VKP1(K,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
-            END DO 
+            END DO
          ELSE IF(J.EQ.JM)  THEN
             DO K=1,KMAX
                UKPJM(K,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
                VKPJM(K,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
-            END DO 
+            END DO
          ELSE
             DO K=1,KMAX
                UKM(K,I,J,L)=(UMS(K)-UT(IDI(K),IDJ(K),L))
                VKM(K,I,J,L)=(VMS(K)-VT(IDI(K),IDJ(K),L))
-            END DO 
+            END DO
          END IF
       ENDDO
 C
@@ -219,7 +219,7 @@ C
         IDI(K)=IDIJ(K,1,J)
         IDJ(K)=IDJJ(K,J)
         RA(K) =RAVJ(K,J)
-      END DO 
+      END DO
       LMIN=LRANG(1,1,J)
       LMAX=LRANG(2,1,J)
       DO L=LMIN,LMAX
@@ -235,7 +235,7 @@ C
         DO K=1,KMAX
            IDJ(K)=IDJJ(K,J)
            RA(K) =RAVJ(K,J)
-        END DO 
+        END DO
         DO I=1,IM
           LMIN=LRANG(1,I,J)
           LMAX=LRANG(2,I,J)
@@ -247,8 +247,8 @@ C
             AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
      *            UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
           END DO ; END DO
-        END DO 
-      END DO 
+        END DO
+      END DO
 C
       J=JM
       KMAX=KMAXJ(J)
@@ -256,7 +256,7 @@ C
         IDI(K)=IDIJ(K,1,J)
         IDJ(K)=IDJJ(K,J)
         RA(K) =RAVJ(K,J)
-      END DO 
+      END DO
       LMIN=LRANG(1,1,J)
       LMAX=LRANG(2,1,J)
       DO L=LMIN,LMAX
@@ -275,17 +275,17 @@ C
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
 !@ver  1.0
+      USE MODEL_COM, only : im,jm,u,v,t,q
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
       USE DYNAMICS, only : byam,am
-      USE FLUXES, only : dth1,dq1,uflux1,vflux1,qflux1
 #ifdef TRACERS_ON
-     *     ,trflux1
       USE TRACER_COM, only : ntm,trm,trmom,trname
 #ifdef TRACERS_WATER
      *     ,trw0,t_qlimit
 #endif
+      USE FLUXES, only : trflux1
 #endif
-      USE MODEL_COM, only : im,jm,u,v,t,q
+      USE FLUXES, only : dth1,dq1,uflux1,vflux1,qflux1
       implicit none
       REAL*8, PARAMETER :: qmin=1.d-12
       integer i,j,k,n

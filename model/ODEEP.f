@@ -33,11 +33,11 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
 !@sum  init_ODEEP initialise deep ocean arrays
 !@auth G. Schmidt
 !@ver  1.0
+      USE FILEMANAGER, only : openunit,closeunit
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
-      USE STATIC_OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
-      USE FILEMANAGER, only : openunit,closeunit
+      USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER :: iu_tg3m,iu_EDDY,L
@@ -194,9 +194,9 @@ C**** Thus it is only initiallised here for case ii).
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
       USE MODEL_COM, only : im,jm,fim,focean
+      USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE ODEEP_COM, only : dz,rtgo,lmom
-      USE GEOM, only : imaxj
       IMPLICIT NONE
 !@var OCEANE zonal ocean energy (J/M^2)
       REAL*8, DIMENSION(JM) :: OCEANE
@@ -227,16 +227,16 @@ C****
 !@auth Gary Russell/G. Schmidt
 !@ver  1.0
 !@calls ODFFUS
+      USE FILEMANAGER
       USE CONSTANT, only : sday
       USE MODEL_COM, only : im,jm,focean,jmon,jday,jdate,itocean
      *     ,itoice
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
-      USE STATIC_OCEAN, only : z12o,tocean
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,j_ftherm
       USE FLUXES, only : gtemp
-      USE FILEMANAGER
+      USE STATIC_OCEAN, only : z12o,tocean
       IMPLICIT NONE
       REAL*8, PARAMETER :: PERDAY=1./365d0
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
@@ -345,8 +345,8 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE STATIC_OCEAN, only : tocean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
+      USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from

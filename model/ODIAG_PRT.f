@@ -1,7 +1,7 @@
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 
+!@ver  1.0
 C**** Note this is an incorporation and modification of the stand alone
 C**** ocean diagnostic programs from Gary. All diagnostics are on the
 C**** ocean grid.
@@ -67,7 +67,7 @@ C**** Call diagnostic calculating routines
       CALL STROUT  ! strait diags
 C**** Miscellaneous diags for print out
 
-C**** 
+C****
 C**** vertical mean diagnostics
 C****
       WRITE (6,*)
@@ -104,17 +104,17 @@ C****
       SUBROUTINE OIJOUT
 !@sum  OIJOUT prints out lat-lon diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear 
+     *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
       USE DAGCOM, only : qdiag,acc_period
-      USE ODIAG
-      USE STRAITS, only : nmst,wist,dist,lmst,name_st
 C**** This is really bad!
       USE DAGCOM, only : aij,ij_rsoi
+      USE STRAITS, only : nmst,wist,dist,lmst,name_st
+      USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
@@ -190,7 +190,7 @@ C**** Loop over layers
       DO J=1,JM
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
-        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) 
+        IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
      *       Q(I,J) = 1d3*OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)
      *       *DXYPO(J))
       END DO
@@ -285,7 +285,7 @@ C**** East-West or North-South Heat Flux (10^15 W)
 C****
       DO K=IJL_GFLX,IJL_GFLX+1
 c      IF(.not.QL(K))  GO TO 440
-        IF (K.eq.IJL_GFLX) THEN 
+        IF (K.eq.IJL_GFLX) THEN
           LNAME="EAST-WEST HEAT FLUX"
           UNITS="10^15 W"
           SNAME="ew_hflx"
@@ -307,10 +307,10 @@ c      IF(.not.QL(K))  GO TO 440
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         IF(LMINEF.eq.LMAXEF) WRITE (TITLE(39:41),'(I3)') LMINEF
-        IF(LMINEF.lt.LMAXEF) WRITE (TITLE(39:46),'(I3A2I3)') LMINEF," -" 
+        IF(LMINEF.lt.LMAXEF) WRITE (TITLE(39:46),'(I3A2I3)') LMINEF," -"
      *       ,LMAXEF
         IF(LMINEF.eq.LMAXEF) WRITE (LNAME(39:41),'(I3)') LMINEF
-        IF(LMINEF.lt.LMAXEF) WRITE (LNAME(39:46),'(I3A2I3)') LMINEF," -" 
+        IF(LMINEF.lt.LMAXEF) WRITE (LNAME(39:46),'(I3A2I3)') LMINEF," -"
      *       ,LMAXEF
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
@@ -320,7 +320,7 @@ C**** East-West or North-South Salt Flux (10^6 kg/s)
 C****
       DO K=IJL_SFLX,IJL_SFLX+1
 c      IF(.not.QL(K))  GO TO 540
-        IF (K.eq.IJL_SFLX) THEN 
+        IF (K.eq.IJL_SFLX) THEN
           LNAME="EAST-WEST SALT FLUX"
           UNITS="10^6 kg/s"
           SNAME="ew_sflx"
@@ -417,7 +417,7 @@ C****
         END DO
       END IF
 C****
-C**** Simple scaled OIJ diagnostics 
+C**** Simple scaled OIJ diagnostics
 C****
       DO K=1,KOIJ
         byiacc=1./(IDACC(IA_OIJ(K))+teeny)
@@ -497,7 +497,7 @@ c     *     ,SFIJS)
 C**** Subtract .035 times the Mass Stream Function
 c      DO J=1,JM
 c        DO I=1,IM
-c          IF (SFIJS(I,J).ne.UNDEF) SFIJS(I,J) = SFIJS(I,J)-35.*SFIJM(I,J)
+c        IF (SFIJS(I,J).ne.UNDEF) SFIJS(I,J) = SFIJS(I,J)-35.*SFIJM(I,J)
 c        END DO
 c      END DO
 c      TITLE = NAME(2)//'  Run '//XLABEL(1:6)
@@ -541,10 +541,10 @@ C****
       SUBROUTINE OSFOUT
 !@sum  OSFOUT prints out streamfunction diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear 
+     *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj
       USE DAGCOM, only : qdiag,acc_period
       USE ODIAG
@@ -556,7 +556,7 @@ C****
       REAL*8 FAC,FACST
       CHARACTER TITLE*80,lname*50,sname*30,units*50
 
-      TITLE(51:80)=XLB 
+      TITLE(51:80)=XLB
       LNAME=""
       XJL=undef
 C****
@@ -581,7 +581,7 @@ c        WRITE (6,921) 'Southern Hemisphere',(NINT(FLAT(J,2)),J=1,JEQ)
 c        DO L=0,LMO
 c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=1,JEQ)
 c        END DO
-c        WRITE (6,921) 'Northern Hemisphere',(NINT(FLAT(J,2)),J=JEQ,JM-1)
+c       WRITE (6,921) 'Northern Hemisphere',(NINT(FLAT(J,2)),J=JEQ,JM-1)
 c        DO L=0,LMO
 c          WRITE (6,922) FLEV(L,2),(NINT(SFM(J,L,KB)),J=JEQ,JM-1)
 c        END DO
@@ -596,7 +596,7 @@ C**** Calculate Salt Stream Function and write it
 C****
 c      FAC   = -1d-6/(IDACC(1)*NDYNO*DTO)
 c      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
-c      CALL STRMJL(OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST,SFS)
+c     CALL STRMJL(OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST,SFS)
 cC**** Subtract .035 times the Mass Stream Function
 c      TITLE(9:50)=" Salt Stream Function (Sv)"
 c      DO KB=1,4
@@ -625,15 +625,15 @@ C****
       SUBROUTINE STROUT
 !@sum  STROUT prints out strait diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 
+!@ver  1.0
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear 
+     *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
       USE DAGCOM, only : acc_period
-      USE ODIAG
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
+      USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO,NMST) :: AS
       INTEGER I,J,K,L,NS,N,KB,IP1
@@ -661,7 +661,7 @@ C****
       SUMORMN(LN_ICFL)=0
       DO N=1,KOLNST
         if (n.eq.LN_MFLX .or. n.eq.LN_GFLX.or. n.eq.LN_SFLX.or. n.eq
-     *       .LN_KVM.or. n.eq.LN_ICFL) THEN 
+     *       .LN_KVM.or. n.eq.LN_ICFL) THEN
           AS = 0.
           TITLE(1:40) = NAME(N)
           DO NS=1,NMST
@@ -684,7 +684,7 @@ C****
       SUBROUTINE STABLE (LMST,STRAIT,AX,TITLE,SUMORMN)
 !@sum STABLE produces a layer by strait table on the line printer.
 C****
-C**** Input: 
+C**** Input:
 !@var LMST = number of layers for each strait
 !@var STRAIT = names of straits
 !@var AX = two dimensional input array
@@ -750,12 +750,12 @@ C****
 !@auth G. Russell/G. Schmidt
 !@ver  1.0 (from OSFJL064)
 C****
-C**** Input: 
+C**** Input:
 !@var OIJL  = west-east and south-north tracer fluxes (kg/s)
 !@var FAC   = global scaling factor
 !@var OLNST = strait mass flux (kg/s)
 !@var FACST = global scaling factor for straits
-C**** Output:  
+C**** Output:
 !@var    SF = stream function (kg/s)
 C****
       USE OCEAN, only : im,jm,lmo
@@ -857,7 +857,7 @@ C****
 C**** Calculate global Stream Function by summing it over 3 oceans
 C****
       SF(:,:,4) = SF(:,:,1) + SF(:,:,2) + SF(:,:,3) + SF(:,:,4)
-C**** 
+C****
 C**** Mask streamfunction so that topography is put to skip value
 C****
       DO J=1,JM
@@ -887,7 +887,7 @@ C****
       END
 
       SUBROUTINE OBASIN
-!@sum  OBASIN Read in KBASIN: 0=continent, 1=Atlantic, 2=Pacific, 3=Indian
+!@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
 !@auth G. Russell
 !@ver  1.0
       USE OCEAN, only : IM,JM
@@ -900,7 +900,7 @@ C****
 C**** read in basin data
 c      OPEN  (3,FILE='/u/gavin/gissgcm/data/KB4X512.OCN')
       call openunit('KBASIN',iu_KB,.false.,.true.)
-      
+
       READ  (iu_KB,900) TITLE
       WRITE (6,*) 'Read on unit ',iu_KB,': ',TITLE
       READ  (iu_KB,900)
@@ -914,14 +914,14 @@ c      OPEN  (3,FILE='/u/gavin/gissgcm/data/KB4X512.OCN')
         SELECT CASE (CBASIN(I,J))
         CASE DEFAULT
           KBASIN(I,J) = 0
-        CASE ('A')  
-          KBASIN(I,J) = 1 
-        CASE ('P')  
-          KBASIN(I,J) = 2 
-        CASE ('I')  
-          KBASIN(I,J) = 3 
-        CASE ('G')  
-          KBASIN(I,J) = 4 
+        CASE ('A')
+          KBASIN(I,J) = 1
+        CASE ('P')
+          KBASIN(I,J) = 2
+        CASE ('I')
+          KBASIN(I,J) = 3
+        CASE ('G')
+          KBASIN(I,J) = 4
         END SELECT
       END DO
       END DO
@@ -935,12 +935,12 @@ C****
 !@sum STRMIJ calculates the latitude by longitude stream function for a
 !@+   given quantity.
 C****
-C**** Input: 
+C**** Input:
 !@var OIJL  = west-east and south-north tracer fluxes (kg/s)
 !@var   FAC = global scaling factor
 !@var OLNST = strait mass flux (kg/s)
 !@var FACST = global scaling factor for straits
-C**** Output:  
+C**** Output:
 !@var    SF = stream function (kg/s)
 C****
       USE OCEAN, only : im,jm,lmo,lmm
@@ -990,12 +990,12 @@ C**** Korea: (62,32) to (63,33)
       IF (J.eq.33) SF(62,33) = SF(62,33)+SUM(OLNST(1:LMST(11),11))*FACST
 C**** Soya: (64,34) to (65,35)
       IF (J.eq.35) SF(64,35) = SF(64,35)+SUM(OLNST(1:LMST(12),12))*FACST
-C**** Malacca: (56,25) to (58,24), 
+C**** Malacca: (56,25) to (58,24),
       IF (J.eq.25) SF(56,25) = SF(56,25)+SUM(OLNST(1:LMST(10),10))*FACST
       IF (J.eq.25) SF(57,25) = SF(57,25)+SUM(OLNST(1:LMST(10),10))*FACST
       END DO
 C**** Correct SF for mean E-W drift (SF over topography --> 0)
-      TSUM=0 
+      TSUM=0
       DO I=14,17   ! (mid N. America as example)
         TSUM=TSUM+SF(I,34)
       END DO
@@ -1048,7 +1048,7 @@ C**** Calculate basin and zonal averages of ocean mass
           END DO
         END DO
       END DO
-      XB0(:,:,4) = XB0(:,:,1) + XB0(:,:,2) + XB0(:,:,3) 
+      XB0(:,:,4) = XB0(:,:,1) + XB0(:,:,2) + XB0(:,:,3)
       TITLE(51:80) = XLB
 C****
 C**** Quantites that are calculated
@@ -1068,8 +1068,8 @@ C****
           END DO
         END DO
       END DO
-      XBG(:,:,4) = XBG(:,:,1) + XBG(:,:,2) + XBG(:,:,3) 
-      XBS(:,:,4) = XBS(:,:,1) + XBS(:,:,2) + XBS(:,:,3) 
+      XBG(:,:,4) = XBG(:,:,1) + XBG(:,:,2) + XBG(:,:,3)
+      XBS(:,:,4) = XBS(:,:,1) + XBS(:,:,2) + XBS(:,:,3)
       DO KB=1,4
         DO J=1,JM
           DO L=1,LMO
@@ -1231,7 +1231,7 @@ C****
               END IF
             END DO
           END DO
-          JLON=ABS(NINT(-94.+JLAT(ISEC)*4.)) 
+          JLON=ABS(NINT(-94.+JLAT(ISEC)*4.))
           WRITE(LABJ,'(I3,A1)') JLON,NS
           TITLE(1:50)="Temperature Section              (C)"
           WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
@@ -1298,7 +1298,7 @@ C****
       END SUBROUTINE OJLOUT
 
       SUBROUTINE OTJOUT
-!@sum OTJOUT calculate vertically integrated basin and zonal 
+!@sum OTJOUT calculate vertically integrated basin and zonal
 !@+   northward transports
 !@auth Gavin Schmidt/Gary Russell
       USE MODEL_COM, only : idacc
@@ -1325,7 +1325,7 @@ C****
       DATA YSPEC /-4.,4.,1., -5.,6.,1., -50.,50.,10./
       INTEGER I,J,L,K,KQ,KB,NOIJL,NOIJLGM,NOLNST,NS,IDLAT
       REAL*8 SOIJL,FJEQ,SOIJLGM
-C**** 
+C****
 C****  N          Contents of OIJL(I,J,L,N)       Scaling factor
 C****  -          -------------------------       --------------
 C**** IJL_MV      South-north mass flux (kg/s)    2/IDACC(1)*NDYNO
@@ -1365,7 +1365,7 @@ C****
         NOIJL=IJL_SFLX+1
         NOIJLGM=IJL_SGMFL+1
       END SELECT
-      
+
       DO 120 J=1,JM-1
       DO 120 I=1,IM
       IF(OIJL(I,J,1,IJL_MFV).eq.0)  GO TO 120
@@ -1379,7 +1379,7 @@ C****
       X(J,KB,KQ) = X(J,KB,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
       X(J, 4,KQ) = X(J, 4,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
       IF (KQ.eq.2) THEN
-        X(J,KB,5) = X(J,KB,5) + SOIJLGM*SCALEM(KQ) 
+        X(J,KB,5) = X(J,KB,5) + SOIJLGM*SCALEM(KQ)
         X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
       END IF
   120 CONTINUE
@@ -1390,7 +1390,7 @@ C**** horizontal gyre
 C****
       DO 190 J=1,JM-1
       DO 180 L=1,LMO
-        IS=0 ; MV=0 ; MT=0 
+        IS=0 ; MV=0 ; MT=0
       DO 170 I=1,IM
       IF(OIJL(I,J,L,IJL_MFV).eq.0)  GO TO 170
       KB = KBASIN(I,J+1)
@@ -1580,9 +1580,9 @@ C**** print out truncated series to PRT file
      *         ' Lat   Atlantic   Pacific    Indian     Global'
           WRITE (iu_otj,971) (VLAT(J),(X(J,KB,KQ),KB=1,4),J=0,JM)
           WRITE (iu_otj,*)
-        END IF 
+        END IF
       END DO
-C**** 
+C****
 C**** Write titles and data to disk for northward transport of heat
 C**** by components
 C****

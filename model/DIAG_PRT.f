@@ -1977,11 +1977,11 @@ C****
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
       USE CONSTANT, only : teeny
-      USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
+      USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2176,11 +2176,11 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
+      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2398,11 +2398,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
 
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
-      USE DAGCOM, only : qdiag,acc_period,inc=>inci,linect
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
       USE GEOM, only : dlon,lon_dg
+      USE DAGCOM, only : qdiag,acc_period,inc=>inci,linect
       IMPLICIT NONE
       CHARACTER XLB*80,CWORD*8
       character(len=20), intent(in) :: sname,unit
@@ -2503,10 +2503,10 @@ C****
 C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
-      USE DAGCOM, only : qdiag,
-     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
+      USE DAGCOM, only : qdiag,
+     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
       IMPLICIT NONE
 
       INTEGER, DIMENSION(44) :: IPOWER
@@ -2850,8 +2850,8 @@ c          if (n .gt. 13) n = (n+123)/10
 !@+    the remaining attributes (value,wt,grid,range) are set in ij_MAPk
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
-      USE BDIJ
       USE DAGCOM
+      USE BDIJ
       IMPLICIT NONE
       INTEGER :: k,k1
 c
@@ -2972,7 +2972,6 @@ c Check the count
       subroutine IJ_MAPk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
 !+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
-      USE DAGCOM
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef,teeny
       USE MODEL_COM, only :
@@ -2980,6 +2979,7 @@ c Check the count
      &     FLAND,FLICE,FEARTH,FOCEAN,   IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,ZATMO
+      USE DAGCOM
       USE BDIJ
 
       IMPLICIT NONE
@@ -3207,8 +3207,8 @@ c**** fill in some key numbers
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
 !@ver  1.0
-      USE MODEL_COM, only :  im,jm,fim,jeq
       USE CONSTANT, only :  undef
+      USE MODEL_COM, only :  im,jm,fim,jeq
       USE GEOM, only : wtj,Jrange_hemi
 
       IMPLICIT NONE
@@ -3472,10 +3472,10 @@ C****
 !@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
 !@ver  1.0
-      use model_com, only : im,jm,fland
-      use bdij
       use constant, only : undef
+      use model_com, only : im,jm,fland
       use dagcom, only : inci,incj
+      use bdij
 
       IMPLICIT NONE
 
@@ -3556,13 +3556,13 @@ c**** last line: legend (there is a little more space in col 1 and 2)
 
       SUBROUTINE IJMAP (title,smap,smapj,jgrid)
 C**** Print out full-page digital maps
+      USE CONSTANT, only :  undef
       USE MODEL_COM, only :
      &     im,jm,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
       use dagcom, only : inc=>inci
-      USE CONSTANT, only :  undef
       IMPLICIT NONE
 
       CHARACTER*48 TITLE

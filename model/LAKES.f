@@ -345,22 +345,22 @@ C****
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+      USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav,undef
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
      *     ,itlake,itlkice,focean,fearth,fland
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
+      USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
+     *     ,title_con
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : trw0
+      USE FLUXES, only : gtracer
+#endif
+      USE FLUXES, only : gtemp
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
-      USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
-     *     ,title_con
-      USE FLUXES, only : gtemp
-#ifdef TRACERS_WATER
-     *     ,gtracer
-      USE TRACER_COM, only : trw0
-#endif
-      USE FILEMANAGER
       IMPLICIT NONE
 
       LOGICAL inilake
@@ -530,7 +530,7 @@ C****
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J-1
             DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-                                ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
+                            ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
             IF(I.eq.1)  IFLOW(I,J) = IM
           CASE (6)
             IFLOW(I,J) = I
@@ -540,7 +540,7 @@ C****
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J-1
             DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
-                                ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
+                            ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
             IF(I.eq.IM)  IFLOW(I,J) = 1
           CASE (8)
             IFLOW(I,J) = I+1
@@ -607,19 +607,19 @@ C****
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,ftype,itocean,itoice
       USE GEOM, only : dxyp,bydxyp
+      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
+     *     ,j_ervr
+#ifdef TRACERS_WATER
+      USE TRACER_DIAG_COM, only : taijn,tij_rvr
+      USE FLUXES, only : trflowo,gtracer
+#endif
+      USE FLUXES, only : flowo,eflowo,gtemp
       USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
       USE SEAICE_COM, only : rsi
-      USE FLUXES, only : flowo,eflowo,gtemp
-#ifdef TRACERS_WATER
-     *     ,trflowo,gtracer
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr
-#endif
-      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
-     *     ,j_ervr
       IMPLICIT NONE
 
 !@var I,J,IU,JU,ID,JD loop variables
@@ -697,7 +697,7 @@ C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
      *               POICE*DGM*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               POCEAN*DGM*BYDXYP(JD) 
+     *               POCEAN*DGM*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
@@ -833,15 +833,15 @@ C****
       USE CONSTANT, only : rhow,sday,teeny
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
-      USE DAGCOM, only : aij,ij_mrvr
       USE GEOM, only : bydxyp
-      USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
+      USE DAGCOM, only : aij,ij_mrvr
 #ifdef TRACERS_WATER
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
-     *     ,scale_tij
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
+      USE TRACER_DIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
+     *     ,scale_tij
 #endif
+      USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
       IMPLICIT NONE
       REAL*8 RVROUT(6), SCALERVR, DAYS
       INTEGER INM,I,N
@@ -903,11 +903,11 @@ C****
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
       USE GEOM, only : dxyp,imaxj
-      USE LAKES
-      USE LAKES_COM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
 #endif
+      USE LAKES
+      USE LAKES_COM
       IMPLICIT NONE
 
       INTEGER I,J,N !@var I,J loop variables
@@ -994,16 +994,16 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shw,rhow,pi,by3,undef
       USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
+      USE GEOM, only : imaxj,dxyp
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
+      USE SEAICE, only : simelt,lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
-      USE SEAICE, only : simelt,lmi,xsi,ace1i
-      USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
@@ -1411,11 +1411,11 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : lhm,byshi,rhow,shw
+      USE MODEL_COM, only : qcheck
       USE GEOM, only : dxyp
       USE LAKES_COM, only : tlake,mwl,mldlk,gml,flake
-      USE SEAICE_COM, only : rsi,hsi,msi,snowi
       USE SEAICE, only : xsi,ace1i,rhoi
-      USE MODEL_COM, only : qcheck
+      USE SEAICE_COM, only : rsi,hsi,msi,snowi
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=2   !6

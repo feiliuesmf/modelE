@@ -107,10 +107,10 @@ C**** What is the prognostic variable for snow here?
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic
-      USE GHYCOM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+      USE GHYCOM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

@@ -51,12 +51,11 @@ C****
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
-      USE LANDICE, only: ace1li,ace2li
+      USE LANDICE, only: ace1li,ace2li,precli
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trli0
 #endif
-      USE LANDICE, only : precli
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
       IMPLICIT NONE
@@ -147,16 +146,15 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 !@calls LANDICE:LNDICE
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runoli
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
+     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
+     *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0
 #endif
       USE LANDICE, only : lndice,ace1li,ace2li
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
-     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
-     *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow
-      USE FLUXES, only : e0,e1,evapor,gtemp
+      USE FLUXES, only : e0,e1,evapor,gtemp,runoli
 #ifdef TRACERS_WATER
      *     ,trunoli,trevapor,gtracer
 #endif

@@ -789,10 +789,10 @@ C****
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
      *     ,byim,sig,itime
       USE SOMTQ_COM, only : tmom,qmom
-      USE PBLCOM, only : tsavg
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
 #endif
+      USE PBLCOM, only : tsavg
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: X,Y
       REAL*8 PSUMO(JM)

@@ -4,11 +4,11 @@
 !@sum  STRAITS ocean strait related variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : lmo
-      USE SEAICE, only : lmi
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+      USE SEAICE, only : lmi
+      USE OCEAN, only : lmo
       IMPLICIT NONE
       SAVE
 C**** These values are highly resolution dependent
@@ -73,7 +73,7 @@ C****
      *     'Fury & Hecla  ', 'Nares         ', 'Gibraltar     ',
      *     'English       ', 'Kattegat      ', 'Bosporous     ',
      *     'Red Sea       ', 'Bab al Mandab ', 'Hormuz        ',
-     *     'Malacca       ', 'Korea         ', 'Soya-kaikyo   '/) 
+     *     'Malacca       ', 'Korea         ', 'Soya-kaikyo   '/)
 
 !@var RSIST Sea ice fraction in strait
 !@var RSIXST Center of sea ice in strait (m)
@@ -89,7 +89,7 @@ C****
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
 #endif
-!@var TRSIST tracer amount in with strait (kg)      
+!@var TRSIST tracer amount in with strait (kg)
       REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
 #endif
 

@@ -140,7 +140,7 @@ C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 !@var RIS, RI1, RI2 Richardson numbers
       REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2
 !@var DCL max level of planetary boundary layer
-      INTEGER :: DCL 
+      INTEGER :: DCL
 
 C**** output variables
       REAL*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
@@ -604,12 +604,12 @@ C****
         DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
         QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
 
-        DO K=1,KMAX            
+        DO K=1,KMAX
           DUM(K,L-1)=DUM(K,L-1)+UMP(K)*DELTA
           DVM(K,L-1)=DVM(K,L-1)+VMP(K)*DELTA
           UMP(K)=UMP(K)-UMP(K)*DELTA
           VMP(K)=VMP(K)-VMP(K)*DELTA
-        ENDDO                  
+        ENDDO
 
 #ifdef TRACERS_ON
         DTM(L-1,1:NTX) = DTM(L-1,1:NTX)+DELTA*TMP(1:NTX)
@@ -1205,9 +1205,9 @@ C**** functions
 
 !@param CM00 upper limit for autoconversion rate
 !@param AIRM0 scaling factor for computing rain evapration
-!@param HEFOLD e-folding length for computing HRISE 
+!@param HEFOLD e-folding length for computing HRISE
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
-      REAL*8, PARAMETER :: HEFOLD=500. 
+      REAL*8, PARAMETER :: HEFOLD=500.
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -1259,7 +1259,7 @@ C**** functions
       REAL*8 Q1,AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE 
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE
      *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
      *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
@@ -1468,10 +1468,10 @@ C**** integrated HDEP over pbl depth
           HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
         END DO
         IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        HRISE=HRMAX 
-        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))   
+        HRISE=HRMAX
+        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))
         IF(HRISE.GT.HDEP) HRISE=HDEP
-C**** hdep is simply layer dependent (removed due to resolution dependence)
+C**** hdep is simply layer dependent (not used: resolution sensitive)
 c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
 c        IF(L.EQ.DCL) HDEP=0.5*HDEP
         RH00(L)=1.-GAMD*LHE*HRISE/(RVAP*TS*TS)
@@ -1652,8 +1652,8 @@ c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
         END IF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip from CLW
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),FCLD,FQTOW,FQTOWT)    !condens
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT) !precip CLW
+        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),FCLD,FQTOW,FQTOWT) !condens
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
@@ -1676,7 +1676,7 @@ C**** need seperate accounting for liquid/solid precip
 C**** Isotopic equilibration of the CLW and water vapour
         CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L))
 C**** Isotopic equilibration of the liquid Precip and water vapour
-C**** only if T> -20 deg ??? 
+C**** only if T> -20 deg ???
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
         IF (TL(L)-TF.GT.-20.AND.PRLIQ.gt.0) THEN
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))

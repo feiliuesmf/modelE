@@ -11,14 +11,14 @@
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice,ftype
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice,itlandi,itearth
+      USE GEOM
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl
-      USE GEOM
+      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,trsi0,ntm
 #endif
-      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
       USE DAGCOM, only : aij, ij_smfx, aj, j_implh, j_implm
@@ -526,21 +526,21 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
+      USE FILEMANAGER
+      USE PARAM
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
-      USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl
+      USE DAGCOM, only : npts,icon_OCE
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : trw0
+      USE FLUXES, only : gtracer
+#endif
+      USE FLUXES, only : gtemp,sss,ui2rho
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
-      USE FLUXES, only : gtemp,sss,ui2rho
-#ifdef TRACERS_WATER
-     *     ,gtracer
-      USE TRACER_COM, only : trw0
-#endif
-      USE DAGCOM, only : npts,icon_OCE
-      USE FILEMANAGER
-      USE PARAM
+      USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
+     *     ,iu_ocnml,tocean,ocn_cycl
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
@@ -617,7 +617,7 @@ C**** Set ftype array for oceans
           SSS(I,J) = 34.7d0
 #ifdef TRACERS_WATER
           gtracer(:,1,i,j)=trw0(:)
-#endif          
+#endif
         ELSE
           SSS(I,J) = 0.
         END IF
@@ -640,20 +640,20 @@ C****
       USE CONSTANT, only : rhow,shw,twopi,edpery
       USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
-      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
-     *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
+      USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2,aj,j_imelt,j_hmelt,j_smelt
      *     ,areg,jreg
+      USE SEAICE, only : simelt,ace1i,lmi,xsi
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : simelt,ace1i,lmi,xsi
-      USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
+      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
+     *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
       INTEGER I,J,JR
       LOGICAL, INTENT(IN) :: end_of_day
@@ -734,7 +734,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             TRSI(:,:,I,J)=TRSIL(:,:)
             GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
-              
+
 C**** set ftype/gtemp arrays
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
@@ -761,11 +761,11 @@ C****
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc
-      USE STATIC_OCEAN, only : tocean,z1o
-      USE SEAICE_COM, only : rsi,msi,snowi
-      USE SEAICE, only : ace1i
       USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
+      USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi
+      USE STATIC_OCEAN, only : tocean,z1o
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,ENRGO,POCEAN,POICE,SNOW
      *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE
@@ -827,20 +827,20 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
+      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
+     *     j_oht,j_imelt,j_hmelt,j_smelt,oa
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
      *     flowo,eflowo,gtemp
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
-      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
-     *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
+      USE SEAICE, only : ace1i,ssi0
       USE SEAICE_COM, only : rsi,msi,snowi
 #ifdef TRACERS_WATER
      *     ,trsi0
 #endif
-      USE SEAICE, only : ace1i,ssi0
-      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
-     *     j_oht,j_imelt,j_hmelt,j_smelt,oa
+      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
+     *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ
@@ -920,7 +920,7 @@ C**** Store mass and energy fluxes for formation of sea ice
           DSSI(2,I,J)=SSI0*ACE2F
 #ifdef TRACERS_WATER
 C**** assume const mean tracer conc over freshwater amount
-          DTRSI(:,1,I,J)=TRSI0(:)*(1.-SSI0)*ACEFO 
+          DTRSI(:,1,I,J)=TRSI0(:)*(1.-SSI0)*ACEFO
           DTRSI(:,2,I,J)=TRSI0(:)*(1.-SSI0)*ACE2F
 #endif
 C**** store surface temperatures
@@ -981,9 +981,9 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
-      USE STATIC_OCEAN, only : tocean
-      USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE DAGCOM, only : ij_tgo2,aij
+      USE SEAICE_COM, only : rsi,msi,hsi,ssi
+      USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1019,7 +1019,7 @@ C****
       USE FLUXES, only : gtracer
       IMPLICIT NONE
       INTEGER i,j,n
-      
+
       do n=1,ntm
         if (itime.eq.itime_tr0(n)) then
           do j=1,jm

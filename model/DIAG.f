@@ -48,6 +48,7 @@ C****
      *     ,u,v,t,p,q
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
+      USE RADNCB, only : rqt,lm_req
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
@@ -59,7 +60,6 @@ C****
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
      *     ,jl_epflxn,jl_epflxv,ij_p850
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
-      USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
 
       IMPLICIT NONE
@@ -1616,10 +1616,10 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_MSI,icon_HSI,icon_SSI,title_con
-      USE SOIL_DRV, only: conserv_WTG,conserv_HTG
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,ntm
 #endif
+      USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
