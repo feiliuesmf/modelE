@@ -122,8 +122,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var IJD6,NAMD6 (i,j)-coord.,4-char names of boxes w/diurnal cycle diag
 !ny   INTEGER, DIMENSION(2,NDLYPT) :: IJD6
 !ny   CHARACTER*4, DIMENSION(NDLYPT) :: NAMD6
-!@var ADAILY daily diagnostics (24 hour cycles at selected points)
-      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDLYVAR,NDLYPT) :: ADAILY
+!@var ADIURN daily diagnostics (24 hour cycles at selected points)
+      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDLYVAR,NDLYPT) :: ADIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
       INTEGER, PARAMETER :: KAJK=51
@@ -166,7 +166,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
 
       COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
-     &  ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
+     &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
      &  AJK,AIJK,AIJL,AJLSP
       DOUBLE PRECISION, DIMENSION(KACC) :: ACC
       EQUIVALENCE (ACC,AJ)
@@ -402,7 +402,7 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc,ACC,
 c??? *     idacc,AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
-c??? *     ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
+c??? *     ADIURN,WAVE,AJK,AIJK,AIJL,AJLSP,
      *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
@@ -411,7 +411,7 @@ c??? *     ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
      *     idacc,SNGL(ACC),
 c??? *     idacc,SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
 c??? *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
-c??? *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
+c??? *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADIURN),SNGL(WAVE),
 c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
      *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
@@ -421,7 +421,7 @@ c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *      idacc, ACC,
 c??? *      idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,
-c??? *      CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
+c??? *      CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AIJL,AJLSP,
      *      TDIURN,OA,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER

@@ -52,14 +52,17 @@ c****
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use socpbl, only : zgs
-      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
+      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
      *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt,
      *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
      *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
-     *     ij_g24,ij_g25,ij_g26,ij_g27
+     *     ij_g24,ij_g25,ij_g26,ij_g27,
+     *     idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,
+     *     idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,
+     *     idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
       use dynamics, only : pk,pek,pedn,pdsig !,pmid
       use fluxes, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
@@ -67,7 +70,7 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,modd6
-      integer i,j,l,kr,jr,itype,imax,ihour
+      integer i,j,l,kr,jr,itype,imax,ih
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
      *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype
      *     ,dxypj,trheat,wtr2av,wfc1
@@ -122,7 +125,7 @@ c     endif
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
-      ihour=1+jhour
+      ih=1+jhour
 c****
 c**** outside loop over time steps, executed nisurf times every hour
 c****
@@ -413,29 +416,29 @@ c**** quantities accumulated hourly for diag6
       if ( modd6 == 0 ) then
         do kr=1,4
           if(i.eq.ijd6(1,kr).and.j.eq.ijd6(2,kr)) then
-            adaily(ihour,12,kr)=adaily(ihour,12,kr)+ts*ptype
-            adaily(ihour,13,kr)=adaily(ihour,13,kr)+(tg1+tf)*ptype
-            adaily(ihour,19,kr)=adaily(ihour,19,kr)+qs*ptype
-            adaily(ihour,20,kr)=adaily(ihour,20,kr)+qg*ptype
-            adaily(ihour,28,kr)=adaily(ihour,28,kr)+srhdt*ptype
-            adaily(ihour,29,kr)=adaily(ihour,29,kr)+trhdt*ptype
-            adaily(ihour,30,kr)=adaily(ihour,30,kr)+shdt*ptype
-            adaily(ihour,31,kr)=adaily(ihour,31,kr)+evhdt*ptype
-            adaily(ihour,32,kr)=adaily(ihour,32,kr)
+            adiurn(ih,idd_ts,kr)=adiurn(ih,idd_ts,kr)+ts*ptype
+            adiurn(ih,idd_tg1,kr)=adiurn(ih,idd_tg1,kr)+(tg1+tf)*ptype
+            adiurn(ih,idd_qs,kr)=adiurn(ih,idd_qs,kr)+qs*ptype
+            adiurn(ih,idd_qg,kr)=adiurn(ih,idd_qg,kr)+qg*ptype
+            adiurn(ih,idd_swg,kr)=adiurn(ih,idd_swg,kr)+srhdt*ptype
+            adiurn(ih,idd_lwg,kr)=adiurn(ih,idd_lwg,kr)+trhdt*ptype
+            adiurn(ih,idd_sh,kr)=adiurn(ih,idd_sh,kr)+shdt*ptype
+            adiurn(ih,idd_lh,kr)=adiurn(ih,idd_lh,kr)+evhdt*ptype
+            adiurn(ih,idd_hz0,kr)=adiurn(ih,idd_hz0,kr)
      *           +(srhdt+trhdt+shdt+evhdt)*ptype
-            adaily(ihour,33,kr)=adaily(ihour,33,kr)+ug*ptype
-            adaily(ihour,34,kr)=adaily(ihour,34,kr)+vg*ptype
-            adaily(ihour,35,kr)=adaily(ihour,35,kr)+wg*ptype
-            adaily(ihour,36,kr)=adaily(ihour,36,kr)+us*ptype
-            adaily(ihour,37,kr)=adaily(ihour,37,kr)+vs*ptype
-            adaily(ihour,38,kr)=adaily(ihour,38,kr)+ws*ptype
-            adaily(ihour,39,kr)=adaily(ihour,39,kr)+psi*ptype
-            adaily(ihour,42,kr)=adaily(ihour,42,kr)+cdm*ptype
-            adaily(ihour,43,kr)=adaily(ihour,43,kr)+cdh*ptype
-            adaily(ihour,44,kr)=adaily(ihour,44,kr)+cdq*ptype
-            adaily(ihour,45,kr)=adaily(ihour,45,kr)+eds1*ptype
-            adaily(ihour,46,kr)=adaily(ihour,46,kr)+dbl*ptype
-            adaily(ihour,50,kr)=adaily(ihour,50,kr)+evap*ptype
+            adiurn(ih,idd_ug,kr)=adiurn(ih,idd_ug,kr)+ug*ptype
+            adiurn(ih,idd_vg,kr)=adiurn(ih,idd_vg,kr)+vg*ptype
+            adiurn(ih,idd_wg,kr)=adiurn(ih,idd_wg,kr)+wg*ptype
+            adiurn(ih,idd_us,kr)=adiurn(ih,idd_us,kr)+us*ptype
+            adiurn(ih,idd_vs,kr)=adiurn(ih,idd_vs,kr)+vs*ptype
+            adiurn(ih,idd_ws,kr)=adiurn(ih,idd_ws,kr)+ws*ptype
+            adiurn(ih,idd_cia,kr)=adiurn(ih,idd_cia,kr)+psi*ptype
+            adiurn(ih,idd_cm,kr)=adiurn(ih,idd_cm,kr)+cdm*ptype
+            adiurn(ih,idd_ch,kr)=adiurn(ih,idd_ch,kr)+cdh*ptype
+            adiurn(ih,idd_cq,kr)=adiurn(ih,idd_cq,kr)+cdq*ptype
+            adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+eds1*ptype
+            adiurn(ih,idd_dbl,kr)=adiurn(ih,idd_dbl,kr)+dbl*ptype
+            adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+evap*ptype
           end if
         end do
       endif

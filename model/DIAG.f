@@ -1275,9 +1275,9 @@ C****
      &     sig,sige,dsig, Jhour, ijd6
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
+      USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adiurn,nspher,
      &     nwav_dag,ndlypt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer
+     *     ,ijk_dse,klayer,idd_w
       USE DYNAMICS, only : phi
       IMPLICIT NONE
       SAVE
@@ -1750,9 +1750,10 @@ C****              this happens to balance out, if and only if
 C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
             IH=JHOUR+1
             DO INCH=1,NDAA
-               IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
-               ADAILY(IH,60,KR)=ADAILY(IH,60,KR)+1.E5*W(I,J,3)/DXYP(J)
-               IH=IH+1
+              IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
+              ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
+     *             /DXYP(J)
+              IH=IH+1
             END DO
          END IF
       END DO
@@ -3238,7 +3239,7 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
       AJ=0    ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
-      SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
+      SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
       if (isum.eq.1) return
 

@@ -178,12 +178,12 @@ c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'NHEMI', 2, dimids(2))
       status = nf_def_var(ncid, 'ATPE', nf_real, 2, dimids, varid)
 c-----------------------------------------------------------------------
-c adaily
+c adiurn
 c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'HR_IN_DAY', 24, dimids(1))
       status = nf_def_dim(ncid, 'NDLYVAR',   63, dimids(2))
       status = nf_def_dim(ncid, 'NDLYPT', 4, dimids(3))
-      status = nf_def_var(ncid, 'ADAILY',nf_real,3,dimids,varid)
+      status = nf_def_var(ncid, 'ADIURN',nf_real,3,dimids,varid)
       status = nf_put_att_text(ncid,varid,'NAMD6',16,namd6)
       !status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,jc(81))
       status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,IJD6)
@@ -265,7 +265,7 @@ c-----------------------------------------------------------------------
       call ncwrtdbl(name_consrv,ncid,jm,kcon,consrv)
       var_name='SPECA';  call ncwrtdbl1(var_name,ncid,speca)
       var_name='ATPE';   call ncwrtdbl1(var_name,ncid,atpe)
-      var_name='ADAILY'; call ncwrtdbl1(var_name,ncid,adaily)
+      var_name='ADIURN'; call ncwrtdbl1(var_name,ncid,adiurn)
       call ncwrtdbl(name_wave,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
      &     kwp,wave)
       call ncwrtdbl(name_jk,ncid,jm*lm,kajk,ajk)

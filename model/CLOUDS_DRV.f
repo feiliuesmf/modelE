@@ -22,9 +22,10 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
-      USE DAGCOM, only : aj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
-     *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
-     *     ,ij_neth,j_eprcp,j_prcpmc,j_prcpss
+      USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
+     *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
+     *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,
+     *     idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
@@ -41,7 +42,7 @@
       REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR,IM1
+      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR,IM1,IH
 !@var IMAX maximum number of zonal grid points used
 !@var IM1 IM-1
 !@var JR = JREG(I,J)
@@ -84,6 +85,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
        VZM(1,L)=VZM(1,L)/FIM
        VZM(2,L)=VZM(2,L)/FIM
       ENDDO
+      IH=JHOUR+1
 C****
 C**** MAIN J LOOP
 C****
@@ -186,11 +188,11 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPMC
-               ADAILY(JHOUR+1,5 ,KR)=ADAILY(JHOUR+1,5 ,KR)+HCNDMC
-               ADAILY(JHOUR+1,63,KR)=ADAILY(JHOUR+1,63,KR)+PRCPMC
-               ADAILY(JHOUR+1,51,KR)=ADAILY(JHOUR+1,51,KR)+CLDDEPIJ
-               ADAILY(JHOUR+1,52,KR)=ADAILY(JHOUR+1,52,KR)+CLDSLWIJ
+              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
+              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
+              ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
+              ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
+              ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
             END IF
          END DO
 
@@ -277,9 +279,9 @@ C**** Accumulate diagnostics of LSCOND
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPSS
-               ADAILY(JHOUR+1,5 ,KR)=ADAILY(JHOUR+1,5 ,KR)+HCNDSS
-               ADAILY(JHOUR+1,62,KR)=ADAILY(JHOUR+1,62,KR)+PRCPSS
+              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
+              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
+              ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
             END IF
          END DO
 

@@ -20,9 +20,9 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
      *     ,byrhoi,deltx,byrt3
-      USE MODEL_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
+      USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
-     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
+     *     ,fearth,nday,modrd,ijd6,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,vt_on
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
@@ -31,10 +31,15 @@ C****
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adaily,ndlypt,jreg
+      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndlypt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
+     *     ,idd_spr,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts
+     *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
+     *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
+     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
+     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
@@ -49,7 +54,7 @@ C****
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
-     *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
+     *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG,IH
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1
      *     ,PGK,HS,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,CDQS,EDS1S,PPBLS
      *     ,EVAPS,DBLS,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2
@@ -97,6 +102,7 @@ C****
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
+      IH=JHOUR+1
 
       ZS1CO=.5*DSIG(1)*RGAS*BYGRAV
 
@@ -583,40 +589,40 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
  5800    IF(MODD6.EQ.0) THEN
          DO KR=1,NDLYPT
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(JHOUR+1,6,KR)=ADAILY(JHOUR+1,6,KR)+PS  ! ???
-               ADAILY(JHOUR+1,7,KR)=ADAILY(JHOUR+1,7,KR)+PSK*T(I,J,5)
-               ADAILY(JHOUR+1,8,KR)=ADAILY(JHOUR+1,8,KR)+PSK*T(I,J,4)
-               ADAILY(JHOUR+1,9,KR)=ADAILY(JHOUR+1,9,KR)+PSK*T(I,J,3)
-               ADAILY(JHOUR+1,10,KR)=ADAILY(JHOUR+1,10,KR)+PSK*T(I,J,2)
-               ADAILY(JHOUR+1,11,KR)=ADAILY(JHOUR+1,11,KR)+PSK*T(I,J,1)
-               ADAILY(JHOUR+1,12,KR)=ADAILY(JHOUR+1,12,KR)+TSS
-               ADAILY(JHOUR+1,13,KR)=ADAILY(JHOUR+1,13,KR)+(TG1S+TFS)
-               ADAILY(JHOUR+1,14,KR)=ADAILY(JHOUR+1,14,KR)+Q(I,J,5)
-               ADAILY(JHOUR+1,15,KR)=ADAILY(JHOUR+1,15,KR)+Q(I,J,4)
-               ADAILY(JHOUR+1,16,KR)=ADAILY(JHOUR+1,16,KR)+Q(I,J,3)
-               ADAILY(JHOUR+1,17,KR)=ADAILY(JHOUR+1,17,KR)+Q(I,J,2)
-               ADAILY(JHOUR+1,18,KR)=ADAILY(JHOUR+1,18,KR)+Q1
-               ADAILY(JHOUR+1,19,KR)=ADAILY(JHOUR+1,19,KR)+QSS
-               ADAILY(JHOUR+1,20,KR)=ADAILY(JHOUR+1,20,KR)+QGS
-               ADAILY(JHOUR+1,28,KR)=ADAILY(JHOUR+1,28,KR)+SRHDTS
-               ADAILY(JHOUR+1,29,KR)=ADAILY(JHOUR+1,29,KR)+TRHDTS
-               ADAILY(JHOUR+1,30,KR)=ADAILY(JHOUR+1,30,KR)+SHDTS
-               ADAILY(JHOUR+1,31,KR)=ADAILY(JHOUR+1,31,KR)+EVHDTS
-               ADAILY(JHOUR+1,32,KR)=ADAILY(JHOUR+1,32,KR)
-     *              +(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-               ADAILY(JHOUR+1,33,KR)=ADAILY(JHOUR+1,33,KR)+UGS
-               ADAILY(JHOUR+1,34,KR)=ADAILY(JHOUR+1,34,KR)+VGS
-               ADAILY(JHOUR+1,35,KR)=ADAILY(JHOUR+1,35,KR)+WGS
-               ADAILY(JHOUR+1,36,KR)=ADAILY(JHOUR+1,36,KR)+USS
-               ADAILY(JHOUR+1,37,KR)=ADAILY(JHOUR+1,37,KR)+VSS
-               ADAILY(JHOUR+1,38,KR)=ADAILY(JHOUR+1,38,KR)+WSS
-               ADAILY(JHOUR+1,39,KR)=ADAILY(JHOUR+1,39,KR)+PSIS
-               ADAILY(JHOUR+1,42,KR)=ADAILY(JHOUR+1,42,KR)+CDMS
-               ADAILY(JHOUR+1,43,KR)=ADAILY(JHOUR+1,43,KR)+CDHS
-               ADAILY(JHOUR+1,44,KR)=ADAILY(JHOUR+1,44,KR)+CDQS
-               ADAILY(JHOUR+1,45,KR)=ADAILY(JHOUR+1,45,KR)+EDS1S
-               ADAILY(JHOUR+1,46,KR)=ADAILY(JHOUR+1,46,KR)+DBLS
-               ADAILY(JHOUR+1,50,KR)=ADAILY(JHOUR+1,50,KR)+EVAPS
+              ADIURN(IH,IDD_SPR,KR)=ADIURN(IH,IDD_SPR,KR)+PS
+              ADIURN(IH,IDD_PT5,KR)=ADIURN(IH,IDD_PT5,KR)+PSK*T(I,J,5)
+              ADIURN(IH,IDD_PT4,KR)=ADIURN(IH,IDD_PT4,KR)+PSK*T(I,J,4)
+              ADIURN(IH,IDD_PT3,KR)=ADIURN(IH,IDD_PT3,KR)+PSK*T(I,J,3)
+              ADIURN(IH,IDD_PT2,KR)=ADIURN(IH,IDD_PT2,KR)+PSK*T(I,J,2)
+              ADIURN(IH,IDD_PT1,KR)=ADIURN(IH,IDD_PT1,KR)+PSK*T(I,J,1)
+              ADIURN(IH,IDD_TS,KR)=ADIURN(IH,IDD_TS,KR)+TSS
+              ADIURN(IH,IDD_TG1,KR)=ADIURN(IH,IDD_TG1,KR)+(TG1S+TFS)
+              ADIURN(IH,IDD_Q5,KR)=ADIURN(IH,IDD_Q5,KR)+Q(I,J,5)
+              ADIURN(IH,IDD_Q4,KR)=ADIURN(IH,IDD_Q4,KR)+Q(I,J,4)
+              ADIURN(IH,IDD_Q3,KR)=ADIURN(IH,IDD_Q3,KR)+Q(I,J,3)
+              ADIURN(IH,IDD_Q2,KR)=ADIURN(IH,IDD_Q2,KR)+Q(I,J,2)
+              ADIURN(IH,IDD_Q1,KR)=ADIURN(IH,IDD_Q1,KR)+Q1
+              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QSS
+              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QGS
+              ADIURN(IH,IDD_SWG,KR)=ADIURN(IH,IDD_SWG,KR)+SRHDTS
+              ADIURN(IH,IDD_LWG,KR)=ADIURN(IH,IDD_LWG,KR)+TRHDTS
+              ADIURN(IH,IDD_SH,KR)=ADIURN(IH,IDD_SH,KR)+SHDTS
+              ADIURN(IH,IDD_LH,KR)=ADIURN(IH,IDD_LH,KR)+EVHDTS
+              ADIURN(IH,IDD_HZ0,KR)=ADIURN(IH,IDD_HZ0,KR)
+     *             +(SRHDTS+TRHDTS+SHDTS+EVHDTS)
+              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)+UGS
+              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)+VGS
+              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)+WGS
+              ADIURN(IH,IDD_US,KR)=ADIURN(IH,IDD_US,KR)+USS
+              ADIURN(IH,IDD_VS,KR)=ADIURN(IH,IDD_VS,KR)+VSS
+              ADIURN(IH,IDD_WS,KR)=ADIURN(IH,IDD_WS,KR)+WSS
+              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)+PSIS
+              ADIURN(IH,IDD_CM,KR)=ADIURN(IH,IDD_CM,KR)+CDMS
+              ADIURN(IH,IDD_CH,KR)=ADIURN(IH,IDD_CH,KR)+CDHS
+              ADIURN(IH,IDD_CQ,KR)=ADIURN(IH,IDD_CQ,KR)+CDQS
+              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)+EDS1S
+              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)+DBLS
+              ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAPS
             END IF
          END DO
        END IF
@@ -690,8 +696,8 @@ C****
         DO KR=1,4
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
           IF(DCLEV(IJD6(1,KR),IJD6(2,KR)).GT.1.) THEN
-            ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
-            ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)
+            ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
+            ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
      *           +DCLEV(IJD6(1,KR),IJD6(2,KR))
           END IF
         END DO

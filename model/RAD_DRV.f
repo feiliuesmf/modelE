@@ -432,13 +432,15 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adaily,
+      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
      *     iwrite,jwrite,itwrite,ndlypt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
-     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp
+     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,
+     *     idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
+     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -455,7 +457,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       REAL*8, DIMENSION(LM) :: TOTCLD,PLL,PKL
 
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,IHOUR,IMAX,IM1,JR,IH,INCH,JK,IT,LTROPO
+      INTEGER I,J,L,K,KR,LR,IMAX,IM1,JR,IH,INCH,JK,IT,LTROPO
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,PTROPO,OPNSKY
       REAL*8 QSAT
@@ -473,7 +475,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
       ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
       ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
-         IHOUR=1+JHOUR
+      IH=1+JHOUR
       IF (MODRD.NE.0) GO TO 900
       IDACC(2)=IDACC(2)+1
 C****
@@ -604,17 +606,16 @@ C****
   280    CONTINUE
   285    DO KR=1,NDLYPT
            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-             IH=IHOUR
              DO INCH=1,NRAD
                IF (IH.GT.24) IH=IH-24
-               ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
-               ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
-               ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
-               ADAILY(IH,56,KR)=ADAILY(IH,56,KR)+TOTCLD(4)
-               ADAILY(IH,57,KR)=ADAILY(IH,57,KR)+TOTCLD(3)
-               ADAILY(IH,58,KR)=ADAILY(IH,58,KR)+TOTCLD(2)
-               ADAILY(IH,59,KR)=ADAILY(IH,59,KR)+TOTCLD(1)
-               ADAILY(IH,61,KR)=ADAILY(IH,61,KR)+CLDCV
+               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
+               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
+               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
+               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
+               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
+               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
+               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
+               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
                IH=IH+1
              END DO
            END IF
@@ -751,13 +752,14 @@ C****
          END DO
          DO KR=1,NDLYPT
            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-             IH=IHOUR
              DO INCH=1,NRAD
                IF (IH.GT.24) IH=IH-24
-               ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(4,I,J)/S0)
-               ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
-               ADAILY(IH,4,KR)=ADAILY(IH,4,KR)
-     *              +((SNFS(4,I,J)-SNFS(1,I,J))*COSZ-TNFS(4,I,J)
+               ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
+     *              (1.-SNFS(4,I,J)/S0)
+               ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
+     *              (1.-ALB(I,J,1))
+               ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
+     *              ((SNFS(4,I,J)-SNFS(1,I,J))*COSZ-TNFS(4,I,J)
      *              +TNFS(1,I,J))
                IH=IH+1
              END DO
@@ -857,8 +859,8 @@ C****
       END DO
 C**** daily diagnostics
       DO KR=1,NDLYPT
-         ADAILY(IHOUR,1,KR)=ADAILY(IHOUR,1,KR)+S0*COSZ1(IJD6(1,KR)
-     *        ,IJD6(2,KR))
+        ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
+     *       S0*COSZ1(IJD6(1,KR),IJD6(2,KR))
       END DO
 
       RETURN

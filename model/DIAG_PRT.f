@@ -4812,7 +4812,7 @@ c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     idacc,IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,XLABEL
       USE DAGCOM, only :
-     &     adaily,kdiag,ndlyvar,hr_in_day,scale_dd,lname_dd,name_dd
+     &     adiurn,kdiag,ndlyvar,hr_in_day,scale_dd,lname_dd,name_dd
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY+1) :: XHOUR
@@ -4840,8 +4840,8 @@ C****
 C**** NORMAL QUANTITIES
             AVE=0.
             DO IH=1,HR_IN_DAY
-              AVE=AVE+ADAILY(IH,KQ,KR)
-              XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
+              AVE=AVE+ADIURN(IH,KQ,KR)
+              XHOUR(IH)=ADIURN(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
             END DO
             XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
 C**** RATIO OF TWO QUANTITIES
@@ -4849,10 +4849,10 @@ C**** RATIO OF TWO QUANTITIES
             AVEN=0.
             AVED=0.
             DO IH=1,HR_IN_DAY
-              AVEN=AVEN+ADAILY(IH,KQ,KR)
-              AVED=AVED+ADAILY(IH,KQ-1,KR)
-              XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)/
-     *             (ADAILY(IH,KQ-1,KR)+1D-20)
+              AVEN=AVEN+ADIURN(IH,KQ,KR)
+              AVED=AVED+ADIURN(IH,KQ-1,KR)
+              XHOUR(IH)=ADIURN(IH,KQ,KR)*SCALE_DD(KQ)/
+     *             (ADIURN(IH,KQ-1,KR)+1D-20)
             END DO
             XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
           END SELECT
