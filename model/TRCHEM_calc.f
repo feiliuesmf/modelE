@@ -7,6 +7,7 @@
 c
 C**** GLOBAL parameters and variables:
 C
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only       : im,jm,lm
 #ifdef regional_Ox_tracers
      &                            ,ptop,psf,sig
@@ -70,7 +71,7 @@ C**** Local parameters and variables and arguments:
 !@var changeH2O chemical change in H2O
 !@var Oxcorr account for Ox change from within NOx partitioning
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
-      REAL*8, DIMENSION(IM,JM,LM,ntm)     :: change
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: change
       REAL*8, DIMENSION(LM)               :: rMAbyM,sv_changeN2O,
      &changeH2O,Oxcorr
       INTEGER, INTENT(IN) :: I,J
@@ -106,6 +107,15 @@ C**** Local parameters and variables and arguments:
 #else
      &                              ntm_chem
 #endif
+
+      INTEGER J_0H, J_1H
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+
+      ALLOCATE ( change(IM,J_0H:J_1H,LM,ntm) )
 
 C
 C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
@@ -1207,6 +1217,9 @@ C**** special diags not associated with a particular tracer
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)
 c
+
+      DEALLOCATE ( change )
+
       return
       end SUBROUTINE chemstep
 cc    __________________________________________________________________
