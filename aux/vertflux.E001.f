@@ -23,7 +23,7 @@ C****
       implicit none 
       integer first_month, first_year, last_month, last_year, jyears
       integer months, monthe, jyear, month, itime1, 
-     *        last_day, kday, i, j, iu_SICE0,iu_TOPO
+     *        last_day, kday, i, j, iu_TOPO 
       REAL*8 PWATER(im,jm),ROICE(IM,JM),AVFX(IM,JM)  
       REAL*8 GSR,GVFXSR,SYEAR,SYEARS
       real*8 VFSR, VF, XCORR 
@@ -67,9 +67,8 @@ C****
       read(title0,*) last_year
       jyears = last_year-first_year+1 
       SYEARS = SYEAR*JYEARS
-      call openunit("SICE",iu_SICE0,.true.,.true.)
-      CALL READT (iu_SICE0,0,DM,IM*JM,DM,1)
-      call closeunit(iu_SICE0)
+      call openunit("SICE",iu_SICE,.true.,.true.)
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -92,6 +91,9 @@ C*
       fland (i,j) = 1.-focean(i,j) 
   220 CONTINUE
 C****
+      call openunit("OSST",iu_OSST,.true.,.true.)
+      call openunit("OCNML",iu_OCNML,.true.,.true.)
+C* 
 C**** Loop over days of the year and read the data for each day
 C****
       DO 320 JYEAR=first_year,last_year
@@ -111,9 +113,10 @@ C****
 C*
                jmon = month 
                jdate = kday
-               iu_OSST =  15 
-               iu_SICE =  17 
-               iu_OCNML = 18
+c               iu_OSST =  15 
+c               iu_SICE =  17 
+c               iu_OCNML = 18
+               kocean = 0 
                CALL OCLIM (1)
 C*             
                do j = 1,jm 

@@ -5,13 +5,15 @@ fi
 # Input files from rundeck (actually ${RUNID}ln)
 # This script uses TOPO,OSST,SICE,OCNML,MLMAX
 
-MODEL_E_ROOT=..
+cd ..
+MODEL_E_ROOT=$PWD
 DECKS_DIR=${MODEL_E_ROOT}/decks
 AUX_DIR=${MODEL_E_ROOT}/aux
 BIN_DIR=${DECKS_DIR}/$1_bin
 
 runID=$1 
 cd /u/cmrun/$runID
+rm -f RSFIC 
 
 do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
 

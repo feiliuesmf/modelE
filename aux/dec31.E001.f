@@ -27,7 +27,7 @@ C****
       USE FILEMANAGER
       implicit none 
       integer i, j, k, last_day, kday, jday0, IH,   
-     *     months, monthe, month,iu_TOPO,iu_SICE0,iu_MLMAX
+     *     months, monthe, month,iu_TOPO,iu_MLMAX
 
       REAL*4 TGO(IM,JM),TG2O(IM,JM),TG12O(IM,JM),
      *       ROICE(IM,JM),ACE2(IM,JM)
@@ -63,9 +63,8 @@ C*
 C* 
 C**** Read in aux. sea-ice file
 C* 
-      call openunit("SICE",iu_SICE0,.true.,.true.)
-      CALL READT (iu_SICE0,0,DM,IM*JM,DM,1)
-      call closeunit(iu_SICE0)
+      call openunit("SICE",iu_SICE,.true.,.true.)
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 C*
 C**** Read in Z12O, the annual maximum mixed layer depth
 C* 
