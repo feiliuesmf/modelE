@@ -2586,7 +2586,7 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD) hours.
-!@+   Current options: SLP, SAT, PREC, QS, LCLD, MCLD, HCLD
+!@+   Current options: SLP, SAT, PREC, QS, LCLD, MCLD, HCLD, TROP
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*      (on any model level)
 !@+   More options can be added as extra cases in this routine
@@ -2596,6 +2596,7 @@ C****
       USE GEOM, only : imaxj
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
+      USE DYNAMICS, only : ptropo
       USE FLUXES, only : prec
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
@@ -2652,6 +2653,8 @@ C**** simple diags
               data(i,j)=data(i,j)*100./real(lhi-lmid,kind=8)
             end do
           end do
+        case ("TROP")           ! tropopause height (mb)
+          data = ptropo
         case default
           goto 10
         end select
@@ -2660,7 +2663,6 @@ C**** fix polar values
         data(2:im,1) =data(1,1)
         data(2:im,jm)=data(1,jm)
 C**** write out
-        print*,"subdd",k,kunit,namedd(k)
         call writei(iu_subdd(kunit),itime,data,im*jm)
         cycle
 
@@ -2683,7 +2685,6 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              print*,"subdd",k,kunit,namedd(k)
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
             end if
@@ -2703,7 +2704,6 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              print*,"subdd",k,kunit,namedd(k)
               call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
             cycle
@@ -2722,7 +2722,6 @@ C**** fix polar values
               data(2:im,1) =data(1,1)
               data(2:im,jm)=data(1,jm)
 C**** write out
-              print*,"subdd",k,kunit,namedd(k)
               call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
             cycle
@@ -2742,7 +2741,6 @@ C**** get model level
               case ("V")        ! V velocity
                 data=v(:,:,l)
               end select
-              print*,"subdd",k,kunit,namedd(k)
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
             end if
