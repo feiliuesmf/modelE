@@ -409,7 +409,8 @@ sub print_main_index {
     print HTM "<BR>\n";
 
     print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
-    print HTM "<a href=\"http://simplex/cgi-bin/cvsweb.cgi/modelE/\">\n";
+    print HTM 
+      "<a href=\"http://simplex.giss.nasa.gov/cgi-bin/cvsweb.cgi/modelE/\">\n";
     print HTM "View source code in the repository</a>";
     print HTM " for latest updates e.t.c. This link allows you to view \n\
       all the source files currently in CVS repository together with their \n\
