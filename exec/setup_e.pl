@@ -45,7 +45,7 @@ if ( -f $modelerc ) {
     print "$HOME/.modelErc is not present. Using default settings.\n";
 }
 
-if ( $MAILTO =~ /^\s*$/ ) { $MAILTO = `whoami`; }
+if ( $MAILTO =~ /^\s*$/ ) { $MAILTO = `whoami`; chop $MAILTO; }
 print "CMRUNDIR = $CMRUNDIR\n";
 print "EXECDIR = $EXECDIR\n";
 print "GCMSEARCHPATH = $GCMSEARCHPATH\n";
@@ -92,14 +92,9 @@ print "setting up run $runID\n";
 print "output files will be saved in $SAVEDISK/$runID\n";
 
 ## Create the run directory if necessary
-if ( ! -d $RunDir ) {
-    `mkdir $RunDir`; $rcode = $? >> 8;
-    if ( $rcode != 0 ) {
-	print "Can't create $RunDir. Aborting setup.\n";
-	exit 1;
-    }
-    chmod 0777 & $umask_inv, $RunDir;
-}
+mkdir $RunDir, 0777 & $umask_inv 
+    or die "Can't create $RunDir. Aborting setup.\n";
+
 
 ## Check that link is not already correct (added by gavin)
 if ( -e $runID ) {
@@ -109,19 +104,19 @@ if ( -e $runID ) {
 	exit 1;
     }
 } else {
-    `ln -s $RunDir $runID`;
+    symlink $RunDir, $runID or die "Can't create link $runID in local dir";
 }
 
 ## Also link to $CMRUN if different from $SAVEDISK (added by gavin)
-if ( $CMRUN != $SAVEDISK ) {
-    if ( -e $CMRUN/$runID ) {
-	die "Can't create a link $CMRUN/$runID" if ! -l $CMRUN/$runID;
+if ( $CMRUN ne $SAVEDISK ) {
+    if ( -e "$CMRUN/$runID" ) {
+	die "Can't create a link $CMRUN/$runID" if ! -l "$CMRUN/$runID";
 	if (`ls -l $CMRUN/$runID` !~ /-> *$RunDir$/ ) {
-	    `rm $CMRUN/$runID`;
-	    `ln -s $RunDir $CMRUN/$runID`;
+	    unlink "$CMRUN/$runID" or die "Can't rm old link $CMRUN/$runID";
+	    symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link";
 	}
     } else {
-        `ln -s $RunDir $CMRUN/$runID`;
+        symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link";
     }
 }
 
