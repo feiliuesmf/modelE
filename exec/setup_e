@@ -5,14 +5,14 @@
 ##           gmake setup RUN=RunID
 ## Inside the Makefile it is called (from .../decks): setup_e RunID
 ## It looks for ~/.modelErc file and extracts all necessary options from
-## there. If such file is not present the default options which are 
+## there. If such file is not present the default options which are
 ## specified below will be used. Those default options are adjusted for
 ## working environment of ra.giss.nasa.gov.
 ##
 ## The options setup_e is looking for are:
 ## CMRUNDIR - directory to which all run directories will be linked.
 ## EXECDIR - path to directory with modelE scripts and with some executables.
-## SAVEDISK - a directory (big) where all run directories will be created. 
+## SAVEDISK - a directory (big) where all run directories will be created.
 ## GCMSEARCHPATH - directory to search for gcm input files.
 ## MAILTO - email address of the user. (default `whoami`)
 
@@ -39,7 +39,7 @@
    job=$( basename $0 )
    if [[ $# -ne 1 ]]; then
      echo "This script is not supposed to be run outside of Makefile"
-     echo "Inside the Makefile it is called: $job runID"; exit; 
+     echo "Inside the Makefile it is called: $job runID"; exit;
    fi
    RUNID=$1
    RFILE=$1.R
@@ -88,14 +88,16 @@
      ln -s $Xdisk/$RUNID $RUNID
    fi
 
-## Also link to $CMRUN  (added by gavin)
-   if [[ -L $CMRUN/$RUNID ]]; then
-     if [[ `ls -l "$CMRUN/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
-     then
-       rm $CMRUN/$RUNID
-       ln -s $Xdisk/$RUNID $CMRUN/$RUNID ; fi
-   else
-      ln -s $Xdisk/$RUNID $CMRUN/$RUNID
+## Also link to $CMRUN if different from $Xdisk (added by gavin)
+   if [[ $CMRUN != $Xdisk ]] ; then
+     if [[ -L $CMRUN/$RUNID ]]; then
+       if [[ `ls -l "$CMRUN/$RUNID" | awk '{print $11}'` != $Xdisk/$RUNID ]]
+       then
+         rm $CMRUN/$RUNID
+         ln -s $Xdisk/$RUNID $CMRUN/$RUNID ; fi
+     else
+        ln -s $Xdisk/$RUNID $CMRUN/$RUNID
+     fi
    fi
 
 ## Make sure that we really can write to dir/link $RUNID
@@ -108,7 +110,7 @@
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
 
 ## Move executable from "$RUNID"_bin directory to $RUNID
-   if [[ ! -f "$RUNID"_bin/$RUNID.exe ]] ; then 
+   if [[ ! -f "$RUNID"_bin/$RUNID.exe ]] ; then
      echo $RUNID.exe not found; exit 1; fi
 
    mv -f "$RUNID"_bin/$RUNID.exe $RUNID/$RUNID.exe
@@ -214,6 +216,7 @@
    echo "./$RUNID"uln >> $RUNID
    echo 'rm -f lock' >> $RUNID
    echo "exec $EXECDIR/runpmE $RUNID" '$rc' "$MAILTO" >> $RUNID
+   ln $RUNID E
 ## end of RUNID script
 
    chmod ugo+x  $RUNID
