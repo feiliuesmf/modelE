@@ -72,6 +72,7 @@ U00ice=.45   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=2
 DT=200.,      ! from default: DTsrc=3600.,
+dt_UVfilter=200.
 SUBDD=' '     ! save SLP at sub-daily frequency
 NSUBDD=0       ! saving sub-daily diags 12hrly
 Kvflxo=0        ! saving VFLXO (daily)

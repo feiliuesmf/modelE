@@ -80,7 +80,7 @@ P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 KOCEAN=1
-Kvflxo=0        ! no need to save VFLXO 
+Kvflxo=0        ! no need to save VFLXO
 
 xCDpbl=1.       ! same as E001 (true for all phys. params)
 U00ice=.60      ! same as E001
@@ -98,6 +98,7 @@ KVEGA6=3        ! 6-band albedo (Schramm)
 KSOLAR=2
 NIsurf=2        ! increase as layer 1 gets thinner
 DT=450.         ! from default: DTsrc=3600.,
+dt_UVfilter=450.
 Ndisk=24        ! use =240 on COMPAQ with lsf-batch system
 
 SUBDD='SLP'     ! save SLP at sub-daily frequency

@@ -80,6 +80,7 @@ KSOLAR=2
 LMCM=26              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
 DT=180.,             ! from default: DTsrc=3600.,
+dt_UVfilter=180.,
 NIsurf=4,            ! number of surface time steps
 
 NSUBDD=0        ! saving sub-daily diags

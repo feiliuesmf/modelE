@@ -67,7 +67,7 @@ TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
 E001a (E001 - prescribed ann. varying ocean='ocean A')
-       
+
 DTFIX=300
 &&PARAMETERS
 X_SDRAG=.00025,.000025
@@ -78,6 +78,7 @@ U00ice=.55   ! use same values as in corr. run with climatological ocean
 HRMAX=1000.  ! use same values as in corr. run with climatological ocean
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
+dt_UVfilter=450.
 SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)

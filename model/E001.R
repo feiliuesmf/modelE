@@ -98,6 +98,7 @@ KVEGA6=3        ! 6-band albedo (Schramm)
 KSOLAR=2
 NIsurf=2        ! increase as layer 1 gets thinner
 DT=450.         ! from default: DTsrc=3600.,
+dt_UVfilter=450.
 Ndisk=24        ! use =240 on COMPAQ with lsf-batch system
 
 SUBDD='SLP'     ! save SLP at sub-daily frequency
