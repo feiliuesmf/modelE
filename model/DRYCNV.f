@@ -178,3 +178,56 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       RETURN
       END SUBROUTINE ATM_DIFFUS
 
+
+      subroutine apply_fluxes_to_atm
+!@sum applies earth fluxes to the first layer of the atmosphere
+!@auth Original Development Team
+!@ver  1.0
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
+      USE FLUXES, only : dth1,dq1,du1,dv1
+      USE MODEL_COM, only : im,jm,u,v,t,q
+      implicit none
+      integer i,j,k,imax,kmax
+      real*8 hemi
+
+      do j=1,jm
+        imax=imaxj(j)
+        do i=1,imax
+          t(i,j,1)=  t(i,j,1)+dth1(i,j)
+          q(i,j,1)=  q(i,j,1)+dq1(i,j)
+        end do
+      end do
+c****
+c**** add in surface friction to first layer wind
+c****
+c**** polar boxes
+      do j=1,jm,jm-1
+        imax=imaxj(j)
+        kmax=kmaxj(j)
+        hemi=1.
+        if(j.le.jm/2) hemi=-1.
+        do i=1,imax
+        do k=1,kmax
+          u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+     *           ravj(k,j)*(du1(i,j)*cosiv(k)+dv1(i,j)*siniv(k)*hemi)
+          v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+     *           ravj(k,j)*(dv1(i,j)*cosiv(k)-du1(i,j)*siniv(k)*hemi)
+        end do
+        end do
+      end do
+c**** non polar boxes
+      do j=2,jm-1
+        imax=imaxj(j)
+        kmax=kmaxj(j)
+        do i=1,imax
+        do k=1,kmax
+          u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+     *           ravj(k,j)*du1(i,j)
+          v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+     *           ravj(k,j)*dv1(i,j)
+        end do
+        end do
+      end do
+c****
+      return
+      end subroutine apply_fluxes_to_atm

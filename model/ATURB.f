@@ -1653,3 +1653,11 @@ c     non polar boxes
 1003  format(4(i4,1x),3(1pe14.4))
       return
       end subroutine ave_s_to_bgrid
+
+      subroutine apply_fluxes_to_atm
+!@sum dummy subroutine - replaces the real one needed by DRYCNV
+!@auth I. Aleinov
+!@ver  1.0
+      return
+      end subroutine apply_fluxes_to_atm
+

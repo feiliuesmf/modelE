@@ -26,6 +26,7 @@ C**** Interface to PBL
      &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
+      USE PBL_DRV, only : pbl,evap_max,fr_sat
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -70,7 +71,7 @@ C**** Interface to PBL
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
      *     ,PSIS,HTLIM   ! THZ1,HZM1,HS,QZM1,
 
-      REAL*8 MSUM, MA1, MSI1, MSI2,tmp
+      REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
@@ -359,6 +360,8 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
       end do
 #endif
 C =====================================================================
+      fr_sat = 1. ! entire surface is saturated
+      evap_max = 1.
       CALL PBL(I,J,ITYPE,PTYPE)
       CM = cmgs(i,j,itype)
       CH = chgs(i,j,itype)
@@ -683,16 +686,13 @@ C****
         IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
         FQEVAP=0
         IF (DQ1(I,J).lt.0.and.Q(I,J,1).gt.0) FQEVAP=-DQ1(I,J)/Q(I,J,1)
-        T(I,J,1)=  T(I,J,1)+DTH1(I,J)
-        Q(I,J,1)=  Q(I,J,1)+DQ1(I,J)
 ! Z-moments should be set from PBL
         TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
-        IF (Q(I,J,1).LT.qmin) THEN
-          WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->',qmin
-          tmp=q(i,j,1)
-          Q(I,J,1)=qmin
-          dq1(i,j)=qmin-tmp
+        IF ( Q(I,J,1)+DQ1(I,J) .LT. qmin ) THEN
+          WRITE(99,*)
+     &         ITime,'I,J:',I,J,' Q1:',Q(I,J,1)+DQ1(I,J),'->',qmin
+          dq1(i,j)=qmin-q(i,j,1)
           QMOM(:,I,J,1)=0.
         ENDIF
 c****   retrieve fluxes
@@ -706,43 +706,18 @@ C**** Diurnal cycle of temperature diagnostics
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
+c****
+c**** apply earth fluxes to the first layer of the atmosphere
+c****  (replaced with dummy subroutine when ATURB is used)
+c****
+      call apply_fluxes_to_atm
+c****
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_source(dtsurf)
 #endif
-C****
-C**** ADD IN SURFACE FRICTION TO FIRST LAYER WIND
-C****
-C**** Polar boxes
-      DO J=1,JM,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        HEMI=1.
-        IF(J.LE.JM/2) HEMI=-1.
-        DO I=1,IMAX
-        DO K=1,KMAX
-          U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAVJ(K,J)*(DU1(I,J)*COSIV(K)+DV1(I,J)*SINIV(K)*HEMI)
-          V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAVJ(K,J)*(DV1(I,J)*COSIV(K)-DU1(I,J)*SINIV(K)*HEMI)
-        END DO
-        END DO
-      END DO
-C**** non polar boxes
-      DO J=2,JM-1
-        IMAX=IMAXJ(J)
-        KMAX=KMAXJ(J)
-        DO I=1,IMAX
-        DO K=1,KMAX
-          U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAVJ(K,J)*DU1(I,J)
-          V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAVJ(K,J)*DV1(I,J)
-        END DO
-        END DO
-      END DO
 c****
       DO J=1,JM
       IMAX=IMAXJ(J)

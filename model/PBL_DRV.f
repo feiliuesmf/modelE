@@ -1,5 +1,16 @@
 #include "rundeck_opts.h"
 
+      module PBL_DRV
+      implicit none
+      save
+
+c     input data:
+!@var evap_max maximal evaporation from unsaturated soil
+!@var  fr_sat fraction of saturated soil
+      real*8 :: evap_max,fr_sat
+
+      contains
+
       SUBROUTINE PBL(I,J,ITYPE,PTYPE)
 !@sum  PBL calculate pbl profiles for each surface type
 !@auth Greg. Hartke/Ye Cheng
@@ -185,7 +196,7 @@ C *********************************************************************
 c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
       call advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,
+     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
@@ -234,6 +245,8 @@ C ******************************************************************
 
       RETURN
       END SUBROUTINE PBL
+
+      end module PBL_DRV
 
       subroutine init_pbl(inipbl)
 c -------------------------------------------------------------

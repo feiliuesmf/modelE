@@ -97,7 +97,7 @@ C**** boundary layer parameters
       CONTAINS
 
       subroutine advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,
+     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
@@ -116,6 +116,8 @@ c    input:
 !@var  qtop  moisture at the top of the layer
 !@var  tgrnd  temperature of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
+!@var  evap_max maximal evaporation from unsaturated soil
+!@var  fr_sat fraction of saturated soil
 !@var  ztop height of the first model layer, approx 200 m if lm=9
 !@var  dtime  time step
 !@var  ilong  longitude identifier
@@ -161,7 +163,7 @@ c  internals:
       implicit none
 
       real*8, intent(in) :: coriol,utop,vtop,ttop,qtop
-      real*8, intent(in) :: tgrnd,qgrnd,ztop,dtime
+      real*8, intent(in) :: tgrnd,qgrnd,evap_max,fr_sat,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
 #ifdef TRACERS_ON
@@ -183,9 +185,12 @@ c  internals:
      *     ,esave
       integer :: i,j,iter  !@var i,j,iter loop variable
 
+      !print *,"PBL ::: ", evap_max,fr_sat
+
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"In advanc: i,j,itype =",ilong,jlat,itype,us,vs,tsv,qs
+        call abort
         stop "PBL error in advanc"
       end if
       zmix=dzh(1)+zgs
@@ -240,7 +245,8 @@ C**** For heat and mositure
       
       call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
       
-      call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n)
+      call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n
+     &     ,evap_max,fr_sat)
         
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -293,7 +299,8 @@ C**** For heat and mositure
         
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
-        call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n)
+        call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n
+     &       ,evap_max,fr_sat)
         
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -1119,11 +1126,13 @@ c
       return
       end subroutine t_eqn
 
-      subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n)
+      subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
+     &     ,flux_max,fr_sat)
 !@sum q_eqn integrates differential eqn q (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kq * dq/dz = cq * usurf * (q - qg)
+!@+   kq * dq/dz = min ( cq * usurf * (q - qg) ,
+!@+          fr_sat * cq * usurf * (q - qg) + ( 1 - fr_sat ) * flux_max )
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -1138,6 +1147,8 @@ c
 !@var qtop specific humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
+!@var flux_max maximal flux from the unsaturated soil
+!@var fr_sat fraction of the saturated soil
       implicit none
 
       integer, intent(in) :: n
@@ -1145,6 +1156,7 @@ c
       real*8, dimension(n-1), intent(in) :: dzh,kq
       real*8, dimension(n), intent(inout) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
+      real*8, intent(in) :: flux_max,fr_sat
 
       real*8 :: factq
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1169,6 +1181,23 @@ c
       sub(n)  = 0.
       rhs(n) = qtop
 
+      call TRIDIAG(sub,dia,sup,rhs,q,n)
+
+c     Now let us check if the computed flux doesn't exceed the maximum
+c     for unsaturated fraction
+
+      if ( fr_sat .ge. 1. ) return   ! all soil is saturated
+      if ( cq * usurf * (qgrnd - q(1)) .le. flux_max ) return
+
+c     Flux is too high, have to recompute with the following boundary
+c     conditions at the bottom:
+c     kq * dq/dz = fr_sat * cq * usurf * (q - qg) 
+c                  + ( 1 - fr_sat ) * flux_max
+
+      dia(1) = 1. + fr_sat*factq
+      sup(1) = -1.
+      rhs(1)= fr_sat*factq*qgrnd + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+      
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
       return

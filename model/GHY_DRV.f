@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
 
+
       module soil_drv
 !@sum soil_drv contains variables and routines for the ground
 !@+   hydrology driver
@@ -59,6 +60,7 @@ c****
      &     ,zs1,tgv,tkv,qg,hemi,dtsurf,pole
      &     ,us,vs,ws,wsh,wsq,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
+      use pbl_drv, only : pbl, evap_max,fr_sat
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
@@ -270,6 +272,10 @@ C**** Calculate trconstflx (could be dependent on itype)
 #endif
 c***********************************************************************
 c***
+ccc for now all soil is set to saturated
+ccc will replace with real flux limiting when finished testing
+      fr_sat = 1.
+      evap_max = 1. 
       call pbl(i,j,itype,ptype)
 c***
       cdm = cmgs(i,j,itype)
