@@ -678,16 +678,15 @@ C****
 C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
 C****
 C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
-C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
-C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
+C****       2  MSI2   (INSTANTANEOUS AT NOON GMT)
+C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
 C****
       DO J=1,JM
         DO I=1,IM
           IF (FOCEAN(I,J).gt.0) THEN
             OA(I,J,1)=ACE1I+SNOWI(I,J)
-            OA(I,J,2)=((HSI(1,I,J)+HSI(2,I,J))/(ACE1I+SNOWI(I,J)) + LHM)
-     *           *BYSHI
-            OA(I,J,3)=((HSI(3,I,J)+HSI(4,I,J))/MSI(I,J) + LHM)*BYSHI
+            OA(I,J,2)=MSI(I,J)
+            OA(I,J,3)=SUM(HSI(:,I,J))
           END IF
         END DO
       END DO

@@ -14,23 +14,23 @@
       USE GEOM
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl
-      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
+      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,trsi0,ntm
 #endif
       USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,sss
       USE DAGCOM, only : aij, ij_smfx, aj, j_implh, j_implm
       IMPLICIT NONE
       SAVE
 
 !@dbparam ocn_cycl 0|1 precribed ocn data don't|do cycle (1 year)
       integer :: ocn_cycl = 1
-!@var TFO temperature of freezing ocean (C)
-      REAL*8, PARAMETER :: TFO = -1.8d0
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
+!@var SSS0 default sea surface salinity (psu)
+      REAL*8 :: SSS0=34.7d0
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
       REAL*8, DIMENSION(IM,JM,4) :: OTA,OTB
@@ -125,7 +125,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 
       INTEGER n,J,I,LSTMON,K,m,m1
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,X1
-     *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW
+     *     ,X2,Z1OMIN,RSINEW,TIME,FRAC,MSINEW,OPNOCN,TFO
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
 !@var IMON0 current month for SST climatology reading
@@ -260,6 +260,10 @@ C**** RSI uses quadratic fit
             CASE (0)
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
             END SELECT
+C**** Ensure that lead fraction is consistent with kocean=1 case
+            OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
+            IF (RSINEW.GT.1.-OPNOCN) RSINEW = 1.-OPNOCN
+C**** Set new mass
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** accumulate diagnostics
             IF (end_of_day) THEN
@@ -285,12 +289,8 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
             RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
+            TFO=tfrez(sss(i,j))
             IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
-C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
-c     IF (RSI(I,J).GT.0.) THEN
-c     BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
-c     RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
-c     END IF
 C**** SET DEFAULTS IF NO OCEAN ICE
             IF (RSI(I,J).LE.0.) THEN
               HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
@@ -527,7 +527,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0
       USE DAGCOM, only : npts,icon_OCE
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -595,7 +595,7 @@ C**** Set gtemp array for oceans
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          SSS(I,J) = 34.7d0
+          SSS(I,J) = SSS0
 #ifdef TRACERS_WATER
           gtracer(:,1,i,j)=trw0(:)
 #endif
@@ -622,7 +622,7 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,jday
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE FLUXES, only : gtemp
-      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
+      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
       INTEGER I,J
@@ -745,20 +745,20 @@ C****
       USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
      *     j_oht,j_imelt,j_hmelt,j_smelt,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp
+     *     ,dssi,flowo,eflowo,gtemp,sss
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
-      USE SEAICE, only : ace1i,ssi0
+      USE SEAICE, only : ace1i,ssi0,tfrez
       USE SEAICE_COM, only : rsi,msi,snowi
 #ifdef TRACERS_WATER
      *     ,trsi0
 #endif
-      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
+      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
 C**** grid box variables
-      REAL*8 POCEAN, POICE, DXYPJ
+      REAL*8 POCEAN, POICE, DXYPJ, TFO
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
@@ -781,6 +781,7 @@ C**** output from OSOURC
           EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
           F0DT =E0(I,J,1)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
+          TFO  =tfrez(sss(i,j))
 C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
           F2DT=ERUNOSI(I,J)
