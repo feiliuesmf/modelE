@@ -749,8 +749,12 @@ C****
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
 #ifdef TRACERS_SPECIAL_O18
-     *     + 2+lm      ! include dexcess diags
+     *     + 2+lm               ! include dexcess diags
 #endif
+#ifdef TRACERS_DRYDEP
+     *     + ntm                ! include dry dep % diags
+#endif
+
 !@var Qk: if Qk(k)=.true. field k still has to be processed
       logical, dimension (ktmax) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
