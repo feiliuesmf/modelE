@@ -93,6 +93,19 @@ FFLAGS = -O2 -qfixed
 LFLAGS = -O2
 endif
 
+# DEC Alpha - specific options here
+# This option has not been tested yet. It may need some adjustment.
+ifeq ($(UNAME),OSF1)
+MACHINE = DEC
+F90 = f90
+CPP = /lib/cpp -P
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CPPFLAGS= -DCONVERT_BIGENDIAN
+FFLAGS = -O2
+LFLAGS = -O2
+endif
+
+
 CPPFLAGS += -DMACHINE_$(MACHINE)
 
 # end of machine - specific options

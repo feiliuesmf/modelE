@@ -1,17 +1,18 @@
-!@sum This file contains architecture specific code for SGI, IBM and Linux
+!@sum This file contains architecture specific code for SGI, IBM, Linux, DEC
       MODULE RANDOM
 !@sum   RANDOM generates random numbers: 0<RANDom_nUmber<1
 !@auth  Reto Ruedy
-!@ver   1.0 (SGI version)
+!@ver   1.0 (SGI,IBM,Linux,DEC)
 !@cont  RANDU, RINIT, RFINAL
       IMPLICIT NONE
       INTEGER, SAVE :: IX            !@var IX     random number seed
 
       CONTAINS
 
-#if defined( MACHINE_SGI ) || defined( MACHINE_Linux )
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
+!@calls RAN
       REAL*8 X                       !@var X      dummy variable
       REAL*4 RAN                     !@fun RAN    SGI intrinsic func.
       REAL*8 :: RANDU                !@var RANDU  random number
@@ -61,13 +62,10 @@
       SUBROUTINE GETTIME (MNOW)
 !@sum  GETTIME returns current CPU time
 !@auth Gary Russell
-!@ver  1.0 (SGI version)
+!@ver  1.0 (SGI, IBM)
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
       INTEGER :: MCLOCK            !@var MCLOCK intrinsic function
-C**** Note this routine is only here so that all MCLOCK related
-C**** functions are in the same place, for ease of change on other
-C**** platforms
       MNOW = MCLOCK()
       RETURN
       END SUBROUTINE GETTIME
@@ -82,6 +80,17 @@ C**** platforms
       MNOW = NINT(ETIME(TARR)*100.)
       RETURN
       END SUBROUTINE GETTIME
+#elif defined( MACHINE_DEC )
+      SUBROUTINE GETTIME (MNOW)
+!@sum  GETTIME returns current CPU time
+!@auth RIck Healy
+!@ver  1.0 (DEC version)
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: MNOW !@var MNOW current CPU time (.01 s)
+      REAL*4 :: SECNDS             !@var SECNDS intrinsic function
+      MNOW = INT(100*SECNDS(0.0))
+      RETURN
+      END SUBROUTINE GETTIME
 #else
       None of supported architectures was specified.
       This will crash the compiling process.
@@ -90,15 +99,13 @@ C**** platforms
       SUBROUTINE exit_rc (code)
 !@sum  exit_rc stops the run and sets a return code
 !@auth Reto A Ruedy
-!@ver  1.0 (SGI version)
+!@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: code !@var code return code set by user
-#if defined( MACHINE_SGI )
-      call exit(code)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+      call exit(code) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
       call exit_(code)
-#elif defined( MACHINE_Linux )
-      call exit(code) !!! should check if it works for Absoft
 #else
       None of supported architectures was specified.
       This will crash the compiling process.
