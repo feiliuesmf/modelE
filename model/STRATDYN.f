@@ -15,7 +15,7 @@ C**** iii) check that LSHR,L500,LD2 are consistent for other resolutions
       USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
-!@var XCDNST parameters for GW drag (in param. database)
+!@dnparam XCDNST parameters for GW drag (in param. database)
       REAL*8, DIMENSION(2) :: XCDNST(2)
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
 C**** (must be in common due to read statement)
@@ -25,9 +25,21 @@ C**** (must be in common due to read statement)
       REAL*8, DIMENSION(IM,JM) :: DEFRM
 !@var LDEF,LDEFM deformation levels
       INTEGER LDEF,LDEFM
+!@var L500,LSHR,LD2 levels for various GW drag terms
+      INTEGER :: L500,LSHR,LD2 = LM   ! need default for LD2
+
+!@dbparam QGWMTN =1 turns on GW Mountain Wave drag terms
+!@dbparam QGWSHR =1 turns on GW Shear drag terms
+!@dbparam QGWDEF =1 turns on GW Deformation drag terms
+!@dbparam QGWCNV =1 turns on GW Convective drag terms
+      INTEGER :: QGWMTN = 1, QGWSHR = 1, QGWDEF = 1, QGWCNV = 1 
 
 !@var PK local P**Kapa array - should be done by DYNAMICS?
       REAL*8, DIMENSION(IM,JM,LM) :: PK
+!@param NM number of gravity wave drag sources
+      INTEGER, PARAMETER :: NM=9
+!@var Arrays needed for GWDRAG
+      REAL*8 :: EK(NM,JM),PKS(LM)
 
       END MODULE
 
@@ -37,8 +49,83 @@ C**** (must be in common due to read statement)
 !@auth Jean Lerner
 C**** DO_GWDRAG=true activates the printing of the diagnostics 
 C**** accumulated in the routines contained herein
-      USE MODEL_COM, only : DO_GWDRAG
+      USE CONSTANT, only : twopi,kapa
+      USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,l500,ld2
+     *     ,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek
+      USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
+      USE GEOM, only : areag,dxyv
+      USE FILEMANAGER
+      USE PARAM
+      IMPLICIT NONE
+      REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
+      INTEGER I,J,L,iu_zvar
+
+C**** define flag for optional diagnostics
       DO_GWDRAG = .true.
+
+C**** sync gwdrag parameters from input
+      call sync_param( "XCDNST", XCDNST, 2 )
+
+C**** sync more gwdrag parameters from input
+      call sync_param( "QGWMTN", QGWMTN)
+      call sync_param( "QGWSHR", QGWSHR)
+      call sync_param( "QGWDEF", QGWDEF)
+      call sync_param( "QGWCNV", QGWCNV)
+
+C**** Calculate levels for deformation etc.
+C**** Note: these levels work for the 23 layer model, but may
+C**** need testing for other resolutions
+      DO L=1,LM
+        PLEV=PSFMPT*SIG(L)+PTOP
+        PLEVE=PSFMPT*SIGE(L)+PTOP
+        IF (PLEV.GE.700) LDEF=L
+        IF (PLEVE.GE.500.) L500=L+1
+        IF (PLEVE.GE.300.) LSHR=L
+        IF (PLEV.GE.200.) LDEFM=L
+        IF (PLEV.GE.0.2d0) LD2=L
+      END DO
+      WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
+     *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
+      WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
+     *     ,LD2
+      WRITE (*,*) ' L500=',L500
+C****
+C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
+C****
+      call openunit("ZVAR",iu_ZVAR,.true.,.true.)
+      CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
+      call closeunit(iu_ZVAR)
+
+      DO J=JM-1,1,-1
+      DO I=1,IM
+        ZVART(I,J+1)=ZVART(I,J)
+        ZVARX(I,J+1)=ZVARX(I,J)
+        ZVARY(I,J+1)=ZVARY(I,J)
+        ZWT(I,J+1)=ZWT(I,J)
+      END DO
+      END DO
+      DO L=LS1,LM
+        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
+      END DO
+
+C**** define EK array for GWDRAG (what is this?)
+      EKS=0.
+      DO J=2,JM
+        EK1=TWOPI/SQRT(DXYV(J))
+        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
+        EKX=(EK2-EK1)/LOG(EK2/EK1)
+        IF (EKX.LT.0.) EKX=0.
+        EKS=EKS+EKX*DXYV(J)
+        EK(1,J)=EKX
+        EK(2,J)=EKX
+      END DO
+      EKS=EKS*IM/AREAG
+      EK(3:NM,1:JM)=EKS
+      WRITE (6,970) (J,EK(1,J),J=2,JM)
+      WRITE (6,971) EKS
+  970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
+  971 FORMAT ('   AVG EK: ',4X,E12.2)
+
       END SUBROUTINE init_GWDRAG
 
 
@@ -62,11 +149,6 @@ C****
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
-      REAL*8 RHO,VKEDDY
-c      COMMON /DRGCOM/ AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM)
-c      COMMON /WORK3/ PK(IM,JM,LM),UBAR(IM,JM,LM), ! PK is from GWDRAG
-c      COMMON /WORK3/ RHO(IM,JM,LM)
-c      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
       REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
       REAL*8, DIMENSION(IM,JM,LM) :: RHO
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
@@ -326,112 +408,47 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
-      USE STRAT, only : xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,pk
+      USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,
+     *     ,l500,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
 C**** Do I need to put the common decalaration here also?
-      USE GEOM, only : dxyv,bydxyv,fcor,areag,imaxj,ravpn,ravps,rapvn
-     *     ,rapvs
+      USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
-      USE FILEMANAGER
-      USE PARAM
       IMPLICIT NONE
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      INTEGER, PARAMETER :: NM=9
       REAL*8, PARAMETER :: FMC=2d-7, ERR=1d-20, H0=8000., XFROUD=1.
 !@var XLIMIT per timestep limit on mixing and drag
       REAL*8, PARAMETER :: XLIMIT=.1d0
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
-c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),
-c      COMMON/DRGCOM/AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM),
-c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
-c     *   PDEF,LDEF,LDEFM
+
       REAL*8 DKE(IM,JM,LM),PLE(LM+1),PL(LM),DP(LM),TL(LM),THL(LM),
      *     RHO(LM),BVF(LM),WL(LM),UL(LM),VL(LM),DL(LM),DUT(LM),DVT(LM),
      *     MUB(LM+1,NM),MU(NM),UR(NM),VR(NM),DQT(LM),DTT(LM),
      *     RDI(LM),DFTL(LM),DFM(LM),DFR(LM),WMC(LM),
      *     RA(4),VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM),
-     *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM)
-      REAL*8, SAVE :: EK(NM,JM),CN(NM),PKS(LM)
+     *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM),CN(LM)
       DATA CN(1)/0./
       REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN
       INTEGER, SAVE :: IFIRST=1
-      INTEGER, SAVE :: L500,LSHR,LD2 = LM   ! need default for LD2
       INTEGER LD(NM),IO(4),JO(4)
-      INTEGER I,J,L,N,iu_ZVAR,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,IA
-     *     ,JA
+      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,IA,JA
       REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
-     *     ,MUP,MUR,BVFSQ,PLEV,PLEVE,EKS,EK1,EK2,EKX
+     *     ,MUP,MUR,BVFSQ
 C****
       IF (IFIRST.EQ.1) THEN
-C**** sync gwdrag parameters from input
-      call sync_param( "XCDNST", XCDNST, 2 )
-
-      GRAVS=GRAV*GRAV
-      G2DT=GRAVS*DT1
-      DTHR=2./NIdyn   !NDYN
-      BYDT1 = 1./DT1
-      VARMIN=XCDNST(1)*XCDNST(1)
-C**** define EK array (what is this?)
-      EKS=0.
-      DO J=2,JM
-        EK1=TWOPI/SQRT(DXYV(J))
-        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
-        EKX=(EK2-EK1)/LOG(EK2/EK1)
-        IF (EKX.LT.0.) EKX=0.
-        EKS=EKS+EKX*DXYV(J)
-        EK(1,J)=EKX
-        EK(2,J)=EKX
-      END DO
-      EKS=EKS*IM/AREAG
-      EK(3:NM,1:JM)=EKS
-      WRITE (6,970) (J,EK(1,J),J=2,JM)
-      WRITE (6,971) EKS
-  970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
-  971 FORMAT ('   AVG EK: ',4X,E12.2)
-
-C**** Calculate levels for deformation etc.
-C**** Note: these levels work for the 23 layer model, but may
-C**** need testing for other resolutions
-      DO L=1,LM
-        PLEV=PSFMPT*SIG(L)+PTOP
-        PLEVE=PSFMPT*SIGE(L)+PTOP
-        IF (PLEV.GE.700) LDEF=L
-        IF (PLEVE.GE.500.) L500=L+1
-        IF (PLEVE.GE.300.) LSHR=L
-        IF (PLEV.GE.200.) LDEFM=L
-        IF (PLEV.GE.0.2d0) LD2=L
-      END DO
-      WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
-     *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
-      WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
-     *     ,LD2
-      WRITE (*,*) ' L500=',L500
-C****
-C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
-C****
-      call openunit("ZVAR",iu_ZVAR,.true.,.true.)
-      CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
-      call closeunit(iu_ZVAR)
-
-      DO J=JM-1,1,-1
-      DO I=1,IM
-        ZVART(I,J+1)=ZVART(I,J)
-        ZVARX(I,J+1)=ZVARX(I,J)
-        ZVARY(I,J+1)=ZVARY(I,J)
-        ZWT(I,J+1)=ZWT(I,J)
-      END DO
-      END DO
-      DO L=LS1,LM
-        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
-      END DO
-      IFIRST=0
+        GRAVS=GRAV*GRAV
+        G2DT=GRAVS*DT1
+        DTHR=2./NIdyn
+        BYDT1 = 1./DT1
+        VARMIN=XCDNST(1)*XCDNST(1)
+        IFIRST=0
       END IF
 
 C**** Start main loop
@@ -538,117 +555,125 @@ C****
       WT(:)=1.                  ! initialize area weight to 1
       MUB(:,:)=0.
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
-      LD(1)=L500
-      U0=(UL(1)*DSIG(1)+UL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
-      V0=(VL(1)*DSIG(1)+VL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
-      W0=SQRT(U0*U0+V0*V0)
-      UR(1)=U0/(W0+ ERR)
-      VR(1)=V0/(W0+ ERR)
-      BV0=(BVF(1)*DSIG(1)+BVF(2)*DSIG(2))/(SIGE(1)-SIGE(3))
-      ZVAR=ABS(UR(1))*ZVARX(I,J)+ABS(VR(1))*ZVARY(I,J)
-         IF(ZVAR.LT.VARMIN) ZVAR=0.
+      IF (QGWMTN.eq.1) THEN
+        LD(1)=L500
+        U0=(UL(1)*DSIG(1)+UL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
+        V0=(VL(1)*DSIG(1)+VL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
+        W0=SQRT(U0*U0+V0*V0)
+        UR(1)=U0/(W0+ ERR)
+        VR(1)=V0/(W0+ ERR)
+        BV0=(BVF(1)*DSIG(1)+BVF(2)*DSIG(2))/(SIGE(1)-SIGE(3))
+        ZVAR=ABS(UR(1))*ZVARX(I,J)+ABS(VR(1))*ZVARY(I,J)
+        IF(ZVAR.LT.VARMIN) ZVAR=0.
 C.... if Froude number (U0/BV0*ZSD) > 1
 C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
-      IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
-      P0=(SIG(1)*DSIG(1)+SIG(2)*DSIG(2))/(SIGE(1)-SIGE(3))*PIJ+PTOP
-      WT(1)=ZWT(I,J)
-      MU(1)=-.5*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
-      IF(MU(1)*(UL(L500)*UR(1)+VL(L500)*VR(1)).GE.0.) MU(1)=0.
+        IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
+        P0=(SIG(1)*DSIG(1)+SIG(2)*DSIG(2))/(SIGE(1)-SIGE(3))*PIJ+PTOP
+        WT(1)=ZWT(I,J)
+        MU(1)=-.5*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
+        IF(MU(1)*(UL(L500)*UR(1)+VL(L500)*VR(1)).GE.0.) MU(1)=0.
+      END IF
 C**** DEFORMATION WAVE (X    d cm-2)
-      IF (9.GT.NM)  GO TO 155
-      IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
-      IF (DEFRM(I,J).LT. 15d-6) GO TO 155         !  Threshold= 15e-6
-      FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J)  !  3 d cm-2 x 15e-6
-      DU=UL(LDEF +1)-UL(LDEF )
-      DV=VL(LDEF +1)-VL(LDEF )
-      DW=SQRT(DU**2        + DV**2       )
-      UR(9)=DU       /(DW+ ERR)
-      VR(9)=DV       /(DW+ ERR)
-      CN(9)=UL(LDEF )*UR(9)+VL(LDEF )*VR(9)
-      MU(9)=FDEFRM
-      LD(9)=L500
+      IF (QGWDEF.eq.1) THEN
+        IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
+        IF (DEFRM(I,J).LT. 15d-6) GO TO 155 !  Threshold= 15e-6
+        FDEFRM=- 3.*GRAV/(1000.*15d-6)*DEFRM(I,J) !  3 d cm-2 x 15e-6
+        DU=UL(LDEF +1)-UL(LDEF )
+        DV=VL(LDEF +1)-VL(LDEF )
+        DW=SQRT(DU**2        + DV**2       )
+        UR(9)=DU       /(DW+ ERR)
+        VR(9)=DV       /(DW+ ERR)
+        CN(9)=UL(LDEF )*UR(9)+VL(LDEF )*VR(9)
+        MU(9)=FDEFRM
+        LD(9)=L500
+      END IF
 C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
-  155 IF (2.GT.NM)  GO TO 200
-      LN=LSHR
-  160 L=LN
-      CU=.5*(UL(L)+UL(L+1))
-  170 LN=LN+1
-      IF (LN.GE.LD2) GO TO 172
-      IF ((UL(LN)-CU)*(UL(LN+1)-CU).LT.0.) GO TO 160
-      GO TO 170
-  172 LD(2)=L+2
-      DU=UL(L+1)-UL(L)
-      DV=VL(L+1)-VL(L)
-      DW=SQRT(DU*DU+DV*DV)
-      UR(2)=DU/(DW+ ERR)
-      VR(2)=DV/(DW+ ERR)
-      CN(2)=.5*((UL(L+1)+UL(L))*UR(2)+(VL(L+1)+VL(L))*VR(2))
-      MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*(BVF(L+1)))
+ 155  IF (QGWSHR.eq.1) THEN
+        LN=LSHR
+ 160    L=LN
+        CU=.5*(UL(L)+UL(L+1))
+ 170    LN=LN+1
+        IF (LN.GE.LD2) GO TO 172
+        IF ((UL(LN)-CU)*(UL(LN+1)-CU).LT.0.) GO TO 160
+        GO TO 170
+ 172    LD(2)=L+2
+        DU=UL(L+1)-UL(L)
+        DV=VL(L+1)-VL(L)
+        DW=SQRT(DU*DU+DV*DV)
+        UR(2)=DU/(DW+ ERR)
+        VR(2)=DV/(DW+ ERR)
+        CN(2)=.5*((UL(L+1)+UL(L))*UR(2)+(VL(L+1)+VL(L))*VR(2))
+        MU(2)=-FCORU*PLE(L+1)*DW*DW/(240.*H0*(BVF(L+1)))
+      END IF
 C**** MOIST CONVECTIVE MASS FLUX BEGINS TWO LEVELS ABOVE CLOUD...
 C**** AMPLITUDE DEPENDS ON |U(SOURCE)-C|.
 C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
-      IF (4.GT.NM)  GO TO 200
-      USRC=0.
-      VSRC=0.
-      AIRX4=AIRX(I,J-1)+AIRX(IP1,J-1)+AIRX(I,J)+AIRX(IP1,J)
-      AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAVPN(J-1)
-     *     +  (AIRX(I,J)+AIRX(IP1,J))*RAVPS(J))
-      IF (AIRX4.LE.0.) GO TO 200
-      LMC0=.5+(LMC(1,I,J-1)*AIRX(I,J-1)+LMC(1,IP1,J-1)*AIRX(IP1,J-1)+
-     *  LMC(1,I,J)*AIRX(I,J)+LMC(1,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
+      IF (QGWCNV.eq.1) THEN
+        USRC=0.
+        VSRC=0.
+        AIRX4=AIRX(I,J-1)+AIRX(IP1,J-1)+AIRX(I,J)+AIRX(IP1,J)
+        AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAVPN(J-1)
+     *       +  (AIRX(I,J)+AIRX(IP1,J))*RAVPS(J))
+        IF (AIRX4.LE.0.) GO TO 200
+        LMC0=.5+(LMC(1,I,J-1)*AIRX(I,J-1)+LMC(1,IP1,J-1)*AIRX(IP1,J-1)+
+     *       LMC(1,I,J)*AIRX(I,J)+LMC(1,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
 C**** Note: LMC1 was defined in CB245M31 as LMAX+1
-      LMC1=.5+(LMC(2,I,J-1)*AIRX(I,J-1)+LMC(2,IP1,J-1)*AIRX(IP1,J-1)+
-     *  LMC(2,I,J)*AIRX(I,J)+LMC(2,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
-      IF (LMC1.LE.4) GO TO 200
-      NMX=4
-      CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
-      FPLUME=AIRXS/(DXYV(J)*CLDDEP)
-      CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
-      WTX=FPLUME
-      IF (WTX.GT.1. OR. WTX.LT.0.) THEN
-        PRINT *, 'WARNING IN GWDRAG, WTX INCORRECT',WTX,FPLUME,CLDDEP
-        IF (WTX.GT.1.) WTX=1.
-        IF (WTX.LT.0.) STOP ' WTX <0 IN GWDRAG'
+        LMC1=.5+(LMC(2,I,J-1)*AIRX(I,J-1)+LMC(2,IP1,J-1)*AIRX(IP1,J-1)+
+     *       LMC(2,I,J)*AIRX(I,J)+LMC(2,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
+        IF (LMC1.LE.4) GO TO 200
+        NMX=4
+        CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
+        FPLUME=AIRXS/(DXYV(J)*CLDDEP)
+        CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
+        WTX=FPLUME
+        IF (WTX.GT.1. OR. WTX.LT.0.) THEN
+          PRINT *, 'WARNING IN GWDRAG, WTX INCORRECT',WTX,FPLUME,CLDDEP
+          IF (WTX.GT.1.) WTX=1.
+          IF (WTX.LT.0.) STOP ' WTX <0 IN GWDRAG'
+        END IF
+        DO L=LMC0,LMC1-1
+          USRC=USRC+UL(L)
+          VSRC=VSRC+VL(L)
+        END DO
+        USRC=USRC/(LMC1-LMC0)
+        VSRC=VSRC/(LMC1-LMC0)
+        WSRC=SQRT(USRC*USRC+VSRC*VSRC)
+        UR(3)=USRC/(WSRC+ ERR)
+        VR(3)=VSRC/(WSRC+ ERR)
+        MU(3)=-EK(3,J)*FMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
+        MU(4)=MU(3)
+        CN(3)=WSRC-10.
+        CN(4)=WSRC+10.
+        UR(4)=UR(3)
+        VR(4)=VR(3)
+        LD(3)=10
+        LD(4)=10
+        WT(3)=WTX
+        WT(4)=WTX
+        IF (LMC1.GT.9.AND. QGWDEF.eq.1) THEN
+          NMX=8
+          DO N=3,NMX
+            WT(N)=WTX
+            LD(N)=LMC1+1
+          END DO
+          CN(5)=WSRC-40.
+          CN(6)=WSRC+40.
+          CN(7)=WSRC-20.
+          CN(8)=WSRC+20.
+          DO N=5,NMX
+            MU(N)=MU(3)
+            UR(N)=UR(3)
+            VR(N)=VR(3)
+          END DO
+        ENDIF
+        WCHECK=UL(LD(3))*UR(3)+VL(LD(3))*VR(3)
+        DO N=3,NMX
+          IF (WCHECK.GT.CN(N)) CYCLE
+          UR(N)=-UR(N)
+          VR(N)=-VR(N)
+          CN(N)=-CN(N)
+        END DO
       END IF
-      DO 177 L=LMC0,LMC1-1
-      USRC=USRC+UL(L)
-  177 VSRC=VSRC+VL(L)
-      USRC=USRC/(LMC1-LMC0)
-      VSRC=VSRC/(LMC1-LMC0)
-      WSRC=SQRT(USRC*USRC+VSRC*VSRC)
-      UR(3)=USRC/(WSRC+ ERR)
-      VR(3)=VSRC/(WSRC+ ERR)
-      MU(3)=-EK(3,J)*FMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
-      MU(4)=MU(3)
-      CN(3)=WSRC-10.
-      CN(4)=WSRC+10.
-      UR(4)=UR(3)
-      VR(4)=VR(3)
-      LD(3)=10
-      LD(4)=10
-      WT(3)=WTX
-      WT(4)=WTX
-      IF (LMC1.GT.9.AND.NM.GE.8) THEN
-      NMX=8
-      DO 182 N=3,NMX
-      WT(N)=WTX
-  182 LD(N)=LMC1+1
-      CN(5)=WSRC-40.
-      CN(6)=WSRC+40.
-      CN(7)=WSRC-20.
-      CN(8)=WSRC+20.
-      DO 184 N=5,NMX
-      MU(N)=MU(3)
-      UR(N)=UR(3)
-  184 VR(N)=VR(3)
-      ENDIF
-  190 WCHECK=UL(LD(3))*UR(3)+VL(LD(3))*VR(3)
-      DO 195 N=3,NMX
-      IF (WCHECK.GT.CN(N)) GO TO 195
-      UR(N)=-UR(N)
-      VR(N)=-VR(N)
-      CN(N)=-CN(N)
-  195 CONTINUE
 C****
 C**** BREAKING MOMENTUM FLUX AT LAYER EDGES
 C****
@@ -926,15 +951,6 @@ C****
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,ldefm,defrm
       IMPLICIT NONE
-c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
-c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),WSQ(IM,JM,LM),
-c      COMMON/WORK3/WSQ(IM,JM,LM),UDXS(IM)
-c     *     ,DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
-c      COMMON/DRGCOM/AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM),
-c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
-c     *   PDEF,LDEF,LDEFM
-c??      EQUIVALENCE (WSQ(1,1,1),DEFRM1), (WSQ(1,1,2),DEFRM2)
-c??      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
