@@ -349,6 +349,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
+     *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
 #endif
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
