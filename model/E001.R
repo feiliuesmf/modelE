@@ -10,6 +10,7 @@ ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
 CE001M12 SUBSIDEM12 PE001M12        ! mstcnv,condse phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
+OCNE001                             ! ocean and sea ice modules
 RE001                               ! setsur  rad.subr_incl._forcings 
 DE001M12  FFT72  UTILDBL            ! diag,utilities
 
