@@ -29,7 +29,10 @@ C
      &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem
 #ifdef regional_Ox_tracers
      &         ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s,regOx_e,regOx_w
-#endif  
+#endif
+#ifdef TRACERS_HETCHEM
+     &                  ,krate
+#endif
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,mass2vol,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
@@ -186,6 +189,9 @@ c      HCHO, Alkenes, and CO per rxn, correct here following Houweling
        prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42d0*chemrate(30,L)
        prod(n_HCHO,L)=prod(n_HCHO,L)-0.10d0*chemrate(31,L)
        prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45d0*chemrate(31,L)
+#ifdef TRACERS_HETCHEM
+       dest(n_HNO3,l) = dest(n_HNO3,l)-krate(i,j,l,1)*y(n_HNO3,l)*dt2
+#endif
       enddo
 c
 #ifdef SHINDELL_STRAT_CHEM
@@ -608,6 +614,11 @@ c
      *    y(nHO2,lprn)*y(nNO,lprn)*rr(44,lprn)*rr(43,lprn)/
      *    (y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      *    *y(nXO2N,lprn)*dt2
+#ifdef TRACERS_HETCHEM
+         if(igas.eq.n_HNO3) write(6,'(a48,a6,e10.3)')
+     *    'destruction from HNO3 +dust ','dy = ',
+     *    -y(n_HNO3,lprn)*krate(iprn,jprn,lprn,1)*dt2
+#endif
          if(igas.eq.n_Paraffin) write(6,'(a48,a6,e10.3)')
      *    'destruction from RXPAR ',
      *    'dy = ',-y(nRXPAR,lprn)*y(n_Paraffin,lprn)*8.d-11*dt2
@@ -922,6 +933,10 @@ c     (since equilibration of short lived gases may alter this)
      & ,changeL(lprn,n_ClONO2),changeL(lprn,n_BrONO2)
        write(*,*) 'N2O change w/o rxns forming N2',sv_changeN2O(lprn)
 #endif
+#ifdef TRACERS_HETCHEM
+       write(*,*) 'HNO3 loss on dust replaced for cons ',
+     &  (krate(i,j,lprn,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*dxyp(J)
+#endif
       endif
 c
       do L=1,maxl
@@ -952,6 +967,9 @@ c       Next insure balance between dNOx and sum of dOthers
      *  (changeL(L,n_HO2NO2))*mass2vol(n_HO2NO2)+
      *  (changeL(L,n_PAN))*mass2vol(n_PAN)+
      *  (changeL(L,n_AlkylNit))*mass2vol(n_AlkylNit)
+#ifdef TRACERS_HETCHEM
+       sumN = sumN+(krate(i,j,l,1)*y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)
+#endif
 #ifdef SHINDELL_STRAT_CHEM
           if(L.ge.maxT+1)sumN=sumN+
      *     changeL(L,n_ClONO2)*mass2vol(n_ClONO2)+

@@ -30,6 +30,9 @@ c
 #ifdef regional_Ox_tracers
      &                  ,NregOx,n_OxREG1
 #endif
+#ifdef TRACERS_HETCHEM
+     &                  ,krate
+#endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi,avog
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
      &                           ,ijs_NO3
@@ -177,6 +180,10 @@ C
 !$OMP* igas, inss, J, L, LL, Lqq, maxl, N, error )
 !$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
 !$OMP* N_ALKYLNIT)
+#ifdef TRACERS_HETCHEM
+c calculation of removal rates on dust surfaces
+      CALL HETCDUST
+#endif
 c
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 #ifdef SHINDELL_STRAT_CHEM
@@ -681,6 +688,10 @@ c
            if(changeAlkylNit.lt.0.d0)changeAlkylNit=
      &                                           changeAlkylNit*ratioN
          endif
+#ifdef TRACERS_HETCHEM
+C Reaktions on Dust
+           changeHNO3 = changeHNO3 - krate(i,j,l,1) * y(n_HNO3,l) * dt2
+#endif
 C
 C Apply Alkenes, AlkyNit, and Aldehyde changes here:
 C
@@ -775,6 +786,13 @@ c Some More Chemistry Diagnostics:
      *         changeHNO3,' molecules produced; ',
      *     100.d0*(changeHNO3)/y(n_HNO3,L),' percent of'
      *     ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
+#ifdef TRACERS_HETCHEM
+          write(6,198) ay(n_HNO3),': ',
+     *    (-krate(i,j,l,1)*y(n_HNO3,l)*dt2),' molecules dest dust ',
+     *    (100.d0*(-krate(i,j,l,1)*y(n_HNO3,l)*dt2))/y(n_HNO3,L),
+     *    ' percent of'
+     *     ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
+#endif
           write(6,198) ay(n_N2O5),': ',
      *         changeN2O5,' net molec produced; ',
      *      100.d0*(changeN2O5)/y(n_N2O5,L),' percent of'
