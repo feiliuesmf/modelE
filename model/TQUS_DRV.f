@@ -343,6 +343,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 c**** loop over layers and latitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
+C$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
@@ -408,6 +409,7 @@ c**** loop over layers
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
 C$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR)
+C$OMP* SHARED(JM,QLIMIT,YSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       fqv(:,:) = 0.
@@ -522,6 +524,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 c**** loop over latitudes and longitudes
       ICKERR=0.
 C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
+C$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,imaxj(j)

@@ -201,6 +201,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 c**** loop over layers and latitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
+C$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
@@ -274,6 +275,7 @@ c**** loop over layers
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
 C$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
+C$OMP* SHARED(JM,QLIMIT,YSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 c**** scale polar boxes to their full extent
@@ -377,6 +379,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 c**** loop over latitudes and longitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
+C$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 C$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,im
