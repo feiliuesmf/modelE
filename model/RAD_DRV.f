@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum RAD_DRV contains drivers for the radiation related routines
 !@ver  1.0
 !@cont COSZ0, init_RAD, RADIA
@@ -566,6 +568,11 @@ C     OUTPUT DATA
       USE FLUXES, only : gtemp
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
+#ifdef TRACERS_AEROSOLS_Koch
+      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1
+      USE AEROSOL_SOURCES, only: ITRSW
+      USE TRACER_DIAG_COM, only: taijs,ijts_fc
+#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -577,13 +584,19 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
-      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+#ifdef TRACERS_AEROSOLS_Koch
+      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     SNFST,TNFST
+c Like SNFS(4,:,:) but with for calls without aerosol in order to calculate
+c  forcing 
+      INTEGER N
+#endif
+      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      *     TRHRS,SRHRS
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
-
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
@@ -734,6 +747,9 @@ C**** SS clouds are considered as a block for each continuous cloud
       END DO
       END DO
       end if                    ! kradia le 0
+#ifdef TRACERS_AEROSOLS_Koch
+      call GET_TAU
+#endif
 C****
 C**** MAIN J LOOP
 C****
@@ -1011,6 +1027,21 @@ C****
       END DO
       WMAG=WSAVG(I,J)
 C****
+#ifdef TRACERS_AEROSOLS_Koch
+c here we turn off the online tracers in order to calculate
+c sulfate radiative forcing
+      ITRSW(N_SO4)=1
+      CALL RCOMPX
+      SNFST(N_SO4,I,J)=SRNFLB(4+LM)
+      TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+      ITRSW(N_SO4)=0
+c seasalt forcing
+      ITRSW(N_seasalt1)=1
+      CALL RCOMPX
+      SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
+      TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+      ITRSW(N_seasalt1)=0
+#endif
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
@@ -1265,6 +1296,19 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*CSZ2)
+#ifdef TRACERS_AEROSOLS_Koch
+c shortwave forcing
+      taijs(i,j,ijts_fc(1,n_SO4))=taijs(i,j,ijts_fc(1,n_SO4))
+     *     +(SNFS(4,I,J)-
+     *     SNFST(N_SO4,I,J))*CSZ2
+      taijs(i,j,ijts_fc(1,n_seasalt1))=taijs(i,j,ijts_fc(1,n_seasalt1))
+     *     +(SNFS(4,I,J)-SNFST(N_seasalt1,I,J))*CSZ2
+c longwave forcing
+      taijs(i,j,ijts_fc(2,n_so4))=taijs(i,j,ijts_fc(2,n_so4))
+     *     -(TNFS(4,I,J)-TNFST(N_so4,I,J))
+      taijs(i,j,ijts_fc(2,n_seasalt1))=taijs(i,j,ijts_fc(2,n_seasalt1))
+     *     -(TNFS(4,I,J)-TNFST(N_seasalt1,I,J))
+#endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
