@@ -143,8 +143,7 @@ C**** Monthly sources are interpolated each day
      & .true.,.true.,.true.,.true.,.true.,.true.,.false.,.false.,
      & .false.,.false.,.false./)
       real*8 adj(nsrc)
-Corig data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
-      data adj/4*-1.d30, 0.999d0, 1.588d0, 3.5997d-5, 17.330d-4,
+      data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
      & 5.3558d-5, 0.9818d0, 5*-1.d30/
       INTEGER :: EHorJEAN(nsrc) = (/1,1,1,1,2,2,2,2,2,2,1,1,1,1,1/)
       real*8 ann_conv(2),mon_conv(2)!1=edgar-hyde conversion, 2=Jean's 
@@ -657,13 +656,10 @@ C**** Monthly sources are interpolated each day
       real*8 PIfact
       logical :: ifirst=.true.
       real*8 adj(nsrc)
-C  O  data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-C! R *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
-C  I *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
-C  G *  0.4369,0.7533,0.9818/
-      data adj/1.0787,0.6891,2.6157,1.659,0.617,1.588,0.999,
+      data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
+     *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
      *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
-     *  0.3277,0.3767,0.9818/
+     *  0.4369,0.7533,0.9818/
 !@var nanns,nmons: number of annual and monthly input files
       integer, parameter :: nanns=11,nmons=3
       integer ann_units(nanns-3),mon_units(nmons)
