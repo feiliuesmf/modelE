@@ -84,7 +84,7 @@ echo "Saved ocean heat transports in file: " $outfile
 mv OHTLP oht$1.$3-$5.lpl
 echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl
 
-icfile=IMJAN.$1.O250D
+icfile=${rsfic##*/}.O250D
 mv RSFNEW $icfile ;       #do--put on raid, link to /giss
 echo "Saved modified init. condition file: " $icfile
 $BIN_DIR/qc $icfile
