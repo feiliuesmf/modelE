@@ -311,10 +311,11 @@ C**** end special threadprivate common block
 
         wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
-        call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
-
         call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat)
+
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,wsh,tgrnd
+     &            ,ttop,dtime,n)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
@@ -1239,11 +1240,12 @@ c     rhs(n-1)=0.
       Return
       end subroutine e_eqn
 
-      subroutine t_eqn(u,v,t0,t,z,kh,dz,dzh,ch,usurf,tgrnd,ttop,dtime,n)
+      subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
+     &                ,ttop,dtime,n)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
-!@+   kh * dt/dz = ch * usurf * (t - tg)
+!@+   kh * dt/dz = ch * usurf * (t - tg) - deltx * t * wq
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -1253,6 +1255,7 @@ c     rhs(n-1)=0.
 !@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var kh z-profile of heat conductivity
+!@var kq z-profile of moisture diffusivity
 !@var z vertical grids (main, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
@@ -1267,8 +1270,8 @@ c     rhs(n-1)=0.
       integer, intent(in) :: n
       real*8, dimension(n) :: sub,dia,sup,rhs
 
-      real*8, dimension(n), intent(in) :: u,v,t0,z,dz
-      real*8, dimension(n-1), intent(in) :: dzh,kh
+      real*8, dimension(n), intent(in) :: u,v,t0,q,z,dz
+      real*8, dimension(n-1), intent(in) :: dzh,kh,kq
       real*8, dimension(n), intent(inout) :: t
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtime,usurf
@@ -1291,6 +1294,7 @@ c     rhs(n-1)=0.
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
+     &        +deltx*kq(1)/kh(1)*(q(2)-q(1))/(1.+deltx*q(1))
       sup(1) = -1.
       rhs(1) = facth*tgrnd
 
@@ -1554,8 +1558,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       return
       end subroutine uv_eqn
 
-
-      subroutine t_eqn_sta(t,kh,dz,dzh,ch,usurf,tgrnd,ttop,n)
+      subroutine t_eqn_sta(t,q,kh,kq,dz,dzh,ch,usurf,tgrnd,ttop,n)
 !@sum  t_eqn_sta computes the static solutions of t
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -1568,6 +1571,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@var t z-profle of virtual potential temperature
 !@var q z-profle of specific humidity
 !@var kh z-profile of heat conductivity
+!@var kq z-profile of specific humidity
 !@var z vertical grids (main, meter)
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
@@ -1581,9 +1585,9 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       integer, intent(in) :: n
       real*8, dimension(n) :: sub,dia,sup,rhs
 
-      real*8, dimension(n), intent(in) :: dz
+      real*8, dimension(n), intent(in) :: q,dz
       real*8, dimension(n), intent(inout) :: t
-      real*8, dimension(n-1), intent(in) :: kh,dzh
+      real*8, dimension(n-1), intent(in) :: kh,kq,dzh
       real*8, intent(in) :: ch,tgrnd,ttop,usurf
 
       real*8 :: facth
@@ -1602,6 +1606,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
+     &        +deltx*kq(1)/kh(1)*(q(2)-q(1))/(1.+deltx*q(1))
       sup(1) = -1.
       rhs(1) = facth*tgrnd
 
@@ -1935,7 +1940,7 @@ c Initialization for iteration:
         usurfh  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
         usurfq  = usurfh
 
-        call t_eqn_sta(t,kh,dz,dzh,ch,usurfh,tgrnd,ttop,n)
+        call t_eqn_sta(t,q,kh,kq,dz,dzh,ch,usurfh,tgrnd,ttop,n)
 
         call q_eqn_sta(q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,n)
 
