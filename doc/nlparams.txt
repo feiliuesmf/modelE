@@ -124,6 +124,11 @@ KDIAG(1->12) - Suppressing printout if >0
       i=1  budget pages,zonal means: do  all if        kdiag(1)=0
                               do all but 23 regions if kdiag(1)=1
                               do global tables only if kdiag(1)=2
+                              do op.ocn tables only if kdiag(1)=3
+                              do seaice tables only if kdiag(1)=4
+                              do land   tables only if kdiag(1)=5
+                              do l.ice  tables only if kdiag(1)=6
+                              do lakes  tables only if kdiag(1)=7
                               do regional only if      kdiag(1)=8
                               do nothing  if           kdiag(1)=9
            (no binaries for regional statistics, even if qdiag=.true.)

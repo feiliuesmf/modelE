@@ -213,6 +213,8 @@ C**** Expanded version of surfaces (including composites)
      *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
      *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
      *     '     (LAKES)'/)
+!@var Iterr terrain index chosen by kdiag(1) if >1 and <8
+      integer, dimension(2:7) :: Iterr = (/0, 1,2, 4,5, 8/)
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
       CHARACTER*16, DIMENSION(KAJ) :: TITLEO
@@ -237,7 +239,7 @@ C**** weighting functions for surface types
 
       REAL*8 :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
      *     ,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
-      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
+      INTEGER :: I,IACC,J,JH,JHEMI,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER,PG1
       INTEGER, SAVE :: IFIRST = 1
       integer, external :: NINTlimit
 
@@ -299,7 +301,9 @@ C****
 C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
 C****
       IF (KDIAG(1).GT.7) GO TO 510
-      DO M=0,NTYPE_OUT
+      pg1=0
+      if (KDIAG(1).gt.1) pg1=Iterr(kdiag(1))
+      DO M=pg1,NTYPE_OUT
       WRITE (6,901) XLABEL
       WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
