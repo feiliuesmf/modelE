@@ -17,7 +17,6 @@
       SAVE
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
-      integer, parameter :: nlevel=25  !@param nlevel level of the model
 
 !@var ZS1    = height of the first model layer (m)
 !@var TGV    = virtual potential temperature of the ground (K)
@@ -939,7 +938,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var tau B1*lscale/sqrt(2*e)
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
 !@var an2 Brunt-Vaisala frequency, grav/T*dTdz
-!@var sq stability constant for e, adjustable
+!@var se stability constant for e, adjustable
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
@@ -947,11 +946,23 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n-1), intent(in) :: e,lscale,dzh
       real*8, dimension(n-1), intent(out) :: km,kh,kq,ke,gma,gha
 
-      real*8, parameter ::  sq=0.1d0
+      real*8, parameter :: se=0.1d0,kmax=100.d0
+     &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
+     &  ,sq,sq_by_sh,taue
       integer :: i,j  !@var i,j loop variable
+      integer, save :: ifirst=0
+      real*8, save :: tau_qt_by_tau_t,g9,c15,c16,c17
 
-c-----------------------------------------------------------------------
+c     if(ifirst.eq.0) then
+c         ifirst=1
+c         tau_qt_by_tau_t=1./2.d0  !then sq=sh
+c         g9=tau_qt_by_tau_t*g8   ! ad hoc
+c         c15=(g8-g9)/g5
+c         c16=g9/g5
+c         c17=(g6*g6-g7*g7)/(4*g5*g5)
+c     endif
+
       do i=1,n-1
         an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
         dudz=(u(i+1)-u(i))/dzh(i)
@@ -970,13 +981,14 @@ c-----------------------------------------------------------------------
         den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
-        km(i)=min(max(tau*e(i)*sm,1.5d-5),100.d0)
-        kh(i)=min(max(tau*e(i)*sh,2.5d-5),100.d0)
-        ke(i)=min(max(tau*e(i)*sq,1.5d-5),100.d0)
-c       km(i)=max(tau*e(i)*sm,1.5d-5)
-c       kh(i)=max(tau*e(i)*sh,2.5d-5)
-c       ke(i)=max(tau*e(i)*sq,1.5d-5)
-        kq(i)=kh(i)
+c       sq_by_sh =(1+c15*gh-c17*gm)/(1+c16*gh-c17*gm)
+c       sq=sq_by_sh*sh
+        sq=sh
+        taue=tau*e(i)
+        km(i)=min(max(taue*sm,kmmin),kmax)
+        kh(i)=min(max(taue*sh,khmin),kmax)
+        kq(i)=min(max(taue*sq,kqmin),kmax)
+        ke(i)=min(max(taue*se,kemin),kmax)
         gma(i)=gm
         gha(i)=gh
       end do
@@ -1014,8 +1026,8 @@ c       ke(i)=max(tau*e(i)*sq,1.5d-5)
       real*8, dimension(n-1), intent(in) :: esave,km,kh,ke,lscale,dzh
       real*8, dimension(n-1), intent(inout) :: e
 
-      real*8 :: an2,dudz,dvdz,as2,qturb
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      real*8 :: an2,dudz,dvdz,as2,qturb,ri,aa,bb,cc,gm,tmp
+      integer :: j !@var j loop variable
 c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     from kirk:/u/acyxc/papers/2ndOrder/maple/phik.1,
@@ -1049,6 +1061,26 @@ c
       dia(1)=1.
       sup(1)=0.
       rhs(1)=0.5*b123*ustar*ustar
+
+c     j=n-1
+c     an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
+c     dudz=(u(j+1)-u(j))/dzh(j)
+c     dvdz=(v(j+1)-v(j))/dzh(j)
+c     as2=max(dudz*dudz+dvdz*dvdz,teeny)
+c     ri=an2/as2
+c     if(ri.gt.rimax) ri=rimax
+c     aa=c1*ri*ri-c2*ri+c3
+c     bb=c4*ri+c5
+c     cc=2.d0
+c     if(abs(aa).lt.1d-8) then
+c       gm= -cc/bb
+c     else
+c       tmp=bb*bb-4.*aa*cc
+c       gm=(-bb-sqrt(tmp))/(2.*aa)
+c     endif
+c     sub(n-1)=0.
+c     dia(n-1)=1.
+c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
 
       sub(n-1)=-1.
       dia(n-1)=1.
