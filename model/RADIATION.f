@@ -2109,6 +2109,7 @@ C
       end if
 C
       IF(LMO.EQ.LMOREF) GO TO 300
+      LMOREF=LMO
 C
       IF(KSOLAR.GE.0) THEN
 C                                               Select Lean99 Solar Flux
