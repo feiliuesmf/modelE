@@ -177,15 +177,83 @@ directory <tt>modelE/decks</tt> and execute:</p>
 <tt>
 gmake config<br>
 </tt>
-<p>This will create <tt>.modelErc</tt> file with default settings, which
+<p>This will create <tt>.modelErc</tt> file in your home directory. 
+It will contain default settings, which
 are adjusted for <tt>ra.giss.nasa.gov</tt>. So if you are working on
 GISS <tt>ra</tt> or <tt>poncho</tt> then you are set. On all other
-machines you should edit the file <tt>.modelErc</tt> to describe your
+machines you should edit the file <tt>~/.modelErc</tt> to describe your
 working environment. <tt>.modelErc</tt> also allows you to set some 
 personal preferences like to which email address you want the notifications 
 to be sent when the program stops or whether you want a verbose
 output during the compilation. It contains short descriptions for all
 configurable parameters.</p>
+<p>Here is the list of currently supported options (with their default values)
+which one can set in <tt>~/.modelErc</tt>:</p>
+<UL>
+  <tt>DECKS_REPOSITORY</tt> - a directory for permanent storage of run info.
+  All rundecks that you create will be copied to this directory. This 
+  directory exists mostly for archival purposes.<br>
+  (default: <tt>DECKS_REPOSITORY=/u/cmrun/modelE/decks</tt>)<br>
+
+  <tt>CMRUNDIR</tt> - directory to which all run directories will be linked.
+  This directory will be searched by most scripts for locations of 
+  specific runs. It can coincide with <tt>SAVEDISK</tt><br>
+  (default: <tt>CMRUNDIR=/u/cmrun</tt>)<br>
+
+  <tt>GCMSEARCHPATH</tt> - directory to search for gcm input files.
+  All necessary input files should be copied or linked to this directory.<br>
+  (default: <tt>GCMSEARCHPATH=/u/cmrun</tt>)<br>
+
+  <tt>EXECDIR</tt> - path to directory with modelE scripts. This directory 
+  should contain the scripts from <tt>modelE/exec</tt>. Auxiliary binaries 
+  which are not run-dependent should also be put into this directory.<br>
+  (default: <tt>EXECDIR=/u/exec</tt>)<br>
+
+  <tt>NETCDFHOME</tt> - path to directory which contains netcdf library. 
+  If netcdf is not installed on your computer you should leave it blank. 
+  modelE will work fine without netcdf but you will not able to compile some 
+  auxiliary binaries.<br>
+  (default: <tt>NETCDFHOME=/usr/local/netcdf-3.4/lib64</tt>)<br>
+
+  <tt>SAVEDISK</tt> - a directory where all run directories will be created. 
+  These run directories will contain all files written by the model during the
+  run (i.e. rsf, acc, PRT etc.). So <tt>SAVEDISK</tt> should be big enough to 
+  accommodate all model output.<br>
+  (default: <tt>SAVEDISK=/raid1</tt>)<br>
+
+  <tt>MAILTO</tt> - email address of the user. When the program ends/crashes
+  all notifications will be sent to this address. If not specified
+  `whoami` will be used.<br>
+  (default: <tt>MAILTO=</tt> )<br>
+
+  <tt>OVERWRITE</tt> - if set to <tt>YES</tt> it will allow gmake to 
+  overwrite certain files (like rundecks in repository) which by default 
+  are protected. It may be useful when you do a lot of testing and don't 
+  want to add <tt>OVERWRITE=YES</tt> on the command line all the time. 
+  In general it should be always set to <tt>NO</tt>. Leave it at its 
+  default unless you know what you are doing.<br>
+  (default: <tt>OVERWRITE=NO</tt>)<br>
+
+  <tt>OUTPUT_TO_FILES</tt> - if set to <tt>YES</tt> all errors and warnings 
+  will be sent to files with the names <tt>source_name.ERR</tt>. This is 
+  user's preference and can be set according to personal taste.<br>
+  (default: <tt>OUTPUT_TO_FILES=YES</tt>)<br>
+
+  <tt>VERBOSE_OUTPUT</tt> - if set to <tt>YES</tt> gmake will show 
+  compilation commands and some other information while compilation is in 
+  process. Otherwise most of the output will be suppressed. Set it according 
+  to your taste.<br>
+  (default: <tt>VERBOSE_OUTPUT=NO</tt>)<br>
+
+  <tt>MP</tt> - multiprocessing support. If set to <tt>YES</tt> gmake will 
+  compile the code with OpenMP instructions. Don't set it to <tt>YES</tt> 
+  unless you are really planning to run the model on several processors, 
+  otherwise it will be unnecessary waste of resources (and your model can 
+  actually run slower on one cpu). Also keep in mind that one can not mix 
+  OpenMP and non-OpenMP objects, so if you change this option you have to 
+  recompile the entire model. This option has effect only on SGI.<br>
+  (default: <tt>MP=NO</tt>)<br>
+</UL>
 
 <hr>
 
