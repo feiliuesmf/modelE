@@ -1201,18 +1201,11 @@ c
      &    - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
-C attempt a 40% lower strat NOx increase to increase the flux into the
-C troposphere (removing that 0.9 factor on change variable:
-C (GSF/DTS 9.5.03):
-          if(PRES2(L).lt.150.d0 .and. PRES2(L).gt.100.d0)then
+C         We think we have too little stratospheric NOx, so, to
+C         increase the flux into the troposphere, increasing
+C         previous stratospheric value by 80% here: GSF/DTS 9.12.03: 
             change(I,J,L,n_NOx)=
-     &      trm(I,J,L,n_Ox)*2.3d-4*1.4 - trm(I,J,L,n_NOx)
-          else
-            change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4-trm(I,J,L,n_NOx)
-          end if
-Cinactive:dts 12/19/01:NOx strat-trop flux too big, alter lower strat:
-C         if(PRES2(L).lt.150.d0 .and. PRES2(L).gt.100.d0)
-C    &    change(I,J,L,n_NOx)=change(I,J,L,n_NOx)*0.9d0
+     &      trm(I,J,L,n_Ox)*2.3d-4*1.8d0 - trm(I,J,L,n_NOx)
           change(I,J,L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
           change(I,J,L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3-trm(I,J,L,n_HNO3)
           change(I,J,L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
