@@ -276,7 +276,10 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt
 #ifdef TRACERS_WATER
-     *     ,trunoli,trevapor,gtracer
+     *     ,trunoli,trevapor,gtracer,trgrdep
+#ifdef TRACERS_DRYDEP
+     *     ,trdrydep
+#endif
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
@@ -317,7 +320,10 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,3,I,J)
+        TREVAP(:)=TREVAPOR(:,3,I,J)-trgrdep(:,i,j)
+#ifdef TRACERS_DRYDEP
+     *       -trdrydep(:,3,i,j)
+#endif
 #endif
 
         CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,

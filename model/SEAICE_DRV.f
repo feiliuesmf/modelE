@@ -373,7 +373,10 @@ C****
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
 #ifdef TRACERS_WATER
-     *     ,ftrsi_io,trevapor,trunosi,gtracer
+     *     ,ftrsi_io,trevapor,trunosi,gtracer,trgrdep
+#ifdef TRACERS_DRYDEP
+     *     ,trdrydep
+#endif
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
      *     ,snowice, snow_ice, rhos
@@ -430,7 +433,10 @@ C****
         WETSNOW=FLAG_DSWS(I,J)  ! wetness of snow
         Tm=GTEMP(1,1,I,J)    ! ocean mixed layer temperature (C)
 #ifdef TRACERS_WATER
-        TREVAP(:) = TREVAPOR(:,2,I,J)
+        TREVAP(:) = TREVAPOR(:,2,I,J)-trgrdep(:,i,j)
+#ifdef TRACERS_DRYDEP
+     *       -trdrydep(:,2,i,j)
+#endif
         FTROC(:)  = ftrsi_io(:,i,j)
         TRSIL(:,:)= TRSI(:,:,I,J)
         Trm(:)=GTRACER(:,1,I,J)

@@ -573,8 +573,8 @@ C**** reconstitute upper layers
       HSIL(2) = HICE          - HSIL(1) - FHSI2 + HSNOW
       SSIL(2) = SICE - SMELTI - SSIL(1) - FSSI2 ! + SSNOW
 #ifdef TRACERS_WATER
-      TRSIL(:,2) = TRICE(:) - TRMELTI(:) - TRSIL(:,1) - FTRSI2(:) +
-     *     TRSNOW(:) - TRMELTS(:)
+      TRSIL(:,2) = MAX(TRICE(:) - TRMELTI(:) - TRSIL(:,1) - FTRSI2(:) +
+     *     TRSNOW(:) - TRMELTS(:),0d0)
 #endif
 
 C**** Calculate mass/heat flux between layers 3 and 4
@@ -606,7 +606,6 @@ C**** Apply fluxes to lower layers
       TRSIL(:,3)=TRSIL(:,3)- TRMELT3(:)+(FTRSI2(:)-FTRSI3(:))
       TRSIL(:,4)=TRSIL(:,4)- TRMELT4(:)+ FTRSI3(:)
 #endif
-
 C**** Calculate additional runoff output fluxes
       RUN = MELTS + MELTI + MELT3 + MELT4 ! mass flux to ocean
       SRUN=        SMELTI +SMELT3 +SMELT4 ! salt flux to ocean
@@ -616,6 +615,7 @@ c HMELT currently assumed to be zero since melting is at 0 deg
       TRUN(:)=TRMELTS(:)+TRMELTI(:)+TRMELT3(:)+TRMELT4(:)
                                 ! tracer flux to ocean
 #endif
+
 c**** Decide WETSNOW for albedo calculations and save MELT12 for
 c**** possible melt ponds
       MELT12=MELTS+MELTI

@@ -114,7 +114,7 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
       REAL*8, DIMENSION(IM,JM,NTM):: trflux1
 !@var TRGRDEP gravitationally settled tracers at surface (kg)
-      REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP
+      REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP = 0.  ! initialised to 0.
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, DIMENSION(NTM,NSTYPE,IM,JM):: GTRACER
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
@@ -143,7 +143,7 @@ C**** sea ice melt and iceberg/glacial melt.
 #endif
 #ifdef TRACERS_DRYDEP
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
-      REAL*8, DIMENSION(NTM,NSTYPE,IM,JM) :: TRDRYDEP
+      REAL*8, DIMENSION(NTM,NSTYPE,IM,JM) :: TRDRYDEP = 0. ! init. at 0
 #endif
 #endif
 

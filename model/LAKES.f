@@ -1221,7 +1221,10 @@ C****
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
      *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp
 #ifdef TRACERS_WATER
-     *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
+     *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer,trgrdep
+#ifdef TRACERS_DRYDEP
+     *     ,trdrydep
+#endif
 #endif
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,areg,jreg,j_wtr1,j_wtr2,j_run,j_erun
@@ -1316,7 +1319,10 @@ C**** calculate kg/m^2, J/m^2 from saved variables
 #ifdef TRACERS_WATER
         TRLAKEL(:,:)=TRLAKE(:,:,I,J)/(FLAKE(I,J)*DXYP(J))
         TRUN0(:)=TRUNOSI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,1,I,J)
+        TREVAP(:)=TREVAPOR(:,1,I,J)-trgrdep(:,i,j)
+#ifdef TRACERS_DRYDEP
+     *       -trdrydep(:,1,i,j)
+#endif
 #endif
         IF (MLAKE(2).lt.1d-10) THEN
           MLAKE(1)=MLAKE(1)+MLAKE(2)

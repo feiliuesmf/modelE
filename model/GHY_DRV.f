@@ -699,8 +699,8 @@ ccc accumulate tracer dry deposition
           end if
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - ! positive down
      &      tdryd*ptype/(dtsurf*NIsurf)
-          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n)+
-     &      tdryd*ptype/dtsurf ! then /NIsurf in IJt_MAPk (scale var)
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
+     &      tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
       end do
@@ -731,11 +731,11 @@ ccc not sure about the code below. hopefully that''s what is meant above
         taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *       trevapor(n,itype,i,j)*ptype
         taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         gtracer(n,itype,i,j)*ptype/nisurf
+     *         gtracer(n,itype,i,j)*ptype
         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n) + (
      &       fb*(sum( tr_w(nx,1:ngm,1) ) + sum( tr_wsn(nx,1:nsn(1),1)))+
      &       fv*(sum( tr_w(nx,0:ngm,2) ) + sum( tr_wsn(nx,1:nsn(2),2) ))
-     *       ) /nisurf
+     *       ) 
         tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *       +trevapor(n,itype,i,j)*ptype
       enddo
