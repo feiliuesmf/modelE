@@ -60,7 +60,7 @@ C
 !@param numfam number of chemical families
 !@param n_phot how often to do photolysis (in increments of DTsrc)
 !@param O3MULT =2.14d-2 This is the conversion from (atm*cm) units
-!@+     (i.e. related to a Dobson Unit) to KG/m2. It is: 
+!@+     (i.e. 1000 Dobson Units) to KG/m2. It is: 
 !@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
 !@+     molecules/cm3 at 1 atm pressure, 48. is molecular wt of O3,
 !@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
@@ -221,7 +221,7 @@ C ----------------------------------------------
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
      & NS     =   51,
-     & MFIT   =    8,
+     & MFIT   =    2*M__,
      & NFASTJ =    4,
      & MFASTJ =    1,
      & n_phot=     2      ! currently means 2 hours
@@ -445,11 +445,13 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var nhet #of heterogenous     reactions read in from gs_jpl00_trop_15
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
-!@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
+!@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,changeCl,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
 !@+   calculate nighttime chemistry changes
 !@var rlossN,rprodN,ratioN variables for nitrogen conservation
+!@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
+!@+   conservation (strat)
 !@var change change due to chemistry in mass/time
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
@@ -503,6 +505,9 @@ C
      & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
      & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor,F75P,F75M,
      & F569P,F569M
+#ifdef SHINDELL_STRAT_CHEM
+     & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom,changeCl
+#endif
       REAL*8, DIMENSION(nc,LM)         :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
@@ -541,7 +546,7 @@ C
       REAL*8, DIMENSION(3,NS)          :: TQQ
       REAL*8, DIMENSION(4,NP)          :: QAAFASTJ, WAAFASTJ
 #ifdef SHINDELL_STRAT_CHEM
-                                          ,SSA
+     &                                    ,SSA,RAA
 #endif
       REAL*8, DIMENSION(8,4,NP)        :: PAA
       REAL*8, DIMENSION(31,18,12)      :: OREF
@@ -558,17 +563,20 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
 #ifdef SHINDELL_STRAT_CHEM
-     *     ,BrOxaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     *     0.d0,0.d0,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,0.06d0,0.06d0,
-     *     0.06d0,0.06d0,0.06d0,0.06d0,0.06d0/),
-     *     ,ClOxaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     *     0.d0,0.d0,8.d0,8.d0,8.d0,8.d0,8.d1,8.d1,8.d1,8.d1,8.d0,8.d0,
+     *     ,BrOxaltIN = (/1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,
+     *     1.d-2,1.d-2,1.d-2,1.d-2,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,
+     *     0.06d0,0.06d0,0.06d0,0.06d0,0.06d0,0.06d0,0.06d0/)
+C
+     *     ,ClOxaltIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
+     *     1.d0,1.d0,8.d0,8.d0,8.d0,8.d0,8.d1,8.d1,8.d1,8.d1,8.d0,8.d0,
      *     8.d0,8.d0/)
-     *     ,ClONO2altIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     *     0.d0,0.d0,0.d0,0.d0,0.d0,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,
+C     
+     *     ,ClONO2altIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
+     *     1.d0,1.d0,1.d0,1.d0,1.d0,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,5.d1,
      *     5.d1,5.d1,5.d1/)
-     *     ,HClaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     *     0.d0,0.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
+C     
+     *     ,HClaltIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
+     *     1.d0,1.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
      *     2.5d2,2.5d2,2.5d2,2.5d2/)
 #endif
       REAL*8, DIMENSION(IM,JM,LCOalt) :: OxICIN
@@ -613,7 +621,7 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
 C      
-      CHARACTER*20, DIMENSION(9)   :: title_aer_pf !formerly TITLEA( )
+      CHARACTER*20, DIMENSION(NP)  :: title_aer_pf !formerly TITLEA( )
       CHARACTER*78                    TITLE0
       CHARACTER*7, DIMENSION(3,NS) :: TITLEJ
       CHARACTER*7, DIMENSION(JPPJ) :: jlabel
@@ -639,8 +647,11 @@ C
 !$OMP THREADPRIVATE(/FJAST_LOC/)
 
 #ifdef SHINDELL_STRAT_CHEM
-      COMMON/FASTJ2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
-     &     DMFASTJ,PFASTJ2,QAAFASTJ,WAAFASTJ,SSA,AMF
+      COMMON/SCHEM_LOC/changeCl,ratioNs,rNO2frac,rNOfrac,rNOdenom,
+     &ratioN2
+!$OMP THREADPRIVATE(/SCHEM_LOC/)
+      COMMON/FJAST2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
+     &     DMFASTJ2,PFASTJ2,QAAFASTJ,WAAFASTJ,SSA,AMF
 !$OMP THREADPRIVATE(/FJAST2_LOC/)
 #endif
 #endif
