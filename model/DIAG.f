@@ -877,7 +877,7 @@ C****
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,jdate,
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
-      USE GEOM, only :
+      USE GEOM, only : bydxyp,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
@@ -894,7 +894,7 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
-      USE DYNAMICS, only : phi,dut,dvt,plij
+      USE DYNAMICS, only : phi,dut,dvt,plij,sd
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : SOUTH, NORTH
@@ -919,7 +919,7 @@ C****
      &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
-     &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,
+     &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,SDK,
      &     SMALL,SP,SP2,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,UDX,UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
@@ -1187,7 +1187,7 @@ C**** ACCUMULATE HERE
       AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
       AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
       AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
-     *     PQ4K/QSAT(0.25*PT4K/DPK,LHE,PM(K))
+     *     PQ4K/QSAT(0.25*PT4K/DPK,LHE,PMO(K))
       AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
 C**** EDDY TRANSPORT OF THETA;  VORTICITY
   334 PS4I=PS4I+PS4K
@@ -1233,123 +1233,169 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
   350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
   390 CONTINUE
 C****
-C**** VERTICAL MASS FLUXES  W(I,J,K)
+C**** alternate vertical mass flux diagnostic (from SD)
 C****
-      DO 400 I=1,IM
-      DO 400 J=J_0,J_1
-      DO 400 K=1,KM
-      DUT(I,J,K)=0.
-      DVT(I,J,K)=0.
-  400 W(I,J,K)=0.
-
-      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, U, FROM=NORTH)
-
-C**** EASTWARD MASS FLUX DUT (PU POINTS)
-      DO 460 J=J_0S,J_1S
-      DO 460 K=1,KM
-      I=IM
-      DO 460 IP1=1,IM
-      SP=.5*(P(I,J)+P(IP1,J))
-      DO 405 L=1,LS1-1
-  405 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.SP+PTOP) GO TO 460
-      L=1
-      PDN=SP+PTOP
-      IF (PM(K).GE.SP+PTOP) GO TO 420
-      PDN=PM(K)
-  410 IF (PM(K).GT.PL(L+1)) GO TO 420
-      L=L+1
-      GO TO 410
-  420 LUP=L
-  430 IF (PM(K+1).GE.PL(LUP+1)) GO TO 440
-      LUP=LUP+1
-      GO TO 430
-  440 CONTINUE
-C**** CALCULATE HERE
-  450 PUP=PL(L+1)
-      IF (LUP.EQ.L) PUP=PM(K+1)
-      DPDY=(PDN-PUP)*DYP(3)
-      DUT(I,J,K)=DUT(I,J,K)+DPDY*(U(I,J,L)+U(I,J+1,L))
-      IF (LUP.EQ.L) GO TO 460
-      L=L+1
-      PDN=PL(L)
-      GO TO 450
-  460 I=IP1
-C**** NORTHWARD MASS FLUX DVT (PV POINTS)
-C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
-C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-
-      DO 520 J=J_0STG,J_1STG
-      DO 520 K=1,KM
-      IM1=IM
-      DO 520 I=1,IM
-      SP=.5*(P(I,J-1)+P(I,J))
-      DO 465 L=1,LS1-1
-  465 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.SP+PTOP) GO TO 520
-      L=1
-      PDN=SP+PTOP
-      IF (PM(K).GE.SP+PTOP) GO TO 480
-      PDN=PM(K)
-  470 IF (PM(K).GT.PL(L+1)) GO TO 480
-      L=L+1
-      GO TO 470
-  480 LUP=L
-  490 IF (PM(K+1).GE.PL(LUP+1)) GO TO 500
-      LUP=LUP+1
-      GO TO 490
-  500 CONTINUE
-C**** CALCULATE HERE
-  510 PUP=PL(L+1)
-      IF (LUP.EQ.L) PUP=PM(K+1)
-      DPDX=(PDN-PUP)*DXV(J)
-      DVT(I,J,K)=DVT(I,J,K)+DPDX*(V(IM1,J,L)+V(I,J,L))
-      IF (LUP.EQ.L) GO TO 520
-      L=L+1
-      PDN=PL(L)
-      GO TO 510
-  520 IM1=I
-
-      CALL CHECKSUM(grid, DVT, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DVT, FROM=NORTH)
-
-      DO 560 K=KM,1,-1
-C**** POLAR VERTICAL MASS FLUX
-        IF(GRID%HAVE_SOUTH_POLE) THEN
-          W(1,1,K)=0.
-          IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
-          DO I=1,IM
-            W(1,1,K)=W(1,1,K)-.5*DVT(I,2,K)
-          ENDDO
-        ENDIF
-        IF(GRID%HAVE_NORTH_POLE) THEN
-          W(1,JM,K)=0.
-          IF (K.LT.KM) W(1,JM,K)=W(1,JM,K+1)
-          DO I=1,IM
-            W(1,JM,K)=W(1,JM,K)+.5*DVT(I,JM,K)
-          ENDDO
-        ENDIF
-C**** NON-POLAR VERTICAL MASS FLUX
-      WUP=0.
-      DO 560 J=J_0S,J_1S
-      IM1=IM
-      DO 560 I=1,IM
-      IF (K.LT.KM) WUP=W(I,J,K+1)
-      W(I,J,K)=WUP+.5*(DUT(IM1,J,K)-DUT(I,J,K)+
-     *  DVT(I,J,K)-DVT(I,J+1,K))
-  560 IM1=I
-C**** ZERO OUT SUBSURFACE VERTICAL WINDS
+      W(:,:,:)=0.
+C**** interpolate SD to constant pressure      
       DO J=J_0,J_1
-      DO I=1,IM
-      PS=P(I,J)+PTOP
-      K=2
-      DO WHILE(PM(K+1).GE.PS)
-         W(I,J,K)=0.
-         K=K+1
-      ENDDO
-      ENDDO
-      ENDDO
+        I=IM
+        DO IP1=1,IM
+          DO K=1,KM-1
+            DPK=0.
+            SDK=0.
+            SP=P(I,J)
+            DO L=1,LS1-1
+              PL(L)=SP*SIGE(L)+PTOP
+            END DO
+            IF (PM(K+1).GE.SP+PTOP) GO TO 860
+            L=1
+            PDN=SP+PTOP
+            IF (PM(K).GE.SP+PTOP) GO TO 820
+            PDN=PM(K)
+ 810        IF (PM(K).GT.PL(L+1)) GO TO 820
+            L=L+1
+            GO TO 810
+ 820        LUP=L
+ 830        IF (PM(K+1).GE.PL(LUP+1)) GO TO 840
+            LUP=LUP+1
+            GO TO 830
+ 840        CONTINUE
+C**** INTERPOLATE HERE
+ 850        PUP=PL(L+1)
+            IF (LUP.EQ.L) PUP=PM(K+1)
+            DPK=DPK+(PDN-PUP)
+            SDK=SDK+(PDN-PUP)*SD(I,J,L)
+            IF (LUP.EQ.L) GO TO 860
+            L=L+1
+            PDN=PL(L)
+            GO TO 850
+ 860        CONTINUE
+C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
+            IF (DPK.gt.0) AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+
+     *           SDK*BYDXYP(J)/DPK
+            W(I,J,K)=SDK/DPK
+          END DO
+          I=IP1
+        END DO
+      END DO
+C****
+C**** VERTICAL MASS FLUXES  W(I,J,K) (OBSOLETE)
+C****
+c      DO 400 I=1,IM
+c      DO 400 J=J_0,J_1
+c      DO 400 K=1,KM
+c      DUT(I,J,K)=0.
+c      DVT(I,J,K)=0.
+c  400 W(I,J,K)=0.
+c
+c      CALL CHECKSUM(grid, U, __LINE__, __FILE__)
+c      CALL HALO_UPDATE(grid, U, FROM=NORTH)
+c
+cC**** EASTWARD MASS FLUX DUT (PU POINTS)
+c      DO 460 J=J_0S,J_1S
+c      DO 460 K=1,KM
+c      I=IM
+c      DO 460 IP1=1,IM
+c      SP=.5*(P(I,J)+P(IP1,J))
+c      DO 405 L=1,LS1-1
+c  405 PL(L)=SP*SIGE(L)+PTOP
+c      IF (PM(K+1).GE.SP+PTOP) GO TO 460
+c      L=1
+c      PDN=SP+PTOP
+c      IF (PM(K).GE.SP+PTOP) GO TO 420
+c      PDN=PM(K)
+c  410 IF (PM(K).GT.PL(L+1)) GO TO 420
+c      L=L+1
+c      GO TO 410
+c  420 LUP=L
+c  430 IF (PM(K+1).GE.PL(LUP+1)) GO TO 440
+c      LUP=LUP+1
+c      GO TO 430
+c  440 CONTINUE
+cC**** CALCULATE HERE
+c  450 PUP=PL(L+1)
+c      IF (LUP.EQ.L) PUP=PM(K+1)
+c      DPDY=(PDN-PUP)*DYP(3)
+c      DUT(I,J,K)=DUT(I,J,K)+DPDY*(U(I,J,L)+U(I,J+1,L))
+c      IF (LUP.EQ.L) GO TO 460
+c      L=L+1
+c      PDN=PL(L)
+c      GO TO 450
+c  460 I=IP1
+cC**** NORTHWARD MASS FLUX DVT (PV POINTS)
+cC P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+cC P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+c
+c      DO 520 J=J_0STG,J_1STG
+c      DO 520 K=1,KM
+c      IM1=IM
+c      DO 520 I=1,IM
+c      SP=.5*(P(I,J-1)+P(I,J))
+c      DO 465 L=1,LS1-1
+c  465 PL(L)=SP*SIGE(L)+PTOP
+c      IF (PM(K+1).GE.SP+PTOP) GO TO 520
+c      L=1
+c      PDN=SP+PTOP
+c      IF (PM(K).GE.SP+PTOP) GO TO 480
+c      PDN=PM(K)
+c  470 IF (PM(K).GT.PL(L+1)) GO TO 480
+c      L=L+1
+c      GO TO 470
+c  480 LUP=L
+c  490 IF (PM(K+1).GE.PL(LUP+1)) GO TO 500
+c      LUP=LUP+1
+c      GO TO 490
+c  500 CONTINUE
+cC**** CALCULATE HERE
+c  510 PUP=PL(L+1)
+c      IF (LUP.EQ.L) PUP=PM(K+1)
+c      DPDX=(PDN-PUP)*DXV(J)
+c      DVT(I,J,K)=DVT(I,J,K)+DPDX*(V(IM1,J,L)+V(I,J,L))
+c      IF (LUP.EQ.L) GO TO 520
+c      L=L+1
+c      PDN=PL(L)
+c      GO TO 510
+c  520 IM1=I
+c
+c      CALL CHECKSUM(grid, DVT, __LINE__, __FILE__)
+c      CALL HALO_UPDATE(grid, DVT, FROM=NORTH)
+c
+c      DO 560 K=KM,1,-1
+cC**** POLAR VERTICAL MASS FLUX
+c        IF(GRID%HAVE_SOUTH_POLE) THEN
+c          W(1,1,K)=0.
+c          IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
+c          DO I=1,IM
+c            W(1,1,K)=W(1,1,K)-.5*DVT(I,2,K)
+c          ENDDO
+c        ENDIF
+c        IF(GRID%HAVE_NORTH_POLE) THEN
+c          W(1,JM,K)=0.
+c          IF (K.LT.KM) W(1,JM,K)=W(1,JM,K+1)
+c          DO I=1,IM
+c            W(1,JM,K)=W(1,JM,K)+.5*DVT(I,JM,K)
+c          ENDDO
+c        ENDIF
+cC**** NON-POLAR VERTICAL MASS FLUX
+c      WUP=0.
+c      DO 560 J=J_0S,J_1S
+c      IM1=IM
+c      DO 560 I=1,IM
+c      IF (K.LT.KM) WUP=W(I,J,K+1)
+c      W(I,J,K)=WUP+.5*(DUT(IM1,J,K)-DUT(I,J,K)+
+c     *  DVT(I,J,K)-DVT(I,J+1,K))
+c  560 IM1=I
+cC**** ZERO OUT SUBSURFACE VERTICAL WINDS
+c      DO J=J_0,J_1
+c      DO I=1,IM
+c      PS=P(I,J)+PTOP
+c      K=2
+c      DO WHILE(PM(K+1).GE.PS)
+c         W(I,J,K)=0.
+c         K=K+1
+c      ENDDO
+c      ENDDO
+c      ENDDO
 C**** ACCUMULATE ALL VERTICAL WINDS
 !!    DO 558 J=J_0,J_1
 !!    DO 558 I=1,IM
@@ -1383,7 +1429,6 @@ C**** ACCUMULATE ALL VERTICAL WINDS
       WI=0.
       DO I=1,IMAXJ(J)
         WI=WI+W(I,J,K)
-        AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+W(I,J,K)
       END DO
   565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
 C****

@@ -1834,7 +1834,7 @@ c
 c
       k=k+1 !
       IJ_EVAPO = k ! EVAP*POCEAN  (KG/m**2)                  1 GD
-      lname_ij(k) = 'OCEAN EVAPORATION x POCEAN'
+      lname_ij(k) = 'OCEAN EVAPORATION x POPOCN'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_ocn'
       ia_ij(k) = ia_src
@@ -4227,8 +4227,8 @@ c
       IJK_Q=k
       name_ijk(k) = 'q' !'QDPB'
       lname_ijk(k) = 'SPECIFIC HUMIDITY'! x delta p x 4, b-grid'
-      units_ijk(k) = 'kg/kg' !'10**-5'
-      scale_ijk(k) = 0.25    !*1d5
+      units_ijk(k) = 'g/kg' 
+      scale_ijk(k) = 0.25*1d3
       off_ijk(k)   = 0.
 c
       k=k+1
@@ -4251,7 +4251,7 @@ c
       k=k+1
       IJK_PF=k
       name_ijk(k) = 'p' 
-      lname_ijk(k) = 'FRACTION ABOVE SURFACE'
+      lname_ijk(k) = 'FRAC ABOVE SURF'
       units_ijk(k) = '%' 
       scale_ijk(k) = 100.0
       off_ijk(k)   = 0.

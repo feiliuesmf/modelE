@@ -303,6 +303,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          END DO
          END IF
 C**** save some ocean diags regardless of PTYPE
+C**** SSH does not work for qflux/fixed SST configurations
          IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
            AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)
            AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)

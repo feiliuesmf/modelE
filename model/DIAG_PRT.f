@@ -3483,15 +3483,21 @@ c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
 c**** ratios (the denominators)
         k1 = index(lname_ij(k),' x ')
         if (k1 .gt. 0 .and. qdiag_ratios) then
-          if (index(lname_ij(k),' x POCEAN') .gt. 0) then
-            do j=1,jm
+          if (index(lname_ij(k),' x POPOCN') .gt. 0) then
+            do j=1,jm      ! open ocean only
             do i=1,im
               adenom(i,j) = 1-fland(i,j) - aij(i,j,ij_rsoi)
      *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
+            end do         
+          else if (index(lname_ij(k),' x POCEAN') .gt. 0) then
+            do j=1,jm      ! full ocean box (no lake)
+            do i=1,im
+              adenom(i,j) = focean(i,j)
+            end do
             end do
           else if (index(lname_ij(k),' x POICE') .gt. 0) then
-            do j=1,jm
+            do j=1,jm      ! ice-covered only
             do i=1,im
               adenom(i,j)=aij(i,j,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
             end do
