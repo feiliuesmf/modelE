@@ -45,14 +45,14 @@ C****
       SAVE
 C**** Variables passed from DIAGA to DIAGB
 !@var W,TX vertical velocity and in-situ temperature calculations
-      REAL*8, DIMENSION(IM,JM,LM) :: W
-      REAL*8, DIMENSION(IM,JM,LM) :: TX
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: W
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TX
 !@var TJL0 zonal mean temperatures prior to advection
-      REAL*8, DIMENSION(JM,LM) :: TJL0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TJL0
 
 C**** Variables used in DIAG5 calculations
-!@var FCUVA,FCUVB fourier coefficients for velocities
-      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
+!@var FCUVA,FCUVB fourier coefficients for velocities 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: FCUVA,FCUVB
 
 C**** Some local constants
 !@var JET, LDEX model levels for various pressures
@@ -65,6 +65,35 @@ C**** Some local constants
       REAL*8, DIMENSION(LM+1) :: PM,PL
 
       END MODULE DIAG_LOC
+
+      SUBROUTINE ALLOC_DIAG_LOC(grid)
+      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : DYN_GRID
+      USE MODEL_COM, only : im,imh,lm
+      USE DIAG_LOC, only  : W,TX,TJL0,FCUVA,FCUVB
+      IMPLICIT NONE
+      LOGICAL, SAVE :: init=.false.
+      INTEGER :: J_1H    , J_0H
+      INTEGER :: IER
+      TYPE(DYN_GRID) :: grid
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE( W(IM, J_0H:J_1H, LM), TX(IM, J_0H:J_1H, LM),
+     &     STAT = IER)
+      ALLOCATE( TJL0(J_0H:J_1H, LM),
+     &     STAT = IER)
+      ALLOCATE( FCUVA(0:IMH, J_0H:J_1H, LM, 2), 
+     &          FCUVB(0:IMH, J_0H:J_1H, LM, 2),
+     &     STAT = IER)
+
+      RETURN
+      END SUBROUTINE ALLOC_DIAG_LOC
 
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
