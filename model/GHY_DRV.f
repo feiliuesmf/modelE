@@ -140,7 +140,7 @@ c****
       integer i,j,kr,jr,itype,ih,ihm,ibv
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
-     *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
+     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
      *     ,warmer,timez,spring,zs1co,q1
 
 !@var rhosrf0 estimated surface air density
@@ -249,7 +249,7 @@ C**** halo update u and v for distributed parallelization
 !$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
-!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WTR2AV,q1
 #if defined(TRACERS_ON)
 !$OMP*   ,n,nx,totflux,nsrc
 #if defined(TRACERS_WATER)
@@ -516,7 +516,7 @@ c****
 c**** calculate ground fluxes
 c     call qsbal
 
-      call ghinij (i,j,wfc1)
+      call ghinij (i,j)
       call veg_set_cell(i,j)
       !call init_localveg
       call advnc
@@ -947,7 +947,6 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
       integer i, j, ibv
-      real*8 wfc1
       real*8 pearth
       logical ghy_data_missing
       character conpt(npts)*10
@@ -1100,7 +1099,7 @@ ccc   ??? remove next 5 lines? -check the old version
             snowd(1:2) =  snowbv(1:2,i,j)
 
 c**** compute soil heat capacity and ground water saturation gws
-            call ghinij (i,j,wfc1)
+            call ghinij (i,j)
 c**** fill in soils common blocks
             snowdp=snowe(i,j)/rhow
             wtr1=wearth(i,j)
@@ -1178,7 +1177,7 @@ ccc!!! restart file (without snow model data)
             ht(0:ngm,2) = htvege(0:ngm,i,j)
             snowd(1:2) =  snowbv(1:2,i,j)
 
-            call ghinij (i,j,wfc1)
+            call ghinij (i,j)
             call set_snow
 
             nsn_ij    (1:2, i, j)         = nsn(1:2)
@@ -1328,7 +1327,7 @@ ccc ugly, should fix later
       end subroutine reset_gh_to_defaults
 
 
-      subroutine ghinij (i0,j0, wfcap)
+      subroutine ghinij (i0,j0)
 c**** input:
 c**** avh(i,j) - array of vegetation heights
 c**** spgsn - specific gravity of snow
@@ -1351,7 +1350,7 @@ c****
 
       implicit none
       integer i0,j0
-      real*8 wfcap
+!      real*8 wfcap
       integer k,ibv,i
       real*8 shtpr
 !----------------------------------------------------------------------!
@@ -1709,7 +1708,7 @@ c****
             end if
             !-----------------------------------------------------------
 
-            call ghinij(i,j,wfc1)
+            call ghinij(i,j)
             call veg_set_cell(i,j,.true.)
             wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
