@@ -508,13 +508,23 @@ c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
 
+c**** set conservation diagnostics for ground water mass and energy
+      qcon=(/ .false., .false., .false., .false., .false., .true.
+     $     , .false., .false., .true., .false., .false./)
+      call set_con(qcon,"grnd wtr","(kg/m^2)        ",
+     *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
+      qcon=(/ .false., .false., .false., .false., .false., .true.
+     $     , .false., .false., .true., .false., .false./)
+      call set_con(qcon,"grnd eng","(10**6 j/m^2)   ",
+     *     "(10^-3 j/s/m^2) ",1d-6,1d3,icon_htg)
+
 c read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,11
         call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
       end do
       call closeunit(iu_VEG)
-      if (istart.gt.0) then
+      if (istart.le.0) return
 c read soils parameters
       call openunit("SOIL",iu_SOIL,.true.,.true.)
       call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
@@ -798,17 +808,6 @@ c****     copy soils prognostic quantities to model variables
         end do
       end do
       end if
-      end if
-
-c**** set conservation diagnostics for ground water mass and energy
-      qcon=(/ .false., .false., .false., .false., .false., .true.
-     $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"grnd wtr","(kg/m^2)        ",
-     *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
-      qcon=(/ .false., .false., .false., .false., .false., .true.
-     $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"grnd eng","(10**6 j/m^2)   ",
-     *     "(10^-3 j/s/m^2) ",1d-6,1d3,icon_htg)
 
       return
       end subroutine init_gh
