@@ -18,7 +18,7 @@ C**** must be compiled after the model
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
      *     ,egcm
       USE STATIC_OCEAN, only : tocean,z1o,tfo
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
@@ -128,6 +128,8 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
               SSI(1:4,I,J) = 0.
             END IF
           END IF
+          POND_MELT(I,J)=0.
+          FLAG_DSWS(I,J)=.FALSE.
         END DO
       END DO
 

@@ -6,12 +6,12 @@ C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
-      USE MODEL_COM, only : im,jm,lm,iowrite 
+      USE MODEL_COM, only : im,jm,lm,iowrite,focean
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm
       USE STATIC_OCEAN, only : tocean,z1o
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
-      USE SEAICE, only : ace1i,xsi,ac2oim
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
+      USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
       USE LANDICE_COM, only : tlandi,snowli
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60
@@ -61,6 +61,20 @@ C**** define sea ice defaults: Use AC2OIM instead of MSI.
           HSI(4,I,J) = (SHI*HSI(4,I,J)-LHM)*XSI(4)*AC2OIM
           MSI(I,J) = AC2OIM
           TOCEAN(2:3,I,J) = TOCEAN(1,I,J)
+          POND_MELT(I,J)=0.
+          FLAG_DSWS(I,J)=.FALSE.
+          IF (FOCEAN(I,J).gt.0) THEN
+            SSI(3:4,I,J)=SSI0 * XSI(3:4)*MSI(I,J)
+            IF (ACE1I*XSI(1).gt.SNOWI(I,J)*XSI(2)) THEN
+              SSI(1,I,J)=SSI0 * (ACE1I-(ACE1I+SNOWI(I,J))* XSI(2))
+              SSI(2,I,J)=SSI0 * (ACE1I+SNOWI(I,J))* XSI(2)
+            ELSE
+              SSI(1,I,J)=0.
+              SSI(2,I,J)=SSI0 * ACE1I
+            END IF
+          ELSE
+            SSI(1:4,I,J) = 0
+          END IF
         END DO
       END DO
 

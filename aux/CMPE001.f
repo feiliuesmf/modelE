@@ -21,9 +21,10 @@ c    *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
 ccc   ice data:
       INTEGER, PARAMETER  :: LMI=4
       REAL*8 MSI1,MSI2
+      LOGICAL IFLAG1(IM,JM),IFLAG2(IM,JM)
       COMMON/SICECB/ RSI1(IM,JM),HSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
-     *     ,JM),SSI1(LMI,IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM),MSI2(IM,JM)
-     *     ,SNOWI2(IM,JM),SSI2(LMI,IM,JM)
+     *     ,JM),SSI1(LMI,IM,JM),PM1(IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM)
+     *     ,MSI2(IM,JM),SNOWI2(IM,JM),SSI2(LMI,IM,JM),PM2(IM,JM)
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
@@ -121,7 +122,7 @@ c        write(0,*) 'trying to read ocea2'
 c        write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
 c        write(0,*) 'trying to read sice'
-         READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1
+         READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1,PM1,IFLAG1
 c        write(0,*) 'trying to read gdata'
          READ (1) HEADER,GDATA1
 c        write(0,*) 'trying to read soils'
@@ -196,7 +197,7 @@ c        write(0,*) 'trying to read ocea2'
 c        write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
 c        write(0,*) 'trying to read sice'
-         READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2
+         READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2,PM2,IFLAG2
 c        write(0,*) 'trying to read gdata'
          READ (2) HEADER,GDATA2
 c        write(0,*) 'trying to read soils'
@@ -264,6 +265,7 @@ C****
       ERRQ=COMP8LIJp('SSI  ',LMI,IM,JM    ,   SSI1,   SSI2) .or. ERRQ
       ERRQ=COMP8p('SNOWI ',IM,JM,1      , SNOWI1, SNOWI2) .or. ERRQ
       ERRQ=COMP8 ('MSI2  ',IM,JM,1      ,   MSI1,   MSI2) .or. ERRQ
+      ERRQ=COMP8 ('MPOND ',IM,JM,1      ,    PM1,    PM2) .or. ERRQ
       ERRQ=COMP8 ('GDATA ',IM,JM,7      ,GDATA1 ,GDATA2 ) .or. ERRQ
       ERRQ=COMP8 ('GHDATA',IM,JM,4*NGM+5,GHDATA1,GHDATA2) .or. ERRQ
       ERRQ=COMP8 ('BLDATA',IM,JM,11+LM  ,BLDATA1,BLDATA2) .or. ERRQ
