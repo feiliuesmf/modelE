@@ -726,11 +726,11 @@ C****
       END IF
 C****
       END IF
-C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
+C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
       IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
-      IF (ROICE.gt.(1.-OPNOCN-1d-4)) THEN
+      IF (ROICE.gt.(1.-OPNOCN-1d-3)) THEN
         ROICEN = 1.-OPNOCN
         DRSI = ROICEN-ROICE ! +ve
         FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! >0 ice mass out of layer 4
@@ -837,14 +837,14 @@ C**** Calculate temperatures for diagnostics and radiation
 
 C**** Estimate DRSI
       DRSI=0.
-      IF (ROICE.lt.1d-4) THEN
+      IF (ROICE.lt.1d-3) THEN
         DRSI=ROICE
       ELSE      ! IF (POCEAN.gt.0) THEN ! now for lakes too
 C**** Estimate lateral melt using parameterisation from Makyut/Steele
 C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
         dtemp=MAX(Tm-TFO,0d0)
         DRSI=DT*SILMFAC*dtemp**SILMPOW
-        IF (ROICE-DRSI.lt.1d-4) DRSI=ROICE
+        IF (ROICE-DRSI.lt.1d-3) DRSI=ROICE
       END IF
 C**** Remove DRSI amount of ice
       ENRGUSED=-DRSI*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
