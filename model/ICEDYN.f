@@ -118,7 +118,7 @@ C****
 C****
 C**** Set up non linear water drag
 C****
-      DO J=J_0,J_1S
+      DO J=J_0,J_1
       DO I=1,NX1-1
         DWATN(I,J)=5.5*SQRT((UICE(I,J,1)-GWATX(I,J))**2
      1       +(VICE(I,J,1)-GWATY(I,J))**2)
@@ -291,8 +291,8 @@ C NOW EVALUATE VISCOSITIES
       END DO
 
 C NOW PUT MIN AND MAX VISCOSITIES IN
-      DO J=J_0,J_1
-        DO I=1,NX1
+      DO J=J_0S,J_1S
+        DO I=2,NX1-1
           ZETA(I,J)=MIN(ZMAX(I,J),ZETA(I,J))
           ZETA(I,J)=MAX(ZMIN(I,J),ZETA(I,J))
         END DO
@@ -306,6 +306,17 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         AAA=AAA/FLOAT(NX1-2)
         DO I=1,NX1
           ZETA(I,NY1)=AAA
+        END DO
+      end if
+
+      if (grid%HAVE_SOUTH_POLE) then
+        AAA=0.0
+        DO I=2,NX1-1
+          AAA=AAA+ZETA(I,2)
+        END DO
+        AAA=AAA/FLOAT(NX1-2)
+        DO I=1,NX1
+          ZETA(I,1)=AAA
         END DO
       end if
 
