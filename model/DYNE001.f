@@ -1,16 +1,14 @@
       SUBROUTINE AFLUX (U,V,PA)
-C****
-C**** THIS ROUTINE CALCULATES THE HORIZONTAL AIR MASS FLUXES
-C**** AND VERTICAL AIR MASS FLUXES AS DETERMINED BY U, V AND P.
-C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
-C****
-      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P
+!@sum  AFLUX Calculates horizontal/vertical air mass fluxes
+!@auth Original development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,fim,byim
+      USE GEOM
+      USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       IMPLICIT NONE
+C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
-      REAL*8 PHI,SPA
-      COMMON/WORK3/PHI(IM,JM,LM),SPA(IM,JM,LM)
-      REAL*8 FD,FLUXQ,DUMMYS,DUMMYN
-      COMMON/WORK4/FD(IM,JM),FLUXQ(IM),DUMMYS(IM),DUMMYN(IM)
+      REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       REAL*8 PA(IM,JM)
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
@@ -129,18 +127,17 @@ C****
       END SUBROUTINE AFLUX
 
       SUBROUTINE ADVECM (P,PA,DT1)
-C****
-C**** THIS ROUTINE CALCULATES UPDATED COLUMN PRESSURES AS
-C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
-C****
-      USE DYNAMICS, PGLOB=>P
+!@sum  ADVECM Calculates updated column pressures using mass fluxes
+!@auth Original development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q
+      USE GEOM, only : bydxyp,imaxj
+      USE DYNAMICS, only : pit
       IMPLICIT NONE
-      REAL*8 P(IM,JM)
-      REAL*8 FD
-      COMMON/WORK4/FD(IM,JM)
-      REAL*8 PA(IM,JM)
+      REAL*8, INTENT(IN) :: P(IM,JM)
+      REAL*8, INTENT(OUT) :: PA(IM,JM)
+      REAL*8, INTENT(IN) :: DT1
       INTEGER I,J,L,K,IMAX  !@var I,J,L,K  loop variables
-      REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO J=1,JM
@@ -164,18 +161,15 @@ C****
       END SUBROUTINE ADVECM
 
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
-C****
-C**** THIS ROUTINE ADVECTS MOMENTUM (INCLUDING THE CORIOLIS FORCE)
-C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
-C****
-      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P
+!@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
+!@auth Original development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+      USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
+      USE DYNAMICS, only : pu,pv,pit,sd,spa,fd,dut,dvt
       IMPLICIT NONE
+
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
-      REAL*8 PHI,SPA
-      COMMON/WORK3/PHI(IM,JM,LM),SPA(IM,JM,LM)
-      REAL*8 FD,DUT,DVT
-      COMMON/WORK4/FD(IM,JM)
-      COMMON/WORK5/DUT(IM,JM,LM),DVT(IM,JM,LM)
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),PA(IM,JM),PB(IM,JM)
       REAL*8, SAVE :: SMASS(JM)
 
@@ -185,14 +179,12 @@ C****
      *     ,FLUX,FLUXU,FLUXV
 C****
          IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
-      IF(IFIRST.NE.1) GO TO 50
-      IFIRST=0
-c      JMM2=JM-2
-c      IJL2=IM*JM*LM*2
-      DO 10 J=2,JM
-   10 SMASS(J)=PSFMPT*DXYV(J)
+      IF(IFIRST.EQ.1) THEN
+        IFIRST=0
+        DO 10 J=2,JM
+ 10     SMASS(J)=PSFMPT*DXYV(J)
+      END IF
 
-   50 CONTINUE
       DT2=DT1/2.
       DT4=DT1/4.
       DT8=DT1/8.
@@ -355,24 +347,18 @@ C****
       END SUBROUTINE ADVECV
 
       SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
-C****
-C**** THIS ROUTINE ADDS TO MOMENTUM THE TENDENCIES DETERMINED BY
-C**** THE PRESSURE GRADIENT FORCE
-C****
-      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P, TGLOB=>T
+!@sum  PGF Adds pressure gradient forces to momentum
+!@auth Original development team
+!@ver  1.0
+      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
+      USE E001M12_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
+     *     ,zatmo,sig,modd5k,bydsig
+      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp
+      USE DYNAMICS, only : gz,pu,pit,phi,spa,fd,dut,dvt
       IMPLICIT NONE
+
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
       REAL*8, DIMENSION(IM,JM) :: P,RFDUX
-
-      REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
-      COMMON/WORK3/PHI,SPA
-
-      REAL*8 FD(IM,JM),FLUXQ(IM),DUMMYS(IM),DUMMYN(IM)
-      COMMON/WORK4/FD,FLUXQ,DUMMYS,DUMMYN
-
-      REAL*8 DUT(IM,JM,LM),DVT(IM,JM,LM)
-      COMMON/WORK5/DUT,DVT
-
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),TT(IM,JM,LM),
      *  PA(IM,JM),PB(IM,JM),QT(IM,JM,LM)
 
@@ -551,45 +537,46 @@ C****
       END SUBROUTINE PGF
 
       SUBROUTINE AVRX (X)
-C****
-C**** THIS ROUTINE SMOOTHES THE ZONAL MASS FLUX AND GEOPOTENTIAL
-C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
+!@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
+!@auth Original development team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,imh
+      USE GEOM, only : dlon,dxp,dyp
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
-C****
-      USE DYNAMICS
       IMPLICIT NONE
-      REAL*8 X(IM,JM)
+      REAL*8, INTENT(INOUT) :: X(IM,JM)
       REAL*8, SAVE :: SM(IMH,JM),DRAT(JM)
-      INTEGER, SAVE :: NMIN(JM)
       REAL*8, SAVE, DIMENSION(IMH) :: BYSN
       REAL*8, DIMENSION(0:IMH) :: AN,BN
-c      COMMON/AVRXX/BYSN(IMH),AN(0:IMH),BN(0:IMH)
-
-      INTEGER,SAVE :: IFIRST = 1
+      INTEGER, SAVE :: NMIN(JM)
+      INTEGER, SAVE :: IFIRST = 1
       INTEGER J,N
 
-      IF (IFIRST.NE.1) GO TO 100
+      IF (IFIRST.EQ.1) THEN
       IFIRST=0
 C     CALL FFT0(IM)
-      DO 30 N=1,IMH
-   30 BYSN(N)=1./SIN(.5*DLON*N)
+      DO N=1,IMH
+        BYSN(N)=1./SIN(.5*DLON*N)
+      END DO
       DO 50 J=2,JM-1
-      DRAT(J) = DXP(J)/DYP(3)
-      DO 40 N=IMH,1,-1
-      SM(N,J) = BYSN(N)*DRAT(J)
-      IF(SM(N,J).GT.1.) THEN
-         NMIN(J) = N+1
-         GO TO 50
-      ENDIF
-   40 CONTINUE
-   50 CONTINUE
+        DRAT(J) = DXP(J)/DYP(3)
+        DO 40 N=IMH,1,-1
+          SM(N,J) = BYSN(N)*DRAT(J)
+          IF(SM(N,J).GT.1.) THEN
+            NMIN(J) = N+1
+            GO TO 50
+          ENDIF
+ 40     CONTINUE
+ 50   CONTINUE
+      END IF
 C****
-  100 DO 140 J=2,JM-1
+      DO 140 J=2,JM-1
       IF (DRAT(J).GT.1) GO TO 140
       CALL FFT (X(1,J),AN,BN)
-      DO 130 N=NMIN(J),IMH-1
-      AN(N)=SM(N,J)*AN(N)
-  130 BN(N)=SM(N,J)*BN(N)
+      DO N=NMIN(J),IMH-1
+        AN(N)=SM(N,J)*AN(N)
+        BN(N)=SM(N,J)*BN(N)
+      END DO
       AN(IMH) = SM(IMH,J)*AN(IMH)
       CALL FFTI(AN,BN,X(1,J))
   140 CONTINUE
@@ -597,18 +584,21 @@ C****
       END SUBROUTINE AVRX
 
       SUBROUTINE FILTER
-C****
-C**** THIS ROUTINE PERFORMS AN 8-TH ORDER SHAPIRO FILTER ON
-C**** SELECTED PROGNOSTIC QUANTITIES IN THE ZONAL DIRECTION
+!@sum  FILTER Performs 8-th order shapiro filter in zonal direction
+!@auth Original development team
+!@ver  1.0
 C****
 C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE DYNAMICS
+      USE CONSTANT, only : bbyg,gbyrb,kapa
+      USE E001M12_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
+     *     ,byim,sig
+      USE SOMTQ_COM, only : tmom,qmom
+      USE PBLCOM, only : tsavg
       IMPLICIT NONE
-      REAL*8 X,XS,Y
-      COMMON/WORK2/X(IM,JM),XS(IM),Y(IM,JM)
+      REAL*8, DIMENSION(IM,JM) :: X,Y
       REAL*8 PSUMO(JM)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
@@ -626,7 +616,7 @@ C****
          POLD(I,J)=P(I,J)      ! Save old pressure
       Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
   120 X(I,J)=(P(I,J)+PTOP)*Y(I,J)
-      CALL SHAP1D (8)
+      CALL SHAP1D (8,X)
       DO 150 J=2,JM-1
          PSUMN=0.
       DO 140 I=1,IM
@@ -666,7 +656,7 @@ C****
       DO 220 I=1,IM
       Y(I,J)=(SIG(L)*P(I,J)+PTOP)**AKAP
   220 X(I,J)=T(I,J,L)*Y(I,J)
-      CALL SHAP1D (8)
+      CALL SHAP1D (8,X)
       DO 240 J=2,JM-1
       DO 240 I=1,IM
   240 T(I,J,L)=X(I,J)/Y(I,J)
@@ -675,7 +665,7 @@ C****
       DO 270 J=2,JM-1
       DO 270 I=1,IM
   270 X(I,J)=T(I,J,L)
-      CALL SHAP1D (8)
+      CALL SHAP1D (8,X)
       DO 280 J=2,JM-1
       DO 280 I=1,IM
   280 T(I,J,L)=X(I,J)
@@ -683,23 +673,26 @@ C****
       END SUBROUTINE FILTER
 
       SUBROUTINE FLTRUV(U,V)
+!@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
+!@auth Original development team
+!@ver  1.0
+!@calls SHAP1D
+      USE E001M12_COM, only : im,jm,lm,byim
 C**********************************************************************
-C**** THIS ROUTINE FILTERS THE TWO GRIDLENGTH NOISE FROM THE
-C**** VELOCITY FIELDS (U,V) IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
+C**** FILTERING IS DONE IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
 C**** THE SMALLEST SCALES.
 C**********************************************************************
-      USE DYNAMICS, UGLOB=>U, VGLOB=>V
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM,LM) :: U,V
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM)
       LOGICAL*4, SAVE :: QFILY,QFILX,QFIL2D
       INTEGER, SAVE :: NSHAP,ISIGN
-      INTEGER I,J,L,N  !@var I,J,L,N  loop variables
       REAL*8, SAVE :: X4TON
+      INTEGER I,J,L,N  !@var I,J,L,N  loop variables
       REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
       INTEGER,SAVE :: IFIRST = 1
-
+C****
       IF(IFIRST.EQ.1) THEN
          IFIRST = 0
          CALL FFT0(IM)
@@ -813,31 +806,34 @@ C****
   651 RETURN
       END SUBROUTINE FLTRUV
 
-      SUBROUTINE SHAP1D (NORDER)
-C****
-C**** THIS ROUTINE SMOOTHES THE ARRAY X IN THE ZONAL DIRECTION
-C**** USING AN N-TH ORDER SHAPIRO FILTER.  N MUST BE EVEN.
-C****
+      SUBROUTINE SHAP1D (NORDER,X)
+!@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
+!@auth Original development team
+!@ver  1.0
       USE E001M12_COM, only :im,jm
       IMPLICIT NONE
-      REAL*8 X,XS,RE4TON,XS1,XSIM1,XSI
-      INTEGER I,J,N,NORDER    !@var I,J,N  loop variables
+!@var NORDER order of shapiro filter (must be even)
+      INTEGER, INTENT(IN) :: NORDER 
+      REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: X 
+      REAL*8, DIMENSION(IM)::XS
+      REAL*8 RE4TON,XS1,XSIM1,XSI
+      INTEGER I,J,N   !@var I,J,N  loop variables
 
-      COMMON/WORK2/X(IM,JM),XS(IM)
       RE4TON=1./4.**NORDER
-      DO 180 J=2,JM-1
-      DO 120 I=1,IM
-  120 XS(I)=X(I,J)
-      DO 160 N=1,NORDER
-      XS1=XS(1)
-      XSIM1=XS(IM)
-      DO 140 I=1,IM-1
-      XSI=XS(I)
-      XS(I)=XSIM1-XSI-XSI+XS(I+1)
-  140 XSIM1=XSI
-  160 XS(IM)=XSIM1-XS(IM)-XS(IM)+XS1
-      DO 180 I=1,IM
-  180 X(I,J)=X(I,J)-XS(I)*RE4TON
+      DO J=2,JM-1
+        XS(:) = X(:,J)
+        DO N=1,NORDER
+          XS1=XS(1)
+          XSIM1=XS(IM)
+          DO I=1,IM-1
+            XSI=XS(I)
+            XS(I)=XSIM1-XSI-XSI+XS(I+1)
+            XSIM1=XSI
+          END DO
+          XS(IM)=XSIM1-XS(IM)-XS(IM)+XS1
+        END DO
+        X(:,J)=X(:,J)-XS(:)*RE4TON
+      END DO
       RETURN
       END SUBROUTINE SHAP1D
 
@@ -845,8 +841,11 @@ C****
 !@sum  CALC_AMPK calculate air mass and pressure functions
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
-      USE DYNAMICS
+      USE CONSTANT, only : bygrav,kapa
+      USE E001M12_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
+      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp
       IMPLICIT NONE
+
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
 
@@ -892,10 +891,13 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
       RETURN
       END SUBROUTINE CALC_AMPK
 
-
       SUBROUTINE CALC_AMP(p,amp)
-C**** Compute AMP: kg air * grav/100, including constant pressure strat
-      USE DYNAMICS, PGLOB=>P
+!@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
+!@auth Jean Lerner/Max Kelley
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,lm,ls1,dsig,psf,ptop
+      USE GEOM, only : dxyp
+C**** 
       implicit none
       double precision, dimension(im,jm) :: p
       double precision, dimension(im,jm,lm) :: amp
@@ -911,36 +913,28 @@ C**** Compute AMP: kg air * grav/100, including constant pressure strat
       enddo
       enddo
       return
+C**** 
       end subroutine calc_amp
 
-
       SUBROUTINE DYNAM
-C****
-C**** INTEGRATE DYNAMIC TERMS
-C****
+!@sum  DYNAM Integrate dynamic terms
+!@auth Original development team
+!@ver  1.0
       USE CONSTANT, only : by3
       USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : ptold,pu,pv,pit,sd
-
+      USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
       USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
      *     ,ij_fgzu,ij_fgzv
-
       IMPLICIT NONE
-      REAL*8 PRAT
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,WMT,MA
-      COMMON/WORK6/UT,VT,TT,TZ,TZT,WMT,MA,PRAT(IM,JM)
-      REAL*8 UX,VX
-      COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
+
+      REAL*8, DIMENSION(IM,JM) :: PRAT
+      REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,WMT,MA
+      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX
       REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
-
-      REAL*8 PHI
-      COMMON/WORK3/PHI(IM,JM,LM)
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
-      COMMON/WORK5/DUT,DVT
 
       REAL*8 DTFS,DTLF,PP,UU,VV
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables

@@ -3,16 +3,7 @@
 !@sum           related variables
 !@auth Original development team
 !@ver  1.0
-!@cont ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
-
-      USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
-     *     ,v,t,q,p,wm,mfiltr,zatmo,fim,mrch,modd5k,psfmpt,bydsig,byim
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
-     *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
-      USE SOMTQ_COM, only : tmom,qmom
-      USE PBLCOM, only : tsavg
-
-      USE GEOM
+      USE E001M12_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 C**** Some helpful arrays (arrays should be L first)
@@ -51,6 +42,11 @@ c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
       DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
       EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
       EQUIVALENCE (PIT(1,1),CONV(1,1,1))
+
+      REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
+C**** not sure if these are actually passed or not (saved just in case)
+      REAL*8, DIMENSION(IM,JM) :: FD
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
 
       END MODULE DYNAMICS
 
