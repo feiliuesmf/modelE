@@ -2298,8 +2298,7 @@ C****
      &     JYEAR,JYEAR0,LS1,NCNDS,NDYN,SIGE,TAU,TAU0,TOFDAY,
      &     TOFDY0,XLABEL
       USE GEOM, only : DXYP,LAT
-      USE DAGCOM, only : aj,bj,cj,dj,jreg,kdiag,namreg,kreg,nreg,
-     &     kaj
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,kdiag,namreg,nreg,kaj
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(JM) ::
      &     CONTJ,CONTO,CONTL,CONTOI,S1,SPOCEN,SPOICE,SPLAND,FLAT
@@ -2598,8 +2597,7 @@ C****
       WRITE (6,901) XLABEL
       WRITE (6,902) TERAIN(5),IDAY0,IHOUR0,JDATE0,JMNTH0,JYEAR0,TAU0,
      *  IDAY,IHOUR,JDATE,JMONTH,JYEAR,TAU,TAUDIF
-      IF (KREG.EQ.0) WRITE (6,908)
-      IF(KREG.EQ.1)WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
+      WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
       DO 700 K=1,KD1M
       N=NDEX(K)
       BYIACC=1./(IDACC(IA(N))+1.D-20)
@@ -2633,8 +2631,7 @@ CF613    RBUDG(J,KA+KD1M)=FLAT(J)
   620 WRITE (6,909) TITLEA(KA),(MLAT(JR),JR=1,23)
   700 CONTINUE
       WRITE (6,905)
-      IF (KREG.EQ.0) WRITE (6,908)
-      IF(KREG.EQ.1)WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
+      WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -2646,11 +2643,6 @@ C****
   905 FORMAT (1X,131('-'))
   906 FORMAT (A16,3F6.1,2X,24F4.1)
   907 FORMAT (A16,3F6.1,2X,24I4)
-  908 FORMAT ('0',17X,'WEST MID- EAST SOU. GRN- MID- NOR. WEST SIBR SOU.
-     * CHNA IND. AUS. NOR. SOU. AFR. AFR. AMZN NOR. MID- NOR. WEST EAST'
-     * /18X,'U.S. U.S. U.S. CNDA LAND EUR. RUSS SIBR PLAT CHNA DSRT DSRT
-     * DSRT SHRA SHRA SAHL RAIN RAIN ATL. ATL. PAC. PAC. PAC. '/1X,
-     *  131('-'))
   909 FORMAT (A16,1X,23I5)
   910 FORMAT (A16,1X,23F5.1)
   911 FORMAT (A16,3F6.2,2X,24F4.1)
@@ -6585,7 +6577,6 @@ C****
   905 FORMAT (     I4,I7,I5,I6,I8,4I6,I8,I6,I7,2I6,I7,I6,I7,2I6,I8,I6)
   906 FORMAT (' EDDY',I6,I5,I6,I8,4I6,I8,I6,I7,2I6,I7,I6,I7,2I6,I8,I6)
   907 FORMAT ('0TOTL',I6,I5,I6,I8,4I6,I8,I6,I7,2I6,I7,I6,I7,2I6,I8,I6)
-  908 FORMAT ('0')
   909 FORMAT (/'0TPE',I18,I32,I14,I7,I12,2I13,I20)
       END SUBROUTINE DIAG5P
 
@@ -7451,8 +7442,6 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       USE DAGCOM
       IMPLICIT NONE
 
-      INTEGER K,I,J
-
       TAU0=TAU
       IDAY0=IDAY
       TOFDY0=TOFDAY
@@ -7461,14 +7450,14 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       JYEAR0=JYEAR
       
       IDACC(1:10)=0
-      DO K=1,KACC
-         AJ(K,1)=0.
-      END DO
-      DO J=1,JM
-         DO I=1,IM
-            AIJ(I,J,IJ_TMNMX)=1000.
-         END DO
-      END DO
+      AJ=0    ; BJ=0   ; CJ=0     ; DJ=0
+      APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
+      AIL=0   ; AIJG=0 ; ENERGY=0 ; CONSRV=0
+      SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
+      AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0 
+
+      AIJ(:,:,IJ_TMNMX)=1000.
+
       RETURN
       END SUBROUTINE reset_DIAG
 

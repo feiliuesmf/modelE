@@ -1,120 +1,152 @@
-C**** DAGCOM
-C**** DIAGNOSTICS COMMON BLOCK
-
       MODULE DAGCOM
-
+!@sum  DAGCOM Diagnostic model variables
+!@auth Original Development Team
+!@var  1.0
       USE E001M12_COM, only : im,jm,lm,imh
-
       USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
       
-C**** DIAGNOSTIC ARRAYS
-
-      INTEGER, PARAMETER :: KAJ=94
+C**** ACCUMULATING DIAGNOSTIC ARRAYS
+!@var KAJ number of accumulated zonal budget diagnostics 
+      INTEGER, PARAMETER :: KAJ=94   
+!@var AJ,BJ,CJ zonal budget diagnostics for each surface type
       DOUBLE PRECISION, DIMENSION(JM,KAJ) :: AJ,BJ,CJ
 
+!@var NREG number of regions for budget diagnostics 
       INTEGER, PARAMETER :: NREG=24
+!@var DJ regional budget diagnostics
       DOUBLE PRECISION, DIMENSION(NREG,KAJ) :: DJ
+!@var TITREG,NAMREG title and names of regions for DJ diagnostics
+      CHARACTER*4 TITREG*80,NAMREG(2,23)
+!@var JREH lat/lon array defining regions for DJ diagnostics
+      INTEGER, DIMENSION(IM,JM) :: JREG
 
-      INTEGER, PARAMETER :: KAPJ=3
+!@var KAPJ number of zonal pressure diagnostics 
+      INTEGER, PARAMETER :: KAPJ=3  ! why isn't this 2?
+!@var APJ zonal pressure diagnostics 
       DOUBLE PRECISION, DIMENSION(JM,KAPJ) :: APJ
 
+!@var KAJL number of accumulated AJL diagnostics 
       INTEGER, PARAMETER :: KAJL=57
+!@var AJL latitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJL) :: AJL
 
+!@var KASJL number of ASJL diagnostics 
       INTEGER, PARAMETER :: KASJL=4
+!@var ASJL latitude/height supplementary diagnostics 
+c**** (merge with AJL?)
       DOUBLE PRECISION, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
+!@var KAIJ number of AIJ diagnostics 
       INTEGER, PARAMETER :: KAIJ=100
+!@var AIJ latitude/longitude diagnostics 
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
  
+!@var KAIL number of AIL diagnostics 
       INTEGER, PARAMETER :: KAIL=16
+!@var AIL longitude/height diagnostics 
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
 
+!@var KAIJG number of AIJG diagnostics 
       INTEGER, PARAMETER :: KAIJG=29
+!@var AIJG latitude/longitude ground diagnostics (merge with AIJ?)
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJG) :: AIJG
 
 C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
+!@var NEHIST,HISTDAYS number of energy history diagnostics, and days 
       INTEGER, PARAMETER :: NEHIST=20
       INTEGER, PARAMETER :: HIST_DAYS=100
+!@var ENERGY energy diagnostics
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
+!@var KCON number of conservation diagnostics 
       INTEGER, PARAMETER :: KCON=42
+!@var CONSRV conservation diagnostics       
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
 
+!@var KSPECA,NSPHER number of spectral diagnostics, and harmonics used 
       INTEGER, PARAMETER :: KSPECA=20
       INTEGER, PARAMETER :: NSPHER=8
+!@var SPECA spectral diagnostics
       DOUBLE PRECISION, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
 
-      INTEGER, PARAMETER :: KTPE=8 ! a P.E. subset of KSPECA
+!@var KTPE number of spectral diagnostics for pot. enthalpy
+      INTEGER, PARAMETER :: KTPE=8 
       integer, parameter :: NHEMI=2
+!@var ATPE pot. enthalpy spectral diagnostics
       DOUBLE PRECISION, DIMENSION(KTPE,NHEMI) :: ATPE
 
+!@var HR_IN_DAY hours in day 
       integer, parameter :: HR_IN_DAY=24
+!@var NDLYVAR number of daily diagnostics 
       integer, parameter :: NDLYVAR=63
+!@var NDLYPT number of points where daily diagnostics are kept
       integer, parameter :: NDLYPT=4
+!@var ADAILY daily diagnostics (24 hour cycles at selected points)
       double precision, dimension(HR_IN_DAY,NDLYVAR,NDLYPT) :: adaily
 
+!@var KAJK number of zonal constant pressure diagnostics 
       INTEGER, PARAMETER :: KAJK=51
+!@var AJK zonal constant pressure diagnostics 
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJK) :: AJK
 
+!@var KAIJK number of lat/lon constant pressure diagnostics 
       INTEGER, PARAMETER :: KAIJK=6
+!@var KAIJK lat/lon constant pressure diagnostics 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
 
+!@var KAIJL number of three dimensional diagnostics 
       INTEGER, PARAMETER :: KAIJL=5
+!@var AIJL three dimensional diagnostics 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
+!@var NWAV_DAG number of components in spectral diagnostics
       integer, parameter :: NWAV_DAG=10
+!@var KAJLSP number of spectral diagnostics
       INTEGER, PARAMETER :: KAJLSP=3
+!@var AJLSP spectral diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,NWAV_DAG,KAJLSP) :: AJLSP
 
+!@var N12HRS_IN_31DAY number of frequency diagnostics
       integer, parameter :: N12HRS_IN_31DAY=62
+!@var RE_AND_IM complex components of frequency diagnostics
       integer, parameter :: RE_AND_IM=2
+!@var KWP number of frequency diagnostics
       integer, parameter :: KWP=12
+!@var WAVE frequency diagnostics
       DOUBLE PRECISION,
      &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,KWP) :: WAVE
 
-      INTEGER, PARAMETER :: KACC=
-     &     JM*KAJ + 
-     &     JM*KAJ + 
-     &     JM*KAJ + 
-     &     NREG*KAJ + 
-     &     JM*KAPJ + 
-     &     JM*LM*KAJL + 
-     &     JM*LM_REQ*KASJL + 
-     &     IM*JM*KAIJ + 
-     &     IM*LM*KAIL + 
-     &     IM*JM*KAIJG + 
-     &     NEHIST*HIST_DAYS + 
-     &     JM*KCON + 
-     &     (IMH+1)*KSPECA*NSPHER + 
-     &     KTPE*NHEMI + 
-     &     HR_IN_DAY*NDLYVAR*NDLYPT + 
-     &     RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*KWP + 
-     &     JM*LM*KAJK + 
-     &     IM*JM*LM*KAIJK + 
-     &     IM*JM*LM*KAIJL + 
-     &     JM*LM*NWAV_DAG*KAJLSP
+!@var KACC total number of diagnostic elements in ACCUM array
+      INTEGER, PARAMETER :: KACC= JM*KAJ + JM*KAJ + JM*KAJ + NREG*KAJ
+     *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
+     *     IM*LM*KAIL + IM*JM*KAIJG + NEHIST*HIST_DAYS + JM*KCON +
+     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDLYVAR*NDLYPT
+     *     + RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*KWP + JM*LM*KAJK +
+     *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*NWAV_DAG*KAJLSP
 
       COMMON /ACCUM/ AJ,BJ,CJ,DJ,APJ,AJL,ASJL,AIJ,AIL,
      &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
      &  AJK,AIJK,AIJL,AJLSP
 
+!@var TSFREZ freezing temperature diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,2) :: TSFREZ
 
+!@var KTD number of diurnal temperature diagnostics 
       INTEGER, PARAMETER :: KTD=8
+!@var TDIURN diurnal range temperature diagnostics 
       DOUBLE PRECISION, DIMENSION(IM,JM,KTD) :: TDIURN
 
-      INTEGER, DIMENSION(IM,JM) :: JREG
-
-      INTEGER, PARAMETER :: NKEYNR=42
-      INTEGER, PARAMETER :: NKEYMO=50
-      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR
+!@var KDIAG array of flags for calling diagnostics print routine
       INTEGER, DIMENSION(12) :: KDIAG
 
-      INTEGER :: KREG
-      CHARACTER*4 TITREG*80,NAMREG(2,23)
+!@var NKEYNR number of key number diagnostics
+      INTEGER, PARAMETER :: NKEYNR=42
+!@var NKEYMO number of months key diagnostics are saved
+      INTEGER, PARAMETER :: NKEYMO=50
+!@var KEYNR time-series of key numbers  
+      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR
 
 !@var IWRITE,JWRITE,ITWRITE grid point and surface type for diag. output
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0

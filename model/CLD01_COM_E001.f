@@ -41,10 +41,6 @@ C**** and acc files
 !@var CSIZE effective cloud droplet radius (microns) 1:mc 2:ss
       REAL*8, DIMENSION(IM,JM,LM,2) :: CSIZE
 
-!@var PRECNV,VSUB used for passing between MSTCNV and CONDSE
-      REAL*8, DIMENSION(IM,JM,LM+1) :: PRECNV
-      REAL*8, DIMENSION(IM,JM,LM) :: VSUB
-
 !@var AQ1,AQ2 unused diagnostics?
       REAL*8 :: AQ1,AQ2
       DIMENSION AQ1(IM,JM,LM),AQ2(IM,JM,LM)

@@ -18,17 +18,17 @@ C**** Numerical constants
       real*8,parameter :: radian = pi/180d0        !@param radian pi/180
 !@param rt2,byrt2   sqrt(2), 1/sqrt(2)
       real*8,parameter :: rt2 = 1.4142135623730950d0
-      real*8,parameter :: byrt2 = 0.70710678118654752d0
+      real*8,parameter :: byrt2 = 1./rt2
 !@param rt3,byrt3   sqrt(3), 1/sqrt(3)
       real*8,parameter :: rt3 = 1.7320508075688772d0
-      real*8,parameter :: byrt3 = 0.57735026918962576d0
+      real*8,parameter :: byrt3 = 1./rt3
 !@param rt12,byrt12   sqrt(12), 1/sqrt(12)
       real*8,parameter :: rt12 = 3.4641016151377546d0
-      real*8,parameter :: byrt12 = 0.28867513459481288d0
+      real*8,parameter :: byrt12 = 1./rt12
 
-      real*8,parameter :: by3 =0.33333333333333333d0  !@param by3  1/3
-      real*8,parameter :: by9 =0.11111111111111111d0  !@param by9  1/9
-      real*8,parameter :: by12=0.83333333333333333d-1 !@param by12 1/12
+      real*8,parameter :: by3 =1./3d0  !@param by3  1/3
+      real*8,parameter :: by9 =1./9d0  !@param by9  1/9
+      real*8,parameter :: by12=1./12d0 !@param by12 1/12
 
 C**** Physical constants
 
@@ -39,68 +39,66 @@ C**** Physical constants
 c      real*8,parameter :: stbo =5.67051d-8 !current best estimate
       real*8,parameter :: stbo = 5.67032E-8
 
-!@param lhe   latent heat of evap (J/kg)
-c**** There should be a temperature dependence (Gill):
-c**** lhe = 2.5008d6 - 2.3d3 T (in C) 
+!@param lhe   latent heat of evap at 0 C (J/kg)
+c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C) 
       real*8,parameter :: lhe = 2.5d6  
-!@param lhm   latent heat of melt (J/kg)
-c**** There should be a temperature dependence (Gill):
-c**** lhe = 334590 + 2.05d3 T (in C) 
+!@param lhm   latent heat of melt at 0 C (J/kg)
+c**** lhm(T) = 334590 + 2.05d3 T (in C) 
       real*8,parameter :: lhm = 3.34d5
-!@param lhs  latent heat of sublimation (J/kg)
+!@param lhs  latent heat of sublimation at 0 C (J/kg)
       real*8,parameter :: lhs = lhe+lhm
 
-!@param rhow density of pure water (kg/m^3)
+!@param rhow density of pure water (1000 kg/m^3)
       real*8,parameter :: rhow = 1d3
-!@param rhoi density of pure ice (kg/m^3)
+!@param rhoi density of pure ice (916.6 kg/m^3)
       real*8,parameter :: rhoi = 916.6   !d0
 
-!@param tf freezing point of water at 1 atm (K)
+!@param tf freezing point of water at 1 atm (273.16 K)
       real*8,parameter :: tf = 273.16   !d0
 !@param bytf 1/tf (K^-1)
       real*8,parameter :: bytf = 1d0/tf
 
-!@param shw heat capacity of water (at 20 C) (J/kg C)
+!@param shw heat capacity of water (at 20 C) (4185 J/kg C)
       real*8,parameter :: shw  = 4185.
 !@param byshw 1/shw 
       real*8,parameter :: byshw = 1d0/shw
 
-!@param shi heat capacity of pure ice (at 0 C) (J/kg C)
+!@param shi heat capacity of pure ice (at 0 C) (2060 J/kg C)
       real*8,parameter :: shi  = 2060.
 !@param byshi 1/shi 
       real*8,parameter :: byshi = 1d0/shi
 
-!@param rgas gas constant (J/K kg)
 c**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol 
-c**** for values of CO2 much larger than present day (4x conc)
-c**** the molecular weight of dry air M_A could change
-c**** (US Stand. Atm.) assuming M_w for O2 = 31.9988 and CO2 = 44.00995
-c**** and current percentage 20.946% and 0.0350% 
-c**** assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
+c**** For values of CO2 much larger than present day (> 4x conc)
+c**** the molecular weight of dry air M_A could change.
+c**** Assume that M_O2 = 31.9988 and M_CO2 = 44.00995 
+c**** and current percentages 20.946% and 0.0350% (US Stand. Atm.)
+c**** Assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
 c**** where n is multiple of present day CO2 conc (350 ppm)
 c**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
 c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
-!@param gasc  gas constant J/mol K
+!@param gasc  gas constant (8.314510 J/mol K)
 c     real*8,parameter :: gasc = 8.314510d0
-!@param mair molecular weight of dry air 
+!@param mair molecular weight of dry air (28.9655 g/mol)
 c     real*8,parameter :: mair = 28.9655d0 
+!@param rgas gas constant (287.05 J/K kg)
 c     real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
       real*8,parameter :: rgas = 287.
 
-!@param rvap  gas constant for water vapour (J/K kg)
-c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
 !@param mwat molecular weight of water vapour 
 c     real*8,parameter :: mwat = 18.015d0 
+!@param rvap  gas constant for water vapour (461.5 J/K kg)
+c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
 c     real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
       real*8,parameter :: rvap = 461.5
 
-!@param mrat  mass ratio of air to water vapour 
+!@param mrat  mass ratio of air to water vapour (0.62197)
 c     real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
 
-!@param kapa ideal gas law exponent  (1)
-c**** constant = (g-1)/g where g=1401 = c_p/c_v 
-!@param srat ratio of specific heats of air and vapour
+!@param srat ratio of specific heats of air and vapour (1401.0)
 c     real*8,parameter :: srat = 1401d0
+!@param kapa ideal gas law exponent  (.2862)
+c**** kapa = (g-1)/g where g=1401 = c_p/c_v 
 c     real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
       real*8,parameter :: kapa = .286     !d0
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
@@ -108,7 +106,7 @@ c     real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
       real*8,parameter :: bykapap2 = 1./(kapa+2.)
  
-!@param sha specific heat of dry air (J/kg C)
+!@param sha specific heat of dry air (rgas/kapa J/kg C)
       real*8,parameter :: sha = rgas/kapa
 !@param bysha 1/sha 
       real*8,parameter :: bysha = 1./sha
@@ -129,17 +127,17 @@ C**** Useful conversion factors
 
 C**** Astronomical constants
 
-!@param omega earth's rotation rate (s^-1)
+!@param omega earth's rotation rate (7.29 s^-1)
 c      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
       real*8,parameter :: EDPERD = 1.
       real*8,parameter :: EDPERY = 365.
       real*8,parameter :: omega = TWOPI*(EDPERD+EDPERY)/
      *                            (EDPERD*EDPERY*SDAY)
 
-!@param radius radius of the earth (m)
+!@param radius radius of the earth (6371000 m)
 c**** radius of spherical earth, same volume = 6371000 m
       real*8,parameter :: radius = 6375000.
-!@param grav gravitaional accelaration (m/s^2)
+!@param grav gravitaional accelaration (9.80665 m/s^2)
 c**** SI reference gravity (at 45 deg) = 9.80665
       real*8,parameter :: grav = 9.81    !d0
 !@param bygrav 1/grav 

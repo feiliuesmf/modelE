@@ -56,17 +56,17 @@ C**** INITIALIZE TIME PARAMETERS
       TAU=DFLOAT(ITAU)/XINT
       IDAY=1+ITAU/I24
       TOFDAY=(ITAU-(IDAY-1)*I24)/XINT
+         MODD5K=1000
       CALL DAILY0
+      CALL CALC_AMPK(LM)
+         CALL CHECKT ('INPUT ')
+
       CALL TIMER (MNOW,MINC,MELSE)
       PERCNT=100.*MELSE/(MNOW-MSTART+.001)
       WRITE (6,'(A,13X,A,I6,A,F6.2,I6,A5,I27,I7,F7.1,A,F11.2)')
      *  '0CLIMATE MODEL STARTED UP','DAY',IDAY,', HR',TOFDAY,
      *   JDATE,JMONTH,MINC,MELSE,PERCNT,' TAU',TAU
 
-      CALL CALC_AMPK(LM)
-
-         MODD5K=1000
-      CALL CHECKT ('INPUT ')
       RUNON=1.
       IF (TAU.GE.TAUE) RUNON=-1.
 C****
@@ -76,12 +76,9 @@ C****
 
 C**** EVERY TAUT HOURS (OR IF IT IS FIRST TIME-STEP)
 C**** WRITE RESTART INFORMATION ONTO DISK
-      IF (EVENT(TAUT).or.
-     *        (TAU.LE.TAUI+DTHR*(NDYN+.5).AND.TAUT.LT.TAU+1000.)) THEN
+      IF (EVENT(TAUT).or.TAU.LE.TAUI+DTHR*(NDYN+.5)) THEN
          CALL RFINAL (IRAND)
-
          call io_rsf(KDISK,TAU,iowrite,ioerr)
-
          CALL TIMER (MNOW,MINC,MELSE)
          PERCNT=100.*MELSE/(MNOW-MSTART+1.D-5)
          WRITE (6,'(A,I3,55X,2I7,F7.1,A,F11.2)')
@@ -89,6 +86,7 @@ C**** WRITE RESTART INFORMATION ONTO DISK
      *        ,' TAU',TAU
          KDISK=3-KDISK
       END IF
+
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (EVENT(HR24)) THEN
 C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
@@ -124,8 +122,9 @@ C****
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG9A (1)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
-      CALL MSTCNV
-      CALL CONDSE
+c      CALL MSTCNV
+c      CALL CONDSE
+      CALL MC_COND
       CALL CHECKT ('CONDSE ')
       CALL TIMER (MNOW,MINC,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NCNDS)
@@ -186,7 +185,7 @@ C****
       call daily_SNOW   
       call daily_OCEAN
          CALL CHECKT ('DAILY ')
-         CALL TIMER (MNOW,MINC,MSURF)
+      CALL TIMER (MNOW,MINC,MSURF)
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY USET HOURS
@@ -196,8 +195,6 @@ C****
             WRITE (20) TAU,OA
             ENDFILE 20
             BACKSPACE 20
-            CALL TIMER (MNOW,MINC,MELSE)
-            PERCNT=100.*MELSE/(MNOW-MSTART)
             WRITE (6,'(A,78X,A,F11.2)')
      *           ' INFORMATION WRITTEN ON UNIT 20',' TAU',TAU
 C**** ZERO OUT INTEGRATED QUANTITIES
@@ -205,6 +202,8 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          ELSEIF (EVENT(USET/2.)) THEN
             call uset_OCEAN
          END IF
+         CALL TIMER (MNOW,MINC,MELSE)
+         PERCNT=100.*MELSE/(MNOW-MSTART)
       END IF
 C****
 C**** CALL DIAGNOSTIC ROUTINES
@@ -233,8 +232,8 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
          NDPRNT(1)=NDPRNT(1)+1
          END IF
 
-      IF (EVENT(HR24)) THEN
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES ON NDPRNT-TH DAY OF RUN
+      IF (EVENT(HR24)) THEN
       DO K=1,13
       IF (JDAY.EQ.NDPRNT(K)) THEN
          WRITE (6,'("1"/64(1X/))')
@@ -250,6 +249,7 @@ C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES ON NDPRNT-TH DAY OF RUN
          IF (KDIAG(4).LT.9) CALL DIAG4
       END IF
       END DO
+
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C****   (NORMALLY DONE AT THE END OF A MONTH)
       DO K=1,13
@@ -286,6 +286,7 @@ C**** SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
      *        (SNGL(AJ(I,1)),I=1,KACC),SNGL(TAU)
          CLOSE (30)
       END IF
+
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
       CALL TIMER (MNOW,MINC,MDIAG)
       TOTALT=.01*(MNOW-MSTART)
@@ -327,6 +328,7 @@ C**** RUN TERMINATED BECAUSE SENSE SWITCH 6 WAS TURNED ON
 C****
 C**** END OF MAIN LOOP
 C****
+
 C**** PRINT OUT DIAGNOSTICS IF NO TIME-STEP WAS DONE 
       IF (RUNON.eq.-1) THEN
          WRITE (6,'("1"/64(1X/))')
@@ -346,15 +348,12 @@ C**** PRINT THE KEY DIAGNOSTICS IF END OF MONTH
          END DO
       END IF
 
-C**** ALMOST ALWAYS PRINT OUT RSF FILE WHEN EXITING
-      IF (TAUT.LT.TAU+1000.) THEN
+C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
-
       call io_rsf(KDISK,TAU,iowrite,ioerr)
-
       WRITE (6,'(A,I3,77X,A,F11.2)')
      *  ' OUTPUT RECORD WRITTEN ON UNIT',KDISK,'TAU',TAU
-      END IF
+
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       WRITE (6,'(/////4(1X,33("****")/)//,A,F11.2,I6,F7.2
      *             ///4(1X,33("****")/))')
@@ -452,7 +451,7 @@ C****
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
-     &  ,TITREG,NAMREG,KREG,iwrite,jwrite,itwrite,qcheck
+     &  ,TITREG,NAMREG,iwrite,jwrite,itwrite,qcheck
       USE OCEAN, only : odata,OA,T50
 
       IMPLICIT NONE
@@ -477,7 +476,7 @@ C****
      *  NFILTR,NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF,DT,TAU,XINT,IYEAR,
      *     U00wtr,U00ice,S0X,CO2,
      *     PTOP,PSF,PTRUNC,IRAND,MFILTR
-     *     ,NDIFS,KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY,IDACC
+     *     ,NDIFS,KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY
      *     ,KDIAG,NDZERO,NDPRNT,IJD6,NAMD6,SIG,SIGE,KTACC0
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK
      *     ,Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
@@ -485,21 +484,18 @@ C****
       ioread=1
       ISTART=10
 C**** READ SPECIAL REGIONS FROM UNIT 29 - IF AVAILABLE
-CC       KREG=0
-CC       READ(29,NUM=LEN,END=25) TITREG,(JRG,I=1,IM*JM+2*23+1)
-CC 25    IF (LEN.EQ.80+4*IM*JM+8*23) THEN
-           REWIND 29
-           READ(29) TITREG,JREG,NAMREG
-           WRITE(6,*) ' read REGIONS from unit 29: ',TITREG
-           KREG=1
-CC       END IF
-         DO 45 K=1,12
-   45    KDIAG(K)=0
+      REWIND 29
+      READ(29) TITREG,JREG,NAMREG
+      WRITE(6,*) ' read REGIONS from unit 29: ',TITREG
+
+      KDIAG(1:12)=0
 C**** INITIALIZE ADVECTION TERMS FOR SECOND ORDER MOMENTS
-      DO 47 I=1,IM*JM*LM*9
-   47 TX(I,1,1) = 0.
-      DO 48 I=1,IM*JM*LM*9
-   48 QX(I,1,1) = 0.
+      DO I=1,IM*JM*LM*9
+         TX(I,1,1) = 0.
+      END DO
+      DO I=1,IM*JM*LM*9
+         QX(I,1,1) = 0.
+      END DO
       WRITE (6,'(A,40X,A/)') '0','GISS N LAYER WEATHER MODEL'
 C**** Read in Label and Namelist parameters from rundeck
       READ(5,'(A80)') NLREC(1),NLREC(2)
@@ -552,15 +548,12 @@ C**** FUNCTIONAL DETERMINATION OF PROGNOSTIC QUANTITIES, ISTART=1
 C****
   100 TEMP=250.
       IF(TAUI.LT.0.) TAUI=0.
-      DO 120 J=1,JM
-      DO 120 I=1,IM
-      P(I,J)=PSF-PTOP
-      TSAVG(I,J)=TEMP
-      DO 120 L=1,LM
-      U(I,J,L)=0.
-      V(I,J,L)=0.
-      T(I,J,L)=TEMP
-  120 Q(I,J,L)=3.D-6
+      P(:,:)=PSF-PTOP
+      TSAVG(:,:)=TEMP
+      U(:,:,:)=0.
+      V(:,:,:)=0.
+      T(:,:,:)=TEMP
+      Q(:,:,:)=3.D-6
       GO TO 210
 CALT  DEFINE GDATA(1->14),GHDATA(1->4*NGM+5) AND GO TO 220
 C****
@@ -692,8 +685,7 @@ C***********************************************************************
      *  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
      *  T50,RQT,SRHR,TRHR,FSF,TSFREZ
       CLABEL(133:156)=CLABEL1(133:156)
-      DO 336 K=32,37
-  336 JC(K)=0
+      JC(32:37)=0
       GO TO 399
 C**** ISTART=5-9; ICfile looks different from restart file
 C**** ISTART=5; initial start from run B140 (snow ages not yet in GDATA)
@@ -710,10 +702,12 @@ C**** ISTART=6 ; start from run B120 (no QUS, only 1 snow age)
      *  GDATA,GHDATA,BLDATA,
      2  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  RQT,SRHR,TRHR,TSFREZ
-      DO 326 J=1,JM
-      DO 326 I=1,IM
-      SNOAGE(I,J,1)=GDATA(I,J,11)
-  326 SNOAGE(I,J,2)=GDATA(I,J,11)
+      DO J=1,JM
+         DO I=1,IM
+            SNOAGE(I,J,1)=GDATA(I,J,11)
+            SNOAGE(I,J,2)=GDATA(I,J,11)
+         END DO
+      END DO
       redoGH=.TRUE.
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
   327 DO J=1,JM
@@ -895,6 +889,7 @@ C**** MAKE NRAD A MULTIPLE OF NCNDS
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
          KACC0=KACC
       WRITE (6,INPUTZ)
+      WRITE (6,'(A6,12I6)') "IDACC=",(IDACC(I),I=1,12)
       RETURN
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
@@ -990,7 +985,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 
       CALL CALC_AMPK(LS1-1)
 
-      WRITE (6,901) DELTAP
+      WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
       DOZ1O=1.
       KLAKE=0
 C****
@@ -1037,7 +1032,6 @@ C**** DO Z1O COMPUTATION ONLY IF BLDATA(I,J,5) DOES NOT CONTAIN Z1O
       KLAKE=0
       GO TO 100
 C*****
-  901 FORMAT ('0PRESSURE ADDED IN GMP IS',F10.6/)
       END
 
       SUBROUTINE CHECKT (SUBR)

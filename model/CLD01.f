@@ -4,8 +4,8 @@
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV_loc,CONDSE_loc
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
-      USE E001M12_COM, only : IM,LM,TAU,TAUI,LS1,PSF,PTOP,DSIG,SIG
-     *     ,BYDSIG
+     *     !,by3,tf,bytf,rvap,bygrav
+      USE E001M12_COM, only : IM,LM,TAU,TAUI,BYDSIG
       USE RANDOM
       IMPLICIT NONE
       SAVE
@@ -13,14 +13,15 @@ C**** parameters and constants
       REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
       REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-      REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP 
-      REAL*8, PARAMETER :: RECIP3=1.d0/3.d0 !@param RECIP3 = 1/3
+      REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP
+      REAL*8, PARAMETER :: BY3=1.d0/3.d0 !@param BY3 = 1/3
+      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
       REAL*8, PARAMETER :: WMU=.25       !@param WMU 
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
 
-      REAL*8 :: DTCNDS,BYGRAV,PK1000,BYBR,SLHE,SLHS
+      REAL*8 :: DTCNDS,PK1000,BYBR,SLHE,SLHS
      *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
 
 C**** Set-able variables from NAMELIST 
@@ -66,9 +67,7 @@ C**** input variables
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
 !@var TS     average surface temperture (C)
-!@var PIJ0   surface pressure
-!@var DXYPJ  area of grid box
-      REAL*8 :: PEARTH,TS,PIJ0,DXYPJ
+      REAL*8 :: PEARTH,TS
 !@var LPBL   max level of planetary boundary layer
       INTEGER :: LPBL
 
@@ -179,7 +178,7 @@ C**** zero out diagnostics
          AJ51=0.
          AJ52=0.
          AJ57=0.
-         AJ11=0.
+c         AJ11=0.
 C**** save initial values
       SM1=SM
       QM1=QM
@@ -190,7 +189,7 @@ C**** OUTER MC LOOP OVER BASE LAYER
 C****
 C**** COMPUTE THE CONVECTIVE MASS OF THE NON-ENTRAINING PART
 C****
-      TERM1=-10.*CK1*SDL(LMIN+1)/(GRAV*DXYPJ)
+      TERM1=-10.*CK1*SDL(LMIN+1)*BYGRAV
       FMP0=TERM1*XMASS
       IF(FMP0.LE.0.) FMP0=0.
 C**** CREATE A PLUME IN THE BOTTOM LAYER
@@ -526,7 +525,7 @@ C     IF(DMMIX.LT.1.E-10) GO TO 291
       IF(SMIX.GE.SUP) GO TO 291
       IF(PL(L).GT.700.) GO TO 291
       LDRAFT=L
-      ETADN=RECIP3
+      ETADN=BY3
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
       FDDP = .5*DDRAFT/MPLUME
@@ -994,20 +993,16 @@ C**** ADJUSTMENT TO CONSERVE CP*T
 C**** CALCULATE OPTICAL THICKNESS
       WCONST=1.d-3*(WMU*(1.-PEARTH)+WMUL*PEARTH)
       WMSUM=0.
-      PIJ=PIJ0
       DO L=1,LMCMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
          TL(L)=(SM(L)*BYAM(L))*PLK(L)
          TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
          IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
          IF (CLDMCL(L).GT.0.) TAUMCL(L)=AIRM(L)*.08d0
          IF(PLE(LMCMIN)-PLE(LMCMAX+1).LT.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.EQ.LMCMAX) TAUMCL(L)=DSIG(L)*PIJ*.02d0
-c            IF(L.EQ.LMCMAX) TAUMCL(L)=AIRM(L)*.02d0 ! check this for round off change
+            IF(L.EQ.LMCMAX) TAUMCL(L)=AIRM(L)*.02d0 
          ENDIF
          IF(PLE(LMCMIN)-PLE(LMCMAX+1).GE.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.LE.LMCMIN) TAUMCL(L)=DSIG(L)*PIJ*.02d0
-c            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0 ! check this for round off change
+            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0 
          ENDIF
          IF(SVLATL(L).EQ.0.) THEN
             SVLATL(L)=LHE
@@ -1016,7 +1011,6 @@ c            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0 ! check this for round off 
          IF(SVWMXL(L).GT.0.) THEN
             FCLD=CLDMCL(L)+1.E-20
             TEM=1.d5*SVWMXL(L)*AIRM(L)*BYGRAV
-C     IF(TEM.LT.0.) TEM=0.
             WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
             IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST)
      *           WTEM=1.d5*WCONST*PL(L)/(TL(L)*RGAS)
@@ -1024,8 +1018,8 @@ C     IF(TEM.LT.0.) TEM=0.
      *           WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
             IF(SVLATL(L).EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *           (WTEM*4.)**RECIP3
-            IF(SVLATL(L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**RECIP3
+     *           (WTEM*4.)**BY3
+            IF(SVLATL(L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
             RCLDE=RCLD/BYBR
             CSIZEL(L,1)=RCLDE   !  Anvil of moist convective clouds
             TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
@@ -1112,7 +1106,7 @@ C****
       OLDLHX=SVLHXL(L)
       OLDLAT=SVLATL(L)
 C**** COMPUTE VERTICAL VELOCITY IN CM/S
-      TEMP=100.*RGAS*TL(L)/(PL(L)*DXYPJ*GRAV)
+      TEMP=100.*RGAS*TL(L)/(PL(L)*GRAV)
       IF(L.EQ.1) VVEL=-SDL(L+1)*TEMP
       IF(L.EQ.LM) VVEL=-SDL(L)*TEMP
       IF(L.GT.1.AND.L.LT.LM)
@@ -1186,14 +1180,14 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       IF(LHX.EQ.LHS) RH00(L)=U00ice
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
-        RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
+        RH00(L)=1.-9.8d0*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
       IF(L.GT.1.AND.PLE(L+1).GT.930.) THEN
         HDEP=0.
         DO 216 LN=L,1,-1
   216   HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(1000.*GRAV*PL(LN))
-        RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
+        RH00(L)=1.-9.8d0*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
 C     IF(L.LE.LPBL) RH00(L)=.75
@@ -1241,8 +1235,8 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
      *  WTEM=1d5*WMUI*1d-3*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1.E-10) WTEM=1d-10
       IF(LHX.EQ.LHE) RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *  (WTEM*4.)**RECIP3
-      IF(LHX.EQ.LHS) RCLD=25.d-6*(WTEM/4.2d-3)**RECIP3
+     *  (WTEM*4.)**BY3
+      IF(LHX.EQ.LHS) RCLD=25.d-6*(WTEM/4.2d-3)**BY3
       CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
       CK2=1000.*RVAP*TL(L)/(2.4d-3*QSATL(L)*PL(L)/.622d0)
       TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
@@ -1521,12 +1515,12 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
      *  WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1.E-10) WTEM=1.d-10
       IF(LHX.EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *  (WTEM*4.)**RECIP3
+     *  (WTEM*4.)**BY3
       IF(LHX.EQ.LHE) THEN
          QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
          IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
       ENDIF
-      IF(LHX.EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**RECIP3
+      IF(LHX.EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**BY3
       RCLDE=RCLD/BYBR
       CSIZEL(L,2)=RCLDE
       TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
@@ -1549,8 +1543,8 @@ C**** CALCULATE OPTICAL THICKNESS
       ENDIF
       IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
       IF(L.EQ.1.OR.PLE(L+1).GT.930..OR.TAUMCL(L).GT.0.) GO TO 526
-      CLDSSL(L)=CLDSSL(L)**(2.*RECIP3)
-      TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**RECIP3
+      CLDSSL(L)=CLDSSL(L)**(2.*BY3)
+      TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**BY3
   526 CONTINUE
       IF(WMX(L).LE.0.) SVLHXL(L)=0.
       END DO
