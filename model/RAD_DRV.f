@@ -609,7 +609,7 @@ c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
         TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
      &       2.773D0,5.545D0,11.090D0/)
       END SELECT
-      
+
 C**** Particle density of dust
       SELECT CASE (ntm_dust)
       CASE (4)
@@ -747,7 +747,7 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       JDAYR=JDAY
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
-      if(volc_yr.eq.-1) then ! create some future volcanos
+      if(volc_yr.eq.-2000) then ! create some future volcanos
          if(JYEAR.GT.2000) KYEARV=JYEAR-50
          if(JYEAR.GT.2050) KYEARV=JYEAR-150
       end if
@@ -2220,7 +2220,7 @@ c***            HDIURN_part(IHM,1,KR,J)=S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       ENDDO
       CALL GLOBALSUM(grid,DIURN_part(1:1,:,1:NDIUPT),
      &    DIURNSUMc(1:1,1:NDIUPT), ALL=.TRUE.)
-      ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)  
+      ADIURN(IH,IDD_ISW,1:NDIUPT)=ADIURN(IH,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
       HDIURN(IHM,IDD_ISW,1:NDIUPT)=HDIURN(IHM,IDD_ISW,1:NDIUPT)
      &    + DIURNSUMc(1,1:NDIUPT)
