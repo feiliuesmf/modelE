@@ -523,10 +523,10 @@ CSGI  READ (NLREC,INPUTZ)
       READ (8,NML=INPUTZ)
       REWIND 8
 
+      IF (ISTART.GE.10) GO TO 90
 C**** get unit for atmospheric initial conditions
       call getunit("AIC",iu_AIC,.TRUE.)
 
-      IF (ISTART.GE.10) GO TO 90
 C**** SET STRICTLY DEPENDENT QUANTITIES
       LMM1=LM-1
       DO L=1,LM
