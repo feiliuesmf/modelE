@@ -25,7 +25,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
+      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
@@ -419,10 +419,23 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
               IDJK=IDJJ(K,J)
               AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
      &        +(U_3d(IDIK,IDJK,L)-u_3d_old(IDIK,IDJK,L))*PLIJ(L,I,J)*RAK
-             ENDDO
+            ENDDO
           ENDDO
         ENDDO
       ENDDO
+
+C**** Save additional changes in KE for addition as heat later
+C$OMP  PARALLEL DO PRIVATE (L,I,J)
+      DO L=1,LM
+      DO J=2,JM
+      DO I=1,IM
+        DKE(I,J,L)=DKE(I,J,L)+0.5*(U_3d(I,J,L)*U_3d(I,J,L)
+     *       +V_3d(I,J,L)*V_3d(I,J,L)-U_3d_old(I,J,L)*U_3d_old(I,J,L)
+     *       -V_3d_old(I,J,L)*V_3d_old(I,J,L)) 
+      END DO
+      END DO
+      END DO
+C$OMP  END PARALLEL DO
 
       return
       end subroutine atm_diffus

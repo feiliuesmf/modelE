@@ -53,7 +53,7 @@
      *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase,debug
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
-     *     ,ltropo
+     *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
       USE LAKES_COM, only : flake
@@ -845,12 +845,15 @@ C
       END DO
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
+C**** and save changes in KE for addition as heat later
 C$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
          AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
      &         (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
+         DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
+     *       -UC(I,J,L)*UC(I,J,L)-VC(I,J,L)*VC(I,J,L))
       END DO
       END DO
       END DO

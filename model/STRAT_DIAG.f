@@ -29,8 +29,6 @@ C****
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE DAGCOM, only : ajl,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
-c      COMMON /WORK1/ W(IM,JM,LM),WORKX(IM,JM,7*LM+3)
-
 
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V,T

@@ -544,7 +544,9 @@ c**** calculate fluxes using implicit time step for non-ocean points
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       evap=aevapw+aevapd+aevapb
       evapor(i,j,4)=evapor(i,j,4)+evap
-      evhdt=-alhg
+C**** hack to correct energy flux
+c      evhdt=-alhg
+      evhdt=-evap*lhe
       shdt=-ashg
       dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+evap*ptype/ma1
@@ -1666,22 +1668,23 @@ c****
       use model_com, only : fim,fearth
       use geom, only : imaxj
       use sle001, only : ngm
-      use ghycom, only : htbare,htvege,afb
+      use ghycom, only : htbare,htvege,afb,fr_snow_ij,nsn_ij,hsn_ij
       implicit none
 !@var heatg zonal ground heat (J/m^2)
       real*8, dimension(jm) :: heatg
       integer i,j,n
-      real*8 hij,fb
+      real*8 hij,fb,fv
 
       do j=1,jm
         heatg(j)=0
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
             fb=afb(i,j)
-            hij=0.
-            do n=0,ngm
-              hij=hij+fb*htbare(n,i,j)+(1.-fb)*htvege(n,i,j)
-            end do
+            fv=(1.d0-fb)
+            hij=fb*sum( htbare(1:ngm,i,j) )
+     &       +  fv*sum( htvege(0:ngm,i,j) )
+     &       +  fb*fr_snow_ij(1,i,j)*sum( hsn_ij(1:nsn_ij(1,i,j),1,i,j))
+     &       +  fv*fr_snow_ij(2,i,j)*sum( hsn_ij(1:nsn_ij(2,i,j),2,i,j))
             heatg(j)=heatg(j)+fearth(i,j)*hij
           end if
         end do

@@ -15,7 +15,7 @@
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRACER_DIAG_COM, only: TAJLN,JLNT_TURB
 #endif
-      USE DYNAMICS, only : pk,pdsig,plij
+      USE DYNAMICS, only : pk,pdsig,plij,dke
       USE PBLCOM, only : dclev,w2gcm,w2_l1
       IMPLICIT NONE
 
@@ -23,7 +23,7 @@
       real*8, intent(in) :: dtime  ! dummy variable
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, DIMENSION(LM) :: DP
-      COMMON/WORK2/UT,VT,DP
+c      COMMON/WORK2/UT,VT,DP   ! is this necessary?
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
       REAL*8, DIMENSION(IM) :: RA !@var
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
@@ -275,7 +275,19 @@ C
         AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
      *      UKPJM(K,L)*PLIJ(L,1,J)*RA(K)
       END DO ; END DO
-C
+
+C**** Save additional changes in KE for addition as heat later
+C$OMP  PARALLEL DO PRIVATE (L,I,J)
+      DO L=1,LM
+      DO J=2,JM
+      DO I=1,IM
+        DKE(I,J,L)=DKE(I,J,L)+0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
+     *       -UT(I,J,L)*UT(I,J,L)-VT(I,J,L)*VT(I,J,L))
+      END DO
+      END DO
+      END DO
+C$OMP  END PARALLEL DO
+
       RETURN
       END SUBROUTINE ATM_DIFFUS
 
@@ -286,7 +298,7 @@ C
 !@ver  1.0
       USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
-      USE DYNAMICS, only : byam,am
+      USE DYNAMICS, only : byam,am,dke
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trm,trmom,trname
 #ifdef TRACERS_WATER
@@ -300,6 +312,7 @@ C
       integer i,j,k,n
       real*8, intent(in) :: dt
       real*8 hemi
+      real*8, dimension(im,jm) :: usave,vsave
 
       do j=1,jm
         do i=1,imaxj(j)
@@ -329,6 +342,7 @@ C
 c****
 c**** add in surface friction to first layer wind
 c****
+      usave=u(:,:,1) ; vsave=v(:,:,1)
 c**** polar boxes
       do j=1,jm,jm-1
         hemi=1.
@@ -355,6 +369,15 @@ c**** non polar boxes
         end do
         end do
       end do
+
+C**** save change of KE for addition as heat later
+      do j=2,jm
+        do i=1,im
+          dke(i,j,1)=dke(i,j,1)+0.5*(u(i,j,1)*u(i,j,1)+v(i,j,1)*v(i,j,1)
+     *         -usave(i,j)*usave(i,j)-vsave(i,j)*vsave(i,j))
+        end do
+      end do
+
 c****
       return
       end subroutine apply_fluxes_to_atm

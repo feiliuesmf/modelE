@@ -4,13 +4,13 @@
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
 !@ver  1.0
-      USE CONSTANT, only : by3
+      USE CONSTANT, only : by3,sha,mb2kg
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,dt_UVfilter
-      USE GEOM, only : dyv,dxv
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,dt_UVfilter,psf
+      USE GEOM, only : dyv,dxv,dxyp,areag
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
-     &    ,pua,pva,sda,ps,mb
+     &    ,pua,pva,sda,ps,mb,pk
       USE DAGCOM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       IMPLICIT NONE
 
@@ -23,12 +23,19 @@
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
+      REAL*8, DIMENSION(JM) :: KEJ,PEJ
+      REAL*8 ediff,TE0,TE
+
 !?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
       DTLF=2.*DT
       NS=0
       NSOLD=0                            ! strat
       PTOLD(:,:) = P(:,:)
+C**** Initialise total energy (J/m^2)
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+      TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
 C**** Initialize mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
       PUA(:,:,:) = 0.
@@ -172,11 +179,27 @@ C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
+
+C**** This fix adjusts thermal energy to conserve total energy (TE=KE+PE)
+C**** Currently energy is put in uniformly weighted by mass
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+      TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C 
+C$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
+      end do
+C$OMP  END PARALLEL DO
+
 C**** Scale WM mixing ratios to conserve liquid water
       PRAT(:,:)=PTOLD(:,:)/P(:,:)
+C$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
         WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
       END DO
+C$OMP  END PARALLEL DO
+
       RETURN
       END SUBROUTINE DYNAM
 
@@ -797,10 +820,12 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE CONSTANT, only : bbyg,gbyrb,kapa
+      USE CONSTANT, only : bbyg,gbyrb,kapa,sha,mb2kg
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
-     *     ,byim,sig,itime
+     *     ,byim,sig,itime,psf
+      USE GEOM, only : areag,dxyp
       USE SOMTQ_COM, only : tmom,qmom
+      USE DYNAMICS, only : pk
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
 #endif
@@ -810,10 +835,15 @@ C****
       REAL*8 PSUMO(JM)
 
       REAL*8 POLD(IM,JM),PRAT(IM,JM)
-      REAL*8 PSUMN,PDIF,AKAP
+      REAL*8 PSUMN,PDIF,AKAP,TE0,TE,ediff
       INTEGER I,J,L,N  !@var I,J,L  loop variables
+      REAL*8, DIMENSION(JM) :: KEJ,PEJ
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
+C**** Initialise total energy (J/m^2)
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+      TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
@@ -889,11 +919,22 @@ C$OMP  END PARALLEL DO
 #endif
       CALL CALC_AMPK(LS1-1)
 
+C**** This fix adjusts thermal energy to conserve total energy (TE=KE+PE)
+      call conserv_PE(PEJ)
+      call conserv_KE(KEJ)
+      TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C 
+C$OMP  PARALLEL DO PRIVATE (L)
+      do l=1,lm
+        T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
+      end do
+C$OMP  END PARALLEL DO
+
   200 IF (MFILTR.LT.2) RETURN
 C****
 C**** TEMPERATURE STRATIFICATION FILTER ON T
 C****
-      AKAP=KAPA-.205
+      AKAP=KAPA-.205d0    ! what is this number?
 C$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
       DO L=1,LM
         IF(L.LT.LS1) THEN
@@ -1293,10 +1334,10 @@ C****
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : grav,rgas
+      USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,u,v,sige,bydsig,ptop,t
      *  ,q,x_sdrag,c_sdrag,lsdrag,lpsdrag,ang_sdrag,itime
-      USE GEOM, only : cosv,dxyn,dxys
+      USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
       USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
       IMPLICIT NONE
@@ -1307,13 +1348,15 @@ C****
 C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
       REAL*8 WL,TL,RHO,CDN,X,BYPIJU,DP,DPL(LM)
 !@var DUT,DVT change in momentum (mb m^3/s)
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
-      INTEGER I,J,L,IP1
+!@var DKE change in kinetic energy (m^2/s^2)
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,DKE
+      INTEGER I,J,L,IP1,K
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
       real*8, parameter :: wmax = 200.d0
+      real*8 ediff
 
       ang_mom=0. ;  sum_airm=0.
 C*
@@ -1346,6 +1389,7 @@ C**** adjust diags for possible difference between DT1 and DTSRC
         ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
         DVT(I,J,L)=-X*V(I,J,L)*DP
+        DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*(X*X-2.*X)
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
         I=IP1
@@ -1374,7 +1418,22 @@ C*
         end do
         end do
       end if
-C*
+
+C***** Add in dissipiated KE as heat locally
+C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+      DO L=LS1,LM
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            ediff=0.
+            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
+              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+            END DO
+            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
+          END DO
+        END DO
+      END DO
+C$OMP  END PARALLEL DO
+
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
       CALL DIAGCD (4,U,V,DUT,DVT,DT1)
@@ -1415,6 +1474,34 @@ C$OMP  END PARALLEL DO
 
       END SUBROUTINE CALC_TROP
 
+      SUBROUTINE DISSIP
+!@sum DISSIP adds in dissipated KE as heat locally      
+!@auth Gavin Schmidt
+      USE CONSTANT, only : sha
+      USE MODEL_COM, only : jm,lm,t
+      USE GEOM, only : imaxj,kmaxj,idij,idjj,rapj
+      USE DYNAMICS, only : dke,pk
+      IMPLICIT NONE
+      INTEGER I,J,L,K
+      REAL*8 ediff
+
+C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
+
+C$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+      DO L=1,LM
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            ediff=0.
+            DO K=1,KMAXJ(J)     ! loop over surrounding vel points
+              ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+            END DO
+            T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
+          END DO
+        END DO
+      END DO
+C$OMP  END PARALLEL DO
+
+      END SUBROUTINE DISSIP
 
       subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
 !@sum  tropwmo calculates tropopasue height according to WMO formula

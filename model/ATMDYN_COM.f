@@ -59,5 +59,8 @@ C**** module should own dynam variables used by other routines
       REAL*8, DIMENSION(IM,JM,LM) :: PUA,PVA,SDA,MB,MA
       REAL*8, DIMENSION(IM,JM) :: PS
 
+!@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
+      REAL*8, DIMENSION(IM,JM,LM) :: DKE
+
       END MODULE DYNAMICS
 

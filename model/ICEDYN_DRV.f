@@ -558,7 +558,7 @@ C****
 C**** FLUXCB  USIDT  U compon of time integrated sea ice velocity (m)
 C****         VSIDT  V compon of time integrated sea ice velocity (m)
 C****
-C**** WORK01  FAW    flux of surface water area (m^2) = USIDT*DYP
+C****         FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 

@@ -2713,16 +2713,17 @@ C****       should be in the driver module for the relevant physics
 
 C**** Set up atmospheric component conservation diagnostics
       CONPT=CONPT0
-      CONPT(4)="SURF+TURB"
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
       CALL SET_CON(QCON,CONPT,"MASS    ","(KG/M^2)        ",
      *     "(10**-8 KG/SM^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
-      QCON=(/ T, T, T, F, F, T, T, F, F, F, F/)
+      CONPT(8)="SURF+TURB" ; CONPT(6)="KE DISSIP"
+      QCON=(/ T, T, T, F, F, T, T, T, F, F, F/)
       CALL SET_CON(QCON,CONPT,"TPE     ","(10**5 J/M^2)   ",
      *     "(10**-2 W/M^2)  ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
+      CONPT(6)="SURF+TURB"
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,CONPT,"ATM WAT ","(10**-2 KG/M^2) ",
      *     "(10**-8 KG/SM^2)",1d2,1d8,icon_WM)
