@@ -82,6 +82,7 @@ C**** INITIALIZE TIME PARAMETERS
 #endif
            CALL CHECKT ('INPUT ')
       end if
+      CALL UPDTYPE
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
@@ -251,6 +252,8 @@ C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
 C**** ADVECT ICE
       CALL ADVSI
          CALL CHECKT ('ADVSI ')
+C**** UPDATE DIAGNOSTIC TYPES
+      CALL UPDTYPE
 C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL ATM_DIFFUS (2,LM-1,dtsrc)
@@ -264,6 +267,8 @@ C**** CALL OCEAN DYNAMIC ROUTINES
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (9)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
+C**** UPDATE DIAGNOSTIC TYPES
+      CALL UPDTYPE
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
@@ -318,6 +323,7 @@ C****
            CALL DIAGCA (10)
         call sys_flush(6)
       end if   ! kradia: full model (or rad.forcing run)
+      CALL UPDTYPE
       END IF   !  NEW DAY
       if (kradia.le.0) then   ! full model
 C****
@@ -565,7 +571,7 @@ C****
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
-     *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
+     *     ,ioread_single,irsfic,iowrite_single
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
@@ -1184,12 +1190,6 @@ C**** as residual terms. (deals with SP=>DP problem)
         END IF
       END DO
       END DO
-
-C**** set land components of FTYPE array. Summation is necessary for
-C**** cases where Earth and Land Ice are lumped together
-      FTYPE(ITLANDI,:,:)=0.
-      FTYPE(ITEARTH,:,:)=FEARTH
-      FTYPE(ITLANDI,:,:)=FTYPE(ITLANDI,:,:)+FLICE
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -1217,6 +1217,7 @@ C****
       CALL FFT0 (IM)
       if(istart.gt.0) CALL init_CLD
       CALL init_DIAG(ISTART)
+      CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
       if(istart.gt.0) CALL init_RAD

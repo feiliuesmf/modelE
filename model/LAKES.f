@@ -347,8 +347,8 @@ C****
 !@ver  1.0
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav,undef
-      USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
-     *     ,itlake,itlkice,focean,fearth,fland
+      USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
+     *     ,focean,fearth,fland
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -426,16 +426,16 @@ C**** TANLK=TAN(ALPHA) = R/H for a conical lake of equivalent volume
       END DO
 
       CALL PRINTLK("IN")
-C**** Set FTYPE array for lakes
+C**** Set GTEMP arrays for lakes
       DO J=1,JM
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
-            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
-            IF (MWL(I,J).gt.MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J)) THEN
-              GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J)
-     *             )/((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
+            IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*DXYP(J))
+     *           THEN
+              GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
+     *             *FLAKE(I,J)*DXYP(J))/(SHW*(MWL(I,J)-MLDLK(I,J)
+     *             *RHOW*FLAKE(I,J)*DXYP(J)))
             ELSE
               GTEMP(2,1,I,J)=TLAKE(I,J)
             END IF
@@ -605,7 +605,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,shw,rhow,teeny
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,ftype,itocean,itoice
+     *     ,itocean,itoice
       USE GEOM, only : dxyp,bydxyp
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
      *     ,j_ervr
@@ -807,12 +807,10 @@ C**** accumulate some diagnostics
       END IF
 
       CALL PRINTLK("RV")
-C**** Set FTYPE array for lakes
+C**** Set GTEMP array for lakes
       DO J=1,JM
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
-            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
@@ -993,7 +991,7 @@ C****
 !@auth G. Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw,rhow,pi,by3,undef
-      USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
+      USE MODEL_COM, only : im,jm,itlkice,jday
       USE GEOM, only : imaxj,dxyp
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
 #ifdef TRACERS_WATER
@@ -1099,9 +1097,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
      *         *DXYP(J))
           GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
 #endif
-C**** set ftype/gtemp arrays
-          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-          FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
+C**** set gtemp arrays
           GTEMP(1:2,2,I,J) = TSIL(1:2)
           GTEMP(1  ,1,I,J) = TLAKE(I,J)
         END IF
@@ -1125,8 +1121,6 @@ c            IF (FLAKE(I,J).lt.0.005) THEN
 c          PRINT*,"Lake->0 (too small)",I,J,MWL(I,J),GML(I,J),MLDLK(I,J)
 c          MLDLK(I,J)=MIN(MLDLK(I,J),MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J)))
 c              FLAKE(I,J) = 0.
-c            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
-c            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
 c          END IF
 c        END DO
 c        END DO

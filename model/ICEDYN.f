@@ -1327,7 +1327,7 @@ C NOW THE SECOND HALF
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
-      USE MODEL_COM, only : im,jm,focean,itocean,itoice,ftype
+      USE MODEL_COM, only : im,jm,focean
       USE OCEAN, only : dxyp=>dxypo,dyp=>dypo,dxp=>dxpo,dxv=>dxvo,
      *     bydxyp=>bydxypo
       USE ICEDYN, only : usidt,vsidt,rsix,rsiy,rsisave
@@ -1723,8 +1723,6 @@ C**** Set atmospheric arrays
       DO J=1,JM
         DO I=1,IM
           IF (FOCEAN(I,J).gt.0) THEN
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J) - FTYPE(ITOICE ,I,J)
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI_GLOB(1:2)*(ACE1I
      *           +SNOWI(I,J)))+LHM)*BYSHI
 #ifdef TRACERS_WATER

@@ -736,10 +736,11 @@ C$OMP  END PARALLEL DO
           AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+AREGIJ(2,K,I,J)
           AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+AREGIJ(3,K,I,J)
           AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+AREGIJ(4,K,I,J)
-          IF(MODDSF.EQ.0)
-     *         AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(5,K,I,J)
-          AREG(JR,J_TG1)=AREG(JR,J_TG1)+AREGIJ(6,K,I,J)
-          AREG(JR,J_TG2)=AREG(JR,J_TG2)+AREGIJ(7,K,I,J)
+          IF(MODDSF.EQ.0) THEN
+            AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(5,K,I,J)
+            AREG(JR,J_TG1)=AREG(JR,J_TG1)+AREGIJ(6,K,I,J)
+            AREG(JR,J_TG2)=AREG(JR,J_TG2)+AREGIJ(7,K,I,J)
+          END IF
         END DO
       END DO
       END DO

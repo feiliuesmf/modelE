@@ -387,7 +387,7 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : ftype,itoice,itocean,focean
+      USE MODEL_COM, only : focean,itoice
       USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE OCEAN, only : im,jm,mo,g0m,s0m,dxypo
@@ -479,9 +479,7 @@ C**** limit RSIX/Y
             IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =    -RSI(I,J)
             IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =     RSI(I,J)-1d0
             IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) = 1d0-RSI(I,J)
-C**** set ftype/gtemp arrays for ice
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
+C**** set gtemp arrays for ice
             GTEMP(1:2,2,I,J) = TSIL(1:2)
           END IF
         END DO
@@ -2328,7 +2326,6 @@ C**** Surface stress is applied to V component at the North Pole
 !@sum  GROUND_OC adds vertical fluxes into the ocean
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : itocean,itoice
       USE GEOM, only : dxyp,bydxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
      *     ,lmo,lmm,ratoc,rocat
@@ -2545,7 +2542,6 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : itocean
       USE GEOM, only : dxyp
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm
@@ -3040,7 +3036,6 @@ C**** Done!
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
-      USE MODEL_COM, only : ftype,itocean,itoice
       USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm
 #ifdef TRACERS_OCEAN
      *     ,trmo
@@ -3076,8 +3071,6 @@ C****
               TO= TEMGS(GO2,SO2)
             END IF
             GTEMP(2,1,I,J)= TO
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
 C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI

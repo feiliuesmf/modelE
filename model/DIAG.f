@@ -2847,3 +2847,31 @@ C****
       RETURN
 C****
       END SUBROUTINE set_con
+
+      SUBROUTINE UPDTYPE
+!@sum UPDTYPE updates FTYPE array to ensure correct budget diagnostics
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : im,jm,focean,fearth,flice,itocean
+     *     ,itoice,itlandi,itearth,itlake,itlkice,ftype
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi
+      USE LAKES_COM, only : flake
+      IMPLICIT NONE
+      INTEGER I,J
+
+      DO J=1,JM
+        DO I=1,IMAXJ(J)
+          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
+          FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE,I,J)
+          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+          FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
+C**** set land components of FTYPE array. Summation is necessary for
+C**** cases where Earth and Land Ice are lumped together
+          FTYPE(ITLANDI,I,J)=0.
+          FTYPE(ITEARTH,I,J)=FEARTH(I,J)
+          FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
+        END DO
+      END DO
+      RETURN
+C****
+      END SUBROUTINE UPDTYPE

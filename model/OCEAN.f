@@ -8,9 +8,9 @@
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO,TOFREZ,
 !@+    PRECIP_OC,GROUND_OC
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
-      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice,ftype
+      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
-     *     ,ItimeI,kocean,itocean,itoice,itlandi,itearth
+     *     ,ItimeI,kocean,itocean,itoice
       USE GEOM
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
      *     ,cq=>cqgs,ipbl
@@ -284,9 +284,6 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
 #endif
             RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
-C**** set ftype arrays
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
             IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
@@ -325,9 +322,6 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
           TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
           GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-C**** set ftype arrays
-          FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
-          FTYPE(ITOCEAN,I,JM)=FOCEAN(1,JM)-FTYPE(ITOICE ,I,JM)
         END DO
       END IF
       RETURN
@@ -398,13 +392,7 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
       FOCEAN(I,J)=0.
-C**** set ftype/gtemp array. Summation is necessary for cases where
-C**** Earth and Land Ice are lumped together
-      FTYPE(ITOICE ,I,J)=0.
-      FTYPE(ITOCEAN,I,J)=0.
-      FTYPE(ITLANDI,I,J)=0.
-      FTYPE(ITEARTH,I,J)=FEARTH(I,J)
-      FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
+C**** set gtemp array
       GTEMP(1:2,3,I,J)  =TLANDI(1:2,I,J)
 C**** MARK THE POINT FOR RESTART PURPOSES
       SNOWI(I,J)=-10000.-SNOWI(I,J)
@@ -529,8 +517,8 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
-     *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
+      USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
+     *     ,fearth,iyear1
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -593,11 +581,6 @@ C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
           FEARTH(I,J)=1.-FLICE(I,J)
           FOCEAN(I,J)=0.
           WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
-C****   Reset ftype array. Summation is necessary for cases where Earth
-C****   and Land Ice are lumped together
-          FTYPE(ITLANDI,I,J)=0.
-          FTYPE(ITEARTH,I,J)=FEARTH(I,J)
-          FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
         END DO
         END DO
 
@@ -607,12 +590,10 @@ C*****  set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
 
       END IF
-C**** Set ftype array for oceans
+C**** Set gtemp array for oceans
       DO J=1,JM
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
-          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
-          FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = 34.7d0
 #ifdef TRACERS_WATER
@@ -638,8 +619,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,twopi,edpery
-      USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
-     *     ,itoice,fland
+      USE MODEL_COM, only : im,jm,kocean,focean,jday,itoice,fland
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2,aj,j_imelt,j_hmelt,j_smelt
      *     ,areg,jreg
@@ -734,10 +714,6 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             TRSI(:,:,I,J)=TRSIL(:,:)
             GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
-
-C**** set ftype/gtemp arrays
-            FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
-            FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
             GTEMP(1:2,2,I,J) = TSIL(1:2)
           END IF
         END DO

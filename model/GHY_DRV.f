@@ -1526,13 +1526,7 @@ c**** accumulate diagnostics
         aj(j,j_ace1,itearth)=aj(j,j_ace1,itearth)+ace1*pearth
         aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
         aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
-c        aj(j,j_tg1 ,itearth)=aj(j,j_tg1, itearth)+tg1 *pearth
-c        aj(j,j_tg2 ,itearth)=aj(j,j_tg2, itearth)+tg2 *pearth
-c        aj(j,j_type,itearth)=aj(j,j_type,itearth)+     pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-c        aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
-c        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxyp(j)
-c        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
         areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxyp(j)
         areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxyp(j)
         areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxyp(j)
@@ -1540,9 +1534,7 @@ c        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
         areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxyp(j)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
-c        aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
-c        aij(i,j,ij_evap) =aij(i,j,ij_evap) +evap*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
         do k=1,4
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)

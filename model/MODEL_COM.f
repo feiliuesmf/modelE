@@ -275,8 +275,6 @@ C****
       INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
       INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
 
-C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
-
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
         WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,

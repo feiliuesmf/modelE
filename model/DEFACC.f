@@ -322,7 +322,7 @@ c
       units_j(k) = 'mm/day'
       stitle_j(k)= ' EVAPOR (MM/DAY)'
       scale_j(k) = SDAY/DTSRC
-      ia_j(k) = ia_srf
+      ia_j(k) = ia_src
 c
       k=k+1
       J_RUN  = k ! RUNOFF (KG/m**2)                                1 GP

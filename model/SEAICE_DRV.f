@@ -10,7 +10,7 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : byshi,lhm,teeny
+      USE CONSTANT, only : byshi,lhm,teeny,rhoi
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
      *     ,jday,itocean,itlake
       USE GEOM, only : imaxj,dxyp,bydxyp
@@ -70,6 +70,12 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
      *       TRSIL,TRPRCP,TRUN0,
 #endif
      *       WETSNOW)
+
+C**** check for snowice formation
+c        if (RHOI*(SNOW+ACE1I+MSI2).gt.(ACE1I+MSI2)*1030.) then
+c          print*,"snowice possibility",i,j,SNOW,MSI2+ACE1I,(SNOW+ACE1I
+c     *         +MSI2)/1030.-(ACE1I+MSI2)/RHOI
+c        end if
 
         SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
@@ -364,12 +370,10 @@ C**** ACCUMULATE DIAGNOSTICS
 
           AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
-c          AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
 
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
-c          AJ(J,J_EVAP ,ITYPE)=AJ(J,J_EVAP ,ITYPE)+EVAP*POICE
           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX)*POICE
           AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX)
      *         *POICE
@@ -396,7 +400,7 @@ C****
 !@ver  1.0
 !@calls seaice:addice
       USE CONSTANT, only : lhm,byshi
-      USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
+      USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
 #ifdef TRACERS_WATER
@@ -504,9 +508,6 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
-C**** set ftype arrays
-          FTYPE(ITYPE ,I,J)=POCEAN
-          FTYPE(ITYPEO,I,J)=PWATER - FTYPE(ITYPE ,I,J)
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
