@@ -1847,7 +1847,7 @@ C****  10  AFTER DAILY
 C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
-      EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
+      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI
@@ -2651,7 +2651,7 @@ C****
 #ifdef TRACERS_HETCHEM
      *       ,n_SO4_d1,n_SO4_d2, n_SO4_d3, n_SO4_d4, n_SO4_s1, n_SO4_s2
 #endif
-#endif 
+#endif
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -2939,7 +2939,7 @@ C**** simple diags
         case ("SO4")      ! sulfate in L=1
           do j=1,jm
           do i=1,imaxj(j)
-            data(i,j)=trm(i,j,1,n_SO4)                
+            data(i,j)=trm(i,j,1,n_SO4)
 #ifdef TRACERS_HETCHEM
      *               +trm(i,j,1,n_SO4_d1)
      *               +trm(i,j,1,n_SO4_d2)
