@@ -83,8 +83,8 @@
       INTEGER NX
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, save, dimension(im,jm) :: a_sulf=0. ,cc_sulf=0.
-      real*8 cm_sulf,cm_sulft
-      integer iuc_s
+      real*8 cm_sulft  !nu ,cm_sulf (? not defined/used, only redefined)
+      integer, save :: iuc_s
       logical, save :: ifirst=.true.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -94,7 +94,7 @@
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      *        :: UC,VC
       REAL*8, DIMENSION(2,LM) :: UZM,VZM
 
@@ -139,7 +139,7 @@ C**** parameters and variables for isccp diags
       integer itau,itrop,nbox
 C****
 
-C
+C 
 Cred*                       Reduced Arrays 1                 *********
 C        not clear yet whether they still speed things up
       REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
@@ -147,18 +147,15 @@ C        not clear yet whether they still speed things up
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
-      REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO), 
+      REAL*8  AJEQIL(J5N-J5S+1,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
-#ifdef TRACERS_AEROSOLS_Koch
-      save iuc_s
-#endif
-      REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), 
+      REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0SG,J_1SG
-C
+C 
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
-C
+C 
       J_0  =GRID%J_STRT
       J_1  =GRID%J_STOP
       J_0H =GRID%J_STRT_HALO
@@ -180,7 +177,7 @@ C     Do not bother to save random numbers for isccp_clouds
       END DO
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
-C
+C 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
       VC=V
@@ -247,11 +244,11 @@ C****
 !$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
-C
+C 
       DO J=J_0,J_1
-C
+C 
 Cred* Reduced Arrays 2
-C
+C 
         DXYPJ=DXYP(J)
       DO L=1,LM
          GZIL(:,L) = GZ(:,J,L)
@@ -601,7 +598,7 @@ cECON *     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))  )*100.
 cECON *     *BYGRAV
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
-      CALL LSCOND(IERR,WMERR,LERR)
+      CALL LSCOND(IERR,WMERR,LERR,i,j)
 
 cECON  E1 = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
 cECON *     *AIRM(1:LP50))*LHE +sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
@@ -838,7 +835,7 @@ c save for cloud-sulfate correlation
             if (l.eq.1) a_sulf(i,j)=a_sulf(i,j)+tm(l,nx)/24.
             cm_sulft=cldmcl(l)+cldssl(l)
             if (cm_sulft.gt.1.) cm_sulft=1.
-            if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
+!nu ??      if (cm_sulft.gt.cm_sulf) cm_sulf=cm_sulft
            end if
 #endif
 #endif
@@ -879,16 +876,16 @@ Cred*       end Reduced Arrays 3
 C**** END OF MAIN LOOP FOR INDEX J
 !$OMP  END PARALLEL DO
 C****
-C
+C 
 C     WAS THERE AN ERROR IN SUBSID ??
-C
+C 
       IF(ICKERR.NE.0)  THEN
          WRITE(6,*)  'SUBSID ERROR: ABS(C) > 1'
          call stop_model('SUBSID ERROR: ABS(C) > 1',255)
       END IF
-C
+C 
 C     WAS THERE AN ERROR IN ISCCP CLOUD TYPING ??
-C
+C 
       IF(JCKERR.NE.0)  THEN
          WRITE(6,*)  'ISCCP CLOUD TYPING ERROR'
          call stop_model('ISCCP CLOUD TYPING ERROR',255)
@@ -901,7 +898,6 @@ C**** Save the conservation quantities for tracers
         if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
         if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
       end do
-#endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (jhour.eq.23) then
        if (ifirst) then
@@ -919,6 +915,7 @@ c      call closeunit(iuc_s)
        cc_sulf(:,:)=0.
       endif
 #endif
+#endif
 
 C**** Delayed summations (to control order of summands)
       DO J=MAX(J_0,J5S),MIN(J_1,J5N)
@@ -930,7 +927,7 @@ C**** Delayed summations (to control order of summands)
         END IF
       END DO
       END DO
-C
+C 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
@@ -940,9 +937,9 @@ C
          AREG(JR,J_EPRCP) =AREG(JR,J_EPRCP) +AREGIJ(I,J,3)
       END DO
       END DO
-C
+C 
 C     NOW REALLY UPDATE THE MODEL WINDS
-C
+C 
 CAOO      J=1
       IF(GRID%HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
@@ -956,7 +953,7 @@ CAOO      J=1
           END DO
         END DO
       ENDIF
-C
+C 
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
       DO J=J_0S,J_1S
@@ -973,7 +970,7 @@ C
       END DO
       END DO
 !$OMP  END PARALLEL DO
-C
+C 
 CAOO      J=JM
       IF(GRID%HAVE_NORTH_POLE) THEN
         DO K=1,IM  !  KMAXJ(J)
@@ -987,7 +984,7 @@ CAOO      J=JM
           END DO
         END DO
       ENDIF
-C
+C 
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
@@ -1081,16 +1078,6 @@ C**** Define regions for ISCCP diagnostics
               exit
            endif
         enddo
-c        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
-c     *       isccp_reg(j)=1
-c        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
-c     *       isccp_reg(j)=2
-c        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
-c     *       isccp_reg(j)=3
-c        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
-c     *       isccp_reg(j)=4
-c        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
-c     *       isccp_reg(j)=5
       end do
 
       END SUBROUTINE init_CLD

@@ -88,7 +88,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
-#endif 
+#endif
 #endif
 
 !@var UC,VC,UZM,VZM,ULS,VLS,UMC,VMC velocity work arrays
@@ -381,10 +381,10 @@ cECON      E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
 cECON     *     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 
 C**** MOIST CONVECTION
-      CALL MSTCNV(IERR,LERR)
+      CALL MSTCNV(IERR,LERR,i,j)
 
-cECON      E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
-cECON     *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
+cECON  E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
+cECON *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
 
 C**** Error reports
       if (ierr.gt.0) then
@@ -404,7 +404,7 @@ C**** first, need the local freezing level:
             EXIT
           END IF
         END DO
-        CALL calc_lightning(I,J,LMCMAX,Lfreeze) 
+        CALL calc_lightning(I,J,LMCMAX,Lfreeze)
       END IF
 #endif
 
@@ -512,7 +512,7 @@ C**** TRACERS: Use only the active ones
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
-          tmomsv(:,l,nx) = tmom(:,l,nx) 
+          tmomsv(:,l,nx) = tmom(:,l,nx)
           tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only
           tmom(:,l,nx) = trmom(:,i,j,l,n)*fssl(l)
         end do
@@ -632,10 +632,10 @@ cECON  E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
 cECON *     *AIRM(1:LP50))*LHE +sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
 cECON *     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))  )*100.
 cECON *     *BYGRAV
-cECON      q1 = sum((Q(I,J,:)+WML(:)+SVWMXL(:))*AIRM(:))*100.*BYGRAV+PRCP
+cECON     q1 = sum((Q(I,J,:)+WML(:)+SVWMXL(:))*AIRM(:))*100.*BYGRAV+PRCP
 cECON      if (abs(q0-q1).gt.1d-13) print*,"pr0",i,j,q0,q1,prcp
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
-      CALL LSCOND(IERR,WMERR,LERR)
+      CALL LSCOND(IERR,WMERR,LERR,i,j)
 
 cECON  E1 = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
 cECON *     *AIRM(1:LP50))*LHE +sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
@@ -871,7 +871,7 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
          END IF
       ENDDO
 cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
-cECON      if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
+cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
 cECON     *     *bygrav
 
 #ifdef TRACERS_ON

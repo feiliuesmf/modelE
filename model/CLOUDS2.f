@@ -6,7 +6,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
-      USE MODEL_COM, only : im,lm,dtsrc
+      USE MODEL_COM, only : im,lm,dtsrc,itime
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm
@@ -203,15 +203,15 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 
       CONTAINS
 
-      SUBROUTINE MSTCNV(IERR,LERR)
+      SUBROUTINE MSTCNV(IERR,LERR,i_debug,j_debug)
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
-      REAL*8 LHX,MPLUME,MCLOUD,MPMAX,SENV,QENV,MPLUM1
+      REAL*8 LHX,MPLUME,MPLUM1,MCLOUD,MPMAX,SENV,QENV
 !@var LHX latent heat of evaporation (J/Kg)
-!@var MPLUME, MPLUM1 mass of convective plume (mb)
+!@var MPLUME,MPLUM1 mass of convective plume (mb)
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
 !@var SENV,QENV dummy variables
@@ -295,6 +295,7 @@ c for sulfur chemistry
 
 !@var IERRT,LERRT error reports from advection
       INTEGER :: IERRT,LERRT
+      INTEGER, INTENT(IN) :: i_debug,j_debug
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
 !@var LDRAFT the layer the downdraft orginates
@@ -1199,7 +1200,8 @@ C**** diagnostics
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
-        IF(QM(L).LT.0.d0) WRITE (99,*) 'negative q: L QM=',L,QM(L)
+        IF(QM(L).LT.0.d0) WRITE(0,*) ' Q neg: it,i,j,l,q',
+     *   itime,i_debug,j_debug,l,qm(l)
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
@@ -1469,7 +1471,7 @@ C**** CALCULATE OPTICAL THICKNESS
       RETURN
       END SUBROUTINE MSTCNV
 
-      SUBROUTINE LSCOND(IERR,WMERR,LERR)
+      SUBROUTINE LSCOND(IERR,WMERR,LERR,i_debug,j_debug)
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
@@ -1480,6 +1482,8 @@ C**** CALCULATE OPTICAL THICKNESS
       INTEGER, INTENT(OUT) :: IERR,LERR
       REAL*8, INTENT(OUT) :: WMERR
       REAL*8 LHX
+      INTEGER, INTENT(IN) :: i_debug,j_debug
+      logical :: debug_out
 
 C**** functions
       REAL*8 :: QSAT, DQSATDT,ERMAX
@@ -1647,6 +1651,7 @@ C**** THE LIQUID WATER CONTENT IS PREDICTED
 C****
       IERR=0
 C****
+      debug_out=.false.
       PRCPSS=0.
       HCNDSS=0.
       CKIJ=1.
@@ -1975,6 +1980,12 @@ C**** Only Calculate fractional changes of Q to W
 C**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
+      if(abs(DTsrc*(QHEAT(L)-HPHASE)).gt.100.*SHA*FSSL(L)) then ! warn
+        write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
+     *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny),
+     *    QHEAT(L),HPHASE
+        debug_out=.true.
+      end if
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
@@ -2144,6 +2155,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
+      if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
@@ -2161,6 +2173,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
           HCHANG=WMX(L)*LHM
           TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
+          if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
           TH(L)=TL(L)/PLK(L)
         END IF
         WMX(L)=0.
@@ -2286,6 +2299,7 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
         SMN2=SMN2-(SMN12-SMO12)*AIRM(L+1)/((AIRM(L)+AIRM(L+1))*PLK(L+1))
         TH(L)=SMN1*BYAM(L)
         TL(L)=TH(L)*PLK(L)
+        if(debug_out) write(0,*) 'after CTEI: l,tlnew',l,tl(l)
         QL(L)=QMN1*BYAM(L)
         LHX=SVLHXL(L)
         RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
@@ -2321,6 +2335,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         QL(L+1)=QL(L+1)+WMX(L+1)/(FSSL(L)+teeny)
         TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
         TL(L+1)=TH(L+1)*PLK(L+1)
+        if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
         RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
