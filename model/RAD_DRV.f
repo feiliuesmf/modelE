@@ -537,7 +537,7 @@ caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
         FT8OPX = (/0d0, 0d0, 1d0, 1d0, 1d0, 1d0, 1.3d0, 1d0/)
       end if
       NTRACE=3
-      TRRDRY=(/ .3d0, .44d0, 1.7d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
+      TRRDRY=(/ .2d0, .44d0, 1.7d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR = (/ 1,2,2,0, 0,0,0,0 /)
 #endif
@@ -1172,12 +1172,6 @@ C**** Sulfate forcing
           SNFST(N_SO4,I,J)=SRNFLB(4+LM)
           TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0
-#ifdef TRACERS_AEROSOLS_Koch
-          do l=1,lm
-          taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
-     *   +TTAUSV(L,1)
-          end do
-#endif
 c seasalt forcing
           FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt1
           FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0 ! turn off seasalt2
@@ -1186,14 +1180,6 @@ c seasalt forcing
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
           FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
-#ifdef TRACERS_AEROSOLS_Koch
-         do l=1,lm
-          taijs(i,j,ijts_tau(n_seasalt1))=
-     *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
-          taijs(i,j,ijts_tau(n_seasalt2))=
-     *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
-          end do
-#endif
         end if
       end if
 #endif
@@ -1211,6 +1197,16 @@ c seasalt forcing
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
+#ifdef TRACERS_AEROSOLS_Koch
+         do l=1,lm
+          taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
+     *   +TTAUSV(L,1)
+          taijs(i,j,ijts_tau(n_seasalt1))=
+     *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
+          taijs(i,j,ijts_tau(n_seasalt2))=
+     *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
+          end do
+#endif
 C*****************************************************
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
