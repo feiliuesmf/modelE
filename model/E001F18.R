@@ -48,7 +48,7 @@ SOIL=S144X900098M TOPO=Z144X90N ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
 RVR=RD144X90.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
-RADN2=kdist33.tautab8
+RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
 RADN5=TROAER.1875-1990.Jun2002
 RADN6=dust8.tau9x8x13
