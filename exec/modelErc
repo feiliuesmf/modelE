@@ -3,7 +3,7 @@
 
 ## Directory structure ##
 
-# DECKS_REPOSITORY - a directory for permanenet storage of run info.
+# DECKS_REPOSITORY - a directory for permanent storage of run info.
 # All rundecks that you create will be copied to this directory. 
 DECKS_REPOSITORY=/u/cmrun/modelE/decks
 
@@ -50,7 +50,8 @@ OUTPUT_TO_FILES=YES
 VERBOSE_OUTPUT=NO
 
 # MP - multiprocessing support. If set to YES gmake will compile the 
-# code with OpenMP instructions. This option has effect only on SGI and Compaq.
+# code with OpenMP instructions. This only has effect on compilers and 
+# systems that support OpenMP.
 MP=NO
 
 # UMASK - the value of 'umask' you want to use for model runs. The files
@@ -60,5 +61,5 @@ UMASK=002
 
 # COMPILER - this option has effect only on Linux machines. It specifies
 # your f90 compiler. Currently supported: Absoft, Lahey, Portland Group.
-# default is Absoft.
+# Some support for Intel (v. 7), Intel8 (v. 8) and NAG. Default is Absoft.
 # COMPILER=Absoft
