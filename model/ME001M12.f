@@ -1,4 +1,4 @@
-C**** ME001M12 E001M12 SOMTQ M_f90 MB399M12
+C**** ME001M12 E001M12 SOMTQ M_f90 MB399M12   07/00
 C****
 C**** Second order scheme for momentum advection, with FLTRUV
 C****
