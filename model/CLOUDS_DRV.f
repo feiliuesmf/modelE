@@ -41,7 +41,7 @@
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
+     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n, 
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
@@ -489,6 +489,8 @@ CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         AREGIJ(I,J,3)=ENRGP*DXYP(J)  ! add in after parallel region
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
+        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
+     *       ENRGP*FOCEAN(I,J)*RSI(I,J)
 
       IF(TPRCP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3

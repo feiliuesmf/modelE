@@ -153,7 +153,7 @@ c
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
-     *     k_j_out
+     *     k_j_out,ia_srf,ia_src,ia_rad
       USE BDJ
       IMPLICIT NONE
       REAL*8, DIMENSION(JM), SAVE ::S1
@@ -223,9 +223,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
      *     ,ntype_out+1,jm,lat_dg)
 
 C**** CALCULATE THE DERIVED QUANTTIES
-      BYA1=1./(IDACC(1)+teeny)
-      A2BYA1=DFLOAT(IDACC(2))/DFLOAT(IDACC(1))
-      A1BYA2=IDACC(1)/(IDACC(2)+teeny)
+      BYA1=1./(IDACC(ia_srf)+teeny)
+      A2BYA1=DFLOAT(IDACC(ia_rad))/DFLOAT(IDACC(ia_src))
+      A1BYA2=IDACC(ia_src)/(IDACC(ia_rad)+teeny)
       DO JR=1,23 ! only 23 will fit on a green sheet
         AREG(JR,J_TRNFP0)=AREG(JR,J_HSURF)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
         AREG(JR,J_TRNFP1)=AREG(JR,J_HATM)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC

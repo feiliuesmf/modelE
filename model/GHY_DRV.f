@@ -70,14 +70,14 @@ c****
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap,j_erun,j_run,j_tsrf,
-     *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
-     *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
-     *     ij_g24,ij_g25,ij_g26,ij_g27,
-     *     ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg,idd_lwg,idd_sh,
-     *     idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us,idd_vs,idd_ws,
-     *     idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl,idd_ev
+     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
+     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
+     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
+     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
+     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
+     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
+     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
+     *     ,idd_ev
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp
@@ -95,7 +95,6 @@ c****
      *     ,tij_evap,tij_grnd,jls_source,tajls
 #endif
 #endif
-
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
@@ -132,7 +131,7 @@ C**** Tracer input/output common block for PBL
 #endif
       real*8 qsat
       real*8 srhdt
-      real*8 aregij(im,jm,7)
+      real*8 aregij(9,im,jm)
 !@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
 !@var qg_nsat rel. humidity at non-saturated fraction of soil
       real*8 qg, qg_nsat
@@ -172,7 +171,7 @@ c****
       if(jday.le.31) timez=timez+365.
       ghour=(itime+(ns-1.)/nisurf) ! *(24./nday)
 c
-      aregij = 0.0d0
+      aregij = 0.
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
@@ -493,25 +492,27 @@ ccc copy snow variables back to storage
       hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
       fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
+      aij(i,j,ij_g18)=aij(i,j,ij_g18)+evapb
+      aij(i,j,ij_g19)=aij(i,j,ij_g19)+evapd
+      aij(i,j,ij_g20)=aij(i,j,ij_g20)+evapw
       aij(i,j,ij_g05)=aij(i,j,ij_g05)+betab/nisurf
       aij(i,j,ij_g06)=aij(i,j,ij_g06)+betap/nisurf
       aij(i,j,ij_g11)=aij(i,j,ij_g11)+beta/nisurf
       aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
       aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
-      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
-      aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
-      aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
-      aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
-      aij(i,j,ij_g18)=aij(i,j,ij_g18)+evapb
-      aij(i,j,ij_g19)=aij(i,j,ij_g19)+evapd
-      aij(i,j,ij_g20)=aij(i,j,ij_g20)+evapw
-      aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
-      aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
-      aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
-      aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
-      aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+betav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+betat/nisurf
+      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
+      if (moddsf.eq.0) then
+        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
+        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
+        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
+        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
+        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
+        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
+        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
+        aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
+      end if
       trhdt=trheat*dtsurf-atrg
 c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
@@ -620,13 +621,17 @@ ccc   areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
 ccc   areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
 ccc   if ( moddsf == 0 )
 ccc  $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
-      AREGIJ(I,J,1)  = trhdt*ptype*dxyp(j)
-      AREGIJ(I,J,2)  = shdt*ptype*dxyp(j)
-      AREGIJ(I,J,3)  = evhdt*ptype*dxyp(j)
-      AREGIJ(I,J,4)  = evap*ptype*dxyp(j)
-      AREGIJ(I,J,5)  = (aeruns+aerunu)*pearth*dxyp(j)
-      AREGIJ(I,J,6)  = (aruns+arunu)*pearth*dxyp(j)
-      if ( moddsf == 0 )  AREGIJ(I,J,7)  = (ts-tf)*ptype*dxyp(j)
+      AREGIJ(1,I,J)  = trhdt*ptype*dxyp(j)
+      AREGIJ(2,I,J)  = shdt*ptype*dxyp(j)
+      AREGIJ(3,I,J)  = evhdt*ptype*dxyp(j)
+      AREGIJ(4,I,J)  = evap*ptype*dxyp(j)
+      AREGIJ(5,I,J)  = (aeruns+aerunu)*pearth*dxyp(j)
+      AREGIJ(6,I,J)  = (aruns+arunu)*pearth*dxyp(j)
+      if ( moddsf == 0 ) THEN
+        AREGIJ(7,I,J)  = (ts-tf)*ptype*dxyp(j)
+        AREGIJ(8,I,J)  = tg1    *ptype*dxyp(j)
+        AREGIJ(9,I,J)  = tg2av  *ptype*dxyp(j)
+      end if
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+betad/nisurf
@@ -634,8 +639,9 @@ c**** quantities accumulated for latitude-longitude maps in diagij
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
       aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdt+trhdt+shdt+evhdt)*ptype
+      aij(i,j,ij_evap)=aij(i,j,ij_evap)+evap*ptype
       if ( moddsf == 0 ) then
-        aij(i,j,ij_ws)=aij(i,j,ij_ws)+ws*ptype ! added 3/3/95 -rar-
+        aij(i,j,ij_ws)=aij(i,j,ij_ws)+ws*ptype
         aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
         aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
         aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
@@ -643,6 +649,7 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*us*ptype
         aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*vs*ptype
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
+        aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 c**** quantities accumulated hourly for diagDD
@@ -677,14 +684,18 @@ c**** quantities accumulated hourly for diagDD
         end do
       endif
 c**** quantities accumulated for surface type tables in diagj
+      aj(j,j_evap ,itearth)=aj(j,j_evap ,itearth)+ evap*pearth
       aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*pearth
       aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*pearth
       aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+ shdt*pearth
       aj(j,j_erun ,itearth)=aj(j,j_erun ,itearth)+(aeruns+aerunu)*pearth
       aj(j,j_run  ,itearth)=aj(j,j_run  ,itearth)+(aruns+arunu)*pearth
-      if(moddsf.eq.0)
-     $     aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
-
+      if(moddsf.eq.0) then
+        aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
+        aj(j,j_tg1 ,itearth)=aj(j,j_tg1 ,itearth)+    tg1*pearth
+        aj(j,j_tg2 ,itearth)=aj(j,j_tg2 ,itearth)+  tg2av*pearth
+        aj(j,j_type,itearth)=aj(j,j_type,itearth)+        pearth
+      end if
       end do loop_i
       end do loop_j
 C$OMP  END PARALLEL DO
@@ -694,13 +705,17 @@ C
       DO 825 I=1,IMAXJ(J)
          IF(FEARTH(I,J).LE.0.0)  GO TO 825
          JR=JREG(I,J)
-         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(I,J,1)
-         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(I,J,2)
-         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(I,J,3)
-         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(I,J,4)
-         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(I,J,5)
-         areg(jr,j_run ) =areg(jr,j_run  )+AREGIJ(I,J,6)
-         if( moddsf == 0 ) areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(I,J,7)
+         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(1,I,J)
+         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(2,I,J)
+         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(3,I,J)
+         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(4,I,J)
+         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(5,I,J)
+         areg(jr,j_run  )=areg(jr,j_run  )+AREGIJ(6,I,J)
+         if( moddsf == 0 ) then
+           areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(7,I,J)
+           areg(jr,j_tg1 )=areg(jr,j_tg1 )+AREGIJ(8,I,J)
+           areg(jr,j_tg2 )=areg(jr,j_tg2 )+AREGIJ(9,I,J)
+         end if
   825 CONTINUE
 C
       return
@@ -1472,7 +1487,7 @@ c****
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
      *     ,fr_snow_ij,afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
-     *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
+     *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       use fluxes, only : e0,e1,evapor,eprec
@@ -1515,13 +1530,13 @@ c**** accumulate diagnostics
         aj(j,j_ace1,itearth)=aj(j,j_ace1,itearth)+ace1*pearth
         aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
         aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
-        aj(j,j_tg1 ,itearth)=aj(j,j_tg1, itearth)+tg1 *pearth
-        aj(j,j_tg2 ,itearth)=aj(j,j_tg2, itearth)+tg2 *pearth
-        aj(j,j_type,itearth)=aj(j,j_type,itearth)+     pearth
+c        aj(j,j_tg1 ,itearth)=aj(j,j_tg1, itearth)+tg1 *pearth
+c        aj(j,j_tg2 ,itearth)=aj(j,j_tg2, itearth)+tg2 *pearth
+c        aj(j,j_type,itearth)=aj(j,j_type,itearth)+     pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-        aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
-        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxyp(j)
-        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
+c        aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
+c        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxyp(j)
+c        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
         areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxyp(j)
         areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxyp(j)
         areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxyp(j)
@@ -1529,9 +1544,9 @@ c**** accumulate diagnostics
         areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxyp(j)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
-        aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth
+c        aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
-        aij(i,j,ij_evap) =aij(i,j,ij_evap) +evap*pearth
+c        aij(i,j,ij_evap) =aij(i,j,ij_evap) +evap*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
         do k=1,4
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)

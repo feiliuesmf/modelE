@@ -742,28 +742,27 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRUN0
 #endif
 
-      IF (ROICE.lt.1d-4) THEN   ! remove too small ice
-        ENRGUSED=-ROICE*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
-        RUN0=ROICE*(SNOW + ACE1I + MSI2)  ! all ice is melted
-        SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
+C**** Remove too small ice
+      ENRGUSED=-ROICE*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
+      RUN0=ROICE*(SNOW + ACE1I + MSI2) ! all ice is melted
+      SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
 #ifdef TRACERS_WATER
-        TRUN0(:)=ROICE*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
-        TRSIL(:,:)=0.
+      TRUN0(:)=ROICE*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
+      TRSIL(:,:)=0.
 #endif
-        ROICE=0.
+      ROICE=0.
 C**** set defaults
-        SNOW=0.
-        MSI2=AC2OIM
-        HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
-        HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
-        IF (POCEAN.gt.0) THEN
-          SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
-          SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
-        ELSE
-          SSIL(:) = 0.
-        END IF
-        TSIL=TFO
+      SNOW=0.
+      MSI2=AC2OIM
+      HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+      HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+      IF (POCEAN.gt.0) THEN
+        SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
+        SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+      ELSE
+        SSIL(:) = 0.
       END IF
+      TSIL=TFO
 C****
       RETURN
       END SUBROUTINE SIMELT
@@ -1231,6 +1230,25 @@ c****
       return
       end subroutine solar_ice_frac
 
+      function tfrez(sss,press)
+!@sum tfrez calculates freezing temperature of sea water
+!@auth Gavin Schmidt
+      implicit none
+!@var sss sea surface salinity (psu)
+      real*8, intent(in) :: sss    
+!@var gauge pressure (default=0) (Pa)
+      real*8, intent(in), optional :: press 
+!@var tfrez approx. freezing point of sea water (C)
+      real*8 tfrez,pr
+
+      pr=0.
+      if (present(press)) pr=press
+C**** linear approximation 
+      tfrez = -mu*sss - 7.5d-8*pr
+
+      return
+      end function tfrez
+
       END MODULE SEAICE
 
       MODULE SEAICE_COM
@@ -1358,11 +1376,11 @@ C**** albedo calculations
 #endif      
 
 C**** Check for NaN/INF in ice data
-      CALL CHECK3(RSI,IM,JM,1,SUBR,'rs')
-      CALL CHECK3(MSI,IM,JM,1,SUBR,'ms')
-      CALL CHECK3(HSI,LMI,IM,JM,SUBR,'hs')
-      CALL CHECK3(SSI,LMI,IM,JM,SUBR,'ss')
-      CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sn')
+      CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
+      CALL CHECK3(MSI,IM,JM,1,SUBR,'msi')
+      CALL CHECK3(HSI,LMI,IM,JM,SUBR,'hsi')
+      CALL CHECK3(SSI,LMI,IM,JM,SUBR,'ssi')
+      CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sni')
 
       QCHECKI = .FALSE.
 C**** Check for reasonable values for ice variables
@@ -1433,3 +1451,4 @@ C**** Check conservation of water tracers in sea ice
       IF (QCHECKI) STOP "CHECKI: Ice variables out of bounds"
 
       END SUBROUTINE CHECKI
+

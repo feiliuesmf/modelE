@@ -398,7 +398,6 @@ C****
      *     ,gtracer
 #endif
       USE ICEDYN, only : rsix,rsiy
-c      USE DAGCOM, only : aij,IJ_TGO2
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 ROICE,TGW,GO1,SO1,MSI2,SNOW,ENRGW,ENRGUSED,RUN0,TFO,SALT
@@ -412,12 +411,6 @@ c      USE DAGCOM, only : aij,IJ_TGO2
 
 C**** Only do this at end of the day
       IF (end_of_day) THEN
-c        DO J=1,JM
-c          DO I=1,IM
-c            AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
-c            AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
-c          END DO
-c        END DO
 
 C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT
@@ -446,12 +439,12 @@ C**** Calculate freezing temperature (on atmos. grid)
 #endif
      *           ENRGUSED,RUN0,SALT)
 C**** accumulate diagnostics
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED*RSI(I,J)
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT*RSI(I,J)
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0*RSI(I,J)
-            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*RSI(I,J)*DXYP(J)
-            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*RSI(I,J)*DXYP(J)
-            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*RSI(I,J)*DXYP(J)
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT
+            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*DXYP(J)
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
 C**** RESAVE PROGNOSTIC QUANTITIES
             G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
             MO(I,J,1) = MO(I,J,1) + RUN0
@@ -2331,11 +2324,8 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,trflowo,trevapor,dtrsi,trunosi,gtracer
 #endif
       USE SEAICE_COM, only : rsi
-      USE DAGCOM, only : aj,aij,areg,j_evap,j_type,ij_evap,ij_evapo
-     *     ,j_imelt,j_hmelt,j_smelt,j_tg1,j_tg2,ij_tgo,ij_tg1,ij_f0oc
-     *     ,jreg,j_rvrd,j_ervr
       IMPLICIT NONE
-      INTEGER I,J,JR
+      INTEGER I,J
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,FSICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),TGW,TGW2,TEMGS
      *     ,SRUNI,DSOO,DSOI,POCEAN,POICE
@@ -2350,7 +2340,6 @@ C****
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
       IF(FOCEAN(I,J).gt.0.) THEN
-        JR=JREG(I,J)
         FSICE = RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-FSICE)
         POICE =FOCEAN(I,J)*FSICE
@@ -2381,34 +2370,6 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
 
-C**** Diagnostics on atmospheric grid
-          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *POCEAN
-          AJ(J,J_TG2, ITOCEAN)=AJ(J,J_TG2, ITOCEAN)+TGW2*POCEAN
-          AJ(J,J_EVAP,ITOCEAN)=AJ(J,J_EVAP,ITOCEAN)+EVAPOR(I,J,1)
-     *         *POCEAN
-          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+POCEAN
-          AJ(J,J_RVRD,ITOCEAN)=AJ(J,J_RVRD,ITOCEAN)+(1.-FSICE)
-     *         * FLOWO(I,J)*BYDXYPJ
-          AJ(J,J_ERVR,ITOCEAN)=AJ(J,J_ERVR,ITOCEAN)+(1.-FSICE)
-     *         *EFLOWO(I,J)*BYDXYPJ
-
-          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +POICE
-          AJ(J,J_TG1, ITOICE) =AJ(J,J_TG1, ITOICE) +TGW*POICE
-          AJ(J,J_RVRD,ITOICE) =AJ(J,J_RVRD,ITOICE) +FSICE* FLOWO(I,J)
-     *         *BYDXYPJ
-          AJ(J,J_ERVR,ITOICE) =AJ(J,J_ERVR,ITOICE) +FSICE*EFLOWO(I,J)
-     *         *BYDXYPJ
-          AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW *FOCEAN(I,J)*DXYPJ
-          AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW2*FOCEAN(I,J)*DXYPJ
-          AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+ FLOWO(I,J)
-          AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOWO(I,J)
-
-          AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
-          AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW*POCEAN
-          AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPOR(I,J,1)*POCEAN
-          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPOR(I,J,1)*POCEAN
-          AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +    E0(I,J,1)*POCEAN
-
         CALL OSOURC(FSICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
@@ -2434,28 +2395,6 @@ C**** Store mass and energy fluxes for formation of sea ice
         DTRSI(:,1,I,J)=DTROO(:)*ROCAT(J)
         DTRSI(:,2,I,J)=DTROI(:)*ROCAT(J)
 #endif
-
-C**** diagnostics on the atmospheric grid
-        AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)-
-     *       DSOO*ROCAT(J)*(1.-FSICE)
-        AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)-
-     *       DEOO*ROCAT(J)*(1.-FSICE)
-        AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-
-     *       DMOO*ROCAT(J)*(1.-FSICE)
-C**** Ice-covered ocean diagnostics
-        AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-
-     *       DSOI*ROCAT(J)*FSICE
-        AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-
-     *       DEOI*ROCAT(J)*FSICE
-        AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-
-     *       DMOI*ROCAT(J)*FSICE
-C**** regional diagnostics
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
-     *       (DMOO*(1.-FSICE)+DMOI*FSICE)*DXYPJ*ROCAT(J)
-        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
-     *       (DEOO*(1.-FSICE)+DEOI*FSICE)*DXYPJ*ROCAT(J)
-        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
-     *       (DSOO*(1.-FSICE)+DSOI*FSICE)*DXYPJ*ROCAT(J)
         END IF
       END DO
       END DO
@@ -2603,7 +2542,6 @@ C****
      *     ,trmo,dxypo
 #endif
       USE SEAICE_COM, only : rsia=>rsi
-      USE DAGCOM, only : jreg,areg,aj,j_imelt,j_smelt,j_hmelt
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
      *     ,epreca=>eprec
 #ifdef TRACERS_OCEAN
@@ -2616,7 +2554,7 @@ C****
       REAL*8, DIMENSION(NTM,IM,JM) :: trprec,trunpsi
 #endif
       REAL*8 POCEAN
-      INTEGER I,J,N,JR
+      INTEGER I,J,N
 
 C**** save surface variables before any fluxes are added
       CALL KVINIT
@@ -2636,21 +2574,6 @@ C**** of fluxes is necessary anyway
           TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
           TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg 
 #endif
-C**** save some atmos diagnostics
-          POCEAN=FOCEAN(I,J)*(1.-RSIA(I,J))
-          AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)+RUNPSIA(I,J)
-     *         *POCEAN
-          AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)+SRUNPSIA(I,J)
-     *         *POCEAN
-c         AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)+ERUNPSIA(I,J)
-c    *         *POCEAN
-          JR=JREG(I,J)
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUNPSIA(I,J)*FOCEAN(I,J)
-     *         *DXYP(J)
-          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUNPSIA(I,J)*FOCEAN(I,J)
-     *         *DXYP(J)
-c         AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+ERUNPSIA(I,J)*FOCEAN(I,J)
-c    *         *DXYP(J)
         END DO
       END DO
 C****
@@ -3137,12 +3060,12 @@ C****
             GTEMP(1,1,I,J)= TO
             SSS(I,J) = 1d3*SO
             MLHC(I,J)= MO(I,J,1)*SHCGS(GO,SO)
-c            IF (LMM(I,J).gt.1) THEN
-c              GO2= G0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
-c              SO2= S0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
-c              TO= TEMGS(GO2,SO2)
-c            END IF
-c            GTEMP(2,1,I,J)= TO
+            IF (LMM(I,J).gt.1) THEN
+              GO2= G0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
+              SO2= S0M(I,J,2)/(MO(I,J,2)*DXYPO(J))
+              TO= TEMGS(GO2,SO2)
+            END IF
+            GTEMP(2,1,I,J)= TO
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
 C**** set GTEMP array for ice as well (possibly changed by STADVI)

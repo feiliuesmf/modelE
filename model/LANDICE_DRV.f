@@ -58,7 +58,7 @@ C****
 #endif
       USE LANDICE, only : precli
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
-     *     ,ij_runli,j_run,j_implh,j_implm,j_type
+     *     ,ij_runli,j_run,j_implh,j_implm
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
@@ -123,7 +123,7 @@ c       TRDIFS(:)     !  diagnostic?
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
-        AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
+c        AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
         AJ(J,J_RUN,  ITLANDI)=AJ(J,J_RUN,  ITLANDI)+RUN0 *PLICE
 C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
@@ -153,10 +153,9 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
      *     ,ntm,trsnowli,trlndi,trli0
 #endif
       USE LANDICE, only : lndice,ace1li,ace2li
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
-     *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_wtr1
-     *     ,j_ace1,j_wtr2,j_ace2,j_snow,j_run,j_implh,j_implm,j_evap
-     *     ,j_rsnow,ij_rsnw,ij_rsit,ij_snow
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
+     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
+     *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow
       USE FLUXES, only : e0,e1,evapor,gtemp
 #ifdef TRACERS_WATER
      *     ,trunoli,trevapor,gtracer
@@ -193,8 +192,6 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
         F0DT=E0(I,J,3)
         F1DT=E1(I,J,3)
         EVAP=EVAPOR(I,J,3)
-        AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+F0DT
-        AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+EVAP
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
@@ -233,28 +230,20 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
 
-        AJ(J,J_TG1,ITLANDI)  =AJ(J,J_TG1,ITLANDI)  +TG1  *PLICE
-        AJ(J,J_TG2,ITLANDI)  =AJ(J,J_TG2,ITLANDI)  +TG2  *PLICE
         AJ(J,J_RUN,ITLANDI)  =AJ(J,J_RUN,ITLANDI)  +RUN0 *PLICE
         AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW *PLICE
-        AJ(J,J_EVAP,ITLANDI) =AJ(J,J_EVAP,ITLANDI) +EVAP *PLICE
         AJ(J,J_ACE1,ITLANDI) =AJ(J,J_ACE1,ITLANDI)+ACE1LI*PLICE
         AJ(J,J_ACE2,ITLANDI) =AJ(J,J_ACE2,ITLANDI)+ACE2LI*PLICE
         AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+EDIFS*PLICE
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
 
-        AREG(JR,J_TG1)  =AREG(JR,J_TG1)  +TG1   *PLICE*DXYPJ
-        AREG(JR,J_TG2)  =AREG(JR,J_TG2)  +TG2   *PLICE*DXYPJ
         AREG(JR,J_RUN)  =AREG(JR,J_RUN)  +RUN0  *PLICE*DXYPJ
         AREG(JR,J_SNOW) =AREG(JR,J_SNOW) +SNOW  *PLICE*DXYPJ
-        AREG(JR,J_EVAP) =AREG(JR,J_EVAP) +EVAP  *PLICE*DXYPJ
         AREG(JR,J_ACE1) =AREG(JR,J_ACE1) +ACE1LI*PLICE*DXYPJ
         AREG(JR,J_ACE2) =AREG(JR,J_ACE2) +ACE2LI*PLICE*DXYPJ
         AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+EDIFS *PLICE*DXYPJ
         AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+DIFS  *PLICE*DXYPJ
 
-        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TG1 *PLICE
-        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PLICE
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS+F1DT
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS

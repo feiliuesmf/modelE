@@ -322,7 +322,7 @@ c
       units_j(k) = 'mm/day'
       stitle_j(k)= ' EVAPOR (MM/DAY)'
       scale_j(k) = SDAY/DTSRC
-      ia_j(k) = ia_src
+      ia_j(k) = ia_srf
 c
       k=k+1
       J_RUN  = k ! RUNOFF (KG/m**2)                                1 GP
@@ -385,7 +385,7 @@ c
       units_j(k) = '.1 C'
       stitle_j(k)= '0TG1 (.1 C)     '
       scale_j(k) = 10.
-      ia_j(k) = ia_src
+      ia_j(k) = ia_srf
 c
       k=k+1
       J_TG2   = k ! TG2 (K-TF)                                    1 GD
@@ -394,7 +394,7 @@ c
       units_j(k) = '.1 C'
       stitle_j(k)= ' TG2 (.1 C)     '
       scale_j(k) = 10.
-      ia_j(k) = ia_src
+      ia_j(k) = ia_srf
 c
       k=k+1
       J_TSRF  = k ! TS (K-TF)                                     3 SF
@@ -666,7 +666,7 @@ c
       units_j(k) = '%'
       stitle_j(k)= ' SURF TYPE FRACT'
       scale_j(k) = 100.
-      ia_j(k) = ia_src
+      ia_j(k) = ia_srf
 c set the number of directly output budget diagnostics
       k_j_out=k
 c None of the following will be printed out:
@@ -1169,7 +1169,7 @@ c
       lname_ij(k) = 'GROUND TEMPERATURE'
       units_ij(k) = 'C'
       name_ij(k) = 'TG1'
-      ia_ij(k) = ia_src
+      ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
 c
@@ -1448,11 +1448,11 @@ c
       ir_ij(k) = ir_m45_130
 c
       k=k+1 !
-      IJ_TGO  = k ! TGO= TOCEAN(1)  (C)                      1 GD
-      lname_ij(k) = 'MIXED-LAYER OCEAN TEMPERATURE'    ! layer 1
+      IJ_TGO  = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE TEMPERATURE'    ! layer 1
       units_ij(k) = 'C'
       name_ij(k) = 'TGO'
-      ia_ij(k) = ia_src
+      ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       iw_ij(k) = iw_ocn
       ir_ij(k) = ir_m9_26

@@ -12,7 +12,7 @@
 !@calls seaice:prec_si
       USE CONSTANT, only : byshi,lhm,teeny
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
-     *     ,jday
+     *     ,jday,itocean,itlake
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp
 #ifdef TRACERS_WATER
@@ -24,32 +24,32 @@
 #endif
       USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
-     *     ,j_smelt
+     *     ,j_smelt 
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DXYPJ,POICE,SRUN0
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
 #endif
-      INTEGER I,J,IMAX,JR,ITYPE,N
+      INTEGER I,J,JR,ITYPE,N,ITYPEO
       LOGICAL WETSNOW
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
         JR=JREG(I,J)
-      POICE=RSI(I,J)*(1.-FLAND(I,J))
+      POICE=    RSI(I,J) *(1.-FLAND(I,J))
       RUNPSI(I,J)=0
       SRUNPSI(I,J)=0
       IF (POICE.gt.0) THEN
 
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
+          ITYPEO=ITOCEAN
         ELSE
           ITYPE=ITLKICE
+          ITYPEO=ITLAKE
         END IF
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
@@ -78,7 +78,7 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
         TRSI(:,:,I,J)=TRSIL(:,:)
-        TRUNPSI(:,I,J)=TRUN0(:)   ! tracer in runoff
+        TRUNPSI(:,I,J)=TRUN0(:) ! tracer in runoff
 #endif
         FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.WETSNOW
 C**** reset flag if there was fresh snow (i.e. prcp but no rain!)
@@ -96,13 +96,18 @@ C**** set gtemp array
         GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
 
-C**** ACCUMULATE DIAGNOSTICS
+C**** Accumulate diagnostics for ice fraction
         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-RUN0 *POICE
         AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SRUN0*POICE
-c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ERUN*POICE  ! ==0
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-RUN0 *POICE*DXYPJ
-        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-SRUN0*POICE*DXYPJ
-c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ERUN*POICE*DXYPJ  ! ==0
+c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ERUN *POICE  ! ==0
+C**** Accumulate diagnostics for water fraction
+        AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+RUN0 *POICE
+        AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)+SRUN0*POICE
+c       AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)+ERUN *POICE ! ==0
+C**** Accumulate regional diagnostics
+        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-RUN0 *POICE*DXYP(J)
+        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-SRUN0*POICE*DXYP(J)
+c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ERUN *POICE*DXYP(J) ! ==0
 
       END IF
       END DO
@@ -250,16 +255,16 @@ C****
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
       USE LAKES_COM, only : mwl,gml,flake
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
-     *     ij_msi2,ij_evapi,j_imelt,j_hmelt,j_smelt,
-     *     j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow,ij_mltp
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
+     *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
+     *     ,ij_mltp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
-     *     ,FMOC,FHOC,FSOC,DXYPJ,POICE,PWATER,SCOVI
+     *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
       REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,RUN,ERUN,SRUN,MELT12
-      INTEGER I,J,IMAX,JR,ITYPE
+      INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
@@ -267,9 +272,7 @@ C****
 #endif
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -306,8 +309,6 @@ C****
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
-        AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
-        AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
@@ -361,24 +362,25 @@ C**** ACCUMULATE DIAGNOSTICS
 
           AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
-          AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
+c          AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
 
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
-          AJ(J,J_EVAP ,ITYPE)=AJ(J,J_EVAP ,ITYPE)+EVAP*POICE
+c          AJ(J,J_EVAP ,ITYPE)=AJ(J,J_EVAP ,ITYPE)+EVAP*POICE
           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+(FMOC+RUN+MFLUX)*POICE
           AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+(FHOC+ERUN+HFLUX)
      *         *POICE
           AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+(FSOC+SRUN+SFLUX)
      *         *POICE
 
-          AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYPJ
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+(FMOC+RUN+MFLUX)*POICE*DXYPJ
+          AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYP(J)
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+(FMOC+RUN+MFLUX)*POICE
+     *         *DXYP(J)
           AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+(FHOC+ERUN+HFLUX)*POICE
-     *         *DXYPJ
+     *         *DXYP(J)
           AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+(FSOC+SRUN+SFLUX)*POICE
-     *         *DXYPJ
+     *         *DXYP(J)
 
       END IF
       END DO
@@ -402,8 +404,8 @@ C****
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
-      USE DAGCOM, only : aj,areg,aij,jreg,j_tg1,j_tg2,j_rsi
-     *     ,j_ace1,j_ace2,j_snow,ij_tg1,j_type,ij_tsi,ij_ssi1,ij_ssi2
+      USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
+     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp
 #ifdef TRACERS_WATER
      *     ,dtrsi,gtracer
@@ -413,21 +415,20 @@ C****
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI,SALTO,SALTI
-     *     ,DXYPJ,POICE,PWATER,FLEAD
+     *     ,POICE,PWATER,FLEAD,POCEAN
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
       REAL*8, DIMENSION(NTM) :: tro,tri
 #endif
       LOGICAL QFIXR
-      INTEGER I,J,IMAX,JR,ITYPE,ITYPEO,N
+      INTEGER I,J,JR,ITYPE,ITYPEO,N
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
+      POCEAN=(1.-ROICE)*PWATER
       JR=JREG(I,J)
       IF (PWATER.gt.0) THEN
 
@@ -465,6 +466,22 @@ C****
         TRO(:) = DTRSI(:,1,I,J)
         TRI(:) = DTRSI(:,2,I,J)
 #endif
+C**** ice formation diagnostics on the atmospheric grid
+C**** open ocean diagnostics
+        AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)-SALTO *POCEAN
+        AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)-ENRGFO*POCEAN
+        AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)-ACEFO *POCEAN
+C**** Ice-covered ocean diagnostics
+        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SALTI *POICE
+        AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGFI*POICE
+        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACE2F *POICE
+C**** regional diagnostics
+        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
+     *       (ACEFO *POCEAN+ACE2F *POICE)*DXYP(J)
+        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
+     *       (ENRGFO*POCEAN+ENRGFI*POICE)*DXYP(J)
+        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
+     *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F,
      *       ENRGFI,SALTO,SALTI,
@@ -484,7 +501,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
 C**** set ftype arrays
-          FTYPE(ITYPE ,I,J)=PWATER*RSI(I,J)
+          FTYPE(ITYPE ,I,J)=POCEAN
           FTYPE(ITYPEO,I,J)=PWATER - FTYPE(ITYPE ,I,J)
         END IF
 C**** set gtemp array
@@ -494,21 +511,16 @@ C**** set gtemp array
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
-        AJ(J,J_TG1, ITYPE)=AJ(J,J_TG1, ITYPE)+TSIL(1)*POICE
-        AJ(J,J_TG2, ITYPE)=AJ(J,J_TG2, ITYPE)+TSIL(2)*POICE
         AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
         AJ(J,J_ACE1,ITYPE)=AJ(J,J_ACE1,ITYPE)+ACE1I  *POICE
         AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
         AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
         IF (JR.ne.24) THEN
-          AREG(JR,J_TG1) =AREG(JR,J_TG1) +TSIL(1)*POICE*DXYPJ
-          AREG(JR,J_TG2) =AREG(JR,J_TG2) +TSIL(2)*POICE*DXYPJ
-          AREG(JR,J_RSI) =AREG(JR,J_RSI) +        POICE*DXYPJ
-          AREG(JR,J_SNOW)=AREG(JR,J_SNOW)+SNOW   *POICE*DXYPJ
-          AREG(JR,J_ACE1)=AREG(JR,J_ACE1)+ACE1I  *POICE*DXYPJ
-          AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+MSI2   *POICE*DXYPJ
+          AREG(JR,J_RSI) =AREG(JR,J_RSI) +        POICE*DXYP(J)
+          AREG(JR,J_SNOW)=AREG(JR,J_SNOW)+SNOW   *POICE*DXYP(J)
+          AREG(JR,J_ACE1)=AREG(JR,J_ACE1)+ACE1I  *POICE*DXYP(J)
+          AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+MSI2   *POICE*DXYP(J)
         END IF
-        AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TSIL(1)*POICE
         AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
      *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
         AIJ(I,J,IJ_SSI1)=AIJ(I,J,IJ_SSI1)+POICE*(SSIL(1)+SSIL(2))/ACE1I

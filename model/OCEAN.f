@@ -716,12 +716,12 @@ C**** Only melting of ocean ice (not lakes)
      *           ,ENRGUSED,RUN0,SALT)
 C**** RUN0, SALT not needed for Qflux ocean
 C**** accumulate diagnostics
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED*POCEAN
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT*POCEAN
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0*POCEAN
-            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*POCEAN*DXYP(J)
-            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*POCEAN*DXYP(J)
-            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*POCEAN*DXYP(J)
+            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED
+            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT
+            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0
+            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
+            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*DXYP(J)
+            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=TGW-ENRGUSED/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW
@@ -765,8 +765,7 @@ C****
       USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
-      USE DAGCOM, only : aj,aij,ij_f0oc,j_implm,j_implh,oa,areg,jreg
-     *     ,j_imelt,j_smelt
+      USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,ENRGO,POCEAN,POICE,SNOW
      *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE
@@ -784,7 +783,6 @@ C****
           ENRGP=EPREC(I,J)
           RUN0=RUNPSI(I,J)
           OA(I,J,4)=OA(I,J,4)+ENRGP
-          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POCEAN
 
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
@@ -813,10 +811,6 @@ C****
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
-          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0 *POICE
-c         AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SRUN0*POICE
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0 *POICE*DXYP(J)
-c         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUN0*POICE*DXYP(J)
         END IF
       END DO
       END DO
@@ -845,9 +839,8 @@ C****
      *     ,trsi0
 #endif
       USE SEAICE, only : ace1i,ssi0
-      USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_implm,j_implh,j_tg1
-     *     ,j_tg2,j_evap,j_oht,j_imelt,j_hmelt,j_smelt,j_rvrd,ij_tgo
-     *     ,ij_tg1,ij_evap,ij_evapo,j_type,oa,j_ervr,j_imelt
+      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
+     *     j_oht,j_imelt,j_hmelt,j_smelt,oa
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ
@@ -882,28 +875,10 @@ C**** get river runoff
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
 
-          AJ(J,J_EVAP,ITOCEAN)=AJ(J,J_EVAP,ITOCEAN)+EVAPO  *POCEAN
-          AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW    *POCEAN
-          AJ(J,J_TYPE,ITOCEAN)=AJ(J,J_TYPE,ITOCEAN)+        POCEAN
-          AJ(J,J_RVRD,ITOCEAN)=AJ(J,J_RVRD,ITOCEAN)+RVRRUN *POCEAN
-          AJ(J,J_ERVR,ITOCEAN)=AJ(J,J_ERVR,ITOCEAN)+RVRERUN*POCEAN
           AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
 c         AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
-          AJ(J,J_TG1, ITOICE) =AJ(J,J_TG1, ITOICE) +TGW    *POICE
-          AJ(J,J_TYPE,ITOICE) =AJ(J,J_TYPE,ITOICE) +        POICE
-          AJ(J,J_RVRD,ITOICE) =AJ(J,J_RVRD,ITOICE) +RVRRUN *POICE
-          AJ(J,J_ERVR,ITOICE) =AJ(J,J_ERVR,ITOICE) +RVRERUN*POICE
-
-          AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*FOCEAN(I,J)*DXYPJ
-          AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+FLOWO(I,J)
-          AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOWO(I,J)
           AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0*POICE*DXYP(J)
 c         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SALT*POICE*DXYP(J)
-
-          AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
-          AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POCEAN
-          AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POCEAN
-          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POCEAN
 
           IF (KOCEAN .EQ. 1) THEN
             WTRO=Z1O(I,J)*RHOW
@@ -920,40 +895,20 @@ C**** Calculate the amount of ice formation
 C**** Resave prognostic variables
             TOCEAN(1,I,J)=TGW
 C**** Open Ocean diagnostics
-            AJ(J,J_TG2  ,ITOCEAN)=AJ(J,J_TG2  ,ITOCEAN)+TOCEAN(2,I,J)
-     *           *POCEAN
             AJ(J,J_OHT  ,ITOCEAN)=AJ(J,J_OHT  ,ITOCEAN)+OTDT  *POCEAN
             AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4O *POCEAN
             AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4O*POCEAN
-            AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-ACEFO *POCEAN
-            AJ(J,J_HMELT,ITOCEAN)=AJ(J,J_HMELT,ITOCEAN)-ENRGFO*POCEAN
-            AJ(J,J_SMELT,ITOCEAN)=AJ(J,J_SMELT,ITOCEAN)-SSI0*ACEFO
-     *           *POCEAN
 C**** Ice-covered ocean diagnostics
             AJ(J,J_OHT  ,ITOICE)=AJ(J,J_OHT  ,ITOICE)+OTDT  *POICE
             AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4I *POICE
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
-            AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-ACE2F *POICE
-            AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGFI*POICE
-            AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)-SSI0*ACE2F*POICE
 C**** regional diagnostics
-            AREG(JR,J_TG2)=AREG(JR,J_TG2)+TOCEAN(2,I,J)*FOCEAN(I,J)
-     *             *DXYPJ
             AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+
      *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
             AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+
      *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
-            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
-     *             (ACEFO *POCEAN+ACE2F *POICE)*DXYPJ
-            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
-     *             (ENRGFO*POCEAN+ENRGFI*POICE)*DXYPJ
-            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
-     *             SSI0*(ACEFO*POCEAN+ACE2F *POICE)*DXYPJ
-            AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
           ELSE
             ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
-            AJ(J,J_TG2,ITOCEAN)  =AJ(J,J_TG2,ITOCEAN)  +TGW   *POCEAN
-            IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW*POCEAN*DXYPJ
           END IF
 
 C**** Store mass and energy fluxes for formation of sea ice

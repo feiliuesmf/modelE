@@ -30,12 +30,14 @@ C**** Interface to PBL
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
-     *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
-     *     ,ijdd,idd_spr,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts
-     *     ,idd_tg1,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg
-     *     ,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
-     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
-     *     ,idd_eds,idd_dbl,idd_ev,idd_ldc,idd_dcf
+     *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
+     *     ,ij_f0oi,ij_evap,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt
+     *     ,j_tsrf,j_shdt,j_trhdt,j_type,j_tg1,j_tg2,ijdd,idd_spr
+     *     ,idd_pt5,idd_pt4,idd_pt3,idd_pt2,idd_pt1,idd_ts,idd_tg1
+     *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
+     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
+     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
+     *     ,idd_ev,idd_ldc,idd_dcf
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
@@ -80,7 +82,7 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: S1BYG1 = BYRT3,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
-      REAL*8 AREGIJ(3,IM,JM,5)
+      REAL*8 AREGIJ(7,3,IM,JM)
 c
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -115,7 +117,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
 C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
-      AREGIJ = 0.0D0
+      AREGIJ = 0.
 #ifdef TRACERS_WATER
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
@@ -249,6 +251,7 @@ C****
       PTYPE=POCEAN
       IF (PTYPE.gt.0) THEN
       TG1=GTEMP(1,1,I,J)
+      TG2=GTEMP(2,1,I,J)   ! diagnostic only
       IF (FLAKE(I,J).gt.0) THEN
 C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*DXYP(J)) THEN
@@ -579,11 +582,16 @@ C**** Limit heat fluxes out of lakes if near minimum depth
 C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE
 C****
+        AJ(J,J_EVAP ,IDTYPE)=AJ(J,J_EVAP ,IDTYPE)+ EVAP*PTYPE
         AJ(J,J_EVHDT,IDTYPE)=AJ(J,J_EVHDT,IDTYPE)+EVHDT*PTYPE
-        AJ(J,J_SHDT ,IDTYPE)=AJ(J,J_SHDT ,IDTYPE)+SHDT *PTYPE
+        AJ(J,J_SHDT ,IDTYPE)=AJ(J,J_SHDT ,IDTYPE)+ SHDT*PTYPE
         AJ(J,J_TRHDT,IDTYPE)=AJ(J,J_TRHDT,IDTYPE)+TRHDT*PTYPE
-        IF(MODDSF.EQ.0)
-     *       AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
+        IF(MODDSF.EQ.0) THEN
+          AJ(J,J_TSRF,IDTYPE)=AJ(J,J_TSRF,IDTYPE)+(TS-TF)*PTYPE
+          AJ(J,J_TYPE,IDTYPE)=AJ(J,J_TYPE,IDTYPE)+        PTYPE
+          AJ(J,J_TG1 ,IDTYPE)=AJ(J,J_TG1 ,IDTYPE)+    TG1*PTYPE
+          AJ(J,J_TG2 ,IDTYPE)=AJ(J,J_TG2 ,IDTYPE)+    TG2*PTYPE
+        END IF
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
 CCC     AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+TRHDT*PTYPE*DXYP(J)
 CCC     AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+SHDT *PTYPE*DXYP(J)
@@ -591,19 +599,16 @@ CCC     AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
 CCC     AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
 CCC     IF(MODDSF.EQ.0)
 CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-        AREGIJ(ITYPE,I,J,1)=TRHDT*PTYPE*DXYP(J)
-        AREGIJ(ITYPE,I,J,2)=SHDT *PTYPE*DXYP(J)
-        AREGIJ(ITYPE,I,J,3)=EVHDT*PTYPE*DXYP(J)
-        AREGIJ(ITYPE,I,J,4)=EVAP *PTYPE*DXYP(J)
-        IF(MODDSF.EQ.0)
-     *       AREGIJ(ITYPE,I,J,5)=(TS-TF)*PTYPE*DXYP(J)
-C
-        IF (PLICE.gt.0) THEN
-          AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
-          AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
-          AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)+EVHDT
-          AIJ(I,J,IJ_TRHDT)=AIJ(I,J,IJ_TRHDT)+TRHDT
+        AREGIJ(1,ITYPE,I,J)=TRHDT*PTYPE*DXYP(J)
+        AREGIJ(2,ITYPE,I,J)=SHDT *PTYPE*DXYP(J)
+        AREGIJ(3,ITYPE,I,J)=EVHDT*PTYPE*DXYP(J)
+        AREGIJ(4,ITYPE,I,J)=EVAP *PTYPE*DXYP(J)
+        IF(MODDSF.EQ.0) THEN
+          AREGIJ(5,ITYPE,I,J)=(TS-TF)*PTYPE*DXYP(J)
+          AREGIJ(6,ITYPE,I,J)=    TG1*PTYPE*DXYP(J)
+          AREGIJ(7,ITYPE,I,J)=    TG2*PTYPE*DXYP(J)
         END IF
+C
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDT*PTYPE
         IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDT
@@ -611,8 +616,9 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHEAT*DTSURF+TRHDT)*PTYPE
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHEAT*DTSURF+TRHDT+SHDT
      *       +EVHDT)*PTYPE
+        AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*PTYPE
         IF(MODDSF.EQ.0) THEN
-          AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WS*PTYPE ! added 12/29/96 -rar-
+          AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WS*PTYPE
           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+US*PTYPE
           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VS*PTYPE
@@ -620,6 +626,7 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*US*PTYPE
           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*VS*PTYPE
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QS*PTYPE
+          AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
         END IF
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
@@ -680,22 +687,34 @@ C**** Save surface tracer concentration whether calculated or not
       end do
 #endif
 C****
-C**** SAVE SOME TYPE DEPENDENT FLUXES
+C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
 C****
       SELECT CASE (ITYPE)
       CASE (1)  ! ocean
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
+        IF (MODDSF.eq.0) AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
+        AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
+        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +F0DT
+     *       *PTYPE
 C****
       CASE (2)  ! seaice
         IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
         OA(I,J,9)=OA(I,J,9)+TRHDT
         OA(I,J,10)=OA(I,J,10)+SHDT
         OA(I,J,11)=OA(I,J,11)+EVHDT
+        AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*PTYPE
+        AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*PTYPE
 C****
       CASE (3) ! land ice
         IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
+        IF (MODDSF.eq.0) AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
+        AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
+        AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)+EVHDT
+        AIJ(I,J,IJ_TRHDT)=AIJ(I,J,IJ_TRHDT)+TRHDT
+        AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+F0DT
+        AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+EVAP
 C****
       END SELECT
 C****
@@ -706,20 +725,22 @@ C****
 
       END DO   ! end of J loop
 C$OMP  END PARALLEL DO
-C
-      DO 825 J=1,JM
-      DO 825 I=1,IMAXJ(J)
-         JR=JREG(I,J)
-         DO 820 K=1,3
-            AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+AREGIJ(K,I,J,1)
-            AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+AREGIJ(K,I,J,2)
-            AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+AREGIJ(K,I,J,3)
-            AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+AREGIJ(K,I,J,4)
-            IF(MODDSF.EQ.0)
-     *         AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(K,I,J,5)
-  820    CONTINUE
-  825 CONTINUE
-C
+
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        JR=JREG(I,J)
+        DO K=1,3
+          AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+AREGIJ(1,K,I,J)
+          AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+AREGIJ(2,K,I,J)
+          AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+AREGIJ(3,K,I,J)
+          AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+AREGIJ(4,K,I,J)
+          IF(MODDSF.EQ.0)
+     *         AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(5,K,I,J)
+          AREG(JR,J_TG1)=AREG(JR,J_TG1)+AREGIJ(6,K,I,J)
+          AREG(JR,J_TG2)=AREG(JR,J_TG2)+AREGIJ(7,K,I,J)
+        END DO
+      END DO
+      END DO
 C****
 C**** EARTH
 C****

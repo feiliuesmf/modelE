@@ -433,8 +433,12 @@ C**** Set FTYPE array for lakes
             FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
             FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
-c            GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J))
-c     *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
+            IF (MWL(I,J).gt.MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J)) THEN
+              GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J)
+     *             )/((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
+            ELSE
+              GTEMP(2,1,I,J)=TLAKE(I,J)
+            END IF
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
@@ -601,7 +605,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,shw,rhow,teeny
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,ftype
+     *     ,ftype,itocean,itoice
       USE GEOM, only : dxyp,bydxyp
       USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
@@ -614,12 +618,13 @@ C****
      *     ,trflowo,gtracer
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
 #endif
-      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,aj,areg,jreg,j_rvrd,j_ervr
+      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
+     *     ,j_ervr
       IMPLICIT NONE
 
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
-      REAL*8 MWLSILL,DMM,DGM,HLK1
+      REAL*8 MWLSILL,DMM,DGM,HLK1,POICE
       REAL*8, DIMENSION(IM,JM) :: FLOW,EFLOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
@@ -680,7 +685,22 @@ c              END IF
 #ifdef TRACERS_WATER
                 TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
 #endif
+C**** accumulate river runoff diags (moved from ground)
+                POICE=RSI(ID,JD)*FOCEAN(ID,JD)
+                AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
+     *               (1.-POICE)*DMM*BYDXYP(JD)
+                AJ(JD,J_ERVR,ITOCEAN)=AJ(JD,J_ERVR,ITOCEAN)+
+     *               (1.-POICE)*DGM*BYDXYP(JD)
+                AJ(JD,J_RVRD,ITOICE)=AJ(JD,J_RVRD,ITOICE) +
+     *               POICE*DMM*BYDXYP(JD)
+                AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
+     *               POICE*DGM*BYDXYP(JD)
+                AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
+     *               DGM*FOCEAN(ID,JD)*BYDXYP(JD) 
               END IF
+              JR=JREG(ID,JD)
+              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
+              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM
             END IF
           END IF
         END DO
@@ -757,9 +777,6 @@ C**** accounting fix to ensure river flow with no lakes is counted
               AJ(J,J_ERVR,ITLAKE)=AJ(J,J_ERVR,ITLAKE)+EFLOW(I,J)
      *             *BYDXYP(J)
             END IF
-            JR=JREG(I,J)
-            AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+FLOW(I,J)
-            AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOW(I,J)
           END IF
         END DO
       END DO
@@ -787,9 +804,6 @@ C**** accumulate some diagnostics
         AJ(1,J_RVRD,ITLAKE)=AJ(1,J_RVRD,ITLAKE)+ FLOW(1,1)*BYDXYP(1)
         AJ(1,J_ERVR,ITLAKE)=AJ(1,J_ERVR,ITLAKE)+EFLOW(1,1)*BYDXYP(1)
       END IF
-      JR=JREG(1,1)
-      AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+FLOW(1,1)
-      AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+EFLOW(1,1)
       
       CALL PRINTLK("RV")
 C**** Set FTYPE array for lakes
@@ -1063,10 +1077,10 @@ C**** Melt too small lake ice
      *         ENRGUSED,RUN0,SALT)
 C**** SALT always 0 for lakes
 C**** accumulate diagnostics
-          AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)-ENRGUSED*RSI(I,J)
-          AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+    RUN0*RSI(I,J)
-          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*RSI(I,J)*DXYP(J)
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*RSI(I,J)*DXYP(J)
+          AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)-ENRGUSED
+          AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+    RUN0
+          AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
+          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
 C**** RESAVE PROGNOSTIC QUANTITIES
           GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
           MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0
@@ -1137,7 +1151,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trunpsi,trunoli,trprec,gtracer
 #endif
-      USE DAGCOM, only : aj,aij,ij_f0oc,j_run,j_imelt
+      USE DAGCOM, only : aj,j_run
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
@@ -1156,11 +1170,6 @@ C****
         PLICE=FLICE(I,J)
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)        ! energy of precipitation
-
-C**** save diagnostics
-        IF (FLAKE(I,J).gt.0) THEN
-          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POLAKE
-        END IF
 
 C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
@@ -1184,8 +1193,6 @@ C**** calculate fluxes over whole box
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *DXYP(J))
 #endif
-          AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)+PLKICE*RUNPSI(I,J)
-c       AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)+PLKICE*ERUNPSI(I,J)
           AJ(J,J_RUN,ITLAKE) =AJ(J,J_RUN,ITLAKE) -PLICE*RUNOLI(I,J)
      *         *(1.-RSI(I,J))
           AJ(J,J_RUN,ITLKICE)=AJ(J,J_RUN,ITLKICE)-PLICE*RUNOLI(I,J)
@@ -1220,9 +1227,8 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : ustar
-      USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_tg1,j_tg2,j_evap
-     *     ,j_oht,j_imelt,j_hmelt,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type
-     *     ,j_wtr1,j_wtr2,j_run,j_erun
+      USE DAGCOM, only : aj,areg,jreg,j_imelt,j_hmelt,j_wtr1,j_wtr2
+     *     ,j_run,j_erun 
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -1327,17 +1333,6 @@ C**** calculate kg/m^2, J/m^2 from saved variables
 C**** Limit FSR2 in the case of thin second layer
         FSR2=MIN(FSR2,MLAKE(2)/(MLAKE(1)+MLAKE(2)))
 
-        AJ(J,J_TG1, ITLAKE) =AJ(J,J_TG1, ITLAKE) +TLK1 *POLAKE
-        AJ(J,J_EVAP,ITLAKE) =AJ(J,J_EVAP,ITLAKE) +EVAPO*POLAKE
-        AJ(J,J_TYPE,ITLAKE) =AJ(J,J_TYPE,ITLAKE) +      POLAKE
-        AJ(J,J_TYPE,ITLKICE)=AJ(J,J_TYPE,ITLKICE)+      PLKICE
-        AREG(JR,J_TG1) =AREG(JR,J_TG1) +TLK1 *POLAKE*DXYP(J)
-        AREG(JR,J_EVAP)=AREG(JR,J_EVAP)+EVAPO*POLAKE*DXYP(J)
-        AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TLK1
-        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TLK1 *POLAKE
-        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
-        AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POLAKE
-
 C**** Apply fluxes and calculate the amount of frazil ice formation
         CALL LKSOURC (I,J,ROICE,MLAKE,ELAKE,RUN0,F0DT,F2DT,SROX,FSR2,
 #ifdef TRACERS_WATER
@@ -1378,29 +1373,17 @@ C**** Resave prognostic variables
         GTRACER(:,1,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
 #endif
         GTEMP(1,1,I,J)=TLAKE(I,J)
-        GTEMP(2,1,I,J)=TLK2       ! not used
+        GTEMP(2,1,I,J)=TLK2       ! diagnostic only
 
 C**** Open lake diagnostics
-        AJ(J,J_TG2,  ITLAKE)=AJ(J,J_TG2,  ITLAKE)+TLK2    *POLAKE
         AJ(J,J_WTR1, ITLAKE)=AJ(J,J_WTR1, ITLAKE)+MLAKE(1)*POLAKE
         AJ(J,J_WTR2, ITLAKE)=AJ(J,J_WTR2, ITLAKE)+MLAKE(2)*POLAKE
-        AJ(J,J_IMELT,ITLAKE)=AJ(J,J_IMELT,ITLAKE)-ACEFO   *POLAKE
-        AJ(J,J_HMELT,ITLAKE)=AJ(J,J_HMELT,ITLAKE)-ENRGFO  *POLAKE
-
-        AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
 C**** Ice-covered ocean diagnostics
         AJ(J,J_WTR1, ITLKICE)=AJ(J,J_WTR1, ITLKICE)+MLAKE(1)*PLKICE
         AJ(J,J_WTR2, ITLKICE)=AJ(J,J_WTR2, ITLKICE)+MLAKE(2)*PLKICE
-        AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)-ACEFI   *PLKICE
-        AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)-ENRGFI  *PLKICE
 C**** regional diags
-        AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLK2*POLAKE*DXYP(J)
         AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
         AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-(ACEFO *POLAKE+ACEFI *PLKICE)
-     *       *DXYP(J)
-        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-(ENRGFO*POLAKE+ENRGFI*PLKICE)
-     *       *DXYP(J)
 
 C**** Store mass and energy fluxes for formation of sea ice
         DMSI(1,I,J)=ACEFO
