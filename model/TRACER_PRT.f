@@ -428,7 +428,7 @@ C****
       if (to_per_mil(n).gt.0) then
 C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         scalet = 1.
-        jtpow = 3. !Note for chemical tracers, may mess up isotopes?
+        jtpow = 0. 
         do l=1,lm
         do j=1,jm
         if (tajln(j,l,k,n_water).gt.0) then

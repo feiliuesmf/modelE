@@ -55,7 +55,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER I
       REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
-      REAL*8, DIMENSION(LS1+1) :: SRCLIGHT
+      REAL*8, DIMENSION(LM) :: SRCLIGHT
       
 !@var HGT Pickering vertical lightning distributions (1998)
       REAL*8 HGT(2,2,16)
@@ -515,7 +515,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_SOURCES, only: nLightning
       USE LIGHTNING, only     : HGT,JS,JN,SRCLIGHT,RNOx_lgt
       USE CONSTANT, only      : bygrav
-      USE MODEL_COM, only     : fland,IM,JM,LS1
+      USE MODEL_COM, only     : fland,IM,JM,LS1,LM
       USE DYNAMICS, only      : LTROPO, PHI
       USE GEOM, only          : BYDXYP
 c
@@ -525,18 +525,17 @@ C**** Local parameters and variables and arguments:
 c
 !@var LATINDX Pickering latitude index
 !@var LANDINDX Pickering surface type index
-!@var IH Picjering altitude index
-!@var HEIGHT Picjering HGT variable specific to I,J,L, point
+!@var IH Pickering altitude index
+!@var HEIGHT Pickering HGT variable specific to I,J,L, point
 !@var LEVTROP local variable to hold the tropopause level
 !@var ALTTROP altitude of tropopause
 !@var ALTTOP altitude at the top of ?
 !@var I,J,L loop indicies in x,y,z directions
-!@var GCMHT altitude of gcm levels
 !@param pmin2psec to convert from min-1 to sec-1
       REAL*8, PARAMETER :: pmin2psec = 1.D0/60.D0
       INTEGER LATINDX,LANDINDX,IH,LEVTROP,I,J,L
       REAL*8, DIMENSION(16) :: HEIGHT
-      REAL*8 :: ALTTROP,ALTTOP,GCMHT
+      REAL*8 :: ALTTROP,ALTTOP
 c
       DO J=1,JM
       DO I=1,IM
@@ -562,13 +561,11 @@ C****    Store local tropopause
          ALTTROP=PHI(I,J,LEVTROP)*BYGRAV*1.D-3
          IF(ALTTROP.EQ.0.) GOTO 1510
 C****    Zero source accumulator
-         SRCLIGHT = 0. ! 1 to LS1+1 levels
+         SRCLIGHT = 0. ! 1 to LM levels
 C        Determine which GCM level the height belongs to
          DO 1505 IH=1,16
            L=1
  1502      continue
-           GCMHT=PHI(I,J,L)*BYGRAV*1.D-3
-           IF(ALTTROP.LT.GCMHT)GCMHT=ALTTROP
            ALTTOP=
      &     (PHI(I,J,L)+(PHI(I,J,L+1)-PHI(I,J,L))*.5)*BYGRAV*1.D-3
 c          RNOx_lgt is gN/min added per grid box (lightning NOx):
@@ -588,11 +585,15 @@ c          RNOx_lgt is gN/min added per grid box (lightning NOx):
  1505    continue
  1510    continue    
 C        save tracer 3D source. convert from gN/min to kgN/s :
-         DO L=1,LS1+1
+         DO L=1,LEVTROP
            tr3Dsource(I,J,L,nLightning,n_NOx) = 
      &     SRCLIGHT(L)*pmin2psec*1.d-3
          END DO
-      END DO ! I
+         DO L=LEVTROP+1,LM
+            tr3Dsource(I,J,LEVTROP,nLightning,n_NOx) = tr3Dsource(I,J
+     $       ,LEVTROP,nLightning,n_NOx) + SRCLIGHT(L)*pmin2psec*1.d-3
+         END DO
+      END DO                    ! I
       END DO ! J
          
 C
@@ -1147,7 +1148,7 @@ c
       log75=LOG(75.d0)
       log569=LOG(569.d0)
 c 
-      DO L=1,LM-1  ! is this right?????
+      DO L=1,LM-1
         IF(LOGP(L).gt.log75 .and. LOGP(L+1).lt.log75) THEN
           L75P=L+1 ! these are for FACT1 variable in strat overwrite
           L75M=L   ! hence effects several tracers

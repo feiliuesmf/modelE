@@ -642,9 +642,8 @@ c**** Interpolate two months of data to current day
       USE GEOM, only : dxyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE DYNAMICS, only : am
-      USE FLUXES, only : gtracer,trsource
+      USE FLUXES, only : gtracer
       USE TRACER_COM
-      USE TRACER_SOURCES, only: CO_src
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
@@ -653,8 +652,6 @@ c**** Interpolate two months of data to current day
       CHARACTER*6, INTENT(IN) :: SUBR
 
 
-      print*,"COsrcSP: After ",SUBR,trname(9),CO_src(1,1,1:2),trsource(1
-     $     ,1,1:2,9)
       CALL CHECK3(gtracer(1,1,1,1),NTM,4,IM*JM,SUBR,'GTRACE')
       do n=1,ntm
         CALL CHECK3(trmom(1,1,1,1,n),NMOM,IM,JM*LM,SUBR,

@@ -621,7 +621,7 @@ C****
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -2.
+        jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -959,7 +959,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -1058,7 +1058,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -1090,7 +1090,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -1122,7 +1122,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -1168,7 +1168,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -1208,7 +1208,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY IN TROPOSHPERE'
         jls_ltop(k) = LS1-1
-        jls_power(k) = -1.
+        jls_power(k) = 0.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(2,n) = k
@@ -2410,7 +2410,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('N2O5')
-      kt_power_change(n) = -13
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2500,7 +2500,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CH3OOH')
-      kt_power_change(n) = -15
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2530,7 +2530,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('HCHO')
-      kt_power_change(n) = -15
+      kt_power_change(n) = -14
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -2656,7 +2656,7 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Isoprene')
-      kt_power_change(n) = -14
+      kt_power_change(n) = -13
       scale_change(n) = 10d0**(-kt_power_change(n))
       sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       itcon_3Dsrc(1,N) = 13
@@ -3626,7 +3626,6 @@ C**** at the start of any day
       bydt = 1./DTsrc
 C**** All sources are saved as kg/s
       do n=1,ntm
-
       if (itime.lt.itime_tr0(n)) cycle
       select case (trname(n))
 

@@ -337,17 +337,16 @@ c
 c
 c        Set N2O5 to equilibrium when necessary (near ground,
 c        N2O5 is thermally unstable, has a very short lifetime)
-         if(igas.eq.n_N2O5.and.-dest(igas,L).ge.y(n_N2O5,L))then
+         if(igas.eq.n_N2O5.and.-dest(igas,L).ge.y(n_N2O5,L)*0.75)then
            rnewval=(rr(52,L)*y(nNO3,L)*y(nNO2,L))/
      &     (rr(46,L)*y(nM,L)+ss(7,L,I,J))
            if(rnewval.lt.1.)rnewval=1.
            change(I,J,L,igas)=(rnewval-y(n_N2O5,L))*dxyp(J)*AM(L,I,J)*
      &     bymass2vol(igas)/y(nM,L)
-c          endif
          endif
 c
 c        Conserve NOx with respect to N2O5
-         if(igas.eq.n_NOx.and.-dest(n_N2O5,L).ge.y(n_N2O5,L))then
+         if(igas.eq.n_NOx.and.-dest(n_N2O5,L).ge.y(n_N2O5,L)*0.75)then
           rnewval=(rr(52,L)*y(nNO3,L)*y(nNO2,L))/
      &    (rr(46,L)*y(nM,L)+ss(7,L,I,J))
           change(I,J,L,igas)=
