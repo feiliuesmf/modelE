@@ -8518,7 +8518,7 @@ C
       write(kw,6213) snow_frac(1),snow_frac(2),agesn(1),
      +  agesn(2),agesn(3),wearth,fulgas(4),fulgas(5),fulgas(10)
  6213 FORMAT(1X,'FSNWds=',F6.4,' FSNWvg=',F6.4,'  AGESN=[EA:',F6.3,
-     +      ' LI:',F6.3,' OI:',F6.3,'] WEARTH=',F6.4,1X,
+     +      ' OI:',F6.3,' LI:',F6.3,'] WEARTH=',F6.4,1X,
      +      ' FULGAS[ 4=O2:',F3.1,' 5=NO2:',F3.1,' 10=N2C:',F3.1,']')
       WRITE(KW,6209) (PRNB(1:2,I),PRNX(1:2,I),I=1,4),BXA(1:3)
       WRITE(KW,6210)
