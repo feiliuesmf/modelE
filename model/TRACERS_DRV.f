@@ -37,13 +37,11 @@
       USE SEAICE_COM, only : trsi0
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RADNCB, ONLY : O3_tracer_save
-      USE GEOM, only: bydxyp
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,
      &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
-     &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,byO3MULT
+     &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt
@@ -325,7 +323,6 @@ C**** Get solar variability coefficient from namelist if it exits
            OxICINL(:)=OxICIN(I,J,:)
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)
-           O3_tracer_save(:,i,j)=OxIC(I,J,:)*byO3MULT*bydxyp(j)
           end do     ; end do
 c         read stratospheric correction from files:
           call openunit('Ox_corr',iu_data,.true.,.true.)
@@ -4950,8 +4947,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
+      USE RADNCB, ONLY : O3_tracer_save
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM
-     &  ,COalt,JCOlat,OxIC
+     &  ,COalt,JCOlat,OxIC,byO3MULT
 #ifdef SHINDELL_STRAT_CHEM
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt
 #endif
@@ -5250,6 +5248,7 @@ c**** earth
         case ('Ox')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(I,J,L,n) = OxIC(I,J,L)
+            O3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*bydxyp(j)
           end do   ; end do   ; end do
 #endif
 #ifdef regional_Ox_tracers
