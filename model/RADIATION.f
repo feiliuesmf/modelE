@@ -81,8 +81,8 @@ C     BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
      * 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001
      *     /)
 
-!@var AHMZOI IceAlb half-max at ice depth=1/AHMZOI m (original version)
-      real*8 :: AHMZOI=10.
+!@var ASHZOI,ANHZOI hemisph.Ice Albedo half-max depth (m) (orig.version)
+      real*8 :: ASHZOI=.1d0, ANHZOI=.1d0
 !@var ASNALB snow albedo (original version)
 !@var AOIALB seaice albedo (original version)
 !@var ALIALB land ice albedo (original version)
@@ -117,7 +117,7 @@ C          SH EA   SH OC   SH LI   NH EA   NH OC   NH LI
 !@var ASNwet wet snow albedo (Hansen)
 !@var ASNdry dry snow albedo (Hansen)
 !@var AMPmin min melt pond albedo (Hansen)
-      real*8, parameter ::
+      real*8 ::
 C                         VIS   NIR1   NIR2   NIR3   NIR4   NIR5
      *     AOImin(6)=(/ .05d0, .05d0, .05d0, .050d0, .05d0, .03d0/),
      *     AOImax(6)=(/ .62d0, .42d0, .30d0, .120d0, .05d0, .03d0/),
@@ -804,12 +804,12 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
      *  ),(/11,5/) )
 
 !nu   real*8, dimension(11) :: PI0VIS=(/
-C           1          2          3          4          5          6
-C         ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
+!nu         1          2          3          4          5          6
+!nu       ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
 !nu  1   1.00000,   1.00000,   1.00000,   1.00000,   0.98929,   0.95609,
-
-C           7          8          9         10         11
-C         DUST1      DUST2      DUST3      CARB1      CARB2
+!nu
+!nu         7          8          9         10         11
+!nu       DUST1      DUST2      DUST3      CARB1      CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
       real*8, dimension(10) ::
@@ -8198,7 +8198,7 @@ C
       INTEGER, INTENT(IN) :: INDEX
       CHARACTER*8 FTYPE
       CHARACTER*6 GHG
-      CHARACTER*3 TRABCD,TRAXSG
+      CHARACTER*3 TRABCD,TRAXSG,snotyp
       DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)
       DATA TRABCD/'TRA','TRB','TRC','TRD','TRE'/
       DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
@@ -8425,7 +8425,7 @@ C
      +      ,1X,'ZDSSRA=',  F3.1,1X,'KANORM=',  I4  ,' KPGRAD=',  I3
      +      ,1X,'ITR(3)=',    2I2,1X,'FSDAER=', F3.1,' FTDAER=',F3.1
      +      ,1X,'KWVCON=',    I1,1X,'ICE012=',    I1,' MLON72=',  I2)
- 6110 FORMAT(1X,'PTLISO=',  F6.1,1X,'ZCLSRA=obso'   ,' EVGTRA=',F3.1
+ 6110 FORMAT(1X,'PTLISO=',  F6.1,1X,'           '   ,' EVGTRA=',F3.1
      +      ,1X,'ZVGSRA=',  F3.1,1X,'KEEPRH=',  I4  ,' KLATZ0=',  I3
      +      ,1X,'ITR(4)=',    2I2,1X,'FSVAER=', F3.1,' FTVAER=',F3.1
      +      ,1X,'KSOLAR=',    I1,1X,'NORMS0=',    I1,'        ')
@@ -8504,18 +8504,22 @@ C
       TGMEAN=SQRT(TGMEAN)
       WRITE(KW,6203) (SUM0(I),I=1,3),(SUM0(I),I=6,9),SUM0(5)
      +               ,SUM0(10),SUM0(11),SUM0(12)
-      WRITE(KW,6204) POCEAN,TGO,AGESN(1),WMAG,SUM0(13),JYEAR
+      WRITE(KW,6204) POCEAN,TGO,PLAKE,LKDEPTH,SUM0(13),JYEAR
      +             ,BXA(4:5),LASTVC
-      WRITE(KW,6205) PEARTH,TGE,SNOWE,WEARTH,SUM0(14),JDAY,BXA(6:7)
-      WRITE(KW,6206) POICE,TGOI,SNOWOI,      SUM0(15),JLAT
+      WRITE(KW,6205) PEARTH,TGE,SNOWE,HSN,SUM0(14),JDAY,BXA(6:7)
+      WRITE(KW,6206) POICE,TGOI,SNOWOI,hin,  SUM0(15),JLAT
      +             ,(SRBALB(I),I=1,6)
-      WRITE(KW,6207) PLICE,TGLI,SNOWLI,FULGAS(10),SUM0(16),ILON
+      WRITE(KW,6207) PLICE,TGLI,SNOWLI,hmp,SUM0(16),ILON
      +             ,(SRXALB(I),I=1,6)
       PSUM=POCEAN+PEARTH+POICE+PLICE
-      WRITE(KW,6208) TGMEAN,FULGAS(4),FO3LON
-     +               ,PSUM,TSL,FULGAS(5),(PVT(I),I=1,11)
-      write(kw,*) 'hsn,hin,hmp,fmp, flags, LS1_loc',
-     * hsn,hin,hmp,fmp, flags, LS1_loc
+      snotyp='DRY' ; if(flags) snotyp='WET'
+      WRITE(KW,6208) TGMEAN,snotyp,fmp
+     +               ,PSUM,TSL,WMAG,LS1_loc,(PVT(I),I=1,11)
+      write(kw,6213) snow_frac(1),snow_frac(2),agesn(1),
+     +  agesn(2),agesn(3),wearth,fulgas(4),fulgas(5),fulgas(10)
+ 6213 FORMAT(1X,'FSNWds=',F6.4,' FSNWvg=',F6.4,'  AGESN=[EA:',F6.3,
+     +      ' LI:',F6.3,' OI:',F6.3,'] WEARTH=',F6.4,1X,
+     +      ' FULGAS[ 4=O2:',F3.1,' 5=NO2:',F3.1,' 10=N2C:',F3.1,']')
       WRITE(KW,6209) (PRNB(1:2,I),PRNX(1:2,I),I=1,4),BXA(1:3)
       WRITE(KW,6210)
  6201 FORMAT(' (2) RADCOM G/L: (Input Data)'
@@ -8530,29 +8534,29 @@ C
      +      ,F7.4,1P,3E8.1,0P,2F5.1,F6.2,F5.2,1X,F4.3,F6.3,I5)
  6203 FORMAT(24X,' Column Amount',F7.1,F7.2,1X,F6.5
      +       ,1X,F5.4,F7.4,1P,3E8.1,0P,10X,F6.2,F5.2,5X,F6.3)
- 6204 FORMAT( 1X,'POCEAN=',F6.4,'    TGO=' ,F6.2,1X,' AGESN=',F6.3
-     +      , 1X,'  WMAG=',F6.3,' TRACER 1=',F5.3,' JYEAR=',I4
+ 6204 FORMAT( 1X,'PWATER=',F6.4,'    TGO=' ,F6.2,1X,' PLAKE=',F6.3
+     +      , 1X,' ZLAKE=',F6.3,' TRACER 1=',F5.3,' JYEAR=',I4
      +      , 3X,'BSNVIS=',F6.4,' BSNNIR=' ,F6.4,7X,'LASTVC=',I7)
  6205 FORMAT(    ' PEARTH=',F6.4,'    TGE=',F6.2,'  SNOWE=',F6.3
-     +      ,    ' WEARTH=',F6.3,'  Sums: 2=',F5.3
+     +      ,    '  ZSNOW=',F6.3,'  Sums: 2=',F5.3
      +      ,     '  JDAY=',I4  ,2X,' XSNVIS=',F6.4,' XSNNIR=',F6.4
      +      , 8X,'NIRALB VISALB')
  6206 FORMAT(    '  POICE=',F6.4,'   TGOI=',F6.2,' SNOWOI=',F6.3
-     +      ,                14X,'        3=',F5.3
+     +      ,    '  ZOICE=',F6.3,'        3=',F5.3
      +      ,     '  JLAT=',I4,  2X,' SRBALB=',F6.4
      +      ,4F7.4,F7.4)
  6207 FORMAT(    '  PLICE=',F6.4,'   TGLI=',F6.2,' SNOWLI=',F6.3
-     +      ,    ' FULGAS_N2C=',F3.1,'       4=',F5.3
+     +      ,    '  ZMLTP=',F6.3,'        4=',F5.3
      +      ,     '  ILON=',I4,  2X,' SRXALB=',F6.4
      +      ,4F7.4,F7.4)
- 6208 FORMAT(8X,6('-'),' TGMEAN=',F6.2,' FULGAS_O2=',F3.1,'     FO3LON='
-     +      ,F3.1,' BSAND TUNDRA GRASSL SHRUBS  TREES DECIDF'
+ 6208 FORMAT(8X,6('-'),' TGMEAN=',F6.2,'    SNOW : ',a3,'  FMLTP='
+     +      ,F6.3,'  BSAND TUNDRA GRASSL SHRUBS  TREES DECIDF'
      +       ,' EVERGF','  RAINF','  CROPS','  BDIRT','  ALGAE'
-     +      /    '   PSUM=',F6.4,'    TSL=',F6.2,' FULGASNO2=',F3.1
-     +       ,9X,T54,'PVT=',F6.4,10F7.4)
- 6209 FORMAT(' BOCVIS BOCNIR XOCVIS XOCNIR]BEAVIS BEANIR XEAVIS XEANIR'
-     +      ,'|BOIVIS BOINIR XOIVIS XOINIR]BLIVIS BLINIR XLIVIS XLINIR'
-     +      ,'|EXPSNE]EXPSNO]EXPSNL'/1X,F6.4,18F7.4)
+     +      /    '   PSUM=',F6.4,'    TSL=',F6.2,' WINDSP=',F6.3
+     +       ,'  LS1L=',I2,T54,'PVT=',F6.4,10F7.4)
+ 6209 FORMAT(' BOCVIS BOCNIR XOCVIS XOCNIR BEAVIS BEANIR XEAVIS XEANIR'
+     +      ,' BOIVIS BOINIR XOIVIS XOINIR BLIVIS BLINIR XLIVIS XLINIR'
+     +      ,' EXPSNE EXPSNO EXPSNL'/1X,F6.4,18F7.4)
  6210 FORMAT(' ')
  6211 FORMAT(1X,I2,F7.2,F5.1,F7.2,F5.1,1X,F7.6,I3
      +      ,F8.5,F6.2,1X,F6.5,1X,F5.4
@@ -11805,10 +11809,10 @@ C**** output
       implicit none
       integer K,J,I,L,JH,IWM,JWM,ITOC,ITEA,ITOI,ITLI
       real*8 ASNAGE,FSNAGE,BOCSUM,BEASUM,BOISUM,BLISUM,AVSCUM,ANSCUM,WMJ
-     *     ,WMI,FRFOAM,AV,BV,WTOC,BOCM,BOCP,TRAPOC,BOCM1,BOCP1,BOC
-     *     ,DSFRAC,VGFRAC,SEAVIS,SEANIR,VTFRAC,WTEA,BEAM,BEAP,TRAPEA
-     *     ,BEAM1,BEAP1,BEA,WTOI,BOIM,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN
-     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO,FDZICE
+     *   ,WMI,FRFOAM,AV,BV,WTOC,BOCM,BOCP,TRAPOC,BOCM1,BOCP1,BOC
+     *   ,DSFRAC,VGFRAC,SEAVIS,SEANIR,VTFRAC,WTEA,BEAM,BEAP,TRAPEA
+     *   ,BEAM1,BEAP1,BEA,WTOI,BOIM,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN
+     *   ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO,FDZICE,AHMZOI
 
 C**** local variables for albedos for each surface type
       real*8 BOCVIS,BEAVIS,BOIVIS,BLIVIS,BOCNIR,BEANIR,BOINIR,BLINIR,
@@ -12119,7 +12123,7 @@ C
       DO K=1,NKBAND
         TRAPEA=AGSIDV(K,1)*(1.D0-EXPSNE)
      +        +AGSIDV(K,3)*DSFRAC*EDSTRA*(1.D0-WETTRA*WEARTH)
-     +        +AGSIDV(K,4)*VGFRAC
+     +        +AGSIDV(K,4)*VGFRAC*EVGTRA
         BEAM1 =(PLANCK(ITEA-1)-(PLANCK(ITEA-1)-PLANCK(ITEA  ))*WTEA)
      +       *(1.D0-TRAPEA)
         BEAM  =BEAM+BEAM1
@@ -12300,7 +12304,9 @@ C**** Set snow albedo over sea ice
       ENDIF
 
 C**** set ice albedo
-      FDZICE=AHMZOI*hin/(1.+AHMZOI*hin) ! hin = ZOICE = ice depth (m)
+      AHMZOI=ASHZOI
+      IF(JLAT.GT.JNORTH) AHMZOI=ANHZOI
+      FDZICE=hin/(hin+AHMZOI)   ! hin = ZOICE = ice depth (m)
       IF (KVEGA6.le.0) THEN     ! 2 band
       BOIVIS=FDZICE*AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
       BOINIR=FDZICE*AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
