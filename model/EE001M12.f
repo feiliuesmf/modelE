@@ -346,8 +346,8 @@ C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
       TEARTH(I,J)=TG1
       WEARTH(I,J)=1000.*( FB*GW(1,1)*(1.-FICE(1,1)) +
      +  FV*(GW(1,2)*(1.-FICE(1,2))+GW(0,2)*(1.-FICE(0,2))) )
-      AIEARTH(I,J)=1000.*(FB*(GW(1,1)*FICE(1,1)-SNOWD(1)) +
-     +  FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)-SNOWD(2)) )
+      AIEARTH(I,J)=1000.*( FB*GW(1,1)*FICE(1,1) +
+     +  FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)) )
             CALL RETP2 (TG2AV,WTR2AV,ACE2AV)
             GDEEP(I,J,1)=TG2AV
             GDEEP(I,J,2)=WTR2AV
