@@ -630,7 +630,7 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw,twopi,edpery,by3
+      USE CONSTANT, only : rhow,shw,twopi,edpery
       USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
@@ -650,8 +650,6 @@ C****
       IMPLICIT NONE
       INTEGER I,J,JR
       LOGICAL, INTENT(IN) :: end_of_day
-!@var FDAILY fraction of energy available to be used for melting
-      REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT,POCEAN
 #ifdef TRACERS_WATER

@@ -91,7 +91,7 @@ C****
 !@sum  DYNSI calculate ice velocites
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE CONSTANT, only : radian,twopi,rhoi,radius,rhow,grav
+      USE CONSTANT, only : radian,rhoi,radius,grav
       USE MODEL_COM, only : p,ptop,itime
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
@@ -99,7 +99,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
-     *     ,ratic,ricat,bydts,rsisave
+     *     ,ratic,ricat,bydts,rsisave,omega
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -121,7 +121,7 @@ C**** should be defined based on ocean grid
       REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,J,n,k,kki,ip1,im1,sumk,l
-      REAL*8 DOIN,USINP,DMUINP,RAT,duA,dvA
+      REAL*8 USINP,DMUINP,RAT,duA,dvA
 
 C**** set up initial parameters
       IF(IFIRST.gt.0) THEN
@@ -276,6 +276,13 @@ c          end if
           HEFF(I,J,1)=HEFF(I,J,1)*HEFFM(I,J)
         enddo
       enddo
+C**** fill in overlap regions
+      DO J=1,NY1
+       HEFF(1,J,1)=HEFF(NX1-1,J,1)
+       AREA(1,J,1)=AREA(NX1-1,J,1)
+       HEFF(NX1,J,1)=HEFF(2,J,1)
+       AREA(NX1,J,1)=AREA(2,J,1)
+      END DO
 
 C**** save current value of sea ice concentration for ADVSI
       RSISAVE(:,:)=RSI(:,:)
@@ -283,8 +290,8 @@ C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** OPRESS is on ocean grid
       DO J=1,JM
         DO I=1,IMAXJ(J)
-          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+
+     *         RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
         END DO
       END DO
       OPRESS(2:IM,1)  = OPRESS(1,1)
@@ -292,12 +299,13 @@ C**** OPRESS is on ocean grid
 
 C**** calculate sea surface tilt (incl. atmospheric pressure term)
 C**** on ocean velocity grid
+C**** PGF is an accelaration
       PGFU(1:IM,JM)=0
       DO J=2,JM-1
         I=IM   
         DO IP1=1,IM
           IF(LMU(I,J).gt.0. .and. RSI(I,J)+RSI(IP1,J).gt.0.) THEN
-            PGFU(I,J)=((OPRESS(IP1,J)-OPRESS(I,J))*BYRHOI
+            PGFU(I,J)=-((OPRESS(IP1,J)-OPRESS(I,J))*BYRHOI
      *           +OGEOZ(IP1,J)-OGEOZ(I,J))/DXPO(J)
           ELSE
             PGFU(I,J)=0. 
@@ -308,7 +316,7 @@ C**** on ocean velocity grid
       DO J=1,JM-1 
         DO I=1,IM 
           IF(LMV(I,J).gt.0. .and. RSI(I,J)+RSI(I,J+1).gt.0.) THEN
-            PGFV(I,J)=((OPRESS(I,J+1)-OPRESS(I,J))*BYRHOI
+            PGFV(I,J)=-((OPRESS(I,J+1)-OPRESS(I,J))*BYRHOI
      *           +OGEOZ(I,J+1)-OGEOZ(I,J))/DYVO(J)
           ELSE
             PGFV(I,J)=0. 
@@ -390,6 +398,17 @@ c**** interpolate air stress from A grid in atmos, to B grid in ocean
        GAIRY(nx1,j)=GAIRY(2,j)
       enddo
 
+C****
+C**** Set up mass per unit area and coriolis term
+C****
+      DO J=1,NY1-1
+      DO I=1,NX1-1
+        AMASS(I,J)=RHOI*0.25*(HEFF(I,J,1)
+     *       +HEFF(I+1,J,1)+HEFF(I,J+1,1)+HEFF(I+1,J+1,1))
+        COR(I,J)=AMASS(I,J)*2.0*OMEGA*SINEN(I,J)
+      END DO
+      END DO
+
 c**** read in sea ice velocity
       DO J=1,NY1
       DO I=1,NX1
@@ -400,14 +419,6 @@ c**** read in sea ice velocity
        UICE(I,J,3)=0.
        VICE(I,J,3)=0.
       END DO
-      END DO
-
-      DO J=1,NY1
-       HEFF(1,J,1)=HEFF(NX1-1,J,1)
-       AREA(1,J,1)=AREA(NX1-1,J,1)
-
-       HEFF(NX1,J,1)=HEFF(2,J,1)
-       AREA(NX1,J,1)=AREA(2,J,1)
       END DO
 
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
@@ -481,7 +492,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         end do
       end if
 
-      if (kki.eq.10) then
+      if (kki.eq.20) then
         write(6,*) "Too many iterations in DYNSI. kki:",kki,rms
       elseif (kki.eq.1 .or. rms.gt.0.01d0) then
         USAVE=UICE(:,:,1)
@@ -490,14 +501,13 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       end if
 
 C**** Calculate stress on ice velocity grid
-      doin=DTS
       DO J=1,NY1
         hemi=-1.
         if (J.gt.NY1/2) hemi=1.
         DO I=1,NX1
-          DMU(i,j)=doin*dwatn(i,j)*(COSWAT*(UICE(i,j,1)-GWATX(i,j))-
+          DMU(i,j)=DTS*dwatn(i,j)*(COSWAT*(UICE(i,j,1)-GWATX(i,j))-
      *         HEMI*SINWAT*(VICE(i,j,1)-GWATY(i,j)))
-          DMV(i,j)=doin*dwatn(i,j)*(HEMI*SINWAT*(UICE(i,j,1)-GWATX(i,j))
+          DMV(i,j)=DTS*dwatn(i,j)*(HEMI*SINWAT*(UICE(i,j,1)-GWATX(i,j))
      *         +COSWAT*(VICE(i,j,1)-GWATY(i,j)))
         END DO
       END DO
@@ -533,7 +543,6 @@ C**** Rescale DMVI to be net momentum into ocean
 
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
 C**** UI2rho = | tau |
-
       do j=1,jm
         do i=1,imaxj(j)
           UI2rho(i,j)=0
@@ -621,16 +630,6 @@ C*************************************************************
       REAL*8, DIMENSION(NX1,NY1) :: ZMAX,ZMIN
       INTEGER I,J
       REAL*8 AAA
-C****
-C**** Set up mass per unit area and coriolis term
-C****
-      DO J=1,NY1-1
-      DO I=1,NX1-1
-        AMASS(I,J)=RHOI*0.25*(HEFF(I,J,1)
-     1       +HEFF(I+1,J,1)+HEFF(I,J+1,1)+HEFF(I+1,J+1,1))
-        COR(I,J)=AMASS(I,J)*2.0*OMEGA*SINEN(I,J)
-      END DO
-      END DO
 C****
 C**** Set up non linear water drag
 C****
@@ -822,7 +821,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 
       SUBROUTINE RELAX(UICE,VICE,ETA,ZETA,DRAGS,DRAGA
      *     ,AMASS,FORCEX,FORCEY,UICEC,VICEC)
-!@sum  REALX calculates ice dynamics relaxation method
+!@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE CONSTANT, only : radius

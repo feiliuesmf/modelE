@@ -120,9 +120,6 @@ C**** Advection of Potential Enthalpy and Salt
           END DO
         END DO
 #endif
-C**** smooth OGEOZ to remove gridpoint noise
-        CALL OPFIL(OGEOZ,1)
-      
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S.EQ.0) CALL DIAGCA (11)
@@ -379,15 +376,14 @@ C****
 C****
       END SUBROUTINE init_OCEAN
 
-      SUBROUTINE daily_OCEAN(IEND)
+      SUBROUTINE daily_OCEAN(end_of_day)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : by3,shw
-      USE MODEL_COM, only : ftype,itoice,itocean
+      USE MODEL_COM, only : ftype,itoice,itocean,focean,imaxj
       USE GEOM, only : dxyp
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
-      USE OCEAN, only : im,jm,mo,g0m,s0m,focean,imaxj,dxypo
+      USE OCEAN, only : im,jm,mo,g0m,s0m,dxypo
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
@@ -403,7 +399,6 @@ C****
       USE ICEDYN, only : rsix,rsiy
 c      USE DAGCOM, only : aij,IJ_TGO2
       IMPLICIT NONE
-      REAL*8, PARAMETER :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 ROICE,TGW,GO1,SO1,MSI2,SNOW,ENRGW,ENRGUSED,RUN0,TFO,SALT
       REAL*8 TFREZS,TEMGS,GFREZS
@@ -411,11 +406,11 @@ c      USE DAGCOM, only : aij,IJ_TGO2
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
-      INTEGER, INTENT(IN) :: IEND
+      LOGICAL, INTENT(IN) :: end_of_day
       INTEGER I,J,JR
 
 C**** Only do this at end of the day
-      IF (IEND.eq.1) THEN
+      IF (end_of_day) THEN
 c        DO J=1,JM
 c          DO I=1,IM
 c            AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
@@ -3068,7 +3063,7 @@ C**** Done!
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : ftype,itocean,itoice
-      USE OCEAN, only : im,jm,g0m,s0m,mo,dxypo,focean,lmm
+      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
@@ -3089,7 +3084,7 @@ C****
 C**** Note that currently everything is on same grid
 C****
       DO J=1,JM
-        DO I=1,IM
+        DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             GO= G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
             SO= S0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
@@ -3115,6 +3110,19 @@ C**** set GTEMP array for ice as well (possibly changed by STADVI)
 #endif
           END IF
         END DO
+      END DO
+C**** do poles
+      DO I=2,IM
+        GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
+        SSS(I,JM)=SSS(1,JM)
+        MLHC(I,JM)=MLHC(1,JM)
+c       GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
+c       SSS(I,1)=SSS(1,1)
+c       MLHC(I,1)=MLHC(1,1)
+#ifdef TRACERS_OCEAN
+        GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
+c       GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
+#endif
       END DO
       RETURN
 C****

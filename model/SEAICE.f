@@ -641,7 +641,8 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       END IF
   270 CONTINUE
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2)) ! -BYZICX) sometime -ve!
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2))) ! -BYZICX) sometime -ve!
+      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.    ! no leads for h>5
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
@@ -670,7 +671,8 @@ C****
 C****
       END IF
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2))    ! -BYZICX)
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
+      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.    ! no leads for h>5
       IF (ROICE.gt.(1.-OPNOCN-1d-4)) THEN
         ROICEN = 1.-OPNOCN
         DRSI = ROICEN-ROICE ! > 0
@@ -978,8 +980,8 @@ C****  g  = u* / ( G_turb + G_mole )
       g_S = ustar / ( G_turb + G_mole_S )
 
 C**** set conductivity term
-C**** Diffusive flux is implicit in ice + ml temperature
-      rsg=rhow*shw*g_T   !/(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
+C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
+      rsg=rhow*shw*g_T    ! /(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
 c no salinity effects
       alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
 c S thermo 
@@ -1240,8 +1242,7 @@ C**** albedo calculations
      *     ,trsi
       USE TRACER_COM, only : ntm, trname
 #endif      
-
-      USE FLUXES, only : UI2rho
+      USE FLUXES
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -1291,6 +1292,10 @@ C**** Check for reasonable values for ice variables
           IF (SNOWI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,SNOWI(I,J)
             QCHECKI = .TRUE.
+          END IF
+          IF (MSI(I,J).gt.10000) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,MSI=',I,J,MSI(I,J),RSI(I,J)
+c            QCHECKI = .TRUE.
           END IF
         END DO
       END DO
