@@ -6715,6 +6715,7 @@ C
       SRDFLB(N)=0.D0
       SRUFLB(N)=0.D0
       SRFHRL(N)=0.D0
+      SKDFLB(N,16)=0.D0
       SKUFLB(N,16)=0.D0
    10 CONTINUE
 C                     TOA solar flux VIS/NIR subdivision
@@ -7037,8 +7038,6 @@ C
       TNX(N)=TANX
       XNB(N)=XANB
       XNX(N)=XANX
-      IF(K.GT.0) THEN
-      ENDIF
       IF(N.LT.NL) GO TO 200
 C
 C     Record fluxes, spectral components at TOA, & top-layer bottom edge
