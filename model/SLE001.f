@@ -100,7 +100,7 @@ c****
 
 ccc alai used in printout only
 
-      use constant, only : stbo,tfrz=>tf,sha,lhe
+      use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero
       implicit none
       save
       private
@@ -109,10 +109,10 @@ c**** public functions:
       public hl0, set_snow, reth, retp, advnc
 
 c**** public parameters:
-      public ngm,imt,nlsn  ! used by ghycom
+      public ngm,ng,imt,nlsn  ! used by ghycom
 
 c**** public variables:
-      public dz,qk,ng,zb,zc,fr,q,sl,xklh0
+      public dz,qk,zb,zc,fr,q,sl,xklh0
      *     ,snowm,alai,alaie,rs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shw
      *     ,htpr
@@ -132,34 +132,16 @@ c**** public variables:
      &    z1,
      &    tg,t1,vg,eddy,
      &    isn,nsn,dzsn,wsn,hsn,fr_snow
-      public igcm, dt, fsn, elh, shi, alamw, alami, alama, 
+      public dt, fsn, elh, shi, alamw, alami, alama, 
      $     alambr, alams, hw,   
      $     sdstnc, c1, prfr, so_
 
       real*8, external :: qsat,dqsatdt
       real*8 beta,betab,betat,betav  ! used only in qsbal but may need in accm
-      real*8 d1,d2,day,dd,dedifs,delh1,delhn,denom
-     *     ,dfh,dflux,dfunc,diff,dl,dldz2,dqdt,drnf
-     *     ,dtm,dtm1,dtm2,dtpl,ed,el0
-     *     ,epen,eps,ficec
-     *     ,flmt,func,gaa,gabc
-      real*8 gca,gm,h0,hcwt,hcwta,hcwtb,hcwti,hcwtw,hl,hmat,hmin
-     *     ,hs,hz,one,pfac,pm,pmax
-     *     ,prfac,ptmp,ptmps
-     *     ,qso,rho3,rnfs,s,sat,scnds
-     *     ,sgmm,shcc
-      real*8 srht0,sxtn,t450,tb0,tc0,temp
-     *     ,testh,thr,thr0,thr1,thr2
-     *     ,tol,trunc,u1,v1
-     *     ,xa,xb,xden,xi,xk1
-     *     ,xkl,xklu,xku1,xku2,xkud,xl,xlw,xnum
-     *     ,xs,xsh,xsha,xtol,xw,zero
-      integer ibv,ichn,iday,ihour,ith,itr,j1,j2,jcm,l
-     *     ,limit,ll,mmax,ninteg,nit,jc,k,m
-      integer ngm,ng,imt,igcm
-      parameter (ngm=6,ng=ngm+1,imt=5)
+      integer, parameter :: ngm=6, ng=ngm+1, imt=5
+      integer, parameter :: igcm=0  !?? do we really need it ?
       real*8 pr,htpr,prs,htprs,w(0:ngm,2),ht(0:ngm,2)
-     & ,snowd(2),ws(0:ngm,2),tp(0:ngm,2),fice(0:ngm,2),hour,cost
+     & ,snowd(2),ws(0:ngm,2),tp(0:ngm,2),fice(0:ngm,2),hour
      & ,dz(ngm),q(imt,ngm),qk(imt,ngm),sl,fv,fb,alai,atrg,ashg,alhg
      & ,abetad,abetav,abetat,abetap,abetab,abeta,acna,acnc,aevapw,aevapd
      & ,aevapb,aruns,arunu,aeruns,aerunu,adifs,aedifs,aepc,aepb,aepp
@@ -187,10 +169,7 @@ c     common/weight/a(4,imt-1),b(4,imt-1),p(4,imt-1)
      &     tg,t1,vg,eddy
       real*8 thrm(2),snsh(2),xlth(2)
       real*8 top_index, xkus(ng,2), xkusa(2)
-      dimension sat(imt-1)
-      data sat/.394d0,.537d0,.577d0,.885d0/
       !dimension snowdu(2)
-      dimension xsha(ng,2),xsh(ng,2),gabc(3),hcwt(imt-1)
 
 ccc   i hate to do it, but as a quick solution i declare snow variables
 ccc   as global ones ...
@@ -233,8 +212,7 @@ c**** fd - fraction of dry canopy
 c**** fm - fraction of snow that is exposed, or masking.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      integer lsn
-      one=1.d0
+      integer lsn,ibv,l
       do ibv=1,2
         do  l=1,n
           theta(l,ibv)=w(l,ibv)/dz(l)
@@ -292,9 +270,10 @@ c     and thm(j1,i).gt.thm(j2,i).
 c
 c     algdel=alog(1.d0+alph0)
 c
-      integer i,j
+      real*8 d1,d2,dl,hl,temp,thr,thr0,thr1,thr2,xk1,xkl,xklu,xku1,xku2
+      real*8 xkud
+      integer i,j,ibv,l,ith,j1,j2,jcm,jc
       real*8 dz_total
-      zero=0.d0
       xkud=2.78d-5
       jcm=nint(log(float(nth))/log(2.d0))
       do ibv=1,2
@@ -338,7 +317,6 @@ c     here theta is between two adjacent thr's. interpolate.
 c**** only filling hl array with matric potential (gravitational to be
 c**** added later)
           h(l,ibv)=hl
-          hz=hl
 c**** calculate diffusivity
           ith=j1
           temp=(thr1-thr0)/(thr1-thr2)
@@ -437,8 +415,10 @@ c**** soils28   common block     9/25/90
      &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
      &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
-      real*8 a1,a2,a3,alph0o,alpls1,arg(imt-1)
-      integer i,j
+      real*8 :: sat(imt-1) = (/.394d0,.537d0,.577d0,.885d0/)
+      real*8 a1,a2,a3,alph0o,alpls1,arg(imt-1),delh1,delhn,dfunc
+      real*8 diff,func,hmin,hs,s,sxtn,testh,xtol
+      integer i,j,l,k,m,mmax
 
       sxtn=16.d0
       nth=2**nexp
@@ -521,6 +501,7 @@ c**** xinfc - infiltration capacity, m s-1
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c****
+      integer ibv,l
       do ibv=1,2
         f(n+1,ibv)=0.d0
       end do
@@ -571,12 +552,13 @@ ccc   include './soils101.com'
 ccc   parameter (stbo=5.67032d-8)
 
 c**** soils28   common block     9/25/90
+      real*8,parameter :: eps = 2.d-5
       real*8 evap_max(2)
 ccc   added declarations for local vars:
       real*8 qm1dt, xkf, tbs1, tcs1, qcv, qcs, epcs
-      real*8 cna
+      real*8 cna,dd,ed,qso,rho3,xl
+      integer ibv,l,itr
 
-      zero=0.d0
 ccc   first compute maximal amount of water available for evaporation
       do ibv=1,2
         evap_max(ibv) = 0.d0
@@ -625,7 +607,6 @@ c     on first iteration, assume beta's = 1
       if(igcm.ge.0 .and. igcm.le.3)
      &     qs=(fb*betab*cna*qb+fv*betav*cna*qc+xl*q1)
      &     /(fb*betab*cna+fv*betav*cna+xl+1d-12)
-      eps=2d-5
 c     bare soils diffusivity dd
       dd=d(1,1)
 c     betad is the the root beta for transpiration.
@@ -743,9 +724,9 @@ c     snsh(2)=sha*rho*cna*(tcs1-ts+tfrz)
       epb_dt = rho3*cna*qsat(tbs1+tfrz,lhe,pres)*dqsatdt(tbs1+tfrz,lhe)
       evaps_dt = rho3*cna*qsat(tsn1(2)+tfrz,lhe,pres)
      *     *dqsatdt(tsn1(2)+tfrz,lhe)
-
       return
       end subroutine qsbal
+
       subroutine flg
 c**** calculates the ground water fluxes (to the surface)
 c**** input:
@@ -762,8 +743,7 @@ c**** snowf - snow fall, equivalent water m s-1
 c**** dr - canopy drip, m s-1
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      real*8 ptmp,ptmps
-      zero=0.d0
+      real*8 ptmp,ptmps,pfac,pm,pmax
 c     calculate snow fall.  snowf is snow fall, m s-1 of water depth.
       snowf=0.d0
       if(htpr.lt.0.d0)snowf=min(-htpr/fsn,pr)
@@ -827,8 +807,8 @@ c**** output:
 c**** cnc - canopy conductance, m s-1
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      zero=0.d0
 c**** adjust canopy conductance for soil water potential
+      real*8 srht0
       cnc=betad*alaie/rs
 c**** adjust canopy conductance for incoming solar radiation
       srht0=max(srht,zero)
@@ -863,9 +843,9 @@ c**** soils28   common block     9/25/90
 c     use effects of subgrid scale rain
 c     use precipitation that includes smow melt
       real*8 ptmp(2),ptmps(2)
-      real*8 runfrac
+      real*8 runfrac,prfac,rnfs
       real*8 f_k0_exp_l ! coefficient for the topmodel
-      zero=0.d0
+      integer ibv,l
       if(isn(1).eq.0)then
         ptmps(1)=prs+pre(1)
         ptmp(1)=pr-prs
@@ -931,6 +911,7 @@ c         print *, xkus(l,ibv),w(l,ibv),ws(l,ibv),dz(l),top_index
       end do
       return
       end subroutine runoff
+
       subroutine sink
 c**** calculates water sinks from each soil layer
 c**** input:
@@ -960,6 +941,7 @@ c**** include effects of surface runoff in sink from first soil layers
       snk(0,2)=0.d0
       return
       end subroutine sink
+
       subroutine fllmt
 c**** places limits on the soil water fluxes
 c**** input:
@@ -981,8 +963,8 @@ c**** snowdl - the lower bound on the snow depth at end of time step
 c**** trunc - fix for truncation on ibm mainframes
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      real*8 dflux,drnf,flmt,trunc
       integer l, ibv, ll
-      zero=0.d0
       trunc=1d-6
       trunc=1d-12
 ccc   was 0 in older version - not sure if it is important
@@ -1061,6 +1043,7 @@ ccc    actually for ground hydrology it is not necessary
       enddo
       return
       end subroutine fllmt
+
       subroutine fhlmt
 c**** modifies soil heat fluxes to eliminate possible
 c**** oscillation in presence of varying coefficient of drag.
@@ -1078,7 +1061,8 @@ c****
 c**** add excess flux to flux of layer below
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      real*8 cc
+      real*8 cc, dfh, dtpl, gm
+      integer ibv,l,ll
       dtpl=1.0d0
       do ibv=1,2
        ll=2-ibv
@@ -1121,8 +1105,10 @@ c
 c     calculate with changing ga for air. ga is the depolarization
 c     factor for air, calculated by linear interpolation from .333d0
 c     at saturation to .035 at 0 water, following devries.
-      real*8,save :: ba
-      integer i, j
+      real*8 gaa,gabc(3),gca,xa,xb,xden,xi,xnum,xs,xw
+      real*8, save :: ba,hcwt(imt-1),hcwta,hcwtb,hcwti,hcwtw
+      real*8, save :: xsha(ng,2),xsh(ng,2)
+      integer i, j, ibv, l
       do ibv=1,2
         do l=1,n
           gaa=.298d0*theta(l,ibv)/(thets(l,ibv)+1d-6)+.035d0
@@ -1204,6 +1190,7 @@ c**** fh - heat flux between layers
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c****
+      integer ibv, l
       do ibv=1,2
         fh(n+1,ibv)=0.d0
 c total heat flux is heat carried by water flow plus heat conduction
@@ -1229,6 +1216,7 @@ c**** afhg - heat flux from ground to canopy
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** bare soil fluxes
+      integer ibv, l
       ibv=1
       l=2-ibv
       if(isn(ibv).ne.0.or.snowd(ibv).ne.0.d0)then
@@ -1279,6 +1267,7 @@ c**** output:
 c**** snkh - heat sink from soil layers
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      integer ibv, l
       do ibv=1,2
         do l=1,n
           snkh(l,ibv)=shw*tp(l,ibv)*snk(l,ibv)
@@ -1309,6 +1298,7 @@ c****        by atmosphere, c.  also called ground temperature.
 c**** tcs - temperature of canopy and snow, c.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      integer ibv, l, ll
       do ibv=1,2
         ll=2-ibv
         do l=ll,n
@@ -1400,13 +1390,12 @@ c**** retp,reth,fl,flg,runoff,sink,sinkh,fllmt,flh,flhg.
 c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-
-      zero=0.d0
+      real*8 dtm,tb0,tc0
+      integer ibv,l,ll,limit,nit
       limit=200
       nit=0
       dtr=dt
       dr=0.d0
-      ninteg=0
       call reth
       call retp
 c     call hydra
@@ -1424,7 +1413,6 @@ ccc accm0 was not called here in older version - check
         call gdtm(dtm)
         dts=min(dtr,dtm)
         dtr=dtr-dts
-        ninteg=ninteg+1
         call snwlsi( dts )
         call fl
         call flg
@@ -1469,7 +1457,8 @@ c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
       real*8 qsats,derun
-      real*8 cpfac
+      real*8 cpfac,dedifs,dqdt,el0,epen,h0
+      integer ibv,l
 
       derun=shw*(fb*tp(1,1)*rnf(1)+fv*tp(1,2)*rnf(2))*dts
 c**** need fix for negative energy because rain sometimes runs off
@@ -1538,8 +1527,6 @@ c
 c provides accumulation units fixups, and calculates
 c penman evaporation.  should be called once after
 c accumulations are collected.
-      one=1.d0
-      zero=0.d0
       aruns=1000.0d0*aruns
       arunu=1000.0d0*arunu
       aevapw=1000.0d0*aevapw
@@ -1655,8 +1642,10 @@ c**** calculates the maximum time step allowed by stability
 c**** considerations.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      real*8 ak1,ak2(2),betas(2),cna,xk2(2)
-      real*8 dtm,dtm3,dtm4
+      real*8 ak1,ak2(2),betas(2),cna,xk2(2),dldz2,dqdt,rho3,sgmm
+      real*8, intent(out) :: dtm
+      real*8 dtm1,dtm2,dtm3,dtm4,t450,xk1
+      integer ibv,l
 ccc         dimension qg(2),xk2(2),ak2(2),ak3(2)
 ccc         dimension betas(2)
       t450=450.d0
@@ -1748,38 +1737,18 @@ c****
       return
       end subroutine gdtm
 
-c     block data ghabp
-c**** initializes coefficients for soil functions
-c**** a are the matric potential coefficients
-c**** b are the conductivity coefficients
-c     !include 'soils45.com'
-c**** soils28   common block     9/25/90
-c     data a/
-c    &   0.2514d0,  0.0136d0, -2.8319d0,  0.5958d0,
-c    &   0.1481d0,  1.8726d0,  0.1025d0, -3.6416d0,
-c    &   0.2484d0,  2.4842d0,  0.4583d0, -3.9470d0,
-c    &   0.8781d0, -5.1816d0, 13.2385d0,-11.9501d0/
-c     data b/
-c    &  -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0,
-c    &  -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0,
-c    &  -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0,
-c    &  -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/
-c     data p/
-c    &  -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0,
-c    &  -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0,
-c    &  -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0,
-c    &  -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/
-c     end
-c     subroutine needed later for extra diagnostics
 
       subroutine outw(i)
 c**** prints theta values at time step i
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-      integer i
+      use filemanager, only: openunit
+      real*8 day,scnds
+      integer i,l,iday,ihour
+      integer, save :: ichn = 0
       call wtab
-      ichn=99
-      scnds=i*dt
+      if( ichn == 0 ) call openunit("soil_outw", ichn)
+      scnds=i*dt  !??? doesn't make any sense
       day=int(scnds/86400.d0)
       iday=day
       hour=int((scnds-86400.d0*day)/86400.d0)
@@ -1790,10 +1759,10 @@ c     print 1001
       write(ichn,*)'ij,dts',ijdebug,dts
 cc    write(ichn,1021)
       write(ichn,1045)
-      write(ichn,1023)'day= ',iday,'pr= ',pr,'ts= ',ts-tfrz,'u1= ',u1,
+      write(ichn,1023)'day= ',iday,'pr= ',pr,'ts= ',ts-tfrz,
      *     'q1= ',q1
       write(ichn,1023)'hour= ',ihour,'snowf= ',snowf,'tg= ',tg-tfrz,
-     *     'v1= ',v1,'qs= ',qs
+     *     'qs= ',qs
       write(ichn,1043)'t1= ',t1-tfrz,'vg= ',vg,'ch= ',ch
       write(ichn,1044)'vsm= ',vsm
       write(ichn,1022)
@@ -1910,6 +1879,8 @@ c**** output:
 c**** zw(2) - water table for ibv=1 and 2, m
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      real*8 denom,hmat,tol
+      integer ibv,l
       tol=1d-6
       do 100 ibv=1,2
 c**** find non-saturated layer
@@ -2076,6 +2047,7 @@ c note: only to be called when initializing from landsurface
 c       prognostic variables without the snow model.
 c
 ccc         include './soils101.com'
+      integer ibv
 
 c outer loop over ibv
       do ibv=1,2
@@ -2144,3 +2116,88 @@ ccc and now limit all the snow to 5cm water equivalent
 
 
       end module sle001
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

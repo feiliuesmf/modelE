@@ -535,7 +535,6 @@ c       print '(72f6.2)', ( top_index_ij(i,j), i=1,72 )
 c      enddo
 ccc      stop 77
       one=1.
-      igcm = 0
 c****
 c**** initialize constants
 c****
