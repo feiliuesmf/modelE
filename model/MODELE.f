@@ -1231,6 +1231,12 @@ C**** Ensure that no round off error effects land with ice and earth
         END IF
       END DO
       END DO
+      FLAND(2:IM,1)=FLAND(1,1)
+      FLAND(2:IM,JM)=FLAND(1,JM)
+      FEARTH(2:IM,1)=FEARTH(1,1)
+      FEARTH(2:IM,JM)=FEARTH(1,JM)
+      FLICE(2:IM,1)=FLICE(1,1)
+      FLICE(2:IM,JM)=FLICE(1,JM)
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
