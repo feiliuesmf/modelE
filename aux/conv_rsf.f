@@ -7,7 +7,7 @@ C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
-     *     ,iowrite_mon 
+     *     ,iowrite_mon,focean
       USE SOMTQ_COM
       USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage
       USE RADNCB, only : rqt,lm_req
@@ -17,7 +17,7 @@ C**** must be compiled after the model
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
      *     ,egcm
       USE OCEAN, only : tocean,z1o
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : ace1i,xsi,ac2oim
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
@@ -69,7 +69,16 @@ C**** must be compiled after the model
       ItimeX=NINT(TAUX)
       print*,ItimeX
 
+C**** read in FLAKE/FOCEAN data
+      iu_TOPO=10
+      OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
+     *     ,STATUS="OLD") 
+      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
+      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
+      close (iu_TOPO)
+
 C**** convert sea ice temperatures into enthalpy
+C**** and initialize sea ice salinity to 3.2 ppt (0 in snow).
       DO J=1,JM
         DO I=1,IM
           IF (RSI(I,J).gt.0) THEN
@@ -78,6 +87,17 @@ C**** convert sea ice temperatures into enthalpy
             HSI(2,I,J) = (SHI*MIN(HSI(2,I,J),0d0)-LHM)*XSI(2)*MSI1
             HSI(3,I,J) = (SHI*MIN(HSI(3,I,J),0d0)-LHM)*XSI(3)*MSI(I,J)
             HSI(4,I,J) = (SHI*MIN(HSI(4,I,J),0d0)-LHM)*XSI(4)*MSI(I,J)
+            IF (FOCEAN(I,J).gt.0) THEN
+            IF (ACE1I*XSI(2).gt.SNOWI(I,J)*XSI(1)) THEN
+              SSI(1,I,J)=3.2 * 1d-3 * (ACE1I-(ACE1I+SNOWI(I,J))* XSI(2))
+              SSI(2,I,J)=3.2 * 1d-3 * (ACE1I+SNOWI(I,J))* XSI(2)
+            ELSE
+              SSI(1,I,J)=0.
+              SSI(2,I,J)=3.2 * 1d-3 * ACE1I
+            END IF
+            ELSE
+              SSI(1:4,I,J) = 0
+            END IF
           ELSE
             MSI(I,J)=AC2OIM
             SNOWI(I,J)=0.
@@ -85,9 +105,16 @@ C**** convert sea ice temperatures into enthalpy
             HSI(2,I,J) = -LHM*XSI(2)*ACE1I
             HSI(3,I,J) = -LHM*XSI(3)*AC2OIM
             HSI(4,I,J) = -LHM*XSI(4)*AC2OIM
+            IF (FOCEAN(I,J).gt.0) THEN
+              SSI(1:2,I,J)=3.2 * 1d-3 * ACE1I  * XSI(1:2) 
+              SSI(3:4,I,J)=3.2 * 1d-3 * AC2OIM * XSI(3:4)
+            ELSE
+              SSI(1:4,I,J) = 0.
+            END IF
           END IF
         END DO
       END DO
+
 
 c     initialize the 3-d turbulent kinetic enery to be used in
 c     the subroutine diffus.
@@ -104,13 +131,6 @@ C**** initialize TSFREZ to defaults
       TSFREZ(:,:,1:2)=365.
       TSFREZ(:,:,3:4)=-999.
 
-C**** read in FLAKE data
-      iu_TOPO=10
-      OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
-     *     ,STATUS="OLD") 
-      READ (iu_TOPO)
-      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
-      close (iu_TOPO)
 
       OPEN(iu_AIC,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")
