@@ -192,6 +192,7 @@ C       VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
+
       IMPLICIT NONE
 
 C-----------------------------------------
@@ -913,7 +914,7 @@ C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
      *   REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)
 !nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
-!nu  *  ,RODUST=(/ 2.5, 2.5, 2.5, 2.5,   2.6, 2.6, 2.6, 2.6/)
+     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,2.65D0/)
 !nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 !nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 
@@ -998,6 +999,8 @@ C     Optional Tracers    used via setbak/getbak
 C---------------------
       integer, dimension(ITRMAX) :: ITR=1
       integer :: NTRACE=0
+!@var NTRIX Indexing array for optional aerosol interaction
+      INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 
       real*8, dimension(ITRMAX) ::
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
@@ -3313,6 +3316,11 @@ C                                                                -------
 
       SUBROUTINE SETAER
 
+      USE tracer_com,ONLY : trname
+#ifdef TRACERS_DUST
+     &     ,n_clay
+#endif
+
 cc    INCLUDE  'rad00def.radCOMMON.f'
       IMPLICIT NONE
 C     ---------------------------------------------------------------
@@ -3350,6 +3358,9 @@ C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
       INTEGER K,L,NA,N,NRH,M,KDREAD,NT
+#ifdef TRACERS_DUST
+     &     ,nt1
+#endif
 
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
@@ -3556,8 +3567,17 @@ C     ------------------------------------------------------------------
 
       DO L=1,NL
       DO NT=1,NTRACE
-      TTAULX(L,NT)=TRACER(L,NT)*
-     *   1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
+        SELECT CASE (trname(ntrix(nt)))
+#ifdef TRACERS_DUST
+        CASE ('Clay','Silt1','Silt2','Silt3')
+          nt1=nt-n_clay+1
+          TTAULX(L,NT)=TRACER(L,NT)*
+     *    1d3*.75d0/rodust(nt1)*qdst55(nt1)/TRRDRY(NT)
+#endif
+        CASE DEFAULT
+          TTAULX(L,NT)=TRACER(L,NT)*
+     *         1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)
+        END SELECT
       END DO
       END DO
 

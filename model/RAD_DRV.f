@@ -318,7 +318,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
-     *     ,ITR,NTRACE        ! turning on options for extra aerosols
+     *     ,ITR,NTRACE,ntrix  ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -326,7 +326,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,rad_interact_tr,rad_forc_lev,ntrix
+     *     ,rad_interact_tr,rad_forc_lev
       USE DAGCOM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -574,15 +574,17 @@ C**** should also work if other aerosols are not used
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
-      NTRACE=NTRACE+ntm_dust  ! add dust tracers
+      NTRACE=NTRACE+ntm_dust+3  ! add dust tracers
 c tracer 7 is dust
-      ITR(n1:NTRACE) = (/ 7,7,7,7 /)
+      ITR(n1:NTRACE) = (/ 7,7,7,7,7,7,7 /)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
 C**** particle size for dust  (from trradius?)
-      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+      TRRDRY(n1:NTRACE)=(/.1d0, .2d0, .4d0, .8d0, 1.d0, 2.d0, 4.d0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
-      NTRIX(n1:NTRACE)=(/ n_clay,n_silt1,n_silt2,n_silt3/)
+      NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
+     &     n_silt3/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -655,7 +657,7 @@ C****
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
-     &          ,use_tracer_ozone
+     &          ,use_tracer_ozone,ntrix
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL,RHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
@@ -674,7 +676,7 @@ C     OUTPUT DATA
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
-     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
+     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev
      *     ,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -707,7 +709,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII
+     *     ,n_OCIA,N_OCII,n_clay
       USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
@@ -1134,6 +1136,15 @@ C**** more than one tracer is lumped together for radiation purposes
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
           case ("BCIA")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
+          CASE ('Clay')
+            IF (n == n_clay) TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
+     &           *0.01D0
+            IF (n == n_clay+1) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.08D0
+            IF (n == n_clay+2) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.23D0
+            IF (n == n_clay+3) TRACER(L,n)=trm(i,j,l,NTRIX(n))*
+     &           BYDXYP(J)*0.66D0
           case default
             TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
           end select
@@ -1237,6 +1248,15 @@ C**** or not.
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
+        DO n=1,NTRACE
+          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
+            SNFST(1,NTRIX(n),I,J)=0D0
+            TNFST(1,NTRIX(n),I,J)=0D0
+            SNFST(2,NTRIX(n),I,J)=0D0
+            TNFST(2,NTRIX(n),I,J)=0D0
+            EXIT
+          END IF
+        END DO
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
@@ -1247,10 +1267,17 @@ C**** one before seasalt2 in NTRACE array
           END IF
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
-          SNFST(1,NTRIX(n),I,J)=SRNFLB(1)  ! surface forcing
-          TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
-          SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
-          TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
+          IF (trname(ntrix(n)) .EQ. 'Clay') THEN
+            SNFST(1,NTRIX(n),I,J)=SNFST(1,NTRIX(n),I,J)+SRNFLB(1) ! surface forcing
+            TNFST(1,NTRIX(n),I,J)=TNFST(1,NTRIX(n),I,J)+TRNFLB(1)
+            SNFST(2,NTRIX(n),I,J)=SNFST(2,NTRIX(n),I,J)+SRNFLB(LFRC)
+            TNFST(2,NTRIX(n),I,J)=TNFST(2,NTRIX(n),I,J)+TRNFLB(LFRC)
+          ELSE
+            SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
+            TNFST(1,NTRIX(n),I,J)=TRNFLB(1)
+            SNFST(2,NTRIX(n),I,J)=SRNFLB(LFRC)
+            TNFST(2,NTRIX(n),I,J)=TRNFLB(LFRC)
+          END IF
           FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
