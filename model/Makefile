@@ -111,7 +111,7 @@ ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
 OBJ_LIST_O = $(shell [ -s $(RUNDECK) ] && perl \
 	-e 'while(<> !~ /^Object +modules/ ){};' \
 	-e 'while(($$_=<>) !~ /(^Data +input)|(^ *$$)/)' \
-	-e '{chop; s/ *(!.*)*$$//; print " $$_";}' \
+	-e '{chop; s/ *(!.*)*$$//; print " $$_" if ( $$_ );}' \
 	< $(RUNDECK))
 
 # stripping options from OBJ_LIST_O
