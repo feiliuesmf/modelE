@@ -1190,12 +1190,13 @@ C**** CALCULATE OPTICAL THICKNESS
       REAL*8 LHX,LHXUP
 
 C**** functions
-      REAL*8 :: QSAT, DQSATDT
+      REAL*8 :: QSAT, DQSATDT,ERMAX
 !@var QSAT saturation humidity
 !@var DQSATDT dQSAT/dT
 
 !@param CM00 upper limit for autoconversion rate
-      REAL*8, PARAMETER :: CM00=1.d-4
+!@param AIRM0 scaling factor for computing rain evaporation
+      REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0
 
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
@@ -1207,7 +1208,7 @@ C**** functions
 !@var RHF environmental relative humidity
 !@var RH1 relative humidity to compare with the threshold humidity
 !@var ATH change in potential temperature
-!@var SQ dummy variables
+!@var SQ ERMAX dummy variables
 !@var ER evaporation of precip
 !@var QHEAT change of latent heat
 !@var CAREA fraction of clear region
@@ -1469,10 +1470,12 @@ C**** COMPUTE EVAPORATION OF RAIN WATER, ER
       IF(RHF(L).GT.RH(L)) RHN=RH(L)
 C     QCONV0=LHX*AQ(L)-RHN*SQ(L)*SHA*PLK(L)*ATH(L)
 C    *  -TEM*QSATL(L)*RHN
-      IF(WMX(L).GT.0.) ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GRAV*BYAM(L)
-      IF(WMX(L).LE.0.) ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV*BYAM(L)
+      IF(WMX(L).GT.0.) ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GRAV/AIRM0
+      IF(WMX(L).LE.0.) ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
       IF(WMX(L).LE.0..AND.PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV*BYAM(L)
+     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+      ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
+      IF(ER(L).GT.ERMAX) ER(L)=ERMAX
       IF(ER(L).LT.0.) ER(L)=0.
 C**** COMPUTATION OF CLOUD WATER EVAPORATION
       IF (CAREA(L).GT.0.) THEN
@@ -1511,9 +1514,11 @@ C     IF(RH1(L).GT.1.) DRHDT=0.
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
   220 Q1=0.
       IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
-      ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV*BYAM(L)
+      ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV/AIRM0
       IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV*BYAM(L)
+     *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV/AIRM0
+      ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
+      IF(ER(L).GT.ERMAX) ER(L)=ERMAX
       IF(ER(L).LT.0.) ER(L)=0.
       QHEAT(L)=-CAREA(L)*ER(L)+Q1
       WMNEW=0.
