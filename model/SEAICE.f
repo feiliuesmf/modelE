@@ -1689,6 +1689,14 @@ C**** output flux (positive down)
         MSNWIC = -MAXM
         HSNWIC = MSNWIC*Eoc
         SSNWIC = 0.001d0*Si*MSNWIC
+#ifdef TRACERS_WATER
+        TRSNWIC(:) = Tri(:)*MSNWIC
+#endif
+      ELSE
+        MSNWIC = 0. ; HSNWIC = 0. ; SSNWIC = 0.
+#ifdef TRACERS_WATER
+        TRSNWIC = 0.
+#endif
       END IF
       RETURN
       end subroutine snowice
