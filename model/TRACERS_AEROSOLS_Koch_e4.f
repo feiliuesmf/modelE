@@ -284,6 +284,8 @@ c        write(6,*)'DMS RRR',i,j,jday,DMS_AER(i,j,jday)
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
+         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
+     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
@@ -465,12 +467,12 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*dtsrc*trm(i,j,l,n) !efold of 3 day?        
+        bciage=4.3D-6*trm(i,j,l,n) !efold of 3 day?        
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=7.3D-6*dtsrc*trm(i,j,l,n)        
+        ociage=7.3D-6*trm(i,j,l,n)        
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
