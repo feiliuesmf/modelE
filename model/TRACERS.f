@@ -587,10 +587,9 @@ C****
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers 
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : visc_air,grav,by3
-     * ,pi,bygasc,avog
-      USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
-     * ,t
+      USE CONSTANT, only : visc_air,grav,by3,pi,gasc,avog,rt2,deltx
+     *     ,visc_air_kin,mair,rgas
+      USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
       USE GEOM, only : imaxj,bydxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
@@ -604,38 +603,39 @@ C****
 #endif
       USE FLUXES, only : trgrdep
       IMPLICIT NONE
-      real*8, save, dimension(ntm) :: stokevdt = 0.
-      logical, save :: ifirst=.true.
+      real*8 :: stokevdt = 0.
       real*8, dimension(im,jm,lm) :: told
       real*8 fgrfluxd,fgrfluxu
       integer n,najl,i,j,l
-      real*8, parameter :: s1=1.249, s2=0.42, s3=0.87
-      real*8  wmf,PRESS,AIRDEN,FRPATH,nmols
-      real*8, parameter :: RADAIR=3.65D-10 !m not sure of this value
+      real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
+      real*8  wmf,PRESS,AIRDEN,FRPATH
+      real*8, parameter :: DAIR=3.65D-10 !m diameter of air molecule
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
      *     c4=-1.424d0
       real*8 r_h,den_h,rh
 #endif
 
-      wmf=0.
-      if (ifirst) then               
-C**** Calculate settling velocity based on Stokes' Law using particle
-C**** density and effective radius
-        do n=1,ntm
-          if (trradius(n).gt.0.0) stokevdt(n)=dtsrc*2.*grav*trpdens(n)
-     *         *trradius(n)**2/(9.*visc_air)
-        end do
-        ifirst = .false.
-      end if
-
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Gravitational settling 
+!$OMP  PARALLEL DO PRIVATE (L,I,J,PRESS,AIRDEN,stokevdt,frpath,wmf,
+!$OMP* fgrfluxd,fgrfluxu
+#ifdef TRACERS_AEROSOLS_Koch
+!$OMP* ,rh,r_h,den_h
+#endif
+!$OMP* )
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)
             told(i,j,l)=trm(i,j,l,n)
+C**** air density
+            PRESS=pmid(l,i,j)*100.d0 !Pa              
+            AIRDEN=PRESS/(rgas*pk(l,i,j)*t(i,j,l)*(1.+q(i,j,l)*deltx)) 
+C**** calculate stoke's velocity 
+            stokevdt=dtsrc*2.*grav*trpdens(n)*trradius(n)**2/(9.
+     *           *visc_air_kin*airden)
+
 #ifdef TRACERS_AEROSOLS_Koch
 c need to hydrate the sea salt before determining settling	    
             if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
@@ -647,19 +647,19 @@ c hydrated radius
 c hydrated density
               den_h=((r_h**3 - trradius(n)**3)*1000.d0 
      *             + trradius(n)**3*trpdens(n))/r_h**3
-              stokevdt(n)=dtsrc*2.*grav*den_h*r_h**2/(9.*visc_air)
+              stokevdt=dtsrc*2.*grav*den_h*r_h**2/(9.*visc_air_kin
+     *             *airden)
             end if
 #endif
+C**** slip correction factor
 c wmf is the additional velocity if the particle size is large compared
 c   to the mean free path of the air; important in the stratosphere  
-             PRESS=pmid(l,i,j)*100.d0    !Pa              
-             AIRDEN=PRESS*avog*bygasc/(pk(l,i,j)*t(i,j,l)) 
-             FRPATH=1.d0/(PI*DSQRT(2.d0)*AIRDEN*(RADAIR)**2.)
-             wmf=FRPATH/trradius(n)*(s1+s2*dexp(-s3*trradius(n)/FRPATH))
+            FRPATH=1d-3*mair/(PI*rt2*avog*AIRDEN*(DAIR)**2.)
+            wmf=FRPATH/trradius(n)*(s1+s2*exp(-s3*trradius(n)/FRPATH))
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
-C**** should this operate in the first layer? Surely dry dep is dominant?
-             fgrfluxd=(1.d0+wmf)*stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
+C**** This should probably operate in in conjunction with dry dep...
+              fgrfluxd=(1.d0+wmf)*stokevdt*grav/(gz(i,j,l)-zatmo(i,j))
               trgrdep(n,i,j)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
 #ifdef TRACERS_DRYDEP
 C**** maybe this should be a separate diag (or not be done at all?)
@@ -667,21 +667,22 @@ C**** maybe this should be a separate diag (or not be done at all?)
      *             trgrdep(n,i,j)
 #endif
             else               ! above layer 1
-             fgrfluxd=(1.d0+wmf)*stokevdt(n)*grav
-     *                /(gz(i,j,l)-gz(i,j,l-1))
+              fgrfluxd=(1.d0+wmf)*stokevdt*grav
+     *             /(gz(i,j,l)-gz(i,j,l-1))
             end if
-            if (l.lt.lm) then  ! below top layer
-              fgrfluxu=(1.d0+wmf)*stokevdt(n)*grav
-     *                /(gz(i,j,l+1)-gz(i,j,l))
+            if (l.lt.lm) then   ! below top layer
+              fgrfluxu=(1.d0+wmf)*stokevdt*grav
+     *             /(gz(i,j,l+1)-gz(i,j,l))
               trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
      *                   + trm(i,j,l+1,n)*    fgrfluxu
-            else               ! top layer
+            else                ! top layer
               trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
             end if
             trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
           end do
           end do
           end do
+!$OMP END PARALLEL DO
 
           najl = jls_grav(n)
           do l=1,lm
