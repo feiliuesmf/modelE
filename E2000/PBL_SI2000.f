@@ -607,7 +607,7 @@ c          as2=dudz*dudz+dvdz*dvdz
 c          lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
 cc         lmax2 =1.95d0*sqrt(2.*e(i)/max(as2,teeny))
 cc         lmax=min(lmax,lmax2)
-          if (lscale(i).gt.lmax) lscale(i)=lmax
+c         if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
         if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
         if (lscale(i).gt.dzh(i)) lscale(i)=dzh(i)
@@ -1348,8 +1348,8 @@ c         e(j)=min(max(e(j),teeny),emax)
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
-      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
-      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
+c     factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+c     facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
 c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
         rhs(i)=t0(i)
@@ -1432,19 +1432,19 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 c**** Now let us check if the computed flux doesn't exceed the maximum
 c**** for unsaturated fraction
 
-c     if ( fr_sat .ge. 1. ) return   ! all soil is saturated
-c     if ( cq * usurf * (qgrnd - q(1)) .le. flux_max ) return
+      if ( fr_sat .ge. 1. ) return   ! all soil is saturated
+      if ( cq * usurf * (qgrnd - q(1)) .le. flux_max ) return
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
 c**** kq * dq/dz = fr_sat * cq * usurf * (q - qg)
 c****              + ( 1 - fr_sat ) * flux_max
 
-c     dia(1) = 1. + fr_sat*factq
-c     sup(1) = -1.
-c     rhs(1)= fr_sat*factq*qgrnd + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+      dia(1) = 1. + fr_sat*factq
+      sup(1) = -1.
+      rhs(1)= fr_sat*factq*qgrnd + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
 
-c     call TRIDIAG(sub,dia,sup,rhs,q,n)
+      call TRIDIAG(sub,dia,sup,rhs,q,n)
 
       return
       end subroutine q_eqn
@@ -1787,7 +1787,6 @@ c       rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
 
 c     factx=(dpdxr-dpdxr0)/(z(n)-z(1))
 c     facty=(dpdyr-dpdyr0)/(z(n)-z(1))
-c      write(99,*) factx,facty
       do i=2,n-1
 c       dpdx=factx*(z(i)-z(1))+dpdxr0
 c       dpdy=facty*(z(i)-z(1))+dpdyr0
