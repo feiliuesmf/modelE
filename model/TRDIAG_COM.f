@@ -89,7 +89,9 @@ C**** TAIJN
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
 #ifdef TRACERS_SPECIAL_Shindell
-      integer, parameter :: ktaijs=26
+!@var ijs_XXX index for diags not specific to a certain tracer
+      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+      integer, parameter :: ktaijs=28
 #else
       integer, parameter :: ktaijs=25
 #endif
@@ -146,7 +148,9 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
 #ifdef TRACERS_SPECIAL_Shindell
-      INTEGER, PARAMETER :: ktajls=58
+!@var jls_XXX index for diags not specific to a certain tracer
+      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf
+      INTEGER, PARAMETER :: ktajls=61
 #else
       INTEGER, PARAMETER :: ktajls=34
 #endif

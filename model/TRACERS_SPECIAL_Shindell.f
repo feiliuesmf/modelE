@@ -910,6 +910,7 @@ C
       USE GEOM,      only : bydxyp
       USE CONSTANT,  only : bygrav
       USE DYNAMICS,  only : gz
+      USE TRACER_DIAG_COM, only : ijs_CtoG,ijs_flash,taijs
 c
       IMPLICIT NONE
 c
@@ -988,10 +989,9 @@ c The units are grams of Nitrogen per minute:
 
       RNOx_lgt(i,j)=15611.*(CG + 0.1*(flash-CG))
 
-C These diagnostics need to be put back in:      
-c note CG & flash OUTPUT now in units: flashes/[time]/m2
-c      AIJ(i,j,97)=aij(i,j,97) + flash*BYDXYP(J)
-c      AIJ(i,j,98)=aij(i,j,98) + CG*BYDXYP(J)
+C If flash is indeed in flashes/min, accumulate it in flashes/s/m2:
+       TAIJS(I,J,ijs_flash)=TAIJS(I,J,ijs_flash) + flash*BYDXYP(J)/60.
+       TAIJS(I,J,ijs_CtoG) =TAIJS(I,J,ijs_CtoG)  +    CG*BYDXYP(J)/60.
 
       END SUBROUTINE calc_lightning
 c

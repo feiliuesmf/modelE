@@ -20,6 +20,7 @@ c
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
       USE CONSTANT, only: radian
+      USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
@@ -290,9 +291,8 @@ C        Calculate sulfate sink, and cap it at 90% of N2O5:
          wprod_sulf=DT2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5
          if(wprod_sulf.gt.0.9*y(n_N2O5,L))wprod_sulf=0.9d0*y(n_N2O5,L)
          prod_sulf=wprod_sulf*pfactor
-C        Update N2O5 sulfate chemistry Diagnostic
-C         'TAJLS(J,L,10)=TAJLS(J,L,10)-(prod_sulf*bymass2vol(n_N2O5))
-C         not clear yet how/where this diag should be done...'GSF 2/02
+         TAJLS(J,L,jls_N2O5sulf)=TAJLS(J,L,jls_N2O5sulf)
+     &     -(prod_sulf*bymass2vol(n_N2O5))
 C
 C*****************************************************************
 c        g signifies gas phase
@@ -427,9 +427,6 @@ C
          y(n_Alkenes,L)=y(n_Alkenes,L)+changeAlkenes
          y(n_AlkylNit,L)=y(n_AlkylNit,L)+changeAlkylNit
          yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
-c         'note, in the section below, there used to be lines like:
-c          tempJLS(J,L,n_N2O5)=tempJLS(J,L,n_N2O5)+change(I,J,L,n_N2O5)
-c          Still need to put these in the modelE version GSF 11/02
 C
 C Note: there is a lower limit of 1 placed on the resulting tracer mass
 C from the following changes. This is to prevent negative tracer mass:

@@ -1643,6 +1643,37 @@ C**** Checks
 
       end do
 
+C**** Additional Special JL diagnostics 
+C**** (not necessary associated with a particular tracer)
+#ifdef TRACERS_SPECIAL_Shindell
+        k = k + 1
+        jls_OHcon=k
+        sname_jls(k) = 'OH_conc'
+        lname_jls(k) = 'OH concentration'
+        jls_index(k) = ntm
+        jls_ltop(k)  = LM
+        jls_power(k) = 5.
+        units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
+c
+        k = k + 1
+        jls_H2Omr=k
+        sname_jls(k) = 'H2O_mr'
+        lname_jls(k) = 'H2O mixing ratio'
+        jls_index(k) = ntm
+        jls_ltop(k)  = LM
+        jls_power(k) = -4. 
+        units_jls(k) = unit_string(jls_power(k),'parts/vol')
+c
+        k = k + 1
+        jls_N2O5sulf=k
+        sname_jls(k) = 'N2O5_sulf'
+        lname_jls(k) = 'N2O5 sulfate sink'
+        jls_index(k) = ntm
+        jls_ltop(k)  = LM
+        jls_power(k) = -2. 
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
+        
       if (k.gt. ktajls) then
         write (6,*)
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
@@ -2141,6 +2172,29 @@ c SO4 dry dep
 
       end select
       end do
+      
+C**** Additional Special IJ diagnostics 
+C**** (not necessary associated with a particular tracer)
+#ifdef TRACERS_SPECIAL_Shindell
+      k = k+1
+        ijs_flash=k
+        ijts_index(k) = ntm
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Lightning Flash Rate'
+        sname_ijts(k) = 'lightning_flash'
+        ijts_power(k) = -6.
+        units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+      k = k+1
+        ijs_CtoG=k
+        ijts_index(k) = ntm
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Cloud to Ground Lightning Flash Rate'
+        sname_ijts(k) = 'CtoG_flash'
+        ijts_power(k) = -6.
+        units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
 
       if (k .gt. ktaijs) then
         write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k

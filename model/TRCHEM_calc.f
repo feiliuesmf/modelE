@@ -6,9 +6,11 @@
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only     : im,jm,lm,ls1
-      USE DYNAMICS, only      : am, byam
-      USE GEOM, only          : BYDXYP,dxyp
+      USE MODEL_COM, only       : im,jm,lm,ls1
+      USE DYNAMICS, only        : am, byam
+      USE GEOM, only            : BYDXYP,dxyp
+      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,tajls
+CCC  &                            ,ijs_OxL1,taijs
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm
@@ -584,24 +586,22 @@ c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
      &    ,I,J,L,igas,change(I,J,L,igas)
           change(I,J,L,igas) = -0.95*trm(I,J,L,igas)
         endif
-c
-c Leaving this here as reminder to reinstate it in some form. GSF:
-c         if(change(I,J,L,igas).le.1.E20) THEN
-c           if(L.eq.1.and.igas.eq.1)then
-c             changeA=(change(I,J,1,igas)*y(nM,1)*mass2vol(igas))*
-c     *       bydxyp(J)*byam(1,I,J)
-c             TAIJS(I,J,1)=TAIJS(I,J,1)+
-c     *       1.E9*(changeA)/y(nM,L) !O3 change in ppbv
-c           endif
-c           if(igas.eq.ntm)then
-c            if(y(nOH,L).gt.0..and.y(nOH,L).lt.1.E20)tempJLS(J,L,nOH)=
-c     *       tempJLS(J,L,nOH)+y(nOH,L)
-c            tempJLS(J,L,nH2O)=tempJLS(J,L,nH2O)+(y(nH2O,L)/y(nM,L))
-c           endif
-c         endif
-c
+C surface Ox change diagnostic:
+C       if(L.eq.1.and.igas.eq.n_Ox.and.change(I,J,L,igas).le.1.d20)then
+C          changeA=(change(I,J,L,igas)*y(nM,L)*mass2vol(igas))*
+C    *      bydxyp(J)*byam(L,I,J)
+C          TAIJS(I,J,ijs_OxL1)=TAIJS(I,J,ijs_OxL1)+1.d9*changeA/y(nM,L)
+C       end if
+
        end do    ! L
       end do     ! igas
+
+C**** special diags not associated with a particular tracer
+      DO L=1,maxl
+         if (y(nOH,L).gt.0. .and. y(nOH,L).lt.1.E20) 
+     &    TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
+         TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
+      END DO
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)
