@@ -1260,7 +1260,7 @@ C**** functions
       REAL*8 Q1,AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE,PRECHK
      *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
      *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
@@ -1278,7 +1278,7 @@ C**** functions
 !@var DFX iteration increment
 !@var DQ condensed water vapor
 !@var DQSDT derivative of saturation vapor pressure w.r.t. temperature
-!@var DQSUM,DQUP dummy variables
+!@var DQSUM,DQUP,PRECHK dummy variables
 !@var DRHDT time change of relative humidity
 !@var DSE moist static energy jump at cloud top
 !@var DSEC critical DSE for CTEI to operate
@@ -1465,12 +1465,12 @@ C**** Special formulation for PBL layers
       IF(L.GT.1.AND.L.LE.DCL) THEN
 C**** integrated HDEP over pbl depth
         HDEP=0.
-        DO LN=1,MIN(L,DCL-1)
+        DO LN=1,DCL
           HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
         END DO
-        IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        HRISE=HRMAX
-        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))
+c       IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+        HRISE=HRMAX 
+        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))   
         IF(HRISE.GT.HDEP) HRISE=HDEP
 C**** hdep is simply layer dependent (not used: resolution sensitive)
 c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
@@ -1724,10 +1724,11 @@ C**** CONDENSING MORE TRACERS
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       END IF
-      IF(RH(L).LE.RHF(L)) THEN
+      PRECHK=-(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
+      IF(RH(L).LE.RHF(L).AND.PREBAR(L).GE.PRECHK) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
-      PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-      WMX(L)=0.
+      PREBAR(L)=PREBAR(L)+(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
+      WMX(L)=teeny
 #ifdef TRACERS_WATER
       TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
       TRWML(1:NTX,L) = 0.
