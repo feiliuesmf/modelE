@@ -110,6 +110,12 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
+!@var ijts_isrc tracer independent array for TAIJS interactive surface src. diags
+      INTEGER ijts_isrc(ntsurfsrcmax,ntm)
+#ifdef TRACERS_AEROSOLS_Koch
+!@var ijts_tau tracer independent array for TAIJS hydrated optical thickness
+      INTEGER ijts_tau(ntm)
+#endif
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
@@ -185,6 +191,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
+!@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
+      INTEGER jls_isrc(ntsurfsrcmax,ntm)
 !@var jls_3Dsource tracer independent array for TAJLS 3D source diags
       INTEGER jls_3Dsource(nt3Dsrcmax,ntm)
 !@var jls_decay tracer independent array for radioactive sinks
