@@ -400,7 +400,6 @@ C**** value is saved in the database as "B" (here sync = synchronize)
      *     ,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
-      USE RADNCB, only : s0x,co2
 cc?   USE DAGCOM, only : KDIAG
       USE PARAM
 
@@ -428,10 +427,6 @@ C**** Rundeck parameters:
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "IRAND", IRAND )
-
-      call sync_param( "S0X", S0X ) !!
-      call sync_param( "CO2", CO2 ) !!
-
 
 C**** Non-Rundeck parameters
       ! the following were set only at initial start - udating
@@ -1031,7 +1026,8 @@ C****
       if(istart.gt.0) CALL init_CLD
       CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
-      if(istart.gt.0) CALL init_MOM(im,jm,lm)
+      if(istart.gt.0) CALL init_MOM
+      CALL init_RAD
       IF (KDIAG(2).EQ.9.AND.KDIAG(3).LT.9) KDIAG(2)=8
       WRITE (6,INPUTZ)
       call print_param( 6 )

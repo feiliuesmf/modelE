@@ -26,6 +26,14 @@
 !@var RSDIST,SIND,COSD orbit related variables
       REAl*8 :: RSDIST,SIND,COSD
 
+C**** Local varaibles initialised in init_RAD
+!@var COE
+      REAL*8, DIMENSION(LM+LM_REQ) :: COE
+!@var LLOW,LMID,LHI max levels for low, mid and high clouds
+      INTEGER LLOW,LMID,LHI
+!@var SINJ,COSJ sines and cosines for zenith angle calculation
+      REAL*8, DIMENSION(JM) :: SINJ,COSJ
+
       END MODULE RADNCB
 
       SUBROUTINE io_rad(kunit,iaction,ioerr)

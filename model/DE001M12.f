@@ -357,7 +357,7 @@ C****
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp
-      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,
+      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,
      *     j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
@@ -394,7 +394,7 @@ C****
      &     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./)
       INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
-      INTEGER :: I,IM1,J,K,L,J50N,J70N,JET,JR,KM,LDN,LUP,
+      INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
      &     IP1,IMAX,LM1,LP1,LR,MBEGIN,
      &     I150E,I110W,I135W,J5NUV,J5SUV,J5N,J5S,IT
       DOUBLE PRECISION THBAR ! external
@@ -429,8 +429,6 @@ C**** INITIALIZE CERTAIN QUANTITIES
       IF (PMTOP.GT.PMB(K)) GO TO 6
     5 KM=KM+1
     6 CONTINUE    ! JEQ=2.+.5*(JM-1.)
-      J50N=(50.+90.)*(JM-1.)/180.+1.5
-      J70N=(70.+90.)*(JM-1.)/180.+1.5
       I150E = IM*(180+150)/360+1   ! WEST EDGE OF 150 EAST
       I110W = IM*(180-110)/360+1   ! WEST EDGE OF 110 WEST
       I135W = IM*(180-135)/360+1   ! WEST EDGE OF 135 WEST
@@ -2071,91 +2069,87 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DYNAMICS, only : PHI
-      USE DAGCOM, only : nwav_dag,wave,max12hr_sequ
+      USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n
       IMPLICIT NONE
-      SAVE
 
       DOUBLE PRECISION, DIMENSION(0:IMH) :: AN,BN
-
       INTEGER, PARAMETER :: KM=6,KQMAX=12
       INTEGER :: NMAX=nwav_dag
-
       DOUBLE PRECISION, DIMENSION(IM,KM) :: HTRD
-      INTEGER, DIMENSION(KM) :: JLKDEX
-
       DOUBLE PRECISION, DIMENSION(KM), PARAMETER ::
      &     PMB=(/922.,700.,500.,300.,100.,10./),
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
-
-      DOUBLE PRECISION ::
-     &     PIJ50N,PL,PLE,PLM1,SLOPE
-
-      INTEGER ::
-     &     I,IDACC9,J50N,JLK,K,KQ,L,L300,L50,L850,LX,MNOW,N
-
-      INTEGER :: IFIRST = 1
+      DOUBLE PRECISION :: PIJ50N,PL,PLE,PLM1,SLOPE
+      INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
+      INTEGER, SAVE, DIMENSION(KM) :: JLKDEX
+      INTEGER, SAVE :: L300,L50,L850
+      INTEGER, SAVE :: IFIRST = 1
 
       IDACC9=IDACC(9)+1
       IDACC(9)=IDACC9
       IF (IDACC9.GT.Max12HR_sequ) RETURN
-      IF (IFIRST.NE.1) GO TO 100
-      IFIRST=0
-C      JEQ=1+JM/2
-      J50N=(50.+90.)*(JM-1.)/180.+1.5
-      L850=LM
-      L300=LM
-      L50=LM
-      DO 10 L=2,LM
-      LX=LM+1-L
-      PLE=.25*(SIGE(LX)+2.*SIGE(LX+1)+SIGE(LX+2))*PSFMPT+PTOP
-      IF (PLE.LT.850.) L850=LX
-      IF (PLE.LT.300.) L300=LX
-   10 IF (PLE.LT.50.) L50=LX
-      WRITE (6,889) L850,L300,L50
-  889 FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
-     *  ' L300=',I3,' L50=',I3)
-      JLKDEX(1)=JEQ+JM*(L850-1)
-      JLKDEX(2)=JEQ+JM*(L850-1+LM)
-      JLKDEX(3)=JEQ+JM*(L300-1)
-      JLKDEX(4)=JEQ+JM*(L300-1+LM)
-      JLKDEX(5)=JEQ+JM*(L50-1)
-      JLKDEX(6)=JEQ+JM*(L50-1+LM)
-  100 DO KQ=1,5,2
-         JLK=JLKDEX(KQ)
-         CALL FFT (U(1,JLK,1),AN,BN)
-         DO N=1,NMAX
-            WAVE(1,IDACC9,N,KQ)=AN(N)
-            WAVE(2,IDACC9,N,KQ)=BN(N)
-         ENDDO
-         CALL FFT (V(1,JLK,1),AN,BN)
-         DO N=1,NMAX
-            WAVE(1,IDACC9,N,KQ+1)=AN(N)
-            WAVE(2,IDACC9,N,KQ+1)=BN(N)
-         ENDDO
+
+      IF (IFIRST.EQ.1) THEN
+        IFIRST=0
+        L850=LM
+        L300=LM
+        L50=LM
+        DO L=2,LM
+          LX=LM+1-L
+          PLE=.25*(SIGE(LX)+2.*SIGE(LX+1)+SIGE(LX+2))*PSFMPT+PTOP
+          IF (PLE.LT.850.) L850=LX
+          IF (PLE.LT.300.) L300=LX
+          IF (PLE.LT.50.) L50=LX
+        END DO
+        WRITE (6,889) L850,L300,L50
+ 889    FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
+     *       ' L300=',I3,' L50=',I3)
+        JLKDEX(1)=JEQ+JM*(L850-1)
+        JLKDEX(2)=JEQ+JM*(L850-1+LM)
+        JLKDEX(3)=JEQ+JM*(L300-1)
+        JLKDEX(4)=JEQ+JM*(L300-1+LM)
+        JLKDEX(5)=JEQ+JM*(L50-1)
+        JLKDEX(6)=JEQ+JM*(L50-1+LM)
+      END IF
+
+      DO KQ=1,5,2
+        JLK=JLKDEX(KQ)
+        CALL FFT (U(1,JLK,1),AN,BN)
+        DO N=1,NMAX
+          WAVE(1,IDACC9,N,KQ)=AN(N)
+          WAVE(2,IDACC9,N,KQ)=BN(N)
+        ENDDO
+        CALL FFT (V(1,JLK,1),AN,BN)
+        DO N=1,NMAX
+          WAVE(1,IDACC9,N,KQ+1)=AN(N)
+          WAVE(2,IDACC9,N,KQ+1)=BN(N)
+        ENDDO
       ENDDO
       DO 150 I=1,IM
-      PIJ50N=P(I,J50N)
-      K=1
-      L=1
-      PL=SIG(1)*P(I,J50N)+PTOP
-  130 L=L+1
-      IF(L.GE.LS1) PIJ50N=PSFMPT
-      PLM1=PL
-      PL=SIG(L)*PIJ50N+PTOP
-      IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+        PIJ50N=P(I,J50N)
+        K=1
+        L=1
+        PL=SIG(1)*P(I,J50N)+PTOP
+ 130    L=L+1
+        IF(L.GE.LS1) PIJ50N=PSFMPT
+        PLM1=PL
+        PL=SIG(L)*PIJ50N+PTOP
+        IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
 C**** ASSUME THAT PHI IS LINEAR IN LOG P
-      SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
-  140 HTRD(I,K)=(PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
-      IF (K.GE.KM) GO TO 150
-      K=K+1
-      IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
-      GO TO 140
-  150 CONTINUE
-      DO 160 KQ=7,KQMAX
-      CALL FFT(HTRD(1,KQ-6),AN,BN)
-      DO 160 N=1,NMAX
-      WAVE(1,IDACC9,N,KQ)=AN(N)
-  160 WAVE(2,IDACC9,N,KQ)=BN(N)
+        SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
+ 140    HTRD(I,K)=(PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
+        IF (K.GE.KM) GO TO 150
+        K=K+1
+        IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+        GO TO 140
+ 150  CONTINUE
+      DO KQ=7,KQMAX
+        CALL FFT(HTRD(1,KQ-6),AN,BN)
+        DO N=1,NMAX
+          WAVE(1,IDACC9,N,KQ)=AN(N)
+          WAVE(2,IDACC9,N,KQ)=BN(N)
+        END DO
+      END DO
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG7A
@@ -3164,6 +3158,10 @@ C**** Hence this diagnostic gives the error
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
       CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
      *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
+
+C**** initialise longitudinal diagnostic special latitudes
+      J50N=(50.+90.)*(JM-1)/180.+1.5
+      J70N=(70.+90.)*(JM-1)/180.+1.5
 
       RETURN
       END SUBROUTINE init_DIAG

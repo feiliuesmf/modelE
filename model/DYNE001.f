@@ -944,3 +944,52 @@ c
       END DO
 C****
       END SUBROUTINE PGRAD_PBL
+
+      SUBROUTINE SDRAG(LMIN,DT1)
+!@sum  SDRAG puts a drag on the winds on the top layers of atmosphere
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : grav,rgas
+      USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
+     *     ,bydsig,itime
+      USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
+      USE DYNAMICS, only : pk
+      IMPLICIT NONE
+
+!@var DT1 time step (s)
+      REAL*8, INTENT(IN) :: DT1
+!@var LMIN lowest level at which SDRAG is applied
+      INTEGER, INTENT(IN) :: LMIN
+      REAL*8 WL,RHO,CDN,X,PIJU,BYPIJU
+      INTEGER I,J,IP1,L
+
+      PIJU = PSFMPT
+      BYPIJU=1./PSFMPT
+
+      DO L=LMIN,LM
+      DO J=2,JM
+      I=IM
+      DO IP1=1,IM
+        WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+        RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
+        CDN=XCDLM(1)+XCDLM(2)*WL
+        AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
+        X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
+        IF(X.GT.1) THEN
+          write(99,*)'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U,V'
+     *         ,ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)
+     *         ,' If problem persists, winds are too high! '
+     *         ,'Try setting XCDLM smaller.'
+          X=1.
+        END IF
+        AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
+c     IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+        AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+        U(I,J,L)=U(I,J,L)*(1.-X)
+        V(I,J,L)=V(I,J,L)*(1.-X)
+        I=IP1
+      END DO
+      END DO
+      END DO
+      RETURN
+      END

@@ -4,7 +4,7 @@ C**** semi-random cloud overlap (+snow age updates+computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
 C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
-C**** Routines included:   COSZ0, RADIA, DRYCNV, SDRAG
+C**** Routines included:   COSZ0, init_RAD, RADIA
 *****
       SUBROUTINE COSZ0
 !@sum  COSZ0 calculates Earth's zenith angle, weighted by time/sunlight
@@ -13,44 +13,18 @@ C**** Routines included:   COSZ0, RADIA, DRYCNV, SDRAG
       USE CONSTANT, only : twopi
       USE MODEL_COM
       USE GEOM, only : dlat,dlon,lon,sinip,cosip
-      USE RADNCB, only : cosd,sind
+      USE RADNCB, only : cosd,sind,sinj,cosj
       IMPLICIT NONE
       SAVE
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
       REAL*8, DIMENSION(IM,JM) :: COSZ,COSZA
-      REAL*8, DIMENSION(JM) :: SINJ,COSJ
       COMMON/WORK5/LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
 C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       REAL*8, PARAMETER :: ZERO1=1.D-2
       INTEGER I,J,L
-      REAL*8 PHIFI,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,S2DAWN,S2DUSK
-     *     ,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN,SDUSK,SDAWN
-     *     ,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT,PHIS
-
-C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
-      PHIS=-.25*TWOPI
-      SPHIS=-1.
-      CPHIS=0.
-      DO J=1,JM-1
-        PHIN=DLAT*(J-.5*JM)
-        SPHIN=SIN(PHIN)
-        CPHIN=COS(PHIN)
-        PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
-        SINJ(J)=SIN(PHIM)
-        COSJ(J)=COS(PHIM)
-        PHIS=PHIN
-        SPHIS=SPHIN
-        CPHIS=CPHIN
-      END DO
-      PHIN=.25*TWOPI
-      SPHIN=1.
-      CPHIN=0.
-      PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
-      SINJ(JM)=SIN(PHIM)
-      COSJ(JM)=COS(PHIM)
-      RETURN
-C****
+      REAL*8 S2DAWN,S2DUSK,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN
+     *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT
 C****
       ENTRY COSZT (ROT1,ROT2,COSZ)
 C****
@@ -304,25 +278,141 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       RETURN
       END
 
+      SUBROUTINE init_RAD
+!@sum  init_RAD initialises radiation code
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : grav,bysha,twopi
+      USE MODEL_COM, only : jm,lm,dsig,sige,psfmpt,ptop,dtsrc,nrad
+      USE GEOM, only : dlat
+      USE RADNCB, only : s0x,co2,lm_req,llow,lmid,lhi,coe,sinj,cosj
+      USE RE001, only : setnew,rcomp1,writer             ! routines
+     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
+     *     ,KCLDEM,KVEGA6
+      USE FILEMANAGER
+      USE PARAM
+      IMPLICIT NONE
+
+      INTEGER J,L,LR,JYFIX,JDFIX,MADVEL
+      REAL*8 COEX,CO2REF,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS
+!@var NRFUN indices of unit numbers for radiation routines
+      INTEGER NRFUN(14),IU
+!@var RUNSTR names of files for radiation routines
+      CHARACTER*5 :: RUNSTR(14) = (/"RADN1","RADN2","RADN3",
+     *     "RADN4","RADN5","RADN6","RADN7","RADN8",
+     *     "RADN9","RADNA","RADNB","RADNC","RADND",
+     *     "RADNE"/)
+!@var QBIN true if files for radiation input files are binary
+      LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
+     *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
+
+C**** sync radiation parameters from input
+      call sync_param( "S0X", S0X ) 
+      call sync_param( "CO2", CO2 ) 
+
+C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
+      PHIS=-.25*TWOPI
+      SPHIS=-1.
+      CPHIS=0.
+      DO J=1,JM-1
+        PHIN=DLAT*(J-.5*JM)
+        SPHIN=SIN(PHIN)
+        CPHIN=COS(PHIN)
+        PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
+        SINJ(J)=SIN(PHIM)
+        COSJ(J)=COS(PHIM)
+        PHIS=PHIN
+        SPHIS=SPHIN
+        CPHIS=CPHIN
+      END DO
+      PHIN=.25*TWOPI
+      SPHIN=1.
+      CPHIN=0.
+      PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
+      SINJ(JM)=SIN(PHIM)
+      COSJ(JM)=COS(PHIM)
+C****
+C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
+C****
+      LMR=LM+LM_REQ
+      LMRP=LMR+1
+      COEX=1d-2*GRAV*BYSHA
+      DO L=1,LM
+        COE(L)=DTsrc*COEX/DSIG(L)
+        PLE(L)=SIGE(L)*PSFMPT+PTOP
+      END DO
+      PLE(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
+      PLE(LM+2)=.5*PLE(LM+1)
+      PLE(LMR)=.2d0*PLE(LM+1)
+      PLE(LMR+1)=1d-5
+      PTOPTR=PTOP ! top of sigma-coord.system
+      DO LR=LM+1,LMR
+        COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
+      END DO
+      PTLISO=15.
+      IF(CO2.LT.0.) KTREND=-NINT(CO2)
+C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
+C****     For control runs e.g. with Jul 1,1951 atmosphere use
+      JYFIX=1951
+      JDFIX=182                 !  Julian day (if JDFIX=0, annual cycle is used)
+      CALL SETNEW(11,JYFIX,JDFIX, 1,0,0.D0) ! fix sol.const. - KSOLAR
+      CALL SETNEW( 2,JYFIX,JDFIX, 0,0,0.D0) ! fix GHG (trend KTREND)
+      CALL SETNEW(13,0    ,0    , 0,0,0.D0) ! no GHG-resets - MADGAS
+      CALL SETNEW( 3,JYFIX,0    , 0,0,0.D0) ! quasi-fix O3 (ann.cycle)
+      CALL SETNEW( 4,JYFIX,0    , 0,0,0.D0) ! quasi-fix Trop. Aerosols
+      CALL SETNEW( 5,JYFIX,0    , 0,0,0.D0) ! quasi-fix Desert Dust
+      CALL SETNEW( 6,JYFIX,JDFIX, 0,0,0.D0) ! fix Volc. Aerosols
+C     An annual cycle is used for the data below, to prevent this, use
+CnoAC CALL SETNEW(7, 0,JDFIX, 0,0,0.D0) ! cloud heterogeneity - KCLDEP
+CnoAC CALL SETNEW(8, 0,JDFIX, 0,0,0.D0) !  surface albedo
+C**** New options (currently not used)
+      KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
+      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
+      MADVEL=123456         ! suppress reading i-th time series by i->0
+C**** set up unit numbers for 14 radiation input files
+      DO IU=1,14
+        IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
+        call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
+      END DO
+      CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
+      CO2REF=FULGAS(2)
+      IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
+      CALL WRITER (6,0)
+C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
+      DO L=1,LM
+        LLOW=L
+        IF (.5*(PLE(L+1)+PLE(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
+      END DO
+ 44   DO L=LLOW+1,LM
+        LMID=L
+        IF (.5*(PLE(L+1)+PLE(L+2)).LT.430.) GO TO 46
+      END DO
+ 46   LHI=LM
+      IF (LMID+1.GT.LHI) LHI=LMID+1
+      WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+ 47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
+     *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
+C**** 
+      END SUBROUTINE init_RAD
+
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : grav,sday,lhe,lhs,twopi,tf,stbo,bysha
+      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo
       USE MODEL_COM
       USE GEOM
-      USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2,RSDIST
+      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,co2,rsdist,lm_req
+     *     ,llow,lmid,lhi,coe
       USE RE001
-     &  , only : setnew,rcomp1,writer,rcompx,rcompt ! routines
-     &             ,lx
-     &             ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP
+     &  , only : writer,rcompx,rcompt ! routines
 C     INPUT DATA
      &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
-     &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH,PTOPTR
+     &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
      &             ,S00WM2,RATLS0,S0,COSZ,PVT
-     &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON,KCLDEM,KVEGA6
+     &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
 C     OUTPUT DATA
      &             ,TRDFLB ,TRNFLB ,TRFCRL
      &             ,SRDFLB ,SRNFLB ,SRFHRL
@@ -342,7 +432,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
-     *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
+     *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
+     *     j50n,j70n
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -350,34 +441,18 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp
-      USE FILEMANAGER
-
       IMPLICIT NONE
-      SAVE
+
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
       REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
       REAL*8, DIMENSION(IM,JM,9) :: ALB
-
       REAL*8, DIMENSION(LM) :: TOTCLD
 
-      REAL*8, DIMENSION(LM+3) :: COE
-
-      INTEGER :: IFIRST = 1, JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,J50N,J70N,LLOW,LMID
-     *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK,IT
-      REAL*8 COEX,CO2REF,ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS
-     *     ,CMC,DEPTH,QSS,TAUSSL,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X
-!@var NRFUN indices of unit numbers for radiation routines
-      INTEGER NRFUN(14),IU
-!@var RUNSTR names of files for radiation routines
-      CHARACTER*5 :: RUNSTR(14) = (/"RADN1","RADN2","RADN3",
-     *     "RADN4","RADN5","RADN6","RADN7","RADN8",
-     *     "RADN9","RADNA","RADNB","RADNC","RADND",
-     *     "RADNE"/)
-!@var QBIN true if files for radiation input files are binary
-      LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
-     *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
+      INTEGER, SAVE :: JDLAST = -9
+      INTEGER I,J,L,K,KR,LR,IHOUR,IMAX,IM1,JR,IH,INCH,JK,IT
+      REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X 
       REAL*8 QSAT
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -388,72 +463,7 @@ C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
 C****
-      IF (IFIRST.EQ.1) THEN
-      IFIRST=0
-      CALL COSZ0
-C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
-      LMR=LM+3
-      LMRP=LMR+1
-      COEX=.01*GRAV*BYSHA
-      DO L=1,LM
-         COE(L)=DTsrc*COEX/DSIG(L)
-         PLE(L)=SIGE(L)*PSFMPT+PTOP
-      END DO
-      PLE(LM+1)=PMTOP
-      PLE(LM+2)=.5*PMTOP
-      PLE(LMR)=.2*PMTOP
-      PLE(LMR+1)=1.D-5
-      PTOPTR=PTOP ! top of sigma-coord.system
-      DO 40 LR=LM+1,LMR
-   40 COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
-      PTLISO=15.
-      IF(CO2.LT.0.) KTREND=-NINT(CO2)
-C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
-C****     For control runs e.g. with Jul 1,1951 atmosphere use
-          JYFIX=1951
-          JDFIX=182   !  Julian day (if JDFIX=0, annual cycle is used)
-        CALL SETNEW(11,JYFIX,JDFIX, 1,0,0.D0) ! fix sol.const. - KSOLAR
-        CALL SETNEW( 2,JYFIX,JDFIX, 0,0,0.D0) ! fix GHG (trend KTREND)
-        CALL SETNEW(13,0    ,0    , 0,0,0.D0) ! no GHG-resets - MADGAS
-        CALL SETNEW( 3,JYFIX,0    , 0,0,0.D0) ! quasi-fix O3 (ann.cycle)
-        CALL SETNEW( 4,JYFIX,0    , 0,0,0.D0) ! quasi-fix Trop. Aerosols
-        CALL SETNEW( 5,JYFIX,0    , 0,0,0.D0) ! quasi-fix Desert Dust
-        CALL SETNEW( 6,JYFIX,JDFIX, 0,0,0.D0) ! fix Volc. Aerosols
-C     An annual cycle is used for the data below, to prevent this, use
-CnoAC   CALL SETNEW(7, 0,JDFIX, 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-CnoAC   CALL SETNEW(8, 0,JDFIX, 0,0,0.D0) !  surface albedo
-C**** New options (currently not used)
-      KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
-      KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
-      MADVEL=123456         ! suppress reading i-th time series by i->0
-C**** set up unit numbers for 14 radiation input files
-      DO IU=1,14
-         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE    ! not used in GCM
-         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
-      END DO
-      CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
-      CO2REF=FULGAS(2)
-      IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
-         CALL WRITER (6,0)
-         J50N=(50.+90.)*(JM-1)/180.+1.5
-         J70N=(70.+90.)*(JM-1)/180.+1.5
-C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
-         DO 43 L=1,LM
-         LLOW=L
-         IF (.5*(PLE(L+1)+PLE(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
-   43    CONTINUE
-   44    LMID1=LLOW+1
-         DO 45 L=LMID1,LM
-         LMID=L
-         IF (.5*(PLE(L+1)+PLE(L+2)).LT.430.) GO TO 46
-   45    CONTINUE
-   46    LHI1=LMID+1
-         LHI=LM
-         IF (LHI1.GT.LHI) LHI=LHI1
-         WRITE (6,47) LLOW,LMID1,LMID,LHI1,LHI
-   47    FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
-     *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
-      END IF
+
 C**** Calculate mean cosine of zenith angle for the current physics step
       ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
       ROT2=ROT1+TWOPI*DTsrc/SDAY
@@ -485,7 +495,7 @@ C****
 C**** MAIN I LOOP
 C****
       IM1=IM
-      DO 500 I=1,IMAX
+      DO I=1,IMAX
          JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
@@ -569,12 +579,12 @@ C****
          AIJ(I,J,IJ_PCLDL)=AIJ(I,J,IJ_PCLDL)+1.
          GO TO 255
   250    CONTINUE
-  255    DO 260 L=LMID1,LMID
+  255    DO 260 L=LLOW+1,LMID
          IF (TOTCLD(L).NE.1.) GO TO 260
          AIJ(I,J,IJ_PCLDM)=AIJ(I,J,IJ_PCLDM)+1.
          GO TO 265
   260    CONTINUE
-  265    DO 270 L=LHI1,LHI
+  265    DO 270 L=LMID+1,LHI
          IF (TOTCLD(L).NE.1.) GO TO 270
          AIJ(I,J,IJ_PCLDH)=AIJ(I,J,IJ_PCLDH)+1.
          GO TO 275
@@ -667,27 +677,31 @@ C-OLD FGOLDU(3)=XFRADJ*PEARTH
       SRHR(1,I,J)=SRNFLB(1)
       TRHR(1,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
      *  +PEARTH*TGE**4)-TRNFLB(1)
-      DO 440 L=1,LM
-      SRHR(L+1,I,J)=SRFHRL(L)
-  440 TRHR(L+1,I,J)=-TRFCRL(L)
-      DO 450 LR=1,LM_REQ
-      SRHRS(LR,I,J)= SRFHRL(LM+LR)
-  450 TRHRS(LR,I,J)=-TRFCRL(LM+LR)
-      DO 460 K=1,4
-      SNFS(K,I,J)=SRNFLB(K+LM)
-  460 TNFS(K,I,J)=TRNFLB(K+LM)-TRNFLB(1)
-         TRINCG(I,J)=TRDFLB(1)
-         BTMPW(I,J)=BTEMPW-TF
-         ALB(I,J,1)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
-         ALB(I,J,2)=PLAVIS
-         ALB(I,J,3)=PLANIR
-         ALB(I,J,4)=ALBVIS
-         ALB(I,J,5)=ALBNIR
-         ALB(I,J,6)=SRRVIS
-         ALB(I,J,7)=SRRNIR
-         ALB(I,J,8)=SRAVIS
-         ALB(I,J,9)=SRANIR
-  500 IM1=I
+      DO L=1,LM
+        SRHR(L+1,I,J)=SRFHRL(L)
+        TRHR(L+1,I,J)=-TRFCRL(L)
+      END DO
+      DO LR=1,LM_REQ
+        SRHRS(LR,I,J)= SRFHRL(LM+LR)
+        TRHRS(LR,I,J)=-TRFCRL(LM+LR)
+      END DO
+      DO K=1,4
+        SNFS(K,I,J)=SRNFLB(K+LM)
+        TNFS(K,I,J)=TRNFLB(K+LM)-TRNFLB(1)
+      END DO
+      TRINCG(I,J)=TRDFLB(1)
+      BTMPW(I,J)=BTEMPW-TF
+      ALB(I,J,1)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
+      ALB(I,J,2)=PLAVIS
+      ALB(I,J,3)=PLANIR
+      ALB(I,J,4)=ALBVIS
+      ALB(I,J,5)=ALBNIR
+      ALB(I,J,6)=SRRVIS
+      ALB(I,J,7)=SRRNIR
+      ALB(I,J,8)=SRAVIS
+      ALB(I,J,9)=SRANIR
+      IM1=I
+      END DO
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
@@ -783,16 +797,19 @@ C****
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
   770    CONTINUE
   780    CONTINUE
-         DO 790 L=1,LM
-         DO 790 I=1,IM
-         AIL(I,L,7)=AIL(I,L,7)+((SRHR(L+1,I,JEQ-2)*COSZ2(I,JEQ-2)+
-     *     TRHR(L+1,I,JEQ-2))*DXYP(JEQ-2)+(SRHR(L+1,I,JEQ-1)*
-     *     COSZ2(I,JEQ-1)+TRHR(L+1,I,JEQ-1))*DXYP(JEQ-1)+
-     *     (SRHR(L+1,I,JEQ)*COSZ2(I,JEQ)+TRHR(L+1,I,JEQ))*DXYP(JEQ))
-         AIL(I,L,11)=AIL(I,L,11)+(SRHR(L+1,I,J50N)*COSZ2(I,J50N)+
-     *     TRHR(L+1,I,J50N))*DXYP(J50N)
-  790    AIL(I,L,15)=AIL(I,L,15)+(SRHR(L+1,I,J70N)*COSZ2(I,J70N)+
-     *     TRHR(L+1,I,J70N))*DXYP(J70N)
+         DO L=1,LM
+           DO I=1,IM
+             AIL(I,L,7)=AIL(I,L,7)+((SRHR(L+1,I,JEQ-2)*COSZ2(I,JEQ-2)+
+     *            TRHR(L+1,I,JEQ-2))*DXYP(JEQ-2)+(SRHR(L+1,I,JEQ-1)*
+     *            COSZ2(I,JEQ-1)+TRHR(L+1,I,JEQ-1))*DXYP(JEQ-1)+
+     *            (SRHR(L+1,I,JEQ)*COSZ2(I,JEQ)+TRHR(L+1,I,JEQ))
+     *            *DXYP(JEQ))
+             AIL(I,L,11)=AIL(I,L,11)+(SRHR(L+1,I,J50N)*COSZ2(I,J50N)+
+     *            TRHR(L+1,I,J50N))*DXYP(J50N)
+             AIL(I,L,15)=AIL(I,L,15)+(SRHR(L+1,I,J70N)*COSZ2(I,J70N)+
+     *            TRHR(L+1,I,J70N))*DXYP(J70N)
+           END DO
+         END DO
 C****
 C**** Update radiative equilibrium temperatures
 C****
@@ -913,19 +930,20 @@ C**** sum moments to mix over unstable layers
      *                                  *(PK(LMIN+1,I,J)*DP(LMIN+1))
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
-      DO 140 L=LMIN+2,LM
-      IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 160
-      PIJ=PLIJ(L,I,J)
-      DP(L)=PDSIG(L,I,J)
-      PKMS=PKMS+(PK(L,I,J)*DP(L))
-      THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
-      QMS=QMS+Q(I,J,L)*DP(L)
-      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*DP(L))
-      TMOMS(XYMOMS) = TMOMS(XYMOMS) +
-     &     TMOM(XYMOMS,I,J,L)*(PK(L,I,J)*DP(L))
-      QMOMS(XYMOMS) = QMOMS(XYMOMS) +
-     &     QMOM(XYMOMS,I,J,L)*DP(L)
-  140 THETA=TVMS/PKMS
+      DO L=LMIN+2,LM
+        IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 160
+        PIJ=PLIJ(L,I,J)
+        DP(L)=PDSIG(L,I,J)
+        PKMS=PKMS+(PK(L,I,J)*DP(L))
+        THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
+        QMS=QMS+Q(I,J,L)*DP(L)
+        TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*DP(L))
+        TMOMS(XYMOMS) = TMOMS(XYMOMS) +
+     &       TMOM(XYMOMS,I,J,L)*(PK(L,I,J)*DP(L))
+        QMOMS(XYMOMS) = QMOMS(XYMOMS) +
+     &       QMOM(XYMOMS,I,J,L)*DP(L)
+        THETA=TVMS/PKMS
+      END DO
   150 L=LM+1
   160 LMAX=L-1
       RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
@@ -974,51 +992,3 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       RETURN
       END
 
-      SUBROUTINE SDRAG(LMIN,DT1)
-!@sum  SDRAG puts a drag on the winds on the top layers of atmosphere
-!@auth Original Development Team
-!@ver  1.0
-      USE CONSTANT, only : grav,rgas
-      USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
-     *     ,bydsig,itime
-      USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
-      USE DYNAMICS, only : pk
-      IMPLICIT NONE
-
-!@var DT1 time step (s)
-      REAL*8, INTENT(IN) :: DT1
-!@var LMIN lowest level at which SDRAG is applied
-      INTEGER, INTENT(IN) :: LMIN
-      REAL*8 WL,RHO,CDN,X,PIJU,BYPIJU
-      INTEGER I,J,IP1,L
-
-      PIJU = PSFMPT
-      BYPIJU=1./PSFMPT
-
-      DO L=LMIN,LM
-      DO J=2,JM
-      I=IM
-      DO IP1=1,IM
-        WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-        RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
-        CDN=XCDLM(1)+XCDLM(2)*WL
-        AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
-        X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
-        IF(X.GT.1) THEN
-          write(99,*)'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U,V'
-     *         ,ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)
-     *         ,' If problem persists, winds are too high! '
-     *         ,'Try setting XCDLM smaller.'
-          X=1.
-        END IF
-        AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
-c     IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
-        AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
-        U(I,J,L)=U(I,J,L)*(1.-X)
-        V(I,J,L)=V(I,J,L)*(1.-X)
-        I=IP1
-      END DO
-      END DO
-      END DO
-      RETURN
-      END

@@ -2069,44 +2069,33 @@ C****                                                              9-16
       END BLOCK DATA BDIL
 
       SUBROUTINE DIAGIL
-      USE CONSTANT, only :
-     &     grav,rgas,sha,bygrav
-      USE MODEL_COM, only :
-     &     im,jm,lm,fim,
-     &     BYDSIG,DSIG,DTsrc,IDACC,JEQ,
-     &     PSF,PTOP,SIG,SIGE
-      USE GEOM, only :
-     &     AREAG,DXYP,DXYV
-      USE DAGPCOM, only :
-     &     PLM,PLE
-      USE DAGCOM, only :
-     &     ail, LM_REQ
+      USE CONSTANT, only : grav,rgas,sha,bygrav
+      USE MODEL_COM, only : im,jm,lm,fim,bydsig,dsig,dtsrc,idacc,jeq,psf
+     *     ,ptop,sig,sige
+      USE GEOM, only :  areag,dxyp,dxyv
+      USE DAGPCOM, only : plm,ple
+      USE DAGCOM, only : ail,lm_req,j50n,j70n
 
       IMPLICIT NONE
 
       INTEGER :: LINECT,JMHALF,INC
       COMMON/DILCOM/LINECT,JMHALF,INC
-
       CHARACTER TITLE*64
       COMMON/DILTTL/TITLE(1)
-
       DOUBLE PRECISION, DIMENSION(LM) :: ONES
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PL
-
-      INTEGER :: J,J50N,J70N,L,K
+      INTEGER :: J,L,K
       DOUBLE PRECISION :: BYIACN,BYIADA,BYIARD,SCALE
-
       INTEGER, PARAMETER :: K_PIL=16
       INTEGER, DIMENSION(K_PIL) ::
      *  KNDEX=(/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16/),
      *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 0,1,2,3,0, 1/)
 c    *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 5,1,2,3,5, 1/)
       DOUBLE PRECISION SIL(K_PIL)
+
 C**** INITIALIZE CERTAIN QUANTITIES
       INC=1+(JM-1)/24
       JMHALF=JM/2
-      J50N=(50.+90.)*(JM-1.)/180.+1.5
-      J70N=(70.+90.)*(JM-1.)/180.+1.5
       DO 20 L=1,LM
       ONES(L)=1.
    20 CONTINUE
@@ -2151,14 +2140,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
       END SUBROUTINE DIAGIL
 
       SUBROUTINE ILMAP (TITLE,PL,AX,SCALE,SCALEL,LMAX,JWT,ISHIFT)
-      USE DAGCOM, only : QCHECK,acc_period,iu_il
-      USE CONSTANT, only :
-     &     twopi
-      USE MODEL_COM, only :
-     &     im,jm,lm,
-     &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
-      USE GEOM, only :
-     &     DLON,LON_DG
+      USE DAGCOM, only : qcheck,acc_period,iu_il
+      USE CONSTANT, only : twopi
+      USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
+     *     ,jyear0,sige,xlabel 
+      USE GEOM, only : dlon,lon_dg
       IMPLICIT NONE
 
       REAL*4 :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
@@ -2223,13 +2209,6 @@ C**** Output for post-processing
          XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          IF(QCHECK) CALL POUT_IL(XLB,ISHIFT,LMAX,XIL,PL,CLAT,CPRES
      *        ,SNGL(ASUM),SNGL(GSUM),ZONAL)
-
-c      IF (QCHECK) WRITE (iu_il) XLB,IM,LMAX,1,1,
-c     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-c     *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
-c     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
-c     *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
-
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)
@@ -2266,7 +2245,7 @@ C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
 c      USE PRTCOM, only :
-      USE DAGCOM, only :
+      USE DAGCOM, only : 
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL

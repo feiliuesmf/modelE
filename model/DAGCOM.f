@@ -57,6 +57,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       INTEGER, PARAMETER :: KAIL=16
 !@var AIL longitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
+!@var J50N,J70N special longitudes for AIL diagnostics
+      INTEGER :: J50N,J70N
 
 C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NEHIST,HISTDAYS number of energy history diagnostics, and days
