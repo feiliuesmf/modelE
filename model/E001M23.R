@@ -48,7 +48,7 @@ RADN3=miescatpar.abcdv
 RADN4=o3Prather1979-80.London1957-70
 RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
-RADN7=STRATAER.VOL.1950-2000.Jul99
+RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2

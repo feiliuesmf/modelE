@@ -448,11 +448,7 @@ CF    CHARACTER*40 BLNK40/'                                        '/
 CF    CHARACTER*80 RFILEN
 C
       REAL*4 TAUTB4(148000),PLANC4(8250),OZONLJ(44,46),R72X46(72,46)
-      REAL*4 XKCF4(12,8,19,4),H2OCN4(33,8,14)
-ceq   REAL*4 HTFA98(612,24),HTFB98(612,24),HTFC98(612,24),HTFD98(612,24)
-C
-ceq   EQUIVALENCE(HTF498(1,1,1),HTFA98(1,1)),(HTF498(1,1,2),HTFB98(1,1))
-ceq   EQUIVALENCE(HTF498(1,1,3),HTFC98(1,1)),(HTF498(1,1,4),HTFD98(1,1))
+      REAL*4 XKCF4(12,8,19,4),H2OCN4(33,8,14),VTAUR4(1800,24)
 C
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -667,11 +663,6 @@ C
       DO 144 I=1,27
          TAUARC(I,L)=0.0
   144 CONTINUE
-      DO 146 L=1,4
-      DO 146 J=1,13
-      DO 146 I=1,27
-         HTFA13(I,J,L)=0.0
-  146 CONTINUE
 C
 C-----------------------------------------------------------------------
 CR(1) Reads GTAU Asymmetry Parameter Conversion Table used within SGPGXG
@@ -1345,9 +1336,9 @@ C
 C
 C
 C-----------------------------------------------------------------------
-CR(7)        Read Makiko's Stratospheric binary data made in April, 1998
-C                                (612 months (1950-2000) x 24 latitudes)
-C                                ---------------------------------------
+CR(7)        Read Makiko's Stratospheric binary data made in April, 2002
+C                               (1800 months (1850-1999) x 24 latitudes)
+C                               ----------------------------------------
 C
       IF(MADVOL.LT.1) GO TO 799
       NRFU=NRFUN(7)
@@ -1355,12 +1346,17 @@ CF    RFILEN(  1:LPATH1)=LLPATH
 CF    RFILEN(LP3:LP4)=RFILE7
 CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
-      READ (NRFU) TITLE,ATAU98
-      READ (NRFU) TITLE,SIZE98
-      READ (NRFU) TITLE,HTFA98
-      READ (NRFU) TITLE,HTFB98
-      READ (NRFU) TITLE,HTFC98
-      READ (NRFU) TITLE,HTFD98
+      READ (NRFU) TITLE
+      IF(TITLE(1:13).eq.'Optical Depth') stop 'use new RADN7'
+      REWIND (NRFU)
+      DO K=1,5
+        READ (NRFU) TITLE,VTAUR4
+        DO J=1,24
+        DO I=1,1800
+          V4TAUR(I,J,K)=VTAUR4(I,J)
+        END DO
+        END DO
+      END DO
 cg    CLOSE(NRFU)
 C
   799 CONTINUE
@@ -4436,13 +4432,13 @@ C
 C                   Set Grid-Box Edge Latitudes for Data Repartitioning
 C                   ---------------------------------------------------
       NJ25=25
-      DO 110 J=2,24
+      DO 110 J=1,24
       E24LAT(J+1)=-90.D0+(J-1.5D0)*180.D0/23.D0
   110 CONTINUE
       E24LAT( 1)=-90.D0
       E24LAT(25)= 90.D0
       NJJM=46+1
-      DO 120 J=2,46
+      DO 120 J=1,46
       EJMLAT(J+1)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
   120 CONTINUE
       EJMLAT(   1)=-90.D0
@@ -4472,53 +4468,33 @@ C--------------------------------
       ENTRY UPDVOL(JYEARV,JDAYVA)
 C--------------------------------
 C
-C                                          (ARCHIV DATA are not in use)
-C                                          ----------------------------
+C                                          (Makiko's 1850-1999 data)
+C                                          -------------------------
       XYYEAR=JYEARV+JDAYVA/366.D0
-      IF(XYYEAR.LT.1950.D0) XYYEAR=1950.D0
-      IF(XYYEAR.LT.1950.D0) THEN
+      IF(XYYEAR.LT.1850.D0) XYYEAR=1850.D0
       XYI=(XYYEAR-1850.D0)*12.D0+1.D0
-      IF(XYI.LT.1.D0) XYI=1.D0
-      MI=XYI
-      WMJ=XYI-MI
-      WMI=1.D0-WMJ
-      MJ=MI+1
-      DO 210 J=1,24
-      FDATA(J)=WMI*TAUARC(J,MI)+WMJ*TAUARC(J,MJ)
-  210 CONTINUE
-      CALL RETERP(FDATA,E24LAT,NJ25,TAULAT,EJMLAT,NJJM)
-      DO 220 J=1,24
-      FDATA(J)=REFF0
-  220 CONTINUE
-      CALL RETERP(FDATA,E24LAT,NJ25,SIZLAT,EJMLAT,NJJM)
-      DO 240 K=1,4
-      DO 230 J=1,24
-      FDATA(J)=WMI*HTFA13(J,MI,K)+WMJ*HTFA13(J,MJ,K)
-  230 CONTINUE
-      CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
-  240 CONTINUE
-      ELSE
-C                                             (Makiko's 1950-2000 DATA)
-C                                             -------------------------
-      XYI=(XYYEAR-1950.D0)*12.D0+1.D0
-      IF(XYI.GT.611.999D0) XYI=611.999D0
+      IF(XYI.GT.1799.999D0) XYI=1799.999D0
       MI=XYI
       WMJ=XYI-MI
       WMI=1.D0-WMJ
       MJ=MI+1
       DO 250 J=1,24
-      FDATA(J)=WMI*ATAU98(MI,J)+WMJ*ATAU98(MJ,J)
-      GDATA(J)=WMI*SIZE98(MI,J)+WMJ*SIZE98(MJ,J)
+      GDATA(J)=WMI*V4TAUR(MI,J,5)+WMJ*V4TAUR(MJ,J,5)
   250 CONTINUE
-      CALL RETERP(FDATA,E24LAT,NJ25,TAULAT,EJMLAT,NJJM)
       CALL RETERP(GDATA,E24LAT,NJ25,SIZLAT,EJMLAT,NJJM)
       DO 270 K=1,4
       DO 260 J=1,24
-      FDATA(J)=WMI*HTF498(MI,J,K)+WMJ*HTF498(MJ,J,K)
+      FDATA(J)=WMI*V4TAUR(MI,J,K)+WMJ*V4TAUR(MJ,J,K)
   260 CONTINUE
       CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
   270 CONTINUE
-      ENDIF
+      DO 290 J=1,24
+      SUM=0
+      DO 280 K=1,4
+      SUM=SUM+HTFLAT(J,K)
+  280 CONTINUE
+      TAULAT(J)=SUM
+  290 CONTINUE
 C
       RETURN
 C
@@ -4550,9 +4526,6 @@ C
       IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
       SUMHTF=SUMHTF+HTPROF(L)
   330 CONTINUE
-      DO 340 L=1,NL
-      HTPROF(L)=HTPROF(L)/SUMHTF
-  340 CONTINUE
 C
       TAUVOL=TAULAT(JLAT)
       SIZVOL=SIZLAT(JLAT)
@@ -4571,7 +4544,7 @@ C                                  H2SO4 Thermal Contribution in TRVALK
 C                                  ------------------------------------
       DO 420 K=1,33
       DO 410 L=1,NL
-      TRVALK(L,K)=HTPROF(L)*AVH2S(K)*TAUVOL*FTXTAU
+      TRVALK(L,K)=HTPROF(L)*AVH2S(K)*FTXTAU
   410 CONTINUE
   420 CONTINUE
 C
@@ -4580,8 +4553,8 @@ C                      ------------------------------------------------
 C
       DO 440 K=1,6
       DO 430 L=1,NL
-      SRVEXT(L,K)=QVH2S(K)*HTPROF(L)*TAUVOL*FSXTAU
-      SRVSCT(L,K)=SVH2S(K)*HTPROF(L)*TAUVOL*FSXTAU*PIVMAX
+      SRVEXT(L,K)=QVH2S(K)*HTPROF(L)*FSXTAU
+      SRVSCT(L,K)=SVH2S(K)*HTPROF(L)*FSXTAU*PIVMAX
       SRVGCB(L,K)=GVH2S(K)
   430 CONTINUE
   440 CONTINUE
