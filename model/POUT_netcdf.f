@@ -199,16 +199,6 @@ c define missing value attribute if requested
       if(def_missing) status_out = nf_put_att_real(out_fid,varid_out,
      &     'missing_value',nf_float,1,missing)
       status_out = nf_enddef(out_fid)
-c restore defaults (perhaps move this to end of setup_arrn)
-      var_name=''
-      units=''
-      long_name=''
-      real_att_name=''
-      real_att=missing
-      disk_dtype = nf_real
-      prog_dtype = nf_double
-      def_missing = .false.
-      write_whole_array = .false.
       return
       end subroutine defarr
 
@@ -280,6 +270,16 @@ c check to make sure that var_name is already defined in output file
             call stop_model('stopped in POUT_netcdf.f',255)
          endif
       endif
+c restore defaults (was moved here from defarr)
+      var_name=''
+      units=''
+      long_name=''
+      real_att_name=''
+      real_att=missing
+      disk_dtype = nf_real
+      prog_dtype = nf_double
+      def_missing = .false.
+      write_whole_array = .false.
       return
       end subroutine setup_arrn
 
