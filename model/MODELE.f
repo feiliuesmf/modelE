@@ -26,7 +26,7 @@
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER aDATE*14
-      CHARACTER*8 :: flg_go       ! green light
+      CHARACTER*8 :: flg_go='___GO___'      ! green light
       external stop_model
 C****
 C**** INITIALIZATIONS
@@ -59,8 +59,8 @@ C****
 #endif
          CALL exit_rc (13)  ! no output files are affected
       END IF
-      open(3,file='sswOnOff',form='FORMATTED',status='REPLACE')
-      write (3,'(A8)') '___ON___'
+      open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
+      write (3,'(A8)') flg_go
       close (3)
       call sys_signal( 15, stop_model )  ! works only on single CPU
          MSTART=MNOW
@@ -448,14 +448,14 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
-      flg_go = '___ON___'             ! let the model run
       IF (MOD(Itime,Nssw).eq.0) then
-        open(3,file='sswOnOff',form='FORMATTED',status='OLD',err=210)
+        flg_go = '__STOP__'     ! stop if flagGoStop if missing
+        open(3,file='flagGoStop',form='FORMATTED',status='OLD',err=210)
         read (3,'(A8)',end=210) flg_go
         close (3)
  210    continue
       endif
-      IF (flg_go.ne.'___ON___' .or. stop_on) THEN
+      IF (flg_go.ne.'___GO___' .or. stop_on) THEN
 C**** Flag to continue run has been turned off
          WRITE (6,'("0Flag to continue run has been turned off.")')
          EXIT
