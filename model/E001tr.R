@@ -130,7 +130,7 @@ CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5    ! Monthly
 Label and Namelist:
 E001tr (ModelE 2.3.4+ based on B402A, uses dry adiab. adjustment; tracers)
 R=00BG/B
-DTFIX=180
+DTFIX=90
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
@@ -150,7 +150,7 @@ PCONPEN=500.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
 
 xCDpbl=1.
-cond_scheme=2   ! more elaborate conduction scheme (GHY, Nancy Kiang)
+cond_scheme=1   ! 2 = more elaborate conduction scheme (GHY, Nancy Kiang)
 U00ice=.61      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
 U00wtrX=1.259   ! U00wtrX up => nethtz0 up   (alb down)           global mean)
 ! HRMAX=550.    ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
@@ -174,16 +174,16 @@ aero_yr=1979
 o3_yr=1979
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=300. ! Shapiro filter on U in E-W direction; usually same as DT (below)
-DT_XVfilter=300. ! Shapiro filter on V in E-W direction; usually same as DT (below)
+DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)
+DT_XVfilter=180. ! Shapiro filter on V in E-W direction; usually same as DT (below)
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
 LMCM=16              ! max level of moist convection
 XCDNST=300.,10000.   ! strat. gw drag parameters
-DT=300.,             ! from default: DTsrc=3600.,
-NIsurf=3,            ! number of surface time steps
+DT=180.,             ! from default: DTsrc=3600.,
+NIsurf=4,            ! number of surface time steps
 
 ! parameters that affect at most diagn. output:
 Ndisk=24        ! use =240 on halem
