@@ -107,9 +107,10 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #ifdef TRACERS_AEROSOLS_Koch
-      integer, parameter :: ntm=5
+      integer, parameter :: ntm=7
       character*8, parameter :: trname(ntm)=(/
-     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2'/)
 #else ! default:
 #ifdef TRACERS_WATER
       integer, parameter :: ntm=2
@@ -151,7 +152,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_Alkenes,n_Paraffin,n_DMS, n_MSA,      n_SO2,
      *     n_SO4,    n_H2O2_s,n_ClOx,  n_BrOx,     n_HCl,
      *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
-     *     n_CFC, n_Pb210, n_Be7, n_Be10  
+     *     n_CFC, n_Pb210, n_Be7, n_Be10, n_seasalt1,
+     *     n_seasalt2
 #ifdef regional_Ox_tracers
      *     ,n_OxREG1,n_OxREG2,n_OxREG3,n_OxREG4,n_OxREG5,n_OxREG6
 #endif
@@ -206,6 +208,8 @@ C****
       integer, parameter :: ntsurfsrcmax=14
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
+!@var ntisurfsrc no. of interactive surface sources for each tracer
+      integer, dimension(ntm) :: ntisurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
       integer, parameter :: nt3Dsrcmax=5
