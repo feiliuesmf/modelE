@@ -9,7 +9,7 @@ C****
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
 !@auth Jean Lerner
 !@var  1.0
-      USE E001M12_COM, only : lm,sige,sig,psf,ptop
+      USE MODEL_COM, only : lm,sige,sig,psf,ptop
       USE RADNCB, only : LM_REQ
       IMPLICIT NONE
       SAVE
@@ -353,7 +353,7 @@ C****
 !@auth Original Development Team
 !@ve   1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,fland,flice,fearth,WM,
      *     ntype,itocean,itoice,itearth,itlandi,itlake,itlkice,ftype
@@ -1300,7 +1300,7 @@ C****   5  4*DP4*T4 (100 K*PA)  (UV GRID)
 C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
       USE CONSTANT, only : lhe,omega,sha,tf
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag, ndaa, skipse,
      &     sig,sige,dsig, Jhour, ijd6
@@ -2131,7 +2131,7 @@ C**** THIS SUBROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
 C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav,bygrav
-      USE E001M12_COM, only : im,imh,jm,lm,
+      USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ
       IMPLICIT NONE
@@ -2229,7 +2229,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 !@sum  momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : mdiag
+      USE MODEL_COM, only : mdiag
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
      *     ,icon_LKM,icon_LKE
       IMPLICIT NONE
@@ -2282,7 +2282,7 @@ C****
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : omega,mb2kg
-      USE E001M12_COM, only : im,jm,lm,fim,mdiag,mdyn
+      USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
       USE DAGCOM, only : consrv
       IMPLICIT NONE
@@ -2367,7 +2367,7 @@ C****
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : jm
+      USE MODEL_COM, only : jm
       USE DAGCOM, only : consrv,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
@@ -2409,7 +2409,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : omega,radius,mb2kg
-      USE E001M12_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
+      USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
       USE GEOM, only : cosv,dxyn,dxys,dxyv
       IMPLICIT NONE
 
@@ -2456,7 +2456,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE E001M12_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
+      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
       USE GEOM, only : dxyn,dxys,dxyv
       IMPLICIT NONE
 
@@ -2496,7 +2496,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE E001M12_COM, only : im,jm,fim,p,pstrat
+      USE MODEL_COM, only : im,jm,fim,p,pstrat
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: RMASS
       INTEGER :: I,J
@@ -2521,7 +2521,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sha,mb2kg
-      USE E001M12_COM, only : im,jm,lm,fim,dsig,ls1,t,p,ptop,psfmpt
+      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,t,p,ptop,psfmpt
      *     ,zatmo
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pk
@@ -2563,7 +2563,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE E001M12_COM, only : im,jm,lm,fim,dsig,ls1,wm,q,p,psfmpt
+      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,wm,q,p,psfmpt
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pk
       IMPLICIT NONE
@@ -2594,7 +2594,7 @@ C****
       END SUBROUTINE conserv_WM
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
-      USE E001M12_COM, only : im,imh,jm,lm,fim,
+      USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,JEQ,LS1,MDIAG,MDYN
       USE DAGCOM, only : speca,nspher
       IMPLICIT NONE
@@ -2697,7 +2697,7 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       USE CONSTANT, only : kapa,sha
-      USE E001M12_COM, only : im,imh,jm,lm,fim,
+      USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
      &     P,PSF,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS
@@ -2905,7 +2905,7 @@ C****
       SUBROUTINE DIAG5F(UX,VX)
 C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
-      USE E001M12_COM, only : im,imh,jm,lm,
+      USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,MDIAG,MDYN
       IMPLICIT NONE
 
@@ -2931,7 +2931,7 @@ C****
 C****
 C**** THIS SUBROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
-      USE E001M12_COM, only : im,jm,lm,
+      USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1,SKIPSE
       USE GEOM, only : DXYV
       USE DAGCOM, only : energy,speca,ajk,aijk
@@ -3003,7 +3003,7 @@ C**** EVERY ABS(NSLP) HOURS. IF NSLP.LT.0 THE FIRST RECORD IS
 C**** WRITTEN TO THE BEGINNING OF UNIT 16.
 C****
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
-      USE E001M12_COM, only : im,jm,p,ptop,Itime,zatmo
+      USE MODEL_COM, only : im,jm,p,ptop,Itime,zatmo
       USE PBLCOM, only : tsavg
       IMPLICIT NONE
       INTEGER :: iu_SLP
@@ -3021,7 +3021,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday
-      USE E001M12_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
+      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
      *     ,nfiltr,dtsrc
       USE DAGCOM
       USE DAGPCOM, only : ple,plm,pmtop
@@ -3127,7 +3127,7 @@ C**** Atmospheric water mass
 !@sum  reset_DIAG resets/initiallises diagnostics
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : Itime,jhour,jdate,jmon,amon,jyear,
+      USE MODEL_COM, only : Itime,jhour,jdate,jmon,amon,jyear,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
       USE DAGCOM
       IMPLICIT NONE
@@ -3155,7 +3155,7 @@ C**** Atmospheric water mass
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,jday,fearth
+      USE MODEL_COM, only : im,jm,jday,fearth
       USE DAGCOM, only : tsfrez,tdiurn
       IMPLICIT NONE
 
@@ -3205,7 +3205,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday
-      USE E001M12_COM, only : dtsrc,nfiltr
+      USE MODEL_COM, only : dtsrc,nfiltr
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con
       IMPLICIT NONE

@@ -30,7 +30,7 @@ c-----------------------------------------------------------------------
       end subroutine def_acc
 
       subroutine iparm_defs
-      use E001M12_COM
+      use MODEL_COM
       use DAGCOM
       implicit none
       integer :: k
@@ -113,7 +113,7 @@ c
 
       subroutine dparm_defs
       use CONSTANT
-      use E001M12_COM
+      use MODEL_COM
       use DAGCOM
       use RADNCB, only : co2
       use CLD01, only : u00wtr,u00ice

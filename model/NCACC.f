@@ -1,6 +1,6 @@
 c f90 -c -64 NCACC.f
       subroutine write_nc_acc(fileout)
-      use E001M12_COM
+      use MODEL_COM
       use GEOM
       use DAGCOM
       use DAGPCOM, only : plm,ple

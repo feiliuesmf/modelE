@@ -19,7 +19,7 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-      USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
+      USE MODEL_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi

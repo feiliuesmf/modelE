@@ -3,7 +3,7 @@
 !@sum           related variables
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 C**** Some helpful arrays (arrays should be L first)

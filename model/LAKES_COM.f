@@ -2,7 +2,7 @@
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : IM,JM,ioread,iowrite
+      USE MODEL_COM, only : IM,JM,ioread,iowrite
 
       IMPLICIT NONE
       SAVE

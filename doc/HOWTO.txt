@@ -153,7 +153,7 @@ subroutine, and each important variable should have such a declaration
 (which should indclude a definiton, units, etc.). The utility 'gcmdoc'
 makes html output from a rundeck containing (and sorting out) all this
 information. The various directives are all defined in the main model
-common block. If you introduce new varaibles or subroutines, you MUST
+common block. If you introduce new variables or subroutines, you MUST
 define similar documentation.  
 
 4) HOW-TO ensure that your code meets the new standards
@@ -259,7 +259,7 @@ One of the main changes to modelE was to replace common blocks with
 Fortan 90 modules. The functionality is much the same, but since they
 do not assume anything about where in memory variables are kept, many
 of the problems associated with common blocks are alleviated. In order
-to make use of a variable from somwehwere else in the code, that
+to make use of a variable from somewhere else in the code, that
 variable must be in the relevant MODULE (usually called PHYS_COM, for
 ease of remembering). Then in the routine of module where you wish to
 use it you must specifically declare what you want using the USE

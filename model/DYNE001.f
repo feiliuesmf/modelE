@@ -2,7 +2,7 @@
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,fim,byim
+      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,fim,byim
       USE GEOM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       IMPLICIT NONE
@@ -129,7 +129,7 @@ C****
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q
+      USE MODEL_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit
       IMPLICIT NONE
@@ -163,7 +163,7 @@ C****
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,fd,dut,dvt
       IMPLICIT NONE
@@ -350,7 +350,7 @@ C****
 !@auth Original development team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE E001M12_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
+      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
       USE DYNAMICS, only : gz,pu,pit,phi,spa,fd,dut,dvt
@@ -540,7 +540,7 @@ C****
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,imh
+      USE MODEL_COM, only : im,jm,imh
       USE GEOM, only : dlon,dxp,dyp
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       IMPLICIT NONE
@@ -593,7 +593,7 @@ C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
       USE CONSTANT, only : bbyg,gbyrb,kapa
-      USE E001M12_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
+      USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
      *     ,byim,sig
       USE SOMTQ_COM, only : tmom,qmom
       USE PBLCOM, only : tsavg
@@ -677,7 +677,7 @@ C****
 !@auth Original development team
 !@ver  1.0
 !@calls SHAP1D
-      USE E001M12_COM, only : im,jm,lm,byim
+      USE MODEL_COM, only : im,jm,lm,byim
 C**********************************************************************
 C**** FILTERING IS DONE IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
@@ -810,7 +810,7 @@ C****
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
 !@auth Original development team
 !@ver  1.0
-      USE E001M12_COM, only :im,jm
+      USE MODEL_COM, only :im,jm
       IMPLICIT NONE
 !@var NORDER order of shapiro filter (must be even)
       INTEGER, INTENT(IN) :: NORDER 
@@ -841,7 +841,7 @@ C****
 !@sum  CALC_PIJL Fills in P as 3-D
 !@auth Jean Lerner
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,ls1,psfmpt
+      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
 C**** 
       implicit none
       double precision, dimension(im,jm) :: p
@@ -863,7 +863,7 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : bygrav,kapa
-      USE E001M12_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
+      USE MODEL_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp
       IMPLICIT NONE
 
@@ -916,7 +916,7 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
 !@auth Jean Lerner/Max Kelley
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm,ls1,dsig,psf,ptop
+      USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
       USE GEOM, only : dxyp
 C**** 
       implicit none
@@ -942,7 +942,7 @@ C****
 !@auth Original development team
 !@ver  1.0
       USE CONSTANT, only : by3
-      USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
+      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
@@ -1085,7 +1085,7 @@ C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).     
       USE CONSTANT, only : rgas
-      USE E001M12_COM, only : im,jm,t,p,zatmo,sig
+      USE MODEL_COM, only : im,jm,t,p,zatmo,sig
       USE GEOM, only : dyp,dxp
       USE DYNAMICS, only : phi,pu,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk

@@ -2,7 +2,7 @@
 !@sum  FLUXES contains the fluxes between various components
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : IM,JM
+      USE MODEL_COM, only : IM,JM
       IMPLICIT NONE
 
 !@var RUNOSI run off underneath sea/lake ice (kg/m^2) 

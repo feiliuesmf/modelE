@@ -11,7 +11,7 @@ C**** Routines included:   COSZ0, RADIA, DRYCNV, SDRAG
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : twopi
-      USE E001M12_COM
+      USE MODEL_COM
       USE GEOM, only : dlat,dlon,lon,sinip,cosip
       USE RADNCB, only : cosd,sind
       IMPLICIT NONE
@@ -309,7 +309,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,sday,lhe,lhs,twopi,tf,stbo
-      USE E001M12_COM
+      USE MODEL_COM
       USE GEOM
       USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2,RSDIST
       USE RE001
@@ -832,7 +832,7 @@ C**** THIS SUBROUTINE MIXES AIR CAUSED BY DRY CONVECTION.
 C**** THIS VERSION CHECKS BASE LAYERS LBASE_MIN TO LBASE_MAX.
 C****
       USE CONSTANT, only : lhe,sha
-      USE E001M12_COM
+      USE MODEL_COM
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
@@ -973,7 +973,7 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas
-      USE E001M12_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
+      USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
      *     ,bydsig,itime
       USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
       USE DYNAMICS, only : pk

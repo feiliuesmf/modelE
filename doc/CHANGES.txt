@@ -54,3 +54,11 @@ Major Changes from Model II'
   replaced with one general purpose routines.
 
 - lakes are seperated from ocean variables/code.
+
+- Explicit use of B-grid velocity points is now implicit.
+
+- sea ice now seperated from ocean/lakes code. All fluxes are now passed.
+
+- Ground temperatures for SURFCE/RADIA and PBL are now saved in the
+  GTEMP array.
+

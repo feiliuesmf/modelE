@@ -7,7 +7,7 @@
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE LANDICE_COM, only : tlandi
       USE FLUXES, only : gtemp
       IMPLICIT NONE
@@ -27,7 +27,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECLI
-      USE E001M12_COM, only : im,jm,flice,itlandi
+      USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli,prec,eprec
       USE LANDICE_COM, only : snowli,tlandi
@@ -88,7 +88,7 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
 !@auth Original Development team
 !@ver  1.0
 !@calls LNDICE
-      USE E001M12_COM, only : im,jm,flice,itlandi
+      USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli
       USE LANDICE_COM, only : snowli,tlandi

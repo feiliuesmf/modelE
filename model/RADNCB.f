@@ -2,7 +2,7 @@
 !@sum  RADNCB Model radiation arrays and parameters
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       USE RE001, only : S0
 !@var S0 solar constant needs to be saved between calls to radiation
       IMPLICIT NONE
@@ -32,7 +32,7 @@
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
       USE RADNCB
       IMPLICIT NONE
 

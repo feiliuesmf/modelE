@@ -3,7 +3,7 @@
 !@auth Gary Russell
 !@ver  1.0
       USE QUSDEF
-      USE E001M12_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
       DOUBLE PRECISION, DIMENSION(NMOM,IM,JM,LM) :: TMOM,QMOM
@@ -14,7 +14,7 @@
 !@sum  io_somtq reads and writes second order moments to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -42,7 +42,7 @@
       END SUBROUTINE io_somtq
 
       subroutine tq_zmom_init(t,q)
-      USE E001M12_COM, only : im,jm,lm,sige,sig
+      USE MODEL_COM, only : im,jm,lm,sige,sig
       USE SOMTQ_COM
       implicit none
       double precision, dimension(im,jm,lm) :: t,q

@@ -3,7 +3,7 @@
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi
-      USE E001M12_COM, only : IM,JM
+      USE MODEL_COM, only : IM,JM
       IMPLICIT NONE
       SAVE
 C****
@@ -244,7 +244,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,tf,pi,grav
-      USE E001M12_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
+      USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
      *     ,itlake,itlkice
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE SEAICE_COM, only : rsi
@@ -459,7 +459,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,shw,rhow
-      USE E001M12_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
+      USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,ftype
       USE GEOM, only : dxyp
       USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
@@ -590,7 +590,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow,sday
-      USE E001M12_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
+      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DAGCOM, only : aij,ij_mrvr
       USE LAKES, only : irvrmth,jrvrmth,nrvr
@@ -635,7 +635,7 @@ C****
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
-      USE E001M12_COM, only : im,jm,hlake,fearth
+      USE MODEL_COM, only : im,jm,hlake,fearth
       USE GEOM, only : dxyp
       USE DAGCOM, only : qcheck
       USE LAKES
@@ -695,7 +695,7 @@ C****
 !@auth G. Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw,rhow,pi,rhow,by3
-      USE E001M12_COM, only : im,jm,ftype,itlake,itlkice,jday
+      USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : simelt,lmi
@@ -810,7 +810,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,fland,flice,itlake,itlkice
+      USE MODEL_COM, only : im,jm,fland,flice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
@@ -869,7 +869,7 @@ C****
 !@ver  1.0
 !@calls 
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,flice,fland,hlake
+      USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,evapor, dmsi,dhsi,
@@ -1051,7 +1051,7 @@ C****
 !@sum  conserv_LKM calculates total lake mass
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj
       USE LAKES_COM, only : mwl
       IMPLICIT NONE
@@ -1074,7 +1074,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : grav
-      USE E001M12_COM, only : im,jm,zatmo
+      USE MODEL_COM, only : im,jm,zatmo
       USE GEOM, only : imaxj
       USE LAKES_COM, only : gml,mwl
       IMPLICIT NONE

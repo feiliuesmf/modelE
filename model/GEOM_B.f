@@ -4,7 +4,7 @@
 !@ver  1.0 (B grid version)
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY
-      USE E001M12_COM, only : IM,JM,LM,FIM,BYIM
+      USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
       IMPLICIT NONE
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
@@ -75,7 +75,7 @@ C**** some B-grid conseravtion quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
-c      USE E001M12_COM
+c      USE MODEL_COM
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 

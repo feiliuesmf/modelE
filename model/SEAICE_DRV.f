@@ -9,7 +9,7 @@
 !@ver  1.0
 !@calls PRECSI
       USE CONSTANT, only : byshi,lhm
-      USE E001M12_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
+      USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,prec,eprec
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
@@ -87,7 +87,7 @@ C****
 !@ver  1.0
 !@calls SEA_ICE
       USE CONSTANT, only : lhm,byshi,rhow
-      USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,focean
+      USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,gtemp
@@ -196,7 +196,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls SEA_ICE
-      USE E001M12_COM, only : im,jm,focean,kocean,ftype,fland
+      USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
      *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi
@@ -295,7 +295,7 @@ C****
 !@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,focean
+      USE MODEL_COM, only : im,jm,focean
       USE CONSTANT, only : byshi,lhm
       USE DAGCOM, only : oa
       USE SEAICE, only : ace1i
@@ -331,7 +331,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm
-      USE E001M12_COM, only : im,jm,kocean
+      USE MODEL_COM, only : im,jm,kocean
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : xsi,ace1i,ac2oim
       USE FLUXES, only : gtemp
@@ -375,7 +375,7 @@ C****
 !@sum  conserv_ICE calculates total amount of snow and ice over water
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fim,fland
+      USE MODEL_COM, only : im,jm,fim,fland
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -401,7 +401,7 @@ C****
 !@sum  conserv_EIC calculates total ice energy over water
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fim,fland
+      USE MODEL_COM, only : im,jm,fim,fland
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       IMPLICIT NONE

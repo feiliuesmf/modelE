@@ -94,7 +94,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,omega,kapa,bygrav
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,ntype
@@ -557,7 +557,7 @@ C****                                                             37-44
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     BYIM,DSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,
      &     PSF,PTOP,PSFMPT,SIG,SIGE,SKIPSE,JHOUR
@@ -1210,7 +1210,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
 
       SUBROUTINE JKMAP (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
 c      USE PRTCOM, only :
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ
@@ -1593,7 +1593,7 @@ C****                                                            143-156
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,twopi,sha,bygrav
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,FIM,
      &     BYDSIG,BYIM,DSIG,DTsrc,IDACC,IMH,
      &     PSF,PTOP,SIG,SIGE,JHOUR
@@ -1863,7 +1863,7 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
 c      USE PRTCOM, only :
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ
@@ -2009,7 +2009,7 @@ C****                                                              9-16
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,sha,bygrav
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     BYDSIG,DSIG,DTsrc,IDACC,JEQ,
      &     PSF,PTOP,SIG,SIGE
@@ -2093,7 +2093,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     twopi
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,
      &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL,
      &     Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
@@ -2215,7 +2215,7 @@ C****
 c      USE PRTCOM, only :
       USE DAGCOM, only :
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
       IMPLICIT NONE
 
@@ -2612,7 +2612,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,jeq,
      &     BYIM,DTsrc,FLAND,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,NDAY,SKIPSE,
@@ -3072,7 +3072,7 @@ C****
 
       SUBROUTINE IJMAP (NT,ARRAY,BYIACC)
 c      USE PRTCOM, only :
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,BYIM,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL
       USE GEOM, only :
@@ -3183,7 +3183,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     sday,twopi
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,nfiltr,
@@ -3325,7 +3325,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,
@@ -3511,7 +3511,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,twopi
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     dtsrc,idacc,
      &     IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,
      &     NISURF,XLABEL
@@ -3596,7 +3596,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi,bygrav
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     im,jm,lm,fim,
      &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL
@@ -3736,7 +3736,7 @@ C****
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     twopi
-      USE E001M12_COM, only :
+      USE MODEL_COM, only :
      &     jm,lm,jeq, JHOUR,JHOUR0,
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
      &     KEYCT,Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,

@@ -1,11 +1,11 @@
 c compilation:
 c f90 -c -64 -mips4 -O2 acc2nc.f
-c f90 -64 -mips4 -O2 E001M12_COM.o DAGCOM.o RADNCB.o NCACC.o DEFACC.o
+c f90 -64 -mips4 -O2 MODEL_COM.o DAGCOM.o RADNCB.o NCACC.o DEFACC.o
 c             GEOM_B.o acc2nc.o /usr/local/netcdf-3.4/lib64/libnetcdf.a
 c f90 -64 -mips4 -O2 acc2nc.o ../model/gcmlib.a
 c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
       program acc2nc
-      use E001M12_COM
+      use MODEL_COM
       use DAGCOM
       use GEOM
       implicit none

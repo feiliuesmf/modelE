@@ -2,7 +2,7 @@
 !@sum  qc query c-array and other parameters
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM
+      USE MODEL_COM
       USE CLD01_COM_E001
       USE RADNCB
       USE DAGCOM

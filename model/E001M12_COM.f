@@ -1,5 +1,5 @@
-      MODULE E001M12_COM
-!@sum  E001M12_COM Main model variables 4x5 deg Model, 12 layers
+      MODULE MODEL_COM
+!@sum  MODEL_COM Main model variables 4x5 deg Model, 12 layers
 !@auth Original Development Team
 !@ver  1.0
       IMPLICIT NONE
@@ -122,7 +122,7 @@ C**** Define surface types (mostly used for weighting diagnostics)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
 
-      END MODULE E001M12_COM
+      END MODULE MODEL_COM
 
       MODULE TIMINGS
 !@sum  TIMINGS contains variables for keeping track of computing time
@@ -203,7 +203,7 @@ C****
 !@sum  io_model reads and writes label/parameters to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM
+      USE MODEL_COM
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
       IMPLICIT NONE
 
@@ -258,7 +258,7 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
 !@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM
+      USE MODEL_COM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

@@ -5,7 +5,7 @@
 !@calls MSTCNV and LSCOND
 
       USE CONSTANT, only : bygrav,lhm
-      USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
+      USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
      *     ,ntype,itime
       USE SOMTQ_COM, only : tmom,qmom
@@ -288,7 +288,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
-      USE E001M12_COM, only : dtsrc,ls1
+      USE MODEL_COM, only : dtsrc,ls1
       USE CLD01, only : lmcm,bydtsrc,xmass,brcld,bybr
 
       IMPLICIT NONE

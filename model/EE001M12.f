@@ -9,7 +9,7 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shw,shi,edpery
-      USE E001M12_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
+      USE MODEL_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
      *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6,itearth
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
@@ -521,7 +521,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
-      USE E001M12_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
+      USE MODEL_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
       USE GHYCOM
       USE SLE001, sinday=>sint,cosday=>cost
       USE FLUXES, only : gtemp
@@ -1070,7 +1070,7 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
 !@sum  CHECKE Checks whether arrays are reasonable over earth
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth,ITime,wfcs
+      USE MODEL_COM, only : im,jm,fearth,ITime,wfcs
       USE GEOM, only : imaxj
       USE GHYCOM, only : ghdata,tearth,wearth,aiearth,snowe
       IMPLICIT NONE
@@ -1112,7 +1112,7 @@ C**** Check for reasonable temperatures over earth
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,twopi,edpery,tf
-      USE E001M12_COM, only : im,jm,NDAY,NIsurf,jday,fearth,wfcs
+      USE MODEL_COM, only : im,jm,NDAY,NIsurf,jday,fearth,wfcs
       USE GEOM, only : imaxj
       USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx
@@ -1169,7 +1169,7 @@ C****
 !@sum  GROUND_E driver for applying surface fluxes to land fraction
 !@auth Original Development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth,itearth
+      USE MODEL_COM, only : im,jm,fearth,itearth
       USE GEOM, only : imaxj,dxyp
       USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
@@ -1249,7 +1249,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow
-      USE E001M12_COM, only : im,jm,fim,fearth
+      USE MODEL_COM, only : im,jm,fim,fearth
       USE GEOM, only : imaxj
       USE GHYCOM, only : wbare,wvege,afb
       USE SLE001, only : ngm
@@ -1281,7 +1281,7 @@ C****
 !@sum  conserv_HTG calculates zonal ground energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fim,fearth
+      USE MODEL_COM, only : im,jm,fim,fearth
       USE GEOM, only : imaxj
       USE GHYCOM, only : htbare,htvege,afb
       USE SLE001, only : ngm

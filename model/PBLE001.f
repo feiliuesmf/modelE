@@ -22,7 +22,7 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-C**** model related constants (should really be taken from E001M12_COM)
+C**** model related constants (should really be taken from MODEL_COM)
       real*8, parameter :: omega2 = 2.*omega !@var omega2 2*omega (s^-1)
 
 !@var  u  local due east component of wind

@@ -6,7 +6,7 @@ C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
-      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
+      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
      *     ,iowrite_mon 
       USE SOMTQ_COM
       USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage

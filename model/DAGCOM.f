@@ -2,7 +2,7 @@
 !@sum  DAGCOM Diagnostic model variables
 !@auth Original Development Team
 !@var  1.0
-      USE E001M12_COM, only : im,jm,lm,imh,ntype
+      USE MODEL_COM, only : im,jm,lm,imh,ntype
       USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
@@ -300,7 +300,7 @@ c idacc-indices of various processes
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,irerun,irsfic,
+      USE MODEL_COM, only : ioread,irerun,irsfic,
      *     iowrite,iowrite_mon,iowrite_single
       USE DAGCOM
       IMPLICIT NONE

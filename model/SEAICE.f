@@ -657,7 +657,7 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE SEAICE, only : lmi
 
       IMPLICIT NONE
@@ -678,7 +678,7 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE SEAICE_COM
       IMPLICIT NONE
 
@@ -710,7 +710,7 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : lhm,shi
-      USE E001M12_COM
+      USE MODEL_COM
       USE SEAICE, only : lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       IMPLICIT NONE

@@ -51,7 +51,7 @@ C     WG     = magnitude of the geostrophic wind (m/sec)
 C
 C --------------------------------------------------------------------
       USE CONSTANT, only :  rgas,grav
-      USE E001M12_COM
+      USE MODEL_COM
      &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -271,7 +271,7 @@ c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf
-      USE E001M12_COM
+      USE MODEL_COM
       USE PBLCOM, ustar_type=>ustar
       USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
@@ -476,7 +476,7 @@ c  melting because pland and plice are fixed. The source code to do
 c  this is retained and deleted in the update deck in the event this
 c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
-      USE E001M12_COM
+      USE MODEL_COM
       USE PBLCOM, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_type=>ustar
       IMPLICIT NONE
@@ -613,7 +613,7 @@ c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
       USE CONSTANT, only : rgas,grav
-      USE E001M12_COM, only : sige,psf,ptop,psfmpt
+      USE MODEL_COM, only : sige,psf,ptop,psfmpt
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
@@ -633,7 +633,7 @@ c ----------------------------------------------------------------------
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar
       IMPLICIT NONE

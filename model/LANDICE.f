@@ -117,7 +117,7 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  1.0
 !@cont io_landice
-      USE E001M12_COM, only : im,jm,ioread,iowrite
+      USE MODEL_COM, only : im,jm,ioread,iowrite
 
       IMPLICIT NONE
 !@var SNOWLI snow amount on land ice (kg/m^2)
@@ -131,7 +131,7 @@ C**** CALCULATE TG2
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE LANDICE_COM
       IMPLICIT NONE
 

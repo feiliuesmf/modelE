@@ -2,7 +2,7 @@
 !@sum  PBLCOM contains the arrays used by the Boundary Layer code
 !@auth Greg Hartke/Ye Cheng
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       USE SOCPBL, only : n
       IMPLICIT NONE
       SAVE
@@ -46,7 +46,7 @@ c!@var BLDATA handle for referring to all boundary layer data
 c      DOUBLE PRECISION, DIMENSION(IM,JM,12) :: BLDATA
 c      EQUIVALENCE(BLDATA(1,1,1),WSAVG(1,1))
 
-C**** model related constants (should really be taken from E001M12_COM)
+C**** model related constants (should really be taken from MODEL_COM)
       integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
 C**** pressure gradient arrays
@@ -59,7 +59,7 @@ c    &     dpdxr,dpdyr,phi,dpdxr0,dpdyr0
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE PBLCOM
       IMPLICIT NONE
 
@@ -91,7 +91,7 @@ c    &     dpdxr,dpdyr,phi,dpdxr0,dpdyr0
 !@sum  io_bldat reads and writes boundary layer data to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE PBLCOM
       IMPLICIT NONE
 

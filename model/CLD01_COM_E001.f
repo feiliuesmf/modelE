@@ -3,7 +3,7 @@
 !@sum          large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-      USE E001M12_COM, only : IM,JM,LM
+      USE MODEL_COM, only : IM,JM,LM
 C**** Note that we USE the NAMELIST set-able parameters from CLD01 only
 C**** to be able to pass them to INPUT and io_clouds
       USE CLD01, only : U00wtr,U00ice,LMCM
@@ -39,7 +39,7 @@ C**** variables saved for radiation calculations
 !@sum  io_clouds reads and writes cloud arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
       USE CLD01_COM_E001
       IMPLICIT NONE
 

@@ -4,7 +4,7 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
-      USE E001M12_COM, only : im,jm,lm,focean,fland,fearth
+      USE MODEL_COM, only : im,jm,lm,focean,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM,ftype
      *     ,itocean,itoice,itlandi,itearth
       USE PBLCOM
@@ -466,7 +466,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE OCEAN, only : tocean
       IMPLICIT NONE
 
@@ -482,7 +482,7 @@ C**** Check for NaN/INF in ocean data
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fland,flice,kocean,ftype,focean
+      USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth
       USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
      *     ,tocean
@@ -553,7 +553,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,twopi,edpery,by3
-      USE E001M12_COM, only : im,jm,kocean,focean,jday,ftype,itocean
+      USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
       USE OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
@@ -647,7 +647,7 @@ C****
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE OCEAN
       IMPLICIT NONE
 
@@ -679,7 +679,7 @@ C****
 !@sum  io_oda reads and writes ocean data for initialisaing deep ocean 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,Itime,im,jm
+      USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
       USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,msi
       USE DAGCOM, only : ij_tgo2,aij
@@ -714,7 +714,7 @@ C****
 !@ver  1.0
 !@calls
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,focean,kocean,itocean,itoice
+      USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,prec,eprec,gtemp
       USE OCEAN, only : tocean,z1o
@@ -778,7 +778,7 @@ C****
 !@ver  1.0
 !@calls
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
+      USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,
@@ -894,7 +894,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
-      USE E001M12_COM, only : im,jm,fim,focean,kocean
+      USE MODEL_COM, only : im,jm,fim,focean,kocean
       USE OCEAN, only : tocean,z1o,z12o
 c      USE OCEAN_COM, only : dz,rtgo
       USE GEOM, only : imaxj
@@ -938,7 +938,7 @@ C**** TG3M must be set from a previous ML run?
 !@sum  OCEAN_COM defines the model variables relating to the ocean
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE OCEAN, only : lmom
       IMPLICIT NONE
       SAVE
@@ -973,7 +973,7 @@ C**** OCEAN TEMPERATURES BY THE AMOUNT OF HEAT THAT IS DIFFUSED INTO
 C**** THE THERMOCLINE
 C****
       USE CONSTANT, only : sday
-      USE E001M12_COM, only : im,jm,focean,jmon,jday,jdate,itocean
+      USE MODEL_COM, only : im,jm,focean,jmon,jday,jdate,itocean
      *     ,itoice
       USE GEOM, only : imaxj
       USE OCEAN_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo

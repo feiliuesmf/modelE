@@ -2,7 +2,7 @@
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
-      USE E001M12_COM
+      USE MODEL_COM
       USE RANDOM
       USE DAGCOM, only : keynr,kdiag,oa
       USE FILEMANAGER, only : getunit
@@ -394,7 +394,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 C****
 C**** DEFAULT PARAMETERS FOR MODEL COMMON BLOCK
 C****
-      USE E001M12_COM, only : im,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       USE DAGCOM, only : kacc
 
       IMPLICIT NONE
@@ -467,7 +467,7 @@ C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
-      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
+      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
      *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
      *     ,skipse,keyct,mfiltr,irand,psf,ptop
@@ -1027,7 +1027,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : orbit
-      USE E001M12_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
+      USE MODEL_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
      *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,amon,amonth
       USE GEOM, only : areag,dxyp
       USE RADNCB, only : RSDIST,COSD,SIND
@@ -1091,7 +1091,7 @@ C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
 C**** CORRECTED.
 
-      USE E001M12_COM
+      USE MODEL_COM
       USE DAGCOM, only : QCHECK
       IMPLICIT NONE
       INTEGER I,J

@@ -2,7 +2,7 @@
 !@sum  GHYCOM contains the areas used by the Ground Hydrology routines
 !@auth Frank Abramopolus/Igor Aleinov
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+      USE MODEL_COM, only : im,jm
       USE SLE001, only : ngm,imt,nlsn
       IMPLICIT NONE
       SAVE
@@ -50,7 +50,7 @@ C**** replacements for GDATA
 !@sum  io_earth reads and writes ground data to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 
@@ -82,7 +82,7 @@ C**** replacements for GDATA
 !@sum  io_soils reads and writes soil arrays to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 
@@ -114,7 +114,7 @@ C**** replacements for GDATA
 !@sum  io_snow reads and writes snow model arrays to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 

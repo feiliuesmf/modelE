@@ -5,7 +5,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat
-      USE E001M12_COM, only : IM,LM,DTsrc
+      USE MODEL_COM, only : IM,LM,DTsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
       USE RANDOM
       IMPLICIT NONE
