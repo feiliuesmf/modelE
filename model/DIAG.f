@@ -37,6 +37,35 @@ C****  11  NOT USED
 C****  12  ALWAYS =1 (UNLESS SEVERAL RESTART FILES WERE ACCUMULATED)
 C****
 
+      MODULE DIAG_LOC
+!@sum DIAG_LOC is a local module for some saved diagnostic calculations
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : im,imh,jm,lm
+      IMPLICIT NONE
+      SAVE
+C**** Variables passed from DIAGA to DIAGB
+!@var W,TX vertical velocity and in-situ temperature calculations
+      REAL*8, DIMENSION(IM,JM,LM) :: W
+      REAL*8, DIMENSION(IM,JM,LM) :: TX
+!@var TJL0 zonal mean temperatures prior to advection
+      REAL*8, DIMENSION(JM,LM) :: TJL0
+
+C**** Variables used in DIAG5 calculations
+!@var FCUVA,FCUVB fourier coefficients for velocities 
+      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
+
+C**** Some local constants
+!@var JET, LDEX model levels for various pressures
+!@var LUPA,LDNA shorthand for above/below levels
+!@var PMO,PLO,PM,PL some shorthand pressure level
+      INTEGER :: JET
+      INTEGER, DIMENSION(3) :: LDEX
+      REAL*8, DIMENSION(LM) :: LUPA,LDNA
+      REAL*8, DIMENSION(LM) :: PMO,PLO
+      REAL*8, DIMENSION(LM+1) :: PM,PL
+
+      END MODULE DIAG_LOC
+
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
@@ -59,76 +88,49 @@ C****
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst
+     *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
-
+      USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       IMPLICIT NONE
-      SAVE
-      REAL*8, DIMENSION(IM,JM,LM) :: W
-      COMMON/WORK2/W
       REAL*8, DIMENSION(LM) :: GMEAN
       REAL*8, DIMENSION(JM) :: TIL,UI,UMAX,PI,EL,RI,DUDVSQ
       REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
       REAL*8, DIMENSION(JM,LM) ::
      &     THJL,THSQJL,SPI,PHIPI,TPI
-      REAL*8, DIMENSION(JM,LM) :: TJL0
       REAL*8, DIMENSION(JM,LM-1) :: SDMEAN
       REAL*8, DIMENSION(IM,JM) :: PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
-      REAL*8, DIMENSION(IM,JM,LM) :: TX
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
-      COMMON/WORK3/TX
-      INTEGER, DIMENSION(LM) :: LUPA,LDNA
       CHARACTER*16 TITLE
-      INTEGER :: IFIRST = 1
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
-      INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
-     &     IP1,LM1,LP1,LR,MBEGIN,
-     &     I150E,I110W,I135W,IT
+      INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
+     &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
       REAL*8 ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
-     &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,EPSLON,
+     &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
      *     ESEPS,FPHI,GAMC,GAMM,GAMX,GMEANL,P1,P4,P4I,
      &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
-     *     PKE,PL,PRQ1,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
+     *     PKE,PL,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
      *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI,TIJK,QIJK
       LOGICAL qpress,qabove
       INTEGER nT,nQ,nRH
+      REAL*8, PARAMETER :: EPSLON=1.
+      INTEGER, PARAMETER ::
+     *     I150E = IM*(180+150)/360+1, ! WEST EDGE OF 150 EAST
+     *     I110W = IM*(180-110)/360+1, ! WEST EDGE OF 110 WEST
+     *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
+
       REAL*8 QSAT
 
       CALL GETTIME(MBEGIN)
       IDACC(4)=IDACC(4)+1
 
-      IF (IFIRST.EQ.1) THEN
-        IFIRST=0
-C**** INITIALIZE CERTAIN QUANTITIES
-        L=LM+1
- 3      L=L-1
-        IF (L.EQ.1) GO TO 4
-        IF (.25*(SIGE(L-1)+2*SIGE(L)+SIGE(L+1))*PSFMPT+PTOP.LT.250.)
-     *       GO TO 3
- 4      JET=L
-        WRITE (6,888) JET
- 888    FORMAT (' JET WIND LEVEL FOR DIAG',I3)
-
-        BYSDSG=1./(1.-SIGE(LM+1))
-        EPSLON=1.
-        I150E = IM*(180+150)/360+1 ! WEST EDGE OF 150 EAST
-        I110W = IM*(180-110)/360+1 ! WEST EDGE OF 110 WEST
-        I135W = IM*(180-135)/360+1 ! WEST EDGE OF 135 WEST
-        PRQ1=.75*PMTOP
-        DLNP12=LOG(.75/.35)
-        DLNP23=LOG(.35/.1)
-        DO L=1,LM
-          LUPA(L)=L+1
-          LDNA(L)=L-1
-        END DO
-        LDNA(1)=1
-        LUPA(LM)=LM
-      END IF
+      BYSDSG=1./(1.-SIGE(LM+1))
+      DLNP12=LOG(.75/.35)
+      DLNP23=LOG(.35/.1)
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
@@ -340,7 +342,7 @@ C****
       PHIRI=0.
       DO I=1,IMAXJ(J)
         PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
-     *       *LOG((SIG(LM)*PSFMPT+PTOP)/PRQ1))
+     *       *LOG((SIG(LM)*PSFMPT+PTOP)/PLM(LM+1)))
       END DO
       ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
@@ -739,7 +741,7 @@ C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,jdate,
-     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
+     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,hdiurn,
@@ -758,23 +760,19 @@ C****
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
       USE DYNAMICS, only : phi,dut,dvt,plij
+      USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       IMPLICIT NONE
-      SAVE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
-      REAL*8, DIMENSION(IM,JM,LM) :: W,ZX,STB
-      COMMON/WORK2/W,ZX,STB
+      REAL*8, DIMENSION(IM,JM,LM) :: ZX,STB
       REAL*8, DIMENSION(JM,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
-      REAL*8, DIMENSION(IM,JM,LM) :: TX ! from diaga
-      COMMON/WORK3/TX
       REAL*8, DIMENSION(IM) :: PSEC,X1
-      REAL*8, DIMENSION(LM) :: SHETH,PMO,PLO,DPM,DTH
-      REAL*8, DIMENSION(LM+1) :: PM,PL
+      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH
 
       INTEGER ::
      &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
-     &     JET,JHEMI,K,KDN,KM,KMM1,KR,KS,KS1,KSPHER,KUP,KX,L,LMP1,
+     &     JHEMI,K,KDN,KR,KS,KS1,KSPHER,KUP,KX,L,
      &     LUP,MBEGIN,N,NM
 
       REAL*8 ::
@@ -789,26 +787,10 @@ C****
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
 
-      INTEGER :: IFIRST = 1
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
 
       CALL GETTIME(MBEGIN)
-      IF (IFIRST.NE.1) GO TO 50
-      IFIRST=0
-C**** INITIALIZE CERTAIN QUANTITIES
-      LMP1=LM+1
-      JET=LS1-1
-      KM=LM
-      KMM1=KM-1
-      PM(1)=1200.
-      DO 20 L=2,LM+1
-      PL(L)=PSFMPT*SIGE(L)+PTOP
-   20 PM(L)=PSFMPT*SIGE(L)+PTOP
-      DO 30 L=1,LM
-      PLO(L)=PSFMPT*SIG(L)+PTOP
-   30 PMO(L)=.5*(PM(L)+PM(L+1))
-   50 CONTINUE
 C****
 C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
@@ -1436,7 +1418,7 @@ C**** E-P FLUX NORTHWARD COMPONENT
      *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
   780 CONTINUE
       DO 800 J=2,JM-1
-      DO 800 K=2,KMM1
+      DO 800 K=2,KM-1
       UY=(UJK(J+1,K)*DXV(J+1)-UJK(J,K)*DXV(J)-FCOR(J))/DXYP(J)
       PSIY=(PSIJK(J+1,K)*DXV(J+1)-PSIJK(J,K)*DXV(J))/DXYP(J)
 C**** ZONAL MEAN MOMENTUM EQUATION   (MEAN ADVECTION)
@@ -1547,6 +1529,7 @@ C****
      &     IDACC,JEQ,LS1,MDIAG,P,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DYNAMICS, only : PHI
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n
+      USE DIAG_LOC, only : ldex
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -1558,33 +1541,10 @@ C****
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
       REAL*8 :: PIJ50N,PL,PLE,PLM1,SLOPE
       INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
-      INTEGER, SAVE, DIMENSION(3) :: LDEX
-      INTEGER, SAVE :: L300,L50,L850
-      INTEGER, SAVE :: IFIRST = 1
 
       IDACC9=IDACC(9)+1
       IDACC(9)=IDACC9
       IF (IDACC9.GT.Max12HR_sequ) RETURN
-
-      IF (IFIRST.EQ.1) THEN
-        IFIRST=0
-        L850=LM
-        L300=LM
-        L50=LM
-        DO L=2,LM
-          LX=LM+1-L
-          PLE=.25*(SIGE(LX)+2.*SIGE(LX+1)+SIGE(LX+2))*PSFMPT+PTOP
-          IF (PLE.LT.850.) L850=LX
-          IF (PLE.LT.300.) L300=LX
-          IF (PLE.LT.50.) L50=LX
-        END DO
-        WRITE (6,889) L850,L300,L50
- 889    FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
-     *       ' L300=',I3,' L50=',I3)
-        LDEX(1)=L850
-        LDEX(2)=L300
-        LDEX(3)=L50
-      END IF
 
       DO KQ=1,3
         CALL FFT (U(1,JEQ,LDEX(KQ)),AN,BN)
@@ -1635,7 +1595,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 !@ver  1.0
       USE MODEL_COM, only : mdiag,itime
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,ntm
+      USE TRACER_COM, only: itime_tr0,ntm  !xcon
 #endif
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
@@ -1712,7 +1672,7 @@ C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
 #ifdef TRACERS_ON
 C**** Tracer calls are dealt with separately
       do nt=1,ntm
-        if (itime.ge.itime_tr0(nt)) CALL DIAGTCA(M,NT)
+        CALL DIAGTCA(M,NT)
       end do
 #endif
 C****
@@ -2073,12 +2033,13 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,JEQ,LS1,MDIAG,MDYN
       USE DAGCOM, only : speca,nspher,klayer
+      USE DIAG_LOC, only : FCUVA,FCUVB
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
 
-      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
-      COMMON/WORK7/FCUVA,FCUVB
+c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
+c      COMMON/WORK7/FCUVA,FCUVB
 
       INTEGER :: M5,NDT
 
@@ -2174,14 +2135,12 @@ C****
       USE DAGCOM, only : speca,atpe,nspher,kspeca,klayer
       USE DYNAMICS, only : sqrtp,pk
       IMPLICIT NONE
-      SAVE
       INTEGER :: M5,NDT
-
       REAL*8, DIMENSION(IM) :: X
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
       REAL*8, DIMENSION(IMH+1,4) :: VAR
       REAL*8, DIMENSION(2) :: TPE
-      REAL*8, DIMENSION(IM,JM) :: SQRTM
+      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
       REAL*8, DIMENSION(LM) :: THJSP,THJNP,THGM
 
       INTEGER, PARAMETER :: IZERO=0
@@ -2189,24 +2148,15 @@ C****
       INTEGER, DIMENSION(KSPECA), PARAMETER ::
      &     MTPEOF=(/0,0,1,0,0,0,0,2,0,3,  4,0,5,0,6,0,7,0,0,8/)
 
-      INTEGER ::
-     &     I,IJL2,IP1,J,J45N,
-     &     JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
-     &     LUP,MAPE,MKE,MNOW,MTPE,N,
-     &     NM
+      INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
+     &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
 
-      REAL*8 ::
-     &     GMEAN,GMSUM,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
+      REAL*8 :: GMEAN,GMSUM,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
 
-      INTEGER :: IFIRST = 1
-
-      IF(IFIRST.NE.1) GO TO 50
-      IFIRST=0
       SQRTPG = SQRT(PSFMPT)
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
       IJL2=IM*JM*LM*2
-   50 CONTINUE
 
       MKE=M5
       MAPE=M5
@@ -2392,11 +2342,12 @@ C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,MDIAG,MDYN
+      USE DIAG_LOC, only : FCUVA,FCUVB
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: UX,VX
-      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
-      COMMON/WORK7/FCUVA,FCUVB
+c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
+c      COMMON/WORK7/FCUVA,FCUVB
       INTEGER :: J,L,MBEGIN
 
       CALL GETTIME(MBEGIN)
@@ -2876,11 +2827,13 @@ c****
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DAGCOM
+      USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
       INTEGER I,J,L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
-     *     ,ISTART,jday0,jday,moff,kb,iu_ACC
+     *     ,ISTART,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
+      REAL*8 PLE_tmp
       CHARACTER FILENM*100
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -2940,6 +2893,46 @@ C**** Initialize certain arrays used by more than one print routine
       PLM(LM+2)=.35d0*PMTOP
       PLM(LM+3)=.1d0*PMTOP
       p1000k=1000.0**kapa
+
+C**** Initialise some local constants (replaces IFIRST constructions)
+C**** From DIAGA:
+      DO L=1,LM
+        LUPA(L)=L+1
+        LDNA(L)=L-1
+      END DO
+      LDNA(1)=1
+      LUPA(LM)=LM
+
+C**** From DIAGB      
+      PM(1)=1200.
+      DO L=2,LM+1
+        PL(L)=PSFMPT*SIGE(L)+PTOP
+        PM(L)=PSFMPT*SIGE(L)+PTOP
+      END DO
+      DO L=1,LM
+        PLO(L)=PSFMPT*SIG(L)+PTOP
+        PMO(L)=.5*(PM(L)+PM(L+1))
+      END DO
+
+C**** From DIAG7A
+      L850=LM
+      L300=LM
+      L50=LM
+      DO L=LM-1,1,-1 
+        PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
+        IF (PLE_tmp.LT.850.) L850=L
+        IF (PLE_tmp.LT.300.) L300=L
+        IF (PLE_tmp.LT.250.) JET=L
+        IF (PLE_tmp.LT.50.) L50=L
+      END DO
+      WRITE (6,888) JET
+ 888  FORMAT (' JET WIND LEVEL FOR DIAG',I3)
+      WRITE (6,889) L850,L300,L50
+ 889  FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
+     *     ' L300=',I3,' L50=',I3)
+      LDEX(1)=L850
+      LDEX(2)=L300
+      LDEX(3)=L50
 
 C**** Initialize conservation diagnostics
 C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
