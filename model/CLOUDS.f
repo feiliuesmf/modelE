@@ -133,11 +133,6 @@ C**** output variables
 !@var AIRXL is convective mass flux (kg/m*m)
       REAL*8 AIRXL
 
-C**** functions
-      REAL*8 :: QSAT, DQSATDT
-!@var QSAT saturation humidity
-!@var DQSATDT dQSAT/dT
-
       CONTAINS
 
       SUBROUTINE MSTCNV(IERR,LERR)
@@ -152,6 +147,11 @@ C**** functions
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
 !@var SENV,QENV dummy variables
+
+C**** functions
+      REAL*8 :: QSAT, DQSATDT
+!@var QSAT saturation humidity
+!@var DQSATDT dQSAT/dT
 
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM air mass of subsidence
       REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN
@@ -1188,6 +1188,11 @@ C**** CALCULATE OPTICAL THICKNESS
       INTEGER, INTENT(OUT) :: IERR,LERR
       REAL*8, INTENT(OUT) :: WMERR
       REAL*8 LHX,LHXUP
+
+C**** functions
+      REAL*8 :: QSAT, DQSATDT
+!@var QSAT saturation humidity
+!@var DQSATDT dQSAT/dT
 
 !@param CM00 upper limit for autoconversion rate
       REAL*8, PARAMETER :: CM00=1.d-4
@@ -2282,7 +2287,7 @@ c          rhoave = (press/pstd)*(t0/at(ilev))
             !compute minimum brightness temperature and optical depth
           btcmin = 1. /  ( exp(pc1bylam/(attrop-5.)) - 1. ) 
           transmax = (fluxtop(ibox)-btcmin)/(fluxtop_clrsky-btcmin)
-          taumin = -log(max(min(transmax,0.9999999),0.001))
+          taumin = -log(max(min(transmax,0.9999999d0),0.001d0))
           
           if (transmax .gt. 0.001 .and. transmax .le. 0.9999999) then
             emcld(ibox) = 1. - exp(-tau(ibox)*byic)

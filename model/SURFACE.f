@@ -538,7 +538,7 @@ C**** Save surface tracer concentration whether calculated or not
         else
           taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
      *         +max((trm(i,j,1,itr)-trmom(mz,i,j,1,itr))*byam(1,i,j)
-     *         *bydxyp(j),0.)*ptype
+     *         *bydxyp(j),0d0)*ptype
         end if
       end do
 #endif

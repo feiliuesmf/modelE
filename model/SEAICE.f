@@ -77,7 +77,7 @@
 !@var HSIL enthalpy of ice layers (J/m^2)
 !@var SSIL salt in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
-!@var TSIL temperature of ice layers (J/m^2) (DIAGNOSTIC ONLY)
+!@var TSIL temperature of ice layers (C) (DIAGNOSTIC ONLY)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 !@var WETSNOW true if snow is wet (i.e. has been rained on)
       LOGICAL, INTENT(OUT) :: WETSNOW
@@ -1030,7 +1030,7 @@ c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
 
         f0=Sb-Sb0
         df=dSbdSb-1.+1d-20
-        Sb = min(max(Sib,Sb0 - f0/df),40.)
+        Sb = min(max(Sib,Sb0 - f0/df),40d0)
         Sb0=Sb
       end do
 #ifdef TRACERS_WATER
