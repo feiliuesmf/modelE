@@ -979,7 +979,7 @@ C****
       USE SOMTQ_COM
       USE DYNAMICS, only : PTOLD,ADVECM,ADVECV,AFLUX,PGF,FLTRUV
 
-      USE DAGCOM, only : aij
+      USE DAGCOM !, only : aij
 
       IMPLICIT NONE
       REAL*8 UT,VT,TT,TZT,WMT,PRAT
@@ -1084,35 +1084,37 @@ C     DO 352 L=1,LM
       DO 354 J=1,JM
       DO 354 I=1,IM
       PC(I,J)=0.5*(P(I,J)+PC(I,J))
-      AIJ(I,J,88) = AIJ(I,J,88)+FPEU(I,J)
-      AIJ(I,J,89) = AIJ(I,J,89)+FPEV(I,J)
-      AIJ(I,J,92) = AIJ(I,J,92)+FWVU(I,J)
-      AIJ(I,J,93) = AIJ(I,J,93)+FWVV(I,J)
+      AIJ(I,J,IJ_FPEU) = AIJ(I,J,IJ_FPEU)+FPEU(I,J)
+      AIJ(I,J,IJ_FPEV) = AIJ(I,J,IJ_FPEV)+FPEV(I,J)
+      AIJ(I,J,IJ_FQU) = AIJ(I,J,IJ_FQU)+FWVU(I,J)
+      AIJ(I,J,IJ_FQV) = AIJ(I,J,IJ_FQV)+FWVV(I,J)
       DO 354 L=1,LM
       TT(I,J,L)=0.5*(T(I,J,L)+TT(I,J,L))
   354 TZT(I,J,L)=0.5*(TZ(I,J,L)+TZT(I,J,L))
       DO 363 L=1,LM
       DO 361 J=2,JM
       DO 361 I=1,IM
-      AIJ(I,J,91)=AIJ(I,J,91)+PV(I,J,L)*DTLF
+      AIJ(I,J,IJ_FMV)=AIJ(I,J,IJ_FMV)+PV(I,J,L)*DTLF
   361 CONTINUE
       DO 362 I=1,IM
-      AIJ(I,1,90)=AIJ(I,1,90)+PU(I,1,L)*DTLF/3.
-      AIJ(I,JM,90)=AIJ(I,JM,90)+PU(I,JM,L)*DTLF/3.
+         AIJ(I,1,IJ_FMU)=AIJ(I,1,IJ_FMU)+PU(I,1,L)*DTLF/3.
+         AIJ(I,JM,IJ_FMU)=AIJ(I,JM,IJ_FMU)+PU(I,JM,L)*DTLF/3.
       DO 362 J=2,JM-1
-      AIJ(I,J,90)=AIJ(I,J,90)+PU(I,J,L)*DTLF
+      AIJ(I,J,IJ_FMU)=AIJ(I,J,IJ_FMU)+PU(I,J,L)*DTLF
   362 CONTINUE
   363 CONTINUE
       CALL PGF (U,V,P,UT,VT,TT,TZT,PC,DTLF)
       DO 366 L=1,LM
-      AIJ(I,1,94)=AIJ(I,1,94)+.5*PHI(1,1,L)+U(I,1,L)*DYP(1)*DTLF
-      AIJ(I,JM,94)=AIJ(I,JM,94)+.5*PHI(1,JM,L)+U(I,JM,L)*DYP(JM)*DTLF
+         AIJ(I,1,IJ_FGZU)=AIJ(I,1,IJ_FGZU)+.5*PHI(1,1,L)+U(I,1,L)*DYP(1)
+     *        *DTLF
+         AIJ(I,JM,IJ_FGZU)=AIJ(I,JM,IJ_FGZU)+.5*PHI(1,JM,L)+U(I,JM,L)
+     *        *DYP(JM)*DTLF
       I=IM
       DO 366 IP1=1,IM
       DO 366 J=2,JM-1
       PP=.5*(PHI(I,J,L)+PHI(IP1,J,L))
       UU=.5*(U(I,J,L)+U(I,J+1,L))
-      AIJ(I,J,94)=AIJ(I,J,94)+PP*UU*DYP(J)*DTLF
+      AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+PP*UU*DYP(J)*DTLF
       I=IP1
   366 CONTINUE
       DO 367 L=1,LM
@@ -1121,7 +1123,7 @@ C     DO 352 L=1,LM
       DO 367 I=1,IM
       PP=.5*(PHI(I,J-1,L)+PHI(I,J,L))
       VV=.5*(V(I,J,L)+V(IM1,J,L))
-      AIJ(I,J,95)=AIJ(I,J,95)+PP*VV*DXV(J)*DTLF
+      AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+PP*VV*DXV(J)*DTLF
       IM1=I
   367 CONTINUE
       CALL FLTRUV(U,V)

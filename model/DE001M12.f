@@ -344,7 +344,7 @@ C****
       USE GEOM
       USE RADNCB, only : rqt
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
+      USE DAGCOM   !, only : aj,bj,cj,dj,jreg,aij,apj,ajl,asjl,ail
       USE OCEAN, only : odata
 
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -501,19 +501,19 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       CSCOV=CSCOV+SCOVOI
       DJ(JR,31)=DJ(JR,31)+(SCOVL+SCOVOI)*DXYPJ
       PI(J)=PI(J)+P(I,J)
-      AIJ(I,J,2)=AIJ(I,J,2)+(SCOVOI+SCOVL)
-      AIJ(I,J,3)=AIJ(I,J,3)+(GDATA(I,J,1)*POICE+GDATA(I,J,2)*PEARTH+
-     *  GDATA(I,J,12)*PLICE)
+      AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+(SCOVOI+SCOVL)
+      AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+(GDATA(I,J,1)*POICE+GDATA(I,J,2)
+     *     *PEARTH+GDATA(I,J,12)*PLICE)
 C     TS=TX(I,J,1)*((P(I,J)+PTOP)/(SIG(1)*P(I,J)+PTOP))**RBBYG
-C     AIJ(I,J,8)=AIJ(I,J,8)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/TS)
-C    *  **GBYRB-P1000)
-      AIJ(I,J,8)=AIJ(I,J,8)+ P(I,J)
+C     AIJ(I,J,IJ_SLP1)=AIJ(I,J,IJ_SLP1)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I
+C    *  ,J)/TS)**GBYRB-P1000)
+      AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
       PSNOW=0.
       IF (GDATA(I,J,2).GT.0.) PSNOW=PEARTH
-      AIJ(I,J,29)=AIJ(I,J,29)+POICE+PLICE+PSNOW
-C     AIJ(I,J,33)=AIJ(I,J,33)+(TS-273.16)
-      AIJ(I,J,38)=AIJ(I,J,38)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/
-     *  TSAVG(I,J))**GBYRB-P1000)
+      AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE+PLICE+PSNOW
+C     AIJ(I,J,IJ_TS1)=AIJ(I,J,IJ_TS1)+(TS-273.16)
+      AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)
+     *     /TSAVG(I,J))**GBYRB-P1000)
   120 CONTINUE
       AJ(J,22)=AJ(J,22)+AT1
       BJ(J,22)=BJ(J,22)+BT1
@@ -562,17 +562,17 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
       IF (ABS(TX(I,J,L)-TX(I,J,L-1)).LT.EPSLON) GO TO 176
       BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
-  174 AIJ(I,J,8+K)=AIJ(I,J,8+K)+(PHI(I,J,L)
-     *  -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,16)=AIJ(I,J,16)+(TX(I,J,L)-273.16+(TX(I,J,L-1)
-     *  -TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
+  174 AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
+     *     -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
+      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-273.16
+     *     +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
       IF (K.GE.KM) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
       GO TO 174
-  176 AIJ(I,J,8+K)=AIJ(I,J,8+K)+(PHI(I,J,L)
-     *  -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,16)=AIJ(I,J,16)+(TX(I,J,L)-273.16)
+ 176  AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
+     *     -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-273.16)
       IF (K.GE.KM) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
@@ -691,7 +691,7 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
       BSS=BSS+SS*PLAND
       CSS=CSS+SS*POICE
       DJ(JR,25)=DJ(JR,25)+SS*DXYPJ
-  390 AIJ(I,J,31)=AIJ(I,J,31)+SS
+  390 AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       AJ(J,25)=AJ(J,25)+ASS
       BJ(J,25)=BJ(J,25)+BSS
       CJ(J,25)=CJ(J,25)+CSS
@@ -864,15 +864,15 @@ C****
       DO 600 L=1,LS1-1
       DO 600 J=2,JM-1
       DO 600 IP1=1,IM
-      AIJ(I,J,55)=AIJ(I,J,55)+(P(I,J)+P(IP1,J))*(U(I,J,L)+U(I,J+1,L))
-     *  *(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
+      AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(P(I,J)+P(IP1,J))*(U(I,J,L)+U(I
+     *        ,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
   600 I=IP1
       I=IM
       DO 601 L=LS1,LM
       DO 601 J=2,JM-1
       DO 601 IP1=1,IM
-      AIJ(I,J,55)=AIJ(I,J,55)+2.*(PSF-PTOP)*(U(I,J,L)+U(I,J+1,L))
-     *  *(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
+         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+2.*(PSF-PTOP)*(U(I,J,L)+U(I,J+1
+     *        ,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
   601 I=IP1
 C****
 C**** MOMENTUM, KINETIC ENERGY, NORTHWARD TRANSPORTS, ANGULAR MOMENTUM
@@ -883,9 +883,9 @@ C****
       DO 610 IP1=1,IM
       P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
       P4I=P4I+P4
-C     AIJ(I,J,8)=AIJ(I,J,8)+P4
-      AIJ(I,J,39)=AIJ(I,J,39)+U(I,J,JET)
-      AIJ(I,J,40)=AIJ(I,J,40)+V(I,J,JET)
+C     AIJ(I,J,IJ_P4UV)=AIJ(I,J,IJ_P4UV)+P4
+      AIJ(I,J,IJ_UJET)=AIJ(I,J,IJ_UJET)+U(I,J,JET)
+      AIJ(I,J,IJ_VJET)=AIJ(I,J,IJ_VJET)+V(I,J,JET)
   610 I=IP1
       APJ(J,2)=APJ(J,2)+P4I
       DO 640 L=1,LM
@@ -919,10 +919,11 @@ C     PZV16I=PZV16I+P4*Z4*V(I,J,L)
 C     Q4=Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L)
 C     PQ16I=PQ16I+P4*Q4
 C     PQV16I=PQV16I+P4*Q4*V(I,J,L)
-      AIJ(I,J,20)=AIJ(I,J,20)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)*DXV(J)
+      AIJ(I,J,IJ_PEV)=AIJ(I,J,IJ_PEV)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)
+     *     *DXV(J)
       SP2=P(IP1,J-1)+P(IP1,J)
       IF(L.GE.LS1) SP2=2.*(PSF-PTOP)
-      AIJ(IP1,J,56)=AIJ(IP1,J,56)+SP2
+      AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+SP2
      *  *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
   620 I=IP1
       IF(L.GE.LS1) P4I=FIM*PSMPT4
@@ -3695,7 +3696,7 @@ C****                                                            143-156
      *     ,sha
       USE E001M12_COM
       USE GEOM
-      USE DAGCOM, only : ajl,apj,asjl,aij,kdiag
+      USE DAGCOM   !, only : ajl,apj,asjl,aij,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/SENDEG(IM,JM),AN(0:IMH),BN(0:IMH),BYP(JM),BYPV(JM),
      *  BYDAPO(JM),BYPDA(JM),DXCOSV(JM),
@@ -4699,7 +4700,7 @@ C****
      *     ,sha
       USE E001M12_COM
       USE GEOM
-      USE DAGCOM, only : aij,kaij,ajk,kdiag
+      USE DAGCOM    !, only : aij,kaij,ajk,kdiag
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/ENDE16(IM,JM,2),PRAVG(IM,JM),PRSD(IM,JM),
      *  FLAT(3),FNH(3),FGLOBE(3),MLAT(3),MGLOBE(3),GNUM(3),GDEN(3)
@@ -4787,7 +4788,7 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       ZNDE16=4.*ZNDE16*DXV(J)/FIM
       DO 130 I=1,IM
       ENDE16(I,J,1)=4.*ENDE16(I,J,1)*DXV(J)
-  130 ENDE16(I,J,2)=AIJ(I,J,20)-ZNDE16-ENDE16(I,J,1)
+  130 ENDE16(I,J,2)=AIJ(I,J,IJ_PEV)-ZNDE16-ENDE16(I,J,1)
       DO 140 I=1,IM
       ENDE16(I,1,1)=0.
   140 ENDE16(I,1,2)=0.
@@ -4831,7 +4832,7 @@ C****
      *       380,380,400,400,400,400),K
 C**** SUM OF TWO ARRAYS
   220 DO 230 I=1,IM
-      A=(AIJ(I,J,21)+AIJ(I,J,24))*SCALE(K)*BYIACC
+      A=(AIJ(I,J,IJ_TRNFP0)+AIJ(I,J,IJ_SRNFP0))*SCALE(K)*BYIACC
 CB       DIJMAP(I,J,K)=A
       FLATK=FLATK+A
       N=28.5+A*FAC(K)
@@ -5077,11 +5078,11 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
 C****
 C**** PRODUCE FULL PAGE I,J MAPS
 C****
-      CALL IJMAP (1,AIJ(1,1,38),BYIADA)
+      CALL IJMAP (1,AIJ(1,1,IJ_SLP),BYIADA)
       BYIACN=1./(IDACC(3)+1.D-20)
-      CALL IJMAP (2,AIJ(1,1,35),BYIACN)
-C     CALL IJMAP (4,AIJ(1,1,8),BYIADA)
-C     CALL IJMAP (5,AIJ(1,1,33),BYIADA)
+      CALL IJMAP (2,AIJ(1,1,IJ_TS),BYIACN)
+C     CALL IJMAP (4,AIJ(1,1,IJ_SLP1),BYIADA)
+C     CALL IJMAP (5,AIJ(1,1,IJ_TS1),BYIADA)
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -6626,8 +6627,224 @@ C****
       RETURN
       END
 
-c      SUBROUTINE init_DIAG
-c!@sum  init_DIAG initiallises the diagnostics at beginning of month
+      SUBROUTINE init_DIAG
+!@sum  init_DIAG initiallises the diagnostics array meta-information
+!@auth Gavin Schmidt
+!@ver  1.0  
+      USE DAGCOM
+      IMPLICIT NONE
+
+C**** AIJ diagnostic names:
+C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION 
+C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      IJ_RSOI = 1  ! POICE (1)            1 GD
+      IJ_RSNW = 2  ! PSNOW (1)            4 DA
+      IJ_SNOW = 3  ! SNOW (KG/M**2)       4 DA
+      IJ_SHDT = 4  ! SHDT (J/M**2)        1 SF
+      IJ_PREC = 5  ! PREC (KG/M**2)       1 PR
+      IJ_EVAP = 6  ! EVAP (KG/M**2)       1 SF
+C**** IJ_SSAT = 7  ! SOIL SATURATION RATIO 1 GD ! OBS
+      IJ_BETA = 7  ! BETA (1)             1 GD
+C**** IJ_SLP1 = 8  ! SLP (100 PA-1000) (USING T1) 4 DA ! OBS
+C**** IJ_P4UV = 8  ! 4*P4 (100 PA)  (UV GRID)     4 DA ! OBS
+      IJ_PRES = 8  ! PIJ (100 PA)  (NO PRINTOUT)  4 DA
+      IJ_PHI1K = 9 ! PHI1000 (M**2/S**2) 4 DA
+      IJ_PHI850 = 10  ! PHI850 (M**2/S**2-1500*GRAV) 4 DA
+      IJ_PHI700 = 11  ! PHI700-3000*GRAV  4 DA
+      IJ_PHI500 = 12  ! PHI500-5600*GRAV  4 DA
+      IJ_PHI300 = 13  ! PHI300-9500*GRAV  4 DA
+      IJ_PHI100 = 14  ! PHI100-16400*GRAV 4 DA
+      IJ_PHI30 = 15   ! PHI30-24000*GRAV   4 DA
+      IJ_T850 = 16 ! T850-273.16 (K-273.16)*GRAV) (NO PRT) 4 DA
+      IJ_PMCCLD = 17  ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
+      IJ_CLDTPPR = 18 ! P-CLOUD TOP   (100 PA)                  2 RD
+      IJ_CLDCV = 19   ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      IJ_PEV  = 20 
+       ! 16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA	
+      IJ_TRNFP0 = 21  ! TRNFP0 (W/M**2)                         2 RS
+      IJ_SRTR = 22    ! SRHDT+TRHDT (J/M**2)                    1 SF
+      IJ_NETH = 23    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)   1 SP
+      IJ_SRNFP0 = 24  ! SRNFP0 (W/M**2)                         2 RD
+      IJ_SRINCP0 = 25 ! SRINCP0 (W/M**2)                        2 RD
+      IJ_SRNFG = 26   ! SRNFG (W/M**2)                          2 RD
+      IJ_SRINCG = 27  ! SRINCG (W/M**2)                         2 RD
+      IJ_TG1  = 28  ! TG1 (K-273.16)                            1 GD
+      IJ_RSIT = 29  ! POICE+PLICE+(IF SNOW)PEARTH               4 DA
+      IJ_TDSL = 30 ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT) .5*9 MN
+      IJ_DTDP = 31  ! DTHETA/DPHI (K S**2/M**2) IN TROPOSPHERE  4 DA
+      IJ_RUNE = 32  ! RUN1 OVER EARTH  (KG/M**2)                1 PG
+C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
+      IJ_RUNLI = 33 ! RUN1 OVER LAND ICE  (KG/M**2) (NO PRT)    1 PG
+      IJ_WS   = 34  ! SURFACE WIND SPEED (M/S)                  3 SF
+      IJ_TS   = 35  ! TS (K-273.16)                             3 SF
+      IJ_US   = 36  ! US (M/S)                                  3 SF
+      IJ_VS   = 37  ! VS (M/S)                                  3 SF
+      IJ_SLP  = 38  ! PSL (100 PA-1000)  (USING TS)             4 DA
+      IJ_UJET = 39  ! UJET (M/S)                                4 DA
+      IJ_VJET = 40  ! VJET (M/S)                                4 DA
+      IJ_PCLDL = 41  ! PCLD(LOW) (1)                            2 RD
+      IJ_PCLDM = 42  ! PCLD(MID) (1)                            2 RD
+      IJ_PCLDH = 43  ! PCLD(HIGH) (1)                           2 RD
+      IJ_BTMPW = 44  ! BTEMPW-TF (K-273.16)                     2 RD
+      IJ_SRREF = 45  ! PLAVIS*S0*COSZ (W/M**2)                  2 RD
+      IJ_ODATA4 = 46  ! TGO2= ODATA(4)  (C)                  .5*9 MN
+      IJ_TAUS = 47  ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      IJ_TAUUS = 48 ! TAUUS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      IJ_TAUVS = 49 ! TAUVS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      IJ_GWTR = 50  ! WATER1+WATER2+ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
+      IJ_QS   = 51  ! QS                                (NO PRT)  3 SF
+      IJ_STRNGTS = 52 ! MAX(0,33-1.8*DAILY MEAN ON TS IN C)    .5*9 MN
+      IJ_ARUNU = 53  ! 40.6+.72*(2TS(C)-(QSATS-QS)*LHA/SHA)       3 SF
+      IJ_DTGDTS = 54 ! 18*(DEL(TG)/DEL(TS)-1),DEL= DIURN MX-MN .5*9 MN
+      IJ_PUQ  = 55  ! 8*P*U*Q (VERT. INTEGRATED) (12.5 PA*M/S) 4 DA
+      IJ_PVQ  = 56  ! 8*P*V*Q (VERT. INTEGRATED) (12.5 PA*M/S) 4 DA
+      IJ_TGO  = 57  ! TGO= ODATA(1)  (C)                       1 GD
+      IJ_MSI2 = 58  ! ACE2OI= ODATA(3)*POICE  (KG/M**2)        1 GD
+      IJ_WLM  = 59  ! WIND SPEED IN TOP LAYER (M/S)            1 SD
+      IJ_TGO2 = 60  ! TGO12= ODATA(5)  (C)                  .5*9 MN
+      IJ_EVAPO = 61  ! EVAP*POCEAN  (KG/M**2)                  1 GD
+      IJ_EVAPI = 62  ! EVAP*POICE  (KG/M**2)                   1 GD
+      IJ_EVAPLI = 63  ! EVAP OVER LAND ICE  (KG/M**2)          1 GD
+      IJ_EVAPE = 64  ! EVAP OVER EARTH  (KG/M**2)              1 GD
+      IJ_F0OC = 65  ! F0DT*POCEAN, NET HEAT AT Z0  (J/M**2)    1 GD
+      IJ_F0OI = 66  ! F0DT*POICE, NET HEAT AT Z0  (J/M**2)     1 GD
+      IJ_F0LI = 67  ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/M**2) 1 GD
+      IJ_F0E  = 68  ! F0DT, NET HEAT AT Z0 OVER EARTH  (J/M**2) 1 GD
+      IJ_F1LI = 69  ! F1DT OVER LAND ICE  (J/M**2)             1 PG
+      IJ_SNWF = 70  ! SNOW FALL  (KG/M**2)                     1 PR
+      IJ_TSLI = 71  ! SURF AIR TEMP OVER LAND ICE  (C)   NSURF*1 SF
+      IJ_ERUN2 = 72  ! F2DT OVER LAND ICE  (J/M**2)            1 PG
+      IJ_SHDTLI = 73  ! SHDT OVER LAND ICE  (J/M**2)           3 SF
+      IJ_EVHDT = 74  ! EVHDT OVER LAND ICE  (J/M**2)           3 SF
+      IJ_TRHDT = 75  ! TRHDT OVER LAND ICE  (J/M**2)           3 SF
+      IJ_TMAX  = 76  ! MAX(COMPOSITE TS)                      12 SF
+      IJ_TMIN  = 77  ! MIN(COMPOSITE TS)                      12 SF
+      IJ_TMNMX  = 78  ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
+      IJ_PEVAP = 79  ! POTENTIAL EVAPORATION (KG/M**2)         1 EA
+      IJ_TMAXE = 80  ! MAX TS OVER EARTH FOR CURRENT DAY (K).5*9 MN
+      IJ_WMSUM = 81  ! LIQUID WATER PATH (kg/M**2)             1 CL
+      IJ_PSCLD = 82  ! SHALLOW CONVECTIVE CLOUD COVER  (1)     1 CL
+      IJ_PDCLD = 83  ! DEEP CONVECTIVE CLOUD COVER     (1)     1 CL
+      IJ_DCNVFRQ = 84  ! DEEP CONVECTIVE CLOUD FREQUENCY (1)   1 CL
+      IJ_SCNVFRQ = 85  ! SHALLOW CONVECTIVE CLOUD FREQUENCY (1) 1 CL
+      IJ_EMTMOM = 86 ! INCIDENT MTN EAST MOM. FLUX (MB-M/S**2)  1 SD
+      IJ_SMTMOM = 87 ! INCIDENT MTN SOUTH MOM. FLUX (MB-M/S**2) 1 SD
+      IJ_FPEU = 88  ! EAST-WEST POT. ENTHALPY FLUX (W)   /3600.*1 DY
+      IJ_FPEV = 89  ! NORTH-SOUTH POT. ENTHALPY FLUX (W) /3600.*1 DY
+      IJ_FMU  = 90 ! EAST-WEST MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
+      IJ_FMV  = 91 ! NORTH-SOUTH MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
+      IJ_FQU = 92  ! EAST-WEST WATER VAPOR FLUX (KG/S)   /3600.*1 DY
+      IJ_FQV = 93  ! NORTH-SOUTH WATER VAPOR FLUX (KG/S) /3600.*1 DY
+      IJ_FGZU = 94  ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
+      IJ_FGZV = 95  ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
+      
+C**** Definiton of IA_IJ (IDACC index) and NAME_IJ
+      NAME_IJ(IJ_RSOI)   = "RSOI" ; IA_IJ(IJ_RSOI) = 1
+      NAME_IJ(IJ_RSNW)   = "RSNW" ; IA_IJ(IJ_RSNW) = 4 
+      NAME_IJ(IJ_SNOW)   = "SNOW" ; IA_IJ(IJ_SNOW) = 4 
+      NAME_IJ(IJ_SHDT)   = "SHDT" ; IA_IJ(IJ_SHDT) = 1
+      NAME_IJ(IJ_PREC)   = "PREC" ; IA_IJ(IJ_PREC) = 1
+      NAME_IJ(IJ_EVAP)   = "EVAP" ; IA_IJ(IJ_EVAP) = 1
+C**** NAME_IJ(IJ_SSAT)   = "SSAT" ; IA_IJ(IJ_SSAT) = 1
+      NAME_IJ(IJ_BETA)   = "BETA" ; IA_IJ(IJ_BETA) = 1 
+C**** NAME_IJ(IJ_SLP1)   = "SLP1" ; IA_IJ(IJ_SLP1) = 4
+C**** NAME_IJ(IJ_P4UV)   = "P4UV" ; IA_IJ(IJ_P4UV) = 4
+      NAME_IJ(IJ_PRES)   = "PRES" ; IA_IJ(IJ_PRES) = 4
+      NAME_IJ(IJ_PHI1K)  = "PHI1K"  ; IA_IJ(IJ_PHI1K ) = 4 
+      NAME_IJ(IJ_PHI850) = "PHI850" ; IA_IJ(IJ_PHI850) = 4
+      NAME_IJ(IJ_PHI700) = "PHI700" ; IA_IJ(IJ_PHI700) = 4
+      NAME_IJ(IJ_PHI500) = "PHI500" ; IA_IJ(IJ_PHI500) = 4
+      NAME_IJ(IJ_PHI300) = "PHI300" ; IA_IJ(IJ_PHI300) = 4
+      NAME_IJ(IJ_PHI100) = "PHI100" ; IA_IJ(IJ_PHI100) = 4
+      NAME_IJ(IJ_PHI30)  = "PHI30"  ; IA_IJ(IJ_PHI30 ) = 4
+      NAME_IJ(IJ_T850)   = "T850"   ; IA_IJ(IJ_T850) = 4
+      NAME_IJ(IJ_PMCCLD) = "PMCCLD" ; IA_IJ(IJ_PMCCLD) = 2
+      NAME_IJ(IJ_CLDTPPR)= "CLDTPPR"; IA_IJ(IJ_CLDTPPR) = 2
+      NAME_IJ(IJ_CLDCV)  = "CLDCV"  ; IA_IJ(IJ_CLDCV) = 2
+      NAME_IJ(IJ_PEV)    = "PEV"    ; IA_IJ(IJ_PEV) = 4
+      NAME_IJ(IJ_TRNFP0) = "TRNFP0" ; IA_IJ(IJ_TRNFP0) = 2
+      NAME_IJ(IJ_SRTR)   = "SRTR"   ; IA_IJ(IJ_SRTR) = 1
+      NAME_IJ(IJ_NETH)   = "NETH"   ; IA_IJ(IJ_NETH) = 1
+      NAME_IJ(IJ_SRNFP0) = "SRNFP0" ; IA_IJ(IJ_SRNFP0) = 2
+      NAME_IJ(IJ_SRINCP0)= "SRINCP0"; IA_IJ(IJ_SRINCP0) = 2
+      NAME_IJ(IJ_SRNFG)  = "SRNFG"  ; IA_IJ(IJ_SRNFG) = 2
+      NAME_IJ(IJ_SRINCG) = "SRINCG" ; IA_IJ(IJ_SRINCG) = 2
+      NAME_IJ(IJ_TG1)    = "TG1"    ; IA_IJ(IJ_TG1) = 1
+      NAME_IJ(IJ_RSIT)   = "RSIT"   ; IA_IJ(IJ_RSIT) = 4
+      NAME_IJ(IJ_TDSL)   = "TDSL"   ; IA_IJ(IJ_TDSL) = 9 
+      NAME_IJ(IJ_DTDP)   = "DTDP"   ; IA_IJ(IJ_DTDP) = 4
+      NAME_IJ(IJ_RUNE)   = "RUNE"   ; IA_IJ(IJ_RUNE) = 1
+C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
+      NAME_IJ(IJ_RUNLI)  = "RUNLI"  ; IA_IJ(IJ_RUNLI) = 1
+      NAME_IJ(IJ_WS)     = "WS"     ; IA_IJ(IJ_WS) = 3
+      NAME_IJ(IJ_TS)     = "TS"     ; IA_IJ(IJ_TS) = 3
+      NAME_IJ(IJ_US)     = "US"     ; IA_IJ(IJ_US) = 3
+      NAME_IJ(IJ_VS)     = "VS"     ; IA_IJ(IJ_VS) = 3
+      NAME_IJ(IJ_SLP)    = "SLP"    ; IA_IJ(IJ_SLP) = 4
+      NAME_IJ(IJ_UJET)   = "UJET"   ; IA_IJ(IJ_UJET) = 4
+      NAME_IJ(IJ_VJET)   = "VJET"   ; IA_IJ(IJ_VJET) = 4
+      NAME_IJ(IJ_PCLDL)  = "PCLDL"  ; IA_IJ(IJ_PCLDL) = 2
+      NAME_IJ(IJ_PCLDM)  = "PCLDM"  ; IA_IJ(IJ_PCLDM) = 2
+      NAME_IJ(IJ_PCLDH)  = "PCLDH"  ; IA_IJ(IJ_PCLDH) = 2
+      NAME_IJ(IJ_BTMPW)  = "BTMPW"  ; IA_IJ(IJ_BTMPW) = 2
+      NAME_IJ(IJ_SRREF)  = "SRREF"  ; IA_IJ(IJ_SRREF) = 2
+      NAME_IJ(IJ_ODATA4) = "ODATA4" ; IA_IJ(IJ_ODATA4) = 9
+      NAME_IJ(IJ_TAUS)   = "TAUS"   ; IA_IJ(IJ_TAUS) = 3
+      NAME_IJ(IJ_TAUUS)  = "TAUUS"  ; IA_IJ(IJ_TAUUS) = 3
+      NAME_IJ(IJ_TAUVS)  = "TAUVS"  ; IA_IJ(IJ_TAUVS) = 3
+      NAME_IJ(IJ_GWTR)   = "GWTR"   ; IA_IJ(IJ_GWTR) = 1
+      NAME_IJ(IJ_QS)     = "QS"     ; IA_IJ(IJ_QS) = 3
+      NAME_IJ(IJ_STRNGTS)= "STRNGTS"; IA_IJ(IJ_STRNGTS) = 9
+      NAME_IJ(IJ_ARUNU)  = "ARUNU"  ; IA_IJ(IJ_ARUNU) = 3
+      NAME_IJ(IJ_DTGDTS) = "DTGDTS" ; IA_IJ(IJ_DTGDTS) = 9
+      NAME_IJ(IJ_PUQ)    = "PUQ"    ; IA_IJ(IJ_PUQ) = 4
+      NAME_IJ(IJ_PVQ)    = "PVQ"    ; IA_IJ(IJ_PVQ) = 4
+      NAME_IJ(IJ_TGO)    = "TGO"    ; IA_IJ(IJ_TGO) = 1
+      NAME_IJ(IJ_MSI2)   = "MSI2"   ; IA_IJ(IJ_MSI2) = 1
+      NAME_IJ(IJ_WLM)    = "WLM"    ; IA_IJ(IJ_WLM) = 1
+      NAME_IJ(IJ_TGO2)   = "TGO2"   ; IA_IJ(IJ_TGO2) = 9
+      NAME_IJ(IJ_EVAPO)  = "EVAPO"  ; IA_IJ(IJ_EVAPO) = 1
+      NAME_IJ(IJ_EVAPI)  = "EVAPI"  ; IA_IJ(IJ_EVAPI) = 1
+      NAME_IJ(IJ_EVAPLI) = "EVAPLI" ; IA_IJ(IJ_EVAPLI) = 1
+      NAME_IJ(IJ_EVAPE)  = "EVAPE"  ; IA_IJ(IJ_EVAPE) = 1
+      NAME_IJ(IJ_F0OC)   = "F0OC"   ; IA_IJ(IJ_F0OC) = 1
+      NAME_IJ(IJ_F0OI)   = "F0OI"   ; IA_IJ(IJ_F0OI) = 1 
+      NAME_IJ(IJ_F0LI)   = "F0LI"   ; IA_IJ(IJ_F0LI) = 1 
+      NAME_IJ(IJ_F0E)    = "F0E"    ; IA_IJ(IJ_F0E) = 1
+      NAME_IJ(IJ_F1LI)   = "F1LI"   ; IA_IJ(IJ_F1LI) = 1
+      NAME_IJ(IJ_SNWF)   = "SNWF"   ; IA_IJ(IJ_SNWF) = 1
+      NAME_IJ(IJ_TSLI)   = "TSLI"   ; IA_IJ(IJ_TSLI) = 1
+      NAME_IJ(IJ_ERUN2)  = "ERUN2"  ; IA_IJ(IJ_ERUN2) = 1
+      NAME_IJ(IJ_SHDTLI) = "SHDTLI" ; IA_IJ(IJ_SHDTLI) = 3
+      NAME_IJ(IJ_EVHDT)  = "EVHDT"  ; IA_IJ(IJ_EVHDT) = 3
+      NAME_IJ(IJ_TRHDT)  = "TRHDT"  ; IA_IJ(IJ_TRHDT) = 3
+      NAME_IJ(IJ_TMAX)   = "TMAX"   ; IA_IJ(IJ_TMAX) = 12
+      NAME_IJ(IJ_TMIN)   = "TMIN"   ; IA_IJ(IJ_TMIN) = 12
+      NAME_IJ(IJ_TMNMX)  = "TMNMX"  ; IA_IJ(IJ_TMNMX) = 12
+      NAME_IJ(IJ_PEVAP)  = "PEVAP"  ; IA_IJ(IJ_PEVAP) = 1
+      NAME_IJ(IJ_TMAXE)  = "TMAXE"  ; IA_IJ(IJ_TMAXE) = 9
+      NAME_IJ(IJ_WMSUM)  = "WMSUM"  ; IA_IJ(IJ_WMSUM) = 1
+      NAME_IJ(IJ_PSCLD)  = "PSCLD"  ; IA_IJ(IJ_PSCLD) = 1
+      NAME_IJ(IJ_PDCLD)  = "PDCLD"  ; IA_IJ(IJ_PDCLD) = 1
+      NAME_IJ(IJ_DCNVFRQ)= "DCNVFRQ"; IA_IJ(IJ_DCNVFRQ) = 1
+      NAME_IJ(IJ_SCNVFRQ)= "SCNVFRQ"; IA_IJ(IJ_SCNVFRQ) = 1
+      NAME_IJ(IJ_EMTMOM) = "EMTMOM" ; IA_IJ(IJ_EMTMOM) = 1
+      NAME_IJ(IJ_SMTMOM) = "SMTMOM" ; IA_IJ(IJ_SMTMOM) = 1
+      NAME_IJ(IJ_FPEU)   = "FPEU"   ; IA_IJ(IJ_FPEU) = 1
+      NAME_IJ(IJ_FPEV)   = "FPEV"   ; IA_IJ(IJ_FPEV) = 1
+      NAME_IJ(IJ_FMU)    = "FMU"    ; IA_IJ(IJ_FMU) = 1
+      NAME_IJ(IJ_FMV)    = "FMV"    ; IA_IJ(IJ_FMV) = 1
+      NAME_IJ(IJ_FQU)    = "FQU"    ; IA_IJ(IJ_FQU) = 1
+      NAME_IJ(IJ_FQV)    = "FQV"    ; IA_IJ(IJ_FQV) = 1
+      NAME_IJ(IJ_FGZU)   = "FGZU"   ; IA_IJ(IJ_FGZU) = 1
+      NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
+
+      RETURN
+      END SUBROUTINE init_DIAG
+
+
+c      SUBROUTINE monthly_DIAG
+c!@sum  monthly_DIAG initiallises the diagnostics at beginning of month
 c!@auth Original Development Team
 c!@ver  1.0  
 c      USE DAGCOM
@@ -6650,7 +6867,7 @@ c         AJ(K,1)=0.
 c      END DO
 c      DO J=1,JM
 c         DO I=1,IM
-c            AIJ(I,J,78)=1000.
+c            AIJ(I,J,IJ_TMNMX)=1000.
 c         END DO
 c      END DO
 cC**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -6690,7 +6907,7 @@ c            END IF
 c         END DO
 c      END DO
 c         
-c      END SUBROUTINE init_DIAG
+c      END SUBROUTINE monthly_DIAG
 
 
 

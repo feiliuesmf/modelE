@@ -25,7 +25,7 @@ C**** f90 changes
      *     ,CLDSAV
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl,bldata
-      USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
+      USE DAGCOM  !, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
       USE DYNAMICS, only : FILTER,CALC_AMPK
       USE OCEAN, only : ODATA,OA,OSTRUC,XSI1,XSI2,XSI3,XSI4,T50
 
@@ -128,7 +128,7 @@ C****   .... AND NORMALLY ALSO AT THE BEGINNING OF EACH MONTH)
   275    AJ(K,1)=0.
          DO 280 J=1,JM
          DO 280 I=1,IM
-  280    AIJ(I,J,78)=1000.
+  280    AIJ(I,J,IJ_TMNMX)=1000.
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
   290    IF (JDAY.NE.32) GO TO 294
          DO 292 J=1+JM/2,JM
@@ -263,18 +263,20 @@ C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
       GDATA(I,J,10)=1.+.98*GDATA(I,J,10)
       GDATA(I,J,11)=1.+.98*GDATA(I,J,11)
          TSAVG=TDIURN(I,J,5)/(HR24*NSURF)
-         IF(32.+1.8*TSAVG.LT.65.)AIJ(I,J,52)=AIJ(I,J,52)+(33.-1.8*TSAVG)
-         AIJ(I,J,54)=AIJ(I,J,54)+18.*((TDIURN(I,J,2)-TDIURN(I,J,1))
-     *     /(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
-         AIJ(I,J,30)=AIJ(I,J,30)+(TDIURN(I,J,4)-TDIURN(I,J,3))
-         AIJ(I,J,80)=AIJ(I,J,80)+(TDIURN(I,J,4)-273.16)
-         IF (TDIURN(I,J,6).LT.AIJ(I,J,78)) AIJ(I,J,78)=TDIURN(I,J,6)
+         IF(32.+1.8*TSAVG.LT.65.)AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)
+     *        +(33.-1.8*TSAVG)
+         AIJ(I,J,IJ_DTGDTS)=AIJ(I,J,IJ_DTGDTS)+18.*((TDIURN(I,J,2)
+     *        -TDIURN(I,J,1))/(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
+         AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+(TDIURN(I,J,4)-TDIURN(I,J,3))
+         AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-273.16)
+         IF (TDIURN(I,J,6).LT.AIJ(I,J,IJ_TMNMX)) AIJ(I,J,IJ_TMNMX)
+     *        =TDIURN(I,J,6)
   530 CONTINUE
       IF (KOCEAN.EQ.1) THEN
          DO 540 J=1,JM
          DO 540 I=1,IM
-         AIJ(I,J,46)=AIJ(I,J,46)+ODATA(I,J,4)
-  540    AIJ(I,J,60)=AIJ(I,J,60)+ODATA(I,J,5)
+         AIJ(I,J,IJ_ODATA4)=AIJ(I,J,IJ_ODATA4)+ODATA(I,J,4)
+  540    AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+ODATA(I,J,5)
 C**** RESTRUCTURE THE OCEAN LAYERS AND ELIMINATE SMALL ICE BERGS
       CALL OSTRUC
       CALL CHECKT ('OSTRUC')
@@ -389,7 +391,7 @@ C**** KCOPY > 1 : SAVE THE RESTART INFORMATION
 C**** KCOPY > 2 : SAVE THE OCEAN DATA FOR INITIALIZING DEEP OCEAN RUNS
       OPEN (30,FILE=JMNTH0(1:3)//CYEAR//'.oda'//LABEL1(1:LLAB1),
      *         FORM='UNFORMATTED')
-         WRITE (30) TAU,ODATA,((AIJ(I,J,60),I=1,IM),J=1,JM)
+         WRITE (30) TAU,ODATA,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
          CLOSE (30)
 C**** SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
   685    CONTINUE
@@ -955,6 +957,7 @@ C****   Perturb the Initial Temperatures by at most 1 degree C
       CALL RINIT (IRAND)
       CALL FFT0 (IM)
       CALL init_CLD
+      CALL init_DIAG
 C**** MAKE NRAD A MULTIPLE OF NCNDS
       NRAD=(MAX(NRAD,NCNDS)/NCNDS)*NCNDS
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8

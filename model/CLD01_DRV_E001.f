@@ -17,7 +17,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,mstcnv_loc
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
+      USE DAGCOM  !, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       USE OCEAN, only : odata
       
@@ -144,11 +144,11 @@ C**** MOIST CONVECTION
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
       IF (LMCMIN.GT.0) THEN
-         AIJ(I,J,82)=AIJ(I,J,82)+CLDSLWIJ
-         AIJ(I,J,83)=AIJ(I,J,83)+CLDDEPIJ
-         IF(CLDSLWIJ.GT..000001) AIJ(I,J,85)=AIJ(I,J,85)+1.
-         IF(CLDDEPIJ.GT..000001) AIJ(I,J,84)=AIJ(I,J,84)+1.
-         AIJ(I,J,81)=AIJ(I,J,81)+WMSUM
+         AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
+         AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
+         IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
+         IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
+         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          HCNDMC=0.
          DO L=1,LMCMAX
          HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
@@ -250,7 +250,7 @@ C**** ADD IN CHANGE OF ANG. MOMENTUM BY MOIST CONVECTION FOR DIAGNOSTIC
      *     ,sdl,svwmxl,svlatl,taumcl,bydtcn,condse_loc
       USE GEOM
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
+      USE DAGCOM !, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       USE OCEAN, only : odata
       
@@ -371,7 +371,7 @@ C**** LARGE-SCALE CLOUDS AND PRECIPITATION
          AJL(J,L,55)=AJL(J,L,55)+AJ55(L)
       END DO
 C**** Accumulate diagnostics of CONDSE
-         AIJ(I,J,81)=AIJ(I,J,81)+WMSUM
+         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          AJ(J,61)=AJ(J,61)+PRCPSS*(1.-FLAND(I,J))*(1.-ODATA(I,J,2))
          BJ(J,61)=BJ(J,61)+PRCPSS*FLAND(I,J)
          CJ(J,61)=CJ(J,61)+PRCPSS*ODATA(I,J,2)*(1.-FLAND(I,J))

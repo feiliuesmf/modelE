@@ -26,7 +26,7 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : omega2,zgs
-      USE DAGCOM, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
+      USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,dj,ajl,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pedn,pek
       USE OCEAN, only : OA,ODATA,XSI1,XSI2,Z1I,ACE1I,TFO
 
@@ -556,10 +556,10 @@ C****
          BTRHDT=BTRHDT+TRHDT*PLICE
          BTS=BTS+(TS-TF)*PLICE
          IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
-         AIJ(I,J,71)=AIJ(I,J,71)+(TS-TF)
-         AIJ(I,J,73)=AIJ(I,J,73)+SHDT
-         AIJ(I,J,74)=AIJ(I,J,74)+EVHDT
-         AIJ(I,J,75)=AIJ(I,J,75)+TRHDT
+         AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
+         AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
+         AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)+EVHDT
+         AIJ(I,J,IJ_TRHDT)=AIJ(I,J,IJ_TRHDT)+TRHDT
 C**** NON-OCEAN POINTS WHICH ARE NOT MELTING OR FREEZING WATER USE
 C****   IMPLICIT TIME STEPS
 C****
@@ -578,19 +578,20 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          IF(MODDSF.NE.0) GO TO 5700
          DJ(JR,23)=DJ(JR,23)+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
- 5700    AIJ(I,J,4)=AIJ(I,J,4)+SHDTS
-         IF(MODRD.EQ.0) AIJ(I,J,21)=AIJ(I,J,21)+TRHDTS/DTSRCE
-         AIJ(I,J,22)=AIJ(I,J,22)+(SRHDTS+TRHDTS)
-         AIJ(I,J,23)=AIJ(I,J,23)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
+ 5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
+         IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
+     *        /DTSRCE
+         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
+         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
          IF(MODDSF.NE.0) GO TO 5800
-         AIJ(I,J,34)=AIJ(I,J,34)+WSS              ! added 12/29/96 -rar-
-         AIJ(I,J,35)=AIJ(I,J,35)+(TSS-TFS)
-         AIJ(I,J,36)=AIJ(I,J,36)+USS
-         AIJ(I,J,37)=AIJ(I,J,37)+VSS
-         AIJ(I,J,47)=AIJ(I,J,47)+RTAUS
-         AIJ(I,J,48)=AIJ(I,J,48)+RTAUUS
-         AIJ(I,J,49)=AIJ(I,J,49)+RTAUVS
-         AIJ(I,J,51)=AIJ(I,J,51)+QSS
+         AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WSS              ! added 12/29/96 -rar-
+         AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TSS-TFS)
+         AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+USS
+         AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VSS
+         AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RTAUS
+         AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RTAUUS
+         AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RTAUVS
+         AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSS
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
  5800    IF(MODD6.NE.0) GO TO 6000
          DO KR=1,4

@@ -22,7 +22,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE CLD01_COM_E001, only : PREC,TPREC
-      USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
+      USE DAGCOM  !, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : ODATA,OA,XSI1,XSI2,XSI3,XSI4,R2,R3,TTRUNC,Z1I
      *     ,Z1O,Z2OIM,ACE1I,AC2OIM,TFO, PREC_SI, PREC_OC 
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -120,7 +120,7 @@ C     EPRCP=PRCP*TPRCP*SHW
 C     EPRCP=PRCP*TPRCP*SHI
    30 EPRCP=0.
       ENRGP=EPRCP-PRCP*LHM
-         AIJ(I,J,70)=AIJ(I,J,70)+PRCP
+         AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
    50 CONTINUE
       IF (PWATER.LE.0.) GO TO 400
 C****
@@ -128,7 +128,7 @@ C**** OCEAN
 C****
             OA(I,J,4)=OA(I,J,4)+ENRGP
          AENRGP=AENRGP+ENRGP*POCEAN
-         AIJ(I,J,65)=AIJ(I,J,65)+ENRGP*POCEAN
+         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POCEAN
       IF (KOCEAN .EQ. 1) THEN
       TGW=ODATA(I,J,1)
       WTRO=Z1O(I,J)*RHOW
@@ -151,7 +151,7 @@ C****
       MSI1 = SNOW + ACE1I
 C*
          CENRGP=CENRGP+ENRGP*POICE
-         AIJ(I,J,66)=AIJ(I,J,66)+ENRGP*POICE
+         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
       IF (KOCEAN .EQ. 1) THEN
          CERUN4=CERUN4+ERUN4*POICE
          CRUN4=CRUN4+RUN4*POICE
@@ -160,6 +160,7 @@ C*
       DIFS=0.
       EDIFS=0.
       END IF
+
 C*
 C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 C* 
@@ -199,7 +200,7 @@ C****
       TG1=GDATA(I,J,13)
       TG2=GDATA(I,J,14)
          BENRGP=BENRGP+ENRGP*PLICE
-         AIJ(I,J,67)=AIJ(I,J,67)+ENRGP
+         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
       HC1=HC1I+SNOW*SHI
       RUN0=0.
       IF (TPRCP.LT.0.) GO TO 480
@@ -234,32 +235,32 @@ C**** SNOW IS COMPACTED INTO ICE, ICE MOVES DOWN THROUGH THE LAYERS
       ERUN2=DIFS*(TG2*SHI-LHM)
       GDATA(I,J,14)=TG2+(TG1-TG2)*DIFS/ACE2LI
   560    BEDIFS=BEDIFS+EDIFS*PLICE
-         AIJ(I,J,69)=AIJ(I,J,69)+EDIFS
+         AIJ(I,J,IJ_F1LI)=AIJ(I,J,IJ_F1LI)+EDIFS
          BDIFS=BDIFS+DIFS*PLICE
          DIFSS=DIFSS+DIFS*PLICE
          BERUN2=BERUN2+ERUN2*PLICE
-         AIJ(I,J,72)=AIJ(I,J,72)+ERUN2
+         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2
          BRUN2=BRUN2+DIFS*PLICE
   580 GDATA(I,J,12)=SNOW
   590 GDATA(I,J,13)=TG1
          BRUN0=BRUN0+RUN0*PLICE
          RUN0S=RUN0S+RUN0*PLICE
-         AIJ(I,J,33)=AIJ(I,J,33)+RUN0
+         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
 C****
   600 IF (PEARTH.LE.0.) GO TO 940
 C****
 C**** EARTH  (all else is done in subroutine EARTH, called from SURFCE)
 C****
          BENRGP=BENRGP+ENRGP*PEARTH
-         AIJ(I,J,68)=AIJ(I,J,68)+ENRGP
+         AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
 C****
 C**** ACCUMULATE DIAGNOSTICS (ocean, ocean ice, land ice only)
 C****
   940    DJ(JR,39)=DJ(JR,39)+ENRGP*DXYPJ
          DJ(JR,45)=DJ(JR,45)+DIFSS*DXYPJ  ! ocn/land ice contribution
          DJ(JR,54)=DJ(JR,54)+RUN0S*DXYPJ
-         AIJ(I,J,5)=AIJ(I,J,5)+PREC(I,J)
-         AIJ(I,J,23)=AIJ(I,J,23)+ENRGP
+         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PREC(I,J)
+         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
   960 CONTINUE
          AJ(J,39)=AJ(J,39)+AENRGP
          BJ(J,39)=BJ(J,39)+BENRGP
@@ -601,8 +602,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLD01_COM_E001, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily,
-     *     iwrite,jwrite,itwrite
+      USE DAGCOM  !, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily,
+!     *     iwrite,jwrite,itwrite
       USE DYNAMICS, only : pk,pedn
       USE OCEAN, only : odata
 
@@ -810,7 +811,7 @@ C****
          BJ(J,58)=BJ(J,58)+CMC*PLAND
          CJ(J,58)=CJ(J,58)+CMC*POICE
          DJ(JR,58)=DJ(JR,58)+CMC*DXYP(J)
-         AIJ(I,J,17)=AIJ(I,J,17)+CMC
+         AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AJ(J,80)=AJ(J,80)+DEPTH*POCEAN
          BJ(J,80)=BJ(J,80)+DEPTH*PLAND
          CJ(J,80)=CJ(J,80)+DEPTH*POICE
@@ -820,20 +821,20 @@ C****
          BJ(J,59)=BJ(J,59)+CLDCV*PLAND
          CJ(J,59)=CJ(J,59)+CLDCV*POICE
          DJ(JR,59)=DJ(JR,59)+CLDCV*DXYP(J)
-         AIJ(I,J,19)=AIJ(I,J,19)+CLDCV
+         AIJ(I,J,IJ_CLDCV)=AIJ(I,J,IJ_CLDCV)+CLDCV
          DO 250 L=1,LLOW
          IF (TOTCLD(L).NE.1.) GO TO 250
-         AIJ(I,J,41)=AIJ(I,J,41)+1.
+         AIJ(I,J,IJ_PCLDL)=AIJ(I,J,IJ_PCLDL)+1.
          GO TO 255
   250    CONTINUE
   255    DO 260 L=LMID1,LMID
          IF (TOTCLD(L).NE.1.) GO TO 260
-         AIJ(I,J,42)=AIJ(I,J,42)+1.
+         AIJ(I,J,IJ_PCLDM)=AIJ(I,J,IJ_PCLDM)+1.
          GO TO 265
   260    CONTINUE
   265    DO 270 L=LHI1,LHI
          IF (TOTCLD(L).NE.1.) GO TO 270
-         AIJ(I,J,43)=AIJ(I,J,43)+1.
+         AIJ(I,J,IJ_PCLDH)=AIJ(I,J,IJ_PCLDH)+1.
          GO TO 275
   270    CONTINUE
   275    CONTINUE
@@ -841,7 +842,7 @@ C****
          DO 280 L=LM,1,-1
          IF(L.EQ.LS1-1) PIJ=P(I,J)
          IF (TOTCLD(L).NE.1.) GO TO 280
-         AIJ(I,J,18)=AIJ(I,J,18)+SIGE(L+1)*PIJ+PTOP
+         AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+SIGE(L+1)*PIJ+PTOP
          GO TO 285
   280    CONTINUE
   285    DO KR=1,4
@@ -1039,13 +1040,14 @@ C****
          BJ(J,K+70)=BJ(J,K+70)+(S0*COSZ)*ALB(I,J,K)*PLAND
          CJ(J,K+70)=CJ(J,K+70)+(S0*COSZ)*ALB(I,J,K)*POICE
   760    DJ(JR,K+70)=DJ(JR,K+70)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
-         AIJ(I,J,21)=AIJ(I,J,21)-TNFS(I,J,4)
-         AIJ(I,J,24)=AIJ(I,J,24)+(SNFS(I,J,4)*COSZ)
-         AIJ(I,J,25)=AIJ(I,J,25)+(S0*COSZ)
-         AIJ(I,J,26)=AIJ(I,J,26)+(SRHR(I,J,1)*COSZ)
-         AIJ(I,J,27)=AIJ(I,J,27)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))
-         AIJ(I,J,44)=AIJ(I,J,44)+BTMPW(I,J)
-         AIJ(I,J,45)=AIJ(I,J,45)+S0*COSZ*ALB(I,J,2)
+         AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(I,J,4)
+         AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(I,J,4)*COSZ)
+         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
+         AIJ(I,J,IJ_SRNFG)=AIJ(I,J,IJ_SRNFG)+(SRHR(I,J,1)*COSZ)
+         AIJ(I,J,IJ_SRINCG)=AIJ(I,J,IJ_SRINCG)+(SRHR(I,J,1)*COSZ/
+     *        (ALB(I,J,1)+1.D-20))
+         AIJ(I,J,IJ_BTMPW)=AIJ(I,J,IJ_BTMPW)+BTMPW(I,J)
+         AIJ(I,J,IJ_SRREF)=AIJ(I,J,IJ_SRREF)+S0*COSZ*ALB(I,J,2)
   770    CONTINUE
          AJ(J,3)=AJ(J,3)+ASNFS1
          BJ(J,3)=BJ(J,3)+BSNFS1
@@ -1115,7 +1117,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
+      USE DAGCOM  !, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : odata,XSI1,XSI2,XSI3,XSI4,R1,R2,R3,R4,TTRUNC,Z1I
      *     ,Z1O,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,TFO,T50, SEA_ICE 
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -1272,8 +1274,8 @@ C****
          TG1S=TG1S+ODATA(I,J,1)*POCEAN
          AEVAP=AEVAP+EVAP*POCEAN
          EVAPS=EVAPS+EVAP*POCEAN
-         AIJ(I,J,57)=AIJ(I,J,57)+ODATA(I,J,1)
-         AIJ(I,J,61)=AIJ(I,J,61)+EVAP*POCEAN
+         AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+ODATA(I,J,1)
+         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*POCEAN
       IF (KOCEAN .NE. 1) THEN 
          ATG2=ATG2+ODATA(I,J,1)*POCEAN
          TG2S=TG2S+ODATA(I,J,1)*POCEAN
@@ -1281,7 +1283,7 @@ C****
       TGW=ODATA(I,J,1)
       WTRO=Z1O(I,J)*RHOW
       F0DT=E0(I,J,1)
-         AIJ(I,J,65)=AIJ(I,J,65)+F0DT*POCEAN
+         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
       OTDT=DTSRCE*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *            +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *            +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
@@ -1311,10 +1313,10 @@ C*
      *             RUN0,RUN4,ERUN4,DIFSI,EDIFSI,DIFS,EDIFS, 
      *             ENRGFO,ACEFO,ACE2M,ACE2F,ENRGFI,F2DT)
 C****
-         AIJ(I,J,1)=AIJ(I,J,1)+POICE
-         AIJ(I,J,58)=AIJ(I,J,58)+MSI2*POICE
-         AIJ(I,J,66)=AIJ(I,J,66)+F0DT*POICE
-         AIJ(I,J,62)=AIJ(I,J,62)+EVAP*POICE
+         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
+         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
+         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
+         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
       IF (KOCEAN .EQ. 1) THEN 
          AEFO=AEFO-ENRGFO*POCEAN
          AIFO=AIFO-ACEFO*POCEAN
@@ -1370,10 +1372,10 @@ C****
       TG1=GDATA(I,J,13)
       TG2=GDATA(I,J,14)
       F0DT=E0(I,J,3)
-         AIJ(I,J,67)=AIJ(I,J,67)+F0DT
+         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+F0DT
       F1DT=E1(I,J,3)
       EVAP=EVAPOR(I,J,3)
-         AIJ(I,J,63)=AIJ(I,J,63)+EVAP
+         AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+EVAP
 C**** CALCULATE TG1
       SNANDI=SNOW+ACE1I-EVAP
       HC1=SNANDI*SHI
@@ -1385,7 +1387,7 @@ C**** FLUXES HEAT UP TG1 TO FREEZING POINT AND MELT SOME SNOW AND ICE
       SNANDI=SNANDI-RUN0
          BRUN0=BRUN0+RUN0*PLICE
          RUN0S=RUN0S+RUN0*PLICE
-         AIJ(I,J,33)=AIJ(I,J,33)+RUN0
+         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
       GO TO 440
 C**** FLUXES RECOMPUTE TG1 WHICH IS BELOW FREEZING POINT
   420 TG1=TG1+ENRG1/HC1
@@ -1396,11 +1398,11 @@ C**** SOME ICE HAS MELTED OR EVAPORATED, TAKE IT FROM G2
       TG1=(TG1*SNANDI-TG2*DIFS)/ACE1I
       EDIFS=DIFS*(TG2*SHI-LHM)
          BEDIFS=BEDIFS+EDIFS*PLICE
-         AIJ(I,J,69)=AIJ(I,J,69)+EDIFS
+         AIJ(I,J,IJ_F1LI)=AIJ(I,J,IJ_F1LI)+EDIFS
          BDIFS=BDIFS+DIFS*PLICE
          DIFSS=DIFSS+DIFS*PLICE
          BERUN2=BERUN2+EDIFS*PLICE
-         AIJ(I,J,72)=AIJ(I,J,72)+EDIFS
+         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS
          BRUN2=BRUN2+DIFS*PLICE
       GO TO 500
   460 SNOW=SNANDI-ACE1I
@@ -1414,7 +1416,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
          BTG1=BTG1+TG1*PLICE
          BTG2=BTG2+TG2*PLICE
          BF1DT=BF1DT+F1DT*PLICE
-         AIJ(I,J,69)=AIJ(I,J,69)+F1DT
+         AIJ(I,J,IJ_F1LI)=AIJ(I,J,IJ_F1LI)+F1DT
          BEVAP=BEVAP+EVAP*PLICE
          SNOWS=SNOWS+SNOW*PLICE
          TG1S=TG1S+TG1*PLICE
@@ -1435,11 +1437,11 @@ C****
          WTR2=GDEEP(I,J,2)
          ACE2=GDEEP(I,J,3)
          F0DT=E0(I,J,4)
-         AIJ(I,J,68)=AIJ(I,J,68)+F0DT
+         AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+F0DT
          F1DT=E1(I,J,4)
          EVAP=EVAPOR(I,J,4)
          EVAPS=EVAPS+EVAP*PEARTH
-         AIJ(I,J,64)=AIJ(I,J,64)+EVAP
+         AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
          BSNOW=BSNOW+SNOW*PEARTH
          BTG1=BTG1+TG1*PEARTH
          BTG2=BTG2+TG2*PEARTH
@@ -1456,8 +1458,8 @@ C****
          WTR2S=WTR2S+WTR2*PEARTH
          ACE2S=ACE2S+ACE2*PEARTH
          TG2S=TG2S+TG2*PEARTH
-C        AIJ(I,J,7)=AIJ(I,J,7)+(WTR1+ACE1)/WFC1
-         AIJ(I,J,50)=AIJ(I,J,50)+(WTR1+ACE1+WTR2+ACE2)
+C        AIJ(I,J,IJ_SSAT)=AIJ(I,J,IJ_SSAT)+(WTR1+ACE1)/WFC1
+         AIJ(I,J,IJ_GWTR)=AIJ(I,J,IJ_GWTR)+(WTR1+ACE1+WTR2+ACE2)
 C****
 C**** ACCUMULATE DIAGNOSTICS
 C****
@@ -1474,8 +1476,8 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          DJ(JR,53)=DJ(JR,53)+SNOWS*DXYPJ
          DJ(JR,54)=DJ(JR,54)+RUN0S*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
-  950    AIJ(I,J,6)=AIJ(I,J,6)+EVAPS
-         AIJ(I,J,28)=AIJ(I,J,28)+TG1S
+  950    AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAPS
+         AIJ(I,J,IJ_TG1) =AIJ(I,J,IJ_TG1)+TG1S
   960 CONTINUE
 C**** LONGITUDINALLY INTEGRATED QUANTITIES FOR DIAGJ
          CJ(J,15)=CJ(J,15)+CF2DT
@@ -1532,7 +1534,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE SOMTQ_COM
-      USE DAGCOM, only : ajl
+      USE DAGCOM !, only : ajl
       USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
 
@@ -1697,7 +1699,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
-      USE DAGCOM, only : aij
+      USE DAGCOM !, only : aij
       USE DYNAMICS, only : pk
       IMPLICIT REAL*8 (A-H,O-Z)
 
@@ -1716,7 +1718,7 @@ C****
       WLM=SQRT(U(I,J,LM)*U(I,J,LM)+V(I,J,LM)*V(I,J,LM))
       RHO=(PIJU*SIGE(LM+1)+PTOP)/(RGAS*T(I,J,LM)*PK(LM,I,J))
       CDN=XCDLM(1)+XCDLM(2)*WLM
-         AIJ(I,J,59)=AIJ(I,J,59)+WLM
+         AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WLM
       X=NDYN*DT*RHO*CDN*WLM*GRAV/(PIJU*DSIG(LM))
       IF(X.GT.1) THEN
         write(99,*) 'SDRAG: TAU,I,J,PIJU,X,RHO,CDN,U(I,J,LM),V(I,J,LM)',
