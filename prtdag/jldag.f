@@ -8,10 +8,7 @@ C****
       integer :: nargs,iargc
       character(len=80) :: stop_str,cmd_str
       character(len=80) :: title
-      real :: dtsec,dtday
-      real, parameter :: badno=-999.
-      real :: sha,bygrav
-      real, parameter :: twopi=6.2831853
+      real :: dtsec,dtday,bygrav
 c from diagjl/k
       real, dimension(:,:,:), allocatable :: dpab,dsjk
       real, dimension(:,:), allocatable :: ax,axb,bx,arqx,brqx
@@ -27,13 +24,9 @@ c from diagjl/k
      &     SCALE,XWON,BY100G,BYN,P1000K,SDDP,BYIM
 
       REAL, PARAMETER :: ONE=1.,P1000=1000.
-      real :: missing
 
       real, dimension(:), allocatable :: lats,latsb
       character(len=20) :: var_name,acc_name,dim_name
-
-      sha=rgas/kapa
-      bygrav=1./grav
 
       call getarg(0,cmd_str)
       nargs = iargc()
@@ -75,7 +68,7 @@ c from diagjl/k
 
 ! define output file
       call open_out
-      dim_name='lat'; call def_dim_out(dim_name,jm)
+      dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
       dim_name='p'; call def_dim_out(dim_name,lm)
       dim_name='sig'; call def_dim_out(dim_name,lm)
@@ -84,12 +77,11 @@ c from diagjl/k
       dim_name='pe'; call def_dim_out(dim_name,lm)
 
 c**** initialize certain quantities
-      missing=0.
-      missing=1./missing !sqrt(-missing)
       byim=1./dble(im)
       dlon=twopi/im
       xwon=twopi/(dlon*dble(im)) ! for wonderland model?
       km=lm
+      bygrav=1./grav
       by100g=.01*bygrav
       p1000k=p1000**kapa
       ple(:)=sige(:)*(psf-ptop)+ptop
@@ -116,19 +108,26 @@ c**** initialize certain quantities
 
 ! put lat,ht into output file
       ndims_out = 1
-      dim_name='lat'; call set_dim_out(dim_name,1)
-      var_name='lat'; call wrtarr(var_name,lats)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latitude'; call wrtarr(var_name,lats)
       dim_name='latb'; call set_dim_out(dim_name,1)
+      units='degrees_north'
       var_name='latb'; call wrtarr(var_name,latsb)
       dim_name='p'; call set_dim_out(dim_name,1)
+      units='mb'
       var_name='p'; call wrtarr(var_name,plm)
       dim_name='sig'; call set_dim_out(dim_name,1)
+      units='1'
       var_name='sig'; call wrtarr(var_name,sig)
       dim_name='sige'; call set_dim_out(dim_name,1)
+      units='1'
       var_name='sige'; call wrtarr(var_name,sige(2))
       dim_name='prqt'; call set_dim_out(dim_name,1)
+      units='mb'
       var_name='prqt'; call wrtarr(var_name,plm)
       dim_name='pe'; call set_dim_out(dim_name,1)
+      units='mb'
       var_name='pe'; call wrtarr(var_name,ple)
 
 
@@ -148,7 +147,7 @@ c**** initialize certain quantities
       ndims_out = 2
 
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='prqt'; call set_dim_out(dim_name,2)
 c****
       title='SOLAR RADIATION HEATING RATE (DEGREES KELVIN/DAY)'
@@ -174,7 +173,7 @@ c****
       var_name='rdcool'; call wrtarr(var_name,arqx)
 c****
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='sig'; call set_dim_out(dim_name,2)
 
       title='TOTAL CLOUD COVER'
@@ -226,7 +225,7 @@ c****
       var_name='mcdry'; call wrtarr(var_name,ax)
 c****
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='sige'; call set_dim_out(dim_name,2)
 
       title='MOIST CONVECTION MASS FLUX (KG/SECOND/M2)'
@@ -265,6 +264,7 @@ C****
          DSJK(J,1:KM,J1)=DPAB(J,1:KM,J1)/(SUM(DPAB(J,1:KM,J1))+1.D-20)
          enddo
       enddo
+      where(dsjk.le.0.) dsjk=missing
 ! (re)set shape of output arrays
       dim_name='latb'; call set_dim_out(dim_name,1)
       dim_name='sig'; call set_dim_out(dim_name,2)
@@ -297,7 +297,7 @@ c****
       var_name='sddp'; call wrtarr(var_name,ax)
 c****
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='prqt'; call set_dim_out(dim_name,2)
 
       title='TEMPERATURE (DEGREES CENTIGRADE)'
@@ -328,7 +328,7 @@ c****
       var_name='height'; call wrtarr(var_name,arqx)
 c****
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='p'; call set_dim_out(dim_name,2)
 
       title='SPECIFIC HUMIDITY (KG H2O/KG AIR)'
@@ -380,7 +380,7 @@ c****
       var_name='stfunc'; call wrtarr(var_name,axb)
 c****
 ! (re)set shape of output arrays
-      dim_name='lat'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='pe'; call set_dim_out(dim_name,2)
 
       title='VERTICAL VELOCITY (MB/SECOND)'

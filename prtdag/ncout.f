@@ -9,7 +9,7 @@
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out
-     &    ,units,long_name
+     &    ,units,long_name,missing
 
       character(len=80) :: outfile
       integer :: status_out,out_fid
@@ -24,6 +24,8 @@
       integer, dimension(ndfmax) :: file_dimids
       integer, dimension(ndfmax) :: file_dimlens
       character(len=20), dimension(ndfmax) :: file_dimnames
+
+      real :: missing=-1.e30
 
       contains
       
@@ -90,6 +92,8 @@
       if(len_trim(long_name).gt.0) status_out =
      &     nf_put_att_text(out_fid,varid_out,
      &     'long_name',len_trim(long_name),long_name)
+      status_out = nf_put_att_real(out_fid,varid_out,'missing_value',
+     &     nf_float,1,missing)
       status_out = nf_enddef(out_fid)
       status_out = nf_put_var_real(out_fid,varid_out,var)
       units=''

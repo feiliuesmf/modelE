@@ -10,7 +10,8 @@
      &    ,status,acc_fid
      &    ,xlabel
      &    ,ia,idacc,im,jm,lm
-     &    ,psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,tf,ls1
+     &    ,psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,sha,tf,ls1
+     &    ,twopi
 
       character(len=80) :: accfile
       integer :: status,acc_fid
@@ -20,10 +21,13 @@
       integer, dimension(12) :: idacc ! 12 hard-coded for now
       integer :: ia ! idacc-number of current variable
 
-      real :: psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,tf
+      real :: psf,ptop,dtsrc,sday,grav,omega,rgas,kapa,sha,tf
 
       integer :: im,jm,lm
       integer :: ls1
+
+! some other parameters
+      real, parameter :: twopi=6.2831853
 
       contains
 
@@ -71,6 +75,9 @@
       status = nf_get_att_int(acc_fid,nf_global,'LM0',lm)
 ! get ls1
       status = nf_get_att_int(acc_fid,nf_global,'LS1',ls1)
+
+! initialize certain constants
+      sha=rgas/kapa
 
       return
       end subroutine open_acc

@@ -6,13 +6,9 @@ C****
       implicit none
       integer :: nargs,iargc
       character(len=80) :: stop_str,cmd_str
-      real, parameter :: badno=-999.
-      real :: sha
       real, dimension(:), allocatable :: lon_gcm,lat_gcm,plm_gcm
       real, dimension(:,:,:), allocatable :: arrn,arrb,dpb
       character(len=20) :: var_name,acc_name,dim_name
-
-      sha=rgas/kapa
 
       call getarg(0,cmd_str)
       nargs = iargc()
@@ -47,10 +43,13 @@ C****
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
+      units='degrees_east'
       var_name='longitude';call wrtarr(var_name,lon_gcm)
       dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
       var_name='latitude';call wrtarr(var_name,lat_gcm)
       dim_name='p'; call set_dim_out(dim_name,1)
+      units='mb'; long_name='Pressure'
       var_name='p';call wrtarr(var_name,plm_gcm)
 
       ndims_out = 3
@@ -63,17 +62,17 @@ C****
 
 ! u-velocity
       acc_name='UDPB'; call getacc(acc_name,arrn)
-      call scale(arrb,arrn,dpb,im,jm,lm,badno,1.)
+      call scale(arrb,arrn,dpb,im,jm,lm,missing,1.)
       var_name='u'; call wrtarr(var_name,arrb)
 
 ! v-velocity
       acc_name='VDPB'; call getacc(acc_name,arrn)
-      call scale(arrb,arrn,dpb,im,jm,lm,badno,1.)
+      call scale(arrb,arrn,dpb,im,jm,lm,missing,1.)
       var_name='v'; call wrtarr(var_name,arrb)
 
 ! temperature
       acc_name='TDPBx4'; call getacc(acc_name,arrn)
-      call scale(arrb,arrn,dpb,im,jm,lm,badno,.25)
+      call scale(arrb,arrn,dpb,im,jm,lm,missing,.25)
       var_name='t'; call wrtarr(var_name,arrb)
 ! and height
       acc_name='DSEDPBx4'; call getacc(acc_name,arrn)
@@ -81,13 +80,13 @@ C****
          arrb(:,:,:) = (.25*arrn(:,2:jm,:)/dpb(:,2:jm,:) -
      &        sha*arrb(:,:,:))/grav
       elsewhere
-         arrb(:,:,:) = badno
+         arrb(:,:,:) = missing
       end where
       var_name='z'; call wrtarr(var_name,arrb)
 
 ! humidity
       acc_name='QDPBx4'; call getacc(acc_name,arrn)
-      call scale(arrb,arrn,dpb,im,jm,lm,badno,.25)
+      call scale(arrb,arrn,dpb,im,jm,lm,missing,.25)
       var_name='q'; call wrtarr(var_name,arrb)
 
       call close_acc
@@ -95,16 +94,16 @@ C****
 
       end program ijkdag
 
-      subroutine scale(arrb,arrn,dpb,im,jm,lm,badno,fac)
+      subroutine scale(arrb,arrn,dpb,im,jm,lm,missing,fac)
       implicit none
       real, dimension(im,jm-1,lm) :: arrb
       real, dimension(im,jm,lm) :: arrn,dpb
       integer :: im,jm,lm
-      real :: badno,fac
+      real :: missing,fac
       where(dpb(:,2:jm,:).gt.0.)
          arrb(:,:,:) = fac*arrn(:,2:jm,:)/dpb(:,2:jm,:)
       elsewhere
-         arrb(:,:,:) = badno
+         arrb(:,:,:) = missing
       end where
       return
       end subroutine scale

@@ -19,10 +19,7 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
       real, dimension(:), allocatable :: wtype
 
       real, parameter :: P1000=1000.
-      real :: sha
       character(len=20) :: var_name,acc_name,dim_name,type_name
-
-      sha=rgas/kapa
 
       call getarg(0,cmd_str)
       nargs = iargc()
@@ -55,11 +52,12 @@ c left to do: divide by sum of ptypes for each longitude (=im right now)
 
 ! define output file
       call open_out
-      dim_name='lat'; call def_dim_out(dim_name,jm)
+      dim_name='latitude'; call def_dim_out(dim_name,jm)
 
       ndims_out = 1
-      dim_name='lat'; call set_dim_out(dim_name,1)
-      var_name='lat';call wrtarr(var_name,lats)
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latitude';call wrtarr(var_name,lats)
 
 ! find total integration time in seconds, days, and other units
       dtsec = idacc(1)*3600.

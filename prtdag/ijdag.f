@@ -7,13 +7,9 @@ C****
       integer :: nargs,iargc
       character(len=80) :: stop_str,cmd_str
       real :: dtsec,dtday
-      real, parameter :: badno=-999.
-      real :: sha
       real, dimension(:), allocatable :: lons,lats
       real, dimension(:,:), allocatable :: acc,acc2
       character(len=20) :: var_name,acc_name,dim_name
-
-      sha=rgas/kapa
 
       call getarg(0,cmd_str)
       nargs = iargc()
@@ -43,8 +39,10 @@ C****
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
+      units='degrees_east'
       var_name='longitude';call wrtarr(var_name,lons)
       dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
       var_name='latitude';call wrtarr(var_name,lats)
 
 ! find total integration time in seconds, days, and other units
