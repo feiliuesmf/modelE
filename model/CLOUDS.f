@@ -787,6 +787,9 @@ C**** Add plume tracers at LMAX
      *   DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
 #endif
       CCM(LMAX)=0.
+#ifdef TRACERS_SPECIAL_Shindell
+      CALL calc_lightning(LMAX,LFRZ,IC)
+#endif
       DO K=1,KMAX
          DUM(K,LMAX)=DUM(K,LMAX)+UMP(K)
          DVM(K,LMAX)=DVM(K,LMAX)+VMP(K)
