@@ -1406,8 +1406,9 @@ c     INDIVIDUAL SPECIES
         if(index.le.2)label=' chem reaction # '
         if(index.gt.2)label=' phot reaction # '
 c       skip same reaction if written twice
-        if(ireac.eq.1 . or. ndnr(ireac).ne.ndnr(ireac-1) .or.
-     &  total.eq.0.) then
+        if (ireac.gt.1) then
+          if (ndnr(ireac).eq.ndnr(ireac-1)) goto 30 
+        end if
          if(nn(1,ndnr(ireac)).eq.igas)then
            per=0.
            if(y(igas,lprn).ne.0.)per=100.*multip*
@@ -1428,7 +1429,6 @@ c       skip same reaction if written twice
          endif  !end numel=2 loop
  106     format(a17,i3,a18,f10.0,a4,e12.3)
  177     format(a17,i3,a21,a8,a3,f10.0,a4,e12.3)
-  20    end if
   30  end do ! ireac
   40  continue
       return
