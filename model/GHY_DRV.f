@@ -37,7 +37,7 @@ c****
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp,bydxyp
-      use dynamics, only : pk,pek,pedn,pdsig,am,byam
+      use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
      &    ,FSRDIR,SRVISSURF  !adf, nyk
@@ -347,7 +347,7 @@ ccc tracers variables
 c****
 c**** boundary layer interaction
 c****
-      zs1=zs1co*tkv*pij/ps
+      zs1=zs1co*tkv*pij/pmid(1,i,j)
 c**** loop over ground time steps
       tg=tg1+tf
       elhx=lhe

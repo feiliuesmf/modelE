@@ -405,8 +405,8 @@ C****
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
-      TKV=THV1*PSK
-      ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ*2./(PMID(1,I,J)+PS)
+      TKV=THV1*PSK  ! TKV is referenced to the surface pressure
+      ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PMID(1,I,J)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
