@@ -24,6 +24,7 @@ c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
+      integer, DIMENSION(NTM):: itrsw
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt,iact)
@@ -203,6 +204,7 @@ c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
       so2_src_3d(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
      *  /2.3d0/sday
+      ifirst=.false.
       endif
 
       end subroutine read_SO2_source
@@ -528,7 +530,7 @@ c H2O2 losses:5 and 6
       use MODEL_COM, only: im,jm,lm,jday,jhour,jmon
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       use CONSTANT, only: radian,teeny
-      use RADNCB, only: cosz1
+c     use RADNCB, only: cosz1
       implicit none
       real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
      *  rad1,rad2,rad3,stfac
@@ -877,7 +879,6 @@ c can't be more than moles going in:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
       USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
-c      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE MODEL_COM, only: im,jm,lm,dtsrc,t,p,coupled_chem
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk
@@ -895,6 +896,7 @@ c      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
      * pph(ntm),r1,A,B,pp,rr,aa,bb,BA,B2,xx,y,pn,tv,avol,
      * dso4g,dso4gt,tso2,th2o2,sulfout,sulfin,wv,ss,clwc,
      * rkdm(ntm),trmol(ntm),tt1,tt2,tt3,ptr
+
 
       ptr=0.3d0  !um
       DO 19 L=1,LM
@@ -1068,13 +1070,12 @@ c diagnostic
 !@auth Dorothy Koch
       USE TRACER_COM, only:
      *     trname,ntm,trm
-      USE MODEL_COM, only: im,jm,lm
+      USE MODEL_COM, only: im,jm,lm,jhour,idacc
       USE CLOUDS_COM, only:rhsav
-      USE GEOM, only: imaxj
+      USE GEOM, only: imaxj,dxyp
       USE AEROSOL_SOURCES, only: aer_tau
-      USE TRACER_DIAG_COM, only : taijs,ijts_tau   
+      USE TRACER_DIAG_COM, only : taijs,ijts_tau,ia_ijts   
 
-      IMPLICIT NONE
       integer i,j,l,n,naijs
       real*8 rhh,tf
 c For now we are using the hydrated extinction efficiencies
@@ -1101,19 +1102,19 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        tf=12.
        else if (rhh.le.70.) then
        tf=14.
-       else if (rhh.le.80.) then
+       else if (rhh.le.82.) then
        tf=17.
-       else if (rhh.le.85.) then
+       else if (rhh.le.87.) then
        tf=18.
-       else if (rhh.le.90.) then
+       else if (rhh.le.93.) then
        tf=20.
-       else if (rhh.le.95.) then
+       else if (rhh.le.97.) then
        tf=26.
        else 
        tf=36.
        endif
        aer_tau(i,j,l,n)=
-     *    trm(i,j,l,n)*1000.*tf
+     *    trm(i,j,l,n)*1000.*tf/dxyp(j)
        naijs=ijts_tau(n)
        taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        case ('seasalt1')
@@ -1131,21 +1132,22 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        tf=3.6
        else if (rhh.le.70.) then
        tf=4.
-       else if (rhh.le.80.) then
+       else if (rhh.le.82.) then
        tf=4.5
-       else if (rhh.le.85.) then
+       else if (rhh.le.87.) then
        tf=5.
-       else if (rhh.le.90.) then
+       else if (rhh.le.93.) then
        tf=6.
-       else if (rhh.le.95.) then
+       else if (rhh.le.97.) then
        tf=8.
        else
        tf=20.
        endif
        aer_tau(i,j,l,n)=
-     *     trm(i,j,l,n)*1000.*tf
+     * trm(i,j,l,n)*1000.*tf/dxyp(j)
        naijs=ijts_tau(n)
-       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
+       taijs(i,j,naijs)=taijs(i,j,naijs)
+     *  +aer_tau(i,j,l,n)
        case ('seasalt2')
       if (rhh.le.10.) then
        tf=0.1
@@ -1159,19 +1161,19 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        tf=.4
        else if (rhh.le.70.) then
        tf=.45
-       else if (rhh.le.80.) then
+       else if (rhh.le.82.) then
        tf=.5
-       else if (rhh.le.85.) then
+       else if (rhh.le.87.) then
        tf=.6
-       else if (rhh.le.90.) then
+       else if (rhh.le.93.) then
        tf=.7
-       else if (rhh.le.95.) then
+       else if (rhh.le.97.) then
        tf=1.
-       else
+       else 
        tf=2.5
        endif
        aer_tau(i,j,l,n)=
-     *     trm(i,j,l,n)*1000.*tf
+     *     trm(i,j,l,n)*1000.*tf/dxyp(j)
        naijs=ijts_tau(n)
        taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        end select
@@ -1179,6 +1181,10 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
       END DO
       END DO
       END DO
+c     write(6,*) 'AER_TAU',jhour,
+c    * ijts_tau(4),idacc(ia_ijts(ijts_tau(4))),idacc(1)
+c     write(6,*) aer_tau(54,14,1,4),aer_tau(20,20,2,6)
+c     write(6,*) taijs(20,20,ijts_tau(4))
       return
       END subroutine GET_TAU
 
