@@ -37,6 +37,8 @@ C**** ocean geometry (should this be in a separate module?)
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
 !@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
       REAL*8, DIMENSION(JM) :: RATOC,ROCAT
+!@var J40S max. grid box below 40S (used in OPFIL)
+      INTEGER :: J40S 
 
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
