@@ -178,40 +178,34 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
 !$OMP  END PARALLEL DO
-         DO L=1,LM
-           AIJ(:,J_0STG:J_1STG,IJ_FMV)  = 
-     &         AIJ(:,J_0STG:J_1STG,IJ_FMV )+PV(:,J_0STG:J_1STG,L)*DTLF
-           If (HAVE_SOUTH_POLE) 
-     &        AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
-           If (HAVE_NORTH_POLE) 
-     &        AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
-           AIJ(:,J_0S:J_1S,IJ_FMU)=
-     &        AIJ(:,J_0S:J_1S,IJ_FMU)+PU(:,J_0S:J_1S,L)*DTLF
-         END DO
+
       CALL CALC_PIJL(LS1-1,PC,PIJL)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
 
       CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-      
-         DO L=1,LM
-         DO J=J_0S,J_1S ! eastward transports
+!$OMP  PARALLEL DO PRIVATE (J,L,I,IP1)
+      DO J=J_0S,J_1S ! eastward transports
+      DO L=1,LM
          I=IM
          DO IP1=1,IM
             AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+
      &           (PHI(I,J,L)+PHI(IP1,J,L))*PU(I,J,L)*DT ! use DT=DTLF/2
-         I=IP1
+            I=IP1
          END DO
-         END DO
-         DO J=J_0STG,J_1STG ! northward transports
-         IM1=IM
+      END DO
+      END DO
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE (J,L,I)
+      DO J=J_0STG,J_1STG ! northward transports
+      DO L=1,LM
          DO I=1,IM
             AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+
      &           (PHI(I,J-1,L)+PHI(I,J,L))*PV(I,J,L)*DT ! use DT=DTLF/2
-         IM1=I
          END DO
-         END DO
-         END DO
+      END DO
+      END DO
+!$OMP  END PARALLEL DO
       CALL CALC_AMPK(LS1-1)
       if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
@@ -225,6 +219,31 @@ C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
+
+!$OMP  PARALLEL DO PRIVATE (J,L)
+      do j=J_0STG,J_1STG
+      do l=1,lm
+         AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+PVA(:,J,L)*DTLF
+      enddo
+      enddo
+!$OMP  END PARALLEL DO
+!$OMP  PARALLEL DO PRIVATE (J,L)
+      do j=J_0S,J_1S
+      do l=1,lm
+         AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+PUA(:,J,L)*DTLF
+      enddo
+      enddo
+!$OMP  END PARALLEL DO
+      if(HAVE_SOUTH_POLE) then
+         do l=1,lm
+            AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PUA(:, 1,L)*DTLF*BY3
+         enddo
+      endif
+      if(HAVE_NORTH_POLE) then
+         do l=1,lm
+            AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PUA(:,JM,L)*DTLF*BY3
+         enddo
+      endif
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
