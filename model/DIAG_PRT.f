@@ -1579,7 +1579,7 @@ C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
         CALL JLMAP(LNAME_JKJL(5),SNAME_JKJL(5),UNITS_JKJL(5),
      &      PLM,BX,SCALET,ONES,ONES,KM,2,1)
       END IF
-C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...             
+C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
       SCALET=scale_jl(jl_dudfmdrg)/idacc(ia_jl(jl_dudfmdrg))
       if (istrat.eq.2) then
       CALL JLMAP (LNAME_JL(jl_dumtndrg),SNAME_JL(jl_dumtndrg),
@@ -1592,8 +1592,8 @@ C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
      *  UNITS_JL(jl_dushrdrg),PLM,AJL(1,1,jl_dushrdrg),
      *  SCALET,ONES,ONES,LM,2,JGRID_JL(jl_dushrdrg))
       DX=0.
-      DO 740 L=1,LM                                                     
-      DO 740 J=1,JM                                                     
+      DO 740 L=1,LM
+      DO 740 J=1,JM
       AX(J,L)=AJL(J,L,jl_dumcdrgm10)+AJL(J,L,jl_dumcdrgp10)
       BX(J,L)=AJL(J,L,jl_dumcdrgm40)+AJL(J,L,jl_dumcdrgp40)
   740 DX(J,L)=AJL(J,L,jl_dumcdrgm20)+AJL(J,L,jl_dumcdrgp20)
@@ -1603,15 +1603,15 @@ C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
      &  PLM,BX,SCALET,ONES,ONES,LM,2,2)
       CALL JLMAP (LNAME_JKJL(49),SNAME_JKJL(49),UNITS_JKJL(49),
      &  PLM,DX,SCALET,ONES,ONES,LM,2,2)
-C**** DU/DT BY STRAT. DRAG - TOTAL                                      
-      DO 745 L=1,LM                                                     
-      DO 745 J=1,JM                                                     
+C**** DU/DT BY STRAT. DRAG - TOTAL
+      DO 745 L=1,LM
+      DO 745 J=1,JM
   745 AX(J,L)=AJL(J,L,jl_dumtndrg)+AJL(J,L,jl_dushrdrg)+
-     *   (AX(J,L)+BX(J,L)+DX(J,L)) + AJL(J,L,jl_dudfmdrg) 
+     *   (AX(J,L)+BX(J,L)+DX(J,L)) + AJL(J,L,jl_dudfmdrg)
       CALL JLMAP (LNAME_JKJL(50),SNAME_JKJL(50),UNITS_JKJL(50),
      &  PLM,AX,SCALET,ONES,ONES,LM,2,2)
       end if
-C**** CHANGE IN EAST WIND BY STRATOSPHERIC DIFFUSION                    
+C**** CHANGE IN EAST WIND BY STRATOSPHERIC DIFFUSION
 !     CALL JLMAP (28,PLM,AJL(1,1,32),SCALE,ONES,ONES,LM,2,2)
 C**** DU/DT BY SDRAG
       SCALET=scale_jl(jl_dudtsdrg)/idacc(ia_jl(jl_dudtsdrg))
@@ -2819,8 +2819,8 @@ c
       lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
       units_ij(k) = 'E14 WT'
 
-      ij_dzt1 = k+1 
-      do k1 = 1,kgz_max-1 
+      ij_dzt1 = k+1
+      do k1 = 1,kgz_max-1
         name_ij(k+k1) = 'dztemp_1000-850'
         if(k1.gt.1) write(name_ij(k+k1)(8:15),
      *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
@@ -3151,7 +3151,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
       nmaplets = 42+(kgz_max-1)*2 ; nmaps = 2
-      iord(1:42) = (/            
+      iord(1:42) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
@@ -3170,7 +3170,7 @@ C**** standard printout
 C**** Fill in maplet indices for geoptential heights and thickness T's
       do k=1,kgz_max-1
         iord(k+42) = ij_phi1k+k  !i.e. first entry is ij_phi850
-        iord(k+42+kgz_max-1) = ij_dzt1+k-1  
+        iord(k+42+kgz_max-1) = ij_dzt1+k-1
       end do
 
 C**** Add the full-page maps (nmaps)
@@ -3510,13 +3510,14 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
 
       kmap = 0 ; n=0 ; k=0
    10 read (iu_Iij,'(a)',end=20) line
+      if (line(1:1) .eq. 'l') go to 20
       if (line(1:1) .eq. 'L') then
         n=n+1
         go to 10
       end if
       k = k+1
       read(line,'(i3)') Iord(k)
-      Qk(Iord(k)) = .true.
+      if (Iord(k).gt.0) Qk(Iord(k)) = .true.
       kmap(n) = kmap(n) + 1
       go to 10
 

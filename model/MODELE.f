@@ -31,7 +31,7 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE) then     ! includes ISTART<1 case
-         WRITE (6,'("1"/64(1X/))')
+c        WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
          IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -273,7 +273,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
          IF (KDIAG(1).LT.9) CALL DIAGJ
          IF (KDIAG(2).LT.9) CALL DIAGJK
-         IF (KDIAG(10).EQ.0) CALL DIAGIL
+         IF (KDIAG(10).LT.9) CALL DIAGIL
          IF (KDIAG(7).LT.9) CALL DIAG7P
          IF (KDIAG(3).LT.9) CALL DIAGIJ
          IF (KDIAG(9).LT.9) CALL DIAGCP
