@@ -9,7 +9,8 @@ C**** must be compiled after the model
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
      *     ,iowrite_mon,focean
       USE SOMTQ_COM
-      USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage
+      USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
+     *     ,htbare,htvege,snowbv,ngm
       USE RADNCB, only : rqt,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
@@ -51,17 +52,20 @@ C**** must be compiled after the model
      *     ((HSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
      *     (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
      *     (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
-     *     (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),GHDATA,
-     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar,
-     *     uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
-     A     (((TTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     B     (((QTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     C     (((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     D     (((RHSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),WM,
-     E     (((CLDSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),
-     4     ((((TMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
-     4     ((((QMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),
-     6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ)
+     *     (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
+     *     (((wbare(L,I,J),I=1,IM),J=1,JM),L=1,NGM),
+     *     (((wvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((htbare(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((htvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((snowbv(L,I,J),I=1,IM),J=1,JM),L=1,2),
+     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg
+     *     ,ustar,uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,(((TTOLD(L,I,J)
+     *     ,I=1,IM),J=1,JM),L=1,LM),(((QTOLD(L,I,J),I=1,IM),J=1,JM),L=1
+     *     ,LM),(((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),(((RHSAV(L,I,J)
+     *     ,I=1,IM),J=1,JM),L=1,LM),WM,(((CLDSAV(L,I,J),I=1,IM),J=1,JM)
+     *     ,L=1,LM),((((TMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9)
+     *     ,((((QMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),(((RQT(L,I
+     *     ,J),I=1,IM),J=1,JM),L=1,LM_REQ)
       CLOSE (iu_AIC)
 
       ItimeX=NINT(TAUX)

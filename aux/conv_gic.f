@@ -7,7 +7,8 @@ C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,iowrite 
-      USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage
+      USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
+     *     ,htbare,htvege,snowbv,ngm
       USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : ace1i,xsi,ac2oim
@@ -41,7 +42,12 @@ C**** Note that old GDATA file only has GDATA(1:14)!!
      *     (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
      *     (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
 c     *     (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
-     *     GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
+     *     (((wbare(L,I,J),I=1,IM),J=1,JM),L=1,NGM),
+     *     (((wvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((htbare(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((htvege(L,I,J),I=1,IM),J=1,JM),L=0,NGM),
+     *     (((snowbv(L,I,J),I=1,IM),J=1,JM),L=1,2),
+     *     ((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
       CLOSE (iu_GIC)
 
 
