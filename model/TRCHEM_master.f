@@ -19,6 +19,7 @@ c
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
       USE CONSTANT, only: radian
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
+      USE TRACER_SOURCES, only: nChemistry,nStratwrite
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
@@ -38,10 +39,6 @@ C**** Local parameters and variables and arguments:
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3 dummy loop variables
       INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3
 c
-C Note: mass2vol is no longer hardcoded here, since it does not have
-C to be redefined each hour (It is now done in subroutine init_tracer
-C in TRACERS_DRV.f.)
-C
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
       BYFJM=1./float(JM)
@@ -570,7 +567,7 @@ C >> Lower limit on HO2NO2 of 1.0 <<
      &  change(i,j,l,n_HO2NO2) = 1. - trm(i,j,l,n_HO2NO2)
 C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM
-          tr3Dsource(i,j,l,1,n) = change(i,j,l,n) * bydtsrc
+          tr3Dsource(i,j,l,nChemistry,n) = change(i,j,l,n) * bydtsrc
         END DO
 c Reset O3DLJI values for radiation (gcm):
         O3DLJI(L,J,I)=
@@ -579,6 +576,7 @@ c Reset O3DLJI values for radiation (gcm):
       END DO       ! end current troposphere loop
 C
 c
+      if(checktracer_on) call checktracer(I,J)
       END DO ! >>>> MAIN I LOOP ENDS <<<<
 c
       END DO ! >>>> MAIN J LOOP ENDS <<<<
@@ -592,14 +590,14 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 C W A R N I N G :Unfortunately, there is still a hardcoded dependence
 C                on the verticle resolution in how we deal with the
-C                CH4 overwriting... It is set up for the 23 layer model.
+C                stratospheric overwriting of basically all the tracers.
 C                Not worth fixing, since we'll soon have stratospheric
-C                chemistry instead.
+C                chemistry instead?
 C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
 C                'change' variable for L>LS1-1 is non-zero at this point
 C                in the code), then the stratospheric changes below
 C                should be altered.  Currently, they are functions of
-C                tracer mass UNCHANGED by chemistry !!!!!!!
+C                tracer mass UNCHANGED by chemistry !
 C
 C     Make sure that change is zero:
       change = 0.
@@ -631,8 +629,7 @@ C Use Ox correction factor for the proper month:
 C
       do L=LS1,LM                  ! >> BEGIN LOOP OVER STRATOSPHERE <<
        do j=1,jm
-        j3=NINT(float(j)*19.*BYFJM)! index for CO
-        IF(J3.eq.0) J3=1           ! index for CO
+        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
         jj=NINT((FLOAT(j)-1.)/3.)  ! index for CH4
         if(j.le.2) jj=1            ! index for CH4
         if(j.ge.45)jj=14           ! index for CH4
@@ -688,7 +685,7 @@ c
 C
 C Save stratosph change for updating tracer, apply_tracer_3Dsource:
           DO N=1,NTM
-            tr3Dsource(i,j,l,2,n) = change(i,j,l,n) * bydtsrc
+            tr3Dsource(i,j,l,nStratwrite,n) = change(i,j,l,n)*bydtsrc
           END DO
 C
         end do !i
@@ -808,7 +805,7 @@ C
       DATA checkNeg /.true./
       DATA checkNan /.true./
       DATA checkOx  /.true./
-      DATA checkmax /.true./
+      DATA checkmax /.false./
 c
       IF(i.eq.1.and.j.eq.1)
      & WRITE(6,*) 'WARNING: checktracer call is active.'
