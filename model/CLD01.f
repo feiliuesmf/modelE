@@ -1,6 +1,6 @@
       MODULE CLD01
 !@sum  CLD01 column physics of moist conv. and large-scale condensation
-!@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
+!@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
@@ -12,8 +12,8 @@
       SAVE
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-      REAL*8, PARAMETER :: WMU=.25       !@param WMU critical cloud
-!@     water content for rapid conversion (g m**-3)
+      REAL*8, PARAMETER :: WMU=.25
+!@param WMU critical cloud water content for rapid conversion (g m
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU over ice
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
@@ -21,7 +21,7 @@ C**** parameters and constants
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
 
       REAL*8 :: BYBR,BYDTsrc,XMASS
-!@var BYBR factor for converting cloud particle radius to effective radi
+!@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 
 C**** Set-able variables from NAMELIST
@@ -34,8 +34,8 @@ C**** Set-able variables from NAMELIST
 
 C**** input variables
 !@var RA,UM,VM,U_0,V_0 velocity related variables
-      REAL*8, DIMENSION(IM) :: RA !@var RA ratio of primary grid box to
-!@     secondary gridbox
+      REAL*8, DIMENSION(IM) :: RA
+!@var RA ratio of primary grid box to secondary gridbox
       REAL*8, DIMENSION(IM,LM) :: UM,VM !@var (UM,VM)=(U,V)*AIRM
       REAL*8, DIMENSION(IM,LM) :: U_0,V_0
 
@@ -51,11 +51,11 @@ C**** input variables
 !@var TL, QL temperature, specific humidity of the layer
 !@var TH potential temperature (K)
 !@var RH relative humidity
-!@var WMX cloud water mixing ratio
-!@var VSUBL downward vertical velocity due to cumulus subsidence
+!@var WMX cloud water mixing ratio (kg/Kg)
+!@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var AJ8, AJ13, AJ50, AJ52, AJ57 dummy variables
-!@var AQ time change rate of specific humidity
-!@var DPDT time change rate of pressure
+!@var AQ time change rate of specific humidity (s**-1)
+!@var DPDT time change rate of pressure (mb/s)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
 !new arrays must be set to model arrays in driver (before MC)
@@ -85,12 +85,12 @@ C**** input variables
       DOUBLE PRECISION, DIMENSION(LM) :: SM,QM
       DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOM,QMOM
 
-!@var KMAX number of surrounding velocity points
+!@var KMAX index for surrounding velocity
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
-!@var TS     average surface temperture (C)
+!@var TS average surface temperture (C)
       REAL*8 :: PEARTH,TS
-!@var LPBL   max level of planetary boundary layer
+!@var LPBL max level of planetary boundary layer
       INTEGER :: LPBL
 
 C**** output variables
@@ -103,32 +103,33 @@ C**** output variables
 !@var CLDSLWIJ shallow convective cloud cover
 !@var CLDDEPIJ deep convective cloud cover
       INTEGER :: LMCMAX,LMCMIN
-!@var LMCMAX upper-most convevtive layer
+!@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
 
       REAL*8 :: QSAT, DQSATDT
 !@var QSAT saturation humidity
+!@var DQSATDT dQSAT/dT
 
       CONTAINS
 
       SUBROUTINE MSTCNV
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
-!@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
+!@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@calls SUBSID,QSAT,DQSATDT,THBAR
+!@calls adv1d,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
       REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO
-!@var LHX latent heat (J/Kg)
+!@var LHX latent heat of evaporation (J/Kg)
 !@var MPLUME mass of convective plume (mb)
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
 !@var MPO old MPLUME
 
-      REAL*8, DIMENSION(0:LM) :: CM     !@var CM
+      REAL*8, DIMENSION(0:LM) :: CM     !@var CM air mass of subsidence
       REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
 !@var UMP, VMP momentum carried by convective plumes
 !@var UMDN,VMDN dummy variables
-!@vqr UMPO, VMPO old UMP, VMP
+!@var UMPO, VMPO old UMP, VMP
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
      * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
@@ -160,9 +161,9 @@ C**** output variables
 !@var MCCONT interger to count convective events
 !@var MAXLVL, MINLVL the lowest, the highest layer of convective events
 !@var ITER number for iteration
-!@var IC interger for cloud type
+!@var IC interger for cloud types
 !@var LFRZ freezing level
-!@var NSUB
+!@var nsub = LMAX - LMIN + 1
       REAL*8 TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
@@ -187,8 +188,8 @@ C**** output variables
 !@var DFP an iterative increment
 !@var FMP2,FRAT1,FRAT2,SMN1,QMN1,SMN2,QMN2 dummy variables
 !@var SMP, QMP plume's SM, QM
-!@var TP plume's temperature
-!@var GAMA,DQSUM,TNX,DQ,CONSUM variables
+!@var TP plume's temperature (K)
+!@var GAMA,DQSUM,TNX,DQ,CONSUM dummy variables
 !@var DMSE1 difference in moist static energy
 !@var FCTYPE fraction for convective cloud types
 !@var CDHDRT,DELTA.ALPHA,BETA,CDHM,CDHSUM,CLDREF dummy variables
@@ -197,7 +198,7 @@ C**** output variables
 !@var CLDM subsidence due to convection
 !@var DQEVP amount of condensate that evaporates in downdrafts
 !@var DQRAT fraction for the condensate to evaporate
-!@var EPLUME air mass entrainment
+!@var EPLUME air mass of entrainment
 !@var ETADN fraction of the downdraft
 !@var ETAL1 fractional entrainment rate
 !@var EVPSUM,FCDH,FCDH1,FCLD,FCLOUD,FDDL,FDDP dummy variables
@@ -209,13 +210,13 @@ C**** output variables
 !@var FSEVP
 !@var FSSUM
 !@var HEAT1 heating due to phase change
-!@var PRHEAT heating due to condensation
+!@var PRHEAT energy of condensate
 !@car PRCP precipipation
 !@var QMDN,QMIX,SMDN,SMIX dummy variables
 !@var QMPMAX,SMPMAX detrainment of QMP, SMP
 !@var QMPT,SMPT dummy variables
 !@var QNX,SUMAJ,SUMDP dummy variables
-!@var QSATC saturation vapor mixing ration
+!@var QSATC saturation vapor mixing ratio
 !@var QSATMP plume's saturation vapor mixing ratio
 !@var RCLD,RCLDE cloud particle's radius, effective radius
 !@var SLH LHX/SHA
@@ -227,13 +228,13 @@ C**** output variables
       LOGICAL MC1  !@var MC1 true for the first convective event
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
-      REAL*8,  PARAMETER :: DELTX=.608d0   !@param DELTX for computing
-!@    virtual temperature
+      REAL*8,  PARAMETER :: DELTX=.608d0
+!@param DELTX constant for computing virtual tempe
 
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
-      REAL*8, DIMENSION(IM,LM) :: DUM,DVM !@var DUM, DVM changes of UM,
-!@    VM
+      REAL*8, DIMENSION(IM,LM) :: DUM,DVM
+!@var DUM, DVM changes of UM,VM
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 C****
@@ -259,7 +260,7 @@ C**** initiallise arrays of computed ouput
       CLDDEPIJ=0
       PRCPMC=0.
       SVTP=0
-      CSIZEL=10.              !  effective droplet radius in stem
+      CSIZEL=10.    !  effective droplet radius in stem of convection
 C**** zero out diagnostics
          AJ8 =0.
          AJ13=0.
@@ -960,7 +961,7 @@ C**** CALCULATE OPTICAL THICKNESS
 
       SUBROUTINE LSCOND(IERR,WMERR,LERR)
 !@sum  LSCOND column physics of large scale condensation
-!@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
+!@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
@@ -971,16 +972,30 @@ C**** CALCULATE OPTICAL THICKNESS
       REAL*8 LHX,LHXUP
 
       REAL*8, PARAMETER :: CM00=1.d-4
-      REAL*8, PARAMETER :: WM0=.5d-3
-      REAL*8, PARAMETER :: EPS=.622d0
+!@param CM00 upper limit for autoconversion rate
+      REAL*8, PARAMETER :: WM0=.5d-3   !@param WM0
+      REAL*8, PARAMETER :: EPS=.622d0  !@param EPS
 
-      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var
-      REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var
+      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
+      REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
      *     QSATL,RHF,RH1,ATH,SQ,ER,QHEAT,
      *     CAREA,PREP,RH00,EC,WMXM
+!@var QSATL saturation water vapor mixing ratio
+!@var RHF environmental relative humidity
+!@var RH1 relative humidity to compare with the threshold humidity
+!@var ATH change in potential temperature
+!@var SQ dummy variables
+!@var ER evaporation of precip
+!@var QHEAT change of latent heat
+!@var CAREA fraction of clear region
+!@var PREP precip conversion rate
+!@var RH00 threshold relative humidity
+!@var EC cloud evaporation rate
+!@var WMXM cloud water mass (mb)
       REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE
+!@var PREBAR,PREICE precip entering layer top for total, snow
 
       REAL*8 Q1,AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
@@ -992,12 +1007,69 @@ C**** CALCULATE OPTICAL THICKNESS
      *     ,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1,THT2
      *     ,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND
-      INTEGER LN,ITER
-      LOGICAL BANDF
+!@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2 dummy variables
+!@var AIRMR
+!@var CBF enhancing factor for precip conversion
+!@var CK ratio of cloud top jumps in moist static energy and total water
+!@var CKM CTEI threshold in MacVean and Mason theory
+!@var CKR CTEI threshold in Randall theory
+!@var CM conversion rate for large cloud water content
+!@var CM0,CM1 limiting autoconversion rate for large cloud water content
+!@var DFX iteration increment
+!@var DQ condensed water vapor
+!@var DQSDT derivative of saturation vapor pressure w.r.t. temperature
+!@var DQSUM,DQUP dummy variables
+!@var DRHDT time change of relative humidity
+!@var DSE moist static energy jump at cloud top
+!@var DSEC critical DSE for CTEI to operate
+!@var DSFDIF DSE-DSEC
+!@var DWDT,DWDT1 time change rates of cloud water
+!@var FQTOWump of water and vapor at cloud top
+!@var ECRATE cloud droplet evaporation rate
+!@var EXPST exponential term in determining the fraction in CTEI
+!@var FCLD cloud fraction
+!@var FMIX,FRAT fraction of mixing in CTEI
+!@var FMASS mass of mixing in CTEI
+!@var FPLUME fraction of mixing in CTEI
+!@var FPMAX max fraction of mixing in CTEI
+!@var FQTOW
+!@var FUNI the probablity for ice cloud to form
+!@var FUNIL,FUNIO FUNI over land, ocean
+!@var HCHANG,HPHASE latent heats for changing phase
+!@var HDEP layer depth (Km)
+!@var OLDLAT,OLDLHX previous LHX
+!@var PFR PROBABLITY OF GLACIATION OF SUPER-COOLED WATER
+!@var PMI icy precip entering the layer top
+!@var PML layer's cloud water devided by GRAV
+!@var PRATIO PMI/PML
+!@var QCONV convergence of latent heat
+!@var QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2 dummy variables
+!@var QNEW,QNEWU updated specific humidity
+!@var QOLD,QOLDU previous specific humidity
+!@var QSATC saturation vapor mixing ratio
+!@var QSATE saturation vapor mixing ratio w.r.t. water
+!@var RANDNO random number
+!@var RCLD,RCLDE cloud particle's radius, effective radius
+!@var RHI relative humidity w.r.t. ice
+!@var RHN dummy variable
+!@var RHO air density
+!@var RHT1,RHW,SIGK dummy variables
+!@var SEDGE potential temperature at layer edge
+!@var SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1,THT2,TLT1 dummy variables
+!@var TNEW,TNEWU updated tempertures
+!@var TOLD,TOLDU,TOLDUP previous temperatures
+!@var VDEF = VVEL - VSUB
+!@var WCONST,WMN1,WMN2,WMO1,WMO2,WMT1,WMT2,WMX1 dummy variables
+!@var WMNEW updated cloud water mixing ratio
+!@var WTEM cloud water density (g m**-3)
+!@var VVEL vertical velocity (cm/s)
+!@var XY,FCOND dummy variables
+      INTEGER LN,ITER !@var LN,ITER loop variables
+      LOGICAL BANDF  !@var BANDF true if Bergero-Findeisen proc. occurs
 
       INTEGER K,L,N  !@var K,L,N loop variables
 
-      REAL*8 THBAR
+      REAL*8 THBAR !@var THBAR potential temperature at layer edge
 C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** THE LIQUID WATER CONTENT IS PREDICTED

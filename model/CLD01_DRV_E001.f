@@ -1,6 +1,6 @@
       SUBROUTINE CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
-!@auth  M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
+!@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
 !@calls MSTCNV and LSCOND
 
@@ -35,13 +35,26 @@
 !@var UC,VC velocity work arrays
       REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
 
-      REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
+!@param ENTCON fractional rate of entrainment (km**-1)
+      REAL*8,  PARAMETER :: ENTCON = .2d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
       INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR
+!@var IMAX maximum number of zonal grid points used
+!@var JR = JREG(I,J)
+!@var KR index for regional diagnostics
+!@var ITYPE index for snow age
+!@var IT index for surface types
+!@var LERR,IERR dummy variables
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR
+!@var HCNDMC heating due to moist convection
+!@var PRCP precipipation
+!@var TPRCP temperature of precip  (deg. C)
+!@var EPRCP sensible heat of precip
+!@var ENRGP energy of precip
+!@var WMERR dummy variable
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -272,7 +285,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 
       SUBROUTINE init_CLD
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
-!@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
+!@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE E001M12_COM, only : dtsrc,ls1
