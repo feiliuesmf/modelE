@@ -267,8 +267,8 @@ C****  92  EAST-WEST WATER VAPOR FLUX (KG/S)                /3600.*1 DY
 C****  93  NORTH-SOUTH WATER VAPOR FLUX (KG/S)              /3600.*1 DY
 C****  94  EAST-WEST GEOPOTENTIAL FLUX (W)                  /3600.*1 DY
 C****  95  NORTH-SOUTH GEOPOTENTIAL FLUX (W)                /3600.*1 DY
-C****  96  FREE
-C****  97  FREE
+C****  96  Energy Outflow by Rivers (10**10 W)     E-10/DTS*IDACC(1) RV
+C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
 C****  98  FREE
 C****  99  FREE
 C**** 100  FREE
@@ -1388,7 +1388,7 @@ C****
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
-     &     nwav_dag,ndlypt
+     &     nwav_dag,ndlypt,hr_in_day
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
@@ -1861,7 +1861,7 @@ C**** ACCUMULATE ALL VERTICAL WINDS
          IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
             IH=IHOUR
             DO INCH=1,INCHM
-               IF(IH.GT.24) IH=IH-24
+               IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
                ADAILY(IH,60,KR)=ADAILY(IH,60,KR)+1.E5*W(I,J,3)/DXYP(J)
                IH=IH+1
             END DO
@@ -6550,7 +6550,7 @@ C****
       USE E001M12_COM, only : dt,idacc,
      &     IJD6,JDATE,JDATE0,JMNTH0,JMONTH,JYEAR,JYEAR0,NAMD6,
      &     NCNDS,NDYN,NSURF,XLABEL
-      USE DAGCOM, only : adaily,kdiag,ndlyvar
+      USE DAGCOM, only : adaily,kdiag,ndlyvar,hr_in_day
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(NDLYVAR) :: SCALE
@@ -6558,8 +6558,8 @@ C****
      *  5*100.,  2*100.,3*1.,  2*1.,3*10.,  3*10.,1.,100.,
      *  100.,2*1.D4,2*10.,  1.,100.,10.,2*1.,
      *  2*100., 7*100., 1.,100., 2*10./
-      DOUBLE PRECISION, DIMENSION(24+1) :: XHOUR
-      INTEGER, DIMENSION(24+1) :: MHOUR
+      DOUBLE PRECISION, DIMENSION(HR_IN_DAY+1) :: XHOUR
+      INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
 
       CHARACTER*8 TITLE
       COMMON/D6COM/TITLE(NDLYVAR)
@@ -6594,27 +6594,27 @@ C****
       JY0=JYEAR0-1900
       JY=JYEAR-1900
       WRITE (6,901) XLABEL(1:108),JDATE0,JMNTH0,JY0,JDATE,JMONTH,JY
-      WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,24)
+      WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
       DO 500 KQ=1,NDLYVAR
       IF (KQ.EQ.48) GO TO 200
       IF(KQ.GE.21.AND.KQ.LE.27) GO TO 500
 C**** NORMAL QUANTITIES
       AVE=0.
-      DO 120 IH=1,24
+      DO 120 IH=1,HR_IN_DAY
       AVE=AVE+ADAILY(IH,KQ,KR)
   120 XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE(KQ)*BYIDAC
-      XHOUR(25)=AVE/24.*SCALE(KQ)*BYIDAC
+      XHOUR(25)=AVE/FLOAT(HR_IN_DAY)*SCALE(KQ)*BYIDAC
       GO TO 480
 C**** RATIO OF TWO QUANTITIES
   200 AVEN=0.
       AVED=0.
-      DO 220 IH=1,24
+      DO 220 IH=1,HR_IN_DAY
       AVEN=AVEN+ADAILY(IH,KQ,KR)
       AVED=AVED+ADAILY(IH,KQ-1,KR)
   220 XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE(KQ)/(ADAILY(IH,KQ-1,KR)+1.D-20)
       XHOUR(25)=AVEN*SCALE(KQ)/(AVED+1.D-20)
   480 CONTINUE
-      DO 490 IS=1,25
+      DO 490 IS=1,HR_IN_DAY+1
 CB       FHOUR(IS,KQ,KR)=XHOUR(IS)
       MHOUR(IS)=NINT(XHOUR(IS))
   490 CONTINUE
@@ -7259,9 +7259,10 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_FMV  = 91 ! NORTH-SOUTH MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
       IJ_FQU = 92  ! EAST-WEST WATER VAPOR FLUX (KG/S)   /3600.*1 DY
       IJ_FQV = 93  ! NORTH-SOUTH WATER VAPOR FLUX (KG/S) /3600.*1 DY
-      IJ_FGZU = 94  ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
-      IJ_FGZV = 95  ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
-
+      IJ_FGZU = 94 ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
+      IJ_FGZV = 95 ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
+      IJ_ERVR=96 ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
+      IJ_MRVR=97 ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
 C**** Definiton of IA_IJ (IDACC index) and NAME_IJ
       NAME_IJ(IJ_RSOI)   = "RSOI" ; IA_IJ(IJ_RSOI) = 1
       NAME_IJ(IJ_RSNW)   = "RSNW" ; IA_IJ(IJ_RSNW) = 4
@@ -7362,6 +7363,8 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_FQV)    = "FQV"    ; IA_IJ(IJ_FQV) = 1
       NAME_IJ(IJ_FGZU)   = "FGZU"   ; IA_IJ(IJ_FGZU) = 1
       NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
+      NAME_IJ(IJ_ERVR)   = "ERVR"   ; IA_IJ(IJ_ERVR) = 1
+      NAME_IJ(IJ_MRVR)   = "MRVR"   ; IA_IJ(IJ_MRVR) = 1
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (TAU.le.TAUI) THEN

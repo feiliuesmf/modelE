@@ -18,6 +18,7 @@ DAGCOM  = DAGCOM.o
 RADCOM  = RADNCB.o
 PBLCOM  = PBLCOM.o
 CLDCOM  = CLD01_COM_E001.o
+LKCOM   = LAKES_COM.o
 COM	= $(MCOM) $(QUSCOM) $(GEOCOM)
 RCOM    = BR00B.COM # will eventually be contained in RE001.f,RADNCB.f
 
@@ -40,10 +41,11 @@ UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
 OUTOBJ  = POUT.o
+LOBJ    = LAKES.o
 OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) \
 	  $(SOBJ) $(COBJ1) $(COBJ2) $(CLDCOM) $(ROBJ) $(UOBJ) $(OOBJ)  \
 	  $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM) $(RADCOM) $(PBLCOM) $(PBLDRV) \
-          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ)
+          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ) $(LKCOM) $(LOBJ)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -80,9 +82,10 @@ $(GHYCOM):	$(MCOM) $(SLOBJ)
 $(DAGCOM):	$(MCOM) $(RADCOM)
 $(RADCOM):	$(MCOM)
 $(CLDCOM):	$(MCOM) $(COBJ1)
-$(DYOBJ):	$(COM) $(PBLCOM) $(OOBJ) $(DAGCOM)
 $(PBLCOM):	$(MCOM) $(PBLOBJ)
-$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(CLDCOM) $(PBLOBJ) $(DYOBJ) $(RADCOM) $(PBLCOM) $(OOBJ) $(UOBJ)
+$(LKCOM):	$(MCOM)
+$(DYOBJ):	$(COM) $(PBLCOM) $(OOBJ) $(DAGCOM)
+$(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(CLDCOM) $(PBLOBJ) $(DYOBJ) $(RADCOM) $(PBLCOM) $(OOBJ) $(UOBJ) $(LOBJ)
 $(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(CLDCOM) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ)
 $(PBLDRV):	$(COM) $(PBLOBJ) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ)
 $(SOBJ):	$(COM) $(DAGCOM) $(PBLOBJ) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ)
@@ -93,6 +96,7 @@ $(ROBJ):	$(RCOM)
 $(OOBJ):	$(COM) $(UOBJ)
 $(COBJ1):	$(COM)
 $(COBJ2):	$(COM) $(COBJ1) $(CLDCOM) $(OOBJ) $(DAGCOM) $(RNDOBJ) $(DYOBJ) $(PBLCOM)
+$(LOBJ):	$(COM) $(LKCOM) $(DAGCOM)
 
 # Compile the gcm
 gcm:	$(OBJ)

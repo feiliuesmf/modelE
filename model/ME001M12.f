@@ -142,6 +142,9 @@ C**** SURFACE INTERACTION AND GROUND CALCULATION
       CALL CHECKT ('SURFCE')
       CALL GROUND
       CALL CHECKT ('GROUND')
+C**** Calculate river runoff from lake mass
+      CALL RIVERF
+      CALL CHECKT ('RIVERF')
       CALL DRYCNV
       CALL CHECKT ('DRYCNV')
       CALL TIMER (MNOW,MINC,MSURF)
@@ -456,10 +459,10 @@ C****
       USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
-!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
+!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
-      INTEGER I,J,L,K,KLAST,IUNIT2,IUNIT1,IUNIT,KDISK0,ITYPE,IM1,KTACC
+      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC
      *     ,IR,IREC,NOFF,NDIFS,ISTART,ioread,ioerr
       REAL*8 TIJL,X,TAU2,TAUX,TAUY,TAU1,RDSIG,CDM,SNOAGE,TEMP
 
@@ -471,7 +474,7 @@ C****
 
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
 
-      LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
+      LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.
 
       CHARACTER NLREC*80
       REAL*4 TAU4,TAUY4,XX4
@@ -742,7 +745,9 @@ C**** INITIALIZE VERTICAL SLOPES OF T,Q
             IF (Q(I,J,LM)+QZ(I,J,LM).LT.0.) QZ(I,J,LM) = -Q(I,J,LM)
          END DO
       END DO
- 350  iniPBL=.TRUE.
+ 350  CONTINUE
+      iniPBL=.TRUE.
+      inilake=.TRUE.
 C**** Set TAU to TAUI for initial starts
   398 IF (TAUI.LT.0.) TAUI=TAUX
       TAU=TAUI
@@ -851,10 +856,13 @@ C**** DON'T  adjust Land ice fraction to be fraction only over land
 c      FLICE = (FLICE/(FLAND+1.D-20))
       CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
       ZATMO = ZATMO*GRAV                           ! Geopotential
+      CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
       REWIND iu_TOPO
 
 C**** Init pbl (and read in file containing roughness length data)
       call pblini(iniPBL)
+C**** Initialise lake variables (including river directions)
+      call init_LAKES(inilake)   
 
 C**** read in ocean heat transports and max. mixed layer depths
       IF(KOCEAN.EQ.1) CALL OHT_INIT
@@ -1074,7 +1082,9 @@ C**** Check PBL arrays
          CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
          CALL CHECKO(SUBR)
-C**** Check Earth arrays
+C**** Check Lake arrays      
+         CALL CHECKL(SUBR)
+C**** Check Earth arrays      
          CALL CHECKE(SUBR)
       END IF
       RETURN
@@ -1128,6 +1138,7 @@ C**** Temporary io_rsf
      *        ,tauavg,ustar
       USE DAGCOM
       USE OCEAN, only : ODATA,OA,T50
+      USE LAKES_COM, only : MWL,TSL,GML
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -1154,7 +1165,7 @@ C**** tell whether the version of the model variables is current
 C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10)
          WRITE (kunit,err=10) "E001M12",U,V,T,P,Q,WM
-         WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50
+         WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TSL,GML
          WRITE (kunit,err=10) "ERT01  ",GDATA
          WRITE (kunit,err=10) "SOL01  ",wbare,wvege,htbare,htvege,snowbv
          WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,mld
@@ -1175,7 +1186,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) TAU1,JC,CLABEL,RC
          READ (kunit,err=10)
          READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
-         READ (kunit,err=10) HEADER,ODATA,OA,T50
+         READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TSL,GML
          READ (kunit,err=10) HEADER,GDATA
          READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
          READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,mld,usavg
@@ -1241,7 +1252,8 @@ C
 CC**** Calls to individual i/o routines
 C      call io_model    (kunit,iaction,ioerr)
 C      call io_ocean    (kunit,iaction,ioerr)
-C      call io_seaice   (kunit,iaction,ioerr)
+C      call io_lakes    (kunit,iaction,ioerr)
+C      call io_ice      (kunit,iaction,ioerr)
 C      call io_lakes    (kunit,iaction,ioerr)
 C      call io_ground   (kunit,iaction,ioerr)
 C      call io_soils    (kunit,iaction,ioerr)

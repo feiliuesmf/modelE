@@ -34,6 +34,7 @@ C****
       USE SOCPBL, only : zgs
       USE DAGCOM  !, only : aijg,aij,tsfrez,tdiurn,bj,areg,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pek,pedn
+      USE LAKES_COM, only : mwl,gml
 
       IMPLICIT NONE
 
@@ -394,6 +395,10 @@ C****
          BERUN0=BERUN0+AERUNS*PEARTH
          BRUNU=BRUNU+ARUNU*PEARTH
          BERUNU=BERUNU+AERUNU*PEARTH
+C**** Add runoff to lake mass/energy resevoirs
+         MWL(I,J) = MWL(I,J) + (ARUNS+ARUNU)*PTYPE*DXYP(J)
+         GML(I,J) = GML(I,J) + (AERUNS+AERUNU)*PTYPE*DXYP(J)
+C****
          AIJ(I,J,IJ_RUNE)=AIJ(I,J,IJ_RUNE)+ARUNS
          AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)+ARUNU
          AIJ(I,J,IJ_PEVAP)=AIJ(I,J,IJ_PEVAP)+(AEPC+AEPB)
