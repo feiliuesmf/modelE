@@ -1471,6 +1471,8 @@ CF    OPEN (NRFU,FILE=RFILEN,FORM='FORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='FORMATTED',STATUS='OLD')               ! CF
 C
       READ(NRFU,'(a80)') TITLE
+      if(ksolar.ge.2 .and. TITLE(1:3).ne.'ANN') stop 'change RADN9'
+      if(ksolar.lt.2 .and. TITLE(1:3).eq.'ANN') stop 'change RADN9'
       READ(NRFU,'(5F14.2)') (WSLEAN(I),I=1,190)
       READ(NRFU,'(a80)') TITLE
       READ(NRFU,'(5E14.3)') (DSLEAN(I),I=1,190)
