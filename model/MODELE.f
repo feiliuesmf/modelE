@@ -457,11 +457,11 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       END
 
 
-      subroutine stop_model                        
-      USE MODEL_COM, only : stop_on                
-      implicit none                                
-      stop_on = .true.                             
-      end subroutine stop_model                    
+      subroutine stop_model
+      USE MODEL_COM, only : stop_on
+      implicit none
+      stop_on = .true.
+      end subroutine stop_model
 
 
       subroutine init_Model
@@ -898,11 +898,11 @@ C**** Check consistency of starting time
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 C****
-!**** IRANDI seed for random perturbation of initial conditions (if/=0)
-C****        perturbation is at most 1 degree C
+!**** IRANDI seed for random perturbation of initial conditions (if/=0):
+C****        tropospheric temperatures changed by at most 1 degree C
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
-        DO L=1,LM
+        DO L=1,LS1
         DO J=1,JM
         DO I=1,IM
            TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
