@@ -998,6 +998,7 @@ c
       real*8, intent(in) :: ttop,qtop,dtime
 
       real*8 :: wstar3,wstar2,usurf,facth,factq
+      real*8 :: factx,facty
       integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
@@ -1006,8 +1007,11 @@ c
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
+      factx=(dpdxr-dpdxr0)/(z(n)-z(1))
+      facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
-        rhs(i)=t0(i)
+        rhs(i)=t0(i)-dtime*(t(i+1)+t(i))/(2.d0*grav)*
+     &         (v(i)*facty+u(i)*factx)
       end do
 
 c     M.J.Miller et al. 1992:
