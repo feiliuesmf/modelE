@@ -75,9 +75,8 @@ c     integrate T,Q equations at tcells
       ! get u_tcell and v_tcell at t-cells
       call ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
 
-      loc=0 !at t_cells
       call getdz(t_virtual,p,sig,sige,ptop,psf,
-     2           dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm,loc)
+     2           dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm)
 
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
@@ -193,10 +192,6 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
       call ave_to_ucell(dzedge,dzedge_ucell,im,jm,lm)
       call ave_to_ucell(rho,rho_ucell,im,jm,lm)
       call ave_to_ucell(rhoe,rhoe_ucell,im,jm,lm)
-c     loc=1 !at ucells
-c     call getdz(tv_ucell,p_ucell,sig,sige,ptop,psf,
-c    2      dz,dzedge,rho,rhoe,tsavg_ucell,qsavg_ucell,rvx,
-c    3      ls1,im,jm,lm,loc)
 
       loop_j_uv: do j=2,jm
         loop_i_uv: do i=1,im
@@ -234,12 +229,12 @@ c    3      ls1,im,jm,lm,loc)
       end subroutine diffus
 
       subroutine getdz(tv,p,sig,sige,ptop,psf,
-     2   dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm,loc)
+     2   dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
 !@sum  as well as the 3d density rho and rhoe
+!@sum  called at the primary cells (t-cells)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
-!@var  loc 0: at t_cells; 1: at u_cells
 !@var  dz(i,j,l) z(i,j,l+1) - z(i,j,l)
 !@var  dzedge(i,j,l) zedge(i,j,l+1) - zedge(i,j,l)
 !@var  z vertical coordinate associated with SIG(l)
@@ -252,6 +247,9 @@ c    3      ls1,im,jm,lm,loc)
 c
 c     Grids:
 c
+c                   -------------------------  lm+1
+c                lm  - - - - - - - - - - - - -
+c                   -------------------------  lm
 c                l+1 - - - - - - - - - - - - -
 c                    -------------------------  l+1
 C     (main)     l   - - - - - - - - - - - - -
@@ -262,15 +260,18 @@ c                2   - - - - - - - - - - - - -
 c                    -------------------------    2
 c                1   - - - - - - - - - - - - -
 c                    -------------------------    1
+c           rhoe(i,j,l+1)=100.d0*(pl-pl1)/(grav*dz(i,j,l))
+c           rho(i,j,l)=100.d0*(ple-pl1e)/(grav*dzedge(i,j,l))
 c
 c     at main: u,v,tv,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
 c
       USE CONSTANT, only : grav,rgas,kapa
       USE GEOM, only : imaxj
+      USE DYNAMICS, only : gz
       implicit none
 
-      integer, intent(in) :: ls1,im,jm,lm,loc
+      integer, intent(in) :: ls1,im,jm,lm
       real*8, intent(in) :: ptop,psf,rvx
       real*8, dimension(im,jm,lm), intent(in) :: tv
       real*8, dimension(im,jm), intent(in) :: p,tsavg,qsavg
@@ -282,21 +283,11 @@ c
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,pijgcm
       integer :: i,j,l  !@var i,j,l loop variable
       integer :: imax
+      real*8 :: plm1e
 
-      if(loc.ne.0.and.loc.ne.1) then
-        write(*,*) "Stop: In getdz subroutine, loc must be 0 or 1"
-        write(*,*) "loc = ",loc
-        stop
-      endif
       do l=1,lm-1
-        do j=loc+1,jm
-          if(loc.eq.1) then      ! at u_cell
-            imax=im
-          elseif (loc.eq.0) then ! at t_cell
-            imax=imaxj(j)
-          endif
-
-          do i=1,imax
+        do j=1,jm
+          do i=1,imaxj(j)
 
             pijgcm=p(i,j)
             if (l.ge.ls1) then
@@ -317,17 +308,22 @@ c
      3              (sig(l+1)-sig(l))
             dz(i,j,l)    =-(rgas/grav)*temp1e*log(pl1/pl)
             dzedge(i,j,l)=-(rgas/grav)*temp0 *log(pl1e/ple)
-c           rhoe(i,j,l+1)=100.d0*pl1e/(temp1e*rgas)
-c           rho(i,j,l)=100.d0*pl/(temp0*rgas)
             rhoe(i,j,l+1)=100.d0*(pl-pl1)/(grav*dz(i,j,l))
             rho(i,j,l)=100.d0*(ple-pl1e)/(grav*dzedge(i,j,l))
 
             if(l.eq.1) then
               rhoe(i,j,1)=100.d0*ple/(tsavg(i,j)*
      2                    (1.d0+RVX*qsavg(i,j))*rgas)
+c             rhoe(i,j,1)=2.d0*rho(i,j,1)-rhoe(i,j,2)       
             endif
             if(l.eq.lm-1) then
-              rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
+c             rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
+              if (l.ge.ls1) then
+                plm1e=(psf-ptop)*sige(lm+1)+ptop
+              else
+                plm1e=pijgcm*sige(lm+1)+ptop
+              endif
+              rho(i,j,lm)=100.d0*(pl1e-plm1e)/(grav*dzedge(i,j,lm))
             endif
           end do
         end do
