@@ -51,6 +51,10 @@
       REAL*8, PARAMETER :: ALPHA = 1.0
 !@dbparam oi_ustar0 default ice-ocean friction velocity (m/s) 
       REAL*8 :: oi_ustar0 = 5d-3  
+!@dbparam silmfac factor controlling lateral melt of ocean ice
+      REAL*8 :: silmfac = 2.5d-8 ! = pi*(1.6d-6)/0.66/300
+!@var silmpow exponent for temperature dependence of lateral melt
+      REAL*8 :: silmpow = 1.36d0 
 
       CONTAINS
 
@@ -710,7 +714,7 @@ C**** Calculate temperatures for diagnostics and radiation
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL,
+      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL,
 #ifdef TRACERS_WATER
      *     TRSIL,TRUN0,
 #endif
@@ -726,6 +730,8 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(IN) :: TFO
 !@var ROICE,SNOW,MSI2 ice variables (%,kg/m^2,kg/m^2)
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
+!@var Tm mixed layer ocean temperature (C)
+      REAL*8, INTENT(IN) :: Tm
 !@var HSIL ice enthalpy  (J/m^2)
 !@var SSIL ice salt (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
@@ -736,6 +742,9 @@ C**** Calculate temperatures for diagnostics and radiation
 !@var RUN0 amount of sea ice melt (kg/m^2)
 !@var SALT amount of salt in sea ice melt (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SALT
+!@var DRSI change in RSI fraction
+!@var DTEMP temperature diff. used in lateral melt calculation.
+      REAL*8 :: DRSI,DTEMP
 #ifdef TRACERS_WATER
 !@var TRSIL tracer ice amounts (kg/m^2)
 !@var TRUN0 tracer amount in sea ice melt (kg/m^2)
@@ -743,27 +752,47 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: TRUN0
 #endif
 
-C**** Remove too small ice
-      ENRGUSED=-ROICE*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
-      RUN0=ROICE*(SNOW + ACE1I + MSI2) ! all ice is melted
-      SALT=ROICE*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
-#ifdef TRACERS_WATER
-      TRUN0(:)=ROICE*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
-      TRSIL(:,:)=0.
-#endif
-      ROICE=0.
-C**** set defaults
-      SNOW=0.
-      MSI2=AC2OIM
-      HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
-      HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+C**** Estimate DRSI
       IF (POCEAN.gt.0) THEN
-        SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
-        SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+        IF (ROICE.lt.1d-4) THEN
+          DRSI=ROICE
+        ELSE
+C**** Estimate lateral melt using parameterisation from Makyut/Steele
+C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(1.6d-6)*(delT)^(1.36)
+C**** This assumes called only once a day (SDAY-> DTS otherwise)
+          dtemp=MAX(Tm-TFO,0d0)
+          DRSI=ROICE*MIN(SDAY*SILMFAC*dtemp**SILMPOW,1d0)
+          IF (ROICE-DRSI.lt.1d-4) DRSI=ROICE
+        END IF
       ELSE
-        SSIL(:) = 0.
+        DRSI=ROICE  ! all lake ice is melted
       END IF
-      TSIL=TFO
+C**** Remove DRSI amount of ice
+      ENRGUSED=-DRSI*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
+      RUN0=DRSI*(SNOW + ACE1I + MSI2) 
+      SALT=DRSI*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
+#ifdef TRACERS_WATER
+      TRUN0(:)=DRSI*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
+#endif
+      ROICE=ROICE-DRSI
+      IF (ROICE.lt.1d-10) THEN
+        ROICE=0.                ! deal with possible round off err
+C**** set defaults if no ice is left
+        SNOW=0.
+        MSI2=AC2OIM
+        HSIL(1:2)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
+        HSIL(3:4)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+        IF (POCEAN.gt.0) THEN
+          SSIL(1:2)=SSI0*XSI(1:2)*ACE1I
+          SSIL(3:4)=SSI0*XSI(3:4)*AC2OIM
+        ELSE
+          SSIL(:) = 0.
+        END IF
+        TSIL=TFO
+#ifdef TRACERS_WATER
+        TRSIL(:,:)=0.
+#endif
+      END IF
 C****
       RETURN
       END SUBROUTINE SIMELT

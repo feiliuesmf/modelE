@@ -246,7 +246,7 @@ C****
       END SUBROUTINE UNDERICE
 
       SUBROUTINE MELT_SI
-!@sum  MELT_SI driver for removal of too small ice fractions
+!@sum  MELT_SI driver for lateral melt of sea ice
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SIMELT
@@ -259,21 +259,21 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,flowo,eflowo,sflowo
+      USE FLUXES, only : sss,flowo,eflowo,sflowo,gtemp
 #ifdef TRACERS_WATER
      *     ,trflowo
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0,SALT,POCEAN,TFO
-     *     ,PWATER
+     *     ,PWATER,Tm
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
       INTEGER I,J,ITYPE,JR
 
-C**** ELIMINATE SMALL AMOUNTS OF SEA ICE ONCE A DAY
+C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
 C**** add fluxes to oceans/lakes. This is a little more confusing, but
 C**** we can use the S/E/FLOWO arrays to pass the information.
@@ -286,9 +286,9 @@ C**** we can use the S/E/FLOWO arrays to pass the information.
 #ifdef TRACERS_WATER
           TRUN0(:) = 0.
 #endif
-C**** Call simelt if small ice and (lake or q-flux ocean)
-          IF ( RSI(I,J).lt.1d-4 .and. ( (FLAKE(I,J)*RSI(I,J).gt.0)
-     *         .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) ) THEN
+C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
+          IF ( (RSI(I,J).lt.1d-4 .and. FLAKE(I,J)*RSI(I,J).gt.0)
+     *         .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
               ITYPE =ITOICE
@@ -297,6 +297,7 @@ C**** Call simelt if small ice and (lake or q-flux ocean)
               ITYPE =ITLKICE
               TFO = 0.
             END IF
+            Tm=GTEMP(1,1,I,J)
             ROICE=RSI(I,J)
             MSI2=MSI(I,J)
             SNOW=SNOWI(I,J)     ! snow mass
@@ -305,7 +306,7 @@ C**** Call simelt if small ice and (lake or q-flux ocean)
 #ifdef TRACERS_WATER
             TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,Tm,TFO,TSIL
 #ifdef TRACERS_WATER
      *           ,TRSIL,TRUN0
 #endif
@@ -704,7 +705,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,shi,rhow
       USE MODEL_COM, only : im,jm,kocean,focean
-      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0
+      USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -714,9 +715,11 @@ C****
      *     ,gtracer
 #endif
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
+     *     ,conpt0
       USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
+      CHARACTER CONPT(NPTS)*10
       INTEGER I,J
       REAL*8 MSI1,TFO
 
@@ -725,6 +728,10 @@ C**** adjusting oi_ustar0 in the parameter list. If ice dynamics is used,
 C**** this is overwritten.  
       call sync_param("oi_ustar0",oi_ustar0)
       UI2rho = rhow*(oi_ustar0)**2
+
+C**** Adjust degree of lateral melt by changing silmfac
+C**** Default is 2.5d-8, but could be changed by a factor of 2.
+      call sync_param("silmfac",silmfac)
 
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
@@ -765,14 +772,18 @@ C**** set GTEMP array for ice
       END DO
 
 C**** Set conservation diagnostics for ice mass, energy, salt
-      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"ICE MASS","(KG/M^2)        ",
+      CONPT=CONPT0
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP" 
+      CONPT(5)="THERMO"    ; CONPT(6)="ADVECT" 
+      CONPT(8)="OCN FORM" 
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"ICE MASS","(KG/M^2)        ",
      *     "(10**-9 KG/SM^2)",1d0,1d9,icon_MSI)
-      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"ICE ENRG","(10**6 J/M^2)   ",
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"ICE ENRG","(10**6 J/M^2)   ",
      *     "(10**-3 J/S M^2)",1d-6,1d3,icon_HSI)
-      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"ICE SALT","(10**-3 KG/M^2) ",
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"ICE SALT","(10**-3 KG/M^2) ",
      *     "(10**-9 KG/SM^2)",1d3,1d9,icon_SSI)
 C****
       END SUBROUTINE init_ice

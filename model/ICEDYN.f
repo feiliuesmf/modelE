@@ -21,10 +21,13 @@ C*************************************************************
       USE MODEL_COM, only : im,jm
       IMPLICIT NONE
       SAVE
-C**** Definition for ice dynamics grid (EDIT THIS LINE FOR GRID CHANGE)
+C**** Definition for ice advection grid (EDIT FOR ADVSI GRID CHANGE)
       INTEGER, PARAMETER :: IMIC=IM, JMIC=JM
 
 C**** local grid variables for ice rheology scheme
+C**** Edit the definition of nx1,ny1 to change the grid for the
+C**** rheology calculations without changing ADVSI grid.
+
 !@var nx1 number of grid points in the longitudinal direction
 !@+  (calculated points from 2 through nx1-1. End points are boundaries)
 !@var ny1 number of grid points in the latitudinal direction
@@ -34,7 +37,7 @@ C**** local grid variables for ice rheology scheme
       integer :: NPOL=1,LCYC=1
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
-      REAL*8, DIMENSION(IMIC,JMIC) :: FOCEAN
+      REAL*8, DIMENSION(NX1-2,NY1) :: FOCEAN
 
 C**** input
 !@var HEFFM ice mass mask (1/0)
@@ -283,9 +286,10 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,NY1) :: AU,BU,CU,AV,BV,CV,FXY,FXY1
-      REAL*8, DIMENSION(NX1) :: CUU,URT
-      REAL*8, DIMENSION(NY1) :: CVV,VRT
+      REAL*8, DIMENSION(NX1,NY1) :: AU,BU,CU,FXY,FXY1
+      REAL*8, DIMENSION(NY1,NX1) :: AV,BV,CV,FXYa,FXY1a
+      REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
+      REAL*8, DIMENSION(NY1) :: CVV,VRT,U_tmp   !CVV,
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
       INTEGER I,J,J1,J2,IMD,JMD
       REAL*8 DELXY,DELXR,DELX2,DELY2,DELYR,ETAMEAN,ZETAMEAN,AA1,AA2
@@ -410,7 +414,7 @@ C THE FIRST HALF
       DO J=2,NYPOLE
       AU(2,J)=0.0
       CU(NXLCYC,J)=0.0
-      CU(2,J)=CU(2,J)/BU(2,J)
+c      CU(2,J)=CU(2,J)/BU(2,J)  ! absorbed into TRIDIAG
       END DO
 
       DO 1200 J=2,NYPOLE
@@ -447,23 +451,26 @@ C THE FIRST HALF
       URT(I)=(URT(I)+AMASS(I,J)*BYDTS*UICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
-      DO I=2,NXLCYC
-      CUU(I)=CU(I,J)
-      END DO
-      URT(2)=URT(2)/BU(2,J)
-      DO I=3,NXLCYC
-      IMD=I-1
-      CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
-      URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
-      END DO
-      DO I=1,NXLCYC-2
-      J1=NXLCYC-I
-      J2=J1+1
-      URT(J1)=URT(J1)-CUU(J1)*URT(J2)
-      END DO
-      DO I=2,NXLCYC
-      UICE(I,J,1)=URT(I)
-      END DO
+      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),NXLCYC-1)
+
+c      DO I=2,NXLCYC
+c       CUU(I)=CU(I,J)
+c      END DO
+c      URT(2)=URT(2)/BU(2,J)
+c      DO I=3,NXLCYC
+c       IMD=I-1
+c       CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
+c       URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
+c      END DO
+c      DO I=1,NXLCYC-2
+c       J1=NXLCYC-I
+c       J2=J1+1
+c       URT(J1)=URT(J1)-CUU(J1)*URT(J2)
+c      END DO
+c      DO I=2,NXLCYC
+c       UICE(I,J,1)=URT(I)
+c      END DO
+
  1200 CONTINUE
 
       DO I=2,NXLCYC
@@ -486,16 +493,16 @@ C NOW THE SECOND HALF
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      AV(I,J)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
-      BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
+      AV(J,I)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
+      BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
      &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-      CV(I,J)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
+      CV(J,I)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
       END DO
       END DO
       DO I=2,NXLCYC
-      AV(I,2)=0.0
-      CV(I,NYPOLE)=0.0
-      CV(I,2)=CV(I,2)/BV(I,2)
+      AV(2,I)=0.0
+      CV(NYPOLE,I)=0.0
+c      CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
       END DO
 
       DO I=2,NXLCYC
@@ -518,7 +525,7 @@ C NOW THE SECOND HALF
       AA9=0.0
       END IF
 
-      FXY1(I,J)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
+      FXY1a(J,I)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
      5-(AA1+AA2)*DELX2*UICE(I,J,1)
      6+((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
      6*UICE(I+1,J,1)
@@ -530,26 +537,28 @@ C NOW THE SECOND HALF
 
       DO 1300 I=2,NXLCYC
       DO J=2,NYPOLE
-      VRT(J)=FXY(I,J)+FXY1(I,J)
+      VRT(J)=FXY(I,J)+FXY1a(J,I)
       VRT(J)=VRT(J)*UVM(I,J)
       END DO
 
+      CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
+
+c      DO J=2,NYPOLE
+c      CVV(J)=CV(J,I)
+c      END DO
+c      VRT(2)=VRT(2)/BV(2,I)
+c      DO J=3,NYPOLE
+c      JMD=J-1
+c      CVV(J)=CVV(J)/(BV(J,I)-AV(J,I)*CVV(JMD))
+c      VRT(J)=(VRT(J)-AV(J,I)*VRT(JMD))/(BV(J,I)-AV(J,I)*CVV(JMD))
+c      END DO
+c      DO J=1,NYPOLE-2
+c      J1=NYPOLE-J
+c      J2=J1+1
+c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
+c      END DO
       DO J=2,NYPOLE
-      CVV(J)=CV(I,J)
-      END DO
-      VRT(2)=VRT(2)/BV(I,2)
-      DO J=3,NYPOLE
-      JMD=J-1
-      CVV(J)=CVV(J)/(BV(I,J)-AV(I,J)*CVV(JMD))
-      VRT(J)=(VRT(J)-AV(I,J)*VRT(JMD))/(BV(I,J)-AV(I,J)*CVV(JMD))
-      END DO
-      DO J=1,NYPOLE-2
-      J1=NYPOLE-J
-      J2=J1+1
-      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
-      END DO
-      DO J=2,NYPOLE
-      UICE(I,J,1)=VRT(J)
+        UICE(I,J,1)=U_tmp(J)     ! VRT(J)   !
       END DO
  1300 CONTINUE
 
@@ -565,7 +574,7 @@ C THE FIRST HALF
       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
       ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      FXY(I,J)=-DRAGA(I,J)*UICEC(I,J)+FORCEY(I,J)
+      FXYa(J,I)=-DRAGA(I,J)*UICEC(I,J)+FORCEY(I,J)
      3+(0.5*(UICEC(I+1,J)-UICEC(I-1,J))*(ZETA(I,J+1)+ZETA(I+1,J+1)
      3-ZETA(I,J)-ZETA(I+1,J))*DELXY*BYCSU(J)+0.5*ZETAMEAN*
      3((UICEC(I+1,J+1)
@@ -608,18 +617,18 @@ C THE FIRST HALF
      &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      AV(I,J)=(-AA2*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
+      AV(J,I)=(-AA2*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
      &-ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
-      BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
+      BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
      &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-      CV(I,J)=(-AA1*DELY2+(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
+      CV(J,I)=(-AA1*DELY2+(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
      &+ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
       END DO
       END DO
       DO I=2,NXLCYC
-      AV(I,2)=0.0
-      CV(I,NYPOLE)=0.0
-      CV(I,2)=CV(I,2)/BV(I,2)
+      AV(2,I)=0.0
+      CV(NYPOLE,I)=0.0
+c      CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
       END DO
 
       DO 1301 I=2,NXLCYC
@@ -646,29 +655,31 @@ C THE FIRST HALF
       AA9=0.0
       END IF
 
-      VRT(J)=AA9+FXY(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
+      VRT(J)=AA9+FXYa(J,I)-(AA3+AA4)*DELX2*VICE(I,J,2)
      6+((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
      7     +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
      *     *BYCSU(J)
       VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
+      CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
+
+c      DO J=2,NYPOLE
+c      CVV(J)=CV(J,I)
+c      END DO
+c      VRT(2)=VRT(2)/BV(2,I)
+c      DO J=3,NYPOLE
+c      JMD=J-1
+c      CVV(J)=CVV(J)/(BV(J,I)-AV(J,I)*CVV(JMD))
+c      VRT(J)=(VRT(J)-AV(J,I)*VRT(JMD))/(BV(J,I)-AV(J,I)*CVV(JMD))
+c      END DO
+c      DO J=1,NYPOLE-2
+c      J1=NYPOLE-J
+c      J2=J1+1
+c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
+c      END DO
       DO J=2,NYPOLE
-      CVV(J)=CV(I,J)
-      END DO
-      VRT(2)=VRT(2)/BV(I,2)
-      DO J=3,NYPOLE
-      JMD=J-1
-      CVV(J)=CVV(J)/(BV(I,J)-AV(I,J)*CVV(JMD))
-      VRT(J)=(VRT(J)-AV(I,J)*VRT(JMD))/(BV(I,J)-AV(I,J)*CVV(JMD))
-      END DO
-      DO J=1,NYPOLE-2
-      J1=NYPOLE-J
-      J2=J1+1
-      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
-      END DO
-      DO J=2,NYPOLE
-      VICE(I,J,1)=VRT(J)
+        VICE(I,J,1)=U_tmp(J)   ! VRT(J)   !
       END DO
  1301 CONTINUE
 
@@ -703,7 +714,7 @@ C NOW THE SECOND HALF
       DO J=2,NYPOLE
       AU(2,J)=0.0
       CU(NXLCYC,J)=0.0
-      CU(2,J)=CU(2,J)/BU(2,J)
+c      CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       END DO
 
       DO J=2,NYPOLE
@@ -742,27 +753,29 @@ C NOW THE SECOND HALF
 
       DO 1201 J=2,NYPOLE
       DO I=2,NXLCYC
-      URT(I)=FXY(I,J)+FXY1(I,J)
+      URT(I)=FXYa(J,I)+FXY1(I,J)
       URT(I)=URT(I)*UVM(I,J)
       END DO
 
-      DO I=2,NXLCYC
-      CUU(I)=CU(I,J)
-      END DO
-      URT(2)=URT(2)/BU(2,J)
-      DO I=3,NXLCYC
-      IMD=I-1
-      CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
-      URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
-      END DO
-      DO I=1,NXLCYC-2
-      J1=NXLCYC-I
-      J2=J1+1
-      URT(J1)=URT(J1)-CUU(J1)*URT(J2)
-      END DO
-      DO I=2,NXLCYC
-      VICE(I,J,1)=URT(I)
-      END DO
+      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),NXLCYC-1)
+
+c      DO I=2,NXLCYC
+c      CUU(I)=CU(I,J)
+c      END DO
+c      URT(2)=URT(2)/BU(2,J)
+c      DO I=3,NXLCYC
+c      IMD=I-1
+c      CUU(I)=CUU(I)/(BU(I,J)-AU(I,J)*CUU(IMD))
+c      URT(I)=(URT(I)-AU(I,J)*URT(IMD))/(BU(I,J)-AU(I,J)*CUU(IMD))
+c      END DO
+c      DO I=1,NXLCYC-2
+c      J1=NXLCYC-I
+c      J2=J1+1
+c      URT(J1)=URT(J1)-CUU(J1)*URT(J2)
+c      END DO
+c      DO I=2,NXLCYC
+c      VICE(I,J,1)=URT(I)
+c      END DO
  1201 CONTINUE
 
       DO J=2,NYPOLE
