@@ -317,13 +317,15 @@ C     Loops. Set grid_NXY=grid, consistent with curr. state of the code.
 
       TYPE(DYN_GRID) :: grid_NXY
       INTEGER :: J_1NXY, J_0NXY
+      INTEGER :: J_1NXYS
       INTEGER :: J_1   , J_0
       INTEGER :: J_1S  , J_0S
       INTEGER :: J_1STG,J_0STG
       grid_NXY=grid
 
 C**** Get loop indices  corresponding to grid and grid_NXY structures
-      CALL GET(grid_NXY, J_STRT=J_0NXY   , J_STOP=J_1NXY  )
+      CALL GET(grid_NXY, J_STRT=J_0NXY   , J_STOP=J_1NXY
+     &                                   , J_STOP_SKP=J_1NXYS)
       call GET(grid    , J_STRT=J_0      , J_STOP=J_1     )
       call GET(grid    , J_STRT_SKP=J_0S , J_STOP_SKP=J_1S)
       call GET(grid    , J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
@@ -388,7 +390,7 @@ c     CALL HALO_UPDATE(grid, APRESS, from=NORTH )
       CALL HALO_UPDATE(grid, MSI   , from=NORTH )
       CALL CHECKSUM(   grid, SNOWI , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, SNOWI , from=NORTH )
-      DO J=1,JM-1
+      DO J=J_0,J_1S
         DO I=1,IM
           IF(FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      *         RSI(I,J)+RSI(I,J+1).gt.0.) THEN
@@ -461,7 +463,7 @@ C**** Update halo for HEFF
       CALL CHECKSUM(grid,    HEFF, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, HEFF, from=NORTH    )
 
-      DO J=1,NY1-1
+      DO J=J_0NXY,J_1NXYS
       DO I=1,NX1-1
         AMASS(I,J)=RHOI*0.25*(HEFF(I,J)
      *       +HEFF(I+1,J)+HEFF(I,J+1)+HEFF(I+1,J+1))
@@ -481,7 +483,7 @@ C**** Update halo for USI,UOSURF,PGFU
       CALL CHECKSUM(grid,    PGFU  , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PGFU  , from=NORTH    )
 
-      do j=1,jm-1
+      do j=j_0,j_1s
         im1=im
         do i=1,im
           UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
@@ -527,7 +529,7 @@ C**** Update halo for USI,UOSURF,PGFU
       CALL CHECKSUM(grid,    DMVA  , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, DMVA  , from=NORTH    )
 
-      do j=1,jm-1
+      do j=j_0,j_1s
         im1=im
         do i=1,im
           GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)+dmua(im1,j+1,2)
@@ -601,7 +603,7 @@ C**** Update halos for FOCEAN, DXYS, DXYV
       CALL CHECKSUM(   grid,  DXYV  , __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  DXYV  , from=NORTH     )
 
-      do j=1,jm-1
+      do j=j_0,j_1s
         do i=1,im
           vsi(i,j)=0.5*(vice(i,j,1)+vice(i+1,j,1))
           IF (abs(VSI(I,J)).lt.1d-10) VSI(I,J)=0
@@ -668,7 +670,7 @@ C**** Update halos for FOCEAN, and RSI
       CALL CHECKSUM(   grid,  RSI   , __LINE__, __FILE__ )
       CALL HALO_UPDATE(grid,  RSI   , from=NORTH     )
 
-      DO J=1,JM-1
+      DO J=J_0,J_1S
         I=IM
         DO IP1=1,IM
           USIDT(I,J)=0.

@@ -124,7 +124,6 @@ C**** write restart information alternatingly onto 2 disk files
          KDISK=3-KDISK
          CALL TIMER (MNOW,MELSE)
       END IF
-
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS

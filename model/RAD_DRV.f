@@ -308,6 +308,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
+      USE DOMAIN_DECOMP, only : grid, get
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
@@ -342,6 +343,14 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@var QBIN true if files for radiation input files are binary
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
+
+      INTEGER J_0,J_1,J_1S
+      LOGICAL HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1
+     *             ,  J_STOP_SKP=J_1S
+     *             , HAVE_NORTH_POLE=HAVE_NORTH_POLE
+     *             , HAVE_SOUTH_POLE=HAVE_SOUTH_POLE )
 
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
@@ -392,9 +401,16 @@ C**** Set orbital parameters appropriately
       end if
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
-      PHIS=-.25*TWOPI
-      SPHIS=-1.
-      CPHIS=0.
+
+      if (HAVE_SOUTH_POLE) then
+        PHIS=-.25*TWOPI
+        SPHIS=-1.
+        CPHIS=0.
+      else
+        PHIS=DLAT*(J_0-1-.5*JM)
+        SPHIS=SIN(PHIS)
+        CPHIS=COS(PHIS)
+      end if
       DO J=1,JM-1
         PHIN=DLAT*(J-.5*JM)
         SPHIN=SIN(PHIN)
@@ -406,12 +422,16 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
         SPHIS=SPHIN
         CPHIS=CPHIN
       END DO
-      PHIN=.25*TWOPI
-      SPHIN=1.
-      CPHIN=0.
-      PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
-      SINJ(JM)=SIN(PHIM)
-      COSJ(JM)=COS(PHIM)
+      IF (HAVE_NORTH_POLE) THEN
+        PHIN=.25*TWOPI
+        SPHIN=1.
+        CPHIN=0.
+        PHIM=( PHIN*SPHIN + CPHIN
+     *        -PHIS*SPHIS - CPHIS)
+     *        /(SPHIN - SPHIS)
+        SINJ(JM)=SIN(PHIM)
+        COSJ(JM)=COS(PHIM)
+      END IF
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
@@ -1442,16 +1462,22 @@ c longwave forcing
   780    CONTINUE
          DO L=1,LM
            DO I=1,IM
-             DO J=J5S,J5N
+             DO J=max(J_0,J5S),min(J_1,J5N)
                AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+
      *              (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J)
              END DO
-             AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
+             IF(J_0 <= J50N .and. J_1 >= J50N)
+     *        AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
      *            ,J50N)+TRHR(L,I,J50N))*DXYP(J50N)
-             AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
+             IF(J_0 <= J70N .and. J_1 >= J70N)
+     *        AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
      *            ,J70N)+TRHR(L,I,J70N))*DXYP(J70N)
            END DO
          END DO
+
+C****EXCEPTION: partial-global sum above!
+C     CALL GLOBAL_SUM(AIL(:,:,IL_REQ), .....)
+C
 C****
 C**** Update radiative equilibrium temperatures
 C****

@@ -34,6 +34,8 @@ c****
      *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
+     *     ,u,v
+      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
@@ -237,6 +239,11 @@ ccc set i,j - independent stuff for tracers
 c****
 c**** outside loop over j and i, executed once for each grid point
 c****
+C**** halo update u and v for distributed parallelization
+       call checksum   (grid, U, __LINE__, __FILE__)
+       call halo_update(grid, U, from=NORTH)
+       call checksum   (grid, V, __LINE__, __FILE__)
+       call halo_update(grid, V, from=NORTH)
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,

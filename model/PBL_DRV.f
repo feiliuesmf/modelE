@@ -335,6 +335,7 @@ c -------------------------------------------------------------
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : HALO_UPDATE,CHECKSUM,NORTH
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE SEAICE_COM, only : rsi,snowi
@@ -424,6 +425,11 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
+C**** HALO UPDATES OF u AND v FOR DISTRIBUTED PARALLELIZATION 
+        call CHECKSUM   (grid, u, __LINE__, __FILE__)
+        call HALO_UPDATE(grid, u, from=NORTH)
+        call CHECKSUM   (grid, v, __LINE__, __FILE__)
+        call HALO_UPDATE(grid, v, from=NORTH)
         do j=J_0,J_1
           jlat=j
           coriol=sinp(j)*omega2

@@ -14,6 +14,7 @@
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
+      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -153,11 +154,15 @@ Cred*                   end Reduced Arrays 1
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      REAL*8, DIMENSION(IM,LM) :: DEL_U, DEL_V
 
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
 
 C 
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
@@ -174,6 +179,12 @@ C     Do not bother to save random numbers for isccp_clouds
       END DO
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
+C
+C**** UDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
+      CALL CHECKSUM   (grid, U, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, U, from= NORTH)
+      CALL CHECKSUM   (grid, V, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, V, from= NORTH)
 C 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -928,6 +939,8 @@ C**** Delayed summations (to control order of summands)
         END IF
       END DO
       END DO
+C****EXCEPTION: partial-global sum above!
+C     CALL GLOBAL_SUM(AIL.....)
 C 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -955,20 +968,41 @@ CAOO      J=1
         END DO
       ENDIF
 C 
+C**** Initialize dummy work arrays
+        DEL_U(1:IM,1:LM)=0.
+        DEL_V(1:IM,1:LM)=0.
+
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
-      DO J=J_0S,J_1S
-         DO K=1,4  !  KMAXJ(J)
-           IDJ(K)=IDJJ(K,J)
-         END DO
-         DO I=1,IM
-         DO K=1,4 ! KMAXJ(J)
-           IDI(K)=IDIJ(K,I,J)
-           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-         END DO
-         END DO
-      END DO
+        DO J=J_0S,J_1-1
+           DO K=1,4  !  KMAXJ(J)
+             IDJ(K)=IDJJ(K,J)
+           END DO
+           DO I=1,IM
+             DO K=1,4 ! KMAXJ(J)
+               IDI(K)=IDIJ(K,I,J)
+               U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+             END DO
+           END DO
+        END DO
+        IF (.not. HAVE_NORTH_POLE) then
+          J=J_1
+          DO K=1,4  !  KMAXJ(J)
+            IDJ(K)=IDJJ(K,J)
+          END DO
+          DO I=1,IM
+            DO K=1,2 ! KMAXJ(J)
+              IDI(K)=IDIJ(K,I,J)
+              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+            END DO
+            DO K=3,4
+              DEL_U(IDI(K),L) = DEL_U(IDI(K),L) + UKM(K,I,J,L)
+              DEL_V(IDI(K),L) = DEL_V(IDI(K),L) + VKM(K,I,J,L)
+            END DO
+          END DO
+        ENDIF
       END DO
 !$OMP  END PARALLEL DO
 C 
@@ -985,6 +1019,18 @@ CAOO      J=JM
           END DO
         END DO
       END IF
+C****EXCEPTIONS!!
+C****Transfer the sums above: DEL_U DEL_V  to the block to the north
+C*** and add them to U(I,J_0,L), V(I,J_0,L) respectively.
+!PSEUDOCODE:
+!     IF (.not. HAVE_NORTH_POLE )
+!      ===>  send del_u del_v  to neighbor to the north
+!     if (.not. HAVE_SOUTH_POLE)
+!      ===>  receive del_u_r del_v_r  from neighbor to the south
+!      ===>    U(1:IM,J_0,1:LM) = U(1:IM,J_0,1:LM) + DEL_U_R(1:IM,1:LM)
+!              V(1:IM,J_0,1:LM) = V(1:IM,J_0,1:LM) + DEL_V_R(1:IM,1:LM)
+!END_PSEUDOCODE
+
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 C**** and save changes in KE for addition as heat later

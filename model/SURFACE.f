@@ -10,6 +10,7 @@
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
      *     ,byrhoi,deltx,byrt3,teeny
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP, only : NORTH
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
@@ -193,11 +194,15 @@ C**** Set up tracers for PBL calculation if required
       Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__)
       Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__)
       Call CHECKSUM(GRID, visurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, u     , __LINE__, __FILE__)
+      Call CHECKSUM(GRID, v     , __LINE__, __FILE__)
 
       Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH)
+      Call HALO_UPDATE(GRID, u     , FROM=NORTH)
+      Call HALO_UPDATE(GRID, v     , FROM=NORTH)
 
 
 C****

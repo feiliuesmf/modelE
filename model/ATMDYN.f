@@ -1318,6 +1318,9 @@ C**** Call diagnostics and KE dissipation only for even time step
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
         
+        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, DKE, from=NORTH)
+
 C**** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
         DO L=1,LM
@@ -1728,6 +1731,9 @@ C*
         end do
       end if
 
+      CALL CHECKSUM   (GRID, DKE, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DKE, from=NORTH)
+
 C***** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=1,LM
@@ -1805,6 +1811,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
       USE GEOM, only : imaxj,kmaxj,idij,idjj,rapj
       USE DYNAMICS, only : dke,pk
       USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP, Only : HALO_UPDATE, CHECKSUM, NORTH
       IMPLICIT NONE
       INTEGER I,J,L,K
       REAL*8 ediff
@@ -1818,6 +1825,9 @@ c**** Extract domain decomposition info
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
+
+      CALL CHECKSUM   (GRID, DKE, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, DKE, from=NORTH)
 
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=1,LM

@@ -2529,11 +2529,15 @@ c
       subroutine il_defs
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav
       USE MODEL_COM, only : dtsrc,jeq,qcheck
+      USE DOMAIN_DECOMP, only : grid,get
       USE GEOM, only : dxyp
       use DAGCOM
       implicit none
       real*8 :: bydj,bydjuv,daeq
       integer :: k,j,kk
+      integer j_0,j_1
+
+      call get(grid, j_strt=j_0, j_stop=j_1)
 c
       do k=1,kail
          write(name_il(k),'(a3,i3.3)') 'AIL',k
@@ -2547,7 +2551,7 @@ C**** some scaling numbers for the equatorial diags.
       bydj   = 1./REAL(j5n-j5s+1,KIND=8)
       bydjuv = 1./REAL(j5nuv-j5suv+1,KIND=8)
       daeq=0.
-      do j=j5s,j5n
+      do j=max(j_0,j5s),min(J_1,j5n)
         daeq=daeq+DXYP(J)
       end do
 C****

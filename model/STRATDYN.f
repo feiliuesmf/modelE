@@ -413,6 +413,9 @@ C**** conservation diagnostic
       IF (MRCH.gt.0) THEN
         CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
+        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, DKE, from=NORTH)
+
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
         DO L=1,LM
@@ -1192,6 +1195,9 @@ C****
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
+
+        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, DKE, from=NORTH)
 
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 !$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)

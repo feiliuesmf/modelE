@@ -39,8 +39,10 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: 
-     &                  DXYP,BYDXYP
+C**** Decomposition exception: DXYP not distributed because individual elements
+C**** of the 1D array are needed by all processes.
+      REAL*8  DXYP(JM)
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: BYDXYP
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
@@ -169,6 +171,11 @@ C****POLES
       END DO
       BYDYP(:) = 1.D0/DYP(:)
       AREAG = AREAG*FIM
+C****EXCEPTION! 
+C****      dxyp is not distributed -> make sure all procs. have right values for
+C****                                 the whole array. 
+C****  CALL ALL_GATHER(DXYP)
+
 C****POLES
       IF (grid%HAVE_SOUTH_POLE) THEN
         RAVPS(1)  = 0.
@@ -327,7 +334,6 @@ C**** Conditions at non-polar points
      &          LON_DG (IM,           2),
      &                                    STAT = IER)
       ALLOCATE(
-     &          DXYP      (J_0H:J_1H),
      &          BYDXYP    (J_0H:J_1H),
      &          WTJ       (J_0H:J_1H, 2, 2),
      &          DXYV      (J_0H:J_1H),
