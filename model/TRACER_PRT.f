@@ -60,7 +60,8 @@ C**** Zonal mean cloud water concentration
       do j=1,jm
         tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
-        tajln(j,l,jlnt_cldh2o,n) = tajln(j,l,jlnt_cldh2o,n)+tsum/asum
+        if (asum.gt.0) tajln(j,l,jlnt_cldh2o,n) =
+     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
 #endif
