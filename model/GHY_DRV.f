@@ -149,13 +149,6 @@ c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
 c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
-ccc for debugging only -will remove later
-cddd      real*8 acc_water, acc_energy, acc_energy_2, acc_pearth
-cddd      real*8 :: energy_old(2,im,jm) = 0.d0
-cddd      acc_water=0.d0
-cddd      acc_energy=0.d0
-cddd      acc_energy_2=0.d0
-cddd      acc_pearth=0.d0
 
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
@@ -238,21 +231,6 @@ c#ifdef TRACERS_WATER
 c      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0.
 c#endif
 #endif
-c**** new quantities to be zeroed out over ground timesteps
-cddd         aruns=0.
-cddd         arunu=0.
-cddd         aeruns=0.
-cddd         aerunu=0.
-cddd      aevapw=0.
-cddd      aevapd=0.
-cddd      aevapb=0.
-cddd         alhg=0.
-cddd         aepc=0.
-cddd         aepb=0.
-cddd         atrg=0.
-cddd      ashg=0.
-cddd         af0dt=0.
-cddd         af1dt=0.
 c****
 c**** earth
 c****
@@ -304,6 +282,7 @@ c**** loop over ground time steps
       if(tg1.lt.0.)  elhx=lhs
       qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
       qg = qg_ij(i,j)
+      ! if ( qg > 999.d0 ) qg = qg_sat
       tgv=tg*(1.+qg*deltx)
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 C**** Obviously there are no ocean currents for earth points, but 
@@ -721,26 +700,9 @@ c**** quantities accumulated for surface type tables in diagj
         aj(j,j_type,itearth)=aj(j,j_type,itearth)+        pearth
       end if
 
-ccc for debugging only -will remove later
-cddd      acc_water = acc_water +
-cddd     &     (ghy_debug%water(1)*fb + ghy_debug%water(2)*fv)
-cddd     &     *pearth*dxyp(j)
-cddd      acc_energy = acc_energy +
-cddd     &     (ghy_debug%energy(1)*fb + ghy_debug%energy(2)*fv)
-cddd     &     *pearth*dxyp(j)
-cddd      acc_energy_2 = acc_energy_2 +
-cddd     &     abs(ghy_debug%energy(1)*fb + ghy_debug%energy(2)*fv)
-cddd     &     *pearth*dxyp(j)
-cddd      acc_pearth = acc_pearth + pearth*dxyp(j)
       end do loop_i
       end do loop_j
 C$OMP  END PARALLEL DO
-C
-C
-ccc for debugging only -will remove later
-cddd      !print *,'zzz total water ', acc_water / acc_pearth
-cddd      print *,'zzz total energy ', acc_energy / acc_pearth,
-cddd     &     acc_energy_2 / acc_pearth
 
       DO 825 J=1,JM
       DO 825 I=1,IMAXJ(J)
@@ -786,7 +748,7 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
-      use constant, only : twopi,rhow,edpery,sha
+      use constant, only : twopi,rhow,edpery,sha,lhe,tf
       use model_com, only : fearth,vdata,itime,nday,jeq
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -796,6 +758,7 @@ c**** modifications needed for split of bare soils into 2 types
 #endif
       use fluxes, only : gtemp
       use ghycom
+      use dynamics, only : pedn
       implicit none
 
       real*8, intent(in) :: dtsurf
@@ -855,6 +818,7 @@ c****       1 -   ngm   dz(ngm)
 c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
+      real*8, external :: qsat
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -1122,6 +1086,19 @@ C**** Calculate mean tracer ratio
           end if
         end do
       end do
+
+ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
+ccc to something more appropriate
+      if ( sum(evap_max_ij(:,:)) > im*jm-1.d0 ) then ! old default
+        do j=1,jm
+          do i=1,im
+            if ( fearth(i,j) .le. 0.d0 ) cycle
+            qg_ij(i,j) = qsat(tearth(i,j)+tf,lhe,pedn(1,i,j))
+          enddo
+        enddo
+        fr_sat_ij(:,:) = 0.d0
+        evap_max_ij(:,:) = 0.d0
+      endif
 
 ccc   init snow here
 ccc hope this is the right place to split first layer into soil

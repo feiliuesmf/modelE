@@ -1455,6 +1455,8 @@ c**** soils28   common block     9/25/90
       call retp
       tb0=tp(1,1)
       tc0=tp(0,2)
+cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
+cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 ccc accm0 was not called here in older version - check
       call accm0
       do while ( dtr > 0.d0 )
@@ -1481,6 +1483,7 @@ ccc accm0 was not called here in older version - check
 
         call xklh
         call gdtm(dtm)
+        !print *,'dtm ', ijdebug, dtm
         if ( dtm >= dtr ) then
           dts = dtr
           dtr = 0.d0
@@ -1519,6 +1522,8 @@ c     call fhlmt
         call accm
         call reth
         call retp
+cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
+cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
       enddo
 
       call accmf
@@ -1715,7 +1720,7 @@ c      if(ibv.eq.1)dtm5=dtm
 c      if(ibv.eq.2)dtm6=dtm
 c     endif
       end do
-      if(dtm.lt.10.d0)then
+      if(dtm.lt.5.d0)then
        write(99,*) '*********** gdtm: ijdebug,fb,fv',ijdebug,fb,fv
        write(99,*)'dtm',dtm1,dtm2,dtm3,dtm4
        write(99,*)'xk2',xk2
@@ -1725,7 +1730,7 @@ c     endif
        write(99,*)'dqdt',dqdt
        write(99,*)'ts,tfrz',ts,tfrz
        write(99,*)'dlt',tp(1,1)-ts+tfrz,tp(0,2)-ts+tfrz
-       call stop_model("gdtm: time step < 10 s",255)
+       call stop_model("gdtm: time step < 5 s",255)
       endif
 c****
       return
@@ -2287,12 +2292,6 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
       error_water = (total_water(1) - old_total_water(1)) / dts
      $     - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
 
- !if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
-       ! if ( snowd(1) > 0.d0 ) return
-
-      !print *, 'ij ', ijdebug
-      !print *, 'ghy bare ', total_water(1) , old_total_water(1)
-
       if ( abs( error_water ) > 1.d-15 )
      &       call stop_model('GHY: water conservation problem',255)
 
@@ -2300,20 +2299,8 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
       error_water = (total_water(2) - old_total_water(2)) / dts
      &     - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
 
-       ! if ( fr_snow(2) > 0.d0 .or. old_fr_snow(2) > 0.d0 ) return
-       ! if ( snowd(2) > 0.d0 ) return
-
-      !print *, 'ghy vege ', total_water(2) , old_total_water(2)
-
       if ( abs( error_water ) > 1.d-15 ) call stop_model(
      &     'GHY: water conservation problem in veg. soil',255)
-
-!     error_water = (total_water(2) - old_total_water(2)) / dts
-!    &     -pr +evapw + sum( rnff(1:n,2) ) + rnf(2)
-!    &     + evapd
-!
-!       if ( abs( error_water ) > 1.d-15 ) call stop_model(
-!    &       'GHY: water conservation problem in veg. soil 2',255)
 
       ghy_debug%water(:) = total_water(:)
 
@@ -2353,8 +2340,6 @@ C$OMP  THREADPRIVATE (/check_energy_tp/)
      &     + rnf(1)*max(tp(1,1),0.d0) )
      &     - srht - trht + thrm_tot(1) + snsh_tot(1)
 
- !if ( fr_snow(1) > 0.d0 .or. old_fr_snow(1) > 0.d0 ) return
-
       if ( abs( error_energy ) > 1.d-5 )
      &       call stop_model('GHY: energy conservation problem',255)
 
@@ -2365,18 +2350,12 @@ C$OMP  THREADPRIVATE (/check_energy_tp/)
      &     + rnf(2)*max(tp(1,2),0.d0) )
      &     - srht - trht + thrm_tot(2) + snsh_tot(2)
 
-       ! if ( fr_snow(2) > 0.d0 .or. old_fr_snow(2) > 0.d0 ) return
-
       if ( abs( error_energy ) > 1.d-5) call stop_model(
      &     'GHY: energy conservation problem in veg. soil',255)
-
-      ! print *,'check energy: ',total_energy, error_energy
 
       ghy_debug%energy(:) = total_energy(:)
 
       end subroutine check_energy
-
-
 
 
       end module sle001
