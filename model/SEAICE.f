@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE SEAICE
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
@@ -844,6 +846,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE SEAICE, only : lmi
+#ifdef TRACERS_WATER
+      USE TRACERS, only : ntm
+#endif
 
       IMPLICIT NONE
 !@var RSI fraction of open water area covered in ice
@@ -857,6 +862,13 @@ C**** Note that MSI includes the mass of salt in sea ice
       REAL*8, DIMENSION(LMI,IM,JM) :: HSI
 !@var SSI sea ice salt content (kg/m^2)
       REAL*8, DIMENSION(LMI,IM,JM) :: SSI
+
+#ifdef TRACERS_WATER
+!@var TRMSI tracer amount in sea ice (kg/m^2)
+      REAL*8, DIMENSION(NTM,LMI,IM,JM) :: TRMSI
+!@var TRSNOWI tracer amount in snow on ice (kg/m^2)
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWI
+#endif
 
       END MODULE SEAICE_COM
 
@@ -874,6 +886,14 @@ C**** Note that MSI includes the mass of salt in sea ice
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SICE01"
+#ifdef TRACERS_WATER
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSICE01"
+
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a8,i3,a1,i3,a,i3,a)')'R8 TRMSI(',ntm,','
+     *     ,lmi,',im,jm) TRSNOWI(',ntm,',im,jm)'
+#endif
 
       write (MODULE_HEADER(lhead+1:80),'(a14,i1,a34,i1,a7)')
      * 'R8 F(im,jm),H(',lmi,',im,jm),snw(im,jm),msi(im,jm),ssi(',
@@ -882,12 +902,27 @@ C**** Note that MSI includes the mass of salt in sea ice
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
          WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOWI,MSI,SSI
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRMSI,TRSNOWI
+#endif
       CASE (IOREAD:)            ! input from restart file
          READ (kunit,err=10) HEADER,RSI,HSI,SNOWI,MSI,SSI
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+#ifdef TRACERS_WATER
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)           ! initial conditions
+        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+          READ (kunit,err=10) TRHEADER,TRMSI,TRSNOWI
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+#endif
       END SELECT
 
       RETURN

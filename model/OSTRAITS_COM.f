@@ -1,9 +1,14 @@
+#include "rundeck_opts.h"
+
       MODULE STRAITS
 !@sum  STRAITS ocean strait related variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : lmo
       USE SEAICE, only : lmi
+#ifdef TRACERS_OCEAN
+      USE TRACERS, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
 C**** These values are highly resolution dependent
@@ -79,6 +84,13 @@ C****
       REAL*8, DIMENSION(2,NMST) :: MSIST
       REAL*8, DIMENSION(LMI,NMST) :: HSIST,SSIST
 
+#ifdef TRACERS_OCEAN
+!@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
+      REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
+!@var TRSIST tracer amount in with strait (kg)      
+      REAL*8, DIMENSION(LMI,NMST,NTM) :: TRSIST
+#endif
+
       END MODULE STRAITS
 
       SUBROUTINE io_straits(kunit,iaction,ioerr)
@@ -95,6 +107,15 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
+#ifdef TRACERS_OCEAN
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
+
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a7,i3,a1,i3,a1,i3,a,i3,a1,i3,a1,i3,a)')'R8 dim(',lmo,','
+     *     ,nmst,',',NTM,'):TRMST,TXST,TZST,TRSIST(',lmi,',',nmst,','
+     *     ,ntm,')'
+#endif
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
      *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
@@ -104,6 +125,9 @@ C****
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
+#ifdef TRACERS_OCEAN
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRMST,TXMST,TZMST,TRSIST
+#endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
@@ -115,6 +139,14 @@ C****
      *           ,MODULE_HEADER
             GO TO 10
           END IF
+#ifdef TRACERS_OCEAN
+          READ (kunit,err=10) TRHEADER,TRMST,TXMST,TZMST,TRSIST
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+#endif
         END SELECT
       END SELECT
 

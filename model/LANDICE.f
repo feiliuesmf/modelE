@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE LANDICE
 !@sum  LANDICE contains variables and routines dealing with land ice
 !@auth Original Development Team
@@ -118,12 +120,20 @@ C**** CALCULATE TG2
 !@ver  1.0
 !@cont io_landice
       USE MODEL_COM, only : im,jm
-
+#ifdef TRACERS_WATER
+      USE TRACERS, only : ntm
+#endif
       IMPLICIT NONE
+      SAVE
 !@var SNOWLI snow amount on land ice (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: SNOWLI
 !@var TLANDI temperature of each land ice layer (C)
       REAL*8, DIMENSION(2,IM,JM) :: TLANDI
+
+#ifdef TRACERS_WATER
+!@var TRSNOWLI tracer amount in land ice snow (kg)      
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWLI
+#endif
 
       END MODULE LANDICE_COM
 
@@ -141,18 +151,40 @@ C**** CALCULATE TG2
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "GLAIC01"
+#ifdef TRACERS_WATER
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRGLAC01"
+
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a7,i3,a)')'R8 dim(',NTM,',im,jm):TRSNOWLI'
+#endif
 
       MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,SNOWLI,TLANDI
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI
+#endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,SNOWLI,TLANDI
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+#ifdef TRACERS_WATER
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)           ! initial conditions
+        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+          READ (kunit,err=10) TRHEADER,TRSNOWLI
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+#endif
       END SELECT
 
       RETURN

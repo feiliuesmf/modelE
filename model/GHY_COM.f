@@ -44,6 +44,17 @@ C**** replacements for GDATA
 ccc topmodel input data
       REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ
 
+#ifdef TRACERS_WATER
+!@var TRBARE,TRVEGE tracer amount in bare and veg. soil fraction (kg)      
+      REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TRBARE
+      REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TRVEGE
+C**** What is the prognostic variable for snow here?
+!@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg) ?????
+      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV
+!@var TRSN_IJ tracer amount in snow on earth (kg)  ???? Is this correct?
+      REAL*8, DIMENSION(NTM,NLSN,2,IM,JM) :: TRSN_IJ
+#endif
+
       END MODULE GHYCOM
 
       SUBROUTINE io_earth(kunit,iaction,ioerr)
@@ -85,8 +96,11 @@ ccc topmodel input data
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun
       USE GHYCOM
+#ifdef TRACERS_WATER
+      USE TRACERS, only : ntm
+#endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -95,6 +109,15 @@ ccc topmodel input data
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS01"
+#ifdef TRACERS_WATER
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
+
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a10,i3,a1,i3,a,i3,a1,i3,a,i3,a)')'R8 TRBARE(',NTM,
+     *     ',',NGM,',im,jm,) TRVEGE(',NTM,',',NGM,'+1,im,jm,),TRSNOWBV('
+     *     ,ntm,'2,im,jm)'
+#endif
 
       write(MODULE_HEADER(lhead+1:80),'(a6,i1,a13,i1,a)') 'R8 Wb(',
      *   ngm,',im,jm), dim(',ngm+1,',im,jm):Wv,HTb,HTv, SNWbv(2,im,jm)'
@@ -103,12 +126,27 @@ ccc topmodel input data
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
      *       ,snowbv
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRBARE,TRVEGE,TRSNOWBV
+#endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+#ifdef TRACERS_WATER
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)           ! initial conditions
+        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+          READ (kunit,err=10) TRHEADER,TRBARE,TRVEGE,TRSNOWBV
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+#endif
       END SELECT
 
       RETURN
@@ -120,7 +158,7 @@ ccc topmodel input data
 !@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun
       USE GHYCOM
       IMPLICIT NONE
 
@@ -130,6 +168,13 @@ ccc topmodel input data
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SNOW01"
+#ifdef TRACERS_WATER
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
+
+      write (TRMODULE_HEADER(lhead+1:80)
+     *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
+#endif
 
       write (MODULE_HEADER(lhead+1:80),'(a31,I1,a)') 'I dim(2,im,jm):'//
      *  'Nsn,Isn, R8 dim(',NLSN,',2,im,jm):dz,w,ht, Fsn(2,im,jm)'
@@ -138,6 +183,9 @@ ccc topmodel input data
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
+#ifdef TRACERS_WATER
+        WRITE (kunit,err=10) TRMODULE_HEADER,TRSN_IJ
+#endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
@@ -145,6 +193,18 @@ ccc topmodel input data
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+#ifdef TRACERS_WATER
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)           ! initial conditions
+        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+          READ (kunit,err=10) TRHEADER,TRSN_IJ
+          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",TRHEADER
+     *           ,TRMODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+#endif
       END SELECT
 
       RETURN

@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE OCEAN
 !@sum  OCEAN dynamic ocean related variables
 !@auth Gary Russell/Gavin Schmidt
@@ -6,6 +8,9 @@ C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       USE MODEL_COM, only : im,jm,fim,byim
       USE GEOM, only : imaxj
+#ifdef TRACERS_OCEAN
+      USE TRACERS, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: LMO=13  !@param LMO no. of ocean levels
@@ -44,6 +49,11 @@ C**** ocean related parameters
       REAL*8, DIMENSION(IM,JM) :: OPRESS
 !@var OGEOZ ocean geopotential at surface (m^2/s^2)
       REAL*8, DIMENSION(IM,JM) :: OGEOZ
+
+#ifdef TRACERS_OCEAN
+!@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)      
+      REAL*8, DIMENSION(IM,JM,LMO,NTM) :: TRMO,TXMO,TYMO,TZMO
+#endif
 
       END MODULE OCEAN
 

@@ -477,6 +477,13 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+#ifdef TRACERS_OCEAN
+!@var TRHEADER Character string label for individual records
+      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN01"
+
+      write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
+     *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
+#endif
 
       write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
      *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGEOZ(im,jm)'
@@ -485,6 +492,9 @@ C****
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO
      *     ,S0M,SXMO,SYMO,SZMO,OGEOZ
+#ifdef TRACERS_OCEAN
+       WRITE (kunit,err=10) TRMODULE_HEADER,TRMO,TXMO,TYMO,TZMO
+#endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
           CASE (IRSFIC)   ! initial conditions
@@ -492,12 +502,19 @@ C****
           CASE (ioread,irerun) ! restarts
             READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
      *           ,SXMO,SYMO,SZMO,OGEOZ
-c???        Could check here whether header(14:15) contains LMO
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
               GO TO 10
             END IF
+#ifdef TRACERS_OCEAN
+            READ (kunit,err=10) TRHEADER,TRMO,TXMO,TYMO,TZMO
+            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRHEADER
+     *             ,TRMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
           END SELECT
       END SELECT
 
