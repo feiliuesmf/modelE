@@ -402,9 +402,9 @@ c-----------------------------------------------------------------------
       subroutine ncwrt_iparm(iparm_name,ncid,iparm,kjc)
       implicit none
       include 'netcdf.inc'
+      integer :: ncid,kjc
       character(len=20), dimension(kjc) :: iparm_name
       integer, dimension(kjc) :: iparm
-      integer :: ncid,kjc
       integer :: k,status
       do k=1,kjc
          if(iparm_name(k).eq.'nowrite') cycle
@@ -417,9 +417,9 @@ c-----------------------------------------------------------------------
       subroutine ncget_iparm(iparm_name,ncid,iparm,kjc)
       implicit none
       include 'netcdf.inc'
+      integer :: ncid,kjc
       character(len=20), dimension(kjc) :: iparm_name
       integer, dimension(kjc) :: iparm
-      integer :: ncid,kjc
       integer :: k,status
       do k=1,kjc
          if(iparm_name(k).eq.'nowrite') cycle
@@ -432,9 +432,9 @@ c-----------------------------------------------------------------------
       subroutine ncwrt_dparm(dparm_name,ncid,dparm,krc)
       implicit none
       include 'netcdf.inc'
+      integer :: ncid,krc
       character(len=20), dimension(krc) :: dparm_name
       REAL*8, dimension(krc) :: dparm
-      integer :: ncid,krc
       integer :: k,status
       do k=1,krc
          if(dparm_name(k).eq.'nowrite') cycle
@@ -447,9 +447,9 @@ c-----------------------------------------------------------------------
       subroutine ncget_dparm(dparm_name,ncid,dparm,krc)
       implicit none
       include 'netcdf.inc'
+      integer :: ncid,krc
       character(len=20), dimension(krc) :: dparm_name
       REAL*8, dimension(krc) :: dparm
-      integer :: ncid,krc
       integer :: k,status
       do k=1,krc
          if(dparm_name(k).eq.'nowrite') cycle
