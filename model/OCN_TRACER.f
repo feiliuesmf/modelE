@@ -89,9 +89,10 @@ C**** data are now in 'per mil'
           if (index(title,trim(trname(n))).eq.0) goto 10
           write (6,*) 'Read from H2O18ic: ',title
           call closeunit(iu_O18ic)
+
 C**** Turn per mil data into mass ratios (using current standard)
           t0m4(:,:,:)=(t0m4(:,:,:)*1d-3+1.)*trw0(n)
-          tzm4(:,:,:)=tzm4(:,:,:)*1d-3*trw0(n)
+          tzm4(:,:,:)=0.    ! tzm4(:,:,:)*1d-3*trw0(n) corrupted?
 C****
           do l=1,lmo
             txmo(:,:,l,n) = 0.

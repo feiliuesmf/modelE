@@ -115,10 +115,8 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
-          DO I=1,IM*JM*LMO
-            TOIJL(I,1,1,TOIJL_CONC,N)=TOIJL(I,1,1,TOIJL_CONC,N)
-     *           +TRMO(I,1,1,N)
-          END DO
+          TOIJL(:,:,:,TOIJL_CONC,N)=TOIJL(:,:,:,TOIJL_CONC,N)
+     *         +TRMO(:,:,:,N)
         END DO
 #endif
         CALL TIMER (MNOW,MDYNO)
@@ -2589,8 +2587,7 @@ C****
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM,IM,JM) :: trprec,trunpsi
 #endif
-      REAL*8 POCEAN
-      INTEGER I,J,N
+      INTEGER I,J
 
 C**** save surface variables before any fluxes are added
       CALL KVINIT
@@ -2627,6 +2624,7 @@ C****
           END IF
         END DO
       END DO
+
 C**** Convert ocean surface temp to atmospheric SST array
       CALL TOC2SST
 
@@ -3305,7 +3303,7 @@ C****
       USE MODEL_COM, only : itocean,itoice
       USE GEOM, only : bydxyp
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm,trglac
+      USE TRACER_COM, only : trglac
       USE OCEAN, only : trmo
 #endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo,dxypo

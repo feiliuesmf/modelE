@@ -794,8 +794,7 @@ c**** apply surface fluxes to the first layer of the atmosphere
 c****  (replaced with dummy subroutine when ATURB is used)
 c****
       call apply_fluxes_to_atm(dtsurf)
-c****
-      CALL CHECKT ('applyF')
+
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
 C****

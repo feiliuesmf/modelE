@@ -57,7 +57,7 @@ c
       k=k+1
       J_SRNFP0=  k ! SRNFP0 (W/m**2)                               2 RD
       name_j(k) = 'sw_abs_p0'
-      lname_j(k) = ' SOLAR RADIATION ABSORBED BY PLANET'
+      lname_j(k) = 'SOLAR RADIATION ABSORBED BY PLANET'
       units_j(k) = 'W/m^2'
       stitle_j(k)= '0SW ABS BELOW P0'
       scale_j(k) = 1.
