@@ -125,6 +125,8 @@ C**** Local variables initialised in init_RAD
 
 !@var NTRIX Indexing array for optional aerosol interaction
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
+!@var WTTR weighting array for optional aerosol interaction
+      REAL*8, DIMENSION(ITRMAX) :: WTTR = 1.
 
       END MODULE RADNCB
 
