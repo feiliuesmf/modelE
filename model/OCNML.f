@@ -41,7 +41,7 @@ C**** Check for NaN/INF in ocean data
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,TOCEAN,Z1O
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

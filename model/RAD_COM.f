@@ -96,7 +96,7 @@ C**** Local variables initialised in init_RAD
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
-     *         ,lhead,Kradia
+     *         ,lhead,Kradia,irsficnt
       USE RADNCB
       IMPLICIT NONE
 
@@ -135,7 +135,7 @@ C**** Local variables initialised in init_RAD
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
      *       ,S0,SRHR,TRHR,FSF   ! only needed if MODRAD > 0 at restart
-        CASE (IRSFIC)            ! start from restart file of prev. run
+        CASE (IRSFIC,irsficnt)   ! start from restart file of prev. run
           READ (kunit,err=10) HEADER,RQT
         END SELECT
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN

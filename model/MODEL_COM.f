@@ -325,7 +325,7 @@ C**** use doc-record to check the basic model parameters
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
-        CASE (IRSFIC)           ! use rundeck & defaults except label
+        CASE (IRSFIC,irsficnt)        ! use rundeck & defaults except label
           read(kunit,err=10)          ! skip parameters, dates
           it=it*24/nd1                ! switch itime to ihour
         CASE (IRERUN)           ! parameters from rundeck & restart file
