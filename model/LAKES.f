@@ -360,14 +360,14 @@ C****
       USE LAKES
       USE LAKES_COM
       USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
-     *     ,title_con
+     *     ,title_con,conpt0
       IMPLICIT NONE
 
       LOGICAL inilake
 !@var I,J,I72,IU,JU,ID,JD loop variables
       INTEGER I,J,I72,IU,JU,ID,JD,INM,KD
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
-      CHARACTER TITLEI*80, CDIREC(IM,JM)*1
+      CHARACTER TITLEI*80, CDIREC(IM,JM)*1, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 C****
@@ -615,11 +615,14 @@ C****
       END DO
 
 C**** Set conservation diagnostics for Lake mass and energy
-      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"LAK MASS","(10**10 KG)     ",
+      CONPT=CONPT0
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP" 
+      CONPT(5)="SURFACE"   ; CONPT(8)="RIVERS"
+      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LAK MASS","(10**10 KG)     ",
      *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)
-      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,"LAK ENRG","(10**14 J)      ",
+      QCON=(/ F, F, T, T, T, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**14 J)      ",
      *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)
 
       RETURN

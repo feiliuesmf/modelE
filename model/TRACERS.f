@@ -14,7 +14,7 @@
       SUBROUTINE set_generic_tracer_diags
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
-!@calls sync_param, SET_TCON
+!@calls sync_param
       USE CONSTANT, only: mair,sday
       USE MODEL_COM, only: dtsrc,nisurf
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2

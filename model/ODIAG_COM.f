@@ -215,10 +215,11 @@ C****
 !@ver  1.0
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
-      USE DAGCOM, only : ia_src
+      USE DAGCOM, only : ia_src,conpt0
       USE ODIAG
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
+      CHARACTER CONPT(NPTS)*10
       INTEGER k
 
 C**** Set names for OIJL diagnostics
@@ -288,24 +289,26 @@ c
 
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass
-      QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN MASS","(10**2 KG/M^2) ",
+      CONPT=CONPT0
+      CONPT(8)="OCN PHYS" 
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN MASS","(10**2 KG/M^2) ",
      *     "(10**-8 KG/SM^2)",1d-2,1d8,icon_OMS)
 C**** Oceanic angular momentum
-      QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN AM  ","(10**12 JS/M^2)",
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN AM  ","(10**12 JS/M^2)",
      *     "(10**2 J/M^2)   ",1d-12,1d-2,icon_OAM)
 C**** Oceanic kinetic energy
-      QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCEAN KE","(J/M^2)        ",
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCEAN KE","(J/M^2)        ",
      *     "(10**-6 W/M^2)  ",1d0,1d6,icon_OKE)
 C**** Oceanic potential enthalpy (heat)
-      QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN HEAT","(10**6 J/M^2)  ",
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN HEAT","(10**6 J/M^2)  ",
      *     "(10**-2 KG/SM^2)",1d-6,1d2,icon_OCE)
 C**** Oceanic salt mass
-      QCON=(/ F, F, F, T, F, T, F, T, T, T, T/)
-      CALL SET_CON(QCON,"OCN SALT","(10 KG/M^2)    ",
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN SALT","(10 KG/M^2)    ",
      *     "(10**-9 KG/SM^2)",1d-1,1d9,icon_OSL)
 C**** Initialise ocean basins
       CALL OBASIN

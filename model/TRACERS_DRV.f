@@ -16,7 +16,7 @@
 !@calls sync_param, SET_TCON
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim
-      USE DAGCOM, only: ia_src,ia_12hr,ir_log2
+      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts,conpt
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE PARAM
@@ -34,6 +34,7 @@
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
+      CHARACTER CONPT(NPTS)*10
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
 #ifdef TRACERS_WATER
@@ -1624,6 +1625,7 @@ C****      routine DIAGCTB is used, this must be false).
 C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C**** First 12 are standard for all tracers and GCM
+      CONPT=CONPT0
       QCON=(/ t,                                           !instant.
      *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22

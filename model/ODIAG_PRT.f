@@ -624,8 +624,14 @@ c        END DO
       END DO
 
 C**** Output Key diagnostics: North Atl. overturning
-      WRITE(6,'(A,F6.2)') " North Atlantic overturning: 900m 48N: ",
+      WRITE(6,'(A46,F6.2)') " North Atlantic overturning: 900m 48N: ",
      *     SFM(35,9,1)
+C**** Output Key diagnostics: North Pacific overturning
+      WRITE(6,'(A46,F6.2)') " North Pacific overturning:  900m 48N: ",
+     *     SFM(35,9,2)
+C**** Output Key diagnostics: AABW production
+      WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
+     *     //" 3000m 54S: ",SFM(10,12,4)
 
 C****
 C**** Calculate Salt Stream Function and write it
@@ -706,8 +712,8 @@ C****
             END DO
           END DO
           IF (N.eq.LN_ICFL) THEN
-            LMSTMIN(:)=1
-            CALL STABLE (LMSTMIN,name_st,AS,TITLE,SUMORMN(N))
+c            LMSTMIN(:)=1
+c            CALL STABLE (LMSTMIN,name_st,AS,TITLE,SUMORMN(N))
           ELSE
             CALL STABLE (LMST,name_st,AS,TITLE,SUMORMN(N))
           END IF

@@ -2566,6 +2566,7 @@ c****
       INTEGER L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
      *     ,ISTART,jday0,jday,moff,kb,iu_ACC
       CHARACTER FILENM*100
+      CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
       call sync_param( "NAMDD", NAMDD, 4 )
@@ -2698,23 +2699,25 @@ C****    v) Note that the conserv_XYZ routine, and call to SET_CON
 C****       should be in the driver module for the relevant physics
 
 C**** Set up atmospheric component conservation diagnostics
+      CONPT=CONPT0
+      CONPT(4)="SURF+TURB" 
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
-      CALL SET_CON(QCON,"MASS    ","(KG/M^2)       ",
+      CALL SET_CON(QCON,CONPT,"MASS    ","(KG/M^2)       ",
      *     "(10**-8 KG/SM^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
       QCON=(/ T, T, T, F, F, T, T, F, F, F, F/)
-      CALL SET_CON(QCON,"TPE     ","(10**5 J/M^2)  ",
+      CALL SET_CON(QCON,CONPT,"TPE     ","(10**5 J/M^2)  ",
      *     "(10**-2 W/M^2)  ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,"ATM WAT ","(10**-2 KG/M^2)",
+      CALL SET_CON(QCON,CONPT,"ATM WAT ","(10**-2 KG/M^2)",
      *     "(10**-8 KG/SM^2)",1d2,1d8,icon_WM)
 C**** Atmospheric water energy
 C**** This is not currently a conserved quantity, but it should be.
 C**** Hence this diagnostic gives the error
       QCON=(/ T, T, F, F, F, T, F, F, F, F, F/)
-      CALL SET_CON(QCON,"ENRG WAT","(J/M^2)        ",
+      CALL SET_CON(QCON,CONPT,"ENRG WAT","(J/M^2)        ",
      *     "(10**-6 W/M^2)  ",1d0,1d6,icon_EWM)
 
 C**** Initialize layering for spectral diagnostics
@@ -2852,7 +2855,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       END SUBROUTINE daily_DIAG
 
 
-      SUBROUTINE SET_CON(QCON,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
+      SUBROUTINE SET_CON(QCON,CONPT,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
      *     ,CHNG_SC,ICON)
 !@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
@@ -2861,10 +2864,12 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
-     *     ,lname_consrv,units_consrv,conpt
+     *     ,lname_consrv,units_consrv
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
+!@var CONPT names for points where conservation diags are saved
+      CHARACTER*10, INTENT(IN),DIMENSION(NPTS) :: CONPT
 !@var INST_SC scale for instantaneous value
       REAL*8, INTENT(IN) :: INST_SC
 !@var CHNG_SC scale for changes

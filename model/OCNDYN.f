@@ -47,6 +47,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
          CALL TIMER (MNOW,MSURF)
+         IF (MODD5S.EQ.0) CALL DIAGCA (11)
 
 C**** Calculate vertical diffusion
       CALL OCONV
@@ -132,7 +133,7 @@ C**** Advection of Potential Enthalpy and Salt
 #endif
         CALL TIMER (MNOW,MDYNO)
 
-        IF (MODD5S.EQ.0) CALL DIAGCA (11)
+        IF (MODD5S.EQ.0) CALL DIAGCA (12)
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
         CALL CHECKO ('ODIFF ')
@@ -148,7 +149,6 @@ C**** Apply GM + Redi tracer fluxes
 #endif
         CALL CHECKO ('GMDIFF')
         CALL TIMER (MNOW,MSGSO)
-        IF (MODD5S.EQ.0) CALL DIAGCA (12)
 C****
 C**** Acceleration and advection of tracers through ocean straits
 C****

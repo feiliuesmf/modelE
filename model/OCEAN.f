@@ -532,10 +532,11 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0
-      USE DAGCOM, only : npts,icon_OCE
+      USE DAGCOM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
+      CHARACTER CONPT(NPTS)*10
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
       INTEGER :: iu_OHT,iu_MLMAX
       INTEGER :: I,J
@@ -589,8 +590,9 @@ C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
         END DO
 
 C*****  set conservation diagnostic for ocean heat
+        CONPT=CONPT0
         QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
-        CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M**2)   ",
+        CALL SET_CON(QCON,CONPT,"OCN HEAT","(10^6 J/M**2)   ",
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
 
       END IF

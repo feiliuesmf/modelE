@@ -722,7 +722,7 @@ c**** modifications needed for split of bare soils into 2 types
       use constant, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
       use model_com, only : fearth,vdata,itime,nday,jeq
-      use dagcom, only : npts,icon_wtg,icon_htg
+      use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0
@@ -745,6 +745,7 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 slim,slre,svh,z
       integer iv, l
       logical ghy_data_missing
+      character conpt(npts)*10
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot
 #endif
@@ -790,13 +791,15 @@ c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
 
 c**** set conservation diagnostics for ground water mass and energy
-      qcon=(/ .false., .false., .false., .false., .false., .true.
+      conpt=conpt0
+      conpt(4)="EARTH"
+      qcon=(/ .false., .false., .false., .true., .false., .false.
      $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"GRND WTR","(kg/m^2)        ",
+      call set_con(qcon,conpt,"GRND WTR","(kg/m^2)        ",
      *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
-      qcon=(/ .false., .false., .false., .false., .false., .true.
+      qcon=(/ .false., .false., .false., .true., .false., .false.
      $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"GRND ENG","(10**6 J/m^2)   ",
+      call set_con(qcon,conpt,"GRND ENG","(10**6 J/m^2)   ",
      *     "(10^-3 J/s/m^2) ",1d-6,1d3,icon_htg)
 
 c read in vegetation data set: vdata

@@ -75,7 +75,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NQUANT Number of conserved quantities in conservation diags
       INTEGER, PARAMETER :: NQUANT=18
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=125
+      INTEGER, PARAMETER :: KCON=130
 !@var CONSRV conservation diagnostics
       REAL*8, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
@@ -93,11 +93,11 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     ,icon_HSI,icon_SSI
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 25 ! take up first 25 indexes for special cases
-!@var CONPT titles for each point at which conservation diags. are done
-      CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
+!@var CONPT0 default titles for each point where conserv diags. are done
+      CHARACTER*10, DIMENSION(NPTS) :: CONPT0 = (/
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
      *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
-     *     "DAILY     ","OCN DYNAM ","OCEAN PHYS"/)
+     *     "DAILY     ","SRF OCN FL","OCN DYNAM "/)
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20
