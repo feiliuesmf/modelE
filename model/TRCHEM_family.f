@@ -26,11 +26,11 @@ C
 C
       do L=1,lmax
 c       for concentration of O:
-        az=(ss(2,I,J,L)+ss(3,I,J,L))/(rr(47,I,J,L)*y(nO2,L))
+        az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(47,L)*y(nO2,L))
 c       for concentration of O(1D):
-        bz=ss(2,I,J,L)/
-     &  (rr(8,I,J,L)*y(nO2,L)+rr(9,I,J,L)*y(nM,L)+
-     &  rr(10,I,J,L)*y(nH2O,L)+rr(11,I,J,L)*y(n_CH4,L))
+        bz=ss(2,L,I,J)/
+     &  (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
+     &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
         P1=1./(1.+az+bz)
         y(nO,L)=P1*az*y(n_Ox,L)
         y(nO1D,L)=P1*bz*y(n_Ox,L)
@@ -75,13 +75,13 @@ C**** Local parameters and variables and arguments:
 c       If dawn then set NO3 back to zero:
         IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.
 c       B is for NO->NO2 reactions :
-        B=rr(5,I,J,L)*y(nO3,L)+rr(6,I,J,L)*y(nHO2,L)
-     &   +rr(20,I,J,L)*yCH3O2(I,J,L) + rr(48,I,J,L)*y(nO,L)
-     &   +rr(39,I,J,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
+        B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)
+     &   +rr(20,L)*yCH3O2(I,J,L) + rr(48,L)*y(nO,L)
+     &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
 C       C is for NO2->NO reactions :
-        C=ss(1,I,J,L)
+        C=ss(1,L,I,J)
      &   +y(nO,L)*5.60E-12*exp(180/ta(L)) !O+NO2 rxn
-     &   +rr(7,I,J,L)*y(nO3,L)*0.75 !forms NO3, assume most goes to NO
+     &   +rr(7,L)*y(nO3,L)*0.75 !forms NO3, assume most goes to NO
 c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
         p2=B/(B+C)
         p1=1-p2
@@ -135,32 +135,32 @@ C
 C >>> Drew: temporarily, I omitted all your debugging writes in this
 C subroutine. If you need them back, let me know.  Thanks, Greg <<<
 C
-       aqqz=2.*(pHOx(I,J,L)*rr(1,I,J,L) + pHOx(I,J,L)*pHOx(I,J,L)*
-     & (rr(3,I,J,L)+rr(49,I,J,L)) + rr(15,I,J,L))
+       aqqz=2.*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
+     & (rr(3,L)+rr(49,L)) + rr(15,L))
 C
-       bqqz=pHOx(I,J,L)*(rr(12,I,J,L)*y(n_CH4,L)+rr(16,I,J,L)*
-     & y(n_HNO3,L)+rr(23,I,J,L)*y(n_CH3OOH,L)+rr(50,I,J,L)
-     & *y(nNO2,L)+rr(53,I,J,L)*y(nNO,L))+rr(22,I,J,L)*yCH3O2(I,J,L)
-     & +pHOx(I,J,L)*(rr(38,I,J,L)*y(nAldehyde,L)+rr(37,I,J,L)
-     & *y(n_Paraffin,L)*0.89+rr(34,I,J,L)*y(n_Alkenes,L)
-     & +rr(30,I,J,L)*y(n_Isoprene,L)*0.15+rr(33,I,J,L)*y(n_AlkylNit,L))
-     & +rr(43,I,J,L)*y(nXO2,L)+y(nXO2N,L)*
-     & (rr(44,I,J,L)*rr(43,I,J,L)/(4.2E-12*exp(180./ta(L))))
+       bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
+     & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(50,L)
+     & *y(nNO2,L)+rr(53,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
+     & +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
+     & *y(n_Paraffin,L)*0.89+rr(34,L)*y(n_Alkenes,L)
+     & +rr(30,L)*y(n_Isoprene,L)*0.15+rr(33,L)*y(n_AlkylNit,L))
+     & +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
+     & (rr(44,L)*rr(43,L)/(4.2E-12*exp(180./ta(L))))
 C
-       cqqz=(2.*ss(4,I,J,L)*y(n_H2O2,L)+ss(9,I,J,L)*y(n_HNO3,L)+
-     & ss(13,I,J,L)*y(n_HCHO,L)+ss(14,I,J,L)*y(n_CH3OOH,L)+
-     & (rr(20,I,J,L)*y(nNO,L)+0.66*rr(27,I,J,L)*yCH3O2(I,J,L))
+       cqqz=(2.*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
+     & ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
+     & (rr(20,L)*y(nNO,L)+0.66*rr(27,L)*yCH3O2(I,J,L))
      & *yCH3O2(I,J,L))
 C
        cqqz=cqqz+
-     & ((2.*rr(10,I,J,L)*y(nH2O,L)+rr(11,I,J,L)*y(n_CH4,L))*
-     & ss(2,I,J,L)*y(nO3,L))/
-     & (rr(8,I,J,L)*y(nO2,L)+rr(9,I,J,L)*y(nM,L)+
-     & rr(10,I,J,L)*y(nH2O,L)+rr(11,I,J,L)*y(n_CH4,L))
-     & +ss(16,I,J,L)*y(nAldehyde,L)*2.+(rr(39,I,J,L)*y(nNO,L)
-     & +rr(40,I,J,L)*y(nC2O3,L)*2.)*y(nC2O3,L)
-     & +(rr(42,I,J,L)*0.94+1.6E3)*y(nROR,L)+rr(35,I,J,L)*y(n_Alkenes,L)
-     & *y(nO3,L)*0.65+rr(31,I,J,L)*y(n_Isoprene,L)*y(nO3,L)*0.58
+     & ((2.*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ss(2,L,I,J)*y(nO3,L))/
+     & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+     & +ss(16,L,I,J)*y(nAldehyde,L)*2.+(rr(39,L)*y(nNO,L)
+     & +rr(40,L)*y(nC2O3,L)*2.)*y(nC2O3,L)
+     & +(rr(42,L)*0.94+1.6E3)*y(nROR,L)+rr(35,L)*y(n_Alkenes,L)
+     & *y(nO3,L)*0.65+rr(31,L)*y(n_Isoprene,L)*y(nO3,L)*0.58
 c
        sqroot=sqrt(bqqz*bqqz+4.*aqqz*cqqz)
        y(nHO2,L)=(sqroot-bqqz)/(2.*aqqz)
@@ -169,16 +169,16 @@ c
 c
 c      Now partition HOx into OH and HO2:
 c      CZ: OH->HO2 reactions :
-       cz=rr(2,I,J,L)*y(nO3,L)+rr(13,I,J,L)*y(n_CO,L)
-     & +rr(14,I,J,L)*y(n_H2O2,L)+rr(19,I,J,L)*y(nH2,L)
-     & +rr(21,I,J,L)*y(n_HCHO,L)+rr(37,I,J,L)*y(n_Paraffin,L)*
-     & *0.11+rr(30,I,J,L)*y(n_Isoprene,L)*0.85
-     & +rr(34,I,J,L)*y(n_Alkenes,L)
+       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
+     & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
+     & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)*
+     & *0.11+rr(30,L)*y(n_Isoprene,L)*0.85
+     & +rr(34,L)*y(n_Alkenes,L)
 C
 C      DZ: HO2->OH reactions :
-       dz=rr(4,I,J,L)*y(nO3,L)+rr(6,I,J,L)*y(nNO,L)
-     & +rr(41,I,J,L)*0.79*y(nC2O3,L)+rr(15,I,J,L)*y(nHO2,L)
-     & *(2.*ss(4,I,J,L)/(2.*ss(4,I,J,L)+y(nOH,L)*rr(14,I,J,L)))
+       dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
+     & +rr(41,L)*0.79*y(nC2O3,L)+rr(15,L)*y(nHO2,L)
+     & *(2.*ss(4,L,I,J)/(2.*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
 c      Previous two lines additional OH production via rxn 41,
 c      which also produces HO2, and R15 then S4/(S4+S14) fraction
 C

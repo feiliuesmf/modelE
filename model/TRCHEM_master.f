@@ -209,8 +209,8 @@ C And fill in the photolysis coefficients: ZJ --> ss:
 
         DO L=1,JPNL
           do inss=1,JPPJ
-            ss(inss,I,J,L)=zj(L,inss)*
-     &           by35 * SQRT(1.224d3*(cos(sza*radian))**2. + 1.d0)
+           ss(inss,L,I,J)=zj(L,inss)*
+     &     by35 * SQRT(1.224d3*(cos(sza*radian))**2. + 1.d0)
           enddo
         END DO
 
@@ -239,17 +239,17 @@ C Some Chemistry Diagnostics:
        write(6,*) 'OH/HO2 = ',y(nOH,l)/y(nHO2,l)
        write(6,*) 'O/O3 = ',y(nO,l)/y(nO3,l)
        write(6,*) 'O1D/O3 = ',y(nO1D,l)/y(nO3,l),
-     *  '  J(O1D) = ',ss(2,I,J,l)
-c     *  ,' J(O3) = ',ss(3,I,J,l)
+     *  '  J(O1D) = ',ss(2,l,I,J)
+c     *  ,' J(O3) = ',ss(3,l,I,J)
        write(6,*) 'NO/NO2 = ',y(nNO,l)/y(nNO2,l),
-     *  '   J(NO2) = ',ss(1,I,J,l)
+     *  '   J(NO2) = ',ss(1,l,I,J)
 c       write(6,*) 'pHOx, pNOx, pOx = ',pHOx(I,J,l),
 c     * pNOx(I,J,l),pOx(I,J,l)
        write(6,*) 'conc OH = ',y(nOH,l)
        write(6,*)'sun, SALBFJ,sza,I,J,Itime= ',SALBFJ(I,J),sza,I,J,Itime
        do inss=1,JPPJ
         write(6,195) ' J',inss,ay(ks(inss)),' = ',
-     *   (ss(inss,I,J,Lqq),Lqq=1,11)
+     *   (ss(inss,Lqq,I,J),Lqq=1,11)
        enddo
        write(6,196) ' RCloud',(RCLOUDFJ(Lqq,I,J),Lqq=1,11)
        write(6,196) ' Ozone ',(y(nO3,Lqq),Lqq=1,11)
@@ -310,11 +310,11 @@ c        define O3 from Ox:
          y(nO3,L)=y(n_Ox,L)*pOx(I,J,L)
 c
 c        calculate change in NO3:
-         dNO3=rr(7,I,J,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,I,J,L)*y(nNO2,L)+
-     &        2*rr(25,I,J,L)*yNO3(I,J,L))*yNO3(I,J,L) -(rr(36,I,J,L)
-     &        *y(n_Alkenes,L)+rr(32,I,J,L)*y(n_Isoprene,L))*yNO3(I,J,L)
-         dNO3=dNO3-(rr(28,I,J,L)*y(n_HCHO,L)+rr(52,I,J,L)*y(nNO2,L))
-     &        *yNO3(I,J,L)+rr(46,I,J,L)*y(n_N2O5,L)
+         dNO3=rr(7,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,L)*y(nNO2,L)+
+     &        2*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L) -(rr(36,L)
+     &        *y(n_Alkenes,L)+rr(32,L)*y(n_Isoprene,L))*yNO3(I,J,L)
+         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(52,L)*y(nNO2,L))
+     &        *yNO3(I,J,L)+rr(46,L)*y(n_N2O5,L)
          dNO3=dNO3*dt2!portions of dNO3 reflect fixes by dts 12/19/01
 c
 c        limit the change in NO3:
@@ -337,49 +337,50 @@ C
 C Calculate and limit gaseous changes to HNO3, HCHO, N2O5, Aldehyde,
 C Alkenes, Isoprene, and AlkylNit:
 C
-         gwprodHNO3=(y(n_HCHO,L)*rr(28,I,J,L)+2.5d-15*
+         gwprodHNO3=(y(n_HCHO,L)*rr(28,L)+2.5d-15*
      &              yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
          if(gwprodHNO3.gt.0.5*y(n_NOx,L))gwprodHNO3=0.5*y(n_NOx,L)
          if(gwprodHNO3.gt.y(n_HCHO,L))gwprodHNO3=y(n_HCHO,L)
          gprodHNO3=gwprodHNO3*pfactor
 C
-         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,I,J,L)-y(n_N2O5,L)
-     &              *rr(46,I,J,L))*dt2
+         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,L)-y(n_N2O5,L)
+     &              *rr(46,L))*dt2
          if(gwprodN2O5.gt.0.25*y(n_NOx,L))gwprodN2O5=0.25*y(n_NOx,L)
          if(-gwprodN2O5.gt.0.5*y(n_N2O5,L))
      *        gwprodN2O5=-0.49d0*y(n_N2O5,L)
 C
-         changeAldehyde=(rr(36,I,J,L)*y(n_Alkenes,L)+rr(32,I,J,L)*
+         changeAldehyde=(rr(36,L)*y(n_Alkenes,L)+rr(32,L)*
      &                  y(n_Isoprene,L)*0.12-2.5E-15*yAldehyde(I,J,L))*
      &                  yNO3(I,J,L)*dt2
          if(-changeAldehyde.gt.0.75*yAldehyde(I,J,L))changeAldehyde=
      &   0.75*yAldehyde(I,J,L)
 C
-         changeAlkenes=(rr(32,I,J,L)*y(n_Isoprene,L)*0.45d0-rr(36,I,J,L)
-     *        *y(n_Alkenes,L))*yNO3(I,J,L)*dt2+(rr(31,I,J,L)
-     *        *y(n_Isoprene,L)-rr(35,I,J,L)*y(n_Alkenes,L))*y(nO3,L)*dt2
+         changeAlkenes=(rr(32,L)*y(n_Isoprene,L)*0.45d0-rr(36,L)*
+     &                y(n_Alkenes,L))*yNO3(I,J,L)*dt2+(rr(31,L)*
+     &                y(n_Isoprene,L)-rr(35,L)*y(n_Alkenes,L))*
+     &                y(nO3,L)*dt2
          if(-changeAlkenes.gt.0.75*y(n_Alkenes,L))changeAlkenes=
      &   0.75*y(n_Alkenes,L)
 C
-         changeIsoprene=-(rr(32,I,J,L)*yNO3(I,J,L)
-     &                  +rr(31,I,J,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
+         changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
+     &                  +rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
          if(-changeIsoprene.gt.0.75*y(n_Isoprene,L))changeIsoprene=
      &   0.75*y(n_Isoprene,L)
 C
-         changeHCHO=(rr(36,I,J,L)*y(n_Alkenes,L)+
-     &              rr(32,I,J,L)*y(n_Isoprene,L)*0.03)*yNO3(I,J,L)*dt2
-     &              -gwprodHNO3+(rr(31,I,J,L)*y(n_Isoprene,L)*0.9d0
-     &              +rr(35,I,J,L)*y(n_Alkenes,L))*y(nO3,L)*0.64*dt2
+         changeHCHO=(rr(36,L)*y(n_Alkenes,L)+
+     &              rr(32,L)*y(n_Isoprene,L)*0.03)*yNO3(I,J,L)*dt2
+     &              -gwprodHNO3+(rr(31,L)*y(n_Isoprene,L)*0.9d0
+     &              +rr(35,L)*y(n_Alkenes,L))*y(nO3,L)*0.64*dt2
 C
-         changeAlkylNit=rr(32,I,J,L)*y(n_Isoprene,L)*
+         changeAlkylNit=rr(32,L)*y(n_Isoprene,L)*
      &   yNO3(I,J,L)*dt2*0.9d0
          if(-changeAlkylNit.gt.0.75*y(n_AlkylNit,L))changeAlkylNit=
      &   0.75*y(n_AlkylNit,L)
 C
 c        Convert some changes to molecules/cm3/s:
          changeHNO3=gwprodHNO3+2*wprod_sulf  !always positive
-         changeNOx=-gwprodHNO3-2*gwprodN2O5-(0.9d0*rr(32,I,J,L)*
-     &    y(n_Isoprene,L)+2.5d-15*yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
+         changeNOx=-gwprodHNO3-2*gwprodN2O5-(0.9d0*rr(32,L)*
+     &    y(n_Isoprene,L)+2.5E-15*yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
          if(-changeNOx.gt.y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)!dts9/01
          changeN2O5=gwprodN2O5-wprod_sulf
 c
@@ -728,36 +729,36 @@ C
         byta=1./ta(L)
         do jj=1,nr2             ! bimolecular rates start
           IF(ea(jj).ne.0.) THEN
-            rr(jj,I,J,L)=pe(jj)*exp(-ea(jj)*byta)
+            rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
           ELSE
-            rr(jj,I,J,L)=pe(jj)
+            rr(jj,L)=pe(jj)
           END IF
 c         for #13, k=pe*(1+0.6*(Patm/1013)) Patm=[M]*(T*1.38E-19)
-          if(jj.eq.13) rr(jj,I,J,L) =
+          if(jj.eq.13) rr(jj,L) =
      &    pe(jj)*(1.+0.6d0*((y(nM,L)*ta(L)*1.38d-19)/1013.))
 c         for reaction #15, k=(kc+kp)fw, kc=rr
           if(jj.eq.15)then
             rkp=1.7d-33*y(nM,L)*exp(1000.*byta)
             fw=(1.+1.4d-21*y(nH2O,L)*exp(2200.*byta))
-            rr(jj,I,J,L)=(rr(jj,I,J,L)+rkp)*fw
+            rr(jj,L)=(rr(jj,L)+rkp)*fw
           endif
 c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           if(jj.eq.16)then
             rk3M=y(nM,l)*1.90d-33*exp(725.*byta)
             rk2=4.10d-16*exp(1440.*byta)
-            rr(jj,I,J,L)=rr(jj,I,J,L)+rk3M/(1.+(rk3M/rk2))
+            rr(jj,L)=rr(jj,L)+rk3M/(1.+(rk3M/rk2))
           endif
-          if(jj.eq.29)rr(jj,I,J,L)=rr(jj,I,J,L)/y(nM,L)!PAN+M really PAN
-          if(jj.eq.42)rr(jj,I,J,L)=rr(jj,I,J,L)/y(nM,L)!ROR+M really ROR
+          if(jj.eq.29)rr(jj,L)=rr(jj,L)/y(nM,L)!PAN+M really PAN
+          if(jj.eq.42)rr(jj,L)=rr(jj,L)/y(nM,L)!ROR+M really ROR
         end do                ! bimolecular rates end
 c
         do jj=1,nr3           ! trimolecular rates start
-         rr(nr2+jj,I,J,L)=y(nM,L)*ro(jj)*(300.*byta)**sn(jj)
+         rr(nr2+jj,L)=y(nM,L)*ro(jj)*(300.*byta)**sn(jj)
 c        if(r1(jj).ge.1.E-30)then
          if(sb(jj).ge.0.01)then !dts 3/29/02 alteration of above line
-           dd=rr(nr2+jj,I,J,L)/(r1(jj)*(300.*byta)**sb(jj))
+           dd=rr(nr2+jj,L)/(r1(jj)*(300.*byta)**sb(jj))
            pp=0.6d0**(1./(1.+(log10(dd))**2.))
-           rr(nr2+jj,I,J,L)=(rr(nr2+jj,I,J,L)/(1.+dd))*pp
+           rr(nr2+jj,L)=(rr(nr2+jj,L)/(1.+dd))*pp
          endif
         end do                ! trimolecular rates end
 c
@@ -765,7 +766,7 @@ c
         if(nmm.ge.1) then
           do jj=1,nmm         ! monomolecular rates start
            rrrr=exp(0.5*ea(jj+nb)*byta) !0.5 for precision,cor next lin
-           rr(jj+nb,I,J,L)=rr(nst(jj),I,J,L)/
+           rr(jj+nb,L)=rr(nst(jj),L)/
      &     (rrrr*pe(jj+nb)*rrrr*y(nM,l))
           end do              ! monomolecular rates end
         end if

@@ -18,12 +18,10 @@ c
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
 C
 !@param p_1 number of reactants per reaction
-!@param p_2 unknown for now
-!@param p_3 unknown for now
-!@param p_4 unknown for now
-!@param p_5 unclear what this is, for now'
-!@param p_6 unclear what this is, for now'
-!@param p_7 unclear what this is, for now'
+!@param p_2 total number of reactions
+!@param p_3 number of rxns in assembled lists (check with print rxn list)
+!@param p_4 total number of reactions
+!@param p_5 number of levels from top down with SRB flux
 !@param n_rx maximum number of chemical reactions
 !@param n_bi maximum number of bimolecular reactions
 !@param n_tri maximum number of trimolecular reactions
@@ -82,8 +80,6 @@ C
      & p_3   =   200,
      & p_4   =    70,
      & p_5   =    14,
-     & p_6   =   116,
-     & p_7   =    32,     
      & n_rx  =   101,
      & n_bi  =    96,
      & n_tri =    14,
@@ -197,8 +193,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var ay name of gas being considered
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
-!@+   number, 2nd is i, 3rd is j, 4th is verticle level
-!@var ss photodissociation coefficient, indexed as rr
+!@+   number, 2nd is verticle level
+!@var ss photodissociation coefficient, indicies; rxn #,L,I,J
 !@var pe rate constant for bimolecular chemical reaction
 !@var ea activation energy constant for bimolecular chemical reactions
 !@var ro,r1,sn,sb rate parameters for trimolecular reactions
@@ -215,13 +211,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var sO2 absorption cross section of oxygen (cm^2)
 !@var sech cross section of optically important gases, first index
 !@+   gas number (1=O2,2=O3), second - spectral interval number 
-!@var f8 flux of solar radiation outside the atmosphere, index
-!@+   corresponds to the number of the spectral interval (cm-2*c-1)
 !@var TXL temperature profile
 !@var prnrts logical: print rate of each chemical reaction?
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
-!@var epot,egr,oz unclear for now
 !@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var title_aer_pf titles read from aerosol phase function file
@@ -363,18 +356,16 @@ C
      & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor
       REAL*8, DIMENSION(JM,4,12)       :: corrOx ! JM,(L=12,15),month
       REAL*8, DIMENSION(n_spc,LM)      :: y
-      REAL*8, DIMENSION(n_rx,IM,JM,LM) :: rr, ss
+      REAL*8, DIMENSION(n_rx,LM)       :: rr
+      REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
       REAL*8, DIMENSION(n_bi)          :: pe, ea
       REAL*8, DIMENSION(n_tri)         :: ro, r1, sn, sb
       REAL*8, DIMENSION(n_bnd2,n_rx)   :: sigg
       REAL*8, DIMENSION(LM,n_oig)      :: conc
       REAL*8, DIMENSION(n_srb,p_5)     :: qfu
       REAL*8, DIMENSION(n_bnd3,LM)     :: qf
-      REAL*8, DIMENSION(LM,n_bnd3)     :: epot, egr
       REAL*8, DIMENSION(n_bnd3)        :: wlt, sO3, sO2
       REAL*8, DIMENSION(n_oig,n_bnd3)  :: sech
-      REAL*8, DIMENSION(p_6)           :: f8
-      REAL*8, DIMENSION(p_7)           :: oz
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                TX,sulfate,OxIC

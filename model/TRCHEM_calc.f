@@ -76,28 +76,28 @@ C
 c     Oxidation of Isoprene and Alkenes produces less than one
 c      HCHO, Alkenes, and CO per rxn, correct here following Houweling
       do L=1,maxl
-       prod(n_CO,L)=prod(n_CO,L)-0.63*rr(35,I,J,L)*y(n_Alkenes,L)*
+       prod(n_CO,L)=prod(n_CO,L)-0.63*rr(35,L)*y(n_Alkenes,L)*
      &  y(nO3,L)*dt2
-       prod(n_HCHO,L)=prod(n_HCHO,L)-0.36*rr(35,I,J,L)*y(n_Alkenes,L)*
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.36*rr(35,L)*y(n_Alkenes,L)*
      &  y(nO3,L)*dt2
-       prod(n_HCHO,L)=prod(n_HCHO,L)-0.39*rr(30,I,J,L)*y(n_Isoprene,L)*
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.39*rr(30,L)*y(n_Isoprene,L)*
      &  y(nOH,L)*dt2
-       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42*rr(30,I,J,L)*
+       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42*rr(30,L)*
      &  y(n_Isoprene,L)*y(nOH,L)*dt2
-       prod(n_HCHO,L)=prod(n_HCHO,L)-0.10*rr(31,I,J,L)*y(n_Isoprene,L)*
+       prod(n_HCHO,L)=prod(n_HCHO,L)-0.10*rr(31,L)*y(n_Isoprene,L)*
      &  y(nO3,L)*dt2
-       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45*rr(31,I,J,L)*
+       prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45*rr(31,L)*
      &  y(n_Isoprene,L)*y(nO3,L)*dt2
       enddo
 c
 c     set CH3O2 values (concentration = production/specific loss)
       do L=1,maxl
         iter=1
-        qqqCH3O2=(rr(11,I,J,L)*y(nO1D,L)+rr(12,I,J,L)*y(nOH,L))
-     &  *y(n_CH4,L)+rr(23,I,J,L)*y(n_CH3OOH,L)*y(nOH,L)
+        qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
+     &  *y(n_CH4,L)+rr(23,L)*y(n_CH3OOH,L)*y(nOH,L)
 
-       tempiter=rr(20,I,J,L)*y(nNO,L)+rr(22,I,J,L)*y(nHO2,L)
- 10    CH3O2loss=tempiter+rr(27,I,J,L)*yCH3O2(I,J,L)
+       tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
+ 10    CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
        if(CH3O2loss.gt.1E-7)then
           y(nCH3O2,L)=qqqCH3O2/CH3O2loss
         else
@@ -114,19 +114,19 @@ c       Set C2O3, XO2, XO2N, RXPAR, Aldehyde & ROR values
 c
 c        First set various specific loss rates
          XO2_NO=y(nNO,L)*4.2E-12*exp(180./ta(L))
-         XO2N_HO2=y(nHO2,L)*y(nNO,L)*rr(44,I,J,L)*
-     &   rr(43,I,J,L)/XO2_NO
+         XO2N_HO2=y(nHO2,L)*y(nNO,L)*rr(44,L)*
+     &   rr(43,L)/XO2_NO
          RXPAR_PAR=y(n_Paraffin,L)*8.E-11
          ROR_CH2=1.6E3
 c
 c       Set value for C2O3
         iter=1
-        C2O3prod=rr(38,I,J,L)*yAldehyde(I,J,L)*y(nOH,L)+
-     &  (rr(29,I,J,L)*y(nM,L)+ss(15,I,J,L))*y(n_PAN,L)+0.15*
-     &  rr(31,I,J,L)*y(nO3,L)*y(n_Isoprene,L)
-        tempiter=rr(39,I,J,L)*y(nNO,L)+rr(54,I,J,L)*y(nNO2,L)+
-     &   rr(41,I,J,L)*y(nHO2,L)
- 20     C2O3dest=tempiter+rr(40,I,J,L)*yC2O3(I,J,L)
+        C2O3prod=rr(38,L)*yAldehyde(I,J,L)*y(nOH,L)+
+     &  (rr(29,L)*y(nM,L)+ss(15,L,I,J))*y(n_PAN,L)+0.15*
+     &  rr(31,L)*y(nO3,L)*y(n_Isoprene,L)
+        tempiter=rr(39,L)*y(nNO,L)+rr(54,L)*y(nNO2,L)+
+     &   rr(41,L)*y(nHO2,L)
+ 20     C2O3dest=tempiter+rr(40,L)*yC2O3(I,J,L)
         if(C2O3dest.gt.1E-7)then
           y(nC2O3,L)=(C2O3prod/C2O3dest)
         else
@@ -138,20 +138,20 @@ c       Set value for C2O3
 c
 c       Set value for XO2
         iter=1
-        XO2prod=ss(16,I,J,L)*yAldehyde(I,J,L)+
-     &  y(nC2O3,L)*(rr(39,I,J,L)*y(nNO2,L)+rr(40,I,J,L)*
-     &  y(nC2O3,L)*2.+rr(41,I,J,L)*y(nHO2,L))
-     &  +rr(42,I,J,L)*yROR(I,J,L)*0.96
-     &  +y(nOH,L)*(rr(37,I,J,L)*y(n_Paraffin,L)*0.87+rr(34,I,J,L)*
-     &  y(n_Alkenes,L)+rr(30,I,J,L)*y(n_Isoprene,L)*0.85+
-     &  rr(33,I,J,L)*y(n_AlkylNit,L))+
-     &  y(nO3,L)*(rr(35,I,J,L)*y(n_Alkenes,L)*0.29+
-     &  rr(31,I,J,L)*y(n_Isoprene,L)*0.18)
-        tempiter=XO2_NO+rr(43,I,J,L)*y(nHO2,L)
+        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+
+     &  y(nC2O3,L)*(rr(39,L)*y(nNO2,L)+rr(40,L)*
+     &  y(nC2O3,L)*2.+rr(41,L)*y(nHO2,L))
+     &  +rr(42,L)*yROR(I,J,L)*0.96
+     &  +y(nOH,L)*(rr(37,L)*y(n_Paraffin,L)*0.87+rr(34,L)*
+     &  y(n_Alkenes,L)+rr(30,L)*y(n_Isoprene,L)*0.85+
+     &  rr(33,L)*y(n_AlkylNit,L))+
+     &  y(nO3,L)*(rr(35,L)*y(n_Alkenes,L)*0.29+
+     &  rr(31,L)*y(n_Isoprene,L)*0.18)
+        tempiter=XO2_NO+rr(43,L)*y(nHO2,L)
         tempiter2=1.7E-14*exp(1300./ta(L))
  30     XO2_XO2=yXO2(I,J,L)*tempiter2
         XO2dest=tempiter+XO2_XO2
-        if(XO2dest.gt.1E-7.and.ss(16,I,J,L).gt.5E-5)then
+        if(XO2dest.gt.1E-7.and.ss(16,L,I,J).gt.5E-5)then
           y(nXO2,L)=(XO2prod/XO2dest)
         else
           y(nXO2,L)=1.0
@@ -161,10 +161,10 @@ c       Set value for XO2
         if(iter.le.7)goto30   ! replace with while loop?
 c
 c       Set value for XO2N
-        XO2Nprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.13+
-     &  rr(42,I,J,L)*yROR(I,J,L)*0.04+rr(30,I,J,L)*y(n_Isoprene,L)*
+        XO2Nprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.13+
+     &  rr(42,L)*yROR(I,J,L)*0.04+rr(30,L)*y(n_Isoprene,L)*
      &  y(nOH,L)*0.15
-        XO2Ndest=XO2N_HO2+rr(44,I,J,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(44,L)*y(nNO,L)
         if(XO2Ndest.gt.1E-7)then
           y(nXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -173,8 +173,8 @@ c       Set value for XO2N
         yXO2N(I,J,L)=y(nXO2N,L)
 c
 c       Set value for RXPAR
-        RXPARprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.11+
-     &  rr(34,I,J,L)*yROR(I,J,L)*2.1+rr(35,I,J,L)*y(n_Alkenes,L)*
+        RXPARprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.11+
+     &  rr(34,L)*yROR(I,J,L)*2.1+rr(35,L)*y(n_Alkenes,L)*
      &  y(nO3,L)*0.9
         RXPARdest=RXPAR_PAR
         if(RXPARdest.gt.0.)then
@@ -185,11 +185,11 @@ c       Set value for RXPAR
         yRXPAR(I,J,L)=y(nRXPAR,L)
 c
 c       Set value for Aldehyde
-        Aldehydeprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.11+
-     &  rr(34,I,J,L)*y(n_Alkenes,L)*y(nOH,L)+
-     &  rr(42,I,J,L)*yROR(I,J,L)*1.1+rr(35,I,J,L)*y(n_Alkenes,L)*
+        Aldehydeprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.11+
+     &  rr(34,L)*y(n_Alkenes,L)*y(nOH,L)+
+     &  rr(42,L)*yROR(I,J,L)*1.1+rr(35,L)*y(n_Alkenes,L)*
      &  y(nO3,L)*0.44
-        Aldehydedest=rr(38,I,J,L)*y(nOH,L)+ss(16,I,J,L)
+        Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J)
 
 c       Check for equilibrium
         if(Aldehydedest*y(nAldehyde,L)*dt2.lt.y(nAldehyde,L))then
@@ -205,9 +205,9 @@ c       Check for equilibrium
         yAldehyde(I,J,L)=y(nAldehyde,L)
 c
 c       Set value for ROR
-        RORprod=rr(37,I,J,L)*y(n_Paraffin,L)*y(nOH,L)*0.76+
-     &  rr(42,I,J,L)*yROR(I,J,L)*0.02
-        RORdest=rr(42,I,J,L)+ROR_CH2
+        RORprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.76+
+     &  rr(42,L)*yROR(I,J,L)*0.02
+        RORdest=rr(42,L)+ROR_CH2
         if(RORdest.gt.0.)then
           y(nROR,L)=(RORprod/RORdest)
         else
@@ -253,10 +253,10 @@ c
 c
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,lprn).ge.y(n_HO2NO2,lprn))
      *    write(6,110)'loss by reaction 51 (HO2NO2 formation) removed',
-     *    rr(51,I,J,lprn)*y(nHO2,lprn)*y(nNO2,lprn)*dt2
+     *    rr(51,lprn)*y(nHO2,lprn)*y(nNO2,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_N2O5,lprn).ge.y(n_N2O5,lprn))
      *    write(6,110)'losses by reaction 52 (N2O5 formation) removed',
-     *    2*rr(52,I,J,lprn)*y(nNO3,lprn)*y(nNO2,lprn)*dt2
+     *    2*rr(52,lprn)*y(nNO3,lprn)*y(nNO2,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_PAN,lprn).ge.y(n_PAN,lprn))
      *    write(6,110)'losses by reaction 54 (PAN formation) removed',
      *    chemrate(54,lprn)
@@ -266,15 +266,15 @@ c
 c
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,lprn).ge.y(n_HO2NO2,lprn))
      *    write(6,110)'gain by reactions 18 & 45 (from HO2NO2) rmoved',
-     *    (rr(18,I,J,lprn)*y(nOH,L)+rr(45,I,J,lprn)*y(nM,lprn)+
-     *    ss(10,I,J,lprn)+ss(11,I,J,lprn))*y(n_HO2NO2,lprn)*dt2
+     *    (rr(18,lprn)*y(nOH,L)+rr(45,lprn)*y(nM,lprn)+
+     *    ss(10,lprn,I,J)+ss(11,lprn,I,J))*y(n_HO2NO2,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_N2O5,lprn).ge.y(n_N2O5,lprn))
      *        write(6,110)
      *        'gains by reaction 46 (N2O5 decomposition) removed',
-     *        2.*(rr(46,I,J,lprn)*y(nM,lprn))*y(n_N2O5,lprn)*dt2
+     *        2.*(rr(46,lprn)*y(nM,lprn))*y(n_N2O5,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_PAN,lprn).ge.y(n_PAN,lprn))
      *    write(6,110)'gain by reaction 29 (from PAN) removed',
-     *    rr(29,I,J,lprn)*y(nM,lprn)*y(n_PAN,lprn)*dt2
+     *    rr(29,lprn)*y(nM,lprn)*y(n_PAN,lprn)*dt2
 c
          call chem1prn(kds,1,ks,nds,photrate,3,-1,igas,total,maxl,I,J)
 c
@@ -282,32 +282,32 @@ c
 c
          if(igas.eq.n_NOx.and.-dest(n_N2O5,lprn).ge.y(n_N2O5,lprn))
      *    write(6,110)'gains by reaction 7 (N2O5 photolysis) removed',
-     *    ss(7,I,J,lprn)*y(n_N2O5,lprn)*dt2
+     *    ss(7,lprn,I,J)*y(n_N2O5,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_N2O5,lprn).ge.y(n_N2O5,lprn))
      *        write(6,110)
      *        'net change due to N2O5 is ',
-     *        2.*(y(n_N2O5,lprn)-(rr(52,I,J,lprn)*y(nNO3,lprn)*
+     *        2.*(y(n_N2O5,lprn)-(rr(52,lprn)*y(nNO3,lprn)*
      *        y(nNO2,lprn))/
-     *        (rr(46,I,J,lprn)*y(nM,lprn)+ss(7,I,J,lprn)))
+     *        (rr(46,lprn)*y(nM,lprn)+ss(7,lprn,I,J)))
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,lprn).ge.y(n_HO2NO2,lprn))
      *    write(6,110)'gain by rxns 10 & 11 (HO2NO2 photolysis) rmoved'
-     *    ,(ss(10,I,J,lprn)+ss(11,I,J,lprn))*y(n_HO2NO2,lprn)*dt2
+     *    ,(ss(10,lprn,I,J)+ss(11,lprn,I,J))*y(n_HO2NO2,lprn)*dt2
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,lprn).ge.y(n_HO2NO2,lprn))
      *        write(6,110)'net change due to HO2NO2 is ',
-     *        y(n_HO2NO2,lprn)-((rr(51,I,J,lprn)*y(nHO2,lprn)*
-     *       y(nNO2,lprn))/(rr(18,I,J,lprn)*
-     *     y(nOH,lprn)+rr(45,I,J,lprn)*y(nM,lprn)+ss(10,I,J,lprn)
-     *     +ss(11,I,J,lprn)))
+     *        y(n_HO2NO2,lprn)-((rr(51,lprn)*y(nHO2,lprn)*
+     *       y(nNO2,lprn))/(rr(18,lprn)*
+     *     y(nOH,lprn)+rr(45,lprn)*y(nM,lprn)+ss(10,lprn,I,J)
+     *     +ss(11,lprn,I,J)))
          if(igas.eq.n_NOx.and.-dest(n_PAN,lprn).ge.y(n_PAN,lprn))
      *        write(6,110)'net change due to PAN is ',
-     *        y(n_PAN,lprn)-((rr(54,I,J,lprn)*y(nC2O3,lprn)*
+     *        y(n_PAN,lprn)-((rr(54,lprn)*y(nC2O3,lprn)*
      *        y(nNO2,lprn))/
-     *        (rr(29,I,J,lprn)*y(nM,lprn)+ss(15,I,J,lprn)))
+     *        (rr(29,lprn)*y(nM,lprn)+ss(15,lprn,I,J)))
          if(igas.eq.n_Ox.or.igas.eq.n_NOx)total=
      *    100.*(dest(igas,lprn)+prod(igas,lprn))/y(igas,lprn)
          if(igas.eq.n_CH3OOH) write(6,'(a48,a6,e10.3)')
      *    'production from XO2N + HO2 ','dy = ',
-     *    y(nHO2,lprn)*y(nNO,lprn)*rr(44,I,J,lprn)*rr(43,I,J,lprn)/
+     *    y(nHO2,lprn)*y(nNO,lprn)*rr(44,lprn)*rr(43,lprn)/
      *    (y(nNO,lprn)*4.2E-12*exp(180./ta(lprn)))
      *    *y(nXO2N,lprn)*dt2
          if(igas.eq.n_Paraffin) write(6,'(a48,a6,e10.3)')
@@ -336,8 +336,8 @@ c
 c        Set N2O5 to equilibrium when necessary (near ground,
 c        N2O5 is thermally unstable, has a very short lifetime)
          if(igas.eq.n_N2O5.and.-dest(igas,L).ge.y(n_N2O5,L))then
-           rnewval=(rr(52,I,J,L)*y(nNO3,L)*y(nNO2,L))/
-     &     (rr(46,I,J,L)*y(nM,L)+ss(7,I,J,L))
+           rnewval=(rr(52,L)*y(nNO3,L)*y(nNO2,L))/
+     &     (rr(46,L)*y(nM,L)+ss(7,L,I,J))
            if(rnewval.lt.1.)rnewval=1.
            change(I,J,L,igas)=(rnewval-y(n_N2O5,L))*dxyp(J)*AM(L,I,J)*
      &     bymass2vol(igas)/y(nM,L)
@@ -346,8 +346,8 @@ c          endif
 c
 c        Conserve NOx with respect to N2O5
          if(igas.eq.n_NOx.and.-dest(n_N2O5,L).ge.y(n_N2O5,L))then
-          rnewval=(rr(52,I,J,L)*y(nNO3,L)*y(nNO2,L))/
-     &    (rr(46,I,J,L)*y(nM,L)+ss(7,I,J,L))
+          rnewval=(rr(52,L)*y(nNO3,L)*y(nNO2,L))/
+     &    (rr(46,L)*y(nM,L)+ss(7,L,I,J))
           change(I,J,L,igas)=
      &    change(I,J,L,igas)+2.*(y(n_N2O5,L)-rnewval)
      &    *dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
@@ -355,9 +355,9 @@ c        Conserve NOx with respect to N2O5
 c
 c        Set HO2NO2 to equil when necessary
          if(igas.eq.n_HO2NO2.and.-dest(igas,L).ge.y(n_HO2NO2,L))then
-          rnewval=(rr(51,I,J,L)*y(nHO2,L)*y(nNO2,L))/
-     *    (rr(18,I,J,L)*y(nOH,L)+rr(45,I,J,L)*y(nM,L)+ss(10,I,J,L)
-     *    +ss(11,I,J,L))
+          rnewval=(rr(51,L)*y(nHO2,L)*y(nNO2,L))/
+     *    (rr(18,L)*y(nOH,L)+rr(45,L)*y(nM,L)+ss(10,L,I,J)
+     *    +ss(11,L,I,J))
           if(rnewval.lt.1.)rnewval=1.
           change(I,J,L,igas)=(rnewval-y(n_HO2NO2,L))*dxyp(J)*AM(L,I,J)*
      &    bymass2vol(igas)/y(nM,L)
@@ -365,9 +365,9 @@ c        Set HO2NO2 to equil when necessary
 c
 c        Conserve NOx with respect to HO2NO2
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,L).ge.y(n_HO2NO2,L))then
-          rnewval=(rr(51,I,J,L)*y(nHO2,L)*y(nNO2,L))/
-     *    (rr(18,I,J,L)*y(nOH,L)+rr(45,I,J,L)*y(nM,L)+ss(10,I,J,L)
-     *    +ss(11,I,J,L))
+          rnewval=(rr(51,L)*y(nHO2,L)*y(nNO2,L))/
+     *    (rr(18,L)*y(nOH,L)+rr(45,L)*y(nM,L)+ss(10,L,I,J)
+     *    +ss(11,L,I,J))
           change(I,J,L,igas)=
      &    change(I,J,L,igas)+(y(n_HO2NO2,L)-rnewval)*
      &    dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
@@ -376,8 +376,8 @@ c
 c        Set PAN to equilibrium when necessary (near ground,
 c         PAN is thermally unstable, has a very short lifetime)
          if(igas.eq.n_PAN.and.-dest(igas,L).ge.y(n_PAN,L))then
-          rnewval=(rr(54,I,J,L)*y(nC2O3,L)*y(nNO2,L))/
-     *    (rr(29,I,J,L)*y(nM,L)+ss(15,I,J,L))
+          rnewval=(rr(54,L)*y(nC2O3,L)*y(nNO2,L))/
+     *    (rr(29,L)*y(nM,L)+ss(15,L,I,J))
           if(rnewval.lt.1.)rnewval=1.
           change(I,J,L,igas)=(rnewval-y(n_PAN,L))*dxyp(J)*AM(L,I,J)
      &    *bymass2vol(igas)/y(nM,L)
@@ -385,8 +385,8 @@ c         PAN is thermally unstable, has a very short lifetime)
 c
 c        Conserve NOx with respect to PAN
          if(igas.eq.n_NOx.and.-dest(n_PAN,L).ge.y(n_PAN,L))then
-          rnewval=(rr(54,I,J,L)*y(nC2O3,L)*y(nNO2,L))/
-     *    (rr(29,I,J,L)*y(nM,L)+ss(15,I,J,L))
+          rnewval=(rr(54,L)*y(nC2O3,L)*y(nNO2,L))/
+     *    (rr(29,L)*y(nM,L)+ss(15,L,I,J))
           if(rnewval.lt.1.)rnewval=1.
           change(I,J,L,igas)=change(I,J,L,igas)+(y(n_PAN,L)-rnewval)*
      &    dxyp(J)*AM(L,I,J)*bymass2vol(igas)/y(nM,L)
@@ -625,17 +625,17 @@ C**** Local parameters and variables and arguments:
 !@var kalt local dummy L-loop variable
 !@var maxl passed highest chemistry level
 !@var ireac,igas dummy loop variables
-!@var I,J passed horixontal spatial indicies
+!@var I,J passed horizontal spatial indicies
       INTEGER kalt, ireac, igas, maxl
       INTEGER, INTENT(IN) :: I,J
 c
       do kalt=1,maxl
         do ireac=1,nr
-          chemrate(ireac,kalt)=rr(ireac,I,J,kalt)*y(nn(1,ireac),kalt)*
+          chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*
      &    y(nn(2,ireac),kalt)*dt2
         enddo
         do ireac=1,JPPJ
-          photrate(ireac,kalt)=ss(ireac,I,J,kalt)*y(ks(ireac),kalt)*dt2
+          photrate(ireac,kalt)=ss(ireac,kalt,I,J)*y(ks(ireac),kalt)*dt2
         enddo
 c       Initialize change arrays
         do igas=1,ny
