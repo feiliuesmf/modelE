@@ -180,6 +180,8 @@ CRKF...FIX
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      INTEGER :: ibox
+      REAL*8  :: randxx
 
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
@@ -192,6 +194,18 @@ C**** define local grid
 C
 C     OBTAIN RANDOM NUMBERS FOR PARALLEL REGION
 C
+C     Burn some random numbers corresponding to latitudes off
+C     processor
+      DO J=1,J_0-1
+      DO I=1,IMAXJ(J)
+        DO L=LP50,1,-1
+          DO NR=1,3
+            randxx = RANDU(xx) ! burn
+          END DO
+        END DO
+      END DO
+      END DO
+
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         DO L=LP50,1,-1
@@ -202,6 +216,17 @@ C
 C     Do not bother to save random numbers for isccp_clouds
       END DO
       END DO
+
+      DO J=J_1+1,JM
+      DO I=1,IMAXJ(J)
+        DO L=LP50,1,-1
+          DO NR=1,3
+            randxx = RANDU(xx) ! burn
+          END DO
+        END DO
+      END DO
+      END DO
+
 C     But save the current seed in case isccp_routine is activated
       if (isccp_diags.eq.1) CALL RFINAL(seed)
 C
@@ -269,6 +294,15 @@ C**** MAIN J LOOP
 C****
        ICKERR=0
        JCKERR=0
+      if (isccp_diags.eq.1) then
+       DO J = 1, J_0-1
+         DO I = 1, IMAXJ(J)
+           DO ibox = 1, (NCOL+1)*LM
+             randxx = RANDU(xx) ! burn random numbers
+           END DO
+         END DO
+       END DO
+      end if
 !$OMP  PARALLEL DO PRIVATE (
 #ifdef TRACERS_ON
 !$OMP*  NX,tmsave,tmomsv,
