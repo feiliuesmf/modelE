@@ -1220,6 +1220,7 @@ C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
 C**** except for RHO factor and sqrt: U2rho = Ustar**2 * rho
 C**** DM[UV]A are defined on t-grid. DM[UV]I defined on u,v grid
 C**** Note that rotational ice stresses are not calculated at the pole
+C**** DMUA/I now defined over whole box, not just surface type
       UISTR = 0
       VISTR = 0
       DO I=1,IM
@@ -1229,8 +1230,8 @@ C**** Note that rotational ice stresses are not calculated at the pole
       UISTR = UISTR/IM
       VISTR = VISTR/IM
       U2rho = SQRT(
-     *     (DMUA(1,JM,1)*(1d0-RSI(1,JM)) + UISTR*RSI(1,JM))**2+
-     *     (DMVA(1,JM,1)*(1d0-RSI(1,JM)) + VISTR*RSI(1,JM))**2)*BYDTS
+     *     (DMUA(1,JM,1) + UISTR)**2+
+     *     (DMVA(1,JM,1) + VISTR)**2)*BYDTS
 C**** Calculate surface freshwater and heat fluxes
       DELTAFW = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
       DELTAE  = (G0ML0(1,1,1) - G0ML(1,1,1))*BYDXYPO(JM)*BYDTS
@@ -1273,20 +1274,21 @@ C****
 C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
 C**** except for RHO factor and sqrt: U2rho = Ustar**2 * rho
 C**** DM[UV]A are defined on t-grid. DM[UV]I defined on u,v grid
+C**** DMUA/I now defined over whole box, not just surface type
       UISTR = 0
       VISTR = 0
       IF (RSI(I,J).gt.0) THEN
         IF (LMU(I,J).gt.0)   UISTR = UISTR + DMUI(I,J)
         IF (LMU(IM1,J).gt.0) UISTR = UISTR + DMUI(IM1,J)
         ANSTR=1.-SIGN(0.25,LMU(I,J)-0.5)-SIGN(0.25,LMU(IM1,J)-0.5)
-        UISTR = UISTR*ANSTR*RSI(I,J)
+        UISTR = UISTR*ANSTR
         IF (LMV(I,J).gt.0)   VISTR = VISTR + DMVI(I,J)
         IF (LMV(I,J-1).gt.0) VISTR = VISTR + DMVI(I,J-1)
         ANSTR=1.-SIGN(0.25,LMV(I,J)-0.5)-SIGN(0.25,LMV(I,J-1)-0.5)
-        VISTR = VISTR*ANSTR*RSI(I,J)
+        VISTR = VISTR*ANSTR
       END IF
-      U2rho = SQRT((DMUA(I,J,1)*(1d0-RSI(I,J)) + UISTR)**2 +
-     *             (DMVA(I,J,1)*(1d0-RSI(I,J)) + VISTR)**2)*BYDTS
+      U2rho = SQRT((DMUA(I,J,1) + UISTR)**2 +
+     *             (DMVA(I,J,1) + VISTR)**2)*BYDTS
 C**** Calculate surface freshwater flux and Solar forcing
       DELTAFW = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
       DELTASR = (SOLAR(1,I,J)*(1d0-RSI(I,J))+SOLAR(3,I,J)*RSI(I,J))
