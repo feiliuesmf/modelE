@@ -328,7 +328,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-     *     ,rvap,gamd
+     *     ,rvap,gamd,teeny
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q
@@ -367,7 +367,7 @@ C****
       INTEGER, DIMENSION(LM) :: LUPA,LDNA
       CHARACTER*16 TITLE
       INTEGER :: IFIRST = 1
-      DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
+      DOUBLE PRECISION, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JET,JR,KM,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,
      &     I150E,I110W,I135W,IT
@@ -446,170 +446,170 @@ C****
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
-      DO 190 J=1,JM
-      DXYPJ=DXYP(J)
+      DO J=1,JM
+        DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
-      PI(J)=0.
-      SPTYPE(:,J)=0
-      DO 120 I=1,IMAXJ(J)
-      JR=JREG(I,J)
-      DO IT=1,NTYPE
-        SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
-        AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
-      END DO
-      AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
-      PI(J)=PI(J)+P(I,J)
-      AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
-      AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)
-     *     /TSAVG(I,J))**GBYRB-P1000)
-  120 CONTINUE
-      APJ(J,1)=APJ(J,1)+PI(J)
+        PI(J)=0.
+        SPTYPE(:,J)=0
+        DO I=1,IMAXJ(J)
+          JR=JREG(I,J)
+          DO IT=1,NTYPE
+            SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
+            AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
+          END DO
+          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
+          PI(J)=PI(J)+P(I,J)
+          AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
+          AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG
+     *         *ZATMO(I,J)/TSAVG(I,J))**GBYRB-P1000)
+        END DO
+        APJ(J,1)=APJ(J,1)+PI(J)
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
-      DO 180 I=1,IMAXJ(J)
-      K=1
-      L=1
-  172 L=L+1
-      PDN=PMID(L-1,I,J)
-      PL=PMID(L,I,J)
-      IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-      IF (ABS(TX(I,J,L)-TX(I,J,L-1)).LT.EPSLON) GO TO 176
-      BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
-  174 AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *     -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
-C**** Save temperature and humidity on fixed pressure levels
-      qpress = .false.
-      SELECT CASE (NINT(PMB(K)))
-      CASE (850)    ! 850 mb
-        nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
-      CASE (500)    ! 500 mb 
-        nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
-      CASE (300)    ! 300 mb
-        nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
-      END SELECT
-      IF (qpress) THEN
-        AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF
-     *       +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-        AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)
-     *       +(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL))
-      END IF
+        DO I=1,IMAXJ(J)
+          K=1
+          L=1
+ 172      L=L+1
+          PDN=PMID(L-1,I,J)
+          PL=PMID(L,I,J)
+          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
+C**** Select pressure levels on which to save temperature and humidity
+ 174      qpress = .false.
+          SELECT CASE (NINT(PMB(K)))
+          CASE (850)            ! 850 mb
+            nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
+          CASE (500)            ! 500 mb 
+            nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
+          CASE (300)            ! 300 mb
+            nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
+          END SELECT
+C**** calculate geopotential heights + temperatures
+          IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
+            BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
+            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
+     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
+     *           *GRAV)
+            IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF
+     *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
+          ELSE
+            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
+     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+            IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF)
+          END IF
+C**** Humidity is interpolated or extrapolated straight down (to avoid Q<0)
+          if (qpress) then
+            if (PMB(K).gt.PDN) then
+              AIJ(I,J,nQ)=AIJ(I,J,nQ)+Q(I,J,L)
+            else
+              AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*
+     *             (PMB(K)-PL)/(PDN-PL))
+            end if
+          end if
 C****
-      IF (K.GE.KGZ_max) GO TO 180
-      K=K+1
-      IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-      GO TO 174
- 176  AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *     -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF)
-      IF (K.GE.KGZ_max) GO TO 180
-      K=K+1
-      IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-      GO TO 176
-  180 CONTINUE
-  190 CONTINUE
-C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
-      DO 250 J=1,JM
-      DXYPJ=DXYP(J)
-      DO 230 L=1,LM
-      TPI(J,L)=0.
-      PHIPI(J,L)=0.
-C     QPI=0.
-      SPI(J,L)=0.
-      THI=0.
-C     RHPI=0.
-      DBYSD=DSIG(L)*BYSDSG
-      DO 220 I=1,IMAXJ(J)
-      JR=JREG(I,J)
-      PIJ=PLIJ(L,I,J)
-      DO IT=1,NTYPE
-        AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)*DBYSD
-        AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)*
-     *       FTYPE(IT,I,J)
+          IF (K.LT.KGZ_max) THEN
+            K=K+1
+            IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
+            GO TO 174
+          END IF
+        END DO
       END DO
-      AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)*DXYPJ
-      AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
-      TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
-      PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
-C     QPI=QPI+Q(I,J,L)*PIJ
-      SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
-      THI=THI+T(I,J,L)
-C     QLH=LHE
-C     QSATL=QSAT(TX(I,J,L),QLH,SIG(L)*PIJ+PTOP)
-C     IF (QSATL.GT.1.) QSATL=1.
-C     RHPI=RHPI+Q(I,J,L)*PIJ/QSATL
-  220 CONTINUE
-C     AJL(J,L,JL_01)=AJL(J,L,JL_01)+TPI(J,L)
-C     AJL(J,L,JL_02)=AJL(J,L,JL_02)+PHIPI(J,L)
-C     AJL(J,L,JL_03)=AJL(J,L,JL_03)+QPI
-      AJL(J,L,JL_DTDYN)=AJL(J,L,JL_DTDYN)+THI-TJL0(J,L)
-C     AJL(J,L,JL_18)=AJL(J,L,JL_18)+RHPI
-  230 CONTINUE
-  250 CONTINUE
+C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
+      DO J=1,JM
+        DXYPJ=DXYP(J)
+        DO L=1,LM
+          TPI(J,L)=0.
+          PHIPI(J,L)=0.
+          SPI(J,L)=0.
+          THI=0.
+          DBYSD=DSIG(L)*BYSDSG
+          DO I=1,IMAXJ(J)
+            JR=JREG(I,J)
+            PIJ=PLIJ(L,I,J)
+            DO IT=1,NTYPE
+              AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)
+     *             *DBYSD
+              AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ
+     *             *DSIG(L)*FTYPE(IT,I,J)
+            END DO
+            AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
+     *           *DXYPJ
+            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
+            TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
+            PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
+            SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
+            THI=THI+T(I,J,L)
+          END DO
+          AJL(J,L,JL_DTDYN)=AJL(J,L,JL_DTDYN)+THI-TJL0(J,L)
+        END DO
+      END DO
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      DO 385 J=2,JM-1
+      DO J=2,JM-1
 C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
-      DO 340 L=1,LS1-1
-      DO 335 I=1,IM
+        DO L=1,LS1-1
+        DO I=1,IM
         DO IT=1,NTYPE
           AJ(J,J_DTDJT,IT)=AJ(J,J_DTDJT,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
      *         *FTYPE(IT,I,J)*DSIG(L)
         END DO
-  335 CONTINUE
- 340  CONTINUE
+        END DO
+        END DO
 C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
-      IF (LS1.GT.LM) GO TO 380
-      DO 370 L=LS1,LM
-      DO 350 I=1,IM
+        DO L=LS1,LSTR
+        DO I=1,IM
         DO IT=1,NTYPE
           AJ(J,J_DTDJS,IT)=AJ(J,J_DTDJS,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
      *         *FTYPE(IT,I,J)*DSIG(L)
         END DO
-  350 CONTINUE
- 370  CONTINUE
-  380 CONTINUE
-  385 CONTINUE
+        END DO
+        END DO
+      END DO
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
-      DO 490 J=1,JM
+      DO J=1,JM
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
-      DO 390 I=1,IMAXJ(J)
-      JR=JREG(I,J)
-      SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+ZERO20)
-      DO IT=1,NTYPE
-        AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
+      DO I=1,IMAXJ(J)
+        JR=JREG(I,J)
+        SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+teeny)
+        DO IT=1,NTYPE
+          AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
+        END DO
+        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
+        AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       END DO
-      AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
-  390 AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
-C**** OLD STRATOSPHERIC STATIC STABILITY
-      DO 440 I=1,IMAXJ(J)
-      JR=JREG(I,J)
-      SS=(T(I,J,LM)-T(I,J,LS1-1))/((PHI(I,J,LM)-PHI(I,J,LS1-1))+ZERO20)
-      DO IT=1,NTYPE
-        AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
+C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
+      DO I=1,IMAXJ(J)
+        JR=JREG(I,J)
+        SS=(T(I,J,LSTR)-T(I,J,LS1-1))/((PHI(I,J,LSTR)-PHI(I,J,LS1-1))
+     *       +teeny)
+        DO IT=1,NTYPE
+          AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
+        END DO
+        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
       END DO
-      AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
-  440 CONTINUE
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
 C****
-      DO 470 LR=1,LM_REQ
-      TRI(LR)=0.
-      DO 460 I=1,IMAXJ(J)
-  460 TRI(LR)=TRI(LR)+RQT(LR,I,J)
-  470 ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-TF*IMAXJ(J))
+      DO LR=1,LM_REQ
+        TRI(LR)=0.
+        DO I=1,IMAXJ(J)
+          TRI(LR)=TRI(LR)+RQT(LR,I,J)
+        END DO
+        ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-TF*IMAXJ(J))
+      END DO
       PHIRI=0.
-      DO 480 I=1,IMAXJ(J)
-  480 PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
-     *  *LOG((SIG(LM)*PSFMPT+PTOP)/PRQ1))
+      DO I=1,IMAXJ(J)
+        PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
+     *       *LOG((SIG(LM)*PSFMPT+PTOP)/PRQ1))
+      END DO
       ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
       ASJL(J,2,2)=ASJL(J,2,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(2)+TRI(3))*DLNP23
       ASJL(J,3,2)=ASJL(J,3,2)+PHIRI
-  490 CONTINUE
+      END DO
 C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
 C****
@@ -655,7 +655,6 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
 C**** NUMBERS ACCUMULATED OVER THE LOWER STRATOSPHERE
 C**** LSTR is approx. 10mb level. This maintains consistency over
 C**** the different model tops
-CNOST IF (LS1.GT.LSTR) SKIP THIS PART !NEEDED FOR NO-STRATOSPHERE MODELS
       DO J=2,JM
         DUDVSQ(J)=0.
         UMAX(J)=0.
@@ -833,10 +832,10 @@ C     SDZI=SDZI+PHIE(I,J,L)*SD(I,J,L)
 C     PDSE2I=PDSE2I+(SHA*(TX(I,J,L)+TX(I,J,L+1))+2.*PHIE(I,J,L))*P(I,J)
 C     SDDS2I=SDDS2I+(SHA*(TX(I,J,L)+TX(I,J,L+1))+2.*PHIE(I,J,L))*
 C    *  SD(I,J,L)
-C     PQ2I=PQ2I+(Q(I,J,L)*Q(I,J,L+1)/(Q(I,J,L)+Q(I,J,L+1)+ZERO20))*
+C     PQ2I=PQ2I+(Q(I,J,L)*Q(I,J,L+1)/(Q(I,J,L)+Q(I,J,L+1)+teeny))*
 C    *   P(I,J)
 C     SDQ2I=SDQ2I+(Q(I,J,L)*Q(I,J,L+1)/(Q(I,J,L)+Q(I,J,L+1)+
-C    *  ZERO20))*SD(I,J,L)
+C    *  teeny))*SD(I,J,L)
   650 CONTINUE
 C     SDMEAN(J,L)=SDI*BYIM
 C     AJL(J,L,JL_06)=AJL(J,L,JL_06)+SDI+DSIG(L+1)*PITI
@@ -1208,12 +1207,10 @@ C****   4  DP4 (100 PA)  (UV GRID)
 C****   5  4*DP4*T4 (100 K*PA)  (UV GRID)
 C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
-      USE CONSTANT, only : lhe,omega,sha,tf
+      USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,
-     &     mdyn,mdiag, ndaa,      !! skipse,
-     &     sig,sige,dsig, Jhour
-     *     ,u,v,t,p,q,wm
+     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,
@@ -1264,7 +1261,7 @@ C****
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
 
       INTEGER :: IFIRST = 1
-      DOUBLE PRECISION, PARAMETER :: ZERO20=1.E-20,BIG=1.E20
+      DOUBLE PRECISION, PARAMETER :: BIG=1.E20
       DOUBLE PRECISION :: QSAT
 
       CALL GETTIME(MBEGIN)
@@ -1343,7 +1340,7 @@ CW169 FORMAT(1X,'1616--',3I5,3E15.2)
       AJK(J,K,JK_THETA)=AJK(J,K,JK_THETA)+THPI
       AJK(J,K,JK_RH)=AJK(J,K,JK_RH)+RHPI
       AJK(J,K,JK_CLDH2O)=AJK(J,K,JK_CLDH2O)+WMPI
-         TJK(J,K)=THPI/(DPI+ZERO20)
+         TJK(J,K)=THPI/(DPI+teeny)
          IF (IDACC(4).EQ.1) AJK(J,K,JK_TINST)=TJK(J,K)
          AJK(J,K,JK_TOTDTDT)=TJK(J,K)-AJK(J,K,JK_TINST)
   170 CONTINUE
@@ -1376,7 +1373,7 @@ C****
       GO TO 190
   200 DPUP=PMK-PL(LUP)
       DPDN=PL(L)-PMK
-      STB(I,J,K)=(DTH(L-1)*DPUP+DTH(L)*DPDN)/(DPUP+DPDN+ZERO20)
+      STB(I,J,K)=(DTH(L-1)*DPUP+DTH(L)*DPDN)/(DPUP+DPDN+teeny)
       GO TO 220
 C**** SPECIAL CASES,  L=2, L=LM
   210 STB(I,J,K)=DTH(L-1)
@@ -1394,7 +1391,7 @@ C**** CALCULATE STJK; THE MEAN STATIC STABILITY
       STJK(J,K)=STJK(J,K)+STB(I,J,K)
       DPJK(J,K)=DPJK(J,K)+1.
   250 I=IP1
-      STJK(J,K)=STJK(J,K)/(DPJK(J,K)+ZERO20)
+      STJK(J,K)=STJK(J,K)/(DPJK(J,K)+teeny)
       SMALL=.0001
       IF (ABS(STJK(J,K)).LT.SMALL) STJK(J,K)=-SMALL
   260 CONTINUE
@@ -1483,7 +1480,7 @@ C**** ACCUMULATE HERE
   332 FIMI=FIMI+1.
       DPI=DPI+DPK
       DPSQI=DPSQI+DPK*DPK
-      IF (DPK.LT.ZERO20) DPK=ZERO20
+      IF (DPK.LT.teeny) DPK=teeny
       BYDP=1./DPK
       PUI=PUI+PUK
       PVI=PVI+PVK
@@ -1518,12 +1515,12 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
   336 ZX(I,J,K)=BIG
       ZX(I,J-1,K)=0.
   340 I=IP1
-      DPM(K)=DPI/(FIMI+ZERO20)
+      DPM(K)=DPI/(FIMI+teeny)
       DPJK(J,K)=DPI
       AJK(J,K,JK_DPB)=AJK(J,K,JK_DPB)+DPI
       AJK(J,K,JK_DPSQR)=AJK(J,K,JK_DPSQR)+DPSQI
       AJK(J,K,JK_NPTSAVG)=AJK(J,K,JK_NPTSAVG)+FIMI
-      IF (DPI.LT.ZERO20) DPI=ZERO20
+      IF (DPI.LT.teeny) DPI=teeny
       AJK(J,K,JK_U)=AJK(J,K,JK_U)+PUI
       AJK(J,K,JK_V)=AJK(J,K,JK_V)+PVI
       AJK(J,K,JK_ZMFKE)=AJK(J,K,JK_ZMFKE)+(PUI*PUI+PVI*PVI)/DPI
@@ -1710,7 +1707,7 @@ C****
       BYDP=1./(DPDN+DPUP)
       TK=BYDP*(TX(I,J,L)*DPUP+TX(I,J,LUP)*DPDN)
       QK=Q(I,J,L)*Q(I,J,LUP)/(BYDP*(Q(I,J,L)*DPDN+Q(I,J,LUP)*DPUP)+
-     *  ZERO20)
+     *  teeny)
       ZK=BYDP*(PHI(I,J,L)*DPUP+PHI(I,J,LUP)*DPDN)
          THK=BYDP*(T(I,J,L)*DPUP+T(I,J,LUP)*DPDN)
       GO TO 590
@@ -1731,8 +1728,8 @@ C**** MERIDIONAL AVERAGING
          WTHI=WTHI+W(I,J,K)*THK
       FIMI=FIMI+1.
   600 CONTINUE
-      BYFIM=ZERO20
-      IF (FIMI.GT.ZERO20) BYFIM=1./FIMI
+      BYFIM=teeny
+      IF (FIMI.GT.teeny) BYFIM=1./FIMI
       AJK(J,K-1,JK_ZMFVTDSE)=AJK(J,K-1,JK_ZMFVTDSE)+
      &     BYFIM*(SHA*TKI+ZKI)*WI
       AJK(J,K-1,JK_TOTVTDSE)=AJK(J,K-1,JK_TOTVTDSE)+SHA*WTI+WZI
@@ -1793,7 +1790,7 @@ C**** ACCUMULATE HERE
       WPA2I=WPA2I+(W(I,J,K)+WUP)*PAK
   626 CONTINUE
   630 AJK(J,K,JK_BAREKEGEN)=AJK(J,K,JK_BAREKEGEN)-
-     &     (WPA2I-W2I*PAI/(FIMI+ZERO20))
+     &     (WPA2I-W2I*PAI/(FIMI+teeny))
 C****
 C**** ACCUMULATE UV VERTICAL TRANSPORTS
 C****
@@ -1846,7 +1843,7 @@ C**** MERIDIONAL AVERAGING
       WKE4I=WKE4I+W4*(UK*UK+VK*VK)
       FIMI=FIMI+1.
   700 I=IP1
-      BYFIM=1./(FIMI+ZERO20)
+      BYFIM=1./(FIMI+teeny)
          WUJK(J,K)=.25*(WU4I-W4I*UKI*BYFIM)*BYFIM/DXYV(J)
       AJK(J,K-1,JK_TOTVTKE)=AJK(J,K-1,JK_TOTVTKE)+WKE4I
       AJK(J,K-1,JK_VTAMEDDY)=AJK(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
@@ -1881,7 +1878,7 @@ C****
   740 I=IP1
       AJK(J,K-1,JK_VTPV)=AJK(J,K-1,JK_VTPV)+WPV4I
   760 AJK(J,K-1,JK_VTPVEDDY)=AJK(J,K-1,JK_VTPVEDDY)+
-     &     WPV4I-W2I*PV2I/(FIMI+ZERO20)
+     &     WPV4I-W2I*PV2I/(FIMI+teeny)
 C****
 C**** SPECIAL MEAN/EDDY DIAGNOSTICS ARE CALCULATED
 C****
@@ -1984,7 +1981,7 @@ C**** ACCUMULATE HERE
       L=L+1
       PDN=PL(L)
       GO TO 2070
- 2080 IF (SQRTDP.EQ.0.) SQRTDP=ZERO20
+ 2080 IF (SQRTDP.EQ.0.) SQRTDP=teeny
       DPUV=DPUV/SQRTDP
  2090 X1(I)=DPUV
       CALL FFTE (X1,X1)
