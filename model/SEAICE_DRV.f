@@ -340,7 +340,7 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
       ELSE
         FLOWO=0. ; EFLOWO=0. ; SFLOWO=0.
 #ifdef TRACERS_WATER
-          TRFLOWO=0.
+        TRFLOWO=0.
 #endif
       END IF
 C****

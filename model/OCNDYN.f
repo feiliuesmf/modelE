@@ -3129,24 +3129,26 @@ C**** set GTEMP array for ice as well (possibly changed by STADVI)
         END DO
       END DO
 C**** do poles
-      DO I=2,IM
-        IF (FOCEAN(1,JM).gt.0) THEN
+      IF (FOCEAN(1,JM).gt.0) THEN
+        DO I=2,IM
           GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
 #ifdef TRACERS_WATER
           GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
 #endif
-        END IF
-c       IF (FOCEAN(1,1).gt.0) THEN
+        END DO
+      END IF
+c     IF (FOCEAN(1,1).gt.0) THEN
+c       DO I=2,IM
 c         GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
 c         SSS(I,1)=SSS(1,1)
 c         MLHC(I,1)=MLHC(1,1)
 #ifdef TRACERS_WATER
 c         GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
 #endif
-c       END IF
-      END DO
+c       END DO
+c     END IF
       RETURN
 C****
       END SUBROUTINE TOC2SST

@@ -653,7 +653,7 @@ C****
 
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
-      REAL*8 MWLSILL,DMM,DGM,HLK1,POICE,POCEAN
+      REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
       REAL*8, DIMENSION(IM,JM) :: FLOW,EFLOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
@@ -697,43 +697,46 @@ c              END IF
                 DTM(:) = DMM*TRLAKE(:,1,IU,JU)/(MWL(IU,JU)+teeny)
               end if
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
-              TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
-     *             *BYDXYP(JD)
 #endif
-              AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) +  DMM
-              AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR)+
-     *             DGM+DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
               IF(FOCEAN(ID,JD).le.0.) THEN
+                DPE=DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
                 FLOW(ID,JD) =  FLOW(ID,JD) + DMM
-                EFLOW(ID,JD) = EFLOW(ID,JD) + DGM
-     *               +DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+                EFLOW(ID,JD) = EFLOW(ID,JD) + DGM+DPE
 #ifdef TRACERS_WATER
                 TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + DTM(:)
 #endif
               ELSE ! Save river mouth flow to for output to oceans
+C**** DPE: also add potential energy change to ocean.
+C**** Normally ocean is at sea level (Duh!), but in some boxes ZATMO
+C**** may not be zero if there is land as well, while in the Caspian, the
+C**** ocean level is below zero. 
+                DPE=DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
                 FLOWO(ID,JD)=FLOWO(ID,JD)+DMM
-                EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM
-     *               +DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+                EFLOWO(ID,JD)=EFLOWO(ID,JD)+DGM+DPE
 #ifdef TRACERS_WATER
                 TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
 #endif
 C**** accumulate river runoff diags (moved from ground)
-                POICE =RSI(ID,JD)*FOCEAN(ID,JD)
-                POCEAN=(1.-RSI(ID,JD))*FOCEAN(ID,JD)
                 AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
      *               (1.-RSI(ID,JD))*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOCEAN)=AJ(JD,J_ERVR,ITOCEAN)+
-     *               (1.-RSI(ID,JD))*DGM*BYDXYP(JD)
+     *               (1.-RSI(ID,JD))*(DGM+DPE)*BYDXYP(JD)
                 AJ(JD,J_RVRD,ITOICE)=AJ(JD,J_RVRD,ITOICE) +
      *               RSI(ID,JD)*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
-     *               RSI(ID,JD)*DGM*BYDXYP(JD)
+     *               RSI(ID,JD)*(DGM+DPE)*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               (1.-RSI(ID,JD))*DGM*BYDXYP(JD)
+     *               (1.-RSI(ID,JD))*(DGM+DPE)*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
-              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM
+              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
+              AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
+              AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
+#ifdef TRACERS_WATER
+              TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
+     *             *BYDXYP(JD)
+#endif
             END IF
           END IF
         END DO
@@ -755,6 +758,7 @@ c         MLM=RHOW*MLDLK(1,1)*FLAKE(1,1)*DXYP(1)
 c         DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
 c        END IF
         DGM=TLAKE(1,1)*DMM*SHW ! TLAKE always defined
+        DPE=DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE))
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
 #ifdef TRACERS_WATER
@@ -768,11 +772,9 @@ c        END IF
      *       DTM(:)*BYDXYP(JDPOLE)
 #endif
         AIJ(IDPOLE,JDPOLE,IJ_MRVR)=AIJ(IDPOLE,JDPOLE,IJ_MRVR) + DMM
-        AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + DGM
-     *       +DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE))
+        AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + DGM+DPE
          FLOW(IDPOLE,JDPOLE) =  FLOW(IDPOLE,JDPOLE) + IM*DMM
-        EFLOW(IDPOLE,JDPOLE) = EFLOW(IDPOLE,JDPOLE) +
-     +       IM*(DGM+DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
+        EFLOW(IDPOLE,JDPOLE) = EFLOW(IDPOLE,JDPOLE) + IM*(DGM+DPE)
 #ifdef TRACERS_WATER
         TRFLOW(:,IDPOLE,JDPOLE) = TRFLOW(:,IDPOLE,JDPOLE) + IM*DTM(:)
 #endif
@@ -782,7 +784,7 @@ C**** Apply net river flow to continental reservoirs
 C****
       DO J=2,JM-1
         DO I=1,IM
-          IF(FOCEAN(I,J).le.0.) THEN
+          IF(FLAND(I,J).gt.0.) THEN
             MWL(I,J) = MWL(I,J) +  FLOW(I,J)
             GML(I,J) = GML(I,J) + EFLOW(I,J)
 #ifdef TRACERS_WATER

@@ -103,16 +103,16 @@ C**** is currently done for river flow and complete sea ice melt.
       REAL*8, DIMENSION(NTM,IM,JM):: TRPREC
 !@var TREVAPOR tracer evaporation over each type (kg/m^2) 
       REAL*8, DIMENSION(NTM,NSTYPE,IM,JM) :: TREVAPOR
-!@var TRUNPSI tracer in run off from sea/lake ice after precip (kg)
-!@var TRUNOSI tracer in run off from sea/lake ice after surface (kg)
-!@var TRUNOE tracer runoff from earth (kg)
-!@var TRUNOLI tracer runoff from land ice (kg)
+!@var TRUNPSI tracer in run off from sea/lake ice after precip (kg/m^2)
+!@var TRUNOSI tracer in run off from sea/lake ice after surface (kg/m^2)
+!@var TRUNOE tracer runoff from earth (kg/m^2)
+!@var TRUNOLI tracer runoff from land ice (kg/m^2)
       REAL*8, DIMENSION(NTM,IM,JM):: TRUNPSI, TRUNOSI, TRUNOE, TRUNOLI
 !@var TRFLOWO tracer in river runoff into ocean (kg)
       REAL*8, DIMENSION(NTM,IM,JM) :: TRFLOWO
-!@var DTRSI tracer flux in sea ice under ice and on open water (kg)
+!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
       REAL*8, DIMENSION(NTM,2,IM,JM) :: DTRSI
-!@var ftrsi_io ice-ocean tracer fluxes under ice (kg)
+!@var ftrsi_io ice-ocean tracer fluxes under ice (kg/m^2)
       REAL*8, DIMENSION(NTM,IM,JM) :: ftrsi_io
 #endif
 #endif
