@@ -1,5 +1,5 @@
       MODULE OCEAN
-!@sum  OCEAN contains all the ocean (incl. sea ice temporarily) subroutines
+!@sum  OCEAN contains all the ocean (+ sea ice temporarily) subroutines
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,OCLIM0    (soon ,PRECOO,OSOURC,ODIFF,etc.)
@@ -23,11 +23,11 @@ c      COMMON/WORKO/OA(IM,JM,12)
      *     R4=1./XSI4
       REAL*8, PARAMETER :: TTRUNC = 0 !@var TTRUNC why does this exist?
 !@var Z1I thickness of first layer ice (m)
-      REAL*8, PARAMETER :: Z1I = .1 
+      REAL*8, PARAMETER :: Z1I = .1
 !@var ACE1I ice mass first layer (kg/m^2)
-      REAL*8, PARAMETER :: ACE1I = Z1I*RHOI 
+      REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
 !@var Z2OIM thickness of 2nd layer ice (m)
-      REAL*8, PARAMETER :: Z2OIM = .4  
+      REAL*8, PARAMETER :: Z2OIM = .4
 !@var AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@var TFO temperature of freezing ocean (C)
@@ -44,9 +44,9 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       REAL*8, SAVE,DIMENSION(IM,JM,4) :: OTA,OTB
       REAL*8, SAVE,DIMENSION(IM,JM) :: OTC
 
-      
+
       REAL*8, PRIVATE,DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
-     *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI 
+     *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
       INTEGER, PRIVATE,DIMENSION(IM,JM) ::  KRSI
       COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
      *     ,CRSI,KRSI
@@ -56,7 +56,7 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
       CONTAINS
 
       SUBROUTINE OSTRUC
-!@sum  OSTRUC restructures the ocean temperature profile as ML 
+!@sum  OSTRUC restructures the ocean temperature profile as ML
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
@@ -225,7 +225,7 @@ C*
       END SUBROUTINE OSTRUC
 
       SUBROUTINE OCLIM(DOZ1O)
-!@sum  OCLIM calculates daily ocean data from ocean/sea ice climatologies
+!@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
       IMPLICIT NONE
@@ -237,10 +237,10 @@ C*
 
       INTEGER n,MD,J,I,LSTMON,K,MDMAX,IMAX
       REAL*8 PLICEN,PLICE,POICE,POCEAN,RSICSQ,ZIMIN,ZIMAX,DOZ1O,X1
-     *     ,X2,Z1OMIN,RSINEW,TIME 
+     *     ,X2,Z1OMIN,RSINEW,TIME
       INTEGER :: JDOFM(13) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      
+
       REAL*8 FACTOR,T_ICE,T_NOICE
        IF (KOCEAN.EQ.1.AND.KLAKE.EQ.1) GO TO 500
        IF (KOCEAN.EQ.1) GO TO 470
@@ -328,10 +328,9 @@ C**** Calculate OST, RSI and MSI for current day
       IMAX=IMAXJ(J)
       DO 450 I=1,IMAX
       IF(FLAND(I,J).GE.1.)  GO TO 450
-      IF (KOCEAN.EQ.1 .AND. FLAKE(I,J).LE.0.) GO TO 450
 C**** OST always uses quadratic fit
-      IF(KOCEAN.EQ.0) ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
-     +                               COST(I,J)*(TIME*TIME - 1./12.d0)
+      ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
+     +               COST(I,J)*(TIME*TIME - 1./12.d0)
       IF(KRSI(I,J)) 410,430,420
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
   410 IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
@@ -357,7 +356,7 @@ C**** RSI uses quadratic fit
   440 ODATA(I,J,2)=RSINEW
       ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-      IF (KOCEAN.EQ.0.AND.ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=-1.8
+      IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=-1.8
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
 c     IF (ODATA(I,J,2).GT.0.) THEN
 c        BYZICE=RHOI/(Z1I*RHOI+ODATA(I,J,3))
@@ -380,7 +379,7 @@ C**** REPLICATE VALUES AT POLE
       GDATA(I,JM,16)=GDATA(1,JM,16)
       DO 460 K=1,3
   460 ODATA(I,JM,K)=ODATA(1,JM,K)
-      IF (KOCEAN.EQ.0) RETURN
+      RETURN
 C****
 C**** Calculate Lake Ice extent for current day from 50-day-mean Ts
 C****
