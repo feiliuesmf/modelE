@@ -241,13 +241,14 @@ c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday,grav,rgas,teeny
-      USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc,airx
+      USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc
       USE GEOM, only: bydxyp
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tajls,jls_source
       USE FILEMANAGER, only: openunit,closeunit
       USE SEAICE_COM, only:rsi
       USE PBLCOM, only: wsavg,eabl,tsavg
+      USE CLOUDS_COM, only : airx
       USE FLUXES, only : gtemp
       USE AEROSOL_SOURCES, only: DMS_src,PBLH,SHDTT ! ,MDF
       USE DYNAMICS, only: BYAM,pmid,pk

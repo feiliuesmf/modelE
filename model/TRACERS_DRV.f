@@ -414,13 +414,14 @@ C This number wasn't adjusted when the vegetation source was added.
       case ('DMS')
       n_DMS = n
           ntm_power(n) = -12
-          ntsurfsrc(n) = 1   ! ocean DMS concentration
+! the ocean source of DMS is actually interactive and therefore should
+! not count for ntsurfsrc....
+          ntsurfsrc(n) = 1   ! ocean DMS concentration 
           tr_mm(n) = 62.
 
       case ('MSA')
       n_MSA = n
           ntm_power(n) = -13
-          ntsurfsrc(n) = 1   ! sink to dry dep
           tr_mm(n) = 96.  !(H2O2 34;SO2 64)
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
           trradius(n)=5.d-7 !m (SO4 3;BC 1;OC 3)
@@ -1348,14 +1349,6 @@ c put in chemical production of MSA
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c sink of MSA to dry dep
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
-        lname_jls(k) = 'MSA dry dep sink'
-        jls_ltop(k) = 1
-        jls_power(k) =-1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
 c put in chemical production of SO2
@@ -1443,14 +1436,6 @@ c biomass burning source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c sink of SO2 to dry dep
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
-        lname_jls(k) = 'SO2 dry dep sink'
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         case ('SO4')
 c gas phase source of SO4
@@ -1493,14 +1478,7 @@ c industrial source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c sink of SO2 to dry dep
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
-        lname_jls(k) = 'SO4 dry dep sink'
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
         case ('H2O2_s')
 c gas phase source and sink of H2O2
         k = k + 1
@@ -1533,14 +1511,6 @@ C
         lname_jls(k) = 'H2O2 gas phase sink'
         jls_ltop(k) = LM
         jls_power(k) = 2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c sink of H2O2 to dry dep
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Dry_dep_sink_of'//trname(n)
-        lname_jls(k) = 'H2O2 dry dep sink'
-        jls_ltop(k) = 1
-        jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 C**** Here are some more examples of generalised diag. configuration
@@ -2007,16 +1977,6 @@ c put in chemical production of MSA
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c MSA dry dep
-        k = k + 1
-        ijts_source(2,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'MSA Dry Dep'
-        sname_ijts(k) = 'MSA_Dry_Dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SO2')
 c put in production of SO2 from DMS
@@ -2059,16 +2019,6 @@ c emissions of biomass SO2
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO2 dry dep
-        k = k + 1
-        ijts_source(5,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 dry dep'
-        sname_ijts(k) = 'SO2_dry_dep'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SO4')
 c put in production of SO4 from gas phase
@@ -2088,16 +2038,6 @@ c SO4 from industrial emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c SO4 dry dep
-        k = k + 1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 dry dep'
-        sname_ijts(k) = 'SO4_dry_dep'
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2874,7 +2814,7 @@ C**** First 12 are standard for all tracers and GCM
       if(dodrydep(n)) then
         itcon_dd(n)=16
         qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
-        qsum(itcon_dd(n)) = .true.
+        qsum(itcon_dd(n)) = .false.
       end if
 #endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
@@ -2913,7 +2853,7 @@ C**** First 12 are standard for all tracers and GCM
       if(dodrydep(n)) then
         itcon_dd(n)=21
         qcon(itcon_dd(n)) = .true. ; conpts(9) = 'DRY DEP'
-        qsum(itcon_dd(n)) = .true.
+        qsum(itcon_dd(n)) = .false.
       end if
 #endif
       itcon_3Dsrc(5,N) = 22
@@ -2944,7 +2884,7 @@ C**** First 12 are standard for all tracers and GCM
       if(dodrydep(n)) then
         itcon_dd(n)=17
         qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
-        qsum(itcon_dd(n)) = .true.
+        qsum(itcon_dd(n)) = .false.
       end if
 #endif
       itcon_3Dsrc(2,N) = 18
@@ -2972,7 +2912,7 @@ C**** First 12 are standard for all tracers and GCM
       if(dodrydep(n)) then
         itcon_dd(n)=16
         qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
-        qsum(itcon_dd(n)) = .true.
+        qsum(itcon_dd(n)) = .false.
       end if
 #endif
       itcon_3Dsrc(2,N) = 17
@@ -4051,9 +3991,9 @@ C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
       thlaw=0.
       SELECT CASE(tr_wd_TYPE(NTIX(N)))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
         CASE(nGAS)                            ! gas tracer
           fq = 0.D0                           ! frozen and default case
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
           IF(LHX.eq.LHE) THEN                 ! if not frozen then:
             Ppas = PL(L)*1.D2                 ! pressure to pascals
             tfac = (1.D0/TEMP - BY298K)*BYGASC

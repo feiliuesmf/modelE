@@ -309,6 +309,7 @@ C**** Tracers conc. in soil water
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
+      if (dodrydep(n)) then
       k = k+1
       tij_drydep = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_dry_dep'
@@ -316,6 +317,7 @@ C**** Tracers dry deposition flux.
      *       ' Dry Deposition'
         units_tij(k,n)=unit_string(ijtm_power(n)-9,'kg/m^2/s')
         scale_tij(k,n)=10.**(-ijtm_power(n)+9)/REAL(NIsurf,KIND=8)
+      end if
 #endif
       end do
 

@@ -566,7 +566,7 @@ C
 C --- this section relaces SUNPARAM routine --- 
       DO I=2,KK ! NN
         TERM(I)=MIN(TERM(I),X0(I))
-        IF (I.NE.KK) THEN ! harcode of array position !
+        IF (I.NE.KK) THEN ! hardcode of array position !
           XLOW=X0(I)/REAL(ND(I))
         ELSE
           XLOW= 0.

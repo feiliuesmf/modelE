@@ -864,7 +864,6 @@ C****
         n2=n_HDO
 C**** precipitation
         k=k+1
-        n=tij_prec
         ijtype(k) = 3
         name(k) = "prec_ij_dex"
         lname(k) = "Deuterium excess in precip"
@@ -879,7 +878,6 @@ C**** precipitation
         scale(k) = 1.
 C**** ground concentration
         k=k+1
-        n=tij_grnd
         ijtype(k) = 3
         name(k) = "grnd_ij_dex"
         lname(k) = "Deuterium excess at Ground"
