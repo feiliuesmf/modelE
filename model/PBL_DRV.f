@@ -296,6 +296,7 @@ c -------------------------------------------------------------
       USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE SEAICE_COM, only : rsi,snowi
@@ -311,7 +312,7 @@ C**** ignore ocean currents for initialisation.
       integer :: iu_CDN
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
-      real*8 tgvdat(im,jm,4)
+      real*8, allocatable, dimension(:,:,:) :: tgvdat
 
       integer :: itype  !@var itype surface type
       integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
@@ -327,13 +328,24 @@ c**** special threadprivate common block (compaq compiler stupidity)
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
+      integer :: J_1, J_0
+      integer :: J_1H, J_0H
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     *               J_STRT=J_0,       J_STOP=J_1)
+
+      allocate ( tgvdat(im,J_0H:J_1H,4) )
+
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
       call closeunit(iu_CDN)
       call sync_param( 'XCDpbl', XCDpbl )
 
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
 C**** fix roughness length for ocean ice that turned to land ice
           if (snowi(i,j).lt.-1.and.flice(i,j).gt.0) roughl(i,j)=1.84d0
@@ -350,7 +362,7 @@ C**** fix roughness length for ocean ice that turned to land ice
 
       if(.not.inipbl) return
 
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,im
         pland=fland(i,j)
         pwater=1.-pland
@@ -375,7 +387,7 @@ C**** fix roughness length for ocean ice that turned to land ice
         else
           elhx=lhs
         endif
-        do j=1,jm
+        do j=J_0,J_1
           jlat=j
           coriol=sinp(j)*omega2
 
@@ -460,6 +472,8 @@ c ******************************************************************
         end do
       end do
 
+      deallocate ( tgvdat )
+
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)
       end subroutine init_pbl
@@ -503,6 +517,7 @@ c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_pbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
@@ -512,7 +527,13 @@ c ----------------------------------------------------------------------
       IMPLICIT NONE
       integer i,j,iter,lpbl  !@var i,j,iter,lpbl loop variable
 
-      do j=1,jm
+      integer :: J_1, J_0
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      do j=J_0,J_1
       do i=1,imaxj(j)
 
 c ******* itype=1: Ocean
@@ -670,6 +691,7 @@ C**** initialise some pbl common variables
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
       IMPLICIT NONE
@@ -677,24 +699,35 @@ C**** initialise some pbl common variables
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
+      integer :: I_1, I_0, J_1, J_0, Ilen, Jlen
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1,
+     *               J_STRT=J_0, J_STOP=J_1)
+
+      Ilen = I_1-I_0+1
+      Jlen = J_1-J_0+1
+
 C**** Check for NaN/INF in boundary layer data
-      CALL CHECK3(wsavg,IM,JM,1,SUBR,'wsavg')
-      CALL CHECK3(tsavg,IM,JM,1,SUBR,'tsavg')
-      CALL CHECK3(qsavg,IM,JM,1,SUBR,'qsavg')
-      CALL CHECK3(dclev,IM,JM,1,SUBR,'dclev')
-      CALL CHECK3(usavg,IM,JM,1,SUBR,'usavg')
-      CALL CHECK3(vsavg,IM,JM,1,SUBR,'vsavg')
-      CALL CHECK3(tauavg,IM,JM,1,SUBR,'tauavg')
-      CALL CHECK3(ustar_pbl,IM,JM,4,SUBR,'ustar')
+      CALL CHECK3(wsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'wsavg')
+      CALL CHECK3(tsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tsavg')
+      CALL CHECK3(qsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qsavg')
+      CALL CHECK3(dclev(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'dclev')
+      CALL CHECK3(usavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'usavg')
+      CALL CHECK3(vsavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'vsavg')
+      CALL CHECK3(tauavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tauavg')
+      CALL CHECK3(ustar_pbl(I_0:I_1,J_0:J_1,1:4),Ilen,Jlen,4,SUBR,
+     *           'ustar')
 
-      CALL CHECK3(uflux,IM,JM,1,SUBR,'uflux')
-      CALL CHECK3(vflux,IM,JM,1,SUBR,'vflux')
-      CALL CHECK3(tflux,IM,JM,1,SUBR,'tflux')
-      CALL CHECK3(qflux,IM,JM,1,SUBR,'qflux')
+      CALL CHECK3(uflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'uflux')
+      CALL CHECK3(vflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'vflux')
+      CALL CHECK3(tflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tflux')
+      CALL CHECK3(qflux(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qflux')
 
-      CALL CHECK3(tgvavg,IM,JM,1,SUBR,'tgvavg')
-      CALL CHECK3(qgavg,IM,JM,1,SUBR,'qgavg')
-      CALL CHECK3(w2_l1,IM,JM,1,SUBR,'w2_l1')
+      CALL CHECK3(tgvavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'tgvavg')
+      CALL CHECK3(qgavg(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'qgavg')
+      CALL CHECK3(w2_l1(I_0:I_1,J_0:J_1),Ilen,Jlen,1,SUBR,'w2_l1')
 
       END SUBROUTINE CHECKPBL
 
