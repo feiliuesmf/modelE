@@ -1,4 +1,4 @@
-       
+        
       MODULE RE001
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -1066,13 +1066,13 @@ C
       IF(L.LT.15) PLB50(L)=PLB14(L)
       IF(L.GT.14) PLB50(L)=1382.D0*EXP(-(L+5.5D0)/6.2D0)
   432 CONTINUE
+      NL1=NL+1
       IF(PLB(NL1).lt.PLB50(NLO3)) then
 C****   extend Ozone to model top - constant concentration
         rptop=(PLB50(NLO3)-PLB(NL1))/(PLB50(NLO3-1)-PLB50(NLO3))
         PLB50(NLO3+1)=PLB(NL1)
         NLO3=46
       end if
-      NL1=NL+1
       DO M=1,MO3X
       MM=M-((M-1)/12)*12
       READ (NRFU,END=440) TITLE,OZONLJ
