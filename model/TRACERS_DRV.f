@@ -41,10 +41,13 @@
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,
      &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
-     &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry
+     &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,which_trop,
+     &     PI_run,PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other,
+     &     PIratio_indus,PIratio_bburn
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
-     &     ClOxalt,ClONO2alt,HClalt
+     &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL
 #endif
 #endif
 #ifdef TRACERS_COSMO
@@ -122,6 +125,14 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       trglac = 0.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+      call sync_param("which_trop",which_trop)
+      call sync_param("PI_run",PI_run)
+      call sync_param("PIratio_N",PIratio_N)
+      call sync_param("PIratio_CO_T",PIratio_CO_T)
+      call sync_param("PIratio_CO_S",PIratio_CO_S)
+      call sync_param("PIratio_other",PIratio_other)
+      call sync_param("PIratio_indus",PIratio_indus)
+      call sync_param("PIratio_bburn",PIratio_bburn)
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
 #ifdef regional_Ox_tracers
       Ox_a_tracer=.false.
@@ -189,6 +200,17 @@ C**** Define individual tracer characteristics
           ntsurfsrc(n) = 1
           n_MPtable(n) = 1
           tcscale(n_MPtable(n)) = 1.
+#endif
+#ifdef SHINDELL_STRAT_CHEM
+          call openunit('N2O_IC',iu_data,.true.,.true.)
+          read (iu_data) title,N2OICIN
+          call closeunit(iu_data)
+          write(6,*) title,' read from N2O_IC'
+          do j=J_0,J_1  ; do i=1,im
+           N2OICINL(:)=N2OICIN(I,J,:)
+           CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
+           N2OICX(I,J,:)=N2OICL(:)
+          end do     ; end do
 #endif
 
       case ('CFC11')   !!! should start April 1
@@ -421,6 +443,17 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
       n_CFC = n
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0 !CFC11
+#ifdef SHINDELL_STRAT_CHEM
+          call openunit('CFC_IC',iu_data,.true.,.true.)
+          read (iu_data) title,CFCICIN
+          call closeunit(iu_data)
+          write(6,*) title,' read from CFC_IC'
+          do j=J_0,J_1  ; do i=1,im
+           CFCICINL(:)=CFCICIN(I,J,:)
+           CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
+           CFCIC(I,J,:)=CFCICL(:)
+          end do     ; end do
+#endif
 
       case ('HNO3')
       n_HNO3 = n
@@ -5245,9 +5278,11 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_SPECIAL_Shindell
       USE RADNCB, ONLY : O3_tracer_save
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM
-     &  ,COalt,JCOlat,OxIC,byO3MULT
+     &  ,COalt,JCOlat,OxIC,byO3MULT,pfix_CH4_S,pfix_CH4_N,PI_run,
+     &  fix_CH4_chemistry,PIratio_N,PIratio_CO_T,PIratio_CO_S,
+     &  PIratio_other
 #ifdef SHINDELL_STRAT_CHEM
-     &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt
+     &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5279,7 +5314,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
 #ifdef TRACERS_SPECIAL_Shindell
 !@var imonth dummy index for choosing the right month
+!@var ICfactor varying factor for altering initial conditions
       INTEGER imonth, J2
+      REAL*8 ICfactor
 #ifdef regional_Ox_tracers
 !@var byNregOx reciprocal of the number of regional Ox tracers
       REAL*8 byNregOx
@@ -5379,10 +5416,10 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*N2Oic(j,l)
           enddo; enddo
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
+#ifdef SHINDELL_STRAT_CHEM
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
-          end do; end do; end do
+            trm(i,j,l,n) = N2OICX(i,j,l)
+          end do   ; end do   ; end do
 #endif
 
         case ('CFC11')   !!! should start April 1
@@ -5403,7 +5440,17 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
-          call get_CH4_IC ! defines trm(:,:,:,n_CH4) within
+          select case(fix_CH4_chemistry)
+          case(1)
+            do l=1,lm; do j=J_0,J_1/2
+              trm(:,j,l,n)=am(l,:,j)*dxyp(j)*TR_MM(n)*bymair*pfix_CH4_S
+            end do; end do
+            do l=1,lm; do j=(J_1/2)+1,J_1
+              trm(:,j,l,n)=am(l,:,j)*dxyp(j)*TR_MM(n)*bymair*pfix_CH4_N
+            end do; end do
+          case default
+            call get_CH4_IC ! defines trm(:,:,:,n_CH4) within
+          end select
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
@@ -5564,8 +5611,12 @@ c**** earth
 #endif
 
         case ('NOx')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11*ICfactor
           end do; end do; end do
 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
@@ -5595,13 +5646,21 @@ c**** earth
 #endif
 
         case ('N2O5')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12*ICfactor
           end do; end do; end do
 
         case ('HNO3')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10*ICfactor
           end do; end do; end do
 
         case ('H2O2')
@@ -5620,8 +5679,12 @@ c**** earth
           end do; end do; end do
 
         case ('HO2NO2')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_N
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12*ICfactor
           end do; end do; end do
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5629,46 +5692,82 @@ c**** earth
 C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
 C         AM=kg/m2, and DXYP=m2:
           DO L=1,LM
-          DO J=J_0,J_1
-            J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
-            DO I=1,IM
-              trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*TR_MM(n)*bymair*
-     &        am(L,I,J)*DXYP(J)
+            select case(PI_run)
+            case(1) ! pre-industrial
+              if(L.le.LS1-1) then
+                ICfactor=PIratio_CO_T ! troposphere
+              else
+                ICfactor=PIratio_CO_S ! stratosphere
+              end if
+            case default; ICfactor=1.d0
+            end select
+            DO J=J_0,J_1
+              J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
+              DO I=1,IM
+                trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*TR_MM(n)*bymair*
+     &          am(L,I,J)*DXYP(J)*ICfactor
+              END DO
             END DO
-          END DO
           END DO
           J2=0
 #endif
 
         case ('PAN')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-11
+            trm(i,j,l,n) = 
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-11*ICfactor
           end do; end do; end do
 
         case ('Isoprene')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+            trm(i,j,l,n) = 
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ICfactor
           end do; end do; end do
 
         case ('AlkylNit')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-10
+            trm(i,j,l,n) = 
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-10*ICfactor
           end do; end do; end do
 
         case('Alkenes')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-10
+            trm(i,j,l,n) = 
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-10*ICfactor
           end do; end do; end do
 
         case('Paraffin')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10
+            trm(i,j,l,n) = 
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10*ICfactor
           end do; end do; end do
 
         case ('CFC')
+#ifdef SHINDELL_STRAT_CHEM
           do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
-          end do; end do; end do
+            trm(I,J,L,n) = CFCIC(I,J,L)
+          end do   ; end do   ; end do
+#endif
 
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -5973,6 +6072,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
+      USE TRCHEM_Shindell_COM,only: PI_run
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
@@ -6048,7 +6148,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('NOx')
           tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
-          call get_aircraft_NOx
+          if(PI_run.ne.1)call get_aircraft_NOx
           call      read_NOx_sources(n,iact)
 C         (lightning called from tracer_3Dsource)
         case ('CO')
@@ -6985,12 +7085,19 @@ C**** no fractionation for ice evap
 !@+    gas phase sulfur oxidation chemistry 
 !@auth Bell
 !@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,t
+      USE MODEL_COM, only: im,jm,lm,t,ls1
       USE DYNAMICS, only: pmid,am,pk,LTROPO
       USE GEOM, only: dxyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4 
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: which_trop
+#endif
 
       real*8 ppres,te,tt,mm,dmm,rk4,ek4
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
+      integer maxl
+#endif
  
 C Initialise
       rsulf1(:,:,:)=0.0
@@ -7008,7 +7115,11 @@ C***4.SO2 + OH -> SO4 + HO2
       do j=1,jm
       do i=1,imaxj(j)
 c
-      if(l.le.ltropo(i,j)) then
+      maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+      if(which_trop.eq.1)maxl=ls1-1
+#endif
+      if(l.le.maxl) then
 
 C Calculate effective temperature
 
