@@ -12,7 +12,7 @@
 !@ver  1.0
 
       SUBROUTINE set_generic_tracer_diags
-!@sum init_tracer initializes trace gas attributes and diagnostics
+!@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON
       use DAGCOM, only: ia_src,ia_12hr,ir_log2
@@ -26,7 +26,7 @@
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
       logical :: qcon(KTCON-1), T=.TRUE. , F=.FALSE.
-!@var to_volume_MixRat: For printout of tracer concentration
+!@dbparam to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
       INTEGER :: to_volume_MixRat=0 

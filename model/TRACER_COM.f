@@ -38,22 +38,22 @@ C****    The following are set in tracer_IC
 !@var TR_MM: molecular mass of each tracer (g/mole)
       real*8, dimension(ntm) :: tr_mm
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
-      logical, dimension (ntm) :: t_qlimit
+      logical, dimension(ntm) :: t_qlimit
 !@var needtrs: true if surface tracer value from PBL is required
-      logical, dimension (ntm) :: needtrs
+      logical, dimension(ntm) :: needtrs
 !@var trdecay radioactive decay constant (1/s) (=0 for stable tracers)
-      real*8, dimension (ntm) :: trdecay
+      real*8, dimension(ntm) :: trdecay
 
 C**** Note units for these parameters!
 C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6 
 C****          silt dust; trpdens=2.65d3, trradius=6.1d-6 
 C****
 !@var trpdens tracer particle density (kg/m^3) (=0 for non-particle tracers)
-      real*8, dimension (ntm) :: trpdens
+      real*8, dimension(ntm) :: trpdens
 !@var trradius tracer effective radius (m) (=0 for non particle tracers)
-      real*8, dimension (ntm) :: trradius
+      real*8, dimension(ntm) :: trradius
 
-!@var ITIME_TR0: start time for each tracer (hours)
+!@dbparam ITIME_TR0: start time for each tracer (hours)
       integer, dimension(ntm) :: itime_tr0
 !@var TRM: Tracer array (kg)
       real*8, dimension(im,jm,lm,ntm) :: trm
@@ -81,18 +81,20 @@ C****
       integer, parameter :: nWD_TYPES=3, nGAS=1, nPART=2, nWATER=3
 !@param tr_evap_fact fraction of re-evaporation by tracer type
 C note, tr_evap_fact is not dimensioned as NTM:
-      REAL*8, parameter, dimension (nWD_TYPES) :: tr_evap_fact=
+      REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
      *     (/1.d0, 0.5d0,  1.d0/)
 
 !@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
-      integer, dimension (ntm) :: tr_wd_TYPE
+      integer, dimension(ntm) :: tr_wd_TYPE
 !@var tr_RKD: Henry's Law coefficient (JOULE/mole !)
-      real*8, dimension (ntm) :: tr_RKD
+      real*8, dimension(ntm) :: tr_RKD
 !@var tr_DHD: coefficient of temperature-dependence term of Henry's
 !@+   Law coefficient (joule/mole !)
-      real*8, dimension (ntm) :: tr_DHD
+      real*8, dimension(ntm) :: tr_DHD
+!@var tr_H20byCH4 conc. of tracer in water from methane oxidation 
+      real*8, dimension(ntm) :: tr_H20byCH4
 !@var TRW0 default tracer concentration in water (kg/kg)
-      real*8, dimension(ntm) :: trw0 
+      real*8, dimension(ntm) :: trw0
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
 

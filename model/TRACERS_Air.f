@@ -134,6 +134,7 @@ C**** Define individual tracer characteristics
           tr_wd_TYPE(n) = nWater
           tr_DHD(n) = 1.d5
           trw0(n) = 1.
+          tr_H2ObyCH4(n) = 1.
 #endif
 
       end select
