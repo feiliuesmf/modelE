@@ -647,8 +647,8 @@ C
       COMMON/SCHEM_LOC/changeCl,ratioNs,rNO2frac,rNOfrac,rNOdenom,
      &                 ratioN2
 !$OMP THREADPRIVATE(/SCHEM_LOC/)
-      COMMON/FJAST2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
-     &                  DMFASTJ2,PFASTJ2,AMF
+      COMMON/FJAST2_LOC/AER2,odcol,TJ2,DO32,DBC2,ZFASTJ2,
+     &                  DMFASTJ2,PFASTJ2,AMF,jadsub
 Ctest& QAAFASTJ,WAAFASTJ,SSA ! why were these here?
 !$OMP THREADPRIVATE(/FJAST2_LOC/)
 #endif
