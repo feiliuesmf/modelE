@@ -370,9 +370,6 @@ C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
 C**** in ATURB or explcitly in 'apply_fluxes_to_atm' call in SURFACE.
 
-#ifdef TRACERS_AEROSOLS_Koch
-      CALL GET_TAU
-#endif
       do n=1,ntm
 
         trflux1(:,:,n) = 0.
