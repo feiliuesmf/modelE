@@ -3010,7 +3010,14 @@ C                         Specification of  FULGAS  Scaled Gas Amounts
 C                         --------------------------------------------
 C
       DO 230 L=1,NL0
-      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+C**** Only adjust stratospheric water levels (above LS1)
+C     ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      IF (L.lt.LS1) THEN
+        ULGAS(L,1)=U0GAS(L,1)
+      ELSE
+        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      END IF
+C****
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
       ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
   230 CONTINUE
@@ -3096,7 +3103,14 @@ C
   312 CONTINUE
   313 CONTINUE
       DO 314 L=1,NL
-      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+C**** Only adjust stratospheric water levels (above LS1)
+C     ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      IF (L.lt.LS1) THEN
+        ULGAS(L,1)=U0GAS(L,1)
+      ELSE
+        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+      END IF
+C****
   314 CONTINUE
 C
       DO 330 L=1,NL0

@@ -284,7 +284,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dsig,sige,psfmpt,ptop,dtsrc,nrad
       USE GEOM, only : dlat
-      USE RADNCB, only : s0x,co2,lm_req,llow,lmid,lhi,coe,sinj,cosj
+      USE RADNCB, only : s0x,co2,ch4,h2ostrat,lm_req,llow,lmid,lhi,coe
+     *     ,sinj,cosj
       USE RE001, only : setnew,rcomp1,writer             ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLE=>PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE
@@ -293,7 +294,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       IMPLICIT NONE
 
       INTEGER J,L,LR,JYFIX,JDFIX,MADVEL
-      REAL*8 COEX,CO2REF,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS
+      REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
 !@var RUNSTR names of files for radiation routines
@@ -308,6 +309,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
       call sync_param( "CO2", CO2 )
+      call sync_param( "CH4", CH4 )
+      call sync_param( "H2Ostrat", H2Ostrat )
       call sync_param( "MOZONE", MOZONE )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
@@ -385,8 +388,10 @@ C**** set up unit numbers for 14 more radiation input files
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call closeunit(NRFUN(IU))
       END DO
-      CO2REF=FULGAS(2)
-      IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
+C**** Multiply selected greenhouse gases by a factor from input if required
+      IF(CO2.GE.0.) FULGAS(2)=FULGAS(2)*CO2
+      IF(CH4.GE.0.) FULGAS(7)=FULGAS(7)*CH4
+      IF(H2Ostrat.GE.0.) FULGAS(1)=FULGAS(1)*H2Ostrat
 C**** write out now occurs after first pass to ensure correct ppm values
 c      CALL WRITER (6,0)
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
@@ -425,7 +430,7 @@ C     INPUT DATA
      &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
      &             ,S00WM2,RATLS0,S0,COSZ,PVT
      &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
-     &             ,hsn,hin,hmp,fmp,flags
+     &             ,hsn,hin,hmp,fmp,flags,LS1rad=>LS1
 C     OUTPUT DATA
      &             ,TRDFLB ,TRNFLB ,TRFCRL
      &             ,SRDFLB ,SRNFLB ,SRFHRL
@@ -519,6 +524,8 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       POCEAN=(1.-PLAND)-POICE
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
+C****
+      LS1rad=LTROPO(I,J)+1  ! define stratosphere for radiation
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****

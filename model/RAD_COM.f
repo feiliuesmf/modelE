@@ -23,6 +23,10 @@
       REAL*8 :: S0X = 1.
 !@dbparam CO2 carbon dioxide multiplication factor      
       REAL*8 :: CO2 = 1.
+!@dbparam CH4 methane  multiplication factor      
+      REAL*8 :: CH4 = 1.
+!@dbparam H2Ostrat stratospheric water vapour multiplication factor      
+      REAL*8 :: H2Ostrat = 1.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 
