@@ -26,7 +26,10 @@ C*
       REAL*8 KM, KH, MSUM, MA1, MSI1, MSI2
       COMMON/WORK1d/COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DU1(IM,JM),
-     *  DV1(IM,JM),RA(8),ID(8),UMS(8)
+     *  DV1(IM,JM)
+      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
+      REAL*8, DIMENSION(IM) :: RA !@var
+      REAL*8, DIMENSION(IM) :: UMS,VMS !@var
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
      *  TGRND(IM,JM,4),BLTEMP(IM,JM,8)
             COMMON/WORKO/OA(IM,JM,12)
@@ -741,8 +744,9 @@ C**** OUTSIDE LOOPS OVER J AND I
       IM1=IM
       DO 8500 I=1,IMAX
          DO K=1,KMAX
-            RA(K)=RAIJ(K,I,J)
-            ID(K)=IDIJ(K,I,J)
+            RA(K)=RAJ(K,J)
+            IDI(K)=IDIJ(K,I,J)
+            IDJ(K)=IDJJ(K,J)
          END DO
       BLDATA(I,J,4)=1.
       IF(T(I,J,1)*(1.+Q(I,J,1)*RVX).LE.
@@ -771,7 +775,7 @@ C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
       TVMS=(T(I,J,1)*(1.+Q(I,J,1)*RVX)*(PK(1,I,J)*DSIG(1))
      *    +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
       THETA=TVMS/PKMS
-C**** MIX THROUGH SUBSEQUENT LAYERS
+C**** MIX THROUGH SUMSEQUENT LAYERS
       DO 8140 L=3,LM
       IF(THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 8160
       IF(L.EQ.LS1) PIJ=PSF-PTOP
@@ -821,47 +825,32 @@ C**** MIX THROUGH SUBSEQUENT LAYERS
       QZX(I,J,L) = 0.
       QYZ(I,J,L) = 0.
  8180 CONTINUE
-      IF(POLE) GO TO 8300
-C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER AT NON-POLAR GRID BOXES
-      DO 8240 K=1,KMAX
-      UMS(K)=0.
+C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER
+      UMS(1:KMAX)=0.
+      VMS(1:KMAX)=0.
       PIJ=P(I,J)
-      DO 8220 L=1,LMAX
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
- 8220 UMS(K)=UMS(K)+UT(ID(K),1,L)*PIJ*DSIG(L)
- 8240 UMS(K)=UMS(K)*RDP
-      PIJ=P(I,J)
-      DO 8260 L=1,LMAX
+      DO L=1,LMAX
          IF(L.EQ.LS1) PIJ=PSF-PTOP
-         AJL(J,L,38)=AJL(J,L,38)+(UMS(1)+UMS(3)-UT(IM1,J,L)-UT(I,J,L))*
-     *     PIJ*RA(1)
-         AJL(J+1,L,38)=AJL(J+1,L,38)+(UMS(5)+UMS(7)-UT(IM1,J+1,L)-
-     *     UT(I,J+1,L))*PIJ*RA(5)
-      DO 8260 K=1,KMAX
- 8260 U(ID(K),1,L)=U(ID(K),1,L)+(UMS(K)-UT(ID(K),1,L))*RA(K)
-      GO TO 8400
-C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER AT POLAR GRID BOXES
- 8300 JVPO=2
-      IF(J.EQ.JM) JVPO=JM
-      RAPO=2.*RAPVN(1)
-      DO 8360 IPO=1,IM
-      UMSPO=0.
-      VMSPO=0.
-      PIJ=P(1,J)
-      DO 8320 L=1,LMAX
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-      UMSPO=UMSPO+UT(IPO,JVPO,L)*(DSIG(L)*PIJ)
- 8320 VMSPO=VMSPO+VT(IPO,JVPO,L)*(DSIG(L)*PIJ)
-      UMSPO=UMSPO*RDP
-      VMSPO=VMSPO*RDP
-      PIJ=P(1,J)
-      DO 8340 L=1,LMAX
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-      U(IPO,JVPO,L)=U(IPO,JVPO,L)+(UMSPO-UT(IPO,JVPO,L))*RAPO
-      V(IPO,JVPO,L)=V(IPO,JVPO,L)+(VMSPO-VT(IPO,JVPO,L))*RAPO
- 8340    AJL(JVPO,L,38)=AJL(JVPO,L,38)
-     *  +(UMSPO-UT(IPO,JVPO,L))*PIJ*RAPO
- 8360 CONTINUE
+         DO K=1,KMAX
+            UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*PIJ*DSIG(L)
+            VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*PIJ*DSIG(L)
+         ENDDO
+      ENDDO
+      UMS(1:KMAX)=UMS(1:KMAX)*RDP
+      VMS(1:KMAX)=VMS(1:KMAX)*RDP
+      PIJ=P(I,J)
+      DO L=1,LMAX
+         IF(L.EQ.LS1) PIJ=PSF-PTOP
+         DO K=1,KMAX
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
+c the following line gives bytewise different ajl
+            AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
+     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
+         ENDDO
+      ENDDO
 C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
  8400    IF(MODD6.NE.0) GO TO 8500
          DO KR=1,4
