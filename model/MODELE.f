@@ -37,11 +37,12 @@ C****
          IF (KDIAG(10).LT.9) CALL DIAGIL
          IF (KDIAG(7).LT.9) CALL DIAG7P
          IF (KDIAG(3).LT.9) CALL DIAGIJ
-         IF (KDIAG(9).LT.9) CALL DIAG9P
+         IF (KDIAG(9).LT.9) CALL DIAGCP
          IF (KDIAG(5).LT.9) CALL DIAG5P
          IF (KDIAG(6).LT.9) CALL DIAGDD
          IF (KDIAG(4).LT.9) CALL DIAG4
          IF (KDIAG(11).LT.9) CALL diag_RIVER
+         IF (KDIAG(12).LT.9) CALL diag_OCEAN
          CALL DIAGKN
          CALL exit_rc (13)  ! no output files are affected
       END IF
@@ -124,7 +125,7 @@ C****
          MODD5D=MOD(Itime-ItimeI,NDA5D)
          IF (MODD5D.EQ.0) IDACC(7)=IDACC(7)+1
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
-         IF (MODD5D.EQ.0) CALL DIAG9A (1)
+         IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
 
 C**** calculate some dynamic variables for the PBL
@@ -134,7 +135,7 @@ C**** calculate some dynamic variables for the PBL
          CALL TIMER (MNOW,MDYN)
 
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
-         IF (MODD5D.EQ.0) CALL DIAG9A (2)
+         IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
 C****
 C**** INTEGRATE SOURCE TERMS
@@ -144,19 +145,19 @@ C****
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(8)=IDACC(8)+1
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
-         IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG9A (1)
+         IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE ')
          CALL TIMER (MNOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
-         IF (MODD5S.EQ.0) CALL DIAG9A (3)
+         IF (MODD5S.EQ.0) CALL DIAGCA (3)
 C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (MNOW,MRAD)
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
-         IF (MODD5S.EQ.0) CALL DIAG9A (4)
+         IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
 C****
@@ -168,7 +169,7 @@ C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_LK
       CALL PRECIP_OC
-         IF (MODD5S.EQ.0) CALL DIAG9A (5)
+         IF (MODD5S.EQ.0) CALL DIAGCA (5)
          CALL CHECKT ('PRECIP')
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
@@ -179,7 +180,7 @@ C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE
       CALL GROUND_LI
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
-         IF (MODD5S.EQ.0) CALL DIAG9A (6)
+         IF (MODD5S.EQ.0) CALL DIAGCA (6)
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
@@ -197,7 +198,7 @@ C**** ADVECT ICE
 C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL DIFFUS (2,LM-1,dtsrc)
-         IF (MODD5S.EQ.0) CALL DIAG9A (7)
+         IF (MODD5S.EQ.0) CALL DIAGCA (7)
          CALL CHECKT ('DRYCNV')
          CALL TIMER (MNOW,MSURF)
 
@@ -205,18 +206,18 @@ C**** CALL OCEAN DYNAMIC ROUTINES
       CALL ODYNAM
          CALL CHECKT ('OCEAN ')
          CALL TIMER (MNOW,MSURF)
-         IF (MODD5S.EQ.0) CALL DIAG9A (9)
+         IF (MODD5S.EQ.0) CALL DIAGCA (9)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
-           CALL DIAG9A (1)
+           CALL DIAGCA (1)
         CALL FILTER
            CALL CHECKT ('FILTER')
            CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
-           CALL DIAG9A (8)
+           CALL DIAGCA (8)
       END IF
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
@@ -228,7 +229,7 @@ C****
 
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
-           CALL DIAG9A (1)
+           CALL DIAGCA (1)
         CALL DAILY(1)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
@@ -238,7 +239,7 @@ C****
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)
-           CALL DIAG9A (10)
+           CALL DIAGCA (10)
         call flush(6)
       END IF
 C****
@@ -271,10 +272,11 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
          IF (KDIAG(10).EQ.0) CALL DIAGIL
          IF (KDIAG(7).LT.9) CALL DIAG7P
          IF (KDIAG(3).LT.9) CALL DIAGIJ
-         IF (KDIAG(9).LT.9) CALL DIAG9P
+         IF (KDIAG(9).LT.9) CALL DIAGCP
          IF (KDIAG(5).LT.9) CALL DIAG5P
          IF (KDIAG(4).LT.9) CALL DIAG4
          IF (KDIAG(11).LT.9) CALL diag_RIVER
+         IF (KDIAG(12).LT.9) CALL diag_OCEAN
          IF (Itime.LE.ItimeI+1) THEN
             CALL DIAGKN
          ELSE ! RESET THE UNUSED KEYNUMBERS TO ZERO
@@ -295,11 +297,12 @@ c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(10).LT.9) CALL DIAGIL
         IF (KDIAG(7).LT.9) CALL DIAG7P
         IF (KDIAG(3).LT.9) CALL DIAGIJ
-        IF (KDIAG(9).LT.9) CALL DIAG9P
+        IF (KDIAG(9).LT.9) CALL DIAGCP
         IF (KDIAG(5).LT.9) CALL DIAG5P
         IF (KDIAG(6).LT.9) CALL DIAGDD
         IF (KDIAG(4).LT.9) CALL DIAG4
         IF (KDIAG(11).LT.9) CALL diag_RIVER
+        IF (KDIAG(12).LT.9) CALL diag_OCEAN
         CALL DIAGKN
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET

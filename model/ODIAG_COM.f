@@ -193,16 +193,20 @@ C****
       RETURN
       END SUBROUTINE init_ODIAG
 
-       SUBROUTINE reset_odiag(isum)
-!@sum reset_odiag zeros out ocean diagnostics if needed
+      SUBROUTINE reset_odiag(isum)
+!@sum  reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
 !@ver  1.0
-      USE ODIAG_COM, only : 
+      USE ODIAG, only : oij,oijl,ol,olnst
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum
 
       OIJ=0 ; OIJL=0 ; OL=0 ; OLNST=0
 
       return
-      end subroutine reset_odiag
+      END SUBROUTINE reset_odiag
 
+      SUBROUTINE diag_OCEAN
+!@sum diag_OCEAN temporary dummy routine
+      RETURN
+      END SUBROUTINE diag_OCEAN

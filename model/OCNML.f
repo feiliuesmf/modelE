@@ -90,6 +90,7 @@ C****
       ENTRY io_ocdiag
       ENTRY init_ODEEP
       ENTRY reset_ODIAG
+      ENTRY diag_OCEAN
 
       RETURN
       END SUBROUTINE DUMMY_OCN

@@ -357,6 +357,49 @@ C**** Check for NaN/INF in ocean data
 
       END SUBROUTINE CHECKO
 
+      SUBROUTINE diag_OCEAN
+!@sum  diag_OCEAN prints out diagnostics for ocean
+!@auth Gavin Schmidt
+!@ver  1.0 
+      USE MODEL_COM, only : jm,lrunid,xlabel,idacc
+      USE GEOM, only : imaxj
+      USE ODEEP_COM, only : lmom,rtgo,dz
+      USE DAGCOM, only : acc_period,qcheck
+      IMPLICIT NONE
+      CHARACTER LNAME*50,SNAME*30,UNITS*50
+      INTEGER I,J,L
+      REAL*8 ATGO(JM,LMOM),SCALE,ONES(JM),Z(LMOM)
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF(QCHECK) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID))
+
+      LNAME="Zonally averaged deep ocean temperature anomaly"
+      SNAME="tgo_deep_anom"
+      UNITS="DEGREES C"
+C**** calculate zonal average
+      DO L=1,LMOM
+        DO J=1,JM
+          ATGO(J,L)=0.
+          DO I=1,IMAXJ(J)
+            ATGO(J,L)=ATGO(J,L)+RTGO(L,I,J)
+          END DO
+        END DO
+      END DO
+C**** depths are calculated from base of the mixed layer 
+      Z(1)=0.
+      DO L=2,LMOM
+        Z(L)=Z(L-1)+DZ(L)
+      END DO
+      SCALE=1./IDACC(12)
+      ONES(1:JM)=1.
+C**** Print out a depth/latitude plot of the deep ocean temp anomaly
+      CALL JLMAP(LNAME,SNAME,UNITS,Z,ATGO,SCALE,ONES,ONES,LMOM,2,1)
+C****
+      if(qcheck) call close_jl
+      
+      RETURN
+      END SUBROUTINE diag_OCEAN
+
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic oceans
 !@auth Gavin Schmidt

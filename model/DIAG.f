@@ -2201,8 +2201,8 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       RETURN
       END SUBROUTINE DIAG7A
 
-      SUBROUTINE DIAG9A (M)
-!@sum  DIAG9A Keeps track of the conservation properties of angular
+      SUBROUTINE DIAGCA (M)
+!@sum  DIAGCA Keeps track of the conservation properties of angular
 !@+    momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
@@ -2212,10 +2212,10 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
      *     ,icon_HSI,icon_SSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
-!@var M index denoting from where DIAG9A is called
+!@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
 C****
-C**** THE PARAMETER M INDICATES WHEN DIAG9A IS BEING CALLED
+C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1  INITIALIZE CURRENT QUANTITY
 C****   2  AFTER DYNAMICS
 C****   3  AFTER CONDENSATION
@@ -2270,10 +2270,10 @@ C**** OCEAN CALLS ARE DEALT WITH SEPERATELY
 C****
       CALL TIMER (MNOW,MDIAG)
       RETURN
-      END SUBROUTINE DIAG9A
+      END SUBROUTINE DIAGCA
 
-      SUBROUTINE DIAG9D (M,DT1,UX,VX,DUT,DVT,PIT)
-!@sum  DIAG9D Keeps track of the conservation properties of angular
+      SUBROUTINE DIAGCD (M,DT1,UX,VX,DUT,DVT,PIT)
+!@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
 !@ver  1.0
@@ -2283,12 +2283,12 @@ C****
       USE DAGCOM, only : consrv
       IMPLICIT NONE
 C****
-C**** THE PARAMETER M INDICATES WHEN DIAG9D IS BEING CALLED
+C**** THE PARAMETER M INDICATES WHEN DIAGCD IS BEING CALLED
 C**** M=1  AFTER ADVECTION IN DYNAMICS
 C****   2  AFTER CORIOLIS FORCE IN DYNAMICS
 C****   3  AFTER PRESSURE GRADIENT FORCE IN DYNAMICS
 C****
-!@var M index denoting from where DIAG9D is called
+!@var M index denoting from where DIAGCD is called
       INTEGER, INTENT(IN) :: M
 !@var DT1 current time step
       DOUBLE PRECISION, INTENT(IN) :: DT1
@@ -2357,7 +2357,7 @@ C****
 C****
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
-      END SUBROUTINE DIAG9D
+      END SUBROUTINE DIAGCD
 
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
@@ -3177,7 +3177,7 @@ C**** 1:NPTS ==> DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C****  iii) Write a conserv_XYZ routine that returns the zonal average
 C****       of your quantity
-C****   iv) Add a line to DIAG9A that calls conserv_DIAG (declared
+C****   iv) Add a line to DIAGCA that calls conserv_DIAG (declared
 C****       as external)
 C****    v) Note that the conserv_XYZ routine, and call to SET_CON
 C****       should be in the driver module for the relevant physics

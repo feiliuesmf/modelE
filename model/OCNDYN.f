@@ -100,7 +100,7 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
         CALL TIMER (MNOW,MDYNO)
 
-        IF (MODD5S.EQ.0) CALL DIAG9A (11)
+        IF (MODD5S.EQ.0) CALL DIAGCA (11)
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
         CALL CHECKO ('ODIFF ')
@@ -109,7 +109,7 @@ C**** Apply GM + Redi tracer fluxes
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,OIJL(1,1,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL))
         CALL CHECKO ('GMDIFF')
-        IF (MODD5S.EQ.0) CALL DIAG9A (12)
+        IF (MODD5S.EQ.0) CALL DIAGCA (12)
 C****
 C**** Acceleration and advection of tracers through ocean straits
 C****
