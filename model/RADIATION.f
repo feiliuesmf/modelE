@@ -1067,12 +1067,6 @@ C
       IF(L.GT.14) PLB50(L)=1382.D0*EXP(-(L+5.5D0)/6.2D0)
   432 CONTINUE
       NL1=NL+1
-      IF(PLB(NL1).lt.PLB50(NLO3)) then
-C****   extend Ozone to model top - constant concentration
-        rptop=(PLB50(NLO3)-PLB(NL1))/(PLB50(NLO3-1)-PLB50(NLO3))
-        PLB50(NLO3+1)=PLB(NL1)
-        NLO3=46
-      end if
       DO M=1,MO3X
       MM=M-((M-1)/12)*12
       READ (NRFU,END=440) TITLE,OZONLJ
@@ -1080,14 +1074,14 @@ C****   extend Ozone to model top - constant concentration
       DO 434 L=1,44
       OZON50(L)=OZONLJ(L,J)*1.D-03
   434 CONTINUE
-      if(NLO3.eq.46) ozon50(45)=ozon50(44)*rptop
 C
       IF(MOZONE.GT.4) THEN
 C        ---------------------------------------------------------------
 C        1.  Replace exponential pressure profile with SAGE2 SZP profile
 C            and repartition the SAGE ozone to standard pressure profile
-C        2.  Linear transition from tropospheric ozone (below 5.0 mb) to
-C            the stratospheric (Keating 1985) ozone profile above 1.0 mb
+C      ( 2.  Linear transition from tropospheric ozone (below 5.0 mb) to
+C            the stratospheric (Keating 1985) ozone profile above 1 mb )
+C        2.  is currently not used
 C        3.  Add (Keating 1985) stratospheric ozone profile above 1.0 mb
 C        ---------------------------------------------------------------
 C
@@ -1098,14 +1092,14 @@ C
       CALL REPART(OZON50,PLB50,45,OZONXX,PLB49,NLO3)
       DO 436 L=1,NLO3
       PLB50(L)=PLB49(L)
-      IF(L.LT.26) OZON50(L)=OZONXX(L)
+      IF(L.LT.30) OZON50(L)=OZONXX(L)
       IF(L.GT.29) OZON50(L)=TOPO3(L-24,J,MM)
   436 CONTINUE
-      DO 437 LL=1,4
-      WBOT=(5-LL)*0.2D0
-      WTOP=LL*0.2D0
-      OZON50(25+LL)=WBOT*OZONXX(25+LL)+WTOP*TOPO3(LL+1,J,MM)
-  437 CONTINUE
+cc    DO 437 LL=1,4
+cc    WBOT=(5-LL)*0.2D0
+cc    WTOP=LL*0.2D0
+cc    OZON50(25+LL)=WBOT*OZONXX(25+LL)+WTOP*TOPO3(LL+1,J,MM)
+cc437 CONTINUE
       ENDIF
 
       CALL REPART(OZON50,PLB50,NLO3,OZONNL,PLB,NL1)
@@ -2313,9 +2307,9 @@ C
 C        O3Data   Source    Time Trend   VD Profile      L-Dependence
 C     A  O3DPPM   McPeters   Seasonal    0 - 60 km         Zonal
 C     B  O3AVE+   London     Seasonal    Column+Profile  Longitudinal
-C     C  O3CLIM   Makiko    1951-1997    44-Layer Prof     Zonal
+C     C  O3CLIM   Makiko    1850-2050    44-Layer Prof     Zonal
 C     D  WJ1890+  Wang-J    1890,1979    Below 150mb     Longitudinal
-C     E  TOPO3    Keating    Seasonal    Above 5 mb        Zonal
+C     E  TOPO3    Keating    Seasonal    Above 1(or 5)mb   Zonal
 C     ---------------------------------------------------------------
 C     NOTE:  C,D Data (O3 Clim,W-J Lon dep) are only read if MADO3M>0
 C
@@ -2351,7 +2345,7 @@ C
 C             **  MOZONE=5 uses SAGE2 (Latitudinal,Seasonal) pressure
 C                 height dependence rather, than global mean profile.
 C                 Keating(85) data (E TOPO3) are used above 1mb level
-C                 with linear transition to (C O3CLIM) data below 5mb
+C     not used:   (with lin. transition to (C O3CLIM) data below 5mb)
 C     ---------------------------------------------------------------
 C
       IF(IFIRST.EQ.1) THEN
@@ -10625,7 +10619,7 @@ C
       DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
       DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
       DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/
-      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/4/
+      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/
       DATA   MADGHG/1/,       MADSUR/1/,    ICE012/1/,    MLAT46/46/
       DATA   KWVCON/1/,       KSNORM/0/,    NORMS0/1/,    MLON72/72/
 C
