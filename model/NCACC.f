@@ -185,7 +185,8 @@ c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'NDLYPT', 4, dimids(3))
       status = nf_def_var(ncid, 'ADAILY',nf_real,3,dimids,varid)
       status = nf_put_att_text(ncid,varid,'NAMD6',16,namd6)
-      status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,jc(81))
+      !status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,jc(81))
+      status = nf_put_att_int(ncid,varid,'IJD6',nf_int,8,IJD6)
 c-----------------------------------------------------------------------
 c wave power
 c-----------------------------------------------------------------------

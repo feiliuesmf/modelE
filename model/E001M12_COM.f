@@ -16,6 +16,9 @@
       INTEGER, PARAMETER :: JEQ=1+JM/2
 
 C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
+c      pointer KOCEAN, LS1, NRAD, NIsurf, NFILTR, MFILTR, NDAA
+c     *     ,NDA5D,NDA5K,NDA5S,NDA4,NDASF,IRAND,Nslp,Kvflxo,KCOPY,Ndisk
+c     *     ,NSSW,KEYCT,NIPRNT,NMONAV
       INTEGER ::
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
      *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
@@ -25,20 +28,15 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
      *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
       INTEGER, DIMENSION(32) :: IDUM
       INTEGER, DIMENSION(2,4) :: IJD6
-      INTEGER, DIMENSION(12) :: IDACC
-      COMMON /IPARMB/
-     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
-     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MODRD,MODD5K,MODD5S,
-     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV,  IDUM    ,  IJD6     ,IDACC
+      INTEGER, DIMENSION(:), pointer :: IDACC ! dim = 12
 
 ! handle for referring to integer parameters
+ccc JC doesh't contain any data and will be removed soon
       INTEGER, DIMENSION(100) :: JC
-      EQUIVALENCE (JC,IM0)
+      !EQUIVALENCE (JC,IM0)
 
 C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
+c      pointer PTOP, PSF, DTsrc, DT, SKIPSE
       DOUBLE PRECISION ::
      *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG, SKIPSE
       DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
@@ -46,22 +44,21 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
       DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2
 !@var PSFMPT,PSTRAT derived pressure constants
-      COMMON /RPARMB/
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  SKIPSE,
-     *  TAUTR0,SIG,SIGE,  RDM2
 
 !@var RC handle for referring to real parameters
+ccc RC doesh't contain any data and will be removed soon
       DOUBLE PRECISION, DIMENSION(161) :: RC
-      EQUIVALENCE (RC,DTsrc)
+      !EQUIVALENCE (RC,DTsrc)
 
-      CHARACTER*4 NAMD6,AMON,AMON0
+c      pointer NAMD6
+      CHARACTER*4 NAMD6(4),AMON,AMON0
       CHARACTER*132 XLABEL
-      COMMON /TEXT/ XLABEL,NAMD6(4),AMON,AMON0
 
 !@var LABEL1,CLABEL,XLABEL handles for referring to text parameters
-      CHARACTER LABEL1*16
+ccc CLABEL doesh't contain any data and will be removed soon
+      !CHARACTER LABEL1*16
       CHARACTER CLABEL*156
-      EQUIVALENCE (CLABEL,XLABEL,LABEL1)
+      !EQUIVALENCE (CLABEL,XLABEL,LABEL1)
 
       DOUBLE PRECISION, DIMENSION(IM,JM) :: FLAND,FOCEAN,FLICE,FLAKE0
      *     ,FEARTH,ZATMO,HLAKE
@@ -133,6 +130,32 @@ C**** Define surface types (mostly used for weighting diagnostics)
       REAL*8 AIRX(IM,JM)
 !@var LMC max layer of mc convective mass flux. (Strat model)
       INTEGER, DIMENSION(2,IM,JM) :: LMC
+
+      DATA IM0,JM0,LM0, KACC0/         ! KTACC0 should be here too ???
+     *     IM ,JM ,LM , -131313 /,   ! KACC0 - should be removed !!!
+     *  KOCEAN,KDISK,KEYCT,KCOPY,     IRAND,MFILTR,Ndisk,Kvflxo,Nslp/
+     *       1,    1,    1,    2, 123456789,     1,   24,   0,   0/,
+     *  Nrad, Nfiltr, NIsurf, Nssw, NIPRNT, NMONAV,         IYEAR0/
+     *     5,      2,      2,    1,      1,      1,           1976/,
+     *  NDAa,   NDA5d, NDA5k, NDA5s, NDA4, NDAsf/
+     *     7,       7,     7,     7,   24,     1/,
+     *  MODRD,MODD5K,MODD5S/
+     *      0,     0,     0/
+      DATA  DT, DTsrc/
+     *    450., 3600./,
+C****
+C**** Note:           DT = DTdyn and NIdyn = DTsrc/DTdyn (set in INPUT)
+C**** In general      DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
+C**** except that the time steps related to NDAa, NDA5k, NDAsf are
+C**** slightly larger:     NDAa:   NDAa*DTsrc + 2*DT(dyn),
+C****                      NDA5k: NDA5k*DTsrc + 2*DT(dyn),
+C****                      NDAsf: NDAsf*DTsrc + DTsrc/NIsurf
+C****
+     *  PTOP, PSF, PSDRAG,SKIPSE/
+     *  150.,984.,  500.,     0./
+      DATA SIGE /1.0000000,LM*0./                    ! Define in rundeck
+      DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
+     *  IJD6/63,17, 17,34, 37,27, 13,23/
 
       END MODULE MODEL_COM
 
@@ -226,6 +249,7 @@ C****
 !@ver  1.0
       USE MODEL_COM
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
+      USE PARAM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -240,6 +264,7 @@ C****
       REAL*8 RC1(161)
 !@var CLABEL1 dummy label
       CHARACTER*156 CLABEL1
+      CHARACTER*132 XLABEL1
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
@@ -252,26 +277,36 @@ C****  size of common block arrays (and/or should we be explicit?)
 C****  timing info as named array?
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
-        WRITE (kunit,err=10) it,JC,CLABEL,RC,
+        !WRITE (kunit,err=10) it,JC,CLABEL,RC,
+        WRITE (kunit,err=10) it,XLABEL,
      *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         WRITE (kunit,err=10)
+C**** write parameters database here
+        call write_param(kunit)
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) it,JC1,CLABEL1,RC1,
-     *     NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
+        READ (kunit,err=10) it,XLABEL1,
+     *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         READ (kunit,err=10)
         SELECT CASE (IACTION)   ! set model common according to iaction
         CASE (ioread) ! parameters/label from restartefile
-          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+          call read_param(kunit,.false.)
+          !JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+          XLABEL=XLABEL1
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
         CASE (IRSFIC)       ! use defaults, rundeck label
+          read(kunit,err=10) ! skip parameters
          ! switch 'it' to 'ihour' using 'nday' of restart file ?????
         CASE (IRERUN)  ! params: rsfile, label: rundeck
-          JC=JC1 ; RC=RC1 ; CLABEL(133:156)=CLABEL1(133:156)
+          call read_param(kunit,.false.)
+          !JC=JC1 ; RC=RC1 ; CLABEL(133:156)=CLABEL1(133:156)
         CASE (IOREAD_SINGLE) ! parameters/label from restart file
+        !!! this case will not work unless fixed
+        !!! since JC() doesn't contain data any more and will removed soon
+          call read_param(kunit,.false.)
           if (ITmax.lt.0) then
             JC=JC1 ; RC=RC1 ; CLABEL=CLABEL1 ; ITmax=it ; ITmin=it
             NTIMEACC=NTIM1

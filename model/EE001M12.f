@@ -537,7 +537,7 @@ C**** Modifications needed for split of bare soils into 2 types
       IMPLICIT NONE
 
       REAL*8 DTSURF
-      INTEGER iu_SOIL
+      INTEGER iu_SOIL,iu_TOP_INDEX
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH, iniSNOW
@@ -572,7 +572,16 @@ C READ SOILS PARAMETERS
       call getunit("SOIL",iu_SOIL,.true.,.true.)
       CALL DREAD (iu_SOIL,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
       CLOSE (iu_SOIL)
+ccc read topmodel parameters
+      call getunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
+      call READT(iu_TOP_INDEX,0,TOP_INDEX_IJ,IM*JM,TOP_INDEX_IJ,1)
+      close (iu_TOP_INDEX)
 C
+ccc  for debug:
+c      do j=1,46
+c       print '(72f6.2)', ( TOP_INDEX_IJ(i,j), i=1,72 )
+c      enddo
+ccc      stop 77
       ONE=1.
       igcm = 0
 C****
@@ -831,10 +840,12 @@ C**** SNOWM - SNOW MASKING DEPTH
 C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
 C****
       USE GHYCOM, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
+     *     ,top_index_ij
       USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,spgsn,q,sl,xklh0
      *     ,fb,fv,snowm,vh,alai,alaic,alaie,cost,sint,rs,prs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shcap,shw,shtpr,htprs,pr
      *     ,htpr
+     *     ,top_index
       USE snow_model, only : i_earth,j_earth
       IMPLICIT NONE
       INTEGER I0,J0
@@ -846,6 +857,8 @@ C****
       IJdebug=I0*100+J0
       i_earth = I0
       j_earth = J0
+ccc passing topmodel parameters
+      TOP_INDEX = TOP_INDEX_IJ(I0, J0)
 C**** SET UP LAYERS
       DZ(1:NGM)=DZ_IJ(I0,J0,1:NGM)
       Q(1:IMT,1:NGM)=Q_IJ(I0,J0,1:IMT,1:NGM)

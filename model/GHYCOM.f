@@ -41,6 +41,9 @@ C**** replacements for GDATA
       REAL*8, DIMENSION(IM,JM) :: AIEARTH
       REAL*8, DIMENSION(3,IM,JM) :: SNOAGE
 
+ccc topmodel input data
+      REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ
+
       END MODULE GHYCOM
 
       SUBROUTINE io_earth(kunit,iaction,ioerr)

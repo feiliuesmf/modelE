@@ -3007,8 +3007,10 @@ C****
       USE CONSTANT, only : sday
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,sige,sig,psf,ptop
      *     ,nfiltr,dtsrc
+     *     ,Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
       USE DAGCOM
       USE DAGPCOM, only : ple,plm,pmtop
+      USE PARAM
       IMPLICIT NONE
       INTEGER L
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -3018,8 +3020,18 @@ c**** Initialize acc-array names, units, idacc-indices
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
+         call alloc_param( "IDACC", IDACC, (/11*0,1/), 12) 
+!!!! it looks like IDACC(11) was never set - am I correct?
          CALL reset_DIAG(0)
          CALL daily_DIAG
+      ELSE  ! get parameters from restart file
+         call get_param( "Itime0", Itime0 )
+         call get_param( "JYEAR0", JYEAR0 )
+         call get_param( "JMON0", JMON0 )
+         call get_param( "JDATE0", JDATE0 )
+         call get_param( "JHOUR0", JHOUR0 )
+         call get_param( "AMON0", AMON0 )
+         call get_pparam( "IDACC", IDACC, 12) 
       END IF
 
 C**** Initialize certain arrays used by more than one print routine
@@ -3121,6 +3133,7 @@ C**** Hence this diagnostic gives the error
       USE MODEL_COM, only : Itime,jhour,jdate,jmon,amon,jyear,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DAGCOM
+      USE PARAM
       IMPLICIT NONE
       INTEGER :: isum  !@var if =1 preparation for adding up acc-files
 
@@ -3130,6 +3143,13 @@ C**** Hence this diagnostic gives the error
       JMON0=JMON
       AMON0=AMON
       JYEAR0=JYEAR
+
+      call set_param( "Itime0", Itime0, 'o' )
+      call set_param( "JYEAR0", JYEAR0, 'o' )
+      call set_param( "JMON0", JMON0, 'o' )
+      call set_param( "JDATE0", JDATE0, 'o' )
+      call set_param( "JHOUR0", JHOUR0, 'o' )
+      call set_param( "AMON0", AMON0, 'o' )
 
       IDACC(1:10)=0
       AJ=0    ; AREG=0

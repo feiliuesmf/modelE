@@ -26,7 +26,7 @@ C**** parameters and constants
 
 C**** Set-able variables from NAMELIST
 !@var LMCM max level for originating MC plumes (set in init_CLD)
-      INTEGER :: LMCM
+      INTEGER :: LMCM = -1 ! if not set in rundeck it will default to LS1-1
 !@var U00wtr critical humidity for water cloud condensation (default)
       REAL*8 :: U00wtr = .7d0
 !@var U00ice critical humidity for ice cloud condensation (default)

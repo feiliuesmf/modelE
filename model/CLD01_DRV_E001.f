@@ -371,11 +371,18 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
-      USE CLD01, only : lmcm,bydtsrc,xmass,brcld,bybr
+      USE CLD01, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
+      USE PARAM
 
       IMPLICIT NONE
 
+      call sync_param( 'U00wtr', U00wtr )
+      call sync_param( 'U00ice', U00ice )
+      call sync_param( "LMCM", LMCM )
+
       IF(LMCM.LT.0) LMCM = LS1-1
+      call set_param( "LMCM", LMCM, 'o' )
+
       BYDTsrc=1./DTsrc
       XMASS=0.1d0*DTsrc*GRAV
 

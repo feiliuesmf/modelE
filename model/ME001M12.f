@@ -7,6 +7,7 @@
       USE DAGCOM, only : keynr,kdiag,oa,monacc
       USE FILEMANAGER, only : getunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
+      USE PARAM
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr,Ldate
@@ -86,6 +87,7 @@ C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
+         call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(KDISK,Itime,iowrite,ioerr)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     ' Restart file written on fort.',KDISK,'Year',
@@ -221,6 +223,8 @@ C****
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
+      call set_param( "Itime", Itime, 'o' ) 
+
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
            CALL DIAG9A (1)
@@ -277,6 +281,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
             KEYNR(1:42,KEYCT)=0
          END IF
          NIPRNT=NIPRNT-1
+         call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
@@ -320,6 +325,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
+            call set_param( "IRAND", IRAND, 'o' )
             OPEN(30,FORM='UNFORMATTED',
      *              FILE='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LLAB1))
             call io_rsf(30,Itime,iowrite_mon,ioerr)
@@ -366,6 +372,7 @@ C****
 
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
+      call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(KDISK,Itime,iowrite,ioerr)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  ' Restart file written on fort.',KDISK,'Year',JYEAR,
@@ -379,76 +386,73 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       CALL exit_rc (12)             ! stopped because of SSW6
       END
 
-      BLOCK DATA BDINP
-C****
-C**** DEFAULT PARAMETERS FOR MODEL COMMON BLOCK
-C****
-      USE MODEL_COM, only : im,jm,lm
-      USE DAGCOM, only : kacc
 
-      IMPLICIT NONE
+      subroutine init_Model
+!@sum This program reads most of parameters from the datanase (DB)
+C**** get_param( "A", X ) reads parameter A into variable X
+C**** if "A" is not in the database, it will generate an error
+C**** message and stop
+C**** sync_param( "B", Y ) reads parameter B into variable Y
+C**** if "B" is not in the database, then Y is unchanged and its
+C**** value is saved in the database as "B" (here sync = synchronize)
+      USE MODEL_COM, only : LM,NAMD6,IJD6,NIPRNT,MFILTR,XCDLM,NDASF
+     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp
+     *     ,Ndisk,Nssw,KCOPY,KOCEAN,SKIPSE,PSF,NIsurf,IYEAR0
+     $     ,PTOP,LS1,IRAND
+     $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
+      USE RADNCB, only : s0x,co2
+      USE DAGCOM, only : KDIAG
+      USE PARAM
 
-      INTEGER ::
-     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
-     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MODRD,MODD5K,MODD5S,
-     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
-      INTEGER, DIMENSION(32) :: IDUM
-      INTEGER, DIMENSION(2,4) :: IJD6
-      INTEGER, DIMENSION(12) :: IDACC
+      implicit none
 
-      COMMON /IPARMB/
-     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
-     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MODRD,MODD5K,MODD5S,
-     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV,  IDUM ,  IJD6     ,IDACC
+C**** Rundeck parameters: 
+      call sync_param( "NAMD6", NAMD6, 4 )
+      call sync_param( "IJD6", IJD6(1:8,1), 8)
+      call sync_param( "NIPRNT", NIPRNT )
+      call sync_param( "MFILTR", MFILTR )
+      call sync_param( "XCDLM", XCDLM, 2 )
+      call sync_param( "NDASF", NDASF )
+      call sync_param( "NDA4", NDA4 ) !!
+      call sync_param( "NDA5S", NDA5S ) !!
+      call sync_param( "NDA5K", NDA5K ) !!
+      call sync_param( "NDA5D", NDA5D ) !!
+      call sync_param( "NDAA", NDAA ) !!
+      call sync_param( "NFILTR", NFILTR ) !!
+      call sync_param( "NRAD", NRAD ) !!
+      call sync_param( "Kvflxo", Kvflxo ) !!
+      call sync_param( "Nslp", Nslp )
+      call sync_param( "Ndisk", Ndisk )
+      call sync_param( "Nssw", Nssw )
+      call sync_param( "KCOPY", KCOPY )
+      call sync_param( "KOCEAN", KOCEAN )
+      ! used in input but not changed
+      call sync_param( "PSF", PSF )
+      call sync_param( "NIsurf", NIsurf )
+      ! IYEAR0 always comes from rundeck or rsf file (no default)
+      call get_param( "IYEAR0", IYEAR0 )
+      ! the following were set only at initial start - udating
+      call get_param( "PTOP", PTOP )
+      call get_param( "LS1", LS1 )
+      call get_param( "IRAND", IRAND )
 
-      DOUBLE PRECISION ::
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,SKIPSE
-      DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
-      DOUBLE PRECISION, DIMENSION(LM) :: SIG
-      DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2
-       COMMON /RPARMB/
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  SKIPSE,
-     *  TAUTR0,SIG,SIGE,  RDM2
+      call sync_param( "S0X", S0X ) !!
+      call sync_param( "CO2", CO2 ) !!
 
+      call sync_param( "KDIAG", KDIAG, 12 )
 
-      CHARACTER*4 NAMD6,aMON,aMON0
-      CHARACTER*132 XLABEL
-      COMMON /TEXT/ XLABEL,NAMD6(4),aMON,aMON0
+      call sync_param( "SKIPSE", SKIPSE ) !! should be removed?
 
-      DATA IM0,JM0,LM0, KACC0/         ! KTACC0 should be here too ???
-     *     IM ,JM ,LM , KACC /,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,     IRAND,MFILTR,Ndisk,Kvflxo,Nslp/
-     *       1,    1,    1,    2, 123456789,     1,   24,   0,   0/,
-     *  Nrad, Nfiltr, NIsurf, Nssw, NIPRNT, NMONAV,         IYEAR0/
-     *     5,      2,      2,    1,      1,      1,           1976/,
-     *  NDAa,   NDA5d, NDA5k, NDA5s, NDA4, NDAsf/
-     *     7,       7,     7,     7,   24,     1/,
-     *  MODRD,MODD5K,MODD5S/
-     *      0,     0,     0/
-      DATA  DT, DTsrc/
-     *    450., 3600./,
-C****
-C**** Note:           DT = DTdyn and NIdyn = DTsrc/DTdyn (set in INPUT)
-C**** In general      DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
-C**** except that the time steps related to NDAa, NDA5k, NDAsf are
-C**** slightly larger:     NDAa:   NDAa*DTsrc + 2*DT(dyn),
-C****                      NDA5k: NDA5k*DTsrc + 2*DT(dyn),
-C****                      NDAsf: NDAsf*DTsrc + DTsrc/NIsurf
-C****
-     *  PTOP, PSF, PSDRAG,SKIPSE/
-     *  150.,984.,  500.,     0./
-      DATA SIGE /1.0000000,LM*0./                    ! Define in rundeck
-      DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
-     *  IJD6/63,17, 17,34, 37,27, 13,23/
+C**** Non-Rundeck parameters
+      ! the following were set only at initial start - udating
+      call get_param( "ItimeI", ItimeI ) !input
+      call get_param( "PSFMPT", PSFMPT ) !input
+      call get_param( "PSTRAT", PSTRAT ) !input
+      call get_param( "SIG", SIG, LM ) !input
+      call get_param( "SIGE", SIGE, LM+1 ) !input
 
-      END
+      end subroutine init_Model
+
 
       SUBROUTINE INPUT
 C****
@@ -458,21 +462,20 @@ C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
-     *     ,bydsig,xlabel,namd6,ijd6,niprnt,nmonav
-     *     ,skipse,keyct,mfiltr,irand,psf,ptop
-     *     ,xcdlm,ndasf,nda4,nda5s,nda5k,nda5d,ndaa,nfiltr
-     *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
-     *     ,iyear0,itime,itimei,itimee,Kvflxo,nslp,ndisk,nssw,kcopy
-     *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
+     *     ,bydsig,xlabel,nmonav
+     *     ,skipse,keyct,irand,psf,ptop
+     *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
+     *     ,iyear0,itime,itimei,itimee
+     *     ,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
      *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
       USE RANDOM
-      USE RADNCB, only : rqt,s0x,co2,lm_req
-      USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav,
-     *     U00wtr,U00ice,lmcm
+      USE RADNCB, only : rqt,lm_req
+      USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
+!     *     U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,keynr,jreg
@@ -481,6 +484,9 @@ C****
       USE LAKES_COM, only : flake
       USE FILEMANAGER, only : getunit,closeunits
       USE TIMINGS, only : timing,ntimeacc
+      USE PARAM
+      USE PARSER
+
 
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
@@ -501,21 +507,16 @@ C****
 
       CHARACTER NLREC*80,filenm*100
 C****    List of parameters that CANNOT be changed during a run:
-      NAMELIST/INPUTZ/ KOCEAN,PTOP,PSF,LS1,DTsrc
+      NAMELIST/INPUTZ/ ISTART
 C****    List of parameters that COULD be changed during a run:
-     *     ,ISTART,DT,  NRAD,NIsurf,NFILTR, MFILTR
-     *     ,SKIPSE,  NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF
-     *     ,U00wtr,U00ice,LMCM, S0X,CO2,XCDLM,IRAND
-     *     ,Nslp,Kvflxo,KCOPY,Ndisk, Nssw
-     *     ,KDIAG,NIPRNT,NMONAV,IJD6,NAMD6
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK
-     *     ,IYEAR0,IHOURE, HOURE,DATEE,MONTHE,YEARE
+     *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE
 C****    List of parameters that are disregarded at restarts
-     *     ,PLTOP,         HOURI,DATEI,MONTHI,YEARI
+     *     ,        HOURI,DATEI,MONTHI,YEARI
+
 C****
 C**** More default settings
 C****
-      LMCM=-1  ! if not set in rundeck it will default to LS1-1
       TEMP=250.
       TSAVG(:,:)=TEMP
       U(:,:,:)=0.
@@ -568,6 +569,27 @@ C****
       REWIND 8
       READ (8,NML=INPUTZ)
       REWIND 8
+C****
+C**** Read parameters from the rundeck to the database
+C****
+      call parse_params( 8 )
+C**** Get those parameters which are needed in this subroutine
+      if(is_set_param("PTOP"))   call get_param( "PTOP", PTOP )
+      if(is_set_param("PSF"))    call get_param( "PSF", PSF ) !
+      if(is_set_param("LS1"))    call get_param( "LS1", LS1 )
+      if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
+      if(is_set_param("DT"))     call get_param( "DT", DT )
+      if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
+      if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
+      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+      if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
+
+      if(is_set_param("PLTOP"))  call get_param( "PLTOP", PLTOP, 12 ) !!
+      if(is_set_param("IYEAR0")) call get_param( "IYEAR0", IYEAR0 ) !!
+
+
+      write( 6, INPUTZ )
+
       IF (ISTART.LT.0) GO TO 600  !  just do the diagnostics
       IF (ISTART.GE.9) GO TO 400
 C***********************************************************************
@@ -780,6 +802,20 @@ C****                              perturbation is at most 1 degree C
         WRITE(6,*) 'Initial conditions were perturbed !!',IRAND
         IRAND=123456789  ! old Rand#gen: all seeds were >0 (RANDIBM)
       END IF
+C**** Sending parameters which had just been set to the DB
+      ! the following lines overwrite rundeck parameters
+      call set_param( "PTOP", PTOP, 'o' )
+      call set_param( "LS1", LS1, 'o' )
+      call set_param( "IRAND", IRAND, 'o' )
+      ! the following are NON-rundeck parameters
+      call set_param( "ItimeI", ItimeI ) !input 1
+      call set_param( "NDAY", NDAY ) !input 1
+      call set_param( "PSFMPT", PSFMPT ) !input 1
+      call set_param( "PSTRAT", PSTRAT ) !input 1
+      call set_param( "SIG", SIG, LM ) !input 1
+      call set_param( "SIGE", SIGE, LM+1 ) !input 1
+
+
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
      *  'ISTART =',ISTART,XLABEL(1:80)
@@ -851,14 +887,22 @@ C**** reason not to use ISTART=10 is trouble with the other file.)
       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *   KDISK,', HOUR=',ItimeX,' ',XLABEL(1:80)
   500 CONTINUE
-C**** UPDATE C ARRAY FROM INPUTZ
-      REWIND 8
-      READ (8,NML=INPUTZ)
-      REWIND 8
+C**** Get parameters we just read from rsf file. Only those 
+C**** parameters which we need in "INPUT" should be extrcted here.
+      if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
+      if(is_set_param("DT"))     call get_param( "DT", DT )
+      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+      if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
+      if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !input
+      if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
+      if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
+      if(is_set_param("Itime"))  call get_param( "Itime", Itime ) !main
+
 C**** For documentation purposes only, find PLTOP (appears on printout)
-      DO L=1,LM
-      PLTOP(L)=PTOP+PSFMPT*SIGE(L+1)
-      END DO
+      if(is_set_param("PLTOP"))   call get_param( "PLTOP", PLTOP, LM )
+c      DO L=1,LM
+c      PLTOP(L)=PTOP+PSFMPT*SIGE(L+1)
+c      END DO
 
 C***********************************************************************
 C****                                                              *****
@@ -866,6 +910,8 @@ C****       INITIAL- AND RESTARTS: Final Initialization steps      *****
 C****                                                              *****
 C***********************************************************************
   600 CONTINUE
+
+
       IF (KEYCT.LE.1) KEYNR=0
       IF (KEYCT.LE.1) KEYCT=1
 C****
@@ -877,6 +923,8 @@ C**** Alternate (old) way of specifying end time
       if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
 
       IF(ISTART.LT.0) THEN
+        ! this part looks strange. Does it belong here? 
+        ! reset_diag called before init_DIAG - is it correct?
         call reset_diag(1)
         monacc = 0
         do k=1,iargc()
@@ -884,7 +932,7 @@ C**** Alternate (old) way of specifying end time
           call getunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
           write(6,*) 'read: ',filenm(1:70)
-          call closeunits
+          call closeunits   !!! - this doesn't look right 
         end do
         months=0 ; years=monacc(jmon0) ; mswitch=0
         do k=1,12
@@ -939,6 +987,31 @@ C**** Restrict NMONAV to 1(default),2,3,4,6,12, i.e. a factor of 12
       if (NMONAV.gt.12) NMONAV=12
       NMONAV = 12/nint(12./nmonav)
       write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
+C****
+C**** Updating Parameters. If any of them changed beyond this line
+C**** use set_param(.., .., 'o') to update them in the database
+C****
+C**** Overwrite those rundeck parameters in the DB which has been changed
+      call set_param( "DTsrc", DTsrc, 'o' )
+      call set_param( "DT", DT, 'o' )
+      call set_param( "keyct", keyct, 'o' )
+      call set_param( "NMONAV", NMONAV, 'o' )
+
+C**** Overwrite non-rundeck parameters which has been changed
+      call set_param( "ItimeE", ItimeE, 'o' ) !input
+      call set_param( "NIdyn", NIdyn, 'o' ) !input
+      call set_param( "Itime", Itime, 'o' ) !main
+
+ccc the following 5 lines are for information only (not read at restart)
+      if(.not.is_set_param("IM0"))    call set_param( "IM0", IM0 )
+      if(.not.is_set_param("JM0"))    call set_param( "JM0", JM0 )
+      if(.not.is_set_param("LM0"))    call set_param( "LM0", LM0 )
+      if(.not.is_set_param("KACC0"))  call set_param( "KACC0", KACC0 ) ! not set properly
+      if(.not.is_set_param("KTACC0")) call set_param( "KTACC0", KTACC0 )
+
+C**** Get the rest of parameters from DB or put defaults to DB
+      call init_Model
+
 C****
 C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS
 C****
@@ -1060,6 +1133,7 @@ C****
       USE CONSTANT, only : orbit
       USE MODEL_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
      *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,aMON,aMONTH
+     *     ,jhour
       USE GEOM, only : areag,dxyp
       USE RADNCB, only : RSDIST,COSD,SIND
 
@@ -1105,6 +1179,7 @@ C****
          JMON=JMON+1
       END DO
       JDATE=JDAY-JDendOfM(JMON-1)
+      Jhour=MOD(Itime*24/NDAY,24)  ! looks like it was not set at Itime=0
       aMON=aMONTH(JMON)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION

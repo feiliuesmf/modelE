@@ -3824,6 +3824,7 @@ c      USE PRTCOM, only :
      &     DLAT,DXYP,LAT_DG
       USE DAGCOM, only :
      &     keynr,nehist,nkeynr
+      USE PARAM
       IMPLICIT NONE
       SAVE
       INTEGER*4 :: NDEX(42) = (/
@@ -4064,6 +4065,7 @@ CB815    FKEYDS(I)=KEYNR(I,KEYCT)
       KEYCT=KEYCT+1
       KEYMAX=49
       IF (KEYNR(1,1).NE.0) KEYMAX=48
+      call set_param( "keyct", keyct, 'o' )
       IF (KEYCT.LE.KEYMAX) RETURN
 C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       DO 820 K=1,36
@@ -4073,6 +4075,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       DO 880 I=1,NKEYNR
   880 KEYNR(I,K)=0
       KEYCT=37
+      call set_param( "keyct", keyct, 'o' )
       RETURN
   901 FORMAT('1',A)
   902 FORMAT ('0',7X,'SN+IC NH NH AL AB NT NT PR        T   T-OF-ATM  EK

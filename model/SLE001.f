@@ -139,7 +139,6 @@ C**** INCLUDE FILE FOR SOILS45
       REAL*8 ALAMAX,ALAMIN,AROOT,BROOT
      *     ,RSAR,SHCAP
      *     ,VHGHT
-ccc   WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
       INTEGER IBV,ICHN,IDAY,IHOUR,ITH,ITR,J1,J2,JCM,L
      *     ,LADAY,LIMIT,LL,MMAX,NINTEG,NIT,IV,JC,K,M
       INTEGER NGM,NG,IMT,IGCM
@@ -174,6 +173,7 @@ C     COMMON/WEIGHT/A(4,IMT-1),B(4,IMT-1),P(4,IMT-1)
      &     T1G,TSG
       integer IZ,IZX
       real*8 THRM(2),SNSH(2),XLTH(2),ALTH(2)
+      real*8 TOP_INDEX, XKUS(NG,2), XKUSA(2)
       double precision, dimension(4,imt-1), parameter :: a=reshape(
      &     (/                   ! matric potential coefficients for
      &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
@@ -315,6 +315,7 @@ C
 C     ALGDEL=ALOG(1.d0+ALPH0)
 C
       integer I,J
+      REAL*8 DZ_TOTAL
       ZERO=0.d0
       XKUD=2.78d-5
       JCM=NINT(LOG(FLOAT(NTH))/LOG(2.d0))
@@ -367,11 +368,13 @@ C**** CALCULATE DIFFUSIVITY
           D2=0.d0
           XKU1=0.d0
           XKU2=0.d0
+          XKUS(L,IBV) = 0.d0
           DO I=1,IMT-1
             D1=D1+Q(I,L)*DLM(ITH,I)
             D2=D2+Q(I,L)*DLM(ITH+1,I)
             XKU1=XKU1+Q(I,L)*XKLM(ITH,I)
             XKU2=XKU2+Q(I,L)*XKLM(ITH+1,I)
+            XKUS(L,IBV) = XKUS(L,IBV) + Q(I,L)*XKLM(0,I)
           end do
           DL=(1.d0-TEMP)*D1+TEMP*D2
           DL=(1.d0-FICE(L,IBV))*DL
@@ -395,6 +398,16 @@ C**** CALCULATE CONDUCTIVITY
           END IF
         end do                  ! L
       end do                    ! IBV
+ccc compute conductivity for topmodel (i.e. average saturated conductivity)
+      DO IBV=1,2
+        XKUSA(IBV) = 0.d0
+        DZ_TOTAL = 0.d0
+        DO L=1,N
+          XKUSA(IBV) = XKUSA(IBV) + XKUS(L,IBV)*DZ(L)
+          DZ_TOTAL = DZ_TOTAL + DZ(L)
+        enddo
+        XKUSA(IBV) = XKUSA(IBV) / DZ_TOTAL
+      enddo
 C     ADD GRAVITATIONAL POTENTIAL TO HL
       DO L=1,N
         DO IBV=1,2
@@ -474,6 +487,7 @@ C     SOLVE FOR ALPH0 IN S=((1+ALPH0)**N-1)/ALPH0
           ARG(I)=MAX(ARG(I),-SXTN)
           XKLM(J,I)=EXP(C*ARG(I))
  245    CONTINUE
+        !print *, 'xklm ', j, (XKLM(J,I), i=1,IMT-1)
         DO 265 I=1,IMT-1
           DLM(J,I)=0.d0
           ARG(I)=0.d0
@@ -818,6 +832,12 @@ C**** ADJUST CANOPY CONDUCTANCE FOR INCOMING SOLAR RADIATION
       CNC=CNC/(1.d0+((TP(0,2)+TFRZ-296.d0)/15.d0)**4)
       RETURN
       END SUBROUTINE COND
+
+      subroutine estimate_zbar
+ccc compute average water table for topmodel
+      integer l, ibv
+      ! will insert this code later
+      end subroutine estimate_zbar
       SUBROUTINE RUNOFF
 C**** CALCULATES SURFACE AND UNDERGROUND RUNOFFS.
 C**** INPUT:
@@ -840,6 +860,7 @@ C     USE EFFECTS OF SUBGRID SCALE RAIN
 C     USE PRECIPITATION THAT INCLUDES SMOW MELT
       REAL*8 PTMP(2),PTMPS(2)
       REAL*8 RUNFRAC
+      REAL*8 f_K0_Exp_L ! coefficient for the topmodel
       ZERO=0.d0
       IF(ISN(1).EQ.0)THEN
         PTMPS(1)=PRS+PRE(1)
@@ -881,9 +902,28 @@ ccc   don't see anything wrong if I just set it to 0
 C     UNDERGROUND RUNOFF
 C     SL IS THE SLOPE, SDSTNC IS THE INTERSTREAM DISTANCE
       DO IBV=1,2
+ccc this is some rough estimate for the expression f * K0 Exp(zbar/f)
+ccc in the topmodel expression for the runoff
+!        f_K0_exp = 0.d0
+!        DO L=1,N
+!          f_K0_exp = f_K0_exp + XKUS(L,IBV)*W(L,IBV)/WS(L,IBV)*DZ(L)
+!        enddo
         DO L=1,N
           RNFF(L,IBV)=XKU(L,IBV)*SL*DZ(L)/SDSTNC
+/* #define DO_TOPMODEL_RUNOFF */
+#ifdef DO_TOPMODEL_RUNOFF
+          if ( WS(L,IBV) > 1.d-16 ) then
+            f_K0_Exp_L = (1.d0-FICE(L,IBV))
+     $           * XKUS(L,IBV)*W(L,IBV)/WS(L,IBV)*DZ(L)
+          else
+            f_K0_Exp_L = 0.d0
+          endif
+c          print *,'RNFF: ', L, RNFF(L,IBV), f_K0_Exp_L*exp( -TOP_INDEX )
+c          print *, XKUS(L,IBV),W(L,IBV),WS(L,IBV),DZ(L),TOP_INDEX
+          RNFF(L,IBV)=f_K0_Exp_L*exp( -TOP_INDEX )
+#endif
         end do
+!        print *,'RUNOFF: ', SL/SDSTNC, exp( -TOP_INDEX )
       end do
       RETURN
       END SUBROUTINE RUNOFF

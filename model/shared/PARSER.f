@@ -1,0 +1,237 @@
+      module PARSER
+      
+      contains
+
+      subroutine strip_comment( str )
+      ! remove comment at the end of the line. comments symbols: !#
+      implicit none
+      character*(*) str
+      integer n
+
+      n = scan( str, '!#' )
+      if ( n == 1 ) str = '' ! empty string
+      if ( n > 1 ) str = str(:n-1)
+
+      return
+      end subroutine strip_comment
+      
+
+      subroutine skip_junk( str )
+      implicit none
+      character*(*) str
+      !character*256 tstr
+      integer n
+
+      !print *, 'SJin::', str, '::'
+
+      do while ( len_trim( str ) > 0 .and. scan( str, ' =,' ) == 1 )
+        !print *, 'SJ::', str, '::'
+        str = str(2:)
+      enddo
+      return
+      end subroutine skip_junk
+
+
+      subroutine sread_int( str, value )
+      implicit none
+      character*(*) str
+      integer value
+      integer n
+
+      read ( str, * ) value
+
+      ! remove chars till the next [ =,]
+      n = scan( str, ' =,' )
+      str = str(n+1:)
+
+      call skip_junk( str )
+
+      return
+      end subroutine sread_int
+
+
+      subroutine sread_real( str, value )
+      implicit none
+      character*(*) str
+      real*8 value
+      integer n
+
+      read ( str, * ) value
+
+      ! remove chars till the next [ =,]
+      n = scan( str, ' =,' )
+      str = str(n+1:)
+
+      call skip_junk( str )
+
+      return
+      end subroutine sread_real
+
+
+      subroutine sread_char( str, value )
+      implicit none
+      character*(*) str
+      character*(*) value
+      !character*256 tstr
+      integer n, n1
+
+      ! replace '=' with space if not quoted
+      n1 = scan( str, '''' )
+      n  = scan( str, '=' )
+      if ( n>0 .and. ( n1==0 .or. n<n1 ) ) str(n:n) = ' '
+
+      !print *, '$$$:', str
+
+      !call adjustl( str )
+      read ( str, * ) value
+
+      if ( scan( str, '''' ) == 1 ) then  ! quated string
+        str = str(2:)
+        n = scan( str, '''' )
+        str = str(n+1:)
+      else  ! remove chars till the next [ =,]
+        n = scan( str, ' =,' ) 
+        !tstr = str
+        str = str(n+1:)
+      endif
+
+      call skip_junk( str )
+
+      return
+      end subroutine sread_char
+
+
+      subroutine parse_params( kunit )
+      use PARAM
+      implicit none
+      integer, parameter :: MAXDIM=64
+      integer, intent(in) :: kunit
+      character buf(256)
+      character*256 bufs
+      character*256 ttt
+      integer i
+      character*16 name
+      character*1 type
+      integer np, i
+      integer ivars(MAXDIM)
+      real*8 rvars(MAXDIM)
+      character*16 cvars(MAXDIM)
+
+      ! skip unrelated stuff
+      do
+        read( kunit, '(a256)', err=666, end=667 ) bufs
+        if ( len_trim(bufs) < 1 ) cycle
+        read( bufs, * ) name
+        if ( name == '&&PARAMETERS' ) exit
+      enddo
+
+      do
+        read( kunit, '(a256)', err=666, end=666 ) bufs
+        !print *
+        !print *,'######', trim( bufs )//' :::'
+        !print *
+
+        if ( len_trim(bufs) < 1 ) cycle
+
+        call strip_comment( bufs )
+        call skip_junk( bufs )
+
+        if ( len_trim(bufs) < 1 ) cycle
+
+        !if ( bufs == 'exit' ) exit
+
+
+        !read the name of the variable
+        call sread_char( bufs, name )
+
+        if ( name == '&&END_PARAMETERS' ) exit  ! end of list 
+
+        if ( len_trim(bufs) < 1 ) then
+          print *,'PARSER: no values were given to param: ', name
+          stop 'PARSER error'
+        endif
+
+        ! now check the type of variables
+        if ( scan( bufs, '''' ) > 0 ) then
+          type = 'c'
+        else if ( scan( bufs, '.' ) > 0 ) then
+          type = 'r'
+        else
+          type = 'i'
+        endif
+
+        select case ( type )
+        case ('i')
+          np = 0
+          do while ( len_trim(bufs) > 0 )
+            np = np+1
+            call sread_int( bufs, ivars(np) )
+          end do
+          !print *, 'name= ', name, ', int'
+          !print *, 'vars= ', ( ivars(i),':',i=1,np )
+          call set_param( name, ivars, np, 'o' )
+        case ('r')
+          np = 0
+          do while ( len_trim(bufs) > 0 )
+            np = np+1
+            call sread_real( bufs, rvars(np) )
+          end do
+          !print *, 'name= ', name, ', real'
+          !print *, 'vars= ', ( rvars(i),':',i=1,np )
+          call set_param( name, rvars, np, 'o' )
+        case ('c')
+          np = 0
+          do while ( len_trim(bufs) > 0 )
+            np = np+1
+            call sread_char( bufs, cvars(np) )
+          end do
+          !print *, 'name= ', name, ', char'
+          !print *, 'vars= ', ( cvars(i),':',i=1,np )
+          call set_param( name, cvars, np, 'o' )
+        end select
+
+      enddo
+
+      return
+ 666  print *, 'PARSER: Error reading params'
+      stop 255
+ 667  print *, 'PARSER: No &&PARAMETERS or &&END_PARAMETERS found'
+      stop 255
+      end subroutine parse_params
+
+      end module PARSER
+
+
+#ifdef TEST_PARSER
+      program foo
+      use PARAM
+      use PARSER
+      implicit none
+      integer ia(128), i
+      real*8 ra(128), r
+      character*16 ca(128), c
+
+      call parse_params( 1 )
+
+      call get_param('rvars', ra, 5 )
+      print *, 'rvars = ', (ra(i), i=1,5)
+
+      call get_param('somename', c)
+      print *, 'somename = ', c
+
+      call get_param('abcd', ia, 1)
+      print *, 'abcd = ', (ia(i), i=1,2)
+
+
+      end
+      
+#endif
+
+
+
+
+
+
+
+
+
