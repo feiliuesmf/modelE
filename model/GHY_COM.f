@@ -50,6 +50,11 @@ C**** replacements for GDATA
       REAL*8, DIMENSION(IM,JM) :: AIEARTH
       REAL*8, DIMENSION(3,IM,JM) :: SNOAGE
 
+!@dbparam snoage_def determines how snowage is calculated:
+!@+       = 0     independent of temperature
+!@+       = 1     only when max daily local temp. over type > 0
+      integer :: snoage_def = 0
+
 ccc topmodel input data and standard deviation of the elevation
       REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ, top_dev_ij
 

@@ -17,8 +17,9 @@ ccc   save
       real*8, dimension(im,jm,3) :: gdeep
 
       real*8 spgsn !@var specific gravity of snow
+!@dbparam snow_cover_coef coefficient for topography variance in 
+!@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
-
 
       contains
 
@@ -356,14 +357,17 @@ C****
 C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 C**** The select is used to distinguish water from gases or particle
-        select case (tr_wd_TYPE(n))
-        case (nWATER)
+! select removed because of OMP compiler bug
+!        select case (tr_wd_TYPE(n))
+!        case (nWATER)
+        if (tr_wd_TYPE(n) .eq. nWATER) then
 C**** no fractionation from ground (yet)
           trgrnd(nx)=gtracer(n,itype,i,j)*QG
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-        case (nGAS, nPART)
+!        case (nGAS, nPART)
+        elseif (tr_wd_TYPE(n).eq.nGAS .or. tr_wd_TYPE(n).eq.nPART) then
 #endif
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
@@ -377,7 +381,8 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #ifdef TRACERS_WATER
-        end select
+!        end select
+        end if
 #endif
       end do
 #endif
@@ -853,6 +858,7 @@ c**** read topmodel parameters
       call closeunit (iu_TOP_INDEX)
 c**** read rundeck parameters
       call sync_param( "snow_cover_coef", snow_cover_coef )
+      call sync_param( "snoage_def", snoage_def )
 
       one=1.
 c****
@@ -1475,7 +1481,7 @@ c**** check for reasonable temperatures over earth
       use geom, only : imaxj
       use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp
-      use ghycom, only : snoage
+      use ghycom, only : snoage, snoage_def
       implicit none
       real*8 tsavg,wfc1
       integer i,j,itype
@@ -1496,27 +1502,41 @@ c****
       end do
 
       if (end_of_day) then
-c****
-c**** increase snow age each day (independent of ts)
-c****
         do j=1,jm
-          do i=1,imaxj(j)
+        do i=1,imaxj(j)
+c****
+c**** increase snow age depending on snoage_def
+c****
+          if (snoage_def.eq.0) then ! update indep. of ts
             do itype=1,3
               snoage(itype,i,j)=1.+.98d0*snoage(itype,i,j)
             end do
-            tsavg=tdiurn(i,j,5)/(nday*nisurf)
-            if(32.+1.8*tsavg.lt.65.)
-     *           aij(i,j,ij_strngts)=aij(i,j,ij_strngts)+(33.-1.8*tsavg)
-            aij(i,j,ij_dtgdts)=aij(i,j,ij_dtgdts)+18.*((tdiurn(i,j,2)-
-     *           tdiurn(i,j,1))/(tdiurn(i,j,4)-tdiurn(i,j,3)+1.d-20)-1.)
-            aij(i,j,ij_tdsl)=aij(i,j,ij_tdsl)+
-     *           (tdiurn(i,j,4)-tdiurn(i,j,3))
-            aij(i,j,ij_tdcomp)=aij(i,j,ij_tdcomp)+
-     *           (tdiurn(i,j,6)-tdiurn(i,j,9))
-            aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+(tdiurn(i,j,4)-tf)
-            if (tdiurn(i,j,6).lt.aij(i,j,ij_tmnmx))
-     *           aij(i,j,ij_tmnmx)=tdiurn(i,j,6)
-          end do
+          elseif (snoage_def.eq.1) then ! update if max T>0
+            if (tdiurn(i,j,7).gt.0) snoage(1,i,j)=1.+.98d0
+     *           *snoage(1,i,j) ! ocean ice (not currently used)
+            if (tdiurn(i,j,8).gt.0) snoage(2,i,j)=1.+.98d0
+     *           *snoage(2,i,j) ! land ice
+            if (tdiurn(i,j,2).gt.0) snoage(3,i,j)=1.+.98d0
+     *           *snoage(3,i,j) ! land
+          else
+            write(6,*) "This snoage_def is not defined: ",snoage_def
+            write(6,*) "Please use: 0 (update indep of T)"
+            write(6,*) "            1 (update if T>0)"
+            stop
+          end if
+          tsavg=tdiurn(i,j,5)/(nday*nisurf)
+          if(32.+1.8*tsavg.lt.65.)
+     *         aij(i,j,ij_strngts)=aij(i,j,ij_strngts)+(33.-1.8*tsavg)
+          aij(i,j,ij_dtgdts)=aij(i,j,ij_dtgdts)+18.*((tdiurn(i,j,2)-
+     *         tdiurn(i,j,1))/(tdiurn(i,j,4)-tdiurn(i,j,3)+1.d-20)-1.)
+          aij(i,j,ij_tdsl)=aij(i,j,ij_tdsl)+
+     *         (tdiurn(i,j,4)-tdiurn(i,j,3))
+          aij(i,j,ij_tdcomp)=aij(i,j,ij_tdcomp)+
+     *         (tdiurn(i,j,6)-tdiurn(i,j,9))
+          aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+(tdiurn(i,j,4)-tf)
+          if (tdiurn(i,j,6).lt.aij(i,j,ij_tmnmx))
+     *         aij(i,j,ij_tmnmx)=tdiurn(i,j,6)
+        end do
         end do
       end if
 
