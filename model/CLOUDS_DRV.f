@@ -24,7 +24,7 @@
      *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
      *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
-     *     ntau,npres,nisccp,aisccp,isccp_reg
+     *     ntau,npres,aisccp,isccp_reg
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -947,16 +947,18 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
 C**** Define regions for ISCCP diagnostics
       do j=1,jm
         isccp_reg(j)=0.
-        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
+        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-45.)
      *       isccp_reg(j)=1
-        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
+        if (lat_dg(j,1).ge.-45. .and. lat_dg(j,1).lt.-30.)
      *       isccp_reg(j)=2
-        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
+        if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
      *       isccp_reg(j)=3
-        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
+        if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
      *       isccp_reg(j)=4
-        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
+        if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
      *       isccp_reg(j)=5
+        if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
+     *       isccp_reg(j)=6
       end do
 
       END SUBROUTINE init_CLD
