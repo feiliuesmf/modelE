@@ -54,6 +54,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland
+     *     ,smommc,smomls,qmommc,qmomls
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -279,11 +280,15 @@ C**** TEMPERATURES
         SM(L)  =T(I,J,L)*AIRM(L)
 Cred    SMOM(:,L) =T3MOM(:,I,J,L)*AIRM(L)
         SMOM(:,L) =TMOMIL(:,I,L)*AIRM(L)
+        SMOMMC(:,L) =SMOM(:,L)
+        SMOMLS(:,L) =SMOM(:,L)
         TL(L)=T(I,J,L)*PLK(L)
 C**** MOISTURE (SPECIFIC HUMIDITY)
         QM(L)  =Q(I,J,L)*AIRM(L)
 Cred    QMOM(:,L) =Q3MOM(:,I,J,L)*AIRM(L)
         QMOM(:,L) =QMOMIL(:,I,L)*AIRM(L)
+        QMOMMC(:,L) =QMOM(:,L)
+        QMOMLS(:,L) =QMOM(:,L)
 Cred    WML(L)=WM(I,J,L)
         WML(L)=WMIL(I,L)
 C**** others
@@ -420,6 +425,8 @@ C         EPRCP=PRCP*TPRCP*SHI
           Q(I,J,L)=(1.-FSSL(L))*QM(L)*BYAM(L)+FSSL(L)*QLS(I,J,L)
           TMC(I,J,L)=SM(L)*BYAM(L)
           QMC(I,J,L)=QM(L)*BYAM(L)
+          SMOMMC(:,L)=SMOM(:,L)
+          QMOMMC(:,L)=QMOM(:,L)
           DO K=1,KMAX
             UM1(K,L)=UM(K,L)
             VM1(K,L)=VM(K,L)
@@ -468,6 +475,8 @@ C****
         TL(L)=TLS(I,J,L)*PLK(L)
         TH(L)=TLS(I,J,L)
         QL(L)=QLS(I,J,L)
+        SMOM(:,L)=SMOMLS(:,L)
+        QMOM(:,L)=QMOMLS(:,L)
       END DO
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
@@ -739,6 +748,8 @@ C**** between kinds of rain in the ground hydrology.
 
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
         Q(I,J,L)=QL(L)*FSSL(L)+QMC(I,J,L)*(1.-FSSL(L))
+        SMOM(:,L)=SMOM(:,L)*FSSL(L)+SMOMMC(:,L)*(1.-FSSL(L))
+        QMOM(:,L)=QMOM(:,L)*FSSL(L)+QMOMMC(:,L)*(1.-FSSL(L))
 C**** update moment changes
 Cred    T3MOM(:,I,J,L)=SMOM(:,L)*BYAM(L)
 Cred    Q3MOM(:,I,J,L)=QMOM(:,L)*BYAM(L)

@@ -21,6 +21,7 @@ CCC   USE RANDOM
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
 !@param RHOW,RHOG,RHOI density of water, graupel and ice, respectively
+      REAL*8, PARAMETER :: CLDMIN=.25d0 !@param CLDMIN min MC/LSC region
 !@param ITMAX max iteration index
 !@param CN0 constant use in computing FLAMW, etc
 !@param PN tuning exponential for computing WV
@@ -141,7 +142,8 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 
 !@var SM,QM Vertical profiles of T/Q
       REAL*8, DIMENSION(LM) :: SM,QM
-      REAL*8, DIMENSION(NMOM,LM) :: SMOM,QMOM
+      REAL*8, DIMENSION(NMOM,LM) :: SMOM,QMOM,SMOMMC,QMOMMC,
+     *  SMOMLS,QMOMLS
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
@@ -213,6 +215,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
+     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
      *  ,FLAMW,FLAMG,FLAMI,FMC1,FSUB,FCONV,FMCL,VLAT
      *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
@@ -249,7 +252,7 @@ C**** functions
 !@var SMOLD,QMOLD profiles prior to any moist convection
       REAL*8, DIMENSION(LM) :: F,CMNEG
       REAL*8, DIMENSION(NMOM,LM) :: FMOM
-      REAL*8, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
+      REAL*8, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD,SMOMT,QMOMT
       REAL*8, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
       REAL*8, DIMENSION(NMOM) ::
      &     SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
@@ -591,17 +594,17 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 C     FPLUM0=FMP1*BYAM(LMIN)
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
-CC    SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
+      SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
       QMP  =  QMOLD(LMIN)*FPLUME
-CC    QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
+      QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
       TPSAV(LMIN)=SMP*PLK(LMIN)/MPLUME
       DMR(LMIN)=-MPLUME
         DSMR(LMIN)=-SMP
-CC    DSMOMR(xymoms,LMIN)=-SMOMP(xymoms)
-CC    DSMOMR(zmoms,LMIN)=-SMOMOLD(zmoms,LMIN)*FPLUME
+      DSMOMR(xymoms,LMIN)=-SMOMP(xymoms)
+      DSMOMR(zmoms,LMIN)=-SMOMOLD(zmoms,LMIN)*FPLUME
         DQMR(LMIN)=-QMP
-CC    DQMOMR(xymoms,LMIN)=-QMOMP(xymoms)
-CC    DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
+      DQMOMR(xymoms,LMIN)=-QMOMP(xymoms)
+      DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
 #ifdef TRACERS_ON
       TMP(1:NTX) = TMOLD(LMIN,1:NTX)*FPLUME
       TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
@@ -669,16 +672,16 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       IF(MCCONT.EQ.1) MC1=.TRUE.
       IF(MC1.AND.L.EQ.LMIN+1) THEN
         FCONV(L)=MPLUME/AIRM(L)
-        IF(FCONV(L).GT.1.) FCONV(L)=1.
-        FSUB(L)=1.+(AIRM(L)-100.)/200.
-        IF(FSUB(L).GT.1./(FCONV(L)+1.E-20)-1.)
-     *    FSUB(L)=1./(FCONV(L)+1.E-20)-1.
-        IF(FSUB(L).LT.1.) FSUB(L)=1.
-        IF(FSUB(L).GT.5.) FSUB(L)=5.
-        FSSL(L)=1.-(1.+FSUB(L))*FCONV(L)
-        IF(FSSL(L).LT..1) FSSL(L)=.1
-        IF(FSSL(L).GT..9) FSSL(L)=.9
-        FMC1=1.-FSSL(L)+teeny
+        IF(FCONV(L).GT.1.d0) FCONV(L)=1.d0
+        FSUB(L)=1.d0+(AIRM(L)-100.d0)/200.d0
+        IF(FSUB(L).GT.1.d0/(FCONV(L)+1.d-20)-1.d0)
+     *    FSUB(L)=1.d0/(FCONV(L)+1.d-20)-1.d0
+        IF(FSUB(L).LT.1.d0) FSUB(L)=1.d0
+        IF(FSUB(L).GT.5.d0) FSUB(L)=5.d0
+        FSSL(L)=1.d0-(1.d0+FSUB(L))*FCONV(L)
+        IF(FSSL(L).LT.CLDMIN) FSSL(L)=CLDMIN
+        IF(FSSL(L).GT.1.d0-CLDMIN) FSSL(L)=1.d0-CLDMIN
+        FMC1=1.d0-FSSL(L)+teeny
       ENDIF
 C****
 C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
@@ -690,13 +693,13 @@ C****
 
         DSM(L-1)=  DSM(L-1)+DELTA*SMP
         SMP = SMP  *(1.-DELTA)
-CC      DSMOM(xymoms,L-1)=DSMOM(xymoms,L-1)+DELTA*SMOMP(xymoms)
-CC      SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
+        DSMOM(xymoms,L-1)=DSMOM(xymoms,L-1)+DELTA*SMOMP(xymoms)
+        SMOMP(xymoms) = SMOMP(xymoms)*(1.-DELTA)
 
         DQM(L-1)=  DQM(L-1)+DELTA*QMP
         QMP = QMP  *(1.-DELTA)
-CC      DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
-CC      QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
+        DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
+        QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
 
         DO K=1,KMAX
           DUM(K,L-1)=DUM(K,L-1)+UMP(K)*DELTA
@@ -745,14 +748,14 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       MPLUME=MPLUME+EPLUME
       FENTRA = EPLUME*BYAM(L)
       DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
-CC    DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
+      DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
       DQMR(L)=DQMR(L)-EPLUME*QUP        ! = DQM(L)-QM(L)*FENTRA
-CC    DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
+      DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
       DMR(L)=DMR(L)-EPLUME
       SMP=SMP+EPLUME*SUP
-CC    SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
+      SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
       QMP=QMP+EPLUME*QUP
-CC    QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
+      QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
 #ifdef TRACERS_ON
       DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
       DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
@@ -790,18 +793,18 @@ C     IF(DMMIX.LT.1d-10) GO TO 291
       FDDL = .5*DDRAFT*BYAM(L)
       MPLUME=FLEFT*MPLUME
       SMDN=DDRAFT*SMIX         ! = SM(L)*FDDL +  SMP*FDDP
-CC    SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
+      SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
       SMP=FLEFT*SMP
-CC    SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
+      SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
       QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
-CC    QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
+      QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       QMP=FLEFT*QMP
-CC    QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
+      QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
       DMR(L) = DMR(L)-.5*DDRAFT
       DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
-CC    DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
+      DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
       DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
-CC    DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
+      DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
 #ifdef TRACERS_ON
       Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
       tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
@@ -836,7 +839,7 @@ C****
       FQCOND = 0
       IF(DQSUM.GE.0.) THEN
         IF (QMPT.gt.teeny) FQCOND = DQSUM/QMPT
-CC      QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
+        QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
       ELSE  ! no change
         DQSUM=0.
         SMP=SMPT
@@ -844,9 +847,9 @@ CC      QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
       END IF
       COND(L)=DQSUM
       CONDMU=100.*COND(L)*BYAM(L)*PL(L)*AIRM(L)/(CCM(L-1)*TL(L)*RGAS)
-      FLAMW=(1000.D0*PI*CN0/(CONDMU+teeny))**.25
-      FLAMG=(400.D0*PI*CN0/(CONDMU+teeny))**.25
-      FLAMI=(100.D0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
       IF (TP.GE.TF) THEN
         DDCW=6.E-3/FITMAX
         IF(PLAND.LT..5) DDCW=1.5E-3/FITMAX
@@ -912,9 +915,9 @@ C     MCCONT=MCCONT+1                   !!!
 C     IF(MCCONT.EQ.1) MC1=.TRUE.        !!!
       IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
       SMPMAX=SMP
-CC    SMOMPMAX(xymoms) =  SMOMP(xymoms)
+      SMOMPMAX(xymoms) =  SMOMP(xymoms)
       QMPMAX=QMP
-CC    QMOMPMAX(xymoms) =  QMOMP(xymoms)
+      QMOMPMAX(xymoms) =  QMOMP(xymoms)
 #ifdef TRACERS_ON
 C**** Tracers at top of plume
       TMPMAX(1:NTX) = TMP(1:NTX)
@@ -928,9 +931,9 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       IF(TPSAV(LMAX).GE.TF) LFRZ=LMAX
       DM(LMAX)=DM(LMAX)+MPMAX
       DSM(LMAX)=DSM(LMAX)+SMPMAX
-CC    DSMOM(xymoms,LMAX)=DSMOM(xymoms,LMAX) + SMOMPMAX(xymoms)
+      DSMOM(xymoms,LMAX)=DSMOM(xymoms,LMAX) + SMOMPMAX(xymoms)
       DQM(LMAX)=DQM(LMAX)+QMPMAX
-CC    DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
+      DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
 #ifdef TRACERS_ON
 C**** Add plume tracers at LMAX
       DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
@@ -979,7 +982,7 @@ C****
       FSEVP = 0
       IF (ABS(PLK(L)*SMDN).gt.teeny) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
       SMDN=SMDN-SLH*DQEVP/PLK(L)
-CC    SMOMDN(xymoms)=SMOMDN(xymoms)*(1.-FSEVP)
+      SMOMDN(xymoms)=SMOMDN(xymoms)*(1.-FSEVP)
       FQEVP = 0
       IF (COND(L).gt.0.) FQEVP = DQEVP/COND(L)
       QMDN=QMDN+DQEVP
@@ -993,7 +996,7 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
         IF(FQEVP.eq.1.) THEN                 ! total evaporation
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
-          TRCOND(N,L) = 0.D0
+          TRCOND(N,L) = 0.d0
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
           CALL GET_EVAP_FACTOR(N,TNX,LHX,.FALSE.,1d0,FQEVP,FQEVPT)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
@@ -1015,12 +1018,12 @@ C**** ENTRAINMENT OF DOWNDRAFTS
           QENV=QM1(L)/AIRM(L)
           SMDN=SMDN+EDRAFT*SENV
           QMDN=QMDN+EDRAFT*QENV
-CC        SMOMDN(xymoms)= SMOMDN(xymoms)+ SMOM(xymoms,L)*FENTRA
-CC        QMOMDN(xymoms)= QMOMDN(xymoms)+ QMOM(xymoms,L)*FENTRA
+          SMOMDN(xymoms)= SMOMDN(xymoms)+ SMOM(xymoms,L)*FENTRA
+          QMOMDN(xymoms)= QMOMDN(xymoms)+ QMOM(xymoms,L)*FENTRA
           DSMR(L)=DSMR(L)-EDRAFT*SENV
-CC        DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
+          DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
           DQMR(L)=DQMR(L)-EDRAFT*QENV
-CC        DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
+          DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
           DMR(L)=DMR(L)-EDRAFT
 #ifdef TRACERS_ON
           Tenv(1:NTX)=tm1(l,1:NTX)/airm(l)
@@ -1033,13 +1036,13 @@ CC        DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
         ELSE  ! occasionally detrain into environment if ddraft too big
           FENTRA=EDRAFT/DDRUP  ! < 0
           DSM(L)=DSM(L)-FENTRA*SMDN
-CC        DSMOM(xymoms,L)=DSMOM(xymoms,L)-SMOMDN(xymoms)*FENTRA
+          DSMOM(xymoms,L)=DSMOM(xymoms,L)-SMOMDN(xymoms)*FENTRA
           DQM(L)=DQM(L)-FENTRA*QMDN
-CC        DQMOM(xymoms,L)=DQMOM(xymoms,L)-QMOMDN(xymoms)*FENTRA
+          DQMOM(xymoms,L)=DQMOM(xymoms,L)-QMOMDN(xymoms)*FENTRA
           SMDN=SMDN*(1+FENTRA)
           QMDN=QMDN*(1+FENTRA)
-CC        SMOMDN(xymoms)= SMOMDN(xymoms)*(1+FENTRA)
-CC        QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
+          SMOMDN(xymoms)= SMOMDN(xymoms)*(1+FENTRA)
+          QMOMDN(xymoms)= QMOMDN(xymoms)*(1+FENTRA)
           DM(L)=DM(L)-EDRAFT
 #ifdef TRACERS_ON
           DTM(L,1:NTX)=DTM(L,1:NTX)-FENTRA*TMDN(1:NTX)
@@ -1059,9 +1062,9 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       ENDIF
   346 CONTINUE
   345 DSM(LDMIN)=DSM(LDMIN)+SMDN
-CC    DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
+      DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
       DQM(LDMIN)=DQM(LDMIN)+QMDN
-CC    DQMOM(xymoms,LDMIN)=DQMOM(xymoms,LDMIN) + QMOMDN(xymoms)
+      DQMOM(xymoms,LDMIN)=DQMOM(xymoms,LDMIN) + QMOMDN(xymoms)
 #ifdef TRACERS_ON
       DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
       DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
@@ -1085,38 +1088,40 @@ C**** in opposite sense than normal (positive is down))
         CM(L) = CM(L-1) - DM(L) - DMR(L)
         SMT(L)=SM(L)    ! Save profiles for diagnostics
         QMT(L)=QM(L)
+        SMOMT(:,L)=SMOM(:,L)
+        QMOMT(:,L)=QMOM(:,L)
       END DO
       DO L=LMAX+1,LM
         CM(L) = 0.
       END DO
 C**** simple upwind scheme for momentum
       ALPHA=0.
-      ALPHAT=0.
-      ALPHAQ=0.
+CC    ALPHAT=0.
+CC    ALPHAQ=0.
       DO 380 L=LDMIN,LMAX
       CLDM=CCM(L)
       IF(L.LT.LDRAFT.AND.ETADN.GT.1d-10) CLDM=CCM(L)-DDM(L)
       IF(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
       BETA=CLDM*BYAM(L+1)
       IF(CLDM.LT.0.) BETA=CLDM*BYAM(L)
-      BETAS=BETA*SM(L+1)
-      BETAQ=BETA*QM(L+1)
-      IF (BETA.LT.0.) THEN
-        BETAS=BETA*SM(L)
-        BETAQ=BETA*QM(L)
-      ENDIF
-        FCDH=0.
-        IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
-        FCDH1=0.
-        IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-        MCFLX(L)=MCFLX(L)+CCM(L)
-        DGDSM(L)=DGDSM(L)+PLK(L)*(-ALPHAT+BETAS+DSM(L)+DSMR(L))
-     *    -FCDH-FCDH1
-        DTOTW(L)=DTOTW(L)+SLHE*(-ALPHAQ+BETAQ+DQM(L)+DQMR(L)
-     *    +COND(L))
-        DGDQM(L)=DGDQM(L)+SLHE*(-ALPHAQ+BETAQ+DQM(L)+DQMR(L))
-      SM(L)=SM(L)+(-ALPHAT+BETAS+DSM(L)+DSMR(L))/FMC1
-      QM(L)=QM(L)+(-ALPHAQ+BETAQ+DQM(L)+DQMR(L))/FMC1
+CC    BETAS=BETA*SM(L+1)
+CC    BETAQ=BETA*QM(L+1)
+CC    IF (BETA.LT.0.) THEN
+CC      BETAS=BETA*SM(L)
+CC      BETAQ=BETA*QM(L)
+CC    ENDIF
+CC      FCDH=0.
+CC      IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
+CC      FCDH1=0.
+CC      IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
+CC      MCFLX(L)=MCFLX(L)+CCM(L)
+CC      DGDSM(L)=DGDSM(L)+PLK(L)*(-ALPHAT+BETAS+DSM(L)+DSMR(L))
+CC   *    -FCDH-FCDH1
+CC      DTOTW(L)=DTOTW(L)+SLHE*(-ALPHAQ+BETAQ+DQM(L)+DQMR(L)
+CC   *    +COND(L))
+CC      DGDQM(L)=DGDQM(L)+SLHE*(-ALPHAQ+BETAQ+DQM(L)+DQMR(L))
+CC    SM(L)=SM(L)+(-ALPHAT+BETAS+DSM(L)+DSMR(L))/FMC1
+CC    QM(L)=QM(L)+(-ALPHAQ+BETAQ+DQM(L)+DQMR(L))/FMC1
       BETAU=BETA
       ALPHAU=ALPHA
       IF(BETA.LT.0.) BETAU=0.
@@ -1127,42 +1132,46 @@ C**** simple upwind scheme for momentum
        VM(K,L)=
      *    VM(K,L)+RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))/FMC1
       ENDDO
-      ALPHAT=BETAS
-      ALPHAQ=BETAQ
+CC    ALPHAT=BETAS
+CC    ALPHAQ=BETAQ
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
-CC    SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +  DSMR(LDMIN:LMAX)
-CC    SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) + DSMOMR(:,LDMIN:LMAX)
+      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +  DSMR(LDMIN:LMAX)
+      SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) + DSMOMR(:,LDMIN:LMAX)
 C****
       nsub = lmax-ldmin+1
       cmneg(ldmin:lmax)=-cm(ldmin:lmax)
       cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
-CC    call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
-CC   &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierrt,lerrt)
-CC    SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)
-CC    SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) +  DSMOM(:,LDMIN:LMAX)
-CC    ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
+      call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
+     &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierrt,lerrt)
+      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)
+      SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) +  DSMOM(:,LDMIN:LMAX)
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
 C****
       ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
-CC    QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)
-CC    QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) + DQMOMR(:,LDMIN:LMAX)
-CC    call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
-CC   &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
-CC    QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)
-CC    QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) +  DQMOM(:,LDMIN:LMAX)
-CC    ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)
+      QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) + DQMOMR(:,LDMIN:LMAX)
+      call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
+     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)
+      QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) +  DQMOM(:,LDMIN:LMAX)
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
 C**** diagnostics
-CC    DO L=LDMIN,LMAX
-CC      FCDH=0.
-CC      IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
-CC      FCDH1=0.
-CC      IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-CC      MCFLX(L)=MCFLX(L)+CCM(L)
-CC      DGDSM(L)=DGDSM(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
-CC      DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))
-CC      DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
-CC    END DO
+      DO L=LDMIN,LMAX
+        FCDH=0.
+        IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
+        FCDH1=0.
+        IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
+        MCFLX(L)=MCFLX(L)+CCM(L)
+        DGDSM(L)=DGDSM(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
+        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))
+        DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
+        SM(L)=SMT(L)+(SM(L)-SMT(L))/FMC1
+        SMOM(:,L)=SMOMT(:,L)+(SMOM(:,L)-SMOMT(:,L))/FMC1
+        QM(L)=QMT(L)+(QM(L)-QMT(L))/FMC1
+        QMOM(:,L)=QMOMT(:,L)+(QMOM(:,L)-QMOMT(:,L))/FMC1
+      END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
@@ -1265,7 +1274,7 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
      *     (PLK(L)*SM(L))
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)/FMC1
-CC    SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
+      SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM/FMC1
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
@@ -1274,7 +1283,7 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       IF(FPRCP.eq.1.) THEN      !total evaporation
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
-          TRPRCP(N) = 0.D0
+          TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
 C**** estimate effective humidity
@@ -1741,7 +1750,7 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         PREP(L)=WMX(L)*CM
         IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN ! check snowing pdf
           PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLDSS*TL(L)*RGAS+teeny)
-          PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-1d2,(TL(L)-TF)/COEFT)))
+          PRATM=MIN(PRATM,1.d0)*(1.d0-EXP(MAX(-1.d2,(TL(L)-TF)/COEFT)))
           IF(PRATM.GT.RNDSSL(3,L)) LHP(L)=LHS
         END IF
       ELSE
@@ -1887,7 +1896,7 @@ C**** Only Calculate fractional changes of Q to W
       END IF
       QL(L)=QNEW
 C**** adjust gradients down if Q decreases
-CC    QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
+      QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       WMX(L)=WMNEW
       IF(WMX(L).LT.0.) THEN          ! computational unstable
 C       WRITE(6,996) L,WMX(L),TL(L),QL(L)
@@ -1972,7 +1981,7 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       WMX(L)=WMX(L)+DQSUM*FSSL(L)
       FCOND=DQSUM/QNEW
 C**** adjust gradients down if Q decreases
-CC    QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
+      QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       IF(BELOW_CLOUD) THEN
@@ -2146,11 +2155,11 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
 C**** need to scale SM moments for conservation purposes
 C       SMOM(:,L)=SMOM(:,L)*PLK(L)
 C       SMOM(:,L+1)=SMOM(:,L+1)*PLK(L+1)
-CC      CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+        CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
 C       SMOM(:,L)=SMOM(:,L)/PLK(L)
 C       SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
 C****
-CC      CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+        CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
 #ifdef TRACERS_ON
         DO N=1,NTX
           CALL CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
