@@ -3023,6 +3023,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL RDLAND
       CALL RDDRYCF 
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call cheminit ! **** Initialize the chemistry ****
+#endif
 #endif
       return
       end subroutine init_tracer
@@ -3579,10 +3582,6 @@ C**** Tracer specific call for CH4
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-C**** If this is the frist time through, initialize the chemistry:
-
-      if(iact.eq.0) call cheminit
-C
 C**** Tracer specific calls to read 2D and 3D sources:
       do n=1,ntm
         select case (trname(n))
