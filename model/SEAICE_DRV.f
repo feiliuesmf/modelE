@@ -49,6 +49,9 @@ C****
       POICE=    RSI(I,J) *(1.-FLAND(I,J))
       RUNPSI(I,J)=0
       SRUNPSI(I,J)=0
+#ifdef TRACERS_WATER
+      TRUNPSI(:,I,J)=0
+#endif
       IF (POICE.gt.0) THEN
 
         IF (FOCEAN(I,J).gt.0) THEN
