@@ -45,7 +45,7 @@ C**** Interface to PBL
      *     ,tr_evap_max
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,dep_vel
+     *     ,dep_vel,gs_vel
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux, ss1_flux, ss2_flux
@@ -79,7 +79,7 @@ C**** Interface to PBL
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
-      USE tracers_DRYDEP, only : dtr_dd
+      use tracers_DRYDEP, only : dtr_dd
 #endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf,taijs,ijts_isrc
      *     ,tajls,jls_source,jls_isrc
@@ -87,7 +87,7 @@ C**** Interface to PBL
      *     ,tij_evap,tij_grnd
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #endif
       USE SOIL_DRV, only: earth
@@ -125,7 +125,7 @@ c
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
-      real*8 tdryd, tdd, td1
+      real*8 tdryd, tdd, td1, rtsdt
 #endif
 #endif
 
@@ -225,7 +225,7 @@ C****
 !$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,frac
 #endif
 #if defined(TRACERS_DRYDEP)
-!$OMP*  ,tdryd,tdd,td1
+!$OMP*  ,tdryd,tdd,td1,rtsdt
 #endif
 #endif
 !$OMP*  )
@@ -719,10 +719,11 @@ C**** Limit evaporation if lake mass is at minimum
 #endif
 #ifdef TRACERS_DRYDEP
 C****
-C**** Calculate Tracer Dry Deposition
+C**** Calculate Tracer Dry Deposition (including gravitational settling)
 C****
         if(dodrydep(n))then
-          tdryd=-rhosrf*dep_vel(n)*trs(nx)*dtsurf      ! kg/m2
+          rtsdt=rhosrf*trs(nx)*dtsurf 
+          tdryd=-rtsdt*(dep_vel(n)+gs_vel(n))          ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
@@ -736,9 +737,13 @@ C****
           end if
 ! trdrydep downward flux by surface type (kg/m^2)
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
-          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
-     &       tdryd*ptype
-          dtr_dd(j,n)=dtr_dd(j,n)+tdd
+! diagnose turbulent and settling fluxes separately
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
+     &         ptype*rtsdt*dep_vel(n)
+          taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
+     &         ptype*rtsdt* gs_vel(n)
+          dtr_dd(j,n,1)=dtr_dd(j,n,1)-ptype*rtsdt*dxyp(j)*dep_vel(n)
+          dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
 #endif
 #ifdef TRACERS_WATER
@@ -1036,8 +1041,11 @@ C****
 #ifdef TRACERS_DRYDEP
 C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm
-        if(dodrydep(n).and.itcon_dd(n).gt.0)
-     *       call diagtcb(dtr_dd(1,n),itcon_dd(n),n)
+        if(dodrydep(n)) then
+          call diagtcb(dtr_dd(1,n,1),itcon_dd(n,1),n)  ! turb dep
+          if (itcon_dd(n,2).gt.0)
+     *         call diagtcb(dtr_dd(1,n,2),itcon_dd(n,2),n) ! grav sett
+        end if
       end do
 #endif
 

@@ -1227,7 +1227,7 @@ C****
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
      *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp
 #ifdef TRACERS_WATER
-     *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer,trgrdep
+     *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
 #endif
@@ -1325,7 +1325,7 @@ C**** calculate kg/m^2, J/m^2 from saved variables
 #ifdef TRACERS_WATER
         TRLAKEL(:,:)=TRLAKE(:,:,I,J)/(FLAKE(I,J)*DXYP(J))
         TRUN0(:)=TRUNOSI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,1,I,J)-trgrdep(:,i,j)
+        TREVAP(:)=TREVAPOR(:,1,I,J)
 #ifdef TRACERS_DRYDEP
      *       -trdrydep(:,1,i,j)
 #endif

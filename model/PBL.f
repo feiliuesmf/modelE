@@ -12,7 +12,7 @@
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
      &                     ,by3,shv,sha,shw,lhe,stbo,rhow,rgas
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trname
+      USE TRACER_COM, only : ntm,trname,trradius
 #ifdef TRACERS_WATER
      &     ,tr_wd_TYPE, nWATER
 #endif
@@ -62,7 +62,7 @@
       logical :: pole
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-
+      real*8 :: qsat
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
@@ -127,7 +127,7 @@ CCC      real*8 :: bgrid
      *     tr_evap_max,
 #endif
 #if defined(TRACERS_DRYDEP)
-     *     dep_vel,
+     *     dep_vel,gs_vel,
 #endif
 #if defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
@@ -213,7 +213,7 @@ c  internals:
       integer, intent(in) :: ntx
       integer, intent(in), dimension(ntm) :: ntix
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1
+      real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1,rh1
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
@@ -223,7 +223,8 @@ c  internals:
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
-      real*8 , intent(out), dimension(ntm) :: dep_vel
+      real*8 , intent(out), dimension(ntm) :: dep_vel,gs_vel
+      real*8 vgs
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, intent(out) :: DMS_flux, ss1_flux, ss2_flux
@@ -373,8 +374,9 @@ C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
       ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
       tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
-      rhosrf=100.*psurf/(rgas*t(1))  ! surface air density 
+      rhosrf=100.*psurf/(rgas*t(1)) ! surface air density 
       byrho=1d0/rhosrf
+      rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
 
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
@@ -407,9 +409,17 @@ C**** get fractionation for isotopes
 #endif
 
 #ifdef TRACERS_DRYDEP
-C****   3) dry deposited tracers
+C****   3) dry deposited tracers (inlcuding gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
-        if(dodrydep(ntix(itr))) trsf=trsfac(itr)*dep_vel(ntix(itr))
+        if(dodrydep(ntix(itr))) then
+C****   get setling velocity  
+          if (trradius(ntix(itr)).gt.0.) then
+            gs_vel(ntix(itr))=vgs(rhosrf,rh1,ntix(itr))
+          else
+            gs_vel(ntix(itr))=0.
+          end if
+          trsf=trsfac(itr)*(dep_vel(ntix(itr))+gs_vel(ntix(itr)))
+        end if
 #endif
 
 C****   4) tracers with interactive sources

@@ -91,7 +91,7 @@ c****
      *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
@@ -130,7 +130,7 @@ c****
      *     ,tr_evap_max
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,dep_vel
+     *     ,dep_vel,gs_vel
 #endif
 #endif
       use snow_drvm, only : snow_cover_same_as_rad
@@ -162,7 +162,7 @@ ccc new vars
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
-      real*8 tdryd, tdd, td1
+      real*8 tdryd, tdd, td1, rtsdt
 #endif
 #endif
       real*8 qsat
@@ -257,7 +257,7 @@ C**** halo update u and v for distributed parallelization
 !$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap
 #endif
 #if defined(TRACERS_DRYDEP)
-!$OMP*   ,tdryd,tdd,td1
+!$OMP*   ,tdryd,tdd,td1,rtsdt
 #endif
 #endif
 !$OMP*   )
@@ -688,7 +688,8 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
-          tdryd=-rhosrf*dep_vel(n)*trs(nx)*dtsurf      ! kg/m2
+          rtsdt=rhosrf*trs(nx)*dtsurf 
+          tdryd=-rtsdt*(dep_vel(n)+gs_vel(n))          ! kg/m2
           tdd = tdryd*dxyp(j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
@@ -702,9 +703,13 @@ ccc accumulate tracer dry deposition
           end if
 ! trdrydep downward flux by surface type (kg/m^2)
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
-          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
-     &      tdryd*ptype
-          dtr_dd(j,n)=dtr_dd(j,n)+tdd
+! diagnose turbulent and settling fluxes separately
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
+     &         ptype*rtsdt*dep_vel(n)
+          taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
+     &         ptype*rtsdt* gs_vel(n)
+          dtr_dd(j,n,1)=dtr_dd(j,n,1)-ptype*rtsdt*dxyp(j)*dep_vel(n)
+          dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
       end do
 #endif

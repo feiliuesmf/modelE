@@ -345,6 +345,15 @@ C**** Tracers dry deposition flux.
         units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
       end if
+      k = k+1
+      tij_gsdep = k
+      if (trradius(n).gt.0) then
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_gs_dep'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Gravitional Settling'
+        units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
+      end if
 #endif
 
       if (k .gt. ktaij) then
@@ -587,108 +596,57 @@ C****
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers 
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : visc_air,grav,by3,pi,gasc,avog,rt2,deltx
-     *     ,visc_air_kin,mair,rgas
+      USE CONSTANT, only : grav,deltx,lhe,rgas
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
       USE GEOM, only : imaxj,bydxyp
-#ifdef TRACERS_DUST
-     &     ,dxyp
-#endif
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
-      USE DYNAMICS, only : gz
-     * ,pmid,pk
-      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
+      USE DYNAMICS, only : gz,pmid,pk
+      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname
-      USE CLOUDS_COM, only: rhsav
-      USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
-#ifdef TRACERS_DRYDEP
-     *     ,taijn,tij_drydep
-#endif
-#ifdef TRACERS_DUST
-     &     ,taijs,ijts_grav
-#endif
-      USE FLUXES, only : trgrdep
+      USE TRACER_DIAG_COM, only : tajls,jls_grav
       IMPLICIT NONE
-      real*8 :: stokevdt = 0.
+      real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
+     *     ,vgs
       real*8, dimension(im,jm,lm) :: told
-      real*8 fgrfluxd,fgrfluxu
       integer n,najl,i,j,l
-      real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
-      real*8  wmf,PRESS,AIRDEN,FRPATH
-      real*8, parameter :: DAIR=3.65D-10 !m diameter of air molecule
-#ifdef TRACERS_AEROSOLS_Koch
-      real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
-     *     c4=-1.424d0
-      real*8 r_h,den_h,rh
-#endif
-#ifdef TRACERS_DUST
-      INTEGER :: naij
-#endif
 
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Gravitational settling 
-!$OMP  PARALLEL DO PRIVATE (L,I,J,PRESS,AIRDEN,stokevdt,frpath,wmf,
-!$OMP* fgrfluxd,fgrfluxu
-#ifdef TRACERS_AEROSOLS_Koch
-!$OMP* ,rh,r_h,den_h
-#endif
-!$OMP* )
-          do l=1,lm
+!$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
+!$OMP* fgrfluxd,fluxd,fluxu)
           do j=1,jm
           do i=1,imaxj(j)
-            told(i,j,l)=trm(i,j,l,n)
-C**** air density
-            PRESS=pmid(l,i,j)*100.d0 !Pa              
-            AIRDEN=PRESS/(rgas*pk(l,i,j)*t(i,j,l)*(1.+q(i,j,l)*deltx)) 
-C**** calculate stoke's velocity 
-            stokevdt=dtsrc*2.*grav*trpdens(n)*trradius(n)**2/(9.
-     *           *visc_air_kin*airden)
+            fluxd=0.
+            do l=lm,1,-1        ! loop down
+              told(i,j,l)=trm(i,j,l,n)
+C**** air density + relative humidity (wrt water)
+              press=pmid(l,i,j)
+              temp=pk(l,i,j)*t(i,j,l)
+              airden=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx)) 
+              rh=q(i,j,l)/qsat(temp,lhe,press)
 
-#ifdef TRACERS_AEROSOLS_Koch
-c need to hydrate the sea salt before determining settling	    
-            if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
-     *           then
-              rh=max(0.01d0,min(rhsav(l,i,j),0.99d0))
-c hydrated radius
-              r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
-     *             + trradius(n)**3)**by3
-c hydrated density
-              den_h=((r_h**3 - trradius(n)**3)*1000.d0 
-     *             + trradius(n)**3*trpdens(n))/r_h**3
-              stokevdt=dtsrc*2.*grav*den_h*r_h**2/(9.*visc_air_kin
-     *             *airden)
-            end if
-#endif
-C**** slip correction factor
-c wmf is the additional velocity if the particle size is small compared
-c   to the mean free path of the air; important in the stratosphere  
-            FRPATH=1d-3*mair/(PI*rt2*avog*AIRDEN*(DAIR)**2.)
-            wmf=FRPATH/trradius(n)*(s1+s2*exp(-s3*trradius(n)/FRPATH))
+C**** calculate stoke's velocity (including possible hydration effects
+C**** and slip correction factor)
+              stokevdt=dtsrc*vgs(airden,rh,n)           
+
+              fluxu=fluxd       ! from previous level
+
 C**** Calculate height differences using geopotential
-            if (l.eq.1) then   ! layer 1 calc
-C**** This should probably operate in in conjunction with dry dep...
-              fgrfluxd=(1.d0+wmf)*stokevdt*grav/(gz(i,j,l)-zatmo(i,j))
-              trgrdep(n,i,j)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
-#ifdef TRACERS_DRYDEP
-C**** maybe this should be a separate diag (or not be done at all?)
-              taijn(i,j,tij_drydep,n) = taijn(i,j,tij_drydep,n) +
-     *             trgrdep(n,i,j)
-#endif
-            else               ! above layer 1
-              fgrfluxd=(1.d0+wmf)*stokevdt*grav
-     *             /(gz(i,j,l)-gz(i,j,l-1))
-            end if
-            if (l.lt.lm) then   ! below top layer
-              fgrfluxu=(1.d0+wmf)*stokevdt*grav
-     *             /(gz(i,j,l+1)-gz(i,j,l))
-              trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
-     *                   + trm(i,j,l+1,n)*    fgrfluxu
-            else                ! top layer
-              trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
-            end if
-            trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
-          end do
+              if (l.eq.1) then  ! layer 1 
+                fgrfluxd=0.     ! calc now done in PBL
+c               fgrfluxd=stokevdt*grav/(gz(i,j,l)-zatmo(i,j))
+c#ifdef TRACERS_DRYDEP
+c               taijn(i,j,tij_gsdep,n) = taijn(i,j,tij_gsdep,n) +
+c     *             fgrfluxd*trm(i,j,l,n)*bydxyp(j)
+c#endif
+              else              ! above layer 1
+                fgrfluxd=stokevdt*grav/(gz(i,j,l)-gz(i,j,l-1))
+              end if
+              fluxd = trm(i,j,l,n)*fgrfluxd ! total flux down
+              trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu
+              trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
+            end do
           end do
           end do
 !$OMP END PARALLEL DO
@@ -700,19 +658,57 @@ C**** maybe this should be a separate diag (or not be done at all?)
      *           -told(1:imaxj(j),j,l))
           enddo 
           enddo
-#ifdef TRACERS_DUST
-          naij=ijts_grav(n)
-          DO j=1,Jm
-            taijs(:,j,naij)=taijs(:,j,naij)+trgrdep(n,:,j)*dxyp(j)
-          END DO
-#endif
-          call DIAGTCA(itcon_grav(n),n)
         end if
       end do
 C****
       return
       end subroutine trgrav
 
+      REAL*8 FUNCTION vgs(airden,rh1,n)
+!@sum vgs returns settling velocity for tracers (m/s)
+!@auth Gavin Schmidt/Reha Cakmur
+      USE CONSTANT, only : visc_air,by3,pi,gasc,avog,rt2,deltx
+     *     ,mair,grav
+      USE MODEL_COM, only : itime
+      USE TRACER_COM, only : itime_tr0,trradius,trpdens,trname
+      IMPLICIT NONE
+      real*8, parameter :: s1=1.247d0, s2=0.4d0, s3=1.1d0
+      real*8, intent(in) ::  airden,rh1
+      real*8  wmf,frpath
+      real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
+      integer, intent(in) :: n
+#ifdef TRACERS_AEROSOLS_Koch
+      real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
+     *     c4=-1.424d0
+      real*8 r_h,den_h,rh
+#endif
+
+C**** calculate stoke's velocity 
+      vgs=2.*grav*trpdens(n)*trradius(n)**2/(9.*visc_air)
+
+#ifdef TRACERS_AEROSOLS_Koch
+c need to hydrate the sea salt before determining settling	    
+      if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
+     *     then
+        rh=max(0.01d0,min(rh1,0.99d0))
+c hydrated radius
+        r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
+     *       + trradius(n)**3)**by3
+c hydrated density
+        den_h=((r_h**3 - trradius(n)**3)*1000.d0 
+     *       + trradius(n)**3*trpdens(n))/r_h**3
+        vgs=2.*grav*den_h*r_h**2/(9.*visc_air)
+      end if
+#endif
+C**** slip correction factor
+c wmf is the additional velocity if the particle size is small compared
+c   to the mean free path of the air; important in the stratosphere  
+      frpath=1d-3*mair/(pi*rt2*avog*airden*(dair)**2.)
+      wmf=frpath/trradius(n)*(s1+s2*exp(-s3*trradius(n)/frpath))
+      vgs=(1.d0+wmf)*vgs
+C****
+      return
+      end function vgs
 
       SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data,
      *  frac,imon)

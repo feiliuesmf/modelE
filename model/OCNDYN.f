@@ -2483,7 +2483,7 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,flowo,eflowo,srunosi,apress,melti,emelti,smelti
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-     *     ,trflowo,trevapor,trunosi,trmelti,trgrdep
+     *     ,trflowo,trevapor,trunosi,trmelti
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
 #endif
@@ -2531,7 +2531,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
         TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)-
-     *       RATOC(J)*TREVAPOR(:,1,I,J) + RATOC(J)*trgrdep(:,i,j)
+     *       RATOC(J)*TREVAPOR(:,1,I,J) 
 #ifdef TRACERS_DRYDEP
      *       + RATOC(J)*trdrydep(:,1,i,j)
 #endif

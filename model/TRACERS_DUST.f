@@ -313,12 +313,12 @@ c**** Wet Deposition
       USE CONSTANT,ONLY : visc_air,grav
       USE resolution,ONLY : Im,Jm,Lm
       USE MODEL_COM,ONLY : Dtsrc
-      USE geom, ONLY : dxyp
+      USE geom, ONLY : dxyp,bydxyp
       USE qusdef,ONLY : zmoms
-      USE fluxes,ONLY : tr3Dsource,trgrdep
+      USE fluxes,ONLY : tr3Dsource
       USE TRACER_COM,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
-      USE TRACER_DIAG_COM, only : ijts_grav,jls_grav,jls_3Dsource,taijs,
-     &     tajls
+      USE TRACER_DIAG_COM, only : jls_grav,jls_3Dsource,taijn,
+     &     tajls,tij_gsdep
       USE tracers_dust_com, only: zld,dradius,nDustGrav3Djl
 
       IMPLICIT NONE
@@ -339,8 +339,15 @@ c     default case
         n1=n_clay+n-1
         DO j=1,Jm
           stokefac1=stokevdt(n)/zld(1)*Dtsrc
-          work(:,j,n)=stokefac1*trm(:,j,1,n1)
-          trgrdep(n1,:,j)=work(:,j,n)/dxyp(j)
+          work(:,j,n)=stokefac1*trm(:,j,1,n1)*bydxyp(j)
+c          trdrydep(n1,1,:,j)=trdrydep(n1,1,:,j)+
+c     *         (1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))*work(:,j,n)
+c          trdrydep(n1,2,:,j)=trdrydep(n1,2,:,j)+
+c     *         RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))*work(:,j,n)
+c          trdrydep(n1,3,:,j)=trdrydep(n1,3,:,j)+
+c     *         FLICE(I,J)*work(:,j,n)
+c          trdrydep(n1,4,:,j)=trdrydep(n1,3,:,j)+
+c     *         fearth(i,j)*work(:,j,n)
         END DO
         DO l=1,Lm-1
           stokefac1=stokevdt(n)/zld(l)
@@ -362,11 +369,10 @@ c     default case
 
       DO n=1,Ntm_dust
         n1=n_clay+n-1
-        naij=ijts_grav(n1)
         najl=jls_grav(n1)
-c        WRITE(*,*) 'naij,najl:',naij,najl
-        taijs(:,:,naij)=taijs(:,:,naij)+work(:,:,n)
-c        WRITE(*,*) 'n1,taijs(:,:,naij):',n1,taijs(:,:,naij)
+c        WRITE(*,*) 'najl:',najl
+        taijn(:,:,tij_gsdep ,n1)=taijn(:,:,tij_gsdep ,n1) +
+     &         work(:,:,n)
         DO l=1,Lm
           DO j=1,Jm
             tajls(j,l,najl)=tajls(j,l,najl)-

@@ -57,13 +57,13 @@ C**** TAIJN
 !@param KTAIJ number of 3D diagnostics for each tracer
 #ifdef TRACERS_WATER
 #ifdef TRACERS_DRYDEP
-      integer, parameter :: ktaij=12
+      integer, parameter :: ktaij=13
 #else
       integer, parameter :: ktaij=11
 #endif
 #else
 #ifdef TRACERS_DRYDEP
-      integer, parameter :: ktaij=4
+      integer, parameter :: ktaij=5
 #else
       integer, parameter :: ktaij=3
 #endif
@@ -76,7 +76,7 @@ C**** TAIJN
      *     ,tij_lk2,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
-      integer tij_drydep
+      integer tij_drydep,tij_gsdep
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, dimension(im,jm,ktaij,ntm) :: taijn
@@ -94,10 +94,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef regional_Ox_tracers
       INTEGER ijs_Oxloss, ijs_Oxprod
 #endif
-#endif
-
-#ifdef TRACERS_DUST
-      INTEGER :: ijts_grav(Ntm)
 #endif
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
@@ -256,15 +252,13 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(nt3Dsrcmax,ntmxcon) :: itcon_3Dsrc
 !@var itcon_decay Index array for decay conservation diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_decay
-!@var itcon_grav Index array for gravitational settling conserv. diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_grav
 !@var itcon_mc Index array for moist convection conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_mc
-!@var itcon_grav Index array for large-scale condensation conserv. diags
+!@var itcon_ss Index array for large-scale condensation conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_ss
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_dd
+      INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
 #endif
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags

@@ -1118,8 +1118,10 @@ C****
         irange(k) = ir_pct
         iacc(k) = ia_src
         iord(k) = 1
-        aij1(:,:,k) = 100.*taijn(:,:,tij_drydep,n)
+        aij1(:,:,k) = 100.*(taijn(:,:,tij_drydep,n)+
+     *       taijn(:,:,tij_gsdep,n))
         aij2(:,:,k) = taijn(:,:,tij_prec,n)+taijn(:,:,tij_drydep,n)
+     *       +taijn(:,:,tij_gsdep,n)
         scale(k) = 1.
       end if
 #endif

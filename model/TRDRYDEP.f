@@ -80,7 +80,7 @@ c
      &                      NVEGTYPE= 74
       REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
       REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
-      REAL*8,  DIMENSION(JM,ntm)          :: dtr_dd
+      REAL*8,  DIMENSION(JM,ntm,2)        :: dtr_dd
       INTEGER, DIMENSION(IM,JM)           :: IJREG,IREG
       INTEGER, DIMENSION(IM,JM,NTYPE)     :: IJLAND,IJUSE
       INTEGER, DIMENSION(NVEGTYPE)        :: IDEP
