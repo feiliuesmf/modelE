@@ -490,7 +490,7 @@ C**** read in named rivers (if any)
       READ (iu_RVR,*,END=10)
       IF (TITLEI.eq."Named River Mouths:") THEN
         DO I=1,NRVRMX,5
-          READ(iu_RVR,'(5A9)') NAMERVR(I:MIN(NRVRMX,I+4))
+          READ(iu_RVR,'(5(A8,1X))') NAMERVR(I:MIN(NRVRMX,I+4))
         END DO
       END IF
  10   call closeunit (iu_RVR)
