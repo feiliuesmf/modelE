@@ -692,6 +692,11 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFST,TNFST
       INTEGER N
+#ifdef TRACERS_SPECIAL_Shindell
+!@var sv_SRNFLB,sv_TRNFLB for saving SRNFLB,TRNFLB to use in diag loop
+      REAL*8, DIMENSION(    IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     sv_SRNFLB,sv_TRNFLB
+#endif
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
@@ -1268,6 +1273,10 @@ C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
+#ifdef TRACERS_SPECIAL_Shindell
+      sv_SRNFLB(I,J)=SRNFLB(LTROPO(I,J)) ! save these for 
+      sv_TRNFLB(I,J)=TRNFLB(LTROPO(I,J)) ! the diagnostics
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
          do l=1,lm
           taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
@@ -1559,10 +1568,10 @@ c longwave forcing
          n=n_Ox
 c shortwave forcing
          if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *    ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SRNFLB(LTROPO(I,J)))*CSZ2
+     *    ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-sv_SRNFLB(I,J))*CSZ2
 c longwave forcing
          if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *    ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TRNFLB(LTROPO(I,J)))
+     *    ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-sv_TRNFLB(I,J))
 #endif
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
