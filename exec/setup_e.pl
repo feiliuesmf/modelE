@@ -25,6 +25,9 @@ $GCMSEARCHPATH="/u/cmrun";
 $MAILTO="";
 $UMASK=002;
 $MIN_STACK=0;
+$omp=0;
+$mpi=0;
+$nproc=1;
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -54,12 +57,32 @@ print "SAVEDISK = $SAVEDISK\n";
 print "MAILTO = $MAILTO\n";
 printf "UMASK = %03lo\n", $UMASK;
 
+while ($_ = $ARGV[0], /^-/) {
+    shift;
+    last if /^--$/;
+    if (/^-omp/) { $omp = 1; $nproc = shift; next;}
+    if (/^-mpi/) { $mpi = 1; $nproc = shift; next;}
+    print "setup: unknown option $_ \n"; exit 1;
+}
+
+if ( $omp && $mpi ) {
+    print "you can't use -omp and -mpi at the same time\n";
+    exit 1;
+}
+
+if ( $nproc !~ /^\d+$/ || $nproc < 1 ) {
+    print "number of processors should be >= 1\n";
+    print "you have: $nproc\n";
+    exit 1;
+}
+
 if ( $#ARGV != 0 ) { 
     print "This script is not supposed to be run outside of Makefile\n";
-    print "Inside the Makefile it is called: setup_e.pl runID\n";
+    print "Inside the Makefile it is called:";
+    print "setup_e.pl {-omp|-mpi} num_proc runID\n";
     print "$#ARGV\n";
     exit 1; 
-    }
+}
 
 $runID = shift;
 $rfile = "$runID.R";
@@ -217,8 +240,24 @@ print RUNTIMEOPTS <<EOF;
       echo "current stack: `ulimit -s`"
     fi
 EOF
-
 close RUNTIMEOPTS;
+
+## Architecture-dependent commands to start openMP/MPI
+$omp_run = '';
+$mpi_run = 'echo no support for MPI, will not run ';
+if ( $uname =~ /IRIX64/ ) {
+    $omp_run = "export MP_SET_NUMTHREADS=\$NP; ";
+    $mpi_run = "mpirun -np \$NP ";
+} elsif ( $uname =~ /OSF1/ ) {
+    $omp_run = "export MP_SET_NUMTHREADS=\$NP; ";
+    $mpi_run = "prun -s -n \$NP ";
+} elsif ( $uname =~ /AIX/ ) {
+    $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check
+} elsif ( $uname =~ /Linux/ ) {
+     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
+}
+
+
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 
 open I, ">I" or die "can't open 'I' for writing\n";
@@ -257,6 +296,15 @@ if ( ! defined $pid ) {
     print "Fork failed. Continuing in foreground.\n";
 }
 
+if ( $mpi ) {
+    $run_command = $mpi_run;
+} else {
+    $run_command = $omp_run; # serial also fits here
+}
+
+## If on some machines MPI can't be used interactively, a hack
+## can be intruduced here to run 1st hour in serial mode
+
 ## Running the model
 print <<`EOC`;
     umask $umask_str
@@ -264,7 +312,8 @@ print <<`EOC`;
     . ./runtime_opts
     rm -f error_message 2> /dev/null
     ./"$runID"ln
-    ./"$runID".exe -i I >> ${runID}.PRT
+    NP=$nproc
+    $run_command ./"$runID".exe -i I >> ${runID}.PRT
     rc=\$?
     rm -f AIC GIC OIC
     ./"$runID"uln
@@ -289,6 +338,8 @@ print RUNID <<EOF;
     PRTFILE=${runID}.PRT
     IFILE="I"
     RESTART=0
+    NP="\$MP_SET_NUMTHREADS"
+    if [ "\$NP"x = x ] ; then NP=1; fi
     while [ \$\# -ge 1 ] ; do
       OPT=\$1 ; shift
       case \$OPT in
@@ -304,9 +355,12 @@ print RUNID <<EOF;
         -r)
             RESTART=1
             ;;
+        -np)
+            NP="\$1" ; shift
+            ;;
          *)
-            echo "Wrong option: \$OPT"
-            exit 1
+            echo "Warning: wrong option ignored: \$OPT"
+            ;;
       esac
     done
     umask $umask_str
@@ -316,7 +370,7 @@ print RUNID <<EOF;
     rm -f error_message 2> /dev/null
     . ./runtime_opts
     ./${runID}ln
-    ./${runID}.exe -i ./\$IFILE > \$PRTFILE
+    $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
     rc=\$?
     ./${runID}uln
     rm -f lock

@@ -24,6 +24,9 @@ endif
 
 # SETUP = $(SCRIPTS_DIR)/setup_e
 
+#default number of processors for setup
+NPROC = 1
+
 RUNSRC = E1M20
 
 ALIAS_LIST = CMPE001 qc
@@ -88,7 +91,15 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)          ---------'
 	@echo '--------------------------------------------------------------'
+ifeq ($(MP),YES)
+	@$(SETUP) -omp $(NPROC) $(RUN)
+else
+ifeq ($(MPI),YES)
+	@$(SETUP) -mpi $(NPROC) $(RUN)
+else
 	@$(SETUP) $(RUN)
+endif
+endif
 
 $(SETUP_GFDL):
 	$(SCRIPTS_DIR)/create_setup_gfdl

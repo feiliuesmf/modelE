@@ -4,7 +4,7 @@
 
 .PHONY: FORCE
 #VPATH = $(MODULES_CMPLR_OPT)
-VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
+#VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########
 
 # EXTRA_FFLAGS specifies some extra flags you want to pass 
@@ -306,6 +306,11 @@ endif
 endif
 
 # end of machine - specific options
+
+ifeq ($(ESMF),YES)
+CPPFLAGS += -DUSE_ESMF
+LIBS += -lesmf -lmpi
+endif
 
 #
 # Check for extra options specified in modelErc

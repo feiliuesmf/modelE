@@ -234,12 +234,12 @@ gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
 	if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
-
+# I think the following target is not used any more (moved to ../decks)
 # Setup the gcm
-setup:  $(BIN_DIR)/$(RUN).exe
-	echo '---------        Starting setup for $(RUN)         ---------'
-	echo '--------------------------------------------------------------'
-	$(SETUP) $(RUN) $(NPES)
+#setup:  $(BIN_DIR)/$(RUN).exe
+#	echo '---------        Starting setup for $(RUN)         ---------'
+#	echo '--------------------------------------------------------------'
+#	$(SETUP) $(RUN) $(NPES)
 
 # Mkexe the gcm
 exe:	$(BIN_DIR)/$(RUN).exe
