@@ -172,7 +172,7 @@ C**** miscellaneous tuning parameters
 
 C**** ALBVNH is set only once a day then saved
 !@var ALBVNH hemispherically varying vegetation albedo
-      real*8, dimension(NV,6,2) :: ALBVNH 
+      real*8, dimension(NV,6,2) :: ALBVNH
 
 
 !@var GZSNOW asymmetry parameter for snow over three types
@@ -2749,9 +2749,6 @@ C              ------------------------------------------------------
   230 CONTINUE
       L=NL1
   240 CONTINUE
-      DO 250 L=1,NL0
-      U0GAS(L,3)=O3DLJ(L,JLAT)
-  250 CONTINUE
 
       CALL SETO3L
 
@@ -2892,9 +2889,6 @@ C              ---------------------------------------------------------
   360 CONTINUE
   370 CONTINUE
   380 CONTINUE
-      DO 390 L=1,NL0
-      U0GAS(L,3)=O3DLJ(L,JLAT)
-  390 CONTINUE
 
       IF(KO3LON.EQ.1) CALL UPDO3L
       RETURN
