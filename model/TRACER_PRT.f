@@ -560,6 +560,8 @@ C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
+      jtpow = ntm_power(n)+jlq_power(k)
+      scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,tajln(1,1,k,n),scalet,byapo,ones,lm,2,jgrid_jlq(k))
 
