@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       SUBROUTINE chemstep(I,J,change)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
@@ -7,16 +8,27 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only       : im,jm,lm,ls1
+#ifdef regional_Ox_tracers
+     &                            ,ptop,psf,sig
+#endif
       USE DYNAMICS, only        : am, byam
       USE GEOM, only            : BYDXYP,dxyp
+#ifdef regional_Ox_tracers
+     &                            ,LAT_DG
+#endif
       USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls
 CCC  &                            ,ijs_OxL1,taijs
+#ifdef regional_Ox_tracers
+     &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss,TAJLS,TAIJS
+#endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
-     &                   n_ClOx,  n_BrOx,     n_HCl,
-     *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
-     *     n_CFC  
+     &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
+     &                   n_HOBr,n_BrONO2,n_CFC
+#ifdef regional_Ox_tracers
+     &                   ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s
+#endif  
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,mass2vol,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
@@ -39,7 +51,7 @@ C**** Local parameters and variables and arguments:
 !@var qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,C2O3prod,
 !@+   C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,RXPARprod,
 !@+   RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,total,
-!@+   rnewval,sumN,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA
+!@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA
 !@+   sumP dummy temp variables
 !@+   sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
 !@var tempiter,tempiter2 temp vars for equilibrium calcs iterations
@@ -75,10 +87,25 @@ C**** Local parameters and variables and arguments:
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
      & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,
      & RXPARprod,RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,
-     & total,rnewval,sumN,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,
+     & total,rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,
      & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod
+#ifdef regional_Ox_tracers
+!@var Oxloss Ox chemical loss for use with regional Ox tracers
+!@var Oxprod Ox chemical production for use with regional Ox tracers
+!@var nREG index of regional Ox tracer number
+!@var PRES local nominal pressure for regional Ox tracers
+      REAL*8, DIMENSION(LM) :: Oxloss, Oxprod, PRES
+      INTEGER nREG
+#endif
+!@param nlast either ntm or ntm-NregOx for chemistry loops
+      INTEGER, PARAMETER :: nlast =
+#ifdef regional_Ox_tracers
+     &                              ntm-NregOx
+#else
+     &                              ntm
+#endif
 C
 C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef Shindell_Strat_chem
@@ -404,7 +431,7 @@ c     print rxtn rates if desired (chem1prn : argument before multip is
 c     index = number of call):
 c
        if(prnrts.and.J.eq.jprn.and.I.eq.iprn)then
-        do igas=1,ntm
+        do igas=1,nlast
          total=0.
          write(6,108) ' Species: ',ay(igas)
 c
@@ -603,7 +630,7 @@ cc    Loop to calculate tracer changes
         rMAbyM(L)=AM(L,I,J)/y(nM,L)
       enddo
 
-      do igas=1,ntm
+      do igas=1,nlast
        dxbym2v=dxyp(J)/mass2vol(igas)
        do L=1,maxl
          conc2mass=rMAbyM(L)*dxbym2v
@@ -619,6 +646,18 @@ c           Oxprod(L)=prod(igas,L)*conc2mass
 c         end if
 #endif
 c
+#ifdef regional_Ox_tracers     
+         if(igas.eq.n_Ox)then
+           Oxloss(L)=dest(igas,L)*dxyp(J)*AM(L,I,J)*bymass2vol(igas)
+     *     /y(nM,L)
+           Oxprod(L)=prod(igas,L)*dxyp(J)*AM(L,I,J)*bymass2vol(igas)
+     *     /y(nM,L)
+           TAJLS(J,L,jls_Oxprod)=TAJLS(J,L,jls_Oxprod)+prod(igas,L)
+           TAJLS(J,L,jls_Oxloss)=TAJLS(J,L,jls_Oxloss)+dest(igas,L)
+           TAIJS(I,J,ijs_Oxprod)=TAIJS(I,J,ijs_Oxprod)+prod(igas,L)
+           TAIJS(I,J,ijs_Oxloss)=TAIJS(I,J,ijs_Oxloss)+prod(igas,L)
+         end if 
+#endif    
 c        Set N2O5 to equilibrium when necessary (near ground,
 c        N2O5 is thermally unstable, has a very short lifetime)
          if(igas.eq.n_N2O5.and.(-dest(igas,L).ge.y(n_N2O5,L)*0.75.or.
@@ -1040,7 +1079,7 @@ c     back to the gas phase
 C
 cc    Print chemical changes in a particular grid box if desired
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
-        do igas=1,ntm
+        do igas=1,nlast
          changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      *   bydxyp(J)*byam(lprn,I,J)
          if(y(igas,lprn).eq.0.)then
@@ -1052,7 +1091,7 @@ cc    Print chemical changes in a particular grid box if desired
      *   ,y(igas,lprn),'(',1.E9*y(igas,lprn)/y(nM,lprn),' ppbv)'
          endif
 c
-         if(igas.eq.ntm)then
+         if(igas.eq.nlast)then
 #ifdef Shindell_Strat_chem
          if(LPRN.GE.LS1)then
             write(6,155) ay(nH2O),': ',
@@ -1097,6 +1136,20 @@ c
 c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
       do igas=1,ntm
        do L=1,maxl
+#ifdef regional_Ox_tracers
+c*** calculate chemical changes for regional Ox tracers ***
+        if(igas.gt.nlast) then
+          nREG=igas-nlast
+          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
+          change(I,J,L,igas)=trm(I,J,L,igas)*Oxloss(L)/trm(I,J,L,n_Ox)
+          if(lat_dg(J,1).ge.regOx_s(nREG).and.(lat_dg(J,1).lt.
+     &    regOx_n(nREG).or.(lat_dg(J,1).eq.regOx_n(nREG).and.J.eq.JM))
+     &    .and.PRES(L).le.regOx_b(nREG).and.(PRES(L).gt.regOx_t(nREG)
+     &    .or.(PRES(L).eq.regOx_t(nREG).and.L.eq.maxl))) ! in region
+     &    change(I,J,L,igas)=change(I,J,L,igas)+Oxprod(L)    
+        end if
+#endif
+c*** limit the change due to chemistry ***
         if(change(I,J,L,igas).gt.1.E20) then
            WRITE(99,*)'change set to 0 in chemstep: I,J,L,igas,change'
      &    ,I,J,L,igas,change(I,J,L,igas)
