@@ -2639,11 +2639,14 @@ C****
       USE FILEMANAGER, only : openunit, closeunits
       USE DAGCOM, only : kgz_max,pmname
       USE PARAM
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+      USE TRACER_COM, only : trm,tr_mm
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRACER_COM, only : n_Ox,trm,tr_mm
+      USE TRACER_COM, only : n_Ox
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      USE TRACER_COM, only : n_SO4,trm,tr_mm
+      USE TRACER_COM, only : n_SO4
 #endif
       IMPLICIT NONE
       SAVE
