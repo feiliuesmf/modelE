@@ -128,6 +128,7 @@ gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
 ifdef LINK_OUTPUT
 	@if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
 endif
+	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).exe $(BIN_DIR)
 	@echo '--------------------------------------------------------------'
 	@echo '---------    GCM successfuly compiled                ---------'
