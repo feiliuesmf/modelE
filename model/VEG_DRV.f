@@ -164,8 +164,8 @@ c**** add data on c4 grass
         do j=J_0,J_1
           do i=1,im
             if (fearth(i,j).gt.0) then
-              ! convert form % and normalize to earth fraction
-              vc4 = veg_c4(i,j) / ( fearth(i,j)*100.d0 )
+              ! normalize to earth fraction
+              vc4 = veg_c4(i,j) / fearth(i,j)
               ! add c4 grass up to max amount of current grass
               vdata(i,j,12) = min( vdata(i,j,3), vc4 )
               vdata(i,j,3) = vdata(i,j,3) - vdata(i,j,12)
