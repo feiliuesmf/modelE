@@ -25,7 +25,7 @@ c**** this subroutine calculates surface fluxes of sensible heat,
 c**** evaporation, thermal radiation, and momentum drag.
 c****
       use constant, only : grav,rgas,lhe,lhs
-     *     ,sha,tf,rhow
+     *     ,sha,tf,rhow,deltx
       use model_com, only : t,p,q,dtsrc,nisurf,dsig
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp
@@ -78,7 +78,6 @@ c****
      *     ,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth,warmer,brun0
      *     ,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu,bshdt,btrhdt
      *     ,timez,spring,zs1co
-     *     ,rvx
 
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
@@ -114,11 +113,6 @@ c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
 c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
-c     if(.not. vt_on) then
-          rvx=0.
-c     else
-c         rvx=deltx !not working yet
-c     endif
 
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
@@ -159,13 +153,13 @@ c****
       p1k=pk(1,i,j)
       th1=t(i,j,1)
       q1=q(i,j,1)
-      thv1=th1*(1.+q1*rvx)
+      thv1=th1*(1.+q1*deltx)
       tkv=thv1*psk
       tfs=tf*psoil
       rmbya=100.*pdsig(1,i,j)/grav
       qm1=q1*rmbya
+c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
-      rhosrf=100.*ps/(rgas*tsv)
       jr=jreg(i,j)
       dxypj=dxyp(j)
 c**** new quantities to be zeroed out over ground timesteps
@@ -237,7 +231,7 @@ c**** loop over ground time steps
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
       qg=qsat(tg,elhx,ps)
-      tgv=tg*(1.+qg*rvx)
+      tgv=tg*(1.+qg*deltx)
 c***********************************************************************
 c***
       call pbl(i,j,itype,ptype)
@@ -250,8 +244,9 @@ c**** calculate qs
       dhgs=(zmix-zgs)*cdh*ws
 c****    dqgs=(zmix-zgs)*cdq*ws
       qs=qsrf
-      ts=tsv/(1.+qs*rvx)
+      ts=tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
+      rhosrf=100.*ps/(rgas*tsv)
       rcdmws=cdm*ws*rhosrf
       rcdhws=cdh*ws*rhosrf
 c**** calculate fluxes of sensible heat, latent heat, thermal
@@ -274,9 +269,11 @@ c  define extra variables to be passed in surfc:
       vgm   =wg
       eddy  =eds1
       ! cn    =cdn ! not used
-      tgpass=tgv
-      tspass=tsv
-      tkpass=tkv
+c     tgpass=tgv
+c     tspass=tsv
+      tgpass=tg
+      tspass=ts
+      tkpass=tkv/(1.+q(i,j,1)*deltx)
 c **********************************************************************
 c *****
 c**** calculate ground fluxes

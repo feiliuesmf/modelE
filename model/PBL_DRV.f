@@ -47,7 +47,7 @@ C
 C --------------------------------------------------------------------
       USE CONSTANT, only :  rgas,grav,omega2,deltx
       USE MODEL_COM
-     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,vt_on
+     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
@@ -83,14 +83,7 @@ C
       REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
-     *     ,rvx  
       INTEGER LDC,L,k
-
-      if(.not. vt_on) then
-          rvx=0.
-      else
-          rvx=deltx
-      endif
 
       IF (ITYPE.GT.2) THEN
         Z0M=30./(10.**ROUGHL(I,J))
@@ -117,10 +110,10 @@ C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
           zpbl=ztop
           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
           ! pk(1,i,j) = expbyk(pl1)
-          tl1=t(i,j,1)*(1.+RVX*q(i,j,1))*pk(1,i,j)
+          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
           do l=2,ls1
             pl=pmid(l,i,j)        !pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+RVX*q(i,j,l))*pk(l,i,j) !virtual,absolute
+            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
             tbar=thbar(tl1,tl)
             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
             if (zpbl.ge.dbl) go to 200
@@ -146,11 +139,11 @@ C
           else
           zpbl=ztop
           pl1=pmid(1,i,j)          !pij*sig(1)+ptop
-          tl1=t(i,j,1)*(1.+RVX*q(i,j,1))*pk(1,i,j)   !expbyk(pl1)
+          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)   !expbyk(pl1)
           zpbl1=ztop
           do l=2,ldc
             pl=pmid(l,i,j)         !pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+RVX*q(i,j,l))*pk(l,i,j)  !expbyk(pl)
+            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)  !expbyk(pl)
             tbar=thbar(tl1,tl)
             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
             if (zpbl.ge.3000.) then
@@ -240,7 +233,7 @@ c1003 format(a,4(1pe14.4))
       psi   =psisrf-psitop
       ustar_type(i,j,itype)=ustar
 C ******************************************************************
-      TS=TSV/(1.+QS*RVX)
+      TS=TSV/(1.+QS*deltx)
       WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
       TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
       if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QS*PTYPE
@@ -295,13 +288,7 @@ c -------------------------------------------------------------
       real*8 pland,pwater,plice,psoil,poice,pocean,
      *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
-      real*8 qsat,rvx
-
-      if(.not. vt_on) then
-          rvx=0.
-      else
-          rvx=deltx
-      endif
+      real*8 qsat
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -398,7 +385,7 @@ c ******************************************************************
             endif
 
             qtop=q(i,j,1)
-            ttop=t(i,j,1)*(1.+qtop*RVX)*psk
+            ttop=t(i,j,1)*(1.+qtop*deltx)*psk
             if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
 
             dpdxrij  = DPDX_BY_RHO(i,j)

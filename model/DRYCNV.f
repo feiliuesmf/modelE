@@ -27,13 +27,6 @@
       DOUBLE PRECISION, DIMENSION(NMOM) :: TMOMS,QMOMS
       REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
      *     ,TVMS,THETA,RDP,THM
-     *     ,rvx
-
-      if(.not. vt_on) then
-          rvx=0.
-      else
-          rvx=deltx
-      endif
 
       if(LBASE_MAX.GE.LM) stop 'DRYCNV: LBASE_MAX.GE.LM'
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
@@ -61,8 +54,8 @@ C****
       lbase_loop: do while(lmax.lt.lbase_max)
       LMIN=LMAX+1
       LMAX=LMIN
-      IF (T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX).LE.
-     *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)) cycle lbase_loop
+      IF (T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx).LE.
+     *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)) cycle lbase_loop
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE UNSTABLE LAYERS
 C**** MIX THROUGH TWO LOWER LAYERS
       PIJBOT=PLIJ(LMIN,I,J)
@@ -81,19 +74,19 @@ C**** sum moments to mix over unstable layers
      &     QMOM(XYMOMS,I,J,LMIN  )*(DP(LMIN  ))  +
      &     QMOM(XYMOMS,I,J,LMIN+1)*(DP(LMIN+1))
       IF (LMIN+1.GE.LM) GO TO 150
-      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*RVX)*(PK(LMIN,I,J)*DP(LMIN))
-     *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)
+      TVMS=T(I,J,LMIN)*(1.+Q(I,J,LMIN)*deltx)*(PK(LMIN,I,J)*DP(LMIN))
+     *    +T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*deltx)
      *                                  *(PK(LMIN+1,I,J)*DP(LMIN+1))
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO L=LMIN+2,LM
-        IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 160
+        IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*deltx)) GO TO 160
         PIJ=PLIJ(L,I,J)
         DP(L)=PDSIG(L,I,J)
         PKMS=PKMS+(PK(L,I,J)*DP(L))
         THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
         QMS=QMS+Q(I,J,L)*DP(L)
-        TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*DP(L))
+        TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*deltx)*(PK(L,I,J)*DP(L))
         TMOMS(XYMOMS) = TMOMS(XYMOMS) +
      &       TMOM(XYMOMS,I,J,L)*(PK(L,I,J)*DP(L))
         QMOMS(XYMOMS) = QMOMS(XYMOMS) +

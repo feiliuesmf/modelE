@@ -24,9 +24,6 @@
       integer :: KOCEAN = 1, MFILTR = 1
 !@dbparam XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
       double precision, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
-!@var VT_ON switches on/off surface and turbulence temperature virtual.
-c**** not working yet for EARTH
-      logical :: VT_ON = .TRUE.
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved

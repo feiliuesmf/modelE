@@ -19,7 +19,7 @@
 !@var jtest latitude at which to call dout
       USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,u,v,t,q,p,vt_on
+     *      im,jm,lm,sig,sige,u,v,t,q,p
       USE CONSTANT, only : grav,kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
      *     ,t2gcm
@@ -51,7 +51,7 @@
 
       integer, parameter :: mout=0,itest=52,jtest=33
       real*8, parameter :: tol=1.d-4,qmin=1.d-20
-      real*8 :: uflx,vflx,tflx,qflx,pl,rvx,tsv
+      real*8 :: uflx,vflx,tflx,qflx,pl,tsv
       real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
       integer :: loc,icount,imax,kmax,idik,idjk
       integer :: i,j,l,k,iter,ifirst !@i,j,l,k loop variable
@@ -62,18 +62,12 @@ C**** original drycnv. They are only used to determine where the
 C**** routine has been called from.
       if (lbase_min.eq.2) return       ! quit if called from main
 
-      if(.not. vt_on) then
-          rvx=0.d0
-      else
-          rvx=deltx
-      endif
-
       !  convert input T to virtual T
       do j=1,jm
         do i=1,imaxj(j)
-          tvsurf(i,j)=tsavg(i,j)*(1.d0+rvx*qsavg(i,j))
+          tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
           do l=1,lm
-            t_virtual(l,i,j)=t(i,j,l)*(1.d0+rvx*Q(i,j,l))
+            t_virtual(l,i,j)=t(i,j,l)*(1.d0+deltx*Q(i,j,l))
           end do
         end do
       end do
@@ -164,7 +158,7 @@ c    2          dudz,dvdz,as2,dtdz,g_alpha,an2,lscale,dzij,lm)
             ! update 3-d q,t,egcm,t2gcm and km_gcm
             q(i,j,l)=max(qij(l),qmin)
             t0ijl=t(i,j,l)
-            t(i,j,l)=tij(l)/(p1000k*(1.d0+rvx*Q(i,j,l)))
+            t(i,j,l)=tij(l)/(p1000k*(1.d0+deltx*Q(i,j,l)))
             egcm(l,i,j)=eij(l)
             t2gcm(l,i,j)=t2ij(l)
             km_gcm(l,i,j)=km(l)

@@ -23,7 +23,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
-     *     ,itoice,itlake,itlkice,itlandi,vt_on
+     *     ,itoice,itlake,itlkice,itlandi
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
       USE RADNCB, only : trhr,fsf,cosz1
@@ -68,7 +68,7 @@ C****
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
-     *     ,rvx,PSIS,HTLIM
+     *     ,PSIS,HTLIM
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -94,11 +94,6 @@ C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
-      if(.not. vt_on) then
-          rvx=0.
-      else
-          rvx=deltx
-      endif
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -180,7 +175,7 @@ C****
       P1K=PK(1,I,J)     ! EXPBYK(P1)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
-      THV1=TH1*(1.+Q1*RVX)
+      THV1=TH1*(1.+Q1*deltx)
          TFS=TF*PXSOIL
       RMBYA=100.*PDSIG(1,I,J)/GRAV
 C      THZ1 = TZ(I,J,1) ! vertical gradient of potential temperature
@@ -343,7 +338,7 @@ C**********************************************************************
       DO 3600 NG=1,NGRNDZ
       TG=TG1+TF
       QG=QSAT(TG,ELHX,PS)
-      TGV=TG*(1.+QG*RVX)
+      TGV=TG*(1.+QG*deltx)
 C =====================================================================
       CALL PBL(I,J,ITYPE,PTYPE)
       CM = cmgs(i,j,itype)
@@ -353,7 +348,7 @@ C =====================================================================
       DQGS=(ZMIX-ZGS)*CQ*WS
       DGS =DQGS
 C =====================================================================
-      TS=TSV/(1.+QS*RVX)
+      TS=TSV/(1.+QS*deltx)
 C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
 3500  CONTINUE
       RHOSRF=100.*PS/(RGAS*TSV)
