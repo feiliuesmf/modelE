@@ -51,7 +51,7 @@
 
       CONTAINS
 
-      SUBROUTINE OSTRUC
+      SUBROUTINE OSTRUC(QTCHNG)
 !@sum  OSTRUC restructures the ocean temperature profile as ML
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
@@ -59,6 +59,8 @@
       IMPLICIT NONE
       INTEGER I,J,IMAX
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
+!@var QTCHNG true if TOCEAN(1) is changed (needed for qflux calculation)
+      LOGICAL, INTENT(IN) :: QTCHNG
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
@@ -89,10 +91,12 @@ C**** MIX LAYER DEPTH IS GETTING SHALLOWER
      *         +((TOCEAN(2,I,J)-TOCEAN(1,I,J))*DWTRO/WTR2O)
           CYCLE
 C**** MIX LAYER DEPTH IS GETTING DEEPER
- 120      TGAVE=(TOCEAN(2,I,J)*DWTRO+(2.*TOCEAN(2,I,J)-TOCEAN(3,I,J))
-     *         *WTR2O)/(WTR2O+DWTRO)
-          TOCEAN(1,I,J)=TOCEAN(1,I,J)+((TGAVE-TOCEAN(1,I,J))
-     *         *DWTRO/WTR1O)
+ 120      IF (QTCHNG) THEN  ! change TOCEAN(1)
+            TGAVE=(TOCEAN(2,I,J)*DWTRO+(2.*TOCEAN(2,I,J)-TOCEAN(3,I,J))
+     *           *WTR2O)/(WTR2O+DWTRO)
+            TOCEAN(1,I,J)=TOCEAN(1,I,J)+((TGAVE-TOCEAN(1,I,J))
+     *           *DWTRO/WTR1O)
+          END IF
           IF (Z1O(I,J).GE.Z12O(I,J)) GO TO 140
           TOCEAN(2,I,J)=TOCEAN(2,I,J)
      *         +((TOCEAN(3,I,J)-TOCEAN(2,I,J))*DWTRO/(WTR2O+DWTRO))
@@ -597,7 +601,7 @@ C**** Only do this at end of the day
 C**** DO DEEP DIFFUSION
 c        IF (QDEEP) CALL ODIFS
 C**** RESTRUCTURE THE OCEAN LAYERS
-        CALL OSTRUC
+        CALL OSTRUC(.TRUE.)
 C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
         DO J=1,JM
           IMAX=IMAXJ(J)
