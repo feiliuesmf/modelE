@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lenrer/R. Reto/M. Kelley
 !@ver  1.0
@@ -1143,6 +1145,7 @@ C****
 C****
       END SUBROUTINE DIAGA
 
+
       SUBROUTINE DIAGB
 C****
 C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
@@ -2005,9 +2008,10 @@ C**** ACCUMULATE TIME USED IN DIAGA
       RETURN
       END SUBROUTINE DIAGB
 
+
       SUBROUTINE DIAG7A
 C****
-C**** THIS SUBROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
+C**** THIS ROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
 C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav,bygrav
@@ -2099,16 +2103,20 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       RETURN
       END SUBROUTINE DIAG7A
 
+
       SUBROUTINE DIAGCA (M)
 !@sum  DIAGCA Keeps track of the conservation properties of angular
 !@+    momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : mdiag
+      USE MODEL_COM, only : mdiag,itime
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
      *     ,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_MSI
      *     ,icon_HSI,icon_SSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
+#ifdef TRACERS_ON 
+      USE TRACER_COM, only: itime_tr0,ntm
+#endif
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
@@ -2122,15 +2130,16 @@ C****   5  AFTER PRECIPITATION
 C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
 C****   7  AFTER FULL SURFACE INTERACTION
 C****   8  AFTER FILTER
-C****   9  AFTER STRATOSPHERIC DRAG
-C****  10  AFTER OCEAN DYNAMICS
-C****  11  AFTER OCEAN SUB-GRIDSCALE PHYS
-C****  12  AFTER DAILY
+C****   9  AFTER OCEAN DYNAMICS (from MAIN)
+C****  10  AFTER DAILY
+C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
+C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE
      *     ,conserv_MSI,conserv_HSI,conserv_SSI
       REAL*8 MNOW
+      INTEGER NT
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
       CALL conserv_DIAG(M,conserv_AM,icon_AM)
@@ -2165,10 +2174,18 @@ C**** GROUND WATER AND ENERGY
 
 C**** OCEAN CALLS ARE DEALT WITH SEPERATELY
       CALL DIAGCO (M)
+
+#ifdef TRACERS_ON
+C**** Tracer CALLS ARE DEALT WITH SEPERATELY
+      do nt=1,ntm
+        if (itime.ge.itime_tr0(nt)) CALL DIAGTCA(M,NT)
+      end do
+#endif
 C****
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAGCA
+
 
       SUBROUTINE DIAGCD (M,DT1,UX,VX,DUT,DVT,PIT)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
@@ -2257,6 +2274,7 @@ C****
       RETURN
       END SUBROUTINE DIAGCD
 
+
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
@@ -2297,6 +2315,7 @@ C**** Save current value in CONSRV(NI)
       RETURN
 C****
       END SUBROUTINE conserv_DIAG
+
 
       SUBROUTINE conserv_AM(AM)
 !@sum  conserv_AM calculates total atmospheric angular momentum
@@ -2345,6 +2364,7 @@ C****
 C****
       END SUBROUTINE conserv_AM
 
+
       SUBROUTINE conserv_KE(RKE)
 !@sum  conserv_KE calculates total atmospheric kinetic energy
 !@auth Gary Russell/Gavin Schmidt
@@ -2385,6 +2405,7 @@ C****
 C****
       END SUBROUTINE conserv_KE
 
+
       SUBROUTINE conserv_MS(RMASS)
 !@sum  conserv_MA calculates total atmospheric mass
 !@auth Gary Russell/Gavin Schmidt
@@ -2409,6 +2430,7 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_MS
+
 
       SUBROUTINE conserv_PE(TPE)
 !@sum  conserv_TPE calculates total atmospheric potential energy
@@ -2451,6 +2473,7 @@ C****
 C****
       END SUBROUTINE conserv_PE
 
+
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
@@ -2479,6 +2502,7 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_WM
+
 
       SUBROUTINE conserv_EWM(EWATER)
 !@sum  conserv_EWM calculates total atmospheric water energy
@@ -2512,6 +2536,7 @@ c this calculation needs to be checked!
       RETURN
 C****
       END SUBROUTINE conserv_EWM
+
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
       USE MODEL_COM, only : im,imh,jm,lm,fim,
@@ -2581,6 +2606,7 @@ C****
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAG5D
+
 
       SUBROUTINE DIAG5A (M5,NDT)
 C****
@@ -2834,7 +2860,8 @@ C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG5A
-C****
+
+      
       SUBROUTINE DIAG5F(UX,VX)
 C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
@@ -2860,9 +2887,10 @@ C****
       RETURN
       END SUBROUTINE DIAG5F
 
+
       SUBROUTINE DIAG4A
 C****
-C**** THIS SUBROUTINE PRODUCES A TIME HISTORY OF ENERGIES
+C**** THIS ROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
       USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
@@ -2902,9 +2930,10 @@ C****
 C****
       END SUBROUTINE DIAG4A
 
+
       SUBROUTINE get_SLP(iu_SLP)
 C****
-C**** THIS SUBROUTINE SAVES THE INSTANTANEOUS SEA LEVEL PRESSURES
+C**** THIS ROUTINE SAVES THE INSTANTANEOUS SEA LEVEL PRESSURES
 C**** EVERY ABS(NSLP) HOURS. IF NSLP.LT.0 THE FIRST RECORD IS
 C**** WRITTEN TO THE BEGINNING OF UNIT 16.
 C****
@@ -2922,8 +2951,9 @@ C****
       RETURN
       END SUBROUTINE get_SLP
 
+
       SUBROUTINE init_DIAG(ISTART)
-!@sum  init_DIAG initiallises the diagnostics
+!@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday,kapa
@@ -3087,7 +3117,7 @@ C**** Hence this diagnostic gives the error
       CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
      *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
 
-C**** initialise longitudinal diagnostic special latitudes
+C**** Initialize longitudinal diagnostic special latitudes
       J50N=(50.+90.)*(JM-1)/180.+1.5
       J70N=(70.+90.)*(JM-1)/180.+1.5
       J5NUV = (90.+5.)*(JM-1.)/180.+2.
@@ -3095,7 +3125,7 @@ C**** initialise longitudinal diagnostic special latitudes
       J5N   = (90.+5.)*(JM-1.)/180.+1.5
       J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
-C**** initiallise layering for spectral diagnostics
+C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes
       KL=1
       DO L=1,LM
@@ -3133,14 +3163,18 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       RETURN
       END SUBROUTINE init_DIAG
 
+
       SUBROUTINE reset_DIAG(isum)
-!@sum  reset_DIAG resets/initiallises diagnostics
+!@sum  reset_DIAG resets/initializes diagnostics
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : Itime,iyear1,nday,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DAGCOM
       USE PARAM
+#ifdef TRACERS_ON
+      USE TRACER_DIAG_COM, only: TACC
+#endif
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
       INTEGER jd0
@@ -3152,6 +3186,9 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0 
       call reset_ODIAG(isum)
+#ifdef TRACERS_ON
+      TACC=0.
+#endif
 
       if (isum.eq.1) return
 
@@ -3165,6 +3202,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 
       RETURN
       END SUBROUTINE reset_DIAG
+
 
       SUBROUTINE daily_DIAG
 !@sum  daily_DIAG resets diagnostics at beginning of each day
@@ -3215,6 +3253,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
       END SUBROUTINE daily_DIAG
 
+
       SUBROUTINE SET_CON(QCON,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
      *     ,CHNG_SC,ICON)
 !@sum  SET_CON assigns conservation diagnostic array indices
@@ -3224,7 +3263,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
-     *     ,lname_consrv,units_consrv
+     *     ,lname_consrv,units_consrv,conpt
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
@@ -3242,11 +3281,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       CHARACTER*16, INTENT(IN) :: SUM_UNIT
 !@var ICON index for the conserved quantity
       INTEGER, INTENT(OUT) :: ICON
-!@var CONPT titles for each point at which conservation diags. are done
-      CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
-     *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
-     *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
-     *     "DAILY     ","OCN DYNAM ","OCEAN PHYS"/)
+
       INTEGER NI,NM,NS,N,k
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
 
@@ -3299,6 +3334,11 @@ C****
         END IF
       END DO
       NS=NM+1
+      IF (NS.gt.KCON) THEN
+        WRITE(6,*) "KCON not large enough for extra conserv diags",
+     *       KCON,NI,NM,NQ,NS,NAME_CON
+        STOP "Change KCON in diagnostic common block"
+      END IF
       TITLE_CON(NS) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
       name_consrv(NS) ="sum_chg_"//trim(sname)
       lname_consrv(NS) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
@@ -3310,11 +3350,6 @@ C****
       NSUM_CON(NS) = 0
       KCMX=NS
       ICON=NQ
-      IF (KCMX.gt.KCON) THEN
-        WRITE(6,*) "KCON not large enough for extra conserv diags",
-     *       KCON,NI,NM,NQ,NS,NAME_CON
-        STOP "Change KCON in diagnostic common block"
-      END IF
       RETURN
 C****
       END SUBROUTINE set_con
