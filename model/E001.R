@@ -5,13 +5,13 @@ E001: new modelE (based on B402A)
 Object modules: (in order of decreasing priority)
 E001M12_COM SOMTQ_COM GEOM_B        ! model modules
 GHYCOM const DAGCOM RADNCB          ! more model modules
-PBLCOM                              ! more model modules
+PBLCOM LAKES_COM                    ! more model modules
 ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
 SUBSIDEM12 PE001M12                 ! phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
-OCNE001                             ! ocean and sea ice modules
+OCNE001 LAKES                       ! ocean, lake and sea ice modules
 RE001                               ! setsur  rad.subr_incl._forcings 
 DE001M12  FFT72  UTILDBL            ! diag,utilities
 POUT                                ! for post-processing
@@ -24,6 +24,7 @@ OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 CDN=CD4X500S VEG=V72X46.1.cor 
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
+RVR=RD4X525.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4 
 RADN3=miescatpar.abcdv 
