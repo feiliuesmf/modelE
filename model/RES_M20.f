@@ -27,7 +27,7 @@
      1     PTOP,                                 !      L=LS1
      s     100.d0,    60.d0,   30.d0,   PMTOP /) !      L=..,LM+1
      *     - PTOP)/(PSF-PTOP)
-!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm)=-pstrat/psfmpt
+!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm+1)=-pstrat/psfmpt
 
 !@var SIG,DSIG,byDSIG mid point, depth, 1/depth of sigma levels (1)
       REAL*8, dimension(lm), parameter ::
@@ -37,7 +37,7 @@
 
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
-!@param KEP number of lat/height E-P flux diagnostics 
+!@param KEP number of lat/height E-P flux diagnostics
       INTEGER, PARAMETER :: KEP=0
 
 C**** Based on model top, determine how much of stratosphere is resolved

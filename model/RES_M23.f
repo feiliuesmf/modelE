@@ -29,7 +29,7 @@
      s  10.0d0,   4.63d0,  1.46d0,  0.460995258d0,      !      L=18-21
      s  0.1449994968d0,    3.12002802d-2,    PMTOP /)   !      L=..,LM+1
      *  - PTOP)/(PSF-PTOP)
-!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm)=-pstrat/psfmpt
+!!!!  Note:   sige(1)=1,  sige(ls1)=0,  sige(lm+1)=-pstrat/psfmpt
 
 !@var SIG,DSIG,byDSIG mid point, depth, 1/depth of sigma levels (1)
       REAL*8, dimension(lm), parameter ::
@@ -39,7 +39,7 @@
 
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
-!@param KEP number of lat/height E-P flux diagnostics 
+!@param KEP number of lat/height E-P flux diagnostics
       INTEGER, PARAMETER :: KEP=21
 
 C**** Based on model top, determine how much of stratosphere is resolved
@@ -52,5 +52,5 @@ C****         PMTOP <   1 mb,    ISTRAT = 2
 
 C**** The vertical resolution also determines whether
 C**** stratospheric wave drag will be applied or not.
-C**** This resolution is for a stratospheric model and so must be used 
+C**** This resolution is for a stratospheric model and so must be used
 C**** in conjunction with the strat. modules

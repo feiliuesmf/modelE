@@ -14,6 +14,7 @@ PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
+TQUS_DRV                            ! advection of Q
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
