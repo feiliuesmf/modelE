@@ -42,12 +42,13 @@ ccc   ice data:
      *     ,JM),SSI1(LMI,IM,JM),PM1(IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM)
      *     ,MSI2(IM,JM),SNOWI2(IM,JM),SSI2(LMI,IM,JM),PM2(IM,JM)
       REAL*8 RQT1,RQT2,SRHR1,SRHR2,TRHR1,TRHR2,FSF1,FSF2,FSD1,FSD2,S01
-     *     ,S02
+     *     ,S02,RCLD1,RCLD2
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM),
-     *               FSD1(IM,JM),FSD2(IM,JM)
+     *               FSD1(IM,JM,4),FSD2(IM,JM,4),
+     *               RCLD1(LM,IM,JM),RCLD2(LM,IM,JM)
 ccc   snow data:
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
       INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
@@ -227,7 +228,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
 c        write(0,*) 'trying to read radia'
-         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1
+         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1
 c        write(0,*) 'trying to read icedyn'
          READ (1) HEADER
          BACKSPACE(1)
@@ -240,8 +241,8 @@ c        write(0,*) 'trying to read icedyn'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
-     *        ,yAldehyde1,yXO2N1,yRXPAR1,corrOx1,SALBFJ1
-     *        ,RCLOUDFJ1,O3DLJI1,O3DLJI_clim1,ss1
+     *        ,yAldehyde1,yXO2N1,yRXPAR1,corrOx1,O3DLJI1,O3DLJI_clim1
+     *        ,ss1
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -341,7 +342,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
 c        write(0,*) 'trying to read radia'
-         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2
+         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2
 c        write(0,*) 'trying to read icedyn'
          READ (2) HEADER
          BACKSPACE(2)
@@ -354,8 +355,8 @@ c        write(0,*) 'trying to read icedyn'
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
-     *        ,yAldehyde2,yXO2N2,yRXPAR2,corrOx2,SALBFJ2
-     *        ,RCLOUDFJ2,O3DLJI2,O3DLJI_clim2,ss2
+     *        ,yAldehyde2,yXO2N2,yRXPAR2,corrOx2,O3DLJI2,O3DLJI_clim2
+     *        ,ss2
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -464,7 +465,8 @@ C****
       ERRQ=COMP8LIJp('SRHR  ',1+  LM,IM,JM  ,SRHR1 ,SRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('TRHR  ',1+  LM,IM,JM  ,TRHR1 ,TRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
-      ERRQ=COMP8 ('FSdir ',IM,JM,1       , fsd1 , fsd2 ) .or. ERRQ
+      ERRQ=COMP8 ('FSdir ',IM,JM,4       , fsd1 , fsd2 ) .or. ERRQ
+      ERRQ=COMP8Lijp('RCLD  ',LM,IM,JM,  , RCLD1, RCLD2 ) .or. ERRQ
 
 #ifdef TRACERS_ON
       ERRQ=COMP8('TR    ',IM,JM,LM*NTM    , TR1  , TR2  ) .or. ERRQ

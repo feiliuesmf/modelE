@@ -162,7 +162,7 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
       END DO
 
 
-c     initialize the 3-d turbulent kinetic enery to be used in
+c     initialize the 3-d turbulent kinetic energy to be used in
 c     the subroutine diffus.
       do j=1,jm
         do i=1,im

@@ -196,7 +196,8 @@
       use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
-      use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir
+      use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir,srvissurf, &
+	   srdn,cfrac,rcld
       use icedyn_com, only : rsix,rsiy,usi,vsi
 
       use dagcom, only : keynr,tsfrez,tdiurn,oa
@@ -378,6 +379,10 @@
         check("trhr",trhr)
         check("fsf",fsf)
         check("fsrdir",fsrdir)
+        check("srvissurf",srvissurf)
+        check("srdn",srdn)
+        check("cfrac",cfrac)
+        check("rcld",rcld)
         ! icedyn
         check("RSIX",RSIX)
         check("RSIY",RSIY)
