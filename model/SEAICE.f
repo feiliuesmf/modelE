@@ -11,8 +11,7 @@
 !@param XSI fractions of mass layer in each temp. layer
 !@param BYXSI recipricol of XSI
       REAL*8, PARAMETER, DIMENSION(LMI) ::
-     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/),
-     *     BYXSI=1./XSI
+     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/), BYXSI=1./XSI
 !@param Z1I thickness of first layer ice (m)
       REAL*8, PARAMETER :: Z1I = .1d0
 !@param ACE1I ice mass first layer (kg/m^2)
@@ -20,7 +19,7 @@
 !@param HC1I heat capacity of first layer ice (J/m^2)
       REAL*8, PARAMETER :: HC1I = ACE1I*SHI
 !@param Z2OIM thickness of 2nd layer ice (m)
-      REAL*8, PARAMETER :: Z2OIM = .4d0
+      REAL*8, PARAMETER :: Z2OIM = .1d0    ! .4d0
 !@param AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@param ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
@@ -198,7 +197,8 @@ C**** components so that the code is valid for fixed sea ice runs also
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP
-     *     ,TGW,RUN0,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
+     *     ,TGW,RUN0,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR,QFLUXLIM
+     *     ,FLUXLIM)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
@@ -214,7 +214,10 @@ C**** components so that the code is valid for fixed sea ice runs also
 !@var EVAP evaporation/dew on the top ice surface (kg/m^2)
       REAL*8, INTENT(IN) :: EVAP
 !@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
-      LOGICAL,INTENT(IN) :: QFIXR
+!@var QFLUXLIM true if the flux at base of ice is limited
+      LOGICAL,INTENT(IN) :: QFIXR, QFLUXLIM
+!@var FLUXLIM limit of water-ice flux if QFLUXLIM is true 
+      REAL*8, INTENT(IN) :: FLUXLIM
 !@var TGW temperature of water below ice (C)
       REAL*8, INTENT(IN) :: TGW
 
@@ -270,7 +273,10 @@ c     A     (HC2+ALPHA*dF2dTI) ! for a non-Q-flux ocean model
       F3 = dF3dTI*(HC3*(TSIL(3)-TSIL(4))+ALPHA*F2)/
      A     (HC3+ALPHA*dF3dTI)
       F2DT = dF4dTI*(HC4*(TSIL(4)-TGW)+ALPHA*F3)/
-     A            (HC4+ALPHA*dF4dTI)
+     A     (HC4+ALPHA*dF4dTI)
+C**** limit flux if necessary
+      IF (QFLUXLIM.and.F2DT.lt.FLUXLIM) F2DT = FLUXLIM
+
       HSIL(1) = HSIL(1)+(F0DT-F1DT)
       HSIL(2) = HSIL(2)+(F1DT-F2)
       HSIL(3) = HSIL(3)+(F2-F3)
@@ -522,7 +528,7 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
      A       (ROICE+DRSI)
       HSIL(4) = ((1.-ROICE)*ENRGFO*YSI(4)+ROICE*(HSIL(4)+FHSI3+ENRGFI))/
      A       (ROICE+DRSI)
-      ROICE = ROICE+DRSI ! new ice concentration
+      ROICE = MIN(ROICE+DRSI,1d0) ! new ice concentration
       GO TO 270
   250 CONTINUE
       IF (ACEFO .GT. 0.) GO TO 260 ! new ice on the open ocean
@@ -539,7 +545,7 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       HSIL(2) = ((1.-ROICE)*ENRGFO*YSI(2)+ROICE*HSIL(2))/(ROICE+DRSI)
       HSIL(3) = ((1.-ROICE)*ENRGFO*YSI(3)+ROICE*HSIL(3))/(ROICE+DRSI)
       HSIL(4) = ((1.-ROICE)*ENRGFO*YSI(4)+ROICE*HSIL(4))/(ROICE+DRSI)
-      ROICE = ROICE+DRSI ! new ice concentration
+      ROICE = MIN(ROICE+DRSI,1d0) ! new ice concentration
   270 CONTINUE
       IF (QCMPR) THEN           ! COMPRESS THE ICE HORIZONTALLY
       IF (MSI2 .GE. AC2OIM) GO TO 280 ! ice is thick enough
@@ -578,7 +584,7 @@ C**** Calculate temperatures for diagnostics and radiation
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED)
+      SUBROUTINE SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
 !@sum  SIMELT melts sea ice if surrounding water is warm
 !@auth Original Development Team
 !@ver  1.0
@@ -593,6 +599,8 @@ C**** Calculate temperatures for diagnostics and radiation
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 !@var ENRGUSED energy used to melt ice (J/m^2)
       REAL*8, INTENT(OUT) :: ENRGUSED
+!@var RUN0 amount of sea ice melt (kg/m^2)
+      REAL*8, INTENT(OUT) :: RUN0
       REAL*8, DIMENSION(LMI) :: HSI
       REAL*8 MSI1,MELT,DRSI,ROICEN,FHSI4,FHSI3,ENRGI
 c      REAL*8 E_BOTTOM,GAMMA,HCRIT,HICE,ACE
@@ -602,6 +610,7 @@ c      REAL*8 E_BOTTOM,GAMMA,HCRIT,HICE,ACE
       IF (ROICE*ENRGI+ENRGW.LT.0.) GO TO 230
 C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
       ENRGUSED=-ROICE*ENRGI     ! only some energy is used
+      RUN0=ROICE*(MSI1+MSI2)    ! all ice is melted
       ROICE=0.
       SNOW=0.
       MSI2=AC2OIM
@@ -622,13 +631,13 @@ c      E_BOTTOM = ENRGW*(ROICE/(1.+GAMMA)) ! for bottom melting
 C**** MELT ICE VERTICALLY, AND THEN HORIZONTALLY
       MELT = -XSI(4)*MSI2*ENRGW/HSIL(4) ! melted ice at the bottom
 c      MELT = -XSI(4)*MSI2*E_BOTTOM/HSIL(4) ! melted ice at the bottom
-      IF (MSI2-MELT .LT. AC2OIM) MELT = MSI2-AC2OIM
+      IF (MSI2-MELT .LT. AC2OIM) MELT = MAX(MSI2-AC2OIM,0d0)
 C     FMSI3 = XSI(3)*MELT ! > 0.
       FHSI3 = HSIL(3)*MELT/MSI2
       FHSI4 = HSIL(4)*MELT*BYXSI(4)/MSI2
 C**** MELT SOME ICE HORIZONTALLY WITH REMAINING ENERGY
       DRSI = (ENRGW+ROICE*FHSI4)/(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)-FHSI4)
-      ROICEN = ROICE+DRSI       ! new sea ice concentration (DRSI<0)
+      ROICEN = MIN(ROICE+DRSI,1d0)  ! new sea ice concentration (DRSI<0)
 c     SNOW = SNOW*(ROICE/ROICEN) ! new snow ice mass
       MSI2 = MSI2-MELT
       HSIL(3) = HSIL(3)-FHSI3
@@ -638,6 +647,7 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
       TSIL(2) = (HSIL(2)/(XSI(2)*MSI1) +LHM)*BYSHI ! temperature of L=2
       TSIL(3) = (HSIL(3)/(XSI(3)*MSI2) +LHM)*BYSHI ! temperature of L=3
       TSIL(4) = (HSIL(4)/(XSI(4)*MSI2) +LHM)*BYSHI ! temperature of L=4
+      RUN0=ROICE*MELT
       ROICE=ROICEN
       RETURN
       END SUBROUTINE SIMELT
@@ -700,12 +710,18 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
 !@ver  1.0
+      USE CONSTANT, only : lhm,shi
       USE E001M12_COM
+      USE SEAICE, only : lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+!@var QCHECKI true if errors found in seaice
+      LOGICAL QCHECKI
+      INTEGER I,J,L
+      REAL*8 TICE
 
 C**** Check for NaN/INF in ice data
       CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
@@ -713,4 +729,31 @@ C**** Check for NaN/INF in ice data
       CALL CHECK3(HSI,4,IM,JM,SUBR,'hsi')
       CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sni')
 
+      QCHECKI = .FALSE.
+C**** Check for reasonable values for ice variables
+      DO J=1,JM
+        DO I=1,IM
+          IF (RSI(I,J).lt.0 .or. RSI(I,j).gt.1 .or. MSI(I,J).lt.0) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,RSI(I,J)
+     *           ,MSI(I,J)
+            QCHECKI = .TRUE.
+          END IF
+          DO L=1,LMI
+            IF (L.le.2) TICE = (HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
+     *           +LHM)/SHI
+            IF (L.gt.2) TICE = (HSI(L,I,J)/(XSI(L)*MSI(I,J))+LHM)/SHI
+            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
+              WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
+     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
+              QCHECKI = .TRUE.
+            END IF
+          END DO
+          IF (SNOWI(I,J).lt.0) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,SNOWI(I,J)
+            QCHECKI = .TRUE.
+          END IF
+        END DO
+      END DO
+      IF (QCHECKI) STOP "CHECKI: Ice variables out of bounds"
+          
       END SUBROUTINE CHECKI

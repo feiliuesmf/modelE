@@ -145,7 +145,7 @@ c     &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
 c     &  AJK,AIJK,AIJL,AJLSP
 
 !@var TSFREZ freezing temperature diagnostics
-      integer, parameter :: ktsf=2
+      integer, parameter :: ktsf=4
       DOUBLE PRECISION, DIMENSION(IM,JM,KTSF) :: TSFREZ
 
 !@param KTD number of diurnal temperature diagnostics
@@ -242,7 +242,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PEVAP,IJ_TMAXE, IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ,
      *     IJ_SCNVFRQ, IJ_EMTMOM, IJ_SMTMOM, IJ_FPEU, IJ_FPEV, IJ_FMU,
      *     IJ_FMV,IJ_FQU, IJ_FQV, IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
-     *     IJ_SDRAG
+     *     IJ_SDRAG,IJ_LKON,IJ_LKOFF
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=20), dimension(kaij) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
@@ -280,6 +280,8 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kail) :: name_il,units_il
       character(len=80), dimension(kail) :: lname_il
 
+C**** tf_xxx tsfrez diagnostic names
+      INTEGER :: tf_day1,tf_last,tf_lkon,tf_lkoff
       character(len=20), dimension(ktsf) :: name_tsf,units_tsf
       character(len=80), dimension(ktsf) :: lname_tsf
 

@@ -345,9 +345,10 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE SEAICE_COM, only : rsi,snowi
-      USE GHYCOM, only : snowe_com=>snowe,snoage,
-     *     wearth_com=>wearth,aiearth
+      USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
+     *     ,aiearth
       USE LANDICE_COM, only : snowli_com=>snowli
+      USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp
       USE FILEMANAGER
 
@@ -621,6 +622,7 @@ C**** TEMPERATURES
 C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
          WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TL(L)
+         WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
          STOP 'In Radia: Temperature out of range'
       END IF
 C**** MOISTURE VARIABLES

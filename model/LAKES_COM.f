@@ -12,10 +12,12 @@
       REAL*8, DIMENSION(IM,JM) :: GML 
 !@var TLAKE temperature of lake (C)
       REAL*8, DIMENSION(IM,JM) :: TLAKE 
-!@var TFL freezing temperature for lakes (=0 C)
-      REAL*8, PARAMETER :: TFL = 0.
-!@var T50 50 day mean temperature (used for estimating lake ice cover)
-      REAL*8, SAVE,DIMENSION(IM,JM) :: T50
+!@var MLDLK mixed layer depth in lake (m)
+      REAL*8, DIMENSION(IM,JM) :: MLDLK 
+!@var FLAKE variable lake fraction (1)
+      REAL*8, DIMENSION(IM,JM) :: FLAKE 
+!@var TANLK tan(alpha) = slope for conical lake (1)
+      REAL*8, DIMENSION(IM,JM) :: TANLK 
 
       END MODULE LAKES_COM
 
@@ -35,9 +37,9 @@
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,T50,MWL,TLAKE,GML
+        WRITE (kunit,err=10) MODULE_HEADER,MLDLK,MWL,TLAKE,GML !,FLAKE
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,T50,MWL,TLAKE,GML
+        READ (kunit,err=10) HEADER,MLDLK,MWL,TLAKE,GML   !,FLAKE
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

@@ -466,7 +466,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
-     *     ,focean,flake,flice,hlake,zatmo,sig,dsig,sige,dsigo
+     *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
      *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
      *     ,skipse,keyct,mfiltr,irand,psf,ptop
      *     ,xcdlm,ndasf,nda4,nda5s,nda5k,nda5d,ndaa,nfiltr
@@ -491,7 +491,7 @@ C****
       USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,snowi,hsi
       USE SEAICE, only : xsi,ace1i,ac2oim
-      USE LAKES_COM, only : t50
+      USE LAKES_COM, only : flake
       USE LANDICE_COM, only : snowli,tlandi
       USE FILEMANAGER, only : getunit
       USE TIMINGS, only : timing,ntimeacc
@@ -746,8 +746,6 @@ C**** Initialize surface friction velocity
         END DO
         END DO
         END DO
-C**** Initiallise T50
-        T50=TSAVG
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
         call tq_zmom_init(t,q)
       END IF
@@ -931,13 +929,33 @@ C**** READ SPECIAL REGIONS FROM UNIT 29
       READ(iu_REG) TITREG,JREG,NAMREG
       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
 
-C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
+C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
+C**** Note that FLAKE0 is read in only to provide initial values
+C**** Actual array is set from restart file.
       call getunit("TOPO",iu_TOPO,.true.,.true.)
 
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
-      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1)   ! Lake fraction
+      CALL READT (iu_TOPO,0,FLAKE0,IM*JM,FLAKE0,1) ! Orig. Lake fraction
       CALL READT (iu_TOPO,0,FEARTH,IM*JM,FEARTH,1) ! Earth frac. (no LI)
       CALL READT (iu_TOPO,0,FLICE,IM*JM,FLICE,1)   ! Land ice fraction
+C****
+      CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
+      ZATMO = ZATMO*GRAV                           ! Geopotential
+      CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
+      REWIND iu_TOPO
+
+C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
+C**** Initialize ice
+      CALL init_ice
+C**** Initialise lake variables (including river directions)
+      CALL init_LAKES(inilake)
+C**** Initialize ocean variables
+C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
+C****  KOCEAN = 0 => RSI/MSI factor
+      CALL init_OCEAN
+C**** Initialize land ice (must come after oceans)
+      CALL init_LI
+
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=1,JM
@@ -962,21 +980,6 @@ C**** cases where Earth and Land Ice are lumped together
       FTYPE(ITLANDI,:,:)=0.
       FTYPE(ITEARTH,:,:)=FEARTH
       FTYPE(ITLANDI,:,:)=FTYPE(ITLANDI,:,:)+FLICE
-C****
-      CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
-      ZATMO = ZATMO*GRAV                           ! Geopotential
-      CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
-      REWIND iu_TOPO
-C**** Initialize ice
-      CALL init_ice
-C**** Initialise lake variables (including river directions)
-      CALL init_LAKES(inilake)
-C**** Initialize ocean variables
-C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
-C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN
-C**** Initialize land ice (must come after oceans)
-      CALL init_LI
 
 C**** READ IN VEGETATION DATA SET: VDATA
       call getunit("VEG",iu_VEG,.true.,.true.)
@@ -1104,8 +1107,8 @@ C**** Check all prog. arrays for Non-numbers
 
          DO J=1,JM
            DO I=1,IM
-             IF (Q(I,J,1).gt.1d-2) print*,SUBR," Q BIG ",i,j,Q(I,J,1)
-             IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1)
+             IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
+             IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
            END DO
          END DO
 
@@ -1118,7 +1121,7 @@ C**** Check Ice arrays
 C**** Check Lake arrays
          CALL CHECKL(SUBR)
 C**** Check Earth arrays
-         CALL CHECKE(SUBR)
+c         CALL CHECKE(SUBR)
       END IF
       RETURN
       END SUBROUTINE CHECKT

@@ -8,20 +8,22 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECSI
+      USE CONSTANT, only : byshi,lhm
       USE E001M12_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,prec,eprec
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
-      USE SEAICE, only : prec_si, ace1i, lmi
+      USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2
      *     ,j_difs,j_run1,j_edifs,j_erun2,j_imelt
       USE FLUXES, only : gtemp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
-      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DIFS,EDIFS,ERUN2,DXYPJ,POICE
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DIFS,EDIFS,ERUN2,DXYPJ,POICE,th
+     *     ,thn,tm,tmn
       LOGICAL QFIXR
-      INTEGER I,J,IMAX,JR,ITYPE
+      INTEGER I,J,IMAX,JR,ITYPE,N
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -34,17 +36,17 @@
 
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
+          QFIXR = .TRUE.
+          IF (KOCEAN.eq.1) QFIXR=.FALSE.
         ELSE
           ITYPE=ITLKICE
+          QFIXR=.FALSE.
         END IF
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice temperatures
-        QFIXR = .TRUE.
-        IF (KOCEAN.eq.1) QFIXR=.FALSE.
-c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
@@ -84,14 +86,14 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls SEA_ICE
-      USE CONSTANT, only : lhm,byshi
+      USE CONSTANT, only : lhm,byshi,rhow
       USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,focean
-     *     ,flake,itoice,itlkice
+     *     ,itoice,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,gtemp
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
-      USE SEAICE, only : sea_ice,lmi
-      USE LAKES_COM, only : tlake
+      USE SEAICE, only : sea_ice,lmi,xsi,ace1i
+      USE LAKES_COM, only : mwl,gml,flake
       USE DAGCOM, only : aj,areg,aij,jreg,
      *     ij_f0oi,ij_erun2,ij_rsoi,ij_msi2,ij_evapi,j_difs
      *     ,j_run1,j_edifs,j_erun2,j_imelt,j_f1dt,j_f2dt,j_evap,ij_evap
@@ -100,7 +102,8 @@ C****
       REAL*8, DIMENSION(LMI) :: HSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,TGW,RUN0
      *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,DXYPJ,POICE,PWATER
-      LOGICAL QFIXR
+      LOGICAL QFIXR, QFLUXLIM
+      REAL*8 FLUXLIM
       INTEGER I,J,IMAX,JR,ITYPE
 
       DO J=1,JM
@@ -122,24 +125,32 @@ C****
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)  ! first layer sea ice enthalpy
         TGW=GTEMP(1,1,I,J)    ! underneath water temperature
+        QFLUXLIM=.FALSE.
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
+          QFIXR = .TRUE.
+          IF (KOCEAN.eq.1) QFIXR=.FALSE.
         ELSE
           ITYPE=ITLKICE
+          QFIXR=.FALSE.
+C**** Limit lake-to-ice flux if lake is too shallow (< 20cm)
+          IF (MWL(I,J).lt.0.2d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
+            QFLUXLIM=.TRUE.
+            FLUXLIM= -GML(I,J)/(FLAKE(I,J)*DXYP(J))
+          END IF
         END IF
+        TGW=MIN(TGW,0d0) ! don't ever allow TGW>0 (should be tfrez?)
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
         AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
 
-        QFIXR = .TRUE.
-        IF (KOCEAN.eq.1) QFIXR=.FALSE.
-c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
-
-        CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP,TGW
-     *       ,RUN0,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
-
+        
+        CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP,TGW,
+     *       RUN0,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR,
+     *       QFLUXLIM,FLUXLIM)
+        
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
@@ -185,7 +196,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls SEA_ICE
-      USE E001M12_COM, only : im,jm,focean,flake,kocean,ftype,fland
+      USE E001M12_COM, only : im,jm,focean,kocean,ftype,fland
      *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi
@@ -206,7 +217,7 @@ C****
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
       DO I=1,IMAX
-      PWATER=FOCEAN(I,J)+FLAKE(I,J)
+      PWATER=1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       JR=JREG(I,J)
@@ -215,35 +226,31 @@ C****
         SNOW= SNOWI(I,J)      ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice enthalpy
+
         IF (FOCEAN(I,J).gt.0) THEN
           FLEAD=FLEADOC
           ITYPE=ITOICE
           ITYPEO=ITOCEAN
-c          IF (KOCEAN.eq.1) THEN
-c            QFIXR=.FALSE.
-c            QCMPR=.TRUE.
-c          ELSE
-c            QFIXR=.TRUE.
-c            QCMPR=.FALSE.
-c          END IF
+          IF (KOCEAN.eq.1) THEN
+            QFIXR=.FALSE.
+            QCMPR=.TRUE.
+          ELSE
+            QFIXR=.TRUE.
+            QCMPR=.FALSE.
+          END IF
         ELSE
           FLEAD=FLEADLK
           ITYPE=ITLKICE
           ITYPEO=ITLAKE
-c          QFIXR=.FALSE.
+          QFIXR=.FALSE.
 c          QCMPR=.FALSE.
+          QCMPR=.TRUE.   ! allow compression now that minimum is thinner
         END IF
 
         ACEFO=DMSI(1,I,J)
         ACE2F=DMSI(2,I,J)
         ENRGFO=DHSI(1,I,J)
         ENRGFI=DHSI(2,I,J)
-
-        QFIXR = .TRUE.
-        QCMPR = .FALSE.
-        IF (KOCEAN.eq.1) QFIXR=.FALSE.
-c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE   ! soon to be implemented.
-        IF (KOCEAN.eq.1.and.FLAKE(I,J).le.0) QCMPR=.TRUE.
 
         CALL ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,DIFSI,EDIFSI
      *       ,ENRGFO,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR,QCMPR)

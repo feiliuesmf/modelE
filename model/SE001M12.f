@@ -18,9 +18,9 @@ C**** DRAG.  IT ALSO CALCULATES INSTANTANEOUS SURFACE TEMPERATURE,
 C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
-     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
+     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
-     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean,flake
+     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi
       USE SOMTQ_COM, only : tmom,qmom
@@ -38,6 +38,8 @@ C****
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
+      USE LAKES_COM, only : mwl,mldlk,gml,flake
+      USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype
       IMPLICIT NONE
@@ -56,7 +58,7 @@ C****
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
-     *     ,PLK,PLKI,F1DTS,SSS
+     *     ,PLK,PLKI,EVAPLIM,F1DTS,SSS
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -97,7 +99,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
         TGRN2(3,I,J)=GTEMP(2,3,I,J)
       END DO
       END DO
-C*
+
 C**** Zero out fluxes summed over type
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
@@ -214,6 +216,15 @@ C****
       PTYPE=POCEAN
       NGRNDZ=1
       TG1=GTEMP(1,1,I,J)
+      IF (FLAKE(I,J).gt.0) THEN
+C**** limit evap if between MINMLD and 40cm, no evap below 40cm
+        IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*DXYP(J)) THEN
+          EVAPLIM=MAX(0.5*(MWL(I,J)/(FLAKE(I,J)*DXYP(J))-0.4d0*RHOW),
+     *         0d0)
+        ELSE
+          EVAPLIM=MWL(I,J)/(FLAKE(I,J)*DXYP(J))-(0.5*MINMLD+0.2d0)*RHOW
+        END IF
+      END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
@@ -396,8 +407,17 @@ C**** CALCULATE EVAPORATION
  3700 CONTINUE
       DQ1X =EVHDT/((LHE+TG1*SHV)*RMBYA)
       EVHDT0=EVHDT
-      IF (DQ1X .LE. Q1+DQ1(I,J)) GO TO 3720
-      DQ1X = Q1+DQ1(I,J)
+C**** Limit evaporation if lake mass is at minimum 
+      IF (ITYPE.EQ.1 .and. PLK.GT.0 .and.
+     *     (EVAPOR(I,J,1)-DQ1X*RMBYA).gt.EVAPLIM) THEN
+        WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J,EVAPOR(I,J,1)
+     *       -DQ1X*RMBYA, MWL(I,J)/(RHOW*FLAKE(I,J)*DXYP(J))
+        DQ1X=(EVAPOR(I,J,1)-EVAPLIM)/RMBYA
+      ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
+        DQ1X=(Q1+DQ1(I,J))
+      ELSE
+        GO TO 3720
+      END IF
       EVHDT=DQ1X*(LHE+TG1*SHV)*RMBYA
       IF (ITYPE.NE.1) TG1=TG1+(EVHDT-EVHDT0)/HCG1
  3720 EVAP=-DQ1X*RMBYA

@@ -4,9 +4,9 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
-      USE E001M12_COM, only : im,jm,lm,focean,flake,fland,fearth
+      USE E001M12_COM, only : im,jm,lm,focean,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM,ftype
-     *     ,itocean,itlake,itoice,itlkice,itlandi,itearth
+     *     ,itocean,itoice,itlandi,itearth
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
@@ -14,7 +14,6 @@
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim
       USE LANDICE_COM, only : snowli,tlandi
-      USE LAKES_COM, only : tlake,tfl
       USE FLUXES, only : gtemp
 
       IMPLICIT NONE
@@ -108,7 +107,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       SUBROUTINE OCLIM(IDOZ1O)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
-!@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
+!@ver  1.0 (Q-flux ocean or fixed SST)
       IMPLICIT NONE
 
       REAL*8 XZO(IM,JM),XZN(IM,JM)
@@ -198,89 +197,75 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
 C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
       DO J=1,JM
-        ZIMIN=Z1I+Z2OIM 
+        ZIMIN=Z1I+Z2OIM
         ZIMAX=2d0
         IF(J.GT.JM/2) ZIMAX=3.5d0
         IMAX=IMAXJ(J)
         DO I=1,IMAX
-          IF(FLAND(I,J).GE.1.) CYCLE
-C**** OST always uses quadratic fit
           IF (FOCEAN(I,J).gt.0) THEN
+C**** OST always uses quadratic fit
             TOCEAN(1,I,J)=AOST(I,J)+BOST(I,J)*TIME
      *                   +COST(I,J)*(TIME**2-BY12)
-          ELSE
-            TLAKE(I,J)=AOST(I,J)+BOST(I,J)*TIME
-     *                +COST(I,J)*(TIME**2-BY12)
-          END IF
-          SELECT CASE (KRSI(I,J))
+            SELECT CASE (KRSI(I,J))
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
-          CASE (-1)
-            IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
-              RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
-            ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .gt. 0.)  then
-              RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
-            ELSE
+            CASE (-1)
+              IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
+                RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
+              ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .gt. 0.)  then
+                RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
+              ELSE
               RSINEW = 0.       !  T0 < TIME < T1
             END IF
 C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
-          CASE (1)
-            IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .lt. 1.)  then
-              RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
-            ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .lt. 1.)  then
-              RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
-            ELSE
-              RSINEW = 1.       !  T0 < TIME < T1
+            CASE (1)
+              IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .lt. 1.)  then
+                RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
+              ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .lt. 1.)  then
+                RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
+              ELSE
+                RSINEW = 1.     !  T0 < TIME < T1
             END IF
 C**** RSI uses quadratic fit
-          CASE (0)
-            RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
-          END SELECT
-          RSI(I,J)=RSINEW
-          MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            CASE (0)  
+              RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
+            END SELECT
+            RSI(I,J)=RSINEW
+            MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** adjust enthalpy so that temperature remains constant
-          HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-          MSI(I,J)=MSINEW
+            HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+            MSI(I,J)=MSINEW
 C**** set ftype arrays
-          IF (FOCEAN(I,J).gt.0) THEN
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
-          ELSE
-            FTYPE(ITLKICE,I,J)= FLAKE(I,J)*    RSI(I,J)
-            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)-FTYPE(ITLKICE,I,J)
-          END IF
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-          IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
-          IF (TLAKE(I,J).LT.TFL) TLAKE(I,J)=TFL
+            IF (TOCEAN(1,I,J).LT.TFO) TOCEAN(1,I,J)=TFO
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
 c     IF (RSI(I,J).GT.0.) THEN
-c        BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
-c        RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
+c     BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
+c     RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
 c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
-          IF (RSI(I,J).LE.0.) THEN
-            HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
-            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
-            SNOWI(I,J)=0.
-            GTEMP(1:2,2,I,J)=0.
+            IF (RSI(I,J).LE.0.) THEN
+              HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
+              HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+              SNOWI(I,J)=0.
+              GTEMP(1:2,2,I,J)=0.
+            END IF
           END IF
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE (for prescribed data only)
       DO I=2,IM
-c       SNOWI(I,JM)=SNOWI(1,JM)
-        TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
-        TLAKE(I,JM)=TLAKE(1,JM)
-        RSI(I,JM)=RSI(1,JM)
-        MSI(I,JM)=MSI(1,JM)
-c       HSI(:,I,JM)=HSI(:,1,JM)
-c       GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-C**** set ftype arrays
         IF (FOCEAN(1,JM).gt.0) THEN
+          SNOWI(I,JM)=SNOWI(1,JM)
+          TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
+          RSI(I,JM)=RSI(1,JM)
+          MSI(I,JM)=MSI(1,JM)
+          HSI(:,I,JM)=HSI(:,1,JM)
+          GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+C**** set ftype arrays
           FTYPE(ITOICE ,I,JM)=FOCEAN(1,JM)*    RSI(1,JM)
           FTYPE(ITOCEAN,I,JM)=FOCEAN(1,JM)-FTYPE(ITOICE ,I,JM)
-        ELSE
-          FTYPE(ITLKICE,I,JM)= FLAKE(1,JM)*    RSI(1,JM)
-          FTYPE(ITLAKE ,I,JM)= FLAKE(1,JM)-FTYPE(ITLKICE,I,JM)
         END IF
       END DO
       RETURN
@@ -568,19 +553,18 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,twopi,edpery
       USE E001M12_COM, only : im,jm,kocean,focean,jday,ftype,itocean
-     *     ,itoice,fland,flake
+     *     ,itoice,fland
       USE OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : simelt,ace1i,lmi
-      USE LAKES_COM, only : tlake
       USE GEOM, only : imaxj
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
-      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE
+      REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE,RUN0
 
 C**** update ocean related climatologies
       CALL OCLIM(IEND)
@@ -627,7 +611,8 @@ C**** (MELTING POINT OF ICE)
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
             ENRGW=WTRW*TGW*SHW  ! energy of water available for melting
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED)
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
+C****       RUN0 not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW
@@ -647,11 +632,7 @@ C**** set ftype/gtemp arrays
 C**** set gtemp array for ocean temperature
       DO J=1,JM
       DO I=1,IM
-        IF (FOCEAN(I,J).gt.0) THEN
-          GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
-        ELSEIF (FLAKE(I,J).gt.0) THEN
-          GTEMP(1  ,1,I,J) = TLAKE(I,J)
-        END IF
+        IF (FOCEAN(I,J).gt.0) GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
       END DO
       END DO
 C****

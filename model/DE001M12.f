@@ -269,8 +269,8 @@ C****  95  NORTH-SOUTH GEOPOTENTIAL FLUX (W)                /3600.*1 DY
 C****  96  Energy Outflow by Rivers (10**10 W)     E-10/DTS*IDACC(1) RV
 C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
 C****  98  DU/DT BY SDRAG (M S-2)                                  1 SD
-C****  99  FREE
-C**** 100  FREE
+C****  99  LAST DAY OF ICE-FREE LAKE (DAYS)                       12 DA 
+C**** 100  LAST DAY OF ICED-UP LAKE (DAYS)                        12 DA
 C****
 C**** CONTENTS OF AIL(I,L,N)  (SUM OVER TIME OF)
 C**** WE ARE NOT TAKING INTO ACCOUNT THE VARIATION OF MASS
@@ -333,9 +333,11 @@ C****  10  ENERGY IN DIAG5 FROM FILTER  (DT: NFILTR*DTsrc)
 C****  11  NOT USED
 C****  12  ALWAYS =1 (UNLESS SEVERAL RESTART FILES WERE ACCUMULATED)
 C****
-C**** CONTENTS OF AUXILIARY ARRAYS (TSFREZ(I,J,1-2),TDIURN(I,J,N))
+C**** CONTENTS OF AUXILIARY ARRAYS (TSFREZ(I,J,1-4),TDIURN(I,J,N))
 C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
 C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
+C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
+C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
 C****
 C****   1  MIN TG1 OVER EARTH FOR CURRENT DAY (C)
 C****   2  MAX TG1 OVER EARTH FOR CURRENT DAY (C)
@@ -355,7 +357,7 @@ C****
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,fland,flice,fearth,WM,
      *     ntype,itocean,itoice,itearth,itlandi,itlake,itlkice,ftype
-     *     ,focean,flake
+     *     ,focean
       USE GEOM, only :
      &     AREAG,COSP,DLAT,DXV,DXYN,DXYP,DXYS,
      &     DXYV,DYP,FCOR,IMAXJ,RAVPN,RAVPS,SINP
@@ -371,6 +373,7 @@ C****
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
       USE LANDICE_COM, only : snowli
+      USE LAKES_COM, only : flake
 
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q

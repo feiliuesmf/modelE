@@ -1514,14 +1514,18 @@ c
       ia_ij(k) = ia_src
 c
       k=k+1 !  'AIJ099'
-      lname_ij(k) = 'unknown'
-      units_ij(k) = 'unknown'
-      name_ij(k) = 'AIJ099'
+      IJ_LKON = k
+      lname_ij(k) = 'LAST DAY OF ICE-FREE LAKE'
+      units_ij(k) = 'JULIAN DAY'
+      name_ij(k) = 'LKONDAY'
+      ia_ij(k) = ia_nmo
 c
       k=k+1 !  'AIJ100'
-      lname_ij(k) = 'unknown'
-      units_ij(k) = 'unknown'
-      name_ij(k) = 'AIJ100'
+      IJ_LKOFF = k 
+      lname_ij(k) = 'LAST DAY OF ICED-UP LAKE'
+      units_ij(k) = 'JULIAN DAY'
+      name_ij(k) = 'LKOFFDAY'
+      ia_ij(k) = ia_nmo
 c
       return
       end subroutine ij_defs
@@ -2847,11 +2851,25 @@ c
       name_tsf(k) = 'TSFREZ1'
       lname_tsf(k) = 'FIRST DAY OF GROWING SEASON'
       units_tsf(k) = 'JULIAN DAY'
+      tf_day1 = k
 c
       k=k+1
       name_tsf(k) = 'TSFREZ2'
       lname_tsf(k) = 'LAST DAY OF GROWING SEASON'
       units_tsf(k) = 'JULIAN DAY'
+      tf_last = k
+c
+      k=k+1
+      name_tsf(k) = 'LKICEON'
+      lname_tsf(k) = 'LAST DAY OF ICE-FREE LAKE'
+      units_tsf(k) = 'JULIAN DAY'
+      tf_lkon = k
+c
+      k=k+1
+      name_tsf(k) = 'LKICEOFF'
+      lname_tsf(k) = 'LAST DAY OF ICED-UP LAKE'
+      units_tsf(k) = 'JULIAN DAY'
+      tf_lkoff = k
 c
       return
       end subroutine tsf_defs
