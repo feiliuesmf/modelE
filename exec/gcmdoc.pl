@@ -69,6 +69,17 @@ print  "printing index\n";
 htm_start("index.html","GISS GCM Documentation Index");
 print HTM '<H5><Center>GISS GCM Documentation Index</Center></H5>'."\n";
 print HTM "<HR>\n";
+
+htm_link("Source Files","files.html"); print HTM "<BR>\n";
+htm_link("Fortran Modules","modules.html"); print HTM "<BR>\n";
+htm_link("Database Variables","vars_db.html"); print HTM "<BR>\n";
+htm_link("Namelist Variables","vars_nl.html"); print HTM "<BR>\n";
+htm_link("ALL Variables ( LONG! )","vars_all.html"); print HTM "<BR>\n";
+
+htm_end();
+
+htm_start("files.html","GCM Source Files");
+htm_link("Index","index.html");
 print HTM '<H3><Center>FILES</Center></font></H3>'."\n";
 print HTM "<dl>\n";
 foreach $name ( sort keys %db_files ) {
@@ -91,8 +102,10 @@ foreach $name ( sort keys %db_files ) {
     htm_text("Summary: $db_files{$name}{sum}");
 }
 print HTM "</dl>\n";
+htm_end();
 
-print HTM "<HR>\n";
+htm_start("modules.html","GCM Fortran Modules");
+htm_link("Index","index.html");
 print HTM '<H3><Center>MODULES</Center></font></H3>'."\n";
 print HTM "<dl>\n";
 foreach $name ( sort keys %db_modules ) {
@@ -104,6 +117,38 @@ foreach $name ( sort keys %db_modules ) {
     htm_text("$db_modules{$name}{sum}");
 }
 print HTM "</dl>\n";
+htm_end();
+
+print  "printing variables\n";
+
+htm_start("vars_db.html","GCM ALL Variables");
+htm_link("Index","index.html");
+print HTM '<H3><Center>List of Database Variables</Center></font></H3>'."\n";
+@var_list = ();
+foreach $name ( keys %db_vars ) {
+    if ( $db_vars{$name}{tag} =~ /\bdbparam\b/i ) {
+	push @var_list, $name;
+    }
+}
+htm_prt_vars( "sl", @var_list );
+htm_end();
+
+htm_start("vars_nl.html","GCM ALL Variables");
+htm_link("Index","index.html");
+print HTM '<H3><Center>List of Namelist Variables</Center></font></H3>'."\n";
+@var_list = ();
+foreach $name ( keys %db_vars ) {
+    if ( $db_vars{$name}{tag} =~ /\bnlparam\b/i ) {
+	push @var_list, $name;
+    }
+}
+htm_prt_vars( "sl", @var_list );
+htm_end();
+
+htm_start("vars_all.html","GCM ALL Variables");
+htm_link("Index","index.html");
+print HTM '<H3><Center>List of All Variables</Center></font></H3>'."\n";
+htm_prt_vars( "sl", keys %db_vars );
 htm_end();
 
 print  "printing files\n";
@@ -270,9 +315,83 @@ foreach $name ( keys %db_subs ) {
     htm_end();
 }
 
+
+
 print "done\n";
 print "to view the documentation do: \"netscape $output_dir/index.html\"\n";
 
+
+#### this is the end of the main program ######
+
+sub by_name_sub_mod { 
+    @aa = split /:/,$a; 
+    @bb = split /:/,$b; 
+       lc($aa[2]) cmp lc($bb[2]) ||  
+	   lc($aa[1]) cmp lc($bb[1]) || 
+	       lc($aa[0]) cmp lc($bb[0])  ;
+}
+
+sub htm_prt_vars { # print list of variables
+    my $opts = shift;
+    my $var_name;
+    my $file;
+    my $print_location = $opts =~ /l/i;
+    my $do_sort        = $opts =~ /s/i;
+    my @var_list;
+    if ( $do_sort ) {
+	@var_list = sort by_name_sub_mod @_;
+    } else {
+	@var_list = @_;
+    }
+    print HTM "<dl>\n";
+    foreach $var_name ( @var_list ) {
+	$var_name =~ /(\w*):(\w*):(\w+)/ || next;
+	my $mod = $1;
+	my $subr = $2;
+	my $var = $3;
+	print "PRT_VARS: $var_name, $mod, $subr, $var\n";
+
+	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
+	else { $color = "#880000" }
+	print HTM "<dt><font color=$color><B>$var</B></font>";
+	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
+	print HTM "<dd>";
+	if ( $print_location ) {
+	    if ( $subr ) {
+		#print HTM "Subroutine: $subr, ";
+		print HTM "Subroutine: ";
+		htm_link("$subr","$mod:$subr.html");
+		$file = $db_subs{"$mod:$subr"}{file};
+	    } else {
+		print HTM "Global variable ";
+		$file = $db_modules{"$mod"}{file};
+	    }
+	    #print HTM "Module: $mod, File: $file<BR>\n";
+	    print HTM ". Module: ";
+	    if ( $mod ) { 
+		htm_link("$mod","$mod.html");
+	    } else {
+		print HTM "NONE";
+	    }
+	    print HTM ". File: ";
+	    htm_link("$file","$file.html");
+	    print HTM "<BR>\n";
+	}
+	if ( $db_vars{$var_name}{sum} ) {
+	    htm_text("$db_vars{$var_name}{sum}");
+	}
+	if ( $db_vars{$var_name}{value} ) {
+	    print HTM 
+	      "Initial Value <code> = $db_vars{$var_name}{value}</code><BR>\n";
+	}
+	if ( ! ($db_vars{$var_name}{sum} || $db_vars{$var_name}{value}) ) {
+	    print HTM "<BR>\n";
+	}
+	
+    }
+print HTM "</dl>\n";
+
+}
 
 sub htm_start {
     my $filename = shift;
@@ -338,15 +457,17 @@ sub parse_file {
 
 	if( /^!\@(var|param|dbparam|nlparam)\b/i ) { #variable summary
 	    $doc_tag = "var";
-	    s/^!\@\w+\s+((\w+)(\s*,\s*(\w+))*)\s*//i;
+	    s/^!\@(\w+)\s+((\w+)(\s*,\s*(\w+))*)\s*//i;
+	    $tag = $1;
 	    #@var_list = split '[ ,]', $1;
-	    @var_list = split /\s*,\s*/, $1;
+	    @var_list = split /\s*,\s*/, $2;
 	    while( $name = pop @var_list ) {
 		$name =~ tr/A-Z/a-z/;
 		$var_name = "$current_module:$current_sub:$name";
 		#print "var: $var_name\n";
 		#print "comment: $_\n";
 		$db_vars{$var_name}{sum} = "$_\n";
+		$db_vars{$var_name}{tag} = $tag;
 		push @{$db_subs{"$current_module:$current_sub"}{vars}}, $name;
 	    }
 	    next;
@@ -396,21 +517,23 @@ sub parse_file {
 	#print;
 	if ( /hjdhsdjhfsjkdf/ ) { print "you are kidding!\n"; }
 
-	if( /^.+!\@var|param|dbparam|nlparam\b/i ) { # inline variable summary
+	if( /^.+!\@(var|param|dbparam|nlparam)\b/i ) { #inline variable summary
 	    $doc_tag = "var";
 	    $str = $_;
-	    $str =~ s/.*!\@\w+\s+((\w+)(\s*,\s*(\w+))*)\s*//i;
+	    $str =~ s/.*!\@(\w+)\s+((\w+)(\s*,\s*(\w+))*)\s*//i;
+	    $tag = $1;
 	    #$str =~ s/\s*!\@var\s+(.*)$//;
 	    #$comment = $1;
 	    #$str =~ s/......//;
 	    #$str =~ /(
 		#      (\w+ (\s*=\s*[^,]+)? \s*,\s*)* \w+ (\s*=\s*[^,]+)?
 		#      )\s*$/x;
-	    @var_list = split /\s*,\s*/, $1;
+	    @var_list = split /\s*,\s*/, $2;
 	    while( $name = pop @var_list ) {
 		$name =~ tr/A-Z/a-z/;
 		$var_name = "$current_module:$current_sub:$name";
 		$db_vars{$var_name}{sum} = "$str\n";
+		$db_vars{$var_name}{tag} = $tag;
 		push @{$db_subs{"$current_module:$current_sub"}{vars}}, $name;
 	    }
 	    s/!\@.*$//i;
@@ -499,18 +622,20 @@ sub parse_fort_str {
 	    #print "VAR $var   DIM $dim\n";
 	    # look for initial value
 	    $var_val = "";
-	    # var = abc( ()), abc, 123 
+	    # var = abc( ()), ( ())
 	    if( $fstr =~ 
 		s/^\s*=\s*(
-			   [^,"'()]* (   \(  ( [^()] | (\([^()]*\)) )*  \)  )?
+			   [^,"'()]* (   \(  ( [^()] | (\([^()]*\)) )*  \)  )
                           )//x ) {
               #  " ))) {
 		$var_val = " $1";
 		#print "VAR:  $var   ::: $var_val\n";
 	    }
-	    # var = "abc", 'abc'
-	    if( $fstr =~ s/^\s*=\s*(\"[^"]*\"|\'[^']*\')// ) {
-              # " ))) {
+	    # var = "abc", 'abc', 123
+	    if( $fstr =~ s/^\s*=\s*(\"[^"]*\"|\'[^']*\'|[^,"'()]+)// ) {#'))) {
+		#print "FSTR: #$fstr#\n";
+		#if( $fstr =~ s/^\s*=\s*(\".+\")// ) {
+		#print "VAL: #$1#\n";
 		$var_val = " $1";
 		#print "VAR:  $cvar   ::: $var_val\n";
 	    }
