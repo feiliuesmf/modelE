@@ -347,14 +347,25 @@ file each time when restart file is written.</P>
 
 <P>For each parameter the database keeps its name as a character
 string and its value (or list of values for an array). To get a value
-of a parameter &quot;my_param&quot; and assign it to the variable var
-one would do: call get_param( &quot;my_param&quot;, var ) If one wants
+of a parameter <code>&quot;my_param&quot;</code> and assign it to the 
+variable <code>var</code>
+one would do: 
+<P><pre>
+      call get_param( &quot;my_param&quot;, var )
+</pre><P> 
+If one wants
 to create a new parameter in the database with the name
-&quot;new_par&quot; and set it to the value var one would do: call
-set_param( &quot;new_par&quot;, var ) It is recommended that you use
+<code>&quot;new_par&quot;</code> and set it to the value var one would do: 
+<P><pre>
+      call set_param( &quot;new_par&quot;, var ) 
+</pre><P>
+It is recommended that you use
 the same name for the variable and for its name in the database, i.e.:
-call set_param( &quot;new_par&quot;, new_par ) call get_param(
-&quot;my_param&quot;, my_param ) This will improve the readability of
+<P><pre>
+     call set_param( &quot;new_par&quot;, new_par ) 
+     call get_param( &quot;my_param&quot;, my_param ) 
+</pre><P>
+This will improve the readability of
 the code.</P>
 
 <P>At the restart first all parameters from the rundeck are loaded to
@@ -369,20 +380,20 @@ parameters using rundeck.</P>
 <P><A NAME="Q2_5"> 5) So what are the actual interfaces?</A></P>
 
 <P>Rundeck: All parameters have been moved out of the namelist block
-to a new block which starts with &amp;&amp;PARAMETERS and ends with
-&amp;&amp;END_PARAMETERS This block is being read by a special parser
+to a new block which starts with <code>&amp;&amp;PARAMETERS</code> and ends with
+<code>&amp;&amp;END_PARAMETERS</code> This block is being read by a special parser
 (not a namelist). The syntax of this block is similar to that of the
 namelist with following restrictions: 
 <UL>
 <LI> only one parameter per line can be specified 
-<LI> character strings should be single quoted (like 'abc') 
+<LI> character strings should be single quoted (like <code>'abc'</code>) 
 <LI> arrays can be assigned only as a whole, no support for single
 elements 
 <LI> all elements of an array should be on the same line 
-<LI> repeaters (i.e. expressions like 2*123) are not supported 
+<LI> repeaters (i.e. expressions like <code>2*123</code>) are not supported 
 <LI> only linear arrays are supported 
-<LI> the only types supported are: integer, real*8, character*1 to
-character*16 
+<LI> the only types supported are: <code>integer, real*8, character*1</code> to
+<code>character*16</code> 
 </UL>
 Since the parser reads parameters from the rundeck right into the
 database there is no need to describe those parameters in advance in
@@ -390,18 +401,21 @@ any part of the code. The drawback is that the parser has to derive
 the type of the data and the size of arrays from the information
 provided in the rundeck. The following convention is used: 
 <UL>
-<LI> if single quoted (') strings are present on the line then the
-data are character strings 
-<LI> else if decimal points (.)  are present then the data is real*8 
-<LI> else the data is integer The number of data entries on the
+<LI> if single quoted (<code>'</code>) strings are present on the line then the
+data are <code>character</code> strings 
+<LI> else if decimal points (<code>.</code>)  are present then the data is <code>real*8</code>
+<LI> else the data is <code>integer </code>
+<LI> The number of data entries on the
 line specifies the dimension of the array. If only one data entry is
 present then the parameter is a scalar (or an array of dimension one
 which is equivalent).
 </UL></P>
 
-<P>PARAM library: The library utilizes Fortran 90 interface blocks in
-such a way that the type of parameters (i.e. integer, real*8,
-character) is recognized automatically, so the the names of
+<P>PARAM library: 
+
+<P>The library utilizes Fortran 90 interface blocks in
+such a way that the type of parameters (i.e. <code>integer, real*8,
+character</code>) is recognized automatically, so the the names of
 subroutines are the same for all types. If the dimension of the
 parameter is given then it is treated as an array. If dimension is
 omitted then it is a scalar. Beware that Fortran 90 treats scalars
@@ -410,24 +424,24 @@ may generate an error.</P>
 
 <P>The formal arguments in the subroutines below are: 
 <UL>
-  <LI> name - character*(*) - the name of the parameter which is a
+  <LI> <code>name</code> - <code>character*(*)</code> - the name of the parameter which is a
        character string no longer than 32 bytes 
-  <LI> value - a scalar variable or a linear array of type: integer,
-       real*8,character*1 to character*16 
-  <LI> dim - integer - dimension of an array, should be omitted for
+  <LI> <code>value</code> - a scalar variable or a linear array of type: <code>integer,
+       real*8,character*1 to character*16</code>
+  <LI> <code>dim</code> - <code>integer</code> - dimension of an array, should be omitted for
        scalars 
-  <LI> opt - character*1 - an optional &quot;option&quot; (opt='o'
+  <LI> <code>opt</code> - <code>character*1</code> - an optional &quot;option&quot; (<code>opt='o'</code>
        means &quot;overwrite&quot;) 
-  <LI> kunut - integer - unit number for reading/writing 
-  <LI> flag - logical - reading &quot;overwrite&quot; option
+  <LI> <code>kunut</code> - <code>integer</code> - unit number for reading/writing 
+  <LI> <code>flag</code> - <code>logical</code> - reading &quot;overwrite&quot; option
 </UL>
 </P>
 
 <P>Simple copy routines to copy parameters to/from database:
 <UL>
-  <LI>set_param( name, value, dim, opt ) - put a parameter with the name
+  <LI><code>set_param( name, value, dim, opt )</code> - put a parameter with the name
        &lt;name&gt; and the value &lt;value&gt; to the database
-  <LI>get_param( name, value, dim ) - copy the value of the parameter
+  <LI><code>get_param( name, value, dim )</code> - copy the value of the parameter
        &lt;name&gt; from the database to the variable &lt;value&gt;
 </UL>
 <P>These functions will check if the parameter is present in the
@@ -439,16 +453,20 @@ parameter which is already in the database use opt='o'. Otherwise
 
 <P>Query logical function:
 <UL>
-  <LI>is_set_param( name ) - returns .true. if parameter &lt;name&gt; is
-       present in the database, .false. otherwise 
+  <LI><code>is_set_param( name )</code> - returns <code>.true.</code> if parameter &lt;name&gt; is
+       present in the database, <code>.false.</code> otherwise 
 </UL></P>
 
 <P>A convenient function which is a combination of those above:
-sync_param( name, value, dim ) - literally consists of the following
+<code>sync_param( name, value, dim )</code> - literally consists of the following
 lines:</P>
-<P>if( is_set_param( name ) ) then
-get_param( name, value, dim ) else
-set_param( name, value, dim )</P>
+<P><pre>
+      if( is_set_param( name ) ) then
+        get_param( name, value, dim ) 
+      else
+        set_param( name, value, dim )
+      endif
+</pre>
 
 <P>So what it does, it checks if parameter &lt;name&gt; is in
 database and if so copies it to the &lt;value&gt;. Otherwise it
@@ -463,10 +481,10 @@ for future reference.</P>
 
 <P>Subroutines to work with pointers:</P>
 
-<P>alloc_param( name, pvalue, initval, dim ) - allocates space in the
+<P><code>alloc_param( name, pvalue, initval, dim )</code> - allocates space in the
 database for the parameter &lt;name&gt;, fills it with data provided
 in &lt;initval&gt; and returns pointer to it in &lt;pvalue&gt;</P>
-<P>get_pparam( name, pvalue, dim ) - returns pointer &lt;pvalue&gt;
+<P><code>get_pparam( name, pvalue, dim )</code> - returns pointer &lt;pvalue&gt;
 to the parameter data of the parameter &lt;name&gt; in the database</P>
 
 <P>These functions are provided as an additional tool and actually
@@ -488,22 +506,29 @@ in the database (so that it is automatically saved to the restart
 file).</P>
 
 <P>Reading/writing subroutines:</P>
-<P>read_param( kunit, ovrwrt ) - reads the parameter database from
+<P><code>read_param( kunit, ovrwrt )</code> - reads the parameter database from
 the unit &lt;kunit&gt;</P>
-<P>write_param( kunit ) - writes the parameter database to the unit
+<P><code>write_param( kunit )</code> - writes the parameter database to the unit
 &lt;kunit&gt;</P>
-<P>The arguments: kunit - integer - the unit number from/to
-reading/writing is performed ovrwrt - logical - if .true. then
+<P>The arguments: 
+<ul>
+<li><code>kunit</code> - <code>integer</code> - the unit number from/to
+reading/writing is performed 
+<li><code>ovrwrt</code> - logical - if .true. then
 reading overwrites those parameters that are already in the database.
 If .false. then those parameters which are already in the database
-are left unchanged and only new parameters are added.</P>
+are left unchanged and only new parameters are added.
+</ul>
 
 <P>Other useful subroutines:</P>
-<P>print_param( kunit ) - does formatted output to the unit &lt;kunit&gt;
+<P><code>print_param( kunit )</code> - does formatted output to the unit &lt;kunit&gt;
 in a way similar to namelist</P>
-<P>The argument: kunit - integer, inetnt(in) - the unit number
-corresponding to the file to which we want print the database</P>
-<P>query_param( n, name, dim, ptype ) - returns the the information
+<P>The argument: 
+<ul>
+<li><code>kunit</code> - <code>integer, inetnt(in)</code> - the unit number
+corresponding to the file to which we want print the database
+</ul>
+<P><code>query_param( n, name, dim, ptype )</code> - returns the the information
 about the parameter by its number in the database &lt;n&gt;. It
 returns 'EMPTY' in the &lt;name&gt; if parameter with such &lt;n&gt;
 doesn't exist (i.e. if &lt;n&gt; is bigger then the number of
@@ -511,21 +536,29 @@ parameters)</P>
 <P>The name is always converted to the low case. It
 returns 'EMPTY' (upper case) if &lt;n&gt; doesn't correspond to any
 parameter
-dim - integer, intent(out) - returns the dimension of the
+<ul>
+<li><code>dim</code> - <code>integer, intent(out)</code> - returns the dimension of the
 parameter (i.e. &lt;dim&gt; = 1 for scalars, &lt;dim&gt; &gt; 1 for
-arrays) ptype - character*1, intent(out) - returns the type of the
-parameter: 'i' - for integer 'r' - for real*8 'c' - for character</P>
-
+arrays) 
+<li><code>ptype</code> - <code>character*1, intent(out)</code> - returns the type of the
+parameter: <code>'i'</code> - for <code>integer 'r'</code> - for <code>real*8 
+'c'</code> - for <code>character</code></P>
+</ul>
 <P>Parser subroutine:</P>
-<P>parse_params( kunit ) - parse the information in the file &lt;kunit&gt;
+<P><code>parse_params( kunit )</code> - parse the information in the file &lt;kunit&gt;
 and load the parameters into the database. It overwrites the existing
 parameters.</P>
-<P>The argument: kunit - integer - the unit number corresponding to
+<P>The argument: 
+<ul>
+<li><code>kunit</code> - <code>integer</code> - the unit number corresponding to
 the file with the rundeck information (it should contain a block
 starting with &amp;&amp;PARAMETERS and ending with &amp;&amp;END_PARAMETERS)</P>
+</ul>
 <P>This subroutine is actually located in a separate module PARSER,
 but it seemed logical to describe it here.</P>
-<P>6) Any examples?</P>
+
+<P><A NAME="Q2_6"> 6) Any examples?</P>
+
 <P>Here is an example of typical usage of &quot;query_param&quot;.
 One should keep in mind that though &quot;get_param&quot; is a
 generic interface one should call it with the arguments of correct
@@ -567,7 +600,7 @@ case&quot; below.</P>
         n = n + 1
       enddo
       end subroutine ex_param
-</tt>
+</pre>
 
 <hr>
 <H3><A NAME="Q3"> 3. FAQs about Preprocessing instructions.</A></H3>
@@ -619,13 +652,13 @@ Preprocessor Options</em>. Everything between those lines is treated
 as a set of preprocessing definitions and will be included into
 corresponding source files. Here is a simple example of preprocessing
 block:</P> 
-<tt>
-Preprocessor Options<br>
-#define TRACERS_ON ! include tracers code <br>
-End Preprocessor Options<br>
-</tt>
+<pre>
+Preprocessor Options
+#define TRACERS_ON ! include tracers code
+End Preprocessor Options
+</pre>
 <P>It defines the name <tt>TRACERS_ON</tt>. The text which starts
-from '!' is considered as comment and is ignored. Trailing spaces and
+from <tt>'!'</tt> is considered as comment and is ignored. Trailing spaces and
 empty lines are also ignored.</P>
 
 <P><A NAME="Q3_3"> 3) How to use global preprocessing options in a
