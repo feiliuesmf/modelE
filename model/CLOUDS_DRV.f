@@ -16,7 +16,7 @@
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
+      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
@@ -728,7 +728,7 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
 C**** Save area weighted isccp histograms
         n=isccp_reg(j)
         if (n.gt.0) then
-          AISCCP(:,:,n) = AISCCP(:,:,n) + fq_isccp(:,:)*DYP(j)
+          AISCCP(:,:,n) = AISCCP(:,:,n) + fq_isccp(:,:)*DXYP(j)
         end if
       end if
 
@@ -1065,18 +1065,16 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
 C**** Define regions for ISCCP diagnostics
       do j=J_0,J_1
         isccp_reg(j)=0.
-        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-45.)
+        if (lat_dg(j,1).ge.-60. .and. lat_dg(j,1).lt.-30.)
      *       isccp_reg(j)=1
-        if (lat_dg(j,1).ge.-45. .and. lat_dg(j,1).lt.-30.)
-     *       isccp_reg(j)=2
         if (lat_dg(j,1).ge.-30. .and. lat_dg(j,1).lt.-15.)
-     *       isccp_reg(j)=3
+     *       isccp_reg(j)=2
         if (lat_dg(j,1).ge.-15. .and. lat_dg(j,1).lt.15.)
-     *       isccp_reg(j)=4
+     *       isccp_reg(j)=3
         if (lat_dg(j,1).ge.15. .and. lat_dg(j,1).lt.30.)
-     *       isccp_reg(j)=5
+     *       isccp_reg(j)=4
         if (lat_dg(j,1).ge.30. .and. lat_dg(j,1).lt.60.)
-     *       isccp_reg(j)=6
+     *       isccp_reg(j)=5
       end do
 
       END SUBROUTINE init_CLD

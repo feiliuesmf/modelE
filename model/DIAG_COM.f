@@ -165,7 +165,7 @@ C**** parameters and variables for ISCCP diags
 !@param ntau,npress number of ISCCP optical depth,pressure categories
       integer, parameter :: ntau=7,npres=7
 !@param nisccp number of ISCCP histogram regions
-      integer, parameter :: nisccp = 6
+      integer, parameter :: nisccp = 5
 !@var isccp_reg latitudinal index for ISCCP histogram regions
       integer :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
