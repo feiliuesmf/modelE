@@ -22,6 +22,8 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, PARAMETER :: NRVR = 42 !@param Number of specified rivers
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
       INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH
+!@var NAMERVR Names of specified rivers
+      CHARACTER*8, DIMENSION(NRVR) :: NAMERVR
 
 !@param MINMLD minimum mixed layer depth in lake (m)
       REAL*8, PARAMETER :: MINMLD = 1.
@@ -339,7 +341,16 @@ C**** Read in CDIREC: Number = octant direction, Letter = river mouth
           READ  (iu_RVR,911) (CDIREC(I,J),I=I72-71,I72)
         END DO
       END DO
-      call closeunit (iu_RVR)
+C**** read in named rivers (if any)
+      READ (iu_RVR,*,END=10)
+      READ (iu_RVR,'(A80)',END=10) TITLEI
+      READ (iu_RVR,*,END=10)
+      IF (TITLEI.eq."Named River Mouths:") THEN
+        DO I=1,NRVR,5
+          READ(iu_RVR,'(5(A8,X))') NAMERVR(I:MIN(NRVR,I+4))
+        END DO
+      END IF
+ 10   call closeunit (iu_RVR)
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
       DO J=1,JM
@@ -352,6 +363,13 @@ C**** Check for specified river mouths
           INM=INM+1
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
+          IF (CDIREC(I,J).ne.NAMERVR(INM)(1:1)) THEN
+            WRITE(6,*) "Warning: Named river in RVR does not correspond"
+     *           //" with letter in direction file. Please check"
+            WRITE(6,*) "INM, CDIREC, NAMERVR = ",INM,CDIREC(I,J)
+     *           ," ",NAMERVR(INM)
+            NAMERVR(INM)=CDIREC(I,J)  ! set default
+          END IF
         END IF
       END DO
       END DO
@@ -595,19 +613,8 @@ C****
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DAGCOM, only : aij,ij_mrvr
-      USE LAKES, only : irvrmth,jrvrmth,nrvr
+      USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
       IMPLICIT NONE
-!@var NAMERVR Names of specified rivers
-      CHARACTER*8, PARAMETER :: NAMERVR(NRVR) = (/
-     *     "Murray  ","Parana  ","Orange  ","Limpopo ","Zambezi ",
-     *     "SaoFranc","Congo   ","Amazon  ","Niger   ","Orinoco ",
-     *     "Mekon   ","Magdalen","Godavari","Irrawadi","Brahmapu",
-     *     "Indus   ","HsiChian","RioGrand","Tigris  ","Colorado",
-     *     "Mississi","Yangtze ","Nile    ","Yellow  ","Volga   ",
-     *     "Columbia","Loire   ","Danube  ","Fraser  ","StLawren",
-     *     "Rhine   ","Amur    ","Nelson  ","Elbe    ","Yukon   ",
-     *     "Severnay","Mackenzi","Kolym   ","Ob      ","Yenesei ",
-     *     "Lena    ","Indigirk"/)
       REAL*8 RVROUT(6), SCALERVR, DAYS
       INTEGER INM,I
 
