@@ -18,7 +18,7 @@ print_usage help all:
 	echo 'above or below this message, that means that you are using'
 	echo 'the wrong (not GNU) "make" command.'
 	echo 'This Makefile automatically recognizes and supports '
-	echo 'SGI, IBM and DEC workstations, Linux PC and Mac's. Compiler'
+	echo 'SGI, IBM and DEC workstations, Linux PC and Mac. Compiler'
 	echo 'support for Absoft, Lahey/Fujitsu and PGI are available'
 	echo
 	echo The following is a list of supported targets:
