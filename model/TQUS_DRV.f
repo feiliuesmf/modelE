@@ -280,7 +280,7 @@ C****         y-direction
           end do
         endif
         if (HAVE_NORTH_POLE) then
-          do l=1,lm		!Poles
+          do l=1,lm              !Poles
             snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
             ma(:,jm,l) = snp
             if (ma(1,jm,l)/mb(1,jm,l).lt.0.5) then
