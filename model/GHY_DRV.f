@@ -1764,7 +1764,7 @@ c****
         end do
       end if
 #ifdef TRACERS_DRYDEP
-      CALL RDLAI ! read leaf are indecies for tracer dry deposition
+      CALL RDLAI ! read leaf area indices for tracer dry deposition
 #endif
 
       return
