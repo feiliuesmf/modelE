@@ -68,7 +68,7 @@
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
-     *     ,s0,s1,s2,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2,prt
+     *     ,s0,s1,s2,s4,s5,s6,s7,s8,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
       !for level 3 model only:
       real*8 :: g0,d1_3,d2_3,d3_3,d4_3,d5_3
@@ -532,9 +532,8 @@ C**** with maximum allowed flux.
       dvdz=(v(n)-v(n-1))/dzh(n-1)
       as2=dudz*dudz+dvdz*dvdz
       tau=B1*lscale(n-1)/max(sqrt(2.*e(n-1)),teeny)
-      !@var w2_1 the vertical component of e at GCM layer 1
-      w2_1=twoby3*e(n-1)-tau*by3
-     &     *((3*g3-g2)*km(n-1)*as2+4.*g4*kh(n-1)*an2)
+      !@var w2_1 the vertical component of 2*e at GCM layer 1
+      w2_1=twoby3*e(n-1)-tau*by3*(s7*km(n-1)*as2+s8*kh(n-1)*an2)
       w2_1=max(0.24d0*e(n-1),w2_1) ! Mellor-Yamada 1982
 
 c     call check1(ustar,1,ilong,jlat,2)
@@ -1086,6 +1085,9 @@ c
       s5=2.*g4/(3.*g5**2)
       s6=2./(3.*g5)*(g3**2-g2**2/3)-g1/(2.*g5)*(g3-g2/3.)
      &   +g1/(4*g5**2)*(g6-g7)
+
+      s7=3.*g3-g2   !@ useful to calculate w2
+      s8=4.*g4      !@ useful to calculate w2
 
 c     find rimax:
 

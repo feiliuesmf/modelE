@@ -987,7 +987,7 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
 C**** initialize egcm to be used in ATURB.f
           DO L=1,LM
             egcm(l,i,j)=egcm_init_max/(float(l)**2)
-            w2gcm(l,i,j)=egcm(l,i,j)*by3
+            w2gcm(l,i,j)=egcm(l,i,j)*2.*by3
           END DO
         END DO
         END DO

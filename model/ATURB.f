@@ -52,7 +52,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze
      &    ,km,kh,ke,wt_nl,wq_nl
-     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,uw,vw,wt,wq
+     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,w2,uw,vw,wt,wq
       real*8, dimension(lm+1) :: ze
 
       real*8, dimension(lm,im,grid%j_strt_halo:grid%j_stop_halo) :: 
@@ -140,7 +140,7 @@ C****
 !$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
-!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,uw,vw,
+!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
 !$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
 !$OMP*   tpe0,tpe1,ediff
 #ifdef TRACERS_ON
@@ -258,7 +258,7 @@ C**** minus sign needed for ATURB conventions
           ! calculate turbulent diffusivities km,kh and ke
           call k_gcm(tvflx,qflx,ustar,wstar,dbl
      &        ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
-     &        ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
+     &        ,kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
      &        ,trflx,wc_nl,nta
 #endif
@@ -379,7 +379,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
 
             q_3d(i,j,l)=q(l)
             e_3d(l,i,j)=e(l)
-            w2_3d(l,i,j)=2.*by3*e(l)
+            w2_3d(l,i,j)=w2(l)
             ! t2_3d(l,i,j)=t2(l)  ! not in use
             km_3d(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
@@ -1411,7 +1411,7 @@ c calls to this routine.
 
       subroutine k_gcm(tvflx,qflx,ustar,wstar,dbl
      &  ,ze,lscale,e,qturb,an2,as2,dtdz,dqdz,dudz,dvdz
-     &  ,kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
+     &  ,kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 #ifdef TRACERS_ON
      &  ,trflx,wc_nl,nta
 #endif
@@ -1439,6 +1439,7 @@ c calls to this routine.
 !@var dvdz dv/dz
 !@var km turbulent diffusivity for momentun
 !@var ke turbulent diffusivity for e
+!@var w2 vertical component of 2*e
 !@var wt,wq,uw,vw turbulent fluxes
 !@var wt_nl non-local part of heat flux wt
 !@var wq_nl non-local part of moisture flux wq
@@ -1447,7 +1448,7 @@ c calls to this routine.
 
       USE CONSTANT, only : teeny,by3
       USE SOCPBL, only : kappa,prt,ghmin,ghmax,d1,d2,d3,d4,d5
-     &                  ,s0,s1,s2,s4,s5,s6,b1,g5
+     &                  ,s0,s1,s2,s4,s5,s6,s7,s8,b1,g5
 
       implicit none
 
@@ -1464,7 +1465,7 @@ c calls to this routine.
      &        ,dtdz,dqdz,dudz,dvdz
       real*8, dimension(n+1), intent(in) :: ze
       real*8, dimension(n), intent(out) ::
-     &  kh,km,ke,wt,wq,uw,vw,wt_nl,wq_nl
+     &  kh,km,ke,wt,wq,w2,uw,vw,wt_nl,wq_nl
 
       real*8, parameter :: kmmin=1.5d-5,khmin=2.5d-5,kmax=600.d0
       real*8 :: tmp0,tmp,tau,gm,gh,gmmax,byden,sm,sh
@@ -1507,6 +1508,7 @@ c calls to this routine.
               kh(j)=min(max(tau*e(j)*sh,khmin),kmax)
               wt_nl(j)=0.
               wq_nl(j)=0.
+              w2j=by3*(2.*e(j)-tau*(s7*km(j)*as2(j)+s8*kh(j)*an2(j)))
 #ifdef TRACERS_ON
               do nt=1,nta
                 wc_nl(j,nt)=0.
@@ -1516,6 +1518,7 @@ c calls to this routine.
           ke(j)=5.*km(j)
           wt(j) = -kh(j)*dtdz(j)+wt_nl(j)
           wq(j) = -kh(j)*dqdz(j)+wq_nl(j)
+          w2(j) = min(max(0.24d0*e(j),w2j),2.*e(j))
           uw(j) = -km(j)*dudz(j)
           vw(j) = -km(j)*dvdz(j)
       end do
