@@ -22,8 +22,10 @@ C****      RXM,RYM,RZM (kg) = first moments of tracer mass
 C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = air mass
 C****
+      USE E001M12_COM
+     &   , ONLY : LM
       IMPLICIT REAL*8 (A-H,M,O-Z)
-      PARAMETER (IM=1,JM=1,LM=53)
+      PARAMETER (IM=1,JM=1)
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
      *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)

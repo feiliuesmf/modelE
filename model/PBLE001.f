@@ -72,9 +72,8 @@ C              (m/sec)
 C     WG     = magnitude of the geostrophic wind (m/sec)
 C
 C --------------------------------------------------------------------
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
-      COMMON U,V,T,P,Q
       COMMON/RDATA/ROUGHL(IM,JM)
       COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM),PREC(IM,JM),
      2             TPREC(IM,JM),TAUSS(IM,JM,LM),TAUMC(IM,JM,LM),
@@ -827,8 +826,8 @@ c            initialization.
 c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
       theta=269.0727251
       z1=zgs+0.5*(1.-sige(2))*(psf-ptop)*rgas*theta/(grav*psf)
       x=z1/100.
@@ -1024,8 +1023,8 @@ c  melting because pland and plice are fixed. The source code to do
 c  this is retained and deleted in the update deck in the event this
 c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
       parameter (npbl=8)
       common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
      2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),
@@ -1136,12 +1135,11 @@ c ******* itype=4: Land
       end
 
       subroutine pgrads1
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
       parameter (iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1)
       common /pgpass/dpdxr(im,jm),dpdyr(im,jm),phi(im,jm)
      &              ,dpdxr0(im,jm),dpdyr0(im,jm)
-      common u,v,t,p,q
 
 c     for gcm main level 1:
       call geopot
@@ -1253,11 +1251,10 @@ c     at the surface:
       end
 
       subroutine geopot
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
       parameter (zgs=10.)
       common /pgpass/dpdxr(im,jm),dpdyr(im,jm),phi(im,jm)
-      common u,v,t,p,q
 c     note: FDATA(I,J,1) is the geopotential height (9.81*zatm)
 c
 c     for GCM main level 1:
@@ -1953,13 +1950,12 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
+      USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
       parameter (zgs=10.,ohmega=7.292e-5,rvx=0.)
       parameter (npbl=8)
       parameter (iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1)
       dimension tgvdat(im,jm,4)
-      common u,v,t,p,q
       common /rdata/roughl(im,jm)
       common /pblvar/uinit(npbl),vinit(npbl),tinit(npbl),qinit(npbl),
      2               einit(npbl)

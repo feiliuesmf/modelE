@@ -7,9 +7,24 @@ C****
 C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
+      USE E001M12_COM
+      USE SLE001
+     &    , only : ghdata,reth,retp,retp2,advnc,ghinij,
+     &    NGM,
+     &    PR,HTPR,PRS,HTPRS,GW=>W,HT,SNOWD,TP,FICE,GHOUR=>HOUR,
+     &    FV,FB,ATRG,ASHG,ALHG,
+     &    BETAD=>ABETAD,BETAV=>ABETAV,BETAT=>ABETAT,
+     &    BETAP=>ABETAP,BETAB=>ABETAB,BETA=>ABETA,
+     &    ACNA,ACNC,
+     &    EVAPW=>AEVAPW,EVAPD=>AEVAPD,EVAPB=>AEVAPB,
+     &    ARUNS,ARUNU,AERUNS,AERUNU,
+     &    DIFS=>ADIFS,EDIFS=>AEDIFS,
+     &    AEPC,AEPB,AEPP,AFHG,AF0DT,AF1DT,ZW,TBCS,
+     &    QM1,Q1,QS,
+     &    PRES,RHO,TSPASS=>TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
+     &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
+     &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
       IMPLICIT REAL*8 (A-H,O-Z)
-      INCLUDE 'E001M12.COM'
-      COMMON U,V,T,P,Q
       COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM),PREC(IM,JM),
      2             TPREC(IM,JM),TAUSS(IM,JM,LM),TAUMC(IM,JM,LM),
      4             COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
@@ -19,30 +34,13 @@ C****
      *  TGRND(IM,JM,4),BLTEMP(IM,JM,8)
          COMMON/oldDAG/GDEEP(IM,JM,3)
       COMMON/RDATA/ROUGHL(IM,JM),FSF(IM,JM,4)
-C**** Interface to SOILS subroutines
-      PARAMETER (NGM=6)
-      COMMON/SOILS2/SDATA(IM,JM,9*NGM+1)
-      COMMON/SOILS3/GHDATA(IM,JM,4*NGM+5)
-      COMMON/SOILS/PR,HTPR,PRS,HTPRS,GW(0:NGM,2),HT(0:NGM,2)
-     & ,SNOWD(2),GWS(0:NGM,2),TP(0:NGM,2),FICE(0:NGM,2),GHOUR,COSDAY
-     * ,SINDAY,GDZ(NGM),QSOIL(5,NGM),QKSOIL(5,NGM),SL,FV,FB,ALAI,ATRG
-     & ,ASHG,ALHG,BETAD,BETAV,BETAT,BETAP,BETAB,BETA,ACNA,ACNC,EVAPW
-     & ,EVAPD,EVAPB,ARUNS,ARUNU,AERUNS,AERUNU,DIFS,EDIFS,AEPC,AEPB
-     & ,AEPP,AFHG,AF0DT,AF1DT,CNC,ZW(2),FD,FW,FM,VH,ALAIE,TBCS
-     & ,TCS,SNOWM,IDPASS,IGCM
-      COMMON/EVPTR/QM1,Q1,QS
+C****
       COMMON /WORKLS/PRCSS(IM,JM)
-C**** Interface to SURFCE and land surface subroutines:
-
-      COMMON/SURFC/PRES,RHO,TSPASS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
-     *             ZMIXE,CN,P1,PBLP,FCR,FMAG,TGPASS,TKPASS,VGM,SINA,
-     *             EDDY,xxxRI1,xxxRIS,FPAD,FS(2),FS1(2,2),T1G,TSG,IZ,IZX
-
+C**** Interface to PBL
       COMMON /PBLPAR/ZGS,ZS1,PIJ,PSK,TGV,TKV,THV1,QG,HEMI,SHA,
      2               OMEGA2,DTSURF,JVPO,IQ1,IQ2,IQ3,IM1,POLE
       COMMON /PBLOUT/US,VS,WS,TSV,QSRF,PSI,DBL,EDVISC,EDS1,
      2               USTAR,PPBL,CDM,CDH,CDQ,UG,VG,WG,ZMIX
-
       parameter (npbl=8)
       common /socabl/uabl(npbl,im,jm,4),vabl(npbl,im,jm,4),
      2               tabl(npbl,im,jm,4),qabl(npbl,im,jm,4),

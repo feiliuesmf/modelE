@@ -23,8 +23,9 @@ C**** Output:    RM (kg) = mean tracer mass
 C****   RXM,RYM,RZM (kg) = first moments of tracer mass
 C****   RXXM,RYYM,. (kg) = second moments of tracer mass
 C****
+      USE E001M12_COM
+     &   , ONLY : IM,JM,LM
       IMPLICIT REAL*8 (A-H,M,O-Z)
-      PARAMETER (IM=72,JM=46,LM=12)
       LOGICAL*4 QLIMIT
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
@@ -146,8 +147,9 @@ C****      RXM,RYM,RZM (kg) = first moments of tracer mass
 C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = fluid mass
 C****
+      USE E001M12_COM
+     &   , ONLY : IM,JM,LM
       IMPLICIT REAL*8 (A-H,M,O-Z)
-      PARAMETER (IM=72,JM=46,LM=12)
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
      *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
@@ -379,8 +381,9 @@ C****      RXM,RYM,RZM (kg) = first moments of tracer mass
 C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = fluid mass
 C****
+      USE E001M12_COM
+     &   , ONLY : IM,JM,LM
       IMPLICIT REAL*8 (A-H,M,O-Z)
-      PARAMETER (IM=72,JM=46,LM=12)
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
      *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
@@ -711,8 +714,9 @@ C****      RXM,RYM,RZM (kg) = first moments of tracer mass
 C****   RXXM,RYYM,RZZM (kg) = second moments of tracer mass
 C****                M (kg) = air mass
 C****
+      USE E001M12_COM
+     &   , ONLY : IM,JM,LM
       IMPLICIT REAL*8 (A-H,M,O-Z)
-      PARAMETER (IM=72,JM=46,LM=12)
       REAL*8 RXM(IM,JM,LM), RYM(IM,JM,LM), RZM(IM,JM,LM),
      *      RXXM(IM,JM,LM),RYYM(IM,JM,LM),RZZM(IM,JM,LM),
      *      RXYM(IM,JM,LM),RYZM(IM,JM,LM),RZXM(IM,JM,LM)
