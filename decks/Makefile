@@ -10,7 +10,7 @@ BIN_DIR = $(DECKS_DIR)/$(RUN).bin
 
 SETUP = $(SCRIPTS_DIR)/setup_e
 
-RUNSRC  = E001
+RUNSRC = E001
 
 help:
 	$(MAKE) -C $(MODEL_DIR) help
