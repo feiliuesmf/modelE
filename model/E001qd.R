@@ -57,7 +57,7 @@ RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
-dH2O=dH20_by_CH4
+dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
