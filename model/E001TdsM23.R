@@ -23,8 +23,12 @@ Balanced for 1950 SST + forcings
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
-#define TRACERS_WATER               ! include water tracers code
-#define TRACERS_SPECIAL_Shindell
+#define TRACERS_WATER               ! tracers can interact with water
+#define TRACERS_DRYDEP              ! include tracer dry deposition
+#define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
+!  OFF #define EDGAR_HYDE_SOURCES          ! use EDGAR-HYDE tracers sources instead
+!  OFF #define SHINDELL_STRAT_CHEM         ! to turn on stratospheric chemistry
+!  OFF #define regional_Ox_tracers         ! to turn on regional Ox tracers
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -47,6 +51,7 @@ TRCHEM_family                       ! tracer family chemistry
 TRCHEM_fastj                        ! tracer chem photlysis code/rad transf
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! ----------------------------------
+TRDRYDEP                            ! tracer dry deposition from Harvard CTM
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
@@ -106,18 +111,34 @@ O3file_07=aug2003_o3_shindelltrop_72x46x49x12_1970
 O3file_08=aug2003_o3_shindelltrop_72x46x49x12_1980
 O3file_09=aug2003_o3_shindelltrop_72x46x49x12_1990
 O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
-Ox_corr=gsin/corrOx_modelE_v4
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
 !-----------------------------------------------
-MOLEC=chem_files/ds3ch4_moleculesXX
+MOLEC=chem_files/ds3ch4_moleculesE 
 JPLRX=chem_files/gs_jpl00_trop_15_fix
 JPLPH=chem_files/ds_photlist_trop_15
 RATJ=chem_files/ratj.giss_15
 SPECFJ=chem_files/jv_spec00_15.dat
 ATMFJ=chem_files/jv_atms.dat
+DRYCOEFF=chem_files/drydep.coef
+VEGTYPE=chem_files/vegtype.global
+OLSON=chem_files/drydep.table
+LAI01=chem_files/lai01.global
+LAI02=chem_files/lai02.global
+LAI03=chem_files/lai03.global
+LAI04=chem_files/lai04.global
+LAI05=chem_files/lai05.global
+LAI06=chem_files/lai06.global
+LAI07=chem_files/lai07.global
+LAI08=chem_files/lai08.global
+LAI09=chem_files/lai09.global
+LAI10=chem_files/lai10.global
+LAI11=chem_files/lai11.global
+LAI12=chem_files/lai12.global
 Ox_IC=gsin/Ox_init_cond_M23_4x5 !see README in /usr/people/cmrun/gsin
+! next one needed only if correct_strat_Ox=.true.
+Ox_corr=gsin/corrOx_modelE_v4
 CO_INDUSTRIAL=CO_sources/co_industrial
 CO_BIOMASS=CO_sources/co_biomass_new
 Alkenes_INDUSTRIAL=gsin/alkenes_industrial_4x5   !monthly  KG/hr/grid
