@@ -652,8 +652,8 @@ C****
       RETURN
       END SUBROUTINE SSIDEC
 
-      subroutine iceocean(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc,mfluxmax
-     *     ,mlsh,mflux,sflux,hflux)
+      subroutine iceocean(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc
+     *     ,mlsh,mflux,sflux,hflux)     !,mfluxmax
 !@sum  iceocean calculates fluxes at base of sea ice 
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -688,7 +688,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var dtsrc source time step (s)
 !@var mfluxmax maximum melt rate allowed (kg/m^2 s)
 !@var mlsh mixed layer specific heat capactity (J/m^2 C) 
-      real*8, intent(in) :: dtsrc,mfluxmax,mlsh
+      real*8, intent(in) :: dtsrc,mlsh          !,mfluxmax
 !@var mflux,sflux,hflux mass, salt and heat fluxes at base of ice
       real*8, intent(out) :: mflux,sflux,hflux
 !@var g_T,g_S turbulent exchange velocities (m/s)
@@ -792,7 +792,7 @@ C****
       return
       end subroutine iceocean
 
-      subroutine icelake(Ti,Tm,dh,dtsrc,mfluxmax,mlsh,mflux,hflux)
+      subroutine icelake(Ti,Tm,dh,dtsrc,mlsh,mflux,hflux)   !,mfluxmax
 !@sum  icelake calculates fluxes at base of lake ice (no salinity)
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -802,7 +802,7 @@ C****
 !@+     with  Tib=Ti m>0,  or Tib=0. m<0        (4)
       implicit none
       real*8, intent(out) :: mflux,hflux
-      real*8, intent(in) :: Ti,Tm,dh,dtsrc,mfluxmax,mlsh
+      real*8, intent(in) :: Ti,Tm,dh,dtsrc,mlsh     !,mfluxmax
 !@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 s)
       real*8, parameter ::  rsg = rhow*shw*5d-5 
       real*8 left2, lh, m, alamdh

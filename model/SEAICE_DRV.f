@@ -91,7 +91,7 @@ C****
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
-     *     ,mfluxmax,mlsh,tofrez
+     *     ,mlsh,tofrez   !,mfluxmax
 
       DO J=1,JM
 C**** Coriolis parameter (on tracer grid)
@@ -101,7 +101,7 @@ C**** Coriolis parameter (on tracer grid)
 C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
             dh = 0.5*(XSI(LMI)*MSI(I,J))/RHOI
-            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
+c            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Ice lowest layer conditions
               Si = 1d3*SSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))
@@ -112,9 +112,9 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
                 Ustar = MIN(5d-4,SQRT(UI2rho(I,J)/RHOW))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
-c                print*,"underice0",i,j,Ti,Si,Tm,Sm,dh
-                call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mfluxmax
-     *               ,mlsh,mflux,sflux,hflux)
+
+                call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc
+     *               ,mlsh,mflux,sflux,hflux) !,mfluxmax)
               ELSE ! for fixed SST assume freezing temp at base,implicit
                 hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
      *               /(XSI(LMI)*MSI(I,J)))
@@ -125,7 +125,7 @@ c                print*,"underice0",i,j,Ti,Si,Tm,Sm,dh
               Ti = (HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))+LHM)*BYSHI
               mlsh=SHW*MLDLK(I,J)*RHOW
               sflux = 0.
-              call icelake(Ti,Tm,dh,dtsrc,mfluxmax,mlsh,mflux,hflux)
+              call icelake(Ti,Tm,dh,dtsrc,mlsh,mflux,hflux)  !,mfluxmax
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
                 FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J)) 
@@ -140,8 +140,6 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down 
             FHSI_IO(I,J) = hflux*dtsrc
             FSSI_IO(I,J) = sflux*dtsrc
-c            print*,"underice1",i,j,FMSI_IO(I,J),FHSI_IO(I,J),FSSI_IO(I,J
-c     *           )
           ELSE
             FMSI_IO(I,J) = 0.
             FHSI_IO(I,J) = 0.
@@ -173,7 +171,7 @@ C****
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
-      REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,TFO,SROX(2)
+      REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,DXYPJ,POICE,PWATER,SCOVI
       REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ
       INTEGER I,J,IMAX,JR,ITYPE
@@ -203,10 +201,8 @@ C****
         SSIL(:) = SSI(:,I,J)  ! sea ice salt
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
-          TFO=TOFREZ(I,J)  ! underneath water freezing temperature
         ELSE
           ITYPE=ITLKICE
-          TFO = 0.
         END IF
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
@@ -214,21 +210,14 @@ C****
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
 
-c        print*,"seaice0",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)/(XSI(4)
-c     *       *MSI2)+LHM)*BYSHI
-
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
      *       ,FMOC,FHOC,FSOC)
 
-c        print*,"seaice1",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)/(XSI(4)
-c     *       *MSI2)+LHM)*BYSHI
 C**** Decay sea ice salinity 
         MSI1 = ACE1I + SNOW
         if (.not. qsfix .or. FLAKE(I,J).gt.0) then
           CALL SSIDEC(MSI1,MSI2,HSIL,SSIL,DTsrc,MFLUX,HFLUX,SFLUX)
 
-c          print*,"seaice2",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)
-c     *         /(XSI(4)*MSI2)+LHM)*BYSHI
         else
           MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
         end if
@@ -339,13 +328,8 @@ C****
         SALTO=DSSI(1,I,J)
         SALTI=DSSI(2,I,J)
 
-c        print*,"seaice6",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),(HSIL(4)/(XSI(4)
-c     *       *MSI2)+LHM)*BYSHI
-
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F
      *       ,ENRGFI,SALTO,SALTI,FLEAD,QFIXR)
-
-c        print*,"seaice7",i,j,MSI2,SSIL(4)/(XSI(4)*MSI2),TSIL(4)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
