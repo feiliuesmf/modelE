@@ -47,7 +47,7 @@ ccc   ice data:
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM),
-     *               FSD1(IM,JM,4),FSD2(IM,JM,4),
+     *               FSD1(IM,JM,5),FSD2(IM,JM,5),
      *               RCLD1(LM,IM,JM),RCLD2(LM,IM,JM)
 ccc   snow data:
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
@@ -132,15 +132,13 @@ C**** compatibility across model configurations)
       REAL*8 TRICDG1(IMIC,JMIC,KTICIJ*NTM),TRICDG2(IMIC,JMIC,KTICIJ*NTM)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      INTEGER K1,K2
+      INTEGER K1
       REAL*8, DIMENSION(IM,JM,LM):: yNO31,pHOx1,pNOx1,pOx1,yCH3O21,
      &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,
      &     yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22,
      &     yAldehyde2,yXO2N2,yRXPAR2,temp1,temp2
-      REAL*8, DIMENSION(LM,IM,JM):: RCLOUDFJ1,RCLOUDFJ2
       REAL*8, DIMENSION(JM,4,12) :: corrOx1,corrOx2
-      REAL*8, DIMENSION(IM,JM)   :: SALBFJ1,SALBFJ2
-      REAL*8, DIMENSION(40,JM,IM):: O3DLJI1,O3DLJI_clim1,
+      REAL*8, DIMENSION(LM,JM,IM):: O3DLJI1,O3DLJI_clim1,
      &     O3DLJI2,O3DLJI_clim2
       REAL*8, DIMENSION(jppj,IM,JM,LM) :: ss1,ss2
 #endif
@@ -152,6 +150,7 @@ C****
 
       real*8 strat1(im,jm),strat2(im,jm)
       integer istrat1(2,im,jm),istrat2(2,im,jm)
+      logical :: debug = .false.
 C****
       IF(IARGC().NE.2)  GO TO 800
 C****
@@ -159,82 +158,83 @@ C**** Read ReStartFiles
 C****
       CALL GETARG (1,FILEIN)
       OPEN (1,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
-c        write(0,*) 'trying to read label'
+         if (debug) write(0,*) 'trying to read label'
          READ (1) ITAU1,XLABEL
-c        write(0,*) 'trying to skip label'
+         if (debug) write(0,*) 'trying to skip label'
          READ (1)
-c        write(0,*) 'trying to skip param'
+         if (debug) write(0,*) 'trying to skip param'
          READ (1) ! - skip parameters
-c        write(0,*) 'trying to read model'
+         if (debug) write(0,*) 'trying to read model'
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
 C**** check whether stratosphere
-c        write(0,*) 'trying to read stratosphere'
+         if (debug) write(0,*) 'trying to read stratosphere'
          READ (1) HEADER
          BACKSPACE(1)
          IF (HEADER(1:8).eq."STRAT01") THEN
-c        write(0,*) 'trying to read stratosphere'
+           if (debug) write(0,*) 'trying to read stratosphere'
            READ(1) HEADER,STRAT1,istrat1
          END IF
 C**** check which ocean
-c        write(0,*) 'trying to read ocean'
+         if (debug) write(0,*) 'trying to read ocean'
          READ (1) HEADER
          BACKSPACE(1)
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN1 = 0
-c        write(0,*) 'trying to read ocea1'
+           if (debug) write(0,*) 'trying to read ocea1'
            READ(1) HEADER,TOCN1,Z1
          ELSE
            KOCEAN1 = 2
-c        write(0,*) 'trying to read ocea2'
+           if (debug) write(0,*) 'trying to read ocea2'
            READ(1) HEADER,OCEAN1
            READ(1) HEADER,STRAITS1,STRAITI1
          END IF
-c        write(0,*) 'trying to read lake'
+         if (debug) write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRLK1
 #endif
-c        write(0,*) 'trying to read sice'
+         if (debug) write(0,*) 'trying to read sice'
          READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1,PM1,IFLAG1
-c        write(0,*) 'trying to read gdata'
+         if (debug) write(0,*) 'trying to read gdata'
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSI1 
 #endif
          READ (1) HEADER,sne1,te1,wtre1,ace1,snag1,fsat1,qge1
-c        write(0,*) 'trying to read soils'
+         if (debug) write(0,*) 'trying to read soils'
          READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1,ci1,qfol1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSOIL1
 #endif
-c        write(0,*) 'trying to read snow'
+         if (debug) write(0,*) 'trying to read snow'
          READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRSN1
 #endif
-c        write(0,*) 'trying to read landi'
+         if (debug) write(0,*) 'trying to read landi'
          READ (1) HEADER,SNLI1,TLI1
 #ifdef TRACERS_WATER
          READ (1) HEADER,TRLI1
 #endif
-c        write(0,*) 'trying to read bldat'
+         if (debug) write(0,*) 'trying to read bldat'
          READ (1) HEADER,BLD1,eg1,we1,tg1,qg1
-c        write(0,*) 'trying to read pbl'
+         if (debug) write(0,*) 'trying to read pbl'
          READ (1) HEADER,PBL1,pblb1,ipbl1
 #ifdef TRACERS_ON
          READ (1) HEADER,TRABL1
 #endif
-c        write(0,*) 'trying to read clds'
+         if (debug) write(0,*) 'trying to read clds'
          READ (1) HEADER,CLOUD1
-c        write(0,*) 'trying to read mom'
+         if (debug) write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
-c        write(0,*) 'trying to read radia'
+         if (debug) write(0,*) 'trying to read radia'
          READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1
-c        write(0,*) 'trying to read icedyn'
+         if (debug) write(0,*) 'trying to read icedyn'
          READ (1) HEADER
          BACKSPACE(1)
          IF (HEADER(1:6).eq."ICEDYN".and.KOCEAN1.eq.0) KOCEAN1=1
          IF (HEADER(1:6).eq."ICEDYN") READ(1) HEADER,ICEDYN1
 #ifdef TRACERS_ON
+         if (debug) write(0,*) 'trying to read tracers'
          READ (1) HEADER,TR1,TRMOM1
 #ifdef TRACERS_WATER
      *        ,TRW1
@@ -245,14 +245,14 @@ c        write(0,*) 'trying to read icedyn'
      *        ,ss1
 #endif
 #endif
-c        write(0,*) 'trying to read diag'
+         if (debug) write(0,*) 'trying to read diag'
          READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
      *        ,ITAU2
          GOTO 200
  100     BACKSPACE(1)
          READ (1) HEADER,KEYNR,TSFREZ1,ITAU2
  200     IF (KOCEAN1.gt.0) THEN
-c        write(0,*) 'trying to read ocn3'
+           if (debug) write(0,*) 'trying to read ocn3'
            IF (KOCEAN1.eq.2) READ(1) HEADER,ODIAG1,itau2
            READ(1) HEADER,ICDIAG1
 #ifdef TRACERS_WATER
@@ -263,8 +263,8 @@ c        write(0,*) 'trying to read ocn3'
          READ (1) HEADER,TRACC1
 #endif
          IF (ITAU1.ne.ITAU2) then
-         WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
-     *        ,itau2
+           WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',itau1
+     *          ,itau2
          STOP
       END IF
       CLOSE (1)
@@ -273,77 +273,77 @@ c        write(0,*) 'trying to read ocn3'
 C****
       CALL GETARG (2,FILEIN)
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
-c        write(0,*) 'trying to read label'
+c        if (debug) write(0,*) 'trying to read label'
          READ (2) ITAU1,XLABEL
-c        write(0,*) 'trying to skip label'
+c        if (debug) write(0,*) 'trying to skip label'
          READ (2)
-c        write(0,*) 'trying to skip param'
+c        if (debug) write(0,*) 'trying to skip param'
          READ (2) ! - skip parameters
-c        write(0,*) 'trying to read model'
+c        if (debug) write(0,*) 'trying to read model'
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
 C**** check whether stratosphere
-c        write(0,*) 'trying to read stratosphere'
+c        if (debug) write(0,*) 'trying to read stratosphere'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:8).eq."STRAT01") THEN
-c        write(0,*) 'trying to read stratosphere'
+c        if (debug) write(0,*) 'trying to read stratosphere'
            READ(2) HEADER,STRAT2,istrat2
          END IF
 C**** check which ocean
-c        write(0,*) 'trying to read ocean'
+c        if (debug) write(0,*) 'trying to read ocean'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN2 = 0
-c        write(0,*) 'trying to read ocea1'
+c        if (debug) write(0,*) 'trying to read ocea1'
            READ(2) HEADER,TOCN2,Z2
          ELSE
            KOCEAN2 = 2
-c        write(0,*) 'trying to read ocea2'
+c        if (debug) write(0,*) 'trying to read ocea2'
            READ(2) HEADER,OCEAN2
            READ(2) HEADER,STRAITS2,STRAITI2
          END IF
-c        write(0,*) 'trying to read lake'
+c        if (debug) write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRLK2
 #endif
-c        write(0,*) 'trying to read sice'
+c        if (debug) write(0,*) 'trying to read sice'
          READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2,PM2,IFLAG2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSI2
 #endif
-c        write(0,*) 'trying to read gdata'
+c        if (debug) write(0,*) 'trying to read gdata'
          READ (2) HEADER,sne2,te2,wtre2,ace2,snag2,fsat2,qge2
-c        write(0,*) 'trying to read soils'
+c        if (debug) write(0,*) 'trying to read soils'
          READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2,ci2,qfol2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSOIL2
 #endif
-c        write(0,*) 'trying to read snow'
+c        if (debug) write(0,*) 'trying to read snow'
          READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRSN2
 #endif
-c        write(0,*) 'trying to read landi'
+c        if (debug) write(0,*) 'trying to read landi'
          READ (2) HEADER,SNLI2,TLI2
 #ifdef TRACERS_WATER
          READ (2) HEADER,TRLI2
 #endif
-c        write(0,*) 'trying to read bldat'
+c        if (debug) write(0,*) 'trying to read bldat'
          READ (2) HEADER,BLD2,eg2,we2,tg2,qg2
-c        write(0,*) 'trying to read pbl'
+c        if (debug) write(0,*) 'trying to read pbl'
          READ (2) HEADER,PBL2,pblb2,ipbl2
 #ifdef TRACERS_ON
          READ (2)  HEADER,TRABL2
 #endif
-c        write(0,*) 'trying to read clds'
+c        if (debug) write(0,*) 'trying to read clds'
          READ (2) HEADER,CLOUD2
-c        write(0,*) 'trying to read mom'
+c        if (debug) write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
-c        write(0,*) 'trying to read radia'
+c        if (debug) write(0,*) 'trying to read radia'
          READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2
-c        write(0,*) 'trying to read icedyn'
+c        if (debug) write(0,*) 'trying to read icedyn'
          READ (2) HEADER
          BACKSPACE(2)
          IF (HEADER(1:6).eq.'ICEDYN'.and.KOCEAN2.eq.0) KOCEAN2=1
@@ -359,14 +359,14 @@ c        write(0,*) 'trying to read icedyn'
      *        ,ss2
 #endif
 #endif
-c        write(0,*) 'trying to read diag'
+c        if (debug) write(0,*) 'trying to read diag'
          READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
      *        ,ITAU2
          GOTO 400
  300     BACKSPACE(2)
          READ (2) HEADER,KEYNR,TSFREZ2,ITAU2
  400     IF (KOCEAN2.gt.0) THEN
-c        write(0,*) 'trying to read ocn3'
+c        if (debug) write(0,*) 'trying to read ocn3'
            IF (KOCEAN2.eq.2) READ(2) HEADER,ODIAG2,itau2
            READ(2) HEADER,ICDIAG2
 #ifdef TRACERS_WATER
@@ -465,8 +465,8 @@ C****
       ERRQ=COMP8LIJp('SRHR  ',1+  LM,IM,JM  ,SRHR1 ,SRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('TRHR  ',1+  LM,IM,JM  ,TRHR1 ,TRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
-      ERRQ=COMP8 ('FSdir ',IM,JM,4       , fsd1 , fsd2 ) .or. ERRQ
-      ERRQ=COMP8Lijp('RCLD  ',LM,IM,JM,  , RCLD1, RCLD2 ) .or. ERRQ
+      ERRQ=COMP8 ('FSdir ',IM,JM,5,        fsd1 , fsd2 ) .or. ERRQ
+      ERRQ=COMP8Lijp('RCLD  ',LM,IM,JM,    RCLD1, RCLD2 ) .or. ERRQ
 
 #ifdef TRACERS_ON
       ERRQ=COMP8('TR    ',IM,JM,LM*NTM    , TR1  , TR2  ) .or. ERRQ
@@ -494,8 +494,6 @@ C****
       ERRQ=COMP8('yXO2N ',IM,JM,LM    , yXO2N1  , yXO2N2  )  .or. ERRQ
       ERRQ=COMP8('yRXPAR',IM,JM,LM    , yRXPAR1 , yRXPAR2 )  .or. ERRQ
       ERRQ=COMP8('corrOx',JM, 4,12    , corrOx1 , corrOx2 )  .or. ERRQ
-      ERRQ=COMP8('SALBFJ',IM,JM,1     , SALBFJ1 , SALBFJ2 )  .or. ERRQ
-      ERRQ=COMP8('RCLDFJ',LM,IM,JM    ,RCLOUDFJ1,RCLOUDFJ2)  .or. ERRQ
       ERRQ=COMP8('O3DLJI',40,JM,IM    , O3DLJI1 , O3DLJI2 )  .or. ERRQ
       ERRQ=COMP8('O3clim',40,JM,IM,O3DLJI_clim1,O3DLJI_clim2).or. ERRQ
       DO K1=1,JPPJ

@@ -197,7 +197,7 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir,srvissurf, &
-	   srdn,cfrac,rcld
+	   srdn,cfrac,rcld,salb
       use icedyn_com, only : rsix,rsiy,usi,vsi
 
       use dagcom, only : keynr,tsfrez,tdiurn,oa
@@ -224,7 +224,7 @@
 #  ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only : &
            yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
+           ,yAldehyde,yXO2N,yRXPAR,corrOx
 #  endif
 
 #  ifdef CHECK_OCEAN
@@ -380,6 +380,7 @@
         check("fsf",fsf)
         check("fsrdir",fsrdir)
         check("srvissurf",srvissurf)
+        check("salb",salb)
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
@@ -448,7 +449,6 @@
         check("yAldehyde",yAldehyde)
         check("yXO2N",yXO2N)
         check("yRXPAR",yRXPAR)
-        check("OxIC",OxIC)
         check("corrOx",corrOx)
 #endif
 
