@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R 
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc
 
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
@@ -61,4 +61,7 @@ alias: aux
 
 unalias:
 	for i in $(ALIAS_LIST); do rm -f $$i; done
+
+htmldoc:
+	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
