@@ -349,7 +349,7 @@ sub htm_prt_vars { # print list of variables
 	my $mod = $1;
 	my $subr = $2;
 	my $var = $3;
-	print "PRT_VARS: $var_name, $mod, $subr, $var\n";
+	#print "PRT_VARS: $var_name, $mod, $subr, $var\n";
 
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
