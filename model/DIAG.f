@@ -1236,7 +1236,7 @@ C****
 C**** alternate vertical mass flux diagnostic (from SD)
 C****
       W(:,:,:)=0.
-C**** interpolate SD to constant pressure      
+C**** interpolate SD to constant pressure
       DO J=J_0,J_1
         I=IM
         DO IP1=1,IM
@@ -1271,9 +1271,11 @@ C**** INTERPOLATE HERE
             GO TO 850
  860        CONTINUE
 C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
-            IF (DPK.gt.0) AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+
-     *           SDK*BYDXYP(J)/DPK
-            W(I,J,K)=SDK/DPK
+            W(I,J,K)=0.    
+            IF (DPK.gt.0) THEN
+              AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+SDK*BYDXYP(J)/DPK
+              W(I,J,K)=SDK/DPK
+            END IF
           END DO
           I=IP1
         END DO
@@ -2868,7 +2870,7 @@ C****
 
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
-!@+   every ABS(NSUBDD) 
+!@+   every ABS(NSUBDD)
 !@+   Note that TMIN, TMAX can only be output once a day
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
@@ -3046,13 +3048,13 @@ c          data=sday*prec/dtsrc
             kunit=kunit+1
             cycle
           end if
-          data=tdiurn(:,:,9)    
+          data=tdiurn(:,:,9)
         case ("TMAX")           ! max daily temp (C)
           if (mod(itime+1,Nday).ne.0) then ! only at end of day
             kunit=kunit+1
             cycle
           end if
-          data=tdiurn(:,:,6)    
+          data=tdiurn(:,:,6)
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           do j=1,jm
@@ -3093,7 +3095,7 @@ C**** get pressure level
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
                 data=rh_inst(kp,:,:)
-              case ("Q")        ! specific humidity 
+              case ("Q")        ! specific humidity
                 do j=1,jm
                 do i=1,imaxj(j)
                   data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
@@ -3119,7 +3121,7 @@ C**** write out
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
                 data=rh_inst(kp,:,:)
-              case ("Q")        ! specific humidity 
+              case ("Q")        ! specific humidity
                 do j=1,jm
                 do i=1,imaxj(j)
                   data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
@@ -3158,7 +3160,7 @@ C**** fix polar values for W only (calculated on tracer points)
      *                   *tauss(kp,i,j)
                   end do
                 end do
-C**** fix polar values 
+C**** fix polar values
                 data(2:im,1) =data(1,1)
                 data(2:im,jm)=data(1,jm)
               end select
