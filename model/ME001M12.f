@@ -7,11 +7,13 @@
       USE DAGCOM, only : keynr,kdiag,oa
       USE DYNAMICS, only : filter,calc_ampk
       USE FILEMANAGER, only : getunit
+      USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr
+      INTEGER I,J,L,K,M,LLAB1,KSS6,MSTART,MNOW,MODD5D,months,ioerr
       INTEGER iu_VFLXO,iu_SLP
       INTEGER :: MDUM = 0
+      REAL*8, DIMENSION(NTIMEMAX) :: PERCENT 
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER CDATE*7
@@ -23,7 +25,10 @@ C****
       CALL INPUT
       WRITE (3) OFFSSW
       CLOSE (3)
-         MSTART=MNOW-MDYN-MCNDS-MRAD-MSURF-MDIAG-MELSE
+         MSTART=MNOW
+         DO M=1,NTIMEACC
+           MSTART= MSTART-TIMING(M)
+         END DO
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
          MODD5K=1000
@@ -341,23 +346,13 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
         TOTALT=.01*(MNOW-MSTART)      ! in seconds
-        PDYN  = MDYN/TOTALT
-        PCDNS = MCNDS/TOTALT
-        PRAD  = MRAD/TOTALT
-        PSURF = MSURF/TOTALT
-        PDIAG = MDIAG/TOTALT
-        PELSE = MELSE/TOTALT
+        DO M=1,NTIMEACC
+          PERCENT(M) = TIMING(M)/TOTALT
+        END DO
         DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
-        WRITE (6,'(/A,F7.2,6(A,F5.1)//)')
-     *   '0TIME',DTIME,'(MINUTES)    DYNAMICS',PDYN,
-     *   '    CONDENSATION',PCDNS,'    RADIATION',PRAD,'    SURFACE',
-     *   PSURF,'    DIAGNOSTICS',PDIAG,'    OTHER',PELSE
-        MDYN  = 0
-        MCNDS = 0
-        MRAD  = 0
-        MSURF = 0
-        MDIAG = 0
-        MELSE = 0
+        WRITE (6,'(/A,F7.2,A,10(A13,F5.1)//)')
+     *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+        TIMING = 0
         MSTART= MNOW
       END IF
 
@@ -406,10 +401,10 @@ C****
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
      *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
+     *  MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
-      INTEGER, DIMENSION(25) :: IDUM
+      INTEGER, DIMENSION(32) :: IDUM
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
 
@@ -417,7 +412,7 @@ C****
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
      *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
+     *  MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV,  IDUM ,  IJD6     ,IDACC
 
@@ -444,8 +439,8 @@ C****
      *     5,      2,      2,    1,      1,      1,           1976/,
      *  NDAa,   NDA5d, NDA5k, NDA5s, NDA4, NDAsf/
      *     7,       7,     7,     7,   24,     1/,
-     *  MLAST,MDYN,MCNDS,MRAD,MSURF,  MDIAG,MELSE,MODRD,MODD5K,MODD5S/
-     *      0,   0,    0,   0,    0,      0,    0,    0,     0,     0/
+     *  MODRD,MODD5K,MODD5S/
+     *      0,     0,     0/
       DATA  DT, DTsrc/
      *    450., 3600./,
 C****
@@ -499,6 +494,7 @@ C****
       USE LAKES_COM, only : t50
       USE LANDICE_COM, only : snowli,tlandi
       USE FILEMANAGER, only : getunit
+      USE TIMINGS, only : timing,ntimeacc
 
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
@@ -551,6 +547,15 @@ C****    Ocean info saved for ocean heat transport calculations
          OA = 0.
 C**** All diagn. are enabled unless KDIAG is changed in the rundeck
       KDIAG(1:12)=0
+C**** Set global default timing descriptions
+C**** Other speciality descriptions can be added/used locally
+      NTIMEACC = 0
+      CALL SET_TIMER("ATMOS. DYNAM",MDYN)
+      CALL SET_TIMER("CONDENSATION",MCNDS)
+      CALL SET_TIMER("   RADIATION",MRAD)
+      CALL SET_TIMER("     SURFACE",MSURF)
+      CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
+      CALL SET_TIMER("       OTHER",MELSE)
 C****
 C**** Vertical coord system: L=1->LS1-1 sigma ; L=LS1->LM const. press
 C****                        PSF->PTOP          PTOP->PMTOP
@@ -828,7 +833,7 @@ C****                          used for REPEATS and delayed EXTENSIONS
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *    ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
-        MDYN=0 ; MCNDS=0 ; MRAD=0 ; MSURF=0 ; MDIAG=0 ; MELSE=0
+        TIMING = 0
         GO TO 500
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more

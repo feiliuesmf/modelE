@@ -22,14 +22,14 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH
-      INTEGER, DIMENSION(25) :: IDUM
+      INTEGER, DIMENSION(32) :: IDUM
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
       COMMON /IPARMB/
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
      *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
+     *  MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV,  IDUM    ,  IJD6     ,IDACC
 
@@ -123,11 +123,86 @@ C**** Define surface types (mostly used for weighting diagnostics)
 
       END MODULE E001M12_COM
 
+      MODULE TIMINGS
+!@sum  TIMINGS contains variables for keeping track of computing time
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+!@param NTIMEMAX maximum number of possible time accumulators
+      INTEGER, PARAMETER :: NTIMEMAX=10
+!@var NTIMEACC actual number of time accumulators
+      INTEGER :: NTIMEACC = 0
+!@var TIMING array that holds timing info
+      INTEGER, DIMENSION(0:NTIMEMAX) :: TIMING
+!@var TIMESTR array that holds timing info description
+      CHARACTER*12, DIMENSION(NTIMEMAX) :: TIMESTR
+
+      END MODULE TIMINGS
+
+      SUBROUTINE SET_TIMER(STR,MINDEX)
+!@sum  SET_TIMER sets an index of TIMING for a particular description
+!@auth Gavin Schmidt
+!@ver  1.0 
+      USE TIMINGS
+      IMPLICIT NONE
+!@var STR string that describes timing accumulator      
+      CHARACTER*12, INTENT(IN) :: STR
+!@var MINDEX index for that accumulator
+      INTEGER, INTENT(OUT) :: MINDEX
+C****
+      NTIMEACC = NTIMEACC + 1
+      IF (NTIMEACC.gt.NTIMEMAX)
+     *     STOP "Too many timing indices: increase NTIMEMAX"
+      MINDEX = NTIMEACC
+      TIMESTR(MINDEX) = STR
+C****
+      RETURN
+      END SUBROUTINE SET_TIMER
+
+      SUBROUTINE TIMER (MNOW,MSUM)
+!@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
+!@auth Gary Russell
+!@ver  1.0 
+      USE TIMINGS
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
+      INTEGER, INTENT(INOUT) :: MSUM !@var MSUM index for running total
+      INTEGER :: MINC                !@var MINC time since last call
+      INTEGER, SAVE :: MLAST = 0     !@var MLAST  last CPU time
+
+      CALL GETTIME(MNOW)
+      MINC  = MNOW - MLAST
+      TIMING(MSUM)  = TIMING(MSUM) + MINC
+      MLAST = MNOW
+      RETURN
+      END SUBROUTINE TIMER
+
+      SUBROUTINE TIMEOUT (MBEGIN,MIN,MOUT)
+!@sum  TIMEOUT redistributes timing info between counters
+!@auth Gary Russell
+!@ver  1.0 
+      USE TIMINGS
+      IMPLICIT NONE
+!@var MBEGIN CPU time start of section (.01 s)
+      INTEGER, INTENT(IN) :: MBEGIN
+      INTEGER, INTENT(INOUT) :: MIN  !@var MIN index to be added to
+      INTEGER, INTENT(INOUT) :: MOUT !@var MOUT index to be taken from
+      INTEGER :: MINC                !@var MINC time since MBEGIN
+      INTEGER :: MNOW                !@var MNOW current CPU time (.01 s)
+
+      CALL GETTIME(MNOW)
+      MINC  = MNOW - MBEGIN
+      TIMING(MIN)  = TIMING(MIN)  + MINC
+      TIMING(MOUT) = TIMING(MOUT) - MINC
+      RETURN
+      END SUBROUTINE TIMEOUT
+
       SUBROUTINE io_label(kunit,it,iaction,ioerr)
 !@sum  io_model reads and writes label/parameters to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM
+      USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -142,22 +217,30 @@ C**** Define surface types (mostly used for weighting diagnostics)
       REAL*8 RC1(161)
 !@var CLABEL1 dummy label
       CHARACTER*156 CLABEL1
+!@var NTIM1,TSTR1,TIM1 timing related dummy arrays
+      INTEGER NTIM1,TIM1(NTIMEMAX)
+      CHARACTER*12 TSTR1(NTIMEMAX)
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
 C****  timing info as named array?
       SELECT CASE (IACTION)
-      CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) it,JC,CLABEL,RC
+      CASE (:IOWRITE)           ! output to end-of-month restart file
+        WRITE (kunit,err=10) it,JC,CLABEL,RC,
+     *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         WRITE (kunit,err=10)
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) it,JC1,CLABEL1,RC1
+        READ (kunit,err=10) it,JC1,CLABEL1,RC1,
+     *     NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         READ (kunit,err=10)
         SELECT CASE (IACTION)   ! set model common according to iaction
         CASE (ioread)       ! use parameters and label from restart file
           JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+          NTIMEACC=NTIM1
+          TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
+          TIMING(1:NTIM1)=TIM1(1:NTIM1)
         CASE (IRSFIC)       ! use defaults, rundeck label
          ! switch 'it' to 'ihour' using 'nday' of restart file ?????
         CASE (IRERUN)       ! use params from rsfile, label from rundec
