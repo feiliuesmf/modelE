@@ -889,7 +889,7 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf,one
-      use model_com, only : fearth,vdata,itime,nday,jeq
+      use model_com, only : fearth,vdata,itime,nday,jeq,jyear
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
@@ -1006,6 +1006,7 @@ c**** read rundeck parameters
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
+      call sync_param( "crops_yr", crops_yr)
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
@@ -1017,6 +1018,10 @@ c**** read in vegetation data set: vdata
 c**** zero-out vdata(11) until it is properly read in
         vdata(:,:,11) = 0.
         call closeunit(iu_VEG)
+C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
+      if(crops_yr.eq.0) call updveg(jyear)
+      if(crops_yr.gt.0) call updveg(crops_yr)
+
         if (istart.le.2) then ! initialize foliage arrays (adf)
           Cint(:,:)=0.0127D0  ! internal CO2
           Qfol(:,:)=3.D-6     ! surface mixing ratio
@@ -1858,14 +1863,14 @@ c**** check for reasonable temperatures over earth
 !@ver  1.0
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
-      use model_com, only : nday,nisurf,jday,fearth,wfcs
+      use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
      *     ,vdata !nyk
       use geom, only : imaxj
       use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghycom, only : snoage, snoage_def
      *     ,almass,aalbveg       !nyk
-      use sle001, only: cond_scheme !nyk
+      use sle001, only: crops_yr,cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
 
 
@@ -1875,6 +1880,10 @@ c**** check for reasonable temperatures over earth
       integer i,j,itype
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
+
+C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
+      if(crops_yr.eq.0) call updveg(jyear)
+      if(cond_scheme.eq.2) call updsur (0,jday)
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
 c****
@@ -2132,7 +2141,6 @@ ccc     &     sum(heatg(1:jm)*dxyp(1:jm))/(sum(dxyp(1:jm))*im)
 
       end module soil_drv
 
-
       subroutine check_ghy_conservation( flag )
 ccc debugging program: cam be put at the beginning and at the end
 ccc of the 'surface' to check water conservation
@@ -2198,3 +2206,74 @@ ccc just checking ...
       end do
 
       end subroutine check_ghy_conservation
+
+      subroutine updveg (year)
+!@sum  reads appropriate crops data and updates the vegetation file
+!@auth R. Ruedy
+!@ver  1.0
+      USE FILEMANAGER
+      USE MODEL_COM, only : im,jm,vdata
+      USE GEOM, only : imaxj
+      implicit none
+      integer, intent(in) :: year
+
+      real*8 wt,crop(im,jm),crops         ! temporary vars
+
+      integer :: year1,year2,year_old=-1, iu, i,j,k
+      real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o
+      save   year1,year2,year_old,vdata0,crop1,crop2,iu  ! to limit i/o
+
+      character*80 title
+      real*4 crop4(im,jm)
+
+C**** check whether update is needed
+      if (year.eq.year_old) return
+
+C**** first iteration actions:
+      if (year_old.lt.0) then
+C****     check whether a no-crops vege-file was used
+        do j=2,jm-1
+        do i=1,im
+           if(vdata(i,j,9).gt.0.)
+     *     call stop_model('updveg: use no_crops_VEG_file',255)
+        end do
+        end do
+C****     open and read input file
+        call openunit('CROPS',iu,.true.,.true.)
+        read(iu) title,crop4
+        read(title,*) year1
+        crop1=crop4 ; crop2=crop4 ; year2=year1
+        if (year1.ge.year)          year2=year+1
+C****     save orig. (no-crop) vdata to preserve restart-independence
+        vdata0 = vdata
+      end if
+
+      wt=0.
+      do while (year2.lt.year)
+         year1 = year2 ; crop1 = crop2
+         read (iu,end=10) title,crop4
+         read(title,*) year2
+         crop2 = crop4
+      end do
+      wt = (year-year1)/(real(year2-year1,kind=8))
+   10 continue
+      write(6,*) 'Using crops data from year',year1+wt*(year2-year1)
+
+C**** Modify the vegetation fractions
+      do j=1,jm
+      do i=1,imaxj(j)
+         if (crop1(i,j).ge.0.) then
+            crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
+            do k=1,11
+              vdata(i,j,k) = vdata0(i,j,k)*(1.-crops)
+            end do
+              vdata(i,j,9) = crops
+         end if
+      end do
+      end do
+
+      year_old = year
+
+      return
+      end subroutine updveg
+

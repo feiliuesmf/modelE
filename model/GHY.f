@@ -124,6 +124,8 @@ ccc   rundeck parameters  5/1/03 nyk
 !@+       = 1     default, original conductance scheme.
 !@+       = 2     conductance scheme of Andrew Friend
       integer, public :: cond_scheme = 1
+!@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
+      INTEGER, public :: crops_yr = -1
 
 
 ccc   physical constants and global model parameters
@@ -1192,7 +1194,7 @@ c**** adjust canopy conductance for incoming solar radiation
      &             msat,sigma,temp,rhor,kdf,kbl,B,func2)
          S=0.5D0*(B-A)*(func1+func2)
       else
-         RCL=canopylayers   ! convert to real*8
+         RCL=canopylayers  ! convert to real*8
          DEL=(B-A)/RCL
          X=A+0.5D0*DEL
          SUM=0.D0
