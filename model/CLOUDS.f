@@ -85,7 +85,7 @@ C**** input variables
 !@var TH potential temperature (K)
 !@var RH relative humidity
 !@var RH1 relative humidity to compare with the threshold humidity
-!@var WMX cloud water mixing ratio (kg/Kg)
+!@var WMX cloud water mixing ratio (kg/kg)
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
 !@var AQ time change rate of specific humidity (s**-1)
@@ -290,10 +290,10 @@ cdmkf
 !@var LDRAFT the layer the downdraft orginates
 !@var LEVAP the layer evaporation of precip starts
 !@var LMAX, LMIN the lowest, the highest layer of a convective event
-!@var MCCONT interger to count convective events
+!@var MCCONT integer to count convective events
 !@var MAXLVL, MINLVL the lowest, the highest layer of convective events
 !@var ITER number for iteration
-!@var IC interger for cloud types
+!@var IC integer for cloud types
 !@var LFRZ freezing level
 !@var nsub = LMAX - LMIN + 1
 !@var LDMIN the lowest layer the downdraft drops
@@ -846,13 +846,13 @@ cdmkf
      *  ,FQCONDT,TR_CONV,TRCOND,TM,THLAW,TR_LEF)
 cdmk added last 6 arguments
 cdmks
-#ifdef TRACERS_AEROSOLS_Koch 
-        TRCOND(N,L) = FQCONDT * TR_LEFT(N)*TMP(N) + TRCOND(N,L) 
+#ifdef TRACERS_AEROSOLS_Koch
+        TRCOND(N,L) = FQCONDT * TR_LEFT(N)*TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)   *(1.-FQCONDT*TR_LEFT(N))
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT*TR_LEFT(N))
 #else
 cdmkf
-        TRCOND(N,L) = FQCONDT * TMP(N) 
+        TRCOND(N,L) = FQCONDT * TMP(N)
         TMP(N)         = TMP(N)   *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
 #endif
@@ -1131,7 +1131,7 @@ cdmks
 #ifdef TRACERS_AEROSOLS_Koch
 c debugging
       do n=1,ntx
-      if (TM(L,N).lt.0.0) then 
+      if (TM(L,N).lt.0.0) then
        write(6,*) 'ssscnv23',tm(l,n),l,n
      * ,DTM(L,N),DTMR(L,N),TMPMAX(N),TMDN(N)
      * ,fentra,edraft,ldmin,lmin,lmax
@@ -1230,10 +1230,10 @@ C**** and deal with possible inversions and re-freezing of rain
       IF(DQSUM.GT.PRCP) DQSUM=PRCP
       FPRCP=DQSUM/PRCP
       PRCP=PRCP-DQSUM
-C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
+C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REEVAPORATION IN CLOUDS
       FSSUM = 0
       IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
-     *     (PLK(L)*SM(L))
+     /     (PLK(L)*SM(L))
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
@@ -1269,7 +1269,7 @@ C**** estimate effective humidity
         END DO
       END IF
 C**** WASHOUT of TRACERS BELOW CLOUD
-      IF(BELOW_CLOUD.and.PRCPMC.gt.teeny) THEN ! BELOW CLOUD 
+      IF(BELOW_CLOUD.and.PRCPMC.gt.teeny) THEN ! BELOW CLOUD
         WMXTR = PRCPMC*BYAM(L)
         precip_mm = PRCPMC*100.*bygrav
         b_beta_DT = FPLUME
@@ -1302,7 +1302,7 @@ cdmk GET_WASH now has gas dissolution, extra arguments
      &                (1.-FWASHT-TMFAC)
         END DO
       END IF
-#endif  
+#endif
          FCDH1=0.
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
          DPHASE(L)=DPHASE(L)-SLH*DQSUM+FCDH1-HEAT1
@@ -1876,11 +1876,11 @@ C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
 C**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
       FPR=0.
-      IF (WMX(L).gt.teeny) FPR=PREP(L)*DTsrc/WMX(L)              ! CLW->P
+      IF (WMX(L).gt.teeny) FPR=PREP(L)*DTsrc/WMX(L)           ! CLW->P
       FPR=MIN(1d0,FPR)
       FER=0.
-      IF (PREBAR(L+1).gt.teeny) FER=CAREA(L)*ER(L)*AIRM(L)/(
-     *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
+      IF (PREBAR(L+1).gt.teeny) FER=CAREA(L)*ER(L)*AIRM(L)/
+     /     (GRAV*LHX*PREBAR(L+1))                             ! P->Q
       FER=MIN(1d0,FER)
       FWTOQ=0.                                                ! CLW->Q
 #endif
@@ -1907,7 +1907,7 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** update tracers from cloud formation (in- and below-cloud
 C****    precipitation, evaporation, condensation, and washout)
-cdmks 
+cdmks
 #ifdef TRACERS_AEROSOLS_Koch
       WMXTR = WMX(L)
       IF (BELOW_CLOUD.and.WMX(L).LT.teeny) THEN
@@ -1925,7 +1925,7 @@ cdmks
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. +SULFIN(N))
         if (WMX(L).LT.teeny.and.BELOW_CLOUD) then
-          TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(N) 
+          TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(N)
         else
           TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
         endif
@@ -1959,7 +1959,7 @@ cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
      *    ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH) !washout
         ELSE
-          WMXTR = WMX(L) 
+          WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           if (CM.GT.teeny) b_beta_DT = FCLD*CM*dtsrc
@@ -1987,7 +1987,7 @@ c ---------------------- apply fluxes ------------------------
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT) + DTPRT+DTWRT+THWASH
         IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
         IF (WMX(L).eq.0) TRWML(N,L)=0.       ! remove round off error
-        TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT 
+        TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT
      *    - TMFAC - TMFAC2)
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of the CLW and water vapour
@@ -2344,7 +2344,7 @@ C-----------------------------------------------------------------------
       REAL*8, PARAMETER :: emsfc_lw=0.99d0
       INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
       REAL*8, PARAMETER :: byncol = 1d0/ncol
-      REAL*8, PARAMETER :: Navo = 6.023d23 !@var Navo Avogardos Numbers
+      REAL*8, PARAMETER :: Navo = 6.023d23 !@var Navo Avogadros Numbers
 !@var pc1bylam Planck constant c1 by wavelength (10.5 microns)
       REAL*8, PARAMETER :: pc1bylam = 1.439d0/10.5d-4
 !@var t0 ave temp  (K)
