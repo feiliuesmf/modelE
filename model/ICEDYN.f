@@ -103,7 +103,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice
+      USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice !,ij_rsi
       IMPLICIT NONE
       SAVE
 C****
@@ -580,25 +580,25 @@ C**** calculate mass fluxes for the ice advection
             USIDT(I,J)=USI(I,J)*DTS
             OIJ(I,J,IJ_USI) =OIJ(I,J,IJ_USI) +(RSI(I,J)+RSI(IP1,J))
      *           *USI(i,j)
-            OIJ(I,J,IJ_DMUI)=OIJ(I,J,IJ_DMUI)+(RSI(I,J)+RSI(IP1,J))
-     *           *DMUI(i,j)
+            OIJ(I,J,IJ_DMUI)=OIJ(I,J,IJ_DMUI)+DMUI(i,j)
           END IF
           VSIDT(I,J)=0.
           IF (LMV(I,J).gt.0. .and. RSI(I,J)+RSI(I,J+1).gt.1d-4) THEN
             VSIDT(I,J)=VSI(I,J)*DTS
             OIJ(I,J,IJ_VSI) =OIJ(I,J,IJ_VSI) +(RSI(I,J)+RSI(I,J+1))
      *           *VSI(i,j)
-            OIJ(I,J,IJ_DMVI)=OIJ(I,J,IJ_DMVI)+(RSI(I,J)+RSI(I,J+1))
-     *           *DMVI(i,j)
+            OIJ(I,J,IJ_DMVI)=OIJ(I,J,IJ_DMVI)+DMVI(i,j)
           END IF
           OIJ(I,J,IJ_PICE)=OIJ(I,J,IJ_PICE)+ RSI(I,J)*press(i+1,j)
+c         OIJ(I,J,IJ_RSI) =OIJ(I,J,IJ_RSI) + RSI(I,J)
           I=IP1
         END DO
       END DO
       VSIDT(1:IM,JM)=0.
       USIDT(1:IM,JM)=USI(1,JM)*DTS
       OIJ(1,JM,IJ_USI) =OIJ(1,JM,IJ_USI) +RSI(1,JM)*USI(1,JM)
-      OIJ(1,JM,IJ_DMUI)=OIJ(1,JM,IJ_DMUI)+RSI(1,JM)*DMUI(1,JM)
+      OIJ(1,JM,IJ_DMUI)=OIJ(1,JM,IJ_DMUI)+DMUI(1,JM)
+c     OIJ(1,JM,IJ_RSI)=OIJ(1,JM,IJ_RSI)+ RSI(1,JM)
 C****
       END SUBROUTINE DYNSI
 

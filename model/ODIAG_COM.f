@@ -26,6 +26,19 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_HBL,IJ_BO
      *     ,IJ_BOSOL,IJ_USTAR,IJ_MUSI,IJ_MVSI
+!@var lname_oij Long names for OIJ diagnostics
+      CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ 
+!@var sname_oij Short names for OIJ diagnostics
+      CHARACTER*30, DIMENSION(KOIJ) :: SNAME_OIJ 
+!@var units_oij Units for OIJ diagnostics
+      CHARACTER*50, DIMENSION(KOIJ) :: UNITS_OIJ 
+!@var ia_oij IDACC numbers for OIJ diagnostics
+      INTEGER, DIMENSION(KOIJ) :: IA_OIJ 
+!@var scale_oij scales for OIJ diagnostics
+      REAl*8, DIMENSION(KOIJ) :: SCALE_OIJ 
+!@var ijgrid_oij Grid descriptor for OIJ diagnostics
+       INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ 
+
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
@@ -39,7 +52,21 @@
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
 !@var kbasin integer index of which basin a particular ocean point is in
       INTEGER, DIMENSION(IM,JM) :: KBASIN
+!@var XLB label for diagnostic titles      
+      CHARACTER XLB*30
+!@var FLAT latitude values on primary and secondary ocean grids
+      REAL*8, DIMENSION(JM,2) :: FLAT 
+!@var FLON longitude values on primary and secondary ocean grids
+      REAL*8, DIMENSION(IM,2) :: FLON 
+!@var FLEV depth values on primary and secondary ocean grids
+      REAL*8, DIMENSION(0:LMO,2) :: FLEV
+!@var iu_otj unit number for ascii output of ocean transports
+      INTEGER iu_otj
+!@var BASIN names of ocean basins for diag output
+      CHARACTER*16, DIMENSION(4) :: BASIN=
+     *     (/"Atlantic","Pacific ","Indian  ","Global  "/)
 C****
+
 #ifdef TRACERS_OCEAN
 !@var KTOIJL number of 3-dimensional ocean tracer diagnostics
       INTEGER, PARAMETER :: KTOIJL=10
@@ -151,14 +178,13 @@ C****
 !@sum  init_ODIAG initialises ocean diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE MODEL_COM, only : dtsrc
+      USE DAGCOM, only : ia_src
       USE ODIAG
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
+      INTEGER k
 
-C**** Set names for OIJ diagnostics
-      IJ_USI=1  ; IJ_VSI=2  ; IJ_DMUI=3  ; IJ_DMVI=4
-      IJ_PICE=5 ; IJ_MUSI=6 ; IJ_MVSI=7
-      IJ_HBL=8   ; IJ_BO=9  ; IJ_BOSOL=10; IJ_USTAR=11
 C**** Set names for OIJL diagnostics
       IJL_MO=1  ; IJL_G0M=2  ; IJL_S0M=3   ; IJL_MFU=4    ; IJL_MFV=5
       IJL_MFW=6 ; IJL_KVM=13; IJL_KVG=14 ; IJL_WGFL=15 ; IJL_WSFL=16
@@ -169,6 +195,132 @@ C**** Set names for OLNST diagnostics
       LN_MFLX=5 ; LN_GFLX=6 ; LN_SFLX=7 ; LN_ICFL=8
 C**** Set names for OL diagnostics
       L_RHO=1   ; L_TEMP=2  ; L_SALT=3
+
+C**** set properties for OIJ diagnostics
+      k=0
+
+      k=k+1
+      IJ_USI=k
+      lname_oij(k)="Sea ice EW velocity x POICEU"
+      sname_oij(k)="oij_usi"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_VSI=k
+      lname_oij(k)="Sea ice NS velocity x POICEV"
+      sname_oij(k)="oij_vsi"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_DMUI=k
+      lname_oij(k)="Ice-ocean EW stress"
+      sname_oij(k)="oij_dmui"
+      units_oij(k)="kg/m s^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_DMVI=k
+      lname_oij(k)="Ice-ocean NS stress"
+      sname_oij(k)="oij_dmvi"
+      units_oij(k)="kg/m s^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_PICE=k
+      lname_oij(k)="Sea ice internal pressure x POICE"
+      sname_oij(k)="oij_psi"
+      units_oij(k)="10^3 kg/m s^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1d-3
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_MUSI=k
+      lname_oij(k)="Sea ice NS mass flux"
+      sname_oij(k)="oij_musi"
+      units_oij(k)="kg/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_MVSI=k
+      lname_oij(k)="Sea ice EW mass flux"
+      sname_oij(k)="oij_mvsi"
+      units_oij(k)="kg/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1./dtsrc
+      ijgrid_oij(k)=2
+
+      k=k+1
+      IJ_HBL=k
+      lname_oij(k)="Ocean Boundary layer depth (KPP) x PO4"
+      sname_oij(k)="oij_hbl"
+      units_oij(k)="m"
+      ia_oij(k)=ia_src
+      scale_oij(k)=0.25
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_BO=k
+      lname_oij(k)="Surface buoyancy forcing (KPP) x PO4"
+      sname_oij(k)="oij_bo"
+      units_oij(k)="10^-7 m^2/s^3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=0.25*1d7
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_BOSOL=k
+      lname_oij(k)="Surface solar buoyancy flux x PO4"
+      sname_oij(k)="oij_bosol"
+      units_oij(k)="10^-7 m^2/s^3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=0.25*1d7
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_USTAR=k
+      lname_oij(k)="Surface friction speed x PO4"
+      sname_oij(k)="oij_ustar"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=0.25
+      ijgrid_oij(k)=1
+
+c      k=k+1
+c      IJ_OGEOZ=k
+c      lname_oij(k)="Ocean surface height"
+c      sname_oij(k)="oij_ogeoz"
+c      units_oij(k)="m"
+c      ia_oij(k)=ia_src
+c      scale_oij(k)=bygrav
+c      ijgrid_oij(k)=1
+    
+c      k=k+1
+c      IJ_RSI=k
+c      lname_oij(k)="Ocean ice fraction"
+c      sname_oij(k)="oij_rsi"
+c      units_oij(k)="%"
+c      ia_oij(k)=ia_src
+c      scale_oij(k)=100.
+c      ijgrid_oij(k)=1
+     
+      if (k.gt.KOIJ) then
+        write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
+     *       ,k
+        stop "OIJ diagnostic error"
+      end if
 
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass

@@ -1098,7 +1098,7 @@ C**** Save surface values
 #endif
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
-     *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt
+     *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
@@ -1374,6 +1374,7 @@ C**** Z0 = OGEOZ/GRAV+HOCEAN Ocean depth (m)
 C****      scale depths using Z0/ZE(LMIJ)
 
       ZSCALE = (OGEOZ(I,J) + GRAV*HOCEAN(I,J))/(ZE(LMIJ)*GRAV)
+c       OIJ(I,J,IJ_OGEOZ)=OIJ(I,J,IJ_OGEOZ)+OGEOZ(I,J)
       zgrid(0) = epsln
       hwide(0) = epsln
       byhwide(0) = 0.
