@@ -165,6 +165,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kaj
+         write(name_j(k),'(a2,i3.3)') 'AJ',k
+         lname_j(k) = 'unused'
+         units_j(k) = 'unused'
+      enddo
+c
       k=0
 c  AJ01
       k=k+1
@@ -819,6 +825,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,kaij
+         write(name_ij(k),'(a3,i3.3)') 'AIJ',k
+         lname_ij(k) = 'unused'
+         units_ij(k) = 'unused'
+      enddo
 c
       k=0
 C**** AIJ diagnostic names:
@@ -1739,6 +1751,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kail
+         write(name_il(k),'(a3,i3.3)') 'AIL',k
+         lname_il(k) = 'unused'
+         units_il(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -1828,6 +1846,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,kajl
+         write(name_jl(k),'(a3,i3.3)') 'AJL',k
+         lname_jl(k) = 'unused'
+         units_jl(k) = 'unused'
+      enddo
 c
       k=0
 c
@@ -2124,6 +2148,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kasjl
+         write(name_sjl(k),'(a4,i3.3)') 'ASJL',k
+         lname_sjl(k) = 'unused'
+         units_sjl(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -2153,6 +2183,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,kajk
+         write(name_jk(k),'(a3,i3.3)') 'AJK',k
+         lname_jk(k) = 'unused'
+         units_jk(k) = 'unused'
+      enddo
 c
       k=0
 c
@@ -2418,6 +2454,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,kcon
+         write(name_consrv(k),'(a6,i3.3)') 'CONSRV',k
+         lname_consrv(k) = 'unused'
+         units_consrv(k) = 'unused'
+      enddo
 c
       k=0
 c
@@ -2699,6 +2741,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kaijk
+         write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
+         lname_ijk(k) = 'unused'
+         units_ijk(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -2739,6 +2787,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kaijl
+         write(name_ijl(k),'(a4,i3.3)') 'AIJL',k
+         lname_ijl(k) = 'unused'
+         units_ijl(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -2773,6 +2827,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,kwp
+         write(name_wave(k),'(a5,i3.3)') 'WAVEP',k
+         lname_wave(k) = 'unused'
+         units_wave(k) = 'unused'
+      enddo
 c
       k=0
 c
@@ -2844,6 +2904,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kajlsp
+         write(name_jlsp(k),'(a5,i3.3)') 'AJLSP',k
+         lname_jlsp(k) = 'unused'
+         units_jlsp(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -2869,6 +2935,12 @@ c
       implicit none
       integer :: k
 c
+      do k=1,kapj
+         write(name_pj(k),'(a3,i3.3)') 'APJ',k
+         lname_pj(k) = 'unused'
+         units_pj(k) = 'unused'
+      enddo
+c
       k=0
 c
       k=k+1
@@ -2893,6 +2965,12 @@ c
       use DAGCOM
       implicit none
       integer :: k
+c
+      do k=1,ktsf
+         write(name_tsf(k),'(a6,i3.3)') 'TSFREZ',k
+         lname_tsf(k) = 'unused'
+         units_tsf(k) = 'unused'
+      enddo
 c
       k=0
 c
