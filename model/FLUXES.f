@@ -52,6 +52,8 @@ C**** Momemtum stresses are calculated as if they were over whole box
       REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
 !@var UI2rho Ustar*2*rho ice-ocean friction velocity on atmospheric grid
       REAL*8, DIMENSION(IM,JM) :: UI2rho
+!@var OGEOZA ocean surface height geopotential (m^2/s^2) (on ATM grid)
+      REAL*8, DIMENSION(IM,JM) :: OGEOZA
 
 C**** currently saved - should be replaced by fluxed quantities
 !@var DTH1,DQ1 heat/water flux from atmos. summed over type (C, kg/kg)

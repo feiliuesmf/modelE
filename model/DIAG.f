@@ -2782,10 +2782,11 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0
-      call reset_ODIAG(isum)
 #ifdef TRACERS_ON
       TACC=0.
 #endif
+      call reset_ODIAG(isum)  ! ocean diags if required
+      call reset_icdiag       ! ice dynamic diags if required 
 
       if (isum.eq.1) return
 

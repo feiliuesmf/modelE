@@ -409,8 +409,14 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       ENTRY ODYNAM
+
       ENTRY DYNSI
       ENTRY ADVSI
+      ENTRY io_icedyn
+      ENTRY io_icdiag
+      ENTRY init_icedyn
+      ENTRY reset_icdiag
+      ENTRY diag_ICEDYN
 
       RETURN
       END SUBROUTINE DUMMY_OCN

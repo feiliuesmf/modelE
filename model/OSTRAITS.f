@@ -347,284 +347,284 @@ C****
       RETURN
       END
 
-      SUBROUTINE STADVI
-!@sum  STADVI advects sea ice through the straits
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE OCEAN, only : im,jm,dts,dxypo,bydxypo
-      USE SEAICE, only : xsi,ace1i
-      USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi,ntm
-#endif
-      USE STRAITS
-      USE ICEDYN, only : rsix,rsiy
-      USE ODIAG, only : olnst,ln_icfl
-      IMPLICIT NONE
-
-      REAL*8, SAVE ::  WDST(NMST),BYWDST(NMST)
-!@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
-#ifndef TRACERS_WATER
-      INTEGER, PARAMETER :: NTRICE=2+2*LMI
-#else
-      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
-      INTEGER ITR
-#endif
-      REAL*8 MHS(NTRICE,IM,JM),MHSIST(NTRICE,NMST),MHSL(NTRICE)
-      REAL*8 USTDT,DRSIST,ASI,ASIST,DMHSI,ALPHA,RMEAN
-      INTEGER I,J,K,L,N
-      INTEGER, SAVE :: IFIRST=1
-C****
-      IF(IFIRST.EQ.1) THEN
-        IFIRST = 0
-        DO N=1,NMST
-          WDST(N)    = WIST(N)*DIST(N)
-          BYWDST(N)  = 1d0 / WDST(N)
-        END DO
-      END IF
-C**** set up local MHS array to contain all advected quantities
-C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
-      MHS(1,:,:) = ACE1I + SNOWI
-      MHS(2,:,:) = MSI
-      MHSIST(1:2,:) = MSIST(1:2,:)
-      DO L=1,LMI
-        MHS(L+2,:,:) = HSI(L,:,:)
-        MHS(L+2+LMI,:,:) = SSI(L,:,:)
-        MHSIST(L+2,:) = HSIST(L,:)
-        MHSIST(L+2+LMI,:) = SSIST(L,:)
-#ifdef TRACERS_WATER
-C**** add tracers to advected arrays
-        DO ITR=1,NTM
-          MHS(L+2+(1+ITR)*LMI,:,:)=TRSI(ITR,L,:,:)
-          MHSIST(L+2+(1+ITR)*LMI,:)=TRSIST(ITR,L,:)
-        END DO
-#endif
-      END DO
-C****
-C**** Loop over all straits
-C****
-      DO 900 N=1,NMST
-      IF(MUST(1,N).GT.0.) GO TO 500
-      IF(RSIST(N).LE.0.)  GO TO 300
-C****
-C**** MUST < 0: sea ice may be leaving western end of strait
-C****
-      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
-      IF(RSIXST(N).LE.0.)  GO TO 120
-      IF(USTDT+2d0*RSIXST(N) .LT. 0.)  GO TO 110
-C**** RSIXST > 0 and no sea ice reaches western end of strait
-      RSIXST(N) = RSIXST(N) + USTDT
-      GO TO 300
-C**** RSIXST > 0 but some sea ice flows into western ocean box
-  110 DRSIST = -RSIST(N)*(USTDT+2d0*RSIXST(N))/(DIST(N)-2d0*RSIXST(N))
-      RSIST(N) =  RSIST(N) - DRSIST
-      RSIXST(N) = 5d-1*USTDT
-      GO TO 200
-  120 IF(USTDT+2d0*RSIXST(N)+DIST(N) .LE. 0.)  GO TO 130
-C**** RSIXST < 0 and some sea ice flows into western ocean box
-      DRSIST   = -RSIST(N)*USTDT / (DIST(N)+2d0*RSIXST(N))
-      RSIST(N) =  RSIST(N) - DRSIST
-      RSIXST(N) =  RSIXST(N) + 5d-1*USTDT
-      GO TO 200
-C**** RSIXST < 0 and all sea ice in strait flows into western ocean box
-  130 DRSIST   = RSIST(N)
-      RSIST(N) = 0.
-      RSIXST(N) = 0.
-C****
-C**** Western ocean box receives sea ice from strait
-C****
-  200 I = IST(N,1)
-      J = JST(N,1)
-      ASI   = RSI(I,J)*DXYPO(J)
-      ASIST = DRSIST*WDST(N)
-      DO K=1,NTRICE
-        MHSL(K) = ASI*MHS(K,I,J) + ASIST*MHSIST(K,N)
-      END DO
-        OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) - ASIST*(MHSL(1)
-     *     +MHSL(2))
-      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 210
-      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
-      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,1)
-      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J)-1d0
-      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0-RSI(I,J)
-      DO K=1,NTRICE
-        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
-      END DO
-      GO TO 300
-C**** Sea ice crunches into itself and completely covers grid box
-  210 RSI(I,J)  = 1d0
-      RSIY(I,J) = 0.
-      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
-      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
-      DO K=1,(NTRICE-2)/LMI
-        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
-        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
-        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
-     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
-        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
-     *       *DMHSI
-        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
-     *       *DMHSI
-      END DO
-C****
-C**** Eastern ocean box may send sea ice into strait
-C****
-  300 I = IST(N,2)
-      J = JST(N,2)
-      IF(RSI(I,J).LE.0.)  GO TO 900
-      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
-      ALPHA = -USTDT*WIST(N)*BYDXYPO(J)
-      RMEAN = RSI(I,J) + YST(N,2)*RSIY(I,J)*(1d0-ALPHA)
-      ASI   = ALPHA*RMEAN*DXYPO(J)
-      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
-      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
-      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C****
-C**** Sea ice is entering strait from eastern ocean box
-C****
-  400 DRSIST   = ASI*BYWDST(N)
-      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
-     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(DIST(N)+USTDT))/
-     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
-     *             DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
-      DO K=1,NTRICE
-        MHSIST(K,N) = (RSIST(N)*MHSIST(K,N) + DRSIST*MHS(K,I,J)) /
-     *       (RSIST(N) + DRSIST)
-      END DO
-      RSIST(N) = RSIST(N) + DRSIST
-         OLNST(1,N,LN_ICFL) = OLNST(2,N,LN_ICFL) -
-     *     ASI*(MHS(1,I,J)+MHS(2,I,J))
-      GO TO 900
-C****
-  500 IF(RSIST(N).LE.0.)  GO TO 700
-C****
-C**** MUST > 0: sea ice may be leaving eastern end of strait
-C****
-      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
-      IF(RSIXST(N).GE.0.)  GO TO 520
-      IF(USTDT+2d0*RSIXST(N) .GT. 0.)  GO TO 510
-C**** RSIXST < 0 and no sea ice reaches eastern end of strait
-      RSIXST(N) = RSIXST(N) + USTDT
-      GO TO 700
-C**** RSIXST < 0 but some sea ice flows into eastern ocean box
-  510 DRSIST = RSIST(N)*(USTDT+2d0*RSIXST(N)) / (DIST(N)+2d0*RSIXST(N))
-      RSIST(N) = RSIST(N) - DRSIST
-      RSIXST(N) = 5d-1*USTDT
-      GO TO 600
-  520 IF(USTDT+2d0*RSIXST(N)-DIST(N) .GE. 0.)  GO TO 530
-C**** RSIXST > 0 and some sea ice flows into eastern ocean box
-      DRSIST   = RSIST(N)*USTDT / (DIST(N)-2d0*RSIXST(N))
-      RSIST(N) = RSIST(N) - DRSIST
-      RSIXST(N) = RSIXST(N) + 5d-1*USTDT
-      GO TO 600
-C**** RSIXST > 0 and all sea ice in strait flows into eastern ocean box
-  530 DRSIST   = RSIST(N)
-      RSIST(N) = 0.
-      RSIXST(N) = 0.
-C****
-C**** Eastern ocean box receives sea ice from strait
-C****
-  600 I = IST(N,2)
-      J = JST(N,2)
-      ASI   = RSI(I,J)*DXYPO(J)
-      ASIST = DRSIST*WDST(N)
-      DO K=1,NTRICE
-        MHSL(K) = ASI*MHS(K,I,J) + ASIST*MHSIST(K,N)
-      END DO
-         OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) +
-     *     ASIST*(MHSIST(1,N)+MHSIST(2,N))
-      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 610
-      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
-      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,2)
-      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J) - 1d0
-      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0 - RSI(I,J)
-      DO K=1,NTRICE
-        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
-      END DO
-      GO TO 700
-C**** Sea ice crunches into itself and completely covers grid box
-  610 RSI(I,J)  = 1d0
-      RSIY(I,J) = 0.
-      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
-      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
-      DO K=1,(NTRICE-2)/LMI
-        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
-        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
-        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
-     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
-        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
-     *       *DMHSI
-        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
-     *       *DMHSI
-      END DO
-C****
-C**** Western ocean box may send sea ice into strait
-C****
-  700 I = IST(N,1)
-      J = JST(N,1)
-      IF(RSI(I,J).LE.0.)  GO TO 900
-      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
-      ALPHA = USTDT*WIST(N)*BYDXYPO(J)
-      RMEAN = RSI(I,J) + YST(N,1)*RSIY(I,J)*(1d0-ALPHA)
-      ASI   = ALPHA*RMEAN*DXYPO(J)
-      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
-      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
-      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C****
-C**** Sea ice is entering strait from western ocean box
-C****
-  800 DRSIST   = ASI*BYWDST(N)
-      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
-     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(USTDT-DIST(N)))/
-     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
-     *              DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
-      DO K=1,NTRICE
-        MHSIST(K,N) = (RSIST(N)*MHSIST(K,N) + DRSIST*MHS(K,I,J)) /
-     *       (RSIST(N) + DRSIST)
-      END DO
-      RSIST(N)   =  RSIST(N) + DRSIST
-         OLNST(1,N,LN_ICFL) = OLNST(2,N,LN_ICFL) +
-     *     ASI*(MHS(1,I,J)+MHS(2,I,J))
-C****
-  900 CONTINUE
-C**** set global variables from local array
-      SNOWI(:,:)= MAX(0d0,MHS(1,:,:) - ACE1I)
-      MSI(:,:)  = MHS(2,:,:)
-      MSIST(1:2,:) = MHSIST(1:2,:)
-      DO L=1,LMI
-        HSI(L,:,:) = MHS(L+2,:,:)
-        SSI(L,:,:) = MHS(L+2+LMI,:,:)
-        HSIST(L,:) = MHSIST(L+2,:)
-        SSIST(L,:) = MHSIST(L+2+LMI,:)
-#ifdef TRACERS_WATER
-C**** add tracers to advected arrays
-        DO ITR=1,NTM
-          TRSI(ITR,L,:,:)=MHS(L+2+(1+ITR)*LMI,:,:)
-          TRSIST(ITR,L,:)=MHSIST(L+2+(1+ITR)*LMI,:)
-        END DO
-#endif
-      END DO
-C****
-      RETURN
-      END
+c      SUBROUTINE STADVI
+c!@sum  STADVI advects sea ice through the straits
+c!@auth Gary Russell/Gavin Schmidt
+c!@ver  1.0
+c      USE OCEAN, only : im,jm,dts,dxypo,bydxypo
+c      USE SEAICE, only : xsi,ace1i
+c      USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
+c#ifdef TRACERS_WATER
+c     *     ,trsi,ntm
+c#endif
+c      USE STRAITS
+c      USE ICEDYN_COM, only : rsix,rsiy
+c      USE ODIAG, only : olnst,ln_icfl
+c      IMPLICIT NONE
+c
+c      REAL*8, SAVE ::  WDST(NMST),BYWDST(NMST)
+c!@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
+c#ifndef TRACERS_WATER
+c      INTEGER, PARAMETER :: NTRICE=2+2*LMI
+c#else
+c      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
+c      INTEGER ITR
+c#endif
+c      REAL*8 MHS(NTRICE,IM,JM),MHSIST(NTRICE,NMST),MHSL(NTRICE)
+c      REAL*8 USTDT,DRSIST,ASI,ASIST,DMHSI,ALPHA,RMEAN
+c      INTEGER I,J,K,L,N
+c      INTEGER, SAVE :: IFIRST=1
+cC****
+c      IF(IFIRST.EQ.1) THEN
+c        IFIRST = 0
+c        DO N=1,NMST
+c          WDST(N)    = WIST(N)*DIST(N)
+c          BYWDST(N)  = 1d0 / WDST(N)
+c        END DO
+c      END IF
+cC**** set up local MHS array to contain all advected quantities
+cC**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
+c      MHS(1,:,:) = ACE1I + SNOWI
+c      MHS(2,:,:) = MSI
+c      MHSIST(1:2,:) = MSIST(1:2,:)
+c      DO L=1,LMI
+c        MHS(L+2,:,:) = HSI(L,:,:)
+c        MHS(L+2+LMI,:,:) = SSI(L,:,:)
+c        MHSIST(L+2,:) = HSIST(L,:)
+c        MHSIST(L+2+LMI,:) = SSIST(L,:)
+c#ifdef TRACERS_WATER
+cC**** add tracers to advected arrays
+c        DO ITR=1,NTM
+c          MHS(L+2+(1+ITR)*LMI,:,:)=TRSI(ITR,L,:,:)
+c          MHSIST(L+2+(1+ITR)*LMI,:)=TRSIST(ITR,L,:)
+c        END DO
+c#endif
+c      END DO
+cC****
+cC**** Loop over all straits
+cC****
+c      DO 900 N=1,NMST
+c      IF(MUST(1,N).GT.0.) GO TO 500
+c      IF(RSIST(N).LE.0.)  GO TO 300
+cC****
+cC**** MUST < 0: sea ice may be leaving western end of strait
+cC****
+c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+c      IF(RSIXST(N).LE.0.)  GO TO 120
+c      IF(USTDT+2d0*RSIXST(N) .LT. 0.)  GO TO 110
+cC**** RSIXST > 0 and no sea ice reaches western end of strait
+c      RSIXST(N) = RSIXST(N) + USTDT
+c      GO TO 300
+cC**** RSIXST > 0 but some sea ice flows into western ocean box
+c  110 DRSIST = -RSIST(N)*(USTDT+2d0*RSIXST(N))/(DIST(N)-2d0*RSIXST(N))
+c      RSIST(N) =  RSIST(N) - DRSIST
+c      RSIXST(N) = 5d-1*USTDT
+c      GO TO 200
+c  120 IF(USTDT+2d0*RSIXST(N)+DIST(N) .LE. 0.)  GO TO 130
+cC**** RSIXST < 0 and some sea ice flows into western ocean box
+c      DRSIST   = -RSIST(N)*USTDT / (DIST(N)+2d0*RSIXST(N))
+c      RSIST(N) =  RSIST(N) - DRSIST
+c      RSIXST(N) =  RSIXST(N) + 5d-1*USTDT
+c      GO TO 200
+cC**** RSIXST < 0 and all sea ice in strait flows into western ocean box
+c  130 DRSIST   = RSIST(N)
+c      RSIST(N) = 0.
+c      RSIXST(N) = 0.
+cC****
+cC**** Western ocean box receives sea ice from strait
+cC****
+c  200 I = IST(N,1)
+c      J = JST(N,1)
+c      ASI   = RSI(I,J)*DXYPO(J)
+c      ASIST = DRSIST*WDST(N)
+c      DO K=1,NTRICE
+c        MHSL(K) = ASI*MHS(K,I,J) + ASIST*MHSIST(K,N)
+c      END DO
+c        OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) - ASIST*(MHSL(1)
+c     *     +MHSL(2))
+c      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 210
+c      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
+c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,1)
+c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
+c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J)-1d0
+c      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0-RSI(I,J)
+c      DO K=1,NTRICE
+c        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
+c      END DO
+c      GO TO 300
+cC**** Sea ice crunches into itself and completely covers grid box
+c  210 RSI(I,J)  = 1d0
+c      RSIY(I,J) = 0.
+c      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
+c      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
+c      DO K=1,(NTRICE-2)/LMI
+c        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
+c        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
+c        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
+c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
+c        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
+c     *       *DMHSI
+c        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
+c     *       *DMHSI
+c      END DO
+cC****
+cC**** Eastern ocean box may send sea ice into strait
+cC****
+c  300 I = IST(N,2)
+c      J = JST(N,2)
+c      IF(RSI(I,J).LE.0.)  GO TO 900
+c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+c      ALPHA = -USTDT*WIST(N)*BYDXYPO(J)
+c      RMEAN = RSI(I,J) + YST(N,2)*RSIY(I,J)*(1d0-ALPHA)
+c      ASI   = ALPHA*RMEAN*DXYPO(J)
+c      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
+c      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
+c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
+c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
+cC****
+cC**** Sea ice is entering strait from eastern ocean box
+cC****
+c  400 DRSIST   = ASI*BYWDST(N)
+c      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
+c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(DIST(N)+USTDT))/
+c     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
+c     *             DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
+c      DO K=1,NTRICE
+c        MHSIST(K,N) = (RSIST(N)*MHSIST(K,N) + DRSIST*MHS(K,I,J)) /
+c     *       (RSIST(N) + DRSIST)
+c      END DO
+c      RSIST(N) = RSIST(N) + DRSIST
+c         OLNST(1,N,LN_ICFL) = OLNST(2,N,LN_ICFL) -
+c     *     ASI*(MHS(1,I,J)+MHS(2,I,J))
+c      GO TO 900
+cC****
+c  500 IF(RSIST(N).LE.0.)  GO TO 700
+cC****
+cC**** MUST > 0: sea ice may be leaving eastern end of strait
+cC****
+c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+c      IF(RSIXST(N).GE.0.)  GO TO 520
+c      IF(USTDT+2d0*RSIXST(N) .GT. 0.)  GO TO 510
+cC**** RSIXST < 0 and no sea ice reaches eastern end of strait
+c      RSIXST(N) = RSIXST(N) + USTDT
+c      GO TO 700
+cC**** RSIXST < 0 but some sea ice flows into eastern ocean box
+c  510 DRSIST = RSIST(N)*(USTDT+2d0*RSIXST(N)) / (DIST(N)+2d0*RSIXST(N))
+c      RSIST(N) = RSIST(N) - DRSIST
+c      RSIXST(N) = 5d-1*USTDT
+c      GO TO 600
+c  520 IF(USTDT+2d0*RSIXST(N)-DIST(N) .GE. 0.)  GO TO 530
+cC**** RSIXST > 0 and some sea ice flows into eastern ocean box
+c      DRSIST   = RSIST(N)*USTDT / (DIST(N)-2d0*RSIXST(N))
+c      RSIST(N) = RSIST(N) - DRSIST
+c      RSIXST(N) = RSIXST(N) + 5d-1*USTDT
+c      GO TO 600
+cC**** RSIXST > 0 and all sea ice in strait flows into eastern ocean box
+c  530 DRSIST   = RSIST(N)
+c      RSIST(N) = 0.
+c      RSIXST(N) = 0.
+cC****
+cC**** Eastern ocean box receives sea ice from strait
+cC****
+c  600 I = IST(N,2)
+c      J = JST(N,2)
+c      ASI   = RSI(I,J)*DXYPO(J)
+c      ASIST = DRSIST*WDST(N)
+c      DO K=1,NTRICE
+c        MHSL(K) = ASI*MHS(K,I,J) + ASIST*MHSIST(K,N)
+c      END DO
+c         OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) +
+c     *     ASIST*(MHSIST(1,N)+MHSIST(2,N))
+c      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 610
+c      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
+c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,2)
+c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
+c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J) - 1d0
+c      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0 - RSI(I,J)
+c      DO K=1,NTRICE
+c        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
+c      END DO
+c      GO TO 700
+cC**** Sea ice crunches into itself and completely covers grid box
+c  610 RSI(I,J)  = 1d0
+c      RSIY(I,J) = 0.
+c      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
+c      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
+c      DO K=1,(NTRICE-2)/LMI
+c        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
+c        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
+c        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
+c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
+c        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
+c     *       *DMHSI
+c        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
+c     *       *DMHSI
+c      END DO
+cC****
+cC**** Western ocean box may send sea ice into strait
+cC****
+c  700 I = IST(N,1)
+c      J = JST(N,1)
+c      IF(RSI(I,J).LE.0.)  GO TO 900
+c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+c      ALPHA = USTDT*WIST(N)*BYDXYPO(J)
+c      RMEAN = RSI(I,J) + YST(N,1)*RSIY(I,J)*(1d0-ALPHA)
+c      ASI   = ALPHA*RMEAN*DXYPO(J)
+c      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
+c      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
+c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
+c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
+c      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
+cC****
+cC**** Sea ice is entering strait from western ocean box
+cC****
+c  800 DRSIST   = ASI*BYWDST(N)
+c      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
+c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(USTDT-DIST(N)))/
+c     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
+c     *              DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
+c      DO K=1,NTRICE
+c        MHSIST(K,N) = (RSIST(N)*MHSIST(K,N) + DRSIST*MHS(K,I,J)) /
+c     *       (RSIST(N) + DRSIST)
+c      END DO
+c      RSIST(N)   =  RSIST(N) + DRSIST
+c         OLNST(1,N,LN_ICFL) = OLNST(2,N,LN_ICFL) +
+c     *     ASI*(MHS(1,I,J)+MHS(2,I,J))
+cC****
+c  900 CONTINUE
+cC**** set global variables from local array
+c      SNOWI(:,:)= MAX(0d0,MHS(1,:,:) - ACE1I)
+c      MSI(:,:)  = MHS(2,:,:)
+c      MSIST(1:2,:) = MHSIST(1:2,:)
+c      DO L=1,LMI
+c        HSI(L,:,:) = MHS(L+2,:,:)
+c        SSI(L,:,:) = MHS(L+2+LMI,:,:)
+c        HSIST(L,:) = MHSIST(L+2,:)
+c        SSIST(L,:) = MHSIST(L+2+LMI,:)
+c#ifdef TRACERS_WATER
+cC**** add tracers to advected arrays
+c        DO ITR=1,NTM
+c          TRSI(ITR,L,:,:)=MHS(L+2+(1+ITR)*LMI,:,:)
+c          TRSIST(ITR,L,:)=MHSIST(L+2+(1+ITR)*LMI,:)
+c        END DO
+c#endif
+c      END DO
+cC****
+c      RETURN
+c      END
 
       SUBROUTINE CHECKOST(SUBR)
 !@sum  CHECKOST Checks whether Straits are reasonable

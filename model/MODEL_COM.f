@@ -126,9 +126,10 @@ C**** slightly larger, to sample all points within the cycle
 !@param IOWRITE_MON Flag used for saving restart part only (no diags)
 !@param IOREAD Flag used for reading in (composite) restart files
 !@param IRSFIC Flag used for reading in restart part to start NEW run
+!@param IRSFICNT Flag used for reading restart (w/o tracers) for NEW run
 !@param IRERUN Flag used for reading in restart part to extend OLD run
-      INTEGER, PARAMETER :: ioread=1,ioread_single=2,irerun=3,irsfic=4
-     *                 ,iowrite=-1,iowrite_single=-2,iowrite_mon=-3
+      INTEGER, PARAMETER :: ioread=1,ioread_single=2,irerun=3,irsfic=4,
+     *     irsficnt=5,iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 !**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)

@@ -13,7 +13,7 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace
 #endif
-      USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
+      USE DAGCOM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       IMPLICIT NONE
@@ -37,27 +37,10 @@ C****
 C**** If run is already done, just produce diagnostic printout
 C****
       IF (Itime.GE.ItimeE.and.Kradia.le.0) then ! includes ISTART<1 case
-         IF (KDIAG(1).LT.9) CALL DIAGJ
-         IF (KDIAG(2).LT.9) CALL DIAGJK
-         IF (KDIAG(10).LT.9) CALL DIAGIL
-         IF (KDIAG(7).LT.9) CALL DIAG7P
-         IF (KDIAG(3).LT.9) CALL DIAGIJ
-         IF (KDIAG(9).LT.9) CALL DIAGCP
-         IF (KDIAG(5).LT.9) CALL DIAG5P
-         IF (KDIAG(6).LT.9) CALL DIAGDD
-         IF (KDIAG(4).LT.9) CALL DIAG4
-         IF (KDIAG(11).LT.9) CALL diag_RIVER
-         IF (KDIAG(12).LT.9) CALL diag_OCEAN
-         CALL DIAGKN
-#ifdef TRACERS_ON
-         IF (KDIAG(8).LT.9) then
-            CALL DIAGJLT
-            CALL DIAGIJT
-            CALL DIAGTCP
-         end if
-#endif
-         CALL exit_rc (13)  ! no output files are affected
+        call print_diags(1)
+        CALL exit_rc (13)       ! no output files are affected
       END IF
+
       open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
       write (3,'(A8)') flg_go
       close (3)
@@ -160,7 +143,7 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
-      CALL QDYNAM  ! Advection of Q by average fluxes
+      CALL QDYNAM  ! Advection of Q by integrated fluxes
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
@@ -351,30 +334,9 @@ C****
       IF (MOD(Itime-ItimeI,NDA4).EQ.0) CALL DIAG4A ! at hr 23 E-history
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
-         IF (KDIAG(1).LT.9) CALL DIAGJ
-         IF (KDIAG(2).LT.9) CALL DIAGJK
-         IF (KDIAG(10).LT.9) CALL DIAGIL
-         IF (KDIAG(7).LT.9) CALL DIAG7P
-         IF (KDIAG(3).LT.9) CALL DIAGIJ
-         IF (KDIAG(9).LT.9) CALL DIAGCP
-         IF (KDIAG(5).LT.9) CALL DIAG5P
-         IF (KDIAG(4).LT.9) CALL DIAG4
-         IF (KDIAG(11).LT.9) CALL diag_RIVER
-         IF (KDIAG(12).LT.9) CALL diag_OCEAN
-         IF (Itime.LE.ItimeI+1) THEN
-            CALL DIAGKN
-         ELSE ! RESET THE UNUSED KEYNUMBERS TO ZERO
-            KEYNR(1:42,KEYCT)=0
-         END IF
-#ifdef TRACERS_ON
-         IF (KDIAG(8).LT.9) then
-            CALL DIAGJLT
-            CALL DIAGIJT
-            CALL DIAGTCP
-         end if
-#endif
-         NIPRNT=NIPRNT-1
-         call set_param( "NIPRNT", NIPRNT, 'o' )
+        call print_diags(2)
+        NIPRNT=NIPRNT-1
+        call set_param( "NIPRNT", NIPRNT, 'o' )
       END IF
       end if   ! full model ; kradia le 0
 
@@ -385,25 +347,7 @@ C****    done at the end of (selected) months
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
       if (kradia.le.0) then            ! full model
-        IF (KDIAG(1).LT.9) CALL DIAGJ
-        IF (KDIAG(2).LT.9) CALL DIAGJK
-        IF (KDIAG(10).LT.9) CALL DIAGIL
-        IF (KDIAG(7).LT.9) CALL DIAG7P
-        IF (KDIAG(3).LT.9) CALL DIAGIJ
-        IF (KDIAG(9).LT.9) CALL DIAGCP
-        IF (KDIAG(5).LT.9) CALL DIAG5P
-        IF (KDIAG(6).LT.9) CALL DIAGDD
-        IF (KDIAG(4).LT.9) CALL DIAG4
-        IF (KDIAG(11).LT.9) CALL diag_RIVER
-        IF (KDIAG(12).LT.9) CALL diag_OCEAN
-#ifdef TRACERS_ON
-         if (KDIAG(8).LT.9) then
-            CALL DIAGJLT
-            CALL DIAGIJT
-            CALL DIAGTCP
-         end if
-#endif
-        CALL DIAGKN
+        call print_diags(3)
       end if   ! full model; kradia le 0
 
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
@@ -570,7 +514,7 @@ C****
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
-     *     ,ioread_single,irsfic,iowrite_single
+     *     ,ioread_single,irsfic,irsficnt,iowrite_single
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
@@ -913,8 +857,14 @@ C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if they are not in I.C.
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       SELECT CASE (ISTART)
-      CASE (3:5)
+      CASE (3:4)
          go to 890   !  not available
+C****
+C**** I.C FROM FULL MODEL RESTART FILE (but no tracers) 
+C****
+      CASE (5)             ! this model's rsf file, no tracers
+        call io_rsf(iu_AIC,IhrX,irsficnt,ioerr)
+        if (ioerr.eq.1) goto 800
 C****
 C**** I.C FROM RESTART FILE that may not match land-ocean mask  ISTART=6
 C****
@@ -1154,12 +1104,14 @@ C****
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
       CALL init_ice(iniOCEAN)
-C**** Initialise lake variables (including river directions)
+C**** Initialize lake variables (including river directions)
       CALL init_LAKES(inilake)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN(iniOCEAN)
+C**** Initialize ice dynamaics code (if required)
+      CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
       CALL init_LI
 
@@ -1335,6 +1287,42 @@ C**** Add water to relevant tracers as well
 
       RETURN
       END SUBROUTINE DAILY
+
+      subroutine print_diags(ipos)
+!@sum print_diag prints out binary and ascii diag output.
+!@auth  Original Development Team
+      USE MODEL_COM, only : itime,itimeI
+      USE DAGCOM, only : kdiag,keynr,keyct
+      IMPLICIT NONE
+!@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
+      INTEGER, INTENT(IN) :: ipos
+      
+      IF (KDIAG(1).LT.9) CALL DIAGJ
+      IF (KDIAG(2).LT.9) CALL DIAGJK
+      IF (KDIAG(10).LT.9) CALL DIAGIL
+      IF (KDIAG(7).LT.9) CALL DIAG7P
+      IF (KDIAG(3).LT.9) CALL DIAGIJ
+      IF (KDIAG(9).LT.9) CALL DIAGCP
+      IF (KDIAG(5).LT.9) CALL DIAG5P
+      IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD 
+      IF (KDIAG(4).LT.9) CALL DIAG4
+      IF (KDIAG(11).LT.9) CALL diag_RIVER
+      IF (KDIAG(12).LT.9) CALL diag_OCEAN
+      IF (KDIAG(12).LT.9) CALL diag_ICEDYN
+      IF (ipos.ne.2 .or. Itime.LE.ItimeI+1) THEN
+        CALL DIAGKN                      
+      ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
+        KEYNR(1:42,KEYCT)=0
+      END IF
+#ifdef TRACERS_ON
+      IF (KDIAG(8).LT.9) then
+        CALL DIAGJLT
+        CALL DIAGIJT
+        CALL DIAGTCP
+      end if
+#endif
+      return
+      end subroutine print_diags
 
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness

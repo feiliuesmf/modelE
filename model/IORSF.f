@@ -6,7 +6,7 @@
 !@ver   1.0
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
-!@+     io_ocdiag
+!@+     io_ocdiag,io_icedyn,io_icdiag
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
 
       IMPLICIT NONE
@@ -52,12 +52,14 @@ C**** Calls to individual i/o routines
         call io_clouds (kunit,iaction,ioerr)
         call io_somtq  (kunit,iaction,ioerr)
         call io_rad    (kunit,iaction,ioerr)
+        call io_icedyn (kunit,iaction,ioerr)
 #ifdef TRACERS_ON
         call io_tracer (kunit,iaction,ioerr)
 #endif
       end if
       call io_diags  (kunit,it,iaction,ioerr)
       call io_ocdiag (kunit,it,iaction,ioerr)
+      call io_icdiag (kunit,it,iaction,ioerr)
 #ifdef TRACERS_ON
       call io_trdiag (kunit,it,iaction,ioerr)
 #endif

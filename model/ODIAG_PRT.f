@@ -483,29 +483,7 @@ C****
         lname=lname_oij(k)
         k1 = index(lname,' x ')
         if (k1 .gt. 0) then
-          if (index(lname,' x POICE ') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=oij(i,j,ij_rsi) * byiacc
-            end do
-            end do
-          else if (index(lname,' x POICEU') .gt. 0) then
-            do j=1,jm
-            i=im
-            do ip1=1,im
-              adenom(i,j)=0.5*(oij(i,j,ij_rsi)+oij(ip1,j,ij_rsi))
-     *             * byiacc
-              i=ip1
-            end do
-            end do
-          else if (index(lname,' x POICEV') .gt. 0) then
-            do j=1,jm-1
-            do i=1,im
-              adenom(i,j)=0.5*(oij(i,j,ij_rsi)+oij(i,j+1,ij_rsi))
-     *             * byiacc
-            end do
-            end do
-          else if (index(lname,' x PO4') .gt. 0) then
+          if (index(lname,' x PO4') .gt. 0) then
             adenom(1,jm)=0.25
             adenom(1, 1)=0.25
           end if
@@ -528,31 +506,6 @@ C****
 
       END DO
 
-#ifdef TRACERS_OCEAN
-C**** simple tracer diags (no need for weighting)
-C**** Name and scale are tracer dependent
-      DO K=1,KTOIJ
-        byiacc=1./(IDACC(IA_TOIJ(K))+teeny)
-
-        DO N=1,NTM
-        lname=trim(trname(n))//" "//lname_toij(k)
-        sname=trim(trname(n))//"_"//sname_toij(k)
-        Q=UNDEF
-        DO J=1,JM
-          DO I=1,IMAXJ(J)
-            IF (FOCEAN(I,J).gt.0.5) Q(I,J)=10**(-ntrocn(n))*
-     *           SCALE_TOIJ(K)*TOIJ(I,J,K,N)*byiacc
-          END DO
-        END DO
-        Q(2:IM,JM)=Q(1,JM)
-        Q(2:IM,1)=Q(1,1)
-        UNITS=unit_string(ntrocn(n),UNITS_TOIJ(K))
-        TITLE=trim(LNAME)//" ("//trim(UNITS)//")"
-        TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID_TOIJ(K))
-      END DO
-      END DO
-#endif
       END IF
 C****
 C**** Calculate Horizontal Mass Stream Function and write it

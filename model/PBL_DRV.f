@@ -111,7 +111,7 @@ C
 C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
           dbl=ztop
           L=1
-          ELSE
+        ELSE
           if (dbl.gt.3000.) dbl=3000.
 C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
           zpbl=ztop
@@ -127,10 +127,10 @@ C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
             pl1=pl
             tl1=tl
           end do
-200       CONTINUE
+ 200      CONTINUE
         ENDIF
 C *********************************************************************
-        ELSE
+      ELSE
 C *********************************************************************
 C ********* ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND *********
 C
@@ -143,7 +143,7 @@ C
         if (ldc.eq.1) then
           dbl=ztop
           l=1
-          else
+        else
           zpbl=ztop
           pl1=pmid(1,i,j)          !pij*sig(1)+ptop
           tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)   !expbyk(pl1)

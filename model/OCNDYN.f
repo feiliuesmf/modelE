@@ -153,8 +153,9 @@ C****
         CALL CHECKO ('STBDRA')
       CALL STADV
         CALL CHECKO ('STADV ')
-      CALL STADVI
-        CALL CHECKO ('STADVI')
+C**** remove STADVI since it is not really consistent with ICEDYN
+c      CALL STADVI
+c        CALL CHECKO ('STADVI')
         CALL TIMER (MNOW,MSGSO)
       CALL TOC2SST
 
@@ -357,9 +358,6 @@ C**** Initiallise geopotential field (needed by KPP)
 
       END IF
 
-C**** Initialize dynamic ice variables
-      call init_icedyn(iniOCEAN)
-
 C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
 
@@ -420,7 +418,6 @@ C****
 
       call io_ocdyn  (kunit,iaction,ioerr)
       call io_straits(kunit,iaction,ioerr)
-      call io_icedyn (kunit,iaction,ioerr)
 
       RETURN
 C****
@@ -3078,7 +3075,7 @@ C**** Done!
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : trw0
 #endif
-      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm
+      USE OCEAN, only : im,jm,imaxj,g0m,s0m,mo,dxypo,focean,lmm,ogeoz
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
@@ -3087,7 +3084,7 @@ C**** Done!
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
-      USE FLUXES, only : gtemp, sss, mlhc
+      USE FLUXES, only : gtemp, sss, mlhc, ogeoza
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -3113,6 +3110,7 @@ C****
               TO= TEMGS(GO2,SO2)
             END IF
             GTEMP(2,1,I,J)= TO
+            OGEOZA(I,J)=OGEOZ(I,J)   ! atmospheric grid Ocean height
 C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
