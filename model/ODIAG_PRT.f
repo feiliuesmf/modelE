@@ -896,7 +896,7 @@ C****
 C****
 C**** Mask streamfunction so that topography is put to skip value
 C****
-      DO J=1,JM
+      DO J=1,JM-1
         SUMB = 0
         DO I=1,IM
           IF (KBASIN(I,J).gt.0) SUMB(KBASIN(I,J))=1.
@@ -931,10 +931,11 @@ C****
       USE FILEMANAGER
       IMPLICIT NONE
       CHARACTER TITLE*72, CBASIN(IM,JM)
+      CHARACTER*6 :: FILEIN="KBASIN"
       INTEGER J,I,iu_KB
 C****
 C**** read in basin data
-      call openunit('KBASIN',iu_KB,.false.,.true.)
+      call openunit(FILEIN,iu_KB,.false.,.true.)
 
       READ  (iu_KB,900) TITLE
       WRITE (6,*) 'Read on unit ',iu_KB,': ',TITLE

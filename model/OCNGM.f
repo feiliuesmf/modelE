@@ -531,19 +531,16 @@ C**** AI are always * layer thickness for vertical gradient in FXX, FYY
         AIY2(I,J,L) = AIY2ST * DZV(I,J,L) * BYDH(I,J,L)
       ENDIF
 C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
-      IF(L.EQ.1. .or. RHOMZ(I,J,L-1).eq.0.) THEN
-        AIX1ST = 0.
-        AIX3ST = 0.
-        AIY1ST = 0.
-        AIY3ST = 0.
-        SIX1 = 0.
-        SIX3 = 0.
-        SIY1 = 0.
-        SIY3 = 0.
-        AIX1(I,J,L) = 0.
-        AIX3(I,J,L) = 0.
-        AIY1(I,J,L) = 0.
-        AIY3(I,J,L) = 0.
+      IF(L.EQ.1.) THEN
+        AIX1ST = 0. ; AIX3ST = 0. ; AIY1ST = 0. ;  AIY3ST = 0.
+        SIX1 = 0.   ; SIX3 = 0.   ; SIY1 = 0.   ;  SIY3 = 0.
+        AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
+        AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
+      ELSEIF (RHOMZ(I,J,L-1).eq.0.) THEN
+        AIX1ST = 0. ; AIX3ST = 0. ; AIY1ST = 0. ;  AIY3ST = 0.
+        SIX1 = 0.   ; SIX3 = 0.   ; SIY1 = 0.   ;  SIY3 = 0.
+        AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
+        AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
       ELSE
         AIX1ST = AINV(I,J)
         AIX3ST = AINV(I,J)
