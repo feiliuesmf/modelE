@@ -5,9 +5,11 @@ E001: new modelE (based on B402A)
 Object modules: (in order of decreasing priority)
 E001M12_COM SOMTQ_COM GEOM_B        ! model modules  
 GHYCOM const DAGCOM RADNCB          ! more model modules
+PBLCOM                              ! more model modules
 ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
 CE001M12 SUBSIDEM12 PE001M12        ! mstcnv,condse phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
+PBLDRV                              ! surfce and its subr
 RE001                               ! setsur  rad.subr_incl._forcings 
 DE001M12  FFT72  UTILDBL            ! diag,utilities
 
