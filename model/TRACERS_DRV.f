@@ -41,7 +41,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,LS1J,LS1Jmax,
+     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,
      &     OxICIN,OxIC,OxICINL,OxICL
 #ifdef Shindell_Strat_chem
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
@@ -131,16 +131,6 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 
 C**** Define a max layer for some optionally trop/strat tracers
       LTOP = LM
-#ifdef TRACERS_SPECIAL_Shindell
-#ifdef Shindell_Strat_chem
-      LTOP = LM
-#else
-      LTOP = LS1Jmax-1
-      DO J=1,JM
-       IF(LS1J(J).gt.LTOP+1)call stop_model('LS1J > LS1Jmax',255)
-      END DO 
-#endif
-#endif
 
 #ifdef TRACERS_COSMO
 C**** get rundeck parameter for cosmogenic source factor
@@ -2968,7 +2958,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Lightning Flash Rate'
         sname_ijts(k) = 'lightning_flash'
-        ijts_power(k) = 0.
+        ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
@@ -2977,7 +2967,7 @@ C**** (not necessary associated with a particular tracer)
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cloud to Ground Lightning Flash Rate'
         sname_ijts(k) = 'CtoG_flash'
-        ijts_power(k) = 0.
+        ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef regional_Ox_tracers

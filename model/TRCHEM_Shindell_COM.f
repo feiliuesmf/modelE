@@ -7,7 +7,7 @@
 !@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
 #ifdef TRACERS_ON
-      USE MODEL_COM, only :  im,jm,lm,ls1,psf,
+      USE MODEL_COM, only :  im,jm,lm,psf,
      &                       ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T,JEQ
       USE CONSTANT, only   : pi, mair, mwat, radian
@@ -88,22 +88,13 @@ C
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
-!@param LS1J first strat layer as function of J for chemistry
-!@param LS1Jmax max value in LS1J
 !@param NCFASTJ2 number of levels in the fastj2 atmosphere
 !@param NBFASTJ for fastj2 (=LM+1)
 !@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
-!@param dtausub # of optic. depths at top of cloud requiring subdivision
-!@param masfac Conversion factor for pressure to column density (fastj2)
+!@param dtausub # optic. depths at top of cloud requiring subdivision
+!@param masfac Conversion factor, pressure to column density (fastj2)
 !@param NP maximum aerosol phase functions
-      INTEGER, DIMENSION(JM), PARAMETER ::
-     & LS1J = (/LS1,LS1,LS1,LS1,LS1,LS1,
-     & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1+1,LS1+1,LS1+1,
-     & LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,LS1+2,
-     & LS1+2,LS1+1,LS1+1,LS1+1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,
-     & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1/)
       INTEGER, PARAMETER ::
-     & LS1Jmax=   LS1+2, ! remember to change this too
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
@@ -488,11 +479,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(JPPJ)         :: jind
       INTEGER, DIMENSION(NLFASTJ)      :: jaddlv
 #ifdef Shindell_Strat_chem
-                                          ,jadsub
+      INTEGER, DIMENSION(NLFASTJ)      :: jadsub
       INTEGER, DIMENSION(NLFASTJ+1)    :: jaddto
       INTEGER, DIMENSION(MXFASTJ)      :: MIEDX2
 #else 
-     &                                    ,jaddto
+      INTEGER, DIMENSION(NLFASTJ)      :: jaddto
 #endif
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
       INTEGER, DIMENSION(12) , PARAMETER :: MDOFM =
@@ -592,11 +583,7 @@ C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, DIMENSION(JPPJ)          :: jfacta
       REAL*8, DIMENSION(JPNL,JPPJ)      :: zj, JFASTJ
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
-#ifdef Shindell_Strat_chem
-      REAL*8, DIMENSION(2*(LM))         :: O3_FASTJ
-#else
-      REAL*8, DIMENSION(2*(LS1Jmax-1))  :: O3_FASTJ
-#endif
+      REAL*8, DIMENSION(2*LM)           :: O3_FASTJ
 C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(JCOlat), PARAMETER  :: COlat = (/40.,40.,40.,40.
      *     ,45.,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.

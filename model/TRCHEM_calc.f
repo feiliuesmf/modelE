@@ -11,7 +11,7 @@ C
 #ifdef regional_Ox_tracers
      &                            ,ptop,psf,sig
 #endif
-      USE DYNAMICS, only        : am, byam
+      USE DYNAMICS, only        : am, byam,LTROPO
       USE GEOM, only            : BYDXYP,dxyp
 #ifdef regional_Ox_tracers
      &                            ,LAT_DG,LON_DG
@@ -36,8 +36,7 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   ny,nhet,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,bymass2vol,kss,nps,kps,nds,kds,
-     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde,
-     &                   LS1J
+     &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,changeAldehyde
 #ifdef Shindell_Strat_chem
      &                   ,SF3
 #endif
@@ -113,9 +112,9 @@ C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef Shindell_Strat_chem
       maxl=LM
 #else
-      maxl=LS1J(J)-1
+      maxl=LTROPO(I,J)
 #endif
-      maxT=LS1J(J)-1
+      maxT=LTROPO(I,J)
 
       do L=1,maxT
        y(nCH3O2,L)   =yCH3O2(I,J,L)
@@ -127,7 +126,7 @@ C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
        y(nROR,L)     =yROR(I,J,L)
       enddo
 #ifdef Shindell_Strat_chem
-      do L=LS1,LM
+      do L=maxT+1,LM
        y(nCH3O2,L)=yCH3O2(I,J,L)
       enddo
 #endif
@@ -163,7 +162,7 @@ c
 #ifdef Shindell_Strat_chem
 c     modify Cl source from CFC photolysis to account for other
 c      sources (e.g. other CFCs, HCFCs, methyl chloride)
-      do L=LS1,LM
+      do L=maxT+1,LM
        prod(n_ClOx,L)=prod(n_ClOx,L)+ss(26,L,I,J)*y(n_CFC,L)*dt2*0.75
 c     add Br source using CFC photolysis as proxy
        prod(n_HBr,L)=prod(n_HBr,L)+ss(26,L,I,J)*y(n_CFC,L)*dt2*1.d-3
@@ -364,7 +363,7 @@ c     If ClOx in equil with HOCl or ClONO2, remove from changes
 c
 #ifdef Shindell_Strat_chem
 c      Calculate water vapor change
-       do L=LS1,maxl
+       do L=maxT+1,maxl
         if(y(nO1D,L).gt.0)changeH2O(L)=(2*y(n_CH4,L)*
      *   (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))-SF3(I,J,L))*dt2
        enddo
@@ -408,7 +407,7 @@ c      account for NO that then goes via NO+O3->NO2+O2 or NO+O+M->NO2+M
        rNOfrac=(rr(5,L)*y(nO3,L)+rr(95,L)*y(nO,L))
        rNOdenom=(rr(5,L)*y(nO3,L)+rr(95,L)*y(nO,L)+
      *  rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.)
-        if(l.lt.LS1)then
+        if(l.le.maxT)then
 c        Troposphere
          rNOdenom=rNOdenom+rr(20,L)*yCH3O2(I,J,L)
      &   +rr(39,L)*y(nC2O3,L)+4.2c-12*exp(180/ta(L))*y(nXO2,L)
@@ -921,7 +920,7 @@ c       Next insure balance between dNOx and sum of dOthers
      *  (change(I,J,L,n_PAN))*mass2vol(n_PAN)+
      *  (change(I,J,L,n_AlkylNit))*mass2vol(n_AlkylNit)
 #ifdef Shindell_Strat_chem
-          if(L.ge.LS1)sumN=sumN+
+          if(L.ge.maxT+1)sumN=sumN+
      *     change(I,J,L,n_ClONO2,L)*mass2vol(n_ClONO2)+
      *     change(I,J,L,n_BrONO2,L)*mass2vol(n_BrONO2)
          dNOx=change(I,J,L,n_NOx,L)*mass2vol(n_NOx)+
@@ -1074,7 +1073,7 @@ c
 #ifdef Shindell_Strat_chem
 c     Remove some of the HNO3 formed heterogeneously, as it doesn't come
 c     back to the gas phase
-      do L=LS1,LM
+      do L=maxT+1,LM
        change(I,J,L,n_HNO3,L)=change(I,J,L,n_HNO3,L)-
      *  0.005*rr(105,L)*y(n_HNO3,L)*dt2
      *  *(dxyp(J)*rMAbyM(L))/(mass2vol(n_HNO3))
@@ -1098,7 +1097,7 @@ cc    Print chemical changes in a particular grid box if desired
 c
          if(igas.eq.nlast)then
 #ifdef Shindell_Strat_chem
-         if(LPRN.GE.LS1)then
+         if(LPRN.GE.maxT+1)then
             write(6,155) ay(nH2O),': ',
      *      changeH2O(lprn),' molecules produced; ',
      *      (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
@@ -1181,9 +1180,9 @@ C       end if
 
 #ifdef  Shindell_Strat_chem
 c     No bromine chemistry or HOCl chemistry in troposphere
-         if(L.lt.LS1.and.igas.eq.n_BrOx.or.igas.eq.n_BrONO2)
+         if(L.le.maxT.and.igas.eq.n_BrOx.or.igas.eq.n_BrONO2)
      *    change(I,J,L,igas)=0.
-         if(L.lt.LS1.and.igas.eq.n_HBr.or.igas.eq.n_HOBr)
+         if(L.le.maxT.and.igas.eq.n_HBr.or.igas.eq.n_HOBr)
      *    change(I,J,L,igas)=0.
          if(L.lt.LS1-3.and.igas.eq.n_HOCl)change(I,J,L,igas)=0.
          stop  ' layer dependence 4 '

@@ -63,9 +63,10 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
+      USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
-     &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,LS1J
+     &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
 #ifdef Shindell_Strat_chem     
      &                        ,nClO,nOClO,nBrO
 #endif
@@ -96,7 +97,7 @@ c       B is for NO->NO2 reactions :
      &   +rr(iNO2form,L)*y(nO,L)
 
 c       Troposphere
-        if(l.lt.LS1J(J))then
+        if(l.lt.LTROPO(I,J)+1)then
          B=B+rr(20,L)*yCH3O2(I,J,L)
      &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
         else
@@ -127,7 +128,7 @@ c     &   +rr(17,L)*y(nNO3,L)
 c
 C       C is for NO2->NO reactions :
         C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
-        if(l.lt.LS1J(J))C=C
+        if(l.lt.LTROPO(I,J)+1)C=C
      &   +rr(7,L)*y(nO3,L)*0.25 !forms NO3, assume some goes to NO
 c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
 c     &   +rr(24,L)*y(nNO3,L) !no NO3 during day
@@ -158,6 +159,7 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
+      USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
 #ifdef Shindell_Strat_chem
@@ -166,7 +168,7 @@ c
 
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
-     &                           nXO2N,ta,ss,nC2O3,nROR,LS1J
+     &                           nXO2N,ta,ss,nC2O3,nROR
 #ifdef Shindell_Strat_chem
      &                           ,nBrO,nClO,nOClO,nBr,nCl,SF3
 #endif
@@ -194,7 +196,7 @@ c
 #endif
 C
 cc    Troposphere
-      do L=1,LS1J(J)-1   ! >> beginning of altitude loop <<
+      do L=1,LTROPO(I,J)   ! >> beginning of altitude loop <<
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
@@ -267,7 +269,7 @@ C
 c
 #ifdef Shindell_Strat_chem
 cc    Stratosphere
-      do L=LS1J(J),lmax
+      do L=LTROPO(I,J)+1,lmax
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod

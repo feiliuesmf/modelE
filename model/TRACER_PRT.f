@@ -124,9 +124,6 @@ C**** Save current value in TCONSRV(NI)
 #ifdef TRACERS_WATER
      *     ,trwm
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: LS1J
-#endif
       implicit none
       integer, intent(in) :: nt
 !@var total = zonal total of tracer (kg)
@@ -139,13 +136,7 @@ C**** Save current value in TCONSRV(NI)
         sstm = 0.
         ltop=lm
 #ifdef TRACERS_SPECIAL_Shindell
-        if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')then
-#ifdef Shindell_Strat_chem
-          ltop=LS1-1            ! nominal tropopause
-#else 
-          ltop=LS1J(J)-1        ! defined tropopause
-#endif
-        end if
+        if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
 #endif
         do l=1,ltop
           stm = 0.

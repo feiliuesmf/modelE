@@ -30,7 +30,7 @@ C**** Local parameters and variables and arguments:
       INTEGER i,j,k
 C
 #ifdef Shindell_Strat_chem
-      call stop_model('ifdef Shindell_Strat_chem use TRCHEM_fastj2',255)
+      call stop_model('Shindell_Strat_chem use TRCHEM_fastj2',255)
 #endif
 C
       zj(:,:)    =0.d0
@@ -171,9 +171,10 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: JM, month=>JMON
+      USE DYNAMICS, only: LTROPO
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
-     &                          PFASTJ,LS1J
+     &                          PFASTJ
 c
       IMPLICIT NONE
 c
@@ -239,7 +240,7 @@ c  Ozone  (extrapolate above 60 km)
       enddo
 c
 c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
-      do i=1,2*(LS1J(nslat)-1)
+      do i=1,2*LTROPO(nslon,nslat)
        O3J(i)=O3_FASTJ(i)
       enddo
 c
