@@ -319,7 +319,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
@@ -524,22 +524,26 @@ C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
 C****  4) Set TRRDRY to dry radius
+C****  5) Set KRHTRA=1 if aerosol has RH dependence, 0 if not
 C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
 C****       have to be reset for each grid box to allow for the way it
 C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
+caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
-        FS8OPX = (/0d0, 0d0, 1d0, 1d0, 2d0, 2d0,  1d0 , 1d0/)
-        FT8OPX = (/0d0, 0d0, 1d0, 1d0, 1d0, 1d0, 1.3d0, 1d0/)
+c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
+        FS8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0,  1d0 , 1d0/)
+        FT8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0, 1.3d0, 1d0/)
       end if
-      NTRACE=3
-      TRRDRY=(/ .2d0, .44d0, 1.7d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
+      NTRACE=6
+      TRRDRY=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, .1d0, .1d0/)
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
-      ITR = (/ 1,2,2,0, 0,0,0,0 /)
+      ITR = (/ 1,2,2,4, 5,6,0,0 /)
+      KRHTRA=(/1,1,1,1,0,0,1,1/)
 #endif
 
       if (ktrend.ne.0) then
@@ -660,7 +664,7 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2,n_Ox
-     * ,trm
+     * ,trm,N_BCII,N_BCIA,N_BCB,N_OCII,N_OCIA,N_OCB
       USE TRACER_DIAG_COM, only: taijs,ijts_fc
 #ifdef TRACERS_AEROSOLS_Koch
      * ,ijts_tau
@@ -1074,6 +1078,12 @@ C**** Only define TRACER is individual tracer is actually defined.
      *       trm(i,j,l,n_seasalt1)/DXYP(J)
         if (n_seasalt2.gt.0.) TRACER(L,3)=
      *       trm(i,j,l,n_seasalt2)/DXYP(J)
+        if (n_OCII.gt.0.or.n_OCIA.gt.0.or.n_OCB.gt.0) 
+     *  TRACER(L,4)=(trm(i,j,l,n_OCB)+ 
+     *  trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA))/DXYP(J)
+        if (n_BCII.gt.0.or.n_BCIA.gt.0) TRACER(L,5)= 
+     *  (trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))/DXYP(J)
+        if (n_BCB.gt.0) TRACER(L,6)=trm(i,j,l,n_BCB)/DXYP(J)
 #endif
 
       END DO
@@ -1171,10 +1181,30 @@ C**** Sulfate forcing
           FSTOPX(1)=0.d0 ; FTTOPX(1)=0.d0
 C**** seasalt forcing
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0 ! turn on seasalt
+          FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0 ! turn on seasalt
           CALL RCOMPX
           SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0
+          FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0
+C**** OC forcing
+          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0 ! turn on OC 
+          CALL RCOMPX
+          SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
+          TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0
+C**** BCI forcing
+          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0 ! turn on BCI 
+          CALL RCOMPX
+          SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
+          TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0
+C**** BCB forcing
+          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0 ! turn on BCB 
+          CALL RCOMPX
+          SNFST(N_BCB,I,J)=SRNFLB(4+LM)
+          TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0
         else                              ! Turn OFF each tracer in turn
           FSTOPX(1:NTRACE)=1. ; FTTOPX(1:NTRACE)=1.
 C**** Sulfate forcing
@@ -1191,6 +1221,24 @@ c seasalt forcing
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
           FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
+C**** OC forcing
+          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0 ! turn off OC 
+          CALL RCOMPX
+          SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
+          TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0
+C**** BCI forcing
+          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0 ! turn off BCI 
+          CALL RCOMPX
+          SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
+          TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0
+C**** BCB forcing
+          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0 ! turn off BCI 
+          CALL RCOMPX
+          SNFST(N_BCB,I,J)=SRNFLB(4+LM)
+          TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0
         end if
       end if
 #endif
@@ -1217,6 +1265,12 @@ C*****************************************************
      *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
           taijs(i,j,ijts_tau(n_seasalt2))=
      *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
+          taijs(i,j,ijts_tau(n_OCIA))=taijs(i,j,ijts_tau(n_OCIA))
+     *   +TTAUSV(L,4)
+          taijs(i,j,ijts_tau(n_BCIA))=taijs(i,j,ijts_tau(n_BCIA))
+     *   +TTAUSV(L,5)
+          taijs(i,j,ijts_tau(n_BCB))=taijs(i,j,ijts_tau(n_BCB))
+     *   +TTAUSV(L,6)
           end do
 #endif
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
