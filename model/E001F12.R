@@ -43,7 +43,7 @@ GIC=GIC.144X90.DEC01.1     ! initial ground conditions      ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B144X90         ! mixed layer depth,needed for post-processing only
 OSST=OST_144x90.B.1946_55avg.Hadl1 ! prescr. climatological ocean (1 yr data)
-SICE=SICE_144X90.B.1946-55avg.Hadl1 ! prescr. climatological sea ice
+SICE=SICE_144x90.B.1946_55avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=VEG144X90M
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
