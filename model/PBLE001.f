@@ -102,9 +102,11 @@ C              (m/sec)
 C     WG     = magnitude of the geostrophic wind (m/sec)
 C
 C --------------------------------------------------------------------
+      USE CONSTANT, only :  rgas,grav
       USE E001M12_COM
-     &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,rgas,grav,psf
-     *     ,pmid,pk,pedn  !,sig,sige
+     &     , only : IM,JM, bldata, t,q,u,v,p,ptop,ls1,psf
+     *     ,pmid,pk,pedn
+      
       IMPLICIT NONE
 
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
@@ -934,6 +936,7 @@ c            initialization.
 c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
+      USE CONSTANT, only : rgas
       USE E001M12_COM
       IMPLICIT NONE
 
@@ -2355,6 +2358,7 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
+      USE CONSTANT, only : lhe,lhs
       USE E001M12_COM
       USE SOCPBL, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,getb,zgs,iq1,iq2,iq3,inits
@@ -2653,6 +2657,7 @@ c ******* itype=4: Land
       end subroutine loadbl
 
       subroutine pgrads1
+      USE CONSTANT, only : rgas
       USE E001M12_COM
       USE GEOM, only : dyp,dxp
       USE SOCPBL, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
@@ -2773,6 +2778,7 @@ c     at the surface:
       end subroutine pgrads1
 
       subroutine geopot
+      USE CONSTANT, only : rgas,grav
       USE E001M12_COM
       USE SOCPBL, only : phi,zgs
       IMPLICIT NONE

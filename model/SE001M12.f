@@ -17,6 +17,8 @@ C**** SENSIBLE HEAT, EVAPORATION, THERMAL RADIATION, AND MOMENTUM
 C**** DRAG.  IT ALSO CALCULATES INSTANTANEOUS SURFACE TEMPERATURE,
 C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
@@ -48,9 +50,10 @@ C*
 
 C      common /dflux1/fluxu1,fluxv1,fluxt1,fluxq1
 
-      DATA RVAP/461.5/
-      DATA SHV/0./,SHW/4185./,SHI/2060./,RHOW/1000./,RHOI/916.6/,
-     *  ALAMI/2.1762/,STBO/.5672573E-7/,TF/273.16/,TFO/-1.80/
+c      DATA RVAP/461.5/
+      DATA ALAMI/2.1762/,STBO/.5672573E-7/
+c ,TF/273.16/,,RHOW/1000./,RHOI/916.6/,SHV/0./,SHW/4185./,SHI/2060./,
+      DATA TFO/-1.80/
       DATA Z1I/.1/,Z2LI/2.9/,Z1E/.1/,Z2E/4./,RHOS/300.0/,ALAMS/.35/,
      A     S1BYG1 /0.57735/, XSI1 /0.5/, XSI2 /0.5/
       QSAT(TM,PR,QLH)=3.797915*DEXP(QLH*(7.93252D-6-2.166847D-3/TM))/PR
@@ -105,7 +108,7 @@ c      ZGS=10.
 
       DTSURF=NDYN*DT/NSURF
       DTSRCE=DT*NDYN
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
 C*
       SHCD = SHA ! specific heat capacity for dry air - J/(kg*degC)
       BYRLI = 1./(RHOI*ALAMI) ! (m^4*degC*sec)/(J*kg)
@@ -664,8 +667,7 @@ C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
       DO 7205 J=1,JM
-        IMAX=IM
-        IF ((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
+        IMAX=IMAXJ(J)
         DO 7200 I=1,IMAX
           FTEVAP=0
           IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)

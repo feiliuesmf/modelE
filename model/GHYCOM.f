@@ -4,7 +4,7 @@
      &     , only : im,jm
       USE SLE001
      &     , only : ngm,imt
-
+      IMPLICIT NONE
 
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons

@@ -7,6 +7,8 @@ C****
 C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha,tf,rhow,rhoi,shv,shw,shi,edpery
       USE E001M12_COM
       USE GEOM
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
@@ -48,8 +50,9 @@ C**** Interface to PBL
      2               USTAR,PPBL,CDM,CDH,CDQ,UG,VG,WG,ZMIX
 
       LOGICAL POLE
-      DATA SHV/0./,SHW/4185./,SHI/2060./,RHOW/1000./,RHOI/916.6/,
-     *  STBO/.5672573E-7/,TF/273.16/,TFO/-1.80/, EDPERY/365./
+      DATA STBO/.5672573E-7/    !SHV/0./,SHW/4185./,SHI/2060./,
+c     *     !,TF/273.16/,RHOW/1000./,RHOI/916.6/, EDPERY/365./
+      DATA TFO/-1.80/
       QSAT(TM,PM,QLH)=3.797915*EXP(QLH*(7.93252D-6-2.166847D-3/TM))/PM
       DATA IFIRST/1/
 C****
@@ -99,7 +102,7 @@ C****
       DTSURF=NDYN*DT/NSURF
       DTCNDS=NDYN*DT
          DTSRCE=DT*NDYN
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       RVX=0.
       ZS1CO=.5*DSIG(1)*RGAS/GRAV
    30 S0=S0X*1367./RSDIST
@@ -504,16 +507,20 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
 
       SUBROUTINE GHINIT (DTSURF,SHCLC0,IUNIT,redoGH)
 C**** Modifications needed for split of bare soils into 2 types
+      USE CONSTANT, only : twopix=>twopi,rhow,edpery
       USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau
-     &   , twopix=>twopi ! temporary for bytewise compatibility
+      USE GEOM, only : FJEQ
       USE GHYCOM
       USE SLE001
      &  , sinday=>sint,cosday=>cost
-      IMPLICIT REAL*8(A-H,O-Z)
-      DATA EDPERY/365./
+      IMPLICIT NONE 
+
+c      DATA EDPERY/365./
 C**** SOILS28   Common block     9/25/90
       REAL*8 DTSURF,SHCLC0
       INTEGER IUNIT
+      INTEGER JDAY
+      REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH
 C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
 C****
@@ -577,7 +584,7 @@ C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
 C HW IS THE WILTING POINT IN METERS
       HW=-100
 C TFRZ IS 0 C IN K
-      TFRZ=273.16
+c      TFRZ=273.16
 C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
       IF(Q(4,1).LT..01)THEN
       ZHTB=6.
@@ -591,7 +598,7 @@ C****
 C**** Initialize global arrays  ALA, ACS, AFB, AFR
 C****
       TWOPI=6.283185
-      FJEQ=(JM+1)/2.
+c      FJEQ=(JM+1)/2.
       ALA(:,:,:)=0.
       ACS(:,:,:)=0.
       AFB(:,:)=0.
@@ -667,9 +674,9 @@ C code transplanted from subroutine INPUT
 C**** Recompute GHDATA if necessary (new soils data)
       IF (redoGH) THEN
         JDAY=1+MOD(NINT(TAU/24.),365)
-        COSDAY=COS(TWOPIX/EDPERY*JDAY)
-        SINDAY=SIN(TWOPIX/EDPERY*JDAY)
-        RHOW=1000.
+        COSDAY=COS(TWOPIx/EDPERY*JDAY)
+        SINDAY=SIN(TWOPIx/EDPERY*JDAY)
+c        RHOW=1000.
         DO 930 J=1,JM
         DO 930 I=1,IM
         PEARTH=FEARTH(I,J)
@@ -719,10 +726,11 @@ C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
 C****
       USE GHYCOM
       USE SLE001
-      IMPLICIT REAL*8(A-H,O-Z)
+      IMPLICIT NONE 
 C**** SOILS28   Common block     9/25/90
       INTEGER I0,J0
-      REAl*8 WFCAP
+      REAL*8 WFCAP
+
       ONE=1.
       ID=I0*100+J0
 C**** SET UP LAYERS

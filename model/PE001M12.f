@@ -17,6 +17,8 @@ C**** WATER, GROUND ICE, SNOW COVER, AND RUNOFF
 C****
 C**** RUN1 IS NOT ACUMULATED IN ADAILY FOR DIAG6
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,rhow,rhoi,shw,shi
       USE E001M12_COM
       USE GEOM
       USE CLOUDS, only : PREC,TPREC
@@ -29,9 +31,9 @@ C*
       REAL*8 MSI1, MSI2, MELT1
 
             COMMON/WORKO/OA(IM,JM,11)
-      DATA SHW/4185./,SHI/2060./,RHOI/916.6/
+c      DATA SHW/4185./,SHI/2060./
       DATA Z1I/.1/,Z1E/.1/,Z2LI/2.9/
-      DATA RHOW/1000./,Z2OIM/.9/,TFO/-1.80/
+      DATA Z2OIM/.9/,TFO/-1.80/
       DATA TTRUNC/0./
       DATA IFIRST/1/
 C****
@@ -80,8 +82,7 @@ C*
       HC1DE=Z1E*1129950.
 C*
       DO 980 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
          AENRGP=0.
          BENRGP=0.
          CENRGP=0.
@@ -550,6 +551,7 @@ C****
 C**** calculates the Earth's zenith angle, weighted either
 C**** by time or by sun light.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 LT1(IM),LT2(IM)
@@ -831,6 +833,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 C****
 C**** THIS SUBROUTINES ADDS THE RADIATION HEATING TO THE TEMPERATURES
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,tf
       USE E001M12_COM
       USE GEOM
       USE RE001
@@ -867,7 +871,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       COMMON/RDATA/ROUGHL(IM,JM)
       DIMENSION COE(LM+3)
       LOGICAL POLE
-      DATA TF/273.16/,TCIR/258.16/,STBO/.567257D-7/,IFIRST/1/,JDLAST/-9/
+c      DATA TF/273.16/
+      DATA TCIR/258.16/,STBO/.567257D-7/,IFIRST/1/,JDLAST/-9/
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -1323,8 +1328,7 @@ C****
   700 CONTINUE
          DO 780 J=1,JM
          DXYPJ=DXYP(J)
-         IMAX=IM
-         IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+         IMAX=IMAXJ(J)
          DO 720 L=1,LM
          ASRHR=0.
          ATRHR=0.
@@ -1432,22 +1436,19 @@ C****
 C**** UPDATE THE TEMPERATURES BY RADIATION
 C****
   800 DO 820 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 820 LR=1,3
       DO 820 I=1,IMAX
   820 RQT(I,J,LR)=RQT(I,J,LR)+(SRHRS(I,J,LR)*COSZ2(I,J)
      *  +TRHRS(I,J,LR))*COE(LR+LM)
   840 DO 860 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 860 L=1,LS1-1
       DO 860 I=1,IMAX
   860 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
      *  *COE(L)/(P(I,J)*PK(L,I,J))
       DO 870 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 870 L=LS1,LM
       DO 870 I=1,IMAX
   870 T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1))
@@ -1459,6 +1460,8 @@ C****
 C**** THIS SUBROUTINE USES THE SURFACE FLUXES TO PREDICT IN TIME THE
 C**** GROUND TEMPERATURE, GROUND WATER AND ICE, AND SNOW MELTING.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,rhow,rhoi,shv,shw,shi
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -1474,8 +1477,10 @@ C*
             COMMON/oldDAG/GDEEP(IM,JM,3)
       COMMON/OT/OTA(IM,JM,4),OTB(IM,JM,4),OTC(IM,JM)
       COMMON /FLAKE/ T50(IM,JM)
-      DATA SHV/0./,SHW/4185./,SHI/2060./,RHOW/1000./,RHOI/916.6/,
-     *  ALAMI/2.1762/,TFO/-1.80/,Z1I/.1/,Z2LI/2.9/,Z1E/.1/,Z2E/4./
+c      DATA SHV/0./,SHW/4185./,SHI/2060./
+      DATA ALAMI/2.1762/,TFO/-1.80/,Z1I/.1/,Z2LI/2.9/,Z1E/.1/,Z2E/4./
+cRHOW/1000./,RHOI/916.6/,
+
       DATA Z2OIM/.4/,Z2OIX/4.9/
       DATA TTRUNC/0./
       DATA IFIRST/1/
@@ -1552,8 +1557,7 @@ C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
       DO 980 J=1,JM
-      IMAX=IM
-      IF ((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
+      IMAX=IMAXJ(J)
          BF1DT=0.
          CF1DT=0.
          AOTDT=0.
@@ -2438,6 +2442,8 @@ C**** THIS SUBROUTINE MIXES AIR CAUSED BY DRY CONVECTION.  SINCE DRY
 C**** CONVECTION IN THE BOUNDARY LAYER IS DONE IN SUBROUTINE SURFCE,
 C**** THIS ROUTINE ONLY CHECKS LAYERS 2 TO LM.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       USE SOMTQ_COM
@@ -2453,7 +2459,7 @@ C     DATA RVAP/461.5/
       RVX=0.
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       DTSRCE=DT*NDYN
       DO 50 L=1,LM
       DO 50 J=2,JM
@@ -2602,6 +2608,7 @@ C****
 C**** THIS SUBROUTINE PUTS A DRAG ON THE WINDS ON THE TOP LAYER OF
 C**** THE ATMOSPHERE
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -2733,6 +2740,8 @@ C**** WHEN THE MIXED LAYER DEPTHS ARE CHANGED (NORMALLY DONE ONCE
 C**** A DAY).
 C**** THE SUBROUTINE ALSO MELTS ICE WHEN TGO > 0 (C).
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,rhow,rhoi,shw,shi
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -2744,7 +2753,8 @@ C*
 C*
       COMMON/WORK2/Z1OOLD(IM,JM)
       COMMON /FLAKE/ T50(IM,JM)
-      DATA SHW/4185./,SHI/2060./,RHOW/1000./,RHOI/916.6/,Z1I/.1/
+      DATA Z1I/.1/
+c,RHOW/1000./,RHOI/916.6/,SHW/4185./,SHI/2060./,
       DATA Z2OIM/.4/
       DATA TTRUNC/0./
 C****
@@ -2766,8 +2776,7 @@ C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
       DO 200 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 200 I=1,IMAX
       IF (FLAND(I,J).GE.1.) GO TO 200
       IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
@@ -2797,8 +2806,7 @@ C****
 C**** REDUCE THE HORIZONTAL EXTENT OF ICE IF OCEAN TEMPERATURE IS WARM
 C****
       DO 300 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 300 I=1,IMAX
       IF (FLAKE(I,J) .GT. 0.) GO TO 300 ! no melting in lakes
       IF (ODATA(I,J,2).LE.0.) GO TO 300

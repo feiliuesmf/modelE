@@ -13,6 +13,7 @@ C**** Quadratic upstream scheme + 4th order scheme, Cor.term=0 at poles
 C**** Routines included: MAIN,INPUT,DYNAM,ADV...,FLTRUV,SHAP1D,DAILY,CHT
 C**** f90 changes
 *****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
@@ -64,7 +65,7 @@ C**** INITIALIZE TIME PARAMETERS
       WRITE (6,'(A,13X,A,I6,A,F6.2,I6,A5,I27,I7,F7.1,A,F11.2)')
      *  '0CLIMATE MODEL STARTED UP','DAY',IDAY,', HR',TOFDAY,
      *   JDATE,JMONTH,MINC,MELSE,PERCNT,' TAU',TAU
-      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LM)
+
       CALL CALC_AMPK(LM)
 
          MODD5K=1000
@@ -166,7 +167,7 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAG9A (1)
       CALL DYNAM
-      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+
       CALL CALC_AMPK(LS1-1)
 
       CALL CHECKT (2)
@@ -259,8 +260,7 @@ C****
          CALL DIAG5A (16,NDAILY)
          CALL DIAG9A (8)
       DO 530 J=1,JM
-      IMAX=IM
-      IF ((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
+      IMAX=IMAXJ(J)
       DO 530 I=1,IMAX
 C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
       GDATA(I,J,9)=1.+.98*GDATA(I,J,9)
@@ -462,7 +462,7 @@ C****
 
       IMPLICIT REAL*8 (A-H,O-Z)
 
-      DOUBLE PRECISION :: LHE,LHM,LHS,KAPA
+      DOUBLE PRECISION :: LHEx,LHMx,LHSx,KAPAx
       INTEGER, DIMENSION(3) :: IDUM
       INTEGER, DIMENSION(13) :: NDZERO,NDPRNT
       INTEGER, DIMENSION(2,4) :: IJD6
@@ -481,9 +481,9 @@ C****
       DOUBLE PRECISION, DIMENSION(40) :: RDM2
        COMMON /RPARMB/
      *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  TWOPI,SDAY,LHE,LHM,LHS,         RADIUS,GRAV,RGAS,KAPA,OMEGA,
-     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,AREAG,
-     *  XCDNST   ,XINT,DLAT,DLON,       SKIPSE,USESLP,USEP,USET,FIM,
+     *  TWOPIx,SDAYx,LHEx,LHMx,LHSx, RADIUSx,GRAVx,RGASx,KAPAx,OMEGAx,
+     *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,AREAGx,
+     *  XCDNST   ,XINT,DLATx,DLONx,       SKIPSE,USESLP,USEP,USET,FIM,
      *  RSDIST,SIND,COSD,DOPK,     SIG    ,SIGE    ,TAUTR0   ,RDM2
 
 
@@ -500,14 +500,14 @@ C****
      *      0,   0,    0,   0,    0,      0,    0,    0,     0,     0/
       DATA  DT,  TAUP,TAUI,TAUE,TAUT/
      *    450.,   -1., -1.,  1., 24./,
-     *    SDAY,     LHE,    LHM,     LHS,   RADIUS,GRAV,RGAS,KAPA/
+     *   SDAYx,  LHEx,   LHMx,  LHSx, RADIUSx,GRAVx,RGASx,KAPAx/
      *  86400.,2500000.,334000.,2834000., 6375000.,9.81,287.,.286/,
      *  CCMCX,U00,S0X,CO2,SRCOR, PTOP, PSF, PSDRAG,PTRUNC/
      *      1.,.7, 1., 1.,   1., 150.,984.,  500.,    0./,
      *  XCDNST(1),XCDNST(2),XINT, SKIPSE,USESLP,USEP,USET, DOPK/
      *      .0005,   .00005,120.,     0.,    0.,  0.,  0.,   0./
 C     DATA TWOPI/6.283185/
-      DATA TWOPI/6.283185307179586477D0/
+      DATA TWOPIx/6.283185307179586477D0/
       DATA SIGE /1.0000000,36*0./
       DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
      *  NDZERO/ 0,1,32,60,91,121,152,182,213,244,274,305,335/,
@@ -519,6 +519,8 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,rhow
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
@@ -545,10 +547,11 @@ C****
       NAMELIST/INPUTZ/IM0,JM0,LM0,LS1,LBLM,LMCM,LSSM,KOCEAN,ISTART,
      *  KDISK,TAUP,TAUI,TAUE,TAUT,TAUO,NDYN,NCNDS,NRAD,NSURF,NGRND,
      *  NFILTR,NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF,DT,TAU,XINT,IYEAR,
-     *  LHE,LHM,LHS,RADIUS,GRAV,RGAS,KAPA,OMEGA,CCMCX,U00,S0X,CO2,SRCOR,
-     *  PTOP,PSF,PSL,PTRUNC,DLAT,DLON,AREAG,IRAND,IJRA,MFILTR,NDIFS,
-     *  KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY,XCDNST,IDACC,KDIAG,
-     *  NDZERO,NDPRNT,IJD6,NAMD6,SIG,SIGE,KTACC0
+     *  LHEx,LHMx,LHSx,RADIUSx,GRAVx,RGASx,KAPAx,OMEGAx,
+     *     CCMCX,U00,S0X,CO2,SRCOR,
+     *     PTOP,PSF,PSL,PTRUNC,DLATx,DLONx,AREAGx,IRAND,IJRA,MFILTR
+     *     ,NDIFS,KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY,XCDNST,IDACC
+     *     ,KDIAG,NDZERO,NDPRNT,IJD6,NAMD6,SIG,SIGE,KTACC0
       ISTART=10
 C**** READ SPECIAL REGIONS FROM UNIT 29 - IF AVAILABLE
 CC       KREG=0
@@ -937,6 +940,7 @@ C****
       CALL GHINIT (DT*NDYN/NSURF,UNUSED,IUNIT,redoGH)
       IF (redoGH) THEN
         WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
+
 C****   Copy Snow age info into GDATA array
         DO 930 J=1,JM
         DO 930 I=1,IM
@@ -1011,6 +1015,7 @@ C****
 C****
 C**** INTEGRATE DYNAMIC TERMS
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
@@ -1182,6 +1187,7 @@ C**** THIS SUBROUTINE CALCULATES THE HORIZONTAL AIR MASS FLUXES
 C**** AND VERTICAL AIR MASS FLUXES AS DETERMINED BY U, V AND P.
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
      &     , only : im,jm,lm,psf,ptop,ls1,dsig,fim
       USE GEOM
@@ -1368,7 +1374,7 @@ C**** THIS SUBROUTINE ADVECTS MOMENTUM (INCLUDING THE CORIOLIS FORCE)
 C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,mrch,modd5k,rgas,kapa,psf,ptop,ls1,
+     &     , only : im,jm,lm,mrch,modd5k,psf,ptop,ls1,
      &              dsig,lmm1
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -1549,8 +1555,9 @@ C****
 C**** THIS SUBROUTINE ADDS TO MOMENTUM THE TENDENCIES DETERMINED BY
 C**** THE PRESSURE GRADIENT FORCE
 C****
+      USE CONSTANT, only : rgas,kapa,sha
       USE E001M12_COM
-     &     , only : im,jm,lm,rgas,kapa,sige,psf,ptop,ls1,zatmo,dsig,sig,
+     &     , only : im,jm,lm,sige,psf,ptop,ls1,zatmo,dsig,sig,
      &              mrch,modd5k
       USE GEOM
       USE CLOUDS, only : GZ
@@ -1568,7 +1575,7 @@ C****
       DIMENSION PKE(LM+1)
       REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM)
 C****
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       KAPAP1=KAPA+1.
       JMM2=JM-2
       DT4=DT1/4.
@@ -1585,8 +1592,7 @@ C****
       DO 100 I=1,IM
   100 SPA(I,J,L)=0.
       DO 330 J=1,JM
-      IMAX=IM
-      IF((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
+      IMAX=IMAXJ(J)
       DO 330 I=1,IMAX
       PIJ=P(I,J)
       PDN=PIJ+PTOP
@@ -1726,6 +1732,7 @@ C**** THIS SUBROUTINE SMOOTHES THE ZONAL MASS FLUX AND GEOPOTENTIAL
 C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -1768,6 +1775,7 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
@@ -1834,7 +1842,7 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
           END DO
         END DO
       END DO
-      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+
       CALL CALC_AMPK(LS1-1)
 
   200 IF (MFILTR.LT.2) RETURN
@@ -1994,6 +2002,7 @@ C****
 C**** THIS SUBROUTINE SMOOTHES THE ARRAY X IN THE ZONAL DIRECTION
 C**** USING AN N-TH ORDER SHAPIRO FILTER.  N MUST BE EVEN.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
       REAL*8 X,XS
@@ -2019,6 +2028,8 @@ C****
 C**** THIS SUBROUTINE PERFORMS THOSE FUNCTIONS OF THE PROGRAM WHICH
 C**** TAKE PLACE AT THE BEGINNING OF A NEW DAY.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,rhow,rhoi,shi,shw,edpery
       USE E001M12_COM
       USE GEOM
       USE SLE001
@@ -2055,12 +2066,13 @@ C****
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
       INTEGER :: JDOFM(13) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      DATA JDPERY/365/,JMPERY/12/,EDPERY/365./,Z1I/.1/,RHOI/916.6/
-      DATA RHOW/1000./,MONTHO/0/
+      DATA JDPERY/365/,JMPERY/12/,Z1I/.1/
+c      DATA RHOW/1000./,RHOI/916.6/,EDPERY/365./
+      DATA MONTHO/0/
 C**** ORBITAL PARAMETERS FOR EARTH FOR YEAR 2000 A.D.
 Cold  DATA SOLS/173./,APHEL/186./,OBLIQ/23.44/,ECCN/.0167/
       DATA OMEGT/282.9/,OBLIQ/23.44/,ECCN/.0167/
-      DATA SHW/4185./,SHI/2060./
+c      DATA SHW/4185./,SHI/2060./
 C****
 C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
@@ -2077,7 +2089,7 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
       DO 140 J=1,JM
       DO 140 I=1,IM
   140 P(I,J)=P(I,J)+DELTAP
-      DOPK=0.   ! 1. replaced with CALL CALC_AMPK(LS1)
+
       CALL CALC_AMPK(LS1-1)
 
       WRITE (6,901) DELTAP
@@ -2145,8 +2157,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       CALL READT (17,0,ARSI,2*IM*JM,ARSI,1) ! READS ARSI,ERSI1
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO 330 J=1,JM
-      IMAX=IM
-      IF(J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 330 I=1,IMAX
       BOST(I,J)=EOST1(I,J)-EOST0(I,J)
       COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
@@ -2179,8 +2190,7 @@ C**** Calculate OST, RSI and MSI for current day
       ZIMIN=.5
       ZIMAX=2.
       IF(J.GT.JM/2) ZIMAX=3.5
-      IMAX=IM
-      IF(J.eq.1 .or. J.eq.JM)  IMAX=1
+      IMAX=IMAXJ(J)
       DO 450 I=1,IMAX
       IF(FLAND(I,J).GE.1.)  GO TO 450
       IF (KOCEAN.EQ.1 .AND. FLAKE(I,J).LE.0.) GO TO 450
@@ -2360,7 +2370,9 @@ C**** FOR DEBUGGING PURPOSES. IT IS TURNED ON BY SETTING IDACC(11)
 C**** TO BE POSITIVE.  REMEMBER TO SET IDACC(11) BACK TO ZERO AFTER
 C**** THE ERRORS ARE CORRECTED.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
+      USE GEOM
       USE GHYCOM
      &  , only : ghdata
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -2380,8 +2392,7 @@ C**** CHECK WHETHER GDATA ARE REASONABLE AND CONSISTENT OVER EARTH
 C****
       X=1.001
       DO 110 J=1,JM
-      IMAX=IM
-      IF ((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
+      IMAX=IMAXJ(J)
       DO 110 I=1,IMAX
       PEARTH=FEARTH(I,J)
       IF (PEARTH.LE.0.) GO TO 110

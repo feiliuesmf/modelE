@@ -3,8 +3,8 @@
 !@auth Original development team
 !@ver  1.0 (B grid version)
 !@cont GEOM_B
-c      USE CONSTANT, only : OMEGA,RADIUS,TWOPI
-      USE E001M12_COM, only : IM,JM,FIM,RADIUS,TWOPI,OMEGA,AREAG
+      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY
+      USE E001M12_COM, only : IM,JM,LM,FIM
       IMPLICIT NONE
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
@@ -12,13 +12,13 @@ C**** vertices of the A grid
 C**** Polar boxes have different latitudinal size and are treated 
 C**** as though they were 1/IM of their actual area
 
-!@var  DLON grid spacing in longitude (deg)
-c      REAL*8, PARAMETER :: DLON=TWOPI/IM
+!@param  DLON grid spacing in longitude (deg)
+      REAL*8  :: DLON    !=TWOPI/IM
 C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
-!@var  DLAT grid spacing in latitude (deg)
-c      REAL*8, PARAMETER :: DLAT=.5*TWOPI/(JM-1)
-!@var  FJEQ equatorial value of J 
+!@param  DLAT grid spacing in latitude (deg)
+      REAL*8  :: DLAT    !=.5*TWOPI/(JM-1)
+!@param  FJEQ equatorial value of J 
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
 
 !@var  LAT latitude of mid point of primary grid box (radians)
@@ -28,7 +28,7 @@ C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conseravtion quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
 !@var  AREAG global integral of area (m^2)
-c      REAL*8 :: AREAG
+      REAL*8 :: AREAG
 
 !@var  DXYV area of grid box around a velocity point (m^2)
       REAL*8, DIMENSION(JM) :: DXYV
@@ -69,7 +69,7 @@ c      REAL*8 :: AREAG
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
-      USE E001M12_COM
+c      USE E001M12_COM
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
@@ -128,7 +128,7 @@ c      REAL*8 :: AREAG
          RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
 C**** CALCULATE CORIOLIS PARAMETER
-      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
+c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
       FCOR(JM) = -FCOR(1)
       DO J=2,JM-1

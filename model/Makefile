@@ -9,7 +9,7 @@ RUN	= E001
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
-MCOM	= E001M12_COM.o
+MCOM	= E001M12_COM.o const.o
 GEOCOM	= GEOM_B.o
 QUSCOM	= SOMTQ_COM.o
 GHYCOM  = GHYCOM.o

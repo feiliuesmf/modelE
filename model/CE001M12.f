@@ -11,10 +11,12 @@ C**** Uses QUS for subsidence + keep tracks of moments
 C**** + change to CTEI calc (incl. tracer mom. mixing subr. CTMIX)
 C**** Subsid only works on non-plume portion of column (properly!)
 
+      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
       USE E001M12_COM
       USE SOMTQ_COM
       USE RANDOM
       USE GEOM
+      
       IMPLICIT NONE
 
       REAL*8, SAVE :: SD_CLOUDS,PREC,TPREC,TAUSS,TAUMC,UC,VC,PRECSS
@@ -45,7 +47,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
 
-      REAL*8, SAVE :: DTCNDS,SHA,BYSHA,BYGRAV,PK1000,BYBR,SLHE,SLHS
+      REAL*8, SAVE :: DTCNDS,BYGRAV,PK1000,BYBR,SLHE,SLHS
      *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX
 
       REAL*8, SAVE :: AQ1,AQ2,CLDDEP,CLDSLW
@@ -122,7 +124,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
      *     ,QYYMP,QYYMPMAX,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
      *     ,SUMDP,SXMDN,SXMPMAX,SXXMDN,SXXMPMAX,SXYMDN
      *     ,SXYMPMAX,SYMDN,SYMPMAX,SYYMDN,SYYMPMAX
-     *     ,TEM,TEMP,TOLD,TOLD1,WCONST,WMSUM,WORK,WTEM,SMPO,QMPO,TEMWM
+     *     ,TEM,TOLD,TOLD1,WCONST,WMSUM,WORK,WTEM,SMPO,QMPO,TEMWM
      *     ,RCLD
 
       LOGICAL QWRITE,MC1
@@ -144,8 +146,8 @@ C****
       IF(IFIRST.EQ.1) THEN
       DTCNDS=NCNDS*DT
       BYDTCN=1./DTCNDS
-      SHA=RGAS/KAPA
-      BYSHA=1./SHA
+c      SHA=RGAS/KAPA
+c      BYSHA=1./SHA
       BYGRAV=1./GRAV
       BXCONS=.622d0/RGAS
       AXCONS=LOG(6.1071D0)
@@ -164,18 +166,7 @@ c   42 PKS(L)=((PSF-PTOP)*SIG(L)+PTOP)**KAPA
       AGESNX=1.-DTPERD/50.
       IFIRST=0
       END IF
-C**** CALCULATE PK = P**KAPA
-c      IF(DOPK.EQ.1.) THEN
-c      DO 53 L=1,LS1-1
-c      DO 53 J=1,JM
-c      DO 53 I=1,IM
-c   53 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-c      DO 55 L=LS1,LM
-c      DO 55 J=1,JM
-c      DO 55 I=1,IM
-c   55 PK(L,I,J)=PKS(L)
-c      DOPK=0.
-c      END IF
+
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
    70 DO 75 L=1,LM
       DO 75 J=1,JM
@@ -2012,7 +2003,7 @@ C**** This function to be replaced by standard version in UTILDBL
 !@sum   QSAT calculates saturation vapour mixing ratio 
 !@auth  Original development team
 !@ver   1.0 (CLOUDS ONLY)
-      USE E001M12_COM, only : RGAS
+      USE CONSTANT, only : RGAS
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)

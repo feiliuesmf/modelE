@@ -336,6 +336,8 @@ C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
 C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
 C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
      &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q,
      *     sqrtpx=>sqrtp
@@ -381,7 +383,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       WRITE (6,888) JET
   888 FORMAT (' JET WIND LEVEL FOR DIAG',I3)
       BYIM=1./FIM
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       BYSDSG=1./(1.-SIGE(LM+1))
       BETA=.0065
       BBYG=BETA/GRAV
@@ -459,8 +461,7 @@ C****
       DO 190 J=1,JM
       POLE=.FALSE.
       IF (J.EQ.1.OR.J.EQ.JM) POLE=.TRUE.
-      IMAX=IM
-      IF (POLE) IMAX=1
+      IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       AT1=0.
@@ -575,8 +576,7 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
   190 CONTINUE
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO 250 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
       DO 230 L=1,LM
       ATX=0.
@@ -670,8 +670,7 @@ C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
       DO 490 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
       ASS=0.
@@ -941,8 +940,7 @@ C****
 C**** EVEN LEVEL GEOPOTENTIALS, VERTICAL WINDS AND VERTICAL TRANSPORTS
 C****
       DO 655 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
 C     PITI=0.
 C     DO 648 I=1,IMAX
 C 648 PITI=PITI+PIT(I,J)
@@ -1023,8 +1021,7 @@ C**** SET UP FOR CALCULATION
       DO 710 L=1,LM
   710 GMEAN(L)=0.
       DO 740 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 720 I=1,IMAX
   720 SQRTP(I)=SQRT(P(I,J))
 C**** GMEAN CALCULATED FOR EACH LAYER, THJL, THSQJL ARRAYS FILLED
@@ -1331,6 +1328,8 @@ C****   4  DP4 (100 PA)  (UV GRID)
 C****   5  4*DP4*T4 (100 K*PA)  (UV GRID)
 C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
      &     , uhide=>u, vhide=>v, thide=>t, phide=>p, qhide=>q
       USE GEOM
@@ -1365,7 +1364,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       LMP1=LM+1
       JET=LS1-1
       BYIM=1./FIM
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       KM=LM
       KMM1=KM-1
       PM(1)=1200.
@@ -1381,8 +1380,7 @@ C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
       QLH=LHE
       DO 170 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 170 K=1,KM
       DPI=0.
       TPI=0.
@@ -1447,8 +1445,7 @@ C****
 C**** CALCULATE STABILITY AT ODD LEVELS ON PU GRID
 C****
       DO 230 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       I=IMAX
       DO 230 IP1=1,IMAX
       SP2=P(I,J)+P(IP1,J)
@@ -1482,8 +1479,7 @@ C**** SPECIAL CASES,  L=2, L=LM
   230 I=IP1
 C**** CALCULATE STJK; THE MEAN STATIC STABILITY
       DO 260 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 260 K=1,KM
       STJK(J,K)=0.
       DPJK(J,K)=0.
@@ -1807,8 +1803,7 @@ C**** ACCUMULATE ALL VERTICAL WINDS
   556 IH=IH+1
   558 CONTINUE
       DO 565 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 565 K=1,KM
       WI=0.
       DO 562 I=1,IMAX
@@ -1828,8 +1823,7 @@ C****
 C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
 C****
       DO 610 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1 .OR. J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 610 K=2,KM
       WI=0.
       TKI=0.
@@ -1895,8 +1889,7 @@ C****
 C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
 C****
       DO 630 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       DO 630 K=1,KM
       FIMI=0.
       W2I=0.
@@ -2248,6 +2241,7 @@ C****  53  SNOW DEPTH (KG/M**2)
 C****  31  SNOW COVER (10**-2)
 C**68  30  OCEAN ICE COVER (10**-2)
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -2663,6 +2657,8 @@ C****                                                             37-44
      4'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES(10**13 WATTS/DSIG)'/
       END
       SUBROUTINE DIAGJK
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -2691,7 +2687,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       JMHALF=JM/2
       BYIM=1./FIM
       BY100G=.01/GRAV
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       P1000K=EXPBYK(P1000)
       DO 30 L=1,LM
       PMO(L)=(PSF-PTOP)*SIG(L)+PTOP
@@ -3325,6 +3321,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
      *  ' 10**18 JOULES = .864 * 10**30 GM*CM**2/SEC/DAY')
       END
       SUBROUTINE JKMAP (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -3686,6 +3683,8 @@ C****                                                            143-156
      6'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #9 (10**18 JOULES/DS)  '/
       END
       SUBROUTINE DIAGJL
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -3707,7 +3706,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       BYIM=1./FIM
       BY100G=.01/GRAV
       PMTOP=SIGE(LM+1)*(PSF-PTOP)+PTOP
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       DTCNDS=NCNDS*DT
       P1000K=EXPBYK(P1000)
       KM=0
@@ -3946,6 +3945,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -4073,6 +4073,8 @@ C****                                                              9-16
      6'ZONAL WIND AT 70 N (METERS/SECOND)                       '/
       END
       SUBROUTINE DIAGIL
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -4086,7 +4088,7 @@ C        IF (JM.NE.24) RETURN
       JEQ=2.+.5*JMM1
       J50N=(50.+90.)*JMM1/180.+1.5
       J70N=(70.+90.)*JMM1/180.+1.5
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       DTCNDS=NCNDS*DT
       DO 20 L=1,LM
       ONES(L)=1.
@@ -4152,6 +4154,7 @@ C     CALL ILMAP (16,PL,AIL(1,1,16),SCALE,ONES,LM,2,2)
       RETURN
       END
       SUBROUTINE ILMAP (NT,PL,AX,SCALE,SCALEL,LMAX,JWT,ISHIFT)
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -4234,6 +4237,7 @@ C****
 C**** THIS SUBROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
 C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -4680,6 +4684,8 @@ C****  85  SHALLOW CONVECTIVE CLOUD FREQUENCY (%)
 C****  83  DEEP CONVECTIVE CLOUD COVER (%)
 C****  82  SHALLOW CONVECTIVE CLOUD COVER (%)
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -4719,7 +4725,7 @@ C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
       DATA PMB/1000.,850.,700.,500.,300.,100.,30./,P1000/1000./
       DATA GHT/0.,1500.,3000.,5600.,9500.,16400.,24000./
 C**** INITIALIZE CERTAIN QUANTITIES
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
       INC=1+(JM-1)/24
       ILINE=36*INC
       IQ1=1+IM/(4*INC)
@@ -5080,6 +5086,7 @@ C****
   917 FORMAT (1X,I5,1X,36A1,I8,1X,36A1,I8,1X,36A1)
       END
       SUBROUTINE IJMAP (NT,ARRAY,BYIACC)
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -5234,6 +5241,8 @@ C**** THIS DIAGNOSTIC ROUTINE KEEPS TRACK OF THE CONSERVATION
 C**** PROPERTIES OF ANGULAR MOMENTUM, KINETIC ENERGY, MASS, AND
 C**** TOTAL POTENTIAL ENERGY
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -5347,20 +5356,10 @@ C****
 C****
 C**** TOTAL POTENTIAL ENERGY
 C****
-  400 SHA=RGAS/KAPA
-c      IF (DOPK.LE.0.) GO TO 420
-c      DO 410 L=1,LS1-1
-c      DO 410 J=1,JM
-c      DO 410 I=1,IM
-c  410 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-c      DO 415 L=LS1,LM
-c      DO 415 J=1,JM
-c      DO 415 I=1,IM
-c  415 PK(L,I,J)=PKS(L)
-c      DOPK=0.
+ 400  CONTINUE
+c  400 SHA=RGAS/KAPA
   420 DO 460 J=1,JM
-      IMAX=IM
-      IF (J.EQ.1.OR.J.EQ.JM) IMAX=1
+      IMAX=IMAXJ(J)
       TPEIL=0.
       DO 440 L=1,LM
       TPEI=0.
@@ -5650,6 +5649,8 @@ C****  18  UNUSED
 C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
+     *     ,sha
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -5684,7 +5685,7 @@ c     *  SQRTM(IM,JM),SQRTP(IM,JM),THJSP(LM),THJNP(LM),THGM(LM),
       JEQM1=JEQ-1
       J45N=2.+.75*JMM1
       IJL2=IM*JM*LM*2
-      SHA=RGAS/KAPA
+c      SHA=RGAS/KAPA
    50 CONTINUE
       MKE=M5
       MAPE=M5
@@ -5780,26 +5781,7 @@ C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
 C****
 C**** POTENTIAL ENERGY
 C****
-c      IF (DOPK.EQ.-1.) GO TO 296
-C**** COMPUTE SQRTP = SQRT(P) AND PK = P**KAPA
-c      SQRTP1=SQRT(P(1,1))
-c      SQRTPM=SQRT(P(1,JM))
-c      DO 290 J=2,JM-1
-c      DO 290 I=1,IM
-c  290 SQRTP(I,J)=SQRT(P(I,J))
-c      DO 292 I=1,IM
-c      SQRTP(I,1)=SQRTP1
-c  292 SQRTP(I,JM)=SQRTPM
-c      IF (DOPK.EQ.0.) GO TO 296
-c      DO 294 L=1,LS1-1
-c      DO 294 J=1,JM
-c      DO 294 I=1,IM
-c  294 PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
-c      DO 295 L=LS1,LM
-c      DO 295 J=1,JM
-c      DO 295 I=1,IM
-c  295 PK(L,I,J)=PKS(L)
-  296 DOPK=-1.
+  296 CONTINUE
       DO 298 N=1,NM8
   298 APE(N,1)=0.
 C**** CURRENT AVAILABLE POTENTIAL ENERGY
@@ -6079,6 +6061,7 @@ C****
 C****
 C**** THIS SUBROUTINE PRINTS THE DIURNAL CYCLE OF SOME QUANTITIES
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -6153,6 +6136,7 @@ C****
 C****
 C**** THIS SUBROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -6335,6 +6319,7 @@ C**** 40 MAX. NORTH. TRANS. OF ANGULAR MOMENTUM BY EDDIES
 C**** 41 MAX. TOTAL NORTH. TRANS. OF ANGULAR MOMENTUM
 C**** 42 LATITUDE CORRESPONDING TO 41
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -6602,6 +6587,7 @@ C**** THIS SUBROUTINE SAVES THE INSTANTANEOUS SEA LEVEL PRESSURES
 C**** EVERY ABS(USESLP) HOURS. IF USESLP.LT.0 THE FIRST RECORD IS
 C**** WRITTEN TO THE BEGINNING OF UNIT 16.
 C****
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK1/SLP(IM,JM)

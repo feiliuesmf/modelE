@@ -180,7 +180,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@sum  CALC_AMPK calculate air mass and pressure functions
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
+      USE GEOM
       IMPLICIT NONE
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
@@ -192,8 +194,7 @@ C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
 
       DO J=1,JM
-         IMAX=IM
-         IF (J.eq.1 .or. J.eq.JM) IMAX=1
+         IMAX=IMAXJ(J)
          DO I=1,IMAX
             DO L=1,LS1-1
                PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
