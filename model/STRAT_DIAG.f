@@ -434,6 +434,23 @@ C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
 
 c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
+C**** diagnostic information for print out
+C**** this should be in an init_ep routine or something
+      integer, parameter :: njl_out=7
+      character(len=50) :: lname(njl_out) = (/
+     *     'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2',
+     *     'DU/DT BY MEAN ADVECTION                     ',
+     *     'DU/DT BY EDDY CONVERGENCE                   ',
+     *     'DU/DT BY TRANSFORMED ADVECTION              ',
+     *     'DU/DT BY ELIASSEN-PALM DIVERGENCE           ',
+     *     'DU/DT BY F.D. ERROR TERM 1                  ',
+     *     'DU/DT BY F.D. ERROR TERM 2                  '/)
+      character(len=30) :: sname(njl_out) = (/
+     *     'tot_dudt     ','dudt_meanadv ','dudt_eddycnv '
+     *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
+     *     ,'dudt_fderr2  '/)
+      character(len=50) :: units(njl_out) = '10**-6 M S-2'
+
 C**** ARRAYS CALCULATED HERE:
       REAL*8 DXCOSV(JM), ONES(JM+LM),PMO(LM),DP(LM)
      *  ,FMY(JM,LM), FEY(JM,LM),  FMZ(JM,LM), FEZ(JM,LM)
@@ -453,13 +470,11 @@ C**** Not clear how many of these are actually used.
       REAL*8, DIMENSION(JM,LM,KEP) :: XEP
       EQUIVALENCE (XEP,FMY)
       REAL*8 DTAEP,BYDT,SCALE,SCALE1,BYIAEP
-      INTEGER I,J,L,N,JL,IAEP
+      INTEGER I,J,L,N,JL
       
 C**** Initialize constants
-      IAEP=IDACC(4)
-c      DTSRCE = DT*NDYN   ! now from model_com
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
-      BYIAEP=1./(IAEP+1.D-20)
+      BYIAEP=1./(IDACC(4)+1.D-20)
       BYDT=1./(DTSRCE*IDACC(1)+1.D-20)
       DO J=2,JM
         DXCOSV(J) = DXV(J)*COSV(J)
@@ -578,11 +593,9 @@ CW      END DO
 CW      END DO
 C****
 C**** Print maps of EP fluxes
-C****   note:  UJLMAP (NTitle,Pres,Array,Scale,ScaleJ,ScaleL)
+C****   note:  JLMAP (lname,sname,units,Pres,Array,Scale,ScaleJ,ScaleL)
 C****          prints maps of  (Array * Scale * ScaleJ * ScaleL)
 C****
-C      CALL JLMAP (XXX,PMO,DUD,SCALE,ONES,ONES,LM,2,2)
-C     CALL JLMAP (XXX,PMO,DUR,SCALE,ONES,ONES,LM,2,2)
       DO L=1,LM
       DO J=2,JM
         DUDS(J,L)=((AJL(J,L,18)+AJL(J,L,20))+(AJL(J,L,21)+AJL(J,L,22))+
@@ -604,20 +617,27 @@ C     CALL JLMAP (XXX,PMO,DUR,SCALE,ONES,ONES,LM,2,2)
       SCALE=1.E6
 CW      CALL WRITJL ('DUDT: EUL+SOURCE',DUDS,SCALE)
 CW      CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALE) ! AJK-47 DIAGJK
-      CALL JLMAP (127,PMO,DUDS,SCALE,ONES,ONES,LM,2,2)
+      CALL JLMAP (LNAME(1),SNAME(1),UNITS(1),PMO,DUDS,SCALE,ONES,ONES,LM
+     *     ,2,2)
 C****
       SCALE = 1.E6
-      CALL JLMAP (59,PMO,DMF,SCALE,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (60,PMO,DEF,SCALE,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (64,PMO,DMFR,SCALE,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (65,PMO,DEFR,SCALE,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (123,PMO,ER1,SCALE,ONES,ONES,LM,2,2)
-      CALL JLMAP (124,PMO,ER2,SCALE,ONES,ONES,LM,2,2)
+      CALL JLMAP (LNAME(2),SNAME(2),UNITS(2),PMO,DMF,SCALE,BYDXYV,ONES
+     *     ,LM,2,2)
+      CALL JLMAP (LNAME(3),SNAME(3),UNITS(3),PMO,DEF,SCALE,BYDXYV,ONES
+     *     ,LM,2,2)
+      CALL JLMAP (LNAME(4),SNAME(4),UNITS(4),PMO,DMFR,SCALE,BYDXYV,ONES
+     *     ,LM,2,2)
+      CALL JLMAP (LNAME(5),SNAME(5),UNITS(5),PMO,DEFR,SCALE,BYDXYV,ONES
+     *     ,LM,2,2)
+      CALL JLMAP (LNAME(6),SNAME(6),UNITS(6),PMO,ER1,SCALE,ONES,ONES,LM
+     *     ,2,2)
+      CALL JLMAP (LNAME(7),SNAME(7),UNITS(7),PMO,ER2,SCALE,ONES,ONES,LM
+     *     ,2,2)
 C****
 CW      DO L=1,LM
 CW      DO J=2,JM
 CW      DMF(J,L)=DMF(J,L)*BYDXYV(J)
-CW    DEF(J,L)=DEF(J,L)*BYDXYV(J)
+CW      DEF(J,L)=DEF(J,L)*BYDXYV(J)
 CW      DMFR(J,L)=DMFR(J,L)*BYDXYV(J)
 CW      DEFR(J,L)=DEFR(J,L)*BYDXYV(J)
 CW      END DO

@@ -4,10 +4,9 @@
 
 C**** This module now compiles, but I can't check the results.
 C**** TO DO:
-C****    i) check that no arrays that are needed are not being passed
-C****   ii) Any common block dependences that I missed?
-C****  iii) A-grid <-> B-grid  should be done with indexes etc.
-C****   iv) PK type variables should be done in dynamics and used here
+C****   i) A-grid <-> B-grid  should be done with indexes etc.
+C****  ii) PK type variables should be done in dynamics and used here
+C**** iii) check that LSHR,L500,LD2 are consistent for other resolutions
 
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
@@ -43,7 +42,7 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       USE CONSTANT, only : rgas,grav,twopi,kapa
-      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,sig,ptop,ls1
+      USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
@@ -54,7 +53,7 @@ C****
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
       REAL*8 RHO,VKEDDY
-c      COMMON /DRGCOM/ AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM)
+c      COMMON /DRGCOM/ AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM)
 c      COMMON /WORK3/ PK(IM,JM,LM),UBAR(IM,JM,LM), ! PK is from GWDRAG
 c      COMMON /WORK3/ RHO(IM,JM,LM)
 c      COMMON /WORK03/ VKEDDY(IM,JM,LM+1)  ! WORK03 is used in AADVT
@@ -333,8 +332,13 @@ C**** Do I need to put the common decalaration here also?
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
       INTEGER, PARAMETER :: NM=9
+      REAL*8, PARAMETER :: FMC=2d-7, ERR=1d-20, H0=8000., XFROUD=1.
+!@var XLIMIT per timestep limit on mixing and drag
+      REAL*8, PARAMETER :: XLIMIT=.1d0 
+!@var ROTK should this be set from CONSTANT?
+      REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),
-c      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
+c      COMMON/DRGCOM/AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM),
 c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
 c     *   PDEF,LDEF,LDEFM
       REAL*8 DKE(IM,JM,LM),PLE(LM+1),PL(LM),DP(LM),TL(LM),THL(LM),
@@ -345,10 +349,9 @@ c     *   PDEF,LDEF,LDEFM
      *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM)
       REAL*8, SAVE :: EK(NM,JM),CN(NM),PKS(LM)
       DATA CN(1)/0./
-      REAL*8, SAVE :: ERR,GRAVS,G2DT,DTHR,BYDT1,H0,FMC,VARMIN,XFROUD
-     *     ,USEDEF,XLIMIT,ROTK,RKBY3,EKS,EK1,EK2,EKX
+      REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN 
       INTEGER, SAVE :: IFIRST=1
-      INTEGER, SAVE :: L500,LSHR,LD2
+      INTEGER, SAVE :: L500,LSHR,LD2 = LM   ! need default for LD2
       INTEGER LD(NM),IO(4),JO(4)
       INTEGER I,J,L,N,iu_ZVAR,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,IA
      *     ,JA
@@ -356,54 +359,53 @@ c     *   PDEF,LDEF,LDEFM
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
-     *     ,MUP,MUR,BVFSQ
+     *     ,MUP,MUR,BVFSQ,PLEV,PLEVE,EKS,EK1,EK2,EKX
 C     LOGICAL QWRITE
 C****
       IF (IFIRST.EQ.1) THEN
-
 C**** sync gwdrag parameters from input
       call sync_param( "XCDNST", XCDNST, 2 )
 
-      ERR=1d-20
       GRAVS=GRAV*GRAV
       G2DT=GRAVS*DT1
       DTHR=2./NIdyn   !NDYN
       BYDT1 = 1./DT1
-      H0=8000.
-      FMC=2d-7
       VARMIN=XCDNST(1)*XCDNST(1)
-      XFROUD=1.
-C     USEDEF=1.        ! Use Deformation drag if USEDEF = 1
-      XLIMIT=.1d0      ! per timestep limit on mixing and drag
-      ROTK=1.5
-      RKBY3=ROTK*ROTK*ROTK
+C**** define EK array (what is this?)
       EKS=0.
-      DO 5 J=2,JM
-c      BYDXYV(J)=1./DXYV(J)
-      EK1=TWOPI/SQRT(DXYV(J))
-      EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
-      EKX=(EK2-EK1)/LOG(EK2/EK1)
-      IF (EKX.LT.0.) EKX=0.
-      EKS=EKS+EKX*DXYV(J)
-      EK(1,J)=EKX
-    5 EK(2,J)=EKX
+      DO J=2,JM
+        EK1=TWOPI/SQRT(DXYV(J))
+        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
+        EKX=(EK2-EK1)/LOG(EK2/EK1)
+        IF (EKX.LT.0.) EKX=0.
+        EKS=EKS+EKX*DXYV(J)
+        EK(1,J)=EKX
+        EK(2,J)=EKX
+      END DO
       EKS=EKS*IM/AREAG
-      DO 6 J=1,JM
-      DO 6 N=3,NM
-    6 EK(N,J)=EKS
+      EK(3:NM,1:JM)=EKS
       WRITE (6,970) (J,EK(1,J),J=2,JM)
       WRITE (6,971) EKS
   970 FORMAT ('0  J,EK:',9X,1P,7(I4,E12.2)/,9(1X,8(I4,E12.2)/))
   971 FORMAT ('   AVG EK: ',4X,E12.2)
-C**** Coefficients for Radiative Damping (not valid below 500 mb)
-      DO 12 L500=1,LM-2
-      IF(PSFMPT*SIG(L500)+PTOP.LT.500.) GO TO 13
-   12 CONTINUE
-   13 L500=L500+1
+
+C**** Calculate levels for deformation etc.
+C**** Note: these levels work for the 23 layer model, but may
+C**** need testing for other resolutions
+      DO L=1,LM
+        PLEV=PSFMPT*SIG(L)+PTOP
+        PLEVE=PSFMPT*SIGE(L)+PTOP
+        IF (PLEV.GE.700) LDEF=L
+        IF (PLEVE.GE.500.) L500=L+1
+        IF (PLEVE.GE.300.) LSHR=L
+        IF (PLEV.GE.200.) LDEFM=L
+        IF (PLEV.GE.0.2d0) LD2=L
+      END DO
+      WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PSFMPT
+     *     *SIG(LDEF)+PTOP,' LDEFM=',LDEFM
+      WRITE (*,*) ' LEVELS FOR WIND SHEAR GENERATION: LSHR,LD2= ',LSHR
+     *     ,LD2
       WRITE (*,*) ' L500=',L500
-C**** LEVEL FOR WIND SHEAR WAVE GENERATION
-      LSHR=9    ! ~300 MB  ! should these be calculated?
-      LD2=19    ! ~0.2 MB
 C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
@@ -411,40 +413,47 @@ C****
       CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
       call closeunit(iu_ZVAR)
 
-      DO 20 J=JM-1,1,-1
-      DO 20 I=1,IM
-      ZVART(I,J+1)=ZVART(I,J)
-      ZVARX(I,J+1)=ZVARX(I,J)
-      ZVARY(I,J+1)=ZVARY(I,J)
-   20 ZWT(I,J+1)=ZWT(I,J)
-      DO 40 L=LS1,LM
-   40 PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
+      DO J=JM-1,1,-1
+      DO I=1,IM
+        ZVART(I,J+1)=ZVART(I,J)
+        ZVARX(I,J+1)=ZVARX(I,J)
+        ZVARY(I,J+1)=ZVARY(I,J)
+        ZWT(I,J+1)=ZWT(I,J)
+      END DO
+      END DO
+      DO L=LS1,LM
+        PKS(L)=(PSFMPT*SIG(L)+PTOP)**KAPA
+      END DO
       IFIRST=0
       END IF
+
+C**** Start main loop
 C**** P**KAPA IN THE STRATOSPHERE
-      DO 55 L=LS1,LM
-      DO 52 J=1,JM
-      DO 52 I=1,IMAXJ(J)
+      DO L=LS1,LM
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
         PK(I,J,L)=PKS(L)
-   52 CONTINUE
-   55 CONTINUE
+      END DO
+      END DO
+      END DO
 C**** P**KAPA IN THE TROPOSPHERE
-      DO 65 L=1,LS1-1
-      DO 60 J=1,JM
-      DO 60 I=1,IMAXJ(J)
+      DO L=1,LS1-1
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
         PK(I,J,L)=(P(I,J)*SIG(L)+PTOP)**KAPA
-   60 CONTINUE
-   65 CONTINUE
+      END DO
+      END DO
+      END DO
 C****
 C**** FILL IN QUANTITIES AT POLES
 C****
       DO I=2,IM
         AIRX(I,1)=AIRX(1,1)
-        LMC(I,1,1)=LMC(1,1,1)
-        LMC(I,1,2)=LMC(1,1,2)
+        LMC(1,I,1)=LMC(1,1,1)
+        LMC(2,I,1)=LMC(2,1,1)
         AIRX(I,JM)=AIRX(1,JM)
-        LMC(I,JM,1)=LMC(1,JM,1)
-        LMC(I,JM,2)=LMC(1,JM,2)
+        LMC(1,I,JM)=LMC(1,1,JM)
+        LMC(2,I,JM)=LMC(2,1,JM)
       END DO
       DO L=1,LM
       DO I=2,IM
@@ -467,23 +476,22 @@ C****
       DO 500 J=2,JM
       CN(1)=0.
       FCORU=(ABS(FCOR(J-1))+ABS(FCOR(J)))*BYDXYV(J)
-      DO 90 K=1,2
-      RA(K)=RAVPN(J-1)
-      RA(K+2)=RAVPS(J)
-      JO(K)=J-1
-   90 JO(K+2)=J
-      IF (J.NE.2) GO TO 92
-      RA(1)=RA(1)*BYIM
-      RA(2)=RA(2)*BYIM
-   92 IF (J.NE.JM) GO TO 94
-      RA(3)=RA(3)*BYIM
-      RA(4)=RA(4)*BYIM
-   94 I=IM
+      DO K=1,2
+        RA(K)=RAVPN(J-1)
+        RA(K+2)=RAVPS(J)
+        JO(K)=J-1
+        JO(K+2)=J
+      END DO
+      IF (J.EQ.2) THEN
+        RA(1)=RA(1)*BYIM
+        RA(2)=RA(2)*BYIM
+      END IF
+      IF (J.EQ.JM) THEN
+        RA(3)=RA(3)*BYIM
+        RA(4)=RA(4)*BYIM
+      END IF
+      I=IM
       DO 500 IP1=1,IM
-C     QWRITE=.FALSE.
-C     IF (M.EQ.0.AND.J.EQ.23) QWRITE=.TRUE.
-C     IF (QWRITE) WRITE (6,980) I,J,(U(I,J,L),L=1,LM)
-C 980 FORMAT (1H0,' U BEFORE DRAG AT ',2I6/(1X,12F10.3))
 C****
 C**** CALCULATE VERTICAL ARRAYS
 C****
@@ -518,13 +526,10 @@ CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
 C****
 C**** INITIALIZE THE MOMENTUM FLUX FOR VARIOUS WAVES
 C****
-      DO 120 N=1,NM
-      MU(N)=0.
-      LD(N)=LM+1     ! set drag level = LM+1 (turns off drag)
-  120 WT(N)=1.       ! initialize area weight to 1
-      DO 122 N=1,NM
-      DO 122 L=1,LM+1
-  122 MUB(L,N)=0.
+      MU(:)=0.
+      LD(:)=LM+1                ! set drag level = LM+1 (turns off drag)
+      WT(:)=1.                  ! initialize area weight to 1
+      MUB(:,:)=0.
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
       LD(1)=L500
       U0=(UL(1)*DSIG(1)+UL(2)*DSIG(2))/(SIGE(1)-SIGE(3))
@@ -542,7 +547,6 @@ C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
       WT(1)=ZWT(I,J)
       MU(1)=-.5*EK(1,J)/(H0*ROTK)*P0*BV0*W0*ZVAR
       IF(MU(1)*(UL(L500)*UR(1)+VL(L500)*VR(1)).GE.0.) MU(1)=0.
-C     IF(QWRITE) WRITE (6,996) I,J,U0,MU(1),UL(L500),P0
 C**** DEFORMATION WAVE (X    d cm-2)
       IF (9.GT.NM)  GO TO 155
       IF (ZATMO(I,J)/GRAV.GT.1000.) GO TO 155
@@ -556,7 +560,6 @@ C**** DEFORMATION WAVE (X    d cm-2)
       CN(9)=UL(LDEF )*UR(9)+VL(LDEF )*VR(9)
       MU(9)=FDEFRM
       LD(9)=L500
-CW    WRITE (99,*) 'DEFORM: I,J,C,MU,DEFRM=',I,J,CN(1),MU(1),DEFRM(I,J)
 C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
   155 IF (2.GT.NM)  GO TO 200
       LN=LSHR
@@ -585,11 +588,11 @@ C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
       AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAVPN(J-1)
      *     +  (AIRX(I,J)+AIRX(IP1,J))*RAVPS(J))
       IF (AIRX4.LE.0.) GO TO 200
-      LMC0=.5+(LMC(I,J-1,1)*AIRX(I,J-1)+LMC(IP1,J-1,1)*AIRX(IP1,J-1)+
-     *  LMC(I,J,1)*AIRX(I,J)+LMC(IP1,J,1)*AIRX(IP1,J))/(AIRX4+ ERR)
+      LMC0=.5+(LMC(1,I,J-1)*AIRX(I,J-1)+LMC(1,IP1,J-1)*AIRX(IP1,J-1)+
+     *  LMC(1,I,J)*AIRX(I,J)+LMC(1,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
 C**** Note: LMC1 was defined in CB245M31 as LMAX+1
-      LMC1=.5+(LMC(I,J-1,2)*AIRX(I,J-1)+LMC(IP1,J-1,2)*AIRX(IP1,J-1)+
-     *  LMC(I,J,2)*AIRX(I,J)+LMC(IP1,J,2)*AIRX(IP1,J))/(AIRX4+ ERR)
+      LMC1=.5+(LMC(2,I,J-1)*AIRX(I,J-1)+LMC(2,IP1,J-1)*AIRX(IP1,J-1)+
+     *  LMC(2,I,J)*AIRX(I,J)+LMC(2,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
       IF (LMC1.LE.4) GO TO 200
       NMX=4
 Cwmc     IF(M.EQ.0.AND.J.EQ.23) QWRITE=.TRUE.
@@ -658,22 +661,21 @@ C****
         BVEDGE=.5*(BVF(L-1)+BVF(L))
         BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*RKBY3*BVEDGE*TEDGE)
       END DO
-      DO 210 N=1,NM
-        DO 205 L=LD(N),LM
-        WMCE=UEDGE(L)*UR(N)+VEDGE(L)*VR(N) - CN(N)
-        IF (WMCE.GE.0.) THEN
-          MUB(L,N)=BYFACS(L)*EK(N,J)*WMCE**3
-          IF (MUB(L,N).GE.-ERR) MUB(L,N)=0.
-        END IF
-  205   CONTINUE
-  210 CONTINUE
+      DO N=1,NM
+        DO L=LD(N),LM
+          WMCE=UEDGE(L)*UR(N)+VEDGE(L)*VR(N) - CN(N)
+          IF (WMCE.GE.0.) THEN
+            MUB(L,N)=BYFACS(L)*EK(N,J)*WMCE**3
+            IF (MUB(L,N).GE.-ERR) MUB(L,N)=0.
+          END IF
+        END DO
+      END DO
 C**** DEPOSIT REMAINING MOM. FLUX IN TOP LAYER
-      DO 215 N=1,NM
-  215 MUB(LM+1,N)=0.
+      MUB(LM+1,:)=0.
 C**** DISTRIBUTE CRIT LEVEL NEAR TOP
-      DO 220 N=1,NM
+      DO N=1,NM
       IF (MUB(LM,N).EQ.0.) MUB(LM,N)=.3d0*MUB(LM-1,N)
-  220 CONTINUE
+      END DO
 Cw*** APPLY AREA WEIGHTING OF MTN WAVE TO BREAKING MOM. FLUX
 Cw    DO 225 L=LD(1),LM
 Cw225 MUB(L,1)=MUB(L,1)*ZWT(I,J)
@@ -697,18 +699,10 @@ C**** INCIDENT FLUX FOR SHR AND MC WAVES
   250 CONTINUE
 C**** LOCATE LDRAG - LOWEST LAYER TO APPLY DRAG
       LDRAG=LM+1
-      DO 252 N=1,NM
-      IF (MU(N).LE.-ERR) LDRAG=MIN(LD(N),LDRAG)
-  252 CONTINUE
+      DO N=1,NM
+        IF (MU(N).LE.-ERR) LDRAG=MIN(LD(N),LDRAG)
+      END DO
 C**** DIAGNOSTICS
-C     IF (QWRITE) WRITE (6,983) (N,N=1,6),(EK(N,J),N=1,6),
-C    *  (UR(N),N=1,6),(VR(N),N=1,6),
-C    *  (CN(N),N=1,6),(MU(N),N=1,6),(LD(N),N=1,6)
-C 983 FORMAT (1H0,10X,6I11/4X,'EK',4X,3P,6F11.4/
-C    * 4X,'UR',5X,0P,6F11.3/4X,'VR',5X,6F11.3/4X,'CN',5X,6F11.1/
-C    * 4X,'MU',8X,1P,6E11.2/4X,'LD',10X,6I11)
-C     IF (QWRITE) WRITE (6,994) I,J,(L,UL(L),VL(L),(MUB(L,N),N=1,6),
-C    *  PLE(L),BVF(L),L=1,LM+1)
          IF (MRCH.NE.2) GO TO 251
          AIJ(I,J,IJ_GW1)=AIJ(I,J,IJ_GW1)+MU(9)*UR(9)*DTHR
          AIJ(I,J,IJ_GW2)=AIJ(I,J,IJ_GW2)+MU(1)*UR(1)*DTHR  *WT(1)
@@ -785,8 +779,9 @@ C**** LIMIT THE CONVERGENCE TO XLIMIT*(U-C)
       ENDIF
   350 CONTINUE
 C**** COMBINE MECHANICAL AND RADIATIVE DRAG
-      DO 360 L=LD1,LTOP
-  360 DFTL(L)=DFM(L)+DFR(L)
+      DO L=LD1,LTOP
+        DFTL(L)=DFM(L)+DFR(L)
+      END DO
 C**** ACCUMULATE SATURATION FLUX FOR MTN WAVES DURING BRKING
 C     IF (N.NE.1.OR.MRCH.NE.2) GO TO 375
 C     DO 370 L=LD1,LTOP
@@ -865,45 +860,48 @@ C****
 C**** Save KE change and diffusion coefficient on A-grid
 C****
       IF (MRCH.NE.2) GO TO 470
-      DO 450 K=1,2
-      IO(2*K-1)=I
-  450 IO(2*K)=IP1
-      IF (J.NE.2) GO TO 452
-      IO(1)=1
-      IO(2)=1
-  452 IF (J.NE.JM) GO TO 454
-      IO(3)=1
-      IO(4)=1
-  454 CONTINUE
-      DO 460 L=LDRAG-1,LM
-      DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
-     *     (U(I,J,L)**2+V(I,J,L)**2))
-      DO 460 K=1,4
-      IA=IO(K)
-      JA=JO(K)
-      DKE(IA,JA,L)=DKE(IA,JA,L) + RA(K)*DKEX
-  460 CONTINUE
+      DO K=1,2
+        IO(2*K-1)=I
+        IO(2*K)=IP1
+      END DO
+      IF (J.EQ.2) THEN
+        IO(1)=1
+        IO(2)=1
+      END IF
+      IF (J.EQ.JM) THEN
+        IO(3)=1
+        IO(4)=1
+      END IF
+      DO L=LDRAG-1,LM
+        DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
+     *       (U(I,J,L)**2+V(I,J,L)**2))
+        DO K=1,4
+          IA=IO(K)
+          JA=JO(K)
+          DKE(IA,JA,L)=DKE(IA,JA,L) + RA(K)*DKEX
+        END DO
+      END DO
 C****
 C**** UPDATE THE U AND V WINDS
 C****
-  470 DO 480 L=LDRAG-1,LM
-      U(I,J,L)=U(I,J,L)+DUT(L)
-  480 V(I,J,L)=V(I,J,L)+DVT(L)
-C     IF (QWRITE) WRITE (6,951) (U(I,J,L),L=1,LM)
-C 951 FORMAT (1H0,'U AFTER DRAG'/(1X,12F10.3))
+  470 DO L=LDRAG-1,LM
+        U(I,J,L)=U(I,J,L)+DUT(L)
+        V(I,J,L)=V(I,J,L)+DVT(L)
+      END DO
 C**** END OF LOOP OVER I,J
   500 I=IP1
       IF (MRCH.NE.2) RETURN
 C****
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
 C****
-      DO 600 L=LDRAG-1,LM
-      DO 560 J=1,JM
-      DO 550 I=1,IMAXJ(J)
-      T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
-  550    AJL(J,L,33)=AJL(J,L,33)-DKE(I,J,L)/(SHA*PK(I,J,L))
-  560 CONTINUE
-  600 CONTINUE
+      DO L=LDRAG-1,LM
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+        T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
+        AJL(J,L,33)=AJL(J,L,33)-DKE(I,J,L)/(SHA*PK(I,J,L))
+      END DO
+      END DO
+      END DO
       RETURN
   911 FORMAT ('0TOPOGRAPHY VARIANCE    J=',I6,' :')
   912 FORMAT (1X,1P,12E11.1)
@@ -932,7 +930,7 @@ C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
-      USE MODEL_COM, only : im,jm,lm,airx,lmc,psfmpt,ptop,sig,dsig
+      USE MODEL_COM, only : im,jm,lm,psfmpt,ptop,sig,dsig
       USE DYNAMICS, only : pu,pv
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,ldefm,defrm
@@ -941,7 +939,7 @@ c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
 c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),WSQ(IM,JM,LM),
 c      COMMON/WORK3/WSQ(IM,JM,LM),UDXS(IM)
 c     *     ,DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
-c      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
+c      COMMON/DRGCOM/AIRX(IM,JM),LMC(2,IM,JM),DEFRM(IM,JM),
 c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
 c     *   PDEF,LDEF,LDEFM
 c??      EQUIVALENCE (WSQ(1,1,1),DEFRM1), (WSQ(1,1,2),DEFRM2)
@@ -950,24 +948,10 @@ c??      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
       REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
       REAL*8, DIMENSION(IM,JM) ::  DEFRM1,DEFRM2,DEF1A,DEF2A
-      INTEGER, SAVE :: IFIRST = 1
       CHARACTER*80 TITLE
       INTEGER I,J,L,IP1,IM1
-      REAL*8 PL,UDXN,PDEF
+      REAL*8 UDXN
 
-      IF (IFIRST.EQ.1) THEN
-        DO L=1,LM
-          PL=PSFMPT*SIG(L)+PTOP
-          IF (PL.GE.700) THEN
-            LDEF=L
-            PDEF=PL
-          ENDIF
-          IF (PL.GE.200.) LDEFM=L
-        END DO
-        WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,PDEF
-     *       ,' LDEFM=',LDEFM
-        IFIRST=0
-      END IF
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
 C**** For spherical coordinates, we are treating DEFRM1 like DIV
