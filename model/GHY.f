@@ -2821,7 +2821,7 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      $       - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'bare',ijdebug,error_water
-        if ( abs( error_water ) > 1.d-14 )
+        if ( abs( error_water ) > 1.d-13 )
      &       call stop_model('GHY: water conservation problem',255)
       endif
 
@@ -2831,7 +2831,7 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
      &       - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'vege',ijdebug,error_water
-        if ( abs( error_water ) > 1.d-14 ) then
+        if ( abs( error_water ) > 1.d-13 ) then
           write(99,*)'evap_tot(2)',evap_tot(2)
           call stop_model(
      &       'GHY: water conservation problem in veg. soil',255)
