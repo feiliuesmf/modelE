@@ -1264,6 +1264,9 @@ C**** functions
 !@param HEFOLD e-folding length for computing HRISE
 !@param COEFM coefficient for ratio of cloud water amount and WCONST
 !@param COEFT coefficient used in computing PRATM
+C**** Adjust COEFT and COEFM to change proportion of super-cooled rain
+C**** to snow. Increasing COEFT reduces temperature range of super
+C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
@@ -1552,7 +1555,10 @@ c        IF(L.EQ.DCL) HDEP=0.5*HDEP
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
-      LHP(L)=LHX ! default precip phase
+C**** Set precip phase to be the same as the cloud, unless precip above
+C**** is ice and temperatures are still below freezing
+      LHP(L)=LHX 
+      IF (LHP(L+1).eq.LHS .and. TL(L).lt.TF) LHP(L)=LHP(L+1)
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
         RHO=1d5*PL(L)/(RGAS*TL(L))
@@ -1813,21 +1819,19 @@ C**** CONDENSING MORE TRACERS
       TNEW=TL(L)
       END IF
       PRECHK=-WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-      IF(RH(L).LE.RHF(L)) THEN
+      IF(RH(L).LE.RHF(L).AND.WMX(L).gt.0.) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
-      IF (WMX(L).gt.0.) THEN
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
         TRWML(1:NTX,L) = 0.
-      END IF
 #endif
-      PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-      IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
-        HCHANG=WMX(L)*LHM
-        TL(L)=TL(L)+HCHANG/SHA
-        TH(L)=TL(L)/PLK(L)
-      END IF
-      WMX(L)=0.
+        PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
+        IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
+          HCHANG=WMX(L)*LHM
+          TL(L)=TL(L)+HCHANG/SHA
+          TH(L)=TL(L)/PLK(L)
+        END IF
+        WMX(L)=0.
       END IF
 C**** set phase of condensation for next box down
       PREICE(L)=0.
