@@ -165,16 +165,18 @@ c**** adjust canopy conductance for incoming solar radiation
 !@var I0df Diffuse PAR incident on canopy (umol/m2/s).
       real*8 I0df
 !------Full canopy radiation transmittance, nyk------------------------
-!@var transdf Transmittance of diffuse SW radiation (fraction)
-      real*8 transdf
-!@var transdr Transmittance of direct SW radiation (fraction)
-      real*8 transdr
-!@var transdrdr Transmittance of direct SW that remains direct (fraction)
-      real*8 transdrdr
-!@var transsh Transmittance of SW through shaded foliage (fraction)
-      real*8 transsh
-!@var transsl Transmittance of SW through sunlit foliage (fraction)
-      real*8 transsl
+!@var absdf Absorbance of diffuse SW radiation (fraction)
+      real*8 absdf
+!@var absdr Absorbance of direct SW radiation (fraction)
+      real*8 absdr
+!@var absdrdr Absorbance of direct SW that remains direct (fraction)
+      real*8 absdrdr
+!@var abssh Absorbance of SW through shaded foliage (fraction)
+      real*8 abssh
+!@var abssl Absorbance of SW through sunlit foliage (fraction)
+      real*8 abssl
+!@var fracsl Fraction of leaves in canopy that are sunlit (fraction)
+      real*8 fracsl
 !Output variable trans_sw Total canopy transmittance of shortwave (fraction)
 !      real*8 TRANS_SW  !Subroutine var parameter
 !----------------------------------------------------------------------
@@ -298,22 +300,29 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! Transmission of shortwave radiation through canopy.
 ! Diffuse shortwave in canopy (umol/m[ground]2/s).
-        transdf=(1-fdir)*(1.0D0-rhor)*kdf*exp(-kdf*alai)
-! Direct shortwave in canopy (umol/m[ground]2/s).
-        transdr=fdir*(1.0D0-rhor)*temp*kbl*exp(-temp*kbl*alai)
-! Direct shortwave that remains direct (umol/m[ground]2/s).
-        transdrdr=transdr*(1.0D0-sigma)*kbl*exp(-temp*kbl*alai)
-! Shortwave penetrating shaded foliage (umol/m[foliage]2/s).
-        transsh=transdf + (transdr-transdrdr) 
-! Shortwave penetrating sunlit foliage (umol/m[foliage]2/s).
-        transsl=transsh+(1.0D0-sigma)*kbL*fdir
       if(sbeta.gt.zero)then
-        if(transsh.lt.(0.001D0)) transsh=0.001D0
-        if(transsl.lt.0.001D0)transsl=0.001D0
+        absdf=(1-fdir)*(1.0D0-rhor)*kdf*exp(-kdf*alai)
+! Direct shortwave in canopy (umol/m[ground]2/s).
+        absdr=fdir*(1.0D0-rhor)*temp*kbl*exp(-temp*kbl*alai)
+! Direct shortwave that remains direct (umol/m[ground]2/s).
+        absdrdr=absdr*(1.0D0-sigma)*kbl*exp(-temp*kbl*alai)
+! Shortwave penetrating shaded foliage (umol/m[foliage]2/s).
+        abssh=absdf + (absdr-absdrdr) 
+! Shortwave penetrating sunlit foliage (umol/m[foliage]2/s).
+        abssl=abssh+(1.0D0-sigma)*kbL*fdir
+        if(abssh.lt.0.0D0) abssh=0.0D0
+        if(abssl.lt.0.0D0) abssl=0.0D0
+        if(abssh.gt.1.0D0) abssh=1.0D0
+        if(abssl.gt.0.0D0) abssl=1.0D0
+        fracsl=exp(-kbl*alai)
       else
-        transsh=0.001D0
-        transsl=0.001D0
+        abssh=0.001D0
+        abssl=0.0D0
+        fracsl=0
       endif
+!      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
+      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 !----------------------------------------------------------------------!
 ! Saturating Ci to calculate canopy conductance (mol/m3).
       CiPa=1.0D6
@@ -368,7 +377,7 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! OUTPUTS:
 ! Transmission of shortwave through canopy.
-      TRANS_SW = transsh + transsl
+
 ! Gross primary productivity (kg[C]/m2/s).
       GPP=0.012D-6*Anet   ! should be dependent on conductance ??
 ! Canopy conductance for next timestep (m/s).
@@ -526,6 +535,7 @@ c**** adjust canopy conductance for incoming solar radiation
         Isla=0.1D0
         fsl=zero
       endif
+!      write(99,*) I0dr, I0df,Isha, Isla, kbl
 !----------------------------------------------------------------------!
 ! Cumulative nitrogen concentration at which photosynthesis becomes
 ! light-limited in sunlit foliage (mmol/m2).
