@@ -377,6 +377,101 @@ c        L =KVMF(K)
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
+C**** East-West or North-South Mass fluxes (kg/s)
+C****
+      K=IJL_MFU
+      LNAME="EAST-WEST MASS FLUX"
+      UNITS="10^9 kg/s"
+      DO LMINMF=1,LMO
+        LMAXMF=LMINMF
+      Q = 0.
+      DO J=1,JM
+        I=IM
+        DO IP1=1,IMAXJ(J)
+          DO L=LMINMF,LMAXMF
+            Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
+          END DO
+          Q(I,J) = 2d-9* Q(I,J) / (IDACC(1)*NDYNO+teeny)
+          I=IP1
+        END DO
+      END DO
+      Q(2:IM,JM)=Q(1,JM)
+      Q(2:IM,1)=Q(1,1)
+      TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+      IF(LMINMF.eq.LMAXMF) THEN
+        WRITE (TITLE(39:41),'(I3)') LMINMF
+        WRITE (LNAME(39:41),'(I3)') LMINMF
+      ELSEIF(LMINMF.lt.LMAXMF) THEN
+        WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+        WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+      END IF
+      IF (LMINEF.lt.10) THEN
+        SNAME="umfl_L"//char(lminef+48)
+      ELSE
+        SNAME="umfl_L1"//char(mod(lminef,10)+48)
+      END IF
+      TITLE(51:80)=XLB
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
+
+      K=IJL_MFV
+      LNAME="NORTH-SOUTH MASS FLUX"
+      UNITS="10^9 kg/s"
+      DO LMINMF=1,LMO
+        LMAXMF=LMINMF
+      Q = 0.
+      DO J=1,JM-1
+        DO I=1,IMAXJ(J)
+          DO L=LMINMF,LMAXMF
+            Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
+          END DO
+          Q(I,J) = 2d-9* Q(I,J) / (IDACC(1)*NDYNO+teeny)
+        END DO
+      END DO
+      Q(2:IM,1)=Q(1,1)
+      TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+      IF(LMINMF.eq.LMAXMF) THEN
+        WRITE (TITLE(39:41),'(I3)') LMINMF
+        WRITE (LNAME(39:41),'(I3)') LMINMF
+      ELSEIF(LMINMF.lt.LMAXMF) THEN
+        WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+        WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -",LMAXMF
+      END IF
+      IF (LMINEF.lt.10) THEN
+        SNAME="vmfl_L"//char(lminef+48)
+      ELSE
+        SNAME="vmfl_L1"//char(lminef/10+48)
+      END IF
+      TITLE(51:80)=XLB
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
+      END DO
+C****
+C**** Vertical Mass Flux (kg/s)
+C****
+      DO L=1,LMO-1
+c     IF(KVMF(K).le.0)  GO TO 370
+c        L =KVMF(K)
+        LNAME="DOWNWARD VERTICAL MASS FLUX"
+        UNITS="kg/s"
+        IF (L.lt.10) THEN
+          SNAME="vert_mfl_L"//char(l+48)
+        ELSE
+          SNAME="vert_mfl_L1"//char(mod(l,10)+48)
+        END IF
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            Q(I,J) = 2.*OIJL(I,J,L,IJL_MFW) / real(IDACC(1)*NDYNO)
+          END DO
+        END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
+        TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
+        TITLE(51:80)=XLB
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
+C****
 C**** East-West or North-South Heat Flux (10^15 W)
 C****
       DO K=IJL_GFLX,IJL_GFLX+1
