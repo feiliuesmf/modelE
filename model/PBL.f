@@ -62,7 +62,6 @@
       logical :: pole
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8 :: qsat
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
@@ -215,6 +214,7 @@ c  internals:
       real*8, dimension(n,ntm) :: trsave
       real*8 trcnst,trsf,cqsave,ts,rhosrf,byrho,tg1,rh1
       real*8, dimension(n-1) :: kqsave
+      real*8 :: qsat
       integer itr
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
