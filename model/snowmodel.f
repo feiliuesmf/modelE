@@ -7,10 +7,26 @@
 !@sum SNOW_MODEL does column physics for 3 layers snow model
 !@auth I.Aleinov
 !@ver  1.0
+      USE CONSTANT, only :
+     $     rho_water => rhow,   ! (kg m-3)
+     $     rho_ice => rhoi,     ! (kg m-3)
+     $     lhm_kg => lhm,       ! (J kg-1)
+     $     lhe_kg => lhe,       ! (J kg-1)
+     $     shi_kg => shi,       ! (J kg-1 C-1)
+     $     tfrz => tf,          ! (K)
+     $     sigma => stbo        ! (W m-2 K-4)
+
       IMPLICIT NONE
       PRIVATE
 
-      real*8, parameter :: EPS = 1.d-8  ! was 1.e-12
+ccc physical parameters
+      real*8, parameter :: rho_fresh_snow =  150.d0 ! (kg m-3)
+      real*8, parameter :: lat_fusion = lhm_kg * rho_water ! (J m-3)
+      real*8, parameter :: lat_evap = lhe_kg * rho_water ! (J m-3)
+      real*8, parameter :: max_fract_water = .055d0
+
+ccc model parameters
+      real*8, parameter :: EPS = 1.d-8  ! was 1.d-12
       integer, parameter :: MAX_NL = 16
       real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
       real*8, parameter :: MIN_FRACT_COVER = 0.0001d0
@@ -19,12 +35,19 @@
 
       PUBLIC snow_adv
 
+ccc   setting physical constants
+      !real*8, parameter :: rho_water = rhow !/* kg m-3 */
+      !lat_fusion =      334.d3 * 1000.d0  !/* J m-3 */
+      !lat_evap =        2.5d9    !/* J m-3  */
+c!!      lat_evap =   2.834d9  !/* -  replaced by heat of sublimation */
+      !rho_water =       1000.d0  !/* kg m-3 */
+      !rho_fresh_snow =  150.d0   !/* kg m-3 */
+      !rho_ice =         920.d0   !/* kg m-3 */
+      !sigma =           5.67d-8  !/* W m-2 K-4 */
+      !tfrz =            273.16d0   !/* K */
+
+
       CONTAINS
-
-
-
-
-
 
       subroutine pass_water( wsn, hsn, dz, nl,
      &                       water_down, heat_down,
@@ -49,14 +72,14 @@ ccc pass extra water to the lower layers
         ice = ice_old
         wsn(n) = wsn(n) + water_down
         hsn(n) = hsn(n) + heat_down
-        water_down = 0.
-        heat_down = 0.
-        if( hsn(n) .ge. 0. .or. wsn(n) .le. 0. ) then !/* all melted */
+        water_down = 0.d0
+        heat_down = 0.d0
+        if( hsn(n) .ge. 0.d0 .or. wsn(n) .le. 0.d0 ) then !/* all melted */
           water_down = wsn(n)
           heat_down = hsn(n)
-          wsn(n) = 0.
-          hsn(n) = 0.
-          dz(n) = 0.
+          wsn(n) = 0.d0
+          hsn(n) = 0.d0
+          dz(n) = 0.d0
           pass_water_flag = 1
         else if (hsn(n).gt.-wsn(n)*lat_fusion) then !/* some melted */
           ice = -hsn(n)/lat_fusion
@@ -65,7 +88,7 @@ c!!!                may be ice*max_fract_water ??
           water_down = max(0d0, free_water - wsn(n)*max_fract_water)
           wsn(n) = wsn(n) - water_down
           !/* should I reduce dz here ??? */
-          !/* dz(n) = dz(n) * min( ice/ice_old, 1. )  */
+          !/* dz(n) = dz(n) * min( ice/ice_old, 1.d0 )  */
           dz(n) = min( dz(n), ice*rho_water/rho_fresh_snow )
           pass_water_flag = 2
         else !/* all frozen */
@@ -150,7 +173,7 @@ c!!        dz(1) = 0.10d0
         ddz = delta - dz(n)
         fract = ddz/(dzo(no)*fract_cover_ratio)
 ccc the following is just for check
-          if ( fract.lt.-EPS .or. fract.gt.1.+EPS ) then
+          if ( fract.lt.-EPS .or. fract.gt.1.d0+EPS ) then
             print *, 'internal error 3 in snow_redistr'
             print *, 'fract= ', fract
             call abort
@@ -209,7 +232,7 @@ ccc data arrays
       integer IGCM_i
 
 ccc for debug
-      real*8 total_energy, lat_evap
+      real*8 total_energy  !, lat_evap
       integer i, retcode
       common /snowmodel_debug/ hsn_old, dz_old, fract_cover_old,
      &     wsn_old, retcode
@@ -218,7 +241,7 @@ ccc for debug
 
 
 ccc for debug
-      lat_evap =        2.5d9    !/* J m-3  */
+      ! lat_evap =        2.5d9    !/* J m-3  */ defined globally
       hsn_old = hsn(1)
       wsn_old = wsn(1)
       dz_old = dz(1)
@@ -267,12 +290,12 @@ ccc input:
       real*8 pr, dt, t_ground, dz_ground, fract_cover
       real*8 snsh_dt, evap_dt
 
-ccc constants:
-      real*8 lat_fusion !/* latent heat of fusion  J m-3*/
-      real*8 lat_evap
-      real*8 max_fract_water !/* maximal fraction of water */
-      real*8 rho_water, rho_fresh_snow, rho_ice
-      real*8 sigma, tfrz
+ccc constants: (now defined as global params)
+      !real*8 lat_fusion !/* latent heat of fusion  J m-3*/
+      !real*8 lat_evap
+      !real*8 max_fract_water !/* maximal fraction of water */
+      !real*8 rho_water, rho_fresh_snow, rho_ice
+      !real*8 sigma, tfrz
       real*8 k_ground, c_ground
 ccc output:
       real*8 water_to_ground, heat_to_ground, tsn_surf
@@ -297,21 +320,22 @@ ccc common for debug
 
 
 ccc setting constants
-      lat_fusion =      334.d3 * 1000.d0  !/* J m-3 */
-      lat_evap =        2.5d9    !/* J m-3  */
+      !lat_fusion =      334.d3 * 1000.d0  !/* J m-3 */
+      !lat_evap =        2.5d9    !/* J m-3  */
 c!!      lat_evap =   2.834d9  !/* -  replaced by heat of sublimation */
-      max_fract_water = .055d0
-      rho_water =       1000.d0  !/* kg m-3 */
-      rho_fresh_snow =  150.d0   !/* kg m-3 */
-      rho_ice =         920.d0   !/* kg m-3 */
-      sigma =           5.67d-8  !/* W m-2 K-4 */
-      tfrz =            273.16   !/* K */
+      !max_fract_water = .055d0
+      !rho_water =       1000.d0  !/* kg m-3 */
+      !rho_fresh_snow =  150.d0   !/* kg m-3 */
+      !rho_ice =         920.d0   !/* kg m-3 */
+      !sigma =           5.67d-8  !/* W m-2 K-4 */
+      !tfrz =            273.16d0   !/* K */
+ccc !!! ground properties should be passed as formal parameters !!!
       k_ground =        3.4d0    !/* W K-1 m */    /* --??? */
       c_ground =        1.d5     !/* J m-3 K-1 */  /* -- ??? */
 
 ccc fluxes in/out
-      heat_to_ground = 0.
-      water_to_ground = 0.
+      heat_to_ground = 0.d0
+      water_to_ground = 0.d0
 
 c!!!  thi is for debugging
       do n=1,nl
@@ -324,7 +348,7 @@ c!!!  thi is for debugging
 
 ccc the following lines fix the problem with initial call
 ccc with fract_cover==1 and dz(1)<MIN_SNOW_THICKNESS
-      if( fract_cover .ge. 1.-EPS
+      if( fract_cover .ge. 1.d0-EPS
      &    .and. dz(1) .lt. MIN_SNOW_THICKNESS ) then
         if( nl .ne. 1 ) then
           print *, 'OOPS: nl= ',nl,' fract_cover= ',fract_cover
@@ -373,17 +397,17 @@ ccc !!! insert evaporation into computation of the amount of fresh snow
       endif
 
       if ( fract_cover.lt.1.d0 .and.
-     &   fresh_snow .lt. MIN_SNOW_THICKNESS*(1.-fract_cover) ) then
+     &   fresh_snow .lt. MIN_SNOW_THICKNESS*(1.d0-fract_cover) ) then
 ccc partial cover
 
         hsn(1) = hsn(1)*fract_cover
         wsn(1) = wsn(1)*fract_cover
         fract_cover =
      &           (dz(1)*fract_cover + fresh_snow)/MIN_SNOW_THICKNESS
-        if (fract_cover.gt.1. .or. fract_cover.lt.EPS) then
+        if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
           write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
           write(DEB_CH,*) dz(1), fresh_snow
-          if ( fract_cover.gt.1. ) fract_cover = 1.d0
+          if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS
         endif
         dz(1) = MIN_SNOW_THICKNESS
@@ -473,18 +497,19 @@ c!!! disable fractional cover for debugging
 ccc compute spec. heat and thermal conductivity
       do n=1,nl
         rho_snow = wsn(n)*rho_water/dz(n)
-        csn(n) = (1.9d6) * rho_snow / rho_ice
+        !csn(n) = (1.9d6) * rho_snow / rho_ice
+        csn(n) = shi_kg * rho_snow
         ksn(n) = (3.22d-6) * rho_snow**2
       enddo
       ksn(nl+1) = k_ground
 
 ccc compute temperature of the layers (and amount of ice)
       do n=1,nl
-        if ( hsn(n) .gt. 0. ) then
+        if ( hsn(n) .gt. 0.d0 ) then
           print *, 'OOPS, No snow in layer ', n
           stop 251
         else if ( hsn(n) .gt. -wsn(n)*lat_fusion ) then
-          tsn(n) = 0.
+          tsn(n) = 0.d0
           isn(n) = -hsn(n)/lat_fusion
         else
           tsn(n) = (hsn(n)+wsn(n)*lat_fusion)/(csn(n)*dz(n))
@@ -494,7 +519,7 @@ ccc compute temperature of the layers (and amount of ice)
       tsn(nl+1) = t_ground
 
 c!!! this is for debugging
-c      if(tsn(1).lt.-120.) call abort
+c      if(tsn(1).lt.-120.d0) call abort
 
 ccc compute incomming heat flux (from atm.)
 ccc include all fluxes except htpr (which is already included)
@@ -505,7 +530,7 @@ ccc include all fluxes except htpr (which is already included)
      &      -snht
 
       flux_in_deriv =
-     &     -4.*sigma*(tsn(1)+tfrz)**3 - lat_evap*evap_dt - snsh_dt
+     &     -4.d0*sigma*(tsn(1)+tfrz)**3 - lat_evap*evap_dt - snsh_dt
 
 ccc      heat_to_ground = heat_to_ground + flux_in*dt*(1.d0-fract_cover)
       heat_to_ground = heat_to_ground + (1.d0-fract_cover)*dt
@@ -532,7 +557,7 @@ ccc snht_out_cor, delta_tsn_impl
       delta_tsn_impl = flux_corr / flux_in_deriv
 ccc      radiation_out = radiation_out - flux_corr*fract_cover
       radiation_out = radiation_out -
-     &     (-4.*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl*fract_cover
+     &     (-4.d0*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl*fract_cover
       snht = snht + snsh_dt * delta_tsn_impl * fract_cover
       evaporation = evaporation + evap_dt * delta_tsn_impl * fract_cover
 
@@ -551,8 +576,8 @@ c!!!  thi is for debugging
 
 ccc pass extra water down
 
-ccc      water_down = 0.
-      heat_down = 0.
+ccc      water_down = 0.d0
+      heat_down = 0.d0
       call pass_water( wsn, hsn, dz, nl, water_down, heat_down,
      &                       lat_fusion, max_fract_water,
      &                       rho_water, rho_fresh_snow)
@@ -561,7 +586,7 @@ ccc      water_down = 0.
 
 ccc update dz
       do n=1,n
-        if( hsn(n).gt.0. .or. isn(n).lt.EPS ) then
+        if( hsn(n).gt.0.d0 .or. isn(n).lt.EPS ) then
           dz(n) = 0.d0
         else if( hsn(n) .gt. -wsn(n)*lat_fusion ) then
           dz(n) = dz(n) * min( (-hsn(n)/lat_fusion)/isn(n), 1.d0)
@@ -595,11 +620,11 @@ ccc check if there is any snow at all ?
 
 ccc compute temperature of the layers
       do n=1,nl
-        if ( hsn(n) .gt. 0. ) then
+        if ( hsn(n) .gt. 0.d0 ) then
           print *, 'OOPS, No snow in layer ', n
           stop 251
         else if ( hsn(n) .gt. -wsn(n)*lat_fusion ) then
-          tsn(n) = 0.
+          tsn(n) = 0.d0
         else
           tsn(n) = (hsn(n)+wsn(n)*lat_fusion)/(csn(n)*dz(n))
         endif
@@ -610,20 +635,20 @@ ccc compute temperature of the layers
 
 
 ccc repack the layers
-      mass_above = 0.
+      mass_above = 0.d0
       do n=1,nl
         if( dz(n) .gt. EPS ) then
           mass_layer = wsn(n)*rho_water
-          mass_above = mass_above + .5 * mass_layer
-          scale_rho = .5d-7 * 9.8 * mass_above
-     &     * exp(14.643 - 4000./(tsn(n)+tfrz)
-     &                  - .02 * mass_layer/dz(n))
+          mass_above = mass_above + .5d0 * mass_layer
+          scale_rho = .5d-7 * 9.8d0 * mass_above
+     &     * exp(14.643d0 - 4000.d0/(tsn(n)+tfrz)
+     &                  - .02d0 * mass_layer/dz(n))
      &     * dt
-          scale_rho = 1. + scale_rho
+          scale_rho = 1.d0 + scale_rho
           dz(n) = dz(n) / scale_rho
           if( dz(n).lt.mass_layer/rho_ice )
      &                   dz(n) = mass_layer/rho_ice
-          mass_above = mass_above + .5 * mass_layer
+          mass_above = mass_above + .5d0 * mass_layer
         endif
       enddo
 
@@ -637,14 +662,14 @@ c!!!  thi is for debugging
       enddo
 
 c!!! this is for debugging
-ccc      if(tsn(1).lt.-120.) call abort
+ccc      if(tsn(1).lt.-120.d0) call abort
 
       if ( i_earth.eq.6300 .and. j_earth.eq.3200) then
          write(DEB_CH,*) tsn(1), hsn(1), wsn(1), dz(1), fract_cover, nl
       endif
 
 c!!! this is for debugging
-      if(tsn(1).lt.-120.) call abort
+      if(tsn(1).lt.-120.d0) call abort
 
       retcode = 0
       return
@@ -674,19 +699,19 @@ ccc arrays for coefficients:
 
 ccc setting implicit/explicit choice for each layer
 ccc eta=1 - implicit, eta=0 - explicit
-ccc for now using explicit method for layers with T=0.
+ccc for now using explicit method for layers with T=0.d0
 
       do n=1,nl
-         eta(n) = .5
-ccc        eta(n) = 1.
-c!!        if( tsn(n) .ge. 0. ) eta(n) = 0.
+         eta(n) = .5d0
+ccc        eta(n) = 1.d0
+c!!        if( tsn(n) .ge. 0.d0 ) eta(n) = 0.d0
         enddo
-      eta(nl+1) = 0.
-ccc      gamma = .5
+      eta(nl+1) = 0.d0
+ccc      gamma = .5d0
 c!! I am trying to make it nearly expicit for a test !!!
-      gamma = .5
+      gamma = .5d0
 
-ccc In general we are trying to use half-implicit method (gamma = .5)
+ccc In general we are trying to use half-implicit method (gamma = .5d0)
 ccc on the interface. But this introduces a systematic error when
 ccc tnew(1) > 0. So in the case DO_EXPLIC_0 we move to explicit method
 ccc (i.e. reduce gamma)
@@ -698,29 +723,29 @@ ccc (i.e. reduce gamma)
 ccc equation for upper snow layer
         n = 1
         dt_to_cdz = dt/(csn(n)*dz(n))
-        right = 2.*dt_to_cdz/( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
-        a(n) = 1. + right*eta(n) - dt_to_cdz*flux_in_deriv*gamma
-        b(n) = 0.
+        right = 2.d0*dt_to_cdz/( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
+        a(n) = 1.d0 + right*eta(n) - dt_to_cdz*flux_in_deriv*gamma
+        b(n) = 0.d0
         c(n) = -right*eta(n+1)
-        f(n) = tsn(n)*( 1. - right*(1.-eta(n))
+        f(n) = tsn(n)*( 1.d0 - right*(1.d0-eta(n))
      &                  - dt_to_cdz*flux_in_deriv*gamma )
-     &         + tsn(n+1)*right*(1.-eta(n+1))
+     &         + tsn(n+1)*right*(1.d0-eta(n+1))
      &         + dt_to_cdz * flux_in
 
 ccc all other snow layers including the lower one
         do n=2,nl
 
           dt_to_cdz = dt/(csn(n)*dz(n))
-          right = 2.*dt_to_cdz/( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
-          left  = 2.*dt_to_cdz/( dz(n)/ksn(n) + dz(n-1)/ksn(n-1) )
+          right = 2.d0*dt_to_cdz/( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
+          left  = 2.d0*dt_to_cdz/( dz(n)/ksn(n) + dz(n-1)/ksn(n-1) )
 
-          a(n) = 1. + ( left + right )*eta(n)
+          a(n) = 1.d0 + ( left + right )*eta(n)
           b(n) = -left*eta(n-1)
           c(n) = -right*eta(n+1)
 
-          f(n) = tsn(n)*( 1. - ( left + right )*(1.-eta(n)) )
-     &         + tsn(n-1)*left*(1.-eta(n-1))
-     &         + tsn(n+1)*right*(1.-eta(n+1))
+          f(n) = tsn(n)*( 1.d0 - ( left + right )*(1.d0-eta(n)) )
+     &         + tsn(n-1)*left*(1.d0-eta(n-1))
+     &         + tsn(n+1)*right*(1.d0-eta(n+1))
           enddo
 
         call sweep3diag(b, c, a, f, tnew, nl)
@@ -729,13 +754,13 @@ ccc flux_corr is the energy wich should be returned to the atmosphere
         flux_corr = flux_in_deriv*( tnew(1) - tsn(1) )*gamma
         !/*#ifdef DO_EXPLIC_0*/
 
-        syst_flux_err = flux_in_deriv*( tnew(1) - 0. )*gamma
-        ! if ( iter/=2 .and. tnew(1)>0. .and. flux_in_deriv<0. ) then
+        syst_flux_err = flux_in_deriv*( tnew(1) - 0.d0 )*gamma
+        ! if ( iter/=2 .and. tnew(1)>0.d0 .and. flux_in_deriv<0.d0 ) then
         ! back to 77 :-L
         if ( iter.ne.2 .and.
-     &         tnew(1).gt.0. .and. flux_in_deriv.lt.0. ) then
-          syst_flux_err = flux_in_deriv*( tnew(1) - 0. )*gamma
-          gamma = (1. - syst_flux_err/flux_corr) *gamma
+     &         tnew(1).gt.0.d0 .and. flux_in_deriv.lt.0.d0 ) then
+          syst_flux_err = flux_in_deriv*( tnew(1) - 0.d0 )*gamma
+          gamma = (1.d0 - syst_flux_err/flux_corr) *gamma
         else
           ! exit
           ! back to 77 :-L
@@ -752,8 +777,8 @@ ccc flux_corr is the energy wich should be returned to the atmosphere
 
 ccc flux to the ground :
       n = nl
-      flux_in = - ( tsn(n+1)-tnew(n)*eta(n)-tsn(n)*(1.-eta(n)) ) *
-     &           2./( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
+      flux_in = - ( tsn(n+1)-tnew(n)*eta(n)-tsn(n)*(1.d0-eta(n)) ) *
+     &           2.d0/( dz(n)/ksn(n) + dz(n+1)/ksn(n+1) )
 
 
       return
