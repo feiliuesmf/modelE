@@ -460,7 +460,7 @@ c     call qsbal
 
 #ifdef TRACERS_WATER
 C**** reset tracer variables
-      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)
+      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)/rhow
       do nx=1,ntx
         n=ntix(nx)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
