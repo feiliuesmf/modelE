@@ -149,8 +149,10 @@ C**** compatibility across model configurations)
       REAL*8, DIMENSION(IM,JM,LM):: yNO31,pHOx1,pNOx1,pOx1,yCH3O21,
      &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,
      &     yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22,
-     &     yAldehyde2,yXO2N2,yRXPAR2,temp1,temp2
-      REAL*8, DIMENSION(jppj,IM,JM,LM) :: ss1,ss2
+     &     yAldehyde2,yXO2N2,yRXPAR2
+      REAL*8, DIMENSION(LM,IM,JM):: temp1,temp2
+      real*8, dimension(jm,lm,12) :: corr1,corr2
+      REAL*8, DIMENSION(jppj,LM,IM,JM) :: ss1,ss2
 #endif
 #ifdef TRACERS_OCEAN
       real*8 trocn1(im,jm,lmo*ntm),trocn2(im,jm,lmo*ntm)
@@ -294,6 +296,7 @@ C**** check which ocean
          BACKSPACE(1)
          IF (HEADER(1:6).eq."ICEDYN".and.KOCEAN1.eq.0) KOCEAN1=1
          IF (HEADER(1:6).eq."ICEDYN") READ(1) HEADER,ICEDYN1
+         print*,HEADER,ntm
 #ifdef TRACERS_ON
          if (debug) write(0,*) 'trying to read tracers'
          READ (1) HEADER,TR1,TRMOM1
@@ -302,7 +305,7 @@ C**** check which ocean
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
-     *        ,yAldehyde1,yXO2N1,yRXPAR1,ss1
+     *        ,yAldehyde1,yXO2N1,yRXPAR1,corr1,ss1
 #endif
 #endif
          if (debug) write(0,*) 'trying to read diag'
@@ -439,7 +442,7 @@ C**** check which ocean
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *        ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
-     *        ,yAldehyde2,yXO2N2,yRXPAR2,ss2
+     *        ,yAldehyde2,yXO2N2,yRXPAR2,corr2,ss2
 #endif
 #endif
          if (debug) write(0,*) 'trying to read diag'
