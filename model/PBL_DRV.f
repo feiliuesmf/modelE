@@ -97,7 +97,7 @@ C          ,UG,VG,WG,W2_1
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
-      REAL*8, parameter :: dbl_max=3000. ! meters
+      REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
       real*8, parameter :: S1byG1=.57735d0
       REAL*8 Ts,ts_guess
 
@@ -127,34 +127,72 @@ C        roughness lengths from Brutsaert for rough surfaces
       IF (TKV.EQ.TGV) TGV=1.0001d0*TGV
 
       ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
-      ! GCM LAYER (L) AT WHICH TO COMPUTE UG,VG AND WG.
+      ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
       ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
 
-      LDC=max(int(DCLEV(I,J)+.5d0),1)
-      if (LDC.eq.1) then
-        dbl=ztop
-        L=1
-      else
-        zpbl=ztop
-        pl1=pmid(1,i,j)
-        tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
-        zpbl1=ztop
-        do L=2,LDC
-          pl=pmid(l,i,j)
-          tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j)
-          tbar=thbar(tl1,tl)
-          zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-          if (zpbl.gt.dbl_max) then
-            zpbl=zpbl1
-            exit
+        IF (TKV.GE.TGV) THEN
+          ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
+          ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
+          ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
+          ! KNOW THE INDEX OF THE LAYER.
+          ustar=ustar_pbl(i,j,itype)
+          DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
+          if (dbl.le.ztop) then
+            dbl=ztop
+            L=1
+          else
+            ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
+            ! COMPUTE Ug and Vg THERE:
+            zpbl=ztop
+            pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
+            tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
+            do l=2,ls1
+              pl=pmid(l,i,j)        !pij*sig(l)+ptop
+              tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
+              tbar=thbar(tl1,tl)
+              zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+              if (zpbl.ge.dbl) exit
+              pl1=pl
+              tl1=tl
+            end do
           endif
-          pl1=pl
-          tl1=tl
-          zpbl1=zpbl
-          if(L.eq.LDC) exit ! so that L will not increase by one
-        end do
-        dbl=zpbl
-      endif
+
+      ELSE
+        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
+        ! LDC IS THE LEVEL TO WHICH DRYCNV/ATURB MIXES.
+        ! FIND DBL FROM LDC.  IF BOUNDARY
+        ! LAYER HEIGHT IS LESS THAN DBL_MAX, ASSIGN LDC TO L, OTHERWISE
+        ! MUST FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
+
+        LDC=max(int(DCLEV(I,J)+.5d0),1)
+        IF (LDC.EQ.0) LDC=1
+        if (ldc.eq.1) then
+          dbl=ztop
+          l=1
+        else
+          zpbl=ztop
+          pl1=pmid(1,i,j)                             ! pij*sig(1)+ptop
+          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
+          zpbl1=ztop
+          do l=2,ldc
+            pl=pmid(l,i,j)                            ! pij*sig(l)+ptop
+            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
+            tbar=thbar(tl1,tl)
+            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+            if (zpbl.ge.dbl_max) then
+              zpbl=zpbl1
+              exit
+            endif
+            pl1=pl
+            tl1=tl
+            zpbl1=zpbl
+          end do
+          l=min(l,ldc)
+          dbl=zpbl
+        endif
+
+      ENDIF
+
 #if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
       IF (ITYPE.eq.1) PBLH(I,J)=dbl
 #endif
