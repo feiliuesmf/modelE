@@ -4,7 +4,7 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : grid
-      USE RADPAR, only : S0
+      USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -116,7 +116,7 @@ C**** Local variables initialised in init_RAD
       REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
 
 !@var NTRIX Indexing array for optional aerosol interaction
-      INTEGER, DIMENSION(8) :: NTRIX = 0
+      INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 
       END MODULE RADNCB
 

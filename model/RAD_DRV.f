@@ -328,12 +328,12 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix
       USE DAGCOM, only : iwrite,jwrite,itwrite
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_ON
       USE TRACER_COM
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,LONR,LATR
+      INTEGER J,L,LR,LONR,LATR,n1
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -511,14 +511,13 @@ C****   1    2    3    4    5    6    7    8    9   10   11   12   13
 C****  SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
 C**** using the following default scaling/tuning factors  AERMIX(1-13)
 C****  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9
-C**** The 6 groups are:
+C**** The 8 groups are:
 C**** 1. Sulfate (industr and natural), 2. seasalt, 3. Nitrate
 C**** 4. Organic Carbons, 5. Industrial Black Carbon(BC), 6. Biomass BC
+C**** 7. Dust aerosols, 8. Volcanic aerosols
 C**** use FS8OPX and FT8OPX to enhance the optical effect; defaults:
 caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
-C**** The last 2 entries are used to scale the other 2 aerosol types:
-C**** 7. Dust aerosols, 8. Volcanic aerosols
 C**** Particle sizes of the first 4 groups have RelHum dependence
 
 C**** To add up to 8 further aerosols:
@@ -549,13 +548,34 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
       end if
 c       NTRACE=0
       NTRACE=6
-      TRRDRY=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0, .1d0, .1d0/)
+      TRRDRY(1:NTRACE)=(/ .2d0, .44d0, 1.7d0, .3d0, .1d0, .1d0/)
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
-      ITR = (/ 1,2,2,4, 5,6,0,0 /)
-      KRHTRA=(/1,1,1,1, 0,0,1,1/)
+      ITR(1:NTRACE) = (/ 1,2,2,4, 5,6/)
+      KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
-      NTRIX=(/ n_sO4,n_seasalt1,n_seasalt2,n_OCIA,n_BCIA,n_BCB,0,0/)
+      NTRIX(1:NTRACE)=
+     *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
+C**** If some tracers are not being used reduce NTRACE accordingly
+      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#endif
+
+#ifdef TRACERS_DUST
+C**** add dust optionally to radiatively active aerosol tracers
+C**** should also work if other aerosols are not used
+      if (rad_interact_tr.gt.0) then ! turn off default dust
+        FS8OPX(7) = 0. ; FT8OPX(7) = 0.
+      end if
+      n1=NTRACE+1
+      NTRACE=NTRACE+ntm_dust  ! add dust tracers
+c tracer 7 is dust
+      ITR(n1:NTRACE) = (/ 7,7,7,7 /)
+      KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
+C**** particle size for dust  (from trradius?)
+      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics. Adjust if number of dust tracers changes.
+      NTRIX(n1:NTRACE)=(/ n_clay,n_silt1,n_silt2,n_silt3/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
@@ -1086,7 +1106,7 @@ C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 C**** loop over tracers that are passed to radiation.
 C**** Two special cases for black carbon and organic carbon where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1197,8 +1217,8 @@ C**** or not.
       onoff=0
       if (rad_interact_tr.gt.0) onoff=1
 
-#ifdef TRACERS_AEROSOLS_Koch
-C**** Aerosols:
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
         do n=1,NTRACE
@@ -1240,7 +1260,7 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 C**** Save optical depth diags
       do n=1,NTRACE
         if (ijts_tau(NTRIX(n)).gt.0) taijs(i,j,ijts_tau(NTRIX(n)))
@@ -1512,7 +1532,7 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes

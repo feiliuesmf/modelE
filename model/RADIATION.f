@@ -331,10 +331,12 @@ C----------------
       REAL*8 :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
       REAL*8 :: snoage_fac_max=.5d0
 
-!@var TRACER array to add up to 8 additional aerosol species
-      real*8    :: TRACER(LX,8)
+!@var ITRMAX maximum number of optional tracers 
+      integer, parameter :: ITRMAX=20
+!@var TRACER array to add up to ITRMAX additional aerosol species
+      real*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
-      real*8    :: FSTOPX(8),FTTOPX(8)
+      real*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
 !@var O3_IN column variable for importing ozone field from rest of model
 !@var use_tracer_ozone =0 normal case, =1 means that
 !@+   RCOMPX will use O3_IN(L) for U0GAS(L,3) for GCM levels
@@ -388,7 +390,7 @@ C--------------------------------------------------------
 !sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-      real*8 TTAUSV(LX,8)
+      real*8 TTAUSV(LX,ITRMAX)
 
       integer :: LBOTCL,LTOPCL
 
@@ -661,13 +663,13 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 !nu   KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
 !nu   integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
-!@var KRHTRA(8) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
-      integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
+!@var KRHTRA(ITRMAX) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
+      integer, dimension(ITRMAX) :: KRHTRA= 1
       real*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
      B              ,TRHQAB(33,190,4),RHINFO(190,9,4),A6JDAY(9,6,72,46)
-     C              ,SRTQEX(6,190,8),SRTQSC(6,190,8),SRTQCB( 6,190,8)
-     D              ,TRTQAB(33,190,8),RTINFO(190,9,8)
+     C   ,SRTQEX(6,190,ITRMAX),SRTQSC(6,190,ITRMAX),SRTQCB(6,190,ITRMAX)
+     D   ,TRTQAB(33,190,ITRMAX),RTINFO(190,9,ITRMAX)
 !new
 !new  save TSOIL,TVEGE                  (not implemented)
 !nu   DIMENSION PI0TRA(11)
@@ -988,16 +990,16 @@ C     GAS  NUMBER         8         9   10        11        12
 C---------------------
 C     Optional Tracers    used via setbak/getbak
 C---------------------
-      integer, dimension(8) :: ITR=(/0,0,0,0, 0,0,0,0/)
+      integer, dimension(ITRMAX) :: ITR=0
       integer :: NTRACE=0
 
-      real*8, dimension(8) ::
+      real*8, dimension(ITRMAX) ::
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
-     *  TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
-!nu  * ,TRVEFF=(/ .2d0, .2d0, .2d0, .2d0, .2d0, .2d0, .2d0, .2d0/)
-!nu  * ,TRADEN=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
-!loc * ,FSTOPX=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
-!loc * ,FTTOPX=(/ 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
+     *  TRRDRY= .1d0 
+!nu  * ,TRVEFF= .2d0
+!nu  * ,TRADEN= 1.d0
+!loc * ,FSTOPX= 1.d0
+!loc * ,FTTOPX= 1.d0
 
       SAVE
 
@@ -1109,7 +1111,7 @@ C              ---------------------------------------------------------
       U0GAS(L,I)=0.D0
       ULGAS(L,I)=0.D0
   103 CONTINUE
-      DO 104 I=1,8
+      DO 104 I=1,ITRMAX
       TRACER(L,I)=0.D0
   104 CONTINUE
   110 CONTINUE
@@ -3297,7 +3299,7 @@ C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
 C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
-      REAL*8          TTAULX(LX,8),   SRBGQL
+      REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
       INTEGER K,L,NA,N,NRH,M,KDREAD,NT
 
       IF(MADAER.LE.0) GO TO 150
@@ -3399,7 +3401,7 @@ C**** Optional Tracer aerosols initializations
       DO NT=1,NTRACE
       NA=ITR(NT)
       IF(KRHTRA(NT).GT.0.AND.NA.LE.4) THEN
-      CALL SETREL(REFDRY(NT),NA,KDREAD
+      CALL SETREL(TRRDRY(NT),NA,KDREAD
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
      C           ,REFU22,Q55U22

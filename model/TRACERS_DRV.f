@@ -15,7 +15,7 @@
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP, only : GRID, GET
       USE CONSTANT, only: mair,mwat,sday
-      USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm
+      USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm,itime
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -86,7 +86,7 @@ C****
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
-      itime_tr0 = 0
+      itime_tr0=itime
       t_qlimit = .true.
       trdecay = 0.
 #ifdef TRACERS_ON
@@ -3204,18 +3204,18 @@ C**** This needs to be 'hand coded' depending on circumstances
         k = k + 1
           ijts_fc(1,n) = k
           ijts_index(k) = n
-          ia_ijts(k) = ia_rad   !?
+          ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
-          sname_ijts(k) = trname(n)//'SWRF'
+          sname_ijts(k) = 'swrf_'//trim(trname(n))
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
         k = k + 1
           ijts_fc(2,n) = k
           ijts_index(k) = n
-          ia_ijts(k) = ia_rad   !?
+          ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
-          sname_ijts(k) = trname(n)//'LWRF'
+          sname_ijts(k) = 'lwrf_'//trim(trname(n))
           ijts_power(k) = -2.
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3265,9 +3265,9 @@ c BCI optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_BCI'
         ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3275,9 +3275,9 @@ c BCI shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW radiative forcing'
-        sname_ijts(k) = 'SWRF'
+        sname_ijts(k) = 'swrf_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3285,9 +3285,9 @@ c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW radiative forcing'
-        sname_ijts(k) = 'LWRF'
+        sname_ijts(k) = 'lwrf_BCI'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3307,9 +3307,9 @@ c BCB optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_BCB'
         ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3317,9 +3317,9 @@ c BCB shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW radiative forcing'
-        sname_ijts(k) = 'SWRF'
+        sname_ijts(k) = 'swrf_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3327,9 +3327,9 @@ c BCB longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW radiative forcing'
-        sname_ijts(k) = 'LWRF'
+        sname_ijts(k) = 'lwrf_BCB'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3379,9 +3379,9 @@ c OC optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_OC'
         ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3389,9 +3389,9 @@ c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC SW radiative forcing'
-        sname_ijts(k) = 'SWRF'
+        sname_ijts(k) = 'swrf_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3399,9 +3399,9 @@ c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'OC LW radiative forcing'
-        sname_ijts(k) = 'LWRF'
+        sname_ijts(k) = 'lwrf_OC'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3558,9 +3558,9 @@ c SO4 optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
         ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3568,9 +3568,9 @@ c SO4 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW radiative forcing'
-        sname_ijts(k) = 'SWRF'
+        sname_ijts(k) = 'swrf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3578,9 +3578,9 @@ c SO4 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW radiative forcing'
-        sname_ijts(k) = 'LWRF'
+        sname_ijts(k) = 'lwrf_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3773,11 +3773,10 @@ c source of Pb210 from Rn222 decay
 c ss1 optical thickness
         k = k + 1
         ijts_tau(n) = k
-        write(6,*) 'tau scale',k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'ss1 optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3785,9 +3784,9 @@ c SS shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad  !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW radiative forcing'
-        sname_ijts(k) = 'SWRF'
+        sname_ijts(k) = 'swrf_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3795,9 +3794,9 @@ c SS longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad  !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW radiative forcing'
-        sname_ijts(k) = 'LWRF'
+        sname_ijts(k) = 'lwrf_SS'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3817,9 +3816,9 @@ c ss2 optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_src   !?
+        ia_ijts(k) = ia_rad
         lname_ijts(k) = 'ss2 optical thickness'
-        sname_ijts(k) = 'TAU'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -3856,6 +3855,36 @@ c ss2 optical thickness
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
+c dust optical thickness
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   
+        lname_ijts(k) = trim(trname(n))//' optical thickness'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c dust shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  
+        lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
+        sname_ijts(k) = 'swrf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c dust longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad  
+        lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
+        sname_ijts(k) = 'lwrf_'//trim(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
 
       end select
@@ -4839,7 +4868,7 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('seasalt1', 'seasalt2')
+      case ('seasalt1', 'seasalt2', 'Clay', 'Silt1', 'Silt2', 'Silt3')
       itcon_mc(n) =13
       qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.

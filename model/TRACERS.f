@@ -179,8 +179,8 @@ C****        TML (M*M * KG TRACER/KG AIR)
 C**** Set defaults that are true for all tracers and layers
       ia_ijt    = ia_src
       ir_ijt(:) = ir_log2   !n
-      ijtm_power(:) = ntm_power(:)+4   !n for integrated mass
       do n=1,ntm
+        ijtm_power(n) = ntm_power(n)+4 !n for integrated mass
         ijtc_power(n) = ntm_power(n)+1 !n for concentration
 #ifdef TRACERS_WATER
         if (to_per_mil(n) .eq.1) ijtc_power(n) = 0
