@@ -15,7 +15,7 @@
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE CONSTANT, only: mair,mwat,sday
-      USE MODEL_COM, only: dtsrc,byim
+      USE MODEL_COM, only: dtsrc,byim,ls1
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
       USE TRACER_COM
 #ifdef TRACERS_ON
@@ -593,7 +593,7 @@ C****
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -976,7 +976,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -994,7 +994,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1052,7 +1052,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1070,7 +1070,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1088,7 +1088,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1106,7 +1106,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1124,7 +1124,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1142,7 +1142,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1160,7 +1160,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1194,7 +1194,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1212,7 +1212,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1239,7 +1239,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1257,7 +1257,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1299,7 +1299,7 @@ C**** special unique to HTO
         sname_jls(k) = 'trop_chem_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY IN TROPOSHPERE'
         jls_index(k) = n
-        jls_ltop(k) = LM
+        jls_ltop(k) = LS1-1
         jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
@@ -1651,8 +1651,9 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'OH_conc'
         lname_jls(k) = 'OH concentration'
         jls_index(k) = ntm
-        jls_ltop(k)  = LM
+        jls_ltop(k)  = LS1-1
         jls_power(k) = 5.
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
 c
         k = k + 1
@@ -1660,8 +1661,9 @@ c
         sname_jls(k) = 'H2O_mr'
         lname_jls(k) = 'H2O mixing ratio'
         jls_index(k) = ntm
-        jls_ltop(k)  = LM
+        jls_ltop(k)  = LS1-1
         jls_power(k) = -4. 
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'parts/vol')
 c
         k = k + 1
@@ -1669,7 +1671,7 @@ c
         sname_jls(k) = 'N2O5_sulf'
         lname_jls(k) = 'N2O5 sulfate sink'
         jls_index(k) = ntm
-        jls_ltop(k)  = LM
+        jls_ltop(k)  = LS1-1
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
@@ -2184,7 +2186,7 @@ C**** (not necessary associated with a particular tracer)
         sname_ijts(k) = 'lightning_flash'
         ijts_power(k) = -6.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijs_CtoG=k
         ijts_index(k) = ntm
@@ -2193,7 +2195,7 @@ C**** (not necessary associated with a particular tracer)
         sname_ijts(k) = 'CtoG_flash'
         ijts_power(k) = -6.
         units_ijts(k) = unit_string(ijts_power(k),'flash/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
       if (k .gt. ktaijs) then
