@@ -1210,7 +1210,7 @@ C**** End of loop over I
 C**** End of loop over J
   640 CONTINUE
 
-      IF (KOCEAN.eq.1) THEN ! full ocean calculation, adjust sea ice
+      IF (KOCEAN.ge.1) THEN ! full ocean calculation, adjust sea ice
 C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
         DO J=J_0, J_1

@@ -11,7 +11,7 @@
 !@ver  1.0
 !@calls seaice:prec_si
       USE CONSTANT, only : teeny,rhoi,grav
-      USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
+      USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
@@ -198,7 +198,7 @@ C**** Ice lowest layer conditions
      *             +LHM)*BYSHI
 C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
-              IF (KOCEAN.eq.1) THEN
+              IF (KOCEAN.ge.1) THEN
 C**** should we calculate ocean rho(Tm,Sm) here?
                 Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOWS))
                 Sm = SSS(I,J)
@@ -317,7 +317,7 @@ cc        DT=SDAY    ! if called more frequently this should change
 C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
 C**** now include lat melt for lakes and any RSI < 1
           IF ( (RSI(I,J).lt.1. .and. (FLAKE(I,J).gt.0 .and. RSI(I,J).gt
-     *         .0)) .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
+     *         .0)) .or. (KOCEAN.ge.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
               ITYPE =ITOICE
@@ -392,7 +392,7 @@ C****
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow
-      USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
+      USE MODEL_COM, only : im,jm,dtsrc,fland,focean
      *     ,itoice,itlkice,jday,p,ptop
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
@@ -649,7 +649,7 @@ C****
           FLEAD=FLEADOC
           ITYPE=ITOICE
           ITYPEO=ITOCEAN
-          IF (KOCEAN.eq.1) THEN
+          IF (KOCEAN.ge.1) THEN
             QFIXR=.FALSE.
           ELSE
             QFIXR=.TRUE.

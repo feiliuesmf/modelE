@@ -48,7 +48,7 @@
       INTEGER I,J
       REAL*8 ustar1
 
-      IF (KOCEAN.eq.1) THEN
+      IF (KOCEAN.ge.1) THEN
         DO J=1,JM
         DO I=1,IMAXJ(J)
 c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default

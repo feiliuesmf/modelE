@@ -567,7 +567,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       real*8 :: z12o_max
       real*8 z1ox(im,jm)
 
-      if (kocean.eq.1) then
+      if (kocean.ge.1) then
 C****   set conservation diagnostic for ocean heat
         CONPT=CONPT0
         QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
@@ -687,7 +687,7 @@ C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
 
 C**** Set fourier coefficients for heat transport calculations
-      IF (KOCEAN.eq.1) THEN
+      IF (KOCEAN.ge.1) THEN
         ANGLE=TWOPI*JDAY/EDPERY
         SINANG=SIN(ANGLE)
         SN2ANG=SIN(2*ANGLE)
@@ -700,7 +700,7 @@ C**** Set fourier coefficients for heat transport calculations
       END IF
 
 C**** Only do this at end of the day
-      IF (KOCEAN.EQ.1.and.end_of_day) THEN
+      IF (KOCEAN.ge.1.and.end_of_day) THEN
         DO J=1,JM
           DO I=1,IM
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
@@ -758,7 +758,7 @@ C****
           ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYP(J))
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
-          IF (KOCEAN .EQ. 1) THEN
+          IF (KOCEAN .ge. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOWS
             SNOW=SNOWI(I,J)
@@ -859,7 +859,7 @@ C**** get river runoff/iceberg melt flux
           RVRERUN=(EFLOWO(I,J)+EGMELT(I,J))/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
-          IF (KOCEAN .EQ. 1) THEN
+          IF (KOCEAN .ge. 1) THEN
             WTRO=Z1O(I,J)*RHOWS
             OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *           +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
@@ -935,7 +935,7 @@ C****
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
 
-      IF (KOCEAN.eq.1) THEN   ! qflux model
+      IF (KOCEAN.ge.1) THEN   ! qflux model
       DO J=1,JM
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -1020,7 +1020,7 @@ C****     (see DIAGCA)
       REAL*8, EXTERNAL :: conserv_OCE
 
 C**** OCEAN POTENTIAL ENTHALPY
-      IF (KOCEAN.gt.0) CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
+      IF (KOCEAN.ge.1) CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
 C****
       RETURN
       END SUBROUTINE DIAGCO

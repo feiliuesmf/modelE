@@ -645,7 +645,7 @@ c
       scale_j(k) = 100.
       ia_j(k) = ia_src
 c
-      IF (KOCEAN.eq.1) THEN ! only for non-fixed SST runs
+      IF (KOCEAN.gt.0) THEN ! only for non-fixed SST runs
       k=k+1
       J_OHT   = k ! OCEAN TRANSPORT                               1 GD
       name_j(k) = 'ocn_ht_trans'
@@ -2537,7 +2537,7 @@ c      scale_ij(k) = 1.
       ia_ij(k) = ia_rad
       scale_ij(k) = 100.
 
-      IF (KOCEAN.eq.0) THEN
+      IF (KOCEAN.ne.1) THEN
         k=k+1
         IJ_SMFX = k
         lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
