@@ -783,29 +783,23 @@ c
 c                
       SUBROUTINE RDLAI
 !@sum RDLAI Updates the Leaf Area Index (LAI) daily.
-!@auth ? HARVARD CTM
-!@ver ? 
+!@auth HARVARD CTM
 !@calls READLAI
-c
 C**** GLOBAL parameters and variables:  
-C
       USE tracers_DRYDEP, only: IJREG,XYLAI,XLAI,XLAI2,IREG
       USE MODEL_COM, only: IM,JM,JDmidOfM,JMperY,JDAY,JMON
-C     
       IMPLICIT NONE
-c
+
 C**** Local parameters and variables and arguments
-C
 !@var STARTDAY last (Julian) day of 1st half of month
 !@var ISAVE 
 !@var IMUL, ITD variables for getting right day or year
 !@var M,K,I,J dummy loop variables
 !@var JDAY current julian day
 !@var byrITD reciprocol of real(ITD)
-      INTEGER STARTDAY(JMperY),ISAVE,IMUL,ITD,M,K,I,J
+      INTEGER STARTDAY(JMperY),IMUL,ITD,M,K,I,J
       REAL*8 byrITD
-      DATA ISAVE /0/
-      SAVE ISAVE
+      INTEGER, SAVE :: ISAVE=0
 c
       DO M=1,JMperY
         STARTDAY(M) = JDmidOfM(M) - 1
@@ -818,15 +812,19 @@ c
           ITD = 31
         ELSE
           IMUL=JDAY-STARTDAY(JMON)
-          ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
+          IF (JMON.lt.JMperY) THEN
+            ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
+          ELSE
+            ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
+          END IF
         END IF
         byrITD = 1.E0/REAL(ITD)
         CALL READLAI
         DO J=1,JM
         DO I=1,IM
         DO K=1,IREG(I,J)
-              XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
-              XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K) * REAL(IMUL)
+          XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
+          XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K) * REAL(IMUL)
         END DO
         END DO
         END DO
@@ -838,7 +836,7 @@ c
           DO J=1,JM
           DO I=1,IM
           DO K=1,IREG(I,J)        
-                XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
+            XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
           END DO
           END DO
           END DO
@@ -846,7 +844,7 @@ c
           DO J=1,JM
           DO I=1,IM
           DO K=1,IREG(I,J)
-                XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
+            XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
           END DO
           END DO
           END DO

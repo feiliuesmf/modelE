@@ -1906,8 +1906,8 @@ c
 c Oxidants
         k = k + 1
         jls_OHconk = k
-        sname_jls(k) = 'OH'//trname(n)
-        lname_jls(k) = 'OH'
+        sname_jls(k) = 'OH_conc'
+        lname_jls(k) = 'OH Concentration'
         jls_ltop(k) = LM
         jls_power(k) =3
         scale_jls(k) =byim 
@@ -1915,8 +1915,8 @@ c Oxidants
 
         k = k + 1
         jls_HO2con = k
-        sname_jls(k) = 'HO2'//trname(n)
-        lname_jls(k) = 'HO2'
+        sname_jls(k) = 'HO2_conc'
+        lname_jls(k) = 'HO2 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =5
         scale_jls(k) =byim 
@@ -1924,8 +1924,8 @@ c Oxidants
 
         k = k + 1
         jls_NO3 = k
-        sname_jls(k) = 'NO3'//trname(n)
-        lname_jls(k) = 'NO3'
+        sname_jls(k) = 'NO3_conc'
+        lname_jls(k) = 'NO3 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =5
         scale_jls(k) =byim 
