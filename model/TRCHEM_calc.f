@@ -1,12 +1,12 @@
       SUBROUTINE chemstep(I,J,change)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
+!@ver  1.0 (based on chemcalc0C5_M23p.f but no additional chem diags.)
 !@calls rates,chem1,chem1prn
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only    : im,jm,lm,ls1
+      USE MODEL_COM, only     : im,jm,lm,ls1
       USE DYNAMICS, only      : am, byam
       USE GEOM, only          : BYDXYP,dxyp
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
@@ -251,9 +251,6 @@ c
          call chem1prn
      *   (kdnr,2,nn,ndnr,chemrate,1,-1,igas,total,maxl,I,J)
 c
-         if(igas.eq.n_Ox)write(6,109)
-     *   ' losses from 10 and 11 reset by fraction of O1D via rxn,',
-     *   'dy = ?'
          if(igas.eq.n_NOx.and.-dest(n_HO2NO2,lprn).ge.y(n_HO2NO2,lprn))
      *    write(6,110)'loss by reaction 51 (HO2NO2 formation) removed',
      *    rr(51,I,J,lprn)*y(nHO2,lprn)*y(nNO2,lprn)*dt2
@@ -322,10 +319,8 @@ c
         enddo ! igas
        endif  ! chem diags
  108  format(a10,2x,2a4)
- 109  format(a55,7x,a6,e10.3)
  110  format(a68,e10.3)
  118  format(a17,2a4,a4,f10.0,a14,e12.3)
- 119  format(a45,7x,f10.0,a5,e12.3)
 c
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)write(6,'(a35,3(2x,i2))')
      * ' Total change by species at I, J, L',i,j,lprn
@@ -586,7 +581,7 @@ c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
            change(I,J,L,igas) = 0.
         endif
 c
-c Leaving this here to reinstate it later in some form. GSF 2/14/02 :
+c Leaving this here as reminder to reinstate it in some form. GSF:
 c         if(change(I,J,L,igas).le.1.E20) THEN
 c           if(L.eq.1.and.igas.eq.1)then
 c             changeA=(change(I,J,1,igas)*y(nM,1)*mass2vol(igas))*
