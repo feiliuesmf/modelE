@@ -1675,17 +1675,18 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 !@var  jprint latitude for diagnostics
       implicit none
 
+      real*8, intent(in) :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop
+     *     ,qtop,coriol,uocean,vocean
+      real*8, intent(out) :: cm,ch,cq,ustar
       integer, intent(in) :: ilong,jlat,itype
+
       real*8, dimension(n-1) :: km,kh,kq,ke,gm,gh
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
-      real*8 :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop,qtop
-     *     ,coriol,cm,ch,cq,lmonin
-     *     ,bgrid,ustar,z0m,z0h,z0q,hemi,psi1,psi0,psi
-     *     ,usurf,tstar,qstar,ustar0,dtime,test,
-     *     wstar3fac,wstar3,wstar2h,usurfq,usurfh,uocean,vocean
-
-c     integer, parameter ::  n=8
+      real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
+     *     ,usurf,tstar,qstar,ustar0,dtime,test
+     *     ,wstar3fac,wstar3,wstar2h,usurfq,usurfh
+      integer, save :: iter_count=0
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=33 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
@@ -1699,7 +1700,7 @@ c**** special threadprivate common block (compaq compiler stupidity)
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
-      dbl=200.d0 !initial guess of dbl
+      dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
       z0h=z0m
       z0q=z0m
@@ -1721,27 +1722,15 @@ c Initialization for iteration:
         else
         psi1=hemi*15.*radian
       endif
-      if (utop.eq.0.) utop=teeny
-      if (vtop.eq.0.) vtop=teeny
-      if ((utop.gt.0.).and.(vtop.gt.0.)) then
-        psi0=atan2(vtop,utop)
-      endif
-      if ((utop.lt.0.).and.(vtop.gt.0.)) then
-        psi0=atan2(abs(utop),vtop)+0.5*pi
-      endif
-      if ((utop.lt.0.).and.(vtop.lt.0.)) then
-        psi0=atan2(abs(vtop),abs(utop))+pi
-      endif
-      if ((utop.gt.0.).and.(vtop.lt.0.)) then
-        psi0=atan2(utop,abs(vtop))+1.5*pi
-      endif
+      psi0=atan2(vtop,utop+teeny)
+      if(psi0.lt.0.) psi0=psi0+2.*pi
       psi=psi0+psi1
       usurf=0.4d0*sqrt(utop*utop+vtop*vtop)
       u(1)=usurf*cos(psi)
       v(1)=usurf*sin(psi)
       t(1)=tgrnd-0.5*(tgrnd-ttop)
       q(1)=qgrnd-0.5*(qgrnd-qtop)
-      e(1)=1d-2
+      e(1)=1.d-3
         usave(1)=u(1)
         vsave(1)=v(1)
         tsave(1)=t(1)
@@ -1751,7 +1740,7 @@ c Initialization for iteration:
       v(n)=vtop
       t(n)=ttop
       q(n)=qtop
-      e(n-1)=2d-2
+      e(n-1)=1.d-3
 
       do i=2,n-1
         u(i)=u(1)+(u(n)  -u(1))*((z(i)-z(1))/(z(n)  -z(1)))
@@ -1774,6 +1763,7 @@ c Initialization for iteration:
         call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
+        !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
         if(t(2).lt.t(1)) then
@@ -1816,7 +1806,8 @@ c Initialization for iteration:
         ustar0=ustar
 
       end do
-c     write(96,*) "iter in inits =",iter,ustar
+c     iter_count=iter_count+min(iter,itmax)
+c     write(96,*) "iter_count in inits =",iter_count, iter,dbl
 
 c     call check1(ustar,1,ilong,jlat,1)
 
@@ -1905,7 +1896,8 @@ c ----------------------------------------------------------------------
       real*8, parameter :: psistb=15.*radian, psiuns=5.*radian
 
       integer, intent(in) :: n  !@var n array dimension
-      real*8, dimension(n),intent(inout) :: u,v,z
+      real*8, dimension(n),intent(in) :: z
+      real*8, dimension(n),intent(inout) :: u,v
 
       real*8, intent(in) :: lmonin,z0m,hemi,psi0,psi1,ustar
 
@@ -1921,20 +1913,8 @@ c ----------------------------------------------------------------------
 c First, check the rotation of the wind vector:
 
       do i=n-1,1,-1
-        if (u(i).eq.0.) u(i)=teeny
-        if (v(i).eq.0.) v(i)=teeny
-        if ((u(i).gt.0.).and.(v(i).gt.0.)) then
-          psiu=atan2(v(i),u(i))
-        endif
-        if ((u(i).lt.0.).and.(v(i).gt.0.)) then
-          psiu=atan2(abs(u(i)),v(i))+0.5*pi
-        endif
-        if ((u(i).lt.0.).and.(v(i).lt.0.)) then
-          psiu=atan2(abs(v(i)),abs(u(i)))+pi
-        endif
-        if ((u(i).gt.0.).and.(v(i).lt.0.)) then
-          psiu=atan2(u(i),abs(v(i)))+1.5*pi
-        endif
+        psiu=atan2(v(i),u(i)+teeny)
+        if(psiu.lt.0.) psiu=psiu+2.*pi
         psirot=psiu-psi0
 c --------------------------------------------------------------------
 c Next, check the magnitude of the wind. If the gradient is incorrect,
