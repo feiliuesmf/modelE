@@ -271,6 +271,35 @@ C****  97  Mass Outflow by Rivers (10**5 kg/s)      E-5/DTS*IDACC(1) RV
 C****  98  DU/DT BY SDRAG (M S-2)                                  1 SD
 C****  99  LAST DAY OF ICE-FREE LAKE (DAYS)                       12 DA
 C**** 100  LAST DAY OF ICED-UP LAKE (DAYS)                        12 DA
+C**** 101  LAYER 1 REL SAT OF BARE AMD VEG. SOIL (%)               1 EA
+C**** 102  LAYER 2 REL SATURATION OF BARE SOIL (%)                 1 EA
+C**** 103  LAYER 3 REL SATURATION OF BARE SOIL (%)                 1 EA
+C**** 104  LAYER 4 REL SATURATION OF BARE SOIL (%)                 1 EA
+C**** 105  BETA (BARE SOIL) (%)                                    1 EA
+C**** 106  BETA (PENMAN) (%)                                       1 EA
+C**** 107  CANOPY  REL SATURATION (%)                              1 EA
+C**** 108  LAYER 1 REL SATURATION OF VEG. SOIL (%)                 1 EA
+C**** 109  LAYER 2 REL SATURATION OF VEG. SOIL (%)                 1 EA
+C**** 110  LAYER 3 REL SATURATION OF VEG. SOIL (%)                 1 EA
+C**** 111  BETA (BARE SOIL & VEGETATION) (%)                       1 EA
+C**** 112  CONDUCTANCE OF ATMOSPHERE (.01M/S)                      1 EA
+C**** 113  CONDUCTANCE OF CANOPY (.01M/S)                          1 EA
+C**** 114  PENMAN POTENTIAL EVAPORATION (KG/M**2)                  1 EA
+C**** 115  TEMP OF LAYER 1 BARE SOIL AND SNOW (C)                  1 EA
+C**** 116  TEMP OF SOIL LAYER 2 - BARE SOIL (C)                    1 EA
+C**** 117  TEMP OF SOIL LAYER 3 - BARE SOIL (C)                    1 EA
+C**** 118  BARE SOIL EVAPORATION (KG/M**2)                         1 EA
+C**** 119  DRY CANOPY EVAPORATION (KG/M**2)                        1 EA
+C**** 120  WET CANOPY EVAPORATION (KG/M**2)                        1 EA
+C**** 121  TEMP OF CANOPY AND SNOW (C)                             1 EA
+C**** 123  TEMP OF SOIL LAYER 2 1 VEGETATED SOIL (C)               1 EA
+C**** 123  TEMP OF SOIL LAYER 2 - VEGETATED SOIL (C)               1 EA
+C**** 124  TEMP OF SOIL LAYER 3 - VEGETATED SOIL (C)               1 EA
+C**** 125  AVERAGE WATER TABLE (M)                                 1 EA
+C**** 126  BETAV, OVER VEGETATION (PERCENT)                        1 EA
+C**** 127  BETAT, TRANSPIRATION (PERCENT)                          1 EA
+C**** 128  SNOW OVER BARE SOIL                                     1 EA
+C**** 129  SNOW OVER VEGETATED SOIL                                1 EA
 C****
 C**** CONTENTS OF AIL(I,L,N)  (SUM OVER TIME OF)
 C**** WE ARE NOT TAKING INTO ACCOUNT THE VARIATION OF MASS
@@ -290,34 +319,6 @@ C****  14  TX-TF  (AT LAT 70 N)  (COMMENTED OUT)                   4 DA
 C****  15  SR+TR  (AT LAT 70 N)                                    2 RD
 C****  16  2*U  (AT LAT 70 N)        (COMMENTED OUT)               4 DA
 C****
-C**** CONTENTS OF AIJG(I,J,K)  (SUM OVER TIME OF)
-C****   1  LAYER 1 REL SAT OF BARE AMD VEG. SOIL (%)            .5*9 MN
-C****   2  LAYER 2 REL SATURATION OF BARE SOIL (%)              .5*9 MN
-C****   3  LAYER 3 REL SATURATION OF BARE SOIL (%)              .5*9 MN
-C****   4  LAYER 4 REL SATURATION OF BARE SOIL (%)              .5*9 MN
-C****   5  BETA (BARE SOIL) (%)                                    1 EA
-C****   6  BETA (PENMAN) (%)                                       1 EA
-C****   7  CANOPY  REL SATURATION (%)                           .5*9 MN
-C****   8  LAYER 1 REL SATURATION OF VEG. SOIL (%)              .5*9 MN
-C****   9  LAYER 2 REL SATURATION OF VEG. SOIL (%)               5*9 MN
-C****  10  LAYER 3 REL SATURATION OF VEG. SOIL (%)               5*9 MN
-C****  11  BETA (BARE SOIL & VEGETATION) (%)                       1 EA
-C****  12  CONDUCTANCE OF ATMOSPHERE (.01M/S)                      1 EA
-C****  13  CONDUCTANCE OF CANOPY (.01M/S)                          1 EA
-C****  14  PENMAN POTENTIAL EVAPORATION (KG/M**2)                  1 EA
-C****  15  TEMP OF LAYER 1 BARE SOIL AND SNOW (C)                  1 EA
-C****  16  TEMP OF SOIL LAYER 2 - BARE SOIL (C)                    1 EA
-C****  17  TEMP OF SOIL LAYER 3 - BARE SOIL (C)                    1 EA
-C****  18  BARE SOIL EVAPORATION (KG/M**2)                         1 EA
-C****  19  DRY CANOPY EVAPORATION (KG/M**2)                        1 EA
-C****  20  WET CANOPY EVAPORATION (KG/M**2)                        1 EA
-C****  21  TEMP OF CANOPY AND SNOW (C)                             1 EA
-C****  23  TEMP OF SOIL LAYER 2 1 VEGETATED SOIL (C)               1 EA
-C****  23  TEMP OF SOIL LAYER 2 - VEGETATED SOIL (C)               1 EA
-C****  24  TEMP OF SOIL LAYER 3 - VEGETATED SOIL (C)               1 EA
-C****  25  AVERAGE WATER TABLE (M)                                 1 EA
-C****  26  BETAV, OVER VEGETATION (PERCENT)                        1 EA
-C****  27  BETAT, TRANSPIRATION (PERCENT)                          1 EA
 C****
 C**** CONTENTS OF IDACC(N), NUMBER OF ACCUMULATION TIMES OF
 C****   1  SOURCE TERMS  (dt: DTSRC)
@@ -2203,7 +2204,8 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 !@ver  1.0
       USE MODEL_COM, only : mdiag
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
-     *     ,icon_LKM,icon_LKE
+     *     ,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_MSI
+     *     ,icon_HSI,icon_SSI,title_con
       IMPLICIT NONE
 !@var M index denoting from where DIAG9A is called
       INTEGER, INTENT(IN) :: M
@@ -2216,13 +2218,15 @@ C****   4  AFTER RADIATION
 C****   5  AFTER PRECIPITATION
 C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
 C****   7  AFTER FULL SURFACE INTERACTION
-C****   8  AFTER STRATOSPHERIC DRAG
-C****   9  AFTER FILTER
-C****  10  AFTER DAILY
+C****   8  AFTER FILTER
+C****   9  AFTER STRATOSPHERIC DRAG
+C****  10  AFTER OCEAN DYNAMICS
+C****  11  AFTER OCEAN SUB-GRIDSCALE PHYS
+C****  12  AFTER DAILY
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
-     *     ,conserv_WM
-     *     ,conserv_LKM,conserv_LKE
+     *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_WTG
+     *     ,conserv_HTG,conserv_MSI,conserv_HSI,conserv_SSI
       REAL*8 MNOW
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
@@ -2240,9 +2244,24 @@ C**** ATMOSPHERIC TOTAL POTENTIAL ENERGY
 C**** ATMOSPHERIC TOTAL WATER MASS
       CALL conserv_DIAG(M,conserv_WM,icon_WM)
 
+C**** ATMOSPHERIC TOTAL WATER ENERGY
+      CALL conserv_DIAG(M,conserv_EWM,icon_EWM)
+
 C**** LAKE MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_LKM,icon_LKM)
       CALL conserv_DIAG(M,conserv_LKE,icon_LKE)
+
+C**** SEAICE MASS, ENERGY, SALT
+      CALL conserv_DIAG(M,conserv_MSI,icon_MSI)
+      CALL conserv_DIAG(M,conserv_HSI,icon_HSI)
+      CALL conserv_DIAG(M,conserv_SSI,icon_SSI)
+
+C**** GROUND WATER AND ENERGY
+      CALL conserv_DIAG(M,conserv_WTG,icon_WTG)
+      CALL conserv_DIAG(M,conserv_HTG,icon_HTG)
+
+C**** OCEAN CALLS ARE DEALT WITH SEPERATELY
+      CALL DIAGCO (M)
 C****
       CALL TIMER (MNOW,MDIAG)
       RETURN
@@ -2535,9 +2554,9 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,wm,q,p,psfmpt
+      USE MODEL_COM, only : im,jm,lm,fim,wm,q
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pdsig
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM) :: WATER
@@ -2548,14 +2567,9 @@ C****
       DO J=1,JM
         IMAX=IMAXJ(J)
         WATER(J) = 0.
-        DO L=1,LS1-1
+        DO L=1,LM
           DO I=1,IMAX
-            WATER(J)=WATER(J)+(Q(I,J,L)+WM(I,J,L))*P(I,J)*DSIG(L)*mb2kg
-          END DO
-        END DO
-        DO L=LS1,LM
-          DO I=1,IMAX
-            WATER(J)=WATER(J)+(Q(I,J,L)+WM(I,J,L))*PSFMPT*DSIG(L)*mb2kg
+            WATER(J)=WATER(J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
           END DO
         END DO
       END DO
@@ -2564,6 +2578,39 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_WM
+
+      SUBROUTINE conserv_EWM(EWATER)
+!@sum  conserv_EWM calculates total atmospheric water energy
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : mb2kg,shv,grav
+      USE MODEL_COM, only : im,jm,lm,fim,wm,t,q,p
+      USE GEOM, only : imaxj
+      USE DYNAMICS, only : pdsig, pmid, pk
+      IMPLICIT NONE
+      REAL*8, PARAMETER :: HSCALE = 7.8 ! km ????? 
+      REAL*8, DIMENSION(JM) :: EWATER
+      INTEGER :: I,J,L
+      REAL*8 W
+C****
+C**** TOTAL WATER ENERGY (J/m^2)
+C****
+      DO J=1,JM
+        EWATER(J) = 0.
+        DO L=1,LM
+          DO I=1,IMAXJ(J)
+            W = (Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
+c this calculation needs to be checked!
+            EWATER(J)=EWATER(J)+SHV*W*T(I,J,L)*PK(L,I,J)+W*GRAV*HSCALE
+     *           *LOG(P(I,J)/PMID(L,I,J))  
+          END DO
+        END DO
+      END DO
+      EWATER(1) = FIM*EWATER(1)
+      EWATER(JM)= FIM*EWATER(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_EWM
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
       USE MODEL_COM, only : im,imh,jm,lm,fim,
@@ -3023,22 +3070,22 @@ C**** Initialize certain arrays used by more than one print routine
 C**** Initialize conservation diagnostics
 C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
       icon_AM=1
-      NOFM(:,icon_AM) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10 /)
+      NOFM(:,icon_AM) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10, 0, 0/)
       icon_KE=2
-      NOFM(:,icon_KE) = (/ 12,17,18, 0, 0, 0,19,20,21,22 /)
+      NOFM(:,icon_KE) = (/ 12,17,18, 0, 0, 0,19,20,21,22, 0, 0/)
       NSUM_CON(1:23) = (/-1, 4, 4, 0,-1,11,11,11,11,11, 0,
      *                   -1,15,15, 0,-1,23,23,23,23,23,23, 0/)
-      IA_CON(1:23) =   (/12, 6, 6,12, 6, 7, 8, 8,10, 9,12,
-     *                   12, 6, 6,12, 6, 7, 8, 8, 8,10, 9,12/)
+      IA_CON(1:23) =   (/12, 6, 6,12, 6, 7, 8,10, 8, 9,12,
+     *                   12, 6, 6,12, 6, 7, 8, 8,10, 8, 9,12/)
       SCALE_CON(1)              = 1d-9
-      SCALE_CON((/2,3,5,6,7,8/))= 1d-2/DTSRC
+      SCALE_CON((/2,3,5,6,7,9/))= 1d-2/DTSRC
       SCALE_CON((/4,11,15,23/)) = 1.
-      SCALE_CON(9)              = 1d-2/(NFILTR*DTSRC)
+      SCALE_CON(8)              = 1d-2/(NFILTR*DTSRC)
       SCALE_CON(10)             = 2d-2/SDAY
       SCALE_CON(12)             = 25d-5
       SCALE_CON((/13,14,16/))   = 1d3 /DTSRC
-      SCALE_CON(17:20)          = 25d1/DTSRC
-      SCALE_CON(21)             = 25d1/(NFILTR*DTSRC)
+      SCALE_CON((/17,18,19,21/))= 25d1/DTSRC
+      SCALE_CON(20)             = 25d1/(NFILTR*DTSRC)
       SCALE_CON(22)             = 50d1/SDAY
       TITLE_CON(1:23) = (/
      *  ' INSTANTANE AM (10**9 J*S/M**2) ',
@@ -3048,8 +3095,8 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF AM BY PRESSURE GRAD  ',
      *  ' CHANGE OF AM BY DYNAMICS       ',
      *  ' CHANGE OF AM BY SURFACE FRIC   ',
-     *  ' CHANGE OF AM BY STRATOS DRAG   ',
      *  ' CHANGE OF AM BY FILTER         ',
+     *  ' CHANGE OF AM BY STRATOS DRAG   ',
      *  ' CHANGE OF AM BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**2 J/M**2)  ',
      *  '0INSTANTANEOUS KE (10**3 J/M**2)',
@@ -3060,8 +3107,8 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF KE BY DYNAMICS       ',
      *  ' CHANGE OF KE BY MOIST CONVEC   ',
      *  ' CHANGE OF KE BY SURF + DRY CONV',
-     *  ' CHANGE OF KE BY STRATOS DRAG   ',
      *  ' CHANGE OF KE BY FILTER         ',
+     *  ' CHANGE OF KE BY STRATOS DRAG   ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**-3 W/M**2) '/)
 C**** To add a new conservation diagnostic:
@@ -3070,7 +3117,8 @@ C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
 C****       set up scales, titles, etc. The icon_XX index must be
 C****       declared in DAGCOM.f for the time being
 C**** QCON denotes when the conservation diags should be done
-C**** 1:NPTS ==> DYN, COND, RAD, PREC, LAND, SURF, STRAT, FILTER, DAILY
+C**** 1:NPTS ==> DYN,   COND,   RAD,   PREC,   LAND,  SURF,
+C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C****  iii) Write a conserv_XYZ routine that returns the zonal average
 C****       of your quantity
 C****   iv) Add a line to DIAG9A that calls conserv_DIAG (declared
@@ -3080,17 +3128,23 @@ C****       should be in the driver module for the relevant physics
 
 C**** Set up atmospheric component conservation diagnostics
 C**** Atmospheric mass
-      QCON=(/ T, F, F, F, F, F, F, T, T/)
+      QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
       CALL SET_CON(QCON,"MASS    ","(KG/M**2)       ",
      *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
-      QCON=(/ T, T, T, F, F, T, F, T, T /)
+      QCON=(/ T, T, T, F, F, T, T, F, T, F, F/)
       CALL SET_CON(QCON,"TPE     ","(10**5 J/M**2)  ",
      *     "(10**-2 W/M**2) ",1d-5,1d2,icon_TPE)
 C**** Atmospheric water mass
-      QCON=(/ T, T, F, F, F, T, F, F, T/)
+      QCON=(/ T, T, F, F, F, T, F, F, T, F, F/)
       CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
      *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
+C**** Atmospheric water energy  
+C**** This is not currently a conserved quantity, but it should be.
+C**** Hence this diagnostic gives the error
+      QCON=(/ T, T, F, F, F, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,"ENRG WAT","(J/M**2)        ",
+     *     "(10^-6 J/S/M^2) ",1d0,1d6,icon_EWM)
 
       RETURN
       END SUBROUTINE init_DIAG
@@ -3114,7 +3168,7 @@ C**** Atmospheric water mass
       IDACC(1:10)=0
       AJ=0    ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
-      AIL=0   ; AIJG=0 ; ENERGY=0 ; CONSRV=0
+      AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
 
@@ -3179,7 +3233,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE CONSTANT, only : sday
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
-     *     ,nofm,ia_con
+     *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
@@ -3198,11 +3252,10 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 !@var CONPT titles for each point at which conservation diags. are done
       CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
-     *     "LAND SURFC","SURFACE   ","STRAT.DRAG","FILTER    ",
-     *     "DAILY     "/)
+     *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
+     *     "DAILY     ","OCN DYNAM ","OCEAN PHYS"/)
       INTEGER NI,NM,NS,N
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
-      INTEGER, SAVE :: KC = 23  ! take up first 23 indexes
 
       NQ=NQ+1
       IF (NQ.gt.NQUANT) THEN
@@ -3210,7 +3263,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
      *       ,NQUANT,NQ
         STOP "Change NQUANT in diagnostic common block"
       END IF
-      NI=KC+1
+      NI=KCMX+1
       NOFM(1,NQ) = NI
       TITLE_CON(NI) = "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
       SCALE_CON(NI) = INST_SC
@@ -3219,22 +3272,27 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       DO N=1,NPTS
         IF (QCON(N)) THEN
           NM = NM + 1
+          IF (NM.gt.KCON) THEN
+            WRITE(6,*) "KCON not large enough for extra conserv diags",
+     *           KCON,NI,NM,NQ,NAME_CON
+            STOP "Change KCON in diagnostic common block"
+          END IF
           NOFM(N+1,NQ) = NM
           TITLE_CON(NM) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
      *         CONPT(N)
           SELECT CASE (N)
           CASE (1)
             SCALE_CON(NM) = CHNG_SC/DTSRC
-            IA_CON(NM) = 7
-          CASE (2:7)
+            IA_CON(NM) = ia_d5d
+          CASE (2,3,4,5,6,8,10,11)
             SCALE_CON(NM) = CHNG_SC/DTSRC
-            IA_CON(NM) = 8
-          CASE (8)
+            IA_CON(NM) = ia_d5s
+          CASE (7)
             SCALE_CON(NM) = CHNG_SC/(NFILTR*DTSRC)
-            IA_CON(NM) = 10
+            IA_CON(NM) = ia_filt
           CASE (9)
             SCALE_CON(NM) = CHNG_SC*2./SDAY
-            IA_CON(NM) = 9
+            IA_CON(NM) = ia_12hr
           END SELECT
         ELSE
           NOFM(N+1,NQ) = 0
@@ -3247,14 +3305,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       NSUM_CON(NI) = -1
       NSUM_CON(NI+1:NS-1) = NS
       NSUM_CON(NS) = 0
-      KC=NS
+      KCMX=NS
       ICON=NQ
-      IF (KC.gt.KCON) THEN
-        WRITE(6,*) "KCON not large enough for extra conservation diags"
-     *       ,KCON,KC
-         STOP "Change KCON in diagnostic common block"
-      END IF
-
       RETURN
 C****
       END SUBROUTINE set_con

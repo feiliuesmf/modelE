@@ -35,11 +35,14 @@ C****
      &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
-      USE DAGCOM , only : aijg,aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
+      USE DAGCOM , only : aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt
+     *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt,
+     *     ij_g05,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,
+     *     ij_g16,ij_g17,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,
+     *     ij_g24,ij_g25,ij_g26,ij_g27
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
      *     ,erunoe,gtemp
@@ -320,25 +323,25 @@ ccc copy snow variables back to storage
       HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
       FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
 
-      AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NIsurf
-      AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NIsurf
-      AIJG(I,J,11)=AIJG(I,J,11)+BETA/NIsurf
-      AIJG(I,J,12)=AIJG(I,J,12)+ACNA/NIsurf
-      AIJG(I,J,13)=AIJG(I,J,13)+ACNC/NIsurf
-      AIJG(I,J,14)=AIJG(I,J,14)+AEPP
-      AIJG(I,J,15)=AIJG(I,J,15)+TP(1,1)
-      AIJG(I,J,16)=AIJG(I,J,16)+TP(2,1)
-      AIJG(I,J,17)=AIJG(I,J,17)+TP(3,1)
-      AIJG(I,J,18)=AIJG(I,J,18)+EVAPB
-      AIJG(I,J,19)=AIJG(I,J,19)+EVAPD
-      AIJG(I,J,20)=AIJG(I,J,20)+EVAPW
-      AIJG(I,J,21)=AIJG(I,J,21)+TP(0,2)
-      AIJG(I,J,22)=AIJG(I,J,22)+TP(1,2)
-      AIJG(I,J,23)=AIJG(I,J,23)+TP(2,2)
-      AIJG(I,J,24)=AIJG(I,J,24)+TP(3,2)
-      AIJG(I,J,25)=AIJG(I,J,25)+FB*ZW(1)+FV*ZW(2)
-      AIJG(I,J,26)=AIJG(I,J,26)+BETAV/NIsurf
-      AIJG(I,J,27)=AIJG(I,J,27)+BETAT/NIsurf
+      AIJ(I,J,IJ_G05)=AIJ(I,J,IJ_G05)+BETAB/NIsurf
+      AIJ(I,J,IJ_G06)=AIJ(I,J,IJ_G06)+BETAP/NIsurf
+      AIJ(I,J,IJ_G11)=AIJ(I,J,IJ_G11)+BETA/NIsurf
+      AIJ(I,J,IJ_G12)=AIJ(I,J,IJ_G12)+ACNA/NIsurf
+      AIJ(I,J,IJ_G13)=AIJ(I,J,IJ_G13)+ACNC/NIsurf
+      AIJ(I,J,IJ_G14)=AIJ(I,J,IJ_G14)+AEPP
+      AIJ(I,J,IJ_G15)=AIJ(I,J,IJ_G15)+TP(1,1)
+      AIJ(I,J,IJ_G16)=AIJ(I,J,IJ_G16)+TP(2,1)
+      AIJ(I,J,IJ_G17)=AIJ(I,J,IJ_G17)+TP(3,1)
+      AIJ(I,J,IJ_G18)=AIJ(I,J,IJ_G18)+EVAPB
+      AIJ(I,J,IJ_G19)=AIJ(I,J,IJ_G19)+EVAPD
+      AIJ(I,J,IJ_G20)=AIJ(I,J,IJ_G20)+EVAPW
+      AIJ(I,J,IJ_G21)=AIJ(I,J,IJ_G21)+TP(0,2)
+      AIJ(I,J,IJ_G22)=AIJ(I,J,IJ_G22)+TP(1,2)
+      AIJ(I,J,IJ_G23)=AIJ(I,J,IJ_G23)+TP(2,2)
+      AIJ(I,J,IJ_G24)=AIJ(I,J,IJ_G24)+TP(3,2)
+      AIJ(I,J,IJ_G25)=AIJ(I,J,IJ_G25)+FB*ZW(1)+FV*ZW(2)
+      AIJ(I,J,IJ_G26)=AIJ(I,J,IJ_G26)+BETAV/NIsurf
+      AIJ(I,J,IJ_G27)=AIJ(I,J,IJ_G27)+BETAT/NIsurf
           TRHDT=TRHEAT*DTSURF-ATRG
 C     FOR RADIATION FIND COMPOSITE VALUES OVER EARTH
 C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
@@ -523,9 +526,9 @@ C**** Modifications needed for split of bare soils into 2 types
      *     shi_const=>shi,lhe,lhm
       USE MODEL_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
       USE GHYCOM
-      USE SLE001, sinday=>sint,cosday=>cost
+      USE SLE001, sinday=>sint,cosday=>cost,fglob=>f
       USE FLUXES, only : gtemp
-      USE DAGCOM, only : npts
+      USE DAGCOM, only : npts,icon_WTG,icon_HTG
       USE FILEMANAGER
       IMPLICIT NONE
 
@@ -534,7 +537,7 @@ C**** Modifications needed for split of bare soils into 2 types
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH, iniSNOW
-c      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER I, J
 C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
 C****
@@ -804,13 +807,12 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
       END IF
 
 C**** Set conservation diagnostics for ground water mass and energy
-c      QCON=(/ F, F, F, F, T, F, F, F, T/)
-c      CALL SET_CON(QCON,"GRND WTR","(10**6 KG/M^2)  ",
-c     *     "(10**2 KG/S/M^2)",1d-6,1d-2)
-c      QCON=(/ F, F, F, F, T, F, F, F, T/)
-c      CALL SET_CON(QCON,"GRND HT ","(10**8 J/M^2)   ",
-c     *     "(10**3 J/S/M^2) ",1d-8,1d-3)
-
+      QCON=(/ F, F, F, F, F, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,"GRND WTR","(KG/M^2)        ",
+     *     "(10^-9 KG/S/M^2)",1d0,1d9,icon_WTG)
+      QCON=(/ F, F, F, F, F, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,"GRND ENG","(10**6 J/M^2)   ",
+     *     "(10^-3 J/S/M^2) ",1d-6,1d3,icon_HTG)
 
       RETURN
       END SUBROUTINE init_GH
@@ -1174,7 +1176,8 @@ C****
       USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_f2dt,j_f1dt,j_evap,aijg,j_type
+     *     ,j_snow,j_f2dt,j_f1dt,j_evap,j_type,
+     *     ij_g01,ij_g07,ij_g28,ij_g29
       USE FLUXES, only : e0,e1,evapor,eprec
       IMPLICIT NONE
 
@@ -1229,16 +1232,15 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_GWTR) =AIJ(I,J,IJ_GWTR)+(WTR1+ACE1+WTR2+ACE2)
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH
         AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
+        DO K=1,4
+          AIJ(I,J,IJ_G01+K-1)=AIJ(I,J,IJ_G01+K-1)+GHDATA(I,J,K)
+        END DO
+        DO K=7,10
+          AIJ(I,J,IJ_G07+K-1)=AIJ(I,J,IJ_G07+K-1)+GHDATA(I,J,K)
+        END DO
+        AIJ(I,J,IJ_G28)=AIJ(I,J,IJ_G28)+GHDATA(I,J,28)
+        AIJ(I,J,IJ_G29)=AIJ(I,J,IJ_G29)+GHDATA(I,J,29)
       END IF
-C****
-      DO K=1,4
-        AIJG(I,J,K)=AIJG(I,J,K)+GHDATA(I,J,K)
-      END DO
-      DO K=7,10
-        AIJG(I,J,K)=AIJG(I,J,K)+GHDATA(I,J,K)
-      END DO
-      AIJG(I,J,28)=AIJG(I,J,28)+GHDATA(I,J,28)
-      AIJG(I,J,29)=AIJG(I,J,29)+GHDATA(I,J,29)
 C****
       END DO
       END DO
@@ -1261,7 +1263,7 @@ C****
 
       DO J=1,JM
         WATERG(J)=0
-        DO I=I,IMAXJ(J)
+        DO I=1,IMAXJ(J)
           IF (FEARTH(I,J).gt.0) THEN
             FB=AFB(I,J)
             WIJ=(1.-FB)*WVEGE(I,J,0)
@@ -1293,7 +1295,7 @@ C****
 
       DO J=1,JM
         HEATG(J)=0
-        DO I=I,IMAXJ(J)
+        DO I=1,IMAXJ(J)
           IF (FEARTH(I,J).gt.0) THEN
             FB=AFB(I,J)
             HIJ=0.

@@ -38,7 +38,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       DOUBLE PRECISION, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER :: KAIJ=100
+      INTEGER, PARAMETER :: KAIJ=150
 !@var AIJ latitude/longitude diagnostics
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
 
@@ -46,11 +46,6 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       INTEGER, PARAMETER :: KAIL=16
 !@var AIL longitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
-
-!@param KAIJG number of AIJG diagnostics
-      INTEGER, PARAMETER :: KAIJG=29
-!@var AIJG latitude/longitude ground diagnostics (merge with AIJ?)
-      DOUBLE PRECISION, DIMENSION(IM,JM,KAIJG) :: AIJG
 
 C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NEHIST,HISTDAYS number of energy history diagnostics, and days
@@ -60,11 +55,11 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
 !@var NPTS number of points at which standard conserv. diags are called
-      INTEGER, PARAMETER :: NPTS = 9
+      INTEGER, PARAMETER :: NPTS = 11  ! 9
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=7   ! 20?
+      INTEGER, PARAMETER :: NQUANT=18   ! 20?
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=54
+      INTEGER, PARAMETER :: KCON=125    !54
 !@var CONSRV conservation diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
@@ -78,6 +73,10 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,icon_LKE
+     *     ,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OKE,icon_OAM
+     *     ,icon_OMS,icon_OSL,icon_MSI,icon_HSI,icon_SSI 
+!@var KCMX actual number of conservation diagnostics
+      INTEGER :: KCMX = 23 ! take up first 23 indexes for special cases
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20
@@ -116,7 +115,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
+      INTEGER, PARAMETER :: NWAV_DAG=9   !min(9,imh)
 !@param KAJLSP number of spectral diagnostics
       INTEGER, PARAMETER :: KAJLSP=3
 !@var AJLSP spectral diagnostics
@@ -135,14 +134,10 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*LM*KAIL + IM*JM*KAIJG + NEHIST*HIST_DAYS + JM*KCON +
+     *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDLYVAR*NDLYPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*(1+NWAV_DAG)*KAJLSP
-
-c      COMMON /ACCUM/ AJ,BJ,CJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
-c     &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
-c     &  AJK,AIJK,AIJL,AJLSP
 
 !@var TSFREZ freezing temperature diagnostics
       integer, parameter :: ktsf=4
@@ -243,15 +238,17 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SCNVFRQ, IJ_EMTMOM, IJ_SMTMOM, IJ_FPEU, IJ_FPEV, IJ_FMU,
      *     IJ_FMV,IJ_FQU, IJ_FQV, IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
      *     IJ_SDRAG,IJ_LKON,IJ_LKOFF
+!@var IJ_Gxx names for old AIJG arrays (should be more specific!)
+      INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
+     *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
+     *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
+     *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=20), dimension(kaij) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=80), dimension(kaij) :: lname_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
       integer, dimension(kaij) :: ia_ij
-
-      character(len=20), dimension(kaijg) :: name_ijg,units_ijg
-      character(len=80), dimension(kaijg) :: lname_ijg
 
       character(len=20), dimension(kajl) :: name_jl,units_jl
       character(len=80), dimension(kajl) :: lname_jl
@@ -291,7 +288,9 @@ C**** tf_xxx tsfrez diagnostic names
 
 c idacc-indices of various processes
       integer, parameter ::
-     &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_12hr=9, ia_nmo=12
+     &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
+     *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_ocn=11,
+     *     ia_nmo=12
 
 
       END MODULE DAGCOM
@@ -317,12 +316,12 @@ c idacc-indices of various processes
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,
-     *       ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
+     *       ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
      *       AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,SNGL(TSFREZ),SNGL(AJ),
      *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
-     *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(AIJG),SNGL(ENERGY),
+     *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
      *     it
@@ -330,7 +329,7 @@ c idacc-indices of various processes
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
       CASE (ioread)           ! input from restart file
         READ (kunit,err=10) HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
-     *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
+     *       AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
      *       AIJK,AIJL,AJLSP,TDIURN,OA,it
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
