@@ -118,8 +118,8 @@ endif
 %.o: %.OCN
 	$(F) $<
 
-# RE001.f
-RE001.o: RE001.f
+# RADIATION.f
+RADIATION.o: RADIATION.f
 	@touch .timestamp
 	$(F90) -c -static $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
 	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
@@ -131,3 +131,4 @@ endif
 
 
 # end of Pattern  rules
+
