@@ -1126,37 +1126,6 @@ c**** set gtemp array
         end do
       end do
 
-#ifdef TRACERS_WATER
-ccc still not quite correct (assumes fw=1)
-      do j=J_0,J_1
-        do i=1,im
-          if (fearth(i,j).le.0.d0) cycle
-          fb=afb(i,j) ; fv=1.-fb
-          fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
-          if ( fm < 1.d-3 ) fm=0.d0          
-          wsoil_tot=fb*( wbare(1,i,j)*(1.d0-fr_snow_ij(1,i,j))
-     &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
-     &     + fv*( wvege(0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
-     &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
-          do n=1,ntm
-            if (itime_tr0(n).gt.itime) cycle
-            if ( .not. needtrs(n) ) cycle
-            ! should also restrict to TYPE=nWATER ?
-            if ( wsoil_tot > 1.d-30 ) then
-            gtracer(n,4,i,j) = (
-     &           fb*( tr_wbare(n,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
-     &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
-     &           + fv*( tr_wvege(n,0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
-     &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
-     &           /(rhow*wsoil_tot)
-            else
-              gtracer(n,4,i,j) = 0.
-            end if
-          enddo
-        end do
-      end do
-#endif
-
 C GISS-ESMF EXCEPTIONAL CASE
 C-BMP Global sum on evap_max_ij
 
@@ -1237,6 +1206,37 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
           endif
         enddo
       enddo
+
+#ifdef TRACERS_WATER
+ccc still not quite correct (assumes fw=1)
+      do j=J_0,J_1
+        do i=1,im
+          if (fearth(i,j).le.0.d0) cycle
+          fb=afb(i,j) ; fv=1.-fb
+          fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
+          if ( fm < 1.d-3 ) fm=0.d0
+          wsoil_tot=fb*( wbare(1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+     &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
+     &     + fv*( wvege(0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
+     &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
+          do n=1,ntm
+            if (itime_tr0(n).gt.itime) cycle
+            if ( .not. needtrs(n) ) cycle
+            ! should also restrict to TYPE=nWATER ?
+            if ( wsoil_tot > 1.d-30 ) then
+            gtracer(n,4,i,j) = (
+     &           fb*( tr_wbare(n,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+     &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
+     &           + fv*( tr_wvege(n,0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
+     &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
+     &           /(rhow*wsoil_tot)
+            else
+              gtracer(n,4,i,j) = 0.
+            end if
+          enddo
+        end do
+      end do
+#endif
 
       return
       end subroutine init_gh
