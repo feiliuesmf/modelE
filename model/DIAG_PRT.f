@@ -1190,12 +1190,16 @@ C**** U AND V WINDS, STREAM FUNCTION
       n = jk_Vstar
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &    PLM,AX,SCALET,ONES,ONES,KM,2,JGRID_JK(n))
-      DO J=2,JM
-         AX(J,1)=AJK(J,1,JK_V)
-         DO K=2,KM
-            AX(J,K)=AX(J,K-1)+AJK(J,K,JK_V)
-         ENDDO
-      ENDDO
+c
+c Obtain the stream function by integrating meridional velocity
+c downward from the model top
+c
+      do j=2,jm
+         ax(j,km) = 0.
+         do k=km-1,1,-1
+            ax(j,k)=ax(j,k+1)-ajk(j,k+1,jk_v)
+         enddo
+      enddo
       n = jk_psi_cp
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
