@@ -4,7 +4,7 @@ Major Changes from Model II'
 - FDATA replaced with FLAND/FOCEAN/FLICE/FLAKE/FEARTH
 
 - GDATA replaced with:
-   SNOWI,TSI  (sea ice)
+   SNOWI,HSI  (sea ice)
    SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE (earth)
    TLANDI, SNOWLI (land ice)
 
