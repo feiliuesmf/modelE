@@ -45,7 +45,7 @@
 #endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
-     *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj
+     *     ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypj,lp50
      *     ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei
      *     ,wml,sdl,u_0,v_0,um,vm,qs,us,vs,dcl,airxl,prcpss,hcndss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
@@ -439,6 +439,15 @@ C****
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
       RNDSS1L(:)=RNDSS1(:,I,J)
       RNDSS2L(:)=RNDSS2(:,I,J)
+C**** SEARCH 50 MB LEVEL
+        LP50=LM
+        DO L=2,LM
+          IF(L.GT.LP50) EXIT
+          IF(PL(L).LT.50.) THEN
+            LP50=L
+            IF(50.-PL(L).GT.PL(L-1)-50.) LP50=L-1
+          ENDIF
+        ENDDO
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****

@@ -137,7 +137,8 @@ C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #endif
 
 !@var KMAX index for surrounding velocity
-      INTEGER ::  KMAX
+!@var LP50 50mb level
+      INTEGER ::  KMAX,LP50
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
@@ -1261,13 +1262,14 @@ C**** functions
 !@param AIRM0 scaling factor for computing rain evaporation
 !@param HEFOLD e-folding length for computing HRISE
 !@param COEFM coefficient for ratio of cloud water amount and WCONST
+!@param COEFT coefficient used in computing PRATM
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
-      REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.
+      REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
-     *     QSATL,RHF,ATH,SQ,ER,QHEAT,
+     *     QSATL,RHF,ATH,SQ,ER,QHEAT,LHP,
      *     CAREA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
@@ -1280,6 +1282,7 @@ C**** functions
 !@var RH00 threshold relative humidity
 !@var EC cloud evaporation rate
 !@var WMXM cloud water mass (mb)
+!@var LHP array of precip phase ! may differ from LHX
       REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE
 !@var PREBAR,PREICE precip entering layer top for total, snow
 
@@ -1396,6 +1399,7 @@ C**** initialise vertical arrays
       EC=0.
       PREP=0.
       PREBAR=0.
+      LHP=0.
       QHEAT=0.
       CLDSSL=0
       TAUSSL=0
@@ -1405,21 +1409,21 @@ C**** initialise vertical arrays
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
 #endif
-      DO L=1,LM
+      DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
         IF(WMX(L).LE.0.) CAREA(L)=1.
       END DO
       DQUP=0.
-      LHXUP=0.
-      TOLDUP=TL(LM)
-      PREICE(LM+1)=0.
+C     LHXUP=0.
+      TOLDUP=TL(LP50)
+      PREICE(LP50+1)=0.
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
          SSHR=0.
          DCTEI=0.
 C****
 C**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
 C****
-      DO L=LM,1,-1
+      DO L=LP50,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
       OLDLHX=SVLHXL(L)
@@ -1472,12 +1476,12 @@ C**** special case 1) if ice previously then stay as ice (if T<Tf)
           LHX=LHS
         ENDIF
 
-        IF (L.LT.LM) THEN
+        IF (L.LT.LP50) THEN
 C**** special case 2) default is that water cloud is below water cloud
-          IF(LHXUP.EQ.LHE) THEN
-            LHX=LHE
-            BANDF = .FALSE.
-          END IF
+C         IF(LHXUP.EQ.LHE) THEN
+C           LHX=LHE
+C           BANDF = .FALSE.
+C         END IF
 
 C**** Decide whether precip initiates B-F process
           IF (TL(L).LT.TF) THEN
@@ -1487,7 +1491,7 @@ C**** Decide whether precip initiates B-F process
             IF (PPHASE.EQ.LHE) PMW=PREBAR(L+1)*DTsrc
             RANDNO=RNDSS2L(L)   !  RANDNO=RANDU(XY)
 C**** Calculate probability of ice precip seeding a water cloud
-            IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
+            IF (LHX.EQ.LHE.AND.PMI.gt.0.AND.PML.GT.0.) THEN
               PRATIO=MIN(PMI/(PML+1.E-20),10d0)
               PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
               IF(PFR.GT.RANDNO) THEN
@@ -1498,20 +1502,7 @@ C**** Calculate probability of ice precip seeding a water cloud
 C**** Calculate probablity of water precip freezing (and thereby
 C**** seeding an ice cloud)
             IF (PMW.gt.0) THEN
-              PRATW=0.
-              IF(LHX.EQ.LHS) PRATW=MIN(PML/PMW,10d0)
-              PFR=(1.-EXP(-(PRATW*PRATW)))*(1.-EXP(-(CBFC0*CBFC0)))
-              PRATM=0.
-              IF(LHX.EQ.LHE) PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD
-     *           *TL(L)*RGAS+teeny)
-              PFR=MIN(MAX(PFR,PRATM),1d0)
-              IF(PFR.GT.RANDNO) THEN
-                BANDF=.TRUE.
-                LHX=LHS
-              ELSE
-                BANDF=.FALSE.
-                LHX=LHE
-              END IF
+                IF(LHX.EQ.LHS .AND. PML.GT.0.) BANDF=.TRUE. ! pdf = 1
             END IF
           END IF
         END IF
@@ -1575,6 +1566,11 @@ c        IF(L.EQ.DCL) HDEP=0.5*HDEP
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
+      HPHASE=0.
+      IF(LHX.EQ.LHS .AND. PPHASE.EQ.LHE .AND. PREBAR(L+1).GT.0.)
+     *  LHP(L+1)=LHS
+C     IF(L.LT.LM .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE)
+C    *  LHP(L+1)=LHE                 ! not needed yet
       IF(WMX(L).GT.0.) THEN
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       RHO=1d5*PL(L)/(RGAS*TL(L))
@@ -1589,8 +1585,26 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
      *   PRECNVL(L+1)*BYDTsrc)
       IF(CM.GT.BYDTsrc) CM=BYDTsrc
       PREP(L)=WMX(L)*CM
+      LHP(L)=LHE                     ! determin precip phase
+      IF(LHX.EQ.LHS) LHP(L)=LHS      ! determin precip phase
+      IF(TL(L).LT.TF.AND.LHX.EQ.LHE) THEN  ! check snowing pdf
+        PRATM=0.
+        PRATM=1.d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
+        PRATM=MIN(PRATM,1.D0)*(1.-EXP(MAX(-100.,(TL(L)-TF)/COEFT)))
+        IF(PRATM.GT.RNDSS1L(L)) THEN
+          LHP(L)=LHS
+          HPHASE=-PREP(L)*LHM
+          IF(LHP(L+1).EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
+            HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+            LHP(L+1)=LHS
+          END IF
+        ELSE
+          LHP(L+1)=LHE
+        END IF
+      END IF
       ELSE
         CM=0.
+        IF(PREBAR(L+1).GT.0.) LHP(L)=LHX
       END IF
 C**** FORM CLOUDS ONLY IF RH GT RH00
   219 IF(RH1(L).LT.RH00(L)) GO TO 220
@@ -1665,14 +1679,17 @@ C**** This occurs if 0 C isotherm is crossed, or ice is falling into
 C**** a super-cooled water cloud (that has not had B-F occur).
 C**** Note: on rare occasions we have ice clouds even if T>0
 C**** In such a case, no energy of phase change is needed.
-      HPHASE=0.
-      IF(L.LT.LM .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE) THEN
-        HPHASE=LHM*PREICE(L+1)*GRAV*BYAM(L)
+C     HPHASE=0.
+      IF(L.LT.LP50 .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE
+     *  .AND. LHP(L).EQ.LHE) THEN
+        HPHASE=HPHASE+LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
+C       LHP(L+1)=LHE
       ENDIF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
       IF(LHX.EQ.LHS .AND. PPHASE.EQ.LHE .AND. PREBAR(L+1).GT.0.) THEN
-        HPHASE=-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+        HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+C       LHP(L+1)=LHS
       ENDIF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
@@ -1834,14 +1851,20 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
       END IF
 #endif
       PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
+      IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
+        HCHANG=WMX(L)*LHM
+        TL(L)=TL(L)+HCHANG/SHA
+        TH(L)=TL(L)/PLK(L)
+      END IF
       WMX(L)=0.
       END IF
 C**** set phase of condensation for next box down
       PREICE(L)=0.
       PPHASE=0.
       IF (PREBAR(L).gt.0) THEN
-        PPHASE=LHX
-        IF (LHX.EQ.LHS) PREICE(L)=PREBAR(L)
+        PPHASE=LHP(L)
+C       PPHASE=LHX
+        IF (PPHASE.EQ.LHS) PREICE(L)=PREBAR(L)
       END IF
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
@@ -1855,8 +1878,8 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
 #endif
       TOLDUP=TOLD
-      LHXUP=0.
-      IF (WMX(L).gt.0) LHXUP=LHX
+C     LHXUP=0.
+C     IF (WMX(L).gt.0) LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+(TNEW-TOLD)*AIRM(L)
@@ -1869,7 +1892,7 @@ C**** ACCUMULATE SOME DIAGNOSTICS
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
-      DO 382 L=LM-1,1,-1
+      DO 382 L=LP50-1,1,-1
       SM(L)=TH(L)*AIRM(L)*PLK(L)
       QM(L)=QL(L)*AIRM(L)
       WMXM(L)=WMX(L)*AIRM(L)
@@ -2020,7 +2043,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
   382 CONTINUE
       WMSUM=0.
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
-      DO 388 L=1,LM
+      DO 388 L=1,LP50
       FCLD=CLDSSL(L)+teeny
       WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       LHX=SVLHXL(L)
@@ -2042,7 +2065,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
  388  IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
 
 C**** CALCULATE OPTICAL THICKNESS
-      DO L=1,LM
+      DO L=1,LP50
       CLDSAVL(L)=CLDSSL(L)
       IF(TAUMCL(L).GT.0..AND.CKIJ.EQ.1.) GO TO 526
       BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
