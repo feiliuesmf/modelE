@@ -623,7 +623,7 @@ C****
       P(:,:)=PSFMPT
 !----------------------------------------------------------------------!
 ! adf
-      Cint(:,:)=0.0141D0
+      Cint(:,:)=0.0127D0
       Qfol(:,:)=3.D-6
 !----------------------------------------------------------------------!
 C**** Advection terms for first and second order moments
@@ -1363,7 +1363,7 @@ C**** CORRECTED.
       INTEGER I,J
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
-
+                             
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
         CALL CHECK3(U,IM,JM,LM,SUBR,'u     ')

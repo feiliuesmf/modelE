@@ -47,7 +47,7 @@ SOIL=S8X10.modelE TOPO=Z8X10.modelE ! bdy.cond
 REG=REG8X10          ! special regions-diag
 RVR=RD8X10.RVR       ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
-RADN2=kdist33.tautabs4
+RADN2=kdist33.tautab8
 RADN3=miescatpar.abcdv
 RADN4=o3Prather1979-80.London1957-70
 RADN5=TROAER.1875-1990.Jun2002

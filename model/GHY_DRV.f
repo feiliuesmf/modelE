@@ -410,7 +410,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
       end do
 #endif
 c***********************************************************************
-c***
+c****
 ccc actually PBL needs evap (kg/m^2*s) / rho_air
       evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
       fr_sat = fr_sat_ij(i,j)
@@ -438,8 +438,8 @@ c**** calculate fluxes of sensible heat, latent heat, thermal
 c****   radiation, and conduction heat (watts/m**2)
 c      snht=-sha*rcdhws*(ts-tg)  ! -not used
       trheat=trhr(0,i,j)
-c **********************************************************************
-c *****
+c***********************************************************************
+c**** 
 c  define extra variables to be passed in surfc:
       pres  =ps
       rho   =rhosrf
@@ -451,16 +451,16 @@ c  define extra variables to be passed in surfc:
 ! adf Fraction of solar radiation at ground that is direct beam.
       fdir=FSRDIR(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
-      Ci=Cint(i,j)
+      Ci=Cint(i,j)   ; Cin=Ci  ! needed to prevent div.check , why ?
 ! Foliage surface mixing ratio (kg/kg).
-      Qf=Qfol(i,j)
+      Qf=Qfol(i,j)   ; Qfn=Qf
 !----------------------------------------------------------------------!
   !    zs    =zgs  !!! will not need after qsbal is replaced
   !    z1    =zmix  !!! will not need after qsbal is replaced
   !    eddy  =khs   !!! will not need after qsbal is replaced
 c     tspass=ts
-c **********************************************************************
-c *****
+c***********************************************************************
+c**** 
 c**** calculate ground fluxes
 c     call qsbal
       call ghinij (i,j,wfc1)
@@ -499,11 +499,11 @@ cddd      wsoil_tot=wsoil_tot-(aevap+aruns+arunu)/rhow
 cddd      do nx=1,ntx
 cddd        n=ntix(nx)
 cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cdddc**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
+cdddc**** fix outputs to mean ratio (TO BE REPLACED WITHIN SOIL TRACERS)
 cddd        trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
 cddd        trrunu(nx)=arunu * trsoil_rat(nx)
 cdddc#ifdef TRACERS_SPECIAL_O18
-cdddc        tevapw(nx)=aevapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
+cdddc        tevapw(nx)=aevapw*trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
 cdddc#else
 cdddc        tevapw(nx)=aevapw * trsoil_rat(nx)
 cdddc#endif
@@ -511,9 +511,9 @@ cdddc        tevapd(nx)=aevapd * trsoil_rat(nx)
 cdddc        tevapb(nx)=aevapb * trsoil_rat(nx)
 cddd        tevapw(nx)=aevap * trsoil_rat(nx)
 cdddc**** update ratio
-cdddc        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
+cc       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
 cdddc     *       +trruns(nx)+trrunu(nx))
-cddd        trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx))
+c       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx))
 cddd        trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
 cddd        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
 cddd        trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
@@ -666,7 +666,7 @@ cddd          taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
 cddd     *         trevapor(n,itype,i,j)*ptype
 cddd          taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
 cddd     *         gtracer(n,itype,i,j)*ptype/nisurf
-cddd !         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n)+trsoil_tot(nx)
+cddd!         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n)+trsoil_tot(nx)
 cddd !    *         /nisurf
 cddd          tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
 cddd     *         +trevapor(n,itype,i,j)*ptype
@@ -674,7 +674,7 @@ cddd#endif
         end if
       end do
 #endif
-ccc not sure about the code below. hopefully that''s what one meant above
+ccc not sure about the code below. hopefully that''s what is meant above
 #ifdef TRACERS_WATER
       do nx=1,ntg
         n=ntixw(nx)
@@ -693,7 +693,7 @@ ccc not sure about the code below. hopefully that''s what one meant above
 !      print '(a,10(e12.4))','trevapor_trunoe',
 !     &     trevapor(1,itype,i,j), trunoe(1,i,j)
 !     &     ,aevap,atr_evap(1),aruns,arunu,atr_rnff(1),pr,trpr
-        
+
 
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
@@ -902,7 +902,7 @@ c**** modifications needed for split of bare soils into 2 types
 !----------------------------------------------------------------------!
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
-      
+
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -980,7 +980,7 @@ c**** read topmodel parameters
         endif
         if (istart.le.0) return
       endif
-        
+
 ccc temporary code: dump all land surface data here
 cddd      print 7,'**** land surface data here ****'
 cddd      print 7,'vdata(i,j,1:11)= ', vdata( i_def, j_def, 1:11 )
@@ -1242,8 +1242,8 @@ c**** set gtemp array
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
 cddd#ifdef TRACERS_WATER_OLD
-cdddC**** Quick and dirty calculation of water tracer amounts to calculate
-cdddC**** gtracer. Should be replaced with proper calculation at some point
+cdddC**** Quick and dirty calculation of water tracer amounts to find
+cdddC**** gtracer. Should be replaced with proper calculation sometime
 cdddC**** Calculate mean tracer ratio
 cddd            fb=afb(i,j) ; fv=1.-fb
 cddd            wsoil_tot=snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
@@ -1252,7 +1252,7 @@ cddd            trsoil_tot = 0
 cddd            do n=1,ntm
 cddd              if(itime_tr0(n).le.itime) then
 cddd                trsoil_tot=trsoil_tot+trsnowbv(n,1,i,j)*fb
-cddd     *               +trsnowbv(n,2,i,j)*fv+sum(trbare(n,1:ngm,i,j))*fb
+cddd     *             +trsnowbv(n,2,i,j)*fv+sum(trbare(n,1:ngm,i,j))*fb
 cddd     *               +sum(trvege(n,0:ngm,i,j))*fv
 cddd                gtracer(n,4,i,j)=trsoil_tot/(rhow*wsoil_tot)
 cddd              end if
@@ -1285,7 +1285,7 @@ ccc still not quite correct (assumes fw=1)
      &           /(rhow*wsoil_tot)
           enddo
         end do
-      end do 
+      end do
 #endif
 
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij

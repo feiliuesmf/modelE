@@ -252,7 +252,7 @@ ccc   i.e. they are not multiplied by any fr_...
       real*8 :: evapb, evapbs, evapvw, evapvd, evapvs
 !@var devapbs_dt, devapvs_dt d(evap)/dT for snow covered soil (bare/veg)
       real*8 :: devapbs_dt, devapvs_dt
-ccc!@var evapor mean (weighted with fr_..) evaporation from bare/vege soil
+c!@var evapor mean (weighted with fr_..) evaporation from bare/vege soil
 ccc      real*8 :: evapor(2)
 
 !@var evapdl thanspiration from each soil layer
@@ -304,7 +304,7 @@ ccc tracers output:
 #endif
 
 ccc the data below this line is not in GHYTPC yet !
-ccc the following vars control if bare/vegetated fraction has to 
+ccc the following vars control if bare/vegetated fraction has to
 ccc be computed (i.e. f[bv] is not zero)
       integer :: i_bare, i_vege
       logical :: process_bare, process_vege
@@ -738,7 +738,7 @@ ccc !!! it''s a hack should call it somewhere else !!!
       ! evaporation from the canopy
       if ( process_vege ) then
         ibv = 2
-        evap_max_wet(ibv) = w(0,2) / dt !+ pr ! pr doesn''t work for snow
+        evap_max_wet(ibv) = w(0,2)/dt !+ pr ! pr doesn''t work for snow
         ! dry canopy
 !!! this needs "qs" from the previous time step
 c     betad is the the root beta for transpiration.
@@ -826,7 +826,7 @@ c     evapvd is dry evaporation (transpiration) from canopy
 c     evapvw is wet evaporation from canopy (from interception)
         evapvw = min( epv, evap_max_wet(2) )
         evapvw = max( evapvw,-qm1dt )
-        evapvd = min(epv,evap_max_dry(2)) ! evap_max_dry(2) depends on qs
+        evapvd = min(epv,evap_max_dry(2)) !evap_max_dry(2) depends on qs
         evapvd = max( evapvd, 0.d0 )
         evapvs = min( epvs, evap_max_snow(2) )
         evapvs = max( evapvs, -qm1dt )
@@ -1062,7 +1062,7 @@ ccc   make sure "dr" makes sense
         dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case (probably don''t need it)
         dripw(2) = dr
-        htdripw(2) = shw*dr*max(tp(0,2),0.d0) ! don''t allow it to freeze
+        htdripw(2) = shw*dr*max(tp(0,2),0.d0) !don''t allow it to freeze
         ! snow falls through the canopy
         drips(2) = snowf
         htdrips(2) = min ( htpr, 0.d0 ) ! liquid H20 is 0 C, so no heat
@@ -1193,7 +1193,7 @@ ccc surface runoff was rewritten in a more clear way 7/30/02
 !@var rosmp used to compute saturated fraction: (w/ws)**rosmp
       real*8, parameter :: rosmp = 8.
       rnff(:,:) = 0.d0
-      rnf(:) = pr  ! hack to conserve water (for ibv != 0,1) 
+      rnf(:) = pr  ! hack to conserve water (for ibv != 0,1)
                    ! - should be set to 0 after testing
 c**** surface runoff
       do ibv=i_bare,i_vege
@@ -1382,7 +1382,7 @@ c the alam''s are the heat conductivities
           gaa=.298d0*theta(l,ibv)/(thets(l,ibv)+1d-6)+.035d0
           gca=1.d0-2.d0*gaa
           hcwta=(2.d0/(1.d0+ba*gaa)+1.d0/(1.d0+ba*gca))/3.d0
-c     xw,xi,xa are the volume fractions.  don''t count snow in soil lyr 1
+c     xw,xi,xa are the volume fractions. don''t count snow in soil lyr 1
           xw=w(l,ibv)*(1.d0-fice(l,ibv))/dz(l)
           xi=w(l,ibv)*fice(l,ibv)/dz(l)
           xa=(thets(l,ibv)-theta(l,ibv))
@@ -1627,7 +1627,7 @@ ccc check for under/over-saturation
           w(l,ibv) = min( w(l,ibv), ws(l,ibv) )
         enddo
       enddo
-          
+
       return
       end subroutine apply_fluxes
 
@@ -1675,7 +1675,7 @@ ccc reset main water/heat fluxes, so they are always initialized
       fch(:) = 0.d0
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
-      process_bare = .true.; process_vege = .true.      
+      process_bare = .true.; process_vege = .true.
       if ( fb == 0.d0 ) then  ! bare fraction is missing
         i_bare = 2
         process_bare = .false.
@@ -1683,7 +1683,7 @@ ccc normal case (both present)
       if ( fv == 0.d0 ) then  ! bare fraction is missing
         i_vege = 1
         process_vege = .false.
-      endif      
+      endif
 
 !debug debug!
 !      pr = 0.d0
@@ -1851,7 +1851,7 @@ ccc   accumulate tracer fluxes
         atr_g(:ntg) = atr_g(:ntg) +
      &       ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
      &       + tr_wsn(:ntg,1,1)*fr_snow(1) )
-     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))*fw !! remove fw ?
+     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))*fw !! remove fw?
      &       + tr_wsn(:ntg,1,2)*fm*fr_snow(2) ) ) /
      &       tot_w1 * dts
       endif
@@ -2570,7 +2570,7 @@ ccc for debug
       !m = 2 !!! testing
       m = ntg
 
-!!! for test only 
+!!! for test only
 !      trpr(:) = .5d0 * pr
   !    tr_surf(:) = 1000.d0 !!!???
       !tr_w = 0.d0
@@ -2616,7 +2616,7 @@ ccc canopy
       wi(0,2) = wi(0,2) + pr*dts
       if ( wi(0,2) > 0.d0 ) tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
       call check_wc(tr_wcc(1,2))
-      
+
       ! +- evap
       if ( evapvw >= 0.d0 ) then  ! no dew
         tr_evap(:m,2) = tr_evap(:m,2) + (fc(0)+pr)*tr_wcc(:m,2)
@@ -2703,7 +2703,7 @@ ccc snow
        !       tr_wsnc(:m,i,ibv) = 1000.d0
               call check_wc(tr_wsnc(1,i,ibv))
               tr_wsn(:m,i+1,ibv) = tr_wsn(:m,i+1,ibv)
-     &             - tr_wsnc(:m,i+1,ibv)*flux_dt              
+     &             - tr_wsnc(:m,i+1,ibv)*flux_dt
             endif
           enddo
           flux_dt = flmlt(ibv)*fr_snow(ibv)*dts
@@ -2806,7 +2806,7 @@ ccc evap from bare soil
         tr_w(:m,1,1) = tr_w(:m,1,1) - tr_wc(:m,1,1)*flux_dt
         tr_evap(:m,1) = tr_evap(:m,1) + tr_wc(:m,1,1)*flux_dt/dts
       endif
-      
+
 ccc runoff
       do ibv=1,2
         tr_rnff(:m,ibv) = tr_rnff(:m,ibv) + tr_wc(:m,1,ibv)*rnf(ibv)
@@ -2829,7 +2829,7 @@ ccc transpiration
       enddo
 
 
-     
+
 cddd      print *, 'end ghy_tracers'
 cddd      print *, 'trpr, trpr_dt ', trpr(1), trpr(1)*dts
 cddd      print *, 'tr_w 1 ', tr_w(1,:,1)
@@ -2838,7 +2838,7 @@ cddd      print *, 'tr_wsn 1 ', tr_wsn(1,:,1)
 cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
 cddd      print *, 'evap ', tr_evap(1,:)*dts
 cddd      print *, 'runoff ', tr_rnff(1,:)*dts
-      
+
       do ibv=1,2
         do i=1,n
           if ( tr_w(1,i,ibv) < 0.d0 ) then
@@ -2862,7 +2862,7 @@ c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
         if ( abs( err ) > 1.d-10 ) !-10  ! was -16
      &       call stop_model("ghy tracers not conserved",255)
       enddo
- 
+
       end subroutine ghy_tracers
 #endif
 

@@ -25,14 +25,9 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
 !@var OMEGT,OBLIQ,ECCN actual orbital parameters used
       real*8 OMEGT,OBLIQ,ECCN
 
-!----------------------------------------------------------------------!
-! adf
-      REAL*8, DIMENSION(IM,JM) :: FSRDIR
-!----------------------------------------------------------------------!
-
 C**** Database parameters to control orbital parameter calculation
 C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
-C**** exactly the same as ther default values.
+C**** exactly the same as the default values.
 !@dbparam calc_orb_par = 1 to calc orbital parameters
       integer :: calc_orb_par = 0
 !@dbparam paleo_orb_yr is paleo year (BP) for orbital calc
@@ -54,6 +49,8 @@ C**** exactly the same as ther default values.
       REAL*8, DIMENSION(0:LM,IM,JM) :: SRHR,TRHR
 !@var FSF Solar Forcing over each type (W/m^2)
       REAL*8, DIMENSION(4,IM,JM) :: FSF
+!@var FSRDIR Direct beam solar incident at surface (W/m^2)
+      REAL*8, DIMENSION(IM,JM) :: FSRDIR                  ! added by adf
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -126,20 +123,18 @@ C**** Local variables initialised in init_RAD
         END SELECT
       else
 
-      MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,im,jm),'//
-!----------------------------------------------------------------------!
-     *  ' S0, s+tHr(0:lm,im,jm,2),fs(im,jm,4),fdir(im,jm)'
-!----------------------------------------------------------------------!
+      MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,ijm),'//
+     *  ' S0, s+tHr(0:lm,ijm,2),fs(ijm,4),fdir(ijm)'      ! fdir:    adf
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,RQT
-     *    ,S0,SRHR,TRHR,FSF      ! only needed if MODRAD > 0 at restart
+     *    ,S0,SRHR,TRHR,FSF,FSRDIR      ! needed if MODRAD>0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
-     *       ,S0,SRHR,TRHR,FSF   ! only needed if MODRAD > 0 at restart
+     *       ,S0,SRHR,TRHR,FSF,FSRDIR   ! needed if MODRAD>0 at restart
         CASE (IRSFIC,irsficnt)   ! start from restart file of prev. run
           READ (kunit,err=10) HEADER,RQT
         END SELECT

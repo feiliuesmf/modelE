@@ -287,9 +287,13 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
-      USE RE001, only : setnew,rcomp1,writer,writet      ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
+      USE RE001, only : rcomp1,writer,writet       ! routines
+     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max, KZSNOW
+     *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
+     *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
+     *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
+     *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -384,8 +388,8 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
-      LMR=LM+LM_REQ
-      LMRP=LMR+1
+      NL=LM+LM_REQ
+      NLP=NL+1
       COEX=1d-2*GRAV*BYSHA
       DO L=1,LM
         COE(L)=DTsrc*COEX/DSIG(L)
@@ -394,10 +398,10 @@ C****
       END DO
       PLB(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
       PLB(LM+2)=.5*PLB(LM+1)
-      PLB(LMR)=.2d0*PLB(LM+1)
-      PLB(LMR+1)=1d-5
+      PLB(NL)=.2d0*PLB(LM+1)
+      PLB(NL+1)=1d-5
       PTOPTR=PTOP ! top of sigma-coord.system
-      DO LR=LM+1,LMR
+      DO LR=LM+1,NL
         COE(LR)=DTsrc*NRAD*COEX/(PLB(LR)-PLB(LR+1))
         PLB0(LR-LM) = PLB(LR+1)
       END DO
@@ -413,29 +417,29 @@ C****
       KTREND=1   !  GHgas trends are determined by input file
 !note KTREND=0 is a possible but virtually obsolete option
 C****
+C             Model Add-on Data of Extended Climatology Enable Parameter
+C     MADO3M  =  1   Reads            1951-1997 Ozone climatology RFILEA
+C     MADAER  =  1   Reads   Aerosol 50y tropospheric climatology RFILE5
+C     MADDST  =  1   Reads   Dust-windblown mineral climatology   RFILE6
+C     MADVOL  =  1   Reads   Volcanic 1950-00 aerosol climatology RFILE7
+C     MADEPS  =  1   Reads   Epsilon cloud heterogeniety data     RFILE8
+C     MADLUV  =  1   Reads   Lean's SolarUV 1882-1998 variability RFILE9
 C**** Radiative forcings are either constant = obs.value at given yr/day
 C****    or time dependent (year=0); if day=0 an annual cycle is used
 C****                                         even if the year is fixed
-      CALL SETNEW(11,s0_yr ,s0_day , KSOLAR,0,0.D0)
-      CALL SETNEW( 2,ghg_yr,ghg_day, 0,0,0.D0)     ! well-mixed GHGases
-      if(ghg_yr.gt.0) CALL SETNEW(13,0,0,0,0,0.D0) ! skip GHG-updating
-      CALL SETNEW( 3,O3_yr   ,0 ,0,0,0.D0)  ! ozone (ann.cycle)
-      CALL SETNEW( 4,Aero_yr, 0 ,0,0,0.D0)  ! trop. aerosols (ann.cycle)
-      CALL SETNEW( 6,Volc_yr,Volc_day, 0,0,0.D0)   ! Volc. Aerosols
+      KYEARS=s0_yr   ; KJDAYS=s0_day ;  MADLUV=1   ! solar 'constant'
+      KYEARG=ghg_yr  ; KJDAYG=ghg_day              ! well-mixed GHGases
+      if(ghg_yr.gt.0)  MADGHG=0                    ! skip GHG-updating
+      KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=1   ! ozone (ann.cycle)
+      KYEARA=Aero_yr ; KJDAYA=0 ;       MADAER=1 !trop.aeros (ann.cycle)
+      KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if arg3=day0 (1->365), data from that day are used all year
-C     CALL SETNEW(5, 0, 0   , 0,0,0.D0) ! Desert dust
-C     CALL SETNEW(7, 0, 0   , 0,0,0.D0) ! cloud heterogeneity - KCLDEP
-C     CALL SETNEW(8, 0, 0   , 0,0,0.D0) ! surface albedo (ann.cycle)
+      KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
+      KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
+      KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
 C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
-!!!   KVEGA6=-3  ! 2-band albedo, Antarc/Greenl alb=.8, puddling :SI2000
-!!!   KVEGA6=-2  ! 2-band albedo, Antarc/Greenl alb=.8, no puddling
-!!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'
-!!!   KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8
-!!!   KVEGA6= 1  ! 6-band albedo - no 'fixups'
-!!!   KVEGA6= 2  ! 6-band albedo, Antarc/Greenl alb=.8, no puddling
-!!!   KVEGA6= 3  ! 6-band Schramm oi.alb, Antarc/Greenl alb=.8
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -455,8 +459,9 @@ C**** set up unit numbers for 14 more radiation input files
       END DO
 C***********************************************************************
 C     Main Radiative Initializations
-      MADVEL=123456         ! suppress reading i-th time series by i->0
-      CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
+C     ------------------------------------------------------------------
+      CALL RCOMP1 (NRFUN)
+      CALL WRITER(6,0)  ! print out ispare/fspare control parameters
 C***********************************************************************
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
@@ -493,7 +498,7 @@ C****
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
-     &             ,JLAT,ILON, PLB ,TLB,TLM ,SHL, ltopcl
+     &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
@@ -503,18 +508,10 @@ C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
-     &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
+     &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS
      &          ,BTEMPW
-!----------------------------------------------------------------------!
-! adf
-     &          ,SRXVIS ,SRDVIS
-!----------------------------------------------------------------------!
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,PLB0,shl0,tchg,ALB
-!----------------------------------------------------------------------!
-! adf
-     *     ,FSRDIR
-!----------------------------------------------------------------------!
+     *     ,coe,plb0,shl0,tchg,alb,fsrdir
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
@@ -544,8 +541,8 @@ C     OUTPUT DATA
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,FSPARE,taulim
-      COMMON/RADCOM_hybrid/U0GAS(LX,12),FSPARE(998)
+      REAL*8 U0GAS,taulim
+      COMMON/RADCOM_hybrid/U0GAS(LX,12)
 !$OMP  THREADPRIVATE(/RADCOM_hybrid/)
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
@@ -695,6 +692,7 @@ C****
 !$OMP    DO SCHEDULE(DYNAMIC,2)
 !$OMP*   REDUCTION(+:ICKERR,JCKERR)
       DO 600 J=1,JM
+      NL=LM+LM_REQ ; NLP=NL+1   ! radiation allows var. # of layers
 C**** Radiation input files use a 72x46 grid independent of IM and JM
 C**** (ilon,jlat) is the 4x5 box containing the center of box (i,j)
       JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)  !  lat_index w.r.to 72x46 grid
@@ -764,10 +762,10 @@ C**** Determine large scale and moist convective cloud cover for radia
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
-            SIZEWC(L)=CSIZMC(L,I,J)      
+            SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUMCL      
+              TAUWC(L)=TAUMCL
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
@@ -776,10 +774,10 @@ C**** Determine large scale and moist convective cloud cover for radia
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           ELSE
-            SIZEWC(L)=CSIZSS(L,I,J)      
+            SIZEWC(L)=CSIZSS(L,I,J)
             SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUSSL      
+              TAUWC(L)=TAUSSL
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
@@ -1010,10 +1008,7 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
-!----------------------------------------------------------------------!
-! adf Fraction of total solar incident at ground that is direct beam.
-      FSRDIR(I,J)=SRXVIS
-!----------------------------------------------------------------------!
+      FSRDIR(I,J)=SRXVIS                  ! added by adf
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
      +                                    OPNSKY*SRDFLB(1)*CSZ2

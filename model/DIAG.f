@@ -2507,15 +2507,15 @@ C**** open units and position
 C**** Some names have more than one unit associated (i.e. "ZALL")
         kunit=0
         do k=1,kdd
-          if (namedd(k)(2:4).eq."ALL") then 
+          if (namedd(k)(2:4).eq."ALL") then
             select case (namedd(k)(1:1))
             case ("U", "V")     ! velocities on model layers
               do kk=1,lm
                 kunit=kunit+1
                 if (kk.lt.10) then
-                  write(name,'(A1I1A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                else 
-                  write(name,'(A1I2A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                  write(name,'(A1,I1,A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                else
+                  write(name,'(A1,I2,A7)') namedd(k)(1:1),kk,aDATE(1:7)
                 end if
                 call openunit(name,iu_SUBDD(kunit),.true.,.false.)
                 call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
@@ -2553,15 +2553,15 @@ C**** close and re-open units
         call closeunits ( iu_SUBDD, kddunit )
         kunit=0
         do k=1,kdd
-          if (namedd(k)(2:4).eq."ALL") then 
+          if (namedd(k)(2:4).eq."ALL") then
             select case (namedd(k)(1:1))
             case ("U", "V")     ! velocities on model layers
               do kk=1,lm
                 kunit=kunit+1
                 if (kk.lt.10) then
-                  write(name,'(A1I1A7)') namedd(k)(1:1),kk,aDATE(1:7)
-                else 
-                  write(name,'(A1I2A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                  write(name,'(A1,I1,A7)') namedd(k)(1:1),kk,aDATE(1:7)
+                else
+                  write(name,'(A1,I2,A7)') namedd(k)(1:1),kk,aDATE(1:7)
                 end if
                 call openunit(name,iu_SUBDD(kunit),.true.,.false.)
               end do
@@ -2671,7 +2671,7 @@ C**** get pressure level
           do kp=1,kgz_max
             if (namedd(k)(2:5) .eq. PMNAME(kp)) then
               kunit=kunit+1
-              select case (namedd(k)(1:1)) 
+              select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
@@ -2691,7 +2691,7 @@ C**** write out
           if (namedd(k)(2:4) .eq. "ALL") then
             do kp=1,kgz_max
               kunit=kunit+1
-              select case (namedd(k)(1:1)) 
+              select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 data=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
@@ -2736,7 +2736,7 @@ C**** get model level
             end if
             if (trim(namedd(k)(2:5)) .eq. trim(namel)) then
               kunit=kunit+1
-              select case (namedd(k)(1:1)) 
+              select case (namedd(k)(1:1))
               case ("U")        ! U velocity
                 data=u(:,:,l)
               case ("V")        ! V velocity
@@ -3016,7 +3016,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0
-      AISCCP=0 
+      AISCCP=0
 #ifdef TRACERS_ON
       TACC=0.
 #endif
