@@ -14,10 +14,14 @@ C****
 
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
-      COMMON/BNDYCB1/TOCEAN1(3,IM,JM),GDATA1(IM,JM,7),
-     *     BLDATA1(IM,JM,13+2*LM),Z1(IM,JM)
-      COMMON/BNDYCB2/TOCEAN2(3,IM,JM),GDATA2(IM,JM,7),
-     *     BLDATA2(IM,JM,13+2*LM),Z2(IM,JM)
+      COMMON/BNDYCB1/TOCN1(3,IM,JM),z1(IM,JM)
+     *  ,sne1(IM,JM),te1(im,jm),wtre1(im,jm),ace1(im,jm),snag1(3,im,jm)
+     *  ,evm1(im,jm),fsat1(im,jm),qge1(im,jm)       ,BLD1(IM,JM,11)
+     *  ,ek1(lm,im,jm),ve1(lm,im,jm),tg1(im,jm),qg1(im,jm)
+      COMMON/BNDYCB2/TOCN2(3,IM,JM),z2(IM,JM)
+     *  ,sne2(IM,JM),te2(im,jm),wtre2(im,jm),ace2(im,jm),snag2(3,im,jm)
+     *  ,evm2(im,jm),fsat2(im,jm),qge2(im,jm)       ,BLD2(IM,JM,11)
+     *  ,ek2(lm,im,jm),ve2(lm,im,jm),tg2(im,jm),qg2(im,jm)
 ccc   ice data:
       REAL*8 MSI1,MSI2
       LOGICAL IFLAG1(IM,JM),IFLAG2(IM,JM)
@@ -27,7 +31,8 @@ ccc   ice data:
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
-     *               FSF1(   4,IM,JM),FSF2(   4,IM,JM)
+     *               FSF1(   4,IM,JM),FSF2(   4,IM,JM),
+     *               FSD1(IM,JM),FSD2(IM,JM)
 ccc   snow data:
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
       INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
@@ -36,8 +41,8 @@ ccc   snow data:
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN1, HSN2
       REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW1, FR_SNOW2
 ccc   land ice data
-      REAL*8 LANDI1,LANDI2
-      COMMON/LANDICB/ LANDI1(IM,JM,3),LANDI2(IM,JM,3)
+      COMMON/LNDICB1/SNLI1(IM,JM),TLI1(2,IM,JM)
+      COMMON/LNDICB2/SNLI2(IM,JM),TLI2(2,IM,JM)
       COMMON/WORKO/  OA1(IM,JM,KOA),OA2(IM,JM,KOA)
       DIMENSION U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
      *     ,JM,LM),WM1(IM,JM,LM)
@@ -48,7 +53,10 @@ ccc   land ice data
       common /socabl2/pbl2(npbl,im,jm,5*4),pblb2(im,jm,3*4),ipbl2(im,jm
      *     ,4)
       COMMON/CLDCOM/CLOUD2(IM,JM,5*LM),CLOUD1(IM,JM,5*LM)
-      COMMON/SOILS3/GHDATA1(IM,JM,4*NGM+5),GHDATA2(IM,JM,4*NGM+5)
+      COMMON/SOILS1/wb1(ngm,IM,JM),wv1(ngm+1,im,jm),htb1(ngm+1,im,jm),
+     *  htv1(ngm+1,im,jm),snbv1(2,im,jm),ci1(im,jm),qfol1(im,jm)
+      COMMON/SOILS2/wb2(ngm,IM,JM),wv2(ngm+1,im,jm),htb2(ngm+1,im,jm),
+     *  htv2(ngm+1,im,jm),snbv2(2,im,jm),ci2(im,jm),qfol2(im,jm)
       CHARACTER XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       EQUIVALENCE (XLABEL,LABEL)
       COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
@@ -113,7 +121,7 @@ c        write(0,*) 'trying to read ocean'
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN1 = 0
 c        write(0,*) 'trying to read ocea1'
-           READ(1) HEADER,TOCEAN1,Z1
+           READ(1) HEADER,TOCN1,Z1
          ELSE
            KOCEAN1 = 2
 c        write(0,*) 'trying to read ocea2'
@@ -125,15 +133,15 @@ c        write(0,*) 'trying to read lake'
 c        write(0,*) 'trying to read sice'
          READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1,PM1,IFLAG1
 c        write(0,*) 'trying to read gdata'
-         READ (1) HEADER,GDATA1
+         READ (1) HEADER,snwe1,te1,wtre1,ace1,snag1,fsat1,qge1
 c        write(0,*) 'trying to read soils'
-         READ (1) HEADER,GHDATA1
+         READ (1) HEADER,wb1,wv1,htb1,htv1,snbv1,ci1,qfol1
 c        write(0,*) 'trying to read snow'
          READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
 c        write(0,*) 'trying to read landi'
-         READ (1) HEADER,LANDI1
+         READ (1) HEADER,SNLI1,TLI1
 c        write(0,*) 'trying to read bldat'
-         READ (1) HEADER,BLDATA1
+         READ (1) HEADER,BLD1,eg1,we1,tg1,qg1
 c        write(0,*) 'trying to read pbl'
          READ (1) HEADER,PBL1,pblb1,ipbl1
 c        write(0,*) 'trying to read clds'
@@ -141,7 +149,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
 c        write(0,*) 'trying to read radia'
-         READ (1) HEADER,RQT1, S0,SRHR1,TRHR1,FSF1
+         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1
 c        write(0,*) 'trying to read icedyn'
          READ (1) HEADER
          BACKSPACE(1)
@@ -193,7 +201,7 @@ c        write(0,*) 'trying to read ocean'
          IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN2 = 0
 c        write(0,*) 'trying to read ocea1'
-           READ(2) HEADER,TOCEAN2,Z2
+           READ(2) HEADER,TOCN2,Z2
          ELSE
            KOCEAN2 = 2
 c        write(0,*) 'trying to read ocea2'
@@ -205,15 +213,15 @@ c        write(0,*) 'trying to read lake'
 c        write(0,*) 'trying to read sice'
          READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2,PM2,IFLAG2
 c        write(0,*) 'trying to read gdata'
-         READ (2) HEADER,GDATA2
+         READ (2) HEADER,snwe2,te2,wtre2,ace2,snag2,fsat2,qge2
 c        write(0,*) 'trying to read soils'
-         READ (2) HEADER,GHDATA2
+         READ (2) HEADER,wb2,wv2,htb2,htv2,snbv2,ci2,qfol2
 c        write(0,*) 'trying to read snow'
          READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
 c        write(0,*) 'trying to read landi'
-         READ (2) HEADER,LANDI2
+         READ (2) HEADER,SNLI2,TLI2
 c        write(0,*) 'trying to read bldat'
-         READ (2) HEADER,BLDATA2
+         READ (2) HEADER,BLD2,eg2,we2,tg2,qg2
 c        write(0,*) 'trying to read pbl'
          READ (2) HEADER,PBL2,pblb2,ipbl2
 c        write(0,*) 'trying to read clds'
@@ -221,7 +229,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
 c        write(0,*) 'trying to read radia'
-         READ (2) HEADER,RQT2, S0,SRHR2,TRHR2,FSF2
+         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2
 c        write(0,*) 'trying to read icedyn'
          READ (2) HEADER
          BACKSPACE(2)
@@ -247,6 +255,7 @@ c        write(0,*) 'trying to read ocn3'
       CLOSE (2)
 
       WRITE (6,*) 'Unit 2 read.  IHOUR2 =',itau1,'   ',LABEL
+      WRITE (6,*) 'solar constants ',s01,s02
 C****
 C**** Compare arrays
 C**** ERRQ flags whether any discrepancies have occurred
@@ -259,10 +268,10 @@ C****
       ERRQ=COMP8 ('Q     ',IM,JM,LM     ,Q1 ,Q2 ) .or. ERRQ
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
       ERRQ=COMP8 ('STRAT ',IM,JM,1      ,strat1 ,strat2 ) .or. ERRQ
-      ERRQ=COMPi ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
+      ERRQ=COMPiLIJ ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
       IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
         IF (KOCEAN1.le.1) THEN  ! Qflux/fixed
-          ERRQ=COMP8LIJp('TOCEAN',3,IM,JM ,TOCEAN1,TOCEAN2).or.ERRQ
+          ERRQ=COMP8LIJp('TOCN  ',3,IM,JM ,TOCN1,TOCN2).or.ERRQ
           ERRQ=COMP8 ('Z10   ',IM,JM,1    ,     Z1,     Z2).or.ERRQ
         ELSE                    ! coupled
           ERRQ=COMP8LIJp('OCEAN ',IM,JM,11*LMO+1,OCEAN1,OCEAN2).or.ERRQ
@@ -278,34 +287,54 @@ C****
      *         .ERRQ
         END IF
       END IF
+      ERRQ=COMP8 ('LAKE  ',IM,JM,4       ,LAKE1 ,LAKE2 ) .or. ERRQ
       ERRQ=COMP8 ('RSI   ',IM,JM,1      ,   RSI1,   RSI2) .or. ERRQ
       ERRQ=COMP8LIJp('HSI  ',LMI,IM,JM    ,   HSI1,   HSI2) .or. ERRQ
       ERRQ=COMP8LIJp('SSI  ',LMI,IM,JM    ,   SSI1,   SSI2) .or. ERRQ
       ERRQ=COMP8p('SNOWI ',IM,JM,1      , SNOWI1, SNOWI2) .or. ERRQ
       ERRQ=COMP8 ('MSI2  ',IM,JM,1      ,   MSI1,   MSI2) .or. ERRQ
       ERRQ=COMP8 ('MPOND ',IM,JM,1      ,    PM1,    PM2) .or. ERRQ
-      ERRQ=COMP8 ('GDATA ',IM,JM,7      ,GDATA1 ,GDATA2 ) .or. ERRQ
-      ERRQ=COMP8 ('GHDATA',IM,JM,4*NGM+5,GHDATA1,GHDATA2) .or. ERRQ
-      ERRQ=COMP8 ('BLDATA',IM,JM,13+2*LM,BLDATA1,BLDATA2) .or. ERRQ
+      ERRQ=COMP8 ('snwe  ',IM,JM,1      ,   sne1,   sne2).or.ERRQ
+      ERRQ=COMP8 ('Tearth',IM,JM,1      ,    te1,    te2).or.ERRQ
+      ERRQ=COMP8 ('WTRe  ',IM,JM,1      ,  wtre1,  wtre2).or.ERRQ
+      ERRQ=COMP8 ('ICEe  ',IM,JM,1      ,   ace1,   ace2).or.ERRQ
+      ERRQ=COMP8LIJp('SNWage',3,IM,JM,     snag1,  snag2).or.ERRQ
+      ERRQ=COMP8 ('evmax ',IM,JM,1      ,   evm1,   evm2).or.ERRQ
+      ERRQ=COMP8 ('fsat  ',IM,JM,1      ,  fsat1,  fsat2).or.ERRQ
+      ERRQ=COMP8 ('qge   ',IM,JM,1      ,   qge1,   qge2).or.ERRQ
+      ERRQ=COMP8LIJp ('WTRb  ',ngm,IM,JM,       wb1,    wb2).or.ERRQ
+      ERRQ=COMP8LIJp ('WTRv  ',1+ngm,IM,JM,     wv1,    wv2).or.ERRQ
+      ERRQ=COMP8LIJp ('HEATb ',1+ngm,IM,JM,    htb1,   htb2).or.ERRQ
+      ERRQ=COMP8LIJp ('HEATv ',1+ngm,IM,JM,    htv1,   htv2).or.ERRQ
+      ERRQ=COMP8LIJp ('SNOWbv',2    ,IM,JM,   snbv1,  snbv2).or.ERRQ
+      ERRQ=COMP8 ('Cint  ',IM,JM,1      ,    ci1,    ci2) .or. ERRQ
+      ERRQ=COMP8 ('Qfol  ',IM,JM,1      ,  qfol1,  qfol2) .or. ERRQ
       ERRQ=COMPILIJ ('NSN   ',2,IM,JM       ,NSN1  ,NSN2   ) .or. ERRQ
       ERRQ=COMPILIJ ('ISN   ',2,IM,JM       ,ISN1  ,ISN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('DZSN  ',2*NLSN,IM,JM  ,DZSN1 ,DZSN2  ) .or. ERRQ
       ERRQ=COMP8LIJp('WSN   ',2*NLSN,IM,JM  ,WSN1  ,WSN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('HSN   ',2*NLSN,IM,JM  ,HSN1  ,HSN2   ) .or. ERRQ
       ERRQ=COMP8LIJp('FR_SNO',2  ,IM,JM  ,FR_SNOW1,FR_SNOW2) .or. ERRQ
-      ERRQ=COMP8 ('LANDI ',IM,JM,3      ,LANDI1 ,LANDI2 ) .or. ERRQ
+      ERRQ=COMP8 ('snowLI',IM,JM,3      ,SNLI1  ,SNLI2  ) .or. ERRQ
+      ERRQ=COMP8LIJp('TLI   ',2     ,IM,JM  ,TLI1  ,TLI2  ) .or. ERRQ
 
+      ERRQ=COMP8 ('BLDATA',IM,JM,11,BLD1,BLD2) .or. ERRQ
+      ERRQ=COMP8LIJp('KEtrb',LMI,IM,JM    ,    ek1,    ek2) .or. ERRQ
+      ERRQ=COMP8LIJp('KEvrt',LMI,IM,JM    ,    ve1,    ve2) .or. ERRQ
+      ERRQ=COMP8 ('TG1av ',IM,JM,1      ,    tg1,    tg2) .or. ERRQ
+      ERRQ=COMP8 ('QG1av ',IM,JM,1      ,    qg1,    qg2) .or. ERRQ
       ERRQ=COMP8 ('PBL   ',npbl,IM*JM,5*4,PBL1  ,PBL2  ) .or. ERRQ
       ERRQ=COMP8 ('PBLB  ',IM,JM,3*4     ,PBLB1 ,PBLB2 ) .or. ERRQ
+      ERRQ=COMPI ('ipbl  ',IM,JM,4       ,ipbl1 ,ipbl2 ) .or. ERRQ
       ERRQ=COMP8LIJp('CLOUD ',5*LM,IM,JM    ,CLOUD1,CLOUD2) .or. ERRQ
       ERRQ=COMP8 ('WM    ',IM,JM,LM      ,WM1   ,WM2   ) .or. ERRQ
-      ERRQ=COMP8 ('TMOM  ',IM,JM,9*LM    ,TMOM1 ,TMOM2 ) .or. ERRQ
-      ERRQ=COMP8 ('QMOM  ',IM,JM,9*LM    ,QMOM1 ,QMOM2 ) .or. ERRQ
+      ERRQ=COMP8 ('TMOM  ',9,IM*JM,LM    ,TMOM1 ,TMOM2 ) .or. ERRQ
+      ERRQ=COMP8 ('QMOM  ',9,IM*JM,LM    ,QMOM1 ,QMOM2 ) .or. ERRQ
       ERRQ=COMP8LIJp('RQT   ',3     ,IM,JM  ,RQT1  ,RQT2  ) .or. ERRQ
       ERRQ=COMP8LIJp('SRHR  ',1+  LM,IM,JM  ,SRHR1 ,SRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('TRHR  ',1+  LM,IM,JM  ,TRHR1 ,TRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
-      ERRQ=COMP8 ('LAKE  ',IM,JM,4       ,LAKE1 ,LAKE2 ) .or. ERRQ
+      ERRQ=COMP8 ('FSdir ',IM,JM,1       , fsd1 , fsd2 ) .or. ERRQ
 
 c      if(errq) then
 c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
