@@ -310,7 +310,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE DOMAIN_DECOMP, only : grid, get, write_parallel
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
+     &     ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER , O3YR_max
@@ -326,7 +326,6 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix
-      USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -635,34 +634,56 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       end do
       write(out_line,*) 'spec.hum in rad.equ.layers:',shl0
       call write_parallel(trim(out_line),unit=6)
-C**** Optionally scale selected greenhouse gases
-      FULGAS(2)=FULGAS(2)*CO2X
-      FULGAS(6)=FULGAS(6)*N2OX
-      FULGAS(7)=FULGAS(7)*CH4X
-      FULGAS(8)=FULGAS(8)*CFC11X
-      FULGAS(9)=FULGAS(9)*CFC12X
-      FULGAS(11)=FULGAS(11)*XGHGX ! other CFC's
-      IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
-C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
-C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
-      if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
-C****
+
       ENTRY SETATM               ! dummy routine in gcm
       ENTRY GETVEG(LONR,LATR)    ! dummy routine in gcm
       RETURN
       END SUBROUTINE init_RAD
 
+      SUBROUTINE daily_RAD
+!@sum  daily_RAD sets radiation parameters that change every day
+!@auth G. Schmidt
+!@calls RADPAR:RCOMPT
+      USE MODEL_COM, only : jday,jyear
+      USE RADPAR, only : rcompt,writet,FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
+     *     ,xref
+      USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
+     *     ,ghg_yr,co2ppm
+      USE DIAG_COM, only : iwrite,jwrite,itwrite
+
+      JDAYR=JDAY
+      JYEARR=JYEAR
+C**** Update time dependent radiative parameters each day
+      CALL RCOMPT
+      if(ghg_yr.eq.0) then
+         FULGAS(2)=FULGAS(2)*CO2X
+         FULGAS(6)=FULGAS(6)*N2OX
+         FULGAS(7)=FULGAS(7)*CH4X
+         FULGAS(8)=FULGAS(8)*CFC11X
+         FULGAS(9)=FULGAS(9)*CFC12X
+         FULGAS(11)=FULGAS(11)*XGHGX
+         IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
+      end if
+C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
+C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
+      if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
+C**** Define CO2 (ppm) for rest of model
+      co2ppm = FULGAS(2)*XREF(1)
+
+      RETURN
+      END SUBROUTINE daily_RAD
+
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-!@calls tropwmo,coszs,coszt, RADPAR:rcompt,RADPAR:rcompx ! writer,writet
+!@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,kapa
       USE MODEL_COM
       USE GEOM
       USE RADPAR
-     &  , only : writer,rcompx,rcompt ! routines
+     &  , only : writer,rcompx ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
@@ -686,8 +707,7 @@ C     OUTPUT DATA
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
-     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,cloud_rad_forc
+     *     ,rad_forc_lev,ntrix,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -748,7 +768,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
-      INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
@@ -855,21 +874,7 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
       JDAYR=JDAY
       JYEARR=JYEAR
-C*********************************************************
-C     Update time dependent radiative parameters each day
-      IF(JDAY.NE.JDLAST) THEN
-        CALL RCOMPT
-        if(ghg_yr.eq.0) then
-          FULGAS(2)=FULGAS(2)*CO2X
-          FULGAS(6)=FULGAS(6)*N2OX
-          FULGAS(7)=FULGAS(7)*CH4X
-          FULGAS(8)=FULGAS(8)*CFC11X
-          FULGAS(9)=FULGAS(9)*CFC12X
-          FULGAS(11)=FULGAS(11)*XGHGX
-        end if
-      end if
-C*********************************************************
-      JDLAST=JDAY
+
       S0=S0X*S00WM2*RATLS0/RSDIST
 
       if(kradia.le.0) then

@@ -5275,7 +5275,7 @@ C****
       USE GEOM, only :
      &     DLAT,DXYP,LAT_DG
       USE DIAG_COM, only :
-     &     keyct,keynr,nehist,nkeynr
+     &     keyct,keynr,ned,nkeynr
       USE PARAM
       IMPLICIT NONE
       SAVE
@@ -5288,7 +5288,7 @@ C****
       REAL*8, DIMENSION(JM,LM) :: FKEY
       REAL*8, DIMENSION(JM) :: ASUM
       REAL*8, DIMENSION(2) :: HSUM
-      INTEGER, DIMENSION(NEHIST) :: IK
+      INTEGER, DIMENSION(2*NED) :: IK
 
       INTEGER ::
      &     I,I35,I70,IEND,ISIGN,

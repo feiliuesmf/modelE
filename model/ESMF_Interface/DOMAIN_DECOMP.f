@@ -2650,19 +2650,19 @@ c)
         integer,          intent(in   ),  optional :: UNIT
     
         if (AM_I_ROOT()) then
-           if (present(UNIT)) then
-    	  if (present(FORMAT)) then
-                 write(UNIT, FMT=FORMAT) STRING
-              else
-                 write(UNIT, FMT='(A)') STRING
-              endif
-           else
-    	  if (present(FORMAT)) then
-                 write(*, FMT=FORMAT) STRING
-              else
-                 write(*, FMT='(A)') STRING
-              endif
-           end if
+          if (present(UNIT)) then
+            if (present(FORMAT)) then
+              write(UNIT, FMT=FORMAT) STRING
+            else
+              write(UNIT, FMT='(A)') STRING
+            endif
+          else
+            if (present(FORMAT)) then
+              write(*, FMT=FORMAT) STRING
+            else
+              write(*, FMT='(A)') STRING
+            endif
+          end if
         end if
         
       end subroutine WRITE_PARALLEL_STRING_0
@@ -2675,19 +2675,19 @@ c)
         integer,          intent(in   ),  optional :: UNIT
     
         if (AM_I_ROOT()) then
-           if (present(UNIT)) then
-    	  if (present(FORMAT)) then
-                 write(UNIT, FMT=FORMAT) STRING
-              else
-                 write(UNIT, FMT='(A)') STRING
-              endif
-           else
-    	  if (present(FORMAT)) then
-                 write(*, FMT=FORMAT) STRING
-              else
-                 write(*, FMT='(A)') STRING
-              endif
-           end if
+          if (present(UNIT)) then
+            if (present(FORMAT)) then
+              write(UNIT, FMT=FORMAT) STRING
+            else
+              write(UNIT, FMT='(A)') STRING
+            endif
+          else
+            if (present(FORMAT)) then
+              write(*, FMT=FORMAT) STRING
+            else
+              write(*, FMT='(A)') STRING
+            endif
+          end if
         end if
         
       end subroutine WRITE_PARALLEL_STRING_1

@@ -73,6 +73,7 @@ C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
          MODD5K=1000
       CALL DAILY(.false.)                  ! not end_of_day
+      CALL daily_RAD
       if (istart.le.9) call reset_diag(0)
       if (Kradia.le.0) then
         CALL daily_EARTH(.false.)          ! not end_of_day
@@ -320,11 +321,13 @@ C****
       IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
       if (kradia.gt.0) then               ! radiative forcing run
         CALL DAILY(.false.)
+        CALL daily_RAD
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
       else                                ! full model, kradia le 0
            CALL DIAG5A (1,0)
            CALL DIAGCA (1)
         CALL DAILY(.true.)                 ! end_of_day
+        CALL daily_RAD
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
         call daily_EARTH(.true.)           ! end_of_day
