@@ -344,7 +344,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLD01_COM_E001, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,bj,cj,areg,jreg,aij,ail,ajl,asjl,adaily,
+      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adaily,
      *     iwrite,jwrite,itwrite,ndlypt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
@@ -372,10 +372,9 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 
       INTEGER :: IFIRST = 1, JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,J50N,J70N,LLOW,LMID
-     *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK
+     *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK,IT
       REAL*8 COEX,CO2REF,ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS
-     *     ,CMC,DEPTH,QSS,TAUSSL,TAUMCL,ELHX,CLDCV,DXYPJ,ASRHR,ATRHR
-     *     ,ASNFS1,BSNFS1,CSNFS1,ATNFS1,BTNFS1,CTNFS1,SRNFLG,X
+     *     ,CMC,DEPTH,QSS,TAUSSL,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
 !@var RUNSTR names of files for radiation routines
@@ -386,6 +385,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 !@var QBIN true if files for radiation input files are binary
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
+      REAL*8 QSAT
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -393,23 +393,8 @@ C****
 C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
-C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
-C****        2  EARTH SNOW AMOUNT (KG/M**2)
-C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
-C****        4  EARTH TEMPERATURE OF FIRST LAYER (C)
-C****        5  EARTH WATER OF FIRST LAYER (KG/M**2)
-C****        6  EARTH ICE OF FIRST LAYER (KG/M**2)
-C****        9  AGE OF SNOW OVER OCEAN ICE (DAYS)
-C****       10  AGE OF SNOW OVER LAND ICE (DAYS)
-C****       11  AGE OF SNOW OVER EARTH (DAYS)
-C****       12  LAND ICE SNOW AMOUNT (KG/M**2)
-C****       13  LAND ICE TEMPERATURE OF FIRST LAYER (C)
-C****
-C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
 C****
-      REAL*8 QSAT
-      IF (MODRD.EQ.0) IDACC(2)=IDACC(2)+1
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
       CALL COSZ0
@@ -482,6 +467,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
       CALL COSZT (ROT1,ROT2,COSZ1)
          IHOUR=1+JHOUR
       IF (MODRD.NE.0) GO TO 900
+      IDACC(2)=IDACC(2)+1
 C****
 C**** Interface with radiation routines, done only every NRAD time steps
 C****
@@ -572,25 +558,19 @@ C****
         END IF
       END IF
   240 CONTINUE
-         AJ(J,J_PCLDSS)=AJ(J,J_PCLDSS)+CSS*POCEAN
-         BJ(J,J_PCLDSS)=BJ(J,J_PCLDSS)+CSS*PLAND
-         CJ(J,J_PCLDSS)=CJ(J,J_PCLDSS)+CSS*POICE
-         AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS*DXYP(J)
-         AJ(J,J_PCLDMC)=AJ(J,J_PCLDMC)+CMC*POCEAN
-         BJ(J,J_PCLDMC)=BJ(J,J_PCLDMC)+CMC*PLAND
-         CJ(J,J_PCLDMC)=CJ(J,J_PCLDMC)+CMC*POICE
-         AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC*DXYP(J)
-         AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
-         AJ(J,J_CDLDEP)=AJ(J,J_CDLDEP)+DEPTH*POCEAN
-         BJ(J,J_CDLDEP)=BJ(J,J_CDLDEP)+DEPTH*PLAND
-         CJ(J,J_CDLDEP)=CJ(J,J_CDLDEP)+DEPTH*POICE
-         AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+DEPTH*DXYP(J)
          CLDCV=CMC+CSS-CMC*CSS
-         AJ(J,J_PCLD)=AJ(J,J_PCLD)+CLDCV*POCEAN
-         BJ(J,J_PCLD)=BJ(J,J_PCLD)+CLDCV*PLAND
-         CJ(J,J_PCLD)=CJ(J,J_PCLD)+CLDCV*POICE
-         AREG(JR,J_PCLD)=AREG(JR,J_PCLD)+CLDCV*DXYP(J)
-         AIJ(I,J,IJ_CLDCV)=AIJ(I,J,IJ_CLDCV)+CLDCV
+         DO IT=1,NTYPE
+           AJ(J,J_PCLDSS,IT)=AJ(J,J_PCLDSS,IT)+CSS  *FTYPE(IT,I,J)
+           AJ(J,J_PCLDMC,IT)=AJ(J,J_PCLDMC,IT)+CMC  *FTYPE(IT,I,J)
+           AJ(J,J_CDLDEP,IT)=AJ(J,J_CDLDEP,IT)+DEPTH*FTYPE(IT,I,J)
+           AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
+         END DO
+         AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
+         AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
+         AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+DEPTH*DXYP(J)
+         AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
+         AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
+         AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO 250 L=1,LLOW
          IF (TOTCLD(L).NE.1.) GO TO 250
          AIJ(I,J,IJ_PCLDL)=AIJ(I,J,IJ_PCLDL)+1.
@@ -732,26 +712,13 @@ C****
          DXYPJ=DXYP(J)
          IMAX=IMAXJ(J)
          DO L=1,LM
-           ASRHR=0.
-           ATRHR=0.
            DO I=1,IMAX
-             ASRHR=ASRHR+SRHR(L+1,I,J)*COSZ2(I,J)
-             ATRHR=ATRHR+TRHR(L+1,I,J)
+             AJL(J,L,9 )=AJL(J,L,9 )+SRHR(L+1,I,J)*COSZ2(I,J)
+             AJL(J,L,10)=AJL(J,L,10)+TRHR(L+1,I,J)
            END DO
-           AJL(J,L,9)=AJL(J,L,9)+ASRHR
-           AJL(J,L,10)=AJL(J,L,10)+ATRHR
          END DO
-         ASNFS1=0.
-         BSNFS1=0.
-         CSNFS1=0.
-         ATNFS1=0.
-         BTNFS1=0.
-         CTNFS1=0.
          DO 770 I=1,IMAX
          COSZ=COSZ2(I,J)
-         PLAND=FLAND(I,J)
-         POICE=RSI(I,J)*(1.-PLAND)
-         POCEAN=(1.-PLAND)-POICE
          JR=JREG(I,J)
          DO LR=1,LM_REQ
            ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*COSZ
@@ -771,69 +738,60 @@ C****
              END DO
            END IF
          END DO
-  750    CONTINUE
-         AJ(J,J_SRINCP0)=AJ(J,J_SRINCP0)+(S0*COSZ)*POCEAN
-         BJ(J,J_SRINCP0)=BJ(J,J_SRINCP0)+(S0*COSZ)*PLAND
-         CJ(J,J_SRINCP0)=CJ(J,J_SRINCP0)+(S0*COSZ)*POICE
+
+         DO IT=1,NTYPE
+         AJ(J,J_SRINCP0,IT)=AJ(J,J_SRINCP0,IT)+(S0*COSZ)*FTYPE(IT,I,J)
+         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(4,I,J)*COSZ)*
+     *          FTYPE(IT,I,J)
+         AJ(J,J_SRINCG ,IT)=AJ(J,J_SRINCG ,IT)+(SRHR(1,I,J)*COSZ/
+     *          (ALB(I,J,1)+1.D-20))*FTYPE(IT,I,J)
+         AJ(J,J_BRTEMP ,IT)=AJ(J,J_BRTEMP ,IT)+BTMPW(I,J) *FTYPE(IT,I,J)
+         AJ(J,J_TRINCG ,IT)=AJ(J,J_TRINCG ,IT)+TRINCG(I,J)*FTYPE(IT,I,J)
+         AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-TNFS(4,I,J)*FTYPE(IT,I,J)
+         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(1,I,J)*COSZ
+     *          *FTYPE(IT,I,J)
+         AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-TNFS(1,I,J)*FTYPE(IT,I,J)
+         END DO
          AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*COSZ)*DXYPJ
-         AJ(J,J_SRNFP0)=AJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*POCEAN
-         BJ(J,J_SRNFP0)=BJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*PLAND
-         CJ(J,J_SRNFP0)=CJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*POICE
          AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*DXYPJ
-         ASNFS1=ASNFS1+(SNFS(1,I,J)*COSZ)*POCEAN
-         BSNFS1=BSNFS1+(SNFS(1,I,J)*COSZ)*PLAND
-         CSNFS1=CSNFS1+(SNFS(1,I,J)*COSZ)*POICE
          AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*COSZ)*DXYPJ
-         AJ(J,J_SRINCG)=AJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
-     *        (ALB(I,J,1)+1.D-20))*POCEAN
-         BJ(J,J_SRINCG)=BJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
-     *        (ALB(I,J,1)+1.D-20))*PLAND
-         CJ(J,J_SRINCG)=CJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
-     *        (ALB(I,J,1)+1.D-20))*POICE
          AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
      *     (SRHR(1,I,J)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
-         AJ(J,J_SRNFG)=AJ(J,J_SRNFG)+(FSF(1,I,J)*COSZ)*POCEAN
-         SRNFLG=FSF(3,I,J)*FLICE(I,J)+FSF(4,I,J)*(PLAND-FLICE(I,J))
-         BJ(J,J_SRNFG)=BJ(J,J_SRNFG)+(SRNFLG*COSZ)
-         CJ(J,J_SRNFG)=CJ(J,J_SRNFG)+(FSF(2,I,J)*COSZ)*POICE
-         AREG(JR,J_SRNFG)=AREG(JR,J_SRNFG)+(SRHR(1,I,J)*COSZ)*DXYPJ
-         AJ(J,J_BRTEMP)=AJ(J,J_BRTEMP)+BTMPW(I,J)*POCEAN
-         BJ(J,J_BRTEMP)=BJ(J,J_BRTEMP)+BTMPW(I,J)*PLAND
-         CJ(J,J_BRTEMP)=CJ(J,J_BRTEMP)+BTMPW(I,J)*POICE
-         AREG(JR,J_BRTEMP)=AREG(JR,J_BRTEMP)+BTMPW(I,J)*DXYPJ
-         AJ(J,J_TRINCG)=AJ(J,J_TRINCG)+TRINCG(I,J)*POCEAN
-         BJ(J,J_TRINCG)=BJ(J,J_TRINCG)+TRINCG(I,J)*PLAND
-         CJ(J,J_TRINCG)=CJ(J,J_TRINCG)+TRINCG(I,J)*POICE
-         AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+TRINCG(I,J)*DXYPJ
-         AJ(J,J_HSURF)=AJ(J,J_HSURF)-TNFS(4,I,J)*POCEAN
-         BJ(J,J_HSURF)=BJ(J,J_HSURF)-TNFS(4,I,J)*PLAND
-         CJ(J,J_HSURF)=CJ(J,J_HSURF)-TNFS(4,I,J)*POICE
-         AREG(JR,J_HSURF)=AREG(JR,J_HSURF)-TNFS(4,I,J)*DXYPJ
-         ATNFS1=ATNFS1-TNFS(1,I,J)*POCEAN
-         BTNFS1=BTNFS1-TNFS(1,I,J)*PLAND
-         CTNFS1=CTNFS1-TNFS(1,I,J)*POICE
-         AREG(JR,J_HATM)=AREG(JR,J_HATM)-TNFS(1,I,J)*DXYPJ
-         DO 760 K=2,9
+C**** Note: this is confusing because the types for radiation are a subset
+         AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*COSZ)
+     *        *FOCEAN(I,J)*(1.-RSI(I,J))
+         AJ(J,J_SRNFG,ITLAKE) =AJ(J,J_SRNFG,ITLAKE) +(FSF(1,I,J)*COSZ)
+     *        * FLAKE(I,J)*(1.-RSI(I,J))
+         AJ(J,J_SRNFG,ITEARTH)=AJ(J,J_SRNFG,ITEARTH)+(FSF(4,I,J)*COSZ)
+     *        *FEARTH(I,J)
+         AJ(J,J_SRNFG,ITLANDI)=AJ(J,J_SRNFG,ITLANDI)+(FSF(3,I,J)*COSZ)
+     *        * FLICE(I,J)
+         AJ(J,J_SRNFG,ITOICE )=AJ(J,J_SRNFG,ITOICE )+(FSF(2,I,J)*COSZ)
+     *        *FOCEAN(I,J)*RSI(I,J)
+         AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*COSZ)
+     *        * FLAKE(I,J)*RSI(I,J)
+C****
+         AREG(JR,J_HATM)  =AREG(JR,J_HATM)  - TNFS(1,I,J)      *DXYPJ
+         AREG(JR,J_SRNFG) =AREG(JR,J_SRNFG) +(SRHR(1,I,J)*COSZ)*DXYPJ
+         AREG(JR,J_HSURF) =AREG(JR,J_HSURF) - TNFS(4,I,J)      *DXYPJ
+         AREG(JR,J_BRTEMP)=AREG(JR,J_BRTEMP)+  BTMPW(I,J)      *DXYPJ
+         AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+ TRINCG(I,J)      *DXYPJ
+         DO K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
-         AJ(J,JK)=AJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*POCEAN
-         BJ(J,JK)=BJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*PLAND
-         CJ(J,JK)=CJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*POICE
-  760    AREG(JR,JK)=AREG(JR,JK)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
-         AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(4,I,J)
-         AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(4,I,J)*COSZ)
-         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
-         AIJ(I,J,IJ_SRNFG)=AIJ(I,J,IJ_SRNFG)+(SRHR(1,I,J)*COSZ)
-         AIJ(I,J,IJ_SRINCG)=AIJ(I,J,IJ_SRINCG)+(SRHR(1,I,J)*COSZ/
+           DO IT=1,NTYPE
+             AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*COSZ)*ALB(I,J,K)*FTYPE(IT,I,J)
+           END DO
+           AREG(JR,JK)=AREG(JR,JK)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
+         END DO
+         AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(1,I,J)*COSZ)
+         AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
+         AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*COSZ*ALB(I,J,2)
+         AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
+         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*COSZ)
+         AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))
-         AIJ(I,J,IJ_BTMPW)=AIJ(I,J,IJ_BTMPW)+BTMPW(I,J)
-         AIJ(I,J,IJ_SRREF)=AIJ(I,J,IJ_SRREF)+S0*COSZ*ALB(I,J,2)
+         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
   770    CONTINUE
-         AJ(J,J_SRNFP1)=AJ(J,J_SRNFP1)+ASNFS1
-         BJ(J,J_SRNFP1)=BJ(J,J_SRNFP1)+BSNFS1
-         CJ(J,J_SRNFP1)=CJ(J,J_SRNFP1)+CSNFS1
-         AJ(J,J_HATM)=AJ(J,J_HATM)+ATNFS1
-         BJ(J,J_HATM)=BJ(J,J_HATM)+BTNFS1
-         CJ(J,J_HATM)=CJ(J,J_HATM)+CTNFS1
   780    CONTINUE
          DO 790 L=1,LM
          DO 790 I=1,IM

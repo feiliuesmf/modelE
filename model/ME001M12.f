@@ -160,9 +160,8 @@ C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_LK
       CALL PRECIP_OC
-      CALL PRECIP_E    ! diagnostic only - should be merged
          CALL CHECKT ('PRECIP')
-C**** CALCULATE SURFACE FLUXES
+C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
          CALL CHECKT ('SURFCE')
 C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE 
@@ -172,7 +171,7 @@ C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
-      CALL GROUND_E    ! diagnostic only - should be merged
+      CALL GROUND_E    ! diagnostic only - should be merged with EARTH
 C**** APPLY FLUXES TO OCEAN AND DETERMINE ICE FORMATION
       CALL GROUND_OC
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
@@ -475,7 +474,8 @@ C****
      *     ,iyear0,itime,itimei,itimee,Kvflxo,nslp,ndisk,nssw,kcopy
      *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
      *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,irestart,irerun
-     *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse
+     *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse,ftype,itearth
+     *     ,itlandi
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
       USE GHYCOM, only : ghdata,snowe,snoage,tearth,wearth,aiearth
@@ -913,14 +913,35 @@ C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1)   ! Lake fraction
       CALL READT (iu_TOPO,0,FEARTH,IM*JM,FEARTH,1) ! Earth frac. (no LI)
       CALL READT (iu_TOPO,0,FLICE,IM*JM,FLICE,1)   ! Land ice fraction
-      FLAND = FEARTH + FLICE                       ! Land fraction
-C**** DON'T  adjust Land ice fraction to be fraction only over land
-c      FLICE = (FLICE/(FLAND+1.D-20))
+C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
+C**** as residual terms. (deals with SP=>DP problem)
+      DO J=1,JM
+      DO I=1,IM
+        IF (FOCEAN(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
+          IF (FLAKE(I,J).gt.0) THEN
+            WRITE(6,*) "Ocean and lake cannot co-exist in same grid box"
+     *           ,i,j,FOCEAN(I,J),FLAKE(I,J)
+            FLAKE(I,J)=0
+          END IF
+        ELSEIF (FLAKE(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FLAKE(I,J)
+        ELSE
+          FLAND(I,J)=1.
+        END IF
+        FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+      END DO
+      END DO
+C**** set land components of FTYPE array. Summation is necessary for
+C**** cases where Earth and Land Ice are lumped together
+      FTYPE(ITLANDI,:,:)=0.
+      FTYPE(ITEARTH,:,:)=FEARTH
+      FTYPE(ITLANDI,:,:)=FTYPE(ITLANDI,:,:)+FLICE
+C****
       CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
       ZATMO = ZATMO*GRAV                           ! Geopotential
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
       REWIND iu_TOPO
-
 C**** Initialize pbl (and read in file containing roughness length data)
       CALL init_pbl(iniPBL)
 C**** Initialise lake variables (including river directions)

@@ -6,7 +6,7 @@ C**** NEWER VERSION THAT EXPECTS ARRAYS ON INDIVIDUAL RECORDS
       PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=100,KAJK=51)
       parameter (npbl=8)
       PARAMETER (IMH=IM/2,
-     *     KACC=JM*94*3 + 24*94 +
+     *     KACC=JM*94*6 + 24*94 +
      *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +IM*JM*29 +
      *     20*100 + JM*42 + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*10*12 +
      *     JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*10*3)
@@ -160,12 +160,8 @@ c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
 c only check diagnostics if no prognostic errors
 c      else
       DAGPOS=1
-      ERRQ=COMP8 ('AJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94
-      ERRQ=COMP8 ('BJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94
-      ERRQ=COMP8 ('CJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94
+      ERRQ=COMP8 ('AJ    ',JM,94,6  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*94*3
       ERRQ=COMP8 ('AREG  ',24,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+24*94
       ERRQ=COMP8 ('APJ   ',JM,3,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))

@@ -36,13 +36,13 @@ C****  13  SHEATDT (J/M**2)                                        1 SF
 C****  14  EVHDT (J/M**2)                                          1 SF
 C****  15  F2DT (J/M**2)                                           1 GD
 C****  16  HEATZ1=AJ(41)+AJ(42)                                    1 D1
-C****  17  TG2 (K-273.16)                                          1 GD
-C****  18  TG1 (K-273.16)                                          1 GD
+C****  17  TG2 (K-TF)                                              1 GD
+C****  18  TG1 (K-TF)                                              1 GD
 C****  19  EVAP (KG/M**2)                                          1 GD
 C****  20  PRCP=AJ(61)+AJ(62) (100 PA)                             1 D1
-C****  21  TX (K-273.16)  (INTEGRAL OVER ATMOSPHERE OF)            4 DA
-C****  22  TX1 (K-273.16)                                          4 DA
-C****  23  TS (K-273.16)                                           3 SF
+C****  21  TX (K-TF)  (INTEGRAL OVER ATMOSPHERE OF)                4 DA
+C****  22  TX1 (K-TF)                                              4 DA
+C****  23  TS (K-TF)                                               3 SF
 C****  24  DTH/DPHI  (STRATOSPHERE)                                4 DA
 C****  25  DTH/DPHI  (TROPOSPHERE)                                 4 DA
 C****  26  .0625*DTH*DLNP/(DU*DU+DV*DV)  (STRATOSPHERE)            4 DA
@@ -58,7 +58,7 @@ C****  35  T(J+1)-T(J-1)  (SUM OVER STRATOSPHERE OF)               4 DA
 C****  36  T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)                4 DA
 C****  37  SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)                     4 DA
 C****  38  SQRT(DTH/DLNP)/SINJ  (TROPOSPHERE)                      4 DA
-C****  39  ENERGP (J/M**2)                                         1 PR
+C****  39  ENERGP (J/M**2)                                         1 CN
 C****  40  ERUN1 (J/M**2)                                          1 GP
 C****  41  EDIFS (J/M**2)                                          1 GP
 C****  42  F1DT (J/M**2)                                           1 GD
@@ -88,7 +88,7 @@ C****  65  GAMM  (K-S**2/M**2)  (SIG(TROPOSPHERE)/GAMD)            4 DA
 C****  66  GAMC  (K/M)                                             4 DA
 C****  67  TRINCG (W/M**2)                                         2 RD
 C****  68  ENERGY DIFFUSION INTO THERMOCLINE (W/M**2)           .5*9 MN
-C****  69  FREE
+C****  69  PTYPE                                                   1 GD
 C****  70  TRNFP0-TRNFG (W/M**2)                                   2 RD
 C****  71  TRNFP1-TRNFG (W/M**2)                                   2 RD
 C****  72  PLAVIS*S0*COSZ (W/M**2)                                 2 RD
@@ -172,7 +172,7 @@ C****   1  POICE (1)                                               1 GD
 C****   2  PSNOW (1)                                               4 DA
 C****   3  SNOW (KG/M**2)                                          4 DA
 C****   4  SHDT (J/M**2)                                           1 SF
-C****   5  PREC (KG/M**2)                                          1 PR
+C****   5  PREC (KG/M**2)                                          1 CN
 C****   6  EVAP (KG/M**2)                                          1 SF
 C****   7  BETA (1)                                                1 GD
 C****   8  SLP (100 PA-1000) (USING T1) (COMMENTED OUT)            4 DA
@@ -185,27 +185,27 @@ C****  12  PHI500-5600*GRAV                                        4 DA
 C****  13  PHI300-9500*GRAV                                        4 DA
 C****  14  PHI100-16400*GRAV                                       4 DA
 C****  15  PHI30-24000*GRAV                                        4 DA
-C****  16  T850-273.16 (K-273.16)*GRAV)             (NO PRINTOUT)  4 DA
+C****  16  T850-TF (K-TF)*GRAV)             (NO PRINTOUT)          4 DA
 C****  17  PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE)                 2 RD
 C****  18  P-CLOUD TOP   (100 PA)                                  2 RD
 C****  19  PCLD (1)  (COMPOSITE OVER ATMOSPHERE)                   2 RD
 C****  20  16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2)  (UV GRID) 4 DA
 C****  21  TRNFP0 (W/M**2)                                         2 RS
 C****  22  SRHDT+TRHDT (J/M**2)                                    1 SF
-C****  23  SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)                   1 SP
+C****  23  SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)                   1 SC
 C****  24  SRNFP0 (W/M**2)                                         2 RD
 C****  25  SRINCP0 (W/M**2)                                        2 RD
 C****  26  SRNFG (W/M**2)                                          2 RD
 C****  27  SRINCG (W/M**2)                                         2 RD
-C****  28  TG1 (K-273.16)                                          1 GD
+C****  28  TG1 (K-TF)                                              1 GD
 C****  29  POICE+PLICE+(IF SNOW)PEARTH                             4 DA
 C****  30  DIURNAL DELTA TS (K) OVER SOIL       (NO PRINTOUT)   .5*9 MN
 C****  31  DTHETA/DPHI (K S**2/M**2) IN TROPOSPHERE                4 DA
 C****  32  RUN1 OVER EARTH  (KG/M**2)                              1 PG
-C****  33  TS (K-273.16)  (USING LAPSE RATE FROM TX1)  (COMM'D OUT)4 DA
+C****  33  TS (K-TF)  (USING LAPSE RATE FROM TX1)  (COMM'D OUT)    4 DA
 C****  33  RUN1 OVER LAND ICE  (KG/M**2)            (NO PRINTOUT)  1 PG
 C****  34  SURFACE WIND SPEED (M/S)                                3 SF
-C****  35  TS (K-273.16)                                           3 SF
+C****  35  TS (K-TF)                                               3 SF
 C****  36  US (M/S)                                                3 SF
 C****  37  VS (M/S)                                                3 SF
 C****  38  PSL (100 PA-1000)  (USING TS)                           4 DA
@@ -214,7 +214,7 @@ C****  40  VJET (M/S)                                              4 DA
 C****  41  PCLD(LOW) (1)                                           2 RD
 C****  42  PCLD(MID) (1)                                           2 RD
 C****  43  PCLD(HIGH) (1)                                          2 RD
-C****  44  BTEMPW-TF (K-273.16)                                    2 RD
+C****  44  BTEMPW-TF (K-TF)                                        2 RD
 C****  45  PLAVIS*S0*COSZ (W/M**2)                                 2 RD
 C****  46  TGO2=TOCEAN(2) (C)                                   .5*9 MN
 C****  47  TAUS  (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
@@ -277,16 +277,16 @@ C**** WE ARE NOT TAKING INTO ACCOUNT THE VARIATION OF MASS
 C****   1  U (M/S) (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2)  (PU GRID)    4 DA
 C****   2  V (M/S) (SUM FOR J=JEQ+1,JEQ,JEQ-1,JEQ-2)  (PU GRID)    4 DA
 C****   3  SD (100 N/S) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                4 DA
-C****   4  TX (K-273.16) (SUM FOR J=JEQ,JEQ-1,JEQ-2)               4 DA
+C****   4  TX (K-TF) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                   4 DA
 C****   5  RH (1) (SUM FOR J=JEQ,JEQ-1,JEQ-2)                      4 DA
 C****   6  DTX(MC)*P*DA (100 K*N) (SUM FOR J=JEQ,JEQ-1,JEQ-2)      1 CN
 C****   7  (SRHR+TRHR)*DA (W) (SUM FOR J=JEQ,JEQ-1,JEQ-2)          2 RD
 C****   9  SD (100 N/S) (AT LAT 50 N) (COMMENTED OUT)              4 DA
-C****  10  TX-273.16  (AT LAT 50 N)                                4 DA
+C****  10  TX-TF  (AT LAT 50 N)                                    4 DA
 C****  11  SR+TR  (AT LAT 50 N)                                    2 RD
 C****  12  2*U  (AT LAT 50 N)                                      4 DA
 C****  13  SD  (AT LAT 70 N)         (COMMENTED OUT)               4 DA
-C****  14  TX-273.16  (AT LAT 70 N)  (COMMENTED OUT)               4 DA
+C****  14  TX-TF  (AT LAT 70 N)  (COMMENTED OUT)                   4 DA
 C****  15  SR+TR  (AT LAT 70 N)                                    2 RD
 C****  16  2*U  (AT LAT 70 N)        (COMMENTED OUT)               4 DA
 C****
@@ -350,17 +350,17 @@ C****
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
 !@ve   1.0
-      USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb
+      USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
       USE E001M12_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
-     &     mdyn,mdiag,
-     &     sig,sige,dsig,dsigo,
-     &     zatmo,fland,flice,fearth,WM
+     &     mdyn,mdiag,sig,sige,dsig,dsigo,zatmo,fland,flice,fearth,WM,
+     *     ntype,itocean,itoice,itearth,itlandi,itlake,itlkice,ftype
+     *     ,focean,flake
       USE GEOM, only :
      &     AREAG,COSP,DLAT,DXV,DXYN,DXYP,DXYS,
      &     DXYV,DYP,FCOR,IMAXJ,RAVPN,RAVPS,SINP
       USE DAGPCOM
-      USE DAGCOM, only : aj,bj,cj,areg,jreg,apj,ajl,asjl,ail,
+      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_rsit,ij_rsnw,ij_slp,ij_snow,ij_t850,ij_ujet,ij_vjet,j_tx1,
      *     j_rsnow,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
@@ -381,8 +381,8 @@ C****
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: W
       COMMON/WORK2/W
       DOUBLE PRECISION, DIMENSION(LM) :: GMEAN
-      DOUBLE PRECISION, DIMENSION(JM) :: TIL,UI,UMAX,PI,EL,RI,
-     &     SOCEAN,SLAND,SOICE,DUDVSQ
+      DOUBLE PRECISION, DIMENSION(JM) :: TIL,UI,UMAX,PI,EL,RI,DUDVSQ
+      DOUBLE PRECISION, DIMENSION(NTYPE,JM) :: SPTYPE
       DOUBLE PRECISION, DIMENSION(JM,LM) ::
      &     THJL,THSQJL,SPI,PHIPI,TPI
       DOUBLE PRECISION, DIMENSION(JM,LM-1) :: SDMEAN
@@ -402,24 +402,18 @@ C****
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
       INTEGER :: I,IM1,J,K,L,J50N,J70N,JET,JR,KM,LDN,LUP,
      &     IP1,IMAX,LM1,LP1,LR,MBEGIN,
-     &     I150E,I110W,I135W,J5NUV,J5SUV,J5N,J5S
+     &     I150E,I110W,I135W,J5NUV,J5SUV,J5N,J5S,IT
       DOUBLE PRECISION THBAR ! external
       DOUBLE PRECISION ::
-     &     ADTDL,AQ,ASS,AT1,ATX,BBYGV,BDTDL,
-     &     BQ,BSCOV,BSS,BT1,BTX,BYDXYV,BYSDSG,CDTDL,
-     &     CQ,CSCOV,CSS,CT1,CTX,DLNP,DLNP12,DLNP23,
-     &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,
-     &     DXYPJ,ELX,EPSLON,ESEPS,FPHI,GAMC,GAMD,
-     &     GAMM,GAMX,GMEANL,P1,P4,P4I,
+     &     BBYGV,BDTDL,BYDXYV,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
+     &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,EPSLON,
+     *     ESEPS,FPHI,GAMC,GAMD,GAMM,GAMX,GMEANL,P1,P4,P4I,
      &     PDN,PE,PEARTH,PEQ,PEQM1,PEQM2,PHIRI,
-     &     PIBYIM,PIJ,PITIJ,PITMN,PKE,PL,PLAND,PLICE,
-     &     POCEAN,POICE,PRQ1,PRT,PSMPT4,PSNOW,PU4I,PUP,
-     &     PUV4I,PV4I,PVTHP,
-     &     QLH,ROSSX,SCOVL,SCOVOI,
-     &     SDMN,SDPU,SMALL,SP,SP2,
-     &     SS,T4,THETA,THGM,THMN,
-     &     TPIL,TZL,UAMAX,UMN,
-     &     UPE,VPE,X,Z4
+     &     PIBYIM,PIJ,PITIJ,PITMN,PKE,PL,PLICE,
+     &     POICE,PRQ1,PRT,PSMPT4,PSNOW,PU4I,PUP,
+     &     PUV4I,PV4I,PVTHP,QLH,ROSSX,SCOVE,SCOVLI,SCOVOI,SCOVLKI,
+     &     SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,TZL,
+     *     UAMAX,UMN,UPE,VPE,X,Z4
 
       REAL*8 QSAT
 
@@ -519,39 +513,36 @@ C****
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
-      AT1=0.
-      BT1=0.
-      CT1=0.
-      BSCOV=0.
-      CSCOV=0.
       PI(J)=0.
-      SLAND(J)=0.
-      SOICE(J)=0.
-      SOCEAN(J)=0.
+      SPTYPE(:,J)=0
       DO 120 I=1,IMAX
+        POICE =RSI(I,J)*(1.-FLAND(I,J))
+        PEARTH=FEARTH(I,J)
+        PLICE =FLICE(I,J)
       JR=JREG(I,J)
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      PLICE=FLICE(I,J)
-      POCEAN=(1.-PLAND)-POICE
-      PEARTH=FEARTH(I,J)
-      SLAND(J)=SLAND(J)+PLAND
-      SOICE(J)=SOICE(J)+POICE
-      SOCEAN(J)=SOCEAN(J)+POCEAN
-      AT1=AT1+(TX(I,J,1)-273.16)*POCEAN
-      BT1=BT1+(TX(I,J,1)-273.16)*PLAND
-      CT1=CT1+(TX(I,J,1)-273.16)*POICE
-      AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-273.16)*DXYPJ
-      SCOVL=0.
-      IF (SNOWE(I,J).GT.0.) SCOVL=PEARTH
-      IF (SNOWLI(I,J).GT.0.) SCOVL=SCOVL+PLICE
-      BSCOV=BSCOV+SCOVL
+      DO IT=1,NTYPE
+        SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
+        AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
+      END DO
+      AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
+      SCOVE=0.
+      IF (SNOWE(I,J).GT.0.) SCOVE=PEARTH
+      AJ(J,J_RSNOW,ITEARTH)=AJ(J,J_RSNOW,ITEARTH)+SCOVE
+      SCOVLI=0
+      IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
+      AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
       SCOVOI=0.
-      IF (SNOWI(I,J).GT.0.) SCOVOI=POICE
-      CSCOV=CSCOV+SCOVOI
-      AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+(SCOVL+SCOVOI)*DXYPJ
+      IF (SNOWI(I,J).GT.0..and.FOCEAN(I,J).gt.0)
+     *     SCOVOI=FTYPE(ITOICE ,I,J)
+      AJ(J,J_RSNOW,ITOICE)=AJ(J,J_RSNOW,ITOICE)+SCOVOI
+      SCOVLKI=0.
+      IF (SNOWI(I,J).GT.0..and.FLAKE(I,J).gt.0)
+     *     SCOVLKI=FTYPE(ITLKICE ,I,J)
+      AJ(J,J_RSNOW,ITLKICE)=AJ(J,J_RSNOW,ITLKICE)+SCOVLKI
+      AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+(SCOVE+SCOVLI+SCOVOI+SCOVLKI)
+     *     *DXYPJ
       PI(J)=PI(J)+P(I,J)
-      AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+(SCOVOI+SCOVL)
+      AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+(SCOVOI+SCOVLKI+SCOVE+SCOVLI)
       AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+(SNOWI(I,J)*POICE+SNOWE(I,J)
      *     *PEARTH+SNOWLI(I,J)*PLICE)
       AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
@@ -561,11 +552,6 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)
      *     /TSAVG(I,J))**GBYRB-P1000)
   120 CONTINUE
-      AJ(J,J_TX1)=AJ(J,J_TX1)+AT1
-      BJ(J,J_TX1)=BJ(J,J_TX1)+BT1
-      CJ(J,J_TX1)=CJ(J,J_TX1)+CT1
-      BJ(J,J_RSNOW)=BJ(J,J_RSNOW)+BSCOV
-      CJ(J,J_RSNOW)=CJ(J,J_RSNOW)+CSCOV
       APJ(J,1)=APJ(J,1)+PI(J)
 C**** GEOPOTENTIALS CALCULATED FOR EACH LAYER
       DO 160 I=1,IMAX
@@ -610,7 +596,7 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
       BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
   174 AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *     -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-273.16
+      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF
      *     +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
       IF (K.GE.KM) GO TO 180
       K=K+1
@@ -618,7 +604,7 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
       GO TO 174
  176  AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *     -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-273.16)
+      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF)
       IF (K.GE.KM) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
@@ -630,34 +616,24 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
       DO 230 L=1,LM
-      ATX=0.
-      BTX=0.
-      CTX=0.
       TPI(J,L)=0.
-      AQ=0.
-      BQ=0.
-      CQ=0.
       PHIPI(J,L)=0.
 C     QPI=0.
       SPI(J,L)=0.
 C     RHPI=0.
+      DBYSD=DSIG(L)*BYSDSG
       DO 220 I=1,IMAX
       JR=JREG(I,J)
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
       PIJ=P(I,J)
       IF(L.GE.LS1) PIJ=PSFMPT
-      ATX=ATX+(TX(I,J,L)-273.16)*POCEAN
-      BTX=BTX+(TX(I,J,L)-273.16)*PLAND
-      CTX=CTX+(TX(I,J,L)-273.16)*POICE
-      AQ=AQ+(Q(I,J,L)+WM(I,J,L))*PIJ*POCEAN
-      BQ=BQ+(Q(I,J,L)+WM(I,J,L))*PIJ*PLAND
-      CQ=CQ+(Q(I,J,L)+WM(I,J,L))*PIJ*POICE
+      DO IT=1,NTYPE
+        AJ(J,J_TX,IT)=AJ(J,J_TX,IT)+(TX(I,J,L)-TF)*FTYPE(IT,I,J)*DBYSD
+        AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)*
+     *       FTYPE(IT,I,J)
+      END DO
       AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)*DXYPJ
-      AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-273.16)*DSIG(L)*BYSDSG
-     *     *DXYPJ
-      TPI(J,L)=TPI(J,L)+(TX(I,J,L)-273.16)*PIJ
+      AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
+      TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
       PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
 C     QPI=QPI+Q(I,J,L)*PIJ
       SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
@@ -666,12 +642,6 @@ C     QSATL=QSAT(TX(I,J,L),QLH,SIG(L)*PIJ+PTOP)
 C     IF (QSATL.GT.1.) QSATL=1.
 C     RHPI=RHPI+Q(I,J,L)*PIJ/QSATL
   220 CONTINUE
-      AJ(J,J_TX)=AJ(J,J_TX)+ATX*DSIG(L)*BYSDSG
-      BJ(J,J_TX)=BJ(J,J_TX)+BTX*DSIG(L)*BYSDSG
-      CJ(J,J_TX)=CJ(J,J_TX)+CTX*DSIG(L)*BYSDSG
-      AJ(J,J_QP)=AJ(J,J_QP)+AQ*DSIG(L)
-      BJ(J,J_QP)=BJ(J,J_QP)+BQ*DSIG(L)
-      CJ(J,J_QP)=CJ(J,J_QP)+CQ*DSIG(L)
 C     AJL(J,L,1)=AJL(J,L,1)+TPI(J,L)
 C     AJL(J,L,2)=AJL(J,L,2)+PHIPI(J,L)
 C     AJL(J,L,3)=AJL(J,L,3)+QPI
@@ -685,37 +655,23 @@ C****
       DO 385 J=2,JM-1
 C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
       DO 340 L=1,LS1-1
-      ADTDL=0.
-      BDTDL=0.
-      CDTDL=0.
       DO 335 I=1,IM
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
-      ADTDL=ADTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POCEAN
-      BDTDL=BDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*PLAND
-      CDTDL=CDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POICE
+        DO IT=1,NTYPE
+          AJ(J,J_DTDJT,IT)=AJ(J,J_DTDJT,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
+     *         *FTYPE(IT,I,J)*DSIG(L)
+        END DO
   335 CONTINUE
-  338 AJ(J,J_DTDJT)=AJ(J,J_DTDJT)+ADTDL*DSIG(L)
-      BJ(J,J_DTDJT)=BJ(J,J_DTDJT)+BDTDL*DSIG(L)
-  340 CJ(J,J_DTDJT)=CJ(J,J_DTDJT)+CDTDL*DSIG(L)
+ 340  CONTINUE
 C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
       IF (LS1.GT.LM) GO TO 380
       DO 370 L=LS1,LM
-      ADTDL=0.
-      BDTDL=0.
-      CDTDL=0.
       DO 350 I=1,IM
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
-      ADTDL=ADTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POCEAN
-      BDTDL=BDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*PLAND
-      CDTDL=CDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POICE
+        DO IT=1,NTYPE
+          AJ(J,J_DTDJS,IT)=AJ(J,J_DTDJS,IT)+(TX(I,J+1,L)-TX(I,J-1,L))
+     *         *FTYPE(IT,I,J)*DSIG(L)
+        END DO
   350 CONTINUE
-  360 AJ(J,J_DTDJS)=AJ(J,J_DTDJS)+ADTDL*DSIG(L)
-      BJ(J,J_DTDJS)=BJ(J,J_DTDJS)+BDTDL*DSIG(L)
-  370 CJ(J,J_DTDJS)=CJ(J,J_DTDJS)+CDTDL*DSIG(L)
+ 370  CONTINUE
   380 CONTINUE
   385 CONTINUE
 C****
@@ -725,41 +681,23 @@ C****
       IMAX=IMAXJ(J)
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
-      ASS=0.
-      BSS=0.
-      CSS=0.
       DO 390 I=1,IMAX
       JR=JREG(I,J)
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
       SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+ZERO20)
-      ASS=ASS+SS*POCEAN
-      BSS=BSS+SS*PLAND
-      CSS=CSS+SS*POICE
+      DO IT=1,NTYPE
+        AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
+      END DO
       AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
   390 AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
-      AJ(J,J_DTDGTR)=AJ(J,J_DTDGTR)+ASS
-      BJ(J,J_DTDGTR)=BJ(J,J_DTDGTR)+BSS
-      CJ(J,J_DTDGTR)=CJ(J,J_DTDGTR)+CSS
 C**** OLD STRATOSPHERIC STATIC STABILITY
-      ASS=0.
-      BSS=0.
-      CSS=0.
       DO 440 I=1,IMAX
       JR=JREG(I,J)
-      PLAND=FLAND(I,J)
-      POICE=RSI(I,J)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
       SS=(T(I,J,LM)-T(I,J,LS1-1))/((PHI(I,J,LM)-PHI(I,J,LS1-1))+ZERO20)
-      ASS=ASS+SS*POCEAN
-      BSS=BSS+SS*PLAND
-      CSS=CSS+SS*POICE
+      DO IT=1,NTYPE
+        AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
+      END DO
       AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
   440 CONTINUE
-      AJ(J,J_DTSGST)=AJ(J,J_DTSGST)+ASS
-      BJ(J,J_DTSGST)=BJ(J,J_DTSGST)+BSS
-      CJ(J,J_DTSGST)=CJ(J,J_DTSGST)+CSS
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
 C****
@@ -767,7 +705,7 @@ C****
       TRI(LR)=0.
       DO 460 I=1,IMAX
   460 TRI(LR)=TRI(LR)+RQT(LR,I,J)
-  470 ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-273.16*IMAX)
+  470 ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-TF*IMAX)
       PHIRI=0.
       DO 480 I=1,IMAX
   480 PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
@@ -812,15 +750,11 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
       DO 520 J=2,JM-1
       ROSSX=DYP(J)/(DXYP(J)*SINP(J))
       ELX=1./SINP(J)
-      AJ(J,J_RICTR)=AJ(J,J_RICTR)+RI(J)*SOCEAN(J)
-      BJ(J,J_RICTR)=BJ(J,J_RICTR)+RI(J)*SLAND(J)
-      CJ(J,J_RICTR)=CJ(J,J_RICTR)+RI(J)*SOICE(J)
-      AJ(J,J_ROSTR)=AJ(J,J_ROSTR)+UMAX(J)*SOCEAN(J)*ROSSX
-      BJ(J,J_ROSTR)=BJ(J,J_ROSTR)+UMAX(J)*SLAND(J)*ROSSX
-      CJ(J,J_ROSTR)=CJ(J,J_ROSTR)+UMAX(J)*SOICE(J)*ROSSX
-      AJ(J,J_LTRO)=AJ(J,J_LTRO)+EL(J)*SOCEAN(J)*ELX
-      BJ(J,J_LTRO)=BJ(J,J_LTRO)+EL(J)*SLAND(J)*ELX
-      CJ(J,J_LTRO)=CJ(J,J_LTRO)+EL(J)*SOICE(J)*ELX
+      DO IT=1,NTYPE
+        AJ(J,J_RICTR,IT)=AJ(J,J_RICTR,IT)+RI(J)  *SPTYPE(IT,J)
+        AJ(J,J_ROSTR,IT)=AJ(J,J_ROSTR,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
+        AJ(J,J_LTRO ,IT)=AJ(J,J_LTRO ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+      END DO
   520 CONTINUE
 C**** NUMBERS ACCUMULATED OVER THE STRATOSPHERE
 CNOST IF (LS1.GT.LM) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
@@ -856,15 +790,11 @@ CNOST IF (LS1.GT.LM) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
       DO 550 J=2,JM-1
       ROSSX=DYP(J)/(DXYP(J)*SINP(J))
       ELX=1./SINP(J)
-      AJ(J,J_RICST)=AJ(J,J_RICST)+RI(J)*SOCEAN(J)
-      BJ(J,J_RICST)=BJ(J,J_RICST)+RI(J)*SLAND(J)
-      CJ(J,J_RICST)=CJ(J,J_RICST)+RI(J)*SOICE(J)
-      AJ(J,J_ROSST)=AJ(J,J_ROSST)+UMAX(J)*SOCEAN(J)*ROSSX
-      BJ(J,J_ROSST)=BJ(J,J_ROSST)+UMAX(J)*SLAND(J)*ROSSX
-      CJ(J,J_ROSST)=CJ(J,J_ROSST)+UMAX(J)*SOICE(J)*ROSSX
-      AJ(J,J_LSTR)=AJ(J,J_LSTR)+EL(J)*SOCEAN(J)*ELX
-      BJ(J,J_LSTR)=BJ(J,J_LSTR)+EL(J)*SLAND(J)*ELX
-      CJ(J,J_LSTR)=CJ(J,J_LSTR)+EL(J)*SOICE(J)*ELX
+      DO IT=1,NTYPE
+        AJ(J,J_RICST,IT)=AJ(J,J_RICST,IT)+RI(J)  *SPTYPE(IT,J)
+        AJ(J,J_ROSST,IT)=AJ(J,J_ROSST,IT)+UMAX(J)*SPTYPE(IT,J)*ROSSX
+        AJ(J,J_LSTR ,IT)=AJ(J,J_LSTR ,IT)+EL(J)  *SPTYPE(IT,J)*ELX
+      END DO
   550 CONTINUE
 CN551 CONTINUE
 C****
@@ -875,18 +805,16 @@ C****
       DO 570 J=1,JM
       GAMM=0.
       DO 560 L=1,LS1-1
-      TZL=TPI(J,L)/PI(J)+273.16
+      TZL=TPI(J,L)/PI(J)+TF
       PRT=(SIG(L)*PI(J)*BYIM+PTOP)*RGAS*TZL
       ESEPS=QSAT(TZL,LHE,ONE)
       GAMM=GAMM+(PRT+LHE*ESEPS)/(PRT+X*ESEPS/TZL)*DSIG(L)
   560 CONTINUE
-      AJ(J,J_GAMM)=AJ(J,J_GAMM)+GAMM*SOCEAN(J)
-      BJ(J,J_GAMM)=BJ(J,J_GAMM)+GAMM*SLAND(J)
-      CJ(J,J_GAMM)=CJ(J,J_GAMM)+GAMM*SOICE(J)
       GAMX=(TPI(J,1)-TPI(J,LS1-1))/(PHIPI(J,LS1-1)-PHIPI(J,1))
-      AJ(J,J_GAM)=AJ(J,J_GAM)+GAMX*SOCEAN(J)
-      BJ(J,J_GAM)=BJ(J,J_GAM)+GAMX*SLAND(J)
-      CJ(J,J_GAM)=CJ(J,J_GAM)+GAMX*SOICE(J)
+      DO IT=1,NTYPE
+        AJ(J,J_GAMM,IT)=AJ(J,J_GAMM,IT)+GAMM*SPTYPE(IT,J)
+        AJ(J,J_GAM ,IT)=AJ(J,J_GAM ,IT)+GAMX*SPTYPE(IT,J)
+      END DO
   570 CONTINUE
 C**** DRY ADIABATIC LAPSE RATE
       GAMD=.0098
@@ -899,10 +827,10 @@ C**** DRY ADIABATIC LAPSE RATE
       DO 590 J=2,JM-1
       X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
       DT2=TIL(J+1)-TIL(J-1)
-      GAMC=GAMD+X*DT2/(TIL(J)+273.16)
-      AJ(J,J_GAMC)=AJ(J,J_GAMC)+GAMC*SOCEAN(J)
-      BJ(J,J_GAMC)=BJ(J,J_GAMC)+GAMC*SLAND(J)
-      CJ(J,J_GAMC)=CJ(J,J_GAMC)+GAMC*SOICE(J)
+      GAMC=GAMD+X*DT2/(TIL(J)+TF)
+      DO IT=1,NTYPE
+        AJ(J,J_GAMC,IT)=AJ(J,J_GAMC,IT)+GAMC*SPTYPE(IT,J)
+      END DO
   590 CONTINUE
 C****
 C**** EASTWARD TRANSPORTS
@@ -1174,12 +1102,12 @@ C****
       IF(L.GE.LS1) PIJ=PSFMPT
       AIL(I,L,1)=AIL(I,L,1)+U(I,J,L)
       AIL(I,L,2)=AIL(I,L,2)+V(I,J,L)
-      AIL(I,L,4)=AIL(I,L,4)+(TX(I,J,L)-273.16)
+      AIL(I,L,4)=AIL(I,L,4)+(TX(I,J,L)-TF)
   785 AIL(I,L,5)=AIL(I,L,5)+Q(I,J,L)/QSAT(TX(I,J,L),LHE,SIG(L)*PIJ+PTOP)
       DO 788 I=1,IM
-      AIL(I,L,10)=AIL(I,L,10)+(TX(I,J50N,L)-273.16)
+      AIL(I,L,10)=AIL(I,L,10)+(TX(I,J50N,L)-TF)
       AIL(I,L,12)=AIL(I,L,12)+(U(I,J50N,L)+U(I,J50N+1,L))
-      AIL(I,L,14)=AIL(I,L,14)+(TX(I,J70N,L)-273.16)
+      AIL(I,L,14)=AIL(I,L,14)+(TX(I,J70N,L)-TF)
       AIL(I,L,16)=AIL(I,L,16)+(U(I,J70N,L)+U(I,J70N+1,L))
   788 CONTINUE
   790 CONTINUE
@@ -1311,7 +1239,7 @@ C****
 C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
 C**CP   1  DP  (PDN-PM(K+1);  PDN=MAX(PM(K+1),PS)
 C**CP   2  DP4  (PDN-PM(K+1))   (UV GRID)
-C***1   3  (TX-273.16)*DP
+C***1   3  (TX-TF)*DP
 C***2   4  PHI*DP
 C***3   5  Q*DP
 C**17   6  TH*DP
@@ -1368,7 +1296,7 @@ C****   4  DP4 (100 PA)  (UV GRID)
 C****   5  4*DP4*T4 (100 K*PA)  (UV GRID)
 C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
-      USE CONSTANT, only : lhe,omega,sha
+      USE CONSTANT, only : lhe,omega,sha,tf
       USE E001M12_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag, ndaa, skipse,
@@ -1423,8 +1351,6 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
       LMP1=LM+1
       JET=LS1-1
-c      BYIM=1./FIM
-c      SHA=RGAS/KAPA
       KM=LM
       KMM1=KM-1
       PM(1)=1200.
@@ -1474,7 +1400,7 @@ C**** ACCUMULATE HERE
   150 PUP=SP*SIGE(L+1)+PTOP
       IF (LUP.EQ.L) PUP=PM(K+1)
       DP=PDN-PUP
-      TPI=TPI+(TX(I,J,L)-273.16)*DP
+      TPI=TPI+(TX(I,J,L)-TF)*DP
       PHIPI=PHIPI+PHI(I,J,L)*DP
       QPI=QPI+Q(I,J,L)*DP
       WMPI=WMPI+WM(I,J,L)*DP
@@ -2226,7 +2152,7 @@ C***9   8  THERMAL RADIATION AT PTOP (W/M**2)
 C**10   9  THERMAL RADIATION EMITTED BY GROUND (W/M**2)
 C****
 C**11  67  THERMAL RADIATION INCIDENT ON GROUND (W/M**2)
-C****  55  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-273.16)
+C****  55  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-TF)
 C****  10  NET RADIATION ABSORBED BY PLANET (W/M**2)
 C****  11  NET RADIATION ABSORBED BELOW PTOP (W/M**2)
 C****  12  NET RADIATION ABSORBED BY GROUND (W/M**2)
@@ -2245,13 +2171,13 @@ C****  56  NET HEATING AT -Z1-Z2 (W/M**2)
 C****  33  OCEAN TRANSPORT (W/M**2)
 C****  48  HEAT RUNOFF THROUGH THE MIXED LAYER DEPTH (W/M**2)
 C****  68  ENERGY DIFFUSION INTO THE THERMOCLINE (W/M**2)
-C****  18  MEAN TEMPERATURE OF FIRST GROUND LAYER (.1 K-273.16)
+C****  18  MEAN TEMPERATURE OF FIRST GROUND LAYER (.1 K-TF)
 C****
-C**31  17  MEAN TEMPERATURE OF SECOND GROUND LAYER (.1 K-273.16)
+C**31  17  MEAN TEMPERATURE OF SECOND GROUND LAYER (.1 K-TF)
 C****  34  OCEAN TEMPERATURE AT THE MAXIMUM MIXED LAYER DEPTH
-C****  23  SURFACE AIR TEMPERATURE (.1 K-273.16)
-C****  22  FIRST LAYER AIR TEMPERATURE (.1 K-273.16)
-C****  21  COMPOSITE AIR TEMPERATURE (.1 K-273.16)
+C****  23  SURFACE AIR TEMPERATURE (.1 K-TF)
+C****  22  FIRST LAYER AIR TEMPERATURE (.1 K-TF)
+C****  21  COMPOSITE AIR TEMPERATURE (.1 K-TF)
 C****  35  STRATO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
 C****  36  TROPO TEMPERATURE CHANGE PER DEGREE LATITUDE (10**-2 K)
 C****  24  STRATOSPHERIC STATIC STABILITY (10**-3 K/M)
@@ -2291,29 +2217,40 @@ C**68  30  OCEAN ICE COVER (10**-2)
 C****
       USE CONSTANT, only : grav,rgas,sday,twopi,omega,kapa,bygrav
       USE E001M12_COM,
-     &     only : im,jm,lm,fim,
-     &     DTsrc,FLAND,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,LS1,SIGE,Itime,Itime0,Nday,
-     &     XLABEL
-      USE GEOM, only : DXYP,LAT,JLAT
-      USE DAGCOM, only : aj,bj,cj,areg,jreg,kdiag,namreg,nreg,kaj,
+     &     only : im,jm,lm,fim,flice,
+     &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,ntype
+      USE GEOM, only : dxyp,lat,jlat
+      USE DAGCOM, only : aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      *     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      *     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      *     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
-     *     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_rsi
+     *     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type
 
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(JM) ::
-     &     CONTJ,CONTO,CONTL,CONTOI,S1,SPOCEN,SPOICE,SPLAND,FLAT
+     &     CONTJ,CONTO,CONTL,CONTOI,S1,FLAT
+      DOUBLE PRECISION, DIMENSION(NTYPE,JM) :: SPTYPE
       INTEGER, DIMENSION(JM) :: MLAT
       DOUBLE PRECISION, DIMENSION(NREG) :: SAREA
       INTEGER, DIMENSION(2) :: MHEM
       DOUBLE PRECISION, DIMENSION(2) :: FHEM
       INTEGER III
+!@param NTYPE_OUT number of output budgets pages
+      INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+2  ! to include composites
 C****
-      CHARACTER*16 :: TERAIN(5) = (
-     *     /'    (GLOBAL)','      (LAND)','     (OCEAN)',
-     *      ' (OCEAN ICE)','   (REGIONS)'/)
+!@var TERRAIN name of surface type
+c      CHARACTER*16, DIMENSION(0:NTYPE_OUT) :: TERRAIN = (/
+c     *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','      (LAND)',
+c     *     '  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)'/)
+C**** old version
+c      CHARACTER*16 :: TERRAIN(0:NTYPE_OUT) = (/'    (GLOBAL)',
+c     *     '      (LAND)','     (OCEAN)',' (OCEAN ICE)'/)
+C**** possible expanded version (including composites) 
+      CHARACTER*16, DIMENSION(0:NTYPE_OUT) :: TERRAIN = (/
+     *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
+     *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
+     *     '     (LAKES)'/)
       CHARACTER*16 TITLEA(10)
       CHARACTER(LEN=16), DIMENSION(KAJ) :: TITLE = (/
      1  ' INC SW(WT/M**2)', '0SW ABS BELOW P0', ' SW ABS BELOW P1',
@@ -2325,7 +2262,7 @@ C****
      9  ' EVAPOR (MM/DAY)', ' PRECIP (MM/DAY)', ' T AIR (.1 C)   ',
      2  ' T1 (.1 C)      ', '0T SURF (.1 C)  ', '0STAT STB(STRAT)',
      5  ' STAT STB(TROPO)', '0RICH NUM(STRAT)', ' RICH NUM(TROPO)',
-     8  ' ROSS NUM(STRAT)', ' ROSS NUM(TROPO)', ' OCEAN ICE COVER',
+     8  ' ROSS NUM(STRAT)', ' ROSS NUM(TROPO)', ' OC/LK ICE COVER',
      1  '0SNOW COVER     ', ' SW CORRECTION  ', '0OCEAN TRANSPORT',
      4  ' TG3 (.1 C)     ', '0DT/DLAT(STRAT) ', ' DT/DLAT(TROPO) ',
      7  ' L(STRAT)(10**5)', ' L(TROP) (10**5)', ' PRECIP HEAT FLX',
@@ -2338,64 +2275,67 @@ C****
      8  ' TOT MST CNV CLD', ' TOTAL CLD COVER', ' MC CLD DPTH(MB)',
      *  '0SS PRECIP(MM/D)', ' MC PRECIP(MM/D)', ' H2O OF ATM (MM)',
      4  '0GAM(K/KM)      ', ' GAMM(K/KM)     ', ' GAMC(K/KM)     ',
-     *  ' LW INC ON Z0   ', ' HT INTO THRMOCL',
-     & ('                ',iii=1,26)/)
+     *  ' LW INC ON Z0   ', ' HT INTO THRMOCL', ' SURF TYPE FRACT',
+     & ('                ',iii=1,25)/)
       DATA TITLEA/' PLANETARY ALBDO',' PLAN ALB VISUAL',
      *  ' PLAN ALB NEARIR', ' SURFACE G ALBDO', ' SURF ALB VISUAL',
      *  ' SURF ALB NEARIR', '0ATMO ALB VISUAL', ' ATMO ALB NEARIR',
      *  ' ATMO ABS VISUAL', ' ATMO ABS NEARIR'/
-C****
-      DOUBLE PRECISION, DIMENSION(4) ::
-     &     WTA=(/1.,0.,1.,0./),WTB=(/1.,1.,0.,0./),WTC=(/1.,0.,0.,1./)
-      INTEGER, DIMENSION(70) :: NDEX
-      DATA NDEX/1,2,3,4,5,6,32,7,8,9,  67,55,10,11,12,13,14,39,40,44,
+C**** weighting functions for surface types
+      DOUBLE PRECISION, DIMENSION(0:NTYPE_OUT,NTYPE) ::
+c     *     WT=RESHAPE(         ! old version with NTYPE=3
+c     *        (/1.,1.,0.,0., 1.,0.,1.,0.,  1.,0.,0.,1./),
+c     *     (/NTYPE_OUT+1,NTYPE/) )
+c     *     WT=RESHAPE(         ! seperate types
+c     *        (/1.,1.,0.,0.,0.,0.,0., 1.,0.,1.,0.,0.,0.,0.,
+c     *          1.,0.,0.,1.,0.,0.,0., 1.,0.,0.,0.,1.,0.,0.,
+c     *          1.,0.,0.,0.,0.,1.,0., 1.,0.,0.,0.,0.,0.,1./),
+c     *     (/NTYPE_OUT+1,NTYPE/) )
+     *     WT=RESHAPE(          ! seperate types + composites
+     *     (/1.,1.,0.,1.,0.,0.,0.,0.,0., 1.,0.,1.,1.,0.,0.,0.,0.,0.,
+     *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
+     *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
+     *     (/NTYPE_OUT+1,NTYPE/) )
+      INTEGER, DIMENSION(70) :: NDEX = (/
+     *  1,2,3,4,5,6,32,7,8,9,           67,55,10,11,12,13,14,39,40,44,
      *  42,41,16,15,43,56,33,48,68,18,  17,34,23,22,21,35,36,24,25,26,
      *  27,28,29,37,38,64,65,66,57,58,  59,60,61,62,20,19,63,54,45,46,
-     *  47,49,50,51,52,53,31,30,2*0/
+     *  47,49,50,51,52,53,31,30,69,0/)
       INTEGER, DIMENSION(10) :: INNUM,INDEN
       DATA INNUM/2,72,73,6,74,75,76,77,78,79/, INDEN/3*1,5,6*1/
-C**** IA: 1 CONDENSATION, 2 RADIATION, 3 SURFACE, 4 DIAGA, 0 UNUSED
-      INTEGER, DIMENSION(KAJ) :: IA
-      DATA IA/6*2,  2,2,1,2,2,1,  6*1,  1,1,4,4,3,4,  5*4,1,
-     *  4,2,1,1,4,4, 4,4,2*1,1,1, 1,1,3*1,1, 6*1, 2,1,4*2,  1,1,4*4,
-     *  2,9,4*0,8*0,14*1/
+C**** IA: 1 SOURCE, 2 RADIATION, 3 SURFACE, 4 DIAGA, 0 UNUSED
+c      INTEGER, DIMENSION(KAJ) :: IA  ! replaced with global IA_J
+c      DATA IA/6*2,  2,2,1,2,2,1,  6*1,  1,1,4,4,3,4,  5*4,1,
+c     *  4,2,1,1,4,4, 4,4,2*1,1,1, 1,1,3*1,1, 6*1, 2,1,4*2,  1,1,4*4,
+c     *  2,9,1,3*0, 8*0,14*1/
       DOUBLE PRECISION, DIMENSION(KAJ) :: SCALE
       DATA SCALE/6*1.,  6*1.,  4*1.,2*10.,  2*1.,4*10.,  6*100.,
      *  100.,2*1.,10.,2*100.,  6*1.,  6*1.,  6*1.,  2*1.,3*100.,1.,
-     *  6*1., 6*1., 22*1./
+     *  6*1., 2*1.,100.,3*1., 22*1./
 
-      DOUBLE PRECISION ::
-     &     A1BYA2,A2BYA1,AMULT,BYA1,BYIACC,
-     &     FGLOB,GSUM,GSUM2,GWT,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,
-     &     DAYS,WTX
+      DOUBLE PRECISION :: A1BYA2,A2BYA1,AMULT,BYA1,BYIACC,
+     &     FGLOB,GSUM,GSUM2,GWT,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,DAYS,WTX
 
-      INTEGER ::
-     &     I,IACC,INC,J,JH,JHEMI,JMHALF,JR,
-     &     K,KA,KD1M,M,M1,N,ND,NN,NSTPDJ
-
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
+      INTEGER :: I,IACC,INC,J,JH,JHEMI,JMHALF,JR,K,KA,KD1M,M,MD,N,ND,NN
+     *     ,IT
+      INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: P1000=1000.
-      IF (IFIRST.NE.1) GO TO 100
+      IF (IFIRST.EQ.1) THEN
       IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
-      KD1M=68
+      KD1M=69  ! was 68, now includes J_TYPE diagnostic
       INC=1+(JM-1)/24
       JMHALF=JM/2
-      DO 10 JR=1,NREG
-   10 SAREA(JR)=0.
-      DO 30 J=1,JM
-      S1(J)=IM
-      SPLAND(J)=0.
-      DO 20 I=1,IM
-      SPLAND(J)=SPLAND(J)+FLAND(I,J)
-      JR=JREG(I,J)
-   20 SAREA(JR)=SAREA(JR)+DXYP(J)
-   30 CONTINUE
+      SAREA=0.
+      DO J=1,JM
+        S1(J)=IM
+        DO I=1,IM
+          JR=JREG(I,J)
+          SAREA(JR)=SAREA(JR)+DXYP(J)
+        END DO
+      END DO
       S1(1)=1.
       S1(JM)=1.
-      SPLAND(1)=FLAND(1,1)
-      SPLAND(JM)=FLAND(1,JM)
       SCALE(9)=1./DTSRC
       SCALE(12)=1./DTSRC
       SCALE(13)=1./DTSRC
@@ -2434,208 +2374,212 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       SCALE(65)=1.D3*.0098/(SIGE(1)-SIGE(LS1))
       SCALE(66)=1.D3
       SCALE(68)=2.E3*4185./SDAY
+      END IF
 C**** CALCULATE THE DERIVED QUANTITIES
-  100 BYA1=1./(IDACC(1)+1.D-20)
+      BYA1=1./(IDACC(1)+1.D-20)
       A2BYA1=DFLOAT(IDACC(2))/DFLOAT(IDACC(1))
       A1BYA2=IDACC(1)/(IDACC(2)+1.D-20)
-      DO 200 JR=1,23 ! only 23 will fit on a green sheet
-      AREG(JR,J_SRABS)=AREG(JR,J_SRNFP0)-AREG(JR,J_SRNFG)
-      AREG(JR,J_TRNFP0)=AREG(JR,J_HSURF)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
-      AREG(JR,J_TRNFP1)=AREG(JR,J_HATM )+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
-      AREG(JR,J_RNFP0)=AREG(JR,J_SRNFP0)+AREG(JR,J_TRNFP0)
-      AREG(JR,J_RNFP1)=AREG(JR,J_SRNFP1)+AREG(JR,J_TRNFP1)
-      AREG(JR,J_RHDT)=A1BYA2*AREG(JR,J_SRNFG)*DTSRC+AREG(JR,J_TRHDT)
-      AREG(JR,J_HZ1)=AREG(JR,J_EDIFS)+AREG(JR,J_F1DT)
-      AREG(JR,J_PRCP)=AREG(JR,J_PRCPSS)+AREG(JR,J_PRCPMC)
-      AREG(JR,J_HZ0)=AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+AREG(JR,J_EVHDT)+
-     *  AREG(JR,J_EPRCP)-AREG(JR,J_ERUN1)
-      AREG(JR,J_HZ2)=AREG(JR,J_F2DT)+AREG(JR,J_ERUN2)
-  200 AREG(JR,J_CTOPP)=IDACC(2)*SAREA(JR)*AREG(JR,J_CDLDEP)/
-     *     (AREG(JR,J_PCLDMC)+1.D-20)
-      DO 210 J=1,JM
-      SPOICE(J)=CJ(J,J_RSI)*BYA1
-      SPOCEN(J)=S1(J)-SPLAND(J)-SPOICE(J)
-c      AJ(J,J_SWCOR)=(1.-SRCOR)*AJ(J,J_SRNFG)   !obsolete
-c      CJ(J,J_SWCOR)=(1.-SRCOR)*CJ(J,J_SRNFG)   !obsolete
-      AJ(J,J_CTOPP)=IDACC(2)*SPOCEN(J)*AJ(J,J_CDLDEP)/(AJ(J,J_PCLDMC)
-     *     +1.D-20)
-      BJ(J,J_CTOPP)=IDACC(2)*SPLAND(J)*BJ(J,J_CDLDEP)/(BJ(J,J_PCLDMC)
-     *     +1.D-20)
-      CJ(J,J_CTOPP)=IDACC(2)*SPOICE(J)*CJ(J,J_CDLDEP)/(CJ(J,J_PCLDMC)
-     *     +1.D-20)
-      AJ(J,J_SRABS)=AJ(J,J_SRNFP0)-AJ(J,J_SRNFG)
-      BJ(J,J_SRABS)=BJ(J,J_SRNFP0)-BJ(J,J_SRNFG)
-      CJ(J,J_SRABS)=CJ(J,J_SRNFP0)-CJ(J,J_SRNFG)
-      AJ(J,J_TRNFP0)=AJ(J,J_HSURF)+A2BYA1*AJ(J,J_TRHDT)/DTSRC
-      BJ(J,J_TRNFP0)=BJ(J,J_HSURF)+A2BYA1*BJ(J,J_TRHDT)/DTSRC
-      CJ(J,J_TRNFP0)=CJ(J,J_HSURF)+A2BYA1*CJ(J,J_TRHDT)/DTSRC
-      AJ(J,J_TRNFP1)=AJ(J,J_HATM)+A2BYA1*AJ(J,J_TRHDT)/DTSRC
-      BJ(J,J_TRNFP1)=BJ(J,J_HATM)+A2BYA1*BJ(J,J_TRHDT)/DTSRC
-      CJ(J,J_TRNFP1)=CJ(J,J_HATM)+A2BYA1*CJ(J,J_TRHDT)/DTSRC
-      AJ(J,J_RNFP0)=AJ(J,J_SRNFP0)+AJ(J,J_TRNFP0)
-      BJ(J,J_RNFP0)=BJ(J,J_SRNFP0)+BJ(J,J_TRNFP0)
-      CJ(J,J_RNFP0)=CJ(J,J_SRNFP0)+CJ(J,J_TRNFP0)
-      AJ(J,J_RNFP1)=AJ(J,J_SRNFP1)+AJ(J,J_TRNFP1)
-      BJ(J,J_RNFP1)=BJ(J,J_SRNFP1)+BJ(J,J_TRNFP1)
-      CJ(J,J_RNFP1)=CJ(J,J_SRNFP1)+CJ(J,J_TRNFP1)
-      AJ(J,J_RHDT)=A1BYA2*AJ(J,J_SRNFG)*DTSRC+AJ(J,J_TRHDT)
-      BJ(J,J_RHDT)=A1BYA2*BJ(J,J_SRNFG)*DTSRC+BJ(J,J_TRHDT)
-      CJ(J,J_RHDT)=A1BYA2*CJ(J,J_SRNFG)*DTSRC+CJ(J,J_TRHDT)
-      AJ(J,J_HZ1)=AJ(J,J_EDIFS)+AJ(J,J_F1DT)
-      BJ(J,J_HZ1)=BJ(J,J_EDIFS)+BJ(J,J_F1DT)
-      CJ(J,J_HZ1)=CJ(J,J_EDIFS)+CJ(J,J_F1DT)
-      AJ(J,J_PRCP)=AJ(J,J_PRCPSS)+AJ(J,J_PRCPMC)
-      BJ(J,J_PRCP)=BJ(J,J_PRCPSS)+BJ(J,J_PRCPMC)
-      CJ(J,J_PRCP)=CJ(J,J_PRCPSS)+CJ(J,J_PRCPMC)
-      AJ(J,J_HZ0)=AJ(J,J_RHDT)+AJ(J,J_SHDT)+AJ(J,J_EVHDT)+AJ(J,J_EPRCP)
-     *           -AJ(J,J_ERUN1)
-      BJ(J,J_HZ0)=BJ(J,J_RHDT)+BJ(J,J_SHDT)+BJ(J,J_EVHDT)+BJ(J,J_EPRCP)
-     *           -BJ(J,J_ERUN1)
-      CJ(J,J_HZ0)=CJ(J,J_RHDT)+CJ(J,J_SHDT)+CJ(J,J_EVHDT)+CJ(J,J_EPRCP)
-     *           -CJ(J,J_ERUN1)
-      AJ(J,J_HZ2)=AJ(J,J_F2DT)+AJ(J,J_ERUN2)
-      BJ(J,J_HZ2)=BJ(J,J_F2DT)+BJ(J,J_ERUN2)
-      CJ(J,J_HZ2)=CJ(J,J_F2DT)+CJ(J,J_ERUN2)
-  210 CONTINUE
+      DO JR=1,23 ! only 23 will fit on a green sheet
+        AREG(JR,J_TRNFP0)=AREG(JR,J_HSURF)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
+        AREG(JR,J_TRNFP1)=AREG(JR,J_HATM)+A2BYA1*AREG(JR,J_TRHDT)/DTSRC
+        AREG(JR,J_SRABS) =AREG(JR,J_SRNFP0)-AREG(JR,J_SRNFG)
+        AREG(JR,J_RNFP0) =AREG(JR,J_SRNFP0)+AREG(JR,J_TRNFP0)
+        AREG(JR,J_RNFP1) =AREG(JR,J_SRNFP1)+AREG(JR,J_TRNFP1)
+        AREG(JR,J_RHDT)  =A1BYA2*AREG(JR,J_SRNFG)*DTSRC+AREG(JR,J_TRHDT)
+        AREG(JR,J_PRCP)  =AREG(JR,J_PRCPSS)+AREG(JR,J_PRCPMC)
+        AREG(JR,J_HZ1)   =AREG(JR,J_EDIFS)+AREG(JR,J_F1DT)
+        AREG(JR,J_HZ0)   =AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+
+     *       AREG(JR,J_EVHDT)+AREG(JR,J_EPRCP)-AREG(JR,J_ERUN1)
+        AREG(JR,J_HZ2)   =AREG(JR,J_F2DT)+AREG(JR,J_ERUN2)
+        AREG(JR,J_CTOPP) =IDACC(2)*SAREA(JR)*AREG(JR,J_CDLDEP)/
+     *       (AREG(JR,J_PCLDMC)+1.D-20)
+      END DO
+      DO J=1,JM
+      DO IT=1,NTYPE
+        SPTYPE(IT,J) =AJ(J,J_TYPE,IT)*BYA1
+        AJ(J,J_TRNFP0,IT)=AJ(J,J_HSURF,IT)+A2BYA1*AJ(J,J_TRHDT,IT)/DTSRC
+        AJ(J,J_TRNFP1,IT)=AJ(J,J_HATM,IT) +A2BYA1*AJ(J,J_TRHDT,IT)/DTSRC
+c       AJ(J,J_SWCOR,IT) =(1.-SRCOR)*AJ(J,J_SRNFG,IT)   !obsolete
+        AJ(J,J_SRABS ,IT)=AJ(J,J_SRNFP0,IT)-AJ(J,J_SRNFG,IT)
+        AJ(J,J_RNFP0 ,IT)=AJ(J,J_SRNFP0,IT)+AJ(J,J_TRNFP0,IT)
+        AJ(J,J_RNFP1 ,IT)=AJ(J,J_SRNFP1,IT)+AJ(J,J_TRNFP1,IT)
+        AJ(J,J_RHDT  ,IT)=A1BYA2*AJ(J,J_SRNFG,IT)*DTSRC+AJ(J,J_TRHDT,IT)
+        AJ(J,J_PRCP  ,IT)=AJ(J,J_PRCPSS,IT)+AJ(J,J_PRCPMC,IT)
+        AJ(J,J_HZ1   ,IT)=AJ(J,J_EDIFS,IT)+AJ(J,J_F1DT,IT)
+        AJ(J,J_HZ0   ,IT)=AJ(J,J_RHDT,IT)+AJ(J,J_SHDT,IT)+
+     *       AJ(J,J_EVHDT,IT)+AJ(J,J_EPRCP,IT)-AJ(J,J_ERUN1,IT)
+        AJ(J,J_HZ2,   IT)=AJ(J,J_F2DT,IT)+AJ(J,J_ERUN2,IT)
+C**** this is incorrect: ratios should not be summed over type
+        AJ(J,J_CTOPP,IT) =IDACC(2)*SPTYPE(IT,J)*AJ(J,J_CDLDEP,IT)/
+     *       (AJ(J,J_PCLDMC,IT)+1.D-20)
+      END DO
+      END DO
       DAYS=(Itime-Itime0)/DFLOAT(nday)
 C****
-C**** LOOP OVER SURFACE TYPES: GLOBAL, LAND, OCEAN, AND OCEAN ICE
+C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
 C****
       IF (KDIAG(1).GT.7) GO TO 510
-      M1=1
-      NSTPDJ=1
-      IF (KDIAG(1).GT.4) M1=KDIAG(1)-3
-      IF (KDIAG(1).GT.3) NSTPDJ=4
-      IF (KDIAG(1).EQ.3) NSTPDJ=2
-      DO 500 M=M1,4,NSTPDJ
-      IF (KDIAG(1).EQ.2.AND.M.GT.2) RETURN
+      DO M=0,NTYPE_OUT
       WRITE (6,901) XLABEL
-      WRITE (6,902) TERAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
+      WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
 
       WRITE (6,903) (JLAT(J,1),J=JM,INC,-INC)
       WRITE (6,905)
-      DO 490 K=1,KD1M
+      DO K=1,KD1M
       N=NDEX(K)
-      IACC=IDACC(IA(N))
+      IACC=IDACC(IA_J(N))
+C**** set weighting for denominator (different only for J_TYPE)
+      MD=M
+      IF (N.EQ.J_TYPE) MD=0
       GSUM=0.
       GWT=0.
-      DO 320 JHEMI=1,2
-      HSUM=0.
-      HWT=0.
-      DO 310 JH=1,JMHALF
-      J=(JHEMI-1)*JMHALF+JH
-      QJ=(AJ(J,N)*WTA(M)+BJ(J,N)*WTB(M)+CJ(J,N)*WTC(M))*SCALE(N)
-      WTX=(SPOCEN (J)*WTA(M)+SPLAND(J)*WTB(M)+SPOICE(J)*WTC(M))*IACC
-      FLAT(J)=QJ/(WTX+1.D-20)
-      MLAT(J)=NINT(FLAT(J))
-      HSUM=HSUM+QJ*DXYP(J)*(FIM+1.-S1(J))
-  310 HWT=HWT+WTX*DXYP(J)*(FIM+1.-S1(J))
-      FHEM(JHEMI)=HSUM/(HWT+1.D-20)
-      GSUM=GSUM+HSUM
-  320 GWT=GWT+HWT
+      DO JHEMI=1,2
+        HSUM=0.
+        HWT=0.
+        DO JH=1,JMHALF
+          J=(JHEMI-1)*JMHALF+JH
+C**** Sum over types
+          QJ=0
+          WTX=0
+          DO IT=1,NTYPE
+            QJ =QJ +WT(M ,IT)*AJ(J,N,IT)
+            WTX=WTX+WT(MD,IT)*SPTYPE(IT,J)
+          END DO
+          QJ=QJ*SCALE(N)
+          WTX=WTX*IACC
+c      QJ=(AJ(J,N,1)*WT(1,M)+AJ(J,N,2)*WT(2,M)+AJ(J,N,3)*WT(3,M))*SCALE(N)
+c      WTX=(SPTYPE(1,J)*WT(1,M)+SPTYPE(2,J)*WT(2,M)+SPTYPE(3,J)*WTC(3,M))*IACC
+          FLAT(J)=QJ/(WTX+1.D-20)
+          MLAT(J)=NINT(FLAT(J))
+          HSUM=HSUM+QJ*DXYP(J)*(FIM+1.-S1(J))
+          HWT=HWT+WTX*DXYP(J)*(FIM+1.-S1(J))
+        END DO
+        FHEM(JHEMI)=HSUM/(HWT+1.D-20)
+        GSUM=GSUM+HSUM
+        GWT=GWT+HWT
+      END DO
       FGLOB=GSUM/(GWT+1.D-20)
-         IF (M.EQ.1) CALL KEYDJ (N,FGLOB,FHEM(2))
+      IF (M.EQ.0) CALL KEYDJ (N,FGLOB,FHEM(2))
 CF       DO 323 J=1,JM
 CF323    GBUDG(J,K,M)=FLAT(J)
 CF       GBUDG(JM+1,K,M)=FHEM(1)
 CF       GBUDG(JM+2,K,M)=FHEM(2)
 CF       GBUDG(JM+3,K,M)=FGLOB
-      GO TO (350,350,350,350,350,350,  350,350,350,350,350,350,
-     *       350,350,348,348,350,350,  345,345,350,350,350,350,
-     *       340,350,350,345,345,350,  350,340,348,350,350,350,
-     *       345,345,348,345,348,348,  348,348,345,345,345,345,
-     *       350,350,350,350,350,345,  350,348,350,350,350,350,
-     *       345,345,350,345,345,345,  350,345,350,350,350,350),N
-  340 WRITE (6,906) TITLE(N),FGLOB,FHEM(2),FHEM(1),
-     *  (FLAT(J),J=JM,INC,-INC)
-      GO TO 490
-  345 WRITE (6,911) TITLE(N),FGLOB,FHEM(2),FHEM(1),
-     *  (FLAT(J),J=JM,INC,-INC)
-      GO TO 490
-  348 WRITE (6,912) TITLE(N),FGLOB,FHEM(2),FHEM(1),
-     *  (MLAT(J),J=JM,INC,-INC)
-      GO TO 490
-  350 WRITE (6,907) TITLE(N),FGLOB,FHEM(2),FHEM(1),
-     *  (MLAT(J),J=JM,INC,-INC)
-      IF (N.NE.1) GO TO 490
+c     GO TO (350,350,350,350,350,350,  350,350,350,350,350,350,
+c    *       350,350,348,348,350,350,  345,345,350,350,350,350,
+c    *       340,350,350,345,345,350,  350,340,348,350,350,350,
+c    *       345,345,348,345,348,348,  348,348,345,345,345,345,
+c    *       350,350,350,350,350,345,  350,348,350,350,350,350,
+c    *       345,345,350,345,345,345,  350,345,350,350,350,350),N
+      SELECT CASE (N)           ! output format
+      CASE (25,32)
+        WRITE (6,906) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+     *       (FLAT(J),J=JM,INC,-INC)
+      CASE (19,20,28,29,37,38,40,45:48,54,61,62,64:66,68)
+        WRITE (6,911) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+     *       (FLAT(J),J=JM,INC,-INC)
+      CASE (15,16,33,39,41:44,56)
+        WRITE (6,912) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+     *       (MLAT(J),J=JM,INC,-INC)
+      CASE DEFAULT
+        WRITE (6,907) TITLE(N),FGLOB,FHEM(2),FHEM(1),
+     *       (MLAT(J),J=JM,INC,-INC)
+      END SELECT
+      IF (N.EQ.1) THEN
 C**** CALCULATE AND PRINT ALBEDOS
-  400 DO 430 KA=1,10
-      NN=INNUM(KA)
-      ND=INDEN(KA)
-      AMULT=1.
-      IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
-      GSUM=0.
-      GSUM2=0.
-      DO 420 JHEMI=1,2
-      HSUM=0.
-      HSUM2=0.
-      DO 410 JH=1,JMHALF
-      J=(JHEMI-1)*JMHALF+JH
-      QNUM=AJ(J,NN)*WTA(M)+BJ(J,NN)*WTB(M)+CJ(J,NN)*WTC(M)
-      QDEN=AJ(J,ND)*WTA(M)+BJ(J,ND)*WTB(M)+CJ(J,ND)*WTC(M)
-      FLAT(J)=AMULT*(100.*     QNUM/(QDEN    +1.D-20)-50.)+50.
-      MLAT(J)=FLAT(J)+.5
-      HSUM=HSUM+QNUM*DXYP(J)*(FIM+1.-S1(J))
-  410 HSUM2=HSUM2+QDEN*DXYP(J)*(FIM+1.-S1(J))
-      FHEM(JHEMI)=50.+AMULT*(100.*HSUM/(HSUM2+1.D-20)-50.)
-      GSUM=GSUM+HSUM
-  420 GSUM2=GSUM2+HSUM2
-      FGLOB=50.+AMULT*(100.*GSUM/(GSUM2+1.D-20)-50.)
-         IF (M.EQ.1.AND.KA.EQ.1) CALL KEYDJA (FGLOB)
+      DO KA=1,10
+        NN=INNUM(KA)
+        ND=INDEN(KA)
+        AMULT=1.
+        IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
+        GSUM=0.
+        GSUM2=0.
+        DO JHEMI=1,2
+          HSUM=0.
+          HSUM2=0.
+          DO JH=1,JMHALF
+            J=(JHEMI-1)*JMHALF+JH
+C**** Sum over types
+            QNUM=0
+            QDEN=0
+            DO IT=1,NTYPE
+              QNUM=QNUM+WT(M,IT)*AJ(J,NN,IT)
+              QDEN=QDEN+WT(M,IT)*AJ(J,ND,IT)
+            END DO
+c      QNUM=AJ(J,NN,1)*WT(1,M)+AJ(J,NN,2)*WT(2,M)+AJ(J,NN,3)*WT(3,M)
+c      QDEN=AJ(J,ND,1)*WT(1,M)+AJ(J,ND,2)*WT(2,M)+AJ(J,ND,3)*WT(3,M)
+            FLAT(J)=AMULT*(100.*     QNUM/(QDEN    +1.D-20)-50.)+50.
+            MLAT(J)=FLAT(J)+.5
+            HSUM=HSUM+QNUM*DXYP(J)*(FIM+1.-S1(J))
+            HSUM2=HSUM2+QDEN*DXYP(J)*(FIM+1.-S1(J))
+          END DO
+          FHEM(JHEMI)=50.+AMULT*(100.*HSUM/(HSUM2+1.D-20)-50.)
+          GSUM=GSUM+HSUM
+          GSUM2=GSUM2+HSUM2
+        END DO
+        FGLOB=50.+AMULT*(100.*GSUM/(GSUM2+1.D-20)-50.)
+        IF (M.EQ.0.AND.KA.EQ.1) CALL KEYDJA (FGLOB)
 CF       DO 423 J=1,JM
 CF423    GBUDG(J,KA+KD1M,M)=FLAT(J)
 CF       GBUDG(JM+1,KA+KD1M,M)=FHEM(1)
 CF       GBUDG(JM+2,KA+KD1M,M)=FHEM(2)
 CF       GBUDG(JM+3,KA+KD1M,M)=FGLOB
-      WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
-     *  (MLAT(J),J=JM,INC,-INC)
-  430 CONTINUE
-  490 CONTINUE
+        WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
+     *       (MLAT(J),J=JM,INC,-INC)
+      END DO
+      END IF
+      END DO
       WRITE (6,903) (JLAT(J,1),J=JM,INC,-INC)
       WRITE (6,905)
-      IF (KDIAG(1).GT.3) RETURN
-  500 CONTINUE
+      IF (KDIAG(1).GT.1) RETURN
+      END DO
   510 IF (KDIAG(1).GT.0.AND.KDIAG(1).NE.8) RETURN
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
       WRITE (6,901) XLABEL
-      WRITE (6,902) TERAIN(5),JYEAR0,AMON0,JDATE0,JHOUR0,
+      WRITE (6,902) '   (REGIONS)    ',JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
       WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
-      DO 700 K=1,KD1M
+      DO K=1,KD1M
       N=NDEX(K)
-      BYIACC=1./(IDACC(IA(N))+1.D-20)
-      DO 520 JR=1,23
-      FLAT(JR)=AREG(JR,N)*SCALE(N)*BYIACC/SAREA(JR)
-  520 MLAT(JR)=NINT(FLAT(JR))
+      BYIACC=1./(IDACC(IA_J(N))+1.D-20)
+      DO JR=1,23
+        FLAT(JR)=AREG(JR,N)*SCALE(N)*BYIACC/SAREA(JR)
+        MLAT(JR)=NINT(FLAT(JR))
+      END DO
 CF       DO 523 J=1,23
 CF523    RBUDG(J,K)=FLAT(J)
-      GO TO (550,550,550,550,550,550,  550,550,550,550,550,550,
-     *       550,550,550,550,550,550,  540,540,550,550,550,550,
-     *       540,550,550,540,540,540,  540,540,550,550,550,550,
-     *       540,540,550,540,550,550,  550,550,540,540,540,540,
-     *       540,540,550,550,540,540,  550,550,550,550,550,550,
-     *       540,540,540,540,540,540,  550,540,550,550,550,550),N
-  540 WRITE (6,910) TITLE(N),(FLAT(JR),JR=1,23)
-      GO TO 700
-  550 WRITE (6,909) TITLE(N),(MLAT(JR),JR=1,23)
-      IF (N.NE.1) GO TO 700
-      GO TO 600
+c     GO TO (550,550,550,550,550,550,  550,550,550,550,550,550,
+c    *       550,550,550,550,550,550,  540,540,550,550,550,550,
+c    *       540,550,550,540,540,540,  540,540,550,550,550,550,
+c    *       540,540,550,540,550,550,  550,550,540,540,540,540,
+c    *       540,540,550,550,540,540,  550,550,550,550,550,550,
+c    *       540,540,540,540,540,540,  550,540,550,550,550,550),N
+      SELECT CASE (N) ! output format
+      CASE (19,20,25,28:32,37,38,40,45:50,53,54,61:66,68)
+        WRITE (6,910) TITLE(N),(FLAT(JR),JR=1,23)
+      CASE DEFAULT
+        WRITE (6,909) TITLE(N),(MLAT(JR),JR=1,23)
+      END SELECT
+      IF (N.EQ.1) THEN ! do albedo printout next
 C**** CALCULATE AND PRINT ALBEDOS FOR REGIONAL STATISTICS
-  600 DO 620 KA=1,10
-      NN=INNUM(KA)
-      ND=INDEN(KA)
-      AMULT=1.
-      IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
-      DO 610 JR=1,23
-      FLAT(JR)=AMULT*(100.*AREG(JR,NN)/(AREG(JR,ND)+1.D-20)-50.)+50.
-  610 MLAT(JR)=FLAT(JR)+.5
+      DO KA=1,10
+        NN=INNUM(KA)
+        ND=INDEN(KA)
+        AMULT=1.
+        IF (KA.LE.1.OR.KA.EQ.4) AMULT=-1.
+        DO JR=1,23
+          FLAT(JR)=AMULT*(100.*AREG(JR,NN)/(AREG(JR,ND)+1.D-20)-50.)+50.
+          MLAT(JR)=FLAT(JR)+.5
+        END DO
 CF       DO 613 J=1,23
 CF613    RBUDG(J,KA+KD1M)=FLAT(J)
-  620 WRITE (6,909) TITLEA(KA),(MLAT(JR),JR=1,23)
-  700 CONTINUE
+        WRITE (6,909) TITLEA(KA),(MLAT(JR),JR=1,23)
+      END DO
+      END IF
+      END DO
       WRITE (6,905)
       WRITE(6,918)(NAMREG(1,K),K=1,23),(NAMREG(2,K),K=1,23)
       RETURN
@@ -2732,7 +2676,7 @@ C****                                                             37-44
 
       SUBROUTINE DIAGJK
       USE CONSTANT, only : grav,rgas,kapa,sday,lhe,twopi,omega,sha
-     *     ,bygrav
+     *     ,bygrav,tf
       USE E001M12_COM, only : im,jm,lm,fim,
      &     BYIM,DSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,
      &     PSF,PTOP,PSFMPT,SIG,SIGE,SKIPSE,JHOUR
@@ -3031,7 +2975,7 @@ C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
 C**** POTENTIAL TEMPERATURE, POTENTIAL VORTICITY
       DO 205 LR=1,LM_REQ
       DO 205 J=1,JM
-  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIMDA*ONESPO(J)+273.16
+  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIMDA*ONESPO(J)+TF
       CALL JKMAPS (21,PLM,AJK(1,1,6),P1000K,BYP,ONES,KM,2,1,
      *  ARQX,P1000K,ONES,BYPKS)
       SCALE=1.D6*BYIMDA*P1000K
@@ -3267,12 +3211,12 @@ C**** PRELIMINARIES:  VERTICAL DERIVATIVES AND N**2
       KUP=K+1
       IF (K.EQ.KM) KUP=KM
       PUP=PM(KUP)+.5*AJK(J,KUP,1)/(AJK(J,KUP,35)+1.D-20)
-      DALPHA=(AJK(J,KUP,3)/(AJK(J,KUP,1)+1.D-20)+273.16)/PUP-
-     *  (AJK(J,KDN,3)/(AJK(J,KDN,1)+1.D-20)+273.16)/PDN
+      DALPHA=(AJK(J,KUP,3)/(AJK(J,KUP,1)+1.D-20)+TF)/PUP-
+     *  (AJK(J,KDN,3)/(AJK(J,KDN,1)+1.D-20)+TF)/PDN
       DTHETA=AJK(J,KUP,6)/(AJK(J,KUP,1)+1.D-20)-
      *  AJK(J,KDN,6)/(AJK(J,KDN,1)+1.D-20)
       THETA=AJK(J,K,6)/(AJK(J,K,1)+1.D-20)
-      TX=AJK(J,K,3)/(AJK(J,K,1)+1.D-20)+273.16
+      TX=AJK(J,K,3)/(AJK(J,K,1)+1.D-20)+TF
       IF (ABS(DTHETA).GE.1.D-20) GO TO 595
       SN=+1.
       IF (DTHETA.LT.0.) SN=-1.
@@ -3304,7 +3248,7 @@ C**** TERMS FOR THE REFRACTION INDEX EXPRESSION
       BYFSQ=2.*DXYV(J)*DXYV(J)/(FCOR(J-1)*FCOR(J-1)+FCOR(J)*FCOR(J))
       DO 640 K=1,KM
       BYDP2=1./(AJK(J-1,K,1)+AJK(J,K,1)+1.D-20)
-      TX=BYDP2*(AJK(J-1,K,3)+AJK(J,K,3))+273.16
+      TX=BYDP2*(AJK(J-1,K,3)+AJK(J,K,3))+TF
       DX(J,K)=GBYRSQ/(TX*TX)
       SQN=BYDP2*(BX(J-1,K)+BX(J,K))
       CX(J,K)=SQN*BYFSQ
@@ -4814,7 +4758,7 @@ C****   6  EVAPORATION (KG/M**2/86400 S)                              1
 C***9   4  SENSIBLE HEAT FLUX (WATTS/METER**2)
 C**10   7  BETA, GROUND WETNESS (10**-2)                              3
 C**11  32  GROUND RUNOFF FROM SURFACE (KG/M**2/86400 S)               1
-C**12  28  FIRST LAYER GROUND TEMPERATURE (K-273.16)                  1
+C**12  28  FIRST LAYER GROUND TEMPERATURE (K-TF)                  1
 C****
 C**13  34  SURFACE WIND SPEED (m/s)                                   3
 C**14  39,40  JET SPEED (M/S)                                         4
@@ -4832,7 +4776,7 @@ C**24  43  HIGH LEVEL CLOUDINESS (PERCENT)
 C****
 C**25  21+24  RADIATION BALANCE OF PLANET (WATTS/METER**2)
 C**26  22  RADIATION BALANCE OF GROUND (WATTS/METER**2)
-C**27  44  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-273.16)
+C**27  44  BRIGHTNESS TEMPERATURE THROUGH WINDOW REGION (K-TF)
 C**28  24/25  PLANETARY ALBEDO (PERCENT)
 C**29  26/27  GROUND ALBEDO (PERCENT)
 C**30  45/25  VISUAL ALBEDO (PERCENT)
@@ -4867,7 +4811,7 @@ C****  82  SHALLOW CONVECTIVE CLOUD COVER (%)
 C****
 C**55  98  DU/DT BY SDRAG (10**-6 M S-2)
 C****
-      USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav
+      USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf
       USE E001M12_COM, only : im,jm,lm,fim,jeq,
      &     BYIM,DTsrc,FLAND,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,NDAY,SKIPSE,
@@ -5145,7 +5089,7 @@ C**** LAND COVERAGE
 C**** THICKNESS TEMPERATURES
   360 DO 370 I=1,IM
       A=((AIJ(I,J,NDEX+1)-AIJ(I,J,NDEX))*BYIACC
-     *  +(GHT(NDEX-7)-GHT(NDEX-8))*GRAV)*SCALE(K)-273.16
+     *  +(GHT(NDEX-7)-GHT(NDEX-8))*GRAV)*SCALE(K)-TF
 CB       DIJMAP(I,J,K)=A
       FLATK=FLATK+A
       N=28.5+A*FAC(K)
@@ -7113,7 +7057,7 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       IJ_RSNW = 2  ! PSNOW (1)            4 DA
       IJ_SNOW = 3  ! SNOW (KG/M**2)       4 DA
       IJ_SHDT = 4  ! SHDT (J/M**2)        1 SF
-      IJ_PREC = 5  ! PREC (KG/M**2)       1 PR
+      IJ_PREC = 5  ! PREC (KG/M**2)       1 CN
       IJ_EVAP = 6  ! EVAP (KG/M**2)       1 SF
 C**** IJ_SSAT = 7  ! SOIL SATURATION RATIO 1 GD ! OBS
       IJ_BETA = 7  ! BETA (1)             1 GD
@@ -7127,7 +7071,7 @@ C**** IJ_P4UV = 8  ! 4*P4 (100 PA)  (UV GRID)     4 DA ! OBS
       IJ_PHI300 = 13  ! PHI300-9500*GRAV  4 DA
       IJ_PHI100 = 14  ! PHI100-16400*GRAV 4 DA
       IJ_PHI30 = 15   ! PHI30-24000*GRAV   4 DA
-      IJ_T850 = 16 ! T850-273.16 (K-273.16)*GRAV) (NO PRT) 4 DA
+      IJ_T850 = 16 ! T850-TF (K-TF)*GRAV) (NO PRT) 4 DA
       IJ_PMCCLD = 17  ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
       IJ_CLDTPPR = 18 ! P-CLOUD TOP   (100 PA)                  2 RD
       IJ_CLDCV = 19   ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
@@ -7135,20 +7079,20 @@ C**** IJ_P4UV = 8  ! 4*P4 (100 PA)  (UV GRID)     4 DA ! OBS
        ! 16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA
       IJ_TRNFP0 = 21  ! TRNFP0 (W/M**2)                         2 RS
       IJ_SRTR = 22    ! SRHDT+TRHDT (J/M**2)                    1 SF
-      IJ_NETH = 23    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)   1 SP
+      IJ_NETH = 23    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)   1 SC
       IJ_SRNFP0 = 24  ! SRNFP0 (W/M**2)                         2 RD
       IJ_SRINCP0 = 25 ! SRINCP0 (W/M**2)                        2 RD
       IJ_SRNFG = 26   ! SRNFG (W/M**2)                          2 RD
       IJ_SRINCG = 27  ! SRINCG (W/M**2)                         2 RD
-      IJ_TG1  = 28  ! TG1 (K-273.16)                            1 GD
+      IJ_TG1  = 28  ! TG1 (K-TF)                                1 GD
       IJ_RSIT = 29  ! POICE+PLICE+(IF SNOW)PEARTH               4 DA
       IJ_TDSL = 30 ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT) .5*9 MN
       IJ_DTDP = 31  ! DTHETA/DPHI (K S**2/M**2) IN TROPOSPHERE  4 DA
       IJ_RUNE = 32  ! RUN1 OVER EARTH  (KG/M**2)                1 PG
-C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
+C**** IJ_TS1  = 33 ! TS (K-TF) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_RUNLI = 33 ! RUN1 OVER LAND ICE  (KG/M**2) (NO PRT)    1 PG
       IJ_WS   = 34  ! SURFACE WIND SPEED (M/S)                  3 SF
-      IJ_TS   = 35  ! TS (K-273.16)                             3 SF
+      IJ_TS   = 35  ! TS (K-TF)                                 3 SF
       IJ_US   = 36  ! US (M/S)                                  3 SF
       IJ_VS   = 37  ! VS (M/S)                                  3 SF
       IJ_SLP  = 38  ! PSL (100 PA-1000)  (USING TS)             4 DA
@@ -7157,7 +7101,7 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_PCLDL = 41  ! PCLD(LOW) (1)                            2 RD
       IJ_PCLDM = 42  ! PCLD(MID) (1)                            2 RD
       IJ_PCLDH = 43  ! PCLD(HIGH) (1)                           2 RD
-      IJ_BTMPW = 44  ! BTEMPW-TF (K-273.16)                     2 RD
+      IJ_BTMPW = 44  ! BTEMPW-TF (K-TF)                         2 RD
       IJ_SRREF = 45  ! PLAVIS*S0*COSZ (W/M**2)                  2 RD
       IJ_TOC2 = 46  ! TGO2= TOCEAN(2)  (C)                   .5*9 MN
       IJ_TAUS = 47  ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
@@ -7335,20 +7279,20 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       J_EVHDT = 14 ! EVHDT (J/M**2)                                1 SF
       J_F2DT  = 15 ! F2DT (J/M**2)                                 1 GD
       J_HZ1   = 16 ! HEATZ1=AJ(EDIFS)+AJ(F1DT)                     1 D1
-      J_TG2   = 17 ! TG2 (K-273.16)                                1 GD
-      J_TG1   = 18 ! TG1 (K-273.16)                                1 GD
+      J_TG2   = 17 ! TG2 (K-TF)                                    1 GD
+      J_TG1   = 18 ! TG1 (K-TF)                                    1 GD
       J_EVAP  = 19 ! EVAP (KG/M**2)                                1 GD
       J_PRCP  = 20 ! PRCP=AJ(PRCPSS)+AJ(PRCPMC) (100 PA)           1 D1
-      J_TX    = 21 ! TX (K-273.16)  (INTEGRAL OVER ATMOSPHERE OF)  4 DA
-      J_TX1   = 22 ! TX1 (K-273.16)                                4 DA
-      J_TSRF  = 23 ! TS (K-273.16)                                 3 SF
+      J_TX    = 21 ! TX (K-TF)  (INTEGRAL OVER ATMOSPHERE OF)      4 DA
+      J_TX1   = 22 ! TX1 (K-TF)                                    4 DA
+      J_TSRF  = 23 ! TS (K-TF)                                     3 SF
       J_DTSGST= 24 ! DTH/DPHI  (STRATOSPHERE)                      4 DA
       J_DTDGTR= 25 ! DTH/DPHI  (TROPOSPHERE)                       4 DA
       J_RICST = 26 ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (STRATOSPHERE)  4 DA
       J_RICTR = 27 ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (TROPOSPHERE)   4 DA
       J_ROSST = 28 ! 4*UMAX/(DX*SINJ)  (STRATOSPHERE)              4 DA
       J_ROSTR = 29 ! 4*UMAX/(DX*SINJ)  (TROPOSPHERE)               4 DA
-      J_RSI   = 30 ! POICE (1)                                     1 GD
+      J_RSI   = 30 ! RSI (1)                                       1 GD
       J_RSNOW = 31 ! PSNOW (1)                                     4 DA
       J_SWCOR = 32 ! SW CORRECTION   (obsolete)                    2 RD
       J_OHT   = 33 ! OCEAN TRANSPORT                               1 GD
@@ -7357,7 +7301,7 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       J_DTDJT = 36 ! T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)      4 DA
       J_LSTR  = 37 ! SQRT(DTH/DLNP)/SINJ  (STRATOSPHERE)           4 DA
       J_LTRO  = 38 ! SQRT(DTH/DLNP)/SINJ  (TROPOSPHERE)            4 DA
-      J_EPRCP = 39 ! ENERGP (J/M**2)                               1 PR
+      J_EPRCP = 39 ! ENERGP (J/M**2)                               1 CN
       J_ERUN1 = 40 ! ERUN1 (J/M**2)                                1 GP
       J_EDIFS = 41 ! EDIFS (J/M**2)                                1 GP
       J_F1DT  = 42 ! F1DT (J/M**2)                                 1 GD
@@ -7387,6 +7331,7 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       J_GAMC  = 66 ! GAMC  (K/M)                                   4 DA
       J_TRINCG= 67 ! TRINCG (W/M**2)                               2 RD
       J_FTHERM= 68 ! ENERGY DIFFUSION INTO THERMOCLINE (W/M**2) .5*9 MN
+      J_TYPE  = 69 ! PTYPE                                         1 GD
       J_HSURF = 70 ! TRNFP0-TRNFG (W/M**2)                         2 RD
       J_HATM  = 71 ! TRNFP1-TRNFG (W/M**2)                         2 RD
 C**** Note: next eight diagnostics must remain in order
@@ -7430,7 +7375,8 @@ C**** Definiton of IA_J (IDACC index) and NAME_J
       NAME_J(J_RICTR)  = "RICTR"   ; IA_J(J_RICTR) = 4
       NAME_J(J_ROSST)  = "ROSST"   ; IA_J(J_ROSST) = 4
       NAME_J(J_ROSTR)  = "ROSTR"   ; IA_J(J_ROSTR) = 4
-      NAME_J(J_RSI)    = "RSI"     ; IA_J(J_RSI) = 1
+      NAME_J(J_RSI)    = "RSI"     ; IA_J(J_RSI)   = 1
+      NAME_J(J_TYPE)   = "PTYPE"   ; IA_J(J_TYPE)  = 1
       NAME_J(J_RSNOW)  = "RSNOW"   ; IA_J(J_RSNOW) = 4
       NAME_J(J_SWCOR)  = "SWCOR"   ; IA_J(J_SWCOR) = 2
       NAME_J(J_OHT)    = "OHT"     ; IA_J(J_OHT) = 1
@@ -7460,7 +7406,7 @@ C**** Definiton of IA_J (IDACC index) and NAME_J
       NAME_J(J_PCLDSS) = "PCLDSS"  ; IA_J(J_PCLDSS) = 2
       NAME_J(J_PCLDMC) = "PCLDMC"  ; IA_J(J_PCLDMC) = 2
       NAME_J(J_PCLD)   = "PCLD"    ; IA_J(J_PCLD) = 2
-      NAME_J(J_CTOPP)  = "CTOPP"   ; IA_J(J_CTOPP) = 0
+      NAME_J(J_CTOPP)  = "CTOPP"   ; IA_J(J_CTOPP) = 1
       NAME_J(J_PRCPSS) = "PRCPSS"  ; IA_J(J_PRCPSS) = 1
       NAME_J(J_PRCPMC) = "PRCPMC"  ; IA_J(J_PRCPMC) = 1
       NAME_J(J_QP)     = "QP"      ; IA_J(J_QP) = 4
@@ -7517,7 +7463,7 @@ C**** Initialize certain arrays used by more than one print routine
       JYEAR0=JYEAR
 
       IDACC(1:10)=0
-      AJ=0    ; BJ=0   ; CJ=0     ; AREG=0
+      AJ=0    ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; AIJG=0 ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0

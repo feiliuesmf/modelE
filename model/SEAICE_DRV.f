@@ -8,19 +8,19 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECSI
-      USE E001M12_COM, only : im,jm,fland,kocean
+      USE E001M12_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,prec,eprec
       USE SEAICE_COM, only : rsi,msi,snowi,tsi   !,hsi soon
       USE SEAICE, only : prec_si, ace1i, lmi
-      USE DAGCOM, only : cj,areg,aij,jreg,ij_f0oi,ij_erun2,j_eprcp
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2
      *     ,j_difs,j_run1,j_edifs,j_erun2,j_imelt
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: TSIL
       REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DIFS,EDIFS,ERUN2,DXYPJ,POICE
       LOGICAL QFIXR
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,IMAX,JR,ITYPE
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -31,11 +31,15 @@
       RUNOSI(I,J)=0
       IF (POICE.gt.0) THEN
 
+        IF (FOCEAN(I,J).gt.0) THEN
+          ITYPE=ITOICE
+        ELSE
+          ITYPE=ITLKICE
+        END IF
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
-        CJ(J,J_EPRCP)=CJ(J,J_EPRCP)+ENRGP*POICE
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 
         TSIL(:) = TSI(:,I,J)      ! sea ice temperatures
@@ -58,13 +62,13 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         
 C**** ACCUMULATE DIAGNOSTICS
         IF (QFIXR) THEN
-          CJ(J,J_IMELT)=CJ(J,J_IMELT)+DIFS *POICE
-          CJ(J,J_ERUN2)=CJ(J,J_ERUN2)+ERUN2*POICE
+          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+DIFS *POICE
+          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+ERUN2*POICE
           AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*POICE*DXYPJ
         END IF
-        CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFS *POICE
-        CJ(J,J_RUN1) =CJ(J,J_RUN1) +RUN0 *POICE
-        CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFS*POICE
+        AJ(J,J_DIFS, ITYPE)=AJ(J,J_DIFS, ITYPE)+DIFS *POICE
+        AJ(J,J_RUN1, ITYPE)=AJ(J,J_RUN1, ITYPE)+RUN0 *POICE
+        AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFS*POICE
         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*POICE*DXYPJ
         
       END IF
@@ -80,15 +84,15 @@ C****
 !@calls SEA_ICE
       USE CONSTANT, only : lhm,byshi
       USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,focean
-     *     ,flake
+     *     ,flake,itoice,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi
       USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : sea_ice,lmi
       USE OCEAN, only : tocean
       USE LAKES_COM, only : tlake
-      USE DAGCOM, only : aj,cj,areg,aij,jreg,
-     *     ij_f0oi,ij_erun2,ij_rsoi,ij_msi2,ij_evapi,j_eprcp,j_difs
+      USE DAGCOM, only : aj,areg,aij,jreg,
+     *     ij_f0oi,ij_erun2,ij_rsoi,ij_msi2,ij_evapi,j_difs
      *     ,j_run1,j_edifs,j_erun2,j_imelt,j_f1dt,j_f2dt,j_evap,ij_evap
       IMPLICIT NONE
 
@@ -96,7 +100,7 @@ C****
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,TGW,RUN0
      *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,DXYPJ,POICE,PWATER
       LOGICAL QFIXR
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,IMAX,JR,ITYPE
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -118,8 +122,10 @@ C****
         TSIL(:) = TSI(:,I,J)  ! first layer sea ice temperature
         IF (FOCEAN(I,J).gt.0) THEN
           TGW = TOCEAN(1,I,J)   ! ocean temperature
+          ITYPE=ITOICE
         ELSE
           TGW = TLAKE(I,J)      ! lake temperature
+          ITYPE=ITLKICE
         END IF
 
         AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
@@ -146,22 +152,22 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         ERUNOSI(I,J)= F2DT
 C**** ACCUMULATE DIAGNOSTICS
         IF (.not. QFIXR) THEN
-          CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFSI *PWATER
-          CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFSI*PWATER
-c     AJ(J,J_IMELT)=AJ(J,J_IMELT)+ACE2M *POICE  ???
+          AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+DIFSI *PWATER
+          AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFSI*PWATER
+c         AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+ACE2M *POICE  ???
           IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSI*PWATER
      *         *DXYPJ
         ELSE
-          CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFS *POICE
-          CJ(J,J_IMELT)=CJ(J,J_IMELT)+DIFS *POICE
-          CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFS*POICE
-          CJ(J,J_ERUN2)=CJ(J,J_ERUN2)+EDIFS*POICE
+          AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+DIFS *POICE
+          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+DIFS *POICE
+          AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFS*POICE
+          AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+EDIFS*POICE
           IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*POICE*DXYPJ
         END IF
-        CJ(J,J_RUN1)=CJ(J,J_RUN1)+RUN0*POICE
-        CJ(J,J_F1DT)=CJ(J,J_F1DT)+F1DT*POICE
-        CJ(J,J_F2DT)=CJ(J,J_F2DT)+F2DT*POICE
-        CJ(J,J_EVAP)=CJ(J,J_EVAP)+EVAP*POICE
+        AJ(J,J_RUN1,ITYPE)=AJ(J,J_RUN1,ITYPE)+RUN0*POICE
+        AJ(J,J_F1DT,ITYPE)=AJ(J,J_F1DT,ITYPE)+F1DT*POICE
+        AJ(J,J_F2DT,ITYPE)=AJ(J,J_F2DT,ITYPE)+F2DT*POICE
+        AJ(J,J_EVAP,ITYPE)=AJ(J,J_EVAP,ITYPE)+EVAP*POICE
         IF (JR.ne.24) AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*POICE*DXYPJ
         AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*POICE
         
@@ -176,13 +182,14 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls SEA_ICE
-      USE E001M12_COM, only : im,jm,focean,flake,kocean
+      USE E001M12_COM, only : im,jm,focean,flake,kocean,ftype,fland
+     *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi
       USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : ace1i,addice,lmi
-      USE DAGCOM, only : cj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
-     *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_rsi
+      USE DAGCOM, only : aj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
+     *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_type
       USE OCEAN, only : fleadoc
       USE LAKES_COM, only : fleadlk
       USE FLUXES, only : dmsi,dhsi
@@ -192,7 +199,7 @@ C****
       REAL*8 SNOW,ROICE,MSI2,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI
      *     ,DXYPJ,POICE,PWATER,FLEAD
       LOGICAL QFIXR,QCMPR
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,IMAX,JR,ITYPE,ITYPEO
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -210,8 +217,12 @@ c        update HSI... (temporary assignment)
         HSI(:) = TSI(:,I,J)      ! sea ice temperatures
         IF (FOCEAN(I,J).gt.0) THEN
           FLEAD=FLEADOC
+          ITYPE=ITOICE
+          ITYPEO=ITOCEAN
         ELSE
           FLEAD=FLEADLK
+          ITYPE=ITLKICE
+          ITYPEO=ITLAKE
         END IF
 
         ACEFO=DMSI(1,I,J)
@@ -234,24 +245,27 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
+C**** set ftype arrays
+          FTYPE(ITYPE ,I,J)=RSI(I,J)*(1.-FLAND(I,J))
+          FTYPE(ITYPEO,I,J)=1.-FLAND(I,J)-FTYPE(ITYPE,I,J)
         END IF
 
 C**** ACCUMULATE DIAGNOSTICS
         IF (QCMPR) THEN
-          CJ(J,J_DIFS) =CJ(J,J_DIFS) +DIFSI *PWATER
-          CJ(J,J_EDIFS)=CJ(J,J_EDIFS)+EDIFSI*PWATER
+          AJ(J,J_DIFS, ITYPE)=AJ(J,J_DIFS, ITYPE)+DIFSI *PWATER
+          AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+EDIFSI*PWATER
           IF (JR.ne.24) AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFSI*PWATER
      *         *DXYPJ
         END IF
-        CJ(J,J_TG1) =CJ(J,J_TG1) +TSIL(1)*POICE
-        CJ(J,J_TG2) =CJ(J,J_TG2) +TSIL(2)*POICE
-        CJ(J,J_RSI) =CJ(J,J_RSI) +POICE
-        CJ(J,J_ACE2)=CJ(J,J_ACE2)+MSI2*POICE
-        CJ(J,J_SNOW)=CJ(J,J_SNOW)+SNOW*POICE
+        AJ(J,J_TG1, ITYPE)=AJ(J,J_TG1, ITYPE)+TSIL(1)*POICE
+        AJ(J,J_TG2, ITYPE)=AJ(J,J_TG2, ITYPE)+TSIL(2)*POICE
+        AJ(J,J_RSI, ITYPE)=AJ(J,J_RSI, ITYPE)+        POICE
+        AJ(J,J_ACE2,ITYPE)=AJ(J,J_ACE2,ITYPE)+MSI2   *POICE
+        AJ(J,J_SNOW,ITYPE)=AJ(J,J_SNOW,ITYPE)+SNOW   *POICE
         IF (JR.ne.24) THEN
-        AREG(JR,J_RSI) =AREG(JR,J_RSI) +        POICE*DXYPJ
         AREG(JR,J_TG1) =AREG(JR,J_TG1) +TSIL(1)*POICE*DXYPJ
         AREG(JR,J_TG2) =AREG(JR,J_TG2) +TSIL(2)*POICE*DXYPJ
+        AREG(JR,J_RSI) =AREG(JR,J_RSI) +        POICE*DXYPJ
         AREG(JR,J_SNOW)=AREG(JR,J_SNOW)+SNOW   *POICE*DXYPJ
         AREG(JR,J_ACE1)=AREG(JR,J_ACE1)+ACE1I  *POICE*DXYPJ
         AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+MSI2   *POICE*DXYPJ

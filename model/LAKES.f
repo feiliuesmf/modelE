@@ -28,9 +28,11 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow
-      USE E001M12_COM, only : im,jm,flake,zatmo,dtsrc,flice,hlake
+      USE E001M12_COM, only : im,jm,flake,zatmo,dtsrc,flice,hlake,ftype
+     *     ,fland,itlake,itlkice
       USE OCEAN, only : tocean
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
+      USE SEAICE_COM, only : rsi
       USE LAKES
       USE LAKES_COM
       USE FILEMANAGER
@@ -46,9 +48,6 @@ C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
 C****         TLAKE    Temperature of lake surface (C)
-C****         RLI      Horizontal ratio of lake ice to lake (1)
-C****         MLI      Mass of sea ice (kg/m**2)
-C****         HLI      Heat including latent of sea ice (J/m**2)
 C****         HLAKE    Lake sill depth (m)
 C****
 C**** FIXDCB  FLAKE    Lake fraction (1)
@@ -71,9 +70,18 @@ C**** This is just an estimate for the initiallisation
           END DO
         END DO
       END IF
-C****
+
+C**** Set FTYPE array for lakes
+      DO J=1,JM
+        DO I=1,IM
+          IF (FLAKE(I,J).gt.0) THEN
+            FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
+            FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+          END IF
+        END DO
+      END DO
+
 C**** Always initiallise River direction and Rate
-C****
 C**** Read in CDIREC: Number = octant direction, Letter = river mouth
       call getunit("RVR",iu_RVR,.false.,.true.)
       READ  (iu_RVR,910) TITLEI
@@ -416,7 +424,8 @@ c     QCHECKL = .TRUE.
 !@auth L. Nazarenko
 !@ver  1.0
       USE CONSTANT, only : rhoi
-      USE E001M12_COM, only : im,jm,flake,kocean,itime,itimei
+      USE E001M12_COM, only : im,jm,flake,kocean,itime,itimei,ftype
+     *     ,fland,itlake,itlkice
       USE GEOM, only : imaxj
 !      USE LAKES, only : zimin,zimax,t_ice,t_noice,bydtmp
       USE LAKES_COM, only : t50
@@ -443,6 +452,9 @@ c     QCHECKL = .TRUE.
             RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*byDTMP))
             RSI(I,J)=RSINEW
             MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+C**** set ftype arrays
+            FTYPE(ITLAKE ,I,J)= FLAKE(I,J)*(1.-RSI(I,J))
+            FTYPE(ITLKICE,I,J)= FLAKE(I,J)*    RSI(I,J)
             IF (RSINEW.LE.0.) THEN
               SNOWI(I,J)=0.
               TSI(:,I,J)=0.
@@ -460,12 +472,13 @@ c     QCHECKL = .TRUE.
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,fland,flice,flake,kocean,hlake
+     *     ,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,runoli,prec,eprec
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : mwl,gml,tlake
-      USE DAGCOM, only : aj,cj,aij,j_eprcp,ij_f0oc,j_run2,j_dwtr2
+      USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,DXYPJ,PLICE,PLKICE,RUN0,ERUN0,POLAKE,ROICE
@@ -485,7 +498,6 @@ c     QCHECKL = .TRUE.
       IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
 
         IF (FLAKE(I,J).gt.0) THEN
-          AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POLAKE
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POLAKE
         END IF
 
@@ -515,10 +527,10 @@ C**** This is here for continuity only
           END IF
           TGW=ENRGW/(WTRW*SHW)
           TLAKE(I,J)=TGW
-          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4 *POLAKE
-          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4*POLAKE
-          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4 *PLKICE
-          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4*PLKICE
+          AJ(J,J_RUN2,ITLAKE) =AJ(J,J_RUN2,ITLAKE) +RUN4 *POLAKE
+          AJ(J,J_DWTR2,ITLAKE)=AJ(J,J_DWTR2,ITLAKE)+ERUN4*POLAKE
+          AJ(J,J_RUN2,ITLKICE) =AJ(J,J_RUN2,ITLKICE) +RUN4 *PLKICE
+          AJ(J,J_DWTR2,ITLKICE)=AJ(J,J_DWTR2,ITLKICE)+ERUN4*PLKICE
         END IF
 
       END IF
@@ -534,7 +546,7 @@ C****
 !@calls 
       USE CONSTANT, only : twopi,rhow,shw,edpery,tf
       USE E001M12_COM, only : im,jm,flake,flice,kocean,fland,hlake
-     *     ,fearth
+     *     ,fearth,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
      *     runoli, runoe, erunoe
@@ -542,9 +554,9 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,cj,aij,areg,jreg,j_eprcp,ij_f0oc,j_run2
+      USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
-     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo
+     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type
       USE LAKES_COM, only : mwl,gml,t50,tlake,tfl
       IMPLICIT NONE
 C**** grid box variables
@@ -598,8 +610,10 @@ C**** get ice-ocean fluxes from sea ice routine
         RUN0=RUNOSI(I,J)        ! includes ACE2M term 
         F2DT=ERUNOSI(I,J)
 
-        AJ(J,J_TG1) =AJ(J,J_TG1) +TGW  *POLAKE
-        AJ(J,J_EVAP)=AJ(J,J_EVAP)+EVAPO*POLAKE
+        AJ(J,J_TG1 ,ITLAKE) =AJ(J,J_TG1 ,ITLAKE) +TGW  *POLAKE
+        AJ(J,J_EVAP,ITLAKE) =AJ(J,J_EVAP,ITLAKE) +EVAPO*POLAKE
+        AJ(J,J_TYPE,ITLAKE) =AJ(J,J_TYPE,ITLAKE) +      POLAKE
+        AJ(J,J_TYPE,ITLKICE)=AJ(J,J_TYPE,ITLKICE)+      PLKICE
         IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*POLAKE*DXYPJ
         AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
         AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POLAKE
@@ -623,23 +637,23 @@ C**** Calculate the amount of ice formation
 C**** Resave prognostic variables
           TLAKE(I,J)=TGW
 C**** Open lake diagnostics 
-          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TLAKE(I,J)*POLAKE
-          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4O     *POLAKE
-          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TLAKE(I,J)*POLAKE
-          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4O    *POLAKE
+          AJ(J,J_TG2,  ITLAKE)=AJ(J,J_TG2,  ITLAKE)+TLAKE(I,J)*POLAKE
+          AJ(J,J_RUN2, ITLAKE)=AJ(J,J_RUN2, ITLAKE)+RUN4O     *POLAKE
+          AJ(J,J_OMLT, ITLAKE)=AJ(J,J_OMLT, ITLAKE)+TLAKE(I,J)*POLAKE
+          AJ(J,J_DWTR2,ITLAKE)=AJ(J,J_DWTR2,ITLAKE)+ERUN4O    *POLAKE
           IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLAKE(I,J)
      *         *POLAKE*DXYPJ
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
 C**** Ice-covered ocean diagnostics
-          AJ(J,J_ERUN2)=AJ(J,J_ERUN2)-ENRGFO*POLAKE
-          AJ(J,J_IMELT)=AJ(J,J_IMELT)-ACEFO *POLAKE
-          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4I *PLKICE
-          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4I*PLKICE
-          CJ(J,J_ERUN2)=CJ(J,J_ERUN2)-ENRGFI*PLKICE
-          CJ(J,J_IMELT)=CJ(J,J_IMELT)-ACE2F *PLKICE
+          AJ(J,J_ERUN2,ITLAKE) =AJ(J,J_ERUN2,ITLAKE) -ENRGFO*POLAKE
+          AJ(J,J_IMELT,ITLAKE) =AJ(J,J_IMELT,ITLAKE) -ACEFO *POLAKE
+          AJ(J,J_RUN2, ITLKICE)=AJ(J,J_RUN2, ITLKICE)+RUN4I *PLKICE
+          AJ(J,J_DWTR2,ITLKICE)=AJ(J,J_DWTR2,ITLKICE)+ERUN4I*PLKICE
+          AJ(J,J_ERUN2,ITLKICE)=AJ(J,J_ERUN2,ITLKICE)-ENRGFI*PLKICE
+          AJ(J,J_IMELT,ITLKICE)=AJ(J,J_IMELT,ITLKICE)-ACE2F *PLKICE
         ELSE
           ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
-          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TGW   *POLAKE
+          AJ(J,J_TG2,ITLAKE)  =AJ(J,J_TG2,ITLAKE)  +TGW   *POLAKE
           IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW*POLAKE*DXYPJ
         END IF
 

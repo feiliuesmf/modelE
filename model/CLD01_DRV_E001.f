@@ -6,7 +6,8 @@
 
       USE CONSTANT, only : bygrav,lhm
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
+     *     ,ntype
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -21,7 +22,7 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj55,BYDTsrc,lscond
       USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
+      USE DAGCOM, only : aj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
      *     ,ij_neth,j_eprcp,j_prcpmc,j_prcpss
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -37,7 +38,7 @@
       REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE
+      INTEGER IMAX,JR,KR,ITYPE,IT
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP
@@ -133,16 +134,14 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
             AJL(J,L,57)=AJL(J,L,57)+(AJ52(L)-AJ57(L))*BYDSIG(L)
             AJL(J,L,8)=AJL(J,L,8)+AJ8(L)
          END DO
-         AJ(J,J_PRCPMC)=AJ(J,J_PRCPMC)+PRCPMC*(1.-FLAND(I,J))*
-     *        (1.-RSI(I,J))
-         BJ(J,J_PRCPMC)=BJ(J,J_PRCPMC)+PRCPMC*FLAND(I,J)
-         CJ(J,J_PRCPMC)=CJ(J,J_PRCPMC)+PRCPMC*RSI(I,J)*
-     *        (1.-FLAND(I,J))
+         DO IT=1,NTYPE
+           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
+         END DO
          AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPMC
-               ADAILY(JHOUR+1,5,KR)=ADAILY(JHOUR+1,5,KR)+HCNDMC
+               ADAILY(JHOUR+1,5 ,KR)=ADAILY(JHOUR+1,5 ,KR)+HCNDMC
                ADAILY(JHOUR+1,63,KR)=ADAILY(JHOUR+1,63,KR)+PRCPMC
                ADAILY(JHOUR+1,51,KR)=ADAILY(JHOUR+1,51,KR)+CLDDEPIJ
                ADAILY(JHOUR+1,52,KR)=ADAILY(JHOUR+1,52,KR)+CLDSLWIJ
@@ -174,16 +173,14 @@ C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
 C**** Accumulate diagnostics of LSCOND
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
-         AJ(J,J_PRCPSS)=AJ(J,J_PRCPSS)+PRCPSS*(1.-FLAND(I,J))*
-     *        (1.-RSI(I,J))
-         BJ(J,J_PRCPSS)=BJ(J,J_PRCPSS)+PRCPSS*FLAND(I,J)
-         CJ(J,J_PRCPSS)=CJ(J,J_PRCPSS)+PRCPSS*RSI(I,J)*
-     *        (1.-FLAND(I,J))
+         DO IT=1,NTYPE
+           AJ(J,J_PRCPSS,IT)=AJ(J,J_PRCPSS,IT)+PRCPSS*FTYPE(IT,I,J)
+         END DO
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPSS
-               ADAILY(JHOUR+1,5,KR)=ADAILY(JHOUR+1,5,KR)+HCNDSS
+               ADAILY(JHOUR+1,5 ,KR)=ADAILY(JHOUR+1,5 ,KR)+HCNDSS
                ADAILY(JHOUR+1,62,KR)=ADAILY(JHOUR+1,62,KR)+PRCPSS
             END IF
          END DO
@@ -205,6 +202,9 @@ C       EPRCP=PRCP*TPRCP*SHI
       END IF
       EPREC(I,J)=ENRGP  ! energy of precipitation
 C**** PRECIPITATION DIAGNOSTICS
+        DO IT=1,NTYPE
+          AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
+        END DO
         AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP

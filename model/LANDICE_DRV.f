@@ -8,14 +8,14 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECLI
-      USE E001M12_COM, only : im,jm,flice
+      USE E001M12_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli,prec,eprec
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : precli
-      USE DAGCOM, only : bj,areg,aij,jreg,
-     *     ij_f0li,ij_f1li,ij_erun2,ij_runli,j_eprcp,j_difs
-     *     ,j_run1,j_edifs,j_erun2,j_imelt
+      USE DAGCOM, only : aj,areg,aij,jreg,
+     *     ij_f0li,ij_f1li,ij_erun2,ij_runli,j_difs
+     *     ,j_run1,j_edifs,j_erun2,j_imelt,j_type
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
@@ -35,7 +35,6 @@
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
-        BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PLICE
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
         
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0)
@@ -46,12 +45,13 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
 C**** ACCUMULATE DIAGNOSTICS
-        BJ(J,J_DIFS) =BJ(J,J_DIFS) +DIFS *PLICE
-        BJ(J,J_RUN1) =BJ(J,J_RUN1) +RUN0 *PLICE
-        BJ(J,J_IMELT)=BJ(J,J_IMELT)+DIFS *PLICE
-        BJ(J,J_EDIFS)=BJ(J,J_EDIFS)+EDIFS*PLICE
-        BJ(J,J_ERUN2)=BJ(J,J_ERUN2)+ERUN2*PLICE
-C       BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+ERUN0*PLICE ! land ice (Tg=0)
+        AJ(J,J_DIFS, ITLANDI)=AJ(J,J_DIFS, ITLANDI)+DIFS *PLICE
+        AJ(J,J_RUN1, ITLANDI)=AJ(J,J_RUN1, ITLANDI)+RUN0 *PLICE
+        AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
+        AJ(J,J_IMELT,ITLANDI)=AJ(J,J_IMELT,ITLANDI)+DIFS *PLICE
+        AJ(J,J_EDIFS,ITLANDI)=AJ(J,J_EDIFS,ITLANDI)+EDIFS*PLICE
+        AJ(J,J_ERUN2,ITLANDI)=AJ(J,J_ERUN2,ITLANDI)+ERUN2*PLICE
+C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! land ice (Tg=0)
         AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*PLICE*DXYPJ
         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*PLICE*DXYPJ
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS
@@ -67,12 +67,12 @@ C       BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+ERUN0*PLICE ! land ice (Tg=0)
 !@auth Original Development team
 !@ver  1.0
 !@calls LNDICE
-      USE E001M12_COM, only : im,jm,flice
+      USE E001M12_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : lndice,ace1li,ace2li
-      USE DAGCOM, only : bj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
      *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_difs,j_wtr1
      *     ,j_ace1,j_wtr2,j_ace2,j_snow,j_run1,j_f2dt,j_edifs,j_f1dt
      *     ,j_erun2,j_imelt,j_run2,j_evap
@@ -108,16 +108,16 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
 C**** ACCUMULATE DIAGNOSTICS
-        BJ(J,J_TG1)  =BJ(J,J_TG1)  +TG1  *PLICE
-        BJ(J,J_TG2)  =BJ(J,J_TG2)  +TG2  *PLICE
-        BJ(J,J_SNOW) =BJ(J,J_SNOW) +SNOW *PLICE
-        BJ(J,J_F1DT) =BJ(J,J_F1DT) +F1DT *PLICE
-        BJ(J,J_EVAP) =BJ(J,J_EVAP) +EVAP *PLICE
-        BJ(J,J_RUN1) =BJ(J,J_RUN1) +RUN0 *PLICE
-        BJ(J,J_DIFS) =BJ(J,J_DIFS) +DIFS *PLICE
-        BJ(J,J_IMELT)=BJ(J,J_IMELT)+DIFS *PLICE
-        BJ(J,J_EDIFS)=BJ(J,J_EDIFS)+EDIFS*PLICE
-        BJ(J,J_ERUN2)=BJ(J,J_ERUN2)+EDIFS*PLICE
+        AJ(J,J_TG1,ITLANDI)  =AJ(J,J_TG1,ITLANDI)  +TG1  *PLICE
+        AJ(J,J_TG2,ITLANDI)  =AJ(J,J_TG2,ITLANDI)  +TG2  *PLICE
+        AJ(J,J_SNOW,ITLANDI) =AJ(J,J_SNOW,ITLANDI) +SNOW *PLICE
+        AJ(J,J_F1DT,ITLANDI) =AJ(J,J_F1DT,ITLANDI) +F1DT *PLICE
+        AJ(J,J_EVAP,ITLANDI) =AJ(J,J_EVAP,ITLANDI) +EVAP *PLICE
+        AJ(J,J_RUN1,ITLANDI) =AJ(J,J_RUN1,ITLANDI) +RUN0 *PLICE
+        AJ(J,J_DIFS,ITLANDI) =AJ(J,J_DIFS,ITLANDI) +DIFS *PLICE
+        AJ(J,J_IMELT,ITLANDI)=AJ(J,J_IMELT,ITLANDI)+DIFS *PLICE
+        AJ(J,J_EDIFS,ITLANDI)=AJ(J,J_EDIFS,ITLANDI)+EDIFS*PLICE
+        AJ(J,J_ERUN2,ITLANDI)=AJ(J,J_ERUN2,ITLANDI)+EDIFS*PLICE
         IF (JR.ne.24) THEN
         AREG(JR,J_TG1) =AREG(JR,J_TG1) +TG1   *PLICE*DXYPJ
         AREG(JR,J_TG2) =AREG(JR,J_TG2) +TG2   *PLICE*DXYPJ

@@ -10,7 +10,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shw,shi,edpery
       USE E001M12_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
-     *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6
+     *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6,itearth
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
@@ -35,7 +35,7 @@ C****
      &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
-      USE DAGCOM , only : aijg,aij,tsfrez,tdiurn,bj,areg,adaily,jreg,
+      USE DAGCOM , only : aijg,aij,tsfrez,tdiurn,aj,areg,adaily,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
@@ -499,16 +499,16 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
  6000    IM1=I
       END DO
 C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
-         BJ(J,J_TRHDT)=BJ(J,J_TRHDT)+BTRHDT
-         BJ(J,J_SHDT)=BJ(J,J_SHDT)+BSHDT
-         BJ(J,J_EVHDT)=BJ(J,J_EVHDT)+BEVHDT
-         BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+BERUN0
-         BJ(J,J_EDIFS)=BJ(J,J_EDIFS)+BEDIFS
-         BJ(J,J_DIFS)=BJ(J,J_DIFS)+BDIFS
-         BJ(J,J_RUN2)=BJ(J,J_RUN2)+BRUNU
-         BJ(J,J_DWTR2)=BJ(J,J_DWTR2)+BERUNU
-         BJ(J,J_RUN1)=BJ(J,J_RUN1)+BRUN0
-         IF(MODDSF.EQ.0) BJ(J,J_TSRF)=BJ(J,J_TSRF)+BTS
+         AJ(J,J_TRHDT,ITEARTH)=AJ(J,J_TRHDT,ITEARTH)+BTRHDT
+         AJ(J,J_SHDT ,ITEARTH)=AJ(J,J_SHDT ,ITEARTH)+BSHDT
+         AJ(J,J_EVHDT,ITEARTH)=AJ(J,J_EVHDT,ITEARTH)+BEVHDT
+         AJ(J,J_ERUN1,ITEARTH)=AJ(J,J_ERUN1,ITEARTH)+BERUN0
+         AJ(J,J_EDIFS,ITEARTH)=AJ(J,J_EDIFS,ITEARTH)+BEDIFS
+         AJ(J,J_DIFS ,ITEARTH)=AJ(J,J_DIFS ,ITEARTH)+BDIFS
+         AJ(J,J_RUN2 ,ITEARTH)=AJ(J,J_RUN2 ,ITEARTH)+BRUNU
+         AJ(J,J_DWTR2,ITEARTH)=AJ(J,J_DWTR2,ITEARTH)+BERUNU
+         AJ(J,J_RUN1 ,ITEARTH)=AJ(J,J_RUN1 ,ITEARTH)+BRUN0
+         IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITEARTH)=AJ(J,J_TSRF,ITEARTH)+BTS
       END DO
       RETURN
       END
@@ -1082,7 +1082,7 @@ C**** Check for reasonable temperatures over earth
 !@sum  daily_EARTH performs daily tasks for EARTH related functions
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhow,twopi,edpery
+      USE CONSTANT, only : rhow,twopi,edpery,tf
       USE E001M12_COM, only : im,jm,NDAY,NIsurf,jday,fearth,wfcs
       USE GEOM, only : imaxj
       USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
@@ -1126,7 +1126,7 @@ C****
      *           TDIURN(I,J,1))/(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
             AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+
      *           (TDIURN(I,J,4)-TDIURN(I,J,3))
-            AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-273.16)
+            AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-TF)
             IF (TDIURN(I,J,6).LT.AIJ(I,J,IJ_TMNMX))
      *           AIJ(I,J,IJ_TMNMX)=TDIURN(I,J,6)
           END DO
@@ -1136,49 +1136,21 @@ C****
       RETURN
       END SUBROUTINE daily_EARTH
 
-      SUBROUTINE PRECIP_E
-!@sum  PRECIP_E driver for applying precipitation to land fraction
-!@auth Original Development team
-!@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth
-      USE GEOM, only : imaxj
-      USE FLUXES, only : prec,eprec
-      USE DAGCOM, only : bj,aij,j_eprcp,ij_f0e
-      IMPLICIT NONE
-
-      REAL*8 PRCP,ENRGP,PEARTH
-      INTEGER I,J,IMAX
-
-      DO J=1,JM
-      IMAX=IMAXJ(J)
-      DO I=1,IMAX
-        PEARTH=FEARTH(I,J)
-        PRCP=PREC(I,J)
-        ENRGP=EPREC(I,J)      ! including latent heat
-        IF (PEARTH.gt.0) THEN
-          BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PEARTH
-          AIJ(I,J,IJ_F0E)=AIJ(I,J,IJ_F0E)+ENRGP
-        END IF
-      END DO
-      END DO
-C****
-      END SUBROUTINE PRECIP_E
-
       SUBROUTINE GROUND_E
 !@sum  GROUND_E driver for applying surface fluxes to land fraction
 !@auth Original Development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth
+      USE E001M12_COM, only : im,jm,fearth,itearth
       USE GEOM, only : imaxj,dxyp
       USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
-      USE DAGCOM, only : bj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
+      USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_f2dt,j_f1dt,j_evap,aijg
-      USE FLUXES, only : e0,e1,evapor
+     *     ,j_snow,j_f2dt,j_f1dt,j_evap,aijg,j_type
+      USE FLUXES, only : e0,e1,evapor,eprec
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,DXYPJ
-     *     ,WTR1,WTR2,ACE1,ACE2,PEARTH
+     *     ,WTR1,WTR2,ACE1,ACE2,PEARTH,ENRGP
       INTEGER I,J,IMAX,JR,K
       REAL*8, DIMENSION(IM,JM,3) :: GDEEP
       COMMON/oldDAG/GDEEP
@@ -1201,17 +1173,19 @@ C****
         F0DT=E0(I,J,4)
         F1DT=E1(I,J,4)
         EVAP=EVAPOR(I,J,4)
+        ENRGP=EPREC(I,J)      ! including latent heat
 
 C**** ACCUMULATE DIAGNOSTICS
-        BJ(J,J_WTR1) =BJ(J,J_WTR1) +WTR1 *PEARTH
-        BJ(J,J_ACE1) =BJ(J,J_ACE1) +ACE1 *PEARTH
-        BJ(J,J_WTR2) =BJ(J,J_WTR2) +WTR2 *PEARTH
-        BJ(J,J_ACE2) =BJ(J,J_ACE2) +ACE2 *PEARTH
-        BJ(J,J_TG1)  =BJ(J,J_TG1)  +TG1  *PEARTH
-        BJ(J,J_TG2)  =BJ(J,J_TG2)  +TG2  *PEARTH
-        BJ(J,J_SNOW) =BJ(J,J_SNOW) +SNOW *PEARTH
-        BJ(J,J_F1DT) =BJ(J,J_F1DT) +F1DT *PEARTH
-        BJ(J,J_EVAP) =BJ(J,J_EVAP) +EVAP *PEARTH
+        AJ(J,J_WTR1,ITEARTH)=AJ(J,J_WTR1,ITEARTH)+WTR1*PEARTH
+        AJ(J,J_ACE1,ITEARTH)=AJ(J,J_ACE1,ITEARTH)+ACE1*PEARTH
+        AJ(J,J_WTR2,ITEARTH)=AJ(J,J_WTR2,ITEARTH)+WTR2*PEARTH
+        AJ(J,J_ACE2,ITEARTH)=AJ(J,J_ACE2,ITEARTH)+ACE2*PEARTH
+        AJ(J,J_TG1 ,ITEARTH)=AJ(J,J_TG1, ITEARTH)+TG1 *PEARTH
+        AJ(J,J_TG2 ,ITEARTH)=AJ(J,J_TG2, ITEARTH)+TG2 *PEARTH
+        AJ(J,J_TYPE,ITEARTH)=AJ(J,J_TYPE,ITEARTH)+     PEARTH
+        AJ(J,J_SNOW,ITEARTH)=AJ(J,J_SNOW,ITEARTH)+SNOW*PEARTH
+        AJ(J,J_F1DT,ITEARTH)=AJ(J,J_F1DT,ITEARTH)+F1DT*PEARTH
+        AJ(J,J_EVAP,ITEARTH)=AJ(J,J_EVAP,ITEARTH)+EVAP*PEARTH
         IF (JR.ne.24) THEN
         AREG(JR,J_TG1) =AREG(JR,J_TG1) +TG1 *PEARTH*DXYPJ
         AREG(JR,J_TG2) =AREG(JR,J_TG2) +TG2 *PEARTH*DXYPJ
@@ -1221,7 +1195,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+WTR2*PEARTH*DXYPJ
         AREG(JR,J_ACE2)=AREG(JR,J_ACE2)+ACE2*PEARTH*DXYPJ
         END IF
-        AIJ(I,J,IJ_F0E)  =AIJ(I,J,IJ_F0E)  +F0DT
+        AIJ(I,J,IJ_F0E)  =AIJ(I,J,IJ_F0E)  +F0DT+ENRGP
         AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TG1 *PEARTH
         AIJ(I,J,IJ_GWTR) =AIJ(I,J,IJ_GWTR)+(WTR1+ACE1+WTR2+ACE2)
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH

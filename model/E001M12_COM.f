@@ -112,6 +112,15 @@ C**** Main model prognostic variables
 !@var P surface pressure (hecto-Pascals - PTOP)
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P
 
+C**** Define surface types (mostly used for weighting diagnostics)
+!@param NTYPE number of different surface types
+      INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
+!@var FTYPE fractions of each surface type
+      REAL*8, DIMENSION(NTYPE,IM,JM) :: FTYPE
+!@var ITxx indices of various types (used only when it matters)
+      INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
+     *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
+
       END MODULE E001M12_COM
 
       SUBROUTINE io_model(kunit,it,iaction,ioerr)

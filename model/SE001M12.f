@@ -20,15 +20,16 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
-     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
-     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim
+     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean,flake
+     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itearth,itocean
+     *     ,itoice,itlake,itlkice,itlandi
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : aij,tdiurn,aj,bj,cj,areg,adaily,jreg
+      USE DAGCOM, only : aij,tdiurn,aj,areg,adaily,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
@@ -44,30 +45,21 @@ C****
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
-      REAL*8 ATRHDT,BTRHDT
-     *     ,CTRHDT,ASHDT,BSHDT,CSHDT,AEVHDT,BEVHDT,CEVHDT,ATS,BTS,CTS
-     *     ,PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1,PGK,HS,PKDN
-     *     ,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,DGSS,EDS1S,PPBLS,EVAPS,DBLS
-     *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2,DTGRND
-     *     ,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0
-     *     ,F1,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
-     *     ,dEVdQS,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP
-     *     ,F0DT,FTEVAP,VAP,SPRING,TIMEZ,PWATER
-     *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS
-     *     ,RTAUS,RTAUUS,RTAUVS,TG1S,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE
-     *     ,TG1,SRHEAT,SNOW,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS
-     *     ,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN,QSCON,QSMUL,T2DEN,T2CON
-     *     ,T2MUL,TGDEN,FQEVAP,ZS1CO,WARMER
-     *     ,USS,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L
-     *     ,THZ1,QZ1
+      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1
+     *     ,PGK,HS,PKDN,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,DGSS,EDS1S,PPBLS
+     *     ,EVAPS,DBLS,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2
+     *     ,DTGRND,EVHDT,F1DT,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1
+     *     ,DSHDTG,DQGDTG,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS
+     *     ,HSDEN,HSCON,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT
+     *     ,FTEVAP,VAP,SPRING,TIMEZ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS
+     *     ,RMBYA,HZM1,Q0M1,QZM1,TSS,QSS,TAUS,RTAUS,RTAUUS,RTAUVS,TG1S
+     *     ,QGS,SRHDTS,TRHDTS,SHDTS,UGS,PTYPE,TG1,SRHEAT,SNOW,TG2,SHDT
+     *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
+     *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,WARMER,USS
+     *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
+     *     ,PLK,PLKI
 
       REAL*8 MSUM, MA1, MSI1, MSI2
-c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
-c      COMMON /WORK1d/DTH1,DQ1
-c      COMMON/WORK2/DU1,DV1
-
-c      REAL*8, DIMENSION(IM,JM,4) :: E0,E1,EVAPOR,TGRND,TGRN2
-c      COMMON/WORK3/E0,E1,EVAPOR,TGRND
       REAL*8, DIMENSION(IM,JM,4) :: TGRND,TGRN2
 
 C**** Interface to PBL
@@ -80,10 +72,8 @@ C**** Interface to PBL
      2               UG,VG,WG,ZMIX
 
       REAL*8, PARAMETER :: qmin=1.e-12
-
       REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
-
       REAL*8 QSAT,DQSATDT
 C****
 C**** ZATMO     GEOPOTENTIAL (G*Z)
@@ -93,22 +83,6 @@ C****
 C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
-C****
-C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
-C****        2  EARTH SNOW AMOUNT (KG/M**2)
-C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
-C****        4  EARTH TEMPERATURE OF FIRST LAYER (C)
-C****        5  EARTH WATER OF FIRST LAYER (KG/M**2)
-C****        6  EARTH ICE OF FIRST LAYER (KG/M**2)
-C****        7  OCEAN ICE TEMPERATURE OF SECOND LAYER (C)
-C****        8  EARTH TEMPERATURE OF SECOND LAYER (C)
-C****        9  EARTH WATER OF SECOND LAYER (KG/M**2)
-C****       10  EARTH ICE OF SECOND LAYER (KG/M**2)
-C****       12  LAND ICE SNOW AMOUNT (KG/M**2)
-C****       13  LAND ICE TEMPERATURE OF FIRST LAYER (C)
-C****       14  LAND ICE TEMPERATURE OF SECOND LAYER (C)
-C****       15  OCEAN ICE TEMPERATURE OF THIRD LAYER (C)
-C****       16  OCEAN ICE TEMPERATURE OF FOURTH LAYER (C)
 C****
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -122,14 +96,14 @@ C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
         DO I=1,IM
           TGRND(I,J,2)=TSI   (1,I,J)
           TGRND(I,J,3)=TLANDI(1,I,J)
-C         TGRND(I,J,4)=GDATA(I,J,4)
+C         TGRND(I,J,4)=TEARTH(I,J)
           TGRN2(I,J,2)=TSI   (2,I,J)
           TGRN2(I,J,3)=TLANDI(2,I,J)
         END DO
       END DO
 C*
 C**** Zero out fluxes summed over type
-      E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0. ;
+      E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
 
       call pgrads1
 C****
@@ -155,19 +129,6 @@ C****
       IF(J.LE.JM/2) HEMI=-1.
       POLE=.FALSE.
       IF(J.EQ.1 .or. J.EQ.JM) POLE = .TRUE.
-C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
-         ATRHDT=0.
-         BTRHDT=0.
-         CTRHDT=0.
-         ASHDT=0.
-         BSHDT=0.
-         CSHDT=0.
-         AEVHDT=0.
-         BEVHDT=0.
-         CEVHDT=0.
-         ATS=0.
-         BTS=0.
-         CTS=0.
          IF(J.LT.JEQ) WARMER=-SPRING
          IF(J.GE.JEQ) WARMER=SPRING
       IM1=IM
@@ -180,7 +141,6 @@ C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
       USAVG(I,J)=0.
       VSAVG(I,J)=0.
       TAUAVG(I,J)=0.
-
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -189,6 +149,10 @@ C****
       PLICE=FLICE(I,J)
       POICE=RSI(I,J)*PWATER
       POCEAN=PWATER-POICE
+      POC =FOCEAN(I,J)*(1.-RSI(I,J))
+      POI =FOCEAN(I,J)*    RSI(I,J) 
+      PLK = FLAKE(I,J)*(1.-RSI(I,J))
+      PLKI= FLAKE(I,J)*    RSI(I,J) 
       PXSOIL=POCEAN+POICE+PLICE
       PIJ=P(I,J)
       PS=PEDN(1,I,J)    ! PIJ+PTOP
@@ -241,10 +205,6 @@ C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
          EDS1S=0.
          PPBLS=0.
          EVAPS=0.
-C         EKMS=0.
-C         RNLDS=0.
-C         FRCTVS=0.
-C         PSIS=0.
          DBLS=0.
 C****
       IF (POCEAN.LE.0.) then
@@ -479,15 +439,22 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
          EDS1S=EDS1S+KH*PTYPE
          PPBLS=PPBLS+PPBL*PTYPE
          EVAPS=EVAPS+EVAP*PTYPE
-         DBLS  =DBLS  +DBL*PTYPE
+         DBLS=DBLS+DBL*PTYPE
 5666  GO TO (4000,4100,4400),ITYPE
 C****
 C**** OCEAN
 C****
- 4000    ASHDT=ASHDT+SHDT*POCEAN
-         AEVHDT=AEVHDT+EVHDT*POCEAN
-         ATRHDT=ATRHDT+TRHDT*POCEAN
-         ATS=ATS+(TS-TF)*POCEAN
+ 4000 CONTINUE
+         AJ(J,J_EVHDT,ITOCEAN)=AJ(J,J_EVHDT,ITOCEAN)+EVHDT  *POC
+         AJ(J,J_SHDT ,ITOCEAN)=AJ(J,J_SHDT ,ITOCEAN)+SHDT   *POC
+         AJ(J,J_TRHDT,ITOCEAN)=AJ(J,J_TRHDT,ITOCEAN)+TRHDT  *POC
+         AJ(J,J_TRHDT,ITLAKE) =AJ(J,J_TRHDT,ITLAKE) +TRHDT  *PLK
+         AJ(J,J_SHDT ,ITLAKE) =AJ(J,J_SHDT ,ITLAKE) +SHDT   *PLK
+         AJ(J,J_EVHDT,ITLAKE) =AJ(J,J_EVHDT,ITLAKE) +EVHDT  *PLK
+         IF(MODDSF.EQ.0) THEN
+           AJ(J,J_TSRF,ITOCEAN)=AJ(J,J_TSRF,ITOCEAN)+(TS-TF)*POC
+           AJ(J,J_TSRF,ITLAKE) =AJ(J,J_TSRF,ITLAKE) +(TS-TF)*PLK
+         END IF
             OA(I,J,6)=OA(I,J,6)+TRHDT
             OA(I,J,7)=OA(I,J,7)+SHDT
             OA(I,J,8)=OA(I,J,8)+EVHDT
@@ -495,10 +462,17 @@ C****
 C****
 C**** OCEAN ICE
 C****
- 4100    CSHDT=CSHDT+SHDT*POICE
-         CEVHDT=CEVHDT+EVHDT*POICE
-         CTRHDT=CTRHDT+TRHDT*POICE
-         CTS=CTS+(TS-TF)*POICE
+ 4100    CONTINUE
+         AJ(J,J_EVHDT,ITOICE) =AJ(J,J_EVHDT,ITOICE) +EVHDT  *POI
+         AJ(J,J_SHDT ,ITOICE) =AJ(J,J_SHDT ,ITOICE) +SHDT   *POI
+         AJ(J,J_TRHDT,ITOICE) =AJ(J,J_TRHDT,ITOICE) +TRHDT  *POI
+         AJ(J,J_TRHDT,ITLKICE)=AJ(J,J_TRHDT,ITLKICE)+TRHDT  *PLKI
+         AJ(J,J_SHDT ,ITLKICE)=AJ(J,J_SHDT ,ITLKICE)+SHDT   *PLKI
+         AJ(J,J_EVHDT,ITLKICE)=AJ(J,J_EVHDT,ITLKICE)+EVHDT  *PLKI
+         IF(MODDSF.EQ.0) THEN
+           AJ(J,J_TSRF,ITOICE) =AJ(J,J_TSRF,ITOICE) +(TS-TF)*POI
+           AJ(J,J_TSRF,ITLKICE)=AJ(J,J_TSRF,ITLKICE)+(TS-TF)*PLKI
+         END IF
          IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
             OA(I,J,9)=OA(I,J,9)+TRHDT
             OA(I,J,10)=OA(I,J,10)+SHDT
@@ -507,10 +481,12 @@ C****
 C****
 C**** LAND ICE
 C****
- 4400    BSHDT=BSHDT+SHDT*PLICE
-         BEVHDT=BEVHDT+EVHDT*PLICE
-         BTRHDT=BTRHDT+TRHDT*PLICE
-         BTS=BTS+(TS-TF)*PLICE
+ 4400    CONTINUE
+         AJ(J,J_EVHDT,ITLANDI) =AJ(J,J_EVHDT,ITLANDI) +EVHDT  *PLICE
+         AJ(J,J_SHDT ,ITLANDI) =AJ(J,J_SHDT ,ITLANDI) +SHDT   *PLICE
+         AJ(J,J_TRHDT,ITLANDI) =AJ(J,J_TRHDT,ITLANDI) +TRHDT  *PLICE
+         IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITLANDI)=AJ(J,J_TSRF,ITLANDI)
+     *        +(TS-TF)*PLICE
          IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
          AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)
          AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+SHDT
@@ -521,7 +497,7 @@ C****   IMPLICIT TIME STEPS
 C****
 C**** UPDATE SURFACE AND FIRST LAYER QUANTITIES
 C****
-5000  CONTINUE
+ 5000    CONTINUE
 C****
 C**** ACCUMULATE DIAGNOSTICS
 C****
@@ -590,20 +566,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
        END IF
        IM1=I
       END DO
-C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
-         AJ(J,J_TRHDT)=AJ(J,J_TRHDT)+ATRHDT
-         BJ(J,J_TRHDT)=BJ(J,J_TRHDT)+BTRHDT
-         CJ(J,J_TRHDT)=CJ(J,J_TRHDT)+CTRHDT
-         AJ(J,J_SHDT )=AJ(J,J_SHDT )+ASHDT
-         BJ(J,J_SHDT )=BJ(J,J_SHDT )+BSHDT
-         CJ(J,J_SHDT )=CJ(J,J_SHDT )+CSHDT
-         AJ(J,J_EVHDT)=AJ(J,J_EVHDT)+AEVHDT
-         BJ(J,J_EVHDT)=BJ(J,J_EVHDT)+BEVHDT
-         CJ(J,J_EVHDT)=CJ(J,J_EVHDT)+CEVHDT
-         IF(MODDSF.NE.0) GO TO 7000
-         AJ(J,J_TSRF)=AJ(J,J_TSRF)+ATS
-         BJ(J,J_TSRF)=BJ(J,J_TSRF)+BTS
-         CJ(J,J_TSRF)=CJ(J,J_TSRF)+CTS
+
  7000 CONTINUE
 C****
 C**** EARTH
