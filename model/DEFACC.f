@@ -2378,41 +2378,41 @@ c
 
 C**** Also include MSU radiation diagnotsics here
 
-      k=k+1 !  
-      IJ_MSU2 = k 
-      lname_ij(k) = 'MSU CHANNEL 2'
-      units_ij(k) = 'C'
-      name_ij(k) = 'MSU2'
-      ia_ij(k) = ia_inst
-      ir_ij(k) = ir_m80_28
-      scale_ij(k) = 1.
+c      k=k+1 !  
+c      IJ_MSU2 = k 
+c      lname_ij(k) = 'MSU CHANNEL 2'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU2'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
 
-      k=k+1 !  
-      IJ_MSU2R = k 
-      lname_ij(k) = 'MSU CHANNEL 2R'
-      units_ij(k) = 'C'
-      name_ij(k) = 'MSU2R'
-      ia_ij(k) = ia_inst
-      ir_ij(k) = ir_m80_28
-      scale_ij(k) = 1.
+c      k=k+1 !  
+c      IJ_MSU2R = k 
+c      lname_ij(k) = 'MSU CHANNEL 2R'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU2R'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
 
-      k=k+1 !  
-      IJ_MSU3 = k 
-      lname_ij(k) = 'MSU CHANNEL 3'
-      units_ij(k) = 'C'
-      name_ij(k) = 'MSU3'
-      ia_ij(k) = ia_inst
-      ir_ij(k) = ir_m80_28
-      scale_ij(k) = 1.
+c      k=k+1 !  
+c      IJ_MSU3 = k 
+c      lname_ij(k) = 'MSU CHANNEL 3'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU3'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
 
-      k=k+1 !  
-      IJ_MSU4 = k 
-      lname_ij(k) = 'MSU CHANNEL 4'
-      units_ij(k) = 'C'
-      name_ij(k) = 'MSU4'
-      ia_ij(k) = ia_inst
-      ir_ij(k) = ir_m80_28
-      scale_ij(k) = 1.
+c      k=k+1 !  
+c      IJ_MSU4 = k 
+c      lname_ij(k) = 'MSU CHANNEL 4'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU4'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
 
       end if
 

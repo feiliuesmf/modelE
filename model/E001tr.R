@@ -8,6 +8,7 @@ E001tr: new modelE (based on B402A with 4 sample tracers)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
+!#define TRACERS_WATER               ! include water tracers code
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -17,8 +18,8 @@ MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q and tracer gasses
-TRACER_COM TRACERS                  ! trace gasses (depend on individual tracers)
+TQUS_DRV                            ! advection of Q and tracer gases
+TRACER_COM TRACERS                  ! trace gases (depend on individual tracers)
 TRACER_PRT                          ! tracer diagnostic printout
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
@@ -38,7 +39,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
+AIC=DEC1958.rsfB394M12.modelE.13 ! initial conditions (atm. and ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
@@ -78,7 +79,7 @@ R=00BG/B
 CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
-U00wtr=.47
+U00wtr=.49
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,

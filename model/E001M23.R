@@ -33,7 +33,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1986.rsfB436TM23.modelE
+AIC=DEC1986.rsfB436TM23.modelE.13
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
@@ -65,7 +65,7 @@ R=00BG/B
 CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
-U00wtr=.50
+U00wtr=.49
 U00ice=.50
 
 LMCM=16              ! max level of moist convection

@@ -32,7 +32,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
+AIC=DEC1958.rsfB394M12.modelE.13 ! initial conditions (atm. and ground)
 ! OSST/SICE: data rec. start with an integer M, where
 !     M=1 means Jan of the year mentioned in the file names (here 1950)
 !     In order that data and date agree, set IYEAR1=that year (1950)
@@ -70,7 +70,7 @@ CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=0
 ocn_cycl=0
-U00wtr=.47
+U00wtr=.49
 U00ice=.50
 DT=450.,        ! from default: DTsrc=3600.,
 NSLP=12         ! saving SLP 12hrly

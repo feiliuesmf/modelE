@@ -69,7 +69,7 @@ R=00BG/B
 CO2=-6.
 XCDLM=.0005,.00005
 KOCEAN=1
-U00wtr=.47
+U00wtr=.49
 U00ice=.50
 
 DT=450.         ! from default: DTsrc=3600.,

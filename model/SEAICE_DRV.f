@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  SEAICE_DRV contains drivers for SEAICE related routines
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -10,18 +12,29 @@
 !@calls seaice:prec_si
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
+     *     ,jday
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp
+#ifdef TRACERS_WATER
+     *     ,trprec,trunpsi,gtracer
+#endif
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
+#ifdef TRACERS_WATER
+     *     ,ntm,trsi
+#endif
       USE SEAICE, only : prec_si, ace1i, lmi,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2
      *     ,j_difs,j_run1,j_edifs,j_erun2,j_imelt
-      USE FLUXES, only : gtemp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DXYPJ,POICE,SALT
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
+      REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
+#endif
       INTEGER I,J,IMAX,JR,ITYPE,N
+      LOGICAL WETSNOW
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -44,20 +57,42 @@
         MSI2=MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice temperatures
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
+#ifdef TRACERS_WATER
+        TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
+        TRPRCP(:)=TRPREC(:,I,J)   ! tracer in precip
+#endif
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
-        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SALT)
+        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SALT,
+#ifdef TRACERS_WATER
+     *       TRSIL,TRPRCP,TRUN0,
+#endif
+     *       WETSNOW)
 
         SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
         SRUNPSI(I,J)=SALT
         HSI(:,I,J)=HSIL(:)
         SSI(:,I,J)=SSIL(:)
+#ifdef TRACERS_WATER
+        TRSI(:,:,I,J)=TRSIL(:,:)
+        TRUNPSI(:,I,J)=TRUN0(:)   ! tracer in runoff
+#endif
+        FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.WETSNOW
+C**** pond_melt accumulates in melt season only
+        if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
+     *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
+          pond_melt(i,j)=pond_melt(i,j)+0.3d0*RUN0
+        end if
+
 C**** set gtemp array
-        GTEMP(1:2,2,I,J)=TSIL(1:2)
         MSI(I,J)=MSI2
+        GTEMP(1:2,2,I,J)=TSIL(1:2)
+#ifdef TRACERS_WATER
+        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+#endif
 
 C**** ACCUMULATE DIAGNOSTICS
 c          AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+FMOC*POICE
@@ -85,13 +120,25 @@ C****
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
       USE GEOM, only : sinp,imaxj,dxyp
       USE SEAICE_COM, only : msi,hsi,ssi,rsi
+#ifdef TRACERS_WATER
+     *     ,ntm,trsi
+#endif
       USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
       USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
+#ifdef TRACERS_WATER
+     *     ,ftrsi_io,gtracer
+#endif
       USE LAKES_COM, only : tlake,mwl,flake,gml,mldlk
+#ifdef TRACERS_WATER
+     *     ,trlake
+#endif
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Ti,dh,mflux,hflux,sflux,fluxlim
      *     ,mlsh,tofrez   !,mfluxmax
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
+#endif
 
       DO J=1,JM
 C**** Coriolis parameter (on tracer grid)
@@ -100,6 +147,11 @@ C**** Coriolis parameter (on tracer grid)
           IF (RSI(I,J).gt.0) THEN
 C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
+#ifdef TRACERS_WATER
+            Trm(:)=GTRACER(:,1,I,J)
+            Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J))
+            tralpha(:)=1.
+#endif
             dh = 0.5*(XSI(LMI)*MSI(I,J))/RHOI
 c            mfluxmax = (MSI(I,J)-AC2OIM)/dtsrc
             IF (FOCEAN(I,J).gt.0) THEN
@@ -112,15 +164,11 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
                 Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
-c                if (i.eq.19.and.j.eq.42) !(i.le.3.and.j.eq.4)
-c     *               print*,"iceoc0",i,j,Ti,Si,Tm,Sm,dh,Ustar,Coriol
-c     *               ,mlsh
-                call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc
-     *               ,mlsh,mflux,sflux,hflux) !,mfluxmax)
-c                if (i.eq.19.and.j.eq.42) !(i.le.3.and.j.eq.4)
-c     *               print*,"iceoc1",i,j,mflux,hflux,sflux,XSI(4)*MSI(I
-c     *               ,J)/dtsrc
-
+                call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
+#ifdef TRACERS_WATER
+     *               Tri,Trm,trflux,tralpha,
+#endif
+     *               mflux,sflux,hflux) 
               ELSE ! for fixed SST assume freezing temp at base,implicit
                 hflux=alami*(Ti-tofrez(i,j))/(dh+alpha*dtsrc*alami*byshi
      *               /(XSI(LMI)*MSI(I,J)))
@@ -131,13 +179,20 @@ c     *               ,J)/dtsrc
               Ti = (HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))+LHM)*BYSHI
               mlsh=SHW*MLDLK(I,J)*RHOW
               sflux = 0.
-              call icelake(Ti,Tm,dh,dtsrc,mlsh,mflux,hflux)  !,mfluxmax
+              call icelake(Ti,Tm,dh,dtsrc,mlsh,
+#ifdef TRACERS_WATER
+     *             Tri,Trm,trflux,tralpha,
+#endif
+     *             mflux,hflux)
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
               IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*DXYP(J)) THEN
                 FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*DXYP(J)) 
                 IF (hflux.lt.FLUXLIM) THEN
                   hflux = FLUXLIM
                   mflux = 0.
+#ifdef TRACERS_WATER
+                  trflux= 0.
+#endif
                   if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
      *                 (RHOW*FLAKE(I,J)*DXYP(J)),FLUXLIM*DTSRC
                 END IF
@@ -146,13 +201,20 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down 
             FHSI_IO(I,J) = hflux*dtsrc
             FSSI_IO(I,J) = sflux*dtsrc
+#ifdef TRACERS_WATER
+            FTRSI_IO(:,I,J)=trflux(:)*dtsrc
+#endif
           ELSE
             FMSI_IO(I,J) = 0.
             FHSI_IO(I,J) = 0.
             FSSI_IO(I,J) = 0.
+#ifdef TRACERS_WATER
+            FTRSI_IO(:,I,J)=0.
+#endif
           END IF
         END DO
       END DO
+      
 C****
       RETURN
       END
@@ -164,23 +226,34 @@ C****
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : lhm,byshi,rhow
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
-     *     ,itoice,itlkice,qcheck
+     *     ,itoice,itlkice,jday
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
      *     ,fmsi_io,fhsi_io,fssi_io
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
+#ifdef TRACERS_WATER
+     *     ,ftrsi_io,trevapor,trunosi
+#endif
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix
       USE LAKES_COM, only : mwl,gml,flake
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,ij_rsoi,
      *     ij_msi2,ij_evapi,j_difs,j_run1,j_edifs,j_erun2,j_imelt,
-     *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,ij_snow
+     *     j_f1dt,j_f2dt,j_evap,ij_evap,j_rsnow,ij_rsit,ij_rsnw,
+     *     ij_snow,ij_mltp
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,DXYPJ,POICE,PWATER,SCOVI
-      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ
+      REAL*8 MSI1,MFLUX,HFLUX,SFLUX,TOFREZ,MELT12
       INTEGER I,J,IMAX,JR,ITYPE
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: trsil
+      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap
+#endif
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -192,6 +265,9 @@ C****
       JR=JREG(I,J)
       RUNOSI(I,J)=0
       ERUNOSI(I,J)=0
+#ifdef TRACERS_WATER
+      TRUNOSI(:,I,J) = 0.
+#endif
       IF (PWATER.gt.0) THEN
 
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
@@ -205,6 +281,11 @@ C****
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
         SSIL(:) = SSI(:,I,J)  ! sea ice salt
+#ifdef TRACERS_WATER
+        TREVAP(:) = TREVAPOR(:,I,J,2)
+        FTROC(:)  = ftrsi_io(:,i,j)
+        TRSIL(:,:)= TRSI(:,:,I,J)
+#endif
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
         ELSE
@@ -216,37 +297,51 @@ C****
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
         
-c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
-c     *       print*,"ice0",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP
-c     *       ,SROX,FMOC,FHOC,FSOC
-
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
-     *       ,FMOC,FHOC,FSOC)
-
-c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
-c     *       print*,"ice1",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,FMOC,FHOC,FSOC
+#ifdef TRACERS_WATER
+     *       ,TRSIL,TREVAP,FTROC
+#endif
+     *       ,FMOC,FHOC,FSOC,MELT12)
 
 C**** Decay sea ice salinity 
         MSI1 = ACE1I + SNOW
         if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
-          CALL SSIDEC(I,J,MSI1,MSI2,HSIL,SSIL,DTsrc,MFLUX,HFLUX,SFLUX)
+          CALL SSIDEC(I,J,MSI1,MSI2,HSIL,SSIL,DTsrc,
+#ifdef TRACERS_WATER
+     *         TRSIL,TRFLUX,
+#endif
+     *         MFLUX,HFLUX,SFLUX)
         else
           MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
+#ifdef TRACERS_WATER
+          TRFLUX = 0.
+#endif
         end if
 
-c        if (i.eq.19.and.j.eq.42)  !(i.le.3.and.j.eq.4)
-c     *       print*,"ice2",i,j,ROICE,SNOW,HSIL,SSIL,MSI2,MFLUX,HFLUX
-c     *       ,SFLUX
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J)=SNOW
         HSI(:,I,J)=HSIL(:)
         SSI(:,I,J)=SSIL(:)
         MSI(I,J) = MSI2
+#ifdef TRACERS_WATER
+        TRSI(:,:,I,J) = TRSIL(:,:)
+#endif
+        FLAG_DSWS(I,J)=FLAG_DSWS(I,J).or.MELT12.gt.0
+C**** pond_melt accumulates in melt season only
+        if ((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212)) .or.
+     *       (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) then
+          pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
+          pond_melt(i,j)=MIN(pond_melt(i,j),0.5*(MSI2+SNOW+ACE1I))
+        end if
+
 C**** Net fluxes to ocean
         RUNOSI(I,J) = FMOC + MFLUX
         ERUNOSI(I,J)= FHOC + HFLUX
         SRUNOSI(I,J)= FSOC + SFLUX
         SOLAR(3,I,J)= SROX(2)
+#ifdef TRACERS_WATER
+        TRUNOSI(:,I,J) = FTROC(:) + TRFLUX(:)
+#endif
 
 C**** ACCUMULATE DIAGNOSTICS
           SCOVI=0.
@@ -256,6 +351,7 @@ C**** ACCUMULATE DIAGNOSTICS
           AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
+          AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
 
           AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+FMOC*POICE
           AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+FHOC*POICE
@@ -293,16 +389,26 @@ C****
      *     ,itocean,itoice,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,ij_tg1,j_type,ij_tsi,ij_ssi1,ij_ssi2
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp
+#ifdef TRACERS_WATER
+     *     ,dtrsi,gtracer
+#endif
       USE LAKES_COM, only : flake
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI,SALTO,SALTI
      *     ,DXYPJ,POICE,PWATER,FLEAD
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: trsil
+      REAL*8, DIMENSION(NTM) :: tro,tri
+#endif
       LOGICAL QFIXR
       INTEGER I,J,IMAX,JR,ITYPE,ITYPEO
 
@@ -320,6 +426,9 @@ C****
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice enthalpy
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
+#ifdef TRACERS_WATER
+        TRSIL(:,:)= TRSI(:,:,I,J)
+#endif
 
         IF (FOCEAN(I,J).gt.0) THEN
           FLEAD=FLEADOC
@@ -343,14 +452,25 @@ C****
         ENRGFI=DHSI(2,I,J)
         SALTO=DSSI(1,I,J)
         SALTI=DSSI(2,I,J)
+#ifdef TRACERS_WATER
+        TRO(:) = DTRSI(:,1,I,J)
+        TRI(:) = DTRSI(:,2,I,J)
+#endif
 
-        CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F
-     *       ,ENRGFI,SALTO,SALTI,FLEAD,QFIXR)
+        CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F,
+     *       ENRGFI,SALTO,SALTI,
+#ifdef TRACERS_WATER
+     *       TRSIL,TRO,TRI,
+#endif
+     *       FLEAD,QFIXR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
-        SNOWI(I,J) =SNOW
-        HSI(:,I,J) =HSIL(:)
-        SSI(:,I,J) =SSIL(:)
+        SNOWI(I,J) = SNOW
+        HSI(:,I,J) = HSIL(:)
+        SSI(:,I,J) = SSIL(:)
+#ifdef TRACERS_WATER
+        TRSI(:,:,I,J) = TRSIL(:,:)
+#endif
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2
@@ -360,6 +480,9 @@ C**** set ftype arrays
         END IF
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
+#ifdef TRACERS_WATER
+        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+#endif
 
 C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_TG1, ITYPE)=AJ(J,J_TG1, ITYPE)+TSIL(1)*POICE
@@ -392,6 +515,10 @@ C**** replicate ice values at the north pole
         SSI(:,I,JM)=SSI(:,1,JM)
         SNOWI(I,JM)=SNOWI(1,JM)
         GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+#ifdef TRACERS_WATER
+        TRSI(:,:,I,JM) = TRSI(:,:,1,JM) 
+        GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM) 
+#endif
       END DO
 C****
       END SUBROUTINE FORM_SI
@@ -435,9 +562,15 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,shi
       USE MODEL_COM, only : im,jm,kocean,focean
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0
       USE FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+#endif
       USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -462,6 +595,11 @@ C****   set defaults for no ice case
             END IF
             HSI(1:2,I,J)=(SHI*TFO-LHM)*XSI(1:2)*ACE1I
             HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
+#ifdef TRACERS_WATER
+            TRSI(:,:,I,J)=0.
+#endif
+            pond_melt(i,j) = 0.
+            flag_dsws(i,j) = .FALSE.
           END IF
         END DO
         END DO
@@ -471,6 +609,9 @@ C**** set GTEMP array for ice
       DO I=1,IM
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+#ifdef TRACERS_WATER
+        GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1)
+#endif
       END DO
       END DO
 
@@ -565,3 +706,37 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_SSI
+
+      SUBROUTINE daily_ice
+!@sum daily_ice performs ice processes that are needed everyday
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : jm,jday
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : flag_dsws,pond_melt
+      IMPLICIT NONE
+      INTEGER I,J
+
+C**** Every day reset snow flag and adjust pond-melt
+      DO J=1,JM
+      DO I=1,IMAXJ(J)
+
+C**** reset snow flag to dry snow
+        FLAG_DSWS(I,J)=.FALSE.
+        
+C**** pond_melt decreases linearly in shoulder season
+        if (J.gt.JM/2 .and. (jday.ge.212 .and. jday.lt.244)) then 
+          pond_melt(i,j)=pond_melt(i,j)*(1.-1./(244.-jday))
+        elseif (J.lt.JM/2 .and. (jday.ge.31 .and. jday.lt.60)) then
+          pond_melt(i,j)=pond_melt(i,j)*(1.-1./(60.-jday))
+C**** allow pond_melt to accumulate in melt season only
+C**** otherwise pond_melt is zero
+        elseif (.not.((J.gt.JM/2 .and. (jday.ge.152 .and. jday.lt.212))
+     *         .or. (J.lt.JM/2 .and. (jday.ge.334 .or. jday.lt.31))) )
+     *         then
+          pond_melt(i,j)=0.
+        end if
+      END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE daily_ice

@@ -5097,6 +5097,10 @@ C                     1       2       3       4
 C                   WINTER  SPRING  SUMMER  AUTUMN
       DATA SEASON/  15.00,  105.0,  196.0,  288.0/
 C
+      REAL*8 almp1,almp2,almp3,almp4,alvisf,alvisr,alnirf,alnirr,als1d
+     *     ,als2d,als3d,als4d,als1f,als2f,als3f,als4f,patchy,als1,als2
+     *     ,als3,als4,ali1,ali2,ali3,ali4
+
 C
 C     -----------------------------------------------------------------
 C     Solar:     Ocean Albedo Dependence on Zenith Angle and Wind Speed
@@ -5431,27 +5435,101 @@ C                                         Ocean Ice Albedo Specification
 C                                         ------------------------------
   500 CONTINUE
       IF(POICE.LT.1.D-04) GO TO 600
+
+C**** This albedo specification comes from Schramm et al 96     
+C**** Actually uses 4 spectral bands, but we calculate a
+C**** weighted average for the two bands used in this code.
+       if(hin.gt.0. .and. hin.lt.1.)then
+         ali1=.76d0+.14d0*log(hin)
+         ali2=.247d0+.029d0*log(hin)
+         ali3=.055d0
+         ali4=.036d0
+       elseif (hin.ge.1. .and. hin.lt.2.) then
+         ali1=.77d0+.018d0*(hin-1)
+         ali2=.247d0+.196d0*(hin-1)
+         ali3=.055d0
+         ali4=.036d0
+       elseif (hin.ge.2.) then
+         ali1=.778d0
+         ali2=.443d0
+         ali3=.055d0
+         ali4=.036d0
+       endif
+       alvisf=ali1
+       alvisr=alvisf
+       alnirf=(.33d0*ali2+.14d0*ali3+.01d0*ali4)/.48d0
+       alnirr=alnirf
+       if(hsn.ge.0.02d0)then
+         if(flags)then  ! wet snow
+           if(hsn.ge.0.1d0)then
+             als1=.871d0
+             als2=.702d0
+             als3=.079d0
+             als4=.001d0 
+             patchy=1d0
+           else
+             patchy=hsn/(hsn+0.02d0)
+           endif
+           alvisf=alvisf*(1.-patchy)+als1*patchy
+           alvisr=alvisf
+           alnirf=alnirf*(1.-patchy)+
+     *       (.33d0*als2+.14d0*als3+.01d0*als4)/.48d0*patchy
+           alnirr=alnirf
+         else         ! dry snow
+           als1d=.98d0-.008d0*cosz 
+           als2d=.902d0-.116d0*cosz 
+           als3d=.384d0-.222d0*cosz 
+           als4d=.053d0-.0047d0*cosz
+           als1f=.975d0
+           als2f=.832d0
+           als3f=.25d0
+           als4f=.025d0
+           alvisf=als1f 
+           alvisr=als1d
+           alnirf=(.33d0*als2f+.14d0*als3f+.01d0*als4f)/.48d0 
+           alnirr=(.33d0*als2d+.14d0*als3d+.01d0*als4d)/.48d0 
+         endif 
+       endif
+C**** Melt ponds
+       almp1=.15d0+exp(-8.1d0*hmp-.47d0)
+       almp2=.054d0+exp(-31.8d0*hmp-.94d0)
+       almp3=.033d0+exp(-2.6d0*hmp-3.82d0)
+       almp4=.03d0
+c**** combined sea ice albedo
+       alvisf=alvisf*(1.-fmp)+almp1*fmp
+       alvisr=alvisr*(1.-fmp)+almp1*fmp
+       alnirf=alnirf*(1.-fmp)+ 
+     *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
+       alnirr=alnirr*(1.-fmp)+
+     *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
+c****
+      BOIVIS=alvisf
+      BOINIR=alnirf
+      XOIVIS=alvisr
+      XOINIR=alnirr
+c**** old code (now obsolete ???)
       EXPSNO=EXP(-SNOWOI/DMOICE)
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
-      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
-C****
-C**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
-C**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
-C****
-         IF(TSL.GT.273.16) THEN
-            BOIVIS=.3                                     !   Ts > 10C
-            BOINIR=.15
-            IF(TSL.LT.283.16) THEN
-               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
-               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
-            END IF
-         END IF
-C**** End of puddling section
-      XOIVIS=BOIVIS
-      XOINIR=BOINIR
+c      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
+c      BSNVIS=ASNVIS+ASNAGE
+c      BSNNIR=ASNNIR+ASNAGE
+c      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
+c      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
+cC****
+cC**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
+cC**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
+cC****
+c         IF(TSL.GT.273.16) THEN
+c            BOIVIS=.3                                     !   Ts > 10C
+c            BOINIR=.15
+c            IF(TSL.LT.283.16) THEN
+c               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
+c               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
+c            END IF
+c         END IF
+cC**** End of puddling section
+c      XOIVIS=BOIVIS
+c      XOINIR=BOINIR
+
       IF(KVEGA6.GT.0) THEN
       DO 501 L=1,6
       BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
