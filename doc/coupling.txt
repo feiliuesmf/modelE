@@ -169,7 +169,9 @@ GMELT, EGMELT glacial runoff (kg), energy of glacial runoff (J) from
       into the ocean as ice, and can optionally be distributed over a 
       significant depth (say 400m) to mimic iceberg melt
       profiles. Currently, these fluxes are constant, and based on IPCC
-      estimates of mass balance in Antartica and Greenland.
+      estimates of mass balance in Antartica and Greenland. The
+      database parameter 'glmelt_on' must be set to 1 in the rundeck to 
+      set these fluxes.
 
 DMUA, DMVA N-S and E-W components of the atmospheric wind stress (kg/ms). 
       Note that these are on the atmospheric tracer grid, and are the
