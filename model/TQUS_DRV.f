@@ -38,7 +38,6 @@ c****
       character*8 tname          !tracer name
       integer :: I,J,L,n,nx
 
-
 C**** Fill in values at the poles
       do l=1,lm
          rm(2:im,1 ,l) =   rm(1,1 ,l)
@@ -57,24 +56,25 @@ C**** Advect the tracer using the quadratic upstream scheme
 C****
 C**** loop over cycles
       do n=1,ncyc
-c     write(*,*) ' Processing cycle X',n
       mflx(:,:,:)=pu(:,:,:)
+
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(1,1,n))
 
-c     write(*,*) ' Processing cycle Y',n
       mflx(:,:,:)=pv(:,:,:)
       call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
      &    sbf,sbm,sfbm)
 
-c     write(*,*) ' Processing cycle Z',n
       mflx(:,:,:)=sd(:,:,:)
       call aadvqz (rm,rmom,ma,mflx,qlimit,tname,nstepz(1,n),
      &    scf,scm,sfcm)
 
-c     write(*,*) ' Processing cycle 2X',n
       mflx(:,:,:)=pu(:,:,:)
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(1,1,n))
       end do
+C****
+C**** Load mass after advection to new mass
+C****
+      mb(:,:,:) = ma(:,:,:)
 
       return
       end SUBROUTINE AADVQ
@@ -442,6 +442,13 @@ c****
       enddo
       enddo ! i
       if (j.eq.1.or.j.eq.jm) then
+        do l=1,lm
+          do i=2,im
+            rm(i,j,l)=rm(1,j,l)
+            rmom(:,i,j,l)=rmom(:,1,j,l)
+            mass(i,j,l)=mass(1,j,l)
+          end do
+        end do
         sfcm(j,:) = fim*sfcm(j,:)
         scm(j,:)  = fim*scm(j,:)
         scf(j,:)  = fim*scf(j,:)

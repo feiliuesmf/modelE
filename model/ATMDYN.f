@@ -192,7 +192,7 @@ C**** ADVECT
         AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
 C****
-C**** convert from mass to concentration units
+C**** convert from mass to concentration units (using updated MB)
 C****
       DO L=1,LM
       DO J=1,JM
