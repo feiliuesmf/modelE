@@ -870,12 +870,12 @@ C****
 C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
       IF (ISTART.LE.2) THEN
-        WSAVG(1,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
-        USAVG(1,1)=U(1,2,1)
-        VSAVG(1,1)=V(1,2,1)
-        WSAVG(1,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
-        USAVG(1,JM)=U(1,JM,1)
-        VSAVG(1,JM)=V(1,JM,1)
+        WSAVG(1:im,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
+        USAVG(1:im,1)=U(1,2,1)
+        VSAVG(1:im,1)=V(1,2,1)
+        WSAVG(1:im,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
+        USAVG(1:im,JM)=U(1,JM,1)
+        VSAVG(1:im,JM)=V(1,JM,1)
         DO J=2,JM-1
         IM1=IM
         DO I=1,IM
