@@ -5535,8 +5535,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh,ers_data,
-     &     gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
+      USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
+     &     ers_data,gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
 #ifdef TRACERS_MINERALS
      &     ,Mtrac,minfr
 #endif
@@ -6076,6 +6076,8 @@ C         AM=kg/m2, and DXYP=m2:
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
           ! defaults ok
+          hbaij=0D0
+          ricntd=0D0
 #endif
 
       end select
@@ -6368,7 +6370,6 @@ c     prescribed AEROCOM dust emissions
 
         ELSE IF (imDUST == 0) THEN
 c     interactive dust emissions
-          hbaij=0D0
 c**** Read input: threshold speed
           CALL openunit('VTRSH',io_data,.true.,.true.)
           READ (io_data) vtrsh

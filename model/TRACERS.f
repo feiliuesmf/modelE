@@ -902,7 +902,7 @@ C**** check whether air mass is conserved
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      USE tracers_dust,ONLY : hbaij
+      USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       IMPLICIT NONE
 
@@ -941,7 +941,7 @@ C**** check whether air mass is conserved
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-     &     ,hbaij
+     &     ,hbaij,ricntd
 #endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -958,7 +958,7 @@ C**** check whether air mass is conserved
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-     &     ,hbaij
+     &     ,hbaij,ricntd
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
