@@ -402,7 +402,7 @@ C****
 
       REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4,
      *     FSSI2, FSSI3, FSSI4
-      REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
+      REAL*8 ROICEN, OPNOCN, DRSI, MSI1
 
       MSI1=SNOW+ACE1I
       IF (.not. QFIXR) THEN
@@ -472,7 +472,6 @@ C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
-      DRI = ROICE-ROICEN ! > 0. for diagnostics
 C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
       FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! upward ice mass into layer 4
       FHSI3 = HSIL(4)*FMSI4*(XSI(3)/XSI(4))/MSI2 ! upward heat flux
@@ -718,7 +717,7 @@ C****  g  = u* / ( G_turb + G_mole )
 
 C**** set conductivity term
 C**** Diffusive flux is implicit in ice + ml temperature
-      rsg=rhow*shw*g_T/(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
+      rsg=rhow*shw*g_T   !/(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
 c no salinity effects
       alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
 c S thermo 
@@ -785,7 +784,7 @@ c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
       end do
 C**** define fluxes (positive down)
 C**** Cap mass flux at to prevent MSI2 going below minimum
-      m = min(m,mfluxmax)
+c      m = min(m,mfluxmax)
       mflux = m                       ! (kg/m^2 s)
       sflux = 1d-3*m*Sib              ! (kg/m^2 s)
       hflux = alamdh*(Ti-Tb) - m*lh +m*shw*Tb ! (J/m^2 s)
@@ -811,7 +810,7 @@ C****
 C**** Diffusive flux is implicit in ice temperature
       alamdh = alami/(dh+alpha*dtsrc*byshi*alami/(2.*dh*rhoi))
 C**** calculate left hand side of equation 2
-      left2 = -alamdh*Ti - rsg*Tm/(1.+alpha*dtsrc*rsg/mlsh)
+      left2 = -alamdh*Ti - rsg*Tm    !/(1.+alpha*dtsrc*rsg/mlsh)
       if (left2.gt.0) then      ! freezing   
         lh = lhm
       else                      ! melting
@@ -819,7 +818,7 @@ C**** calculate left hand side of equation 2
       end if
 C**** define fluxes (positive down)
 C**** Cap mass flux at to prevent MSI2 going below minimum
-      m = min(m,mfluxmax)
+c      m = min(m,mfluxmax)
       mflux = m                 ! (kg/m^2 s)
       hflux = alamdh*Ti - m*lh  ! (J/m^2 s)
 C****
@@ -892,7 +891,7 @@ C**** Note that MSI includes the mass of salt in sea ice
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM
       USE SEAICE, only : lmi,xsi,ace1i
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
+      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -905,7 +904,8 @@ C**** Note that MSI includes the mass of salt in sea ice
 C**** Check for NaN/INF in ice data
       CALL CHECK3(RSI,IM,JM,1,SUBR,'rs')
       CALL CHECK3(MSI,IM,JM,1,SUBR,'ms')
-      CALL CHECK3(HSI,4,IM,JM,SUBR,'hs')
+      CALL CHECK3(HSI,LMI,IM,JM,SUBR,'hs')
+      CALL CHECK3(SSI,LMI,IM,JM,SUBR,'ss')
       CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sn')
 
       QCHECKI = .FALSE.
