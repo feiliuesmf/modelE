@@ -566,7 +566,7 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
       INTEGER, INTENT(INOUT) :: it
 
       if(kradia.gt.0) then
-        write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i2,a7)')
+        write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
      *   '#acc(=',idacc(2),') R8:SU.SD.TU.TD.dT(',lm+lm_req+1,',ijM,5)'
 
         SELECT CASE (IACTION)

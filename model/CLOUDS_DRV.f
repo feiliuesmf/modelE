@@ -183,7 +183,7 @@ C$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 C$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, NBOX, PRCP,PFULL,PHALF,
 C$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 C$OMP*  QG,QV, SKT, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR)
-C$OMP*  REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
+C$OMP*    SCHEDULE(DYNAMIC,2)
 C
       DO J=1,JM
 C
@@ -302,7 +302,7 @@ C**** Error reports
       if (ierr.gt.0) then
         write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
 ccc     if (ierr.eq.2) stop "Subsid error: abs(c) > 1"
-        if (ierr.eq.2) ickerr = ickerr + 1
+        if (ierr.eq.2) ickerr = 1
       end if
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -536,7 +536,7 @@ c          skt=tf+tg1(i,j)
         call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
-        if(jerr.ne.0) jckerr=jckerr+1
+        if(jerr.ne.0) jckerr = 1
 C**** set ISCCP diagnostics
         if (nbox.gt.0) then
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp

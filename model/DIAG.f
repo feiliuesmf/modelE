@@ -709,7 +709,7 @@ C****
 
 
       SUBROUTINE DIAGB
-!@sum DIAGB calculate constant pressure diagnostics from within DYNAM 
+!@sum DIAGB calculate constant pressure diagnostics from within DYNAM
 C****
 C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****   See jks_defs for contents
@@ -2661,7 +2661,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 !@sum  reset_DIAG resets/initializes diagnostics
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : Itime,iyear1,nday,
+      USE MODEL_COM, only : Itime,iyear1,nday,kradia,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DAGCOM
       USE PARAM
@@ -2673,6 +2673,11 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       INTEGER jd0
 
       IDACC(1:12)=0
+      if (kradia.gt.0) then
+        AFLX_ST = 0.
+        if (isum.eq.1) return
+        go to 100
+      end if
       AJ=0    ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
@@ -2687,11 +2692,11 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 
       AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 
-      Itime0=Itime
+      CALL EPFLXI (U)  ! strat
+
+  100 Itime0=Itime
       call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
      *     Jdate0,Jhour0,amon0)
-
-      CALL EPFLXI (U)  ! strat
 
       RETURN
       END SUBROUTINE reset_DIAG

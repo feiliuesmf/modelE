@@ -199,7 +199,6 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 c**** loop over layers and latitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR)
-C$OMP*          REDUCTION(+:ICKERR)
       do l=1,lm
       do j=2,jm-1
       am(:) = mu(:,j,l)
@@ -213,7 +212,7 @@ c****
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(a) > 1"
 CCC       call exit_rc(11)
-          ICKERR=ICKERR+1
+          ICKERR=1
         end if
       end if
 c****
@@ -272,7 +271,6 @@ c**** loop over layers
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
 C$OMP*             BM,F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
-C$OMP*             REDUCTION(+:ICKERR)
       do l=1,lm
 c**** scale polar boxes to their full extent
       mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
@@ -308,7 +306,7 @@ c****
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(b) > 1"
 ccc       call exit_rc(11)
-          ICKERR=ICKERR+1
+          ICKERR=1
         endif
       end if
 c**** store tracer flux in fqv array
@@ -375,7 +373,6 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 c**** loop over latitudes and longitudes
       ICKERR=0
 C$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
-C$OMP*          REDUCTION(+:ICKERR)
       do j=1,jm
       do i=1,im
       cm(:) = mw(i,j,:)
@@ -390,7 +387,7 @@ c****
         if (ierr.eq.2) then
           write(0,*) "Error in qlimit: abs(c) > 1"
 ccc       call exit_rc(11)
-          ICKERR=ICKERR+1
+          ICKERR=1
         endif
       end if
       enddo ! i
