@@ -625,8 +625,6 @@ C**** halo update u and v for distributed parallelization
      &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
      &        idd_dbl, idd_ev /)
 
-      write(999,*) 'XXXXXXXXXXXXX started earth loop XXXXXXXXXXX'
-
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
@@ -1775,10 +1773,6 @@ c****
           ws(k,ibv)=thets(k,ibv)*dz(k)
         end do
       end do
-      write(999,'(2i3,x,20e10.3)') i0,j0,
-     &     sum( (thetm(1:n,1)*fb+thetm(1:n,2)*fv)*dz(1:n) ),
-     &     ( (thetm(k,1)*fb+thetm(k,2)*fv)*dz(k) , k=1,n)
-!!!     &     (thetm(k,1), k=1,n), (thetm(k,2), k=1,n)
 !veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
   !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
