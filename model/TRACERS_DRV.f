@@ -4552,15 +4552,15 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('BCII')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Industrial src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_3Dsrc(1,N) = 14
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Aging loss'
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
       qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_3Dsrc(2,N) = 15
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Aircraft source'
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft source'
       qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
+      qsum(itcon_surf(1,N)) = .false.
       itcon_mc(n) = 16
       qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -4633,15 +4633,15 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('OCII')
-      itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Industrial src'
-      qsum(itcon_surf(1,N)) = .false.
-      itcon_surf(2,N) = 14
-      qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Terpene src'
-      qsum(itcon_surf(2,N)) = .false.
-      itcon_3Dsrc(1,N) = 15
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(3) = 'Aging loss'
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
       qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_surf(1,N) = 14
+      qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 15
+      qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'Terpene src'
+      qsum(itcon_surf(2,N)) = .false.
       itcon_mc(n) = 16
       qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
