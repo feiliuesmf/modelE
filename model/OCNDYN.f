@@ -374,7 +374,7 @@ C**** Initiallise geopotential field (needed by KPP)
       END IF
 
 C**** Extend ocean data to added layers at bottom if necessary
-      if (lmo_min .gt. 1) then
+      if (istart.gt.0 .and. lmo_min .gt. 1) then
         do j=2,jm-1
         do i=1,im
           if (lmm(i,j).eq.lmo_min .and. MO(i,j,lmo_min).eq.0.) then
