@@ -170,7 +170,6 @@ C$OMP  END PARALLEL DO
          ENDIF
 C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
-c      CALL CALC_AMPK(LS1-1)
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
 C**** Scale WM mixing ratios to conserve liquid water
@@ -1312,6 +1311,8 @@ C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_am
+!@param wmax imposed limit for stratospheric winds (m/s)
+      real*8, parameter :: wmax = 200.d0
 
       ang_mom=0. ;  sum_am=0. ! am=air mass
 C*
@@ -1324,24 +1325,19 @@ C*
      *    (L.ge.LPSDRAG.and.COSV(J).LE..15) ) cd_lin=.true.
       I=IM
       DO IP1=1,IM
-        WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         TL=T(I,J,L)*PK(L,I,J)
-C**** check Q and T to make sure they are within physical bounds
+C**** check T to make sure it stayed within physical bounds
         if (TL.lt.100..or.TL.gt.373.) then
-          write(99,*) 'SDRAG:',itime,i,j,l,'T=',TL
+          write(99,*) 'SDRAG:',itime,i,j,l,'T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*TL)
+        WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+C**** WL is restricted to Wmax
                     CDN=C_SDRAG
-        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*WL
-        X=DT1*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
-        IF(X.GT.1) THEN
-          write(99,*)'SDRAG: ITime,I,J,L,PSFMPT,X,RHO,CDN,U,V'
-     *         ,ITime,I,J,L,PSFMPT,X,RHO,CDN,U(I,J,L),V(I,J,L)
-c    *         ,' If problem persists, winds are too high! '
-c    *         ,'Try setting X_SDRAG smaller.'
-          X=1.
-        END IF
+        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmax)
+        X=DT1*RHO*CDN*min(WL,wmax)*GRAV*BYDSIG(L)*BYPIJU
+        if (wl.gt.wmax) X = 1. - (1.-X)*wmax/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
         DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
