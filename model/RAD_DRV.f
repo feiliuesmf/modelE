@@ -318,7 +318,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE,FGOLDH ! turning on options for extra aerosols
-     *     ,FXAERS,MADBAK
+     *     ,FSAERO,FTAERO,MADBAK
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -478,13 +478,17 @@ C**** There are 10 aerosol subtypes for AClim:
 C**** 1. Industrial BC, 2. Industrial OC, 3. Industrial sulfate
 C**** 4. seasalt, 5. Natural sulfate, 6. nitrate (set = natural so4),
 C**** 7. Natural OC, 8. Biomass OC, 9. Biomass BC, 10. background seasalt (?)
-C**** so use FXAERS to zero out appropriate combinations of these:
-caer  FXAERS = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
+C**** so use FSAERO and FTAERO to zero out particular subtypes:
+caer  FSAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
+caer  FTAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
 
 C**** To add up to 8 further aerosols:
 C****  1) define NTRACE to the number of extra aerosol fields
 C****  2) ITR defines which set of Mie parameters get used, choose
-C****    from those used for the 10 types above 
+C****    from the following:
+C****   1 ? ,2 seasalt (2um), 3 sulfate (0.3 um), 4 sulfate (1 um),
+C****   5 ?, 6 ?, 7 dust (0.5 um), 8 dust (2 um), 9 dust (8 um),
+C****   10 BC (0.1 um) 11 BC (0.5 um) 
 C****  3) Use FGOLDH(6:NTRACE+5) to turn them on
 C****  4) MAKBAK=1 gets to SETBAK where extra tracers are added
 C**** however then we need to set FGOLDH(1-5)=0 in order to
@@ -497,13 +501,14 @@ caer   MADBAK=0
 caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 
 #ifdef TRACERS_AEROSOLS_Koch
-       FXAERS = (/1., 1., 0., 0., 0., 1., 1., 1., 1., 1./)
+       FSAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
+       FTAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
        NTRACE = 2
        FGOLDH(5+1:5+NTRACE) = (/ 1.,1./)
        MADBAK=1   
        FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 c tracer 1 is sulfate, tracer 2 is seasalt
-       ITR = (/ 5,4,0,0, 0,0,0,0 /)
+       ITR = (/ 3,2,0,0, 0,0,0,0 /)
 #endif
   
       if (ktrend.ne.0) then
@@ -1034,6 +1039,9 @@ CCC     STOP 'In Radia: RQT out of range'
         sizeic(LM+k)= 0.
 C**** set radiative equilibirum extra tracer amount to zero
 caer    TRACER(LM+k,1:NTRACE)=0.
+#ifdef TRACERS_AEROSOLS_Koch
+       TRACER(LM+k,1:NTRACE)=0.
+#endif
       END DO
       if (kradia.gt.1) then
         do l=1,lm+lm_req
