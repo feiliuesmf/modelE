@@ -57,7 +57,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,ddmflx
+     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,pland,debug,ddmflx
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -82,7 +82,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
-#endif 
+#endif
 #endif
 
 !@var UC,VC,UZM,VZM velocity work arrays
@@ -253,6 +253,7 @@ C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
       DEBUG = .FALSE.   ! use for individual box diags in clouds
       PEARTH=FEARTH(I,J)
+      PLAND=FLAND(I,J)
       TS=TSAVG(I,J)
       QS=QSAVG(I,J)
       US=USAVG(I,J)
@@ -368,7 +369,7 @@ C**** first, need the local freezing level:
             EXIT
           END IF
         END DO
-        CALL calc_lightning(I,J,LMCMAX,Lfreeze) 
+        CALL calc_lightning(I,J,LMCMAX,Lfreeze)
       END IF
 #endif
 

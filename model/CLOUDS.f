@@ -4,8 +4,8 @@
 !@sum  CLOUDS column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
 !@cont MSTCNV,LSCOND
-      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha
-     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd
+      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
+     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow
       USE MODEL_COM, only : im,lm,dtsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
@@ -20,6 +20,13 @@ CCC   USE RANDOM
       SAVE
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
+!@param RHOG,RHOIP density of graupel and ice particles
+!@param ITMAX max iteration index
+!@param CN0 constant use in computing FLAMW, etc
+!@param PN tuning exponential for computing WV
+      REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0
+      REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
+      INTEGER,  PARAMETER :: ITMAX=50
 !@param WMU critical cloud water content for rapid conversion (g m**-3)
       REAL*8, PARAMETER :: WMU=.25
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
@@ -32,12 +39,22 @@ C**** parameters and constants
 !@param CCMUL1 multiplier for deep anvil cloud cover
 !@param CCMUL2 multiplier for shallow anvil cloud cover
 !@param COETAU multiplier for convective cloud optical thickness
-      REAL*8, PARAMETER :: FCLW=0.5
+      REAL*8 :: FCLW
       REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
-      REAL*8 :: BYBR,BYDTsrc,XMASS
+      REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND,FLAMW,FLAMG,FLAMI
+     *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
+!@var PLAND land fraction
+!@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
+!@var WMAX specified maximum convective vertical velocity
+!@var WV convetive vertical velocity
+!@var VT precip terminal velocity
+!@var DCW,DCG,DCI critical cloud particle sizes
+!@var FG, FI fraction for graupel and ice
+!@var FITMAX set to ITMAX
+!@var CONDMU convective condensate in Kg/m^3
 
 C**** Set-able variables
 !@dbparam LMCM max level for originating MC plumes
@@ -76,7 +93,7 @@ C**** input variables
       REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
-     *     ,DDMFLX
+     *     ,VLAT,DDMFLX
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -92,6 +109,7 @@ C**** input variables
 !@var DDMFLX accumulated downdraft mass flux (mb)
 !@var AQ time change rate of specific humidity (s**-1)
 !@var DPDT time change rate of pressure (mb/s)
+!@var VLAT dummy variable
       REAL*8, DIMENSION(LM+1) :: PRECNVL
 !@var PRECNVL convective precip entering the layer top
 C**** new arrays must be set to model arrays in driver (before MSTCNV)
@@ -183,12 +201,14 @@ CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
-     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX,PLAND
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
-     *  ,LMCMAX,LMCMIN,KMAX,DCL     ! integers last (alignment)
+     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
+     *  ,FLAMW,FLAMG,FLAMI,VLAT
+     *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
+     *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG ! integers last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
       CONTAINS
@@ -267,8 +287,10 @@ c for sulfur chemistry
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM
+     *     ,CONDP
+      REAL*8 :: CONDGP,CONDIP
 !@var DM change in air mass
-!@var COND condensate
+!@var COND,CONDGP,CONDIP condensate
 !@var CDHEAT heating due to condensation
 !@var CCM convective plume mass
 !@var SM1, QM1 dummy variables
@@ -382,6 +404,7 @@ C****
       LMCMIN=0
       LMCMAX=0
       MCCONT=0
+      FITMAX=ITMAX
 C**** initiallise arrays of computed ouput
       TAUMCL=0
       SVWMXL=0
@@ -410,6 +433,7 @@ C**** zero out diagnostics
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
+      VLAT=LHE
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
 #endif
@@ -525,6 +549,7 @@ C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
         COND(L)=0.
+        CONDP(L)=0.
         CDHEAT(L)=0.
         DM(L)=0.
         DMR(L)=0.
@@ -552,6 +577,13 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       TRCOND = 0.
 #endif
       MC1=.FALSE.
+      IF (IC.EQ.1) THEN
+        WMAX=2.
+        IF(PLAND.GE..5) WMAX=5.
+      ELSE
+        WMAX=1.
+        IF(PLAND.GE..5) WMAX=2.5
+      ENDIF
       LHX=LHE
       MPLUME=MIN(AIRM(LMIN),AIRM(LMIN+1))
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
@@ -638,7 +670,13 @@ C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       IF(TP.GE.TF.OR.LHX.EQ.LHS) GO TO 290
       LHX=LHS
       QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
-  290 SLH=LHX*BYSHA
+  290 CONTINUE
+C**** DEFINE VLAT TO AVOID PHASE DISCREPANCY BETWEEN TWO PLUMES
+      IF (VLAT(L).EQ.LHS) LHX=LHS
+      VLAT(L)=LHX
+      SLH=LHX*BYSHA
+      MCCONT=MCCONT+1
+      IF(MCCONT.EQ.1) MC1=.TRUE.
 C****
 C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
 C****
@@ -679,6 +717,14 @@ C****
 C     SMP=SMP-WORK
       DSM(L-1)=DSM(L-1)-WORK
       CCM(L-1)=MPLUME
+      WV=WMAX
+      IF(PL(L).GT.700..AND.PLE(1).GT.700.)
+     *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)
+      IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
+      DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
+      DCG=MIN(DCG,1.D-2)
+      DCI=((WV/1.139)*(PL(L)/1000.)**.4)**9.09
+      DCI=MIN(DCI,1.D-2)
 C****
 C**** ENTRAINMENT
 C****
@@ -796,6 +842,44 @@ C**** save plume temperature after possible condensation
         QMP=QMPT
       END IF
       COND(L)=DQSUM
+      CONDMU=100.*COND(L)*BYAM(L)*PL(L)*AIRM(L)/(CCM(L-1)*TL(L)*RGAS)
+      FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
+      FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
+      IF (TP.GE.TF) THEN
+        DDCW=6d-3/FITMAX
+        IF(PLAND.LT..5) DDCW=1.5d-3/FITMAX
+        DCW=0.
+        DO ITER=1,ITMAX-1
+          VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))*
+     *       (1000./PL(L))**.4d0
+          IF(VT.GE.0..AND.ABS(VT-WV).LT..3) EXIT
+          IF(VT.GT.WMAX) EXIT
+          DCW=DCW+DDCW
+        END DO
+        CONDP(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
+     *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
+     *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
+        CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
+      ENDIF
+      IF (TP.LE.TI) THEN
+        CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+     *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
+     *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
+        CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
+      ENDIF
+      IF (TP.LT.TF.AND.TP.GT.TI) THEN
+        FG=(TP-TF+40.)*0.025d0
+        FI=1.-FG
+        CONDIP=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
+     *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
+     *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
+        CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
+     *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
+     *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
+        CONDP(L)=.01d0*(FG*CONDGP+FI*CONDIP)*CCM(L-1)*BYAM(L)*
+     *     AIRM(L)*TL(L)*RGAS/PL(L)
+      ENDIF
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
@@ -837,9 +921,10 @@ c formation of sulfate
 C****
 C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
 C****
-      MCCONT=MCCONT+1
-      IF(MCCONT.EQ.1) MC1=.TRUE.
-      IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
+C     MCCONT=MCCONT+1
+C     IF(MCCONT.EQ.1) MC1=.TRUE.
+C     IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
+      SVLATL(L)=VLAT(L)
       SMPMAX=SMP
       SMOMPMAX(xymoms) =  SMOMP(xymoms)
       QMPMAX=QMP
@@ -1092,11 +1177,13 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-      IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+C     IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
         DO L=LMAX,LMIN,-1
-          IF (PLE(L+1).GT.550.) EXIT
-          SVWMXL(L)=FCLW*COND(L)*BYAM(L)
-          COND(L)=COND(L)*(1.-FCLW)
+          IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
+          FCLW=0.
+          IF (COND(L).GT.0) FCLW=(COND(L)-CONDP(L))/COND(L)
+          SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)
+          COND(L)=CONDP(L)
 #ifdef TRACERS_WATER
 C**** Apportion cloud tracers and condensation
 C**** Note that TRSVWML is in mass units unlike SVWMX
@@ -1104,7 +1191,7 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
-      END IF
+C     END IF
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
@@ -1258,6 +1345,7 @@ C****
 #endif
       IF(LMCMIN.GT.LDMIN) LMCMIN=LDMIN
 C****
+      MC1=.FALSE.                        !!!
 C**** END OF LOOP OVER CLOUD TYPES
 C****
   570 CONTINUE
