@@ -597,9 +597,9 @@ c     if (l0.lt.zhat(1)) l0=zhat(1)
         l1=kappa*zhat(i)
         lscale(i)=l0*l1/(l0+l1)
         if (t(i+1).gt.t(i)) then
-          bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)                            598.   
-          lmax  =0.75*sqrt(e(i)/(bvfrq2+1.e-40))                         599.   
-          if (lscale(i).gt.lmax) lscale(i)=lmax                          600.   
+          bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)
+          lmax  =0.75*sqrt(e(i)/(bvfrq2+1.d-40))
+          if (lscale(i).gt.lmax) lscale(i)=lmax
 c          an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
 c          dudz=(u(i+1)-u(i))/dzh(i)
 c          dvdz=(v(i+1)-v(i))/dzh(i)
@@ -811,46 +811,46 @@ c *********************************************************************
       return
       end subroutine simil
 
-      subroutine getb(zgs,ztop,bgrid)                                    799.   
-c ---------------------------------------------------------------------- 800.   
-c This routine computes the value of bgrid to be used in the gridding    801.   
-c  scheme. This parameter determines the strength of the logarithmic     802.   
-c  component in the log-linear scheme. This fitting for bgrid was        803.   
-c  determined by doing a series of off-line runs comparing the reduced   804.   
-c  domain simulation to the full BL simulation and determining the value 805.   
-c  of bgrid that gave the best fit for a range of ztop = [50.,200.] m    806.   
-c  for the reduced domain simulation.                                    807.   
-c This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an    808.   
-c  average value for zs1. The quantity theta was computed on the         809.   
-c  assumption of zs1=200 m from the original 9-layer model (actually     810.   
-c  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)  811.   
-c  and is then applied to all vertical resolutions.                      812.   
-c                                                                        813.   
-c Input:                                                                 814.   
-c                                                                        815.   
-c    zgs   = The height of the surface layer.                            816.   
-c                                                                        817.   
-c Output:                                                                818.   
-c                                                                        819.   
-c    ztop  = The height of the top of the BL simulation domain.          820.   
-c            Corresponds to the height of the middle of the first model  821.   
-c            layer and is only needed if the BL fields require           822.   
-c            initialization.                                             823.   
-c    bgrid = The parameter that determines the strength of the log       824.   
-c            term in the log-linear gridding scheme.                     825.   
-c ---------------------------------------------------------------------- 826.   
+      subroutine getb(zgs,ztop,bgrid)
+c ----------------------------------------------------------------------
+c This routine computes the value of bgrid to be used in the gridding
+c  scheme. This parameter determines the strength of the logarithmic
+c  component in the log-linear scheme. This fitting for bgrid was
+c  determined by doing a series of off-line runs comparing the reduced
+c  domain simulation to the full BL simulation and determining the value
+c  of bgrid that gave the best fit for a range of ztop = [50.,200.] m
+c  for the reduced domain simulation.
+c This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
+c  average value for zs1. The quantity theta was computed on the
+c  assumption of zs1=200 m from the original 9-layer model (actually
+c  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)
+c  and is then applied to all vertical resolutions.
+c
+c Input:
+c
+c    zgs   = The height of the surface layer.
+c
+c Output:
+c
+c    ztop  = The height of the top of the BL simulation domain.
+c            Corresponds to the height of the middle of the first model
+c            layer and is only needed if the BL fields require
+c            initialization.
+c    bgrid = The parameter that determines the strength of the log
+c            term in the log-linear gridding scheme.
+c ----------------------------------------------------------------------
       use model_com
       use constant
       implicit none
       real*8 theta,z1,x,ztop,bgrid,zgs
 
-      theta=269.0727251                                                  828.   
-      z1=zgs+0.5*(1.-sige(2))*(psf-ptop)*rgas*theta/(grav*psf)           829.   
-      x=z1/100.                                                          830.   
-      ztop=z1                                                            831.   
-      bgrid=0.177427*x**4 - 1.0504*x**3 + 2.34169*x**2 -                 832.   
-     2      2.4772*x + 1.44509                                           833.   
-      return                                                             834.   
+      theta=269.0727251
+      z1=zgs+0.5*(1.-sige(2))*(psf-ptop)*rgas*theta/(grav*psf)
+      x=z1/100.
+      ztop=z1
+      bgrid=0.177427*x**4 - 1.0504*x**3 + 2.34169*x**2 -
+     2      2.4772*x + 1.44509
+      return
       end subroutine getb
 
       subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n,ierr)
@@ -1867,30 +1867,30 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       return
       end subroutine level2
 
-      subroutine elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)               1915.   
-c ----------------------------------------------------------------------1916.   
-c This routine computes the turbulence energy using the                 1917.   
-c  Level 2 prescription.                                                1918.   
-c ----------------------------------------------------------------------1919.   
+      subroutine elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
+c ----------------------------------------------------------------------
+c This routine computes the turbulence energy using the
+c  Level 2 prescription.
+c ----------------------------------------------------------------------
       implicit none
       integer n,i
       real*8, parameter :: emax=8.
       real*8 lscale(n-1),shear2,tgrad,extra,ustar
-      real*8 e(n-1),u(n),v(n),t(n)                     
-      real*8 km(n-1),kh(n-1),dzh(n-1)               
-                                                                        1925.   
-      do 100 i=1,n-1                                                    1926.   
-        shear2=(((u(i+1)-u(i))/dzh(i))**2+                              1927.   
-     2          ((v(i+1)-v(i))/dzh(i))**2)                              1928.   
-        tgrad =log(t(i+1)/t(i))/dzh(i)                                  1929.   
-        extra=b1*lscale(i)*(km(i)*shear2-kh(i)*grav*tgrad)              1930.   
-        if (extra.lt.1.e-3) extra=1.e-3                                 1931.   
-        e(i)=(0.125*extra*extra)**(1./3.)                               1932.   
-        if (e(i).gt.emax) e(i)=emax                                     1933.   
-100   continue                                                          1934.   
-                                                                        1935.   
-      return                                                            1936.   
-      end subroutine elevl2                                             1937.   
+      real*8 e(n-1),u(n),v(n),t(n)
+      real*8 km(n-1),kh(n-1),dzh(n-1)
+
+      do 100 i=1,n-1
+        shear2=(((u(i+1)-u(i))/dzh(i))**2+
+     2          ((v(i+1)-v(i))/dzh(i))**2)
+        tgrad =log(t(i+1)/t(i))/dzh(i)
+        extra=b1*lscale(i)*(km(i)*shear2-kh(i)*grav*tgrad)
+        if (extra.lt.1.e-3) extra=1.e-3
+        e(i)=(0.125*extra*extra)**(1./3.)
+        if (e(i).gt.emax) e(i)=emax
+100   continue
+
+      return
+      end subroutine elevl2
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2          ttop,qtop,coriol,cm,ch,cq,ustar,uocean,vocean,
@@ -2019,7 +2019,7 @@ c Initialization for iteration:
      3           km,kh,kq,dzh,itype,n)
 
 c      ustar0=ustar
-      tstar0=tstar                                                      2185.   
+      tstar0=tstar
 
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
         iter=-1
@@ -2072,7 +2072,7 @@ c       call level2(e,u,v,t,lscale,dzh,n)
           esave(i)=e(i)
         end do
 
-        call getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)    2223.   
+        call getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)
         kq=kh
 c        Call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
         call getl1(e,zhat,dzh,lscale,n)
@@ -2080,11 +2080,11 @@ c        Call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
      3             km,kh,kq,dzh,itype,n)
 
-c       test=abs(ustar-ustar0)/(ustar+ustar0)                           2229.   
-        test=abs(tstar-tstar0)/abs(tstar+tstar0)                        2230.   
+c       test=abs(ustar-ustar0)/(ustar+ustar0)
+        test=abs(tstar-tstar0)/abs(tstar+tstar0)
         if (test.lt.tol) exit
-c       ustar0=ustar                                                    2232.   
-        tstar0=tstar                                                    2233.   
+c       ustar0=ustar
+        tstar0=tstar
 
 c        test=abs((ustar-ustar0)/(ustar+ustar0))
 c        if (test.lt.tol) exit
@@ -2525,234 +2525,234 @@ c ----------------------------------------------------------------------
       return
       END
 
-      function fgrid(z)                                                  901.   
-c ---------------------------------------------------------------------- 902.   
-c Subsidiary function used for computing the grid points. This defines   903.   
-c   the functional relationship between z and xi.                        904.   
-c ---------------------------------------------------------------------- 905.   
-      implicit real*8 (a-h,o-z)                                          906.   
-      common /grids_99/z1,zn,bgrid,xi                                    907.   
+      function fgrid(z)
+c ----------------------------------------------------------------------
+c Subsidiary function used for computing the grid points. This defines
+c   the functional relationship between z and xi.
+c ----------------------------------------------------------------------
+      implicit real*8 (a-h,o-z)
+      common /grids_99/z1,zn,bgrid,xi
 !$OMP  THREADPRIVATE(/GRIDS_99/)
-      fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*log(zn/z1))-xi             908.   
-      return                                                             909.   
-      end                                                                910.   
-                                                                         911.   
-      function zbrent(func,x1,x2,tol)                                    912.   
-c ---------------------------------------------------------------------- 913.   
-c Uses Brent's method to solve FUNC=0. X1 and X2 must bracket the root.  914.   
-c Taken from Numerical Recipes.                                          915.   
-c ---------------------------------------------------------------------- 916.   
-      implicit real*8 (a-h,o-z)                                          917.   
-      parameter (itmax=100,eps=1.e-3)                                    918.   
-      a=x1                                                               919.   
-      b=x2                                                               920.   
-      fa=func(a)                                                         921.   
-      fb=func(b)                                                         922.   
-      if(fb*fa.gt.0.) then                                               923.   
-        write (99,*)  'root must be bracketed for zbrent.'               924.   
-        stop                                                             925.   
-      endif                                                              926.   
-      fc=fb                                                              927.   
-      do 11 iter=1,itmax                                                 928.   
-        if(fb*fc.gt.0.) then                                             929.   
-          c=a                                                            930.   
-          fc=fa                                                          931.   
-          d=b-a                                                          932.   
-          e=d                                                            933.   
-        endif                                                            934.   
-        if(abs(fc).lt.abs(fb)) then                                      935.   
-          a=b                                                            936.   
-          b=c                                                            937.   
-          c=a                                                            938.   
-          fa=fb                                                          939.   
-          fb=fc                                                          940.   
-          fc=fa                                                          941.   
-        endif                                                            942.   
-        tol1=2.*eps*abs(b)+0.5*tol                                       943.   
-        xm=.5*(c-b)                                                      944.   
-        if(abs(xm).le.tol1 .or. fb.eq.0.)then                            945.   
-          zbrent=b                                                       946.   
-          return                                                         947.   
-        endif                                                            948.   
-        if(abs(e).ge.tol1 .and. abs(fa).gt.abs(fb)) then                 949.   
-          s=fb/fa                                                        950.   
-          if(a.eq.c) then                                                951.   
-            p=2.*xm*s                                                    952.   
-            q=1.-s                                                       953.   
-          else                                                           954.   
-            q=fa/fc                                                      955.   
-            r=fb/fc                                                      956.   
-            p=s*(2.*xm*q*(q-r)-(b-a)*(r-1.))                             957.   
-            q=(q-1.)*(r-1.)*(s-1.)                                       958.   
-          endif                                                          959.   
-          if(p.gt.0.) q=-q                                               960.   
-          p=abs(p)                                                       961.   
-          if(2.*p .lt. min(3.*xm*q-abs(tol1*q),abs(e*q))) then           962.   
-            e=d                                                          963.   
-            d=p/q                                                        964.   
-          else                                                           965.   
-            d=xm                                                         966.   
-            e=d                                                          967.   
-          endif                                                          968.   
-        else                                                             969.   
-          d=xm                                                           970.   
-          e=d                                                            971.   
-        endif                                                            972.   
-        a=b                                                              973.   
-        fa=fb                                                            974.   
-        if(abs(d) .gt. tol1) then                                        975.   
-          b=b+d                                                          976.   
-        else                                                             977.   
-          b=b+sign(tol1,xm)                                              978.   
-        endif                                                            979.   
-        fb=func(b)                                                       980.   
-11    continue                                                           981.   
-      write (99,*) 'zbrent exceeding maximum iterations.'                982.   
-      write (99,*) x1,b,x2                                               983.   
-      stop 'zbrent'                                                      984.   
-      return                                                             985.   
-      end                                                                986.   
+      fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*log(zn/z1))-xi
+      return
+      end
 
-      subroutine getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)1773.   
-c ----------------------------------------------------------------------1774.   
-c This routine computes the turbulent viscosity, KM, and turbulent      1775.   
-c  diffusivity, KH. These coefficients are computed using the second    1776.   
-c  order closure model of Galperin et al. (1988) and are modified under 1777.   
-c  stable conditions to give proper scaling at large Ri. Two grids are  1778.   
-c  used in the computation. The quantities U, V, T, and Z are computed  1779.   
-c  on the primary grid. The quantities E, LSCALE, KM, KH, GM, and GH    1780.   
-c  are computed on the secondary grid, which is staggered with respect  1781.   
-c  to the primary grid.                                                 1782.   
-c                                                                       1783.   
-c Requiring GM be positive results in the requirement GH .le. 0.0233.   1784.   
-c  The actual limit applied here is 75% of that too make for a cleaner  1785.   
-c  solution. Actually, this limit is rarely used.                       1786.   
-c                                                                       1787.   
-c The quantities 1.5E-5 and 2.5E-5 m**2/sec added to km and kh below    1788.   
-c  are the viscosity and thermometric conductivity of air,              1789.   
-c  respectively.                                                        1790.   
-c ----------------------------------------------------------------------1791.   
-      implicit real*8 (a-h,k,o-z)                                       1792.   
-      dimension km(n-1),kh(n-1),gm(n-1),gh(n-1)                         1793.   
-      dimension u(n),v(n),t(n),z(n),zhat(n-1),e(n-1)                    1794.   
-      dimension dzh(n-1)                                                1795.   
-      real*8 lscale(n-1)                                                1796.   
-      parameter (grav=9.81)                                             1797.   
-      parameter (a1=0.92,b1=16.6,c1=0.08,a2=0.74,b2=10.1,sq=0.20)       1798.   
-                                                                        1799.   
-      parameter (f1=-3.*a1*a2*b1*b2+18.*a2*b2*a1*a1+9.*a1*a2*a2*b1      1800.   
-     2              -54.*a1*a1*a2*a2+9.*a1*a2*b1*b2*c1                  1801.   
-     3              +54.*a1*a1*a2*b1*c1)                                1802.   
-      parameter (f2= 9.*a1*a2*a2*b1+27.*a1*a2*a2*b2+108.*a1*a1*a2*a2)   1803.   
-      parameter (f3= 21.*a1*a2+3.*a2*b2+a2*b1)                          1804.   
-      parameter (f4= 6.*a1*a1-a1*b1+3.*a1*b1*c1)                        1805.   
-      parameter (f5= a1*a1*b1*b1-12.*b1*a1**3+36.*a1**4                 1806.   
-     2              -6.*a1*a1*b1*b1*c1+9.*a1*a1*b1*b1*c1*c1             1807.   
-     3              +36.*b1*c1*a1**3)                                   1808.   
-      parameter (f6= 216.*a1*a1*a2*a2-36.*a1*a2*a2*b1+252*a2*a1**3      1809.   
-     2              -90.*a1*a1*a2*b1*c1-30.*a1*a1*a2*b1                 1810.   
-     3              -36.*a1*a1*a2*b2+6.*a1*a2*b1*b2                     1811.   
-     4              -18.*a1*a2*b1*b2*c1-2.*a1*a2*b1*b1                  1812.   
-     5              +6.*a1*a2*b1*b1*c1)                                 1813.   
-      parameter (f7= 18.*a1*a2*a2*b2+6.*a1*a2*a2*b1+9.*a2*a2*b2*b2      1814.   
-     2              +a2*a2*b1*b1+9.*a1*a1*a2*a2+6.*a2*a2*b1*b2)         1815.   
-                                                                        1816.   
-      parameter (sm1=1.-3.*c1-6.*a1/b1)                                 1817.   
-      parameter (sm2=-3.*a2*((b2-3.*a2)*(1.-6.*a1/b1)-3.*c1*(b2+6.*a1)))1818.   
-      parameter (sm3=9.*a1*a2)                                          1819.   
-      parameter (sh1=a2*(1.-6.*a1/b1))                                  1820.   
-      parameter (s1 =3.*a2*(6.*a1+b2))                                  1821.   
-                                                                        1822.   
-      parameter (ri0=1.e-7,rimin=-0.44140)                              1823.   
-      parameter (ghmin=-0.5*0.75*0.75,ghmax=0.75/(a2*(12.*a1+b1+3.*b2)))1824.   
-c     parameter (rimaxm=0.045840,rimaxh=0.098800)                       1825.   
-      parameter (rimaxm=0.0780715,rimaxh=0.089044)                      1826.   
-      parameter (p1=1./3.,p2=4./3.)                                     1827.   
-      parameter (emin=1.e-2)                                            1828.   
-                                                                        1829.   
-      do 100 i=1,n-1                                                    1830.   
-                                                                        1831.   
-        bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)+1.e-8                       1832.   
-        shear2=((u(i+1)-u(i))/dzh(i))**2+                               1833.   
-     2         ((v(i+1)-v(i))/dzh(i))**2+1.e-8                          1834.   
-        rich=bvfrq2/shear2                                              1835.   
-        if (abs(rich).lt.ri0) rich=sign(ri0,rich)                       1836.   
-                                                                        1837.   
-        if (rich.lt.rimin) then                                         1838.   
-          gh(i)=ghmax                                                   1839.   
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))          1840.   
-          sh=sh1/(1.-s1*gh(i))                                          1841.   
-        endif                                                           1842.   
-                                                                        1843.   
-        if ((rich.gt.rimin).and.(rich.lt.rimaxm)) then                  1844.   
-          gh(i)=0.5*((f3*rich+f4+                                       1845.   
-     2             sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))         1846.   
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))          1847.   
-          sh=sh1/(1.-s1*gh(i))                                          1848.   
-        endif                                                           1849.   
-                                                                        1850.   
-        if (rich.gt.rimaxm) then                                        1851.   
-          gh(i)=0.5*((f3*rimaxm+f4+                                     1852.   
-     2             sqrt(f5+f6*rimaxm+f7*rimaxm*rimaxm))/(f1+f2*rimaxm)) 1853.   
-          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))          1854.   
-c         xm=rimaxm/rich                                                1855.   
-c         sm=sm*(xm**p1)                                                1856.   
-          xm=rich/rimaxm                                                1857.   
-          sm=sm*(2.**p1-1.)/((1.+xm)**p1-1.)                            1858.   
-          if (rich.gt.rimaxh) then                                      1859.   
-            gh(i)=0.5*((f3*rimaxh+f4+                                   1860.   
-     2             sqrt(f5+f6*rimaxh+f7*rimaxh*rimaxh))/(f1+f2*rimaxh)) 1861.   
-            sh=sh1/(1.-s1*gh(i))                                        1862.   
-c           xh=rimaxh/rich                                              1863.   
-c           sh=sh*(xh**p2)                                              1864.   
-            xh=rich/rimaxh                                              1865.   
-            sh=sh*(2.**p2-1.)/((1.+xh)**p2-1.)                          1866.   
-            else                                                        1867.   
-            gh(i)=0.5*((f3*rich+f4+                                     1868.   
-     2               sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))       1869.   
-            sh=sh1/(1.-s1*gh(i))                                        1870.   
-          endif                                                         1871.   
-        endif                                                           1872.   
-                                                                        1873.   
-        richf=sh*rich/sm                                                1874.   
-c         if (rich.gt.0.) then                                          1875.   
-            smmin=2.*emin/(b1*lscale(i)*lscale(i)*shear2*(1.-richf))    1876.   
-            if (sm.lt.smmin) then                                       1877.   
-              prandtl=sm/sh                                             1878.   
-              sm=smmin                                                  1879.   
-              sh=sm/prandtl                                             1880.   
-            endif                                                       1881.   
-c         endif                                                         1882.   
-        gm(i)=-gh(i)/rich                                               1883.   
-                                                                        1884.   
-        e(i)=0.5*b1*sm*lscale(i)*lscale(i)*shear2*(1.-richf)            1885.   
-                                                                        1886.   
-        km(i) = sqrt(b1*sm*(1.-richf)*shear2)*                          1887.   
-     2          sm*lscale(i)*lscale(i)+1.5e-5                           1888.   
-        kh(i) = sqrt(b1*sm*(1.-richf)*shear2)*                          1889.   
-     2          sh*lscale(i)*lscale(i)+2.5e-5                           1890.   
-                                                                        1891.   
-        if (km(i).gt.100.) then                                         1892.   
-          prndtl=km(i)/kh(i)                                            1893.   
-          km(i)=100.                                                    1894.   
-          kh(i)=km(i)/prndtl                                            1895.   
-        endif                                                           1896.   
-                                                                        1897.   
-100   continue                                                          1898.   
-                                                                        1899.   
-      do 200 i=2,n-2                                                    1900.   
-        kmtest=0.25*(km(i-1)+km(i+1))                                   1901.   
-        khtest=0.25*(kh(i-1)+kh(i+1))                                   1902.   
-        if (km(i).lt.kmtest) km(i)=kmtest                               1903.   
-        if (kh(i).lt.khtest) kh(i)=khtest                               1904.   
-200   continue                                                          1905.   
-                                                                        1906.   
-      if (km(1).lt.0.5*km(2)) km(1)=0.5*km(2)                           1907.   
-      if (kh(1).lt.0.5*kh(2)) kh(1)=0.5*kh(2)                           1908.   
-      if (km(n-1).lt.0.5*km(n-2)) km(n-1)=0.5*km(n-2)                   1909.   
-      if (kh(n-1).lt.0.5*kh(n-2)) kh(n-1)=0.5*kh(n-2)                   1910.   
-                                                                        1911.   
-      return                                                            1912.   
-      end                                                               1913.   
-                                                                        1914.   
+      function zbrent(func,x1,x2,tol)
+c ----------------------------------------------------------------------
+c Uses Brent's method to solve FUNC=0. X1 and X2 must bracket the root.
+c Taken from Numerical Recipes.
+c ----------------------------------------------------------------------
+      implicit real*8 (a-h,o-z)
+      parameter (itmax=100,eps=1.e-3)
+      a=x1
+      b=x2
+      fa=func(a)
+      fb=func(b)
+      if(fb*fa.gt.0.) then
+        write (99,*)  'root must be bracketed for zbrent.'
+        stop
+      endif
+      fc=fb
+      do 11 iter=1,itmax
+        if(fb*fc.gt.0.) then
+          c=a
+          fc=fa
+          d=b-a
+          e=d
+        endif
+        if(abs(fc).lt.abs(fb)) then
+          a=b
+          b=c
+          c=a
+          fa=fb
+          fb=fc
+          fc=fa
+        endif
+        tol1=2.*eps*abs(b)+0.5*tol
+        xm=.5*(c-b)
+        if(abs(xm).le.tol1 .or. fb.eq.0.)then
+          zbrent=b
+          return
+        endif
+        if(abs(e).ge.tol1 .and. abs(fa).gt.abs(fb)) then
+          s=fb/fa
+          if(a.eq.c) then
+            p=2.*xm*s
+            q=1.-s
+          else
+            q=fa/fc
+            r=fb/fc
+            p=s*(2.*xm*q*(q-r)-(b-a)*(r-1.))
+            q=(q-1.)*(r-1.)*(s-1.)
+          endif
+          if(p.gt.0.) q=-q
+          p=abs(p)
+          if(2.*p .lt. min(3.*xm*q-abs(tol1*q),abs(e*q))) then
+            e=d
+            d=p/q
+          else
+            d=xm
+            e=d
+          endif
+        else
+          d=xm
+          e=d
+        endif
+        a=b
+        fa=fb
+        if(abs(d) .gt. tol1) then
+          b=b+d
+        else
+          b=b+sign(tol1,xm)
+        endif
+        fb=func(b)
+11    continue
+      write (99,*) 'zbrent exceeding maximum iterations.'
+      write (99,*) x1,b,x2
+      stop 'zbrent'
+      return
+      end
+
+      subroutine getk_old(km,kh,gm,gh,u,v,t,e,lscale,z,zhat,dzh,itype,n)
+c ----------------------------------------------------------------------
+c This routine computes the turbulent viscosity, KM, and turbulent
+c  diffusivity, KH. These coefficients are computed using the second
+c  order closure model of Galperin et al. (1988) and are modified under
+c  stable conditions to give proper scaling at large Ri. Two grids are
+c  used in the computation. The quantities U, V, T, and Z are computed
+c  on the primary grid. The quantities E, LSCALE, KM, KH, GM, and GH
+c  are computed on the secondary grid, which is staggered with respect
+c  to the primary grid.
+c
+c Requiring GM be positive results in the requirement GH .le. 0.0233.
+c  The actual limit applied here is 75% of that too make for a cleaner
+c  solution. Actually, this limit is rarely used.
+c
+c The quantities 1.5E-5 and 2.5E-5 m**2/sec added to km and kh below
+c  are the viscosity and thermometric conductivity of air,
+c  respectively.
+c ----------------------------------------------------------------------
+      implicit real*8 (a-h,k,o-z)
+      dimension km(n-1),kh(n-1),gm(n-1),gh(n-1)
+      dimension u(n),v(n),t(n),z(n),zhat(n-1),e(n-1)
+      dimension dzh(n-1)
+      real*8 lscale(n-1)
+      parameter (grav=9.81)
+      parameter (a1=0.92,b1=16.6,c1=0.08,a2=0.74,b2=10.1,sq=0.20)
+
+      parameter (f1=-3.*a1*a2*b1*b2+18.*a2*b2*a1*a1+9.*a1*a2*a2*b1
+     2              -54.*a1*a1*a2*a2+9.*a1*a2*b1*b2*c1
+     3              +54.*a1*a1*a2*b1*c1)
+      parameter (f2= 9.*a1*a2*a2*b1+27.*a1*a2*a2*b2+108.*a1*a1*a2*a2)
+      parameter (f3= 21.*a1*a2+3.*a2*b2+a2*b1)
+      parameter (f4= 6.*a1*a1-a1*b1+3.*a1*b1*c1)
+      parameter (f5= a1*a1*b1*b1-12.*b1*a1**3+36.*a1**4
+     2              -6.*a1*a1*b1*b1*c1+9.*a1*a1*b1*b1*c1*c1
+     3              +36.*b1*c1*a1**3)
+      parameter (f6= 216.*a1*a1*a2*a2-36.*a1*a2*a2*b1+252*a2*a1**3
+     2              -90.*a1*a1*a2*b1*c1-30.*a1*a1*a2*b1
+     3              -36.*a1*a1*a2*b2+6.*a1*a2*b1*b2
+     4              -18.*a1*a2*b1*b2*c1-2.*a1*a2*b1*b1
+     5              +6.*a1*a2*b1*b1*c1)
+      parameter (f7= 18.*a1*a2*a2*b2+6.*a1*a2*a2*b1+9.*a2*a2*b2*b2
+     2              +a2*a2*b1*b1+9.*a1*a1*a2*a2+6.*a2*a2*b1*b2)
+
+      parameter (sm1=1.-3.*c1-6.*a1/b1)
+      parameter (sm2=-3.*a2*((b2-3.*a2)*(1.-6.*a1/b1)-3.*c1*(b2+6.*a1)))
+      parameter (sm3=9.*a1*a2)
+      parameter (sh1=a2*(1.-6.*a1/b1))
+      parameter (s1 =3.*a2*(6.*a1+b2))
+
+      parameter (ri0=1.e-7,rimin=-0.44140)
+      parameter (ghmin=-0.5*0.75*0.75,ghmax=0.75/(a2*(12.*a1+b1+3.*b2)))
+c     parameter (rimaxm=0.045840,rimaxh=0.098800)
+      parameter (rimaxm=0.0780715,rimaxh=0.089044)
+      parameter (p1=1./3.,p2=4./3.)
+      parameter (emin=1.e-2)
+
+      do 100 i=1,n-1
+
+        bvfrq2=grav*log(t(i+1)/t(i))/dzh(i)+1.e-8
+        shear2=((u(i+1)-u(i))/dzh(i))**2+
+     2         ((v(i+1)-v(i))/dzh(i))**2+1.e-8
+        rich=bvfrq2/shear2
+        if (abs(rich).lt.ri0) rich=sign(ri0,rich)
+
+        if (rich.lt.rimin) then
+          gh(i)=ghmax
+          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
+          sh=sh1/(1.-s1*gh(i))
+        endif
+
+        if ((rich.gt.rimin).and.(rich.lt.rimaxm)) then
+          gh(i)=0.5*((f3*rich+f4+
+     2             sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))
+          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
+          sh=sh1/(1.-s1*gh(i))
+        endif
+
+        if (rich.gt.rimaxm) then
+          gh(i)=0.5*((f3*rimaxm+f4+
+     2             sqrt(f5+f6*rimaxm+f7*rimaxm*rimaxm))/(f1+f2*rimaxm))
+          sm=(sm1+gh(i)*sm2)*a1/((1.-s1*gh(i))*(1.-sm3*gh(i)))
+c         xm=rimaxm/rich
+c         sm=sm*(xm**p1)
+          xm=rich/rimaxm
+          sm=sm*(2.**p1-1.)/((1.+xm)**p1-1.)
+          if (rich.gt.rimaxh) then
+            gh(i)=0.5*((f3*rimaxh+f4+
+     2             sqrt(f5+f6*rimaxh+f7*rimaxh*rimaxh))/(f1+f2*rimaxh))
+            sh=sh1/(1.-s1*gh(i))
+c           xh=rimaxh/rich
+c           sh=sh*(xh**p2)
+            xh=rich/rimaxh
+            sh=sh*(2.**p2-1.)/((1.+xh)**p2-1.)
+            else
+            gh(i)=0.5*((f3*rich+f4+
+     2               sqrt(f5+f6*rich+f7*rich*rich))/(f1+f2*rich))
+            sh=sh1/(1.-s1*gh(i))
+          endif
+        endif
+
+        richf=sh*rich/sm
+c         if (rich.gt.0.) then
+            smmin=2.*emin/(b1*lscale(i)*lscale(i)*shear2*(1.-richf))
+            if (sm.lt.smmin) then
+              prandtl=sm/sh
+              sm=smmin
+              sh=sm/prandtl
+            endif
+c         endif
+        gm(i)=-gh(i)/rich
+
+        e(i)=0.5*b1*sm*lscale(i)*lscale(i)*shear2*(1.-richf)
+
+        km(i) = sqrt(b1*sm*(1.-richf)*shear2)*
+     2          sm*lscale(i)*lscale(i)+1.5e-5
+        kh(i) = sqrt(b1*sm*(1.-richf)*shear2)*
+     2          sh*lscale(i)*lscale(i)+2.5e-5
+
+        if (km(i).gt.100.) then
+          prndtl=km(i)/kh(i)
+          km(i)=100.
+          kh(i)=km(i)/prndtl
+        endif
+
+100   continue
+
+      do 200 i=2,n-2
+        kmtest=0.25*(km(i-1)+km(i+1))
+        khtest=0.25*(kh(i-1)+kh(i+1))
+        if (km(i).lt.kmtest) km(i)=kmtest
+        if (kh(i).lt.khtest) kh(i)=khtest
+200   continue
+
+      if (km(1).lt.0.5*km(2)) km(1)=0.5*km(2)
+      if (kh(1).lt.0.5*kh(2)) kh(1)=0.5*kh(2)
+      if (km(n-1).lt.0.5*km(n-2)) km(n-1)=0.5*km(n-2)
+      if (kh(n-1).lt.0.5*kh(n-2)) kh(n-1)=0.5*kh(n-2)
+
+      return
+      end
+
 
