@@ -1,13 +1,20 @@
 C**** RE001 BR00B R00B R00B (from rad00b.radcode1.F) ccaal/cdrar 11/99
 C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
+
+      MODULE RE001
+
+      INCLUDE 'BR00B.COM'
+
+      CONTAINS
+
       SUBROUTINE SETNEW(NIPSET,IJYEAR,IJDAY,NVALUE,ILAYER,XVALUE)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12),PPMVK0(12)
-      EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
-      EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
-      EQUIVALENCE (FSPARE(161),PPMVK0(1))
+ceq   DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12),PPMVK0(12)
+ceq   EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
+ceq   EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
+ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
 C
 C          Internal Control Parameter (Initialization / Dynamic Control)
 C          -------------------------------------------------------------
@@ -408,11 +415,11 @@ C
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETNEW
 
       SUBROUTINE RCOMP1(MADVEL)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 CF    CHARACTER*2  NLCHAR
       CHARACTER*80 EPSTAG,DDINFO
@@ -437,18 +444,18 @@ CF    CHARACTER*80 RFILEN
 C
       REAL*4 TAUTB4(148000),PLANC4(8250),OZONLJ(44,46),R72X46(72,46)
       REAL*4 XKCF4(12,8,19,4),H2OCN4(33,8,14)
-      REAL*4 HTFA98(612,24),HTFB98(612,24),HTFC98(612,24),HTFD98(612,24)
+ceq   REAL*4 HTFA98(612,24),HTFB98(612,24),HTFC98(612,24),HTFD98(612,24)
 C
-      EQUIVALENCE(HTF498(1,1,1),HTFA98(1,1)),(HTF498(1,1,2),HTFB98(1,1))
-      EQUIVALENCE(HTF498(1,1,3),HTFC98(1,1)),(HTF498(1,1,4),HTFD98(1,1))
+ceq   EQUIVALENCE(HTF498(1,1,1),HTFA98(1,1)),(HTF498(1,1,2),HTFB98(1,1))
+ceq   EQUIVALENCE(HTF498(1,1,3),HTFC98(1,1)),(HTF498(1,1,4),HTFD98(1,1))
 C
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
 C                                           Process       KYEARX  KJDAYX
-      EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
-      EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
-      EQUIVALENCE (ISPARE(41),KJDAYS),(FSPARE(14),REFSET) !  REFSET= 0.0
-      EQUIVALENCE (ISPARE(42),KJDAYG),(FSPARE(15),VEFSET) !  VEFSET= 0.0
+ceq   EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
+ceq   EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
+ceq   EQUIVALENCE (ISPARE(41),KJDAYS),(FSPARE(14),REFSET) !  REFSET= 0.0
+ceq   EQUIVALENCE (ISPARE(42),KJDAYG),(FSPARE(15),VEFSET) !  VEFSET= 0.0
 C     ------------------------------------------------------------------
 C
 C
@@ -1589,11 +1596,11 @@ C
 C--------------------------------
 C
       RETURN
-      END
+      END SUBROUTINE RCOMP1
 
       SUBROUTINE RCOMPT
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C-----------------------------------------------------------------------
 C
@@ -1608,23 +1615,23 @@ C             the JYEAR,JDAY Time Dependence of the Specified Process is
 C             over-ridden by the Non-Zero KYEARX and KJDAYX Value.
 C             ----------------------------------------------------------
 C                                           Process       KYEARX  KJDAYX
-      EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
-      EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
-      EQUIVALENCE (ISPARE(33),KYEARO)   ! Ozone Distr        0       0
-      EQUIVALENCE (ISPARE(34),KYEARA)   ! AerClimtolgy       0       0
-      EQUIVALENCE (ISPARE(35),KYEARD)   ! Desert Dust        0       0
-      EQUIVALENCE (ISPARE(36),KYEARV)   ! Volcanic Aer       0       0
-      EQUIVALENCE (ISPARE(37),KYEARE)   ! Epsilon Clds       0       0
-      EQUIVALENCE (ISPARE(38),KYEARR)   ! Refl Surface       0       0
+ceq   EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
+ceq   EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
+ceq   EQUIVALENCE (ISPARE(33),KYEARO)   ! Ozone Distr        0       0
+ceq   EQUIVALENCE (ISPARE(34),KYEARA)   ! AerClimtolgy       0       0
+ceq   EQUIVALENCE (ISPARE(35),KYEARD)   ! Desert Dust        0       0
+ceq   EQUIVALENCE (ISPARE(36),KYEARV)   ! Volcanic Aer       0       0
+ceq   EQUIVALENCE (ISPARE(37),KYEARE)   ! Epsilon Clds       0       0
+ceq   EQUIVALENCE (ISPARE(38),KYEARR)   ! Refl Surface       0       0
 C
-      EQUIVALENCE (ISPARE(41),KJDAYS)
-      EQUIVALENCE (ISPARE(42),KJDAYG)
-      EQUIVALENCE (ISPARE(43),KJDAYO)
-      EQUIVALENCE (ISPARE(44),KJDAYA)
-      EQUIVALENCE (ISPARE(45),KJDAYD)
-      EQUIVALENCE (ISPARE(46),KJDAYV)
-      EQUIVALENCE (ISPARE(47),KJDAYE)
-      EQUIVALENCE (ISPARE(48),KJDAYR)
+ceq   EQUIVALENCE (ISPARE(41),KJDAYS)
+ceq   EQUIVALENCE (ISPARE(42),KJDAYG)
+ceq   EQUIVALENCE (ISPARE(43),KJDAYO)
+ceq   EQUIVALENCE (ISPARE(44),KJDAYA)
+ceq   EQUIVALENCE (ISPARE(45),KJDAYD)
+ceq   EQUIVALENCE (ISPARE(46),KJDAYV)
+ceq   EQUIVALENCE (ISPARE(47),KJDAYE)
+ceq   EQUIVALENCE (ISPARE(48),KJDAYR)
 C
 C
 C
@@ -1719,11 +1726,11 @@ C----------------------------------------------
 C----------------------------------------------
 C
       RETURN
-      END
+      END SUBROUTINE RCOMPT
 
       SUBROUTINE RCOMPX
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C
 C     ------------------------------------------------------------------
@@ -1785,15 +1792,15 @@ C
 C--------------------------------
 C
       RETURN
-      END
+      END SUBROUTINE RCOMPX
 
       SUBROUTINE SETSOL(JYEARS,JJDAYS)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      DIMENSION UVWAVL(3),UVFACT(3)
-      EQUIVALENCE (FSPARE(25),UVWAVL(1)),(FSPARE(28),UVFACT(1))
-      EQUIVALENCE (ISPARE( 6),KUVFAC),(ISPARE( 7),KSNORM)
+ceq   DIMENSION UVWAVL(3),UVFACT(3)
+ceq   EQUIVALENCE (FSPARE(25),UVWAVL(1)),(FSPARE(28),UVFACT(1))
+ceq   EQUIVALENCE (ISPARE( 6),KUVFAC),(ISPARE( 7),KSNORM)
 C
       DATA LMOREF/0/
 C
@@ -2079,29 +2086,29 @@ C
   300 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE SETSOL
 
       SUBROUTINE SETGHG(JYEARG,JJDAYG)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
-      EQUIVALENCE (GHGREF(1,3),ZREF(1))
-      EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
-      EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
-      EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
-      EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
-      EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
-      EQUIVALENCE (GHGDAT(1,3),XFOR(1))
+ceq   EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
+ceq   EQUIVALENCE (GHGREF(1,3),ZREF(1))
+ceq   EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
+ceq   EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
+ceq   EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
+ceq   EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
+ceq   EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
+ceq   EQUIVALENCE (GHGDAT(1,3),XFOR(1))
 C
-      DIMENSION XREF(5),YREF(5),ZREF(5)
-      DIMENSION XNOW(5),YNOW(5),ZNOW(5)
-      DIMENSION XDT0(5),YDT0(5),ZDT0(5)
-      DIMENSION XDAT(5),XRAT(5),XFOR(5)
+ceq   DIMENSION XREF(5),YREF(5),ZREF(5)
+ceq   DIMENSION XNOW(5),YNOW(5),ZNOW(5)
+ceq   DIMENSION XDT0(5),YDT0(5),ZDT0(5)
+ceq   DIMENSION XDAT(5),XRAT(5),XFOR(5)
       DIMENSION KFOR(5)
 C
-      DIMENSION PPMVK0(12)
-      EQUIVALENCE (FSPARE(161),PPMVK0(1))
+ceq   DIMENSION PPMVK0(12)
+ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
 C
 C     ---------------------------------------------------------------
 C     SETGHG  Sets Default Greenhouse Gas Reference Year (for FULGAS)
@@ -2192,13 +2199,13 @@ CF    ENDIF
   220 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE SETGHG
 
       SUBROUTINE SETO3D
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      EQUIVALENCE (FSPARE(16),O3WJT0)
+ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
 C
       DATA IFIRST/1/, MMOREF/0/, NL0/0/, N150MB/8/
 C
@@ -2540,11 +2547,11 @@ C
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETO3D
 
       SUBROUTINE SETO3L
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C
 C-----------------------------------------------------------------------
@@ -2559,10 +2566,10 @@ C
 C        (these data are used to define Ozone longitudinal dependence)
 C-----------------------------------------------------------------------
 C
-      DIMENSION AO3AVE(18,12),SO3JF(11,19),SO3SO(11,19)
+ceq   DIMENSION AO3AVE(18,12),SO3JF(11,19),SO3SO(11,19)
 C
-      EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))
-      EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1)),(SO3JFS(1,1,2),SO3SO(1,1))
+ceq   EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))
+ceq   EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1)),(SO3JFS(1,1,2),SO3SO(1,1))
 C
       DIMENSION XJDMO(14),HKMSPR(14),HKMAUT(14)
       DIMENSION CNCAUT(14),CNCSPR(14),DEGLAT(14)
@@ -2828,17 +2835,18 @@ C
       U0GAS(L,3)=(O3LB(L)-O3LB(L+1))
   407 CONTINUE
       RETURN
-      END
+      END SUBROUTINE SETO3L
 
       SUBROUTINE SETGAS
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      DIMENSION PPMVDF(12),PPGRAD(12),SINLAT(46)
-      EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
-      EQUIVALENCE (ISPARE(14),KPFCO2),(ISPARE(15),KPFOZO)
-      EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
-      EQUIVALENCE (ISPARE(11),KLATZ0),(FSPARE(31),PTOPTR)
+      DIMENSION SINLAT(46)
+ceq   DIMENSION PPMVDF(12),PPGRAD(12),SINLAT(46)
+ceq   EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
+ceq   EQUIVALENCE (ISPARE(14),KPFCO2),(ISPARE(15),KPFOZO)
+ceq   EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
+ceq   EQUIVALENCE (ISPARE(11),KLATZ0),(FSPARE(31),PTOPTR)
 C
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
@@ -3133,11 +3141,11 @@ C-----------------
 C-----------------
 C
       RETURN
-      END
+      END SUBROUTINE SETGAS
 
       SUBROUTINE SETO2A
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
       DIMENSION SFWM2(18),SIGMA(18,6)
       DATA SFWM2/
@@ -3244,11 +3252,11 @@ C
   200 CONTINUE
   210 CONTINUE
       RETURN
-      END
+      END SUBROUTINE SETO2A
 
       SUBROUTINE SETBAK
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ------------------------------------------------------------------
 C     SETBAK,GETBAK  Initializes Background Aerosol Specification, i.e.,
@@ -3258,8 +3266,8 @@ C                    and controlled by FGOLDH ON/OFF Scaling Parameters.
 C
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar             Thermal    apply to:
-      EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-      EQUIVALENCE (FSXAER(2),FSBAER),(FTXAER(2),FTBAER)  ! Bgrnd Aerosol
+ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
+ceq   EQUIVALENCE (FSXAER(2),FSBAER),(FTXAER(2),FTBAER)  ! Bgrnd Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3503,11 +3511,11 @@ C                                                                -------
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETBAK
 
       SUBROUTINE SETAER
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
@@ -3543,14 +3551,14 @@ C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
 C               (This takes Topography & Model Layering into account)
 C     ---------------------------------------------------------------
 C
-      EQUIVALENCE (ISPARE( 1),KVRAER),(ISPARE( 2),MEANAC)
-      EQUIVALENCE (FSPARE(18),X0YBCI),(FSPARE(19),X0YOCI)
-      EQUIVALENCE (FSPARE(20),X0YSUI)
+ceq   EQUIVALENCE (ISPARE( 1),KVRAER),(ISPARE( 2),MEANAC)
+ceq   EQUIVALENCE (FSPARE(18),X0YBCI),(FSPARE(19),X0YOCI)
+ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
 C
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar             Thermal    apply to:
-      EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-      EQUIVALENCE (FSXAER(3),FSAAER),(FTXAER(3),FTAAER)  ! AClim Aerosol
+ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
+ceq   EQUIVALENCE (FSXAER(3),FSAAER),(FTXAER(3),FTAAER)  ! AClim Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3559,8 +3567,8 @@ C                        FSAAER    SW   AClim Aer  Aerosol Optical Depth
 C                        FTAAER    LW   AClim Aer  Aerosol Optical Depth
 C                        -----------------------------------------------
 C
-      DIMENSION VDFAER(20,3)
-      EQUIVALENCE (FSPARE( 81),VDFAER(1,1))
+ceq   DIMENSION VDFAER(20,3)
+ceq   EQUIVALENCE (FSPARE( 81),VDFAER(1,1))
 C
 C            Aerosol Vertical Profile (Optical Depth) Scaling Factors
 C            --------------------------------------------------------
@@ -3912,11 +3920,11 @@ C
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETAER
 
       SUBROUTINE SETDST
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
@@ -3952,13 +3960,13 @@ C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
 C               (This takes Topography & Model Layering into account)
 C     ---------------------------------------------------------------
 C
-      EQUIVALENCE (ISPARE( 1),KVRAER)
-      EQUIVALENCE (ISPARE( 3),MEANDD)
+ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
+ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
 C
 C-----------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar             Thermal    apply to:
-      EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-      EQUIVALENCE (FSXAER(4),FSDAER),(FTXAER(4),FTDAER)  ! Dust  Aerosol
+ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
+ceq   EQUIVALENCE (FSXAER(4),FSDAER),(FTXAER(4),FTDAER)  ! Dust  Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3967,8 +3975,8 @@ C                        FSDAER    SW   Dust Aer   Aerosol Optical Depth
 C                        FTDAER    LW   Dust Aer   Aerosol Optical Depth
 C                        -----------------------------------------------
 C
-      DIMENSION VDFDST(12)
-      EQUIVALENCE (FSPARE(141),VDFDST(1))
+ceq   DIMENSION VDFDST(12)
+ceq   EQUIVALENCE (FSPARE(141),VDFDST(1))
 C
 C       Dust Aerosol Vertical Profile (Optical Depth) Scaling Factors
 C       -------------------------------------------------------------
@@ -4226,11 +4234,11 @@ C
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETDST
 
       SUBROUTINE SETVOL(REFF00,VEFF00)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
       DIMENSION E24LAT(25),EJMLAT(47)
       DIMENSION HLATTF(4),HLATKM(5)
@@ -4240,8 +4248,8 @@ C
 C
 C     -----------------------------------------------------------------
 C     Tau Scaling Factors:    Solar             Thermal    apply to:
-      EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-      EQUIVALENCE (FSXAER(5),FSVAER),(FTXAER(5),FTVAER)  ! SETVOL Aer
+ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
+ceq   EQUIVALENCE (FSXAER(5),FSVAER),(FTXAER(5),FTVAER)  ! SETVOL Aer
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW  (All-type) Aerosol Optical Depth
@@ -4416,26 +4424,26 @@ C
   440 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE SETVOL
 
       SUBROUTINE SETQVA(VEFF)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ------------------------------------------------------------------
 C     SETQVA   Selects (interpolates) H2SO4 Mie Parameters for specified
 C              Variance VEFF for subsequent Size interpolation by GETQVA
 C     ------------------------------------------------------------------
 C
-      DIMENSION SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
-      DIMENSION TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
+ceq   DIMENSION SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
+ceq   DIMENSION TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
       DIMENSION TRAB(33,20),V5(5),Q5(5),RV20(20),QV20(20)
 C
-      EQUIVALENCE (SRVQEX(1,1,6),SRQV(1,1)),(SRVQSC(1,1,6),SRSV(1,1))
-      EQUIVALENCE (SRVQCB(1,1,6),SRGV(1,1)),(Q55V20(1,6),Q55V(1))
-      EQUIVALENCE (TRVQEX(1,1,6),TRQV(1,1)),(TRVQSC(1,1,6),TRSV(1,1))
-      EQUIVALENCE (TRVQCB(1,1,6),TRGV(1,1)),(TRVQAL(1,1,6),TRAV(1,1))
-      EQUIVALENCE (REFV20(1,6),REFV(1)),(VEFV20(1,6),VEFV(1))
+ceq   EQUIVALENCE (SRVQEX(1,1,6),SRQV(1,1)),(SRVQSC(1,1,6),SRSV(1,1))
+ceq   EQUIVALENCE (SRVQCB(1,1,6),SRGV(1,1)),(Q55V20(1,6),Q55V(1))
+ceq   EQUIVALENCE (TRVQEX(1,1,6),TRQV(1,1)),(TRVQSC(1,1,6),TRSV(1,1))
+ceq   EQUIVALENCE (TRVQCB(1,1,6),TRGV(1,1)),(TRVQAL(1,1,6),TRAV(1,1))
+ceq   EQUIVALENCE (REFV20(1,6),REFV(1)),(VEFV20(1,6),VEFV(1))
 C
       DATA V5/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/
 C
@@ -4584,14 +4592,14 @@ C
   220 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE SETQVA
 
       SUBROUTINE SETCLD
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      EQUIVALENCE (FEMTRA(1),ECLTRA),(SRBXAL(1,1),SRBALB(1))
-      DIMENSION SRBALB(6)
+ceq   EQUIVALENCE (FEMTRA(1),ECLTRA),(SRBXAL(1,1),SRBALB(1))
+ceq   DIMENSION SRBALB(6)
 C
 C-----------------------------------------------------------------------
 C     Control Parameters used in SETCLD,GETCLD,GETEPS: defined in RADCOM
@@ -4984,71 +4992,71 @@ C
       ENDIF
 C
       RETURN
-      END
+      END SUBROUTINE SETCLD
 
       SUBROUTINE SETSUR
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      DIMENSION ALBVND(11,4,6),FIELDC(11,3),VTMASK(11)
+ceq   DIMENSION ALBVND(11,4,6),FIELDC(11,3),VTMASK(11)
 C
-      DIMENSION PRNB(6,4),PRNX(6,4)
+ceq   DIMENSION PRNB(6,4),PRNX(6,4)
 C
-      EQUIVALENCE
-     +          (V6ALB(1,1,1),ALBVND(1,1,1))
-     +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
+ceq   EQUIVALENCE
+ceq  +          (V6ALB(1,1,1),ALBVND(1,1,1))
+ceq  +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
 C
-      EQUIVALENCE
-     +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-     +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-     +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-     +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-     +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-     +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
+ceq   EQUIVALENCE
+ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
+ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
+ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
+ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
+ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
+ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
 C
-      EQUIVALENCE
-     + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
-     +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
-     +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
-     +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
+ceq   EQUIVALENCE
+ceq  + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
+ceq  +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
+ceq  +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
+ceq  +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
 C
-     +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
+ceq  +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
 C
-     +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-     +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
+ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
+ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
 C
-      EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
+ceq   EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
 C
-      EQUIVALENCE (ASNALB(1),ASNVIS),(ASNALB(7),ASNNIR)
-      EQUIVALENCE (AOIALB(1),AOIVIS),(AOIALB(7),AOINIR)
-      EQUIVALENCE (ALIALB(1),ALIVIS),(ALIALB(7),ALINIR)
+ceq   EQUIVALENCE (ASNALB(1),ASNVIS),(ASNALB(7),ASNNIR)
+ceq   EQUIVALENCE (AOIALB(1),AOIVIS),(AOIALB(7),AOINIR)
+ceq   EQUIVALENCE (ALIALB(1),ALIVIS),(ALIALB(7),ALINIR)
 C
-      DIMENSION    SRBALB(6),SRXALB(6)
-      EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
+ceq   DIMENSION    SRBALB(6),SRXALB(6)
+ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
 C
-      EQUIVALENCE (ISPARE(16),KVEGA6)
+ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
 C
-      EQUIVALENCE (FSPARE(17),SNOLIM)
-      EQUIVALENCE (FSPARE(21),AVSCAT)
-      EQUIVALENCE (FSPARE(22),ANSCAT)
-      EQUIVALENCE (FSPARE(23),AVFOAM)
-      EQUIVALENCE (FSPARE(24),ANFOAM)
+ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
+ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
+ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
+ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
+ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
 C
-      EQUIVALENCE (FSPARE(52),BVSOIL)
-      EQUIVALENCE (FSPARE(53),XVSOIL)
-      EQUIVALENCE (FSPARE(54),BNSOIL)
-      EQUIVALENCE (FSPARE(55),XNSOIL)
-      EQUIVALENCE (FSPARE(56),BVVEGE)
-      EQUIVALENCE (FSPARE(57),XVVEGE)
-      EQUIVALENCE (FSPARE(58),BNVEGE)
-      EQUIVALENCE (FSPARE(59),XNVEGE)
+ceq   EQUIVALENCE (FSPARE(52),BVSOIL)
+ceq   EQUIVALENCE (FSPARE(53),XVSOIL)
+ceq   EQUIVALENCE (FSPARE(54),BNSOIL)
+ceq   EQUIVALENCE (FSPARE(55),XNSOIL)
+ceq   EQUIVALENCE (FSPARE(56),BVVEGE)
+ceq   EQUIVALENCE (FSPARE(57),XVVEGE)
+ceq   EQUIVALENCE (FSPARE(58),BNVEGE)
+ceq   EQUIVALENCE (FSPARE(59),XNVEGE)
 C
-      EQUIVALENCE (FSPARE(72), TSOIL)
-      EQUIVALENCE (FSPARE(73), TVEGE)
-      EQUIVALENCE (FSPARE(74),FTRUFS)
-      EQUIVALENCE (FSPARE(75),FTRUFV)
-      EQUIVALENCE (FSPARE(76),DTRUFS)
-      EQUIVALENCE (FSPARE(77),DTRUFV)
+ceq   EQUIVALENCE (FSPARE(72), TSOIL)
+ceq   EQUIVALENCE (FSPARE(73), TVEGE)
+ceq   EQUIVALENCE (FSPARE(74),FTRUFS)
+ceq   EQUIVALENCE (FSPARE(75),FTRUFV)
+ceq   EQUIVALENCE (FSPARE(76),DTRUFS)
+ceq   EQUIVALENCE (FSPARE(77),DTRUFV)
 C
       DIMENSION BOCVN(6),BEAVN(6),BOIVN(6),BLIVN(6),BSNVN(6),BVNSUR(6)
       DIMENSION XOCVN(6),XEAVN(6),XOIVN(6),XLIVN(6),XSNVN(6),XVNSUR(6)
@@ -5589,14 +5597,13 @@ C
       FTRUFG(3)=BOISUM/BGF
       FTRUFG(4)=BLISUM/BGF
       RETURN
-      END
+      END SUBROUTINE SETSUR
 
 
       SUBROUTINE TAUGAS
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      EQUIVALENCE (ISPARE(5),KCORON)
 C
 C
 C     TAUGAS INPUT REQUIRES:  NL,TLM,ULGAS,XKCFC,PL,DPL,TAUTBL,ULOX,DUX
@@ -5949,16 +5956,16 @@ C
   220 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE TAUGAS
       SUBROUTINE THERML
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
-      DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
+ceq   DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
 C
-      EQUIVALENCE (FSPARE(1),WINDZF(1)),(FSPARE(4),WINDZT(1))
-      EQUIVALENCE (FSPARE(7),TOTLZF(1)),(FSPARE(10),TOTLZT(1))
-      EQUIVALENCE (FEMTRA(1),ECLTRA),(ISPARE(12),KCLDEM)
+ceq   EQUIVALENCE (FSPARE(1),WINDZF(1)),(FSPARE(4),WINDZT(1))
+ceq   EQUIVALENCE (FSPARE(7),TOTLZF(1)),(FSPARE(10),TOTLZT(1))
+ceq   EQUIVALENCE (FEMTRA(1),ECLTRA),(ISPARE(12),KCLDEM)
 C
       DATA R6,R24/.16666667D0,4.1666667D-02/
       DATA A,B,C/0.3825D0,0.5742D0,0.0433D0/
@@ -6555,12 +6562,12 @@ C
       WINDZT(II)=TKPFW(IPF)+DPF*(TKPFW(IPF+1)-TKPFW(IPF))
   390 CONTINUE
       RETURN
-      END
+      END SUBROUTINE THERML
 
 
       SUBROUTINE SOLARM
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ------------------------------------------------------------------
 C     SOLARM Returns:
@@ -6655,23 +6662,24 @@ C
      +            2200,3000,3400,3600,3800,4000,9999/
       DATA LORDER/15,14, 8, 7, 6, 5, 13, 12, 4, 3, 2, 1, 11, 10, 9,16/
 C
-      DIMENSION SRBALB(6),SRXALB(6),S0FRAC(17)
-      EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
+      DIMENSION S0FRAC(17)
+ceq   DIMENSION SRBALB(6),SRXALB(6),S0FRAC(17)
+ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
 C
-      EQUIVALENCE
-     + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
-     +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
-     +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
-     +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
-     +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
-     +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-     +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
+ceq   EQUIVALENCE
+ceq  + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
+ceq  +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
+ceq  +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
+ceq  +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
+ceq  +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
+ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
+ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
 C
-      EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
-      EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)
+ceq   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
+ceq   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)
 C
-      DIMENSION            PRNB(6,4),          PRNX(6,4)
-      EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
+ceq   DIMENSION            PRNB(6,4),          PRNX(6,4)
+ceq   EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
 C
       DIMENSION COLEXT(6),COLSCT(6),COLGCB(6),ALLGCB(6)
 C
@@ -7413,11 +7421,11 @@ C
   560 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE SOLARM
 
       SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
       DIMENSION SALBTG(768,14),TAUGSA(1001,14)
       DIMENSION TAUTGD(122),TAUTGS(768)
@@ -7772,11 +7780,11 @@ C
       RBBOUT=RBBB
 C
       RETURN
-      END
+      END SUBROUTINE GTSALB
 
       SUBROUTINE SGPGXG(XMU,TAU,G,GG)
 C
-      INCLUDE 'BR00B.COM'
+      !INCLUDE 'BR00B.COM'
 C
 C     ----------------------------------------------------------------
 C     COSBAR ADJUSTMENT TO REPRODUCE THE SOLAR ZENITH ANGLE DEPENDENCE
@@ -7865,7 +7873,1313 @@ C
 C
 C
       RETURN
-      END
+      END SUBROUTINE SGPGXG
+
+      SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
+C
+      !INCLUDE 'BR00B.COM'
+C
+C     ------------------------------------------------------------------
+C     STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
+C                     and applies PIAMAX, FSAERA, FTAERA Scaling Factors
+C                     --------------------------------------------------
+C
+      DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
+      DIMENSION FSAERA(10),FTAERA(10),PIAMAX( 9)
+      FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
+      FTAERN=1.D0
+C
+      DO 110 I=1,6
+      PI0F=1.D0
+      PI0=SRBQSC(I,NA)/SRBQEX(I,NA)
+      IF(PI0.GT.PIAMAX(NA)) PI0F=PIAMAX(NA)/PI0
+      QXAER(I)=SRBQEX(I,NA)*FSAERN
+      QSAER(I)=SRBQSC(I,NA)*FSAERN*PI0F
+      QCAER(I)=SRBQCB(I,NA)
+  110 CONTINUE
+C
+      DO 120 I=1,33
+      ATAER(I)=(TRBQEX(I,NA)-TRBQSC(I,NA))*FTAERN
+  120 CONTINUE
+C
+      RETURN
+      END SUBROUTINE STDAER
+
+      SUBROUTINE SDDUST(QQDUST,SSDUST,GGDUST,Q55DST,SIZDST,FNDUST)
+C
+      !INCLUDE 'BR00B.COM'
+C
+C     ------------------------------------------------------------------
+C     SDDUST     Selects Solar Mie Scattering Parameters for Desert Dust
+C                                     and applies FSDUST Scaling Factors
+C                                     ----------------------------------
+C
+      DIMENSION QQDUST(6),SSDUST(6),GGDUST(6)
+C
+      RDI=0.0
+      DO 110 J=1,25
+      RDJ=REFD25(J)
+      IF(SIZDST.LT.RDJ) GO TO 120
+      RDI=RDJ
+  110 CONTINUE
+      WTJ=1.0
+      J=25
+      I=25
+      GO TO 130
+  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
+      I=J-1
+      IF(I.LT.1) I=1
+  130 WTI=1.0-WTJ
+C
+      DO 140 K=1,6
+      QQDUST(K)=(WTI*SRDQEX(K,I)+WTJ*SRDQEX(K,J))*FNDUST
+      SSDUST(K)=(WTI*SRDQSC(K,I)+WTJ*SRDQSC(K,J))*FNDUST
+      GGDUST(K)=(WTI*SRDQCB(K,I)+WTJ*SRDQCB(K,J))
+  140 CONTINUE
+      Q55DST=WTI*Q55D25(I)+WTJ*Q55D25(J)
+C
+      RETURN
+      END SUBROUTINE SDDUST
+
+      SUBROUTINE TDDUST(ADDUST,SIZDST,FNDUST)
+C
+      !INCLUDE 'BR00B.COM'
+C
+C     ------------------------------------------------------------------
+C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
+C                                     and applies FTDUST Scaling Factors
+C                                     ----------------------------------
+C
+      DIMENSION QDDUST(33),SDDUST(33),GDDUST(33),ADDUST(33)
+C
+      RDI=0.0
+      DO 110 J=1,25
+      RDJ=REFD25(J)
+      IF(SIZDST.LT.RDJ) GO TO 120
+      RDI=RDJ
+  110 CONTINUE
+      WTJ=1.0
+      J=25
+      I=25
+      GO TO 130
+  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
+      I=J-1
+      IF(I.LT.1) I=1
+  130 WTI=1.0-WTJ
+C
+      DO 140 K=1,33
+      QDDUST(K)=(WTI*TRDQEX(K,I)+WTJ*TRDQEX(K,J))*FNDUST
+      SDDUST(K)=(WTI*TRDQSC(K,I)+WTJ*TRDQSC(K,J))*FNDUST
+      GDDUST(K)=(WTI*TRDQCB(K,I)+WTJ*TRDQCB(K,J))
+      ADDUST(K)=QDDUST(K)-SDDUST(K)
+  140 CONTINUE
+C
+      RETURN
+      END SUBROUTINE TDDUST
+
+      SUBROUTINE AO3ABS(OCM,O3ABS)
+C
+      !INCLUDE 'BR00B.COM'
+C
+C              ---------------------------------------------------------
+C              UV absorption by Ozone  is expressed as a fraction of the
+C              total solar flux S0. Hence O3ABS (fraction of total solar
+C              flux absored by OCM cm ofozone) must be normalized within
+C              SOLARM by dividing O3ABS by the corresponding fraction of
+C              the solar flux within the spectral interval DKS0(15)=0.05
+C              ---------------------------------------------------------
+C
+      O3ABS=AO3(460)
+      IP=0
+      XX=OCM*1.D+04
+      IX=XX
+      IF(IX.GT.99) GO TO 110
+      IF(IX.LT.1 ) GO TO 130
+      GO TO 120
+  110 CONTINUE
+      IP=IP+90
+      XX=XX*0.1D0
+      IX=XX
+      IF(IX.GT.99) GO TO 110
+  120 CONTINUE
+      DX=XX-IX
+      IX=IX+IP
+      IF(IX.GT.459) GO TO 140
+      O3ABS=AO3(IX)+DX*(AO3(IX+1)-AO3(IX))
+      GO TO 140
+  130 CONTINUE
+      O3ABS=XX*AO3(1)
+  140 CONTINUE
+C
+      RETURN
+      END SUBROUTINE AO3ABS
+
+      SUBROUTINE WRITER(KWRU,INDEX)
+C
+      !INCLUDE 'BR00B.COM'
+C
+C     ------------------------------------------------------------------
+C     WRITER Radiative Input/Output Cloud/Aerosol Data/Conrol Parameters
+C
+C         INDEX
+C           0     ISPARE,FSPARE control parameter defaults in BLOCK DATA
+C           1     RADCOM Radiative conrol/scaling parameter GHG defaults
+C           2     RADCOM Atmospheric composition P,H,T,Cld,Aer  profiles
+C           3     RADCOM Computed LW SW fluxes cooling and heating rates
+C           4     Aerosol and Cloud: Mie scattering radiative parameters
+C                 A  SW aerosol Mie scattering Qx,Qs,g in use parameters
+C                 B  SW  cloud  Mie scattering Qx,Qs,g in use parameters
+C                 C  SW cld+aer Mie scattering Qx,Qs,g in use parameters
+C                 D  SW LW aerosol 11-compositon  Mie Qx,Qs,g parameters
+C                 E  SW LW aerosol 09-compositon  Mie Qx,Qs,g parameters
+C                 F  SW LW aerosol 8-size D dust  Mie Qx,Qs,g parameters
+C                 G  SW LW  cloud  15-size/phase  Mie Qx,Qs,g parameters
+C           5     LW cld,aer,gas total optical k-distribution extinction
+C           6     LW gas absorb: total optical k-distribution extinction
+C           7     A  LW cloud   TRCALK optical k-distribution extinction
+C                 B  LW aerosol TRAALK optical k-distribution extinction
+C           8     SW Spectral/k-dist flux, albedo, absorption components
+C                 A  Spectral components of downward & upward solar flux
+C                 B  Spectral components of net solar flux, heating rate
+C           9     LW flux contribution from each k-distribution interval
+C                 1  Downward LW flux  from each k-distribution interval
+C                 2  Upward   LW flux  from each k-distribution interval
+C                 3  Net (Up) LW flux  from each k-distribution interval
+C                 4  Flux cooling rate from each k-distribution interval
+C                 5  Fraction coolrate from each k-distribution interval
+C        NOTE:
+C                 KWTRAB (ISPARE(8)) sets LW Mie parameters in 4-D,E,F,G
+C                        KWTRAB=0 (default) sets LW output to be Mie Qab
+C                        KWTRAB=1           sets LW output to be Mie Qex
+C                        KWTRAB=2           sets LW output to be Mie Qsc
+C                        KWTRAB=3           sets LW output to be Mie Qcb
+C                        KWTRAB=4           sets LW output to be Mie Pi0
+C
+C                 INDEX < 10 is selective, INDEX > 10 is digit inclusive
+C                 KWRU directs the output to selected (KWRU) file number
+C     ------------------------------------------------------------------
+C
+      CHARACTER*8 FTYPE
+      CHARACTER*3 TRABCD,TRAXSG
+      DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)
+      DATA TRABCD/'TRA','TRB','TRC','TRD','TRE'/
+      DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
+C
+      DIMENSION TKEFF(3)
+ceq   DIMENSION TKEFF(3),SRBALB(6),SRXALB(6)
+      DIMENSION SRAOC(15),SRAEA(15),SRAOI(15),SRALI(15),SRASN(15)
+ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
+C
+ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
+ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
+C
+ceq   EQUIVALENCE
+ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
+ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
+ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
+ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
+ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
+ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
+C
+ceq   EQUIVALENCE (PVT( 1),DESRT),(PVT( 2),TNDRA),(PVT( 3),GRASS)
+ceq  +           ,(PVT( 4),SHRUB),(PVT( 5),TREES),(PVT( 6),DECID)
+ceq  +           ,(PVT( 7),EVERG),(PVT( 8),RAINF),(PVT( 9),ROCKS)
+ceq  +           ,(PVT(10),CROPS),(PVT(11),ALGAE)
+C
+ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
+ceq   EQUIVALENCE (ISPARE( 2),MEANAC)
+ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
+ceq   EQUIVALENCE (ISPARE( 4),MEANVA)
+ceq   EQUIVALENCE (ISPARE( 5),NCARO3)
+ceq   EQUIVALENCE (ISPARE( 8),KWTRAB)
+ceq   EQUIVALENCE (ISPARE(10),KPGRAD)
+ceq   EQUIVALENCE (ISPARE(11),KLATZ0)
+ceq   EQUIVALENCE (ISPARE(12),KCLDEM)
+ceq   EQUIVALENCE (ISPARE(13),KANORM)
+ceq   EQUIVALENCE (ISPARE(14),KPFCO2)
+ceq   EQUIVALENCE (ISPARE(15),KPFOZO)
+ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
+ceq   EQUIVALENCE (ISPARE(17),KORDER)
+C
+ceq   DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
+C
+ceq   EQUIVALENCE (FSPARE( 1),WINDZF(1))
+ceq   EQUIVALENCE (FSPARE( 4),WINDZT(1))
+ceq   EQUIVALENCE (FSPARE( 7),TOTLZF(1))
+ceq   EQUIVALENCE (FSPARE(10),TOTLZT(1))
+C
+ceq   EQUIVALENCE (FSPARE(13), PSOIL)
+ceq   EQUIVALENCE (FSPARE(14),REFSET)
+ceq   EQUIVALENCE (FSPARE(15),VEFSET)
+ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
+ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
+ceq   EQUIVALENCE (FSPARE(18),X0YBCI)
+ceq   EQUIVALENCE (FSPARE(19),X0YOCI)
+ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
+C
+ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
+ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
+ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
+ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
+ceq   EQUIVALENCE (FSPARE(25),UVWAVL)
+ceq   EQUIVALENCE (FSPARE(28),UVFACT)
+C
+ceq   DIMENSION PI0VIS(11),PI0TRA(11)
+C
+ceq   EQUIVALENCE (FSPARE( 41),PI0VIS(1))
+ceq   EQUIVALENCE (FSPARE( 61),PI0TRA(1))
+C
+ceq   EQUIVALENCE (FSXAER(1),FSTAER)
+ceq   EQUIVALENCE (FSXAER(2),FSBAER)
+ceq   EQUIVALENCE (FSXAER(3),FSAAER)
+ceq   EQUIVALENCE (FSXAER(4),FSDAER)
+ceq   EQUIVALENCE (FSXAER(5),FSVAER)
+C
+ceq   EQUIVALENCE (FTXAER(1),FTTAER)
+ceq   EQUIVALENCE (FTXAER(2),FTBAER)
+ceq   EQUIVALENCE (FTXAER(3),FTAAER)
+ceq   EQUIVALENCE (FTXAER(4),FTDAER)
+ceq   EQUIVALENCE (FTXAER(5),FTVAER)
+C
+      DIMENSION BGFLUX(33),BGFRAC(33),TAUSUM(33)
+      DIMENSION SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX),FTYPE(5),AUXGAS(4)
+      DIMENSION WSREXT(LX,6),WSRSCT(LX,6),WSRGCB(LX,6),WSRPI0(LX,6)
+      DIMENSION FSR1(17),FSR2(17),ISR1(16),KSLAMW(16),IORDER(16)
+      DATA KSLAMW/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/
+      DATA IORDER/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/
+C
+      DATA FTYPE/'DOWNWARD','  UPWARD','UPWD NET','COOLRATE','FRACTION'/
+      DATA AUXGAS/1H0,1HL,1HX,1HX/
+      DATA P0/1013.25/
+C
+      DO 20 K=1,6
+      DO 10 L=1,NL
+      WSREXT(L,K)=SRAEXT(L,K)+SRBEXT(L,K)
+     +           +SRDEXT(L,K)+SRVEXT(L,K)
+      WSRSCT(L,K)=SRASCT(L,K)+SRBSCT(L,K)
+     +           +SRDSCT(L,K)+SRVSCT(L,K)
+      WSRGCB(L,K)=SRASCT(L,K)*SRAGCB(L,K)+SRBSCT(L,K)*SRBGCB(L,K)
+     +           +SRDSCT(L,K)*SRDGCB(L,K)+SRVSCT(L,K)*SRVGCB(L,K)
+      WSRPI0(L,K)=WSRSCT(L,K)/(WSREXT(L,K)+1.E-10)
+      WSRGCB(L,K)=WSRGCB(L,K)/(WSRSCT(L,K)+1.D-10)
+   10 CONTINUE
+   20 CONTINUE
+C
+      ACOLX=0.0
+      BCOLX=0.0
+      DCOLX=0.0
+      VCOLX=0.0
+      DO 30 L=1,NL
+      ACOLX=ACOLX+SRAEXT(L,6)
+      BCOLX=BCOLX+SRBEXT(L,6)
+      DCOLX=DCOLX+SRDEXT(L,6)
+      VCOLX=VCOLX+SRVEXT(L,6)
+   30 CONTINUE
+      TCOLX=ACOLX+BCOLX+DCOLX+VCOLX
+C
+      KW=KWRU
+      INDJ=MOD(INDEX,10)
+      IF(INDJ.LT.1) INDJ=10
+      INDI=1
+      IF(INDEX.LT.11) INDI=INDJ
+CF    DO 9999 INDX=INDI,INDJ
+C
+      KPAGE=1
+CF    IF(INDEX.EQ.0) GO TO 90
+CF    GO TO (100,200,300,400,500,600,700,800,900,1000),INDX
+C
+C-------------
+   90 CONTINUE
+C-------------
+C
+      WRITE(KW,6000)
+ 6000 FORMAT(1H ,'CALL WRITER(KW,0) :',2X,'PAGE 1/2  '
+     +          ,'ISPARE,  FSPARE  DEFINITIONS'/
+     +      /1H ,'ISPARE  PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
+      WRITE(KW,6001) (I,ISPARE(I),I=1,18)
+ 6001 FORMAT(5X,I2,' = KVRAER = ',I1,'   1        Repartition Aer VDist'
+     2      /5X,I2,' = MEANAC = ',I1,'   0        Ann-Mean Aer Climtogy'
+     3      /5X,I2,' = MEANDD = ',I1,'   0        Ann-Mean  Desert Dust'
+     4      /5X,I2,' = MEANVA = ',I1,'   0        Ann-Mean Volcanic Aer'
+     5      /5X,I2,' = NCARO3 = ',I1,'   0        NCAR London 1976 Ozon'
+     6      /5X,I2,' = KUVFAC = ',I1,'   0        ON/OFF UV Mult Factor'
+     7      /5X,I2,' = KSNORM = ',I1,'   0        Norm S0 when KUVFAC=1'
+     8      /5X,I2,' = KWTRAB = ',I1,'   0        WRITER: Qab,Qex,Qsc,g'
+     9      /5X,I2,' = KGGVDF = ',I1,'   0        GG Vertical Prof Grad'
+     A      /5X,I2,' = KPGRAD = ',I1,'   1        Pole-to-Pole GHG Grad'
+     1      /5X,I2,' = KLATZ0 = ',I1,'   1        GG VDist Latitude Dep'
+     2      /5X,I2,' = KCLDEM = ',I1,'   1        Top Cloud Scatter Cor'
+     3      /5X,I2,' = KANORM = ',I1,'   0        SGP Atmos Column Norm'
+     4      /5X,I2,' = KPFCO2 = ',I1,'   0        1=MOD CO2PROF: FPXCO2'
+     5      /5X,I2,' = KPFOZO = ',I1,'   0        1=MOD O3 PROF: FPXOZO'
+     6      /5X,I2,' = KVEGA6 = ',I1,'   0        6 SpecBand Veg Albedo'
+     7      /5X,I2,' = KORDER = ',I1,'   0        WRITER k-d spec order'
+     8      /5X,I2,' = unused = ',I1,'                                 '
+     R      )
+C
+      WRITE(KW,6003) (I,ISPARE(I),I=19,25)
+ 6003 FORMAT(5X,I2,' = unused = ',I1,'                                 '
+     B      /5X,I2,' = unused = ',I1,'                                 '
+     1      /5X,I2,' = unused = ',I1,'                                 '
+     2      /5X,I2,' = unused = ',I1,'                                 '
+     3      /5X,I2,' = unused = ',I1,'                                 '
+     4      /5X,I2,' = unused = ',I1,'                                 '
+     5      /5X,I2,' = unused = ',I1,'                                 '
+     R      )
+C
+      WRITE(KW,6004)
+ 6004 FORMAT(/1H ,'FSPARE  PARAMTER   WINDOW/TOT SPECFLUX, BTEMP'
+     +          ,' FOR MU=1,.5,.1')
+      WRITE(KW,6005) (I,FSPARE(I),I=1,12)
+ 6005 FORMAT(5X,I2,' = WINDZF = ',F7.3,'      MU=1.0\\                 '
+     A      /5X,I2,' =        = ',F7.3,'         0.5 > WINDOW  FLUX(MU)'
+     B      /5X,I2,' =        = ',F7.3,'         0.1/                  '
+     C      /5X,I2,' = WINDZT = ',F7.3,'      MU=1.0\\                 '
+     D      /5X,I2,' =        = ',F7.3,'         0.5 > WINDOW BTEMP(MU)'
+     E      /5X,I2,' =        = ',F7.3,'         0.1/                  '
+     F      /5X,I2,' = TOTLZF = ',F7.3,'      MU=1.0\\ SPECT INTEGRATED'
+     G      /5X,I2,' =        = ',F7.3,'         0.5 > TOTAL   FLUX(MU)'
+     H      /5X,I2,' =        = ',F7.3,'         0.1/                  '
+     I      /5X,I2,' = TOTLZT = ',F7.3,'      MU=1.0\\                 '
+     J      /5X,I2,' =        = ',F7.3,'         0.5 > TOTAL  BTEMP(MU)'
+     K      /5X,I2,' =        = ',F7.3,'         0.1/                  '
+     L      )
+C
+      WRITE(KW,6006)
+ 6006 FORMAT(1H0,'FSPARE  PARAMTER    VALUE',16X,' DEFAULT')
+      WRITE(KW,6007) (I,FSPARE(I),I=13,24)
+ 6007 FORMAT(5X,I2,' =  PSOIL = ',F7.3,6X,'BARE-SOIL FRACTION OF PEARTH'
+     A      /5X,I2,' = REFSET = ',F7.3,'                 0.000         '
+     B      /5X,I2,' = VEFSET = ',F7.3,'                 0.000         '
+     C      /5X,I2,' = O3WJT0 = ',F7.5,'                 0.001         '
+     D      /5X,I2,' = SNOLIM = ',F7.5,'                 0.367         '
+     E      /5X,I2,' = X0YBCI = ',F7.3,'                 0.001         '
+     F      /5X,I2,' = X0YOCI = ',F7.3,'                 0.001         '
+     G      /5X,I2,' = X0YSUI = ',F7.3,'                 0.0001        '
+     H      /5X,I2,' = AVSCAT = ',F7.5,'                  .01560       '
+     I      /5X,I2,' = ANSCAT = ',F7.5,'                  .00020       '
+     J      /5X,I2,' = AVFOAM = ',F7.5,'                  .21970       '
+     K      /5X,I2,' = ANFOAM = ',F7.5,'                  .15140       '
+     X      )
+      WRITE(KW,6008)
+ 6008 FORMAT(/10X,'UV Solar Flux Spectral Partitions and Factors')
+      WRITE(KW,6009) (I,I=25,27),(FSPARE(J),J=25,27)
+ 6009 FORMAT(4X,3I3,' = UVWAVL = ',F7.5,2F8.5,'                       ')
+      WRITE(KW,6010) (I,I=28,30),(FSPARE(J),J=28,30)
+ 6010 FORMAT(4X,3I3,' = UVFACT = ',F7.5,2F8.5,'                       ')
+C
+      WRITE(KW,6011)
+ 6011 FORMAT(1H ,'FSPARE PARAMETER ')
+      WRITE(KW,6012) (I,FSPARE(I),I=31,40)
+ 6012 FORMAT(5X,I2,' = PTOPTR = ',F7.1,6X,'TropTop (SIGMA lev) Pressure'
+     A      /5X,I2,' = unused = ',F7.3,'                 0.000         '
+     B      /5X,I2,' = unused = ',F7.3,'                 0.000         '
+     C      /5X,I2,' = unused = ',F7.5,'                 0.000         '
+     D      /5X,I2,' = unused = ',F7.5,'                 0.000         '
+     E      /5X,I2,' = unused = ',F7.3,'                 0.000         '
+     F      /5X,I2,' = unused = ',F7.3,'                 0.000         '
+     G      /5X,I2,' = unused = ',F7.3,'                 0.000         '
+     H      /5X,I2,' = unused = ',F7.5,'                  .000         '
+     I      /5X,I2,' = unused = ',F7.5,'                  .000         '
+     J      )
+      WRITE(KW,6013)
+ 6013 FORMAT(/1H ,'FSPARE PARAMETER   PI0VIS     PI0TRA      DEFAULT')
+      WRITE(KW,6014) (I+40,I+60,FSPARE(I+40),FSPARE(I+60),I=1,11)
+ 6014 FORMAT(1X,2I3,' = ACID1 = ',F8.6,F11.6,'     1.0                 '
+     A      /1X,2I3,' = SSALT = ',F8.6,F11.6,'     1.0                 '
+     B      /1X,2I3,' = SLFT1 = ',F8.6,F11.6,'     1.0                 '
+     C      /1X,2I3,' = SLFT2 = ',F8.6,F11.6,'     1.0                 '
+     D      /1X,2I3,' = BSLT1 = ',F8.6,F11.6,'      .98929             '
+     E      /1X,2I3,' = BSLT2 = ',F8.6,F11.6,'      .95609             '
+     F      /1X,2I3,' = DUST1 = ',F8.6,F11.6,'      .91995             '
+     G      /1X,2I3,' = DUST2 = ',F8.6,F11.6,'      .78495             '
+     H      /1X,2I3,' = DUST3 = ',F8.6,F11.6,'      .63576             '
+     I      /1X,2I3,' = CARB1 = ',F8.6,F11.6,'      .31482             '
+     J      /1X,2I3,' = CARB2 = ',F8.6,F11.6,'      .47513             '
+     K      )
+
+      WRITE(KW,6015)
+ 6015 FORMAT(/1H ,3('FSPARE     VALUE   '))
+      WRITE(KW,6016) (I+51,FSPARE(I+51),I=1,9)
+      WRITE(KW,6016) (I+71,FSPARE(I+71),I=1,9)
+ 6016 FORMAT(I7,' = ',F8.6,I8,' = ',F8.6,I8,' = ',F8.6)
+C
+      WRITE(KW,6017)
+ 6017 FORMAT(/1H ,'FSPARE  VDFBCI  FSPARE  VDFOCI  FSPARE  VDFSUI'
+     +        ,'  FSPARE  VDFDST')
+      WRITE(KW,6018) (I+ 80,FSPARE(I+ 80),I+100,FSPARE(I+100)
+     +              ,I+120,FSPARE(I+120),I+140,FSPARE(I+140),I=1,12)
+ 6018 FORMAT(4(3X,1I4,' =',F6.2,1X))
+C
+      WRITE(KW,6019)
+ 6019 FORMAT(/1H ,'FSPARE          PPMVK0   FSPARE    PPMVDF '
+     +        ,2X,'FSPARE    PPGRAD ')
+      WRITE(KW,6020) (I+160,FSPARE(I+160),I+180,FSPARE(I+180)
+     +               ,I+200,FSPARE(I+200),I=1,12)
+ 6020 FORMAT(3X,1I4,' =',F15.7,1I6,' =',F10.5,1I7,' =',F10.5)
+      WRITE(KW,6021)
+ 6021 FORMAT(2X,'unused '
+     +      ,'93-100 113-120 133-140 153-160 173-180 193-200 213-998 ')
+CF    GO TO 9999
+C
+C-------------
+  100 CONTINUE
+C-------------
+C
+      NPAGE=1
+      IF(INDEX.LT.11) NPAGE=KPAGE
+      WRITE(KW,6101)
+      WRITE(KW,6102)
+      FACTOR=P0/(PLB(1)-PLB(2))*1.25
+      PPMCO2=ULGAS(1,2)*FACTOR
+      PPMO2 =ULGAS(1,4)*FACTOR
+      PPMN2O=ULGAS(1,6)*FACTOR
+      PPMCH4=ULGAS(1,7)*FACTOR
+      PPMF11=ULGAS(1,8)*FACTOR
+      PPMF12=ULGAS(1,9)*FACTOR
+      PPMY11=ULGAS(1,11)*FACTOR
+      PPMZ12=ULGAS(1,12)*FACTOR
+      WRITE(KW,6103) (FULGAS(I),I=1,3),(FULGAS(I),I=6,9)
+     +              ,FULGAS(11),FULGAS(12),    (FGOLDH(I),I=1,5)
+C     IF(KGASSR.GT.0)
+C    +WRITE(KW,6104) (FULGAS(I+9),I=1,2),(FULGAS(I+9),I=4,9)
+C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
+      WRITE(KW,6105) PPMCO2,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12
+     +             ,(FGOLDH(I),I=6,9),PPMV80(2),(PPMV80(I),I=6,9)
+     +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
+      WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,FALGAE,KCLDEM,NTRACE
+     +             ,FSAAER,FTTAER,MOZONE,KCLDEP,NL
+      WRITE(KW,6107) TAUIC0,FCLDSR,ESNTRA,ZSNSRA,WETTRA,KVEGA6,ITR(1)
+     +             ,ITR(5),FSBAER,FTBAER,KO3LON,KEEPAL,NLP
+      WRITE(KW,6108) FLONO3,FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
+     +             ,ITR(6),FSAAER,FTAAER,KVRAER,KEEP10,MLAT46
+      WRITE(KW,6109) TLGRAD,ECLTRA,EDSTRA,ZDSSRA,KANORM,KPGRAD,ITR(3)
+     +             ,ITR(7),FSDAER,FTDAER,KWVCON,ICE012,MLON72
+      WRITE(KW,6110) PTLISO,ZCLSRA,EVGTRA,ZVGSRA,KEEPRH,KLATZ0,ITR(4)
+     +             ,ITR(8),FSVAER,FTVAER,KSOLAR,NORMS0
+C
+ 6101 FORMAT(' (1)FUL:  1',7X,'2',8X,'3',7X,'6',7X,'7',8X,'8',8X,'9'
+     +      ,8X,'11',7X,'12',4X,'RADCOM 1/F: (Control/Default'
+     +      ,'/Scaling Parameters)')
+ 6102 FORMAT(4X,'GAS: ','H2O',5X,'CO2',7X,'O3'
+     +      ,5X,'N2O',5X,'CH4',5X,'CFC-11',3X,'CFC-12'
+     +      ,3X,'CFY-11',3X,'CFZ-12'
+     +      ,2X,'Aerosol Global    Ocean     Land  Desert    Haze')
+ 6103 FORMAT(1X,'FULGAS=',F5.3,F10.5,F7.3,F9.5,F8.5,4F9.5
+     +      ,2X,'FGOLDH=',F7.5,2F9.6,2F8.5)
+ 6104 FORMAT(1H+,T84,'T'
+     +      /1X,'FULGAS=',1P,1E7.1,1P,2E8.1,1P,2E8.1,1P,4E9.1
+     +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
+ 6105 FORMAT(1X,'PPM(1)=(now)',2X,F8.3,8X,F8.5,F8.5,4(1X,F8.7)
+     +      ,2X,'TRACER=',F7.5,2F9.6,F8.5
+     +      /' PPMV80=(ref)=',0P,F9.3,8X,2F8.5,4(1X,F8.7),2X
+     +      ,'KTREND=',I1,2X,'JYEAR=',I4,' JDAY=',I3,5X,'LASTVC=',I7)
+ 6106 FORMAT(1X,'TAUWC0=',1P,E6.0,' FCLDTR=',0P,F4.2,' EOCTRA=',F3.1
+     +      ,1X,'ZOCSRA=',   F3.1,' FALGAE=',   F4.2,' KCLDEM=',  I3
+     +      ,1X,'NTRACE=',    I3,2X,'FSTAER=',  F3.1,' FTTAER=',F3.1
+     +      ,1X,'MOZONE=',    I1,1X,'KCLDEP=',    I1,'     NL=',  I2)
+ 6107 FORMAT(1X,'TAUIC0=',1P,E6.0,' FCLDSR=',0P,F4.2,' ESNTRA=',F3.1
+     +      ,1X,'ZSNSRA=',  F3.1,1X,'WETTRA=',  F4.2,' KVEGA6=',  I3
+     +      ,1X,'ITR(1)=',    2I2,1X,'FSBAER=', F3.1,' FTBAER=',F3.1
+     +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NLP=',  I2)
+ 6108 FORMAT(1X,'FO3LON=',   F6.2,' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
+     +      ,1X,'ZICSRA=',  F3.1,1X,'WETSRA=',  F4.2,' KCNORM=',  I3
+     +      ,1X,'ITR(2)=',    2I2,1X,'FSAAER=', F3.1,' FTAAER=',F3.1
+     +      ,1X,'KVRAER=',    I1,1X,'KEEP10=',    I1,' MLAT46=',  I2)
+ 6109 FORMAT(1X,'TLGRAD=',   F6.2,' ECLTRA=',0P,F4.2,' EDSTRA=',F3.1
+     +      ,1X,'ZDSSRA=',  F3.1,1X,'KANORM=',  I4  ,' KPGRAD=',  I3
+     +      ,1X,'ITR(3)=',    2I2,1X,'FSDAER=', F3.1,' FTDAER=',F3.1
+     +      ,1X,'KWVCON=',    I1,1X,'ICE012=',    I1,' MLON72=',  I2)
+ 6110 FORMAT(1X,'PTLISO=',  F6.1,1X,'ZCLSRA=',  F4.2,' EVGTRA=',F3.1
+     +      ,1X,'ZVGSRA=',  F3.1,1X,'KEEPRH=',  I4  ,' KLATZ0=',  I3
+     +      ,1X,'ITR(4)=',    2I2,1X,'FSVAER=', F3.1,' FTVAER=',F3.1
+     +      ,1X,'KSOLAR=',    I1,1X,'NORMS0=',    I1,'        ')
+C
+      RETURN
+      END SUBROUTINE WRITER
+
+      END MODULE RE001
+
+      BLOCK DATA RADPAR
+C
+      INCLUDE 'BR00B.COM'
+C
+C
+ceq   DIMENSION WLEAN1(152),WLEAN2(38)
+ceq   EQUIVALENCE (WSLEAN(1),WLEAN1(1)),(WSLEAN(153),WLEAN2(1))
+C
+C     Lean Spectral irradiance on following wavelength (nm) grid centers
+C         with the following wavelength bands (nm) centered on above wls
+      DATA WSLEAN/
+     A  117.50, 122.50, 127.50, 135.00, 145.00, 155.00, 165.00, 175.00,
+     B  185.00, 195.00, 205.00, 215.00, 222.50, 227.50, 232.50, 237.50,
+     C  242.50, 247.50, 252.50, 257.50, 262.50, 267.50, 272.50, 277.50,
+     D  282.50, 287.50, 292.50, 297.50, 302.50, 307.50, 312.50, 317.50,
+     E  322.50, 327.50, 332.50, 337.50, 342.50, 347.50, 352.50, 357.50,
+     F  362.50, 367.50, 372.50, 377.50, 382.50, 387.50, 392.50, 397.50,
+     G  402.50, 407.50, 412.50, 417.50, 422.50, 427.50, 432.50, 437.50,
+     H  442.50, 447.50, 452.50, 457.50, 462.50, 467.50, 472.50, 477.50,
+     I  482.50, 487.50, 492.50, 497.50, 502.50, 507.50, 512.50, 517.50,
+     J  522.50, 527.50, 532.50, 537.50, 542.50, 547.50, 552.50, 557.50,
+     K  562.50, 567.50, 572.50, 577.50, 582.50, 587.50, 592.50, 597.50,
+     L  602.50, 607.50, 615.00, 625.00, 635.00, 645.00, 655.00, 665.00,
+     M  675.00, 685.00, 695.00, 705.00, 715.00, 725.00, 735.00, 745.00,
+     N  755.00, 765.00, 775.00, 785.00, 795.00, 805.00, 815.00, 825.00,
+     O  835.00, 845.00, 855.00, 865.00, 875.00, 885.00, 895.00, 905.00,
+     P  915.00, 925.00, 935.00, 945.00, 955.00, 965.00, 975.00, 985.00,
+     Q  995.00,1025.00,1075.00,1125.00,1175.00,1225.00,1275.00,1325.00,
+     R 1375.00,1425.00,1475.00,1525.00,1575.00,1625.00,1675.00,1725.00,
+     S 1775.00,1825.00,1875.00,1925.00,1975.00,2050.00,2150.00,2250.00,
+C
+ceq   DATA WLEAN2/
+     A 2350.00,2450.00,2550.00,2650.00,2750.00,2850.00,2950.00,3050.00,
+     B 3150.00,3250.00,3350.00,3450.00,3550.00,3650.00,3750.00,3850.00,
+     C 3950.00,4050.00,4150.00,4250.00,4350.00,4450.00,4550.00,4650.00,
+     D 4750.00,4850.00,4950.00,5500.00,6500.00,7500.00,8500.00,9500.00,
+     E 10500.0,11500.0,12500.0,13500.0,14500.0,57500.0/
+C
+      DATA DSLEAN/
+     A   5.0,  5.0,  5.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+     B  10.0, 10.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     C   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     D   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     E   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     F   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     G   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     H   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     I   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
+     J  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+     K  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+     L  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
+     M  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 50.0,
+     N  50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0,
+     O  50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 100.,
+     P  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
+     Q  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
+     R  100., 100., 100., 100., 100., 100., 100., 100., 100.,1000.,
+     S 1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,8.5E+04/
+C
+ceq   DIMENSION F1LEAN(95),F2LEAN(95)
+ceq   EQUIVALENCE (FRLEAN(1),F1LEAN(1)),(FRLEAN(96),F2LEAN(1))
+C
+C      Lean Solar UV Flux  1950     1      1366.291100      1366.448785
+      DATA FRLEAN/
+     A 1.463600E-03,1.526467E+00,2.927199E-02,7.005412E-02,6.927072E-02,
+     B 1.668700E-01,3.785660E-01,1.120390E+00,2.706021E+00,5.377562E+00,
+     C 1.171729E+01,3.687586E+01,5.222137E+01,4.619777E+01,4.697743E+01,
+     D 4.752818E+01,5.774523E+01,5.098351E+01,5.023283E+01,1.083320E+02,
+     E 1.425212E+02,2.479949E+02,2.079845E+02,1.800741E+02,2.359987E+02,
+     F 3.226166E+02,5.530246E+02,5.127549E+02,5.201678E+02,5.984619E+02,
+     G 7.012117E+02,7.082256E+02,7.617171E+02,9.915579E+02,9.935029E+02,
+     H 9.177540E+02,9.600278E+02,9.351981E+02,1.050501E+03,9.218711E+02,
+     I 9.948324E+02,1.204492E+03,1.063533E+03,1.195645E+03,9.637095E+02,
+     J 1.043356E+03,1.067941E+03,1.255184E+03,1.806284E+03,1.705940E+03,
+     K 1.699230E+03,1.758670E+03,1.758020E+03,1.650341E+03,1.553274E+03,
+     L 1.767777E+03,1.929360E+03,1.987496E+03,2.075871E+03,2.094106E+03,
+     M 2.095205E+03,2.030999E+03,2.060222E+03,2.104337E+03,2.075792E+03,
+     N 1.880081E+03,1.987674E+03,1.980032E+03,1.911138E+03,1.980752E+03,
+     O 1.892300E+03,1.744249E+03,1.859837E+03,1.829749E+03,1.893766E+03,
+     P 1.880606E+03,1.852021E+03,1.880300E+03,1.880174E+03,1.814568E+03,
+     Q 1.803343E+03,1.795452E+03,1.813090E+03,1.799145E+03,1.821609E+03,
+     R 1.749601E+03,1.765703E+03,1.764881E+03,1.739113E+03,1.725504E+03,
+     S 1.668046E+03,1.662454E+03,1.637083E+03,1.593666E+03,1.520814E+03,
+ceq   DATA F2LEAN/
+     A 1.538301E+03,1.500148E+03,1.475486E+03,1.460724E+03,1.429136E+03,
+     B 1.376901E+03,1.345483E+03,1.314613E+03,1.283486E+03,1.271272E+03,
+     C 1.243894E+03,1.198048E+03,1.161738E+03,1.133216E+03,1.116448E+03,
+     D 1.101408E+03,1.070334E+03,1.040272E+03,1.009878E+03,9.452869E+02,
+     E 9.636011E+02,9.627610E+02,9.396095E+02,9.293125E+02,9.004694E+02,
+     F 8.922053E+02,8.606506E+02,8.539306E+02,8.280872E+02,8.124155E+02,
+     G 7.956104E+02,7.779253E+02,7.611612E+02,7.472715E+02,6.951995E+02,
+     H 6.224917E+02,5.687959E+02,5.203566E+02,4.779112E+02,4.352621E+02,
+     I 3.917702E+02,3.566886E+02,3.290026E+02,3.042735E+02,2.808124E+02,
+     J 2.586596E+02,2.364040E+02,2.154338E+02,1.943942E+02,1.761917E+02,
+     K 1.594696E+02,1.447463E+02,1.318530E+02,1.206954E+02,1.048143E+02,
+     L 8.809857E+01,7.489415E+01,6.361460E+01,5.467346E+01,4.723338E+01,
+     M 4.113513E+01,3.584235E+01,3.141150E+01,2.763573E+01,2.431808E+01,
+     N 2.154878E+01,1.912381E+01,1.700619E+01,1.523811E+01,1.367492E+01,
+     O 1.226657E+01,1.098629E+01,1.000669E+01,9.063802E+00,8.205545E+00,
+     P 7.499935E+00,6.828093E+00,6.078227E+00,5.463104E+00,4.993065E+00,
+     Q 4.607049E+00,4.285606E+00,3.973604E+00,3.678151E+00,2.540683E+00,
+     R 1.341226E+00,7.647217E-01,4.665436E-01,3.005465E-01,2.023893E-01,
+     S 1.411388E-01,1.014034E-01,7.471365E-02,5.625803E-02,2.896050E-03/
+C
+      DATA WTHEK/.115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
+     1 .210,.220,.225,.230,.235,.240,.245,.250,.255,.260,.265,.270,.275,
+     2      .280,.285,.290,.295,.300,.305,.310,.315,.320,.325,.330,.335,
+     3           .340,.345,.350,.355,.360,.365,.370,.375,.380,.385,.390,
+     4           .395,.400,.405,.410,.415,.420,.425,.430,.435,.440,.445,
+     5           .450,.455,.460,.465,.470,.475,.480,.485,.490,.495,.500,
+     6           .505,.510,.515,.520,.525,.530,.535,.540,.545,.550,.555,
+     7           .560,.565,.570,.575,.580,.585,.590,.595,.600,.605,.610,
+     8           .620,.630,.640,.650,.660,.670,.680,.690,.700,.710,.720,
+     9           .730,.740,.750,.760,.770,.780,.790,.800,.810,.820,.830,
+     A .840,.850,.860,.870,.880,.890,.900,.910,.920,.930,.940,.950,.960,
+     B 0.97,0.98,0.99,1.00,1.05,1.10,1.15,1.20,1.25,1.30,1.35,1.40,1.45,
+     C 1.50,1.55,1.60,1.65,1.70,1.75,1.80,1.85,1.90,1.95,2.00,2.10,2.20,
+     D 2.30,2.40,2.50,2.60,2.70,2.80,2.90,3.00,3.10,3.20,3.30,3.40,3.50,
+     E 3.60,3.70,3.80,3.90,4.00,4.10,4.20,4.30,4.40,4.50,4.60,4.70,4.80,
+     F      4.9, 5.0, 6.0, 7.0, 8.0, 9.0,10.0,11.0,12.0,13.0,14.0,15.00/
+C
+      DATA FTHEK/.007,.900,.007,.007,.030,.070,.230,.630,1.25,2.71,10.7,
+     1 22.9,57.5,64.9,66.7,59.3,63.0,72.3,70.4,104.,130.,185.,232.,204.,
+     2    222.,315.,482.,584.,514.,603.,689.,764.,830.,975.,1059.,1081.,
+     31074.,1069.,1093.,1083.,1068.,1132.,1181.,1157.,1120.,1098.,1098.,
+     41189.,1429.,1644.,1751.,1774.,1747.,1693.,1639.,1663.,1810.,1922.,
+     52006.,2057.,2066.,2048.,2033.,2044.,2074.,1976.,1950.,1960.,1942.,
+     61920.,1882.,1833.,1833.,1852.,1842.,1818.,1783.,1754.,1725.,1720.,
+     71695.,1705.,1712.,1719.,1715.,1712.,1700.,1682.,1666.,1647.,1635.,
+     81602.,1570.,1544.,1511.,1486.,1456.,1427.,1402.,1389.,1344.,1314.,
+     91290.,1260.,1235.,1211.,1185.,1159.,1134.,1109.,1085.,1060.,1036.,
+     A1013.,990.,968.,947.,926.,908.,891.,880.,869.,858.,847.,837.,820.,
+     B 803.,785.,767.,748.,668.,593.,535.,485.,438.,397.,358.,337.,312.,
+     C 288.,267.,245.,223.,202.,180.,159.,142.,126.,114.,103., 90., 79.,
+     D 69.0,62.0,55.0,48.0,43.0,39.0,35.0,31.0,26.0,22.6,19.2,16.6,14.6,
+     E 13.5,12.3,11.1,10.3, 9.5,8.70,7.80,7.10,6.50,5.92,5.35,4.86,4.47,
+     F   4.11,3.79,1.82,0.99,.585,.367,.241,.165,.117,.0851,.0634,.0481/
+C
+C
+ceq   DIMENSION OWMUV2(115),OWMUV3(111),OKEUV2(115),OKEUV3(111)
+ceq   EQUIVALENCE (XWAVO3(1),OWMUV2(1)),(XWAVO3(116),OWMUV3(1))
+ceq   EQUIVALENCE (FUVKO3(1),OKEUV2(1)),(FUVKO3(116),OKEUV3(1))
+C
+      DATA XWAVO3/.2002,.2012,.2022,.2032,.2042,.2052,.2062,.2072,.2082,
+     A.2092,.2102,.2112,.2122,.2132,.2142,.2152,.2162,.2172,.2182,.2192,
+     B.2202,.2212,.2222,.2232,.2242,.2252,.2262,.2272,.2282,.2292,.2302,
+     C.2312,.2322,.2332,.2342,.2352,.2362,.2372,.2382,.2392,.2400,.2402,
+     D.2412,.2422,.2432,.2438,.2444,.2452,.2458,.2463,.2472,.2478,.2482,
+     E.2490,.2492,.2500,.2508,.2519,.2527,.2539,.2543,.2553,.2562,.2566,
+     F.2571,.2575,.2579,.2587,.2597,.2604,.2617,.2624,.2635,.2643,.2650,
+     G.2654,.2662,.2669,.2675,.2682,.2692,.2695,.2702,.2712,.2718,.2722,
+     H.2732,.2742,.2746,.2752,.2762,.2772,.2782,.2792,.2802,.2812,.2822,
+     I.2830,.2842,.2852,.2862,.2872,.2882,.2892,.2902,.2912,.2922,.2932,
+     J.2942,.2952,.2962,.2972,.2982,.2992,.2998,
+     &            .3004,.3016,.3021,.3029,.3036,.3037,.3051,.3053,.3059,
+     A.3061,.3066,.3075,.3077,.3083,.3085,.3092,.3098,.3100,.3104,.3106,
+     B.3109,.3112,.3130,.3135,.3146,.3148,.3151,.3154,.3167,.3170,.3173,
+     C.3176,.3190,.3194,.3199,.3200,.3209,.3210,.3216,.3220,.3223,.3226,
+     D.3239,.3242,.3245,.3248,.3253,.3255,.3269,.3272,.3275,.3279,.3292,
+     E.3295,.3299,.3303,.3309,.3312,.3328,.3332,.3334,.3338,.3357,.3365,
+     F.3369,.3372,.3391,.3395,.3398,.3401,.3417,.3421,.3426,.3430,.3437,
+     G.3439,.3451,.3455,.3460,.3463,.3466,.3472,.3481,.3485,.3489,.3493,
+     H.3499,.3501,.3506,.3514,.3521,.3523,.3546,.3550,.3554,.3556,.3561,
+     I.3567,.3572,.3573,.3588,.3594,.3599,.3600,.3604,.3606,.3639,.3647,
+     J.3650,.3654,.3660/
+      DATA FUVKO3/  8.3,  8.3,  8.1,  8.3,  8.6,  9.0,  9.7, 10.8, 11.7,
+     A 13.0, 14.3, 16.0, 18.0, 20.6, 23.0, 26.1, 29.3, 32.6, 36.9, 40.8,
+     B 46.9, 51.4, 56.7, 63.4, 69.1, 76.6, 84.0, 91.4, 99.9,110.0,118.0,
+     C126.0,136.0,145.0,154.0,164.0,175.0,186.0,192.0,201.0,210.0,212.0,
+     D221.0,230.0,239.0,248.0,250.0,259.0,264.0,264.0,273.0,277.0,275.0,
+     E283.0,283.0,290.0,283.0,297.0,290.0,300.0,290.0,302.0,295.0,283.0,
+     F293.0,290.0,286.0,297.0,281.0,280.0,271.0,275.0,254.0,264.0,250.0,
+     G248.0,242.0,228.0,230.0,216.0,213.0,211.0,199.0,188.0,188.0,178.0,
+     H169.0,153.0,155.0,148.0,136.0,127.0,117.0,108.0, 97.0, 88.7, 81.3,
+     I 78.7, 67.9, 61.4, 54.3, 49.6, 43.1, 38.9, 34.6, 30.2, 27.5, 23.9,
+     J 21.0, 18.6, 16.2, 14.2, 12.3, 10.7,  9.5,
+     &            8.880,7.520,6.960,6.160,5.810,5.910,4.310,4.430,4.130,
+     A4.310,4.020,3.330,3.390,3.060,3.100,2.830,2.400,2.490,2.330,2.320,
+     B2.120,2.200,1.436,1.595,1.074,1.138,1.068,1.262,0.818,0.948,0.860,
+     C1.001,0.543,0.763,0.665,0.781,0.382,0.406,0.373,0.608,0.484,0.601,
+     D0.209,0.276,0.259,0.470,0.319,0.354,0.131,0.223,0.185,0.339,0.080,
+     E0.093,0.079,0.184,0.139,0.214,0.053,0.074,0.068,0.152,0.038,0.070,
+     F.0540000,.1030000,.0240000,.0382500,.0292500,.0550000,.0135000,
+     G.0155250,.0127500,.0188250,.0167250,.0262500,.0115500,.0140250,
+     H.0099750,.0115500,.0081000,.0104250,.0050100,.0057000,.0046650,
+     I.0073425,.0051825,.0055275,.0040575,.0077700,.0048900,.0054600,
+     J.0015375,.0017775,.0013275,.0014100,.0011550,.0023325,.0018825,
+     K.0019650,.0009600,.0013650,.0011925,.0013200,.0008925,.0009825,
+     L.0001350,.0006300,.0004500,.0006225,0.0/
+C
+C
+C-----------------------------------------------------------------------
+C                     TRACE GAS ABSORPTION COEFFICIENTS FOR  F11 & F12
+C-----------------------------------------------------------------------
+C
+ceq   DIMENSION ULOA(114),ULOB(114),ULOC(19),DUA(114),DUB(114),DUC(19)
+C
+ceq   EQUIVALENCE (ULOX(  1),ULOA(1)),(ULOX(115),ULOB(1))
+ceq  +           ,(ULOX(229),ULOC(1))
+ceq   EQUIVALENCE (DUX(1),DUA(1)),(DUX(115),DUB(1)),(DUX(229),DUC(1))
+C
+      DATA ULOX/
+     A         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
+     B         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
+     C         .10D-5,.10D-5,.10D-5,
+     D         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
+     E         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
+     F         .30D-2,.15D-2,.50D-3,
+     G         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
+     H         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
+     I         .60D-7,.50D-7,.40D-7,
+     J         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
+     K         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
+     L         .10D-5,.10D-5,.10D-5,
+     M         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
+     N         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
+     O         .10D-5,.10D-5,.10D-5,
+     P         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
+     Q         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
+     R         .30D-2,.15D-2,.50D-3,
+ceq   DATA ULOB/
+     A         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
+     B         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
+     C         .30D-2,.15D-2,.50D-3,
+     D         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
+     E         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
+     F         .60D-7,.50D-7,.40D-7,
+     G         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
+     H         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
+     I         .60D-7,.50D-7,.40D-7,
+     J         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
+     K         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
+     L         .10D-5,.30D-6,.20D-6,
+     M         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
+     N         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
+     O         .10D-5,.30D-6,.20D-6,
+     P         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
+     Q         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
+     R         .10D-5,.30D-6,.20D-6,
+ceq   DATA ULOC/
+     A         .15D-1,.75D-1,.10D+0,.10D+0,.50D-1,.30D-1,.20D-1,.75D-2,
+     B         .35D-2,.20D-2,.75D-3,.40D-3,.20D-3,.15D-3,.50D-4,.15D-4,
+     C         .40D-5,.15D-5,.10D-5/
+C
+      DATA DUX/
+     A         .75D+2,.90D+2,.50D+2,.85D+1,.20D+1,.20D+0,.10D+0,.80D-1,
+     B         .60D-1,.30D-1,.70D-2,.40D-2,.30D-2,.15D-2,.40D-3,.30D-3,
+     C         .20D-3,.10D-3,.40D-4,
+     D         .50D+1,.10D+2,.10D+2,.10D+2,.10D+2,.75D+1,.50D+1,.40D+1,
+     E         .40D+1,.15D+1,.25D+0,.25D+0,.20D+0,.15D+0,.10D+0,.75D-1,
+     F         .50D-1,.30D-1,.10D-1,
+     G         .30D-3,.85D-3,.15D-2,.50D-2,.25D-2,.25D-1,.25D-1,.25D-1,
+     H         .25D-1,.15D-1,.35D-2,.25D-2,.20D-2,.15D-2,.10D-2,.75D-3,
+     I         .50D-3,.25D-3,.25D-4,
+     J         .25D+3,.25D+3,.15D+3,.25D+2,.50D+1,.55D+0,.35D+0,.25D+0,
+     K         .20D+0,.85D-1,.20D-1,.10D-1,.85D-2,.45D-2,.10D-2,.90D-3,
+     L         .65D-3,.40D-3,.10D-3,
+     M         .25D+3,.25D+3,.15D+3,.25D+2,.50D+1,.55D+0,.35D+0,.25D+0,
+     N         .20D+0,.85D-1,.20D-1,.10D-1,.85D-2,.45D-2,.10D-2,.90D-3,
+     O         .65D-3,.40D-3,.10D-3,
+     P         .10D+2,.20D+2,.20D+2,.20D+2,.20D+2,.15D+2,.10D+2,.90D+1,
+     Q         .75D+1,.35D+1,.50D+0,.50D+0,.40D+0,.30D+0,.20D+0,.15D+0,
+     R         .10D+0,.60D-1,.20D-1,
+ceq   DATA DUB/
+     A         .10D+2,.20D+2,.20D+2,.20D+2,.20D+2,.15D+2,.10D+2,.90D+1,
+     B         .75D+1,.35D+1,.50D+0,.50D+0,.40D+0,.30D+0,.20D+0,.15D+0,
+     C         .10D+0,.60D-1,.20D-1,
+     D         .60D-3,.15D-2,.30D-2,.15D-1,.30D-1,.50D-1,.50D-1,.50D-1,
+     E         .50D-1,.30D-1,.70D-2,.50D-2,.40D-2,.30D-2,.20D-2,.15D-2,
+     F         .10D-2,.50D-3,.50D-4,
+     G         .60D-3,.15D-2,.30D-2,.15D-1,.30D-1,.50D-1,.50D-1,.50D-1,
+     H         .50D-1,.30D-1,.70D-2,.50D-2,.40D-2,.30D-2,.20D-2,.15D-2,
+     I         .10D-2,.50D-3,.50D-4,
+     J         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
+     K         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
+     L         .10D-4,.30D-5,.20D-5,
+     M         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
+     N         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
+     O         .10D-4,.30D-5,.20D-5,
+     P         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
+     Q         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
+     R         .10D-4,.30D-5,.20D-5,
+ceq   DATA DUC/
+     A         .15D+0,.75D+0,.10D+1,.10D+1,.50D+0,.30D+0,.20D+0,.75D-1,
+     B         .35D-1,.20D-1,.75D-1,.40D-2,.20D-2,.15D-2,.50D-3,.15D-3,
+     C         .40D-4,.15D-4,.10D-4/
+C
+C-----------------------------------------------------------------------
+C          NO2 Trace Gas Vertical Distribution and Concentration Profile
+C-----------------------------------------------------------------------
+C
+      DATA CMANO2/
+     1  8.66E-06,5.15E-06,2.85E-06,1.50E-06,9.89E-07,6.91E-07,7.17E-07,
+     2  8.96E-07,3.67E-06,4.85E-06,5.82E-06,6.72E-06,7.77E-06,8.63E-06,
+     3  8.77E-06,8.14E-06,6.91E-06,5.45E-06,4.00E-06,2.67E-06,1.60E-06,
+     4  8.36E-07,3.81E-07,1.58E-07,6.35E-08,2.57E-08,1.03E-08,4.18E-09,
+     5  1.66E-09,6.57E-10,2.58E-10,1.02E-10,4.11E-11,1.71E-11,7.73E-12,
+     6  9.07E-12,4.63E-12,2.66E-12,1.73E-12,1.28E-12,1.02E-12,1.00E-30/
+C
+C
+C
+C-----------------------------------------------------------------------
+C     Seasonal Albedos:  11 Vegetation Types (Hemispherically Reflected)
+C-----------------------------------------------------------------------
+C
+ceq   EQUIVALENCE
+ceq  +          (V6ALB(1,1,1),ALBVND(1,1,1))
+ceq  +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
+C
+ceq   EQUIVALENCE
+ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
+ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
+ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
+ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
+ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
+ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
+C
+ceq   DIMENSION ALBVND(11,4,6)
+ceq   DIMENSION FIELDC(11,3),VTMASK(11)
+C
+C                          1       2       3       4
+C                        WINTER  SPRING  SUMMER  AUTUMN
+C
+      DATA ALBVND/
+C     DATA ALVISK/  (1)  >SRBALB(6) = VIS  (330 - 770 nm)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
+     2 .500, .062, .100, .100, .073, .055, .067, .061, .100, .000, .200,
+     3 .500, .085, .091, .139, .085, .058, .083, .061, .091, .000, .200,
+     4 .500, .080, .090, .111, .064, .055, .061, .061, .090, .000, .200,
+C
+C     DATA ALNIRK/  (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
+     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
+     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
+     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
+C
+C     DATA ALNIRK/  (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
+     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
+     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
+     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
+C
+C     DATA ALNIRK/  (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .080, .107, .107, .093, .120, .080, .073, .107, .000, .200,
+     2 .500, .082, .140, .120, .096, .083, .080, .073, .140, .000, .200,
+     3 .500, .119, .145, .167, .119, .115, .100, .073, .145, .000, .200,
+     4 .500, .102, .126, .132, .081, .087, .073, .073, .126, .000, .200,
+C
+C     DATA ALNIRK/  (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .100, .133, .133, .116, .150, .100, .091, .133, .000, .200,
+     2 .500, .103, .175, .150, .120, .109, .100, .091, .175, .000, .200,
+     3 .500, .148, .182, .208, .148, .144, .125, .091, .182, .000, .200,
+     4 .500, .127, .157, .166, .102, .109, .091, .091, .157, .000, .200,
+C
+C     DATA ALNIRK/  (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .020, .027, .027, .023, .030, .020, .018, .027, .000, .200,
+     2 .500, .021, .035, .030, .024, .022, .020, .018, .035, .000, .200,
+     3 .500, .030, .036, .042, .030, .029, .025, .018, .036, .000, .200,
+     4 .500, .026, .032, .033, .020, .022, .018, .018, .032, .000, .200/
+C
+      DATA FIELDC/
+C          (KG/M**2)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 10.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 200., 30.0, 10.0, 999.,
+     2 10.0, 200., 200., 300., 300., 450., 450., 450., 200., 10.0, 999.,
+     3 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, 999./
+C
+      DATA VTMASK/
+C
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     4 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001/
+C
+C
+      DATA ASNALB/0.600,0.55,0.55,0.30,0.10,0.05,  0.350,8*0.0/
+C
+      DATA AOIALB/0.550,0.50,0.45,0.25,0.10,0.05,  0.300,8*0.0/
+C
+      DATA ALIALB/0.600,0.55,0.50,0.30,0.10,0.05,  0.350,8*0.0/
+C
+      DATA PVT/8*0.125,3*0.0/
+C
+      DATA SRBXAL/30*0.0/
+      DATA BXA/153*0.0/
+C
+C
+C                     AGSNOW  AGLICE  AGROCK  AGVEG
+      DATA AGSIDV/
+     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
+     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
+     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
+     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
+     +        0.01986,0.01994,0.02013,0.02041,0.02100,
+     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
+     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
+     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
+     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
+     +        0.01986,0.01994,0.02013,0.02041,0.02100,
+     +        0.04500,0.10209,0.08806,0.05856,0.04835,0.04052,0.04001,
+     +        0.03775,0.03687,0.03740,0.03637,0.03692,0.03570,0.07001,
+     +        0.05665,0.05326,0.05349,0.04356,0.03845,0.03589,0.03615,
+     +        0.03610,0.03602,0.03613,0.03471,0.13687,0.14927,0.16484,
+     +        0.16649,0.16820,0.17199,0.17484,0.18000,
+     +        33*0.00/
+C
+      DATA AOCEAN/
+     +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
+     +        0.10666,0.10697,0.10665,0.10719,0.10728,0.11007,0.04009,
+     +        0.04553,0.05554,0.08178,0.09012,0.09464,0.09548,0.09532,
+     +        0.09558,0.09558,0.09568,0.09565,0.05771,0.04985,0.04670,
+     +        0.04630,0.04575,0.04474,0.04468,0.04500/
+C
+C
+      DATA DLAT46/
+     A    -90.,-86.,-82.,-78.,-74.,-70.,-66.,-62.,-58.,-54.,-50.,-46.,
+     B    -42.,-38.,-34.,-30.,-26.,-22.,-18.,-14.,-10., -6., -2.,  2.,
+     C      6., 10., 14., 18., 22., 26., 30., 34., 38., 42., 46., 50.,
+     D     54., 58., 62., 66., 70., 74., 78., 82., 86., 90./
+C
+      DATA DLON72/
+     A      0.,  5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55.,
+     B     60., 65., 70., 75., 80., 85., 90., 95.,100.,105.,110.,115.,
+     C    120.,125.,130.,135.,140.,145.,150.,155.,160.,165.,170.,175.,
+     D    180.,185.,190.,195.,200.,205.,210.,215.,220.,225.,230.,235.,
+     E    240.,245.,250.,255.,260.,265.,270.,275.,280.,285.,290.,295.,
+     F    300.,305.,310.,315.,320.,325.,330.,335.,340.,345.,350.,355./
+C
+      DATA PLB/984.,934.,854.,720.,550.,390.,285.,210.,150.,100.,60.,
+     +          30.,10.,5.,2.,0.001,24*0.0/
+C
+      DATA HLB/
+     +          0.25, 0.70, 1.47, 2.89, 5.06, 7.65, 9.90,11.97,14.12,
+     +         16.67,19.95,24.47,31.97,36.98,44.00,99.99,24*99.999/
+C
+C     DATA PLB/
+C    +     1013.2500, 961.7485, 879.3460, 741.3219, 566.2166, 401.4117,
+C    +      262.3575, 154.2043,  71.8018,  10.0000,   5.0000,   2.0000,
+C    +        1.E-05,  27*0.00/
+C
+C     DATA HLB/
+C    +         1.E-10,1.0,2.0,3.0,6.0,11.0,20.0,32.0,47.0,51.0,71.0
+C    +        ,84.852,99.99,27*99.999/
+C
+      DATA TAUSL/33*0.0/, FTAUSL/33*0.0/
+C
+C-----------------------------------------------------------------------
+C     TRACE GAS REFERENCE AMOUNTS & DISTRIBUTIONS ARE DEFINED IN  SETGAS
+C-----------------------------------------------------------------------
+C
+C
+C                  H2O  CO2   O3   O2  NO2  N2O  CH4  F11  F12
+C                   1    2    3    4    5    6    7    8    9
+      DATA FULGAS/ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+C
+C                  N2C   CFC11+  CFC12+  FO3LON
+     +           , 1.0,   1.0,    1.0,    1.0/
+C
+C
+C               GLOBAL OCEAN LAND DESERT  HAZE   TR1  TR2  TR3  TR4
+C                   1    2    3     4      5      6    7    8    9
+C
+C                                                TR5  TR6  TR7  TR8
+C                                                 10   11   12   13
+      DATA FGOLDH/13*0.0/
+C
+C     DATA FGOLDH/ 1.0, .68, .32, 1.E-20,1.E-20, 0.0, 0.0, 0.0, 0.0
+C    +           , 0.0, 0.0, 0.0, 0.0/
+C
+      DATA    LASTVC/-123456/
+C
+      DATA   FSXAER/5*1.D0/,  FTXAER/5*1.D0/
+      DATA   PIVMAX/1.0000/
+C
+      DATA                    TLGRAD/ 1.0/, EOCTRA/1.0/, ZOCSRA/1.0/
+      DATA                                  ESNTRA/1.0/, ZSNSRA/1.0/
+      DATA                    RO3COL/ 1.0/, EICTRA/1.0/, ZICSRA/1.0/
+      DATA                    ECLTRA/1.00/, EDSTRA/1.0/, ZDSSRA/1.0/
+      DATA   PTLISO/2.5E+00/, ZCLSRA/1.00/, EVGTRA/1.0/, ZVGSRA/1.0/
+C
+      DATA                    FCLDTR/1.0/,  NTRACE/0/
+      DATA   WETTRA/1.00/,    FCLDSR/1.0/
+      DATA   WETSRA/1.00/,    FALGAE/1.0/,   ITR/8*0/
+      DATA   DMOICE/10.0/,    FRAYLE/1.0/
+      DATA   DMLICE/10.0/,    EPSCON/0.0/
+C
+      DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
+      DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
+      DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/,        NL/15/
+      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/,       NLP/16/
+      DATA   MADGHG/1/,       MADSUR/1/,    ICE012/1/,    MLAT46/46/
+      DATA   KWVCON/1/,       KSNORM/0/,    NORMS0/1/,    MLON72/72/
+C
+      DATA     JYEAR/1980/,   JLAT/ 7/,   S00WM2/1366.2911/, S0/1366.0/
+      DATA      JDAY/   1/,   ILON/18/,   COSZ/0.5000/
+C
+      DATA   POCEAN/0.700/,   TGO/288.15/,   AGESN/3*1./,    WMAG/2.00/
+      DATA   PEARTH/0.000/,   TGE/288.15/,   SNOWE/0.30/,  WEARTH/0.00/
+      DATA    POICE/0.200/,  TGOI/288.15/,  SNOWOI/0.10/,   ZOICE/10.0/
+      DATA    PLICE/0.100/,  TGLI/288.15/,  SNOWLI/0.20/
+      DATA                    TSL/288.15/
+C
+ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
+ceq   EQUIVALENCE (ISPARE( 2),MEANAC)
+ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
+ceq   EQUIVALENCE (ISPARE( 4),MEANVA)
+ceq   EQUIVALENCE (ISPARE( 5),NCARO3)
+ceq   EQUIVALENCE (ISPARE( 6),KUVFAC)
+ceq   EQUIVALENCE (ISPARE( 7),KSNORM)
+ceq   EQUIVALENCE (ISPARE( 8),KWTRAB)
+C
+ceq   EQUIVALENCE (ISPARE(12),KCLDEM)
+ceq   EQUIVALENCE (ISPARE(13),KANORM)
+C
+      DATA KVRAER/1/,  MEANAC/0/,  MEANDD/0/,  MEANVA/0/,  NCARO3/0/
+      DATA KUVFAC/0/,  KWTRAB/0/   KCLDEM/1/,  KANORM/0/
+C
+ceq   EQUIVALENCE (ISPARE(14),KPFCO2)
+ceq   EQUIVALENCE (ISPARE(15),KPFOZO)
+ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
+ceq   EQUIVALENCE (ISPARE(17),KORDER)
+C
+      DATA KPFCO2/0/,  KPFOZO/0/,  KVEGA6/1/,  KORDER/0/
+C
+C
+ceq   EQUIVALENCE (ISPARE(31),KYEARS),(ISPARE(41),KJDAYS)
+ceq   EQUIVALENCE (ISPARE(32),KYEARG),(ISPARE(42),KJDAYG)
+ceq   EQUIVALENCE (ISPARE(33),KYEARO),(ISPARE(43),KJDAYO)
+ceq   EQUIVALENCE (ISPARE(34),KYEARA),(ISPARE(44),KJDAYA)
+ceq   EQUIVALENCE (ISPARE(35),KYEARD),(ISPARE(45),KJDAYD)
+ceq   EQUIVALENCE (ISPARE(36),KYEARV),(ISPARE(46),KJDAYV)
+ceq   EQUIVALENCE (ISPARE(37),KYEARE),(ISPARE(47),KJDAYE)
+ceq   EQUIVALENCE (ISPARE(38),KYEARR),(ISPARE(48),KJDAYR)
+C
+      DATA KYEARS/    0/, KJDAYS/  0/
+      DATA KYEARG/    0/, KJDAYG/  0/
+      DATA KYEARO/    0/, KJDAYO/  0/
+      DATA KYEARA/    0/, KJDAYA/  0/
+      DATA KYEARD/    0/, KJDAYD/  0/
+      DATA KYEARV/    0/, KJDAYV/  0/
+      DATA KYEARE/    0/, KJDAYE/  0/
+      DATA KYEARR/    0/, KJDAYR/  0/
+C
+ceq   EQUIVALENCE (FSPARE(14),REFSET)
+ceq   EQUIVALENCE (FSPARE(15),VEFSET)
+      DATA                              REFSET/0.000/,  VEFSET/0.000/
+C
+ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
+ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
+      DATA                              O3WJT0/0.001/,  SNOLIM/0.367/
+C
+ceq   EQUIVALENCE (FSPARE(18),X0YBCI)
+ceq   EQUIVALENCE (FSPARE(19),X0YOCI)
+ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
+      DATA              X0YBCI/0.001/,  X0YOCI/0.001/,  X0YSUI/0.001/
+C
+ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
+ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
+ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
+ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
+C
+      DATA AVSCAT/0.0156/, ANSCAT/0.0000/
+      DATA AVFOAM/0.2197/, ANFOAM/0.1514/
+C
+ceq                                      DIMENSION UVWAVL(3),UVFACT(3)
+ceq   EQUIVALENCE (FSPARE(25),UVWAVL(1))
+ceq   EQUIVALENCE (FSPARE(28),UVFACT(1))
+C
+      DATA UVWAVL/0.0010,0.0020,0.0030/
+      DATA UVFACT/1.0000,1.0000,1.0000/
+C
+ceq   EQUIVALENCE (FSPARE(31),PTOPTR)
+C
+      DATA PTOPTR/150.0/
+C
+C
+C-----------------------------------------------------------------------
+C      COMPOSITION & VERTICAL DISTRIBUTION FOR 5 SPECIFIED AEROSOL TYPES
+C-----------------------------------------------------------------------
+C TYPE
+C    1   STRATOSPHERIC GLOBAL AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
+C    2    TROPOSPHERIC  OCEAN AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
+C    3    TROPOSPHERIC   LAND AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
+C    4    TROPOSPHERIC DESERT AEROSOL  A,B,C ARE  LOCAL AVERAGE VALUES
+C    5    TROPOSPHERIC   HAZE AEROSOL  A,B,C ARE  LOCAL AVERAGE VALUES
+C
+C        1     2     3     4     5     6     7     8     9    10    11
+C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
+      DATA AGOLDH/
+     1 .005,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
+     2   .0, .020, .010, .010, .005,   .0, .010,   .0,   .0, .005,   .0,
+     3   .0,   .0,   .0, .020, .005,   .0, .010, .010,   .0,   .0, .015,
+     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, .020, .010,   .0,   .0,
+     5   .0,   .0,   .0, .010,   .0,   .0,   .0,   .0,   .0,   .0, .005/
+      DATA BGOLDH/
+     1 20.0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
+     2   .0, 1.00, 4.00, 1.00, 4.00, 1.00, 4.00,   .0,   .0, 1.00,   .0,
+     3   .0,   .0,   .0, 0.00, 2.00,   .0, 4.00, 2.00,   .0,   .0, 0.00,
+     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 2.00, 0.00,   .0,   .0,
+     5   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0, 0.00/
+      DATA CGOLDH/
+     1 3.00,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
+     2   .0, 1.00, 3.00, 2.00, 3.00, 1.00, 2.00,   .0,   .0, 1.00,   .0,
+     3   .0,   .0,   .0, 1.00, 3.00,   .0, 1.00, 1.00,   .0,   .0, 1.00,
+     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 1.00, 1.00,   .0,   .0,
+     5   .0,   .0,   .0, 1.00,   .0,   .0,   .0,   .0,   .0,   .0, 1.00/
+C
+C
+ceq   DIMENSION PI0VIS(11)
+C
+ceq   EQUIVALENCE (FSPARE(41),PI0VIS(1))
+C
+C           1          2          3          4          5          6
+C         ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
+      DATA PI0VIS/
+     1   1.00000,   1.00000,   1.00000,   1.00000,   0.98929,   0.95609,
+C
+C           7          8          9         10         11
+C         DUST1      DUST2      DUST3      CARB1      CARB2
+     2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/
+C
+C
+C          ------------------------------------------------------------
+C          Multiplicative Scaling Factors for Cloud Asymmetry Parameter
+C          ------------------------------------------------------------
+C
+C                  Water    Ice    MieIce
+      DATA SRCGSF/ 1.000,  1.000,  1.000/
+C
+      DATA TAUWC0/0.0010/, TAUIC0/0.0010/
+C
+C                       TROPOSPHERIC AEROSOL PARAMETERS
+C                  BCI  OCI  SUI  SEA  SUN    OCN  OCB  BCB  SSB
+      DATA REAERO/ 0.1, 0.5, 1.0, 2.0, 0.3,   0.3, 1.0, 0.5, 0.5/
+C
+      DATA VEAERO/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/
+C
+      DATA ROAERO/ 2.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0/
+C
+C     DATA PI0MAX/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C       (OCI,OCN,OCB PI0MAXs are based on Novikov(1998) Ni=0.005)
+      DATA PI0MAX/ 1.0, .96, 1.0, 1.0, 1.0,   .98, .93, 1.0, 1.0/
+C
+      DATA FSAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C
+      DATA FTAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C
+      DATA SSBTAU/0.005/
+C
+C                          MINERAL DUST PARAMETERS
+C                         CLAY                  SILT
+      DATA REDUST/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/
+C
+      DATA VEDUST/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/
+C
+      DATA RODUST/ 2.5, 2.5, 2.5, 2.5,   2.6, 2.6, 2.6, 2.6/
+C
+      DATA FSDUST/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C
+      DATA FTDUST/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
+C
+C
+C              TROPOSPHERIC AEROSOL GLOBAL MEAN VERTICAL DISTRIBUTION
+C              ------------------------------------------------------
+C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
+C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
+C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
+      DATA VDGAER/
+C       L=   1    2    3    4    5    6    7    8    9   10   11   12
+     A     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
+     B     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
+     C     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
+     D     .30, .20, .20, .15, .10, .05, .00, .00, .00, .00, .00, .00,
+     E     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
+     F     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
+     G     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
+     H     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
+     I     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05/
+C
+C
+ceq   DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12)
+ceq   EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
+ceq   EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
+C
+C            Aerosol Vertical Profile (Optical Depth) Scaling Factors
+C            --------------------------------------------------------
+C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
+C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
+C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
+      DATA VDFBCI/
+     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
+      DATA VDFOCI/
+     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
+      DATA VDFSUI/
+     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
+      DATA VDFDST/
+     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
+C
+C
+C-----------------------------------------------------------------------
+C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
+C-----------------------------------------------------------------------
+C
+C     NUMBER   1    2    3    4  5    6    7    8     9   10   11  12
+C             H2O  CO2  O3   O2 NO2  N2O  CH4 CFC11 CFC12 N2 CF-Y  CF-Z
+C     FULGAS/ 1.0, 1.0,1.0, 1.0,1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0 /
+      DATA Z0/0.0, 0.0,0.0, 0.0,0.0, 16., 16., 16., 16., 0.0, 16., 16.0/
+      DATA ZH/8.0, 8.0,8.0, 8.0,8.0, 30., 50., 30., 30., 0.0, 30., 30.0/
+C
+C     GAS  NUMBER  1      2     3      4      5       6       7
+C                 H2O    CO2    O3    O2     NO2     N2O     CH4
+      DATA PPMV80/0.0, 337.90, 0.0, 210000., 0.0,  0.3012, 1.5470
+C
+C     GAS  NUMBER   8           9        10        11         12
+C                 CCL3F1      CCL2F2     N2       CFC-Y      CFC-Z
+     +         ,0.1666E-03, 0.3003E-03, 0.0,   0.0978D-03, 0.0010D-10/
+C
+ceq   DIMENSION PPMVK0(12)
+ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
+C
+C     KTREND=0  Direct Set Default Values
+C     -----------------------------------
+C
+C     GAS  NUMBER  1      2     3      4      5       6       7
+C                 H2O    CO2    O3    O2     NO2     N2O     CH4
+      DATA PPMVK0/0.0, 337.90, 0.0, 210000., 0.0,  0.3012, 1.5470
+C
+C     GAS  NUMBER   8           9        10        11         12
+C                 CCL3F1      CCL2F2     N2       CFC-Y      CFC-Z
+     +         ,0.1666E-03, 0.3003E-03, 0.0,   0.0978D-03, 0.0010D-10/
+C
+C     Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
+C     GTREND:  1980.,  337.9,  .3012,  1.547,  .1666,  .3003,  .0978,
+C     ---------------------------------------------------------------
+C
+C     ---------------------------------------------------------------
+C     Minschwaner et al JGR (1998) CH4, N2O, CFC-12 Vertical profiles
+C       IF(KGGVDF.GT.0) Then:
+C     Gas decreases are linear with pressure, from unity at ground to
+C     the fractional value PPMVDF(NGAS) at the top of the atmosphere.
+C     Exponential decrease by EXP(-(Z-Z0)/H) is superimposed on this.
+C       IF(KLATZ0.GT.0) Then: Z0 depends on latitude, KGGVDF not used
+C     Pole-to-Pole latitudinal gradient (PPGRAD) is also superimposed
+C     ---------------------------------------------------------------
+C
+ceq   DIMENSION PPMVDF(12),PPGRAD(12)
+ceq   EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
+ceq   EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
+ceq   EQUIVALENCE (ISPARE(11),KLATZ0)
+      DATA KGGVDF/0/, KPGRAD/1/, KLATZ0/1/
+C
+C     GAS  NUMBER  1     2    3    4    5       6         7
+C                 H2O   CO2   O3   O2  NO2     N2O       CH4
+      DATA PPMVDF/1.0,  1.0, 1.0, 1.0, 1.0,  0.88888,  0.88888,
+C
+C     GAS  NUMBER   8          9      10       11        12
+C                 CCL3F1    CCL2F2    N2     CFC-Y      CFC-Z
+     +           0.88888,  0.88888,  1.0,   0.88888,   0.88888/
+C
+C     GAS  NUMBER  1     2    3    4    5        6         7
+C                 H2O   CO2   O3   O2  NO2      N2O       CH4
+      DATA PPGRAD/0.0,  0.0, 0.0, 0.0, 0.0,   0.0100,   0.0900,
+C
+C     GAS  NUMBER   8          9       10      11        12
+C                 CCL3F1    CCL2F2     N2     CFC-Y     CFC-Z
+     +            0.0600,   0.0600,   0.0,   0.0600,   0.0600/
+C
+      END BLOCK DATA RADPAR
 
       SUBROUTINE BCTAUW(XJYEAR,IDEC,JDEC,BCWTID,BCWTJD)
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -7888,13 +9202,14 @@ C-------------------------------------------------------------------
 C
       DIMENSION EYEAR(50),BCEHC(50),BCEBC(50),BCEDI(50),BCTOT(50)
 C
-      DIMENSION BCE1(5,19),BCE2(5,19),BCE3(5, 7),BCE(5,45)
-      EQUIVALENCE (BCE(1, 1),BCE1(1,1)),(BCE(1,20),BCE2(1,1))
-      EQUIVALENCE (BCE(1,39),BCE3(1,1))
+      DIMENSION BCE(5,45)
+ceq   DIMENSION BCE1(5,19),BCE2(5,19),BCE3(5, 7),BCE(5,45)
+ceq   EQUIVALENCE (BCE(1, 1),BCE1(1,1)),(BCE(1,20),BCE2(1,1))
+ceq   EQUIVALENCE (BCE(1,39),BCE3(1,1))
 C
 C    Global Annual Emissions of BC U   Emission (Mt/yr)
 C
-      DATA BCE1/
+      DATA BCE/
 C      Year    Hard_Coal    Brown_Coal      Diesel        Total
      A 50.0, 2.280581713, 0.4449132979, 0.1599090248, 2.885536671,
      B 51.0, 2.443193913, 0.4855868816, 0.1884280443, 3.117194653,
@@ -7914,9 +9229,9 @@ C      Year    Hard_Coal    Brown_Coal      Diesel        Total
      P 65.0, 3.529418945, 0.8819132447, 0.5785927773, 4.989773750,
      Q 66.0, 3.577459812, 0.8817394972, 0.6323299408, 5.091631413,
      R 67.0, 3.418204546, 0.8635972142, 0.6592246890, 4.941041946,
-     S 68.0, 3.452457905, 0.8943673372, 0.7338049412, 5.080585003/
+     S 68.0, 3.452457905, 0.8943673372, 0.7338049412, 5.080585003,
 C
-      DATA BCE2/
+ceq   DATA BCE2/
      A 69.0, 3.626069546, 0.9298774004, 0.7889106274, 5.344810009,
      B 70.0, 3.264039755, 0.9229136109, 0.8880128860, 5.074741840,
      C 71.0, 3.437611580, 0.9374827743, 0.9531223178, 5.328329086,
@@ -7935,9 +9250,9 @@ C
      P 84.0, 5.265352249, 1.2178678510, 1.2251536850, 7.708741188,
      Q 85.0, 5.763637543, 1.2965050940, 1.2428865430, 8.303324699,
      R 86.0, 5.924767494, 1.3386499880, 1.2930148840, 8.556744576,
-     S 87.0, 6.155550480, 1.3738890890, 1.3162037130, 8.845513344/
+     S 87.0, 6.155550480, 1.3738890890, 1.3162037130, 8.845513344,
 C
-      DATA BCE3/
+ceq   DATA BCE3/
      A 88.0, 6.379704475, 1.3670797350, 1.3813229800, 9.127896309,
      B 89.0, 6.594299316, 1.4169263840, 1.4029121400, 9.414231300,
      C 90.0, 6.566919804, 1.4685817960, 1.4224120380, 9.458042145,
@@ -7996,7 +9311,7 @@ C
   120 CONTINUE
 C
       RETURN
-      END
+      END SUBROUTINE BCTAUW
 
       SUBROUTINE SUTAUW(XJYEAR,IDEC,JDEC,SUWTID,SUWTJD)
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -8019,15 +9334,16 @@ C-------------------------------------------------------------------
 C
       DIMENSION EYEAR(50),SUANT(50),SUNAT(50)
 C
-      DIMENSION SUE1(3,19),SUE2(3,19),SUE3(3, 3),SUE(3,41)
-      EQUIVALENCE (SUE(1, 1),SUE1(1,1)),(SUE(1,20),SUE2(1,1))
-      EQUIVALENCE (SUE(1,39),SUE3(1,1))
+      DIMENSION SUE(3,41)
+ceq   DIMENSION SUE1(3,19),SUE2(3,19),SUE3(3, 3),SUE(3,41)
+ceq   EQUIVALENCE (SUE(1, 1),SUE1(1,1)),(SUE(1,20),SUE2(1,1))
+ceq   EQUIVALENCE (SUE(1,39),SUE3(1,1))
 C
 C     Global Emission of Sulfate
 C
 C     Emission (Mt/yr)
 C               year      Anthropogenic_Sulfate Natural_Sulfate
-      DATA SUE1/
+      DATA SUE/
      A          1950.0,     30.46669769,           14.4,
      B          1951.0,     32.38347244,           14.4,
      C          1952.0,     32.18632889,           14.4,
@@ -8046,8 +9362,8 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
      P          1965.0,     45.81701660,           14.4,
      Q          1966.0,     46.61584091,           14.4,
      R          1967.0,     46.42276001,           14.4,
-     S          1968.0,     47.77438354,           14.4/
-      DATA SUE2/
+     S          1968.0,     47.77438354,           14.4,
+ceq   DATA SUE2/
      A          1969.0,     49.30817032,           14.4,
      B          1970.0,     52.81050873,           14.4,
      C          1971.0,     52.95043945,           14.4,
@@ -8066,8 +9382,8 @@ C               year      Anthropogenic_Sulfate Natural_Sulfate
      P          1984.0,     63.85008621,           14.4,
      Q          1985.0,     66.47412872,           14.4,
      R          1986.0,     68.00902557,           14.4,
-     S          1987.0,     69.87956238,           14.4/
-      DATA SUE3/
+     S          1987.0,     69.87956238,           14.4,
+ceq   DATA SUE3/
      A          1988.0,     70.52937317,           14.4,
      B          1989.0,     72.06355286,           14.4,
      C          1990.0,     71.29174805,           14.4/
@@ -8120,146 +9436,7 @@ C
   120 CONTINUE
 C
       RETURN
-      END
-
-      SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
-C
-      INCLUDE 'BR00B.COM'
-C
-C     ------------------------------------------------------------------
-C     STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
-C                     and applies PIAMAX, FSAERA, FTAERA Scaling Factors
-C                     --------------------------------------------------
-C
-      DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
-      DIMENSION FSAERA(10),FTAERA(10),PIAMAX(10)
-      FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
-      FTAERN=1.D0
-C
-      DO 110 I=1,6
-      PI0F=1.D0
-      PI0=SRBQSC(I,NA)/SRBQEX(I,NA)
-      IF(PI0.GT.PIAMAX(NA)) PI0F=PIAMAX(NA)/PI0
-      QXAER(I)=SRBQEX(I,NA)*FSAERN
-      QSAER(I)=SRBQSC(I,NA)*FSAERN*PI0F
-      QCAER(I)=SRBQCB(I,NA)
-  110 CONTINUE
-C
-      DO 120 I=1,33
-      ATAER(I)=(TRBQEX(I,NA)-TRBQSC(I,NA))*FTAERN
-  120 CONTINUE
-C
-      RETURN
-      END
-
-      SUBROUTINE SDDUST(QQDUST,SSDUST,GGDUST,Q55DST,SIZDST,FNDUST)
-C
-      INCLUDE 'BR00B.COM'
-C
-C     ------------------------------------------------------------------
-C     SDDUST     Selects Solar Mie Scattering Parameters for Desert Dust
-C                                     and applies FSDUST Scaling Factors
-C                                     ----------------------------------
-C
-      DIMENSION QQDUST(6),SSDUST(6),GGDUST(6)
-C
-      RDI=0.0
-      DO 110 J=1,25
-      RDJ=REFD25(J)
-      IF(SIZDST.LT.RDJ) GO TO 120
-      RDI=RDJ
-  110 CONTINUE
-      WTJ=1.0
-      J=25
-      I=25
-      GO TO 130
-  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
-      I=J-1
-      IF(I.LT.1) I=1
-  130 WTI=1.0-WTJ
-C
-      DO 140 K=1,6
-      QQDUST(K)=(WTI*SRDQEX(K,I)+WTJ*SRDQEX(K,J))*FNDUST
-      SSDUST(K)=(WTI*SRDQSC(K,I)+WTJ*SRDQSC(K,J))*FNDUST
-      GGDUST(K)=(WTI*SRDQCB(K,I)+WTJ*SRDQCB(K,J))
-  140 CONTINUE
-      Q55DST=WTI*Q55D25(I)+WTJ*Q55D25(J)
-C
-      RETURN
-      END
-
-      SUBROUTINE TDDUST(ADDUST,SIZDST,FNDUST)
-C
-      INCLUDE 'BR00B.COM'
-C
-C     ------------------------------------------------------------------
-C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
-C                                     and applies FTDUST Scaling Factors
-C                                     ----------------------------------
-C
-      DIMENSION QDDUST(33),SDDUST(33),GDDUST(33),ADDUST(33)
-C
-      RDI=0.0
-      DO 110 J=1,25
-      RDJ=REFD25(J)
-      IF(SIZDST.LT.RDJ) GO TO 120
-      RDI=RDJ
-  110 CONTINUE
-      WTJ=1.0
-      J=25
-      I=25
-      GO TO 130
-  120 WTJ=(SIZDST-RDI)/(RDJ-RDI)
-      I=J-1
-      IF(I.LT.1) I=1
-  130 WTI=1.0-WTJ
-C
-      DO 140 K=1,33
-      QDDUST(K)=(WTI*TRDQEX(K,I)+WTJ*TRDQEX(K,J))*FNDUST
-      SDDUST(K)=(WTI*TRDQSC(K,I)+WTJ*TRDQSC(K,J))*FNDUST
-      GDDUST(K)=(WTI*TRDQCB(K,I)+WTJ*TRDQCB(K,J))
-      ADDUST(K)=QDDUST(K)-SDDUST(K)
-  140 CONTINUE
-C
-      RETURN
-      END
-
-      SUBROUTINE AO3ABS(OCM,O3ABS)
-C
-      INCLUDE 'BR00B.COM'
-C
-C              ---------------------------------------------------------
-C              UV absorption by Ozone  is expressed as a fraction of the
-C              total solar flux S0. Hence O3ABS (fraction of total solar
-C              flux absored by OCM cm ofozone) must be normalized within
-C              SOLARM by dividing O3ABS by the corresponding fraction of
-C              the solar flux within the spectral interval DKS0(15)=0.05
-C              ---------------------------------------------------------
-C
-      O3ABS=AO3(460)
-      IP=0
-      XX=OCM*1.D+04
-      IX=XX
-      IF(IX.GT.99) GO TO 110
-      IF(IX.LT.1 ) GO TO 130
-      GO TO 120
-  110 CONTINUE
-      IP=IP+90
-      XX=XX*0.1D0
-      IX=XX
-      IF(IX.GT.99) GO TO 110
-  120 CONTINUE
-      DX=XX-IX
-      IX=IX+IP
-      IF(IX.GT.459) GO TO 140
-      O3ABS=AO3(IX)+DX*(AO3(IX+1)-AO3(IX))
-      GO TO 140
-  130 CONTINUE
-      O3ABS=XX*AO3(1)
-  140 CONTINUE
-C
-      RETURN
-      END
+      END SUBROUTINE SUTAUW
 
       SUBROUTINE GTREND(XNOW,TNOW,XX6)
 C
@@ -8591,7 +9768,7 @@ C     XNOW(5)=XNOW(5)+XX
       XX6=XX
 C
       RETURN
-      END
+      END SUBROUTINE GTREND
 
       SUBROUTINE PHATMO(P,H,D,T,O,Q,S,OCM,WCM,NPHD,NATM)
 C     ------------------------------------------------------------------
@@ -9000,7 +10177,7 @@ C
       IF(NPHD.NE.2) H=99.99
       IF(NPHD.NE.3) D=2.D-05
       RETURN
-      END
+      END SUBROUTINE PHATMO
 
       FUNCTION PFOFTK(WAVNA,WAVNB,TK)
 C     ------------------------------------------------------------------
@@ -9081,7 +10258,7 @@ C     DATA  PI/3.141592653589793D0/
       PFOFTK=ABS(GXB-GXA)*PNORM
       PFOFTK=PFOFTK*5.6692D-08*TK**4
       RETURN
-      END
+      END FUNCTION PFOFTK
 
       FUNCTION TKOFPF(WAVNA,WAVNB,FLUXAB)
 C     ------------------------------------------------------------------
@@ -9202,7 +10379,7 @@ C     ------------------------------------------------------------------
   200 CONTINUE
       TKOFPF=XX
       RETURN
-      END
+      END FUNCTION TKOFPF
 
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -9397,7 +10574,7 @@ C
 C
   160 CONTINUE
       RETURN
-      END
+      END SUBROUTINE SPLINE
 
       SUBROUTINE REPART(FXL,XLB,NXB,GYL,YLB,NYB)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -9536,7 +10713,7 @@ C
 C
   300 CONTINUE
       RETURN
-      END
+      END SUBROUTINE REPART
 
       SUBROUTINE RETERP(FXL,XLB,NXB,GYL,YLB,NYB)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -9671,7 +10848,7 @@ C
 C
   300 CONTINUE
       RETURN
-      END
+      END SUBROUTINE RETERP
 
       SUBROUTINE FXGINT(F,X,NX,G,Y,NY,ALIM,BLIM,ABINT)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -9782,1175 +10959,4 @@ C
       GO TO 160
   190 CONTINUE
       RETURN
-      END
-
-
-      BLOCK DATA RADPAR
-C
-      INCLUDE 'BR00B.COM'
-C
-C
-      DIMENSION WLEAN1(152),WLEAN2(38)
-      EQUIVALENCE (WSLEAN(1),WLEAN1(1)),(WSLEAN(153),WLEAN2(1))
-C
-C     Lean Spectral irradiance on following wavelength (nm) grid centers
-C         with the following wavelength bands (nm) centered on above wls
-      DATA WLEAN1/
-     A  117.50, 122.50, 127.50, 135.00, 145.00, 155.00, 165.00, 175.00,
-     B  185.00, 195.00, 205.00, 215.00, 222.50, 227.50, 232.50, 237.50,
-     C  242.50, 247.50, 252.50, 257.50, 262.50, 267.50, 272.50, 277.50,
-     D  282.50, 287.50, 292.50, 297.50, 302.50, 307.50, 312.50, 317.50,
-     E  322.50, 327.50, 332.50, 337.50, 342.50, 347.50, 352.50, 357.50,
-     F  362.50, 367.50, 372.50, 377.50, 382.50, 387.50, 392.50, 397.50,
-     G  402.50, 407.50, 412.50, 417.50, 422.50, 427.50, 432.50, 437.50,
-     H  442.50, 447.50, 452.50, 457.50, 462.50, 467.50, 472.50, 477.50,
-     I  482.50, 487.50, 492.50, 497.50, 502.50, 507.50, 512.50, 517.50,
-     J  522.50, 527.50, 532.50, 537.50, 542.50, 547.50, 552.50, 557.50,
-     K  562.50, 567.50, 572.50, 577.50, 582.50, 587.50, 592.50, 597.50,
-     L  602.50, 607.50, 615.00, 625.00, 635.00, 645.00, 655.00, 665.00,
-     M  675.00, 685.00, 695.00, 705.00, 715.00, 725.00, 735.00, 745.00,
-     N  755.00, 765.00, 775.00, 785.00, 795.00, 805.00, 815.00, 825.00,
-     O  835.00, 845.00, 855.00, 865.00, 875.00, 885.00, 895.00, 905.00,
-     P  915.00, 925.00, 935.00, 945.00, 955.00, 965.00, 975.00, 985.00,
-     Q  995.00,1025.00,1075.00,1125.00,1175.00,1225.00,1275.00,1325.00,
-     R 1375.00,1425.00,1475.00,1525.00,1575.00,1625.00,1675.00,1725.00,
-     S 1775.00,1825.00,1875.00,1925.00,1975.00,2050.00,2150.00,2250.00/
-C
-      DATA WLEAN2/
-     A 2350.00,2450.00,2550.00,2650.00,2750.00,2850.00,2950.00,3050.00,
-     B 3150.00,3250.00,3350.00,3450.00,3550.00,3650.00,3750.00,3850.00,
-     C 3950.00,4050.00,4150.00,4250.00,4350.00,4450.00,4550.00,4650.00,
-     D 4750.00,4850.00,4950.00,5500.00,6500.00,7500.00,8500.00,9500.00,
-     E 10500.0,11500.0,12500.0,13500.0,14500.0,57500.0/
-C
-      DATA DSLEAN/
-     A   5.0,  5.0,  5.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-     B  10.0, 10.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     C   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     D   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     E   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     F   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     G   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     H   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     I   5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,
-     J  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-     K  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-     L  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0,
-     M  10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 50.0,
-     N  50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0,
-     O  50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 100.,
-     P  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-     Q  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-     R  100., 100., 100., 100., 100., 100., 100., 100., 100.,1000.,
-     S 1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,8.5E+04/
-C
-      DIMENSION F1LEAN(95),F2LEAN(95)
-      EQUIVALENCE (FRLEAN(1),F1LEAN(1)),(FRLEAN(96),F2LEAN(1))
-C
-C      Lean Solar UV Flux  1950     1      1366.291100      1366.448785
-      DATA F1LEAN/
-     A 1.463600E-03,1.526467E+00,2.927199E-02,7.005412E-02,6.927072E-02,
-     B 1.668700E-01,3.785660E-01,1.120390E+00,2.706021E+00,5.377562E+00,
-     C 1.171729E+01,3.687586E+01,5.222137E+01,4.619777E+01,4.697743E+01,
-     D 4.752818E+01,5.774523E+01,5.098351E+01,5.023283E+01,1.083320E+02,
-     E 1.425212E+02,2.479949E+02,2.079845E+02,1.800741E+02,2.359987E+02,
-     F 3.226166E+02,5.530246E+02,5.127549E+02,5.201678E+02,5.984619E+02,
-     G 7.012117E+02,7.082256E+02,7.617171E+02,9.915579E+02,9.935029E+02,
-     H 9.177540E+02,9.600278E+02,9.351981E+02,1.050501E+03,9.218711E+02,
-     I 9.948324E+02,1.204492E+03,1.063533E+03,1.195645E+03,9.637095E+02,
-     J 1.043356E+03,1.067941E+03,1.255184E+03,1.806284E+03,1.705940E+03,
-     K 1.699230E+03,1.758670E+03,1.758020E+03,1.650341E+03,1.553274E+03,
-     L 1.767777E+03,1.929360E+03,1.987496E+03,2.075871E+03,2.094106E+03,
-     M 2.095205E+03,2.030999E+03,2.060222E+03,2.104337E+03,2.075792E+03,
-     N 1.880081E+03,1.987674E+03,1.980032E+03,1.911138E+03,1.980752E+03,
-     O 1.892300E+03,1.744249E+03,1.859837E+03,1.829749E+03,1.893766E+03,
-     P 1.880606E+03,1.852021E+03,1.880300E+03,1.880174E+03,1.814568E+03,
-     Q 1.803343E+03,1.795452E+03,1.813090E+03,1.799145E+03,1.821609E+03,
-     R 1.749601E+03,1.765703E+03,1.764881E+03,1.739113E+03,1.725504E+03,
-     S 1.668046E+03,1.662454E+03,1.637083E+03,1.593666E+03,1.520814E+03/
-      DATA F2LEAN/
-     A 1.538301E+03,1.500148E+03,1.475486E+03,1.460724E+03,1.429136E+03,
-     B 1.376901E+03,1.345483E+03,1.314613E+03,1.283486E+03,1.271272E+03,
-     C 1.243894E+03,1.198048E+03,1.161738E+03,1.133216E+03,1.116448E+03,
-     D 1.101408E+03,1.070334E+03,1.040272E+03,1.009878E+03,9.452869E+02,
-     E 9.636011E+02,9.627610E+02,9.396095E+02,9.293125E+02,9.004694E+02,
-     F 8.922053E+02,8.606506E+02,8.539306E+02,8.280872E+02,8.124155E+02,
-     G 7.956104E+02,7.779253E+02,7.611612E+02,7.472715E+02,6.951995E+02,
-     H 6.224917E+02,5.687959E+02,5.203566E+02,4.779112E+02,4.352621E+02,
-     I 3.917702E+02,3.566886E+02,3.290026E+02,3.042735E+02,2.808124E+02,
-     J 2.586596E+02,2.364040E+02,2.154338E+02,1.943942E+02,1.761917E+02,
-     K 1.594696E+02,1.447463E+02,1.318530E+02,1.206954E+02,1.048143E+02,
-     L 8.809857E+01,7.489415E+01,6.361460E+01,5.467346E+01,4.723338E+01,
-     M 4.113513E+01,3.584235E+01,3.141150E+01,2.763573E+01,2.431808E+01,
-     N 2.154878E+01,1.912381E+01,1.700619E+01,1.523811E+01,1.367492E+01,
-     O 1.226657E+01,1.098629E+01,1.000669E+01,9.063802E+00,8.205545E+00,
-     P 7.499935E+00,6.828093E+00,6.078227E+00,5.463104E+00,4.993065E+00,
-     Q 4.607049E+00,4.285606E+00,3.973604E+00,3.678151E+00,2.540683E+00,
-     R 1.341226E+00,7.647217E-01,4.665436E-01,3.005465E-01,2.023893E-01,
-     S 1.411388E-01,1.014034E-01,7.471365E-02,5.625803E-02,2.896050E-03/
-C
-      DATA WTHEK/.115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
-     1 .210,.220,.225,.230,.235,.240,.245,.250,.255,.260,.265,.270,.275,
-     2      .280,.285,.290,.295,.300,.305,.310,.315,.320,.325,.330,.335,
-     3           .340,.345,.350,.355,.360,.365,.370,.375,.380,.385,.390,
-     4           .395,.400,.405,.410,.415,.420,.425,.430,.435,.440,.445,
-     5           .450,.455,.460,.465,.470,.475,.480,.485,.490,.495,.500,
-     6           .505,.510,.515,.520,.525,.530,.535,.540,.545,.550,.555,
-     7           .560,.565,.570,.575,.580,.585,.590,.595,.600,.605,.610,
-     8           .620,.630,.640,.650,.660,.670,.680,.690,.700,.710,.720,
-     9           .730,.740,.750,.760,.770,.780,.790,.800,.810,.820,.830,
-     A .840,.850,.860,.870,.880,.890,.900,.910,.920,.930,.940,.950,.960,
-     B 0.97,0.98,0.99,1.00,1.05,1.10,1.15,1.20,1.25,1.30,1.35,1.40,1.45,
-     C 1.50,1.55,1.60,1.65,1.70,1.75,1.80,1.85,1.90,1.95,2.00,2.10,2.20,
-     D 2.30,2.40,2.50,2.60,2.70,2.80,2.90,3.00,3.10,3.20,3.30,3.40,3.50,
-     E 3.60,3.70,3.80,3.90,4.00,4.10,4.20,4.30,4.40,4.50,4.60,4.70,4.80,
-     F      4.9, 5.0, 6.0, 7.0, 8.0, 9.0,10.0,11.0,12.0,13.0,14.0,15.00/
-C
-      DATA FTHEK/.007,.900,.007,.007,.030,.070,.230,.630,1.25,2.71,10.7,
-     1 22.9,57.5,64.9,66.7,59.3,63.0,72.3,70.4,104.,130.,185.,232.,204.,
-     2    222.,315.,482.,584.,514.,603.,689.,764.,830.,975.,1059.,1081.,
-     31074.,1069.,1093.,1083.,1068.,1132.,1181.,1157.,1120.,1098.,1098.,
-     41189.,1429.,1644.,1751.,1774.,1747.,1693.,1639.,1663.,1810.,1922.,
-     52006.,2057.,2066.,2048.,2033.,2044.,2074.,1976.,1950.,1960.,1942.,
-     61920.,1882.,1833.,1833.,1852.,1842.,1818.,1783.,1754.,1725.,1720.,
-     71695.,1705.,1712.,1719.,1715.,1712.,1700.,1682.,1666.,1647.,1635.,
-     81602.,1570.,1544.,1511.,1486.,1456.,1427.,1402.,1389.,1344.,1314.,
-     91290.,1260.,1235.,1211.,1185.,1159.,1134.,1109.,1085.,1060.,1036.,
-     A1013.,990.,968.,947.,926.,908.,891.,880.,869.,858.,847.,837.,820.,
-     B 803.,785.,767.,748.,668.,593.,535.,485.,438.,397.,358.,337.,312.,
-     C 288.,267.,245.,223.,202.,180.,159.,142.,126.,114.,103., 90., 79.,
-     D 69.0,62.0,55.0,48.0,43.0,39.0,35.0,31.0,26.0,22.6,19.2,16.6,14.6,
-     E 13.5,12.3,11.1,10.3, 9.5,8.70,7.80,7.10,6.50,5.92,5.35,4.86,4.47,
-     F   4.11,3.79,1.82,0.99,.585,.367,.241,.165,.117,.0851,.0634,.0481/
-C
-C
-      DIMENSION OWMUV2(115),OWMUV3(111),OKEUV2(115),OKEUV3(111)
-      EQUIVALENCE (XWAVO3(1),OWMUV2(1)),(XWAVO3(116),OWMUV3(1))
-      EQUIVALENCE (FUVKO3(1),OKEUV2(1)),(FUVKO3(116),OKEUV3(1))
-C
-      DATA OWMUV2/.2002,.2012,.2022,.2032,.2042,.2052,.2062,.2072,.2082,
-     A.2092,.2102,.2112,.2122,.2132,.2142,.2152,.2162,.2172,.2182,.2192,
-     B.2202,.2212,.2222,.2232,.2242,.2252,.2262,.2272,.2282,.2292,.2302,
-     C.2312,.2322,.2332,.2342,.2352,.2362,.2372,.2382,.2392,.2400,.2402,
-     D.2412,.2422,.2432,.2438,.2444,.2452,.2458,.2463,.2472,.2478,.2482,
-     E.2490,.2492,.2500,.2508,.2519,.2527,.2539,.2543,.2553,.2562,.2566,
-     F.2571,.2575,.2579,.2587,.2597,.2604,.2617,.2624,.2635,.2643,.2650,
-     G.2654,.2662,.2669,.2675,.2682,.2692,.2695,.2702,.2712,.2718,.2722,
-     H.2732,.2742,.2746,.2752,.2762,.2772,.2782,.2792,.2802,.2812,.2822,
-     I.2830,.2842,.2852,.2862,.2872,.2882,.2892,.2902,.2912,.2922,.2932,
-     J.2942,.2952,.2962,.2972,.2982,.2992,.2998/
-      DATA OWMUV3/.3004,.3016,.3021,.3029,.3036,.3037,.3051,.3053,.3059,
-     A.3061,.3066,.3075,.3077,.3083,.3085,.3092,.3098,.3100,.3104,.3106,
-     B.3109,.3112,.3130,.3135,.3146,.3148,.3151,.3154,.3167,.3170,.3173,
-     C.3176,.3190,.3194,.3199,.3200,.3209,.3210,.3216,.3220,.3223,.3226,
-     D.3239,.3242,.3245,.3248,.3253,.3255,.3269,.3272,.3275,.3279,.3292,
-     E.3295,.3299,.3303,.3309,.3312,.3328,.3332,.3334,.3338,.3357,.3365,
-     F.3369,.3372,.3391,.3395,.3398,.3401,.3417,.3421,.3426,.3430,.3437,
-     G.3439,.3451,.3455,.3460,.3463,.3466,.3472,.3481,.3485,.3489,.3493,
-     H.3499,.3501,.3506,.3514,.3521,.3523,.3546,.3550,.3554,.3556,.3561,
-     I.3567,.3572,.3573,.3588,.3594,.3599,.3600,.3604,.3606,.3639,.3647,
-     J.3650,.3654,.3660/
-      DATA OKEUV2/  8.3,  8.3,  8.1,  8.3,  8.6,  9.0,  9.7, 10.8, 11.7,
-     A 13.0, 14.3, 16.0, 18.0, 20.6, 23.0, 26.1, 29.3, 32.6, 36.9, 40.8,
-     B 46.9, 51.4, 56.7, 63.4, 69.1, 76.6, 84.0, 91.4, 99.9,110.0,118.0,
-     C126.0,136.0,145.0,154.0,164.0,175.0,186.0,192.0,201.0,210.0,212.0,
-     D221.0,230.0,239.0,248.0,250.0,259.0,264.0,264.0,273.0,277.0,275.0,
-     E283.0,283.0,290.0,283.0,297.0,290.0,300.0,290.0,302.0,295.0,283.0,
-     F293.0,290.0,286.0,297.0,281.0,280.0,271.0,275.0,254.0,264.0,250.0,
-     G248.0,242.0,228.0,230.0,216.0,213.0,211.0,199.0,188.0,188.0,178.0,
-     H169.0,153.0,155.0,148.0,136.0,127.0,117.0,108.0, 97.0, 88.7, 81.3,
-     I 78.7, 67.9, 61.4, 54.3, 49.6, 43.1, 38.9, 34.6, 30.2, 27.5, 23.9,
-     J 21.0, 18.6, 16.2, 14.2, 12.3, 10.7,  9.5/
-      DATA OKEUV3/8.880,7.520,6.960,6.160,5.810,5.910,4.310,4.430,4.130,
-     A4.310,4.020,3.330,3.390,3.060,3.100,2.830,2.400,2.490,2.330,2.320,
-     B2.120,2.200,1.436,1.595,1.074,1.138,1.068,1.262,0.818,0.948,0.860,
-     C1.001,0.543,0.763,0.665,0.781,0.382,0.406,0.373,0.608,0.484,0.601,
-     D0.209,0.276,0.259,0.470,0.319,0.354,0.131,0.223,0.185,0.339,0.080,
-     E0.093,0.079,0.184,0.139,0.214,0.053,0.074,0.068,0.152,0.038,0.070,
-     F.0540000,.1030000,.0240000,.0382500,.0292500,.0550000,.0135000,
-     G.0155250,.0127500,.0188250,.0167250,.0262500,.0115500,.0140250,
-     H.0099750,.0115500,.0081000,.0104250,.0050100,.0057000,.0046650,
-     I.0073425,.0051825,.0055275,.0040575,.0077700,.0048900,.0054600,
-     J.0015375,.0017775,.0013275,.0014100,.0011550,.0023325,.0018825,
-     K.0019650,.0009600,.0013650,.0011925,.0013200,.0008925,.0009825,
-     L.0001350,.0006300,.0004500,.0006225,0.0/
-C
-C
-C-----------------------------------------------------------------------
-C                     TRACE GAS ABSORPTION COEFFICIENTS FOR  F11 & F12
-C-----------------------------------------------------------------------
-C
-      DIMENSION ULOA(114),ULOB(114),ULOC(19),DUA(114),DUB(114),DUC(19)
-C
-      EQUIVALENCE (ULOX(  1),ULOA(1)),(ULOX(115),ULOB(1))
-     +           ,(ULOX(229),ULOC(1))
-      EQUIVALENCE (DUX(1),DUA(1)),(DUX(115),DUB(1)),(DUX(229),DUC(1))
-C
-      DATA ULOA/
-     A         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
-     B         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
-     C         .10D-5,.10D-5,.10D-5,
-     D         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
-     E         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
-     F         .30D-2,.15D-2,.50D-3,
-     G         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
-     H         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
-     I         .60D-7,.50D-7,.40D-7,
-     J         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
-     K         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
-     L         .10D-5,.10D-5,.10D-5,
-     M         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
-     N         .20D-1,.10D-1,.50D-2,.10D-3,.70D-4,.30D-4,.10D-5,.10D-5,
-     O         .10D-5,.10D-5,.10D-5,
-     P         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
-     Q         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
-     R         .30D-2,.15D-2,.50D-3/
-      DATA ULOB/
-     A         .50D+1,.10D+2,.20D+2,.30D+1,.10D+2,.70D+1,.25D+1,.10D+1,
-     B         .10D+1,.60D+0,.15D+0,.50D-1,.35D-1,.20D-1,.50D-2,.40D-2,
-     C         .30D-2,.15D-2,.50D-3,
-     D         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
-     E         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
-     F         .60D-7,.50D-7,.40D-7,
-     G         .10D-3,.70D-3,.20D-2,.50D-2,.50D-2,.60D-2,.60D-2,.60D-2,
-     H         .60D-2,.50D-2,.20D-2,.10D-4,.70D-5,.30D-5,.80D-7,.70D-7,
-     I         .60D-7,.50D-7,.40D-7,
-     J         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
-     K         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
-     L         .10D-5,.30D-6,.20D-6,
-     M         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
-     N         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
-     O         .10D-5,.30D-6,.20D-6,
-     P         .25D-2,.15D-1,.20D-1,.20D-1,.15D-1,.75D-2,.40D-2,.15D-2,
-     Q         .75D-3,.35D-3,.15D-3,.75D-4,.40D-4,.20D-4,.10D-4,.30D-5,
-     R         .10D-5,.30D-6,.20D-6/
-      DATA ULOC/
-     A         .15D-1,.75D-1,.10D+0,.10D+0,.50D-1,.30D-1,.20D-1,.75D-2,
-     B         .35D-2,.20D-2,.75D-3,.40D-3,.20D-3,.15D-3,.50D-4,.15D-4,
-     C         .40D-5,.15D-5,.10D-5/
-C
-      DATA DUA/
-     A         .75D+2,.90D+2,.50D+2,.85D+1,.20D+1,.20D+0,.10D+0,.80D-1,
-     B         .60D-1,.30D-1,.70D-2,.40D-2,.30D-2,.15D-2,.40D-3,.30D-3,
-     C         .20D-3,.10D-3,.40D-4,
-     D         .50D+1,.10D+2,.10D+2,.10D+2,.10D+2,.75D+1,.50D+1,.40D+1,
-     E         .40D+1,.15D+1,.25D+0,.25D+0,.20D+0,.15D+0,.10D+0,.75D-1,
-     F         .50D-1,.30D-1,.10D-1,
-     G         .30D-3,.85D-3,.15D-2,.50D-2,.25D-2,.25D-1,.25D-1,.25D-1,
-     H         .25D-1,.15D-1,.35D-2,.25D-2,.20D-2,.15D-2,.10D-2,.75D-3,
-     I         .50D-3,.25D-3,.25D-4,
-     J         .25D+3,.25D+3,.15D+3,.25D+2,.50D+1,.55D+0,.35D+0,.25D+0,
-     K         .20D+0,.85D-1,.20D-1,.10D-1,.85D-2,.45D-2,.10D-2,.90D-3,
-     L         .65D-3,.40D-3,.10D-3,
-     M         .25D+3,.25D+3,.15D+3,.25D+2,.50D+1,.55D+0,.35D+0,.25D+0,
-     N         .20D+0,.85D-1,.20D-1,.10D-1,.85D-2,.45D-2,.10D-2,.90D-3,
-     O         .65D-3,.40D-3,.10D-3,
-     P         .10D+2,.20D+2,.20D+2,.20D+2,.20D+2,.15D+2,.10D+2,.90D+1,
-     Q         .75D+1,.35D+1,.50D+0,.50D+0,.40D+0,.30D+0,.20D+0,.15D+0,
-     R         .10D+0,.60D-1,.20D-1/
-      DATA DUB/
-     A         .10D+2,.20D+2,.20D+2,.20D+2,.20D+2,.15D+2,.10D+2,.90D+1,
-     B         .75D+1,.35D+1,.50D+0,.50D+0,.40D+0,.30D+0,.20D+0,.15D+0,
-     C         .10D+0,.60D-1,.20D-1,
-     D         .60D-3,.15D-2,.30D-2,.15D-1,.30D-1,.50D-1,.50D-1,.50D-1,
-     E         .50D-1,.30D-1,.70D-2,.50D-2,.40D-2,.30D-2,.20D-2,.15D-2,
-     F         .10D-2,.50D-3,.50D-4,
-     G         .60D-3,.15D-2,.30D-2,.15D-1,.30D-1,.50D-1,.50D-1,.50D-1,
-     H         .50D-1,.30D-1,.70D-2,.50D-2,.40D-2,.30D-2,.20D-2,.15D-2,
-     I         .10D-2,.50D-3,.50D-4,
-     J         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
-     K         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
-     L         .10D-4,.30D-5,.20D-5,
-     M         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
-     N         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
-     O         .10D-4,.30D-5,.20D-5,
-     P         .25D-1,.15D+0,.20D+0,.20D+0,.15D+0,.75D-1,.40D-1,.15D-1,
-     Q         .75D-2,.35D-2,.15D-2,.75D-3,.40D-3,.20D-3,.10D-3,.30D-4,
-     R         .10D-4,.30D-5,.20D-5/
-      DATA DUC/
-     A         .15D+0,.75D+0,.10D+1,.10D+1,.50D+0,.30D+0,.20D+0,.75D-1,
-     B         .35D-1,.20D-1,.75D-1,.40D-2,.20D-2,.15D-2,.50D-3,.15D-3,
-     C         .40D-4,.15D-4,.10D-4/
-C
-C-----------------------------------------------------------------------
-C          NO2 Trace Gas Vertical Distribution and Concentration Profile
-C-----------------------------------------------------------------------
-C
-      DATA CMANO2/
-     1  8.66E-06,5.15E-06,2.85E-06,1.50E-06,9.89E-07,6.91E-07,7.17E-07,
-     2  8.96E-07,3.67E-06,4.85E-06,5.82E-06,6.72E-06,7.77E-06,8.63E-06,
-     3  8.77E-06,8.14E-06,6.91E-06,5.45E-06,4.00E-06,2.67E-06,1.60E-06,
-     4  8.36E-07,3.81E-07,1.58E-07,6.35E-08,2.57E-08,1.03E-08,4.18E-09,
-     5  1.66E-09,6.57E-10,2.58E-10,1.02E-10,4.11E-11,1.71E-11,7.73E-12,
-     6  9.07E-12,4.63E-12,2.66E-12,1.73E-12,1.28E-12,1.02E-12,1.00E-30/
-C
-C
-C
-C-----------------------------------------------------------------------
-C     Seasonal Albedos:  11 Vegetation Types (Hemispherically Reflected)
-C-----------------------------------------------------------------------
-C
-      EQUIVALENCE
-     +          (V6ALB(1,1,1),ALBVND(1,1,1))
-     +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
-C
-      EQUIVALENCE
-     +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-     +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-     +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-     +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-     +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-     +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
-C
-      DIMENSION ALBVND(11,4,6)
-      DIMENSION FIELDC(11,3),VTMASK(11)
-C
-C                          1       2       3       4
-C                        WINTER  SPRING  SUMMER  AUTUMN
-C
-      DATA ALBVND/
-C     DATA ALVISK/  (1)  >SRBALB(6) = VIS  (330 - 770 nm)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
-     2 .500, .062, .100, .100, .073, .055, .067, .061, .100, .000, .200,
-     3 .500, .085, .091, .139, .085, .058, .083, .061, .091, .000, .200,
-     4 .500, .080, .090, .111, .064, .055, .061, .061, .090, .000, .200,
-C
-C     DATA ALNIRK/  (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
-C     DATA ALNIRK/  (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
-C     DATA ALNIRK/  (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .080, .107, .107, .093, .120, .080, .073, .107, .000, .200,
-     2 .500, .082, .140, .120, .096, .083, .080, .073, .140, .000, .200,
-     3 .500, .119, .145, .167, .119, .115, .100, .073, .145, .000, .200,
-     4 .500, .102, .126, .132, .081, .087, .073, .073, .126, .000, .200,
-C
-C     DATA ALNIRK/  (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .100, .133, .133, .116, .150, .100, .091, .133, .000, .200,
-     2 .500, .103, .175, .150, .120, .109, .100, .091, .175, .000, .200,
-     3 .500, .148, .182, .208, .148, .144, .125, .091, .182, .000, .200,
-     4 .500, .127, .157, .166, .102, .109, .091, .091, .157, .000, .200,
-C
-C     DATA ALNIRK/  (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .020, .027, .027, .023, .030, .020, .018, .027, .000, .200,
-     2 .500, .021, .035, .030, .024, .022, .020, .018, .035, .000, .200,
-     3 .500, .030, .036, .042, .030, .029, .025, .018, .036, .000, .200,
-     4 .500, .026, .032, .033, .020, .022, .018, .018, .032, .000, .200/
-C
-      DATA FIELDC/
-C          (KG/M**2)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 10.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 200., 30.0, 10.0, 999.,
-     2 10.0, 200., 200., 300., 300., 450., 450., 450., 200., 10.0, 999.,
-     3 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, 999./
-C
-      DATA VTMASK/
-C
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     4 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001/
-C
-C
-      DATA ASNALB/0.600,0.55,0.55,0.30,0.10,0.05,  0.350,8*0.0/
-C
-      DATA AOIALB/0.550,0.50,0.45,0.25,0.10,0.05,  0.300,8*0.0/
-C
-      DATA ALIALB/0.600,0.55,0.50,0.30,0.10,0.05,  0.350,8*0.0/
-C
-      DATA PVT/8*0.125,3*0.0/
-C
-      DATA SRBXAL/30*0.0/
-      DATA BXA/153*0.0/
-C
-C
-C                     AGSNOW  AGLICE  AGROCK  AGVEG
-      DATA AGSIDV/
-     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
-     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
-     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
-     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
-     +        0.01986,0.01994,0.02013,0.02041,0.02100,
-     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
-     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
-     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
-     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
-     +        0.01986,0.01994,0.02013,0.02041,0.02100,
-     +        0.04500,0.10209,0.08806,0.05856,0.04835,0.04052,0.04001,
-     +        0.03775,0.03687,0.03740,0.03637,0.03692,0.03570,0.07001,
-     +        0.05665,0.05326,0.05349,0.04356,0.03845,0.03589,0.03615,
-     +        0.03610,0.03602,0.03613,0.03471,0.13687,0.14927,0.16484,
-     +        0.16649,0.16820,0.17199,0.17484,0.18000,
-     +        33*0.00/
-C
-      DATA AOCEAN/
-     +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
-     +        0.10666,0.10697,0.10665,0.10719,0.10728,0.11007,0.04009,
-     +        0.04553,0.05554,0.08178,0.09012,0.09464,0.09548,0.09532,
-     +        0.09558,0.09558,0.09568,0.09565,0.05771,0.04985,0.04670,
-     +        0.04630,0.04575,0.04474,0.04468,0.04500/
-C
-C
-      DATA DLAT46/
-     A    -90.,-86.,-82.,-78.,-74.,-70.,-66.,-62.,-58.,-54.,-50.,-46.,
-     B    -42.,-38.,-34.,-30.,-26.,-22.,-18.,-14.,-10., -6., -2.,  2.,
-     C      6., 10., 14., 18., 22., 26., 30., 34., 38., 42., 46., 50.,
-     D     54., 58., 62., 66., 70., 74., 78., 82., 86., 90./
-C
-      DATA DLON72/
-     A      0.,  5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55.,
-     B     60., 65., 70., 75., 80., 85., 90., 95.,100.,105.,110.,115.,
-     C    120.,125.,130.,135.,140.,145.,150.,155.,160.,165.,170.,175.,
-     D    180.,185.,190.,195.,200.,205.,210.,215.,220.,225.,230.,235.,
-     E    240.,245.,250.,255.,260.,265.,270.,275.,280.,285.,290.,295.,
-     F    300.,305.,310.,315.,320.,325.,330.,335.,340.,345.,350.,355./
-C
-      DATA PLB/984.,934.,854.,720.,550.,390.,285.,210.,150.,100.,60.,
-     +          30.,10.,5.,2.,0.001,24*0.0/
-C
-      DATA HLB/
-     +          0.25, 0.70, 1.47, 2.89, 5.06, 7.65, 9.90,11.97,14.12,
-     +         16.67,19.95,24.47,31.97,36.98,44.00,99.99,24*99.999/
-C
-C     DATA PLB/
-C    +     1013.2500, 961.7485, 879.3460, 741.3219, 566.2166, 401.4117,
-C    +      262.3575, 154.2043,  71.8018,  10.0000,   5.0000,   2.0000,
-C    +        1.E-05,  27*0.00/
-C
-C     DATA HLB/
-C    +         1.E-10,1.0,2.0,3.0,6.0,11.0,20.0,32.0,47.0,51.0,71.0
-C    +        ,84.852,99.99,27*99.999/
-C
-      DATA TAUSL/33*0.0/, FTAUSL/33*0.0/
-C
-C-----------------------------------------------------------------------
-C     TRACE GAS REFERENCE AMOUNTS & DISTRIBUTIONS ARE DEFINED IN  SETGAS
-C-----------------------------------------------------------------------
-C
-C
-C                  H2O  CO2   O3   O2  NO2  N2O  CH4  F11  F12
-C                   1    2    3    4    5    6    7    8    9
-      DATA FULGAS/ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
-C
-C                  N2C   CFC11+  CFC12+  FO3LON
-     +           , 1.0,   1.0,    1.0,    1.0/
-C
-C
-C               GLOBAL OCEAN LAND DESERT  HAZE   TR1  TR2  TR3  TR4
-C                   1    2    3     4      5      6    7    8    9
-C
-C                                                TR5  TR6  TR7  TR8
-C                                                 10   11   12   13
-      DATA FGOLDH/13*0.0/
-C
-C     DATA FGOLDH/ 1.0, .68, .32, 1.E-20,1.E-20, 0.0, 0.0, 0.0, 0.0
-C    +           , 0.0, 0.0, 0.0, 0.0/
-C
-      DATA    LASTVC/-123456/
-C
-      DATA   FSXAER/5*1.D0/,  FTXAER/5*1.D0/
-      DATA   PIVMAX/1.0000/
-C
-      DATA                    TLGRAD/ 1.0/, EOCTRA/1.0/, ZOCSRA/1.0/
-      DATA                                  ESNTRA/1.0/, ZSNSRA/1.0/
-      DATA                    RO3COL/ 1.0/, EICTRA/1.0/, ZICSRA/1.0/
-      DATA                    ECLTRA/1.00/, EDSTRA/1.0/, ZDSSRA/1.0/
-      DATA   PTLISO/2.5E+00/, ZCLSRA/1.00/, EVGTRA/1.0/, ZVGSRA/1.0/
-C
-      DATA                    FCLDTR/1.0/,  NTRACE/0/
-      DATA   WETTRA/1.00/,    FCLDSR/1.0/
-      DATA   WETSRA/1.00/,    FALGAE/1.0/,   ITR/8*0/
-      DATA   DMOICE/10.0/,    FRAYLE/1.0/
-      DATA   DMLICE/10.0/,    EPSCON/0.0/
-C
-      DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
-      DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
-      DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/,        NL/15/
-      DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/,       NLP/16/
-      DATA   MADGHG/1/,       MADSUR/1/,    ICE012/1/,    MLAT46/46/
-      DATA   KWVCON/1/,       KSNORM/0/,    NORMS0/1/,    MLON72/72/
-C
-      DATA     JYEAR/1980/,   JLAT/ 7/,   S00WM2/1366.2911/, S0/1366.0/
-      DATA      JDAY/   1/,   ILON/18/,   COSZ/0.5000/
-C
-      DATA   POCEAN/0.700/,   TGO/288.15/,   AGESN/3*1./,    WMAG/2.00/
-      DATA   PEARTH/0.000/,   TGE/288.15/,   SNOWE/0.30/,  WEARTH/0.00/
-      DATA    POICE/0.200/,  TGOI/288.15/,  SNOWOI/0.10/,   ZOICE/10.0/
-      DATA    PLICE/0.100/,  TGLI/288.15/,  SNOWLI/0.20/
-      DATA                    TSL/288.15/
-C
-      EQUIVALENCE (ISPARE( 1),KVRAER)
-      EQUIVALENCE (ISPARE( 2),MEANAC)
-      EQUIVALENCE (ISPARE( 3),MEANDD)
-      EQUIVALENCE (ISPARE( 4),MEANVA)
-      EQUIVALENCE (ISPARE( 5),NCARO3)
-      EQUIVALENCE (ISPARE( 6),KUVFAC)
-      EQUIVALENCE (ISPARE( 7),KSNORM)
-      EQUIVALENCE (ISPARE( 8),KWTRAB)
-C
-      EQUIVALENCE (ISPARE(12),KCLDEM)
-      EQUIVALENCE (ISPARE(13),KANORM)
-C
-      DATA KVRAER/1/,  MEANAC/0/,  MEANDD/0/,  MEANVA/0/,  NCARO3/0/
-      DATA KUVFAC/0/,  KWTRAB/0/   KCLDEM/1/,  KANORM/0/
-C
-      EQUIVALENCE (ISPARE(14),KPFCO2)
-      EQUIVALENCE (ISPARE(15),KPFOZO)
-      EQUIVALENCE (ISPARE(16),KVEGA6)
-      EQUIVALENCE (ISPARE(17),KORDER)
-C
-      DATA KPFCO2/0/,  KPFOZO/0/,  KVEGA6/1/,  KORDER/0/
-C
-C
-      EQUIVALENCE (ISPARE(31),KYEARS),(ISPARE(41),KJDAYS)
-      EQUIVALENCE (ISPARE(32),KYEARG),(ISPARE(42),KJDAYG)
-      EQUIVALENCE (ISPARE(33),KYEARO),(ISPARE(43),KJDAYO)
-      EQUIVALENCE (ISPARE(34),KYEARA),(ISPARE(44),KJDAYA)
-      EQUIVALENCE (ISPARE(35),KYEARD),(ISPARE(45),KJDAYD)
-      EQUIVALENCE (ISPARE(36),KYEARV),(ISPARE(46),KJDAYV)
-      EQUIVALENCE (ISPARE(37),KYEARE),(ISPARE(47),KJDAYE)
-      EQUIVALENCE (ISPARE(38),KYEARR),(ISPARE(48),KJDAYR)
-C
-      DATA KYEARS/    0/, KJDAYS/  0/
-      DATA KYEARG/    0/, KJDAYG/  0/
-      DATA KYEARO/    0/, KJDAYO/  0/
-      DATA KYEARA/    0/, KJDAYA/  0/
-      DATA KYEARD/    0/, KJDAYD/  0/
-      DATA KYEARV/    0/, KJDAYV/  0/
-      DATA KYEARE/    0/, KJDAYE/  0/
-      DATA KYEARR/    0/, KJDAYR/  0/
-C
-      EQUIVALENCE (FSPARE(14),REFSET)
-      EQUIVALENCE (FSPARE(15),VEFSET)
-      DATA                              REFSET/0.000/,  VEFSET/0.000/
-C
-      EQUIVALENCE (FSPARE(16),O3WJT0)
-      EQUIVALENCE (FSPARE(17),SNOLIM)
-      DATA                              O3WJT0/0.001/,  SNOLIM/0.367/
-C
-      EQUIVALENCE (FSPARE(18),X0YBCI)
-      EQUIVALENCE (FSPARE(19),X0YOCI)
-      EQUIVALENCE (FSPARE(20),X0YSUI)
-      DATA              X0YBCI/0.001/,  X0YOCI/0.001/,  X0YSUI/0.001/
-C
-      EQUIVALENCE (FSPARE(21),AVSCAT)
-      EQUIVALENCE (FSPARE(22),ANSCAT)
-      EQUIVALENCE (FSPARE(23),AVFOAM)
-      EQUIVALENCE (FSPARE(24),ANFOAM)
-C
-      DATA AVSCAT/0.0156/, ANSCAT/0.0000/
-      DATA AVFOAM/0.2197/, ANFOAM/0.1514/
-C
-                                         DIMENSION UVWAVL(3),UVFACT(3)
-      EQUIVALENCE (FSPARE(25),UVWAVL(1))
-      EQUIVALENCE (FSPARE(28),UVFACT(1))
-C
-      DATA UVWAVL/0.0010,0.0020,0.0030/
-      DATA UVFACT/1.0000,1.0000,1.0000/
-C
-      EQUIVALENCE (FSPARE(31),PTOPTR)
-C
-      DATA PTOPTR/150.0/
-C
-C
-C-----------------------------------------------------------------------
-C      COMPOSITION & VERTICAL DISTRIBUTION FOR 5 SPECIFIED AEROSOL TYPES
-C-----------------------------------------------------------------------
-C TYPE
-C    1   STRATOSPHERIC GLOBAL AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
-C    2    TROPOSPHERIC  OCEAN AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
-C    3    TROPOSPHERIC   LAND AEROSOL  A,B,C ARE GLOBAL AVERAGE VALUES
-C    4    TROPOSPHERIC DESERT AEROSOL  A,B,C ARE  LOCAL AVERAGE VALUES
-C    5    TROPOSPHERIC   HAZE AEROSOL  A,B,C ARE  LOCAL AVERAGE VALUES
-C
-C        1     2     3     4     5     6     7     8     9    10    11
-C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
-      DATA AGOLDH/
-     1 .005,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
-     2   .0, .020, .010, .010, .005,   .0, .010,   .0,   .0, .005,   .0,
-     3   .0,   .0,   .0, .020, .005,   .0, .010, .010,   .0,   .0, .015,
-     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, .020, .010,   .0,   .0,
-     5   .0,   .0,   .0, .010,   .0,   .0,   .0,   .0,   .0,   .0, .005/
-      DATA BGOLDH/
-     1 20.0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
-     2   .0, 1.00, 4.00, 1.00, 4.00, 1.00, 4.00,   .0,   .0, 1.00,   .0,
-     3   .0,   .0,   .0, 0.00, 2.00,   .0, 4.00, 2.00,   .0,   .0, 0.00,
-     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 2.00, 0.00,   .0,   .0,
-     5   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0, 0.00/
-      DATA CGOLDH/
-     1 3.00,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,   .0,
-     2   .0, 1.00, 3.00, 2.00, 3.00, 1.00, 2.00,   .0,   .0, 1.00,   .0,
-     3   .0,   .0,   .0, 1.00, 3.00,   .0, 1.00, 1.00,   .0,   .0, 1.00,
-     4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 1.00, 1.00,   .0,   .0,
-     5   .0,   .0,   .0, 1.00,   .0,   .0,   .0,   .0,   .0,   .0, 1.00/
-C
-C
-      DIMENSION PI0VIS(11)
-C
-      EQUIVALENCE (FSPARE(41),PI0VIS(1))
-C
-C           1          2          3          4          5          6
-C         ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
-      DATA PI0VIS/
-     1   1.00000,   1.00000,   1.00000,   1.00000,   0.98929,   0.95609,
-C
-C           7          8          9         10         11
-C         DUST1      DUST2      DUST3      CARB1      CARB2
-     2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/
-C
-C
-C          ------------------------------------------------------------
-C          Multiplicative Scaling Factors for Cloud Asymmetry Parameter
-C          ------------------------------------------------------------
-C
-C                  Water    Ice    MieIce
-      DATA SRCGSF/ 1.000,  1.000,  1.000/
-C
-      DATA TAUWC0/0.0010/, TAUIC0/0.0010/
-C
-C                       TROPOSPHERIC AEROSOL PARAMETERS
-C                  BCI  OCI  SUI  SEA  SUN    OCN  OCB  BCB  SSB
-      DATA REAERO/ 0.1, 0.5, 1.0, 2.0, 0.3,   0.3, 1.0, 0.5, 0.5/
-C
-      DATA VEAERO/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/
-C
-      DATA ROAERO/ 2.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0/
-C
-C     DATA PI0MAX/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
-C       (OCI,OCN,OCB PI0MAXs are based on Novikov(1998) Ni=0.005)
-      DATA PI0MAX/ 1.0, .96, 1.0, 1.0, 1.0,   .98, .93, 1.0, 1.0/
-C
-      DATA FSAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
-C
-      DATA FTAERO/ 0.5, 0.5, 1.0, 4.0, 1.0,   1.0, 1.0, 1.0, 1.0/
-C
-      DATA SSBTAU/0.005/
-C
-C                          MINERAL DUST PARAMETERS
-C                         CLAY                  SILT
-      DATA REDUST/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/
-C
-      DATA VEDUST/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/
-C
-      DATA RODUST/ 2.5, 2.5, 2.5, 2.5,   2.6, 2.6, 2.6, 2.6/
-C
-      DATA FSDUST/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
-C
-      DATA FTDUST/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/
-C
-C
-C              TROPOSPHERIC AEROSOL GLOBAL MEAN VERTICAL DISTRIBUTION
-C              ------------------------------------------------------
-C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
-C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
-      DATA VDGAER/
-C       L=   1    2    3    4    5    6    7    8    9   10   11   12
-     A     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     B     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     C     .10, .10, .10, .10, .10, .10, .10, .10, .10, .10, .00, .00,
-     D     .30, .20, .20, .15, .10, .05, .00, .00, .00, .00, .00, .00,
-     E     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     F     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     G     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     H     .20, .20, .20, .20, .10, .10, .00, .00, .00, .00, .00, .00,
-     I     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05/
-C
-C
-      DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12)
-      EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
-      EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
-C
-C            Aerosol Vertical Profile (Optical Depth) Scaling Factors
-C            --------------------------------------------------------
-C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
-C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
-C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
-      DATA VDFBCI/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
-      DATA VDFOCI/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
-      DATA VDFSUI/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
-      DATA VDFDST/
-     A     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0/
-C
-C
-C-----------------------------------------------------------------------
-C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
-C-----------------------------------------------------------------------
-C
-C     NUMBER   1    2    3    4  5    6    7    8     9   10   11  12
-C             H2O  CO2  O3   O2 NO2  N2O  CH4 CFC11 CFC12 N2 CF-Y  CF-Z
-C     FULGAS/ 1.0, 1.0,1.0, 1.0,1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0 /
-      DATA Z0/0.0, 0.0,0.0, 0.0,0.0, 16., 16., 16., 16., 0.0, 16., 16.0/
-      DATA ZH/8.0, 8.0,8.0, 8.0,8.0, 30., 50., 30., 30., 0.0, 30., 30.0/
-C
-C     GAS  NUMBER  1      2     3      4      5       6       7
-C                 H2O    CO2    O3    O2     NO2     N2O     CH4
-      DATA PPMV80/0.0, 337.90, 0.0, 210000., 0.0,  0.3012, 1.5470
-C
-C     GAS  NUMBER   8           9        10        11         12
-C                 CCL3F1      CCL2F2     N2       CFC-Y      CFC-Z
-     +         ,0.1666E-03, 0.3003E-03, 0.0,   0.0978D-03, 0.0010D-10/
-C
-      DIMENSION PPMVK0(12)
-      EQUIVALENCE (FSPARE(161),PPMVK0(1))
-C
-C     KTREND=0  Direct Set Default Values
-C     -----------------------------------
-C
-C     GAS  NUMBER  1      2     3      4      5       6       7
-C                 H2O    CO2    O3    O2     NO2     N2O     CH4
-      DATA PPMVK0/0.0, 337.90, 0.0, 210000., 0.0,  0.3012, 1.5470
-C
-C     GAS  NUMBER   8           9        10        11         12
-C                 CCL3F1      CCL2F2     N2       CFC-Y      CFC-Z
-     +         ,0.1666E-03, 0.3003E-03, 0.0,   0.0978D-03, 0.0010D-10/
-C
-C     Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
-C     GTREND:  1980.,  337.9,  .3012,  1.547,  .1666,  .3003,  .0978,
-C     ---------------------------------------------------------------
-C
-C     ---------------------------------------------------------------
-C     Minschwaner et al JGR (1998) CH4, N2O, CFC-12 Vertical profiles
-C       IF(KGGVDF.GT.0) Then:
-C     Gas decreases are linear with pressure, from unity at ground to
-C     the fractional value PPMVDF(NGAS) at the top of the atmosphere.
-C     Exponential decrease by EXP(-(Z-Z0)/H) is superimposed on this.
-C       IF(KLATZ0.GT.0) Then: Z0 depends on latitude, KGGVDF not used
-C     Pole-to-Pole latitudinal gradient (PPGRAD) is also superimposed
-C     ---------------------------------------------------------------
-C
-      DIMENSION PPMVDF(12),PPGRAD(12)
-      EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
-      EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
-      EQUIVALENCE (ISPARE(11),KLATZ0)
-      DATA KGGVDF/0/, KPGRAD/1/, KLATZ0/1/
-C
-C     GAS  NUMBER  1     2    3    4    5       6         7
-C                 H2O   CO2   O3   O2  NO2     N2O       CH4
-      DATA PPMVDF/1.0,  1.0, 1.0, 1.0, 1.0,  0.88888,  0.88888,
-C
-C     GAS  NUMBER   8          9      10       11        12
-C                 CCL3F1    CCL2F2    N2     CFC-Y      CFC-Z
-     +           0.88888,  0.88888,  1.0,   0.88888,   0.88888/
-C
-C     GAS  NUMBER  1     2    3    4    5        6         7
-C                 H2O   CO2   O3   O2  NO2      N2O       CH4
-      DATA PPGRAD/0.0,  0.0, 0.0, 0.0, 0.0,   0.0100,   0.0900,
-C
-C     GAS  NUMBER   8          9       10      11        12
-C                 CCL3F1    CCL2F2     N2     CFC-Y     CFC-Z
-     +            0.0600,   0.0600,   0.0,   0.0600,   0.0600/
-C
-      END
-
-
-      SUBROUTINE WRITER(KWRU,INDEX)
-C
-      INCLUDE 'BR00B.COM'
-C
-C     ------------------------------------------------------------------
-C     WRITER Radiative Input/Output Cloud/Aerosol Data/Conrol Parameters
-C
-C         INDEX
-C           0     ISPARE,FSPARE control parameter defaults in BLOCK DATA
-C           1     RADCOM Radiative conrol/scaling parameter GHG defaults
-C           2     RADCOM Atmospheric composition P,H,T,Cld,Aer  profiles
-C           3     RADCOM Computed LW SW fluxes cooling and heating rates
-C           4     Aerosol and Cloud: Mie scattering radiative parameters
-C                 A  SW aerosol Mie scattering Qx,Qs,g in use parameters
-C                 B  SW  cloud  Mie scattering Qx,Qs,g in use parameters
-C                 C  SW cld+aer Mie scattering Qx,Qs,g in use parameters
-C                 D  SW LW aerosol 11-compositon  Mie Qx,Qs,g parameters
-C                 E  SW LW aerosol 09-compositon  Mie Qx,Qs,g parameters
-C                 F  SW LW aerosol 8-size D dust  Mie Qx,Qs,g parameters
-C                 G  SW LW  cloud  15-size/phase  Mie Qx,Qs,g parameters
-C           5     LW cld,aer,gas total optical k-distribution extinction
-C           6     LW gas absorb: total optical k-distribution extinction
-C           7     A  LW cloud   TRCALK optical k-distribution extinction
-C                 B  LW aerosol TRAALK optical k-distribution extinction
-C           8     SW Spectral/k-dist flux, albedo, absorption components
-C                 A  Spectral components of downward & upward solar flux
-C                 B  Spectral components of net solar flux, heating rate
-C           9     LW flux contribution from each k-distribution interval
-C                 1  Downward LW flux  from each k-distribution interval
-C                 2  Upward   LW flux  from each k-distribution interval
-C                 3  Net (Up) LW flux  from each k-distribution interval
-C                 4  Flux cooling rate from each k-distribution interval
-C                 5  Fraction coolrate from each k-distribution interval
-C        NOTE:
-C                 KWTRAB (ISPARE(8)) sets LW Mie parameters in 4-D,E,F,G
-C                        KWTRAB=0 (default) sets LW output to be Mie Qab
-C                        KWTRAB=1           sets LW output to be Mie Qex
-C                        KWTRAB=2           sets LW output to be Mie Qsc
-C                        KWTRAB=3           sets LW output to be Mie Qcb
-C                        KWTRAB=4           sets LW output to be Mie Pi0
-C
-C                 INDEX < 10 is selective, INDEX > 10 is digit inclusive
-C                 KWRU directs the output to selected (KWRU) file number
-C     ------------------------------------------------------------------
-C
-      CHARACTER*8 FTYPE
-      CHARACTER*3 TRABCD,TRAXSG
-      DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)
-      DATA TRABCD/'TRA','TRB','TRC','TRD','TRE'/
-      DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
-C
-      DIMENSION TKEFF(3),SRBALB(6),SRXALB(6)
-      DIMENSION SRAOC(15),SRAEA(15),SRAOI(15),SRALI(15),SRASN(15)
-      EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
-C
-     +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-     +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
-C
-      EQUIVALENCE (ASNALB(1),ASNVIS),(ASNALB(2),ASNNIR)
-      EQUIVALENCE (AOIALB(1),AOIVIS),(AOIALB(2),AOINIR)
-      EQUIVALENCE (ALIALB(1),ALIVIS),(ALIALB(2),ALINIR)
-C
-      EQUIVALENCE
-     +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-     +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-     +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-     +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-     +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-     +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
-C
-      EQUIVALENCE (PVT( 1),DESRT),(PVT( 2),TNDRA),(PVT( 3),GRASS)
-     +           ,(PVT( 4),SHRUB),(PVT( 5),TREES),(PVT( 6),DECID)
-     +           ,(PVT( 7),EVERG),(PVT( 8),RAINF),(PVT( 9),ROCKS)
-     +           ,(PVT(10),CROPS),(PVT(11),ALGAE)
-C
-      EQUIVALENCE (ISPARE( 1),KVRAER)
-      EQUIVALENCE (ISPARE( 2),MEANAC)
-      EQUIVALENCE (ISPARE( 3),MEANDD)
-      EQUIVALENCE (ISPARE( 4),MEANVA)
-      EQUIVALENCE (ISPARE( 5),NCARO3)
-      EQUIVALENCE (ISPARE( 8),KWTRAB)
-      EQUIVALENCE (ISPARE(10),KPGRAD)
-      EQUIVALENCE (ISPARE(11),KLATZ0)
-      EQUIVALENCE (ISPARE(12),KCLDEM)
-      EQUIVALENCE (ISPARE(13),KANORM)
-      EQUIVALENCE (ISPARE(14),KPFCO2)
-      EQUIVALENCE (ISPARE(15),KPFOZO)
-      EQUIVALENCE (ISPARE(16),KVEGA6)
-      EQUIVALENCE (ISPARE(17),KORDER)
-C
-      DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
-C
-      EQUIVALENCE (FSPARE( 1),WINDZF(1))
-      EQUIVALENCE (FSPARE( 4),WINDZT(1))
-      EQUIVALENCE (FSPARE( 7),TOTLZF(1))
-      EQUIVALENCE (FSPARE(10),TOTLZT(1))
-C
-      EQUIVALENCE (FSPARE(13), PSOIL)
-      EQUIVALENCE (FSPARE(14),REFSET)
-      EQUIVALENCE (FSPARE(15),VEFSET)
-      EQUIVALENCE (FSPARE(16),O3WJT0)
-      EQUIVALENCE (FSPARE(17),SNOLIM)
-      EQUIVALENCE (FSPARE(18),X0YBCI)
-      EQUIVALENCE (FSPARE(19),X0YOCI)
-      EQUIVALENCE (FSPARE(20),X0YSUI)
-C
-      EQUIVALENCE (FSPARE(21),AVSCAT)
-      EQUIVALENCE (FSPARE(22),ANSCAT)
-      EQUIVALENCE (FSPARE(23),AVFOAM)
-      EQUIVALENCE (FSPARE(24),ANFOAM)
-      EQUIVALENCE (FSPARE(25),UVWAVL)
-      EQUIVALENCE (FSPARE(28),UVFACT)
-C
-      DIMENSION PI0VIS(11),PI0TRA(11)
-C
-      EQUIVALENCE (FSPARE( 41),PI0VIS(1))
-      EQUIVALENCE (FSPARE( 61),PI0TRA(1))
-C
-      EQUIVALENCE (FSXAER(1),FSTAER)
-      EQUIVALENCE (FSXAER(2),FSBAER)
-      EQUIVALENCE (FSXAER(3),FSAAER)
-      EQUIVALENCE (FSXAER(4),FSDAER)
-      EQUIVALENCE (FSXAER(5),FSVAER)
-C
-      EQUIVALENCE (FTXAER(1),FTTAER)
-      EQUIVALENCE (FTXAER(2),FTBAER)
-      EQUIVALENCE (FTXAER(3),FTAAER)
-      EQUIVALENCE (FTXAER(4),FTDAER)
-      EQUIVALENCE (FTXAER(5),FTVAER)
-C
-      DIMENSION BGFLUX(33),BGFRAC(33),TAUSUM(33)
-      DIMENSION SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX),FTYPE(5),AUXGAS(4)
-      DIMENSION WSREXT(LX,6),WSRSCT(LX,6),WSRGCB(LX,6),WSRPI0(LX,6)
-      DIMENSION FSR1(17),FSR2(17),ISR1(16),KSLAMW(16),IORDER(16)
-      DATA KSLAMW/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/
-      DATA IORDER/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/
-C
-      DATA FTYPE/'DOWNWARD','  UPWARD','UPWD NET','COOLRATE','FRACTION'/
-      DATA AUXGAS/1H0,1HL,1HX,1HX/
-      DATA P0/1013.25/
-C
-      DO 20 K=1,6
-      DO 10 L=1,NL
-      WSREXT(L,K)=SRAEXT(L,K)+SRBEXT(L,K)
-     +           +SRDEXT(L,K)+SRVEXT(L,K)
-      WSRSCT(L,K)=SRASCT(L,K)+SRBSCT(L,K)
-     +           +SRDSCT(L,K)+SRVSCT(L,K)
-      WSRGCB(L,K)=SRASCT(L,K)*SRAGCB(L,K)+SRBSCT(L,K)*SRBGCB(L,K)
-     +           +SRDSCT(L,K)*SRDGCB(L,K)+SRVSCT(L,K)*SRVGCB(L,K)
-      WSRPI0(L,K)=WSRSCT(L,K)/(WSREXT(L,K)+1.E-10)
-      WSRGCB(L,K)=WSRGCB(L,K)/(WSRSCT(L,K)+1.D-10)
-   10 CONTINUE
-   20 CONTINUE
-C
-      ACOLX=0.0
-      BCOLX=0.0
-      DCOLX=0.0
-      VCOLX=0.0
-      DO 30 L=1,NL
-      ACOLX=ACOLX+SRAEXT(L,6)
-      BCOLX=BCOLX+SRBEXT(L,6)
-      DCOLX=DCOLX+SRDEXT(L,6)
-      VCOLX=VCOLX+SRVEXT(L,6)
-   30 CONTINUE
-      TCOLX=ACOLX+BCOLX+DCOLX+VCOLX
-C
-      KW=KWRU
-      INDJ=MOD(INDEX,10)
-      IF(INDJ.LT.1) INDJ=10
-      INDI=1
-      IF(INDEX.LT.11) INDI=INDJ
-CF    DO 9999 INDX=INDI,INDJ
-C
-      KPAGE=1
-CF    IF(INDEX.EQ.0) GO TO 90
-CF    GO TO (100,200,300,400,500,600,700,800,900,1000),INDX
-C
-C-------------
-   90 CONTINUE
-C-------------
-C
-      WRITE(KW,6000)
- 6000 FORMAT(1H ,'CALL WRITER(KW,0) :',2X,'PAGE 1/2  '
-     +          ,'ISPARE,  FSPARE  DEFINITIONS'/
-     +      /1H ,'ISPARE  PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
-      WRITE(KW,6001) (I,ISPARE(I),I=1,18)
- 6001 FORMAT(5X,I2,' = KVRAER = ',I1,'   1        Repartition Aer VDist'
-     2      /5X,I2,' = MEANAC = ',I1,'   0        Ann-Mean Aer Climtogy'
-     3      /5X,I2,' = MEANDD = ',I1,'   0        Ann-Mean  Desert Dust'
-     4      /5X,I2,' = MEANVA = ',I1,'   0        Ann-Mean Volcanic Aer'
-     5      /5X,I2,' = NCARO3 = ',I1,'   0        NCAR London 1976 Ozon'
-     6      /5X,I2,' = KUVFAC = ',I1,'   0        ON/OFF UV Mult Factor'
-     7      /5X,I2,' = KSNORM = ',I1,'   0        Norm S0 when KUVFAC=1'
-     8      /5X,I2,' = KWTRAB = ',I1,'   0        WRITER: Qab,Qex,Qsc,g'
-     9      /5X,I2,' = KGGVDF = ',I1,'   0        GG Vertical Prof Grad'
-     A      /5X,I2,' = KPGRAD = ',I1,'   1        Pole-to-Pole GHG Grad'
-     1      /5X,I2,' = KLATZ0 = ',I1,'   1        GG VDist Latitude Dep'
-     2      /5X,I2,' = KCLDEM = ',I1,'   1        Top Cloud Scatter Cor'
-     3      /5X,I2,' = KANORM = ',I1,'   0        SGP Atmos Column Norm'
-     4      /5X,I2,' = KPFCO2 = ',I1,'   0        1=MOD CO2PROF: FPXCO2'
-     5      /5X,I2,' = KPFOZO = ',I1,'   0        1=MOD O3 PROF: FPXOZO'
-     6      /5X,I2,' = KVEGA6 = ',I1,'   0        6 SpecBand Veg Albedo'
-     7      /5X,I2,' = KORDER = ',I1,'   0        WRITER k-d spec order'
-     8      /5X,I2,' = unused = ',I1,'                                 '
-     R      )
-C
-      WRITE(KW,6003) (I,ISPARE(I),I=19,25)
- 6003 FORMAT(5X,I2,' = unused = ',I1,'                                 '
-     B      /5X,I2,' = unused = ',I1,'                                 '
-     1      /5X,I2,' = unused = ',I1,'                                 '
-     2      /5X,I2,' = unused = ',I1,'                                 '
-     3      /5X,I2,' = unused = ',I1,'                                 '
-     4      /5X,I2,' = unused = ',I1,'                                 '
-     5      /5X,I2,' = unused = ',I1,'                                 '
-     R      )
-C
-      WRITE(KW,6004)
- 6004 FORMAT(/1H ,'FSPARE  PARAMTER   WINDOW/TOT SPECFLUX, BTEMP'
-     +          ,' FOR MU=1,.5,.1')
-      WRITE(KW,6005) (I,FSPARE(I),I=1,12)
- 6005 FORMAT(5X,I2,' = WINDZF = ',F7.3,'      MU=1.0\\                 '
-     A      /5X,I2,' =        = ',F7.3,'         0.5 > WINDOW  FLUX(MU)'
-     B      /5X,I2,' =        = ',F7.3,'         0.1/                  '
-     C      /5X,I2,' = WINDZT = ',F7.3,'      MU=1.0\\                 '
-     D      /5X,I2,' =        = ',F7.3,'         0.5 > WINDOW BTEMP(MU)'
-     E      /5X,I2,' =        = ',F7.3,'         0.1/                  '
-     F      /5X,I2,' = TOTLZF = ',F7.3,'      MU=1.0\\ SPECT INTEGRATED'
-     G      /5X,I2,' =        = ',F7.3,'         0.5 > TOTAL   FLUX(MU)'
-     H      /5X,I2,' =        = ',F7.3,'         0.1/                  '
-     I      /5X,I2,' = TOTLZT = ',F7.3,'      MU=1.0\\                 '
-     J      /5X,I2,' =        = ',F7.3,'         0.5 > TOTAL  BTEMP(MU)'
-     K      /5X,I2,' =        = ',F7.3,'         0.1/                  '
-     L      )
-C
-      WRITE(KW,6006)
- 6006 FORMAT(1H0,'FSPARE  PARAMTER    VALUE',16X,' DEFAULT')
-      WRITE(KW,6007) (I,FSPARE(I),I=13,24)
- 6007 FORMAT(5X,I2,' =  PSOIL = ',F7.3,6X,'BARE-SOIL FRACTION OF PEARTH'
-     A      /5X,I2,' = REFSET = ',F7.3,'                 0.000         '
-     B      /5X,I2,' = VEFSET = ',F7.3,'                 0.000         '
-     C      /5X,I2,' = O3WJT0 = ',F7.5,'                 0.001         '
-     D      /5X,I2,' = SNOLIM = ',F7.5,'                 0.367         '
-     E      /5X,I2,' = X0YBCI = ',F7.3,'                 0.001         '
-     F      /5X,I2,' = X0YOCI = ',F7.3,'                 0.001         '
-     G      /5X,I2,' = X0YSUI = ',F7.3,'                 0.0001        '
-     H      /5X,I2,' = AVSCAT = ',F7.5,'                  .01560       '
-     I      /5X,I2,' = ANSCAT = ',F7.5,'                  .00020       '
-     J      /5X,I2,' = AVFOAM = ',F7.5,'                  .21970       '
-     K      /5X,I2,' = ANFOAM = ',F7.5,'                  .15140       '
-     X      )
-      WRITE(KW,6008)
- 6008 FORMAT(/10X,'UV Solar Flux Spectral Partitions and Factors')
-      WRITE(KW,6009) (I,I=25,27),(FSPARE(J),J=25,27)
- 6009 FORMAT(4X,3I3,' = UVWAVL = ',F7.5,2F8.5,'                       ')
-      WRITE(KW,6010) (I,I=28,30),(FSPARE(J),J=28,30)
- 6010 FORMAT(4X,3I3,' = UVFACT = ',F7.5,2F8.5,'                       ')
-C
-      WRITE(KW,6011)
- 6011 FORMAT(1H ,'FSPARE PARAMETER ')
-      WRITE(KW,6012) (I,FSPARE(I),I=31,40)
- 6012 FORMAT(5X,I2,' = PTOPTR = ',F7.1,6X,'TropTop (SIGMA lev) Pressure'
-     A      /5X,I2,' = unused = ',F7.3,'                 0.000         '
-     B      /5X,I2,' = unused = ',F7.3,'                 0.000         '
-     C      /5X,I2,' = unused = ',F7.5,'                 0.000         '
-     D      /5X,I2,' = unused = ',F7.5,'                 0.000         '
-     E      /5X,I2,' = unused = ',F7.3,'                 0.000         '
-     F      /5X,I2,' = unused = ',F7.3,'                 0.000         '
-     G      /5X,I2,' = unused = ',F7.3,'                 0.000         '
-     H      /5X,I2,' = unused = ',F7.5,'                  .000         '
-     I      /5X,I2,' = unused = ',F7.5,'                  .000         '
-     J      )
-      WRITE(KW,6013)
- 6013 FORMAT(/1H ,'FSPARE PARAMETER   PI0VIS     PI0TRA      DEFAULT')
-      WRITE(KW,6014) (I+40,I+60,FSPARE(I+40),FSPARE(I+60),I=1,11)
- 6014 FORMAT(1X,2I3,' = ACID1 = ',F8.6,F11.6,'     1.0                 '
-     A      /1X,2I3,' = SSALT = ',F8.6,F11.6,'     1.0                 '
-     B      /1X,2I3,' = SLFT1 = ',F8.6,F11.6,'     1.0                 '
-     C      /1X,2I3,' = SLFT2 = ',F8.6,F11.6,'     1.0                 '
-     D      /1X,2I3,' = BSLT1 = ',F8.6,F11.6,'      .98929             '
-     E      /1X,2I3,' = BSLT2 = ',F8.6,F11.6,'      .95609             '
-     F      /1X,2I3,' = DUST1 = ',F8.6,F11.6,'      .91995             '
-     G      /1X,2I3,' = DUST2 = ',F8.6,F11.6,'      .78495             '
-     H      /1X,2I3,' = DUST3 = ',F8.6,F11.6,'      .63576             '
-     I      /1X,2I3,' = CARB1 = ',F8.6,F11.6,'      .31482             '
-     J      /1X,2I3,' = CARB2 = ',F8.6,F11.6,'      .47513             '
-     K      )
-
-      WRITE(KW,6015)
- 6015 FORMAT(/1H ,3('FSPARE     VALUE   '))
-      WRITE(KW,6016) (I+51,FSPARE(I+51),I=1,9)
-      WRITE(KW,6016) (I+71,FSPARE(I+71),I=1,9)
- 6016 FORMAT(I7,' = ',F8.6,I8,' = ',F8.6,I8,' = ',F8.6)
-C
-      WRITE(KW,6017)
- 6017 FORMAT(/1H ,'FSPARE  VDFBCI  FSPARE  VDFOCI  FSPARE  VDFSUI'
-     +        ,'  FSPARE  VDFDST')
-      WRITE(KW,6018) (I+ 80,FSPARE(I+ 80),I+100,FSPARE(I+100)
-     +              ,I+120,FSPARE(I+120),I+140,FSPARE(I+140),I=1,12)
- 6018 FORMAT(4(3X,1I4,' =',F6.2,1X))
-C
-      WRITE(KW,6019)
- 6019 FORMAT(/1H ,'FSPARE          PPMVK0   FSPARE    PPMVDF '
-     +        ,2X,'FSPARE    PPGRAD ')
-      WRITE(KW,6020) (I+160,FSPARE(I+160),I+180,FSPARE(I+180)
-     +               ,I+200,FSPARE(I+200),I=1,12)
- 6020 FORMAT(3X,1I4,' =',F15.7,1I6,' =',F10.5,1I7,' =',F10.5)
-      WRITE(KW,6021)
- 6021 FORMAT(2X,'unused '
-     +      ,'93-100 113-120 133-140 153-160 173-180 193-200 213-998 ')
-CF    GO TO 9999
-C
-C-------------
-  100 CONTINUE
-C-------------
-C
-      NPAGE=1
-      IF(INDEX.LT.11) NPAGE=KPAGE
-      WRITE(KW,6101)
-      WRITE(KW,6102)
-      FACTOR=P0/(PLB(1)-PLB(2))*1.25
-      PPMCO2=ULGAS(1,2)*FACTOR
-      PPMO2 =ULGAS(1,4)*FACTOR
-      PPMN2O=ULGAS(1,6)*FACTOR
-      PPMCH4=ULGAS(1,7)*FACTOR
-      PPMF11=ULGAS(1,8)*FACTOR
-      PPMF12=ULGAS(1,9)*FACTOR
-      PPMY11=ULGAS(1,11)*FACTOR
-      PPMZ12=ULGAS(1,12)*FACTOR
-      WRITE(KW,6103) (FULGAS(I),I=1,3),(FULGAS(I),I=6,9)
-     +              ,FULGAS(11),FULGAS(12),    (FGOLDH(I),I=1,5)
-C     IF(KGASSR.GT.0)
-C    +WRITE(KW,6104) (FULGAS(I+9),I=1,2),(FULGAS(I+9),I=4,9)
-C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
-      WRITE(KW,6105) PPMCO2,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12
-     +             ,(FGOLDH(I),I=6,9),PPMV80(2),(PPMV80(I),I=6,9)
-     +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
-      WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,FALGAE,KCLDEM,NTRACE
-     +             ,FSAAER,FTTAER,MOZONE,KCLDEP,NL
-      WRITE(KW,6107) TAUIC0,FCLDSR,ESNTRA,ZSNSRA,WETTRA,KVEGA6,ITR(1)
-     +             ,ITR(5),FSBAER,FTBAER,KO3LON,KEEPAL,NLP
-      WRITE(KW,6108) FLONO3,FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
-     +             ,ITR(6),FSAAER,FTAAER,KVRAER,KEEP10,MLAT46
-      WRITE(KW,6109) TLGRAD,ECLTRA,EDSTRA,ZDSSRA,KANORM,KPGRAD,ITR(3)
-     +             ,ITR(7),FSDAER,FTDAER,KWVCON,ICE012,MLON72
-      WRITE(KW,6110) PTLISO,ZCLSRA,EVGTRA,ZVGSRA,KEEPRH,KLATZ0,ITR(4)
-     +             ,ITR(8),FSVAER,FTVAER,KSOLAR,NORMS0
-C
- 6101 FORMAT(' (1)FUL:  1',7X,'2',8X,'3',7X,'6',7X,'7',8X,'8',8X,'9'
-     +      ,8X,'11',7X,'12',4X,'RADCOM 1/F: (Control/Default'
-     +      ,'/Scaling Parameters)')
- 6102 FORMAT(4X,'GAS: ','H2O',5X,'CO2',7X,'O3'
-     +      ,5X,'N2O',5X,'CH4',5X,'CFC-11',3X,'CFC-12'
-     +      ,3X,'CFY-11',3X,'CFZ-12'
-     +      ,2X,'Aerosol Global    Ocean     Land  Desert    Haze')
- 6103 FORMAT(1X,'FULGAS=',F5.3,F10.5,F7.3,F9.5,F8.5,4F9.5
-     +      ,2X,'FGOLDH=',F7.5,2F9.6,2F8.5)
- 6104 FORMAT(1H+,T84,'T'
-     +      /1X,'FULGAS=',1P,1E7.1,1P,2E8.1,1P,2E8.1,1P,4E9.1
-     +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
- 6105 FORMAT(1X,'PPM(1)=(now)',2X,F8.3,8X,F8.5,F8.5,4(1X,F8.7)
-     +      ,2X,'TRACER=',F7.5,2F9.6,F8.5
-     +      /' PPMV80=(ref)=',0P,F9.3,8X,2F8.5,4(1X,F8.7),2X
-     +      ,'KTREND=',I1,2X,'JYEAR=',I4,' JDAY=',I3,5X,'LASTVC=',I7)
- 6106 FORMAT(1X,'TAUWC0=',1P,E6.0,' FCLDTR=',0P,F4.2,' EOCTRA=',F3.1
-     +      ,1X,'ZOCSRA=',   F3.1,' FALGAE=',   F4.2,' KCLDEM=',  I3
-     +      ,1X,'NTRACE=',    I3,2X,'FSTAER=',  F3.1,' FTTAER=',F3.1
-     +      ,1X,'MOZONE=',    I1,1X,'KCLDEP=',    I1,'     NL=',  I2)
- 6107 FORMAT(1X,'TAUIC0=',1P,E6.0,' FCLDSR=',0P,F4.2,' ESNTRA=',F3.1
-     +      ,1X,'ZSNSRA=',  F3.1,1X,'WETTRA=',  F4.2,' KVEGA6=',  I3
-     +      ,1X,'ITR(1)=',    2I2,1X,'FSBAER=', F3.1,' FTBAER=',F3.1
-     +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NLP=',  I2)
- 6108 FORMAT(1X,'FO3LON=',   F6.2,' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
-     +      ,1X,'ZICSRA=',  F3.1,1X,'WETSRA=',  F4.2,' KCNORM=',  I3
-     +      ,1X,'ITR(2)=',    2I2,1X,'FSAAER=', F3.1,' FTAAER=',F3.1
-     +      ,1X,'KVRAER=',    I1,1X,'KEEP10=',    I1,' MLAT46=',  I2)
- 6109 FORMAT(1X,'TLGRAD=',   F6.2,' ECLTRA=',0P,F4.2,' EDSTRA=',F3.1
-     +      ,1X,'ZDSSRA=',  F3.1,1X,'KANORM=',  I4  ,' KPGRAD=',  I3
-     +      ,1X,'ITR(3)=',    2I2,1X,'FSDAER=', F3.1,' FTDAER=',F3.1
-     +      ,1X,'KWVCON=',    I1,1X,'ICE012=',    I1,' MLON72=',  I2)
- 6110 FORMAT(1X,'PTLISO=',  F6.1,1X,'ZCLSRA=',  F4.2,' EVGTRA=',F3.1
-     +      ,1X,'ZVGSRA=',  F3.1,1X,'KEEPRH=',  I4  ,' KLATZ0=',  I3
-     +      ,1X,'ITR(4)=',    2I2,1X,'FSVAER=', F3.1,' FTVAER=',F3.1
-     +      ,1X,'KSOLAR=',    I1,1X,'NORMS0=',    I1,'        ')
-C
-      RETURN
-      END
-
+      END SUBROUTINE FXGINT
