@@ -471,8 +471,7 @@ C**** Do I need to put the common decalaration here also?
       REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM)
      *     ,VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
       DATA CN(1)/0./
-      REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN
-      INTEGER, SAVE :: IFIRST=1
+      REAL*8 :: DTHR,BYDT1
       INTEGER LD(NM)
       INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1
       REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
@@ -481,14 +480,8 @@ C**** Do I need to put the common decalaration here also?
      *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
      *     ,MUP,MUR,BVFSQ,ediff
 C****
-      IF (IFIRST.EQ.1) THEN
-        GRAVS=GRAV*GRAV
-        G2DT=GRAVS*DT1
-        DTHR=2./NIdyn
-        BYDT1 = 1./DT1
-        VARMIN=XCDNST(1)*XCDNST(1)
-        IFIRST=0
-      END IF
+      DTHR=2./NIdyn
+      BYDT1 = 1./DT1
       
 C**** Start main loop
 C$OMP  PARALLEL DO PRIVATE(I,J,L)
@@ -597,8 +590,8 @@ c      THL(L)=.25*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
       DP(L)=PIJ*DSIG(L)
       RHO(L)=PL(L)/(RGAS*TL(L))
 c      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
-c     *  (DP(L)*THL(L))*GRAVS*RHO(L)
-      BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAVS*RHO(L)
+c     *  (DP(L)*THL(L))*GRAV*GRAV*RHO(L)
+      BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAV*GRAV*RHO(L)
       IF (PL(L).GE..4d0) THEN
          BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
         ELSE
@@ -630,7 +623,7 @@ C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
         VR(1)=V0/(W0+ ERR)
         BV0=(BVF(1)*DSIG(1)+BVF(2)*DSIG(2))/(SIGE(1)-SIGE(3))
         ZVAR=ABS(UR(1))*ZVARX(I,J)+ABS(VR(1))*ZVARY(I,J)
-        IF(ZVAR.LT.VARMIN) ZVAR=0.
+        IF(ZVAR.LT.XCDNST(1)*XCDNST(1)) ZVAR=0.
 C.... if Froude number (U0/BV0*ZSD) > 1
 C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
         IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
@@ -793,7 +786,7 @@ C**** INCIDENT FLUX FOR SHR AND MC WAVES
         IF (MU(N).LT.MUB(LN,N)) MU(N)=MUB(LN,N)
       END DO
 C**** LOCATE LDRAG - LOWEST LAYER TO APPLY DRAG
-      LDRAG=LM+1
+      LDRAG=LM+2    ! better default 
       DO N=1,NM
         IF (MU(N).LE.-ERR) LDRAG=MIN(LD(N),LDRAG)
       END DO
@@ -914,7 +907,7 @@ C****    (limited to XLIMIT per timestep)
       DO L=LDRAG,LM
       PUP=PL(L)
       MUP=DP(L)
-      YUP=G2DT*RHO(L)*RHO(L)*DL(L)/(DP(L)*BVF(L)*BVF(L))
+      YUP=GRAV*GRAV*DT1*RHO(L)*RHO(L)*DL(L)/(DP(L)*BVF(L)*BVF(L))
       DX=   (YDN+YUP)/(PDN-PUP)     ! double diffusion coefficient
       DLIMIT=XLIMIT*MIN(MUP,MDN)
       IF (DX.GT.DLIMIT) THEN
@@ -975,6 +968,7 @@ C**** END OF LOOP OVER J
       END DO
 C$OMP  END PARALLEL DO
 C****
+
       IF (MRCH.EQ.2) THEN
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
@@ -984,20 +978,20 @@ C$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
         DO L=1,LM
           DO J=1,JM
             DO I=1,IMAXJ(J)
-              IF (L.ge.LDRAGA(I,J)-1) THEN
               ediff=0.
               DO K=1,KMAXJ(J)   ! loop over surrounding vel points
-                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+                IF (L.ge.LDRAGA(IDIJ(K,I,J),IDJJ(K,J))-1) ediff=ediff
+     *               + DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
               END DO
               ediff=ediff/(SHA*PK(I,J,L))
               T(I,J,L)=T(I,J,L)-ediff
               AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
-              END IF
             END DO
             AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(L,J)
           END DO
         END DO
 C$OMP  END PARALLEL DO
+
       END IF
 C****
       RETURN
