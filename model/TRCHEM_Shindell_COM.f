@@ -452,7 +452,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var rlossN,rprodN,ratioN variables for nitrogen conservation
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
-!@var change change due to chemistry in mass/time
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
 !@var L75P first model level above nominal 75 hPa
@@ -606,7 +605,6 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
      *     ,165.,150./)
       REAL*8, DIMENSION(ny,LM)          :: dest, prod
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
-      REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
 #ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(JM)             :: DU_O3

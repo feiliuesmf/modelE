@@ -5,7 +5,7 @@
 !@ver  1.0 (based on masterchem000_M23p)   
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
-C PLEASE SEE THE WARNING ABOUT CHANGE VARIABLE IN THE
+C PLEASE SEE THE WARNING ABOUT CHANGEL VARIABLE IN THE
 C STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
@@ -67,6 +67,9 @@ C**** Local parameters and variables and arguments:
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
 !@var airvol Air volume in grid cell
+!@var changeL 2D array holds the local change due to chem or strat 
+!@+   overwrite until adding to tr3Dsource (replaces 4D "change")
+      REAL*8, DIMENSION(LM,NTM) :: changeL
       REAL*8, DIMENSION(LM) :: airvol
       REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
@@ -97,8 +100,6 @@ C++++ First, some INITIALIZATIONS :
       bydtsrc = 1.d0/dtsrc
       BYFJM=1.d0/float(JM)
       PRES2(:)=SIG(:)*(PSF-PTOP)+PTOP
-C reset change due to chemistry to zero:
-      change(:,:,:,:) = 0.d0
 C
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
@@ -137,15 +138,18 @@ C**** (note this section is already done in DIAG.f)
         END DO
       END DO
 C
-!$OMP  PARALLEL DO PRIVATE (FASTJ_PFACT, 
+!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT, 
 #ifdef regional_Ox_tracers
-!$OMP* bysumOx, sumOx, n2,
+!$OMP* bysumOx, sumOx,
 #endif
 #ifdef SHINDELL_STRAT_CHEM
 !$OMP* CLTOT, ClOx_old, COLMO2, changeClONO2, changeClOx,
 !$OMP* changehetClONO2, changeHOCl, changeHCl,
 !$OMP* chg106, chg107, chg108, chg109,
 !$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
+#endif
+#ifdef regional_Ox_tracers
+!$OMP* n2,
 #endif
 !$OMP* LL, I, igas, inss, J, L, Lqq, N, error )
 c
@@ -170,6 +174,8 @@ C make sure the regional Ox tracers didn't diverge from total Ox:
          trm(i,j,l,n2)=trm(i,j,l,n2)*trm(i,j,l,n_Ox)*bysumOx
        end do
 #endif
+c      initialize the 2D change variable:
+       changeL(L,:)=0.d0
 c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
@@ -220,13 +226,13 @@ c 1.7 ppbv CFC plus 0.5 ppbv background
         CLTOT=CLTOT*y(nM,L)/
      *  (y(n_ClOx,L)+y(n_HCl,L)+y(n_HOCl,L)+y(n_ClONO2,L))
         y(n_ClOx,L)=y(n_ClOx,L)*CLTOT
-        change(I,J,L,n_ClOx)=trm(I,J,L,n_ClOx)*(CLTOT-1.D0)
+        changeL(L,n_ClOx)=trm(I,J,L,n_ClOx)*(CLTOT-1.D0)
         y(n_HCl,L)=y(n_HCl,L)*CLTOT
-        change(I,J,L,n_HCl)=trm(I,J,L,n_HCl)*(CLTOT-1.D0)
+        changeL(L,n_HCl)=trm(I,J,L,n_HCl)*(CLTOT-1.D0)
         y(n_HOCl,L)=y(n_HOCl,L)*CLTOT
-        change(I,J,L,n_HOCl)=trm(I,J,L,n_HOCl)*(CLTOT-1.D0)
+        changeL(L,n_HOCl)=trm(I,J,L,n_HOCl)*(CLTOT-1.D0)
         y(n_ClONO2,L)=y(n_ClONO2,L)*CLTOT
-        change(I,J,L,n_ClONO2)=trm(I,J,L,n_ClONO2)*(CLTOT-1.D0)
+        changeL(L,n_ClONO2)=trm(I,J,L,n_ClONO2)*(CLTOT-1.D0)
       endif
 c     Save initial ClOx amount for use in ClOxfam
       ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
@@ -395,7 +401,7 @@ c
 c
 cc    Non-family chemistry:
 c
-      call chemstep(I,J,change)
+      call chemstep(I,J,changeL)
 c
 C Accumulate 3D radical arrays to pass to aerosol code
       if(coupled_chem.eq.1) then
@@ -640,63 +646,63 @@ C from the following changes. This is to prevent negative tracer mass:
 C
 C -- HCHO --
 c        Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO
-         change(I,J,L,n_HCHO)=changeHCHO*pfactor*bymass2vol(n_HCHO)
-         if(-change(I,J,L,n_HCHO).gt.trm(I,J,L,n_HCHO))then
-           change(I,J,L,n_HCHO)=-.95d0*trm(I,J,L,n_HCHO)
-           changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
+         changeL(L,n_HCHO)=changeHCHO*pfactor*bymass2vol(n_HCHO)
+         if(-changeL(L,n_HCHO).gt.trm(I,J,L,n_HCHO))then
+           changeL(L,n_HCHO)=-.95d0*trm(I,J,L,n_HCHO)
+           changeHCHO=changeL(L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
          endif
-         IF((trm(i,j,l,n_HCHO)+change(i,j,l,n_HCHO)).lt.1.d0) THEN
-           change(i,j,l,n_HCHO) = 1.d0 - trm(i,j,l,n_HCHO)
-           changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
+         IF((trm(i,j,l,n_HCHO)+changeL(l,n_HCHO)).lt.1.d0) THEN
+           changeL(l,n_HCHO) = 1.d0 - trm(i,j,l,n_HCHO)
+           changeHCHO=changeL(L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
          ENDIF
          wprodHCHO=changeHCHO
 C -- CO --
-         change(I,J,L,n_CO)=gprodHNO3*bymass2vol(n_CO)
-         IF((trm(i,j,l,n_CO)+change(i,j,l,n_CO)).lt.1.d0)
-     &   change(i,j,l,n_CO) = 1.d0 - trm(i,j,l,n_CO)
+         changeL(L,n_CO)=gprodHNO3*bymass2vol(n_CO)
+         IF((trm(i,j,l,n_CO)+changeL(l,n_CO)).lt.1.d0)
+     &   changeL(l,n_CO) = 1.d0 - trm(i,j,l,n_CO)
          wprodCO=gwprodHNO3   ! <<< note
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
-         change(I,J,L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
-         IF((trm(i,j,l,n_HNO3)+change(i,j,l,n_HNO3)).lt.1.d0) THEN
-           change(i,j,l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
-           changeHNO3=change(I,J,L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
+         changeL(L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
+         IF((trm(i,j,l,n_HNO3)+changeL(l,n_HNO3)).lt.1.d0) THEN
+           changeL(l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
+           changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
          END IF
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
-         change(I,J,L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
-         IF((trm(i,j,l,n_N2O5)+change(i,j,l,n_N2O5)).lt.1.d0) THEN
-           change(i,j,l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
-           changeN2O5=change(I,J,L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
+         changeL(L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
+         IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)).lt.1.d0) THEN
+           changeL(l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
+           changeN2O5=changeL(L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
          END IF
 c -- NOx --   (NOx from gas phase rxns)
-         change(I,J,L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
-         IF((trm(i,j,l,n_NOx)+change(i,j,l,n_NOx)).lt.1.d0) THEN
-           change(i,j,l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
-           changeNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)*bypfactor
+         changeL(L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
+         IF((trm(i,j,l,n_NOx)+changeL(l,n_NOx)).lt.1.d0) THEN
+           changeL(l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
+           changeNOx=changeL(L,n_NOx)*mass2vol(n_NOx)*bypfactor
          END IF
 C -- Alkenes --  (Alkenes from gas phase rxns)
-         change(I,J,L,n_Alkenes)=
+         changeL(L,n_Alkenes)=
      &   changeAlkenes*pfactor*bymass2vol(n_Alkenes)
-         IF((trm(i,j,l,n_Alkenes)+change(i,j,l,n_Alkenes)).lt.1.d0)THEN
-           change(i,j,l,n_Alkenes) = 1.d0 - trm(i,j,l,n_Alkenes)
-           changeAlkenes=change(I,J,L,n_Alkenes)*mass2vol(n_Alkenes)
+         IF((trm(i,j,l,n_Alkenes)+changeL(l,n_Alkenes)).lt.1.d0)THEN
+           changeL(l,n_Alkenes) = 1.d0 - trm(i,j,l,n_Alkenes)
+           changeAlkenes=changeL(L,n_Alkenes)*mass2vol(n_Alkenes)
      &     *bypfactor
          END IF
 c -- Isoprene -- (Isoprene from gas phase rxns)
-         change(I,J,L,n_Isoprene)=
+         changeL(L,n_Isoprene)=
      &   changeIsoprene*pfactor*bymass2vol(n_Isoprene)
-         IF((trm(i,j,l,n_Isoprene)+change(i,j,l,n_Isoprene)).lt.1.d0)
+         IF((trm(i,j,l,n_Isoprene)+changeL(l,n_Isoprene)).lt.1.d0)
      &   THEN
-           change(i,j,l,n_Isoprene) = 1.d0 - trm(i,j,l,n_Isoprene)
-           changeIsoprene=change(I,J,L,n_Isoprene)*mass2vol(n_Isoprene)
+           changeL(l,n_Isoprene) = 1.d0 - trm(i,j,l,n_Isoprene)
+           changeIsoprene=changeL(L,n_Isoprene)*mass2vol(n_Isoprene)
      &     *bypfactor
          END IF
 c -- AlkylNit -- (AlkylNit from gas phase rxns)
-         change(I,J,L,n_AlkylNit)=
+         changeL(L,n_AlkylNit)=
      &   changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)
-         IF((trm(i,j,l,n_AlkylNit)+change(i,j,l,n_AlkylNit)).lt.1.d0)
+         IF((trm(i,j,l,n_AlkylNit)+changeL(l,n_AlkylNit)).lt.1.d0)
      &   THEN
-           change(i,j,l,n_AlkylNit) = 1.d0 - trm(i,j,l,n_AlkylNit)
-           changeAlkylNit=change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
+           changeL(l,n_AlkylNit) = 1.d0 - trm(i,j,l,n_AlkylNit)
+           changeAlkylNit=changeL(L,n_AlkylNit)*mass2vol(n_AlkylNit)
      &     *bypfactor
          END IF
 
@@ -943,49 +949,49 @@ C
          if(error)call stop_model('nighttime chem: big changes',255)
 c
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
-         change(I,J,L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
-         IF((trm(i,j,l,n_HNO3)+change(i,j,l,n_HNO3)).lt.1.d0) THEN
-           change(i,j,l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
-           changeHNO3=change(I,J,L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
+         changeL(L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
+         IF((trm(i,j,l,n_HNO3)+changeL(l,n_HNO3)).lt.1.d0) THEN
+           changeL(l,n_HNO3) = 1.d0 - trm(i,j,l,n_HNO3)
+           changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
          END IF
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
-         change(I,J,L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
-         IF((trm(i,j,l,n_N2O5)+change(i,j,l,n_N2O5)).lt.1.d0) THEN
-           change(i,j,l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
-           changeN2O5=change(I,J,L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
+         changeL(L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
+         IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)).lt.1.d0) THEN
+           changeL(l,n_N2O5) = 1.d0 - trm(i,j,l,n_N2O5)
+           changeN2O5=changeL(L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
          END IF
 c -- NOx --   (NOx from gas phase rxns)
-         change(I,J,L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
-         IF((trm(i,j,l,n_NOx)+change(i,j,l,n_NOx)).lt.1.d0) THEN
-           change(i,j,l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
-           changeNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)*bypfactor
+         changeL(L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
+         IF((trm(i,j,l,n_NOx)+changeL(l,n_NOx)).lt.1.d0) THEN
+           changeL(l,n_NOx) = 1.d0 - trm(i,j,l,n_NOx)
+           changeNOx=changeL(L,n_NOx)*mass2vol(n_NOx)*bypfactor
          END IF
 c -- ClONO2 --   (ClONO2 from gas and het phase rxns)
-         change(I,J,L,n_ClONO2)=changeClONO2*pfactor*
+         changeL(L,n_ClONO2)=changeClONO2*pfactor*
      *    bymass2vol(n_ClONO2)
-         IF((trm(i,j,l,n_ClONO2)+change(i,j,l,n_ClONO2)).lt.1.d0) THEN
-           change(i,j,l,n_ClONO2) = 1.d0 - trm(i,j,l,n_ClONO2)
-           changeClONO2=change(I,J,L,n_ClONO2)*mass2vol(n_ClONO2)*
+         IF((trm(i,j,l,n_ClONO2)+changeL(l,n_ClONO2)).lt.1.d0) THEN
+           changeL(l,n_ClONO2) = 1.d0 - trm(i,j,l,n_ClONO2)
+           changeClONO2=changeL(L,n_ClONO2)*mass2vol(n_ClONO2)*
      *      bypfactor
          END IF
 c -- ClOx --   (ClOx from gas and het phase rxns)
-         change(I,J,L,n_ClOx)=changeClOx*pfactor*bymass2vol(n_ClOx)
-         IF((trm(i,j,l,n_ClOx)+change(i,j,l,n_ClOx)).lt.1.d0) THEN
-           change(i,j,l,n_ClOx) = 1.d0 - trm(i,j,l,n_ClOx)
-           changeClOx=change(I,J,L,n_ClOx)*mass2vol(n_ClOx)*bypfactor
+         changeL(L,n_ClOx)=changeClOx*pfactor*bymass2vol(n_ClOx)
+         IF((trm(i,j,l,n_ClOx)+changeL(l,n_ClOx)).lt.1.d0) THEN
+           changeL(l,n_ClOx) = 1.d0 - trm(i,j,l,n_ClOx)
+           changeClOx=changeL(L,n_ClOx)*mass2vol(n_ClOx)*bypfactor
          END IF
          if(pscX.gt.0.9d0)then
 c -- HOCl --   (HOCl from het phase rxns)
-         change(I,J,L,n_HOCl)=changeHOCl*pfactor*bymass2vol(n_HOCl)
-         IF((trm(i,j,l,n_HOCl)+change(i,j,l,n_HOCl)).lt.1.d0) THEN
-           change(i,j,l,n_HOCl) = 1.d0 - trm(i,j,l,n_HOCl)
-           changeHOCl=change(I,J,L,n_HOCl)*mass2vol(n_HOCl)*bypfactor
+         changeL(L,n_HOCl)=changeHOCl*pfactor*bymass2vol(n_HOCl)
+         IF((trm(i,j,l,n_HOCl)+changeL(l,n_HOCl)).lt.1.d0) THEN
+           changeL(l,n_HOCl) = 1.d0 - trm(i,j,l,n_HOCl)
+           changeHOCl=changeL(L,n_HOCl)*mass2vol(n_HOCl)*bypfactor
          END IF
 c -- HCl --   (HCl from het phase rxns)
-         change(I,J,L,n_HCl)=changeHCl*pfactor*bymass2vol(n_HCl)
-         IF((trm(i,j,l,n_HCl)+change(i,j,l,n_HCl)).lt.1.d0) THEN
-           change(i,j,l,n_HCl) = 1.d0 - trm(i,j,l,n_HCl)
-           changeHCl=change(I,J,L,n_HCl)*mass2vol(n_HCl)*bypfactor
+         changeL(L,n_HCl)=changeHCl*pfactor*bymass2vol(n_HCl)
+         IF((trm(i,j,l,n_HCl)+changeL(l,n_HCl)).lt.1.d0) THEN
+           changeL(l,n_HCl) = 1.d0 - trm(i,j,l,n_HCl)
+           changeHCl=changeL(L,n_HCl)*mass2vol(n_HCl)*bypfactor
          END IF
          endif  ! pscX > 0.9
 C
@@ -1050,70 +1056,73 @@ C
 #endif
       DO L=1,LL  ! loop over troposphere again (or trop+strat)
 C       >> Lower limit on HO2NO2 of 1.0 <<
-        if(trm(i,j,l,n_HO2NO2)+change(i,j,l,n_HO2NO2).lt.1.d0)
-     &  change(i,j,l,n_HO2NO2) = 1.d0 - trm(i,j,l,n_HO2NO2)
+        if(trm(i,j,l,n_HO2NO2)+changeL(l,n_HO2NO2).lt.1.d0)
+     &  changeL(l,n_HO2NO2) = 1.d0 - trm(i,j,l,n_HO2NO2)
 c
 #ifdef SHINDELL_STRAT_CHEM
 C       Limit ClOx to 0.1 or 0.2 ppbv at highest levels:
         if(pres2(L).le.0.05d0)then
-          rmrClOx=(trm(I,J,L,n_ClOx)+change(i,j,L,n_ClOx))*
+          rmrClOx=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))*
      *    mass2vol(n_ClOx)*BYDXYP(J)*BYAM(L,I,J)
-          if(rmrClOx.gt.1.d-10)change(i,j,L,n_ClOx)=
+          if(rmrClOx.gt.1.d-10)changeL(L,n_ClOx)=
      *    (1.d-10-trm(I,J,L,n_ClOx))
      *    /(mass2vol(n_ClOx)*BYDXYP(J)*BYAM(L,I,J))
         endif
         if(pres2(L).le.0.2d0 .and. pres2(L).gt.0.05d0)then
-          rmrClOx=(trm(I,J,L,n_ClOx)+change(i,j,L,n_ClOx))
+          rmrClOx=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))
      *    *mass2vol(n_ClOx)*BYDXYP(J)*BYAM(L,I,J)
-          if(rmrClOx.gt.2.d-10)change(i,j,L,n_ClOx)=
+          if(rmrClOx.gt.2.d-10)changeL(L,n_ClOx)=
      *    (2.d-10-trm(I,J,L,n_ClOx))
      *     /(mass2vol(n_ClOx)*BYDXYP(J)*BYAM(L,I,J))
         endif
 C        
 C       Limit BrOx to 1. pptv above 5 hPa:
         if(pres2(L).le.5.d0.and.J.ne.1.and.J.ne.JM)then
-           rmrBrOx=(trm(I,J,L,n_BrOx)+change(i,j,L,n_BrOx))*
+           rmrBrOx=(trm(I,J,L,n_BrOx)+changeL(L,n_BrOx))*
      *     mass2vol(n_BrOx)*BYDXYP(J)*BYAM(L,I,J)
-           if(rmrBrOx.gt.1.d-12)change(i,j,L,n_BrOx)=
+           if(rmrBrOx.gt.1.d-12)changeL(L,n_BrOx)=
      *     (1.d-12-trm(I,J,L,n_BrOx))/
      *     (mass2vol(n_BrOx)*BYDXYP(J)*BYAM(L,I,J))
         endif
 C
 C       Limit Ox to 4. ppmv above 0.2 hPa:
         if(pres2(L).le.0.2d0)then
-          rmrOx=(trm(I,J,L,n_Ox)+change(i,j,L,n_Ox))*
+          rmrOx=(trm(I,J,L,n_Ox)+changeL(L,n_Ox))*
      *     mass2vol(n_Ox)*BYDXYP(J)*BYAM(L,I,J)
-          if(rmrOx.gt.4.d-6)change(i,j,L,n_Ox)=(4.d-6-trm(I,J,L,n_Ox))
+          if(rmrOx.gt.4.d-6)changeL(L,n_Ox)=(4.d-6-trm(I,J,L,n_Ox))
      *    /(mass2vol(n_Ox)*BYDXYP(J)*BYAM(L,I,J))
         endif
 c
 cc      Troposphere halogen sink (Br) & (Cl)
         IF (L.lt.LTROPO(I,J)) THEN 
-          rmv=(1.d0-0.95d0**(LTROPO(I,J)-L)) ! <--- level dependence
-          change(i,j,L,n_ClOx)=change(i,j,L,n_ClOx)-
-     *     (trm(I,J,L,n_ClOx)*rmv)
-          change(i,j,L,n_HCl)=change(i,j,L,n_HCl)-
-     *     (trm(I,J,L,n_HCl)*rmv)
-          change(i,j,L,n_HOCl)=change(i,j,L,n_HOCl)-
-     *     (trm(I,J,L,n_HOCl)*0.85d0)
-          change(i,j,L,n_ClONO2)=change(i,j,L,n_ClONO2)-
-     *     (trm(I,J,L,n_ClONO2)*rmv)
-          change(i,j,L,n_BrOx)=change(i,j,L,n_BrOx)-
-     *     (trm(I,J,L,n_BrOx)*0.9d0)
-          change(i,j,L,n_HBr)=change(i,j,L,n_HBr)-
-     *     (trm(I,J,L,n_HBr)*0.9d0)
-          change(i,j,L,n_HOBr)=change(i,j,L,n_HOBr)-
-     *     (trm(I,J,L,n_HOBr)*0.9d0)
-          change(i,j,L,n_BrONO2)=change(i,j,L,n_BrONO2)-
-     *     (trm(I,J,L,n_BrONO2)*0.9d0)
+Corig     rmv=(1.d0-0.95d0**(LTROPO(I,J)-L)) ! had level dependence
+          rmv=max(0.d0,    ! remove between 0 and 
+     &        min(0.99d0,  ! 99% only...
+     &        2.389d-1 * LOG(pres2(L))  - 1.05d0
+     &        ))           ! about 5% at 100mb and 60% at 1000mb
+          changeL(L,n_ClOx)=changeL(L,n_ClOx)-
+     *               (trm(I,J,L,n_ClOx)*rmv)
+          changeL(L,n_HCl)=changeL(L,n_HCl)-
+     *               (trm(I,J,L,n_HCl)*rmv)
+          changeL(L,n_HOCl)=changeL(L,n_HOCl)-
+     *               (trm(I,J,L,n_HOCl)*0.85d0)
+          changeL(L,n_ClONO2)=changeL(L,n_ClONO2)-
+     *               (trm(I,J,L,n_ClONO2)*rmv)
+          changeL(L,n_BrOx)=changeL(L,n_BrOx)-
+     *               (trm(I,J,L,n_BrOx)*0.9d0)
+          changeL(L,n_HBr)=changeL(L,n_HBr)-
+     *               (trm(I,J,L,n_HBr)*0.9d0)
+          changeL(L,n_HOBr)=changeL(L,n_HOBr)-
+     *               (trm(I,J,L,n_HOBr)*0.9d0)
+          changeL(L,n_BrONO2)=changeL(L,n_BrONO2)-
+     *               (trm(I,J,L,n_BrONO2)*0.9d0)
         END IF
-        
 #endif
         if(checktracer_on) call checktracer(I,J)
 C
 C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM_CHEM
-          tr3Dsource(i,j,l,nChemistry,n) = change(i,j,l,n) * bydtsrc
+          tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
 c Reset radiation O3 values here, if interactive ozone:
         !
@@ -1170,13 +1179,10 @@ cc    Stratospheric Overwrite of tracers                cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
-C               'change' variable for L>LTROPO(I,J) is non-zero at this
+C               'changeL' variable for L>LTROPO(I,J) is non-zero at this
 C               point in the code), then the stratospheric changes below
 C               should be altered.  Currently, they are functions of
 C               tracer mass UNCHANGED by chemistry !
-
-C     Make sure that change is zero:
-      change(:,:,:,:) = 0.d0
 C 
 C Calculate an average tropical CH4 value near 569 hPa:
 C
@@ -1194,31 +1200,32 @@ C
       do j=1,jm
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
        do i=1,IM
+         changeL(:,:)=0.d0 ! initilize the change
          do L=LTROPO(I,J)+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
-          change(I,J,L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
+          changeL(L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
      &    - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to
 C         increase the flux into the troposphere, increasing
 C         previous stratospheric value by 70% here: GSF/DTS 9.15.03: 
-          change(I,J,L,n_NOx)=
+          changeL(L,n_NOx)=
      &    trm(I,J,L,n_Ox)*2.3d-4*1.7d0 - trm(I,J,L,n_NOx)
-          change(I,J,L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
-          change(I,J,L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3-trm(I,J,L,n_HNO3)
-          change(I,J,L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
-          change(I,J,L,n_CH3OOH)=FACT1            - trm(I,J,L,n_CH3OOH)
-          change(I,J,L,n_HCHO)=  FACT1            - trm(I,J,L,n_HCHO)
-          change(I,J,L,n_HO2NO2)=FACT1*70.d0      - trm(I,J,L,n_HO2NO2)
+          changeL(L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
+          changeL(L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3-trm(I,J,L,n_HNO3)
+          changeL(L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
+          changeL(L,n_CH3OOH)=FACT1            - trm(I,J,L,n_CH3OOH)
+          changeL(L,n_HCHO)=  FACT1            - trm(I,J,L,n_HCHO)
+          changeL(L,n_HO2NO2)=FACT1*70.d0      - trm(I,J,L,n_HO2NO2)
 C         note above: 70. = 1.4E-7/2.0E-9
-          change(I,J,L,n_CO)=(COlat(J3)*COalt(L)*1.D-9*bymass2vol(n_CO)
+          changeL(L,n_CO)=(COlat(J3)*COalt(L)*1.D-9*bymass2vol(n_CO)
      &    *AM(L,I,J)*DXYP(J))                   - trm(I,J,L,n_CO)
-          change(I,J,L,n_PAN)     = FACT1*1.d-4 - trm(I,J,L,n_PAN)
-          change(I,J,L,n_Isoprene)= FACT1*1.d-4 - trm(I,J,L,n_Isoprene)
-          change(I,J,L,n_AlkylNit)= FACT1*1.d-4 - trm(I,J,L,n_AlkylNit)
-          change(I,J,L,n_Alkenes) = FACT1*1.d-4 - trm(I,J,L,n_Alkenes)
-          change(I,J,L,n_Paraffin)= FACT1*1.d-4 - trm(I,J,L,n_Paraffin)
+          changeL(L,n_PAN)     = FACT1*1.d-4 - trm(I,J,L,n_PAN)
+          changeL(L,n_Isoprene)= FACT1*1.d-4 - trm(I,J,L,n_Isoprene)
+          changeL(L,n_AlkylNit)= FACT1*1.d-4 - trm(I,J,L,n_AlkylNit)
+          changeL(L,n_Alkenes) = FACT1*1.d-4 - trm(I,J,L,n_Alkenes)
+          changeL(L,n_Paraffin)= FACT1*1.d-4 - trm(I,J,L,n_Paraffin)
 c
 c         Overwrite stratospheric ch4 based on HALOE obs for tropics
 c         and extratropics and scale by the ratio of near-569hPa
@@ -1241,12 +1248,12 @@ c
             END DO
           END IF
 C**** ensure that strat overwrite is only a sink
-          change(I,J,L,n_CH4)=-MAX(0d0,trm(I,J,L,n_CH4)-
+          changeL(L,n_CH4)=-MAX(0d0,trm(I,J,L,n_CH4)-
      &         (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6))
 C
 C Save stratosphic change for updating tracer in apply_tracer_3Dsource
           DO N=1,NTM_CHEM
-            tr3Dsource(i,j,l,nStratwrite,n) = change(i,j,l,n)*bydtsrc
+            tr3Dsource(i,j,l,nStratwrite,n) = changeL(l,n)*bydtsrc
           END DO
 C
         end do              ! >> END LOOP OVER STRATOSPHERE <<
