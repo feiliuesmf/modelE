@@ -17,8 +17,6 @@ C****                         GZM -> TLAKE (deg C)
 !@var KDIREC directions for river flow
 C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, DIMENSION(IM,JM) :: KDIREC
-!@var IDPOLE,JDPOLE special directions for south pole flow
-      INTEGER :: IDPOLE,JDPOLE
 !@var RATE rate of river flow downslope (fraction)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
@@ -592,8 +590,6 @@ C****
 C**** South Pole is a special case
       DO I=1,IM
         IF(KDIREC(I,1).eq.2)  THEN
-          IDPOLE     = I
-          JDPOLE     = 2
           IFLOW(1,1) = I
           JFLOW(1,1) = 2
           DHORZ(1,1) = DYV(2)    ! DYV(1)
@@ -658,7 +654,7 @@ C****
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
-      USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
+      USE LAKES, only : kdirec,rate,iflow,jflow
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -772,6 +768,8 @@ C****
 #endif
 C**** Only overflow if lake mass is above sill height (HLAKE (m))
       MWLSILL = RHOW*HLAKE(1,1)*FLAKE(1,1)*DXYP(1)
+      JD=JFLOW(1,1)
+      ID=IFLOW(1,1)
       IF(MWL(1,1).gt.MWLSILL) THEN
         DMM = (MWL(1,1)-MWLSILL)*RATE(1,1)
 c        IF (FLAKE(1,1).gt.0) THEN
@@ -779,25 +777,25 @@ c         MLM=RHOW*MLDLK(1,1)*FLAKE(1,1)*DXYP(1)
 c         DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
 c        END IF
         DGM=TLAKE(1,1)*DMM*SHW ! TLAKE always defined
-        DPE=0.  ! DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE))
+        DPE=0.  ! DMM*(ZATMO(1,1)-ZATMO(ID,JD))
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
 #ifdef TRACERS_WATER
-        if (flake(iu,ju).gt.0) then
+        if (flake(1,1).gt.0) then
           DTM(:) = DMM*GTRACER(:,1,1,1)
         else
           DTM(:) = DMM*TRLAKE(:,1,1,1)/(MWL(1,1)+teeny)
         end if
         TRFLOW(:,1,1) = TRFLOW(:,1,1) - DTM(:)
-        TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:)=TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:) +
-     *       DTM(:)*BYDXYP(JDPOLE)
+        TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:) +
+     *       DTM(:)*BYDXYP(JD)
 #endif
-        AIJ(IDPOLE,JDPOLE,IJ_MRVR)=AIJ(IDPOLE,JDPOLE,IJ_MRVR) + DMM
-        AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + DGM+DPE
-         FLOW(IDPOLE,JDPOLE) =  FLOW(IDPOLE,JDPOLE) + IM*DMM
-        EFLOW(IDPOLE,JDPOLE) = EFLOW(IDPOLE,JDPOLE) + IM*(DGM+DPE)
+        AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
+        AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
+         FLOW(ID,JD) =  FLOW(ID,JD) + IM*DMM
+        EFLOW(ID,JD) = EFLOW(ID,JD) + IM*(DGM+DPE)
 #ifdef TRACERS_WATER
-        TRFLOW(:,IDPOLE,JDPOLE) = TRFLOW(:,IDPOLE,JDPOLE) + IM*DTM(:)
+        TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + IM*DTM(:)
 #endif
       END IF
 C****
