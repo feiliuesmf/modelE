@@ -111,10 +111,6 @@ cc    IF (JM.eq.24) DLAT_DG=180./(JM-1)   ! 1/2 box at pole, orig 8x10
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, j_STOP_STGR=J_1STG)
 
-      write(*,*)'In geom_b: J_0,J_1=',j_0,j_1
-      write(*,*)'In geom_b: J_0S,J_1S=',j_0S,j_1S
-      write(*,*)'In geom_b: J_0STG,J_1STG=',j_0STG,j_1STG
-
       IF (grid%HAVE_SOUTH_POLE) THEN
           LAT(1)  = -.25*TWOPI
           SINP(1)  = -1.
@@ -166,10 +162,6 @@ C****POLES
       DO J=J_0S,J_1S
         DYP(J)  = .5*(DYV(J)+DYV(J+1))
         DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
-        write(*,*)'In geom_b:j=',j,' dxv(j),dxv(j+1)=',dxv(j),dxv(j+1)
-        write(*,*)'In geom_b:j=',j,' dyp(j)',dyp(j)
-        write(*,*)'In geom_b:j=',j,
-     &             'dxyp(j)=.5*(DXV(J)+DXV(J+1))*DYP(J)=',dxyp(j)
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
         DXYN(J) = .5*DXYP(J)
@@ -329,16 +321,11 @@ C**** Conditions at non-polar points
       CALL GET(grd_dum,J_STRT_HALO=J_0H,
      &                 J_STOP_HALO=J_1H)
 
-      write(*,*)'J_0H=',j_0h,' J_1H=',j_1h
       ALLOCATE( LAT       (J_0H:J_1H), 
      &          LAT_DG    (J_0H:J_1H, 2),
      &          LON    (IM),
      &          LON_DG (IM,           2),
      &                                    STAT = IER)
-      write(*,*)'size of lat is ', size(lat)
-      write(*,*)'size of lat_dg is ', size(lat_dg)
-      write(*,*)'size of lon is ', size(lon)
-      write(*,*)'size of lon_dg is ', size(lon_dg)
       ALLOCATE(
      &          DXYP      (J_0H:J_1H),
      &          BYDXYP    (J_0H:J_1H),
