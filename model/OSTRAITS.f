@@ -64,6 +64,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 #ifdef TRACERS_OCEAN
+      USE CONSTANT, only : teeny
       USE TRACER_COM, only : t_qlimit
 #endif
       USE OCEAN, only : dts,mo,dxypo,bydxypo,g0m,gxmo,gymo,gzmo,s0m,sxmo
@@ -113,17 +114,17 @@ C****
 C**** Limit temperature gradients to 10% (to prevent problems in
 C**** Red sea area)
       if ( ABS(GXMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GXMO(I1,J1,L) =
-     *     GXMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GXMO(I1,J1,L)) )
+     *     GXMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GXMO(I1,J1,L)+teeny))
       if ( ABS(GYMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GYMO(I1,J1,L) =
-     *     GYMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GYMO(I1,J1,L)) )
+     *     GYMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GYMO(I1,J1,L)+teeny))
       if ( ABS(GZMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GZMO(I1,J1,L) =
-     *     GZMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GZMO(I1,J1,L)) )
+     *     GZMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GZMO(I1,J1,L)+teeny))
       if ( ABS(GXMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GXMO(I2,J2,L) =
-     *     GXMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GXMO(I2,J2,L)) )
+     *     GXMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GXMO(I2,J2,L)+teeny))
       if ( ABS(GYMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GYMO(I2,J2,L) =
-     *     GYMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GYMO(I2,J2,L)) )
+     *     GYMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GYMO(I2,J2,L)+teeny))
       if ( ABS(GZMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GZMO(I2,J2,L) =
-     *     GZMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GZMO(I2,J2,L)) )
+     *     GZMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GZMO(I2,J2,L)+teeny))
 
       END DO
       END DO
