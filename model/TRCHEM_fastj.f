@@ -1,6 +1,6 @@
-c  NOTE: Fastj photolysis scheme obtained from Oliver Wild (UCI) for          
+c  NOTE: Fastj photolysis scheme obtained from Oliver Wild (UCI) for
 c  incorporation into the GISS 4x5 GCM with 10 tracer chemistry.
-c  jlg. Sept. 98. 
+c  jlg. Sept. 98.
 c
       SUBROUTINE photoj(nslon,nslat)
 !@sum photoj (jv_trop.f): FAST J-Value code, troposphere only
@@ -12,13 +12,13 @@ c
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls CTM_ADJ,INT_PROF,PRTATM,JVALUE,JRATET
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only    : LM
       USE CONSTANT, only      : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
      &                          szamax,U0,NCFASTJ
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -34,21 +34,21 @@ C
           JFASTJ(i,j)=0.D0
         enddo
       enddo
-C---Define number of levels to use for clear-sky conditions: 
+C---Define number of levels to use for clear-sky conditions:
       NCFASTJ = 2*LM+2
 C
 C---determine actinic flux calc from solar zenith angle:
 C
       U0 = DCOS(SZA*radian)
 C
-C---only do the rest of this subroutine if SZA<szamax:       
+C---only do the rest of this subroutine if SZA<szamax:
 C
       if(SZA.le.szamax) then
 C-----------------------------------------------------------------------
         CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
         CALL INT_PROF(NSLON,NSLAT)!define    T &      O3 profiles
 c       CALL PRTATM(1,NSLON,NSLAT)! Print out atmosphere (working?)
-        CALL JVALUE(NSLON,NSLAT)  ! 
+        CALL JVALUE(NSLON,NSLAT)  !
         CALL JRATET(NSLON,NSLAT)  !
 C-----------------------------------------------------------------------
 C       "zj" updated in JRATET - pass this back to ASAD as "JFASTJ"
@@ -58,24 +58,24 @@ C       "zj" updated in JRATET - pass this back to ASAD as "JFASTJ"
           enddo
         enddo
       end if ! sza
-c      
+c
       end SUBROUTINE photoj
 C
 C
       SUBROUTINE ctm_adj(NSLON,NSLAT)
-!@sum ctm_adj to adapt the model input for the photolysis code; set up 
+!@sum ctm_adj to adapt the model input for the photolysis code; set up
 !@+   the appropriate pressure and aerosol profiles. The pressure at the
 !@+   bottom of CTM box (I,J,L) is given by   etaa(L) + etab(L)*P(I,J)
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3_fastjlg_ozone_M23)     
+!@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only    : IM,JM,LM
       USE TRCHEM_Shindell_COM, only:SALBFJ,RCLOUDFJ,jndlev,NCFASTJ,aer,
      &                          ZFASTJ,jaddlv,jaddto,PFASTJ,RFLECT,
      &                          odtmp,odsum,odmax,luselb,nlbatm,zlbatm
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -141,14 +141,14 @@ c Scale optical depths as appropriate
       endif
 c
 c Lower boundary treatment; if cloud surface, zero ODs and set albedo
-      nlbatm = 1 
+      nlbatm = 1
       if(luselb) then
         do i=1,LM
           if(odtmp(i).gt.zlbatm) nlbatm = (2*i)+1
           odtmp(i)=0.d0
         enddo
         if(nlbatm.gt.1) RFLECT = 0.6d0     ! Effective cloud albedo
-      endif   
+      endif
 c
 c Write the AER profile directly - interpolate for boundary points...
 c Or perhaps redefine if optical depths are provided directly
@@ -175,15 +175,16 @@ c
 !@+   linear interpolation Oliver (23/05/97). Calculate the total number
 !@+   density and the ozone profile.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3_fastjlg_ozone_M23)    
+!@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only: JM, LS1
+      USE MODEL_COM, only: month=>JMON
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
      &                          PFASTJ
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -192,7 +193,7 @@ C**** Local parameters and variables and arguments:
 !@var pstd Approximate pressures of levels for supplied data
 !@var tmp1,tmp2,ydgrd,month,tmpfra temporary variables
       INTEGER, INTENT(IN) :: nslon, nslat
-      INTEGER i,j,l,m,month
+      INTEGER i,j,l,m
       REAL*8, DIMENSION(51) :: pstd
       REAL*8 tmp1,tmp2,ydgrd,tmpfra
 c
@@ -251,7 +252,7 @@ c  Ozone  (extrapolate above 60 km)
  10       continue
         endif
       enddo
-c                            
+c
 c     overwrite troposphere lvls of climatological O3 with GISS GCM O3:
       do i=1,2*(LS1-1)
        O3J(i)=O3_FASTJ(i)
@@ -260,7 +261,7 @@ c
 c Calculate total and O3 number densities
       do I=1,NCFASTJ
         DMFASTJ(I)  = PFASTJ(I)/(cboltz*TJ(I))
-        DO3(I) = O3J(I)*1.d-6*DMFASTJ(I)          
+        DO3(I) = O3J(I)*1.d-6*DMFASTJ(I)
       enddo
 c
       return
@@ -272,14 +273,14 @@ C
 !@sum JRATET Calculate & print J-values. The loop in this routine
 !@+   only covers the jpnl levels actually needed by the CTM.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3_fastjlg_ozone_M23)    
+!@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only:FFF,TFASTJ,VALJ,jpnl,NW1,NW2,jpdep,
      &                              TQQ,QQQ,zpdep,PFASTJ,jppj,zj,
      &                              jfacta,NJVAL,jind
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -314,7 +315,7 @@ C------Calculate remaining J-values with T-dep X-sections
      $        (TFASTJ(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
            DO K=NW1,NW2
            QQQT = QQQ(K,1,J-3) + (QQQ(K,2,J-3) - QQQ(K,1,J-3))*TFACT
-           if(L.eq.0) then 
+           if(L.eq.0) then
              VALJ(J) = VALJ(J) + QQQT*FFF(K,I)
            else
            VALJ(J)=VALJ(J)+QQQT*FFF(K,I)*(1.d0+zpdep(K,L)*PFASTJ(2*i))
@@ -322,7 +323,7 @@ C------Calculate remaining J-values with T-dep X-sections
          ENDDO
        ENDDO
 
-       DO jgas=1,jppj         
+       DO jgas=1,jppj
          zj(i,jgas)=VALJ(jind(jgas))*jfacta(jgas)
        ENDDO
       ENDDO
@@ -336,11 +337,11 @@ C
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: NLFASTJ,DO3,AER,DMFASTJ,DBC,ZZHT,
      &                              NCFASTJ,ZFASTJ,PFASTJ,TJ
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -377,7 +378,7 @@ C---Print out atmosphere
         WRITE(6,1000)
         DO I=1,NCFASTJ
           ZKM = 1.d-5*ZFASTJ(I)
-          ZSTAR = 16.d0*DLOG10(1000.D0/PFASTJ(I))
+          ZSTAR = 16.d0*LOG10(1000.D0/PFASTJ(I))
         WRITE(6,1100) I,ZKM,ZSTAR,DMFASTJ(I),DO3(I),
      $    1.d6*DO3(I)/DMFASTJ(I),
      $    TJ(I),PFASTJ(I),AER(I),COLO3(I),COLAX(I),COLO2(I),COLBC(I)
@@ -397,12 +398,12 @@ C
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls SPHERE,OPMIE,XSECO3,XSECO2
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: JPNL,NW1,NW2,FFF,WL,NCFASTJ,TJ,FL,
      &                          XQO2,XQO3
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -456,10 +457,10 @@ C
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls FLINT
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: TQQ,QO3
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -468,7 +469,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: k
       REAL*8 xseco3,FLINT ! >>> FUNCTIONS <<<
       real*8 TTT
-c      
+c
       XSECO3  =
      F  FLINT(TTT,TQQ(1,2),TQQ(2,2),TQQ(3,2),QO3(K,1),QO3(K,2),QO3(K,3))
       RETURN
@@ -482,10 +483,10 @@ C
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls FLINT
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: TQQ,Q1D
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -508,10 +509,10 @@ c
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls FLINT
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: TQQ,QO2
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -531,11 +532,10 @@ c
 !@sum FLINT Three-point linear interpolation function
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-!@calls FLINT
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C (none)
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -544,8 +544,8 @@ C**** Local parameters and variables and arguments:
 !@var TINT returned temperature profile?
       REAL*8, INTENT(IN) :: T1,T2,T3,F1,F2,F3
       real*8 TINT
-      REAL*8 FLINT ! >>> FUNCTIONS <<<
-      
+!!    REAL*8 FLINT ! >>> FUNCTIONS <<<
+
       IF (TINT .LE. T2)  THEN
         IF (TINT .LE. T1)  THEN
           FLINT  = F1
@@ -565,19 +565,19 @@ c
 c
       SUBROUTINE SPHERE
 !@sum SPHERE Calculate spherical geometry; derive tangent heights, slant
-!@+   path lengths and optical depth weighting for each layer. Not 
+!@+   path lengths and optical depth weighting for each layer. Not
 !@+   called when SZA > 98 degrees.  Beyond 90 degrees, include treat-
 !@+   ment of emergent beam (where tangent height is below altitude
 !@+   J-value desired at).
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3_fastjlg_ozone_M23)    
+!@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE CONSTANT, only: radius
       USE TRCHEM_Shindell_COM, only: U0,RZ,RQ,ZFASTJ,TANHT,nlbatm,WTAU,
      &                              NCFASTJ,ZZHT
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -588,7 +588,7 @@ C**** Local parameters and variables and arguments:
       REAL*8 AIRMAS,Ux,HFASTJ,xmu1,xmu2,xl, diff, wting
       INTEGER i,ii,j,k
 CWarning:To me, this is unclear, because I don't see where Ux and HFASTJ
-C are defined! but this is true of older models too. GSF 2/18/02      
+C are defined! but this is true of older models too. GSF 2/18/02
       AIRMAS(Ux,HFASTJ)=(1.0d0+HFASTJ)/SQRT(Ux*Ux+2.0d0*HFASTJ*(1.0d0-
      $       0.6817d0*EXP(-57.3d0*ABS(Ux)/SQRT(1.0d0+5500.d0*HFASTJ))/
      $                                  (1.0d0+0.625d0*HFASTJ)))
@@ -614,14 +614,14 @@ C-----WEIGHTED LENGTHS TO SUN STARTING AT ZFASTJ(J);MU>0
         IF (RZ(J).LT.TANHT) GOTO 16
         XMU1=ABS(U0)
         DO I=J+1,NCFASTJ
-          XMU2=DSQRT(1.0D0-RQ(I-1)*(1.0D0-XMU1**2.))
+          XMU2=DSQRT(max(0.d0,1.0D0-RQ(I-1)*(1.0D0-XMU1**2.)))
           XL=RZ(I)*XMU2-RZ(I-1)*XMU1
           WTAU(I-1,J)=WTAU(I-1,J)+XL*0.5D0
           WTAU(I,J)=WTAU(I,J)+XL*0.5D0
           XMU1=XMU2
         END DO
 C-----SCALE HEIGHT AT TOP POINT
-        WTAU(NCFASTJ,J)=WTAU(NCFASTJ,J) + 
+        WTAU(NCFASTJ,J)=WTAU(NCFASTJ,J) +
      &  ZZHT*AIRMAS(XMU2,ZZHT/(RADIUS*1.D2))
         IF (U0.GE.0.0D0) GOTO 16
 C-----TWILIGHT CASE - Emergent Beam
@@ -651,7 +651,7 @@ C
 !@sum OPMIE Mie code for J's, only uses 8-term expansion, 4-Gauss pts
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-!@calls MIESCT    
+!@calls MIESCT
 C ----------------------------------------------------------------------
 C  Currently allow only one aerosol phase fn (ALL altitudes) to
 C  be associated with extinction AER(1:NC) = aer ext @ 1000 nm
@@ -670,8 +670,8 @@ C       WSQI = 1.E6/(WAVE*WAVE)
 C       REFRM1 = 1.0E-6*(64.328+29498.1/(146.-WSQI)+255.4/(41.-WSQI))
 C       RAYLAY = 5.40E-21*(REFRM1*WSQI)**2
 C---------------------------------------------------------------------
-c 
-C**** GLOBAL parameters and variables:  
+c
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only:XQO2,XQO3,N__,M__,MIEDX,QAAFASTJ,
@@ -681,7 +681,7 @@ C
      &                          RFLECT,MFIT,PAA,FJFASTJ,dpomega,NAA,
      &                          POMEGA,ZTAU,FZ,POMEGAJ,jndlv,jndlev,
      &                          ZREFL,ZU0,ZFASTJ,ZFLUX,WTAU,U0
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -953,7 +953,7 @@ c
  1300 format(1x,50(i3))
       END SUBROUTINE OPMIE
 c
-C 
+C
        SUBROUTINE MIESCT(ND)
 !@sum MIESCT radiative transfer code
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
@@ -987,18 +987,18 @@ C                 LEGND0 (X,PL,N)
 C                 MATIN4 (AFASTJ)
 C-------------------------- --------------------------------------------
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only:NFASTJ,EMU,ZFLUX,ZU0,ZREFL,WTFASTJ,
      &                          MFASTJ,MFIT,PM0,PM,CMEQ1,FJFASTJ,FZ
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var i,im,id dummy loop variables
 !@var see OPMIE ?
       INTEGER i,im,id,ND
-c      
+c
 C-------------------------- --------------------------------------------
 C---fix scattering to 4 Gausss pts = 8-stream
 C---solve eqn of R.T. only for first-order M=1
@@ -1032,11 +1032,11 @@ c
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 !@calls GEN,MATIN4
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: NFASTJ,RR2,BFASTJ,CC,DD,HFASTJ,
      &                          AFASTJ,C1,AAFASTJ,FJFASTJ,WTFASTJ,EMU
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -1045,7 +1045,7 @@ C**** Local parameters and variables and arguments:
 !@var ND ? see OPMIE
       integer i, j, k, id, ND
       real*8  sum
-c      
+c
 C-----------UPPER BOUNDARY ID=1
       CALL GEN(1,ND)
       CALL MATIN4(BFASTJ)
@@ -1093,7 +1093,7 @@ C---------FINAL DEPTH POINT: ND
       CALL MATIN4 (BFASTJ)
       DO I=1,NFASTJ
         RR2(I,ND) = 0.0d0
-        DO J=1,NFASTJ        
+        DO J=1,NFASTJ
         RR2(I,ND) = RR2(I,ND) + BFASTJ(I,J)*HFASTJ(J)
         ENDDO
       ENDDO
@@ -1127,15 +1127,15 @@ c
 !@ +  A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-!@calls     
+!@calls
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: NFASTJ,MFASTJ,MFIT,POMEGA,PM,PM0,
      &                        HFASTJ,AFASTJ,FZ,WTFASTJ,SFASTJ,WFASTJ,U1,
      &                        EMU,C1,V1,ZTAU,CC,ZFLUX,AAFASTJ,BFASTJ,
      &                        ZREFL
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -1145,7 +1145,7 @@ C**** Local parameters and variables and arguments:
 !@var sum0,sum1,sum2,sum3,deltau,d1,d2,surfac dummy variables
       integer id, id0, id1, im, i, j, k, mstart, ND
       real*8  sum0, sum1, sum2, sum3, deltau, d1, d2, surfac
-c       
+c
 C---------------------------------------------
       IF(ID.EQ.1 .OR. ID.EQ.ND) THEN
 C---------calculate generic 2nd-order terms for boundaries
@@ -1293,17 +1293,17 @@ c
 !@+   P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-!@calls     
+!@calls
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: MFIT
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var I dummy loop variable
-!@var PL ? 
+!@var PL ?
 !@var X passed EMU or -ZU0
 !@var DEN denominator
       INTEGER I
@@ -1318,24 +1318,24 @@ C---Always does PL(2) = P[1]
         ENDDO
       RETURN
       END SUBROUTINE LEGND0
-c      
+c
 c
       SUBROUTINE MATIN4(AFASTJ)
-!@sum MATIN4 invert 4x4 matrix A(4,4) in place with L-U decomp 
+!@sum MATIN4 invert 4x4 matrix A(4,4) in place with L-U decomp
 !@+   (mjp, old...)
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
-!@calls     
+!@calls
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C (none)
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var AFASTJ passed (actually BFASTJ)
       REAL*8 AFASTJ(4,4)
-C      
+C
 C---SETUP L AND U
       AFASTJ(2,1) = AFASTJ(2,1)/AFASTJ(1,1)
       AFASTJ(2,2) = AFASTJ(2,2)-AFASTJ(2,1)*AFASTJ(1,2)
@@ -1394,20 +1394,20 @@ C---MULTIPLY (U-INVERSE)*(L-INVERSE)
       AFASTJ(4,3) = AFASTJ(4,4)*AFASTJ(4,3)
       RETURN
       END SUBROUTINE MATIN4
-c      
-c     
+c
+c
       SUBROUTINE zenith(Itime,theta,rlat,rlong)
 !@sum  zenith Calculates solar zenith angle for given date, time,
 !@+    and observation altitude including refraction effects.
 !@+    Corrections such as the earth's oblateness, precession, nutation,
 !@+    and parallax are neglected, but their contributions are small.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on gs_sza)   
+!@ver  1.0 (based on gs_sza)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE CONSTANT, only : radius,radian,pi
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -1437,17 +1437,17 @@ C**** Local parameters and variables and arguments:
 !@var corr mathematical correction for large theta
 c
       REAL*4, PARAMETER :: zone=0.,zobs=0.,tem=280.,rearth=radius*1.E3
-      INTEGER, INTENT(IN) :: Itime 
-      REAL*8, INTENT(OUT) :: theta 
-      REAL*8, INTENT(IN)  :: rlat , rlong   
-      REAL*8 time,rtime,JD,n,L,g,lambda,alpha,delta,epsilon,E,alt,alt2 
+      INTEGER, INTENT(IN) :: Itime
+      REAL*8, INTENT(OUT) :: theta
+      REAL*8, INTENT(IN)  :: rlat , rlong
+      REAL*8 time,rtime,JD,n,L,g,lambda,alpha,delta,epsilon,E,alt,alt2
       REAL*8 long
       REAL*4 LST,LMST,UT,LAST,HA,closest,Temp,R
-      INTEGER k  
+      INTEGER k
       INTEGER*4 P(21),T(11),Press,corr
       data P/1013,899,795,701,616,540,472,411,356,307,264,224,
      &       193,165,141,121,103,87,75,64,54/
-      data T/288,282,275,269,262,256,249,243,236,230,223/    
+      data T/288,282,275,269,262,256,249,243,236,230,223/
       logical neg
 C
       long = rlong
@@ -1556,6 +1556,6 @@ c     empirical correction for mathematical error near 90 degrees
         corr=corr*2./1.4
         theta=92.-corr
       endif
-      
+
       return
       end SUBROUTINE ZENITH

@@ -17,9 +17,9 @@ c
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
       USE TRCHEM_Shindell_COM
-c      
+c
       IMPLICIT NONE
-c 
+c
 C**** Local parameters and variables and arguments:
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
@@ -29,13 +29,13 @@ C**** Local parameters and variables and arguments:
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc
       INTEGER imonth, m
 c
-C++++ First, some INITIALIZATIONS : 
+C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
 C reset change due to chemistry to zero:
       change = 0.
-c 
-C set surface albedo variable used in fastj, based on ALB(..1) 
-C from radiation code:      
+c
+C set surface albedo variable used in fastj, based on ALB(..1)
+C from radiation code:
       DO J=1,JM
         BYFJM=1./float(JM)
         DO I=1,IM
@@ -46,16 +46,16 @@ C fill in mass2vol arrays (no longer hard-coded):
       DO n=1,NTM
         mass2vol(n)  =mair/TR_MM(n)
         bymass2vol(n)=TR_MM(n)/mair
-      END DO    
+      END DO
 c
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
 c 30 hours.  That fraction is: dt2/dtscr.  E.g. in the first hour it
-c is (dtsrc/24)/dtsrc = 1/24th of the chemistry change is applied. 
+c is (dtsrc/24)/dtsrc = 1/24th of the chemistry change is applied.
 c This is to work around initial instabilities.
-c   
+c
       if(Itime-ItimeI.le.3)then
-        dt2=dtsrc/24.            ! 150. 
+        dt2=dtsrc/24.            ! 150.
       elseif(Itime-ItimeI.gt.3.and.Itime-ItimeI.le.6)then
         dt2=dtsrc/12.            ! 300.
       elseif(Itime-ItimeI.gt.6.and.Itime-ItimeI.le.11)then
@@ -63,9 +63,9 @@ c
       elseif(Itime-ItimeI.gt.11.and.Itime-ItimeI.le.30)then
         dt2=dtsrc/2.4            ! 1500.
       elseif(Itime-ItimeI.gt.30)then
-        dt2=dtsrc                ! 3600  
+        dt2=dtsrc                ! 3600
       endif
-c      
+c
 c     Calculate new photolysis rates every n_phot main timesteps
       MODPHOT=MOD(Itime-ItimeI,n_phot)
 C****
@@ -85,34 +85,34 @@ C**** (note this section is already done in DIAG.f)
           TX(I,J,L)=T(I,J,L)*PK(L,I,J)
         END DO
         END DO
-      END DO    
-C      
-      DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<< 
+      END DO
+C
+      DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 c     ILIMT=IM
 c     if(J.eq.1.or.J.eq.JM)ILIMT=1
       FASTJLAT=-90.+float(J-1)*180./float(JM-1)
 C
       DO I=1,IM                          ! >>>> MAIN I LOOP BEGINS <<<<
       DO L=1,LM
-c      save presure and temperature in local arrays: 
+c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
-c      calculate M and set fixed ratios for O2 & H2: 
+c      calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*1.38E-19)
        y(nO2,L)=y(nM,L)*pfix_O2
-       y(nH2,L)=y(nM,L)*pfix_H2 
+       y(nH2,L)=y(nM,L)*pfix_H2
 C      If this is the first hour, set Aldehyde initial conditions:
-       IF(Itime.eq.ItimeI) y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde    
-c  
+       IF(Itime.eq.ItimeI) y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
+c
 c      Tracers (converted from mass mixing ratio to number density)
        do igas=1,ntm
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
        enddo
 c
-C      In model II', NOx and N2O5 were occasionally comming back 
+C      In model II', NOx and N2O5 were occasionally comming back
 C      from tracer dynamics as NaN (in polar stratosphere).  In case
-C      it happens in modelE, this is to fix: 
+C      it happens in modelE, this is to fix:
        if(y(n_NOx,L).ge.1.E2.and.y(n_NOx,L).le.1.E20)then
          continue
        else
@@ -126,14 +126,14 @@ C      it happens in modelE, this is to fix:
          y(n_N2O5,L)=1.E0
          trm(I,J,L,n_N2O5)=
      &   y(n_N2O5,L)*AM(L,I,J)*DXYP(J)*bymass2vol(n_N2O5)/y(nM,L)
-       endif     
+       endif
 c
 c      Fix methane used in chemistry
 c      if(J.lt.JEQ)then ! SH
 c        y(n_CH4,L)=y(nM,L)*pfix_CH4_S
 c      else             ! NH
 c        y(n_CH4,L)=y(nM,L)*pfix_CH4_N
-c      endif      
+c      endif
 c
 c Limit N2O5 number density:
        if(y(n_N2O5,L).lt.1.)y(n_N2O5,L)=1.0
@@ -152,21 +152,21 @@ c       set [NO]=0 for first HOx calc, NO2 = NOx
 c       set NO2 & NO for use in Oxinit & nighttime NO2
         y(nNO2,L)=y(n_NOx,L)*pNOx(I,J,L)
         y(nNO,L) =y(n_NOx,L)*(1.-pNOx(I,J,L))
-       endif     
+       endif
       END DO ! L
-      
+
       FASTJLON=-180.+float(I-1)*360./float(IM-1)
 c Calculate the solar zenith angle, sza:
       CALL ZENITH(Itime,SZA,FASTJLAT,FASTJLON)
 C
 C     call checktracer(I,J) ! < for debugging only
 C
-c     update radiation and temperatures, call PHOTOLYSIS every 
+c     update radiation and temperatures, call PHOTOLYSIS every
 c     [desired number] of hours:
       if(MODPHOT.eq.0)then             !  >>>> PHOTOLYSIS IF BEGIN <<<<
 c      additional SUNLIGHT criterion (see also fam chem criterion):
        if((SALBFJ(I,J).ne.0.).AND.(sza.lt.98.))then!>>SUNLIGHT BEGIN<<<
-c 
+c
 c       define temperatures to be sent to FASTJ:
         do L=1,LM
          TFASTJ(L)   = ta(L)
@@ -175,7 +175,7 @@ c       define pressures to be sent to FASTJ (centers):
         DO LL=2,2*LM,2
           PFASTJ(LL) = PMID(LL/2,I,J)
         END DO
-c       define pressures to be sent to FASTJ (edges):       
+c       define pressures to be sent to FASTJ (edges):
         DO LL=1,(2*LM)+1,2
           PFASTJ(LL) = PEDN(LL/2,I,J)
         END DO
@@ -184,9 +184,9 @@ c
 c Interpolate O3 (in ppm) from bottom LS1-1 model sigma levels
 c (ie those levels normally in troposphere) onto bottom 2*(LS1-1) FASTJ
 c levels. Above these levels fastj uses climatological (Nagatani) O3
-c read in by chem_init. lg.feb99., gsf.feb02.       
+c read in by chem_init. lg.feb99., gsf.feb02.
 c
-c       define O3 to be sent to FASTJ (centers):      
+c       define O3 to be sent to FASTJ (centers):
         DO LL=2,2*(LS1-1),2
           O3_FASTJ(LL)=y(nO3,LL/2)
         ENDDO
@@ -195,7 +195,7 @@ c       define O3 to be sent to FASTJ (edges):
         DO LL=3,2*(LS1-1)-1,2
 c         interpolation factor, based on pressure:
           FASTJ_PFACT=(PFASTJ(LL)-PFASTJ(LL-1))/
-     &    (PFASTJ(LL+1)-PFASTJ(LL-1))          
+     &    (PFASTJ(LL+1)-PFASTJ(LL-1))
           O3_FASTJ(LL)=y(nO3,(LL-1)/2)+
      &    (y(nO3,((LL-1)/2)+1)-y(nO3,(LL-1)/2))*FASTJ_PFACT
 c         lower limit on O3:
@@ -206,7 +206,7 @@ c       Convert to ppm (units used in fastj)
           O3_FASTJ(LL)=O3_FASTJ(LL)/(PFASTJ(LL)*2.55E10)
         ENDDO
 C
-C CALL THE PHOTOLYSIS SCHEME:      
+C CALL THE PHOTOLYSIS SCHEME:
 C
        call photoj(I,J)
 c
@@ -216,21 +216,21 @@ c
           do inss=1,JPPJ
            ss(inss,I,J,L)=zj(L,inss)
           enddo
-        END DO 
+        END DO
 
        endif                               ! >>>> SUNLIGHT IF END <<<<
 c
 c      calculate the chemical reaction rates:
        call Crates (I,J)
 c
-      endif                             !  >>>> PHOTOLYSIS IF END <<<< 
+      endif                             !  >>>> PHOTOLYSIS IF END <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 cc    Main chemistry calculations    cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 c
 c     Family partitioning:
 c
-      if((SALBFJ(I,J).ne.0.).AND.(sza.lt.98.))then !   S U N L I G H T 
+      if((SALBFJ(I,J).ne.0.).AND.(sza.lt.98.))then !   S U N L I G H T
        call Oxinit(LS1-1,I,J)
        call HOxfam(LS1-1,I,J)
        call NOxfam(LS1-1,I,J)
@@ -263,10 +263,10 @@ c     * pNOx(I,J,l),pOx(I,J,l)
  196  format(a7,9x,11(1x,e9.2))
 c
 cc    Non-family chemistry:
-c  
+c
       call chemstep(I,J,change)
 c
-      else                       !             D  A  R  K  N  E  S  S 
+      else                       !             D  A  R  K  N  E  S  S
 c
 C*****************************************************************
 c      >> N2O5 sink on sulfate aerosol :: <<
@@ -285,7 +285,7 @@ C      GAMMA = 0.1, SA = given, v = molecular velocity (cm/s)
 C      where v  = SQRT (8.Kb.T / PI*M); Kb = 1.38062E-23;
 C      T = Temp (K); M = mass N2O5 (Kg)
 C*****************************************************************
-c     
+c
        do L=1,LS1-1 ! (troposphere)
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
@@ -299,7 +299,7 @@ C        Update N2O5 sulfate chemistry Diagnostic
 C         'TAJLS(J,L,10)=TAJLS(J,L,10)-(prod_sulf*bymass2vol(n_N2O5))
 C         not clear yet how/where this diag should be done...'GSF 2/02
 C
-C*****************************************************************         
+C*****************************************************************
 c        g signifies gas phase
 c        while prod_sulf and wprod_sulf are sulfate rxn
 c        wprods are in molecules/cm3/s
@@ -313,16 +313,16 @@ C*****************************************************************
 C
 c        define O3 from Ox:
          y(nO3,L)=y(n_Ox,L)*pOx(I,J,L)
-c        
+c
 c        calculate change in NO3:
          dNO3=rr(7,I,J,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,I,J,L)*y(nNO2,L)+
      &        2*rr(25,I,J,L)*yNO3(I,J,L))*yNO3(I,J,L) -(rr(36,I,J,L)
      &        *y(n_Alkenes,L)+rr(32,I,J,L)*y(n_Isoprene,L))*yNO3(I,J,L)
          dNO3=dNO3-(rr(28,I,J,L)*y(n_HCHO,L)+rr(52,I,J,L)*y(nNO2,L))
-     &        *yNO3(I,J,L)+rr(46,I,J,L)*y(n_N2O5,L) 
+     &        *yNO3(I,J,L)+rr(46,I,J,L)*y(n_N2O5,L)
          dNO3=dNO3*dt2!portions of dNO3 reflect fixes by dts 12/19/01
 c
-c        limit the change in NO3:          
+c        limit the change in NO3:
          if(-dNO3.gt.0.66*yNO3(I,J,L))dNO3=-0.66*yNO3(I,J,L)
 c
 c        apply the NO3 change limit the value to positive and 1/2 NOx:
@@ -335,49 +335,49 @@ c        calculate and limit NO2
          pNOx(I,J,L)=y(nNO2,L)/(y(n_NOx,L)+1.E-10)
          if(pNOx(I,J,L).gt.1)pNOx(I,J,L)=1.
          if(pNOx(I,J,L).lt.0.5)pNOx(I,J,L)=0.5
-C         
-C        LOWER LIMIT ON N2O5:          
+C
+C        LOWER LIMIT ON N2O5:
          if(y(n_N2O5,L).le.1.)y(n_N2O5,L)=1.
 C
 C Calculate and limit gaseous changes to HNO3, HCHO, N2O5, Aldehyde,
 C Alkenes, Isoprene, and AlkylNit:
 C
-         gwprodHNO3=(y(n_HCHO,L)*rr(28,I,J,L)+2.5E-15*                  
+         gwprodHNO3=(y(n_HCHO,L)*rr(28,I,J,L)+2.5E-15*
      &              yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
          if(gwprodHNO3.gt.0.5*y(n_NOx,L))gwprodHNO3=0.5*y(n_NOx,L)
          if(gwprodHNO3.gt.y(n_HCHO,L))gwprodHNO3=y(n_HCHO,L)
          gprodHNO3=gwprodHNO3*pfactor
 C
          gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,I,J,L)-y(n_N2O5,L)
-     &              *rr(46,I,J,L))*dt2   
+     &              *rr(46,I,J,L))*dt2
          if(gwprodN2O5.gt.0.25*y(n_NOx,L))gwprodN2O5=0.25*y(n_NOx,L)
          if(-gwprodN2O5.gt.0.5*y(n_N2O5,L))gwprodN2O5=-0.49*y(n_N2O5,L)
-C         
+C
          changeAldehyde=(rr(36,I,J,L)*y(n_Alkenes,L)+rr(32,I,J,L)*
      &                  y(n_Isoprene,L)*0.12-2.5E-15*yAldehyde(I,J,L))*
      &                  yNO3(I,J,L)*dt2
          if(-changeAldehyde.gt.0.75*yAldehyde(I,J,L))changeAldehyde=
      &   0.75*yAldehyde(I,J,L)
-C     
+C
          changeAlkenes=(rr(32,I,J,L)*y(n_Isoprene,L)*0.45-rr(36,I,J,L)*
      &                y(n_Alkenes,L))*yNO3(I,J,L)*dt2+(rr(31,I,J,L)*
      &                y(n_Isoprene,L)-rr(35,I,J,L)*y(n_Alkenes,L))*
-     &                y(nO3,L)*dt2 
-         if(-changeAlkenes.gt.0.75*y(n_Alkenes,L))changeAlkenes= 
+     &                y(nO3,L)*dt2
+         if(-changeAlkenes.gt.0.75*y(n_Alkenes,L))changeAlkenes=
      &   0.75*y(n_Alkenes,L)
-C     
+C
          changeIsoprene=-(rr(32,I,J,L)*yNO3(I,J,L)
      &                  +rr(31,I,J,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
-         if(-changeIsoprene.gt.0.75*y(n_Isoprene,L))changeIsoprene= 
+         if(-changeIsoprene.gt.0.75*y(n_Isoprene,L))changeIsoprene=
      &   0.75*y(n_Isoprene,L)
-C     
-         changeHCHO=(rr(36,I,J,L)*y(n_Alkenes,L)+ 
+C
+         changeHCHO=(rr(36,I,J,L)*y(n_Alkenes,L)+
      &              rr(32,I,J,L)*y(n_Isoprene,L)*0.03)*yNO3(I,J,L)*dt2
      &              -gwprodHNO3+(rr(31,I,J,L)*y(n_Isoprene,L)*0.9
      &              +rr(35,I,J,L)*y(n_Alkenes,L))*y(nO3,L)*dt2
-C     
+C
          changeAlkylNit=rr(32,I,J,L)*y(n_Isoprene,L)*
-     &   yNO3(I,J,L)*dt2*0.9 
+     &   yNO3(I,J,L)*dt2*0.9
          if(-changeAlkylNit.gt.0.75*y(n_AlkylNit,L))changeAlkylNit=
      &   0.75*y(n_AlkylNit,L)
 C
@@ -386,7 +386,7 @@ c        Convert some changes to molecules/cm3/s:
          changeNOx=-gwprodHNO3-2*gwprodN2O5-(0.9*rr(32,I,J,L)*
      &    y(n_Isoprene,L)+2.5E-15*yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
          if(-changeNOx.gt.y(n_NOx,L))changeNOx=-.95*y(n_NOx,L)!dts9/01
-         changeN2O5=gwprodN2O5-wprod_sulf 
+         changeN2O5=gwprodN2O5-wprod_sulf
 c
 c Ensure nitrogen conservation (presumably dNOx<0, others >0):
 c
@@ -425,17 +425,17 @@ c
           if(changeN2O5.lt.0.)    changeN2O5    =changeN2O5    *ratioN
           if(changeAlkylNit.lt.0.)changeAlkylNit=changeAlkylNit*ratioN
          endif
-C         
-C Apply Alkenes, AlkyNit, and Aldehyde changes here:         
+C
+C Apply Alkenes, AlkyNit, and Aldehyde changes here:
 C
          y(n_Alkenes,L)=y(n_Alkenes,L)+changeAlkenes
          y(n_AlkylNit,L)=y(n_AlkylNit,L)+changeAlkylNit
          yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
 c         'note, in the section below, there used to be lines like:
 c          tempJLS(J,L,n_N2O5)=tempJLS(J,L,n_N2O5)+change(I,J,L,n_N2O5)
-c          I need to make sure that the identical diagnostics are in 
+c          I need to make sure that the identical diagnostics are in
 c          effect being done in the modelE version...' GSF 2/02
-C  
+C
 C Note: there is a lower limit of 1 placed on the resulting tracer mass
 C from the following changes. This is to prevent negative tracer mass:
 C
@@ -445,55 +445,55 @@ c        Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO
          if(-change(I,J,L,n_HCHO).gt.trm(I,J,L,n_HCHO))then
            change(I,J,L,n_HCHO)=-.95*trm(I,J,L,n_HCHO)
            changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
-         endif         
+         endif
          IF((trm(i,j,l,n_HCHO)+change(i,j,l,n_HCHO)).lt.1.) THEN
            change(i,j,l,n_HCHO) = 1. - trm(i,j,l,n_HCHO)
            changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
          ENDIF
-         wprodHCHO=changeHCHO   
+         wprodHCHO=changeHCHO
 C -- CO --
          change(I,J,L,n_CO)=gprodHNO3*bymass2vol(n_CO)
          IF((trm(i,j,l,n_CO)+change(i,j,l,n_CO)).lt.1.)
      &   change(i,j,l,n_CO) = 1. - trm(i,j,l,n_CO)
          wprodCO=gwprodHNO3   ! <<< note
-C -- HNO3 --  (HNO3 from gas and het phase rxns )      
+C -- HNO3 --  (HNO3 from gas and het phase rxns )
          change(I,J,L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
          IF((trm(i,j,l,n_HNO3)+change(i,j,l,n_HNO3)).lt.1.) THEN
-           change(i,j,l,n_HNO3) = 1. - trm(i,j,l,n_HNO3)  
+           change(i,j,l,n_HNO3) = 1. - trm(i,j,l,n_HNO3)
            changeHNO3=change(I,J,L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
-         END IF       
+         END IF
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
          change(I,J,L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
          IF((trm(i,j,l,n_N2O5)+change(i,j,l,n_N2O5)).lt.1.) THEN
-           change(i,j,l,n_N2O5) = 1. - trm(i,j,l,n_N2O5) 
+           change(i,j,l,n_N2O5) = 1. - trm(i,j,l,n_N2O5)
            changeN2O5=change(I,J,L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
          END IF
 c -- NOx --   (NOx from gas phase rxns)
          change(I,J,L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
          IF((trm(i,j,l,n_NOx)+change(i,j,l,n_NOx)).lt.1.) THEN
-           change(i,j,l,n_NOx) = 1. - trm(i,j,l,n_NOx)  
+           change(i,j,l,n_NOx) = 1. - trm(i,j,l,n_NOx)
            changeNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)*bypfactor
-         END IF   
+         END IF
 C -- Alkenes --  (Alkenes from gas phase rxns)
          change(I,J,L,n_Alkenes)=
      &   changeAlkenes*pfactor*bymass2vol(n_Alkenes)
          IF((trm(i,j,l,n_Alkenes)+change(i,j,l,n_Alkenes)).lt.1.)THEN
-           change(i,j,l,n_Alkenes) = 1. - trm(i,j,l,n_Alkenes) 
+           change(i,j,l,n_Alkenes) = 1. - trm(i,j,l,n_Alkenes)
            changeAlkenes=change(I,J,L,n_Alkenes)*mass2vol(n_Alkenes)
      &     *bypfactor
          END IF
 c -- Isoprene -- (Isoprene from gas phase rxns)
          change(I,J,L,n_Isoprene)=
-     &   changeIsoprene*pfactor*bymass2vol(n_Isoprene)   
+     &   changeIsoprene*pfactor*bymass2vol(n_Isoprene)
          IF((trm(i,j,l,n_Isoprene)+change(i,j,l,n_Isoprene)).lt.1.)THEN
-           change(i,j,l,n_Isoprene) = 1. - trm(i,j,l,n_Isoprene)   
+           change(i,j,l,n_Isoprene) = 1. - trm(i,j,l,n_Isoprene)
            changeIsoprene=change(I,J,L,n_Isoprene)*mass2vol(n_Isoprene)
-     &     *bypfactor 
+     &     *bypfactor
          END IF
 c -- AlkylNit -- (AlkylNit from gas phase rxns)
          change(I,J,L,n_AlkylNit)=
-     &   changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)  
-         IF((trm(i,j,l,n_AlkylNit)+change(i,j,l,n_AlkylNit)).lt.1.)THEN        
+     &   changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)
+         IF((trm(i,j,l,n_AlkylNit)+change(i,j,l,n_AlkylNit)).lt.1.)THEN
            change(i,j,l,n_AlkylNit) = 1. - trm(i,j,l,n_AlkylNit)
            changeAlkylNit=change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
      &     *bypfactor
@@ -519,33 +519,33 @@ c Some More Chemistry Diagnostics:
      *            gwprodN2O5,' molec prod fm gas;  ',
      *      100.*(gwprodN2O5)/y(n_N2O5,L),' percent of'
      *     ,y(n_N2O5,L),'(',1.E9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(1,n_N2O5),ay(2,n_N2O5),': ',    
+          write(6,198) ay(1,n_N2O5),ay(2,n_N2O5),': ',
      *         wprodHCHO,' molecules produced; ',
      *      100.*(wprodHCHO)/y(n_HCHO,L),' percent of'
      *     ,y(n_HCHO,L),'(',1.E9*y(n_HCHO,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Alde','hyde',': ',  
-     *         changeAldehyde,' molecules produced; ', 
+          write(6,198) 'Alde','hyde',': ',
+     *         changeAldehyde,' molecules produced; ',
      *      100.*(changeAldehyde)/yAldehyde(I,J,L),' percent of'
      *     ,yAldehyde(I,J,L),'(',1.E9*yAldehyde(I,J,L)/y(nM,L),' ppbv)'
           write(6,198) 'Alke','nes ',': ',
      *         changeAlkenes,' molecules produced; ',
-     *      100.*(changeAlkenes)/y(n_Alkenes,L),' percent of' 
+     *      100.*(changeAlkenes)/y(n_Alkenes,L),' percent of'
      *     ,y(n_Alkenes,L),'(',1.E9*y(n_Alkenes,L)/y(nM,L),' ppbv)'
           write(6,198) 'Isop','rene',': ',
      *         changeIsoprene,' molecules produced; ',
      *      100.*(changeIsoprene)/y(n_Isoprene,L),' percent of'
      *     ,y(n_Isoprene,L),'(',1.E9*y(n_Isoprene,L)/y(nM,L),' ppbv)'
-          write(6,198) 'Alky','lNit',': ', 
+          write(6,198) 'Alky','lNit',': ',
      *         changeAlkylNit,' molecules produced; ',
      *      100.*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
      *     ,y(n_AlkylNit,L),'(',1.E9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
           write(6,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
          endif
  198  format(1x,2a4,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
- 199  format(1x,a20,2(2x,e13.3))         
-C         
-C Make sure nighttime chemistry changes are not too big:     
-C      
+ 199  format(1x,a20,2(2x,e13.3))
+C
+C Make sure nighttime chemistry changes are not too big:
+C
          if(changeNOx.lt.-1.E15.OR.changeNOx.gt.1.E15)
      &   write(*,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
          if(changeHNO3.lt.-1.E15.OR.changeHNO3.gt.1.E15)
@@ -555,32 +555,32 @@ C
          if(wprodHCHO.lt.-1.E15.OR.wprodHCHO.gt.1.E15)then
           write(*,*)'Big chg@ Itime,I,J,L,HCHO',Itime,I,J,L,wprodHCHO
           STOP 'stopped in nighttime with big changes'
-         endif    
-C   
+         endif
+C
        enddo  ! troposphere loop
 c
       endif                         ! >>> END sunlight/darkness IF <<<
 C
 
       DO L=1,LS1-1  ! loop over troposphere again
-      
-C >> Lower limit on HO2NO2 of 1.0 <<      
+
+C >> Lower limit on HO2NO2 of 1.0 <<
         if(trm(i,j,l,n_HO2NO2)+change(i,j,l,n_HO2NO2).lt.1.)
      &  change(i,j,l,n_HO2NO2) = 1. - trm(i,j,l,n_HO2NO2)
-C Save chemistry changes for updating tracers in apply_tracer_3Dsource.   
+C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM
           tr3Dsource(i,j,l,1,n) = change(i,j,l,n) * bydtsrc
-        END DO  
+        END DO
 c Reset O3DLJI values for radiation (gcm):
         O3DLJI(L,J,I)=
      &  (trm(I,J,L,n_Ox)+change(I,J,L,n_Ox))*BYDXYP(J)*BYO3MULT
-          
+
       END DO       ! end current troposphere loop
-C     
+C
 c
       END DO ! >>>> MAIN I LOOP ENDS <<<<
-c      
-      END DO ! >>>> MAIN J LOOP ENDS <<<<    
+c
+      END DO ! >>>> MAIN J LOOP ENDS <<<<
 C
 C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -588,42 +588,42 @@ cc    Stratospheric Overwrite of tracers                cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 C W A R N I N G :Unfortunately, there is still a hardcoded dependence
-C                on the verticle resolution in how we deal with the 
+C                on the verticle resolution in how we deal with the
 C                CH4 overwriting... It is set up for the 23 layer model.
-C W A R N I N G :If there is ever stratospheric chemistry (i.e. the 
+C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
 C                'change' variable for L>LS1-1 is non-zero at this point
 C                in the code), then the stratospheric changes below
-C                should be altered.  Currently, they are functions of 
+C                should be altered.  Currently, they are functions of
 C                tracer mass UNCHANGED by chemistry !!!!!!!
 C
 C     Make sure that change is zero:
       change = 0.
-C      
+C
 c Calculate non-weighted average of layer 6 and 7 CH4, for M23 models,
-c in mixing ratio units, for every 3rd latitude: 
+c in mixing ratio units, for every 3rd latitude:
 c
       jj=0
       do j=(1+3),(JM-3),3
        jj=jj+1
        FACTj=(0.5*mass2vol(n_CH4)*1.E6*bydxyp(j))
        do i=1,im
-         avg67(i,jj)=FACTj*(trm(i,j,6,n_CH4)*byam(6,i,j) +  
+         avg67(i,jj)=FACTj*(trm(i,j,6,n_CH4)*byam(6,i,j) +
      &   trm(i,j,7,n_CH4)*byam(7,i,j))
        end do
-      end do      
+      end do
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
       r179m2v=0.55866*bymass2vol(n_CH4)
-      
+
 C Use Ox correction factor for the proper month:
       imonth= 1
       DO m=2,12
-       IF((JDAY.LE.MDOFM(m)).AND.(JDAY.GT.MDOFM(m-1))) THEN 
+       IF((JDAY.LE.MDOFM(m)).AND.(JDAY.GT.MDOFM(m-1))) THEN
         imonth=m
         GOTO 217
        END IF
       END DO
  217  CONTINUE
-C   
+C
       do L=LS1,LM                  ! >> BEGIN LOOP OVER STRATOSPHERE <<
        do j=1,jm
         j3=NINT(float(j)*19.*BYFJM)! index for CO
@@ -636,7 +636,7 @@ C
             change(I,J,L,n_Ox)=
      &      OxIC(I,J,L)*corrOx(J,L-11,imonth) - trm(I,J,L,n_Ox)
           else
-            change(I,J,L,n_Ox)= OxIC(I,J,L)   - trm(I,J,L,n_Ox)          
+            change(I,J,L,n_Ox)= OxIC(I,J,L)   - trm(I,J,L,n_Ox)
           end if
 C         note: layer 14 in M23 is between layers 8 and 9 in M9 model:
           FACT1=2.0E-9*DXYP(J)*am(L,I,J)*byam(14,I,J)
@@ -674,40 +674,40 @@ c
             IF((L.GE.21).AND.(L.LE.LM))  CH4FACT=CH4FACT*   0.202
           ELSE IF((J.GT.16).AND.(J.LE.30)) THEN           ! tropics
             IF((L.GE.LS1).AND.(L.LE.14)) CH4FACT=CH4FACT*   1.620
-            IF((L.GE.15).AND.(L.LE.17))  CH4FACT=CH4FACT*   1.460 
-            IF((L.GE.18).AND.(L.LE.20))  CH4FACT=CH4FACT*   0.812  
+            IF((L.GE.15).AND.(L.LE.17))  CH4FACT=CH4FACT*   1.460
+            IF((L.GE.18).AND.(L.LE.20))  CH4FACT=CH4FACT*   0.812
             IF((L.GE.21).AND.(L.LE.LM))  CH4FACT=CH4FACT*   0.230
-          END IF   
+          END IF
           change(I,J,L,n_CH4)=
      &    (AM(L,I,J)*DXYP(J)*CH4FACT*1.E-6) - trm(I,J,L,n_CH4)
-C     
-C Save stratosph change for updating tracer, apply_tracer_3Dsource:  
+C
+C Save stratosph change for updating tracer, apply_tracer_3Dsource:
           DO N=1,NTM
             tr3Dsource(i,j,l,2,n) = change(i,j,l,n) * bydtsrc
           END DO
-C          
+C
         end do !i
        end do  !j
       end do                        ! >> END LOOP OVER STRATOSPHERE <<
-c       
+c
       RETURN
       END SUBROUTINE masterchem
-c      
+c
       SUBROUTINE Crates(I,J)
-!@sum Crates calculate chemical reaction rates for each altitude, 
+!@sum Crates calculate chemical reaction rates for each altitude,
 !@+   using JPL 00.  Includes special calculations for pressure
 !@+   dependent reactions. Specifically:
 !@+   #13 CO+OH->HO2+CO2, #15 HO2+HO2->H2O2+O2, #16 OH+HNO3->H2O+NO3,
 !@+   and reactions #29, and #42.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_apr1902_M23)    
+!@ver  1.0 (based on ds3ch4_master_apr1902_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only : ls1  
+      USE RESOLUTION, only : ls1
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &                          r1,sb,nst,y,nM,nH2O,ro,sn
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -723,13 +723,13 @@ C
       do L=1,LS1-1            !  >>> BEGIN TROPOSPHERE LOOP <<<
         byta=1./ta(L)
         do jj=1,nr2             ! bimolecular rates start
-          IF(ea(jj).ne.0.) THEN 
+          IF(ea(jj).ne.0.) THEN
             rr(jj,I,J,L)=pe(jj)*exp(-ea(jj)*byta)
-          ELSE 
+          ELSE
             rr(jj,I,J,L)=pe(jj)
-          END IF 
+          END IF
 c         for #13, k=pe*(1+0.6*(Patm/1013)) Patm=[M]*(T*1.38E-19)
-          if(jj.eq.13) rr(jj,I,J,L) = 
+          if(jj.eq.13) rr(jj,I,J,L) =
      &    pe(jj)*(1.+0.6*((y(nM,L)*ta(L)*1.38E-19)/1013.))
 c         for reaction #15, k=(kc+kp)fw, kc=rr
           if(jj.eq.15)then
@@ -748,15 +748,15 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
         end do                ! bimolecular rates end
 c
         do jj=1,nr3           ! trimolecular rates start
-         rr(nr2+jj,I,J,L)=y(nM,L)*ro(jj)*(300.*byta)**sn(jj)        
+         rr(nr2+jj,I,J,L)=y(nM,L)*ro(jj)*(300.*byta)**sn(jj)
 c        if(r1(jj).ge.1.E-30)then
-         if(sb(jj).ge.0.01)then !dts 3/29/02 alteration of above line         
+         if(sb(jj).ge.0.01)then !dts 3/29/02 alteration of above line
            dd=rr(nr2+jj,I,J,L)/(r1(jj)*(300.*byta)**sb(jj))
-           pp=0.6**(1./(1.+(alog10(dd))**2.))
+           pp=0.6**(1./(1.+(log10(dd))**2.))
            rr(nr2+jj,I,J,L)=(rr(nr2+jj,I,J,L)/(1.+dd))*pp
          endif
         end do                ! trimolecular rates end
-c        
+c
         nb=nr2-nmm
         if(nmm.ge.1) then
           do jj=1,nmm         ! monomolecular rates start
@@ -765,24 +765,24 @@ c
      &     (rrrr*pe(jj+nb)*rrrr*y(nM,l))
           end do              ! monomolecular rates end
         end if
-      end do                  !  >>> END TROPOSPHERE LOOP <<<  
-c      
-      RETURN    
+      end do                  !  >>> END TROPOSPHERE LOOP <<<
+c
+      RETURN
       END SUBROUTINE Crates
 c
-c     
+c
       SUBROUTINE checktracer(I,J)
 !@sum checktracer for various debugging of tracer chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_apr1902_M23)    
+!@ver  1.0 (based on ds3ch4_master_apr1902_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only : LM, ls1  
+      USE RESOLUTION, only : LM, ls1
       USE MODEL_COM, only  : Itime
       USE TRACER_COM, only : ntm, trname, n_Ox
       USE TRCHEM_Shindell_COM, only: y, nM
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -804,12 +804,12 @@ C
       DATA checkNan /.true./
       DATA checkOx  /.true./
       DATA checkmax /.true./
-c     
+c
       IF(i.eq.1.and.j.eq.1)
      & WRITE(6,*) 'WARNING: checktracer call is active.'
       IF(checkmax)STOP'checktracer: set tlimit for tracers 11->15'
 C     please (re)set tlimit values for tracers 11 through 15 in the
-C     data statement above. Then, please delete the above stop.      
+C     data statement above. Then, please delete the above stop.
 C
 C check if ozone gets really big in the troposphere:
        IF(checkOx) THEN
@@ -820,7 +820,7 @@ C check if ozone gets really big in the troposphere:
          end if
        end do
        END IF
-c general check on maximum of tracers:      
+c general check on maximum of tracers:
       IF(checkmax) THEN
       do L=1,LM
        do igas=1,ntm
@@ -854,9 +854,9 @@ c check for unreal (not-a-number) tracers:
         end if
       enddo
       end do
-      END IF     
+      END IF
 
-      
-      RETURN      
-      
+
+      RETURN
+
       END SUBROUTINE checktracer

@@ -1,10 +1,10 @@
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
-!@calls jplrts,phtlst,inphot,wave,reactn,precalc 
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@calls jplrts,phtlst,inphot,wave,reactn,precalc
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit
       USE MODEL_COM, only: Itime, ItimeI
@@ -13,7 +13,7 @@ C
      &                          nr2,nr3,nmm,nhet,prnls,prnrts,prnchg,
      &                          lprn,jprn,iprn,ay,nss,pHOx,
      &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -23,7 +23,7 @@ C
 C     Read chem diagnostics parameters and molecule names
 C     from MOLEC file:
 C
-      call openunit('MOLEC',iu_data,.false.,.true.)   
+      call openunit('MOLEC',iu_data,.false.,.true.)
       read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
  100  format(/3(50x,l1/),3(50x,i8/))
       read(iu_data,110)ay
@@ -35,12 +35,12 @@ C
       call jplrts
 C
 C     Read photolysis parameters and reactions from unit JPLPH :
-      
+
       call phtlst
 C
 c     fastj initialization routine
       call inphot
-c      
+c
 c     Set up wavelengths 200 -730 nm & O2 and O3 cross sections
       call wave
 C
@@ -61,21 +61,21 @@ C     but we can set the whole array at once: Do this only first hour:
 C
       return
       END SUBROUTINE cheminit
-     
+
 
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE jplrts
 !@sum jplrts read/set up chemical reaction rates from JPL
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 !@calls lstnum
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit
       USE TRCHEM_Shindell_COM, only: nr,nr2,nr3,nmm,nhet,pe,ea,nst,ro,
      &                          r1,sn,sb,nn,nnr,nc
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -83,7 +83,7 @@ C
 !@var ate temporary reaction rates array?
 !@var i,ii,j dummy loop variable
 !@var iu_data temporary unit number
-      REAL*4, DIMENSION(2,4) :: ate 
+      REAL*4, DIMENSION(2,4) :: ate
       INTEGER i,ii,j,iu_data
 C
 C     Read in the number of each type of reaction:
@@ -91,7 +91,7 @@ C     Read in the number of each type of reaction:
       read(iu_data,124)nr,nr2,nr3,nmm,nhet
       write(6,*)
       write(6,*) 'Chemical reactions used in the model: '
-C      
+C
       do i=1,nr               ! >>> begin loop over total reactions <<<
        if(i.le.nr-nhet) then !non-hetero
          if(i.le.nr2) then   !mono or bi
@@ -107,19 +107,19 @@ C
            end if
          else                    ! read trimolecular reactions
  20        if(i.eq.nr2+1)read(iu_data,22)ate
-           ii=i-nr2      
+           ii=i-nr2
            read(iu_data,21)ate,ro(ii),sn(ii),r1(ii),sb(ii)
            write(6,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),ate(2,2),
      *     ' --> ',ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
-         end if    
-       else                     ! read heterogeneous reactions   
+         end if
+       else                     ! read heterogeneous reactions
          if(i.eq.nr-(nhet-1))read(iu_data,22)ate
          STOP 'jplrts is not totally set up to read heterogenous rxns.'
 c        read(iu_data,31)ate
 c        write(*,30) i,ate(1,1),ate(2,1),' + ',ate(1,2),' --> ',
 c    *   ate(1,3),ate(2,3),' + ',ate(1,4),ate(2,4)
        end if ! (i.le.nr-nhet)
-c      
+c
       do j=1,2
         call lstnum(ate(1,j),nn(j,i))
         call lstnum(ate(1,j+2),nnr(j,i))
@@ -137,17 +137,17 @@ C
       close(iu_data)
       return
       end SUBROUTINE jplrts
-C      
+C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE lstnum(at,ks)
 !@sum lstnum find molecule number in param list of molecules
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: nc,ay
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -157,32 +157,32 @@ C
 !@var j dummy loop variable
       INTEGER j
       INTEGER,              INTENT(OUT) :: ks
-      REAL*4, DIMENSION(2), INTENT(IN)  :: at 
-C     This code could probably be cleaned up in some kind of while-loop: 
+      REAL*4, DIMENSION(2), INTENT(IN)  :: at
+C     This code could probably be cleaned up in some kind of while-loop:
       j=0
    1  j=j+1
       if(j.gt.nc)goto2
-      if(at(1).ne.ay(1,j))goto1    
+      if(at(1).ne.ay(1,j))goto1
       if(at(2).ne.ay(2,j))goto1
       ks=j
       goto3
    2  ks=nc+1
-C   
+C
    3  return
-      end SUBROUTINE lstnum     
+      end SUBROUTINE lstnum
 C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE phtlst
 !@sum phtlst read Photolysis Reactions and parameters
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 !@calls lstnum
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit
       USE TRCHEM_Shindell_COM, only: nss,ks,kss,nc,JPPJ
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -194,7 +194,7 @@ C
       REAL*8, DIMENSION(2,3) :: ate
       INTEGER nabs,nll,nhu,i,j,iu_data
       REAL*8  al,o2up,o3up
-C 
+C
 C     Read in photolysis parameters:
       call openunit('JPLPH',iu_data,.false.,.true.)
       read(iu_data,121)nss,nabs,al,nll,nhu,o2up,o3up
@@ -217,22 +217,22 @@ c     assign ks and kss gas numbers of photolysis reactants from list
  112  format(4x,2a4,3x,2a4,1x,2a4)
  172  format(1x,i2,2x,a4,a4,a12,a4,a4,a3,a4)
       close(iu_data)
-C      
+C
       return
       end SUBROUTINE phtlst
-C      
+C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE reactn
 !@sum reactn read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 !@calls guide,printls
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,nr,ks,kss,
      &                          JPPJ,npnr,ndnr,kpnr,kdnr,prnls
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
@@ -243,7 +243,7 @@ c     Chemical reaction lists
 c     Photolysis reaction lists
       call guide( nps, nds, kps, kds,ks,kss,1,JPPJ)
 C
-C     print out some diagnostics:	
+C     print out some diagnostics:
       if(prnls) call printls
       return
       end SUBROUTINE reactn
@@ -252,27 +252,27 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE guide(npr,ndr,kpr,kdr,xx,nnn,ns,nre)
 !@sum guide read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
-!@calls calcls      
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@calls calcls
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: p_1,p_2,p_3,p_4
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C      
+C
 !@var xx   = either nn  or ks   from reactn sub
 !@var nnn  = either nnr or kss  from reactn sub
 !@var kpr  = either kps or kpnr from reactn sub
 !@var kdr  = either kds or kdnr from reactn sub
-!@var npr  = either nps or npnr from reactn sub  
+!@var npr  = either nps or npnr from reactn sub
 !@var ndr  = either nds or ndnr from reactn sub
 !@var ns   = either 1   or    2 from reactn sub
 !@var nre number of reactions
       INTEGER,  DIMENSION(p_4)     :: kpr, kdr
-      INTEGER,  DIMENSION(p_3)     :: npr, ndr        
+      INTEGER,  DIMENSION(p_3)     :: npr, ndr
       INTEGER, DIMENSION(p_1,p_2)  :: xx, nnn
       INTEGER ns, nre
 C
@@ -287,19 +287,19 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE calcls(nn,ns,nnn,nns,ndr,kdr,nre)
 !@sum calcls Set up reaction lists for calculated gases (1 to ny)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
 C Note: I didn't get around to modernizing much of this subr. GSF 2/02
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, p_4, nfam,
-     &                              prnls  
-c     
+     &                              prnls
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C    
+C
 !@var kdr  = either kdr or kpr from guide sub
 !@var ndr  = either ndr or npr from guide sub
 !@var nre  number of reactions
@@ -371,26 +371,26 @@ c           check that reaction is intrafamily
       if(prnls)write(*,*) 'nn array size :',k
 
       return
-      end SUBROUTINE calcls     
+      end SUBROUTINE calcls
 C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE printls
 !@sum printls print out some chemistry diagnostics (reaction lists)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)    
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: kpnr,npnr,kdnr,ndnr,kps,nps,
      &                         ny,nn,nnr,ks,kss,ay,kds,nds
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C    
+C
 !@var ireac,igas,ichange,ii dummy variables
       INTEGER ireac,igas,ichange,ii
-C      
+C
 c     print reaction lists
       write(6,*)
       write(6,*) '______________ CHEMICAL PRODUCTION _______________'
@@ -459,23 +459,23 @@ c     print reaction lists
   10  format(1x,2a4)
   20  format(a12,i4,a10,2a4,a6,2a4)
   30  format(a12,i4,a10,2a4)
-C  
+C
       end SUBROUTINE printls
 C
 c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE wave
 !@sum wave Set up Wavelengths 200-730 nm, and O2 & O3 Cross Sections
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)  
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: n_bnd3, wlt, sech, sO3, sO2
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C   
+C
 !@var lw dummy variable
       INTEGER lw
 C
@@ -497,18 +497,18 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@+   and standard O3 and T profiles and to set the appropriate reaction
 !@+   index.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)  
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 !@calls RD_TJPL,RD_PROF
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE FILEMANAGER, only: openunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C  
+C
 !@var ipr Photolysis reaction counter
 !@var cline dummmy text
 !@var i dummy loop variable
@@ -558,7 +558,7 @@ c Read in JPL spectral data set
       CALL openunit('SPECFJ',iu_data,.false.,.true.)
       CALL RD_TJPL(iu_data)
       CLOSE(iu_data)
-c      
+c
 c Read in T & O3 climatology
       CALL openunit('ATMFJ',iu_data,.false.,.true.)
       CALL RD_PROF(iu_data)
@@ -571,23 +571,23 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE RD_TJPL(NJ1)
 !@sum RD_TJPL Read wavelength bins, solar fluxes, Rayleigh parameters,
 !@+   T-dependent cross sections and Rayleigh/aerosol scattering phase
-!@+   functions with temperature dependences. Current data originates 
+!@+   functions with temperature dependences. Current data originates
 !@+   from JPL'97.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)  
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: NJVAL,WBIN,WL,NWWW,FL,QRAYL,QBC,
      &                          Q1D,TQQ,QQQ,NAA,QAAFASTJ,NK,WAAFASTJ,
      &                          PAA,zpdep,npdep,jpdep,lpdep,NS,TITLE0,
      &                          NW1,NW2,TITLEJ,JPPJ,jind,jlabel,jfacta,
-     &                          title_aer_pf,QO2,NJVAL,QO3
-c     
+     &                          title_aer_pf,QO2,QO3
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C  
+C
 !@var NJ1 local copy of unit number to read
 !@var i,j,k,iw dummy loop variables
 !@var jj dummy variable
@@ -605,7 +605,7 @@ C------read in-------spectral data------------------------------------
       READ(NJ1,'(A)') TITLE0
       WRITE(6,'(1X,A)') TITLE0
       READ(NJ1,'(10X,4I5)') NJVAL2,NWWW,NW1,NW2
-      IF(NJVAL.ne.NJVAL2) THEN 
+      IF(NJVAL.ne.NJVAL2) THEN
         WRITE(6,*)'NJVAL (constant)= ',NJVAL,' but it is ', NJVAL2,
      &  'when read in from SPECFJ file.  Please reconcile.'
         STOP 'NJVAL in RD_TJPL'
@@ -630,13 +630,13 @@ C-Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps)
       ENDDO
       do k=1,3
         write(6,200) titlej(1,k),(tqq(i,k),i=1,3)
-      enddo              
+      enddo
 c
 C---Read remaining species:  X-sections at 2 T's
       DO J=1,NQQQ
         READ(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)
         READ(NJ1,103) TITLEJ(2,J+3),TQQ(2,J+3),(QQQ(IW,2,J),IW=1,NWWW)
-        write(6,200) titlej(1,j+3),(tqq(i,j+3),i=1,2)        
+        write(6,200) titlej(1,j+3),(tqq(i,j+3),i=1,2)
       ENDDO
       READ(NJ1,'(A)') TITLE0
 c
@@ -683,7 +683,7 @@ C---Read aerosol phase functions:
       write(6,*)'Title0 is',Title0
       write(6,*)'NAA is',NAA
       DO J=1,NAA
-      
+
         READ(NJ1,'(A5,I3,I2,14F5.0)') title_aer_pf(J),JJ,NK,
      $            (WAAFASTJ(K,J),QAAFASTJ(K,J),K=1,NK)
         DO K=1,NK
@@ -711,21 +711,21 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       SUBROUTINE rd_prof(nj2)
 !@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)  
+!@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: TITLE0, TREF, OREF, BREF
-c     
+c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-C  
+C
 !@var nj2 local unit number
 !@var ia,i,m,l,lat,mon,ntlats,ntmons,n216 local dummy variables
-      INTEGER, INTENT(IN) :: nj2  
+      INTEGER, INTENT(IN) :: nj2
       integer ia, i, m, l, lat, mon, ntlats, ntmons, n216
-C      
+C
       READ(NJ2,'(A)') TITLE0
       WRITE(6,'(1X,A)') TITLE0
       READ(NJ2,'(2I5)') NTLATS,NTMONS
@@ -744,5 +744,5 @@ C
       enddo
       return
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
-C 
+C
       end SUBROUTINE rd_prof

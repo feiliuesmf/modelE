@@ -170,13 +170,17 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       logical, optional, intent(in) :: qbin, qold
       character*11 form, status
       integer name_len
-
+                        
 C**** set default options
       form = "FORMATTED"
       status = "UNKNOWN"
 C**** parse options
-      if( present(qbin) .and. qbin ) form = "UNFORMATTED"
-      if( present(qold) .and. qold ) status = "OLD"
+      if( present(qbin) ) then
+         if( qbin ) form = "UNFORMATTED"
+      end if
+      if( present(qold) ) then
+         if( qold ) status = "OLD"
+      end if
 
       call findunit( iunit )
 

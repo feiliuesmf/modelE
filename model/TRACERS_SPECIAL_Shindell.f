@@ -6,7 +6,7 @@
 !@param nChemistry index number of 3D tracer source from chemistry
 !@param Laircr the number of layers of aircraft data read from file
 !@param Lsulf the number of layers of sulfate SA data read from file
-!@param correct_CO_ind correction factor Lee put in for industrial CO 
+!@param correct_CO_ind correction factor Lee put in for industrial CO
       INTEGER, PARAMETER :: nChemistry  = 1,
      &                      nStratwrite = 2,
      &                      nLightning  = 3,
@@ -73,7 +73,7 @@ C**** Monthly sources are interpolated each day
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,jdlast,kwet,imon(nmons)
+      integer i,j,nt,iact,iu,k,kwet,imon(nmons)
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
@@ -100,7 +100,7 @@ C****
           src(:,:,k) =  flake(:,:)*adj(k)/(sday*JDperY)
           k = k+1
           src(:,:,k) = fearth(:,:)*adj(k)/(sday*JDperY)
-        call openunits(mon_files,mon_units,mon_bins,nmons)  
+        call openunits(mon_files,mon_units,mon_bins,nmons)
       endif
 C****
 C**** Monthly sources are interpolated to the current day
@@ -193,8 +193,8 @@ C****
 C****
       return
       end subroutine read_CO_sources
-   
-   
+
+
       subroutine read_Alkenes_sources(nt,iact)
 !@sum reads in Alkenes surface sources and sinks
 !@auth Jean Lerner/Greg Faluvegi
@@ -221,7 +221,7 @@ C**** Monthly sources are interpolated each day
       character*18 :: mon_files(nmons) = (/'Alkenes_BIOMASS   ',
      &                                     'Alkenes_VEGETATION'/)
       logical :: mon_bins(nmons)=(/.true.,.true./) ! binary files?
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources 
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
       integer i,j,jj,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
@@ -231,7 +231,7 @@ C**** Monthly sources are interpolated each day
 C****
 C**** Annual Sources and sink
 C**** I believe input file is in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s. 
+C**** convert to (kg C)/m2/s.
 C****
       if (ifirst) then
         call openunits(ann_files,ann_units,ann_bins,nanns)
@@ -249,7 +249,7 @@ C****
 C****
 C**** Monthly sources are interpolated to the current day
 C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s. 
+C**** convert to (kg C)/m2/s.
 C****
       ifirst = .false.
       j = 0
@@ -259,7 +259,7 @@ C****
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
           do jj = 1,jm
             src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
-          end do     
+          end do
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -268,7 +268,7 @@ C****
       return
       end subroutine read_Alkenes_sources
 
-      
+
       subroutine read_Paraffin_sources(nt,iact)
 !@sum reads in Paraffin surface sources and sinks
 !@auth Jean Lerner/Greg Faluvegi
@@ -305,7 +305,7 @@ C**** Monthly sources are interpolated each day
 C****
 C**** Annual Sources and sink
 C**** I believe input file is in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s. 
+C**** convert to (kg C)/m2/s.
 C****
       if (ifirst) then
         call openunits(ann_files,ann_units,ann_bins,nanns)
@@ -323,7 +323,7 @@ C****
 C****
 C**** Monthly sources are interpolated to the current day
 C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s. 
+C**** convert to (kg C)/m2/s.
 C****
       ifirst = .false.
       j = 0
@@ -333,7 +333,7 @@ C****
      *  tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
         do jj = 1,jm
           src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
-        end do 
+        end do
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -341,8 +341,8 @@ C****
 C****
       return
       end subroutine read_Paraffin_sources
-  
-  
+
+
       subroutine read_Isoprene_sources(nt,iact)
 !@sum reads in Isoprene surface sources and sinks
 !@auth Jean Lerner/Greg Faluvegi
@@ -376,7 +376,7 @@ C****
 C**** Monthly sources are interpolated to the current day
 C****
 C**** I believe input files are in (kg C)/4x5 grid/hr. So,
-C**** convert to (kg C)/m2/s. 
+C**** convert to (kg C)/m2/s.
 C****
       if(ifirst) call openunits(mon_files,mon_units,mon_bins,nmons)
       ifirst = .false.
@@ -387,7 +387,7 @@ C****
      *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k),frac,imon(j))
         do jj = 1,jm
           src(:,jj,k) = src(:,jj,k)*BYDXYP(jj)*r3600
-        end do 
+        end do
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
@@ -448,7 +448,7 @@ C**** Monthly sources are interpolated to the current day
 C**** The titles of the input files say this is in KG/m2/s, so no
 C**** conversion is necessary:
 C****
-      ifirst = .false. 
+      ifirst = .false.
       j = 0
       do k=nanns+1,nsrc
         j = j+1
@@ -460,7 +460,7 @@ C****
       call sys_flush(6)
 C****
       return
-      end subroutine read_NOx_sources 
+      end subroutine read_NOx_sources
 c
 c
       SUBROUTINE get_lightning_NOx
@@ -472,15 +472,15 @@ C**** GLOBAL parameters and variables:
       USE FLUXES, only: tr3Dsource
       USE TRACER_COM, only: n_NOx
       USE TRACER_SOURCES, only: nLightning
-c      
+c
       IMPLICIT NONE
-c      
+c
 C**** Local parameters and variables and arguments:
 c
       tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
       WRITE(6,*) '>>>get_lightning_NOx still a dummy routine<<<'
       END SUBROUTINE get_lightning_NOx
-c      
+c
 c
       SUBROUTINE get_aircraft_NOx
 !@sum  get_aircraft_NOx to define the 3D source of NOx from aircraft
@@ -488,8 +488,8 @@ c
 !@ver  1.0 (based on DB396Tds3M23)
 c
 C**** GLOBAL parameters and variables:
-C      
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop   
+C
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE FLUXES, only: tr3Dsource
@@ -497,13 +497,13 @@ C
       USE GEOM, only       : dxyp
       USE TRACER_COM, only: itime_tr0,trname,n_NOx
       use TRACER_SOURCES, only: nAircraft,Laircr
-C   
+C
       IMPLICIT NONE
 c
 !@var nanns,nmons: number of annual and monthly input files
 !@var l,ll dummy loop variable
 !@var pres local pressure variable
-      character*80 title 
+      character*80 title
       logical LINJECT
       integer, parameter :: nanns=0,nmons=1
       integer ann_units(nanns),mon_units(nmons)
@@ -514,20 +514,20 @@ c
       integer l,i,j,iu,k,ll,imon(nmons)
       integer :: jdlast=0
       save jdlast,tlca,tlcb,mon_units,imon
-      REAL*8, DIMENSION(IM,JM,Laircr,1) :: src 
+      REAL*8, DIMENSION(IM,JM,Laircr,1) :: src
       REAL*8, DIMENSION(LM)     :: pres
-      REAL*4, DIMENSION(Laircr) :: PAIRL 
+      REAL*4, DIMENSION(Laircr) :: PAIRL
       DATA PAIRL/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
      &            410.60,355.99,307.42,264.36,226.32,193.30,165.10,
-     &            141.01,120.44,102.87,87.866,75.048/   
-c      
+     &            141.01,120.44,102.87,87.866,75.048/
+c
 C**** Local parameters and variables and arguments:
-c     
+c
 C**** Aircraft NOx source input is monthly, on 19 levels. Therefore:
 C     19x12=228 records. Read it in here and interpolated each day.
 
       if (itime.lt.itime_tr0(n_NOx)) return
-      
+
 C****
 C**** Monthly sources are interpolated to the current day
 C**** The titles of the input files say this is in KG/m2/s, so no
@@ -544,9 +544,9 @@ C****
       call closeunits(mon_units,nmons)
       write(6,*)trname(n_NOx),'frm aircraft interpd to currnt day',frac
       call sys_flush(6)
-C==== 
+C====
 C====   Place aircraft sources onto model levels:
-C==== 
+C====
       DO J=1,JM
        DO I=1,IM
         DO L=1,LM
@@ -567,17 +567,17 @@ C====
              LINJECT=.FALSE.
            ENDIF
           ENDDO ! L
-        ENDDO   ! LL       
+        ENDDO   ! LL
        END DO   ! I
       END DO    ! J
-C           
+C
       return
       END SUBROUTINE get_aircraft_NOx
 C
 C
       SUBROUTINE get_sulfate
 !@sum  get_sulfate to parameterize N2O5 sink on sulfate.  The sulfate( )
-!@+    array is then used in the chemistry to calculate a chemical 
+!@+    array is then used in the chemistry to calculate a chemical
 !@+    change.  I.e. this source is not applied directly to the tracer
 !@+    mass like other 3D sources are.
 !@auth Drew Shindell? / Greg Faluvegi
@@ -589,13 +589,13 @@ C
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       use TRACER_SOURCES, only: Lsulf
       USE TRCHEM_Shindell_COM, only: sulfate
-C   
+C
       IMPLICIT NONE
-c      
+c
 C**** Local parameters and variables and arguments:
-c    
+c
 !@var nanns,nmons: number of annual and monthly input files
-      character*80 title 
+      character*80 title
       integer, parameter :: nanns=0,nmons=1
       integer ann_units(nanns),mon_units(nmons)
       character*10 :: mon_files(nmons) = (/'SULFATE_SA'/)
@@ -605,9 +605,9 @@ c
       integer i,j,iu,k,imon(nmons)
       integer :: jdlast=0
       REAL*8, DIMENSION(IM,JM,Lsulf,1) :: src
-      save jdlast,tlca,tlcb,mon_units,imon      
-c 
-C**** Sulfate surface area input file is monthly, on LM levels. 
+      save jdlast,tlca,tlcb,mon_units,imon
+c
+C**** Sulfate surface area input file is monthly, on LM levels.
 C     Read it in here and interpolated each day.
 C****
 C**** Monthly sources are interpolated to the current day
@@ -624,14 +624,14 @@ C****
       call closeunits(mon_units,nmons)
       write(6,*) 'Sulfate srface area interpolated to current day',frac
       call sys_flush(6)
-C           
+C
 C**** Save in array to be used in chemistry:
 C
       sulfate(:,:,:)=src(:,:,:,1)
 C
       return
       END SUBROUTINE get_sulfate
-C      
+C
 C
       SUBROUTINE read_monthly_3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
      & frac,imon)
@@ -652,7 +652,7 @@ C
       real*8 frac, A2D(im,jm), B2D(im,jm)
       real*8 tlca(im,jm,Ldim),tlcb(im,jm,Ldim),data1(im,jm,Ldim)
       integer imon,iu,jdlast
-C       
+C
       if (jdlast.EQ.0) then   ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1                ! imon=January
         if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
@@ -696,16 +696,16 @@ c**** Interpolate two months of data to current day
       data1(:,:,:) = tlca(:,:,:)*frac + tlcb(:,:,:)*(1.-frac)
       return
       end subroutine read_monthly_3Dsources
-      
-      
+
+
       subroutine get_CH4_IC
-!@sum get_CH4_IC to generate initial conditions for methane. 
+!@sum get_CH4_IC to generate initial conditions for methane.
 !@+ >>WARNING<<: This routine is still mostly 'hard coded' for the
 !@+ 4 x 5, 23 layer model. It needs to be generalized!
 !@auth Greg Faluvegi/Drew Shindell
-!@ver  1.0 (based on DB396Tds3M23)   
-c      
-C**** GLOBAL parameters and variables:  
+!@ver  1.0 (based on DB396Tds3M23)
+c
+C**** GLOBAL parameters and variables:
 C
       USE RESOLUTION, only : im,jm,lm,ls1
       USE MODEL_COM, only  : JEQ
@@ -713,24 +713,24 @@ C
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, TR_MM, n_CH4
-c     
+c
       IMPLICIT NONE
 c
-C**** Local parameters and variables and arguments:  
-c  
+C**** Local parameters and variables and arguments:
+c
 !@var CH4INIT temp variable for ch4 initial conditions
-!@var j2 dummy    
-!@var I,J,L dummy loop variables 
+!@var j2 dummy
+!@var I,J,L dummy loop variables
 !@param bymair 1/molecular wt. of air = 1/mair
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT
       INTEGER J2, I, J, L
-      
+
       WRITE(6,*) '>>WARNING : you are using CH4 initial condition in'
       WRITE(6,*) 'the stratosphere which are specific to the 4x5 deg,'
       WRITE(6,*) '23-layer model. Otherwise, subroutine get_CH4_IC'
       WRITE(6,*) 'needs to be generalized. <<'
-       
+
 C     First, the troposphere:
       DO L=1,LS1-1
       DO J=1,JM
@@ -744,9 +744,9 @@ C       Initial latitudinal gradient for CH4:
           trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT
         END DO
       END DO
-      END DO 
-c      
-C     Now, the stratosphere:          
+      END DO
+c
+C     Now, the stratosphere:
       do L=LS1,LM
       do j=1,jm
         j2=NINT((FLOAT(j)-1.)/3.)
@@ -771,15 +771,15 @@ c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
           IF((L.GE.21).AND.(L.LE.LM))  CH4INIT=CH4INIT*   0.202
         ELSE IF((J.GT.16).AND.(J.LE.30)) THEN           ! tropics
           IF((L.GE.LS1).AND.(L.LE.14)) CH4INIT=CH4INIT*   1.620
-          IF((L.GE.15).AND.(L.LE.17))  CH4INIT=CH4INIT*   1.460 
-          IF((L.GE.18).AND.(L.LE.20))  CH4INIT=CH4INIT*   0.812  
+          IF((L.GE.15).AND.(L.LE.17))  CH4INIT=CH4INIT*   1.460
+          IF((L.GE.18).AND.(L.LE.20))  CH4INIT=CH4INIT*   0.812
           IF((L.GE.21).AND.(L.LE.LM))  CH4INIT=CH4INIT*   0.230
         END IF
-        do i=1,im   
+        do i=1,im
           trm(i,j,l,n_CH4)= am(L,I,J)*CH4INIT
         end do ! i
       end do   ! j
       end do   ! l
       j2=0
-      RETURN      
+      RETURN
       end subroutine get_CH4_IC
