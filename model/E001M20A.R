@@ -1,12 +1,12 @@
 E001M20A.R GISS Model E  2002 modelE                 rar  6/20/02
 
-modelE 2.3.4+ with 18 lyrs, top at .1 mb - 1880 atmosphere/ocean
-no gravity wave drag;     uses dry convection (rather than turbulence)
+modelE 2.4 with 20 lyrs, top at .1 mb - 1880 atmosphere/ocean
+no gravity wave drag;     uses turbulence (not dry convection)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
        ang.mom loss is added in below 150 mb
 sea level pressure filter applied every hour, UV-filter used
 6-band oice albedo; Hogstrom(1984) pbl drag
-Note: Many of these choices may be changed using the PARAMETERs below.
+Note: Some of these choices may be changed using the PARAMETERs below.
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -99,7 +99,7 @@ DTFIX=180
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
-Kvflxo=0        ! don't save VFLXO (daily) (use 1 to prepare for q-flux run)
+Kvflxo=0        ! DONT'T save VFLXO (daily) (use 1 to prepare for q-flux run)
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! parameters usually not changed when switching to q-flux ocean:
