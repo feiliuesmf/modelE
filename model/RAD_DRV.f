@@ -579,12 +579,12 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       end do
       write(6,*) 'spec.hum in rad.equ.layers:',shl0
 C**** Optionally scale selected greenhouse gases
-      IF(ghg_yr.gt.0) FULGAS(2)=FULGAS(2)*CO2X
-      IF(ghg_yr.gt.0) FULGAS(6)=FULGAS(6)*N2OX
-      if(ghg_yr.gt.0) FULGAS(7)=FULGAS(7)*CH4X
-      if(ghg_yr.gt.0) FULGAS(8)=FULGAS(8)*CFC11X
-      if(ghg_yr.gt.0) FULGAS(9)=FULGAS(9)*CFC12X
-      if(ghg_yr.gt.0) FULGAS(11)=FULGAS(11)*XGHGX ! other GHGases
+      FULGAS(2)=FULGAS(2)*CO2X
+      FULGAS(6)=FULGAS(6)*N2OX
+      FULGAS(7)=FULGAS(7)*CH4X
+      FULGAS(8)=FULGAS(8)*CFC11X
+      FULGAS(9)=FULGAS(9)*CFC12X
+      FULGAS(11)=FULGAS(11)*XGHGX ! other CFC's
       IF(H2OstratX.GE.0.) FULGAS(1)=FULGAS(1)*H2OstratX
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
@@ -609,7 +609,7 @@ C****
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
-     X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
+     X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_ozone
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL, ltopcl
@@ -628,6 +628,7 @@ C     OUTPUT DATA
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq
+     *    ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -782,7 +783,17 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       JYEARR=JYEAR
 C*********************************************************
 C     Update time dependent radiative parameters each day
-      IF(JDAY.NE.JDLAST) CALL RCOMPT
+      IF(JDAY.NE.JDLAST) THEN
+        CALL RCOMPT
+        if(ghg_yr.eq.0) then
+          FULGAS(2)=FULGAS(2)*CO2X
+          FULGAS(6)=FULGAS(6)*N2OX
+          FULGAS(7)=FULGAS(7)*CH4X
+          FULGAS(8)=FULGAS(8)*CFC11X
+          FULGAS(9)=FULGAS(9)*CFC12X
+          FULGAS(11)=FULGAS(11)*XGHGX
+        end if
+      end if
 C*********************************************************
       JDLAST=JDAY
       S0=S0X*S00WM2*RATLS0/RSDIST

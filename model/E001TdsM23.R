@@ -75,7 +75,7 @@ POUT                                ! post-processing output
 
 Data input files:
 AIC=AIC.RES_M23.D771201
-GIC=GIC.E046D3M20A.1DEC1955     
+GIC=GIC.E046D3M20A.1DEC1955
 ! AIC=DEC1981.rsfB396M23_AIC_2.3.3
 ! OHT=OTSPEC.RB399AM12.M250D   !  not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor ! needed for post-processing only
@@ -90,7 +90,7 @@ RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
 ! RADN4,RADN5,RADNA,RADNB are no longer used
-TAero_PRE=sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
+TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
@@ -115,7 +115,7 @@ GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij.ext
 !-----------------------------------------------
-MOLEC=chem_files/ds3ch4_moleculesE 
+MOLEC=chem_files/ds3ch4_moleculesE
 JPLRX=chem_files/gs_jpl00_trop_15_fix
 JPLPH=chem_files/ds_photlist_trop_15
 RATJ=chem_files/ratj.giss_15
