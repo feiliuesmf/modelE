@@ -751,8 +751,6 @@ C                    6      7      8       9      10    11    12    13
 !@+          1: total 2:background 3: AClim? 4:dust 5:volcanic
       real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
       real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
-!@var FXAERS, allows to zero out climatology aerosol subtypes
-      real*8, dimension(10) :: FXAERS=(/1.,1.,1.,1.,1.,1.,1.,1.,1.,1./)
       real*8 FSTAER,FSBAER,FSAAER,FSDAER,FSVAER
      *      ,FTTAER,FTBAER,FTAAER,FTDAER,FTVAER
       EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
@@ -3718,7 +3716,6 @@ C                                                -----------------
       CSUM=SSUM*QCAERO(K,10)
       DO 310 N=1,3
       VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FSAERO(N)
-     * *FXAERS(N)
       QSUM=QSUM+VDTAU*QXAERO(K,N)
       VDQS=VDTAU*QSAERO(K,N)
       SSUM=SSUM+VDQS
@@ -3736,7 +3733,7 @@ c
       SSUM=SAERO(L,K)
       CSUM=CAERO(L,K)*SSUM
       DO 340 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)*FXAERS(N)
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FSAERO(N)  
       QSUM=QSUM+VDTAU*QXAERO(K,N)
       VDQS=VDTAU*QSAERO(K,N)
       SSUM=SSUM+VDQS
@@ -3756,7 +3753,6 @@ C                                              -------------------
       ASUM=VDTAU*ATAERO(K,10)
       DO 410 N=1,3
       VDTAU=TAUCOL(ILON,JLAT,N)*VDAERO(JLAT,L,N)*VDFAER(L,N)*FTAERO(N)
-     * *FXAERS(N)
       ASUM=ASUM+VDTAU*ATAERO(K,N)
   410 CONTINUE
       AAERO(L,K)=ASUM
@@ -3767,7 +3763,7 @@ c
       DO 450 L=1,6
       ASUM=AAERO(L,K)
       DO 440 N=4,9
-      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)*FXAERS(N)
+      VDTAU=TAUCOL(ILON,JLAT,N)*VDGAER(L,N)*FTAERO(N)  
       ASUM=ASUM+VDTAU*ATAERO(K,N)
   440 CONTINUE
       AAERO(L,K)=ASUM
