@@ -110,10 +110,12 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=9
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
-!@var jls_decay tracer independent array for radioactive sinks
-      INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsrcmax,ntm)
+!@var jls_decay tracer independent array for radioactive sinks
+      INTEGER, DIMENSION(NTM) :: jls_decay
+!@var jls_grav tracer independent array for grav. settling sink
+      INTEGER, DIMENSION(NTM) :: jls_grav
 !@var jls_index: Number of source/sink tracer JL diagnostics/tracer 
       integer, dimension(ktajls) :: jls_index
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
@@ -160,6 +162,8 @@ C**** TCONSRV
       INTEGER, DIMENSION(NTSRCMAX,NTM) :: itcon_surf
 !@var itcon_decay Index array for decay conservation diags
       INTEGER, DIMENSION(NTM) :: itcon_decay
+!@var itcon_grav Index array for gravitational settling conserv. diags
+      INTEGER, DIMENSION(NTM) :: itcon_grav
 
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
@@ -388,6 +392,19 @@ C**** This needs to be 'hand coded' depending on circumstances
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
 
+C**** Here are some more examples of generalised diag. configuration
+c      n = n_dust
+c        k = k + 1 
+c        jls_grav(n) = k   ! special array grav. settling sinks
+c        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+c        lname_jls(k) = 'LOSS OF DUST BY SETTLING'
+c        jls_index(k) = n
+c        jls_ltop(k) = lm
+c        jls_power(k) = -11.
+c        units_jls(k) = unit_string(jls_power(k),' kg/s')
+
+
+
       if (k.gt. ktajls) then
         write (6,*) 
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
@@ -578,6 +595,14 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
+C**** Here are some more examples of conservation diag configuration
+c      n=n_dust
+c      itcon_grav(n) = xx
+c      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+c      CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
+c     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
 
 C**** print out total tracer diagnostic array size
       WRITE (6,'(A14,2I8)') "KTACC=",KTACC
@@ -1049,7 +1074,7 @@ C****
 C**** Sources and sinks for CO2 (kg/s)
 C****
       case ('CO2')
-        do ns=1,nsrc(n)
+        do ns=1,ntsurfsrc(n)
           do j=1,jm
             do i=1,im
               trsource(i,j,ns,n) = co2_src(i,j,ns)*dxyp(j)
@@ -1061,7 +1086,7 @@ C****
 
 C**** tot_trsource is required for PBL calculations
       tot_trsource(:,:,n) = 0.
-      do ns=1,nsrc(n)
+      do ns=1,ntsurfsrc(n)
         tot_trsource(:,:,n) = tot_trsource(:,:,n)+trsource(:,:,ns,n)
       end do
 
@@ -1073,7 +1098,7 @@ C****
 !@sum apply_tracer_source adds non-interactive surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
-      USE TRACER_COM, only : ntm,trm,trmom,nsrc
+      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
       USE QUSDEF, only : mz,mzz
       USE FLUXES, only : trsource,tot_trsource
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
@@ -1089,7 +1114,7 @@ C**** these sources can be done once a day, otherwise it should be
 C**** every source time step. 
 
       do n=1,ntm
-        do ns=1,nsrc(n)
+        do ns=1,ntsurfsrc(n)
           trm(:,:,1,n) = trm(:,:,1,n) + trsource(:,:,ns,n)*dtsurf
 C**** diagnostics
           naij = ijts_source(ns,n)
@@ -1115,7 +1140,7 @@ C****
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc
-      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0,trname
+      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0
 #ifdef TRACERS_WATER
      *     ,trwm
 #endif
@@ -1137,15 +1162,20 @@ C****
         if (trdecy(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
-          trm(:,:,:,n)=expdec(n)*trm(:,:,:,n)
-          trmom(:,:,:,:,n)=expdec(n)*trmom(:,:,:,:,n)
 #ifdef TRACERS_WATER
+     *               +trwm(:,:,:,n)
           trwm(:,:,:,n)=expdec(n)*trwm(:,:,:,n)
 #endif
+          trm(:,:,:,n)=expdec(n)*trm(:,:,:,n)
+          trmom(:,:,:,:,n)=expdec(n)*trmom(:,:,:,:,n)
           najl = jls_decay(n)
           do l=1,lm
           do j=1,jm
-          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)-told(:,j,l))
+          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)
+#ifdef TRACERS_WATER
+     *               +trwm(:,j,l,n)
+#endif
+     *               -told(:,j,l))
           enddo 
           enddo
           call DIAGTCA(itcon_decay(n),n)
@@ -1156,6 +1186,75 @@ C****
       end
 
       subroutine checktr(subr)
+
+      SUBROUTINE TRGRAV
+!@sum TRGRAV gravitationally settles particular tracers 
+!@auth Gavin Schmidt/Reha Cakmur
+      USE CONSTANT, only : visc_air,grav
+      USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
+      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
+      USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
+      USE FLUXES, only : trgrdep
+      USE DYNAMICS, only : gz
+      IMPLICIT NONE
+      real*8, save, dimension(ntm) :: stokevdt = 0.
+      integer, save :: ifirst=1
+      real*8, dimension(im,jm,lm) :: told
+      real*8 fgrfluxd,fgrfluxu
+      integer n,najl,i,j,l
+
+      if (ifirst.eq.1) then               
+C**** Calculate settling velocity based on Stokes' Law using particle
+C**** density and effective radius
+        do n=1,ntm
+          if (trradius(n).gt.0.0) stokevdt(n)=dtsrc*2.*grav*trpdens(n)
+     *         *trradius(n)**2/(9.*visc_air)
+        end do
+        ifirst = 0
+      end if
+
+      do n=1,ntm
+        if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+C**** Gravitional settling 
+          do l=1,lm
+          do j=1,jm
+          do i=1,imaxj(j)
+            told(i,j,l)=trm(i,j,l,n)
+C**** Calculate height differences using geopotential
+            if (l.eq.1) then   ! layer 1 calc
+              fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
+              trgrdep(i,j)=fgrfluxd*trm(i,j,l,n)
+            else               ! above layer 1
+              fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))
+            end if
+            if (l.lt.lm) then  ! below top layer
+              fgrfluxu=stokevdt(n)*grav/(gz(i,j,l+1)-gz(i,j,l))
+            else               ! top layer
+              fgrfluxu=0.
+            end if
+            trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
+     *                 + trm(i,j,l+1,n)*    fgrfluxu
+            trmom(mz ,i,j,l,n)=trmom(mz ,i,j,l,n)*(1.-fgrfluxd)
+            trmom(mzz,i,j,l,n)=trmom(mzz,i,j,l,n)*(1.-fgrfluxd)
+            trmom(mzx,i,j,l,n)=trmom(mzx,i,j,l,n)*(1.-fgrfluxd)
+            trmom(myz,i,j,l,n)=trmom(myz,i,j,l,n)*(1.-fgrfluxd)
+          end do
+          end do
+          end do
+
+          najl = jls_grav(n)
+          do l=1,lm
+          do j=1,jm
+          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)-told(:,j,l))
+          enddo 
+          enddo
+          call DIAGTCA(itcon_grav(n),n)
+        end if
+      end do
+C****
+      return
+      end
+
 !@sum  CHECKTR Checks whether tracer variables are reasonable
 !@auth Gavin Schmidt
 !@ver  1.0

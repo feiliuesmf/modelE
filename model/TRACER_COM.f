@@ -38,6 +38,18 @@ C**** Each tracer has a variable name and a unique index
 !@var trdecy radioactive decay constant (1/s) (=0 for stable tracers)
       real*8, parameter, dimension (ntm) :: trdecy=
      *     (/    0d0,      0d0,    2.1d-6,      0d0 /)
+
+C**** Note units for these parameters!
+C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6 
+C****          silt dust; trpdens=2.65d3, trradius=6.1d-6 
+C****
+!@var trpdens tracer particle density (kg/m^3) (=0 for non-particle tracers)
+      real*8, parameter, dimension (ntm) :: trpdens=
+     *     (/    0d0,      0d0,    0d0,      0d0 /)
+!@var trradius tracer effective radius (m) (=0 for non particle tracers)
+      real*8, parameter, dimension (ntm) :: trradius=
+     *     (/    0d0,      0d0,    0d0,      0d0 /)
+
 !@var ITIME_TR0: start time for each tracer
       integer, dimension(ntm) :: itime_tr0=0.
 !@var TRM: Tracer array
@@ -52,10 +64,10 @@ C**** Each tracer has a variable name and a unique index
       real*8, dimension(im,jm,lm,ntm) :: trwm
 #endif
 
-!@var ntrsrcmax maximum number of surface sources/sinks
-      integer, parameter :: ntsrcmax=10
-!@var nsrc no. of non-interactive surface sources for each tracer
-      integer, parameter, dimension(ntm) :: nsrc = (/
+!@var ntsurfsrcmax maximum number of surface sources/sinks
+      integer, parameter :: ntsurfsrcmax=10
+!@var ntsurfsrc no. of non-interactive surface sources for each tracer
+      integer, parameter, dimension(ntm) :: ntsurfsrc = (/
      *     0,       1,       1,       6 /)
     
       END MODULE TRACER_COM

@@ -79,6 +79,8 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(IM,JM,NTSRCMAX,NTM):: trsource
 !@var TOT_TRSOURCE total of TRSOURCE for each tracers (kg/s)
       REAL*8, DIMENSION(IM,JM,NTM):: tot_trsource
+!@var TRGRDEP gravitationally settled tracers at surface (kg)
+      REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP
 #endif
 
 #ifdef TRACERS_WATER

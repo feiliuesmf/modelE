@@ -130,6 +130,9 @@ c**** Smithsonian Met Tables = 4*rvap + delta = 1858--1869 ????
 c     real*8,parameter :: shv = 4.*rvap  ????
       real*8,parameter :: shv = 0.
 
+!@var visc_air dynamic viscosity of air (kg/m s)
+      real*8,parameter :: visc_air = 1.7d-5       
+
 C**** Astronomical constants
 
 !@param sday  sec per day (s)
