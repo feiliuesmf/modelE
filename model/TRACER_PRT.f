@@ -21,8 +21,6 @@
       integer i,j,l,k,n
       real*8 tsum,asum
 
-C**** Compute AM: kg air/sq meter
-      call calc_am(lm)
 C****
 C**** Accumulate concentraton for all tracers
 C****

@@ -4,6 +4,7 @@
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
+      USE CONSTANT, only : bygrav
       USE MODEL_COM
       USE RANDOM
       USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
@@ -11,8 +12,9 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
+      USE GEOM, only : dxyp
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: mtrace
+      USE TRACER_COM, only: mtrace,trm
 #endif
       IMPLICIT NONE
 
@@ -530,7 +532,6 @@ C****
       USE FLUXES, only : gtemp   ! tmp. fix
 #ifdef TRACERS_ON
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
-      USE TRACER_DIAG_COM,only: KTACC
 #endif
       IMPLICIT NONE
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
@@ -1132,9 +1133,6 @@ C**** Initialise tracer parameters and diagnostics
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC=",KACC
-#ifdef TRACERS_ON
-      WRITE (6,'(A14,2I8)') "KTACC=",KTACC
-#endif
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PTOP+PSFMPT*SIGE
 C****
@@ -1252,7 +1250,12 @@ C**** Check Lake arrays
          CALL CHECKL(SUBR)
 C**** Check Earth arrays
 c        CALL CHECKE(SUBR)
+#ifdef TRACERS_ON
+C**** check tracers
+         CALL CHECKTR(SUBR)
+#endif
       END IF
+
       RETURN
       END SUBROUTINE CHECKT
 

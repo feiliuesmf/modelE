@@ -318,6 +318,10 @@ c****
 c**** loop over layers
       do l=1,lm
       fqv(:,:) = 0.
+
+c**** loop over timesteps
+      do ns=1,nstep(l)
+
 c**** scale polar boxes to their full extent
       mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
       m_sp = mass(1,1 ,l)
@@ -333,8 +337,7 @@ c**** scale polar boxes to their full extent
       rzzm_sp = rmom(mzz,1,1 ,l)
       rzm_np  = rmom(mz ,1,jm,l)
       rzzm_np = rmom(mzz,1,jm,l)
-c**** loop over timesteps
-      do ns=1,nstep(l)
+
 c**** loop over longitudes
       do i=1,im
 c****
@@ -359,13 +362,6 @@ c****
       rmom(ihmoms,i,jm,l) = 0.
 c     sbfijl(i,:,l) = sbfijl(i,:,l)+f_j(:)
       enddo  ! end loop over longitudes
-      enddo  ! end loop over timesteps
-      do j=1,jm-1   !diagnostics
-        sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/mv(:,j,l))
-        sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
-        sbf (j,l) = sbf (j,l) + sum(fqv(:,j))
-      enddo
-
 c**** average and unscale polar boxes
       mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
       mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
@@ -375,6 +371,14 @@ c**** average and unscale polar boxes
       rmom(mzz,:,1 ,l) = (rzzm_sp + sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
       rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
       rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+
+      enddo  ! end loop over timesteps
+      do j=1,jm-1   !diagnostics
+        sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/mv(:,j,l))
+        sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
+        sbf (j,l) = sbf (j,l) + sum(fqv(:,j))
+      enddo
+
       enddo  ! end loop over levels
       return
 c****
@@ -587,7 +591,7 @@ C**** Unscale poles
       double precision :: courmax,byn
 
 C**** decide how many timesteps to take
-      DO 430 I=IM,IM*(JM-1)+1
+      DO I=1,IM*JM
       nstep=0
       courmax = 2.
       do while(courmax.gt.1.)
@@ -619,6 +623,6 @@ C**** Correct air mass
       NSTEPZ(I) = NSTEP
 c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
 c    *   'aadvqz: i,nstep,courmax=',i,nstep,courmax
-  430 CONTINUE
+      END DO
       RETURN
       END

@@ -579,6 +579,9 @@ C**** First 12 are standard for all tracers and GCM
       CALL SET_TCON(QCON,TRNAME(N),inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
+C**** print out total tracer diagnostic array size
+      WRITE (6,'(A14,2I8)') "KTACC=",KTACC
+
       return
       end subroutine init_tracer
 
@@ -712,7 +715,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           stop "TRACER_IC"
   
         case ('Air')
-          CALL CALC_AM(lm)
           do l=1,lm
           do j=1,jm
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)
@@ -728,7 +730,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           trmom(:,:,:,:,n) = 0.
 
         case ('Rn222')
-          CALL CALC_AM(lm)
           do l=1,lm
             do j=1,jm
               trm(:,j,l,n) = am(l,:,j)*dxyp(j)*1.d-22
@@ -742,7 +743,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
         case ('CO2')
           trm(:,:,:,n) = 0.
           trmom(:,:,:,:,n) = 0.
-          CALL CALC_AM(lm)
           call openunit('CO2_IC',iu_data,.true.,.true.)
           read (iu_data) title,co2ic
           call closeunit(iu_data)
@@ -1154,4 +1154,52 @@ C**** Atmospheric decay
 C****
       return
       end
+
+      subroutine checktr(subr)
+!@sum  CHECKTR Checks whether tracer variables are reasonable
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : ls1,im,jm,lm
+      USE DYNAMICS, only : am
+      USE GEOM, only : dxyp,imaxj
+      USE TRACER_COM
+      IMPLICIT NONE
+      LOGICAL QCHECKO
+      INTEGER I,J,L,N,imax,jmax,lmax
+      REAL*8 relerr, errmax
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+      do n=1,ntm
+        CALL CHECK3(trm(1,1,1,n),IM,JM,LM,SUBR,trname(n)(1:3))
+        CALL CHECK3(trmom(1,1,1,1,n),NMOM,IM,JM*LM,SUBR,
+     *       'X'//trname(n)(1:2))
+#ifdef TRACERS_WATER
+        CALL CHECK3(trwm(1,1,1,n),IM,JM,LM,SUBR,'W'//trname(n)(1:2))
+#endif
+
+C**** check whether air mass is conserved
+        
+        if (trname(n).eq.'Air') then
+          errmax = 0. ; lmax=0 ; imax=0 ; jmax=0 
+          do l=1,lm
+          do j=1,jm
+          do i=1,imaxj(j)
+            relerr=abs(trm(i,j,l,n)-am(l,i,j)*dxyp(j))/
+     *           (am(l,i,j)*dxyp(j))
+            if (relerr.gt.errmax) then
+              lmax=l ; imax=i ; jmax=j ; errmax=relerr
+            end if
+          end do
+          end do
+          end do
+          print*,"Relative error in air mass after ",subr,":",imax
+     *         ,jmax,lmax,errmax,trm(imax,jmax,lmax,n),am(lmax,imax
+     *         ,jmax)*dxyp(jmax)
+        end if
+      end do
+      
+      return
+      end subroutine checktr
+
 #endif

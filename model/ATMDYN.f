@@ -923,7 +923,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p,dsig,sig,sige,ptop,psfmpt
-      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp
+      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       IMPLICIT NONE
 
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
@@ -933,81 +933,44 @@ C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
 C**** Note that only layers LS1 and below vary as a function of surface
 C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
+C**** Note Air mass is calculated in (kg/m^2)
 
 C**** Fill in polar boxes
       P(2:IM,1) = P(1,1)
       P(2:IM,JM)= P(1,JM)
 
       DO J=1,JM
-         DO I=1,IM
-            DO L=1,LS1-1
-               PLIJ(L,I,J) = P(I,J)
-               PDSIG(L,I,J) = P(I,J)*DSIG(L)
-               PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
-               PK  (L,I,J) = PMID(L,I,J)**KAPA
-               PEDN(L,I,J) = SIGE(L)*P(I,J)+PTOP
-               PEK (L,I,J) = PEDN(L,I,J)**KAPA
-c               AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
-c               BYAM(L,I,J) = 1./AM(L,I,J)
-            END DO
-            DO L=LS1,LMAX
-               PLIJ(L,I,J) = PSFMPT
-               PDSIG(L,I,J) = PSFMPT*DSIG(L)
-               PMID(L,I,J) = SIG(L)*PSFMPT+PTOP
-               PK  (L,I,J) = PMID(L,I,J)**KAPA
-               PEDN(L,I,J) = SIGE(L)*PSFMPT+PTOP
-               PEK (L,I,J) = PEDN(L,I,J)**KAPA
-c               AM  (L,I,J) = PSFMPT*DSIG(L)*1d2*BYGRAV
-c               BYAM(L,I,J) = 1./AM(L,I,J)
-            END DO
-            IF (LMAX.eq.LM) THEN
-               PEDN(LM+1,I,J) = SIGE(LM+1)*PSFMPT+PTOP
-               PEK (LM+1,I,J) = PEDN(LM+1,I,J)**KAPA
-            END IF
-            SQRTP(I,J) = SQRT(P(I,J))
-         END DO
+        DO I=1,IM
+          DO L=1,LS1-1
+            PLIJ(L,I,J) = P(I,J)
+            PDSIG(L,I,J) = P(I,J)*DSIG(L)
+            PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
+            PK  (L,I,J) = PMID(L,I,J)**KAPA
+            PEDN(L,I,J) = SIGE(L)*P(I,J)+PTOP
+            PEK (L,I,J) = PEDN(L,I,J)**KAPA
+            AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
+            BYAM(L,I,J) = 1./AM(L,I,J)
+          END DO
+          DO L=LS1,LMAX
+            PLIJ(L,I,J) = PSFMPT
+            PDSIG(L,I,J) = PSFMPT*DSIG(L)
+            PMID(L,I,J) = SIG(L)*PSFMPT+PTOP
+            PK  (L,I,J) = PMID(L,I,J)**KAPA
+            PEDN(L,I,J) = SIGE(L)*PSFMPT+PTOP
+            PEK (L,I,J) = PEDN(L,I,J)**KAPA
+            AM  (L,I,J) = PSFMPT*DSIG(L)*1d2*BYGRAV
+            BYAM(L,I,J) = 1./AM(L,I,J)
+          END DO
+          IF (LMAX.eq.LM) THEN
+            PEDN(LM+1,I,J) = SIGE(LM+1)*PSFMPT+PTOP
+            PEK (LM+1,I,J) = PEDN(LM+1,I,J)**KAPA
+          END IF
+          SQRTP(I,J) = SQRT(P(I,J))
+        END DO
       END DO
 
       RETURN
       END SUBROUTINE CALC_AMPK
-
-
-      SUBROUTINE CALC_AM(LMAX)
-!@sum  CALC_AM calculate air mass in (kg/m^2); also the reciprocal
-!@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : bygrav
-      USE MODEL_COM, only : im,jm,lm,ls1,p,dsig,psfmpt
-      USE DYNAMICS, only : am,byam
-      IMPLICIT NONE
-      INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
-      INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
-
-C**** Calculate air mass: Compute AM: kg air/sq meter
-C**** Note that only layers LS1 and below vary as a function of surface
-C**** pressure. Routine should be called with LMAX=LM at start, and
-C**** subsequentaly with LMAX=LS1-1
-
-C**** Fill in polar boxes
-      P(2:IM,1) = P(1,1)
-      P(2:IM,JM)= P(1,JM)
-
-      DO J=1,JM
-         DO I=1,IM
-            DO L=1,LS1-1
-               AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
-               BYAM(L,I,J) = 1./AM(L,I,J)
-            END DO
-            DO L=LS1,LMAX
-               AM  (L,I,J) = PSFMPT*DSIG(L)*1d2*BYGRAV
-               BYAM(L,I,J) = 1./AM(L,I,J)
-            END DO
-         END DO
-      END DO
-
-      RETURN
-      END SUBROUTINE CALC_AM
-
 
       SUBROUTINE CALC_AMP(p,amp)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
@@ -1033,7 +996,6 @@ C****
       return
 C****
       end subroutine calc_amp
-
 
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
