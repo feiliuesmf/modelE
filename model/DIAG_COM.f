@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE DAGCOM
 !@sum  DAGCOM Diagnostic model variables
 !@auth Original Development Team
@@ -346,6 +347,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4,
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF
+#ifdef CLD_AER_CDNC
+     *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
+#endif 
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
@@ -449,6 +453,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
+#ifdef CLD_AER_CDNC
+     *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
+#endif 
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx) :: sname_jl
