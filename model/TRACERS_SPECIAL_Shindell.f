@@ -1078,7 +1078,8 @@ C
       LOGICAL, INTENT(IN)                 :: min_zero
       INTEGER, INTENT(IN)                 :: LIN, LOUT
       REAL*8, INTENT(IN), DIMENSION(LIN)  :: PIN, AIN
-      REAL*8, INTENT(OUT),DIMENSION(LOUT) :: POUT, AOUT 
+      REAL*8, INTENT(IN),DIMENSION(LOUT)  :: POUT
+      REAL*8, INTENT(OUT),DIMENSION(LOUT) :: AOUT 
       REAL*8, DIMENSION(LIN)              :: LNPIN
       REAL*8, DIMENSION(LOUT)             :: LNPOUT       
       INTEGER L1,L2
@@ -1146,7 +1147,7 @@ c
       log75=LOG(75.d0)
       log569=LOG(569.d0)
 c 
-      DO L=1,LM
+      DO L=1,LM-1  ! is this right?????
         IF(LOGP(L).gt.log75 .and. LOGP(L+1).lt.log75) THEN
           L75P=L+1 ! these are for FACT1 variable in strat overwrite
           L75M=L   ! hence effects several tracers
