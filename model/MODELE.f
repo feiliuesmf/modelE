@@ -19,6 +19,7 @@
       USE DIAG_COM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
+      USE DIAG_SERIAL, only : print_diags
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -1404,7 +1405,7 @@ C****
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
 #endif
-      USE DIAG_COM, only : aj,j_h2och4
+      USE DIAG_COM, only : aj=>aj_loc,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4

@@ -13,16 +13,215 @@
       END MODULE WORKJK
 
 
-      MODULE SERIAL
-      USE MODEL_COM, ONLY : JM
+!------------------------------------------------
+
+      BLOCK DATA BDWP
+C****
+C**** TITLES FOR SUBROUTINE DIAG7
+C****
+      COMMON/D7COM/LNAME,SNAME,UNITS
+      CHARACTER LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
+      DATA LNAME/
+     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR  ',
+     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR  ',
+     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR  ',
+     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR  ',
+     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR   ',
+     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR   ',
+     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG N.',
+     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG N.',
+     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG N.',
+     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG N.',
+     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG N.',
+     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG N. '/
+!      .........1.........2.........3.........4.........5.........6
+      DATA UNITS/
+     1'DAY*(m/s)^2   ','DAY*(m/s)^2   ','10 DAY*(m/s)^2',
+     4'DAY*(m/s)^2   ','10 DAY*(m/s)^2','DAY*(m/s)^2   ',
+     7'10**3 DAY*m^2 ','10**3 DAY*m^2 ','10**3 DAY*m^2 ',
+     A'10**3 DAY*m^2 ','10**4 DAY*m^2 ','10**4 DAY*m^2 '/
+      DATA SNAME/
+     1'WPU850EQU'   ,'WPV850EQU'   ,'WPU300EQU'   ,'WPV300EQU'   ,
+     5'WPU50EQU'    ,'WPV50EQU'    ,'WPPHI922_50N','WPPHI700_50N',
+     9'WPPHI500_50N','WPPHI300_50N','WPPHI100_50N','WPPHI10_50N' /
+
+      END BLOCK DATA BDWP
+
+!------------------------------------------------
+
+      MODULE BDJ
+!@sum  stores information for outputting composite zonal diagnostics
+!@auth M. Kelley
+      IMPLICIT NONE
+      SAVE
+!@param nj_out number of j-format output fields = 11
+      integer, parameter :: nj_out=11
+!@var units string containing output field units
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS_J_O
+!@var lname string describing output field
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME_J_O
+!@var sname string referencing output field in self-desc. output file
+      CHARACTER(LEN=30), DIMENSION(nj_out) :: NAME_J_O
+!@var stitle short title for print out
+      CHARACTER(LEN=16), DIMENSION(nj_out) :: STITLE_J_O
+!@var INUM_J_O,IDEN_J_O numerator and denominator for calculated J diags
+      INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
+!@var SCALE_J_O scale for calculated J diags
+      REAL*8, DIMENSION(nj_out) :: SCALE_J_O
+
+      END MODULE BDJ
+
+!------------------------------------------------
+
+      MODULE BDjkjl
+!@sum  stores information for outputting lat-sigma/pressure diagnostics
+!@auth M. Kelley
+      IMPLICIT NONE
+      SAVE
+!@param names of derived jk/jl output fields
+      INTEGER :: jl_rad_cool,jk_dudt_econv,jl_nt_lh_e,jl_vt_lh_e,
+     *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
+     *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
+     *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
+     *  jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
+     *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
+     *  jk_dyn_conv_dse,jk_seke,jk_eke,
+     *  jk_nt_dse_se,jk_nt_dse_e,jk_tot_nt_dse,
+     *  jk_nt_lh_e,jk_nt_see,jk_tot_nt_se,
+     *  jk_nt_am_stand_eddy,jk_nt_am_eddy,jk_tot_nt_am,
+     *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
+     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,jk_vstar,
+     *  jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
+
+      END MODULE BDjkjl
+
+!------------------------------------------------
+
+      MODULE BDIJ
+!@sum  stores information for outputting lon-lat diagnostics
+!@auth M. Kelley
+      use MODEL_COM, only : IM,JM
+      use DIAG_COM
+      IMPLICIT NONE
+      SAVE
+
+!@param nij_o total number of diagnostic ij-format fields
+      integer nij_o
+
+!@var ij_xxx non single-aij diagnostic names
+      INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
+     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o !,ij_msu2,ij_msu3,ij_msu4
+
+!@var SENTDSE stand.eddy northw. transport of dry static energy * 16
+!@var TENTDSE trans.eddy northw. transport of dry static energy * 16
+!@var TMSU2-4 MSU channel 2-4 temperatures (C)
+      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE, TMSU2,TMSU3,TMSU4
+
+      contains
+
+      function mark (val,ibar,undef)
+!@sum  mark selects a character (color) based on value and color bar
+!@auth R. Ruedy
+!@ver  1.0
+      real*8 val,undef
+      integer ibar,n
+      character*1 mark
+
+      if (val .eq. undef) then
+        mark=' '
+      else
+      select case (ibar)
+      case (ib_pct)                                ! 0.....100 %
+        n = 2.5 + val
+        if (val .ge. 20.) n=23
+        if (val .le.  0.) n= 1
+        mark = cbar(ib_pct)(n:n)
+      case (ib_pos)                                ! 0++++++++++
+        n = 2.5 + val
+c          non-unif scaling: (currently not used)
+c          if (n .gt. 13) n = (n+123)/10
+        if (n .gt. 38) n=38
+        if (n .lt. 1 .or. val .le. 0.) n= 1
+        mark = cbar(ib_pos)(n:n)
+      case (ib_npp)                                ! ---0+++++++
+        n = 11.5 + val
+        if (n .gt. 38.) n=38
+        if (n .lt.  1 ) n= 1
+        mark = cbar(ib_npp)(n:n)
+      case (ib_nnp)                                ! -------0+++
+        n = 28.5 + val
+        if (n .gt. 38.) n=38
+        if (n .lt.  1 ) n= 1
+        mark = cbar(ib_nnp)(n:n)
+      case (ib_hyb)                      ! hybrid: multiple scales
+        n = 2.5 + val
+        if (n .gt. 28) n=(n+263)/10
+        if (n .gt. 35) n=(n+180)/6
+        if (n .gt. 37) n=37
+        if (val .le.  0.) n=1
+        mark = cbar(ib_hyb)(n:n)
+      case (ib_ntr)                !tracers       ! ---0+++++++
+        if (val.lt.0.) then
+          n = 11.5-LOG(-val)/LOG(2.)
+          if (n .le.  0) n= 1
+          if (n .gt. 11) n=11
+        else if (val.eq.0.) then
+          n = 11
+        else
+          n = 11.5+LOG( val)/LOG(2.)
+          if (n .lt. 11) n=11
+          if (n .ge. 38) n=38
+        end if
+        mark = cbar(ib_npp)(n:n)                  ! use ib_npp
+      end select
+      end if
+
+      return
+      end function mark
+
+      function ib_of_legnd (leg)
+!@sum  ib_of_legnd finds the 'colorbar' for the given legend
+!@auth R. Ruedy
+!@ver  1.0
+      integer ib_of_legnd, leg
+
+      ib_of_legnd = ib_pos
+      if (legend(leg)(7:8) .eq. ',Z') ib_of_legnd = ib_nnp
+      if (legend(leg)(7:8) .eq. ',9') ib_of_legnd = ib_npp
+      if (index(legend(leg)(21:40),'-') .gt. 0) ib_of_legnd = ib_hyb
+      if (index(legend(leg),'100 ') .gt. 0) ib_of_legnd = ib_pct
+      if (legend(leg)(1:4) .eq. '9=-5') ib_of_legnd = ib_ntr
+
+      return
+      end function ib_of_legnd
+
+      END MODULE BDIJ
+
+!--------------------------------------------------------
+
+
+      MODULE DIAG_SERIAL
+      USE MODEL_COM, ONLY : IM, JM
       USE DOMAIN_DECOMP, only : grid, DIST_GRID, AM_I_ROOT
 
-      PUBLIC :: GLOBALSUM
+      PRIVATE 
+      PUBLIC :: PRINT_DIAGS
+      PUBLIC :: JLMAP
+      PUBLIC :: MAPTXT
+      PUBLIC :: IJ_avg
+
+!ESMF: These globalsum routines are private to this module and execute
+!      serially in a single processor.
       INTERFACE GLOBALSUM
         MODULE PROCEDURE GLOBALSUM_J
         MODULE PROCEDURE GLOBALSUM_JK
       END INTERFACE
 
+      REAL*8 :: FLAND_glob(IM,JM)
+      REAL*8 :: FEARTH_glob(IM,JM)
+      REAL*8 :: FLICE_glob(IM,JM)
+      REAL*8 :: ZATMO_glob(IM,JM)
 
       CONTAINS
 
@@ -56,36 +255,34 @@
       End If
 
 
-      If (AM_I_ROOT()) then
-         If (Present(polefirst)) Then
-            If (polefirst) Then
-               gsum = garr(1) + garr(JM)
-               DO J = 2, JM-1
-                  gsum = gsum + garr(J)
-               END DO
-            End IF
-         Else
-         If (istag_) then
-           gsum = sum(garr(2:JM),1)
-         ElseIf (iskip_) then
-           gsum = sum(garr(2:JM-1),1)
-         Else
-           gsum = sum(garr(1:JM),1)
-         EndIf
-         If (Present(hsum)) then
-            If (istag_) then
-               hsum(1)   = Sum( garr(2     :JM/2),1   )
-               hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
-               hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
-               hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
-            Else
-               hsum(1)   = Sum( garr(1     :JM/2),1   )
-               hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
-            EndIf
-         EndIf
-         Endif
-      EndIf
-
+      If (Present(polefirst)) Then
+        If (polefirst) Then
+          gsum = garr(1) + garr(JM)
+          DO J = 2, JM-1
+            gsum = gsum + garr(J)
+          END DO
+        End IF
+      Else
+        If (istag_) then
+          gsum = sum(garr(2:JM),1)
+        ElseIf (iskip_) then
+          gsum = sum(garr(2:JM-1),1)
+        Else
+          gsum = sum(garr(1:JM),1)
+        EndIf
+        If (Present(hsum)) then
+          If (istag_) then
+            hsum(1)   = Sum( garr(2     :JM/2),1   )
+            hsum(2)   = Sum( garr(2+JM/2:JM  ),1   )
+            hsum(1)   = hsum(1) + 0.5*garr(1+JM/2)
+            hsum(2)   = hsum(2) + 0.5*garr(1+JM/2)
+          Else
+            hsum(1)   = Sum( garr(1     :JM/2),1   )
+            hsum(2)   = Sum( garr(1+JM/2:JM  ),1   )
+          EndIf
+        EndIf
+      Endif
+      
       END SUBROUTINE GLOBALSUM_J
 
 
@@ -111,30 +308,27 @@
         If (istag == 1) istag_ = .true.
       End If
 
-
-      If (AM_I_ROOT()) then
-         If (istag_) then
-           gsum = sum(garr(2:JM,:),1)
-         Else
-           gsum = sum(garr(1:JM,:),1)
-         EndIf
-         If (Present(hsum)) then
-            If (istag_) then
-               hsum(1,:)   = Sum( garr(2     :JM/2,:),1   )
-               hsum(2,:)   = Sum( garr(2+JM/2:JM  ,:),1   )
-               hsum(1,:)   = hsum(1,:) + 0.5*garr(1+JM/2,:)
-               hsum(2,:)   = hsum(2,:) + 0.5*garr(1+JM/2,:)
-            Else
-               hsum(1,:)   = Sum( garr(1     :JM/2,:),1   )
-               hsum(2,:)   = Sum( garr(1+JM/2:JM  ,:),1   )
-            EndIf
-         EndIf
+      If (istag_) then
+        gsum = sum(garr(2:JM,:),1)
+      Else
+        gsum = sum(garr(1:JM,:),1)
       EndIf
-
-
+      If (Present(hsum)) then
+        If (istag_) then
+          hsum(1,:)   = Sum( garr(2     :JM/2,:),1   )
+          hsum(2,:)   = Sum( garr(2+JM/2:JM  ,:),1   )
+          hsum(1,:)   = hsum(1,:) + 0.5*garr(1+JM/2,:)
+          hsum(2,:)   = hsum(2,:) + 0.5*garr(1+JM/2,:)
+        Else
+          hsum(1,:)   = Sum( garr(1     :JM/2,:),1   )
+          hsum(2,:)   = Sum( garr(1+JM/2:JM  ,:),1   )
+        EndIf
+      EndIf
+      
       END SUBROUTINE GLOBALSUM_JK
 
-      END MODULE SERIAL
+
+!------------------------------------------------
 
 
       subroutine print_diags(ipos)
@@ -145,6 +339,10 @@
       IMPLICIT NONE
 !@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
       INTEGER, INTENT(IN) :: ipos
+
+      CALL DIAG_GATHER
+
+      IF (AM_I_ROOT()) THEN
 
       IF (KDIAG(1).LT.9) CALL DIAGJ
       IF (KDIAG(2).LT.9) CALL DIAGJK
@@ -173,30 +371,13 @@
         CALL DIAGTCP
       end if
 #endif
+      END IF ! AM_I_ROOT
+
+      CALL DIAG_SCATTER
+
       return
       end subroutine print_diags
 
-      MODULE BDJ
-!@sum  stores information for outputting composite zonal diagnostics
-!@auth M. Kelley
-      IMPLICIT NONE
-      SAVE
-!@param nj_out number of j-format output fields = 11
-      integer, parameter :: nj_out=11
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS_J_O
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME_J_O
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nj_out) :: NAME_J_O
-!@var stitle short title for print out
-      CHARACTER(LEN=16), DIMENSION(nj_out) :: STITLE_J_O
-!@var INUM_J_O,IDEN_J_O numerator and denominator for calculated J diags
-      INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
-!@var SCALE_J_O scale for calculated J diags
-      REAL*8, DIMENSION(nj_out) :: SCALE_J_O
-
-      END MODULE BDJ
 
       SUBROUTINE J_TITLES
 !@sum  J_TITLES calculated zonal diagnostics
@@ -323,9 +504,8 @@ c
       use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only : im,jm,lm,fim,flice,
-     &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg
       USE DIAG_COM, only :
@@ -337,7 +517,7 @@ c
      *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4
       USE BDJ
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM), SAVE ::S1
+      REAL*8, DIMENSION(JM), SAVE :: S1
       REAL*8, DIMENSION(NREG), SAVE :: SAREA
       REAL*8, DIMENSION(JM) :: FLAT
       REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
@@ -387,7 +567,6 @@ C**** weighting functions for surface types
       character*80 line
       logical, save :: Qbp(0:NTYPE_OUT)
       INTEGER, SAVE :: IFIRST = 1
-      integer, external :: NINTlimit
 
       CHARACTER*200    :: out_line
       CHARACTER*200    :: fmt903
@@ -682,27 +861,6 @@ C****
   918 FORMAT ('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))
       END SUBROUTINE DIAGJ
 
-      MODULE BDjkjl
-!@sum  stores information for outputting lat-sigma/pressure diagnostics
-!@auth M. Kelley
-      IMPLICIT NONE
-      SAVE
-!@param names of derived jk/jl output fields
-      INTEGER :: jl_rad_cool,jk_dudt_econv,jl_nt_lh_e,jl_vt_lh_e,
-     *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
-     *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
-     *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
-     *  jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
-     *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
-     *  jk_dyn_conv_dse,jk_seke,jk_eke,
-     *  jk_nt_dse_se,jk_nt_dse_e,jk_tot_nt_dse,
-     *  jk_nt_lh_e,jk_nt_see,jk_tot_nt_se,
-     *  jk_nt_am_stand_eddy,jk_nt_am_eddy,jk_tot_nt_am,
-     *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
-     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,jk_vstar,
-     *  jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
-
-      END MODULE BDjkjl
 
 
       SUBROUTINE JKJL_TITLEX
@@ -1120,7 +1278,6 @@ c Check the count
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
@@ -1173,6 +1330,7 @@ Cbmp - ADDED
      &     PUTI,PVTI,SCALES,SCALET,SDDP,SKEI,
      &     SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
+
 
       CHARACTER*200    :: out_line
 
@@ -2056,7 +2214,7 @@ C**** MASS FLUX MOIST CONVECTION
       n = JL_MCMFLX
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLE,AJL(1,1,n),SCALET,ONES,ONES,LM-1,2,JGRID_JL(n))
+     &     PLE    ,AJL(1,1,n),SCALET,ONES,ONES,LM-1,2,JGRID_JL(n))
 
 C****
 C**** RADIATION, CONDENSATION AND CONVECTION
@@ -2329,7 +2487,7 @@ C**** U, V AND W VELOCITY FOR EAST PACIFIC
       n = JL_WEPAC
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLE,AJL(1,1,n),SCALET,BYDXYP,ONES,LM-1,2,JGRID_JL(n))
+     &     PLE    ,AJL(1,1,n),SCALET,BYDXYP,ONES,LM-1,2,JGRID_JL(n))
 C**** U, V AND W VELOCITY FOR WEST PACIFIC
       n = JL_UWPAC
       SCALET = scale_jl(n)/idacc(ia_jl(n))
@@ -2438,7 +2596,6 @@ C****
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1)
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE WORKJK
@@ -2662,7 +2819,6 @@ C               MLAT(J)=NINT(FLATJ)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JKMAP
 
-
       SUBROUTINE JLMAP(LNAME,SNAME,UNITS,POW10P,
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1)
 C****
@@ -2677,7 +2833,6 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -2707,7 +2862,7 @@ C****
       REAL*8, DIMENSION(JM) :: SCALEJ,SCALJR
       REAL*8, DIMENSION(LM) :: SCALEL
       REAL*8, DIMENSION(LM_REQ) :: SCALLR
-      REAL*8, DIMENSION(LM+LM_REQ) :: PL
+      REAL*8, DIMENSION(:) :: PL
 
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
@@ -2887,7 +3042,6 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED USING VWT(J,L) AS VERTICAL WEIGHTS
 C****
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE CONSTANT, only : teeny
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
@@ -3169,40 +3323,6 @@ C****
 C****
       END SUBROUTINE ILMAP
 
-
-      BLOCK DATA BDWP
-C****
-C**** TITLES FOR SUBROUTINE DIAG7
-C****
-      COMMON/D7COM/LNAME,SNAME,UNITS
-      CHARACTER LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
-      DATA LNAME/
-     1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR  ',
-     2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR  ',
-     3'WAVE POWER FOR U NEAR 300 MB AND EQUATOR  ',
-     4'WAVE POWER FOR V NEAR 300 MB AND EQUATOR  ',
-     5'WAVE POWER FOR U NEAR 50 MB AND EQUATOR   ',
-     6'WAVE POWER FOR V NEAR 50 MB AND EQUATOR   ',
-     7'WAVE POWER FOR PHI AT 922 MB AND 50 DEG N.',
-     8'WAVE POWER FOR PHI AT 700 MB AND 50 DEG N.',
-     9'WAVE POWER FOR PHI AT 500 MB AND 50 DEG N.',
-     A'WAVE POWER FOR PHI AT 300 MB AND 50 DEG N.',
-     B'WAVE POWER FOR PHI AT 100 MB AND 50 DEG N.',
-     C'WAVE POWER FOR PHI AT 10 MB AND 50 DEG N. '/
-!      .........1.........2.........3.........4.........5.........6
-      DATA UNITS/
-     1'DAY*(m/s)^2   ','DAY*(m/s)^2   ','10 DAY*(m/s)^2',
-     4'DAY*(m/s)^2   ','10 DAY*(m/s)^2','DAY*(m/s)^2   ',
-     7'10**3 DAY*m^2 ','10**3 DAY*m^2 ','10**3 DAY*m^2 ',
-     A'10**3 DAY*m^2 ','10**4 DAY*m^2 ','10**4 DAY*m^2 '/
-      DATA SNAME/
-     1'WPU850EQU'   ,'WPV850EQU'   ,'WPU300EQU'   ,'WPV300EQU'   ,
-     5'WPU50EQU'    ,'WPV50EQU'    ,'WPPHI922_50N','WPPHI700_50N',
-     9'WPPHI500_50N','WPPHI300_50N','WPPHI100_50N','WPPHI10_50N' /
-
-      END BLOCK DATA BDWP
-
-
       SUBROUTINE DIAG7P
 C****
 C**** THIS ENTRY PRINTS THE TABLES
@@ -3221,6 +3341,8 @@ C****
       REAL*8, DIMENSION(43+1,NWAV_DAG+1) :: FPOWER
       REAL*8, DIMENSION(41,2) :: period_e
       REAL*8, DIMENSION(nwav_dag) :: xnwav
+!@var COMP_WAVE complex form of WAVE. Correct arg. to subr. MEM
+      COMPLEX*16, DIMENSION(Max12HR_sequ) :: COMP_WAVE
       CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'PERIOD EASTWARD'/,CPRES/'N'/,CBLANK/' '/
 
@@ -3237,6 +3359,7 @@ C****
       INTEGER ::
      &     IDACC9,K,KPAGE,KQ,KTABLE,
      &     M,MMAXP1,N,NMAX,NS,NUA,NX
+      INTEGER :: ic
 
       NMAX=NWAV_DAG
       IDACC9=IDACC(ia_12hr)
@@ -3277,7 +3400,10 @@ C****
       WRITE (6,901) TITLE(KQ)
       DO 380 NX=1,NMAX
       N=NMAX+1-NX
-      CALL MEM (WAVE(1,1,N,KQ),IDACC9,MMAX,NUAMAX,NUBMAX,POWER,FPE,
+      do ic=1,Max12HR_sequ
+        comp_wave(ic)=cmplx( WAVE(1,ic,N,KQ) , WAVE(2,ic,N,KQ) )
+      end do
+      CALL MEM (COMP_WAVE,IDACC9,MMAX,NUAMAX,NUBMAX,POWER,FPE,
      *  VAR,PNU)
       POWX=.5*POWER(1)
       DO 330 NUA=2,27
@@ -3323,7 +3449,10 @@ C****
   410 WRITE (6,911) TITLE(KQ)
       DO 480 NX=1,NMAX
       N=NMAX+1-NX
-      CALL MEM (WAVE(1,1,N,KQ),IDACC9,MMAX,NUAMAX,NUBMAX,POWER,FPE,
+      do ic=1,Max12HR_sequ
+        comp_wave(ic)=cmplx( WAVE(1,ic,N,KQ) , WAVE(2,ic,N,KQ) )
+      end do
+      CALL MEM (COMP_WAVE,IDACC9,MMAX,NUAMAX,NUBMAX,POWER,FPE,
      *  VAR,PNU)
       DO 420 M=1,MMAXP1
   420 FPE(M)=1000.*SCALET(KQ)*FPE(M)
@@ -3449,107 +3578,6 @@ C**FREQUENCY BAND AVERAGE
       RETURN
       END SUBROUTINE MEM
 
-
-      MODULE BDIJ
-!@sum  stores information for outputting lon-lat diagnostics
-!@auth M. Kelley
-      use MODEL_COM, only : IM,JM
-      use DIAG_COM
-      IMPLICIT NONE
-      SAVE
-
-!@param nij_o total number of diagnostic ij-format fields
-      integer nij_o
-
-!@var ij_xxx non single-aij diagnostic names
-      INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
-     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o !,ij_msu2,ij_msu3,ij_msu4
-
-!@var SENTDSE stand.eddy northw. transport of dry static energy * 16
-!@var TENTDSE trans.eddy northw. transport of dry static energy * 16
-!@var TMSU2-4 MSU channel 2-4 temperatures (C)
-      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE, TMSU2,TMSU3,TMSU4
-
-      contains
-
-      function mark (val,ibar,undef)
-!@sum  mark selects a character (color) based on value and color bar
-!@auth R. Ruedy
-!@ver  1.0
-      real*8 val,undef
-      integer ibar,n
-      character*1 mark
-
-      if (val .eq. undef) then
-        mark=' '
-      else
-      select case (ibar)
-      case (ib_pct)                                ! 0.....100 %
-        n = 2.5 + val
-        if (val .ge. 20.) n=23
-        if (val .le.  0.) n= 1
-        mark = cbar(ib_pct)(n:n)
-      case (ib_pos)                                ! 0++++++++++
-        n = 2.5 + val
-c          non-unif scaling: (currently not used)
-c          if (n .gt. 13) n = (n+123)/10
-        if (n .gt. 38) n=38
-        if (n .lt. 1 .or. val .le. 0.) n= 1
-        mark = cbar(ib_pos)(n:n)
-      case (ib_npp)                                ! ---0+++++++
-        n = 11.5 + val
-        if (n .gt. 38.) n=38
-        if (n .lt.  1 ) n= 1
-        mark = cbar(ib_npp)(n:n)
-      case (ib_nnp)                                ! -------0+++
-        n = 28.5 + val
-        if (n .gt. 38.) n=38
-        if (n .lt.  1 ) n= 1
-        mark = cbar(ib_nnp)(n:n)
-      case (ib_hyb)                      ! hybrid: multiple scales
-        n = 2.5 + val
-        if (n .gt. 28) n=(n+263)/10
-        if (n .gt. 35) n=(n+180)/6
-        if (n .gt. 37) n=37
-        if (val .le.  0.) n=1
-        mark = cbar(ib_hyb)(n:n)
-      case (ib_ntr)                !tracers       ! ---0+++++++
-        if (val.lt.0.) then
-          n = 11.5-LOG(-val)/LOG(2.)
-          if (n .le.  0) n= 1
-          if (n .gt. 11) n=11
-        else if (val.eq.0.) then
-          n = 11
-        else
-          n = 11.5+LOG( val)/LOG(2.)
-          if (n .lt. 11) n=11
-          if (n .ge. 38) n=38
-        end if
-        mark = cbar(ib_npp)(n:n)                  ! use ib_npp
-      end select
-      end if
-
-      return
-      end function mark
-
-      function ib_of_legnd (leg)
-!@sum  ib_of_legnd finds the 'colorbar' for the given legend
-!@auth R. Ruedy
-!@ver  1.0
-      integer ib_of_legnd, leg
-
-      ib_of_legnd = ib_pos
-      if (legend(leg)(7:8) .eq. ',Z') ib_of_legnd = ib_nnp
-      if (legend(leg)(7:8) .eq. ',9') ib_of_legnd = ib_npp
-      if (index(legend(leg)(21:40),'-') .gt. 0) ib_of_legnd = ib_hyb
-      if (index(legend(leg),'100 ') .gt. 0) ib_of_legnd = ib_pct
-      if (legend(leg)(1:4) .eq. '9=-5') ib_of_legnd = ib_ntr
-
-      return
-      end function ib_of_legnd
-
-      END MODULE BDIJ
 
       SUBROUTINE IJ_TITLEX
 !@sum  IJ_TITLEX defines name,lname,units for composite ij output
@@ -3707,9 +3735,9 @@ c Check the count
      &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef,teeny
       USE MODEL_COM, only :
      &     im,jm,fim,jeq,byim,DTsrc,ptop,
-     &     FLAND,FLICE,FEARTH,FOCEAN,   IDACC,
+     &     IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID,ZATMO
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
       USE BDIJ
 
@@ -3763,7 +3791,7 @@ c**** ratios (the denominators)
           if (index(lname_ij(k),' x POCEAN') .gt. 0) then
             do j=1,jm
             do i=1,im
-              adenom(i,j) = 1-fland(i,j) - aij(i,j,ij_rsoi)
+              adenom(i,j) = 1-fland_glob(i,j) - aij(i,j,ij_rsoi)
      *             /(idacc(ia_ij(ij_rsoi))+teeny)
             end do
             end do
@@ -3774,9 +3802,9 @@ c**** ratios (the denominators)
             end do
             end do
           else if (index(lname_ij(k),' x PLICE') .gt. 0) then
-            adenom = flice
+            adenom = flice_glob
           else if (index(lname_ij(k),' x PSOIL') .gt. 0) then
-            adenom = fearth
+            adenom = fearth_glob
           else if (index(lname_ij(k),' x TOTAL CLOUD') .gt. 0) then
             do j=1,jm
             do i=1,im
@@ -3847,10 +3875,10 @@ c****
 
 c**** time independent arrays
       if      (k.eq.ij_topo)  then
-        anum = zatmo*bygrav    ; irange = ir_0_3550
+        anum = zatmo_glob*bygrav    ; irange = ir_0_3550
 
       else if (k.eq.ij_fland) then
-        anum = 100.*fland
+        anum = 100.*fland_glob
 
 c**** vectors: magnitude
       else if (k.eq.ij_jet.or.k.eq.ij_wsmn) then
@@ -4001,7 +4029,6 @@ c**** fill in some key numbers
 !@auth R.Ruedy
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :  im,jm,fim,jeq
       USE GEOM, only : wtj,Jrange_hemi
@@ -4079,10 +4106,8 @@ c**** find hemispheric and global means
 !@ver   1.0
       USE CONSTANT, only : sha,teeny
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
-     &     FLAND,FLICE,FEARTH,FOCEAN,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
       USE RAD_COM, only : cloud_rad_forc
@@ -4201,12 +4226,12 @@ C**** Collect the appropriate weight-arrays in WT_IJ
       do J=1,JM
       do i=1,im
         wt_ij(i,j,1) = 1.
-        wt_ij(i,j,2) = focean(i,j)
-        wt_ij(i,j,3) = flake(i,j)
-        wt_ij(i,j,4) = flice(i,j)
-        wt_ij(i,j,5) = fearth(i,j)
-        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
-        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
+c$$$        wt_ij(i,j,2) = focean(i,j)
+c$$$        wt_ij(i,j,3) = flake(i,j)
+c$$$        wt_ij(i,j,4) = flice(i,j)
+c$$$        wt_ij(i,j,5) = fearth(i,j)
+c$$$        wt_ij(i,j,6) = fearth(i,j)*(vdata(i,j,1)+vdata(i,j,10))
+c$$$        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
       end do
       end do
 C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
@@ -4328,7 +4353,7 @@ C****
 !@auth R.Ruedy
 !@ver  1.0
       use constant, only : undef
-      use model_com, only : im,jm,fland
+      use model_com, only : im,jm
       use diag_com, only : inci,incj
       use bdij
 
@@ -4386,7 +4411,7 @@ c**** for angles, change range from -180->180 to 0-360 (fac=.1)
           if (irange.eq.ir_angl .and. val.lt.-.5) val = val+36.
           if (irange.eq.ir_angl .and. val.le..1) val = .1
           line(k)(k1:k1) = mark(val,ibar,undef)
-          if (fland(i,j).gt..5) line(k+1)(k1:k1) = line(k)(k1:k1)
+          if (fland_glob(i,j).gt..5) line(k+1)(k1:k1) = line(k)(k1:k1)
           line(k+1)(1:1) = '+'             !  overstrike
         end do
       end do
@@ -4422,7 +4447,7 @@ c**** last line: legend (there is a little more space in col 1 and 2)
 C**** Print out full-page digital maps
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :
-     &     im,jm,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
+     &     im,jm,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
@@ -4469,7 +4494,7 @@ C**** PRINT MAP
         if (SMAPJ(J).eq.undef) AVG='         '
         WRITE (6,920) NINT(LAT_DG(J,jgrid)),J,(LINE(I),I=1,IM,INC),AVG
         DO I=1,IM
-          IF (FLAND(I,J).lt..5) LINE(I)='   '
+          IF (FLAND_glob(I,J).lt..5) LINE(I)='   '
         end do
         WRITE (6,925) (LINE(I),I=1,IM,INC)
         WRITE (6,925) (LINE(I),I=1,IM,INC)
@@ -4569,7 +4594,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID
-      USE SERIAL, only : GLOBALSUM
       USE MODEL_COM, only :
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
@@ -5783,7 +5807,8 @@ c**** Collect temperatures and pressures (on the secondary grid)
       do ip1=1,im
         ts=.25*(aij(i,j,ij_ts)+aij(i,j-1,ij_ts)+
      +      aij(ip1,j,ij_ts)+aij(ip1,j-1,ij_ts))/idacc(ia_src)
-        pland=.25*(fland(i,j)+fland(i,j-1)+fland(ip1,j)+fland(ip1,j-1))
+        pland=.25*(fland_glob(i,j)+fland_glob(i,j-1)+fland_glob(ip1,j)+
+     +       fland_glob(ip1,j-1))
         plb(lm+1)=pmtop
         do l=lm,1,-1
           dp=aijk(i,j,l,ijk_dp)
@@ -5868,3 +5893,113 @@ C****
 C****
       RETURN
       END subroutine vntrp1
+
+      SUBROUTINE DIAG_GATHER
+      USE MODEL_COM, only : IM
+      USE MODEL_COM, only : FLAND, FOCEAN, FLICE, FEARTH
+      USE MODEL_COM, only : ZATMO
+      USE LAKES_COM, only : FLAKE
+      USE VEG_COM,   only : vdata
+      USE DIAG_COM, only : AIJ,  AIJ_loc
+      USE DIAG_COM, only : AJ,   AJ_loc
+      USE DIAG_COM, only : APJ,  APJ_loc
+      USE DIAG_COM, only : AJK,  AJK_loc
+      USE DIAG_COM, only : AIJK, AIJK_loc
+      USE DIAG_COM, only : ASJL, ASJL_loc
+      USE DIAG_COM, only : AJL,  AJL_loc
+      USE DIAG_COM, only : CONSRV, CONSRV_loc
+      USE DIAG_COM, only : TSFREZ, TSFREZ_loc
+      USE DIAG_COM, only : WT_IJ
+#ifdef TRACERS_ON
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc
+      USE TRDIAG_COM, only : TAIJN , TAIJN_loc
+      USE TRDIAG_COM, only : TAIJS , TAIJS_loc
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc
+      USE TRDIAG_COM, only : TAJLS , TAJLS_loc
+      USE TRDIAG_COM, only : PDSIGJL,PDSIGJL_loc
+      USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
+#endif
+      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj, GET
+      USE DOMAIN_DECOMP, ONLY : CHECKSUMj
+      IMPLICIT NONE
+      INTEGER :: J_0, J_1, J_0H, J_1H
+      REAL*8, ALLOCATABLE :: tmp(:,:)
+
+      CALL CHECKSUMj(GRID, CONSRV_loc, __LINE__,__FILE__)
+
+      CALL PACK_DATAj(GRID, AJ_loc,  AJ)
+      CALL PACK_DATAj(GRID, APJ_loc, APJ)
+      CALL PACK_DATAj(GRID, AJK_loc, AJK)
+      CALL PACK_DATA (GRID, AIJ_loc, AIJ)
+      CALL PACK_DATA (GRID, AIJK_loc, AIJK)
+      CALL PACK_DATAj(GRID, ASJL_loc, ASJL)
+      CALL PACK_DATAj(GRID, AJL_loc,  AJL)
+      CALL PACK_DATAj(GRID, CONSRV_loc,  CONSRV)
+      CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
+
+#ifdef TRACERS_ON
+!     CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
+!     CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
+!     CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
+!     CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
+!     CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
+!     CALL PACK_DATAj(GRID, PDSIGJL_loc, PDSIGJL)
+!     CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
+#endif
+      
+
+! Now the external arrays
+      CALL PACK_DATA(GRID, fland, fland_glob)
+      CALL PACK_DATA(GRID, fearth, fearth_glob)
+      CALL PACK_DATA(GRID, flice, flice_glob)
+      CALL PACK_DATA(GRID, zatmo, zatmo_glob)
+
+      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      ALLOCATE(tmp(IM, J_0H:J_1H))
+
+      wt_ij(:,:,1) = 1.
+      CALL PACK_DATA(GRID, focean, wt_ij(:,:,2))
+      CALL PACK_DATA(GRID, flake,  wt_ij(:,:,3))
+      CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
+      CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))
+
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * 
+     &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
+      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
+      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * 
+     &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
+      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
+      DEALLOCATE(tmp)
+
+      END SUBROUTINE DIAG_GATHER
+
+      SUBROUTINE DIAG_SCATTER
+      USE DIAG_COM, only : AIJ, AIJ_loc
+      USE DIAG_COM, only : AJ,  AJ_loc
+      USE DIAG_COM, only : APJ, APJ_loc
+      USE DIAG_COM, only : AJK, AJK_loc
+      USE DIAG_COM, only : AIJK, AIJK_loc
+      USE DIAG_COM, only : ASJL, ASJL_loc
+      USE DIAG_COM, only : AJL,  AJL_loc
+      USE DIAG_COM, only : CONSRV, CONSRV_loc
+      USE DIAG_COM, only : TSFREZ, TSFREZ_loc
+      USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      USE DOMAIN_DECOMP, ONLY : CHECKSUMj
+      IMPLICIT NONE
+
+      CALL UNPACK_DATAj(GRID, AJ,  AJ_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, APJ, APJ_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, AJK, AJK_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, AIJ, AIJ_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, AIJK, AIJK_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, AJL,  AJL_loc,local=.false.)
+      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc,local=.false.)
+      CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc,local=.false.)
+
+      CALL CHECKSUMj(GRID, CONSRV_loc, __LINE__,__FILE__)
+
+      END SUBROUTINE DIAG_SCATTER
+
+      END MODULE DIAG_SERIAL

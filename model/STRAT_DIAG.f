@@ -29,7 +29,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM, 
      *                          SOUTH, NORTH, CHECKSUMj, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE  DIAG_COM, only : ajl,kajl,kep,pl=>plm
+      USE  DIAG_COM, only : ajl=>ajl_loc,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
 
       IMPLICIT NONE
@@ -549,12 +549,13 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
      *                          SOUTH, NORTH
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DIAG_COM, only : ajl,kajl,kep,apj
+      USE DIAG_COM, only : ajl=>ajl_loc,kajl,kep,apj=>apj_loc
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dudtsdif,jl_damdc,jl_dammc,jl_dudtvdif
+      USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
 C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::

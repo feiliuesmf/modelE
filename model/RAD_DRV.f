@@ -717,7 +717,8 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
-      USE DIAG_COM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,hdiurn,
+      USE DIAG_COM, only : aj=>aj_loc,areg,jreg,aij=>aij_loc,
+     *     ail,ajl=>ajl_loc,asjl=>asjl_loc,adiurn,hdiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,

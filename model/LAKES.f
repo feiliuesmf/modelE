@@ -709,7 +709,8 @@ C****
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
      *        GLOBALSUM, HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,bydxyp
-      USE DIAG_COM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,
+      USE DIAG_COM, only : aij=>aij_loc,
+     *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn,tij_rvr
@@ -1014,7 +1015,7 @@ C****
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH, 
      *    WRITE_PARALLEL
       USE GEOM, only : bydxyp
-      USE DIAG_COM, only : aij,ij_mrvr
+      USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
@@ -1267,7 +1268,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trunpsi,trunoli,trprec,gtracer,trmelti
 #endif
-      USE DIAG_COM, only : aj,j_run
+      USE DIAG_COM, only : aj=>aj_loc,j_run
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
@@ -1367,7 +1368,8 @@ C****
 #endif
 #endif
       USE SEAICE_COM, only : rsi
-      USE DIAG_COM, only : aj,areg,jreg,j_wtr1,j_wtr2,j_run,j_erun
+      USE DIAG_COM, only : aj=>aj_loc,areg,jreg,j_wtr1,j_wtr2,
+     *     j_run,j_erun
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm

@@ -23,8 +23,8 @@
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
 #endif
-      USE DIAG_COM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
-     *     ,j_smelt
+      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,ij_f0oi,ij_erun2,j_imelt,j_smelt
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
       IMPLICIT NONE
@@ -299,7 +299,7 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
-      USE DIAG_COM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
+      USE DIAG_COM, only : aj=>aj_loc,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE SEAICE, only : simelt,tfrez
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -438,7 +438,8 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : mwl,gml,flake
-      USE DIAG_COM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
+      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,ij_erun2,ij_rsoi,ij_msi2
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp
       USE DOMAIN_DECOMP, only : GRID
@@ -654,7 +655,8 @@ C****
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
-      USE DIAG_COM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
+      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug

@@ -190,7 +190,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trli0
 #endif
-      USE DIAG_COM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
+      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
       USE DOMAIN_DECOMP, only : GRID,GET
       USE DOMAIN_DECOMP, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
@@ -315,7 +316,8 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE LANDICE, only : lndice,ace1li,ace2li
       USE SEAICE_COM, only : rsi
-      USE DIAG_COM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
+       USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
      *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr

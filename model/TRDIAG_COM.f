@@ -37,7 +37,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
-      real*8, allocatable, dimension(:,:,:,:) :: taijln
+      real*8, dimension(IM,JM,LM,ntm)         :: taijln
+      real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
@@ -80,7 +81,8 @@ C**** TAIJN
       integer tij_drydep,tij_gsdep
 #endif
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
-      real*8, allocatable, dimension(:,:,:,:) :: taijn
+      real*8, dimension(IM,JM,ktaij,ntm)      :: taijn
+      real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -112,7 +114,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
+      REAL*8, DIMENSION(IM,JM,ktaijs)       :: TAIJS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
@@ -148,7 +151,8 @@ C**** TAJLN
 #endif
      &     ,ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN
+      REAL*8, DIMENSION(JM,LM,ktajlx,ntm)     :: TAJLN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc
 !@var jlnt_xx Names for TAJLN diagnostics
       INTEGER jlnt_conc,jlnt_mass,jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,
      &  jlnt_vt_mm,jlnt_mc,jlnt_turb,jlnt_lscond, jlnt_bebe,
@@ -201,7 +205,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #endif
 
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS
+      REAL*8, DIMENSION(JM,LM,ktajls)       :: TAJLS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
 !@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
@@ -243,7 +248,8 @@ C**** include some extra troposphere only ones
       INTEGER, PARAMETER :: ntmxcon = ntm
 #endif
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
+      REAL*8, DIMENSION(JM,ktcon,ntmxcon)   :: TCONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV_loc
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -280,7 +286,8 @@ C**** include some extra troposphere only ones
 #endif
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PDSIGJL
+      REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PDSIGJL_loc
 
       END MODULE TRDIAG_COM
 
@@ -543,13 +550,13 @@ C*** Unpack read global data into local distributed arrays
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 #ifdef TRACERS_ON 
-      ALLOCATE ( TAIJLN(IM,J_0H:J_1H,LM,ntm), stat=status )
-      ALLOCATE ( TAIJN( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS( IM,J_0H:J_1H,ktaijs   ), stat=status )
-      ALLOCATE ( TAJLN(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS(    J_0H:J_1H,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+      ALLOCATE ( TAIJLN_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
 #endif
-      ALLOCATE ( PDSIGJL(  J_0H:J_1H,LM    ), stat=status )
+      ALLOCATE ( PDSIGJL_loc(  J_0H:J_1H,LM    ), stat=status )
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

@@ -820,7 +820,8 @@ c***********************************************************************
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij, pbl_args, dtsurf )
 
-      use diag_com , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn
+      use diag_com , only : aij=>aij_loc
+     *     ,tsfrez=>tsfrez_loc,tdiurn,aj=>aj_loc,areg,adiurn,jreg,hdiurn
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
@@ -1905,7 +1906,8 @@ c**** check for reasonable temperatures over earth
       use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
       use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
-      use diag_com, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
+      use diag_com, only : aij=>aij_loc
+     *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : snoage, snoage_def
       use veg_com, only : almass,aalbveg       !nyk
@@ -2052,7 +2054,8 @@ c****
       use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep
       use veg_com, only : afb
-      use diag_com, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
+      use diag_com, only : aj=>aj_loc,areg,aij=>aij_loc
+     *     ,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow

@@ -26,7 +26,8 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
       USE DOMAIN_DECOMP, ONLY : halo_update_column, checksum_column
       USE DOMAIN_DECOMP, ONLY : halo_update       , checksum
-      USE DIAG_COM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
+      USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
+     *     ,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
       USE TRDIAG_COM, only: tajln,jlnt_turb
@@ -81,7 +82,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       integer nta,nx,ntix(ntm)
 #endif
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -91,6 +92,7 @@ C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 

@@ -1041,6 +1041,7 @@ C****
       USE TRACER_COM
       USE DIAG_COM
       USE TRDIAG_COM
+      USE DIAG_SERIAL, only : MAPTXT
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
@@ -1361,6 +1362,7 @@ C****
       USE GEOM, only: dxyp
       USE TRACER_COM
       USE DIAG_COM
+      USE DIAG_SERIAL, only : IJ_avg
 
       IMPLICIT NONE
 

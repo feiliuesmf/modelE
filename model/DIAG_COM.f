@@ -20,7 +20,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=80
 !@var AJ zonal budget diagnostics for each surface type
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJ
+      REAL*8, DIMENSION(JM,KAJ,NTYPE) :: AJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJ_loc
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
@@ -33,27 +34,32 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4 TITREG*80,NAMREG(2,23)
 !@var JREH lat/lon array defining regions for AREG diagnostics
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
+c$$$      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: JREG
+      INTEGER, DIMENSION(IM,JM) :: JREG
 
 !@param KAPJ number of zonal pressure diagnostics
       INTEGER, PARAMETER :: KAPJ=2
 !@var APJ zonal pressure diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: APJ
+      REAL*8, DIMENSION(JM,KAPJ) :: APJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: APJ_loc
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
       INTEGER, PARAMETER :: KAJL=70+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJL
+      REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJL_loc
 
 !@param KASJL number of ASJL diagnostics
       INTEGER, PARAMETER :: KASJL=4
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL
+      REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL_loc
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
       INTEGER, PARAMETER :: KAIJ=180 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ
+      REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ_loc
 
 !@param KAIL number of AIL diagnostics
       INTEGER, PARAMETER :: KAIL=15
@@ -83,7 +89,8 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER :: KCON=170
 !@var CONSRV conservation diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CONSRV
+      REAL*8, DIMENSION(JM,KCON) :: CONSRV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CONSRV_loc
 !@var SCALE_CON scales for conservation diagnostics
       REAL*8, DIMENSION(KCON) :: SCALE_CON
 !@var TITLE_CON titles for conservation diagnostics
@@ -148,12 +155,14 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@param KAJKX number of zonal constant pressure composit diagnostics
       INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
 !@var AJK zonal constant pressure diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK
+      REAL*8, DIMENSION(JM,LM,KAJK) :: AJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK_loc
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER :: KAIJK=6 , kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK
+      REAL*8, DIMENSION(IM,JM,LM,KAIJK) :: AIJK
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK_loc
 
 !@param NWAV_DAG number of components in spectral diagnostics
       INTEGER, PARAMETER :: NWAV_DAG=min(9,imh)
@@ -186,7 +195,7 @@ C**** parameters and variables for ISCCP diags
      &  isccp_late(nisccp+1)=(/-60,-30,-15,15,30,60/)
      & ,isccp_lat(nisccp)=(/-45.,-22.5,0.,22.5,45./)
 !@var isccp_reg latitudinal index for ISCCP histogram regions
-      integer, ALLOCATABLE  :: isccp_reg(:)
+      integer :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
       real*8 :: AISCCP(ntau,npres,nisccp)
 
@@ -221,7 +230,8 @@ C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
 C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
 C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
 C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TSFREZ
+      REAL*8, DIMENSION(IM,JM,KTSF) :: TSFREZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TSFREZ_loc
 
 !@param KTD number of diurnal temperature diagnostics
       INTEGER, PARAMETER :: KTD=9
@@ -434,7 +444,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter :: nwts_ij = 7
 !@var wt_ij various weight-arrays use in ij-diagnostics
-      real*8, ALLOCATABLE, dimension(:,:,:) :: wt_ij
+      real*8, dimension(IM,JM,NWTS_IJ) :: wt_ij
 !@var IW_xxx index for weight-array
       integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
@@ -601,9 +611,10 @@ c idacc-indices of various processes
       USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD
       USE RAD_COM, only : LM_REQ
-      USE DIAG_COM, ONLY : SQRTM,AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK
-     *     ,AIJK,AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ
-     *     ,OA,wt_ij
+      USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,APJ_loc,AJL_loc,ASJL_loc
+     *     ,AIJ_loc,CONSRV_loc,AJK_loc, AIJK_loc
+     *     ,AFLX_ST,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc
+     *     ,OA
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -619,32 +630,28 @@ c idacc-indices of various processes
 
       CALL GET( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 
-      ALLOCATE( isccp_reg(J_0H:J_1H),
-     &         STAT = IER)
-
-      ALLOCATE( JREG(IM, J_0H:J_1H),
+      ALLOCATE( ! JREG(IM, J_0H:J_1H),
      &         SQRTM(IM, J_0H:J_1H),
      &         STAT = IER)
 
-      ALLOCATE( APJ(J_0H:J_1H, KAPJ),
-     &         CONSRV(J_0H:J_1H, KCON),
+      ALLOCATE( APJ_loc(J_0H:J_1H, KAPJ),
+     &         CONSRV_loc(J_0H:J_1H, KCON),
      &         STAT = IER)
 
-      ALLOCATE(AJ(J_0H:J_1H, KAJ, NTYPE),
-     &         AJL(J_0H:J_1H, LM, KAJL),
-     &         ASJL(J_0H:J_1H,LM_REQ,KASJL),
-     &         AIJ(IM,J_0H:J_1H,KAIJ),
-     &         AJK(J_0H:J_1H,LM,KAJK),
+      ALLOCATE(AJ_loc(J_0H:J_1H, KAJ, NTYPE),
+     &         AJL_loc(J_0H:J_1H, LM, KAJL),
+     &         ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
+     &         AIJ_loc(IM,J_0H:J_1H,KAIJ),
+     &         AJK_loc(J_0H:J_1H,LM,KAJK),
      &         Z_inst(KGZ,IM,J_0H:J_1H),
      &         RH_inst(KGZ,IM,J_0H:J_1H),
      &         T_inst(KGZ,IM,J_0H:J_1H),
-     &         TSFREZ(IM,J_0H:J_1H,KTSF),
+     &         TSFREZ_loc(IM,J_0H:J_1H,KTSF),
      &         TDIURN(IM,J_0H:J_1H,KTD),
      &         OA(IM,J_0H:J_1H,KOA),
-     &         wt_ij(IM,J_0H:J_1H,nwts_ij),
      &         STAT = IER)
 
-      ALLOCATE( AIJK(IM,J_0H:J_1H,LM,KAIJK),
+      ALLOCATE( AIJK_loc(IM,J_0H:J_1H,LM,KAIJK),
      &         AFLX_ST(LM+LM_REQ+1,IM,J_0H:J_1H,5),
      &         STAT = IER)
 
@@ -660,9 +667,9 @@ c idacc-indices of various processes
      *    ,Kradia
       USE DIAG_COM
       USE DOMAIN_DECOMP, Only : grid, GET, PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP, Only : PACK_DATAj, UNPACK_DATAj
+      USE DOMAIN_DECOMP, Only : PACK_DATAj, UNPACK_DATAj, LOG_PARALLEL
       USE DOMAIN_DECOMP, Only : PACK_COLUMN, UNPACK_COLUMN
-      USE DOMAIN_DECOMP, Only : AM_I_ROOT, CHECKSUM
+      USE DOMAIN_DECOMP, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -699,18 +706,9 @@ c idacc-indices of various processes
       INTEGER, INTENT(INOUT) :: it
       REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
 
-      REAL*8 :: APJ_glob   (JM, KAPJ)
-      REAL*8 :: CONSRV_glob(JM, KCON)
-      REAL*8 :: AJ_glob    (JM, KAJ, NTYPE)
-      REAL*8 :: AJL_glob   (JM, LM,  KAJL)
-      REAL*8 :: ASJL_glob  (JM, LM_REQ, KASJL)
-      REAL*8 :: AIJ_glob   (IM, JM, KAIJ)
-      REAL*8 :: AJK_glob   (JM, LM, KAJK)
-      REAL*8 :: AIJK_glob  (IM, JM, LM, KAIJK)
-      REAL*8 :: TSFREZ_glob(IM, JM, KTSF)
       REAL*8 :: TDIURN_glob(IM, JM, KTD)
       REAL*8 :: OA_glob    (IM, JM, KOA)
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I
 
       CALL GET( grid, J_STRT=J_0, J_STOP=J_1  )
 
@@ -772,75 +770,83 @@ C**** The regular model (Kradia le 0)
         write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
 
-        CALL PACK_DATA(grid,  TSFREZ, TSFREZ_glob)
-        CALL PACK_DATAj(grid, AJ, AJ_glob)
-        CALL PACK_DATAj(grid, APJ, APJ_glob)
-        CALL PACK_DATAj(grid, AJL, AJL_glob)
-        CALL PACK_DATAj(grid, ASJL, ASJL_glob)
-        CALL PACK_DATA(grid,  AIJ, AIJ_glob)
-        CALL PACK_DATAj(grid, CONSRV, CONSRV_glob)
-        CALL PACK_DATAj(grid, AJK, AJK_glob)
-        CALL PACK_DATA(grid,  AIJK, AIJK_glob)
+        DO I = 1, SIZE(CONSRV_LOC,2)
+          CALL CHECKSUM(grid, CONSRV_LOC(:,I),
+     &         10000*i+__LINE__,__FILE__)
+          IF (I == 1) CALL LOG_PARALLEL(grid, __FILE__,__LINE__,
+     &         x1 = CONSRV_LOC(:,i))
+        END DO
+
+        CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
+        CALL PACK_DATAj(grid, AJ_loc, AJ)
+        CALL PACK_DATAj(grid, APJ_loc, APJ)
+        CALL PACK_DATAj(grid, AJL_loc, AJL)
+        CALL PACK_DATAj(grid, ASJL_loc, ASJL)
+        CALL PACK_DATA(grid,  AIJ_loc, AIJ)
+        CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
+        CALL PACK_DATAj(grid, AJK_loc, AJK)
+        CALL PACK_DATA(grid,  AIJK_loc, AIJK)
         CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
         CALL PACK_DATA(grid,  OA, OA_glob)
 
+
         If (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ_glob,
-     *     idacc, AJ_glob,AREG,APJ_glob,AJL_glob,ASJL_glob,AIJ_glob,
-     *     AIL, ENERGY,CONSRV_glob,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK_glob,AIJK_glob,AISCCP,HDIURN,
+          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
+     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,
+     *     AIL, ENERGY,CONSRV,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
      *     TDIURN_glob,OA_glob,it
         END IF
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
 
-        CALL PACK_DATA(grid,  TSFREZ, TSFREZ_glob)
-        CALL PACK_DATAj(grid, AJ, AJ_glob)
-        CALL PACK_DATAj(grid, APJ, APJ_glob)
-        CALL PACK_DATAj(grid, AJL, AJL_glob)
-        CALL PACK_DATAj(grid, ASJL, AJL_glob)
-        CALL PACK_DATA(grid,  AIJ, AIJ_glob)
-        CALL PACK_DATAj(grid, CONSRV, CONSRV_glob)
-        CALL PACK_DATAj(grid, AJK, AJK_glob)
-        CALL PACK_DATA(grid,  AIJK, AIJK_glob)
+        CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
+        CALL PACK_DATAj(grid, AJ_loc, AJ)
+        CALL PACK_DATAj(grid, APJ_loc, APJ)
+        CALL PACK_DATAj(grid, AJL_loc, AJL)
+        CALL PACK_DATAj(grid, ASJL_loc, ASJL)
+        CALL PACK_DATA(grid,  AIJ_loc, AIJ)
+        CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
+        CALL PACK_DATAj(grid, AJK_loc, AJK)
+        CALL PACK_DATA(grid,  AIJK_loc, AIJK)
 
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
-     *     keyct,KEYNR,REAL(TSFREZ_glob,KIND=4),   idacc,
-     *     REAL(AJ_glob,KIND=4),REAL(AREG,KIND=4),REAL(APJ_glob,KIND=4),
-     *     REAL(AJL_glob,KIND=4),REAL(ASJL_glob,KIND=4),
-     *     REAL(AIJ_glob,KIND=4),REAL(AIL,KIND=4),
-     *     REAL(ENERGY,KIND=4), REAL(CONSRV_glob,KIND=4),
+     *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
+     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),
+     *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
+     *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
+     *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
-     *     REAL(WAVE,KIND=4),REAL(AJK_glob,KIND=4),
-     *     REAL(AIJK_glob,KIND=4),
+     *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),
+     *     REAL(AIJK,KIND=4),
      *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
      *     monacc,it
         END IF
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '
 
-        CALL PACK_DATA(grid, TSFREZ, TSFREZ_glob)
+        CALL PACK_DATA(grid, TSFREZ_loc, TSFREZ)
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
         END IF
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ_glob,
-     *     idacc, AJ_glob,AREG,APJ_glob,AJL_glob,ASJL_glob,AIJ_glob,AIL,
-     *     ENERGY,CONSRV_glob,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK_glob,AIJK_glob,AISCCP,HDIURN,
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
+     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
+     *     ENERGY,CONSRV,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
      *     TDIURN_glob,OA_glob,it
 
-        CALL UNPACK_DATA(grid,  TSFREZ_glob, TSFREZ, local=.true.)
-        CALL UNPACK_DATAj(grid, AJ_glob,     AJ,     local=.true.)
-        CALL UNPACK_DATAj(grid, APJ_glob,    APJ,    local=.true.)
-        CALL UNPACK_DATAj(grid, AJL_glob,    AJL,    local=.true.)
-        CALL UNPACK_DATAj(grid, ASJL_glob,   ASJL,   local=.true.)
-        CALL UNPACK_DATA(grid,  AIJ_glob,    AIJ,    local=.true.)
-        CALL UNPACK_DATAj(grid, CONSRV_glob, CONSRV, local=.true.)
-        CALL UNPACK_DATAj(grid, AJK_glob,    AJK,    local=.true.)
-        CALL UNPACK_DATA(grid,  AIJK_glob,   AIJK,   local=.true.)
+        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc, local=.true.)
+        CALL UNPACK_DATAj(grid, AJ,     AJ_loc,     local=.true.)
+        CALL UNPACK_DATAj(grid, APJ,    APJ_loc,    local=.true.)
+        CALL UNPACK_DATAj(grid, AJL,    AJL_loc,    local=.true.)
+        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc,   local=.true.)
+        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc,    local=.true.)
+        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc, local=.true.)
+        CALL UNPACK_DATAj(grid, AJK,    AJK_loc,    local=.true.)
+        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc,   local=.true.)
         CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN, local=.true.)
         CALL UNPACK_DATA(grid,  OA_glob,     OA,     local=.true.)
         
@@ -858,19 +864,20 @@ C**** The regular model (Kradia le 0)
           GO TO 10 ! or should that be just a warning ??
         end if
         TSFREZ(:,J_0:J_1,:)=TSFREZ4(:,J_0:J_1,:)
-        AJ(J_0:J_1,:,:)=AJ(J_0:J_1,:,:)+AJ4(J_0:J_1,:,:)
+        AJ_loc(J_0:J_1,:,:)=AJ_loc(J_0:J_1,:,:)+AJ4(J_0:J_1,:,:)
         AREG=AREG+AREG4
-        APJ(J_0:J_1,:)=APJ(J_0:J_1,:)+APJ4(J_0:J_1,:)
-        AJL(J_0:J_1,:,:)=AJL(J_0:J_1,:,:)+AJL4(J_0:J_1,:,:)
-        ASJL(J_0:J_1,:,:)=ASJL(J_0:J_1,:,:)+ASJL4(J_0:J_1,:,:)
-        AIJ(:,J_0:J_1,:)=AIJ(:,J_0:J_1,:)+AIJ4(:,J_0:J_1,:)
+        APJ_loc(J_0:J_1,:)=APJ_loc(J_0:J_1,:)+APJ4(J_0:J_1,:)
+        AJL_loc(J_0:J_1,:,:)=AJL_loc(J_0:J_1,:,:)+AJL4(J_0:J_1,:,:)
+        ASJL_loc(J_0:J_1,:,:)=ASJL_loc(J_0:J_1,:,:)+ASJL4(J_0:J_1,:,:)
+        AIJ_loc(:,J_0:J_1,:)=AIJ_loc(:,J_0:J_1,:)+AIJ4(:,J_0:J_1,:)
         AIL=AIL+AIL4
         ENERGY=ENERGY+ENERGY4
-        CONSRV(J_0:J_1,:)=CONSRV(J_0:J_1,:)+CONSRV4(J_0:J_1,:)
+        CONSRV_loc(J_0:J_1,:)=CONSRV_loc(J_0:J_1,:)+CONSRV4(J_0:J_1,:)
         SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
         WAVE=WAVE+WAVE4
-        AJK(J_0:J_1,:,:)=AJK(J_0:J_1,:,:)+AJK4(J_0:J_1,:,:)
-        AIJK(:,J_0:J_1,:,:)=AIJK(:,J_0:J_1,:,:)+AIJK4(:,J_0:J_1,:,:)
+        AJK_loc(J_0:J_1,:,:)=AJK_loc(J_0:J_1,:,:)+AJK4(J_0:J_1,:,:)
+        AIJK_loc(:,J_0:J_1,:,:)=AIJK_loc(:,J_0:J_1,:,:)+
+     *       AIJK4(:,J_0:J_1,:,:)
         AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
         IDACC = IDACC + IDAC1
 !@var idacc(5) is the length of a time series (daily energy history).

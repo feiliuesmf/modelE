@@ -26,7 +26,8 @@
      *     ,oldno,oldnl,smfpm
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
-      USE DIAG_COM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
+      USE DIAG_COM, only : aj=>aj_loc,areg,aij=>aij_loc,
+     *     ajl=>ajl_loc,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
@@ -274,7 +275,7 @@ C****
       if (isccp_diags.eq.1) then
        DO J = 1, J_0-1
          DO I = 1, IMAXJ(J)
-           DO ibox = 1, (NCOL+1)*LM
+           DO ibox = 1, NCOL*(LM+1)
              randxx = RANDU(xx) ! burn random numbers
            END DO
          END DO
@@ -1197,7 +1198,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=J_0,J_1
+      do j=1,JM ! purposefully over entire domain
         isccp_reg(j)=0
         do n=1,nisccp
            if(lat_dg(j,1).ge.isccp_late(n) .and.

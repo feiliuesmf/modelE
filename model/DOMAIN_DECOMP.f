@@ -238,19 +238,19 @@
 !@+   with the data from the corresponding distributed array.
       PUBLIC :: PACK_DATA
       interface PACK_DATA
-         module procedure PACK_1D
-         module procedure PACK_2D
-         module procedure LPACK_2D
-         module procedure PACK_3D
-         module procedure IPACK_3D
-         module procedure PACK_4D
+         module procedure PACK_1D       ! (i)
+         module procedure PACK_2D       ! (i,j)
+         module procedure LPACK_2D      ! (i,j)
+         module procedure PACK_3D       ! (i,j,l)
+         module procedure IPACK_3D      ! (i,j,l)
+         module procedure PACK_4D       ! (i,j,l,m)
       end interface
 
       PUBLIC :: PACK_DATAj
       interface PACK_DATAj
-         module procedure PACKj_2D
-         module procedure PACKj_3D
-         module procedure PACKj_4D
+         module procedure PACKj_2D     ! (j,k)
+         module procedure PACKj_3D     ! (j,k,l)
+         module procedure PACKj_4D     ! (j,k,l,m)
       end interface
 
 !@var ESMF_BCAST Generic routine to broadcast data to all PEs.
@@ -263,57 +263,57 @@
 !@+   array the data from the corresponding global array.
       PUBLIC :: UNPACK_DATA
       interface UNPACK_DATA
-         module procedure UNPACK_1D
-         module procedure UNPACK_2D
-         module procedure LUNPACK_2D
-         module procedure UNPACK_3D
-         module procedure IUNPACK_3D
-         module procedure UNPACK_4D
+         module procedure UNPACK_1D      ! (i)
+         module procedure UNPACK_2D      ! (i,j)
+         module procedure LUNPACK_2D     ! (i,j)
+         module procedure UNPACK_3D      ! (i,j,l)
+         module procedure IUNPACK_3D     ! (i,j,l)
+         module procedure UNPACK_4D      ! (i,j,l,m)
       end interface
 
       PUBLIC :: UNPACK_DATAj
       interface UNPACK_DATAj
-         module procedure UNPACKj_2D
-         module procedure UNPACKj_3D
-         module procedure UNPACKj_4D
+         module procedure UNPACKj_2D     ! (j,k)
+         module procedure UNPACKj_3D     ! (j,k,l)
+         module procedure UNPACKj_4D     ! (j,k,l,m)
       end interface
 
 !@var PACK_COLUMN Generic routine to pack  a global array
 !@+   with the data from the corresponding distributed array.
       PUBLIC :: PACK_COLUMN
       interface PACK_COLUMN
-         module procedure PACK_COLUMN_1D
-         module procedure PACK_COLUMN_2D
-         module procedure PACK_COLUMN_i2D
-         module procedure PACK_COLUMN_3D
+         module procedure PACK_COLUMN_1D  ! (k,  j  )
+         module procedure PACK_COLUMN_2D  ! (k,i,j  )
+         module procedure PACK_COLUMN_i2D ! (k,i,j  )
+         module procedure PACK_COLUMN_3D  ! (k,i,j,l)
       end interface
 
 !@var UNPACK_COLUMN Generic routine to unpack into a distributed
 !@+   array the data from the corresponding global array.
       PUBLIC :: UNPACK_COLUMN
       interface UNPACK_COLUMN
-         module procedure UNPACK_COLUMN_1D
-         module procedure UNPACK_COLUMN_2D
-         module procedure IUNPACK_COLUMN_2D
-         module procedure UNPACK_COLUMN_3D
+         module procedure UNPACK_COLUMN_1D  ! (k,  j  )
+         module procedure UNPACK_COLUMN_2D  ! (k,i,j  )
+         module procedure IUNPACK_COLUMN_2D ! (k,i,j  )
+         module procedure UNPACK_COLUMN_3D  ! (k,i,j,l)
       end interface
 
 !@var PACK_BLOCK  Generic routine to pack  a global array
 !@+   with the data from the corresponding distributed array.
       PUBLIC :: PACK_BLOCK 
       interface PACK_BLOCK 
-         module procedure IPACK_BLOCK_2D
-         module procedure  PACK_BLOCK_2D
-         module procedure  PACK_BLOCK_3D
+         module procedure IPACK_BLOCK_2D    ! (k,l,i,j  )
+         module procedure  PACK_BLOCK_2D    ! (k,l,i,j  )
+         module procedure  PACK_BLOCK_3D    ! (k,l,i,j,m)
       end interface
 
 !@var UNPACK_BLOCK  Generic routine to unpack into a distributed
 !@+   array the data from the corresponding global array.
       PUBLIC :: UNPACK_BLOCK 
       interface UNPACK_BLOCK 
-         module procedure IUNPACK_BLOCK_2D
-         module procedure  UNPACK_BLOCK_2D
-         module procedure  UNPACK_BLOCK_3D
+         module procedure IUNPACK_BLOCK_2D    ! (k,l,i,j  )
+         module procedure  UNPACK_BLOCK_2D    ! (k,l,i,j  )
+         module procedure  UNPACK_BLOCK_3D    ! (k,l,i,j,m)
       end interface
 
 !@var PACK_J Generic routine to pack  a global array
@@ -713,7 +713,7 @@
       t_arr(J_0:J_1) = ABS(t_arr(J_0:J_1))
       Call GLOBALSUM(grd_dum, t_arr, L1norm,istag=stgr_,iskip=skip_)
       
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &     file,line, asum, L1norm
 
 #endif
@@ -737,7 +737,7 @@
       REAL*8  :: asum_glob, L1norm_glob
       REAL*8 :: 
      &  t_arr(size(arr,1),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I,J
       INTEGER :: stgr_,skip_
 
 #ifdef DEBUG_DECOMP
@@ -762,7 +762,7 @@
       t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
       Call GLOBALSUM(grd_dum,      t_arr,L1norm,istag=stgr_,iskip=skip_)
 
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &     file,line, asum, L1norm
 
 #endif
@@ -809,7 +809,7 @@
          Call GLOBALSUM(grd_dum, t_arr, L1norm(k), istag=stgr_)
       End Do
       If (AM_I_ROOT()) Then
-        Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &       file,line, Sum(asum), Sum(L1norm)
       End If
 
@@ -859,7 +859,7 @@
       t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
       Call GLOBALSUM(grd_dum,      t_arr,L1norm,istag=stgr_,iskip=skip_)
  
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &     file,line, asum, L1norm
 
 #endif
@@ -905,7 +905,7 @@
          t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
          Call GLOBALSUM(grd_dum, t_arr, L1norm(k), istag=stgr_)
       End Do
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &     file,line, Sum(asum), Sum(L1norm)
 
 #endif
@@ -942,7 +942,7 @@
          Call GLOBALSUM(grd_dum, Abs(arr(k,:)), L1norm(k), istag=stgr_)
       END DO
 
-      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+      If (AM_I_ROOT()) Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &     file,line, Sum(asum), Sum(L1norm)
 
 #endif
@@ -979,7 +979,7 @@
       END DO
 
       If (AM_I_ROOT()) Then
-        Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))') 
+        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
      &       file,line, Sum(asum), Sum(L1norm)
         CALL SYS_FLUSH(unit_)
       End If
@@ -1052,7 +1052,7 @@
       End Do
 
       If (AM_I_ROOT()) Then
-        Write(unit_,'(a20,1x,i5,1x,2(e22.17,1x))')
+        Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))')
      &       file,line, SUM(asum), SUM(L1norm)
       End If
 
@@ -1107,8 +1107,8 @@
       
       END SUBROUTINE GLOBALSUM_INT_REDUCE
 
-      SUBROUTINE GLOBALSUM_J(grd_dum, arr, gsum, 
-     &                       hsum, istag, iskip, polefirst,all)
+      SUBROUTINE GLOBALSUM_J(grd_dum, arr, gsum,
+     &                       hsum, istag, iskip, polefirst,all, jband)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: arr(grd_dum%j_strt_halo:)
@@ -1118,11 +1118,13 @@
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
       LOGICAL,OPTIONAL,  INTENT(IN) :: polefirst
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
+      INTEGER, OPTIONAL, INTENT(IN) :: jband(2)
 
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J, ier
       REAL*8  :: garr(grd_dum%jm_world)
       LOGICAL :: istag_, iskip_
 
+      INTEGER :: JSTRT, JSTOP
     ! now local
 #ifdef USE_ESMF
       type (ESMF_Grid)                           :: GRID
@@ -1144,6 +1146,14 @@
       If (Present(iskip)) Then 
         If (iskip == 1) iskip_ = .true.
       End If
+
+      JSTRT=1
+      JSTOP=JM
+
+      IF (PRESENT(jband)) THEN
+        JSTRT=jband(1)
+        JSTOP=jband(2)
+      END IF
 
 #ifdef DEBUG_DECOMP
       If (Size(arr) /= grd_dum%j_stop_halo-grd_dum%j_strt_halo+1) Then
@@ -1177,7 +1187,7 @@
          ElseIf (iskip_) then
            gsum = sum(garr(2:JM-1),1)
          Else
-           gsum = sum(garr(1:JM),1)
+           gsum = sum(garr(JSTRT:JSTOP),1)
          EndIf
          If (Present(hsum)) then
             If (istag_) then
@@ -4089,12 +4099,12 @@ c$$$      ENDIF
       If (PRESENT(x0)) WRITE(iu, *) '   x0=',x0
       IF (PRESENT(i1)) THEN
          DO n = 1, Size(i1)
-            WRITE(iu, '(10x,i4,1x,a,i5)')n, '   i1=',i1(n)
+            WRITE(iu, '(10x,i4,1x,a,i6)')n, '   i1=',i1(n)
          END DO
       END IF
       IF (PRESENT(x1)) THEN
          DO n = 1, Size(x1)
-            WRITE(iu, '(10x,i4,1x,a,e14.8)')n, '   x1=',x1(n)
+            WRITE(iu, '(10x,i4,1x,a,e22.16)')n, '   x1=',x1(n)
          END DO
       END IF
       CALL SYS_FLUSH(iu)

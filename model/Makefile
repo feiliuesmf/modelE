@@ -233,7 +233,7 @@ gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJSA)
 setup:  $(BIN_DIR)/$(RUN).exe
 	echo '---------        Starting setup for $(RUN)         ---------'
 	echo '--------------------------------------------------------------'
-	$(SETUP) $(RUN)
+	$(SETUP) $(RUN) $(NPES)
 
 # Mkexe the gcm
 exe:	$(BIN_DIR)/$(RUN).exe

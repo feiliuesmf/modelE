@@ -108,8 +108,10 @@ C**** Some local constants
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
       USE RAD_COM, only : rqt,lm_req
-      USE DIAG_COM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
-     *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
+      USE DIAG_COM, only : aj=>aj_loc,areg,jreg,apj=>apj_loc
+     *     ,ajl=>ajl_loc,asjl=>asjl_loc,ail,j50n,j70n,j5nuv
+     *     ,j5suv,j5s,j5n,aij=>aij_loc
+     *     ,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300
      *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
@@ -922,7 +924,7 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DIAG_COM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
+      USE DIAG_COM, only : ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
@@ -2066,7 +2068,7 @@ C****
       USE CONSTANT, only : omega,mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
-      USE DIAG_COM, only : consrv
+      USE DIAG_COM, only : consrv=>consrv_loc
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
@@ -2172,8 +2174,8 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP, only : GET, GRID
-      USE DIAG_COM, only : consrv,nofm
+      USE DOMAIN_DECOMP, only : GET, GRID, CHECKSUMj
+      USE DIAG_COM, only : consrv=>consrv_loc,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -2946,7 +2948,8 @@ C****
       USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
       USE GEOM, only : DXYV
-      USE DIAG_COM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp,ned
+      USE DIAG_COM, only : energy,speca,ajk=>ajk_loc
+     &     ,aijk=>aijk_loc,ijk_u,ijk_v,ijk_dp,ned
       IMPLICIT NONE
 
       INTEGER ::
@@ -3467,7 +3470,16 @@ c****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
-      USE DIAG_COM
+      USE DIAG_COM, only : TSFREZ => TSFREZ_loc
+      USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD, ISCCP_DIAGS
+      USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
+      USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
+      USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
+      USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
+      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max 
+      USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
+      USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
+      USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
@@ -3778,11 +3790,11 @@ C**** Initiallise ice freeze diagnostics at beginning of run
         if (isum.eq.1) return
         go to 100
       end if
-      AJ=0    ; AREG=0
-      APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
-      AIL=0   ; ENERGY=0 ; CONSRV=0
+      AJ_loc=0    ; AREG=0
+      APJ_loc=0   ; AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
+      AIL=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
-      AJK=0   ; AIJK=0 ; HDIURN=0
+      AJK_loc=0   ; AIJK_loc=0 ; HDIURN=0
       AISCCP=0
 #ifdef TRACERS_ON
       TAIJLN=0 ; TAIJN=0 ; TAIJS=0 ; TAJLN=0 ; TAJLS=0 ; TCONSRV=0
@@ -3792,7 +3804,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 
       if (isum.eq.1) return
 
-      AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 
       CALL EPFLXI (U)  ! strat
 
@@ -3813,7 +3825,8 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
-      USE DIAG_COM, only : aij,ij_lkon,ij_lkoff,ij_lkice,tsfrez,tdiurn
+      USE DIAG_COM, only : aij=>aij_loc
+     *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
