@@ -35,12 +35,13 @@ c****
       use radncb, only : trhr,fsf,cosz1
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     snowe,tearth,wearth,aiearth
+     *     snowe,tearth,wearth,aiearth,
+     &     evap_max_ij, fr_sat_ij, qg_ij
 #ifdef TRACERS_WATER
      *     ,trvege,trbare,trsnowbv
 #endif
       use sle001
-     &    , only : reth,retp,advnc,
+     &    , only : reth,retp,advnc,evap_limits,
      &    ngm,
      &    pr,htpr,prs,htprs,gw=>w,ht,snowd,tp,fice,ghour=>hour,
      &    fv,fb,atrg,ashg,alhg,
@@ -59,7 +60,7 @@ c****
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use socpbl, only : zgs
       USE SOCPBL, only : zgs
-     &     ,zs1,tgv,tkv,qg,hemi,dtsurf,pole
+     &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,dtsurf,pole
      &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
       use pbl_drv, only : pbl, evap_max,fr_sat
@@ -99,13 +100,14 @@ c****
 
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
+!@var rhosrf0 estimated surface air density
+      real*8 rhosrf0
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      real*8 rhosrf0
       integer n,nx,ntx
       integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
@@ -120,6 +122,9 @@ C**** Tracer input/output common block for PBL
 #endif
       real*8 qsat
       real*8 srhdt
+!@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
+!@var qg_nsat rel. humidity at non-saturated fraction of soil
+      real*8 qg, qg_nsat
 c****
 c**** fearth    soil covered land fraction (1)
 c****
@@ -245,12 +250,13 @@ ccc extracting snow variables
       wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i, j)
       hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i, j)
       fr_snow(1:2)      = fr_snow_ij(1:2, i, j)
-      call ghinij (i,j,wfc1)
-      call reth
-      call retp
+      ! call ghinij (i,j,wfc1) !! -seems that one doesn't need it here
+      !call reth
+      !call retp
 c     call hydra
 c??   snow = snowd(1)*fb + snowd(2)*fv
-      tg1=tbcs
+      !tg1=tbcs
+      tg1 = tearth(i,j)
       srheat=fsf(itype,i,j)*cosz1(i,j)
       !srhdts=srhdts+srheat*dtsurf*ptype
 ! need this
@@ -263,8 +269,10 @@ c**** loop over ground time steps
       tg=tg1+tf
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
-      qg=qsat(tg,elhx,ps)
+      qg_sat=qsat(tg,elhx,ps)  !  repacing with qs from prev step
+      qg = qg_ij(i,j)
       tgv=tg*(1.+qg*deltx)
+      rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -319,10 +327,14 @@ C**** calculate new tracer ratio after precip
 #endif
 c***********************************************************************
 c***
-ccc for now all soil is set to saturated
-ccc will replace with real flux limiting when finished testing
-      fr_sat = 1.
-      evap_max = 1. 
+ccc just for test - setting all soil to saturated
+      !fr_sat = 1.
+      !evap_max = 1.
+      !call evap_limits( .false., evap_max, fr_sat )
+ccc ctually PBL needs evap (kg/m^2*s) / rho_air
+      evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
+      fr_sat = fr_sat_ij(i,j)
+      !print *, "evap lim. = ", evap_max, fr_sat
       call pbl(i,j,itype,ptype)
 c***
       cdm = cmgs(i,j,itype)
@@ -351,19 +363,31 @@ c  define extra variables to be passed in surfc:
       ch    =cdh
       srht  =srheat
       trht  =trheat
-      zs    =zgs
-      zmixe =zmix
-      vgm   =wg
-      eddy  =eds1
-      tgpass=tg
+      zs    =zgs  !!! will not need after qsbal is replaced
+      zmixe =zmix  !!! will not need after qsbal is replaced
+      vgm   =wg  !!! eliminate - used in outw only
+      eddy  =eds1  !!! will not need after qsbal is replaced
+      tgpass=tg !!! eliminate - used in outw only
       tspass=ts
-      tkpass=tkv/(1.+q(i,j,1)*deltx)
+      tkpass=tkv/(1.+q(i,j,1)*deltx) !!! eliminate - used in outw only
 c **********************************************************************
 c *****
 c**** calculate ground fluxes
 c     call qsbal
+      call ghinij (i,j,wfc1)
       call advnc
+      call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
       tg1=tbcs
+      !qg_ij(i,j) = qs  !!! - this seemed to work ok
+      !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
+      qg_sat = qsat(tg1+tf,elhx,ps)  ! saturated soil
+      qg_nsat = qs                   ! non-sat soil, no evap
+      if ( rcdhws > 1.d-30 ) then    ! correction to non-sat, due to evap
+        qg_nsat = qg_nsat + evap_max_ij(i,j)/(0.001*rcdhws)
+      endif
+      qg_nsat = min( qg_nsat, qg_sat )
+      qg_ij(i,j) = fr_sat_ij(i,j) * qg_sat
+     &     + (1.d0 -fr_sat_ij(i,j)) * qg_nsat
 
       wbare(1:ngm,i,j) = gw(1:ngm,1)
       wvege(0:ngm,i,j) = gw(0:ngm,2)

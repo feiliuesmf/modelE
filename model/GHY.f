@@ -106,7 +106,7 @@ ccc alai used in printout only
       private
 
 c**** public functions:
-      public hl0, set_snow, reth, retp, advnc
+      public hl0, set_snow, reth, retp, advnc, evap_limits
 
 c**** public parameters:
       public ngm,ng,imt,nlsn  ! used by ghycom
@@ -139,7 +139,7 @@ c**** public variables:
       real*8, external :: qsat,dqsatdt
       real*8 beta,betab,betat,betav  ! used only in qsbal (+ maybe accm)
       integer, parameter :: ngm=6, ng=ngm+1, imt=5
-      integer, parameter :: igcm=0  !?? do we really need it ?
+      integer, parameter :: igcm=5  !?? do we really need it ?
       real*8 pr,htpr,prs,htprs,w(0:ngm,2),ht(0:ngm,2)
      & ,snowd(2),ws(0:ngm,2),tp(0:ngm,2),fice(0:ngm,2),hour
      & ,dz(ngm),q(imt,ngm),qk(imt,ngm),sl,fv,fb,alai,atrg,ashg,alhg
@@ -162,12 +162,12 @@ c     common/weight/a(4,imt-1),b(4,imt-1),p(4,imt-1)
       real*8 thetm(0:ng,2),hlm(0:64),
      &     xklm(0:64,imt-1),dlm(0:64,imt-1),thm(0:64,imt-1),alph0
       integer nth
-      real*8 qm1,q1,qs,qb,qc,evap(2),evapw,evapd,evaps,epb,epc,
+      real*8 qm1,q1,qs,qb,evap(2),evapw,evapd,evaps,epb,epc,
      &     snowf,snowfs
       !dimension fs(2),fs1(2,2)
       real*8 pres,rho,ts,vsm,ch,srht,trht,zs,z1,
      &     tg,t1,vg,eddy
-      real*8 thrm(2),snsh(2),xlth(2)
+      real*8 thrm(2),xlth(2)
       real*8 top_index, xkus(ng,2), xkusa(2)
       !dimension snowdu(2)
 
@@ -177,7 +177,7 @@ ccc   as global ones ...
       integer isn(2),nsn(2)
       real*8  dzsn(nlsn+1,2),wsn(nlsn,2),hsn(nlsn,2),tsn1(2),fr_snow(2)
       real*8  flmlt(2),fhsng(2),thrmsn(2),hesn(2),snshsn(2)
-      real*8  tbs, snshs
+      real*8  tbs
 
 ccc   the following looks like diagnistic output
       real*8 etbcs, esnowd, ezw, ewtr1, eice1, etp(0:ngm,2)
@@ -191,8 +191,36 @@ ccc   put some obscure parameters to soil_params structure
 
       type (soil_params) so_
 
+ccc   put here some data needed for print-out during the crash
+      type :: debug_data_str
+        real*8 qc
+      end type debug_data_str
+
+      type (debug_data_str) debug_data
+
 ccc   derivatives of surface fluxes with respect to temperature
-      real*8 snsh_dt, epb_dt, evaps_dt
+      real*8 epb_dt, evaps_dt
+
+ccc   evaporation limiting data which one needs to pass the pbl
+      real*8, public :: evap_max_sat, evap_max_nsat, fr_sat
+
+ccc   evaporation fluxes: these are pure fluxes over m^2
+ccc   i.e. they are not multiplied by any fr_...
+!@var evapb, evapbs, evapvw, evapvd, evapvs evaporation flux (m/s)
+!@+ (b=bare, v=vege, d=dry, w=wet, s=snow)
+      real*8 :: evapb, evapbs, evapvw, evapvd, evapvs
+!@var devapbs_dt, devapvs_dt d evap / dt for snow covered soil (bare/vege)
+      real*8 :: devapbs_dt, devapvs_dt
+!@var evapor average (weighted with fr_..) evaporation from bare/vege soil
+      real*8 :: evapor(2)
+
+ccc sensible heat fluxes: these are pure fluxes over m^2
+ccc   i.e. they are not multiplied by any fr_...
+!@var snsh sensible heat from soil to air (bare/vege) no snow (J/s)
+!@var snsh sensible heat from snow to air (bare/vege)  (J/s)
+!@var dsnsh_dt d (sensible heat) / d (soil temp) : same for bare/vege/snow
+      real*8 :: snsh(2), snshs(2), dsnsh_dt
+
 
       contains
 
@@ -240,7 +268,7 @@ c**** fraction of wet canopy fw
 c**** determine fm from snowd depth and masking depth
       fm=1.d0-exp(-snowd(2)/(snowm+1d-12))
 c**** correct fraction of wet canopy by snow fraction
-      fw=fw+fm*(1.d0-fw)
+      fw=fw+fm*(1.d0-fw)  !!! have no idea what does this formula mean IA
       fd=1.d0-fw
       return
       end subroutine reth
@@ -489,6 +517,7 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
  350  continue
       return
       end subroutine hl0
+
       subroutine fl
 c**** evaluates the flux between layers.
 c**** input:
@@ -517,6 +546,175 @@ c**** put infiltration maximum into xinfc
       end do
       return
       end subroutine fl
+
+#define UNDER_CONSTRUCTION
+#ifdef UNDER_CONSTRUCTION
+      subroutine evap_limits( compute_evap, evap_max_out, fr_sat_out )
+!@sum computes maximal evaporation fluxes for current soil properties
+!@calls cond
+!@var compute_evap if .true. compute evap, otherwise just evap_max,fr_sat
+!@var evap_max_out max evaporation from unsaturated soil
+!@var fr_sat_out fraction of saturated soil
+      logical, intent(in) :: compute_evap
+      real*8, intent(out) :: evap_max_out, fr_sat_out
+ccc   local variables
+!@var evap_max evap limits due to total amount of water in the soil
+!@var evap_max_snow evap limits due to amount of snow
+!@var evap_max_wet evap limit for saturated soil/canopy
+!@var evap_max_dry evap limit for unsaturated soil/canopy
+      real*8 :: evap_max(2), evap_max_snow(2)
+      real*8 :: evap_max_wet(2), evap_max_dry(2)
+!@var qb,qbs,qv,qvs relative humidity (b-bare, v-vege, s-snow)
+      real*8 :: qb, qbs, qv, qvs
+!@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
+      real*8 :: epb, epbs, epv, epvs
+!@var rho3,cna,qm1dt local variable
+      real*8 rho3, cna, qm1dt
+      integer ibv, l
+
+c     cna is the conductance of the atmosphere
+      cna=ch*vsm
+      rho3=.001d0*rho ! i.e divide by rho_water to get flux in m/s
+
+ccc !!! it's a hack should call it somewhere else !!!
+      !call hydra
+
+      ! soil moisture
+      do ibv=1,2
+        evap_max(ibv) = 0.
+        do l=1,n
+          evap_max(ibv) = evap_max(ibv) +
+     &         (w(l,ibv)-dz(l)*thetm(l,ibv))/dt
+        enddo
+      enddo
+
+      ! maximal evaporation from the snow fraction
+      do ibv=1,2
+        evap_max_snow(ibv) = pr
+        do l=1,nsn(ibv)
+          evap_max_snow(ibv) = evap_max(ibv) +
+     &         wsn(l,ibv)/dt
+        enddo
+      enddo
+
+      ! evaporation from bare soil
+      ibv = 1
+      !!! no support for saturated soil yet, setting just in case...
+      evap_max_wet(ibv) =  evap_max(ibv) + pr
+      ! evap limited by diffusion and precipitation
+      evap_max_dry(ibv) = min( evap_max(ibv),
+     &     2.467d0*d(1,1)*(theta(1,1)-thetm(1,1))/dz(1) + pr )
+
+      ! evaporation from the canopy
+      ibv = 2
+      evap_max_wet(ibv) = w(0,2) / dt + pr
+      ! dry canopy
+!!! this needs "qs" from the previous time step
+c     betad is the the root beta for transpiration.
+c     hw is the wilting point.
+c     fr(l) is the fraction of roots in layer l
+      betad=0.d0
+      do 30 l=1,n
+        betadl(l)=(1.d0-fice(l,2))*fr(l)*max((hw-h(l,2))/hw,zero)
+        betad=betad+betadl(l)
+ 30   continue
+c     canopy conductivity cnc
+      call cond
+      betat=cnc/(cnc+cna+1d-12)
+      evap_max_dry(ibv) = min( evap_max(ibv),
+     &     betat*rho3*cna*( qsat(tp(0,2)+tfrz,lhe,pres) - qs ) + pr )
+
+      !! now we have to add the fluxes according to fractions
+      ! bare soil
+      evap_max_sat = fb*fr_snow(1)*evap_max_snow(1)
+      evap_max_nsat = fb*(1.-fr_snow(1))*evap_max_dry(1)
+      ! canopy
+      evap_max_sat = evap_max_sat +
+     &     fv*( fr_snow(2)*fm*evap_max_snow(2) +
+     &          (1.-fr_snow(2)*fm)*theta(0,2)*evap_max_wet(2) )
+      evap_max_nsat = evap_max_nsat +
+     &     fv*( (1. - fr_snow(2)*fm) * ( 1. - theta(0,2) )
+     &           * evap_max_dry(2) )
+
+      fr_sat = fb * fr_snow(1) +
+     &         fv * ( fr_snow(2)*fm + (1.-fr_snow(2)*fm)*theta(0,2) )
+
+ccc set variables for output
+      evap_max_out = evap_max_nsat
+      fr_sat_out = fr_sat
+
+ccc not sure if all this should be in one subroutine, but otherwise
+ccc one has to pass all these flux limits
+
+      if ( .not. ( evap_max_out > 0. .or.  evap_max_out <= 0. ) )
+     &     stop "GHY::evap_limits: evap_max_out = NaN" !call abort
+
+      if ( .not. compute_evap ) return
+
+cccccccccccccccccccccccccccccccccccccccc
+
+c**** qm1 has mass of water vapor in first atmosphere layer, kg m-2
+      qm1dt=.001d0*qm1/dt
+! need this ?      if(igcm.ge.0 .and. igcm.le.3) xl=eddy/(z1-zs)
+      tbcs=fb*tbs+fv*tcs
+
+c     calculate bare soil, canopy and snow mixing ratios
+      qb  = qsat(tp(1,1)+tfrz,lhe,pres)
+      qbs = qsat(tsn1(1)+tfrz,lhe,pres)
+      qv  = qsat(tp(0,2)+tfrz,lhe,pres)
+      qvs = qsat(tsn1(2)+tfrz,lhe,pres)
+
+c     potential evaporation for bare and vegetated soil and snow
+      epb  = rho3*cna*(qb-qs)
+      epbs = rho3*cna*(qbs-qs)
+      epv  = rho3*cna*(qv-qs)
+      epvs = rho3*cna*(qvs-qs)
+
+c     bare soil evaporation
+      evapb = min( epb, evap_max_dry(1) )
+      evapb = max( evapb, -qm1dt )
+      evapbs = min( epbs, evap_max_snow(1) )
+      evapbs = max( evapbs, -qm1dt )
+      evapor(1) = fr_snow(1)*evapbs + (1.-fr_snow(1))*evapb
+
+c     vegetated soil evaporation
+c     evapvd is dry evaporation (transpiration) from canopy
+c     evapvw is wet evaporation from canopy (from interception)
+      evapvw = min( epv, evap_max_wet(2) )
+      evapvw = max( epv,-qm1dt )
+      evapvd = min( epv, evap_max_dry(2) ) ! evap_max_dry(2) depends on qs
+      evapvd = max( epv, 0.d0 )
+      evapvs = min( epvs, evap_max_snow(2) )
+      evapvs = max( epvs, -qm1dt )
+      evapor(2) = fr_snow(2)*fm*evapvs + (1.-fr_snow(2)*fm)*
+     &     ( theta(0,2)*evapvw + (1.-theta(0,2))*evapvd )
+
+      devapbs_dt = rho3*cna*qsat(tsn1(1)+tfrz,lhe,pres)
+     &     *dqsatdt(tsn1(1)+tfrz,lhe)
+      devapvs_dt = rho3*cna*qsat(tsn1(2)+tfrz,lhe,pres)
+     &     *dqsatdt(tsn1(2)+tfrz,lhe)
+      return
+ 
+cccccccccccccccccccccccccccccccccccccccc
+
+      end subroutine evap_limits
+
+
+      subroutine sensible_heat
+      implicit none
+      real*8 cna
+
+      cna=ch*vsm
+      snsh(1)=sha*rho*cna*(tp(1,1)-ts+tfrz)     ! bare soil
+      snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)     ! canopy
+      snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)  ! bare soil snow
+      snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
+      dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
+
+      end subroutine sensible_heat
+
+#endif
+
       subroutine qsbal
 c**** finds qs that balances fluxes.
 c**** obtains qs by successive approximation.
@@ -558,6 +756,7 @@ ccc   added declarations for local vars:
       real*8 qm1dt, xkf, tbs1, tcs1, qcv, qcs, epcs
       real*8 cna,dd,ed,qso,rho3,xl
       integer ibv,l,itr
+      real*8 qc
 
 ccc   first compute maximal amount of water available for evaporation
       do ibv=1,2
@@ -601,9 +800,12 @@ c     qc = qsat(tcs1+tfrz,lhe,pres)
       qcs = qsat(tsn1(2)+tfrz,lhe,pres)
 
       qc = fm*qcs + (1.d0-fm)*qcv
+      debug_data%qc = qc
+
 c     on first iteration, assume beta's = 1
       betab=1.d0
       betav=1.d0
+      ! print *, 'qsbal qs from pbl = ', qs
       if(igcm.ge.0 .and. igcm.le.3)
      &     qs=(fb*betab*cna*qb+fv*betav*cna*qc+xl*q1)
      &     /(fb*betab*cna+fv*betav*cna+xl+1d-12)
@@ -623,6 +825,7 @@ c     canopy conductivity cnc
 c     surface layer mixing ratio to balance fluxes
       itr=1
  10   qso=qs
+      ! print *, 'qsbal itr = ', itr, ' qs = ', qs
 c     potential evaporation for bare soil and canopy
       epb=rho3*cna*(qb-qs)
 c     epc=rho3*cna*(qc-qs)
@@ -719,8 +922,9 @@ c     snsh(ibv)=sha*rho*cna*(tp(l,ibv)-ts+tfrz)
       snsh(1)=sha*rho*cna*(tbs1-ts+tfrz)
 c     snsh(2)=sha*rho*cna*(tcs1-ts+tfrz)
       snsh(2)=sha*rho*cna*(tp(0,2)-ts+tfrz)
-      snshs = sha*rho*cna*(tsn1(2)-ts+tfrz)
-      snsh_dt = sha*rho*cna
+      snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)
+      snshs(1) = sha*rho*cna*(tsn1(1)-ts+tfrz)
+      dsnsh_dt = sha*rho*cna
       epb_dt = rho3*cna*qsat(tbs1+tfrz,lhe,pres)*dqsatdt(tbs1+tfrz,lhe)
       evaps_dt = rho3*cna*qsat(tsn1(2)+tfrz,lhe,pres)
      *     *dqsatdt(tsn1(2)+tfrz,lhe)
@@ -794,6 +998,7 @@ c     plus the evaporation from snow
       endif
       return
       end subroutine flg
+
       subroutine cond
 c**** calculates the canopy conductance
 c**** input:
@@ -822,6 +1027,7 @@ ccc compute average water table for topmodel
       integer l, ibv
       ! will insert this code later
       end subroutine estimate_zbar
+
       subroutine runoff
 c**** calculates surface and underground runoffs.
 c**** input:
@@ -1352,13 +1558,20 @@ ccc should be removed when program is rewritten in a more clean way...
       thrm(1)=stbo*(tp(1,1)+tfrz)**4
       thrm(2)=stbo*(tp(0,2)+tfrz)**4
 c****
+ccc just debugging ijdebug 65018
+c$$$      if ( ijdebug == 65018 ) then
+c$$$        write(99,'(20f12.4)')
+c$$$     $       dt, dtr, tp(1,1), tp(2,1), tp(0,2), tp(1,2)
+c$$$     $       , qs, ts-273.16, srht+trht, evap(1)*1.d9, evap(2)*1.d9
+c$$$     $       , beta
+c$$$        endif
       if(tp(1,1).gt.100.d0.or.tp(0,2).gt.100.d0)then
       write(99,*)'retp tp bounds error'
       write(99,*)'ijdebug',ijdebug
       call reth
       call hydra
       call outw(1)
-      ! call abort
+      !call abort
       stop 'retp: tground > 100C - see soil_outw and fort.99'
       endif
       return
@@ -1395,6 +1608,7 @@ ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       real*8 dtm,tb0,tc0
       integer ibv,l,ll,limit,nit
+      real*8 dum1, dum2
       limit=200
       nit=0
       dtr=dt
@@ -1412,10 +1626,16 @@ ccc accm0 was not called here in older version - check
         call hydra
         call wtab
         call qsbal
+        call evap_limits( .true., dum1, dum2 )
         call xklh
         call gdtm(dtm)
-        dts=min(dtr,dtm)
-        dtr=dtr-dts
+        if ( dtm >= dtr ) then
+          dts = dtr
+          dtr = 0.d0
+        else
+          dts = min( dtm, dtr*0.5d0 )
+          dtr=dtr-dts
+        endif
         call snwlsi( dts )
         call fl
         call flg
@@ -1713,7 +1933,7 @@ c**** use timestep based on coefficient of drag
      &       + 8.d0*stbo*(tp(l,ibv)+tfrz)**3
         ak2(ibv)=shc(l,ibv)+((1.d0-fice(l,ibv))*shw+fice(l,ibv)*shi)
      &       *w(l,ibv)
-        dtm=min(dtm,ak2(ibv)/(xk2(ibv)+1d-12))
+        dtm=min(dtm,0.5*ak2(ibv)/(xk2(ibv)+1d-12))
         if(ibv.eq.1)dtm3=dtm
         if(ibv.eq.2)dtm4=dtm
 c
@@ -1791,7 +2011,8 @@ cc    write(ichn,1021)
 cc    write(ichn,1021)
       write(ichn,1035)
       write(ichn,1036)
-      write(ichn,1037) snowd(2),rnf(2),evap(2),xinfc(2),zw(2),qc,evapw,
+      write(ichn,1037) snowd(2),rnf(2),evap(2),xinfc(2),zw(2),
+     &     debug_data%qc,evapw,
      *     evapd,dr,fw
       write(ichn,1021)
       write(ichn,1030)
@@ -1972,8 +2193,8 @@ ccc  local vars:
 
       epotsn(1)=epb
       epotsn(2)=evaps
-      snshsn(1)=snsh(1)
-      snshsn(2)=fm*snshs
+      snshsn(1)=snshs(1)
+      snshsn(2)=fm*snshs(2)
 
       srhtsn(1)=srht
       srhtsn(2)=fm*srht
@@ -1998,7 +2219,7 @@ c!!! should pass ground properties to snow_adv
      $       pr, dts,
      &       tp(1,ibv), dz(1), fr_snow(ibv),
      &       tsn_surf, flmlt(ibv), fhsng(ibv),
-     &       thrmsn(ibv), snsh_dt, evap_sn_dt(ibv) , fbfv(ibv) )
+     &       thrmsn(ibv), dsnsh_dt, evap_sn_dt(ibv) , fbfv(ibv) )
 
         flmlt(ibv) = flmlt(ibv)/dts
         fhsng(ibv) = fhsng(ibv)/dts
@@ -2119,5 +2340,29 @@ ccc and now limit all the snow to 5cm water equivalent
       return
       end subroutine set_snow
 
+#ifdef TRACERS_WATER
+      subroutine ghy_tracers
+      real*8 tr_flux(0:nlsn+1+ngm
+      real*8 flux(num_tracers)
+
+      do ibv=1,2
+ccc we propagate water first down and then up always in positive
+ccc direction, so that we always have water in the cell upsteam
+ccc down:
+        if( tr_flux_snow(0,ibv) > 0.d0 ) then
+          tr_wsn(:,1,ibv) = tr_wsn(:,1,ibv) +
+     &         tr_pr(:)/pr * tr_flux_snow(0,ibv)
+        do l=1,nlsn
+          if( tr_flux_snow(l,ibv) > 0.d0 ) then
+            flux(:) = tr_wsn(:,l,ibv)/(fr_snow(ibv)*wsn(l,ibv))
+            tr_wsn(:,l,ibv) = tr_wsn(:,l,ibv)
+
+
+ccc now we apply sinks due to runoff and evaporation
+
+      enddo
+
+      end subroutine ghy_tracers
+#endif
 
       end module sle001

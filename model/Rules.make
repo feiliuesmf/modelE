@@ -65,6 +65,9 @@ LFLAGS = -64 -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF
 ifeq ($(VERBOSE_OUTPUT),NO)
 LFLAGS += -LD_MSG:OFF=84,85,15,134
 endif
+# uncomment next two lines for extra debugging
+# FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON -DEBUG:verbose_runtime=ON
+# LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON -DEBUG:verbose_runtime=ON
 endif
 
 # SGI-32 - specific options here

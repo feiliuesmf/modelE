@@ -49,6 +49,10 @@ C**** replacements for GDATA
 ccc topmodel input data
       REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ
 
+ccc evaporation limits from previous time step
+      real*8, dimension(IM,JM) :: evap_max_ij=1., fr_sat_ij=1.,
+     &     qg_ij = 0.
+
 #ifdef TRACERS_WATER
 !@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
       REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TRBARE
@@ -83,9 +87,10 @@ C**** What is the prognostic variable for snow here?
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-     *       ,SNOAGE
+     *       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE
+        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
+     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

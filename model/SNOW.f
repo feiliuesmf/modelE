@@ -36,6 +36,9 @@ ccc model parameters
       real*8, parameter :: EPS = 1.d-8  ! was 1.d-12
 !@var MAX_NL maximal number of snow layers (only 3 are used, really) (1)
       integer, parameter :: MAX_NL = 16
+!@var TOTAL_NL maximal number of snow layers (actual number used) (1)
+ccc actually MAX_NL can be set = TOTAL_NL but should test first ...
+      integer, parameter :: TOTAL_NL=3
 !@var MIN_SNOW_THICKNESS minimal thickness of snow (m)
 ccc trying to increase MIN_SNOW_THICKNESS for stability
 ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
@@ -134,8 +137,8 @@ c!!!                may be ice*max_fract_water ??
       fract_cover_ratio = fract_cover/fract_cover_new
       total_dz = total_dz*fract_cover_ratio
 
-      if ( total_dz .gt. MIN_SNOW_THICKNESS*6.d0 ) then
-        nl = 3
+      if ( total_dz .gt. MIN_SNOW_THICKNESS*1.5d0 ) then
+        nl = TOTAL_NL
       else
         nl = 1
         endif
@@ -157,7 +160,7 @@ c!!        dz(1) = 0.10d0
           enddo
         endif
 
-      do n=1,nl
+      do n=1,TOTAL_NL
         wsn(n) = 0.d0
         hsn(n) = 0.d0
         enddo
@@ -205,7 +208,7 @@ ccc the following is just for check
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground, fract_cover,
      &    tsn_surf, water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt , fb_or_fv )
+     &    radiation_out, snsh_dt, evap_dt, fb_or_fv )
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
 !@auth I.Aleinov
@@ -215,39 +218,39 @@ ccc input:
       real*8 srht, trht, snht, htpr, evaporation
       real*8 pr, dt, t_ground, dz_ground, fract_cover
       real*8 snsh_dt, evap_dt, fb_or_fv
+
 ccc output:
       real*8 water_to_ground, heat_to_ground, tsn_surf
       real*8 radiation_out
 ccc data arrays
       real*8 dz(nl+1), wsn(nl), hsn(nl)
 
-
-      COMMON /SOILIN/ PR_i,PRS_i,HTPR_i,HTPRS_i,
-     &  PRES_i,TS_i,QS_i,  CH_i,VSM_i,RHO_i,
-     *  SRHT_i,TRHT_i,COST_i,SINT_i,EDDY_i,Q1_i,QM1_i,Z1_i,ZS_i,
-     &  IGCM_i
-      real*8 PR_i,PRS_i,HTPR_i,HTPRS_i
-      real*8 PRES_i,TS_i,QS_i,  CH_i,VSM_i,RHO_i
-      real*8 SRHT_i,TRHT_i,COST_i,SINT_i,EDDY_i,Q1_i,QM1_i,Z1_i,ZS_i
-      integer IGCM_i
+ccc tracer variables
+!@var tr_flux flux of water between snow layers (>0 is down) (m/s)
+      real*8 tr_flux(0:TOTAL_NL)
+      real*8 wsn_o(MAX_NL), fract_cover_o, evap_o
+      integer nl_o
 
 ccc for debug
       real*8 total_energy  !, lat_evap
       integer i, retcode
-      common /snowmodel_debug/ hsn_old, dz_old, fract_cover_old,
-     &     wsn_old, retcode
-      real*8 hsn_old, dz_old, fract_cover_old, wsn_old
+      integer, save :: counter=0
 
-ccc for debug
-      ! lat_evap =        2.5d9    !/* J m-3  */ defined globally
-      hsn_old = hsn(1)
-      wsn_old = wsn(1)
-      dz_old = dz(1)
-      fract_cover_old = fract_cover
+      counter = counter + 1
+      !rint *, counter
+
+ccc for tracers
+      wsn_o(:) = 0.d0
+      nl_o = nl
+      fract_cover_o = fract_cover
+      wsn_o(1:nl) = wsn(1:nl)
+      evap_o = evaporation
+
+ccc checking if the model conserves energy (part 1) (for debugging)
       total_energy = 0.d0
       do i=1,nl
-         total_energy = total_energy - hsn(i)*fract_cover
-         enddo
+        total_energy = total_energy - hsn(i)*fract_cover
+      enddo
 
       call snow_adv_1(dz, wsn, hsn, nl,
      &    srht, trht, snht, htpr, evaporation, pr, dt,
@@ -255,22 +258,44 @@ ccc for debug
      &    tsn_surf, water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
 
-ccc for debug
       if (fb_or_fv .le. 0.) return
+ccc checking if the model conserves energy (part 2) (for debugging)
       do i=1,nl
-         total_energy = total_energy + hsn(i)*fract_cover
-         enddo
+        total_energy = total_energy + hsn(i)*fract_cover
+      enddo
       total_energy = total_energy -
      &    (srht+trht-snht-lat_evap*evaporation+htpr)*dt
       total_energy = total_energy + heat_to_ground + radiation_out*dt
       if ( abs(total_energy) .gt. 1.d0 ) then
         print*, "total energy error",i_earth, j_earth,total_energy,
      *       heat_to_ground,radiation_out*dt
-         stop 'snow_adv: total energy error' ! call abort
-       end if
-ccc   just for debug:
-ccc      water_to_ground =  pr
-ccc      heat_to_ground = (srht+trht)*dt
+        stop 'snow_adv: total energy error' ! call abort
+      end if
+
+c$$$      if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
+c$$$        print*, "total energy error",i_earth, j_earth,total_energy
+c$$$        call abort
+c$$$      endif
+
+ccc for tracers
+      tr_flux(0) = pr - evaporation
+      do i=1,TOTAL_NL
+        tr_flux(i) = -(wsn(i)*fract_cover - wsn_o(i)*fract_cover_o)/dt
+     &       + tr_flux(i-1)
+      enddo
+ccc checking if preserve water
+      if ( abs( tr_flux(TOTAL_NL) - water_to_ground/dt ) > 1.d-15 ) then
+        if ( DEB_CH == 0 )
+     $       call openunit("snow_debug", DEB_CH, .false., .false.)
+        write(DEB_CH,*) "snow_adv: H2O error "
+     &       , abs( tr_flux(TOTAL_NL) - water_to_ground/dt )
+     &       , tr_flux(TOTAL_NL) , water_to_ground/dt
+     &       , fract_cover, fract_cover_o
+     &       , nl, nl_o, tsn_surf, counter, evaporation, evap_o
+        !call abort
+        !stop 'snow_adv: H2O error'
+      endif
+
       return
       end subroutine snow_adv
 
@@ -549,7 +574,7 @@ ccc and now remove (add) water due to extra evaporation.
 c!!! this may make wsn(1) negative, the only way I see now to prevent it
 c!!! is to keep minimal thickness of snow big enough
 
-      water_down = - evap_dt * delta_tsn_impl
+      water_down = - evap_dt * delta_tsn_impl * dt ! ??
 
 c!!!  this is for debugging
       do n=1,nl
