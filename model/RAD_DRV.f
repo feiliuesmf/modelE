@@ -319,7 +319,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
@@ -523,20 +523,23 @@ C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
 C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
+C****  4) Set TRRDRY to dry radius
 C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
 C****       have to be reset for each grid box to allow for the way it
 C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
+caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
         FS8OPX = (/0d0, 0d0, 1d0, 1d0, 2d0, 2d0,  1d0 , 1d0/)
         FT8OPX = (/0d0, 0d0, 1d0, 1d0, 1d0, 1d0, 1.3d0, 1d0/)
       end if
-      NTRACE=2
-c tracer 1 is sulfate, tracer 2 is seasalt
-      ITR = (/ 1,2,0,0, 0,0,0,0 /)
+      NTRACE=3
+      TRRDRY=(/ .3d0, .44d0, 1.7d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
+c tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR = (/ 1,2,2,0, 0,0,0,0 /)
 #endif
 
       if (ktrend.ne.0) then
@@ -621,7 +624,7 @@ C     OUTPUT DATA
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS, SRDVIS
-     &          ,BTEMPW ,O3_OUT
+     &          ,BTEMPW ,O3_OUT ,TTAUSV
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq
@@ -656,10 +659,8 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2,n_Ox
-      USE TRACER_DIAG_COM, only: taijs,ijts_fc
-#ifdef TRACERS_AEROSOLS_Koch
-      USE AEROSOL_SOURCES, only: aer_tau
-#endif
+     * ,trm
+      USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
 C
@@ -837,9 +838,6 @@ C**** SS clouds are considered as a block for each continuous cloud
       END DO
       END DO
       end if                    ! kradia le 0
-#ifdef TRACERS_AEROSOLS_Koch
-      call GET_TAU
-#endif
 C****
 C**** MAIN J LOOP
 C****
@@ -1057,9 +1055,11 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (optical depth, I think)
 C**** Only define TRACER is individual tracer is actually defined.
 #ifdef TRACERS_AEROSOLS_Koch
-        if (n_SO4.gt.0) TRACER(L,1)=aer_tau(i,j,l,n_so4)
-        if (n_seasalt1.gt.0. .and. n_seasalt2.gt.0) TRACER(L,2)=
-     *       aer_tau(i,j,l,n_seasalt1)+aer_tau(i,j,l,n_seasalt2)
+        if (n_SO4.gt.0) TRACER(L,1)=trm(i,j,l,n_so4)/DXYP(J)
+        if (n_seasalt1.gt.0.) TRACER(L,2)=
+     *       trm(i,j,l,n_seasalt1)/DXYP(J)
+        if (n_seasalt2.gt.0.) TRACER(L,3)=
+     *       trm(i,j,l,n_seasalt2)/DXYP(J)
 #endif
 
       END DO
@@ -1169,12 +1169,24 @@ C**** Sulfate forcing
           SNFST(N_SO4,I,J)=SRNFLB(4+LM)
           TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0
+          do l=1,lm
+          taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
+     *   +TTAUSV(L,1)
+          end do
 c seasalt forcing
-          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt
+          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt1
+          FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0 ! turn off seasalt2
           CALL RCOMPX
           SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
+          FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
+         do l=1,lm
+          taijs(i,j,ijts_tau(n_seasalt1))=
+     *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
+          taijs(i,j,ijts_tau(n_seasalt2))=
+     *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
+          end do
         end if
       end if
 #endif
