@@ -78,7 +78,6 @@ C****     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****     MSI   OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
-C**** HSI(1:2)  OCEAN ICE ENTHALPY OF FIRST/SECOND LAYER (C)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
@@ -396,59 +395,80 @@ C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       DO I=1,IM
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
 
-      IF (RSI(I,J)*FOCEAN(I,J).le.0) CYCLE
+      IF (RSI(I,J)*FOCEAN(I,J).GT.0) THEN
+        Z1OMIN=1.+(ACE1I+SNOWI(I,J)+MSI(I,J))/RHOW
+        IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-      Z1OMIN=1.+(RHOI*Z1I+SNOWI(I,J)+MSI(I,J))/RHOW
-      IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
-      WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
-  602 FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
-      Z1O(I,J)=Z1OMIN
-  605 IF (Z1OMIN.LE.Z12O(I,J)) CYCLE
-C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
-      PLICE=FLICE(I,J)
-      PLICEN=1.-FEARTH(I,J)
-      POICE=FOCEAN(I,J)*RSI(I,J)
-      POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
-      SNOWLI(I,J)=(SNOWLI(I,J)*PLICE+SNOWI(I,J)*POICE)/PLICEN
-      TLANDI(1,I,J)=(TLANDI(1,I,J)*PLICE+
-     *     ((HSI(1,I,J)+HSI(2,I,J))/(SNOWI(I,J)+ACE1I)+LHM*(1.-SSI0))
-     *     *BYSHI*POICE+(LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
-      TLANDI(2,I,J)=(TLANDI(2,I,J)*PLICE+
-     *     ((HSI(3,I,J)+HSI(4,I,J))/MSI(I,J)+LHM*(1.-SSI0))*BYSHI*POICE+
-     *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
-C**** Always define a new roughness length (to prevent restart problems)
-      ROUGHL(I,J)=1.84d0 ! typical for Antarctica
-C****
-      FLAND(I,J)=1.
-      FLICE(I,J)=PLICEN
-      FOCEAN(I,J)=0.
-C**** set gtemp array
-      GTEMP(1:2,3,I,J)  =TLANDI(1:2,I,J)
-C**** MARK THE POINT FOR RESTART PURPOSES
-      SNOWI(I,J)=-10000.-SNOWI(I,J)
-C**** Transfer PBL-quantities
-      ipbl(i,j,1)=0
-      ipbl(i,j,2)=0
-      ipbl(i,j,3)=1
-      do n=1,npbl
-      uabl(n,i,j,3)=(uabl(n,i,j,1)*pocean + uabl(n,i,j,2)*poice +
-     +               uabl(n,i,j,3)*plice)/plicen
-      vabl(n,i,j,3)=(vabl(n,i,j,1)*pocean + vabl(n,i,j,2)*poice +
-     +               vabl(n,i,j,3)*plice)/plicen
-      tabl(n,i,j,3)=(tabl(n,i,j,1)*pocean + tabl(n,i,j,2)*poice +
-     +               tabl(n,i,j,3)*plice)/plicen
-      eabl(n,i,j,3)=(eabl(n,i,j,1)*pocean + eabl(n,i,j,2)*poice +
-     +               eabl(n,i,j,3)*plice)/plicen
-      end do
-      cm(i,j,3)=(cm(i,j,1)*pocean + cm(i,j,2)*poice +
-     +           cm(i,j,3)*plice)/plicen
-      ch(i,j,3)=(ch(i,j,1)*pocean + ch(i,j,2)*poice +
-     +           ch(i,j,3)*plice)/plicen
-      cq(i,j,3)=(cq(i,j,1)*pocean + cq(i,j,2)*poice +
-     +           cq(i,j,3)*plice)/plicen
-      WRITE(6,606) 100.*POICE,100.*POCEAN,ITime,I,J
-  606 FORMAT(F6.1,'% OCEAN ICE AND',F6.1,'% OPEN OCEAN WERE',
-     *  ' CHANGED TO LAND ICE AT (I)Time,I,J',I10,2I4)
+          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
+ 602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
+          Z1O(I,J)=Z1OMIN
+        END IF
+      END IF
+      IF (Z1O(I,J).GT.Z12O(I,J).AND.RSI(I,J)*FOCEAN(I,J).GT.0) THEN
+C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : 
+C**** Two options here: i) lose the excess mass to the deep ocean, or
+C**** ii) change the ocean to land ice. 
+C**** Option ii) has big problems in terms of conservation of heat (and
+C**** inability to ever be reversed and so is not recommended.
+C**** Option i) lose excess ice mass
+      MSINEW=MSI(I,J)-RHOW*(Z12O(I,J)-Z1OMIN)
+      HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+      SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+#ifdef TRACERS_WATER
+      TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+#endif
+      AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+RSI(I,J)*(MSINEW-MSI(I,J))
+      AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)*RSI(I,J)
+     *     *(MSINEW-MSI(I,J))
+      AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)*RSI(I,J)
+     *     *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
+      MSI(I,J)=MSINEW
+cC**** Option ii) CHANGE OCEAN TO LAND ICE (not used anymore)
+c      PLICE=FLICE(I,J)
+c      PLICEN=1.-FEARTH(I,J)
+c      POICE=FOCEAN(I,J)*RSI(I,J)
+c      POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
+c      SNOWLI(I,J)=(SNOWLI(I,J)*PLICE+SNOWI(I,J)*POICE)/PLICEN
+c      TLANDI(1,I,J)=(TLANDI(1,I,J)*PLICE+
+c     *     ((HSI(1,I,J)+HSI(2,I,J))/(SNOWI(I,J)+ACE1I)+LHM*(1.-SSI0))
+c     *     *BYSHI*POICE+(LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
+c      TLANDI(2,I,J)=(TLANDI(2,I,J)*PLICE+
+c     *     ((HSI(3,I,J)+HSI(4,I,J))/MSI(I,J)+LHM*(1.-SSI0))*BYSHI*POICE+
+c     *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
+cC**** Always define a new roughness length (to prevent restart problems)
+c      ROUGHL(I,J)=1.84d0 ! typical for Antarctica
+cC****
+c      FLAND(I,J)=1.
+c      FLICE(I,J)=PLICEN
+c      FOCEAN(I,J)=0.
+cC**** set gtemp array
+c      GTEMP(1:2,3,I,J)  =TLANDI(1:2,I,J)
+cC**** MARK THE POINT FOR RESTART PURPOSES
+c      SNOWI(I,J)=-10000.-SNOWI(I,J)
+cC**** Transfer PBL-quantities
+c      ipbl(i,j,1)=0
+c      ipbl(i,j,2)=0
+c      ipbl(i,j,3)=1
+c      do n=1,npbl
+c      uabl(n,i,j,3)=(uabl(n,i,j,1)*pocean + uabl(n,i,j,2)*poice +
+c     +               uabl(n,i,j,3)*plice)/plicen
+c      vabl(n,i,j,3)=(vabl(n,i,j,1)*pocean + vabl(n,i,j,2)*poice +
+c     +               vabl(n,i,j,3)*plice)/plicen
+c      tabl(n,i,j,3)=(tabl(n,i,j,1)*pocean + tabl(n,i,j,2)*poice +
+c     +               tabl(n,i,j,3)*plice)/plicen
+c      eabl(n,i,j,3)=(eabl(n,i,j,1)*pocean + eabl(n,i,j,2)*poice +
+c     +               eabl(n,i,j,3)*plice)/plicen
+c      end do
+c      cm(i,j,3)=(cm(i,j,1)*pocean + cm(i,j,2)*poice +
+c     +           cm(i,j,3)*plice)/plicen
+c      ch(i,j,3)=(ch(i,j,1)*pocean + ch(i,j,2)*poice +
+c     +           ch(i,j,3)*plice)/plicen
+c      cq(i,j,3)=(cq(i,j,1)*pocean + cq(i,j,2)*poice +
+c     +           cq(i,j,3)*plice)/plicen
+c      WRITE(6,606) 100.*POICE,100.*POCEAN,ITime,I,J
+c  606 FORMAT(F6.1,'% OCEAN ICE AND',F6.1,'% OPEN OCEAN WERE',
+c     *  ' CHANGED TO LAND ICE AT (I)Time,I,J',I10,2I4)
+      END IF
       END DO
       END DO
 C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
