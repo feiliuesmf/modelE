@@ -705,9 +705,13 @@ c     fr(l) is the fraction of roots in layer l
         betadl(l)=(1.d0-fice(l,2))*fr(l)*max((hw-h(l,2))/hw,zero)
         betad=betad+betadl(l)
  30   continue
+      abetad=betad              ! return to old diagnostics
 c     canopy conductivity cnc
       call cond
       betat=cnc/(cnc+cna+1d-12)
+      abetat=betat              ! return to old diagnostics
+      acna=cna                  ! return to old diagnostics
+      acnc=cnc                  ! return to old diagnostics
       evap_max_dry(ibv) = min( evap_max(ibv),
      &     betat*rho3*cna*( qsat(tp(0,2)+tfrz,lhe,pres) - qs ) )
           ! may be pr should be included somehow in e_m_d
@@ -1427,9 +1431,11 @@ ccc   do we need this check ?
 ccc check for under/over-saturation
       do ibv=1,2
         do l=1,n
-          if ( w(l,ibv) < dz(l)*thetm(l,ibv) - 1.d-16 )
-     &         call stop_model("ghy: w < dz*thetm",255)
-          if ( w(l,ibv) > ws(l,ibv) + 1.d-16 )
+          if ( w(l,ibv) < dz(l)*thetm(l,ibv) - 1.d-14 ) then
+            print*,"ghy:",l,ibv,w(l,ibv),dz(l),thetm(l,ibv)
+            call stop_model("ghy: w < dz*thetm",255)
+          end if
+          if ( w(l,ibv) > ws(l,ibv) + 1.d-14 )
      &         call stop_model("ghy: w > ws",255)
           w(l,ibv) = max( w(l,ibv), dz(l)*thetm(l,ibv) )
           w(l,ibv) = min( w(l,ibv), ws(l,ibv) )
@@ -1696,7 +1702,7 @@ c zero out accumulations
       arunu=0.d0
       aerunu=0.d0
 
-      abetad=0.d0 ! not accumulated : do we need it?
+      abetad=0.d0 ! not accumulated : do we need it?  YES
       abetav=0.d0 ! not accumulated : do we need it?
       abetat=0.d0 ! not accumulated : do we need it?
       abetap=0.d0 ! not sure how it is computed : probably wrong
