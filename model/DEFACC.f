@@ -1246,6 +1246,24 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
+      IJ_SWCRF = k ! SW cloud radiative forcing (W/m**2)      2 RD
+      lname_ij(k) = 'SW CLOUD RADIATIVE FORCING, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swcrf_toa'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m265_95
+c
+      k=k+1 !
+      IJ_LWCRF = k ! LW cloud radiative forcing (W/m**2)      2 RD
+      lname_ij(k) = 'LW CLOUD RADIATIVE FORCING, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwcrf_toa'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
       IJ_TG1  = k ! TG1 (K-TF)                                1 GD
       lname_ij(k) = 'GROUND TEMPERATURE'
       units_ij(k) = 'C'

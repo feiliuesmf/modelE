@@ -111,6 +111,9 @@ C**** using the rad_forc_lev parameter.
 !@dbparam rad_forc_lev = 0 for TOA, 1 for LTROPO (default=0)
       INTEGER :: rad_forc_lev = 0
 
+!@dbparam cloud_rad_forc = 1 for calculation of cloud radiative forcing
+      INTEGER :: cloud_rad_forc = 0
+
 C**** Local variables initialised in init_RAD
 !@var COE
       REAL*8, DIMENSION(LM+LM_REQ) :: COE

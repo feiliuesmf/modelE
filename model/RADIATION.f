@@ -351,7 +351,7 @@ C----------------
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
      F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,O3_IN
-     X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake
+     X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake,FTAUC
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags,use_tracer_ozone
      Z             ,KDELIQ                ! is updated by rad. after use
@@ -777,6 +777,10 @@ C                    1      2      3       4       5
       EQUIVALENCE (FSXAER(3),FSAAER),  (FTXAER(3),FTAAER)
       EQUIVALENCE (FSXAER(4),FSDAER),  (FTXAER(4),FTDAER)
       EQUIVALENCE (FSXAER(5),FSVAER),  (FTXAER(5),FTVAER)
+
+!@var FTAUC factor to control cloud optical depth in radiation calc.
+!@+   =1 for full expression, =0 for clear sky calculation.
+      real*8 :: FTAUC = 1.
 
 !@var PIVMAX limits PI0 of volcanic aerosols
       real*8 :: PIVMAX=1.0
@@ -4480,7 +4484,7 @@ C-----------------------------------------------------------------------
 C                                         Water Cloud Size Interpolation
 C                                         ------------------------------
 
-      IF(TAUWC(L).GT.TAUWC0) THEN
+      IF(FTAUC*TAUWC(L).GT.TAUWC0) THEN
       SIZWCL=SIZEWC(L)
       LTOPCW=L
       IF(LBOTCW.EQ.0) LBOTCW=L
@@ -4498,7 +4502,7 @@ C                                         ------------------------------
       EPS=CLDEPS(L)
       VEP=EPS/(1.D0-EPS)
       VEP1=1.D0+VEP
-      TAUWCL=TAUWC(L)
+      TAUWCL=FTAUC*TAUWC(L)
       DO 240 K=1,33
       QAWATK=XMW*XPW*TRCQAB(K,IRWAT)
      +      -XMW*XRW*TRCQAB(K,IRWAT-1)+XPW*XRW*TRCQAB(K,IRWAT+1)
@@ -4527,7 +4531,7 @@ C                                         ------------------------------
       ENDIF
 C                                           Ice Cloud Size Interpolation
 C                                           ----------------------------
-      IF(TAUIC(L).GT.TAUIC0) THEN
+      IF(FTAUC*TAUIC(L).GT.TAUIC0) THEN
       SIZICL=SIZEIC(L)
       LTOPCI=L
       IF(LBOTCI.EQ.0) LBOTCI=L
@@ -4545,7 +4549,7 @@ C                                           ----------------------------
       EPS=CLDEPS(L)
       VEP=EPS/(1.D0-EPS)
       VEP1=1.D0+VEP
-      TAUICL=TAUIC(L)
+      TAUICL=FTAUC*TAUIC(L)
       DO 260 K=1,33
       QAICEK=XMI*XPI*TRCQAB(K,IRICE)
      +      -XMI*XRI*TRCQAB(K,IRICE-1)+XPI*XRI*TRCQAB(K,IRICE+1)
@@ -4595,13 +4599,13 @@ C     ------------------------------------------------------------------
       IF(LTOPCI.GT.LTOPCW) GO TO 330
       IF(LTOPCW.LT.1) GO TO 350
       LTOPCL=LTOPCW
-      TCTAUW=TAUWC(LTOPCL)
+      TCTAUW=FTAUC*TAUWC(LTOPCL)
       DO 310 K=1,33
       ALWATK=XMW*XPW*TRCQAL(K,IRWAT)
      +      -XMW*XRW*TRCQAL(K,IRWAT-1)+XPW*XRW*TRCQAL(K,IRWAT+1)
       QXWATK=XMW*XPW*TRCQEX(K,IRWAT)
      +      -XMW*XRW*TRCQEX(K,IRWAT-1)+XPW*XRW*TRCQEX(K,IRWAT+1)
-      TRCTCA(K)=(1.D0-EXP(-TAUWC(LTOPCL)*QXWATK))*ALWATK*ECLTRA
+      TRCTCA(K)=(1.D0-EXP(-FTAUC*TAUWC(LTOPCL)*QXWATK))*ALWATK*ECLTRA
       QSWATK=XMW*XPW*TRCQSC(K,IRWAT)
      +      -XMW*XRW*TRCQSC(K,IRWAT-1)+XPW*XRW*TRCQSC(K,IRWAT+1)
       QGWATK=XMW*XPW*TRCQCB(K,IRWAT)
@@ -4614,8 +4618,8 @@ C     ------------------------------------------------------------------
       IF(LBOTCI.LT.1) GO TO 360
       IF(LBOTCI.LE.LBOTCW) LBOTCL=LBOTCI
       IF(LTOPCI.EQ.LTOPCW) THEN
-      TCTAUW=TAUWC(LTOPCL)
-      TCTAUC=TAUIC(LTOPCL)
+      TCTAUW=FTAUC*TAUWC(LTOPCL)
+      TCTAUC=FTAUC*TAUIC(LTOPCL)
       WTI=TAUIC(LTOPCL)/(TAUIC(LTOPCL)+TAUWC(LTOPCL))
       WTW=TAUWC(LTOPCL)/(TAUIC(LTOPCL)+TAUWC(LTOPCL))
       DO 320 K=1,33
@@ -4623,7 +4627,7 @@ C     ------------------------------------------------------------------
      +      -XMI*XRI*TRCQAL(K,IRICE-1)+XPI*XRI*TRCQAL(K,IRICE+1)
       QXICEK=XMI*XPI*TRCQEX(K,IRICE)
      +      -XMI*XRI*TRCQEX(K,IRICE-1)+XPI*XRI*TRCQEX(K,IRICE+1)
-      TRCTCI=(1.D0-EXP(-TAUIC(LTOPCL)*QXICEK))*ALICEK*ECLTRA
+      TRCTCI=(1.D0-EXP(-FTAUC*TAUIC(LTOPCL)*QXICEK))*ALICEK*ECLTRA
       TRCTCA(K)=WTW*TRCTCA(K)+WTI*TRCTCI
       QSICEK=XMI*XPI*TRCQSC(K,IRICE)
      +      -XMI*XRI*TRCQSC(K,IRICE-1)+XPI*XRI*TRCQSC(K,IRICE+1)
@@ -4638,13 +4642,13 @@ C     ------------------------------------------------------------------
       GO TO 360
   330 CONTINUE
       LTOPCL=LTOPCI
-      TCTAUC=TAUIC(LTOPCL)
+      TCTAUC=FTAUC*TAUIC(LTOPCL)
       DO 340 K=1,33
       ALICEK=XMI*XPI*TRCQAL(K,IRICE)
      +      -XMI*XRI*TRCQAL(K,IRICE-1)+XPI*XRI*TRCQAL(K,IRICE+1)
       QXICEK=XMI*XPI*TRCQEX(K,IRICE)
      +      -XMI*XRI*TRCQEX(K,IRICE-1)+XPI*XRI*TRCQEX(K,IRICE+1)
-      TRCTCA(K)=(1.D0-EXP(-TAUIC(LTOPCL)*QXICEK))*ALICEK*ECLTRA
+      TRCTCA(K)=(1.D0-EXP(-FTAUC*TAUIC(LTOPCL)*QXICEK))*ALICEK*ECLTRA
       QSICEK=XMI*XPI*TRCQSC(K,IRICE)
      +      -XMI*XRI*TRCQSC(K,IRICE-1)+XPI*XRI*TRCQSC(K,IRICE+1)
       QGICEK=XMI*XPI*TRCQCB(K,IRICE)
@@ -8055,17 +8059,20 @@ C
       IRHL=RHL(L)*100.0
       IF(PL(L).LT.1.D0) THEN
       WRITE(KW,6212) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
-     +     ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
-     +     ,SIZEWC(L),SIZEIC(L),TAUWC(L),TAUIC(L),EPS,TAER,IPI0
+     +       ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
+     +       ,SIZEWC(L),SIZEIC(L),FTAUC*TAUWC(L),FTAUC*TAUIC(L),EPS,TAER
+     *       ,IPI0
       ELSE
       IF(UXGAS(L,1).GE.1.D0) THEN
       WRITE(KW,6202) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
-     +     ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
-     +     ,SIZEWC(L),SIZEIC(L),TAUWC(L),TAUIC(L),EPS,TAER,IPI0
+     +       ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
+     +       ,SIZEWC(L),SIZEIC(L),FTAUC*TAUWC(L),FTAUC*TAUIC(L),EPS,TAER
+     *       ,IPI0
       ELSE
       WRITE(KW,6211) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL
-     +     ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
-     +     ,SIZEWC(L),SIZEIC(L),TAUWC(L),TAUIC(L),EPS,TAER,IPI0
+     +       ,(UXGAS(L,K),K=1,3),(UXGAS(L,K),K=6,9),UXGAS(L,5)
+     +       ,SIZEWC(L),SIZEIC(L),FTAUC*TAUWC(L),FTAUC*TAUIC(L),EPS,TAER
+     *       ,IPI0
       ENDIF
       ENDIF
   206 CONTINUE
@@ -8079,8 +8086,8 @@ C
       SUM0(12+I)=SUM0(12+I)+TRACER(L,I)*
      *  1d3*.75d0/DENAER(ITR(I))*Q55DRY(ITR(I))/TRRDRY(I)
   209 CONTINUE
-      SUM0(10)=SUM0(10)+TAUWC(L)
-      SUM0(11)=SUM0(11)+TAUIC(L)
+      SUM0(10)=SUM0(10)+FTAUC*TAUWC(L)
+      SUM0(11)=SUM0(11)+FTAUC*TAUIC(L)
   210 CONTINUE
       TAU55=0.0
       DO 211 L=1,NL

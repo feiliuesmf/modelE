@@ -324,7 +324,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
-     *     ,calc_orb_par,paleo_orb_yr
+     *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix
       USE DAGCOM, only : iwrite,jwrite,itwrite
@@ -391,6 +391,7 @@ C**** sync radiation parameters from input
       end if
       call sync_param( "rad_interact_tr", rad_interact_tr )
       call sync_param( "rad_forc_lev", rad_forc_lev )
+      call sync_param( "cloud_rad_forc", cloud_rad_forc )
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
@@ -661,7 +662,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -673,6 +674,7 @@ C     OUTPUT DATA
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
+     *     ,cloud_rad_forc
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -689,7 +691,7 @@ C     OUTPUT DATA
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
-     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi
+     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
@@ -718,6 +720,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     SNFSCRF,TNFSCRF
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
@@ -1262,6 +1266,16 @@ C**** Ozone:
       use_tracer_ozone=onoff
 #endif
 
+C**** Optional calculation of CRF using a clear sky calc.
+      if (cloud_rad_forc.gt.0) then
+        FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
+        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+        CALL RCOMPX
+        SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
+        TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+      end if
+      FTAUC=1.     ! default: turn on cloud tau
+
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 
 C*****************************************************
@@ -1561,6 +1575,14 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
+C**** CRF diags if required
+         if (cloud_rad_forc.gt.0) then
+           AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+
+     *          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
+           AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
+     *          (TNFS(3,I,J)-TNFSCRF(I,J))
+         end if
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,

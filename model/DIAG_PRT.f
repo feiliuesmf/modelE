@@ -3777,6 +3777,7 @@ c**** find hemispheric and global means
      &     FLAND,FLICE,FEARTH,FOCEAN,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
+      USE RADNCB, only : cloud_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
       USE VEG_COM, only : vdata
@@ -3813,7 +3814,8 @@ C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
       kmaplets = 55
-      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags
+      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +
+     *     2*cloud_rad_forc
       nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
@@ -3841,6 +3843,12 @@ C**** include ISCCP diags if requested
         iord(kmaplets+1:kmaplets+6) = (/ij_lcldi,ij_mcldi,ij_hcldi,
      *                                  ij_tcldi,ij_taui,ij_ctpi/)
         kmaplets=kmaplets+6
+      end if
+
+C**** include CRF diags if requested
+      if (cloud_rad_forc.eq.1) then
+        iord(kmaplets+1:kmaplets+2) = (/ij_swcrf,ij_lwcrf/)
+        kmaplets=kmaplets+2
       end if
 
 C**** Fill in maplet indices for gravity wave diagnostics
