@@ -429,7 +429,8 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       integer :: i,j,l,ierr,nerr,ICKERR,ns,nstep
 c**** loop over latitudes and longitudes
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR)
+!$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR,
+!$OMP* NSTEP,COURMAX,BYNSTEP,MASS_L,NS,L)
 !$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do j=1,jm
