@@ -1,0 +1,96 @@
+#!/bin/ksh
+## create otspec and IC for a 4x5 Bgrid run - 5 harmonics  02/09/01
+if [[ $# -lt 5 ]] ; then 
+    echo "Usage: $0 runID first_month first_year last_month last_year"
+    echo "       All months, and years are integer arguments"
+    echo "Please ensure that relevant aux executables are up-to-date by"
+    echo "running 'gmake auxqflux RUN=$runID' from decks"
+    exit
+fi
+# Input files from rundeck (actually ${RUNID}ln)
+# This script uses (inputs) TOPO,OSST,SICE,OCNML,MLMAX,VFLX,RSFIC
+#               (tmp files) OHT,OCNOUT,SRCOR,XCORR,OHTLP,RSFNEW,SNOW
+
+cd ..
+MODEL_E_ROOT=$PWD
+DECKS_DIR=${MODEL_E_ROOT}/decks
+AUX_DIR=${MODEL_E_ROOT}/aux
+BIN_DIR=${DECKS_DIR}/$1_bin
+
+runID=$1 
+cd /u/cmrun/$runID
+rm -f RSFIC OHT
+
+do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
+
+echo 'Enter rsf file for new initial conditions'
+echo "   (path from `pwd` or absolute pathname):"
+read rsfic 
+ln -s $rsfic RSFIC
+if [[ -s RSFIC ]]
+then 
+  if ( $BIN_DIR/qc RSFIC ) then
+      echo "This RSF file contains part of the I.C. for the new run"
+      echo "It will be used to create a new i.c. file by this program"
+  else 
+    echo "Error in 'qc' program. "
+    echo "Ensure that it is up-to-date with a 'gmake aux RUN=${runID}' command from ../decks."  
+    exit
+  fi  
+else echo "RSF file not found, please start over"
+     exit
+fi
+
+echo " "
+echo "Reading in saved ocean data..."
+echo "  ${BIN_DIR}/vertflux.exe $1 $2 $3 $4 $5 > vertflux.$1.$3-$5.PRT "
+if ( ! ${BIN_DIR}/vertflux.exe $1 $2 $3 $4 $5 > vertflux.$1.$3-$5.PRT ) then
+    echo " "
+    echo "  Problem reading in vertical flux data. Aborting."
+    exit
+fi
+echo "Done"
+echo " "
+  mv SRCOR  SRCOR.line.$1.$3-$5
+
+echo "Finding climatological ocean temperatures below mixed layer..."
+echo "  ${BIN_DIR}/dec31.exe > dec31.PRT"
+if ( ! ${BIN_DIR}/dec31.exe > dec31.PRT ) then
+    echo " "
+    echo "  Problem determining mixed layer data. Aborting."
+    exit
+fi
+echo "Done"
+echo " "
+
+echo "Computing transports..."
+echo "  ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 > otspec.$1.$3-$5.PRT"
+if (! ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 > otspec.$1.$3-$5.PRT ) then
+    echo " "
+    echo "  Problem computing transports. Aborting."
+    exit
+fi
+echo Done
+echo " "
+
+echo Output files in `pwd`:
+outfile=OTSPEC.$1.M250D.$3-$5
+mv OHT $outfile
+echo "Saved ocean heat transports in file: " $outfile
+
+mv OHTLP oht$1.$3-$5.lpl   
+echo "Saved zonal ocean heat transports: " oht$1.$3-$5.lpl
+
+icfile=IMJAN.$1.O250D
+mv RSFNEW $icfile ;       #do--put on raid, link to /u/cmrun
+echo "Saved modified init. condition file: " $icfile 
+$BIN_DIR/qc $icfile
+
+echo "Surface heat flux imbalance: "
+cat SRCOR.line.$1.$3-$5
+
+# clean up
+
+rm SNOW XCORR OCNOUT
+if [[ ${do_uln} -eq 0 ]] ; then ${runID}uln ; fi
+
