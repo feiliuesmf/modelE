@@ -32,15 +32,32 @@ C**** must be compiled after the model
       INTEGER ItimeX
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5
+      integer :: conv_index(im,jm,2)
+      character*120 cindex_file
+      integer iu_CI, i0, j0
+      logical :: extend_gh = .false.
 
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
+        PRINT*,"To create a restart file for the standard land mask:"
         PRINT*,"conv_rsf filename output_file"
+        PRINT*,"To create a restart file with the extended land"
+        PRINT*,"surface data (which can be used with any land mask):"
+        PRINT*,"conv_rsf filename output_file conv_indices_file"
         STOP
       END IF
 
+      IF (IARGC() >= 3 ) extend_gh = .true.
+
       CALL GETARG(1,infile)
       CALL GETARG(2,outfile)
+
+      if ( extend_gh ) then
+        CALL GETARG(3,cindex_file)
+        call openunit (trim(cindex_file), iu_CI, .true. , .true. )
+        read(iu_CI) conv_index
+        call closeunit (iu_CI)
+      endif
 
 c??   iu_AIC=9
 c??  OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
@@ -155,6 +172,29 @@ C**** set default values for evaporation limiting arrays
       evap_max_ij(:,:) = 1.d0
       fr_sat_ij(:,:) = 1.d0
       qg_ij(:,:) = 0.d0
+
+C**** extending ground hydrology
+      if ( extend_gh ) then
+        print *,"Extending ground hydrology data"
+        do j=1,jm
+          do i=1,im
+            if ( conv_index(i,j,1) .ne. 0 ) then
+              i0 = conv_index(i,j,1)
+              j0 = conv_index(i,j,2)
+              snowe(i,j)=snowe(i0,j0)
+              tearth(i,j)=tearth(i0,j0)
+              wearth(i,j)=wearth(i0,j0)
+              aiearth(i,j)=aiearth(i0,j0)
+              wbare(:,i,j) = wbare(:,i0,j0)
+              wvege(:,i,j) = wvege(:,i0,j0)
+              htbare(:,i,j)= htbare(:,i0,j0)
+              htvege(:,i,j)= htvege(:,i0,j0)
+              snowbv(:,i,j)= snowbv(:,i0,j0)
+            endif
+          end do
+        end do
+      endif
+      
 
 c??   OPEN(iu_AIC,FILE=trim(outfile),
 c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
