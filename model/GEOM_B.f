@@ -23,6 +23,8 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
+!@var  LON longitude of mid points of primary and secondary grid boxs (degrees)
+      REAL*8, DIMENSION(IM,2) :: LON
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conseravtion quantities
@@ -126,6 +128,13 @@ c      USE E001M12_COM
          RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
          RAVPS(J)   = .5*DXYS(J)/DXYP(J)
          RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
+      END DO
+C**** LONGITUDES (degrees); used in ILMAP
+      LON(1,1) = -180.+360./(2.*FLOAT(IM))
+      LON(1,2) = -180.+360./    FLOAT(IM)  
+      DO I=2,IM
+         LON(I,1) = LON(I-1,1)+360./FLOAT(IM)
+         LON(I,2) = LON(I-1,2)+360./FLOAT(IM)
       END DO
 C**** CALCULATE CORIOLIS PARAMETER
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)

@@ -39,10 +39,11 @@ OOBJ	= OCNE001.o
 UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
+OUTOBJ  = POUT.o
 OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) \
 	  $(SOBJ) $(COBJ1) $(COBJ2) $(CLDCOM) $(ROBJ) $(UOBJ) $(OOBJ)  \
 	  $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM) $(RADCOM) $(PBLCOM) $(PBLDRV) \
-          $(FFTOBJ) $(RNDOBJ)
+          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:

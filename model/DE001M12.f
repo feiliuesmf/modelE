@@ -4215,7 +4215,7 @@ C****                                                              9-16
      &     BYDSIG,DSIG,DT,IDACC,JEQ,LMM1,NCNDS,
      &     PSF,PTOP,SIG,SIGE,TOFDAY,TOFDY0
       USE GEOM, only : AREAG,DXYP,DXYV
-      USE DAGCOM, only : ail,lm_req
+      USE DAGCOM, only : AIL,LM_REQ
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM,2) :: JLAT
@@ -4232,19 +4232,17 @@ C****                                                              9-16
       INTEGER :: J,J50N,J70N,L,K
       DOUBLE PRECISION :: BYIACN,BYIADA,BYIARD,DTCNDS,PMTOP,SCALE
 
-      integer, parameter :: K_PIL=16
-      integer, DIMENSION(K_PIL) :: 
+      INTEGER, PARAMETER :: K_PIL=16
+      INTEGER, DIMENSION(K_PIL) :: 
      *  KNDEX=(/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16/),
      *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 0,1,2,3,0, 1/)
+c    *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 5,1,2,3,5, 1/)
       DOUBLE PRECISION SIL(K_PIL)
 C**** INITIALIZE CERTAIN QUANTITIES
-C        IF (JM.NE.24) RETURN
       INC=1+(JM-1)/24
       JMHALF=JM/2
-C      JEQ=2.+.5*(JM-1.)
       J50N=(50.+90.)*(JM-1.)/180.+1.5
       J70N=(70.+90.)*(JM-1.)/180.+1.5
-c      SHA=RGAS/KAPA
       DTCNDS=NCNDS*DT
       DO 20 L=1,LM
       ONES(L)=1.
@@ -4272,21 +4270,21 @@ c      SHA=RGAS/KAPA
       BYIACN=1./(IDACC(1)+1.D-20)
       BYIARD=1./(IDACC(2)+1.D-20)
       BYIADA=1./(IDACC(4)+1.D-20)
-      SIL(1)=BYIADA/3.
-      SIL(2)=BYIADA/3.
-      SIL(3)=
+      SIL( 1)=BYIADA/3.
+      SIL( 2)=BYIADA/3.
+      SIL( 3)=
      *  -1.D4*BYIADA*RGAS/GRAV/(DXYP(JEQ)+DXYP(JEQ-1)+DXYP(JEQ-2))
-      SIL(4)=BYIADA/3.
-      SIL(5)=1.D2*BYIADA/3.
-      SIL(6)=100.D-13*SHA*BYIACN/(GRAV*DTCNDS)
-      SIL(7)=-1.D-13*BYIARD
-      SIL(9) =-1.D4*BYIADA*RGAS/(GRAV* DXYP(J50N))
+      SIL( 4)=BYIADA/3.
+      SIL( 5)=1.D2*BYIADA/3.
+      SIL( 6)=100.D-13*SHA*BYIACN/(GRAV*DTCNDS)
+      SIL( 7)=-1.D-13*BYIARD
+      SIL( 9) =-1.D4*BYIADA*RGAS/(GRAV* DXYP(J50N))
       SIL(10)=BYIADA
-C     SIL(11)=-1.D-13*BYIARD
+      SIL(11)=-1.D-13*BYIARD
       SIL(12)=BYIADA/2.
       SIL(13) =-1.D4*BYIADA*RGAS/(GRAV* DXYP(J70N))
       SIL(14)=BYIADA
-C     SIL(15)=-1.D-13*BYIARD
+      SIL(15)=-1.D-13*BYIARD
       SIL(16)=BYIADA/2.
       
       DO K=1,K_PIL
@@ -4304,7 +4302,7 @@ C     SIL(15)=-1.D-13*BYIARD
         CALL ILMAP(TITLE(K),PL,AIL(1,1,KNDEX(K)),SIL(K),BYDSIG,LM,1,1)
       END SELECT
       END DO
-  
+
       RETURN
       END SUBROUTINE DIAGIL
 
@@ -4313,18 +4311,17 @@ C     SIL(15)=-1.D-13*BYIARD
       USE E001M12_COM, only : im,jm,lm,
      &     DSIG,JDATE,JDATE0,JMNTH0,JMONTH,JYEAR,JYEAR0,SIGE,XLABEL
      *    ,Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
-      USE GEOM, only : dlon
+      USE GEOM, only : dlon, lon
       IMPLICIT NONE
 
 C---- Constants and arrays for post processing
-      REAL*4 XIL(IM+1,LM+1)
+      REAL*4 XIL(IM,LM),ZONAL(LM)
       CHARACTER XLB*80,CWORD*8
       CHARACTER*16, PARAMETER :: CBLANK=' ',
      *  CLAT='LONGITUDE',CPRES='PRESSURE (MB)'
 C----
-
-      DOUBLE PRECISION :: FGLOB,FLON,GSUM,SDSIG
-      INTEGER :: I,JY,JY0,K,L
+      DOUBLE PRECISION :: FGLOB,FLON,GSUM,SDSIG, SCALE
+      INTEGER :: I,JY,JY0,K,L, LMAX,JWT,ISHIFT
 
       INTEGER, DIMENSION(IM) :: MLON
       DOUBLE PRECISION, DIMENSION(IM) :: ASUM
@@ -4334,8 +4331,6 @@ C----
       INTEGER :: LINECT,JMHALF,INC,IHOUR0,IHOUR
       COMMON/DILCOM/JLAT,WTJ,LINECT,JMHALF,INC,IHOUR0,IHOUR
 
-      INTEGER :: LMAX,JWT,ISHIFT
-      DOUBLE PRECISION :: SCALE
       DOUBLE PRECISION, DIMENSION(IM,LM) :: AX
       DOUBLE PRECISION, DIMENSION(LM) :: PL,SCALEL
 
@@ -4344,6 +4339,7 @@ C----
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
 C****
+C**** ISHIFT: When=2, print longitude indices off center (U-grid)
       LINECT=LINECT+LMAX+7
       IF (LINECT.GT.60) THEN
         JY0=JYEAR0-1900
@@ -4353,11 +4349,9 @@ C****
       END IF
       SDSIG=1.-SIGE(LMAX+1)
       WRITE (6,901) TITLE,(DASH,I=1,IM,INC)
-      IF (ISHIFT.NE.2) WRITE (6,904) WORD(JWT),(I,I=1,IM,INC)
+      IF (ISHIFT.EQ.1) WRITE (6,904) WORD(JWT),(I,I=1,IM,INC)
       IF (ISHIFT.EQ.2) WRITE (6,906) WORD(JWT),(I,I=1,IM,INC)
       WRITE (6,905) (DASH,I=1,IM,INC)
-         CWORD=WORD(JWT)
-         XIL(:,:) = -1.E30     
       ASUM(:)=0.
       GSUM=0.
       DO 130 L=LMAX,1,-1
@@ -4371,37 +4365,42 @@ C****
   120 CONTINUE
       FGLOB=FGLOB/IM
       IF (JWT.EQ.1) FGLOB=FGLOB*TWOPI/DLON
-         XIL(IM+1,L)=FGLOB     
+         ZONAL(L)=FGLOB     
       WRITE (6,902) PL(L),FGLOB,(MLON(I),I=1,IM,INC)
       GSUM=GSUM+FGLOB*DSIG(L)/SDSIG
   130 CONTINUE
       DO 140 I=1,IM
-         XIL(I,LM+1)=ASUM(I)     
-  140 MLON(I)=NINT(ASUM(I))
-         XIL(IM+1,LM+1)=GSUM            
+      MLON(I)=NINT(ASUM(I))
+  140 CONTINUE
       WRITE (6,905) (DASH,I=1,IM,INC)
       WRITE (6,903) GSUM,(MLON(I),I=1,IM,INC)
 C**** Output for post-processing
+         CWORD=WORD(JWT)  ! pads out to 8 characters
          XLB=TITLE
          WRITE(XLB(65:),'(1X,A3,I5)') JMNTH0,JYEAR0
-      IF (Q_GISS) THEN
-         WRITE (85) XLB,IM,LMAX,1,1,
-     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-     *     (FLOAT(I),I=1,IM),(SNGL(PL(L)),L=1,LMAX),1.,1., 
-     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
-     *     (XIL(I,LM+1),I=1,IM+1),(XIL(IM+1,L),L=1,LMAX)
-      END IF
-c     IF (Q_HDF) CALL POUT_HDF(XLB,IM,LMAX,1,1,XIL,PL,1.,1.,
-c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD)
-c     IF (Q_NETCDF) CALL POUT_NETCDF(XLB,IM,LMAX,1,1,XIL,PL,1.,1.,
-c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD)
+c     IF (Q_GISS) THEN
+c        WRITE (85) XLB,IM,LMAX,1,1,
+c    *     ((XIL(I,L),I=1,IM),L=1,LMAX),
+c    *     (LON(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0., 
+c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
+c    *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
+c     END IF
+      IF (Q_GISS) CALL POUT_GISS
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
+      IF (Q_HDF) CALL POUT_HDF
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
+      IF (Q_NETCDF) CALL POUT_NETCDF
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)
   903 FORMAT (F14.1,1X,36I3)
-  904 FORMAT (' P(MB)',4X,A4,1X,36I3)
+  904 FORMAT (' P(MB)',4X,A4,1X,36I3)  ! U-grid (i.e., centers)
   905 FORMAT (1X,14('-'),36A3)
-  906 FORMAT (' P(MB)',4X,A4,I2,8I3,I4,26I3)
+  906 FORMAT (' P(MB)',4X,A4,36I3)     ! V-grid (i.e., edges)
   907 FORMAT ('1',A,I4,1X,A3,I3,' TO',I3,1X,A3,I3)
       END SUBROUTINE ILMAP
 
@@ -5401,7 +5400,6 @@ C****
 
       DOUBLE PRECISION :: A,FLAT,TAUDIF
       INTEGER :: I,IA,IHOUR,IHOUR0,INC,J,JA,JX,K,LD
-
 
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
