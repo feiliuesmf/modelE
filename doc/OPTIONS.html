@@ -75,7 +75,7 @@ The deep diffusion Qflux model also requires: EDDY and TG3M<br>
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM !
 OCNDYN OSTRAITS OCNGM OCNKPP OCNFUNTAB ! - Russell Dynamic Ocean
 ODIAG_PRT                              ! 
-ICEDYN                                 !
+ICEDYN ICEDYN_DRV                      ! - Dynamic sea ice 
 </pre>
 
 <p>In time, other ocean models will also be incorporated.</p>
@@ -133,28 +133,30 @@ the hydrologic cycle in the atmopshere/sea-ice/lakes and rivers, and
 TRACERS_OCEAN if tracer advection in the ocean is required (currently
 only functional with the the GISS OCEAN option).  Also, 'plug in':
 <pre>
-TRACERS                             ! trace gases (generic)
-TRACER_COM TRACERS_Air              ! air mass tracers
-!TRACER_Water_COM TRACERS_Water     ! water mass tracers
+TRACER_COM TRACERS_DRV              ! configurable tracer code
+TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 </pre>
 <p> 
 
 TRACERS, TRDIAG_COM and TRACER_PRT were written to be independent of
-tracer type.  For most users, only TRACER_COM and TRACERS_Air need be
-changed (a second example for water mass tracers can be run using the
-TRACER_Water_COM and TRACERS_Water modules). The tracers in these
-routines are for illustrative purposes only. However, the 'Air' and 'Water'
-tracers are very useful as diagnostic tools since they are designed to
-mimic the movement of air and water mass. The user is responsible for checking
-that tracer subroutines are called at the appropriate times in MAIN
-for his purpose.  Be sure to check that .f files with tracer
-directives start with #include "rundeck_opts.h" Tracers parameters
-that can be changed in the rundeck: </p> 
+tracer type.  For most users, only TRACER_COM need be changed to alter
+the number of tracers, and their physical type. The tracer library is
+included in TRACERS_DRV only needs editing if a brand new tracer is to
+be incorporated, or the properties of one of the existing tracers
+needs changing. The tracers in these routines are for illustrative
+purposes only. However, the 'Air' and 'Water' tracers are very useful
+as diagnostic tools since they are designed to mimic the movement of
+air and water mass. The user is responsible for checking that tracer
+subroutines are called at the appropriate times in MAIN for his
+purpose.  Be sure to check that .f files with tracer directives start
+with #include "rundeck_opts.h" Tracers parameters that can be changed
+in the rundeck: </p>
 
 <pre> 
 to_volume_MixRat=1: tracer concentration printout in volume mixing ratio
 to_volume_MixRat=0: tracer concentration printout in mass mixing ratio
+to_per_mil=1: tracer concentration in per mil units (for water tracers)
 itime_tr0: the model time at which each tracer 'turns on'.</pre>
 </pre>
 

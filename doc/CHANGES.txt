@@ -1,3 +1,14 @@
+Major changes from version modelE-2-0 to modelE-2-1
+=====================================================
+
+ - Minor fixes to almost all components
+
+ - New options for snow-age definitions, Sea-ice and SST cycling.
+
+ - netcdf output now fully functional
+
+ - Changes to makefiles for compilation using Linux compilers (Absoft + Lahey)
+
 Major changes from version modelE-1-3-3 to modelE-2-0
 =====================================================
 
@@ -35,6 +46,8 @@ Atmospheric Model:
 Coupled Model:
 
  - Gary's ocean model now fully coupled (plug and play option)
+
+ - Ice dynamics now a completey separate module
 
  - Ocean heat transport diagnostic in printout
 
