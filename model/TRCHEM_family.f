@@ -403,7 +403,8 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  LM,ls1
+      USE DYNAMICS, only: LTROPO
+      USE MODEL_COM, only :  LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
@@ -422,7 +423,7 @@ C**** Local parameters and variables and arguments:
       integer L
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      do L=LTROPO(I,J),lmax  !  LS1,lmax
 
 c      full ClOxfam code from offline photochemistry
 c       goto 10
@@ -613,7 +614,7 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  ls1
+      USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
      &    nBrO,ss,nHO2,nNO2,pBrOx
@@ -626,7 +627,7 @@ C**** Local parameters and variables and arguments:
       integer L
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      do L=LTROPO(I,J),lmax  ! LS1,lmax
          a=y(nO3,L)*rr(70,L)+y(nOClO,L)*rr(74,L)
          b=y(nO,L)*rr(69,L)+y(nNO,L)*rr(71,L)+y(nClO,L)*
      *   (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*
