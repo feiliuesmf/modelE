@@ -814,9 +814,11 @@ C**** check whether air mass is conserved
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
-     & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,corrOx,ss,
-     & O3DLJI,O3DLJI_clim,JPPJ
+      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
+     & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss
+#ifdef Shindell_Strat_chem
+     & ,SF3,pClOx,pOClOx,pBrOx
+#endif
 #endif
       IMPLICIT NONE
 
@@ -849,7 +851,10 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *     ,yXO2N,yRXPAR,corrOx,O3DLJI,O3DLJI_clim,ss
+     *     ,yXO2N,yRXPAR,ss
+#ifdef Shindell_Strat_chem
+     *     ,SF3,pClOx,pOClOx,pBrOx
+#endif
 #endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -860,7 +865,10 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *       ,yXO2N,yRXPAR,corrOx,O3DLJI,O3DLJI_clim,ss
+     *       ,yXO2N,yRXPAR,ss
+#ifdef Shindell_Strat_chem
+     *       ,SF3,pClOx,pOClOx,pBrOx
+#endif
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
