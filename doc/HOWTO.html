@@ -507,7 +507,8 @@ source files to tell gmake that they need to be recompiled.
        date for the run: (YEAR/MONTH/DATE/HOUR)I or E or IHOURE
        or determine the (debug) printout: KDIAG,QDIAG,IWRITE,...,QCHECK
        ISTART determines whether this is an initial- or restart
-       IRANDI may be used to perturb the current temperatures
+       IRANDI may be used to perturb the current temperatures.
+       See <a href="nlparams.txt">NL-PARAMS</a> for more information.
 
     When a run starts, parameters not set in the rundeck take their
     default values. On restarts, YEAR/MONTH/DATE/HOURI are ignored;
@@ -526,9 +527,6 @@ source files to tell gmake that they need to be recompiled.
          3:    re-edit I to ready it for the next restart
        (If the change affects the results, attach a log of all such
         changes to the end of the rundeck)
-
-       For a list and explanation of all parameters see
-          /u/exec/docE/params.txt.
 
 <p><A name="part1_2a"><b>A: How to TUNE a specified ocean run (using
 U00ice/HRMAX)</b></a></p>
