@@ -92,7 +92,6 @@ ccc extra stuff which was present in "earth" by default
       common /ghy_tracers_tp/ totflux
 !$OMP  THREADPRIVATE (/ghy_tracers_tp/)
 
-
       contains
 
 
@@ -401,7 +400,7 @@ c****
      *     ,u,v
       use DOMAIN_DECOMP, only : GRID, GET
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      !use DOMAIN_DECOMP, only : GLOBALSUM
+      use DOMAIN_DECOMP, only : GLOBALSUM
       use geom, only : imaxj
       use dynamics, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1
@@ -483,6 +482,12 @@ c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
 c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
+
+C**** Work array for regional diagnostic accumulation
+      real*8 :: areg_sum
+      real*8, DIMENSION(
+     &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
+     &        :: AREG_PART
 
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H
@@ -712,24 +717,63 @@ c**** update tracers
       end do loop_j
 !$OMP  END PARALLEL DO
 
-ccc hack for OpenMP
+C***Initialize work array 
+      areg_part(:,:,1:9) = 0.
+
       DO 825 J=J_0,J_1
       DO 825 I=1,IMAXJ(J)
          IF(FEARTH(I,J).LE.0.0)  GO TO 825
          JR=JREG(I,J)
-         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(1,I,J)
-         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(2,I,J)
-         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(3,I,J)
-         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(4,I,J)
-         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(5,I,J)
-         areg(jr,j_run  )=areg(jr,j_run  )+AREGIJ(6,I,J)
+         areg_part(jr,j,1 )=areg_part(jr,j,1 )+AREGIJ(1,I,J)
+         areg_part(jr,j,2 )=areg_part(jr,j,2 )+AREGIJ(2,I,J)
+         areg_part(jr,j,3 )=areg_part(jr,j,3 )+AREGIJ(3,I,J)
+         areg_part(jr,j,4 )=areg_part(jr,j,4 )+AREGIJ(4,I,J)
+         areg_part(jr,j,5 )=areg_part(jr,j,5 )+AREGIJ(5,I,J)
+         areg_part(jr,j,6 )=areg_part(jr,j,6 )+AREGIJ(6,I,J)
          if( moddsf == 0 ) then
-           areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(7,I,J)
-           areg(jr,j_tg1 )=areg(jr,j_tg1 )+AREGIJ(8,I,J)
-           areg(jr,j_tg2 )=areg(jr,j_tg2 )+AREGIJ(9,I,J)
+           areg_part(jr,j,7)=areg_part(jr,j,7 )+AREGIJ(7,I,J)
+           areg_part(jr,j,8)=areg_part(jr,j,8 )+AREGIJ(8,I,J)
+           areg_part(jr,j,9)=areg_part(jr,j,9 )+AREGIJ(9,I,J)
          end if
   825 CONTINUE
+      DO JR=1,SIZE(areg,1)
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,1), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREG_SUM      
 
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,2), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_shdt )=areg(jr,j_shdt )+AREG_SUM      
+ 
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,3), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,4), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_evap )=areg(jr,j_evap )+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,5), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_erun )=areg(jr,j_erun )+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,6), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_run  )=areg(jr,j_run  )+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,7), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_tsrf )=areg(jr,j_tsrf )+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,8), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_tg1  )=areg(jr,j_tg1  )+AREG_SUM      
+
+         areg_sum=0.
+         CALL GLOBALSUM(GRID,AREG_PART(JR,:,9), AREG_SUM, ALL=.TRUE.)
+         areg(jr,j_tg2  )=areg(jr,j_tg2  )+AREG_SUM      
+
+      END DO
 C
       return
       end subroutine earth
@@ -995,7 +1039,6 @@ c***********************************************************************
 c***********************************************************************
 c***********************************************************************
 c***********************************************************************
-
 
       subroutine snow_cover( fract_snow, snow_water, top_dev )
 !@sum computes snow cover from snow water eq. and topography
@@ -1977,7 +2020,13 @@ c****
      *     ,pearth,enrgp,scove
       integer i,j,jr,k
 
-C**** define local grid
+C**** Work array for regional diagnostic accumulation
+      real*8 :: areg_sum
+      real*8, DIMENSION(
+     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
+     &        :: AREG_PART
+
+C****	define local grid
       integer J_0, J_1, J_0H, J_1H
 
 C****
@@ -1986,6 +2035,8 @@ C****
       CALL GET(grid, J_STRT=J_0      , J_STOP=J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
+C***Initialize work array
+      areg_part(:,J_0H:j_1H,1:6) = 0.
       do j=J_0,J_1
       do i=1,imaxj(j)
       pearth=fearth(i,j)
@@ -2016,7 +2067,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
-        areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxyp(j)
+        areg_part(jr,j,1)=areg_part(jr,j,1)+scove*dxyp(j)
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
         aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
         aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
@@ -2026,11 +2077,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aj(j,j_wtr2,itearth)=aj(j,j_wtr2,itearth)+wtr2*pearth
         aj(j,j_ace2,itearth)=aj(j,j_ace2,itearth)+ace2*pearth
         aj(j,j_snow,itearth)=aj(j,j_snow,itearth)+snow*pearth
-        areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxyp(j)
-        areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxyp(j)
-        areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxyp(j)
-        areg(jr,j_wtr2)=areg(jr,j_wtr2)+wtr2*pearth*dxyp(j)
-        areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxyp(j)
+        areg_part(jr,j,2)=areg_part(jr,j,2)+snow*pearth*dxyp(j)
+        areg_part(jr,j,3)=areg_part(jr,j,3)+wtr1*pearth*dxyp(j)
+        areg_part(jr,j,4)=areg_part(jr,j,4)+ace1*pearth*dxyp(j)
+        areg_part(jr,j,5)=areg_part(jr,j,5)+wtr2*pearth*dxyp(j)
+        areg_part(jr,j,6)=areg_part(jr,j,6)+ace2*pearth*dxyp(j)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
@@ -2045,6 +2096,33 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 c****
       end do
       end do
+
+      do jr=1,size(areg,1)
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,1), areg_sum, all=.true.)
+        areg(jr,j_rsnow)=areg(jr,j_rsnow)+areg_sum
+
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,2), areg_sum, all=.true.)
+        areg(jr,j_snow)=areg(jr,j_snow)+areg_sum
+
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,3), areg_sum, all=.true.)
+        areg(jr,j_wtr1)=areg(jr,j_wtr1)+areg_sum
+
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,4), areg_sum, all=.true.)
+        areg(jr,j_ace1)=areg(jr,j_ace1)+areg_sum
+
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,5), areg_sum, all=.true.)
+        areg(jr,j_wtr2)=areg(jr,j_wtr2)+areg_sum
+
+        areg_sum=0.
+        call globalsum(grid,areg_part(jr,:,6), areg_sum, all=.true.)
+        areg(jr,j_ace2)=areg(jr,j_ace2)+areg_sum
+      end do
+
       end subroutine ground_e
 
       subroutine conserv_wtg(waterg)
@@ -2059,7 +2137,9 @@ c****
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg zonal ground water (kg/m^2)
-      real*8, dimension(grid%j_strt:grid%j_stop) :: waterg
+      real*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO),intent(out)::
+     &     waterg
+
       integer i,j,n
       real*8 wij,fb
 

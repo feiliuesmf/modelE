@@ -209,12 +209,18 @@ C****
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
+      REAL*8  :: AREG_SUM
+      REAL*8, DIMENSION(
+     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4 )
+     &        :: AREG_PART
 C**** Get useful grid parameters
       INTEGER :: I, J, JR
       INTEGER :: J_0, J_1, J_0H, J_1H
       CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
      &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
+C**** Initialize work array
+      AREG_PART(:,J_0H:J_1H,1:4)=0.
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -267,15 +273,36 @@ c        AJ(J,J_TYPE, ITLANDI)=AJ(J,J_TYPE, ITLANDI)+      PLICE
 C       AJ(J,J_ERUN ,ITLANDI)=AJ(J,J_ERUN ,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
         AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+ERUN2*PLICE
-        AREG(JR,J_RUN  )=AREG(JR,J_RUN  )+RUN0 *PLICE*DXYPJ
-c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
-        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+DIFS *PLICE*DXYPJ
-        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+ERUN2*PLICE*DXYPJ
+        AREG_PART(JR,J,1)=AREG_PART(JR,J,1) + RUN0 *PLICE*DXYPJ
+c       AREG_PART(JR,J,2)=AREG_PART(JR,J,2)+ERUN0*PLICE*DXYPJ ! (Tg=0)
+        AREG_PART(JR,J,3)=AREG_PART(JR,J,3)+DIFS *PLICE*DXYPJ
+        AREG_PART(JR,J,4)=AREG_PART(JR,J,4)+ERUN2*PLICE*DXYPJ
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
       END IF
       END DO
+      END DO
+      CALL CHECKSUM(grid, SNOWLI,__LINE__,__FILE__)
+      CALL CHECKSUM_COLUMN(grid, TLANDI,__LINE__,__FILE__)
+
+C**** Finish summing and store total accumulations into AREG.
+      DO JR=1,SIZE(AREG,1)
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,1), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_RUN  )=AREG(JR,J_RUN) + AREG_SUM
+
+c       AREG_SUM=0.
+c       CALL GLOBALSUM(GRID,AREG_PART(JR,:,2), AREG_SUM, ALL=.TRUE.)
+c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,3), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM) + AREG_SUM 
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,4), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH) + AREG_SUM 
       END DO
       END SUBROUTINE PRECIP_LI
 
@@ -325,10 +352,19 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      INTEGER I,J,JR
-      INTEGER :: J_0,J_1
+      REAL*8  :: AREG_SUM
+      REAL*8, DIMENSION(
+     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,9 )
+     &        :: AREG_PART
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      INTEGER I,J,JR
+      INTEGER :: J_0,J_1, J_0H, J_1H
+      CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1 
+     &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
+C**** Initialize work array
+      AREG_PART(:,J_0H:J_1H,1:9) = 0.
+
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -379,7 +415,7 @@ C**** ACCUMULATE DIAGNOSTICS
         SCOVLI=0
         IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
         AJ(J,J_RSNOW,ITLANDI)=AJ(J,J_RSNOW,ITLANDI)+SCOVLI
-        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVLI*DXYPJ
+        AREG_PART(JR,J,1)=AREG_PART(JR,J,1)+SCOVLI*DXYPJ
         AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
         AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
         AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
@@ -391,12 +427,12 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_IMPLH,ITLANDI)=AJ(J,J_IMPLH,ITLANDI)+EDIFS*PLICE
         AJ(J,J_IMPLM,ITLANDI)=AJ(J,J_IMPLM,ITLANDI)+DIFS *PLICE
 
-        AREG(JR,J_RUN)  =AREG(JR,J_RUN)  +RUN0  *PLICE*DXYPJ
-        AREG(JR,J_SNOW) =AREG(JR,J_SNOW) +SNOW  *PLICE*DXYPJ
-        AREG(JR,J_ACE1) =AREG(JR,J_ACE1) +ACE1LI*PLICE*DXYPJ
-        AREG(JR,J_ACE2) =AREG(JR,J_ACE2) +ACE2LI*PLICE*DXYPJ
-        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+EDIFS *PLICE*DXYPJ
-        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+DIFS  *PLICE*DXYPJ
+        AREG_PART(JR,J,2) =AREG_PART(JR,J,2) +RUN0  *PLICE*DXYPJ
+        AREG_PART(JR,J,3) =AREG_PART(JR,J,3) +SNOW  *PLICE*DXYPJ
+        AREG_PART(JR,J,4) =AREG_PART(JR,J,4) +ACE1LI*PLICE*DXYPJ
+        AREG_PART(JR,J,5) =AREG_PART(JR,J,5) +ACE2LI*PLICE*DXYPJ
+        AREG_PART(JR,J,6) =AREG_PART(JR,J,6) +EDIFS *PLICE*DXYPJ
+        AREG_PART(JR,J,7) =AREG_PART(JR,J,7) +DIFS  *PLICE*DXYPJ
 
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS+F1DT
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
@@ -415,8 +451,8 @@ C**** Accumulate diagnostics related to iceberg flux here also
       AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)        +(1.-RSI(I,J))
      *     *EGMELT(I,J)*BYDXYP(J)
       
-      AREG(JR,J_RVRD) = AREG(JR,J_RVRD) +  GMELT(I,J)
-      AREG(JR,J_ERVR) = AREG(JR,J_ERVR) + EGMELT(I,J)
+      AREG_PART(JR,J,8)   = AREG_PART(JR,J,8) +  GMELT(I,J)
+      AREG_PART(JR,J,9)   = AREG_PART(JR,J,9) + EGMELT(I,J)
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
 #ifdef TRACERS_OCEAN
@@ -426,6 +462,46 @@ C**** Accumulate diagnostics related to iceberg flux here also
 C****
       END DO
       END DO
+
+      DO JR=1,SIZE(AREG,1)
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,1),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,2),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_RUN)  =AREG(JR,J_RUN)  +AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,3),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_SNOW) =AREG(JR,J_SNOW) +AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,4),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_ACE1) =AREG(JR,J_ACE1) +AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,5),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_ACE2) =AREG(JR,J_ACE2) +AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,6),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,7),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,8),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_RVRD) = AREG(JR,J_RVRD)+AREG_SUM          
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID,AREG_PART(JR,:,9),AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_ERVR) = AREG(JR,J_ERVR)+AREG_SUM          
+      END DO
+
+
       END SUBROUTINE GROUND_LI
 
       SUBROUTINE conserv_MLI(ICE)

@@ -165,6 +165,11 @@ Cred*                   end Reduced Arrays 1
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      REAL*8  :: AJEQIL_SUM(IM,LM)
+      REAL*8  :: AREG_SUM
+      REAL*8, DIMENSION(
+     &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
+     &        :: AREG_part
       REAL*8 :: randxx
 C**** Initialize
       AJEQIL(:,:,:)=0.
@@ -998,15 +1003,32 @@ C**** Delayed summations (to control order of summands)
 C****EXCEPTION: partial-global sum above!
 C     CALL GLOBAL_SUM(AIL.....)
 C 
+C***EXCEPTION: Indirect addressing [JREG(I,J)]
+      AREG_part(:,J_0H:J_1H,1:3) = 0
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
          JR=JREG(I,J)
          IF(LMC(1,I,J).GT.0)
-     *     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+AREGIJ(I,J,1)
-         AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+AREGIJ(I,J,2)
-         AREG(JR,J_EPRCP) =AREG(JR,J_EPRCP) +AREGIJ(I,J,3)
+     *     AREG_part(JR,J,1)=AREG_part(JR,J,1)+AREGIJ(I,J,1)
+         AREG_part(JR,J,2)=AREG_part(JR,J,2)+AREGIJ(I,J,2)
+         AREG_part(JR,J,3) =AREG_part(JR,J,3) +AREGIJ(I,J,3)
       END DO
       END DO
+
+      DO JR=1,SIZE(AREG,1)
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID, AREG_part(JR,:,1), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_PRCPMC) = AREG(JR,J_PRCPMC) + AREG_SUM
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID, AREG_part(JR,:,2), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_PRCPSS) = AREG(JR,J_PRCPSS) + AREG_SUM
+
+        AREG_SUM=0.
+        CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
+        AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
+      END DO
+
 C 
 C     NOW REALLY UPDATE THE MODEL WINDS
 C 
@@ -1017,12 +1039,13 @@ C
       CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
 
       IF(HAVE_SOUTH_POLE) THEN
-        DO K=1,IM ! KMAXJ(J)
+        J = 1
+        DO K=1,KMAXJ(1)
           IDI(K)=IDIJ(K,1,1)
           IDJ(K)=IDJJ(K,1)
         END DO
         DO L=1,LM
-          DO K=1,IM ! KMAXJ(J)
+          DO K=1,KMAXJ(1)
             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)
             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)
           END DO

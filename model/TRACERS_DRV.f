@@ -6461,7 +6461,7 @@ C**** at the start of any day
 #ifdef TRACERS_AEROSOLS_Koch
      *  ,jmon
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
 
       USE GEOM, only: dxyp,areag,lat_dg
       USE QUSDEF
@@ -6487,6 +6487,7 @@ C**** at the start of any day
       integer :: i,j,ns,l,ky,n
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  steph,stepx,stepp,tmon,bydt,tnew
+      REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
       INTEGER J_0, J_1
 
@@ -6530,12 +6531,13 @@ c     the area sums (sarea).
 
 C**** Source over United States and Canada
         source = .37d0*anngas*steppy
-        sarea  = 0.
-        do j=31,35
+        sarea_prt(:)  = 0.
+        do j=MAX(31,J_0),MIN(35,J_1)
           do i=12,22
-            sarea = sarea + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=J_0,J_1     ! 31,35
           if (nint(lat_dg(j,1)).ge.28 .and. nint(lat_dg(j,1)).le.48)
      *         then
@@ -6546,12 +6548,13 @@ C**** Source over United States and Canada
         enddo
 C**** Source over Europe and Russia
         source = .37d0*anngas*steppy
-        sarea  = 0.
-        do j=33,39
+        sarea_prt(:)  = 0.
+        do j=MAX(33,J_0),MIN(39,J_1)
           do i=35,45
-            sarea = sarea + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=J_0,J_1     ! 33,39
           if (nint(lat_dg(j,1)).ge.36 .and. nint(lat_dg(j,1)).le.64)
      *         then
@@ -6562,12 +6565,13 @@ C**** Source over Europe and Russia
         enddo
 C**** Source over Far East
         source = .13d0*anngas*steppy
-        sarea  = 0.
-        do j=29,34
+        sarea_prt  = 0.
+        do j=MAX(29,J_0),MIN(34,J_1)
           do i=61,66
-            sarea = sarea + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=J_0,J_1     ! 29,34
           if (nint(lat_dg(j,1)).ge.20 .and. nint(lat_dg(j,1)).le.44)
      *         then
@@ -6578,12 +6582,13 @@ C**** Source over Far East
         enddo
 C**** Source over Middle East
         source = .05d0*anngas*steppy
-        sarea  = 0.
-        do j=28,32
+        sarea_prt  = 0.
+        do j=MAX(28,J_0),MIN(32,J_1)
           do i=43,51
-            sarea = sarea + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
           enddo
         enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=J_0,J_1     ! 28,32
           if (nint(lat_dg(j,1)).ge.16 .and. nint(lat_dg(j,1)).le.36)
      *         then
@@ -6598,19 +6603,19 @@ c        do j=J_0,J_1   ! example coding
 c        if (nint(lat_dg(j,1)).ge.-24 .and. nint(lat_dg(j,1)).le.-20)
 c     *         then
         i=27; j=18
-        trsource(i,j,1,n) = 0.5*source
+        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = 0.5*source
         i=28; j=18
-        trsource(i,j,1,n) = 0.5*source
+        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = 0.5*source
 c        end if
 c        end do
 C**** Source over South Africa
         source = .02d0*anngas*steppy
         i=42; j=17
-        trsource(i,j,1,n) = source
+        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
         i=66; j=15
-        trsource(i,j,1,n) = source
+        IF (j >= J_0 .and. j <= J_1) trsource(i,j,1,n) = source
 
 C****
 C**** Surface Sources for Radon-222

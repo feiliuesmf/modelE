@@ -731,6 +731,10 @@ C****
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      *     FLOW,EFLOW
+      REAL*8,
+     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     & :: AREG_part
+      REAL*8 :: AREGSUM
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
       REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -774,6 +778,7 @@ C****
       CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:),FROM=NORTH+SOUTH)
 #endif
 
+        AREG_part = 0.
         j_start=Max(2,J_0H)
         j_stop =Min(JM-1,J_1H)
 
@@ -839,8 +844,10 @@ C**** accumulate river runoff diags (moved from ground)
      *               (1.-RSI(ID,JD))*(DGM+DPE)*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
-              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
-              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
+C****              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
+              AREG_part(JR,1,JU)=AREG_part(JR,1,JU)+DMM
+C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
+              AREG_part(JR,2,JU)=AREG_part(JR,2,JU)+DGM+DPE
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -851,6 +858,13 @@ C**** accumulate river runoff diags (moved from ground)
           END IF
         END DO
       END DO
+      DO JR=1,size(AREG,1)
+        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+AREGSUM
+        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+AREGSUM
+      ENDDO
+
 C****
 C**** Calculate river flow at the South Pole
 C****
@@ -1368,6 +1382,10 @@ C**** grid box variables
 C**** fluxes
       REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
+      REAL*8, 
+     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     & :: AREG_part
+      REAL*8  :: AREGSUM
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 #ifdef TRACERS_WATER
@@ -1383,6 +1401,7 @@ C**** output from LKSOURC
 
       CALL PRINTLK("GR")
 
+      AREG_part=0.
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       JR=JREG(I,J)
@@ -1518,8 +1537,10 @@ C**** Ice-covered ocean diagnostics
         AJ(J,J_WTR1, ITLKICE)=AJ(J,J_WTR1, ITLKICE)+MLAKE(1)*PLKICE
         AJ(J,J_WTR2, ITLKICE)=AJ(J,J_WTR2, ITLKICE)+MLAKE(2)*PLKICE
 C**** regional diags
-        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
-        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
+C****        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
+        AREG_part(JR,1,J)=AREG_part(JR,1,J)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
+C****        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
+        AREG_part(JR,2,J)=AREG_part(JR,2,J)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
 #ifdef TRACERS_WATER
 C**** tracer diagnostics
         TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?
@@ -1539,6 +1560,13 @@ C**** Store mass and energy fluxes for formation of sea ice
       END IF
       END DO
       END DO
+
+      DO JR=1,size(AREG,1)
+        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+AREGSUM
+        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+AREGSUM
+      ENDDO
 
       CALL PRINTLK("G2")
 

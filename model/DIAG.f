@@ -139,6 +139,10 @@ C**** Some local constants
      &        PUV
       REAL*8, DIMENSION(LM_REQ) :: TRI
       REAL*8, DIMENSION(IM) :: THSEC,PSEC,SQRTP,PDA
+      REAL*8, 
+     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
+     & :: AREG_part
+      REAL*8 :: AREGSUM
       CHARACTER*16 TITLE
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
@@ -242,6 +246,7 @@ C****
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
 C****
+      AREG_part=0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
 C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
@@ -253,7 +258,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
             SPTYPE(IT,J)=SPTYPE(IT,J)+FTYPE(IT,I,J)
             AJ(J,J_TX1,IT)=AJ(J,J_TX1,IT)+(TX(I,J,1)-TF)*FTYPE(IT,I,J)
           END DO
-          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
+C****         AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
+          AREG_part(JR,1,J)=AREG_part(JR,1,J)+(TX(I,J,1)-TF)*DXYPJ
           PI(J)=PI(J)+P(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG
@@ -326,7 +332,14 @@ C****
           END IF
         END DO
       END DO
+C****          AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-TF)*DXYPJ
+      DO JR=1,size(AREG,1)
+        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_TX1)=AREG(JR,J_TX1)+AREGSUM
+      ENDDO
+
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
+      AREG_part = 0.
       DO J=J_0,J_1
         DXYPJ=DXYP(J)
         DO L=1,LM
@@ -344,9 +357,13 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
               AJ(J,J_QP,IT)=AJ(J,J_QP,IT)+(Q(I,J,L)+WM(I,J,L))*PIJ
      *             *DSIG(L)*FTYPE(IT,I,J)
             END DO
-            AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
-     *           *DXYPJ
-            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
+C****            AREG(JR,J_QP)=AREG(JR,J_QP)+(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
+C****     *           *DXYPJ
+C****            AREG(JR,J_TX)=AREG(JR,J_TX)+(TX(I,J,L)-TF)*DBYSD*DXYPJ
+            AREG_part(JR,1,J)=AREG_part(JR,1,J)+(Q(I,J,L)+WM(I,J,L))*
+     *                        PIJ*DSIG(L)*DXYPJ
+            AREG_part(JR,2,J)=AREG_part(JR,2,J)+
+     *                        (TX(I,J,L)-TF)*DBYSD*DXYPJ
             TPI(J,L)=TPI(J,L)+(TX(I,J,L)-TF)*PIJ
             PHIPI(J,L)=PHIPI(J,L)+PHI(I,J,L)*PIJ
             SPI(J,L)=SPI(J,L)+T(I,J,L)*PIJ
@@ -355,6 +372,14 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
           AJL(J,L,JL_DTDYN)=AJL(J,L,JL_DTDYN)+THI-TJL0(J,L)
         END DO
       END DO
+
+      DO JR=1,size(AREG,1)
+        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_QP)=AREG(JR,J_QP)+AREGSUM
+        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_TX)=AREG(JR,J_TX)+AREGSUM
+      ENDDO
+
 C****
 C**** NORTHWARD GRADIENT OF TEMPERATURE: TROPOSPHERIC AND STRATOSPHERIC
 C****
@@ -385,6 +410,7 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
 C****
 C**** STATIC STABILITIES: TROPOSPHERIC AND STRATOSPHERIC
 C****
+      AREG_part=0.
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
 C**** OLD TROPOSPHERIC STATIC STABILITY
@@ -394,7 +420,8 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
         DO IT=1,NTYPE
           AJ(J,J_DTDGTR,IT)=AJ(J,J_DTDGTR,IT)+SS*FTYPE(IT,I,J)
         END DO
-        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
+C****        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
+        AREG_part(JR,1,J)=AREG_part(JR,1,J)+SS*DXYPJ
         AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
       END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
@@ -405,7 +432,8 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
         DO IT=1,NTYPE
           AJ(J,J_DTSGST,IT)=AJ(J,J_DTSGST,IT)+SS*FTYPE(IT,I,J)
         END DO
-        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
+C****        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
+        AREG_part(JR,2,J)=AREG_part(JR,2,J)+SS*DXYPJ
       END DO
 C****
 C**** NUMBERS ACCUMULATED FOR THE RADIATION EQUILIBRIUM LAYERS
@@ -428,6 +456,16 @@ C****
       PHIRI=PHIRI+RGAS*.5*(TRI(2)+TRI(3))*DLNP23
       ASJL(J,3,2)=ASJL(J,3,2)+PHIRI
       END DO
+
+C****        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+SS*DXYPJ
+C****        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+SS*DXYPJ
+      DO JR=1,size(AREG,1)
+        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_DTDGTR)=AREG(JR,J_DTDGTR)+AREGSUM
+        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
+        AREG(JR,J_DTSGST)=AREG(JR,J_DTSGST)+AREGSUM
+      ENDDO
+
 C****
 C**** RICHARDSON NUMBER , ROSSBY NUMBER , RADIUS OF DEFORMATION
 C****
@@ -2472,6 +2510,8 @@ c      COMMON/WORK7/FCUVA,FCUVB
       REAL*8, DIMENSION(IMH+1) :: X
       REAL*8, DIMENSION(0:IMH) :: FA,FB
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
+      REAL*8, DIMENSION
+     &  (IMH+1,NSPHER,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE_part
 
       INTEGER :: J,J45N,KUV,KSPHER,L,MBEGIN,MKE,N,NM
       INTEGER :: J_0STG,J_1STG
@@ -2494,31 +2534,45 @@ C****
 C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
   100 CALL GETTIME(MBEGIN)
       KE(:,:)=0.
+      KE_part(:,:,:)=0.
 
-      DO 170 L=1,LM
+      DO L=1,LM
         KSPHER=KLAYER(L)
-      DO 170 J=J_0STG,J_1STG
-      DO 170 KUV=1,2 ! loop over u,v
-      IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
-      IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
-      DO N=1,NM
-         X(N)=.5*FIM*
-     &        (FA(N-1)*FCUVA(N-1,J,L,KUV)+FB(N-1)*FCUVB(N-1,J,L,KUV))
-      ENDDO
-      X(1)=X(1)+X(1)
-      X(NM)=X(NM)+X(NM)
-      IF (J.NE.JEQ) KE(:,KSPHER)=KE(:,KSPHER)+X(:)*DSIG(L)
-      IF (J.EQ.J45N) THEN     ! 45 N
-         KE(:,KSPHER+2)=KE(:,KSPHER+2)+X(:)*DSIG(L)
-      ELSE IF (J.EQ.JEQ) THEN ! EQUATOR
-        DO N=1,NM
-        KE(N,KSPHER+2)=KE(N,KSPHER+2)+     X(N)*DSIG(L)
-        KE(N,KSPHER)  =KE(N,KSPHER)  +.5D0*X(N)*DSIG(L) ! CONTRIB TO SH
-        KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X(N)*DSIG(L) ! CONTRIB TO NH
+        DO J=J_0STG,J_1STG
+          DO KUV=1,2 ! loop over u,v
+            IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
+            IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
+            DO N=1,NM
+              X(N)=.5*FIM*
+     &          (FA(N-1)*FCUVA(N-1,J,L,KUV)+FB(N-1)*FCUVB(N-1,J,L,KUV))
+            ENDDO
+            X(1)=X(1)+X(1)
+            X(NM)=X(NM)+X(NM)
+            IF (J.NE.JEQ) KE_part(:,KSPHER,J)=KE_part(:,KSPHER,J)+
+     &                                        X(:)*DSIG(L)
+            IF (J.EQ.J45N) THEN     ! 45 N
+               KE_part(:,KSPHER+2,J)=KE_part(:,KSPHER+2,J)+X(:)*DSIG(L)
+            ELSE IF (J.EQ.JEQ) THEN ! EQUATOR
+              DO N=1,NM
+                KE_part(N,KSPHER+2,J)=KE_part(N,KSPHER+2,J)+
+     &                                X(N)*DSIG(L)
+                KE_part(N,KSPHER,  J)=KE_part(N,KSPHER,  J)+
+     &                                .5D0*X(N)*DSIG(L)       ! CONTRIB TO SH
+                KE_part(N,KSPHER+1,J)=KE_part(N,KSPHER+1,J)+
+     &                                .5D0*X(N)*DSIG(L)       ! CONTRIB TO NH
+              ENDDO
+              IF (KUV.EQ.2) KSPHER=KSPHER+1
+            ENDIF
+          ENDDO
         ENDDO
-        IF (KUV.EQ.2) KSPHER=KSPHER+1
-      ENDIF
-  170 CONTINUE
+      ENDDO
+
+      DO KSPHER=1,NSPHER
+        DO  N=1,NM
+          CALL GLOBALSUM(grid, KE_part(N,KSPHER,:), KE(N,KSPHER),
+     &                   ISTAG=1, ALL=.TRUE.)
+        ENDDO
+      ENDDO
 
       DO 180 KSPHER=1,NSPHER
       DO 180 N=1,NM
@@ -2572,9 +2626,14 @@ C****
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM) :: X
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
+      REAL*8, DIMENSION
+     &  (IMH+1,NSPHER,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE_part
       REAL*8, DIMENSION(IMH+1,4) :: VAR
       REAL*8, DIMENSION(2) :: TPE
-CMoved to DIAG_COM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
+      REAL*8               :: TPE_sum
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: TPE_psum
+CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
+
       REAL*8, DIMENSION(LM) :: THJSP,THJNP,THGM
 
       INTEGER, PARAMETER :: IZERO=0
@@ -2585,7 +2644,9 @@ CMoved to DIAG_COM so it could be declared allocatable      REAL*8, SAVE, DIMENS
       INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
      &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
 
-      REAL*8 :: GMEAN,GMSUM,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
+      REAL*8 :: GMEAN,GMTMP,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
+      REAL*8 :: THGSUM_part(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: GMSUM(grid%J_STRT_HALO:grid%J_STOP_HALO)
 
       INTEGER :: J_0S,J_1S,J_0STG,J_1STG
       LOGICAl :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -2641,27 +2702,50 @@ C**** MASS FOR KINETIC ENERGY
 C****
   205 MAPE=MKE+1
       KE(:,:)=0.
+      KE_part(:,:,:)=0.
 C**** CURRENT KINETIC ENERGY
-      DO 240 L=1,LM
-        KSPHER=KLAYER(L)
-      DO 240 J=J_0STG,J_1STG
-      DO 240 K=IZERO,LM,LM
-      IF(K.EQ.IZERO) X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
-      IF(K.EQ.LM)    X(1:IM)=V(1:IM,J,L)*SQRTM(1:IM,J)
-      CALL FFTE (X,X)
-      IF (J.EQ.JEQ) GO TO 225
-      DO 220 N=1,NM
-  220 KE(N,KSPHER)=KE(N,KSPHER)+X(N)*DSIG(L)
-      IF (J.NE.J45N) GO TO 240
-      DO 222 N=1,NM
-  222 KE(N,KSPHER+2)=KE(N,KSPHER+2)+X(N)*DSIG(L)
-      GO TO 240
-  225 DO 230 N=1,NM
-      KE(N,KSPHER+2)=KE(N,KSPHER+2)+X(N)*DSIG(L)
-      KE(N,KSPHER)=KE(N,KSPHER)+.5D0*X(N)*DSIG(L)
-  230 KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X(N)*DSIG(L)
-      IF (K.EQ.LM) KSPHER=KSPHER+1
-  240 CONTINUE
+      DO L=1,LM
+        DO J=J_0STG,J_1STG
+          IF (J <= JEQ) THEN
+            KSPHER=KLAYER(L)
+          ELSE
+            KSPHER=KLAYER(L)+1
+          END IF
+          DO K = IZERO,LM,LM
+            IF(K.EQ.IZERO)X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
+            IF(K.EQ.LM)   X(1:IM)=V(1:IM,J,L)*SQRTM(1:IM,J)
+            CALL FFTE (X,X)
+            IF (J.EQ.JEQ) THEN
+              DO N=1,NM
+                KE_part(N,KSPHER+2,J)=KE_part(N,KSPHER+2,J)+X(N)*DSIG(L)
+                KE_part(N,KSPHER,  J)=KE_part(N,KSPHER  ,J)+
+     &                                .5D0*X(N)*DSIG(L)
+                KE_part(N,KSPHER+1,J)=KE_part(N,KSPHER+1,J)+
+     &                                .5D0*X(N)*DSIG(L)
+              ENDDO
+c$$$              IF(K.EQ.LM)KSPHER=KSPHER+1
+            ELSE
+              DO N=1,NM
+                KE_part(N,KSPHER,J)=KE_part(N,KSPHER,J)+X(N)*DSIG(L)
+              ENDDO
+              IF (J.EQ.J45N) THEN
+                DO N=1,NM
+                  KE_part(N,KSPHER+2,J)=KE_part(N,KSPHER+2,J)+
+     &                                X(N)*DSIG(L)
+                ENDDO
+              ENDIF
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDDO
+
+      DO KS=1,NSPHER
+        DO  N=1,NM
+          CALL GLOBALSUM(grid, KE_part(N,KS,:), KE(N,KS),
+     &                   ISTAG=1, ALL=.TRUE.)
+        ENDDO
+      ENDDO
+
       IF (NDT.EQ.0) GO TO 260
 C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
       DO 250 KS=1,NSPHER
@@ -2685,12 +2769,18 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
         IF(HAVE_SOUTH_POLE) THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
         IF(HAVE_NORTH_POLE) THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
       ENDIF
-      THGSUM=FIM*(THJSP(LUP)*DXYP(1)+THJNP(LUP)*DXYP(JM))
-      DO 320 J=J_0S,J_1S
-      THJSUM=0.
-      DO 310 I=1,IM
-  310 THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
-  320 THGSUM=THGSUM+THJSUM*DXYP(J)
+      IF(HAVE_SOUTH_POLE) THGSUM_part(1)  = FIM*THJSP(LUP)*DXYP(1)
+      IF(HAVE_NORTH_POLE) THGSUM_part(JM) = FIM*THJNP(LUP)*DXYP(JM)
+C***      THGSUM=FIM*(THJSP(LUP)*DXYP(1)+THJNP(LUP)*DXYP(JM))
+      DO J=J_0S,J_1S
+        THJSUM=0.
+        DO I=1,IM
+          THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
+        ENDDO
+        THGSUM_part(J) = THJSUM*DXYP(J)
+      ENDDO
+C***  320 THGSUM=THGSUM+THJSUM*DXYP(J)
+      CALL GLOBALSUM(grid, THGSUM_part, THGSUM, ALL=.TRUE.)
       THGM(LUP)=THGSUM/AREAG
       IF (LUP.GE.2) GO TO 350
       LDN=LUP
@@ -2699,34 +2789,49 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
   350 CONTINUE
 
       VAR(2:NM,1:2)=0.
-      IF(HAVE_SOUTH_POLE) VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
-      IF(HAVE_NORTH_POLE) VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
-      GMEAN=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
-     *  (SQRTP(1,1)*P(1,1)*PK(L,1,1))+(THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
-     *  (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
-      JHEMI=1
-      DO 388 J=J_0S,J_1S
-        GMSUM=0.
+      IF(HAVE_SOUTH_POLE) THEN
+        VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
+        GMSUM(1)=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
+     *       (SQRTP(1,1)*P(1,1)*PK(L,1,1)))*FIM
+      END IF
+      IF(HAVE_NORTH_POLE) THEN
+        VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
+        GMSUM(JM)=((THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
+     *       (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
+      END IF
+
+      DO J=J_0S,J_1S
+
+        IF (J < JEQ) THEN
+          JHEMI = 1
+        ELSE
+          JHEMI = 2
+        END IF
+
+        GMTMP = 0
         DO I=1,IM
           X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
-          GMSUM=GMSUM+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
-     *         (P(I,J)*PK(L,I,J))
+          GMTMP=GMTMP+(T(I,J,LUP)-T(I,J,LDN))*(SIG(L)*P(I,J)+PTOP)/
+     *        (P(I,J)*PK(L,I,J))
         END DO
-        GMEAN=GMEAN+GMSUM*DXYP(J)
+        GMSUM(J) = GMTMP * DXYP(J)
         CALL FFTE (X,X)
         DO N=1,NM
           VAR(N,JHEMI)=VAR(N,JHEMI)+X(N)*DXYP(J)
         END DO
-        IF (J.NE.JEQ-1) GO TO 384
-        DO N=1,NM
-          VAR(N,3)=X(N)*DXYP(J)
-        END DO
-        JHEMI=2
- 384    IF (J.NE.J45N-1) GO TO 388
-        DO N=1,NM
-          VAR(N,4)=X(N)*DXYP(J)
-        END DO
- 388  CONTINUE
+        IF (J == JEQ-1) THEN
+          DO N=1,NM
+            VAR(N,3)=X(N)*DXYP(J)
+          END DO
+        END IF
+        IF (J == J45N-1) THEN
+          DO N=1,NM
+            VAR(N,4)=X(N)*DXYP(J)
+          END DO
+        END IF
+      END DO
+        
+      CALL GLOBALSUM(grid, GMSUM, GMEAN, ALL=.TRUE.)
       GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
 
       KS=KLAYER(L)
@@ -2742,22 +2847,38 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
       IF (LUP.LT.LM) GO TO 300
       GO TO 350
 C**** CURRENT TOTAL POTENTIAL ENERGY
-  450 DO 480 JHEMI=1,2
-      JP=1+(JM-1.)*(JHEMI-1)
-      SUMT=0.
-      DO 455 L=1,LM
-  455 SUMT=SUMT+T(1,JP,L)*PK(L,1,JP)*DSIG(L)
-      TPE(JHEMI)=FIM*DXYP(JP)*(ZATMO(1,JP)*(P(1,JP)+PTOP)+
-     *  SUMT*SHA*P(1,JP))
-      DO 480 JH=MAX(J_0S,2),MIN(J_1S,JEQ-1)
-      J=JH+(JEQ-2)*(JHEMI-1)
-      SUMI=0.
-      DO 470 I=1,IM
-      SUMT=0.
-      DO 460 L=1,LM
-  460 SUMT=SUMT+T(I,J,L)*PK(L,I,J)*DSIG(L)
-  470 SUMI=SUMI+ZATMO(I,J)*(P(I,J)+PTOP)+SUMT*SHA*P(I,J)
-  480 TPE(JHEMI)=TPE(JHEMI)+SUMI*DXYP(J)
+ 450  CONTINUE
+      IF (HAVE_SOUTH_POLE) THEN
+        J=1
+        SUMT=0
+        DO L=1, LM
+          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
+        END DO
+        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
+     *       SUMT*SHA*P(1,J))
+      END IF
+      IF (HAVE_NORTH_POLE) THEN
+        J=JM
+        SUMT=0
+        DO L=1, LM
+          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
+        END DO
+        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
+     *       SUMT*SHA*P(1,J))
+      END IF
+      DO J=J_0S, J_1S
+        SUMI=0
+        DO I=1,IM
+          SUMT=0
+          DO L=1,LM
+            SUMT=SUMT + T(I,J,L)*PK(L,I,J)*DSIG(L)
+          END DO
+          SUMI=SUMI+ZATMO(I,J)*(P(I,J)+PTOP)+SUMT*SHA*P(I,J)
+        END DO
+        TPE_psum(J) = SUMI*DXYP(J)
+      END DO
+      CALL GLOBALSUM(grid, TPE_psum, TPE_sum, TPE)
+
       IF (NDT.EQ.0) GO TO 520
       MTPE=MTPEOF(MAPE)
 C**** TRANSFER RATES AS DIFFERENCES FOR POTENTIAL ENERGY
