@@ -705,12 +705,13 @@ and NMONAV in the NAMELIST).</p>
   <li>for a whole year:   pdE $RUNID *1987.acc$RUNID
        </ul>
        <p>
-       To work properly, the directory /u/cmrun/$RUNID has to exist 
+       For pdE to work properly, the directory /u/cmrun/$RUNID has to exist 
        and contain at least ${RUNID}ln  ${RUNID}uln  ${RUNID}.exe .
-       The output files will end up in that directory, names and order
-       of the inputfiles are irrelevant (as long as the format of the
-       files is compatible with the model ${RUNID}). You need not be in 
-       /u/cmrun/$RUNID to execute pdE $RUNID list_of_files_to_be_processed.</p>
+       The output files will end up in the PRESENT WORKING DIRECTORY which
+       may be /u/cmrun/$RUNID or any other directory;
+       names and order of the inputfiles are irrelevant (as long as the format of the
+       files is compatible with the model ${RUNID}).  
+       </p>
        
        <p>It is possible to use pdE to average acc-files from several runs,
        e.g. average over an ensemble of runs. Although the numbers that
@@ -724,8 +725,8 @@ and NMONAV in the NAMELIST).</p>
        if anybody cares.</p>
 </ol>
 <p>Note that the output can be controlled (a little) by the settings in
-'Ipd' (which is produced in the run directory the first time you run
-pdE). A number of files will be created whose names contain the
+'Ipd' (which is created if it does not yet exist in the present working
+directory). A number of files will be created whose names contain the
 accumulated time period.  (monyear[-year] where mon is a 3-letter acronym 
 for a period of 1-12 consecutive months).</p>
 <pre>
