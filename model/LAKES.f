@@ -720,7 +720,7 @@ C****
      *        ij_ervr,ij_mrvr,ij_f0oc,aj=>aj_loc,areg,jreg,
      *        j_rvrd,j_ervr,ij_fwoc
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
+      USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
