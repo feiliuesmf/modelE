@@ -312,6 +312,7 @@ of this block is similar to that of the namelist with following restrictions:
   - character strings should be single quoted (like 'abc')
   - arrays can be assigned only as a whole, no support for single elements
   - all elements of an array should be on the same line
+  - repeaters (i.e. expressions like 2*123) are not supported
   - only linear arrays are supported
   - the only types supported are: 
           integer, real*8, character*1 to character*16
