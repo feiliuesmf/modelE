@@ -257,7 +257,6 @@ if ( $uname =~ /IRIX64/ ) {
      $omp_run = "export OMP_NUM_THREADS=\$NP; ";
 }
 
-
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 
 open I, ">I" or die "can't open 'I' for writing\n";
@@ -328,7 +327,7 @@ if ( $rcode != 13 && $rcode != 12 ) {
     print " >>> $error_message <<<\n";
     exit 4 ;
 } else {
-    print "1st hour completed sucessfully\n";
+    print "1st hour completed successfully\n";
 }
 
 ## Create executable script file RUNID
