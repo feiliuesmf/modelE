@@ -85,6 +85,13 @@
       PUBLIC :: WRITE_PARALLEL
       PUBLIC :: READ_GRID_VAR
       PUBLIC :: WRITE_GRID_VAR
+      PUBLIC :: TRANSP
+      PUBLIC :: TRANSPOSE_COLUMN
+!@var GLOBALMAX Generic wrapper for Real/integer
+      INTERFACE GLOBALMAX
+        MODULE PROCEDURE GLOBALMAX_R
+        MODULE PROCEDURE GLOBALMAX_I
+      END INTERFACE
 
 !@var HALO_UPDATE Generic wrapper for 2D and 3D routines
       INTERFACE HALO_UPDATE
@@ -104,6 +111,11 @@
         MODULE PROCEDURE CHECKSUM_1D
         MODULE PROCEDURE CHECKSUM_2D
         MODULE PROCEDURE CHECKSUM_3D
+      END INTERFACE
+
+      INTERFACE TRANSP
+        MODULE PROCEDURE TRANSPOSE_ij
+c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       END INTERFACE
 
       INTERFACE CHECKSUMj
@@ -362,6 +374,7 @@
          INTEGER :: J_STOP          ! End   local domain latitude  index
          INTEGER :: J_STRT_SKP      ! Begin local domain exclusive of S pole
          INTEGER :: J_STOP_SKP      ! End   local domain exclusive of N pole
+         INTEGER :: ni_loc ! for transpose
          ! Parameters for halo of local domain
          INTEGER :: I_STRT_HALO     ! Begin halo longitude index
          INTEGER :: I_STOP_HALO     ! End   halo longitude index
@@ -401,7 +414,7 @@
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT_def
       Integer :: pe
       integer, parameter :: ROOT_ID=0
-      INTEGER :: CHECKSUM_UNIT
+      INTEGER, PUBLIC :: CHECKSUM_UNIT
 
       Integer :: tag = 10
 
@@ -436,6 +449,7 @@
       RANK_LAT = my_pet
       RANK_LON = 0
 #else
+      NPES = 1
       NP_LON = 1
       NP_LAT = 1
       RANK_LON = 0
@@ -501,6 +515,8 @@
       grd_dum%I_STOP        = I1_DUM
       grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-HALO_WIDTH)
       grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+HALO_WIDTH)
+      grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
+
 
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
@@ -770,7 +786,7 @@
 
       END SUBROUTINE CHECKSUM_2D
 
-      SUBROUTINE CHECKSUM_3D(grd_dum, arr, line, file, unit, stgr)
+      SUBROUTINE CHECKSUM_3D(grd_dum, arr, line, file, unit, stgr, skip)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
       REAL*8,            INTENT(IN) :: 
@@ -779,6 +795,7 @@
       CHARACTER(LEN=*),  INTENT(IN) :: file
       INTEGER, OPTIONAL, INTENT(IN) :: unit
       LOGICAL, OPTIONAL, INTENT(IN) :: stgr
+      LOGICAL, OPTIONAL, INTENT(IN) :: skip
 
 
       INTEGER :: unit_
@@ -788,7 +805,7 @@
       REAL*8 :: 
      &  t_arr(size(arr,1),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
       INTEGER :: J_0, J_1
-      Integer :: stgr_
+      Integer :: stgr_,skip_
 
 #ifdef DEBUG_DECOMP
 
@@ -803,11 +820,16 @@
          If (stgr) stgr_=1
       End If
 
+      skip_ = 0
+      If (Present(skip)) THEN
+         If (skip) skip_=1
+      End If
+
       Do k = 1, Size(arr, 3)
-         t_arr(:,J_0:J_1) = arr(:,J_0:J_1,k)
-         Call GLOBALSUM(grd_dum, t_arr, asum(k), istag=stgr_)
-         t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
-         Call GLOBALSUM(grd_dum, t_arr, L1norm(k), istag=stgr_)
+        t_arr(:,J_0:J_1) = arr(:,J_0:J_1,k)
+        Call GLOBALSUM(grd_dum, t_arr, asum(k), istag=stgr_,iskip=skip_)
+        t_arr(:,J_0:J_1) = ABS(t_arr(:,J_0:J_1))
+        Call GLOBALSUM(grd_dum, t_arr,L1norm(k),istag=stgr_,iskip=skip_)
       End Do
       If (AM_I_ROOT()) Then
         Write(unit_,'(a20,1x,i6,1x,2(e24.17,1x))') 
@@ -1070,7 +1092,6 @@
 
 #ifdef DEBUG_DECOMP
       CALL closeunit(CHECKSUM_UNIT)
-      CALL HERE(__FILE__,__LINE__)
       CALL closeunit(grid%log_unit)
 #endif
 
@@ -1158,7 +1179,6 @@
 
 #ifdef DEBUG_DECOMP
       If (Size(arr) /= grd_dum%j_stop_halo-grd_dum%j_strt_halo+1) Then
-        CALL HERE(__FILE__//' should never happen',__LINE__)
 #ifdef USE_ESMF
         CALL MPI_ABORT(ier)
 #else
@@ -1766,8 +1786,6 @@ C****  convert from real*4 to real*8
       AVAR=AOUT
 #endif
 
-      Call CHECKSUM(grd_dum, AVAR, __LINE__,__FILE__)
-
       If (IERR==0) Then
          WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
          RETURN
@@ -1813,8 +1831,6 @@ C****  convert from real*4 to real*8
          READ (IUNIT, IOSTAT=IERR) TITLE, (X,N=1,NSKIP), AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
-         CALL LOG_PARALLEL(grd_dum, __FILE__, __LINE__,
-     &        x0 = SUM(AOUT**2),x1=Sum(Sum(AOUT**2,1),1))
       EndIf
 
 #ifdef USE_ESMF
@@ -1825,8 +1841,6 @@ C****  convert from real*4 to real*8
 #else
       AVAR=AOUT
 #endif
-
-      Call CHECKSUM(grd_dum, AVAR, __LINE__,__FILE__)
 
       If (IERR==0) Then
          WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
@@ -4082,7 +4096,7 @@ cgsfc      ENDIF
       END SUBROUTINE LOG_PARALLEL
 
 
-      SUBROUTINE GLOBALMAX(grd_dum, val, val_max)
+      SUBROUTINE GLOBALMAX_R(grd_dum, val, val_max)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN)  :: grd_dum
       REAL*8,            INTENT(IN)  :: val
@@ -4099,6 +4113,22 @@ cgsfc      ENDIF
         
       END SUBROUTINE
 
+      SUBROUTINE GLOBALMAX_I(grd_dum, val, val_max)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN)  :: grd_dum
+      INTEGER,            INTENT(IN)  :: val
+      INTEGER,            INTENT(OUT) :: val_max
+
+      INTEGER  :: ier
+
+#ifdef USE_ESMF
+      CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX, 
+     &     MPI_COMM_WORLD, ier)
+#else
+      val_max = val
+#endif
+        
+      END SUBROUTINE
 
       SUBROUTINE PACK_1D(grd_dum,ARR,ARR_GLOB)
       IMPLICIT NONE
@@ -5010,5 +5040,230 @@ C--------------------------------
 
       END SUBROUTINE ESMF_BCAST_1D
 
+      SUBROUTINE TRANSPOSE_ij(grid, x_in, x_out, reverse)
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      REAL*8 :: x_in(:,grid%J_STRT_HALO:)
+      REAL*8 :: x_out(:,:)
+      Logical, Optional, INTENT(IN) :: reverse
+
+      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
+      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
+#ifdef USE_ESMF
+      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+#endif
+      INTEGER :: I,J, II,JJ
+      INTEGER :: status, ier, p
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
+      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      LOGICAL :: reverse_
+
+      reverse_=.false.
+      If (PRESENT(reverse)) reverse_=reverse
+
+#ifndef USE_ESMF
+      If (reverse_) Then
+         X_IN(:,1:grid%JM_WORLD) = X_OUT(:,1:grid%JM_WORLD)
+      Else
+         X_OUT(:,1:grid%JM_WORLD) = X_IN(:,1:grid%JM_WORLD)
+      End If
+#else
+      DO p = 0, npes - 1
+         I0(p) = 1 + p * grid%IM_WORLD / NPES
+         I1(p) = (p+1) * grid%IM_WORLD / NPES
+      END DO
+
+      ALLOCATE(AI(0:npes-1,2))
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      DO p = 0, npes - 1
+         J0(p) = AI(p,2)%min
+         J1(p) = AI(p,2)%max
+      END DO
+      DEALLOCATE(AI)
+
+      ni_loc = I1(my_pet) - I0(my_pet) + 1
+      nj_loc = J1(my_pet) - J0(my_pet) + 1
+
+      ALLOCATE(rbuf(grid%JM_WORLD * ni_loc))
+      ALLOCATE(sbuf(grid%IM_WORLD * nj_loc))
+
+      sdspl(0) = 0
+      rdspl(0) = 0
+      icnt = 0
+      DO p = 0, npes -1
+         If (reverse_) Then
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  rbuf(icnt) = X_out(i,j)
+               END DO
+            END DO
+         ELSE            
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  sbuf(icnt) = X_in(i,j)
+               End Do
+            END DO
+         END IF
+         nip = I1(p) - I0(p) + 1
+         njp = J1(p) - J0(p) + 1
+         scnts(p) = nj_loc * nip
+         rcnts(p) = ni_loc * njp
+         If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
+         If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
+      END DO
+
+      If (reverse_) Then
+         CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      Else
+         CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      End If
+      
+      icnt = 0
+      DO p = 0, npes - 1
+         If (reverse_) Then
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  X_in(i,j) = sbuf(icnt)
+               End Do
+            END DO
+         Else
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  X_out(i,j) = rbuf(icnt)
+               END DO
+            END DO
+         End If
+      END DO
+         
+      DEALLOCATE(sbuf)
+      DEALLOCATE(rbuf)
+#endif
+
+      END SUBROUTINE TRANSPOSE_ij
+
+      SUBROUTINE TRANSPOSE_COLUMN(grid, x_in, x_out, reverse)
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      REAL*8 :: x_in(:,:,grid%J_STRT_HALO:)
+      REAL*8 :: x_out(:,:,:)
+      Logical, Optional, INTENT(IN) :: reverse
+
+      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
+      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      REAL*8, ALLOCATABLE :: sbuf(:,:), rbuf(:,:)
+#ifdef USE_ESMF
+      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+#endif
+      INTEGER :: I,J, II,JJ
+      INTEGER :: status, ier, p
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
+      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      INTEGER :: n
+      LOGICAL :: reverse_
+
+      reverse_=.false.
+      If (PRESENT(reverse)) reverse_=reverse
+
+#ifndef USE_ESMF
+      If (reverse_) Then
+         X_IN(:,:,1:grid%JM_WORLD) = X_OUT(:,:,1:grid%JM_WORLD)
+      Else
+         X_OUT(:,:,1:grid%JM_WORLD) = X_IN(:,:,1:grid%JM_WORLD)
+      End If
+#else
+
+      DO p = 0, npes - 1
+         I0(p) = 1 + p * grid%IM_WORLD / NPES
+         I1(p) = (p+1) * grid%IM_WORLD / NPES
+      END DO
+
+      ALLOCATE(AI(0:npes-1,2))
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      DO p = 0, npes - 1
+         J0(p) = AI(p,2)%min
+         J1(p) = AI(p,2)%max
+      END DO
+      DEALLOCATE(AI)
+
+      ni_loc = I1(my_pet) - I0(my_pet) + 1
+      nj_loc = J1(my_pet) - J0(my_pet) + 1
+
+      n = Size(X_in,1)
+
+      ALLOCATE(rbuf(n,grid%JM_WORLD * ni_loc))
+      ALLOCATE(sbuf(n,grid%IM_WORLD * nj_loc))
+
+      sdspl(0) = 0
+      rdspl(0) = 0
+      icnt = 0
+      DO p = 0, npes -1
+         If (reverse_) Then
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  rbuf(:,icnt) = X_out(:,i,j)
+               END DO
+            END DO
+         ELSE            
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  sbuf(:,icnt) = X_in(:,i,j)
+               End Do
+            END DO
+         END IF
+         nip = I1(p) - I0(p) + 1
+         njp = J1(p) - J0(p) + 1
+         scnts(p) = n * nj_loc * nip
+         rcnts(p) = n * ni_loc * njp
+         If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
+         If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
+      END DO
+
+      If (reverse_) Then
+         CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      Else
+         CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      End If
+      
+      icnt = 0
+      DO p = 0, npes - 1
+         If (reverse_) Then
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  X_in(:,i,j) = sbuf(:,icnt)
+               End Do
+            END DO
+         Else
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  X_out(:,i,j) = rbuf(:,icnt)
+               END DO
+            END DO
+         End If
+      END DO
+         
+      DEALLOCATE(sbuf)
+      DEALLOCATE(rbuf)
+#endif
+
+      END SUBROUTINE TRANSPOSE_COLUMN
 
       END MODULE DOMAIN_DECOMP
