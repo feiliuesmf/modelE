@@ -1143,6 +1143,7 @@ c
       name_ij(k) = 'nt_dse'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.d-14*100.*BYGRAV/16.
+      igrid_ij(k) = 2
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m95_265
 c
@@ -1335,6 +1336,7 @@ c
       name_ij(k) = 'ujet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
+      igrid_ij(k) = 2
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m38_106
 c
@@ -1345,6 +1347,7 @@ c
       name_ij(k) = 'vjet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
+      igrid_ij(k) = 2
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m38_106
 c
@@ -1490,6 +1493,8 @@ c
       name_ij(k) = 'puq'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1./8.
+      igrid_ij(k) = 2
+      jgrid_ij(k) = 1
       ir_ij(k) = ir_m45_130
 c
       k=k+1 !
@@ -1499,6 +1504,8 @@ c
       name_ij(k) = 'pvq'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1./8.
+      igrid_ij(k) = 1
+      jgrid_ij(k) = 2
       ir_ij(k) = ir_m45_130
 c
       k=k+1 !
@@ -1528,6 +1535,7 @@ c     units_ij(k) = 'm/s'
 c     name_ij(k) = 'WLM'
 c     ia_ij(k) = ia_src
 c     scale_ij(k) = 1.
+c     igrid_ij(k) = 2
 c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
@@ -1782,6 +1790,8 @@ c
       name_ij(k) = 'fmu'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
+      igrid_ij(k) = 2
+      jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
@@ -1791,6 +1801,8 @@ c
       name_ij(k) = 'fmv'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
+      igrid_ij(k) = 1
+      jgrid_ij(k) = 2
 c
       k=k+1 !
       IJ_FGZU = k ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
@@ -1799,6 +1811,8 @@ c
       name_ij(k) = 'fgzu'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10/DTsrc
+      igrid_ij(k) = 2
+      jgrid_ij(k) = 1
       ir_ij(k) = ir_m1325_475
 c
       k=k+1 !
@@ -1808,6 +1822,8 @@ c
       name_ij(k) = 'fgzv'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10/DTsrc
+      igrid_ij(k) = 1
+      jgrid_ij(k) = 2
       ir_ij(k) = ir_m1325_475
 c
       k=k+1 !

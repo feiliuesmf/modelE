@@ -3468,7 +3468,7 @@ c**** ratios (the denominators)
 
 c**** compound quantities defined with their attributes (k > kaij)
 c****
-      iwt = iw_all ; jgrid = 1 ; irange = ir_pct    ! defaults
+      iwt = iw_all ; igrid = 1; jgrid = 1 ; irange = ir_pct    ! defaults
       name  = name_ij(k)
       lname = lname_ij(k) ; units = units_ij(k)
 
@@ -3481,8 +3481,10 @@ c**** time independent arrays
 
 c**** vectors: magnitude
       else if (k.eq.ij_jet.or.k.eq.ij_wsmn) then
+          igrid = 2
           jgrid = 2 ;  n1 = ij_ujet ; n2 = ij_vjet ; irange = ir_0_71
         if (k.eq.ij_wsmn) then
+          igrid = 1
           jgrid = 1 ;  n1 = ij_us   ; n2 = ij_vs   ; irange = ir_0_18
         end if
         byiacc=1./(idacc(ia_ij(n1))+teeny)
@@ -3497,9 +3499,9 @@ c**** vectors: direction clockwise north (-180 -> 180)
       else if (k.eq.ij_jetdir .or. k.eq.ij_wsdir) then
         irange = ir_angl
         if (k.eq.ij_jetdir) then
-          jgrid = 2 ; n1 = ij_ujet ; n2 = ij_vjet
+          igrid = 2 ; jgrid = 2 ; n1 = ij_ujet ; n2 = ij_vjet
         else if (k.eq.ij_wsdir)  then
-          jgrid = 1 ; n1 = ij_us   ; n2 = ij_vs
+          igrid = 1 ; jgrid = 1 ; n1 = ij_us   ; n2 = ij_vs
         end if
         do j=2,jm
         do i=1,im
@@ -3551,12 +3553,12 @@ c**** ratios: albedos from reflected radiation
 c**** precomputed fields: northward tranports by eddies
       else if (k.eq.ij_ntdsese) then                   ! standing eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m95_265
-        anum=SENTDSE*(byiacc*scale_ij(ij_dsev))  ;  jgrid = 2
+        anum=SENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
         isumz = 1 ; isumg = 2
 
       else if (k.eq.ij_ntdsete) then                  ! transient eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m1_3
-        anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  jgrid = 2
+        anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
         isumz = 1 ; isumg = 2
 
 c**** group of kgz_max-1 thickness temperatures (from heights)
@@ -3582,7 +3584,7 @@ c**** length of growing season   (not quite right ???)
 
 c**** precipitable water
       else if (k.eq.ij_colh2o) then
-        jgrid = 2; irange = ir_ij(ij_prec)
+        igrid = 2; jgrid = 2; irange = ir_ij(ij_prec)
         byiacc = .1*.25*100.*bygrav/idacc(ia_dga)
         anum = 0.
         do l=1,lm
