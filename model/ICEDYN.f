@@ -89,99 +89,9 @@ C**** Geometry
 !@var BYDTS reciprocal of timestep in ice dynamics code
       REAL*8 :: BYDTS
 
-      PRIVATE :: init
-      LOGICAL :: init = .false.
       INTEGER :: CHECKSUM_UNIT
 
-      CONTAINS
-
-      SUBROUTINE ALLOC_ICEDYN(grid)
-!@sum ALLOC_ICEDYN allocates arrays defined in the ICEDYN module.
-!@auth Rosalinda de Fainchtein
-
-C**** arrays allocated in this routine were originally dimensioned
-C**** (..,ny1,..). Since ny1=jm (see above), the grid structure as defined
-C**** in DOMAIN_DECOMP can be used in the calling routine.
-C**** In the case that ny1 is NOT equal to JM, a structure appropriately
-C**** modified to reflect the differences should be created in DOMAIN_DECOMP 
-C**** and used in the calling routine. No modification should be necesary
-C**** to ALLOC_ICEDYN.
-
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
-      USE DOMAIN_DECOMP, only : GET
-      IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
-
-      INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: IER
-
-      INTEGER :: I,J,L
-
-      If (init) Then
-         Return ! Only invoke once
-      End If
-      init = .true.
-
-      CALL GET( grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
-     &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
-!     I_0H = grid%I_STRT_HALO
-!     I_1H = grid%I_STOP_HALO
-!     J_0H = grid%J_STRT_HALO
-!     J_1H = grid%J_STOP_HALO
-
-      ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),
-     $   STAT = IER)
-
-      ALLOCATE(  PRESS(NX1,J_0H:J_1H),
-     &           HEFFM(NX1,J_0H:J_1H),
-     &           UVM(NX1,J_0H:J_1H),
-     &           DWATN(NX1,J_0H:J_1H),
-     &           COR(NX1,J_0H:J_1H),
-     *           ZMAX(NX1,J_0H:J_1H),
-     &           ZMIN(NX1,J_0H:J_1H),
-     &           ETA(NX1,J_0H:J_1H),
-     &           ZETA(NX1,J_0H:J_1H),
-     &           DRAGS(NX1,J_0H:J_1H),
-     &           DRAGA(NX1,J_0H:J_1H),
-     &           GAIRX(NX1,J_0H:J_1H),
-     &           GAIRY(NX1,J_0H:J_1H),
-     *           GWATX(NX1,J_0H:J_1H),
-     &           GWATY(NX1,J_0H:J_1H),
-     &           PGFUB(NX1,J_0H:J_1H),
-     &           PGFVB(NX1,J_0H:J_1H),
-     &           FORCEX(NX1,J_0H:J_1H),
-     &           FORCEY(NX1,J_0H:J_1H),
-     &           AMASS(NX1,J_0H:J_1H),
-     &           UICEC(NX1,J_0H:J_1H),
-     &           VICEC(NX1,J_0H:J_1H),
-     &           UIB(NX1,J_0H:J_1H),
-     *           VIB(NX1,J_0H:J_1H),
-     &           DMU(NX1,J_0H:J_1H),
-     &           DMV(NX1,J_0H:J_1H),
-     &           HEFF(NX1,J_0H:J_1H),
-     &           AREA(NX1,J_0H:J_1H),
-     $   STAT = IER)
-      ALLOCATE( UICE(NX1,J_0H:J_1H,3),
-     &          VICE(NX1,J_0H:J_1H,3),
-     $   STAT = IER)
-C**** Geometry
-      ALLOCATE( SINEN(NX1,J_0H:J_1H),
-     &          BYDXDY(NX1,J_0H:J_1H),
-     $   STAT = IER)
-
-      ALLOCATE ( DYT(J_0H:J_1H),
-     &           DYU(J_0H:J_1H),
-     &           BYDY2(J_0H:J_1H),
-     &           BYDYR(J_0H:J_1H),
-     &           CST(J_0H:J_1H),
-     &           CSU(J_0H:J_1H),
-     &           TNGT(J_0H:J_1H),
-     &           TNG(J_0H:J_1H),
-     &           BYCSU(J_0H:J_1H),
-     $   STAT = IER)
-
-      RETURN
-      END SUBROUTINE ALLOC_ICEDYN
+      CONTAINS 
 
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
@@ -1227,3 +1137,99 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       RETURN
       END SUBROUTINE VPICEDYN
 
+      SUBROUTINE ALLOC_ICEDYN(grid)
+!@sum ALLOC_ICEDYN allocates arrays defined in the ICEDYN module.
+!@auth Rosalinda de Fainchtein
+
+C**** arrays allocated in this routine were originally dimensioned
+C**** (..,ny1,..). Since ny1=jm (see above), the grid structure as defined
+C**** in DOMAIN_DECOMP can be used in the calling routine.
+C**** In the case that ny1 is NOT equal to JM, a structure appropriately
+C**** modified to reflect the differences should be created in DOMAIN_DECOMP 
+C**** and used in the calling routine. No modification should be necesary
+C**** to ALLOC_ICEDYN.
+
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : GET
+      USE ICEDYN, ONLY : NX1
+      USE ICEDYN, ONLY : FOCEAN
+      USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
+     &                   ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY,
+     &                   PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,
+     &                   VICEC,UIB,VIB,DMU,DMV,HEFF,AREA,UICE,
+     &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
+     &                   CST,CSU,TNGT,TNG,BYCSU
+      IMPLICIT NONE
+      LOGICAL, SAVE :: init = .false.
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: I_0H, I_1H, J_1H, J_0H
+      INTEGER :: IER
+
+      INTEGER :: I,J,L
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+      CALL GET( grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
+     &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+!     I_0H = grid%I_STRT_HALO
+!     I_1H = grid%I_STOP_HALO
+!     J_0H = grid%J_STRT_HALO
+!     J_1H = grid%J_STOP_HALO
+
+      ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),
+     $   STAT = IER)
+
+      ALLOCATE(  PRESS(NX1,J_0H:J_1H),
+     &           HEFFM(NX1,J_0H:J_1H),
+     &           UVM(NX1,J_0H:J_1H),
+     &           DWATN(NX1,J_0H:J_1H),
+     &           COR(NX1,J_0H:J_1H),
+     *           ZMAX(NX1,J_0H:J_1H),
+     &           ZMIN(NX1,J_0H:J_1H),
+     &           ETA(NX1,J_0H:J_1H),
+     &           ZETA(NX1,J_0H:J_1H),
+     &           DRAGS(NX1,J_0H:J_1H),
+     &           DRAGA(NX1,J_0H:J_1H),
+     &           GAIRX(NX1,J_0H:J_1H),
+     &           GAIRY(NX1,J_0H:J_1H),
+     *           GWATX(NX1,J_0H:J_1H),
+     &           GWATY(NX1,J_0H:J_1H),
+     &           PGFUB(NX1,J_0H:J_1H),
+     &           PGFVB(NX1,J_0H:J_1H),
+     &           FORCEX(NX1,J_0H:J_1H),
+     &           FORCEY(NX1,J_0H:J_1H),
+     &           AMASS(NX1,J_0H:J_1H),
+     &           UICEC(NX1,J_0H:J_1H),
+     &           VICEC(NX1,J_0H:J_1H),
+     &           UIB(NX1,J_0H:J_1H),
+     *           VIB(NX1,J_0H:J_1H),
+     &           DMU(NX1,J_0H:J_1H),
+     &           DMV(NX1,J_0H:J_1H),
+     &           HEFF(NX1,J_0H:J_1H),
+     &           AREA(NX1,J_0H:J_1H),
+     $   STAT = IER)
+      ALLOCATE( UICE(NX1,J_0H:J_1H,3),
+     &          VICE(NX1,J_0H:J_1H,3),
+     $   STAT = IER)
+C**** Geometry
+      ALLOCATE( SINEN(NX1,J_0H:J_1H),
+     &          BYDXDY(NX1,J_0H:J_1H),
+     $   STAT = IER)
+
+      ALLOCATE ( DYT(J_0H:J_1H),
+     &           DYU(J_0H:J_1H),
+     &           BYDY2(J_0H:J_1H),
+     &           BYDYR(J_0H:J_1H),
+     &           CST(J_0H:J_1H),
+     &           CSU(J_0H:J_1H),
+     &           TNGT(J_0H:J_1H),
+     &           TNG(J_0H:J_1H),
+     &           BYCSU(J_0H:J_1H),
+     $   STAT = IER)
+
+      RETURN
+      END SUBROUTINE ALLOC_ICEDYN
