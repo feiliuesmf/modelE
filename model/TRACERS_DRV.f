@@ -862,7 +862,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
       end select
 
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
+#if (defined TRACERS_WATER) 
 C**** Tracers that are soluble or are scavenged or are water => wet dep
       if (tr_wd_TYPE(n).eq.nWater.or.tr_wd_TYPE(n) .EQ. nPART .or.
      *  tr_RKD(n).gt.0) then
