@@ -318,6 +318,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE,FGOLDH ! turning on options for extra aerosols
+     *     ,FXAERS,MADBAK
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -473,17 +474,38 @@ C**** (through TRACER in RADIA).
 C**** FSXAER is for the shortwave, FTXAER is for the longwave
 caer   FSXAER = (/ 1.,1.,1.,1.,1. /)     
 caer   FTXAER = (/ 1.,1.,1.,1.,1. /)     
+C**** There are 10 aerosol subtypes for AClim:
+C**** 1. Industrial BC, 2. Industrial OC, 3. Industrial sulfate
+C**** 4. seasalt, 5. Natural sulfate, 6. nitrate (set = natural so4),
+C**** 7. Natural OC, 8. Biomass OC, 9. Biomass BC, 10. background seasalt (?)
+C**** so use FXAERS to zero out appropriate combinations of these:
+caer  FXAERS = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
 
 C**** To add up to 8 further aerosols:
 C****  1) define NTRACE to the number of extra aerosol fields
-C****  2) ITR defines which set of 11 background Mie parameters
-C****     get used
+C****  2) ITR defines which set of Mie parameters get used, choose
+C****    from those used for the 10 types above 
 C****  3) Use FGOLDH(6:NTRACE+5) to turn them on
+C****  4) MAKBAK=1 gets to SETBAK where extra tracers are added
+C**** however then we need to set FGOLDH(1-5)=0 in order to
+C**** avoid the addition of background aerosols in GETBAK
 C****
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   FGOLDH(5+1:5+NTRACE) = (/ 0.,0.,0.,0. 0.,0.,0.,0./)
+caer   MADBAK=0
+caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 
+#ifdef TRACERS_AEROSOLS_Koch
+       FXAERS = (/1., 1., 0., 0., 0., 1., 1., 1., 1., 1./)
+       NTRACE = 2
+       FGOLDH(5+1:5+NTRACE) = (/ 1.,1./)
+       MADBAK=1   
+       FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
+c tracer 1 is sulfate, tracer 2 is seasalt
+       ITR = (/ 5,4,0,0, 0,0,0,0 /)
+#endif
+  
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -544,6 +566,9 @@ C****
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
+#ifdef TRACERS_AEROSOLS_Koch
+     *   ,fgoldh
+#endif
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
@@ -593,9 +618,9 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_AEROSOLS_Koch
-      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1
-      USE AEROSOL_SOURCES, only: ITRSW
+      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2
       USE TRACER_DIAG_COM, only: taijs,ijts_fc
+      USE AEROSOL_SOURCES, only: aer_tau
 #endif
       IMPLICIT NONE
 C
@@ -987,6 +1012,10 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (optical depth, I think)
 caer  TRACER(L,1) = aer_tau(i,j,l)   ! maybe
 caer  TRACER(L,2) = ....
+#ifdef TRACERS_AEROSOLS_Koch
+      TRACER(L,1)=aer_tau(i,j,l,n_so4)
+      TRACER(L,2)=aer_tau(i,j,l,n_seasalt1)+aer_tau(i,j,l,n_seasalt2)
+#endif
 
       END DO
 C**** Radiative Equilibrium Layer data
@@ -1060,19 +1089,19 @@ C****
       WMAG=WSAVG(I,J)
 C****
 #ifdef TRACERS_AEROSOLS_Koch
-c here we turn off the online tracers in order to calculate
+c here we turn off the online tracer one by one in order to calculate
 c sulfate radiative forcing
-      ITRSW(N_SO4)=1
+      FGOLDH(6)=0.d0
       CALL RCOMPX
       SNFST(N_SO4,I,J)=SRNFLB(4+LM)
       TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-      ITRSW(N_SO4)=0
+      FGOLDH(6)=1.d0
 c seasalt forcing
-      ITRSW(N_seasalt1)=1
+      FGOLDH(7)=0.d0
       CALL RCOMPX
       SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
       TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-      ITRSW(N_seasalt1)=0
+      FGOLDH(7)=1.d0
 #endif
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
