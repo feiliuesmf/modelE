@@ -490,12 +490,13 @@ C**** set dimensions
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
       dim_name='p'; call def_dim_out(dim_name,lm)
-      dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
+      if(lm_req.gt.0) then
+         dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
+      endif
       dim_name='ple_up'; call def_dim_out(dim_name,lm)
       dim_name='ple_dn'; call def_dim_out(dim_name,lm)
       dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
       dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
-      dim_name='p1'; call def_dim_out(dim_name,1)
       dim_name='odepth'; call def_dim_out(dim_name,lm)
       dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
 
@@ -510,9 +511,11 @@ C**** set dimensions
       dim_name='p'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='p'; call wrtdarr(plm)
-      dim_name='prqt'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='prqt'; call wrtdarr(plm)
+      if(lm_req.gt.0) then
+         dim_name='prqt'; call set_dim_out(dim_name,1)
+         units='mb'
+         var_name='prqt'; call wrtdarr(plm)
+      endif
       dim_name='ple_up'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='ple_up'; call wrtdarr(ple)
@@ -525,9 +528,6 @@ C**** set dimensions
       dim_name='pgz'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='pgz'; call wrtdarr(pmb(1:kgz_max))
-      dim_name='p1'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='p1'; call wrtdarr(pmb(1))
       dim_name='odepth'; call set_dim_out(dim_name,1)
       units='m'
       var_name='odepth'; call wrtdarr(zoc)
@@ -588,7 +588,7 @@ C**** set dimensions
 
       out_fid = iu_jl
 
-! (re)set shape of output arrays
+! (re)set default shape of output arrays
       ndims_out = 2
 
       if(j1.eq.1) then
@@ -600,7 +600,7 @@ C**** set dimensions
       endif
       call set_dim_out(dim_name,1)
 
-      if(klmax.eq.lm+lm_req) then
+      if(lm_req.gt.0 .and. klmax.eq.lm+lm_req) then
          dim_name='prqt'
       else if(klmax.eq.lm .and. all(pm(1:lm).eq.plm(1:lm))) then
          dim_name='p'
@@ -616,7 +616,8 @@ C**** set dimensions
       else if(klmax.eq.kgz_max) then
          dim_name='pgz'
       else if(klmax.eq.1) then
-         dim_name='p1'
+ ! sometimes this routine is called to write out 1-dimensional arrays
+         ndims_out = 1
        else if(klmax.eq.lm .and. all(pm(1:lm).eq.zoc(1:lm))) then
          dim_name='odepth'
        else if(klmax.eq.lm+1 .and. all(pm(1:lm+1).eq.zoc1(1:lm+1))) then
@@ -625,7 +626,7 @@ C**** set dimensions
          write(6,*) 'klmax =',klmax,title,pm(1:klmax),ple(1:klmax)
          call stop_model('pout_jl: unrecognized vertical grid',255)
       endif
-      call set_dim_out(dim_name,2)
+      if(ndims_out.eq.2) call set_dim_out(dim_name,2)
 
       var_name=sname
       long_name=lname
