@@ -1,14 +1,17 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
+      USE MODEL_COM, only : im,jm,lm
+      USE DAGCOM, ONLY: KTD,KAIJ,KAJK,KCON,kacc
+      USE SLE001, ONLY: NGM
       IMPLICIT REAL*8 (A-H,O-Z)
-      PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
-     *     )
+c     PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
+c    *     )
       parameter (npbl=8)
-      PARAMETER (IMH=IM/2, NWD=MIN(IMH,9),
-     *     KACC=JM*94*6 + 24*94 +
-     *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +
-     *     20*100 + JM*KCON + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*NWD*12
-     *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
+c     PARAMETER (IMH=IM/2, NWD=MIN(IMH,9),
+c    *     KACC=JM*94*6 + 24*94 +
+c    *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +
+c    *     20*100 + JM*KCON + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*NWD*12
+c    *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
       COMMON/BNDYCB1/TOCEAN1(3,IM,JM),GDATA1(IM,JM,7),
@@ -21,7 +24,7 @@ ccc   ice data:
       COMMON/SICECB/ RSI1(IM,JM),HSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
      *     ,JM),SSI1(LMI,IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM),MSI2(IM,JM)
      *     ,SNOWI2(IM,JM),SSI2(LMI,IM,JM)
-      COMMON/RADNCB/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
+      COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM)
@@ -74,6 +77,9 @@ C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
       INTEGER itau1,itau2,idacc1(12),idacc2(12)
+
+      real*8 strat1(im,jm),strat2(im,jm)
+      integer istrat1(2,im,jm),istrat2(2,im,jm)
 C****
       IF(IARGC().NE.2)  GO TO 800
 C****
@@ -89,6 +95,14 @@ c        write(0,*) 'trying to skip param'
          READ (1) ! - skip parameters
 c        write(0,*) 'trying to read model'
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
+C**** check whether stratosphere
+c        write(0,*) 'trying to read stratosphere'
+         READ (1) HEADER
+         BACKSPACE(1)
+         IF (HEADER(1:8).eq."STRAT01") THEN 
+c        write(0,*) 'trying to read stratosphere'
+           READ(1) HEADER,STRAT1,istrat1
+         END IF
 C**** check which ocean
 c        write(0,*) 'trying to read ocean'
          READ (1) HEADER
@@ -152,6 +166,14 @@ c        write(0,*) 'trying to skip param'
          READ (2) ! - skip parameters
 c        write(0,*) 'trying to read model'
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
+C**** check whether stratosphere
+c        write(0,*) 'trying to read stratosphere'
+         READ (2) HEADER
+         BACKSPACE(2)
+         IF (HEADER(1:8).eq."STRAT01") THEN 
+c        write(0,*) 'trying to read stratosphere'
+           READ(2) HEADER,STRAT2,istrat2
+         END IF
 C**** check which ocean
 c        write(0,*) 'trying to read ocean'
          READ (2) HEADER
@@ -215,6 +237,8 @@ C****
       ERRQ=COMP8 ('T     ',IM,JM,LM     ,T1 ,T2 ) .or. ERRQ
       ERRQ=COMP8 ('Q     ',IM,JM,LM     ,Q1 ,Q2 ) .or. ERRQ
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
+      ERRQ=COMP8 ('STRAT ',IM,JM,1      ,strat1 ,strat2 ) .or. ERRQ
+      ERRQ=COMPi ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
       IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
         IF (KCOEAN1.eq.1) THEN  ! Qflux/fixed
           ERRQ=COMP8LIJp('TOCEAN',3,IM,JM ,TOCEAN1,TOCEAN2).or.ERRQ
