@@ -139,7 +139,7 @@
          else echo " $t NOT found in $GCMSEARCHPATH" ; exit 82
          fi
 #  Make sure that linking works for numbers as well as names ie. n:=>fort.n
-  if [[ `echo $n | grep "[A-Za-z]" ` == "" ]] ; then n=fort.$n ; fi
+  if [[ `echo $n | grep "[A-Za-z]" ` = "" ]] ; then n=fort.$n ; fi
          if [[ $n != "AIC" && $n != "OIC" && $n != "GIC" && $n != "fort.9" ]]
          then echo ln -s ${pt} $n >> "$RUNID"ln
               echo rm $n >> "$RUNID"uln

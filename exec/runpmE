@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+if ( $#ARGV < 1 ) { print "Usage: $0 RunID rcode [owner]\n"; exit; }
+
 ## default settings
 $CMRUNDIR='/u/cmrun';
 $EXECDIR='/u/exec';
@@ -20,10 +22,9 @@ $runID = shift;
 $rcode = shift;
 $owner = shift;
 
-if ( ! $rcode ) { print "Usage: $0 RunID rcode [owner]\n"; exit; }
 
 if ( $rcode == 12 ) {
-  `echo "$runID sswd" | Mail -s "$runID sswd" $owner` if $owner; 
+  `echo "$runID stopped with sswE" | Mail -s "$runID sswd" $owner` if $owner; 
   exit;
   }
 
@@ -33,15 +34,15 @@ if ( $rcode == 13 ) {
   }
 
 ## possible bomb - try automatic fixup
-chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
 
-## the following block should check return codes. Disabled for now.
 ## check return code
-#if( $rcode != 27 ) {
-#  `echo "No automatic fixup for return code: $rcode" >> nohup.out`;
-#  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
-#  exit;
-#}
+if( $rcode != 11 ) {
+  `echo "No automatic fixup for return code: $rcode" >> nohup.out`;
+  `cat $runID.PRT nohup.out | tail -100 | Mail -s $runID $owner` if $owner;
+  exit;
+}
+
+chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
 
 ## check for lock file
 if ( -e "lock" ) {
@@ -56,7 +57,6 @@ open I,"I" or die "can't open file: I\n";
 $dt = 0;
 while(<I>) {
   $dt = $1 if /\bDTFIX *= *(\d+)\b/;
-  print "$dt : $_";
   last if /^ *&&PARAMETERS/;
   }
 
