@@ -192,7 +192,7 @@ C**** Thus it is only initiallised here for case ii).
 !@sum  conserv_OCE calculates zonal ocean energy for Qflux ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shw,rhow
+      USE CONSTANT, only : shw,rhows
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
@@ -207,9 +207,9 @@ C**** Thus it is only initiallised here for case ii).
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
-     *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOW
+     *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOWS
             DO L=1,LMOM
-              OCEANE(J)=OCEANE(J)+(RTGO(L,I,J)*DZ(L)*SHW*RHOW)
+              OCEANE(J)=OCEANE(J)+(RTGO(L,I,J)*DZ(L)*SHW*RHOWS)
             END DO
           END IF
         END DO

@@ -7,7 +7,7 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
-      USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
+      USE CONSTANT, only : lhm,rhows,rhoi,shw,shi,by12,byshi
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
@@ -86,9 +86,9 @@ C****
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
-          WTR1O=RHOW*Z1O(I,J)-FWSIM(I,J)
-          DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
-          WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
+          WTR1O=RHOWS*Z1O(I,J)-FWSIM(I,J)
+          DWTRO=RHOWS*(Z1O(I,J)-Z1OOLD(I,J))
+          WTR2O=RHOWS*(Z12O(I,J)-Z1O(I,J))
           IF (DWTRO.GT.0.) GO TO 120
 C**** MIX LAYER DEPTH IS GETTING SHALLOWER
           TOCEAN(2,I,J)=TOCEAN(2,I,J)
@@ -399,7 +399,7 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
       IF (RSI(I,J)*FOCEAN(I,J).GT.0) THEN
-        Z1OMIN=1.+FWSIM(I,J)/RHOW
+        Z1OMIN=1.+FWSIM(I,J)/RHOWS
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
           WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
@@ -409,7 +409,7 @@ C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
 C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
-            MSINEW=MSI(I,J)*(1.-RHOW*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
+            MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
      *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
             HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
@@ -693,7 +693,7 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : rhow,shw
+      USE CONSTANT, only : rhows,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
@@ -723,7 +723,7 @@ C****
 
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
-            WTRO=Z1O(I,J)*RHOW
+            WTRO=Z1O(I,J)*RHOWS
             SNOW=SNOWI(I,J)
             SMSI0=FWSIM(I,J)+ROICE*(RUN0-PRCP) ! initial ice
 
@@ -768,7 +768,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls OCEAN:OSOURC
-      USE CONSTANT, only : rhow,shw
+      USE CONSTANT, only : rhows,shw
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
@@ -822,7 +822,7 @@ C**** get river runoff/simelt flux
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
           IF (KOCEAN .EQ. 1) THEN
-            WTRO=Z1O(I,J)*RHOW
+            WTRO=Z1O(I,J)*RHOWS
             OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *           +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *           +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG

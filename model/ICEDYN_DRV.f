@@ -211,7 +211,7 @@ C****
 !@+    Note that the ice velocities are calculated on the ice grid
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE CONSTANT, only : rhoi,grav,omega,rhow
+      USE CONSTANT, only : rhoi,grav,omega,rhows
       USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
@@ -265,7 +265,7 @@ c            PGFU(I,J)=-((APRESS(IP1,J)-APRESS(I,J))*BYRHOI
 c     *           +OGEOZA(IP1,J)-OGEOZA(I,J))/DXP(J)
             PGFU(I,J)=-(OGEOZA(IP1,J)-OGEOZA(I,J)+
      *           (RSI(IP1,J)*(MSI(IP1,J)+SNOWI(IP1,J)+ACE1I)
-     *           -RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOW  )/DXP(J)
+     *           -RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOWS )/DXP(J)
           ELSE
             PGFU(I,J)=0.
           END IF
@@ -280,7 +280,7 @@ c            PGFV(I,J)=-((APRESS(I,J+1)-APRESS(I,J))*BYRHOI
 c     *           +OGEOZA(I,J+1)-OGEOZA(I,J))/DYV(J+1)
             PGFV(I,J)=-(OGEOZA(I,J+1)-OGEOZA(I,J)+
      *           (RSI(I,J+1)*(MSI(I,J+1)+SNOWI(I,J+1)+ACE1I) -
-     *           RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOW  )/DYV(J+1)
+     *           RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))/RHOWS  )/DYV(J+1)
           ELSE
             PGFV(I,J)=0.
           END IF

@@ -6,6 +6,7 @@
 !@ver  1.0
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
+     *     ,rhows
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -1267,7 +1268,7 @@ C****  g  = u* / ( G_turb + G_mole )
 
 C**** set conductivity term
 C**** Diffusive flux is implicit in ice !  + ml temperature (not used)
-      rsg=rhow*shw*g_T    ! /(1.+alpha*dtsrc*rhow*shw*g_T/mlsh)
+      rsg=rhows*shw*g_T    ! /(1.+alpha*dtsrc*rhows*shw*g_T/mlsh)
 c no salinity effects
       alamdh = alami/(dh+alpha*dtsrc*alami*byshi/(2.*dh*rhoi))
 c S thermo
@@ -1311,12 +1312,12 @@ c    *       ))/(lh*lh)
 c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
 
           if (qsfix) then   ! keep salinity in ice constant
-            Sb = (rhow*g_S*Sm+m*Sib)/(rhow*g_S+m)
-            df3dm= rhow*g_S*(Sib-Sm)/(rhow*g_S+m)**2
+            Sb = (rhows*g_S*Sm+m*Sib)/(rhows*g_S+m)
+            df3dm= rhows*g_S*(Sib-Sm)/(rhows*g_S+m)**2
             dSbdSb= -mu*dmdTb*df3dm
           else              ! it is a function of boundary value
-            Sb = rhow*g_S*Sm/(rhow*g_S+m*(1.-fsss))
-            df3dm= -rhow*g_S*Sm*(1.-fsss)/(rhow*g_S+m*(1.-fsss))**2
+            Sb = rhows*g_S*Sm/(rhows*g_S+m*(1.-fsss))
+            df3dm= -rhows*g_S*Sm*(1.-fsss)/(rhows*g_S+m*(1.-fsss))**2
             dSbdSb= (fsss*dmdSi-mu*dmdTb)*df3dm
           end if
         else                    ! melting
@@ -1329,8 +1330,9 @@ c S thermo
 c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
           m = -left2/lh
 
-          Sb = (m*Sib+rhow*g_S*Sm)/(rhow*g_S+m)
-          df3dm= (Sib*(rhow*g_S+m)-(m*Sib+rhow*g_S*Sm))/(rhow*g_S+m)**2
+          Sb = (m*Sib+rhows*g_S*Sm)/(rhows*g_S+m)
+          df3dm= (Sib*(rhows*g_S+m)-(m*Sib+rhows*g_S*Sm))/(rhows*g_S+m)
+     *         **2
           dmdTb = -(alamdh + rsg)/lh + left2*shw/lh**2
           dSbdSb= -mu*dmdTb*df3dm
         end if
@@ -1353,7 +1355,7 @@ C**** Tracers use salinity turbulent diffusion term
       if (m.gt.0) then
         Trib(:)=Tri(:)
       else
-        Trib(:)=tralpha(:)*rhow*g_S*Trm(:)/(rhow*g_S+(m-sflux)*(1.
+        Trib(:)=tralpha(:)*rhows*g_S*Trm(:)/(rhows*g_S+(m-sflux)*(1.
      *       -tralpha(:)))
       end if
       trflux(:) = (m - sflux) * Trib(:)  ! (kg/m^2 s)
@@ -1382,10 +1384,10 @@ C****
 !@var dh distance from center of bottom ice layer to base of ice (m)
 !@var mlsh mixed layer specific heat capactity (J/m^2 C) (UNUSED)
       real*8, intent(in) :: Ti,Tm,dh,dtsrc,mlsh
-C**** Assume constant g_T = 5d-5, g_S = 0.04 * g_T m/s
+C**** Assume constant g_T = 1.3d-7, g_S = 0.025 * g_T m/s
 !@var rsg = rhow * shw * g_T turbulent energy flux (J/m^2 s)
 !@var rgS = rhow * g_S turbulent tracer flux (kg/m^2 s)
-      real*8, parameter ::  rsg = rhow*shw*5d-5, rgS=rhow*2d-8
+      real*8, parameter ::  rsg = rhow*shw*1.3d-7, rgS=rhow*3.2d-9
       real*8 left2, lh, m, alamdh
 #ifdef TRACERS_WATER
 !@var Tri,Trm tracer concentration in ice and upper lake layer (kg/kg)
@@ -1647,7 +1649,7 @@ C**** albedo calculations
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : lhm,shi,rhow
+      USE CONSTANT, only : lhm,shi
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER

@@ -129,7 +129,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 !@calls iceocean,icelake
-      USE CONSTANT, only : rhow,lhm,omega,rhoi,byshi,shw
+      USE CONSTANT, only : rhow,rhows,lhm,omega,rhoi,byshi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
       USE GEOM, only : sinp,imaxj,dxyp
 #ifdef TRACERS_WATER
@@ -189,7 +189,7 @@ C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
               IF (KOCEAN.eq.1) THEN
 C**** should we calculate ocean rho(Tm,Sm) here?
-                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
+                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOWS))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc,mlsh,
@@ -370,7 +370,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : rhow,grav
+      USE CONSTANT, only : grav
       USE MODEL_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,itoice,itlkice,jday,p,ptop
       USE GEOM, only : imaxj,dxyp
@@ -736,7 +736,7 @@ C****
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byshi,lhm,shi,rhow
+      USE CONSTANT, only : byshi,lhm,shi,rhows
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
      *     ,lmi
@@ -761,7 +761,7 @@ C**** set up a default ice-ocean stress field. This can be changed by
 C**** adjusting oi_ustar0 in the parameter list. If ice dynamics
 C**** is used, this is overwritten.
       call sync_param("oi_ustar0",oi_ustar0)
-      UI2rho = rhow*(oi_ustar0)**2
+      UI2rho = rhows*(oi_ustar0)**2
 
 C**** Adjust degree of lateral melt by changing silmfac
 C**** Default is 2.5d-8, but could be changed by a factor of 2.

@@ -4,7 +4,7 @@
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : rhow,grav
+      USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
@@ -120,7 +120,7 @@ C**** Advection of Potential Enthalpy and Salt
           DO I=1,IMAXJ(J)
             OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J))
-     *           *RHOW*GRAV) 
+     *           *RHOWS*GRAV) 
           END DO
         END DO
 
@@ -2735,7 +2735,7 @@ C**** (If longitudinal variation is wanted just make K arrays K(I,J))
 C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
-      USE CONSTANT, only :twopi,rhow,omega,radius
+      USE CONSTANT, only :twopi,rhows,omega,radius
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,cospo,cosvo,rlat,lmu,lmv
      *     ,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
@@ -2763,13 +2763,13 @@ C****
       IFIRST = 0
       DO J=2,JM-1
 C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
-c      KHP(J)=2d0*RHOW*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
-c      KHV(J)=2d0*RHOW*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
+c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
+c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
 C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         DSP=MIN(DXPO(J),DYPO(J))*2.*SQRT(3.)/TWOPI  ! tracer lat
         DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
-        KHP(J)=2d0*RHOW*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
-        KHV(J)=2d0*RHOW*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
+        KHP(J)=2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
+        KHV(J)=2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
         KHP(J)=MAX(KHP(J),AKHMIN)
         KHV(J)=MAX(KHV(J),AKHMIN)
         BYDXYV(J)=1D0/DXYVO(J)

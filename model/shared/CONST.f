@@ -56,6 +56,8 @@ c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
 
 !@param rhow density of pure water (1000 kg/m^3)
       real*8,parameter :: rhow = 1d3
+!@param rhows density of average sea water (1030 kg/m^3)
+      real*8,parameter :: rhows = 1030d0
 !@param rhoi density of pure ice (916.6 kg/m^3)
       real*8,parameter :: rhoi = 916.6d0
 !@param byrhoi 1/rhoi (m^3/kg)

@@ -12,7 +12,7 @@
       SUBROUTINE DYNSI
 !@sum DYNSI simple coding to estimate ice-ocean friction velocity
 !@auth Gavin Schmidt
-      USE CONSTANT, only : rhow
+      USE CONSTANT, only : rhows
       USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
@@ -26,12 +26,12 @@
       IF (KOCEAN.eq.1) THEN
         DO J=1,JM
         DO I=1,IMAXJ(J)
-c          UI2rho(I,J) = rhow*(oi_ustar0)**2  ! default
+c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default
 C**** with wind stress dependence
           if (rsi(i,j)*focean(i,j).gt.0) then
             ustar1= SQRT(SQRT(DMUA(I,J,2)**2+DMVA(I,J,2)**2)/(RSI(i,j)
-     *           *focean(i,j)*DTSRC*RHOW))
-            UI2rho(I,J)=rhow*(oi_ustar0*max(1d0,1d3*ustar1))**2
+     *           *focean(i,j)*DTSRC*RHOWS))
+            UI2rho(I,J)=rhows*(oi_ustar0*max(1d0,1d3*ustar1))**2
           end if
         END DO
         END DO
