@@ -213,22 +213,22 @@ C****
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) ::
      *                                                         VKEDDY
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                             RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
       REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
       REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
      *     ,LMEDGE,LHEDGE
       REAL*8, PARAMETER :: MU=1.
-      REAL*8, INTENT(INOUT), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(INOUT),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        U,V,T
-      REAL*8, INTENT(IN), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(IN),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UT,VT
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ediff,ANGM,DPT,DUANG
@@ -469,11 +469,11 @@ C****
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
 !@var Vert. Diffusion coefficent
-      REAL*8, INTENT(OUT), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) :: 
+      REAL*8, INTENT(OUT),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) ::
      *                                                         VKEDDY
-      REAL*8, INTENT(IN), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(IN),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                          U,V
       INTEGER, INTENT(IN) :: LDIFM
       REAL*8, PARAMETER :: XEDDY = 10., DV2MAX = 25.**2
@@ -592,13 +592,13 @@ C****
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
-      REAL*8, INTENT(INOUT), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(INOUT),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                      T,U,V,SZ
-      REAL*8, INTENT(IN), 
-     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, INTENT(IN),
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UT,VT
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.
@@ -607,7 +607,7 @@ C****
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                    DUT3,DVT3,DKE,TLS,THLS,BVS
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: DUJL
@@ -843,8 +843,8 @@ C**** WIND SHEAR: USE SHEAR BETWEEN 7 AND 8 UNLESS CRIT. LEVEL ABOVE..
 C**** MOIST CONVECTIVE MASS FLUX BEGINS TWO LEVELS ABOVE CLOUD...
 C**** AMPLITUDE DEPENDS ON |U(SOURCE)-C|.
 C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
+        USRC=0.              ! needed for diagn
       IF (QGWCNV.eq.1) THEN
-        USRC=0.
         VSRC=0.
         AIRX4=AIRX(I,J-1)+AIRX(IP1,J-1)+AIRX(I,J)+AIRX(IP1,J)
         AIRXS= ((AIRX(I,J-1)+AIRX(IP1,J-1))*RAVPN(J-1)
@@ -1130,7 +1130,7 @@ C****
         END DO
       END IF
 
-C**** Save AM change 
+C**** Save AM change
       ANGM = 0.
       DO L=LDRAG-1,LM
         ANGM = ANGM - DUT(L)*DP(L)
@@ -1234,9 +1234,9 @@ C****
       USE GEOM, only : bydxyv,dxyv,dxv,dyp
       USE STRAT, only : ldef,ldefm,defrm
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
-      REAL*8, INTENT(INOUT), 
+      REAL*8, INTENT(INOUT),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -1310,9 +1310,9 @@ C**** V-terms
       DO 97 J=J_0S,J_1S
    97 DEFRM2(I,J ) = DEFRM2(I,J ) +
      *  .5*((V(I,J,L)+V(I,J+1,L))-(V(IM1,J,L)+V(IM1,J+1,L)))*DYP(J)
-      IF (HAVE_SOUTH_POLE) DEFRM2(I,1 ) = DEFRM2(I,1 ) + 
+      IF (HAVE_SOUTH_POLE) DEFRM2(I,1 ) = DEFRM2(I,1 ) +
      *                                   (V(I,2 ,L)-V(IM1,2 ,L))*DYP(1)
-      IF (HAVE_NORTH_POLE) DEFRM2(I,JM) = DEFRM2(I,JM) + 
+      IF (HAVE_NORTH_POLE) DEFRM2(I,JM) = DEFRM2(I,JM) +
      *                                   (V(I,JM,L)-V(IM1,JM,L))*DYP(JM)
    98 IM1=I
 C**** Convert to UV-grid
