@@ -2,7 +2,9 @@
 !@sum  DAGCOM Diagnostic model variables
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,imh,ntype,kep,istrat
+      USE CONSTANT, only : twopi
+      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat
+      USE GEOM, only : dlon
       USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
@@ -342,6 +344,8 @@ C****      names, indices, units, idacc-numbers, etc.
       double precision, dimension(kajlx) :: scale_jl
 !@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
       integer, dimension(kajlx) :: ia_jl,jgrid_jl
+!@var POW_JL printed output scaled by 10**(-pow_jl)
+      integer, dimension(kajlx) :: pow_jl
 
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
       character(len=30), dimension(kasjl) :: name_sjl
@@ -376,6 +380,8 @@ C****      names, indices, units, idacc-numbers, etc.
       double precision, dimension(kajkx) :: scale_jk
 !@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
       integer, dimension(kajkx) :: ia_jk,jgrid_jk
+!@var POW_JK printed output scaled by 10**(-pow_jk)
+      integer, dimension(kajkx) :: pow_jk
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q
@@ -444,6 +450,9 @@ c idacc-indices of various processes
       integer, parameter :: inci=(im+35)/36,incj=(JM+23)/24, jmby2=jm/2
 !@var linect = current line on page of print out
       integer linect
+
+!@var XWON scale factor for diag. printout needed for Wonderland model
+      DOUBLE PRECISION :: XWON = TWOPI/(DLON*FIM)
 
       END MODULE DAGCOM
 
