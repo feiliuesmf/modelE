@@ -19,11 +19,11 @@
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
 #endif
       USE PARAM
 #ifdef TRACERS_SPECIAL_Lerner
-      USE TRACER_MPchem_COM, only: n_MPtable,tcscale
+      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
@@ -6340,7 +6340,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE DOMAIN_DECOMP, only : grid, get
       USE TRACER_COM, only: ntm,trname,itime_tr0,nLightning,nAircraft
 #ifdef TRACERS_SPECIAL_Lerner
-      USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
+      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell

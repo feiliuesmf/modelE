@@ -304,7 +304,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
 #endif
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr
+      USE TRDIAG_COM, only : taijn,tij_rvr
 #endif
 #endif
       USE DOMAIN_DECOMP, only : GRID,GET

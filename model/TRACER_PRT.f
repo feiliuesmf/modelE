@@ -16,7 +16,7 @@
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       USE DYNAMICS, only: am,byam
       implicit none
 
@@ -95,7 +95,7 @@ C**** Zonal mean cloud water concentration
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID
       USE MODEL_COM, only : jm
-      USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
+      USE TRDIAG_COM, only: tconsrv,nofmt,title_tcon
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
@@ -194,7 +194,7 @@ C****
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: jm,fim
-      USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
+      USE TRDIAG_COM, only: tconsrv,nofmt,title_tcon
       IMPLICIT NONE
 
 !@var M index denoting which process changed the tracer
@@ -248,7 +248,7 @@ C**** No need to save current value
       USE GEOM, only:
      &     areag,dlon,dxyp,lat_dg
       USE TRACER_COM, only: ntm ,itime_tr0
-      USE TRACER_DIAG_COM, only:
+      USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv
       USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
@@ -402,7 +402,7 @@ C****
 !@auth J. Lerner
 !@ver  1.0
       USE TRACER_COM
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       USE BDjlt
       IMPLICIT NONE
       character*50 :: unit_string
@@ -456,7 +456,7 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       USE BDJLT
       IMPLICIT NONE
 
@@ -868,7 +868,7 @@ C****
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
-      USE TRACER_DIAG_COM, only : pdsigjl
+      USE TRDIAG_COM, only : pdsigjl
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -1035,7 +1035,7 @@ C****
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       IMPLICIT NONE
 
       integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs

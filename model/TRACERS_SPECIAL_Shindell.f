@@ -1761,7 +1761,7 @@ C
       USE GEOM,      only : bydxyp
       USE CONSTANT,  only : bygrav
       USE DYNAMICS,  only : gz
-      USE TRACER_DIAG_COM, only : ijs_CtoG,ijs_flash,taijs
+      USE TRDIAG_COM, only : ijs_CtoG,ijs_flash,taijs
 c
       IMPLICIT NONE
 c

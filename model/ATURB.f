@@ -29,7 +29,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DIAG_COM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
-      USE TRACER_DIAG_COM, only: tajln,jlnt_turb
+      USE TRDIAG_COM, only: tajln,jlnt_turb
       USE FLUXES, only : trflux1
 #endif
       USE SOCPBL, only : b1,b123,prt,kappa,zgs

@@ -468,7 +468,7 @@ c     endif
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
+      USE TRDIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
      *     , taijs, ijs_dms_dens,ijs_so2_dens,ijs_so4_dens
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
@@ -1430,7 +1430,7 @@ c diagnostic
       USE CLOUDS_COM, only:rhsav
       USE GEOM, only: imaxj,dxyp
       USE AEROSOL_SOURCES, only: aer_tau
-      USE TRACER_DIAG_COM, only : taijs,ijts_tau,ia_ijts
+      USE TRDIAG_COM, only : taijs,ijts_tau,ia_ijts
 
       integer i,j,l,n,naijs
       real*8 rhh,tf

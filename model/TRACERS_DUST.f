@@ -67,7 +67,7 @@ c      CALL dust_grav
       USE model_com,ONLY : Dtsrc,fearth,im,jm
       USE fluxes,ONLY : prec,evapor,trsrfflx
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
-      USE tracer_diag_com,ONLY : ijts_source,jls_source,taijs,tajls
+      USE trdiag_com,ONLY : ijts_source,jls_source,taijs,tajls
       USE geom,ONLY : dxyp,imaxj
       USE ghy_com,ONLY : snowe !earth snow amount
       USE pblcom,ONLY : wsavg
@@ -235,7 +235,7 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       USE model_com,ONLY : Dtsrc
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
-      USE tracer_diag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
+      USE trdiag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
       USE tracers_dust_com,ONLY : Z,nDustWetij,nDustWet3Djl
 
       IMPLICIT NONE
@@ -318,7 +318,7 @@ c**** Wet Deposition
       USE qusdef,ONLY : zmoms
       USE fluxes,ONLY : tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
-      USE tracer_diag_com,ONLY : jls_grav,jls_3Dsource,taijn,
+      USE trdiag_com,ONLY : jls_grav,jls_3Dsource,taijn,
      &     tajls
 #ifdef TRACERS_DRYDEP
      &     ,tij_gsdep
@@ -443,7 +443,7 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
       USE MODEL_COM, only: dtsrc
       USE fluxes,ONLY : trsrfflx
       USE tracer_com, ONLY : n_clay,Ntm_dust,trm,trmom
-      USE TRACER_DIAG_COM, only : ijts_source,jls_source,taijs,tajls
+      USE TRDIAG_COM, only : ijts_source,jls_source,taijs,tajls
       USE tracers_dust_com, only: nDustTurbij,nDustTurbjl
 
       IMPLICIT NONE

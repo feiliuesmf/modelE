@@ -35,7 +35,7 @@ c set-up for MPI implementation
       call alloc_static_ocean(grid)
       call alloc_workjk(grid)
 #ifdef TRACERS_ON
-      call alloc_tracer_diag_com
+      call alloc_trdiag_com
 #endif
 
       end subroutine alloc_drv

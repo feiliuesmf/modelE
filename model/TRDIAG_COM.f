@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      MODULE TRACER_DIAG_COM
+      MODULE TRDIAG_COM
 !@sum Tracer diagnostic arrays
 !@+    Mostly tracer independent, but this may depend on applications
 !@auth Jean Lerner
@@ -282,7 +282,7 @@ C**** include some extra troposphere only ones
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PDSIGJL
 
-      END MODULE TRACER_DIAG_COM
+      END MODULE TRDIAG_COM
 
 #ifdef TRACERS_ON
       SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT
@@ -294,7 +294,7 @@ C**** include some extra troposphere only ones
       USE MODEL_COM, only: dtsrc,nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
      *     ,conpt0
-      USE TRACER_DIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
+      USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons
       IMPLICIT NONE
@@ -434,7 +434,7 @@ C****
       USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
       USE DOMAIN_DECOMP, only : AM_I_ROOT
       USE DOMAIN_DECOMP, only : GET
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -534,8 +534,8 @@ C*** Unpack read global data into local distributed arrays
       END SUBROUTINE io_trdiag
 #endif
 
-      SUBROUTINE ALLOC_TRACER_DIAG_COM
-      USE TRACER_DIAG_COM
+      SUBROUTINE ALLOC_TRDIAG_COM
+      USE TRDIAG_COM
       USE DOMAIN_DECOMP, only : GET
       INTEGER :: J_0H,J_1H
       INTEGER :: status
@@ -552,4 +552,4 @@ C*** Unpack read global data into local distributed arrays
 #endif
       ALLOCATE ( PDSIGJL(  J_0H:J_1H,LM    ), stat=status )
       RETURN
-      END SUBROUTINE ALLOC_TRACER_DIAG_COM
+      END SUBROUTINE ALLOC_TRDIAG_COM

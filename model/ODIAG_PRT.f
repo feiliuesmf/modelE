@@ -114,7 +114,7 @@ C****
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
 #ifdef TRACERS_OCEAN
-      USE TRACER_DIAG_COM, only : to_per_mil
+      USE TRDIAG_COM, only : to_per_mil
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
@@ -1107,7 +1107,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       USE DIAG_COM, only : qdiag,zoc
       USE ODIAG
 #ifdef TRACERS_OCEAN
-      USE TRACER_DIAG_COM, only : to_per_mil
+      USE TRDIAG_COM, only : to_per_mil
 #endif
       IMPLICIT NONE
       INTEGER, PARAMETER :: NSEC=3, NBAS=4

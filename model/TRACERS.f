@@ -19,7 +19,7 @@
       USE MODEL_COM, only: dtsrc,nisurf
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
-      USE TRACER_DIAG_COM
+      USE TRDIAG_COM
       USE PARAM
       implicit none
       integer :: l,k,n
@@ -390,7 +390,7 @@ C**** Tracers dry deposition flux.
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc
       USE FLUXES, only : trsource,trflux1,trsrfflx
-      USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
+      USE TRDIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf,ijts_isrc,jls_isrc
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
@@ -475,7 +475,7 @@ C****
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname
       USE FLUXES, only : tr3Dsource
-      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+      USE TRDIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
@@ -545,7 +545,7 @@ C****
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
-      USE TRACER_DIAG_COM, only : tajls,jls_decay,itcon_decay
+      USE TRDIAG_COM, only : tajls,jls_decay,itcon_decay
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
       real*8, dimension(im,jm,lm) :: told
@@ -620,7 +620,7 @@ C****
       USE DYNAMICS, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname
-      USE TRACER_DIAG_COM, only : tajls,jls_grav
+      USE TRDIAG_COM, only : tajls,jls_grav
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs

@@ -712,7 +712,7 @@ C****
       USE DIAG_COM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,
      *        j_rvrd,j_ervr
 #ifdef TRACERS_WATER
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr
+      USE TRDIAG_COM, only : taijn,tij_rvr
       USE FLUXES, only : trflowo,gtracer
 #endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc
@@ -1004,7 +1004,7 @@ C****
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
+      USE TRDIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
      *     ,scale_tij
 #endif
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
@@ -1357,7 +1357,7 @@ C****
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
-      USE TRACER_DIAG_COM,only: taijn,tij_lk1,tij_lk2
+      USE TRDIAG_COM,only: taijn,tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
       IMPLICIT NONE

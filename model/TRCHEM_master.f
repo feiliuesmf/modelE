@@ -34,7 +34,7 @@ c
      &                  ,krate
 #endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi,avog
-      USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
+      USE TRDIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
      &                           ,ijs_NO3
       USE TRCHEM_Shindell_COM
 c

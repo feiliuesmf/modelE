@@ -49,7 +49,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
-      USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
+      USE TRDIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn,tajls,tij_prec

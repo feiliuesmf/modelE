@@ -721,7 +721,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_clay
-      USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
+      USE TRDIAG_COM, only: taijs,ijts_fc,ijts_tau
 #endif
       IMPLICIT NONE
 C

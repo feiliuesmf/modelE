@@ -17,7 +17,7 @@ C
 #ifdef regional_Ox_tracers
      &                            ,LAT_DG,LON_DG
 #endif
-      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls,
+      USE TRDIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls,
      &                           taijs,ijs_OH,ijs_HO2 !ijs_OxL1
 #ifdef regional_Ox_tracers
      &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss

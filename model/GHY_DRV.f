@@ -22,7 +22,7 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DUST
      &     ,n_clay
 #endif
-      use tracer_diag_com, only : taijn,tij_surf
+      use trdiag_com, only : taijn,tij_surf
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
 #endif

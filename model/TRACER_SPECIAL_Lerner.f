@@ -52,7 +52,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       end MODULE PRATHER_CHEM_COM
 
 
-      MODULE TRACER_MPchem_COM
+      MODULE TRACERS_MPchem_COM
 !@sum Variables for Prather's Stratospheric chemistry loss model
       USE MODEL_COM, only: jm,lm
       USE TRACER_COM, only: ntm
@@ -123,7 +123,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       return
 
       end SUBROUTINE STRATCHEM_SETUP
-      end MODULE TRACER_MPchem_COM
+      end MODULE TRACERS_MPchem_COM
 
 
       SUBROUTINE Strat_chem_Prather(ns,n)
@@ -140,8 +140,8 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE QUSDEF, only : mz,mzz
       USE DYNAMICS, only: ltropo
       USE TRACER_COM
-cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
-      USE TRACER_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
+cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
+      USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -222,7 +222,7 @@ C**** Prather strat chem
       USE MODEL_COM, only: jm,lm,jmon
       USE DOMAIN_DECOMP, only: GRID, GET
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
-      USE TRACER_MPchem_COM, only: tscparm,n_MPtable_max,
+      USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
       implicit none
 C-----------------------------------------------------------------------
@@ -461,7 +461,7 @@ c
       USE GEOM, only: imaxj,dxyp
       USE DYNAMICS, only: am   ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       USE LINOZ_CHEM_COM, only: lbc,dtchem,tmmvv
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -546,7 +546,7 @@ c
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,dxyp
       USE TRACER_COM
-cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: dtchem,tmmvv,tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
@@ -1510,7 +1510,7 @@ C****
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE PRATHER_CHEM_COM
-      USE TRACER_MPchem_COM
+      USE TRACERS_MPchem_COM
       USE CO2_SOURCES
       USE CH4_SOURCES
       USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET

@@ -609,7 +609,7 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
-      USE TRACER_DIAG_COM, only : tij_seaice,taijn
+      USE TRDIAG_COM, only : tij_seaice,taijn
 #endif
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim
 #ifdef TRACERS_WATER
