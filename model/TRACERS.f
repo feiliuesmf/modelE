@@ -229,8 +229,8 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       end SUBROUTINE set_generic_tracer_diags
 
 
-      SUBROUTINE apply_tracer_1Dsource(dtstep)
-!@sum apply_tracer_1Dsource adds non-interactive surface sources 
+      SUBROUTINE apply_tracer_2Dsource(dtstep)
+!@sum apply_tracer_2Dsource adds non-interactive surface sources 
 !@+       to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
@@ -293,7 +293,7 @@ C**** modify vertical moments
       end do
 C****
       RETURN
-      END SUBROUTINE apply_tracer_1Dsource
+      END SUBROUTINE apply_tracer_2Dsource
 
 
       SUBROUTINE apply_tracer_3Dsource(dtstep)
@@ -314,6 +314,7 @@ C****
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
+C**** tracer moments are modified elsewhere
       do n=1,ntm
         do ns=1,nt3Dsrc(n)
           najl = jls_3Dsource(ns,n)
