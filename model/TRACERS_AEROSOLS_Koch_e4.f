@@ -9,8 +9,20 @@
 !@var DMS_src           DMS ocean source (kg/s/m2)
       real*8 DMSinput(im,jm,12)
       INTEGER, PARAMETER :: nso2src  = 2
-!@var SO2_src    SO2 industry, biomass: surface sources (kg/s/m2)
+!@var SO2_src    SO2 industry, biomass: surface sources (kg/s/box)
       real*8 SO2_src(im,jm,nso2src)
+!@var BCI_src    BC Industrial source (kg/s/box)
+      real*8 BCI_src(im,jm)
+!@var BCB_src    BC Biomass source (kg/s/box)
+      real*8 BCB_src(im,jm,12)
+!@var OCI_src    OC Industrial source (kg/s/box)
+      real*8 OCI_src(im,jm)
+!@var OCT_src    OC Terpene source (kg/s/box)
+      real*8 OCT_src(im,jm,12)
+!@var OCB_src    OC Biomass source (kg/s/box)
+      real*8 OCB_src(im,jm,12)
+!@var BCII_src_3d  BCI aircraft source (kg/s)
+      real*8 BCI_src_3d(im,jm,lm)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8 ss_src(im,jm,nsssrc)
@@ -34,10 +46,9 @@ c want kg SO2/m2/s
       USE MODEL_COM, only: im,jm,ls1,jmon,jday,dtsrc,zatmo,t,lm
       USE GEOM, only: dxyp
       USE TRACER_COM
-cc      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: SO2_src,SO2_src_3d,nso2src,
-     *     nso2src_3d
+     *     nso2src_3d,bci_src_3d
       USE DYNAMICS, only: pmid,pk
       implicit none
 c biomass burning parameters:
@@ -177,6 +188,7 @@ C ZH is height in meters of top of layer above sea level
 c Aircraft emissions
       if (ifirst) then
       so2_src_3d(:,:,:,2)=0.
+      bci_src_3d(:,:,:)=0.d0
       call openunit('AIRCRAFT',iuc2,.true.)
 C Read 13 layer data file for 23 layer model
       if (lm.eq.23) then
@@ -205,6 +217,7 @@ c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
       so2_src_3d(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
      *  /2.3d0/sday
+      bci_src_3d(:,:,:)=so2_src_3d(:,:,:,2)*0.1d0
       ifirst=.false.
       endif
 
@@ -272,7 +285,7 @@ c     units are kg salt/m2/s
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-      USE MODEL_COM, only: im,jm,jmon,ls1,lm,jhour,dtsrc,t,q,jday,
+      USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk
       USE GEOM, only: dxyp,imaxj
@@ -290,6 +303,7 @@ c Aerosol chemistry
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
+      real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,ltopn
       save ifirst,itopen,iuc
@@ -304,6 +318,10 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_SO4)=0. ! SO4 chem source
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
+        tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
+        tr3Dsource(:,:,l,1,n_BCIA)=0. ! BCIA source
+        tr3Dsource(:,:,l,1,n_OCII)=0. ! OCII sink
+        tr3Dsource(:,:,l,1,n_OCIA)=0. ! OCIA source
       end do
 !$OMP END PARALLEL DO
 
@@ -361,7 +379,19 @@ c DMM is number density of air in molecules/cm3
       do 23 n=1,ntm
 
         select case (trname(n))
-          
+c    Aging of industrial carbonaceous aerosols 
+        case ('BCII')
+        bciage=1.D-5*trm(i,j,l,n)        
+        tr3Dsource(i,j,l,1,n)=-bciage        
+        case ('BCIA')
+        tr3Dsource(i,j,l,1,n)=bciage        
+
+        case ('OCII')
+        ociage=5.D-5*trm(i,j,l,n)        
+        tr3Dsource(i,j,l,1,n)=-ociage        
+        case ('OCIA')
+        tr3Dsource(i,j,l,1,n)=ociage        
+
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -785,6 +815,7 @@ c dissolved moles
 c this part from gas phase:moles/kg/kg
       dso4g=rk*exp(-ea/(gasc*temp))*rk1f
      *    *pph(ih)*pph(is)*dtsrc*wa_vol
+c dmk should wa_vol be incremental water volume??
 c check to make sure no overreaction: moles of production:
       dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
 c can't be more than moles going in:
@@ -1066,7 +1097,7 @@ c diagnostic
 !@auth Dorothy Koch
       USE TRACER_COM, only:
      *     trname,ntm,trm
-      USE MODEL_COM, only: im,jm,lm,jhour,idacc
+      USE MODEL_COM, only: im,jm,lm,idacc
       USE CLOUDS_COM, only:rhsav
       USE GEOM, only: imaxj,dxyp
       USE AEROSOL_SOURCES, only: aer_tau
