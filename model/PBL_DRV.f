@@ -51,7 +51,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
-     &     tr
+     &     ,tr
 #endif
       USE PBLCOM
       IMPLICIT NONE
