@@ -16,6 +16,7 @@ C****
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
+      USE FLUXES, only : sss
       USE GEOM
       USE FILEMANAGER
       implicit none
@@ -91,6 +92,9 @@ CCC   call openunit("OCNML",iu_OCNML,.true.,.true.) ! not needed
       call openunit("SNOW",iu_SNOW,.true.,.false.)
       write(6,*) "Outputting Snow amount to unit ", iu_SNOW
 C*
+C**** define sea surface salinity (needed for OCLIM)
+      sss(:,:)=sss0
+
 C**** Loop over days of the year and read the data for each day
 C****
       DO year=first_year,last_year

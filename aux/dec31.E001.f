@@ -19,6 +19,7 @@ C****        SNOW = daily snow amounts (from vertflux)
 C****
       USE STATIC_OCEAN
       USE SEAICE_COM, only : snowi
+      USE FLUXES, only : sss
       USE FILEMANAGER
       implicit none
       integer i, j, k, last_day, kday, jday0, IH,
@@ -55,6 +56,8 @@ C**** Set up unit number of mixed layer depth climatogies
       call openunit("OCNML",iu_OCNML,.true.,.true.)
 C**** open snow file
       call openunit("SNOW",iu_SNOW,.true.,.true.)
+C**** define sea surface salinity (needed for OCLIM)
+      sss(:,:)=sss0
 C****
 C**** Loop over days of the year
 C****

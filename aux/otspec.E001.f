@@ -25,6 +25,7 @@ C****
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
+      USE FLUXES, only : sss
       USE GEOM
       USE FILEMANAGER
       implicit none
@@ -120,6 +121,8 @@ C**** set up unit numbers for ocean climatologies
       call openunit("OSST",iu_OSST,.true.,.true.)
 C**** Set up unit number of mixed layer depth climatogies
       call openunit("OCNML",iu_OCNML,.true.,.true.)
+C**** define sea surface salinity (needed for OCLIM)
+      sss(:,:)=sss0
 C****
 C**** Loop over years of data and days in the year
 C****
