@@ -277,24 +277,45 @@ if ( $rcode != 13 && $rcode != 12 ) {
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
 print RUNID <<EOF;
 \#!/bin/sh
-    umask $umask_str
-    if [ -f lock ] ; then
-      echo 'lock file present - aborting' ; exit 1 ; fi
-    touch lock
-    rm -f error_message 2> /dev/null
     PRTFILE=${runID}.PRT
-    if [ \$\# -ge 1 ] && [ $1='-q' ]; then
-      PRTFILE='/dev/null'; fi
+    IFILE="I"
+    RESTART=0
+    while [ \$\# -ge 1 ] ; do
+      OPT=\$1 ; shift
+      case \$OPT in
+        -q)
+            PRTFILE='/dev/null'
+            ;;
+        -l)
+            PRTFILE="\$1" ; shift
+            ;;
+        -i)
+            IFILE="\$1" ; shift
+            ;;
+        -r)
+            RESTART=1
+            ;;
+         *)
+            echo "Wrong option: \$OPT"
+            exit 1
+      esac
+    done
     if [ `ulimit -s` -lt $MIN_STACK ] ; then
       ulimit -s $MIN_STACK || \\
         echo "!!! Could not set required stack size !!!" ;
       echo "current stack: `ulimit -s`"
     fi
+    umask $umask_str
+    if [ -f lock ] ; then
+      echo 'lock file present - aborting' ; exit 1 ; fi
+    touch lock
+    rm -f error_message 2> /dev/null
     ./${runID}ln
-    ./${runID}.exe < I > \$PRTFILE
+    ./${runID}.exe < \$IFILE > \$PRTFILE
     rc=\$?
     ./${runID}uln
     rm -f lock
+    if [ \$RESTART -ge 1 ] ; then exit \$rc ; fi
     exec $EXECDIR/runpmE $runID \$rc $MAILTO
 EOF
 close RUNID;

@@ -115,12 +115,7 @@ close IX;
 print <<`EOC`;
     echo 'Trying automatic fixup' >> I
     mv $runID.PRT ERR.$runID.PRT.$date
-    touch lock
-    ./${runID}ln
-    ./$runID.exe < Ix > $runID.PRT.dt$dt.$date; rc=\$?
-    ./${runID}uln
-    rm -f lock
-    exit \$rc
+    ./${runID} -r -i Ix -l $runID.PRT.dt$dt.$date
 EOC
 
 $rcode = $? >> 8;
