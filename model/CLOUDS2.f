@@ -209,9 +209,9 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 !@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR
       IMPLICIT NONE
-      REAL*8 LHX,MPLUME,MCLOUD,MPMAX,SENV,QENV
+      REAL*8 LHX,MPLUME,MCLOUD,MPMAX,SENV,QENV,MPLUM1
 !@var LHX latent heat of evaporation (J/Kg)
-!@var MPLUME mass of convective plume (mb)
+!@var MPLUME, MPLUM1 mass of convective plume (mb)
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
 !@var SENV,QENV dummy variables
@@ -390,7 +390,7 @@ c for sulfur chemistry
 !@var FITMAX set to ITMAX
 !@var CONDMU convective condensate in Kg/m^3
       REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX
-     *     ,DDCW,VT,CONDMU 
+     *     ,DDCW,VT,CONDMU
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -608,13 +608,14 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       IF(IC.EQ.2) FCTYPE=1.-FCTYPE
       IF(FCTYPE.LT.0.001) GO TO 570
       END IF
+      MPLUM1=MPLUME
       MPLUME=MPLUME*FCTYPE
 
 C**** calculate subsiding fraction here. Then we can use FMC1 from the
 C**** beginning. The analagous arrays are only set if plume is actually
 C**** moved up.
       IF (MCCONT.le.0) THEN
-         FCONV_tmp=MPLUME/AIRM(LMIN+1)
+         FCONV_tmp=MPLUM1/AIRM(LMIN+1)
          IF(FCONV_tmp.GT.1.d0) FCONV_tmp=1.d0
          FSUB_tmp=1.d0+(AIRM(LMIN+1)-100.d0)/200.d0
          IF(FSUB_tmp.GT.1.d0/(FCONV_tmp+1.d-20)-1.d0)
@@ -1224,7 +1225,7 @@ C**** save new 'environment' profile for static stability calc.
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
-C     IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
+      IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
         DO L=LMAX,LMIN,-1
           IF(COND(L).LT.CONDP(L)) CONDP(L)=COND(L)
           FCLW=0.
@@ -1239,7 +1240,7 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
           TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
 #endif
         END DO
-C     END IF
+      END IF
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
@@ -1804,7 +1805,7 @@ C**** Estimate critical rel. hum. based on parcel lifting argument
           IF(RH00(L).LT.0.) RH00(L)=0.
         END IF
       END IF
-C**** 
+C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above
