@@ -7,7 +7,7 @@ E1M20: replace this section by a description of what distinguishes this run ?
        The final rundeck should contain no '?'
        Check and modify the rest of the description below:                  ?
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
-atmospheric composition from year 1880 ? 1979
+atmospheric composition from year 1880 !?1979
 ocean data: prescribed, 1876-1885 ? 1975-1984 climatology
 uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
 time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  ?
@@ -50,8 +50,8 @@ Data input files:
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2 ?
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)                        ?
     ! ocean data for "prescribed ocean" runs : climatological ocean
-!?1880 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-!?1880 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 !?1979 OSST=OST4X5.B.1975-84avg.Hadl1.1
 !?1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1
     ! or:            annually varying ocean  (pick IYEAR1 appropriately, here 1871)
@@ -104,8 +104,8 @@ DTFIX=300
 
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
-KOCEAN=? ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
-Kvflxo=? ! 1 or 0 , use 0 except to save VFLXO daily to prepare for q-flux run
+KOCEAN=0 ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
+Kvflxo=0 ! use 1 ONLY to save VFLXO daily to prepare for q-flux run ?
 ocn_cycl=1  ! ? use =0 if ocean varies from year to year; irrelevant for pred. ocn
 
 ! drag params if grav.wave drag is not used and top is at .01mb
@@ -123,8 +123,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59            ! U00ice up => albedo decreases   goals: nethtz0=0,plan.alb=30%
-?1880 U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
-?1979 U00wtrX=1.39    ! delete ?yyyy for the appropriate choice, remove the other line
+U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.7                for global annual mean
+!1979 U00wtrX=1.39    ! delete ?yyyy for the appropriate choice, remove the other line
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 CO2X=1.
@@ -136,15 +136,15 @@ KSOLAR=2
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
-? crops_yr=1880 ! if -1, crops in VEG-file is used   ! =1979 , also change OSST,SICE,U00wtrX
-? s0_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
+crops_yr=1880 ! if -1, crops in VEG-file is used   ! =1979 , also change OSST,SICE,U00wtrX
+s0_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
 s0_day=182
-? ghg_yr=1880                                        ! =1979 , also change OSST,SICE,U00wtrX
+ghg_yr=1880                                        ! =1979 , also change OSST,SICE,U00wtrX
 ghg_day=182
-? volc_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
+volc_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
 volc_day=182
-? aero_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
-? o3_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
+aero_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
+o3_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)
@@ -158,12 +158,12 @@ DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-? Ndisk=48        ! use =480 on halem
+Ndisk=48        ! use =480 on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
-? isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
-? cloud_rad_forc=0 ! use =1 to activate this diagnostic (doubles radiation calls !)
+isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
+cloud_rad_forc=0 ! use =1 to activate this diagnostic (doubles radiation calls !)
 nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 ndaa=13
@@ -176,7 +176,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
-for q-flux run, change runID to E1qM20 and replace the above namelist by
+for q-flux run, also replace the above namelist by
  &INPUTZ
    YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
