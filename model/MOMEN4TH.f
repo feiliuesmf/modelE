@@ -193,14 +193,12 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
           I=IP1
         END DO
       END DO
-      CALL HERE(__FILE__,__LINE__)
 
       DO J = J_0SG, J_1SG
         DO I=1,IM
           FDU2(I,J)=(5.*FDU1(I,J)-2.*FDU2(I,J))*by3
         END DO
       END DO
-      CALL HERE(__FILE__,__LINE__)
 
       DO L=1,LS1-1
         DO J = J_0SG, J_1SG
@@ -209,7 +207,6 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
           END DO
         END DO
       END DO
-      CALL HERE(__FILE__,__LINE__)
 
 C     DUT=0.
 C     DVT=0.
@@ -238,14 +235,12 @@ C****
 !$OMP*                     FLUX_U,FLUX_V)
       DO 300 L=1,LM
 !       write(iunit_hang,*)'L=',l
-        CALL HERE(__FILE__,__LINE__)
         I=IM
         DO 175 J = J_0, J_1
           DO 170 IP1=1,IM
             FX(I,J)=.5*(PU(IP1,J,L)+PU(I,J,L))
   170     I=IP1
   175   CONTINUE
-        CALL HERE(__FILE__,__LINE__)
 C****
       call HALO_UPDATE( grid, PV(:,:,L), from=NORTH )
       DO 180 J = J_0S, J_1S
