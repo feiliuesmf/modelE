@@ -16,7 +16,7 @@
 
 !@var nt_j expanded version of diagj: ndex that includes albedo-indices
       integer, dimension(nj_out) :: nt_j
-!@var nstype_out set to diagj: ntype+1 since indexing in diagj is 0:ntype
+!@var nstype_out set to ntype_out+1 since indexing in diagj is 0:ntype..
 !@var iotype current output surf type (1 through nstype_out)
       integer :: nstype_out,iotype
       END MODULE BDJ
@@ -383,8 +383,8 @@ C***3   3  SOLAR RADIATION ABSORBED BELOW PTOP (W/M**2)
 C***4   4  SOLAR RADIATION ABSORBED BY ATMOSPHERE (W/M**2)
 C***5   5  SOLAR RADIATION INCIDENT ON GROUND (W/M**2)
 C***6   6  SOLAR RADIATION ABSORBED BY GROUND (W/M**2)
-C***7   7  THERMAL RADIATION EMITTED BY PLANET (W/M**2)     
-C***8   8  THERMAL RADIATION AT PTOP (W/M**2)          
+C***7   7  THERMAL RADIATION EMITTED BY PLANET (W/M**2)
+C***8   8  THERMAL RADIATION AT PTOP (W/M**2)
 C***9   9  THERMAL RADIATION EMITTED BY GROUND (W/M**2)
 C**10  67  THERMAL RADIATION INCIDENT ON GROUND (W/M**2)
 C****
@@ -1308,7 +1308,7 @@ C     DO 125 K=1,KM
 C     DEL(I,J)=DEL(I,J)+AIJL(I,J,K,3)
 C     ELL(I,J)=ELL(I,J)+AIJL(I,J,K,4)
 C     AML(I,J)=AML(I,J)+AIJL(I,J,K,1)
-C     DEK(I,J)=DEK(I,J)+AIJK(I,J,K,IJK_DSE)    
+C     DEK(I,J)=DEK(I,J)+AIJK(I,J,K,IJK_DSE)
 C     ELK(I,J)=ELK(I,J)+AIJK(I,J,K,IJK_Q)
 C 125 AMK(I,J)=AMK(I,J)+AIJK(I,J,K,IJK_U)
 C     IF(J.GT.40.OR.J.LT.38) GO TO 129
@@ -1709,7 +1709,7 @@ C**** Depending on whether EP fluxes have been specially calcualted
 C**** output full or approximate version
       IF (KEP.gt.0) THEN
         CALL EPFLXP
-      ELSE ! these are not very good 
+      ELSE ! these are not very good
         SCALE=1.D6*BYIADA
         CALL JLMAP (59,PLM,AJK(1,1,40),SCALE,ONES,ONES,KM,2,1)
         SCALE=1.D6
@@ -2025,8 +2025,8 @@ c
       lname(k) = 'AVAILABLE POTENTIAL ENERGY'
       units(k) = '10**5 JOULES/M**2/UNIT SIGMA'
       k = k + 1 ! 021
-      sname(k) = 'DT_DYNAMICS' 
-      lname(k) = 'DTEMP/DT BY DYNAMICS' 
+      sname(k) = 'DT_DYNAMICS'
+      lname(k) = 'DTEMP/DT BY DYNAMICS'
       units(k) = '10**-1 DEG-K/DAY'
       k = k + 1 ! 022
       sname(k) = '' !'nt_dse_stand_eddy'
@@ -2057,9 +2057,9 @@ c
       lname(k) = '' !'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
       units(k) = '' !'10**15 WATTS/DSIGMA'
       k = k + 1 ! 029
-      sname(k) = 'DT_SDRAG' 
-      lname(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG' 
-      units(k) = '10**-1 DEG-K/DAY' 
+      sname(k) = 'DT_SDRAG'
+      lname(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG'
+      units(k) = '10**-1 DEG-K/DAY'
       k = k + 1 ! 030
       sname(k) = '' !'tot_nt_ke'
       lname(k) = '' !'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
@@ -4830,37 +4830,38 @@ C****
       IF (KDIAG(6).LT.0.AND.KDIAG(6).GT.-5) IREGF=-KDIAG(6)
       IF (KDIAG(6).LT.0) IREGL=IREGF
       DO KR=IREGF,IREGL
-      WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
-      WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
-      DO KQ=1,NDLYVAR
-        IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
-        IF (LNAME_DD(KQ).eq."unused") CYCLE
-        SELECT CASE (NAME_DD(KQ))
-        CASE DEFAULT
+        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+        WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
+        DO KQ=1,NDLYVAR
+          IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
+          IF (LNAME_DD(KQ).eq."unused") CYCLE
+          SELECT CASE (NAME_DD(KQ))
+          CASE DEFAULT
 C**** NORMAL QUANTITIES
-          AVE=0.
-          DO IH=1,HR_IN_DAY
-            AVE=AVE+ADAILY(IH,KQ,KR)
-            XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
-          END DO
-          XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
+            AVE=0.
+            DO IH=1,HR_IN_DAY
+              AVE=AVE+ADAILY(IH,KQ,KR)
+              XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
+            END DO
+            XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
 C**** RATIO OF TWO QUANTITIES
-        CASE ('LDC')
-          AVEN=0.
-          AVED=0.
-          DO IH=1,HR_IN_DAY
-            AVEN=AVEN+ADAILY(IH,KQ,KR)
-            AVED=AVED+ADAILY(IH,KQ-1,KR)
-            XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)/
-     *           (ADAILY(IH,KQ-1,KR)+1D-20)
-          END DO
-          XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
-        END SELECT
-        DO IS=1,HR_IN_DAY+1
+          CASE ('LDC')
+            AVEN=0.
+            AVED=0.
+            DO IH=1,HR_IN_DAY
+              AVEN=AVEN+ADAILY(IH,KQ,KR)
+              AVED=AVED+ADAILY(IH,KQ-1,KR)
+              XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)/
+     *             (ADAILY(IH,KQ-1,KR)+1D-20)
+            END DO
+            XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
+          END SELECT
+          DO IS=1,HR_IN_DAY+1
 CB        FHOUR(IS,KQ,KR)=XHOUR(IS)
-          MHOUR(IS)=NINT(XHOUR(IS))
+            MHOUR(IS)=NINT(XHOUR(IS))
+          END DO
+          WRITE (6,904) LNAME_DD(KQ),MHOUR
         END DO
-        WRITE (6,904) LNAME_DD(KQ),MHOUR
       END DO
       RETURN
 C****
@@ -4917,13 +4918,13 @@ C****
       DO K0=1,MIN(1+ISTRAT,2)
         WRITE (6,901) XLABEL
         IF (K0.eq.1) THEN
-          FAC(1) = 1.         
-          FAC(2) = 1.   !10.   check these factors 
+          FAC(1) = 1.
+          FAC(2) = 1.   !10.   check these factors
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,903)
         ELSE
-          FAC(1) = 10.  !100.  do they correspond to titles? 
+          FAC(1) = 10.  !100.  do they correspond to titles?
           FAC(2) = 10.  !1000.
           WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
@@ -4946,7 +4947,7 @@ C****
               ELSE
                 IK(KS)=-999
               END IF
-            END DO 
+            END DO
           END DO
           WRITE (6,904) IDAYXM,TOFDYX,IK
         END DO
@@ -5391,7 +5392,7 @@ C****
       CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS_IJK_O
 !@var lname_ijk_o string describing output field
       CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME_IJK_O
-!@var name_ijk_o ref. string for output field 
+!@var name_ijk_o ref. string for output field
       CHARACTER(LEN=30), DIMENSION(nijk_out) :: NAME_IJK_O
 !@var scale_ijk_o scaling for output field
       REAL*8, DIMENSION(nijk_out) :: scale_ijk_o
@@ -5439,7 +5440,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
 
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
-      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM)   
+      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM)
       REAL*8 UNDEF,flat,press,dp
       CHARACTER*4 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,kcomp,k
