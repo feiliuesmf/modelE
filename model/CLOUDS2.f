@@ -131,7 +131,7 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
       REAL*8, DIMENSION(LM) :: CSIZEL
 !@var CSIZEL cloud particle radius (micron)
 C**** new arrays must be set to model arrays in driver (before LSCOND)
-      REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL
+      REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL,CLDSV1
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
 C**** new arrays must be set to model arrays in driver (after LSCOND)
@@ -215,7 +215,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS
+     *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
      *  ,FLAMW,FLAMG,FLAMI,FMC1,FSUB,FCONV,FMCL,VLAT
      *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
@@ -1592,11 +1592,11 @@ C**** initialise vertical arrays
       CLOUD_YET=.false.
 #endif
       DO L=1,LP50
-C       CAREA(L)=1.-CLDSAVL(L)
+        CAREA(L)=1.-CLDSAVL(L)
 C       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-        IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-U00ice+teeny))
-        IF(CAREA(L).GT.1.) CAREA(L)=1.
-        IF(RH(L).GT.1.) CAREA(L)=0.
+C       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-U00ice+teeny))
+C       IF(CAREA(L).GT.1.) CAREA(L)=1.
+C       IF(RH(L).GT.1.) CAREA(L)=0.
         IF(WMX(L).LE.0.) CAREA(L)=1.
       END DO
       DQUP=0.
@@ -2036,6 +2036,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(WMX(L).LE.0.) CAREA(L)=1.
       IF(CAREA(L).LT.0.) CAREA(L)=0.
       CLDSSL(L)=FSSL(L)*(1.-CAREA(L))
+      CLDSAVL(L)=1.-CAREA(L)
 #ifdef TRACERS_WATER
       IF(CLDSSL(L).gt.0.) CLOUD_YET=.true.
       IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
@@ -2195,6 +2196,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         IF(CAREA(L).GT.1.) CAREA(L)=1.
         IF(RH(L).GT.1.) CAREA(L)=0.
         CLDSSL(L)=FSSL(L)*(1.-CAREA(L))
+        CLDSAVL(L)=1.-CAREA(L)
         TNEW=TL(L)
         TNEWU=TL(L+1)
         QNEW=QL(L)
@@ -2233,19 +2235,19 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LP50
-        CLDSAVL(L)=CLDSSL(L)
+        CLDSV1(L)=CLDSSL(L)
         IF(WMX(L).LE.0.) SVLHXL(L)=0.
         IF(TAUMCL(L).EQ.0..OR.CKIJ.NE.1.) THEN
-          BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
-          IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
+          BMAX=1.-EXP(-(CLDSV1(L)/.3d0))
+          IF(CLDSV1(L).GE..95d0) BMAX=CLDSV1(L)
           IF(L.EQ.1.OR.L.LE.DCL) THEN
             CLDSSL(L)=CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ
-            TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/(CLDSSL(L)+teeny)
+            TAUSSL(L)=TAUSSL(L)*CLDSV1(L)/(CLDSSL(L)+teeny)
           ENDIF
           IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
           IF(L.GT.DCL .AND. TAUMCL(L).LE.0.) THEN
             CLDSSL(L)=CLDSSL(L)**(2.*BY3)
-            TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**BY3
+            TAUSSL(L)=TAUSSL(L)*CLDSV1(L)**BY3
           END IF
         END IF
       END DO

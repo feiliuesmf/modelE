@@ -16,7 +16,7 @@
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss,fss
+     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -53,7 +53,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland
+     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
@@ -271,6 +271,7 @@ C**** other fields where L is the leading index
       SVLHXL(:)=SVLHX(:,I,J)
       TTOLDL(:)=TTOLD(:,I,J)
       CLDSAVL(:)=CLDSAV(:,I,J)
+      CLDSV1(:)=CLDSAV1(:,I,J)
       RH(:)=RHSAV(:,I,J)
       FSSL(:)=FSS(:,I,J)
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
@@ -726,6 +727,7 @@ C**** WRITE TO GLOBAL ARRAYS
       TAUSS(:,I,J)=TAUSSL(:)
       CLDSS(:,I,J)=CLDSSL(:)
       CLDSAV(:,I,J)=CLDSAVL(:)
+      CLDSAV1(:,I,J)=CLDSV1(:)
       SVLHX(:,I,J)=SVLHXL(:)
       CSIZSS(:,I,J)=CSIZEL(:)
 
