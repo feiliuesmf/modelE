@@ -100,33 +100,33 @@ c tsfrez
 c-----------------------------------------------------------------------
       dimids(1) = lon_did
       dimids(2) = lat_did
-      call ncdefarr(tsf_name,tsf_lname,tsf_units,
+      call ncdefarr(name_tsf,lname_tsf,units_tsf,
      &     ncid,ktsf,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c aj
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=ntype_did
-      call ncdefarr(aj_name,aj_lname,aj_units,
+      call ncdefarr(name_j,lname_j,units_j,
      &     ncid,kaj,nf_real,2,dimids)
-      call ncput_idacc(aj_name,aj_ia,ncid,kaj)
+      call ncput_idacc(name_j,ia_j,ncid,kaj)
       status = nf_def_dim(ncid, 'reg',nreg, dimids(1))
-      call ncdefarr(dj_name,aj_lname,aj_units,
+      call ncdefarr(name_reg,lname_j,units_j,
      &     ncid,kaj,nf_real,1,dimids)
-      call ncput_idacc(dj_name,aj_ia,ncid,kaj)
+      call ncput_idacc(name_reg,ia_j,ncid,kaj)
 
 c-----------------------------------------------------------------------
 c apj
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
-      call ncdefarr(apj_name,apj_lname,apj_units,
+      call ncdefarr(name_pj,lname_pj,units_pj,
      &     ncid,kapj,nf_real,1,dimids)
 c-----------------------------------------------------------------------
 c ajl
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
-      call ncdefarr(ajl_name,ajl_lname,ajl_units,
+      call ncdefarr(name_jl,lname_jl,units_jl,
      &     ncid,kajl,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c asjl
@@ -134,7 +134,7 @@ c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'str_level', lm_req,  str_levid)
       dimids(1)=lat_did
       dimids(2)=str_levid
-      call ncdefarr(asjl_name,asjl_lname,asjl_units,
+      call ncdefarr(name_sjl,lname_sjl,units_sjl,
      &     ncid,kasjl,nf_real,2,dimids)
 
 c-----------------------------------------------------------------------
@@ -142,22 +142,22 @@ c aij
 c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
-      call ncdefarr(aij_name,aij_lname,aij_units,
+      call ncdefarr(name_ij,lname_ij,units_ij,
      &     ncid,kaij,nf_real,2,dimids)
-      call ncput_idacc(aij_name,aij_ia,ncid,kaij)
+      call ncput_idacc(name_ij,ia_ij,ncid,kaij)
 c-----------------------------------------------------------------------
 c ail
 c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=sig_did
-      call ncdefarr(ail_name,ail_lname,ail_units,
+      call ncdefarr(name_il,lname_il,units_il,
      &     ncid,kail,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c aijg
 c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
-      call ncdefarr(aijg_name,aijg_lname,aijg_units,
+      call ncdefarr(name_ijg,lname_ijg,units_ijg,
      &     ncid,kaijg,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c energy
@@ -169,7 +169,7 @@ c-----------------------------------------------------------------------
 c consrv
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
-      call ncdefarr(consrv_name,consrv_lname,consrv_units,
+      call ncdefarr(name_consrv,lname_consrv,units_consrv,
      &     ncid,kcon,nf_real,1,dimids)
 c-----------------------------------------------------------------------
 c speca
@@ -199,14 +199,14 @@ c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'RE_AND_IM', RE_AND_IM, dimids(1))
       status = nf_def_dim(ncid, 'Max12hr_sequ', Max12hr_sequ, dimids(2))
       status = nf_def_dim(ncid, 'NWAV_DAG', NWAV_DAG, dimids(3))
-      call ncdefarr(wave_name,wave_lname,wave_units,
+      call ncdefarr(name_wave,lname_wave,units_wave,
      &     ncid,kwp,nf_real,3,dimids)
 c-----------------------------------------------------------------------
 c ajk
 c-----------------------------------------------------------------------
       dimids(1)=latb_did
       dimids(2)=sig_did
-      call ncdefarr(ajk_name,ajk_lname,ajk_units,
+      call ncdefarr(name_jk,lname_jk,units_jk,
      &     ncid,kajk,nf_real,2,dimids)
 c-----------------------------------------------------------------------
 c aijk
@@ -214,7 +214,7 @@ c-----------------------------------------------------------------------
       dimids(1)=lonb_did
       dimids(2)=latb_did
       dimids(3)=sig_did
-      call ncdefarr(aijk_name,aijk_lname,aijk_units,
+      call ncdefarr(name_ijk,lname_ijk,units_ijk,
      &     ncid,kaijk,nf_real,3,dimids)
 c-----------------------------------------------------------------------
 c aijl
@@ -222,7 +222,7 @@ c-----------------------------------------------------------------------
       dimids(1)=lon_did
       dimids(2)=lat_did
       dimids(3)=sig_did
-      call ncdefarr(aijl_name,aijl_lname,aijl_units,
+      call ncdefarr(name_ijl,lname_ijl,units_ijl,
      &     ncid,kaijl,nf_real,3,dimids)
 c-----------------------------------------------------------------------
 c ajlsp_[dse,lht,mom]
@@ -230,7 +230,7 @@ c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
       status = nf_def_dim(ncid,'ZERO_TO_NWAV_DAG',1+NWAV_DAG,dimids(3))
-      call ncdefarr(ajlsp_name,ajlsp_lname,ajlsp_units,
+      call ncdefarr(name_jlsp,lname_jlsp,units_jlsp,
      &     ncid,kajlsp,nf_real,3,dimids)
 
 c-----------------------------------------------------------------------
@@ -256,29 +256,29 @@ c-----------------------------------------------------------------------
       var_name='IDACC';  call ncwrtint1(var_name,ncid,idacc)
       var_name='STYPE_NAMES';  call ncwrtchar(var_name,ncid,stype_names)
       var_name='KEYNR';  call ncwrtint1(var_name,ncid,keynr)
-      call ncwrtdbl(tsf_name,ncid,im*jm,ktsf,tsfrez)
+      call ncwrtdbl(name_tsf,ncid,im*jm,ktsf,tsfrez)
       do k=1,kaj
          aj_tmp=aj(:,k,:)
-         call ncwrtdbl1(aj_name(k),ncid,aj_tmp)
+         call ncwrtdbl1(name_j(k),ncid,aj_tmp)
       enddo
-      call ncwrtdbl(dj_name,ncid,nreg,kaj,areg)
-      call ncwrtdbl(apj_name,ncid,jm,kapj,apj)
-      call ncwrtdbl(ajl_name,ncid,jm*lm,kajl,ajl)
-      call ncwrtdbl(asjl_name,ncid,jm*lm_req,kasjl,asjl)
-      call ncwrtdbl(aij_name,ncid,im*jm,kaij,aij)
-      call ncwrtdbl(ail_name,ncid,im*lm,kail,ail)
-      call ncwrtdbl(aijg_name,ncid,im*jm,kaijg,aijg)
+      call ncwrtdbl(name_reg,ncid,nreg,kaj,areg)
+      call ncwrtdbl(name_pj,ncid,jm,kapj,apj)
+      call ncwrtdbl(name_jl,ncid,jm*lm,kajl,ajl)
+      call ncwrtdbl(name_sjl,ncid,jm*lm_req,kasjl,asjl)
+      call ncwrtdbl(name_ij,ncid,im*jm,kaij,aij)
+      call ncwrtdbl(name_il,ncid,im*lm,kail,ail)
+      call ncwrtdbl(name_ijg,ncid,im*jm,kaijg,aijg)
       var_name='ENERGY'; call ncwrtdbl1(var_name,ncid,energy)
-      call ncwrtdbl(consrv_name,ncid,jm,kcon,consrv)
+      call ncwrtdbl(name_consrv,ncid,jm,kcon,consrv)
       var_name='SPECA';  call ncwrtdbl1(var_name,ncid,speca)
       var_name='ATPE';   call ncwrtdbl1(var_name,ncid,atpe)
       var_name='ADAILY'; call ncwrtdbl1(var_name,ncid,adaily)
-      call ncwrtdbl(wave_name,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
+      call ncwrtdbl(name_wave,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
      &     kwp,wave)
-      call ncwrtdbl(ajk_name,ncid,jm*lm,kajk,ajk)
-      call ncwrtdbl(aijk_name,ncid,im*jm*lm,kaijk,aijk)
-      call ncwrtdbl(aijl_name,ncid,im*jm*lm,kaijl,aijl)
-      call ncwrtdbl(ajlsp_name,ncid,jm*lm*(nwav_dag+1),kajlsp,ajlsp)
+      call ncwrtdbl(name_jk,ncid,jm*lm,kajk,ajk)
+      call ncwrtdbl(name_ijk,ncid,im*jm*lm,kaijk,aijk)
+      call ncwrtdbl(name_ijl,ncid,im*jm*lm,kaijl,aijl)
+      call ncwrtdbl(name_jlsp,ncid,jm*lm*(nwav_dag+1),kajlsp,ajlsp)
 c-----------------------------------------------------------------------
 c close netcdf file
 c-----------------------------------------------------------------------

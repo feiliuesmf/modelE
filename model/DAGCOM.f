@@ -168,6 +168,44 @@ c     &  AJK,AIJK,AIJL,AJLSP
 !@var QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.
 
+c
+c**** Information about acc-arrays:  names, indices, units, idacc-numbers, etc.
+c
+
+!@var iparm/dparm int/double global parameters written to acc-file
+      integer, parameter :: niparm_max=100
+      character(len=20), dimension(niparm_max) :: iparm_name
+      integer, dimension(niparm_max) :: iparm
+      integer :: niparm=0
+      integer, parameter :: ndparm_max=100
+      character(len=20), dimension(ndparm_max) :: dparm_name
+      double precision, dimension(ndparm_max) :: dparm
+      integer :: ndparm=0
+
+!@var J_xxx zonal J diagnostic names
+      INTEGER :: J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
+     *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
+     *     J_RHDT, J_SHDT, J_EVHDT, J_F2DT, J_HZ1, J_TG2, J_TG1, J_EVAP,
+     *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
+     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, J_SWCOR,
+     *     J_OHT,J_OMLT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
+     *     J_ERUN1,J_EDIFS, J_F1DT, J_ERUN2, J_HZ0, J_DIFS, J_IMELT,
+     *     J_RUN2,J_DWTR2, J_WTR1, J_ACE1, J_WTR2, J_ACE2, J_SNOW,
+     *     J_RUN1,J_BRTEMP, J_HZ2, J_PCLDSS, J_PCLDMC, J_PCLD, J_CTOPP
+     *     ,J_PRCPSS, J_PRCPMC, J_QP, J_GAM, J_GAMM, J_GAMC, J_TRINCG
+     *     ,J_FTHERM, J_HSURF, J_HATM, J_PLAVIS, J_PLANIR, J_ALBVIS
+     *     ,J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP
+!@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
+      character(len=20), dimension(kaj) :: name_j,units_j
+!@var LNAME_J Long names of zonal J diagnostics
+      character(len=80), dimension(kaj) :: lname_j
+      character(len=20), dimension(kaj) :: name_reg
+!@var IA_J IDACC indexes for zonal J diagnostics
+      integer, dimension(kaj) :: ia_j
+
+      character(len=20), dimension(kapj) :: name_pj,units_pj
+      character(len=80), dimension(kapj) :: lname_pj
+
 !@var IJ_xxx AIJ diagnostic names
       INTEGER :: IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
@@ -186,87 +224,54 @@ c     &  AJK,AIJK,AIJL,AJLSP
      *     IJ_SCNVFRQ, IJ_EMTMOM, IJ_SMTMOM, IJ_FPEU, IJ_FPEV, IJ_FMU,
      *     IJ_FMV,IJ_FQU, IJ_FQV, IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
      *     IJ_SDRAG
-!@var NAME_IJ Names of lat/lon IJ diagnostics
-      CHARACTER*7 NAME_IJ(KAIJ)
+!@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
+      character(len=20), dimension(kaij) :: name_ij,units_ij
+!@var LNAME_IJ Long names of lat/lon IJ diagnostics
+      character(len=80), dimension(kaij) :: lname_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      INTEGER IA_IJ(KAIJ)
+      integer, dimension(kaij) :: ia_ij
 
-!@var J_xxx zonal J diagnostic names
-      INTEGER :: J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
-     *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
-     *     J_RHDT, J_SHDT, J_EVHDT, J_F2DT, J_HZ1, J_TG2, J_TG1, J_EVAP,
-     *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
-     *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW, J_SWCOR,
-     *     J_OHT,J_OMLT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
-     *     J_ERUN1,J_EDIFS, J_F1DT, J_ERUN2, J_HZ0, J_DIFS, J_IMELT,
-     *     J_RUN2,J_DWTR2, J_WTR1, J_ACE1, J_WTR2, J_ACE2, J_SNOW,
-     *     J_RUN1,J_BRTEMP, J_HZ2, J_PCLDSS, J_PCLDMC, J_PCLD, J_CTOPP
-     *     ,J_PRCPSS, J_PRCPMC, J_QP, J_GAM, J_GAMM, J_GAMC, J_TRINCG
-     *     ,J_FTHERM, J_HSURF, J_HATM, J_PLAVIS, J_PLANIR, J_ALBVIS
-     *     ,J_ALBNIR, J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR, J_CDLDEP
-!@var NAME_J Names of zonal J diagnostics
-      CHARACTER*7 NAME_J(KAIJ)
-!@var IA_J IDACC indexes for zonal J diagnostics
-      INTEGER IA_J(KAIJ)
+      character(len=20), dimension(kaijg) :: name_ijg,units_ijg
+      character(len=80), dimension(kaijg) :: lname_ijg
 
-! beginning of section transplanted from ACCDEF module
-      integer, parameter :: niparm_max=100
-      character(len=20), dimension(niparm_max) :: iparm_name
-      integer, dimension(niparm_max) :: iparm
-      integer :: niparm=0
-      integer, parameter :: ndparm_max=100
-      character(len=20), dimension(ndparm_max) :: dparm_name
-      double precision, dimension(ndparm_max) :: dparm
-      integer :: ndparm=0
+      character(len=20), dimension(kajl) :: name_jl,units_jl
+      character(len=80), dimension(kajl) :: lname_jl
 
-      character(len=20), dimension(ktsf) :: tsf_name,tsf_units
-      character(len=80), dimension(ktsf) :: tsf_lname
+      character(len=20), dimension(kasjl) :: name_sjl,units_sjl
+      character(len=80), dimension(kasjl) :: lname_sjl
 
-      character(len=20), dimension(kaj) :: aj_name,aj_units
-      character(len=80), dimension(kaj) :: aj_lname
-      character(len=20), dimension(kaj) :: dj_name
-      integer, dimension(kaj) :: aj_ia
+      character(len=20), dimension(kajk) :: name_jk,units_jk
+      character(len=80), dimension(kajk) :: lname_jk
 
-      character(len=20), dimension(kapj) :: apj_name,apj_units
-      character(len=80), dimension(kapj) :: apj_lname
+      character(len=20), dimension(kaijk) :: name_ijk,units_ijk
+      character(len=80), dimension(kaijk) :: lname_ijk
 
-      character(len=20), dimension(kaij) :: aij_name,aij_units
-      character(len=80), dimension(kaij) :: aij_lname
-      integer, dimension(kaij) :: aij_ia
+      character(len=20), dimension(kaijl) :: name_ijl,units_ijl
+      character(len=80), dimension(kaijl) :: lname_ijl
 
-      character(len=20), dimension(kaijg) :: aijg_name,aijg_units
-      character(len=80), dimension(kaijg) :: aijg_lname
+      character(len=20), dimension(kwp) :: name_wave,units_wave
+      character(len=80), dimension(kwp) :: lname_wave
 
-      character(len=20), dimension(kajl) :: ajl_name,ajl_units
-      character(len=80), dimension(kajl) :: ajl_lname
+      character(len=20), dimension(kajlsp) :: name_jlsp,units_jlsp
+      character(len=80), dimension(kajlsp) :: lname_jlsp
 
-      character(len=20), dimension(kasjl) :: asjl_name,asjl_units
-      character(len=80), dimension(kasjl) :: asjl_lname
+      character(len=20), dimension(kcon) :: name_consrv,units_consrv
+      character(len=80), dimension(kcon) :: lname_consrv
 
-      character(len=20), dimension(kajk) :: ajk_name,ajk_units
-      character(len=80), dimension(kajk) :: ajk_lname
+      character(len=20), dimension(kail) :: name_il,units_il
+      character(len=80), dimension(kail) :: lname_il
 
-      character(len=20), dimension(kaijk) :: aijk_name,aijk_units
-      character(len=80), dimension(kaijk) :: aijk_lname
-
-      character(len=20), dimension(kaijl) :: aijl_name,aijl_units
-      character(len=80), dimension(kaijl) :: aijl_lname
-
-      character(len=20), dimension(kwp) :: wave_name,wave_units
-      character(len=80), dimension(kwp) :: wave_lname
-
-      character(len=20), dimension(kajlsp) :: ajlsp_name,ajlsp_units
-      character(len=80), dimension(kajlsp) :: ajlsp_lname
-
-      character(len=20), dimension(kcon) :: consrv_name,consrv_units
-      character(len=80), dimension(kcon) :: consrv_lname
-
-      character(len=20), dimension(kail) :: ail_name,ail_units
-      character(len=80), dimension(kail) :: ail_lname
+      character(len=20), dimension(ktsf) :: name_tsf,units_tsf
+      character(len=80), dimension(ktsf) :: lname_tsf
 
       character(len=8), dimension(ntype) :: stype_names=
      &     (/ 'OCEAN   ','OCEANICE','EARTH   ',
      &        'LANDICE ','LAKE    ','LAKEICE ' /)
+
+c idacc-indices of various processes
+      integer, parameter ::
+     &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_12hr=9, ia_nmo=12
+
 
       END MODULE DAGCOM
 
