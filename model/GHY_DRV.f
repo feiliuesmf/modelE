@@ -273,7 +273,7 @@ C**** Calculate trsfac (set to zero for const flux)
         trsfac(nx)=0.
 C**** Calculate trconstflx (could be dependent on itype)
         rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-        trconstflx(nx)=trflux1(i,j,n)/(dxyp(j)*dtsrc*rhosrf0)
+        trconstflx(nx)=trflux1(i,j,ntix(nx))/(dxyp(j)*dtsrc*rhosrf0)
 #else 
 C**** Set surface boundary conditions for water tracers
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
