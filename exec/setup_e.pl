@@ -207,9 +207,12 @@ print I;
 $_ = <RFILE>;
 print I;
 while (<RFILE>) {
+    chop;
     s/!.*//g;
-    s/^\s+//;
-    print I " $_";
+    s/^\s*/ /;
+    s/\s*$//;
+    next if ( ! $_ ); 
+    print I "$_\n";
 }
 close I;
 close PRT;
