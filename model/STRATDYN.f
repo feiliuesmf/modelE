@@ -476,7 +476,7 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
-      USE CLOUDS_COM, only :: airx,lmc
+      USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
@@ -1205,7 +1205,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE CLOUDS_COM, only :: airx,lmc
+      USE CLOUDS_COM, only : airx,lmc
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
