@@ -10,15 +10,14 @@
       USE PARAM
       IMPLICIT NONE
       CHARACTER*80 FILEIN(5),DIR*60
-      INTEGER N,Itime1,NARGS,K,iargc,KSTART,KFILE,I
-      INTEGER :: ioerr=0 
+      INTEGER N,NARGS,K,iargc,KSTART,KFILE,I
+      INTEGER :: ioerr=0
       REAL*8 TOT
       LOGICAL QCALL
 
       QCALL=.FALSE.
       KSTART=1
-      call alloc_param( "IDACC", IDACC, (/12*0/), 12) 
-     
+
       NARGS = IARGC()
       IF(NARGS.LE.0)  GO TO 800
 C**** check for argument
@@ -34,7 +33,7 @@ C**** loop over remaining arguments
 C**** Check first file
       K=KSTART
       OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=100)
-      call io_label(10,Itime1,ioread,ioerr)
+      call io_label(10,Itime,ioread,ioerr)
       CLOSE (10)
       if (ioerr.eq.0) goto 150
 C**** problem reading file => assume a run directory in /u/cmrun
@@ -42,35 +41,35 @@ C**** problem reading file => assume a run directory in /u/cmrun
       DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
       FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
       FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
-        
+
  150  DO K=KSTART,NARGS
       OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
-      call io_label(10,Itime1,ioread,ioerr)
+      call io_label(10,Itime,ioread,ioerr)
       if (ioerr.eq.1) go to 860
       CLOSE (10)
-      
-      call get_param( "Itime", Itime) 
-      call get_param( "IYEAR0", IYEAR0) 
-      call get_param( "NDAY", NDAY )
-      call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+
+c     call get_param( "Itime", Itime)
+c     call get_param( "IYEAR0", IYEAR0)
+c     call get_param( "NDAY", NDAY )
+      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
       TOT=0
       DO N=1,NTIMEACC
-        TOT = TOT + TIMING(N) 
+        TOT = TOT + TIMING(N)
       END DO
       TOT = TOT/100.
       IF (TOT.gt.0) THEN
-      WRITE (6,906) 24.*TOT/(60.*(Itime1-Itime0)),(TIMESTR(N),TIMING(N)
-     *     /TOT,N=1,3) 
+      WRITE (6,906) 24.*TOT/(60.*(Itime-Itime0)),(TIMESTR(N),TIMING(N)
+     *     /TOT,N=1,3)
       WRITE (6,907) (TIMESTR(N),TIMING(N)/TOT,N=4,NTIMEACC)
       END IF
       IF (QCALL) THEN
         write (6,*) "IM,JM,LM = ",IM,JM,LM
         call print_param(6)
-        write (6,*) "IDACC = ",(IDACC(I),I=1,12)
-        write (6,*) 
+c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
+        write (6,*)
       END IF
       END DO
       Stop
