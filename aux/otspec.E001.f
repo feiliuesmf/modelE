@@ -80,6 +80,7 @@ C****
 C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
+      off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
       call init_decomp(grid,im,jm)
       call alloc_drv()

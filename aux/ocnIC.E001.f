@@ -33,9 +33,10 @@ C****
       real*8 z1ox(im,jm),z12o_max
       CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
+      off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
       call init_decomp(grid,im,jm)
-      call alloc_drv()       
+      call alloc_drv()
 !AOO end of part 2 of 3
       call getarg(1,title)
       read (title,*) months

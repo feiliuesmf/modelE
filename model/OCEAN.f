@@ -26,7 +26,7 @@
      *     j_imelt, j_hmelt, j_smelt
       IMPLICIT NONE
       SAVE
-
+      logical :: off_line=.false.
 !@dbparam ocn_cycl determines whether prescribed ocean data repeat
 !@+       after 1 year - 0:no 1:yes 2:seaice repeats,sst does not
       integer :: ocn_cycl = 1
@@ -134,7 +134,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       INTEGER, SAVE :: IMON = 0
 
       IF (KOCEAN.EQ.1) GO TO 500
-      if(.not.(end_of_day.or.itime.eq.itimei)) return
+      if(.not.(end_of_day.or.itime.eq.itimei.or.off_line)) return
 C****
 C**** OOBS AOST     monthly Average Ocean Surface Temperature
 C****      BOST     1st order Moment of Ocean Surface Temperature
@@ -292,7 +292,7 @@ C**** Ensure that lead fraction is consistent with kocean=1 case
             END IF
 C**** accumulate diagnostics
             IF(MSI(I,J).eq.0) MSI(I,J)=MSINEW  ! does this happen?
-            IF (end_of_day) THEN
+            IF (end_of_day.and..not.off_line) THEN
               AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
@@ -400,7 +400,7 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
       DO I=1,IM
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
-      IF (RSI(I,J)*FOCEAN(I,J).GT.0) THEN
+      IF (RSI(I,J)*FOCEAN(I,J).GT.0.and.off_line) THEN
         Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
