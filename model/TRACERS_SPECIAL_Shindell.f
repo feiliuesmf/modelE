@@ -48,14 +48,12 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       IMPLICIT NONE
       SAVE
       
-!@var i_lgt for saving current i index from CLOUDS_DRV
-!@var j_lgt for saving current j index from CLOUDS_DRV
 !@var JN J at 30 N
 !@var JS J at 30 S
 !@var I dummy
 
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
-      INTEGER i_lgt, j_lgt, I
+      INTEGER I
       REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
       REAL*8, DIMENSION(LS1+1) :: SRCLIGHT
       
@@ -69,9 +67,6 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
      &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
       DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
      & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
-         
-      common/Shindell_private/ i_lgt,j_lgt
-!$OMP  THREADPRIVATE (/Shindell_private/)
  
       END MODULE LIGHTNING 
       
@@ -169,7 +164,7 @@ C****
 C****
 C**** Also, increase the wetlands + tundra CH4 emissions:
 C****
-      src(:,:,kwet)=1.9d0*src(:,:,kwet)
+      src(:,:,kwet)=2.2d0*src(:,:,kwet)
 C  
       return
       end subroutine read_CH4_sources
@@ -564,7 +559,7 @@ C****    Choose appropriate height file:
          ENDDO
 C****    Store local tropopause
          LEVTROP=LTROPO(I,J)
-         ALTTROP=PHI(I,J,LEVTROP)*BYGRAV*1.E-3
+         ALTTROP=PHI(I,J,LEVTROP)*BYGRAV*1.D-3
          IF(ALTTROP.EQ.0.) GOTO 1510
 C****    Zero source accumulator
          SRCLIGHT = 0. ! 1 to LS1+1 levels
@@ -572,10 +567,10 @@ C        Determine which GCM level the height belongs to
          DO 1505 IH=1,16
            L=1
  1502      continue
-           GCMHT=PHI(I,J,L)*BYGRAV*1.E-3
+           GCMHT=PHI(I,J,L)*BYGRAV*1.D-3
            IF(ALTTROP.LT.GCMHT)GCMHT=ALTTROP
            ALTTOP=
-     &     (PHI(I,J,L)+(PHI(I,J,L+1)-PHI(I,J,L))*.5)*BYGRAV*1.E-3
+     &     (PHI(I,J,L)+(PHI(I,J,L+1)-PHI(I,J,L))*.5)*BYGRAV*1.D-3
 c          RNOx_lgt is gN/min added per grid box (lightning NOx):
            IF(IH.LE.ALTTOP)THEN
              SRCLIGHT(L)=SRCLIGHT(L)+RNOx_lgt(I,J)*HEIGHT(IH)
@@ -672,7 +667,7 @@ C====
        DO I=1,IM
         DO L=1,LM
           tr3Dsource(i,j,l,nAircraft,n_NOx) = 0.
-          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP !Pressure @ layer top?
+          PRES(L)=SIG(L)*(PSF-PTOP)+PTOP
         ENDDO                   ! L
         tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*dxyp(j)
         DO LL=2,Laircr
@@ -901,7 +896,7 @@ c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
       end subroutine get_CH4_IC
    
       
-      SUBROUTINE calc_lightning(LMAX,LFRZ,IC)
+      SUBROUTINE calc_lightning(I,J,LMAX,LFRZ)
 !@sum calc_lightning to calculate lightning flash amount and cloud-
 !@+   to-ground amount, based on cloud top height. WARNING: this 
 !@+   routine is apparently resolution dependant.  See the comments.
@@ -910,7 +905,7 @@ c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
 C
 C**** GLOBAL parameters and variables:
 C
-      USE LIGHTNING, only : i_lgt,j_lgt,JN,JS,RNOx_lgt
+      USE LIGHTNING, only : JN,JS,RNOx_lgt
       USE MODEL_COM, only : fland
       USE GEOM,      only : bydxyp
       USE CONSTANT,  only : bygrav
@@ -929,8 +924,9 @@ C
 !@var th,th2,th3,th4 thickness of cold sector, squared, cubed, etc.
 !@var CG fraction of lightning that is cloud-to-ground
 !@var zlt ?
-!@var IC interger for cloud types
-      INTEGER, INTENT(IN) :: LMAX,LFRZ,IC
+!@var I model longitude index
+!@var J model latitude index
+      INTEGER, INTENT(IN) :: LMAX,LFRZ,I,J
       INTEGER lmax_temp
       REAL*8 HTCON,HTFRZ,flash,th,th2,th3,th4,zlt,CG
 C
@@ -939,10 +935,11 @@ c frequency in each gridbox using the moist convective cloud
 c scheme.  The algorithm is based on the Price and Rind (1992)
 c JGR paper, and differentiates between oceanic and continental
 c convective clouds.  Only the non-entraining plume is used for
-c the lightning:
-
-      If (IC.eq.2) RETURN
-      
+c the lightning.  However, I [Greg] have removed the IC variable
+C from this routine because Gavin says: "IC distinguishes between
+C entraining and non-entraining, but since non-entraining always
+C go higher, those are the ones represented by LMCMAX."
+C
 c The lightning calculation uses the maximum height of the cloud,
 c or the maximum depth of the mass flux penetration, LMAX, at
 c every timestep.  In each timestep there may be a number of
@@ -952,9 +949,9 @@ c of LMAX then the number of vertical layers. gz is the
 c geopotential height, used from DYNAMICS module.
 
       lmax_temp=lmax
-      if(j_lgt.lt.JS.or.j_lgt.gt.JN)lmax_temp=lmax+1 !30 S to 30 N
-      HTCON=gz(i_lgt,j_lgt,lmax_temp)*bygrav*1.E-3
-      HTFRZ=gz(i_lgt,j_lgt,LFRZ+1)*bygrav*1.E-3
+      if(j.lt.JS.or.j.gt.JN)lmax_temp=lmax+1 !30 S to 30 N
+      HTCON=gz(i,j,lmax_temp)*bygrav*1.d-3
+      HTFRZ=gz(i,j,LFRZ)*bygrav*1.d-3
 
 c IF the gridbox is over land or coastline use the continental
 c parameterization.  The factor 2.17 is derived from Fig. 1
@@ -963,10 +960,10 @@ c related to the horizontal resolution of the GCM (in this case
 c 4x5 degrees).  We use a threshold of 1% for continental
 c gridboxes. The units are flashes per minute.
 
-      If (fland(i_lgt,j_lgt).le.0.01) then
-        flash=2.17*6.2e-4*(htcon**1.73)
+      If (fland(i,j).le.0.01) then
+        flash=2.17*6.2d-4*(htcon**1.73)
       else
-        flash=2.17*3.44e-5*(htcon**4.92)
+        flash=2.17*3.44d-5*(htcon**4.92)
       end if
 
 c The formulation by Price and Rind (1993) in Geophysical Res.
@@ -989,7 +986,7 @@ c Given the number of cloud-to-ground flashes, we can now calculate
 c the NOx production rate based on the Price et al. (1997) JGR paper.
 c The units are grams of Nitrogen per minute:
 
-      RNOx_lgt(i_lgt,j_lgt)=15611.*(CG + 0.1*(flash-CG))
+      RNOx_lgt(i,j)=15611.*(CG + 0.1*(flash-CG))
 
 C These diagnostics need to be put back in:      
 c note CG & flash OUTPUT now in units: flashes/[time]/m2
