@@ -97,21 +97,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
-#ifdef regional_Ox_tracers
       integer, parameter :: ktaijs=90
-#elif (defined EDGAR_HYDE_SOURCES)
-      integer, parameter :: ktaijs=79
-#else
-      integer, parameter :: ktaijs=76
-#endif
-#else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: ktaijs=16
-#else
-      integer, parameter :: ktaijs=41
-#endif
-#endif
 
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS

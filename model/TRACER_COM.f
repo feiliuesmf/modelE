@@ -16,13 +16,6 @@ C
       IMPLICIT NONE
       SAVE
 
-!@var ntm_aero number of Koch-only tracers
-      integer, parameter :: ntm_aero=5
-
-!@var 3D on-line radical array for interactive aerosol and gas
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
-
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
@@ -41,18 +34,16 @@ C**** Each tracer has a variable name and a unique index
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      ','Water   '/)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 #else 
 #if defined TRACERS_SPECIAL_Lerner
       integer, parameter :: ntm=9
       character*8, parameter :: trname(ntm)= (/
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 #else
 #if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !@var ntm_chem number of drew-only tracers
-      integer, parameter :: Ntm_dust=4,rhet=3
+      integer, parameter :: ntm_dust=4,rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
      *                                         ,rxts4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
@@ -180,15 +171,13 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','SO4_d1  ','SO4_d2  ','SO4_d3  ',
      *    'SO4_d4  ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
-
 #else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
-      integer, parameter :: ntm=11,Ntm_dust=4
+      integer, parameter :: ntm=11,ntm_dust=4
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
      *    'seasalt1','seasalt2','Clay    ','Silt1   ','Silt2   ',
      *    'Silt3   '/)
-
 #else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=13
@@ -199,8 +188,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
-      INTEGER,PARAMETER :: Ntm=4,Ntm_dust=4
-      CHARACTER*8,PARAMETER :: trname(Ntm_dust)=(/'Clay    ','Silt1   ',
+      integer,parameter :: ntm=4,ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/'Clay    ','Silt1   ',
      &     'Silt2   ','Silt3   '/)
 #else
 #ifdef TRACERS_WATER
@@ -253,11 +242,19 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0, n_SO4_d4=0,
-     *     n_BCII,  n_BCIA,  n_BCB,
-     *     n_OCII,  n_OCIA,  n_OCB,
+     *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
+     *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
+
+c!@var ntm_aero number of Koch-only tracers  ! is this needed?
+c      integer, parameter :: ntm_aero=5
+
+!@var 3D on-line radical array for interactive aerosol and gas
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
+
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit
@@ -396,10 +393,6 @@ C****
       ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
 #endif
 
-#ifdef TRACERS_SPECIAL_Lerner
-      ALLOCATE(      frqlos(IM,J_0H:J_1H,LM),
-     *          STAT=IER)
-#endif
 #if ((defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)) || (defined TRACERS_HETCHEM)
       ALLOCATE( rxts(IM,J_0H:J_1H,LM),
      *         rxts1(IM,J_0H:J_1H,LM),

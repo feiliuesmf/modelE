@@ -102,6 +102,10 @@ C**** exactly the same as the default values.
 !      EQUIVALENCE (SALB,ALB)
 !@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
       INTEGER :: rad_interact_tr = 0
+C**** the radiative forcing level for instantaneous forcing calcs is set
+C**** using the rad_forc_lev parameter.
+!@dbparam rad_forc_lev = 0 for TOA, 1 for LTROPO (default=0)
+      INTEGER :: rad_forc_lev = 0
 
 C**** Local variables initialised in init_RAD
 !@var COE
@@ -110,6 +114,9 @@ C**** Local variables initialised in init_RAD
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var SINJ,COSJ sines and cosines for zenith angle calculation
       REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
+
+!@var NTRIX Indexing array for optional aerosol interaction
+      INTEGER, DIMENSION(8) :: NTRIX = 0
 
       END MODULE RADNCB
 

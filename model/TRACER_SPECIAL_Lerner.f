@@ -263,6 +263,16 @@ C---- CTM layers LM down
       END SUBROUTINE STRTL
 
 
+      MODULE CH4_SOURCES
+      USE TRACER_COM
+!@var CH4_src CH4 surface sources and sinks (kg/s)
+      integer, parameter :: nch4src=14
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
+!@var frqlos chemical loss rate for methane
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
+
+      END MODULE CH4_SOURCES
+
       SUBROUTINE Trop_chem_CH4(ns,n)
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
@@ -272,6 +282,7 @@ C---- CTM layers LM down
       USE GEOM, only: imaxj
       USE DYNAMICS, only: ltropo
       USE TRACER_COM
+      USE CH4_SOURCES, only : frqlos
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
@@ -788,13 +799,6 @@ c -=-=- cae: apply sign
       RETURN
       END SUBROUTINE SOMLFQ
 
-
-      MODULE CH4_SOURCES
-      USE TRACER_COM
-!@var CH4_src CH4 surface sources and sinks (kg/s)
-      integer, parameter :: nch4src=14
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
-      END MODULE CH4_SOURCES
 
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 sources and sinks
@@ -1531,6 +1535,9 @@ C****
       ALLOCATE(  CH4_src(im,J_0H:J_1H,nch4src),
      *           CO2_src(im,J_0H:J_1H,nco2src),
      *           STAT=IER )
+
+      ALLOCATE(   frqlos(IM,J_0H:J_1H,LM),
+     *          STAT=IER)
 
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 

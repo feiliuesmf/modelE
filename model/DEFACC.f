@@ -4083,7 +4083,7 @@ c
       lname_dd(k)=' G ALBD '
 c
       k=k+1
-      IDD_ABSA=k
+      IDD_ABSA=k   ! absorbed solar radiation only
       name_dd(k)='ABSATM'
       units_dd(k)='W/m^2'
       scale_dd(k)=1.

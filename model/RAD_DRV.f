@@ -326,8 +326,11 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
-     *     ,rad_interact_tr
+     *     ,rad_interact_tr,rad_forc_lev,ntrix
       USE DAGCOM, only : iwrite,jwrite,itwrite
+#ifdef TRACERS_AEROSOLS_Koch
+      USE TRACER_COM
+#endif      
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL,LONR,LATR
@@ -384,6 +387,7 @@ C**** sync radiation parameters from input
         call stop_model('init_RAD: snoage_fac_max out of range',255)
       end if
       call sync_param( "rad_interact_tr", rad_interact_tr )
+      call sync_param( "rad_forc_lev", rad_forc_lev )
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
@@ -525,6 +529,8 @@ C****  2) ITR defines which set of Mie parameters get used, choose
 C****     from the following:
 C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
 C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
+C****  2b) set up the indexing array NTRIX to map the RADIATION tracers
+C****      to the main model tracers
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
 C****  4) Set TRRDRY to dry radius
@@ -549,6 +555,9 @@ c       NTRACE=0
 c tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR = (/ 1,2,2,4, 5,6,0,0 /)
       KRHTRA=(/1,1,1,1, 0,0,1,1/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX=(/ n_sO4, n_seasalt1, n_seasalt2, n_OCB, n_BCII, n_BCB,0,0/)
 #endif
 
       if (ktrend.ne.0) then
@@ -637,7 +646,7 @@ C     OUTPUT DATA
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq
-     *    ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX
+     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -668,11 +677,11 @@ C     OUTPUT DATA
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2,n_Ox
-     * ,trm,N_BCII,N_BCIA,N_BCB,N_OCII,N_OCIA,N_OCB
+      USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
+     *     ,n_OCIA,N_OCII
       USE TRACER_DIAG_COM, only: taijs,ijts_fc
 #ifdef TRACERS_AEROSOLS_Koch
-     * ,ijts_tau
+     *     ,ijts_tau
 #endif
 #endif
       IMPLICIT NONE
@@ -687,16 +696,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
 #ifdef TRACERS_ON
-!@var SNFST,TNFST like SNFS/TNFS but without specific tracers for
+!@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
       REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFST,TNFST
-      INTEGER N
-#ifdef TRACERS_SPECIAL_Shindell
-!@var sv_SRNFLB,sv_TRNFLB for saving SRNFLB,TRNFLB to use in diag loop
-      REAL*8, DIMENSION(    IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     sv_SRNFLB,sv_TRNFLB
-#endif
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
@@ -705,7 +708,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1
+      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1,N,onoff
+     *     ,LFRC
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -812,7 +816,7 @@ C*********************************************************
       JDLAST=JDAY
       S0=S0X*S00WM2*RATLS0/RSDIST
 
-         if(kradia.le.0) then
+      if(kradia.le.0) then
       IF (QCHECK) THEN
 C****   Calculate mean strat water conc
         STRATQ=0.
@@ -873,7 +877,8 @@ C****
       JCKERR=0
       KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2, PLAND,
+!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,icc1,LFRC, N, onoff,OPNSKY,
+!$OMP*   CSZ2, PLAND,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1080,20 +1085,25 @@ C---- shl(L)=Q(I,J,L)        ! already defined
         end do
 C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
-C**** be used (optical depth, I think)
+C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #ifdef TRACERS_AEROSOLS_Koch
-        if (n_SO4.gt.0) TRACER(L,1)=trm(i,j,l,n_so4)/DXYP(J)
-        if (n_seasalt1.gt.0.) TRACER(L,2)=
-     *       trm(i,j,l,n_seasalt1)/DXYP(J)
-        if (n_seasalt2.gt.0.) TRACER(L,3)=
-     *       trm(i,j,l,n_seasalt2)/DXYP(J)
-        if (n_OCII.gt.0.or.n_OCIA.gt.0.or.n_OCB.gt.0)
-     *  TRACER(L,4)=(trm(i,j,l,n_OCB)+
-     *  trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA))/DXYP(J)
-        if (n_BCII.gt.0.or.n_BCIA.gt.0) TRACER(L,5)=
-     *  (trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))/DXYP(J)
-        if (n_BCB.gt.0) TRACER(L,6)=trm(i,j,l,n_BCB)/DXYP(J)
+C**** loop over tracers that are passed to radiation. 
+C**** Two special cases for black carbon and organic carbon where
+C**** more than one tracer is lumped together for radiation purposes
+      do n=1,NTRACE
+        if (NTRIX(n).gt.0) then
+          select case (trname(NTRIX(n)))
+          case ("OCB")
+            TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
+     *           trm(i,j,l,n_OCIA))*BYDXYP(J)
+          case ("BCII") 
+            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
+          case default
+            TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
+          end select
+        end if
+      end do
 #endif
 
       END DO
@@ -1171,128 +1181,65 @@ C****
 C****
 C**** Radiative interaction and forcing diagnostics:
 C**** If no radiatively active tracers are defined, nothing changes.
-C**** Currently this works for aerosols, but should be extended
-C**** to cope with trace gases.
-C**** Possibly different values >0 could do different things
+C**** Currently this works for aerosols and ozone but should be extended
+C**** to cope with all trace gases.
+C****
       FSTOPX(:)=1. ; FTTOPX(:)=1.     ! defaults
-#ifdef TRACERS_AEROSOLS_Koch
+      use_tracer_ozone = 0 ! by default use climatological ozone
+C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
+C**** This is set from the rundeck. 
+      LFRC=LM+LM_REQ+1          ! TOA
+      if (rad_forc_lev.gt.0) LFRC=LTROPO(I,J) ! TROPOPAUSE
 C**** The calculation of the forcing is slightly different.
 C**** depending on whether full radiative interaction is turned on
 C**** or not.
+      onoff=0
+      if (rad_interact_tr.gt.0) onoff=1
+
+#ifdef TRACERS_AEROSOLS_Koch
+C**** Aerosols:
       if (NTRACE.gt.0) then
-        FSTOPX(:)=0. ; FTTOPX(:)=0.
-        if (rad_interact_tr.eq.0) then
-                                          ! Turn ON each tracer in turn
-C**** Sulfate forcing
-          FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0 ! turn on sulfate
+        FSTOPX(:)=onoff ; FTTOPX(:)=onoff
+        do n=1,NTRACE
+          IF (trname(NTRIX(n)).eq."seasalt1") CYCLE ! not for seasalt1
+          FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
+C**** Warning: small bit of hardcoding assumes that seasalt1 is 
+C**** one before seasalt2 in NTRACE array
+          IF (trname(NTRIX(n)).eq."seasalt2") THEN ! add seasalt1 to seasalt2
+            FSTOPX(n-1)=1-onoff ; FTTOPX(n-1)=1-onoff 
+          END IF
           CALL RCOMPX
-          SNFST(N_SO4,I,J)=SRNFLB(4+LM)
-          TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(1)=0.d0 ; FTTOPX(1)=0.d0
-C**** seasalt forcing
-          FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0 ! turn on seasalt
-          FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0 ! turn on seasalt
-          CALL RCOMPX
-          SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
-          TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0
-          FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0
-C**** OC forcing
-          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0 ! turn on OC
-          CALL RCOMPX
-          SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
-          TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0
-C**** BCI forcing
-          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0 ! turn on BCI
-          CALL RCOMPX
-          SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
-          TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0
-C**** BCB forcing
-          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0 ! turn on BCB
-          CALL RCOMPX
-          SNFST(N_BCB,I,J)=SRNFLB(4+LM)
-          TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0
-        else                              ! Turn OFF each tracer in turn
-          FSTOPX(1:NTRACE)=1. ; FTTOPX(1:NTRACE)=1.
-C**** Sulfate forcing
-          FSTOPX(1)=0.d0 ; FTTOPX(1)=0.d0 ! turn off sulfate
-          CALL RCOMPX
-          SNFST(N_SO4,I,J)=SRNFLB(4+LM)
-          TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0
-c seasalt forcing
-          FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt1
-          FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0 ! turn off seasalt2
-          CALL RCOMPX
-          SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
-          TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
-          FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
-C**** OC forcing
-          FSTOPX(4)=0.d0 ; FTTOPX(4)=0.d0 ! turn off OC
-          CALL RCOMPX
-          SNFST(N_OCIA,I,J)=SRNFLB(4+LM)
-          TNFST(N_OCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(4)=1.d0 ; FTTOPX(4)=1.d0
-C**** BCI forcing
-          FSTOPX(5)=0.d0 ; FTTOPX(5)=0.d0 ! turn off BCI
-          CALL RCOMPX
-          SNFST(N_BCIA,I,J)=SRNFLB(4+LM)
-          TNFST(N_BCIA,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(5)=1.d0 ; FTTOPX(5)=1.d0
-C**** BCB forcing
-          FSTOPX(6)=0.d0 ; FTTOPX(6)=0.d0 ! turn off BCI
-          CALL RCOMPX
-          SNFST(N_BCB,I,J)=SRNFLB(4+LM)
-          TNFST(N_BCB,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-          FSTOPX(6)=1.d0 ; FTTOPX(6)=1.d0
-        end if
+          SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
+          TNFST(NTRIX(n),I,J)=TRNFLB(LFRC)
+          FSTOPX(n)=onoff ; FTTOPX(n)=onoff ! back to default
+        end do
       end if
 #endif
-      use_tracer_ozone = 0 ! by default use climatological ozone
+
 #ifdef TRACERS_SPECIAL_Shindell
+C**** Ozone:
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-      if(rad_interact_tr.gt.0)then
-        use_tracer_ozone = 0 ! first, call with climatological ozone
-      else
-        use_tracer_ozone = 1 ! first, call with calculated ozone
-      end if
+
+      use_tracer_ozone=1-onoff
       CALL RCOMPX
-      SNFST(n_Ox,I,J)=SRNFLB(LTROPO(I,J))
-      TNFST(n_Ox,I,J)=TRNFLB(LTROPO(I,J))
-      if(rad_interact_tr.gt.0)then
-        use_tracer_ozone = 1 ! for main call, use calculated ozone
-      else
-        use_tracer_ozone = 0 ! for main call, use climatological ozone
-      end if
+      SNFST(n_Ox,I,J)=SRNFLB(LFRC)
+      TNFST(n_Ox,I,J)=TRNFLB(LFRC)
+      use_tracer_ozone=onoff
 #endif
+
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
-#ifdef TRACERS_SPECIAL_Shindell
-      sv_SRNFLB(I,J)=SRNFLB(LTROPO(I,J)) ! save these for
-      sv_TRNFLB(I,J)=TRNFLB(LTROPO(I,J)) ! the diagnostics
-#endif
+
 #ifdef TRACERS_AEROSOLS_Koch
-         do l=1,lm
-          taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
-     *   +TTAUSV(L,1)
-          taijs(i,j,ijts_tau(n_seasalt1))=
-     *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
-          taijs(i,j,ijts_tau(n_seasalt2))=
-     *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
-          taijs(i,j,ijts_tau(n_OCIA))=taijs(i,j,ijts_tau(n_OCIA))
-     *   +TTAUSV(L,4)
-          taijs(i,j,ijts_tau(n_BCIA))=taijs(i,j,ijts_tau(n_BCIA))
-     *   +TTAUSV(L,5)
-          taijs(i,j,ijts_tau(n_BCB))=taijs(i,j,ijts_tau(n_BCB))
-     *   +TTAUSV(L,6)
-          end do
+C**** Save optical depth diags
+      do n=1,NTRACE
+        if (ijts_tau(NTRIX(n)).gt.0) taijs(i,j,ijts_tau(NTRIX(n)))
+     *       =taijs(i,j,ijts_tau(NTRIX(n)))+SUM(TTAUSV(1:lm,n))
+      end do
 #endif
+
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
       do L=1,LM
@@ -1352,10 +1299,16 @@ C****
         SRHRS(LR,I,J)= SRFHRL(LM+LR)
         TRHRS(LR,I,J)=-TRFCRL(LM+LR)
       END DO
-      DO K=1,4
-        SNFS(K,I,J)=SRNFLB(K+LM)
-        TNFS(K,I,J)=TRNFLB(K+LM)-TRNFLB(1)
-      END DO
+C**** Save fluxes at four levels surface, P0, P1, LTROPO
+      SNFS(1,I,J)=SRNFLB(1)     ! Surface 
+      TNFS(1,I,J)=TRNFLB(1)
+      SNFS(2,I,J)=SRNFLB(LM+1)  ! P1
+      TNFS(2,I,J)=TRNFLB(LM+1)
+      SNFS(3,I,J)=SRNFLB(LM+LM_REQ+1) ! P0 = TOA
+      TNFS(3,I,J)=TRNFLB(LM+LM_REQ+1)
+      SNFS(4,I,J)=SRNFLB(LTROPO(I,J)) ! LTROPO
+      TNFS(4,I,J)=TRNFLB(LTROPO(I,J))
+C****
       TRINCG(I,J)=TRDFLB(1)
       BTMPW(I,J)=BTEMPW-TF
       ALB(I,J,1)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
@@ -1369,7 +1322,7 @@ C****
       ALB(I,J,9)=SRANIR
 
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
-C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (equivalenced)
+C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
 C**** Save clear sky/tropopause diagnostics here
@@ -1481,40 +1434,40 @@ C
              DO INCH=1,NRAD
                IH=1+MOD(JHOUR+INCH-1,24)
                ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
-     *              (1.-SNFS(4,I,J)/S0)
+     *              (1.-SNFS(3,I,J)/S0)
                ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
      *              (1.-ALB(I,J,1))
                ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
-     *              ((SNFS(4,I,J)-SNFS(1,I,J))*CSZ2-TNFS(4,I,J)
-     *              +TNFS(1,I,J))
+     *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
                IHM = JHOUR+INCH+(JDATE-1)*24
                HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
-     *              (1.-SNFS(4,I,J)/S0)
+     *              (1.-SNFS(3,I,J)/S0)
                HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+
      *              (1.-ALB(I,J,1))
                HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+
-     *              ((SNFS(4,I,J)-SNFS(1,I,J))*CSZ2-TNFS(4,I,J)
-     *              +TNFS(1,I,J))
+     *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
              END DO
            END IF
          END DO
 
          DO IT=1,NTYPE
          AJ(J,J_SRINCP0,IT)=AJ(J,J_SRINCP0,IT)+(S0*CSZ2)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(4,I,J)*CSZ2)*
+         AJ(J,J_SRNFP0 ,IT)=AJ(J,J_SRNFP0 ,IT)+(SNFS(3,I,J)*CSZ2)*
      *          FTYPE(IT,I,J)
          AJ(J,J_SRINCG ,IT)=AJ(J,J_SRINCG ,IT)+(SRHR(0,I,J)*CSZ2/
      *          (ALB(I,J,1)+1.D-20))*FTYPE(IT,I,J)
          AJ(J,J_BRTEMP ,IT)=AJ(J,J_BRTEMP ,IT)+BTMPW(I,J) *FTYPE(IT,I,J)
          AJ(J,J_TRINCG ,IT)=AJ(J,J_TRINCG ,IT)+TRINCG(I,J)*FTYPE(IT,I,J)
-         AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-TNFS(4,I,J)*FTYPE(IT,I,J)
-         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(1,I,J)*CSZ2
+         AJ(J,J_HSURF  ,IT)=AJ(J,J_HSURF  ,IT)-(TNFS(3,I,J)-TNFS(1,I,J))
+     *        *FTYPE(IT,I,J)
+         AJ(J,J_SRNFP1 ,IT)=AJ(J,J_SRNFP1 ,IT)+SNFS(2,I,J)*CSZ2
      *          *FTYPE(IT,I,J)
-         AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-TNFS(1,I,J)*FTYPE(IT,I,J)
+         AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
+     *        *FTYPE(IT,I,J)
          END DO
          AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*CSZ2)*DXYPJ
-         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(4,I,J)*CSZ2)*DXYPJ
-         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*CSZ2)*DXYPJ
+         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(3,I,J)*CSZ2)*DXYPJ
+         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(2,I,J)*CSZ2)*DXYPJ
          AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
      *     (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
 C**** Note: confusing because the types for radiation are a subset
@@ -1531,9 +1484,11 @@ C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
-         AREG(JR,J_HATM)  =AREG(JR,J_HATM)  - TNFS(1,I,J)      *DXYPJ
+         AREG(JR,J_HATM)  =AREG(JR,J_HATM)  -(TNFS(2,I,J)-TNFS(1,I,J))
+     *        *DXYPJ
          AREG(JR,J_SRNFG) =AREG(JR,J_SRNFG) +(SRHR(0,I,J)*CSZ2)*DXYPJ
-         AREG(JR,J_HSURF) =AREG(JR,J_HSURF) - TNFS(4,I,J)      *DXYPJ
+         AREG(JR,J_HSURF) =AREG(JR,J_HSURF) -(TNFS(3,I,J)-TNFS(1,I,J))
+     *        *DXYPJ
          AREG(JR,J_BRTEMP)=AREG(JR,J_BRTEMP)+  BTMPW(I,J)      *DXYPJ
          AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+ TRINCG(I,J)      *DXYPJ
          DO K=2,9
@@ -1547,33 +1502,28 @@ C****
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
          AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*CSZ2*ALB(I,J,2)
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
-         AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
-         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*CSZ2)
-#ifdef TRACERS_ON
+         AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)+TNFS(1,I,J)
+         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes
          rsign=1.
          if (rad_interact_tr.gt.0) rsign=-1.
-         if (ntrace.gt.0) then
-          do n=1,ntm
+C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
+         LFRC=3                 ! TOA
+         if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
+         if (ntrace.gt.0 .or. n_Ox.gt.0 ) then
+           do n=1,ntm
 c shortwave forcing
-           if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *          ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SNFS(4,I,J))*CSZ2
+             if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+     *            ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SNFS(LFRC,I,J))
+     *            *CSZ2
 c longwave forcing
-           if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *          ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(4,I,J))
-          end do
+             if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+     *            ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(LFRC,I,J))
+           end do
          end if
-#ifdef TRACERS_SPECIAL_Shindell
-         n=n_Ox
-c shortwave forcing
-         if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *    ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-sv_SRNFLB(I,J))*CSZ2
-c longwave forcing
-         if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *    ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-sv_TRNFLB(I,J))
-#endif
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
