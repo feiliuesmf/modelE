@@ -339,7 +339,7 @@ c -------------------------------------------------------------
       USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
       USE DOMAIN_DECOMP, only : HALO_UPDATE,CHECKSUM,NORTH
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -385,7 +385,7 @@ C****
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
-      call readt (iu_CDN,0,roughl,im*jm,roughl,1)
+      CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),0,roughl,1)
       call closeunit(iu_CDN)
       call sync_param( 'XCDpbl', XCDpbl )
 

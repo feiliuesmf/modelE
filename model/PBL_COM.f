@@ -66,12 +66,18 @@
 !@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
+      USE DOMAIN_DECOMP, only : grid, GET, CHECKSUM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
+      REAL*8, DIMENSION(npbl,IM,JM,4) :: uabl_g,vabl_g,tabl_g,
+     &     qabl_g,eabl_g
+      REAL*8, DIMENSION(IM,JM,4) :: cmgs_g, chgs_g, cqgs_g
+      INTEGER, DIMENSION(IM,JM,4) :: ipbl_g
+      INTEGER :: J_0, J_1
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
 #ifdef TRACERS_ON
@@ -83,6 +89,8 @@
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
      *  ',ijm,4):Ut,Vt,Tt,Qt,Et dim(ijm,4,3):Cmhq, I:Ipb(ijm,4)'
 
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (KUNIT,ERR=10) MODULE_HEADER,UABL,VABL,TABL,QABL,EABL,
@@ -91,8 +99,20 @@
         WRITE (KUNIT,ERR=10) TR_MODULE_HEADER,TRABL
 #endif
       CASE (IOREAD:)            ! input from restart file or restart
-        READ (KUNIT,ERR=10) HEADER,UABL,VABL,TABL,QABL,EABL,CMGS,CHGS,
-     *     CQGS,IPBL
+        READ (KUNIT,ERR=10) HEADER,UABL_g,VABL_g,TABL_g,QABL_g,EABL_g,
+     &       CMGS_g,CHGS_g,CQGS_g,IPBL_g
+
+        uabl(:,:,J_0:J_1,:) = uabl_g(:,:,J_0:J_1,:)
+        vabl(:,:,J_0:J_1,:) = vabl_g(:,:,J_0:J_1,:)
+        tabl(:,:,J_0:J_1,:) = tabl_g(:,:,J_0:J_1,:)
+        qabl(:,:,J_0:J_1,:) = qabl_g(:,:,J_0:J_1,:)
+        eabl(:,:,J_0:J_1,:) = eabl_g(:,:,J_0:J_1,:)
+
+        cmgs(:,J_0:J_1,:) = cmgs_g(:,J_0:J_1,:)
+        chgs(:,J_0:J_1,:) = chgs_g(:,J_0:J_1,:)
+        cqgs(:,J_0:J_1,:) = cqgs_g(:,J_0:J_1,:)
+        CALL CHECKSUM(grid,cmgs,__LINE__,__FILE__//'::cmgs')
+
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
@@ -119,6 +139,8 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
+      USE DOMAIN_DECOMP, only : GET, grid, ARRAYGATHER
+      USE DOMAIN_DECOMP, only : CHECKSUM, CHECKSUM_COLUMN
       USE PBLCOM
       IMPLICIT NONE
 
@@ -128,17 +150,71 @@
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD02"
+      INTEGER :: J_0, J_1, J_0H, J_1H, L,K
+      REAL*8, DIMENSION(IM,JM) :: wsavg_glob,tsavg_glob,
+     *       qsavg_glob,dclev_glob,usavg_glob,
+     *       vsavg_glob,tauavg_glob,qgavg_glob,tgvavg_glob
+      REAL*8, DIMENSION(LM,IM,JM) :: egcm_glob, w2gcm_glob
+      REAL*8, DIMENSION(IM,JM,4) :: ustar_pbl_glob
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
      *  'LvlDC,us,vs,tau,u*(.,4),ke;w2(lijm),tgv,qg'
 
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
+        CALL ARRAYGATHER(grid, wsavg, wsavg_glob)
+        CALL ARRAYGATHER(grid, tsavg, tsavg_glob)
+        CALL ARRAYGATHER(grid, qsavg, qsavg_glob)
+        CALL ARRAYGATHER(grid, dclev, dclev_glob)
+        CALL ARRAYGATHER(grid, usavg, usavg_glob)
+        CALL ARRAYGATHER(grid, vsavg, vsavg_glob)
+        CALL ARRAYGATHER(grid, tauavg, tauavg_glob)
+        CALL ARRAYGATHER(grid, tgvavg, tgvavg_glob)
+        CALL ARRAYGATHER(grid, qgavg(:,:), qgavg_glob(:,:))
+
+        DO K=1,4
+          CALL ARRAYGATHER(grid,ustar_pbl(:,:,K),ustar_pbl_glob(:,:,K))
+        END DO
+        DO L = 1, LM
+          CALL ARRAYGATHER(grid, egcm(L,:,:), egcm_glob(L,:,:))
+          CALL ARRAYGATHER(grid, w2gcm(L,:,:), w2gcm_glob(L,:,:))
+        END DO
         WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
      *       ,usavg,vsavg,tauavg,ustar_pbl,egcm,w2gcm,tgvavg,qgavg
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
-     *       ,vsavg,tauavg,ustar_pbl,egcm,w2gcm,tgvavg,qgavg
+        READ (kunit,err=10) HEADER,wsavg_glob,tsavg_glob,
+     *       qsavg_glob,dclev_glob,usavg_glob,
+     *       vsavg_glob,tauavg_glob,ustar_pbl_glob,egcm_glob,
+     *       w2gcm_glob,tgvavg_glob,qgavg_glob
+        wsavg(:,J_0:J_1) = wsavg_glob(:,J_0:J_1)
+        tsavg(:,J_0:J_1) = tsavg_glob(:,J_0:J_1)
+        qsavg(:,J_0:J_1) = qsavg_glob(:,J_0:J_1)
+        dclev(:,J_0:J_1) = dclev_glob(:,J_0:J_1)
+        usavg(:,J_0:J_1) = usavg_glob(:,J_0:J_1)
+        vsavg(:,J_0:J_1) = vsavg_glob(:,J_0:J_1)
+        tauavg(:,J_0:J_1)= tauavg_glob(:,J_0:J_1)
+        tgvavg(:,J_0:J_1)= tgvavg_glob(:,J_0:J_1)
+        qgavg(:,J_0:J_1) = qgavg_glob(:,J_0:J_1)
+
+        CALL CHECKSUM(grid, wsavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, tsavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, qsavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, dclev, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, usavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, vsavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, tauavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, tgvavg, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, qgavg, __LINE__, __FILE__)
+
+        ustar_pbl(:,J_0:J_1,:) = ustar_pbl_glob(:,J_0:J_1,:)
+        egcm(:,:,J_0:J_1)= egcm_glob(:,:,J_0:J_1)
+        w2gcm(:,:,J_0:J_1)=w2gcm_glob(:,:,J_0:J_1)
+        CALL CHECKSUM       (grid, ustar_pbl, __LINE__, __FILE__)
+        CALL CHECKSUM_COLUMN(grid, egcm, __LINE__, __FILE__)
+        CALL CHECKSUM_COLUMN(grid, w2gcm, __LINE__, __FILE__)
+
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
