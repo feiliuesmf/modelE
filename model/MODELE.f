@@ -9,7 +9,6 @@
       USE PARAM
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : HERE
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -124,7 +123,6 @@ C**** write restart information alternatingly onto 2 disk files
          call set_param( "IRAND", IRAND, 'o' )
          IF (AM_I_ROOT()) 
      *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
-         CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
          call io_rsf(iu_RSF,Itime,iowrite,ioerr)
          IF (AM_I_ROOT()) call closeunit(iu_RSF)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -467,7 +465,6 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       call set_param( "IRAND", IRAND, 'o' )
       IF (AM_I_ROOT())
      *     call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
-      CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
       IF (AM_I_ROOT()) call closeunit(iu_RSF)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -681,8 +678,6 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 CCCC      INTEGER :: stdin ! used to read 'I' file
-      INTEGER :: JREG_glob(IM,JM)
-
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP  = J_1S,
      &               J_STRT_HALO= J_0H, J_STOP_HALO = J_1H,
@@ -1255,8 +1250,7 @@ C****
 
 C****   READ SPECIAL REGIONS FROM UNIT 29
         call openunit("REG",iu_REG,.true.,.true.)
-        READ(iu_REG) TITREG,JREG_glob,NAMREG
-        JREG(:,J_0H:J_1H) = JREG_glob(:,J_0H:J_1H)
+        READ(iu_REG) TITREG,JREG,NAMREG
         WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
