@@ -1,9 +1,9 @@
 C**** SLE001 E001M12 SOMTQ SLB211M9
-C****        (same as Frank's soils64+2bare_soils+old runoff)
+C**** (same as Frank's soils64+2bare_soils+old runoff)
 C**** change to evap calculation to prevent negative runoff
 C**** soils45 but with snowmelt subroutine SNMLT changed
-C****         to melt snow before 1st layer ground ice.
-ccc comments from new soils
+C**** to melt snow before 1st layer ground ice.
+ccc   comments from new soils
 C**** 8/11/97 - MODIFIED TO INCLUDE SNOW MODEL
 C**** 10/29/96 - AROOT AND BROOT BACK TO ORIGINAL VALUES; ADDED
 C**** CALL TO CPARS TO CHANGE VEGETATION PARAMETERS FOR PILPS.
@@ -12,23 +12,23 @@ C**** 5/14/96 - ADDED SOILS64 SURFACE RUNOFF CHANGES/CORRECTIONS
 C**** 11/13/95 - CHANGED AROOT AND BROOT FOR RAINF FOR 1.5M ROOT DEPTH
 C**** 10/11/95 - BACK TO FULL HEAT CAPACITY, TO AVOID CD OSCILLATIONS.
 C**** CHANGES FOR PILPS: (reversed)
-C****  USE soils100.COM INSTEAD OF soils45.COM
-C****  SET IM=36,JM=24
-C****  SET SDATA,VDATA AND FDATA TO REAL*4
-C****  DIVIDE CANOPY HEAT CAPACITIES BY 10.
-C****  CHANGE AROOT OF GRASS TO 1.0, TO REDUCE ROOT DEPTH.
+C**** USE soils100.COM INSTEAD OF soils45.COM
+C**** SET IM=36,JM=24
+C**** SET SDATA,VDATA AND FDATA TO REAL*4
+C**** DIVIDE CANOPY HEAT CAPACITIES BY 10.
+C**** CHANGE AROOT OF GRASS TO 1.0, TO REDUCE ROOT DEPTH.
 C**** END OF CHANGES FOR PILPS
 C**** CHANGES FOR PILPS: (kept)
-C****  MODIFY GDTM SURFACE FLUX TIMESTEP LIMITS
-C****  DEFINE NEW DIAGNOSTICS
-C****  ZERO OUT DIAGNOSTICS AT START OF ADVNC
+C**** MODIFY GDTM SURFACE FLUX TIMESTEP LIMITS
+C**** DEFINE NEW DIAGNOSTICS
+C**** ZERO OUT DIAGNOSTICS AT START OF ADVNC
 C**** END OF CHANGES FOR PILPS
 C**** Modified for 2 TYPES of BARE SOILS
-C****
+C**** 
 C**** soils62 soils45 soils45          CDFXA 04/27/95
 C**** Same as soils45 but with snowmelt subroutine SNMLT changed
 C**** to melt snow before 1st layer ground ice.
-ccc end comments from new soils
+ccc   end comments from new soils
 C**** Also corrects EVAPS calculation.
 C**** Also includes masking effects in radation fluxes.
 C**** Modifies timestep for canopy fluxes.
@@ -99,18 +99,18 @@ C**** SOILS30 6/4/92
 C**** 1) USES ACTUAL FINAL SNOW DEPTH IN FLUX LIMIT CALCULATIONS,
 C**** INSTEAD OF UPPER AND LOWER LIMITS.  FIXES SPURIOUS DRYING
 C**** OF FIRST LAYER.
-C****
+C**** 
       MODULE SLE001
 
       USE CONSTANT, only : stbo,tfrz=>tf,sha,lhe
       IMPLICIT NONE
       SAVE
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
       REAL*8 C
       REAL*8 QSAT,DQSATDT
-c      REAL*8 STBO
+c     REAL*8 STBO
       INTEGER NEXP
-c      PARAMETER (STBO=5.67032E-8)
+c     PARAMETER (STBO=5.67032E-8)
       PARAMETER (NEXP=6)
       PARAMETER (C=2.3025851d0)
 C**** INCLUDE FILE FOR SOILS45
@@ -141,7 +141,7 @@ C**** INCLUDE FILE FOR SOILS45
      *     ,FCOR,FMAG,FPAD,FS,FS1
      *     ,P1,PPBL,RI1,RIS,RSAR,SB,SGM,SHCAP,SHCLC,SINA,SNHT,T1,T1G,TG
      *     ,THMAX,TSG,TTOT,VG,VHGHT,XIN,XINC,ZMAX,ZMIN
-ccc WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
+ccc   WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
       INTEGER IBV,ICHN,ID,IDAY,IGCM,IHOUR,ITH,ITR,J1,J2,JCM,L
      *     ,LADAY,LC,NMAX,LIMIT,LL,MMAX,NINTEG,NIT,NTH,IV,JC,K,M,N,IST
      *     ,IZ,IZX
@@ -157,43 +157,43 @@ ccc WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
      & ,SNOWM
      & ,ID,IGCM
       COMMON/SPAR/THETA(0:NG,2),THETS(0:NG,2),F(0:NG,2)
-     & ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC
-     & ,SHV,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMSN,ALAMBR,ALAMS(IMT-1)
-     & ,XKH(NG,2),XKHM(NG,2),FR(NG),RNF(2),RNFF(NG,2),H(0:NG,2)
-     & ,XK(0:NG,2),XINFC(2),SNK(0:NG,2),SNKH(0:NG,2),SHCLC,D(0:NG,2)
-     & ,XKU(0:NG,2),IST(33)
+     &     ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC
+     &     ,SHV,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMSN,ALAMBR,ALAMS(IMT-1)
+     &     ,XKH(NG,2),XKHM(NG,2),FR(NG),RNF(2),RNFF(NG,2),H(0:NG,2)
+     &     ,XK(0:NG,2),XINFC(2),SNK(0:NG,2),SNKH(0:NG,2),SHCLC,D(0:NG,2)
+     &     ,XKU(0:NG,2),IST(33)
       COMMON/GPAR/       DT,TTOT,ZMAX,ZMIN,ALGDEL,XIN,AKAPPA,DTR,SGM
-     & ,DTS,SHTPR,DTOUT,BETAD,HW,DR,DRS,RS,PRFR,C1,AL(2),XINC
-     & ,PRE(2),BETADL(NGM),SPGSN,N,NMAX,LC
+     &     ,DTS,SHTPR,DTOUT,BETAD,HW,DR,DRS,RS,PRFR,C1,AL(2),XINC
+     &     ,PRE(2),BETADL(NGM),SPGSN,N,NMAX,LC
 C     COMMON/WEIGHT/A(4,IMT-1),B(4,IMT-1),P(4,IMT-1)
       COMMON/FPAR/DTH,THETM(0:NG,2),THMAX(0:NG,2),HLM(0:64),
-     &  XKLM(0:64,IMT-1),DLM(0:64,IMT-1),THM(0:64,IMT-1),ALPH0,NTH
+     &     XKLM(0:64,IMT-1),DLM(0:64,IMT-1),THM(0:64,IMT-1),ALPH0,NTH
       COMMON/EVPTR/QM1,Q1,QS,QB,QC,EVAP(2),EVAPW,EVAPD,EVAPS,EPB,EPC,
-     &  QL,QLDT,SNOWF,SNOWFS
+     &     QL,QLDT,SNOWF,SNOWFS
       DIMENSION FS(2),FS1(2,2)
       COMMON/SURFC/PRES,RHO,TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,Z1,CDN,
      &     P1,PPBL,FCOR,FMAG,TG,T1,VG,SINA,EDDY,RI1,RIS,FPAD,FS,FS1,
-     & T1G,TSG,IZ,IZX
+     &     T1G,TSG,IZ,IZX
       COMMON /CMHEAT/ THRM(2),SNSH(2),XLTH(2),ALTH(2)
       double precision, dimension(4,imt-1), parameter :: a=reshape(
-     &     (/                  ! matric potential coefficients for
-     &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0,   ! sand
-     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0,   ! loam
-     &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0,   ! clay
+     &     (/                   ! matric potential coefficients for
+     &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
+     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0, ! loam
+     &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0, ! clay
      &     .8781d0, -5.1816d0, 13.2385d0,-11.9501d0/), ! peat
      &     (/4,imt-1/))
       double precision, dimension(4,imt-1), parameter :: b=reshape(
-     &     (/                  ! conductivity coefficients for
-     &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0,   ! sand
-     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0,   ! loam
-     &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0,   ! clay
+     &     (/                   ! conductivity coefficients for
+     &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0, ! sand
+     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0, ! loam
+     &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0, ! clay
      &     -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/), ! peat
      &     (/4,imt-1/))
       double precision, dimension(4,imt-1), parameter :: p=reshape(
-     &     (/                  ! diffusivity coefficients for
-     &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0,   ! sand
-     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0,   ! loam
-     &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0,   ! clay
+     &     (/                   ! diffusivity coefficients for
+     &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0, ! sand
+     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0, ! loam
+     &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
      &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
       DIMENSION ARG(IMT-1)
@@ -215,22 +215,22 @@ C     COMMON/WEIGHT/A(4,IMT-1),B(4,IMT-1),P(4,IMT-1)
       DIMENSION SHCAP(IMT)
       DATA SHCAP/2d6,2d6,2d6,2.5d6,2.4d6/
 
-ccc I hate to do it, but as a quick solution I declare snow variables
-ccc as global ones ...
+ccc   I hate to do it, but as a quick solution I declare snow variables
+ccc   as global ones ...
       INTEGER, PARAMETER :: NLSN=3
       INTEGER ISN(2),NSN(2)
       REAL*8  DZSN(NLSN,2),WSN(NLSN,2),HSN(NLSN,2),TSN1(2),FR_SNOW(2)
       REAL*8  FLMLT(2),FHSNG(2),THRMSN(2),HESN(2),SNSHSN(2)
       REAL*8  TBS, SNSHS
 
-ccc the following looks like diagnistic output
+ccc   the following looks like diagnistic output
       REAL*8 ETBCS, ESNOWD, EZW, EWTR1, EICE1, ETP(0:NGM,2)
       REAL*8 ASNOWD,ARNFF(NGM),AW(0:NGM),ATP(0:NGM),AF(0:NG),APRE,ATBCS
       REAL*8 AEVAPS
 
-ccc put some obscure parameters to SOIL_PARAMS structure
+ccc   put some obscure parameters to SOIL_PARAMS structure
       TYPE SOIL_PARAMS
-        real*8 ROSMP
+      real*8 ROSMP
       END TYPE SOIL_PARAMS
 
       TYPE (SOIL_PARAMS) SO_
@@ -251,30 +251,31 @@ C**** THETA - WATER SATURATION
 C**** FW - FRACTION OF WET CANOPY
 C**** FD - FRACTION OF DRY CANOPY
 C**** FM - FRACTION OF SNOW THAT IS EXPOSED, OR MASKING.
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       INTEGER LSN
       ONE=1.
-      DO 10 IBV=1,2
-      DO 10 L=1,N
-      THETA(L,IBV)=W(L,IBV)/DZ(L)
-   10 CONTINUE
+      DO IBV=1,2
+        DO  L=1,N
+          THETA(L,IBV)=W(L,IBV)/DZ(L)
+        end do
+      end do
 C**** DO CANOPY LAYER
 C**** HERE THETA IS THE FRACTION OF CANOPY COVERED BY WATER
       IF(WS(0,2).GT.0.)THEN
-       THETA(0,2)=(W(0,2)/WS(0,2))**(2./3.)
+        THETA(0,2)=(W(0,2)/WS(0,2))**(2./3.)
       ELSE
-       THETA(0,2)=0.
+        THETA(0,2)=0.
       ENDIF
       THETA(0,2)=MIN(THETA(0,2),ONE)
 C**** SET UP SNOWD VARIABLES
       DO IBV=1,2
-       SNOWD(IBV)=0.
-       DO LSN=1,NSN(IBV)
-        ! we compute SNOWD as if all snow was distributed uniformly
-        ! over the cell (i.e. snowd = wsn * sn_frac / 1. )
-        SNOWD(IBV) = SNOWD(IBV) + WSN(LSN,IBV) * FR_SNOW(IBV)
-       ENDDO
+        SNOWD(IBV)=0.
+        DO LSN=1,NSN(IBV)
+ccc    we compute SNOWD as if all snow was distributed uniformly
+ccc    over the cell (i.e. snowd = wsn * sn_frac / 1. )
+          SNOWD(IBV) = SNOWD(IBV) + WSN(LSN,IBV) * FR_SNOW(IBV)
+        ENDDO
       ENDDO
 C**** FRACTION OF WET CANOPY FW
       FW=THETA(0,2)
@@ -285,11 +286,12 @@ C**** CORRECT FRACTION OF WET CANOPY BY SNOW FRACTION
       FD=1.-FW
       RETURN
       END SUBROUTINE RETH
+
       SUBROUTINE HYDRA
-C ROUTINE TO RETURN THE EQULIBRIUM VALUE OF H IN A MIXED SOIL
-C LAYER.  THE H IS SUCH THAT EACH SOIL TEXTURE HAS THE SAME
-C VALUE OF H, BUT DIFFERING VALUES OF THETA.
-C HYDRA ALSO CALCULATES THE CONDUCTIVITY XK AND DIFFUSSIVITY D.
+C     ROUTINE TO RETURN THE EQULIBRIUM VALUE OF H IN A MIXED SOIL
+C     LAYER.  THE H IS SUCH THAT EACH SOIL TEXTURE HAS THE SAME
+C     VALUE OF H, BUT DIFFERING VALUES OF THETA.
+C     HYDRA ALSO CALCULATES THE CONDUCTIVITY XK AND DIFFUSSIVITY D.
 C**** INPUT:
 C**** THETA(L,IBV) - VOLUMETRIC WATER CONCENTRATION
 C**** THETM(L,IBV) - MINIMUM THETA
@@ -297,110 +299,109 @@ C**** THETS(L,IBV) - MAXIMUM THETA
 C**** NTH - NUMBER OF H0 INTERVALS IN TABLE, A POWER OF TWO.
 C**** HLM(J) - TABLE OF H VALUES, FROM 0 (AT J=0) TO HMIN (AT J=NTH)
 C**** THM(J,I) - VALUE OF RELATIVE THETA AT HLM(J) IN TEXTURE I,
-C****    RANGING BETWEEN THETS(L,IBV)  AT J=0 TO THETM(L,IBV) AT J=NTH.
+C**** RANGING BETWEEN THETS(L,IBV)  AT J=0 TO THETM(L,IBV) AT J=NTH.
 C**** OUTPUT:
 C**** H - POTENTIAL, M, INCLUDING BOTH MATRIC AND GRAVITATIONAL
 C**** D - DIFFUSIVITY, DL.
 C**** XK - CONDUCTIVITY M/S.
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-C SOLVE FOR H USING BISECTION
-C WE ASSUME THAT IF J1.LT.J2 THEN HLM(J1).GT.HLM(J2)
-C AND THM(J1,I).GT.THM(J2,I).
-C
+C     SOLVE FOR H USING BISECTION
+C     WE ASSUME THAT IF J1.LT.J2 THEN HLM(J1).GT.HLM(J2)
+C     AND THM(J1,I).GT.THM(J2,I).
+C     
 C     ALGDEL=ALOG(1.+ALPH0)
-C
+C     
       integer I,J
       ZERO=0.
       XKUD=2.78d-5
       JCM=NINT(LOG(FLOAT(NTH))/LOG(2.))
-      DO 600 IBV=1,2
-      XK(N+1,IBV)=0.0
-      XKU(0,IBV)=0.
-      DO 550 L=1,N
-      J1=0
-      J2=NTH
-      THR1=THETS(L,IBV)
-      THR2=THETM(L,IBV)
-      THR0=THETA(L,IBV)
-      THR0=MIN(THR1,THR0)
-      THR0=MAX(THR2,THR0)
-      DO 400 JC=1,JCM
-      J=(J1+J2)/2
-      THR=0.
-      DO 20 I=1,IMT-1
-      THR=THR+THM(J,I)*Q(I,L)
-   20 CONTINUE
-      IF(THR-THR0) 100,300,200
-  100 CONTINUE
-C HERE THR IS TOO SMALL, BISECT ON LOW J END
-      J2=J
-      THR2=THR
-      GO TO 400
-  200 CONTINUE
-C HERE THR IS TOO LARGE, BISECT ON HIGH J END
-      J1=J
-      THR1=THR
-      GO TO 400
-  300 CONTINUE
-C HERE THR IS EQUAL TO THR0
-      HL=HLM(J)
-      J1=J
-      THR1=THR0
-C THE STRANGE VALUE FOR THR2 BELOW IS ONLY FOR CALCULATING TEMP
-      THR2=-10.
-      GO TO 500
-  400 CONTINUE
-C HERE THETA IS BETWEEN TWO ADJACENT THR'S. INTERPOLATE.
-      HL=(HLM(J1)*(THR0-THR2)+HLM(J2)*(THR1-THR0))/(THR1-THR2)
-  500 CONTINUE
+      DO IBV=1,2
+        XK(N+1,IBV)=0.0
+        XKU(0,IBV)=0.
+        DO L=1,N
+          J1=0
+          J2=NTH
+          THR1=THETS(L,IBV)
+          THR2=THETM(L,IBV)
+          THR0=THETA(L,IBV)
+          THR0=MIN(THR1,THR0)
+          THR0=MAX(THR2,THR0)
+          DO JC=1,JCM
+            J=(J1+J2)/2
+            THR=0.
+            DO I=1,IMT-1
+              THR=THR+THM(J,I)*Q(I,L)
+            end do
+            IF(THR-THR0 .lt. 0.d0) then
+C     HERE THR IS TOO SMALL, BISECT ON LOW J END
+              J2=J
+              THR2=THR
+            else if (THR-THR0 .gt. 0.d0) then
+C     HERE THR IS TOO LARGE, BISECT ON HIGH J END
+              J1=J
+              THR1=THR
+            else                ! i.e. .eq.
+C     HERE THR IS EQUAL TO THR0
+              HL=HLM(J)
+              J1=J
+              THR1=THR0
+C     THE STRANGE VALUE FOR THR2 BELOW IS ONLY FOR CALCULATING TEMP
+              THR2=-10.
+              GO TO 500
+            end if
+          end do                ! JC
+C     HERE THETA IS BETWEEN TWO ADJACENT THR'S. INTERPOLATE.
+          HL=(HLM(J1)*(THR0-THR2)+HLM(J2)*(THR1-THR0))/(THR1-THR2)
+ 500      CONTINUE
 C**** ONLY FILLING HL ARRAY WITH MATRIC POTENTIAL (GRAVITATIONAL TO BE
 C**** ADDED LATER)
-      H(L,IBV)=HL
-      HZ=HL
+          H(L,IBV)=HL
+          HZ=HL
 C**** CALCULATE DIFFUSIVITY
-      ITH=J1
-      TEMP=(THR1-THR0)/(THR1-THR2)
-      D1=0.
-      D2=0.
-      XKU1=0.
-      XKU2=0.
-      DO 541 I=1,IMT-1
-      D1=D1+Q(I,L)*DLM(ITH,I)
-      D2=D2+Q(I,L)*DLM(ITH+1,I)
-      XKU1=XKU1+Q(I,L)*XKLM(ITH,I)
-      XKU2=XKU2+Q(I,L)*XKLM(ITH+1,I)
-  541 CONTINUE
-      DL=(1.-TEMP)*D1+TEMP*D2
-      DL=(1.-FICE(L,IBV))*DL
-      D(L,IBV)=DL
+          ITH=J1
+          TEMP=(THR1-THR0)/(THR1-THR2)
+          D1=0.
+          D2=0.
+          XKU1=0.
+          XKU2=0.
+          DO I=1,IMT-1
+            D1=D1+Q(I,L)*DLM(ITH,I)
+            D2=D2+Q(I,L)*DLM(ITH+1,I)
+            XKU1=XKU1+Q(I,L)*XKLM(ITH,I)
+            XKU2=XKU2+Q(I,L)*XKLM(ITH+1,I)
+          end do
+          DL=(1.-TEMP)*D1+TEMP*D2
+          DL=(1.-FICE(L,IBV))*DL
+          D(L,IBV)=DL
 C**** CALCULATE CONDUCTIVITY
-      XKLU=(1.-TEMP)*XKU1+TEMP*XKU2
-      XKLU=(1.-FICE(L,IBV))*XKLU
-      XKU(L,IBV)=XKLU
-      IF(L.EQ.1) THEN
-      XK1=0.
-      DO 641 I=1,IMT-1
-      XK1=XK1+QK(I,1)*XKLM(0,I)
-  641 CONTINUE
-         XKL=XK1
-         XKL=XKL/(1.+XKL/(-ZC(1)*XKUD))
-         XKL=(1.-FICE(1,IBV)*THETA(1,IBV)/THETS(1,IBV))*XKL
-         XKL=MAX(ZERO,XKL)
-         XK(1,IBV)=XKL
-      ELSE
-         XK(L,IBV)=SQRT(XKU(L-1,IBV)*XKU(L,IBV))
-      END IF
-  550 CONTINUE
-  600 CONTINUE
-C ADD GRAVITATIONAL POTENTIAL TO HL
-      DO 700 L=1,N
-      DO 680 IBV=1,2
-      H(L,IBV)=H(L,IBV)+ZC(L)
-  680 CONTINUE
-  700 CONTINUE
+          XKLU=(1.-TEMP)*XKU1+TEMP*XKU2
+          XKLU=(1.-FICE(L,IBV))*XKLU
+          XKU(L,IBV)=XKLU
+          IF(L.EQ.1) THEN
+            XK1=0.
+            DO I=1,IMT-1
+              XK1=XK1+QK(I,1)*XKLM(0,I)
+            end do
+            XKL=XK1
+            XKL=XKL/(1.+XKL/(-ZC(1)*XKUD))
+            XKL=(1.-FICE(1,IBV)*THETA(1,IBV)/THETS(1,IBV))*XKL
+            XKL=MAX(ZERO,XKL)
+            XK(1,IBV)=XKL
+          ELSE
+            XK(L,IBV)=SQRT(XKU(L-1,IBV)*XKU(L,IBV))
+          END IF
+        end do                  ! L
+      end do                    ! IBV
+C     ADD GRAVITATIONAL POTENTIAL TO HL
+      DO L=1,N
+        DO IBV=1,2
+          H(L,IBV)=H(L,IBV)+ZC(L)
+        end do
+      end do
       RETURN
       END SUBROUTINE HYDRA
+
       SUBROUTINE HL0
 C**** HL0 SETS UP A TABLE OF THETA VALUES AS A FUNCTION OF MATRIC
 C**** POTENTIAL, H.  H IS TABULATED IN A GEOMETRIC SERIES FROM
@@ -418,7 +419,7 @@ C**** OUTPUT:
 C**** THM(J,I) - THETA AT J'TH H POINT FOR TEXTURE I
 C**** XKLM(J,I) - CONDUCTIVITY AT J'TH H POINT FOR TEXTURE I
 C**** DLM(J,I) - DIFFUSIVITY AT J'TH H POINT FOR TEXTURE I
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       integer I,J
       SXTN=16.
@@ -427,66 +428,66 @@ C**** SOILS28   Common block     9/25/90
       DELH1=-0.00625
       HMIN=-1000.
       DELHN=DELH1
-C SOLVE FOR ALPH0 IN S=((1+ALPH0)**N-1)/ALPH0
+C     SOLVE FOR ALPH0 IN S=((1+ALPH0)**N-1)/ALPH0
       S=HMIN/DELH1
       ALPH0=1./8.
-   10 ALPH0O=ALPH0
+ 10   ALPH0O=ALPH0
       ALPH0=(S*ALPH0+1.)**(1./NTH)-1.
       IF(ABS(ALPH0O-ALPH0).GE.1d-8) GO TO 10
       ALPLS1=1.0+ALPH0
       ALGDEL=LOG(1.+ALPH0)
       DO 100 J=1,NTH
-      HLM(J)=HLM(J-1)+DELHN
-      DELHN=ALPLS1*DELHN
-  100 CONTINUE
+        HLM(J)=HLM(J-1)+DELHN
+        DELHN=ALPLS1*DELHN
+ 100  CONTINUE
       MMAX=100
       XTOL=1d-6
       DO 200 I=1,IMT-1
-      THM(0,I)=1.00
-      DO 150 J=1,NTH
-      HS=-EXP(C*(A(1,I)+A(2,I)+A(3,I)+A(4,I)))
-      A1=A(3,I)/A(4,I)
-      A2=(A(2,I)-(LOG(-HLM(J)-HS))/C)/A(4,I)
-      A3=A(1,I)/A(4,I)
-      TESTH=THM(J-1,I)
-      DO 130 M=1,MMAX
-      FUNC=(TESTH**3)+(A1*(TESTH**2))+(A2*(TESTH))+A3
-      DFUNC=(3*TESTH**2)+(2*A1*TESTH)+A2
-      DIFF=FUNC/DFUNC
-      TESTH=TESTH-DIFF
-      IF(ABS(DIFF).LT.XTOL) GO TO 140
-  130 CONTINUE
-      PRINT *,'MAX # ITERATIONS:',MMAX
-  140 THM(J,I)=TESTH
-  150 CONTINUE
-  200 CONTINUE
+        THM(0,I)=1.00
+        DO 150 J=1,NTH
+          HS=-EXP(C*(A(1,I)+A(2,I)+A(3,I)+A(4,I)))
+          A1=A(3,I)/A(4,I)
+          A2=(A(2,I)-(LOG(-HLM(J)-HS))/C)/A(4,I)
+          A3=A(1,I)/A(4,I)
+          TESTH=THM(J-1,I)
+          DO 130 M=1,MMAX
+            FUNC=(TESTH**3)+(A1*(TESTH**2))+(A2*(TESTH))+A3
+            DFUNC=(3*TESTH**2)+(2*A1*TESTH)+A2
+            DIFF=FUNC/DFUNC
+            TESTH=TESTH-DIFF
+            IF(ABS(DIFF).LT.XTOL) GO TO 140
+ 130      CONTINUE
+          PRINT *,'MAX # ITERATIONS:',MMAX
+ 140      THM(J,I)=TESTH
+ 150    CONTINUE
+ 200  CONTINUE
       DO 280 J=0,NTH
-      DO 245 I=1,IMT-1
-      XKLM(J,I)=0.
-      ARG(I)=0.
-      DO 240 L=-1,2
-      ARG(I)=ARG(I)+B(L+2,I)*THM(J,I)**L
-  240 CONTINUE
-      ARG(I)=MIN(ARG(I),SXTN)
-      ARG(I)=MAX(ARG(I),-SXTN)
-      XKLM(J,I)=EXP(C*ARG(I))
-  245 CONTINUE
-      DO 265 I=1,IMT-1
-      DLM(J,I)=0.
-      ARG(I)=0.
-      DO 260 L=-1,2
-      ARG(I)=ARG(I)+P(L+2,I)*THM(J,I)**L
-  260 CONTINUE
-      ARG(I)=MIN(ARG(I),SXTN)
-      ARG(I)=MAX(ARG(I),-SXTN)
-      DLM(J,I)=EXP(C*ARG(I))
-  265 CONTINUE
-  280 CONTINUE
+        DO 245 I=1,IMT-1
+          XKLM(J,I)=0.
+          ARG(I)=0.
+          DO 240 L=-1,2
+            ARG(I)=ARG(I)+B(L+2,I)*THM(J,I)**L
+ 240      CONTINUE
+          ARG(I)=MIN(ARG(I),SXTN)
+          ARG(I)=MAX(ARG(I),-SXTN)
+          XKLM(J,I)=EXP(C*ARG(I))
+ 245    CONTINUE
+        DO 265 I=1,IMT-1
+          DLM(J,I)=0.
+          ARG(I)=0.
+          DO 260 L=-1,2
+            ARG(I)=ARG(I)+P(L+2,I)*THM(J,I)**L
+ 260      CONTINUE
+          ARG(I)=MIN(ARG(I),SXTN)
+          ARG(I)=MAX(ARG(I),-SXTN)
+          DLM(J,I)=EXP(C*ARG(I))
+ 265    CONTINUE
+ 280  CONTINUE
       DO 350 J=0,NTH
-      DO 310 K=1,IMT-1
-      THM(J,K)=THM(J,K)*SAT(K)
-  310 CONTINUE
-  350 CONTINUE
+        DO 310 K=1,IMT-1
+          THM(J,K)=THM(J,K)*SAT(K)
+ 310    CONTINUE
+ 350  CONTINUE
       RETURN
       END SUBROUTINE HL0
       SUBROUTINE FL
@@ -498,20 +499,22 @@ C**** ZC - LAYER CENTERS, M
 C**** OUTPUT:
 C**** F - FLUXES BETWEEN LAYERS, M S-1
 C**** XINFC - INFILTRATION CAPACITY, M S-1
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-C****
-      DO 15 IBV=1,2
-   15 F(N+1,IBV)=0.
-C****
-      DO 20 IBV=1,2
-      DO 20 L=2,N
-      F(L,IBV)=-XK(L,IBV)*(H(L-1,IBV)-H(L,IBV))/(ZC(L-1)-ZC(L))
-   20 CONTINUE
+C**** 
+      DO IBV=1,2
+        F(N+1,IBV)=0.
+      end do
+C**** 
+      DO IBV=1,2
+        DO L=2,N
+          F(L,IBV)=-XK(L,IBV)*(H(L-1,IBV)-H(L,IBV))/(ZC(L-1)-ZC(L))
+        end do
+      end do
 C**** PUT INFILTRATION MAXIMUM INTO XINFC
-      DO 25 IBV=1,2
-      XINFC(IBV)=XK(1,IBV)*H(1,IBV)/ZC(1)
-   25 CONTINUE
+      DO IBV=1,2
+        XINFC(IBV)=XK(1,IBV)*H(1,IBV)/ZC(1)
+      end do
       RETURN
       END SUBROUTINE FL
       SUBROUTINE QSBAL
@@ -543,138 +546,138 @@ C**** EVAPW - EVAPORATION FROM WET CANOPY, M S-1, INCLUDING FROM SNOW
 C**** EVAPD - EVAPORATION FROM DRY CANOPY, M S-1
 C**** EVAPS - EVAPORATION FROM SNOW FROM CANOPY, M S-1
 C**** BETAD - DRY CANOPY BETA, BASED ON ROOTS
-C****
+C**** 
 C**** USES: COND
-      !INCLUDE './soils101.COM'
-      !PARAMETER (STBO=5.67032E-8)
+ccc   INCLUDE './soils101.COM'
+ccc   PARAMETER (STBO=5.67032E-8)
 ccc   derivatives of surface fluxes with respect to temperature
       common /surf_flux_derivatives/ snsh_dt, epb_dt, evaps_dt
       real*8 snsh_dt, epb_dt, evaps_dt
 C**** SOILS28   Common block     9/25/90
       real*8 evap_max(2)
-ccc added declarations for local vars:
+ccc   added declarations for local vars:
       real*8 QM1DT, XKF, TBS1, TCS1, qcv, qcs, epcs
 
       ZERO=0.
-ccc first compute maximal amount of water available for evaporation
+ccc   first compute maximal amount of water available for evaporation
       do IBV=1,2
-         evap_max(IBV) = 0.
-         if ( IBV .eq. 1) evap_max(IBV) = evap_max(IBV) + PR
-         do L=1,N
-            evap_max(IBV) = evap_max(IBV) +
-     &           (W(L,IBV)-DZ(L)*THETM(L,IBV))/DT
-         enddo
+        evap_max(IBV) = 0.
+        if ( IBV .eq. 1) evap_max(IBV) = evap_max(IBV) + PR
+        do L=1,N
+          evap_max(IBV) = evap_max(IBV) +
+     &         (W(L,IBV)-DZ(L)*THETM(L,IBV))/DT
+        enddo
       enddo
 C**** QM1 HAS MASS OF WATER VAPOR IN FIRST ATMOSPHERE LAYER, KG M-2
-ccc changing QM1 here is messy - may be fix later
+ccc   changing QM1 here is messy - may be fix later
       IF(IGCM.EQ.-1) QM1=1d+7
       QM1DT=.001*QM1/DT
-C CNA IS THE CONDUCTANCE OF THE ATMOSPHERE
+C     CNA IS THE CONDUCTANCE OF THE ATMOSPHERE
       CNA=CH*VSM
       RHO3=.001*RHO
       IF(IGCM.GE.0 .AND. IGCM.LE.3) XL=EDDY/(Z1-ZS)
-C
-C MODIFY TBS AND TCS IN THE PRESENCE OF SNOW TO STABILIZE INTERFACE
+C     
+C     MODIFY TBS AND TCS IN THE PRESENCE OF SNOW TO STABILIZE INTERFACE
 c     XKF=(149.85/SQRT(DTS))/(2.*SHA*RHO*CNA
-c    & +8.*STBO*(MAX(TBS,TCS)+TFRZ)**3)
+c     & +8.*STBO*(MAX(TBS,TCS)+TFRZ)**3)
 c     IF(XKF.GT.1.)XKF=1.
-ccc debugging!!! - trying to fix evaporation from snow
+ccc   debugging!!! - trying to fix evaporation from snow
       XKF=1.
       IF(ISN(1).NE.0.OR.SNOWD(1).NE.0.)THEN
-       TBS1=XKF*(TBS-TS+TFRZ)+TS-TFRZ
+        TBS1=XKF*(TBS-TS+TFRZ)+TS-TFRZ
       ELSE
-       TBS1=TBS
+        TBS1=TBS
       ENDIF
       IF(ISN(2).NE.0.OR.SNOWD(2).NE.0.)THEN
-       TCS1=XKF*(TCS-TS+TFRZ)+TS-TFRZ
+        TCS1=XKF*(TCS-TS+TFRZ)+TS-TFRZ
       ELSE
-       TCS1=TCS
+        TCS1=TCS
       ENDIF
       TBCS=FB*TBS1+FV*TCS1
-C CALCULATE BARE SOIL AND CANOPY MIXING RATIOS
+C     CALCULATE BARE SOIL AND CANOPY MIXING RATIOS
       QB = QSAT(TBS1+TFRZ,LHE,PRES)
 c     QC = QSAT(TCS1+TFRZ,LHE,PRES)
       qcv = QSAT(TP(0,2)+TFRZ,LHE,PRES)
       qcs = QSAT(TSN1(2)+TFRZ,LHE,PRES)
 
       QC = FM*qcs + (1.-FM)*qcv
-C ON FIRST ITERATION, ASSUME BETA'S = 1
+C     ON FIRST ITERATION, ASSUME BETA'S = 1
       BETAB=1.
       BETAV=1.
       IF(IGCM.GE.0 .AND. IGCM.LE.3)
-     & QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*QC+XL*Q1)
-     & /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1d-12)
+     &     QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*QC+XL*Q1)
+     &     /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1d-12)
       EPS=2d-5
-C BARE SOILS DIFFUSIVITY DD
+C     BARE SOILS DIFFUSIVITY DD
       DD=D(1,1)
-C BETAD IS THE THE ROOT BETA FOR TRANSPIRATION.
-C HW IS THE WILTING POINT.
-C FR(L) IS THE FRACTION OF ROOTS IN LAYER L
+C     BETAD IS THE THE ROOT BETA FOR TRANSPIRATION.
+C     HW IS THE WILTING POINT.
+C     FR(L) IS THE FRACTION OF ROOTS IN LAYER L
       BETAD=0.
       DO 30 L=1,N
-      BETADL(L)=(1.-FICE(L,2))*FR(L)*MAX((HW-H(L,2))/HW,ZERO)
-      BETAD=BETAD+BETADL(L)
-   30 CONTINUE
+        BETADL(L)=(1.-FICE(L,2))*FR(L)*MAX((HW-H(L,2))/HW,ZERO)
+        BETAD=BETAD+BETADL(L)
+ 30   CONTINUE
       ABETAD=BETAD
-C CANOPY CONDUCTIVITY CNC
+C     CANOPY CONDUCTIVITY CNC
       CALL COND
-C SURFACE LAYER MIXING RATIO TO BALANCE FLUXES
+C     SURFACE LAYER MIXING RATIO TO BALANCE FLUXES
       ITR=1
-   10 QSO=QS
-C POTENTIAL EVAPORATION FOR BARE SOIL AND CANOPY
+ 10   QSO=QS
+C     POTENTIAL EVAPORATION FOR BARE SOIL AND CANOPY
       EPB=RHO3*CNA*(QB-QS)
 c     EPC=RHO3*CNA*(QC-QS)
       EPC = RHO3*CNA*(qcv-QS)
       epcs = RHO3*CNA*(qcs-QS)
-C BARE SOIL CORRECTION
-C DIFFUSION LIMITED FLUX ED
+C     BARE SOIL CORRECTION
+C     DIFFUSION LIMITED FLUX ED
       ED=2.467*DD*(THETA(1,1)-THETM(1,1))/DZ(1)
-C CORRECT IF NOT POTENTIAL EVAPORATION
-C EVAP(1) IS EVAPORATION FROM BARE SOIL
+C     CORRECT IF NOT POTENTIAL EVAPORATION
+C     EVAP(1) IS EVAPORATION FROM BARE SOIL
       IF(SNOWD(1).GT.0.)THEN
-      EVAP(1)=EPB
+        EVAP(1)=EPB
       ELSE
-      EVAP(1)=MIN(EPB,ED+PR)
+        EVAP(1)=MIN(EPB,ED+PR)
       ENDIF
       EVAP(1) = MIN( EVAP(1), evap_max(1) ) !limit to max amount of wate
-C VEGETATED SOIL CORRECTION
-C EVAP(2) IS EVAPORATION FROM VEGETATED LAND
-C EVAPD IS DRY EVAPORATION (TRANSPIRATION) FROM CANOPY
-C EVAPW IS WET EVAPORATION FROM CANOPY (FROM INTERCEPTION)
+C     VEGETATED SOIL CORRECTION
+C     EVAP(2) IS EVAPORATION FROM VEGETATED LAND
+C     EVAPD IS DRY EVAPORATION (TRANSPIRATION) FROM CANOPY
+C     EVAPW IS WET EVAPORATION FROM CANOPY (FROM INTERCEPTION)
       IF(EPC.GT.0) THEN
-      EVAPW=(1.-FM)*EPC*FW
+        EVAPW=(1.-FM)*EPC*FW
 C**** LIMIT THE WET CANOPY EVAPORATION TO CANOPY WATER
-      EVAPW=MIN(EVAPW,W(0,2)/DT)
-      EVAPD=(1.-FM)*EPC*FD
+        EVAPW=MIN(EVAPW,W(0,2)/DT)
+        EVAPD=(1.-FM)*EPC*FD
 C**** IF POSITIVE EVAPORATION, LIMIT DRY CANOPY EVAPORATION TO TRANS
-      BETAT=CNC/(CNC+CNA+1d-12)
-      EVAPD=MIN(EVAPD,EVAPD*BETAT)
-      EVAPD = MIN( EVAPD, evap_max(2) )  ! limit to max amount of water
+        BETAT=CNC/(CNC+CNA+1d-12)
+        EVAPD=MIN(EVAPD,EVAPD*BETAT)
+        EVAPD = MIN( EVAPD, evap_max(2) ) ! limit to max amount of water
       ELSE
-      EVAPW=(1.-FM)*MAX(EPC,-QM1DT)
-      EVAPD=0.
+        EVAPW=(1.-FM)*MAX(EPC,-QM1DT)
+        EVAPD=0.
       END IF
 C**** EVAPORATION FROM VEGETATED SNOW REGION IS FROM THAT PART
 C**** OF THE WET CANOPY THAT REPRESENTS SNOW
 c     EVAPS=EPC*FM
       EVAPS = epcs*FM
-ccc limit it water legt after dry evap
+ccc   limit it water legt after dry evap
       EVAPS = MIN( EVAPS, evap_max(2)-EVAPD )
 C**** RESTRICT CONDENSATION TO WATER AVAILABLE IN FIRST ATMOSPHERE
       EVAP(1)=MAX(EVAP(1),-QM1DT)
       EVAP(2)=EVAPW+EVAPD+EVAPS
 C**** CALCULATE BETAS AND Q OF SURFACE LAYER
       IF(EPB.LE.0.) THEN
-           BETAB=1.0
+        BETAB=1.0
       ELSE
-           BETAB=EVAP(1)/EPB
-           END IF
+        BETAB=EVAP(1)/EPB
+      END IF
       IF(EPC.LE.0.) THEN
-           BETAV=1.0
+        BETAV=1.0
       ELSE
-           BETAV=(EVAP(2)-EVAPS)/EPC
-c           BETAV=EVAP(2)/((1.-FM)*EPC+FM*epcs)
-           END IF
+        BETAV=(EVAP(2)-EVAPS)/EPC
+c     BETAV=EVAP(2)/((1.-FM)*EPC+FM*epcs)
+      END IF
 C**** FOR OVERALL BETA, USE WEIGHTED AVERAGE OF BETAB AND BETAV.
 C**** DON'T USE TOTAL EVAP OVER TOTAL POTENTIAL EVAP.  THIS AVOIDS
 C**** THE POSSIBILITY OF NEGATIVE BETA.
@@ -686,12 +689,12 @@ C**** THE POSSIBILITY OF NEGATIVE BETA.
       ACNA=CNA
       ACNC=CNC
       IF(IGCM.GE.0 .AND. IGCM.LE.3)
-     &  QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*qcv + FV*FM*CNA*qcs +XL*Q1)
-     & /(FB*BETAB*CNA+FV*BETAV*CNA + FV*FM*CNA  +XL+1.E-12)
+     &     QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*qcv + FV*FM*CNA*qcs +XL*Q1)
+     &     /(FB*BETAB*CNA+FV*BETAV*CNA + FV*FM*CNA  +XL+1.E-12)
 c     &  QS=(FB*BETAB*CNA*QB+FV*BETAV*CNA*QC+XL*Q1)
 c     & /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1.E-12)
-   70 CONTINUE
-C LOOP BACK UNTIL QS CONVERGED
+ 70   CONTINUE
+C     LOOP BACK UNTIL QS CONVERGED
       IF(ITR.GE.60)THEN
         WRITE(99,*)'QSBAL:1',ID,ITR,QS,QSO
         WRITE(99,*)'QSBAL:2',FB,BETAB,CNA,QB
@@ -710,10 +713,10 @@ C LOOP BACK UNTIL QS CONVERGED
       ITR=ITR+1
       IF(ABS(QSO-QS).GT.EPS)GO TO 10
       DO 100 IBV=1,2
-      L=2-IBV
+        L=2-IBV
 C     SNSH(IBV)=SHA*RHO*CNA*(TP(L,IBV)-TS+TFRZ)
-      XLTH(IBV)=EVAP(IBV)*ELH
-  100 CONTINUE
+        XLTH(IBV)=EVAP(IBV)*ELH
+ 100  CONTINUE
       SNSH(1)=SHA*RHO*CNA*(TBS1-TS+TFRZ)
 c     SNSH(2)=SHA*RHO*CNA*(TCS1-TS+TFRZ)
       SNSH(2)=SHA*RHO*CNA*(TP(0,2)-TS+TFRZ)
@@ -739,57 +742,57 @@ C**** OUTPUT:
 C**** F - WATER FLUXES FROM GROUND AND CANOPY
 C**** SNOWF - SNOW FALL, EQUIVALENT WATER M S-1
 C**** DR - CANOPY DRIP, M S-1
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       REAL*8 PTMP,PTMPS
       ZERO=0.
-C CALCULATE SNOW FALL.  SNOWF IS SNOW FALL, M S-1 OF WATER DEPTH.
+C     CALCULATE SNOW FALL.  SNOWF IS SNOW FALL, M S-1 OF WATER DEPTH.
       SNOWF=0.
       IF(HTPR.LT.0.)SNOWF=MIN(-HTPR/FSN,PR)
-C SNOWFS IS THE LARGE SCALE SNOW FALL.
+C     SNOWFS IS THE LARGE SCALE SNOW FALL.
       SNOWFS=0.
       IF(HTPRS.LT.0.)SNOWFS=MIN(-HTPRS/FSN,PRS)
-C BARE SOIL
-C UPWARD FLUX FROM FIRST LAYER IS EVAPORATION LESS PRECIPITATION
+C     BARE SOIL
+C     UPWARD FLUX FROM FIRST LAYER IS EVAPORATION LESS PRECIPITATION
       IF(ISN(1).NE.0.OR.SNOWD(1).NE.0.)THEN
-       PRE(1)=FLMLT(1)
-       F(1,1)=-FLMLT(1)
+        PRE(1)=FLMLT(1)
+        F(1,1)=-FLMLT(1)
       ELSE
-      F(1,1)=-PR+EVAP(1)
-       PRE(1)=0.
+        F(1,1)=-PR+EVAP(1)
+        PRE(1)=0.
       ENDIF
-C UPWARD FLUX FROM WET CANOPY, INCLUDING EVAPORATION FROM SNOW.
+C     UPWARD FLUX FROM WET CANOPY, INCLUDING EVAPORATION FROM SNOW.
       IF(ISN(2).NE.0.OR.SNOWD(2).NE.0.)THEN
-       F(0,2)=EVAPW
+        F(0,2)=EVAPW
       ELSE
-      F(0,2)=-PR+EVAPW
+        F(0,2)=-PR+EVAPW
       ENDIF
       PTMPS=PRS-SNOWFS
       PTMPS=PTMPS-EVAPW
       PTMP=PR-PRS-(SNOWF-SNOWFS)
-C USE EFFECTS OF SUBGRID SCALE PRECIPITATION TO CALCULATE DRIP
+C     USE EFFECTS OF SUBGRID SCALE PRECIPITATION TO CALCULATE DRIP
       PM=1d-6
       PMAX=FD*PM
       DRS=MAX(PTMPS-PMAX,ZERO)
       DR=DRS
       IF(PTMP.GT.0.)THEN
-      PFAC=(PMAX-PTMPS)*PRFR/PTMP
-       IF(PFAC.GE.0.)THEN
-        IF(PFAC.LT.30.000) DR=PTMP*EXP(-PFAC)
-       ELSE
-        DR=PTMP+PTMPS-PMAX
-       ENDIF
+        PFAC=(PMAX-PTMPS)*PRFR/PTMP
+        IF(PFAC.GE.0.)THEN
+          IF(PFAC.LT.30.000) DR=PTMP*EXP(-PFAC)
+        ELSE
+          DR=PTMP+PTMPS-PMAX
+        ENDIF
       ENDIF
-C VEGETATED SOIL
-C UPWARD FLUX FROM SOIL SURFACE IS MINUS DRIP LESS SNOWFALL
-C PLUS THE EVAPORATION FROM SNOW
+C     VEGETATED SOIL
+C     UPWARD FLUX FROM SOIL SURFACE IS MINUS DRIP LESS SNOWFALL
+C     PLUS THE EVAPORATION FROM SNOW
       IF(ISN(2).NE.0.OR.SNOWD(2).NE.0.)THEN
-       F(1,2)=-FLMLT(2)
-       PRE(2)=FLMLT(2)
-       F(0,2)=-FLMLT(2)+F(0,2)
+        F(1,2)=-FLMLT(2)
+        PRE(2)=FLMLT(2)
+        F(0,2)=-FLMLT(2)+F(0,2)
       ELSE
-      F(1,2)=-DR-SNOWF+EVAPS
-       PRE(2)=0.
+        F(1,2)=-DR-SNOWF+EVAPS
+        PRE(2)=0.
       ENDIF
       RETURN
       END SUBROUTINE FLG
@@ -804,7 +807,7 @@ C**** TP - TEMPERATURE OF CANOPY, C
 C**** TFRZ - FREEZING POINT OF WATER, 0 C IN K
 C**** OUTPUT:
 C**** CNC - CANOPY CONDUCTANCE, M S-1
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       ZERO=0.
 C**** ADJUST CANOPY CONDUCTANCE FOR SOIL WATER POTENTIAL
@@ -831,55 +834,56 @@ C**** SDSTNC - INTERSTREAM DISTANCE, M
 C**** OUTPUT:
 C**** RNF - SURFACE RUNOFF
 C**** RNFF - UNDERGROUND RUNOFF, M S-1
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-C USE EFFECTS OF SUBGRID SCALE RAIN
-C USE PRECIPITATION THAT INCLUDES SMOW MELT
+C     USE EFFECTS OF SUBGRID SCALE RAIN
+C     USE PRECIPITATION THAT INCLUDES SMOW MELT
       REAL*8 PTMP(2),PTMPS(2)
       REAL*8 RUNFRAC
       ZERO=0.
       IF(ISN(1).EQ.0)THEN
-       PTMPS(1)=PRS+PRE(1)
-       PTMP(1)=PR-PRS
+        PTMPS(1)=PRS+PRE(1)
+        PTMP(1)=PR-PRS
       ELSE
-       PTMPS(1)=FLMLT(1)
-       PTMP(1)=0.
+        PTMPS(1)=FLMLT(1)
+        PTMP(1)=0.
       ENDIF
       IF(ISN(2).EQ.0)THEN
-      PTMPS(2)=DRS+PRE(2)
-      PTMP(2)=DR-DRS
+        PTMPS(2)=DRS+PRE(2)
+        PTMP(2)=DR-DRS
       ELSE
-       PTMPS(2)=FLMLT(2)
-       PTMP(2)=0.
+        PTMPS(2)=FLMLT(2)
+        PTMP(2)=0.
       ENDIF
       DO 10 IBV=1,2
-      RNFS=MAX(PTMPS(IBV)-XINFC(IBV),ZERO)
-      RNF(IBV)=RNFS
-      IF(PTMP(IBV).GT.0.)THEN
-      PRFAC=(XINFC(IBV)-PTMPS(IBV))*PRFR/PTMP(IBV)
-       IF(PRFAC.GE.0.)THEN
-ccc!! next line is different in new and old versions
-ccc!! I suppose some of them has a bug - check later
-        IF(PRFAC.LT.30.000) RNF(IBV)=RNF(IBV)+PTMP(IBV)*EXP(-PRFAC)
-       ELSE
-        RNF(IBV)=PTMP(IBV)+PTMPS(IBV)-XINFC(IBV)
-       ENDIF
-ccc!! following 3 lines didn't exist in old version
-ccc!! check what it is all about
+        RNFS=MAX(PTMPS(IBV)-XINFC(IBV),ZERO)
+        RNF(IBV)=RNFS
+        IF(PTMP(IBV).GT.0.)THEN
+          PRFAC=(XINFC(IBV)-PTMPS(IBV))*PRFR/PTMP(IBV)
+          IF(PRFAC.GE.0.)THEN
+ccc   !! next line is different in new and old versions
+ccc   !! I suppose some of them has a bug - check later
+            IF(PRFAC.LT.30.000) RNF(IBV)=RNF(IBV)+PTMP(IBV)*EXP(-PRFAC)
+          ELSE
+            RNF(IBV)=PTMP(IBV)+PTMPS(IBV)-XINFC(IBV)
+          ENDIF
+ccc   !! following 3 lines didn't exist in old version
+ccc   !! check what it is all about
 C**** ROSMP IS RUNOFF SOIL MOISTURE PARAMETER. SET IN GHINIT.
-      RUNFRAC=(W(1,IBV)/WS(1,IBV))**SO_%ROSMP
-      RNF(IBV)=(1.-RUNFRAC)*RNF(IBV)+RUNFRAC*(PTMP(IBV)+PTMPS(IBV))
-      ENDIF
-ccc looks like this sometimes creates RNF<0
-ccc don't see anything wrong if I just set it to 0
-      RNF(IBV) = max ( RNF(IBV), ZERO )
-   10 CONTINUE
-C UNDERGROUND RUNOFF
-C SL IS THE SLOPE, SDSTNC IS THE INTERSTREAM DISTANCE
-      DO 20 IBV=1,2
-      DO 20 L=1,N
-      RNFF(L,IBV)=XKU(L,IBV)*SL*DZ(L)/SDSTNC
-   20 CONTINUE
+          RUNFRAC=(W(1,IBV)/WS(1,IBV))**SO_%ROSMP
+          RNF(IBV)=(1.-RUNFRAC)*RNF(IBV)+RUNFRAC*(PTMP(IBV)+PTMPS(IBV))
+        ENDIF
+ccc   looks like this sometimes creates RNF<0
+ccc   don't see anything wrong if I just set it to 0
+        RNF(IBV) = max ( RNF(IBV), ZERO )
+ 10   CONTINUE
+C     UNDERGROUND RUNOFF
+C     SL IS THE SLOPE, SDSTNC IS THE INTERSTREAM DISTANCE
+      DO IBV=1,2
+        DO L=1,N
+          RNFF(L,IBV)=XKU(L,IBV)*SL*DZ(L)/SDSTNC
+        end do
+      end do
       RETURN
       END SUBROUTINE RUNOFF
       SUBROUTINE SINK
@@ -891,18 +895,22 @@ C**** EVAPD - EVAPORATION FROM DRY CANOPY, M S-1
 C**** FR - FRACTION OF ROOTS IN LAYERS
 C**** OUTPUT:
 C**** SNK - WATER SINK FROM LAYERS, M S-1
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C**** UNDERGROUND RUNOFF IS A SINK
-      DO 10 IBV=1,2
-      DO 10 L=1,N
-   10 SNK(L,IBV)=RNFF(L,IBV)
+      DO IBV=1,2
+        DO L=1,N
+          SNK(L,IBV)=RNFF(L,IBV)
+        end do
+      end do
 C**** REMOVE TRANSPIRED WATER FROM SOIL LAYERS
-      DO 15 L=1,N
-   15 SNK(L,2)=SNK(L,2)+EVAPD*BETADL(L)/(BETAD+1d-12)
+      DO L=1,N
+        SNK(L,2)=SNK(L,2)+EVAPD*BETADL(L)/(BETAD+1d-12)
+      end do
 C**** INCLUDE EFFECTS OF SURFACE RUNOFF IN SINK FROM FIRST SOIL LAYERS
-      DO 20 IBV=1,2
-   20 SNK(1,IBV)=SNK(1,IBV)+RNF(IBV)
+      DO IBV=1,2
+        SNK(1,IBV)=SNK(1,IBV)+RNF(IBV)
+      end do
       SNK(0,2)=0.
       RETURN
       END SUBROUTINE SINK
@@ -925,30 +933,32 @@ C**** TEMP VARIABLES:
 C**** SNOWDU - THE UPPER BOUND ON THE SNOW DEPTH AT END OF TIME STEP
 C**** SNOWDL - THE LOWER BOUND ON THE SNOW DEPTH AT END OF TIME STEP
 C**** TRUNC - FIX FOR TRUNCATION ON IBM MAINFRAMES
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       ZERO=0.
       TRUNC=1d-6
       TRUNC=1d-12
-ccc was 0 in older version - not sure if it is important
-ccc      TRUNC = 0.
-C PREVENT OVER/UNDERSATURATION OF LAYERS 2-N
-!      SNOWDU(1)=SNOWD(1)
-!      SNOWDU(2)=SNOWD(2)
-!      IF(HT(1,1).LT.0)SNOWDU(1)=SNOWDU(1)+(SNOWF-EVAP(1))*DTS
-!      IF(HT(1,2).LT.0)SNOWDU(2)=SNOWDU(2)+(SNOWF-EVAPS  )*DTS
-      DO 10 IBV=1,2
-      LL=2-IBV
-!      SNOWDU(IBV)=MAX(ZERO,SNOWDU(IBV))
-      DO 10 L=N,2,-1
-      FLMT=(W(L,IBV)-WS(L,IBV)+TRUNC)/DTS+F(L+1,IBV)-SNK(L,IBV)
-      F(L,IBV)=MAX(F(L,IBV),FLMT)
-      FLMT=(W(L,IBV)-DZ(L)*THETM(L,IBV)-TRUNC)/DTS+F(L+1,IBV)-SNK(L,IBV)
-      F(L,IBV)=MIN(F(L,IBV),FLMT)
-   10 CONTINUE
-C PREVENT OVER/UNDERSATURATION OF FIRST LAYER
-C W(1) CAN INCLUDE SNOW LAYER. - not any more !
-C BARE SOIL
+ccc   was 0 in older version - not sure if it is important
+ccc   TRUNC = 0.
+C     PREVENT OVER/UNDERSATURATION OF LAYERS 2-N
+ccc         SNOWDU(1)=SNOWD(1)
+ccc         SNOWDU(2)=SNOWD(2)
+ccc         IF(HT(1,1).LT.0)SNOWDU(1)=SNOWDU(1)+(SNOWF-EVAP(1))*DTS
+ccc         IF(HT(1,2).LT.0)SNOWDU(2)=SNOWDU(2)+(SNOWF-EVAPS  )*DTS
+      DO IBV=1,2
+        LL=2-IBV
+ccc         SNOWDU(IBV)=MAX(ZERO,SNOWDU(IBV))
+        DO L=N,2,-1
+          FLMT=(W(L,IBV)-WS(L,IBV)+TRUNC)/DTS+F(L+1,IBV)-SNK(L,IBV)
+          F(L,IBV)=MAX(F(L,IBV),FLMT)
+          FLMT=(W(L,IBV)-DZ(L)*THETM(L,IBV)-TRUNC)/DTS+
+     $         F(L+1,IBV)-SNK(L,IBV)
+          F(L,IBV)=MIN(F(L,IBV),FLMT)
+        end do
+      end do
+C     PREVENT OVER/UNDERSATURATION OF FIRST LAYER
+C     W(1) CAN INCLUDE SNOW LAYER. - not any more !
+C     BARE SOIL
       FLMT=(W(1,1)-WS(1,1)+TRUNC)/DTS+F(2,1)-SNK(1,1)
       DRNF=MAX(ZERO,FLMT-F(1,1))
       RNF(1)=RNF(1)+DRNF
@@ -957,17 +967,17 @@ C BARE SOIL
       DRNF=MIN(ZERO,FLMT-F(1,1))
       RNF(1)=RNF(1)+DRNF
       SNK(1,1)=SNK(1,1)+DRNF
-C PREVENT OVER/UNDERSATURATION OF CANOPY LAYER
+C     PREVENT OVER/UNDERSATURATION OF CANOPY LAYER
       IF(ISN(2).EQ.0)THEN
-      FLMT=(WS(0,2)-W(0,2)-TRUNC)/DTS+F(0,2)+SNK(0,2)
-      F(1,2)=MIN(FLMT,F(1,2))
-      FLMT=(-W(0,2)+TRUNC)/DTS+F(0,2)+SNK(0,2)
-      F(1,2)=MAX(FLMT,F(1,2))
-      DR=-F(1,2)
-      DR=MAX(ZERO,DR)
+        FLMT=(WS(0,2)-W(0,2)-TRUNC)/DTS+F(0,2)+SNK(0,2)
+        F(1,2)=MIN(FLMT,F(1,2))
+        FLMT=(-W(0,2)+TRUNC)/DTS+F(0,2)+SNK(0,2)
+        F(1,2)=MAX(FLMT,F(1,2))
+        DR=-F(1,2)
+        DR=MAX(ZERO,DR)
       ENDIF
-C PREVENT OVER/UNDERSATURATION OF FIRST LAYER
-C VEGETATED SOIL
+C     PREVENT OVER/UNDERSATURATION OF FIRST LAYER
+C     VEGETATED SOIL
       FLMT=(W(1,2)-WS(1,2)+TRUNC)/DTS+F(2,2)-SNK(1,2)
       DRNF=MAX(ZERO,FLMT-F(1,2))
       RNF(2)=RNF(2)+DRNF
@@ -976,31 +986,31 @@ C VEGETATED SOIL
       DRNF=MIN(ZERO,FLMT-F(1,2))
       RNF(2)=RNF(2)+DRNF
       SNK(1,2)=SNK(1,2)+DRNF
-ccc now trying to remove negative runoff
+ccc   now trying to remove negative runoff
       do IBV=1,2
-         L = 1
-         do while ( RNF(IBV) .lt. 0. .and. L .le. N )
-            ! this is how much water we can take from layer L
-            DFLUX = F(L+1,IBV) + (W(L,IBV)-DZ(L)*THETM(L,IBV))/DTS
-     &           - F(L,IBV) - SNK(L,IBV)
-            if( L .gt. 1) F(L,IBV) = F(L,IBV) - RNF(IBV)
-            RNF(IBV) = RNF(IBV) + min( -RNF(IBV), DFLUX )
-            ! RNFF always >= 0, use it first to compensate RNF<0
-            if ( RNFF(L,IBV) .lt. 0. ) call abort ! just to be sure
-            DRNF = min( -RNF(IBV), RNFF(L,IBV) )
-            RNF(IBV) = RNF(IBV) + DRNF
-            RNFF(L,IBV) = RNFF(L,IBV) - DRNF
-            SNK(L,IBV) = SNK(L,IBV) - DRNF
-            L = L + 1
-         enddo
-         ! check if RNF==0 up to machine accuracy
-         if ( RNF(IBV) .lt. -1d-12 ) then
-            print *, 'FLLMT: RNF<0, IBV=',IBV,RNF(IBV)
-            call abort ! couldn't redistribute RNF<0 : evap is too big ?
-         endif
-         ! if -1d-12 < RNF < 0. put it to 0 to avoid possible problems
-         ! actually for ground hydrology it is not necessary
-         if (ABS(RNF(IBV)).lt.1d-12) RNF(IBV) = 0.
+        L = 1
+        do while ( RNF(IBV) .lt. 0. .and. L .le. N )
+ccc    this is how much water we can take from layer L
+          DFLUX = F(L+1,IBV) + (W(L,IBV)-DZ(L)*THETM(L,IBV))/DTS
+     &         - F(L,IBV) - SNK(L,IBV)
+          if( L .gt. 1) F(L,IBV) = F(L,IBV) - RNF(IBV)
+          RNF(IBV) = RNF(IBV) + min( -RNF(IBV), DFLUX )
+ccc    RNFF always >= 0, use it first to compensate RNF<0
+          if ( RNFF(L,IBV) .lt. 0. ) call abort ! just to be sure
+          DRNF = min( -RNF(IBV), RNFF(L,IBV) )
+          RNF(IBV) = RNF(IBV) + DRNF
+          RNFF(L,IBV) = RNFF(L,IBV) - DRNF
+          SNK(L,IBV) = SNK(L,IBV) - DRNF
+          L = L + 1
+        enddo
+ccc    check if RNF==0 up to machine accuracy
+        if ( RNF(IBV) .lt. -1d-12 ) then
+          print *, 'FLLMT: RNF<0, IBV=',IBV,RNF(IBV)
+          call abort            ! couldn't redistribute RNF<0 : evap is too big ?
+        endif
+ccc    if -1d-12 < RNF < 0. put it to 0 to avoid possible problems
+ccc    actually for ground hydrology it is not necessary
+        if (ABS(RNF(IBV)).lt.1d-12) RNF(IBV) = 0.
       enddo
       RETURN
       END SUBROUTINE FLLMT
@@ -1017,21 +1027,23 @@ C**** OUTPUT:
 C**** FH - CORRECTED HEAT FLUXES
 C**** PARAMETER:
 C**** DTPL - THE MAX TEMPERATURE CHANGE IN A TIME STEP
-C****
+C**** 
 C**** ADD EXCESS FLUX TO FLUX OF LAYER BELOW
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       DTPL=1.0
-      DO 100 IBV=1,2
-      LL=2-IBV
-      DO 100 L=LL,N-1
-      CC=(SHC(L,IBV)+W(L,IBV)*(FICE(L,IBV)*SHI+(1.-FICE(L,IBV))*SHW))
-      GM=CC*DTPL/DT
-      DFH=FH(L+1,IBV)-FH(L,IBV)
-      IF(ABS(DFH).GT.GM)FH(L+1,IBV)=FH(L,IBV)+SIGN(GM,DFH)
-  100 CONTINUE
+      DO IBV=1,2
+       LL=2-IBV
+       DO L=LL,N-1
+         CC=(SHC(L,IBV)+W(L,IBV)*(FICE(L,IBV)*SHI+(1.-FICE(L,IBV))*SHW))
+         GM=CC*DTPL/DT
+         DFH=FH(L+1,IBV)-FH(L,IBV)
+         IF(ABS(DFH).GT.GM)FH(L+1,IBV)=FH(L,IBV)+SIGN(GM,DFH)
+       end do
+      end do
       RETURN
       END SUBROUTINE FHLMT
+
       SUBROUTINE XKLH
 C**** EVALUATES THE HEAT CONDUCTIVITY BETWEEN LAYERS
 C**** USES THE METHOD OF DEVRIES.
@@ -1052,38 +1064,40 @@ C**** DTS - THE CURRENT TIME STEP
 C**** OUTPUT:
 C**** XKH(L,IBV) - HEAT CONDUCTIVITIES IN EACH OF THE SOIL LAYERS
 C**** XKHM(L,IBV) - AVERAGE HEAT CONDUCTIVITY BETWEEN LAYER L AND L-1
-C****
-      !INCLUDE 'soils45.COM'
+C**** 
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-c      DIMENSION XSHA(NG,2),XSH(NG,2),GABC(3),HCWT(IMT-1)
-C
-C CALCULATE WITH CHANGING GA FOR AIR. GA IS THE DEPOLARIZATION
-C FACTOR FOR AIR, CALCULATED BY LINEAR INTERPOLATION FROM .333
-C AT SATURATION TO .035 AT 0 WATER, FOLLOWING DEVRIES.
+c     DIMENSION XSHA(NG,2),XSH(NG,2),GABC(3),HCWT(IMT-1)
+C     
+C     CALCULATE WITH CHANGING GA FOR AIR. GA IS THE DEPOLARIZATION
+C     FACTOR FOR AIR, CALCULATED BY LINEAR INTERPOLATION FROM .333
+C     AT SATURATION TO .035 AT 0 WATER, FOLLOWING DEVRIES.
       integer I, J
-      DO 2 IBV=1,2
-      DO 2 L=1,N
-      GAA=.298*THETA(L,IBV)/(THETS(L,IBV)+1d-6)+.035
-      GCA=1.-2.*GAA
-      HCWTA=(2./(1.+BA*GAA)+1./(1.+BA*GCA))/3.
-C XW,XI,XA ARE THE VOLUME FRACTIONS.  DON'T COUNT SNOW IN SOIL LAYER 1
-      XW=W(L,IBV)*(1.-FICE(L,IBV))/DZ(L)
-      XI=W(L,IBV)*FICE(L,IBV)/DZ(L)
-      XA=(THETS(L,IBV)-THETA(L,IBV))
-      XB=Q(IMT,L)
-      XNUM=XW*HCWTW*ALAMW+XI*HCWTI*ALAMI+XA*HCWTA*ALAMA+XSHA(L,IBV)
-     & + XB*HCWTB*ALAMBR
-      XDEN=XW*HCWTW+XI*HCWTI+XA*HCWTA+XSH(L,IBV)+XB*HCWTB
-      XKH(L,IBV)=XNUM/XDEN
-      if ( XKH(L,IBV) .lt. 0. ) call abort()
-    2 CONTINUE
-C GET THE AVERAGE CONDUCTIVITY BETWEEN LAYERS
-      DO 4 IBV=1,2
-      DO 4 L=2,N
-      XKHM(L,IBV)=((ZB(L)-ZC(L-1))*XKH(L,IBV)
-     & + (ZC(L)-ZB(L))*XKH(L-1,IBV)
-     & )/(ZC(L)-ZC(L-1))
-    4 CONTINUE
+      DO IBV=1,2
+        DO L=1,N
+          GAA=.298*THETA(L,IBV)/(THETS(L,IBV)+1d-6)+.035
+          GCA=1.-2.*GAA
+          HCWTA=(2./(1.+BA*GAA)+1./(1.+BA*GCA))/3.
+C     XW,XI,XA ARE THE VOLUME FRACTIONS.  DON'T COUNT SNOW IN SOIL LAYER 1
+          XW=W(L,IBV)*(1.-FICE(L,IBV))/DZ(L)
+          XI=W(L,IBV)*FICE(L,IBV)/DZ(L)
+          XA=(THETS(L,IBV)-THETA(L,IBV))
+          XB=Q(IMT,L)
+          XNUM=XW*HCWTW*ALAMW+XI*HCWTI*ALAMI+XA*HCWTA*ALAMA+XSHA(L,IBV)
+     &         + XB*HCWTB*ALAMBR
+          XDEN=XW*HCWTW+XI*HCWTI+XA*HCWTA+XSH(L,IBV)+XB*HCWTB
+          XKH(L,IBV)=XNUM/XDEN
+          if ( XKH(L,IBV) .lt. 0. ) call abort()
+        end do
+      end do
+C     GET THE AVERAGE CONDUCTIVITY BETWEEN LAYERS
+      DO IBV=1,2
+        DO L=2,N
+          XKHM(L,IBV)=((ZB(L)-ZC(L-1))*XKH(L,IBV)
+     &         + (ZC(L)-ZB(L))*XKH(L-1,IBV)
+     &         )/(ZC(L)-ZC(L-1))
+        end do
+      end do
 C****
       RETURN
       ENTRY XKLH0
@@ -1095,31 +1109,34 @@ C HCWT'S ARE THE HEAT CONDUCTIVITY WEIGHTING FACTORS
       HCWTW=1.
       HCWTI=0.
       HCWTB=1.
-      DO 10 I=1,IMT-1
+      DO I=1,IMT-1
       HCWT(I)=0.
-   10 CONTINUE
-      DO 20 J=1,3
-      HCWTI=HCWTI+1./(1.+(ALAMI/ALAMW-1.)*GABC(J))
-      DO 20 I=1,IMT-1
-      HCWT(I)=HCWT(I)+1./(1.+(ALAMS(I)/ALAMW-1.)*GABC(J))
-   20 CONTINUE
+      end do
+      DO J=1,3
+        HCWTI=HCWTI+1./(1.+(ALAMI/ALAMW-1.)*GABC(J))
+        DO I=1,IMT-1
+          HCWT(I)=HCWT(I)+1./(1.+(ALAMS(I)/ALAMW-1.)*GABC(J))
+        end do
+      end do
       HCWTI=HCWTI/3.
-      DO 30 I=1,IMT-1
-      HCWT(I)=HCWT(I)/3.
-   30 CONTINUE
-      DO 25 IBV=1,2
-      DO 25 L=1,N
-      XSHA(L,IBV)=0.
-      XSH(L,IBV)=0.
-      DO 25 I=1,IMT-1
-      XS=(1.-THM(0,I))*Q(I,L)
-      XSHA(L,IBV)=XSHA(L,IBV)+XS*HCWT(I)*ALAMS(I)
-      XSH(L,IBV)=XSH(L,IBV)+XS*HCWT(I)
-   25 CONTINUE
+      DO I=1,IMT-1
+        HCWT(I)=HCWT(I)/3.
+      end do
+      DO IBV=1,2
+        DO L=1,N
+          XSHA(L,IBV)=0.
+          XSH(L,IBV)=0.
+          DO I=1,IMT-1
+            XS=(1.-THM(0,I))*Q(I,L)
+            XSHA(L,IBV)=XSHA(L,IBV)+XS*HCWT(I)*ALAMS(I)
+            XSH(L,IBV)=XSH(L,IBV)+XS*HCWT(I)
+          end do
+        end do
+      end do
       BA=ALAMA/ALAMW-1.
-C
       RETURN
       END SUBROUTINE XKLH
+
       SUBROUTINE FLH
 C**** EVALUATES THE HEAT FLUX BETWEEN LAYERS
 C**** SUBROUTINE FL MUST BE CALLED FIRST
@@ -1134,22 +1151,24 @@ C**** TP - TEMPERATURE OF LAYERS, C
 C**** SHW - SPECIFIC HEAT OF WATER
 C**** OUTPUT:
 C**** FH - HEAT FLUX BETWEEN LAYERS
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C****
-      DO 20 IBV=1,2
-      FH(N+1,IBV)=0.
+      DO IBV=1,2
+        FH(N+1,IBV)=0.
 C TOTAL HEAT FLUX IS HEAT CARRIED BY WATER FLOW PLUS HEAT CONDUCTION
-      DO 20 L=2,N
-      FH(L,IBV)=-XKHM(L,IBV)*(TP(L-1,IBV)-TP(L,IBV))/(ZC(L-1)-ZC(L))
-      IF(F(L,IBV).GT.0)THEN
-      FH(L,IBV)=FH(L,IBV)+F(L,IBV)*TP(L,IBV)*SHW
-      ELSE
-      FH(L,IBV)=FH(L,IBV)+F(L,IBV)*TP(L-1,IBV)*SHW
-      ENDIF
-   20 CONTINUE
+        DO L=2,N
+          FH(L,IBV)=-XKHM(L,IBV)*(TP(L-1,IBV)-TP(L,IBV))/(ZC(L-1)-ZC(L))
+          IF(F(L,IBV).GT.0)THEN
+            FH(L,IBV)=FH(L,IBV)+F(L,IBV)*TP(L,IBV)*SHW
+          ELSE
+            FH(L,IBV)=FH(L,IBV)+F(L,IBV)*TP(L-1,IBV)*SHW
+          ENDIF
+        end do
+      end do
       RETURN
       END SUBROUTINE FLH
+
       SUBROUTINE FLHG
 C**** CALCULATES THE GROUND HEAT FLUXES (TO THE SURFACE)
 C**** INPUT:
@@ -1157,19 +1176,19 @@ C**** OUTPUT:
 C**** FH - HEAT FLUXES FROM BARE SOIL SURFACE, AND FROM CANOPY,
 C****      AND BETWEEN CANOPY AND VEGETATED SOIL.
 C**** AFHG - HEAT FLUX FROM GROUND TO CANOPY
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C**** BARE SOIL FLUXES
       IBV=1
       L=2-IBV
       IF(ISN(IBV).NE.0.OR.SNOWD(IBV).NE.0.)THEN
-       FH(L,IBV)=-FHSNG(IBV)
-       XLTH(IBV)=HESN(IBV)
-       THRM(IBV)=THRMSN(IBV)
+        FH(L,IBV)=-FHSNG(IBV)
+        XLTH(IBV)=HESN(IBV)
+        THRM(IBV)=THRMSN(IBV)
       ELSE
-      FH(L,IBV)=XLTH(IBV)+SNSH(IBV)
-      FH(L,IBV)=FH(L,IBV)-HTPR
-      FH(L,IBV)=FH(L,IBV)+THRM(IBV)-SRHT-TRHT
+        FH(L,IBV)=XLTH(IBV)+SNSH(IBV)
+        FH(L,IBV)=FH(L,IBV)-HTPR
+        FH(L,IBV)=FH(L,IBV)+THRM(IBV)-SRHT-TRHT
       ENDIF
 C
 C**** CANOPY FLUXES, AND FLUXES FROM MASKING SNOW
@@ -1182,22 +1201,23 @@ ccc      THRM(IBV)=STBO*(TCS+TFRZ)**4
 C     FH(L,IBV)=FH(L,IBV)+(1.-FM)*(THRM(IBV)-SRHT-TRHT)
       FH(L,IBV)=FH(L,IBV)+(THRM(IBV)-SRHT-TRHT)
       IF(ISN(IBV).NE.0.OR.SNOWD(IBV).NE.0.)THEN
-       FH(1,2)=-FHSNG(2)
-       FH(0,2)=-FHSNG(2)+(1.-FM)*(2.*THRM(IBV)-THRMSN(IBV)-SRHT-TRHT)
-     & +ELH*(EVAPW+EVAPD)+(1.-FM)*SNSH(IBV)
-       XLTH(IBV)=ELH*(EVAPW+EVAPD)+HESN(IBV)
-       THRM(IBV)=(1.-FM)*THRM(IBV)+FM*THRMSN(IBV)
+        FH(1,2)=-FHSNG(2)
+        FH(0,2)=-FHSNG(2)+(1.-FM)*(2.*THRM(IBV)-THRMSN(IBV)-SRHT-TRHT)
+     &       +ELH*(EVAPW+EVAPD)+(1.-FM)*SNSH(IBV)
+        XLTH(IBV)=ELH*(EVAPW+EVAPD)+HESN(IBV)
+        THRM(IBV)=(1.-FM)*THRM(IBV)+FM*THRMSN(IBV)
       ELSE
 cccc using old formula as recommended by Max
 C     FH(L+1,IBV)=FM*FH(L,IBV)
 ccc      FH(L+1,IBV)=FM*(THRM(IBV)-SRHT-TRHT)
-      FH(L+1,IBV)=FM*FH(L,IBV)
+        FH(L+1,IBV)=FM*FH(L,IBV)
 C****
-      FH(1,2)=FH(1,2)-SHW*DR*TP(0,2)
-      FH(1,2)=FH(1,2)-STBO*((TP(0,2)+TFRZ)**4-(TP(1,2)+TFRZ)**4)
+        FH(1,2)=FH(1,2)-SHW*DR*TP(0,2)
+        FH(1,2)=FH(1,2)-STBO*((TP(0,2)+TFRZ)**4-(TP(1,2)+TFRZ)**4)
       ENDIF
       RETURN
       END SUBROUTINE FLHG
+
       SUBROUTINE SINKH
 C**** CALCULATES THE HEAT REMOVAL FROM EACH LAYER
 C**** INPUT:
@@ -1206,13 +1226,16 @@ C**** TP - TEMPERATURE OF LAYERS, C
 C**** SNK - SOIL WATER SINK IN LAYERS, M S-1
 C**** OUTPUT:
 C**** SNKH - HEAT SINK FROM SOIL LAYERS
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-      DO 10 IBV=1,2
-      DO 10 L=1,N
-   10 SNKH(L,IBV)=SHW*TP(L,IBV)*SNK(L,IBV)
+      DO IBV=1,2
+        DO L=1,N
+          SNKH(L,IBV)=SHW*TP(L,IBV)*SNK(L,IBV)
+        end do
+      end do
       RETURN
       END SUBROUTINE SINKH
+
       SUBROUTINE RETP
 C**** EVALUATES THE TEMPERATURES IN THE SOIL LAYERS BASED ON THE
 C**** HEAT VALUES.  ALSO EXECUTES SNOW MELT.
@@ -1233,25 +1256,26 @@ C**** FICE - FRACTION OF ICE OF LAYERS
 C**** TBCS - TEMPERATURE OF BARE SOIL, CANOPY, AND SNOW AS SEEN
 C****        BY ATMOSPHERE, C.  ALSO CALLED GROUND TEMPERATURE.
 C**** TCS - TEMPERATURE OF CANOPY AND SNOW, C.
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-      DO 10 IBV=1,2
-      LL=2-IBV
-      DO 10 L=LL,N
-      TP(L,IBV)=0.
-      IF(W(L,IBV).GE.1d-12)THEN
-         FICE(L,IBV)=-HT(L,IBV)/(FSN*W(L,IBV))
-         ELSE
-         FICE(L,IBV)=0.
-      ENDIF
-      IF(FSN*W(L,IBV)+HT(L,IBV).GE.0.)GO TO 6
-      TP(L,IBV)=(HT(L,IBV)+W(L,IBV)*FSN)/(SHC(L,IBV)+W(L,IBV)*SHI)
-      FICE(L,IBV)=1.
-      GO TO 10
-    6 IF(HT(L,IBV).LE.0.)GO TO 10
-      TP(L,IBV)=HT(L,IBV)/(SHC(L,IBV)+W(L,IBV)*SHW)
-      FICE(L,IBV)=0.
-   10 CONTINUE
+      DO IBV=1,2
+        LL=2-IBV
+        DO L=LL,N
+          TP(L,IBV)=0.
+          IF(W(L,IBV).GE.1d-12)THEN
+            FICE(L,IBV)=-HT(L,IBV)/(FSN*W(L,IBV))
+          ELSE
+            FICE(L,IBV)=0.
+          ENDIF
+          IF( FSN*W(L,IBV)+HT(L,IBV) .lt. 0. ) then
+            TP(L,IBV)=(HT(L,IBV)+W(L,IBV)*FSN)/(SHC(L,IBV)+W(L,IBV)*SHI)
+            FICE(L,IBV)=1.
+          else IF(HT(L,IBV) .gt. 0.) then
+            TP(L,IBV)=HT(L,IBV)/(SHC(L,IBV)+W(L,IBV)*SHW)
+            FICE(L,IBV)=0.
+          endif
+        end do
+      end do
 
 ccc this is a fix for undefined TSN1 at the beginning of soil routines
 ccc probably should be moved to some other place
@@ -1298,24 +1322,7 @@ C****
       ENDIF
       RETURN
       END SUBROUTINE RETP
-ccc SNMLT is not needed with a new snow model
-!      SUBROUTINE SNMLT
-!      !INCLUDE 'soils45.COM'
-!C**** SOILS28   Common block     9/25/90
-!C**** EXECUTE SNOW MELT - CHANGED TO MELT SNOW BEFORE GROUND ICE
-!C**** ADD MELT TO EFFECTIVE PRECIPITATION, FOR PURPOSES OF RUNOFF
-!      DO 100 IBV=1,2
-!      L=1
-!      PRE(IBV)=0.
-!      IF(FICE(L,IBV).LT.1.0.AND.SNOWD(IBV).GT.0.)THEN
-!       XLW=(1.-FICE(L,IBV))*W(L,IBV)
-!       XLW=MIN(XLW,SNOWD(IBV))
-!       PRE(IBV)=XLW/DTS
-!       SNOWD(IBV)=SNOWD(IBV)-XLW
-!      ENDIF
-!  100 CONTINUE
-!      RETURN
-!      END SUBROUTINE SNMLT
+
       SUBROUTINE ADVNC
 C**** ADVANCES QUANTITIES BY ONE TIME STEP.
 C**** INPUT:
@@ -1343,7 +1350,7 @@ C**** AERUNU - UNDERGROUND HEAT RUNOFF, J M-2
 C**** USES:
 C**** RETP,RETH,FL,FLG,RUNOFF,SINK,SINKH,FLLMT,FLH,FLHG.
 C**** ALSO USES SURF WITH ITS REQUIRED VARIABLES.
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 
 ccc variables for snow model from common block
@@ -1523,12 +1530,14 @@ c     &        FLMLT(1), FLMLT(2), FHSNG(1), FHSNG(2)
       CALL FLHG
 C     CALL FHLMT
 C****
-      DO 70 IBV=1,2
-      LL=2-IBV
-      DO 60 L=LL,N
-      W(L,IBV)=W(L,IBV)+(F(L+1,IBV)-F(L,IBV)-SNK(L,IBV))*DTS
-   60 HT(L,IBV)=HT(L,IBV)+(FH(L+1,IBV)-FH(L,IBV)-SNKH(L,IBV))*DTS
-   70 CONTINUE
+      DO IBV=1,2
+        LL=2-IBV
+        DO L=LL,N
+          W(L,IBV)=W(L,IBV)+(F(L+1,IBV)-F(L,IBV)-SNK(L,IBV))*DTS
+          HT(L,IBV)=HT(L,IBV)+(FH(L+1,IBV)-FH(L,IBV)-SNKH(L,IBV))*DTS
+          CONTINUE
+        end do
+      end do
 C****
       W(0,2)=MAX(W(0,2),ZERO)
       CALL ACCM
@@ -1551,9 +1560,10 @@ C****
       call abort
       STOP 'ADVNC'
       END SUBROUTINE ADVNC
+
       SUBROUTINE ACCM
 C**** ACCUMULATES GCM DIAGNOSTICS
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 C**** THE FOLLOWING LINES WERE ORIGINALLY CALLED BEFORE RETP,
 C**** RETH, AND HYDRA.
@@ -1576,17 +1586,17 @@ C**** RETH, AND HYDRA.
       AF0DT=AF0DT-DTS*(FB*FH(1,1)+FV*FH(0,2)+HTPR)
       AF1DT=AF1DT-DTS*(FB*FH(2,1)+FV*FH(2,2))
       ARUNS=ARUNS+(FB*RNF(1)+FV*RNF(2))*DTS
-      DO 74 L=1,N
-      ARUNU=ARUNU+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS
-      AERUNU=AERUNU+(SNKH(L,1)*FB+SNKH(L,2)*FV)*DTS
+      DO L=1,N
+        ARUNU=ARUNU+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS
+        AERUNU=AERUNU+(SNKH(L,1)*FB+SNKH(L,2)*FV)*DTS
 ccc some new accumulators were added below this line
 ccc check if their results are passed to corresponding programs
-      ARNFF(L)=ARNFF(L)+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS
+        ARNFF(L)=ARNFF(L)+(RNFF(L,1)*FB+RNFF(L,2)*FV)*DTS
 C**** ADD NEW DIAGNOSTICS
-      AW(L)=AW(L)+(W(L,1)*FB+W(L,2)*FV)*DTS
-      ATP(L)=ATP(L)+(TP(L,1)*FB+TP(L,2)*FV)*DTS
-      AF(L)=AF(L)+(F(L,1)*FB+F(L,2)*FV)*DTS
-   74 CONTINUE
+        AW(L)=AW(L)+(W(L,1)*FB+W(L,2)*FV)*DTS
+        ATP(L)=ATP(L)+(TP(L,1)*FB+TP(L,2)*FV)*DTS
+        AF(L)=AF(L)+(F(L,1)*FB+F(L,2)*FV)*DTS
+      end do
       AW(0)=AW(0)+W(0,2)*DTS
       ATP(0)=ATP(0)+TP(0,2)*DTS
       AF(0)=AF(0)+F(0,2)*DTS
@@ -1668,7 +1678,7 @@ c      EPEN=(DELT*H0+CPFAC*EDELT)/(EL0*(DELT+GAMMA))
       EPEN=(DQDT*H0+CPFAC*(QSATS-QS))/(EL0*DQDT+SHA)
       AEPP=EPEN*DT
       ABETAP=1.
-      IF(AEPP.GT.0.)ABETAP=(AEVAPW+AEVAPD+AEVAPB)/AEPP
+      IF (AEPP.GT.0.) ABETAP=(AEVAPW+AEVAPD+AEVAPB)/AEPP
       ABETAP=MIN(ABETAP,ONE)
       ABETAP=MAX(ABETAP,ZERO)
 C     Find final values of some derived variables
@@ -1678,9 +1688,11 @@ C     Find final values of some derived variables
      +  FV*(W(1,2)*(1.-FICE(1,2))+W(0,2)*(1.-FICE(0,2))) )
       EICE1=1000.*(FB*W(1,1)*FICE(1,1) +
      +  FV*(W(1,2)*FICE(1,2)+W(0,2)*FICE(0,2)) )
-      DO 80 L=0,N
-      DO 80 IBV=1,2
-   80 ETP(L,IBV)=TP(L,IBV)
+      DO L=0,N
+        DO IBV=1,2
+          ETP(L,IBV)=TP(L,IBV)
+        end do
+      end do
       RETURN
       ENTRY ACCM0
 C ZERO OUT ACCUMULATIONS
@@ -1728,14 +1740,15 @@ C**** END OF NEW DIAGNOSTICS
 C
       RETURN
       END SUBROUTINE ACCM
+
       SUBROUTINE GDTM(DTM)
 C**** CALCULATES THE MAXIMUM TIME STEP ALLOWED BY STABILITY
 C**** CONSIDERATIONS.
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       REAL*8 DTM,DTM3,DTM4
-!      DIMENSION QG(2),XK2(2),AK2(2),AK3(2)
-!      DIMENSION BETAS(2)
+ccc         DIMENSION QG(2),XK2(2),AK2(2),AK3(2)
+ccc         DIMENSION BETAS(2)
       T450=450.
 C**** replaced with standard function
 c      T0=TS-TFRZ
@@ -1754,23 +1767,25 @@ C****
 C**** FIRST CALCULATE TIMESTEP FOR WATER MOVEMENT IN SOIL.
       SGMM=1.0
       DLDZ2=0.
-      DO 30 IBV=1,2
-      DO 30 L=1,N
-      DLDZ2=MAX(DLDZ2,D(L,IBV)/DZ(L)**2)
-   30 CONTINUE
+      DO IBV=1,2
+        DO L=1,N
+          DLDZ2=MAX(DLDZ2,D(L,IBV)/DZ(L)**2)
+        end do
+      end do
       DTM=SGMM/(DLDZ2+1d-12)
       IF(Q(4,1).GT.0.)DTM=MIN(DTM,T450)
       DTM1=DTM
       if ( DTM .lt. 0. ) call abort()
 C****
 C**** NEXT CALCULATE TIMESTEP FOR HEAT MOVEMENT IN SOIL.
-      DO 40 IBV=1,2
-      DO 40 L=1,N
-      XK1=XKH(L,IBV)
-      AK1=(SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
-     & *W(L,IBV))/DZ(L)
-      DTM=MIN(DTM,.5*AK1*DZ(L)**2/(XK1+1d-12))
-   40 CONTINUE
+      DO IBV=1,2
+        DO L=1,N
+          XK1=XKH(L,IBV)
+          AK1=(SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
+     &         *W(L,IBV))/DZ(L)
+          DTM=MIN(DTM,.5*AK1*DZ(L)**2/(XK1+1d-12))
+        end do
+      end do
       DTM2=DTM
       if ( DTM .lt. 0. ) call abort()
 C****
@@ -1789,16 +1804,16 @@ C**** USE TIMESTEP BASED ON COEFFICIENT OF DRAG
       ELSE
        BETAS(2)=(EVAP(2)-EVAPS)/EPC
       ENDIF
-      DO 50 IBV=1,2
-      L=2-IBV
-      XK2(IBV)=SHA*RHO*CNA
-     & + BETAS(IBV)*RHO3*CNA*ELH*DQDT
-     & + 8.*STBO*(TP(L,IBV)+TFRZ)**3
-      AK2(IBV)=SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
-     & *W(L,IBV)
-      DTM=MIN(DTM,AK2(IBV)/(XK2(IBV)+1d-12))
-      IF(IBV.EQ.1)DTM3=DTM
-      IF(IBV.EQ.2)DTM4=DTM
+      DO IBV=1,2
+        L=2-IBV
+        XK2(IBV)=SHA*RHO*CNA
+     &       + BETAS(IBV)*RHO3*CNA*ELH*DQDT
+     &       + 8.*STBO*(TP(L,IBV)+TFRZ)**3
+        AK2(IBV)=SHC(L,IBV)+((1.-FICE(L,IBV))*SHW+FICE(L,IBV)*SHI)
+     &       *W(L,IBV)
+        DTM=MIN(DTM,AK2(IBV)/(XK2(IBV)+1d-12))
+        IF(IBV.EQ.1)DTM3=DTM
+        IF(IBV.EQ.2)DTM4=DTM
 C
 C PREVENT OSCILLATION OF TOP SNOW LAYER
 C     IF(ISN(IBV).NE.0.OR.SNOWD(IBV).NE.0.)THEN
@@ -1807,7 +1822,7 @@ C      DTM=MIN(DTM,AK3(IBV)/(XK2(IBV)+1.E-12))
 C      IF(IBV.EQ.1)DTM5=DTM
 C      IF(IBV.EQ.2)DTM6=DTM
 C     ENDIF
-   50 CONTINUE
+      end do
       IF(DTM.LT.1.)THEN
        WRITE(99,*) '*********** GDTM: ID,FB,FV',ID,FB,FV
        WRITE(99,*)'DTM',DTM1,DTM2,DTM3,DTM4
@@ -1822,6 +1837,7 @@ C     ENDIF
 C****
       RETURN
       END SUBROUTINE GDTM
+
 c     BLOCK DATA GHABP
 C**** INITIALIZES COEFFICIENTS FOR SOIL FUNCTIONS
 C**** A ARE THE MATRIC POTENTIAL COEFFICIENTS
@@ -1845,9 +1861,10 @@ c    &  -0.1951, -9.7055,  2.7418,  2.0054,
 c    &  -2.1220,  5.9983,-16.9824,  8.7615/
 c     END
 C     SUBROUTINE NEEDED LATER FOR EXTRA DIAGNOSTICS
+
       SUBROUTINE OUTW(I)
 C**** PRINTS THETA VALUES AT TIME STEP I
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       INTEGER I
       CALL WTAB
@@ -1981,7 +1998,7 @@ C**** F - FLUXES BETWEEN LAYERS, M S-1
 C**** XK - CONDUCTIVITIES OF LAYERS, M S-1
 C**** OUTPUT:
 C**** ZW(2) - WATER TABLE FOR IBV=1 AND 2, M
-      !INCLUDE 'soils45.COM'
+ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
       TOL=1d-6
       DO 100 IBV=1,2
@@ -2007,6 +2024,7 @@ C     WRITE(6,*) 'DENOM',DENOM
   100 CONTINUE
       RETURN
       END SUBROUTINE WTAB
+
       SUBROUTINE OUTGH
 C****
 C**** CALLED AT END OF ADVNC.
@@ -2064,21 +2082,21 @@ C WSN(NLSN,2) - WATER EQUIVALENT DEPTH OF SNOW LAYERS, (M)
 C HSN(NLSN,2) - HEAT IN SNOW LAYERS, (J M-2)
 C NSN(2) - NUMBER OF SNOW LAYERS
 C
-!      IMPLICIT REAL*8 (A-H,O-Z)
+ccc         IMPLICIT REAL*8 (A-H,O-Z)
 
       USE SNOW_MODEL, only: snow_adv
       IMPLICIT NONE
 
-!      PARAMETER (NLSN=3)
+ccc         PARAMETER (NLSN=3)
       REAL*8 DZSNT(NLSN+1),WSNT(NLSN),HSNT(NLSN)
       INTEGER NSNT
 C
-!      COMMON/SOILSNP/DZSN(NLSN,2),WSN(NLSN,2),HSN(NLSN,2),
-!     & TSN1(2),ISN(2),NSN(2), FR_SNOW(2)
+ccc         COMMON/SOILSNP/DZSN(NLSN,2),WSN(NLSN,2),HSN(NLSN,2),
+ccc        & TSN1(2),ISN(2),NSN(2), FR_SNOW(2)
 C
 ccc I''m changing SOILSNO - IA
 
-!      COMMON/SOILSNO/FLMLT(2),FHSNG(2),THRMSN(2),HESN(2), SNSHSN(2)
+ccc         COMMON/SOILSNO/FLMLT(2),FHSNG(2),THRMSN(2),HESN(2), SNSHSN(2)
 
 
 c     COMMON/SOILSNO/FLMLT(2),FHSNG(2),THRMSN(2),
@@ -2142,10 +2160,10 @@ c!! fix this later
       SNSHSN(1) = SNSH(1)
 
 ccc small hack to remove FLMLT < 0
-   !   if ( FLMLT(1) < 0. ) then
-    !     if ( FR_SNOW(1) >= 1. ) call abort  ! no evap from soil
-   !      WSNT(1)*FR_SNOW(1).....
-    !  endif
+ccc      if ( FLMLT(1) < 0. ) then
+ccc        if ( FR_SNOW(1) >= 1. ) call abort  ! no evap from soil
+ccc         WSNT(1)*FR_SNOW(1).....
+ccc     endif
 C
 C COPY BACK TO SOILSNI
       DO L=1,NSNT
@@ -2255,7 +2273,7 @@ C     CALL SNWIN
 C NOTE: ONLY TO BE CALLED WHEN INITIALIZING FROM LANDSURFACE
 C       PROGNOSTIC VARIABLES WITHOUT THE SNOW MODEL.
 C
-!      INCLUDE './soils101.COM'
+ccc         INCLUDE './soils101.COM'
 
 C OUTER LOOP OVER IBV
       DO IBV=1,2
