@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: mkrun depend gcm setup clean vclean newstart mkexe cmp .R 
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R 
 
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
