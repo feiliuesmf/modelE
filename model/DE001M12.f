@@ -3704,7 +3704,7 @@ C****                                                            143-156
      *  AMPLTD(JM,8,4),PHASE(JM,8,4)
       COMMON/DJLCOM/JLAT(JM,2),WTJ(JM,2,2),
      *  LINECT,JMHALF,INC,IHOUR0,IHOUR
-      DIMENSION PL(LM+3),PLE(LM+1),PKM(LM),BYDSIG(LM),BYD2SG(LM),
+      DIMENSION PL(LM+3),PLE(LM+1),PKM(LM),BYD2SG(LM),
      *  PMB(7),MW(5)
       DATA MW/1,2,3,6,9/
       DATA PMB/999.9,850.,700.,500.,300.,100.,30./,P1000/1000./
@@ -4090,7 +4090,7 @@ C****                                                              9-16
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/DILCOM/JLAT(JM,2),WTJ(JM,2,2),
      *  LINECT,JMHALF,INC,IHOUR0,IHOUR
-      DIMENSION PL(LM+3),PLE(LM),ONES(LM),BYDSIG(LM)
+      DIMENSION PL(LM+3),PLE(LM),ONES(LM)
 C**** INITIALIZE CERTAIN QUANTITIES
 C        IF (JM.NE.24) RETURN
       INC=1+(JM-1)/24

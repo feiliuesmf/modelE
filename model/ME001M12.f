@@ -21,8 +21,8 @@ C**** f90 changes
      &   , only : ghdata
       USE RANDOM
       USE RADNCB, only : RQT,SRHR,TRHR,FSF
-      USE CLOUDS, only : TTOLD,QTOLD,SVLHX,RHSAV
-     *     ,CLDSAV,MSTCNV,CONDSE
+      USE CLD01_COM_E001, only : TTOLD,QTOLD,SVLHX,RHSAV
+     *     ,CLDSAV
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl,bldata
       USE DAGCOM, only : aj,kacc,aij,aijg,tsfrez,tdiurn,keynr,kdiag
@@ -193,7 +193,6 @@ C     IF (MOD(NSTEP,NCNDS).NE.0) GO TO 400
       CALL MSTCNV
       CALL CONDSE
       CALL CHECKT ('CONDSE ')
-
       CALL TIMER (MNOW,MINC,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NCNDS)
          IF (MODD5S.EQ.0) CALL DIAG9A (3)
@@ -522,7 +521,7 @@ C****
      &  , only : ghdata
       USE RANDOM
       USE RADNCB, only : RQT,SRHR,TRHR,FSF
-      USE CLOUDS, only : TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
+      USE CLD01_COM_E001, only : TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
       USE PBLCOM
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
@@ -885,10 +884,13 @@ C****
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
 C**** CALCULATE DSIG AND DSIGO
-      DO 700 L=1,LM
-  700 DSIG(L)=SIGE(L)-SIGE(L+1)
-      DO 710 L=1,LM-1
-  710 DSIGO(L)=SIG(L)-SIG(L+1)
+      DO L=1,LM
+         DSIG(L)=SIGE(L)-SIGE(L+1)
+         BYDSIG(L)=1./DSIG(L)
+      END DO
+      DO L=1,LM-1
+         DSIGO(L)=SIG(L)-SIG(L+1)
+      END DO
 C*
 C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C*       Ocean fraction
@@ -961,6 +963,7 @@ C****   Perturb the Initial Temperatures by at most 1 degree C
       END IF
       CALL RINIT (IRAND)
       CALL FFT0 (IM)
+      CALL init_CLD
 C**** MAKE NRAD A MULTIPLE OF NCNDS
       NRAD=(MAX(NRAD,NCNDS)/NCNDS)*NCNDS
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8

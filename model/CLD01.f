@@ -1,28 +1,15 @@
-      MODULE CLOUDS
-!@sum  CLOUDS moist convction and large-scale clouds and precipitation
+      MODULE CLD01
+!@sum  CLD01 column physics of moist convction and large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-!@cont MSTCNV,CONDSE,CTMIX,QSAT
-
-C**** adapted to R99E+ radiation
-C**** Uses constant pressure coordinates for L=LS1-LM.
-C**** Uses QUS for subsidence + keep tracks of moments
-C**** + change to CTEI calc (incl. tracer mom. mixing subr. CTMIX)
-C**** Subsid only works on non-plume portion of column (properly!)
-
-      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha,sday
-      USE E001M12_COM
-      USE SOMTQ_COM
+!@cont MSTCNV_loc,CONDSE_loc
+      USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
+      USE E001M12_COM, only : IM,LM,LMCM,TAU,TAUI,U00,LS1,PSF,PTOP,DSIG
+     *     ,SIG
       USE RANDOM
-      USE GEOM
-      USE PBLCOM, only : tsavg
-      USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
-      USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
-      USE OCEAN, only : odata
-      USE CLD_COM
-      
       IMPLICIT NONE
-
+      SAVE
+C**** parameters and constants
       REAL*8, PARAMETER :: TF=273.16d0   !@param TF freezing point (K)
       REAL*8, PARAMETER :: BYTF=1./TF    !@param BYTF recip. of TF
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
@@ -33,37 +20,71 @@ C**** Subsid only works on non-plume portion of column (properly!)
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
 
-      REAL*8, SAVE :: DTCNDS,BYGRAV,PK1000,BYBR,SLHE,SLHS
-     *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX
+      REAL*8 :: DTCNDS,BYGRAV,PK1000,BYBR,SLHE,SLHS
+     *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
 
-      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: UC,VC
+!@var RA,UM,VM,U_0,V_0 velocity related variables
+      REAL*8, DIMENSION(IM) :: RA !@var
+      REAL*8, DIMENSION(IM,LM) :: UM,VM !@var
+      REAL*8, DIMENSION(IM,LM) :: U_0,V_0
+
+!@var Miscellaneous vertical arrays set in driver
+      REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE
+      REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
+     *     ,VSUBL,AJ8,AJ13,AJ50,AJ51,AJ52,AJ57
+      REAL*8, DIMENSION(LM+1) :: PRECNVL
+!new arrays must be set to model arrays in driver (before MC)
+      REAL*8, DIMENSION(LM) :: SDL,WML
+!new arrays must be set to model arrays in driver (after MC)
+      REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
+      REAL*8, DIMENSION(LM,2) :: CSIZEL
+!new arrays must be set to model arrays in driver (before COND)
+      REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL,QTOLDL
+!new arrays must be set to model arrays in driver (after COND)
+      REAL*8, DIMENSION(LM) :: AJ11,AJ55,TAUSSL,CLDSSL
+
+!@var SM,QM Vertical profiles of T/Q
+      REAL*8, DIMENSION(LM) ::
+     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
+     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM
+      COMMON/CLDPRF/
+     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
+     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM
+      REAL*8 QMALL(10*LM),SMALL(10*LM)
+      EQUIVALENCE (QMALL,QM),(SMALL,SM)
+
+C**** input variables
+!@var KMAX number of surrounding velocity points 
+      INTEGER ::  KMAX
+!@var PEARTH fraction of land in grid box
+!@var TS     average surface temperture (C)
+!@var PIJ0   surface pressure
+!@var DXYPJ  area of grid box
+      REAL*8 :: PEARTH,TS,PIJ0,DXYPJ,PTOLDIJ
+!@var LPBL   max level of planetary boundary layer
+      INTEGER :: LPBL
+
+C**** output variables
+      REAL*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
+      REAL*8 :: CLDSLWIJ,CLDDEPIJ
+      INTEGER :: LMCMAX,LMCMIN
 
       PRIVATE QSAT,CTMIX
 
       CONTAINS
 
-      SUBROUTINE MSTCNV
+      SUBROUTINE MSTCNV_LOC
 !@sum  MSTCNV moist convective processes (incl. precip and convective clouds)
-!@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
+!@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls SUBSID,QSAT,THBAR
       IMPLICIT NONE
-
       REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO
-      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
-      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
-      REAL*8, DIMENSION(IM) :: RA !@var
-      REAL*8, DIMENSION(IM,LM) :: UM,VM,U_0,V_0,DUM,DVM !@var
+
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM
-      REAL*8, DIMENSION(LM+1) :: PLE,PRECNVL    !@var PLE
-!@var Miscellaneous vertical arrays
+      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
+!@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
-     *     PL,PLK,DM,AIRM,COND,CDHEAT,CCM,ETAL,AJ8,AJ13,AJ50,AJ51,AJ52
-     *     ,AJ57,SM1,QM1,DMR,BYAM,ML,SMT,QMT,TL,TPSAV,SVTP,VSUBL
-!@var SM,QM,DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
-      REAL*8, DIMENSION(LM) ::
-     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
-     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM,
      * SMOLD,SXMOLD,SYMOLD,SZMOLD,SXXMOLD,SXYMOLD,SYYMOLD,SYZMOLD,
      *       SZZMOLD,SZXMOLD,
      * QMOLD,QXMOLD,QYMOLD,QZMOLD,QXXMOLD,QXYMOLD,QYYMOLD,QYZMOLD,
@@ -74,8 +95,6 @@ C**** Subsid only works on non-plume portion of column (properly!)
      * DSMR,DSXMR,DSYMR,DSZMR,DSXXMR,DSXYMR,DSYYMR,DSYZMR,DSZZMR,DSZXMR
 
       COMMON/WORK3/
-     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
-     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM,
      * SMOLD,SXMOLD,SYMOLD,SZMOLD,SXXMOLD,SXYMOLD,SYYMOLD,SYZMOLD,
      *     SZZMOLD,SZXMOLD,
      * QMOLD,QXMOLD,QYMOLD,QZMOLD,QXXMOLD,QXYMOLD,QYYMOLD,QYZMOLD,
@@ -84,14 +103,15 @@ C**** Subsid only works on non-plume portion of column (properly!)
      * DSM,DSXM,DSYM,DSZM,DSXXM,DSXYM,DSYYM,DSYZM,DSZZM,DSZXM,
      * DQMR,DQXMR,DQYMR,DQZMR,DQXXMR,DQXYMR,DQYYMR,DQYZMR,DQZZMR,DQZXMR,
      * DSMR,DSXMR,DSYMR,DSZMR,DSXXMR,DSXYMR,DSYYMR,DSYZMR,DSZZMR,DSZXMR
-      REAL*8 QMALL(10*LM),SMALL(10*LM),QMOLDALL(10*LM),SMOLDALL(10*LM),
-     *  DMALL(40*LM)
-      EQUIVALENCE (QMALL,QM),(SMALL,SM),(QMOLDALL,QMOLD),
-     *  (SMOLDALL,SMOLD),(DMALL,DQM)
+      REAL*8 QMOLDALL(10*LM),SMOLDALL(10*LM),DMALL(40*LM)
+      EQUIVALENCE (QMOLDALL,QMOLD),(SMOLDALL,SMOLD),(DMALL,DQM)
 
-      INTEGER LDRAFT,LEVAP,LMAX,LMCMIN,LMCMAX,LMIN,MCCONT,MAXLVL
+      REAL*8, DIMENSION(LM) ::
+     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,SVTP
+
+      INTEGER LDRAFT,LEVAP,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ
-      REAL*8 PLAND,POICE,POCEAN,PLICE,PEARTH,TERM1,FMP0,SMO1
+      REAL*8 TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,SLH,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,QSATMP,GAMA,DQSUM,FEVAP,TNX,QNX
@@ -100,173 +120,26 @@ C**** Subsid only works on non-plume portion of column (properly!)
      *     CONSUM,ALPHA,PRHEAT,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
-     *     ,FQCOND,FSEVP,FSSUM,HCNDMC,HEAT1
-     *     ,PIJ,PRCP,PRCPMC,PRHEAT
+     *     ,FQCOND,FSEVP,FSSUM,HEAT1
+     *     ,PIJ,PRHEAT,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP,QXMDN
      *     ,QXMPMAX,QXXMDN,QXXMPMAX,QXYMDN
      *     ,QXYMP,QXYMPMAX,QYMDN,QYMPMAX,QYYMDN
-     *     ,QYYMP,QYYMPMAX,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
+     *     ,QYYMP,QYYMPMAX,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
      *     ,SUMDP,SXMDN,SXMPMAX,SXXMDN,SXXMPMAX,SXYMDN
      *     ,SXYMPMAX,SYMDN,SYMPMAX,SYYMDN,SYYMPMAX
-     *     ,TEM,TOLD,TOLD1,WCONST,WMSUM,WORK,WTEM,SMPO,QMPO,TEMWM
-     *     ,RCLD,CLDSLWIJ,CLDDEPIJ
+     *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK,SMPO,QMPO
 
       LOGICAL MC1
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1  ???
-      REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
       REAL*8,  PARAMETER :: DELTX=.608d0   !@param DELTX ???
-      LOGICAL, PARAMETER :: MCSSC=.TRUE.  !@param MCSSC  TRUE IF NEW CONDSE USED
-      INTEGER, PARAMETER :: JEQ = JM/2 + 1 !@param JEQ  N. equatorial gridpoint
-      REAL*8,  SAVE :: XMASS    !,BYDSIG(LM),PKS(LM)
-      INTEGER, SAVE :: IFIRST = 1
 
-      INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER IHOUR,IMAX,ITYPE,KMAX,IM1,JR,KR
+      INTEGER K,L,N  !@var K,L,N loop variables
+      INTEGER ITYPE
+      REAL*8, DIMENSION(IM,LM) :: DUM,DVM !@var
 
       REAL*8 THBAR
-C****
-      IDACC(1)=IDACC(1)+1
-      IF(IFIRST.EQ.1) THEN
-      DTCNDS=NCNDS*DT
-      BYDTCN=1./DTCNDS
-
-      BYGRAV=1./GRAV
-      BXCONS=.622d0/RGAS
-      AXCONS=LOG(6.1071D0)
-      XMASS=0.1d0*DTCNDS*GRAV
-      PK1000=1000.**KAPA
-      BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**RECIP3
-      SLHE=LHE*BYSHA
-      SLHS=LHS*BYSHA
-c      DO L=1,LM
-c        BYDSIG(L)=1./DSIG(L)
-c      END DO
-      DQDTX=.622d0*LHE/RGAS
-      DTPERD=DTCNDS/SDAY
-      AGESNX=1.-DTPERD/50.
-      IFIRST=0
-      END IF
-
-C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
-   70 DO 75 L=1,LM
-      DO 75 J=1,JM
-      DO 75 I=1,IM
-      UC(I,J,L)=U(I,J,L)
-      VC(I,J,L)=V(I,J,L)
-         AQ1(I,J,L)=0.
-         AQ2(I,J,L)=0.
-      TAUSS(I,J,L)=0.
-      TAUMC(I,J,L)=0.
-      SVWMX(I,J,L)=0.
-      SVLAT(I,J,L)=0.
-      CSIZE(I,J,L,1)=10.  !  used for stem of moist convective clouds
-c      CSIZE(I,J,L,2)=0.   !  initialisation?
-      CLDMC(I,J,L)=0.
-   75 CLDSS(I,J,L)=0.
-C**** SET PRECIPITATION AND LATENT HEAT
-      DO 78 J=1,JM
-      DO 78 I=1,IM
-      PREC(I,J)=0.
-   78 TPREC(I,J)=T(I,J,1)*PK(1,I,J)-TF
-         IHOUR=1.5+TOFDAY
-C****
-C**** MAIN J LOOP
-C****
-      DO 810 J=1,JM
-
-      KMAX=KMAXJ(J)
-      IMAX=IMAXJ(J)
-C****
-C**** MAIN I LOOP
-C****
-  110 IM1=IM
-      DO 800 I=1,IMAX
-         JR=JREG(I,J)
-C****
-C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
-C****
-      CLDDEPIJ=0.
-      CLDSLWIJ=0.
-      PRCPMC=0.
-      PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
-c      PLICE=FLICE(I,J)     !*PLAND
-      PEARTH=FEARTH(I,J)   !PLAND-PLICE
-      DO K=1,KMAX
-         RA(K)=RAJ(K,J)
-         IDI(K)=IDIJ(K,I,J)
-         IDJ(K)=IDJJ(K,J)
-      ENDDO
-C**** PRESSURES, AND PRESSURE TO THE KAPA
-      PIJ=P(I,J)
-      DO 150 L=1,LM
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-
-      PL(L) =PMID(L,I,J)
-      PLE(L)=PEDN(L,I,J)
-      PLK(L)=PK(L,I,J)
-      AIRM(L)=PIJ*DSIG(L)
-      BYAM(L)=1./AIRM(L)
-      IF(L.LE.LM-2) ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*
-     *     1.d-3*BYGRAV
-C**** TEMPERATURES
-      SM(L)  =T(I,J,L)*AIRM(L)
-      SXM(L) =TX(I,J,L)*AIRM(L)
-      SYM(L) =TY(I,J,L)*AIRM(L)
-      SZM(L) =TZ(I,J,L)*AIRM(L)
-      SXXM(L)=TXX(I,J,L)*AIRM(L)
-      SYYM(L)=TYY(I,J,L)*AIRM(L)
-      SZZM(L)=TZZ(I,J,L)*AIRM(L)
-      SXYM(L)=TXY(I,J,L)*AIRM(L)
-      SYZM(L)=TYZ(I,J,L)*AIRM(L)
-      SZXM(L)=TZX(I,J,L)*AIRM(L)
-      TL(L)=T(I,J,L)*PLK(L)
-      SVTP(L)=0.
-      PRECNVL(L)=0.
-      VSUBL(L)=0.
-         AJ13(L)=0.
-         AJ50(L)=0.
-         AJ51(L)=0.
-         AJ52(L)=0.
-         AJ57(L)=0.
-C**** MOISTURE (SPECIFIC HUMIDITY)
-      QM(L)  =Q(I,J,L)*AIRM(L)
-      QXM(L) =QX(I,J,L)*AIRM(L)
-      QYM(L) =QY(I,J,L)*AIRM(L)
-      QZM(L) =QZ(I,J,L)*AIRM(L)
-      QXXM(L)=QXX(I,J,L)*AIRM(L)
-      QYYM(L)=QYY(I,J,L)*AIRM(L)
-      QZZM(L)=QZZ(I,J,L)*AIRM(L)
-      QXYM(L)=QXY(I,J,L)*AIRM(L)
-      QYZM(L)=QYZ(I,J,L)*AIRM(L)
-      QZXM(L)=QZX(I,J,L)*AIRM(L)
-c      QL(L)=Q(I,J,L)
-         AJ8(L)=0.
-      SM1(L)=SM(L)
-      QM1(L)=QM(L)
-  150 CONTINUE
-      PRECNVL(LM+1)=0.
-C**** SURROUNDING WINDS
-      DO L=1,LM
-         DO K=1,KMAX
-            U_0(K,L) = UC(IDI(K),IDJ(K),L)
-            V_0(K,L) = VC(IDI(K),IDJ(K),L)
-            UM(K,L) = U_0(K,L)*AIRM(L)
-            VM(K,L) = V_0(K,L)*AIRM(L)
-         ENDDO
-      ENDDO
-      ETAL(LM)=ETAL(LM-1)
-c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
-      PLE(LM+1)=PEDN(LM+1,I,J)
-C**** CAL. HEIGHT OF CONDENSATION LEVEL
-C     LHX=LHE
-C     IF(TL(1).LT.TF) LHX=LHS
-C     BXQSAT=LHX*BXCONS
-C     AXQSAT=AXCONS+BXQSAT*BYTF
-C     TCOND=BXQSAT/(AXQSAT-LOG(1.608*PL(1)*QL(1)+1.D-20))
-C     ZCONDL=1000.*(TL(1)-TCOND)/9.76
 C****
 C**** MOIST CONVECTION
 C****
@@ -279,6 +152,29 @@ C****
       LMCMIN=0
       LMCMAX=0
       MCCONT=0
+C**** initiallise arrays of computed ouput
+      TAUMCL=0
+      SVWMXL=0
+      SVLATL=0
+      VSUBL=0
+      PRECNVL=0
+      CLDMCL=0
+      CLDSLWIJ=0
+      CLDDEPIJ=0
+      PRCPMC=0.
+      SVTP=0
+      CSIZEL(:,1)=10.
+C**** zero out diagnostics
+         AJ8 =0.
+         AJ13=0.
+         AJ50=0.
+         AJ51=0.
+         AJ52=0.
+         AJ57=0.
+         AJ11=0.
+C**** save initial values
+      SM1=SM
+      QM1=QM
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
       MAXLVL=0
@@ -286,7 +182,7 @@ C**** OUTER MC LOOP OVER BASE LAYER
 C****
 C**** COMPUTE THE CONVECTIVE MASS OF THE NON-ENTRAINING PART
 C****
-      TERM1=-10.*CK1*SD_CLOUDS(I,J,LMIN+1)/(GRAV*DXYP(J))
+      TERM1=-10.*CK1*SDL(LMIN+1)/(GRAV*DXYPJ)
       FMP0=TERM1*XMASS
       IF(FMP0.LE.0.) FMP0=0.
 C**** CREATE A PLUME IN THE BOTTOM LAYER
@@ -302,8 +198,8 @@ C****
       SEDGE=THBAR(SUP,SDN)
       QDN=QMO1*BYAM(LMIN)
       QUP=QMO2*BYAM(LMIN+1)
-      WMDN=WM(I,J,LMIN)
-      WMUP=WM(I,J,LMIN+1)
+      WMDN=WML(LMIN)
+      WMUP=WML(LMIN+1)
       SVDN=SDN*(1.+DELTX*QDN-WMDN)
       SVUP=SUP*(1.+DELTX*QUP-WMUP)
       QEDGE=.5*(QUP+QDN)
@@ -461,14 +357,14 @@ C****
       L=LMAX+1
       SVTP(L)=SMP*PLK(L)/(MPLUME+1.E-20)
 C**** TEST FOR SUFFICIENT AIR, MOIST STATIC STABILITY AND ENERGY
-C     IF(L.GT.LMIN+1.AND.SD_CLOUDS(I,J,L).GT.0.) GO TO 340
+C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       IF(MPLUME.LE..001*AIRM(L)) GO TO 340
       SDN=SMP/MPLUME
       SUP=SM1(L)*BYAM(L)
       QDN=QMP/MPLUME
       QUP=QM1(L)*BYAM(L)
       WMDN=0.
-      WMUP=WM(I,J,L)
+      WMUP=WML(L)
       SVDN=SDN*(1.+DELTX*QDN-WMDN)
       SVUP=SUP*(1.+DELTX*QUP-WMUP)
       IF(LMAX.GT.LMIN) THEN
@@ -720,7 +616,7 @@ C****
         QMP=QMPT
       END IF
       COND(L)=DQSUM
-      TAUMC(I,J,L)=TAUMC(I,J,L)+DQSUM
+      TAUMCL(L)=TAUMCL(L)+DQSUM
       CDHEAT(L)=SLH*COND(L)
       CDHSUM=CDHSUM+CDHEAT(L)
       IF(ETADN.GT.1.E-10) CDHDRT=CDHDRT+SLH*COND(L)
@@ -729,7 +625,7 @@ C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
 C****
       MCCONT=MCCONT+1
       IF(MCCONT.EQ.1) MC1=.TRUE.
-      IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLAT(I,J,L)=LHX
+      IF(MC1.AND.PLE(LMIN)-PLE(L+2).GE.450.) SVLATL(L)=LHX
       SMPMAX=SMP
        SXMPMAX =  SXMP
        SYMPMAX =  SYMP
@@ -810,7 +706,7 @@ C     DQEVP=DQ*DDRAFT
       SXYMDN=SXYMDN*(1.-FSEVP)
       QMDN=QMDN+DQEVP
       COND(L)=COND(L)-DQEVP
-      TAUMC(I,J,L)=TAUMC(I,J,L)-DQEVP
+      TAUMCL(L)=TAUMCL(L)-DQEVP
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
       EVPSUM=EVPSUM+DQEVP*SLH
 c         TMIX=SMDN*PLK(L)/DDRAFT
@@ -967,10 +863,10 @@ C**** REEVAPORATION AND PRECIPITATION
 C****
       LEVAP=LMAX-1
       IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) LEVAP=LMIN+2
-      IF(LMAX-LEVAP.GT.1.AND.MCSSC) THEN
+      IF(LMAX-LEVAP.GT.1) THEN
       DO 488 L=LMAX,LEVAP+2,-1
 C        AJ52(L)=AJ52(L)+CDHEAT(L)
-      SVWMX(I,J,L)=0.5000000*COND(L)*BYAM(L)
+      SVWMXL(L)=0.5000000*COND(L)*BYAM(L)
   488 COND(L)=COND(L)*0.5000000
       END IF
       LEVAP=LMAX-1
@@ -996,8 +892,8 @@ C        AJ52(LEVAP+1)=AJ52(LEVAP+1)+CDHEAT(LEVAP+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
 C     IF(LMAX-LMIN.LE.2) FEVAP=1.
-      CLDMC(I,J,L+1)=CLDMC(I,J,L+1)+FCLOUD
-      CLDREF=CLDMC(I,J,L+1)
+      CLDMCL(L+1)=CLDMCL(L+1)+FCLOUD
+      CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
       IF(PLE(LMIN)-PLE(LMAX+1).GE.450..AND.CLDREF.GT.CLDDEPIJ)
@@ -1065,7 +961,7 @@ C**** ADD PRECIPITATION AND LATENT HEAT BELOW
       PRCP=PRCP+COND(L)
   540 CONTINUE
 C****
-      IF(PRCP.GT.0.) CLDMC(I,J,1)=CLDMC(I,J,1)+CCM(LMIN)*BYAM(LMIN+1)
+      IF(PRCP.GT.0.) CLDMCL(1)=CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)
       PRCPMC=PRCPMC+PRCP
 C****
 C**** END OF LOOP OVER CLOUD TYPES
@@ -1075,7 +971,7 @@ C****
 C**** END OF OUTER LOOP OVER CLOUD BASE
 C****
   600 CONTINUE
-      IF(LMCMIN.EQ.0) GO TO 800
+      IF(LMCMIN.GT.0) THEN
 C**** ADJUSTMENT TO CONSERVE CP*T
       SUMAJ=0.
       SUMDP=0.
@@ -1086,308 +982,135 @@ C**** ADJUSTMENT TO CONSERVE CP*T
       DO 606 L=LMCMIN,LMCMAX
          AJ13(L)=AJ13(L)-SUMAJ*AIRM(L)/SUMDP
   606 SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
-C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
-         AIJ(I,J,82)=AIJ(I,J,82)+CLDSLWIJ
-         AIJ(I,J,83)=AIJ(I,J,83)+CLDDEPIJ
-         IF(CLDSLWIJ.GT..000001) AIJ(I,J,85)=AIJ(I,J,85)+1.
-         IF(CLDDEPIJ.GT..000001) AIJ(I,J,84)=AIJ(I,J,84)+1.
-         HCNDMC=0.
-         DO 610 L=1,LMCMAX
-         HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
-         AQ1(I,J,L)=(AJ50(L)+AJ13(L))*(DXYP(J)*BYDSIG(L))
-         AQ2(I,J,L)=(AJ52(L)-AJ57(L))*(DXYP(J)*BYDSIG(L))
-         AJL(J,L,13)=AJL(J,L,13)+AJ13(L)*BYDSIG(L)
-         AJL(J,L,50)=AJL(J,L,50)+AJ50(L)*BYDSIG(L)
-         AJL(J,L,51)=AJL(J,L,51)+AJ51(L)*BYDSIG(L)
-         IF(J.GE.JEQ-2.AND.J.LE.JEQ) AIL(I,L,6)=AIL(I,L,6)+
-     *     (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
-         AJL(J,L,56)=AJL(J,L,56)+(AJ50(L)+AJ13(L))*BYDSIG(L)
-         AJL(J,L,57)=AJL(J,L,57)+(AJ52(L)-AJ57(L))*BYDSIG(L)
-  610    AJL(J,L,8)=AJL(J,L,8)+AJ8(L)
-         AJ(J,62)=AJ(J,62)+PRCPMC*POCEAN
-         BJ(J,62)=BJ(J,62)+PRCPMC*PLAND
-         CJ(J,62)=CJ(J,62)+PRCPMC*POICE
-         DJ(JR,62)=DJ(JR,62)+PRCPMC*DXYP(J)
-         DO 620 KR=1,4
-         IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-         ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPMC
-         ADAILY(IHOUR,5,KR)=ADAILY(IHOUR,5,KR)+HCNDMC
-         ADAILY(IHOUR,63,KR)=ADAILY(IHOUR,63,KR)+PRCPMC
-         ADAILY(IHOUR,51,KR)=ADAILY(IHOUR,51,KR)+CLDDEPIJ
-         ADAILY(IHOUR,52,KR)=ADAILY(IHOUR,52,KR)+CLDSLWIJ
-         END IF
-  620    CONTINUE
-C**** UPDATE THE MODEL WINDS
-      DO L=LMCMIN,LMCMAX
-         DO K=1,KMAX
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &           +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
-         ENDDO
-      ENDDO
-C**** UPDATE MODEL TEMPERATURE, SPECIFIC HUMIDITY AND PRECIPITATION
-C**** CAL. OPTICAL THICKNESS
-      PREC(I,J)=PRCPMC*100.*BYGRAV
-      WCONST=1.d-3*(WMU*(1.-PEARTH)+WMUL*PEARTH)
-         WMSUM=0.
-         PIJ=P(I,J)
-      DO 690 L=1,LMCMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
-        T(I,J,L)=  SM(L)*BYAM(L)
-       TX(I,J,L)= SXM(L)*BYAM(L)
-       TY(I,J,L)= SYM(L)*BYAM(L)
-       TZ(I,J,L)= SZM(L)*BYAM(L)
-      TXX(I,J,L)=SXXM(L)*BYAM(L)
-      TYY(I,J,L)=SYYM(L)*BYAM(L)
-      TZZ(I,J,L)=SZZM(L)*BYAM(L)
-      TXY(I,J,L)=SXYM(L)*BYAM(L)
-      TYZ(I,J,L)=SYZM(L)*BYAM(L)
-      TZX(I,J,L)=SZXM(L)*BYAM(L)
-      PRECNV(I,J,L)=PRECNVL(L)
-      VSUB(I,J,L)=VSUBL(L)
-      TL(L)=T(I,J,L)*PLK(L)
-         IF (MCSSC)TEMWM=(TAUMC(I,J,L)-SVWMX(I,J,L)*AIRM(L))*1.d2*BYGRAV
-         IF (.NOT.MCSSC) TEMWM=(TAUMC(I,J,L))*1.d2*BYGRAV
-         IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
-      IF (CLDMC(I,J,L).GT.0.) TAUMC(I,J,L)=AIRM(L)*.08d0
-      IF(PLE(LMCMIN)-PLE(LMCMAX+1).LT.450..AND.(CLDMC(I,J,L).GT.0.))THEN
-        IF(L.EQ.LMCMAX) TAUMC(I,J,L)=DSIG(L)*PIJ*.02d0
-      ENDIF
-      IF(PLE(LMCMIN)-PLE(LMCMAX+1).GE.450..AND.(CLDMC(I,J,L).GT.0.))THEN
-        IF(L.LE.LMCMIN) TAUMC(I,J,L)=DSIG(L)*PIJ*.02d0
-      ENDIF
-      IF(SVLAT(I,J,L).EQ.0.) THEN
-        SVLAT(I,J,L)=LHE
-        IF(SVTP(L).LT.TF) SVLAT(I,J,L)=LHS
-      ENDIF
-      IF(SVWMX(I,J,L).GT.0.) THEN
-      FCLD=CLDMC(I,J,L)+1.E-20
-      TEM=1.d5*SVWMX(I,J,L)*AIRM(L)*BYGRAV
-C     IF(TEM.LT.0.) TEM=0.
-      WTEM=1.d5*SVWMX(I,J,L)*PL(L)/(FCLD*TL(L)*RGAS)
-      IF(SVLAT(I,J,L).EQ.LHE.AND.SVWMX(I,J,L)/FCLD.GE.WCONST)
-     *  WTEM=1.d5*WCONST*PL(L)/(TL(L)*RGAS)
-      IF(SVLAT(I,J,L).EQ.LHS.AND.SVWMX(I,J,L)/FCLD.GE.WMUI*1.d-3)
-     *  WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
-      IF(WTEM.LT.1.d-10) WTEM=1.d-10
-      IF(SVLAT(I,J,L).EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
-     *  (WTEM*4.)**RECIP3
-      IF(SVLAT(I,J,L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**RECIP3
-      RCLDE=RCLD/BYBR
-      CSIZE(I,J,L,1)=RCLDE  !  Anvil of moist convective clouds
-      TAUMC(I,J,L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
-      IF(TAUMC(I,J,L).GT.100.) TAUMC(I,J,L)=100.
-      IF (.NOT.MCSSC) SVWMX(I,J,L)=0.
       END IF
-        Q(I,J,L)=  QM(L)*BYAM(L)
-       QX(I,J,L)= QXM(L)*BYAM(L)
-       QY(I,J,L)= QYM(L)*BYAM(L)
-       QZ(I,J,L)= QZM(L)*BYAM(L)
-      QXX(I,J,L)=QXXM(L)*BYAM(L)
-      QYY(I,J,L)=QYYM(L)*BYAM(L)
-      QZZ(I,J,L)=QZZM(L)*BYAM(L)
-      QXY(I,J,L)=QXYM(L)*BYAM(L)
-      QYZ(I,J,L)=QYZM(L)*BYAM(L)
-      QZX(I,J,L)=QZXM(L)*BYAM(L)
-  690 CONTINUE
-      PRECNV(I,J,LM+1)=PRECNVL(LM+1)
-         AIJ(I,J,81)=AIJ(I,J,81)+WMSUM
-  800 IM1=I
-C**** END OF MAIN LOOP FOR I INDEX
-  810 CONTINUE
-C****
-C**** END OF MAIN LOOP FOR J INDEX
-C****
-C**** ADD IN CHANGE OF ANG. MOMENTUM BY MOIST CONVECTION FOR DIAGNOSTIC
-         DO 880 L=1,LM
-         DO 880 J=2,JM
-         DO 880 I=1,IM
-         PIJ=P(I,J)
-         IF(L.GE.LS1) PIJ=PSF-PTOP
-  880    AJL(J,L,39)=AJL(J,L,39)+(U(I,J,L)-UC(I,J,L))*PIJ
-      RETURN
-      END SUBROUTINE MSTCNV
+C**** CALCULATE OPTICAL THICKNESS
+      WCONST=1.d-3*(WMU*(1.-PEARTH)+WMUL*PEARTH)
+      WMSUM=0.
+      PIJ=PIJ0
+      DO L=1,LMCMAX
+         IF(L.EQ.LS1) PIJ=PSF-PTOP
+         TL(L)=(SM(L)*BYAM(L))*PLK(L)
+         TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
+         IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
+         IF (CLDMCL(L).GT.0.) TAUMCL(L)=AIRM(L)*.08d0
+         IF(PLE(LMCMIN)-PLE(LMCMAX+1).LT.450..AND.(CLDMCL(L).GT.0.))THEN
+            IF(L.EQ.LMCMAX) TAUMCL(L)=DSIG(L)*PIJ*.02d0
+         ENDIF
+         IF(PLE(LMCMIN)-PLE(LMCMAX+1).GE.450..AND.(CLDMCL(L).GT.0.))THEN
+            IF(L.LE.LMCMIN) TAUMCL(L)=DSIG(L)*PIJ*.02d0
+         ENDIF
+         IF(SVLATL(L).EQ.0.) THEN
+            SVLATL(L)=LHE
+            IF(SVTP(L).LT.TF) SVLATL(L)=LHS
+         ENDIF
+         IF(SVWMXL(L).GT.0.) THEN
+            FCLD=CLDMCL(L)+1.E-20
+            TEM=1.d5*SVWMXL(L)*AIRM(L)*BYGRAV
+C     IF(TEM.LT.0.) TEM=0.
+            WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
+            IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST)
+     *           WTEM=1.d5*WCONST*PL(L)/(TL(L)*RGAS)
+            IF(SVLATL(L).EQ.LHS.AND.SVWMXL(L)/FCLD.GE.WMUI*1.d-3)
+     *           WTEM=1.E5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
+            IF(WTEM.LT.1.d-10) WTEM=1.d-10
+            IF(SVLATL(L).EQ.LHE) RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*
+     *           (WTEM*4.)**RECIP3
+            IF(SVLATL(L).EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**RECIP3
+            RCLDE=RCLD/BYBR
+            CSIZEL(L,1)=RCLDE   !  Anvil of moist convective clouds
+            TAUMCL(L)=1.5*TEM/(FCLD*RCLDE+1.E-20)
+            IF(TAUMCL(L).GT.100.) TAUMCL(L)=100.
+         END IF
+      END DO
 
-      SUBROUTINE CONDSE
-!@sum  CONDSE large scale condensation (incl. precip and clouds)
-!@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
+      RETURN
+      END SUBROUTINE MSTCNV_LOC
+
+      SUBROUTINE CONDSE_LOC(I0,J0)
+!@sum  CONDSE_LOC column physics of large scale condensation
+!@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,THBAR
       IMPLICIT NONE
 
+!@var I0,J0 grid point for diagnostic purposes 
+      INTEGER, INTENT(IN) :: I0,J0
       REAL*8 LHX,LHXUP
-      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
-      REAL*8, DIMENSION(IM) :: RA  !@var
-      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2,VMO1,VMO2,VMN1,VMN2 !@var
-      REAL*8, DIMENSION(IM,LM) :: UM,VM !@var
-!@var Miscellaneous vertical arrays
-      REAL*8, DIMENSION(LM) ::
-     *     PL,PLK,TL,QL,TH,QSATL,RHF,RH,RH1,AQ,ATH,DPDT,WMX,SQ,ER,QHEAT,
-     *     CAREA,PREP,RH00,EC,WMXM,AIRM,BYAM,VSUBL
-      REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE,PLE,PRECNVL  
-
-!@var SM,QM Vertical profiles of T/Q
-      REAL*8, DIMENSION(LM) ::
-     * SM,SXM,SYM,SZM,SXXM,SXYM,SYYM,SYZM,SZZM,SZXM,
-     * QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM
-
-      REAL*8 CKIJ
 
       REAL*8, PARAMETER :: CM00=1.d-4
       REAL*8, PARAMETER :: WM0=.5d-3
       REAL*8, PARAMETER :: EPS=.622d0
 
+      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2,VMO1,VMO2,VMN1,VMN2 !@var
+!@var Miscellaneous vertical arrays
+      REAL*8, DIMENSION(LM) ::
+     *     QSATL,RHF,RH1,AQ,ATH,DPDT,SQ,ER,QHEAT,
+     *     CAREA,PREP,RH00,EC,WMXM
+      REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE
+
       REAL*8 HDEP,Q1,DQSUM,AIRMR,BETA,BMAX
-     *     ,CBF,CBFC0,CK,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT,DQSUM
-     *     ,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST,FCLD
-     *     ,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,FUNIL,FUNIO,HCHANG
-     *     ,HCNDSS,HDEP,HPHASE,HPHASE,OLDLAT,OLDLHX
-     *     ,PEARTH,PFR,PIJ,PLAND,PLICE,PMI,PML,POCEAN,POICE
-     *     ,PRATIO,PRCP,PRCPSS,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1
-     *     ,QMO2,QNEW,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO
-     *     ,RCLDE,RHI,RHN,RHO,RHT1,RHW,SEDGE,SIGK,SLH,SMN1,SMN2
-     *     ,SMO1,SMO2,TEM,TEMP,TEVAP,THT1,THT2,TLT1,TNEW,TNEWU
-     *     ,TOLD,TOLDU,TOLDUP,TS,VDEF,WCONST,WMN1,WMN2,WMNEW
-     *     ,WMO1,WMO2,WMSUM,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD
-      INTEGER LPBL,LN,ITER
+     *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
+     *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,FUNIL,FUNIO
+     *     ,HCHANG,HDEP,HPHASE,HPHASE,OLDLAT,OLDLHX,PFR,PIJ,PMI,PML
+     *     ,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW,QNEWU
+     *     ,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1,RHW
+     *     ,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1,THT2
+     *     ,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
+     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD
+      INTEGER LN,ITER
       LOGICAL BANDF
 
-      INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER IHOUR,IMAX,ITYPE,KMAX,IM1,JR,KR
+      INTEGER K,L,N  !@var K,L,N loop variables
 
       REAL*8 THBAR
-
-C**** SAVE UC AND VC
-      DO 79 L=1,LM
-      DO 79 J=1,JM
-      DO 79 I=1,IM
-      UC(I,J,L)=U(I,J,L)
-   79 VC(I,J,L)=V(I,J,L)
-C****
-C**** MAIN J LOOP
-C****
-         IHOUR=1.5+TOFDAY
-      DO 710 J=1,JM
-
-      KMAX=KMAXJ(J)
-      IMAX=IMAXJ(J)
-C****
-C**** MAIN I LOOP
-C****
-  110 IM1=IM
-      DO 700 I=1,IMAX
-         JR=JREG(I,J)
-C****
-C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
-C****
-      PIJ=P(I,J)
-      CKIJ=1.
-      PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
-      POCEAN=(1.-PLAND)-POICE
-c      PLICE=FLICE(I,J)     !*PLAND
-      PEARTH=FEARTH(I,J)   !PLAND-PLICE
-      WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
-      DO K=1,KMAX
-         RA(K)=RAJ(K,J)
-         IDI(K)=IDIJ(K,I,J)
-         IDJ(K)=IDJJ(K,J)
-      ENDDO
-C**** DETERMINE THE TOP OF PBL, LPBL
-      LPBL=1
-C     DO 160 L=1,2
-C     DELTH=(T(I,J,L+1)-T(I,J,L))*PK1000
-C     IF(DELTH.GE..3) GO TO 161
-C 160 LPBL=L+1
-C 161 LPBL1=LPBL+1
-c      SLH=LHE*BYSHA
-      DO 180 L=1,LM
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-
-      PL(L) =PMID(L,I,J)
-      PLE(L)=PEDN(L,I,J)
-      PLK(L)=PK(L,I,J)
-      AIRM(L)=PIJ*DSIG(L)
-      BYAM(L)=1./AIRM(L)
-      TL(L)=T(I,J,L)*PLK(L)
-      TH(L)=T(I,J,L)
-      QL(L)=Q(I,J,L)
-      WMX(L)=WM(I,J,L)+SVWMX(I,J,L)
-C**** set up tracer moments
-       SXM(L)= TX(I,J,L)*AIRM(L)
-       SYM(L)= TY(I,J,L)*AIRM(L)
-       SZM(L)= TZ(I,J,L)*AIRM(L)
-      SXXM(L)=TXX(I,J,L)*AIRM(L)
-      SXYM(L)=TXY(I,J,L)*AIRM(L)
-      SYYM(L)=TYY(I,J,L)*AIRM(L)
-      SYZM(L)=TYZ(I,J,L)*AIRM(L)
-      SZZM(L)=TZZ(I,J,L)*AIRM(L)
-      SZXM(L)=TZX(I,J,L)*AIRM(L)
-       QXM(L)= QX(I,J,L)*AIRM(L)
-       QYM(L)= QY(I,J,L)*AIRM(L)
-       QZM(L)= QZ(I,J,L)*AIRM(L)
-      QXXM(L)=QXX(I,J,L)*AIRM(L)
-      QXYM(L)=QXY(I,J,L)*AIRM(L)
-      QYYM(L)=QYY(I,J,L)*AIRM(L)
-      QYZM(L)=QYZ(I,J,L)*AIRM(L)
-      QZZM(L)=QZZ(I,J,L)*AIRM(L)
-      QZXM(L)=QZX(I,J,L)*AIRM(L)
-      CAREA(L)=1.-CLDSAV(I,J,L)
-      IF(WMX(L).LE.0.) CAREA(L)=1.
-      RH(L)=RHSAV(I,J,L)
-C     CAREA(L)=(1.-RH(L))/(1.-RHF(L)*0.999+1.E-20)
-C     IF(CAREA(L).GT.1.) CAREA(L)=1.
-C     IF(RH(L).GT.1.) CAREA(L)=0.
-      PRECNVL(L)=PRECNV(I,J,L)
-      VSUBL(L)=VSUB(I,J,L)
-  180 CONTINUE
-c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
-      PLE(LM+1)=PEDN(LM+1,I,J)
-      PRECNVL(LM+1)=PRECNV(I,J,LM+1)
-      PIJ=P(I,J)
 C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** THE LIQUID WATER CONTENT IS PREDICTED
 C****
+c      SLH=LHE*BYSHA
       PRCPSS=0.
-         HCNDSS=0.
-      DO 226 L=1,LM
-      AQ(L)=(QL(L)-QTOLD(I,J,L))*BYDTCN
-      DPDT(L)=SIG(L)*(PIJ-PTOLD(I,J))*BYDTCN
-      IF(L.GE.LS1) DPDT(L)=0.
-      ER(L)=0.
-      EC(L)=0.
-      PREP(L)=0.
-      PREBAR(L)=0.
-      QHEAT(L)=0.
-  226 CONTINUE
-C**** SURROUNDING WINDS
+      HCNDSS=0.
+      CKIJ=1.
+C**** initialise vertical arrays
+      ER=0.
+      EC=0.
+      PREP=0.
+      PREBAR=0.
+      QHEAT=0.
+      CLDSSL=0
+      TAUSSL=0
       DO L=1,LM
-         DO K=1,KMAX
-            UM(K,L) = UC(IDI(K),IDJ(K),L)*AIRM(L)
-            VM(K,L) = VC(IDI(K),IDJ(K),L)*AIRM(L)
-         ENDDO
-      ENDDO
+         CAREA(L)=1.-CLDSAVL(L)
+         IF(WMX(L).LE.0.) CAREA(L)=1.
+C     CAREA(L)=(1.-RH(L))/(1.-RHF(L)*0.999+1.E-20)
+C     IF(CAREA(L).GT.1.) CAREA(L)=1.
+C     IF(RH(L).GT.1.) CAREA(L)=0.
+         AQ(L)=(QL(L)-QTOLDL(L))*BYDTCN
+         DPDT(L)=SIG(L)*(PIJ0-PTOLDIJ)*BYDTCN
+         IF(L.GE.LS1) DPDT(L)=0.
+      END DO
       DQUP=0.
       LHXUP=LHE
-      PREBAR(LM+1)=0.
-      PREICE(LM+1)=0.
       TOLDUP=TL(LM)
+      PREICE(LM+1)=0.
+      WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
+         AJ11=0.
+         AJ55=0.
 C****
 C**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
 C****
       DO 304 L=LM,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
-      OLDLHX=SVLHX(I,J,L)
-      OLDLAT=SVLAT(I,J,L)
+      OLDLHX=SVLHXL(L)
+      OLDLAT=SVLATL(L)
 C**** COMPUTE VERTICAL VELOCITY IN CM/S
-      TEMP=100.*RGAS*TL(L)/(PL(L)*DXYP(J)*GRAV)
-      IF(L.EQ.1) VVEL=-SD_CLOUDS(I,J,L+1)*TEMP
-      IF(L.EQ.LM) VVEL=-SD_CLOUDS(I,J,L)*TEMP
+      TEMP=100.*RGAS*TL(L)/(PL(L)*DXYPJ*GRAV)
+      IF(L.EQ.1) VVEL=-SDL(L+1)*TEMP
+      IF(L.EQ.LM) VVEL=-SDL(L)*TEMP
       IF(L.GT.1.AND.L.LT.LM)
-     *     VVEL=-.5*(SD_CLOUDS(I,J,L)+SD_CLOUDS(I,J,L+1))*TEMP
+     *     VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
 C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       CM0=CM00
       VDEF=VVEL-VSUBL(L)
@@ -1440,23 +1163,22 @@ C**** COMPUTE RELATIVE HUMIDITY
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
       HCHANG=0.
       IF(LHX.EQ.LHS) THEN
-        IF(OLDLHX.EQ.LHE) HCHANG=WM(I,J,L)*LHM
+        IF(OLDLHX.EQ.LHE) HCHANG=WML(L)*LHM
         IF(OLDLHX.EQ.LHE.OR.OLDLAT.EQ.LHE) BANDF=.TRUE.
       END IF
-      IF(OLDLHX.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=-WM(I,J,L)*LHM
-      IF(OLDLAT.EQ.LHE.AND.LHX.EQ.LHS) HCHANG=HCHANG+SVWMX(I,J,L)*LHM
-      IF(OLDLAT.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=HCHANG-SVWMX(I,J,L)*LHM
-      SVLHX(I,J,L)=LHX
+      IF(OLDLHX.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=-WML(L)*LHM
+      IF(OLDLAT.EQ.LHE.AND.LHX.EQ.LHS) HCHANG=HCHANG+SVWMXL(L)*LHM
+      IF(OLDLAT.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=HCHANG-SVWMXL(L)*LHM
+      SVLHXL(L)=LHX
       TL(L)=TL(L)+HCHANG/SHA
       TH(L)=TL(L)/PLK(L)
-      ATH(L)=(TH(L)-TTOLD(I,J,L))*BYDTCN
+      ATH(L)=(TH(L)-TTOLDL(L))*BYDTCN
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
       RH00(L)=U00
       IF(LHX.EQ.LHS) RH00(L)=U00
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
-        TS=TSAVG(I,J)
         RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
@@ -1464,7 +1186,6 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         HDEP=0.
         DO 216 LN=L,1,-1
   216   HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(1000.*GRAV*PL(LN))
-        TS=TSAVG(I,J)
         RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
@@ -1568,7 +1289,7 @@ C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
       IF(WMNEW.LT.0.) THEN
         WRITE(99,'(F10.0,3I4,A,D14.5,A)')
-     *   TAU,I,J,L,' CONDSE:H2O<0',WMNEW,' ->0'
+     *   TAU,I0,J0,L,' CONDSE:H2O<0',WMNEW,' ->0'
         WMNEW=0.
       END IF
       END IF
@@ -1635,19 +1356,14 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).GT.1.) CAREA(L)=0.
       IF(WMX(L).LE.0.) CAREA(L)=1.
       IF(CAREA(L).LT.0.) CAREA(L)=0.
-      CLDSS(I,J,L)=1.-CAREA(L)
-C     RHSAV(I,J,L)=RH(L)
-C     TTOLD(I,J,L)=TH(L)
-C     QTOLD(I,J,L)=QL(L)
+      CLDSSL(L)=1.-CAREA(L)
       TOLDUP=TOLD
       LHXUP=LHX
-C     TL(L)=TNEW
-C     QL(L)=QNEW
 C**** ACCUMULATE SOME DIAGNOSTICS
-         PIJ=P(I,J)
+         PIJ=PIJ0
          IF(L.GE.LS1) PIJ=PSF-PTOP
          HCNDSS=HCNDSS+(TNEW-TOLD)*DSIG(L)*PIJ
-  304    AJL(J,L,11)=AJL(J,L,11)+(TNEW-TOLD)*PIJ
+  304    AJ11(L)=AJ11(L)+(TNEW-TOLD)*PIJ
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
@@ -1725,7 +1441,7 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       THT1=SMN1*BYAM(L)
       QLT1=QMN1*BYAM(L)
       TLT1=THT1*PLK(L)
-      LHX=SVLHX(I,J,L)
+      LHX=SVLHXL(L)
       RHT1=QLT1/(QSAT(TLT1,LHX,PL(L)))
       WMT1=WMN1*BYAM(L)
       THT2=SMN2*BYAM(L+1)
@@ -1749,7 +1465,7 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
   380 TH(L)=SMN1*BYAM(L)
       TL(L)=TH(L)*PLK(L)
       QL(L)=QMN1*BYAM(L)
-      LHX=SVLHX(I,J,L)
+      LHX=SVLHXL(L)
       RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
       WMX(L)=WMN1*BYAM(L)
       TH(L+1)=SMN2*BYAM(L+1)
@@ -1780,23 +1496,23 @@ C**** RE-EVAPORATION OF LWC IN THE UPPER LAYER
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+1.E-20))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
       IF(RH(L).GT.1.) CAREA(L)=0.
-      CLDSS(I,J,L)=1.-CAREA(L)
+      CLDSSL(L)=1.-CAREA(L)
       TNEW=TL(L)
       TNEWU=TL(L+1)
-         PIJ=P(I,J)
+         PIJ=PIJ0
          IF(L.GE.LS1) PIJ=PSF-PTOP
          HCNDSS=HCNDSS+(TNEW-TOLD)*DSIG(L)+(TNEWU-TOLDU)*DSIG(L+1)*PIJ
-         AJL(J,L,11)=AJL(J,L,11)+(TNEW-TOLD)*PIJ
-         AJL(J,L+1,11)=AJL(J,L+1,11)+(TNEWU-TOLDU)*PIJ
-         AJL(J,L,55)=AJL(J,L,55)+(QNEW-QOLD)*PIJ*LHX*BYSHA
-         AJL(J,L+1,55)=AJL(J,L+1,55)+(QNEWU-QOLDU)*PIJ*LHX*BYSHA
+         AJ11(L)=AJ11(L)+(TNEW-TOLD)*PIJ
+         AJ11(L+1)=AJ11(L+1)+(TNEWU-TOLDU)*PIJ
+         AJ55(L)=AJ55(L)+(QNEW-QOLD)*PIJ*LHX*BYSHA
+         AJ55(L+1)=AJ55(L+1)+(QNEWU-QOLDU)*PIJ*LHX*BYSHA
   382 CONTINUE
          WMSUM=0.
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       DO 388 L=1,LM
-      FCLD=CLDSS(I,J,L)+1.E-20
+      FCLD=CLDSSL(L)+1.E-20
       WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+1.E-20)
-      LHX=SVLHX(I,J,L)
+      LHX=SVLHXL(L)
 C     IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1.E-3)
 C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1.E-3)
@@ -1810,106 +1526,36 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       ENDIF
       IF(LHX.EQ.LHS) RCLD=25.0*(WTEM/4.2d-3)**RECIP3
       RCLDE=RCLD/BYBR
-      CSIZE(I,J,L,2)=RCLDE
+      CSIZEL(L,2)=RCLDE
       TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
-      TAUSS(I,J,L)=1.5d3*TEM/(FCLD*RCLDE+1.E-20)
-      IF(TAUSS(I,J,L).GT.100.) TAUSS(I,J,L)=100.
+      TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+1.E-20)
+      IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
   388    IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
       PRCPSS=PREBAR(1)*GRAV*DTCNDS
-         AJ(J,61)=AJ(J,61)+PRCPSS*POCEAN
-         BJ(J,61)=BJ(J,61)+PRCPSS*PLAND
-         CJ(J,61)=CJ(J,61)+PRCPSS*POICE
-         DJ(JR,61)=DJ(JR,61)+PRCPSS*DXYP(J)
-         DO KR=1,4
-         IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-         ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPSS
-         ADAILY(IHOUR,5,KR)=ADAILY(IHOUR,5,KR)+HCNDSS
-         ADAILY(IHOUR,62,KR)=ADAILY(IHOUR,62,KR)+PRCPSS
-         END IF
-         END DO
-C**** TOTAL PRECIPITATION AND AGE OF SNOW
-  400 PREC(I,J)=PREC(I,J)+PRCPSS*100.*BYGRAV
-      PRCP=PREC(I,J)
-      PRECSS(I,J)=PRCPSS*100.*BYGRAV
-      IF(TPREC(I,J).GE.0.) PRCP=0.
-C**** MODIFY SNOW AGES AFTER SNOW FALL
-      GDATA(I,J,9)=GDATA(I,J,9)*EXP(-PRCP)
-      GDATA(I,J,10)=GDATA(I,J,10)*EXP(-PRCP)
-      GDATA(I,J,11)=GDATA(I,J,11)*EXP(-PRCP)
-C**** FINAL TEMPERATURE, MOISTURE, CLOUDINESS AND OPTICAL THICKNESS
-C**** ADJUSTMENT; SAVE RH, T, Q AND CLDSS
-      DO 530 L=1,LM
-      T(I,J,L)=TH(L)
-C        IF(RH(L).GT..6.AND.CLDSS(I,J,L).LE.0..AND.L.EQ.3)
-      Q(I,J,L)=QL(L)
-C**** update moment changes
-       TX(I,J,L)= SXM(L)*BYAM(L)
-       TY(I,J,L)= SYM(L)*BYAM(L)
-       TZ(I,J,L)= SZM(L)*BYAM(L)
-      TXX(I,J,L)=SXXM(L)*BYAM(L)
-      TXY(I,J,L)=SXYM(L)*BYAM(L)
-      TYY(I,J,L)=SYYM(L)*BYAM(L)
-      TYZ(I,J,L)=SYZM(L)*BYAM(L)
-      TZZ(I,J,L)=SZZM(L)*BYAM(L)
-      TZX(I,J,L)=SZXM(L)*BYAM(L)
-       QX(I,J,L)= QXM(L)*BYAM(L)
-       QY(I,J,L)= QYM(L)*BYAM(L)
-       QZ(I,J,L)= QZM(L)*BYAM(L)
-      QXX(I,J,L)=QXXM(L)*BYAM(L)
-      QXY(I,J,L)=QXYM(L)*BYAM(L)
-      QYY(I,J,L)=QYYM(L)*BYAM(L)
-      QYZ(I,J,L)=QYZM(L)*BYAM(L)
-      QZZ(I,J,L)=QZZM(L)*BYAM(L)
-      QZX(I,J,L)=QZXM(L)*BYAM(L)
-      RHSAV(I,J,L)=RH(L)
-      TTOLD(I,J,L)=TH(L)
-      QTOLD(I,J,L)=QL(L)
 
-      CLDSAV(I,J,L)=CLDSS(I,J,L)
-      IF(TAUMC(I,J,L).GT.0..AND.CKIJ.EQ.1.) GO TO 526
-      BMAX=1.-EXP(-(CLDSAV(I,J,L)/.3d0))
-      IF(CLDSAV(I,J,L).GE..95) BMAX=CLDSAV(I,J,L)
-      IF(L.EQ.1.OR.PLE(L+1).GT.930.) THEN
-        CLDSS(I,J,L)=CLDSS(I,J,L)+
-     *               (BMAX-CLDSS(I,J,L))*CKIJ
-        TAUSS(I,J,L)=TAUSS(I,J,L)*CLDSAV(I,J,L)/
-     *               (CLDSS(I,J,L)+1.E-20)
-      ENDIF
-      IF(TAUSS(I,J,L).LE.0.) CLDSS(I,J,L)=0.
-      IF(L.EQ.1.OR.PLE(L+1).GT.930..OR.TAUMC(I,J,L).GT.0.) GO TO 526
-      CLDSS(I,J,L)=CLDSS(I,J,L)**(2.*RECIP3)
-      TAUSS(I,J,L)=TAUSS(I,J,L)*CLDSAV(I,J,L)**RECIP3
-  526 CONTINUE
-      IF(WMX(L).LE.0.) SVLHX(I,J,L)=0.
-  530 WM(I,J,L)=WMX(L)
-         AIJ(I,J,81)=AIJ(I,J,81)+WMSUM
-C**** UPDATE MODEL WINDS
+C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM
-         DO K=1,KMAX
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &           +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
-         ENDDO
-      ENDDO
-  700 IM1=I
-C**** END OF MAIN LOOP FOR INDEX I
-  710 CONTINUE
-C**** END OF MAIN LOOP FOR INDEX J
-C****
-C**** ADD IN CHANGE OF MOMENTUM BY CTEI
-      DO 750 L=1,LM
-      DO 750 J=2,JM
-      DO 750 I=1,IM
-         PIJ=P(I,J)
-         IF(L.GE.LS1) PIJ=PSF-PTOP
-  750    AJL(J,L,39)=AJL(J,L,39)+(U(I,J,L)-UC(I,J,L))*PIJ
-C        WRITE(38) SNGL(TAU),(SNGL(CLDSS(I,1,1)),I=1,IM*JM*LM),
-C    *             (SNGL(CLDMC(I,1,1)),I=1,IM*JM*LM),
-C    *             (SNGL(TAUSS(I,1,1)),I=1,IM*JM*LM),
-C    *             (SNGL(TAUMC(I,1,1)),I=1,IM*JM*LM)
+      CLDSAVL(L)=CLDSSL(L)
+      IF(TAUMCL(L).GT.0..AND.CKIJ.EQ.1.) GO TO 526
+      BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
+      IF(CLDSAVL(L).GE..95) BMAX=CLDSAVL(L)
+      IF(L.EQ.1.OR.PLE(L+1).GT.930.) THEN
+        CLDSSL(L)=CLDSSL(L)+
+     *               (BMAX-CLDSSL(L))*CKIJ
+        TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/
+     *               (CLDSSL(L)+1.E-20)
+      ENDIF
+      IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
+      IF(L.EQ.1.OR.PLE(L+1).GT.930..OR.TAUMCL(L).GT.0.) GO TO 526
+      CLDSSL(L)=CLDSSL(L)**(2.*RECIP3)
+      TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**RECIP3
+  526 CONTINUE
+      IF(WMX(L).LE.0.) SVLHXL(L)=0.
+      END DO
+
+
       RETURN
-      END SUBROUTINE CONDSE
+      END SUBROUTINE CONDSE_LOC
 C****
       SUBROUTINE CTMIX (RM,RX,RY,RZ,RXX,RXY,RYY,RYZ,RZZ,RZX,L,FMAIR,
      *     FMIX,FRAT,LM)
@@ -1979,4 +1625,4 @@ C**** This function to be replaced by standard version in UTILDBL
       RETURN
       END FUNCTION QSAT
 
-      END MODULE CLOUDS
+      END MODULE CLD01
