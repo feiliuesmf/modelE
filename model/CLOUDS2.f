@@ -1172,6 +1172,18 @@ C**** diagnostics
         SMOM(:,L)=SMOMT(:,L)+(SMOM(:,L)-SMOMT(:,L))/FMC1
         QM(L)=QMT(L)+(QM(L)-QMT(L))/FMC1
         QMOM(:,L)=QMOMT(:,L)+(QMOM(:,L)-QMOMT(:,L))/FMC1
+        IF(QM(L).LT.0.d0) THEN  ! evaporate some condensate
+          SLH=LHX*BYSHA
+          DQEVP=-QM(L)
+          IF(DQEVP.GT.COND(L)/FMC1) DQEVP=COND(L)/FMC1
+          QM(L)=QM(L)+DQEVP
+          SMOM(:,L)=SMOM(:,L)*(1.-SLH*DQEVP/(PLK(L)*SM(L)))
+          SM(L)=SM(L)-SLH*DQEVP/PLK(L)
+          COND(L)=COND(L)-DQEVP*FMC1
+          TAUMCL(L)=TAUMCL(L)-DQEVP*FMC1
+          CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
+          EVPSUM=EVPSUM+DQEVP*SLH
+        END IF
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
