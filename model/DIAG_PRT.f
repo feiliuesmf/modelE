@@ -2750,7 +2750,7 @@ c
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap
       REAL*8, DIMENSION(JM) :: smapj
       integer i,j,k1,k2,k,iwt,jgrid,irange,n1,n2
-      character(len=20) name,units
+      character(len=30) name,units
       character(len=80) lname
       real*8 :: gm, off, byiacc, scalek
 
@@ -3017,7 +3017,7 @@ c    &     IJ_DSEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
       INTEGER Iord(kaijx+10),nmaplets,nmaps ! 10 extra blank maplets
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
-      CHARACTER xlb*32,title*48,lname*80,name*20,units*20
+      CHARACTER xlb*32,title*48,lname*80,name*30,units*30
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
 

@@ -289,7 +289,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
       REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
-      character(len=20), dimension(kaijx) :: name_ij,units_ij
+      character(len=30), dimension(kaijx) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=80), dimension(kaijx) :: lname_ij
 !@var IW_IJ weighting indices for IJ diagnostics

@@ -342,7 +342,7 @@ c restore defaults
 !@var LNAME long name of field
       CHARACTER, INTENT(IN) :: LNAME*50
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS*50
+      CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
 !@var XJ lat sum/mean of output field
