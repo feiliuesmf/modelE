@@ -1011,7 +1011,7 @@ C**********************************************************************
       REAL*8 XUby4toN,XVby4toN,YVby4toN
       REAL*8 :: DT1=0.
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
-      REAL*8 YV,YV2,YVJ,YVJM1,X1,XI,XIM1
+      REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
       REAL*8 ediff,angm,dpt

@@ -82,7 +82,7 @@ C**** Interface to PBL
       USE TRACER_DIAG_COM, only : taijn,tij_surf,taijs,ijts_isrc
      *     ,tajls,jls_source,jls_isrc
 #ifdef TRACERS_WATER
-           ,tij_evap,tij_grnd
+     *     ,tij_evap,tij_grnd
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,itcon_dd
