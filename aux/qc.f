@@ -7,6 +7,7 @@
       USE RADNCB
       USE DAGCOM
       USE TIMINGS
+      USE PARAM
       IMPLICIT NONE
       NAMELIST/INPUTZ/ KOCEAN,PTOP,PSF,LS1,DTsrc
 C****    List of parameters that COULD be changed during a run:
@@ -56,6 +57,21 @@ C**** Check first file
       call io_label(10,Itime1,ioread,ioerr)
       if (ioerr.eq.1) go to 860
       CLOSE (10)
+      
+      call get_param( "Itime", Itime) 
+      call get_param( "IYEAR0", IYEAR0) 
+      call get_param( "NDAY", NDAY )
+
+C**** Calculate derived date info
+      JYEAR=IYEAR0+Itime/(Nday*JDperY)
+      JDAY=1+Itime/Nday-(JYEAR-IYEAR0)*JDperY
+      JMON=1
+      DO WHILE (JDAY.GT.JDendOfM(JMON))
+        JMON=JMON+1
+      END DO
+      JDATE=JDAY-JDendOfM(JMON-1)
+      JHOUR=MOD(Itime*24/NDAY,24)
+
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
       TOT=0
       DO N=1,NTIMEACC
