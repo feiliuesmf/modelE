@@ -7,11 +7,11 @@
       IMPLICIT NONE
       SAVE
 
-!@var IMH half the number of latitudinal boxes
+!@param IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
-!@var FIM,BYIM real parameter values for the number of long. grid boxes
+!@param FIM,BYIM real values related to number of long. grid boxes
       REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
-!@var JEQ grid box zone around or immediately north of the equator
+!@param JEQ grid box zone around or immediately north of the equator
       INTEGER, PARAMETER :: JEQ=1+JM/2
 
       CHARACTER*132 XLABEL !@var XLABEL=runID+brief description of run
@@ -42,9 +42,9 @@ c**** not working yet for EARTH
       integer :: KCOPY=2, NMONAV=1, Kvflxo=0, NIPRNT=1
 
 C**** (Simplified) Calendar Related Terms
-!@var JDperY,JMperY    number of days,months per year
-!@var JDendOfM(0:12)   last Julian day in month
-!@var JDmidOfM(0:13)   middle Julian day in month
+!@param JDperY,JMperY    number of days,months per year
+!@var   JDendOfM(0:12)   last Julian day in month
+!@var   JDmidOfM(0:13)   middle Julian day in month
       integer, PARAMETER :: JDPERY = 365, JMPERY = 12
       integer :: JDendOfM(0:JMPERY) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
@@ -95,6 +95,7 @@ C**** slightly larger, to sample all points within the cycle
 !@var NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE  DB-param
 !@var NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn DB-param
 !@var NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src DB-param
+!@var NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf         DB-param
 !@var NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history       DB-param
       INTEGER :: NDAa=7, NDA5d=7, NDA5k=7, NDA5s=7, NDASf=1, NDA4=24
 
@@ -104,12 +105,13 @@ C**** slightly larger, to sample all points within the cycle
 !@var NSTEP number of dynamics steps since start of run
 !@var MRCH  flags position in dynamics cycle (>0 fw, <0 bw step)
       INTEGER :: IRAND=123456789, KDISK=1, NSTEP,MRCH
-!@var MODRD,MODD5K,MODD5S MODxxx=0 indicates: xxx_time_step arrived
+!@var MODRD,MODD5K,MODD5S: if MODxxx=0 do xxx, else skip xxx
       INTEGER :: MODRD, MODD5K, MODD5S
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
       INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
-!@var NSAMPL, IDACC(NSAMPL) counters for diagn. accumulations
+!@param NSAMPL number of diagnostic smaplig schemes
       INTEGER, PARAMETER :: NSAMPL = 12
+!@var IDACC(NSAMPL) counters for diagn. accumulations
       INTEGER, DIMENSION(NSAMPL) :: IDACC
 
 !**** Boundary condition arrays:
@@ -146,7 +148,7 @@ C**** Define surface types (mostly used for weighting diagnostics)
       INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
 !@var FTYPE fractions of each surface type
       REAL*8, DIMENSION(NTYPE,IM,JM) :: FTYPE
-!@var ITxx indices of various types (used only when it matters)
+!@param ITxx indices of various types (used only when it matters)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
 
