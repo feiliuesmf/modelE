@@ -50,6 +50,62 @@ C**** Each tracer has a variable name and a unique index
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
 #else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+!@var ntm_chem number of drew-only tracers
+      integer, parameter :: Ntm_dust=4,rhet=3
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
+     *                                         ,rxts4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=32,ntm_chem=21
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#else
+      integer, parameter :: ntm=26,ntm_chem=15
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#endif
+#else
+#if (defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)
+!@var ntm_chem number of drew-only tracers
+      integer, parameter :: Ntm_dust=4,rhet=3
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
+     *                                         ,rxts4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=25,ntm_chem=21
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#else
+      integer, parameter :: ntm=19,ntm_chem=15
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+#endif
+#else
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
 !@var ntm_chem number of drew-only tracers
 #ifdef regional_Ox_tracers
@@ -115,6 +171,25 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #endif
 #else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_HETCHEM)
+      integer, parameter :: ntm=15,Ntm_dust=4,rhet=3     
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
+     *                                         ,rxts4
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: krate
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','SO4_d1  ','SO4_d2  ','SO4_d3  ',
+     *    'SO4_d4  ','Clay    ','Silt1   ','Silt2   ','Silt3   '/)
+
+#else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST)
+      integer, parameter :: ntm=11,Ntm_dust=4
+      character*8, parameter :: trname(ntm)=(/
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
+     *    'seasalt1','seasalt2','Clay    ','Silt1   ','Silt2   ',
+     *    'Silt3   '/)
+
+#else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=7
       character*8, parameter :: trname(ntm)=(/
@@ -139,6 +214,10 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/'Air     '/)
 #endif
 #endif
+#endif
+#endif
+#endif
+#endif 
 #endif
 #endif
 #endif
@@ -171,7 +250,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
-     *     n_seasalt1=0,  n_seasalt2=0,
+     *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
+     *     n_SO4_d3=0, n_SO4_d4=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
@@ -224,7 +304,7 @@ C****
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
-      integer, parameter :: ntsurfsrcmax=15
+      integer, parameter :: ntsurfsrcmax=14
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
 !@var ntisurfsrc no. of interactive surface sources for each tracer
@@ -316,6 +396,14 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       ALLOCATE(	frqlos(IM,J_0H:J_1H,LM),
      *          STAT=IER)
+#endif
+#if ((defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)) || (defined TRACERS_HETCHEM)
+      ALLOCATE( rxts(IM,J_0H:J_1H,LM),
+     *         rxts1(IM,J_0H:J_1H,LM),
+     *         rxts2(IM,J_0H:J_1H,LM),
+     *         rxts3(IM,J_0H:J_1H,LM),
+     *         rxts4(IM,J_0H:J_1H,LM),
+     *         krate(IM,J_0H:J_1H,LM,rhet) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
