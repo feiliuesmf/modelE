@@ -14,7 +14,7 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only    : LM
+      USE MODEL_COM, only    : LM
       USE CONSTANT, only      : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
      &                          szamax,U0,NCFASTJ
@@ -71,7 +71,7 @@ C
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only    : IM,JM,LM
+      USE MODEL_COM, only    : IM,JM,LM
       USE TRCHEM_Shindell_COM, only:SALBFJ,RCLOUDFJ,jndlev,NCFASTJ,aer,
      &                          ZFASTJ,jaddlv,jaddto,PFASTJ,RFLECT,
      &                          odtmp,odsum,odmax,luselb,nlbatm,zlbatm
@@ -130,7 +130,7 @@ c
 c Scale optical depths as appropriate
       odsum =   0.d0
       do i=1,LM
-        odtmp(i) = dble(RCLOUDFJ(nslon,nslat,i))
+        odtmp(i) = dble(RCLOUDFJ(i,nslon,nslat))
         odsum    = odsum + odtmp(i)
       enddo
       if(odsum.gt.odmax) then
@@ -179,8 +179,7 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only: JM, LS1
-      USE MODEL_COM, only: month=>JMON
+      USE MODEL_COM, only: JM, LS1, month=>JMON
       USE TRCHEM_Shindell_COM, only: O3_FASTJ,cboltz,dlogp,O3J,TJ,DBC,
      &                          OREF,TREF,BREF,DO3,DMFASTJ,NCFASTJ,
      &                          PFASTJ
@@ -395,7 +394,7 @@ C
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only: LM
+      USE MODEL_COM, only: LM
       USE TRCHEM_Shindell_COM, only: JPNL,NW1,NW2,FFF,WL,NCFASTJ,TJ,FL,
      &                          XQO2,XQO3
 c
@@ -665,7 +664,7 @@ C---------------------------------------------------------------------
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only: LM
+      USE MODEL_COM, only: LM
       USE TRCHEM_Shindell_COM, only:XQO2,XQO3,N__,M__,MIEDX,QAAFASTJ,
      &                          ncFASTJ,jaddto,jaddlv,FTAU,NLBATM,XLTAU,
      &                          DO3,DMFASTJ,DBC,QBC,QRAYL,AER,DTAUDZ,
