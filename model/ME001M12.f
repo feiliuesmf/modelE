@@ -153,8 +153,8 @@ C**** RADIATION, SOLAR AND THERMAL
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
 C****
-C**** NOTE THAT FLUXES ARE APPLIED IN TOP DOWN ORDER SO THAT THE
-C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED
+C**** NOTE THAT FLUXES ARE APPLIED IN TOP-DOWN ORDER SO THAT THE
+C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       CALL PRECIP_SI
       CALL PRECIP_LI
@@ -217,13 +217,13 @@ C****
         CALL DAILY(1)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
-           CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
-           CALL DIAG9A (10)
         call daily_EARTH(1)
         CALL daily_LAKE(1)
         call daily_OCEAN(1)
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
+           CALL DIAG5A (16,NDAY*NIdyn)                      ! ?
+           CALL DIAG9A (10)
       END IF
 C****
 C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
@@ -963,15 +963,14 @@ C****
       REWIND iu_TOPO
 C**** Initialize ice 
       CALL init_ice
-C**** Initialize pbl (and read in file containing roughness length data)
-      CALL init_pbl(iniPBL)
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)
-
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN
+C**** Initialize land ice (must come after oceans)
+      CALL init_LI
 
 C**** READ IN VEGETATION DATA SET: VDATA
       call getunit("VEG",iu_VEG,.true.,.true.)
@@ -984,12 +983,9 @@ C**** INITIALIZE GROUND HYDROLOGY ARRAYS
 C**** Recompute GHDATA if redoGH (new soils data)
 C****
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW)
-      IF (redoGH) THEN
-        WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
-cc?     Copy Snow age info into GDATA array
-cc?     GDATA(:,:, 9)=SNOAGE(:,:,1)
-cc?     GDATA(:,:,10)=SNOAGE(:,:,2)
-      END IF
+C**** Initialize pbl (and read in file containing roughness length data)
+      CALL init_pbl(iniPBL)
+C****
       CALL RINIT (IRAND)
       CALL FFT0 (IM)
       CALL init_CLD
@@ -1097,6 +1093,7 @@ C**** CORRECTED.
       USE E001M12_COM
       USE DAGCOM, only : QCHECK
       IMPLICIT NONE
+      INTEGER I,J
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       IF (QCHECK) THEN
@@ -1107,6 +1104,14 @@ C**** Check all prog. arrays for Non-numbers
          CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
          CALL CHECK3(P,IM,JM,1,SUBR,'p ')
          CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
+
+         DO J=1,JM
+           DO I=1,IM
+             IF (Q(I,J,1).gt.1d-2) print*,SUBR," Q BIG ",i,j,Q(I,J,1)
+             IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1)
+           END DO
+         END DO
+
 C**** Check PBL arrays
          CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
@@ -1199,6 +1204,7 @@ C**** Calls to individual i/o routines
       END IF
       if (ioerr.eq.1) WRITE(6,*) "I/O ERROR IN RESTART FILE: KUNIT="
      *     ,kunit
+      close (kunit)
 
       RETURN
       END SUBROUTINE io_rsf

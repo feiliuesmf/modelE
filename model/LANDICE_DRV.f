@@ -1,7 +1,26 @@
 !@sum  LANDICE_DRV contains drivers for LANDICE related routines
 !@auth Gavin Schmidt
 !@ver  1.0
-!@cont PRECIP_LI,GROUND_LI
+!@cont init_LI,PRECIP_LI,GROUND_LI
+
+      SUBROUTINE init_LI
+!@sum  init_ice initialises landice arrays 
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+      USE LANDICE_COM, only : tlandi
+      USE FLUXES, only : gtemp
+      IMPLICIT NONE
+      INTEGER I,J
+
+C**** set GTEMP array for landice
+      DO J=1,JM
+        DO I=1,IM
+          GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+        END DO
+      END DO
+C****
+      END SUBROUTINE init_LI
 
       SUBROUTINE PRECIP_LI
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
@@ -16,6 +35,7 @@
       USE DAGCOM, only : aj,areg,aij,jreg,
      *     ij_f0li,ij_f1li,ij_erun2,ij_runli,j_difs
      *     ,j_run1,j_edifs,j_erun2,j_imelt,j_type
+      USE FLUXES, only : gtemp
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
@@ -44,6 +64,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
+        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_DIFS, ITLANDI)=AJ(J,J_DIFS, ITLANDI)+DIFS *PLICE
         AJ(J,J_RUN1, ITLANDI)=AJ(J,J_RUN1, ITLANDI)+RUN0 *PLICE
@@ -76,7 +97,7 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! land ice (Tg=0
      *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_difs,j_wtr1
      *     ,j_ace1,j_wtr2,j_ace2,j_snow,j_run1,j_f2dt,j_edifs,j_f1dt
      *     ,j_erun2,j_imelt,j_run2,j_evap
-      USE FLUXES, only : e0,e1,evapor
+      USE FLUXES, only : e0,e1,evapor,gtemp
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ
@@ -107,6 +128,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
+        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
 C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_TG1,ITLANDI)  =AJ(J,J_TG1,ITLANDI)  +TG1  *PLICE
         AJ(J,J_TG2,ITLANDI)  =AJ(J,J_TG2,ITLANDI)  +TG2  *PLICE

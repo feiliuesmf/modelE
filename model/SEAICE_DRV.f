@@ -41,18 +41,17 @@
         ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
-        AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
-
         HSIL(:) = HSI(:,I,J)      ! sea ice temperatures
         QFIXR = .TRUE.
         IF (KOCEAN.eq.1) QFIXR=.FALSE.
 c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
+        AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
-        
+
         CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,PRCP,ENRGP,RUN0,DIFS,EDIFS
      *       ,ERUN2,QFIXR)
-        
+
         SNOWI(I,J)=SNOW
         RUNOSI(I,J) =RUN0
         HSI(1:2,I,J)=HSIL(1:2)
@@ -89,7 +88,7 @@ C****
       USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,flake,itoice,itlkice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : e0,e1,evapor,runosi,erunosi
+      USE FLUXES, only : e0,e1,evapor,runosi,erunosi,gtemp
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
       USE SEAICE, only : sea_ice,lmi
       USE OCEAN, only : tocean
@@ -123,11 +122,10 @@ C****
         SNOW= SNOWI(I,J)  ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)  ! first layer sea ice enthalpy
+        TGW=GTEMP(1,1,I,J)    ! underneath water temperature
         IF (FOCEAN(I,J).gt.0) THEN
-          TGW = TOCEAN(1,I,J)   ! ocean temperature
           ITYPE=ITOICE
         ELSE
-          TGW = TLAKE(I,J)      ! lake temperature
           ITYPE=ITLKICE
         END IF
 
@@ -139,17 +137,14 @@ C****
         QFIXR = .TRUE.
         IF (KOCEAN.eq.1) QFIXR=.FALSE.
 c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
-        
+
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP,TGW
      *       ,RUN0,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
         
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)  
-
-        IF (.not. QFIXR) THEN
-          MSI(I,J) = MSI2
-        END IF
+        IF (.not. QFIXR) MSI(I,J) = MSI2
 
         RUNOSI(I,J) = RUN0+ACE2M
         ERUNOSI(I,J)= F2DT
@@ -227,10 +222,19 @@ C****
           FLEAD=FLEADOC
           ITYPE=ITOICE
           ITYPEO=ITOCEAN
+c          IF (KOCEAN.eq.1) THEN
+c            QFIXR=.FALSE.
+c            QCMPR=.TRUE.
+c          ELSE
+c            QFIXR=.TRUE.
+c            QCMPR=.FALSE.
+c          END IF
         ELSE
           FLEAD=FLEADLK
           ITYPE=ITLKICE
           ITYPEO=ITLAKE
+c          QFIXR=.FALSE.
+c          QCMPR=.FALSE.
         END IF
 
         ACEFO=DMSI(1,I,J)
@@ -351,5 +355,67 @@ C**** set GTEMP array for ice
           GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
         END DO
       END DO
+
+C**** Set conservation diagnostics for ice mass and energy
+c      QCON=(/ F, F, F, T, T, T, F, F, T/)
+c      CALL SET_CON(QCON,"ICE MASS","(10**10 KG/M^2)  ",
+c     *     "(10**3 KG/S/M^2)",1d-10,1d-3)      
+c      QCON=(/ F, F, F, T, T, T, F, F, T/)
+c      CALL SET_CON(QCON,"ICE ENRG","(10**14 J/M^2)   ",
+c     *     "(10**8 J/S/M^2) ",1d-14,1d-8)      
 C****
       END SUBROUTINE init_ice
+
+      SUBROUTINE conserv_ICE(ICE)
+!@sum  conserv_ICE calculates total amount of snow and ice over water      
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,fim,fland
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi,msi,snowi
+      USE SEAICE, only : ace1i
+      IMPLICIT NONE
+!@var ICE total snow and ice mass (kg/m^2) 
+      REAL*8, DIMENSION(JM) :: ICE
+      INTEGER I,J
+
+      DO J=1,JM
+        ICE(J)=0
+        DO I=1,IMAXJ(J)
+          ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
+     *         *(1.-FLAND(I,J))
+        END DO
+      END DO
+      ICE(1) =FIM*ICE(1)
+      ICE(JM)=FIM*ICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_ICE
+
+      SUBROUTINE conserv_EIC(EICE)
+!@sum  conserv_EIC calculates total ice energy over water      
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,fim,fland
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi,hsi
+      IMPLICIT NONE
+!@var EICE total snow and ice energy (J/m^2) 
+      REAL*8, DIMENSION(JM) :: EICE
+      INTEGER I,J
+
+      DO J=1,JM
+        EICE(J)=0
+        DO I=1,IMAXJ(J)
+          EICE(J)=EICE(J)+RSI(I,J)*(1.-FLAND(I,J))*
+     *         (HSI(1,I,J)+HSI(2,I,J)+HSI(3,I,J)+HSI(4,I,J))
+        END DO
+      END DO
+      EICE(1) =FIM*EICE(1)
+      EICE(JM)=FIM*EICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_EIC
+
+
+

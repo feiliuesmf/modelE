@@ -276,10 +276,7 @@ c -------------------------------------------------------------
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek
-      USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi
-      USE GHYCOM, only : tearth
-      USE LANDICE_COM, only : tlandi
       USE FLUXES, only : gtemp
       USE FILEMANAGER
 
@@ -322,13 +319,13 @@ C things to be done regardless of inipbl
           psoil=fearth(i,j)
           poice=rsi(i,j)*pwater
           pocean=pwater-poice
-          tgvdat(i,j,1)=tocean(1,i,j) + TF
+          tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
           if (pocean.le.0.) tgvdat(i,j,1)=0.
-          tgvdat(i,j,2)=gtemp(1,2,i,j)+ TF
+          tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
           if (poice.le.0.)  tgvdat(i,j,2)=0.
-          tgvdat(i,j,3)=tlandi(1,i,j) + TF
+          tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
           if (plice.le.0.)  tgvdat(i,j,3)=0.
-          tgvdat(i,j,4)=tearth(i,j)   + TF
+          tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
           if (psoil.le.0.)  tgvdat(i,j,4)=0.
         end do
       end do

@@ -31,7 +31,9 @@ ccc physical parameters
 ccc model parameters
       real*8, parameter :: EPS = 1.d-8  ! was 1.d-12
       integer, parameter :: MAX_NL = 16
-      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
+ccc trying to increase MIN_SNOW_THICKNESS for stability
+ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
+      real*8, parameter :: MIN_SNOW_THICKNESS =  0.1d0
       real*8, parameter :: MIN_FRACT_COVER = 0.0001d0
 
 ccc channels for debug output:
@@ -245,8 +247,11 @@ ccc for debug
       total_energy = total_energy -
      &    (srht+trht-snht-lat_evap*evaporation+htpr)*dt
       total_energy = total_energy + heat_to_ground + radiation_out*dt
-      if ( abs(total_energy) .gt. 1.d0 ) call abort
-
+      if ( abs(total_energy) .gt. 1.d0 ) then
+        print*, "total energy error",total_energy,heat_to_ground
+     *       ,radiation_out*dt
+         call abort
+       end if
 ccc   just for debug:
 ccc      water_to_ground =  pr
 ccc      heat_to_ground = (srht+trht)*dt
@@ -302,14 +307,20 @@ c!!!  thi is for debugging
       do n=1,nl
         if(fract_cover .gt. EPS) then
           if(wsn(n).gt.EPS .and.
-     &       wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
+     &       wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
+            print*,"wsn error",n,wsn(n),wsn(n)/dz(n)*rho_water
+     *           ,rho_fresh_snow
+            call abort
+          end if
           endif
         enddo
 
 ccc the following lines fix the problem with initial call
 ccc with fract_cover==1 and dz(1)<MIN_SNOW_THICKNESS
-      if( fract_cover .ge. 1.d0-EPS
+      if( fract_cover .ge. 1.d0-EPS .and. nl .eq. 1
      &    .and. dz(1) .lt. MIN_SNOW_THICKNESS ) then
+ccc condition nl .eq. 1  was put to the statement above
+ccc the following if should be removed if it works ok with thicker snow
         if( nl .ne. 1 ) then
           print *, 'OOPS: nl= ',nl,' fract_cover= ',fract_cover
      &              ,'dz= ', dz
@@ -395,8 +406,11 @@ c!!      heat_down = heat_down - lat_evap*evaporation*dt
 c!!!  thi is for debugging
       do n=1,nl
         if((wsn(n)+water_down+evaporation*dt)/dz(n)*rho_water+EPS
-     &      .lt.rho_fresh_snow)
-     &            call abort
+     &      .lt.rho_fresh_snow) then
+          print*,"wsn error 2",n,wsn(n),(wsn(n)+water_down+evaporation
+     *         *dt)/dz(n)*rho_water,rho_fresh_snow
+          call abort
+        end if
       enddo
 
       call pass_water( wsn, hsn, dz, nl, water_down, heat_down,
@@ -408,7 +422,11 @@ c!!!  thi is for debugging
 c!!!  thi is for debugging
       do n=1,nl
         if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
+     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
+          print*,"wsn error 3",n,wsn(n),wsn(n)/dz(n)*rho_water
+     *         ,rho_fresh_snow
+          call abort
+        end if
       enddo
 
 ccc redistribute snow over the layers
@@ -427,7 +445,7 @@ ccc redistribute snow over the layers
 ccc check if there is any snow at all ?
 ccc      if ( fract_cover.lt.EPS ) then   !/* no snow left ... */
 c!!! disable fractional cover for debugging
-      if ( fract_cover.lt.MIN_FRACT_COVER ) then   !/* debudgging !!!*/
+      if ( fract_cover.lt.MIN_FRACT_COVER ) then   !/* debugging !!!*/
         tsn_surf = t_ground
         heat_to_ground = heat_to_ground +
      &       ( srht+trht-sigma*(tsn_surf+tfrz)**4
@@ -517,7 +535,11 @@ c!!! is to keep minimal thickness of snow big enough
 c!!!  thi is for debugging
       do n=1,nl
         if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
+     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
+          print*,"wsn error 4",n,wsn(n),wsn(n)/dz(n)*rho_water
+     *         ,rho_fresh_snow
+          call abort
+        end if
       enddo
 
 ccc pass extra water down
@@ -598,7 +620,11 @@ ccc repack the layers
 c!!!  this is for debugging
       do n=1,nl
         if(wsn(n).gt.EPS .and.
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
+     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) then
+          print*,"wsn error 5",n,wsn(n),wsn(n)/dz(n)*rho_water
+     *         ,rho_fresh_snow
+          call abort
+        end if
       enddo
 
 c!!! this is for debugging
@@ -611,7 +637,10 @@ ccc      if(tsn(1).lt.-120.d0) call abort
       endif
 
 c!!! this is for debugging
-      if(tsn(1).lt.-120.d0) call abort
+      if(tsn(1).lt.-120.d0) then
+        print*,"tsn error",1,tsn(1:nl)
+        call abort
+      end if
 
       retcode = 0
       return
@@ -633,6 +662,7 @@ ccc arrays for coefficients:
       real*8 a(MAX_NL), b(MAX_NL), c(MAX_NL), f(MAX_NL)
       real*8 left, right, dt_to_cdz
       integer n, iter
+      integer :: itermax=2
 
 ccc setting implicit/explicit choice for each layer
 ccc eta=1 - implicit, eta=0 - explicit
@@ -659,7 +689,7 @@ ccc (of course one has to use preprocessing to do it ...)
 ccc it is enabled by default
 
       !/*#ifdef DO_EXPLIC_0*/
-      do iter=1,2
+      do iter=1,itermax
       !/*#endif*/
 ccc equation for upper snow layer
         n = 1
@@ -699,7 +729,7 @@ ccc flux_corr is the energy wich should be returned to the atmosphere
         syst_flux_err = flux_in_deriv*( tnew(1) - 0.d0 )*gamma
         ! if ( iter/=2 .and. tnew(1)>0.d0 .and. flux_in_deriv<0.d0 ) then
         ! back to 77 :-L
-        if ( iter.ne.2 .and.
+        if ( iter.ne.itermax .and.
      &         tnew(1).gt.0.d0 .and. flux_in_deriv.lt.0.d0 ) then
           syst_flux_err = flux_in_deriv*( tnew(1) - 0.d0 )*gamma
           gamma = (1.d0 - syst_flux_err/flux_corr) *gamma

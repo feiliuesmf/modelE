@@ -351,12 +351,10 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
-      USE OCEAN, only : tocean
-      USE LAKES_COM, only : tlake
       USE SEAICE_COM, only : rsi,snowi
-      USE GHYCOM, only : snowe_com=>snowe,snoage,tearth,
+      USE GHYCOM, only : snowe_com=>snowe,snoage,
      *     wearth_com=>wearth,aiearth
-      USE LANDICE_COM, only : snowli_com=>snowli,tlandi
+      USE LANDICE_COM, only : snowli_com=>snowli
       USE FLUXES, only : gtemp
       USE FILEMANAGER
 
@@ -391,7 +389,7 @@ C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
 C**** VDATA  1-11 RATIOS FOR THE 11 VEGETATION TYPES (1)
@@ -646,14 +644,10 @@ C****
         TL(LM+K)=RQT(K,I,J)
       END DO
       COSZ=COSZA(I,J)
-      IF (FOCEAN(I,J).gt.0) THEN
-        TGO =TOCEAN(1,I,J)+TF
-      ELSE
-        TGO =TLAKE(I,J)+TF
-      END IF
+      TGO =GTEMP(1,1,I,J)+TF
       TGOI=GTEMP(1,2,I,J)+TF
-      TGLI=TLANDI(1,I,J)+TF
-      TGE =TEARTH(  I,J)+TF
+      TGLI=GTEMP(1,3,I,J)+TF
+      TGE =GTEMP(1,4,I,J)+TF
       TS=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)

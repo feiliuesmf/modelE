@@ -5377,13 +5377,14 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : mdiag
-      USE DAGCOM, only : nofm
+      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
+     *     ,icon_LKM,icon_LKE
       IMPLICIT NONE
 !@var M index denoting from where DIAG9A is called
       INTEGER, INTENT(IN) :: M
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAG9A IS BEING CALLED
-C**** M=1  INITIALIZE CURRENT A.M., K.E., MASS, T.P.E. AND W.V.
+C**** M=1  INITIALIZE CURRENT QUANTITY
 C****   2  AFTER DYNAMICS
 C****   3  AFTER CONDENSATION
 C****   4  AFTER RADIATION
@@ -5400,23 +5401,23 @@ C****
       REAL*8 MNOW
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
-      CALL conserv_DIAG(M,conserv_AM,NOFM(1,1))
+      CALL conserv_DIAG(M,conserv_AM,icon_AM)
 
 C**** ATMOSPHERIC KINETIC ENERGY
-      CALL conserv_DIAG(M,conserv_KE,NOFM(1,2))
+      CALL conserv_DIAG(M,conserv_KE,icon_KE)
 
 C**** ATMOSPHERIC MASS
-      CALL conserv_DIAG(M,conserv_MS,NOFM(1,3))
+      CALL conserv_DIAG(M,conserv_MS,icon_MS)
 
 C**** ATMOSPHERIC TOTAL POTENTIAL ENERGY
-      CALL conserv_DIAG(M,conserv_PE,NOFM(1,4))
+      CALL conserv_DIAG(M,conserv_PE,icon_TPE)
 
 C**** ATMOSPHERIC TOTAL WATER MASS
-      CALL conserv_DIAG(M,conserv_WM,NOFM(1,5))
+      CALL conserv_DIAG(M,conserv_WM,icon_WM)
 
 C**** LAKE MASS AND ENERGY
-      CALL conserv_DIAG(M,conserv_LKM,NOFM(1,6))
-      CALL conserv_DIAG(M,conserv_LKE,NOFM(1,7))
+      CALL conserv_DIAG(M,conserv_LKM,icon_LKM)
+      CALL conserv_DIAG(M,conserv_LKE,icon_LKE)
 C**** 
       CALL TIMER (MNOW,MDIAG)
       RETURN
@@ -5648,32 +5649,32 @@ C****
   907 FORMAT ('0')
       END SUBROUTINE DIAG9P
 
-      SUBROUTINE conserv_DIAG (M,CONSFN,NCON)
+      SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
-      USE DAGCOM, only : consrv
+      USE E001M12_COM, only : jm
+      USE DAGCOM, only : consrv,nofm
       IMPLICIT NONE
-
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
-!@var NCON array that gives indices for CONSRV array
-      INTEGER, DIMENSION(8),INTENT(IN) :: NCON
-C**** NCON contains the indexes of the CONSRV array where each
-C**** change is to be stored. If NCON(M)=0, no calculation is done.
-C**** NCON(1) is the index for the instantaneous value.
+!@var ICON index for the quantity concerned
+      INTEGER, INTENT(IN) :: ICON
 !@var CONSFN external routine that calculates total conserved quantity
       EXTERNAL CONSFN
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(JM) :: TOTAL
       INTEGER :: I,J,NM,NI
 
-      IF (NCON(M).gt.0) THEN
+C**** NOFM contains the indexes of the CONSRV array where each
+C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
+C**** no calculation is done.
+C**** NOFM(1,ICON) is the index for the instantaneous value.
+      IF (NOFM(M,ICON).gt.0) THEN
 C**** Calculate current value TOTAL 
         CALL CONSFN(TOTAL)
-        NM=NCON(M)
-        NI=NCON(1)
+        NM=NOFM(M,ICON)
+        NI=NOFM(1,ICON)
 C**** Accumulate difference from last time in CONSRV(NM)
         IF (M.GT.1) THEN
           DO J=1,JM
@@ -7384,8 +7385,10 @@ C**** Initialize certain arrays used by more than one print routine
 
 C**** Initialize conservation diagnostics
 C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
-      NOFM(:,1) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10 /)
-      NOFM(:,2) = (/ 12,17,18, 0, 0, 0,19,20,21,22 /)
+      icon_AM=1
+      NOFM(:,icon_AM) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10 /)
+      icon_KE=2
+      NOFM(:,icon_KE) = (/ 12,17,18, 0, 0, 0,19,20,21,22 /)
       NSUM_CON(1:23) = (/-1, 4, 4,0,-1,11,11,11,11,11,0,
      *                   -1,15,15,0,-1,23,23,23,23,23,23,0/)
       IA_CON(1:23) = (/12,6,6,6,6,7,8,8,10, 9,12,
@@ -7424,38 +7427,33 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
      *  ' CHANGE OF KE BY FILTER         ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**-3 W/M**2) '/)
-C**** Automatically set up other conservation diagnostics
-C**** QCON denotes when the conservation diags should be done 
-C**** 1:NPTS ==> DYN, COND, RAD, PREC, LAND, SURF, STRAT, FILTER, DAILY
-C**** Atmospheric mass
-      QCON=(/ T, F, F, F, F, F, F, T, T/)
-      CALL GET_NCON(QCON,"MASS    ","(KG/M**2)       ",
-     *     "(10^-8 KG/S/M^2)",1d0,1d8)      
-C**** Atmospheric total potential energy
-      QCON=(/ T, T, T, F, F, T, F, T, T /)
-      CALL GET_NCON(QCON,"TPE     ","(10**5 J/M**2)  ",
-     *     "(10**-2 W/M**2) ",1d-5,1d2)
-C**** Atmospheric water mass
-      QCON=(/ T, T, F, F, F, T, F, F, T/)
-      CALL GET_NCON(QCON,"WATER   ","(10**-2 KG/M**2)",
-     *     "(10^-8 KG/S/M^2)",1d2,1d8)      
 C**** To add a new conservation diagnostic:
 C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
-C****   ii) Set up a QCON, and call GET_NCON to allocate array numbers,
-C****       set up scales, titles, etc.
+C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
+C****       set up scales, titles, etc. The icon_XX index must be 
+C****       declared in DAGCOM.f for the time being
+C**** QCON denotes when the conservation diags should be done 
+C**** 1:NPTS ==> DYN, COND, RAD, PREC, LAND, SURF, STRAT, FILTER, DAILY
 C****  iii) Write a conserv_XYZ routine that returns the zonal average
 C****       of your quantity 
 C****   iv) Add a line to DIAG9A that calls conserv_DIAG (declared
 C****       as external)
-C****    v) Note that the conserv_XYZ routine, and call to GET_NCON 
+C****    v) Note that the conserv_XYZ routine, and call to SET_CON 
 C****       should be in the driver module for the relevant physics
-C**** Lake mass and energy
-      QCON=(/ F, F, F, T, T, T, F, F, T/)
-      CALL GET_NCON(QCON,"LAK MASS","(10**10 KG)      ",
-     *     "(10**3 KG/S)    ",1d-10,1d-3)      
-      QCON=(/ F, F, F, T, T, T, F, F, T/)
-      CALL GET_NCON(QCON,"LAK ENRG","(10**14 J)       ",
-     *     "(10**8 J/S)     ",1d-14,1d-8)      
+
+C**** Set up atmospheric component conservation diagnostics
+C**** Atmospheric mass
+      QCON=(/ T, F, F, F, F, F, F, T, T/)
+      CALL SET_CON(QCON,"MASS    ","(KG/M**2)       ",
+     *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)      
+C**** Atmospheric total potential energy
+      QCON=(/ T, T, T, F, F, T, F, T, T /)
+      CALL SET_CON(QCON,"TPE     ","(10**5 J/M**2)  ",
+     *     "(10**-2 W/M**2) ",1d-5,1d2,icon_TPE)
+C**** Atmospheric water mass
+      QCON=(/ T, T, F, F, F, T, F, F, T/)
+      CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
+     *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)      
 
       RETURN
       END SUBROUTINE init_DIAG
@@ -7536,9 +7534,9 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
       END SUBROUTINE daily_DIAG
 
-      SUBROUTINE GET_NCON(QCON,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
-     *     ,CHNG_SC)
-!@sum  GET_NCON assigns conservation diagnostic array indices
+      SUBROUTINE SET_CON(QCON,NAME_CON,INST_UNIT,SUM_UNIT,INST_SC
+     *     ,CHNG_SC,ICON)
+!@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sday
@@ -7558,6 +7556,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       CHARACTER*16, INTENT(IN) :: INST_UNIT
 !@var SUM_UNIT string for unit for summed changes
       CHARACTER*16, INTENT(IN) :: SUM_UNIT
+!@var ICON index for the conserved quantity
+      INTEGER, INTENT(OUT) :: ICON
 !@var CONPT titles for each point at which conservation diags. are done
       CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",
@@ -7611,6 +7611,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       NSUM_CON(NI+1:NS-1) = NS 
       NSUM_CON(NS) = 0 
       KC=NS
+      ICON=NQ
       IF (KC.gt.KCON) THEN 
         WRITE(6,*) "KCON not large enough for extra conservation diags"
      *       ,KCON,KC
@@ -7619,4 +7620,4 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
       RETURN
 C****
-      END SUBROUTINE get_ncon
+      END SUBROUTINE set_con

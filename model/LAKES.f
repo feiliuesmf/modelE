@@ -35,6 +35,8 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       USE SEAICE_COM, only : rsi
       USE LAKES
       USE LAKES_COM
+      USE DAGCOM, only : npts,icon_LKE,icon_LKM
+      USE FLUXES, only : gtemp
       USE FILEMANAGER
 
       IMPLICIT NONE
@@ -44,6 +46,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
@@ -77,6 +80,8 @@ C**** Set FTYPE array for lakes
           IF (FLAKE(I,J).gt.0) THEN
             FTYPE(ITLAKE ,I,J)=FLAKE(I,J)*(1.-RSI(I,J))
             FTYPE(ITLKICE,I,J)=FLAKE(I,J)*    RSI(I,J)
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMP(2,1,I,J)=0.
           END IF
         END DO
       END DO
@@ -194,14 +199,14 @@ C****
           END IF
         END DO
       END DO
-C****
-C**** Set runoff temperature of glacial ice to be 0 (C)
-C**** Is this necessary? ERUN0==0 already from FLICE
-c      DO J=1,JM
-c        DO I=1,IM
-c          IF(FLICE(I,J).GT.0.)  TLAKE(I,J) = 0
-c        END DO
-c      END DO
+
+C**** Set conservation diagnostics for Lake mass and energy
+      QCON=(/ F, F, F, T, T, T, F, F, T/)
+      CALL SET_CON(QCON,"LAK MASS","(10**10 KG)      ",
+     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)      
+      QCON=(/ F, F, F, T, T, T, F, F, T/)
+      CALL SET_CON(QCON,"LAK ENRG","(10**14 J)       ",
+     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)      
 
       RETURN
 C****
@@ -479,6 +484,7 @@ C**** set ftype arrays
       USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : mwl,gml,tlake
       USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2
+      USE FLUXES, only : gtemp
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,DXYPJ,PLICE,PLKICE,RUN0,ERUN0,POLAKE,ROICE
@@ -527,6 +533,7 @@ C**** This is here for continuity only
           END IF
           TGW=ENRGW/(WTRW*SHW)
           TLAKE(I,J)=TGW
+          GTEMP(1,1,I,J)=TLAKE(I,J)
           AJ(J,J_RUN2,ITLAKE) =AJ(J,J_RUN2,ITLAKE) +RUN4 *POLAKE
           AJ(J,J_DWTR2,ITLAKE)=AJ(J,J_DWTR2,ITLAKE)+ERUN4*POLAKE
           AJ(J,J_RUN2,ITLKICE) =AJ(J,J_RUN2,ITLKICE) +RUN4 *PLKICE
@@ -549,7 +556,7 @@ C****
      *     ,fearth,itlake,itlkice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
-     *     runoli, runoe, erunoe
+     *     runoli, runoe, erunoe, gtemp
       USE OCEAN, only : osourc
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -636,6 +643,7 @@ C**** Calculate the amount of ice formation
 
 C**** Resave prognostic variables
           TLAKE(I,J)=TGW
+          GTEMP(1,1,I,J)=TLAKE(I,J)
 C**** Open lake diagnostics 
           AJ(J,J_TG2,  ITLAKE)=AJ(J,J_TG2,  ITLAKE)+TLAKE(I,J)*POLAKE
           AJ(J,J_RUN2, ITLAKE)=AJ(J,J_RUN2, ITLAKE)+RUN4O     *POLAKE

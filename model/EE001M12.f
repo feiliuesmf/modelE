@@ -42,7 +42,7 @@ C****
      *     j_evap,j_erun1,j_difs,j_run2,j_dwtr2,j_run1,j_tsrf,j_f1dt
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
-     *     ,erunoe
+     *     ,erunoe,gtemp
 
       IMPLICIT NONE
 
@@ -352,6 +352,7 @@ C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
             GDEEP(I,J,1)=TG2AV
             GDEEP(I,J,2)=WTR2AV
             GDEEP(I,J,3)=ACE2AV
+            GTEMP(1,4,I,J)=TEARTH(I,J)
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
       DU1(I,J)=DU1(I,J)+PTYPE*DTSURF*RCDMWS*US/RMBYA
  3600 DV1(I,J)=DV1(I,J)+PTYPE*DTSURF*RCDMWS*VS/RMBYA
@@ -523,6 +524,8 @@ C**** Modifications needed for split of bare soils into 2 types
       USE E001M12_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
       USE GHYCOM
       USE SLE001, sinday=>sint,cosday=>cost
+      USE FLUXES, only : gtemp
+      USE DAGCOM, only : npts
       USE FILEMANAGER
       IMPLICIT NONE
 
@@ -531,6 +534,7 @@ C**** Modifications needed for split of bare soils into 2 types
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH, iniSNOW
+c      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER I, J
 C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
 C****
@@ -733,7 +737,16 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
         END IF
       END DO
       END DO
+      WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
       END IF
+C**** set gtemp array
+      DO J=1,JM
+        DO I=1,IM
+          IF (FEARTH(I,J).gt.0) THEN
+            GTEMP(1,4,I,J)=TEARTH(I,J)
+          END IF
+        END DO
+      END DO
 
 ccc   some extra code from snowmodel GHINIT
       SO_%ROSMP = 8.  ! no idea what this number means, but it is used
@@ -788,6 +801,15 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
         END DO
       END DO
       END IF
+
+C**** Set conservation diagnostics for ground water mass and energy
+c      QCON=(/ F, F, F, F, T, F, F, F, T/)
+c      CALL SET_CON(QCON,"GRND WTR","(10**6 KG/M^2)  ",
+c     *     "(10**2 KG/S/M^2)",1d-6,1d-2)      
+c      QCON=(/ F, F, F, F, T, F, F, F, T/)
+c      CALL SET_CON(QCON,"GRND HT ","(10**8 J/M^2)   ",
+c     *     "(10**3 J/S/M^2) ",1d-8,1d-3)      
+
 
       RETURN
       END SUBROUTINE init_GH
@@ -1217,3 +1239,68 @@ C****
       END DO
       END DO
       END SUBROUTINE GROUND_E
+
+      SUBROUTINE conserv_WTG(WATERG)
+!@sum  conserv_WTG calculates zonal ground water 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : rhow
+      USE E001M12_COM, only : im,jm,fim,fearth
+      USE GEOM, only : imaxj
+      USE GHYCOM, only : wbare,wvege,afb
+      USE SLE001, only : ngm
+      IMPLICIT NONE
+!@var WATERG zonal ground water (kg/m^2)
+      REAL*8, DIMENSION(JM) :: WATERG
+      INTEGER I,J,N
+      REAL*8 WIJ,FB
+
+      DO J=1,JM
+        WATERG(J)=0
+        DO I=I,IMAXJ(J)
+          IF (FEARTH(I,J).gt.0) THEN
+            FB=AFB(I,J)
+            WIJ=(1.-FB)*WVEGE(I,J,0)
+            DO N=1,NGM
+              WIJ=WIJ+FB*WBARE(I,J,N)+(1.-FB)*WVEGE(I,J,N)
+            END DO
+            WATERG(J)=WATERG(J)+FEARTH(I,J)*WIJ*RHOW
+          END IF
+        END DO
+      END DO
+      WATERG(1) =FIM*WATERG(1)
+      WATERG(JM)=FIM*WATERG(JM)
+C****
+      END SUBROUTINE conserv_WTG
+
+      SUBROUTINE conserv_HTG(HEATG)
+!@sum  conserv_HTG calculates zonal ground energy
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm,fim,fearth
+      USE GEOM, only : imaxj
+      USE GHYCOM, only : htbare,htvege,afb
+      USE SLE001, only : ngm
+      IMPLICIT NONE
+!@var HEATG zonal ground heat (J/m^2)
+      REAL*8, DIMENSION(JM) :: HEATG
+      INTEGER I,J,N
+      REAL*8 HIJ,FB
+
+      DO J=1,JM
+        HEATG(J)=0
+        DO I=I,IMAXJ(J)
+          IF (FEARTH(I,J).gt.0) THEN
+            FB=AFB(I,J)
+            HIJ=0.
+            DO N=0,NGM
+              HIJ=HIJ+FB*HTBARE(I,J,N)+(1.-FB)*HTVEGE(I,J,N)
+            END DO
+            HEATG(J)=HEATG(J)+FEARTH(I,J)*HIJ
+          END IF
+        END DO
+      END DO
+      HEATG(1) =FIM*HEATG(1)
+      HEATG(JM)=FIM*HEATG(JM)
+C****
+      END SUBROUTINE conserv_HTG

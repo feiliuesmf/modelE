@@ -76,6 +76,8 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, DIMENSION(KCON) :: NSUM_CON, IA_CON
 !@var NOFM indices for CONSRV array
       INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
+!@var icon_xx indexes for conservation quantities
+      INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,icon_LKE
 
 !@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
       INTEGER, PARAMETER :: KSPECA=20

@@ -21,7 +21,7 @@ C****
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean,flake
-     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itearth,itocean
+     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
@@ -35,13 +35,12 @@ C****
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
-      USE LANDICE_COM, only : tlandi,snowli
-      USE OCEAN, only : tocean,oa,tfo
-      USE LAKES_COM, only : tlake
+      USE LANDICE_COM, only : snowli
+      USE OCEAN, only : oa,tfo
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
-     *     ,gtemp,nstype
+     *     ,solar,dmua,dmva,gtemp,nstype
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
@@ -80,7 +79,7 @@ C**** ZATMO     GEOPOTENTIAL (G*Z)
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
@@ -95,15 +94,16 @@ C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
         DO I=1,IM
           TGRND(2,I,J)=GTEMP(1,2,I,J)
-          TGRND(3,I,J)=TLANDI(1,I,J)
-C         TGRND(4,I,J)=TEARTH(I,J)
+          TGRND(3,I,J)=GTEMP(1,3,I,J)
+C         TGRND(4,I,J)=GTEMP(1,4,I,J)
           TGRN2(2,I,J)=GTEMP(2,2,I,J)
-          TGRN2(3,I,J)=TLANDI(2,I,J)
+          TGRN2(3,I,J)=GTEMP(2,3,I,J)
         END DO
       END DO
 C*
 C**** Zero out fluxes summed over type
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
+      DMUA=0. ; DMVA=0. ; SOLAR=0.
 
       call pgrads1
 C****
@@ -218,12 +218,9 @@ C****
       ITYPE=1
       PTYPE=POCEAN
       NGRNDZ=1
-      IF (FOCEAN(I,J).gt.0) THEN
-        TG1=TOCEAN(1,I,J)
-      ELSE
-        TG1=TLAKE(I,J)
-      END IF
+      TG1=GTEMP(1,1,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
+      SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       BETA=1.
       ELHX=LHE
@@ -244,6 +241,7 @@ C****
       TG2=TGRN2(2,I,J)
       ACE2=MSI(I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
+      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
@@ -273,7 +271,7 @@ C****
       PTYPE=PLICE
       SNOW=SNOWLI(I,J)
       TG1=TGRND(3,I,J)
-      TG2=TLANDI(2,I,J)
+      TG2=GTEMP(2,3,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2
@@ -415,6 +413,8 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       TGRND(ITYPE,I,J)=TG1
       DTH1(I,J)=DTH1(I,J)-SHDT*PTYPE/(SHA*RMBYA*P1K)
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
+      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTGRND*RCDMWS*US
+      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTGRND*RCDMWS*VS
       USS=USS+US*PTYPE
       VSS=VSS+VS*PTYPE
       WSS=WSS+WS*PTYPE

@@ -6,7 +6,7 @@
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
       USE E001M12_COM, only : im,jm,lm,focean,flake,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM,ftype
-     *     ,itocean,itlake,itoice,itlkice
+     *     ,itocean,itlake,itoice,itlkice,itlandi,itearth
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
@@ -370,6 +370,15 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
      *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
+      FOCEAN(I,J)=0.
+C**** set ftype/gtemp array. Summation is necessary for cases where Earth
+C**** and Land Ice are lumped together
+      FTYPE(ITOICE ,I,J)=0.
+      FTYPE(ITOCEAN,I,J)=0.
+      FTYPE(ITLANDI,I,J)=0.
+      FTYPE(ITEARTH,I,J)=FEARTH(I,J)
+      FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
+      GTEMP(1:2,3,I,J)  =TLANDI(1:2,I,J)
 C**** MARK THE POINT FOR RESTART PURPOSES
       SNOWI(I,J)=-10000.-SNOWI(I,J)
 C**** Transfer PBL-quantities
@@ -450,8 +459,7 @@ C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         END IF
       ELSE
 C**** FLUXES COOL TGO TO FREEZING POINT FOR OCEAN AND FORM SOME ICE
-c 80      ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
- 80     ACEFO=(ENRGO0+ENRGO-EOFRZ)/(-LHM)
+        ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
         ENRGFO=ACEFO*(TFW*SHI-LHM)
         IF (ROICE.LE.0.) THEN
           TGW=TFW
@@ -475,8 +483,7 @@ C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
-c       ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) !
-        ACE2F = (EIW0+ENRGIW-EFIW)/(-LHM) ! mass freezes under the ice
+        ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) 
         ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
       END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
@@ -512,7 +519,9 @@ C**** Check for NaN/INF in ocean data
       USE E001M12_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth
       USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
+     *     ,tocean
       USE SEAICE_COM, only : snowi,rsi
+      USE FLUXES, only : gtemp
       USE FILEMANAGER
       IMPLICIT NONE
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
@@ -549,6 +558,7 @@ C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
           FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
           FLAND(I,J)=1.
           FEARTH(I,J)=1.-FLICE(I,J)
+          FOCEAN(I,J)=0.
           WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
 C**** Reset ftype array. Summation is necessary for cases where Earth
 C**** and Land Ice are lumped together
@@ -564,6 +574,7 @@ C**** Set ftype array for oceans
         IF (FOCEAN(I,J).gt.0) THEN
           FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
+          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
         END IF
       END DO
       END DO
@@ -577,12 +588,13 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,twopi,edpery
       USE E001M12_COM, only : im,jm,kocean,focean,jday,ftype,itocean
-     *     ,itoice,fland
+     *     ,itoice,fland,flake
       USE OCEAN, only : tocean,ostruc,oclim,z1O,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : simelt,ace1i,lmi
+      USE LAKES_COM, only : tlake
       USE GEOM, only : imaxj
       USE FLUXES, only : gtemp
       IMPLICIT NONE
@@ -622,8 +634,8 @@ C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
         DO J=1,JM
           IMAX=IMAXJ(J)
           DO I=1,IMAX
-C**** Only melting of ocean ice (no lakes) (?)
-            IF (FOCEAN(I,J)*RSI(I,J) .LE. 0.) CYCLE
+C**** Only melting of ocean ice (not lakes)
+            IF (FOCEAN(I,J)*RSI(I,J) .GT. 0.) THEN
 C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN ZERO
 C**** (MELTING POINT OF ICE)
             TGW=TOCEAN(1,I,J)
@@ -647,13 +659,24 @@ C**** set ftype/gtemp arrays
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
             GTEMP(1:2,2,I,J) = TSIL(1:2)
+            END IF
           END DO
         END DO
       END IF
 
+C**** set gtemp array for ocean temperature
+      DO J=1,JM
+      DO I=1,IM
+        IF (FOCEAN(I,J).gt.0) THEN
+          GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
+        ELSEIF (FLAKE(I,J).gt.0) THEN
+          GTEMP(1  ,1,I,J) = TLAKE(I,J)
+        END IF
+      END DO
+      END DO
+C**** 
       RETURN
-      END
-
+      END SUBROUTINE daily_OCEAN
 
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean reads and writes ocean arrays to file
@@ -695,7 +718,7 @@ C****
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi,prec,eprec
+      USE FLUXES, only : runosi,prec,eprec,gtemp
       USE OCEAN, only : oa,tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -743,6 +766,7 @@ C****
             AJ(J,J_RUN2 ,ITOICE) =AJ(J,J_RUN2 ,ITOICE) +RUN4 *POICE
             AJ(J,J_DWTR2,ITOICE) =AJ(J,J_DWTR2,ITOICE) +ERUN4*POICE
           END IF
+          GTEMP(1,1,I,J)=TOCEAN(1,I,J)
         END IF
       END DO
       END DO
@@ -759,8 +783,8 @@ C****
       USE E001M12_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
-     *     flowo,eflowo
+      USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,
+     *     flowo,eflowo,gtemp
       USE OCEAN, only : tocean,z1o,oa,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -857,6 +881,8 @@ C**** Store mass and energy fluxes for formation of sea ice
           DMSI(2,I,J)=ACE2F
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
+C**** store surface temperatures
+          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           
         END IF
       END DO
@@ -865,8 +891,43 @@ C**** Store mass and energy fluxes for formation of sea ice
 C****
       END SUBROUTINE GROUND_OC
 
+      SUBROUTINE conserv_OCE(OCEANE)
+!@sum  conserv_OCE calculates zonal ocean energy
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : shw,rhow
+      USE E001M12_COM, only : im,jm,fim,focean,kocean
+      USE OCEAN, only : tocean,z1o,z12o
+c      USE OCEAN_COM, only : dz,rtgo
+      USE GEOM, only : imaxj
+      IMPLICIT NONE
+!@var OCEANE zonal ocean energy (J/M^2)      
+      REAL*8, DIMENSION(JM) :: OCEANE
+      INTEGER I,J
+
+      OCEANE=0
+      IF (KOCEAN.ne.0) THEN
+      DO J=1,JM
+        DO I=I,IMAXJ(J)
+          IF (FOCEAN(I,J).gt.0) THEN
+            OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
+     *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOW
+c     IF (QDEEPO) THEN
+c     DO L=1,LMOM
+c     OCEANE(J)=OCEANE(J)+(RTGO(L,I,J)*DZ(L)*SHW*RHOW)
+c     END DO
+c     END IF
+          END IF
+        END DO
+      END DO
+      OCEANE(1) =FIM*OCEANE(1)
+      OCEANE(JM)=FIM*OCEANE(JM)
+      END IF
+C****
+      END SUBROUTINE conserv_OCE
+
 C**** Things to do:
-C**** Add QDEEP option
+C**** Add QDEEPO option
 C**** CALL ODIFS ! before OSTRUC
 C**** Add RTGO to acc file
 c    *    (((SNGL(RTGO(L,I,J)),L=2,lmom),I=1,IM),J=1,JM)
@@ -891,6 +952,12 @@ C**** TG3M must be set from a previous ML run?
       REAL*8, DIMENSION(IM,JM) :: STG3
 !@var DTG3 accumulated temperature diff. from initial monthly values
       REAL*8, DIMENSION(IM,JM) :: DTG3
+!@var EDO ocean vertical diffusion (m^2/s)
+      REAL*8, DIMENSION(IM,JM) :: EDO
+!@var DZ thermocline layer thickness (m)
+      REAL*8, DIMENSION(LMOM) :: DZ
+!@var DZO,BYDZO distance between centres in thermocline layer (m)
+      REAL*8, DIMENSION(LMOM-1) :: DZO,BYDZO
 
       END MODULE OCEAN_COM
 
@@ -910,16 +977,14 @@ C****
       USE E001M12_COM, only : im,jm,focean,jmon,jday,jdate,itocean
      *     ,itoice
       USE GEOM, only : imaxj
-      USE OCEAN_COM, only : tg3m,rtgo,stg3,dtg3
+      USE OCEAN_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo
       USE OCEAN, only : z12o,lmom,tocean
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,j_ftherm
+      USE FLUXES, only : gtemp
       USE FILEMANAGER
       IMPLICIT NONE
 
-      REAL*8, SAVE, DIMENSION(IM,JM) :: EDO
-      REAL*8, SAVE, DIMENSION(LMOM) :: DZ
-      REAL*8, SAVE, DIMENSION(LMOM-1) :: DZO,BYDZO
       REAL*8 :: ADTG3
       INTEGER I,J,L,IMAX,IFIRST,iu_EDDY
       REAL*8, PARAMETER :: PERDAY=1./365d0
@@ -980,20 +1045,21 @@ C****
         DO I=1,IMAX
           IF(FOCEAN(I,J).GT.0.) THEN
 
-          ADTG3=DTG3(I,J)*PERDAY
-          RTGO(1,I,J)=ADTG3
+            ADTG3=DTG3(I,J)*PERDAY
+            RTGO(1,I,J)=ADTG3
 C**** Set first layer thickness
-          DZ(1)=Z12O(I,J)
+            DZ(1)=Z12O(I,J)
 
-          CALL ODFFUS (SDAY,ALPHA,EDO(I,J),DZ,BYDZO,RTGO(1,I,J),LMOM)
+            CALL ODFFUS (SDAY,ALPHA,EDO(I,J),DZ,BYDZO,RTGO(1,I,J),LMOM)
 
-          DO L=1,3
-            TOCEAN(L,I,J)=TOCEAN(L,I,J)+(RTGO(1,I,J)-ADTG3)
-          END DO
-          AJ(J,J_FTHERM,ITOCEAN)=AJ(J,J_FTHERM,ITOCEAN)-(RTGO(1,I,J)
-     *         -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*(1.-RSI(I,J))
-          AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
-     *         -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
+            DO L=1,3
+              TOCEAN(L,I,J)=TOCEAN(L,I,J)+(RTGO(1,I,J)-ADTG3)
+            END DO
+            AJ(J,J_FTHERM,ITOCEAN)=AJ(J,J_FTHERM,ITOCEAN)-(RTGO(1,I,J)
+     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*(1.-RSI(I,J))
+            AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
+     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
+            GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
           END IF
         END DO
       END DO
