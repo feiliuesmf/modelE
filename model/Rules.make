@@ -190,7 +190,12 @@ endif
 #
 
 ifdef NETCDFHOME
-  LIBS += -L$(NETCDFHOME) -lnetcdf
+ifeq ($(MACHINE),SGI)
+  LIBS += -L$(NETCDFHOME)/lib64 -lnetcdf
+else
+  LIBS += -L$(NETCDFHOME)/lib -lnetcdf
+endif
+  FFLAGS += -I$(NETCDFHOME)/include
 endif
 
 #

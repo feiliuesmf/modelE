@@ -4,7 +4,7 @@ c f90 -c -64 NCACC.f
       use GEOM
       use DAGCOM
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
 
       integer :: varid,status,ncid
       character(len=80) :: fileout
@@ -264,7 +264,7 @@ c-----------------------------------------------------------------------
       subroutine ncdefarr(arr_name,arr_lname,arr_units,
      &     ncid,arr_size,nf_type,ndims,dimids)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid,arr_size,nf_type,ndims
       integer, dimension(ndims) :: dimids
       integer :: status
@@ -284,7 +284,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncput_idacc(arr_name,arr_idacc,ncid,arr_size)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid,arr_size
       character(len=20), dimension(arr_size) :: arr_name
       integer, dimension(arr_size) :: arr_idacc
@@ -299,7 +299,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrtdbl(arr_name,ncid,inner_size,arr_size,arr)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid,inner_size,arr_size
       integer :: status
       character(len=20), dimension(arr_size) :: arr_name
@@ -314,7 +314,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncgetdbl(arr_name,ncid,inner_size,arr_size,arr)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid,inner_size,arr_size
       integer :: status
       character(len=20), dimension(arr_size) :: arr_name
@@ -329,7 +329,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrtdbl1(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -341,7 +341,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncgetdbl1(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -353,7 +353,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrtint1(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -365,7 +365,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncgetint1(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -377,7 +377,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrtchar(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -389,7 +389,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncgetchar(var_name,ncid,var)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       integer :: ncid
       integer :: status,varid
       character(len=20) :: var_name
@@ -401,7 +401,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrt_iparm(iparm_name,ncid,iparm,kjc)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=20), dimension(kjc) :: iparm_name
       integer, dimension(kjc) :: iparm
       integer :: ncid,kjc
@@ -416,7 +416,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncget_iparm(iparm_name,ncid,iparm,kjc)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=20), dimension(kjc) :: iparm_name
       integer, dimension(kjc) :: iparm
       integer :: ncid,kjc
@@ -431,7 +431,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncwrt_dparm(dparm_name,ncid,dparm,krc)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=20), dimension(krc) :: dparm_name
       REAL*8, dimension(krc) :: dparm
       integer :: ncid,krc
@@ -446,7 +446,7 @@ c-----------------------------------------------------------------------
 
       subroutine ncget_dparm(dparm_name,ncid,dparm,krc)
       implicit none
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      include 'netcdf.inc'
       character(len=20), dimension(krc) :: dparm_name
       REAL*8, dimension(krc) :: dparm
       integer :: ncid,krc
