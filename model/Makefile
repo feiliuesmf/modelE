@@ -194,7 +194,7 @@ ifeq ($(MACHINE),IBM)
 else
 ifeq ($(MACHINE),Linux)
 # hack to get around use of 'traditional' in cpp call
-	@for i in $(FSRCS); do $(CPP) -M $(CPPFLAGS) $$i | sed 's/\.f.\o/.o/g' >> $(DEPENDFILE); \
+	@for i in $(FSRCS); do $(CPP) -M $(CPPFLAGS) $$i | sed 's/\.f\.o/.o/g' >> $(DEPENDFILE); \
 	$(CPP) $(CPPFLAGS) $$i > $$i.cpp; done
 else
 	@for i in $(FSRCS); do $(CPP) -M $(CPPFLAGS) $$i >> $(DEPENDFILE); \
