@@ -324,9 +324,11 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
+     *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr
+      USE CLOUDS_COM, only : llow
       USE DAGCOM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -376,6 +378,8 @@ C**** sync radiation parameters from input
       call sync_param( "FS8OPX", FS8OPX , 8 )
       call sync_param( "FT8OPX", FT8OPX , 8 )
       call sync_param( "RHfix", RHfix )
+      call sync_param( "CC_cdncx", CC_cdncx )
+      call sync_param( "OD_cdncx", OD_cdncx )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "O3YR_max", O3YR_max )
@@ -467,6 +471,7 @@ C****
         COE(LR)=DTsrc*NRAD*COEX/(PLB(LR)-PLB(LR+1))
         PLB0(LR-LM) = PLB(LR+1)
       END DO
+      call reterp(vcdnc,pcdnc,7, cdncl,plb,llow+2)
       if (kradia.gt.1) then
         do l=1,ls1-1
           COE(L)=DTsrc*nrad*COEX/DSIG(L)
@@ -564,7 +569,7 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
      *     (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_BCIA, n_BCB/)
-C**** define weighting (only used for clays so far) 
+C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
@@ -731,7 +736,7 @@ C     OUTPUT DATA
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,wttr,cloud_rad_forc
+     *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -792,14 +797,14 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
-      REAL*8, DIMENSION(LM) :: TOTCLD
+      REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
-     *     ,tauex5,tauex6,tausct,taugcb
+     *     ,tauex5,tauex6,tausct,taugcb,dcdnc
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
@@ -970,7 +975,7 @@ C****
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,set_clay,
 !$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
-!$OMP*   set_clayquar,
+!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1011,6 +1016,9 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
+      call dCDNC_EST(ilon,jlat,pland, dCDNC)
+      dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
+      dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
@@ -1027,8 +1035,8 @@ C****
         SIZEIC(L)=0.
         TOTCLD(L)=0.
 C**** Determine large scale and moist convective cloud cover for radia
-        IF (CLDSS(L,I,J).GT.RDSS(L,I,J)) THEN
-          TAUSSL=TAUSS(L,I,J)
+        IF (CLDSS(L,I,J)*(1.+dcc_cdncl(l)).GT.RDSS(L,I,J)) THEN
+          TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
           AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
@@ -2349,3 +2357,49 @@ C****
       END SUBROUTINE ORBIT
 
 
+      subroutine dCDNC_EST(i,j,pland, dCDNC)
+!@sum  finds change in cloud droplet number concentration since 1850
+!@auth R. Ruedy
+!@ver  1.0
+      use radpar, only : anssdd, mdpi, mdcur
+      USE CONSTANT, only : pi
+      implicit none
+      integer, intent(in)  :: i,j ! grid coordinates w.r. 72x46 grid
+      real*8 , intent(in)  :: pland ! land fraction
+      real*8 , intent(out) :: dCDNC ! CDNC(cur)-CDNC(1850)
+
+      real*8, parameter, dimension(5) ::
+C                TROPOSPHERIC AEROSOL PARAMETERS
+C                  SO4     NO3    OCX    BCB   BCI
+     *  f_act=(/ 1.0d0,  1.0d0, 0.8d0, 0.6d0, .8d0/), ! soluble fraction
+     *  dens =(/1769d0, 1700d0,  1.d3,  1.d3, 1.d3/)  ! density
+
+      real*8, parameter, dimension(2) ::
+C                    Ocean         Land      ! r**3: r=.085,.052 microns
+     *  radto3 =(/ 614.125d-24, 140.608d-24/),  ! used for SO4,NO3,OC,BC
+     *  scl    =(/     162d0,       298d0/),  ! for Gultepe's formula
+     *  offset =(/     273d0,       595d0/)   ! for Gultepe's formula
+
+      integer it, n
+      real*8  An,An0,cdnc(2),cdnc0(2),fbymass1
+
+      do it=1,2  ! ocean, land
+        An0 = anssdd(i,j)  !  aerosol number of sea salt and dust
+        An  = An0          !  aerosol number of sea salt and dust
+        do n=1,4
+          fbymass1 =  F_act(n)*(.75d0/pi)/(dens(n)*radto3(it))
+          An0 = An0 + mdpi (n,i,j)*fbymass1   ! +fact*tot_mass/part_mass
+          An  = An  + mdcur(n,i,j)*fbymass1
+        end do
+        fbymass1 =  F_act(5)*(.75d0/pi)/(dens(5)*radto3(it))
+        An  = An  + mdcur(5,i,j)*fbymass1
+
+        if(An0.lt.1.) An0=1.
+        if(An .lt.1.) An =1.
+        cdnc0(it) = max( 20d0, scl(it)*log10(AN0)-offset(it))
+        cdnc (it) = max( 20d0, scl(it)*log10(AN )-offset(it))
+      end do
+
+      dCDNC = (1-pland)*(cdnc(1)-cdnc0(1))+pland *(cdnc(2)-cdnc0(2))
+      return
+      end subroutine dCDNC_EST

@@ -71,6 +71,20 @@ C**** exactly the same as the default values.
       INTEGER :: Ikliq = -1  !  get kliq-array from restart file
 !@dbparam RHfix const.rel.humidity passed to radiation for aeros. tests
       REAL*8 :: RHfix = -1.  !  pass the current model rel.humidity
+
+!     variables related to aerosol indirect effects:
+!     (CDNC=cloud droplet number concentration)
+!@dbparam CC_CDNCx scaling factor relating cld cvr change and CDNC change
+      REAL*8 :: CC_CDNCX = .0000d0  ! .0036d0
+!@dbparam OC_CDNCx scaling factor relating cld opt depth and CDNC change
+      REAL*8 :: OD_CDNCX = .0000d0  ! .007d0
+!@var pcdnc,vcdnc pressure,vertical profile for cld.cvr change
+      real*8, parameter, dimension(7) ::
+     * pcdnc=(/984.d0, 964.d0, 934.d0, 884.d0, 810.d0, 710.d0, 550.d0/)
+     *,vcdnc=(/ .35d0,  .20d0,  .10d0,  .17d0,  .10d0,  .08d0,   0.d0/)
+!@var cdncl = vcdnc interpolated to current vertical resolution
+      real*8 cdncl(LM)
+
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
 !@dbparam S0X solar constant multiplication factor

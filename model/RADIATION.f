@@ -591,6 +591,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       real*8, parameter, dimension(10) :: PLBA09=(/
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
 C     Layer  1    2    3    4    5    6    7    8    9
+      integer, parameter :: La720=3 ! top low cloud level (aerosol-grid)
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
       real*4 TDUST(72,46,9,8,12)
@@ -673,6 +674,7 @@ C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
      B              ,TRHQAB(33,190,4),RHINFO(190,15,4),A6JDAY(9,6,72,46)
      C   ,SRTQEX(6,190,ITRMAX),SRTQSC(6,190,ITRMAX),SRTQCB(6,190,ITRMAX)
      D   ,TRTQAB(33,190,ITRMAX),RTINFO(190,15,ITRMAX)
+     E   ,anssdd(72,46),mdpi(4,72,46),mdcur(5,72,46)
 !new
 !new  save TSOIL,TVEGE                  (not implemented)
 !nu   DIMENSION PI0TRA(11)
@@ -3616,20 +3618,22 @@ C     ------------------------------------------------------------------
       implicit none
 
       integer, intent(in) :: jyeara,jjdaya
-      REAL*4 A6YEAR(72,46,9,0:12,6)
+      REAL*4 A6YEAR(72,46,9,0:12,6) !  ,mddust(72,46)
       REAL*4  PREDD(72,46,9,12,10),SUIDD(72,46,9,12,8)
       REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8),AMON(72,46,9)
-      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD
+      REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
+      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD,md1850,anfix ! ,mddust
 
       CHARACTER*80 XTITLE
-      CHARACTER*40, dimension(4) :: RDFILE = (/            !  Input data
+      CHARACTER*40, dimension(5) :: RDFILE = (/            !  Input data
      1            'sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850'
      2           ,'sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990'
      3           ,'sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990'
-     4           ,'sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990'/)
+     4           ,'sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990'
+     5           ,'low.dust.72x46.monthly.bin              '/)
 
-      CHARACTER*40, dimension(4) :: RDFGEN = (/          ! generic names
-     * 'TAero_PRE','TAero_SUI','TAero_OCI','TAero_BCI'/)
+      CHARACTER*40, dimension(5) :: RDFGEN = (/          ! generic names
+     * 'TAero_PRE','TAero_SUI','TAero_OCI','TAero_BCI','M_LowDust'/)
 
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                   SO4    SEA    ANT    OCX    BCI    BCB   *BCB  *BCB
@@ -3694,6 +3698,8 @@ C     ------------------------------------------------------------------
 
       integer ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iys,jys,iyc,jyc
       real*8 WTANI,WTOCB,WTBCB,wt75,swti,swtj,cwti,cwtj,xmi,wtmi,wtmj
+      real*8 , parameter :: Za720=2635. ! depth of low cloud region (m)
+      real*8 xsslt,byz ! ,xdust
       IF(IFIRST.EQ.1) THEN
 C                                       READ Input PRE,SUI,OCI,BCI Files
 C                                       --------------------------------
@@ -3723,6 +3729,42 @@ C                                       --------------------------------
   105 CONTINUE
       call closeunit (ifile)
   106 CONTINUE
+
+C**** Prepare for aerosol indirect effect parameterization:
+C     - Collect the monthly aerosol number densities for the time
+C       independent aerosols (desert dust and sea salt)  (/cm^3)
+C     - Save the monthly 1850 mass densities for the time dependent
+C       aerosols (Sulfates, Nitrates, Organic and Black Carbons) kg/cm3
+
+!!!   call openunit (RDFILE(5),ifile,qbinary)  ! disregard desert dust
+!!!   xdust=.33/(2000.*4.1888*(.40d-6)**3) ! f/[rho*4pi/3*r^3] (/kg)
+      xsslt=aermix(3)/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+      byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
+      DO M=1,12
+!!!     READ (IFILE) XTITLE,mddust
+      DO J=1,46
+      DO I=1,72
+          anfix(i,j,m) = 0. ! xdust*mddust(i,j) ! aerosol number (/cm^3)
+        do l=1,la720
+          anfix(i,j,m) = anfix(i,j,m) + xsslt*PREDD(I,J,L,M,3)*byz
+        end do
+        md1850(1:4,i,j,m)=0.                 ! mass density (kg/cm^3)
+        do l=1,la720
+          md1850(1,i,j,m) = md1850(1,i,j,m) +  byz*        ! SO4
+     *      (AERMIX(1)*PREDD(I,J,L,M,1) + AERMIX(2)*PREDD(I,J,L,M,2))
+          md1850(2,i,j,m) = md1850(2,i,j,m) +  byz*        ! NO3
+     *       AERMIX(4)*PREDD(I,J,L,M,4)
+          md1850(3,i,j,m) = md1850(3,i,j,m) +  byz*        ! OC
+     *      (AERMIX(5)*PREDD(I,J,L,M,5) + AERMIX(6)*PREDD(I,J,L,M,6))
+          md1850(4,i,j,m) = md1850(4,i,j,m) +  byz*        ! BCB
+     *       AERMIX(7)*PREDD(I,J,L,M,7)
+        end do
+      end do
+      end do
+      end do
+      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
+!!!   call closeunit (ifile)
+
       IFIRST=0
       ENDIF
 
@@ -3894,6 +3936,25 @@ C      -----------------------------------------------------------------
   520 CONTINUE
   530 CONTINUE
   540 CONTINUE
+
+      byz=1d-9/za720
+      DO J=1,46
+      DO I=1,72
+         anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
+        do n=1,4  !  SU4,NO3,OCX,BCB (no BCI)
+         mdpi(n,i,j) = WTMI*md1850(n,i,j,mi) + WTMJ*md1850(n,i,j,mj)
+        end do
+        mdcur(1:5,i,j)=0. ! mass density (kg/cm^3): SU4,NO3,OCX,BCB,BCI
+        do l=1,la720
+          mdcur(1,i,j) = mdcur(1,i,j) + byz*A6JDAY(L,1,I,J)/drym2g(1)
+          mdcur(2,i,j) = mdcur(2,i,j) + byz*A6JDAY(L,3,I,J)/drym2g(3)
+          mdcur(3,i,j) = mdcur(3,i,j) + byz*A6JDAY(L,4,I,J)/drym2g(4)
+          mdcur(4,i,j) = mdcur(4,i,j) + byz*A6JDAY(L,6,I,J)/drym2g(6)
+          mdcur(5,i,j) = mdcur(5,i,j) + byz*A6JDAY(L,5,I,J)/drym2g(5)
+        end do
+      end do
+      end do
+
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER
 
