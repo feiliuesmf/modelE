@@ -17,7 +17,7 @@
 !@calls sync_param
       USE CONSTANT, only: mair,sday
       USE MODEL_COM, only: dtsrc,nisurf
-      USE DAGCOM, only: ia_src,ia_12hr,ir_log2
+      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE PARAM
@@ -216,22 +216,35 @@ C**** Surface concentration
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water. 
-C**** Tracers in precipitation
+C**** Tracers in precipitation (=Wet deposition)
       k = k+1
       tij_prec = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_prcp'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' in Precip'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
-        scale_tij(k,n)=10.**(-ijtc_power(n))
+        if (to_per_mil(n) .eq.1) then
+          write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_prec'
+          write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *         ' in Precip'
+          units_tij(k,n)=cmrwt(n)
+          scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
+        else
+          write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_wet_dep'
+          write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *         ' Wet Deposition'
+          units_tij(k,n)=unit_string(ijtc_power(n)-5,trim(cmrwt(n))
+     *         //'/s')
+          scale_tij(k,n)=10.**(-ijtc_power(n)+5)/dtsrc
+        end if
 C**** Tracers in evaporation
       k = k+1
       tij_evap = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
-        scale_tij(k,n)=10.**(-ijtc_power(n))/REAL(NIsurf,KIND=8)
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
 C**** Tracers in river runoff
       k = k+1
       tij_rvr = k
@@ -315,17 +328,18 @@ C**** Tracers dry deposition flux.
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_dry_dep'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Dry Deposition'
-        units_tij(k,n)=unit_string(ijtc_power(n),'kg/m^2/s')
-        scale_tij(k,n)=10.**(-ijtc_power(n))/REAL(NIsurf,KIND=8)
+        units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
       end if
 #endif
-      end do
 
       if (k .gt. ktaij) then
         write (6,*) 
      &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
         call stop_model('ktaij too small',255)
       end if
+
+      end do
 
       END SUBROUTINE set_generic_tracer_diags
 
@@ -362,8 +376,8 @@ C**** diagnostics
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           najl = jls_source(ns,n)
           do j=1,jm
-            tajls(j,1,najl) = tajls(j,1,najl)+sum(trsource(:,j,ns,n))
-     *           *dtstep
+            tajls(j,1,najl) = tajls(j,1,najl)+
+     *           sum(trsource(1:imaxj(j),j,ns,n))*dtstep
             dtracer(j)=0.
             do i=1,imaxj(j)
               dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
@@ -379,8 +393,8 @@ c        naij = ijts_source(ns,n)  ????
 c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
 c        najl = jls_source(ns,n)   ????
 c        do j=1,jm
-c          tajls(j,1,najl) = tajls(j,1,najl)+sum(trsrfflx(:,j,n))
-c     *         *dtstep
+c          tajls(j,1,najl) = tajls(j,1,najl)+
+c     *         sum(trsrfflx(1:imaxj(j),j,n))*dtstep
 c        end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
 
@@ -415,20 +429,23 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : jm,im,lm,dtsrc
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,bydxyp
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom
       USE FLUXES, only : tr3Dsource
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+     *     ,ijts_3Dsource,taijs
       IMPLICIT NONE
       REAL*8 fr3d
-      INTEGER n,ns,najl,i,j,l
+      INTEGER, INTENT(IN) :: n,ns
+      INTEGER najl,i,j,l,naij
 
 C**** This is tracer independent coding designed to work for all
 C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
 C**** tracer moments are modified elsewhere
       najl = jls_3Dsource(ns,n)
+      naij = ijts_3Dsource(ns,n)
       do l=1,lm
       do j=1,jm
       do i=1,imaxj(j)
@@ -439,8 +456,8 @@ C**** calculate fractional loss
         end if
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
-        tajls(j,l,najl) = tajls(j,l,najl)+
-     *                              tr3Dsource(i,j,l,ns,n)*dtsrc
+        tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        taijs(i,j,naij)=taijs(i,j,naij)+tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
@@ -452,6 +469,7 @@ C****
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc
+      USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0
 #ifdef TRACERS_WATER
      *     ,trwm
@@ -501,11 +519,11 @@ C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
           do j=1,jm
-            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)
+            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(1:imaxj(j),j,l,n)
 #ifdef TRACERS_WATER
-     *           +trwm(:,j,l,n)
+     *           +trwm(1:imaxj(j),j,l,n)
 #endif
-     *           -told(:,j,l))
+     *           -told(1:imaxj(j),j,l))
           enddo 
           enddo
           call DIAGTCA(itcon_decay(n),n)
@@ -521,11 +539,14 @@ C****
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : visc_air,grav
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,bydxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
+#ifdef TRACERS_DRYDEP
+     *     ,taijn,tij_drydep
+#endif
       USE FLUXES, only : trgrdep
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: stokevdt = 0.
@@ -555,7 +576,12 @@ C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
 C**** should this operate in the first layer? Surely dry dep is dominant?
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
-              trgrdep(i,j,n)=fgrfluxd*trm(i,j,l,n)
+              trgrdep(i,j,n)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
+#ifdef TRACERS_DRYDEP
+C**** maybe this should be a separate diag (or not be done at all?)
+              taijn(i,j,tij_drydep,n) = taijn(i,j,tij_drydep,n) +
+     *             trgrdep(i,j,n)*bydxyp(j)
+#endif
             else               ! above layer 1
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))
             end if

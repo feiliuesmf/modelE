@@ -40,9 +40,9 @@
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
 #ifdef TRACERS_WATER
-     *     ,jls_source,taijn,tajls,tij_prec
+     *     ,jls_prec,taijn,tajls,tij_prec
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_3Dsource
+     *     ,jls_incloud
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -794,10 +794,13 @@ C**** TRACERS: Use only the active ones
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
 #ifdef TRACERS_AEROSOLS_Koch
-          tajls(j,l,jls_3Dsource(2,n))=tajls(j,l,jls_3Dsource(2,n))+
-     *         dt_sulf_mc(l,n)
-          tajls(j,l,jls_3Dsource(3,n))=tajls(j,l,jls_3Dsource(3,n))+
-     *         dt_sulf_ss(l,n)
+          if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
+     *         H2O2_s") then
+            tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
+     *           dt_sulf_mc(l,n)
+            tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
+     *           dt_sulf_ss(l,n)
+          end if
 c save for cloud-sulfate correlation
 c          select case (trname(n))
 c          case('SO4')
@@ -809,10 +812,10 @@ c          end select
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
 C**** diagnostics
-        tajls(j,1,jls_source(3,n))=tajls(j,1,jls_source(3,n))
-     *       +trprec(n,i,j)*bydxyp(j)
-        tajls(j,1,jls_source(4,n))=tajls(j,1,jls_source(4,n))
-     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
+c        tajls(j,1,jls_prec(1,n))=tajls(j,1,jls_prec(1,n))
+c     *       +trprec(n,i,j)*bydxyp(j)
+c        tajls(j,1,jls_prec(2,n))=tajls(j,1,jls_prec(2,n))
+c     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
         taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n)+trprec(n,i,j)
      *       *bydxyp(j)
 #endif

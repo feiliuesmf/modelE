@@ -197,41 +197,39 @@ c (for BC multiply this by 0.1)
 
 
 
-      subroutine apply_SO2_3Dsrc
-      USE MODEL_COM, only: im,jm,dtsrc
-      USE TRACER_COM
-      USE TRACER_DIAG_COM, only: jls_3Dsource,tajls,itcon_3Dsrc
-      USE AEROSOL_SOURCES, only: SO2_src_3d
-      integer najl,i,j,l
-      real*8 vtot
-
-        najl = jls_3Dsource(4,n_SO2)
-        do i=1,im
-        do j=1,jm
-        do l=1,lm
-        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,1)*dtsrc
-        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
-     *       +so2_src_3d(i,j,l,1)*dtsrc
-        end do
-        end do
-        end do
-      call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
-
-        najl = jls_3Dsource(5,n_SO2)
-        do i=1,im
-        do j=1,jm
-        do l=1,lm
-        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,2)*dtsrc
-        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
-     *       +so2_src_3d(i,j,l,2)*dtsrc
-        end do
-        end do
-        end do
-      call DIAGTCA(itcon_3Dsrc(4,n_SO2),n_SO2)
-
-
-
-      end subroutine apply_SO2_3Dsrc
+cg      subroutine apply_SO2_3Dsrc
+cg      USE MODEL_COM, only: im,jm,dtsrc
+cg      USE TRACER_COM
+cg      USE TRACER_DIAG_COM, only: jls_3Dsource,tajls,itcon_3Dsrc
+cg      USE AEROSOL_SOURCES, only: SO2_src_3d
+cg      integer najl,i,j,l
+cg      real*8 vtot
+cg
+cg        najl = jls_3Dsource(1,n_SO2)
+cg        do l=1,lm
+cg        do j=1,jm
+cg        do i=1,imaxj(j)
+cg        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,1)*dtsrc
+cg        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
+cg     *       +so2_src_3d(i,j,l,1)*dtsrc
+cg        end do
+cg        end do
+cg        end do
+cg      call DIAGTCA(itcon_3Dsrc(1,n_SO2),n_SO2)
+cg
+cg        najl = jls_3Dsource(2,n_SO2)
+cg        do l=1,lm
+cg        do j=1,jm
+cg        do i=1,imaxj(j)
+cg        tajls(j,l,najl)=tajls(j,l,najl)+so2_src_3d(i,j,l,2)*dtsrc
+cg        trm(i,j,l,n_so2)=trm(i,j,l,n_so2)
+cg     *       +so2_src_3d(i,j,l,2)*dtsrc
+cg        end do
+cg        end do
+cg        end do
+cg      call DIAGTCA(itcon_3Dsrc(2,n_SO2),n_SO2)
+cg
+cg      end subroutine apply_SO2_3Dsrc
 
       subroutine read_DMS_sources(nt,iact)
 !@sum reads in DMS ocean source
@@ -242,7 +240,7 @@ c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday,grav,rgas,teeny
       USE MODEL_COM, only: im,jm,jmon,focean,t,dtsrc
-      USE GEOM, only: bydxyp
+      USE GEOM, only: bydxyp,imaxj
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tajls,jls_source
       USE FILEMANAGER, only: openunit,closeunit
@@ -300,8 +298,8 @@ c
       end do
       end do
 
-      do i=1,im
       do j=1,jm
+      do i=1,imaxj(j)
        DMS_src(i,j,1)=0
        erate2=0.d0
        erate=0.d0
@@ -464,9 +462,10 @@ c    * Y,BESSI0,X,AX
 !@auth Dorothy Koch
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+     *     ,jls_OHcon,jls_HO2con,jls_NO3,jls_phot
       USE MODEL_COM, only: im,jm,jmon,lm,jhour,dtsrc,t,q,jday
       USE DYNAMICS, only: pmid,am,pk
-      USE GEOM, only: dxyp
+      USE GEOM, only: dxyp,imaxj
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
@@ -476,7 +475,7 @@ c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
       real*8 ohx(36,24,lm),dho2x(36,24,lm),perjx(36,24,lm) 
-      real*8 told(im,jm,lm,ntm),ttemp(im,jm,lm)
+cg      real*8 told(im,jm,lm,ntm),ttemp(im,jm,lm)
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
@@ -488,7 +487,7 @@ c Aerosol chemistry
 
 c Do I need special treatment at the poles (like before?)
 
-       told(:,:,:,:) = trm(:,:,:,:)
+cg       told(:,:,:,:) = trm(:,:,:,:)
 ccccccccccccccccc
 c Use these for Wang NO3 and Spivakovsky for others
 c open and read in NO3 file
@@ -597,13 +596,8 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
        dtt=dtsrc           
       do 20 l=1,lm       
       do 21 j=1,jm   
-      do 22 i=1,im    
-      if (j.eq.1.or.j.eq.46.and.i.gt.1) then   
-       do n=1,ntm                     
-       trm(i,j,l,n) = trm(1,j,l,n)  
-       end do           
-       go to 22  
-      endif    
+      do 22 i=1,imaxj(j)    
+
 c ptop,psf(surface),psfmpt,sige,sig
 c I used to have to treat these differently above the tropopause??
 c pmid=plij*sig(l)+ptop ;plij=p or psf-ptop 
@@ -658,58 +652,74 @@ c      endif
 c       ddno3a=tno3(i,j,l,jmon)*mm/.2897d0   
 c 89    if (ddno3.gt.ddno3a) ddno3=ddno3a   
        ddno3=ddno3*0.9      
-C DMS losses: eqns 1, 2 ,3       
-       trm(i,j,l,n) = trm(i,j,l,n)*d1*d2   
+C DMS losses: eqns 1, 2 ,3  
+
+cg       trm(i,j,l,n) = trm(i,j,l,n)*d1*d2   
+       tr3Dsource(i,j,l,1,n) = trm(i,j,l,n)*(d1*d2-1.)/dtsrc
+
        dmssink=ddno3*tr_mm(n)/1000.d0
-       if (dmssink.gt.trm(i,j,l,n)) dmssink=trm(i,j,l,n)
-       trm(i,j,l,n)=trm(i,j,l,n)-dmssink  
-       if (trm(i,j,l,n).lt.0.) write(6,*)'sssdmschem',i,j,l,
-     * d1,d2,dmssink,trm(i,j,l,n),ddno3
+cg       if (dmssink.gt.trm(i,j,l,n)) dmssink=trm(i,j,l,n)
+cg       trm(i,j,l,n)=trm(i,j,l,n)-dmssink  
+cg       if (trm(i,j,l,n).lt.0.) write(6,*)'sssdmschem',i,j,l,
+cg     * d1,d2,dmssink,trm(i,j,l,n),ddno3
+
+       if (dmssink.gt.trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc)
+     *      dmssink=trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) - dmssink/dtsrc
+
 c  31   TSUM(8) = TSUM(8) + TrM(I,J,L,n) - TCO(n)   
  
-        najl = jls_3Dsource(1,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+cg this is now done automatically in apply_tracer_3Dsource
+cg        najl = jls_3Dsource(1,n)
+cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
 
         case ('MSA')
 C MSA gain: eqn 1                
-       TrM(I,J,L,n) = TrM(I,J,L,n) +      
-     *0.25d0*Tr_mm(n)/Tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 -D1)*SQRT(D2)   
+cg       TrM(I,J,L,n) = TrM(I,J,L,n) +      
+cg     *0.25d0*Tr_mm(n)/Tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 -D1)*SQRT(D2)   
 
-        najl = jls_3Dsource(1,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+          tr3Dsource(i,j,l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*trm(i,j
+     *         ,l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
+
+cg this is now done automatically in apply_tracer_3Dsource
+cg        najl = jls_3Dsource(1,n)
+cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
 
        case ('SO2')
 c SO2 production from DMS
-       trm(i,j,l,n) = trm(i,j,l,n)     
-     * +0.75*tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)
-     * *(1.d0 - d1)*sqrt(d2)    
-     * + tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)   
-       trm(i,j,l,n)=trm(i,j,l,n)+dmssink*tr_mm(n)/tr_mm(n_dms)    
+cg       trm(i,j,l,n) = trm(i,j,l,n)     
+cg     * +0.75*tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)
+cg     * *(1.d0 - d1)*sqrt(d2)    
+cg     * + tr_mm(n)/tr_mm(n_dms)*told(i,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)   
+cg       trm(i,j,l,n)=trm(i,j,l,n)+dmssink*tr_mm(n)/tr_mm(n_dms)    
 
-        najl = jls_3Dsource(1,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+         tr3Dsource(i,j,l,3,n) = (0.75*tr_mm(n)/tr_mm(n_dms)*trm(i,j,l
+     *        ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
+     *        ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
+     *        /tr_mm(n_dms))/dtsrc
+
+cg this is now done automatically in apply_tracer_3Dsource
+cg       najl = jls_3Dsource(3,n)
+cg       tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
    
-        najl = jls_3Dsource(9,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+ttno3
-        end select
+cg this stays since it is a simple local diagnostic
+         najl = jls_NO3
+         tajls(j,l,najl) = tajls(j,l,najl)+ttno3
+       end select
 
  23    CONTINUE
  22    CONTINUE                 
  21    CONTINUE            
  20    CONTINUE       
 
-       call DIAGTCA(itcon_3Dsrc(1,n_SO2),n_SO2)
+cg this is now done automatically in apply_tracer_3Dsource
+cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 
 
       do 30 l=1,lm       
       do 31 j=1,jm   
-      do 32 i=1,im    
-      if (j.eq.1.or.j.eq.46.and.i.gt.1) then   
-       do n=1,ntm                     
-       trm(i,j,l,n) = trm(1,j,l,n)  
-       end do           
-       go to 32  
-      endif    
+      do 32 i=1,imaxj(j)
+
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm=am(l,i,j)*dxyp(j)
@@ -731,20 +741,26 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 c      IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM, 
 c    *  PPRES,RK4,EK4,R4,D4,ohmc
        IF (d4.GE.1.) d4=0.99999d0   
-       trm(i,j,l,n) = trm(i,j,l,n)-told(i,j,l,n)*(1.d0-d4) 
+cg       trm(i,j,l,n) = trm(i,j,l,n)-told(i,j,l,n)*(1.d0-d4) 
+
+       tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+
 c diagnostics to save oxidant fields
-        najl = jls_3Dsource(6,n)
+        najl = jls_OHcon
         tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
-        najl = jls_3Dsource(7,n)
+        najl = jls_HO2con
         tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
-        najl = jls_3Dsource(8,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
+
        case('SO4')
 C SO4 production   
-       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)/tr_mm(n_so2)               
-     *   *told(i,j,l,n_so2)*(1.d0 -d4)    
-        najl = jls_3Dsource(1,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+cg       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)/tr_mm(n_so2)               
+cg     *   *told(i,j,l,n_so2)*(1.d0 -d4)    
+cg        najl = jls_3Dsource(1,n)
+cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+
+         tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n)+tr_mm(n)
+     *        /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
+
 c      if (i.eq.30.and.j.eq.40.and.l.eq.2) 
 c    *   write(6,*)'mkso4',te,dmm,ppres,rk4,ek4,r4,d4,ohmc,
 c    *   told(i,j,l,n_so2)
@@ -769,46 +785,57 @@ C     HO2 + HO2 + H2O + M ->
        eeee = eh2o*(ek9+ek9t)*dtt*dho2mc  
        xk9 = dho2kg*eeee       
 c H2O2 production: eqn 9       
-       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)*xk9       
-       ttemp(i,j,l)=trm(i,j,l,n)
-        najl = jls_3Dsource(1,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
+cg       trm(i,j,l,n) = trm(i,j,l,n) + tr_mm(n)*xk9       
+
+       tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
+
+cg       ttemp(i,j,l)=trm(i,j,l,n)
+cg        najl = jls_3Dsource(1,n)
+cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l,n))
 c H2O2 losses:5 and 6        
        r5 = perj(i,j,l)        
        d5 = exp(-r5*dtsrc)  
-       trm(i,j,l,n) = trm(i,j,l,n)*d5*d6  
-        najl = jls_3Dsource(4,n)
-        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-ttemp(i,j,l))
+cg       trm(i,j,l,n) = trm(i,j,l,n)*d5*d6  
+cg        najl = jls_3Dsource(2,n)
+cg        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-ttemp(i,j,l))
+
+       tr3Dsource(i,j,l,2,n) = (trm(i,j,l,n) + tr_mm(n)*xk9)*(d5*d6-1.)
+     *      /dtsrc
+
 c      if (i.eq.30.and.j.eq.35.and.l.eq.2) write(6,*) 'hchemn',
 c    * d5,d6,r5,r6,xk9,dho2kg,eeee,eh2o,ek9,ek9t,dho2mc,
 c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
 c      if (i.eq.30.and.j.eq.10.and.l.eq.2) write(6,*) 'hchems',
 c    * d5,d6,r5,r6,xk9,dho2kg,eeee,eh2o,ek9,ek9t,dho2mc,
 c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
+
+        najl = jls_phot
+        tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
+
        end select
 
-c adjust moments
-       if (trm(i,j,l,n).lt.0.0) trm(i,j,l,n)=0.0  
-       if (told(i,j,l,n).gt.trm(i,j,l,n).and.
-     *      told(i,j,l,n).gt.1.d-10) then  
-       fmom = trm(i,j,l,n)/told(i,j,l,n)      
-       else         
-       fmom=1.d0      
-       endif     
-       do nm=1,nmom
-        trmom(nm,i,j,l,n)=trmom(nm,i,j,l,n)*fmom
-       end do
+cgc adjust moments  DONE IN APPLY_TRACER_3DSOURCE
+cg       if (trm(i,j,l,n).lt.0.0) trm(i,j,l,n)=0.0  
+cg       if (told(i,j,l,n).gt.trm(i,j,l,n).and.
+cg     *      told(i,j,l,n).gt.1.d-10) then  
+cg       fmom = trm(i,j,l,n)/told(i,j,l,n)      
+cg       else         
+cg       fmom=1.d0      
+cg       endif     
+cg       do nm=1,nmom
+cg        trmom(nm,i,j,l,n)=trmom(nm,i,j,l,n)*fmom
+cg      end do
     
  33    CONTINUE
  32    CONTINUE                 
  31    CONTINUE            
  30    CONTINUE       
 
-       call DIAGTCA(itcon_3Dsrc(1,n_DMS),n_DMS)
-       call DIAGTCA(itcon_3Dsrc(1,n_MSA),n_MSA)
-       call DIAGTCA(itcon_3Dsrc(2,n_SO2),n_SO2)
-       call DIAGTCA(itcon_3Dsrc(1,n_SO4),n_SO4)
-       call DIAGTCA(itcon_3Dsrc(1,n_H2O2_s),n_H2O2_s)
+cg       call DIAGTCA(itcon_3Dsrc(1,n_DMS),n_DMS)
+cg       call DIAGTCA(itcon_3Dsrc(1,n_MSA),n_MSA)
+cg       call DIAGTCA(itcon_3Dsrc(4,n_SO2),n_SO2)
+cg       call DIAGTCA(itcon_3Dsrc(1,n_SO4),n_SO4)
+cg       call DIAGTCA(itcon_3Dsrc(1,n_H2O2_s),n_H2O2_s)
 
 c BC: insoluble -> soluble                                              6643.4  
 c      DBC=10.*DSO4*TCMASS(6)/TCMASS(3)                                 6643.5  
@@ -949,7 +976,7 @@ c    *  suncos(i,j),tczen(i,j)
 !@sum simple dry deposition for aerosols
 !@auth Dorothy Koch
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only : tajls,jls_source,itcon_surf
+      USE TRACER_DIAG_COM, only : tajls,jls_source,itcon_dd
       USE MODEL_COM, only: im,jm,dtsrc,fland,flice,t,p
       USE DYNAMICS, only: pmid,pk
       USE GEOM, only: dxyp
@@ -1018,10 +1045,10 @@ c dvz is the dep vel in m/s
  20   CONTINUE  
  21   CONTINUE  
 
-       call DIAGTCA(itcon_surf(1,n_MSA),n_MSA)
-       call DIAGTCA(itcon_surf(3,n_SO2),n_SO2)
-       call DIAGTCA(itcon_surf(2,n_SO4),n_SO4)
-       call DIAGTCA(itcon_surf(1,n_h2o2_s),n_h2o2_s)
+       call DIAGTCA(itcon_dd(n_MSA),n_MSA)
+       call DIAGTCA(itcon_dd(n_SO2),n_SO2)
+       call DIAGTCA(itcon_dd(n_SO4),n_SO4)
+       call DIAGTCA(itcon_dd(n_h2o2_s),n_h2o2_s)
 
       RETURN
       END subroutine simple_dry_dep
@@ -1243,7 +1270,8 @@ c can't be more than moles going in:
       USE MODEL_COM, only: im,jm,lm,dtsrc,t,p
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk
-      USE GEOM, only: dxyp
+      USE GEOM, only: dxyp,imaxj
+      USE FLUXES, only : tr3Dsource
 
       IMPLICIT NONE
       integer i,j,l,n,najl
@@ -1260,7 +1288,7 @@ c can't be more than moles going in:
       ptr=0.3d0  !um
       DO 19 L=1,LM
       DO 21 J=1,JM  
-      DO 20 I=1,IM 
+      DO 20 I=1,IMAXJ(J)
 
       amass=am(l,i,j)*DXYP(j)   !kg
       ppas=pmid(l,i,j)*100.    !Pa
@@ -1355,9 +1383,11 @@ c can't be more than moles going in:
        sulfin=0.
        sulfout=tr_mm(n)/1000.*(dso4g*tso2*th2o2) !kg
 c diagnostic
-        najl = jls_3Dsource(4,n)
-        tajls(j,l,najl)=tajls(j,l,najl)+sulfout
-        trm(i,j,l,n)=trm(i,j,l,n)+sulfout
+cg        najl = jls_3Dsource(4,n)
+cg        tajls(j,l,najl)=tajls(j,l,najl)+sulfout
+cg        trm(i,j,l,n)=trm(i,j,l,n)+sulfout
+
+       tr3Dsource(i,j,l,2,n)=sulfout/dtsrc
 
 c      tt1=tt1+sulfout 
 c      if (l.eq.2.and.j.eq.34) write(6,*)'Het',i,sulfout,
@@ -1366,8 +1396,11 @@ c    * tv,pn,wv,y,ss
        case('SO2')
        sulfin=-dso4g*th2o2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
-       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
-       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/tso2
+cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
+cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/tso2
+
+       tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
+
 c      if (l.eq.2.and.j.eq.34) write(6,*)'HetSO2',i,sulfin,tso2,
 c    * trm(i,j,l,n),trm(i,j,l,n)-tso2,n,n_so2
 c       tt2=tt2+trm(i,j,l,n)-tso2 
@@ -1375,8 +1408,11 @@ c       tt2=tt2+trm(i,j,l,n)-tso2
        case('H2O2_s')
        sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
-       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
-       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
+cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
+cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
+
+       tr3Dsource(i,j,l,3,n)=trm(i,j,l,n)*sulfin/dtsrc
+       
 c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
 c    * trm(i,j,l,n)
 c      tt3=tt3+trm(i,j,l,n)-th2o2 
@@ -1390,8 +1426,8 @@ c      tt3=tt3+trm(i,j,l,n)-th2o2
   21  CONTINUE
   19  CONTINUE
 c     write(6,*)'Hethet',tt1,tt2,tt3
-      call DIAGTCA(itcon_3Dsrc(2,n_SO4),n_SO4)
-      call DIAGTCA(itcon_3Dsrc(5,n_SO2),n_SO2)
-      call DIAGTCA(itcon_3Dsrc(2,n_H2O2_s),n_H2O2_s)
+cg      call DIAGTCA(itcon_3Dsrc(4,n_SO4),n_SO4)
+cg      call DIAGTCA(itcon_3Dsrc(6,n_SO2),n_SO2)
+cg      call DIAGTCA(itcon_3Dsrc(5,n_H2O2_s),n_H2O2_s)
       return
       END subroutine HETER

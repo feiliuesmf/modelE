@@ -138,7 +138,7 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: nt3Dsrcmax=4
 #elif (defined TRACERS_AEROSOLS_Koch)
-      integer, parameter :: nt3Dsrcmax=9
+      integer, parameter :: nt3Dsrcmax=5
 #else
       integer, parameter :: nt3Dsrcmax=3
 #endif    

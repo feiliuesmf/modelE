@@ -649,8 +649,8 @@ C****
           end if
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - !positive down 
      &       tdryd*ptype/(dtsurf*NIsurf)
-          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n)+
-     &       tdryd*ptype/dtsurf ! then /NIsurf in IJt_MAPk (scale var)
+          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) -
+     &       tdryd*ptype
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
 #endif          
@@ -776,7 +776,7 @@ C**** Save surface tracer concentration whether calculated or not
           taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *         trevapor(n,itype,i,j)*ptype
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         gtracer(n,itype,i,j)*ptype/nisurf
+     *         gtracer(n,itype,i,j)*ptype
           tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *         +trevapor(n,itype,i,j)*ptype
           if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1

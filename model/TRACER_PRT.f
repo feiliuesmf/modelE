@@ -500,21 +500,21 @@ C**** MOIST CONVECTION
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  plm,tajln(1,1,k,n),scalet,ones,ones,lm,1,Jgrid_jlq(k))
-C**** TURBULENCE (or Dry Convection)
-      k = jlnt_turb
-      scalet = scale_jlq(k)/idacc(ia_jlq(k))
-      jtpow = ntm_power(n)+jlq_power(k)
-      scalet = scalet*10.**(-jtpow)
-      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  plm,tajln(1,1,k,n),scalet,ones,ones,lm,1,jgrid_jlq(k))
+     *  plm,tajln(1,1,k,n),scalet,onespo,ones,lm,1,Jgrid_jlq(k))
 C**** LARGE-SCALE CONDENSATION
       k = jlnt_lscond
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  plm,tajln(1,1,k,n),scalet,ones,ones,lm,1,jgrid_jlq(k))
+     *  plm,tajln(1,1,k,n),scalet,onespo,ones,lm,1,jgrid_jlq(k))
+C**** TURBULENCE (or Dry Convection)
+      k = jlnt_turb
+      scalet = scale_jlq(k)/idacc(ia_jlq(k))
+      jtpow = ntm_power(n)+jlq_power(k)
+      scalet = scalet*10.**(-jtpow)
+      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *  plm,tajln(1,1,k,n),scalet,onespo,ones,lm,1,jgrid_jlq(k))
   400 CONTINUE
 C****
 C**** JL Specials (incl. Sources and sinks)
@@ -741,7 +741,7 @@ C****
 !@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
 !@ver   1.0
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DAGCOM
       USE TRACER_DIAG_COM
@@ -766,6 +766,7 @@ C****
       CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
+      character*50 :: unit_string
       INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,n1,n2
       REAL*8 :: DAYS,gm
 
@@ -836,6 +837,26 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         end if
 #endif
       end do
+
+#if (defined TRACERS_WATER) && (defined TRACERS_DRYDEP)
+C****
+C**** Calculation of dry deposition as percent
+C****
+      if (dodrydep(n)) then
+        k=k+1
+        ijtype(k) = 3
+        name(k) = "dry_dep_"//trim(trname(n))//"_%"
+        lname(k) = trim(trname(n))//" Dry Deposition"
+        units(k) = "%"
+        irange(k) = ir_pct
+        iacc(k) = ia_src
+        iord(k) = 1
+        aij1(:,:,k) = 100.*taijn(:,:,tij_drydep,n)
+        aij2(:,:,k) = taijn(:,:,tij_prec,n)+taijn(:,:,tij_drydep,n)
+        scale(k) = 1.
+      end if
+#endif
+
       end do
 
 C**** Fill in maplet indices for sources and sinks

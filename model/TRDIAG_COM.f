@@ -99,6 +99,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
+!@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
+      INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
       character(len=30), dimension(ktaijs) :: sname_ijts,units_ijts
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
@@ -147,6 +149,10 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
+#ifdef TRACERS_AEROSOLS_Koch
+!@var jls_XXX index for non-tracer specific or special diags
+      INTEGER jls_OHcon,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var jls_XXX index for diags not specific to a certain tracer
       INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
@@ -164,6 +170,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
       INTEGER, DIMENSION(NTM) :: jls_grav
+!@var jls_prec tracer independent array for precipitation/wet dep
+      INTEGER, DIMENSION(2,NTM) :: jls_prec
 !@var jwt_jls: Weighting index for jls diags 1=by area, 2=simple average
       integer, dimension(ktajls) :: jwt_jls
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks

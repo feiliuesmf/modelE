@@ -945,7 +945,7 @@ C**** generic ones for many water tracers
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_source(3,n)=k
+        jls_prec(1,n)=k
         sname_jls(k) = 'Precip_'//trname(n)
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_ltop(k) = 1
@@ -953,7 +953,7 @@ C**** generic ones for many water tracers
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_source(4,n)=k
+        jls_prec(2,n)=k
         sname_jls(k) = 'Ocn_Precip_'//trname(n)
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_ltop(k) = 1
@@ -980,7 +980,7 @@ C**** special unique to HTO
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_source(3,n)=k
+        jls_prec(1,n)=k
         sname_jls(k) = 'Precip_'//trname(n)
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_ltop(k) = 1
@@ -988,7 +988,7 @@ C**** special unique to HTO
         scale_jls(k) = SDAY*byim/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_source(4,n)=k
+        jls_prec(2,n)=k
         sname_jls(k) = 'Ocn_Precip_'//trname(n)
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_ltop(k) = 1
@@ -1405,75 +1405,6 @@ c gravitational settling of MSA
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
-c put in chemical production of SO2
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'dms_source_of'//trname(n)
-        lname_jls(k) = 'production of SO2 from DMS'
-        jls_ltop(k) = LM
-        jls_power(k) =  1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c convective chem cloud phase sink of SO2
-        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
-        lname_jls(k) = 'SO2 used in convective cloud chem'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c stratiform chem cloud phase sink of SO2
-        k = k + 1
-        jls_3Dsource(3,n) = k
-        sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
-        lname_jls(k) = 'SO2 used in stratiform cloud chem'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c volcanic production of SO2
-        k = k + 1
-        jls_3Dsource(4,n) = k
-        sname_jls(k) = 'volcanic_source_of'//trname(n)
-        lname_jls(k) = 'production of SO2 from volcanos'
-        jls_ltop(k) = LM
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c aircraft production of SO2
-        k = k + 1
-        jls_3Dsource(5,n) = k
-        sname_jls(k) = 'aircraft_source_of'//trname(n)
-        lname_jls(k) = 'production of SO2 from aircraft'
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c Oxidants
-        k = k + 1
-        jls_3Dsource(6,n) = k
-        sname_jls(k) = 'OH'//trname(n)
-        lname_jls(k) = 'OH'
-        jls_ltop(k) = LM
-        jls_power(k) =3
-        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
-        k = k + 1
-        jls_3Dsource(7,n) = k
-        sname_jls(k) = 'HO2'//trname(n)
-        lname_jls(k) = 'HO2'
-        jls_ltop(k) =LM
-        jls_power(k) =5
-        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
-        k = k + 1
-        jls_3Dsource(8,n) = k
-        sname_jls(k) = 'photolysis_rate_of_H2O2'//trname(n)
-        lname_jls(k) = 'photolysis rate of H2O2'
-        jls_ltop(k) =LM
-        jls_power(k) =-8
-        units_jls(k) = unit_string(jls_power(k),'/s')
-        k = k + 1
-        jls_3Dsource(9,n) = k
-        sname_jls(k) = 'NO3'//trname(n)
-        lname_jls(k) = 'NO3'
-        jls_ltop(k) =LM
-        jls_power(k) =5
-        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 c industrial source
         k = k + 1
         jls_source(1,n) = k
@@ -1490,6 +1421,62 @@ c biomass burning source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+c volcanic production of SO2
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'volcanic_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from volcanos'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c aircraft production of SO2
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'aircraft_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from aircraft'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c put in chemical production of SO2
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'dms_source_of'//trname(n)
+        lname_jls(k) = 'production of SO2 from DMS'
+        jls_ltop(k) = LM
+        jls_power(k) =  1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c put in chemical production of SO2
+        k = k + 1
+        jls_3Dsource(4,n) = k
+        sname_jls(k) = 'chem_sink_of'//trname(n)
+        lname_jls(k) = 'chemical sink of SO2'
+        jls_ltop(k) = LM
+        jls_power(k) =  1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c heterogenous sink SO2
+        k = k + 1
+        jls_3Dsource(5,n) = k
+        sname_jls(k) = 'het_src_of'//trname(n)
+        lname_jls(k) = 'SO2 Heterogenous sink'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective chem cloud phase sink of SO2
+        k = k + 1
+        jls_incloud(1,n) = k
+        sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'SO2 used in convective cloud chem'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c stratiform chem cloud phase sink of SO2
+        k = k + 1
+        jls_incloud(2,n) = k
+        sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
+        lname_jls(k) = 'SO2 used in stratiform cloud chem'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         case ('SO4')
 c gas phase source of SO4
@@ -1500,9 +1487,17 @@ c gas phase source of SO4
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c convective cloud phase source of SO4
+c heterogeneous source of SO4
         k = k + 1
         jls_3Dsource(2,n) = k
+        sname_jls(k) = 'heterogeneous_source_of'//trname(n)
+        lname_jls(k) = 'Heterogenous Chemical source of SO4'
+        jls_ltop(k) = LM
+        jls_power(k) = -3 
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective cloud phase source of SO4
+        k = k + 1
+        jls_incloud(1,n) = k
         sname_jls(k) = 'mc_cloud_source_of'//trname(n)
         lname_jls(k) = 'SO4 made in convective clouds'
         jls_ltop(k) = LM
@@ -1510,19 +1505,11 @@ c convective cloud phase source of SO4
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c stratiform cloud phase source of SO4
         k = k + 1
-        jls_3Dsource(3,n) = k
+        jls_incloud(2,n) = k
         sname_jls(k) = 'ss_cloud_source_of'//trname(n)
         lname_jls(k) = 'SO4 made in stratiform clouds'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c heterogeneous source of SO4
-        k = k + 1
-        jls_3Dsource(4,n) = k
-        sname_jls(k) = 'heterogeneous_source_of'//trname(n)
-        lname_jls(k) = 'SO4 made in SO4'
-        jls_ltop(k) = LM
-        jls_power(k) = -3 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c industrial source
         k = k + 1
@@ -1550,9 +1537,24 @@ c gas phase source and sink of H2O2
         jls_ltop(k) = LM
         jls_power(k) = 2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c convective chem cloud phase sink of H2O2
         k = k + 1
         jls_3Dsource(2,n) = k
+        sname_jls(k) = 'gas_phase_sink_of'//trname(n)
+        lname_jls(k) = 'H2O2 gas phase sink'
+        jls_ltop(k) = LM
+        jls_power(k) = 2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c heterogenous sink H2O2_s
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'het_src_of'//trname(n)
+        lname_jls(k) = 'H2O2 Heterogenous sink'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c convective chem cloud phase sink of H2O2
+        k = k + 1
+        jls_incloud(1,n) = k
         sname_jls(k) = 'mc_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 used in convective cloud chem'
         jls_ltop(k) = LM
@@ -1560,20 +1562,21 @@ c convective chem cloud phase sink of H2O2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c stratiform chem cloud phase sink of H2O2
         k = k + 1
-        jls_3Dsource(3,n) = k
+        jls_incloud(2,n) = k
         sname_jls(k) = 'ss_cloud_chem_sink_of'//trname(n)
         lname_jls(k) = 'H2O2 used in stratiform cloud chem'
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 C
+c photolysis rate
         k = k + 1
-        jls_3Dsource(4,n) = k
-        sname_jls(k) = 'gas_phase_sink_of'//trname(n)
-        lname_jls(k) = 'H2O2 gas phase sink'
-        jls_ltop(k) = LM
-        jls_power(k) = 2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        jls_phot = k
+        sname_jls(k) = 'photolysis_rate_of_H2O2'//trname(n)
+        lname_jls(k) = 'photolysis rate of H2O2'
+        jls_ltop(k) =LM
+        jls_power(k) =-8
+        units_jls(k) = unit_string(jls_power(k),'/s')
 
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
@@ -1637,6 +1640,34 @@ c
         jls_power(k) = -2. 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
+
+#ifdef TRACERS_AEROSOLS_Koch
+c Oxidants
+        k = k + 1
+        jls_OHcon = k
+        sname_jls(k) = 'OH'//trname(n)
+        lname_jls(k) = 'OH'
+        jls_ltop(k) = LM
+        jls_power(k) =3
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+
+        k = k + 1
+        jls_HO2con = k
+        sname_jls(k) = 'HO2'//trname(n)
+        lname_jls(k) = 'HO2'
+        jls_ltop(k) =LM
+        jls_power(k) =5
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+
+        k = k + 1
+        jls_NO3 = k
+        sname_jls(k) = 'NO3'//trname(n)
+        lname_jls(k) = 'NO3'
+        jls_ltop(k) =LM
+        jls_power(k) =5
+        units_jls(k) = unit_string(jls_power(k),'molec/cm3')
+#endif
+
         
       if (k.gt. ktajls) then
         write (6,*)
@@ -2028,64 +2059,104 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'DMS Chem sink'
+        sname_ijts(k) = 'DMS_Chem_sink'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       case ('MSA')
 c put in chemical production of MSA
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'MSA Chemical source'
         sname_ijts(k) = 'MSA_Chemical_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -17.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SO2')
-c put in production of SO2 from DMS
-        k = k + 1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 source from DMS'
-        sname_ijts(k) = 'SO2_source_from_DMS'
-        ijts_power(k) = -10.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c production of SO2 from volcanic emissions
         k = k + 1
-        ijts_source(2,n) = k
+        ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from volcanos'
         sname_ijts(k) = 'SO2_source_from_volcanos'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c production of SO2 from aircraft
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 source from aircraft'
+        sname_ijts(k) = 'SO2_source_from_aricraft'
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in production of SO2 from DMS
+        k = k + 1
+        ijts_3Dsource(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 source from DMS'
+        sname_ijts(k) = 'SO2_source_from_DMS'
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in chemical loss of SO2
+        k = k + 1
+        ijts_3Dsource(4,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 Chemical sink'
+        sname_ijts(k) = 'SO2_chem_sink'
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c emissions of industrial SO2
         k = k + 1
-        ijts_source(3,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO2 source'
         sname_ijts(k) = 'SO2_source_from_industry'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c emissions of biomass SO2
         k = k + 1
-        ijts_source(4,n) = k
+        ijts_source(2,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Biomass SO2 source'
         sname_ijts(k) = 'SO2_source_from_biomass'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in production of SO2 from heter chem
+        k = k + 1
+        ijts_3Dsource(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 heter chem sink'
+        sname_ijts(k) = 'SO2_het_chem_sink'
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SO4')
 c put in production of SO4 from gas phase
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 gas phase source'
@@ -2095,11 +2166,53 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 from industrial emissions
         k = k + 1
-        ijts_source(2,n) = k
+        ijts_source(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in loss of SO4 from heter chem
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4 heter chem sink'
+        sname_ijts(k) = 'SO4_het_chem_sink'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('H2O2_s')
+c put in production of H2O2 from gas phase
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'H2O2 gas phase source'
+        sname_ijts(k) = 'H2O2_gas_phase_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in production of H2O2 from gas phase
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'H2O2 gas phase sink'
+        sname_ijts(k) = 'H2O2_gas_phase_sink'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in production of H2O2 from heter chem
+        k = k + 1
+        ijts_3Dsource(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'H2O2 heter chem sink'
+        sname_ijts(k) = 'H2O2_het_chem_sink'
         ijts_power(k) = -10.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2889,41 +3002,41 @@ C**** First 12 are standard for all tracers and GCM
 
       case ('SO2')
       itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem src'
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Volcanic src'
       qsum(itcon_3Dsrc(1,N)) = .true.
       itcon_3Dsrc(2,N) = 14
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Chem sink'
-      qsum(itcon_3Dsrc(2,N)) = .true.
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft src'
+      qsum(itcon_3Dsrc(2,N))=.true.
       itcon_3Dsrc(3,N) = 15
-      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Volcanic src'
+      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Chem src'
       qsum(itcon_3Dsrc(3,N)) = .true.
       itcon_3Dsrc(4,N) = 16
-      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Aircraft src'
-      qsum(itcon_3Dsrc(4,N))=.true.
-      itcon_surf(1,N) = 17
-      qcon(itcon_surf(1,N)) = .true.; conpts(5) = 'Industrial src'
+      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem sink'
+      qsum(itcon_3Dsrc(4,N)) = .true.
+      itcon_3Dsrc(6,N) = 17
+      qcon(itcon_3Dsrc(6,N)) = .true.; conpts(5) = 'Heter sink'
+      qsum(itcon_3Dsrc(6,N)) = .true.
+      itcon_surf(1,N) = 18
+      qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
       qsum(itcon_surf(1,N))=.false.
-      itcon_surf(2,N) = 18
-      qcon(itcon_surf(2,N)) = .true.; conpts(6) = 'Biomass src'
+      itcon_surf(2,N) = 19
+      qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'Biomass src'
       qsum(itcon_surf(2,N))=.false.
 #ifdef TRACERS_WATER
-      itcon_mc(n) =19
-      qcon(itcon_mc(n)) = .true.  ; conpts(7) = 'MOIST CONV'
+      itcon_mc(n) =20
+      qcon(itcon_mc(n)) = .true.  ; conpts(8) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =20
-      qcon(itcon_ss(n)) = .true.  ; conpts(8) = 'LS COND'
+      itcon_ss(n) =21
+      qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
-        itcon_dd(n)=21
-        qcon(itcon_dd(n)) = .true. ; conpts(9) = 'DRY DEP'
+        itcon_dd(n)=22
+        qcon(itcon_dd(n)) = .true. ; conpts(10) = 'DRY DEP'
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
-      itcon_3Dsrc(5,N) = 22
-      qcon(itcon_3Dsrc(5,N)) = .true.; conpts(10) = 'Heter sink'
-      qsum(itcon_3Dsrc(5,N)) = .true.
 
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -2937,9 +3050,43 @@ C**** First 12 are standard for all tracers and GCM
       itcon_3Dsrc(1,N) = 14
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Gas phase src'
       qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_surf(1,N) = 15
-      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
+      itcon_3Dsrc(2,N) = 15
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Heter src'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 16
+      qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
       qsum(itcon_surf(1,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) =17
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) =18
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=19
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('H2O2_s')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Gas phase sink'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_3Dsrc(3,N) = 15
+      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Heter sink'
+      qsum(itcon_3Dsrc(3,N)) = .true.
 #ifdef TRACERS_WATER
       itcon_mc(n) =16
       qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
@@ -2955,37 +3102,6 @@ C**** First 12 are standard for all tracers and GCM
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
-      itcon_3Dsrc(2,N) = 19
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(7) = 'Heter src'
-      qsum(itcon_3Dsrc(2,N)) = .true.
-
-      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-      qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
-
-      case ('H2O2_s')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase change'
-      qsum(itcon_3Dsrc(1,N)) = .true.
-#ifdef TRACERS_WATER
-      itcon_mc(n) =14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-      qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-      qsum(itcon_ss(n)) = .false.
-#endif
-#ifdef TRACERS_DRYDEP
-      if(dodrydep(n)) then
-        itcon_dd(n)=16
-        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
-        qsum(itcon_dd(n)) = .false.
-      end if
-#endif
-      itcon_3Dsrc(2,N) = 17
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(5) = 'Heter sink'
-      qsum(itcon_3Dsrc(2,N)) = .true.
 
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -3890,6 +4006,8 @@ C****
 
       SUBROUTINE tracer_3Dsource
 !@sum tracer_3Dsource calculates interactive sources for tracers
+!@+   Please note that if the generic routine 'apply_tracer_3Dsource'
+!@+   is used, all diagnostics and moments are updated automatically.
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE TRACER_COM
@@ -3899,6 +4017,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_SOURCES, only: nLightning, nAircraft,nStratwrite,
      &                          nChemistry
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only: SO2_src_3d
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow
@@ -3945,7 +4066,11 @@ C****
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       case ('SO2')
-      call apply_SO2_3Dsrc
+C**** two 3D sources (aircraft and volcanos) read in from files
+        tr3Dsource(:,:,:,1:2,n) = so2_src_3d(:,:,:,1:2)
+        call apply_tracer_3Dsource(1,n) ! volcanos
+        call apply_tracer_3Dsource(2,n) ! aircraft
+c      call apply_SO2_3Dsrc
 #endif
 
       end select
@@ -3953,10 +4078,22 @@ C****
       end do
 
 #ifdef TRACERS_AEROSOLS_Koch
-c somehow get IJ maps of these
        call aerosol_gas_chem
+       call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
+       call apply_tracer_3Dsource(1,n_MSA)  ! MSA chem sink
+       call apply_tracer_3Dsource(3,n_SO2)  ! SO2 chem source
+       call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem sink
+       call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
+       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source      
+       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+
 c       call simple_dry_dep
+
        call heter
+       call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
+       call apply_tracer_3Dsource(2,n_SO4) ! SO4 het chem source
+       call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink 
+       
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
