@@ -812,6 +812,7 @@ C*
       ERUN2 = HSI3*FMSI2*R3/MSI2
       H2 = HSI2+(FHSI1-FHSI2) ! for prescribed ice/ocean
       TG2 = (H2/(XSI2*MSI1)+LHM)/SHI ! second layer ice temperature
+      GO TO 380
 C*
   210 CONTINUE
 C*
@@ -876,7 +877,7 @@ C*
 C* 
       REAL*8 POICE, ROICE, ROICEN, OPNOCN,  
      *       SNOW, MSI1, MSI2, ACE2F, ACE2M, MELT1, MELT4,  
-     *       DEW, CMPRS, dSNdML, DRSI, DRI
+     *       DEW, CMPRS, DRSI, DRI
       REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4, 
      *       FMSI1, FMSI2, FMSI3, FMSI4, 
      *       FHSI1, FHSI2, FHSI3, FHSI4  
