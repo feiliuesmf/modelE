@@ -704,14 +704,15 @@ and NMONAV in the NAMELIST).</p>
   <li>for all Januaries:  pdE $RUNID JAN*.acc$RUNID
   <li>for a whole year:   pdE $RUNID *1987.acc$RUNID
        </ul>
+       <p>
        To work properly, the directory /u/cmrun/$RUNID has to exist 
        and contain at least ${RUNID}ln  ${RUNID}uln  ${RUNID}.exe .
-       The output files will end up in that directory, the names of
-       the inputfiles are not restricted (as long as their format is
-       compatible with the model ${RUNID}). You need not be in 
-       /u/cmrun/$RUNID to execute pdE $RUNID list_of_files_to_be_processed.
+       The output files will end up in that directory, names and order
+       of the inputfiles are irrelevant (as long as the format of the
+       files is compatible with the model ${RUNID}). You need not be in 
+       /u/cmrun/$RUNID to execute pdE $RUNID list_of_files_to_be_processed.</p>
        
-       It is possible to use pdE to average acc-files from several runs,
+       <p>It is possible to use pdE to average acc-files from several runs,
        e.g. average over an ensemble of runs. Although the numbers that
        are produced are fine, subroutine aPERIOD will not
        be able to create the proper labels: the runID will be taken from
@@ -720,19 +721,19 @@ and NMONAV in the NAMELIST).</p>
        of runs runA runB runC runD will produce the label ANN1951-1970.runD
        rather than  ANN1951-1955.runA-D. Some titles will also suffer from
        that 'bug', but it should be easy to fix it manually afterwards,
-       if anybody cares.
+       if anybody cares.</p>
 </ol>
 <p>Note that the output can be controlled (a little) by the settings in
 'Ipd' (which is produced in the run directory the first time you run
-pdE). A number of files will be created appropriate for the
-accumulated time period.  (xxxnnnn where xxx is a month or a season or
-ANN or DCD, and nnnn is a year or nrange of years).</p>
+pdE). A number of files will be created whose names contain the
+accumulated time period.  (monyear[-year] where mon is a 3-letter acronym 
+for a period of 1-12 consecutive months).</p>
 <pre>
- xxxnnnn.PRT     the printout
-        xxxnnnn.j$RUNID zonal budget pages (ASCII Aplot format)
-        xxxnnnn.jk$RUNID latitude-height binary file
-        xxxnnnn.il$RUNID longitude-height binary file
-        xxxnnnn.ij$RUNID lat-lon binary file
+        monyear.PRT      the printout
+        monyear.j$RUNID  zonal budget pages (ASCII Aplot format)
+        monyear.jk$RUNID latitude-height binary file
+        monyear.il$RUNID longitude-height binary file
+        monyear.ij$RUNID lat-lon binary file
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
