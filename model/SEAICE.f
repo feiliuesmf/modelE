@@ -1477,9 +1477,9 @@ c        FSRI(3) = FSRI(2)*EXP(-KIEXT*MSI2*XSI(3)*BYRHOI)
 c        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
 
 c**** Set fractions of visible and near-ir bands based on weighting the
-c**** solar input by the approximate co-albedo (ignoring melt ponds etc). 
-c**** VIS:  250 - 690 nm,       49.3% of incoming solar at ground 
-c**** NIR1: 690 - 1190 nm       34.9%       "       "   "    " 
+c**** solar input by the approximate co-albedo (ignoring melt ponds etc)
+c**** VIS:  250 - 690 nm,       49.3% of incoming solar at ground
+c**** NIR1: 690 - 1190 nm       34.9%       "       "   "    "
 c**** NIR2/3 (> 1190 nm assumed not to be transmitted)
 c****
       if (hsnow.gt.0.02) then    ! same cutoff as for albedo
@@ -1703,7 +1703,7 @@ C**** Check for reasonable values for ice variables
               WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
      *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)
               WRITE(6,*) HSI(:,I,J),MSI(I,J),SNOWI(I,J),SSI(:,I,J)
-              IF (TICE.gt.1d-1) QCHECKI = .TRUE.
+              IF (TICE.gt.1d-1.or.TICE.lt.-100.) QCHECKI = .TRUE.
             END IF
             IF (SSI(L,I,J).lt.0) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
