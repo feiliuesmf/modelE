@@ -65,7 +65,7 @@ if( $dt == 0 ) {
   exit;
 }
 
-($tau, $date) = split " ",`$EXECDIR/qc_e -r fort.[12]`;
+($tau, $date) = split " ",`$EXECDIR/qc_e -r fort.[12] | grep -v WARNING`;
 $taun = $tau + 48;
 
 seek I,0,0;
