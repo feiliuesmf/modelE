@@ -430,15 +430,15 @@ C**** TRACERS: Use only the active ones
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
-      DO L=1,LP50
+      DO L=1,LM
         TL(L)=T(I,J,L)*PLK(L)
         TH(L)=T(I,J,L)
         QL(L)=Q(I,J,L)
       END DO
-      WMX(1:LP50)=WML(1:LP50)+SVWMXL(1:LP50)
-      AQ(1:LP50)=(QL(1:LP50)-QTOLD(1:LP50,I,J))*BYDTsrc
-      RNDSS1L(1:LP50)=RNDSS1(1:LP50,I,J)
-      RNDSS2L(1:LP50)=RNDSS2(1:LP50,I,J)
+      WMX(:)=WML(:)+SVWMXL(:)
+      AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
+      RNDSS1L(:)=RNDSS1(:,I,J)
+      RNDSS2L(:)=RNDSS2(:,I,J)
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****
@@ -654,15 +654,15 @@ C**** WRITE TO GLOBAL ARRAYS
       CLDMC(:,I,J)=CLDMCL(:)
       SVLAT(:,I,J)=SVLATL(:)
 
-      TAUSS(1:LP50,I,J)=TAUSSL(1:LP50)
-      CLDSS(1:LP50,I,J)=CLDSSL(1:LP50)
-      CLDSAV(1:LP50,I,J)=CLDSAVL(1:LP50)
-      SVLHX(1:LP50,I,J)=SVLHXL(1:LP50)
-      CSIZSS(1:LP50,I,J)=CSIZEL(1:LP50)
+      TAUSS(:,I,J)=TAUSSL(:)
+      CLDSS(:,I,J)=CLDSSL(:)
+      CLDSAV(:,I,J)=CLDSAVL(:)
+      SVLHX(:,I,J)=SVLHXL(:)
+      CSIZSS(:,I,J)=CSIZEL(:)
 
-      RHSAV(1:LP50,I,J)=RH(1:LP50)
-      TTOLD(1:LP50,I,J)=TH(1:LP50)
-      QTOLD(1:LP50,I,J)=QL(1:LP50)
+      RHSAV(:,I,J)=RH(:)
+      TTOLD(:,I,J)=TH(:)
+      QTOLD(:,I,J)=QL(:)
 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
@@ -670,7 +670,7 @@ C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 
-      DO L=1,LP50
+      DO L=1,LM
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
