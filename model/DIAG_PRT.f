@@ -2792,7 +2792,7 @@ C**FREQUENCY BAND AVERAGE
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1, ij_albgv
+     *  ij_ntdsete, ij_dzt1, ij_albgv, ij_colh2o
 
 !@var SENTDSE stand.eddy northw. transport of dry static energy * 16
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
@@ -2985,6 +2985,12 @@ c
       lname_ij(k) = 'GROWING SEASON'
       units_ij(k) = 'days'
 
+      k = k + 1
+      ij_colh2o = k
+      name_ij(k) = 'pcol_h2o'
+      lname_ij(k) = 'PRECIPITABLE WATER'
+      units_ij(k) = 'cm'
+
 c Check the count
       if (k .gt. kaijx) then
         write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
@@ -3019,7 +3025,8 @@ c Check the count
 
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap
       REAL*8, DIMENSION(JM) :: smapj
-      integer i,j,k1,k2,k,iwt,jgrid,irange,n1,n2
+      integer, intent(in) :: k
+      integer i,j,l,k1,k2,iwt,jgrid,irange,n1,n2
       character(len=30) name,units
       character(len=80) lname
       real*8 :: gm,nh,sh, off, byiacc, scalek
@@ -3225,6 +3232,20 @@ c**** length of growing season   (not quite right ???)
         end do
         end do
 
+c**** precipitable water
+      else if (k.eq.ij_colh2o) then
+        jgrid = 2; irange = ir_ij(ij_prec)
+        byiacc = .1*.25*100.*bygrav/idacc(ia_dga)
+        anum = 0.
+        do l=1,lm
+        do j=1,jm
+        do i=1,im
+          anum(i,j) = anum(i,j) + aijk(i,j,l,ijk_q)
+        end do
+        end do
+        end do
+        anum = anum*byiacc
+
       else  ! should not happen
         write (6,*) 'no field defined for ij_index',k
         call stop_model('ij_mapk: undefined extra ij_field',255)
@@ -3382,7 +3403,6 @@ c**** always skip unused fields
 
       if (kdiag(3).gt.0) call set_ijout (kdiag(3),nmaplets,nmaps,
      *  Iord,Qk,iu_Iij)
-
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
       DAYS=(Itime-Itime0)/DFLOAT(nday)

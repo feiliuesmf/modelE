@@ -3003,7 +3003,7 @@ c
       k=k+1
       jl_cldmc= k
       sname_jl(k) = 'cldmc'   ! no output
-      lname_jl(k) = 'MOIST CONVECTIVE CLOUD FRACTION' ! from cloud scheme
+      lname_jl(k) = 'MOIST CONVECTIVE CLOUD FRACTION' !from cloud scheme
       units_jl(k) = '%'
       scale_jl(k) = 100.*byim
       ia_jl(k) = ia_src
@@ -3021,7 +3021,7 @@ c
       k=k+1
       jl_csizmc= k
       sname_jl(k) = 'csizmc'
-      lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE' 
+      lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE'
       units_jl(k) = 'micron'
       scale_jl(k) = byim
       ia_jl(k) = ia_src
@@ -3100,7 +3100,7 @@ c
       end subroutine sjl_defs
 
       subroutine jk_defs
-      use CONSTANT, only : sday,twopi,rgas,lhe,bygrav
+      use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,bymrat
       use MODEL_COM, only : fim,byim,dt
       use GEOM, only : dlon
       use DAGCOM
@@ -3155,9 +3155,9 @@ c
       jk_q = k
       sname_jk(k) = 'q' !'AJK05'
       lname_jk(k) = 'SPECIFIC HUMIDITY' !'Q*DP'
-      units_jk(k) = 'kg H2O/kg AIR'
-      pow_jk(k) = -5
-      scale_jk(k) = 1.
+      units_jk(k) = 'ppmv'
+      pow_jk(k) = -1
+      scale_jk(k) = 1.e6*bymrat
       jgrid_jk(k) = 1
 c
       k=k+1
