@@ -1082,6 +1082,72 @@ c
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m3975_1425
 c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
+      lname_ij(k) = '10 mb HEIGHT'
+      units_ij(k) = 'm-30000'
+      name_ij(k) = 'PHI10'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
+      lname_ij(k) = '3.4 mb HEIGHT'
+      units_ij(k) = 'm-40000'
+      name_ij(k) = 'PHI3.4'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
+      lname_ij(k) = '0.7 mb HEIGHT'
+      units_ij(k) = 'm-50000'
+      name_ij(k) = 'PHI0.7'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
+      lname_ij(k) = '0.16 mb HEIGHT'
+      units_ij(k) = 'm-61000'
+      name_ij(k) = 'PHI0.16'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
+      lname_ij(k) = '0.07 mb HEIGHT'
+      units_ij(k) = 'm-67000'
+      name_ij(k) = 'PHI0.07'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      k=k+1 
+      IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
+      lname_ij(k) = '0.03 mb HEIGHT'
+      units_ij(k) = 'm-72000'
+      name_ij(k) = 'PHI0.03'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m5300_1900
+      end if
+c
       k=k+1 !  'AIJ016'
       IJ_T850 = k ! T850-TF (K-TF)*GRAV) (NO PRT) 4 DA
       lname_ij(k) = 'TEMPERATURE AT 850mb'
@@ -1644,7 +1710,7 @@ c
       iw_ij(k) = iw_lice
       ir_ij(k) = ir_m38_106
 c
-      k=k+1 !  'AIJ076'
+c     k=k+1 !  'AIJ076'
 cfree IJ_TMAX  = k ! MAX(COMPOSITE TS)                      12 SF
 cfree lname_ij(k) = 'MAX(COMPOSITE TS)'
 cfree units_ij(k) = 'degK'
@@ -1652,7 +1718,7 @@ cfree name_ij(k) = 'TMAX'
 cfree ia_ij(k) = ia_inst
 cfree scale_ij(k) = 1.
 c
-      k=k+1 !  'AIJ077'
+c     k=k+1 !  'AIJ077'
 cfree IJ_TMIN  = k ! MIN(COMPOSITE TS)                      12 SF
 cfree lname_ij(k) = 'MIN(COMPOSITE TS)'
 cfree units_ij(k) = 'degK'
@@ -1729,7 +1795,7 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !  'AIJ086'
+c     k=k+1 !  'AIJ086'
 cfree IJ_EMTMOM = k ! INCIDENT MTN EAST MOM. FLUX (MB-M/S**2)  1 SD
 cfree lname_ij(k) = 'INCIDENT MTN EAST MOMENTUM FLUX'
 cfree units_ij(k) = 'mb m/s^2'
@@ -1737,7 +1803,7 @@ cfree name_ij(k) = 'EMTMOM'
 cfree ia_ij(k) = ia_src
 cfree scale_ij(k) = 1./DTsrc
 c
-      k=k+1 !  'AIJ087'
+c     k=k+1 !  'AIJ087'
 cfree IJ_SMTMOM = k ! INCIDENT MTN SOUTH MOM. FLUX (MB-M/S**2) 1 SD
 cfree lname_ij(k) = 'INCIDENT MTN SOUTH MOMENTUM FLUX'
 cfree units_ij(k) = 'mb m/s^2'

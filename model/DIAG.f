@@ -3212,6 +3212,12 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         STOP "Stratospheric definition problem for spectral diags."
       END IF
 
+C**** Calculate the max number of geopotential heights
+      do k=1,kgz
+        kgz_max = k
+        if (pmb(k).le.pmtop) exit
+      end do
+
 c**** Initialize acc-array names, units, idacc-indices
       call def_acc
 

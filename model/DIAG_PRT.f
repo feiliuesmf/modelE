@@ -119,7 +119,7 @@ c
       END SUBROUTINE J_TITLES
       SUBROUTINE DIAGJ
 C****
-C**** THIS SUBROUTINE PRODUCES AREA WEIGHTED STATISTICS OF
+C**** THIS ROUTINE PRODUCES AREA WEIGHTED STATISTICS OF
 C****
 C   K   N
 C****
@@ -765,7 +765,7 @@ c      USE PRTCOM, only :
      &     PLM,PLE,P1000K,linect,jmby2
       USE DAGCOM, only :
      &     ajk,ajl,asjl,ajlsp,kdiag,aijl,aijk,nwav_dag,kajlsp,LM_REQ
-     &     ,apj,aij,IJ_PHI1K,kgz
+     &     ,apj,aij, IJ_PHI1K,kgz,kgz_max,pmb
      &     ,qcheck, acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,kep,ijl_u,ijl_v,ijl_dse,ijl_q,ijl_dp
      &     ,sname_jl=>name_jl,lname_jl,units_jl
@@ -836,10 +836,7 @@ c      USE PRTCOM, only :
      &     BDN,BUP,DAM4,DXCVN,DXCVS,ELOFIM,SCALEV
 
       DOUBLE PRECISION, DIMENSION(0:IMH) :: AN,BN
-      DOUBLE PRECISION, DIMENSION(JM,8,4) :: AMPLTD,PHASE
-
-      DOUBLE PRECISION, DIMENSION(7), PARAMETER ::
-     &     PMB=(/999.9,850.,700.,500.,300.,100.,30./)
+      DOUBLE PRECISION, DIMENSION(JM,kgz+1,4) :: AMPLTD,PHASE
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
@@ -1725,14 +1722,9 @@ C**** FOURIER ANALYSIS OF GEOPOTENTIAL HEIGHTS FOR WAVE NUMBERS 1 TO 4,
 C****   AMPLITUDE AND PHASE
 C****
             LINECT=63
-      KM=0
-      DO K=1,KGZ
-        IF (PMTOP.GT.PMB(K)) EXIT
-        KM=KM+1
-      ENDDO
       ELOFIM=.5*TWOPI-TWOPI/FIM
 
-      DO K=1,KM
+      DO K=1,kgz_max
       DO N=1,4
       AMPLTD(1,K,N)=0.
       AMPLTD(JM,K,N)=0.
@@ -1752,12 +1744,12 @@ C****
       SCALET=BYIADA*BYGRAV
       DO N=1,4
       CALL JLMAP(LNAME_JKJL(N+7),SNAME_JKJL(N+7),UNITS_JKJL(N+7),
-     &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,KM,2,1)
+     &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
       ENDDO
       SCALET=360./TWOPI
       DO N=1,4
       CALL JLMAP(LNAME_JKJL(N+11),SNAME_JKJL(N+11),UNITS_JKJL(N+11),
-     &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,KM,2,1)
+     &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
       ENDDO
 
       if(qcheck) call close_jl
@@ -1946,7 +1938,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       SUBROUTINE JLMAP(LNAME,SNAME,UNITS,
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1)
 C****
-C**** THIS SUBROUTINE PRODUCES LAYER BY LATITUDE TABLES ON THE LINE
+C**** THIS ROUTINE PRODUCES LAYER BY LATITUDE TABLES ON THE LINE
 C**** PRINTER.  THE INTERIOR NUMBERS OF THE TABLE ARE CALCULATED AS
 C****               AX * SCALET * SCALEJ * SCALEL.
 C**** WHEN JWT=1, THE INSIDE NUMBERS ARE NOT AREA WEIGHTED AND THE
@@ -2048,14 +2040,6 @@ C****
       HSUM(2)=HSUM(2)+FHEM(2)*SUMFAC*DSIG(L)/SDSIG
   140 GSUM=GSUM+FGLOB*SUMFAC*DSIG(L)/SDSIG
       WRITE (6,905) (DASH,J=J1,JM,INC)
-      if(  sname.eq.'phi_amp_wave1' .or.
-     &     sname.eq.'phi_amp_wave2' .or.
-     &     sname.eq.'phi_amp_wave3' .or.
-     &     sname.eq.'phi_amp_wave4' .or.
-     &     sname.eq.'phi_phase_wave1' .or.
-     &     sname.eq.'phi_phase_wave2' .or.
-     &     sname.eq.'phi_phase_wave3' .or.
-     &     sname.eq.'phi_phase_wave4' ) return
       ASUM(jmby2+1)=ASUM(jmby2+1)/J1
       DO 150 J=J1,JM
   150 MLAT(J)=NINT(ASUM(J)*SUMFAC)
@@ -2068,6 +2052,14 @@ C****
          TITLEO=TITLE//XLB
          IF(QCHECK) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
+      if(  sname.eq.'phi_amp_wave1' .or.
+     &     sname.eq.'phi_amp_wave2' .or.
+     &     sname.eq.'phi_amp_wave3' .or.
+     &     sname.eq.'phi_amp_wave4' .or.
+     &     sname.eq.'phi_phase_wave1' .or.
+     &     sname.eq.'phi_phase_wave2' .or.
+     &     sname.eq.'phi_phase_wave3' .or.
+     &     sname.eq.'phi_phase_wave4' ) return
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (MLAT(J),J=JM,J1,-INC)
       RETURN
@@ -2484,7 +2476,7 @@ C**FREQUENCY BAND AVERAGE
 
       use MODEL_COM, only : IM,JM
       use DAGCOM, only : kaij,kaijx,lname_ij,name_ij,units_ij
-     *  ,kgz,pmb,ght
+     *  ,kgz_max,pmb,ght
 
       IMPLICIT NONE
 
@@ -2494,7 +2486,7 @@ C**FREQUENCY BAND AVERAGE
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1, ij_dzt2, ij_dzt3, ij_dzt4, ij_dzt5, ij_dzt6
+     *  ij_ntdsete, ij_dzt1
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/ !
@@ -2698,9 +2690,8 @@ c
       lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
       units_ij(k) = 'E14 WT'
 
-      ij_dzt1 = k+1 ; ij_dzt2 = k+2 ; ij_dzt3 = k+3
-      ij_dzt4 = k+4 ; ij_dzt5 = k+5 ; ij_dzt6 = k+6
-      do k1 = 1,kgz-1 
+      ij_dzt1 = k+1 
+      do k1 = 1,kgz_max-1 
         name_ij(k+k1) = 'dztemp_1000-850'
         if(k1.gt.1) write(name_ij(k+k1)(8:15),
      *    '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
@@ -2709,7 +2700,7 @@ c
      *     '(i3.3,a1,i3.3,a1)') nint(pmb(k1)),'-',nint(pmb(k1+1)),' '
         units_ij(k+k1) = 'C'
       end do
-      k = k + kgz -1
+      k = k + kgz_max -1
 
       k = k + 1
       ij_grow = k
@@ -2891,8 +2882,8 @@ c**** precomputed fields: northward tranports by eddies
         anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  jgrid = 2
         adenom(1,1) = undef
 
-c**** group of kgz-1 thickness temperatures (from heights)
-      else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+kgz-2) then
+c**** group of kgz_max-1 thickness temperatures (from heights)
+      else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+kgz_max-2) then
         byiacc = 1./(idacc(ia_ij(ij_phi1k))+teeny) ; irange = ir_m80_28
         k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
         scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
@@ -3030,29 +3021,31 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      nmaplets = 60 ; nmaps = 2
-      iord(1:nmaplets+nmaps) = (/            ! 60 maplets
+      nmaplets = 42+(kgz_max-1)*2 ; nmaps = 2
+      iord(1:42) = (/            ! 72 maplets
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
      *  ij_rsnw,    ij_snow,    ij_rsit,     !        row 2
      *  ij_prec,    ij_evap,    ij_shdt,     ! pg  2  row 1
      *  ij_beta,    ij_rune,    ij_tg1,      !        row 2
      *  ij_ws,      ij_jet ,    ij_wsmn,     ! pg  3  row 1
-     *  0,          ij_jetdir,  ij_wsdir,    !        row 2
+     *  ij_sdrag,   ij_jetdir,  ij_wsdir,    !        row 2
      *  ij_cldcv,   ij_pmccld,  ij_cldtppr,  ! pg  4  row 1
      *  ij_pcldl,   ij_pcldm,   ij_pcldh,    !        row 2
      *  ij_netrdp,  ij_srtr,    ij_btmpw,    ! pg  5  row 1
      *  ij_albp,    ij_albg,    ij_albv,     !        row 2
      *  ij_trnfp0,  ij_neth,    ij_dtdp,     ! pg  6  row 1
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  !        row 2
-     *  ij_phi850,  ij_phi700,  ij_phi500,   ! pg  7  row 1
-     *  ij_phi300,  ij_phi100,  ij_phi30,    !        row 2
-     *  ij_dzt1,    ij_dzt2,    ij_dzt3,     ! pg  8  row 1
-     *  ij_dzt4,    ij_dzt5,    ij_dzt6,     !        row 2
-     *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  9  row 1
-     *  ij_scnvfrq, ij_pdcld,   ij_pscld,    !        row 2
-     *  ij_sdrag, 0, 0,        0, 0, 0,      ! pg 10
-c***                                        2  full page maps
-     *  ij_slp,ij_ts/)
+     *  ij_gwtr,    ij_wmsum,   ij_dcnvfrq,  ! pg  7  row 1
+     *  ij_scnvfrq, ij_pdcld,   ij_pscld/)   !        row 2
+
+C**** Fill in maplet indices for geoptential heights and thickness T's
+      do k=1,kgz_max-1
+        iord(k+42) = ij_phi1k+k  !i.e. first entry is ij_phi850
+        iord(k+42+kgz_max-1) = ij_dzt1+k-1  
+      end do
+
+C**** Add the full-page maps (nmaps)
+      iord(nmaplets+1:nmaplets+nmaps) = (/ij_slp,ij_ts/)
 
 c**** always skip unused fields
       Qk = .true.
@@ -3935,8 +3928,8 @@ C****
 
       SUBROUTINE DIAGKS
 C****
-C**** THIS SUBROUTINE PRODUCES A SUMMARY OF KEY NUMBERS CALCULATED IN
-C**** OTHER DIAGNOSTIC SUBROUTINES
+C**** THIS ROUTINE PRODUCES A SUMMARY OF KEY NUMBERS CALCULATED IN
+C**** OTHER DIAGNOSTIC ROUTINES
 C****
 C**** CONTENTS OF KEYNR
 C****

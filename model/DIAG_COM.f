@@ -156,14 +156,16 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
 !@param KGZ number of pressure levels for geopotential height diag
-      INTEGER, PARAMETER :: KGZ = 7   !13
+      INTEGER, PARAMETER :: KGZ = 13   !7
+!@param kgz_max is the actual number of geopotential heights saved
+      INTEGER kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
 !@param GHT ~mean geopotential heights at PMB level (extends to strat)
       REAL*8, DIMENSION(KGZ), PARAMETER ::
-     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0/),   !10d0,
-!     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
-     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./) !,30000.,
-!     *     40000.,50000.,61000.,67000.,72000./)
+     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0,10d0,
+     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
+     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000.,30000.,
+     *     40000.,50000.,61000.,67000.,72000./)
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
@@ -273,7 +275,8 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER :: IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850,IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
-     *     IJ_PHI30,IJ_T850,IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
+     *     IJ_PHI30,IJ_PHI10,IJ_PHI3p4,IJ_PHI0p7,IJ_PHI0p16,IJ_PHI0p07,
+     *     IJ_PHI0p03,IJ_T850,IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
      *     IJ_TRNFP0, IJ_SRTR,IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1,IJ_RSIT, IJ_TDSL, IJ_DTDP, IJ_RUNE, IJ_TS1,
      *     IJ_RUNLI, IJ_WS,IJ_TS, IJ_US, IJ_VS, IJ_SLP,IJ_UJET, IJ_VJET,
