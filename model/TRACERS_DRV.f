@@ -4660,11 +4660,9 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       case ('DMS')
       call read_DMS_sources(n)
-        do ns=1,ntsurfsrc(n)
-         do j=1,jm
-            trsource(:,j,ns,n) = DMS_src(:,j,ns)*dxyp(j)
-         end do
-        end do
+      do j=1,jm
+        trsource(:,j,1,n) = DMS_src(:,j)*dxyp(j)
+      end do
 
       case ('SO2')
         do ns=1,ntsurfsrc(n)
