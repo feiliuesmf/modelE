@@ -15,12 +15,12 @@ OCNE001 SEAICE LAKES LANDICE        ! ocean, lake and sea ice modules
 SEAICE_DRV LANDICE_DRV              ! ocean, lake and sea ice modules
 snowmodel                           ! snow model
 RE001                               ! setsur  rad.subr_incl._forcings
-DE001M12  FFT72  UTILDBL RAND~      ! diag,utilities
+DE001M12 DEFACC                     ! diagnostics
+FFT72  UTILDBL RAND~                ! utilities
 POUT                                ! for post-processing
-DEFACC                              ! acc file definitions
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.2
+AIC=DEC1958.rsfB394M12.modelE.3
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
