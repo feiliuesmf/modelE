@@ -24,6 +24,12 @@ C**** (used to be FMC)
       REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7 
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
+!@dbparam PBREAKTOP p. level to force GW breaking in top layer
+C**** This should be set to 100. (or something similar) to force
+C**** breaking of remaining gravity waves in top layer. Otherwise, 
+C**** momentum passes through model top. 
+      REAL*8 :: PBREAKTOP = 0.05d0   ! default is 0.05mb
+
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
 C**** (must be in common due to read statement)
       REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
@@ -59,7 +65,7 @@ C**** accumulated in the routines contained herein
       USE CONSTANT, only : twopi,kapa
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn,
-     *     cdef,cmc,pbreak
+     *     cdef,cmc,pbreak,pbreaktop
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
       USE GEOM, only : areag,dxyv
       USE FILEMANAGER
@@ -77,6 +83,7 @@ C**** sync gwdrag parameters from input
       call sync_param( "CDEF", CDEF)
       call sync_param( "CMC", CMC)
       call sync_param( "PBREAK", PBREAK)
+      call sync_param( "PBREAKTOP", PBREAKTOP)
 
 C**** sync more gwdrag parameters from input
       call sync_param( "QGWMTN", QGWMTN)
@@ -422,7 +429,7 @@ C****
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm,
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv,
-     *     cmtn,cdef,cmc
+     *     cmtn,cdef,cmc,pbreaktop
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
@@ -711,12 +718,15 @@ C****
           END IF
         END DO
       END DO
+C**** IF TOP LEVEL IS ABOVE PBREAKTOP FORCE BREAKING GW
+      IF (PLE(LM).lt.PBREAKTOP) THEN
 C**** DEPOSIT REMAINING MOM. FLUX IN TOP LAYER
-      MUB(LM+1,:)=0.
+        MUB(LM+1,:)=0.
 C**** DISTRIBUTE CRIT LEVEL NEAR TOP
-      DO N=1,NM
-      IF (MUB(LM,N).EQ.0.) MUB(LM,N)=.3d0*MUB(LM-1,N)
-      END DO
+        DO N=1,NM
+          IF (MUB(LM,N).EQ.0.) MUB(LM,N)=.3d0*MUB(LM-1,N)
+        END DO
+      END IF
 Cw*** APPLY AREA WEIGHTING OF MTN WAVE TO BREAKING MOM. FLUX
 Cw    DO 225 L=LD(1),LM
 Cw225 MUB(L,1)=MUB(L,1)*ZWT(I,J)
