@@ -207,7 +207,9 @@ $(BIN_DIR):
 	mkdir $(BIN_DIR)
 
 # Create an executable
-gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
+gcm: $(BIN_DIR)/$(RUN).exe
+
+$(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
 	echo linking executable $(MSG)
 	$(F90) $(LFLAGS) $(OBJS) $(LIBS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT

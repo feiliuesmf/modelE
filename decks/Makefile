@@ -136,7 +136,7 @@ clean vclean:
 	$(MAKE) -C $(MODEL_DIR) $@
 	$(MAKE) -C $(AUX_DIR) $@
 
-exe:  $(BIN_DIR)/$(RUN).exe
+exe: gcm
 	@if [ -n "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ] ; then \
 	echo 'Rundeck in repository is ok - will add info'; \
 	else \
