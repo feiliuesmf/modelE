@@ -59,7 +59,7 @@ print_usage help all:
 
 MODEL_E_ROOT = ..
 MODEL_DIR = .
-DECKS_DIR = $(MODEL_E_ROOT)/decks
+DECKS_DIR = .
 SCRIPTDIR = $(MODEL_E_ROOT)/exec
 
 RUNSRC  = E001
