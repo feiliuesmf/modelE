@@ -11,7 +11,7 @@ ITWRITE      controls # pages of radiative debug output                        0
 IWRITE,      if JWRITE<1500 get rad.info for box (Iwrite,Jwrite)               0
    JWRITE    if JWRITE>1500 get forcing info for years Iwrite->Jwrite          0
 IYEAR1       base year for internal clock ("Itime=0"="1/1/Iyear1,hr 0")   =YEARI
-KDIAG        controls amount of diagnostic printout (0=full->9=none)        12*0
+KDIAG        controls amount of diagnostic printout (0=full->9=none)      12*0,9
 QDIAG        controls whether binary diagn. files are created (ij,jl..)  .false.
 QDIAG_ratios fields with titles "q1 x q2" are replaced by field/q2        .true.
 QCHECK       activates the checking routines (checkt ... )               .false.
@@ -119,7 +119,7 @@ QCHECK, Iwrite,Jwrite,ITwrite  - Debug tools
        For debug purposes, ITWRITE=23 is usually sufficient, only
        radiation specialists will profit from any other settings.
 
-KDIAG(1->12) - Suppressing printout if >0
+KDIAG(1->13) - Suppressing printout if >0
   KDIAG(i) may be used to (partially) suppress type i diagn. printout
       i=1  budget pages,zonal means: do  all if        kdiag(1)=0
                               do all but 23 regions if kdiag(1)=1
@@ -153,11 +153,14 @@ KDIAG(1->12) - Suppressing printout if >0
                                     show only points 1->4-kdiag(6)
                                     show only point  i if kdiag(6)=-i<0
         7  wave power diagnostics   skip if kdiag(7)=9
-        8  unused
+        8  tracer diagnostics       skip if kdiag(8)=9
         9  conservation tables      skip if kdiag(9)=9
        10  longitude height tables  skip if kdiag(10)=9
        11  river diagnostics        skip if kdiag(11)=9
-       12  unused
+       12  ice and ocean diagnostics
+       13  hourly diagnostics       skip if kdiag(13)>3
+                                    show only points 1->4-kdiag(13)
+                                    show only point  i if kdiag(13)=-i<0
 
 Listing Parameters according to how they have to be handled:
 ------------------------------------------------------------
