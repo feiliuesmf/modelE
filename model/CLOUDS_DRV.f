@@ -81,17 +81,19 @@
       INTEGER :: LERR=0, IERR=0
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
-      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,THV1
-      REAL*8 :: DH12,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV2
-      REAL*8 :: DH1S,BYDH1S,BYDH12,ALPHAS,DTDZG,DUDZG,DVDZG
+      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
+      REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2
+      REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipipation
 !@var TPRCP temperature of precip  (deg. C)
 !@var EPRCP sensible heat of precip
 !@var ENRGP energy of precip
-!@var WMERR DH12,BYDH12,DH1S,BYDH1S,THV1,THV2 dummy variable
-!@var ALPHA1,ALPHA2,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS dummy variables
-!@var ALPHAS,DTDZG,DUDZG,DVDZG dummy variables
+!@var WMERR DH12,BYDH12,DH1S,BYDH1S dummy variable
+!@var THSV,THV1,THV2 vertual potential temperatures
+!@var ALPHA1,ALPHA2,ALPHAS dummy variables
+!@var DTDZ,DTDZS,DTDZG vertical potential temperature gradients
+!@var DUDZ,DVDZ,DUDZS,DVDZS,DUDZG,DVDZG vertical wind gradients
 
 C**** parameters and variables for isccp diags
       integer, parameter :: ntau=7,npres=7
