@@ -35,7 +35,7 @@ sinclude $(MODEL_DIR)/Rules.make
 
 rundeck:
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
+	! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
 	echo 'name $(RUN) is already used by somebody else'; \
 	echo 'please choose a unique one'; exit 1; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
@@ -56,7 +56,7 @@ setup: gcm
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
 	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	  ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
+	  ! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -88,7 +88,7 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
 	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	  ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
+	  ! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) > /dev/null; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -125,7 +125,7 @@ clean vclean:
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe:  $(BIN_DIR)/$(RUN).exe
-	@if ! [ `find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)` ]; then \
+	@if ! find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) >/dev/null; then\
 	echo 'Either you didn''t run setup yet or the rundeck name $(RUN)'; \
 	echo 'belongs to somebody else'; echo 'please check'; exit 1; fi
 	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \
