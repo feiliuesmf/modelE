@@ -76,7 +76,7 @@ c     integrate T,Q equations at tcells
       ! get u_tcell and v_tcell at t-cells
       call ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
 
-      call getdz(t_virtual,p,sig,sige,dz,dzedge,rho,rhoe
+      call getdz(t_virtual,p,dz,dzedge,rho,rhoe
      2           ,tsavg,qsavg,rvx,im,jm,lm)
 
       loop_j_tq: do j=1,jm
@@ -145,7 +145,6 @@ c     integrate T,Q equations at tcells
                 icount=icount+1
               endif
             end do
-c           test=test/float(lm-2)
             test=test/(float(icount)+1.d-40)
             if (test.lt.tol) exit
 
@@ -213,13 +212,11 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
             bydzerho(l)=1.d0/(dzeij(l)*rhoij(l))
           end do
 
-          uflx  =uflux_ucell(i,j)
-          vflx  =vflux_ucell(i,j)
+c         uflx  =uflux_ucell(i,j)
+c         vflx  =vflux_ucell(i,j)
 
-          do iter=1,itmax
-            call diff_uv(u0ij,v0ij,uij,vij,km,dzij,dzeij,rhoij,rhoeij
+          call diff_uv(u0ij,v0ij,uij,vij,km,dzij,dzeij,rhoij,rhoeij
      2                   ,rhoebydz,bydzerho,uflx,vflx,dtime,lm)
-          end do !loop iter
 
           do l=1,lm
             u(i,j,l)= uij(l)
@@ -232,7 +229,7 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
       return
       end subroutine diffus
 
-      subroutine getdz(tv,p,sig,sige,dz,dzedge,rho,rhoe
+      subroutine getdz(tv,p,dz,dzedge,rho,rhoe
      2          ,tsavg,qsavg,rvx,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
 !@+    as well as the 3d density rho and rhoe
@@ -245,7 +242,7 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
 !@var  zedge vertical coordinate associated with SIGE(l)
 !@var  temp0 virtual temperature (K) at (i,j) and SIG(l)
 !@var  temp1 virtual temperature (K) at (i,j) and SIG(l+1)
-!@var  temp1e virtual temperature (K) at (i,j) and SIGE(l+1)
+!@var  temp1e average of temp0 and temp1
 !@var  tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
 
 c
@@ -279,8 +276,6 @@ c
       real*8, intent(in) :: rvx
       real*8, dimension(lm,im,jm), intent(in) :: tv
       real*8, dimension(im,jm), intent(in) :: p,tsavg,qsavg
-      real*8, dimension(lm), intent(in) :: sig
-      real*8, dimension(lm+1), intent(in) :: sige
       real*8, dimension(lm,im,jm), intent(out) :: rho,rhoe
       real*8, dimension(lm,im,jm), intent(out) :: dz,dzedge
 
@@ -299,9 +294,7 @@ c
             ple =pedn(l,i,j)
             temp0 =tv(l,i,j)*pk(l,i,j)
             temp1 =tv(l+1,i,j)*pk(l+1,i,j)
-            temp1e=((sig (l+1)-sige(l+1))*temp0+
-     2              (sige(l+1)-sig (l))  *temp1)/
-     3              (sig(l+1)-sig(l))
+            temp1e=0.5d0*(temp0+temp1)
             dz(l,i,j)    =-(rgas/grav)*temp1e*log(pl1/pl)
             dzedge(l,i,j)=-(rgas/grav)*temp0 *log(pl1e/ple)
             rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
@@ -369,7 +362,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       real*8, dimension(n), intent(in) :: u,v,t,pres,prese,q,e
       real*8, dimension(n), intent(in) :: rho,rhoe,u0,v0,t0,q0
       real*8, dimension(n), intent(in) :: km,kh,ke,gm,gh,lscale
-      real*8, dimension(n-1), intent(in) :: dz,dzedge
+      real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: reserv,tsurf
       real*8, intent(in) :: uflx,vflx,tflx,qflx
 
@@ -510,7 +503,7 @@ c
       real*8, dimension(n), intent(in) :: u0,v0,km,rho,rhoe
      2        ,rhoebydz,bydzerho      
       real*8, dimension(n), intent(inout) :: u,v
-      real*8, dimension(n-1), intent(in) :: dz,dzedge
+      real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: uflx,vflx,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
@@ -519,13 +512,9 @@ c
 c
 c     sub(j)*u_jm1_kp1+dia(j)*u_j_kp1+sup(j)*u_jp1_kp1 = rhs(j)
 c     sub(j)*v_jm1_kp1+dia(j)*v_j_kp1+sup(j)*v_jp1_kp1 = rhs1(j)
-c     note: the j on the leftmost refers to the primary grid
-c       dxi/dz(j)=dxi/(zedge(j+1)-zedge(j))==dxi/dzedge(j)
-c       dxi/dz(j-1/2)=dxi/(z(j)-z(j-1))==dxi/dz(j-1)
-c       dxi/dz(j+1/2)=dxi/(z(j+1)-z(j))==dxi/dz(j)
-c       p1(j-1/2)=km(j)
-c       p1(j+1/2)=km(j+1)
-c       similarly in subroutine diff_tq
+c     note: j refers to the layer middle
+c     except for km(j), which is defined on the layer edge
+c     similarly in subroutine diff_tq
 c
       do j=2,n-1
 c         sub(j)=-dtime*km(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
@@ -602,7 +591,7 @@ c
       real*8, dimension(n), intent(in) :: tq0,khq,rho,rhoe
      2        ,rhoebydz,bydzerho      
       real*8, dimension(n), intent(inout) :: tq
-      real*8, dimension(n-1), intent(in) :: dz,dzedge
+      real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: sflx,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
@@ -633,7 +622,6 @@ c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-c     ok:
 c     alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
       alpha=dtime*khq(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
@@ -691,7 +679,7 @@ c
       real*8, dimension(n), intent(in) :: e0,km,kh,ke,lscale,
      &        u,v,t,rho,rhoe
       real*8, dimension(n), intent(inout) :: e
-      real*8, dimension(n-1), intent(in) :: dz,dzedge
+      real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: dtime,ustar2
 
       real*8, dimension(n) :: sub,dia,sup,rhs
@@ -701,20 +689,14 @@ c
       real*8, parameter :: emin=1.d-20,emax=10.d0
 c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
-c     note: the j on the leftmost refers to the secondary grid
-c       dxi/dz(j)=dxi/(z(j)-z(j-1))==dxi/dz(j-1)
-c       dxi/dz(j-1/2)=dxi/(zedge(j)-zedge(j-1))==dxi/dzedge(j-1)
-c       dxi/dz(j+1/2)=dxi/(zedge(j+1)-zedge(j))==dxi/dzedge(j)
-c       p1(j-1/2)=0.5d0*(ke(j)+ke(j-1))
-c       p1(j+1/2)=0.5d0*(ke(j)+ke(j+1))
-c       ke(j)=sq*lscale(j)*qturb, qturb=sqrt(2.d0*e(j))
-c
+c     j refers to the layer edge
+c     except ke(j) which is defined on the layer middle
       do j=2,n-1
           qturb=sqrt(2.d0*e(j))
           tmp=rho(j-1)/rhoe(j)
-          sub(j)=-dtime*0.5d0*(ke(j)+ke(j-1))/(dz(j-1)*dzedge(j-1))*tmp
+          sub(j)=-dtime*ke(j-1)/(dz(j-1)*dzedge(j-1))*tmp
           tmp=rho(j)/rhoe(j)
-          sup(j)=-dtime*0.5d0*(ke(j)+ke(j+1))/(dz(j-1)*dzedge(j))*tmp
+          sup(j)=-dtime*ke(j)/(dz(j-1)*dzedge(j))*tmp
           dia(j)=1.d0-(sub(j)+sup(j))+dtime*2*qturb/(b1*lscale(j))
           an2=grav*2.d0/(t(j)+t(j-1))*(t(j)-t(j-1))/dz(j-1)
           dudz=(u(j)-u(j-1))/dz(j-1)
@@ -765,10 +747,10 @@ c
       integer, intent(in) :: n
       real*8, dimension(n), intent(in) :: u,v,t,e,rho
       real*8, dimension(n), intent(out) :: lscale
-      real*8, dimension(n-1), intent(in) :: dz,dzedge
+      real*8, dimension(n), intent(in) :: dz,dzedge
 
       real*8, dimension(n) :: zedge
-      real*8, parameter :: alpha0=0.2d0
+      real*8, parameter :: alpha0=0.1d0
       real*8 :: dudz,dvdz,as2,lmax2
       real*8 :: sum1,sum2,qi,qim1,l0,l1,kz,an2,lmax
       integer :: i  !@var i loop variable
@@ -795,7 +777,7 @@ c     trapezoidal rule
       kz=kappa*zedge(1)
       lscale(1)=l0*kz/(l0+kz)
       if (lscale(1).gt.dzedge(1)) lscale(1)=dzedge(1)
-      do i=2,n-1
+      do i=2,n
         kz=kappa*zedge(i)
         l1=l0*kz/(l0+kz)
         if (t(i).gt.t(i-1)) then
@@ -811,7 +793,6 @@ c     trapezoidal rule
         if (l1.gt.dzedge(i)) l1=dzedge(i)
         lscale(i)=l1
       end do
-      lscale(n)=lscale(n-1)
 
       return
       end subroutine lgcm
@@ -859,10 +840,10 @@ c     at edge: e,lscale,km,kh,gm,gh
 
       integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n), intent(in) :: u,v,t,e,lscale
-      real*8, dimension(n-1), intent(in) :: dz
+      real*8, dimension(n), intent(in) :: dz
       real*8, dimension(n), intent(out) :: km,kh,ke,gm,gh
 
-      ! 0.2*lscale*qturb \approx 0.02*e*tau, because b1/2 \approx 10
+      ! note e *tau = b1/2 *lscale * qturb
       real*8, parameter ::  sq=0.02d0
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,ghi,gmi,gmmax
       real*8 :: sm,sh,taue,e_lpbl,e_main_i
@@ -893,9 +874,9 @@ c     at edge: e,lscale,km,kh,gm,gh
         gm(i)=gmi
         gh(i)=ghi
       end do
-      ke(1)=b1/sqrt(2.d0)*lscale(1)*sqrt(e(1))*sq
+      ke(1)=b1*lscale(1)*sqrt(0.5d0*e(1))*sq
       do i=1,n-1
-        ke(i)=0.5d0*(ke(i)+ke(i+1))
+        ke(i)=0.5d0*(ke(i)+ke(i+1)) !defined on main levels
       end do
       return
       end subroutine kgcm
@@ -908,15 +889,14 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var dbll the (real*8) layer number corresponds to the top of the pbl
       real*8, dimension(n), intent(in) :: e
       real*8, intent(out) :: dbll
-      real*8 :: e_1,e_i ! tke at primary layer 1,i
-      real*8 :: e_1p    ! certain percent of e_1
+
+      real*8, parameter :: fraction = 0.1d0
+      real*8 :: e1p    ! certain percent of e_1
       integer i
 
-      e_1=0.5d0*(e(1)+e(2))
-      e_1p=0.1d0*e_1
-      do i=1,n-1
-        e_i = 0.5d0*(e(i)+e(i+1))
-        if (e_i.le.e_1p) exit
+      e1p=fraction*e(1)
+      do i=2,n
+        if (e(i).lt.e1p) exit
       end do
       dbll=i   ! dbll is real*8
       return
