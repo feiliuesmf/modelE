@@ -68,12 +68,8 @@ C
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
-!@param fix_CH4_chemistry logical whether or not to used a fixed 
-!@+     value for methane in the chemistry code
 !@param checktracer_on logical to turn on the checktracer call
 !@param correct_strat_Ox logical tourn on lower strat Ox corrections
-!@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
-!@param pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@param MWabyMWw ratio of molecular weights of air/water
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
@@ -235,8 +231,6 @@ C
      &                      pfix_O2      = 0.209476d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
-     &                      pfix_CH4_S   = 1.75d-6,
-     &                      pfix_CH4_N   = 1.855d-6,
      &                      MWabyMWw     = mair/mwat,
      &                      O3_1_fact    = 0.972d0,
      &                      RGAMMASULF   = 0.1d0,
@@ -259,7 +253,15 @@ C
 
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
-      REAL*8 :: ch4_init_sh=1.750d0    , ch4_init_nh=1.855d0
+!@dbparam fix_CH4_chemistry (1=YES 0=NO) whether or not to used a fixed
+!@+       value for methane in the chemistry code
+!@dbparam pfix_CH4_N fixed ratio of CH4/M in North. Hemis. (if used)
+!@dbparam pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
+      REAL*8 ::             ch4_init_sh= 1.750d0,
+     &                      ch4_init_nh= 1.855d0,
+     &                      pfix_CH4_S = 1.75d-6,
+     &                      pfix_CH4_N = 1.855d-6
+      INTEGER :: fix_CH4_chemistry = 0
 
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
@@ -275,7 +277,6 @@ C to define BrOx, ClOx, ClONOs, HCL, and OxIC as well (GSF 8/03):
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
-     &                      fix_CH4_chemistry = .false.,
      &                      checktracer_on    = .false.,
      &                      correct_strat_Ox  = .true.
 c
