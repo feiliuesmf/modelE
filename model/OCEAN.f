@@ -554,7 +554,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl,sss0
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qflux_fix
       USE DAGCOM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -576,6 +576,8 @@ C****   set conservation diagnostic for ocean heat
       end if
 
       if (istart.le.0) return
+
+      call sync_param( "qflux_fix",qflux_fix)
 
 C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2) then
