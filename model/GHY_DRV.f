@@ -1817,7 +1817,7 @@ c****
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
-     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
+     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
@@ -1881,6 +1881,8 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
+        aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)
+        aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
         do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+wbare(k,i,j)

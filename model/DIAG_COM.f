@@ -346,7 +346,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4,
-     *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF
+     *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG, IJ_GPP, IJ_DLEAF,
+     *     IJ_GICE, IJ_GWTR1
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris

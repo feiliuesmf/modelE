@@ -1563,6 +1563,26 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
+      IJ_GICE = k ! ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
+      lname_ij(k) = 'TOTAL EARTH ICE' ! includes ice
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'gice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_GWTR1 = k ! WATER1+ICE1 (EARTH POINTS ONLY) 1 GD
+      lname_ij(k) = 'WATER IN UPPER EARTH LAYER' ! includes ice
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'gwtr1'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
       lname_ij(k) = 'SURFACE AIR SPECIFIC HUMIDITY'
       units_ij(k) = '10^-4 g/g'
