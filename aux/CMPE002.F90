@@ -11,7 +11,7 @@
       end interface
 
       integer, parameter :: TYPE_DOUBLE=0, TYPE_INT=1
-      integer, parameter :: max_num=128
+      integer, parameter :: max_num=140
 
 
       type db_str
@@ -203,7 +203,8 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use radncb, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
-           fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save
+           fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save, &
+           O3_trac=>O3_tracer_save
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
       use dagcom, only : keynr,tsfrez,tdiurn,oa
@@ -229,7 +230,7 @@
 #  ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only : &
            yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR
+           ,yAldehyde,yXO2N,yRXPAR,corrOx,ss
 #  endif
 
 #  ifdef CHECK_OCEAN
@@ -403,6 +404,7 @@
         check("cfrac",cfrac)
         check("rcld",rcld)
         check("O3_rad_save",O3_rad_save)
+        check("O3_trac",O3_trac)
         ! icedyn
         if(imic.gt.0) then
           check("RSIX",RSIX)
@@ -478,6 +480,8 @@
         check("yAldehyde",yAldehyde)
         check("yXO2N",yXO2N)
         check("yRXPAR",yRXPAR)
+        check("corrOx",corrOx)
+        check("ss",ss)
 #endif
 
 #  ifdef CHECK_OCEAN
