@@ -390,8 +390,11 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,fearth,jday
+      USE MODEL_COM, only : field_FEARTH
       USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
+      USE ESMF_CUSTOM_MOD, Only: Field_Halo
+c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -406,8 +409,11 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE PARAM
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      INTEGER :: rc
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
+c***      Type (ESMF_HaloDirection) :: direction
+      Integer :: direction ! ESMF_HaloDirection not yet implemented
       LOGICAL, INTENT(IN) :: inilake
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,I72,IU,JU,ID,JD loop variables
@@ -548,13 +554,13 @@ C**** read in named rivers (if any)
 
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
-      CALL HALO_UPDATE(grid, FEARTH, FROM=NORTH+SOUTH)
+      CALL Field_Halo( field_FEARTH, direction=NORTH+SOUTH, rc=rc)
       CALL HALO_UPDATE(grid, FLICE,  FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, FLAKE0, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, FOCEAN, FROM=NORTH+SOUTH)
 
       ! Use unusual loop bounds to fill KDIREC in halo
-      DO J=J_0H,J_1H
+      DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
       DO I=1,IM
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
@@ -740,9 +746,9 @@ C****
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      *     FLOW,EFLOW
       REAL*8,
-     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
-      REAL*8 :: AREGSUM
+      REAL*8 :: AREGSUM(size(areg,1),2)
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
       REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -857,9 +863,9 @@ C**** accumulate river runoff diags (moved from ground)
               END IF
               JR=JREG(ID,JD)
 C****              AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
-              AREG_part(JR,1,JD)=AREG_part(JR,1,JD)+DMM
+              AREG_part(JR,JD,1)=AREG_part(JR,JD,1)+DMM
 C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
-              AREG_part(JR,2,JD)=AREG_part(JR,2,JD)+DGM+DPE
+              AREG_part(JR,JD,2)=AREG_part(JR,JD,2)+DGM+DPE
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -870,12 +876,12 @@ C****              AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+DGM+DPE
           END IF
         END DO
       END DO
-      DO JR=1,size(AREG,1)
-        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
-        AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+AREGSUM
-        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
-        AREG(JR,J_ERVR)=AREG(JR,J_ERVR)+AREGSUM
-      ENDDO
+      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
+     &     AREGSUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
+      AREG(1:SIZE(AREG,1),J_RVRD)=AREG(1:SIZE(AREG,1),J_RVRD)+
+     &      AREGSUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_ERVR)=AREG(1:SIZE(AREG,1),J_ERVR)+
+     &      AREGSUM(1:SIZE(AREG,1),2)
 
 C****
 C**** Calculate river flow at the South Pole
@@ -1407,9 +1413,9 @@ C**** fluxes
       REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
       REAL*8, 
-     & DIMENSION(size(areg,1),2,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     & DIMENSION(size(areg,1),GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
      & :: AREG_part
-      REAL*8  :: AREGSUM
+      REAL*8  :: AREGSUM(size(areg,1),2)
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 #ifdef TRACERS_WATER
@@ -1562,9 +1568,9 @@ C**** Ice-covered ocean diagnostics
         AJ(J,J_WTR2, ITLKICE)=AJ(J,J_WTR2, ITLKICE)+MLAKE(2)*PLKICE
 C**** regional diags
 C****        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
-        AREG_part(JR,1,J)=AREG_part(JR,1,J)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
+        AREG_part(JR,J,1)=AREG_part(JR,J,1)+MLAKE(1)*FLAKE(I,J)*DXYP(J)
 C****        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
-        AREG_part(JR,2,J)=AREG_part(JR,2,J)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
+        AREG_part(JR,J,2)=AREG_part(JR,J,2)+MLAKE(2)*FLAKE(I,J)*DXYP(J)
 #ifdef TRACERS_WATER
 C**** tracer diagnostics
         TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?
@@ -1585,12 +1591,12 @@ C**** Store mass and energy fluxes for formation of sea ice
       END DO  ! i loop
       END DO  ! j loop
 
-      DO JR=1,size(AREG,1)
-        CALL GLOBALSUM(grid,AREG_part(JR,1,:),AREGSUM,ALL=.TRUE.)
-        AREG(JR,J_WTR1)=AREG(JR,J_WTR1)+AREGSUM
-        CALL GLOBALSUM(grid,AREG_part(JR,2,:),AREGSUM,ALL=.TRUE.)
-        AREG(JR,J_WTR2)=AREG(JR,J_WTR2)+AREGSUM
-      ENDDO
+      CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
+     &     AREGSUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
+      AREG(1:SIZE(AREG,1),J_WTR1)=AREG(1:SIZE(AREG,1),J_WTR1)+
+     &      AREGSUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_WTR2)=AREG(1:SIZE(AREG,1),J_WTR2)+
+     &      AREGSUM(1:SIZE(AREG,1),2)
 
       CALL PRINTLK("G2")
 

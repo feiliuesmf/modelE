@@ -1518,6 +1518,7 @@ Contains
 
   Subroutine Field_GetBounds(field, lb, ub, rc)
     Use ESMF_MOD, Only: ESMF_Field
+    USE ESMF_MOD, Only: ESMF_SUCCESS
 #ifdef USE_ESMF
     Use ESMF_MOD, Only: ESMF_FieldGet
     Use ESMF_MOD, Only: ESMF_FieldDataMap
@@ -1529,9 +1530,9 @@ Contains
 #endif
 
     Type (ESMF_Field), Intent(In) :: field
-    Integer, Optional, Intent(Out) :: lb(:)
-    Integer, Optional, Intent(Out) :: ub(:)
-    Integer, Optional, Intent(Out) :: rc
+    Integer, Intent(Out) :: lb(:)
+    Integer, Intent(Out) :: ub(:)
+    Integer, Intent(Out) :: rc
     Integer :: rank ! result
 #ifdef USE_ESMF
     Type (ESMF_Array) :: array
@@ -1550,7 +1551,8 @@ Contains
     ub(dist_idx) = ub(dist_idx) - halowidth
 #else
     lb = 1
-    ub = Field_GetShape(field)
+    Call Field_GetShape(field, ub)
+    rc = ESMF_SUCCESS
 #endif
 
   End Subroutine Field_GetBounds

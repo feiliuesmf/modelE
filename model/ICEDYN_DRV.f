@@ -171,16 +171,19 @@ C**** stencils.
         SELECT CASE (IACTION)
         CASE (IRSFICNO)           ! initial conditions (no ocean)
         CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
-          READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
-     &                                     , USI_glob, VSI_glob
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX, local=.true.)
-          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY, local=.true.)
-          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI, local=.true.)
-          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI, local=.true.)
+          if (AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
+     &                                         , USI_glob, VSI_glob
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER,
+     &             MODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX, local=.false.)
+          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY, local=.false.)
+          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI, local=.false.)
+          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI, local=.false.)
         END SELECT
       END SELECT
 
@@ -198,6 +201,7 @@ C****
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
       USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP, only : ESMF_BCAST
       USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
@@ -275,21 +279,27 @@ C**** accumulate diagnostics
           END IF
 #endif
         CASE (ioread,irerun)    ! restarts
-          READ (kunit,err=10) HEADER,ICIJ_GLOB,it
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,ICIJ_GLOB,it
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ, local=.true.)
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ, local=.false.)
+          call ESMF_BCAST(grid_MIC, it)
 #ifdef TRACERS_WATER
-          READ (kunit,err=10) TR_HEADER,TICIJ_GLOB,it
-          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TR_HEADER
-     *           ,TR_MODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ, local=.true.)
+          if ( AM_I_ROOT() ) then	
+            READ (kunit,err=10) TR_HEADER,TICIJ_GLOB,it
+            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TR_HEADER
+     *             ,TR_MODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ, local=.false.)
+          call ESMF_BCAST(grid_MIC, it)
 #endif
         CASE (IRSFIC)  ! initial conditions
           READ (kunit)

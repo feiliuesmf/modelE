@@ -249,7 +249,7 @@ if ( $uname =~ /IRIX64/ ) {
     $omp_run = "export MP_SET_NUMTHREADS=\$NP; ";
     $mpi_run = "mpirun -np \$NP ";
 } elsif ( $uname =~ /OSF1/ ) {
-    $omp_run = "export MP_SET_NUMTHREADS=\$NP; ";
+    $omp_run = "set OMP_SET_NUMTHREADS=\$NP; ";
     $mpi_run = "prun -s -n \$NP ";
 } elsif ( $uname =~ /AIX/ ) {
     $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check

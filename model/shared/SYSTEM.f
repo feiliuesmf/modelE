@@ -58,6 +58,19 @@
       RETURN
       END SUBROUTINE RFINAL
 
+      SUBROUTINE BURN_RANDOM(n)
+!@sum  BURN_RANDOM burns a set number of random numbers. It is used to
+!                  maintain bit-wise correspondence on parallel runs.
+      implicit none
+      integer, intent(in) :: n
+      integer :: i
+      real*8 x, randss
+      do i=1,n
+        randss= randu(x)
+      end do
+      return
+      end subroutine burn_random
+
       END MODULE RANDOM
 
 #if defined( MACHINE_SGI ) || defined( MACHINE_IBM )

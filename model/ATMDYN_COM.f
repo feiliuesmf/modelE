@@ -70,6 +70,11 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 !@var SMASS local but "SAVE"d array ADVECV in MOMEN2ND made global
 !@    here since its use does not go beyond ATMDYN that calls ADVECV
       REAL*8, ALLOCATABLE:: SMASS(:)
+
+      INTEGER, DIMENSION(2) :: t_dyn_a, t_dyn_b, t_dyn_c, t_dyn_d
+      INTEGER, DIMENSION(2) :: t_aflux, t_advecm, t_advecv
+      INTEGER, DIMENSION(2) :: t_PGF, t_filter, t_fltruv, t_calc_pijl
+      INTEGER, DIMENSION(2) :: t_sdrag, t_calc_trop
       END MODULE DYNAMICS
 
 
@@ -82,6 +87,9 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $                     SQRTP,PTROPO,LTROPO,PTOLD,DPDX_BY_RHO,
      $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
      $                     PS,SMASS
+      USE DYNAMICS, only : t_dyn_a, t_dyn_b, t_dyn_c, t_dyn_d
+      USE DYNAMICS, only : t_aflux, t_advecm, t_advecv
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

@@ -326,6 +326,9 @@ endif
   INCS += -I $(NETCDFHOME)/include
 endif
 
+# access new interfaces in sub-directory.
+FFLAGS+= -I$(ESMF_Interface)
+
 #
 # Pattern  rules
 #
@@ -342,12 +345,14 @@ FORCE:
 	else \
 	if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
 	echo "  dependencies for $@ have changed - recompiling"; \
+	echo "  name for $< "; \
 	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi ; \
 	fi
 
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
 # For the Absoft/Lahey/PGI compilers, we need to force a cpp run through
+##%.o: %.f ESMF_Interface/ESMF_CUSTOM_MOD.o
 %.o: %.f
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	@touch .timestamp
@@ -377,6 +382,7 @@ ifeq ($(COMPILER),PGI)
 else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
+	echo "  name for $*.f "
 endif
 endif
 endif

@@ -839,19 +839,20 @@ C**** Monthly sources are interpolated each day
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
 
 c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
-      real*8 tlca(im,jm,nmons), tlcb(im,jm,nmons)   ! for monthly sources
+      real*8, allocatable :: tlca(:,:,:), tlcb(:,:,:)   ! for monthly sources
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, J_0H, J_1H
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
+      adj_wet = 0
       do J=J_0,J_1
          if ( (J>15) .AND. (J<=JM-15) ) then
             adj_wet(J) = 1.761
@@ -868,6 +869,8 @@ C**** Annual sources are in KG C/M2/Y
 C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
+         CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+         Allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
         k = 0
         call openunits(ann_files,ann_units,ann_bins,nanns-3)
         do iu = ann_units(1),ann_units(nanns-3)

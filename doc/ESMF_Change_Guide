@@ -168,8 +168,64 @@ II. Modification to algorithms
 III. I/O
      ---
 
-     For the moment, I/O is being deferred.  At a later pass, "gather/scatter" operations
-     will be added so that the I/O can be serially performed on processs 0.
+     INPUT:
+      For the moment, input is hadled serially. Each processor reads data
+      into a temporary global array and then "unpacks" the data into
+      the local distributed array. Thus if the original code looked like:
+
+        REAL*8, DIMENSION(IM,JM) :: FOO
+        READ(-,-) foo
+
+      It should be changed to:
+
+        USE DOMAIN_DECOMP, only : UNPACK
+        REAL*8, DIMENSION(IM,JM) :: FOO_GLOB 
+        REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo) :: FOO
+        READ(-,-) foo_glob
+        call UNPACK(grid, FOO_GLOB, FOO, local=.true.)
+
+     OUTPUT:
+      Output is handled by first "packing" the data into a global array
+      in the root processor. The global array is then printed as usual.
+      Thus, scalar code like:
+
+        REAL*8, DIMENSION(IM,JM) :: FOO
+        WRITE(-,-) foo
+
+      will be changed to:
+    
+        USE DOMAIN_DECOMP, only : UNPACK,AM_I_ROOT
+        REAL*8, DIMENSION(IM,JM) :: FOO_GLOB
+        REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo) :: FOO
+        CALL PACK(grid,FOO, FOO_GLOB)
+        if (AM_I_ROOT())  WRITE(-,-) foo_glob
+
+IV. Code best executed serially
+    ---------------------------
+      The PACK and UNPACK routines will be used in the rare cases where
+      small code portions are to remain serial. The serial code will be
+      executed on the root processor. The PACK (or PACK_COLUMN) routines
+      will be used to gather the global data into the root processor.
+      After the serial data is executed in the root processor, all
+      processors place calls to UNPACK (or UNPACK_COLUMN) in order to
+      scatter the computed arrays into the rest of the processors.
+
+      If the following code is to be executed serially:
+ 
+        REAL*8, DIMENSION(IM,JM) :: a,b,c
+        ...
+        a=b+c
+
+      It should be changed to:
+
+        USE DOMAIN_DECOMP, only : grid, pack, unpack, am_a_root
+        REAL*8, DIMENSION(grid%i_strt_halo:grid%i_stop_halo, grid%j_strt_halo:grid%j_stop_halo) :: a,b,c
+        REAL*8, DIMENSION(IM,JM) :: a_glob,b_glob,c_glob
+        ....
+        call pack(grid, b, b_glob)
+        call pack(grid, c, c_glob)
+        if (AM_I_ROOT()) a_glob = b_glob + c_glob
+        call unpack(grid, a_glob, a)
 
 
 IV. Exceptions

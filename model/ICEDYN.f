@@ -339,17 +339,20 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
+      USE TRIDIAG_MOD, only : TRIDIAG, TRIDIAG_new
       IMPLICIT NONE
 
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      &         AU,BU,CU,FXY,FXY1
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,NX1) :: 
-     &         AV,BV,CV,FXYa,FXY1a
-      REAL*8, DIMENSION(JM,NX1) :: AV_GLOB,BV_GLOB,CV_GLOB
+      REAL*8, DIMENSION(2:NX1-1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     &         AV,BV,CV,VRT,U_tmp
+      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     &         FXYa,FXY1a
+      REAL*8, DIMENSION(2:NX1-1,JM) :: AV_GLOB,BV_GLOB,CV_GLOB
       REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
-     &         CVV,VRT,U_tmp                     !CVV,
-      REAL*8, DIMENSION(JM ) :: VRT_GLOB, U_TMP_GLOB
+     &         CVV                     !CVV,
+      REAL*8, DIMENSION(2:NX1-1,JM) :: VRT_GLOB, U_TMP_GLOB
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
       INTEGER I,J,J1,J2,IMD,JMD
       REAL*8 DELXY,DELXR,DELX2,DELY2,DELYR,ETAMEAN,ZETAMEAN,AA1,AA2
@@ -541,7 +544,8 @@ C**(ETA and ZETA were updted above)
       URT(I)=(URT(I)+AMASS(I,J)*BYDTS*UICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
-      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),NXLCYC-1)
+      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),
+     &               NXLCYC-1)
 
 c      DO I=2,NXLCYC
 c       CUU(I)=CU(I,J)
@@ -584,33 +588,25 @@ C NOW THE SECOND HALF
        AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
        AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-       AV(J,I)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
-       BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
+       AV(I,J)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
+       BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
      & +AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-       CV(J,I)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
+       CV(I,J)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
       END DO
       END DO
 
       if (grid%HAVE_SOUTH_POLE) then
         DO I=2,NXLCYC
-          AV(2,I)=0.0
+          AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
       if (grid%HAVE_NORTH_POLE) then
         DO I=2,NXLCYC
-          CV(NYPOLE,I)=0.0
+          CV(I,NYPOLE)=0.0
         END DO
       end if
-
-C**** Pack the distributed arrays into temporary global arrays in preparation
-C**** for call to TRIDIAG.
-      DO I=2,NXLCYC
-        CALL PACK_DATA( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
-        CALL PACK_DATA( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
-        CALL PACK_DATA( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
-      END DO
 
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
@@ -632,7 +628,7 @@ C**** for call to TRIDIAG.
           AA9=0.0
         END IF
 
-        FXY1a(J,I)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
+        FXY1a(I,J)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
      5  -(AA1+AA2)*DELX2*UICE(I,J,1)
      6  +((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
      6  *UICE(I+1,J,1)
@@ -642,21 +638,15 @@ C**** for call to TRIDIAG.
       END DO
       END DO
 
-      DO 1300 I=2,NXLCYC
+      DO I=2,NXLCYC
       DO J=J_0S,J_NYP
-      VRT(J)=FXY(I,J)+FXY1a(J,I)
-      VRT(J)=VRT(J)*UVM(I,J)
+      VRT(I,J)=FXY(I,J)+FXY1a(I,J)
+      VRT(I,J)=VRT(I,J)*UVM(I,J)
+      END DO
       END DO
 
-C**** Pack the distributed array VRT into the global array VRT_GLOB.
-      CALL PACK_DATA(GRID,VRT,VRT_GLOB)
-C****DEGUB
-      IF (AM_I_ROOT())
-     &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
-     &               U_tmp_GLOB(2),NYPOLE-1)
+       CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
 
-C**** Unpack the output global arrays into the corresponding distributed ones.
-      CALL UNPACK_DATA(grid, U_TMP_GLOB, U_tmp)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
@@ -672,10 +662,11 @@ c      J1=NYPOLE-J
 c      J2=J1+1
 c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
 c      END DO
+      DO I=2,NXLCYC
       DO J=J_0S,J_NYP
-        UICE(I,J,1)=U_tmp(J)     ! VRT(J)   !
+        UICE(I,J,1)=U_tmp(I,J)     ! VRT(J)   !
       END DO
- 1300 CONTINUE
+      END DO
 
 C NOW DO VICE
 C THE FIRST HALF
@@ -693,7 +684,7 @@ C THE FIRST HALF
       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
       ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
 
-      FXYa(J,I)=-DRAGA(I,J)*UICEC(I,J)+FORCEY(I,J)
+      FXYa(I,J)=-DRAGA(I,J)*UICEC(I,J)+FORCEY(I,J)
      3+(0.5*(UICEC(I+1,J)-UICEC(I-1,J))*(ZETA(I,J+1)+ZETA(I+1,J+1)
      3-ZETA(I,J)-ZETA(I+1,J))*DELXY*BYCSU(J)+0.5*ZETAMEAN*
      3((UICEC(I+1,J+1)
@@ -736,37 +727,29 @@ C THE FIRST HALF
      &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-      AV(J,I)=(-AA2*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
+      AV(I,J)=(-AA2*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
      &-ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
-      BV(J,I)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
+      BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
      &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
-      CV(J,I)=(-AA1*DELY2+(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
+      CV(I,J)=(-AA1*DELY2+(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
      &+ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
       END DO
       END DO
 
       if (grid%HAVE_SOUTH_POLE) then
         DO I=2,NXLCYC
-          AV(2,I)=0.0
+          AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
       if (grid%HAVE_NORTH_POLE) then
         DO I=2,NXLCYC
-          CV(NYPOLE,I)=0.0
+          CV(I,NYPOLE)=0.0
         END DO
       end if
 
-C**** Pack the distributed arrays into temporary global arrays in preparation
-C**** for call to TRIDIAG.
-      DO I=1,NX1
-        CALL PACK_DATA( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
-        CALL PACK_DATA( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
-        CALL PACK_DATA( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
-      END DO
-
-      DO 1301 I=2,NXLCYC
+      DO I=2,NXLCYC
       DO J=J_0S,J_NYP
         DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
         DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
@@ -790,23 +773,15 @@ C**** for call to TRIDIAG.
           AA9=0.0
         END IF
 
-        VRT(J)=AA9+FXYa(J,I)-(AA3+AA4)*DELX2*VICE(I,J,2)
+        VRT(I,J)=AA9+FXYa(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
      6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
      7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
      *       *BYCSU(J)
-        VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
+        VRT(I,J)=(VRT(I,J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
+      END DO
       END DO
 
-C**** Pack distributed array VRT into temporary global one.
-      CALL PACK_DATA(GRID, VRT, VRT_GLOB)
-
-      IF (AM_I_ROOT())
-     &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
-     &               U_tmp_GLOB(2),NYPOLE-1)
-
-C**** Unpack the tridiag output global array into the corresponding distributed
-C**** one.
-      CALL UNPACK_DATA(GRID, U_TMP_GLOB, U_TMP)
+       CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
@@ -822,10 +797,11 @@ c      J1=NYPOLE-J
 c      J2=J1+1
 c      VRT(J1)=VRT(J1)-CVV(J1)*VRT(J2)
 c      END DO
+      DO I=2,NXLCYC
       DO J=J_0S,J_NYP
-        VICE(I,J,1)=U_tmp(J)   ! VRT(J)   !
+        VICE(I,J,1)=U_tmp(I,J)   ! VRT(J)   !
       END DO
- 1301 CONTINUE
+      END DO
 
       DO I=2,NXLCYC
        DO J=J_0S,J_NYP
@@ -901,7 +877,7 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
 
       DO 1201 J=J_0S,J_NYP
         DO I=2,NXLCYC
-          URT(I)=FXYa(J,I)+FXY1(I,J)
+          URT(I)=FXYa(I,J)+FXY1(I,J)
           URT(I)=URT(I)*UVM(I,J)
         END DO
 

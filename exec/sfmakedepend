@@ -317,7 +317,9 @@ sub find_mods {
 		}
 	    } else {
 		$modname .= "." . $main::mod_ext;
+               if ($modname ne "esmf_mod.mod") {
 		push(@module_files, $modname);
+               }
 	    }
 	}
     }

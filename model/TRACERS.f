@@ -999,7 +999,8 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic,irsficno) ! restarts
-          READ (kunit,err=10) HEADER,TRM_glob,TRmom_glob
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,TRM_glob,TRmom_glob
 #ifdef TRACERS_WATER
      *       ,TRWM_glob
 #endif
@@ -1014,6 +1015,12 @@ C***    ESMF Exception: need to read global arrays-- delayed until exercised.
     (defined TRACERS_QUARZHEM)
      &     ,hbaij,ricntd,pprec,pevap
 #endif
+            IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER,
+     &                MODULE_HEADER
+              GO TO 10
+            END IF
+          end if      ! AM_I_ROOT
 C**** ESMF: Copy global read data into the corresponding local (distributed) arrays.
        DO ITM=1,NTM
          CALL UNPACK_DATA  (grid,   TRM_GLOB(:,:,:,  itm),
@@ -1024,12 +1031,41 @@ C**** ESMF: Copy global read data into the corresponding local (distributed) arr
          CALL UNPACK_DATA  (grid,  TRWM_GLOB(:,:,:,  itm),
      &                              TRWM(:,:,:,  itm),  local=.true.)
 #endif
-       END DO
+        END DO
 
-          IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
+C**** ESMF: Broadcast all non-distributed read arrays.
+#ifdef TRACERS_SPECIAL_Shindell
+        call ESMF_BCAST( grid, yNO3 )
+        call ESMF_BCAST( grid, pHOx )
+        call ESMF_BCAST( grid, pNOx )
+        call ESMF_BCAST( grid, pOx )
+        call ESMF_BCAST( grid, yCH3O2 )
+        call ESMF_BCAST( grid, yC2O3 )
+        call ESMF_BCAST( grid, yROR )
+        call ESMF_BCAST( grid, yXO2 )
+        call ESMF_BCAST( grid, yAldehyde )
+        call ESMF_BCAST( grid, yXO2N )
+        call ESMF_BCAST( grid, yRXPAR )
+        call ESMF_BCAST( grid, corrOx )
+        call ESMF_BCAST( grid, ss )
+#ifdef SHINDELL_STRAT_CHEM
+        call ESMF_BCAST( grid, SF3 )
+        call ESMF_BCAST( grid, pClOx )
+        call ESMF_BCAST( grid, pClx )
+        call ESMF_BCAST( grid, pOClOx )
+        call ESMF_BCAST( grid, pBrOx )
+        call ESMF_BCAST( grid, yCl2 )
+        call ESMF_BCAST( grid, yCl2O2 )
+#endif
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        call ESMF_BCAST( grid, hbaij )
+        call ESMF_BCAST( grid, ricntd )
+        call ESMF_BCAST( grid, pprec )
+        call ESMF_BCAST( grid, pevap )
+#endif
+
+
         END SELECT
       END SELECT
 

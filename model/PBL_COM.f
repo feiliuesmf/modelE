@@ -68,6 +68,7 @@
       USE PBLCOM
       USE DOMAIN_DECOMP, only : grid, GET, CHECKSUM, AM_I_ROOT
       USE DOMAIN_DECOMP, only : pack_column, pack_data
+      USE DOMAIN_DECOMP, only : unpack_column, unpack_data
       USE DOMAIN_DECOMP, only : pack_block , unpack_block
       IMPLICIT NONE
 
@@ -120,35 +121,38 @@
         END IF
 
       CASE (IOREAD:)            ! input from restart file or restart
-        READ (KUNIT,ERR=10) HEADER,UABL_glob,VABL_glob,TABL_glob,
-     &       QABL_glob,EABL_glob,CMGS_glob,CHGS_glob,CQGS_glob,IPBL_glob
+        if ( AM_I_ROOT() ) then
+          READ (KUNIT,ERR=10) HEADER,UABL_glob,VABL_glob,TABL_glob,
+     &         QABL_glob,EABL_glob,CMGS_glob,CHGS_glob,CQGS_glob,
+     &         IPBL_glob
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
 
-        uabl(:,:,J_0:J_1,:) = uabl_glob(:,:,J_0:J_1,:)
-        vabl(:,:,J_0:J_1,:) = vabl_glob(:,:,J_0:J_1,:)
-        tabl(:,:,J_0:J_1,:) = tabl_glob(:,:,J_0:J_1,:)
-        qabl(:,:,J_0:J_1,:) = qabl_glob(:,:,J_0:J_1,:)
-        eabl(:,:,J_0:J_1,:) = eabl_glob(:,:,J_0:J_1,:)
+        call UNPACK_COLUMN(grid, uabl_glob, uabl)
+        call UNPACK_COLUMN(grid, vabl_glob, vabl)
+        call UNPACK_COLUMN(grid, tabl_glob, tabl)
+        call UNPACK_COLUMN(grid, qabl_glob, qabl)
+        call UNPACK_COLUMN(grid, eabl_glob, eabl)
 
-        cmgs(:,J_0:J_1,:) = cmgs_glob(:,J_0:J_1,:)
-        chgs(:,J_0:J_1,:) = chgs_glob(:,J_0:J_1,:)
-        cqgs(:,J_0:J_1,:) = cqgs_glob(:,J_0:J_1,:)
-        ipbl(:,J_0:J_1,:) = ipbl_glob(:,J_0:J_1,:)
-        CALL CHECKSUM(grid,cmgs,__LINE__,__FILE__//'::cmgs')
-
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+        call UNPACK_DATA(grid, cmgs_glob, cmgs)
+        call UNPACK_DATA(grid, chgs_glob, chgs)
+        call UNPACK_DATA(grid, cqgs_glob, cqgs)
+        call UNPACK_DATA(grid, ipbl_glob, ipbl)
 #ifdef TRACERS_ON
         SELECT CASE (IACTION)
         CASE (IOREAD,IRERUN,IRSFIC,IRSFICNO)    ! restarts
-          READ (KUNIT,ERR=10) TR_HEADER,TRABL_GLOB
-          IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in tracer module version ",TR_HEADER
-     *           ,TR_MODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL, local=.true.)
+          if ( AM_I_ROOT() ) then
+            READ (KUNIT,ERR=10) TR_HEADER,TRABL_GLOB
+            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in tracer module version ",TR_HEADER
+     *             ,TR_MODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_BLOCK(grid, TRABL_GLOB, TRABL, local=.false.)
         END SELECT
 #endif
       END SELECT
@@ -164,6 +168,7 @@
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE DOMAIN_DECOMP, only : GET, grid, ARRAYGATHER, AM_I_ROOT
       USE DOMAIN_DECOMP, only : CHECKSUM, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
       USE PBLCOM
       IMPLICIT NONE
 
@@ -212,20 +217,26 @@
         END IF
 
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,wsavg_glob,tsavg_glob,
+        if ( AM_I_ROOT() ) then
+          READ (kunit,err=10) HEADER,wsavg_glob,tsavg_glob,
      *       qsavg_glob,dclev_glob,usavg_glob,
      *       vsavg_glob,tauavg_glob,ustar_pbl_glob,egcm_glob,
      *       w2gcm_glob,tgvavg_glob,qgavg_glob
-        wsavg(:,J_0:J_1) = wsavg_glob(:,J_0:J_1)
-        tsavg(:,J_0:J_1) = tsavg_glob(:,J_0:J_1)
-        qsavg(:,J_0:J_1) = qsavg_glob(:,J_0:J_1)
-        dclev(:,J_0:J_1) = dclev_glob(:,J_0:J_1)
-        usavg(:,J_0:J_1) = usavg_glob(:,J_0:J_1)
-        vsavg(:,J_0:J_1) = vsavg_glob(:,J_0:J_1)
-        tauavg(:,J_0:J_1)= tauavg_glob(:,J_0:J_1)
-        tgvavg(:,J_0:J_1)= tgvavg_glob(:,J_0:J_1)
-        qgavg(:,J_0:J_1) = qgavg_glob(:,J_0:J_1)
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
 
+        call UNPACK_DATA(grid, wsavg_glob, wsavg)
+        call UNPACK_DATA(grid, tsavg_glob, tsavg)
+        call UNPACK_DATA(grid, qsavg_glob, qsavg)
+        call UNPACK_DATA(grid, dclev_glob, dclev)
+        call UNPACK_DATA(grid, usavg_glob, usavg)
+        call UNPACK_DATA(grid, vsavg_glob, vsavg)
+        call UNPACK_DATA(grid, tauavg_glob, tauavg)
+        call UNPACK_DATA(grid, tgvavg_glob, tgvavg)
+        call UNPACK_DATA(grid, qgavg_glob, qgavg)
         CALL CHECKSUM(grid, wsavg, __LINE__, __FILE__)
         CALL CHECKSUM(grid, tsavg, __LINE__, __FILE__)
         CALL CHECKSUM(grid, qsavg, __LINE__, __FILE__)
@@ -236,17 +247,14 @@
         CALL CHECKSUM(grid, tgvavg, __LINE__, __FILE__)
         CALL CHECKSUM(grid, qgavg, __LINE__, __FILE__)
 
-        ustar_pbl(:,J_0:J_1,:) = ustar_pbl_glob(:,J_0:J_1,:)
-        egcm(:,:,J_0:J_1)= egcm_glob(:,:,J_0:J_1)
-        w2gcm(:,:,J_0:J_1)=w2gcm_glob(:,:,J_0:J_1)
+        call UNPACK_DATA(grid, ustar_pbl_glob, ustar_pbl)
+        call UNPACK_COLUMN(grid, egcm_glob, egcm)
+        call UNPACK_COLUMN(grid, w2gcm_glob, w2gcm)
+
         CALL CHECKSUM       (grid, ustar_pbl, __LINE__, __FILE__)
         CALL CHECKSUM_COLUMN(grid, egcm, __LINE__, __FILE__)
         CALL CHECKSUM_COLUMN(grid, w2gcm, __LINE__, __FILE__)
 
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
       END SELECT
 
       RETURN

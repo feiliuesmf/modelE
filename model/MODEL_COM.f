@@ -5,6 +5,7 @@
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
 !      USE DOMAIN_DECOMP, only : grid
+      USE ESMF_CUSTOM_MOD, ONLY: FIELD
       IMPLICIT NONE
       SAVE
 
@@ -150,13 +151,6 @@ C**** slightly larger, to sample all points within the cycle
 !@var IDACC(NSAMPL) counters for diagn. accumulations
       INTEGER, DIMENSION(NSAMPL) :: IDACC
 
-!**** Boundary condition arrays:
-!@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZATMO,HLAKE,
-!@var Fxx fraction of gridbox of type xx (land,ocean,...)
-     *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
-!@var WFCS water field capacity of first ground layer (kg/m2)  ???
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: WFCS
 
 !**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
@@ -177,15 +171,50 @@ C**** slightly larger, to sample all points within the cycle
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: U,V,T,Q,WM
+      REAL*8, POINTER, DIMENSION(:,:,:) :: U => Null()
+      REAL*8, POINTER, DIMENSION(:,:,:) :: V => Null()
+      REAL*8, POINTER, DIMENSION(:,:,:) :: T => Null()
+      REAL*8, POINTER, DIMENSION(:,:,:) :: Q => Null()
+      REAL*8, POINTER, DIMENSION(:,:,:) :: WM => Null()
+      TYPE (FIELD) :: field_U
+      TYPE (FIELD) :: field_V
+      TYPE (FIELD) :: field_T
+      TYPE (FIELD) :: field_Q
+      TYPE (FIELD) :: field_WM
+
+!**** Boundary condition arrays:
+!@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
+      REAL*8, POINTER, DIMENSION(:,:)   :: ZATMO  => Null()
+      REAL*8, POINTER, DIMENSION(:,:)   :: HLAKE  => Null()
+      TYPE (FIELD) :: field_ZATMO
+      TYPE (FIELD) :: field_HLAKE
+!@var Fxx fraction of gridbox of type xx (land,ocean,...)
+      REAL*8, POINTER, DIMENSION(:,:)   :: FLAND  => Null()
+      REAL*8, POINTER, DIMENSION(:,:)   :: FOCEAN => Null()
+      REAL*8, POINTER, DIMENSION(:,:)   :: FLICE  => Null()
+      REAL*8, POINTER, DIMENSION(:,:)   :: FLAKE0 => Null()
+      REAL*8, POINTER, DIMENSION(:,:)   :: FEARTH => Null()
+      TYPE (FIELD) :: field_FLAND
+      TYPE (FIELD) :: field_FOCEAN
+      TYPE (FIELD) :: field_FLICE
+      TYPE (FIELD) :: field_FLAKE0
+      TYPE (FIELD) :: field_FEARTH
+
+!@var WFCS water field capacity of first ground layer (kg/m2)  ???
+      REAL*8, POINTER, DIMENSION(:,:)   :: WFCS   => Null()
+      TYPE (FIELD) :: field_WFCS
+
 !@var P surface pressure (hecto-Pascals - PTOP)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: P
+      REAL*8, POINTER, DIMENSION(:,:)   :: P      => Null()
+      TYPE (FIELD) :: field_P
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types
       INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
 !@var FTYPE fractions of each surface type
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FTYPE
+      REAL*8, POINTER, DIMENSION(:,:,:)   :: FTYPE  => Null()
+      TYPE (FIELD) :: field_FTYPE
+
 !@param ITxx indices of various types (used only when it matters)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
@@ -214,37 +243,122 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE RESOLUTION, ONLY : IM,LM
+      USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE
       USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
      *                      FEARTH,WFCS,P,U,V,T,Q,WM,FTYPE
+      USE MODEL_COM, ONLY : FIELD_U
+      USE MODEL_COM, ONLY : FIELD_V
+      USE MODEL_COM, ONLY : FIELD_T
+      USE MODEL_COM, ONLY : FIELD_Q
+      USE MODEL_COM, ONLY : FIELD_WM
+      USE MODEL_COM, ONLY : FIELD_ZATMO
+      USE MODEL_COM, ONLY : FIELD_HLAKE
+      USE MODEL_COM, ONLY : FIELD_FLAND
+      USE MODEL_COM, ONLY : FIELD_FOCEAN
+      USE MODEL_COM, ONLY : FIELD_FLICE
+      USE MODEL_COM, ONLY : FIELD_FLAKE0
+      USE MODEL_COM, ONLY : FIELD_FEARTH
+      USE MODEL_COM, ONLY : FIELD_WFCS
+      USE MODEL_COM, ONLY : FIELD_P
+      USE MODEL_COM, ONLY : FIELD_FTYPE
+      USE ESMF_CUSTOM_MOD, ONLY: Field_Allocate
+      USE ESMF_CUSTOM_MOD, ONLY: Field_GetDataPointer
+      USE ESMF_CUSTOM_MOD, ONLY: Field_CLONE
+      USE ESMF_CUSTOM_MOD, ONLY: modelE_grid
+      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_NFACE
+      USE ESMF_CUSTOM_MOD, ONLY: ESMF_CELL_CENTER
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
+      INTEGER :: rc
+      Integer, Parameter :: hwidth=1
 
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE( ZATMO(IM,J_0H:J_1H),
-     *          HLAKE(IM,J_0H:J_1H),
-     *          FLAND(IM,J_0H:J_1H),
-     *         FOCEAN(IM,J_0H:J_1H),
-     *          FLICE(IM,J_0H:J_1H),
-     *         FLAKE0(IM,J_0H:J_1H),
-     *         FEARTH(IM,J_0H:J_1H),
-     *           WFCS(IM,J_0H:J_1H),
-     *              P(IM,J_0H:J_1H),
-     *         STAT=IER)
-      ALLOCATE(     U(IM,J_0H:J_1H,LM),
-     *              V(IM,J_0H:J_1H,LM),
-     *              T(IM,J_0H:J_1H,LM),
-     *              Q(IM,J_0H:J_1H,LM),
-     *             WM(IM,J_0H:J_1H,LM),
-     *         STAT=IER)
-      ALLOCATE( FTYPE(NTYPE,IM,J_0H:J_1H),
-     *         STAT=IER)
+
+      field_ZATMO = Field_Allocate(ZATMO, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='topological elevation', rc=rc)
+
+      field_HLAKE = Field_Allocate(HLAKE, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='lake depth', rc=rc)
+
+      field_FLAND = Field_Allocate(FLAND, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='land fraction of gridbox', rc=rc)
+
+      field_FOCEAN = Field_Allocate(FOCEAN, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='ocean fraction of gridbox', rc=rc)
+
+      field_FLICE = Field_Allocate(FLICE, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='land-ice-coverage fraction of gridbox', rc=rc)
+
+      field_FLAKE0 = Field_Allocate(FLAKE0, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='original lake fraction of gridbox', rc=rc)
+
+      field_FEARTH = Field_Allocate(FEARTH, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='soil-covered-land fraction of gridbox', rc=rc)
+
+      field_WFCS = Field_Allocate(WFCS, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='water field capacity of first ground layer', rc=rc)
+
+      field_P = Field_Allocate(P, modelE_grid,
+     *     shape=(/ IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='surface pressure', rc=rc)
+
+      field_U = Field_Allocate(U, modelE_grid,
+     *     shape=(/ IM, JM, LM /), halo_width=hwidth, 
+     *     grid_rank_index=(/-1,2,-3/), 
+     *     horzRelLoc=ESMF_CELL_NFACE, name='E/W velocity', rc=rc)
+!     field_V = Field_Clone(field_U, 'N/S velocity')
+!     Call Field_GetDataPointer(field_V, V, rc)
+      field_V = Field_Allocate(V, modelE_grid,
+     *     shape=(/ IM, JM, LM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2,-3/),
+     *     horzRelLoc=ESMF_CELL_NFACE, name='N/S velocity', rc=rc)
+
+      field_T = Field_Allocate(T, modelE_grid,
+     *     shape=(/ IM, JM, LM /), halo_width=hwidth, 
+     *     grid_rank_index=(/-1,2,-3/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='potential temperature', rc=rc)
+!     field_Q = Field_Clone(field_T, 'specific humidity')
+!     Call Field_GetDataPointer(field_Q, Q, rc)
+      field_Q = Field_Allocate(Q, modelE_grid,
+     *     shape=(/ IM, JM, LM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2,-3/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='specific humidity', rc=rc)
+!     field_WM = Field_Clone(field_T, 'cloud liquid water')
+!     Call Field_GetDataPointer(field_WM, WM, rc)
+            field_WM = Field_Allocate(WM, modelE_grid,
+     *     shape=(/ IM, JM, LM /), halo_width=hwidth,
+     *     grid_rank_index=(/-1,2,-3/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='cloud liquid water', rc=rc)
+
+            field_FTYPE = Field_Allocate(FTYPE, modelE_grid,
+     *     shape=(/ NTYPE, IM, JM /), halo_width=hwidth,
+     *     grid_rank_index=(/-4,-1,2/), horzRelLoc=ESMF_CELL_CENTER,
+     *     name='fraction of each surface type', rc=rc)
+
 
 ! initialize non-initialized arrays
       FTYPE(:,:,:) = 0.d0
@@ -458,18 +572,20 @@ C**** keep track of min/max time over the combined diagnostic period
      &    WRITE (kunit,err=10) MODULE_HEADER,U_glob,V_glob,T_glob,
      &                         P_glob,Q_glob,WM_glob
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) HEADER,U_glob,V_glob,T_glob,
-     &                         P_glob,Q_glob,WM_glob
-        IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        CALL UNPACK_DATA(grid, U_GLOB, U, local=.true.)
-        CALL UNPACK_DATA(grid, V_GLOB, V, local=.true.)
-        CALL UNPACK_DATA(grid, T_GLOB, T, local=.true.)
-        CALL UNPACK_DATA(grid, Q_GLOB, Q, local=.true.)
-        CALL UNPACK_DATA(grid, WM_GLOB, WM, local=.true.)
-        CALL UNPACK_DATA(grid, P_GLOB, P, local=.true.)
+        if ( AM_I_ROOT() ) then
+          READ (kunit,err=10) HEADER,U_glob,V_glob,T_glob,
+     &                           P_glob,Q_glob,WM_glob
+          IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
+        CALL UNPACK_DATA(grid, U_GLOB, U, local=.false.)
+        CALL UNPACK_DATA(grid, V_GLOB, V, local=.false.)
+        CALL UNPACK_DATA(grid, T_GLOB, T, local=.false.)
+        CALL UNPACK_DATA(grid, Q_GLOB, Q, local=.false.)
+        CALL UNPACK_DATA(grid, WM_GLOB, WM, local=.false.)
+        CALL UNPACK_DATA(grid, P_GLOB, P, local=.false.)
       END SELECT
       RETURN
  10   IOERR=1

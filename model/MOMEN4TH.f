@@ -1,8 +1,5 @@
-#ifdef USE_ESMF
 #define JJ(J) (J)-J_0H+1
-#else
-#define JJ(J) J
-#endif
+
       subroutine init_MOM
 !@sum  init_MOM sets an order dependent coefficient for AVRX
       USE constant, only : byrt2
@@ -21,7 +18,7 @@
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
       USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP, only : grid, NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : grid, NORTH, SOUTH
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GET
       USE DOMAIN_DECOMP, only : HERE
       USE FILEMANAGER, only : openunit
@@ -75,7 +72,7 @@ cgsfc      allocate (FLUXV(IM, J_0H:J_1H, LM))
 !****  FDU original global dimension:  (IM,JM+1,LM)
       if( ALLOCATED == 1 ) then
          ALLOCATED = 0
-         allocate ( FDU(IM, J_0H:J_1+1, LM) )
+         allocate ( FDU(IM, J_0H:J_1H, LM) )
       endif
         
 C****

@@ -684,6 +684,7 @@ c idacc-indices of various processes
       USE DOMAIN_DECOMP, Only : PACK_DATAj, UNPACK_DATAj, LOG_PARALLEL
       USE DOMAIN_DECOMP, Only : PACK_COLUMN, UNPACK_COLUMN
       USE DOMAIN_DECOMP, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
+      USE DOMAIN_DECOMP, Only : ESMF_BCAST
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -750,17 +751,24 @@ c idacc-indices of various processes
             WRITE (kunit,err=10) MODULE_HEADER,it
           END IF
         CASE (ioread)           ! input from restart file
-          READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
-          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST, local=.true.)
+          if (AM_I_ROOT())
+     *       READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
+          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST, local=.false.)
+          CALL ESMF_BCAST(grid, idacc)
+          CALL ESMF_BCAST(grid, it   )
           
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         CASE (IOREAD_SINGLE)      !
-          READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
+!ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
+          if (AM_I_ROOT())
+     *       READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
           CALL UNPACK_COLUMN(grid, REAL(AFLX4,KIND=8),
-     *         AFLX_ST, local=.true.)
+     *                                          AFLX_ST, local=.false.)
+	  CALL ESMF_BCAST(grid,idac1)
+          CALL ESMF_BCAST(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
         END SELECT
@@ -840,23 +848,37 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
         END IF
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
-     *     ENERGY,CONSRV,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
-     *     TDIURN_glob,OA_glob,it
+        if (AM_I_ROOT())
+     *     READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
+     *       idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
+     *       ENERGY,CONSRV,
+     *       SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+     *       TDIURN_glob,OA_glob,it
 
-        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc, local=.true.)
-        CALL UNPACK_DATAj(grid, AJ,     AJ_loc,     local=.true.)
-        CALL UNPACK_DATAj(grid, APJ,    APJ_loc,    local=.true.)
-        CALL UNPACK_DATAj(grid, AJL,    AJL_loc,    local=.true.)
-        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc,   local=.true.)
-        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc,    local=.true.)
-        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc, local=.true.)
-        CALL UNPACK_DATAj(grid, AJK,    AJK_loc,    local=.true.)
-        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc,   local=.true.)
-        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN, local=.true.)
-        CALL UNPACK_DATA(grid,  OA_glob,     OA,     local=.true.)
+        CALL ESMF_BCAST(grid, keyct )
+        CALL ESMF_BCAST(grid, KEYNR )
+        CALL ESMF_BCAST(grid, idacc )
+        CALL ESMF_BCAST(grid, AREG  )
+        CALL ESMF_BCAST(grid, AIL   )
+        CALL ESMF_BCAST(grid, ENERGY)
+        CALL ESMF_BCAST(grid, SPECA )
+        CALL ESMF_BCAST(grid, ATPE  )
+        CALL ESMF_BCAST(grid, ADIURN)
+        CALL ESMF_BCAST(grid, WAVE  )
+        CALL ESMF_BCAST(grid, AISCCP)
+        CALL ESMF_BCAST(grid, HDIURN)
+        CALL ESMF_BCAST(grid, it    )
+        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc, local=.false.)
+        CALL UNPACK_DATAj(grid, AJ,     AJ_loc,     local=.false.)
+        CALL UNPACK_DATAj(grid, APJ,    APJ_loc,    local=.false.)
+        CALL UNPACK_DATAj(grid, AJL,    AJL_loc,    local=.false.)
+        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc,   local=.false.)
+        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc,    local=.false.)
+        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc, local=.false.)
+        CALL UNPACK_DATAj(grid, AJK,    AJK_loc,    local=.false.)
+        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc,   local=.false.)
+        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN, local=.false.)
+        CALL UNPACK_DATA(grid,  OA_glob,     OA,     local=.false.)
         
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

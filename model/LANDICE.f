@@ -321,32 +321,36 @@ C**** Gather into global arrays
 #endif
 
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+        if ( AM_I_ROOT() ) then
+          READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
 C****** Get useful ESMF parameters
         CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 C****** Load data into distributed arrays
-        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI,local=.true. )
-        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI,local=.true. )
+        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI,local=.false. )
+        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI,local=.false. )
 !       SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
 !       TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
-          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TRHEADER
-     *           ,TRMODULE_HEADER
-            GO TO 10
-          END IF
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
+            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRHEADER
+     *             ,TRMODULE_HEADER
+              GO TO 10
+            END IF
+          end if    !..am_i_root
 C********* Load data into distributed arrays
           CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI,
-     &         local=.true. )
-          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI,local=.true.)
+     &         local=.false. )
+          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI,local=.false.)
 !         TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
 !    &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
 !         TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 

@@ -17,6 +17,7 @@
      $     shi_kg => shi,       ! (J kg-1 C-1)
      $     tfrz => tf,          ! (K)
      $     sigma => stbo        ! (W m-2 K-4)
+      USE TRIDIAG_MOD, only :  TRIDIAG
 
       IMPLICIT NONE
       SAVE

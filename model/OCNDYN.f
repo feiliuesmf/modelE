@@ -2806,6 +2806,7 @@ C****
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,cospo,cosvo,rlat,lmu,lmv
      *     ,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
+      USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
       INTEGER, PARAMETER :: IIP=IM*(JM-2)+1

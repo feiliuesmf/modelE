@@ -6,7 +6,7 @@
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
-
+      use ESMF_CUSTOM_MOD, Only: NORTH, SOUTH
       IMPLICIT NONE
 #ifdef USE_ESMF
 #include "mpif.h"
@@ -16,14 +16,11 @@
 
 #ifndef USE_ESMF
       ! Place holders for the real things
-      TYPE ESMF_VM
-         Integer :: i
-      END TYPE ESMF_VM
       TYPE ESMF_DELayout
-         Integer :: i
+        Integer :: i
       END TYPE ESMF_DELayout
       TYPE ESMF_GridComp
-         Integer :: i
+        Integer :: i
       END TYPE ESMF_GridComp
       TYPE ESMF_GRID
         Integer :: i
@@ -44,10 +41,11 @@
 !@+   routine components
       PUBLIC :: DIST_GRID 
 !@var  grid Default decomposition; globally accessible for convenience.
-      PUBLIC :: grid
+      PUBLIC :: grid, grid_TRANS
 !@var INIT_APP Initialize default decomposition
       PUBLIC :: INIT_APP
       PUBLIC :: INIT_GRID
+      PUBLIC :: DESTROY_GRID
 !@var FINISH_APP Cleans up at the end of the run (closes debugging file)
       PUBLIC :: FINISH_APP
 !@var HALO_UPDATE Update data in halo for local domain using data from
@@ -67,8 +65,8 @@
 !@var ARRAYGATHER gather a decomposed array to a global array
       PUBLIC :: ARRAYGATHER
 #ifdef USE_ESMF
-      PUBLIC :: ESMF_ARRAYGATHER
-      PUBLIC :: ESMF_ARRAYSCATTER
+      PUBLIC :: xESMF_ARRAYGATHER
+      PUBLIC :: xESMF_ARRAYSCATTER
 #endif
 !@var GET - extracts bounds information from DIST_GRID object
       PUBLIC :: GET
@@ -115,7 +113,7 @@
 
       INTERFACE TRANSP
         MODULE PROCEDURE TRANSPOSE_ij
-c$$$        MODULE PROCEDURE TRANSPOSE_ijk
+        MODULE PROCEDURE TRANSPOSE_ijk
       END INTERFACE
 
       INTERFACE CHECKSUMj
@@ -156,6 +154,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
         MODULE PROCEDURE GLOBALSUM_IJK
         MODULE PROCEDURE GLOBALSUM_IJK_IK
         MODULE PROCEDURE GLOBALSUM_JK
+        MODULE PROCEDURE GLOBALSUM_XXXJ_XXX
       END INTERFACE
  
       INTERFACE ARRAYSCATTER
@@ -166,14 +165,15 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       END INTERFACE   
 
 #ifdef USE_ESMF
-      INTERFACE ESMF_ARRAYGATHER
+      INTERFACE xESMF_ARRAYGATHER
         MODULE PROCEDURE ESMF_ARRAYGATHER_J
         MODULE PROCEDURE ESMF_ARRAYGATHER_J_int
         MODULE PROCEDURE ESMF_ARRAYGATHER_IJ
         MODULE PROCEDURE ESMF_IARRAYGATHER_IJ
         MODULE PROCEDURE ESMF_LARRAYGATHER_IJ
+        MODULE PROCEDURE ESMF_ARRAYGATHER_XXXJ
       END INTERFACE   
-      INTERFACE ESMF_ARRAYSCATTER
+      INTERFACE xESMF_ARRAYSCATTER
         MODULE PROCEDURE ESMF_ARRAYSCATTER_J
         MODULE PROCEDURE ESMF_ARRAYSCATTER_IJ
         MODULE PROCEDURE ESMF_IARRAYSCATTER_IJ
@@ -271,7 +271,16 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 !@var ESMF_BCAST Generic routine to broadcast data to all PEs.
       PUBLIC :: ESMF_BCAST
       INTERFACE ESMF_BCAST
+        MODULE PROCEDURE ESMF_BCAST_0D
         MODULE PROCEDURE ESMF_BCAST_1D
+        MODULE PROCEDURE ESMF_BCAST_2D
+        MODULE PROCEDURE ESMF_BCAST_3D
+        MODULE PROCEDURE ESMF_BCAST_4D
+        MODULE PROCEDURE ESMF_IBCAST_0D
+        MODULE PROCEDURE ESMF_IBCAST_1D
+        MODULE PROCEDURE ESMF_IBCAST_2D
+        MODULE PROCEDURE ESMF_IBCAST_3D
+        MODULE PROCEDURE ESMF_IBCAST_4D
       END INTERFACE
 
 !@var UNPACK Generic routine to unpack into a distributed
@@ -350,12 +359,15 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 
 
       ! Direction bits
-      PUBLIC :: NORTH, SOUTH, EAST, WEST
+      PUBLIC :: NORTH, SOUTH
+
+!, EAST, WEST
       ! Use powers of two such that addition can be used
       ! to create combination
-      INTEGER, PARAMETER :: NORTH = 2**0, SOUTH = 2**1
-      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
+c***      INTEGER, PARAMETER :: NORTH = 2**0, SOUTH = 2**1
+c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, PARAMETER :: ALL = NORTH + SOUTH ! no east/west for now
+
 
       INTEGER, PARAMETER :: HALO_WIDTH = 1
       integer, parameter :: root=0
@@ -394,7 +406,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #endif
       END TYPE DIST_GRID
 
-      TYPE (DIST_GRID) :: GRID
+      TYPE (DIST_GRID) :: GRID, GRID_TRANS
 
 ! Remaining variables are private to the module.
 
@@ -424,19 +436,25 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       ! The initialization should proceed prior to any grid computations.
       SUBROUTINE INIT_APP(grd_dum,IM,JM)
       USE FILEMANAGER, Only : openunit
+      USE ESMF_CUSTOM_MOD, Only: Initialize_App
+#ifdef USE_ESMF
+      USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+#endif
+      USE ESMF_CUSTOM_MOD, Only: modelE_grid
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM
       INTEGER             :: rc
       INTEGER             :: pet
       CHARACTER(LEN=20) :: buffer
+      INTEGER :: LM = -1
 #ifdef USE_ESMF
-      Type (ESMF_VM) :: vm
 #endif
 
 #ifdef USE_ESMF
       ! Initialize ESMF
-      Call ESMF_Initialize(vm=vm, rc=rc)
+      Call Initialize_App(IM, JM, LM,rc=rc)
+
       Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
       compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 
@@ -456,7 +474,17 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       RANK_LAT = 0
 #endif
       
+#ifdef USE_ESMF
+      call INIT_GRID(grd_dum,IM,JM,vm=vm)
+      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
+      call INIT_GRID(grid_TRANS,JM,IM,width=0,vm=vm)
+#else
       call INIT_GRID(grd_dum,IM,JM)
+      call INIT_GRID(grid_TRANS,JM,IM,width=0)
+#endif
+
+
+
       WRITE(*,*)'INIT_APP: ', IM, JM, NP_LON, NP_LAT, RANK_LON, RANK_LAT
 
 #ifdef DEBUG_DECOMP
@@ -467,20 +495,42 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 
       END SUBROUTINE INIT_APP
 
-      SUBROUTINE INIT_GRID(grd_dum,IM,JM)
+      SUBROUTINE DESTROY_GRID(grd_dum)
+      TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
+#ifdef USE_ESMF
+      Call ESMF_GridDestroy(grd_dum%ESMF_Grid)
+#endif
+      END SUBROUTINE DESTROY_GRID
+
+#ifdef USE_ESMF
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM, width,vm)
+      USE ESMF_CUSTOM_MOD, Only : modelE_vm
+#else
+      SUBROUTINE INIT_GRID(grd_dum,IM,JM, width)
+#endif
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM
+      INTEGER, OPTIONAL :: width
       integer, parameter :: numDims=2
+#ifdef USE_ESMF
+      TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm
+#endif
       integer, dimension(numDims) :: grid_size
       integer             :: rc
       real(ESMF_KIND_R8), dimension(numDims) :: range_min,range_max
 
+      INTEGER :: RANK_LON, RANK_LAT
       INTEGER :: J_EQUATOR
       INTEGER :: I0_DUM, I1_DUM
       INTEGER :: J0_DUM, J1_DUM
-
+      INTEGER :: width_
+      INTEGER :: pet
+#ifdef USE_ESMF
+      TYPE(ESMF_VM), Pointer :: vm_
+      Type (ESMF_DELayout)::layout
+#endif
       grid_size(1)=IM;   grid_size(2)=JM
       range_min(1)=0.;   range_min(2)=-90.
       range_max(1)=360.; range_max(2)=90.
@@ -492,9 +542,18 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
      &     horzStagger=ESMF_GRID_HORZ_STAGGER_C_NE,
      &     name="source grid", rc=rc)
 
+      vm_ => modelE_vm
+      If (Present(vm)) vm_ => vm
+
+      Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES, rc=rc)
+      ! The default layout is not what we want - it splits in the "I" direction.
+      layout = ESMF_DELayoutCreate(vm_, 
+     & dePetList=(/ (pet,pet=0,NPES) /), deCountList = (/ 1, NPES /))
       Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID, 
-     &     delayout = ESMF_Layout, rc=rc)
-      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
+     &     delayout = layout, rc=rc)
+      Call ESMF_DELayoutDestroy(layout,rc=rc)
+      RANK_LON=0
+      RANK_LAT=my_pet
       Call ESMF_GRID_BOUNDS(grd_dum%ESMF_GRID, RANK_LON, RANK_LAT,
      &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
 
@@ -507,14 +566,16 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       J1_DUM = JM
 #endif
 
+      width_ = HALO_WIDTH
+      If (Present(width)) width_=width
       grd_dum%IM_WORLD      = IM
       grd_dum%JM_WORLD      = JM
 
       ! Wrapped ESMF grid
       grd_dum%I_STRT        = I0_DUM
       grd_dum%I_STOP        = I1_DUM
-      grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-HALO_WIDTH)
-      grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+HALO_WIDTH)
+      grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
+      grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
       grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
 
 
@@ -531,8 +592,8 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
         grd_dum%J_STOP_SKP    = JM-1
       END IF
 
-      grd_dum%J_STRT_HALO   = MAX( 1, J0_DUM - HALO_WIDTH)
-      grd_dum%J_STOP_HALO   = MIN(JM, J1_DUM + HALO_WIDTH)
+      grd_dum%J_STRT_HALO   = J0_DUM - width_
+      grd_dum%J_STOP_HALO   = J1_DUM + width_
 
       IF (RANK_LAT > 0) THEN
         grd_dum%J_STRT_STGR = J0_DUM
@@ -548,7 +609,6 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       grd_dum%HAVE_EQUATOR    = 
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
 
-      WRITE(*,*)'init_grid: ',my_pet,grd_dum%j_strt,grd_dum%j_stop
       END SUBROUTINE INIT_GRID
 
       SUBROUTINE GET(grd_dum, I_STRT, I_STOP, 
@@ -1096,7 +1156,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #endif
 
 #ifdef USE_ESMF      
-      CALL MPI_Finalize(ier)
+      CALL ESMF_FINALIZE(ier)
 #endif
 
       END SUBROUTINE FINISH_APP
@@ -1189,7 +1249,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 
 #ifdef USE_ESMF
       GRID = grd_dum%ESMF_GRID
-      call Esmf_ArrayGather(GRID, arr(j_0:j_1), garr)
+      call xEsmf_ArrayGather(GRID, arr(j_0:j_1), garr)
 #else
       garr = arr(j_0:j_1)
 #endif
@@ -1227,10 +1287,10 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       If (Present(all)) Then
          If (all) THEN
-            Call MPI_BCAST(gsum,1,MPI_REAL8,root,
+            Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
      &           MPI_COMM_WORLD, ier)
-            If (Present(hsum)) Call MPI_BCAST(hsum,2,MPI_REAL8,root,
-     &              MPI_COMM_WORLD, ier)
+            If (Present(hsum)) Call MPI_BCAST(hsum,2,
+     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ier)
          End If
       End If
 #endif
@@ -1291,7 +1351,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 
 #ifdef USE_ESMF
       GRID = grd_dum%ESMF_GRID
-      call Esmf_ArrayGather(GRID, zon(j_0:j_1), garr)
+      call xEsmf_ArrayGather(GRID, zon(j_0:j_1), garr)
 #else
       garr = zon(j_0:j_1)
 #endif
@@ -1320,10 +1380,10 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       If (Present(all)) Then
          If (all) Then
-            Call MPI_BCAST(gsum,1,MPI_REAL8,root,
+            Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
      &           MPI_COMM_WORLD, ier)
-            If (Present(hsum))     Call MPI_BCAST(hsum,2,MPI_REAL8,root,
-     &           MPI_COMM_WORLD, ier)
+            If (Present(hsum))     Call MPI_BCAST(hsum,2,
+     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ier)
          End If
       End If
 #endif
@@ -1384,7 +1444,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       GRID = grd_dum%ESMF_GRID
       Do k=1,size(arr,3)
-         call Esmf_ArrayGather(GRID, zon(j_0:j_1,k), garr(:,k))
+         call xEsmf_ArrayGather(GRID, zon(j_0:j_1,k), garr(:,k))
       End Do
 #else
       garr(:,:) = zon(j_0:j_1,:)
@@ -1413,16 +1473,17 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 
       END SUBROUTINE GLOBALSUM_IJK
 
-      SUBROUTINE GLOBALSUM_IJK_IK(grd_dum, arr, gsum, jband)
+      SUBROUTINE GLOBALSUM_IJK_IK(grd_dum, arr, gsum, jband, all)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN) :: grd_dum
-      REAL*8,             INTENT(IN) :: arr(grd_dum%i_strt_halo:,
-     &                                      grd_dum%j_strt_halo:,:)
+      REAL*8,             INTENT(IN) :: arr(:,grd_dum%j_strt_halo:,:)
       REAL*8,             INTENT(OUT):: gsum(size(arr,1), size(arr,3))
       INTEGER,OPTIONAL,   INTENT(IN) :: jband(2)
+      Logical,OPTIONAL,   INTENT(IN) :: all
 
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
+      Logical :: all_, ier
 #ifdef USE_ESMF
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world)
 #endif
@@ -1431,11 +1492,15 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
       type (ESMF_Grid)                           :: GRID
 #endif
 
+      all_ = .false.
+      If (Present(all)) all_ = all
+
       i_0  = grd_dum%i_strt
       i_1  = grd_dum%i_stop
       j_0  = grd_dum%j_strt
       j_1  = grd_dum%j_stop
-      IM   = grd_dum%IM_WORLD
+c***      IM   = grd_dum%IM_WORLD
+      IM = SIZE(arr,1)
       JM   = grd_dum%JM_WORLD
 
       jb1 = 1
@@ -1448,9 +1513,13 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       GRID = grd_dum%ESMF_GRID
       Do k=1,size(arr,3)
-         call Esmf_ArrayGather(GRID, arr(:,j_0:j_1,k), garr(:,:))
+         call xEsmf_ArrayGather(GRID, arr(:,j_0:j_1,k), garr(:,:))
          If (AM_I_ROOT()) gsum(:,k) = Sum(garr(:,jb1:jb2),2)
       End Do
+      If (all_) Then
+         call MPI_BCAST(garr, Size(garr), MPI_DOUBLE_PRECISION, root,
+     &        MPI_COMM_WORLD, ier)
+      End If
 #else
       gsum = Sum(arr(:,jb1:jb2,:),2)
 #endif
@@ -1492,7 +1561,7 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       GRID = grd_dum%ESMF_GRID
       Do k=1,size(arr,2)
-         call Esmf_ArrayGather(GRID, arr(j_0:j_1,k), garr(:,k))
+         call xEsmf_ArrayGather(GRID, arr(j_0:j_1,k), garr(:,k))
       End Do
 #else
       garr(:,:) = arr(j_0:j_1,:)
@@ -1519,15 +1588,61 @@ c$$$        MODULE PROCEDURE TRANSPOSE_ijk
 #ifdef USE_ESMF
       If (Present(all)) Then
          If (all) Then
-            Call MPI_BCAST(gsum,Size(gsum),MPI_REAL8,root,
+            Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
      &           MPI_COMM_WORLD, ier)
-            If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),MPI_REAL8,
-     &           root, MPI_COMM_WORLD, ier)
+            If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),
+     &           MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, ier)
          End If
       End If
 #endif
 
       END SUBROUTINE GLOBALSUM_JK
+
+      SUBROUTINE GLOBALSUM_XXXJ_XXX(grd_dum, arr, gsum, all)
+      Type (DIST_GRID), INTENT(IN) :: grd_dum
+      Real*8, INTENT(IN) :: arr(:,:,:,grd_dum%j_strt_halo:)
+      Real*8, INTENT(Out) :: gsum(:,:,:)
+      Logical, Optional, INTENT(IN) :: all
+
+      INTEGER :: k
+      INTEGER :: ier
+      INTEGER :: i_0, i_1, j_0, j_1, IM, JM
+      REAL*8  :: garr(size(arr,1),size(arr,2),size(arr,3),
+     &     grd_dum%jm_world)
+      LOGICAL :: istag_,all_
+
+    ! now local
+#ifdef USE_ESMF
+      type (ESMF_Grid)                           :: GRID
+#endif
+
+      i_0  = grd_dum%i_strt
+      i_1  = grd_dum%i_stop
+      j_0  = grd_dum%j_strt
+      j_1  = grd_dum%j_stop
+      IM   = grd_dum%IM_WORLD
+      JM   = grd_dum%JM_WORLD
+
+#ifdef USE_ESMF
+      grid = grd_dum%ESMF_GRID
+      call xEsmf_ArrayGather(GRID, arr(:,:,:,j_0:j_1), garr, all=all)
+      all_=.false.
+      If (Present(all)) all_=all
+      If (AM_I_ROOT() .or. all_)  gsum = SUM(garr,4)
+#else
+      gsum = SUM(arr(:,:,:,J_0:J_1),4)
+#endif
+
+#ifdef USE_ESMF
+      If (Present(all)) Then
+         If (all) Then
+            Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
+     &           MPI_COMM_WORLD, ier)
+         End If
+      End If
+#endif
+      
+      END SUBROUTINE GLOBALSUM_XXXJ_XXX
 
       SUBROUTINE BACKSPACE_PARALLEL(IUNIT)
       IMPLICIT NONE
@@ -1583,9 +1698,9 @@ C****  convert from real*4 to real*8
       EndIf
 
 #ifdef USE_ESMF
-      call ESMF_ArrayScatter(GRID, AVAR(:,grd_dum%J_STRT:), AOUT)
+      call xESMF_ArrayScatter(GRID, AVAR(:,grd_dum%J_STRT:), AOUT)
 #else
-      AVAR=AOUT
+      AVAR(:,1:grd_dum%JM_WORLD)=AOUT
 #endif
 
       If (IERR==0) Then
@@ -1629,12 +1744,12 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       DO N=1,NM
-         call ESMF_ArrayScatter(GRID, 
+         call xESMF_ArrayScatter(GRID, 
      &        AVAR(:,grd_dum%J_STRT:,N), 
      &        AOUT(:,:,N))
       END DO
 #else
-      AVAR=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
       If (IERR==0) Then
@@ -1679,7 +1794,7 @@ C****  convert from real*4 to real*8
       EndIf
 
 #ifdef USE_ESMF
-      call ESMF_ArrayScatter(GRID, AVAR, AOUT)
+      call xESMF_ArrayScatter(GRID, AVAR, AOUT)
 #else
       AVAR=AOUT
 #endif
@@ -1728,7 +1843,7 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       DO N=1,NM
-         call ESMF_ArrayScatter(GRID, AVAR(:,:,N), AOUT(:,:,N))
+         call xESMF_ArrayScatter(GRID, AVAR(:,:,N), AOUT(:,:,N))
       END DO
 #else
       AVAR=AOUT
@@ -1780,10 +1895,12 @@ C****  convert from real*4 to real*8
       EndIf
 
 #ifdef USE_ESMF
-      call ESMF_ArrayScatter(GRID, 
+      call xESMF_ArrayScatter(GRID, 
      &   AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP), AOUT)
 #else
-      AVAR=AOUT
+      write(*,*)'Ouch A: ', LBOUND(AOUT), UBOUND(AOUT)
+      write(*,*)'Ouch B: ', LBOUND(AVAR), UBOUND(AVAR)
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)=AOUT
 #endif
 
       If (IERR==0) Then
@@ -1835,11 +1952,11 @@ C****  convert from real*4 to real*8
 
 #ifdef USE_ESMF
       DO N=1,NM
-         call ESMF_ArrayScatter(GRID, 
+         call xESMF_ArrayScatter(GRID, 
      &        AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,N), AOUT(:,:,N))
       END DO
 #else
-      AVAR=AOUT
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=AOUT
 #endif
 
       If (IERR==0) Then
@@ -1890,10 +2007,13 @@ C****  convert from real*4 to real*8
       displs(0) = 0
       do I = 1,NPES
         J = I - 1
-        I1 = AI(I,1)%min
-        IN = AI(I,1)%max
+c***        I1 = AI(I,1)%min
+c***        IN = AI(I,1)%max
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
+
+        I1 = 1
+        IN = SIZE(global_array,1)
         
         sendcounts(I) = (IN - I1 + 1) * (JN - J1 + 1)
         if (J == MY_PET) then
@@ -1919,6 +2039,7 @@ C****  convert from real*4 to real*8
       Deallocate(AI)
 #else
       local_array=global_array
+      stop ! should never get here
 #endif
       
       
@@ -2006,13 +2127,13 @@ C****  convert from real*4 to real*8
       integer                                       :: status
       integer                                       :: recvcount
 
-      integer                                       :: I, J
+      integer                                       :: I, J, II, JJ, III
       integer                                       :: NX, NY
       integer                                       :: I1, IN
       integer                                       :: J1, JN
 
 
-      integer      , allocatable                    :: var(:)
+      Logical      , allocatable                    :: var(:)
 
       Allocate(AI(1:NPES,2))
       Call ESMF_GridGetAllAxisIndex(egrid, globalAI=AI, 
@@ -2038,9 +2159,12 @@ C****  convert from real*4 to real*8
         displs(I) = displs(J) + sendcounts(I)
         if (AM_I_ROOT()) then
 
-          var(displs(J):displs(I)-1) =
+            
+          var(displs(J):displs(I)-1) = 
      &         RESHAPE(global_array(I1:IN,J1:JN),
      &         shape=(/sendcounts(I)/))
+
+
         endif
       enddo
 
@@ -2158,8 +2282,10 @@ C****  convert from real*4 to real*8
       displs(0) = 0
       do I = 1,NPES
         J = I - 1
-        I1 = AI(I,1)%min
-        IN = AI(I,1)%max
+c***        I1 = AI(I,1)%min
+c***        IN = AI(I,1)%max
+        I1 = 1
+        IN = Size(global_array,1)
         J1 = AI(I,2)%min
         JN = AI(I,2)%max
         
@@ -2178,8 +2304,10 @@ C****  convert from real*4 to real*8
       if (AM_I_ROOT()) then
         do I = 1,NPES
           J = I - 1
-          I1 = AI(I,1)%min
-          IN = AI(I,1)%max
+c***          I1 = AI(I,1)%min
+c***          IN = AI(I,1)%max
+          I1 = 1
+          IN = Size(global_array,1)
           J1 = AI(I,2)%min
           JN = AI(I,2)%max
           
@@ -2194,6 +2322,65 @@ C****  convert from real*4 to real*8
       deallocate(recvcounts, displs, stat=status)
       deallocate(AI)
       end subroutine Esmf_ArrayGather_IJ
+
+      subroutine Esmf_ArrayGather_XXXJ(grid, local_array, global_array, 
+     &     all)
+      type (ESMF_Grid)      :: grid
+      real (kind=8), dimension (:,:,:,:) :: local_array, global_array
+      Logical, Optional, Intent(In) :: all
+      
+      type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
+      type (ESMF_DELayout)                          :: layout
+      integer, allocatable, dimension(:)            :: 
+     &     recvcounts, displs
+      integer                                       :: nDEs
+      integer                                       :: status
+      integer                                       :: sendcount
+      
+      integer                                       :: I, J
+      integer                                       :: NX, NY
+      integer                                       :: I1, IN
+      integer                                       :: J1, JN
+      logical :: all_
+      Integer :: shp(4)
+
+      Allocate(AI(1:NPES,2))
+      Call ESMF_GridGetAllAxisIndex(grid, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
+      
+      shp = SHAPE(global_array)
+
+      displs(0) = 0
+      do I = 1,NPES
+        J = I - 1
+        J1 = AI(I,2)%min
+        JN = AI(I,2)%max
+        
+        recvcounts(I) = PRODUCT(shp(1:3)) * (JN - J1 + 1)
+        if (J == MY_PET) then
+          sendcount = recvcounts(I)
+        endif
+        displs(I) = displs(J) + recvcounts(I)
+      enddo
+
+      all_=.false.
+      If (Present(all)) all_=all
+
+      If (all_) Then
+         call MPI_AllGatherV(local_array,sendcount,MPI_DOUBLE_PRECISION, 
+     &        global_array, recvcounts, displs, 
+     &     MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, status)
+      Else
+         call MPI_GatherV(local_array, sendcount, MPI_DOUBLE_PRECISION, 
+     &        global_array, recvcounts, displs, 
+     &     MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, status)
+      End If
+
+      deallocate(recvcounts, displs, stat=status)
+      deallocate(AI)
+      end subroutine Esmf_ArrayGather_XXXJ
 
 !--------------------------------
       subroutine Esmf_IArrayGather_IJ(grid, local_array, global_array)
@@ -2470,7 +2657,7 @@ C****  convert from real*4 to real*8
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array
+      global_array = local_array(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_J
@@ -2487,7 +2674,7 @@ C****  convert from real*4 to real*8
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array
+      global_array = local_array(grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_J_int
@@ -2504,7 +2691,7 @@ C****  convert from real*4 to real*8
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array
+      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine ArrayGather_IJ
@@ -2521,7 +2708,7 @@ C****  convert from real*4 to real*8
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array
+      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine LArrayGather_IJ
@@ -2539,7 +2726,7 @@ C****  convert from real*4 to real*8
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      global_array = local_array
+      global_array = local_array(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
 
       end subroutine IArrayGather_IJ
@@ -2558,7 +2745,7 @@ C****  convert from real*4 to real*8
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP),
      &     global_array)
 #else
-      local_array=global_array
+      local_array(grd_dum%J_STRT:grd_dum%J_STOP) = global_array
 #endif
 
       end subroutine ArrayScatter_J
@@ -2571,11 +2758,11 @@ C****  convert from real*4 to real*8
       real (kind=8), dimension (:,:)               :: global_array
       
 #ifdef USE_ESMF
-      call Esmf_ArrayScatter_IJ(grd_dum%ESMF_GRID, 
+      call esmf_ArrayScatter_IJ(grd_dum%ESMF_GRID, 
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
-      local_array = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
 #endif
 
       end subroutine ArrayScatter_IJ
@@ -2592,7 +2779,7 @@ C****  convert from real*4 to real*8
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
-      local_array = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
 #endif
 
       end subroutine IArrayScatter_IJ
@@ -2609,7 +2796,7 @@ C****  convert from real*4 to real*8
      &     local_array(:,grd_dum%J_STRT:grd_dum%J_STOP),
      & global_array)
 #else
-      local_array = global_array
+      local_array(:,grd_dum%J_STRT:grd_dum%J_STOP) = global_array
 #endif
 
       end subroutine LArrayScatter_IJ
@@ -3168,7 +3355,7 @@ C****  convert from real*4 to real*8
     
 
         call ESMF_GRID_WORLD(GRID,IM_WORLD,JM_WORLD)
-#ifdef USE ESMF
+#ifdef USE_ESMF
         call ESMF_GridGet(grid, delayout=layout, rc=status)
 #endif
 
@@ -3407,7 +3594,7 @@ C****  convert from real*4 to real*8
 #ifdef USE_ESMF
         call ESMF_GridGet(grid, delayout=layout, rc=status)
     
-        call Esmf_ArrayGather(grid, A, VAR)
+        call xesmf_ArrayGather(grid, A, VAR)
 #else
       VAR = A
 #endif
@@ -3896,9 +4083,9 @@ cgsfc      ENDIF
       tag = max(MOD(tag,128),10) + 1
 
       call MPI_SendRecv                  (
-     &      sbuf, send_buf_size, MPI_REAL8,
+     &      sbuf, send_buf_size, MPI_DOUBLE_PRECISION,
      &      dest, tag,
-     &      rbuf, recv_buf_size, MPI_REAL8,
+     &      rbuf, recv_buf_size, MPI_DOUBLE_PRECISION,
      &      source, tag,
      &  MPI_COMM_WORLD, status,errcode   )
 #endif
@@ -3942,9 +4129,9 @@ cgsfc      ENDIF
       tag = max(MOD(tag,128),10) + 1
       
       call MPI_SendRecv                  (
-     &      sbuf, send_buf_size, MPI_REAL8,
+     &      sbuf, send_buf_size, MPI_DOUBLE_PRECISION,
      &      dest, tag,
-     &      rbuf, recv_buf_size, MPI_REAL8,
+     &      rbuf, recv_buf_size, MPI_DOUBLE_PRECISION,
      &      source, tag,
      &      MPI_COMM_WORLD, status,errcode   )
 #endif
@@ -3992,9 +4179,9 @@ cgsfc      ENDIF
       tag = max(MOD(tag,128),10) + 1
       
       call MPI_SendRecv                  (
-     &      sbuf, send_buf_size, MPI_REAL8,
+     &      sbuf, send_buf_size, MPI_DOUBLE_PRECISION,
      &      dest, tag,
-     &      rbuf, recv_buf_size, MPI_REAL8,
+     &      rbuf, recv_buf_size, MPI_DOUBLE_PRECISION,
      &      source, tag,
      &      MPI_COMM_WORLD, status,errcode   )
 #endif
@@ -4105,7 +4292,7 @@ cgsfc      ENDIF
       INTEGER  :: ier
 
 #ifdef USE_ESMF
-      CALL MPI_Allreduce(val, val_max, 1, MPI_REAL8, MPI_MAX, 
+      CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 
      &     MPI_COMM_WORLD, ier)
 #else
       val_max = val
@@ -4283,14 +4470,14 @@ cgsfc      ENDIF
       REAL*8, INTENT(IN) :: ARR_GLOB(grd_dum%JM_WORLD)
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H
+      INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
  
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(J_0H:J_1H)=ARR_GLOB(J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(J_0:J_1)=ARR_GLOB(J_0:J_1)
         else
           call ARRAYSCATTER(grd_dum, ARR, ARR_GLOB)
         end if
@@ -4308,15 +4495,15 @@ cgsfc      ENDIF
 
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:)
       REAL*8, INTENT(OUT) ::
-     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H
+     &        ARR(:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H)=ARR_GLOB(:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1)=ARR_GLOB(:,J_0:J_1)
         else
           call arrayscatter(grd_dum, arr, arr_glob)
         end if
@@ -4333,15 +4520,15 @@ cgsfc      ENDIF
 
       LOGICAL, INTENT(IN) :: ARR_GLOB(:,:)
       LOGICAL, INTENT(OUT) ::
-     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H
+     &        ARR(:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H)=ARR_GLOB(:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1)=ARR_GLOB(:,J_0:J_1)
         else
           call arrayscatter(grd_dum, arr, arr_glob)
         end if
@@ -4358,15 +4545,15 @@ cgsfc      ENDIF
 
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
       REAL*8, INTENT(OUT) ::
-     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0H, J_1H, L
+     &        ARR(:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0, J_1, L
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H,:)=ARR_GLOB(:,J_0H:J_1H,:)
+          J_0=grd_dum%j_strt_halo
+          J_1=grd_dum%j_stop_halo
+          ARR(:,J_0:J_1,:)=ARR_GLOB(:,J_0:J_1,:)
         else
           do l=1,size(arr,3)
             call arrayscatter(grd_dum, arr(:,:,l), arr_glob(:,:,l))
@@ -4388,15 +4575,15 @@ cgsfc      ENDIF
 
       INTEGER, INTENT(IN) :: ARR_GLOB(:,:,:)
       INTEGER, INTENT(OUT) ::
-     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0H, J_1H, L
+     &        ARR(:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0, J_1, L
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H,:)=ARR_GLOB(:,J_0H:J_1H,:)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1,:)=ARR_GLOB(:,J_0:J_1,:)
         else
           do l=1,size(arr,3)
             call arrayscatter(grd_dum, arr(:,:,l), arr_glob(:,:,l))
@@ -4417,15 +4604,15 @@ cgsfc      ENDIF
 
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
       REAL*8, INTENT(OUT) ::
-     &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:,:)
-      INTEGER :: J_0H, J_1H, L,M
+     &        ARR(:,grd_dum%j_strt_halo:,:,:)
+      INTEGER :: J_0, J_1, L,M
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H,:,:)=ARR_GLOB(:,J_0H:J_1H,:,:)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1,:,:)=ARR_GLOB(:,J_0:J_1,:,:)
         else
           do m=1,size(arr,4)
             do l=1,size(arr,3)
@@ -4451,7 +4638,7 @@ cgsfc      ENDIF
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:)
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0H, J_1H
+      INTEGER :: J_0, J_1
       LOGICAL, OPTIONAL :: local
       
       LOGICAL :: local_
@@ -4460,9 +4647,9 @@ cgsfc      ENDIF
       if (present(local)) local_ = local
 
       if (local_) then
-        J_0H=grd_dum%j_strt_halo
-        J_1H=grd_dum%j_stop_halo
-        ARR(J_0H:J_1H,:)=ARR_GLOB(J_0H:J_1H,:)
+        J_0=grd_dum%j_strt
+        J_1=grd_dum%j_stop
+        ARR(J_0:J_1,:)=ARR_GLOB(J_0:J_1,:)
       else
         DO k = 1, SIZE(arr,2)
           call arrayscatter(grd_dum, arr(:,k), arr_glob(:,k))
@@ -4479,7 +4666,6 @@ cgsfc      ENDIF
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:,:,:)
-      INTEGER :: J_0H, J_1H
       LOGICAL, OPTIONAL :: local
       
       INTEGER :: k
@@ -4498,7 +4684,6 @@ cgsfc      ENDIF
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
       REAL*8, INTENT(OUT) ::
      &        ARR(grd_dum%j_strt_halo:,:,:,:)
-      INTEGER :: J_0H, J_1H
       LOGICAL, OPTIONAL :: local
       
       INTEGER :: k
@@ -4534,7 +4719,7 @@ C------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       REAL*8, INTENT(IN) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+     &        ARR(:,:,grd_dum%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:,:)
       INTEGER :: K
 
@@ -4550,7 +4735,7 @@ C------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       INTEGER, INTENT(IN) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+     &        ARR(:,:,grd_dum%j_strt_halo:)
       INTEGER, INTENT(INOUT) :: ARR_GLOB(:,:,:)
       INTEGER :: I, K
 
@@ -4568,7 +4753,7 @@ C------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       REAL*8, INTENT(IN) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+     &        ARR(:,:,grd_dum%j_strt_halo:,:)
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: l,K
 
@@ -4590,14 +4775,14 @@ C--------------------------------------
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:)
       REAL*8, INTENT(OUT) ::
      &        ARR(:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H, K
+      INTEGER :: J_0, J_1, K
       LOGICAL, OPTIONAL :: local
  
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,J_0H:J_1H)=ARR_GLOB(:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,J_0:J_1)=ARR_GLOB(:,J_0:J_1)
         else
           do k=1,size(arr,1)
             call arrayscatter(grd_dum, arr(k,:), arr_glob(k,:))
@@ -4619,15 +4804,15 @@ C--------------------------------------
 
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
       REAL*8, INTENT(OUT) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H, K
+     &        ARR(:,:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1, K
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,J_0H:J_1H)=ARR_GLOB(:,:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,J_0:J_1)=ARR_GLOB(:,:,J_0:J_1)
         else
           do k=1,size(arr,1)
             call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
@@ -4648,15 +4833,15 @@ C--------------------------------------
 
       INTEGER, INTENT(IN) :: ARR_GLOB(:,:,:)
       INTEGER, INTENT(OUT) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H, K
+     &        ARR(:,:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1, K
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,J_0H:J_1H)=ARR_GLOB(:,:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,J_0:J_1)=ARR_GLOB(:,:,J_0:J_1)
         else
           do k=1,size(arr,1)
             call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
@@ -4677,15 +4862,15 @@ C--------------------------------------
 
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
       REAL*8, INTENT(OUT) ::
-     &        ARR(:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0H, J_1H, K, L
+     &        ARR(:,:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0, J_1, K, L
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,J_0H:J_1H,:)=ARR_GLOB(:,:,J_0H:J_1H,:)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,J_0:J_1,:)=ARR_GLOB(:,:,J_0:J_1,:)
         else
           do k=1,size(arr,1)
             do l=1,size(arr,4)
@@ -4710,7 +4895,7 @@ C--------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       INTEGER, INTENT(IN) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+     &        ARR(:,:,:,grd_dum%j_strt_halo:)
       INTEGER, INTENT(INOUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: K,L
 
@@ -4728,7 +4913,7 @@ C--------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       REAL*8 , INTENT(IN) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
+     &        ARR(:,:,:,grd_dum%j_strt_halo:)
       REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: K,L
 
@@ -4747,7 +4932,7 @@ C--------------------------------------
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
       REAL*8 , INTENT(IN) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
       REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:,:)
       INTEGER :: K,L,M
 
@@ -4769,15 +4954,15 @@ C--------------------------------------
 
       INTEGER, INTENT(IN) :: ARR_GLOB(:,:,:,:)
       INTEGER, INTENT(OUT) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H, K, L
+     &        ARR(:,:,:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1, K, L
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,:,J_0H:J_1H)=ARR_GLOB(:,:,:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,J_0:J_1)
         else
           do k=1,size(arr,1)
             do l=1,size(arr,2)
@@ -4800,15 +4985,15 @@ C--------------------------------------
 
       REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:)
       REAL*8 , INTENT(OUT) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0H, J_1H, K, L
+     &        ARR(:,:,:,grd_dum%j_strt_halo:)
+      INTEGER :: J_0, J_1, K, L
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,:,J_0H:J_1H)=ARR_GLOB(:,:,:,J_0H:J_1H)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,J_0:J_1)
         else
           do k=1,size(arr,1)
             do l=1,size(arr,2)
@@ -4831,15 +5016,15 @@ C--------------------------------------
 
       REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:,:)
       REAL*8 , INTENT(OUT) ::
-     &        ARR(:,:,grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
-      INTEGER :: J_0H, J_1H, K, L, M
+     &        ARR(:,:,:,grd_dum%j_strt_halo:,:)
+      INTEGER :: J_0, J_1, K, L, M
       LOGICAL, OPTIONAL :: local
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
-          ARR(:,:,:,J_0H:J_1H,:)=ARR_GLOB(:,:,:,J_0H:J_1H,:)
+          J_0=grd_dum%j_strt
+          J_1=grd_dum%j_stop
+          ARR(:,:,:,J_0:J_1,:)=ARR_GLOB(:,:,:,J_0:J_1,:)
         else
           do m=1,size(arr,5)
             do l=1,size(arr,2)
@@ -4935,8 +5120,8 @@ C--------------------------------
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
+          J_0H=Max(1,grd_dum%j_strt_halo)
+          J_1H=Min(grd_dum%JM_WORLD,grd_dum%j_stop_halo)
           ARR(J_0H:J_1H,:)=ARR_GLOB(J_0H:J_1H,:)
         else
           do k=1,size(arr,2)
@@ -4965,8 +5150,8 @@ C--------------------------------
 
       if (present(local)) then
         if (local) then
-          J_0H=grd_dum%j_strt_halo
-          J_1H=grd_dum%j_stop_halo
+          J_0H=Max(1,grd_dum%j_strt_halo)
+          J_1H=Min(grd_dum%JM_WORLD,grd_dum%j_stop_halo)
           ARR(J_0H:J_1H,:,:)=ARR_GLOB(J_0H:J_1H,:,:)
         else
           do l=1,size(arr,3)
@@ -5026,6 +5211,20 @@ C--------------------------------
       RETURN
       END SUBROUTINE UNPACK_J_4D
 
+      SUBROUTINE ESMF_BCAST_0D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(InOut) :: arr
+
+      INTEGER :: ier
+
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,1,MPI_DOUBLE_PRECISION,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+
+      END SUBROUTINE ESMF_BCAST_0D
+
       SUBROUTINE ESMF_BCAST_1D(grd_dum, arr)
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
@@ -5034,11 +5233,226 @@ C--------------------------------
       INTEGER :: ier
 
 #ifdef USE_ESMF
-      Call MPI_BCAST(arr,Size(arr),MPI_REAL8,root,
+      Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
      &     MPI_COMM_WORLD, ier)
 #endif
 
       END SUBROUTINE ESMF_BCAST_1D
+
+      SUBROUTINE ESMF_BCAST_2D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(InOut) :: arr(:,:)
+
+      INTEGER :: ier
+
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+
+      END SUBROUTINE ESMF_BCAST_2D
+
+      SUBROUTINE ESMF_BCAST_3D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(InOut) :: arr(:,:,:)
+
+      INTEGER :: ier
+
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+
+      END SUBROUTINE ESMF_BCAST_3D
+
+      SUBROUTINE ESMF_BCAST_4D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Real*8, Intent(InOut) :: arr(:,:,:,:)
+
+      INTEGER :: ier
+
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+
+      END SUBROUTINE ESMF_BCAST_4D
+
+      SUBROUTINE ESMF_IBCAST_0D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(InOut) :: arr
+      INTEGER :: ier
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,1,MPI_INTEGER,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+      END SUBROUTINE ESMF_IBCAST_0D
+
+      SUBROUTINE ESMF_IBCAST_1D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(InOut) :: arr(:)
+      INTEGER :: ier
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+      END SUBROUTINE ESMF_IBCAST_1D
+
+      SUBROUTINE ESMF_IBCAST_2D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(InOut) :: arr(:,:)
+      INTEGER :: ier
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+      END SUBROUTINE ESMF_IBCAST_2D
+
+      SUBROUTINE ESMF_IBCAST_3D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(InOut) :: arr(:,:,:)
+      INTEGER :: ier
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+      END SUBROUTINE ESMF_IBCAST_3D
+
+      SUBROUTINE ESMF_IBCAST_4D(grd_dum, arr)
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(In) :: grd_dum
+      Integer, Intent(InOut) :: arr(:,:,:,:)
+      INTEGER :: ier
+#ifdef USE_ESMF
+      Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
+     &     MPI_COMM_WORLD, ier)
+#endif
+      END SUBROUTINE ESMF_IBCAST_4D
+
+
+      SUBROUTINE TRANSPOSE_ijk(grid, x_in, x_out, reverse)
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      REAL*8 :: x_in(:,grid%J_STRT_HALO:,:)
+      REAL*8 :: x_out(:,:,:)
+      Logical, Optional, INTENT(IN) :: reverse
+
+      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
+      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
+#ifdef USE_ESMF
+      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+#endif
+      INTEGER :: I,J, II,JJ,nk,k
+      INTEGER :: status, ier, p
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
+      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      LOGICAL :: reverse_
+
+      reverse_=.false.
+      If (PRESENT(reverse)) reverse_=reverse
+
+#ifndef USE_ESMF
+      If (reverse_) Then
+         X_IN(:,1:grid%JM_WORLD,:) = X_OUT(:,1:grid%JM_WORLD,:)
+      Else
+         X_OUT(:,1:grid%JM_WORLD,:) = X_IN(:,1:grid%JM_WORLD,:)
+      End If
+#else
+      DO p = 0, npes - 1
+         I0(p) = 1 + p * grid%IM_WORLD / NPES
+         I1(p) = (p+1) * grid%IM_WORLD / NPES
+      END DO
+
+      ALLOCATE(AI(0:npes-1,2))
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
+     &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
+
+      DO p = 0, npes - 1
+         J0(p) = AI(p,2)%min
+         J1(p) = AI(p,2)%max
+      END DO
+      DEALLOCATE(AI)
+
+      ni_loc = I1(my_pet) - I0(my_pet) + 1
+      nj_loc = J1(my_pet) - J0(my_pet) + 1
+
+      nk = SIZE(X_IN,3)
+
+      ALLOCATE(rbuf(grid%JM_WORLD * ni_loc * nk))
+      ALLOCATE(sbuf(grid%IM_WORLD * nj_loc * nk))
+
+      sdspl(0) = 0
+      rdspl(0) = 0
+      icnt = 0
+      DO p = 0, npes -1
+        Do k = 1, nk
+         If (reverse_) Then
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  rbuf(icnt) = X_out(i,j,k)
+               END DO
+            END DO
+         ELSE            
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  sbuf(icnt) = X_in(i,j,k)
+               End Do
+            END DO
+         END IF
+         nip = I1(p) - I0(p) + 1
+         njp = J1(p) - J0(p) + 1
+         scnts(p) = nj_loc * nip * nk
+         rcnts(p) = ni_loc * njp * nk
+         If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
+         If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
+       END DO
+      END DO
+
+      If (reverse_) Then
+         CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      Else
+         CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &        MPI_COMM_WORLD, ier)
+      End If
+      
+      icnt = 0
+      DO p = 0, npes - 1
+        Do k = 1, nk
+         If (reverse_) Then
+            DO j = J0(my_pet), J1(my_pet)
+               DO i = I0(p), I1(p)
+                  icnt = icnt + 1
+                  X_in(i,j,k) = sbuf(icnt)
+               End Do
+            END DO
+         Else
+            DO j = J0(p), J1(p)
+               DO i = 1, ni_loc
+                  icnt = icnt + 1
+                  X_out(i,j,k) = rbuf(icnt)
+               END DO
+            END DO
+         End If
+       END DO
+      END DO
+         
+      DEALLOCATE(sbuf)
+      DEALLOCATE(rbuf)
+#endif
+
+      END SUBROUTINE TRANSPOSE_ijk
 
       SUBROUTINE TRANSPOSE_ij(grid, x_in, x_out, reverse)
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -5074,7 +5488,7 @@ C--------------------------------
       END DO
 
       ALLOCATE(AI(0:npes-1,2))
-      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI, 
+      Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER, rc=status)
 
       DO p = 0, npes - 1
@@ -5086,8 +5500,9 @@ C--------------------------------
       ni_loc = I1(my_pet) - I0(my_pet) + 1
       nj_loc = J1(my_pet) - J0(my_pet) + 1
 
-      ALLOCATE(rbuf(grid%JM_WORLD * ni_loc))
-      ALLOCATE(sbuf(grid%IM_WORLD * nj_loc))
+
+      ALLOCATE(rbuf(grid%JM_WORLD * ni_loc ))
+      ALLOCATE(sbuf(grid%IM_WORLD * nj_loc ))
 
       sdspl(0) = 0
       rdspl(0) = 0
@@ -5100,7 +5515,7 @@ C--------------------------------
                   rbuf(icnt) = X_out(i,j)
                END DO
             END DO
-         ELSE            
+         ELSE
             DO j = J0(my_pet), J1(my_pet)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
@@ -5110,8 +5525,8 @@ C--------------------------------
          END IF
          nip = I1(p) - I0(p) + 1
          njp = J1(p) - J0(p) + 1
-         scnts(p) = nj_loc * nip
-         rcnts(p) = ni_loc * njp
+         scnts(p) = nj_loc * nip 
+         rcnts(p) = ni_loc * njp 
          If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
          If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
       END DO
@@ -5125,7 +5540,7 @@ C--------------------------------
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        MPI_COMM_WORLD, ier)
       End If
-      
+
       icnt = 0
       DO p = 0, npes - 1
          If (reverse_) Then
@@ -5144,17 +5559,20 @@ C--------------------------------
             END DO
          End If
       END DO
-         
+
       DEALLOCATE(sbuf)
       DEALLOCATE(rbuf)
 #endif
 
       END SUBROUTINE TRANSPOSE_ij
 
-      SUBROUTINE TRANSPOSE_COLUMN(grid, x_in, x_out, reverse)
+
+
+
+      SUBROUTINE TRANSPOSE_COLUMN(grid, x, x_tr, reverse)
       TYPE (DIST_GRID), INTENT(IN) :: grid
-      REAL*8 :: x_in(:,:,grid%J_STRT_HALO:)
-      REAL*8 :: x_out(:,:,:)
+      REAL*8 :: x(:,:,grid%J_STRT_HALO:,:)
+      REAL*8 :: x_tr(:,:,:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
       INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
@@ -5163,11 +5581,11 @@ C--------------------------------
 #ifdef USE_ESMF
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
-      INTEGER :: I,J, II,JJ
+      INTEGER :: I,J, II,JJ,k
       INTEGER :: status, ier, p
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt
       INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
-      INTEGER :: n
+      INTEGER :: n, nk
       LOGICAL :: reverse_
 
       reverse_=.false.
@@ -5175,9 +5593,9 @@ C--------------------------------
 
 #ifndef USE_ESMF
       If (reverse_) Then
-         X_IN(:,:,1:grid%JM_WORLD) = X_OUT(:,:,1:grid%JM_WORLD)
+         X(:,:,1:grid%JM_WORLD,:) = X_TR(:,:,1:grid%JM_WORLD,:)
       Else
-         X_OUT(:,:,1:grid%JM_WORLD) = X_IN(:,:,1:grid%JM_WORLD)
+         X_TR(:,:,1:grid%JM_WORLD,:) = X(:,:,1:grid%JM_WORLD,:)
       End If
 #else
 
@@ -5199,36 +5617,39 @@ C--------------------------------
       ni_loc = I1(my_pet) - I0(my_pet) + 1
       nj_loc = J1(my_pet) - J0(my_pet) + 1
 
-      n = Size(X_in,1)
+      n  = SIZE(X, 1)
+      nk = SIZE(X,4)
 
-      ALLOCATE(rbuf(n,grid%JM_WORLD * ni_loc))
-      ALLOCATE(sbuf(n,grid%IM_WORLD * nj_loc))
+      ALLOCATE(rbuf(n, grid%JM_WORLD * ni_loc * nk))
+      ALLOCATE(sbuf(n, grid%IM_WORLD * nj_loc * nk))
 
       sdspl(0) = 0
       rdspl(0) = 0
       icnt = 0
       DO p = 0, npes -1
+        Do k = 1, nk
          If (reverse_) Then
             DO j = J0(p), J1(p)
                DO i = 1, ni_loc
                   icnt = icnt + 1
-                  rbuf(:,icnt) = X_out(:,i,j)
+                  rbuf(:,icnt) = X_tr(:,i,j,k)
                END DO
             END DO
          ELSE            
             DO j = J0(my_pet), J1(my_pet)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
-                  sbuf(:,icnt) = X_in(:,i,j)
+                  sbuf(:,icnt) = X(:,i,j,k)
                End Do
             END DO
          END IF
          nip = I1(p) - I0(p) + 1
          njp = J1(p) - J0(p) + 1
-         scnts(p) = n * nj_loc * nip
-         rcnts(p) = n * ni_loc * njp
+         scnts(p) = n * nj_loc * nip * nk
+         rcnts(p) = n * ni_loc * njp * nk
          If (p > 0) sdspl(p) = sdspl(p-1) + scnts(p-1)
          If (p > 0) rdspl(p) = rdspl(p-1) + rcnts(p-1)
+       END DO
       END DO
 
       If (reverse_) Then
@@ -5243,21 +5664,23 @@ C--------------------------------
       
       icnt = 0
       DO p = 0, npes - 1
+        Do k = 1, nk
          If (reverse_) Then
             DO j = J0(my_pet), J1(my_pet)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
-                  X_in(:,i,j) = sbuf(:,icnt)
+                  X(:,i,j,k) = sbuf(:,icnt)
                End Do
             END DO
          Else
             DO j = J0(p), J1(p)
                DO i = 1, ni_loc
                   icnt = icnt + 1
-                  X_out(:,i,j) = rbuf(:,icnt)
+                  X_tr(:,i,j,k) = rbuf(:,icnt)
                END DO
             END DO
          End If
+       END DO
       END DO
          
       DEALLOCATE(sbuf)
@@ -5265,5 +5688,71 @@ C--------------------------------
 #endif
 
       END SUBROUTINE TRANSPOSE_COLUMN
+
+c***      Subroutine pack_to_buffer(x, buf, packets)
+c***      Real*8 :: x(*)
+c***      Real*8 :: buf(*)
+c***      Type (packet) :: packets(:)
+c***
+c***      Integer :: i_packet, n_packets
+c***      Integer :: i_blk, n_blks
+c***      Integer :: stride, blk_size, cnt, offset
+c***
+c***      n_packets = Size(packets)
+c***      Do i_packet = 1, n_packets
+c***        n_blks   = packet(i_packet)%n_blks
+c***        stride   = packet(i_packet)%stride
+c***        blk_size = packet(i_packet)%blk_size
+c***        offset   = offset(i_packet)%offset
+c***
+c***        Do i_blk = 1, n_blks
+c***          buf(cnt+1:cnt+blk_size) = x(offset+1:offset+blk_size)
+c***          cnt + cnt + blk_size
+c***          offset=offset+stride
+c***        End Do
+c***
+c***      End Do
+c***
+c***      End Subroutine pack_to_buffer
+c***
+c***
+c***      Subroutine unpack_from_buffer(buf, x, jpe, nn, halo)
+c***      Integer :: nn(2)
+c***      Integer :: halo
+c***      Integer :: jpe(:)
+c***
+c***      Real*8 :: x(nn(1), 1-halo:size(jpe)+halo, nn(2))
+c***
+c***      nj = Size(jpe)
+c***      cnts = nn(1)*nn(2) * GetOffsets(jpe)
+c***
+c***      Do k = 1, nn(2)
+c***        Do j = 1,jpe
+c***          cnt = cnts(jpe(j)) + 1
+c***          cnt_new = cnt + nn(1)
+c***          cnts(jpe(j)) = cnt_new
+c***
+c***          buf(cnt:cnt_new) = x(:,j,k)
+c***
+c***        End Do
+c***      End Do
+c***
+c***      End Subroutine unpack_from_buffer
+c***
+c***      Function GetOffsets(key) Result(offsets)
+c***      Integer :: key(:)
+c***      Integer :: offsets(Minval(key):Maxval(key))
+c***
+c***      Integer :: p0, p1
+c***
+c***      p0 = Minval(key)
+c***      p1 = Maxval(key)
+c***      
+c***      offsets(p0) = 0
+c***      Do p = p0+1, p1
+c***        offsets(p) = offsets(p0) + Count(key ==p)
+c***      End Do
+c***        
+c***      End Function GetOffsets
 
       END MODULE DOMAIN_DECOMP

@@ -40,7 +40,7 @@
       LOGICAL WETSNOW
 
 C****Work array for regional diagnostic accumulation
-      REAL*8 :: AREG_SUM
+      REAL*8 :: AREG_SUM(size(AREG,1), 3)
       REAL*8, DIMENSION(
      &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
      &       :: AREG_part
@@ -49,6 +49,8 @@ C**** Extract useful local domain parameters from "grid"
 C****
       integer :: J_0, J_1, J_0H, J_1H
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -143,19 +145,13 @@ C**** Calculate pressure anomaly at surface
       END DO
 
 C****Finish accumulation of regional diagnostics (...sum along j)
-        DO JR=1,SIZE(AREG,1)
-          AREG_SUM=0.
-          CALL GLOBALSUM(GRID,AREG_part(JR,:,1),AREG_SUM,ALL=.TRUE.)
-          AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+AREG_SUM
+        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:2),
+     &     AREG_SUM(1:SIZE(AREG,1),1:2),ALL=.TRUE.)
+        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),1)
+        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),2)
 
-          AREG_SUM=0.
-          CALL GLOBALSUM(GRID,AREG_part(JR,:,2),AREG_SUM,ALL=.TRUE.)
-          AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+AREG_SUM
-
-c         AREG_SUM=0.
-c         CALL GLOBALSUM(GRID,AREG_part(JR,:,3),AREG_SUM,ALL=.TRUE.)
-c         AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+AREG_SUM            ! ==0
-        END DO
 
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
@@ -333,7 +329,7 @@ C****
       REAL*8, DIMENSION(
      &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3)
      &       :: AREG_part
-      REAL*8 :: AREG_sum
+      REAL*8 :: AREG_sum(size(AREG,1),3)
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -424,14 +420,15 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
         END DO
         END DO
 
-        DO JR = 1, SIZE(AREG,1)
-          CALL GLOBALSUM(grid, AREG_part(JR,:,1), AREG_sum)
-          AREG(JR,J_HMELT) = AREG(JR,J_HMELT) + AREG_sum
-          CALL GLOBALSUM(grid, AREG_part(JR,:,2), AREG_sum)
-          AREG(JR,J_SMELT) = AREG(JR,J_SMELT) + AREG_sum
-          CALL GLOBALSUM(grid, AREG_part(JR,:,3), AREG_sum)
-          AREG(JR,J_IMELT) = AREG(JR,J_IMELT) + AREG_sum
-        END DO
+        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:3),
+     &     AREG_SUM(1:SIZE(AREG,1),1:3),ALL=.TRUE.)
+        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),1)
+        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),2)
+        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),3)
+
 
 cc      ELSE
 cc        MELTI=0. ; EMELTI=0. ; SMELTI=0.
@@ -488,7 +485,7 @@ C****
      *     ,tralpha
 #endif
 C**** Working arrays for regional diagnostic arrays
-      REAL*8 :: AREG_SUM
+      REAL*8 :: AREG_SUM(size(AREG,1),4)
       REAL*8, DIMENSION(
      &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4)
      &       :: AREG_part
@@ -497,6 +494,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       integer :: J_0, J_1, J_0H, J_1H
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
       CALL GET(grid, J_STRT = J_0,     J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -656,23 +654,16 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
       END DO
 
 C**** Finish diagnostic accumulations into AREG (sum over j)
-      DO JR=1,SIZE(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,1), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+AREG_SUM     
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,2), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+AREG_SUM  
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+AREG_SUM   
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,4), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+AREG_SUM    
-      END DO
+        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:4),
+     &     AREG_SUM(1:SIZE(AREG,1),1:4),ALL=.TRUE.)
+        AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)+
+     &      AREG_SUM(1:SIZE(AREG,1),1)
+        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),2)
+        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),3)
+        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),4)
 
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
@@ -723,7 +714,7 @@ C****
 C****
 C**** Work array for regional diagnostic accumulation
 C****
-      REAL*8 :: AREG_SUM
+      REAL*8 :: AREG_SUM(size(AREG,1),7)
       REAL*8, DIMENSION(
      &          size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,7)
      &       :: AREG_part
@@ -733,6 +724,7 @@ C**** Extract useful local domain parmeters from "grid"
 C****
       integer :: J_0, J_1, J_0H, J_1H
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE   ,
@@ -877,35 +869,22 @@ C**** Save sea ice tracer amount
       END DO
 
 C**** Finish diagnostic accumulations into AREG (sum over j)
-      DO JR=1,size(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,1),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+AREG_SUM
-        
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,2),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,3),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,4),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_RSI) =AREG(JR,J_RSI)   +AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,5),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_SNOW)=AREG(JR,J_SNOW)  +AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,6),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_ACE1)=AREG(JR,J_ACE1)  +AREG_SUM
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_part(JR,:,7),AREG_SUM,ALL=.TRUE.)
-        AREG(JR,J_ACE2)=AREG(JR,J_ACE2)  +AREG_SUM
-      END DO
+        CALL GLOBALSUM(GRID,AREG_part(1:SIZE(AREG,1),:,1:7),
+     &     AREG_SUM(1:SIZE(AREG,1),1:7),ALL=.TRUE.)
+        AREG(1:SIZE(AREG,1),J_IMELT)=AREG(1:SIZE(AREG,1),J_IMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),1)
+        AREG(1:SIZE(AREG,1),J_HMELT)=AREG(1:SIZE(AREG,1),J_HMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),2)
+        AREG(1:SIZE(AREG,1),J_SMELT)=AREG(1:SIZE(AREG,1),J_SMELT)+
+     &      AREG_SUM(1:SIZE(AREG,1),3)
+        AREG(1:SIZE(AREG,1),J_RSI)=AREG(1:SIZE(AREG,1),J_RSI)+
+     &      AREG_SUM(1:SIZE(AREG,1),4)
+        AREG(1:SIZE(AREG,1),J_SNOW)=AREG(1:SIZE(AREG,1),J_SNOW)+
+     &      AREG_SUM(1:SIZE(AREG,1),5)
+        AREG(1:SIZE(AREG,1),J_ACE1)=AREG(1:SIZE(AREG,1),J_ACE1)+
+     &      AREG_SUM(1:SIZE(AREG,1),6)
+        AREG(1:SIZE(AREG,1),J_ACE2)=AREG(1:SIZE(AREG,1),J_ACE2)+
+     &      AREG_SUM(1:SIZE(AREG,1),7)
 
 C**** replicate ice values at the north pole
       IF (HAVE_NORTH_POLE) THEN

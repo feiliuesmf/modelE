@@ -186,6 +186,7 @@ C**** Initialize to zero
       USE GHY_COM
       USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -223,21 +224,22 @@ C**** Initialize to zero
       CASE (IOREAD:)            ! input from restart file
 cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
 cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
-        READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
+        if (AM_I_ROOT())
+     &    READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
      &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
      &       ,qg_ij_glob
 
-        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-        SNOWE(:,J_0:J_1)       = SNOWE_glob(:,J_0:J_1)
-        TEARTH(:,J_0:J_1)      = TEARTH_glob(:,J_0:J_1)
-        WEARTH(:,J_0:J_1)      = WEARTH_glob(:,J_0:J_1)
-        AIEARTH(:,J_0:J_1)     = AIEARTH_glob(:,J_0:J_1)
-        SNOAGE(:,:,J_0:J_1)    = SNOAGE_glob(:,:,J_0:J_1)
-        evap_max_ij(:,J_0:J_1) = evap_max_ij_glob(:,J_0:J_1)
-        fr_sat_ij(:,J_0:J_1)   = fr_sat_ij_glob(:,J_0:J_1)
-        qg_ij(:,J_0:J_1)       = qg_ij_glob(:,J_0:J_1)
+        CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )     
+        CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )     
+        CALL UNPACK_DATA(grid, WEARTH_glob      , WEARTH     )     
+        CALL UNPACK_DATA(grid, AIEARTH_glob     , AIEARTH    )     
+        CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)     
+        CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )     
+        CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )     
+        CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )     
 
-        IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
+        if (AM_I_ROOT() .and.
+     &      HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -256,6 +258,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
       USE DOMAIN_DECOMP, ONLY: PACK_DATA, PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY: PACK_BLOCK, UNPACK_BLOCK
+      USE DOMAIN_DECOMP, ONLY:  UNPACK_COLUMN
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -308,6 +311,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #endif
         END IF
       CASE (IOREAD:)            ! input from restart file
+        if (AM_I_ROOT()) then
         READ(kunit,err=10) HEADER,wbare_glob,wvege_glob,htbare_glob,
      &                            htvege_glob,snowbv_glob
 cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
@@ -315,28 +319,29 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+        end if    !...am_i_root
 
-        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
-        wbare(:,:,J_0:J_1)  = wbare_glob(:,:,J_0:J_1)
-        wvege(:,:,J_0:J_1)  = wvege_glob(:,:,J_0:J_1)
-        htbare(:,:,J_0:J_1) = htbare_glob(:,:,J_0:J_1)
-        htvege(:,:,J_0:J_1) = htvege_glob(:,:,J_0:J_1)
-        snowbv(:,:,J_0:J_1) = snowbv_glob(:,:,J_0:J_1)
+        call unpack_column(grid, wbare_glob ,  wbare)
+        call unpack_column(grid, wvege_glob ,  wvege)
+        call unpack_column(grid, htbare_glob, htbare)
+        call unpack_column(grid, htvege_glob, htvege)
+        call unpack_column(grid, snowbv_glob, snowbv)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts
-          READ (kunit,err=10) TRHEADER, TR_WBARE_GLOB
+          if (AM_I_ROOT()) then
+            READ (kunit,err=10) TRHEADER, TR_WBARE_GLOB
      &         ,TR_WVEGE_GLOB,TRSNOWBV0_GLOB
-          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TRHEADER
-     *           ,TRMODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE ,local=.true.)
-          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE ,local=.true.)
-          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0,local=.true.)
+            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRHEADER
+     *             ,TRMODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_BLOCK(grid,TR_WBARE_GLOB ,TR_WBARE ,local=.false.)
+          CALL UNPACK_BLOCK(grid,TR_WVEGE_GLOB ,TR_WVEGE ,local=.false.)
+          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0,local=.false.)
 
         END SELECT
 #endif
@@ -401,12 +406,14 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
 #endif
         END IF
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,NSN_IJ_glob, DZSN_IJ_glob
-     *         ,WSN_IJ_glob, HSN_IJ_glob, FR_SNOW_IJ_glob
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
+        if (AM_I_ROOT()) then
+          READ (kunit,err=10) HEADER,NSN_IJ_glob, DZSN_IJ_glob
+     *           ,WSN_IJ_glob, HSN_IJ_glob, FR_SNOW_IJ_glob
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
         CALL UNPACK_BLOCK(grid, DZSN_IJ_GLOB, DZSN_IJ)
         CALL UNPACK_BLOCK(grid,  WSN_IJ_GLOB,  WSN_IJ)
         CALL UNPACK_BLOCK(grid,  HSN_IJ_GLOB,  HSN_IJ)
@@ -415,16 +422,19 @@ cgsfc        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
 #ifdef TRACERS_WATER 
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TR_WSN_IJ_GLOB
-          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TRHEADER
-     *           ,TRMODULE_HEADER
-            GO TO 10
-          END IF
+          if (AM_I_ROOT()) then
+            READ (kunit,err=10) TRHEADER,TR_WSN_IJ_GLOB
+            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRHEADER
+     *             ,TRMODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+
           CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,1,:,:)
-     &                          , TR_WSN_IJ(:,:,1,:,:), local=.true. )
+     &                          , TR_WSN_IJ(:,:,1,:,:), local=.false. )
           CALL UNPACK_BLOCK(grid, TR_WSN_IJ_GLOB(:,:,2,:,:)
-     &                          , TR_WSN_IJ(:,:,2,:,:), local=.true. )
+     &                          , TR_WSN_IJ(:,:,2,:,:), local=.false. )
         END SELECT
 #endif
       END SELECT

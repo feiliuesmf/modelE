@@ -24,8 +24,8 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,dke
       USE DOMAIN_DECOMP, ONLY : grid, get, SOUTH, NORTH
-      USE DOMAIN_DECOMP, ONLY : halo_update_column, checksum_column
-      USE DOMAIN_DECOMP, ONLY : halo_update       , checksum
+      USE DOMAIN_DECOMP, ONLY : halo_update_column
+      USE DOMAIN_DECOMP, ONLY : halo_update       
       USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc
      *     ,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
@@ -467,8 +467,6 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
         end do loop_i_uv
       end do loop_j_uv
 !$OMP  END PARALLEL DO
-      CALL CHECKSUM(GRID, u_3d,__LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(GRID, v_3d,__LINE__,__FILE__,STGR=.true.)
 
       CALL HALO_UPDATE(grid, u_3d, from=NORTH)
 
@@ -791,6 +789,7 @@ C****
 !@var dtime time step
 !@var n number of main grid
 !@var qlimit true if tracer must be positive definite
+      use TRIDIAG_MOD, only : TRIDIAG
       implicit none
 
       integer, intent(in) :: n
@@ -867,6 +866,7 @@ c calls to this routine.
 !@var dtime time step
 !@var n number of vertical edge grid
 
+      use TRIDIAG_MOD, only : TRIDIAG
       use CONSTANT, only : teeny
       implicit none
 
@@ -920,7 +920,7 @@ c calls to this routine.
 
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : grid,get,NORTH, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only : halo_update,checksum, checksum_column
+      USE DOMAIN_DECOMP, only : halo_update
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       implicit none
 
@@ -944,9 +944,6 @@ c calls to this routine.
 !     polar boxes
 
 C**** Update halos of U and V 
-      CALL CHECKSUM(grid, u, __LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, v, __LINE__,__FILE__,STGR=.true.)
-
       CALL HALO_UPDATE(grid,u, from=NORTH)
       CALL HALO_UPDATE(grid,v, from=NORTH)
 
@@ -1007,9 +1004,6 @@ C**** Update halos of U and V
 C**** Update halos of u and v. (Needed bcs. IDJJ(3:4,J_1S)=J_1S+1)
 C     ---> done by calling routine...
 
-      CALL CHECKSUM(grid, u, __LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, v, __LINE__,__FILE__,STGR=.true.)
-
       CALL HALO_UPDATE(grid, u, FROM=NORTH)
       CALL HALO_UPDATE(grid, v, FROM=NORTH)
 !$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
@@ -1051,8 +1045,8 @@ C****
 
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : grid, get
-      USE DOMAIN_DECOMP, only : halo_update_column, checksum_column
-      USE DOMAIN_DECOMP, only : halo_update       , checksum
+      USE DOMAIN_DECOMP, only : halo_update_column
+      USE DOMAIN_DECOMP, only : halo_update       
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
 
@@ -1080,9 +1074,6 @@ C****
       u=0.d0; v=0.d0
       CALL HALO_UPDATE_COLUMN(grid,U_A, from=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid,V_A, from=SOUTH)
-
-      CALL CHECKSUM(grid, U,__LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, V,__LINE__,__FILE__,STGR=.true.)
 
       if (HAVE_SOUTH_POLE) then
         J=1
@@ -1183,13 +1174,6 @@ c**** J_1 box
           END DO
         END DO
       end if
-
-C**** Update halos of U_A and V_A
-      CALL CHECKSUM_COLUMN(grid, U_A, __LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM_COLUMN(grid, V_A, __LINE__,__FILE__,STGR=.true.)
-                                                               
-      CALL CHECKSUM(grid, U,__LINE__,__FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, V,__LINE__,__FILE__,STGR=.true.)
 
 
       return

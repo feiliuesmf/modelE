@@ -460,6 +460,7 @@ C****
      *     ,irerun,ioread_single,lhead
       USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
       USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP, only : ESMF_BCAST
       USE DOMAIN_DECOMP, only : grid, GET
       USE TRACER_COM, only: ntm
 
@@ -545,21 +546,24 @@ C****     Accumulate diagnostics (converting back to real*8)
             GO TO 10
           END IF
         CASE (ioread)  ! restarts
-          READ (kunit,err=10) HEADER,
-     *                         TAIJLN,TAIJN,TAIJS,
-     *                         TAJLN,TAJLS,TCONSRV,it
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          end IF
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,
+     *                           TAIJLN,TAIJN,TAIJS,
+     *                           TAJLN,TAJLS,TCONSRV,it
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER
+     *             ,MODULE_HEADER
+              GO TO 10
+            END IF
+          end if
 C*** Unpack read global data into local distributed arrays
-          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc, local=.true. )
-          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc , local=.true. )
-          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc , local=.true. )
-          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc,    local=.true. )
-          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc,    local=.true. )
-          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc,  local=.true. )
+          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc, local=.false. )
+          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc , local=.false. )
+          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc , local=.false. )
+          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc,    local=.false. )
+          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc,    local=.false. )
+          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc,  local=.false. )
+          CALL ESMF_BCAST( grid, it )
         END SELECT
       END SELECT
 

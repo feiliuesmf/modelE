@@ -218,13 +218,14 @@ C****
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      REAL*8  :: AREG_SUM
+      REAL*8  :: AREG_SUM(size(AREG,1),4)
       REAL*8, DIMENSION(
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,4 )
      &        :: AREG_PART
 C**** Get useful grid parameters
       INTEGER :: I, J, JR
       INTEGER :: J_0, J_1, J_0H, J_1H
+
       CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
      &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 
@@ -294,23 +295,14 @@ c       AREG_PART(JR,J,2)=AREG_PART(JR,J,2)+ERUN0*PLICE*DXYPJ ! (Tg=0)
       END DO
 
 C**** Finish summing and store total accumulations into AREG.
-      DO JR=1,SIZE(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,1), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_RUN  )=AREG(JR,J_RUN) + AREG_SUM
-
-c       AREG_SUM=0.
-c       CALL GLOBALSUM(GRID,AREG_PART(JR,:,2), AREG_SUM, ALL=.TRUE.)
-c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,3), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM) + AREG_SUM 
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,4), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH) + AREG_SUM 
-      END DO
+      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:4), 
+     &   AREG_SUM(1:SIZE(AREG,1),1:4), ALL=.TRUE.)
+      AREG(1:SIZE(AREG,1),J_RUN  )=AREG(1:SIZE(AREG,1),J_RUN) 
+     &   + AREG_SUM(1:SIZE(AREG,1),1)
+      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM) 
+     &   + AREG_SUM(1:SIZE(AREG,1),3) 
+      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH) 
+     &   + AREG_SUM(1:SIZE(AREG,1),4) 
       END SUBROUTINE PRECIP_LI
 
       SUBROUTINE GROUND_LI
@@ -361,13 +353,14 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN) + AREG_SUM         ! (Tg=0)
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      REAL*8  :: AREG_SUM
+      REAL*8  :: AREG_SUM(size(AREG,1),9)
       REAL*8, DIMENSION(
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,9 )
      &        :: AREG_PART
 
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, J_0H, J_1H
+
       CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1 
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
@@ -473,43 +466,27 @@ C****
       END DO
       END DO
 
-      DO JR=1,SIZE(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,1),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+AREG_SUM          
+      CALL GLOBALSUM(GRID,AREG_PART(1:SIZE(AREG,1),:,1:9),
+     &  AREG_SUM(1:SIZE(AREG,1),1:9), ALL=.TRUE.)
 
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,2),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_RUN)  =AREG(JR,J_RUN)  +AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,3),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_SNOW) =AREG(JR,J_SNOW) +AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,4),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_ACE1) =AREG(JR,J_ACE1) +AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,5),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_ACE2) =AREG(JR,J_ACE2) +AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,6),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,7),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,8),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_RVRD) = AREG(JR,J_RVRD)+AREG_SUM          
-
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID,AREG_PART(JR,:,9),AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_ERVR) = AREG(JR,J_ERVR)+AREG_SUM          
-      END DO
+      AREG(1:SIZE(AREG,1),J_RSNOW)=AREG(1:SIZE(AREG,1),J_RSNOW)
+     &   + AREG_SUM(1:SIZE(AREG,1),1)          
+      AREG(1:SIZE(AREG,1),J_RUN)  =AREG(1:SIZE(AREG,1),J_RUN)  
+     &   + AREG_SUM(1:SIZE(AREG,1),2)          
+      AREG(1:SIZE(AREG,1),J_SNOW) =AREG(1:SIZE(AREG,1),J_SNOW) 
+     &   + AREG_SUM(1:SIZE(AREG,1),3)          
+      AREG(1:SIZE(AREG,1),J_ACE1) =AREG(1:SIZE(AREG,1),J_ACE1) 
+     &   + AREG_SUM(1:SIZE(AREG,1),4)          
+      AREG(1:SIZE(AREG,1),J_ACE2) =AREG(1:SIZE(AREG,1),J_ACE2) 
+     &   + AREG_SUM(1:SIZE(AREG,1),5)          
+      AREG(1:SIZE(AREG,1),J_IMPLH)=AREG(1:SIZE(AREG,1),J_IMPLH)
+     &   + AREG_SUM(1:SIZE(AREG,1),6)          
+      AREG(1:SIZE(AREG,1),J_IMPLM)=AREG(1:SIZE(AREG,1),J_IMPLM)
+     &   + AREG_SUM(1:SIZE(AREG,1),7)          
+      AREG(1:SIZE(AREG,1),J_RVRD) = AREG(1:SIZE(AREG,1),J_RVRD)
+     &   + AREG_SUM(1:SIZE(AREG,1),8)          
+      AREG(1:SIZE(AREG,1),J_ERVR) = AREG(1:SIZE(AREG,1),J_ERVR)
+     &   + AREG_SUM(1:SIZE(AREG,1),9)          
 
 
       END SUBROUTINE GROUND_LI

@@ -110,28 +110,31 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #endif
         END IF
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
-     &                      GML_glob   !,FLAKE
-
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK, local=.true.)
-        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  , local=.true.)
-        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE, local=.true.)
-        CALL UNPACK_DATA(grid,    GML_GLOB, GML  , local=.true.)
+        if ( AM_I_ROOT() ) then
+          READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
+     &                        GML_glob   !,FLAKE
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
+        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK, local=.false.)
+        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  , local=.false.)
+        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE, local=.false.)
+        CALL UNPACK_DATA(grid,    GML_GLOB, GML  , local=.false.)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRLAKE_glob
-          IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",TRHEADER
-     *           ,TRMODULE_HEADER
-            GO TO 10
-          END IF
-          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE, local=.true.)
+          if ( AM_I_ROOT() ) then
+            READ (kunit,err=10) TRHEADER,TRLAKE_glob
+            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRHEADER
+     *             ,TRMODULE_HEADER
+              GO TO 10
+            END IF
+          end if
+          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE, local=.false.)
         END SELECT
 #endif
       END SELECT

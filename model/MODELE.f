@@ -1068,6 +1068,7 @@ C****        tropospheric temperatures changed by at most 1 degree C
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
         DO L=1,LS1-1
+        call burn_random(n=im*(j_0-1))
         DO J=J_0,J_1
         DO I=1,IM
            TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)

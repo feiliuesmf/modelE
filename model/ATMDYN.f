@@ -1,9 +1,6 @@
 #include "rundeck_opts.h"
-#ifdef USE_ESMF
 #define JJ(J) (J)-J_0H+1
-#else
-#define JJ(J) J
-#endif      
+
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
@@ -19,7 +16,7 @@
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE DOMAIN_DECOMP, only : LOG_PARALLEL
       IMPLICIT NONE
 
@@ -36,10 +33,10 @@
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
       REAL*8 ediff,TE0,TE,TE0_a,TE0_b
       
-
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
@@ -93,6 +90,7 @@ C
       PA(:,:) = P(:,:)
       PB(:,:) = P(:,:)
       PC(:,:) = P(:,:)
+
 C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
       MRCH=0
 C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
@@ -120,6 +118,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
+
       if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
@@ -302,6 +301,7 @@ C**** and convert to WSAVE, units of m/s):
       end do
 !$OMP END PARALLEL DO
 
+
       RETURN
       END SUBROUTINE DYNAM
 
@@ -421,7 +421,7 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
@@ -757,7 +757,7 @@ C****
       USE DYNAMICS, only : pit
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: P(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8, INTENT(OUT) :: PA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -817,7 +817,7 @@ C****
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, Only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: U,V,T
@@ -961,7 +961,7 @@ C
  3280 I=IP1
  3290 CONTINUE
       CALL AVRX (PU(1,J_0H,L))
-      CALL HALO_UPDATE(grid, PU, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PU(:,:,L), FROM=SOUTH)
       DO 3294 J=J_0STG,J_1STG
       FACTOR = -DT4*DYV(J)*DSIG(L)
       DO 3294 I=1,IM
@@ -1282,7 +1282,7 @@ C**** THE SMALLEST SCALES.
 C**********************************************************************
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(INOUT) :: U,V
@@ -1864,7 +1864,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
      *     ,dpdx_by_rho_0,pmid,pk
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       INTEGER I,J,K,IP1,IM1,J1
@@ -1969,7 +1969,7 @@ C**** to be used in the PBL, at the promary grids
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       IMPLICIT NONE
 
 !@var DT1 time step (s)
@@ -2152,7 +2152,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
       USE GEOM, only : imaxj,kmaxj,idij,idjj,rapj
       USE DYNAMICS, only : dke,pk
       USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE
-      USE DOMAIN_DECOMP, Only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, Only : NORTH, SOUTH
       IMPLICIT NONE
       INTEGER I,J,L,K
       REAL*8 ediff

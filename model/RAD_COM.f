@@ -250,13 +250,15 @@ C**** Local variables initialised in init_RAD
         CASE (IOREAD:)
           SELECT CASE  (IACTION)
           CASE (ioread,irerun,ioread_single)  ! input for restart
-            READ (kunit,err=10) HEADER_F,Tchg_glob,kliq_glob
-            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg, local=.true.)
-            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.true.)
+            if (AM_I_ROOT() )
+     &        READ (kunit,err=10) HEADER_F,Tchg_glob,kliq_glob
+            CALL UNPACK_COLUMN(grid, Tchg_glob, Tchg, local=.false.)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.false.)
           CASE (IRSFIC)  ! only way to start frc. runs
-            READ (kunit,err=10) HEADER,RQT_glob,kliq_glob ; Tchg = 0.
-            CALL UNPACK_COLUMN(grid, RQT_glob, RQT, local=.true.)
-            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.true.)
+            if (AM_I_ROOT() )
+     &        READ (kunit,err=10) HEADER,RQT_glob,kliq_glob ; Tchg = 0.
+            CALL UNPACK_COLUMN(grid, RQT_glob, RQT, local=.false.)
+            CALL UNPACK_BLOCK( grid, kliq_glob, kliq, local=.false.)
             call sync_param( "Ikliq", Ikliq )
             if(Ikliq.eq.1) kliq=1  ! hysteresis init: equilibrium
             if(Ikliq.eq.0) kliq=0  ! hysteresis init: dry
@@ -294,16 +296,19 @@ C**** Local variables initialised in init_RAD
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
-          READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
+          if (AM_I_ROOT() ) then
+            READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
   ! rest needed only if MODRAD>0 at restart
   ! rest needed only if MODRAD>0 at restart
-     *      ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
-     *      ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
-     *      ,O3_rad_save_GLOB,O3_tracer_save_GLOB
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
+     *       ,S0,  SRHR_GLOB, TRHR_GLOB, FSF_GLOB , FSRDIR_GLOB
+     *       ,SRVISSURF_GLOB, SALB_GLOB, SRDN_GLOB, CFRAC_GLOB,RCLD_GLOB
+     *       ,O3_rad_save_GLOB,O3_tracer_save_GLOB
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER,
+     *               MODULE_HEADER
+              GO TO 10
+            END IF
+          end if
 
           CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
@@ -324,7 +329,8 @@ C**** Local variables initialised in init_RAD
 
 
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
-          READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
+          if (AM_I_ROOT() )
+     &      READ (kunit,err=10) HEADER,RQT_glob,KLIQ_glob
           CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           call sync_param( "Ikliq", Ikliq )

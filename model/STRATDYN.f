@@ -209,6 +209,7 @@ C****
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk,ang_gwd
       USE DIAG, only : diagcd
+      USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -1319,8 +1320,8 @@ C**** Convert to UV-grid
       CALL HALO_UPDATE(grid,DEFRM2,FROM=SOUTH)
       I=IM
       DO 99 IP1=1,IM
-        DUMS1(I)=DEFRM1(I,J_0H)+DEFRM1(IP1,J_0H)
-        DUMS2(I)=DEFRM2(I,J_0H)+DEFRM2(IP1,J_0H)
+        DUMS1(I)=DEFRM1(I,J_0STG-1)+DEFRM1(IP1,J_0STG-1)
+        DUMS2(I)=DEFRM2(I,J_0STG-1)+DEFRM2(IP1,J_0STG-1)
  99     I=IP1
       DO 110 J=J_0STG,J_1STG
       I=IM
@@ -1422,13 +1423,15 @@ C****
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,AIRX_GLOB,LMC_GLOB
       CASE (IOREAD:)          ! input from restart file
-        READ (kunit,err=10) HEADER,AIRX_GLOB,LMC_GLOB
-        IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        CALL UNPACK_DATA(grid, AIRX_GLOB, AIRX, local=.true.)
-        CALL UNPACK_COLUMN(grid,LMC_GLOB, LMC , local=.true.)
+        if ( AM_I_ROOT() ) then
+          READ (kunit,err=10) HEADER,AIRX_GLOB,LMC_GLOB
+          IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
+        CALL UNPACK_DATA(grid, AIRX_GLOB, AIRX, local=.false.)
+        CALL UNPACK_COLUMN(grid,LMC_GLOB, LMC , local=.false.)
       END SELECT
       RETURN
  10   IOERR=1

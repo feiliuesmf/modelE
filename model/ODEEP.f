@@ -302,6 +302,7 @@ C**** Set first layer thickness
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
 !@calls TRIDIAG
+      USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
 !@var LMIJ IS THE NUMBER OF VERTICAL LAYERS
       INTEGER, INTENT(IN) :: LMIJ

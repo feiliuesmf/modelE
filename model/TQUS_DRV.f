@@ -167,11 +167,12 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
-      INTEGER :: i,j,l,n,nc,im1,nbad
+      INTEGER :: i,j,l,n,nc,im1,nbad,nbad_loc
       REAL*8 :: byn,ssp,snp
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -204,28 +205,17 @@ C
       ENDDO
 !$OMP  END PARALLEL DO
 C
-      IF (HAVE_NORTH_POLE) THEN
+      CALL HALO_UPDATE(grid, MV, FROM=NORTH)
 !$OMP  PARALLEL DO PRIVATE (J,L,I)
         DO L=1,LM
-          DO J=J_0,J_1S
+          DO J=J_0H,J_1S
             DO I=1,IM
               MV(I,J,L) = MV(I,J+1,L)*DT
             END DO
           END DO
-          MV(:,JM,L) = 0.
+          IF (HAVE_NORTH_POLE) MV(:,JM,L) = 0.
         END DO
 !$OMP  END PARALLEL DO
-      ELSE
-!$OMP  PARALLEL DO PRIVATE (J,L,I)
-        DO L=1,LM
-          DO J=J_0,J_1
-            DO I=1,IM
-              MV(I,J,L) = MV(I,J+1,L)*DT
-            END DO
-          END DO
-        END DO
-!$OMP  END PARALLEL DO
-      ENDIF
 C
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM-1
@@ -242,7 +232,7 @@ C**** Set things up
       do while(nbad.gt.0)
       ncyc = ncyc + 1
       byn = 1./ncyc
-      nbad = 0
+      nbad_loc = 0
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
          ma(:,:,l) = mb(:,:,l)
@@ -252,14 +242,14 @@ C**** Set things up
 
 C****     1/2 x-direction
 !$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
-!$OMP* REDUCTION(+:NBAD)
+!$OMP* REDUCTION(+:NBAD_LOC)
         lloopx1: do l=1,lm
         do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
             if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-               nbad = nbad + 1
+               nbad_loc = nbad_loc + 1
 c               exit lloopx1 ! saves time in single-processor mode
             endif
             im1 = i
@@ -267,17 +257,19 @@ c               exit lloopx1 ! saves time in single-processor mode
         end do
         end do lloopx1
 !$OMP  END PARALLEL DO
+        CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
+        nbad_loc = nbad
 
 C****         y-direction
 !$OMP  PARALLEL DO PRIVATE (I,J,L,SSP,SNP)
-!$OMP* REDUCTION(+:NBAD)
+!$OMP* REDUCTION(+:NBAD_LOC)
         lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
         do i=1,im
           ma(i,j,l) = ma(i,j,l) + (mv(i,j-1,l)-mv(i,j,l))*byn
           if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-             nbad = nbad + 1
+             nbad_loc = nbad_loc + 1
 c             exit lloopy ! saves time in single-processor mode
           endif
         end do
@@ -286,7 +278,7 @@ c             exit lloopy ! saves time in single-processor mode
            ssp = sum(ma(:, 1,l)-mv(:,   1,l)*byn)*byim
            ma(:,1 ,l) = ssp
            if (ma(1,1,l).lt.0.5*mb(1,1,l)) then
-              nbad = nbad + 1
+              nbad_loc = nbad_loc + 1
 c              exit lloopy ! saves time in single-processor mode
            endif
         endif
@@ -294,24 +286,25 @@ c              exit lloopy ! saves time in single-processor mode
            snp = sum(ma(:,jm,l)+mv(:,jm-1,l)*byn)*byim
            ma(:,jm,l) = snp
            if (ma(1,jm,l).lt.0.5*mb(1,jm,l)) then
-              nbad = nbad + 1
+              nbad_loc = nbad_loc + 1
 c              exit lloopy ! saves time in single-processor mode
            endif
         endif
         end do lloopy
 !$OMP  END PARALLEL DO
+        CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-
+        nbad_loc = nbad
 C****         z-direction
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
-!$OMP* REDUCTION(+:NBAD)
+!$OMP* REDUCTION(+:NBAD_LOC)
         lloopz: do l=1,lm
         if(l.eq.1) then ! lowest layer
         do j=J_0,J_1
         do i=1,im
           ma(i,j,l) = ma(i,j,l)-mw(i,j,l)*byn
           if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-             nbad = nbad + 1
+             nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
         end do
@@ -321,7 +314,7 @@ c             exit lloopz ! saves time in single-processor mode
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+mw(i,j,l-1)*byn
           if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-             nbad = nbad + 1
+             nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
         end do
@@ -331,7 +324,7 @@ c             exit lloopz ! saves time in single-processor mode
         do i=1,im
           ma(i,j,l) = ma(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
           if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-             nbad = nbad + 1
+             nbad_loc = nbad_loc + 1
 c             exit lloopz ! saves time in single-processor mode
           endif
         end do
@@ -339,18 +332,19 @@ c             exit lloopz ! saves time in single-processor mode
         endif
         end do lloopz
 !$OMP  END PARALLEL DO
+        CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-
+        nbad_loc=nbad
 C****     1/2 x-direction
 !$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
-!$OMP* REDUCTION(+:NBAD)
+!$OMP* REDUCTION(+:NBAD_LOC)
         lloopx2: do l=1,lm
         do j=J_0,J_1
           im1 = im
           do i=1,im
             ma(i,j,l) = ma(i,j,l) + (mu(im1,j,l)-mu(i,j,l))*byn
             if (ma(i,j,l).lt.0.5*mb(i,j,l)) then
-               nbad = nbad + 1
+               nbad_loc = nbad_loc + 1
 c               exit lloopx2 ! saves time in single-processor mode
             endif
             im1 = i
@@ -358,7 +352,9 @@ c               exit lloopx2 ! saves time in single-processor mode
         end do
         end do lloopx2
 !$OMP  END PARALLEL DO
+        CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
+        nbad_loc=nbad
 
       end do ! nc loop
 
@@ -429,7 +425,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use QUSDEF
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
@@ -441,7 +437,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
       character*8 tname
       integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
-      integer :: i,j,l,ierr,nerr,ns,ICKERR
+      integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -457,10 +453,10 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 c**** loop over layers and latitudes
-      ICKERR=0
+      ICKERR_LOC=0
 !$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
       do j=J_0S,J_1S
       am(:) = mu(:,j,l)/nstep(j,l)
@@ -473,13 +469,14 @@ c****
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQx: i,j,l=",nerr,j,l,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(a) > 1"
-        if (ierr.eq.2) ICKERR=ICKERR+1
+        if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
       enddo ! ns
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO
 C
+      CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvQx',11)
 C
       return
@@ -505,10 +502,9 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP, only : GRID, GRID_TRANS, GET, GLOBALSUM
       use DOMAIN_DECOMP, only : AM_I_ROOT
-      use DOMAIN_DECOMP, only : ArrayGather, ArrayScatter
-
+      USE DOMAIN_DECOMP, ONLY : TRANSP, TRANSPOSE_COLUMN
       use CONSTANT, only : teeny
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
@@ -523,21 +519,18 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
      &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         sfbm,sbm,sbf
       character*8 tname
-      integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR
-      REAL*8 ::
-     &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
+      integer :: i,j,l,ierr,nerr,ns,nstep(lm),ICKERR, ICKERR_LOC
+      REAL*8 :: m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
+      REAL*8 :: dm_sp,dm_np,drm_sp,drm_np,drzm_sp,drzm_np,drzzm_sp,
+     &     drzzm_np
 
-      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: fqv
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: fqv
 !!!   REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::  BM,F_J
-      REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::     F_J
-      REAL*8  FMOM_J(NMOM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::  F_J,BM
+      REAL*8  FMOM_J(NMOM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
-c****Temporary global arrays
       INTEGER :: nm
-      REAL*8, DIMENSION(IM,JM) :: RM_GLOB,MASS_GLOB,MV_GLOB
-      REAL*8, DIMENSION(NMOM,IM,JM) :: RMOM_GLOB
-      REAL*8  F_J_GLOB(JM), FMOM_J_GLOB(NMOM,JM)
-      REAL*8  BM(JM)
+
 c****Get relevant local distributed parameters
       INTEGER J_0, J_1
       INTEGER J_0H, J_1H
@@ -554,119 +547,116 @@ C****
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 c**** loop over layers
-      ICKERR=0
+      ICKERR_LOC=0
 !$OMP  PARALLEL DO PRIVATE (I,J,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZM_NP,
-!$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,FQV,NS,IERR,NERR,
-!$OMP*                F_J_GLOB,FMOM_J_GLOB,rm_glob,rmom_glob,mass_glob,
-!$OMP*                mv_glob, nm)
+!$OMP*                RZZM_SP,RZZM_NP,BM,F_J,FMOM_J,NS,IERR,NERR,
+!$OMP*                nm)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
-      fqv(:,:) = 0.
-
+        fqv(:,:,l)=0
 c**** loop over timesteps
-      do ns=1,nstep(l)
+        do ns=1,nstep(l)
 
 c**** scale polar boxes to their full extent
-      if (HAVE_SOUTH_POLE) then
-        mass(:,1,l)=mass(:,1,l)*im
-        m_sp = mass(1,1 ,l)
-        rm(:,1,l)=rm(:,1,l)*im
-        rm_sp = rm(1,1 ,l)
-        do i=1,im
-           rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
-        enddo
-        rzm_sp  = rmom(mz ,1,1 ,l)
-        rzzm_sp = rmom(mzz,1,1 ,l)
-      endif
-      if (HAVE_NORTH_POLE) then
-        mass(:,jm,l)=mass(:,jm,l)*im
-        m_np = mass(1,jm,l)
-        rm(:,jm,l)=rm(:,jm,l)*im
-        rm_np = rm(1,jm,l)
-        do i=1,im
-          rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
-        enddo
-        rzm_np  = rmom(mz ,1,jm,l)
-        rzzm_np = rmom(mzz,1,jm,l)
-      endif
+          If (HAVE_SOUTH_POLE) THEN
+            mass(:,1,l)=mass(:,1,l)*im
+            m_sp = mass(1,1 ,l)
+            rm(:,1,l)=rm(:,1,l)*im
+            rm_sp = rm(1,1 ,l)
+            do i=1,im
+              rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
+            enddo
+            rzm_sp  = rmom(mz ,1,1 ,l)
+            rzzm_sp = rmom(mzz,1,1 ,l)
+          End If
 
-c**** GATHER GLOBAL ARRAYS TO BE USED IN ADV1D CALL
-      call arraygather( grid, rm(:,:,l), rm_glob )
-      do nm=1,nmom
-        call arraygather( grid,rmom(nm,:,:,l),rmom_glob(nm,:,:))
-      end do
-      call arraygather( grid, mass(:,:,l), mass_glob )
-      call arraygather(  grid,  mv(:,:,l), mv_glob )
+          If (HAVE_NORTH_POLE) THEN
+            mass(:,jm,l)=mass(:,jm,l)*im
+            m_np = mass(1,jm,l)
+            rm(:,jm,l)=rm(:,jm,l)*im
+            rm_np = rm(1,jm,l)
+            do i=1,im
+              rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
+            enddo
+            rzm_np  = rmom(mz ,1,jm,l)
+            rzzm_np = rmom(mzz,1,jm,l)
+          End IF
 
-c**** loop over longitudes
-      do i=1,im
+c***c**** loop over longitudes
+c***      do i = 1,grid%ni_loc
 c****
 c**** load 1-dimensional arrays
 c****
+          bm (:,:) = mv(:,:,l)/nstep(l)
+          If (HAVE_SOUTH_POLE) rmom(ihmoms,:,1,l)=0
+          If (HAVE_NORTH_POLE) THEN
+            bm(:,jm) = 0.
+            rmom(ihmoms,:,jm,l) = 0.
+          End IF
 c****
 c**** call 1-d advection routine
 c****
-      if (AM_I_ROOT()) then
-        bm (:) = mv_glob(i,:)/nstep(l)
-        bm(jm) = 0.
-        rmom_glob(ihmoms,i,1) = 0. ! horizontal moments are zero at pole
-        rmom_glob(ihmoms,i,jm) = 0.
-        call adv1d( rm_glob(i,1), rmom_glob(1,i,1), f_j_glob,
-     &       fmom_j_glob, mass_glob(i,1),
-     &       bm,jm,qlimit,ystride,ydir,ierr,nerr)
+c***          DO i=1,im
+c***        call adv1d( rm(I,j_0,l), rmom(1,i,j_0,l), 
+c***     &       f_j(i,j_0:j_1),fmom_j(1,i,j_0), mass(i,j_0,l),
+c***     &       bm(i,j_0:j_1),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
+c***        end do
+        call advection_1D_custom( rm(1,j_0h,l), rmom(1,1,j_0h,l), 
+     &       f_j(1,j_0h),fmom_j(1,1,j_0h), mass(1,j_0h,l),
+     &       bm(1,j_0h),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
+
+
+c***c****
+c***c**** call 1-d advection routine
+c***c****
+c***        call adv1d( rm_tr(i,1,l), rmom_tr(1,i,1,l), f_j_tr,
+c***     &       fmom_j_tr, mass_tr(i,1,l),
+c***     &       bm,jm,qlimit,grid%ni_loc,ydir,ierr,nerr)
 
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQy: i,j,l=",i,nerr,l,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(b) > 1"
-        if (ierr.eq.2) ICKERR=ICKERR+1
+        if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
-      rmom_glob(ihmoms,i,1 ) = 0.! horizontal moments are zero at pole
-      rmom_glob(ihmoms,i,jm) = 0.
-      end if
-c****
-c**** Scatter back "1D" arrays --latitude.  (fmom_j not needed).
-c     do nm=1,nmom
-c       call arrayscatter( grid, fmom_j(nm,:), fmom_j_glob(nm,:) )
-c     end do
-      call arrayscatter( grid, f_j,f_j_glob )
-
-      fqv(i,J_0:J_1) = fqv(i,J_0:J_1) + f_j(J_0:J_1)  !store tracer flux in fqv array
-      if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
+! horizontal moments are zero at pole
+        IF (HAVE_SOUTH_POLE) rmom(ihmoms,:,1, l) = 0
+        IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,l) = 0.
 c     sbfijl(i,:,l) = sbfijl(i,:,l)+f_j(:)
-      enddo  ! end loop over longitudes
 
-c**** SCATTER "2D" GLOBAL ARRAYS BACK TO LOCAL ONES
-      call arrayscatter( grid, rm(:,:,l), rm_glob )
-      do nm=1,nmom
-        call arrayscatter( grid, rmom(nm,:,:,l),
-     &                           rmom_glob(nm,:,:) )
-      end do
-      call arrayscatter( grid, mass(:,:,l), mass_glob )
+      fqv(:,j_0:j_1,l) = fqv(:,j_0:j_1,l) + f_j(:,j_0:j_1)  !store tracer flux in fqv array
+      If (HAVE_NORTH_POLE) fqv(:,jm,l) = 0.       ! play it safe
+
+
 c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
         mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
         rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
-        rmom(mz ,:,1,l) = (rzm_sp +sum(rmom(mz ,:,1,l)-rzm_sp ))*byim
-        rmom(mzz,:,1,l) = (rzzm_sp+sum(rmom(mzz,:,1,l)-rzzm_sp))*byim
-      endif
+        rmom(mz ,:,1 ,l) = (rzm_sp + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
+        rmom(mzz,:,1 ,l) = (rzzm_sp+ sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
+      end if   !SOUTH POLE
+
       if (HAVE_NORTH_POLE) then
         mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
         rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
-        rmom(mz ,:,jm,l) = (rzm_np +sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
-        rmom(mzz,:,jm,l) = (rzzm_np+sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
-      endif
-      enddo  ! end loop over timesteps
+        rmom(mz ,:,jm,l) = (rzm_np + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
+        rmom(mzz,:,jm,l) = (rzzm_np+ sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+      end if  !NORTH POLE
 
-      do j=J_0,J_1S   !diagnostics
-        sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j)/(mv(:,j,l)+teeny))
-        sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
-        sbf (j,l) = sbf (j,l) + sum(fqv(:,j))
+      END DO ! time steps
+
+      do j=J_0,J_1S             !diagnostics
+         sfbm(j,l) = sfbm(j,l) + sum(fqv(:,j,l)/(mv(:,j,l)+teeny))
+         sbm (j,l) = sbm (j,l) + sum(mv(:,j,l))
+         sbf (j,l) = sbf (j,l) + sum(fqv(:,j,l))
       enddo
-
+      
       enddo  ! end loop over levels
 !$OMP  END PARALLEL DO
+
+
 C
+      CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.NE.0)  call stop_model('Stopped in aadvQy',11)
 C
 
@@ -712,7 +702,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       REAL*8, dimension(lm) :: fqw
       character*8 tname
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM)
-      integer :: i,j,l,ierr,nerr,ns,ICKERR
+      integer :: i,j,l,ierr,nerr,ns,ICKERR,ICKERR_LOC
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
@@ -728,10 +718,10 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 c**** loop over latitudes and longitudes
-      ICKERR=0.
+      ICKERR_LOC=0.
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
 !$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       do j=J_0,J_1
       do i=1,imaxj(j)
       fqw(:) = 0.
@@ -746,7 +736,7 @@ c****
       if (ierr.gt.0) then
         write(6,*) "Error in aadvQz: i,j,l=",i,j,nerr,' ',tname
         if (ierr.eq.2) write(6,*) "Error in qlimit: abs(c) > 1"
-        if (ierr.eq.2) ICKERR=ICKERR+1
+        if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
       fqw(:)  = fqw(:) + f_l(:) !store tracer flux in fqw array
       enddo ! ns
@@ -768,7 +758,7 @@ c****
       enddo ! j
 !$OMP  END PARALLEL DO
 C
-      IF(ICKERR.GT.0)  call stop_model('Stopped in aadvQz',11)
+      IF(ICKERR_LOC.GT.0)  call stop_model('Stopped in aadvQz',11)
 C
       return
 c****
@@ -781,14 +771,14 @@ c****
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im) :: a,am,mi
       integer, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: nstepx
-      integer :: l,j,i,ip1,im1,nstep,ns,ICKERR
+      integer :: l,j,i,ip1,im1,nstep,ns,ICKERR,ICKERR_LOC
       REAL*8 :: courmax
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -806,9 +796,9 @@ C****
 
 C**** Decide how many timesteps to take by computing Courant limits
 C
-      ICKERR = 0
+      ICKERR_LOC = 0
 !$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       DO 420 L=1,LM
       DO 420 J=J_0S,J_1S
       nstep=0
@@ -841,7 +831,7 @@ C**** Update air mass
         if(nstep.ge.20)  then
            write(6,*) 'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
            courmax=-1.
-           ICKERR=ICKERR+1
+           ICKERR_LOC=ICKERR_LOC+1
         end if
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
@@ -853,6 +843,8 @@ c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
   420 CONTINUE
 !$OMP  END PARALLEL DO
 C
+      ! Ensure all processes agree on stop criteria
+      CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in XSTEP',11)
 C
       RETURN
@@ -864,7 +856,8 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, NORTH, GLOBALMAX
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, NORTH, SOUTH
+      USE DOMAIN_DECOMP, ONLY : GLOBALSUM, GLOBALMAX
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mv=>pva
       IMPLICIT NONE
@@ -872,7 +865,7 @@ C
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: mij
       REAL*8, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: b,bm
       integer, dimension(LM) :: nstepy
-      integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR
+      integer :: jprob,iprob,nstep,ns,i,j,l,ICKERR,ICKERR_LOC
       REAL*8 :: courmax,courmax_loc, byn,sbms,sbmn
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -889,11 +882,12 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** decide how many timesteps to take (all longitudes at this level)
-      ICKERR=0
-      CALL HALO_UPDATE(grid, m, FROM=NORTH)
+      ICKERR_LOC=0
+      CALL HALO_UPDATE(grid, mv, FROM=SOUTH)
+      CALL HALO_UPDATE(grid,  m, FROM=NORTH)
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
 !$OMP*          COURMAX_LOC,IPROB,JPROB,SBMS,SBMN)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       DO 440 L=1,LM
 C**** Scale poles
       if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -944,7 +938,7 @@ C**** Update air mass in the interior
            write(6,*) 'courmax=',courmax,l,iprob,jprob
            write(6,*) 'aadvqy: nstep.ge.20'
           endif
-          ICKERR=ICKERR+1
+          ICKERR_LOC=ICKERR_LOC+1
           courmax = -1.
         endif
       enddo      ! while(courmax.gt.1.)
@@ -959,6 +953,7 @@ C**** Unscale poles
   440 CONTINUE
 !$OMP  END PARALLEL DO
 C
+      CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)
 C
       RETURN
@@ -970,7 +965,7 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
       IMPLICIT NONE
@@ -979,7 +974,7 @@ C
       REAL*8, dimension(0:lm) :: c,cm
       integer, dimension(im*(GRID%J_STOP_HALO-GRID%J_STRT_HALO+1)) :: 
      &                                                         nstepz
-      integer :: nstep,ns,l,i,j,ICKERR
+      integer :: nstep,ns,l,i,j,ICKERR,ICKERR_LOC
       REAL*8 :: courmax,byn
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -997,9 +992,9 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** decide how many timesteps to take
-      ICKERR=0
+      ICKERR_LOC=0
 !$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
-!$OMP* REDUCTION(+:ICKERR)
+!$OMP* REDUCTION(+:ICKERR_LOC)
       DO J=J_0,J_1
       DO I=1,IM
       nstep=0
@@ -1029,7 +1024,7 @@ C**** decide how many timesteps to take
         if(nstep.ge.20) write(6,*) 'aadvqz: nstep.ge.20'
         if(nstep.ge.20)  then
            write(6,*)  'aadvqz: nstep.ge.20'
-           ICKERR=ICKERR+1
+           ICKERR_LOC=ICKERR_LOC+1
            courmax = -1.
         end if
       enddo      ! while(courmax.gt.1.)
@@ -1043,6 +1038,7 @@ c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
       END DO
 !$OMP  END PARALLEL DO
 C
+      CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in ZSTEP',11)
 C
       RETURN

@@ -567,7 +567,7 @@ c**** input/output for PBL
       real*8 qg_sat
 
 C**** Work array for regional diagnostic accumulation
-      real*8 :: areg_sum
+      real*8, dimension(size(AREG,1),9) :: areg_sum
       real*8, DIMENSION(
      &        size(AREG,1),grid%J_STRT_HALO:grid%J_STOP_HALO,9 )
      &        :: AREG_PART
@@ -576,7 +576,11 @@ C**** Work array for regional diagnostic accumulation
      &     NDIUVAR, NDIUPT) :: adiurn_part
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: hdiurn_part
-      REAL*8 :: ADIURNSUM, HDIURNSUM
+      REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: adiurn_temp
+      REAL*8, DIMENSION(N_IDX,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: hdiurn_temp
+      REAL*8, DIMENSION(N_IDX, NDIUPT) :: ADIURNSUM, HDIURNSUM
       INTEGER :: ih, ihm, ii, ivar, kr
       INTEGER :: idx(n_idx)
 
@@ -846,14 +850,25 @@ c**** update tracers
 ! Accumulate contributions to ADIURN and HDIURN
       ih=1+jhour
       ihm = ih+(jdate-1)*24
+
+    
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX
           ivar = idx(ii)
-          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
-          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
+          HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
+        END DO
+      END DO
+      CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX,:,1:ndiupt),
+     &    ADIURNSUM(1:N_IDX,1:ndiupt))
+      CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX,:,1:ndiupt),
+     &    HDIURNSUM(1:N_IDX,1:ndiupt))
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX
+          ivar = idx(ii)
           IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
           END IF
         END DO
       END DO
@@ -877,44 +892,38 @@ C***Initialize work array
            areg_part(jr,j,9)=areg_part(jr,j,9 )+AREGIJ(9,I,J)
          end if
   825 CONTINUE
-      DO JR=1,SIZE(areg,1)
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,1), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREG_SUM      
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,2), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_shdt )=areg(jr,j_shdt )+AREG_SUM      
- 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,3), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREG_SUM      
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,4), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_evap )=areg(jr,j_evap )+AREG_SUM      
+      call globalsum(grid,areg_part(1:size(areg,1),:,1:9),
+     &    areg_sum(1:size(areg,1),1:9), all=.true.)
+      areg(1:size(areg,1),j_trhdt)=areg(1:size(areg,1),j_trhdt)
+     &    + areg_sum(1:size(areg,1),1)
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,5), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_erun )=areg(jr,j_erun )+AREG_SUM      
+      areg(1:size(areg,1),j_shdt)=areg(1:size(areg,1),j_shdt)
+     &    + areg_sum(1:size(areg,1),2)
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,6), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_run  )=areg(jr,j_run  )+AREG_SUM      
+      areg(1:size(areg,1),j_evhdt)=areg(1:size(areg,1),j_evhdt)
+     &    + areg_sum(1:size(areg,1),3)
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,7), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_tsrf )=areg(jr,j_tsrf )+AREG_SUM      
+      areg(1:size(areg,1),j_evap)=areg(1:size(areg,1),j_evap)
+     &    + areg_sum(1:size(areg,1),4)
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,8), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_tg1  )=areg(jr,j_tg1  )+AREG_SUM      
+      areg(1:size(areg,1),j_erun)=areg(1:size(areg,1),j_erun)
+     &    + areg_sum(1:size(areg,1),5)
 
-         areg_sum=0.
-         CALL GLOBALSUM(GRID,AREG_PART(JR,:,9), AREG_SUM, ALL=.TRUE.)
-         areg(jr,j_tg2  )=areg(jr,j_tg2  )+AREG_SUM      
+      areg(1:size(areg,1),j_run)=areg(1:size(areg,1),j_run)
+     &    + areg_sum(1:size(areg,1),6)
 
-      END DO
+      areg(1:size(areg,1),j_tsrf)=areg(1:size(areg,1),j_tsrf)
+     &    + areg_sum(1:size(areg,1),7)
+
+      areg(1:size(areg,1),j_tg1)=areg(1:size(areg,1),j_tg1)
+     &    + areg_sum(1:size(areg,1),8)
+
+      areg(1:size(areg,1),j_tg2)=areg(1:size(areg,1),j_tg2)
+     &    + areg_sum(1:size(areg,1),9)
+
+
 C
       return
       end subroutine earth
@@ -2191,7 +2200,7 @@ c****
       integer i,j,jr,k
 
 C**** Work array for regional diagnostic accumulation
-      real*8 :: areg_sum
+      real*8, DIMENSION(size(AREG,1),6) :: areg_sum
       real*8, DIMENSION(
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,6 )
      &        :: AREG_PART
@@ -2276,31 +2285,21 @@ c****
       end do
       end do
 
-      do jr=1,size(areg,1)
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,1), areg_sum, all=.true.)
-        areg(jr,j_rsnow)=areg(jr,j_rsnow)+areg_sum
+      call globalsum(grid,areg_part(1:size(areg,1),:,1:6), 
+     &    areg_sum(1:size(areg,1),1:6), all=.true.)
+      areg(1:size(areg,1),j_rsnow)=areg(1:size(areg,1),j_rsnow) 
+     &    + areg_sum(1:size(areg,1),1)
+      areg(1:size(areg,1),j_snow)=areg(1:size(areg,1),j_snow) 
+     &    + areg_sum(1:size(areg,1),2)
+      areg(1:size(areg,1),j_wtr1)=areg(1:size(areg,1),j_wtr1) 
+     &    + areg_sum(1:size(areg,1),3)
+      areg(1:size(areg,1),j_ace1)=areg(1:size(areg,1),j_ace1) 
+     &    + areg_sum(1:size(areg,1),4)
+      areg(1:size(areg,1),j_wtr2)=areg(1:size(areg,1),j_wtr2) 
+     &    + areg_sum(1:size(areg,1),5)
+      areg(1:size(areg,1),j_ace2)=areg(1:size(areg,1),j_ace2) 
+     &    + areg_sum(1:size(areg,1),6)
 
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,2), areg_sum, all=.true.)
-        areg(jr,j_snow)=areg(jr,j_snow)+areg_sum
-
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,3), areg_sum, all=.true.)
-        areg(jr,j_wtr1)=areg(jr,j_wtr1)+areg_sum
-
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,4), areg_sum, all=.true.)
-        areg(jr,j_ace1)=areg(jr,j_ace1)+areg_sum
-
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,5), areg_sum, all=.true.)
-        areg(jr,j_wtr2)=areg(jr,j_wtr2)+areg_sum
-
-        areg_sum=0.
-        call globalsum(grid,areg_part(jr,:,6), areg_sum, all=.true.)
-        areg(jr,j_ace2)=areg(jr,j_ace2)+areg_sum
-      end do
 
       end subroutine ground_e
 

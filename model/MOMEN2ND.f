@@ -4,6 +4,7 @@
       USE DYNAMICS, only : XAVRX
       XAVRX = 1. ! for second order scheme, byrt2 for 4th order scheme
       CALL AVRX0
+
       RETURN
       END subroutine init_MOM
 
@@ -14,10 +15,10 @@
       USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
      &     ,do_polefix
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
-      USE DOMAIN_DECOMP, only : CHECKSUM
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv
+      USE DYNAMICS, only : t_advecv
       USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
@@ -91,8 +92,6 @@ C 150 VT(I,J,L)=VT(I,J,L)*VMASS
 C     DUT=0.
 C     DVT=0.
 C
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, PA, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, PA, FROM=SOUTH)
       DO 110 J=J_0S,J_1
       I=IM
@@ -121,12 +120,6 @@ C
         END IF
       END DO
 !$OMP  END PARALLEL DO
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, PU, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, PV, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
@@ -136,11 +129,6 @@ C****
       CALL HALO_UPDATE(GRID,V  ,FROM=SOUTH+NORTH)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
-      CALL CHECKSUM(grid, PU, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid, PV, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
 
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV,
 !$OMP+   FLUXU_N_S,FLUXV_N_S,FLUXU_SW_NE, FLUXV_SW_NE,
@@ -410,10 +398,6 @@ C 310 I=IP1
       END DO
       END DO
 !$OMP  END PARALLEL DO
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
       L=1
       DO J=J_0S,J_1
          DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
@@ -435,11 +419,8 @@ C 310 I=IP1
          DVT(:,J,L)=DVT(:,J,L)-ASDU(:,J,L-1)*(V(:,J,L-1)+V(:,J,L))
       END DO
 C**** CALL DIAGNOSTICS
-      CALL CHECKSUM(grid,PIT, __LINE__, __FILE__)
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (1,U,V,DUT,DVT,DT1,PIT)
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=J_0S,J_1
@@ -455,7 +436,7 @@ C**** CALL DIAGNOSTICS
 C****
 C**** CORIOLIS FORCE
 C****
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
+        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
       DO L=1,LM
         IM1=IM
@@ -482,7 +463,6 @@ C****     Set the Coriolis term to zero at the Poles:
             IM1=I
           END DO
         END DO
-        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH)
         CALL HALO_UPDATE(GRID,FD,FROM=SOUTH)
         DO J=J_0S,J_1
           IM1=IM
@@ -533,7 +513,6 @@ c which has already been included in advective form
          enddo
       endif
 
-      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)

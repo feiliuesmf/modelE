@@ -9,13 +9,13 @@
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows     ! ,byrt3
-      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,ndasf,fland,flice,focean
      *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
       USE DOMAIN_DECOMP, only : NORTH
-      USE DOMAIN_DECOMP, only : PACK_DATA, AM_I_ROOT, GLOBALSUM
+      USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
       USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz
@@ -120,9 +120,6 @@ c**** input/output for PBL
       type (t_pbl_args) pbl_args
       real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws
       logical pole
-      REAL*8, DIMENSION(7,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG) ::
-     *     AREG_part
-      REAL*8 :: AREGSUM
 c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
@@ -139,21 +136,32 @@ c
 #endif
 #endif
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: hdiurn_part
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
-     &     NDIUVAR, NDIUPT) :: adiurn_part
-      REAL*8 :: HDIURNSUM, ADIURNSUM
       INTEGER, PARAMETER :: n_idx1 = 11
       INTEGER, PARAMETER :: n_idx2 = 22
       INTEGER, PARAMETER :: n_idx3 = 2
       INTEGER, PARAMETER :: n_idx4 = n_idx1+n_idx2
+
+      REAL*8, DIMENSION(n_idx4,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: diurn_part
+      REAL*8, 
+     &     DIMENSION(n_idx3,grid%J_STRT_HALO:grid%J_STOP_HALO,NDIUPT)::
+     &     diurn_partb
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,n_idx3)::
+     &     diurn_temp
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       INTEGER :: idx4(n_idx1+n_idx2)
       REAL*8 :: tmp(NDIUVAR)
       INTEGER :: ii, ivar
+      REAL*8, DIMENSION(n_idx4, NDIUPT) :: DIURNSUM
+      REAL*8, DIMENSION(n_idx3, NDIUPT) :: DIURNSUMb
+      INTEGER, PARAMETER :: n_areg = 7
+      REAL*8, DIMENSION(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,n_areg)::
+     *     AREG_part
+      REAL*8 :: AREGSUM(NREG,n_areg)
+      INTEGER :: idx_areg(n_areg)
 
       INTEGER :: J_0, J_1, J_0H, J_1H
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -221,8 +229,7 @@ C**** Set up tracers for PBL calculation if required
       Call HALO_UPDATE(GRID, u     , FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, v     , FROM=SOUTH+NORTH)
 
-      adiurn_part=0
-      hdiurn_part=0
+      diurn_part=0
 
       idx1 = (/ IDD_SPR, 
      &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
@@ -320,9 +327,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
              tmp(IDD_Q3)=+Q(I,J,3)
              tmp(IDD_Q2)=+Q(I,J,2)
              tmp(IDD_Q1)=+Q1
-             ADIURN_part(J,idx1(:),kr)=ADIURN_part(J,idx1(:),kr)+
-     &            tmp(idx1(:))
-             HDIURN_part(J,idx1(:),kr)=HDIURN_part(J,idx1(:),kr)+
+             DIURN_part(1:n_idx1,J,kr)=DIURN_part(1:n_idx1,J,kr)+
      &            tmp(idx1(:))
            END IF
          END DO
@@ -843,14 +848,14 @@ CCC     AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
 CCC     IF(MODDSF.EQ.0)
 CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
         JR=JREG(I,J)
-        AREG_part(1,J,JR)=AREG_part(1,J,JR)+TRHDT*PTYPE*DXYP(J)
-        AREG_part(2,J,JR)=AREG_part(2,J,JR)+SHDT *PTYPE*DXYP(J)
-        AREG_part(3,J,JR)=AREG_part(3,J,JR)+EVHDT*PTYPE*DXYP(J)
-        AREG_part(4,J,JR)=AREG_part(4,J,JR)+EVAP *PTYPE*DXYP(J)
+        AREG_part(JR,J,1)=AREG_part(JR,J,1)+TRHDT*PTYPE*DXYP(J)
+        AREG_part(JR,J,2)=AREG_part(JR,J,2)+SHDT *PTYPE*DXYP(J)
+        AREG_part(JR,J,3)=AREG_part(JR,J,3)+EVHDT*PTYPE*DXYP(J)
+        AREG_part(JR,J,4)=AREG_part(JR,J,4)+EVAP *PTYPE*DXYP(J)
         IF(MODDSF.EQ.0) THEN
-          AREG_part(5,J,JR)=AREG_part(5,J,JR)+(TS-TF)*PTYPE*DXYP(J)
-          AREG_part(6,J,JR)=AREG_part(6,J,JR)+    TG1*PTYPE*DXYP(J)
-          AREG_part(7,J,JR)=AREG_part(7,J,JR)+    TG2*PTYPE*DXYP(J)
+          AREG_part(JR,J,5)=AREG_part(JR,J,5)+(TS-TF)*PTYPE*DXYP(J)
+          AREG_part(JR,J,6)=AREG_part(JR,J,6)+    TG1*PTYPE*DXYP(J)
+          AREG_part(JR,J,7)=AREG_part(JR,J,7)+    TG2*PTYPE*DXYP(J)
         END IF
 C
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
@@ -906,10 +911,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               tmp(IDD_EDS)=+pbl_args%KHS*PTYPE
               tmp(IDD_DBL)=+pbl_args%DBL*PTYPE
               tmp(IDD_EV)=+EVAP*PTYPE
-              ADIURN_part(J,idx2(:),kr)=ADIURN_part(J,idx2(:),kr)+
-     &             tmp(idx2(:))
-              HDIURN_part(J,idx2(:),kr)=HDIURN_part(J,idx2(:),kr)+
-     &             tmp(idx2(:))
+              DIURN_part(n_idx1+1:n_idx4,J,kr)=
+     &             DIURN_part(n_idx1+1:n_idx4,J,kr)+tmp(idx2(:))
             END IF
           END DO
         END IF
@@ -987,37 +990,18 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
+      idx_areg = (/ J_TRHDT, J_SHDT, J_EVHDT, J_EVAP, J_TSRF, 
+     &     J_TG1, J_TG2 /)
+      CALL GLOBALSUM(grid, AREG_PART, AREGSUM)
+      AREG(:,idx_areg) = AREG(:,idx_areg) + AREGSUM
 
-      DO JR = 1, NREG
-        CALL GLOBALSUM(grid, AREG_part(1,:,JR), AREGSUM)
-        AREG(JR,J_TRHDT) = AREG(JR,J_TRHDT) + AREGSUM
-        CALL GLOBALSUM(grid, AREG_part(2,:,JR), AREGSUM)
-        AREG(JR,J_SHDT) = AREG(JR,J_SHDT) + AREGSUM
-        CALL GLOBALSUM(grid, AREG_part(3,:,JR), AREGSUM)
-        AREG(JR,J_EVHDT) = AREG(JR,J_EVHDT) + AREGSUM
-        CALL GLOBALSUM(grid, AREG_part(4,:,JR), AREGSUM)
-        AREG(JR,J_EVAP) = AREG(JR,J_EVAP) + AREGSUM
-        IF(MODDSF.EQ.0) THEN
-          CALL GLOBALSUM(grid, AREG_part(5,:,JR), AREGSUM)
-          AREG(JR,J_TSRF) = AREG(JR,J_TSRF) + AREGSUM
-          CALL GLOBALSUM(grid, AREG_part(6,:,JR), AREGSUM)
-          AREG(JR,J_TG1) = AREG(JR,J_TG1) + AREGSUM
-          CALL GLOBALSUM(grid, AREG_part(7,:,JR), AREGSUM)
-          AREG(JR,J_TG2) = AREG(JR,J_TG2) + AREGSUM
-        End IF
-      End Do
+      CALL GLOBALSUM(grid, DIURN_part, DIURNSUM)
 
-      DO kr = 1, ndiupt
-        DO ii = 1, N_IDX4
-          ivar = idx4(ii)
-          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
-          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
-          IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
-          END IF
-        END DO
-      END DO
+      IF (AM_I_ROOT()) THEN
+         ADIURN(ih,idx4,:)=ADIURN(ih,idx4,:)   + DIURNSUM
+         HDIURN(ihm,idx4,:)=HDIURN(ihm,idx4,:) + DIURNSUM
+      END IF
+      
 
 C****
 C**** EARTH
@@ -1072,34 +1056,30 @@ C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
       IF(MODDD.EQ.0) THEN
-         ADIURN_part = 0
-         HDIURN_part = 0
+        DIURN_partb = 0
+
         DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
 C**** For distributed implementation - ensure point is on local process.          
+
           I = IJDD(1,KR)
           J = IJDD(2,KR)
           IF ((J >= J_0) .AND. (J <= J_1)) THEN
             IF(DCLEV(I,J).GT.1.) THEN
-              tmp(IDD_DCF)=+1.
-              tmp(IDD_LDC)=+DCLEV(I,J)
-              ADIURN_part(J,idx3(:),kr)=ADIURN_part(J,idx3(:),kr)+
-     &             tmp(idx3(:))
-              HDIURN_part(J,idx3(:),kr)=HDIURN_part(J,idx3(:),kr)+
-     &            tmp(idx3(:))
+              tmp(1)=+1.
+              tmp(2)=+DCLEV(I,J)
+              DIURN_partb(:,J,KR)=DIURN_partb(:,J,KR)+tmp(1:2)
             END IF
           END IF
-          DO ii = 1, N_IDX3
-            ivar = idx3(ii)
-            CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
-            CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
-            IF (AM_I_ROOT()) THEN
-              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
-              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
-            END IF
-          END DO
+       END DO
 
-        END DO
+       CALL GLOBALSUM(grid,  DIURN_partb, DIURNSUMb)
+
+       IF (AM_I_ROOT()) THEN
+          ADIURN(ih,idx3,:)=ADIURN(ih,idx3,:)   + DIURNSUMb
+          HDIURN(ihm,idx3,:)=HDIURN(ihm,idx3,:) + DIURNSUMb
+       END IF
+
       END IF
 C****
       END DO   ! end of surface time step
@@ -1108,9 +1088,9 @@ C****
 C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm
         if(dodrydep(n)) then
-          call diagtcb(dtr_dd(1,n,1),itcon_dd(n,1),n)  ! turb dep
+          call diagtcb(dtr_dd(:,n,1),itcon_dd(n,1),n)  ! turb dep
           if (itcon_dd(n,2).gt.0)
-     *         call diagtcb(dtr_dd(1,n,2),itcon_dd(n,2),n) ! grav sett
+     *         call diagtcb(dtr_dd(:,n,2),itcon_dd(n,2),n) ! grav sett
         end if
       end do
 #endif

@@ -12,6 +12,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 RES_M53                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
+TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays

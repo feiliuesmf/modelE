@@ -227,13 +227,13 @@ Contains
     rank = aField%rank
   End Function Field_GetRank
 
-  Function Field_GetShape(aField) Result(data_shape)
+  Subroutine Field_GetShape(aField, data_shape)
     Type (Field), Intent(In) :: aField
     Integer :: data_shape(aField%rank)
 
     data_shape = aField%data_shape(1:aField%rank)
 
-  End Function Field_GetShape
+  End Subroutine Field_GetShape
   
   Subroutine Field_SetDataPointer_Real4_1D (aField, dataPointer, haloWidth, rc) 
     Implicit None 

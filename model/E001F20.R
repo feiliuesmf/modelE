@@ -12,6 +12,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 RES_F20  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 20 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
+TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays

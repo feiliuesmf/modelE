@@ -69,14 +69,16 @@
      &    write (kunit,err=10) module_header,cint_glob,qfol_glob,
      &                         cnc_ij_glob
       case (ioread:)            ! input from restart file
-        read (kunit,err=10) header, cint_glob, qfol_glob, cnc_ij_glob
-        if (header(1:lhead).ne.module_header(1:lhead)) then
-          print*,"discrepancy in module version ",header,module_header
-          go to 10
+        if ( AM_I_ROOT() ) then
+          read (kunit,err=10) header, cint_glob, qfol_glob, cnc_ij_glob
+          if (header(1:lhead).ne.module_header(1:lhead)) then
+            print*,"discrepancy in module version ",header,module_header
+            go to 10
+          end if
         end if
-        call unpack_data(grid, cint_glob,   cint  , local=.true.)
-        call unpack_data(grid, qfol_glob,   qfol  , local=.true.)
-        call unpack_data(grid, cnc_ij_glob, cnc_ij, local=.true.)
+        call unpack_data(grid, cint_glob,   cint  , local=.false.)
+        call unpack_data(grid, qfol_glob,   qfol  , local=.false.)
+        call unpack_data(grid, cnc_ij_glob, cnc_ij, local=.false.)
       end select
 
       return

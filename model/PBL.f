@@ -35,6 +35,7 @@
 #endif
 #endif
 #endif
+      USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
 
       integer, parameter :: n=8  !@param n  no of pbl. layers

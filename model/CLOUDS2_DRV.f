@@ -191,7 +191,8 @@ CRKF...FIX
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8  :: AJEQIL_SUM(IM,LM)
-      REAL*8  :: AREG_SUM
+      REAL*8, DIMENSION(
+     &        size(AREG,1), 3)  :: AREG_SUM
       INTEGER :: ibox
       REAL*8  :: randxx
       REAL*8, DIMENSION(
@@ -202,18 +203,21 @@ CRKF...FIX
      &     NDIUVAR, NDIUPT) :: hdiurn_part
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
      &     NDIUVAR, NDIUPT) :: adiurn_part
-      REAL*8 :: HDIURNSUM, ADIURNSUM
       INTEGER, PARAMETER :: n_idx1 = 5
       INTEGER, PARAMETER :: n_idx2 = 3
       INTEGER, PARAMETER :: n_idx3 = 6
+      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: hdiurn_temp
+      REAL*8, DIMENSION(N_IDX3,grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUPT) :: adiurn_temp
+      REAL*8, DIMENSION(N_IDX3, NDIUPT) :: HDIURNSUM, ADIURNSUM
       INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
       REAL*8 :: tmp(NDIUVAR)
       REAL*8, 
      *  DIMENSION(ntau,npres,nisccp,grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     AISCCP_part
-      REAL*8 :: AISCCPSUM
+      REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
       INTEGER :: ii, ivar
-
 
 C**** Initialize
       AJEQIL(:,:,:)=0.
@@ -1176,8 +1180,8 @@ C
 C**** Save the conservation quantities for tracers
       do nx=1,ntx
         n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(1,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(1,nx),itcon_ss(n),n)
+        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(:,nx),itcon_mc(n),n)
+        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(:,nx),itcon_ss(n),n)
       end do
 #endif
 
@@ -1205,14 +1209,11 @@ C Third: Store the accumulations into AIL:
         END DO
       END IF
 C**** Accumulate AISCCP array
-      Do itau = 1, ntau
-        Do i = 1, npres
-          Do n = 1, nisccp
-            CALL GLOBALSUM(grid,AISCCP_part(itau,i,n,:),AISCCPSUM)
-            AISCCP(itau,i,n)=AISCCP(itau,i,n)+AISCCPSUM
-          END DO
-        END DO
-      END DO
+      CALL GLOBALSUM(grid,AISCCP_part(1:ntau,1:npres,1:nisccp,:),
+     &   AISCCPSUM(1:ntau,1:npres,1:nisccp))
+      AISCCP(1:ntau,1:npres,1:nisccp)=
+     &   AISCCP(1:ntau,1:npres,1:nisccp) +
+     &   AISCCPSUM(1:ntau,1:npres,1:nisccp)
 
 C****Accumulate diagnostigs into AREG in a way that insures bitwise
 C    identical results regardless of number of distributed processes used.
@@ -1227,28 +1228,35 @@ C    identical results regardless of number of distributed processes used.
       END DO
       END DO
 
-      DO JR=1,SIZE(AREG,1)
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,1), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_PRCPMC) = AREG(JR,J_PRCPMC) + AREG_SUM
+     
+      CALL GLOBALSUM(GRID, AREG_part(1:SIZE(AREG,1),:,1:3), 
+     &   AREG_SUM(1:SIZE(AREG,1), 1:3), ALL=.TRUE.)
+      AREG(1:SIZE(AREG,1),J_PRCPMC) = 
+     &   AREG(1:SIZE(AREG,1),J_PRCPMC) + AREG_SUM(1:SIZE(AREG,1),1)
 
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,2), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_PRCPSS) = AREG(JR,J_PRCPSS) + AREG_SUM
+      AREG(1:SIZE(AREG,1),J_PRCPSS) = 
+     &   AREG(1:SIZE(AREG,1),J_PRCPSS) + AREG_SUM(1:SIZE(AREG,1),2)
 
-        AREG_SUM=0.
-        CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
-        AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
-      END DO
+      AREG(1:SIZE(AREG,1),J_EPRCP ) = 
+     &   AREG(1:SIZE(AREG,1),J_EPRCP ) + AREG_SUM(1:SIZE(AREG,1),3)
 
       DO kr = 1, ndiupt
         DO ii = 1, N_IDX3
           ivar = idx3(ii)
-          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
-          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          ADIURN_temp(ii,:,kr)=ADIURN_part(:,ivar,kr)
+          HDIURN_temp(ii,:,kr)=HDIURN_part(:,ivar,kr)
+        END DO
+      END DO
+      CALL GLOBALSUM(grid, ADIURN_temp(1:N_IDX3,:,1:ndiupt),
+     &    ADIURNSUM(1:N_IDX3,1:ndiupt))
+      CALL GLOBALSUM(grid, HDIURN_temp(1:N_IDX3,:,1:ndiupt),
+     &    HDIURNSUM(1:N_IDX3,1:ndiupt))
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX3
+          ivar = idx3(ii)
           IF (AM_I_ROOT()) THEN
-            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
-            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM(ii,kr)
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM(ii,kr)
           END IF
         END DO
       END DO

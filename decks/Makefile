@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests
 
 # modelE directory structure
 MODEL_E_ROOT = ..
@@ -24,9 +24,6 @@ endif
 
 # SETUP = $(SCRIPTS_DIR)/setup_e
 
-#default number of processors for setup
-NPROC = 1
-
 RUNSRC = E1M20
 
 ALIAS_LIST = CMPE001 qc
@@ -37,8 +34,8 @@ help:
 sinclude $(MODEL_DIR)/Rules.make
 
 rundeck:
-	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	[ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
 	echo 'please choose a unique one'; exit 1  ; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
@@ -57,6 +54,9 @@ gcm $(BIN_DIR)/$(RUN).exe depend:
 setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
 
+tests: 
+	$(MAKE) -C $(MODEL_DIR) unit_tests
+
 setup_nocomp:
 	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
 	@cp $(CMRUNDIR)/$(RUN)/$(RUN).exe $(BIN_DIR)/$(RUN).exe || \
@@ -70,8 +70,8 @@ setup_script:
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	 echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] &&  \
-	    [ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \
@@ -89,16 +89,13 @@ setup_script:
 	    fi ;\
 	  fi ;\
 	fi
-	@echo '---------        Starting setup for $(RUN)          ---------'
+	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
-ifeq ($(MP),YES)
+ifndef NPES
 	@$(SETUP) -omp $(NPROC) $(RUN)
 else
-ifeq ($(MPI),YES)
-	@$(SETUP) -mpi $(NPROC) $(RUN)
-else
-	@$(SETUP) $(RUN)
-endif
+	echo PRUN
+	@$(SETUP) -mpi $(NPES) $(RUN) 
 endif
 
 $(SETUP_GFDL):
@@ -110,8 +107,8 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
 	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
 	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] && \
-	    [ -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
+	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
+	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	    echo 'name $(RUN) is already used by somebody else'; \
 	    echo 'please choose a unique one'; exit 1; \
 	  else \

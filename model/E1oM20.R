@@ -21,6 +21,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
+TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays

@@ -69,13 +69,15 @@
      &      WRITE (KUNIT,ERR=10) MODULE_HEADER, TMOM_GLOB, QMOM_GLOB
 
       CASE (IOREAD:)            ! input from restart file
-        READ (KUNIT,ERR=10) HEADER, TMOM_GLOB, QMOM_GLOB
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        CALL UNPACK_COLUMN(grid, TMOM_GLOB, TMOM, local=.true.)
-        CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM, local=.true.)
+        if ( AM_I_ROOT() ) then
+          READ (KUNIT,ERR=10) HEADER, TMOM_GLOB, QMOM_GLOB
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        end if
+        CALL UNPACK_COLUMN(grid, TMOM_GLOB, TMOM, local=.false.)
+        CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM, local=.false.)
       END SELECT
 
       RETURN

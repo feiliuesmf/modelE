@@ -2095,6 +2095,7 @@ C**** End of outside loop over straits
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : LMO
+      USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
       REAL*8, DIMENSION(LMO), INTENT(OUT) :: U
@@ -2135,6 +2136,7 @@ C**** Calculate operators for tridiagonal solver
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : LMO
+      USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
       REAL*8, DIMENSION(LMO), INTENT(OUT) :: U,FL

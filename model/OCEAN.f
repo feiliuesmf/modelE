@@ -154,8 +154,8 @@ C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,J
 !@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use
 !@+        of common block OOBS in MODULE STATIC_OCEAN
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
-      REAL*8 :: gsum
+      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
+      REAL*8 :: gsum(NREG,1)
 
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE
@@ -488,11 +488,11 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
             JR=JREG(I,J)
-            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)-
+            AREG_part(JR,J,J_IMPLM)=AREG_part(JR,J,J_IMPLM)-
      *           FOCEAN(I,J)*RSI(I,J)
      *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
      *               /MSI(I,J))*DXYP(J)
-            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)-
+            AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)-
      *           FOCEAN(I,J)*RSI(I,J)
      *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
             MSI(I,J)=MSINEW
@@ -503,12 +503,14 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END IF
       END DO
       END DO
-      DO JR = 1, NREG
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
-      END DO
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
+     &  gsum(1:NREG,1)
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
+     &  gsum(1:NREG,1)
 
       RETURN
       END SUBROUTINE OCLIM
@@ -866,8 +868,8 @@ C****
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
-      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
-      REAL*8 :: gsum
+      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
+      REAL*8 :: gsum(NREG,1)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
@@ -917,9 +919,9 @@ C**** Additional mass (precip) is balanced by deep removal
             AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
             AJ(J,J_IMPLM,ITOICE) =AJ(J,J_IMPLM,ITOICE) +RUN4 *POICE
             AJ(J,J_IMPLH,ITOICE) =AJ(J,J_IMPLH,ITOICE) +ERUN4*POICE
-            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)+
+            AREG_part(JR,J,J_IMPLM)=AREG_part(JR,J,J_IMPLM)+
      &           RUN4 *FOCEAN(I,J)*DXYP(J)
-            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)+
+            AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)+
      &           ERUN4*FOCEAN(I,J)*DXYP(J)
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
@@ -927,12 +929,14 @@ C**** Additional mass (precip) is balanced by deep removal
         END IF
       END DO
       END DO
-      DO JR = 1, NREG
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
-      END DO
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
+     &  gsum(1:NREG,1)
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
+     &  gsum(1:NREG,1)
 
       RETURN
 C****
@@ -975,9 +979,9 @@ C**** output from OSOURC
 
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
-      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
-      REAL*8 :: gsum
-
+      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
+      REAL*8 :: gsum(NREG,1)
+     
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       areg_part = 0
@@ -1028,9 +1032,9 @@ C**** Ice-covered ocean diagnostics
             AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4I *POICE
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
 C**** regional diagnostics
-            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)+
+            AREG_part(JR,J,J_IMPLM)=AREG_part(JR,J,J_IMPLM)+
      *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
-            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)+
+            AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)+
      *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
             MLHC(I,J)=SHW*WTRW
           ELSE
@@ -1057,12 +1061,14 @@ C**** store surface temperatures
         END IF
       END DO
       END DO
-      DO JR = 1, NREG
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
-      END DO
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
+     &  gsum(1:NREG,1)
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
+     &  gsum(1:NREG,1)
       RETURN
 C****
       END SUBROUTINE OCEANS
@@ -1090,8 +1096,8 @@ C****
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
       INTEGER :: J_0,J_1
-      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
-      REAL*8 :: gsum
+      REAL*8 :: AREG_part(NREG,GRID%J_STRT_HALO:GRID%J_STOP_HALO,KAJ)
+      REAL*8 :: gsum(NREG,1)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
@@ -1137,11 +1143,11 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
      *               /MSI(I,J))
                 AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)-
+                AREG_part(JR,J,J_IMPLM)=AREG_part(JR,J,J_IMPLM)-
      *               FOCEAN(I,J)*RSI(I,J)
      *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
      *               /MSI(I,J))*DXYPJ
-                AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)-
+                AREG_part(JR,J,J_IMPLH)=AREG_part(JR,J,J_IMPLH)-
      *               FOCEAN(I,J)*RSI(I,J)
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
                 MSI(I,J)=MSINEW
@@ -1163,12 +1169,14 @@ C**** regional diagnostics
         END IF
       END DO
       END DO
-      DO JR = 1, NREG
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
-        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
-        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
-      END DO
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLM:J_IMPLM), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLM)=AREG(1:NREG,J_IMPLM)+
+     &  gsum(1:NREG,1)
+      CALL GLOBALSUM(grid, AREG_part(1:NREG,:,J_IMPLH:J_IMPLH), 
+     &  gsum(1:NREG,1:1))
+      IF (AM_I_ROOT()) AREG(1:NREG,J_IMPLH)=AREG(1:NREG,J_IMPLH)+
+     &  gsum(1:NREG,1)
       END IF
 
       RETURN
@@ -1221,9 +1229,10 @@ C****
         CALL PACK_DATA(grid, AIJ(:,:,IJ_TGO2), AIJ_tmp_glob)
         IF (AM_I_ROOT()) WRITE (kunit,err=10) it,AIJ_tmp_glob
       CASE (IOREAD:)            ! input
-        READ (kunit,err=10) it,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
-        CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2),
-     *       local=.true.)
+        if ( AM_I_ROOT() )
+     *    READ (kunit,err=10) it,AIJ_tmp_glob
+          CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2), 
+     *         local=.false.)
       END SELECT
 
       RETURN

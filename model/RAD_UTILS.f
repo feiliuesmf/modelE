@@ -2530,6 +2530,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
      E                 ,RHDATA)                     !  RH info   (190,9)
 
       USE FILEMANAGER, only : openunit,closeunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT
       implicit none
 
       integer NAER,KDREAD
@@ -3186,6 +3187,7 @@ C              Transfer EQUIVALENCEd SETREL output information to RHDATA
   140 CONTINUE
 
 C                                                      Diagnostic output
+      If (AM_I_ROOT()) THEN
       DO 150 I=1,190
       IF(I.EQ.  1) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
       IF(I.EQ. 82) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
@@ -3195,6 +3197,7 @@ C                                                      Diagnostic output
      +                ,SRHQEX(6,I),SRHQEX(5,I),SRHQEX(1,I),TRHQAB(1,I)
  6100 FORMAT(I3,F5.3,18F8.4)
   150 CONTINUE
+      END IF
  6000 FORMAT(T90,A8,'  NAER=',I2,'   REFF0=',F5.2/
      +      /'      RH  RHTAUF  RHREFF  RHWGM2  RHDGM2  RHTGM2  RHXMFX'
      +      ,'  RHDENS  RHQ550  TAUM2G  XNRRHX  ANBCM2  COSBAR  PIZERO'

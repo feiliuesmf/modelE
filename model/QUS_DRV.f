@@ -362,7 +362,6 @@ c****
       use DOMAIN_DECOMP, only : grid, get, halo_update
       use DOMAIN_DECOMP, only : halo_update_column
       use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
-      use DOMAIN_DECOMP, only : ArrayGather, ArrayScatter
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
@@ -375,19 +374,16 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       REAL*8, intent(out), dimension(im,grid%J_STRT_HALO:
      &                                  grid%J_STOP_HALO) :: fqv
       REAL*8      HFQV(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
-!    &                 BM(grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &                F_J(grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &        FMOM_J(NMOM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     &                 BM(IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &                F_J(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
+     &        FMOM_J(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       integer :: i,j,l,ierr,nerr,ICKERR
       REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
 
 c****Temporary global arrays
       INTEGER :: nm
-      REAL*8, DIMENSION(IM,JM) :: RM_GLOB,MASS_GLOB,MV_GLOB
-      REAL*8, DIMENSION(NMOM,IM,JM) :: RMOM_GLOB
-      REAL*8  F_J_GLOB(JM), FMOM_J_GLOB(NMOM,JM)
-      REAL*8  BM(JM)
+
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -401,9 +397,8 @@ c****Get relevant local distributed parameters
 c**** loop over layers
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
-!$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR,
-!$OMP*             rm_glob,rmom_glob,mass_glob,mv_glob,
-!$OMP*             f_j_glob,fmom_j_glob,nm)
+!$OMP*             FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR,
+!$OMP*             nm)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
@@ -433,36 +428,29 @@ c**** scale polar boxes to their full extent
         rzzm_np = rmom(mzz,1,jm,l)
       end if                       !NORTH POLE
 
-c**** GATHER GLOBAL ARRAYS TO BE USED IN ADV1D CALL
-      call arraygather( grid, rm(:,:,l), rm_glob )
-      do nm=1,nmom
-        call arraygather( grid,rmom(nm,:,:,l),rmom_glob(nm,:,:))
-      end do
-      call arraygather( grid, mass(:,:,l), mass_glob )
-      call arraygather(  grid,  mv(:,:,l), mv_glob )
-
-c**** loop over longitudes
-      do i=1,im
+c***c**** loop over longitudes
+c***      do i=1,im
 c****
 c**** load 1-dimensional arrays
 c****
-      bm   (:) = mv_glob(i,:) !/nstep
+      bm   (:,:) = mv(:,:,l) !/nstep
 
 c**** POLES
-         rmom_glob(ihmoms,i,1 ) = 0. ! horizontal moments are zero at pole
-        bm(jm)= 0.
-        rmom_glob(ihmoms,i,jm) = 0.
+      IF (HAVE_SOUTH_POLE)  rmom(ihmoms,:,1,l ) = 0. ! horizontal moments are zero at pole
+      IF (HAVE_NORTH_POLE) THEN
+        bm(:,jm)= 0.
+        rmom(ihmoms,:,jm,l) = 0.
+      END IF
 
 c****
 c**** call 1-d advection routine
 c****
-      if (AM_I_ROOT()) then
-        call adv1d( rm_glob(i,1), rmom_glob(1,i,1), f_j_glob,
-     &       fmom_j_glob, mass_glob(i,1),
-     &       bm,jm,qlimit,ystride,ydir,ierr,nerr)
+        call advection_1D_custom( rm(1,j_0h,l), rmom(1,1,j_0h,l), 
+     &       f_j(1,j_0h,l),fmom_j(1,1,j_0h), mass(1,j_0h,l),
+     &       bm(1,j_0h),j_1-j_0+1,qlimit,ystride,ydir,ierr,nerr)
 
         if (ierr.gt.0) then
-          write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
+          write(6,*) "Error in aadvty: j,l=",nerr,l
           if (ierr.eq.2) then
             write(0,*) "Error in qlimit: abs(b) > 1"
 ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
@@ -470,31 +458,16 @@ ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
           endif
         end if
 ! horizontal moments are zero at pole
-        rmom_glob(ihmoms,i,1) = 0
-        rmom_glob(ihmoms,i,jm) = 0.
-      end if
+        IF (HAVE_SOUTH_POLE) rmom(ihmoms,:,1, l) = 0
+        IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,l) = 0.
+
+c***      End Do ! longitudes
 
 c**** store tracer flux in fqv array
 ccc   fqv(i,:) = fqv(i,:) + f_j(:)
 ccc    if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
 
-c*** SCATTER GLOBAL "1D" ARRAYS BACK TO LOCAL ONES
-!     hfqv(i,:,l) = f_j(:)
-      call arrayscatter( grid, hfqv(i,:,l), f_j_glob(1:jm))
-      do nm=1,nmom
-        call arrayscatter( grid, fmom_j(nm,:), fmom_j_glob(nm,:) )
-      end do
-
-      enddo ! end loop over longitudes
-
-c**** SCATTER "2D" GLOBAL ARRAYS BACK TO LOCAL ONES
-      call arrayscatter( grid, rm(:,:,l), rm_glob )
-      do nm=1,nmom
-        call arrayscatter( grid, rmom(nm,:,:,l),
-     &                           rmom_glob(nm,:,:) )
-      end do
-      call arrayscatter( grid, mass(:,:,l), mass_glob )
-
+      hfqv(:,:,l) = f_j(:,:,l)
 
 c**** average and unscale polar boxes
       if (HAVE_SOUTH_POLE) then
@@ -519,7 +492,7 @@ c
 !$OMP  PARALLEL DO PRIVATE(J,L)
       do j=J_0,J_1
       do l=1,lm
-         fqv(:,j)  = fqv(:,j) + hfqv(:,j,l)
+         fqv(:,j)  = fqv(:,j) + f_j(:,j,l)
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO

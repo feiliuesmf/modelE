@@ -35,6 +35,9 @@ C**** x-x, x-y, x-z switches
 !@dbparam prather_limits forces +ve sub-grid scale profiles (default=0)
       integer :: prather_limits = 0
 
+      Integer, Parameter :: FLUX_NEGATIVE=-1
+      Integer, Parameter :: FLUX_NONNEGATIVE=+1
+
       END MODULE QUSDEF
 
       subroutine adv1d(s,smom, f,fmom, mass,dm, nx,qlimit,stride,dir
@@ -88,6 +91,7 @@ c-----------------------------------------------------------
 c-----------------------------------------------------------
       n = nx
       do np1=1,nx
+
          if(dm(n).lt.0.) then ! air mass flux is negative
             nn=np1
             frac1=+1.
@@ -215,6 +219,381 @@ c-----------------------------------------------------------------
       enddo
       return
       end subroutine adv1d
+c************************************************************************
+
+      subroutine advection_1D_custom(s,smom, f,fmom, mass,dm, nx, 
+     *     qlimit,stride,dir,ierr,nerr)
+!@sum  advection_1d_custom is a parallel variant of adv1d which does not
+!@sum  include qlimits.  This increases locality such that global 
+!@sum  communication can be significantly reduced for advection along
+!@sum  longitudes.
+!@auth T. Clune
+c--------------------------------------------------------------
+c adv1d advects tracers in x-direction using the qus
+c the order of the moments in dir is: x,y,z,xx,yy,zz,xy,yz,zx
+c--------------------------------------------------------------
+      use QUSDEF, only : nmom,prather_limits
+      USE DOMAIN_DECOMP, only: grid, GET
+      USE DOMAIN_DECOMP, only: NORTH, SOUTH
+      USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP, only: CHECKSUM
+      implicit none
+      !
+!@var s      mean tracer amount (kg or J)
+!@var smom   qus tracer moments (kg or J)
+!@var f      tracer flux (diagnostic output) (kg or J)
+!@var fmom   tracer moment flux (diagnostic output) (kg or J)
+!@var mass   mass field (kg)
+!@var dm     mass flux (kg)
+!@var nx     length of 1D vector
+!@var qlimit true if negative tracer is to be avoided
+!@var stride spacing in s array between elements of relevant 1D array
+!@var dir    direction switch (equals one of xdir ydir or zdir)
+!@var ierr, nerr error codes
+      integer, intent(in) :: nx,stride
+      logical, intent(in) :: qlimit
+      REAL*8, dimension(stride,0:nx+1) :: dm, f
+      REAL*8, dimension(stride,0:nx+1) :: s,mass
+      REAL*8, dimension(nmom,stride,0:nx+1) :: smom
+      REAL*8, dimension(nmom,stride,0:nx+1) :: fmom
+      integer, dimension(nmom) :: dir
+      integer :: mx,my,mz,mxx,myy,mzz,mxy,myz,mzx
+      integer :: n,np1,nm1,nn,ns
+      integer,intent(out) :: ierr,nerr
+      REAL*8 :: fracm,frac1,bymnew,mnew,dm2,tmp
+      INTEGER :: i
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE
+      ! qlimit variables
+      REAL*8 :: an, anm1, fn, fnm1, sn, sxn, sxxn
+      !
+      
+      ierr=0 ; nerr=0
+      mx  = dir(1)
+      my  = dir(2)
+      mz  = dir(3)
+      mxx = dir(4)
+      myy = dir(5)
+      mzz = dir(6)
+      mxy = dir(7)
+      myz = dir(8)
+      mzx = dir(9)
+
+      CALL GET(grid, J_STRT = J_0, J_STOP=J_1, 
+     &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+      J_1  = J_1 - J_0 + 1
+      J_1S = J_1S- J_0 + 1
+      J_0S = J_0S- J_0 + 1
+      J_0 =  J_0 - J_0 + 1
+
+      CALL HALO_UPDATE(grid, mass, FROM=NORTH)
+      CALL HALO_UPDATE(grid, s,    FROM=NORTH)
+      CALL HALO_UPDATE_COLUMN(grid, smom, FROM=NORTH)
+
+      Do i=1, stride
+        Call calc_tracer_mass_flux()
+      End Do
+
+      ! Limit fluxes to maintain positive mean values?
+      CALL HALO_UPDATE_COLUMN(grid, fmom, FROM=NORTH+SOUTH)
+
+      If (qlimit) Then
+         
+        Call HALO_UPDATE_COLUMN(grid, f, FROM=NORTH+SOUTH)
+        Do i=1, stride
+          Call apply_limiter()
+        End Do
+        Call HALO_UPDATE_COLUMN(grid, f, FROM=NORTH+SOUTH)
+      End If
+c--------------------------------------------------------------------
+         ! calculate tracer fluxes of slopes and curvatures
+c--------------------------------------------------------------------
+      Do i=1, stride
+         Call tracer_slopes_and_curvatures()
+      End Do
+c-------------------------------------------------------------------
+c update tracer mass, moments of tracer mass, air mass distribution
+c-------------------------------------------------------------------
+      CALL HALO_UPDATE(grid,  f,    FROM=SOUTH)
+      CALL HALO_UPDATE(grid, dm,    FROM=SOUTH)
+      CALL HALO_UPDATE_COLUMN(grid, fmom, FROM=SOUTH)
+
+      DO i = 1, stride
+         Call update_tracer_mass()
+      END DO
+
+      return
+
+      Contains
+
+      Integer Function CheckFlux(flux) Result (sign_of_flux)
+      USE QUSDEF, Only : FLUX_NEGATIVE, FLUX_NONNEGATIVE
+      Real*8, Intent(In) :: flux
+      If (flux < 0) Then
+        sign_of_flux = FLUX_NEGATIVE
+      Else
+        sign_of_flux = FLUX_NONNEGATIVE
+      End If
+      End Function CheckFlux
+
+      Integer Function NeighborByFlux(n, dm)
+      USE QUSDEF, Only : FLUX_NEGATIVE
+        Integer, Intent(In) :: n
+        Real*8,  Intent(In) :: dm
+
+        Integer :: nn
+
+        If (CheckFlux(dm) == FLUX_NEGATIVE) Then ! air mass flux is negative
+          nn=n+1
+        else                                     ! air mass flux is positive
+          nn=n
+        endif
+        NeighborByFlux = nn
+
+      End Function NeighborByFlux
+
+      Function FluxFraction(dm) Result(frac)
+      USE QUSDEF, Only : FLUX_NEGATIVE
+        Real*8, Intent(In) :: dm
+        Real*8 :: frac
+
+        If (CheckFlux(dm) == FLUX_NEGATIVE) Then
+          frac = +1.
+        Else ! Flux non negative
+          frac = -1.
+        End If
+
+      End Function FluxFraction
+      
+      Function MassFraction(dm, mass) Result (fracm)
+        Real*8, Intent(In) :: dm
+        Real*8, Intent(In) :: mass
+        Real*8 :: fracm
+
+        If (mass > 0.0d0) Then
+          fracm = dm / mass
+        Else
+          fracm = 0.d0
+        End If
+        
+      End Function MassFraction
+      
+      Subroutine calc_tracer_mass_flux()
+
+      Do n = J_0, J_1
+
+        nn = NeighborByFlux(n, dm(i,n))
+        fracm = MassFraction(dm(i,n), mass(i,nn))
+
+        frac1 = fracm + FluxFraction(dm(i,n))
+
+        f(i,n)=fracm*(s(i,nn)-frac1*(smom(mx,i,nn)-
+     *                               (frac1+fracm)*smom(mxx,i,nn)))
+      ! temporary storage of fracm in fx, to be used below
+        fmom(mx,i,n)=fracm
+      ! temporary storage of frac1 in fxx, to be used below
+        fmom(mxx,i,n)=frac1
+      !
+      enddo
+      End Subroutine calc_tracer_mass_flux
+
+      Subroutine tracer_slopes_and_curvatures()
+
+      Do n = J_0, J_1
+
+        nn = NeighborByFlux(n, dm(i,n))
+      ! retrieving fracm, which was stored in fx
+        fracm=fmom(mx,i,n)
+      ! retrieving frac1, which was stored in fxx
+        frac1=fmom(mxx,i,n)
+      !
+        fmom(mx,i,n)=dm(i,n)*(fracm*fracm*(smom(mx,i,nn)
+     &       -3.*frac1*smom(mxx,i,nn))-3.*f(i,n))
+        fmom(mxx,i,n)=dm(i,n)*(dm(i,n)*fracm**3 *smom(mxx,i,nn)
+     &       -5.*(dm(i,n)*f(i,n)+fmom(mx,i,n)))
+      ! cross moments
+         fmom(my,i,n)  = fracm*(smom(my,i,nn)-frac1*smom(mxy,i,nn))
+         fmom(mxy,i,n) = dm(i,n)*(fracm*fracm*smom(mxy,i,nn)
+     &                            -3.*fmom(my,i,n))
+         fmom(mz,i,n)  = fracm*(smom(mz,i,nn)-frac1*smom(mzx,i,nn))
+         fmom(mzx,i,n) = dm(i,n)*(fracm*fracm*smom(mzx,i,nn)
+     &                            -3.*fmom(mz,i,n))
+         fmom(myy,i,n) = fracm*smom(myy,i,nn)
+         fmom(mzz,i,n) = fracm*smom(mzz,i,nn)
+         fmom(myz,i,n) = fracm*smom(myz,i,nn)
+
+      enddo
+      End Subroutine tracer_slopes_and_curvatures
+
+      Subroutine apply_limiter
+      If (HAVE_SOUTH_POLE) Then
+         n = J_0
+         an = fmom(mx,i,n)      ! reading fracm which was stored in fx
+         anm1 = 0
+         fn = f(i,n)
+         fnm1 = 0
+         sn = s(i,n)
+         sxn = smom(mx,i,n)
+         sxxn = smom(mxx,i,n)
+         call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
+         if (ierr.gt.0) then
+            nerr=n
+            if (ierr.eq.2) return
+         end if
+         f(i,n)   = fn
+         f(i,n-1) = fnm1
+         smom(mx,i,n) = sxn
+         smom(mxx,i,n) = sxxn
+      End If
+
+      nm1=J_0S-1
+      DO n = J_0S, J_1S+1
+
+         an = fmom(mx,i,n)      ! reading fracm which was stored in fx
+         anm1 = fmom(mx,i,nm1)
+         fn = f(i,n)
+         fnm1 = f(i,nm1)
+         sn = s(i,n)
+         sxn = smom(mx,i,n)
+         sxxn = smom(mxx,i,n)
+         call limitq(anm1,an,fnm1,fn,sn,sxn,sxxn,ierr)
+         if (ierr.gt.0) then
+            nerr=n
+            if (ierr.eq.2) return
+         end if
+         f(i,n)   = fn
+         f(i,nm1) = fnm1
+         smom(mx,i,n) = sxn
+         smom(mxx,i,n) = sxxn
+         nm1 = n
+      enddo
+
+      End Subroutine apply_limiter
+
+      Subroutine update_tracer_mass()
+
+      If (HAVE_SOUTH_POLE) THEN
+         n = J_0
+!        mnew=mass(ns)+dm(nm1)-dm(n)
+        tmp=mass(i,n)
+        mnew=tmp-dm(i,n)
+
+         bymnew = 1./mnew
+         dm2=dm(i,n)
+
+!       s(i,n)=s(i,n)+f(nm1)-f(n)
+         tmp=s(i,n)
+         s(i,n)=tmp-f(i,n)
+
+         smom(mx,i,n)=(smom(mx,i,n)*mass(i,n)-
+     &                  3.*(-dm2*s(i,n)
+     &                      +mass(i,n)*(f(i,n)))+
+     &                  (-fmom(mx,i,n)))*bymnew
+         smom(mxx,i,n) = (smom(mxx,i,n)*mass(i,n)*mass(i,n)
+     &     +2.5*s(i,n)*(mass(i,n)*mass(i,n)-mnew*mnew-3.*dm2*dm2)
+     &     +5.*(mass(i,n)*(mass(i,n)*(-f(i,n))
+     &     -fmom(mx,i,n))+dm2*smom(mx,i,n)*mnew)
+     &     +(-fmom(mxx,i,n))) * (bymnew*bymnew)
+      ! cross moments
+         smom(my,i,n)=smom(my,i,n)-fmom(my,i,n)
+         smom(mxy,i,n)=(smom(mxy,i,n)*mass(i,n)
+     &                   -3.*(-dm2*smom(my,i,n) +
+     &                       mass(i,n)*(fmom(my,i,n))) +
+     &        (-fmom(mxy,i,n)))*bymnew
+         smom(mz,i,n)=smom(mz,i,n)-fmom(mz,i,n)
+         smom(mzx,i,n)=(smom(mzx,i,n)*mass(i,n)
+     &                   -3.*(-dm2*smom(mz,i,n) +
+     &        mass(i,n)*(+fmom(mz,i,n))) +
+     &        (-fmom(mzx,i,n)))*bymnew
+      !
+         smom(myy,i,n)=smom(myy,i,n)-fmom(myy,i,n)
+         smom(mzz,i,n)=smom(mzz,i,n)-fmom(mzz,i,n)
+         smom(myz,i,n)=smom(myz,i,n)-fmom(myz,i,n)
+      !
+c------------------------------------------------------------------
+         mass(i,n) = mnew
+         if(mass(i,n).le.0.) then
+            s(i,n)=0.
+            smom(:,i,n)=0.
+         endif
+         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
+           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
+           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
+     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
+           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
+           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+         end if
+
+c-----------------------------------------------------------------
+         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
+           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
+           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
+     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
+           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
+           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+         end if
+
+      End If
+
+      Do n=J_0S,J_1
+         nm1 = n-1
+!        mnew=mass(ns)+dm(nm1)-dm(n)
+        tmp=mass(i,n)+dm(i,nm1)
+        mnew=tmp-dm(i,n)
+
+         bymnew = 1./mnew
+         dm2=dm(i,nm1)+dm(i,n)
+
+!       s(i,n)=s(i,n)+f(nm1)-f(n)
+         tmp=s(i,n)+f(i,nm1)
+         s(i,n)=tmp-f(i,n)
+
+         smom(mx,i,n)=(smom(mx,i,n)*mass(i,n)-
+     &                  3.*(-dm2*s(i,n)
+     &                      +mass(i,n)*(f(i,nm1)+f(i,n)))+
+     &                  (fmom(mx,i,nm1)-fmom(mx,i,n)))*bymnew
+         smom(mxx,i,n) = (smom(mxx,i,n)*mass(i,n)*mass(i,n)
+     &     +2.5*s(i,n)*(mass(i,n)*mass(i,n)-mnew*mnew-3.*dm2*dm2)
+     &     +5.*(mass(i,n)*(mass(i,n)*(f(i,nm1)-f(i,n))-fmom(mx,i,nm1)
+     &     -fmom(mx,i,n))+dm2*smom(mx,i,n)*mnew)
+     &     +(fmom(mxx,i,nm1)-fmom(mxx,i,n))) * (bymnew*bymnew)
+      ! cross moments
+         smom(my,i,n)=smom(my,i,n)+fmom(my,i,nm1)-fmom(my,i,n)
+         smom(mxy,i,n)=(smom(mxy,i,n)*mass(i,n)
+     &                   -3.*(-dm2*smom(my,i,n) +
+     &                       mass(i,n)*(fmom(my,i,nm1)+fmom(my,i,n))) +
+     &        (fmom(mxy,i,nm1)-fmom(mxy,i,n)))*bymnew
+         smom(mz,i,n)=smom(mz,i,n)+fmom(mz,i,nm1)-fmom(mz,i,n)
+         smom(mzx,i,n)=(smom(mzx,i,n)*mass(i,n)
+     &                   -3.*(-dm2*smom(mz,i,n) +
+     &        mass(i,n)*(fmom(mz,i,nm1)+fmom(mz,i,n))) +
+     &        (fmom(mzx,i,nm1)-fmom(mzx,i,n)))*bymnew
+      !
+         smom(myy,i,n)=smom(myy,i,n)+fmom(myy,i,nm1)-fmom(myy,i,n)
+         smom(mzz,i,n)=smom(mzz,i,n)+fmom(mzz,i,nm1)-fmom(mzz,i,n)
+         smom(myz,i,n)=smom(myz,i,n)+fmom(myz,i,nm1)-fmom(myz,i,n)
+      !
+c------------------------------------------------------------------
+         mass(i,n) = mnew
+         if(mass(i,n).le.0.) then
+            s(i,n)=0.
+            smom(:,i,n)=0.
+         endif
+c-----------------------------------------------------------------
+         if (qlimit .and. prather_limits.eq.1) then ! force Prather limits
+           smom(mx,i,n)=min(1.5*s(i,n),max(-1.5*s(i,n),smom(mx,i,n)))
+           smom(mxx,i,n)=min(2.*s(i,n)-abs(smom(mx,i,n))/3.,
+     *          max(abs(smom(mx,i,n))-s(i,n),smom(mxx,i,n)))
+           smom(mxy,i,n)=min(s(i,n),max(-s(i,n),smom(mxy,i,n)))
+           smom(mzx,i,n)=min(s(i,n),max(-s(i,n),smom(mzx,i,n)))
+         end if
+
+      enddo
+      End Subroutine Update_Tracer_Mass
+
+      end subroutine advection_1D_custom
+
 c************************************************************************
 
       subroutine limitq(anm1,an,fnm1,fn,sn,sx,sxx,ierr)
