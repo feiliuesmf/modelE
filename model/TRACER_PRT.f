@@ -814,9 +814,9 @@ C**** water vapour
         do l=1,lm
           k=k+1
           ijtype(k) = 3
-          name(k) = "wvap_ij_dex"
           lname(k) = "Deuterium excess water vapour Level"
           write(lname(k)(36:38),'(I3)') l
+          name(k) = "wvap_ij_dex"//adjustl(lname(k)(36:38))
           units(k) = "per mil"
           irange(k) = ir_m45_130
           iacc(k) = ia_src

@@ -435,6 +435,7 @@ C**** set dimensions
       dim_name='ple_dn'; call def_dim_out(dim_name,lm)
       dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
       dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
+      dim_name='p1'; call def_dim_out(dim_name,1)
 
 ! put lat,ht into output file
       ndims_out = 1
@@ -462,6 +463,9 @@ C**** set dimensions
       dim_name='pgz'; call set_dim_out(dim_name,1)
       units='mb'
       var_name='pgz'; call wrtarr(var_name,pmb(1:kgz_max))
+      dim_name='p1'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='p1'; call wrtarr(var_name,pmb(1))
 
       return
       end subroutine open_jl
@@ -541,6 +545,8 @@ C**** set dimensions
          dim_name='ple_int'
       else if(klmax.eq.kgz_max) then
          dim_name='pgz'
+      else if(klmax.eq.1) then
+         dim_name='p1'
       else
          write(6,*) 'klmax =',klmax,title,pm(1:klmax),ple(1:klmax)
          call stop_model('pout_jl: unrecognized vertical grid',255)
@@ -556,8 +562,6 @@ C**** set dimensions
 
       if(j1.eq.1) then
          xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
-         print*,sname,lname,units,title,jm,klmax
-         call sys_flush(6)
          call wrtarr(var_name,xjl0)
       else
          xjl0b(1:jm-1,1:klmax) = xjl(2:jm,1:klmax)
