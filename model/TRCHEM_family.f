@@ -266,9 +266,12 @@ C SO2 oxidation
 C
 C      DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     & +rr(41,L)*0.79d0*y(nC2O3,L)+rr(15,L)*y(nHO2,L)
-     & *(2.d0*ss(4,L,I,J)/(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
-c      Previous two lines additional OH production via rxn 41,
+     & +rr(41,L)*0.79d0*y(nC2O3,L)
+       if((2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)).ne.0.)then
+         dz=dz+rr(15,L)*y(nHO2,L)*(2.d0*ss(4,L,I,J)
+     &   /(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
+       end if
+c      Previous few lines additional OH production via rxn 41,
 c      which also produces HO2, and R15 then S4/(S4+S14) fraction
 C
        if(cz+dz.gt.0.)then
