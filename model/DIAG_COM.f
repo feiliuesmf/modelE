@@ -132,6 +132,11 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DATA        NAMDD   / 'AUSD', 'MWST', 'SAHL', 'EPAC' /
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
       REAL*8, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
+!@param HR_IN_MONTH hours in month
+      INTEGER, PARAMETER :: HR_IN_MONTH=HR_IN_DAY*31
+!@var HDIURN hourly diagnostics (hourly value at selected points)
+!@+     Same quantities as ADIURN but not averaged over the month
+      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR,NDIUPT) :: HDIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
 !@param KAJKX number of zonal constant pressure composit diagnostics
@@ -195,10 +200,11 @@ C**** Instantaneous constant pressure level fields
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
 
       COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
-     &  AJK,AIJK,AISCCP
+     &  AJK,AIJK,AISCCP,HDIURN
       REAL*8, DIMENSION(KACC) :: ACC
       REAL*8, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
       EQUIVALENCE (ACC,AJ,AFLX_ST)
@@ -227,7 +233,7 @@ C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
       REAL*8, DIMENSION(IM,JM,KTD) :: TDIURN
 
 !@nlparam KDIAG array of flags to control diagnostics printout
-      INTEGER, DIMENSION(12) :: KDIAG
+      INTEGER, DIMENSION(13) :: KDIAG
 
 !@param NKEYNR number of key number diagnostics
       INTEGER, PARAMETER :: NKEYNR=42

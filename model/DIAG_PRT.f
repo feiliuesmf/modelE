@@ -17,6 +17,7 @@
       IF (KDIAG(9).LT.9) CALL DIAGCP
       IF (KDIAG(5).LT.9) CALL DIAG5P
       IF (ipos.ne.2. .and. KDIAG(6).LT.9) CALL DIAGDD
+      IF (KDIAG(13).LT.9) CALL DIAGDH
       IF (KDIAG(4).LT.9) CALL DIAG4
       IF (KDIAG(11).LT.9) CALL diag_RIVER
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
@@ -4402,6 +4403,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  call open_diurn
      &   (trim(acc_period)//'.diurn'//XLABEL(1:LRUNID),NDIUVAR)
 C****
+C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
       IREGL=4
       IF (KDIAG(6).GT.0) IREGL=4-KDIAG(6)
@@ -4454,6 +4456,84 @@ C****
   903 FORMAT ('0',A4,I2,',',I2,' ',I2,23I5,'  AVE')
   904 FORMAT (A8,25I5)
       END SUBROUTINE DIAGDD
+
+      SUBROUTINE DIAGDH
+!@sum  DIAGDH prints out hourly diurnal cycle diagnostics
+!@+       It uses the same quantities as DIAGHH and shares some arrays
+!@+       When radiation is not called every hour this will not average
+!@+       exactly to same numbers as in DIAGDD.
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only :   JDendOfM,JMON,
+     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
+      USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month,
+     &   hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
+     *     ,ia_12hr
+      IMPLICIT NONE
+      REAL*8, DIMENSION(HR_IN_MONTH+4) :: XHOUR
+      INTEGER, DIMENSION(HR_IN_MONTH+4) :: MHOUR
+      INTEGER :: I,IH,IH0,IREGF,IREGL,IS,JD,jdayofm,K,KP,KQ,KR,NDAYS
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO
+      REAL*8, DIMENSION(HR_IN_MONTH+4,NDIUVAR) :: FHOUR
+C****
+      NDAYS=IDACC(ia_12hr)/2
+      IF (NDAYS.LE.0) RETURN
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QDIAG)  call open_hdiurn
+     &   (trim(acc_period)//'.hdiurn'//XLABEL(1:LRUNID),NDIUVAR)
+C****
+C**** KP packs the quantities for postprocessing (skipping unused)
+      jdayofM = JDendOfM(jmon)-JDendOfM(jmon-1)
+      IREGF=1
+      IREGL=4
+      IF (KDIAG(13).GT.0) IREGL=4-KDIAG(13)
+      IF (KDIAG(13).LT.0.AND.KDIAG(13).GT.-5) IREGF=-KDIAG(13)
+      IF (KDIAG(13).LT.0) IREGL=IREGF
+      DO KR=IREGF,IREGL
+        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+        WRITE (6,903)NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
+        KP = 0
+        DO KQ=1,NDIUVAR
+          IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
+          IF (LNAME_DD(KQ).eq."unused") CYCLE
+          KP = KP+1
+          SELECT CASE (NAME_DD(KQ))
+          CASE DEFAULT
+C**** NORMAL QUANTITIES
+            DO IH=1,HR_IN_MONTH+4
+              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)
+            END DO
+C**** RATIO OF TWO QUANTITIES
+          CASE ('LDC')
+            DO IH=1,HR_IN_MONTH+4
+              XHOUR(IH)=HDIURN(IH,KQ,KR)*SCALE_DD(KQ)/
+     *             (HDIURN(IH,KQ-1,KR)+1D-20)
+            END DO
+          END SELECT
+          DO IS=1,HR_IN_MONTH+4
+            FHOUR(IS,KP)=XHOUR(IS)
+            MHOUR(IS)=NINT(XHOUR(IS))
+          END DO
+          ih0 = 1
+          do jd = 1,jdayofm
+            WRITE (6,904) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+23),jd
+            ih0 = ih0+24
+          end do
+            WRITE (6,905) LNAME_DD(KQ),(MHOUR(i),i=ih0,ih0+3)
+          LNAMEO(KP)=LNAME_DD(KQ)(1:16)
+          UNITSO(KP)=UNITS_DD(KQ)(1:16)
+        END DO
+        IF (QDIAG) CALL POUT_HDIURN(LNAMEO,UNITSO,FHOUR,
+     *     NAMDD(KR),IJDD(1,KR),IJDD(2,KR),HR_IN_MONTH,KP)
+      END DO
+      IF (QDIAG) call close_hdiurn
+      RETURN
+C****
+  901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
+  903 FORMAT ('0',A4,I2,',',I2,' ',I2,23I5,'  Day')
+  904 FORMAT (A8,24I5,I5)
+  905 FORMAT (A8,4I5)
+      END SUBROUTINE DIAGDH
 
 
       SUBROUTINE DIAG4

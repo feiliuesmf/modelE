@@ -738,11 +738,11 @@ C****   See ijks_defs for contents
 C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny
       USE MODEL_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,psfmpt,jdate,
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,
+      USE DAGCOM, only : ajk,aijk,speca,adiurn,nspher,hdiurn,
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
@@ -773,7 +773,7 @@ C****
       REAL*8, DIMENSION(LM+1) :: PM,PL
 
       INTEGER ::
-     &     I,IH,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
+     &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
      &     JET,JHEMI,K,KDN,KM,KMM1,KR,KS,KS1,KSPHER,KUP,KX,L,LMP1,
      &     LUP,MBEGIN,N,NM
 
@@ -1179,11 +1179,15 @@ C****              beginning of a month and overcounted at the end;
 C****              this happens to balance out, if and only if
 C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
             IH=JHOUR+1
+            IHM = IH+(JDATE-1)*24
             DO INCH=1,NDAA
               IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
               ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
      *             /DXYP(J)
+              HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+1.E5*W(I,J,3)
+     *             /DXYP(J)
               IH=IH+1
+              IHM=IHM+1
             END DO
          END IF
       END DO
@@ -3130,7 +3134,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
-      AJK=0   ; AIJK=0
+      AJK=0   ; AIJK=0 ; HDIURN=0
       AISCCP=0
 #ifdef TRACERS_ON
       TACC=0.

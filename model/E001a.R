@@ -132,6 +132,6 @@ nda5s=1         ! use =7 to save cpu time
  &INPUTZ
    IYEAR1=1950 ! has to be consistent with OSST/SICE files !!!
    YEARI=1950,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
-   YEARE=1999,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,
+   YEARE=1999,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=0,2,2,9*0,9,
    ISTART=2,IRANDI=0, YEARE=1950,MONTHE=12,HOURE=1,
  &END

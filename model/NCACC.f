@@ -189,6 +189,15 @@ c-----------------------------------------------------------------------
       status = nf_put_att_text(ncid,varid,'NAMDD',4*ndiupt,namdd)
       status = nf_put_att_int(ncid,varid,'IJDD',nf_int,2*ndiupt,IJDD)
 c-----------------------------------------------------------------------
+c hdiurn, hourly adiurn quantities
+c-----------------------------------------------------------------------
+      status = nf_def_dim(ncid,'HR_IN_MONTHp4',hr_in_MONTH+4,dimids(1))
+      status = nf_def_dim(ncid, 'NDIUVAR',   ndiuvar, dimids(2))
+      status = nf_def_dim(ncid, 'NDIUPT', ndiupt, dimids(3))
+      status = nf_def_var(ncid, 'HDIURN',nf_real,3,dimids,varid)
+      status = nf_put_att_text(ncid,varid,'NAMDD',4*ndiupt,namdd)
+      status = nf_put_att_int(ncid,varid,'IJDD',nf_int,2*ndiupt,IJDD)
+c-----------------------------------------------------------------------
 c wave power
 c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'RE_AND_IM', RE_AND_IM, dimids(1))
@@ -250,6 +259,7 @@ c-----------------------------------------------------------------------
       var_name='SPECA';  call ncwrtdbl1(var_name,ncid,speca)
       var_name='ATPE';   call ncwrtdbl1(var_name,ncid,atpe)
       var_name='ADIURN'; call ncwrtdbl1(var_name,ncid,adiurn)
+      var_name='HDIURN'; call ncwrtdbl1(var_name,ncid,hdiurn)
       call ncwrtdbl(name_wave,ncid,re_and_im*Max12hr_sequ*NWAV_DAG,
      &     kwp,wave)
       call ncwrtdbl(sname_jk,ncid,jm*lm,kajkx,ajk)

@@ -643,6 +643,7 @@ C****    Ocean info saved for ocean heat transport calculations
          OA = 0.
 C**** All diagn. are enabled unless KDIAG is changed in the rundeck
       KDIAG(1:12)=0
+      KDIAG(13)=9
 C**** Set global default timing descriptions
 C**** Other speciality descriptions can be added/used locally
       NTIMEACC = 0

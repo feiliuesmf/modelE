@@ -12,7 +12,7 @@
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
-     *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag
+     *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
       USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz,nmom
@@ -56,7 +56,7 @@ C**** Interface to PBL
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,idd_ldc,idd_dcf
+     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,
@@ -87,7 +87,7 @@ C**** Interface to PBL
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE,IM1
+      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K,PGK,PKDN
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
@@ -124,6 +124,7 @@ c
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
       IH=JHOUR+1
+      IHM = IH+(JDATE-1)*24
 
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
@@ -246,6 +247,17 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
              ADIURN(IH,IDD_Q3,KR)=ADIURN(IH,IDD_Q3,KR)+Q(I,J,3)
              ADIURN(IH,IDD_Q2,KR)=ADIURN(IH,IDD_Q2,KR)+Q(I,J,2)
              ADIURN(IH,IDD_Q1,KR)=ADIURN(IH,IDD_Q1,KR)+Q1
+             HDIURN(IHM,IDD_SPR,KR)=HDIURN(IHM,IDD_SPR,KR)+PS
+             HDIURN(IHM,IDD_PT5,KR)=HDIURN(IHM,IDD_PT5,KR)+PSK*T(I,J,5)
+             HDIURN(IHM,IDD_PT4,KR)=HDIURN(IHM,IDD_PT4,KR)+PSK*T(I,J,4)
+             HDIURN(IHM,IDD_PT3,KR)=HDIURN(IHM,IDD_PT3,KR)+PSK*T(I,J,3)
+             HDIURN(IHM,IDD_PT2,KR)=HDIURN(IHM,IDD_PT2,KR)+PSK*T(I,J,2)
+             HDIURN(IHM,IDD_PT1,KR)=HDIURN(IHM,IDD_PT1,KR)+PSK*T(I,J,1)
+             HDIURN(IHM,IDD_Q5,KR)=HDIURN(IHM,IDD_Q5,KR)+Q(I,J,5)
+             HDIURN(IHM,IDD_Q4,KR)=HDIURN(IHM,IDD_Q4,KR)+Q(I,J,4)
+             HDIURN(IHM,IDD_Q3,KR)=HDIURN(IHM,IDD_Q3,KR)+Q(I,J,3)
+             HDIURN(IHM,IDD_Q2,KR)=HDIURN(IHM,IDD_Q2,KR)+Q(I,J,2)
+             HDIURN(IHM,IDD_Q1,KR)=HDIURN(IHM,IDD_Q1,KR)+Q1
            END IF
          END DO
          END IF
@@ -755,6 +767,31 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)+KHS*PTYPE
               ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)+DBL*PTYPE
               ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAP*PTYPE
+              HDIURN(IHM,IDD_TS,KR)=HDIURN(IHM,IDD_TS,KR)+TS*PTYPE
+              HDIURN(IHM,IDD_TG1,KR)=HDIURN(IHM,IDD_TG1,KR)+(TG1+TF)
+     *             *PTYPE
+              HDIURN(IHM,IDD_QS,KR)=HDIURN(IHM,IDD_QS,KR)+QSRF*PTYPE
+              HDIURN(IHM,IDD_QG,KR)=HDIURN(IHM,IDD_QG,KR)+QG_SAT*PTYPE
+              HDIURN(IHM,IDD_SWG,KR)=HDIURN(IHM,IDD_SWG,KR)+SRHEAT
+     *             *DTSURF*PTYPE
+              HDIURN(IHM,IDD_LWG,KR)=HDIURN(IHM,IDD_LWG,KR)+TRHDT*PTYPE
+              HDIURN(IHM,IDD_SH,KR)=HDIURN(IHM,IDD_SH,KR)+SHDT*PTYPE
+              HDIURN(IHM,IDD_LH,KR)=HDIURN(IHM,IDD_LH,KR)+EVHDT*PTYPE
+              HDIURN(IHM,IDD_HZ0,KR)=HDIURN(IHM,IDD_HZ0,KR)
+     *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
+              HDIURN(IHM,IDD_UG,KR)=HDIURN(IHM,IDD_UG,KR)+UG*PTYPE
+              HDIURN(IHM,IDD_VG,KR)=HDIURN(IHM,IDD_VG,KR)+VG*PTYPE
+              HDIURN(IHM,IDD_WG,KR)=HDIURN(IHM,IDD_WG,KR)+WG*PTYPE
+              HDIURN(IHM,IDD_US,KR)=HDIURN(IHM,IDD_US,KR)+US*PTYPE
+              HDIURN(IHM,IDD_VS,KR)=HDIURN(IHM,IDD_VS,KR)+VS*PTYPE
+              HDIURN(IHM,IDD_WS,KR)=HDIURN(IHM,IDD_WS,KR)+WS*PTYPE
+              HDIURN(IHM,IDD_CIA,KR)=HDIURN(IHM,IDD_CIA,KR)+PSI*PTYPE
+              HDIURN(IHM,IDD_CM,KR)=HDIURN(IHM,IDD_CM,KR)+CM*PTYPE
+              HDIURN(IHM,IDD_CH,KR)=HDIURN(IHM,IDD_CH,KR)+CH*PTYPE
+              HDIURN(IHM,IDD_CQ,KR)=HDIURN(IHM,IDD_CQ,KR)+CQ*PTYPE
+              HDIURN(IHM,IDD_EDS,KR)=HDIURN(IHM,IDD_EDS,KR)+KHS*PTYPE
+              HDIURN(IHM,IDD_DBL,KR)=HDIURN(IHM,IDD_DBL,KR)+DBL*PTYPE
+              HDIURN(IHM,IDD_EV,KR)=HDIURN(IHM,IDD_EV,KR)+EVAP*PTYPE
             END IF
           END DO
         END IF
@@ -905,6 +942,9 @@ C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
           IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
             ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
             ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
+     *           +DCLEV(IJDD(1,KR),IJDD(2,KR))
+            HDIURN(IHM,IDD_DCF,KR)=HDIURN(IHM,IDD_DCF,KR)+1.
+            HDIURN(IHM,IDD_LDC,KR)=HDIURN(IHM,IDD_LDC,KR)
      *           +DCLEV(IJDD(1,KR),IJDD(2,KR))
           END IF
         END DO

@@ -33,7 +33,7 @@
 c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx
-      use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck
+      use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck,jdate
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pk,pek,pedn,pdsig,am,byam
@@ -62,7 +62,7 @@ c****
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
-      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
+      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
@@ -131,7 +131,7 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,l,kr,jr,itype,ih,ibv
+      integer i,j,l,kr,jr,itype,ih,ihm,ibv
       real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
@@ -192,6 +192,7 @@ c****
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
       ih=1+jhour
+      ihm = ih+(jdate-1)*24
 c****
 c**** outside loop over time steps, executed nisurf times every hour
 c****
@@ -830,6 +831,29 @@ c**** quantities accumulated hourly for diagDD
             adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+khs*ptype
             adiurn(ih,idd_dbl,kr)=adiurn(ih,idd_dbl,kr)+dbl*ptype
             adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+evap*ptype
+            hdiurn(ihm,idd_ts,kr)=hdiurn(ihm,idd_ts,kr)+ts*ptype
+            hdiurn(ihm,idd_tg1,kr)=hdiurn(ihm,idd_tg1,kr)+(tg1+tf)*ptype
+            hdiurn(ihm,idd_qs,kr)=hdiurn(ihm,idd_qs,kr)+qs*ptype
+            hdiurn(ihm,idd_qg,kr)=hdiurn(ihm,idd_qg,kr)+qg*ptype
+            hdiurn(ihm,idd_swg,kr)=hdiurn(ihm,idd_swg,kr)+srhdt*ptype
+            hdiurn(ihm,idd_lwg,kr)=hdiurn(ihm,idd_lwg,kr)+trhdt*ptype
+            hdiurn(ihm,idd_sh,kr)=hdiurn(ihm,idd_sh,kr)+shdt*ptype
+            hdiurn(ihm,idd_lh,kr)=hdiurn(ihm,idd_lh,kr)+evhdt*ptype
+            hdiurn(ihm,idd_hz0,kr)=hdiurn(ihm,idd_hz0,kr)
+     *           +(srhdt+trhdt+shdt+evhdt)*ptype
+            hdiurn(ihm,idd_ug,kr)=hdiurn(ihm,idd_ug,kr)+ug*ptype
+            hdiurn(ihm,idd_vg,kr)=hdiurn(ihm,idd_vg,kr)+vg*ptype
+            hdiurn(ihm,idd_wg,kr)=hdiurn(ihm,idd_wg,kr)+wg*ptype
+            hdiurn(ihm,idd_us,kr)=hdiurn(ihm,idd_us,kr)+us*ptype
+            hdiurn(ihm,idd_vs,kr)=hdiurn(ihm,idd_vs,kr)+vs*ptype
+            hdiurn(ihm,idd_ws,kr)=hdiurn(ihm,idd_ws,kr)+ws*ptype
+            hdiurn(ihm,idd_cia,kr)=hdiurn(ihm,idd_cia,kr)+psi*ptype
+            hdiurn(ihm,idd_cm,kr)=hdiurn(ihm,idd_cm,kr)+cdm*ptype
+            hdiurn(ihm,idd_ch,kr)=hdiurn(ihm,idd_ch,kr)+cdh*ptype
+            hdiurn(ihm,idd_cq,kr)=hdiurn(ihm,idd_cq,kr)+cdq*ptype
+            hdiurn(ihm,idd_eds,kr)=hdiurn(ihm,idd_eds,kr)+khs*ptype
+            hdiurn(ihm,idd_dbl,kr)=hdiurn(ihm,idd_dbl,kr)+dbl*ptype
+            hdiurn(ihm,idd_ev,kr)=hdiurn(ihm,idd_ev,kr)+evap*ptype
           end if
         end do
       endif

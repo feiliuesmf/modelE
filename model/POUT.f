@@ -14,8 +14,8 @@ C**** have to wait.
 !@sum gissout contains variables for outputting GISS format binaries
 !@auth G. Schmidt
       implicit none
-!@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn !  units for selected diag. output
-      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn
+!@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
+      integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req,ndiuvar
 !@var JMMAX maximum conceivable JM
@@ -470,3 +470,69 @@ C**** output daily mean
 
       return
       end subroutine POUT_diurn
+
+
+      subroutine close_hdiurn
+!@sum  CLOSE_HDIURN closes the hourly diurnal_cycle ascii output file
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+      call closeunit(iu_hdiurn)
+      return
+      end subroutine close_hdiurn
+
+      subroutine open_hdiurn(filename,NDIUVAR_gcm)
+!@sum  OPEN_HDIURN opens the hourly diurnal_cycle ascii output file
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+      INTEGER, INTENT(IN) :: NDIUVAR_gcm
+      call openunit(filename,iu_hdiurn,.false.,.false.)
+      NDIUVAR = NDIUVAR_gcm
+      return
+      end subroutine open_hdiurn
+
+      subroutine POUT_hdiurn(NAME,UNITS,FHOUR,NAMDD,IJDD1,IJDD2,
+     &     HR_IN_period,kp)
+!@sum  POUT_hdiurn output hourly diurnal_cycle ascii file (aplot format)
+!@auth J. Lerner
+!@ver  1.0
+      USE GISSOUT
+      IMPLICIT NONE
+!@var NAME,UNITS dummy strings
+      CHARACTER*16, DIMENSION(NDIUVAR) :: UNITS,NAME
+      CHARACTER*4, INTENT(IN) :: NAMDD !names of boxes
+      INTEGER, INTENT(IN) :: HR_IN_period,KP,IJDD1,IJDD2
+      REAL*8, DIMENSION(HR_IN_period+4,NDIUVAR), INTENT(IN) :: FHOUR
+      INTEGER K,N,I
+
+C**** Convert spaces in TITLE to underscore
+C**** Try simply removing spaces for compactness
+      DO K=1,kp
+        do n=2,len_trim(name(K))    ! skip leading blank
+          if (name(k)(n:n).eq.' ') name(k)(n:n)='_'
+        end do
+        do n=2,len_trim(units(K))
+          if (units(k)(n:n).eq.' ') units(k)(n:n)='_'
+        end do
+      END DO
+
+      WRITE(iu_hdiurn,*) "Hourly Value for Region ",NAMDD,' at (',
+     &    IJDD1,',',IJDD2,')'
+      WRITE(iu_hdiurn,*) "Hour"
+      WRITE(iu_hdiurn,*) "Hourly Value"
+      WRITE(iu_hdiurn,'(A4,100A)') "Hour",(NAME(K),K=1,kp)
+
+      DO I=1,HR_IN_period+4
+        WRITE(iu_hdiurn,'(I4,100(1X,F9.3))') I,(FHOUR(i,K),K=1,kp)
+      END DO
+      WRITE(iu_hdiurn,*)
+
+      return
+      end subroutine POUT_hdiurn

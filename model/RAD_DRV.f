@@ -519,7 +519,7 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
+      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,hdiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
@@ -555,7 +555,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD
 
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JR,IH,INCH,JK,IT,iy,iend,icc1
+      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi
@@ -697,7 +697,7 @@ C****
       JCKERR=0
       KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2, PLAND,
+!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2, PLAND,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -863,6 +863,15 @@ CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
                ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
                ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
                ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+               IHM = JHOUR+INCH+(JDATE-1)*24
+               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
+               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
+               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
+               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
+               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
+               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
+               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
+               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
              END DO
            END IF
          END DO
@@ -1147,6 +1156,14 @@ C
                ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
      *              ((SNFS(4,I,J)-SNFS(1,I,J))*CSZ2-TNFS(4,I,J)
      *              +TNFS(1,I,J))
+               IHM = JHOUR+INCH+(JDATE-1)*24
+               HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
+     *              (1.-SNFS(4,I,J)/S0)
+               HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+
+     *              (1.-ALB(I,J,1))
+               HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+
+     *              ((SNFS(4,I,J)-SNFS(1,I,J))*CSZ2-TNFS(4,I,J)
+     *              +TNFS(1,I,J))
              END DO
            END IF
          END DO
@@ -1242,8 +1259,11 @@ C****
       END DO
 C**** daily diagnostics
       IH=1+JHOUR
+      IHM = IH+(JDATE-1)*24
       DO KR=1,NDIUPT
         ADIURN(IH,IDD_ISW,KR)=ADIURN(IH,IDD_ISW,KR)+
+     *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
+        HDIURN(IHM,IDD_ISW,KR)=HDIURN(IHM,IDD_ISW,KR)+
      *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       END DO
 

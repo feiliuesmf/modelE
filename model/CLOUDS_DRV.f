@@ -8,7 +8,7 @@
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
      *     ,teeny
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
@@ -23,7 +23,7 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas
      *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
-     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,
+     *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
      *     ntau,npres,aisccp,isccp_reg
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
@@ -96,7 +96,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
       REAL*8,  PARAMETER :: ENTCON = .2d0
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600
+      INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -183,6 +183,7 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=VZM(2,L)/FIM
       ENDDO
       IH=JHOUR+1
+      IHM = IH+(JDATE-1)*24
 #ifdef TRACERS_ON
 C**** Find the ntx active tracers ntix(1->ntx
       nx = 0
@@ -412,6 +413,11 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
             ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
             ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
             ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
+            HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPMC
+            HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDMC
+            HDIURN(IHM,IDD_MCP ,KR)=HDIURN(IHM,IDD_MCP ,KR)+PRCPMC
+            HDIURN(IHM,IDD_DMC ,KR)=HDIURN(IHM,IDD_DMC ,KR)+CLDDEPIJ
+            HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
           END IF
         END DO
 
@@ -586,6 +592,9 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
              ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
+             HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPSS
+             HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDSS
+             HDIURN(IHM,IDD_SSP ,KR)=HDIURN(IHM,IDD_SSP ,KR)+PRCPSS
            END IF
          END DO
 
