@@ -23,7 +23,8 @@
       USE CONSTANT, only : kapa,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
-      USE DAGCOM, only : ajl
+      USE DAGCOM, only : ajl,
+     &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE DAGPCOM, only : p1000k
 
       IMPLICIT NONE
@@ -160,11 +161,11 @@ c     integrate T,Q equations at tcells
             egcm(l,i,j)=eij(l)
             km_gcm(l,i,j)=km(l)
 c           ACCUMULATE DIAGNOSTICS
-            AJL(J,L,12)=AJL(J,L,12)
+            AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)
      2                 +(T(I,J,L)-t0ijl)*PK(L,I,J)*PLIJ(L,I,J)
-            AJL(J,L,55)=AJL(J,L,55)
+            AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)
      2                 +(Q(I,J,L)-q0ij(l))*PDSIG(L,I,J)*LHE/SHA
-            AJL(J,L,54)=AJL(J,L,54)+eij(l)
+            AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+eij(l)
           end do
           dclev(i,j)=dbll
 c
@@ -246,7 +247,7 @@ c     ACCUMULATE DIAGNOSTICS
                RAK=RAVJ(K,J)
                IDIK=IDIJ(K,I,J)
                IDJK=IDJJ(K,J)
-               AJL(IDJK,L,38)=AJL(IDJK,L,38)
+               AJL(IDJK,L,JL_DAMDC)=AJL(IDJK,L,JL_DAMDC)
      &           +(U(IDIK,IDJK,L)-uold(IDIK,IDJK,L))*PLIJ(L,I,J)*RAK
              ENDDO
           ENDDO

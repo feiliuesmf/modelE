@@ -47,7 +47,7 @@ C****
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj
-      USE DAGCOM, only : ajl
+      USE DAGCOM, only : ajl,jl_dudtsdif
       USE STRAT, only : defrm,pk
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
@@ -164,7 +164,7 @@ C**** dq/dt by diffusion as tridiagonal matrix
 C**** Update model winds
       IF (MRCH.GT.0) THEN
          DO L=1,LM
-           AJL(J,L,32) = AJL(J,L,32) + DU(L)
+           AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
          END DO
       ENDIF
       DO L=1,LM
@@ -325,6 +325,7 @@ C**** Do I need to put the common decalaration here also?
      *     ,rapvs
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9 
+     &     ,jl_dudfmdrg,jl_sdifcoef,jl_dtdtsdrg
       USE FILEMANAGER
       USE PARAM
       IMPLICIT NONE
@@ -786,8 +787,8 @@ C**** ACCUMULATE SATURATION FLUX FOR MTN WAVES DURING BRKING
 C     IF (N.NE.1.OR.MRCH.NE.2) GO TO 375
 C     DO 370 L=LD1,LTOP
 C     IF (DFM(L).EQ.0.) GO TO 370
-C        AJL(J,L,30)=AJL(J,L,30)+ZWT(I,J)
-C        AJL(J,L,18)=AJL(J,L,18)+MUB(L+1,1)*UR(1)*ZWT(I,J)
+C        AJL(J,L,JL_30)=AJL(J,L,JL_30)+ZWT(I,J)
+C        AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+MUB(L+1,1)*UR(1)*ZWT(I,J)
 C 370 CONTINUE
 C**** CALCULATE DIFFUSION COEFFICIENT AND ADD DRAG TO THE WINDS
 C**** (DEFORMATION DIFFUSION IS * XDIFF)
@@ -809,7 +810,7 @@ C    *  3E12.3,'  DFT=',E12.3)
         IF (N.LT.9) THEN
          AJL(J,L,N+19)=AJL(J,L,N+19)+DUTN
         ELSE
-         AJL(J,L,18)=AJL(J,L,18)+DUTN
+         AJL(J,L,JL_DUDFMDRG)=AJL(J,L,JL_DUDFMDRG)+DUTN
         ENDIF
   390 CONTINUE
   400 CONTINUE
@@ -840,7 +841,7 @@ C9430 FORMAT (' 7267 DIFFX > LIMIT:',4I3,1P,3E10.2,0P,2F7.1)
       FLUXV=DX/(1.+DX*(MUP+MDN)/(MUP*MDN))*(VL(L)-VL(L-1))
       DUT(L-1)=DUT(L-1)-(FLUXUD-FLUXU)/MDN
       DVT(L-1)=DVT(L-1)-(FLUXVD-FLUXV)/MDN
-C        IF (MRCH.EQ.2) AJL(J,L-1,32)=AJL(J,L-1,32)-(FLUXUD-FLUXU)/MDN
+C        IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
       FLUXUD=FLUXU
       FLUXVD=FLUXV
       YDN=YUP
@@ -852,9 +853,10 @@ C**** DIFFUSION IN THE TOP LAYER COMES ONLY FROM BELOW.
       DVT(LM)=DVT(LM)-FLUXVD/MDN
 C****    ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
          IF (MRCH.EQ.2) THEN
-C        AJL(J,LM,32)=AJL(J,LM,32)-FLUXUD/MDN
+C        AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
          DO 440 L=LDRAG,LM
-  440    AJL(J,L,31)=AJL(J,L,31)+DL(L)/(BVF(L)*BVF(L))*DTHR
+  440    AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
+     &           DL(L)/(BVF(L)*BVF(L))*DTHR
          ENDIF
 C****
 C**** Save KE change and diffusion coefficient on A-grid
@@ -898,7 +900,8 @@ C****
       DO J=1,JM
       DO I=1,IMAXJ(J)
         T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
-        AJL(J,L,33)=AJL(J,L,33)-DKE(I,J,L)/(SHA*PK(I,J,L))
+        AJL(J,L,JL_dtdtsdrg)=AJL(J,L,JL_dtdtsdrg)-
+     &       DKE(I,J,L)/(SHA*PK(I,J,L))
       END DO
       END DO
       END DO

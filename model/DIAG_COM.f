@@ -308,6 +308,24 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var jgrid_ij 1=primary grid  2=secondary grid
       integer, dimension(kaijx) :: jgrid_ij
 
+!@var JL_xxx names for JL diagnostic indices
+      INTEGER ::
+     &     JL_FREE01,JL_FREE02,JL_FREE03,JL_FREE04
+     &    ,JL_FREE05,JL_FREE06,JL_FREE07,JL_mcmflx
+     &    ,JL_srhr,JL_trcr,JL_sshr,JL_trbhr
+     &    ,JL_mchr,JL_FREE14,JL_FREE15,JL_ape
+     &    ,JL_dtdyn,JL_dudfmdrg,JL_totcld,JL_dumtndrg
+     &    ,JL_dushrdrg,JL_dumcdrgm10,JL_dumcdrgp10,JL_dumcdrgm40
+     &    ,JL_dumcdrgp40,JL_dumcdrgm20,JL_dumcdrgp20,JL_sscld
+     &    ,JL_mccld,JL_FREE30,JL_sdifcoef,JL_dudtsdif
+     &    ,JL_dtdtsdrg,JL_FREE34,JL_FREE35,JL_epflxv
+     &    ,JL_epflxn,JL_damdc,JL_dammc,JL_40
+     &    ,JL_uepac,JL_vepac,JL_wepac,JL_uwpac
+     &    ,JL_vwpac,JL_wwpac,JL_47,JL_zmfntmom
+     &    ,JL_totntmom,JL_mchphas,JL_mcdtotw,JL_dudtsdrg
+     &    ,JL_mcdlht,JL_trbke,JL_trbdlht,JL_mcheat
+     &    ,JL_mcdry
+
 !@var NAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajl) :: name_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
@@ -325,6 +343,22 @@ C****      names, indices, units, idacc-numbers, etc.
       double precision, dimension(kasjl) :: scale_sjl
 !@var IA_SJL idacc-numbers for SJL diagnostics
       integer, dimension(kasjl) :: ia_sjl
+
+!@var JK_xxx names for JK diagnostic indices
+      INTEGER ::
+     &     JK_dpa ,JK_dpb ,JK_temp ,JK_hght
+     &    ,JK_q ,JK_theta ,JK_rh ,JK_u
+     &    ,JK_v ,JK_zmfke ,JK_totke ,JK_zmfntsh
+     &    ,JK_totntsh ,JK_zmfntgeo ,JK_totntgeo ,JK_zmfntlh
+     &    ,JK_totntlh ,JK_zmfntke ,JK_totntke ,JK_zmfntmom
+     &    ,JK_totntmom ,JK_p2kedpgf ,JK_dpsqr ,JK_nptsavg
+     &    ,JK_vvel ,JK_zmfvtdse ,JK_totvtdse ,JK_zmfvtlh
+     &    ,JK_totvtlh ,JK_vtgeoeddy ,JK_barekegen ,JK_potvort
+     &    ,JK_vtpv ,JK_vtpveddy ,JK_nptsavg1 ,JK_totvtke
+     &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
+     &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
+     &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
+     &    ,JK_totdtdt ,JK_eddvtpt ,JK_cldh2o
 
 !@var NAME_JK Names of lat-pressure JK diagnostics
       character(len=30), dimension(kajl) :: name_jk

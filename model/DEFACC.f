@@ -2379,41 +2379,49 @@ c
       k=0
 c
       k=k+1
+      jl_free01 = k
       name_jl(k) = 'AJL01'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free02 = k
       name_jl(k) = 'AJL02'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free03 = k
       name_jl(k) = 'AJL03'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free04 = k
       name_jl(k) = 'AJL04'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free05 = k
       name_jl(k) = 'AJL05'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free06 = k
       name_jl(k) = 'AJL06'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free07 = k
       name_jl(k) = 'AJL07'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_mcmflx = k
       name_jl(k) = 'mc_mflx' !'AJL08'                  'FMX(MC)*P'
       lname_jl(k) = 'VERTICAL MASS EXCHANGE FROM MOIST CONVECTION'
       units_jl(k) = '10**9 KG/SECOND' !'100 PA'
@@ -2422,6 +2430,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_srhr = k
       name_jl(k) = 'srad_heat' !'AJL09'
       lname_jl(k) = 'SOLAR RADIATION HEATING RATE' !'SRHR'
       units_jl(k) = 'HUNDREDTHS OF DEGREES KELVIN/DAY' !'W/m^2'
@@ -2430,6 +2439,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_trcr = k
       name_jl(k) = 'trad_cool' !'AJL10'
       lname_jl(k) = 'THERMAL RADIATION COOLING RATE' !'TRHR'
       units_jl(k) = 'HUNDREDTHS OF DEGREES K/DAY' !'W/m^2'
@@ -2438,6 +2448,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_sshr = k
       name_jl(k) = 'lscond_heat' !'AJL11'
       lname_jl(k) = 'HEATING BY LARGE SCALE CONDENSATION' !'DTX(SS)*P'
       units_jl(k) = '10**13 WATTS/UNIT SIGMA' !'100 K*PA'
@@ -2446,6 +2457,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_trbhr = k
       name_jl(k) = 'turb_heat' !'AJL12'
       lname_jl(k) = 'HEATING BY TURBULENCE' !'DT(DC)*P'
       units_jl(k) = '10**13 WATTS/UNIT SIGMA' !'100 K*PA'
@@ -2454,21 +2466,25 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_mchr = k
       name_jl(k) = 'AJL13'
       lname_jl(k) = 'DT(MC)*P  DRY HEATING'
       units_jl(k) = '100 PA*K'
 c
       k=k+1
+      jl_free14 = k
       name_jl(k) = 'AJL14'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free15 = k
       name_jl(k) = 'AJL15'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_ape = k
       name_jl(k) = 'avail_pe' !'AJL16'
       lname_jl(k) = 'AVAILABLE POTENTIAL ENERGY'
       units_jl(k) = '10**5 JOULES/M**2/UNIT SIGMA'
@@ -2477,6 +2493,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_dtdyn = k
       name_jl(k) = 'DT_DYNAMICS' !'AJL17'
       lname_jl(k) = 'DTEMP/DT BY DYNAMICS'
       units_jl(k) = '10**-1 DEG-K/DAY'
@@ -2485,11 +2502,13 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      name_jl(k) = 'AJL18'
+      jl_dudfmdrg = k
+      name_jl(k) = 'dudt_dfmdrg' !'AJL18'
       lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
       units_jl(k) = 'M/S'
 c
       k=k+1
+      jl_totcld = k
       name_jl(k) = 'totcld' !'AJL19'
       lname_jl(k) = 'TOTAL CLOUD COVER' !'PCLD*P (TOTAL)'
       units_jl(k) = 'PERCENT'
@@ -2498,46 +2517,58 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      name_jl(k) = 'AJL20'
+      jl_dumtndrg = k
+      name_jl(k) = 'dudt_mtndrg' !'AJL20'
       lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
-      units_jl(k) = 'M/S'
+      units_jl(k) = '10**-6 M S-2' ! ??? 'M/S'
+      scale_jl(k) = 1.D6/(FIM*DTsrc)
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
 c
       k=k+1
-      name_jl(k) = 'AJL21'
+      jl_dushrdrg = k
+      name_jl(k) = 'dudt_shrdrg'
       lname_jl(k) = 'DU/DT BY STRAT SHR DRAG'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL22'
+      jl_dumcdrgm10 = k
+      name_jl(k) = 'dudt_mcdrgm10' !'AJL22'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-10'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL23'
+      jl_dumcdrgp10 = k
+      name_jl(k) = 'dudt_mcdrgp10' !'AJL23'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+10'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL24'
+      jl_dumcdrgm40 = k
+      name_jl(k) = 'dudt_mcdrgm40' !'AJL24'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-40'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL25'
+      jl_dumcdrgp40 = k
+      name_jl(k) = 'dudt_mcdrgp40' !'AJL25'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+40'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL26'
+      jl_dumcdrgm20 = k
+      name_jl(k) = 'dudt_mcdrgm20' !'AJL26'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-20'
       units_jl(k) = 'M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL27'
+      jl_dumcdrgp20 = k
+      name_jl(k) = 'dudt_mcdrgp20' !'AJL27'
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+20'
       units_jl(k) = 'M/S'
 c
       k=k+1
+      jl_sscld = k
       name_jl(k) = 'sscld' !'AJL28'
       lname_jl(k) = 'SUPER SATURATION CLOUD COVER' !'PCLD*P (SS)'
       units_jl(k) = 'PERCENT'
@@ -2546,6 +2577,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_mccld = k
       name_jl(k) = 'mccld' !'AJL29'
       lname_jl(k) = 'MOIST CONVECTIVE CLOUD COVER' !'PCLD*P (MC)'
       units_jl(k) = 'PERCENT'
@@ -2554,21 +2586,25 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_free30 = k
       name_jl(k) = 'AJL30'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
-      name_jl(k) = 'AJL31'
+      jl_sdifcoef = k
+      name_jl(k) = 'strat_diff_coeff' !'AJL31'
       lname_jl(k) = 'STRAT. DIFFUSION COEFF'
       units_jl(k) = 'M*M/S'
 c
       k=k+1
-      name_jl(k) = 'AJL32'     ! gwdrag
+      jl_dudtsdif = k
+      name_jl(k) = 'dudt_sdiff' !'AJL32'     ! gwdrag
       lname_jl(k) = 'DU/DT  STRATOSPHERIC DIFFUSION'
       units_jl(k) = 'M/S'
 c
       k=k+1
+      jl_dtdtsdrg = k
       name_jl(k) = 'DT_SDRAG' !'AJL33'
       lname_jl(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG'
       units_jl(k) = '10**-1 DEG-K/DAY'
@@ -2577,16 +2613,19 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_free34 = k
       name_jl(k) = 'AJL34'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_free35 = k
       name_jl(k) = 'AJL35'
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_epflxv = k
       name_jl(k) = 'epflx_vert' !'AJL36'
       lname_jl(k) = 'VERTICAL ELIASSEN-PALM FLUX'
       units_jl(k) = '10**17 JOULES'
@@ -2595,6 +2634,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_epflxn = k
       name_jl(k) = 'epflx_north' !'AJL37'
       lname_jl(k) = 'NORTHWARD ELIASSEN-PALM FLUX'
       units_jl(k) = '10**17 JOULES/UNIT SIGMA'
@@ -2603,6 +2643,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_damdc = k
       name_jl(k) = 'del_am_dc' !'AJL38'
       lname_jl(k) = 'CHANGE OF ANG. MOMENTUM BY TURBULENCE'
       units_jl(k) = '10**18 JOULE/UNIT SIGMA'
@@ -2611,6 +2652,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_dammc = k
       name_jl(k) = 'del_am_mc' !'AJL39'          'DU(MC)*P (UV GRID)'
       lname_jl(k) = 'CHANGE OF ANG. MOMENTUM BY MOIST CONV' ! UV GRID
       units_jl(k) = '10**18 JOULE/UNIT SIGMA' !'100 N/m/s'
@@ -2619,11 +2661,13 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
-      name_jl(k) = 'AJL40'
+      jl_40 = k
+      name_jl(k) = 'AJL40' !DU(ED)*P*(DTSURF*DSIG*ED/DZ**2)  (UV GRID)
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_uepac = k
       name_jl(k) = 'u_epac' !'AJL41'
       lname_jl(k) = 'U WIND AVERAGED OVER I,EAST PACIFIC'
       units_jl(k) = 'TENTHS OF METERS/SECOND'
@@ -2632,6 +2676,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_vepac = k
       name_jl(k) = 'v_epac' !'AJL42'
       lname_jl(k) = 'V WIND AVERAGED OVER EAST PACIFIC'
       units_jl(k) = 'TENTHS OF METERS/SECOND'
@@ -2640,6 +2685,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_wepac = k
       name_jl(k) = 'vvel_epac' !'AJL43'
       lname_jl(k) = 'VERTICAL VELOCITY FOR EAST PACIFIC'
       units_jl(k) = '10**-5 METERS/SECOND'
@@ -2648,6 +2694,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_uwpac = k
       name_jl(k) = 'u_wpac' !'AJL44'
       lname_jl(k) = 'U WIND AVERAGED OVER I=WEST PACIFIC'
       units_jl(k) = 'TENTHS OF METERS/SECOND'
@@ -2656,6 +2703,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_vwpac = k
       name_jl(k) = 'v_wpac' !'AJL45'
       lname_jl(k) = 'V WIND AVERAGED OVER I=WEST PACIFIC'
       units_jl(k) = 'TENTHS OF METERS/SECOND'
@@ -2664,6 +2712,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_wwpac = k
       name_jl(k) = 'vvel_wpac' !'AJL46'
       lname_jl(k) = 'VERTICAL VELOCITY FOR WEST PACIFIC'
       units_jl(k) = '10**-5 METERS/SECOND'
@@ -2672,31 +2721,37 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
-      name_jl(k) = 'AJL47'
+      jl_47 = k
+      name_jl(k) = 'AJL47' !V-V*  =D((V-VI)*(T-TI)/DTHDP)/DP
       lname_jl(k) = 'unknown'
       units_jl(k) = 'unknown'
 c
       k=k+1
-      name_jl(k) = 'AJL48'
-      lname_jl(k) = 'unknown'
+      jl_zmfntmom = k
+      name_jl(k) = 'zmf_nt_mom' !'AJL48'
+      lname_jl(k) = 'NORTH TRANS ZON. MOM. BY ZON. MEAN FLOW'
       units_jl(k) = 'unknown'
 c
       k=k+1
-      name_jl(k) = 'AJL49'
-      lname_jl(k) = 'unknown'
+      jl_totntmom = k
+      name_jl(k) = 'tot_nt_mom' !'AJL49'
+      lname_jl(k) = 'TOTAL NORTH TRANS ZON. MOM.'
       units_jl(k) = 'unknown'
 c
       k=k+1
+      jl_mchphas = k
       name_jl(k) = 'AJL50'
       lname_jl(k) = 'DT(MC)*P  CHANGE OF PHASE'
       units_jl(k) = '100 PA*K'
 c
       k=k+1
-      name_jl(k) = 'AJL51'
-      lname_jl(k) = 'CLHE*DQ(MC BEFORE COND)*P'
+      jl_mcdtotw = k
+      name_jl(k) = 'mc_del_tot_wat' !'AJL51' !'CLHE*DQ(MC BEFORE COND)*P'
+      lname_jl(k) = 'CHANGE IN TOTAL WATER BY MOIST CONV'
       units_jl(k) = '100 PA*K'
 c
       k=k+1
+      jl_dudtsdrg = k
       name_jl(k) = 'dudt_sdrag' !'AJL52'
       lname_jl(k) = 'DU/DT BY SDRAG'
       units_jl(k) = '10**-6 M S-2'
@@ -2705,6 +2760,7 @@ c
       jgrid_jl(k) = 2
 c
       k=k+1
+      jl_mcdlht = k
       name_jl(k) = 'moist_lat' !'AJL53'
       lname_jl(k) = 'CHANGE OF LATENT HEAT BY MOIST CONV.'
       units_jl(k) = '10**14 W/UNIT SIGMA'
@@ -2713,6 +2769,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_trbke = k
       name_jl(k) = 'tke' !'AJL54'
       lname_jl(k) = 'TURBULENT KINETIC ENERGY'
       units_jl(k) = 'W/M^2'
@@ -2721,6 +2778,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_trbdlht = k
       name_jl(k) = 'turb_lat' !'AJL55'
       lname_jl(k) = 'CHANGE OF LATENT HEAT BY TURBULENCE'
       units_jl(k) = '10**14 W/UNIT SIGMA'
@@ -2729,6 +2787,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_mcheat = k
       name_jl(k) = 'tot_ht_mc' !'AJL56'
       lname_jl(k) = 'TOTAL HEATING BY MOIST CONVECTION (Q1)'
       units_jl(k) = '10**14 WATTS/DSIG'
@@ -2737,6 +2796,7 @@ c
       jgrid_jl(k) = 1
 c
       k=k+1
+      jl_mcdry = k
       name_jl(k) = 'tot_dry_mc' !'AJL57'
       lname_jl(k) = 'TOTAL DRYING BY MOIST CONVECTION (Q2)'
       units_jl(k) = '10**14 WATTS/DSIG'
@@ -2806,6 +2866,7 @@ c
       k=0
 c
       k=k+1
+      jk_dpa = k
       name_jk(k) = 'dp_cp1' !   DP=MIN(PM(K),PS)-MIN(PM(K+1),PS)
       lname_jk(k) =  'PRESSURE DIFFERENCES (CP,PT)' ! DP (PT GRID)
       units_jk(k) = 'mb'
@@ -2814,6 +2875,7 @@ c
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_dpb = k
       name_jk(k) = 'dp_cp2' !'AJK02'
       lname_jk(k) = 'PRESSURE DIFFERENCES (CP,UV)' ! DP (UV GRID)
       units_jk(k) = 'mb'
@@ -2822,122 +2884,144 @@ c
       jgrid_jk(k) = 2
 c
       k=k+1
+      jk_temp = k
       name_jk(k) = 'temp' !'AJK03'
       lname_jk(k) = 'TEMPERATURE' !'(TX-273.16)*DP'
       units_jk(k) = 'DEGREES CENTIGRADE'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_hght = k
       name_jk(k) = 'height' !'AJK04'
       lname_jk(k) = 'HEIGHT' !'PHI*DP'
       units_jk(k) = 'HUNDREDS OF METERS'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_q = k
       name_jk(k) = 'q' !'AJK05'
       lname_jk(k) = 'SPECIFIC HUMIDITY' !'Q*DP'
       units_jk(k) = '10**-5 KG H2O/KG AIR'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_theta = k
       name_jk(k) = 'pot_temp' !'AJK06'
       lname_jk(k) = 'POTENTIAL TEMPERATURE' !'TH*DP'
       units_jk(k) = 'DEGREES KELVIN'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_rh = k
       name_jk(k) = 'rh' !'AJK07'
       lname_jk(k) = 'RELATIVE HUMIDITY' !'RH*DP'
       units_jk(k) = 'PERCENT'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_u = k
       name_jk(k) = 'u' !'AJK08'
       lname_jk(k) = 'ZONAL WIND (U COMPONENT)' !'U*DP4  (UV GRID)'
       units_jk(k) = 'TENTHS OF METERS/SECOND' !'100 PA*m/s'
       jgrid_jk(k) = 2
 c
       k=k+1
+      jk_v = k
       name_jk(k) = 'v' !'AJK09'
       lname_jk(k) = 'MERIDIONAL WIND (V COMPONENT)' !'V*DP4  (UV GRID)'
       units_jk(k) = 'HUNDREDTHS OF METERS/SECOND' !'100 PA*m/s'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK10'
-      lname_jk(k) = 'unknown'
-      units_jk(k) = 'unknown'
+      jk_zmfke = k
+      name_jk(k) = 'zon_ke' !'AJK10'
+      lname_jk(k) = 'KINETIC ENERGY OF ZONAL MEAN FLOW'
+      units_jk(k) = 'm2/s2'
 c
       k=k+1
+      jk_totke = k
       name_jk(k) = 'tot_ke' !'AJK11'
       lname_jk(k) = 'TOTAL KINETIC ENERGY'
       units_jk(k) = '10**4 JOULES/M**2/UNIT SIGMA'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK12'
-      lname_jk(k) = 'unknown'
+      jk_zmfntsh = k
+      name_jk(k) = 'zmf_nt_sh' !'AJK12'
+      lname_jk(k) = 'NORTH. TRANS. SENS. HT. BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK13'
-      lname_jk(k) = 'unknown'
+      jk_totntsh = k
+      name_jk(k) = 'tot_nt_sh' !'AJK13'
+      lname_jk(k) = 'TOT NORTH. TRANS. SENS. HT'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK14'
-      lname_jk(k) = 'unknown'
+      jk_zmfntgeo = k
+      name_jk(k) = 'zmf_nt_geo' !'AJK14'
+      lname_jk(k) = 'NORTH. TRANS. GEOPOT. BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK15'
-      lname_jk(k) = 'unknown'
+      jk_totntgeo = k
+      name_jk(k) = 'tot_nt_geo' !'AJK15'
+      lname_jk(k) = 'TOT NORTH. TRANS. GEOPOT.'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK16'
-      lname_jk(k) = 'unknown'
+      jk_zmfntlh = k
+      name_jk(k) = 'zmf_nt_lh' !'AJK16'
+      lname_jk(k) = 'NORTH TRANS LAT HT BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totntlh = k
       name_jk(k) = 'tot_nt_lh' !'AJK17'
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
       units_jk(k) = '10**14 WATTS/UNIT SIG'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK18'
-      lname_jk(k) = 'unknown'
+      jk_zmfntke = k
+      name_jk(k) = 'zmf_nt_ke' !'AJK18'
+      lname_jk(k) = 'NORTH TRANS KE BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totntke = k
       name_jk(k) = 'tot_nt_ke' !'AJK19'
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
       units_jk(k) = '10**12 WATTS/DSIG'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK20'
-      lname_jk(k) = 'unknown'
+      jk_zmfntmom = k
+      name_jk(k) = 'zmf_nt_mom' !'AJK20'
+      lname_jk(k) = 'NORTH TRANS ZON. MOM. BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK21'
-      lname_jk(k) = 'unknown'
+      jk_totntmom = k
+      name_jk(k) = 'tot_nt_mom' !'AJK21'
+      lname_jk(k) = 'TOT NORTH. TRANS. ZON. MOM.'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_p2kedpgf = k
       name_jk(k) = 'p2k_eddy_pgf' !'AJK22'
       lname_jk(k) = 'P-K BY EDDY PRESSURE GRADIENT FORCE'
       units_jk(k) = '10**-1 W/M**2/UNIT SIGMA'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK23'
-      lname_jk(k) = 'unknown'
+      jk_dpsqr = k
+      name_jk(k) = 'dp_sqr' !'AJK23'
+      lname_jk(k) = 'SQUARE OF PRESSURE DIFFERENCES'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_nptsavg = k
       name_jk(k) = 'npts_avg' !'AJK24'
       lname_jk(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE (CP)'
       units_jk(k) = '1'
@@ -2946,153 +3030,180 @@ c
       jgrid_jk(k) = 2
 c
       k=k+1
+      jk_vvel = k
       name_jk(k) = 'vvel' !'AJK25'
       lname_jk(k) = 'VERTICAL VELOCITY'
       units_jk(k) = '10**-5 MILLIBARS/SECOND'
       jgrid_jk(k) = 1
 c
       k=k+1
-      name_jk(k) = 'AJK26'
-      lname_jk(k) = 'unknown'
+      jk_zmfvtdse = k
+      name_jk(k) = 'zmf_vt_dse' !'AJK26'
+      lname_jk(k) = 'VERT TRANS DRY STAT. ENER. BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totvtdse = k
       name_jk(k) = 'tot_vt_dse' !'AJK27'
       lname_jk(k)='TOTAL LGE SCALE VERT. TRANS. OF DRY STAT. ENER. (CP)'
       units_jk(k) = '10**14 WATTS'
       jgrid_jk(k) = 1
 c
       k=k+1
-      name_jk(k) = 'AJK28'
-      lname_jk(k) = 'unknown'
+      jk_zmfvtlh = k
+      name_jk(k) = 'zmf_vt_lh' !'AJK28'
+      lname_jk(k) = 'VERT TRANS LATENT HEAT BY ZON. MEAN FLOW'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totvtlh = k
       name_jk(k) = 'tot_vt_lh' !'AJK29'
       lname_jk(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF LATENT HEAT (CP)'
       units_jk(k) = '10**13 WATTS'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_vtgeoeddy = k
       name_jk(k) = 'vt_geopot_eddy' !'AJK30'
       lname_jk(k) = 'VERT. TRANS. OF GEOPOTENTIAL ENERGY BY EDDIES (CP)'
       units_jk(k) = '10**12 WATTS'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_barekegen = k
       name_jk(k) = 'baroc_eddy_ke_gen' !'AJK31'
       lname_jk(k) = 'BAROCLINIC EDDY KINETIC ENERGY GEN.'
       units_jk(k) = '10**-1 WATTS/M**2/SIGMA'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_potvort = k
       name_jk(k) = 'pot_vort' !'AJK32'
       lname_jk(k) = 'POTENTIAL VORTICITY (CP)'
       units_jk(k) = '10**-6 K/(MB-S)'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_vtpv = k
       name_jk(k) = 'vt_pv' !'AJK33'
       lname_jk(k) = 'VERT. TRANSPORT OF POTENTIAL VORTICITY (CP)'
       units_jk(k) = '10**4 KG-DEG K/MB/S/S'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_vtpveddy = k
       name_jk(k) = 'vt_pv_eddy' !'AJK34'
       lname_jk(k) = 'VERT. TRANS. OF POT. VORT. BY EDDIES (CP)'
       units_jk(k) = '10**4 KG-DEG K/MB/S/S'
       jgrid_jk(k) = 1
 c
       k=k+1
-      name_jk(k) = 'AJK35'
-      lname_jk(k) = 'unknown'
+      jk_nptsavg1 = k
+      name_jk(k) = 'npts_avg1' !'AJK35'
+      lname_jk(k) = 'NUMBER OF GRIDPOINTS IN AVERAGE (PT GRID)'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totvtke = k
       name_jk(k) = 'tot_vt_ke' !'AJK36'
       lname_jk(k) ='TOTAL LGE SCALE VERT. TRANS. OF KINETIC ENERGY (CP)'
       units_jk(k) = '10**11 WATTS'
       jgrid_jk(k) = 2
 c
       k=k+1
+      jk_vtameddy = k
       name_jk(k) = 'vt_am_eddy' !'AJK37'
       lname_jk(k) = 'VERT. TRANS. OF ANG. MOMENTUM BY EDDIES (CP)'
       units_jk(k) = '10**16 JOULES'
       jgrid_jk(k) = 2
 c
       k=k+1
+      jk_totvtam = k
       name_jk(k) = 'tot_vt_am' !'AJK38'
       lname_jk(k) = 'TOTAL LGE SCALE VERT. TRANS. OF ANG. MOMENTUM (CP)'
       units_jk(k) = '10**18 JOULES'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK39'
+      jk_sheth = k
+      name_jk(k) = 'sheth' !'AJK39'
       lname_jk(k) = 'unknown'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_dudtmadv = k
       name_jk(k) = 'dudt_mean_advec' !'AJK40'
       lname_jk(k) = 'DU/DT BY MEAN ADVECTION (CP)'
       units_jk(k) = '10**-6 M/S/S'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_dtdtmadv = k
       name_jk(k) = 'dtempdt_mean_advec' !'AJK41'
       lname_jk(k) = 'DTEMP/DT BY MEAN ADVECTION (CP)'
       units_jk(k) = '10**-1 DEG-K/DAY'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_dudttem = k
       name_jk(k) = 'dudt_advec_tem' !'AJK42'
       lname_jk(k) = 'DU/DT BY TRANSFORMED ADVECTION (CP)'
       units_jk(k) = '10**-6 M/S/S'
       jgrid_jk(k) = 1
 c
       k=k+1
+      jk_dtdttem = k
       name_jk(k) = 'dtempdt_advec_tem' !'AJK43'
       lname_jk(k) = 'DTEMP/DT BY TRANSFORMED ADVECTION (CP)'
       units_jk(k) = '10**-1 DEG-K/DAY'
       jgrid_jk(k) = 1
 c
       k=k+1
-      name_jk(k) = 'AJK44'
-      lname_jk(k) = 'unknown'
+      jk_epflxncp = k
+      name_jk(k) = 'epflx_north_cp' !'AJK44'
+      lname_jk(k) = 'NORTHWARD COMP. OF ELIASSEN-PALM FLUX (CP)'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK45'
-      lname_jk(k) = 'unknown'
+      jk_epflxvcp = k
+      name_jk(k) = 'epflx_vert_cp' !'AJK45'
+      lname_jk(k) = 'NORTHWARD COMP. OF ELIASSEN-PALM FLUX (CP)'
       units_jk(k) = 'unknown'
 c
       k=k+1
-      name_jk(k) = 'AJK46'
-      lname_jk(k) = 'unknown'
+      jk_uinst = k
+      name_jk(k) = 'u_inst' !'AJK46'
+      lname_jk(k) = 'INSTANTANEOUS ZONAL AVERAGE OF ZONAL WIND'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totdudt = k
       name_jk(k) = 'tot_dudt' !'AJK47'
       lname_jk(k) = 'DU/DT   TOTAL CHANGE (CP)'
       units_jk(k) = '10**-6 M/S/S'
       jgrid_jk(k) = 2
 c
       k=k+1
-      name_jk(k) = 'AJK48'
-      lname_jk(k) = 'unknown'
+      jk_tinst = k
+      name_jk(k) = 't_inst' !'AJK48'
+      lname_jk(k) = 'INSTANTANEOUS ZONAL AVERAGE OF TEMPERATURE'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_totdtdt = k
       name_jk(k) = 'dtempdt' !'AJK49'
       lname_jk(k) = 'DTEMP/DT   TOTAL CHANGE (CP)'
       units_jk(k) = '10**-1 DEG-K/DAY'
       jgrid_jk(k) = 1
 c
       k=k+1
-      name_jk(k) = 'AJK50'
-      lname_jk(k) = 'unknown'
+      jk_eddvtpt = k
+      name_jk(k) = 'edd_vt_pt'
+      lname_jk(k) = 'EDDY VERTICAL TRANSPORT OF POT. TEMP.'
       units_jk(k) = 'unknown'
 c
       k=k+1
+      jk_cldh2o = k
       name_jk(k) = 'cldh2o' !'AJK51'
       lname_jk(k) = 'TOTAL CLOUD WATER CONTENT'
       units_jk(k) = '10**-6 KG/KG'

@@ -427,6 +427,11 @@ C****
       USE MODEL_COM, only : im,jm,lm,sig,dsig,dtsrce=>dtsrc,psfmpt,fim
      *     ,idacc,ndaa,ls1,ptop
       USE DAGCOM, only : ajl,kajl,kep,apj
+     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
+     &     ,jl_dumcdrgm10,jl_dumcdrgp10
+     &     ,jl_dumcdrgm40,jl_dumcdrgp40
+     &     ,jl_dumcdrgm20,jl_dumcdrgp20
+     &     ,jl_dudtsdif,jl_damdc,jl_dammc
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       IMPLICIT NONE
 C**** NOTE: AEP was a seperate array but is now saved in AJL (pointer?)
@@ -598,15 +603,18 @@ C****          prints maps of  (Array * Scale * ScaleJ * ScaleL)
 C****
       DO L=1,LM
       DO J=2,JM
-        DUDS(J,L)=((AJL(J,L,18)+AJL(J,L,20))+(AJL(J,L,21)+AJL(J,L,22))+
-     *       ((AJL(J,L,23)+AJL(J,L,24))+(AJL(J,L,25)+AJL(J,L,26)))+
-     *       (AJL(J,L,27)+AJL(J,L,32)))
+        DUDS(J,L)=((AJL(J,L,JL_DUDFMDRG)+AJL(J,L,JL_DUMTNDRG))+
+     &             (AJL(J,L,JL_DUSHRDRG)+AJL(J,L,JL_DUMCDRGM10))+
+     *       ((AJL(J,L,JL_DUMCDRGP10)+AJL(J,L,JL_DUMCDRGM40))+
+     &        (AJL(J,L,JL_DUMCDRGP40)+AJL(J,L,JL_DUMCDRGM20)))+
+     *       (AJL(J,L,JL_DUMCDRGP20)+AJL(J,L,JL_DUDTSDIF)))
       END DO
       END DO
       SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
       DO L=1,LM
       DO J=2,JM
-        DUDS(J,L) = DUDS(J,L)+(AJL(J,L,38)+AJL(J,L,39))*BYDPJL(J,L)
+        DUDS(J,L) = DUDS(J,L)+
+     &        (AJL(J,L,JL_DAMDC)+AJL(J,L,JL_DAMMC))*BYDPJL(J,L)
       END DO
       END DO
       DO L=1,LM

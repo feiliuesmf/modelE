@@ -25,7 +25,9 @@
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
-     *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp
+     *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,
+     &     jl_mchphas,jl_mcdtotw,jl_mcdlht,jl_mcheat,jl_mcdry
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
@@ -180,14 +182,16 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          HCNDMC=0.
          DO L=1,LMCMAX
             HCNDMC=HCNDMC+AJ13(L)+AJ50(L)
-            AJL(J,L,13)=AJL(J,L,13)+AJ13(L)*BYDSIG(L)
-            AJL(J,L,50)=AJL(J,L,50)+AJ50(L)*BYDSIG(L)
-            AJL(J,L,51)=AJL(J,L,51)+AJ51(L)*BYDSIG(L)
+            AJL(J,L,JL_MCHR)=AJL(J,L,JL_MCHR)+AJ13(L)*BYDSIG(L)
+            AJL(J,L,JL_MCHPHAS)=AJL(J,L,JL_MCHPHAS)+AJ50(L)*BYDSIG(L)
+            AJL(J,L,JL_MCDTOTW)=AJL(J,L,JL_MCDTOTW)+AJ51(L)*BYDSIG(L)
             IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
      *           (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
-            AJL(J,L,56)=AJL(J,L,56)+(AJ50(L)+AJ13(L))*BYDSIG(L)
-            AJL(J,L,57)=AJL(J,L,57)+(AJ52(L)-AJ57(L))*BYDSIG(L)
-            AJL(J,L,8)=AJL(J,L,8)+AJ8(L)
+            AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
+     &           (AJ50(L)+AJ13(L))*BYDSIG(L)
+            AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
+     &           (AJ52(L)-AJ57(L))*BYDSIG(L)
+            AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+AJ8(L)
          END DO
          DO IT=1,NTYPE
            AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -333,8 +337,8 @@ C**** WRITE TO GLOBAL ARRAYS
          CLDSAV(L,I,J)=CLDSAVL(L)
          SVLHX(L,I,J)=SVLHXL(L)
          CSIZSS(L,I,J)=CSIZEL(L)
-         AJL(J,L,11)=AJL(J,L,11)+AJ11(L)
-         AJL(J,L,53)=AJL(J,L,53)+AJ53(L)
+         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
+         AJL(J,L,JL_MCDLHT)=AJL(J,L,JL_MCDLHT)+AJ53(L)
 
          T(I,J,L)=TH(L)
          Q(I,J,L)=QL(L)
@@ -366,7 +370,8 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO L=1,LM
          DO J=2,JM
             DO I=1,IM
-               AJL(J,L,39)=AJL(J,L,39)+(U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
+               AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
+     &              (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
             END DO
          END DO
       END DO

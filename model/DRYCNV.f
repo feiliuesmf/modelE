@@ -8,7 +8,7 @@
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
-      USE DAGCOM, only : ajl
+      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
       USE DYNAMICS, only : pk,pdsig,plij
       USE PBLCOM, only : dclev
       IMPLICIT NONE
@@ -106,8 +106,10 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       THM=THPKMS/PKMS
       QMS=QMS*RDP
       DO L=LMIN,LMAX
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
-         AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
+         AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)+
+     &        (THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
+         AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)+
+     &        (QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
       T(I,J,L)=THM
       TMOM(XYMOMS,I,J,L)=TMOMS(XYMOMS)/PKMS
       TMOM(ZMOMS,I,J,L)=0.
@@ -133,7 +135,7 @@ C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
      &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
 c the following line gives bytewise different ajl
-            AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
+            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)
      &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
          ENDDO
       ENDDO

@@ -439,7 +439,8 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
      *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n,il_r70n,
      *     ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
-     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
+     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n,
+     &     jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -536,11 +537,11 @@ C****
       TAUSSL=TAUSS(L,I,J)
       QL(L)=QSS
          CSS=1.
-         AJL(J,L,28)=AJL(J,L,28)+CSS
+         AJL(J,L,JL_SSCLD)=AJL(J,L,JL_SSCLD)+CSS
          TOTCLD(L)=1.
   220 IF (CLDMC(L,I,J).LT.RANDMC.OR.TAUMC(L,I,J).LE.0.) GO TO 230
          CMC=1.
-         AJL(J,L,29)=AJL(J,L,29)+CMC
+         AJL(J,L,JL_MCCLD)=AJL(J,L,JL_MCCLD)+CMC
          TOTCLD(L)=1.
          DEPTH=DEPTH+PDSIG(L,I,J)
       IF(TAUMC(L,I,J).LE.TAUSSL) GO TO 230
@@ -548,7 +549,7 @@ C****
       ELHX=LHE
       IF(TL(L).LE.TF) ELHX=LHS
       QL(L)=QSAT(TL(L),ELHX,PMID(L,I,J))
-  230    AJL(J,L,19)=AJL(J,L,19)+TOTCLD(L)
+  230    AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+TOTCLD(L)
       IF(TAUSSL+TAUMCL.GT.0.) THEN
         IF(TAUMCL.GT.TAUSSL) THEN
           IF(SVLAT(L,I,J).EQ.LHE) THEN
@@ -737,8 +738,8 @@ C****
          IMAX=IMAXJ(J)
          DO L=1,LM
            DO I=1,IMAX
-             AJL(J,L,9 )=AJL(J,L,9 )+SRHR(L+1,I,J)*COSZ2(I,J)
-             AJL(J,L,10)=AJL(J,L,10)+TRHR(L+1,I,J)
+             AJL(J,L,JL_SRHR)=AJL(J,L,JL_SRHR)+SRHR(L+1,I,J)*COSZ2(I,J)
+             AJL(J,L,JL_TRCR)=AJL(J,L,JL_TRCR)+TRHR(L+1,I,J)
            END DO
          END DO
          DO 770 I=1,IMAX

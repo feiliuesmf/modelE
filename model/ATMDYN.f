@@ -951,7 +951,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
      *     ,bydsig,itime
       USE GEOM, only : cosv
-      USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
+      USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag,jl_dudtsdrg
       USE DYNAMICS, only : pk
       IMPLICIT NONE
 
@@ -983,7 +983,7 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
      *         ,'Try setting XCDLM smaller.'
           X=1.
         END IF
-        AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
+        AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
