@@ -22,7 +22,7 @@ EXECDIR=/u/exec
 
 # NETCDFHOME - path to location of netcdf library. Leave blank if netcdf
 # is not installed on this computer
-NETCDFHOME=/usr/local/netcdf-3.4/lib64
+NETCDFHOME=/usr/local/netcdf-3.4
 
 # SAVEDISK - a directory where all run directories (which will contain
 # all output files such as rsf, acc etc.) will be created. This should
