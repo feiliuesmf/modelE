@@ -3524,9 +3524,7 @@ C     ------------------------------------------------------------------
      +           *SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBSCT(L,K)=SRBSCT(L,K)+SRTQSC(K,NRHNAN(L,NA),NT)*RHFTAU
       SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
-      if (K.EQ.6.and.FSTOPX(NT).EQ.1) then
-      TTAUSV(L,NT)=RHFTAU*SRTQEX(K,NRHNAN(L,NA),NT)
-      endif
+      if (K.EQ.6) TTAUSV(L,NT)=RHFTAU*SRTQEX(K,NRHNAN(L,NA),NT)
 
       END DO
       END DO
@@ -12674,7 +12672,7 @@ C     Local variables
      F         ,TR2QEX(33),TR2QSC(33),TR2QCB(33)
      G         ,TR3QEX(33),TR3QSC(33),TR3QCB(33)
      H         ,TR4QEX(33),TR4QSC(33),TR4QCB(33)
-     I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33)
+     I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33),SMOOTH(890)
 
       integer, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
 
@@ -12775,6 +12773,32 @@ C     ------------------------------------------------------------------
       G633NR(J,I)=G633NR(K,I)
   105 CONTINUE
   106 CONTINUE
+
+C     Apply 13-point quadratic least-squares smoothing to large particle
+C     portion of Mie Qx data to eliminate low-amplitude ripple in Q633NR
+C     (Monotonic size dependence is needed for inverse Qx interpolation)
+C     (Smoothing affects 4th decimal of Q633NR for large particle sizes)
+C     ------------------------------------------------------------------
+      DO 109 I=1,31
+      DO J=1,880
+      SMOOTH(J)=Q633NR(J,I)
+      END DO
+      DO J=881,886
+      SMOOTH(J)=SMOOTH(880)
+      END DO
+      DO J=250,880
+      J1=J-2
+      IF(SMOOTH(J).GE.SMOOTH(J-1)) GO TO 107
+      END DO
+  107 CONTINUE
+      DO 108 J=J1,880
+      SUM=4550.D0/13.D0*SMOOTH(J)
+      DO K=1,6
+      SUM=SUM+(4550.D0/13.D0-14*K*K)*(SMOOTH(J-K)+SMOOTH(J+K))
+      END DO
+      Q633NR(J,I)=SUM/2002.D0
+  108 CONTINUE
+  109 CONTINUE
 
 C         Set dry mass fraction XXMF and relative humidity RHRHRH scales
 C         --------------------------------------------------------------
