@@ -1202,7 +1202,7 @@ C**** daily diagnostics
       integer, parameter:: jma=16,lma=21
       integer iu,jm,lm,j,j1,j2,l,ll,ldn,lup
       real*8 PLB(lm+1),dH2O(jm,lm),dglat(jm)
-      real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(lma)
+      real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
       character*100 title
       real*4  pdn,pup,w1,w2,dh,fracl
 
@@ -1228,6 +1228,7 @@ C**** read heights z(km) and data (kg/km^3)
       end do
 
 C**** Find edge heights and pressures
+      dz(0) = 0.      
       dz(1) = z(2)-z(1)
       do l=2,lma-1
          dz(l)=.5*(z(l+1)-z(l-1))
