@@ -1122,8 +1122,7 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
         precip_mm = PRCPMC*100.*bygrav
         b_beta_DT = FPLUME
         DO N=1,NTX
-          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,LHX,FPLUME,0.
-     *         ,FQCONDT)
+          CALL GET_COND_FACTOR(L,N,WMXTR,TNX,LHX,FPLUME,0d0,FQCONDT)
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT)
           TRCOND(N,L) = FPLUME * FQCONDT * TM(L,N)
           TRPRCP(N)=TRPRCP(N) + TM(L,N)*FWASHT
