@@ -201,7 +201,9 @@ c      Tracers (converted from mass to number density)
        do igas=1,nlast
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
+
        enddo
+
 c      If desired, fix the methane concentration used in chemistry
        if(fix_CH4_chemistry) THEN
          if(J.lt.JEQ)then ! SH
@@ -401,7 +403,7 @@ c
 c
 C Accumulate 3D radical arrays to pass to aerosol code
            if(coupled_chem.eq.1) then
-           do l=1,ls1-1
+           do l=1,LTROPO(I,J)
            oh_live(i,j,l)=y(nOH,L)
            no3_live(i,j,l)=yNO3(i,j,l)
            end do
