@@ -88,6 +88,8 @@ c**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
 c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
 !@param gasc  gas constant (8.314510 J/mol K)
       real*8,parameter :: gasc = 8.314510d0
+!@param bygasc  1/gasc
+      real*8,parameter :: bygasc = 1./gasc
 !@param mair molecular weight of dry air (28.9655 g/mol)
       real*8,parameter :: mair = 28.9655d0
 !@param rgas gas constant (287.05 J/K kg)
