@@ -10,7 +10,7 @@ Object modules: (in order of decreasing priority)
 RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B                    ! model variables and geometry
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database 
+PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -18,7 +18,9 @@ CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+! pick exactly one of the next 2 choices ATURB or DRYCNV
+! ATURB                               ! turbulence in whole atmosphere
+DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -43,14 +45,15 @@ RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4
 RADN3=miescatpar.abcdv
 RADN4=o3Prather1979-80.London1957-70
-RADN5=trop8aer.tau5090
+RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1950-2000.Jul99
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux
-RADNA=o3trend.1951-2050
+RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:

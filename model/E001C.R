@@ -17,9 +17,9 @@ CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-! use either DRYCNV or ATURB (but not both or none)
-DRYCNV                              ! dry adiabatic adjustment
-! ATURB    ! no quite ready yet     ! turbulence in whole atmosphere
+! pick exactly one of the next 2 choices ATURB or DRYCNV
+! ATURB                               ! turbulence in whole atmosphere
+DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -57,6 +57,7 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:

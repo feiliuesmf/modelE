@@ -48,14 +48,15 @@ RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautabs4
 RADN3=miescatpar.abcdv
 RADN4=o3Prather1979-80.London1957-70
-RADN5=trop8aer.tau5090
+RADN5=trop8aer.tau5090.minimum
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1950-2000.Jul99
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux
-RADNA=o3trend.1951-2050
+RADNA=o3trend.1951-2050.2
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+GHG=GHG.1850-2050.Oct2000
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
