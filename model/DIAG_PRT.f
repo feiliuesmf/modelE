@@ -1068,8 +1068,8 @@ c      BYDXYP(J)=1./DXYP(J)
          BYPV(:,L) = BYPV(:,1)
       ENDDO
       DO L=1,LS1-1
-        BYPDSIG(:,L) = BYP(:)*BYDSIG(L)
-        BYPVDSIG(:,L) = BYPV(:)*BYDSIG(L)
+        BYPDSIG(:,L) = BYP(:,L)*BYDSIG(L)
+        BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
       ENDDO
       DO L=LS1,LM
         BYP(:,L) = ONESPO(:)*BYIM/PSFMPT
