@@ -19,9 +19,11 @@ C*************************************************************
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius
       USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : DYN_GRID
       USE SEAICE, only : osurf_tilt
       IMPLICIT NONE
       SAVE
+
 C**** Definition for ice advection grid (EDIT FOR ADVSI GRID CHANGE)
       INTEGER, PARAMETER :: IMIC=IM, JMIC=JM
 
@@ -36,6 +38,8 @@ C**** rheology calculations without changing ADVSI grid.
       integer, parameter :: nx1=imic+2, ny1=jmic
       INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
       integer :: NPOL=1,LCYC=1
+       TYPE(DYN_GRID) :: grid_MIC
+       TYPE(DYN_GRID) :: grid_NXY
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN
@@ -912,7 +916,7 @@ c        END DO
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      CALL GET(grid_NXY, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 C****
 C**** calculate grid and initialise arrays
@@ -1151,7 +1155,7 @@ C**** to ALLOC_ICEDYN.
 
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
       USE DOMAIN_DECOMP, ONLY : GET
-      USE ICEDYN, ONLY : NX1
+      USE DOMAIN_DECOMP, ONLY : INIT_DECOMP
       USE ICEDYN, ONLY : FOCEAN
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
      &                   ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY,
@@ -1159,6 +1163,8 @@ C**** to ALLOC_ICEDYN.
      &                   VICEC,UIB,VIB,DMU,DMV,HEFF,AREA,UICE,
      &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
      &                   CST,CSU,TNGT,TNG,BYCSU
+      USE ICEDYN, ONLY : IMIC, JMIC, NX1, NY1
+      USE ICEDYN, ONLY : grid_MIC, grid_NXY
       IMPLICIT NONE
       LOGICAL, SAVE :: init = .false.
       TYPE (DYN_GRID), INTENT(IN) :: grid
@@ -1173,12 +1179,10 @@ C**** to ALLOC_ICEDYN.
       End If
       init = .true.
 
-      CALL GET( grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
+      CALL INIT_DECOMP(grid_MIC, IMIC, JMIC)
+      CALL INIT_DECOMP(grid_NXY, NX1, NY1)
+      CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
-!     I_0H = grid%I_STRT_HALO
-!     I_1H = grid%I_STOP_HALO
-!     J_0H = grid%J_STRT_HALO
-!     J_1H = grid%J_STOP_HALO
 
       ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),
      $   STAT = IER)
@@ -1230,6 +1234,7 @@ C**** Geometry
      &           TNG(J_0H:J_1H),
      &           BYCSU(J_0H:J_1H),
      $   STAT = IER)
+
 
       RETURN
       END SUBROUTINE ALLOC_ICEDYN
