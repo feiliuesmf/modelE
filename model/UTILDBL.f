@@ -120,24 +120,39 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 
       CONTAINS
 
-      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN,QOLD)
-!@sum  GETUNIT sets a unit number for a requested file and opens it
+      SUBROUTINE SETUNIT(IUNIT)
+!@sum  SETUNIT reserves a number 
 !@auth Gavin Schmidt
 !@ver  1.0
       IMPLICIT NONE
 
 !@var IUNIT unit number for file in current request
       INTEGER, INTENT(OUT) :: IUNIT
+
+      IF (IUNIT0+NUNIT.gt.IUNITMX)
+     *     STOP "SETUNIT: Maximum file number reached"
+C**** Set unit number
+      IUNIT = IUNIT0 + NUNIT
+C**** increment no of files
+      NUNIT = NUNIT + 1
+      RETURN
+      END SUBROUTINE SETUNIT
+
+      SUBROUTINE USEUNIT(FILENM,IUNIT,QBIN,QOLD)
+!@sum USEUNIT closes and reopens a reserved unit for a requested file
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IUNIT unit number for file in current request
+      INTEGER, INTENT(IN) :: IUNIT
 !@var FILENAME name of file to open
       CHARACTER*(*), INTENT(IN) :: FILENM
 !@var QOLD,QBIN true if (old) binary file is to be opened (UNFORMATTED)
       LOGICAL, INTENT(IN) :: QBIN,QOLD
 
-      IF (IUNIT0+NUNIT.gt.IUNITMX)
-     *     STOP "GETUNIT: Maximum file number reached"
-C**** Set unit number
-      IUNIT = IUNIT0 + NUNIT
 C**** Open file
+      CLOSE (IUNIT)
       IF (QOLD) THEN
         IF (QBIN) THEN
           OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
@@ -155,11 +170,28 @@ C**** Open file
       END IF
 C**** set NAME for error tracking purposes
       NAME (IUNIT) = FILENM
-C**** increment no of files
-      NUNIT = NUNIT + 1
       RETURN
  10   WRITE(6,*) "Error opening file ",TRIM(FILENM)
-      STOP 'GETUNIT: FILE OPENING ERROR'
+      STOP 'USEUNIT: FILE OPENING ERROR'
+      END SUBROUTINE USEUNIT
+
+      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN,QOLD)
+!@sum  GETUNIT sets a unit number for a requested file and opens it
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IUNIT unit number for file in current request
+      INTEGER, INTENT(OUT) :: IUNIT
+!@var FILENAME name of file to open
+      CHARACTER*(*), INTENT(IN) :: FILENM
+!@var QOLD,QBIN true if (old) binary file is to be opened (UNFORMATTED)
+      LOGICAL, INTENT(IN) :: QBIN,QOLD
+
+      CALL SETUNIT(IUNIT)
+      CALL USEUNIT(FILENM,IUNIT,QBIN,QOLD)
+
+      RETURN
       END SUBROUTINE GETUNIT
 
       SUBROUTINE GETUNITS(FILENM,IUNIT,QBIN,NREQ)

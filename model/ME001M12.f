@@ -7,7 +7,7 @@
       USE MODEL_COM
       USE RANDOM
       USE DAGCOM, only : keynr,kdiag,oa,monacc
-      USE FILEMANAGER, only : getunit
+      USE FILEMANAGER, only : getunit,useunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       IMPLICIT NONE
@@ -105,14 +105,12 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         IF ( months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(Jmon-1) ) then
           call reset_DIAG(0)
           if (Kvflxo.ne.0) then
-            close (iu_VFLXO)
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-            open (iu_VFLXO,file='VFLXO'//aDATE(1:7),form='unformatted')
+            call useunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.) 
           end if
           if (Nslp.ne.0) then
-            close (iu_SLP)
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
-            open (iu_SLP,file='SLP'//aDATE(1:7),form='unformatted')
+            call useunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.) 
           end if
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -470,7 +468,7 @@ C****
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
      &  ,iu_ij,iu_jl,iu_il,iu_j
       USE LAKES_COM, only : flake
-      USE FILEMANAGER, only : getunit,closeunits
+      USE FILEMANAGER, only : getunit,setunit,useunit
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
@@ -811,12 +809,11 @@ C****
 C****   SUM DIAGNOSTICS OVER INPUT FILES     ISTART<0
 C****
         monacc = 0
+        call setunit(iu_AIC)
         do k=1,iargc()
           call getarg(k,filenm)
-          call getunit(filenm,iu_AIC,.true.,.true.)
+          call useunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
-          write(6,*) 'read: ',filenm(1:70)
-          call closeunits
         end do
         GO TO 500
 C****
@@ -903,7 +900,7 @@ C***********************************************************************
 
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
       IF (KEYCT.LE.1) KEYNR=0
-      IF (KEYCT.LE.1) KEYCT=1        
+      IF (KEYCT.LE.1) KEYCT=1
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
@@ -938,7 +935,7 @@ C****
 C**** Overwrite rundeck parameters in the DB that were changed
       call set_param( "DTsrc", DTsrc, 'o' )
       call set_param( "DT", DT, 'o' )
-      call set_param( "keyct", keyct, 'o' )     
+      call set_param( "keyct", keyct, 'o' )
       call set_param( "NMONAV", NMONAV, 'o' )
 
 C**** Overwrite non-rundeck parameters that were changed

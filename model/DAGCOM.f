@@ -367,7 +367,7 @@ c idacc-indices of various processes
           GO TO 10
         END IF
       CASE (IOREAD_SINGLE)      !
-        READ (kunit,err=10) HEADER,KEYNR,TSFREZS,idac1,ACCS,monac1,it
+        READ (kunit,err=10)HEADER,hd2,KEYNR,TSFREZS,idac1,ACCS,monac1,it
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
         IDACC = IDACC + IDAC1
