@@ -2448,6 +2448,7 @@ C**** accumulate ptop/tauopt over columns for output
 !     ---------------------------------------------------!
 !     OPTIONAL PRINTOUT OF DATA TO CHECK PROGRAM
 !
+      RETURN   ! this is too much information!
       if (QCHECK) then 
         do ilev=1,nlev
           do ibox=1,ncol

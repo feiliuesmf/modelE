@@ -570,8 +570,8 @@ c**** set conservation diagnostics for ground water mass and energy
      *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
       qcon=(/ .false., .false., .false., .false., .false., .true.
      $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"grnd eng","(10**6 j/m^2)   ",
-     *     "(10^-3 j/s/m^2) ",1d-6,1d3,icon_htg)
+      call set_con(qcon,"grnd eng","(10**6 J/m^2)   ",
+     *     "(10^-3 J/s/m^2) ",1d-6,1d3,icon_htg)
 
 c read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
@@ -1360,7 +1360,7 @@ c****
       use ghycom, only : htbare,htvege,afb
       use sle001, only : ngm
       implicit none
-!@var heatg zonal ground heat (j/m^2)
+!@var heatg zonal ground heat (J/m^2)
       real*8, dimension(jm) :: heatg
       integer i,j,n
       real*8 hij,fb
