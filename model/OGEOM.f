@@ -38,7 +38,7 @@ C**** Geometric parameters defined at primary latitudes
       SINVN   = SIN(VLATN)
       DXYPO(J) = DLON*RADIUS*RADIUS*(SINVN-SINVS)
       BYDXYPO(J) = 1d0/DXYPO(J)
-      DXPO(J)  = .5*(DXVO(J-1)+DXVO(J))
+      IF (J.gt.1) DXPO(J)  = .5*(DXVO(J-1)+DXVO(J))
       DYPO(J)  = (VLATN-VLATS)*RADIUS
       COSPO(J) = .5*(COSVO(J-1)+COSVO(J))
       DXYSO(J) = .5*DXYPO(J)
