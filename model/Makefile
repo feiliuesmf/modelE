@@ -9,7 +9,7 @@ RUN	= E001
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
-COM	= E001M12.COM SOMTQ.COM
+COM	= E001M12_COM.o SOMTQ_COM.o
 SCOM    = soils45.COM 
 RCOM    = BR00B.COM
 
@@ -21,10 +21,13 @@ PBLOBJ	= PBLE001.o
 SLOBJ	= SLE001.o 
 POBJ	= PE001M12.o 
 SOBJ	= EE001M12.o SE001M12.o 
-COBJ    = CE001M12.o CE001M12.o
+COBJ    = CE001M12.o
 ROBJ	= RE001.o
-UOBJ    = FFT72.o  UTILDBL.o  RANDSGI.o   
-OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ)
+UOBJ    = UTILDBL.o
+FFTOBJ  = FFT72.o
+RNDOBJ  = RANDSGI.o
+OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
+          $(FFTOBJ) $(RNDOBJ) $(COM)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -54,14 +57,15 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 .OCN.o:
 	$(EXECDIR)/$(F) $<
 
-# Make object files dependent on relevant common block and *.S source files
-$(MOBJ):	$(COM) 
-$(POBJ):	$(COM) $(SCOM) 
+# Make object files dependent on relevant modules
+$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ)
+$(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ)
 $(PBLOBJ):	$(COM) 
-$(SOBJ):	$(COM) $(SCOM) 
+$(SOBJ):	$(COM) $(SLOBJ)
+$(SLOBJ):	$(COM) $(SCOM)
 $(DOBJ):	$(COM) 
 $(QOBJ):	$(COM) 
-$(COBJ):	$(COM) 
+$(COBJ):	$(COM) $(RNDOBJ)
 $(ROBJ):	$(RCOM)
 
 # Compile the gcm
@@ -81,6 +85,7 @@ newstart:
 clean:
 	rm -f *.LST *~ *.ERR *.CHK
 
+# need to alter vclean to remove relevant .mod files
 vclean:
 	rm -f $(OBJ) 
 
