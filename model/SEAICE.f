@@ -719,7 +719,7 @@ C**** Calculate temperatures for diagnostics and radiation
      *     TRSIL,TRUN0,
 #endif
      *     ENRGUSED,RUN0,SALT)
-!@sum  SIMELT melts sea ice if it is too small
+!@sum  SIMELT melts sea ice laterally and if it is too small
 !@+    Note: all amounts are with respect to the ocean/lake fraction
 !@auth Original Development Team
 !@ver  1.1
