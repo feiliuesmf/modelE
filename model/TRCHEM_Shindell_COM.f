@@ -92,14 +92,16 @@ C
 !@param NBFASTJ for fastj2 (=LM+1)
 !@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
 !@param dtausub # optic. depths at top of cloud requiring subdivision
+!@param dsubdiv additional levels in first dtausub of cloud (fastj2) 
 !@param masfac Conversion factor, pressure to column density (fastj2)
 !@param NP maximum aerosol phase functions
+!@param MIEDX2 choice of aerosol types for fastj2
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
      & p_1   =     2 
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER ::
      & p_2   =   209,
      & p_3   =   500,
@@ -147,7 +149,11 @@ C
      & NCFASTJ2 = 2*LM+2,  ! fastj2
      & NBFASTJ  = LM+1,    ! fastj2
      & MXFASTJ  =  3,      ! fastj2
+     & n_fam =     5,      ! fastj2
      & NP       = 21       ! fastj2
+      INTEGER, PARAMETER, DIMENSION(MXFASTJ) :: MIEDX2 = (/3,10,14/)
+!     (/black carbon absorber, water cloud (Deirmenjian 8 micron), 
+!      irregular ice cloud (Mishchenko)/)
 #else
       INTEGER, PARAMETER ::
      & p_2   =   111,
@@ -185,11 +191,11 @@ C
      & NLFASTJ=  350,     !300 is arbitrary for now
      & NWFASTJ=   15, 
      & JPNL   =   12,
+     & n_fam =     4,
      & NP     =    9
 #endif
       INTEGER, PARAMETER ::
      & p_5   =    14,
-     & n_fam =     4,
      & n_bnd1=    31,
      & n_bnd2=    87,
      & n_bnd3=   107,
@@ -240,8 +246,9 @@ C
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian 
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      &                     ,dtausub      = 1.d0
+     &                     ,dsubdiv      = 1.d1
      &                     ,dlogp2       = 8.65964323d-1 !=10^(-.0625)
      &                     ,masfac=100.d0*6.022d23/28.97d0/9.8d0/10.d0
 #endif
@@ -323,7 +330,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var jaddto Cumulative total of new levels to be added
 !@var NW1, NW2 beginning, ending wavelength for wavelength "bins"
 !@var MIEDX Type of aerosol scattering, currently 6 set up:
-!@+   1=Rayly 2=iso 30iso-equiv 4=bkgrd-sulf,5=volc-sulf,6=liq water
+!@+   1=Rayly 2=iso 3=iso-equiv 4=bkgrd-sulf,5=volc-sulf,6=liq water
 !@var NAA Number of categories for scattering phase functions
 !@var npdep Number of pressure dependencies
 !@var jpdep Index of cross sections requiring P dependence
@@ -459,13 +466,12 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var AER2 fastj2 aerosol profile?
 !@var dtausub fastj2 ?
 !@var odcol Optical depth at each model level
-!@var MIEDX2 choice of aerosol index
 !@var AMF Air mass factor for slab between level and level above
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ
-#ifdef Shindell_Strat_chem
-      INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50/)
+#ifdef SHINDELL_STRAT_CHEM
+      INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50,0/)
 #else
       INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/)
 #endif
@@ -478,10 +484,9 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(LM)           :: jndlv,jndlev
       INTEGER, DIMENSION(JPPJ)         :: jind
       INTEGER, DIMENSION(NLFASTJ)      :: jaddlv
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       INTEGER, DIMENSION(NLFASTJ)      :: jadsub
       INTEGER, DIMENSION(NLFASTJ+1)    :: jaddto
-      INTEGER, DIMENSION(MXFASTJ)      :: MIEDX2
 #else 
       INTEGER, DIMENSION(NLFASTJ)      :: jaddto
 #endif
@@ -512,6 +517,9 @@ C
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                TX,sulfate,OxIC
+#ifdef SHINDELL_STRAT_CHEM
+     &                                ,pClOx,pClx,pOClOx,pBrOx
+#endif
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
       REAL*8, DIMENSION(M__), PARAMETER ::
      *     EMU = (/.06943184420297D0, .33000947820757D0,
@@ -532,7 +540,7 @@ C
       REAL*8, DIMENSION(NWFASTJ,3)     :: QO3, QO2, Q1D, zpdep
       REAL*8, DIMENSION(3,NS)          :: TQQ
       REAL*8, DIMENSION(4,NP)          :: QAAFASTJ, WAAFASTJ
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
                                           ,SSA
 #endif
       REAL*8, DIMENSION(8,4,NP)        :: PAA
@@ -549,7 +557,7 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      *     ,BrOxaltIN = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
      *     0.d0,0.d0,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,0.06d0,0.06d0,
      *     0.06d0,0.06d0,0.06d0,0.06d0,0.06d0/),
@@ -573,7 +581,7 @@ C**** additional levsls for CH4 to avoid extrapolation...
      *   CH4altINX =(/1.79d0, 1.75d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
 
       REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX,OxICL
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      *                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt,odcol                    
 #endif
       REAL*8, DIMENSION(NS)            :: VALJ
@@ -592,7 +600,7 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(JM)             :: DU_O3
       REAL*8, DIMENSION(IM,JM,LM)       :: SF3
       REAL*8, DIMENSION(MXFASTJ,NBFASTJ):: AER2
@@ -601,7 +609,6 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(LM+3)           :: PFASTJ2
       REAL*8, DIMENSION(51,18,12)       :: OREF2,TREF2
       REAL*8, DIMENSION(51)             :: BREF2
-      REAL*8                            :: dsubdiv
 #endif
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
@@ -631,9 +638,9 @@ C
      *     ,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
 !$OMP THREADPRIVATE(/FJAST_LOC/)
 
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       COMMON/FASTJ2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
-     &     DMFASTJ,PFASTJ2,MIEDX2,QAAFASTJ,WAAFASTJ,SSA,AMF
+     &     DMFASTJ,PFASTJ2,QAAFASTJ,WAAFASTJ,SSA,AMF
 !$OMP THREADPRIVATE(/FJAST2_LOC/)
 #endif
 #endif
