@@ -469,10 +469,12 @@ c stable formulae
          wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
          wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
          wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
 
          was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
          wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
          ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
       else
          u3    = ustar*ustar*ustar
          wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
@@ -603,10 +605,12 @@ c stable formulae
          wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
          wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
          wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
 
          was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
          wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
          ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
       else
          u3    = ustar*ustar*ustar
          wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
@@ -690,10 +694,12 @@ c stable formulae
          wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
          wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
          wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
 
          was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
          wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
          ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
       else
          u3    = ustar*ustar*ustar
          wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
@@ -752,10 +758,12 @@ c stable formulae
          wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
          wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
          wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
 
          was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
          wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
          ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
       else
          u3    = ustar*ustar*ustar
          wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
@@ -856,10 +864,12 @@ c stable formulae
          wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
          wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
          wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
 
          was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
          wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
          ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
       else
          u3    = ustar*ustar*ustar
          wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
