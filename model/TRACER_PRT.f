@@ -1162,8 +1162,6 @@ C**** Fill in maplet indices for sources and sinks
        aij1(:,:,k)=aij1(:,:,k)*scale(k)
        aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
        scale(k)=1.
-       write(6,*) 'HAHAHA',k,idacc(iacc(k)),aij1(40,:,k)
-       write(6,*) 'HOHOHO',k,idacc(iacc(k)),aij2(40,:,k)
        endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
