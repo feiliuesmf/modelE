@@ -191,9 +191,9 @@
 #endif
       use lakes_com, only : mldlk,mwl,tlake,gml
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
-      use ghycom, only : snowe,tearth,wearth,aiearth,snoage &
+      use ghy_com, only : snowe,tearth,wearth,aiearth,snoage &
            ,evap_max_ij,fr_sat_ij,qg_ij
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv, &
+      use ghy_com, only : wbare,wvege,htbare,htvege,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       use veg_com, only : Cint,Qfol,cnc_ij
       use landice_com, only : snowli,tlandi
@@ -202,13 +202,13 @@
       use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
-      use radncb, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
+      use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
            fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save, &
            O3_trac=>O3_tracer_save
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
-      use dagcom, only : keynr,tsfrez,tdiurn,oa
-      use dagcom, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
+      use diag_com, only : keynr,tsfrez,tdiurn,oa
+      use diag_com, only : aj,areg,apj,ajl,asjl,aij,ail,energy,consrv &
            ,speca,atpe,adiurn,wave,ajk,aijk,aisccp,hdiurn
       use model_com, only : idacc
 
@@ -221,7 +221,7 @@
 #  ifdef TRACERS_WATER
       use lakes_com, only : trlake
       use seaice_com, only : trsi
-      use ghycom, only : tr_wbare, tr_wvege, tr_wsn_ij
+      use ghy_com, only : tr_wbare, tr_wvege, tr_wsn_ij
       use landice_com, only : trsnowli,trlndi
       use tracer_com, only : trwm
       use icedyn_com, only : ticij
@@ -343,7 +343,7 @@
         check("evap_max_ij",evap_max_ij)
         check("fr_sat_ij",fr_sat_ij)
         check("qg_ij",qg_ij)
-        ! ground hydrology data from ghycom
+        ! ground hydrology data from ghy_com
         check("wbare",wbare)
         check("wvege",wvege)
         check("htbare",htbare)
@@ -416,7 +416,7 @@
           check("VSI",VSI)
         end if
 
-        ! diagnostics from dagcom
+        ! diagnostics from diag_com
         check("aj",aj)
         check("areg",areg)
         check("apj",apj)
