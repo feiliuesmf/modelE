@@ -26,7 +26,7 @@
       use model_com, only : fearth,jeq,jyear
       use veg_com !, only : vdata,Cint,Qfol
       use ghy_com, only : ngm
-      use vegetation, only : cond_scheme,crops_yr
+      use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use ghy_com, only : dz_ij
       use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
 
@@ -65,9 +65,9 @@
 ! Mean canopy nitrogen (nmv; g/m2) and Rubisco factors (nfv) for each
 ! vegetation type (adf)
       real*8, parameter :: nmv(8) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,0.82d0/)
+     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0/)
       real*8, parameter :: nfv(8) =
-     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.5d0 /)
+     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0 /)
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
       real*8, parameter :: can_w_coef(8) =
@@ -125,6 +125,7 @@ C****
 
 c**** read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
+      call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
 
 c**** read land surface parameters or use defaults
@@ -307,7 +308,6 @@ c**** recompute ground hydrology data if necessary (new soils data)
       subroutine reset_veg_to_defaults( reset_prognostic )
       use veg_com, only: vdata
       use DOMAIN_DECOMP, only : GRID, GET
-      !use ghy_com
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -339,14 +339,16 @@ C****
 
       subroutine veg_set_cell (i0,j0,ghy_data_only)
 !@sum resets the vegetation module to a new cell i0,j0
+      use constant, only : gasc
       use ghy_com, only : ngm
-      use sle001, only : fr,snowm,ws,shc,shw
+      use sle001, only : fr,snowm,ws,shc,shw,pres,ts
       use vegetation, only : alaie,rs,nm,nf,alai,vh
      &     ,alait,vfraction
      &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
-     &     ,cond_scheme         !nyk
+     &     ,Ca     ! nyk
+     &     ,cond_scheme,vegCO2X_off  !nyk
      &     ,cnc
-      use rad_com, only : cosz1
+      use rad_com, only : cosz1, CO2X, CO2ppm  !nyk
      &    ,FSRDIR,SRVISSURF  !adf, nyk
       use veg_com, only :
      &     Cint,Qfol           ! added by adf
@@ -453,6 +455,15 @@ c shc(0,2) is the heat capacity of the canopy
 ! Foliage surface mixing ratio (kg/kg).
         Qf=Qfol(i0,j0)
         CNC = cnc_ij(i0,j0)
+! Atmospheric CO2 concentration at land surface (mol/m3)
+        if (vegCO2X_off==0) then  !Default
+           Ca = CO2X*CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+        else
+           Ca = CO2ppm*(1.0D-06)*pres*100.0/gasc/ts
+        endif
+!        write(99,*) "vegCO2X_off,CO2X,CO2ppm,Ca,pres,gasc,ts",
+!     %       vegCO2X_off,CO2X,CO2ppm,Ca,pres,gasc,ts
+!        stop
       end if
 !----------------------------------------------------------------------!
       return

@@ -16,13 +16,17 @@ ccc   rundeck parameters  5/1/03 nyk
 !@dbparam cond_scheme selects vegetation conductance scheme:
 !@+       = 1     default, original conductance scheme.
 !@+       = 2     conductance scheme of Andrew Friend
-      integer, public :: cond_scheme = 1
+      integer, public :: cond_scheme = 2
+!@dbparam vegCO2X_off turns off CO2X doubling for vegetation.
+!@+       = 0     default, vegetation sees both ghg_yr and CO2X.
+!@+       = 1     turn off doubling of CO2 for veg by parameter CO2X.
+      integer, public :: vegCO2X_off = 0
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
       INTEGER, public :: crops_yr = -1
 
 !input from driver:
 !from veg_set_cell:
-      real*8, public :: alaie,rs,alai,nm,nf,vh
+      real*8, public :: alaie,rs,alai,nm,nf,vh,CO2atm
 !nyk alait is lai by functional type.  Must multiply by vfraction
 !     to get fraction cover per grid cell
       real*8, dimension(8), public :: alait, vfraction
@@ -47,6 +51,11 @@ ccc   rundeck parameters  5/1/03 nyk
       real*8, public :: Ci
 !@var Qf Original foliage surface mixing ratio (kg/kg) (adf)
       real*8, public :: Qf
+!****************************************************
+!NEED TO REPLACE Ca WITH CO2 FROM THE CLIMATE MODEL TRACERS
+!@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
+      real*8, public :: Ca !!=.0127D0 !Now is a variable, nyk, dummy initial
+!****************************************************
 
 !out:
       real*8, public :: CNC
@@ -61,7 +70,7 @@ ccc   rundeck parameters  5/1/03 nyk
       common /veg_private/
      &      alaie,rs,alai,nm,nf,vh
      &     ,srht,pres,ch,vsm
-     &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf
+     &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf,Ca
      &     ,betad,tcan,qv
      &     ,CNC
 !$OMP  THREADPRIVATE (/veg_private/)
@@ -139,12 +148,6 @@ c**** adjust canopy conductance for incoming solar radiation
       real*8, intent(out) :: GPP
       real*8, intent(out) :: TRANS_SW
 
-!****************************************************
-!NEED TO REPLACE Ca WITH CO2 FROM THE CLIMATE MODEL TRACERS
-!@var Ca Atmospheric CO2 concentration at surface height (mol/m3).
-
-      real*8, parameter :: Ca=0.0127D0
-!****************************************************
 !@var sigma Leaf scattering coefficient (?unitless).
       real*8, parameter :: sigma=0.2D0
       real*8  temp

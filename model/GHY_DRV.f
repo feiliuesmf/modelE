@@ -1866,7 +1866,7 @@ c**** check for reasonable temperatures over earth
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : snoage, snoage_def
       use veg_com, only : almass,aalbveg       !nyk
-      use vegetation, only: crops_yr,cond_scheme !nyk
+      use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
       use surf_albedo, only: albvnh  !nyk
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use sle001, only : fb,fv,ws

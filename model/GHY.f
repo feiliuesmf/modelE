@@ -97,6 +97,7 @@ c**** instead of upper and lower limits.  fixes spurious drying
 c**** of first layer.
 c**** Added gpp, GPP terms  4/25/03 nyk
 c**** Added decks parameter cond_scheme  5/1/03 nyk
+c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 #include "rundeck_opts.h"
 
