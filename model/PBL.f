@@ -129,7 +129,8 @@ CCC      real*8 :: bgrid
      *     tr_evap_max,
 #endif
 #endif
-     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat,itype)
+     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
+     5     uocean,vocean,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -192,7 +193,7 @@ c  internals:
 !@var  ipbl  stores bl properties of last time step
       implicit none
 
-      real*8, intent(in) :: coriol,utop,vtop,ttop,qtop
+      real*8, intent(in) :: coriol,utop,vtop,ttop,qtop,uocean,vocean
       real*8, intent(in) :: tgrnd,qgrnd,evap_max,fr_sat,ztop,dtime
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       integer, intent(in) :: ilong,jlat,itype
@@ -280,7 +281,7 @@ C**** For heat and mositure
       else
         wstar2h = 0.
       endif
-      wsh = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+      wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
       call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
@@ -289,7 +290,7 @@ C**** For heat and mositure
 
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2            ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3            ug,vg,n)
+     3            ug,vg,uocean,vocean,n)
 
       if ((itype.eq.4).or.(itype.eq.3)) then
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) then
@@ -340,7 +341,7 @@ C**** For heat and mositure
         else
           wstar2h = 0.
         endif
-        wsh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+        wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
 
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
@@ -349,7 +350,7 @@ C**** For heat and mositure
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3              ug,vg,n)
+     3              ug,vg,uocean,vocean,n)
 
         call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 
@@ -1427,7 +1428,7 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
 
       subroutine uv_eqn(u0,v0,u,v,z,km,dz,dzh,
      2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
-     3                  ug,vg,n)
+     3                  ug,vg,uocean,vocean,n)
 !@sum uv_eqn integrates differential eqns for u & v (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -1465,6 +1466,7 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh
       real*8, intent(in) :: ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
+     &                     ,uocean,vocean
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1486,12 +1488,13 @@ c       rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
 c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end do
 
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1))
-      factor = 1.+cm*usurf*dzh(1)/km(1)
+      usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+      factor = cm*usurf*dzh(1)/km(1)
 
-      dia(1)= factor
-      sup(1)= -1.
-      rhs(1)  = 0.
+      dia(1) = 1.+factor
+      sup(1) = -1.
+      rhs(1) = factor*uocean
+      rhs1(1) = factor*vocean
 
       dia(n) = 1.
       sub(n) = 0.
@@ -1626,7 +1629,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       end subroutine q_eqn_sta
 
       subroutine uv_eqn_sta(u,v,z,km,dz,dzh,
-     2            ustar,cm,utop,vtop,coriol,n)
+     2            ustar,cm,utop,vtop,coriol,uocean,vocean,n)
 !@sum  uv_eqn_sta computes the static solutions of the u and v
 !@+    between the surface and the first GCM layer.
 !@+    The boundary conditions at the bottom are:
@@ -1659,7 +1662,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       real*8, dimension(n), intent(in) :: z,dz
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh
-      real*8, intent(in) :: ustar,cm,utop,vtop,coriol
+      real*8, intent(in) :: ustar,cm,utop,vtop,coriol,uocean,vocean
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
       integer :: i,j,iter  !@var i,j,iter loop variable
@@ -1682,12 +1685,13 @@ c       rhs(i)=coriol*(v(i)-vg)
 c       rhs1(i)=-coriol*(u(i)-ug)
       end do
 
-      usurf  = sqrt(u(1)*u(1)+v(1)*v(1))
-      factor = 1.+cm*usurf*dzh(1)/km(1)
+      usurf  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
+      factor = cm*usurf*dzh(1)/km(1)
 
-      dia(1)= factor
-      sup(1)= -1.
-      rhs(1)  = 0.
+      dia(1) = 1.+factor
+      sup(1) = -1.
+      rhs(1) = factor*uocean
+      rhs1(1) = factor*vocean
 
       dia(n) = 1.
       sub(n) = 0.
@@ -1752,8 +1756,8 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       end subroutine level2
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2                 ttop,qtop,coriol,cm,ch,cq,ustar,
-     3                 ilong,jlat,itype)
+     2          ttop,qtop,coriol,cm,ch,cq,ustar,uocean,vocean,
+     3          ilong,jlat,itype)
 !@sum  inits initializes the winds, virtual potential temperature,
 !@+    and humidity using static solutions of the GISS 2000
 !@+    turbulence model at level 2
@@ -1789,7 +1793,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      *     ,coriol,cm,ch,cq,lmonin
      *     ,bgrid,ustar,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test,
-     *     wstar3fac,wstar3,wstar2h,usurfq,usurfh
+     *     wstar3fac,wstar3,wstar2h,usurfq,usurfh,uocean,vocean
 
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
@@ -1899,14 +1903,15 @@ C**** For heat and mositure
         else
           wstar2h = 0.
         endif
-        usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
+        usurfh  = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
         usurfq  = usurfh
 
         call t_eqn_sta(t,kh,dz,dzh,ch,usurfh,tgrnd,ttop,n)
 
         call q_eqn_sta(q,kq,dz,dzh,cq,usurfq,qgrnd,qtop,n)
 
-        call uv_eqn_sta(u,v,z,km,dz,dzh,ustar,cm,utop,vtop,coriol,n)
+        call uv_eqn_sta(u,v,z,km,dz,dzh,ustar,cm,utop,vtop,coriol,
+     &                  uocean,vocean,n)
 
         call tcheck(t,tgrnd,n)
         call tcheck(q,qgrnd,n)

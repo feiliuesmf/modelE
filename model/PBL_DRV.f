@@ -73,6 +73,7 @@ C          ,UG,VG,WG,ZMIX
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
 
       REAL*8, parameter :: dbl_max=3000. ! meters
+      REAL*8, parameter :: uocean=0.,vocean=0.
       REAL*8 Ts
 
 #ifdef TRACERS_ON
@@ -218,7 +219,8 @@ c     ENDIF
      *     tr_evap_max,
 #endif
 #endif
-     4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
+     4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
+     5     uocean,vocean,i,j,itype)
 
       uabl(:,i,j,itype)=upbl(:)
       vabl(:,i,j,itype)=vpbl(:)
@@ -291,6 +293,7 @@ c -------------------------------------------------------------
 
       IMPLICIT NONE
 
+      real*8, parameter :: uocean=0.,vocean=0.
 !@var inipbl whether to init prog vars
       logical, intent(in) :: inipbl
 !@var iu_CDN unit number for roughness length input file
@@ -420,7 +423,7 @@ c ******************************************************************
 
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
-     3                 ilong,jlat,itype)
+     3                 uocean,vocean,ilong,jlat,itype)
             cmgs(i,j,itype)=cm
             chgs(i,j,itype)=ch
             cqgs(i,j,itype)=cq
