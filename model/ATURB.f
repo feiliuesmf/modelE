@@ -5,19 +5,16 @@
 !@+  turbulence model developed at GISS, 2000.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
-!@cont diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_e
-!@cont lgcm,kgcm,ave_uv_to_agrid,ave_to_bgrid
-!@var u 3d west-east wind component
-!@var v 3d south-north wind component
-!@var t 3d potential temperature
-!@var q 3d relative humidity
-!@var p 2-d pressure
-!@var dtime time step
+!@cont diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_,diff_t2
+!@cont lgcm,kgcm,find_pbl_top,find_ew,ave_uv_to_agrid,ave_s_to_bgrid
 !@var lbase_min/max levels through which to apply turbulence (dummy)
-!@var call_diag logical variable whether dout is called
+!@var dtime time step
+!@var qmin minimum value of specific humidity 
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
-      USE DYNAMICS, only : pmid,pk,pedn,pdsig,plij,pek
+!@var call_diag logical variable whether dout is called
+
+      USE DYNAMICS, only : pk,pdsig,plij,pek
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u,v,t,q,p
       USE CONSTANT, only : grav,kapa,deltx,lhe,sha
@@ -33,34 +30,32 @@
       integer, intent(in) :: lbase_min,lbase_max
       real*8, intent(in) :: dtime
 
-      real*8, dimension(lm) :: uij,vij,tij,pij,qij,eij,t2ij
+      real*8, parameter :: qmin=1.d-20
+      integer, parameter :: itest= 1,jtest=11
+      logical, parameter :: call_diag=.false.
+      integer, SAVE :: ifirst=0
+
+      real*8, dimension(lm) :: uij,vij,tij,qij,eij,t2ij
       real*8, dimension(lm) :: u0ij,v0ij,t0ij,q0ij,e0ij,t20ij
       real*8, dimension(lm) :: dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
-      real*8, dimension(lm) :: rhoebydz,bydzerho,gc_t2,ew_rest
-      real*8, dimension(lm) :: km,kh,kq,ke,kt2,gc,lscale,gm,gh
-      real*8, dimension(lm) :: rhoij,rhoeij,dzij,dzeij
+      real*8, dimension(lm) :: rhoebydz,bydzerho
+      real*8, dimension(lm) :: km,kh,kq,ke,kt2,gc,gc_t2,ew_rest,lscale
+      real*8, dimension(lm) :: rhoij,rhoeij,dzij,dzeij,gm,gh
       real*8, dimension(im,jm,lm) :: uold
-      real*8, dimension(lm,im,jm) :: rho,rhoe
-      real*8, dimension(lm,im,jm) :: dz,dzedge
-      real*8, dimension(lm) :: peij
-      real*8, dimension(lm,im,jm) :: u_agrid,v_agrid,tv_bgrid,t_virtual
+      real*8, dimension(lm,im,jm) :: rho,rhoe,dz,dzedge
+      real*8, dimension(lm,im,jm) :: u_agrid,v_agrid,t_virtual
       real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_bgrid
      2        ,dz_bgrid,dzedge_bgrid,rho_bgrid,rhoe_bgrid
-      real*8, dimension(im,jm) :: p_bgrid,tsavg_bgrid,qsavg_bgrid
       real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
 
-      integer, parameter :: itest= 1,jtest=11
-      Real*8, parameter :: tol=1.d-4,qmin=1.d-20
-      real*8 :: uflx,vflx,tflx,qflx,pl,tvs
-      real*8 :: temp0,ustar2,dbll,reserv,test,check,t0ijl,rak
-      real*8 :: alpha1,thes,ustar,tmp1,tmp2
-      integer :: loc,icount,imax,kmax,idik,idjk
+      real*8 :: uflx,vflx,tflx,qflx,tvs
+      real*8 :: ustar2,dbll,reserv,t0ijl,rak,alpha1,thes,ustar
+      integer :: imax,kmax,idik,idjk
       integer :: i,j,l,k,iter !@i,j,l,k loop variable
-      integer, SAVE :: ifirst=0
-      logical, parameter :: call_diag=.false.
-C**** Note that lbase_min/max are here for backwards compatibility with
-C**** original drycnv. They are only used to determine where the
-C**** routine has been called from.
+      
+      ! Note that lbase_min/max are here for backwards compatibility with
+      ! original drycnv. They are only used to determine where the
+      ! routine has been called from.
 
       if (lbase_min.eq.2) return       ! quit if called from main
 
@@ -69,6 +64,7 @@ C**** routine has been called from.
         do i=1,imaxj(j)
           tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
           do l=1,lm
+            ! t_virtual is virtual potential temp. referenced at 1 mb
             t_virtual(l,i,j)=t(i,j,l)*(1.d0+deltx*Q(i,j,l))
           end do
         end do
@@ -76,7 +72,7 @@ C**** routine has been called from.
 
       ! integrate T,Q equations at agrids
 
-      ! get u_agrid and v_agrid at t-cells
+      ! get u_agrid and v_agrid
       call ave_uv_to_agrid(u,v,u_agrid,v_agrid,im,jm,lm)
 
       call getdz(t_virtual,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
@@ -98,14 +94,14 @@ c     endif
           do l=1,lm
             uij(l)=u_agrid(l,i,j)
             vij(l)=v_agrid(l,i,j)
-            tij(l)=t_virtual(l,i,j) !virtual,potential temp.
-            pij(l)=100.d0*pmid(l,i,j)
+            ! virtual potential temp. referenced at 1 mb
+            tij(l)=t_virtual(l,i,j)
             if(q(i,j,l).lt.0.d0) q(i,j,l)=qmin
             qij(l)=q(i,j,l)
             eij(l)=egcm(l,i,j)
 c           t2ij(l)=t2gcm(l,i,j)
-            rhoeij(l)=rhoe(l,i,j)
             rhoij(l)=rho(l,i,j)
+            rhoeij(l)=rhoe(l,i,j)
             t0ij(l)=tij(l)
             q0ij(l)=qij(l)
             e0ij(l)=eij(l)
@@ -131,50 +127,64 @@ c           t20ij(l)=t2ij(l)
             as2(l)=dudz(l)*dudz(l)+dvdz(l)*dvdz(l)
           end do
 
+          ! tvs is surface virtual potential temp. referenced at 1 mb
           tvs=tvsurf(i,j)/pek(1,i,j)
           uflx=uflux1(i,j)/rhoe(1,i,j)
           vflx=vflux1(i,j)/rhoe(1,i,j)
-          tflx=tflux1(i,j)/(rhoe(1,i,j)*pek(1,i,j))
+          tflx=tflux1(i,j)/(rhoe(1,i,j)*pek(1,i,j)) !referenced at 1 mb
           qflx=qflux1(i,j)/rhoe(1,i,j)
-          tmp1=uflux(i,j)
-          tmp2=vflux(i,j)
-          uflux(i,j)=uflx
-          vflux(i,j)=vflx
+          uflux1(i,j)=uflx
+          vflux1(i,j)=vflx
 
 c         if ((i.eq.itest).and.(j.eq.jtest)) then
-c         write(99,*) i,j
-c         write(99,1001) "uflux: ", tmp1,uflx,tmp1/uflx
-c         write(99,1001) "vflux: ", tmp2,vflx,tmp2/vflx
-c         write(99,1001) "tflux: ", tflux(i,j)/pek(1,i,j),tflx
-c    &                            , tflux(i,j)/pek(1,i,j)/tflx
-c         write(99,1001) "qflux: ", qflux(i,j),qflx,qflux(i,j)/qflx
-c         write(99,*) 
+c           write(99,*) i,j
+c           write(99,1001) "uflux: ", uflux(i,j),uflx,uflux(i,j)/uflx
+c           write(99,1001) "vflux: ", vflux(i,j),vflx,vflux(i,j)/vflx
+c           write(99,1001) "tflux: ", tflux(i,j)/pek(1,i,j),tflx
+c    &                            , (tflux(i,j)/pek(1,i,j))/tflx
+c           write(99,1001) "qflux: ", qflux(i,j),qflx,qflux(i,j)/qflx
+c           write(99,*) 
 c         endif
 
           ustar2=sqrt(uflx*uflx+vflx*vflx)
           ustar=sqrt(ustar2)
           alpha1=atan2(vflx,uflx)
+
+          ! calculate z-derivatives at the surface 
           thes=tflx*prt/ustar
           dudz(1)=ustar/(kappa*10.d0)*cos(alpha1)
           dvdz(1)=ustar/(kappa*10.d0)*sin(alpha1)
           dtdz(1)=thes/(kappa*10.d0)
           dqdz(1)=qflx*prt/(ustar*kappa*10.d0)
           g_alpha(1)=grav/tvs
+          !@var an2 brunt-vassala frequency
+          !@var as2 shear number squared
           an2(1)=g_alpha(1)*dtdz(1)
           as2(1)=dudz(1)*dudz(1)+dvdz(1)*dvdz(1)
 
+          ! calculate turbulence length scale lscale
           call lgcm(lscale,eij,as2,an2,dzij,dzeij,rhoeij,lm)
+
+          ! calculate turbulent diffusivities km,kh,kq,ke and kt2
           call kgcm(km,kh,kq,ke,kt2,gc,gc_t2,ew_rest,gm,gh,uij,vij,tij,
      2             eij,t20ij,dudz,dvdz,as2,dtdz,g_alpha,an2,
      3             lscale,dzij,dzeij,tvs,lm)
+
+          ! integrate eqn for T.K.E, e.
           call diff_e(e0ij,eij,km,kh,ke,gc,ew_rest,lscale,uij,vij,tij,
      2         dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,
      3         rhoij,rhoeij,ustar2,dtime,lm)
+
+          ! integrate eqn for T.K.E, e.
 c         if(nlevel.eq.3) call diff_t2(t20ij,t2ij,eij,kh,kt2,gc,gc_t2,
 c    2      lscale,tij,dtdz,dzij,dzeij,rhoij,rhoeij,
 c    3      ustar2,tflx,dtime,lm)
+
+          ! integrate eqn for virtual potential temperature tij
           call diff_t(t0ij,tij,kh,gc,dzij,dzeij,
      2                 rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
+
+          ! integrate eqn for specific humidity qij
           call diff_q(q0ij,qij,kq,dzij,dzeij,
      2         rhoij,rhoeij,rhoebydz,bydzerho,qflx,qmin,dtime,lm)
 
@@ -201,21 +211,11 @@ c           t2gcm(l,i,j)=t2ij(l)
           ! Write out diagnostics if at selected grid point:
 
           if (call_diag.and.(i.eq.itest).and.(j.eq.jtest)) then
-            do l=1,lm
-                peij(l)=100.d0*pedn(l,i,j)
-                tij(l)=tij(l)*pek(1,i,j)
-                t0ij(l)=t0ij(l)*pek(1,i,j)
-                dtdz(l)=dtdz(l)*pek(1,i,j)
-                t2ij(l)=b2*lscale(l)/sqrt(2.d0*eij(l))*kh(l)*dtdz(l)**2
-            end do
-            tflx=tflx*pek(1,i,j)
-            tvs=tvs*pek(1,i,j)
-            iter=1
-            call dout(uij,vij,tij,pij,peij,qij,eij,ew_rest,t2ij,
+            call dout(uij,vij,tij,qij,eij,ew_rest,
      1           dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
-     2           rhoij,rhoeij,t0ij,q0ij,
+     2           rhoij,rhoeij,
      3           km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tvs,
-     4           uflx,vflx,tflx,qflx,itest,jtest,iter,lm)
+     4           uflx,vflx,tflx,qflx,i,j,iter,lm)
           endif
 
         end do loop_i_tq
@@ -247,7 +247,6 @@ c    &       abs(rho_bgrid(2,i,j)-1.d0).gt.1.d-4.or.
 c    &       abs(rho_bgrid(3,i,j)-1.d0).gt.1.d-4.or.
 c    &       abs(rho_bgrid(lm-1,i,j)-1.d0).gt.1.d-4.or.
 c    &       abs(rho_bgrid(lm,i,j)-1.d0).gt.1.d-4) then
-
 c           write(71,1003) i,j,rho_bgrid(1,i,j),rho_bgrid(2,i,j),
 c    &       rho_bgrid(3,i,j), rho_bgrid(lm-1,i,j),rho_bgrid(lm,i,j)
 c         endif
@@ -259,7 +258,8 @@ c     stop
 cccc end testing:
 cccc end testing:
 
-      call ave_uv_to_bgrid(uflux,vflux,uflux_bgrid,vflux_bgrid,im,jm,1)
+      call ave_uv_to_bgrid(uflux1,vflux1,uflux_bgrid,vflux_bgrid,
+     &                     im,jm,1)
       call ave_s_to_bgrid(km_gcm,km_gcm_bgrid,im,jm,lm)
       call ave_s_to_bgrid(dz,dz_bgrid,im,jm,lm)
       call ave_s_to_bgrid(dzedge,dzedge_bgrid,im,jm,lm)
@@ -272,8 +272,8 @@ cccc end testing:
           do l=1,lm
             uij(l)=u(i,j,l)
             vij(l)=v(i,j,l)
-            rhoeij(l)=rhoe_bgrid(l,i,j)
             rhoij(l)=rho_bgrid(l,i,j)
+            rhoeij(l)=rhoe_bgrid(l,i,j)
             u0ij(l)=uij(l)
             v0ij(l)=vij(l)
             uold(i,j,l)=uij(l)
@@ -408,20 +408,19 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       return
       end subroutine getdz
 
-      subroutine dout(u,v,t,p,pe,q,e,ew_rest,t2,dz,dze,
-     1                dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,
-     2                rho,rhoe,t0,q0,
-     3                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tvs,
-     4                uflx,vflx,tflx,qflx,itest,jtest,iter,n)
-!@sum dout writes out diagnostics at i=itest, j=jtest
+      subroutine dout(u,v,t,q,e,ew_rest,dz,dze,
+     1                dudz,dvdz,as2,dtdz,g_alpha,an2,dqdz,rho,rhoe,
+     2                km,kh,kq,ke,kt2,gc,gm,gh,lscale,reserv,tvs,
+     3                uflx,vflx,tflx,qflx,i,j,iter,n)
+!@sum dout writes out diagnostics at i,j
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var u z-profile of west-east   velocity component
 !@var v z-profile of south-north velocity component
-!@var t z-profile of virt. pot. temperature T (referenced to surf. p)
+!@var t z-profile of virt. pot. temperature (referenced to 1mb)
 !@var p z-profile of pressure at main grid z
 !@var pe z-profile of pressure at secondary grid zedge
-!@var q z-profile of relative humidity Q
+!@var q z-profile of specific humidity
 !@var e z-profile of turbulent kinetic energy
 !@var t2 z-profile of turbulent virt. pot. temperature variance
 !@var dz(j) z(j+1)-z(j)
@@ -435,8 +434,6 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var dqdz z-derivative of q at secondary grid zedge
 !@var rho z-profile of density at z
 !@var rhoe z-profile of density at zedge
-!@var t0 z-profile of t at previous time step
-!@var q0 z-profile of q at previous time step
 !@var km turbulent viscosity for u and v equations
 !@var kh turbulent diffusivity for t
 !@var kq turbulent diffusivity for q
@@ -451,53 +448,60 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var vflx momentun flux -vw at surface, zedge(1)
 !@var tflx heat flux -wt at surface, zedge(1)
 !@var qflx moisture flux -wq at surface, zedge(1)
-!@var itest,jtest (i,j) location at which the output is wriiten
+!@var i/j location at which the output is wriiten
 !@var n number of vertical main layers
 
       USE CONSTANT, only : grav,rgas
       USE SOCPBL, only : b1,b2
       USE MODEL_COM, only : sig,sige
       USE RESOLUTION, only : PTOP
-      USE DYNAMICS, only : plij
+      USE DYNAMICS, only : pmid,pedn,plij,pk,pek
 
       implicit none
 
-      integer, intent(in) :: n,iter,itest,jtest
-      real*8, dimension(n), intent(in) :: u,v,t,p,pe,q,e,ew_rest,t2
+      integer, intent(in) :: n,iter,i,j
+      real*8, dimension(n), intent(in) :: u,v,t,q,e,ew_rest
       real*8, dimension(n), intent(in) :: dudz,dvdz,as2
       real*8, dimension(n), intent(in) :: dtdz,g_alpha,an2,dqdz
-      real*8, dimension(n), intent(in) :: rho,rhoe,t0,q0
+      real*8, dimension(n), intent(in) :: rho,rhoe
       real*8, dimension(n), intent(in) :: km,kh,kq,ke,kt2,gc,gm,gh
       real*8, dimension(n), intent(in) :: lscale,dz,dze
       real*8, intent(in) :: reserv,tvs
       real*8, intent(in) :: uflx,vflx,tflx,qflx
 
-      real*8 :: z,utotal,dt,dq,zedge,qturb,dmdz
+      real*8, dimension(n) :: p,pe,t2
+      real*8 :: z,utotal,zedge,dmdz
       real*8 :: uf,hf,qf
       real*8 :: ri,rif,sigmat,reserv2,wt1
-      integer :: i,j,l  !@var i,j,l loop variable
+      integer :: l  !@var l loop variable
 
-      Write (67,1000) "iter=",iter, "itest=",itest,"jtest=",jtest
+      do l=1,n
+          p(l)=100.d0*pmid(l,i,j)
+          pe(l)=100.d0*pedn(l,i,j)
+          t2(l)=b2*lscale(l)/sqrt(2.d0*e(l))*kh(l)*dtdz(l)**2
+      end do
+      Write (67,1000) "iter=",iter, "i=",i,"j=",j
       Write (67,1100) "pe(1)=",pe(1)
       Write (67,1100) "uflx=",uflx,"vflx=",vflx
-      Write (67,1100) "tflx=",tflx,"qflx=",qflx
+      Write (67,1100) "tflx=",tflx*pek(1,i,j),"qflx=",qflx
 
       ! Fields on main vertical grid:
-      z=(rgas/grav)*0.5d0*(tvs+t(1))*log(pe(1)/p(1))+10.d0
+      z=(rgas/grav)*0.5d0*(tvs*pek(1,i,j)+t(1)*pk(1,i,j))
+     2  *log(pe(1)/p(1))+10.d0
       write (67,1500)
       do l=1,n-1
-        write (67,2000) l,z,p(l),dz(l),u(l),v(l),t(l),q(l),ke(l),
-     2                    rho(l),rhoe(l),ew_rest(l)
+        write (67,2000) l,z,p(l),dz(l),u(l),v(l),t(l)*pk(l,i,j),
+     2                  q(l),ke(l),rho(l),rhoe(l),ew_rest(l)
         z=z+dz(l)
       end do
       utotal=sqrt(u(n)*u(n)+v(n)*v(n))
-      write (67,2500) l,z,p(n),u(n),v(n),t(n),q(n),0.,
+      write (67,2500) l,z,p(n),u(n),v(n),t(n)*pk(n,i,j),q(n),0.,
      2                  rho(n),rhoe(n),0.
       write (67,*)
  
       do l=1,n
-        write(68,1001) plij(l,itest,jtest)*sig(l)+ptop,
-     &       t(l),t(l)/(1.+0.61*q(l)),q(l)
+        write(68,1001) plij(l,i,j)*sig(l)+ptop,
+     &       t(l)*pk(l,i,j),t(l)*pk(l,i,j)/(1.+0.61*q(l)),q(l)
       end do
 
       ! Fields on secondary vertical grid:
@@ -505,12 +509,12 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       write (67,3000)
       l=1
       zedge=10.d0
-      write (67,2100) l,zedge,pe(l),lscale(l),e(l),t2(l)
+      write (67,2100) l,zedge,pe(l),lscale(l),e(l),t2(l)*pek(l,i,j)**2
       zedge=10.d0+dze(1)
       do l=2,n
-        wt1=-kh(l)*dtdz(l)
+        wt1=-kh(l)*dtdz(l)*pek(l,i,j)
         write (67,2000) l,zedge,pe(l),gc(l),wt1,kh(l),kt2(l),
-     2                  gm(l),gh(l),lscale(l),e(l),t2(l)
+     2       gm(l),gh(l),lscale(l),e(l),t2(l)*pek(l,i,j)**2
         zedge=zedge+dze(l)
       end do
       write (67,*)
@@ -523,14 +527,14 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
         zedge=zedge+dze(l-1)
         dmdz=sqrt(as2(l))
         uf=km(l)*dmdz
-        hf=kh(l)*dtdz(l)
+        hf=kh(l)*dtdz(l)*pek(l,i,j)
         qf=kq(l)*dqdz(l)
         ri=an2(l)/as2(l)
         sigmat=km(l)/kh(l)
         rif=ri/sigmat
         reserv2=0.d0
-        write (67,2000) l,zedge,uf,hf,qf,dmdz,dtdz(l),dqdz(l),
-     2                  ri,rif,sigmat,reserv2
+        write (67,2000) l,zedge,uf,hf,qf,dmdz,dtdz(l)*pek(l,i,j),
+     2                  dqdz(l),ri,rif,sigmat,reserv2
       end do
  
       write (67,*) "------------"
@@ -746,7 +750,7 @@ c
 !@sum diff_q integrates differential eqns for q (tridiag. method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-!@var q z-profle of relative humidity Q
+!@var q z-profle of specific humidity Q
 !@var q0 z-profle of Q at previous time step
 !@var kq z-profile of moisture diffusivity
 !@var dz(j) z(j+1)-z(j)

@@ -968,7 +968,7 @@ c
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of potential temperature
-!@var q z-profle of relative humidity
+!@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var q0 z-profle of q at previous time step
 !@var kh z-profile of heat conductivity
@@ -983,9 +983,9 @@ c
 !@var z0h  roughness height for heat
 !@var z0q  roughness height for moisture
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd relative humidity at the ground
+!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop relative humidity at the first GCM layer
+!@var qtop specific humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
       implicit none
@@ -1051,7 +1051,7 @@ c     M.J.Miller et al. 1992:
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of potential temperature
-!@var q z-profle of relative humidity
+!@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var q0 z-profle of q at previous time step
 !@var kq z-profile of moisture diffusivity
@@ -1066,9 +1066,9 @@ c     M.J.Miller et al. 1992:
 !@var z0h  roughness height for heat
 !@var z0q  roughness height for moisture
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd relative humidity at the ground
+!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop relative humidity at the first GCM layer
+!@var qtop specific humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
       implicit none
@@ -1209,7 +1209,7 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of potential temperature
-!@var q z-profle of relative humidity
+!@var q z-profle of specific humidity
 !@var kh z-profile of heat conductivity
 !@var z vertical grids (main, meter)
 !@var zhat vertical grids (secondary, meter)
@@ -1218,9 +1218,9 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@var ch  dimensionless heat flux at surface (stanton number)
 !@var cq  dimensionless moisture flux at surface (dalton number)
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd relative humidity at the ground
+!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop relative humidity at the first GCM layer
+!@var qtop specific humidity at the first GCM layer
 !@var n number of vertical main subgrid layers
       implicit none
 
@@ -1279,7 +1279,7 @@ c     M.J.Miller et al. 1992:
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of potential temperature
-!@var q z-profle of relative humidity
+!@var q z-profle of specific humidity
 !@var kq z-profile of moisture diffusivity
 !@var z vertical grids (main, meter)
 !@var zhat vertical grids (secondary, meter)
@@ -1288,9 +1288,9 @@ c     M.J.Miller et al. 1992:
 !@var ch  dimensionless heat flux at surface (stanton number)
 !@var cq  dimensionless moisture flux at surface (dalton number)
 !@var tgrnd virtual potential temperature at the ground
-!@var qgrnd relative humidity at the ground
+!@var qgrnd specific humidity at the ground
 !@var ttop virtual potential temperature at the first GCM layer
-!@var qtop relative humidity at the first GCM layer
+!@var qtop specific humidity at the first GCM layer
 !@var n number of vertical main subgrid layers
       implicit none
 
