@@ -457,7 +457,8 @@ c    * Y,BESSI0,X,AX
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls   !,jls_3Dsource,itcon_3Dsrc
      *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-      USE MODEL_COM, only: im,jm,jmon,ls1,lm,jhour,dtsrc,t,q,jday
+      USE MODEL_COM, only: im,jm,jmon,ls1,lm,jhour,dtsrc,t,q,jday,
+     * coupled_chem
       USE DYNAMICS, only: pmid,am,pk
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only: tr3Dsource
@@ -486,29 +487,21 @@ c Set ltopn variable for 23 or 12 layer model
        ltopn=lm
        endif
 
-c Set tracer mass above LS1 to be zero for 23 layer model
-          if (lm.eq.23) then
-           DO L=LS1,LM
-           DO J=1,JM
-           DO I=1,IM
-           DO N=1,NTM
-           select case (trname(n))
-           case ('DMS')
-            trm(i,j,l,n)=0.0
-           case ('MSA')
-            trm(i,j,l,n)=0.0
-           case ('SO2')
-            trm(i,j,l,n)=0.0
-           case ('SO4')
-            trm(i,j,l,n)=0.0
-           case ('H2O2_S')
-            trm(i,j,l,n)=0.0
-           end select
-           END DO
-           END DO
-           END DO
-           END DO
-           endif
+C Coupled mode: use on-line radical concentrations  
+           if (coupled_chem.eq.1) then
+            DO L=1,ltopn
+            DO J=1,jm
+            DO i=1,im
+            oh(i,j,l)=oh_live(i,j,l)
+            tno3(i,j,l)=no3_live(i,j,l)
+
+c Set h2o2_s =0 and use on-line h2o2 from chemistry
+            trm(i,j,l,n_h2o2_s)=0.0
+            end do
+            end do
+            end do
+            endif
+
 
 c Do I need special treatment at the poles (like before?)
 
@@ -604,7 +597,9 @@ c 203    FORMAT(X,3I3,X,3(E9.3,1X))
 c 999   call closeunit(iuc)
 c       itopen=ichemi 
 cccccccccccccc
+           if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
+
         call openunit('AER_CHEM',iuc,.true.)
         do ii=1,jmon
         read(iuc) ichemi
@@ -617,6 +612,7 @@ c Use this for chem inputs from B4360C0M23, from Drew
 
 c need to scale TNO3, OH and PERJ using cosine of zenith angle   
  27   CALL SCALERAD    
+      endif
 
        dtt=dtsrc           
       do 20 l=1,ltopn       
@@ -799,6 +795,9 @@ c      if (i.eq.30.and.j.eq.40.and.l.eq.2)
 c    *   write(6,*)'mkso4',te,dmm,ppres,rk4,ek4,r4,d4,ohmc,
 c    *   told(i,j,l,n_so2)
        case('H2O2_s')
+
+       if (coupled_chem.eq.1) go to 140
+
 c hydrogen peroxide formation and destruction:
 C***5.H2O2 +hv -> 2OH                        
 C***6.H2O2 + OH -> H2O + HO2     
@@ -850,6 +849,8 @@ c    * dho2(i,j,l),mm,te,ppres,q(i,j,l)
         tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
 
        end select
+
+ 140     CONTINUE
 
 cgc adjust moments  DONE IN APPLY_TRACER_3DSOURCE
 cg       if (trm(i,j,l,n).lt.0.0) trm(i,j,l,n)=0.0  
@@ -1102,9 +1103,9 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,lm,n_SO4
+     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2
       USE CLOUDS, only: PL,NTIX,NTX,DXYPJ
-      USE MODEL_COM, only: dtsrc
+      USE MODEL_COM, only: dtsrc,coupled_chem
 c
       IMPLICIT NONE
 c
@@ -1188,7 +1189,10 @@ c again all except tmcl(n,l)
      *    /temp*1.D-3  !M/kg
 c dissolved moles
       trdmol(is)=trdr(is)*1000./tr_mm(is)
+
        case('H2O2_s')
+      if (coupled_chem.eq.1) GO TO 400
+
        ih=ntix(n)
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(ih)=tr_rkd(ih)
@@ -1206,6 +1210,31 @@ c all except tmcl(n,l)
      *    /amass*bygasc/temp*1.D-3  !M/kg
 c dissolved moles
       trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
+
+ 400   CONTINUE
+
+       case('H2O2')
+       if (coupled_chem.eq.0) GO TO 401
+       ih=ntix(n)
+c modified Henry's Law coefficient assuming pH of 4.5
+      rkdm(ih)=tr_rkd(ih)
+c mole of tracer, used to limit so4 production
+      trmol(ih)=1000.*tm(l,ih)/tr_mm(ih)*fcloud
+c partial pressure of gas x henry's law coefficient                 
+      pph(ih)=mair*1.D-3*ppas/tr_mm(ih)/amass*           
+     *   tr_rkd(ih)*dexp(-tr_dhd(ih)*tfac)    
+c the following is from Phil:                                  
+c      reduction in partial pressure as species dissolves     
+      henry_const(ih)=rkdm(ih)*dexp(-tr_dhd(ih)*tfac)   
+      pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))   
+c all except tmcl(n,l)
+      trdr(ih)=mair*ppas/tr_mm(ih)
+     *    /amass*bygasc/temp*1.D-3  !M/kg
+c dissolved moles
+      trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
+
+ 401  CONTINUE
+
       end select
       end do
       if (tm(l,ih).lt.teeny.or.tm(l,is).lt.teeny) then
@@ -1269,6 +1298,9 @@ c can't be more than moles going in:
        dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,is)+sulfinc(is)*trdr(is)
 
        case('H2O2_s')
+
+      if (coupled_chem.eq.1) GO TO 402 
+
        ih=ntix(n)
        sulfin(ih)=-dso4g*tm(l,is)*tr_mm(ih)/1000.
        sulfinc(ih)=-dso4d*tmcl(is,l)*tr_mm(ih)/1000.
@@ -1278,6 +1310,24 @@ c can't be more than moles going in:
        if (fcloud.gt.abs(sulfin(ih))) then
          tr_left(ih)=fcloud+sulfin(ih)
        endif
+
+
+ 402    CONTINUE
+
+       case('H2O2')
+
+      if (coupled_chem.eq.0) GO TO 403 
+
+       ih=ntix(n)
+       sulfin(ih)=-dso4g*tm(l,is)*tr_mm(ih)/1000.
+       sulfinc(ih)=-dso4d*tmcl(is,l)*tr_mm(ih)/1000.
+       sulfinc(ih)=max(-1d0,sulfinc(ih))
+       sulfin(ih)=max(-1d0,sulfin(ih))
+       tr_left(ih)=0.
+       if (fcloud.gt.abs(sulfin(ih))) then
+         tr_left(ih)=fcloud+sulfin(ih)
+       endif
+ 403   CONTINUE
 
        dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ih)+sulfinc(ih)*trdr(ih)
 
@@ -1291,9 +1341,9 @@ c can't be more than moles going in:
 !@auth Dorothy Koch
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
       USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,n_SO4,trm,trmom
+     *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
 c      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
-      USE MODEL_COM, only: im,jm,lm,dtsrc,t,p
+      USE MODEL_COM, only: im,jm,lm,dtsrc,t,p,coupled_chem
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk
       USE GEOM, only: dxyp,imaxj
@@ -1355,9 +1405,19 @@ c avol is air volume
 c
       rk1f=rk1*dexp(-dh1*tfac)
 
+
+      if (coupled_chem.eq.1) then
       if (trm(i,j,l,n_so2).lt.teeny.or.
-     *  trm(i,j,l,n_h2o2_s).lt.teeny.or.tv.lt.teeny) then 
+     *  trm(i,j,l,n_h2o2).lt.teeny.or.tv.lt.teeny) then 
       go to 88
+      endif
+      endif
+
+      if (coupled_chem.eq.0) then
+      if (trm(i,j,l,n_so2).lt.teeny.or.
+     *  trm(i,j,l,n_h2o2).lt.teeny.or.tv.lt.teeny) then 
+      go to 88
+      endif
       endif
 
       DO N=1,NTM
@@ -1378,6 +1438,7 @@ c      reduction in partial pressure as species dissolves
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
 
        case('H2O2_s')
+        if(coupled_chem.eq.1) GO TO 404 
       th2o2=trm(i,j,l,n)
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)  
@@ -1390,12 +1451,39 @@ c the following is from Phil:
 c      reduction in partial pressure as species dissolves     
       henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
+
+ 404   CONTINUE
+
+       case('H2O2')
+        if(coupled_chem.eq.0) GO TO 405 
+      th2o2=trm(i,j,l,n)
+c modified Henry's Law coefficient assuming pH of 4.5
+      rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)  
+c mole of tracer, used to limit so4 production
+      trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
+c partial pressure of gas x henry's law coefficient                 
+      pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*           
+     *   tr_rkd(n)*dexp(-tr_dhd(n)*tfac)    
+c the following is from Phil:                                  
+c      reduction in partial pressure as species dissolves     
+      henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
+      pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
+
+ 405  CONTINUE
+
       end select
       END DO 
 
 c this part from gas phase:moles/kg/kg
+        if(coupled_chem.eq.1) then
+      dso4g=rk*dexp(-ea/(gasc*te))*rk1f
+     *    *pph(n_h2o2)*pph(n_so2)*dtsrc*tv
+         endif
+        if(coupled_chem.eq.0) then
       dso4g=rk*dexp(-ea/(gasc*te))*rk1f
      *    *pph(n_h2o2_s)*pph(n_so2)*dtsrc*tv
+         endif
+
 c check to make sure no overreaction: moles of production:
       dso4gt=dso4g*tso2*th2o2
 c can't be more than moles going in:
@@ -1403,10 +1491,17 @@ c can't be more than moles going in:
         dso4g=trmol(n_so2)/(tso2*th2o2)
       endif
       dso4gt=dso4g*tso2*th2o2
+
+       if (coupled_chem.eq.1) then
+      if (dso4gt.gt.trmol(n_h2o2)) then
+        dso4g=trmol(n_h2o2)/(tso2*th2o2)
+      endif
+       endif
+       if (coupled_chem.eq.0) then
       if (dso4gt.gt.trmol(n_h2o2_s)) then
         dso4g=trmol(n_h2o2_s)/(tso2*th2o2)
       endif
-
+       endif
 
       do n=1,ntm
        select case (trname(n))
@@ -1433,7 +1528,9 @@ cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/tso2
        tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
 c       tt2=tt2+trm(i,j,l,n)-tso2 
        sulfin=0.
+
        case('H2O2_s')
+        if (coupled_chem.eq.1) GO TO 406
        sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
 cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
@@ -1444,6 +1541,28 @@ cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
 c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
 c    * trm(i,j,l,n)
 c      tt3=tt3+trm(i,j,l,n)-th2o2 
+
+ 406    CONTINUE
+
+       case('H2O2')
+        if (coupled_chem.eq.0) GO TO 407
+       sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
+       sulfin=max(-1d0,sulfin)
+cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
+cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
+
+
+c Impact gas-phase chemistry H2O2
+c Check this change is applied - hardwire nChemistry.eq.1
+
+       tr3Dsource(i,j,l,1,n)=trm(i,j,l,n)*sulfin/dtsrc
+
+c      if (l.eq.2.and.j.eq.34) write(6,*)'H2O2',i,sulfin,th2o2,
+c    * trm(i,j,l,n)
+c      tt3=tt3+trm(i,j,l,n)-th2o2 
+
+ 407   CONTINUE
+
       end select
       END DO    
    

@@ -33,6 +33,8 @@
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
       integer :: KOCEAN = 1, MFILTR = 1
+!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+      integer :: COUPLED_CHEM = 0
 !@dbparam dt_UVfilter dU,dV are multiplied by dt/dt_UVfilter
       REAL*8 :: dt_UVfilter = 0. ! UV-filter is NOT used
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter

@@ -4276,7 +4276,7 @@ c I'm not using the moments
 !@+     tracers that 'turn on' on different dates.
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
-      USE MODEL_COM, only: jmon,itime
+      USE MODEL_COM, only: jmon,itime,coupled_chem
       USE TRACER_COM, only: ntm,trname,itime_tr0
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
@@ -4369,8 +4369,12 @@ C         (lightning called from tracer_3Dsource)
         case ('Paraffin')
           call read_Paraffin_sources(n,iact)
         case ('N2O5')
+          if (COUPLED_CHEM.eq.1) then 
+          tr3Dsource(:,:,:,:,n) = 0. 
+          else
           tr3Dsource(:,:,:,:,n) = 0.
           call get_sulfate_N2O5 !not applied directly;used in chemistry.
+          endif
         end select
       end do
 #endif

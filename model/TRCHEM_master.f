@@ -9,14 +9,17 @@ C PLEASE SEE ANY WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim
+      USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim,
+     & COUPLED_CHEM
       USE DYNAMICS, only: pedn
       USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
-     &                  n_AlkylNit,n_Alkenes,n_Paraffin,ntm_chem
+     &                  n_AlkylNit,n_Alkenes,n_Paraffin,ntm_chem,
+     &                  n_DMS, n_MSA, n_SO2,n_SO4,n_H2O2_s,
+     &                  oh_live,no3_live
 #ifdef Shindell_Strat_chem
      &                  ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,n_BrOx,
      &                  n_BrONO2,n_CFC
@@ -24,7 +27,7 @@ c
 #ifdef regional_Ox_tracers
      &                  ,NregOx,n_OxREG1
 #endif
-      USE CONSTANT, only: radian
+      USE CONSTANT, only: radian,gasc,mair,mb2kg,pi
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
       USE TRACER_SOURCES, only: nChemistry,nStratwrite
       USE TRCHEM_Shindell_COM
@@ -67,6 +70,8 @@ C**** Local parameters and variables and arguments:
 !@var chg106,chg107,chg108,chg109 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
+!@var airvol Air volume in grid cell
+      REAL*8, DIMENSION(LM) :: airvol
       REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
@@ -172,6 +177,11 @@ C make sure the regional Ox tracers didn't diverge from total Ox:
 c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
+c
+c Air volume for sulfate SA calculation (m3)
+       airvol(L)=(((DXYP(J)*AM(L,I,J)*1000)/mair)*gasc
+     &      *ta(L))/pres(L)*100.d0 
+c
 c      calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*1.38d-19)
        y(nO2,L)=y(nM,L)*pfix_O2
@@ -392,6 +402,14 @@ cc    Non-family chemistry:
 c
       call chemstep(I,J,change)
 c
+C Accumulate 3D radical arrays to pass to aerosol code
+           if(coupled_chem.eq.1) then
+           do l=1,ls1-1
+           oh_live(i,j,l)=y(nOH,L)
+           no3_live(i,j,l)=yNO3(i,j,l)
+           end do
+           endif
+
 #ifdef Shindell_Strat_chem
        call ClOxfam(LM,I,J,ClOx_old)
 #endif
@@ -431,16 +449,10 @@ c     * pNOx(I,J,l),pOx(I,J,l)
  196  format(a7,9x,11(1x,e9.2))
 c
       else                           !             D A R K N E S S
-c
-C*****************************************************************
-c      >> N2O5 sink on sulfate aerosol :: <<
-C      Raw (ppt) sulfate data converted to surface area (cm2/cm3)
-C      assuming a monodispersed aerosol with radius 0.078 microns
-C      (Dentener and Crutzen, 1993). Also assuming density = 1.1 g/cm3,
-C      Mr(sulfate) = 98.0g; 1ppt=2.55E7 molecules/cm3
 C
-C       Conversion factor used (ppt->surface area)
-C       =2.55E7*98.*3./(6.022E23*1.1*1.E-5)
+C*****************************************************************
+C      >> N2O5 sink on sulfate aerosol :: <<
+C      REACTION PROBABLITY FORMULATION
 C
 C      To evaluate 'k' for N2O5 + H2O -> 2HNO3,
 C       assume k = GAMMA.SA.v / 4 (Dentener and Crutzen, 1993)
@@ -448,9 +460,29 @@ C
 C      GAMMA = 0.1, SA = given, v = molecular velocity (cm/s)
 C      where v  = SQRT (8.Kb.T / PI*M); Kb = 1.38062E-23;
 C      T = Temp (K); M = mass N2O5 (Kg)
+C
+C      Off-line sulfate fields to run in uncoupled mode 
+C      give SO4 in cm2/cm3 'surface area density'.
+C
+C      On-line sulfate in coupled mode must be converted to cm2/cm3
+C      Assume a monodispersed aerosol with radius 0.078 microns
+C
 C*****************************************************************
 c
        do L=1,LS1J(J)-1 ! (troposphere)
+
+         if (coupled_chem.eq.1) then
+C Convert units of kg sulfate to cm2 sulfate /cm3 air
+C Number of particles * mean surface area
+C Mean surface area of sulfate particle = 7.6E-10 cm2
+C Total surface area per grid box (cm2)
+        sulfate(I,J,L)=(trm(I,J,L,n_SO4)*1E3)/tr_mm(n_SO4)*6.022E23
+     & *7.6E-10
+C Divide by grid box volume (cm3)
+        sulfate(I,J,L)=sulfate(I,J,L)/(airvol(L)*1.0E6)
+
+         endif
+
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
          RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.
@@ -668,6 +700,16 @@ c -- AlkylNit -- (AlkylNit from gas phase rxns)
            changeAlkylNit=change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
      &     *bypfactor
          END IF
+
+C Accumulate 3D radical arrays to pass to aerosol code
+C Make sure we get the nightime values
+C Set OH to zero for now
+
+           if(coupled_chem.eq.1) then
+           oh_live(i,j,l)=0.0
+           no3_live(i,j,l)=yNO3(i,j,l)
+           endif
+
 C
 c Some More Chemistry Diagnostics:
          if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)then

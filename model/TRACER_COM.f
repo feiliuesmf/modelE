@@ -19,6 +19,9 @@
 !@var ntm_aero number of Koch-only tracers
       integer, parameter :: ntm_aero=5
 
+!@var 3D on-line radical array for interactive aerosol and gas
+       REAL*8, DIMENSION(IM,JM,LM)   :: oh_live,no3_live
+
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
