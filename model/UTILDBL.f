@@ -1,4 +1,4 @@
-
+   
       FUNCTION THBAR (X,Y)
 C****
 C**** TH-mean used for vertical differencing (Arakawa)
@@ -9,7 +9,7 @@ C****           (a+bx+cxx+dxxx+cx**4)/(e+fx+gxx)
 C****      approx.error <1.E-6 for x between .9 and 1.7
 C****
 !@sum   THBAR calculates mean temperature in the vertical
-!@auth  Original development team
+!@auth  Gary Russell, Jean Lerner
 !@ver   1.0
       IMPLICIT NONE
 !@var A,B,C,D,E,F,G   expansion coefficients for THBAR
@@ -31,7 +31,7 @@ C****
 
       FUNCTION EXPBYK (X)
 !@sum   EXPBYK exponentiates pressure by KAPA
-!@auth  Original development team
+!@auth  Compiler development made original version obsolete
 !@ver   1.0
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: X      !@var X          input pressure
@@ -43,7 +43,7 @@ c      EXPBYK=X**KAPA   !should be double precision from parameter.inc
 
       FUNCTION QSAT_NEW (TM,QL,PR)
 !@sum   QSAT calculates saturation vapour mixing ratio
-!@auth  Original development team
+!@auth  Gary Russell
 !@ver   1.0
       IMPLICIT NONE
 !@var A,B,C   expansion coefficients for QSAT
@@ -54,14 +54,14 @@ c      EXPBYK=X**KAPA   !should be double precision from parameter.inc
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap. (J/kg)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
       REAL*8 :: QSAT_NEW        !@var QSAT sat. vapour mixing ratio
-      QSAT_NEW = A*EXP(QL*(B-C/TM))/PR 
+      QSAT_NEW = A*EXP(QL*(B-C/TM))/PR
       RETURN
       END
 
       SUBROUTINE DREAD (IUNIT,AIN,LENGTH,AOUT)
 !@sum   DREAD   read in real*4 array and convert to real*8
-!@auth  Original development team
-!@ver   1.0 
+!@auth  Reto Ruedy (should become obsolete)
+!@ver   1.0
       IMPLICIT NONE
       INTEGER :: IUNIT                    !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
@@ -73,18 +73,18 @@ c      EXPBYK=X**KAPA   !should be double precision from parameter.inc
 C**** do transfer backwards in case AOUT and AIN are same workspace
       DO N=LENGTH,1,-1
          AOUT(N)=AIN(N)
-      END DO 
+      END DO
       RETURN
       END
 
       SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
 !@sum   MREAD   read in integer and real*4 array and convert to real*8
-!@auth  Original development team
-!@ver   1.0 
+!@auth  Reto Ruedy (should become obsolete)
+!@ver   1.0
       IMPLICIT NONE
       INTEGER :: IUNIT                    !@var  IUNIT  file unit number
       INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
-      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  no. of chars. to skip
+      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  words to skip
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
       REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
       REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
@@ -101,8 +101,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 
       SUBROUTINE READT (IUNIT,NSKIP,AIN,LENGTH,AOUT,IPOS)
 !@sum   READT  read in title and real*4 array and convert to real*8
-!@auth  Original development team
-!@ver   1.0 
+!@auth  Reto Ruedy (should become obsolete)
+!@ver   1.0
       IMPLICIT NONE
       INTEGER :: IUNIT             !@var  IUNIT  file unit number
       INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
@@ -132,7 +132,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 
       SUBROUTINE TIMER (MNOW,MINC,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
-!@auth Reto Ruedy
+!@auth Gary Russell
 !@ver  1.0 (SGI version)
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
@@ -149,9 +149,9 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       END
 
       SUBROUTINE TRIDIAG(A,B,C,R,U,N)
-!@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R 
+!@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0 
+!@ver  1.0
       IMPLICIT NONE
       INTEGER :: N                 !@var N    dimension of arrays
       REAL*8, INTENT(IN) :: A(N)   !@var A    coefficients of u_i-1
