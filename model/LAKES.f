@@ -644,7 +644,8 @@ c              END IF
 #ifdef TRACERS_WATER
               DTM(:) = DMM*GTRACER(:,1,IU,JU)
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
-              TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:) + DTM(:)
+              TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
+     *             *BYDXYP(JD)
 #endif
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) +  DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR)+
@@ -692,7 +693,7 @@ c        END IF
      *       (MLDLK(1,1)*RHOW*FLAKE(1,1)*DXYP(1))
         TRFLOW(:,1,1) = TRFLOW(:,1,1) - DTM(:)
         TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:)=TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:) +
-     *       DTM(:)
+     *       DTM(:)*BYDXYP(JDPOLE)
 #endif
         AIJ(IDPOLE,JDPOLE,IJ_MRVR)=AIJ(IDPOLE,JDPOLE,IJ_MRVR) + DMM
         AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + DGM
@@ -801,10 +802,13 @@ C****
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DAGCOM, only : aij,ij_mrvr
+      USE GEOM, only : bydxyp
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
 #ifdef TRACERS_WATER
-      USE TRACER_DIAG_COM, only : taijn,tij_rvr
-      USE TRACER_COM, only : ntm,trname
+      USE TRACER_DIAG_COM, only : taijn,tij_rvr,to_per_mil,units_tij
+     *     ,scale_tij
+      USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
+     *     ,tr_wd_type,nwater
 #endif
       IMPLICIT NONE
       REAL*8 RVROUT(6), SCALERVR, DAYS
@@ -828,16 +832,26 @@ C**** convert kg/(source time step) to km^3/mon
 
 #ifdef TRACERS_WATER
       DO N=1,NTM
-        WRITE(6,*) "River outflow tracer concentration (kg/kg): "
-     *       ,TRNAME(N)
-        DO INM=1,NRVR,6
-          DO I=1,6
-            TRRVOUT(I,N)=TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
-     *           ,TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
-     *           ,IJ_MRVR)+teeny)
+        if (itime.ge.itime_tr0(n) .and. tr_wd_TYPE(n).eq.nWater) then
+          WRITE(6,*) "River outflow tracer concentration "
+     *         ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
+          DO INM=1,NRVR,6
+            DO I=1,6
+              if (to_per_mil(n).gt.0) then
+                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
+     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
+     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
+     *               ))+teeny) -1.)
+              else
+                TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
+     *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)
+     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM))
+     *               +teeny)
+              end if
+            END DO
+            WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
           END DO
-          WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
-        END DO
+        end if
       END DO
 #endif
 

@@ -24,27 +24,38 @@
       implicit none
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
-      character*10 CMR
+      character*10, DIMENSION(NTM) :: CMR,CMRWT
       logical :: qcon(KTCON-1), T=.TRUE. , F=.FALSE.
-!@dbparam to_volume_MixRat: For printout of tracer concentration
-!@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
-!@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-      INTEGER :: to_volume_MixRat=0 
       character*50 :: unit_string
 
 C**** Get itime_tr0 from rundeck if it exists
       call sync_param("itime_tr0",itime_tr0,ntm)
 C**** Get to_volume_MixRat from rundecks if it exists
-      call sync_param("to_volume_MixRat",to_volume_MixRat)
+      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+#ifdef TRACERS_WATER
+C**** Decide on water tracer conc. units from rundeck if it exists
+      call sync_param("to_per_mil",to_per_mil,ntm)
+#endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr
-      if (to_volume_MixRat .eq.1) then
-        MMR_to_VMR(:) = mair/tr_mm(:)
-        cmr = ' V/V air'
-      else
-        MMR_to_VMR(:) = 1.d0
-        cmr = ' kg/kg air'
-      endif
+      do n=1,ntm
+        if (to_volume_MixRat(n) .eq.1) then
+          MMR_to_VMR(n) = mair/tr_mm(n)
+          cmr(n) = 'V/V air'
+        else
+          MMR_to_VMR(n) = 1.d0
+          cmr(n) = 'kg/kg air'
+        endif
+#ifdef TRACERS_WATER
+        if (to_per_mil(n) .eq.1) then
+          cmrwt(n) = 'per mil'
+          cmr(n) = 'per mil'     ! this overrides to_volume_ratio
+          MMR_to_VMR(n) = 1.
+        else
+          cmrwt(n) = 'kg/m^2'
+        end if
+#endif
+      end do
 C****
 C**** TAJLN(J,L,KQ,N)  (SUM OVER LONGITUDE AND TIME OF)
 C****
@@ -63,9 +74,12 @@ C**** Tracer concentration
         sname_jln(k,n) = trim(trname(n))//'_CONCENTRATION' 
         lname_jln(k,n) = trim(trname(n))//' CONCENTRATION' 
         jlq_power(k) = 0.
-        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),cmr)
+        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),cmr(n))
         scale_jlq(k) = 1.d0
         scale_jln(n) = MMR_to_VMR(n)
+#ifdef TRACERS_WATER
+        if (to_per_mil(n).gt.0) units_jln(k,n) = unit_string(0,cmr(n))
+#endif
 
 C**** Physical processes affecting tracers
 C****   F (TOTAL NORTHWARD TRANSPORT OF TRACER MASS)  (kg)
@@ -130,7 +144,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
 C**** Construct UNITS string for output
       do n=1,ntm
       do k=2,ktajl
-      units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),' kg/s')
+      units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
       end do; end do
 
 C**** CONTENTS OF TAIJLN(I,J,LM,N)  (SUM OVER TIME OF)
@@ -145,8 +159,11 @@ C**** Tracer concentrations (AIJLN)
       do l=1,lm
         write(sname_ijt(l,n),'(a,i2.2)') trim(TRNAME(n))//'_L_',l 
         write(lname_ijt(l,n),'(a,i2)')   trim(TRNAME(n))//' L ',l
-        units_ijt(l,n) = unit_string(ijtc_power(n),cmr)
+        units_ijt(l,n) = unit_string(ijtc_power(n),cmr(n))
         scale_ijt(l,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+#ifdef TRACERS_WATER
+        if (to_per_mil(n) .eq.1) units_ijt(l,n)=unit_string(0,cmr(n))
+#endif
       end do
       end do
 
@@ -160,30 +177,33 @@ C**** Summation of mass over all layers
       tij_mass = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Total_Mass'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Total Mass'
-        units_tij(k,n) = unit_string(ijtm_power(n),' kg/m^2')
+        units_tij(k,n) = unit_string(ijtm_power(n),'kg/m^2')
         scale_tij(k,n) = 10.**(-ijtm_power(n))
 C**** Average concentration over layers
       k = k+1
       tij_conc = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Average'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
-        units_tij(k,n) = unit_string(ijtc_power(n),cmr)
+        units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
 C**** Surface concentration
       k = k+1
       tij_surf = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
-        units_tij(k,n) = unit_string(ijtc_power(n),cmr)
+        units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/dble(NIsurf)
 #ifdef TRACERS_WATER
+C**** the following diagnostics are only set if the particular tracer
+C**** exists in water. (WHAT ABOUT SOLUBLE GAS?)
+      if (tr_wd_TYPE(n).eq.nWater) then  
 C**** Tracers in precipitation
       k = k+1
       tij_prec = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_prcp'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Precip'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmr)
+        units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
         scale_tij(k,n)=10.**(-ijtc_power(n))
 C**** Tracers in evaporation
       k = k+1
@@ -191,32 +211,37 @@ C**** Tracers in evaporation
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmr)
-        scale_tij(k,n)=10.**(-ijtc_power(n))
+        units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
+        scale_tij(k,n)=10.**(-ijtc_power(n))/dble(NIsurf)
 C**** Tracers in river runoff
       k = k+1
       tij_rvr = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_rvr'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in River Outflow'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmr)
-        scale_tij(k,n)=10.**(-ijtc_power(n))
+        units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)
 C**** Tracers in sea ice
       k = k+1
       tij_seaice = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_ice'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' in Sea Ice'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmr)
-        scale_tij(k,n)=10.**(-ijtc_power(n))
+     *       ' in Sea Ice  x POICE'
+        units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)
 C**** Tracers conc. in ground component (ie. water or ice surfaces)
       k = k+1
       tij_grnd = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_at_Grnd'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' at Ground'
-        units_tij(k,n)=unit_string(ijtc_power(n),cmr)
-        scale_tij(k,n)=10.**(-ijtc_power(n))
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+        end if
+        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/dble(NIsurf)
+      end if  
 #endif
       end do
 

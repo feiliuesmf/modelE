@@ -24,6 +24,9 @@ C**** Interface to PBL
      &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
       USE PBL_DRV, only : pbl,evap_max,fr_sat
+#ifdef TRACERS_WATER
+     *     ,tr_evap_max
+#endif
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -49,7 +52,13 @@ C**** Interface to PBL
      *     ,trevapor,trunoe,gtracer
 #endif
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+#ifdef TRACERS_WATER
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
+#endif
       USE TRACER_DIAG_COM, only : taijn,tij_surf
+#ifdef TRACERS_WATER
+     *     ,tij_evap,tij_grnd,tajls,jls_source
+#endif
 #endif
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
@@ -85,8 +94,8 @@ C**** Tracer input/output common block for PBL
       integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
 #ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: tevaplim,tevap,trgrnd
-      real*8  TEV, dTEVdTQS, dTQS, TDP, TDT1
+      real*8, dimension(ntm) :: tevaplim,trgrnd
+      real*8  TEV,dTEVdTQS,tevap,dTQS,TDP,TDT1,FRACVL,FRACVS,FRACLK
 #endif
 #endif
 
@@ -141,17 +150,15 @@ C$OMP*  KR, MSUM,MA1,MSI1,MSI2, PS,PXSOIL,P1,P1K,PLAND,PWATER,
 C$OMP*  PLICE,PIJ,POICE,POCEAN,PGK,PKDN,PTYPE,PSK, Q1,QSDEN,
 C$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
 C$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TH1,TFS,TS,
-#ifndef TRACERS_ON
-C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L)
-C$OMP*  SCHEDULE(DYNAMIC,2)
-#else
-C$OMP*  trtop,trsfac,trconstflx,n,nx,ntx,nsrc,ntix,
+C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L
+#ifdef TRACERS_ON
+C$OMP*  ,trtop,trsfac,trconstflx,n,nx,ntx,nsrc,ntix
 #ifdef TRACERS_WATER
-C$OMP*  tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,
+C$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
 #endif
-C$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,Z2BY4L)
+#endif
+C$OMP*  )
 C$OMP*  SCHEDULE(DYNAMIC,2)
-#endif
 C
       DO J=1,JM
       HEMI=1.
@@ -357,22 +364,41 @@ C****
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
-#ifndef TRACERS_WATER
-C**** Calculate trsfac (set to zero for const flux)
-        trsfac(nx)=0.
-C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-        rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-        totflux=0.
-        do nsrc=1,ntsurfsrc(ntix(nx))
-          totflux = totflux+trsource(i,j,nsrc,ntix(nx))
-        end do
-        trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
-#else
-C**** Set surface boundary conditions for water tracers
+        n=ntix(nx)
+C**** Set surface boundary conditions for tracers depending on whether they
+C**** are water or another type of tracer
+#ifdef TRACERS_WATER
+        tr_evap_max(nx)=1.  
+C**** The select is used to distinguish water from gases or particle
+        select case (tr_wd_TYPE(n))
+        case (nWATER)
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
-        trsfac(nx)=1.
-        trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
-        trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
+          trsfac(nx)=1.
+          trconstflx(nx)=gtracer(n,itype,i,j)*QG
+#ifdef TRACERS_SPECIAL_O18
+          if (ELHX.eq.LHE) then   ! liquid water => fractionation
+            trgrnd(nx)=gtracer(n,itype,i,j)*QG*FRACVL(TG1,trname(n))
+          else   ! ice, no fractionation
+            trgrnd(nx)=gtracer(n,itype,i,j)*QG
+          end if
+#else
+            trgrnd(nx)=gtracer(n,itype,i,j)*QG
+#endif
+        case (nGAS, nPART)
+#endif
+C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
+C**** is a non-soluble tracer mixed in.)
+C**** Calculate trsfac (set to zero for const flux)
+          trsfac(nx)=0.
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+          totflux=0.
+          do nsrc=1,ntsurfsrc(n)
+            totflux = totflux+trsource(i,j,nsrc,n)
+          end do
+          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
+#ifdef TRACERS_WATER
+        end select 
 #endif
       end do
 #endif
@@ -497,39 +523,49 @@ C**** Calculate Water Tracer Evaporation
 C****
       DO NX=1,NTX
         N=NTIX(NX)
-        IF (ITYPE.EQ.1) THEN ! OCEAN
+        if (tr_wd_TYPE(n).eq.nWATER) THEN
+          IF (ITYPE.EQ.1) THEN  ! OCEAN
 C**** do calculation implicitly for TQS
-          TEV=-RCDQWS*(trs(nx)-trgrnd(nx)) !*FRACLK(WS,ITRSPC)
-          dTEVdTQS =-RCDQWS                !*FRACLK(WS,ITRSPC)
-          dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
+#ifdef TRACERS_SPECIAL_O18
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))*FRACLK(WS,trname(n))
+            dTEVdTQS =-RCDQWS*FRACLK(WS,trname(n))
+#else
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))
+            dTEVdTQS =-RCDQWS
+#endif
+            dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/
      *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)
-          TEVAP(NX)=DTSURF*(TEV+dTQS*dTEVdTQS)
-        ELSE ! ICE AND LAND ICE
+            TEVAP=DTSURF*(TEV+dTQS*dTEVdTQS)
+          ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
-          IF (EVAP.GE.0) THEN   ! EVAPORATION
-            TEVAP(NX)=EVAP*trgrnd(nx)/QG
-          ELSE                  ! DEW
-c           TEVAP(NX)=EVAP*trs(nx)/(QS*FRACVL(TG1,ITRSPC))
-            TEVAP(NX)=EVAP*trs(nx)/(QS+teeny)
+            IF (EVAP.GE.0) THEN ! EVAPORATION
+              TEVAP=EVAP*trgrnd(nx)/QG
+            ELSE                ! DEW (fractionates)
+#ifdef TRACERS_SPECIAL_O18
+              TEVAP=EVAP*trs(nx)/(QS*FRACVL(TG1,trname(n))+teeny)
+#else
+              TEVAP=EVAP*trs(nx)/(QS+teeny)
+#endif
+            END IF
           END IF
-        END IF
 C**** Limit evaporation if lake mass is at minimum
-        IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
-     *       (TREVAPOR(n,1,I,J)+TEVAP(NX).gt.TEVAPLIM(NX))) THEN
-          WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL",N
-     *         ,TREVAPOR(n,1,I,J)+TEVAP(NX),TEVAPLIM(NX)
-          TEVAP(NX)= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
+          IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
+     *         (TREVAPOR(n,1,I,J)+TEVAP.gt.TEVAPLIM(NX))) THEN
+            WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL",N
+     *           ,TREVAPOR(n,1,I,J)+TEVAP,TEVAPLIM(NX)
+            TEVAP= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
+          END IF
+          TDP = TEVAP*DXYP(J)*ptype
+          TDT1 = trsrfflx(I,J,n)*DTSURF
+          IF (TRM(I,J,1,n)+TDT1+TDP.lt.1d-5*trw0(n).and.tdp.lt.0) THEN
+            WRITE(99,*) "LIMITING TEVAP",I,J,N,TDP,TRM(I,J,1,n)
+            TEVAP = -(TRM(I,J,1,n)+TDT1-1d-5*trw0(n))/(DXYP(J)*ptype)
+            trsrfflx(I,J,n)= - TRM(I,J,1,n)+1d-5*trw0(n)
+          ELSE
+            trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
+          END IF
+          TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
         END IF
-        TDP = TEVAP(NX)*DXYP(J)*ptype
-        TDT1 = trsrfflx(I,J,n)*DTSURF
-        IF (TRM(I,J,1,n)+TDT1+TDP.lt.1d-5) THEN
-          WRITE(99,*) "LIMITING TEVAP",I,J,N,TDP,TRM(I,J,1,n)
-          TEVAP(NX) = - (TRM(I,J,1,n)+TDT1-1d-5)/(DXYP(J)*ptype)
-          trsrfflx(I,J,n)= - TRM(I,J,1,n)+1d-5
-        ELSE
-          trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
-        END IF
-        TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP(NX)
       END DO
 #endif
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
@@ -634,13 +670,25 @@ C****
 C**** Save surface tracer concentration whether calculated or not
       nx=0
       do n=1,ntm
-        if (itime_tr0(n).le.itime .and. needtrs(n)) then
-          nx=nx+1
-          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
-        else
-          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
-     *         +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *         *bydxyp(j),0d0)*ptype
+        if (itime_tr0(n).le.itime) then
+          if (needtrs(n)) then
+            nx=nx+1
+            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+          else
+            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
+     *           *bydxyp(j),0d0)*ptype
+          end if
+#ifdef TRACERS_WATER
+          taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
+     *         trevapor(n,itype,i,j)*ptype
+          taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
+     *         gtracer(n,1,i,j)*ptype
+          tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
+     *         +trevapor(n,itype,i,j)*ptype
+          if (focean(i,j).gt.0) tajls(j,1,jls_source(2,n))=tajls(j,1
+     *         ,jls_source(2,n))+trevapor(n,itype,i,j)*ptype
+#endif
         end if
       end do
 #endif

@@ -1,6 +1,9 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
+#ifdef TRACERS_WATER
+      use tracer_com, only : ntm
+#endif
       implicit none
 ccc   save
 
@@ -8,7 +11,14 @@ c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
+#ifdef TRACERS_WATER
+      real*8, dimension(ntm) :: tr_evap_max(ntm)
+#endif
       common/pbl_loc/evap_max,fr_sat
+#ifdef TRACERS_WATER
+     *     ,tr_evap_max
+#endif
+
 C$OMP  THREADPRIVATE (/pbl_loc/)
 
       contains
@@ -40,7 +50,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON
      &     ,trij=>tr
-      USE TRACER_COM, only : ntm,needtrs,itime_tr0
+      USE TRACER_COM, only : needtrs,itime_tr0
 #endif
       IMPLICIT NONE
 
@@ -204,6 +214,9 @@ c1003 format(a,4(1pe14.4))
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
+#ifdef TRACERS_WATER
+     *     tr_evap_max,
+#endif
 #endif
      4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 

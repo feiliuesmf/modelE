@@ -486,14 +486,14 @@ C****      '(' is required, so it is inserted
 
       tpow = ' '
       if(pow10.ne.0) then
-         write(tpow,'(i3)') pow10
-         if (index(ending,')') .ne.0) then
-           tpow='(10^'//trim(adjustl(tpow))
-         else
-           tpow= '10^'//trim(adjustl(tpow))
-         end if
+        write(tpow,'(i3)') pow10
+        if (index(ending,')') .ne.0) then
+          tpow='(10^'//trim(adjustl(tpow))
+        else
+          tpow= '10^'//trim(adjustl(tpow))
+        end if
       endif
-      unit_string = trim(tpow)//trim(ending)
+      unit_string = adjustl(trim(tpow)//" "//trim(ending))
       return
       end function unit_string
 

@@ -29,16 +29,19 @@
       USE LINOZ_CHEM_COM, only: dsol
 #endif
       USE PARAM
+#ifdef TRACERS_WATER
+      USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
+      USE SEAICE_COM, only : trsi0
+#endif      
       implicit none
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*10 CMR
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
-!@var to_volume_MixRat: For printout of tracer concentration
-!@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
-!@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-      INTEGER :: to_volume_MixRat=0 
       character*50 :: unit_string
+#ifdef TRACERS_WATER
+      real*8 fracls
+#endif      
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0 = 0
@@ -54,10 +57,12 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       tcscale = 0.
 #endif
 #ifdef TRACERS_WATER
-       tr_wd_TYPE = nGas   ! or  nPART  or nWATER
-       tr_DHD = 0.
-       tr_RKD = 0.
-       trw0 = 0
+      tr_wd_TYPE = nGas         ! or  nPART  or nWATER
+      tr_DHD = 0.
+      tr_RKD = 0.
+      trw0 = 0
+      trli0 = 0
+      trsi0 = 0
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
@@ -147,20 +152,62 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
           nt3Dsrc(n) = 2
+#ifdef TRACERS_SPECIAL_Lerner
 C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
           call sync_param("dsol",dsol)
+#endif
 
 #ifdef TRACERS_WATER
       case ('Water')
-      n_water = n
-          ntm_power(n) = -5
+      n_Water = n
+          ntm_power(n) = -4
           tr_mm(n) = mwat
           needtrs(n) = .true.
           tr_wd_TYPE(n) = nWater
-          tr_DHD(n) = 1.d5
           trw0(n) = 1.
+          trli0(n) = 1.
+          trsi0(n) = 1.
           tr_H2ObyCH4(n) = 1.
+
+#ifdef TRACERS_SPECIAL_O18
+      case ('H2O18')
+      n_H2O18 = n
+          ntm_power(n) = -7
+          tr_mm(n) = 20.
+          needtrs(n) = .true.
+          ntsurfsrc(n) = 0
+          tr_wd_TYPE(n) = nWater
+          trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
+          trli0(n) = 0.980d0*trw0(n)  ! d=-20
+          trsi0(n) = fracls(trname(n))*trw0(n)
+          tr_H2ObyCH4(n) = trw0(n)
+
+      case ('HDO')
+      n_HDO = n
+          ntm_power(n) = -8
+          tr_mm(n) = 19.
+          needtrs(n) = .true.
+          ntsurfsrc(n) = 0
+          tr_wd_TYPE(n) = nWater
+          trw0(n) = 3.19d-4    ! SMOW mass ratio of water molecules
+          trli0(n) = 0.830d0*trw0(n)  ! d=-170
+          trsi0(n) = fracls(trname(n))*trw0(n)
+          tr_H2ObyCH4(n) = trw0(n)
+
+      case ('HTO')
+      n_HTO = n
+          ntm_power(n) = -18
+          tr_mm(n) = 20.
+          needtrs(n) = .true.
+          ntsurfsrc(n) = 0
+          tr_wd_TYPE(n) = nWater
+          trw0(n) = 0. !2.22d-18   ! SMOW mass ratio of water molecules
+          trli0(n) = 0.
+          trsi0(n) = 0.
+          tr_H2ObyCH4(n) = 0.
+          trdecay = 1.77d-9      ! =5.59d-2 /yr
+#endif
 #endif
 
       end select
@@ -192,7 +239,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -3.
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('Rn222')
         k = k + 1
@@ -202,7 +249,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -12.
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Ground_Source_of_'//trname(n)
@@ -210,7 +257,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -10.
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 ! keep AIJ and AJL CO2 sources in same order !!
       case ('CO2')
@@ -221,7 +268,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(2,n) = k
         sname_jls(k) = 'fertilization_sink_'//trname(n)
@@ -229,7 +276,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
@@ -237,7 +284,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(4,n) = k
         sname_jls(k) = 'Land_Use_Modification_'//trname(n)
@@ -245,7 +292,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(5,n) = k
         sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
@@ -253,7 +300,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(6,n) = k
         sname_jls(k) = 'Ocean_exchange_'//trname(n)
@@ -261,7 +308,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('N2O')
         k = k + 1
@@ -271,7 +318,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trname(n)
@@ -279,7 +326,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('CFC11')   !!! should start April 1
         k = k + 1
@@ -289,7 +336,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trname(n)
@@ -297,7 +344,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -4
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('14CO2')   !!! should start 10/16
         k = k + 1
@@ -307,7 +354,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = -4
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('CH4')
        k = k + 1
@@ -317,7 +364,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(2,n) = k
         sname_jls(k) = 'Coal_Mine_source_'//trname(n)
@@ -325,7 +372,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(3,n) = k
         sname_jls(k) = 'Gas_Leak_source_'//trname(n)
@@ -333,7 +380,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(4,n) = k
         sname_jls(k) = 'Gas_Venting_source_'//trname(n)
@@ -341,7 +388,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(5,n) = k
         sname_jls(k) = 'Municipal_solid_waste_source_'//trname(n)
@@ -349,7 +396,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(6,n) = k
         sname_jls(k) = 'Soil_sink_'//trname(n)
@@ -357,7 +404,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(7,n) = k
         sname_jls(k) = 'Termite_source_'//trname(n)
@@ -365,7 +412,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(8,n) = k
         sname_jls(k) = 'Coal_combustion_source_'//trname(n)
@@ -373,7 +420,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(9,n) = k
         sname_jls(k) = 'Ocean_source_'//trname(n)
@@ -381,7 +428,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(10,n) = k
         sname_jls(k) = 'Fresh_Water_lake_source_'//trname(n)
@@ -389,7 +436,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(11,n) = k
         sname_jls(k) = 'Misc_Ground_source_'//trname(n)
@@ -397,7 +444,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(12,n) = k
         sname_jls(k) = 'Biomass_burning_source_'//trname(n)
@@ -405,7 +452,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(13,n) = k
         sname_jls(k) = 'Rice Cultivation_source_'//trname(n)
@@ -413,7 +460,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_source(14,n) = k
         sname_jls(k) = 'Wetlands+Tundra_source_'//trname(n)
@@ -421,7 +468,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = 1
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
@@ -429,7 +476,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
@@ -437,7 +484,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('O3')
        k = k + 1
@@ -447,7 +494,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Stratos_Chem_change_'//trname(n)
@@ -455,18 +502,95 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 #ifdef TRACERS_WATER
-      case ('Water')
+C**** generic ones for many water tracers
+      case ('Water', 'H2O18', 'HDO')
        k = k + 1
         jls_source(1,n)=k
-        sname_jls(k) = 'Surface_source_'//trname(n)
+        sname_jls(k) = 'Evap_'//trname(n)
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_index(k) = n
         jls_ltop(k) = 1
-        jls_power(k) = 0.
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(2,n)=k
+        sname_jls(k) = 'Ocn_Evap_'//trname(n)
+        lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(3,n)=k
+        sname_jls(k) = 'Precip_'//trname(n)
+        lname_jls(k) = 'PRECIPITATION OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(4,n)=k
+        sname_jls(k) = 'Ocn_Precip_'//trname(n)
+        lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+
+C**** special unique to HTO
+      case ('HTO')
+       k = k + 1
+        jls_source(1,n)=k
+        sname_jls(k) = 'Evap_'//trname(n)
+        lname_jls(k) = 'EVAPORATION OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(2,n)=k
+        sname_jls(k) = 'Ocn_Evap_'//trname(n)
+        lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(3,n)=k
+        sname_jls(k) = 'Precip_'//trname(n)
+        lname_jls(k) = 'PRECIPITATION OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_source(4,n)=k
+        sname_jls(k) = 'Ocn_Precip_'//trname(n)
+        lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        scale_jls(k) = SDAY/DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'mm/day')
+       k = k + 1
+        jls_decay(n) = k   ! special array for all radioactive sinks
+        sname_jls(k) = 'Decay_of_'//trname(n)
+        lname_jls(k) = 'LOSS OF '//TRIM(trname(n))//' BY DECAY'
+        jls_index(k) = n
+        jls_ltop(k) = lm
+        jls_power(k) = -18
+        scale_jls(k) = 1./DTsrc 
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 
 C**** Here are some more examples of generalised diag. configuration
@@ -478,7 +602,7 @@ c        lname_jls(k) = 'LOSS OF DUST BY SETTLING'
 c        jls_index(k) = n
 c        jls_ltop(k) = lm
 c        jls_power(k) = -11.
-c        units_jls(k) = unit_string(jls_power(k),' kg/s')
+c        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 C**** Checks
       if (ntsurfsrc(n).gt.ntsurfsrcmax) then
@@ -517,7 +641,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'SF6 Layer 1 SOURCE'
         sname_ijts(k) = 'SF6_CFC-GRID_SOURCE,_LAYER_1'
         ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('Rn222')
@@ -528,7 +652,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'Rn222 L 1 SOURCE'
         sname_ijts(k) = 'Radon-222_SOURCE,_Layer_1'
         ijts_power(k) = -21.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('CO2')
@@ -540,7 +664,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'Fossil_fuel_source_'//trname(n)
         lname_ijts(k) = 'CO2 Fossil fuel src'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
         ijts_source(2,n) = k
@@ -549,7 +673,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'fertilization_sink_'//trname(n)
         lname_ijts(k) = 'CO2 fertilization'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
         ijts_source(3,n) = k
@@ -558,7 +682,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_ijts(k) = 'CO2 North forest regrowth'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
         ijts_source(4,n) = k
@@ -567,7 +691,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'Land_Use_Modification_'//trname(n)
         lname_ijts(k) = 'CO2 from Land use mods'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
         ijts_source(5,n) = k
@@ -576,7 +700,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'Ecosystem_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ecosystem exch'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1 
         ijts_source(6,n) = k
@@ -585,7 +709,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'Ocean_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ocean exchange'
         ijts_power(k) = -11.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('N2O')
@@ -596,7 +720,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'N2O CHANGE IN L 1'
         sname_ijts(k) = 'N2O_CHANGE_IN_L_1'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('CFC11')
@@ -607,7 +731,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CFC_11 L 1 SOURCE'
         sname_ijts(k) = 'CFC_11_SOURCE,_LAYER_1'
         ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('14CO2')
@@ -618,7 +742,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = '14CO2 L 1 Sink'
         sname_ijts(k) = '14CO2_L1_Sink'
         ijts_power(k) = -21
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('CH4')
@@ -629,7 +753,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Animal source'
         sname_ijts(k) = 'CH4_Animal_source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(2,n) = k
@@ -638,7 +762,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Coal Mine source'
         sname_ijts(k) = 'CH4_Coal Mine source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(3,n) = k
@@ -647,7 +771,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Gas Leak source'
         sname_ijts(k) = 'CH4_Gas Leak source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(4,n) = k
@@ -656,7 +780,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Gas Venting source'
         sname_ijts(k) = 'CH4_Gas Venting source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(5,n) = k
@@ -665,7 +789,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Municipal solid waste src'
         sname_ijts(k) = 'CH4_Municipal solid waste src'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(6,n) = k
@@ -674,7 +798,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 sink due to soil absorp.'
         sname_ijts(k) = 'CH4_sink due to soil absorp.'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(7,n) = k
@@ -683,7 +807,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Termite source'
         sname_ijts(k) = 'CH4_Termite source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(8,n) = k
@@ -692,7 +816,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Coal combustion source'
         sname_ijts(k) = 'CH4_Coal combustion source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(9,n) = k
@@ -701,7 +825,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Ocean source'
         sname_ijts(k) = 'CH4_Ocean_source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(10,n) = k
@@ -710,7 +834,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Fresh Water lake source'
         sname_ijts(k) = 'CH4_Fresh Water lake source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(11,n) = k
@@ -719,7 +843,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Misc. Ground source'
         sname_ijts(k) = 'CH4_Misc. Ground source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(12,n) = k
@@ -728,7 +852,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Biomass burning source'
         sname_ijts(k) = 'CH4_Biomass burning source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(13,n) = k
@@ -737,7 +861,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Rice cultivation source'
         sname_ijts(k) = 'CH4_Rice cultivation source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(14,n) = k
@@ -746,20 +870,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         lname_ijts(k) = 'CH4 Wetlands+Tundra source'
         sname_ijts(k) = 'CH4_Wetlands+Tundra source'
         ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #ifdef TRACERS_WATER
-      case ('Water')
-      k = k + 1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Water Evaporative SOURCE'
-        sname_ijts(k) = 'water_evap'
-        ijts_power(k) = 0.
-        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        case ('Water')
+          ! nothing I can think of....
+        case ('H2O18')
+        case ('HDO')
+        case ('HTO')
 #endif
 
       end select
@@ -793,8 +912,8 @@ C**** First 12 are standard for all tracers and GCM
         kt_power_change(n) = ntm_power(n)-4
         scale_inst(n)   = 10d0**(-kt_power_inst(n))
         scale_change(n) = 10d0**(-kt_power_change(n))
-        inst_unit(n) = unit_string(kt_power_inst(n),  ' kg/m^2)')
-         sum_unit(n) = unit_string(kt_power_change(n),' kg/m^2 s)')
+        inst_unit(n) = unit_string(kt_power_inst(n),  'kg/m^2)')
+         sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
       end do
 
       k = 0
@@ -925,7 +1044,40 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
+      case ('H2O18')
+      itcon_mc(n) = 13
+      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 14
+      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
+      case ('HDO')
+      itcon_mc(n) = 13
+      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 14
+      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+
+      case ('HTO')
+      itcon_mc(n) = 13
+      qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 14
+      qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+      itcon_decay(n) = 15
+      qcon(itcon_decay(n)) = .true.; conpts(3) = 'DECAY'
+      qsum(itcon_decay(n)) = .true.
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 #endif
 
 C**** Here are some more examples of conservation diag configuration
@@ -958,7 +1110,9 @@ C**** print out total tracer diagnostic array size
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
+      USE SOMTQ_COM, only : qmom
       USE LANDICE, only : ace1li,ace2li
+      USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE SEAICE, only : xsi,ace1i
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
@@ -966,7 +1120,7 @@ C**** print out total tracer diagnostic array size
       USE FLUXES, only : gtracer
 #endif
       USE GEOM, only: dxyp,bydxyp
-      USE CONSTANT, only: mair
+      USE CONSTANT, only: mair,rhow
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl
 #ifdef TRACERS_WATER
@@ -986,6 +1140,7 @@ C**** print out total tracer diagnostic array size
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
       CHARACTER*80 title
       REAL*8 CFC11ic,ic14CO2(im,jm,lm),conv
+      REAL*8 :: trinit =1., tmominit=0.
       REAL*4 CO2ic(im,jm,lm),N2Oic(jm,lm),CH4ic(jm,lm)
       EQUIVALENCE (CO2ic,N2Oic,ic14CO2,CH4ic)
 
@@ -1097,28 +1252,53 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 #endif
 
 #ifdef TRACERS_WATER
-      case ('Water')
-          do l=1,lm
-          do j=1,jm
-            trm(:,j,l,n) =  q(:,j,l)*am(l,:,j)*dxyp(j)
-            trwm(:,j,l,n)= wm(:,j,l)*am(l,:,j)*dxyp(j)
-C**** for gradients defined on air mass
-            do i=1,im
-              trmom(:,i,j,l,n) = qmom(:,i,j,l)*am(l,i,j)*dxyp(j)
-            end do
-C**** for gradients defined on water mass (should be an option?)
-c           trmom(:,:,j,l,n) = 0.
-          end do; enddo
-          do i=2,im
-            trm(i, 1,:,n) = trm(1, 1,:,n) !poles
-            trm(i,jm,:,n) = trm(1,jm,:,n) !poles
-            trwm(i, 1,:,n)= trwm(1, 1,:,n) !poles
-            trwm(i,jm,:,n)= trwm(1,jm,:,n) !poles
-            trmom(:,i, 1,:,n)=0.
-            trmom(:,i,jm,:,n)=0.
-          enddo
+      case ('Water', 'H2O18', 'HDO', 'HTO')
 
-          do j=1,jm
+C**** initial atmospheric conc. needs to be defined for each tracer
+        select case (trname(n))
+        case ('Water')
+          trinit=1.
+C**** for gradients defined on air mass
+          tmominit = 1. 
+C**** for gradients defined on water mass (should be an option?)
+c     tmominit = 0.
+        case ('H2O18')        ! d18O=-80
+          trinit=0.92d0*trw0(n)  
+          tmominit = 0. 
+        case ('HDO')   ! dD=-650
+          trinit=0.35d0*trw0(n)
+          tmominit = 0. 
+        case ('HTO')
+          trinit=0.
+          tmominit = 0. 
+        end select
+
+        do l=1,lm
+        do j=1,jm
+          trm(:,j,l,n) =  q(:,j,l)*am(l,:,j)*dxyp(j)*trinit
+          trwm(:,j,l,n)= wm(:,j,l)*am(l,:,j)*dxyp(j)*trinit
+          do i=1,im
+            trmom(:,i,j,l,n) = qmom(:,i,j,l)*am(l,i,j)*dxyp(j)*tmominit
+          end do
+        end do
+        end do
+        do i=2,im
+          trm(i, 1,:,n) = trm(1, 1,:,n) !poles
+          trm(i,jm,:,n) = trm(1,jm,:,n) !poles
+          trwm(i, 1,:,n)= trwm(1, 1,:,n) !poles
+          trwm(i,jm,:,n)= trwm(1,jm,:,n) !poles
+          trmom(:,i, 1,:,n)=0.
+          trmom(:,i,jm,:,n)=0.
+        enddo
+        if (trname(n).eq."HTO") then ! initialise bomb source
+          do l=ls1-1,ls1+1      ! strat. source 
+            do j=35,37          ! lat 44 N - 56 N
+              trm(:,j,l,n)= q(:,j,l)*am(l,:,j)*dxyp(j)*1d10*1d-18
+            end do
+          end do
+        end if
+              
+        do j=1,jm
           do i=1,im
 C**** lakes
             if (flake(i,j).gt.0) then
@@ -1148,7 +1328,7 @@ c**** landice
             end if
 c**** earth
             if (fearth(i,j).gt.0) then
-              conv=rhow  ! convert from m to kg/m^2
+              conv=rhow         ! convert from m to kg/m^2
               trbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
               trvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
               trsnowbv(n,1,i,j)=trw0(n)*snowbv(1,i,j)*conv
@@ -1158,13 +1338,12 @@ c**** earth
               gtracer(n,4,i,j)=0.
             end if
           end do
-          end do
+        end do
 #endif
-
+        
       end select
 
 C**** Initialise pbl profile if necessary
-!!!!! >>>>>> THIS IS NOT RIGHT YET FOR ALL CASES (Gavin will fix)
       if (needtrs(n)) then
         do it=1,4
         do j=1,jm
@@ -1172,7 +1351,7 @@ C**** Initialise pbl profile if necessary
 #ifndef TRACERS_WATER
           trabl(ipbl,n,:,j,it) = trm(:,j,1,n)*byam(1,:,j)*bydxyp(j)
 #else
-          trabl(ipbl,n,:,j,it) = trw0(n)*qabl(ipbl,:,j,it)
+          trabl(ipbl,n,:,j,it) = trinit*qabl(ipbl,:,j,it)
 #endif
         end do
         end do
@@ -1284,8 +1463,10 @@ C****  at any time
       USE SEAICE_COM, only: rsi
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
+#ifdef TRACERS_SPECIAL_Lerner
       USE CO2_SOURCES, only: co2_src
       USE CH4_SOURCES, only: ch4_src
+#endif
       implicit none
       integer :: i,j,ns,l,ky,n
       double precision :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -1409,6 +1590,7 @@ C**** source from ice-free ocean
           enddo                 !i
         enddo                   !j
 
+#ifdef TRACERS_SPECIAL_Lerner
 C****
 C**** Sources and sinks for CO2 (kg/s)
 C****
@@ -1428,7 +1610,7 @@ C****
             trsource(:,j,ns,n) = ch4_src(:,j,ns)*dxyp(j)
           end do
         end do
-
+#endif
 C****
 C**** Sources and sinks for N2O:
 C**** First layer is set to a constant 462.2 ppbm. (300 PPB V)

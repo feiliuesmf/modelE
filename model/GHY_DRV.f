@@ -64,6 +64,9 @@ c****
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
       use socpbl, only : zgs,dtsurf
       use pbl_drv, only : pbl, evap_max,fr_sat
+#ifdef TRACERS_WATER
+     *     ,tr_evap_max
+#endif
 
       use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
@@ -80,12 +83,18 @@ c****
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp
 #ifdef TRACERS_ON
-     *     ,trflux1
+     *     ,trsource
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom
+#ifdef TRACERS_WATER
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,ntsurfsrc,trw0
+#endif
       use tracer_diag_com, only : taijn,tij_surf
+#ifdef TRACERS_WATER
+     *     ,tij_evap,tij_grnd,jls_source,tajls
+#endif
 #endif
 
       implicit none
@@ -116,8 +125,8 @@ C**** Tracer input/output common block for PBL
      *     tevapb,trruns,trrunu,trpr,trsoil_rat
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
-      real*8  tdp, tdt1, wsoil_tot, frac, tevap
-      integer ibv
+      real*8  tdp, tdt1, wsoil_tot, frac, tevap, fracvl, totflux
+      integer ibv,nsrc
 #endif
 #endif
       real*8 qsat
@@ -172,18 +181,16 @@ C$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
 C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,
-#ifndef TRACERS_ON
-C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV)
-C$OMP*   SCHEDULE(DYNAMIC,2)
-#else
-C$OMP*   trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix,
+#ifdef TRACERS_ON
+C$OMP*   ,trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix
 #ifdef TRACERS_WATER
-C$OMP*   trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
+C$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
 C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv,
+C$OMP*   totflux,nsrc
 #endif
-C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV)
+#endif
+C$OMP*   )
 C$OMP*   SCHEDULE(DYNAMIC,2)
-#endif
 
       loop_j: do j=1,jm
       hemi=1.
@@ -295,25 +302,40 @@ c**** loop over ground time steps
       tg=tg1+tf
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
-      qg_sat=qsat(tg,elhx,ps)  !  repacing with qs from prev step
+      qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
       qg = qg_ij(i,j)
       tgv=tg*(1.+qg*deltx)
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
-#ifndef TRACERS_WATER
-C**** Calculate trsfac (set to zero for const flux)
-        trsfac(nx)=0.
-C**** Calculate trconstflx (could be dependent on itype)
-        rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-        trconstflx(nx)=trflux1(i,j,ntix(nx))/(dxyp(j)*dtsrc*rhosrf0)
-#else
-C**** Set surface boundary conditions for water tracers
+        n=ntix(nx)
+C**** Set surface boundary conditions for tracers depending on whether they
+C**** are water or another type of tracer
+#ifdef TRACERS_WATER
+C**** The select is used to distinguish water from gases or particle
+        select case (tr_wd_TYPE(n))
+        case (nWATER)
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
-        trsfac(nx)=1.
-        trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
-        trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
+          trsfac(nx)=1.
+          trconstflx(nx)=gtracer(n,itype,i,j)*QG
+C**** no fractionation from ground (yet)
+          trgrnd(nx)=gtracer(n,itype,i,j)*QG
+        case (nGAS, nPART)
+#endif
+C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
+C**** is a non-soluble tracer mixed in.)
+C**** Calculate trsfac (set to zero for const flux)
+          trsfac(nx)=0.
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+          totflux=0.
+          do nsrc=1,ntsurfsrc(n)
+            totflux = totflux+trsource(i,j,nsrc,n)
+          end do
+          trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
+#ifdef TRACERS_WATER
+        end select 
 #endif
       end do
 #endif
@@ -328,27 +350,35 @@ C**** Calculate mean tracer ratio
         if (ibv.eq.2) frac=fv
         wsoil_tot=wsoil_tot+snowd(ibv)*frac
         do nx=1,ntx
-          trsnowd(nx,ibv) = TRSNOWBV(ntix(nx),ibv,i,j)
-          trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
+          n=ntix(nx)
+          if (tr_wd_TYPE(n).eq.nWATER) THEN
+            trsnowd(nx,ibv) = TRSNOWBV(n,ibv,i,j)
+            trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
+          end if
         end do
         do l= 2-ibv,ngm
           wsoil_tot=wsoil_tot+gw(l,ibv)*frac
           do nx=1,ntx
-            if (ibv.eq.1) then
-              trw(nx,l,ibv)= TRBARE(ntix(nx),l,i,j)
-            else
-              trw(nx,l,ibv)= TRVEGE(ntix(nx),l,i,j)
+            n=ntix(nx)
+            if (tr_wd_TYPE(n).eq.nWATER) THEN
+              if (ibv.eq.1) then
+                trw(nx,l,ibv)= TRBARE(n,l,i,j)
+              else
+                trw(nx,l,ibv)= TRVEGE(n,l,i,j)
+              end if
+              trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,l,ibv)*frac
             end if
-            trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,l,ibv)*frac
           end do
         end do
       end do
 C**** calculate new tracer ratio after precip
       do nx=1,ntx
         n=ntix(nx)
-        trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc   ! kg/m^2 s
-        trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx))
-     *       /(rhow*(wsoil_tot+dtsurf*pr))
+        if (tr_wd_TYPE(n).eq.nWATER) THEN
+          trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
+          trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx))
+     *         /(rhow*(wsoil_tot+dtsurf*pr))
+        end if
       end do
 #endif
 c***********************************************************************
@@ -357,12 +387,16 @@ ccc just for test - setting all soil to saturated
       !fr_sat = 1.
       !evap_max = 1.
       !call evap_limits( .false., evap_max, fr_sat )
-ccc ctually PBL needs evap (kg/m^2*s) / rho_air
+ccc actually PBL needs evap (kg/m^2*s) / rho_air
       evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
       fr_sat = fr_sat_ij(i,j)
       !print *, "evap lim. = ", evap_max, fr_sat
+#ifdef TRACERS_WATER
+c**** water tracers are also flux limited
+      tr_evap_max(1:ntx) = evap_max * trsoil_rat(nx)
+#endif      
       call pbl(i,j,itype,ptype)
-c***
+c****
       cdm = cmgs(i,j,itype)
       cdh = chgs(i,j,itype)
       cdq = cqgs(i,j,itype)
@@ -425,10 +459,15 @@ c     call qsbal
 C**** reset tracer variables
       do nx=1,ntx
         n=ntix(nx)
+        if (tr_wd_TYPE(n).eq.nWATER) THEN
 c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
         trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
         trrunu(nx)=arunu * trsoil_rat(nx)
-        tevapw(nx)=evapw * trsoil_rat(nx) ! *fraclv
+#ifdef TRACERS_SPECIAL_O18
+        tevapw(nx)=evapw * trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
+#else
+        tevapw(nx)=evapw * trsoil_rat(nx)
+#endif
         tevapd(nx)=evapd * trsoil_rat(nx)
         tevapb(nx)=evapb * trsoil_rat(nx)
 c**** update ratio
@@ -441,7 +480,8 @@ c**** update ratio
 c       trbare(n,:,i,j) = trw(nx,:,1)
 c       trvege(n,:,i,j) = trw(nx,:,2)
 c       trsnowbv(n,:,i,j) = trsnowd(nx,:)
-        gtracer(ntix(nx),itype,i,j)=trsoil_rat(nx)
+        gtracer(n,itype,i,j)=trsoil_rat(nx)
+        end if
       end do
 #endif
 ccc copy snow variables back to storage
@@ -510,18 +550,20 @@ C**** Calculate Water Tracer Evaporation
 C****
       do nx=1,ntx
         n=ntix(nx)
-        tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
-        tdp = tevap*dxyp(j)*ptype
-        tdt1 = trsrfflx(i,j,n)*dtsurf
-        if (trm(i,j,1,n)+tdt1+tdp.lt.1d-5) then
-          write(99,*) "limiting tevap earth",i,j,n,tdp,trm(i,j,1,n)
-          tevap = - (trm(i,j,1,n)+tdt1-1d-5)/(dxyp(j)*ptype)
-          trsrfflx(i,j,n)= - trm(i,j,1,n)+1d-5
-        else
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdp/dtsurf
+        if (tr_wd_TYPE(n).eq.nWATER) THEN
+          tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
+          tdp = tevap*dxyp(j)*ptype
+          tdt1 = trsrfflx(i,j,n)*dtsurf
+          if (trm(i,j,1,n)+tdt1+tdp.lt.1d-5*trw0(n).and.tdp.lt.0) then
+            write(99,*) "limiting tevap earth",i,j,n,tdp,trm(i,j,1,n)
+            tevap=- (trm(i,j,1,n)+tdt1-1d-5*trw0(n))/(dxyp(j)*ptype)
+            trsrfflx(i,j,n)= - trm(i,j,1,n)+1d-5*trw0(n)
+          else
+            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdp/dtsurf
+          end if
+          trevapor(n,itype,i,j)=trevapor(n,itype,i,j)+tevap
+          trunoe(n,i,j) = trunoe(n,i,j)+trruns(nx)+trrunu(nx)
         end if
-        trevapor(n,itype,i,j)=trevapor(n,itype,i,j)+tevap
-        trunoe(n,i,j) = trunoe(n,i,j)+trruns(nx)+trrunu(nx)
       end do
 #endif
 c****
@@ -531,13 +573,23 @@ c****
 C**** Save surface tracer concentration whether calculated or not
       nx=0
       do n=1,ntm
-        if (itime_tr0(n).le.itime .and. needtrs(n)) then
-          nx=nx+1
-          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
-        else
-          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
-     *         +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *         *bydxyp(j),0d0)*ptype
+        if (itime_tr0(n).le.itime) then
+          if (needtrs(n)) then
+            nx=nx+1
+            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+          else
+            taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
+     *           *bydxyp(j),0d0)*ptype
+          end if
+#ifdef TRACERS_WATER
+          taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
+     *         trevapor(n,itype,i,j)*ptype
+          taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
+     *         gtracer(n,1,i,j)*ptype
+          tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
+     *         +trevapor(n,itype,i,j)*ptype
+#endif
         end if
       end do
 #endif

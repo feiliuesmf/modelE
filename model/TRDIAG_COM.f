@@ -15,6 +15,14 @@
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 
+!@dbparam to_volume_MixRat: For printout of tracer concentration
+!@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
+!@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
+      INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0 
+#ifdef TRACERS_WATER
+!@dbparam to_per_mil For printout of tracer concentration in permil
+      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
+#endif
 !@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr 
       REAL*8, DIMENSION(NTM) :: MMR_to_VMR
 
@@ -24,7 +32,7 @@ C**** TAIJLN
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
-      character(len=80), dimension(lm,ntm) :: lname_ijt
+      character(len=80), dimension(lm,ntm) :: lname_ijt = 'unused'
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
       double precision, dimension(lm,ntm) :: scale_ijt
 !@var IR_IJT: range index of IJ diagnosts
@@ -57,7 +65,7 @@ C**** TAIJN
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
       character(len=30), dimension(ktaij,ntm) :: sname_tij,units_tij
 !@var LNAME_TIJ: descriptions of tracer IJK diags
-      character(len=80), dimension(ktaij,ntm) :: lname_tij
+      character(len=80), dimension(ktaij,ntm) :: lname_tij = 'unused'
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
@@ -69,7 +77,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
       character(len=30), dimension(ktaijs) :: sname_ijts,units_ijts
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
-      character(len=80), dimension(ktaijs) :: lname_ijts
+      character(len=80), dimension(ktaijs) :: lname_ijts = 'unused'
 !@var SCALE_IJTS: printout scaling factor for tracer IJTS diagnostics
       double precision, dimension(ktaijs) :: scale_ijts
 !@var IA_IJTS: idacc-number for tracer source/sink IJ diags 
@@ -91,7 +99,8 @@ C**** TAJLN
 !@var SNAME_JLN: Names of lat-sigma tracer JL diagnostics
       character(len=30), dimension(ktajlx,ntm) :: sname_jln
 !@var LNAME_JLN,UNITS_JLN: descriptions/units of tracer JL diagnostics
-      character(len=50), dimension(ktajlx,ntm) :: lname_jln,units_jln
+      character(len=50), dimension(ktajlx,ntm) :: lname_jln = 'unused'
+     *     ,units_jln
 !@var SCALE_JLQ: printout scaling factor for tracer JL diagnostics
       double precision, dimension(ktajlx) :: scale_jlq
 !@var IA_JLQ,JGRID_JLQ: idacc-numbers,gridtypes for tracer JL diags
@@ -100,7 +109,7 @@ C**** TAJLN
 !@+        It is associated with a specific physical process
       integer jlq_power(ktajlx)
       integer ktajlp !@var helps keeps track of
-!@var scale_jln: Coefficient to print MMR or VMR
+!@var scale_jln: Scale for jl maps
       REAL*8, DIMENSION(ntm) :: scale_jln
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
@@ -121,7 +130,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
       character(len=30), dimension(ktajls) :: sname_jls
 !@var LNAME_JLS,UNITS_JLS: descriptions/units of tracer JLS diags
-      character(len=50), dimension(ktajls) :: lname_jls,units_jls
+      character(len=50), dimension(ktajls) :: lname_jls = 'unused'
+     *     ,units_jls
 !@var SCALE_JLS: printout scaling factor for tracer JLS diagnostics
       double precision, dimension(ktajls) :: scale_jls
 !@var IA_JLS,JGRID_JLS: idacc-numbers,gridtypes for tracer JL diags

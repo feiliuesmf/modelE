@@ -220,7 +220,7 @@ C**** CALCULATE TG2
 !@var TRLNDI tracer amount in land ice (kg/m^2)
       REAL*8, DIMENSION(NTM,IM,JM) :: TRLNDI
 !@var TRLI0 default tracer conc. for land ice (kg/kg)
-      REAL*8, DIMENSION(NTM) :: TRLI0 = 1.
+      REAL*8, DIMENSION(NTM) :: TRLI0 
 #endif
 
       END MODULE LANDICE_COM

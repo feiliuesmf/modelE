@@ -530,10 +530,6 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp,sss,ui2rho
-#ifdef TRACERS_WATER
-     *     ,gtracer
-      USE TRACER_COM, only : trw0
-#endif
       USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
       USE PARAM
@@ -1049,8 +1045,8 @@ C****
 
 #ifdef TRACERS_WATER
       subroutine tracer_ic_ocean
-!@sum initialise ocean tracer concentration
-!@auth  Gavin Schmidt
+!@sum tracer_ic_ocean initialise ocean tracer concentration
+!@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,focean,itime
       USE GEOM, only : imaxj
       USE TRACER_COM, only : trw0,ntm,itime_tr0

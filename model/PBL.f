@@ -113,9 +113,11 @@ C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
      3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
+#ifdef TRACERS_WATER
+     *     tr_evap_max,
 #endif
-     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat
-     *     ,itype)
+#endif
+     4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,ilong,jlat,itype)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -159,6 +161,9 @@ c   output:
 !@var  trsfac  factor for trs in surface boundary condition
 !@var  trconstflx  constant component of surface tracer flux
 !@var  ntx  number of tracers to loop over
+#ifdef TRACERS_WATER
+!@var  tr_evap_max max amount of possible tracer evaporation
+#endif
 #endif
 c  internals:
 !@var  n     number of the local, vertical grid points
@@ -187,6 +192,9 @@ c  internals:
       real*8 trcnst,trsf,cqsave
       real*8, dimension(n-1) :: kqsave
       integer itr
+#ifdef TRACERS_WATER
+      real*8, intent(in), dimension(ntm) :: tr_evap_max
+#endif
 #endif
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
@@ -337,7 +345,11 @@ C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
         trsf=trsfac(itr)*cqsave*wsh
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
-     *       ,trcnst,trtop(itr),dtime,n)
+     *       ,trcnst,trtop(itr),
+#ifdef TRACERS_WATER
+     *       tr_evap_max(itr),fr_sat,
+#endif
+     *       dtime,n)
         trs(itr) = tr(1,itr)
       end do
 #endif
@@ -1239,16 +1251,16 @@ c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
 
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
-c     Now let us check if the computed flux doesn't exceed the maximum
-c     for unsaturated fraction
+c**** Now let us check if the computed flux doesn't exceed the maximum
+c**** for unsaturated fraction
 
       if ( fr_sat .ge. 1. ) return   ! all soil is saturated
       if ( cq * usurf * (qgrnd - q(1)) .le. flux_max ) return
 
-c     Flux is too high, have to recompute with the following boundary
-c     conditions at the bottom:
-c     kq * dq/dz = fr_sat * cq * usurf * (q - qg)
-c                  + ( 1 - fr_sat ) * flux_max
+c**** Flux is too high, have to recompute with the following boundary
+c**** conditions at the bottom:
+c**** kq * dq/dz = fr_sat * cq * usurf * (q - qg)
+c****              + ( 1 - fr_sat ) * flux_max
 
       dia(1) = 1. + fr_sat*factq
       sup(1) = -1.
@@ -1259,7 +1271,11 @@ c                  + ( 1 - fr_sat ) * flux_max
       return
       end subroutine q_eqn
 
-      subroutine tr_eqn(tr0,tr,kq,dz,dzh,sfac,constflx,trtop,dtime,n)
+      subroutine tr_eqn(tr0,tr,kq,dz,dzh,sfac,constflx,trtop,
+#ifdef TRACERS_WATER
+     *     tr_evap_max,fr_sat,
+#endif
+     *     dtime,n)
 !@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
 !@+   between the surface and the first GCM layer.
 !@+   The boundary conditions at the bottom are:
@@ -1280,6 +1296,10 @@ c                  + ( 1 - fr_sat ) * flux_max
 !@var trtop tracer concentration at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
+#ifdef TRACERS_WATER
+!@var tr_evap_max  max amount of possible tracer evaporation
+!@var fr_sat fraction of the saturated soil
+#endif
       implicit none
 
       integer, intent(in) :: n
@@ -1289,7 +1309,9 @@ c                  + ( 1 - fr_sat ) * flux_max
       real*8, dimension(n-1), intent(in) :: dzh,kq
       real*8, dimension(n), intent(out) :: tr
       real*8, intent(in) :: sfac,constflx,trtop,dtime
-
+#ifdef TRACERS_WATER
+      real*8, intent(in) :: tr_evap_max, fr_sat
+#endif
       real*8 :: facttr
       integer :: i  !@var i loop variable
 
@@ -1314,6 +1336,26 @@ c                  + ( 1 - fr_sat ) * flux_max
       rhs(n) = trtop
 
       call TRIDIAG(sub,dia,sup,rhs,tr,n)
+
+#ifdef TRACERS_WATER
+c**** Check as in q_eqn if flux is limited, and if it is, recalculate
+c**** profile
+
+      if ( fr_sat .ge. 1. ) return   ! all soil is saturated
+      if ( constflx - sfac * tr(1) .le. tr_evap_max ) return
+
+c**** Flux is too high, have to recompute with the following boundary
+c**** conditions at the bottom:
+c**** kq * dq/dz = fr_sat * (sfac * trs - constflx) 
+c****              + ( 1 - fr_sat ) * tr_evap_max
+
+      dia(1) = 1. + fr_sat*sfac*facttr
+      sup(1) = -1.
+      rhs(1)= fr_sat*facttr*constflx +
+     *     (1.-fr_sat)*tr_evap_max*dzh(1)/kq(1)
+
+      call TRIDIAG(sub,dia,sup,rhs,tr,n)
+#endif
 
       return
       end subroutine tr_eqn

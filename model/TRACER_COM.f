@@ -13,24 +13,26 @@
       USE MODEL_COM, only: im,jm,lm
       IMPLICIT NONE
       SAVE
-!@param NTM number of tracers
-      integer, parameter :: ntm=9
 
 C**** Each tracer has a variable name and a unique index
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-!#ifndef TRACERS_WATER
-      character*8, parameter :: trname(ntm)=
-     * (/ 'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
-     *    'CFC11   ','14CO2   ','CH4     ','O3      '/)
+#ifndef TRACERS_WATER
+!@param NTM number of tracers
+      integer, parameter :: ntm=9
+      character*8, parameter :: trname(ntm)= (/
+     *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
+     *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
+#else
+!@param NTM number of tracers
+      integer, parameter :: ntm=5
+      character*8, parameter :: trname(ntm)=(/
+     *     'Air     ','Water   ','H2O18   ','HDO     ','HTO     '/)
+#endif
 !@var N_XXX: variable names of indices for tracers
       integer :: 
-     *   n_Air,   n_SF6,   n_Rn222, n_CO2,   n_N2O,
-     *   n_CFC11, n_14CO2, n_CH4,   n_O3 
-!#else
-!      integer, parameter :: ntm=1
-!      character*8, parameter :: trname(ntm)=(/ 'Water   '/)
-!      integer :: n_water=1
-!#endif
+     *     n_Air,   n_SF6,   n_Rn222, n_CO2, n_N2O,
+     *     n_CFC11, n_14CO2, n_CH4,   n_O3 , n_water,
+     *     n_H2O18, n_HDO, n_HTO
 
 C****    The following are set in tracer_IC
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)

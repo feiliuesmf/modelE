@@ -230,14 +230,14 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
       END DO
 C**** LOOP OVER HEMISPHERES
       DAYS=(Itime-Itime0)/DFLOAT(nday)
+      WRITE (6,'(''1'')')
       DO JHEMI=2,1,-1
-        WRITE (6,'(''1'',A)') XLABEL
+        WRITE (6,'(''0'',A)') XLABEL
         WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
      *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
 C**** PRODUCE TABLES 
-        WRITE (6,'(''0'')')
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
@@ -322,6 +322,7 @@ C**** Construct UNITS string for output
 C****
 C**** THIS ROUTINE PRODUCES LATITUDE BY LAYER TABLES OF TRACERS
 C****
+      USE CONSTANT, only : undef
       USE GEOM, only: BYDXYP,dxyp,LAT_DG
       USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req
       USE TRACER_COM
@@ -356,7 +357,7 @@ C****
       ones(:) = 1.d0
       linect = 65
 C****
-C**** LOOP OVER TRACE GASES
+C**** LOOP OVER TRACERS
 C****
       DO 400 N=1,NTM
       IF (itime.LT.itime_tr0(N)) cycle
@@ -364,11 +365,33 @@ C****
 C**** TRACER CONCENTRATION
 C****
       k = jlnt_conc
+
+#ifdef TRACERS_WATER
+      if (to_per_mil(n).gt.0) then
+C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
+      scalet = 1.
+      jtpow = 0.
+      do l=1,lm
+      do j=1,jm
+        if (tajln(j,l,k,n_water).gt.0) then
+          a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
+        else
+          a(j,l)=undef 
+        end if
+      end do
+      end do
+      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *     plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
+      else
+#endif
       scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *  plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+     *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+#ifdef TRACERS_WATER
+      end if
+#endif
 C****
 C**** NORTHWARD TRANSPORTS: Total and eddies
 C****
@@ -441,10 +464,9 @@ C****
       do k=1,ktajls
         n = jls_index(k)
         IF (n.eq.0 .or. itime.LT.itime_tr0(n))  cycle
-        scalet = scale_jls(k)/idacc(ia_jls(k))
-        scalet = scalet*10.**(-jls_power(k))
+        scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),
-     *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),1,jgrid_jls(k))
+     *    plm,tajls(1,1,k),scalet,ones,ones,jls_ltop(k),2,jgrid_jls(k))
       end do
 
       if (qdiag) call close_jl
@@ -606,14 +628,17 @@ C****
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
 !@+     only important for fields 1->nmaplets which appear in printout
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
-      INTEGER Iord(ktmax),nmaplets
-      INTEGER nt(ktmax),ijtype(ktmax)
+      INTEGER nmaplets
+      INTEGER, DIMENSION(ktmax) :: nt,ijtype,Iord,irange,iacc
+      CHARACTER, DIMENSION(ktmax) :: lname*80,name*30,units*30
+      REAL*8, DIMENSION(ktmax) :: scale
+      REAL*8, DIMENSION(IM,JM,ktmax) :: aij1,aij2
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
-      CHARACTER xlb*32,title*48,lname*80,name*30,units*30
+      CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,irange
+      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid
       DOUBLE PRECISION :: DAYS,gm
 
       if (kdiag(8).ge.1) return
@@ -623,45 +648,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 c**** always skip unused fields
       Qk = .true.
-C**** Fill in maplet indices for tracer concentrations
-      k = 0
-      do n=1,ntm
-      if (itime.lt.itime_tr0(n)) cycle
-      do l=1,lm
-        k = k+1
-        iord(k) = l
-        nt(k) = n
-        ijtype(k) = 1
-        if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
-      end do
-C**** Fill in maplet indices for tracer sums and means
-      do l=1,ktaij
-        k = k+1
-        iord(k) = l
-        nt(k) = n
-        ijtype(k) = 2
-        if (index(lname_tij(l,n),'unused').gt.0) Qk(k) = .false.
-      end do
-      end do
-C**** Fill in maplet indices for sources and sinks
-      do kx=1,ktaijs
-        n = ijts_index(kx)
-        if (itime.lt.itime_tr0(n)) cycle
-        k = k+1
-        iord(k) = kx
-        nt(k) = kx
-        ijtype(k) = 3
-        if (index(lname_ijts(kx),'unused').gt.0) Qk(k) = .false.
-      end do
-
-!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
-      nmaplets = k
-
-      xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
-C****
-      DAYS=(Itime-Itime0)/DFLOAT(nday)
-C**** Collect the appropriate weight-arrays in WT_IJ
-        wt_ij(:,:,:) = 1.
 
 C**** Fill in the undefined pole box duplicates
       do i=2,im
@@ -672,6 +658,86 @@ C**** Fill in the undefined pole box duplicates
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
+
+C**** Fill in maplet indices for tracer concentrations
+      k = 0
+      do n=1,ntm
+      if (itime.lt.itime_tr0(n)) cycle
+      do l=1,lm
+        k = k+1
+        iord(k) = l
+        nt(k) = n
+        ijtype(k) = 1
+        name(k) = sname_ijt(l,n) 
+        lname(k) = lname_ijt(l,n) 
+        units(k) = units_ijt(l,n)
+        irange(k) = ir_ijt(n)
+        iacc(k) = ia_ijt
+        aij1(:,:,k) = taijln(:,:,l,n)
+        aij2(:,:,k) = 1.
+        scale(k) = scale_ijt(l,n)
+#ifdef TRACERS_WATER
+        if (to_per_mil(n).gt.0) then
+        aij1(:,:,k)=1d3*(taijln(:,:,l,n)-taijln(:,:,l,n_water)*trw0(n))
+        aij2(:,:,k)=taijln(:,:,l,n_water)*trw0(n)
+        ijtype(k) = 3
+        end if
+#endif
+        if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
+      end do
+C**** Fill in maplet indices for tracer sums/means and ground conc
+      do l=1,ktaij
+        if (index(lname_tij(l,n),'unused').gt.0) cycle
+        k = k+1
+        iord(k) = l
+        nt(k) = n
+        name(k) = sname_tij(l,n)
+        lname(k) = lname_tij(l,n)
+        units(k) = units_tij(l,n)
+        irange(k) = ir_ijt(n)
+        scale(k) = scale_tij(l,n)
+        iacc(k) = ia_ijt
+        ijtype(k) = 2
+        aij1(:,:,k) = taijn(:,:,l,n)
+        aij2(:,:,k) = 1.
+#ifdef TRACERS_WATER
+        if (to_per_mil(n).gt.0) then
+        aij1(:,:,k)=1d3*(taijn(:,:,l,n)-taijn(:,:,l,n_water)*trw0(n))
+        aij2(:,:,k)=taijn(:,:,l,n_water)*trw0(n)
+        ijtype(k) = 3
+        end if
+#endif
+      end do
+      end do
+
+C**** Fill in maplet indices for sources and sinks
+      do kx=1,ktaijs
+        if (index(lname_ijts(kx),'unused').gt.0) cycle
+        n = ijts_index(kx)
+        if (itime.lt.itime_tr0(n)) cycle
+        k = k+1
+        iord(k) = kx
+        nt(k) = kx
+        ijtype(k) = 1
+        name(k) = sname_ijts(kx)
+        lname(k) = lname_ijts(kx)
+        units(k) = units_ijts(kx)
+        irange(k) = ir_ijt(1)
+        iacc(k) = ia_ijts(kx)
+        aij1(:,:,k) = taijs(:,:,kx)
+        aij2(:,:,k) = 1.
+        scale(k) = scale_ijts(kx)
+      end do
+
+!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
+      nmaplets = k
+      Qk(k+1:ktmax)=.false.
+
+      xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
+C****
+      DAYS=(Itime-Itime0)/DFLOAT(nday)
+C**** Collect the appropriate weight-arrays in WT_IJ
+      wt_ij(:,:,:) = 1.
 
 C**** Print out 6-map pages
       do n=1,nmaplets
@@ -685,11 +751,12 @@ c**** print header lines
         if (kcolmn .eq. 1) line=' '
 c**** Find, then display the appropriate array
         if (Iord(n) .gt. 0 .and. Qk(n)) then
-          call ijt_mapk (ijtype(n),nt(n),
-     &         Iord(n),smap,smapj,gm,jgrid,irange,name,lname,units)
-          title=trim(lname)//' ('//trim(units)//')'
-          call maptxt(smap,smapj,gm,irange,title,line,kcolmn,nlines)
-          if(qdiag) call pout_ij(title//xlb,name,lname,units,
+          call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
+     *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
+     *         ,lname(n),units(n)) 
+          title=trim(lname(n))//' ('//trim(units(n))//')'
+          call maptxt(smap,smapj,gm,irange(n),title,line,kcolmn,nlines)
+          if(qdiag) call pout_ij(title//xlb,name(n),lname(n),units(n),
      *                            smap,smapj,gm,jgrid)
           Qk(n) = .false.
         end if
@@ -703,12 +770,14 @@ c**** copy virtual half-page to paper if appropriate
 
       if (.not.qdiag) RETURN
 C**** produce binary files of remaining fields if appropriate
-      do k=1,ktmax
-        if (Qk(k)) then
-          call ijt_mapk (ijtype(n),nt(n),
-     &         Iord(n),smap,smapj,gm,jgrid,irange,name,lname,units)
-          title=trim(lname)//' ('//trim(units)//')'
-          call pout_ij(title//xlb,name,lname,units,smap,smapj,gm,jgrid)
+      do n=1,ktmax
+        if (Qk(n)) then
+          call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
+     *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
+     *         ,lname(n),units(n)) 
+          title=trim(lname(n))//' ('//trim(units(n))//')'
+          call pout_ij(title//xlb,name,lname(n),units(n),smap,smapj,gm
+     *         ,jgrid)
         end if
       end do
       if(qdiag) call close_ij
@@ -721,8 +790,8 @@ C****
       END SUBROUTINE DIAGIJt
 
 
-      subroutine IJt_MAPk(nmap,n,
-     &      k,smap,smapj,gm,jgrid,irange,name,lname,units)
+      subroutine IJt_MAPk(nmap,n,k,aij1,aij2,smap,smapj,gm,jgrid
+     *     ,scale,iacc,irange,name,lname,units)
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
       USE DAGCOM
@@ -733,58 +802,50 @@ C****
 
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap
+      REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap,aij1,aij2
       REAL*8, DIMENSION(JM) :: smapj
-      integer i,j,k,iwt,jgrid,irange,n,nmap
+      integer i,j,k,iwt,jgrid,irange,n,nmap,iacc
       character(len=30) name,units
       character(len=80) lname
-      real*8 :: gm,nh,sh, off, byiacc
+      real*8 :: gm,nh,sh, off, byiacc,scale
 !@var isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
-      integer isumz,isumg
+      integer isumz,isumg,k1
 
       isumz = 2 ; isumg = 2  !  default: in most cases MEANS are needed
       iwt = 1 ; jgrid = 1
 
       adenom = 1.
-c**** tracer amounts
+      byiacc = 1./(idacc(iacc)+teeny)
+c**** tracer amounts (divide by area) and Sources and sinks
       if (nmap.eq.1) then
-        name = sname_ijt(k,n) 
-        lname = lname_ijt(k,n) 
-        units = units_ijt(k,n)
-        irange = ir_ijt(n)
-        byiacc = 1./(idacc(ia_ijt)+teeny)
         do j=1,jm
         do i=1,im
-          anum(i,j)=taijln(i,j,k,n)*byiacc*scale_ijt(k,n)/dxyp(j)
+          anum(i,j)=aij1(i,j)*byiacc*scale/dxyp(j)
         end do
         end do
-c**** tracer sums and means
+c**** tracer sums and means (no division by area)
       else if (nmap.eq.2) then
-        name = sname_tij(k,n) 
-        lname = lname_tij(k,n) 
-        units = units_tij(k,n)
-        irange = ir_ijt(n)
-        byiacc = 1./(idacc(ia_ijt)+teeny)
+        if (index(lname,' x POICE') .gt. 0) then  ! weight by sea ice
+          k1 = index(lname,' x ')
+          adenom(:,:)=aij(:,:,ij_rsoi)*byiacc
+          lname(k1:80)=''
+        end if
         do j=1,jm
         do i=1,im
-          anum(i,j)=taijn(i,j,k,n)*byiacc*scale_tij(k,n)
+          anum(i,j)=aij1(i,j)*byiacc*scale
         end do
         end do
-c**** Sources and sinks
+c**** ratios (i.e. per mil diags)
       else if (nmap.eq.3) then
-        name = sname_ijts(k) 
-        lname = lname_ijts(k) 
-        units = units_ijts(k)
-        irange = ir_ijt(1)
-        byiacc = 1./(idacc(ia_ijts(k))+teeny)  
         do j=1,jm
         do i=1,im
-          anum(i,j)=taijs(i,j,k)*byiacc*scale_ijts(k)/dxyp(j)
+          anum(i,j)=aij1(i,j)
+          adenom(i,j)=aij2(i,j)
         end do
         end do
 C**** PROBLEM
       else  ! should not happen
-        write (6,*) 'no field defined for ijt_index',k
+        write (6,*) 'no field defined for ijt_index',n
         stop 'ijt_mapk: undefined extra ij_field for tracers'
       end if
 

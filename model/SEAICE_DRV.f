@@ -252,7 +252,7 @@ C****
       INTEGER I,J,IMAX,JR,ITYPE
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
-      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trun
+      REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun
 #endif
 
       DO J=1,JM
@@ -299,7 +299,7 @@ C****
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
-     *       ,TRSIL,TREVAP,FTROC,TRUN
+     *       ,TRSIL,TREVAP,FTROC,TRRUN
 #endif
      *       ,FMOC,FHOC,FSOC,RUN,ERUN,SRUN,MELT12)
 
@@ -381,11 +381,13 @@ C****
 !@calls seaice:addice
       USE CONSTANT, only : lhm,byshi
       USE MODEL_COM, only : im,jm,focean,kocean,ftype,fland
-     *     ,itocean,itoice,itlake,itlkice
+     *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
+      USE TRACER_DIAG_COM, only : tij_seaice,taijn
+      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
       USE DAGCOM, only : aj,areg,aij,jreg,j_tg1,j_tg2,j_rsi
@@ -405,7 +407,7 @@ C****
       REAL*8, DIMENSION(NTM) :: tro,tri
 #endif
       LOGICAL QFIXR
-      INTEGER I,J,IMAX,JR,ITYPE,ITYPEO
+      INTEGER I,J,IMAX,JR,ITYPE,ITYPEO,N
 
       DO J=1,JM
       IMAX=IMAXJ(J)
@@ -500,6 +502,16 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_SSI1)=AIJ(I,J,IJ_SSI1)+POICE*(SSIL(1)+SSIL(2))/ACE1I
         AIJ(I,J,IJ_SSI2)=AIJ(I,J,IJ_SSI2)+POICE*(SSIL(3)+SSIL(4))
      *       /MSI(I,J)
+
+#ifdef TRACERS_WATER
+C**** Save sea ice tracer amount
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. tr_wd_TYPE(n).eq.nWater) then
+          taijn(i,j,tij_seaice,n)=taijn(i,j,tij_seaice,n)+
+     *         rsi(i,j)*sum(trsil(n,:))
+        end if
+      end do
+#endif
       END IF
       END DO
       END DO

@@ -30,6 +30,9 @@
      *     ,ntx,ntix              ! global (same for all i,j)
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss
+#ifdef TRACERS_WATER
+     *     ,jls_source,taijn,tajls,tij_prec
+#endif
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
      *     ,trwm
@@ -618,24 +621,26 @@ C**** TRACERS: Use only the active ones
         do l=1,lm
           dtr_ss(j,nx)=dtr_ss(j,nx)+(tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
-     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(l,nx))
+     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           trm(i,j,l,n) = tm(l,nx)
           trmom(:,i,j,l,n) = trmomij(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &          (tm(l,nx)-tmsave(l,nx))
 #ifdef TRACERS_WATER
-     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(l,nx))
+     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
           trwm(i,j,l,n) = trwml(nx,l)
 #endif
         end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
-C**** candidate diagnostics
-c        tajls(j,1,n,jlst_prec) =tajls(j,1,n,jlst_prec) +trprec(nx,i,j)
-c        tajls(j,1,n,jlst_oprec)=tajls(j,1,n,jlst_oprec)+trprec(nx,i,j)
-c     *       *pocean
-c        taijs(i,j,ijst_prec)   =taijs(i,j,ijst_prec)   +trprec(nx,i,j)
+C**** diagnostics
+        tajls(j,1,jls_source(3,n))=tajls(j,1,jls_source(3,n))
+     *       +trprec(n,i,j)*bydxyp(j)
+        tajls(j,1,jls_source(4,n))=tajls(j,1,jls_source(4,n))
+     *       +trprec(n,i,j)*focean(i,j)*bydxyp(j)
+        taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n)+trprec(n,i,j)
+     *       *bydxyp(j)
 #endif
       end do
 #endif
