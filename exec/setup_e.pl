@@ -24,6 +24,7 @@ $SAVEDISK="/raid1";
 $GCMSEARCHPATH="/u/cmrun";
 $MAILTO="";
 $UMASK=002;
+$MIN_STACK=0;
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -153,10 +154,15 @@ if ( ! /^\s*$rfile/ ) {
 print PRT " $_";
 
 ## Read rfile until "Data input files:" is encountered
+$run_options = 0;
 while (<RFILE>) {
     print PRT " $_";
+    if ( /^\s*Run *Options/ ) { $run_options = 1; }
+    if ( /^\s*STACKSIZE *= *(\d+)/ && $run_options ) { $MIN_STACK = $1; }
     if ( /Data *input *files/ ) { last; }
 }
+
+print "Requested Stack  = $MIN_STACK\n" if ( $MIN_STACK ) ;
 
 ## Use the subsequent information to create the link and unlink files
 while (<RFILE>) {
@@ -241,6 +247,12 @@ if ( ! defined $pid ) {
 print <<`EOC`;
     umask $umask_str
     touch lock
+    if [ `ulimit -s` -lt $MIN_STACK ] ; then
+      ulimit -s $MIN_STACK || \
+        echo "!!! Could not set required stack size !!!"; \
+        echo "!!! The program may not run properly !!!"
+      echo "current stack: `ulimit -s`"
+    fi
     rm -f error_message 2> /dev/null
     ./"$runID"ln
     ./"$runID".exe < I >> ${runID}.PRT
@@ -269,6 +281,12 @@ print RUNID <<EOF;
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
+    if [ `ulimit -s` -lt $MIN_STACK ] ; then
+      ulimit -s $MIN_STACK || \
+        echo "!!! Could not set required stack size !!!"; \
+        echo "!!! The program may not run properly !!!"
+      echo "current stack: `ulimit -s`"
+    fi
     rm -f error_message 2> /dev/null
     PRTFILE=${runID}.PRT
     if [ \$\# -ge 1 ] && [ $1='-q' ]; then
