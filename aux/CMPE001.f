@@ -13,7 +13,7 @@ C****
       COMMON/BNDYCB1/ ODATA1(IM,JM,5),GDATA1(IM,JM,16),BLDATA1(IM,JM,12)
       COMMON/BNDYCB2/ ODATA2(IM,JM,5),GDATA2(IM,JM,16),BLDATA2(IM,JM,12)
       COMMON/RADNCB/ RADN1(IM,JM,9+2*LM),RADN2(IM,JM,9+2*LM)
-      COMMON/WORKO/  OA(IM,JM,12)
+      COMMON/WORKO/  OA1(IM,JM,12),OA2(IM,JM,12)
       DIMENSION U1(IM,JM,LM),V1(IM,JM,LM),T1(IM,JM,LM),P1(IM,JM),Q1(IM
      *     ,JM,LM)
       DIMENSION U2(IM,JM,LM),V2(IM,JM,LM),T2(IM,JM,LM),P2(IM,JM),Q2(IM
@@ -41,7 +41,7 @@ C****
       OPEN (1,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
       READ (1) TAU1,JC,C,RC,KEYNR,U1,V1,T1,P1,Q1,ODATA1,GDATA1,
      *  GHDATA1,BLDATA1,PBL1,pblb1,ipbl1,CLOUD1,TMOM1,QMOM1,RADN1,
-     *  TSFREZ1,DIAG1,TDIURN1,OA,TAU2
+     *  TSFREZ1,DIAG1,TDIURN1,OA1,TAU2
       IF (TAU1.ne.TAU2) then
          WRITE (6,*) 'FILE 1 NOT READ CORRECTLY. IHOUR,IHOURB =',tau1
      *        ,tau2
@@ -55,7 +55,7 @@ C****
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
       READ (2) TAU1,JC,C,RC,KEYNR,U2,V2,T2,P2,Q2,ODATA2,GDATA2,
      *  GHDATA2,BLDATA2,PBL2,pblb2,ipbl2,CLOUD2,TMOM2,QMOM2,RADN2,
-     *  TSFREZ2,DIAG2,TDIURN2,OA,TAU2
+     *  TSFREZ2,DIAG2,TDIURN2,OA2,TAU2
       IF (tau1.ne.tau2) then
          WRITE (6,*) 'FILE 2 NOT READ CORRECTLY. IHOUR,IHOURB =',tau1
      *        ,tau2
@@ -93,10 +93,14 @@ c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
 c only check diagnostics if no prognostic errors
 c      else
       DAGPOS=1
-      ERRQ=COMP8 ('ABCJ  ',JM,94,3  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94*3
+      ERRQ=COMP8 ('AJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*94
+      ERRQ=COMP8 ('BJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*94
+      ERRQ=COMP8 ('CJ    ',JM,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*94
       ERRQ=COMP8 ('DJ    ',24,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+24*94*1
+      DAGPOS=DAGPOS+24*94
       ERRQ=COMP8 ('APJ   ',JM,3,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+JM*3
       ERRQ=COMP8 ('AJL   ',JM,LM,57 ,DIAG1(DAGPOS),DIAG2(DAGPOS))
@@ -131,8 +135,8 @@ c      else
       DAGPOS=DAGPOS+JM*LM*10*3
       ERRQ=COMP8 ('TSFREZ',IM,JM,2      ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
+      ERRQ=COMP8 ('OA    ',IM,JM,12     ,OA1,OA2)
 c      endif
-
       STOP
 C****
   800 WRITE (0,*) 'Example: CMPE001 E001.rsf_1 E001.rsf_2   ',
@@ -196,6 +200,7 @@ C****
       CHARACTER*6 LABEL
       COMP8 = .FALSE.
       NP = 0
+      ICNT = 0
       WRITE (6,900) LABEL
       DO 20 L=1,LM
       DIFMAX = 0.
@@ -214,6 +219,7 @@ C****
       ELSE
          DIF = ABS(X2(I,J,L)-X1(I,J,L)) / (ABS(X1(I,J,L)) + 1.D-30)
 c         IF (DIF.NE.0.) PRINT*,I,J,L,DIF
+         IF(DIF.NE.0.) ICNT = ICNT + 1
          IF(DIF.LE.DIFMAX)  GO TO 10
          DIFMAX = DIF
          IMAX=I
@@ -231,6 +237,7 @@ c      IF(NP.GE.10)  RETURN
          COMP8 = .TRUE.
       endif
  20   CONTINUE
+c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
       RETURN
   900 FORMAT (' ',A6)
   901 FORMAT (3I4,E30.20,2E30.20)
