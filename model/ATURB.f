@@ -58,7 +58,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
-     &    ,wt_3d
+     &    ,wt_3d,v_3d_old
       real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
 cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
@@ -375,6 +375,7 @@ cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
             u0(l)=u(l)
             v0(l)=v(l)
             u_3d_old(i,j,l)=u(l)
+            v_3d_old(i,j,l)=v(l)
             km(l)=km_3d_bgrid(l,i,j)
             dze(l)=dze_3d_bgrid(l,i,j)
             bydzerho(l)=1.d0/(dze(l)*rho(l))
