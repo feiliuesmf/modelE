@@ -159,6 +159,8 @@ C**** JNORTH is set at the beginning and saved
 
       INCLUDE 'BR00B.COM'
       REAL*4 yr1S0,yr2S0
+!@dbparm snoage_fac_max  max snow age reducing-factor for sea ice albedo
+      REAL*8 :: snoage_fac_max=.5d0
       INTEGER :: NL=15,NLP=16,JYEAR=1980,JDAY=1
       SAVE
 
@@ -12627,7 +12629,7 @@ C     -------------------
       use SURF_ALBEDO
       use RE001, only:
 C**** config data
-     *     MLAT46,KEEPAL,KVEGA6,snoage_fac_max
+     *     MLAT46,KEEPAL,KVEGA6,snoage_fac_max,
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver

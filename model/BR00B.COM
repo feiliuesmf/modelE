@@ -12,7 +12,7 @@ C     BLOCK DATA RADPAR that initialize PLB and HLB
 C
       COMMON/RADCOM_glob/TAUWC0,TAUIC0,EPSCON,RO3COL,FULGAS(13)
      A             ,FRAYLE,FALGAE,FCLDTR,FCLDSR,PTLISO,TLGRAD,FGOLDH(13)
-     B             ,FSXAER(5),FTXAER(5),ZCLSRA,ECLTRA,snoage_fac_max
+     B             ,FSXAER(5),FTXAER(5),ZCLSRA,ECLTRA
      C             ,KWVCON,KEEPAL,KEEPRH,KEEP10,KCNORM,KCLDEP,ICE012
      D             ,MADVES,MRELAY,MOZONE,KO3LON,NO3COL,NORMS0,KSOLAR
      E             ,KTREND,NTRACE,ITR(8),MLAT46,MLON72,LASTVC,ISPARE(99)
@@ -34,8 +34,7 @@ C**** Additional info passed for new prescription of sea ice albedo
 !@var hin depth of ice (m)
 !@var hmp depth of melt pond (m)
 !@var fmp fraction of melt pond area
-!@dbparm snoage_fac_max  max snow age reducing-factor for sea ice albedo
-      REAL*8 :: hsn,hin,hmp,fmp,snoage_fac_max=.5d0
+      REAL*8 :: hsn,hin,hmp,fmp
 !@var flags true is snow is wet
       LOGICAL*4 :: flags
 C$OMP  THREADPRIVATE(/RADCOM_local/)
