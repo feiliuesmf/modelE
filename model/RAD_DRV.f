@@ -589,7 +589,7 @@ C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
      &     n_silt3/)
 C**** define weighting for different clays
-      WTTR(n1:NTRACE)=(0.01d0,0.08d0,0.23d0,0.66d0,1d0,1d0,1d0)
+      WTTR(n1:NTRACE)=(/0.01d0,0.08d0,0.23d0,0.66d0,1d0,1d0,1d0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
