@@ -7,6 +7,15 @@
       end subroutine alloc_icedyn
       END MODULE ICEDYN
 
+      MODULE ICEDYN_COM
+      contains
+      subroutine alloc_icedyn_com(grid)
+      use DOMAIN_DECOMP, only : DYN_GRID
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+      return
+      end subroutine alloc_icedyn_com
+      END MODULE ICEDYN_COM
+
       SUBROUTINE ICEDYN_DUM
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
       ENTRY io_icedyn
