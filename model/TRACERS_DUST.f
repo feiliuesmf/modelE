@@ -51,7 +51,9 @@ c      CALL dust_grav
 #ifndef TRACERS_WATER
       CALL dust_wet
 #endif
+#ifndef TRACERS_DRYDEP
       CALL dust_turb
+#endif
 #endif
 
       RETURN
@@ -317,7 +319,10 @@ c**** Wet Deposition
       USE fluxes,ONLY : tr3Dsource
       USE TRACER_COM,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
       USE TRACER_DIAG_COM, only : jls_grav,jls_3Dsource,taijn,
-     &     tajls,tij_gsdep
+     &     tajls
+#ifdef TRACERS_DRYDEP
+     &     ,tij_gsdep
+#endif
       USE tracers_dust_com, only: zld,dradius,nDustGrav3Djl
 
       IMPLICIT NONE
@@ -369,16 +374,16 @@ c     *         fearth(i,j)*work(:,j,n)
       DO n=1,Ntm_dust
         n1=n_clay+n-1
         najl=jls_grav(n1)
-c        WRITE(*,*) 'najl:',najl
-        taijn(:,:,tij_gsdep ,n1)=taijn(:,:,tij_gsdep ,n1) +
+#ifdef TRACERS_DRYDEP
+        taijn(:,:,tij_gsdep,n1)=taijn(:,:,tij_gsdep,n1) +
      &         work(:,:,n)
+#endif
         DO l=1,Lm
           DO j=1,Jm
             tajls(j,l,najl)=tajls(j,l,najl)-
      &           SUM(tr3Dsource(:,j,l,nDustGrav3Djl,n1))*Dtsrc
           END DO
         END DO
-c        WRITE(*,*) 'n1,tajls(:,:,najl):',n1,tajls(:,:,najl)
       END DO
 #endif
 

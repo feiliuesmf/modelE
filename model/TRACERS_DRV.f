@@ -2222,6 +2222,7 @@ c gravitational settling of ss2
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+#ifndef TRACERS_DRYDEP
         k=k+1
           jls_source(nDustTurbjl,n)=k
           lname_jls(k)='Turbulent deposition of '//trname(n)
@@ -2229,6 +2230,7 @@ c gravitational settling of ss2
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
+#endif
         k=k+1
           jls_grav(n)=k
           lname_jls(k)='Gain by gravitational settling of '//trname(n)
@@ -3835,6 +3837,7 @@ c ss2 optical thickness
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifndef TRACERS_DRYDEP
       k=k+1
         ijts_source(nDustTurbij,n)=k
         lname_ijts(k)='Turbulent Deposition of '//trname(n)
@@ -3844,6 +3847,7 @@ c ss2 optical thickness
         ijts_power(k) = -13.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 #ifndef TRACERS_WATER
       k=k+1
         ijts_source(nDustWetij,n)=k
