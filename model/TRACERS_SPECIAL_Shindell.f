@@ -657,7 +657,6 @@ C**** Monthly sources are interpolated each day
       logical :: ifirst=.true.
       real*8 adj(nsrc)
       data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-     *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
      *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
      *  0.4369,0.7533,0.9818/
 !@var nanns,nmons: number of annual and monthly input files
