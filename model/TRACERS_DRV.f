@@ -4544,9 +4544,6 @@ C**** set some defaults
         itcon_dd(n,1)=22
         qcon(itcon_dd(n,1)) = .true. ; conpts(10) = 'TURB DEP'
         qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=23
-        qcon(itcon_dd(n,2)) = .true. ; conpts(11) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
       end if
 #endif
 
@@ -4830,9 +4827,6 @@ C**** set some defaults
         itcon_dd(n,1)=18
         qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
         qsum(itcon_dd(n,1)) = .false.
-        itcon_dd(n,2)=19
-        qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
-        qsum(itcon_dd(n,2)) = .false.
       end if
 #endif
 
