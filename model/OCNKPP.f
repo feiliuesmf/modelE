@@ -1,9 +1,14 @@
+#include "rundeck_opts.h"
+
       MODULE KPP_COM
 !@sum  KPP_COM holds variables related to the KPP mixing scheme
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : im,jm,lmo
       USE SW2OCEAN, only : lsrpd
+#ifdef TRACERS_OCEAN      
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
 !@var KPL level to which mixed layer descends (1)
@@ -11,6 +16,9 @@
 
       REAL*8, DIMENSION(IM,JM,LSRPD) :: G0M1
       REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
+#ifdef TRACERS_OCEAN      
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRMO1,TXMO1,TYMO1
+#endif
 
       END MODULE
 C****
@@ -1045,8 +1053,14 @@ C**** Is this still necessary now that fluxes are saved?
 !@sum KVINIT Initialise KMIX and save pre-source term surface values of
 !@+   enthalpy, mass and horizontal gradients for kppmix calculation
       USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,s0m,mo,uo,vo
+#ifdef TRACERS_OCEAN
+     *     ,trmo,txmo,tymo
+#endif
       USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
      *     ,lsrpd
+#ifdef TRACERS_OCEAN
+     *     ,trmo1,txmo1,tymo1
+#endif
       IMPLICIT NONE
       INTEGER I,J
 C**** Save surface values
@@ -1061,6 +1075,11 @@ C**** Save surface values
             MO1(I,J)  = MO(I,J,1)
             UO1(I,J)  = UO(I,J,1)
             VO1(I,J)  = VO(I,J,1)
+#ifdef TRACERS_OCEAN
+            TRMO1(:,I,J) = TRMO(I,J,1,:)
+            TXMO1(:,I,J) = TXMO(I,J,1,:)
+            TYMO1(:,I,J) = TYMO(I,J,1,:)
+#endif
          END DO
       END DO
       RETURN
@@ -1074,10 +1093,16 @@ C**** Save surface values
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,ramvn
+#ifdef TRACERS_OCEAN
+     *     ,trmo,txmo,tymo,tzmo,ntm
+#endif
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
      *     ,ijl_kvg,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
+#ifdef TRACERS_OCEAN
+     *     ,trmo1,txmo1,tymo1
+#endif
       USE FLUXES, only : solar,dmua,dmva,dmui,dmvi
       USE SW2OCEAN, only : fsr,lsrpd
       IMPLICIT NONE
@@ -1090,6 +1115,11 @@ C**** Save surface values
      *     BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *     AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
      *     GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO)
+#ifdef TRACERS_OCEAN
+     *     ,TRML(LMO,NTM,2,2),TZML(LMO,NTM,2,2),TRML1(NTM,2,2)
+     *     ,DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
+      INTEGER NSIGT,N
+#endif
       INTEGER LMUV(IM+1)
 
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
@@ -1109,6 +1139,7 @@ C**** KPP variables
      *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
+
 C**** initiallise kpp routines
       IF (IFIRST.eq.1) THEN
         call kmixinit(ZE)
@@ -1117,10 +1148,8 @@ C**** initiallise kpp routines
       END IF
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
-      DO I=1,IM*JM*LMO
-        UT(I,1,1) = UO(I,1,1)
-        VT(I,1,1) = VO(I,1,1)
-      END DO
+      UT(:,:,:) = UO(:,:,:)
+      VT(:,:,:) = VO(:,:,:)
 C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
@@ -1139,7 +1168,6 @@ C****
       JQ=1
       KMUV=IM+1
       DO I=1,IM
-c        ID(I)   = I + IM*(JM-2) + IM*JM*LMO
         LMUV(I) = LMV(I,JM-1)
         RAVM(I) = 1d0/IM
         RAMV(I) = RAMVS(JM)
@@ -1150,7 +1178,6 @@ c        ID(I)   = I + IM*(JM-2) + IM*JM*LMO
           UL(L,I)  = UL0(L,I)
         END DO
       END DO
-c      ID(IM+1)   = 1 + IM*(JM-1)
       LMUV(IM+1) = LMU(1,JM)
       RAVM(IM+1) = 1d0
       RAMV(IM+1) = 1d0
@@ -1187,6 +1214,13 @@ c      ID(IM+1)   = 1 + IM*(JM-1)
       DO L=LSRPD,LMIJ
         G0ML(L,1,1) = G0ML0(L,1,1)
       END DO
+#ifdef TRACERS_OCEAN
+      TRML1(:,1,1)=TRMO1(:,1,JM)
+      DO L = 1,LMIJ
+        TRML(L,:,1,1) = TRMO(1,JM,L,:)
+        TZML(L,:,1,1) = TZMO(1,JM,L,:)
+      END DO
+#endif
 C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
 C**** except for RHO factor and sqrt: U2rho = Ustar**2 * rho
 C**** DM[UV]A are defined on t-grid. DM[UV]I defined on u,v grid
@@ -1209,6 +1243,9 @@ C**** Calculate surface mass, salt and heat fluxes
       DELTAS = (S0ML0(1,1,1) - S0ML(1,1,1))*BYDXYPO(JM)*BYDTS
       DELTASR= (SOLAR(1,1,JM)*(1d0-RSI(1,JM))+SOLAR(3,1,JM)*RSI(1,JM))
      *     *BYDTS               ! W/m^2
+#ifdef TRACERS_OCEAN
+      DELTATR(:) = (TRML(1,:,1,1)-TRML1(:,1,1))*BYDXYPO(JM)*BYDTS ! kg/m^2/s
+#endif
       KPL(1,JM) = 1  ! Initialize mixed layer depth
       I=1
       GOTO 500
@@ -1221,10 +1258,6 @@ C****
   210 IF(LMM(I,J).LE.1)  GO TO 730
       LMIJ=LMM(I,J)
       KMUV=4
-c        ID(1) = IM1 + IM*(J-1)
-c        ID(2) = I   + IM*(J-1)
-c        ID(3) = I   + IM*(J-2) + IM*JM*LMO
-c        ID(4) = I   + IM*(J-1) + IM*JM*LMO
       LMUV(1) = LMU(IM1,J)
       LMUV(2) = LMU(I  ,J)
       LMUV(3) = LMV(I,J-1)
@@ -1234,15 +1267,14 @@ c        ID(4) = I   + IM*(J-1) + IM*JM*LMO
       DTBYDZ(1) = DTS/MO(I,J,1)
       MMLT(1)   = 2.5d-1*MO1(I,J)*DXYPO(J)
       BYMMLT(1) = 1d0/MMLT(1)
-      DO 220 L=2,LMIJ
+      DO L=2,LMIJ
         MML0(L)   = 2.5d-1*MO(I,J,L)*DXYPO(J)
         BYMML0(L) = 1d0/MML0(L)
         DTBYDZ(L) = DTS/MO(I,J,L)
         BYDZ2(L-1)= 2d0/(MO(I,J,L)+MO(I,J,L-1))
         MMLT(L)   = MML0(L)
         BYMMLT(L) = BYMML0(L)
-  220 CONTINUE
-
+      END DO
 C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
 C**** except for RHO factor and sqrt: U2rho = Ustar**2 * rho
 C**** DM[UV]A are defined on t-grid. DM[UV]I defined on u,v grid
@@ -1315,9 +1347,22 @@ C**** Loop over quarter boxes
       DO L=LSRPD,LMIJ
         G0ML(L,IQ,JQ) = G0ML0(L,IQ,JQ)
       END DO
+#ifdef TRACERS_OCEAN
+      TRML1(:,IQ,JQ) = 2.5d-1*(TRMO1(:,I,J)+RI*TXMO1(:,I,J)
+     *     + RJ*TYMO1(:,I,J))
+      DO L = 1,LMIJ
+        TRML(L,:,IQ,JQ) = 2.5d-1*(TRMO(I,J,L,:)+RI*TXMO(I,J,L,:)
+     *       + RJ*TYMO(I,J,L,:))
+        TZML(L,:,IQ,JQ) = 2.5d-1* TZMO(I,J,L,:)
+      END DO
+#endif
+
 C**** Calculate surface heat and salt flux
       DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !W/m^2
-      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2
+      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2/s
+#ifdef TRACERS_OCEAN
+      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS !kg/m^2/s
+#endif
 C****
 C**** Vertical mixing dependent on KPP boundary layer scheme
 C****
@@ -1480,6 +1525,16 @@ C**** Salinity
      *     ,LMIJ,S0ML0(1,IQ,JQ),FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
+#ifdef TRACERS_OCEAN
+C**** Tracers are diffused after iteration and follow salinity 
+      DO L=1,LMIJ
+        GHATT(L,:)=0.         !AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)*0.25
+      END DO 
+      DO N=1,NTM
+        CALL OVDIFFS(TRML(1,N,IQ,JQ),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2
+     *       ,DTS,LMIJ,TRML(1,N,IQ,JQ),FLT(1,N))
+      END DO
+#endif
 C**** Gradients of scalars
 C**** Implicitly apply interpolated KV to linear profile
 C**** Surface tracer + mass fluxes included (no solar flux)
@@ -1488,21 +1543,35 @@ C**** Note that FL[GS] are upward fluxes.
       DM = DELTAM*DTBYDZ(1)
       GZML(1,IQ,JQ)=(GZML(1,IQ,JQ)+3d0*(FLG(1)
      *     +0.25*DTS*DELTAE*DXYPO(J)))/(1d0+DTBYDZ2*AKVG(1))
-      SZML(1,IQ,JQ)=(SZML(1,IQ,JQ)+3d0*(FLS(1)
-     *     +DM*2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))))
-     *     /(1d0+DTBYDZ2*AKVS(1))
+      SZML(1,IQ,JQ)=(SZML(1,IQ,JQ)+3d0*(FLS(1)-DELTAS*(1-DM)*0.25
+     *     *DXYPO(J)*DTS+DM*2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I
+     *     ,J))))/(1d0+DTBYDZ2*AKVS(1))
+#ifdef TRACERS_OCEAN
+      TZML(1,:,IQ,JQ)=(TZML(1,:,IQ,JQ)+3d0*(FLT(1,:)-
+     *     DELTATR(:)*(1-DM)*0.25*DXYPO(J)*DTS+DM*2.5d-1*(TRMO1(:,I,J)
+     *     +RI*TXMO1(:,I,J)+ RJ*TYMO1(:,I,J))))/(1d0+DTBYDZ2*AKVS(1))
+#endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
         GZML(L,IQ,JQ)=(GZML(L,IQ,JQ)+3d0*(FLG(L-1)+FLG(L)))
      *       /(1d0+DTBYDZ2*(AKVG(L-1)+AKVG(L)))
         SZML(L,IQ,JQ)=(SZML(L,IQ,JQ)+3d0*(FLS(L-1)+FLS(L)))
      *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
+#ifdef TRACERS_OCEAN
+        TZML(L,:,IQ,JQ)=(TZML(L,:,IQ,JQ)+3d0*(FLT(L-1,:)+
+     *       FLT(L,:))) /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
+#endif
       END DO
       DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
       GZML(LMIJ,IQ,JQ)=(GZML(LMIJ,IQ,JQ)+3d0*FLG(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
       SZML(LMIJ,IQ,JQ)=(SZML(LMIJ,IQ,JQ)+3d0*FLS(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+#ifdef TRACERS_OCEAN
+      TZML(LMIJ,:,IQ,JQ)=(TZML(LMIJ,:,IQ,JQ)+3d0*FLT(LMIJ-1,:))
+     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+#endif
+
 C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
@@ -1556,7 +1625,7 @@ C****
 C**** Recreate main prognostic variables of potential enthalpy and
 C**** salt from those on the quarter boxes
 C****
-      DO 720 L=1,LMIJ
+      DO L=1,LMIJ
       G0M(I,J,L)= G0ML(L,2,2)+G0ML(L,2,1)+G0ML(L,1,2)+G0ML(L,1,1)
       NSIGG = EXPONENT(G0M(I,J,L)) -2 - 42
       GXMO(I,J,L)=(G0ML(L,2,2)+G0ML(L,2,1)-G0ML(L,1,2)-G0ML(L,1,1))
@@ -1569,7 +1638,7 @@ C****
      *     SCALE(DBLE(NINT(SCALE(GYMO(I,J,L),-NSIGG))),NSIGG)
       GZMO(I,J,L)= GZML(L,2,2)+GZML(L,2,1)+GZML(L,1,2)+GZML(L,1,1)
       S0M(I,J,L)= S0ML(L,2,2)+S0ML(L,2,1)+S0ML(L,1,2)+S0ML(L,1,1)
-      NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42
+      NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42 + 4
       SXMO(I,J,L)=(S0ML(L,2,2)+S0ML(L,2,1)-S0ML(L,1,2)-S0ML(L,1,1))
      *     *BYBETA
       SYMO(I,J,L)=(S0ML(L,2,2)-S0ML(L,2,1)+S0ML(L,1,2)-S0ML(L,1,1))
@@ -1578,7 +1647,27 @@ C****
      *     SCALE(DBLE(NINT(SCALE(SXMO(I,J,L),-NSIGS))),NSIGS)
       IF (NSIGS+30.gt.EXPONENT(SYMO(I,J,L))) SYMO(I,J,L) =
      *     SCALE(DBLE(NINT(SCALE(SYMO(I,J,L),-NSIGS))),NSIGS)
-  720 SZMO(I,J,L)= SZML(L,2,2)+SZML(L,2,1)+SZML(L,1,2)+SZML(L,1,1)
+      SZMO(I,J,L)= SZML(L,2,2)+SZML(L,2,1)+SZML(L,1,2)+SZML(L,1,1)
+      END DO
+#ifdef TRACERS_OCEAN
+      DO N = 1,NTM
+        DO L = 1,LMIJ
+        TRMO(I,J,L,N) = TRML(L,N,2,2) + TRML(L,N,2,1) +
+     *                  TRML(L,N,1,2) + TRML(L,N,1,1)
+        NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
+        TXMO(I,J,L,N) =(TRML(L,N,2,2) + TRML(L,N,2,1) - 
+     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA 
+        TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) + 
+     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA 
+        IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) = 
+     *     SCALE(DBLE(NINT(SCALE(TXMO(I,J,L,N),-NSIGT))),NSIGT)
+        IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) = 
+     *     SCALE(DBLE(NINT(SCALE(TYMO(I,J,L,N),-NSIGT))),NSIGT)
+        TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
+     *                  TZML(L,N,1,2) + TZML(L,N,1,1) 
+      END DO
+      END DO
+#endif      
 C**** End of I loop
   730 IM1=I
       I=I+1
@@ -1588,11 +1677,16 @@ C****
 C**** Load the prognostic variables of potential enthalpy and
 C**** salt from the column arrays at the poles
 C****
-  750 DO 760 L=1,LMIJ
+  750 DO L=1,LMIJ
       G0M(1,JM,L) = G0ML(L,1,1)
       GZMO(1,JM,L) = GZML(L,1,1)
       S0M(1,JM,L) = S0ML(L,1,1)
-  760 SZMO(1,JM,L) = SZML(L,1,1)
+      SZMO(1,JM,L) = SZML(L,1,1)
+#ifdef TRACERS_OCEAN
+      TRMO(1,JM,L,:) = TRML(L,:,1,1)
+      TZMO(1,JM,L,:) = TZML(L,:,1,1)
+#endif
+      END DO
 C**** End of outside J loop
   790 CONTINUE
       RETURN
@@ -1607,12 +1701,19 @@ C**** End of outside J loop
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
+#ifdef TRACERS_OCEAN
+     *     ,trmst,txmst,tzmst,ntm
+#endif
       IMPLICIT NONE
       REAL*8 MMLT,MML0
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
       REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
+#ifdef TRACERS_OCEAN
+      REAL*8 TRML(LMO,NTM,2),TZML(LMO,NTM,2),FLT(LMO,NTM)
+      INTEGER ITR,NSIGT
+#endif
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1,BYBETA=1d0/BETA
       LOGICAL*4 :: LDD=.FALSE.
@@ -1668,12 +1769,17 @@ C****
 C**** Loop over half boxes
       IQ=1
   240 RI = BETA*(2d0*IQ-3d0)
-      DO 250 L=1,LMIJ
+      DO L=1,LMIJ
         UL(L,IQ) = 5d-1*  MUST(L,N)*DIST(N)*BYMML(L)
       G0ML(L,IQ) = 5d-1*(G0MST(L,N) + RI*GXMST(L,N))
       S0ML(L,IQ) = 5d-1*(S0MST(L,N) + RI*SXMST(L,N))
       GZML(L,IQ) = 5d-1* GZMST(L,N)
-  250 SZML(L,IQ) = 5d-1* SZMST(L,N)
+      SZML(L,IQ) = 5d-1* SZMST(L,N)
+#ifdef TRACERS_OCEAN
+      TRML(L,:,IQ)=5d-1*(TRMST(L,N,:) + RI*TXMST(L,N,:))
+      TZML(L,:,IQ)=5d-1* TZMST(L,N,:)
+#endif
+      END DO
 C****
 C**** Vertical mixing derived from KPP scheme
 C****
@@ -1781,23 +1887,42 @@ C**** Salinity
      *     ,LMIJ,S0ML0,FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
+#ifdef TRACERS_OCEAN
+C**** Tracers are diffused after iteration (GHAT always zero)
+      DO ITR = 1,NTM
+        CALL OVDIFFS(TRML(1,ITR,IQ),AKVS(1),GHAT,DTBYDZ,BYDZ2
+     *       ,DTS,LMIJ,TRML(1,ITR,IQ),FLT(1,ITR))
+      END DO
+#endif
 C**** Implicitly apply interpolated KV to linear profile
 C**** No surface fluxes
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
       GZML(1,IQ)=(GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
       SZML(1,IQ)=(SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
+#ifdef TRACERS_OCEAN
+      TZML(1,:,IQ)=(TZML(1,:,IQ)+3d0*FLT(1,:))/(1d0+DTBYDZ2*AKVS(1))
+#endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
         GZML(L,IQ)=(GZML(L,IQ)+3d0*(FLG(L-1)+FLG(L)))
      *       /(1d0+DTBYDZ2*(AKVG(L-1)+AKVG(L)))
         SZML(L,IQ)=(SZML(L,IQ)+3d0*(FLS(L-1)+FLS(L)))
      *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
+#ifdef TRACERS_OCEAN
+        TZML(L,:,IQ)=(TZML(L,:,IQ)+3d0*(FLT(L-1,:)+FLT(L,:)))
+     *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
+#endif
       END DO
       DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
       GZML(LMIJ,IQ)=(GZML(LMIJ,IQ)+3d0*FLG(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
       SZML(LMIJ,IQ)=(SZML(LMIJ,IQ)+3d0*FLS(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+#ifdef TRACERS_OCEAN
+      TZML(LMIJ,:,IQ)=(TZML(LMIJ,:,IQ)+3d0*FLT(LMIJ-1,:))
+     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+#endif
+C****
       DO L=1,LMIJ-1
         OLNST(L,N,LN_KVG) = OLNST(L,N,LN_KVG) + AKVG(L)
         OLNST(L,N,LN_KVM) = OLNST(L,N,LN_KVM) + AKVM(L)
@@ -1813,7 +1938,7 @@ C****
 C**** Recreate main prognostic variables of potential enthalpy and
 C**** salt from those on the half boxes
 C****
-      DO 720 L=1,LMIJ
+      DO L=1,LMIJ
        MUST(L,N) = (  UL(L,2) +   UL(L,1))*MML(L)/DIST(N)
       G0MST(L,N) =  G0ML(L,2) + G0ML(L,1)
       NSIGG = EXPONENT(G0MST(L,N)) -1 - 42
@@ -1826,7 +1951,18 @@ C****
       SXMST(L,N) = (S0ML(L,2) - S0ML(L,1))*BYBETA
       IF (NSIGS+30.gt.EXPONENT(SXMST(L,N))) SXMST(L,N) =
      *     SCALE(dble(NINT(SCALE(SXMST(L,N),-NSIGS))),NSIGS)
-  720 SZMST(L,N) =  SZML(L,2) + SZML(L,1)
+      SZMST(L,N) =  SZML(L,2) + SZML(L,1)
+#ifdef TRACERS_OCEAN
+      DO ITR=1,NTM
+        TRMST(L,N,ITR) = TRML(L,ITR,2) + TRML(L,ITR,1)
+        NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42 + 3
+        TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
+        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) = 
+     *       SCALE(dble(NINT(SCALE(TXMST(L,N,ITR),-NSIGT))),NSIGT)
+        TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
+      END DO
+#endif
+      END DO
 C**** End of outside loop over straits
   790 CONTINUE
       RETURN

@@ -65,6 +65,10 @@ C****
       real*8, dimension(im,jm,lm,ntm) :: trwm
 !@var TRW0 default tracer concentration in water (kg/kg)
       real*8, dimension(ntm) :: trw0 = 1.
+#ifdef TRACERS_OCEAN
+!@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
+      real*8, dimension(ntm) :: trglac = 1.
+#endif
 #endif
 
 !@var ntsurfsrcmax maximum number of surface sources/sinks

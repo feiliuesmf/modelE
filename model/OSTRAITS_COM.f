@@ -88,7 +88,7 @@ C****
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
 !@var TRSIST tracer amount in with strait (kg)      
-      REAL*8, DIMENSION(LMI,NMST,NTM) :: TRSIST
+      REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
 #endif
 
       END MODULE STRAITS
@@ -113,8 +113,8 @@ C****
 
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a1,i3,a,i3,a1,i3,a1,i3,a)')'R8 dim(',lmo,','
-     *     ,nmst,',',NTM,'):TRMST,TXST,TZST,TRSIST(',lmi,',',nmst,','
-     *     ,ntm,')'
+     *     ,nmst,',',NTM,'):TRMST,TXST,TZST,TRSIST(',ntm,',',lmi,','
+     *     ,nmst,')'
 #endif
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,

@@ -805,10 +805,12 @@ C**** check first layer (default ice and snow)
         SSIL(1:2) = SSIL(1:2)-DSSI(1:2)
         HSIL(1:2) = HSIL(1:2)-DHSI(1:2)
 #ifdef TRACERS_WATER
-        DO N=1,NTM
-          DTRSI(N,1:2) = DMSI(1:2)*TRSIL(N,1:2)/(XSI(1:2)*MSI1)
-          TRSIL(N,1:2) = TRSIL(N,1:2)-DTRSI(N,1:2)
-        END DO
+C**** no tracer removed if pure salt is lost
+c        DO N=1,NTM
+c          DTRSI(N,1:2) = (DMSI(1:2)-DSSI(1:2))*TRSIL(N,1:2)/
+c     *       (XSI(1:2)*MSI1)
+c          TRSIL(N,1:2) = TRSIL(N,1:2)-DTRSI(N,1:2)
+c        END DO
 #endif
       END IF
 
@@ -821,12 +823,12 @@ C**** check remaining layers
           SSIL(L) = SSIL(L) - DSSI(L)
           HSIL(L) = HSIL(L) - DHSI(L)
 #ifdef TRACERS_WATER
-          DTRSI(:,L) = DMSI(L)*TRSIL(:,L)/(XSI(L)*MSI2)
-          TRSIL(:,L) = TRSIL(:,L)-DTRSI(:,L)
+C**** no tracer removed if pure salt is lost
+c          DTRSI(:,L) = (DMSI(L)-DSSI(L))*TRSIL(:,L)/(XSI(L)*MSI2)
+c          TRSIL(:,L) = TRSIL(:,L)-DTRSI(:,L)
 #endif
         END IF
       END DO
-      
 C**** Calculate fluxes required to rebalance layers
 C**** Mass/heat moves from layer 2 to 1 (salt as well, but this is
 C**** dealt with later)
@@ -889,7 +891,7 @@ C**** output fluxes and diagnostics
       SFLUX = SUM(DSSI)         ! salt flux to ocean
 #ifdef TRACERS_WATER
       DO N=1,NTM
-        TRFLUX(N)=SUM(DTRSI(:,N)) ! tracer flux to ocean
+        TRFLUX(N)=SUM(DTRSI(N,:)) ! tracer flux to ocean
       END DO
 #endif
 C****
@@ -1317,8 +1319,6 @@ C**** Check conservation of water tracers in sea ice
         end if
       end do
 #endif
-
-
 
       IF (QCHECKI) STOP "CHECKI: Ice variables out of bounds"
 

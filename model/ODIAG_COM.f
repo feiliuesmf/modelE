@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE ODIAG
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
@@ -5,6 +7,9 @@
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE DAGCOM, only : npts  ! needed for conservation diags
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,
@@ -35,6 +40,16 @@
 !@var kbasin integer index of which basin a particular ocean point is in
       INTEGER, DIMENSION(IM,JM) :: KBASIN
 C****
+#ifdef TRACERS_OCEAN
+!@var KTOIJL number of 3-dimensional ocean tracer diagnostics
+      INTEGER, PARAMETER :: KTOIJL=10
+!@var TOIJL  3-dimensional ocean tracer diagnostics
+      REAL*8, DIMENSION(IM,JM,LMO,KTOIJL,NTM)  :: TOIJL
+!@var toijl_xxx indices for TOIJL diags
+      INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
+!@var TLNST strait diagnostics
+      REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
+#endif
       END MODULE ODIAG
 
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)

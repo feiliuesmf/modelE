@@ -428,6 +428,8 @@ c     *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
+          ELSE
+            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
 #endif
           END IF
         END DO
@@ -640,8 +642,7 @@ c              END IF
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
-              DTM(:) = DMM*TRLAKE(:,1,IU,JU)/(MLDLK(IU,JU)*RHOW*FLAKE(IU
-     *             ,JU)*DXYP(JU))
+              DTM(:) = DMM*GTRACER(:,1,IU,JU)
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
               TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:) + DTM(:)
 #endif
@@ -747,11 +748,11 @@ C**** Set FTYPE array for lakes
             FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
             FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
             GTEMP(1,1,I,J)=TLAKE(I,J)
-c            GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*FLAKE(I,J)*DXYP(J))
-c     *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
+          ELSE
+            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
 #endif
           END IF
         END DO
@@ -1116,6 +1117,9 @@ C**** calculate fluxes over whole box
 #endif
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
+#ifdef TRACERS_WATER
+          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
+#endif
         END IF
 
       END IF
@@ -1187,18 +1191,25 @@ C**** calculate flux over whole box
         ERUN0=             ERUNE*PEARTH
         MWL(I,J) = MWL(I,J) + RUN0*DXYP(J)
         GML(I,J) = GML(I,J) +ERUN0*DXYP(J)
+#ifdef TRACERS_WATER
+        TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
+     *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*DXYP(J)
+#endif
         IF (FLAKE(I,J).gt.0) THEN
           HLK1=TLAKE(I,J)*MLDLK(I,J)*RHOW*SHW
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
+#ifdef TRACERS_WATER
+          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+     *         *DXYP(J))
+#endif
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
-        END IF
 #ifdef TRACERS_WATER
-        TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
-     *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*DXYP(J)
+          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
 #endif
+        END IF
       END IF
 
       IF (FLAKE(I,J).gt.0) THEN

@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE ICEDYN
 !@sum  ICEDYN holds variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
@@ -119,7 +121,7 @@ C**** intermediate calculation for pressure gradient term
 C**** should be defined based on ocean grid
       REAL*8 :: dlat,dlon,phit,phiu,hemi
       INTEGER, SAVE :: IFIRST = 1
-      INTEGER I,J,n,k,kki,ip1,im1
+      INTEGER I,J,n,k,kki,ip1,im1,sumk
       REAL*8 DOIN,USINP,DMUINP,RAT,duA,dvA
 
 C**** set up initial parameters
@@ -173,7 +175,7 @@ c****
 C**** set area ratios for converting fluxes
       RATIC = RATOC  ! currently the same as for ocean
       RICAT = ROCAT
-c**** Set land masks for tracer and velocity points
+C**** Set land masks for tracer and velocity points
 C**** This is defined based on the ocean grid
       do j=1,ny1
         do i=2,nx1-1
@@ -184,6 +186,8 @@ C**** This is defined based on the ocean grid
       enddo
       do j=1,ny1-1
         do i=1,nx1-1
+c          sumk=kmt(i,j)+kmt(i+1,j)+kmt(i,j+1)+kmt(i+1,j+1)
+c          if (sumk.ge.3) kmu(i,j)=1  ! includes exterior corners
           kmu(i,j) = min(kmt(i,j), kmt(i+1,j), kmt(i,j+1), kmt(i+1,j+1))
         end do
       end do
@@ -195,6 +199,7 @@ C**** This is defined based on the ocean grid
           if (kmt(i,j) .ne. k) then
             n = n + 1
           end if
+c set to k except if an island (i.e. sumk=4 but focean(i-1,j).eq.0)
           kmt(i,j) = k
         enddo
       enddo
@@ -240,9 +245,10 @@ c**** initialize heff and area
           HEFF(I,J,2)=0.
           AREA(I,J,3)=1.
           AREA(I,J,2)=1.
-          HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
-          HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
-          AREA(I,J,1)=RSI(I-1,J)
+c          HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
+c          HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
+c          AREA(I,J,1)=RSI(I-1,J)
+c if kmt(i,j).eq.1 .and. focean(i-1,j).eq.0 interpolate.....
         enddo
         AREA(1,j,3)=1.
         AREA(1,j,2)=1.
@@ -269,6 +275,7 @@ C**** Replicate polar boxes
           HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
           HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
           AREA(I,J,1)=RSI(I-1,J)
+c if kmt(i,j).eq.1 .and. focean(i-1,j).eq.0 interpolate.....
         enddo
       enddo
 
@@ -416,7 +423,7 @@ c**** read in sea ice velocity
        AREA(NX1,J,1)=AREA(2,J,1)
       END DO
 
-C KKI LOOP IS FOR PSEDUDO-TIMESTEPPING
+C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
       DO KKI=1,5
 C FIRST DO PREDICTOR
       DO J=1,NY1
@@ -1324,15 +1331,26 @@ C NOW THE SECOND HALF
       USE ICEDYN, only : usidt,vsidt,rsix,rsiy,rsisave
       USE SEAICE, only : ace1i,xsi_glob=>xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
       USE ODIAG, only : oij,ij_musi,ij_mvsi
       USE FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
+#ifndef TRACERS_WATER
       INTEGER, PARAMETER :: NTRICE=2+2*LMI
+#else
+      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
+      INTEGER ITR
+#endif
       REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
       INTEGER I,J,L,IM1,IP1,K
-      REAL*8 SFASI,DHSI,ASI,YSI,XSI,DSSI,FRSI
+      REAL*8 SFASI,DMHSI,ASI,YSI,XSI,FRSI
 !@var MHS mass/heat/salt content of sea ice
       REAL*8, DIMENSION(NTRICE,IM,JM) :: MHS
 C****
@@ -1366,13 +1384,19 @@ C**** Regularise ice concentration gradients to prevent advection errors
       END DO
       END DO
 
-C**** set up local MSH array to contain all advected quantities
+C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
       MHS(1,:,:) = ACE1I + SNOWI
       MHS(2,:,:) = MSI
       DO L=1,LMI
         MHS(L+2,:,:) = HSI(L,:,:)
         MHS(L+2+LMI,:,:) = SSI(L,:,:)
+#ifdef TRACERS_WATER
+C**** add tracers to advected arrays
+        DO ITR=1,NTM
+          MHS(L+2+(1+ITR)*LMI,:,:)=TRSI(ITR,L,:,:)
+        END DO
+#endif
       END DO
 C****
 C**** North-South Advection of Sea Ice
@@ -1516,16 +1540,16 @@ C**** Sea ice crunches into itself and completely covers grid box
       RSIY(I,J)  = 0.
       MHS(1,I,J) = AMSI(1)/ASI
       MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MHS(1,I,J)
-      MHS(3,I,J) = AMSI(3)/ASI
-      MHS(4,I,J) = AMSI(4)/ASI
-      DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(J) - 1d0/ASI)
-      MHS(5,I,J) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      MHS(6,I,J)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
-      MHS(7,I,J) = AMSI(7)/ASI
-      MHS(8,I,J) = AMSI(8)/ASI
-      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(J) - 1d0/ASI)
-      MHS(9,I,J) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
-      MHS(10,I,J)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
+      DO K=1,(NTRICE-2)/LMI
+        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
+        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
+        DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
+     *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0 / ASI )
+        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(3)*DMHSI
+        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(4)*DMHSI
+      END DO
 C**** End of loop over J
   330 CONTINUE
 C**** End of loop over I
@@ -1545,16 +1569,16 @@ C**** Sea ice crunches into itself at North Pole box
   350 RSI(1,JM)   = 1d0
       MHS(1,1,JM) = AMSI(1)/ASI
       MHS(2,1,JM) =(AMSI(1)+AMSI(2))*BYDXYP(JM) - MHS(1,1,JM)
-      MHS(3,1,JM) = AMSI(3)/ASI
-      MHS(4,1,JM) = AMSI(4)/ASI
-      DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(JM) - 1d0/ASI)
-      MHS(5,1,JM) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      MHS(6,1,JM)=  AMSI(6)/ASI + XSI_GLOB(4)*DHSI
-      MHS(7,1,JM) = AMSI(7)/ASI
-      MHS(8,1,JM) = AMSI(8)/ASI
-      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(JM) - 1d0/ASI)
-      MHS(9,1,JM) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
-      MHS(10,1,JM)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
+      DO K=1,(NTRICE-2)/LMI
+        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
+        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
+        DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
+     *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0/ ASI)
+        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(3)*DMHSI
+        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(4)*DMHSI
+      END DO
 C****
 C**** East-West Advection of Sea Ice
 C****
@@ -1666,16 +1690,16 @@ C**** Sea ice crunches into itself and completely covers grid box
       RSIY(I,J)  = 0.
       MHS(1,I,J) = AMSI(1)/ASI
       MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYDXYP(J) - MHS(1,I,J)
-      MHS(3,I,J) = AMSI(3)/ASI
-      MHS(4,I,J) = AMSI(4)/ASI
-      DHSI = (AMSI(3)+AMSI(4)+AMSI(5)+AMSI(6))*(BYDXYP(J) - 1d0/ASI)
-      MHS(5,I,J) = AMSI(5)/ASI + XSI_GLOB(3)*DHSI
-      MHS(6,I,J) = AMSI(6)/ASI + XSI_GLOB(4)*DHSI
-      MHS(7,I,J) = AMSI(7)/ASI
-      MHS(8,I,J) = AMSI(8)/ASI
-      DSSI = (AMSI(7)+AMSI(8)+AMSI(9)+AMSI(10))*(BYDXYP(J) - 1d0/ASI)
-      MHS(9,I,J) = AMSI(9)/ASI + XSI_GLOB(3)*DSSI
-      MHS(10,I,J)=AMSI(10)/ASI + XSI_GLOB(4)*DSSI
+      DO K=1,(NTRICE-2)/LMI
+        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
+        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
+        DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
+     *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0/ ASI)
+        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(3)*DMHSI
+        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
+     *       XSI_GLOB(4)*DMHSI
+      END DO
 C**** End of loop over I
   630 IM1=I
 C**** End of loop over J
@@ -1687,6 +1711,11 @@ C**** set global variables from local array
       DO L=1,LMI
         HSI(L,:,:) = MHS(L+2,:,:)
         SSI(L,:,:) = MHS(L+2+LMI,:,:)
+#ifdef TRACERS_WATER
+        DO ITR=1,NTM
+          TRSI(ITR,L,:,:)=MHS(L+2+(1+ITR)*LMI,:,:)
+        END DO
+#endif
       END DO
 C**** Set atmospheric arrays
       DO J=1,JM
@@ -1696,6 +1725,9 @@ C**** Set atmospheric arrays
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J) - FTYPE(ITOICE ,I,J)
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI_GLOB(1:2)*(ACE1I
      *           +SNOWI(I,J)))+LHM)*BYSHI
+#ifdef TRACERS_WATER
+            GTRACER(:,1,I,J)=TRSI(:,1,I,J)/(MHS(1,I,J)-SSI(1,I,J))
+#endif
           END IF
         END DO
       END DO

@@ -223,6 +223,10 @@ C**** Initialise pbl profile if necessary
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
       end if
       end do
+#ifdef TRACERS_OCEAN
+C**** Initialise ocean tracers if necessary
+      call tracer_ic_ocean
+#endif
 C****
       end subroutine tracer_IC
 

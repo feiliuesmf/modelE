@@ -9,15 +9,21 @@
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
      *     ,ratoc,imaxj,focean
+#ifdef TRACERS_OCEAN
+     *     ,ntm,trmo,txmo,tymo,tzmo
+#endif
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
+#ifdef TRACERS_OCEAN
+     *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
+#endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
-      INTEGER NS,I,J,L,mnow
+      INTEGER NS,I,J,L,mnow,n
 C****
 C**** Integrate Ocean Dynamics terms
 C****
@@ -84,7 +90,6 @@ C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
       CALL OMTOV (MM0,UM0,VM0)
       NS=NS-1
       IF(NS.GT.1)  GO TO 420
-        CALL CHECKO ('OCNDYN')
         OIJL(:,:,:,IJL_MFU) = OIJL(:,:,:,IJL_MFU) + SMU
         OIJL(:,:,:,IJL_MFV) = OIJL(:,:,:,IJL_MFV) + SMV
         OIJL(:,:,:,IJL_MFW) = OIJL(:,:,:,IJL_MFW) + SMW
@@ -94,9 +99,9 @@ C**** Advection of Potential Enthalpy and Salt
 #ifdef TRACERS_OCEAN
       DO N=1,NTM
         CALL OADVT(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
-     *             TZMO(1,1,1,N),DTOLF,.TRUE.,TOIJL(1,1,1,2,N))
-      END DO        
-#endif                                               
+     *       TZMO(1,1,1,N),DTOLF,.TRUE.,TOIJL(1,1,1,TOIJL_TFLX,N))
+      END DO
+#endif
         CALL CHECKO ('OADVT ')
         DO L=1,LMO
         DO J=1,JM
@@ -108,10 +113,10 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
         END DO
 #ifdef TRACERS_OCEAN
-        DO ITR=1,NTM
+        DO N=1,NTM
           DO I=1,IM*JM*LMO
-            TOIJL(I,1,1,TOIJL_CONC,ITR)=TOIJL(I,1,1,TOIJL_CONC,ITR)
-     *           +TRMO(I,1,1,ITR)
+            TOIJL(I,1,1,TOIJL_CONC,N)=TOIJL(I,1,1,TOIJL_CONC,N)
+     *           +TRMO(I,1,1,N)
           END DO
         END DO
 #endif
@@ -126,12 +131,13 @@ C**** Apply GM + Redi tracer fluxes
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,OIJL(1,1,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
-      DO ITR = 1,NTM                                                
-        CALL GMFEXP(TRMO(1,1,1,ITR),TXMO(1,1,1,ITR),TYMO(1,1,1,ITR),
-     *              TZMO(1,1,1,ITR),TOIJL(1,1,1,TOIJL_GMFL)                                
+      DO N = 1,NTM                                                
+        CALL GMFEXP(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
+     *              TZMO(1,1,1,N),TOIJL(1,1,1,TOIJL_GMFL,N))
       END DO                                                        
 #endif
         CALL CHECKO ('GMDIFF')
+        CALL TIMER (MNOW,MSGSO)
         IF (MODD5S.EQ.0) CALL DIAGCA (12)
 C****
 C**** Acceleration and advection of tracers through ocean straits
@@ -354,7 +360,7 @@ C**** Initialize ocean diagnostics
 
 #ifdef TRACERS_OCEAN
 C**** Initialize ocean tracers
-      call init_tr_ocean......????
+c      call init_tracers_ocean
 #endif
 
 C**** Set atmospheric surface variables
@@ -384,7 +390,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE SEAICE, only : simelt
+      USE SEAICE, only : simelt,xsi,ace1i
       USE FLUXES, only : gtemp
 #ifdef TRACERS_WATER
      *     ,gtracer
@@ -443,7 +449,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             S0M(I,J,1)=S0M(I,J,1) + SALT    *DXYPO(J)
 #ifdef TRACERS_OCEAN
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+TRUN0(:)*DXYPO(J)
-            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
+            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
+     *           S0M(I,J,1))
 #endif
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -452,7 +459,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
             TRSI(:,:,I,J)=TRSIL(:,:)
-            GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+            GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
 C**** limit RSIX/Y
             IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =     RSI(I,J)
@@ -561,14 +568,17 @@ C****
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : byrt3
+      USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
       USE SEAICE_COM, only : msi,rsi
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm, trname
+#endif      
       USE OCEAN
       IMPLICIT NONE
-      REAL*8 SALIM,GO1
+      REAL*8 SALIM,GO1,relerr,errmax
       LOGICAL QCHECKO
-      INTEGER I,J,L
+      INTEGER I,J,L,n,imax,jmax,lmax
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
@@ -585,6 +595,12 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(SZMO,IM,JM,LMO,SUBR,'szm')
       CALL CHECK3(UO  ,IM,JM,LMO,SUBR,'uo ')
       CALL CHECK3(VO  ,IM,JM,LMO,SUBR,'vo ')
+#ifdef TRACERS_OCEAN
+      CALL CHECK3(TRMO,IM,JM,LMO*NTM,SUBR,'trm')
+      CALL CHECK3(TXMO,IM,JM,LMO*NTM,SUBR,'txm')
+      CALL CHECK3(TYMO,IM,JM,LMO*NTM,SUBR,'tym')
+      CALL CHECK3(TZMO,IM,JM,LMO*NTM,SUBR,'tzm')
+#endif
 
 C**** Check for varaibles out of bounds
       QCHECKO=.FALSE.
@@ -592,7 +608,7 @@ C**** Check for varaibles out of bounds
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
 C**** Check potential specific enthalpy of first layer over open ocean
-          DO L=1,LMO
+          DO L=1,LMM(I,J)
           GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1
@@ -630,6 +646,39 @@ C**** Check ocean salinity in each eighth box for the first layer
         END IF
       END DO
       END DO
+
+#ifdef TRACERS_OCEAN
+C**** Check conservation of water tracers in sea ice
+      do n=1,ntm
+        if (trname(n).eq.'Water') then
+          errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
+          do l=1,lmo
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (l.le.lmm(i,j)) then
+              relerr=max(
+     *             abs(trmo(i,j,l,n)-mo(i,j,l)*dxypo(j)+s0m(i,j,l)),
+     *             abs(txmo(i,j,l,n)+sxmo(i,j,l)),
+     *             abs(tymo(i,j,l,n)+symo(i,j,l)),
+     *             abs(tzmo(i,j,l,n)+szmo(i,j,l)))/
+     *             (mo(i,j,l)*dxypo(j)-s0m(i,j,l))
+            if (relerr.gt.errmax) then
+              imax=i ; jmax=j ; lmax=l ; errmax=relerr
+            end if
+            end if
+          end do
+          end do
+          end do
+          print*,"Relative error in ocean fresh water mass after ",subr
+     *         ,":",imax,jmax,lmax,errmax,trmo(imax,jmax,lmax,n),mo(imax
+     *         ,jmax,lmax)*dxypo(jmax)-s0m(imax,jmax,lmax),txmo(imax
+     *         ,jmax,lmax,n),-sxmo(imax,jmax,lmax),tymo(imax,jmax,lmax,n
+     *         ),-symo(imax,jmax ,lmax),tzmo(imax,jmax,lmax,n),
+     *         -szmo(imax,jmax,lmax) 
+        end if
+      end do
+#endif
+
       IF (QCHECKO) STOP "QCHECKO: Ocean Variables out of bounds"
 
       END IF
@@ -2128,8 +2177,11 @@ C****
 !@ver  1.0
       USE CONSTANT, only : sday
       USE OCEAN, only : im,jm,dts,lmm,gxmo,gymo,sxmo,symo
+#ifdef TRACERS_OCEAN
+     *     ,ntm,txmo,tymo
+#endif
       IMPLICIT NONE
-      INTEGER I,IM1,IP1,J,LMIN,L
+      INTEGER I,IM1,IP1,J,LMIN,L,N
       REAL*8 REDUCE
 
       REDUCE = 1d0 - DTS/(SDAY*2d1)
@@ -2143,8 +2195,8 @@ C**** Reduce West-East gradient of tracers
         GXMO(I,J,L) = GXMO(I,J,L)*REDUCE
         SXMO(I,J,L) = SXMO(I,J,L)*REDUCE
 #ifdef TRACERS_OCEAN
-        DO ITR = 1,NTM
-          TXMO(I,J,L,ITR) = TXMO(I,J,L,ITR) *REDUCE
+        DO N = 1,NTM
+          TXMO(I,J,L,N) = TXMO(I,J,L,N) *REDUCE
         END DO
 #endif
  110  CONTINUE
@@ -2158,8 +2210,8 @@ C**** Reduce South-North gradient of tracers
         GYMO(I,J,L) = GYMO(I,J,L)*REDUCE
         SYMO(I,J,L) = SYMO(I,J,L)*REDUCE
 #ifdef TRACERS_OCEAN
-        DO ITR = 1,NTM
-          TYMO(I,J,L,ITR) = TYMO(I,J,L,ITR) *REDUCE
+        DO N = 1,NTM
+          TYMO(I,J,L,N) = TYMO(I,J,L,N) *REDUCE
         END DO
 #endif
  210  CONTINUE
@@ -2228,12 +2280,12 @@ C**** Surface stress is applied to V component at the North Pole
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
      *     ,lmo,lmm,ratoc,rocat
 #ifdef TRACERS_OCEAN
-     *     trmo,ntm
+     *     ,trmo,ntm
 #endif
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
      *     ,flowo,eflowo,srunosi
 #ifdef TRACERS_OCEAN
-     *     trflowo,trevapor,dtrsi,trunosi,gtracer
+     *     ,trflowo,trevapor,dtrsi,trunosi,gtracer
 #endif
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,aij,areg,j_evap,j_type,ij_evap,ij_evapo
@@ -2277,11 +2329,10 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
         TRUNO(:)=TRFLOWO(:,I,J)*(1.-FSICE)*BYDXYPJ-
-     *       RATOC(J)*TEVAPOR(:,1,I,J)
+     *       RATOC(J)*TREVAPOR(:,1,I,J)
         TRUNI(:)=TRFLOWO(:,I,J)*    FSICE *BYDXYPJ+
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
-
 C**** Diagnostics on atmospheric grid
           AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *(1.-FSICE)
           AJ(J,J_TG2, ITOCEAN)=AJ(J,J_TG2, ITOCEAN)+TGW2*(1.-FSICE)
@@ -2351,25 +2402,41 @@ C****
       END SUBROUTINE GROUND_OC
 
       SUBROUTINE OSOURC (ROICE,MO,G0ML,GZML,S0M,DXYPJ,BYDXYPJ,LMIJ,RUNO
-     *     ,RUNI,ERUNO,ERUNI,SRUNI,SROX,DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
+     *     ,RUNI,ERUNO,ERUNI,SRUNI,SROX,
+#ifdef TRACERS_OCEAN
+     *     TROM,TRUNO,TRUNI,DTROO,DTROI,
+#endif
+     *     DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shci=>shi,elhm=>lhm
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
       USE SEAICE, only : fsss
+#ifdef TRACERS_OCEAN
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
      *     ,SROX(2),SRUNI
       INTEGER, INTENT(IN) :: LMIJ
       REAL*8, INTENT(INOUT) :: MO,G0ML(LSRPD),GZML(LSRPD),S0M
       REAL*8, INTENT(OUT) :: DMOO,DMOI,DEOO,DEOI,DSOO,DSOI
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM
+      REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI 
+      REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI 
+      REAL*8, DIMENSION(NTM) :: TMOO,TMOI
+#endif
       REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
      *     ,TFOI
       REAL*8 GFREZS,TFREZS,TSOL
-      INTEGER L,LSR
+      INTEGER L,LSR,N
 
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
+#ifdef TRACERS_OCEAN
+      DTROI(:) = 0. ; DTROO(:) = 0.
+#endif
 
       LSR = MIN(LSRPD,LMIJ)
 C****
@@ -2379,9 +2446,7 @@ C****
       GMOO = G0ML(1)*BYDXYPJ + ERUNO
       SMOO = S0M*BYDXYPJ
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM   
-        TMOO(N) = TRMO(N)*BYDXYPJ+TRUNO(N)
-      END DO
+      TMOO(:) = TROM(:)*BYDXYPJ+TRUNO(:)
 #endif
       IF (ROICE.lt.1d0) THEN
 C**** Remove insolation from layer 1 that goes to lower layers
@@ -2398,6 +2463,9 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
         DMOO = MOO*(GOO-GFOO)/(TFOO*SHCI-ELHM-GFOO)
         DEOO = (TFOO*SHCI-ELHM)*DMOO
         DSOO = FSSS*SOO*DMOO
+#ifdef TRACERS_OCEAN
+        DTROO(:) = TMOO(:) * (DMOO-DSOI)/(MOO-SMOO)
+#endif
       END IF
       END IF
 C****
@@ -2406,6 +2474,9 @@ C****
       MOI  = MO + RUNI
       GMOI = G0ML(1)*BYDXYPJ + ERUNI
       SMOI = S0M*BYDXYPJ + SRUNI
+#ifdef TRACERS_OCEAN
+      TMOI(:) = TROM(:)*BYDXYPJ+TRUNI(:)
+#endif
       IF(ROICE.gt.0.) THEN
 C**** Remove insolation from layer 1 that goes to lower layers
         IF (LSR.gt.1) GMOI = GMOI - SROX(2)*FSR(2)
@@ -2421,12 +2492,19 @@ C**** GOI*MOI = GFOI*(MOI-DMOI) + (TFOI*SHCI-ELHM)*DMOI
           DMOI = MOI*(GOI-GFOI)/(TFOI*SHCI-ELHM-GFOI)
           DEOI = (TFOI*SHCI-ELHM)*DMOI
           DSOI = FSSS*SOI*DMOI
+#ifdef TRACERS_OCEAN
+          DTROI(:) = TMOI(:) * (DMOI-DSOI)/(MOI-SMOI)
+#endif
         END IF
       END IF
 C**** Update first layer variables
       MO     =  (MOI-DMOI)*ROICE + (1.-ROICE)*( MOO-DMOO)
       G0ML(1)=((GMOI-DEOI)*ROICE + (1.-ROICE)*(GMOO-DEOO))*DXYPJ
       S0M    =((SMOI-DSOI)*ROICE + (1.-ROICE)*(SMOO-DSOO))*DXYPJ
+#ifdef TRACERS_OCEAN
+      TROM(:)=((TMOI(:)-DTROI(:))*ROICE + (1.-ROICE)*(TMOO(:)-DTROO(:)))
+     *     *DXYPJ
+#endif
 C**** add insolation to lower layers
       TSOL=(SROX(1)*(1.-ROICE)+SROX(2)*ROICE)*DXYPJ
       DO L=2,LSR-1
@@ -2445,12 +2523,23 @@ C****
 !@ver  1.0
       USE GEOM, only : dxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,bydxypo,focean,imaxj
+#ifdef TRACERS_OCEAN
+     *     ,trmo,dxypo
+#endif
       USE SEAICE_COM, only : rsia=>rsi
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
      *     ,epreca=>eprec
+#ifdef TRACERS_OCEAN
+     *     ,trpreca=>trprec,trunpsia=>trunpsi
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: PREC,EPREC,RUNPSI,RSI,SRUNPSI
-      INTEGER I,J
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM,IM,JM) :: trprec,trunpsi
+#endif
+
+      INTEGER I,J,N
 C**** save surface variables before any fluxes are added
       CALL KVINIT
 
@@ -2463,12 +2552,11 @@ C**** of fluxes is necessary anyway
           PREC   (I,J)=PRECA   (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           EPREC  (I,J)=EPRECA  (I,J)*DXYP(J)             ! J
           RUNPSI (I,J)=RUNPSIA (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
+          SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)             ! kg
           RSI    (I,J)=RSIA    (I,J)
 #ifdef TRACERS_OCEAN
-          DO N=1,NTM
-            TRPREC(N,I,J)=TRPRECA(N,I,J)*DXYP(J)*BYDXYPO(J) 
-          END DO
+          TRPREC(:,I,J)=TRPRECA(:,I,J)                   ! kg
+          TRUNPSI(:,I,J)=TRUNPSIA(:,I,J)*DXYP(J)         ! kg 
 #endif
         END DO
       END DO
@@ -2479,11 +2567,10 @@ C****
             MO (I,J,1)= MO(I,J,1) + (1d0-RSI(I,J))*PREC(I,J) +
      *           RSI(I,J)*RUNPSI(I,J)
             G0M(I,J,1)=G0M(I,J,1) + (1d0-RSI(I,J))*EPREC(I,J)
-            S0M(I,J,1)=S0M(I,J,1) + (1d0-RSI(I,J))*SRUNPSI(I,J)
+            S0M(I,J,1)=S0M(I,J,1) + RSI(I,J)*SRUNPSI(I,J)
 #ifdef TRACERS_OCEAN
-            DO N = 1,NTM
-              TRMO(I,J,1,N)=TRMO(I,J,1,N)+(1d0-RSI(I,J))*TRPREC(N,I,J)
-            END DO
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+(1d0-RSI(I,J))*TRPREC(:,I,J)
+     *             +RSI(I,J)*TRUNPSI(:,I,J)
 #endif
           END IF
         END DO
@@ -2930,16 +3017,16 @@ C**** Done!
       USE MODEL_COM, only : ftype,itocean,itoice
       USE OCEAN, only : im,jm,g0m,s0m,mo,dxypo,focean,lmm
 #ifdef TRACERS_OCEAN
-     *     trmo
+     *     ,trmo
 #endif
-      USE SEAICE_COM, only : rsi,hsi,snowi
+      USE SEAICE_COM, only : rsi,hsi,snowi,ssi
 #ifdef TRACERS_OCEAN
-     *     trsi
+     *     ,trsi
 #endif
       USE SEAICE, only : ace1i, xsi
       USE FLUXES, only : gtemp, sss, mlhc
 #ifdef TRACERS_OCEAN
-     *     gtracer
+     *     ,gtracer
 #endif
 
       IMPLICIT NONE
@@ -2969,8 +3056,9 @@ C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
 #ifdef TRACERS_OCEAN
-            GTRACER(:,1,I,J) = TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
-            GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1)
+            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
+     *           S0M(I,J,1))
+            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif
           END IF
         END DO
@@ -3156,7 +3244,8 @@ C****
       USE CONSTANT, only : lhm
       USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo
 #ifdef TRACERS_OCEAN
-     *     trmo,trglac
+     *     ,trmo
+      USE TRACER_COM, only : ntm,trglac
 #endif
       IMPLICIT NONE
 !@var ACCPDA total accumulation per day for Antarctica (kg/day)

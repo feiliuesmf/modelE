@@ -1,7 +1,7 @@
 !@sum  UTILDBL Model Independent Utilities
 !@auth Original Development Team
 !@ver  1.0
-!@cont THBAR,QSAT,DQSATDT,TRIDIAG,TIMER,FILEMANAGER,READT,DREAD,MREAD
+!@cont THBAR,QSAT,DQSATDT,TRIDIAG,FILEMANAGER,READT,DREAD,MREAD
 
       FUNCTION THBAR (X,Y)
 !@sum  THBAR calculates mean temperature used in vertical differencing
@@ -419,7 +419,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@var SUBR identifies where CHECK3 was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 !@var FIELD identifies the field being tested
-      CHARACTER*2, INTENT(IN) :: FIELD
+      CHARACTER*6, INTENT(IN) :: FIELD
 !@var A array being tested
       REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
       LOGICAL :: QCHECK3 = .FALSE.
@@ -429,7 +429,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       DO J=1,JN
       DO I=1,IN
         IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-          WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after ',SUBR
+          WRITE (6,*) TRIM(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
           IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
         END IF
       END DO
