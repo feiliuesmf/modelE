@@ -647,10 +647,16 @@ c hydrated density
               stokevdt(n)=dtsrc*2.*grav*den_h*r_h**2/(9.*visc_air)
             end if
 #endif
+c wmf is the additional velocity if the particle size is large compared
+c   to the mean free path of the air; important in the stratosphere  
+             PRESS=pmid(l,i,j)*100.d0    !Pa              
+             AIRDEN=PRESS*avog*bygasc/(pk(l,i,j)*t(i,j,l)) 
+             FRPATH=1.d0/(PI*DSQRT(2.d0)*AIRDEN*(RADAIR)**2.)
+             wmf=FRPATH/trradius(n)*(s1+s2*dexp(-s3*trradius(n)/FRPATH))
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
 C**** should this operate in the first layer? Surely dry dep is dominant?
-              fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
+             fgrfluxd=(1.d0+wmf)*stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
               trgrdep(n,i,j)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
 #ifdef TRACERS_DRYDEP
 C**** maybe this should be a separate diag (or not be done at all?)
@@ -658,12 +664,6 @@ C**** maybe this should be a separate diag (or not be done at all?)
      *             trgrdep(n,i,j)
 #endif
             else               ! above layer 1
-c wmf is the additional velocity if the particle size is large compared
-c   to the mean free path of the air; important in the stratosphere  
-             PRESS=pmid(l,i,j)*100.d0    !Pa              
-             AIRDEN=PRESS*avog*bygasc/(pk(l,i,j)*t(i,j,l)) 
-             FRPATH=1.d0/(PI*DSQRT(2.d0)*AIRDEN*(RADAIR)**2.)
-             wmf=FRPATH/trradius(n)*(s1+s2*dexp(-s3*trradius(n)/FRPATH))
              fgrfluxd=(1.d0+wmf)*stokevdt(n)*grav
      *                /(gz(i,j,l)-gz(i,j,l-1))
             end if
