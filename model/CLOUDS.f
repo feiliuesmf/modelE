@@ -1863,6 +1863,7 @@ c ---------------------- initialize fractions ------------------------
         FQTOWT=0.
         FWTOQT=0.
         THLAW=0.
+        THWASH=0.
 c ----------------------- calculate fractions --------------------------
 c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT)
@@ -1886,7 +1887,6 @@ c         so saving it here for below cloud case:
           if (CM.GT.teeny) b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF)
-          THWASH=0.
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
