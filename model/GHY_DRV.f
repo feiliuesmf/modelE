@@ -62,7 +62,6 @@ c****
      &     ,zs1,tgv,tkv,qg_sat=>qg,hemi,pole     ! rest local
      &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
-      use socpbl, only : zgs,dtsurf
       use pbl_drv, only : pbl, evap_max,fr_sat
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
@@ -311,8 +310,8 @@ c**** loop over ground time steps
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
         n=ntix(nx)
-C**** Set surface boundary conditions for tracers depending on whether they
-C**** are water or another type of tracer
+C**** Set surface boundary conditions for tracers depending on whether
+C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
 C**** The select is used to distinguish water from gases or particle
         select case (tr_wd_TYPE(n))
@@ -336,7 +335,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           end do
           trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #ifdef TRACERS_WATER
-        end select 
+        end select
 #endif
       end do
 #endif
@@ -395,7 +394,7 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
 #ifdef TRACERS_WATER
 c**** water tracers are also flux limited
       tr_evap_max(1:ntx) = evap_max * trsoil_rat(nx)
-#endif      
+#endif
       call pbl(i,j,itype,ptype)
 c****
       cdm = cmgs(i,j,itype)
