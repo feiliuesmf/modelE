@@ -5,7 +5,7 @@
    if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
 
    if [[ $# -le 0 ]] ; then
-      echo "Usage: runE [-q] RUNID"
+      echo "Usage: runE [-q] RUNID [max_#_of_processors_to_be_used (default:1)]"
       echo "Restart the run RUNID"
       echo "Use '-q' if you don't want to save the printout (.PRT file)."
       exit; fi
@@ -30,7 +30,12 @@
      exit 1
    fi
 
+   nproc=1  ; nptxt=''
+   if [[ $2 = [1-9] || $2 = [1-9][0-9] ]]
+   then nproc=$2 ; nptxt="using up to $nproc processors" ; fi
+   export MP_SET_NUMTHREADS=$nproc
+
    cd "$CMRUNDIR/$RUNID"
    nohup nice -19 ksh ./$RUNID $OPTS &
-   echo "$RUNID started"
+   echo "$RUNID started $nptxt"
    if [[ $OPTS = *-q* ]]; then echo "printout will not be saved"; fi
