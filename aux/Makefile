@@ -23,7 +23,7 @@ GCMLIB = $(BIN_DIR)/$(RUN).a
 NCLIB = /usr/local/netcdf-3.4/lib64/libnetcdf.a
 
 # list of targets to be built by default
-all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf
+all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf
 all: $(BIN_DIR)/acc2nc $(BIN_DIR)/conv_gic
 all: $(BIN_DIR)/vertflux.exe
 all: $(BIN_DIR)/dec31.exe $(BIN_DIR)/otspec.E001.exe
@@ -47,6 +47,11 @@ $(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
 	$(F90) $(FFLAGS) -o $@ $^
 
 conv_rsf.o: $(GCMLIB)
+
+$(BIN_DIR)/conv_strat_rsf: conv_strat_rsf.o $(GCMLIB)
+	$(F90) $(FFLAGS) -o $@ $^
+
+conv_strat_rsf.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
 	$(F90) $(FFLAGS) -o $@ $^
