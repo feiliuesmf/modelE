@@ -11,7 +11,7 @@
 # to Fortarn compiler, like
 # -g        - include debugging information
 # -listing  - create listings (.L)
-EXTRA_FFLAGS = -check bounds -check overflow -fpe
+EXTRA_FFLAGS =
 
 # CPPFLAGS specifies some pre-processor directives you want to pass 
 # to Fortarn compiler, like

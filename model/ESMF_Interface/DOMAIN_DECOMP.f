@@ -24,6 +24,10 @@
 !@var CHECKSUM output a bit-reproducible checksum for an array
       PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdamains
 
+!ia since DYN_GRID is public ESMF_GRID_TYPE has to be public
+!ia (SGI compiler complains)
+      PUBLIC :: ESMF_GRID_TYPE
+
 !@var HALO_UPDATE Generic wrapper for 2D and 3D routines
       INTERFACE HALO_UPDATE
         MODULE PROCEDURE HALO_UPDATE_1D  ! J

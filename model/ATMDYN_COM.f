@@ -43,7 +43,8 @@ C**** module should own dynam variables used by other routines
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO_0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDY_BY_RHO_0
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PU,PV,CONV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PU,PV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: CONV
 c$$$      REAL*8, DIMENSION(IM,JM,LM-1) :: SD
       REAL*8, POINTER :: SD(:,:,:)
 !@var PIT  pressure tendency (mb m^2/s)
