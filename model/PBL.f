@@ -1609,15 +1609,13 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 
       dia(1) = 1.+factor
       sup(1) = -1.
-      rhs(1) = factor*uocean
+      rhs(1)  = factor*uocean
       rhs1(1) = factor*vocean
 
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-
-      rhs1(1)  = 0.
-      rhs1(n)  = vtop
+      rhs1(n) = vtop
 
       call TRIDIAG(sub,dia,sup,rhs,u,n)
       call TRIDIAG(sub,dia,sup,rhs1,v,n)
@@ -1808,14 +1806,12 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       dia(1) = 1.+factor
       sup(1) = -1.
       rhs(1) = factor*uocean
-      rhs1(1) = factor*vocean
+      rhs1(1)= factor*vocean
 
       dia(n) = 1.
       sub(n) = 0.
       rhs(n)  = utop
-
-      rhs1(1)  = 0.
-      rhs1(n)  = vtop
+      rhs1(n) = vtop
 
       call TRIDIAG(sub,dia,sup,rhs,u,n)
       call TRIDIAG(sub,dia,sup,rhs1,v,n)
