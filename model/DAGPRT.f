@@ -3191,7 +3191,7 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only :
-     &     consrv,kcon,scale_con,title_con,nsum_con,ia_con
+     &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -3210,7 +3210,7 @@ C**** CALCULATE SCALING FACTORS
 C**** CALCULATE SUMMED QUANTITIES
 C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
       DO J=1,JM
-        DO N=KCON,1,-1
+        DO N=KCMX,1,-1
           IF (NSUM_CON(N).eq.0) THEN
             CONSRV(J,N)=0.
           ELSEIF (NSUM_CON(N).gt.0) THEN
@@ -3241,7 +3241,7 @@ C**** CALCULATE FINAL ANGULAR MOMENTUM + KINETIC ENERGY ON VELOCITY GRID
         FHEM(2,N)=FHEM(2,N)/(.5*AREAG)
       END DO
 C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
-      DO N=24,KCON
+      DO N=24,KCMX
         FGLOB(N)=0.
         FHEM(1,N)=0.
         FHEM(2,N)=0.
@@ -3264,7 +3264,7 @@ C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
 C**** LOOP OVER HEMISPHERES
       INC=1+(JM-1)/24
       DAYS=(Itime-Itime0)/DFLOAT(nday)
-      DO N=1,KCON
+      DO N=1,KCMX
         DO J=1,JM
           MLAT(J,N)=NINT(CNSLAT(J,N))
         END DO
@@ -3297,7 +3297,7 @@ C**** PRODUCE TABLES FOR OTHER CONSERVED QUANTITIES
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
-        DO N=24,KCON
+        DO N=24,KCMX
           WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
      *         (MLAT(JX,N),JX=JPM,JP1,-INC)
         END DO

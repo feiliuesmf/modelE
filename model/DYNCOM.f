@@ -34,9 +34,9 @@ C**** module should own dynam variables used by other routines
 !@var GZ geopotential height (for Clouds and Diagnostics)
       REAL*8, DIMENSION(IM,JM,LM) :: GZ
 !@var DPDX_BY_RHO,DPDY_BY_RHO (pressure gradients)/density at L=1
-       REAL*8, SAVE,DIMENSION(IM,JM)  :: DPDX_BY_RHO,DPDY_BY_RHO
+       REAL*8, DIMENSION(IM,JM)  :: DPDX_BY_RHO,DPDY_BY_RHO
 !@var DPDX_BY_RHO_0,DPDY_BY_RHO_0 surface (pressure gradients)/density
-       REAL*8, SAVE,DIMENSION(IM,JM)  :: DPDX_BY_RHO_0,DPDY_BY_RHO_0
+       REAL*8, DIMENSION(IM,JM)  :: DPDX_BY_RHO_0,DPDY_BY_RHO_0
 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PU,PV,CONV
       DOUBLE PRECISION, DIMENSION(IM,JM,LM-1) :: SD

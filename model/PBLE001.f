@@ -11,11 +11,11 @@
       SAVE
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
-      real*8, save ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
-      real*8, save, dimension(n) :: sub,dia,sup,rhs,rhs1
+      real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
 
-      real*8 save, rimax,ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
+      real*8 :: rimax,ghmin,ghmax,gmmax0,d0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s3,s4,s5,s6,c1,c2,c3,c4,c5,c6,b1,b123
 
 C**** boundary layer parameters
@@ -34,7 +34,7 @@ C**** model related constants (should really be taken from E001M12_COM)
       real*8, dimension(n-1) :: e
 
 !@var bgrid log-linear gridding parameter
-      real*8, save :: bgrid
+      real*8 :: bgrid
 
       CONTAINS
 

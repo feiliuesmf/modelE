@@ -153,13 +153,6 @@ c-----------------------------------------------------------------------
       call ncdefarr(name_il,lname_il,units_il,
      &     ncid,kail,nf_real,2,dimids)
 c-----------------------------------------------------------------------
-c aijg
-c-----------------------------------------------------------------------
-      dimids(1)=lon_did
-      dimids(2)=lat_did
-      call ncdefarr(name_ijg,lname_ijg,units_ijg,
-     &     ncid,kaijg,nf_real,2,dimids)
-c-----------------------------------------------------------------------
 c energy
 c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'ENERGY1', 20, dimids(1))
@@ -267,7 +260,6 @@ c-----------------------------------------------------------------------
       call ncwrtdbl(name_sjl,ncid,jm*lm_req,kasjl,asjl)
       call ncwrtdbl(name_ij,ncid,im*jm,kaij,aij)
       call ncwrtdbl(name_il,ncid,im*lm,kail,ail)
-      call ncwrtdbl(name_ijg,ncid,im*jm,kaijg,aijg)
       var_name='ENERGY'; call ncwrtdbl1(var_name,ncid,energy)
       call ncwrtdbl(name_consrv,ncid,jm,kcon,consrv)
       var_name='SPECA';  call ncwrtdbl1(var_name,ncid,speca)

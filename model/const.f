@@ -55,6 +55,8 @@ c**** lhs(T) = lhs(0) + (shv-shi) T (in C)
       real*8,parameter :: rhow = 1d3
 !@param rhoi density of pure ice (916.6 kg/m^3)
       real*8,parameter :: rhoi = 916.6d0
+!@param byrhoi 1/rhoi (m^3/kg)
+      real*8,parameter :: byrhoi = 1d0/rhoi
 
 !@param tf freezing point of water at 1 atm (273.16 K)
       real*8,parameter :: tf = 273.16d0

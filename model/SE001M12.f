@@ -19,6 +19,7 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
+     *     ,byrhoi
       USE MODEL_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
@@ -37,7 +38,7 @@ C****
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
+      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos,kext
       USE LAKES_COM, only : mwl,mldlk,gml,flake
       USE LAKES, only : minmld
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
@@ -58,7 +59,7 @@ C****
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
-     *     ,PLK,PLKI,EVAPLIM,F1DTS,SSS
+     *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,F2,FSRI(2)
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -247,13 +248,26 @@ C****
       TG2=TGRN2(2,I,J)
       ACE2=MSI(I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
+      SOLAR(2,I,J) = 0.
+c      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
+C**** fraction of solar radiation leaving layer 1 and 2
+c      IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
+c        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN 
+C**** first thermal layer is snow and ice
+c          HICE = (SNOW/RHOS) + (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI   
+c        ELSE ! all snow			   
+c          HICE = (ACE1I+SNOW)*XSI(1)/RHOS				   
+c        END IF
+c        FSRI(1) = EXP(-KEXT*HICE)
+c        FSRI(2) = EXP(-KEXT*(ACE1I*BYRHOI+SNOW/RHOS))
+c      ELSE
+        FSRI(1:2) = 0
+c      END IF
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
       Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
-      SSS = 35d0
-      CDTERM=1.5*TG2-.5*TOFREZ(SSS)
+      CDTERM=1.5*TG2-.5*TOFREZ(I,J)
       CDENOM=1./(2.*Z1BY6L+Z2BY4L)
       HC1=HC1I+SNOW*SHI
       BETA=1.
@@ -350,7 +364,9 @@ C*
       GO TO 3600
 C*
  3550 CONTINUE
-      F1 = (TG1-TG2)*dF1dTG ! heat flux on first/second layers (W/m^2)
+! heat flux on first/second/third layers (W/m^2)
+      F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
+      F2 = SRHEAT*FSRI(2)
       EVHEAT = LHE*RCDQWS*(QS-QG) ! latent heat flux (W/m^2)
       F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
       dSNdTG=-RCDHWS*KH*SHA/(DHGS+KH)
@@ -367,7 +383,7 @@ C     dSNdHS = RCDHWS ! d(SHEAT)/dHS - kg/(sec*m^2)
       QSCON = -(1.+2.*S1BYG1)*DTGRND*EVHEAT/QSDEN
       QSMUL = -(1.+2.*S1BYG1)*DTGRND*BETA*dEVdTG/QSDEN
       T2DEN = HCG2+BETA*DTGRND*dF1dTG
-      T2CON = DTGRND*F1/T2DEN
+      T2CON = DTGRND*(F1-F2)/T2DEN
       T2MUL = BETA*DTGRND*dF1dTG/T2DEN
       TGDEN = HCG1-BETA*DTGRND*(dF0dTG-dF1dTG-
      A        HSMUL*dSNdTG+QSMUL*dEVdQS+T2MUL*dF1dTG) ! W/(m^2*degC)

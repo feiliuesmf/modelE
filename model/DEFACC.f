@@ -19,7 +19,6 @@ c-----------------------------------------------------------------------
       call sjl_defs
       call ij_defs
       call il_defs
-      call ijg_defs
       call consrv_defs
       call wave_defs
       call jk_defs
@@ -1527,6 +1526,211 @@ c
       name_ij(k) = 'LKOFFDAY'
       ia_ij(k) = ia_nmo
 c
+C**** Here I am adding all the previous AIJG to AIJ
+C**** actual number for Gxx = 100 + xx
+      k=k+1
+      IJ_G01 = k
+      name_ij(k) = 'AIJG01'
+      lname_ij(k) = 'LAYER 1 REL SAT OF BARE AMD VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G02 = k
+      name_ij(k) = 'AIJG02'
+      lname_ij(k) = 'LAYER 2 REL SAT OF BARE AMD VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G03 = k
+      name_ij(k) = 'AIJG03'
+      lname_ij(k) = 'LAYER 3 REL SAT OF BARE AMD VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G04 = k
+      name_ij(k) = 'AIJG04'
+      lname_ij(k) = 'LAYER 4 REL SAT OF BARE AMD VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G05 = k
+      name_ij(k) = 'AIJG05'
+      lname_ij(k) = 'BETA (BARE SOIL)'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G06 = k
+      name_ij(k) = 'AIJG06'
+      lname_ij(k) = 'BETA (PENMAN)'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G07 = k
+      name_ij(k) = 'AIJG07'
+      lname_ij(k) = 'CANOPY  REL SATURATION'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G08 = k
+      name_ij(k) = 'AIJG08'
+      lname_ij(k) = 'LAYER 1 REL SATURATION OF VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G09 = k
+      name_ij(k) = 'AIJG09'
+      lname_ij(k) = 'LAYER 2 REL SATURATION OF VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G10 = k
+      name_ij(k) = 'AIJG10'
+      lname_ij(k) = 'LAYER 3 REL SATURATION OF VEG. SOIL'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G11 = k
+      name_ij(k) = 'AIJG11'
+      lname_ij(k) = 'BETA (BARE SOIL & VEGETATION)'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G12 = k
+      name_ij(k) = 'AIJG12'
+      lname_ij(k) = 'CONDUCTANCE OF ATMOSPHERE'
+      units_ij(k) = '.01 m/s'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G13 = k
+      name_ij(k) = 'AIJG13'
+      lname_ij(k) = 'CONDUCTANCE OF CANOPY'
+      units_ij(k) = '.01 m/s'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G14 = k
+      name_ij(k) = 'AIJG14'
+      lname_ij(k) = 'PENMAN POTENTIAL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G15 = k
+      name_ij(k) = 'AIJG15'
+      lname_ij(k) = 'TEMP OF LAYER 1 BARE SOIL AND SNOW'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G16 = k
+      name_ij(k) = 'AIJG16'
+      lname_ij(k) = 'TEMP OF SOIL LAYER 2 - BARE SOIL'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G17 = k
+      name_ij(k) = 'AIJG17'
+      lname_ij(k) = 'TEMP OF SOIL LAYER 3 - BARE SOIL'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G18 = k
+      name_ij(k) = 'AIJG18'
+      lname_ij(k) = 'BARE SOIL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G19 = k
+      name_ij(k) = 'AIJG19'
+      lname_ij(k) = 'DRY CANOPY EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G20 = k
+      name_ij(k) = 'AIJG20'
+      lname_ij(k) = 'WET CANOPY EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G21 = k
+      name_ij(k) = 'AIJG21'
+      lname_ij(k) = 'TEMP OF CANOPY AND SNOW'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G22 = k
+      name_ij(k) = 'AIJG22'
+      lname_ij(k) = 'TEMP OF SOIL LAYER 1 - VEGETATED SOIL'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G23 = k
+      name_ij(k) = 'AIJG23'
+      lname_ij(k) = 'TEMP OF SOIL LAYER 2 - VEGETATED SOIL'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G24 = k
+      name_ij(k) = 'AIJG24'
+      lname_ij(k) = 'TEMP OF SOIL LAYER 3 - VEGETATED SOIL'
+      units_ij(k) = 'degC'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G25 = k
+      name_ij(k) = 'AIJG25'
+      lname_ij(k) = 'AVERAGE WATER TABLE'
+      units_ij(k) = 'm'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G26 = k
+      name_ij(k) = 'AIJG26'
+      lname_ij(k) = 'BETAV,OVER VEGETATION'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G27 = k
+      name_ij(k) = 'AIJG27'
+      lname_ij(k) = 'BETAT,TRANSPIRATION'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G28 = k
+      name_ij(k) = 'AIJG28'
+      lname_ij(k) = 'SNOW DEPTH OVER BARE SOIL'
+      units_ij(k) = 'MM H2O'
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      IJ_G29 = k
+      name_ij(k) = 'AIJG29'
+      lname_ij(k) = 'SNOW DEPTH OVER VEG SOIL'
+      units_ij(k) = 'MM H2O'
+      ia_ij(k) = ia_src
+c
       return
       end subroutine ij_defs
 
@@ -2209,161 +2413,6 @@ c
 c
       return
       end subroutine jk_defs
-
-      subroutine ijg_defs
-      use DAGCOM
-      implicit none
-      integer :: k
-c
-      k=0
-c
-      k=k+1
-      name_ijg(k) = 'AIJG01'
-      lname_ijg(k) = 'LAYER 1 REL SAT OF BARE AMD VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG02'
-      lname_ijg(k) = 'LAYER 2 REL SAT OF BARE AMD VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG03'
-      lname_ijg(k) = 'LAYER 3 REL SAT OF BARE AMD VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG04'
-      lname_ijg(k) = 'LAYER 4 REL SAT OF BARE AMD VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG05'
-      lname_ijg(k) = 'BETA (BARE SOIL)'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG06'
-      lname_ijg(k) = 'BETA (PENMAN)'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG07'
-      lname_ijg(k) = 'CANOPY  REL SATURATION'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG08'
-      lname_ijg(k) = 'LAYER 1 REL SATURATION OF VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG09'
-      lname_ijg(k) = 'LAYER 2 REL SATURATION OF VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG10'
-      lname_ijg(k) = 'LAYER 3 REL SATURATION OF VEG. SOIL'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG11'
-      lname_ijg(k) = 'BETA (BARE SOIL & VEGETATION)'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG12'
-      lname_ijg(k) = 'CONDUCTANCE OF ATMOSPHERE'
-      units_ijg(k) = '.01 m/s'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG13'
-      lname_ijg(k) = 'CONDUCTANCE OF CANOPY'
-      units_ijg(k) = '.01 m/s'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG14'
-      lname_ijg(k) = 'PENMAN POTENTIAL EVAPORATION'
-      units_ijg(k) = 'mm/day'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG15'
-      lname_ijg(k) = 'TEMP OF LAYER 1 BARE SOIL AND SNOW'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG16'
-      lname_ijg(k) = 'TEMP OF SOIL LAYER 2 - BARE SOIL'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG17'
-      lname_ijg(k) = 'TEMP OF SOIL LAYER 3 - BARE SOIL'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG18'
-      lname_ijg(k) = 'BARE SOIL EVAPORATION'
-      units_ijg(k) = 'mm/day'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG19'
-      lname_ijg(k) = 'DRY CANOPY EVAPORATION'
-      units_ijg(k) = 'mm/day'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG20'
-      lname_ijg(k) = 'WET CANOPY EVAPORATION'
-      units_ijg(k) = 'mm/day'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG21'
-      lname_ijg(k) = 'TEMP OF CANOPY AND SNOW'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG22'
-      lname_ijg(k) = 'TEMP OF SOIL LAYER 1 - VEGETATED SOIL'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG23'
-      lname_ijg(k) = 'TEMP OF SOIL LAYER 2 - VEGETATED SOIL'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG24'
-      lname_ijg(k) = 'TEMP OF SOIL LAYER 3 - VEGETATED SOIL'
-      units_ijg(k) = 'degC'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG25'
-      lname_ijg(k) = 'AVERAGE WATER TABLE'
-      units_ijg(k) = 'm'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG26'
-      lname_ijg(k) = 'BETAV,OVER VEGETATION'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG27'
-      lname_ijg(k) = 'BETAT,TRANSPIRATION'
-      units_ijg(k) = '%'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG28'
-      lname_ijg(k) = 'SNOW DEPTH OVER BARE SOIL'
-      units_ijg(k) = 'MM H2O'
-c
-      k=k+1
-      name_ijg(k) = 'AIJG29'
-      lname_ijg(k) = 'SNOW DEPTH OVER VEG SOIL'
-      units_ijg(k) = 'MM H2O'
-c
-      return
-      end subroutine ijg_defs
 
       subroutine consrv_defs
       use DAGCOM

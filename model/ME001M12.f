@@ -173,6 +173,7 @@ C**** CALCULATE SURFACE FLUXES AND EARTH
 C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE
       CALL GROUND_SI
       CALL GROUND_LI
+         CALL CHECKT ('GRDNSI')
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
          IF (MODD5S.EQ.0) CALL DIAG9A (6)
@@ -181,21 +182,31 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
 C**** APPLY FLUXES TO OCEAN AND DETERMINE ICE FORMATION
       CALL GROUND_OC
+         CALL CHECKT ('GRNDOC')
+C**** CALCULATE ICE DYNAMICS
+c      CALL DYNSI
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
-         CALL CHECKT ('GROUND')
-C**** CALULATE DRY CONVECTION ABOVE PBL
+         CALL CHECKT ('FORMSI')
+C**** ADVECT ICE 
+c      CALL ADVSI
+c         CALL CHECKT ('ADVSI')
+C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL DRYCNV (2,LM-1)
          IF (MODD5S.EQ.0) CALL DIAG9A (7)
          CALL CHECKT ('DRYCNV')
-C****
          CALL TIMER (MNOW,MSURF)
+
+C**** CALL OCEAN DYNAMIC ROUTINES
+      CALL ODYNAM
+
 C**** STRATOSPHERIC MOMENTUM DRAG
       CALL SDRAG(LM,DTSRC)
          CALL CHECKT ('SDRAG ')
          CALL TIMER (MNOW,MSURF)
+         IF (MODD5S.EQ.0) CALL DIAG9A (9)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)          ! ?
-         IF (MODD5S.EQ.0) CALL DIAG9A (8)
+
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(10)=IDACC(10)+1
@@ -205,13 +216,8 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL CHECKT ('FILTER')
            CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
-           CALL DIAG9A (9)
+           CALL DIAG9A (8)
       END IF
-C****
-C**** CALL OCEAN DYNAMIC ROUTINES
-C****
-      CALL ODYNAM
-
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -507,7 +513,8 @@ C****
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
-
+     &           ,iniOCEAN = .FALSE.
+ 
       CHARACTER NLREC*80
 C****    List of parameters that CANNOT be changed during a run:
       NAMELIST/INPUTZ/ KOCEAN,PTOP,PSF,LS1,DTsrc
@@ -631,6 +638,7 @@ C****
 C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
+        iniOCEAN = .TRUE. ! read in ocean ic
 C**** Read in ground initial conditions
         call getunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
@@ -753,6 +761,7 @@ C****
         CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
+        iniOCEAN= .TRUE.      ! read in ocean i.c.
 C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
@@ -760,6 +769,7 @@ C****
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         CLOSE (iu_AIC)
         if (ioerr.eq.1) goto 800
+        iniOCEAN= .TRUE.      ! read in ocean i.c.
       END SELECT
 C**** Check consistency of starting time
       IF (ISTART.ge.3.and.(MOD(IHRI-IHRX,8760).ne.0)) THEN
@@ -924,7 +934,7 @@ C****
       CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
       ZATMO = ZATMO*GRAV                           ! Geopotential
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
-      REWIND iu_TOPO
+      CLOSE (iu_TOPO)
 
 C**** Initialise some modules before finalising Land/Ocean/Lake/LI mask
 C**** Initialize ice
@@ -934,7 +944,7 @@ C**** Initialise lake variables (including river directions)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN
+      CALL init_OCEAN(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
       CALL init_LI
 

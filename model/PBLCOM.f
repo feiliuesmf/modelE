@@ -24,31 +24,20 @@
 
 !@var ROUGHL log10(zgs/roughness length), prescribed with zgs=30 m.
       double precision, dimension(im,jm) :: roughl
-!           bldata:
-!@var WSAVG    1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-!@var TSAVG    2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-!@var QSAVG    3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
-!@var DCLEV    4  LAYER TO WHICH DRY CONVECTION MIXES (1)
-!@var USAVG    6  COMPOSITE SURFACE U WIND
-!@var VSAVG    7  COMPOSITE SURFACE V WIND
-!@var TAUAVG   8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-!@var USTAR 9-12 (ITYPE) friction velocity (sqrt of srfc mom flux) (m/s)
+!@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S)
+!@var TSAVG     COMPOSITE SURFACE AIR TEMPERATURE (K)
+!@var QSAVG     COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
+!@var DCLEV     LAYER TO WHICH DRY CONVECTION MIXES (1)
+!@var USAVG     COMPOSITE SURFACE U WIND
+!@var VSAVG     COMPOSITE SURFACE V WIND
+!@var TAUAVG    COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
+!@var USTAR     friction velocity (sqrt of srfc mom flux) (m/s)
       double precision, dimension(im,jm) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmospher
        real*8, dimension(im,jm,lm) :: egcm
-
-c      common /bleq/
-c     &     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar
-c!@var BLDATA handle for referring to all boundary layer data
-c      DOUBLE PRECISION, DIMENSION(IM,JM,12) :: BLDATA
-c      EQUIVALENCE(BLDATA(1,1,1),WSAVG(1,1))
-
-C**** pressure gradient arrays
-c     double precision, dimension(im,jm) ::
-c    &     dpdxr,dpdyr,phi,dpdxr0,dpdyr0
 
       END MODULE PBLCOM
 

@@ -50,24 +50,25 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
       INTEGER, INTENT(IN) :: I0,J0
       REAL*8, INTENT(IN) :: ROICE, EVAPO, RUN0
-      REAL*8, INTENT(IN) :: F0DT, F2DT, SROX
+      REAL*8, INTENT(IN) :: F0DT, F2DT, SROX(2)
       REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACEFI
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
-      REAL*8 ENRGI, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
+      REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
       REAL*8 FRATO,FRATI,E2O,E2I
 C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
 
 C**** Calculate heat and mass fluxes to lake
-      ENRGO = F0DT-SROX*FSR2 ! in open water
-      ENRGO2=     +SROX*FSR2 ! in open water, second layer
-      ENRGI = F2DT           ! under ice
+      ENRGO = F0DT-SROX(1)*FSR2 ! in open water
+      ENRGO2=     +SROX(1)*FSR2 ! in open water, second layer
+      ENRGI = F2DT-SROX(2)*FSR2 ! under ice
+      ENRGI2=     +SROX(2)*FSR2 ! under ice, second layer
       RUNO  =-EVAPO
       RUNI  = RUN0
 C**** Bring up mass from second layer if required/allowed
       IF (MLAKE(1)+RUNO.lt.MINMLD*RHOW.and.MLAKE(2).gt.0) THEN
         DM2 = MIN(MLAKE(2),MINMLD*RHOW-(MLAKE(1)+RUNO))
-        DH2 = DM2*(ELAKE(2)+(1.-ROICE)*ENRGO2)/MLAKE(2)
+        DH2 = DM2*(ELAKE(2)+(1.-ROICE)*ENRGO2+ROICE*ENRGI2)/MLAKE(2)
       ELSE
         DM2 = 0.
         DH2 = 0.
@@ -76,7 +77,7 @@ C**** Bring up mass from second layer if required/allowed
 C**** Apply fluxes to 2nd layer
       IF (DM2.lt.MLAKE(2)) THEN
         MLAKE(2)=MLAKE(2) - DM2
-        ELAKE(2)=ELAKE(2) - DH2 + (1.-ROICE)*ENRGO2
+        ELAKE(2)=ELAKE(2) - DH2 + (1.-ROICE)*ENRGO2 + ROICE*ENRGI2
       ELSE
         MLAKE(2)=0.
         ELAKE(2)=0.
@@ -252,6 +253,7 @@ C****
       USE LAKES
       USE LAKES_COM
       USE DAGCOM, only : npts,icon_LKM,icon_LKE,tsfrez,tf_lkon,tf_lkoff
+     *     ,title_con
       USE FLUXES, only : gtemp
       USE FILEMANAGER
 
@@ -294,7 +296,7 @@ c            FLAKE(I,J) = FLAKE0(I,J)
               GML(I,J)   = 0.
               MLDLK(I,J) = MINMLD
             END IF
-            TSFREZ(I,J,(/ tf_lkon, tf_lkoff/)) = -999.
+            TSFREZ(I,J,3:4) = -999.
           END DO
         END DO
       END IF
@@ -441,11 +443,11 @@ C****
       END DO
 
 C**** Set conservation diagnostics for Lake mass and energy
-      QCON=(/ F, F, F, T, T, T, F, F, T/)
-      CALL SET_CON(QCON,"LAK MASS","(10**10 KG)      ",
+      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,"LAK MASS","(10**10 KG)     ",
      *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)
-      QCON=(/ F, F, F, T, T, T, F, F, T/)
-      CALL SET_CON(QCON,"LAK ENRG","(10**14 J)       ",
+      QCON=(/ F, F, F, T, T, T, F, F, T, F, F/)
+      CALL SET_CON(QCON,"LAK ENRG","(10**14 J)      ",
      *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)
 
       RETURN
@@ -694,7 +696,7 @@ C****
 !@sum  daily_LAKE does lake things at the end of every day
 !@auth G. Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shw,rhow,pi,rhow,by3
+      USE CONSTANT, only : shw,rhow,pi,by3
       USE MODEL_COM, only : im,jm,ftype,itlake,itlkice,jday
       USE LAKES_COM, only : tlake,mwl,gml,mldlk,flake,tanlk
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
@@ -814,7 +816,7 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
-      USE FLUXES, only : runosi,runoli,prec,eprec,gtemp
+      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp
       USE DAGCOM, only : aj,aij,ij_f0oc
       IMPLICIT NONE
 
@@ -840,8 +842,8 @@ C**** save diagnostics
         END IF
 
 C**** calculate fluxes over whole box
-        RUN0 =POLAKE*PRCP  + PLKICE* RUNOSI(I,J) + PLICE* RUNOLI(I,J)
-        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNOSI(I,J) + PLICE*ERUNOLI(I,J) = 0
+        RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
+        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) = 0
 
         MWL(I,J) = MWL(I,J) +  RUN0*DXYPJ
         GML(I,J) = GML(I,J) + ERUN0*DXYPJ
@@ -888,7 +890,7 @@ C**** grid box variables
       REAL*8, DIMENSION(2) :: MLAKE,ELAKE
 C**** fluxes
       REAL*8 EVAPO, F2DT, F0DT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
-     *     HLK1,TLK1,TLK2,TKE,SROX,FSR2, U2RHO
+     *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 
@@ -931,7 +933,8 @@ C**** calculate flux over whole box
         TLK1 =TLAKE(I,J)
         EVAPO=EVAPOR(I,J,1)     ! evap/dew over open lake (kg/m^2)
         F0DT =E0(I,J,1)         ! net heat over open lake (J/m^2)
-        SROX =SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
+        SROX(1)=SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
+        SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
         RUN0 =RUNOSI(I,J)        ! includes ACE2M term

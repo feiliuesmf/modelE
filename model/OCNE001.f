@@ -27,18 +27,18 @@
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
-      REAL*8, SAVE,DIMENSION(IM,JM,4) :: OTA,OTB
-      REAL*8, SAVE,DIMENSION(IM,JM) :: OTC
+      REAL*8, DIMENSION(IM,JM,4) :: OTA,OTB
+      REAL*8, DIMENSION(IM,JM) :: OTC
 !@var SINANG,COSANG Fourier coefficients for heat transports
-      REAL*8, SAVE :: SINANG,SN2ANG,SN3ANG,SN4ANG,
-     *                COSANG,CS2ANG,CS3ANG,CS4ANG
+      REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
+     *          COSANG,CS2ANG,CS3ANG,CS4ANG
 
 !@var Z1O ocean mixed layer depth
-      REAL*8, SAVE,DIMENSION(IM,JM) :: Z1O
+      REAL*8, DIMENSION(IM,JM) :: Z1O
 !@var Z1OOLD previous ocean mixed layer depth
-      REAL*8, SAVE,DIMENSION(IM,JM) :: Z1OOLD
+      REAL*8, DIMENSION(IM,JM) :: Z1OOLD
 !@var Z12O annual maximum ocean mixed layer depth
-      REAL*8, SAVE,DIMENSION(IM,JM) :: Z12O
+      REAL*8, DIMENSION(IM,JM) :: Z12O
 
       REAL*8, DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
      *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
@@ -483,7 +483,7 @@ C**** Check for NaN/INF in ocean data
 
       END SUBROUTINE CHECKO
 
-      SUBROUTINE init_OCEAN
+      SUBROUTINE init_OCEAN(iniOCEAN)
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
@@ -493,8 +493,11 @@ C**** Check for NaN/INF in ocean data
      *     ,tocean
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp
+      USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
       IMPLICIT NONE
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      LOGICAL, INTENT(IN) :: iniOCEAN  ! dummy variable
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
       INTEGER :: iu_OHT,iu_MLMAX
       INTEGER :: I,J
@@ -538,6 +541,12 @@ C**** and Land Ice are lumped together
           FTYPE(ITLANDI,I,J)=FTYPE(ITLANDI,I,J)+FLICE(I,J)
         END DO
       END DO
+
+C***** set conservation diagnostic for ocean heat
+      QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,"OCN HEAT","(10^6 J/M**2)   ",
+     *     "(W/M^2)        ",1d-6,1d0,icon_OCE)
+
       END IF
 C**** Set ftype array for oceans
       DO J=1,JM
@@ -721,7 +730,7 @@ C****
       USE CONSTANT, only : rhow,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runosi,prec,eprec,gtemp
+      USE FLUXES, only : runpsi,prec,eprec,gtemp
       USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -748,7 +757,7 @@ C****
           IF (KOCEAN .EQ. 1) THEN
             TGW=TOCEAN(1,I,J)
             WTRO=Z1O(I,J)*RHOW
-            RUN0=RUNOSI(I,J)
+            RUN0=RUNPSI(I,J)
             SNOW=SNOWI(I,J)
             SMSI=MSI(I,J)+ACE1I+SNOW
             RUN4=PRCP
@@ -895,11 +904,11 @@ C****
       END SUBROUTINE GROUND_OC
 
       SUBROUTINE conserv_OCE(OCEANE)
-!@sum  conserv_OCE calculates zonal ocean energy
+!@sum  conserv_OCE calculates zonal ocean energy for Qflux ocean
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
-      USE MODEL_COM, only : im,jm,fim,focean,kocean
+      USE MODEL_COM, only : im,jm,fim,focean
       USE OCEAN, only : tocean,z1o,z12o
 c      USE OCEAN_COM, only : dz,rtgo
       USE GEOM, only : imaxj
@@ -909,9 +918,8 @@ c      USE OCEAN_COM, only : dz,rtgo
       INTEGER I,J
 
       OCEANE=0
-      IF (KOCEAN.ne.0) THEN
       DO J=1,JM
-        DO I=I,IMAXJ(J)
+        DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
             OCEANE(J)=OCEANE(J)+(TOCEAN(1,I,J)*Z1O(I,J)
      *           +TOCEAN(2,I,J)*(Z12O(I,J)-Z1O(I,J)))*SHW*RHOW
@@ -925,7 +933,6 @@ c     END IF
       END DO
       OCEANE(1) =FIM*OCEANE(1)
       OCEANE(JM)=FIM*OCEANE(JM)
-      END IF
 C****
       END SUBROUTINE conserv_OCE
 
@@ -1116,13 +1123,6 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
       RETURN
       END SUBROUTINE ODFFUS
 
-      SUBROUTINE ODYNAM
-!@sum  ODYNAM Dummy routine for non-dynamic oceans
-!@auth Gavin Schmidt
-!@ver  1.0
-      RETURN
-      END SUBROUTINE ODYNAM
-
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
 !@sum  io_ocdiag Dummy io routine for non-dynamic oceans
 !@auth Gavin Schmidt
@@ -1138,15 +1138,60 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 
 C**** This is here so that a coupled ocean is easier to implement
 
-      DOUBLE PRECISION FUNCTION TOFREZ(S)
+      DOUBLE PRECISION FUNCTION TOFREZ(I,J)
 !@sum  TOFREZ returns the value of the seawater freezing temp
 !@auth Gavin Schmidt
 !@var  1.0
       USE OCEAN, only : tfo
-      REAL*8, INTENT(IN) :: S  !@var S salinity of water (ppt)
-
+!@var I,J atmospheric grid point
+      INTEGER, INTENT(IN) :: I,J
+ 
 C**** for Q-flux ocean no variation with salinity is required
       TOFREZ = tfo
 
       RETURN
       END FUNCTION TOFREZ
+
+      SUBROUTINE DIAGCO (M)
+!@sum  DIAGCO Keeps track of the ocean conservation properties
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : kocean
+      USE DAGCOM, only : icon_OCE
+      IMPLICIT NONE
+!@var M index denoting from where DIAGCO is called
+      INTEGER, INTENT(IN) :: M
+C****
+C**** THE PARAMETER M INDICATES WHEN DIAGCO IS BEING CALLED
+C**** M=1  INITIALIZE CURRENT QUANTITY
+C****   2  AFTER DYNAMICS
+C****   3  AFTER CONDENSATION
+C****   4  AFTER RADIATION
+C****   5  AFTER PRECIPITATION
+C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
+C****   7  AFTER FULL SURFACE INTERACTION
+C****   8  AFTER STRATOSPHERIC DRAG
+C****   9  AFTER FILTER
+C****  10  AFTER DAILY
+C****  11  AFTER OCEAN DYNAMICS
+C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
+C****
+      REAL*8, EXTERNAL :: conserv_OCE
+
+C**** OCEAN POTENTIAL ENTHALPY
+      IF (KOCEAN.gt.0) CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
+C****
+      RETURN
+      END SUBROUTINE DIAGCO
+
+      SUBROUTINE DUMMY
+!@sum  DUMMY necessary entry points for non-dynamic oceans
+!@auth Gavin Schmidt
+!@ver  1.0
+      ENTRY ODYNAM
+      ENTRY DYNSI
+      ENTRY ADVSI
+
+      RETURN
+      END SUBROUTINE DUMMY
+
