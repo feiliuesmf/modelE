@@ -7,6 +7,7 @@
       USE GEOM, only : imaxj,dxyp
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
+     *     ,ratoc
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
       USE OCEAN_DYN, only : mmi,smu,smv,smw
@@ -16,20 +17,18 @@
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
       INTEGER NS,I,J,L,mnow
-      REAL*8 RAO
 C****
 C**** Integrate Ocean Dynamics terms
 C****
 C**** Calculate pressure at ocean surface (and scale for areas)
       DO J=1,JM
-        RAO=DXYP(J)*BYDXYPO(J)
         DO I=1,IMAXJ(J)
-c          OPRESS(I,J) = RAO*(100.*(P(I,J)-PSF)+RSI(I,J)
-c     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) !  ?????
-          OPRESS(I,J) = RAO*(100.*(P(I,J)+PTOP)-101325.+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)-PSF)+RSI(I,J)
+     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) 
         END DO
       END DO
+      OPRESS(2:IM,1)  = OPRESS(1,1)
+      OPRESS(2:IM,JM) = OPRESS(1,JM)
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
@@ -1363,6 +1362,8 @@ C        DH(2:IM, 1,L) =  DH(1,IM,L)
         PHI(2:IM,JM,L) = PHI(1,JM,L)
          DH(2:IM,JM,L) =  DH(1,JM,L)
       END DO
+C     OGEOZ(2:IM, 1) = OGEOZ(1,1)
+      OGEOZ(2:IM,JM) = OGEOZ(1,JM)
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
