@@ -1,22 +1,21 @@
 #!/bin/ksh
-## SETUP  SetUp General Circulation Model run  04/07/94
-##           Usage: setup RUNID  /gcm1 N  (Storage_disk PrtOpt)
-## Rundeck (RUNID.R), object modules, input data sets are assumed to
-## reside in "/u/cmrun" of the current work station at least as symbolic
-## linksr. The un will be executed in the directory /u/cmrun/RUNID which
-## is really a symbolic link to /some_big_external_disk/RUNID
-## Modified from setup by gas (06/00) to include:
-##   - use current directory not /u/cmrun for object files
-##   - checks links
-##   - extra link from /u/cmrun to rundir
-##   - output of WARN.f90 if compilation not successful
-##   - added search for data files in /u/cmrun
-##   - PROBLEM: $retc does not take STOP nn as the correct return code. Fixed
-##   - changed files from numbers to names
+## setup_e - set up GCM modelE run
+## This script is not supposed to be executed by users but rather
+## is a part of Makefile functionality. It is run as a part of
+##           gmake setup RUN=RunID
+## Inside the Makefile it is called (from .../decks): setup_e RunID
+## It looks for ~/.modelErc file and extracts all necessary options from
+## there. If such file is not present the default options which are 
+## specified below will be used. Those default options are adjusted for
+## working environment of ra.giss.nasa.gov.
 ##
-    ## these should be set outside (Makefile?)
-    ## should these program be part of the distribution?
-    ## ie. $EXECDIR/prt  chop  runpm
+## The options setup_e is looking for are:
+## CMRUNDIR - directory to which all run directories will be linked.
+## EXECDIR - path to directory with modelE scripts and with some executables.
+## SAVEDISK - a directory (big) where all run directories will be created. 
+## GCMSEARCHPATH - directory to search for gcm input files.
+## MAILTO - email address of the user. (default `whoami`)
+
 ## default settings
    CMRUNDIR="/u/cmrun"
    EXECDIR="/u/exec"
@@ -38,16 +37,16 @@
    echo MAILTO = $MAILTO
 
    job=$( basename $0 )
-   if [[ $# -eq 0 ]]; then
-     echo "Usage: $job runID"; exit; 
+   if [[ $# -ne 1 ]]; then
+     echo "This script is not supposed to be run outside of Makefile"
+     echo "Inside the Makefile it is called: $job runID"; exit; 
    fi
    RUNID=$1
    RFILE=$1.R
    LOCKFILE=$SAVEDISK/$RUNID/lock
-  BLANK=' '
-  p=`pwd`
-  Xdisk=$SAVEDISK
-  CMRUN=$CMRUNDIR
+   BLANK=' '
+   Xdisk=$SAVEDISK
+   CMRUN=$CMRUNDIR
 
 ## check if this run is already running
    if [[ -f $LOCKFILE ]]; then
@@ -70,7 +69,6 @@
    echo "output files are saved in $Xdisk/$1"
 
 ## Create the proper environment
-   #  export XLFRTEOPTS=namelist=old:nlwidth=133
    umask 002
 
 ## Create the directory (symbolic link) ./RUNID if necessary
@@ -96,7 +94,7 @@
 
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
 
-## Move executable from current directory to $RUNID
+## Move executable from "$RUNID"_bin directory to $RUNID
    if [[ ! -f "$RUNID"_bin/$RUNID.exe ]] ; then 
      echo $RUNID.exe not found; exit 1; fi
 
