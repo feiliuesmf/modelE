@@ -160,19 +160,20 @@ C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
-      USE CONSTANT, only : rgas,grav,twopi,kapa
+      USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE MODEL_COM, only : im,jm,lm,psfmpt,sig,ptop,ls1
      *     ,sige,mrch
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
+     *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DAGCOM, only : ajl,jl_dudtsdif
+      USE DAGCOM, only : ajl,jl_dudtsdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
       REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
-      REAL*8, DIMENSION(IM,JM,LM) :: RHO, DUT, DVT
+      REAL*8, DIMENSION(IM,JM,LM) :: RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
       REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
       REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
@@ -182,8 +183,8 @@ C****
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
-      REAL*8 G2DT,PIJ,TPHYS
-      INTEGER I,J,L,IP1,NDT,N
+      REAL*8 G2DT,PIJ,TPHYS,ediff
+      INTEGER I,J,K,L,IP1,NDT,N
 
       G2DT=GRAV*GRAV*DT1
 C**** Fill in USURF,VSURF at poles (Shouldn't this be done already?)
@@ -289,6 +290,8 @@ C**** Update model winds
         DO L=1,LM
           DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
           DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
+          DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
+     *                 DV(L)*(V(I,J,L)+0.5*DV(L))
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
@@ -297,6 +300,22 @@ C**** Update model winds
 C**** conservation diagnostic
       IF (MRCH.gt.0) CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
+C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
+C$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
+        DO L=1,LM
+          DO J=1,JM
+            DO I=1,IMAXJ(J)
+              ediff=0.
+              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
+                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+              END DO
+              ediff=ediff/(SHA*PK(I,J,L))
+              T(I,J,L)=T(I,J,L)-ediff
+              AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
+            END DO
+          END DO
+        END DO
+C$OMP  END PARALLEL DO
       RETURN
 C****
       END SUBROUTINE VDIFF
