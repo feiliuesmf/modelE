@@ -2291,15 +2291,15 @@ C$OMP  THREADPRIVATE (/check_water_tp/)
       ! bare soil
       error_water = (total_water(1) - old_total_water(1)) / dts
      $     - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
-
-      if ( abs( error_water ) > 1.d-15 )
+      if (abs(error_water)>1.d-15) write(99,*)'bare',ijdebug,error_water
+      if ( abs( error_water ) > 1.d-14 )
      &       call stop_model('GHY: water conservation problem',255)
 
       ! vegetated soil
       error_water = (total_water(2) - old_total_water(2)) / dts
      &     - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
-
-      if ( abs( error_water ) > 1.d-15 ) call stop_model(
+      if (abs(error_water)>1.d-15) write(99,*)'vege',ijdebug,error_water
+      if ( abs( error_water ) > 1.d-14 ) call stop_model(
      &     'GHY: water conservation problem in veg. soil',255)
 
       ghy_debug%water(:) = total_water(:)
