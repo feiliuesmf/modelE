@@ -77,7 +77,7 @@ c****
 #endif
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp
+     *     ,runoe,erunoe,gtemp,precss
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth,afb,
@@ -107,8 +107,6 @@ c****
      *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
      *     ,bshdt,btrhdt,timez,spring,zs1co
 
-      real*8, dimension(im,jm) :: prcss
-      common /workls/prcss
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
 
@@ -264,7 +262,11 @@ c****
       itype=4
       ptype=pearth
       pr=prec(i,j)/(dtsrc*rhow)
-      prs=prcss(i,j)/(dtsrc*rhow)
+C**** This variable was originally assoicated with super-saturated 
+C**** large-scale precip, but has not worked for many moons.
+C**** If you want to reinstate it, uncomment this calculation.
+c      prs=precss(i,j)/(dtsrc*rhow)
+      prs=0.
       htpr=eprec(i,j)/dtsrc
 !!! insert htprs here
       w(1:ngm,1) =  wbare(1:ngm,i,j)
