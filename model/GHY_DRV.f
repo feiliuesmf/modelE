@@ -38,8 +38,8 @@ c******************   TRACERS             ******************************
 #endif
 #endif
 #endif
-      use trdiag_com, only : taijn,tij_surf
-     *  ,taijs,ijts_isrc,jls_isrc,tajls
+      use trdiag_com, only : taijn=>taijn_loc,tij_surf
+     *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil
 #endif
@@ -411,20 +411,6 @@ ccc not sure about the code below. hopefully that''s what is meant above
      *       +trevapor(n,itype,i,j)*ptype
       enddo
 #endif
-#ifdef TRACERS_DUST
-ccc dust emission from earth
-      DO nx=1,ntx
-        n=ntix(nx)
-        n1=n-n_clay+1
-        trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
-        taijs(i,j,ijts_source(nDustEmij,n))=
-     &       taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*dxyp(j)*
-     &       ptype*dtsurf
-        tajls(j,1,jls_source(nDustEmjl,n))=
-     &       tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)*
-     &       ptype*dtsurf
-      END DO
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
       call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
@@ -623,9 +609,7 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 C**** halo update u and v for distributed parallelization
-       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, U, from=NORTH)
-       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, V, from=NORTH)
 
        adiurn_part = 0
@@ -961,7 +945,7 @@ c***********************************************************************
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu
-     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup
 
 
 
@@ -1144,6 +1128,11 @@ c!!! do something with regional diag !!!
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
+      IF (MODDSF.EQ.0) THEN
+        AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
+        AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
+     *       *PTYPE
+      END IF
       if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
@@ -2091,7 +2080,8 @@ c****
             if (cond_scheme.eq.2) then
               aalbveg0 = 0.d0
               sfv=0.d0
-              do iv=1,8
+              do iv=1,11
+                if ( iv==9 .or. iv==10 ) cycle
                 fvp=vdata(i,j,iv+1)
                 sfv=sfv+fvp
                 aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))
