@@ -2075,7 +2075,8 @@ c****
             if (cond_scheme.eq.2) then
               aalbveg0 = 0.d0
               sfv=0.d0
-              do iv=1,8
+              do iv=1,11
+                if ( iv==9 .or. iv==10 ) cycle
                 fvp=vdata(i,j,iv+1)
                 sfv=sfv+fvp
                 aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))

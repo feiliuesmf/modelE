@@ -29,7 +29,7 @@ ccc   rundeck parameters  5/1/03 nyk
       real*8, public :: alaie,rs,alai,nm,nf,vh,CO2atm
 !nyk alait is lai by functional type.  Must multiply by vfraction
 !     to get fraction cover per grid cell
-      real*8, dimension(8), public :: alait, vfraction
+      real*8, dimension(11), public :: alait, vfraction
 !from earth:
       real*8, public :: srht,pres,ch,vsm
 
