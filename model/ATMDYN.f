@@ -6,7 +6,8 @@
 !@ver  1.0
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,QUVfilter,psf
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,byim,QUVfilter,psf,ptop
+     *     ,pmtop
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
@@ -221,7 +222,7 @@ C**** Currently energy is put in uniformly weighted by mass
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
+      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
@@ -242,7 +243,7 @@ C**** mb*m2/s and convert to WSAVE, units of m/s):
       do l=1,lm
         do i=1,im
           wsave(i,:,l)=sd_clouds(i,:,l)*bydxyp(:)*rgas*
-     &    T(i,:,l)*pk(l,i,:)*bygrav/pmid(l,i,:)
+     &         T(i,:,l)*pk(l,i,:)*bygrav/pmid(l,i,:)
         end do
       end do
 !$OMP END PARALLEL DO
@@ -981,7 +982,7 @@ C****        3  SMOOTH P AND T
 C****
       USE CONSTANT, only : bbyg,gbyrb,kapa,sha,mb2kg
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
-     *     ,byim,sig,itime,psf
+     *     ,byim,sig,itime,psf,pmtop
       USE GEOM, only : areag,dxyp
       USE SOMTQ_COM, only : tmom,qmom
       USE DYNAMICS, only : pk
@@ -1086,7 +1087,7 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
+      ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
