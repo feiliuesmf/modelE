@@ -202,8 +202,8 @@
       use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
-      use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir,srvissurf, &
-    srdn,cfrac,rcld,salb,O3_rad_save
+      use radncb, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
+           fsrdir,srvissurf,srdn,cfrac,rcld,salb,O3_rad_save
       use icedyn_com, only : rsix,rsiy,usi,vsi,icij
       use icedyn, only : imic
       use dagcom, only : keynr,tsfrez,tdiurn,oa
@@ -392,6 +392,7 @@
         ! radiation
         check("Tchg",Tchg)
         check("rqt",rqt)
+        check("kliq",kliq)
         !check("s0",s0)
         check("srhr",srhr)
         check("trhr",trhr)

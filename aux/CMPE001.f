@@ -4,7 +4,7 @@ C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm,ntype,imh
       USE DAGCOM
-      USE SLE001, ONLY: NGM,nlsn
+      USE GHYCOM, ONLY: NGM,nlsn
       USE SEAICE_COM, only : lmi
       USE PBLCOM, only : npbl
 #ifdef TRACERS_ON
@@ -40,9 +40,11 @@ ccc   ice data:
       COMMON/SICECB/ RSI1(IM,JM),HSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
      *     ,JM),SSI1(LMI,IM,JM),PM1(IM,JM),RSI2(IM,JM),HSI2(LMI,IM,JM)
      *     ,MSI2(IM,JM),SNOWI2(IM,JM),SSI2(LMI,IM,JM),PM2(IM,JM)
+      integer kliq1,kliq2
       REAL*8 RQT1,RQT2,SRHR1,SRHR2,TRHR1,TRHR2,FSF1,FSF2,FSD1,FSD2,S01
      *     ,S02,RCLD1,RCLD2,O3_rad_save1,O3_rad_save2
       COMMON/RADNCB1/ RQT1( 3,IM,JM),RQT2( 3,IM,JM),
+     *               kliq1(LM*4,IM,JM),kliq2(LM*4,IM,JM),
      *               SRHR1(1+LM,IM,JM),SRHR2(1+LM,IM,JM),
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM),
@@ -285,7 +287,7 @@ C**** check which ocean
          if (debug) write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
          if (debug) write(0,*) 'trying to read radia'
-         READ (1) HEADER,RQT1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1,
+         READ (1) HEADER,RQT1,kliq1, S01,SRHR1,TRHR1,FSF1,fsd1,RCLD1,
      &            O3_rad_save1
          if (debug) write(0,*) 'trying to read icedyn'
          READ (1) HEADER
@@ -423,7 +425,7 @@ C**** check which ocean
          if (debug) write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
          if (debug) write(0,*) 'trying to read radia'
-         READ (2) HEADER,RQT2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2,
+         READ (2) HEADER,RQT2,kliq2, S02,SRHR2,TRHR2,FSF2,fsd2,rcld2,
      &            O3_rad_save2
          if (debug) write(0,*) 'trying to read icedyn'
          READ (2) HEADER
@@ -551,6 +553,7 @@ C****
       ERRQ=COMP8 ('TMOM  ',9,IM*JM,LM    ,TMOM1 ,TMOM2 ) .or. ERRQ
       ERRQ=COMP8 ('QMOM  ',9,IM*JM,LM    ,QMOM1 ,QMOM2 ) .or. ERRQ
       ERRQ=COMP8LIJp('RQT   ',3     ,IM,JM  ,RQT1  ,RQT2  ) .or. ERRQ
+      ERRQ=COMPILIJ ('kliq  ',4*LM,IM,JM    ,kliq1 ,kliq2  ) .or. ERRQ
       ERRQ=COMP8LIJp('SRHR  ',1+  LM,IM,JM  ,SRHR1 ,SRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('TRHR  ',1+  LM,IM,JM  ,TRHR1 ,TRHR2 ) .or. ERRQ
       ERRQ=COMP8LIJp('FSF   ',4     ,IM,JM  ,FSF1  ,FSF2  ) .or. ERRQ
