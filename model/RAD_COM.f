@@ -8,6 +8,31 @@
       IMPLICIT NONE
       SAVE
 
+C**** DEFAULT ORBITAL PARAMETERS FOR EARTH
+C**** Note PMIP runs had specified values that do not necesarily
+C**** coincide with those used as the default, or the output of ORBPAR.
+C****                    OMEGT          OBLIQ        ECCEN       
+C**** DEFAULT (2000 AD): 282.9          23.44        0.0167 
+C**** PMIP CONTROL:      282.04         23.446       0.016724
+C**** PMIP 6kyr BP:      180.87         24.105       0.018682
+C**** PMIP LGM (21k):    294.42         22.949       0.018994
+!@param OMEGT_def precession angle (degrees from vernal equinox)
+      real*8, parameter :: omegt_def = 282.9d0
+!@param OBLIQ_def obliquity angle  (degrees)
+      real*8, parameter :: obliq_def = 23.44d0
+!@param ECCN_def eccentricity 
+      real*8, parameter :: eccn_def  = .0167d0
+!@var OMEGT,OBLIQ,ECCN actual orbital parameters used
+      real*8 OMEGT,OBLIQ,ECCN
+
+C**** Database parameters to control orbital parameter calculation
+C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
+C**** exactly the same as ther default values.
+!@dbparam calc_orb_par = 1 to calc orbital parameters 
+      integer :: calc_orb_par = 0
+!@dbparam paleo_orb_yr is paleo year (BP) for orbital calc 
+      real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
+
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs

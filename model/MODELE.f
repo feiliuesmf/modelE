@@ -1209,14 +1209,14 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls constant:orbit, calc_ampk, getdte
-      USE CONSTANT, only : orbit,omegt,obliq,eccn
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH
       USE GEOM, only : areag,dxyp
       USE DYNAMICS, only : byAM
       USE RE001, only : ghgam,ghgyr2,ghgyr1
-      USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr
+      USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
+     *     omegt,obliq,eccn
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
@@ -1233,6 +1233,7 @@ C****
       call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
+C**** This is for noon (GMT) for new day.
       CALL ORBIT (OBLIQ,ECCN,OMEGT,DFLOAT(JDAY)-.5,RSDIST,SIND,COSD,LAM)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN

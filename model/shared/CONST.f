@@ -2,7 +2,6 @@
 !@sum  CONSTANT definitions for physical constants and useful numbers
 !@auth G. Schmidt
 !@ver  1.0
-!@cont ORBIT
       IMPLICIT NONE
       SAVE
 C**** Conventions: 'by' implies reciprocal, 'rt' implies square root
@@ -161,15 +160,6 @@ c**** SI reference gravity (at 45 deg) = 9.80665
 !@param bygrav 1/grav
       real*8,parameter :: bygrav = 1d0/grav
 
-C**** ORBITAL PARAMETERS FOR EARTH:  2000 A.D.  6000 BP   LGM
-!@param  OMEGT precession angle       282.9
-      real*8, parameter :: omegt = 282.9d0
-!@param  OBLIQ obliquity angle        23.44
-      real*8, parameter :: obliq = 23.44d0
-!@param  OMEGT precession angle       .0167
-      real*8, parameter :: eccn  = .0167d0
-
-
 C**** lapse rate related variables
 !@param GAMD dry adiabatic lapse rate (=0.0098 K/m)
       real*8, parameter :: gamd = grav*kapa/rgas
@@ -186,100 +176,5 @@ C**** Useful conversion factors
       real*8,parameter :: kg2mb = 1d-2*grav, mb2kg = 1d2*bygrav
 !@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
       real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
-
-      CONTAINS
-
-      SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
-!@sum ORBIT receives the orbital parameters and time of year, and
-!@+   returns the distance from the sun and its declination angle.
-!@+   The reference for the following calculations is: V.M.Blanco
-!@+   and S.W.McCuskey, 1961, "Basic Physics of the Solar System",
-!@+   pages 135 - 151.
-!@auth Gary L. Russell and Robert J. Suozzo, 12/13/85
-
-C**** Input
-!@var OBLIQ = latitude of tropics in degrees
-!@var ECCEN = eccentricity of the orbital ellipse
-!@var OMEGT = angle from vernal equinox to perihelion in degrees
-!@var DAY   = day of the year in days; 0 = Jan 1, hour 0
-
-C**** Constants:
-C**** Note: pi and edpery taken from module
-!@param VERQNX = occurence of vernal equinox = day 79 = Mar 21
-
-C**** Intermediate quantities:
-!@var PERIHE = perihelion during the year in temporal radians
-!@var MA     = mean anomaly in temporal radians = 2J DAY/365 - PERIHE
-!@var EA     = eccentric anomaly in radians
-!@var TA     = true anomaly in radians
-!@var BSEMI  = semi minor axis in units of the semi major axis
-!@var GREENW = longitude of Greenwich in the Earth's reference frame
-
-C**** Output:
-!@var SDIST = square of distance to the sun in units of semi major axis
-!@var SIND = sine of the declination angle
-!@var COSD = cosine of the declination angle
-!@var LAMBDA = sun longitude in Earth's rotating reference frame (OBS)
-      IMPLICIT NONE
-      REAL*8, PARAMETER :: VERQNX = 79.
-      REAL*8, INTENT(IN) :: OBLIQ,ECCN,OMEGT,DAY
-      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA
-
-      REAL*8 MA,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
-     *     ,SINEA,TA,SUNX,SUNY,GREENW,SINDD
-C****
-      OMEGA=OMEGT*(PI/180.D0)
-      DOBLIQ=OBLIQ*(PI/180.D0)
-      ECCEN=ECCN
-C****
-C**** Determine time of perihelion using Kepler's equation:
-C**** PERIHE-VERQNX = OMEGA - ECCEN sin(OMEGA)
-C****
-      PERIHE = OMEGA-ECCEN*SIN(OMEGA)+VERQNX*2.*PI/EDPERY
-C     PERIHE = DMOD(PERIHE,2.*PI)
-      MA = 2.*PI*DAY/EDPERY - PERIHE
-      MA = DMOD(MA,2.*PI)
-C****
-C**** Numerically solve Kepler's equation: MA = EA - ECCEN sin(EA)
-C****
-      EA = MA+ECCEN*(SIN(MA)+ECCEN*SIN(2.*MA)/2.)
-  110 DEA = (MA-EA+ECCEN*SIN(MA))/(1.-ECCEN*COS(EA))
-      EA = EA+DEA
-      IF (DABS(DEA).GT.1.D-8)  GO TO 110
-C****
-C**** Calculate the distance to the sun and the true anomaly
-C****
-      BSEMI = DSQRT(1.-ECCEN*ECCEN)
-      COSEA = COS(EA)
-      SINEA = SIN(EA)
-      SDIST  = (1.-ECCEN*COSEA)*(1.-ECCEN*COSEA)
-      TA = DATAN2(SINEA*BSEMI,COSEA-ECCEN)
-C****
-C**** Change the reference frame to be the Earth's equatorial plane
-C**** with the Earth at the center and the positive x axis parallel to
-C**** the ray from the sun to the Earth were it at vernal equinox.
-C**** The distance from the current Earth to that ray (or x axis) is:
-C**** DIST sin(TA+OMEGA).  The sun is located at:
-C****
-C**** SUN    = (-DIST cos(TA+OMEGA),
-C****           -DIST sin(TA+OMEGA) cos(OBLIQ),
-C****            DIST sin(TA+OMEGA) sin(OBLIQ))
-C**** SIND   = sin(TA+OMEGA) sin(OBLIQ)
-C**** COSD   = sqrt(1-SIND**2)
-C**** LAMBDA = atan[tan(TA+OMEGA) cos(OBLIQ)] - GREENW
-C**** GREENW = 2*3.14159 DAY (EDPERY-1)/EDPERY
-C****
-      SINDD = SIN(TA+OMEGA)*SIN(DOBLIQ)
-      COSD = DSQRT(1.-SINDD*SINDD)
-      SIND = SINDD
-C     GREENW = 2.*PI*(DAY-VERQNX)*(EDPERY+1.)/EDPERY
-C     SUNX = -COS(TA+OMEGA)
-C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
-      LAMBDA = 0. ! just to keep the compiler happy
-C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
-C     LAMBDA = DMOD(LAMBDA,2.*PI)
-C****
-      RETURN
-      END SUBROUTINE ORBIT
 
       END MODULE CONSTANT

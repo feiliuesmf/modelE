@@ -280,7 +280,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
-!@calls RE001:RCOMP1
+!@calls RE001:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
@@ -293,12 +293,15 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
+     *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
+     *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
       USE DAGCOM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
+     *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
 !@var RUNSTR names of files for radiation routines
@@ -327,6 +330,29 @@ C**** sync radiation parameters from input
       call sync_param( "MOZONE", MOZONE )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KVEGA6", KVEGA6 )
+      call sync_param( "calc_orb_par", calc_orb_par )
+      call sync_param( "paleo_orb_yr", paleo_orb_yr )
+
+C**** Set orbital parameters appropriately
+      if (calc_orb_par.eq.1) then ! calculate from paleo-year
+        pyear=1950.-paleo_orb_yr ! since 0 BP is defined as 1950CE
+        call orbpar(pyear, eccn, obliq, omegt)
+        write(6,*)
+        write(6,*) " Orbital Parameters Calculated:"
+        write(6,'(a,f6.0,a,f6.0,a)') "   Paleo-year: ",pyear," (CE);",
+     *       paleo_orb_yr," (BP)"  
+        write(6,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
+     *       " (default = ",eccn_def,")"
+        write(6,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",obliq,
+     *       " (default = ",obliq_def,")"
+        write(6,'(a,f7.3,a,f7.3,a)') "   Precession (degs from ve): ",
+     *       omegt," (default = ",omegt_def,")"
+        write(6,*)
+      else  ! set from defaults (defined in CONSTANT module)
+        omegt=omegt_def
+        obliq=obliq_def
+        eccn=eccn_def
+      end if
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -1251,3 +1277,352 @@ C**** vertical integration to model layers
       end do
       return
       end subroutine getqma
+
+      SUBROUTINE ORBPAR (YEAR, ECCEN,OBLIQ,OMEGVP)
+!@sum ORBPAR calculates the three orbital parameters as a function of
+!@+   YEAR.  The source of these calculations is: Andre L. Berger,
+!@+   1978, "Long-Term Variations of Daily Insolation and Quaternary
+!@+   Climatic Changes", JAS, v.35, p.2362.  Also useful is: Andre L.
+!@+   Berger, May 1978, "A Simple Algorithm to Compute Long Term
+!@+   Variations of Daily Insolation", published by Institut
+!@+   D'Astronomie de Geophysique, Universite Catholique de Louvain,
+!@+   Louvain-la Neuve, No. 18.
+!@auth Gary Russell
+C****
+C**** Tables and equations refer to the first reference (JAS).  The
+C**** corresponding table or equation in the second reference is
+C**** enclosed in parentheses.
+C****
+      USE CONSTANT, only : twopi,PI180=>radian
+      IMPLICIT NONE
+C**** Input:
+!@var YEAR   = years C.E. are positive, B.C.E are -ve (i.e 4BCE = -3)
+      REAL*8, INTENT(IN) :: YEAR
+C**** Output:
+!@var ECCEN  = eccentricity of orbital ellipse
+!@var OBLIQ  = latitude of Tropic of Cancer in degrees
+!@var OMEGVP = longitude of perihelion =
+!@+          = spatial angle from vernal equinox to perihelion
+!@+            in degrees with sun as angle vertex
+      REAL*8, INTENT(OUT) :: ECCEN,OBLIQ,OMEGVP
+C**** Table 1 (2).  Obliquity relative to mean ecliptic of date: OBLIQD
+      REAL*8, PARAMETER, DIMENSION(3,47) :: TABL1 = RESHAPE( (/
+     1  -2462.22D0,  31.609970D0,  251.9025D0,
+     2   -857.32D0,  32.620499D0,  280.8325D0,
+     3   -629.32D0,  24.172195D0,  128.3057D0,
+     4   -414.28D0,  31.983780D0,  292.7251D0,
+     5   -311.76D0,  44.828339D0,   15.3747D0,
+     6    308.94D0,  30.973251D0,  263.7952D0,
+     7   -162.55D0,  43.668243D0,  308.4258D0,
+     8   -116.11D0,  32.246689D0,  240.0099D0,
+     9    101.12D0,  30.599442D0,  222.9725D0,
+     O    -67.69D0,  42.681320D0,  268.7810D0,
+     1     24.91D0,  43.836456D0,  316.7998D0,
+     2     22.58D0,  47.439438D0,  319.6023D0,
+     3    -21.16D0,  63.219955D0,  143.8050D0,
+     4    -15.65D0,  64.230484D0,  172.7351D0,
+     5     15.39D0,   1.010530D0,   28.9300D0,
+     6     14.67D0,   7.437771D0,  123.5968D0,
+     7    -11.73D0,  55.782181D0,   20.2082D0,
+     8     10.27D0,   0.373813D0,   40.8226D0,
+     9      6.49D0,  13.218362D0,  123.4722D0,
+     O      5.85D0,  62.583237D0,  155.6977D0,
+     1     -5.49D0,  63.593765D0,  184.6277D0,
+     2     -5.43D0,  76.438309D0,  267.2771D0,
+     3      5.16D0,  45.815262D0,   55.0196D0,
+     4      5.08D0,   8.448301D0,  152.5268D0,
+     5     -4.07D0,  56.792709D0,   49.1382D0,
+     6      3.72D0,  49.747849D0,  204.6609D0,
+     7      3.40D0,  12.058272D0,   56.5233D0,
+     8     -2.83D0,  75.278214D0,  200.3284D0,
+     9     -2.66D0,  65.241013D0,  201.6651D0,
+     O     -2.57D0,  64.604294D0,  213.5577D0,
+     1     -2.47D0,   1.647247D0,   17.0374D0,
+     2      2.46D0,   7.811584D0,  164.4194D0,
+     3      2.25D0,  12.207832D0,   94.5422D0,
+     4     -2.08D0,  63.856659D0,  131.9124D0,
+     5     -1.97D0,  56.155991D0,   61.0309D0,
+     6     -1.88D0,  77.448837D0,  296.2073D0,
+     7     -1.85D0,   6.801054D0,  135.4894D0,
+     8      1.82D0,  62.209412D0,  114.8750D0,
+     9      1.76D0,  20.656128D0,  247.0691D0,
+     O     -1.54D0,  48.344406D0,  256.6113D0,
+     1      1.47D0,  55.145462D0,   32.1008D0,
+     2     -1.46D0,  69.000534D0,  143.6804D0,
+     3      1.42D0,  11.071350D0,   16.8784D0,
+     4     -1.18D0,  74.291306D0,  160.6835D0,
+     5      1.18D0,  11.047742D0,   27.5932D0,
+     6     -1.13D0,   0.636717D0,  348.1074D0,
+     7      1.09D0,  12.844549D0,   82.6496D0/), (/3,47/) )
+C**** Table 2 (4).  Precessional parameter: ECCEN sin(omega) (unused)
+      REAL*8, PARAMETER, DIMENSION(3,46) :: TABL2 = RESHAPE(  (/
+     1     .0186080D0,  54.646484D0,   32.012589D0,
+     2     .0162752D0,  57.785370D0,  197.181274D0,
+     3    -.0130066D0,  68.296539D0,  311.699463D0,
+     4     .0098883D0,  67.659821D0,  323.592041D0,
+     5    -.0033670D0,  67.286011D0,  282.769531D0,
+     6     .0033308D0,  55.638351D0,   90.587509D0,
+     7    -.0023540D0,  68.670349D0,  352.522217D0,
+     8     .0014002D0,  76.656036D0,  131.835892D0,
+     9     .0010070D0,  56.798447D0,  157.536392D0,
+     O     .0008570D0,  66.649292D0,  294.662109D0,
+     1     .0006499D0,  53.504456D0,  118.253082D0,
+     2     .0005990D0,  67.023102D0,  335.484863D0,
+     3     .0003780D0,  68.933258D0,  299.806885D0,
+     4    -.0003370D0,  56.630219D0,  149.162415D0,
+     5     .0003334D0,  86.256454D0,  283.915039D0,
+     6     .0003334D0,  23.036499D0,  320.110107D0,
+     7     .0002916D0,  89.395340D0,   89.083817D0,
+     8     .0002916D0,  26.175385D0,  125.278732D0,
+     9     .0002760D0,  69.307068D0,  340.629639D0,
+     O    -.0002330D0,  99.906509D0,  203.602081D0,
+     1    -.0002330D0,  36.686569D0,  239.796982D0,
+     2     .0001820D0,  67.864838D0,  155.484787D0,
+     3     .0001772D0,  99.269791D0,  215.494690D0,
+     4     .0001772D0,  36.049850D0,  251.689606D0,
+     5    -.0001740D0,  56.625275D0,  130.232391D0,
+     6    -.0001240D0,  68.856720D0,  214.059708D0,
+     7     .0001153D0,  87.266983D0,  312.845215D0,
+     8     .0001153D0,  22.025970D0,  291.179932D0,
+     9     .0001008D0,  90.405869D0,  118.013870D0,
+     O     .0001008D0,  25.164856D0,   96.348694D0,
+     1     .0000912D0,  78.818680D0,  160.318298D0,
+     2     .0000912D0,  30.474274D0,   83.706894D0,
+     3    -.0000806D0, 100.917038D0,  232.532120D0,
+     4    -.0000806D0,  35.676025D0,  210.866943D0,
+     5     .0000798D0,  81.957565D0,  325.487061D0,
+     6     .0000798D0,  33.613159D0,  248.875565D0,
+     7    -.0000638D0,  92.468735D0,   80.005234D0,
+     8    -.0000638D0,  44.124329D0,    3.393823D0,
+     9     .0000612D0, 100.280319D0,  244.424728D0,
+     O     .0000612D0,  35.039322D0,  222.759552D0,
+     1    -.0000603D0,  98.895981D0,  174.672028D0,
+     2    -.0000603D0,  35.676025D0,  210.866943D0,
+     3     .0000597D0,  87.248322D0,  342.489990D0,
+     4     .0000597D0,  24.028381D0,   18.684967D0,
+     5     .0000559D0,  86.630264D0,  324.737793D0,
+     6     .0000559D0,  22.662689D0,  279.287354D0/), (/3,46/) )
+C**** Table 3 (5).  Eccentricity: ECCEN (unused)
+      REAL*8, PARAMETER, DIMENSION(3,42) :: TABL3 = RESHAPE( (/
+     1     .01102940D0,   3.138886D0,  165.168686D0,
+     2    -.00873296D0,  13.650058D0,  279.687012D0,
+     3    -.00749255D0,  10.511172D0,  114.518250D0,
+     4     .00672394D0,  13.013341D0,  291.579590D0,
+     5     .00581229D0,   9.874455D0,  126.410858D0,
+     6    -.00470066D0,   0.636717D0,  348.107422D0,
+     7    -.00254464D0,  12.639528D0,  250.756897D0,
+     8     .00231485D0,   0.991874D0,   58.574905D0,
+     9    -.00221955D0,   9.500642D0,   85.588211D0,
+     O     .00201868D0,   2.147012D0,  106.593765D0,
+     1    -.00172371D0,   0.373813D0,   40.822647D0,
+     2    -.00166112D0,  12.658154D0,  221.112030D0,
+     3     .00145096D0,   1.010530D0,   28.930038D0,
+     4     .00131342D0,  12.021467D0,  233.004639D0,
+     5     .00101442D0,   0.373813D0,   40.822647D0,
+     6    -.00088343D0,  14.023871D0,  320.509521D0,
+     7    -.00083395D0,   6.277772D0,  330.337402D0,
+     8     .00079475D0,   6.277772D0,  330.337402D0,
+     9     .00067546D0,  27.300110D0,  199.373871D0,
+     O    -.00066447D0,  10.884985D0,  155.340912D0,
+     1     .00062591D0,  21.022339D0,  229.036499D0,
+     2     .00059751D0,  22.009552D0,   99.823303D0,
+     3    -.00053262D0,  27.300110D0,  199.373871D0,
+     4    -.00052983D0,   5.641055D0,  342.229980D0,
+     5    -.00052983D0,   6.914489D0,  318.444824D0,
+     6     .00052836D0,  12.002811D0,  262.649414D0,
+     7     .00051457D0,  16.788940D0,   84.855621D0,
+     8    -.00050748D0,  11.647654D0,  192.181992D0,
+     9    -.00049048D0,  24.535049D0,   75.027847D0,
+     O     .00048888D0,  18.870667D0,  294.654541D0,
+     1     .00046278D0,  26.026688D0,  223.159103D0,
+     2     .00046212D0,   8.863925D0,   97.480820D0,
+     3     .00046046D0,  17.162750D0,  125.678268D0,
+     4     .00042941D0,   2.151964D0,  125.523788D0,
+     5     .00042342D0,  37.174576D0,  325.784668D0,
+     6     .00041713D0,  19.748917D0,  252.821732D0,
+     7    -.00040745D0,  21.022339D0,  229.036499D0,
+     8    -.00040569D0,   3.512699D0,  205.991333D0,
+     9    -.00040569D0,   1.765073D0,  124.346024D0,
+     O    -.00040385D0,  29.802292D0,   16.435165D0,
+     1     .00040274D0,   7.746099D0,  350.172119D0,
+     2     .00040068D0,   1.142024D0,  273.759521D0/), (/3,42/) )
+C**** Table 4 (1).  Fundamental elements of the ecliptic: ECCEN sin(pi)
+      REAL*8, PARAMETER, DIMENSION(3,19) :: TABL4 = RESHAPE( (/
+     1     .01860798D0,   4.207205D0,   28.620089D0,
+     2     .01627522D0,   7.346091D0,  193.788772D0,
+     3    -.01300660D0,  17.857263D0,  308.307024D0,
+     4     .00988829D0,  17.220546D0,  320.199637D0,
+     5    -.00336700D0,  16.846733D0,  279.376984D0,
+     6     .00333077D0,   5.199079D0,   87.195000D0,
+     7    -.00235400D0,  18.231076D0,  349.129677D0,
+     8     .00140015D0,  26.216758D0,  128.443387D0,
+     9     .00100700D0,   6.359169D0,  154.143880D0,
+     O     .00085700D0,  16.210016D0,  291.269597D0,
+     1     .00064990D0,   3.065181D0,  114.860583D0,
+     2     .00059900D0,  16.583829D0,  332.092251D0,
+     3     .00037800D0,  18.493980D0,  296.414411D0,
+     4    -.00033700D0,   6.190953D0,  145.769910D0,
+     5     .00027600D0,  18.867793D0,  337.237063D0,
+     6     .00018200D0,  17.425567D0,  152.092288D0,
+     7    -.00017400D0,   6.186001D0,  126.839891D0,
+     8    -.00012400D0,  18.417441D0,  210.667199D0,
+     9     .00001250D0,   0.667863D0,   72.108838D0/), (/3,19/) )
+C**** Table 5 (3).  General precession in longitude: psi
+      REAL*8, PARAMETER, DIMENSION(3,10) :: TABL5 = RESHAPE( (/
+     1     7391.02D0,  31.609970D0,  251.9025D0,
+     2     2555.15D0,  32.620499D0,  280.8325D0,
+     3     2022.76D0,  24.172195D0,  128.3057D0,
+     4    -1973.65D0,    .636717D0,  348.1074D0,
+     5     1240.23D0,  31.983780D0,  292.7251D0,
+     6      953.87D0,   3.138886D0,  165.1686D0,
+     7     -931.75D0,  30.973251D0,  263.7952D0,
+     8      872.38D0,  44.828339D0,   15.3747D0,
+     9      606.35D0,    .991874D0,   58.5749D0,
+     O     -496.03D0,    .373813D0,   40.8226D0/), (/3,10/) )
+C**** 
+      REAL*8 :: YM1950,SUMC,ARG,ESINPI,ECOSPI,PIE,PSI,FSINFD
+      INTEGER :: I
+C****
+      YM1950 = YEAR-1950.
+C****
+C**** Obliquity from Table 1 (2):
+C****   OBLIQ# = 23.320556 (degrees)             Equation 5.5 (15)
+C****   OBLIQ  = OBLIQ# + sum[A cos(ft+delta)]   Equation 1 (5)
+C****
+      SUMC = 0.
+      DO I=1,47
+        ARG  = PI180*(YM1950*TABL1(2,I)/3600.+TABL1(3,I))
+        SUMC = SUMC + TABL1(1,I)*COS(ARG)
+      END DO
+      OBLIQ = 23.320556D0 + SUMC/3600.
+!      OBLIQ  = OBLIQ*PI180 ! not needed for output in degrees
+C****
+C**** Eccentricity from Table 4 (1):
+C****   ECCEN sin(pi) = sum[M sin(gt+beta)]           Equation 4 (1)
+C****   ECCEN cos(pi) = sum[M cos(gt+beta)]           Equation 4 (1)
+C****   ECCEN = ECCEN sqrt[sin(pi)^2 + cos(pi)^2]
+C****
+      ESINPI = 0.
+      ECOSPI = 0.
+      DO I=1,19
+        ARG    = PI180*(YM1950*TABL4(2,I)/3600.+TABL4(3,I))
+        ESINPI = ESINPI + TABL4(1,I)*SIN(ARG)
+        ECOSPI = ECOSPI + TABL4(1,I)*COS(ARG)
+      END DO
+      ECCEN  = SQRT(ESINPI*ESINPI+ECOSPI*ECOSPI)
+C****
+C**** Perihelion from Equation 4,6,7 (9) and Table 4,5 (1,3):
+C****   PSI# = 50.439273 (seconds of degree)         Equation 7.5 (16)
+C****   ZETA =  3.392506 (degrees)                   Equation 7.5 (17)
+C****   PSI = PSI# t + ZETA + sum[F sin(ft+delta)]   Equation 7 (9)
+C****   PIE = atan[ECCEN sin(pi) / ECCEN cos(pi)]
+C****   OMEGVP = PIE + PSI + 3.14159                 Equation 6 (4.5)
+C****
+      PIE = ATAN2(ESINPI,ECOSPI)
+      FSINFD = 0.
+      DO I=1,10
+        ARG    = PI180*(YM1950*TABL5(2,I)/3600.+TABL5(3,I))
+        FSINFD = FSINFD + TABL5(1,I)*SIN(ARG)
+      END DO
+      PSI    = PI180*(3.392506D0+(YM1950*50.439273D0+FSINFD)/3600.)
+      OMEGVP = MOD(PIE+PSI+.5*TWOPI,TWOPI)
+      IF(OMEGVP.lt.0.)  OMEGVP = OMEGVP + TWOPI
+      OMEGVP = OMEGVP/PI180  ! for output in degrees
+C****
+      RETURN
+      END SUBROUTINE ORBPAR
+
+      SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
+!@sum ORBIT receives the orbital parameters and time of year, and
+!@+   returns the distance from the sun and its declination angle.
+!@+   The reference for the following calculations is: V.M.Blanco
+!@+   and S.W.McCuskey, 1961, "Basic Physics of the Solar System",
+!@+   pages 135 - 151.
+!@auth Gary L. Russell and Robert J. Suozzo, 12/13/85
+
+C**** Input
+!@var OBLIQ = latitude of tropics in degrees
+!@var ECCEN = eccentricity of the orbital ellipse
+!@var OMEGT = angle from vernal equinox to perihelion in degrees
+!@var DAY   = day of the year in days; 0 = Jan 1, hour 0
+
+C**** Constants:
+!@param VERQNX = occurence of vernal equinox = day 79 = Mar 21 hour 0
+
+C**** Intermediate quantities:
+!@var PERIHE = perihelion during the year in temporal radians
+!@var MA     = mean anomaly in temporal radians = 2 JDAY/365 - PERIHE
+!@var EA     = eccentric anomaly in radians
+!@var TA     = true anomaly in radians
+!@var BSEMI  = semi minor axis in units of the semi major axis
+!@var GREENW = longitude of Greenwich in the Earth's reference frame
+
+C**** Output:
+!@var SDIST = square of distance to the sun in units of semi major axis
+!@var SIND = sine of the declination angle
+!@var COSD = cosine of the declination angle
+!@var LAMBDA = sun longitude in Earth's rotating reference frame (OBS)
+      USE CONSTANT, only : pi,radian,edpery
+      IMPLICIT NONE
+      REAL*8, PARAMETER :: VERQNX = 79.
+      REAL*8, INTENT(IN) :: OBLIQ,ECCN,OMEGT,DAY
+      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA
+
+      REAL*8 MA,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
+     *     ,SINEA,TA,SUNX,SUNY,GREENW,SINDD
+C****
+      OMEGA=OMEGT*radian
+      DOBLIQ=OBLIQ*radian
+      ECCEN=ECCN
+C****
+C**** Determine time of perihelion using Kepler's equation:
+C**** PERIHE-VERQNX = OMEGA - ECCEN sin(OMEGA)
+C****
+      PERIHE = OMEGA-ECCEN*SIN(OMEGA)+VERQNX*2.*PI/EDPERY
+C     PERIHE = DMOD(PERIHE,2.*PI)
+      MA = 2.*PI*DAY/EDPERY - PERIHE
+      MA = DMOD(MA,2.*PI)
+C****
+C**** Numerically solve Kepler's equation: MA = EA - ECCEN sin(EA)
+C****
+      EA = MA+ECCEN*(SIN(MA)+ECCEN*SIN(2.*MA)/2.)
+  110 DEA = (MA-EA+ECCEN*SIN(MA))/(1.-ECCEN*COS(EA))
+      EA = EA+DEA
+      IF (DABS(DEA).GT.1.D-8)  GO TO 110
+C****
+C**** Calculate the distance to the sun and the true anomaly
+C****
+      BSEMI = DSQRT(1.-ECCEN*ECCEN)
+      COSEA = COS(EA)
+      SINEA = SIN(EA)
+      SDIST  = (1.-ECCEN*COSEA)*(1.-ECCEN*COSEA)
+      TA = DATAN2(SINEA*BSEMI,COSEA-ECCEN)
+C****
+C**** Change the reference frame to be the Earth's equatorial plane
+C**** with the Earth at the center and the positive x axis parallel to
+C**** the ray from the sun to the Earth were it at vernal equinox.
+C**** The distance from the current Earth to that ray (or x axis) is:
+C**** DIST sin(TA+OMEGA).  The sun is located at:
+C****
+C**** SUN    = (-DIST cos(TA+OMEGA),
+C****           -DIST sin(TA+OMEGA) cos(OBLIQ),
+C****            DIST sin(TA+OMEGA) sin(OBLIQ))
+C**** SIND   = sin(TA+OMEGA) sin(OBLIQ)
+C**** COSD   = sqrt(1-SIND**2)
+C**** LAMBDA = atan[tan(TA+OMEGA) cos(OBLIQ)] - GREENW
+C**** GREENW = 2*3.14159 DAY (EDPERY-1)/EDPERY
+C****
+      SINDD = SIN(TA+OMEGA)*SIN(DOBLIQ)
+      COSD = DSQRT(1.-SINDD*SINDD)
+      SIND = SINDD
+C     GREENW = 2.*PI*(DAY-VERQNX)*(EDPERY+1.)/EDPERY
+C     SUNX = -COS(TA+OMEGA)
+C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
+      LAMBDA = 0. ! just to keep the compiler happy
+C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
+C     LAMBDA = DMOD(LAMBDA,2.*PI)
+C****
+      RETURN
+      END SUBROUTINE ORBIT
+
+
