@@ -1,12 +1,28 @@
 #define JJ(J) (J)-J_0H+1
-      subroutine init_MOM
-!@sum  init_MOM sets an order dependent coefficient for AVRX
-      USE DYNAMICS, only : XAVRX
-      XAVRX = 1. ! for second order scheme, byrt2 for 4th order scheme
-      CALL AVRX0
 
-      RETURN
-      END subroutine init_MOM
+      module MOMENTS
+      implicit none
+      private
+
+      public ADVECV, moment_enq_order
+
+      contains
+!      subroutine init_MOM
+!!@sum  init_MOM sets an order dependent coefficient for AVRX
+!      USE DYNAMICS, only : XAVRX
+!      XAVRX = 1. ! for second order scheme, byrt2 for 4th order scheme
+!      CALL AVRX0
+!
+!      RETURN
+!      END subroutine init_MOM
+
+      subroutine moment_enq_order(order)
+!@sum moment_enq_order returns order of the scheme
+      implicit none
+      integer, intent(out) :: order
+      order = 2
+      return
+      end subroutine moment_enq_order
 
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
@@ -553,3 +569,4 @@ C
       RETURN
       END SUBROUTINE ADVECV
 
+      end module MOMENTS

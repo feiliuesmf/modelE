@@ -19,6 +19,8 @@
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       USE DIAG_SERIAL, only : print_diags
+      USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
+     &     ,DISSIP,FILTER,CALC_AMPK
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -644,6 +646,7 @@ C****
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
+      USE ATMDYN, only : init_ATMDYN,CALC_AMPK
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
@@ -1358,7 +1361,7 @@ C****
       CALL init_DIAG(ISTART,num_acc_files)
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
-      if(istart.gt.0) CALL init_MOM
+      if(istart.gt.0) CALL init_ATMDYN
       CALL init_RAD(istart)
       WRITE (6,INPUTZ)
       call print_param( 6 )
@@ -1403,6 +1406,7 @@ C****
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM
+      USE ATMDYN, only : CALC_AMPK
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4
       REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)

@@ -54,8 +54,8 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI,SPA
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DUT,DVT
-!@var xAVRX scheme-depend. coefficient for AVRX: 1,byrt2 (2nd,4th order)
-      REAL*8 xAVRX
+!!@var xAVRX scheme-depend. coefficient for AVRX: 1,byrt2 (2nd,4th order)
+!      REAL*8 xAVRX
 
 !@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
 !@var MB Air mass array for tracers (before advection)

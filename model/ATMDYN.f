@@ -1,6 +1,20 @@
 #include "rundeck_opts.h"
 #define JJ(J) (J)-J_0H+1
 
+      module ATMDYN
+      implicit none
+      private
+
+      public init_ATMDYN, DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
+     &     ,DISSIP,FILTER,CALC_AMPK
+
+      contains
+
+      SUBROUTINE init_ATMDYN
+      CALL AVRX0
+      end SUBROUTINE init_ATMDYN
+
+
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
@@ -18,6 +32,8 @@
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE DOMAIN_DECOMP, only : LOG_PARALLEL
+
+      USE MOMENTS, only : advecv
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1042,9 +1058,11 @@ C
 !@ver  1.0
       USE MODEL_COM, only : im,jm,imh
       USE GEOM, only : dlon,dxp,dyp,bydyp
-      USE DYNAMICS, only : xAVRX
+      !USE DYNAMICS, only : xAVRX
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       USE DOMAIN_DECOMP, Only : grid, GET
+      USE MOMENTS, only : moment_enq_order
+      USE constant, only : byrt2
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: X(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 CCC   REAL*8, SAVE :: SM(IMH,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -1060,9 +1078,19 @@ CCC   INTEGER, SAVE :: IFIRST = 1
       LOGICAL, SAVE :: init = .false.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
+      REAL*8, SAVE :: xAVRX
+      INTEGER order
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
+      call moment_enq_order(order)
+      if ( order==4 ) then
+        xAVRX = byrt2
+      else if ( order==2 ) then
+        xAVRX = 1.d0
+      else
+        call stop_model("unsupported scheme order in AVRX0",255)
+      endif
 C
       IF (.NOT. init) THEN
         init = .true.
@@ -2338,3 +2366,5 @@ c****
 c****
       return
       end subroutine tropwmo
+
+      end module ATMDYN
