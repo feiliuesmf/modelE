@@ -2865,7 +2865,7 @@ C****       Set up a QCON, and call SET_TCON to allocate array numbers,
 C****       set up scales, titles, etc.
 C**** QCON denotes when the conservation diags should be accumulated
 C**** QSUM says whether that diag is to be used in summation (if the
-C****      routine DIAGCTB is used, this must be false).
+C****      routine DIAGTCB is used, this must be false).
 C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
 C**** First 12 are standard for all tracers and GCM
@@ -2889,6 +2889,12 @@ C**** First 12 are standard for all tracers and GCM
 C**** set some defaults
       itcon_mc(:)=0
       itcon_ss(:)=0
+      itcon_surf(:,:)=0
+      itcon_3Dsrc(:,:)=0
+      itcon_decay(:)=0
+#ifdef TRACERS_DRYDEP
+      itcon_dd(:)=0
+#endif
 
       k = 0
       do n=1,ntm

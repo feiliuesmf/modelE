@@ -77,23 +77,16 @@ C**** Zonal mean cloud water concentration
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,fim,ls1
-      USE GEOM, only: imaxj
-      USE TRACER_COM
+      USE MODEL_COM, only : jm
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: LS1J
-#endif
       IMPLICIT NONE
-
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(JM) :: total
-      INTEGER :: i,j,l,nm,ni,ltop
-      REAL*8 sstm,stm
+      INTEGER :: nm,ni
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -106,34 +99,8 @@ C**** NOFMT(1,NT) is the index for the instantaneous value.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate current value TOTAL
-!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM,ltop)
-        do j=1,jm
-          sstm = 0.
-          ltop=lm
-#ifdef TRACERS_SPECIAL_Shindell
-          if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')then
-#ifdef Shindell_Strat_chem
-            ltop=LS1-1     ! nominal tropopause
-#else
-            ltop=LS1J(J)-1 ! defined tropopause
-#endif
-          end if
-#endif
-          do l=1,ltop
-            stm = 0.
-            do i=1,imaxj(j)
-              stm = stm+trm(i,j,l,nt)
-#ifdef TRACERS_WATER
-     *             +trwm(i,j,l,nt)
-#endif
-            end do
-            sstm = sstm+stm
-          end do
-          total(j) = sstm
-        end do
-!$OMP END PARALLEL DO
-        total(1) = fim*total(1)
-        total(jm)= fim*total(jm)
+        call consrv_tr(nt,total)
+
         nm=nofmt(m,nt)
         ni=nofmt(1,nt)
 c**** Accumulate difference from last time in TCONSRV(NM)
@@ -146,6 +113,56 @@ C**** Save current value in TCONSRV(NI)
       end if
       return
       end subroutine diagtca
+
+      subroutine consrv_tr(nt,total)
+!@sum consrv_tr calculate total zonal tracer amount (kg)
+!@auth Gavin Schmidt
+      use model_com, only : lm,ls1,jm,fim
+      use geom, only : imaxj
+      use tracer_com, only : trm,trname
+#ifdef TRACERS_WATER
+     *     ,trwm
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: LS1J
+#endif
+      implicit none
+      integer, intent(in) :: nt
+!@var total = zonal total of tracer (kg)
+      real*8, dimension(jm),intent(out) :: total
+      real*8 :: sstm,stm
+      integer :: i,j,l,ltop
+
+!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM,ltop)
+      do j=1,jm
+        sstm = 0.
+        ltop=lm
+#ifdef TRACERS_SPECIAL_Shindell
+        if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')then
+#ifdef Shindell_Strat_chem
+          ltop=LS1-1            ! nominal tropopause
+#else 
+          ltop=LS1J(J)-1        ! defined tropopause
+#endif
+        end if
+#endif
+        do l=1,ltop
+          stm = 0.
+          do i=1,imaxj(j)
+            stm = stm+trm(i,j,l,nt)
+#ifdef TRACERS_WATER
+     *           +trwm(i,j,l,nt)
+#endif
+          end do
+          sstm = sstm+stm
+        end do
+        total(j) = sstm
+      end do
+!$OMP END PARALLEL DO
+      total(1) = fim*total(1)
+      total(jm)= fim*total(jm)
+      return
+      end subroutine consrv_tr
 
       SUBROUTINE DIAGTCB (DTRACER,M,NT)
 !@sum  DIAGTCB Keeps track of the conservation properties of tracers
@@ -559,7 +576,7 @@ C**** total chemical change for CH4
         k=jls_3Dsource(1,n_CH4)
         a(:,:) = tajls(:,:,jls_3Dsource(1,n_CH4))
      *         + tajls(:,:,jls_3Dsource(2,n_CH4))
-        sname = 'Total_Chem_change'//trname(n)
+        sname = 'Total_Chem_change'//trname(n_CH4)
         lname = 'TOTAL CHANGE OF CH4 BY CHEMISTRY'
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname,sname,units_jls(k),plm,a
@@ -570,7 +587,7 @@ C**** total chemical change for O3
         k=jls_3Dsource(1,n_O3)
         a(:,:) = tajls(:,:,jls_3Dsource(1,n_O3))
      *         + tajls(:,:,jls_3Dsource(2,n_O3))
-        sname = 'Total_Chem_change'//trname(n)
+        sname = 'Total_Chem_change'//trname(n_O3)
         lname = 'TOTAL CHANGE OF O3 BY CHEMISTRY'
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname,sname,units_jls(k),plm,a

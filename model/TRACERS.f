@@ -390,7 +390,8 @@ C**** diagnostics
               dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
             end do
           end do
-          call DIAGTCB(dtracer,itcon_surf(ns,n),n)
+          if (itcon_surf(ns,n).gt.0)
+     *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
@@ -531,7 +532,7 @@ C**** Atmospheric decay
      *               +trwm(:,:,:,n)
           trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
 #endif
-          if (trname(n) .eq. "Rn222") then
+          if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
             tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
      *           /222./dtsrc
           end if

@@ -95,7 +95,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 #endif
 
-!@parm KTAIJS number of special lat/lon tracer diagnostics
+!@param KTAIJS number of special lat/lon tracer diagnostics
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef regional_Ox_tracers
       integer, parameter :: ktaijs=90
@@ -132,7 +132,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER, DIMENSION(ktaijs) :: ijts_index
 
 C**** TAJLN
-!@parm ktajl,ktajlx number of TAJL tracer diagnostics;
+!@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
 #ifdef TRACERS_WATER
       INTEGER, PARAMETER :: ktajl=9 
@@ -166,7 +166,7 @@ C**** TAJLN
       REAL*8, DIMENSION(ntm) :: scale_jln
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
-!@parm ktajls number of source/sink TAJLS tracer diagnostics;
+!@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@var jls_XXX index for non-tracer specific or special diags
 #ifdef regional_Ox_tracers
       INTEGER jls_Oxloss, jls_Oxprod
@@ -218,54 +218,61 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       integer jls_ltop(ktajls)
 
 C**** TCONSRV
-!@parm NTCONS Maximum Number of special tracer conservation points
+!@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
-!@parm KTCON total number of conservation diagnostics for tracers
+!@param KTCON total number of conservation diagnostics for tracers
       INTEGER, PARAMETER :: KTCON=npts+ntcons+2
+!@param ntmxcon total number of conservation quantities
+#ifdef TRACERS_SPECIAL_Shindell
+C**** include some extra troposphere only ones
+      INTEGER, PARAMETER :: ntmxcon = ntm+3
+#else
+      INTEGER, PARAMETER :: ntmxcon = ntm
+#endif
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, DIMENSION(JM,ktcon,ntm) :: TCONSRV
+      REAL*8, DIMENSION(JM,ktcon,ntmxcon) :: TCONSRV
 !@var SCALE_TCON scales for tracer conservation diagnostics
-      REAL*8, DIMENSION(ktcon,ntm) :: SCALE_TCON
+      REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
-      CHARACTER*38, DIMENSION(ktcon,ntm) :: TITLE_TCON
+      CHARACTER*38, DIMENSION(ktcon,ntmxcon) :: TITLE_TCON
 !@var IA_TCON IDACC numbers for tracer conservation diagnostics
-      INTEGER, DIMENSION(ktcon,ntm) ::  IA_TCON
+      INTEGER, DIMENSION(ktcon,ntmxcon) ::  IA_TCON
 !@var NSUM_TCON indices for summation of conservation diagnostics
-      INTEGER, DIMENSION(ktcon,ntm) :: NSUM_TCON
+      INTEGER, DIMENSION(ktcon,ntmxcon) :: NSUM_TCON
 !@var NOFMT indices for TCONSRV array
-      INTEGER, DIMENSION(ktcon,ntm) :: NOFMT
+      INTEGER, DIMENSION(ktcon,ntmxcon) :: NOFMT
 !@var CONPTS names of special processes for tracer conservation diags
       CHARACTER*16, DIMENSION(ntcons) :: CONPTS
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
       INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
-      character(len=20), dimension(ktcon,ntm) ::
+      character(len=20), dimension(ktcon,ntmxcon) ::
      &   name_tconsrv,units_tconsrv
-      character(len=80), dimension(ktcon,ntm) :: lname_tconsrv
+      character(len=80), dimension(ktcon,ntmxcon) :: lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
-      REAL*8, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
+      REAL*8, dimension(ntmxcon) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
-      INTEGER, DIMENSION(ntsurfsrcmax,NTM) :: itcon_surf
+      INTEGER, DIMENSION(ntsurfsrcmax,ntmxcon) :: itcon_surf
 !@var itcon_3D Index array for 3D source/sink conservation diags
-      INTEGER, DIMENSION(nt3Dsrcmax,NTM) :: itcon_3Dsrc
+      INTEGER, DIMENSION(nt3Dsrcmax,ntmxcon) :: itcon_3Dsrc
 !@var itcon_decay Index array for decay conservation diags
-      INTEGER, DIMENSION(NTM) :: itcon_decay
+      INTEGER, DIMENSION(ntmxcon) :: itcon_decay
 !@var itcon_grav Index array for gravitational settling conserv. diags
-      INTEGER, DIMENSION(NTM) :: itcon_grav
+      INTEGER, DIMENSION(ntmxcon) :: itcon_grav
 !@var itcon_mc Index array for moist convection conserv. diags
-      INTEGER, DIMENSION(NTM) :: itcon_mc
+      INTEGER, DIMENSION(ntmxcon) :: itcon_mc
 !@var itcon_grav Index array for large-scale condensation conserv. diags
-      INTEGER, DIMENSION(NTM) :: itcon_ss
+      INTEGER, DIMENSION(ntmxcon) :: itcon_ss
 #ifdef TRACERS_DRYDEP
 !@var itcon_dd Index array for dry deposition conserv. diags
-      INTEGER, DIMENSION(NTM) :: itcon_dd
+      INTEGER, DIMENSION(ntmxcon) :: itcon_dd
 #endif
 C----------------------------------------------------
 !@param KTACC total number of tracer diagnostic words
 !@var TACC: Contains all tracer diagnostic accumulations
       INTEGER, PARAMETER ::
      *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
-     *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*NTM*ktcon
+     *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
       COMMON /TACCUM/ TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
       REAL*8, DIMENSION(KTACC) :: TACC
       EQUIVALENCE (TACC,TAIJLN)

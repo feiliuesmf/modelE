@@ -142,21 +142,21 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       real*8, dimension(NregOx)::regOx_s,regOx_n,regOx_t,regOx_b,
      &                           regOx_e,regOx_w
 #endif
-!@var N_XXX: variable names of indices for tracers
+!@var N_XXX: variable names of indices for tracers (init = 0)
       integer :: 
-     *     n_Air,    n_SF6,   n_Rn222, n_CO2,      n_N2O,
-     *     n_CFC11,  n_14CO2, n_CH4,   n_O3,       n_water,
-     *     n_H2O18,  n_HDO,   n_HTO,   n_Ox,       n_NOx, 
-     *     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,
-     *     n_HO2NO2, n_CO,    n_PAN,   n_Isoprene, n_AlkylNit,
-     *     n_Alkenes,n_Paraffin,n_DMS, n_MSA,      n_SO2,
-     *     n_SO4,    n_H2O2_s,n_ClOx,  n_BrOx,     n_HCl,
-     *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
-     *     n_CFC, n_Pb210, n_Be7, n_Be10, n_seasalt1,
-     *     n_seasalt2
-#ifdef regional_Ox_tracers
-     *     ,n_OxREG1,n_OxREG2,n_OxREG3,n_OxREG4,n_OxREG5,n_OxREG6
-#endif
+     *     n_Air=0,    n_SF6=0,   n_Rn222=0, n_CO2=0,      n_N2O=0,
+     *     n_CFC11=0,  n_14CO2=0, n_CH4=0,   n_O3=0,       n_water=0,
+     *     n_H2O18=0,  n_HDO=0,   n_HTO=0,   n_Ox=0,       n_NOx=0, 
+     *     n_N2O5=0,   n_HNO3=0,  n_H2O2=0,  n_CH3OOH=0,   n_HCHO=0,
+     *     n_HO2NO2=0, n_CO=0,    n_PAN=0,
+     *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
+     *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
+     *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
+     *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,
+     *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
+     *     n_seasalt1=0,  n_seasalt2=0,
+     *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
+     *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit
@@ -211,17 +211,7 @@ C****
 !@var ntisurfsrc no. of interactive surface sources for each tracer
       integer, dimension(ntm) :: ntisurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
       integer, parameter :: nt3Dsrcmax=5
-#else
-#ifdef TRACERS_SPECIAL_Shindell
-      integer, parameter :: nt3Dsrcmax=4
-#elif (defined TRACERS_AEROSOLS_Koch)
-      integer, parameter :: nt3Dsrcmax=5
-#else
-      integer, parameter :: nt3Dsrcmax=3
-#endif    
-#endif
 
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
