@@ -17,6 +17,9 @@ if ( -f $modelerc ) {
   close MODELERC;
 }
 
+## get environment variables
+$MP_SET_NUMTHREADS = $ENV{MP_SET_NUMTHREADS};
+
 $runID = shift;
 $rcode = shift;
 $owner = shift;
