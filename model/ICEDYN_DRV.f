@@ -70,7 +70,8 @@ C**** Ice advection diagnostics
 !@sum  io_icedyn reads and writes dynamic ice arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
+     *     ,irerun,lhead 
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -89,8 +90,8 @@ C**** Ice advection diagnostics
         WRITE (kunit,err=10) MODULE_HEADER,RSIX,RSIY,USI,VSI
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (ioread,irerun)    ! restarts
+        CASE (IRSFICNO)           ! initial conditions (no ocean)
+        CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
           READ (kunit,err=10) HEADER,RSIX,RSIY,USI,VSI
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
@@ -110,7 +111,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irsfic,irerun,ioread_single,lhead
+     *     ,irsfic,irsficnt,irerun,ioread_single,lhead
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -149,7 +150,6 @@ C****
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
         CASE (ioread_single)    ! accumulate diagnostic files
           READ (kunit,err=10) HEADER,ICIJ4,it
 C**** accumulate diagnostics
@@ -172,7 +172,7 @@ C**** accumulate diagnostics
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,ICIJ,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
@@ -184,6 +184,13 @@ C**** accumulate diagnostics
             GO TO 10
           END IF
 #endif
+        CASE (IRSFIC)  ! initial conditions 
+          READ (kunit)
+#ifdef TRACERS_WATER
+          READ (kunit)
+#endif
+        CASE (IRSFICNT)  ! initial conditions (with no tracers)
+          READ (kunit)
         END SELECT
       END SELECT
 

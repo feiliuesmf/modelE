@@ -64,7 +64,7 @@ C**** variables saved for radiation calculations
         READ (kunit,err=10) HEADER,
      *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
         IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

@@ -1166,7 +1166,7 @@ C****
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,AIRX,LMC
         IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

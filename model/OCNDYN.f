@@ -442,7 +442,8 @@ C****
 !@sum  io_ocdyn reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsficno,irerun,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
+     *     ,irsficnt,irerun,lhead
       USE OCEAN
       IMPLICIT NONE
 
@@ -474,7 +475,7 @@ C****
         SELECT CASE (IACTION)
           CASE (IRSFICNO)   ! initial conditions (no ocean data)
             READ (kunit)
-          CASE (ioread,irerun) ! restarts
+          CASE (ioread,irerun,irsfic) ! restarts
             READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
      *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -490,6 +491,14 @@ C****
               GO TO 10
             END IF
 #endif
+          CASE (irsficnt) ! restarts (never any tracer data)
+            READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
+     *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",HEADER
+     *             ,MODULE_HEADER
+              GO TO 10
+            END IF
           END SELECT
       END SELECT
 

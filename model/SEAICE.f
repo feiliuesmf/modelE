@@ -1737,7 +1737,7 @@ C**** albedo calculations
 !@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
       IMPLICIT NONE
 
@@ -1770,16 +1770,15 @@ C**** albedo calculations
          READ (kunit,err=10) HEADER,RSI,HSI,SNOWI,MSI,SSI
      *     ,POND_MELT,FLAG_DSWS
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
           READ (kunit,err=10) TRHEADER,TRSI
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",TRHEADER
+            PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF

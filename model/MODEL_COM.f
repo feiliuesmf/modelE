@@ -331,7 +331,7 @@ C**** use doc-record to check the basic model parameters
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
           TIMING(1:NTIM1)=TIM1(1:NTIM1)
-        CASE (IRSFIC,irsficnt)  ! use rundeck & defaults except label
+        CASE (IRSFIC,irsficnt,IRSFICNO) ! rundeck/defaults except label
           read(kunit,err=10)          ! skip parameters, dates
           it=it*24/nd1                ! switch itime to ihour
         CASE (IRERUN)           ! parameters from rundeck & restart file
@@ -383,7 +383,7 @@ C**** keep track of min/max time over the combined diagnostic period
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
         IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

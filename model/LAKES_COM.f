@@ -5,6 +5,7 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : IM,JM,ioread,iowrite,lhead,irerun,irsfic
+     *     ,irsficno
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -61,16 +62,15 @@
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,MLDLK,MWL,TLAKE,GML   !,FLAKE
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! reruns/restarts
           READ (kunit,err=10) TRHEADER,TRLAKE
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",TRHEADER
+            PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF

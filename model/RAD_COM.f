@@ -98,7 +98,7 @@ C**** Local variables initialised in init_RAD
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
-     *         ,lhead,Kradia,irsficnt
+     *         ,lhead,Kradia,irsficnt,irsficno
       USE RADNCB
       IMPLICIT NONE
 
@@ -107,18 +107,20 @@ C**** Local variables initialised in init_RAD
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD02"
+!@var HEADER_F Character string label for records (forcing runs)
+      CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
       if (kradia.gt.1) then
-        write (MODULE_HEADER(lhead+1:80),'(a8,i2,a5)')
+        write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a5)')
      *    'R8 Tchg(',lm+LM_REQ,',ijm)'
         SELECT CASE (IACTION)
         CASE (:IOWRITE)            ! output to standard restart file
-          WRITE (kunit,err=10) MODULE_HEADER,Tchg
+          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg
         CASE (IOREAD:)
           SELECT CASE  (IACTION)
           CASE (ioread,irerun,ioread_single)  ! input for restart
-            READ (kunit,err=10) HEADER,Tchg
+            READ (kunit,err=10) HEADER_F,Tchg
           CASE (IRSFIC)  ! only way to start adj.frc. run
             Tchg = 0.
           END SELECT
@@ -137,13 +139,13 @@ C**** Local variables initialised in init_RAD
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
      *       ,S0,SRHR,TRHR,FSF,FSRDIR   ! needed if MODRAD>0 at restart
-        CASE (IRSFIC,irsficnt)   ! start from restart file of prev. run
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
           READ (kunit,err=10) HEADER,RQT
         END SELECT
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
       END SELECT
       end if
 

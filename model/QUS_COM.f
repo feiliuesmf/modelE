@@ -34,7 +34,7 @@
       CASE (IOREAD:)            ! input from restart file
         READ (KUNIT,ERR=10) HEADER,TMOM,QMOM
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT

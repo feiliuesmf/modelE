@@ -970,7 +970,7 @@ c**** Find final field and zonal, global, and hemispheric means
 !@auth Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irsfic,irerun,ioread_single,lhead
+     *     ,irerun,ioread_single,lhead
       USE TRACER_DIAG_COM, only: tacc,ktacc
       IMPLICIT NONE
 
@@ -996,19 +996,18 @@ c**** Find final field and zonal, global, and hemispheric means
         WRITE (kunit,err=10) MODULE_HEADER, REAL(TACC,KIND=4),it
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
         CASE (ioread_single)    ! accumulate diagnostic files
           READ (kunit,err=10) HEADER,TACC4
           TACC = TACC+TACC4     ! accumulate diagnostics
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           END IF
-        CASE (ioread,irerun)    ! restarts
+        CASE (ioread,irerun)  ! restarts
           READ (kunit,err=10) HEADER, TACC,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",HEADER
+            PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10
           end IF

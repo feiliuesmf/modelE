@@ -234,7 +234,7 @@ C**** CALCULATE TG2
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE LANDICE_COM
       IMPLICIT NONE
 
@@ -263,16 +263,15 @@ C**** CALCULATE TG2
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,SNOWLI,TLANDI
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
           READ (kunit,err=10) TRHEADER,TRSNOWLI,TRLNDI
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",TRHEADER
+            PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF

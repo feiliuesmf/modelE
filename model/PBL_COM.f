@@ -64,7 +64,7 @@
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,lhead
+      USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
       IMPLICIT NONE
 
@@ -99,8 +99,7 @@
         END IF
 #ifdef TRACERS_ON
         SELECT CASE (IACTION)
-        CASE (IRSFIC)          ! input from restart file (no tracers)
-        CASE (IOREAD,IRERUN)    ! restarts
+        CASE (IOREAD,IRERUN,IRSFIC,IRSFICNO)    ! restarts
           READ (KUNIT,ERR=10) TR_HEADER,TRABL
           IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in tracer module version ",TR_HEADER

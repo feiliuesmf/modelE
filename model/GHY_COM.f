@@ -124,7 +124,7 @@ ccc TRSNOWBV is not used
         READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
      &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       END SELECT
@@ -138,7 +138,7 @@ ccc TRSNOWBV is not used
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -176,16 +176,15 @@ ccc TRSNOWBV is not used
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv,
      *     Cint,Qfol
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts
           READ (kunit,err=10) TRHEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",TRHEADER
+            PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
@@ -202,7 +201,7 @@ ccc TRSNOWBV is not used
 !@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE GHYCOM
       IMPLICIT NONE
 
@@ -234,16 +233,15 @@ ccc TRSNOWBV is not used
         READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
      *       ,HSN_IJ,FR_SNOW_IJ
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-        CASE (IRERUN,IOREAD)    ! only need tracers from reruns/restarts
+        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
           READ (kunit,err=10) TRHEADER,TR_WSN_IJ
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version",TRHEADER
+            PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF

@@ -722,7 +722,7 @@ C**** check whether air mass is conserved
 !@auth Jean Lerner
 !@ver  1.0
 #ifdef TRACERS_ON      
-      USE MODEL_COM, only: ioread,iowrite,irsfic,irerun,lhead
+      USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
@@ -763,9 +763,7 @@ C**** check whether air mass is conserved
 #endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)   ! initial conditions
-          READ (kunit)
-        CASE (ioread,irerun) ! restarts
+        CASE (ioread,irerun,irsfic,irsficno) ! restarts
           READ (kunit,err=10) HEADER,TRM,TRmom
 #ifdef TRACERS_WATER
      *       ,TRWM
@@ -775,7 +773,7 @@ C**** check whether air mass is conserved
      *     ,yAldehyde,yXO2N,yRXPAR,OxIC,corrOx
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
         END SELECT

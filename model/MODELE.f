@@ -930,7 +930,7 @@ C****
 C**** I.C FROM RESTART FILE that may not match land-ocean mask  ISTART=6
 C****
       CASE (6)             ! converted model II' (B399) format (no snow)
-        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
+        call io_rsf(iu_AIC,IhrX,irsficno,ioerr)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         inipbl  = .TRUE.      ! initialise pbl profiles
