@@ -9,10 +9,10 @@
       USE TIMINGS
       USE PARAM
       IMPLICIT NONE
-      CHARACTER*80 FILEIN(5),DIR*60
-      INTEGER N,NARGS,K,iargc,KSTART,KFILE,I
+      CHARACTER*80 FILEIN,DIR*60
+      INTEGER N,NARGS,K,iargc,KSTART,KFILE,I,days_togo
       INTEGER :: ioerr=0
-      REAL*8 TOT
+      REAL*8 TOT,yrs_togo
       LOGICAL QCALL
 
       QCALL=.FALSE.
@@ -21,29 +21,31 @@
       NARGS = IARGC()
       IF(NARGS.LE.0)  GO TO 800
 C**** check for argument
-      CALL GETARG(1,FILEIN(1))
-      IF (FILEIN(1).eq."-a") THEN
+      CALL GETARG(1,FILEIN)
+      IF (FILEIN(1:1).eq."-") THEN
         QCALL=.TRUE.
         KSTART=2
       END IF
 C**** loop over remaining arguments
-      DO KFILE=KSTART,NARGS
-        CALL GETARG (KFILE,FILEIN(KFILE))
-      END DO
+c     DO KFILE=KSTART,NARGS
+c       CALL GETARG (KFILE,FILEIN(KFILE))
+c     END DO
 C**** Check first file
-      K=KSTART
-      OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=100)
-      call io_label(10,Itime,ioread,ioerr)
-      CLOSE (10)
-      if (ioerr.eq.0) goto 150
+c     K=KSTART
+c     OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=100)
+c     call io_label(10,Itime,ioread,ioerr)
+c     CLOSE (10)
+c     if (ioerr.eq.0) goto 150
 C**** problem reading file => assume a run directory in /u/cmrun
- 100  NARGS=KSTART+1
-      DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
-      FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
-      FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
+c100  NARGS=KSTART+1
+c     DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
+c     FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
+c     FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
 
  150  DO K=KSTART,NARGS
-      OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=850)
+      if (qcall .and. k.gt.kstart) write (6,*)
+      CALL GETARG (K,FILEIN)
+      OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
       call io_label(10,Itime,ioread,ioerr)
       if (ioerr.eq.1) go to 860
@@ -66,27 +68,40 @@ c     call get_param( "NDAY", NDAY )
       WRITE (6,907) (TIMESTR(N),TIMING(N)/TOT,N=4,NTIMEACC)
       END IF
       IF (QCALL) THEN
-        write (6,*) "IM,JM,LM = ",IM,JM,LM
+        write (6,*) "IM,JM,LM = ",IM,JM,LM," LS1 = ",LS1," P_cp = ",PTOP
+        write (6,*) "PLbot(mean values) = ",PTOP+PSFMPT*SIGE
         call print_param(6)
 c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
-        write (6,*)
+        call getdte(ItimeI,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+        WRITE (6,900) ITIMEI,JMON,JDATE,JYEAR,JHOUR,' = start of run'
+        call getdte(ItimeE,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+        WRITE (6,900) ITIMEE,JMON,JDATE,JYEAR,JHOUR,' =   end of run'
+        if(itimee.gt.itime) then
+          days_togo = (Itimee-itime+nday-1)/nday
+          yrs_togo  = (Itimee-itime)/(365.*nday)
+          write(XLABEL(29:50),'(I10,a12)') days_togo,'  days to go'
+          if (days_togo.eq.1) XLABEL(44:44) = ' '
+          if (yrs_togo.ge.2.)
+     *    write(XLABEL(29:50),'(f10.1,a12)') yrs_togo,' years to go'
+        WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
+      end if
       END IF
       END DO
       Stop
   800 continue
       write(6,*) " Usage: qc [-a] FILE1 [FILE2...]"
-      write(6,*) " Where FILE1,2..(up to 5) are modelE files ",
+      write(6,*) " Where FILE1,2.. are modelE files ",
      *     "(rsf/acc/fort.[12])"
       write(6,*) "  -a  output all header information, otherwise"
       write(6,*) "      only timing info is printed"
-      write(6,*) " If first FILE argument is a directory, then ",
-     *     "DIR/fort.[12] are opened"
+c     write(6,*) " If first FILE argument is a directory, then ",
+c    *     "DIR/fort.[12] are opened"
       STOP
   850 continue
-      write(6,*) "Cannot open file ",FILEIN(K)
+      write(6,*) "Cannot open file ",FILEIN
       STOP
   860 continue
-      write(6,*) "Error reading file ", FILEIN(K)
+      write(6,*) "Error reading file ", FILEIN
       STOP
  900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A50)
  906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
