@@ -486,7 +486,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,COUPLED_CHEM
-     *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,QUVfilter
+     *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -497,6 +497,7 @@ C**** Rundeck parameters:
       call sync_param( "DT_XVfilter", DT_XVfilter )
       call sync_param( "DT_XUfilter", DT_XUfilter )
       call sync_param( "DT_YVfilter", DT_YVfilter )
+      call sync_param( "DT_YUfilter", DT_YUfilter )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
@@ -550,8 +551,8 @@ C**** Also find CSDRAGL, the coefficients of C_Sdrag as a function of L
 
 C**** Determine if FLTRUV is called.
       QUVfilter = .false.
-      if (DT_XUfilter.gt.0..or.DT_XVfilter.gt.0..or.DT_YVfilter.gt.0.)
-     *    QUVfilter = .true.
+      if (DT_XUfilter.gt.0..or.DT_XVfilter.gt.0.
+     *.or.DT_YUfilter.gt.0..or.DT_YVfilter.gt.0.)  QUVfilter = .true.
       RETURN
 C****
       end subroutine init_Model

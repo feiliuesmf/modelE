@@ -1122,7 +1122,7 @@ C
 !@ver  1.0
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
-     *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter  ! ,DT_YUfilter
+     *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
       USE DIAG, only : diagcd
@@ -1143,7 +1143,7 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: 
      *     DUT,DVT,USAVE,VSAVE,DKE
       REAL*8 X(IM),YV(max(2*JM,IM)),DP(IM)
-      REAL*8 XUby4toN,XVby4toN,YVby4toN
+      REAL*8 XUby4toN,XVby4toN,YVby4toN,YUby4toN
       REAL*8 :: DT1=0.
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
       REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
@@ -1236,6 +1236,40 @@ C****   be re-thought for others.
   650 CONTINUE
 !$OMP  END PARALLEL DO
       END IF
+
+      IF (DT_YUfilter.gt.0.) THEN
+      YUby4toN = (DT/DT_YUfilter)*by4toN
+C**** Filter U component of velocity
+C**** Filtering longitudes on opposite sides of the globe simultaneously
+C**** This is designed for resolutions with 1/2 boxes at poles and must
+C****   be re-thought for others.
+!$OMP  PARALLEL DO PRIVATE (I,J,L,N,YV,YV2,YVJ,YVJm1)
+      DO 750 L=1,LM
+      DO 750 I=1,IM/2
+      DO 710 J=J_0STG,J_1STG
+      YV(J) = U(I,J,L)
+      YV(2*JM+1-J) = -U(I+IM/2,J,L)
+  710 CONTINUE
+
+      DO 730 N=1,NSHAP
+      YV2   = YV(2)
+      YVJm1 = YV(2*JM-1)
+      DO 720 J=2,2*JM-2
+      YVJ   = YV(J)
+      YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
+      YVJm1 = YVJ
+  720 CONTINUE
+      YV(2*JM-1)= YVJm1-YV(JM)-YV(JM)+YV2
+  730 CONTINUE
+
+      DO 740 J=J_0STG,J_1STG
+      U(I,J,L) = U(I,J,L) - YV(J)*YUby4toN
+      U(I+IM/2,J,L) = U(I+IM/2,J,L) + YV(2*JM+1-J)*YUby4toN
+  740 CONTINUE
+  750 CONTINUE
+!$OMP  END PARALLEL DO
+      END IF
+
 
 C**** Conserve angular momentum along latitudes
       CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)

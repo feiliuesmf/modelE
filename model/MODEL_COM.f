@@ -36,12 +36,14 @@
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
-**** Controls on FLTRUV (momentum/velocity filter)
+!**** Controls on FLTRUV (momentum/velocity filter)
 !@dbparam DT_XUfilter dU is multiplied by dt/DT_XUfilter in E-W
 !@dbparam DT_XVfilter dV is multiplied by dt/DT_XVfilter in E-W
+!@dbparam DT_YUfilter dU is multiplied by dt/DT_YUfilter in N-S
 !@dbparam DT_YVfilter dV is multiplied by dt/DT_YVfilter in N-S
       REAL*8 :: DT_XUfilter=0. ! U-filter is NOT used in E-W direction
       REAL*8 :: DT_XVfilter=0. ! V-filter is NOT used in E-W direction
+      REAL*8 :: DT_YUfilter=0. ! U-filter is NOT used in N-S direction
       REAL*8 :: DT_YVfilter=0. ! V-filter is NOT used in N-S direction
 !@var QUVfilter: True if any of DT_[XY][UV]filter are not=0
       LOGICAL :: QUVfilter
