@@ -3,41 +3,7 @@
 !@sum soil dust sources and sinks
 !auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
-#ifdef TRACERS_DUST
-      USE resolution,ONLY : Im,Jm
-      USE tracers_dust_com,ONLY : dryhr,frclay,frsilt,vtrsh,hbaij
-      USE filemanager,ONLY : openunit,closeunit
-
-      IMPLICIT NONE
-
-C       INTEGER :: i,j
-C       INTEGER :: io_data
-C       LOGICAL :: ifirst=.true.
-
-C       if (ifirst) then
-C         hbaij=0D0
-C c**** Read input: threshold speed
-C         call openunit('VTRSH',io_data,.true.,.true.)
-C         read (io_data) vtrsh
-C         call closeunit(io_data)
-C c**** Read input: fraction clay
-C         call openunit('FRCLAY',io_data,.true.,.true.)
-C         read (io_data) frclay
-C         call closeunit(io_data)
-C c**** Read input: fraction silt
-C         call openunit('FRSILT',io_data,.true.,.true.)
-C         read (io_data) frsilt
-C         call closeunit(io_data)
-C c**** Read input: prec-evap data
-C         call openunit('DRYHR',io_data,.true.,.true.)
-C         read (io_data) dryhr
-C         call closeunit(io_data)
-C #ifdef TRACERS_DUST_MINERAL8
-C         CALL openunit('MINFR',io_data,.true.,.true.)
-C         CALL closeunit(io_data)
-C #endif
-C         ifirst=.false.
-C       endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 
 c      do j=1,jm
 c         do i=1,im
