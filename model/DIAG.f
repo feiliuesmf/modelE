@@ -359,7 +359,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,bbyg,gbyrb,tf
-     *     ,rvap
+     *     ,rvap,gamd
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
@@ -416,7 +416,7 @@ C****
       DOUBLE PRECISION ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,EPSLON,
-     *     ESEPS,FPHI,GAMC,GAMD,GAMM,GAMX,GMEANL,P1,P4,P4I,
+     *     ESEPS,FPHI,GAMC,GAMM,GAMX,GMEANL,P1,P4,P4I,
      &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
      *     PKE,PL,PRQ1,PRT,PSMPT4,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
@@ -774,7 +774,6 @@ C****
       END DO
   570 CONTINUE
 C**** DRY ADIABATIC LAPSE RATE
-      GAMD=.0098
       DO 580 J=1,JM
       TPIL=0.
       DO 575 L=1,LS1-1
@@ -3245,6 +3244,8 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       AIL=0   ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADIURN=0 ; WAVE=0
       AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
+      call reset_ODIAG(isum)
+
       if (isum.eq.1) return
 
       AIJ(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1

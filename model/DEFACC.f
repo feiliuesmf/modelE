@@ -155,7 +155,7 @@ c
       end subroutine set_dparm
 
       subroutine j_defs
-      use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav
+      use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige
       use DAGCOM
       use DAGPCOM, only : p1000k
@@ -755,8 +755,8 @@ c  AJ65
       lname_j(k) = 'MOIST ADIABATIC LAPSE RATE'
       units_j(k) = 'K/km'
       stitle_j(k)= ' GAMM(K/KM)     '
-      scale_j(k) = 1.D3*.0098d0/(SIGE(1)-SIGE(LS1))
-      ia_j(k) = ia_dga    ! check defn of 0.0098
+      scale_j(k) = 1.D3*GAMD/(SIGE(1)-SIGE(LS1))
+      ia_j(k) = ia_dga
 c  AJ66
       k=k+1
       J_GAMC  = k ! GAMC  (K/M)                                   4 DA

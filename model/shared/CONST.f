@@ -154,7 +154,9 @@ c**** SI reference gravity (at 45 deg) = 9.80665
 !@param bygrav 1/grav
       real*8,parameter :: bygrav = 1d0/grav
 
-C**** variables for extrapolating surface pressure to sea level)
+C**** lapse rate related variables
+!@param GAMD dry adiabatic lapse rate (=0.0098 K/m)
+      real*8, parameter :: gamd = grav*kapa/rgas
 !@param BMOIST moist adiabatic lapse rate (K/m)
       real*8, parameter :: bmoist = 0.0065d0
 !@param BBYG moist adiabatic lapse rate divided by grav
@@ -172,49 +174,44 @@ C**** Useful conversion factors
       CONTAINS
 
       SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
-C****
-C**** ORBIT receives the orbital parameters and time of year, and
-C**** returns the distance from the sun and its declination angle.
-C**** The reference for the following calculations is: V.M.Blanco
-C**** and S.W.McCuskey, 1961, "Basic Physics of the Solar System",
-C**** pages 135 - 151.
-C****
-C**** Program authors: Gary L. Russell and Robert J. Suozzo, 12/13/85
-C****
-C****        All computations are in double-precision;
-C****        but the arguments are single-precision.
-C**** Input: OBLIQ = latitude of tropics in degrees
-C****        ECCEN = eccentricity of the orbital ellipse
-C****        OMEGT = angle from vernal equinox to perihelion in degrees
-C****        DAY   = day of the year in days; 0 = Jan 1, hour 0
-C****
-C**** Constants: EDPERY = Earth days per year = 365
-C****            VERQNX = occurence of vernal equinox = day 79 = Mar 21
-C****
-C**** Intermediate quantities:
-C****    PERIHE = perihelion during the year in temporal radians
-C****    MA     = mean anomaly in temporal radians = 2J DAY/365 - PERIHE
-C****    EA     = eccentric anomaly in radians
-C****    TA     = true anomaly in radians
-C****    BSEMI  = semi minor axis in units of the semi major axis
-C****    GREENW = longitude of Greenwich in the Earth's reference frame
-C****
-C**** Output: DIST = distance to the sun in units of the semi major axis
-C****        SDIST = square of DIST
-C****         SIND = sine of the declination angle
-C****         COSD = cosine of the declination angle
-C****       LAMBDA = sun longitude in Earth's rotating reference frame
-C****
-      IMPLICIT NONE
+!@sum ORBIT receives the orbital parameters and time of year, and
+!@+   returns the distance from the sun and its declination angle.
+!@+   The reference for the following calculations is: V.M.Blanco
+!@+   and S.W.McCuskey, 1961, "Basic Physics of the Solar System",
+!@+   pages 135 - 151.
+!@auth Gary L. Russell and Robert J. Suozzo, 12/13/85
 
-      REAL*8 MA,LAMBDA
-      REAL*8 SIND,COSD,SDIST,OBLIQ,ECCN,OMEGT,DAY
-      REAL*8 PI,VERQNX,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
+C**** Input
+!@var OBLIQ = latitude of tropics in degrees
+!@var ECCEN = eccentricity of the orbital ellipse
+!@var OMEGT = angle from vernal equinox to perihelion in degrees
+!@var DAY   = day of the year in days; 0 = Jan 1, hour 0
+
+C**** Constants:
+C**** Note: pi and edpery taken from module
+!@param VERQNX = occurence of vernal equinox = day 79 = Mar 21
+
+C**** Intermediate quantities:
+!@var PERIHE = perihelion during the year in temporal radians
+!@var MA     = mean anomaly in temporal radians = 2J DAY/365 - PERIHE
+!@var EA     = eccentric anomaly in radians
+!@var TA     = true anomaly in radians
+!@var BSEMI  = semi minor axis in units of the semi major axis
+!@var GREENW = longitude of Greenwich in the Earth's reference frame
+
+C**** Output: 
+!@var SDIST = square of distance to the sun in units of semi major axis
+!@var SIND = sine of the declination angle
+!@var COSD = cosine of the declination angle
+!@var LAMBDA = sun longitude in Earth's rotating reference frame (OBS)
+      IMPLICIT NONE
+      REAL*8, PARAMETER :: VERQNX = 79.
+      REAL*8, INTENT(IN) :: OBLIQ,ECCN,OMEGT,DAY
+      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA 
+
+      REAL*8 MA,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
      *     ,SINEA,TA,SUNX,SUNY,GREENW,SINDD
 C****
-      PI = 3.14159265358979D0
-c      EDPERY = 365.
-      VERQNX = 79.
       OMEGA=OMEGT*(PI/180.D0)
       DOBLIQ=OBLIQ*(PI/180.D0)
       ECCEN=ECCN

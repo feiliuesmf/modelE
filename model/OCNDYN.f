@@ -2939,7 +2939,12 @@ C**** Ocean velocities are on C grid
               I=IP1
             END DO
           END DO
-        ELSE
+C**** do poles
+          DO I=1,IMO
+            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)*RATOC(JMO)
+            FIELDO(:,I,  1) = FIELDA(:,1,  1)*RATOC(JMO)
+          END DO
+        ELSE   ! no area weighting
           DO J=1,JMO-1
             I=IMO
             DO IP1=1,IMO
@@ -2947,14 +2952,7 @@ C**** Ocean velocities are on C grid
               I=IP1
             END DO
           END DO
-        END IF
 C**** do poles
-        IF (QCONSERV) THEN
-          DO I=1,IMO
-            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)*RATOC(JMO)
-            FIELDO(:,I,  1) = FIELDA(:,1,  1)*RATOC(JMO)
-          END DO
-        ELSE
           DO I=1,IMO
             FIELDO(:,I,JMO) = FIELDO(:,1,JMO)
             FIELDO(:,I,  1) = FIELDO(:,1,  1)

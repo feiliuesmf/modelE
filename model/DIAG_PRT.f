@@ -382,7 +382,7 @@ c      SCALE(61)=SCALE(20)
 c      SCALE(62)=SCALE(20)
 c      SCALE(63)=100.*BYGRAV
 c      SCALE(64)=1.D3*GRAV
-c      SCALE(65)=1.D3*.0098/(SIGE(1)-SIGE(LS1))
+c      SCALE(65)=1.D3*GAMD/(SIGE(1)-SIGE(LS1))
 c      SCALE(66)=1.D3
 c      SCALE(68)=2.E3*4185./SDAY
       END IF
@@ -4658,7 +4658,7 @@ C****
 C**** Select fields
       kcomp=0
       DO K=1,KAIJK
-        IF (K.ne.IJK_DSE) THEN
+        IF (K.ne.IJK_DSE .and. K.ne.IJK_DP) THEN
           TITLEX = lname_ijk(k)(1:19)//"   at        mb ("//
      *         trim(units_ijk(k))//", UV grid)"
           DO L=1,LM
@@ -4682,7 +4682,7 @@ C**** Select fields
           END DO
           CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
      *         ,SMAP,SMAPJK,UNDEF)
-        ELSE  ! special compound case
+        ELSEIF (K.eq.IJK_DSE) THEN ! special compound case
           kcomp=kcomp+1
           TITLEX = lname_ijk_o(kcomp)(1:19)//"   at        mb ("//
      *         trim(units_ijk_o(kcomp))//", UV grid)"

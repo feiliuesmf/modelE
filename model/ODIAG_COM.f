@@ -39,7 +39,8 @@ C****
 !@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
+      USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
+     *     ,irsfic,irerun,ioread_single,lhead
       USE ODIAG
       IMPLICIT NONE
 
@@ -51,17 +52,38 @@ C****
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDIAG01"
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
+!@var OIJ4,OIJL4,OLNST4,OL4 dummy arrays for reading diag. files
+      REAL*4, DIMENSION(IM,JM,KOIJ)  :: OIJ4
+      REAL*4, DIMENSION(IM,JM,LMO,KOIJL) :: OIJL4
+      REAL*4, DIMENSION(LMO,KOL)   :: OL4
+      REAL*4, DIMENSION(LMO,NMST,KOLNST):: OLNST4
 
       write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
      *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
      *  koijl,'),Ol(',lmo,   ',',kol,'),OLNST(',LMO*NMST*KOLNST,'),it'
    
       SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
+      CASE (IOWRITE,IOWRITE_MON)  ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
+      CASE (IOWRITE_SINGLE)    ! output to acc file
+        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+        WRITE (kunit,err=10) MODULE_HEADER,SNGL(OIJ),SNGL(OIJL),SNGL(OL)
+     *     ,SNGL(OLNST),it
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
+        CASE (ioread_single)    ! accumulate diagnostic files
+          READ (kunit,err=10) HEADER,OIJ4,OIJL4,OL4,OLNST4,it
+C**** accumulate diagnostics
+          OIJ=OIJ+OIJ4
+          OIJL=OIJL+OIJL4
+          OL=OL+OL4
+          OLNST=OLNST+OLNST4
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version",HEADER
+     *           ,MODULE_HEADER
+            GO TO 10
+          END IF
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -170,3 +192,17 @@ C**** Oceanic salt mass
 C****
       RETURN
       END SUBROUTINE init_ODIAG
+
+       SUBROUTINE reset_odiag(isum)
+!@sum reset_odiag zeros out ocean diagnostics if needed
+!@auth G. Schmidt
+!@ver  1.0
+      USE ODIAG_COM, only : 
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: isum
+
+      OIJ=0 ; OIJL=0 ; OL=0 ; OLNST=0
+
+      return
+      end subroutine reset_odiag
+

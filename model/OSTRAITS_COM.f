@@ -90,8 +90,8 @@ C****
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
-     *  i2,a1,i2,a)  'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
-     *  'RSI(',nmst,',2),ms(2,',nmst,'),E+S(',lmi,',',nmst,',2)'
+     *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
+     *     'RSI(',nmst,',2),ms(2,',nmst,'),E+S(',lmi,',',nmst,',2)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
