@@ -1966,7 +1966,7 @@ C**** Weighted average cloud sizes
       END DO
       n=JL_CSIZMC
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(J,L,JL_CLDSS),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n=JL_CSIZSS
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
