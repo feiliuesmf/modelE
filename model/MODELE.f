@@ -902,7 +902,7 @@ C****
 C****        tropospheric temperatures changed by at most 1 degree C
       IF (IRANDI.NE.0) THEN
         CALL RINIT (IRANDI)
-        DO L=1,LS1
+        DO L=1,LS1-1
         DO J=1,JM
         DO I=1,IM
            TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
@@ -945,11 +945,11 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
      *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
         XLABEL = RLABEL                        ! switch to rundeck label
 C****
-!**** IRANDI seed for random perturbation of current state (if/=0)
-C****        perturbation is at most 1 degree C
+!**** IRANDI seed for random perturbation of current state (if/=0):
+C****        tropospheric temperatures are changed by at most 1 degree C
         IF (IRANDI.NE.0) THEN
           CALL RINIT (IRANDI)
-          DO L=1,LM
+          DO L=1,LS1-1
           DO J=1,JM
           DO I=1,IM
              TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
