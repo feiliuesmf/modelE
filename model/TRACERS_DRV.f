@@ -5805,7 +5805,7 @@ C**** lakes
                 trlake(n,2,i,j)=0.
               end if
               gtracer(n,1,i,j)=trw0(n)
-            elseif (fearth(i,j).gt.0) then
+            elseif (fearth(i,j)+flice(i,j).gt.0) then
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
             else
