@@ -340,7 +340,7 @@ c       define O3 to be sent to FASTJ (centers):
         ENDDO
 c       define O3 to be sent to FASTJ (edges):
         O3_FASTJ(1)=y(nO3,1)*O3_1_fact ! see parameter declaration...
-        DO LL=3,2*(LTROPO(I,J)-1)-1,2
+        DO LL=3,2*LTROPO(I,J)-1,2
 c         interpolation factor, based on pressure:
           FASTJ_PFACT=(PFASTJ(LL)-PFASTJ(LL-1))/
      &    (PFASTJ(LL+1)-PFASTJ(LL-1))

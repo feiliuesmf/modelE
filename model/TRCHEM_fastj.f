@@ -208,9 +208,9 @@ c Linear interpolation
         else
           do j=2,51
             if(PFASTJ(i).ge.pstd(j)) then
+              tmpfra = (PFASTJ(i)-pstd(j))/(pstd(j-1)-pstd(j))
 c  Black carbon (assume constant above 80 km)
               if(j.le.41) then
-                tmpfra = (PFASTJ(i)-pstd(j))/(pstd(j-1)-pstd(j))
                 DBC(i) = (bref(j-1)-bref(j))*tmpfra + bref(j)
               else
                 DBC(i) = bref(41)
