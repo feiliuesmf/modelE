@@ -480,6 +480,9 @@ c     endif
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,
      * tno3
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: which_trop
+#endif
 c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
@@ -496,6 +499,10 @@ c Aerosol chemistry
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
+      integer maxl
+#endif
       save ifirst,itopen,iuc
 
 C**** initialise source arrays
@@ -576,8 +583,12 @@ C Initialise
         dms_dens(i,j,l)=0.0D0
         so2_dens(i,j,l)=0.0D0
         so4_dens(i,j,l)=0.0D0
+        maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+        if(which_trop.eq.1)maxl=ls1-1
+#endif
 
-      if(l.le.ltropo(i,j)) then
+      if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -672,7 +683,11 @@ cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
       do 31 j=1,jm
       do 32 i=1,imaxj(j)
 
-      if(l.le.ltropo(i,j)) then
+      maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+      if(which_trop.eq.1)maxl=ls1-1
+#endif
+      if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -1187,11 +1202,14 @@ c can't be more than moles going in:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,pi
       USE TRACER_COM, only:tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
-      USE MODEL_COM, only: im,jm,lm,dtsrc,t,p,coupled_chem
+      USE MODEL_COM, only: im,jm,lm,ls1,dtsrc,t,p,coupled_chem
       USE CLOUDS_COM, only:rhsav
       USE DYNAMICS, only: pmid,am,pk,ltropo
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only : tr3Dsource
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: which_trop
+#endif
 
       IMPLICIT NONE
       integer i,j,l,n,najl
@@ -1204,7 +1222,10 @@ c can't be more than moles going in:
      * pph(ntm),r1,A,B,pp,rr,aa,bb,BA,B2,xx,y,pn,tv,avol,
      * dso4g,dso4gt,tso2,th2o2,sulfout,sulfin,wv,ss,clwc,
      * rkdm(ntm),trmol(ntm),tt1,tt2,tt3,ptr
-
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
+      integer maxl
+#endif
 
       ptr=0.3d0  !um
       DO 19 L=1,LM
@@ -1216,7 +1237,12 @@ C**** initialise source arrays
         tr3Dsource(i,j,l,6,n_SO2)=0.
         tr3Dsource(i,j,l,3,n_H2O2_s)=0.
 
-      if(l.le.ltropo(i,j)) then
+        maxl = ltropo(i,j)
+#ifdef TRACERS_SPECIAL_Shindell
+        if(which_trop.eq.1)maxl=ls1-1
+#endif
+
+      if(l.le.maxl) then
 
       amass=am(l,i,j)*DXYP(j)   !kg
       ppas=pmid(l,i,j)*100.    !Pa
