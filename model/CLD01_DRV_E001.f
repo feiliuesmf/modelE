@@ -9,7 +9,7 @@
       USE E001M12_COM, only : im,jm,lm,idacc,p,u,v,t,q,wm,tofday,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig
       USE SOMTQ_COM
-      USE GEOM
+      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001
       USE CLD01, only : kmax,ra,pl,ple,plk
      *     ,airm,byam,etal,sm,sxm,sym,szm,sxxm,sxym,syym,syzm,szzm,szxm

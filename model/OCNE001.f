@@ -2,7 +2,7 @@
 !@sum  OCEAN contains all the ocean (+ sea ice temporarily) subroutines
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
-!@cont OSTRUC,OCLIM,OCLIM0    (soon ,PRECOO,OSOURC,ODIFF,etc.)
+!@cont OSTRUC,OCLIM,OCLIM0,PREC_OC,PREC_SI,SEA_ICE
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,rhow,rhoi,shw,shi
       USE E001M12_COM, only : im,jm,lm,gdata,focean,flake,fland,fearth
@@ -13,9 +13,10 @@
       USE GEOM
 
       IMPLICIT NONE
-      integer, parameter :: lmom = 9 ! for deep ocean diffusion
+!@param LMOM number of layers for deep ocean diffusion
+      INTEGER, PARAMETER :: LMOM = 9 
+!@var OA generic array for ocean heat transport calculations
       REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
-c      COMMON/WORKO/OA(IM,JM,12)
 
       REAL*8, PARAMETER :: XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5
       REAL*8, PARAMETER :: R1=1./XSI1, R2=1./XSI2, R3=1./XSI3,

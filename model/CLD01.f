@@ -5,7 +5,7 @@
 !@cont MSTCNV_loc,CONDSE_loc
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     !,by3,tf,bytf,rvap,bygrav
-      USE E001M12_COM, only : IM,LM,TAU,BYDSIG
+      USE E001M12_COM, only : IM,LM,TAU
       USE RANDOM
       IMPLICIT NONE
       SAVE
