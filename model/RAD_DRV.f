@@ -388,7 +388,7 @@ C**** set up unit numbers for 14 more radiation input files
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call closeunit(NRFUN(IU))
       END DO
-C**** Multiply selected greenhouse gases by a factor from input if required
+C**** Optionally scale selected greenhouse gases
       IF(CO2.GE.0.) FULGAS(2)=FULGAS(2)*CO2
       IF(CH4.GE.0.) FULGAS(7)=FULGAS(7)*CH4
       IF(H2Ostrat.GE.0.) FULGAS(1)=FULGAS(1)*H2Ostrat
@@ -423,24 +423,7 @@ C****
      *     ,llow,lmid,lhi,coe
       USE RE001
      &  , only : writer,rcompx,rcompt ! routines
-C     INPUT DATA
-     &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
-     &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
-     &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
-     &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
-     &             ,S00WM2,RATLS0,S0,COSZ,PVT
-     &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
-     &             ,hsn,hin,hmp,fmp,flags,LS1rad=>LS1
-C     OUTPUT DATA
-     &             ,TRDFLB ,TRNFLB ,TRFCRL
-     &             ,SRDFLB ,SRNFLB ,SRFHRL
-     &             ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
-     &             ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
-     &             ,BTEMPW
-C     Some Aerosol Control Parameters not currently referenced
-c    &             ,QXAERO ,QSAERO ,QCAERO ,ATAERO
-c    &             ,QAER55 ,REAERO ,VEAERO ,ROAERO ,PI0MAX
-c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
+     &           ,lx  ! for threadprivate common blocks
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -464,6 +447,23 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE LAKES_COM, only : flake
       USE FLUXES, only : gtemp
       IMPLICIT NONE
+C
+      include 'BR00B.COM_interface_mod'
+      include 'BR00B.COM_wrk'
+C     INPUT DATA
+c    &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
+c    &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
+c    &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
+c    &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
+c    &             ,S00WM2,RATLS0,S0,COSZ,PVT
+c    &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
+c    &             ,hsn,hin,hmp,fmp,flags,LS1_loc
+C     OUTPUT DATA
+c    &             ,TRDFLB ,TRNFLB ,TRFCRL
+c    &             ,SRDFLB ,SRNFLB ,SRFHRL
+c    &             ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
+c    &             ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
+c    &             ,BTEMPW
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW
       REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
@@ -477,6 +477,10 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY
      *     ,MSTRAT,STRATQ,STRJ,MSTJ
       REAL*8 QSAT
+C
+      REAL*8  RDSS(LM,IM,JM),RDMC(IM,JM), AREGIJ(IM,JM,7)
+      INTEGER ICKERR,JCKERR
+C
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -528,11 +532,32 @@ C**** Calculate mean strat water conc
           MSTRAT=MSTRAT+MSTJ
         END DO
         PRINT*,"Strat water vapour (ppmv), mass (mb)",1d6*STRATQ*mair
-     *       /(18.*MSTRAT),PMTOP+1d-2*GRAV*MSTRAT/AREAG 
+     *       /(18.*MSTRAT),PMTOP+1d-2*GRAV*MSTRAT/AREAG
       END IF
+C
+C     GET THE RANDOM NUMBERS OUTSIDE PARALLEL REGIONS
+C
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DO I=1,IMAX
+         RANDSS    = RANDU(X)
+         RDMC(I,J) = RANDU(X)
+         DO L=1,LM
+           IF(CLDSS(L,I,J).EQ.0.)  RANDSS=RANDU(X)
+           RDSS(L,I,J) = RANDSS
+         END DO
+      END DO
+      END DO
 C****
 C**** MAIN J LOOP
 C****
+      ICKERR=0
+      JCKERR=0
+C$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH, ELHX,
+C$OMP*   I,IMAX,IM1,INCH,IH,IT, J, K,KR, L,LR, OPNSKY,
+C$OMP*   PLAND,PIJ, QSS, RANDSS,RANDMC, TOTCLD,TAUSSL,TAUMCL)
+C$OMP*   COPYIN(/RADCOM_local/,/RADCOM_out/,/WORKER1/)
+C$OMP    DO REDUCTION(+:ICKERR,JCKERR)  SCHEDULE(DYNAMIC,2)
       DO 600 J=1,JM
       IMAX=IMAXJ(J)
       JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
@@ -541,7 +566,7 @@ C**** MAIN I LOOP
 C****
       IM1=IM
       DO I=1,IMAX
-         JR=JREG(I,J)
+CCC      JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
       POICE=RSI(I,J)*(1.-PLAND)
@@ -549,12 +574,13 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
 C****
-      LS1rad=LTROPO(I,J)+1  ! define stratosphere for radiation
+      LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
-      RANDSS=RANDU(X)
-      RANDMC=RANDU(X)
+CCC   RANDSS=RANDU(X)   ! may be layer dependent
+CCC   RANDMC=RANDU(X)
+      RANDMC=RDMC(I,J)
          CSS=0.
          CMC=0.
          DEPTH=0.
@@ -565,7 +591,8 @@ C****
       IF(CLDSAV(L,I,J).LT.1.)
      *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
       TL(L)=T(I,J,L)*PK(L,I,J)
-      IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
+CCC   IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
+      RANDSS=RDSS(L,I,J)
       TAUSSL=0.
       TAUMCL=0.
       TAUWC(L)=0.
@@ -616,10 +643,14 @@ C****
            AJ(J,J_CDLDEP,IT)=AJ(J,J_CDLDEP,IT)+DEPTH*FTYPE(IT,I,J)
            AJ(J,J_PCLD  ,IT)=AJ(J,J_PCLD  ,IT)+CLDCV*FTYPE(IT,I,J)
          END DO
-         AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
-         AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
-         AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+DEPTH*DXYP(J)
-         AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
+CCC      AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
+CCC      AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
+CCC      AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+DEPTH*DXYP(J)
+CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
+         AREGIJ(I,J,1)=CSS  *DXYP(J)
+         AREGIJ(I,J,2)=CMC  *DXYP(J)
+         AREGIJ(I,J,3)=DEPTH*DXYP(J)
+         AREGIJ(I,J,4)=CLDCV*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO 250 L=1,LLOW
@@ -672,7 +703,8 @@ C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
          WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TL(L)
          WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
-         STOP 'In Radia: Temperature out of range'
+CCC      STOP 'In Radia: Temperature out of range'
+         ICKERR=ICKERR+1
       END IF
 C**** MOISTURE VARIABLES
 C---- QL(L)=Q(I,J,L)        ! already defined
@@ -683,7 +715,8 @@ C****
       DO K=1,LM_REQ
         IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
         WRITE(99,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
-        STOP 'In Radia: RQT out of range'
+CCC     STOP 'In Radia: RQT out of range'
+        JCKERR=JCKERR+1
         END IF
         TL(LM+K)=RQT(K,I,J)
       END DO
@@ -710,6 +743,7 @@ C**** set up parameters for new sea ice albedo
         hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
 C****
+         AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       if (wearth.gt.1.) wearth=1.
       DO K=1,11
@@ -758,11 +792,17 @@ C**** Save clear sky/tropopause diagnostics here
         AJ(J,J_TOTTRP,IT)=AJ(J,J_TOTTRP,IT)+(SRNFLB(LTROPO(I,J))
      *     *COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J)
       END DO
-      AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
+CCC   AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
+CCC  *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*DXYP(J)
+CCC   AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
+CCC  *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+CCC   AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
+CCC  *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
+      AREGIJ(I,J,5)=OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *COSZ2(I,J)-TRNFLB(LM+LM_REQ+1))*DXYP(J)
-      AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
+      AREGIJ(I,J,6)=OPNSKY*
      *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
-      AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
+      AREGIJ(I,J,7)=
      *     (SRNFLB(LTROPO(I,J))*COSZ2(I,J)-TRNFLB(LTROPO(I,J)))*DXYP(J)
 C****
       IM1=I
@@ -771,6 +811,29 @@ C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
   600 CONTINUE
+C$OMP  END DO
+C$OMP  END PARALLEL
+CcOMP  END PARALLEL DO
+C
+C     WAS THERE AN ERROR ??
+C
+      IF(ICKERR.GT.0)  STOP 'In Radia: Temperature out of range'
+      IF(JCKERR.GT.0)  STOP 'In Radia: RQT out of range'
+C
+      DO J=1,JM
+      IMAX=IMAXJ(J)
+      DO I=1,IMAX
+         JR=JREG(I,J)
+         AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(I,J,1)
+         AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(I,J,2)
+         AREG(JR,J_CDLDEP)=AREG(JR,J_CDLDEP)+AREGIJ(I,J,3)
+         AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +AREGIJ(I,J,4)
+         AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+AREGIJ(I,J,5)
+         AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+AREGIJ(I,J,6)
+         AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+AREGIJ(I,J,7)
+      END DO
+      END DO
+C
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
@@ -866,7 +929,6 @@ C****
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
-         AIJ(I,J,IJ_FRMP)   =AIJ(I,J,IJ_FRMP)   +fmp*POICE
   770    CONTINUE
   780    CONTINUE
          DO L=1,LM
@@ -924,12 +986,13 @@ C**** daily diagnostics
       INTEGER iu,n,k
       CHARACTER*80 title
 
-      do n=1,4
+      do n=1,5
       read(iu,'(a)') title
       write(*,*) title
       end do
+      if(title(1:2).eq.'--') read(iu,'(a)') title ! older format
 
-      read(iu,*) ghgyr1,(ghgam(k,1),k=1,nghg)
+      read(title,*) ghgyr1,(ghgam(k,1),k=1,nghg)
       do n=2,nyrsghg
         read(iu,*,end=20) ghgyr2,(ghgam(k,n),k=1,nghg)
         do k=1,nghg
