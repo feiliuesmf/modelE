@@ -351,8 +351,10 @@ C--------------------------------------------------------
 !@var etc etc
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
+!@var O3_OUT column variable for exporting ozone field to rest of model
 
       real*8  :: TRDFLB,TRUFLB,TRNFLB ! etc,etc
+     &           ,O3_OUT
       integer :: LBOTCL,LTOPCL
 
       COMMON/RADPAR_OUTPUT_IJDATA/
@@ -369,6 +371,7 @@ C--------------------------------------------------------
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
      L             ,LBOTCL,LTOPCL
+     M             ,O3_OUT(LX)
 !$OMP  THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
       EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
@@ -1870,6 +1873,7 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT)
       CALL REPART(O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1,U0GAS(1,3),PLB0,NL+1)
+      O3_OUT(:)=U0GAS(:,3) ! to save 3D ozone field in SUBR. RADIA
                       CALL GETGAS
 C--------------------------------
 
