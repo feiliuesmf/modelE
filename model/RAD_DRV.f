@@ -815,10 +815,9 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp,nstype
-      USE DOMAIN_DECOMP, ONLY: grid,write_parallel
+      USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
-      USE DOMAIN_DECOMP, ONLY: CHECKSUM
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
@@ -829,6 +828,8 @@ C     OUTPUT DATA
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
+      REAL*8 :: sumda_psum(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: tauda_psum(grid%J_STRT_HALO:grid%J_STOP_HALO)
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
@@ -874,8 +875,9 @@ C
      &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
       REAL*8 :: ADIURNSUM,HDIURNSUM
       INTEGER ICKERR,JCKERR,KCKERR
-      INTEGER :: I_0, I_1, J_0, J_1
+      INTEGER :: J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       REAL*8 :: DUM_IL_REQ(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
       REAL*8 :: DUM_IL_J50(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
       REAL*8 :: DUM_IL_J70(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
@@ -887,8 +889,8 @@ C
       character(len=300) :: out_line
 C
 C****
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       J_0 = grid%J_STRT
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
@@ -984,19 +986,30 @@ C*********************************************************
       S0=S0X*S00WM2*RATLS0/RSDIST
 
 c**** find scaling factors for surface albedo reduction
-      sumda=im*dxyp(1)+im*dxyp(jm)*rsi(1,jm)
-      tauda=im*dxyp(1)*depobc_1990(1,1) +
-     *      im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
-      do j=2,jm-1
+      IF (HAVE_SOUTH_POLE) THEN
+         sumda_psum(1)=im*dxyp(1)
+         tauda_psum(1)=im*dxyp(1)*depobc_1990(1,1) 
+      End If
+      do j=J_0S,J_1S
          JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
+         sumda_psum(j)=0
+         tauda_psum(j)=0
          do i=1,im
            ILON=INT(.5+(I-.5)*72./IM+.5)
            fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
            if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
-           sumda = sumda + dxyp(j)*fsnow
-           tauda = tauda + dxyp(j)*fsnow*depobc_1990(ilon,jlat)
+           sumda_psum(j) = sumda_psum(j) + dxyp(j)*fsnow
+           tauda_psum(j) = tauda_psum(j) + 
+     &          dxyp(j)*fsnow*depobc_1990(ilon,jlat)
          end do
       end do
+      IF (HAVE_NORTH_POLE) THEN
+         sumda_psum(JM)=im*dxyp(jm)*rsi(1,jm)
+         tauda_psum(JM)=im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
+      END IF
+      CALL GLOBALSUM(grid, sumda_psum,sumda,polefirst=.true.,all=.true.)
+      CALL GLOBALSUM(grid, tauda_psum,tauda,polefirst=.true.,all=.true.)
+      
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
 
@@ -1056,7 +1069,7 @@ C force random number generation for all latitudes for parallel consistency
           END DO
         END DO
       END DO
-      CALL HERE(__FILE__//'::RANDU',__LINE__)
+
       DO J=J_0,J_1                    ! semi-random overlap
       DO I=1,IMAXJ(J)
         NO_CLOUD_ABOVE = .TRUE.
