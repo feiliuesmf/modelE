@@ -1166,9 +1166,9 @@ C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10) "QUS01  ",TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ
      *        ,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ
          WRITE (kunit,err=10) "RAD01  ",S0X,CO2,RQT,SRHR,TRHR,FSF
-         WRITE (kunit,err=10) "DAG01  ",TSFREZ,AJ,BJ,CJ,RJ,APJ,AJL,ASJL
-     *        ,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK
-     *        ,AIJK,AIJL,AJLSP,TDIURN,KEYNR  
+         WRITE (kunit,err=10) "DAG01  ",TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL
+     *        ,ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE
+     *        ,AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR  
          WRITE (kunit,err=10) TAU
          ioerr=-1
       case (ioread:)
@@ -1187,9 +1187,9 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) HEADER,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      *        QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ
          READ (kunit,err=10) HEADER,S0X,CO2,RQT,SRHR,TRHR,FSF
-         READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,RJ,APJ,AJL,ASJL,AIJ
-     *        ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,AIJK
-     *        ,AIJL,AJLSP,TDIURN,KEYNR 
+         READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL
+     *        ,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK
+     *        ,AIJK,AIJL,AJLSP,TDIURN,KEYNR 
          READ (kunit,err=10) TAU2
          IF (TAU1.ne.TAU2) THEN
             STOP "PROBLEM READING RSF FILE"

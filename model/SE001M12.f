@@ -26,7 +26,7 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : omega2,zgs
-      USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,rj,ajl,adaily,jreg
+      USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pedn,pek
       USE OCEAN, only : OA,ODATA,XSI1,XSI2,Z1I,ACE1I,TFO
 
@@ -597,12 +597,12 @@ C**** ACCUMULATE DIAGNOSTICS
 C****
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          IF(JR.EQ.24) GO TO 5700
-         RJ(JR,9)=RJ(JR,9)+TRHDTS*DXYPJ
-         RJ(JR,13)=RJ(JR,13)+SHDTS*DXYPJ
-         RJ(JR,14)=RJ(JR,14)+EVHDTS*DXYPJ
-         RJ(JR,19)=RJ(JR,19)+EVAPS*DXYPJ
+         AREG(JR,9)=AREG(JR,9)+TRHDTS*DXYPJ
+         AREG(JR,13)=AREG(JR,13)+SHDTS*DXYPJ
+         AREG(JR,14)=AREG(JR,14)+EVHDTS*DXYPJ
+         AREG(JR,19)=AREG(JR,19)+EVAPS*DXYPJ
          IF(MODDSF.NE.0) GO TO 5700
-         RJ(JR,23)=RJ(JR,23)+(TSS-TFS)*DXYPJ
+         AREG(JR,23)=AREG(JR,23)+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
  5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
          IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
