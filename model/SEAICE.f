@@ -1490,6 +1490,7 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif
+      USE LAKES_COM, only : flake
       USE FLUXES
       IMPLICIT NONE
 
@@ -1520,6 +1521,7 @@ C**** Check for reasonable values for ice variables
      *           ,MSI(I,J)
             QCHECKI = .TRUE.
           END IF
+          IF ( (FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
           DO L=1,LMI
             IF (L.le.2) TICE = (HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
      *           +LHM)/SHI
@@ -1544,6 +1546,7 @@ C**** Check for reasonable values for ice variables
             WRITE(6,*) 'After ',SUBR,': I,J,MSI=',I,J,MSI(I,J),RSI(I,J)
 c            QCHECKI = .TRUE.
           END IF
+          END IF
         END DO
       END DO
 
@@ -1553,7 +1556,7 @@ C**** check negative tracer mass
         if (t_qlimit(n)) then
         do j=1,jm
           do i=1,imaxj(j)
-            if (rsi(i,j).gt.0) then
+            if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               do l=1,lmi
                 if (trsi(n,l,i,j).lt.0.) then
                   print*,"Neg Tracer in sea ice after ",subr,i,j,l,
@@ -1571,7 +1574,7 @@ C**** Check conservation of water tracers in sea ice
           errmax = 0. ; imax=1 ; jmax=1
           do j=1,jm
           do i=1,imaxj(j)
-            if (rsi(i,j).gt.0) then
+            if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
               relerr=max(
      *             abs(trsi(n,1,i,j)-(snowi(i,j)+ace1i)*xsi(1)+ssi(1,i,j
      *             ))/trsi(n,1,i,j),abs(trsi(n,2,i,j)-(snowi(i,j)+ace1i)

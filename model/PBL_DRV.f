@@ -285,7 +285,7 @@ c -------------------------------------------------------------
       USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : rsi,snowi
       USE FLUXES, only : gtemp
 
       IMPLICIT NONE
@@ -319,6 +319,8 @@ C things to be done regardless of inipbl
 
       do j=1,jm
         do i=1,im
+C**** fix roughness length for ocean ice that turned to land ice
+          if (snowi(i,j).lt.-1.and.flice(i,j).gt.0) roughl(i,j)=1.84d0
           if (fland(i,j).gt.0.and.roughl(i,j).eq.0) then
             print*,"Roughness length not defined for i,j",i,j
      *           ,roughl(i,j),fland(i,j),flice(i,j)

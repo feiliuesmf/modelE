@@ -13,7 +13,7 @@
      *     ,ItimeI,kocean,itocean,itoice
       USE GEOM
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs
-     *     ,cq=>cqgs,ipbl
+     *     ,cq=>cqgs,ipbl,roughl
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -417,6 +417,9 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       TLANDI(2,I,J)=(TLANDI(2,I,J)*PLICE+
      *     ((HSI(3,I,J)+HSI(4,I,J))/MSI(I,J)+LHM)*BYSHI*POICE+
      *     (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
+C**** Always define a new roughness length (to prevent restart problems)
+      ROUGHL(I,J)=1.84d0 ! typical for Antarctica
+C****
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
       FOCEAN(I,J)=0.
