@@ -2573,7 +2573,6 @@ C** for spectral dispersion effects on droplet size distribution
         RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE
 #ifdef CLD_AER_CDNC  !save for diag purposes
-#ifdef CLD_AER_CDNC  !save for diag purposes
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
             ACDNWS(L)= SCDNCW
             AREWS(L) = RCLDE
