@@ -47,6 +47,7 @@ SETUP_GFDL = $(SCRIPTS_DIR)/setup_e_gfdl.pl
 CPP = $(NO_COMMAND)
 MACHINE = not_specified
 LIBS =
+INCS =
 F90_VERSION = 'Unknown compiler version'
 
 UNAME = $(shell uname)
@@ -73,8 +74,8 @@ ifeq ($(VERBOSE_OUTPUT),NO)
 LFLAGS += -LD_MSG:OFF=84,85,15,134
 endif
 # uncomment next two lines for extra debugging
-#FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
-#LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
 # not sure if the following will help the debugging ...
 # FFLAGS += -DEBUG:verbose_runtime=ON
 # LFLAGS += -DEBUG:verbose_runtime=ON
@@ -212,6 +213,7 @@ else
   LIBS += -L$(NETCDFHOME)/lib -lnetcdf
 endif
   FFLAGS += -I$(NETCDFHOME)/include
+  INCS += -I $(NETCDFHOME)/include
 endif
 
 #

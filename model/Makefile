@@ -189,7 +189,7 @@ else
 endif
 endif
 	@echo 'running fmakedep'
-	@$(FMAKEDEP) -i $(NETCDFHOME)/include -f $(DEPENDFILE)_tmp $(FSRCS_CPP) 
+	@$(FMAKEDEP) $(INCS) -f $(DEPENDFILE)_tmp $(FSRCS_CPP) 
 	@cat $(DEPENDFILE)_tmp >> $(DEPENDFILE)
 	@rm -f $(FSRCS_CPP) $(DEPENDFILE)_tmp
 	@echo '---------         done with dependencies             ---------'
