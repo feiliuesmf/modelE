@@ -137,6 +137,9 @@ config configure:
 	echo '~/.modelErc already exists, use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
 	@cp -f $(SCRIPTS_DIR)/modelErc $(MODELERC)
+	@if [[ `hostname` = *'giss.nasa.gov' ]]; then \
+	sed "s/MAILTO=/MAILTO=`whoami`@giss.nasa.gov/" < $(MODELERC) > \
+	$(MODELERC).tmp; mv -f $(MODELERC).tmp $(MODELERC); fi
 	@echo '$(MODELERC) created.'
 	@echo 'You may want to edit it manually to customize the options.'
 
