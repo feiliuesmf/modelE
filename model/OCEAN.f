@@ -891,15 +891,20 @@ C****
 !@sum  ADVSI_DIAG adjust diagnostics + mlhc for qflux
 !@auth Gavin Schmidt
       USE CONSTANT, only : shw,rhows
-      USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean
+      USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean,itime
+     *     ,jmon
       USE GEOM, only : dxyp,imaxj
-      USE STATIC_OCEAN, only : tocean,z1o
-      USE SEAICE_COM, only : rsi
+      USE STATIC_OCEAN, only : tocean,z1o,z12o
+      USE SEAICE, only : ace1i,lmi
+      USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
+#ifdef TRACERS_WATER
+     *     ,trsi
+#endif
       USE FLUXES, only : fwsim,msicnv,mlhc
-      USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg
+      USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg,aij,IJ_SMFX
       IMPLICIT NONE
       INTEGER I,J,JR
-      REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN
+      REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
 
       IF (KOCEAN.eq.1) THEN   ! qflux model
       DO J=1,JM
@@ -912,6 +917,37 @@ C****
           TGW  = TOCEAN(1,I,J)
           RUN4  = MSICNV(I,J)
           ERUN4 = TGW*SHW*RUN4
+C**** Ensure that we don't run out of ocean if ice gets too thick
+          IF (POICE.GT.0) THEN
+            Z1OMIN=1.+FWSIM(I,J)/RHOWS
+            IF (Z1OMIN.GT.Z1O(I,J)) THEN
+C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
+              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
+ 602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
+              Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
+              IF (Z1OMIN.GT.Z12O(I,J)) THEN
+C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
+C****       lose the excess mass to the deep ocean
+C**** Calculate freshwater mass to be removed, and then any energy/salt
+                MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
+     *               -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
+                HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
+                SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+#ifdef TRACERS_WATER
+                TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+#endif
+                AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+RSI(I,J)*(MSINEW-MSI(I
+     *               ,J))
+                AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)-FOCEAN(I,J)
+     *               *RSI(I,J)*(MSINEW-MSI(I,J))
+                AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
+     *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
+                MSI(I,J)=MSINEW
+                FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)
+     *               -SUM(SSI(1:LMI,I,J)))
+              END IF
+            END IF
+          END IF
           MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
 C**** Open Ocean diagnostics
           AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
