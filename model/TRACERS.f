@@ -753,9 +753,31 @@ C****
       real*8 co2_src(im,jm,6)
       END MODULE CO2_SOURCES
 
+      subroutine daily_tracer(iact)
+!@sum daily_tracer is called once a day for tracers
+!@auth Jean Lerner
+C**** Note this routine must always exist (but can be a dummy routine)
+      USE TRACER_COM, only : ntm,trname
+      IMPLICIT NONE
+      INTEGER n,iact
+
+C**** Initialize tracers here to allow for tracers that 'turn on'
+C****  at any time
+      do n=1,ntm
+        call tracer_IC(trname(n))
+      end do
+
+C**** Tracer specific call for CO2
+      do n=1,ntm
+        if (trname(n).eq."CO2") call read_CO2_sources(n,iact)
+      end do
+      return
+C****
+      end subroutine daily_tracer
+
 
       subroutine read_CO2_sources(nt,iact)
-!@sum Read in CO2 sources and sinks
+!@sum reads in CO2 sources and sinks
 !@auth Jean Lerner
 C****
 C**** There are two monthly sources and 4 annual sources
@@ -876,8 +898,6 @@ C**** Sources are added once/hr; convert kg/sec to kg
       src(:,:,5:6) = src(:,:,5:6)*DTsrc
       return
       end subroutine read_CO2_sources
-
-
 
       SUBROUTINE tracer_source(tname)
 !@sum tracer_source adds sources and sinks to tracers

@@ -71,10 +71,10 @@ C**** INITIALIZE TIME PARAMETERS
       CALL daily_EARTH(0)
       CALL daily_OCEAN(0)
       CALL CALC_AMPK(LS1-1)
-         CALL CHECKT ('INPUT ')
 #ifdef TRACERS_ON
-      CALL read_CO2_sources(n_co2,0)  ! THIS IS A TRACER-SPECIFIC CALL
+      CALL daily_tracer(0)
 #endif
+         CALL CHECKT ('INPUT ')
 
       WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
@@ -131,14 +131,6 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
         call daily_DIAG
-#ifdef TRACERS_ON
-!**** Initialize tracers here to allow for tracers that 'turn on'
-!****  at any time; This could be moved out of MAIN loop, depending
-      do n=1,ntm
-        call tracer_IC(trname(n))
-      end do
-      call read_CO2_sources(n_co2,1)  ! a tracer-specific call
-#endif
       END IF
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
@@ -282,6 +274,9 @@ C****
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAGCA (10)
+#ifdef TRACERS_ON
+        call daily_tracer(1)
+#endif
         call sys_flush(6)
       END IF
 C****
@@ -339,6 +334,7 @@ C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C****    done at the end of (selected) months
       IF (months.ge.NMONAV .and.   ! next 2 conditions are rarely needed
      *    JDAY.eq.1+JDendOfM(JMON-1) .and. MOD(Itime,NDAY).eq.0) THEN
+
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
 c       WRITE (6,'("1"/64(1X/))')
         IF (KDIAG(1).LT.9) CALL DIAGJ
@@ -617,6 +613,12 @@ C**** Print preprocessing options (if any are defined)
 C****
 #ifdef TRACERS_ON
       write(6,*) 'This program includes tracers code'
+#endif
+#ifdef TRACERS_WATER 
+      write(6,*) 'This program includes water tracer code'
+#ifndef TRACERS_ON
+      STOP 'Water tracers need TRACERS_ON as well as TRACERS_WATER'
+#endif
 #endif
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be

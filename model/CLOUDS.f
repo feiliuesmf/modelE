@@ -6,11 +6,11 @@
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha
-     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat
-      USE MODEL_COM, only : IM,LM,DTsrc
+     *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny
+      USE MODEL_COM, only : im,lm,dtsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM
+      USE TRACER_COM, only: ntm
 #endif
       USE RANDOM
       IMPLICIT NONE
@@ -24,6 +24,8 @@ C**** parameters and constants
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
       REAL*8, PARAMETER :: SLHS=LHS*BYSHA
+!@param FCLW fraction of condensate in plume that remains as CLW
+      REAL*8, PARAMETER :: FCLW=0.5 
 
       REAL*8 :: BYBR,BYDTsrc,XMASS
 !@var BYBR factor for converting cloud particle radius to effect. radius
@@ -97,6 +99,14 @@ C**** new arrays must be set to model arrays in driver (after COND)
 !@var NTIX: Indicies of tracers used in convection
       integer, dimension(ntm) :: ntix 
       integer ntx
+#ifdef TRACERS_WATER
+!@var TRWML Vertical profile of liquid water tracers (kg)
+!@var TRSVWML New liquid water tracers from m.c. (kg) 
+      REAL*8, DIMENSION(LM,NTM) :: TRWML, TRSVWML
+!@var TRPRSS super-saturated tracer precip (kg)
+!@var TRPRMC moist convective tracer precip (kg)
+      REAL*8, DIMENSION(NTM)    :: TRPRSS,TRPRMC
+#endif
 #endif
 
 !@var KMAX index for surrounding velocity
@@ -165,6 +175,11 @@ C**** functions
       DOUBLE PRECISION, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
       DOUBLE PRECISION, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
       DOUBLE PRECISION, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
+#ifdef TRACERS_WATER
+      DOUBLE PRECISION, DIMENSION(NTM)      :: TRPRCP
+      DOUBLE PRECISION, DIMENSION(NTM,LM)   :: TRCOND
+      DOUBLE PRECISION DTSUM
+#endif
 #endif
 
       REAL*8, DIMENSION(LM) ::
@@ -201,7 +216,7 @@ C**** functions
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
      *     ,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA,FEVAP,FLEFT
-     *     ,FQCOND,FSEVP,FSSUM,HEAT1
+     *     ,FQCOND,FQEVP,FPRCP,FSEVP,FSSUM,HEAT1
      *     ,PRHEAT,PRCP
      *     ,QMDN,QMIX,QMPMAX,QMPT,QNX,QSATC,QSATMP
      *     ,RCLD,RCLDE,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ
@@ -234,9 +249,11 @@ C**** functions
 !@var FENTRA fraction of entrainment
 !@var FEVAP fraction of air available for precip evaporation
 !@var FLEFT fraction of plume after removing downdraft mass
-!@var FQCOND
-!@var FSEVP
-!@var FSSUM
+!@var FQCOND fraction of water vapour that condenses in plume
+!@var FQEVP fraction of water vapour that evaporates in downdraft
+!@var FPRCP fraction of evaporated precipitation
+!@var FSEVP fraction of energy lost to evaporate
+!@var FSSUM fraction of energy lost to evaporate
 !@var HEAT1 heating due to phase change
 !@var PRHEAT energy of condensate
 !@var PRCP precipipation
@@ -289,6 +306,11 @@ C**** initiallise arrays of computed ouput
       PRCPMC=0.
       SVTP=0
       CSIZEL=10.    !  effective droplet radius in stem of convection
+#ifdef TRACERS_WATER
+      trsvwml = 0.
+      TRPRCP = 0.
+      TRPRMC = 0.
+#endif
 C**** zero out diagnostics
          AJ8 =0.
          AJ13=0.
@@ -431,6 +453,9 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DTMOM(:,:,1:NTX) = 0.
       DTMR(:,1:NTX) = 0.
       DTMOMR(:,:,1:NTX) = 0.
+#endif
+#ifdef TRACERS_WATER
+      TRCOND = 0.
 #endif
       MC1=.FALSE.
       LHX=LHE
@@ -672,7 +697,7 @@ C****
   292 DQSUM=DQSUM+DQ
       IF(DQSUM.GE.0.) THEN
       FQCOND = 0
-      IF (QMPT.gt.1d-20) FQCOND = DQSUM/QMPT
+      IF (QMPT.gt.teeny) FQCOND = DQSUM/QMPT
        QMOMP(xymoms) =  QMOMP(xymoms)*(1.-FQCOND)
       ELSE  ! no change
         DQSUM=0.
@@ -680,6 +705,12 @@ C****
         QMP=QMPT
       END IF
       COND(L)=DQSUM
+#ifdef TRACERS_WATER
+C**** CONDENSING TRACERS
+      TRCOND(1:NTX,L) = FQCOND * TMP(1:NTX)
+      TMP(1:NTX)         = TMP(1:NTX)         *(1.-FQCOND)
+      TMOMP(xymoms,1:NTX)= TMOMP(xymoms,1:NTX)*(1.-FQCOND)
+#endif
       TAUMCL(L)=TAUMCL(L)+DQSUM
       CDHEAT(L)=SLH*COND(L)
       CDHSUM=CDHSUM+CDHEAT(L)
@@ -760,14 +791,21 @@ C     DQEVP=DQ*DDRAFT
       IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
       IF (L.LT.LMIN) DQEVP=0.
       FSEVP = 0
-      IF (ABS(PLK(L)*SMDN).gt.1d-20) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
+      IF (ABS(PLK(L)*SMDN).gt.teeny) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
       SMDN=SMDN-SLH*DQEVP/PLK(L)
       SMOMDN(xymoms)=SMOMDN(xymoms)*(1.-FSEVP)
+      FQEVP = 0
+      IF (COND(L).gt.0.) FQEVP = DQEVP/COND(L)
       QMDN=QMDN+DQEVP
       COND(L)=COND(L)-DQEVP
       TAUMCL(L)=TAUMCL(L)-DQEVP
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
       EVPSUM=EVPSUM+DQEVP*SLH
+#ifdef TRACERS_WATER
+C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
+      TMDN(1:NTX) = TMDN(1:NTX) + FQEVP*TRCOND(1:NTX,L)
+      TRCOND(1:NTX,L) = TRCOND(1:NTX,L)*(1.+FQEVP)
+#endif
 C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
         DDRUP=DDRAFT
@@ -946,15 +984,26 @@ C****
       LEVAP=LMAX-1
       IF(MC1.AND.PLE(LMIN)-PLE(LMAX+1).GE.450.) LEVAP=LMIN+2
       IF(LMAX-LEVAP.GT.1) THEN
-      DO 488 L=LMAX,LEVAP+2,-1
-C        AJ52(L)=AJ52(L)+CDHEAT(L)
-      SVWMXL(L)=0.5000000*COND(L)*BYAM(L)
-  488 COND(L)=COND(L)*0.5000000
+        DO L=LMAX,LEVAP+2,-1
+C         AJ52(L)=AJ52(L)+CDHEAT(L)
+          SVWMXL(L)=FCLW*COND(L)*BYAM(L)
+          COND(L)=COND(L)*(1.-FCLW)
+#ifdef TRACERS_WATER
+C**** Apportion cloud tracers and condensation
+C**** Note that TRSVWML is in mass units unlike SVWMX
+          TRSVWML(1:NTX,L) = FCLW*TRCOND(1:NTX,L)
+          TRCOND(1:NTX,L) = (1.-FCLW)*TRCOND(1:NTX,L)
+#endif
+        END DO
       END IF
       LEVAP=LMAX-1
 C     IF(LMAX-LMIN.LE.2) GO TO 700
       PRCP=COND(LEVAP+1)
       PRHEAT=CDHEAT(LEVAP+1)
+#ifdef TRACERS_WATER
+C**** Tracer precipiation
+      TRPRCP(1:NTX) = TRCOND(1:NTX,LEVAP+1)
+#endif
 C     FEVAP=.5*FPLUME
 C     IF(FEVAP.GT.1.) FEVAP=1.
          AJ50(LMAX)=AJ50(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
@@ -1016,15 +1065,24 @@ C     IF(QN-QSATC.LE.0.) GO TO 520
   510 DQSUM=DQSUM+DQ*MCLOUD
       IF(DQSUM.LT.0.) DQSUM=0.
       IF(DQSUM.GT.PRCP) DQSUM=PRCP
+      FPRCP=DQSUM/PRCP
       PRCP=PRCP-DQSUM
 C     IF(PRCP.GT.EVAP) PRCP=EVAP
 C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       FSSUM = 0
-      IF (ABS(PLK(L)*SM(L)).gt.1d-20) FSSUM = (SLH*DQSUM+HEAT1)/
+      IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
      *     (PLK(L)*SM(L))
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)
        SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM
+#ifdef TRACERS_WATER
+C**** Tracer net re-evaporation
+      DO N=1,NTX
+        DTSUM = FPRCP*TRPRCP(N)
+        TRPRCP(N)= TRPRCP(N)-DTSUM
+        TM(L,N)  = TM(L,N)  +DTSUM
+      END DO
+#endif
          FCDH1=0.
 C        IF(L.EQ.LDEP) FCDH1=FCDH1+CDHM
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
@@ -1033,10 +1091,16 @@ C        IF(L.EQ.LDEP) FCDH1=FCDH1+CDHM
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
   530 PRHEAT=CDHEAT(L)+SLH*PRCP
       PRCP=PRCP+COND(L)
+#ifdef TRACERS_WATER
+      TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
+#endif
   540 CONTINUE
 C****
       IF(PRCP.GT.0.) CLDMCL(1)=CLDMCL(1)+CCM(LMIN)*BYAM(LMIN+1)
       PRCPMC=PRCPMC+PRCP
+#ifdef TRACERS_WATER
+      TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)
+#endif
       IF(LMCMIN.GT.LDMIN) LMCMIN=LDMIN
 C****
 C**** END OF LOOP OVER CLOUD TYPES
@@ -1140,15 +1204,27 @@ C**** CALCULATE OPTICAL THICKNESS
       REAL*8, DIMENSION(LM+1) :: PREBAR,PREICE
 !@var PREBAR,PREICE precip entering layer top for total, snow
 
+#ifdef TRACERS_WATER
+!@var TRPRBAR tracer precip entering layer top for total (kg)
+      REAL*8, DIMENSION(NTM,LM+1) :: TRPRBAR
+!@var DTPR change of tracer by precip (kg)
+!@var DTER change of tracer by evaporation (kg)
+!@var DTQW change of tracer by condensation (kg)
+!@var FWTOQ fraction of CLW that goes to water vapour
+!@var FPR fraction of CLW that precipitates
+!@var FER fraction of precipitate that evaporates
+      REAL*8 DTPR,DTER,DTQW,TWMTMP,DTSUM,FWTOQ,FPR,FER
+#endif
+
       REAL*8 Q1,AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,FUNIL,FUNIO
-     *     ,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML,HDEP1
-     *     ,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW,QNEWU
-     *     ,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1,RHW
-     *     ,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1,THT2
-     *     ,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI
+     *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
+     *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
+     *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
+     *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
+     *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND
 !@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2 dummy variables
 !@var AIRMR
@@ -1167,7 +1243,6 @@ C**** CALCULATE OPTICAL THICKNESS
 !@var DSEC critical DSE for CTEI to operate
 !@var DSFDIF DSE-DSEC
 !@var DWDT,DWDT1 time change rates of cloud water
-!@var FQTOWump of water and vapor at cloud top
 !@var ECRATE cloud droplet evaporation rate
 !@var EXPST exponential term in determining the fraction in CTEI
 !@var FCLD cloud fraction
@@ -1175,7 +1250,7 @@ C**** CALCULATE OPTICAL THICKNESS
 !@var FMASS mass of mixing in CTEI
 !@var FPLUME fraction of mixing in CTEI
 !@var FPMAX max fraction of mixing in CTEI
-!@var FQTOW
+!@var FQTOW fraction of water vapour that goes to CLW
 !@var FUNI the probablity for ice cloud to form
 !@var FUNIL,FUNIO FUNI over land, ocean
 !@var HCHANG,HPHASE latent heats for changing phase
@@ -1230,6 +1305,10 @@ C**** initialise vertical arrays
       QHEAT=0.
       CLDSSL=0
       TAUSSL=0
+#ifdef TRACERS_WATER
+      TRPRSS = 0.
+      TRPRBAR = 0.
+#endif
       DO L=1,LM
          CAREA(L)=1.-CLDSAVL(L)
          IF(WMX(L).LE.0.) CAREA(L)=1.
@@ -1452,19 +1531,26 @@ C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
       END IF
       END IF
 C**** Only Calculate fractional changes of Q to W
-c      FPR=0.
-c      IF (WMX(L).gt.1d-20) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
-c      FER=0.
-c      IF (PREBAR(L+1).gt.1d-20) FER=CAREA(L)*ER(L)*AIRM(L)/(
-c     *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
+#ifdef TRACERS_WATER
+      FPR=0.
+      IF (WMX(L).gt.teeny) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
+      FER=0.
+      IF (PREBAR(L+1).gt.teeny) FER=CAREA(L)*ER(L)*AIRM(L)/(
+     *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
+      FER=MIN(1d0,FER)
+      FPR=MIN(1d0,FPR)
+      FWTOQ=0.                                                ! CLW->Q
+#endif
       FQTOW=0.                                                ! Q->CLW
-c      FWTOQ=0.                                                ! CLW->Q
       IF (QHEAT(L)+CAREA(L)*ER(L).gt.0) THEN
-        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.1d-20) FQTOW=(QHEAT(L)
+        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.teeny) FQTOW=(QHEAT(L)
      *       +CAREA(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)*ER(L))
-c      ELSE
-c        IF (WMX(L)-PREP(L)*DTsrc.gt.1d-20) FWTOQ=-(QHEAT(L)+CAREA(L)
-c     *       *ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+#ifdef TRACERS_WATER
+      ELSE
+        IF (WMX(L)-PREP(L)*DTsrc.gt.teeny) FWTOQ=-(QHEAT(L)+CAREA(L)
+     *       *ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+        FWTOQ=MIN(1d0,FWTOQ)
+#endif
       END IF
       QL(L)=QNEW
 C**** adjust gradients down if Q decreases
@@ -1475,6 +1561,19 @@ C**** adjust gradients down if Q decreases
       TNEW=TL(L)
       QSATC=QSAT(TL(L),LHX,PL(L))
       RH(L)=QL(L)/QSATC
+#ifdef TRACERS_WATER
+C**** update tracers from cloud formation
+      DO N=1,NTX        
+        DTPR = FPR*TRWML(N,L)
+        TRWML(N,L) =     TRWML(N,L)   - DTPR
+        DTER = FER*TRPRBAR(N,L+1)
+        DTQW = FQTOW*(TM(L,N)+DTER) - FWTOQ*TRWML(N,L)
+        TRWML(N,L) = TRWML(N,L)                     + DTQW
+        TM(L,N) =       TM(L,N)              + DTER - DTQW
+        TRPRBAR(N,L) = TRPRBAR(N,L+1) + DTPR - DTER
+        TMOM(:,L,N) = TMOM(:,L,N)*(1.-FQTOW)
+      END DO
+#endif
 C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       IF(RH(L).GT.1.) THEN
       SLH=LHX*BYSHA
@@ -1490,6 +1589,14 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       FCOND=DQSUM/QNEW
 C**** adjust gradients down if Q decreases
        QMOM(:,L)= QMOM(:,L)*(1.-FCOND)
+#ifdef TRACERS_WATER
+      DO N=1,NTX        ! condense water vapour to liquid water
+        DTSUM = FCOND*TM(L,N)
+        TRWML(N,L)  =TRWML(N,L)+DTSUM
+        TM(L,N)     =TM(L,N)   -DTSUM
+        TMOM(:,L,N)=TMOM(:,L,N)*(1.-FCOND)
+      END DO
+#endif
       ELSE
       TL(L)=TNEW
       QL(L)=QNEW
@@ -1502,6 +1609,10 @@ C**** adjust gradients down if Q decreases
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
       PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
       WMX(L)=0.
+#ifdef TRACERS_WATER
+      TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
+      TRWML(1:NTX,L) = 0.
+#endif
       END IF
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+1.E-20))
@@ -1626,6 +1737,12 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
 #ifdef TRACERS_ON
       DO N=1,NTX
         CALL CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
+#ifdef TRACERS_WATER
+C**** mix cloud liquid water tracers as well
+        TWMTMP      = TRWML(N,L  )*(1.-FMIX)+FRAT*TRWML(N,L+1)
+        TRWML(N,L+1)= TRWML(N,L+1)*(1.-FRAT)+FMIX*TRWML(N,L  )
+        TRWML(N,L)  = TWMTMP
+#endif
       END DO
 #endif
       DO K=1,KMAX !vref
@@ -1640,12 +1757,16 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
       ENDDO !vref
          QNEW=QL(L)
          QNEWU=QL(L+1)
-C**** RE-EVAPORATION OF LWC IN THE UPPER LAYER
+C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
       QL(L+1)=QL(L+1)+WMX(L+1)
       TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
       TL(L+1)=TH(L+1)*PLK(L+1)
       RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
       WMX(L+1)=0.
+#ifdef TRACERS_WATER
+      TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
+      TRWML(1:NTX,L+1)=0.
+#endif
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+1.E-20))
       IF(CAREA(L).GT.1.) CAREA(L)=1.
       IF(RH(L).GT.1.) CAREA(L)=0.
@@ -1683,6 +1804,9 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
   388    IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
       PRCPSS=PREBAR(1)*GRAV*DTsrc
+#ifdef TRACERS_WATER
+      TRPRSS(1:NTX) = TRPRBAR(1:NTX,1)
+#endif
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM
       CLDSAVL(L)=CLDSSL(L)

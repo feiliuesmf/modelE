@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
@@ -37,6 +39,66 @@ C**** Each tracer has a variable name and a unique index
       real*8, dimension(nmom,im,jm,lm,ntm) :: trmom
 !@var MTRACE: timing index for tracers
       integer mtrace
+
+#ifdef TRACERS_WATER
+!@var TRWM tracer in cloud liquid water amount (kg)
+      real*8, dimension(im,jm,lm,ntm) :: trwm
+#endif
     
       END MODULE TRACER_COM
 
+      SUBROUTINE io_tracer(kunit,iaction,ioerr)
+!@sum  io_tracer reads and writes tracer variables to file
+!@auth Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only: ioread,iowrite,irsfic,irerun,lhead
+      USE TRACER_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+#ifdef TRACERS_WATER
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a,i2,a)')
+     *     'R8 TRM(im,jm,lm,',NTM,')',
+     *     ',TRmom(',NMOM,',im,jm,lm,',NTM,'),trwm(im,jm,lm,',NTM,')' 
+#else
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a)')
+     *           'R8 TRM(im,jm,lm,',NTM,')',
+     *  ',TRmom(',NMOM,',im,jm,lm,',NTM,')'
+
+#endif
+
+      SELECT CASE (IACTION)
+
+      CASE (:IOWRITE) ! output to end-of-month restart file
+        WRITE (kunit,err=10) MODULE_HEADER,TRM,TRmom
+#ifdef TRACERS_WATER
+     *     ,TRWM
+#endif
+      CASE (IOREAD:)          ! input from restart file
+        SELECT CASE (IACTION)
+        CASE (IRSFIC)   ! initial conditions
+          READ (kunit)
+        CASE (ioread,irerun) ! restarts
+          READ (kunit,err=10) HEADER,TRM,TRmom
+#ifdef TRACERS_WATER
+     *       ,TRWM
+#endif
+          IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
+            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+            GO TO 10
+          END IF
+        END SELECT
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_tracer

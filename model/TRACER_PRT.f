@@ -761,7 +761,7 @@ c**** Find final field and zonal, global, and hemispheric means
 
 
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
-!@sum  io_tracer reads and writes tracer diagnostics arrays to file
+!@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
@@ -816,44 +816,4 @@ c**** Find final field and zonal, global, and hemispheric means
       END SUBROUTINE io_trdiag
 
 
-      SUBROUTINE io_tracer(kunit,iaction,ioerr)
-!@sum  io_tracer reads and writes tracer variables to file
-!@auth Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only: ioread,iowrite,irsfic,irerun,lhead
-      USE TRACER_COM
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
-
-      write (MODULE_HEADER(lhead+1:80),'(a,i2,a,a,i1,a,i2,a)')
-     *           'R8 TRM(im,jm,lm,',NTM,')',
-     *  ',TRmom(',NMOM,',im,jm,lm,',NTM,')'
-
-      SELECT CASE (IACTION)
-
-      CASE (:IOWRITE) ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,TRM,TRmom
-      CASE (IOREAD:)          ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (IRSFIC)   ! initial conditions
-          READ (kunit)
-        CASE (ioread,irerun) ! restarts
-          READ (kunit,err=10) HEADER,TRM,TRmom
-          IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
-            PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-        END SELECT
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_tracer
 

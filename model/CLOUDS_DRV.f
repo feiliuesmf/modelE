@@ -25,8 +25,14 @@
      *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
 #ifdef TRACERS_ON
      *     ,tm,trmomij=>tmom,ntx,ntix
-      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+#ifdef TRACERS_WATER
+     *     ,trwml,trsvwml,trprmc,trprss
+#endif
       USE TRACER_DIAG_COM,only: tajln,jlnt_mc,jlnt_lscond
+      USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
+#ifdef TRACERS_WATER
+     *     ,trwm
+#endif
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
@@ -43,7 +49,9 @@
       USE GHYCOM, only : snoage
       USE LAKES_COM, only : flake
       USE FLUXES, only : prec,eprec,precss,gtemp
-
+#ifdef TRACERS_WATER
+     *     ,trprec
+#endif
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
@@ -200,6 +208,9 @@ C**** SURROUNDING WINDS
 C**** SET PRECIPITATION AND LATENT HEAT
       PREC(I,J)=0.
       TPRCP=T(I,J,1)*PK(1,I,J)-TF
+#ifdef TRACERS_WATER
+      TRPREC(:,I,J) = 0.
+#endif
 
 C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
@@ -258,7 +269,7 @@ C**** WRITE TO SOME GLOBAL ARRAYS
          AIRX(I,J) = AIRXL*DXYP(J)
          LMC(1,I,J) = LMCMIN
          LMC(2,I,J) = LMCMAX+1
-      END IF
+      END IF   ! should this be after tracers....????
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
@@ -267,6 +278,10 @@ C**** TRACERS: Use only the active ones
           tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
      &          (tm(l,nx)-trm(i,j,l,n))
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
+#ifdef TRACERS_WATER
+          trwml(l,nx) = trwm(i,j,l,n)+trsvwml(l,nx)
+          trprec(n,i,j) = trprmc(nx)
+#endif
         end do
       end do
 #endif
@@ -442,35 +457,35 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
 
 C**** WRITE TO GLOBAL ARRAYS
       DO L=1,LM
-         TAUMC(L,I,J)=TAUMCL(L)
-         CLDMC(L,I,J)=CLDMCL(L)
-         SVLAT(L,I,J)=SVLATL(L)
-
-         TAUSS(L,I,J)=TAUSSL(L)
-         CLDSS(L,I,J)=CLDSSL(L)
-         CLDSAV(L,I,J)=CLDSAVL(L)
-         SVLHX(L,I,J)=SVLHXL(L)
-         CSIZSS(L,I,J)=CSIZEL(L)
-         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
-         AJL(J,L,JL_MCDLHT)=AJL(J,L,JL_MCDLHT)+AJ53(L)
-
-         T(I,J,L)=TH(L)
-         Q(I,J,L)=QL(L)
+        TAUMC(L,I,J)=TAUMCL(L)
+        CLDMC(L,I,J)=CLDMCL(L)
+        SVLAT(L,I,J)=SVLATL(L)
+        
+        TAUSS(L,I,J)=TAUSSL(L)
+        CLDSS(L,I,J)=CLDSSL(L)
+        CLDSAV(L,I,J)=CLDSAVL(L)
+        SVLHX(L,I,J)=SVLHXL(L)
+        CSIZSS(L,I,J)=CSIZEL(L)
+        AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
+        AJL(J,L,JL_MCDLHT)=AJL(J,L,JL_MCDLHT)+AJ53(L)
+        
+        T(I,J,L)=TH(L)
+        Q(I,J,L)=QL(L)
 C**** update moment changes
-         TMOM(:,I,J,L)=SMOMIJ(:,L)*BYAM(L)
-         QMOM(:,I,J,L)=QMOMIJ(:,L)*BYAM(L)
-         RHSAV(L,I,J)=RH(L)
-         TTOLD(L,I,J)=TH(L)
-         QTOLD(L,I,J)=QL(L)
-         WM(I,J,L)=WMX(L)
+        TMOM(:,I,J,L)=SMOMIJ(:,L)*BYAM(L)
+        QMOM(:,I,J,L)=QMOMIJ(:,L)*BYAM(L)
+        RHSAV(L,I,J)=RH(L)
+        TTOLD(L,I,J)=TH(L)
+        QTOLD(L,I,J)=QL(L)
+        WM(I,J,L)=WMX(L)
 
 C**** UPDATE MODEL WINDS
-         DO K=1,KMAX
-            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
-     &           +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
-            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
-     &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
-         ENDDO
+        DO K=1,KMAX
+          U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &         +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
+          V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &         +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
+        ENDDO
       ENDDO
 
 #ifdef TRACERS_ON
@@ -483,7 +498,18 @@ C**** TRACERS: Use only the active ones
           trmom(:,i,j,l,n) = trmomij(:,l,nx)
           tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
      &          (tm(l,nx)-tmsave(l,nx))
+#ifdef TRACERS_WATER
+          trwm(i,j,l,n) = trwml(l,nx)
+#endif
         end do
+#ifdef TRACERS_WATER
+        trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
+C**** candidate diagnostics
+c        tajls(j,1,n,jlst_prec) =tajls(j,1,n,jlst_prec) +trprec(nx,i,j)
+c        tajls(j,1,n,jlst_oprec)=tajls(j,1,n,jlst_oprec)+trprec(nx,i,j)
+c     *       *pocean
+c        taijs(i,j,ijst_prec)   =taijs(i,j,ijst_prec)   +trprec(nx,i,j)
+#endif
       end do
 #endif
 
@@ -496,12 +522,12 @@ C****
 
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       DO L=1,LM
-         DO J=2,JM
-            DO I=1,IM
-               AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
-     &              (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
-            END DO
-         END DO
+        DO J=2,JM
+          DO I=1,IM
+            AJL(J,L,JL_DAMMC)=AJL(J,L,JL_DAMMC)+
+     &           (U(I,J,L)-UC(I,J,L))*PDSIG(L,I,J)
+          END DO
+        END DO
       END DO
 
       RETURN

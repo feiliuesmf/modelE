@@ -1,8 +1,13 @@
+#include "rundeck_opts.h"
+
       MODULE FLUXES
 !@sum  FLUXES contains the fluxes between various components
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : IM,JM
+      USE MODEL_COM, only : im,jm
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: ntm
+#endif
       IMPLICIT NONE
 
 !@var RUNOSI run off from sea/lake ice after surface (kg/m^2)
@@ -68,6 +73,11 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(IM,JM) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, DIMENSION(IM,JM) :: MLHC
+
+#ifdef TRACERS_WATER
+!@var TRPREC tracers in precip (kg)
+      REAL*8, DIMENSION(NTM,IM,JM):: TRPREC
+#endif
 
       END MODULE FLUXES
 
