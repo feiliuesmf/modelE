@@ -1200,11 +1200,11 @@ C**** daily diagnostics
 !@ver  1.0
       implicit none
       integer, parameter:: jma=16,lma=21
-      integer iu,jm,lm,j,j1,j2,l,ll,ldn,lup
+      integer iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
       real*8 PLB(lm+1),dH2O(jm,lm),dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
       character*100 title
-      real*4  pdn,pup,w1,w2,dh,fracl
+      real*4 pdn,pup,w1,w2,dh,fracl
 
 C**** read headers/latitudes
       read(iu,'(a)') title
@@ -1219,8 +1219,8 @@ C**** read headers/latitudes
 
 C**** read heights z(km) and data (kg/km^3)
       do l=lma,1,-1
-         read(iu,'(a)') title
-         write(*,*) title
+        read(iu,'(a)') title
+        write(*,*) title
         read(title,*) z(l),(H2O(j,l),j=1,jma)
       end do
       do j=1,jma
@@ -1243,6 +1243,18 @@ C**** extend both systems vertically to p=0
       pb(lma+1)=0.
       plb(lm+1)=0.
 
+C**** Interpolate vertical resolution to model layers
+      ldn(:) = 0
+      do l=1,lm
+        do while (pb(ldn(l)+1).ge.plb(l) .and. ldn(l).lt.lma)
+          ldn(l)=ldn(l)+1
+        end do
+        lup(l)=ldn(l)
+        do while (pb(lup(l)+1).gt.plb(l+1) .and. lup(l).lt.lma)
+          lup(l)=lup(l)+1
+        end do
+      end do
+
 C**** Interpolate (extrapolate) horizontally and vertically
       j2=2
       do j=1,jm
@@ -1256,25 +1268,17 @@ C**** for extrapolations, only use half the slope
         if(w1.gt.1.) w1=.5+.5*w1
         if(w1.lt.0.) w1=.5*w1
         w2 = 1.-w1
-C**** vertical integration to model layers
-        ldn = 0
         do l=1,lm
-          do while (pb(ldn+1).gt.plb(l) .and. ldn.lt.lma)
-            ldn=ldn+1
-          end do
-          lup=ldn
-          do while (pb(lup+1).gt.plb(l+1))
-            lup=lup+1
-          end do
           dh = 0.
           pdn = plb(l)
-          do ll=ldn,lup
-            pup = max(REAL(pb(ll+1),KIND=8),plb(l+1))
-            fracl= (pdn-pup)/(pb(ll)-pb(ll+1))
-            dh = dh+(w1*h2o(j1,ll)+w2*h2o(j2,ll))*fracl*dz(ll)
-            pdn = pup
-          end do
-          if(dh.lt.0.) dh=0.
+          if (lup(l).gt.0) then
+            do ll=ldn(l),lup(l)
+              pup = max(REAL(pb(ll+1),KIND=8),plb(l+1))
+              fracl= (pdn-pup)/(pb(ll)-pb(ll+1))
+              dh = dh+(w1*h2o(j1,ll)+w2*h2o(j2,ll))*fracl*dz(ll)
+              pdn = pup
+            end do
+          end if
           dh2o(j,l) = 1.d-6*dh/1.7d0/365. ! -> (kg/m^2/ppm_CH4/day)
         end do
       end do
