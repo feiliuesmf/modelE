@@ -179,18 +179,18 @@ C**** Local variables initialised in init_RAD
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
-      if (kradia.gt.1) then
-        write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a5)')
-     *    'R8 Tchg(',lm+LM_REQ,',ijm)'
+      if (kradia.gt.0) then
+        write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
+     *    'R8 Tchg(',lm+LM_REQ,',ijm), I4 KLIQ(',lm,',4,ijm)'
         SELECT CASE (IACTION)
         CASE (:IOWRITE)            ! output to standard restart file
-          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg
+          WRITE (kunit,err=10) MODULE_HEADER_F,Tchg,kliq
         CASE (IOREAD:)
           SELECT CASE  (IACTION)
           CASE (ioread,irerun,ioread_single)  ! input for restart
-            READ (kunit,err=10) HEADER_F,Tchg
-          CASE (IRSFIC)  ! only way to start adj.frc. run
-            Tchg = 0.
+            READ (kunit,err=10) HEADER_F,Tchg,kliq
+          CASE (IRSFIC)  ! only way to start frc. runs
+            READ (kunit,err=10) HEADER,RQT,kliq ; Tchg = 0.
           END SELECT
         END SELECT
       else

@@ -1076,7 +1076,7 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
         if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
         if(istart.le.8) then         !  initial start of rad.forcing run
           call io_label(iu_AIC,Itime,ItimeX,irerun,ioerr)
-          if (Kradia.gt.1) call io_rad (iu_AIC,Itime,irsfic,ioerr)
+          if (Kradia.gt.0) call io_rad (iu_AIC,irsfic,ioerr)
         end if
         call closeunit(iu_AIC)
         if (ioerr.eq.1) goto 800

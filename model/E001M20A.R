@@ -121,13 +121,13 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.25    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+U00wtrX=1.33    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 !        U00wtrX=1.25    ! use with 1880 atmosphere/ocean
 !1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
-RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
-RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
+RWCLDOX=1.   !  wtr cld particle size *RWCLDx over ocean
+RICLDX=1.    !  ice cld particle size * 1(at 0mb)->RICLDx (at 1000mb)
 
 CO2X=1.
 H2OstratX=1.
@@ -155,17 +155,21 @@ DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
 ! parameters that may have to be changed in emergencies:
-DT=300.         ! from default: DTsrc=3600.,
-NIsurf=2        ! increase as layer 1 gets thinner
+DTsrc=1800.,
+DT=300.
+NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=24        ! use =240 on halem
+Ndisk=48        ! use =480 on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
-nda5d=1         ! use =7 to save cpu time, but energy cons. diag may not be accurate
-nda5s=1         ! use =7 to save cpu time, but energy cons. diag may not be accurate
+nda5d=1         ! use =13 to save cpu time, but energy cons. diag may not be accurate
+nda5s=1         ! use =13 to save cpu time, but energy cons. diag may not be accurate
+ndaa=13
+nda5k=13
+nda4=48
 &&END_PARAMETERS
 
  &INPUTZ
