@@ -82,7 +82,7 @@ C**** What is the prognostic variable for snow here?
       CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
 
       MODULE_HEADER(lhead+1:80) =
-     *   'R8 dim(im,jm) : SNOWe,Te,WTRe,ICEe, SNOage(3,im,jm)'
+     *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -129,8 +129,8 @@ C**** What is the prognostic variable for snow here?
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
-      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a13,i1,a)') 'R8 Wb(',
-     *   ngm,',im,jm), dim(',ngm+1,',im,jm):Wv,HTb,HTv, SNWbv(2,im,jm)'
+      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a11,i1,a)') 'R8 Wb(',
+     *   ngm,',ijm), dim(',ngm+1,',ijm):Wv,HTb,HTv, SNWbv(2,ijm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -186,8 +186,8 @@ C**** What is the prognostic variable for snow here?
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
 #endif
 
-      write (MODULE_HEADER(lhead+1:80),'(a31,I1,a)') 'I dim(2,im,jm):'//
-     *  'Nsn,Isn, R8 dim(',NLSN,',2,im,jm):dz,w,ht, Fsn(2,im,jm)'
+      write (MODULE_HEADER(lhead+1:80),'(a29,I1,a)') 'I dim(2,ijm):'//
+     *  'Nsn,Isn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
