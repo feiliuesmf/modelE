@@ -767,6 +767,13 @@ KDIAG(11) < 9 print out river runoff diagnostics
 KDIAG(12) < 9 print out ocean diagnostics (if there is an ocean)
 </pre>
 
+<p>There is also one section of special lat-lon diagnostics which can
+be optionally accumulated and output. These are the <i>isccp_diags</i>
+which calculate some cloud properties as if they were being observed
+by satellite. This is set as an option in the rundeck
+(<tt>isccp_diags=1</tt>) to calculate them. By default these diags are
+not calculated.</p>
+
 <p><A name="part2_3"><b>3) HOW-TO produce daily/monthly or seasonal
 diagnostics</b></a></p>
 
