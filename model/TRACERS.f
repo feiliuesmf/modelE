@@ -652,7 +652,7 @@ c hydrated density
             end if
 #endif
 C**** slip correction factor
-c wmf is the additional velocity if the particle size is large compared
+c wmf is the additional velocity if the particle size is small compared
 c   to the mean free path of the air; important in the stratosphere  
             FRPATH=1d-3*mair/(PI*rt2*avog*AIRDEN*(DAIR)**2.)
             wmf=FRPATH/trradius(n)*(s1+s2*exp(-s3*trradius(n)/FRPATH))
