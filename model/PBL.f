@@ -123,13 +123,16 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #endif
+!
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
+!
 #if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
      *     dep_vel,
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+!
+#if defined(TRACERS_ON) && defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
      4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
@@ -172,16 +175,16 @@ c   output:
 !@var  z0q  roughness height for moisture
 !@var  psurf surface pressure
 !@var  trhr0 incident long wave radiation 
-#ifdef TRACERS_ON
+#if defined(TRACERS_ON)
 !@var  trtop  tracer conc. at the top of the layer
 !@var  trs  surface tracer conc.
 !@var  trsfac  factor for trs in surface boundary condition
 !@var  trconstflx  constant component of surface tracer flux
 !@var  ntx  number of tracers to loop over
 !@var  ntix index of tracers used in pbl
-#ifdef TRACERS_WATER
-!@var  tr_evap_max max amount of possible tracer evaporation
 #endif
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+!@var  tr_evap_max max amount of possible tracer evaporation
 #endif
 c  internals:
 !@var  n     number of the local, vertical grid points

@@ -64,7 +64,8 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
-FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500
+#FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500
+FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500
 FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -freeform
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
@@ -151,8 +152,11 @@ FFLAGS = -O2
 FFLAGSF = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
 # uncomment next two lines for extensive debugging
-#FFLAGS += -g -trap=INVALID,DIVBYZERO,OVERFLOW -B111
-#LFLAGS += -lefence -g
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
+LFLAGS += -lefence
+endif
 endif
 
 ## This is for the Portland Group Compiler (PGI)
@@ -208,6 +212,13 @@ ifeq ($(MP),YES)
 FFLAGS += -omp
 FFLAGSF += -omp
 LFLAGS += -omp
+endif
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -check bounds -check overflow -fpe0
+LFLAGS += -check bounds -check overflow -fpe0
+FFLAGSF += -check bounds -check overflow -fpe0
+LFLAGSF += -check bounds -check overflow -fpe0
 endif
 F90_VERSION = $(shell $(F90) -version 2>&1)
 endif

@@ -231,15 +231,17 @@ c****
 !$OMP*   I,ITYPE, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 !$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
-#ifdef TRACERS_ON
+#if defined(TRACERS_ON)
 !$OMP*   ,n,nx,totflux,nsrc
-#ifdef TRACERS_WATER
+#endif
+!
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
 !$OMP*   ,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
 !$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
 #endif
-#ifdef TRACERS_DRYDEP
+!
+#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
 !$OMP*   ,tdryd,tdd,td1
-#endif
 #endif
 !$OMP*   )
 !$OMP*   SCHEDULE(DYNAMIC,2)

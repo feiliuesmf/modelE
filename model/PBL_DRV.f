@@ -215,12 +215,15 @@ C        roughness lengths from Brutsaert for rough surfaces
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #endif
+!
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
+!
 #if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
      *     dep_vel,
 #endif
+!
 #ifdef TRACERS_AEROSOLS_Koch
      *     DMS_flux,ss1_flux,ss2_flux,
 #endif

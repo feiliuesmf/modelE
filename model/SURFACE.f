@@ -179,14 +179,16 @@ C****
 !$OMP*  QSCON,QSMUL, RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TGDEN,TS,
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
-#ifdef TRACERS_ON
+#if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
-#ifdef TRACERS_WATER
+#endif
+!
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
 !$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1
 #endif
-#ifdef TRACERS_DRYDEP
+!
+#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
 !$OMP*  ,tdryd,tdd,td1
-#endif
 #endif
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
