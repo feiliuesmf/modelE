@@ -43,10 +43,10 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
       INTEGER :: iu_tg3m,iu_EDDY,L
       CHARACTER*80 TITLE
 
-!@param FAC ratio of adjacent deep ocean layers 
+!@param FAC ratio of adjacent deep ocean layers
 C**** NOTE: For LMOM is 9 this value gives a total depth of 1000m
 C**** For any different number of layers, the effective depth is given
-C**** by the equation Z=10*(1-x^(LMOM-1))/(1-x). 
+C**** by the equation Z=10*(1-x^(LMOM-1))/(1-x).
 C**** In particular, for LMOM=12, the total depth is 5015m
       REAL*8, PARAMETER :: FAC=1.705357255658901d0
 
@@ -74,7 +74,7 @@ C**** base of mixed layer, initialise deep arrays for start of run
         READ(iu_tg3m) TITLE,TOCEAN,RSI,MSI,HSI,SSI,TG3M
         WRITE(6,*) "Read from TG3M",TITLE
         call closeunit (iu_tg3m)
-        
+
       end if
       return
 C****
@@ -96,9 +96,9 @@ C****
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCNDEEP01"
 
-      WRITE(MODULE_HEADER(lhead+1:80),'(a51,i2,a)') 'R8 Tocn(3,im,jm)',
-     *     ', dim(im,jm): MixLD,Stg3,dtg3,rtgo(',lmom,',im,jm),',
-     *     'tg3m(12,im,jm)'
+      WRITE(MODULE_HEADER(lhead+1:80),'(a45,i2,a)') 'R8 To(3,ijm)'//
+     *     ', dim(ijm): MixLD,Stg3,dtg3,rtgo(',lmom,',ijm),'//
+     *     'tg3m(12,ijm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -107,7 +107,7 @@ C****
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (IRSFIC)           ! initial conditions
-          READ (kunit)          ! no read - initialise in init_ODEEP  
+          READ (kunit)          ! no read - initialise in init_ODEEP
         CASE DEFAULT            ! restart file
           READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -116,7 +116,7 @@ C****
           END IF
         END SELECT
       END SELECT
-        
+
       RETURN
  10   IOERR=1
       RETURN
@@ -147,7 +147,7 @@ C****
 C**** no output required for rsf files. Only acc files
       write(MODULE_HEADER(lhead+1:80),'(a,i2,a)')
      *     'R4 RTGO(',lmom,'im,jm)'
-   
+
       SELECT CASE (IACTION)
       CASE (IOWRITE_SINGLE)     ! output to acc file
         WRITE (kunit,err=10) MODULE_HEADER,SNGL(RTGO)
@@ -221,8 +221,8 @@ C****
 
       SUBROUTINE ODIFS
 !@sum  ODFIS calculates heat diffusion at the base of the mixed layer
-!@+    compares that to the control run's temperature, calls odffus, 
-!@+    and reduces the upper ocean temperatures by the amount of heat 
+!@+    compares that to the control run's temperature, calls odffus,
+!@+    and reduces the upper ocean temperatures by the amount of heat
 !@+    that is diffused into the thermocline
 !@auth Gary Russell/G. Schmidt
 !@ver  1.0
@@ -364,7 +364,7 @@ C**** Check for NaN/INF in ocean data
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt
-!@ver  1.0 
+!@ver  1.0
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : lmom,rtgo,dz
@@ -389,7 +389,7 @@ C**** calculate zonal average
           END DO
         END DO
       END DO
-C**** depths are calculated from base of the mixed layer 
+C**** depths are calculated from base of the mixed layer
       Z(1)=0.
       DO L=2,LMOM
         Z(L)=Z(L-1)+DZ(L)
@@ -397,10 +397,10 @@ C**** depths are calculated from base of the mixed layer
       SCALED=1./IDACC(12)
       ONES(1:JM)=1.
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
-      CALL JLMAP(LNAME,SNAME,UNITS,Z,ATGO,SCALED,ONES,ONES,LMOM,2,1)
+      CALL JLMAP(LNAME,SNAME,UNITS,1,Z,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
       if(qdiag) call close_jl
-      
+
       RETURN
       END SUBROUTINE diag_OCEAN
 
