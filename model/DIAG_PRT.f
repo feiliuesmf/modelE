@@ -2185,7 +2185,7 @@ C****
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS
+      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
       CHARACTER(LEN=50) :: LNAME
 !@var sname string referencing output field
@@ -2226,12 +2226,14 @@ C****
 
       if(sname.eq.'skip') return
 C form title string
+      units_with_scale = units
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
-         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+         units_with_scale=trim(tpow)//' '//trim(units_with_scale)
+         title = trim(lname)//' ('//trim(units_with_scale)//')'
       endif
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
@@ -2307,7 +2309,7 @@ C**** VERTICAL SUMS
          XJL(JM+1,LM+LM_REQ+1)=AGLOB/SUMFAC     ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
-         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS_WITH_SCALE,
      *        J1,KLMAX,XJL,PM,CLAT,CPRES)
       WRITE (6,903) WORD(IWORD),AGLOB,AHEM(2),AHEM(1),
      *  (MLAT(J),J=JM,J1,-INC)
@@ -2319,12 +2321,14 @@ C****
      *  ARQX,SCALER,SCALJR,SCALLR)
       if(sname.eq.'skip') return
 C form title string
+      units_with_scale = units
       title = trim(lname)//' ('//trim(units)//')'
       PRTFAC = 10.**(-pow10p)
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
-         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+         units_with_scale=trim(tpow)//' '//trim(units_with_scale)
+         title = trim(lname)//' ('//trim(units_with_scale)//')'
       endif
          KSX = 3
          DO 205 L=1,LM+LM_REQ+1
@@ -2386,7 +2390,7 @@ C****
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS
+      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
       CHARACTER(LEN=50) :: LNAME
 !@var sname string referencing output field
@@ -2420,12 +2424,14 @@ C****
 
       if(sname.eq.'skip') return
 C form title string
+      units_with_scale = units
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
-         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+         units_with_scale=trim(tpow)//' '//trim(units_with_scale)
+         title = trim(lname)//' ('//trim(units_with_scale)//')'
       endif
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
@@ -2483,7 +2489,7 @@ C****
          XJL(JM+1,LM+LM_REQ+1)=GSUM/SUMFAC      ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
-         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS_WITH_SCALE,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
       if(  sname(1:7).eq.'phi_amp' .or.
      &     sname(1:7).eq.'phi_pha' .or.
@@ -2498,12 +2504,14 @@ C****
 
       if(sname.eq.'skip') return
 C form title string
+      units_with_scale = units
       title = trim(lname)//' ('//trim(units)//')'
       PRTFAC = 10.**(-pow10p)
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
-         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+         units_with_scale=trim(tpow)//' '//trim(units_with_scale)
+         title = trim(lname)//' ('//trim(units_with_scale)//')'
       endif
          KSX = 3
          DO 205 L=1,LM+LM_REQ
@@ -2563,7 +2571,7 @@ C****
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS
+      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
       CHARACTER(LEN=50) :: LNAME
 !@var sname string referencing output field
@@ -2597,12 +2605,14 @@ C****
 
       if(sname.eq.'skip') return
 C form title string
+      units_with_scale = units
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
-         title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
+         units_with_scale=trim(tpow)//' '//trim(units_with_scale)
+         title = trim(lname)//' ('//trim(units_with_scale)//')'
       endif
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
@@ -2661,7 +2671,7 @@ C**** Vertical means
          XJL(JM+1,LM+LM_REQ+1)=GSUM             ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
-         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
+         IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS_WITH_SCALE,
      *        J1,LMAX,XJL,PL,CLAT,CPRES)
       WRITE (6,903) WORD(IWORD),GSUM*SUMFAC,HSUM(2)*SUMFAC,
      *   HSUM(1)*SUMFAC,(NINT(ASUM(J)*SUMFAC),J=JM,J1,-INC)
