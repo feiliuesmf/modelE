@@ -1818,14 +1818,14 @@ C**** CONDENSING MORE TRACERS
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       END IF
-      PRECHK=-(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
-      IF(RH(L).LE.RHF(L).AND.PREBAR(L).GE.PRECHK) THEN
+      PRECHK=-WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
+      IF(RH(L).LE.RHF(L)) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
-      IF (WMX(L).gt.teeny) THEN
-        FPR=(1.-teeny/WMX(L))
+      IF (WMX(L).gt.0.) THEN
+        FPR=1.
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + FPR*TRWML(1:NTX,L)
-        TRWML(1:NTX,L) = teeny*TRWML(1:NTX,L)/WMX(L)
+        TRWML(1:NTX,L) = 0.
       ELSE
         FPR=(1.-PRECHK/PREBAR(L))
         TRWML(1:NTX,L) = TRWML(1:NTX,L)+
@@ -1833,8 +1833,8 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L)*FPR
       END IF
 #endif
-      PREBAR(L)=PREBAR(L)+(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
-      WMX(L)=teeny
+      PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
+      WMX(L)=0.  
       END IF
 C**** set phase of condensation for next box down
       PREICE(L)=0.
