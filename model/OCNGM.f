@@ -161,7 +161,8 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
       REAL*8, DIMENSION(IM,JM,LMO) :: TR
       REAL*8, DIMENSION(IM,JM,LMO) :: FXX,FXZ,FYY,FYZ,FZZ,FZX,FZY
-      REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT, DT4, DT4DY, DT4DX
+      REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT, DT4, DT4DY, DT4DX,
+     *     STRNP
       INTEGER I,J,L,IM1,IP1
 
       DT4 = 0.25*DTS
@@ -273,7 +274,7 @@ C**** Skip for L+1 greater than LMM(I,J+1)
       END DO
 !$OMP  END PARALLEL DO
 C**** Summation of explicit fluxes to TR, (R(T))
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT)
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT,STRNP)
       DO L=1,LMO
 C**** Non-Polar boxes
       DO J=2,JM-1
@@ -340,34 +341,35 @@ C**** END of I and J loops
       END DO
       END DO
 C**** North Polar box
+      STRNP=0.
 C**** Fluxes in Y-direction
-      IF(LMV(1,JM-1).ge.L) THEN
-        MOFY =((MO(1,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
+      DO I=1,IM
+      IF(LMV(I,JM-1).ge.L) THEN
+        MOFY =((MO(I,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
      *         (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
-        RFYT =(FYY(1,JM-1,L) + FYZ(1,JM-1,L))*MOFY
+        RFYT =(FYY(I,JM-1,L) + FYZ(I,JM-1,L))*MOFY
         IF (QLIMIT) THEN
 C**** If fluxes are more than 95% of tracer amount, limit fluxes
-          IF (RFYT.gt.0.95d0*TRM(1,JM-1,L).and.ABS(RFYT).gt.1d-20) THEN
-c            print*,"GMlimit3y",1,jm,l,RFYT,FYY(1,JM-1,L),FYZ(1,JM-1,L)
-c     *           ,BYY(1,JM-1,L),TR(1,JM-1,L),TR(1,JM,L)
-            RFYT = 0.95d0*TRM(1,JM-1,L)
-          ELSEIF (RFYT.lt.-0.95d0*TRM(1,JM,L)*IM.and.ABS(RFYT).gt.1d-20)
+          IF (RFYT.gt.0.95d0*TRM(I,JM-1,L).and.ABS(RFYT).gt.1d-20) THEN
+c            print*,"GMlimit3y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
+c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TR(1,JM,L)
+            RFYT = 0.95d0*TRM(I,JM-1,L)
+          ELSEIF (RFYT.lt.-0.95d0*TRM(1,JM,L).and.ABS(RFYT).gt.1d-20)
      *           THEN
-c            print*,"GMlimit4y",1,jm,l,RFYT,FYY(1,JM-1,L),FYZ(1,JM-1,L)
-c     *           ,BYY(1,JM-1,L),TR(1,JM-1,L),TR(1,JM,L)
-            RFYT = -0.95d0*TRM(1,JM,L)*IM
+c            print*,"GMlimit4y",I,jm,l,RFYT,FYY(I,JM-1,L),FYZ(I,JM-1,L)
+c     *           ,BYY(I,JM-1,L),TR(I,JM-1,L),TRM(1,JM,L)
+            RFYT = -0.95d0*TRM(1,JM,L)
           END IF
         END IF
 C**** Add and Subtract horizontal Y fluxes
-        TRM(1,JM  ,L) = TRM(1,JM  ,L) + RFYT/IM
-        TRM(1,JM-1,L) = TRM(1,JM-1,L) - RFYT
-C**** Save Diagnostic, GIJL(2) = RFYT
-        GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + RFYT/IM
+        STRNP= STRNP + RFYT
+        TRM(I,JM-1,L) = TRM(I,JM-1,L) - RFYT
       END IF
-C**** Gradient fluxes in Y direction affected by diagonal terms
-      IF (L.le.LMM(1,JM)) TYM(1,JM,L) = (TYM(1,JM,L) -
-     *     3.*FYY(1,JM-1,L)*MO(1,JM,L)*DXYPO(JM)*BYDYP(JM)/IM)/
-     *     (1.+12.*DT4*BYY(1,JM-1,L)*BYDYP(JM)**2)
+      END DO
+C**** adjust polar box
+      TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
+C**** Save Diagnostic, GIJL(2) = RFYT
+      GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
  620  END DO
 !$OMP END PARALLEL DO
 
@@ -484,7 +486,7 @@ C**** Main Loop over I,J and L
 !$OMP&  SIX0,SIX2,SIY0,SIY2,BYAIDT,DSX0,DSX2,DSY0,DSY2,AIX1ST,AIX3ST,
 !$OMP&  AIY1ST,AIY3ST,SIX1,SIX3,SIY1,SIY3,DSX1,DSX3,DSY1,DSY3)
       DO L=1,LMO
-      DO J=2,JM-1
+      DO J=2,JM   !-1
       IM1=IM
       DO I=1,IM
       IF(LMM(I,J).lt.L) GO TO 800
@@ -511,7 +513,7 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (KPL(I,J).gt.L.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (L.gt.KPL(I,J).and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX0 = DXPO(J) * DZV(I,J,L) * BYAIDT
           DSX2 = DXPO(J) * DZV(I,J,L) * BYAIDT
@@ -551,7 +553,7 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (KPL(I,J).gt.L-1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (L.gt.KPL(I,J)+1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX1 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
           DSX3 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
@@ -731,14 +733,12 @@ C**** Calculate average density + gradients over [1,LUP]
             ELSE
               ARHOZ = 0.
             END IF
-            IF (ARHOZ.gt.0) THEN ! avoid occasional inversions
+C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
+C**** so keep at zero, and let KPP do the work.
+            IF (ARHOZ.gt.0) THEN 
               AN = SQRT(GRAV * ARHOZ / ARHO)
-            ELSE
-              AN = 0.
-            END IF
-            RD = AN * HUP / CORI
-            IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
-            IF (AN.gt.0) THEN
+              RD = AN * HUP / CORI
+              IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
               BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
      *             *ARHO)
               AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
@@ -749,10 +749,47 @@ C**** Calculate average density + gradients over [1,LUP]
         END DO
       END DO
 !$OMP  END PARALLEL DO
+C**** North pole
+      IF (LMM(1,JM).gt.0) THEN
+C**** Calculate average density + gradients over [1,LUP]
+        ARHO  = 0. ; ARHOY = 0. ;  LAVY = 0
+        LAV = MIN(LUP,LMM(1,JM))
+        DO L=1,LAV
+          ARHO  = ARHO  + RHO(1,JM,L)
+          DO I=1,IM
+            IF(LMV(I,JM-1).ge.L) THEN 
+! take abs to get a non-directional scale
+              ARHOY = ARHOY + ABS(RHOY(I,JM-1,L))
+              LAVY = LAVY + 1
+            END IF
+          END DO
+        END DO
+        ARHO  = ARHO / REAL(LAV,KIND=8)
+        IF (LAVY.gt.0) ARHOY = ARHOY / REAL(LAVY,KIND=8)
+        IF (LAV.gt.1) THEN
+          ARHOZ = 2.*(RHO(1,JM,LAV)-RHO(1,JM,1))/
+     *         (ZE(LAV)+ZE(LAV-1)-ZE(1))
+        ELSE
+          ARHOZ = 0.
+        END IF
+C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
+C**** so keep at zero, and let KPP do the work.
+        IF (ARHOZ.gt.0) THEN 
+          AN = SQRT(GRAV * ARHOZ / ARHO)
+          CORI = ABS(2d0*OMEGA*SINPO(JM))
+          RD = AN * HUP / CORI
+          BYTEADY = GRAV * ARHOY / (AN*ARHO)
+          AINV(1,JM) = AMU * RD**2 * BYTEADY ! was = AIN
+        END IF
+        ARIV(1,JM) = ARAI * AINV(1,JM) ! was = ARI
+      END IF
+      AINV(2:IM,JM)=AINV(1,JM)
+      ARIV(2:IM,JM)=ARIV(1,JM)
+C****
       IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
         call openunit('ODIFF',iu_ODIFF,.true.,.false.)
         TITLE = "Visbeck scaling for GM coefficient m^2/s"
-        WRITE(iu_ODIFF) TITLE,((REAL(AINV(i,J),KIND=4),i=1,im),j=1,jm)
+        WRITE(iu_ODIFF) TITLE,((REAL(AINV(I,J),KIND=4),i=1,im),j=1,jm)
         call closeunit(iu_ODIFF)
         IFIRST = 0
       END IF
