@@ -17,7 +17,7 @@ C****
       IMPLICIT NONE
       SAVE
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     COSZ,COSZA
       COMMON/WORK5/LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
@@ -63,7 +63,7 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR. 
+        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR.
      *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
            SJSD=SINJ(J)*SIND
            CJCD=COSJ(J)*COSD
@@ -173,7 +173,7 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR. 
+        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR.
      *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
            SJSD=SINJ(J)*SIND
            CJCD=COSJ(J)*COSD
@@ -308,7 +308,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
+     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR       
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
@@ -351,6 +351,7 @@ C**** sync radiation parameters from input
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "O3_yr", O3_yr )
+      call sync_param( "PTLISO", PTLISO )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
@@ -432,7 +433,6 @@ C****
           COE(L)=DTsrc*NRAD*COEX/(PLB(L)-PLB(L+1))
         end do
       end if
-      PTLISO=15.
       KTREND=1   !  GHgas trends are determined by input file
 !note KTREND=0 is a possible but virtually obsolete option
 C****
@@ -573,14 +573,14 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
-      REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
-      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,
-     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+     *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
 

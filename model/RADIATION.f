@@ -408,8 +408,8 @@ C----------------   in multi-cpu mode, each cpu needs its own copy !!
       real*8, dimension(LX,33) :: TRCALK,TRAALK,TRBALK,TRTAUK,TRDALK
      *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB,AAERO,ADUST
       real*8, dimension(33) :: TRCTCA,DFSL,UFSL,WFSL,CLPI0,TXCTPG,TSCTPG
-     *     ,TGCTPG,AVH2S
-      real*8, dimension(LX) :: PL,DPL,TRGALB,BGFEMT,BGFEMD,WTLB,WTLT
+     *     ,TGCTPG,AVH2S,TRGALB,BGFEMT,BGFEMD
+      real*8, dimension(LX) :: PL,DPL,WTLB,WTLT
      *     ,ENA,ENB,ENC,TRA,TRB,TRC,AERX1,AERS1,AERG1,TRAXNL,AERX2,AERS2
      *     ,AERG2,UGAS0,UGASR,RNB,RNX,TNB,TNX,XNB,XNX,SRB,SRX,VRU,VRD
      *     ,FAC,DNA,DNB,DNC,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X,O2FHRB,AO3D
@@ -482,7 +482,7 @@ C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
      F            ,XUCH4(9,15),XUN2O(9,15),XTRUP(24,3,15),XTRDN(24,3,15)
      G             ,CXUO3(7,15),CXUCO2(7,15),XTU0(24,3)
      H             ,XTD0(24,3),XUCH40(9),XUN2O0(9)
-      integer, parameter :: ITPFT0=123 ,ITNEXT=250  ! offsets for lookups
+      integer, parameter :: ITPFT0=123 ,ITNEXT=250 ! offsets for lookups
 
 C            RADDAT_AERCLD_MIEPAR          read from            radfile3
       real*8 ::
@@ -558,11 +558,11 @@ C--------------------------------------    have to deal  1 point in time
       real*8  :: X0YBCI=1.d-3,      X0YOCI=1.d-3,      X0YSUI=1.d-3
 
 
-      INTEGER, PARAMETER :: NLO3=18 !  number of layers of ozone data files
+      INTEGER, PARAMETER :: NLO3=18 !  # of layers in ozone data files
       real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 = 
+      REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 =
      *     (/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
      +     55.,35.,20.,10.,3.,1.,0.3,0.1/) ! Current standard PLB
 
@@ -1805,7 +1805,7 @@ C     MADSUR   =  1          V72X46N.1.cor Vegetation type data   RFILEC
 C                            Z72X46N Ocean fraction, topography   RFILED
 C     ------------------------------------------------------------------
       INTEGER JJDAYS,JYEARS,JJDAYG,JYEARG,JJDAYO,JYEARO,JJDAYA,JYEARA
-     *     ,JJDAYD,JYEARD,JJDAYV,JYEARV,JJDAYE,JYEARE,JJDAYR,JYEARR      
+     *     ,JJDAYD,JYEARD,JJDAYV,JYEARV,JJDAYE,JYEARE,JJDAYR,JYEARR
 
 C                      -------------------------------------------------
 C                      Set Seasonal and Time (JDAY) Dependent Quantities
@@ -2384,7 +2384,7 @@ C**** LJTTRO(jm)    could be computed from PLBO3
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
       save nfo3,iyear,ljttro,otrend,o3year
-!!!   save plbo3      
+!!!   save plbo3
       save ddfile,ifile
 
       INTEGER :: JYEARO,JJDAYO
@@ -3045,7 +3045,7 @@ C-----------------
      A 2.196E-03, 0.817E-03, 1.163E-03, 1.331E-03, 1.735E-03, 1.310E-03,
      B 1.311E-03, 2.584E-03, 2.864E-03, 4.162E-03, 5.044E-03, 6.922E-03,
      C 6.906E-03,10.454E-03, 5.710E-03, 6.910E-03,14.130E-03,18.080E-03
-     *     /), 
+     *     /),
      *     SIGMA(18,6) = RESHAPE( (/
      A     2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19, 2.74E-19,
      B     4.33E-21, 4.89E-21, 6.63E-21, 1.60E-20, 7.20E-20, 1.59E-18,
@@ -4847,7 +4847,7 @@ C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
 C     ----------------------------------------------------------
 
       INTEGER, PARAMETER :: NTX=8, NPX=19, NGUX=1008, NPUX=19, NPU2=14,
-     *     NPU=5 
+     *     NPU=5
       REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
 
       REAL*8, PARAMETER :: PX(19)= (/1d3,750d0,5d2,3d2,2d2,1d2,5d1
@@ -6905,7 +6905,7 @@ CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
       REAL*8, INTENT(OUT) :: RBBOUT,TAUOUT
       REAL*8 FFKG(4,3),RBBK(3)
       REAL*8, PARAMETER, DIMENSION(14) :: GVALUE = (/.0,.25,.45,.50,.55,
-     *     .60,.65,.70,.75,.80,.85,.90,.95,1./) 
+     *     .60,.65,.70,.75,.80,.85,.90,.95,1./)
       REAL*8 CWM,CWE,TIJ,RBBI,RBB,BTAU,CUSPWM,CUSPWE,G,TAU,EG,DELTAU,TI
      *     ,WTJ,WTI,GI,WGI,WGJ,F1,F2,F3,F4,F21,F32,F43,F3221,F4332,A,B,C
      *     ,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
@@ -7854,7 +7854,7 @@ C
 
       character*1,parameter,dimension(4) :: AUXGAS = (/'0','L','X','X'/)
       REAL*8, PARAMETER :: P0=1013.25,SIGMA=5.6697D-08,
-     *     xxxxxx=0. ! dummy for obsolete variables 
+     *     xxxxxx=0. ! dummy for obsolete variables
       REAL*8 ACOLX,BCOLX,DCOLX,VCOLX,TCOLX,FACTOR,PPMCO2,PPMO2
      *     ,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12,EPS,TAER,HLM,TLAPS
      *     ,TAU55,TGMEAN,PSUM,SRALB,STNFLB,CRHRF,STFHR,TRDCR,SRDHR,STDHR
@@ -10513,7 +10513,7 @@ C----------------------------------------------------------------------
       P=SPLB(N)*EXP(-HPCON/STLB(N)*(H-SHLB(N)))
   140 CONTINUE
       T=STLB(N)+SDLB(N)*(H-SHLB(N))
-      D=P/T*28.9644E 05/8.31432E 03    ! P/T*mair/gasc 
+      D=P/T*28.9644E 05/8.31432E 03    ! P/T*mair/gasc
       RETURN
 
   150 CONTINUE
