@@ -149,6 +149,8 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       implicit none
       integer, intent(out) :: unit
 
+!ia next line is needed for Absoft compiler on Linux (compiler bug?)
+      unit = 0
       do unit=MINUNIT,MAXUNIT
         if ( unit > 98 .and. unit < 103 ) cycle
         if ( .not. Units(unit)%in_use ) return
