@@ -414,6 +414,8 @@ c ******************************************************************
 
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
+            
+            zgrnd=.1d0 ! formal initialization
             if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
 
             dpdxr  = DPDX_BY_RHO(i,j)
