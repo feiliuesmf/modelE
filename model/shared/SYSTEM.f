@@ -129,3 +129,23 @@
 #endif
       RETURN
       END SUBROUTINE sys_flush
+
+      SUBROUTINE sys_signal (sig, prog)
+!@sum system call to "signal"
+!@auth I. Aleinov
+!@ver  1.0 (SGI,IBM,Linux,Dec) !! should check if works with DEC !!
+      IMPLICIT NONE
+!@var unit signal number to catch
+      INTEGER, INTENT(IN) :: sig
+!@var prog handler subroutine for given signal
+      EXTERNAL prog
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+      call signal( sig, prog, -1 ) 
+#elif defined( MACHINE_IBM )
+      call signal( sig, prog )
+#else
+      None of supported architectures was specified.
+      This will crash the compiling process.
+#endif
+      RETURN
+      END SUBROUTINE sys_signal

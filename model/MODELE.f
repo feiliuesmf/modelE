@@ -25,7 +25,9 @@
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER aDATE*14
-      CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
+ccc      CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
+      external stop_model
+
 C****
 C**** INITIALIZATIONS
 C****
@@ -58,8 +60,9 @@ c        WRITE (6,'("1"/64(1X/))')
 #endif
          CALL exit_rc (13)  ! no output files are affected
       END IF
-      WRITE (3) OFFSSW
-      CLOSE (3)
+ccc      WRITE (3) OFFSSW
+ccc      CLOSE (3)
+      call sys_signal( 15, stop_model )
          MSTART=MNOW
          DO M=1,NTIMEACC
            MSTART= MSTART-TIMING(M)
@@ -414,9 +417,11 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
 C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
-      IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
-  210 CLOSE (3)
-      IF (LABSSW.ne.offssw) THEN
+ccc
+ccc      IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW
+ccc  210 CLOSE (3)
+ccc      IF (LABSSW.ne.offssw) THEN
+      if ( OFFSSW ) then
 C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
          KSS6=1
          WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
@@ -443,6 +448,13 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       IF (Itime.ge.ItimeE) CALL exit_rc (13)
       CALL exit_rc (12)             ! stopped because of SSW6
       END
+
+
+      subroutine stop_model
+      USE MODEL_COM, only : OFFSSW
+      implicit none
+      OFFSSW = .true.
+      end subroutine stop_model
 
 
       subroutine init_Model

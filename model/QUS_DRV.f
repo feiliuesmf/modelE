@@ -174,7 +174,10 @@ c****
      &        am, im, qlimit,xstride,xdir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvtx: i,j,l=",nerr,j,l
-        if (ierr.eq.2) stop "Error in qlimit: abs(a) > 1"
+        if (ierr.eq.2) then
+          write(0,*) "Error in qlimit: abs(a) > 1"
+          call exit_rc(11)
+        end if
       end if
 c****
 c**** store tracer flux in fqu array
@@ -246,7 +249,10 @@ c****
      &     bm, jm,qlimit,ystride,ydir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
-        if (ierr.eq.2) stop "Error in qlimit: abs(b) > 1"
+        if (ierr.eq.2) then
+          write(0,*) "Error in qlimit: abs(b) > 1"
+          call exit_rc(11)
+        endif
       end if
 c**** store tracer flux in fqv array
       fqv(i,:) = fqv(i,:) + f_j(:)
@@ -305,7 +311,10 @@ c****
      &        cm,lm,qlimit,zstride,zdir,ierr,nerr)
       if (ierr.gt.0) then
         write(6,*) "Error in aadvtz: i,j,l=",i,j,nerr
-        if (ierr.eq.2) stop "Error in qlimit: abs(c) > 1"
+        if (ierr.eq.2) then
+          write(0,*) "Error in qlimit: abs(c) > 1"
+          call exit_rc(11)
+        endif
       end if
       enddo ! i
       enddo ! j
