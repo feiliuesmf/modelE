@@ -38,14 +38,11 @@ rundeck:
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
 	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
 
-# alias for backwards compatibility
-mkrun: rundeck     
-
 gcm $(BIN_DIR)/$(RUN).exe:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 setup: gcm
-	@echo '---------       Loooks like it was compiled OK       ---------'
+	@echo '---------       Looks like it was compiled OK        ---------'
 	@echo '----- Saving Rundeck and other info to global repository -----'
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
 	-a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
@@ -62,7 +59,7 @@ setup: gcm
 	>> $(DECKS_REPOSITORY)/$(RUN).R; else \
 	echo 'CVS Repository: MAIN Branch' \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; fi
-	@echo '---------        Starting setup for $(RUN)           ---------'
+	@echo '---------        Starting setup for $(RUN)          ---------'
 	@echo '--------------------------------------------------------------'
 	@$(SETUP) $(RUN)
 
@@ -104,8 +101,6 @@ exe:  $(BIN_DIR)/$(RUN).exe
 	>> $(DECKS_REPOSITORY)/$(RUN).R; then echo 'rundeck changed'; fi
 	@rm -f $(DECKS_REPOSITORY)/$(RUN).R.tmp
 	@echo done
-# alias for backwards compatibility
-mkexe:  exe
 
 newstart:
 	@if [ "$(RUN)" = "" ]; then \
