@@ -377,6 +377,7 @@ C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
 
+
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
