@@ -65,10 +65,11 @@ U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000
-LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000 -freeform
+LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
 FFLAGS += -mp
+FFLAGSF += -mp
 LFLAGS += -mp
 endif
 # suppress some linker warnings if no verbose output
@@ -94,6 +95,7 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U       = $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 FFLAGS = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
+FFLAGSF = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745 -freeform
 LFLAGS = -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
@@ -176,6 +178,7 @@ FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
+FFLAGSF = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
 # one may need to add -bmaxstack:0x1000000 if rusns out of stack
 LFLAGS = -O2 -bmaxdata:0x10000000
 # no guarantee that the following line gives correct info
@@ -195,9 +198,11 @@ FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 # LFLAGS = -O2
 CPPFLAGS = -DMACHINE_DEC
 FFLAGS = -O2 -cpp -convert big_endian
+FFLAGSF = -O2 -cpp -convert big_endian -free
 LFLAGS = -O2 -convert big_endian
 ifeq ($(MP),YES)
 FFLAGS += -omp
+FFLAGSF += -omp
 LFLAGS += -omp
 endif
 F90_VERSION = $(shell $(F90) -version 2>&1)
