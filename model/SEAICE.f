@@ -5,7 +5,7 @@
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw,byshi
       IMPLICIT NONE
-
+      SAVE
 !@param LMI number of temperature layers in ice
       INTEGER, PARAMETER :: LMI = 4
 !@param XSI fractions of mass layer in each temp. layer

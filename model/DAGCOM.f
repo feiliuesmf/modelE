@@ -6,7 +6,7 @@
       USE RADNCB, only : LM_REQ
 
       IMPLICIT NONE
-
+      SAVE
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=94
@@ -185,7 +185,7 @@ C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****
-      REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
+      REAL*8, DIMENSION(IM,JM,12) :: OA
 
 C****
 C**** Information about acc-arrays:  

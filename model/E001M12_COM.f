@@ -2,7 +2,8 @@
 !@sum  E001M12_COM Main model variables 4x5 deg Model, 12 layers
 !@auth Original Development Team
 !@ver  1.0
-
+      IMPLICIT NONE
+      SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels (limited to 40 by BR00B.COM)
       INTEGER, PARAMETER :: IM=72,JM=46,LM=12
@@ -21,7 +22,7 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH
+     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
       INTEGER, DIMENSION(32) :: IDUM
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
@@ -128,6 +129,7 @@ C**** Define surface types (mostly used for weighting diagnostics)
 !@auth Gavin Schmidt
 !@ver  1.0
       IMPLICIT NONE
+      SAVE
 !@param NTIMEMAX maximum number of possible time accumulators
       INTEGER, PARAMETER :: NTIMEMAX=10
 !@var NTIMEACC actual number of time accumulators

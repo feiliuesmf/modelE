@@ -108,6 +108,7 @@ c      USE PRTCOM, only :
      &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type
 
       IMPLICIT NONE
+      SAVE
       DOUBLE PRECISION, DIMENSION(JM) ::
      &     CONTJ,CONTO,CONTL,CONTOI,S1,FLAT
       DOUBLE PRECISION, DIMENSION(NTYPE,JM) :: SPTYPE
@@ -3745,7 +3746,7 @@ c      USE PRTCOM, only :
       USE DAGCOM, only :
      &     keynr,nehist,nkeynr
       IMPLICIT NONE
-
+      SAVE
       INTEGER*4 :: NDEX(42) = (/
      *     1,2,31,32,3,   4,5,6,7,8,   9,10,11,12,13,
      *             14,15,16,17,18,  19,20,21,22,23,  24,25,26,27,28,

@@ -3,7 +3,8 @@
 !@auth G. Schmidt
 !@ver  1.0
 !@cont ORBIT
-
+      IMPLICIT NONE
+      SAVE
 C**** Conventions: 'by' implies reciprocal, 'rt' implies square root
 
 C**** Numerical constants

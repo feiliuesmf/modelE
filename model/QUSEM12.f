@@ -13,6 +13,7 @@ C**** Routines included: AADVT, AADVTX, AADVTY, AADVTZ
 !@auth Maxwell Kelley
       USE QUSDEF
       IMPLICIT NONE
+      SAVE
       INTEGER :: IM,JM,LM
       INTEGER :: XSTRIDE,YSTRIDE,ZSTRIDE
       DOUBLE PRECISION :: BYIM

@@ -14,7 +14,7 @@
 
       USE GEOM
       IMPLICIT NONE
-
+      SAVE
 C**** Some helpful arrays (arrays should be L first)
 !@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
       REAL*8, DIMENSION(LM,IM,JM) :: PLIJ
@@ -27,7 +27,7 @@ C**** Some helpful arrays (arrays should be L first)
 !@var  PMID  Pressure at mid point of box (mb)
       REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
-      REAL*8, SAVE,DIMENSION(LM,IM,JM) :: PK
+      REAL*8, DIMENSION(LM,IM,JM) :: PK
 !@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
       REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN  ! SIGE(L)*PLIJ+PTOP
 !@var  PEK  PEUP**KAPA
@@ -37,11 +37,11 @@ C**** Some helpful arrays (arrays should be L first)
 
 C**** module should own dynam variables used by other routines
 !@var PTOLD pressure at beginning of dynamic time step (for clouds)
-      REAL*8, SAVE,DIMENSION(IM,JM)    :: PTOLD
+      REAL*8, DIMENSION(IM,JM)    :: PTOLD
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
-      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: SD_CLOUDS
+      REAL*8, DIMENSION(IM,JM,LM) :: SD_CLOUDS
 !@var GZ geopotential height (for Clouds and Diagnostics)
-      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: GZ
+      REAL*8, DIMENSION(IM,JM,LM) :: GZ
 !@var DPDX,DPDY surface pressure gradients (for PBL)
 c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
 
@@ -242,10 +242,9 @@ C****
       COMMON/WORK4/FD(IM,JM)
       COMMON/WORK5/DUT(IM,JM,LM),DVT(IM,JM,LM)
       REAL*8 UT(IM,JM,LM),VT(IM,JM,LM),PA(IM,JM),PB(IM,JM)
-      REAL*8 SMASS(JM)
+      REAL*8, SAVE :: SMASS(JM)
 
-      INTEGER IFIRST
-      DATA IFIRST/1/
+      INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
@@ -598,14 +597,14 @@ C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
 C****
       IMPLICIT NONE
-      REAL*8 X(IM,JM),SM(IMH,JM),DRAT(JM)
-      REAL*8 NMIN(JM)
-      REAL*8 BYSN,AN,BN
-      COMMON/AVRXX/BYSN(IMH),AN(0:IMH),BN(0:IMH)
+      REAL*8 X(IM,JM)
+      REAL*8, SAVE :: SM(IMH,JM),DRAT(JM)
+      INTEGER, SAVE :: NMIN(JM)
+      REAL*8, SAVE, DIMENSION(IMH) :: BYSN
+      REAL*8, DIMENSION(0:IMH) :: AN,BN
+c      COMMON/AVRXX/BYSN(IMH),AN(0:IMH),BN(0:IMH)
 
-      INTEGER IFIRST
-      DATA IFIRST/1/
-
+      INTEGER,SAVE :: IFIRST = 1
       INTEGER J,N
 
       IF (IFIRST.NE.1) GO TO 100
@@ -731,13 +730,13 @@ C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM)
-      LOGICAL*4 QFILY,QFILX,QFIL2D
-      INTEGER IFIRST,NSHAP,ISIGN
+      LOGICAL*4, SAVE :: QFILY,QFILX,QFIL2D
+      INTEGER, SAVE :: NSHAP,ISIGN
       INTEGER I,J,L,N  !@var I,J,L,N  loop variables
-      REAL*8 X4TON,X1,XI,XIM1
-      REAL*8 Y4TO8,YJ,YJM1
+      REAL*8, SAVE :: X4TON
+      REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
+      INTEGER,SAVE :: IFIRST = 1
 
-      DATA IFIRST/1/
       IF(IFIRST.EQ.1) THEN
          IFIRST = 0
          CALL FFT0(IM)

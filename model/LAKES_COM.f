@@ -5,7 +5,7 @@
       USE E001M12_COM, only : IM,JM,ioread,iowrite
 
       IMPLICIT NONE
-
+      SAVE
 !@var MWL mass of lake water (kg)
       REAL*8, DIMENSION(IM,JM) :: MWL 
 !@var GML total enthalpy of lake (J)
@@ -25,7 +25,6 @@
 !@sum  io_lakes reads and writes lake arrays to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite
       USE LAKES_COM
       IMPLICIT NONE
       INTEGER kunit   !@var kunit unit number of read/write

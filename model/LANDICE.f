@@ -5,7 +5,7 @@
 !@cont PRECLI,LNDICE
       USE CONSTANT, only : lhm,rhoi,shi
       IMPLICIT NONE
-
+      SAVE
 !@var Z1E,Z2LI first and second layer thicknesses for land ice
       REAL*8, PARAMETER :: Z1E=.1d0, Z2LI=2.9d0
 !@var ACE1LI first layer land ice mass (kg/m^2)

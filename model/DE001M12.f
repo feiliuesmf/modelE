@@ -376,6 +376,7 @@ C****
       USE LAKES_COM, only : flake
 
       IMPLICIT NONE
+      SAVE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P
       LOGICAL POLE
@@ -400,8 +401,7 @@ C****
       DOUBLE PRECISION, DIMENSION(7), PARAMETER ::
      &     PMB=(/1000.,850.,700.,500.,300.,100.,30./),
      &     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000./)
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
+      INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: ONE=1.,ZERO20=1.E-20,P1000=1000.
       INTEGER :: I,IM1,J,K,L,J50N,J70N,JET,JR,KM,LDN,LUP,
      &     IP1,IMAX,LM1,LP1,LR,MBEGIN,
@@ -1309,6 +1309,7 @@ C****
       USE DAGCOM, only : ajk,aijk,aijl,ajlsp,speca,adaily,nspher,
      &     nwav_dag,ndlypt,hr_in_day
       IMPLICIT NONE
+      SAVE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P
@@ -1343,8 +1344,7 @@ C****
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
 
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
+      INTEGER :: IFIRST = 1
       DOUBLE PRECISION, PARAMETER :: ZERO20=1.E-20,BIG=1.E20
       DOUBLE PRECISION :: QSAT
 
@@ -2135,7 +2135,7 @@ C****
      &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ
       IMPLICIT NONE
-
+      SAVE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PHI
       COMMON/WORK3/PHI
 
@@ -2157,8 +2157,7 @@ C****
       INTEGER ::
      &     I,IDACC9,J50N,JLK,K,KQ,L,L300,L50,L850,LX,MNOW,N
 
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
+      INTEGER :: IFIRST = 1
 
       IDACC9=IDACC(9)+1
       IDACC(9)=IDACC9
@@ -2705,7 +2704,7 @@ C****
       USE DAGCOM, only : speca,atpe,nspher,kspeca
       USE DYNAMICS, only : sqrtp,pk
       IMPLICIT NONE
-
+      SAVE
       INTEGER :: M5,NDT
 
       DOUBLE PRECISION, DIMENSION(IM) :: X
@@ -2729,8 +2728,7 @@ C****
       DOUBLE PRECISION ::
      &     GMEAN,GMSUM,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
 
-      INTEGER :: IFIRST
-      DATA IFIRST/1/
+      INTEGER :: IFIRST = 1
 
       IF(IFIRST.NE.1) GO TO 50
       IFIRST=0

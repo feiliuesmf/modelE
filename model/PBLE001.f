@@ -11,7 +11,7 @@ C     ABL model using second order closure model -- Greg Hartke
 C --------------------------------------------------------------------
       USE CONSTANT, only : grav,omega
       IMPLICIT NONE
-
+      SAVE
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
       real*8, save ::  dpdxr,dpdyr,dpdxr0,dpdyr0

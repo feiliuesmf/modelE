@@ -5,7 +5,7 @@
       USE E001M12_COM, only : im,jm
       USE SOCPBL, only : n
       IMPLICIT NONE
-
+      SAVE
 !@var uabl boundary layer profile for zonal wind
 !@var vabl boundary layer profile for meridional wind
 !@var tabl boundary layer profile for temperature

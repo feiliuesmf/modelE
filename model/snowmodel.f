@@ -18,6 +18,7 @@
      $     sigma => stbo        ! (W m-2 K-4)
 
       IMPLICIT NONE
+      SAVE
       PRIVATE
 
       PUBLIC snow_adv,i_earth, j_earth

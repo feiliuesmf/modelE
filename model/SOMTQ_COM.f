@@ -4,7 +4,8 @@
 !@ver  1.0
       USE QUSDEF
       USE E001M12_COM, only : im,jm,lm
-
+      IMPLICIT NONE
+      SAVE
       DOUBLE PRECISION, DIMENSION(NMOM,IM,JM,LM) :: TMOM,QMOM
 
       END MODULE SOMTQ_COM

@@ -4,7 +4,7 @@ C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
       MODULE RE001
 
       INCLUDE 'BR00B.COM'
-
+      SAVE
       CONTAINS
 
       SUBROUTINE SETNEW(NIPSET,IJYEAR,IJDAY,NVALUE,ILAYER,XVALUE)

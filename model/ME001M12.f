@@ -22,6 +22,7 @@ C****
 C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
+      OPEN(6,RECL=133)
       CALL INPUT
       WRITE (3) OFFSSW
       CLOSE (3)
@@ -376,9 +377,9 @@ C****
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call io_rsf(KDISK,Itime,iowrite,ioerr)
-      WRITE (6,'(A,I1,55X,A4,I5,A5,I3,A4,I3,A,I8)')
+      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  ' Restart file written on fort.',KDISK,'Year',JYEAR,
-     *        AMON,JDATE,', Hr',JHOUR,'  Internal clock',ITIME
+     *     AMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       WRITE (6,'(/////4(1X,33("****")/)//,A,I8
@@ -1062,7 +1063,8 @@ C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 
       CALL CALC_AMPK(LS1-1)
 
-      WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
+      IF (ABS(DELTAP).gt.1d-6)
+     *     WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****

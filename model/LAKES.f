@@ -5,6 +5,7 @@
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi
       USE E001M12_COM, only : IM,JM
       IMPLICIT NONE
+      SAVE
 C****
 C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
 C****                         GZM -> TLAKE (deg C)
@@ -129,7 +130,7 @@ C**** limit freezing if lake is between 50 and 20cm depth
           FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW 
           IF (FH0.lt.0) THEN    ! maximum amount of lake frozen, cool ice
             PRINT*,"Minimum lake level reached: rsi,mlake,elake",i0,j0
-     *           ,roice,mlake(1)/rhow,elake(1)
+     *           ,roice,mlake(1)/rhow,elake(1),fh0
             ENRGF1  =ENRGF1+FH0
             ELAKE(1)=MLAKE(1)*TFL*SHW
           END IF

@@ -11,7 +11,7 @@ C**** The secondary grid is for the B grid velocities, located on the
 C**** vertices of the A grid
 C**** Polar boxes have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
-
+      SAVE
 !@param  DLON grid spacing in longitude (deg)
       REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3

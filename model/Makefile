@@ -166,7 +166,3 @@ clean:
 vclean:
 	rm -f *.o *.mod *.vo *.inc .depend* *.sig
 
-cmp:    CMPE001.f
-	$(F90) $(FFLAGS) -o CMPE001 CMPE001.f
-
-

@@ -31,7 +31,7 @@ C**** surface energy fluxes defined over type
 !@var DMUA,DMVA momentum flux from atmosphere over each type (kg/m s) 
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: DMUA,DMVA
 !@var DMUI,DMVI momentum flux from sea ice over each type (kg/m s) 
-c      REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
+      REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
 
 C**** currently saved - should be replaced by fluxed quantities
 !@var DU1,DV1 momentum flux from atmosphere summed over type (m/s)

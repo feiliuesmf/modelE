@@ -5,7 +5,7 @@
       USE E001M12_COM, only : im,jm
       USE SLE001, only : ngm,imt,nlsn
       IMPLICIT NONE
-
+      SAVE
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons
       DOUBLE PRECISION, DIMENSION(IM,JM,  NGM) :: WBARE

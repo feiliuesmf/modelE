@@ -17,6 +17,7 @@
       USE FLUXES, only : gtemp
 
       IMPLICIT NONE
+      SAVE
 !@param LMOM number of layers for deep ocean diffusion
       INTEGER, PARAMETER :: LMOM = 9
 
@@ -937,6 +938,7 @@ C**** TG3M must be set from a previous ML run?
       USE E001M12_COM, only : im,jm
       USE OCEAN, only : lmom
       IMPLICIT NONE
+      SAVE
 
 !@var TG3M Monthly accumulation of temperatures at base of mixed layer
       REAL*8, DIMENSION(IM,JM,12) :: TG3M
@@ -980,7 +982,8 @@ C****
       IMPLICIT NONE
 
       REAL*8 :: ADTG3
-      INTEGER I,J,L,IMAX,IFIRST,iu_EDDY
+      INTEGER I,J,L,IMAX,iu_EDDY
+      INTEGER,SAVE :: IFIRST = 1
       REAL*8, PARAMETER :: PERDAY=1./365d0
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
       REAL*8, PARAMETER :: ALPHA=.5d0
@@ -988,7 +991,6 @@ C****
 C**** NOTE: This assumes that LMOM is 9. For any different number of
 C**** layers, the equation 1000=(1-x^(LMOM-1))/(1-x) should be solved.
       REAL*8, PARAMETER :: FAC=1.705357255658901d0
-      DATA IFIRST/1/
 C****
 C**** READ IN EDDY DIFFUSIVITY AT BASE OF MIXED LAYER
 C****
