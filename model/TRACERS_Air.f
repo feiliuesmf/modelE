@@ -125,10 +125,14 @@ C**** Define individual tracer characteristics
 
       case ('CH4')
       n_CH4 = n
-          ntm_power(n) = -9
           tr_mm(n) = 16.d0
-          ntsurfsrc(n) = 14
+#ifdef TRACERS_SPECIAL_Shindell   
+          ntsurfsrc(n) = 14 
+          ntm_power(n) = -8
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
+          ntsurfsrc(n) = 14
+          ntm_power(n) = -9
           n_MPtable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
@@ -204,6 +208,101 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
 #endif
 
+      case ('Ox')
+      n_Ox = n
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+          
+      case ('NOx')
+      n_NOx = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 3 ! fossil fuel, biomass burning, soil
+          tr_mm(n) = 14.01d0
+          
+      case ('N2O5')
+      n_N2O5 = n
+          ntm_power(n) = -12
+          tr_mm(n) = 108.02d0
+          
+      case ('HNO3')
+      n_HNO3 = n
+          ntm_power(n) = -11
+          tr_mm(n) = 63.018d0
+#ifdef TRACERS_WATER
+          tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
+#endif          
+      case ('H2O2')
+      n_H2O2 = n
+          ntm_power(n) = -11
+          tr_mm(n) = 34.016d0
+#ifdef TRACERS_WATER
+          tr_RKD(n) = 9.869d2    ! in mole/J = 1.d5 mole/(L atm) 
+          tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
+#endif
+          
+      case ('CH3OOH')
+      n_CH3OOH = n
+          ntm_power(n) = -11
+          tr_mm(n) = 48.042d0
+
+      case ('HCHO')
+      n_HCHO = n
+          ntm_power(n) = -11
+          tr_mm(n) = 30.026d0
+#ifdef TRACERS_WATER
+          tr_RKD(n) = 6.218d1 ! mole/J = 6.3d3 mole/(L atm)
+#endif
+
+      case ('HO2NO2')
+      n_HO2NO2 = n
+          ntm_power(n) = -12
+          tr_mm(n) = 79.018d0
+          
+      case ('CO')
+      n_CO = n
+          ntm_power(n) = -8
+          ntsurfsrc(n) = 2 ! industrial + biomass burning
+          tr_mm(n) = 28.01d0
+
+      case ('PAN')
+      n_PAN = n
+          ntm_power(n) = -11
+          tr_mm(n) = 121.054d0   ! assuming CH3COOONO2 = PAN
+                    
+      case ('Isoprene')
+      n_Isoprene = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 1   ! (vegetation?)
+          tr_mm(n) = 60.05d0 ! i.e. 5 carbons   
+                    
+      case ('AlkylNit')
+      n_AlkylNit = n
+          ntm_power(n) = -11
+          tr_mm(n) = mair !unknown molecular weight, so use air and make
+                          ! note in the diagnostics write-out...   
+                    
+      case ('Alkenes')
+      n_Alkenes = n
+          ntm_power(n) = -10
+          ntsurfsrc(n) = 3   ! industrial + biomass burning + vegetation
+          tr_mm(n) = 46.59d0 ! i.e. carbon mass, weighted as:
+C 68.6% indust. x (41.2% Propene(3C) + 58.8% other Alkenes/ynes(4.8C)) +
+C 31.2% biomass burn x (47.9% Propene + 52.1% other Alkenes/ynes) = 3.88C 
+C This number wasn't adjusted when the vegetation was added.
+                    
+      case ('Paraffin')
+      n_Paraffin = n
+          ntm_power(n) = -10
+          ntsurfsrc(n) = 3   ! industrial + biomass burning + vegetation
+          tr_mm(n) = 59.50d0 ! i.e. carbon mass, weighted as:
+C 94.2%indust. x (12.% Ethane(2C) + 11.1% Propane(3C) + 20.5% Butane(4C)
+C + 18.% Pentane(5C) + 34.% higher Alkanes(7.5C) + 4.4% Ketones(4.6C)) +
+C 5.8% biomass burning x (51.9% Ethane(2C) + 15.1% Propane(3C) 
+C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C) 
+C + 5.1% Ketones(3.6C)) = 4.95 C
+C
+C This number wasn't adjusted when the vegetation source was added.
+                
       end select
       end do
 
@@ -351,6 +450,136 @@ C****
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('CH4')
+#ifdef TRACERS_SPECIAL_Shindell
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH4 BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH4 BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')      
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Animal_source_of'//trname(n)
+        lname_jls(k) = 'CH4 Animal source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Coal_Mine_source_'//trname(n)
+        lname_jls(k) = 'CH4 Coal Mine source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Gas_Leak_source_'//trname(n)
+        lname_jls(k) = 'CH4 Gas Leak source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(4,n) = k
+        sname_jls(k) = 'Gas_Venting_source_'//trname(n)
+        lname_jls(k) = 'CH4 Gas Venting source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(5,n) = k
+        sname_jls(k) = 'Municipal_solid_waste_source_'//trname(n)
+        lname_jls(k) = 'CH4 Municipal solid waste source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(6,n) = k
+        sname_jls(k) = 'Soil_sink_'//trname(n)
+        lname_jls(k) = 'CH4 sink due to soil absorption'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(7,n) = k
+        sname_jls(k) = 'Termite_source_'//trname(n)
+        lname_jls(k) = 'CH4 Termite source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(8,n) = k
+        sname_jls(k) = 'Coal_combustion_source_'//trname(n)
+        lname_jls(k) = 'CH4 Coal combustion source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(9,n) = k
+        sname_jls(k) = 'Ocean_source_'//trname(n)
+        lname_jls(k) = 'CH4 Ocean source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(10,n) = k
+        sname_jls(k) = 'Fresh_Water_lake_source_'//trname(n)
+        lname_jls(k) = 'CH4 Fresh Water lake source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(11,n) = k
+        sname_jls(k) = 'Misc_Ground_source_'//trname(n)
+        lname_jls(k) = 'CH4 Misc_Ground source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(12,n) = k
+        sname_jls(k) = 'Biomass_burning_source_'//trname(n)
+        lname_jls(k) = 'CH4 Biomass burning source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(13,n) = k
+        sname_jls(k) = 'Rice Cultivation_source_'//trname(n)
+        lname_jls(k) = 'CH4 Rice Cultivation source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(14,n) = k
+        sname_jls(k) = 'Wetlands+Tundra_source_'//trname(n)
+        lname_jls(k) = 'CH4 Wetlands+Tundra source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#else
        k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Animal_source_'//trname(n)
@@ -470,7 +699,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
@@ -487,6 +716,7 @@ C****
         jls_ltop(k) = lm
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 
       case ('O3')
        k = k + 1
@@ -496,7 +726,7 @@ C****
         jls_index(k) = n
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),' kg/s')
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trname(n)
@@ -603,6 +833,371 @@ C**** special unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 
+      case ('Ox')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Ox BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Ox BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('NOx')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(3,n) = k
+        sname_jls(k) = 'lightning_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY LIGHTNING'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(4,n) = k
+        sname_jls(k) = 'aircraft_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF NOx BY AIRCRAFT'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Fossil_Fuel_Source_of_'//trname(n)
+        lname_jls(k) = 'NOx fossil fuel source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Biomass_Burning_Source_of_'//trname(n)
+        lname_jls(k) = 'NOx biomass burning source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Soil_Source_of_'//trname(n)
+        lname_jls(k) = 'NOx soil source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+      case ('N2O5')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF N2O5 BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF N2O5 BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')   
+        
+      case ('HNO3')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HNO3 BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HNO3 BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')      
+
+      case ('H2O2')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF H2O2 BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF H2O2 BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+ 
+       case ('CH3OOH')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH3OOH BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CH3OOH BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('HCHO')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HCHO BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HCHO BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('HO2NO2')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HO2NO2 BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF HO2NO2 BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('CO')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CO BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF CO BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Industrial_Source_of'//trname(n)
+        lname_jls(k) = 'CO industrial source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Biomass_Burning_Source_of'//trname(n)
+        lname_jls(k) = 'CO biomass burning source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+      case ('PAN')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF PAN BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF PAN BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s') 
+
+      case ('Isoprene')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Isoprene BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Isoprene BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s') 
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Vegetation_source_of'//trname(n)
+        lname_jls(k) = 'Isoprene vegetation source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+        
+      case ('AlkylNit')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF AlkylNit BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF AlkylNit BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s') 
+ 
+      case ('Alkenes')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Alkenes BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Alkenes BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s') 
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Industrial_source_of'//trname(n)
+        lname_jls(k) = 'Alkenes industrial source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Biomass_Burning_source_of'//trname(n)
+        lname_jls(k) = 'Alkenes biomass burning source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Vegetation_source_of'//trname(n)
+        lname_jls(k) = 'Alkenes vegetation source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        
+      case ('Paraffin')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'tropospheric_chemistry_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Paraffin BY CHEMISTRY IN TROPOSHPERE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'stratospheric_overwrite_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF Paraffin BY STRATOSPHERIC OVERWRITE'
+        jls_index(k) = n
+        jls_ltop(k) = LM
+        jls_power(k) = -2.
+        units_jls(k) = unit_string(jls_power(k),'kg/s') 
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Industrial_source_of'//trname(n)
+        lname_jls(k) = 'Paraffin industrial source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Biomass_Burning_source_of'//trname(n)
+        lname_jls(k) = 'Paraffin biomass burning source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Vegetation_source_of'//trname(n)
+        lname_jls(k) = 'Paraffin vegetation source'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
 c        k = k + 1 
@@ -614,14 +1209,16 @@ c        jls_ltop(k) = lm
 c        jls_power(k) = -11.
 c        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
+
+      end select
+c      
 C**** Checks
       if (ntsurfsrc(n).gt.ntsurfsrcmax) then
 !       write(6,*) ' ntsurfsrc too large for ',trname(n)
         write(6,*) ' Increase ntsurfsrcmax to at least',ntsurfsrc(n)
         STOP ' Ntsurfsrc too large.  Increase ntsurfsrcmax'
       end if
-
-      end select
+      
       end do
 
       if (k.gt. ktajls) then
@@ -749,6 +1346,55 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -21
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('NOx')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'NOx fossil fuel source'
+        sname_ijts(k) = 'NOx_fossil_fuel_source'
+        ijts_power(k) = -10
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k+1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'NOx biomass burning source'
+        sname_ijts(k) = 'NOx_biomass_burning_source'
+        ijts_power(k) = -10
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc   
+      k = k+1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'NOx Soil (sink)'
+        sname_ijts(k) = 'NOx_Soil_(sink)'
+        ijts_power(k) = -10
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc             
+
+      case ('CO')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'CO industrial source'
+        sname_ijts(k) = 'CO_industrial_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k+1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'CO biomass burning source'
+        sname_ijts(k) = 'CO_biomass_burning_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc        
 
       case ('CH4')
       k = k + 1
@@ -886,6 +1532,75 @@ C**** This needs to be 'hand coded' depending on circumstances
         case ('HTO')
 #endif
 
+      case ('Isoprene')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Isoprene vegetation source'
+        sname_ijts(k) = 'Isoprene_vegetation_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('Alkenes')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Alkenes industrial source'
+        sname_ijts(k) = 'Alkenes_industrial_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k+1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Alkenes biomass burning source'
+        sname_ijts(k) = 'Alkenes_biomass_burning_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc  
+      k = k+1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Alkenes vegetation source'
+        sname_ijts(k) = 'Alkenes_vegetation_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc     
+        
+      case ('Paraffin')
+      k = k+1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Paraffin industrial source'
+        sname_ijts(k) = 'Paraffin_industrial_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      k = k+1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Paraffin biomass burning source'
+        sname_ijts(k) = 'Paraffin_biomass_burning_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc  
+      k = k+1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src   
+        lname_ijts(k) = 'Paraffin vegetation source'
+        sname_ijts(k) = 'Paraffin_vegetation_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc    
+
       end select
       end do
 
@@ -988,6 +1703,58 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CH4')
+#ifdef TRACERS_SPECIAL_Shindell
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Animal source'
+      itcon_surf(2,N) = 16
+      qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'Coal Mine source'
+      itcon_surf(3,N) = 17
+      qcon(itcon_surf(3,N)) = .true.; conpts(5) = 'Gas Leak source'
+      itcon_surf(4,N) = 18
+      qcon(itcon_surf(4,N)) = .true.; conpts(6) = 'Gas Vent source'
+      itcon_surf(5,N) = 19
+      qcon(itcon_surf(5,N)) = .true.; conpts(7) = 'City Dump source'
+      itcon_surf(6,N) = 20
+      qcon(itcon_surf(6,N)) = .true.; conpts(8) = 'Soil sink'
+      itcon_surf(7,N) = 21
+      qcon(itcon_surf(7,N)) = .true.; conpts(9) = 'Termite Source'
+      itcon_surf(8,N) = 22
+      qcon(itcon_surf(8,N)) = .true.; conpts(10) = 'Coal Combustion'
+      itcon_surf(9,N) = 23
+      qcon(itcon_surf(9,N)) = .true.; conpts(11) = 'Ocean source'
+      itcon_surf(10,N) = 24
+      qcon(itcon_surf(10,N)) = .true.; conpts(12) = 'Lake source'
+      itcon_surf(11,N) = 25
+      qcon(itcon_surf(11,N)) = .true.; conpts(13) ='Misc. Ground source'
+      itcon_surf(12,N) = 26
+      qcon(itcon_surf(12,N)) = .true.; conpts(14) = 'Biomass Burning'
+      itcon_surf(13,N) = 27
+      qcon(itcon_surf(13,N)) = .true.; conpts(15) = 'Rice source'
+      itcon_surf(14,N) = 28
+      qcon(itcon_surf(14,N)) = .true.; conpts(16) = 'Wetlands+Tundra'
+      qsum(itcon_surf(1:14,N)) = .false.  ! prevent summing twice
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 29
+      qcon(itcon_mc(n)) = .true.  ; conpts(17) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 30
+      qcon(itcon_ss(n)) = .true.  ; conpts(18) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+#else
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
       itcon_surf(2,N) = 14
@@ -1027,6 +1794,7 @@ C**** First 12 are standard for all tracers and GCM
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
+#endif
 
       case ('O3')
       itcon_3Dsrc(1,N) = 13
@@ -1037,6 +1805,370 @@ C**** First 12 are standard for all tracers and GCM
       qsum(itcon_3Dsrc(2,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+    
+      case ('Ox')
+      kt_power_change(n) = -11
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15 
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+     
+      case ('NOx')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_3Dsrc(3,N) = 15
+      qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Lightning'
+      qsum(itcon_3Dsrc(3,N)) = .true.
+      itcon_3Dsrc(4,N) = 16
+      qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Aircraft'
+      qsum(itcon_3Dsrc(4,N)) = .true.
+      itcon_surf(1,N) = 17
+      qcon(itcon_surf(1,N)) = .true.; conpts(5) = 'Fossil Fuels'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 18
+      qcon(itcon_surf(2,N)) = .true.; conpts(6) = 'Biomass Burning'
+      qsum(itcon_surf(2,N)) = .false.
+      itcon_surf(3,N) = 19
+      qcon(itcon_surf(3,N)) = .true.; conpts(7) = 'Soil'
+      qsum(itcon_surf(3,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 20
+      qcon(itcon_mc(n)) = .true.  ; conpts(8) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 21
+      qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('N2O5')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('HNO3')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.  
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif    
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('H2O2')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('CH3OOH')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('HCHO')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('HO2NO2')
+      kt_power_change(n) = -13
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('CO')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 16
+      qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'Biomass Burning'
+      qsum(itcon_surf(2,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 17
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 18
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('PAN')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('Isoprene')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Vegetation'
+      qsum(itcon_surf(1,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 16
+      qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 17
+      qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('AlkylNit')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('Alkenes')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 16
+      qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'Biomass Burning'
+      qsum(itcon_surf(2,N)) = .false.
+      itcon_surf(3,N) = 17
+      qcon(itcon_surf(3,N)) = .true.; conpts(5) = 'Vegetation'
+      qsum(itcon_surf(3,N)) = .false.
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 18
+      qcon(itcon_mc(n)) = .true.  ; conpts(6) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 19
+      qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      
+      case ('Paraffin')
+      kt_power_change(n) = -12
+      scale_change(n) = 10d0**(-kt_power_change(n))
+      sum_unit(n) = unit_string(kt_power_change(n),'kg/m^2 s)')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Trop Chemistry'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Strat Overwrite'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 16
+      qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'Biomass Burning'
+      qsum(itcon_surf(2,N)) = .false.
+      itcon_surf(3,N) = 17
+      qcon(itcon_surf(3,N)) = .true.; conpts(5) = 'Vegetation'
+      qsum(itcon_surf(3,N)) = .false. 
+#ifdef TRACERS_WATER
+      itcon_mc(n) = 18
+      qcon(itcon_mc(n)) = .true.  ; conpts(6) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 19
+      qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs) 
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
@@ -1114,6 +2246,9 @@ C**** print out total tracer diagnostic array size
 !@auth Jean Lerner
       USE CONSTANT, only: mair,rhow
       USE MODEL_COM, only: itime,im,jm,lm,ls1
+#ifdef TRACERS_SPECIAL_Shindell
+     & ,jday,JEQ
+#endif
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
 #endif
@@ -1142,6 +2277,9 @@ C**** print out total tracer diagnostic array size
       USE QUSDEF, only : mz,mzz
 #endif
       USE FILEMANAGER, only: openunit,closeunit
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,COalt,MDOFM,corrOx
+#endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
       CHARACTER*80 title
@@ -1150,6 +2288,15 @@ C**** print out total tracer diagnostic array size
       REAL*4 CO2ic(im,jm,lm),N2Oic(jm,lm)
       REAL*8 CH4ic(jm,lm)
       EQUIVALENCE (CO2ic,N2Oic,ic14CO2,CH4ic)
+      
+!@param bymair 1/molecular wt. of air = 1/mair
+!@param byjm 1./JM 
+      REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
+#ifdef TRACERS_SPECIAL_Shindell
+!@var imonth dummy index for choosing the right month
+!@var j2 dummy
+      INTEGER imonth, J2
+#endif
 
       do n=1,ntm
 
@@ -1234,6 +2381,9 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('CH4')
           trmom(:,:,:,:,n) = 0.
+#ifdef TRACERS_SPECIAL_Shindell
+          call get_CH4_IC ! defines trm(:,:,:,n_CH4) within
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
@@ -1241,7 +2391,7 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*CH4ic(j,l)*0.552d-9
           enddo; enddo
 #endif
-
+      
         case ('O3')
           trmom(:,:,:,:,n) = 0.
           do l=1,lm
@@ -1351,9 +2501,131 @@ c**** earth
               gtracer(n,4,i,j)=0.
             end if
           end do
-        end do
+          end do
 #endif
-        
+     
+        case ('Ox')
+c         read ICs and stratospheric correction from files:
+          call openunit('Ox_IC',iu_data,.true.,.true.)
+          read (iu_data) title,OxIC
+          call closeunit(iu_data)
+          write(6,*) title, 'read from Ox_IC'
+          call openunit('Ox_corr',iu_data,.true.,.true.)
+          read (iu_data) title,corrOx
+          call closeunit(iu_data)
+          write(6,*) title,' read from Ox_corr'
+          
+          imonth= 1
+          DO i=2,12 
+            IF((JDAY.LE.MDOFM(i)).AND.(JDAY.GT.MDOFM(i-1))) THEN
+              imonth=i
+              GOTO 216
+            END IF
+          END DO
+ 216      WRITE(6,*) 'Use month ',imonth,' Ox correction.'
+C
+C         Place initial conditions into tracer mass array:
+          trm(:,:,:,n) = OxIC(:,:,:)
+
+C         Apply the model-dependant stratospheric Ox corrections:
+          DO L=12,15 ! <<<< WARNING: HARDCODE, GSF <<<<
+          DO J=1,JM
+          DO I=1,IM
+            trm(i,j,l,n)=trm(i,j,l,n)*corrOx(J,L-11,imonth)
+          END DO
+          END DO
+          END DO                     
+          trmom(:,:,:,:,n) = 0.
+          J2=0
+          
+        case ('NOx')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('N2O5')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+          end do; end do; end do  
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('HNO3')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10
+          end do; end do; end do            
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('H2O2')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
+          end do; end do; end do   
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('CH3OOH')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+          end do; end do; end do  
+          trmom(:,:,:,:,n) = 0.
+              
+        case ('HCHO')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('HO2NO2')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
+          end do; end do; end do      
+          trmom(:,:,:,:,n) = 0.
+          
+        case('CO')
+C         COlat=ppbv, COalt=no unit, TR_MM(n)*bymair=ratio of mol.wt.,
+C         AM=kg/m2, and DXYP=m2        
+          DO L=1,LM
+          DO J=1,JM
+            J2=NINT(float(J)*19.*BYJM)
+            IF(J2.eq.0) J2=1 
+            DO I=1,IM
+              trm(i,j,l,n)=COlat(J2)*COalt(L)*1.E-9*TR_MM(n)*bymair*
+     &        am(L,I,J)*DXYP(J)
+            END DO
+          END DO
+          END DO    
+          trmom(:,:,:,:,n) = 0.
+          J2=0
+                 
+        case ('PAN')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-11
+          end do; end do; end do
+          trmom(:,:,:,:,n) = 0.
+          
+        case ('Isoprene')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
+          end do; end do; end do  
+          trmom(:,:,:,:,n) = 0.
+                
+        case ('AlkylNit')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-10
+          end do; end do; end do          
+          trmom(:,:,:,:,n) = 0.
+          
+        case('Alkenes')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-10
+          end do; end do; end do     
+          trmom(:,:,:,:,n) = 0.
+          
+        case('Paraffin')
+          do l=1,lm; do j=1,jm; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10
+          end do; end do; end do            
+          trmom(:,:,:,:,n) = 0. 
+
       end select
 
 C**** Initialise pbl profile if necessary
@@ -1393,6 +2665,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE FLUXES, only: tr3Dsource
+      USE TRACER_SOURCES, only: nLightning, nAircraft
+      USE TRCHEM_Shindell_COM, only:OxIC,corrOx
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
@@ -1453,6 +2730,37 @@ C**** Tracer specific call for CH4
       end do
 #endif
 
+#ifdef TRACERS_SPECIAL_Shindell
+C**** If this is the frist time through, initialize the chemistry:
+
+      if(iact.eq.0) call cheminit 
+C
+C**** Tracer specific calls to read 2D and 3D sources:
+      do n=1,ntm
+        select case (trname(n)) 
+        case ('NOx')
+          tr3Dsource(:,:,:,nAircraft,n)  = 0.
+          tr3Dsource(:,:,:,nLightning,n) = 0.
+          call get_aircraft_NOx
+          call get_lightning_NOx   
+          call      read_NOx_sources(n,iact)       
+        case ('CO')
+          call       read_CO_sources(n,iact)
+        case ('CH4')
+          call      read_CH4_sources(n,iact)
+        case ('Isoprene')
+          call read_Isoprene_sources(n,iact)
+        case ('Alkenes')
+          call  read_Alkenes_sources(n,iact)
+        case ('Paraffin')
+          call read_Paraffin_sources(n,iact)
+        case ('N2O5')
+          tr3Dsource(:,:,:,:,n) = 0.
+          call get_sulfate  !not applied directly, used in chemistry.
+        end select
+      end do
+#endif
+
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C****  at any time
@@ -1467,6 +2775,7 @@ C****  at any time
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc
+     &  ,itime
       USE GEOM, only: dxyp,areag
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
@@ -1478,6 +2787,10 @@ C****  at any time
 #ifdef TRACERS_SPECIAL_Lerner
       USE CO2_SOURCES, only: co2_src
       USE CH4_SOURCES, only: ch4_src
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_SOURCES, only: CO_src,ch4_src,NOx_src,Isoprene_src,
+     &                          Alkenes_src,Paraffin_src     
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -1663,6 +2976,50 @@ C****
       case ('Water')
         trsource(:,:,:,n)=0
 
+#ifdef TRACERS_SPECIAL_Shindell
+      case ('CO')
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = CO_src(:,j,ns)*dxyp(j) 
+         end do
+        end do
+
+      case ('CH4')
+        do ns=1,ntsurfsrc(n)
+          do j=1,jm
+            trsource(:,j,ns,n) = ch4_src(:,j,ns)*dxyp(j)
+          end do
+        end do 
+                
+      case ('Alkenes')
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = Alkenes_src(:,j,ns)*dxyp(j) 
+         end do
+        end do
+        
+      case ('Paraffin')
+        do ns=1,ntsurfsrc(n)
+          do j=1,jm
+            trsource(:,j,ns,n) = Paraffin_src(:,j,ns)*dxyp(j)
+          end do
+        end do
+        
+      case ('Isoprene')
+        do ns=1,ntsurfsrc(n)
+         do j=1,jm
+            trsource(:,j,ns,n) = Isoprene_src(:,j,ns)*dxyp(j) 
+         end do
+        end do
+        
+      case ('NOx')
+        do ns=1,ntsurfsrc(n)
+          do j=1,jm
+            trsource(:,j,ns,n) = NOx_src(:,j,ns)*dxyp(j)
+          end do
+        end do        
+#endif
+
       end select
 
       end do
@@ -1672,17 +3029,22 @@ C****
 
       SUBROUTINE tracer_3Dsource
 !@sum tracer_3Dsource calculates interactive sources for tracers
-!@auth Jean Lerner
-      USE MODEL_COM, only: itime
+!@auth Jean Lerner/Greg Faluvegi
+!@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE TRACER_COM
-      USE TRACER_DIAG_COM, only: itcon_3Dsrc,tajls,jls_3Dsource
       USE FLUXES, only: tr3Dsource
+      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+      USE MODEL_COM, only: itime
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_SOURCES, only: nLightning, nAircraft,nStratwrite,
+     &                          nChemistry  
+#endif
       implicit none
-      integer n
+      INTEGER n,ns,najl,i,j,l
 
-C**** All sources are saved as kg/s
+C**** All sources are saved as kg/s   
       do n=1,ntm
-
+      
       if (itime.lt.itime_tr0(n)) cycle
       select case (trname(n))
 
@@ -1719,18 +3081,44 @@ C****
       call Strat_chem_Prather(1,n)
       call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
-#endif
+#endif      
+     
       end select
-
+      
       end do
+
+#ifdef TRACERS_SPECIAL_Shindell   
+C Apply non-chemistry 3D sources, so they can be "seen" by chemistry:
+C (Note: using this method, tracer moments are changed just like they
+C are done for chemistry.  It might be better to do it like surface
+C sources are done? -- GSF 4/24/02)
+c
+      call apply_tracer_3Dsource(nAircraft,n_NOx)
+      call apply_tracer_3Dsource(nLightning,n_NOx)
+c     
+C**** Make sure that these 3D sources for all tracers start at 0.:
+      tr3Dsource(:,:,:,nChemistry,:)  = 0.
+      tr3Dsource(:,:,:,nStratwrite,:) = 0.
+      
+C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
+       
+      CALL masterchem ! does chemistry and stratospheric over-writing.
+                      ! tr3Dsource defined within, for both processes
+
+C**** Apply chemistry and stratosphere overwrite changes:
+
+      do n=1,ntm
+        call apply_tracer_3Dsource(nChemistry,n)
+        call apply_tracer_3Dsource(nStratwrite,n)
+      end do
+#endif
+      
       return
       END SUBROUTINE tracer_3Dsource
 
-#endif
-
 
 #ifdef TRACERS_WATER
-C---SUBROUTINES FOR TRACER WET DEPOSITION----------------------------
+C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 
       SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,TEMP,FCLOUD,FQ0,fq)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
@@ -1743,6 +3131,9 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only: TF, BYGASC, MAIR,teeny
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ,t_qlimit
+#endif
       USE CLOUDS, only: PL, NTIX
 c      
       IMPLICIT NONE
@@ -1787,6 +3178,9 @@ c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
 c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
             ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
             fq=ssfac / (1.D0 + ssfac)
+#ifdef TRACERS_SPECIAL_Shindell
+            if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1. !no negative tracers
+#endif
           END IF
         CASE(nWATER)                          ! water tracer
 #ifdef TRACERS_SPECIAL_O18
@@ -1972,4 +3366,5 @@ c           end if
       end select
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR 
+#endif
 #endif
