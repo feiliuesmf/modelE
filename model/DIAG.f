@@ -118,6 +118,7 @@ C**** Some local constants
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
      *     ,jl_epflxn,jl_epflxv,ij_p850,z_inst,rh_inst,t_inst,plm
+     *     ,ij_p1000,ij_p925,ij_p700,ij_p600,ij_p500
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn,am
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
@@ -317,6 +318,14 @@ C****
             IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
             GO TO 174
           END IF
+C**** BEGIN AMIP
+          IF((P(I,J)+PTOP).LT.1000.)AIJ(I,J,IJ_P1000)=
+     *      AIJ(I,J,IJ_P1000)+1.
+          IF((P(I,J)+PTOP).LT.925.)AIJ(I,J,IJ_P925)=AIJ(I,J,IJ_P925)+1.
+          IF((P(I,J)+PTOP).LT.700.)AIJ(I,J,IJ_P700)=AIJ(I,J,IJ_P700)+1.
+          IF((P(I,J)+PTOP).LT.600.)AIJ(I,J,IJ_P600)=AIJ(I,J,IJ_P600)+1.
+          IF((P(I,J)+PTOP).LT.500.)AIJ(I,J,IJ_P500)=AIJ(I,J,IJ_P500)+1.
+C**** END AMIP
         END DO
       END DO
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
@@ -882,6 +891,7 @@ C****
       USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
+     *      ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
      &      JK_RH,JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
      &      JK_TOTNTSH,JK_ZMFNTGEO,JK_TOTNTGEO,JK_ZMFNTLH,
@@ -924,6 +934,7 @@ C****
      &     UDUTI,UDX,UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
+     &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
 
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
@@ -1142,6 +1153,14 @@ C from the previous halo call.
       DUTK=0.
       DVTK=0.
       PS4K=0.
+C**** FOR AMIP
+      AMVQ=0.
+      AMVT=0.
+      AMUU=0.
+      AMVV=0.
+      AMUV=0.
+      AMTT=0.
+C**** END AMIP
 C**** INTERPOLATE HERE
   330 PUP=PL(L+1)
       IF (LUP.EQ.L) PUP=PM(K+1)
@@ -1154,6 +1173,16 @@ C**** INTERPOLATE HERE
       DUTK=DUTK+DP*DUT(I,J,L)
       DVTK=DVTK+DP*DVT(I,J,L)
       PS4K=PS4K+DP*(T(I,J-1,L)+T(IP1,J-1,L)+T(I,J,L)+T(IP1,J,L))
+C**** FOR AMIP 2
+      AMRHT=.25*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
+      AMRHQ=.25*(Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L))
+      AMVQ=AMVQ+DP*V(I,J,L)*AMRHQ
+      AMVT=AMVT+DP*V(I,J,L)*AMRHT
+      AMUU=AMUU+DP*U(I,J,L)*U(I,J,L)
+      AMVV=AMVV+DP*V(I,J,L)*V(I,J,L)
+      AMUV=AMUV+DP*U(I,J,L)*V(I,J,L)
+      AMTT=AMTT+DP*AMRHT*AMRHT
+C**** END AMIP
       IF (LUP.EQ.L) GO TO 332
       L=L+1
       PDN=PL(L)
@@ -1189,6 +1218,14 @@ C**** ACCUMULATE HERE
       AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
      *     PQ4K/QSAT(0.25*PT4K/DPK,LHE,PMO(K))
       AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
+C     *  *  *  FOR AMIP 2  *  *  *
+      AIJK(I,J,K,IJK_UV)=AIJK(I,J,K,IJK_UV)+AMUV
+      AIJK(I,J,K,IJK_VQ)=AIJK(I,J,K,IJK_VQ)+AMVQ
+      AIJK(I,J,K,IJK_VT)=AIJK(I,J,K,IJK_VT)+AMVT
+      AIJK(I,J,K,IJK_UU)=AIJK(I,J,K,IJK_UU)+AMUU
+      AIJK(I,J,K,IJK_VV)=AIJK(I,J,K,IJK_VV)+AMVV
+      AIJK(I,J,K,IJK_TT)=AIJK(I,J,K,IJK_TT)+AMTT
+C**** END AMIP
 C**** EDDY TRANSPORT OF THETA;  VORTICITY
   334 PS4I=PS4I+PS4K
       PSV4I=PSV4I+BYDP*PVK*PS4K
@@ -1271,7 +1308,7 @@ C**** INTERPOLATE HERE
             GO TO 850
  860        CONTINUE
 C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
-            W(I,J,K)=0.    
+            W(I,J,K)=0.
             IF (DPK.gt.0) THEN
               AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+SDK*BYDXYP(J)/DPK
               W(I,J,K)=SDK/DPK

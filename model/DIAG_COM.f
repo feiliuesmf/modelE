@@ -47,7 +47,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=200 , KAIJX=KAIJ+100
+      INTEGER, PARAMETER :: KAIJ=210 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AIJ
 
@@ -147,7 +147,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJK
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER :: KAIJK=10, kaijkx=kaijk+100
+      INTEGER, PARAMETER :: KAIJK=16, kaijkx=kaijk+100
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: AIJK
 
@@ -354,7 +354,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
      *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
-     *     IJ_FWIO, IJ_HTIO, IJ_STIO
+     *     IJ_FWIO, IJ_HTIO, IJ_STIO,
+     *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
+     *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500
 #ifdef CLD_AER_CDNC
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
@@ -515,7 +517,8 @@ C****      names, indices, units, idacc-numbers, etc.
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
-     *     IJK_W, IJK_PF, IJL_CF
+     *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
+     *     IJK_VV, IJK_TT
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx) :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
