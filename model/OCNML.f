@@ -7,7 +7,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -23,7 +23,7 @@ C**** Check for NaN/INF in ocean data
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE OCEAN
+      USE STATIC_OCEAN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -58,7 +58,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
       USE MODEL_COM, only : im,jm,fim,focean
-      USE OCEAN, only : tocean,z1o,z12o
+      USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE GEOM, only : imaxj
       IMPLICIT NONE
 !@var OCEANE zonal ocean energy (J/M^2)

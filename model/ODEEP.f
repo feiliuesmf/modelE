@@ -35,7 +35,7 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
-      USE OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
@@ -85,7 +85,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,lhead
-      USE OCEAN
+      USE STATIC_OCEAN
       USE ODEEP_COM
       IMPLICIT NONE
 
@@ -194,7 +194,7 @@ C**** Thus it is only initiallised here for case ii).
 !@ver  1.0
       USE CONSTANT, only : shw,rhow
       USE MODEL_COM, only : im,jm,fim,focean
-      USE OCEAN, only : tocean,z1o,z12o
+      USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE ODEEP_COM, only : dz,rtgo,lmom
       USE GEOM, only : imaxj
       IMPLICIT NONE
@@ -232,7 +232,7 @@ C****
      *     ,itoice
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
-      USE OCEAN, only : z12o,tocean
+      USE STATIC_OCEAN, only : z12o,tocean
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,j_ftherm
       USE FLUXES, only : gtemp
@@ -345,7 +345,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       IMPLICIT NONE
 

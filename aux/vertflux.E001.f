@@ -12,7 +12,7 @@ C**** Output files: XCORR = XCORR
 C****               SRCOR = SRCOR-line for rundeck
 C****               SNOW  = SNOW depth information
 C****
-      USE OCEAN
+      USE STATIC_OCEAN
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i

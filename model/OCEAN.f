@@ -1,5 +1,5 @@
-      MODULE OCEAN
-!@sum  OCEAN contains the ocean subroutines common to all Q-flux and
+      MODULE STATIC_OCEAN
+!@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux and
 !@+    fixed SST runs
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
@@ -504,7 +504,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,fland,flice,kocean,ftype,focean
      *     ,itocean,itoice,itearth,itlandi,fearth,iyear1
-      USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
+      USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
      *     ,tocean,ocn_cycl
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
@@ -608,7 +608,7 @@ C****
       USE CONSTANT, only : rhow,shw,twopi,edpery,by3
       USE MODEL_COM, only : im,jm,kocean,focean,jday,ftype,itocean
      *     ,itoice,fland
-      USE OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
+      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,tfo,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
@@ -701,7 +701,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runpsi,prec,eprec,gtemp,mlhc
-      USE OCEAN, only : tocean,z1o
+      USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2,oa
@@ -768,7 +768,7 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
      *     flowo,eflowo,gtemp, fmsi_io, fhsi_io, fssi_io
-      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
+      USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i,ssi0
@@ -884,7 +884,7 @@ C**** This is here so that a coupled ocean is easier to implement
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : focean
-      USE OCEAN, only : tfo
+      USE STATIC_OCEAN, only : tfo
 !@var I,J atmospheric grid point
       INTEGER, INTENT(IN) :: I,J
 
@@ -925,7 +925,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
-      USE OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE DAGCOM, only : ij_tgo2,aij
       IMPLICIT NONE

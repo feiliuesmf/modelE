@@ -4,7 +4,7 @@
 !@auth G. Russell/L. Nazarenko/G. Schmidt
 C**** Note this must be compiled using the deep ocean gcmlib
       USE MODEL_COM, only : ioread,Itime,im,jm,amonth
-      USE OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean
       USE ODEEP_COM, only : lmom
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE SEAICE, only : lmi

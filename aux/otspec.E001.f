@@ -21,7 +21,7 @@ C****
       USE CONSTANT, only : twopi,sday
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
-      USE OCEAN
+      USE STATIC_OCEAN
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,msi, snowi
       USE SEAICE, only : ace1i

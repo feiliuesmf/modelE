@@ -17,7 +17,7 @@ C****        MLMAX = annual maximal mixed layer depths
 C****        TOPO = topography
 C****        SNOW = daily snow amounts (from vertflux)
 C****
-      USE OCEAN 
+      USE STATIC_OCEAN 
       USE SEAICE_COM, only : rsi,msi,snowi 
       USE FILEMANAGER
       implicit none 

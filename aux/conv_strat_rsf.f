@@ -18,7 +18,7 @@ C**** must be compiled after the model
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
      *     ,egcm
-      USE OCEAN, only : tocean,z1o,tfo
+      USE STATIC_OCEAN, only : tocean,z1o,tfo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
       USE LANDICE_COM, only : tlandi,snowli

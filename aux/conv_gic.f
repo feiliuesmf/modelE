@@ -9,7 +9,7 @@ C**** must be compiled after the model
       USE MODEL_COM, only : im,jm,lm,iowrite 
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm
-      USE OCEAN, only : tocean,z1o
+      USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : ace1i,xsi,ac2oim
       USE LANDICE_COM, only : tlandi,snowli
