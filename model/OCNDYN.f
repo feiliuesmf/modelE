@@ -810,6 +810,7 @@ C**** Input:  MM (kg), UM (kg*m/s), VM (kg*m/s)
       INTEGER I,J,L
       REAL*8 BYD
 
+!$OMP PARALLEL DO  PRIVATE(I,J,L,BYD)
       DO L=1,LMO
 C**** Convert mass to density
         DO J=1,JM
@@ -839,6 +840,7 @@ C**** Convert U momentum to U velocity
      *         (MM(IM,J,L) + MM(1,J,L))
         END DO
       END DO
+!$OMP END PARALLEL DO
 C     UO(IM,1,L) = UM(IM,1,L)/(MM(IM,1,L)*IM)
       DO L=1,LMU(1,JM)
         UO(1,JM,L) = UM(1,JM,L)/(MM(1,JM,L)*IM)
@@ -876,11 +878,15 @@ C****
 C**** Compute fluid fluxes for the C grid
 C****
 C**** Smooth the West-East velocity near the poles
+!$OMP PARALLEL DO  PRIVATE(I,L)
       DO 110 L=1,LMO
       DO 110 I=IM+1,IM*(JM-1)
   110   MU(I,1,L) = UO(I,1,L)
+!$OMP END PARALLEL DO
       CALL OPFIL (MU,LMO)
 C**** Compute MU, the West-East mass flux, at non-polar points
+!$OMP PARALLEL DO  PRIVATE(I,J,L, MUS,MUN,MVS,MVN, DMVS,DMVN,
+!$OMP&                     ADMVS,ADMVN)
       DO 220 L=1,LMO
       DO J=2,JM-1
         DO I=1,IM-1
@@ -929,9 +935,11 @@ C****
       CONV(IM,1,L) = -MVS
       CONV(1,JM,L) =  MVN
   220 CONTINUE
+!$OMP END PARALLEL DO
 C****
 C**** Compute vertically integrated column convergence and mass
 C****
+!$OMP PARALLEL DO  PRIVATE(I,L,LMIJ,SCONV,SMM,BYSIGEO)
       DO 440 I=IM,IM*(JM-1)+1
       LMIJ=1
       IF(LMM(I,1).LE.1)  GO TO 420
@@ -955,13 +963,18 @@ C****
   420 DO 430 L=LMIJ,LMO-1
   430   MW(I,1,L) = 0.
   440 CONTINUE
+!$OMP END PARALLEL DO
 C****
 C**** Sum mass fluxes to be used for advection of tracers
 C****
       IF (QSAVE) THEN
-        SMU = SMU + MU
-        SMV = SMV + MV
-        SMW = SMW + MW
+!$OMP PARALLEL DO  PRIVATE(L)
+        DO L=1,LMO
+          SMU(:,:,L) = SMU(:,:,L) + MU(:,:,L)
+          SMV(:,:,L) = SMV(:,:,L) + MV(:,:,L)
+          SMW(:,:,L) = SMW(:,:,L) + MW(:,:,L)
+        END DO
+!$OMP END PARALLEL DO
       END IF
 
       RETURN
@@ -1029,6 +1042,8 @@ C**** read in arrays
 C****
 C**** Loop over J and L.  J = latitude, JA = absolute latitude.
 C****
+!$OMP PARALLEL DO  PRIVATE(I,J,JA,JX,K,L,N,NS,I0,IL,IND,Y,REDUC,
+!$OMP&                     AN,BN,DRATM,SM)
   100 DO 330 JX=4,JXMAX
       J =JX
       JA=JX
@@ -1089,6 +1104,7 @@ C****
         END DO
       END DO
   330 CONTINUE
+!$OMP END PARALLEL DO
       RETURN
       END SUBROUTINE OPFIL
 
@@ -1111,6 +1127,7 @@ C****
 C****
 C**** Compute the new mass MM2
 C****
+!$OMP PARALLEL DO  PRIVATE(I)
       DO 40 I=IM,IM*(JM-1)+1
       LMIJ=LMM(I,1)
       IF(LMIJ-1)  40,10,20
@@ -1121,13 +1138,14 @@ C****
    30 MM2(I,1,L) = MM0(I,1,L) + DT*(CONV(I,1,L)+(MW(I,1,L-1)-MW(I,1,L)))
       MM2(I,1,LMIJ) = MM0(I,1,LMIJ) + DT*(CONV(I,1,LMIJ)+MW(I,1,LMIJ-1))
    40 CONTINUE
+!$OMP END PARALLEL DO
 C**** Fill in values at the poles
       DO 80 L=1,LMO
       DO 80 I=1,IM
 C     MM2(I, 1,L) = MM2(IM,1,L)
    80 MM2(I,JM,L) = MM2(1,JM,L)
       RETURN
-      END
+      END SUBROUTINE OADVM
 
       SUBROUTINE OADVV (UM2,VM2,UM0,VM0,DT1)
 !@sum  OADVV advects oceanic momentum (with coriolis force)
@@ -1153,10 +1171,11 @@ C****
       REAL*8, DIMENSION(IM,JM,LMO) :: DUM,DVM
       REAL*8, DIMENSION(0:JM) :: GX,GXUY,DGDUDN,DGDUUP
       REAL*8, DIMENSION(IM) :: UDCOSY,UYUTAY
+      REAL*8, DIMENSION  :: FLUXA(IM,JM,LMO-1)
       LOGICAL*4 :: QFIRST = .TRUE.
       INTEGER I,J,L
       REAL*8 DT2,DT4,DTC2,DTD4,UMUX,VMVY,VMUNE,VMUSE,UMVX,VMUY,UMUNE
-     *     ,UMUNW,FLUX,DUMS,DUMN,UMVNE,UMVNW
+     *     ,UMUNW,DUMS,DUMN,UMVNE,UMVNW
 C****
       IF (QFIRST) THEN
         QFIRST = .FALSE.
@@ -1176,6 +1195,8 @@ C**** Zero out momentum changes
 C****
 C**** Horizontal advection of momentum
 C****
+!$OMP PARALLEL DO  PRIVATE(I,J,L, UMUX,VMVY,VMUNE,VMUSE,
+!$OMP&  UMVX,UMVNE,UMVNW,VMUY, GX,GXUY,DGDUDN,DGDUUP,UDCOSY,UYUTAY)
       DO 480 L=1,LMO
         DO J=2,JM-1
 C**** Contribution of West-East flux to U wind
@@ -1305,45 +1326,74 @@ C**** V component
         END DO
       END DO
   480 CONTINUE
+!$OMP END PARALLEL DO
 C****
 C**** Vertical advection of momentum
 C****
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO L=1,LMO-1
-C**** U component
-      DO J=2,JM-1
-        DO I=1,IM-1
-          FLUX = DT4*(MW(I,J,L)+MW(I+1,J,L))*(UO(I,J,L)+UO(I,J,L+1))
-          DUM(I,J,L)   = DUM(I,J,L)   - FLUX
-          DUM(I,J,L+1) = DUM(I,J,L+1) + FLUX
+        DO J=2,JM-1
+          DO I=1,IM-1
+            FLUXA(I,J,L) =
+     *           DT4*(MW(I,J,L)+MW(I+1,J,L))*(UO(I,J,L)+UO(I,J,L+1))
+          END DO
+          FLUXA(IM,J,L) =
+     *         DT4*(MW(IM,J,L)+MW(1,J,L))*(UO(IM,J,L)+UO(IM,J,L+1))
         END DO
-        FLUX = DT4*(MW(IM,J,L)+MW(1,J,L))*(UO(IM,J,L)+UO(IM,J,L+1))
-        DUM(IM,J,L+1) = DUM(IM,J,L+1) + FLUX
-        DUM(IM,J,L)   = DUM(IM,J,L)   - FLUX
+        FLUXA(1,JM,L) = DT2*MW(1,JM,L)*IM*(UO(1,JM,L)+UO(1,JM,L+1))
       END DO
-C     FLUX = DT2*MW(IM,1,L)*IM*(UO(IM,1,L)+UO(IM,1,L+1))
-C     DUM(IM,1,L)   = DUM(IM,1,L)   - FLUX
-C     DUM(IM,1,L+1) = DUM(IM,1,L+1) + FLUX
-      FLUX = DT2*MW(1,JM,L)*IM*(UO(1,JM,L)+UO(1,JM,L+1))
-      DUM(1,JM,L+1) = DUM(1,JM,L+1) + FLUX
-      DUM(1,JM,L)   = DUM(1,JM,L)   - FLUX
+!$OMP END PARALLEL DO
+C
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO L=1,LMO
+        IF(L.EQ.1)  THEN
+          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+          DUM(1,JM,L)     = DUM(1,JM,L) - FLUXA(1,JM,L)
+        ELSE IF(L.LT.LMO)  THEN
+          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
+          DUM(1,JM,L)     = DUM(1,JM,L) + FLUXA(1,JM,L-1)
+          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+          DUM(1,JM,L)     = DUM(1,JM,L) - FLUXA(1,JM,L)
+        ELSE IF(L.EQ.LMO)  THEN
+          DUM(:,2:JM-1,L) = DUM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
+          DUM(1,JM,L)     = DUM(1,JM,L) + FLUXA(1,JM,L-1)
+        END IF
+      END DO
+!$OMP END PARALLEL DO
+C
 C**** V component
-      DO I=1,IM
-        FLUX = DT4*(MW(I,JM-1,L)+2.*MW(1,JM,L))*
-     *       (VO(I,JM-1,L)+VO(I,JM-1,L+1))
-        DVM(I,JM-1,L)   = DVM(I,JM-1,L)   - FLUX
-        DVM(I,JM-1,L+1) = DVM(I,JM-1,L+1) + FLUX
-      END DO
-      DO J=2,JM-2
-         DO I=1,IM
-          FLUX = DT4*(MW(I,J,L)+MW(I,J+1,L))*(VO(I,J,L)+VO(I,J,L+1))
-          DVM(I,J,L)   = DVM(I,J,L)   - FLUX
-          DVM(I,J,L+1) = DVM(I,J,L+1) + FLUX
+C
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
+      DO L=1,LMO-1
+        DO J=2,JM-2
+          DO I=1,IM
+            FLUXA(I,J,L) =
+     *           DT4*(MW(I,J,L)+MW(I,J+1,L))*(VO(I,J,L)+VO(I,J,L+1))
+          END DO
+        END DO
+        DO I=1,IM
+          FLUXA(I,JM-1,L) = DT4*(MW(I,JM-1,L)+2.*MW(1,JM,L))*
+     *         (VO(I,JM-1,L)+VO(I,JM-1,L+1))
         END DO
       END DO
+!$OMP END PARALLEL DO
+C
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO L=1,LMO
+        IF(L.EQ.1)  THEN
+          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+        ELSE IF(L.LT.LMO)  THEN
+          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
+          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) - FLUXA(:,2:JM-1,L)
+        ELSE IF(L.EQ.LMO)  THEN
+          DVM(:,2:JM-1,L) = DVM(:,2:JM-1,L) + FLUXA(:,2:JM-1,L-1)
+        END IF
       END DO
-C****
+!$OMP END PARALLEL DO
+C**** 
 C**** Add changes to momentum
 C****
+!$OMP PARALLEL DO  PRIVATE(I,L,DUMS,DUMN)
       DO L=1,LMO
 C**** U component
         DO 610 I=IM+1,IM*(JM-1)
@@ -1359,8 +1409,9 @@ C**** V component
         DO 630 I=1,IM*(JM-1)
   630     VM2(I,1,L) = VM0(I,1,L) + DVM(I,1,L)
       END DO
+!$OMP END PARALLEL DO
       RETURN
-      END
+      END SUBROUTINE OADVV
 
       SUBROUTINE OPGF (UM,VM,DT1)
 !@sum  OPGF adds the pressure gradient force to the momentum
@@ -1391,6 +1442,7 @@ C****
 C**** Calculate the mass weighted pressure P (Pa),
 C**** geopotential PHI (m**2/s**2), and layer thickness DH (m)
 C****
+!$OMP PARALLEL DO  PRIVATE(I,J,L,PHIE)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).GT.0.) THEN
@@ -1410,6 +1462,7 @@ C**** Calculate geopotential by integrating from the bottom up
         END IF
       END DO
       END DO
+!$OMP END PARALLEL DO
 C**** Define polar values at all latitudes
       DO L=1,LMM(1,JM)
 C        PO(2:IM, 1,L) =  PO(1,IM,L)
@@ -1424,8 +1477,9 @@ C      OGEOZ(2:IM, 1) = OGEOZ(1,1)
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
-      I=IM
+!$OMP PARALLEL DO  PRIVATE(I,IP1,J,L)
       DO 230 J=2,JM-1
+      I=IM
       DO 230 IP1=1,IM
       DO 210 L=1,LMU(I,J)
   210 DUM(I,J,L) = -DT2*DYPO(J)*
@@ -1434,25 +1488,32 @@ C****
       DO 220 L=LMU(I,J)+1,LMO
   220 DUM(I,J,L) = 0.
   230 I=IP1
+!$OMP END PARALLEL DO
       CALL OPFIL (DUM,LMO)
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****
+!$OMP PARALLEL DO  PRIVATE(I,J,L)
       DO 310 J=1,JM-1
       DO 310 I=1,IM
       DO 310 L=1,LMV(I,J)
   310 DVM(I,J,L) = -DT2*DXVO(J)*
      *  (( DH(I,J+1,L)+ DH(I,J,L))*(PO(I,J+1,L)-PO(I,J,L)) +
      +   (PHI(I,J+1,L)-PHI(I,J,L))*(MO(I,J+1,L)+MO(I,J,L)))
+!$OMP END PARALLEL DO
 C****
 C**** Add pressure gradient force to momentum
 C****
+!$OMP PARALLEL DO  PRIVATE(I,L)
       DO 610 I=IM+1,IM*(JM-1)
       DO 610 L=1,LMU(I,1)
   610 UM(I,1,L) = UM(I,1,L) + DUM(I,1,L)
+!$OMP END PARALLEL DO
+!$OMP PARALLEL DO  PRIVATE(I,L)
       DO 630 I=1,IM*(JM-1)
       DO 630 L=1,LMV(I,1)
   630 VM(I,1,L) = VM(I,1,L) + DVM(I,1,L)
+!$OMP END PARALLEL DO
       RETURN
 C****
       END SUBROUTINE OPGF
@@ -1476,6 +1537,8 @@ C****
       REAL*8 PUP,PDN,GUP,GDN,SUP,SDN,VUP,VDN,PBAR,BYMMI
       REAL*8 VOLGSP
 
+!$OMP PARALLEL DO  PRIVATE(I,J,L,PE,BYMMI,PBAR,PUP,PDN,GUP,GDN,
+!$OMP&                     SUP,SDN,VUP,VDN)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         PE = OPRESS(I,J)
@@ -1496,8 +1559,9 @@ C****
         END DO
       END DO
       END DO
+!$OMP END PARALLEL DO
       RETURN
-      END
+      END SUBROUTINE OPGF0
 
       SUBROUTINE OADVT (RM,RX,RY,RZ,DT,QLIMIT,OIJL)
 !@sum  OADVT advects tracers using the linear upstream scheme.
@@ -1542,7 +1606,7 @@ C     RZ(I, 1,L) = RZ(IM,1,L)
       RM(I,JM,L) = RM(1,JM,L)
    20 RZ(I,JM,L) = RZ(1,JM,L)
       RETURN
-      END
+      END SUBROUTINE OADVT
 
       SUBROUTINE OADVTX (RM,RX,RY,RZ,MO,MU,DT,QLIMIT,OIJL)
 !@sum  OADVTX advects tracer in x direction using linear upstream scheme
@@ -1568,9 +1632,12 @@ C****
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(IM) :: AM,A,FM,FX,FY,FZ
       REAL*8 RXY
-      INTEGER I,J,L,IM1,IP1
+      INTEGER I,J,L,IM1,IP1,ICKERR
 
 C**** Loop over layers and latitudes
+      ICKERR=0
+!$OMP PARALLEL DO  PRIVATE(I,J,L,IP1,IM1,A,AM,FM,FX,FY,FZ)
+!$OMP&             REDUCTION(+:ICKERR)
       DO 320 L=1,LMO
       DO 320 J=2,JM-1
 C****
@@ -1681,16 +1748,29 @@ C****
       end if
 C****
       MO(I,J,L) = MO(I,J,L) +  AM(IM1)-AM(I)
-         IF(MO(I,J,L).LE.0.)  GO TO 800
+         IF(MO(I,J,L).LE.0.)                ICKERR=ICKERR+1
+         IF(QLIMIT .AND. RM(I,J,L).LT.0.)   ICKERR=ICKERR+1
          OIJL(I,J,L) = OIJL(I,J,L) + FM(I)
   310 IM1=I
   320 CONTINUE
-      RETURN
+!$OMP END PARALLEL DO
+
+C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
+      IF(ICKERR.EQ.0)  RETURN
+      DO 440 L=1,LMO
+      DO 440 J=2,JM-1
+      DO 440 I=1,IM
+         IF(MO(I,J,L).LE.0.)  GO TO 800
+         IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
+  440 CONTINUE
+      WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTX ',ICKERR
+      STOP "OADVTX"
+
   800 WRITE (6,*) 'MO<0 in OADVTX:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTX:',I,J,L,RM(I,J,L)
       WRITE (6,*) 'A=',(I,A(I),I=1,IM)
       STOP "OADVTX"
-      END
+      END SUBROUTINE OADVTX
 
       SUBROUTINE OADVTY (RM,RX,RY,RZ,MO,MV,DT,QLIMIT,OIJL)
 C****
@@ -1714,10 +1794,13 @@ C****
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(JM) :: BM,B,FM,FX,FY,FZ
-      INTEGER I,J,L
+      INTEGER I,J,L,ICKERR
       REAL*8 SBMN,SFMN,SFZN,RXY
 
 C**** Loop over layers and longitudes
+      ICKERR=0
+!$OMP PARALLEL DO  PRIVATE(I,J,L, SBMN,SFMN,SFZN, B,BM,FM,FX,FY,FZ),
+!$OMP&             REDUCTION(+:ICKERR)
       DO 350 L=1,LMO
 C     SBMS = 0.
 C     SFMS = 0.
@@ -1907,15 +1990,31 @@ C        IF(QLIMIT.AND.RM(IM,1,L).LT.0.)  GO TO 810
       RM(1,JM,L) = RM(1,JM,L) + SFMN/IM
       RZ(1,JM,L) = RZ(1,JM,L) + SFZN/IM
       MO(1,JM,L) = MO(1,JM,L) + SBMN/IM
-         IF(MO(1,JM,L).LE.0.)  GO TO 800
-         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
+         IF(MO(1,JM,L).LE.0.)             ICKERR=ICKERR+1
+         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  ICKERR=ICKERR+1
   350 CONTINUE
-      RETURN
+!$OMP END PARALLEL DO
+
+C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
+      IF(ICKERR.EQ.0)  RETURN
+      DO L=1,LMO
+        DO J=2,JM-1
+          DO I=1,IM
+            IF(MO(I,J,L).LE.0.)  GO TO 800
+            IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
+          END DO
+        END DO
+        IF(MO(1,JM,L).LE.0.)  GO TO 800
+        IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
+      END DO
+      WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTY ',ICKERR
+      STOP "OADVTY"
+
   800 WRITE (6,*) 'MO<0 in OADVTY:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTY:',I,J,L,RM(I,J,L)
       WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
       STOP "OADVTY"
-      END
+      END SUBROUTINE OADVTY
 
       SUBROUTINE OADVTZ (RM,RX,RY,RZ,MO,MW,DT,QLIMIT,OIJL)
 C****
@@ -1939,17 +2038,20 @@ C****
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(0:LMO) :: CM,C,FM,FX,FY,FZ
-      INTEGER I,J,L,LMIJ
+      INTEGER I,J,L,LMIJ,ICKERR
       REAL*8 SBMN,SFMN,SFZN,RXY
 C****
+C**** Loop over latitudes and longitudes
+      ICKERR=0
+!$OMP PARALLEL DO  PRIVATE(I,L,LMIJ, C,CM, FM,FX,FY,FZ)
+!$OMP&             REDUCTION(+:ICKERR)
+      DO 330 I=IM,IM*(JM-1)+1
       CM(0) = 0.
        C(0) = 0.
       FM(0) = 0.
       FX(0) = 0.
       FY(0) = 0.
       FZ(0) = 0.
-C**** Loop over latitudes and longitudes
-      DO 330 I=IM,IM*(JM-1)+1
       LMIJ=LMM(I,1)
       IF(LMIJ.LE.1)  GO TO 330
       CM(LMIJ) = 0.
@@ -2055,18 +2157,31 @@ C****
       end if
 C****
       MO(I,1,L) = MO(I,1,L) +  CM(L-1)-CM(L)
-         IF(MO(I,1,L).LE.0.)  GO TO 800
-         IF(QLIMIT.AND.RM(I,1,L).LT.0.)  GO TO 810
+         IF(MO(I,1,L).LE.0.)              ICKERR=ICKERR+1
+         IF(QLIMIT.AND.RM(I,1,L).LT.0.)   ICKERR=ICKERR+1
   310 CONTINUE
          DO 320 L=1,LMIJ-1
   320    OIJL(I,1,L) = OIJL(I,1,L) + FM(L)
   330 CONTINUE
-      RETURN
+!$OMP END PARALLEL DO
+
+C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
+      IF(ICKERR.EQ.0)  RETURN
+      DO I=IM,IM*(JM-1)+1
+        LMIJ=LMM(I,1)
+        DO L=1,LMIJ
+          IF(MO(I,1,L).LE.0.)  GO TO 800
+          IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
+        END DO
+      END DO
+      WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTZ ',ICKERR
+      STOP "OAVDTZ"
+
   800 WRITE (6,*) 'MO<0 in OADVTZ:',I,L,MO(I,1,L)
   810 WRITE (6,*) 'RM in OADVTZ:',I,L,RM(I,1,L)
       WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       STOP "OADVTZ"
-      END
+      END SUBROUTINE OADVTZ
 
       SUBROUTINE OBDRAG
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
@@ -2942,7 +3057,7 @@ C****
       END DO
 C**** Done!
       RETURN
-      END
+      END SUBROUTINE ODIFF
 
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
@@ -3016,7 +3131,7 @@ c       END IF
       END DO
       RETURN
 C****
-      END
+      END SUBROUTINE TOC2SST
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda dummy routine for consitency with uncoupled model
@@ -3268,4 +3383,4 @@ C**** accumulate atmospheric glacial runoff diags (copied from riverf)
       END DO
 C****
       RETURN
-      END
+      END SUBROUTINE GLMELT

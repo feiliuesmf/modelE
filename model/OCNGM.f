@@ -49,16 +49,21 @@ C****
       INTEGER I,J,L,IM1
 
 C**** Initialize SLOPES common block of coefficients
-      ASX0=0. ; ASX1=0. ; ASX2=0. ; ASX3=0.
-      AIX0=0. ; AIX1=0. ; AIX2=0. ; AIX3=0.
-      ASY0=0. ; ASY1=0. ; ASY2=0. ; ASY3=0.
-      AIY0=0. ; AIY1=0. ; AIY2=0. ; AIY3=0.
-      S2X0=0. ; S2X1=0. ; S2X2=0. ; S2X3=0.
-      S2Y0=0. ; S2Y1=0. ; S2Y2=0. ; S2Y3=0.
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO L=1,LMO
+        ASX0(:,:,L)=0. ;ASX1(:,:,L)=0. ; ASX2(:,:,L)=0. ; ASX3(:,:,L)=0.
+        AIX0(:,:,L)=0. ;AIX1(:,:,L)=0. ; AIX2(:,:,L)=0. ; AIX3(:,:,L)=0.
+        ASY0(:,:,L)=0. ;ASY1(:,:,L)=0. ; ASY2(:,:,L)=0. ; ASY3(:,:,L)=0.
+        AIY0(:,:,L)=0. ;AIY1(:,:,L)=0. ; AIY2(:,:,L)=0. ; AIY3(:,:,L)=0.
+        S2X0(:,:,L)=0. ;S2X1(:,:,L)=0. ; S2X2(:,:,L)=0. ; S2X3(:,:,L)=0.
+        S2Y0(:,:,L)=0. ;S2Y1(:,:,L)=0. ; S2Y2(:,:,L)=0. ; S2Y3(:,:,L)=0.
+      END DO
+!$OMP END PARALLEL DO
 
 C**** Calculate all diffusivities
       CALL ISOSLOPE4
 C**** Surface layer is calculated directly with appropriate AI,S = 0
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO       !Calculating all layers!
       DO J=2,JM
       IM1 = IM
@@ -139,6 +144,7 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
       END DO
       END DO
       END DO
+!$OMP END PARALLEL DO
 C**** End of Main Loop of GMKDIF
       RETURN
       END SUBROUTINE GMKDIF
@@ -161,6 +167,7 @@ C****
       DT4 = 0.25*DTS
 C**** Explicit calculation of "fluxes" (R(T))
 C**** Calculate tracer concentration
+!$OMP PARALLEL DO  PRIVATE(L,J,I)
       DO L = 1,LMO
         DO J = 1,JM
           DO I = 1,IM
@@ -175,6 +182,8 @@ C**** Calculate tracer concentration
           END DO
         END DO
       END DO
+!$OMP  END PARALLEL DO
+!$OMP PARALLEL DO  PRIVATE(L,J,DT4DY,DT4DX,IM1,I,IP1)
       DO L=1,LMO
       DO J=2,JM-1
 C**** 1/DYPO(DXP) from Y(X) gradient of T for FZY(FZX)
@@ -262,7 +271,9 @@ C**** Skip for L+1 greater than LMM(I,J+1)
       END DO
       END DO
       END DO
+!$OMP  END PARALLEL DO
 C**** Summation of explicit fluxes to TR, (R(T))
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT)
       DO L=1,LMO
 C**** Non-Polar boxes
       DO J=2,JM-1
@@ -361,7 +372,8 @@ C**** Add and Subtract vertical flux. Note +ve upward flux
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(1,JM,L  ,3) = GIJL(1,JM,L  ,3) + RFZT
       END IF
-  620 END DO
+ 620  END DO
+!$OMP END PARALLEL DO
       RETURN
       END SUBROUTINE GMFEXP
 C****
@@ -383,6 +395,9 @@ C**** diffusion coefficient is calculated for each triad as well.
 C**** The diffusion coefficient is taken from Visbeck et al (1997)
 C****
 C**** Main Loop over I,J and L
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,AIX0ST,AIX2ST,AIY0ST,AIY2ST,
+!$OMP&  SIX0,SIX2,SIY0,SIY2,BYAIDT,DSX0,DSX2,DSY0,DSY2,AIX1ST,AIX3ST,
+!$OMP&  AIY1ST,AIY3ST,SIX1,SIX3,SIY1,SIY3,DSX1,DSX3,DSY1,DSY3)
       DO L=1,LMO
       DO J=2,JM-1
       IM1=IM
@@ -490,6 +505,7 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       END DO
       END DO
       END DO
+!$OMP END PARALLEL DO
       RETURN
       END SUBROUTINE ISOSLOPE4
 C****
@@ -524,6 +540,7 @@ C**** Calculate level at 1km depth
 c        IFIRST = 0. ! extra IFIRST bit at bottom
       END IF
 C****
+!$OMP PARALLEL DO  PRIVATE(L,J,I,BYRHO,DH0,DZVLM1)
       DO L=1,LMO
       DO J=1,JM
       DO I=1,IM
@@ -556,7 +573,9 @@ c         END IF
  911  END DO
       END DO
       END DO
+!$OMP  END PARALLEL DO
 C**** Calculate density gradients
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO
         DO J=2,JM
           IM1 = IM
@@ -578,9 +597,12 @@ C**** Calculate horizontal gradients
           END DO
         END DO
       END DO
+!$OMP  END PARALLEL DO
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
       ARIV = 0.
+!$OMP PARALLEL DO  PRIVATE(J,CORI,BETA,IM1,I,ARHO,ARHOX,ARHOY,LAVX,LAVY,
+!$OMP&  LAV,L,ARHOZ,AN,RD,BYTEADY)
       DO J=2,JM-1
         CORI = ABS(2d0*OMEGA*SINPO(J))
         BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
@@ -639,6 +661,7 @@ C**** Calculate average density + gradients over [1,LUP]
           IM1=I
         END DO
       END DO
+!$OMP  END PARALLEL DO
       IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
         call openunit('ODIFF',iu_ODIFF,.true.,.false.)
         TITLE = "Visbeck scaling for GM coefficient m^2/s"
