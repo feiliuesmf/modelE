@@ -108,7 +108,7 @@ C****
 !@ver  1.0
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
       IMPLICIT NONE
-!@var M index denoting from where DIAGCO is called
+!@var M index denoting from where DIAGCO is called (see DIAGCA)
       INTEGER, INTENT(IN) :: M
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
