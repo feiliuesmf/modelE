@@ -3919,8 +3919,12 @@ c**** below map, show global mean and mark each quarter with a '+'
         if (kcol.eq.1) write(line(k)(nz1:nz2),'(f5.1)') gm
         if (kcol.gt.1) write(line(k)(nz1:nz2),'(f7.1)') gm
       else
-        if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(gm)
-        if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(gm)
+        if (gm.eq.undef) then
+          write(line(k)(nz1:nz2),'(a)') "  Undef"
+        else
+          if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(gm)
+          if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(gm)
+        end if
       end if
       do k1 = n1,n2,im/(4*inci)
         line(k)(k1:k1) = '+'
