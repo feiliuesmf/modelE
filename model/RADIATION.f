@@ -1,15 +1,15 @@
         
       MODULE SURF_ALBEDO
-!@sum SURF_ALBEDO contains parameter and variables needed for albedo calc
+!@sum SURF_ALBEDO contains parameters/variables needed for albedo calc
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       implicit none
       save
-!@var number of K-bands 
-      integer, parameter :: NKBAND=33 
+!@var number of K-bands
+      integer, parameter :: NKBAND=33
 
-!@var NVEG number of real vegetation types (not including bare soil) 
+!@var NVEG number of real vegetation types (not including bare soil)
 !@var NV total number of vegetation types
-      integer, parameter :: NVEG = 9, NV=11 
+      integer, parameter :: NVEG = 9, NV=11
 
 !@var SRFOAM look up table for ocean foam as a function of wind speed
       real*8, parameter, dimension(25) :: SRFOAM = (/
@@ -20,7 +20,7 @@
 !@var SEASON julian day for start of season (used for veg albedo calc)
 C                      1       2       3       4
 C                    WINTER  SPRING  SUMMER  AUTUMN
-      real*8, parameter, dimension(4):: 
+      real*8, parameter, dimension(4)::
      *     SEASON=(/ 15.00,  105.0,  196.0,  288.0/)
 C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
@@ -97,8 +97,8 @@ C**** shorthand for the 2 band version
 
 !@var DMOICE, DMLICE masking depth for snow on ice and land ice
       real*8, parameter :: DMOICE = 10., DMLICE = 10.
- 
-!@var AOCEAN K-band dependent Thermal radiation characteristics for ocean
+
+!@var AOCEAN K-band dependent Thermal radiation characteristics for ocn
       real*8, parameter, dimension(NKBAND) :: AOCEAN = (/
      +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
      +        0.10666,0.10697,0.10665,0.10719,0.10728,0.11007,0.04009,
@@ -144,7 +144,7 @@ C**** miscellaneous constants
      *     EOCTRA=1.0, EDSTRA=1.0, ESNTRA=1.0, EICTRA=1.0, EVGTRA=1.0
 
 C**** ALBVNH is set only once a day then saved
-!@var ALBVNH hemispherically varying vegetation albedo 
+!@var ALBVNH hemispherically varying vegetation albedo
       real*8, dimension(NV,6,2) :: ALBVNH
 
 C**** JNORTH is set at the beginning and saved
@@ -7604,7 +7604,7 @@ C****
 
       SUBROUTINE WRITER(KWRU,INDEX)
 C
-      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM, 
+      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM,
      *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
      *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA
       !INCLUDE 'BR00B.COM'   ! use RE001
@@ -12589,13 +12589,13 @@ C
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       use SURF_ALBEDO, only : albvnh,albvnd,season,nv
       implicit none
-!@var jyearr radiation year (not used for anything) 
+!@var jyearr radiation year (not used for anything)
 !@var jjdayr julian day (used for seasonality of veg albedo)
       integer, intent(in) :: jyearr, jjdayr
       integer K,KS1,KS2,KN1,KN2,L
       real*8 XJDAY,SEASN1,SEASN2,WT2,WT1
 C
-C                      Define Seasonal Albedo Dependence 
+C                      Define Seasonal Albedo Dependence
 C                      ---------------------------------
 C
       XJDAY=JJDAYR
@@ -12634,16 +12634,16 @@ C     -------------------
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       use SURF_ALBEDO
-      use RE001, only: 
+      use RE001, only:
 C**** config data
      *     MLAT46,KEEPAL,KVEGA6,
-C**** input from radiation 
+C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
      *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,
      *     TGO,TGOI,TGE,TGLI,TSL,HIN,FLAGS,FMP,HSN,HMP,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
-C**** output 
+C**** output
      *     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,BGFEMD,BGFEMT,
      *     DTRUFG,FTRUFG
       implicit none
@@ -12665,8 +12665,8 @@ C**** arrays needed if 6 band albedo is used
       real*8, dimension(6) :: BOCVN,BEAVN,BOIVN,BLIVN,BSNVN,BVNSUR,
      *                        XOCVN,XEAVN,XOIVN,XLIVN,XSNVN,XVNSUR
 
-C**** Equilvalence 2 band variables to 6 band array for easier passing
-      EQUIVALENCE 
+C**** Equivalence 2 band variables to 6 band array for easier passing
+      EQUIVALENCE
      *     (BOCVN(1),BOCVIS),(BOCVN(2),BOCNIR),
      *     (BEAVN(1),BEAVIS),(BEAVN(2),BEANIR),
      *     (BOIVN(1),BOIVIS),(BOIVN(2),BOINIR),
@@ -12678,8 +12678,8 @@ C**** Equilvalence 2 band variables to 6 band array for easier passing
      *     (XLIVN(1),XLIVIS),(XLIVN(2),XLINIR),
      *     (XSNVN(1),XSNVIS),(XSNVN(2),XSNNIR),
      *     (BVNSUR(1),BVSURF),(BVNSUR(2),BNSURF),
-     *     (XVNSUR(1),XVSURF),(XVNSUR(2),XNSURF),
-      
+     *     (XVNSUR(1),XVSURF),(XVNSUR(2),XNSURF)
+
 C**** variables used for sea ice albedo calculation (for 4 bands)
       real*8, dimension(4) :: almp,alsd,alsf,ali,albtf,albtr
       real*8 :: patchy,snagfac
@@ -13006,7 +13006,7 @@ C**** Snow:
             alsd(4)=.053d0-.0047d0*cosz
           endif
 C**** consider snow aging based on Loth and Graf (1998)
-C****  Dry, Wet(thick), Wet(thin) snow decreases by 
+C****  Dry, Wet(thick), Wet(thin) snow decreases by
 C**** 0.006,  0.015 and 0.071 per day, respectively (for mean)
 C**** assume decrease for each band is proportional
           if (flags) then
@@ -13077,7 +13077,7 @@ c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
           BOIVIS=.3d0           !   Ts > 10C
           BOINIR=.15d0
           IF(TSL.LT.283.16d0) THEN
-            BOIVIS=AOIVIS-(TSL-273.16d0)*.1d0*(AOIVIS-.30d0) !   0<Ts<10C
+            BOIVIS=AOIVIS-(TSL-273.16d0)*.1d0*(AOIVIS-.30d0) !  0<Ts<10C
             BOINIR=AOINIR-(TSL-273.16d0)*.1d0*(AOINIR-.15d0)
           END IF
         END IF
@@ -13207,7 +13207,7 @@ C**** if 2-band, fill in rest of 6-band arrays
           XLIVN(L)=XLIVN(2)
         END DO
       END IF
-C**** write some BXA for diagnostic output (in WRITER) (replaces equivalence)
+C**** write some BXA for diagnostic output (in WRITER) (replaces equiv.)
       BXA(1)=EXPSNE ; BXA(2)=EXPSNO ; BXA(3)=EXPSNL
       BXA(4)=BSNVIS ; BXA(5)=BSNNIR ; BXA(6)=XSNVIS ; BXA(7)=XSNNIR
 
@@ -13235,7 +13235,7 @@ C**** calculate final variables always over 6-bands
           SRBALB(J)=BVNSUR(L)
           SRXALB(J)=XVNSUR(L)
         END DO
-      ENDIF   
+      ENDIF
 C
 C                     --------------------------------------------------
 C                     Define each Surface Flux Factors, Flux Derivatives
