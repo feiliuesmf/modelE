@@ -16,6 +16,14 @@
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
+      USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
+     *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
+     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
+     *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
+     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
+     &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
+     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
+     *     isccp_diags
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -41,14 +49,6 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
      *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
-      USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
-     *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
-     *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
-     &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
-     &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
-     *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
-     *     isccp_diags
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo
       USE SEAICE_COM, only : rsi

@@ -10,11 +10,11 @@
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
+      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRACER_DIAG_COM, only: TAJLN,JLNT_TURB
 #endif
-      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
       USE DYNAMICS, only : pk,pdsig,plij
       USE PBLCOM, only : dclev
       IMPLICIT NONE

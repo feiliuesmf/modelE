@@ -834,6 +834,7 @@ C****
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE GEOM, only : bydxyp
+      USE DAGCOM, only : aij,ij_mrvr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
@@ -841,7 +842,6 @@ C****
      *     ,scale_tij
 #endif
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
-      USE DAGCOM, only : aij,ij_mrvr
       IMPLICIT NONE
       REAL*8 RVROUT(6), SCALERVR, DAYS
       INTEGER INM,I,N

@@ -5,7 +5,7 @@ E001tr: new modelE (based on B402A with sample tracers)
 
 Preprocessor Options
 #define TRACERS_ON          ! include tracers code
-!#define TRACER_SPECIAL_Lerner     ! include special tracer code
+!#define TRACER_SPECIAL_Lerner ! also activate TRACER_SPECIAL_Lerner in Obj.modules !!
 !#define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
@@ -20,7 +20,8 @@ TQUS_DRV                            ! advection of Q and tracer gases
 TRACER_COM TRACERS_Air              ! air mass tracers
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-TRACER_SPECIAL_Lerner               ! routines called when TRACER_SPECIAL_Lerner is activated
+! use next line if #define TRACER_SPECIAL_Lerner
+! TRACER_SPECIAL_Lerner               ! routines called when TRACER_SPECIAL_Lerner is activated
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils

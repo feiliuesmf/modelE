@@ -51,6 +51,17 @@ c****
      &    eddy,
      &    nlsn,isn,nsn,dzsn,wsn,hsn,fr_snow
 
+      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
+     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
+     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
+     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
+     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
+     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
+     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
+     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
+     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
+     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
+     *     ,idd_ev
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
@@ -83,17 +94,6 @@ c****
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
-      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,
-     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
-     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
-     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
-     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
-     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
-     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
-     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev
 
       implicit none
 
@@ -469,8 +469,7 @@ c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
 c**** update ratio
         trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx)-
      *       (tevapw(nx)+tevapd(nx)+tevapb(nx)+trruns(nx)+trrunu(nx)))/
-     *       (rhow*(wsoil_tot+dtsurf*pr)-(aevapw+aevapd+aevapb+aruns
-     *       +arunu))
+     *   (rhow*(wsoil_tot+dtsurf*pr)-(aevapw+aevapd+aevapb+aruns+arunu))
         trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
         trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
         trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow

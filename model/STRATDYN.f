@@ -338,16 +338,16 @@ C****
       INTEGER, INTENT(IN) :: LDIFM
       REAL*8, PARAMETER :: XEDDY = 10., DV2MAX = 25.**2
       INTEGER I,J,L,IP1
-      REAL*8 US,VS,DELV2
+      REAL*8 US1,VS1,DELV2
 
 C**** Calculate surface winds on velocity grid (rewrite!)
 C**** Is this calculated in PBL?
       DO J=2,JM
         I=IM
         DO IP1=1,IM
-          US=.25*(USURF(I,J-1)+USURF(IP1,J-1)+USURF(I,J)+USURF(IP1,J))
-          VS=.25*(VSURF(I,J-1)+VSURF(IP1,J-1)+VSURF(I,J)+VSURF(IP1,J))
-          DELV2   =(U(I,J,1)-US)**2 + (V(I,J,1)-VS)**2
+          US1=.25*(USURF(I,J-1)+USURF(IP1,J-1)+USURF(I,J)+USURF(IP1,J))
+          VS1=.25*(VSURF(I,J-1)+VSURF(IP1,J-1)+VSURF(I,J)+VSURF(IP1,J))
+          DELV2   =(U(I,J,1)-US1)**2 + (V(I,J,1)-VS1)**2
           VKEDDY(I,J,1)=0.
           IF (DELV2.GT.DV2MAX) VKEDDY(I,J,1)=XEDDY
           I=IP1

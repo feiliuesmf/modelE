@@ -22,20 +22,20 @@
       USE CONSTANT, only : grav,deltx,lhe,sha,by3
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,p,itime
+cc      USE QUSDEF, only : nmom,zmoms,xymoms
+cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
+      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
       USE TRACER_DIAG_COM, only: tajln,jlnt_turb
       USE FLUXES, only : trflux1
 #endif
+      USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,t2_3d=>t2gcm
       USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
-      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
-      USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
-cc      USE QUSDEF, only : nmom,zmoms,xymoms
-cc      USE SOMTQ_COM, only : tmom,qmom
 
 
       IMPLICIT NONE
@@ -53,7 +53,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze,gm,gh
      &    ,km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      &    ,lscale,qturb,p2,p3,p4,rhobydze,bydzrhoe,uw,vw,wt,wt0
-     &    ,w2,gc_wq,gc_wt_by_t2,wq,wq0
+     &    ,w2,gc_wt_by_t2,wq,wq0
 
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
@@ -560,13 +560,13 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
       implicit none
 
+      integer, intent(in) :: level,n,iter,i,j
       real*8, dimension(n), intent(in) ::
      &   u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha,
      &   an2,dqdz,rho,rhoe,km,kh,kq,ke,kt2,gc_wt,gc_wq,
      &   gc_ew,gc_w2t,gc_wt2,gm,gh,lscale
       real*8, intent(in) :: tvs,uflx,vflx,tvflx,qflx
       logical, intent(in) :: non_local
-      integer, intent(in) :: level,n,iter,i,j
 
       real*8, dimension(n) :: p,pe,t2_out
       real*8 :: z,ze,dmdz,uf,hf,qf,ri,rif,sigmat,wt1
@@ -683,10 +683,10 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
       implicit none
 
+      integer, intent(in) :: n
       real*8, dimension(n), intent(in) ::
      &        x0,p1,p2,p3,p4,rhoebydz,bydzerho
       real*8, intent(in) :: flux_bot,flux_top,dtime
-      integer, intent(in) :: n
       real*8, dimension(n), intent(out) :: x
 
       real*8, dimension(n) :: sub,dia,sup,rhs
@@ -756,10 +756,10 @@ c     flux_top=rhoe(n)*flux_top
       use CONSTANT, only : teeny
       implicit none
 
+      integer, intent(in) :: n
       real*8, dimension(n), intent(in) ::
      &        x0,p1,p2,p3,p4,rhobydze,bydzrhoe
       real*8, intent(in) :: x_surf,dtime
-      integer, intent(in) :: n
       real*8, dimension(n), intent(out) :: x
 
       real*8, dimension(n) :: sub,dia,sup,rhs
@@ -898,9 +898,9 @@ c     at edge: e,lscale,km,kh,gm,gh
       integer, intent(in) :: level,n    !@var n  array dimension
       real*8, dimension(n), intent(in) :: u,v,t,e,qturb,dudz,dvdz,as2
      &    ,dtdz,dqdz,g_alpha,an2,lscale,dz,dze
-      real*8, dimension(n), intent(inout) :: t2
+      real*8, dimension(n), intent(inout) :: t2,kwt
       real*8, dimension(n), intent(out) ::
-     &     km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
+     &     km,kh,kq,ke,kt2,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      &    ,gc_wt_by_t2,gm,gh,uw,vw,wt,wq,tau
       logical, intent(in) :: non_local
 
@@ -911,7 +911,7 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n) :: u2,v2,w2,uv,ut,vt
       real*8 :: ell,byden,ghj,gmj,gmmax
      &    ,sm,sh,sq,taue,e_lpbl
-     &    ,kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
+     &    ,kh_canuto,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
      &    ,g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,dtdzj
      &    ,uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz
      &    ,duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,ke0
@@ -1294,8 +1294,7 @@ c
      &    ,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26,c27
      &    ,d0,d1,d2,d3,d4,d5,d6,d7,d8
 
-      real*8 :: U,V,S2,N2,n0,n1,s1,b1,b2,b3,b4,b5,d
-     &    ,n0,n1,s1,b1,b2,b3,b4,b5,d
+      real*8 :: U,V,n0,n1,n2,s1,s2,b1,b2,b3,b4,b5,d
      &    ,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,num_rest,gc_q2w
      &    ,tmp,wt,dutdz,dvtdz,dwtdz,dt2dz,dq2dz,dedz
       integer, SAVE :: ifirst=0

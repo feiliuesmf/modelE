@@ -1,6 +1,4 @@
 #include "rundeck_opts.h"
-#ifdef TRACERS_ON
-#ifdef TRACERS_SPECIAL_Lerner
 
       MODULE PRATHER_CHEM_COM
 !@sum Variables for chemical tracer routines that were provided by
@@ -47,7 +45,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 !@sum Variables for Prather's Stratospheric chemistry loss model
       USE MODEL_COM, only: jm,lm
       USE TRACER_COM, only: ntm
-!@var n_MPtable_max:  Number of tracers that will use the frequency 
+!@var n_MPtable_max:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
       integer, parameter :: n_MPtable_max=3
 !@var n_MPtable: Index for tracers that use the frequency tables
@@ -118,7 +116,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
 
 
       SUBROUTINE Strat_chem_Prather(ns,n)
-!@sum Strat_chem_Prather calculates stratospheric chemistry for 
+!@sum Strat_chem_Prather calculates stratospheric chemistry for
 !@+        N2O, CFC and CH4
 !@auth Michael Prather (J.Lerner adopted code)
 !@var nsc index for chemical tracer number (to access tables)
@@ -147,7 +145,7 @@ C-----ALLOW FOR ONLY ONE SET OF TSCPARM's FOR STRATOSPHERIC LOSS,
 C-----uses TCSCALE for different tracers to scale loss
 C-----uses S.O.M. formulation for vertical losses
 C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
-      
+
       told(:,:,:) = trm(:,:,:,n)
       do 150 l=lm,lm+1-nstrtc,-1
       lr = lm+1-l
@@ -164,7 +162,7 @@ C------Couple the moments of the loss freq with moments of the tracer:
 C       dSo  = dt*( So*Lo + Sz*Lz/3 + Szz*Lzz/5)
 C       dSz  = dt*( Sz*Lo + So*Lz + 2(Sz*Lzz + Szz*Lz)/5)
 C       dSzz = dt*( Szz*Lo + SoLzz +2Sz*Lz/3 + 2Szz*Lzz/7)
-          t0l = f0l*trm(i,j,l,n) + 
+          t0l = f0l*trm(i,j,l,n) +
      *           f1l*trmom(mz,i,j,l,n)*by3+f2l*trmom(mzz,i,j,l,n)*.2d0
           if (t0l.lt.0.) go to 130
           t1l = f0l*trmom( mz,i,j,l,n) + f1l*trm(i,j,l,n) +
@@ -209,7 +207,7 @@ C---monthly set up of chemical loss parameters
       real*8 strt0l(lm),strt1l(lm),strt2l(lm),strtx(lz_schem)
       real*8 f(lz_sx)
 C-----------------------------------------------------------------------
-C--tscparm(lz_schem,18,12,N) defined for 18 lats (85S, 75S, ...85N) 
+C--tscparm(lz_schem,18,12,N) defined for 18 lats (85S, 75S, ...85N)
 C --                   & 12 months
 C----  do NOT interpolate, just pick nearest latitude
 C---assume given MONTH = month #, NTM=# tracers, JM=#lats, etc.
@@ -305,9 +303,9 @@ C**** Apply the chemistry
 
 
       MODULE LINOZ_CHEM_COM
-C**** linoz with sol variability 
+C**** linoz with sol variability
 !@sum Variables for linoz chemistry.  Original code was provided by
-!@+    Michael Prather and Chris McLinden.  
+!@+    Michael Prather and Chris McLinden.
 C**** Ozone tracer; linoz chemistry
 C     NCTABLE=# of linoz tables (includes solar UV)
 C     n_O3=tracer number for linoz O3
@@ -335,9 +333,8 @@ C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer iu,j,k,l,m,n,n_O3
+      integer iu,j,k,l,m,n,n_O3,nl
       character*80 titlch
-      integer l,nl
       real*8    XPSD,XPSLM1,XPSL
 
       call openunit('LINOZ_TABLE',iu,.false.,.true.)
@@ -348,7 +345,7 @@ C**** Needed for linoz chemistry
         write(6,'(1x,a)') titlch
         do m=1,12
           do j=1,18
-            read(iu,'(20x,6e10.3/(8e10.3))') 
+            read(iu,'(20x,6e10.3/(8e10.3))')
      *           (tlparm(k,j,m,n),k=lz_linoz,1,-1)
           end do
         end do
@@ -360,7 +357,7 @@ C**** Calculate level for tropophere ozone chem
       do l=1,lm
         if (psfmpt*sige(l+1)+ptop .le. 900.)then
           lbc = l
-          write(6,'(a,i3,f8.1)') 
+          write(6,'(a,i3,f8.1)')
      *     ' Top layer for tropo O3 chem is ',lbc, psfmpt*sige(l)+ptop
           exit
         end if
@@ -427,7 +424,7 @@ c using a lifetime of taubc(n) for lowest lbc levels
           T0Mold=trm(i,j,l,n)
           dmass = (ratio*am(l,i,j)*dxyp(j)-trm(i,j,l,n))*coeff
           if(trm(i,j,l,n) + dmass .lt.0.) then
-            write(6,'(a,3i4,2f15.2,i9)') 
+            write(6,'(a,3i4,2f15.2,i9)')
      *        ' Negative tracer in Trop_chem_O3',
      *        i,j,l,trm(i,j,l,n),dmass,itime
               dmass = -trm(i,j,l,n)
@@ -471,7 +468,7 @@ c  4- ozone (P-L) for climatological ozone, v/v/s
 c  5- d(P-L) / dO3, 1/s
 c  6- d(P-L) / dT, v/v/s/K
 c  7- d(P-L) / d(column O3), v/v/s/DU
-c  8- d(P-L) / d(sol.flx.) (-) 
+c  8- d(P-L) / d(sol.flx.) (-)
 c
 !@var dsol variable which describes portion of solar cycle being modeled
 !@+ +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
@@ -544,7 +541,7 @@ c change in ozone mass due to chemistry:
             dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtchem))
 c update ozone mass
             if (T0Mold+dmass.lt.0.) then
-               write(6,'(a,3i4,2f15.2,i9)') 
+               write(6,'(a,3i4,2f15.2,i9)')
      *           ' Negative tracer in Strat_chem_O3',
      *                i,j,l,T0Mold,dmass,itime
                dmass = -T0Mold
@@ -768,7 +765,7 @@ C**** Monthly sources are interpolated each day
       logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,jdlast,kwet,imon(nmons)
+      integer i,j,nt,iact,iu,k,kwet,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
@@ -860,7 +857,7 @@ C**** Monthly sources are interpolated each day
       logical :: mon_bins(nmons)=(/.true.,.true./)
       real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,jdlast,imon(nmons)
+      integer i,j,nt,iact,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
@@ -881,7 +878,7 @@ C****
           src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
         call closeunits(ann_units,nanns)
-      
+
       call openunits(mon_files,mon_units,mon_bins,nmons)
       endif
 C****
@@ -911,16 +908,16 @@ C****
 C**** NOTE: tracer is supposed to start on 10/16
 C**** October 1963 14CO2 Concentrations for GCM  2/26/99
 C**** 2/2/2: generalized code for modelE
-C****        
+C****
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
-      PARAMETER (kmw=60)
+      integer,PARAMETER :: kmwco2=60
       REAL*4 CO2W(37,0:30)
-      real*8 p(0:60),CO2JK(JM,0:kmw),CO2IJL(IM,JM,LM)
+      real*8 p(0:60),CO2JK(JM,0:kmwco2),CO2IJL(IM,JM,LM)
       CHARACTER*80 TITLE
-      integer i,j,jw,k,l,n,iu_in,iu_out,kmw
+      integer i,j,jw,k,l,n,iu_in,iu_out
       real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,w,zk !,stratm
 C****
 C**** Read in CO2 concentrations from workshop
@@ -938,14 +935,14 @@ c     OPEN (1,FILE='workshop.14co2',STATUS='OLD')
       READ (iu_in,912) ((CO2W(J,K),J=26,37),K=0,30)
       call closeunit(iu_in)
 C**** Calculate workshop pressure levels (Pa)
-      DO K=0,kmw
+      DO K=0,kmwco2
         ZK = 2.*K
         P(K) = 100000.*10**(-ZK/16.)
       end do
 C****
 C**** Interpolate workshop CO2W to CO2JK on GCM latitudes
 C****
-      DO K=31,kmw       ! above 17 Pa set all equal
+      DO K=31,kmwco2    ! above 17 Pa set all equal
         CO2JK(:,K) = 250.
       end do
       DO K=0,30
@@ -978,7 +975,7 @@ C**** psf, ptrop, pdn ..... in pascals (mb*100)
       PDN  = P(K)
       CDN  = CO2JK(J,K)
       K=K+1
-      if (k.gt.kmw) stop ' Please increase kmw in get_14CO2_IC'
+      if (k.gt.kmwco2) stop ' Please increase kmwco2 in get_14CO2_IC'
       GO TO 410
 C****
   420 CUP  = CO2JK(J,K) + (CO2JK(J,K-1)-CO2JK(J,K))*(PUP-P(K))/
@@ -996,121 +993,6 @@ C****
   911 FORMAT (5X,13F5.0)
   912 FORMAT (5X,12F5.0)
       END SUBROUTINE get_14CO2_IC
-
-
-      subroutine get_Trop_chem_CH4_freq(in_file,interp_file)
-!@sum get_Trop_chem_CH4_freq interpolates troposphereic chemical
-!@+     rates for CH4 from n-grid, 9 layers to 4X5, lm layers
-!@auth Jean Lerner
-C****  Input: CLIM.RUN.OHCH4.FRQ
-C**** Output: temporary file for this vertical resolution
-C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
-C****    CHECK IT with checkfile=.true.!!!
-      USE MODEL_COM, only: im,jm,lm,ptop,psf,psfmpt,sige,sig
-      USE FILEMANAGER, only: openunit,closeunit
-      USE lhntr_com, only: LHNTR,LHNTR0
-      implicit none
-      integer l,i,j,km,imo,jmo,lmo,kmo,in_file,interp_file,ifileA,ltopx
-      parameter (km=im*jm, imo=36,jmo=24,lmo=9,kmo=imo*jmo)
-      character*80 title
-      logical :: debug=.true.,checkfile=.false.
-      real*4 t,tau,fold(kmo,lmo)   ,rlat(jm)
-      real*8 wta(kmo),foldlm(kmo,lm),
-     *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
-      real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
-     *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
-
-!     initialize
-      pold(:) = sigo(:)*(psf-10.)+10.
-      pnew(:) = sig(:)*psfmpt+ptop
-      wta = 1.
-!     find a top for the output data (a drop sloppy!)
-      do 5 l=1,lm
-        ltopx = l
-        if (pnew(l).lt.pold(lmo)) go to 10
-    5 continue
-   10 continue
-      call LHNTR0(imo,jmo,-.25d0,22.5d0, im,jm,0.d0,45.d0,0.d0)
-
-      call openunit('OHCH4_FRQ_temporary',interp_file,.true.)
-C**** outer loop over tau
-      do 500 t=0.,8640.,120.
-      read (in_file) tau,fold
-C**** interpolate vertically  fold-->foldlm
-      do i=1,kmo
-        ain(:) = fold(i,:)
-        debug = .false.
-c       if (i.eq.kmo/2) debug = .true.
-        aout = 0.
-        call v_int(debug,ltopx,lmo,pold,ain,lm,pnew,aout)
-        foldlm(i,:) = aout(:)
-      end do
-C**** interpolate horizontally  foldlm-->fnew
-      do l=1,lm
-        call LHNTR(wta,foldlm(1,l),fnew(1,l),imo,jmo,im,jm)
-      end do
-      write(interp_file) tau,fnew
-  500 continue
-      call closeunit(in_file)
-      rewind (interp_file)
-      write(6,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
-C**** confirmation check at i=1 for last tau
-      if (checkfile) then
-        do j=1,jmo;  rlat(j) = j;  end do
-        title = 'old'
-        call openunit('OHCH4_FRQ_check_in',ifilea,.true.)
-        write (ifileA) title,jmo,lmo,1,1,
-     *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
-     *   sngl(pold),1.,1.
-        call closeunit(ifileA)
-        do j=1,jm;  rlat(j) = j;  end do
-        title = 'new'
-        call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
-        write (ifileA) title,jm,lm,1,1,
-     *   ((sngl(fnew(j,l)),j=1,km,im),l=1,lm),rlat,sngl(pnew),1.,1.
-        call closeunit(ifileA)
-      end if
-      return
-      end subroutine get_Trop_chem_CH4_freq
-
-
-      subroutine v_int(debug,ltopx,lm_old,pold,ain,lm_new,pnew,aout)
-!@sum v_int vertical interpolation for CH4 tables
-C**** We want to interpolate from an irregular to an irregular grid.
-C**** This is a little sloppy because value at ltopx is not accurate
-C****    But what WOULD be correct???
-      implicit none
-      real*8 ain(*),aout(*),pnew(*),pold(*)
-      real*8 dist,pint,plbot,pltop,step
-      integer l,lx,lm_new,lm_old,lbot,ltop,ltopx
-      logical debug
-
-      step = -1.
-      aout(1) = ain(1)
-      if (debug) write(6,*)'data in:',(ain(l),l=1,lm_old)
-
-      do 190 l=2,ltopx
-      pint = pnew(l)
-      plbot = pold(1)
-      do lx = 1,lm_old
-        lbot = lx
-        ltop = lbot+1
-        pltop = pold(ltop)
-        if (step.gt.0 .and. pint.le.pltop) go to 180
-        if (step.lt.0 .and. pint.ge.pltop) go to 180
-        plbot = pltop
-      end do
-  180 continue
-      dist = (pint-pltop)/(plbot-pltop) !distance from upper boundary
-      aout(l) = ain(lbot)*dist+ain(ltop)*(1.-dist)
-      if (.not.(aout(l).gt.0..or.aout(l).le.0.)) aout(l) = 0.
-      if (debug) write(6,*)l,lbot,ltop,pint,plbot,pltop,
-     *  ain(lbot),ain(ltop),aout(l)
-  190 continue
-      aout(ltopx) = ain(lm_old)   !!! fudgy
-      if (debug)write(6,*) 'data out',(aout(l),l=1,lm_new)
-      return
-      end subroutine v_int
 
 
       module lhntr_com
@@ -1255,6 +1137,121 @@ C****
       end module lhntr_com
 
 
+      subroutine get_Trop_chem_CH4_freq(in_file,interp_file)
+!@sum get_Trop_chem_CH4_freq interpolates troposphereic chemical
+!@+     rates for CH4 from n-grid, 9 layers to 4X5, lm layers
+!@auth Jean Lerner
+C****  Input: CLIM.RUN.OHCH4.FRQ
+C**** Output: temporary file for this vertical resolution
+C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
+C****    CHECK IT with checkfile=.true.!!!
+      USE MODEL_COM, only: im,jm,lm,ptop,psf,psfmpt,sige,sig
+      USE FILEMANAGER, only: openunit,closeunit
+      USE lhntr_com, only: LHNTR,LHNTR0
+      implicit none
+      integer l,i,j,km,imo,jmo,lmo,kmo,in_file,interp_file,ifileA,ltopx
+      parameter (km=im*jm, imo=36,jmo=24,lmo=9,kmo=imo*jmo)
+      character*80 title
+      logical :: debug=.true.,checkfile=.false.
+      real*4 t,tau,fold(kmo,lmo)   ,rlat(jm)
+      real*8 wta(kmo),foldlm(kmo,lm),
+     *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
+      real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
+     *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
+
+!     initialize
+      pold(:) = sigo(:)*(psf-10.)+10.
+      pnew(:) = sig(:)*psfmpt+ptop
+      wta = 1.
+!     find a top for the output data (a drop sloppy!)
+      do 5 l=1,lm
+        ltopx = l
+        if (pnew(l).lt.pold(lmo)) go to 10
+    5 continue
+   10 continue
+      call LHNTR0(imo,jmo,-.25d0,22.5d0, im,jm,0.d0,45.d0,0.d0)
+
+      call openunit('OHCH4_FRQ_temporary',interp_file,.true.)
+C**** outer loop over tau
+      do 500 t=0.,8640.,120.
+      read (in_file) tau,fold
+C**** interpolate vertically  fold-->foldlm
+      do i=1,kmo
+        ain(:) = fold(i,:)
+        debug = .false.
+c       if (i.eq.kmo/2) debug = .true.
+        aout = 0.
+        call v_int(debug,ltopx,lmo,pold,ain,lm,pnew,aout)
+        foldlm(i,:) = aout(:)
+      end do
+C**** interpolate horizontally  foldlm-->fnew
+      do l=1,lm
+        call LHNTR(wta,foldlm(1,l),fnew(1,l),imo,jmo,im,jm)
+      end do
+      write(interp_file) tau,fnew
+  500 continue
+      call closeunit(in_file)
+      rewind (interp_file)
+      write(6,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
+C**** confirmation check at i=1 for last tau
+      if (checkfile) then
+        do j=1,jmo;  rlat(j) = j;  end do
+        title = 'old'
+        call openunit('OHCH4_FRQ_check_in',ifilea,.true.)
+        write (ifileA) title,jmo,lmo,1,1,
+     *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
+     *   sngl(pold),1.,1.
+        call closeunit(ifileA)
+        do j=1,jm;  rlat(j) = j;  end do
+        title = 'new'
+        call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
+        write (ifileA) title,jm,lm,1,1,
+     *   ((sngl(fnew(j,l)),j=1,km,im),l=1,lm),rlat,sngl(pnew),1.,1.
+        call closeunit(ifileA)
+      end if
+      return
+      end subroutine get_Trop_chem_CH4_freq
+
+
+      subroutine v_int(debug,ltopx,lm_old,pold,ain,lm_new,pnew,aout)
+!@sum v_int vertical interpolation for CH4 tables
+C**** We want to interpolate from an irregular to an irregular grid.
+C**** This is a little sloppy because value at ltopx is not accurate
+C****    But what WOULD be correct???
+      implicit none
+      real*8 ain(*),aout(*),pnew(*),pold(*)
+      real*8 dist,pint,plbot,pltop,step
+      integer l,lx,lm_new,lm_old,lbot,ltop,ltopx
+      logical debug
+
+      step = -1.
+      aout(1) = ain(1)
+      if (debug) write(6,*)'data in:',(ain(l),l=1,lm_old)
+
+      do 190 l=2,ltopx
+      pint = pnew(l)
+      plbot = pold(1)
+      do lx = 1,lm_old
+        lbot = lx
+        ltop = lbot+1
+        pltop = pold(ltop)
+        if (step.gt.0 .and. pint.le.pltop) go to 180
+        if (step.lt.0 .and. pint.ge.pltop) go to 180
+        plbot = pltop
+      end do
+  180 continue
+      dist = (pint-pltop)/(plbot-pltop) !distance from upper boundary
+      aout(l) = ain(lbot)*dist+ain(ltop)*(1.-dist)
+      if (.not.(aout(l).gt.0..or.aout(l).le.0.)) aout(l) = 0.
+      if (debug) write(6,*)l,lbot,ltop,pint,plbot,pltop,
+     *  ain(lbot),ain(ltop),aout(l)
+  190 continue
+      aout(ltopx) = ain(lm_old)   !!! fudgy
+      if (debug)write(6,*) 'data out',(aout(l),l=1,lm_new)
+      return
+      end subroutine v_int
+
+
       SUBROUTINE get_wofsy_gas_IC(cgas,gasjl)
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
@@ -1262,7 +1259,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer j,jw,k,kstart,l,n,iu,kmw
+      integer j,jw,k,kstart,l,n,iu
       integer, parameter :: kmw=200
       real*4 GASX(3,62),xj,t
       REAL*8 GASW(3,62),GASJK(JM,0:kmw),GASJL(JM,lm),P(0:kmw),
@@ -1273,7 +1270,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
 C****
 C**** Read in GAS concentrations from Wofsy
 C**** Data are in jm latitudinal bands, lm layers, km time periods
-C**** lat: 1=tropics +/-15, 2=N mid/high, 3=S Mid./high 
+C**** lat: 1=tropics +/-15, 2=N mid/high, 3=S Mid./high
 C**** Data start at 14 km, end at 45 km and are at edges.  Center
 C**** of lowest box is at 14.5 km.  There are 28 undefined boxes below,
 C**** and 62 defined ones from 14 km up.
@@ -1368,12 +1365,10 @@ C****
 C**** Write GAS concentration on GCM grid boxes to disk (to check)
 C****
       call openunit('CH4check',iu,.true.)
-      TITLEW = 
+      TITLEW =
      * 'Wolfsy CH4 1995 CONCENTRATION January 1 for 23 layers'
       WRITE (iu) TITLEW,GASJL
       call closeunit(iu)
 
       RETURN
       END SUBROUTINE get_wofsy_gas_IC
-#endif
-#endif

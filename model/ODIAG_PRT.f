@@ -224,10 +224,10 @@ C****
       Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3A2I3)') LMINMF," -"
+      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       IF(LMINMF.eq.LMAXMF) WRITE (LNAME(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3A2I3)') LMINMF," -"
+      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
@@ -250,10 +250,10 @@ C****
       Q(2:IM,1)=Q(1,1)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       IF(LMINMF.eq.LMAXMF) WRITE (TITLE(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3A2I3)') LMINMF," -"
+      IF(LMINMF.lt.LMAXMF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       IF(LMINMF.eq.LMAXMF) WRITE (LNAME(39:41),'(I3)') LMINMF
-      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3A2I3)') LMINMF," -"
+      IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       TITLE(51:80)=XLB
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2.)
@@ -274,8 +274,8 @@ c     IF(KVMF(K).le.0)  GO TO 370
         Q(2:IM,JM)=Q(1,JM)
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-        WRITE (TITLE(40:47),'(A5I3)') "Level",L
-        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
       END DO
@@ -306,11 +306,11 @@ c      IF(.not.QL(K))  GO TO 440
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         IF(LMINEF.eq.LMAXEF) WRITE (TITLE(39:41),'(I3)') LMINEF
-        IF(LMINEF.lt.LMAXEF) WRITE (TITLE(39:46),'(I3A2I3)') LMINEF," -"
-     *       ,LMAXEF
+        IF(LMINEF.lt.LMAXEF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINEF,
+     *       " -",LMAXEF
         IF(LMINEF.eq.LMAXEF) WRITE (LNAME(39:41),'(I3)') LMINEF
-        IF(LMINEF.lt.LMAXEF) WRITE (LNAME(39:46),'(I3A2I3)') LMINEF," -"
-     *       ,LMAXEF
+        IF(LMINEF.lt.LMAXEF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINEF,
+     *       " -",LMAXEF
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
       END DO
@@ -341,11 +341,11 @@ c      IF(.not.QL(K))  GO TO 540
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
         IF(LMINSF.eq.LMAXSF) WRITE (TITLE(39:41),'(I3)') LMINSF
-        IF(LMINSF.lt.LMAXSF) WRITE (TITLE(39:46),'(I3A2I3)') LMINSF," -"
-     *       ,LMAXSF
+        IF(LMINSF.lt.LMAXSF) WRITE (TITLE(39:46),'(I3,A2,I3)') LMINSF,
+     *       " -",LMAXSF
         IF(LMINSF.eq.LMAXSF) WRITE (LNAME(39:41),'(I3)') LMINSF
-        IF(LMINSF.lt.LMAXSF) WRITE (LNAME(39:46),'(I3A2I3)') LMINSF," -"
-     *       ,LMAXSF
+        IF(LMINSF.lt.LMAXSF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINSF,
+     *       " -",LMAXSF
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
       END DO
@@ -366,8 +366,8 @@ c      IF(KCMF(K).le.0)  GO TO 620
         Q(2:IM,JM)=Q(1,JM)
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-        WRITE (TITLE(40:47),'(A5I3)') "Level",L
-        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
       END DO
@@ -380,17 +380,16 @@ C****
         SNAME="kvm"//char(l+48)
         Q=UNDEF
         DO J=1,JM
-          DO I=1,IMAXJ(J)
-            IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *           Q(I,J)=1d4*.00097d0**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.
-     *           )
-          END DO
+        DO I=1,IMAXJ(J)
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0)
+     *       Q(I,J)=1d4*.00097d0**2*OIJL(I,J,L,IJL_KVM)/(IDACC(1)*4.)
+        END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-        WRITE (TITLE(40:47),'(A5I3)') "Level",L
-        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
       END DO
@@ -401,16 +400,16 @@ C****
         SNAME="kvh"//char(l+48)
         Q=UNDEF
         DO J=1,JM
-          DO I=1,IMAXJ(J)
-            IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *           Q(I,J)=1d4*.00097**2*OIJL(I,J,L,IJL_KVG)/(IDACC(1)*4.)
-          END DO
+        DO I=1,IMAXJ(J)
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0)
+     *       Q(I,J)=1d4*.00097**2*OIJL(I,J,L,IJL_KVG)/(IDACC(1)*4.)
+        END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
         Q(2:IM,1)=Q(1,1)
         TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-        WRITE (TITLE(40:47),'(A5I3)') "Level",L
-        WRITE (LNAME(40:47),'(A5I3)') "Level",L
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
       END DO
