@@ -56,7 +56,7 @@ C
 !@param numfam number of families
 !@param n_igas uknown: number of prod/dest gases?
 !@param n_phot how often to do photolysis (in increments of DTsrc)
-!@param O3MULT =2.14E-2    !is 1.E10*2.69E13*48./6.02E26
+!@param O3MULT =2.14D-2    !is 1.E10*2.69E13*48./6.02E26
 !@param BYO3MULT = 1/O3MULT
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
@@ -70,7 +70,7 @@ C
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
 !@+     decreased by a factor of (972/1000)mb
 !@param RGAMMASULF unknown
-!@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062E-23/3.14159/1.793E-25
+!@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062D-23/3.14159/1.793D-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
 !@param byradian 1/radian = conversion from radians to degrees
@@ -145,7 +145,7 @@ C ----------------------------------------------
      & n_igas =   43,
      & n_phot=     2      ! currently means 2 hours
 C     
-      REAL*8, PARAMETER ::  O3MULT       = 2.14D-2,
+      REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
      &                      BYO3MULT     = 1./O3MULT,
      &                      pfix_O2      = 0.209476d0,
      &                      pfix_H2      = 560.d-9,
@@ -163,7 +163,7 @@ C
      &                      ZZHT         = 5.d5,
      &                      odmax        = 200.d0,
      &                      zlbatm       = 4.d0,
-     &                      CMEQ1        = 0.25D0,
+     &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian
 C  
       LOGICAL, PARAMETER :: luselb            = .false.,
