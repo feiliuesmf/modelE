@@ -63,8 +63,10 @@ endif
 # Linux - specific options here
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
-F90 = f90
-FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
+#F90 = f90
+#FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
+F90 = ifc
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m d -int
 FFLAGS = -O2
 LFLAGS = -O2
 endif
