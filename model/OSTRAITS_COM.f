@@ -23,7 +23,7 @@ C****  5  Kattegat       38,38 EN    40,38 WS     2    60000
 C****  6  Bosporous      42,33 EN    43,34 WS     2     6000
 C****  7  Red Sea        44,29 ES    45,28 WN     6   250000
 C****  8  Bab al Mandab  45,28 ES    46,27 WN     6    25000
-C****  9  Hormuz         47,30 ES    49,29 WN     2    50000
+C****  9  Hormuz         47,30 ES    49,29 WN     2   100000  ! 50000
 C**** 10  Malacca        56,25 EN    58,24 WS     3    50000
 C**** 11  Korea          62,32 EN    63,33 WS     4   170000
 C**** 12  Soya-kaikyo    64,34 EN    65,35 WS     2    40000
@@ -41,7 +41,7 @@ C****
 !@var DISTPG distance between centre points of adjoining ocean boxes (m)
       REAL*8, DIMENSION(NMST) :: DIST,DISTPG,
      *     WIST = (/  2d4,   5d3, 2.5d4, 3.5d4,   6d4, 6d3,
-     *              2.5d5, 2.5d4,   5d4,   5d4, 1.7d5, 4d4/)
+     *              2.5d5, 2.5d4,   1d5,   5d4, 1.7d5, 4d4/)
 
 !@var XST,YST
       REAL*8, DIMENSION(NMST,2) :: XST = RESHAPE( (/

@@ -686,27 +686,27 @@ C**** Check conservation of water tracers in straits
      *         ,nmax)-s0mst(lmax,nmax),txmst(lmax,nmax,n),-sxmst(lmax
      *         ,nmax),tzmst(lmax,nmax,n),-szmst(lmax,nmax)
 
-C**** now straits ice
-          errmax = 0. ; nmax=1 ; lmax=1
-          do ns=1,nmst
-          do l=1,lmst(ns)
-              relerr=max(
-     *           abs(trsist(n,1,ns)-msist(1,ns)*xsi(1)+ssist(1,ns))
-     *           /(msist(1,ns)*xsi(1)-ssist(1,ns)),abs(trsist(n,2,ns)
-     *           -msist(1,ns)*xsi(2)+ssist(2,ns))/(msist(1,ns)*xsi(2)
-     *           -ssist(2,ns)),abs(trsist(n,3,ns)-msist(2,ns)*xsi(3)
-     *           +ssist(3,ns))/(msist(2,ns)*xsi(3)-ssist(3,ns))
-     *           ,abs(trsist(n,4,ns)-msist(2,ns)*xsi(4)+ssist(4,ns))
-     *           /(msist(2,ns)*xsi(4)-ssist(4,ns)))
-            if (relerr.gt.errmax) then
-              nmax=ns ; lmax=l ; errmax=relerr
-            end if
-          end do
-          end do
-          print*,"Relative error in straits ice mass after ",subr
-     *         ,":",nmax,lmax,errmax,trsist(n,1:4,nmax),msist(1,nmax)
-     *         *xsi(1:2)-ssist(1:2,nmax),msist(2,nmax)*xsi(3:4)
-     *         -ssist(3:4,nmax)
+C**** now straits ice (obsolete)
+c          errmax = 0. ; nmax=1 ; lmax=1
+c          do ns=1,nmst
+c          do l=1,lmst(ns)
+c              relerr=max(
+c     *           abs(trsist(n,1,ns)-msist(1,ns)*xsi(1)+ssist(1,ns))
+c     *           /(msist(1,ns)*xsi(1)-ssist(1,ns)),abs(trsist(n,2,ns)
+c     *           -msist(1,ns)*xsi(2)+ssist(2,ns))/(msist(1,ns)*xsi(2)
+c     *           -ssist(2,ns)),abs(trsist(n,3,ns)-msist(2,ns)*xsi(3)
+c     *           +ssist(3,ns))/(msist(2,ns)*xsi(3)-ssist(3,ns))
+c     *           ,abs(trsist(n,4,ns)-msist(2,ns)*xsi(4)+ssist(4,ns))
+c     *           /(msist(2,ns)*xsi(4)-ssist(4,ns)))
+c            if (relerr.gt.errmax) then
+c              nmax=ns ; lmax=l ; errmax=relerr
+c            end if
+c          end do
+c          end do
+c          print*,"Relative error in straits ice mass after ",subr
+c     *         ,":",nmax,lmax,errmax,trsist(n,1:4,nmax),msist(1,nmax)
+c     *         *xsi(1:2)-ssist(1:2,nmax),msist(2,nmax)*xsi(3:4)
+c     *         -ssist(3:4,nmax)
         end if
       end do
 #endif
