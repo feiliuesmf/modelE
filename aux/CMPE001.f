@@ -14,6 +14,9 @@ C****
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm
       USE TRACER_DIAG_COM, only: ktacc,ktaij,ktaijs,ktajlx,ktajls,ktcon
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: JPPJ, n_rx
+#endif
 #endif
       IMPLICIT REAL*8 (A-H,O-Z)
       SAVE
@@ -112,6 +115,19 @@ C**** compatibility across model configurations)
      *     TRSN1(2*NTM*NLSN,IM,JM),TRSN2(2*NTM*NLSN,IM,JM)
       REAL*8 TRICDG1(IMIC,JMIC,KTICIJ*NTM),TRICDG2(IMIC,JMIC,KTICIJ*NTM)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      INTEGER K1,K2
+      REAL*8, DIMENSION(IM,JM,LM):: yNO31,pHOx1,pNOx1,pOx1,yCH3O21,
+     &     yC2O31,yROR1,yXO21,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,
+     &     yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22,
+     &     yAldehyde2,yXO2N2,yRXPAR2,OxIC2,temp1,temp2
+      REAL*8, DIMENSION(LM,IM,JM):: RCLOUDFJ1,RCLOUDFJ2
+      REAL*8, DIMENSION(JM,4,12) :: corrOx1,corrOx2
+      REAL*8, DIMENSION(IM,JM)   :: SALBFJ1,SALBFJ2
+      REAL*8, DIMENSION(40,JM,IM):: O3DLJI1,O3DLJI_clim1,
+     &     O3DLJI2,O3DLJI_clim2
+      REAL*8, DIMENSION(n_rx,IM,JM,LM) :: ss1,ss2
+#endif
 #endif
 C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
@@ -206,6 +222,12 @@ c        write(0,*) 'trying to read icedyn'
          READ (1) HEADER,TR1,TRMOM1
 #ifdef TRACERS_WATER
      *        ,TRWM1
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,yNO31,pHOx1,pNOx1,pOx1,yCH3O21,yC2O31,yROR1,yXO21
+     *     ,yAldehyde1,yXO2N1,yRXPAR1,OxIC1,corrOx1,SALBFJ1
+     *     ,RCLOUDFJ1,O3DLJI1,O3DLJI_clim1
+     *     ,((ss1(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -315,6 +337,12 @@ c        write(0,*) 'trying to read icedyn'
          READ (2) HEADER,TR2,TRMOM2
 #ifdef TRACERS_WATER
      *        ,TRWM2
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,yNO32,pHOx2,pNOx2,pOx2,yCH3O22,yC2O32,yROR2,yXO22
+     *     ,yAldehyde2,yXO2N2,yRXPAR2,OxIC2,corrOx2,SALBFJ2
+     *     ,RCLOUDFJ2,O3DLJI2,O3DLJI_clim2
+     *     ,((ss2(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
 #endif
 #endif
 c        write(0,*) 'trying to read diag'
@@ -437,6 +465,31 @@ C****
       ERRQ=COMP8Lijp('TRSOIL',NTM*(2*NGM+3),IM,JM  , TRSOIL1,
      *     TRSOIL2) .or. ERRQ
       ERRQ=COMP8Lijp('TRSNOW',2*NTM*NLSN,IM,JM, TRSN1, TRSN2) .or. ERRQ
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      ERRQ=COMP8('yNO3  ',IM,JM,LM    , yNO31   , yNO32   )  .or. ERRQ
+      ERRQ=COMP8('pHOx  ',IM,JM,LM    , pHOx1   , pHOx2   )  .or. ERRQ 
+      ERRQ=COMP8('pNOx  ',IM,JM,LM    , pNOx1   , pNOx2   )  .or. ERRQ
+      ERRQ=COMP8('pOx   ',IM,JM,LM    , pOx1    , pOx2    )  .or. ERRQ
+      ERRQ=COMP8('yCH3O2',IM,JM,LM    , yCH3O21 , yCH3O22 )  .or. ERRQ 
+      ERRQ=COMP8('yC2O3 ',IM,JM,LM    , yC2O31  , yC2O32  )  .or. ERRQ   
+      ERRQ=COMP8('yROR  ',IM,JM,LM    , yROR1   , yROR2   )  .or. ERRQ
+      ERRQ=COMP8('yXO2  ',IM,JM,LM    , yXO21   , yXO22   )  .or. ERRQ
+      ERRQ=COMP8('yAldeh',IM,JM,LM    ,yAldehyde1,yAldehyde2).or. ERRQ
+      ERRQ=COMP8('yXO2N ',IM,JM,LM    , yXO2N1  , yXO2N2  )  .or. ERRQ
+      ERRQ=COMP8('yRXPAR',IM,JM,LM    , yRXPAR1 , yRXPAR2 )  .or. ERRQ
+      ERRQ=COMP8('OxIC  ',IM,JM,LM    , OxIC1   , OxIC2   )  .or. ERRQ
+      ERRQ=COMP8('corrOx',JM, 4,12    , corrOx1 , corrOx2 )  .or. ERRQ
+      ERRQ=COMP8('SALBFJ',IM,JM,1     , SALBFJ1 , SALBFJ2 )  .or. ERRQ
+      ERRQ=COMP8('RCLDFJ',LM,IM,JM    ,RCLOUDFJ1,RCLOUDFJ2)  .or. ERRQ
+      ERRQ=COMP8('O3DLJI',40,JM,IM    , O3DLJI1 , O3DLJI2 )  .or. ERRQ
+      ERRQ=COMP8('O3clim',40,JM,IM,O3DLJI_clim1,O3DLJI_clim2).or. ERRQ
+      DO K1=1,JPPJ
+        WRITE(6,*)'K1=',K1
+        temp1(:,:,:) = ss1(K1,:,:,:)
+        temp2(:,:,:) = ss2(K1,:,:,:)
+        ERRQ=COMP8('ss    ',IM,JM,LM,temp1,temp2) .or. ERRQ
+      END DO
 #endif
 #endif
 
