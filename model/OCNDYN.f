@@ -4,6 +4,7 @@
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+      USE CONSTANT, only : rhow,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
@@ -11,9 +12,10 @@
 #endif
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,bydxypo,mdyno,msgso
-     *     ,ogeoz,ogeoz_sv
+     *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj
       USE ODIAG, only : oijl,oij,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx
      *     ,ijl_sflx,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl,ij_ssh
+     *     ,ij_pb
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
 #endif
@@ -21,7 +23,7 @@
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
-      INTEGER NS,L,mnow,n
+      INTEGER NS,I,J,L,mnow,n
 C****
 C**** Integrate Ocean Dynamics terms
 C****
@@ -114,7 +116,13 @@ C**** Advection of Potential Enthalpy and Salt
           OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
         END DO
 !$OMP END PARALLEL DO
-        OIJ(:,:,IJ_SSH) = OIJ(:,:,IJ_SSH) + OGEOZ(:,:)
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
+            OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  + (OPBOT(I,J)-ZE(LMM(I,J))
+     *           *RHOW*GRAV) 
+          END DO
+        END DO
 
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
@@ -162,7 +170,7 @@ c        CALL CHECKO ('STADVI')
       RETURN
       END SUBROUTINE OCEANS
 
-      SUBROUTINE init_OCEAN(iniOCEAN)
+      SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
@@ -183,7 +191,7 @@ c        CALL CHECKO ('STADVI')
       REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
-      LOGICAL, INTENT(IN) :: iniOCEAN
+      LOGICAL, INTENT(IN) :: iniOCEAN,istart
 C****
 C**** Check that KOCEAN is set correctly
 C****
@@ -1549,7 +1557,7 @@ C**** and calculates two weighted averages from those values
 C****
       USE CONSTANT, only : grav,rrt12=>byrt12
       USE OCEAN, only : im,jm,lmo,g0m,gzmo,s0m,szmo,mo,opress,lmm
-     *     ,bydxypo,imaxj
+     *     ,bydxypo,imaxj,opbot
       USE OCEAN_DYN, only : dzgdp,vbar,mmi
       IMPLICIT NONE
       INTEGER I,J,L
@@ -1577,6 +1585,7 @@ C****
           DZGDP(I,J,L) = (VUP*(5d-1-RRT12) + VDN*(5d-1+RRT12))*5d-1
           VBAR(I,J,L) = (VUP + VDN)*5d-1
         END DO
+        OPBOT(I,J) = PE
       END DO
       END DO
 !$OMP END PARALLEL DO

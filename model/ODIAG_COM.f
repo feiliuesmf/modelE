@@ -12,7 +12,7 @@
       USE DAGCOM, only : npts  ! needed for conservation diags
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=5,KOIJL=22,KOL=6,KOLNST=8,
+      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8,
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
@@ -24,7 +24,7 @@
       REAL*8, DIMENSION(LMO,KOL)   :: OL
       REAL*8, DIMENSION(LMO,NMST,KOLNST):: OLNST
 !@var IJ_xxx Names for OIJ diagnostics
-      INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH
+      INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
@@ -279,6 +279,15 @@ c
       units_oij(k)="m"
       ia_oij(k)=ia_src
       scale_oij(k)=bygrav
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_PB=k
+      lname_oij(k)="Ocean bottom pressure anomaly"
+      sname_oij(k)="oij_pb"
+      units_oij(k)="Pa"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
       ijgrid_oij(k)=1
 
       if (k.gt.KOIJ) then

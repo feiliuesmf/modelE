@@ -52,6 +52,8 @@ C**** ocean related parameters
 !@var OGEOZ ocean geopotential at surface (m^2/s^2)
       REAL*8, DIMENSION(IM,JM) :: OGEOZ
       REAL*8, DIMENSION(IM,JM) :: OGEOZ_SV
+!@var OPBOT ocean bottom pressure (diagnostic only) (Pa)
+      REAL*8, DIMENSION(IM,JM) :: OPBOT
 
 #ifdef TRACERS_OCEAN
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)      
