@@ -812,8 +812,8 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
 !nu       DUST1      DUST2      DUST3      CARB1      CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
-      real*8, dimension(10) ::
-C                       TROPOSPHERIC AEROSOL PARAMETERS
+      real*8, dimension(10) ::       ! ANT (nitrate) not yet implemented
+C                       TROPOSPHERIC AEROSOL PARAMETERS             
 C                  BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
      *   REAERO=(/ 0.1, 0.3, 0.3, 2.0, 0.3,   1.0, 0.3, 0.3, 0.2, 0.5/)
      *  ,VEAERO=(/ 0.2, 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2, 0.2/)
@@ -821,8 +821,8 @@ C                  BCI  OCI  SUI  SEA  SUN    ANT  OCN  OCB  BCB  SSB
 C       ,PI0MAX=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0, 1.0/)
 C             (OCI,OCN,OCB PI0MAXs are based on Novakov(1998) Ni=0.005)
      *  ,PI0MAX=(/ 1.0, .96, 1.0, 1.0, 1.0,   1.0, .98, .93, 1.0, 1.0/)
-     *  ,FSAERO=(/ 0.5, 0.5, 1.0, 4.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
-     *  ,FTAERO=(/ 0.5, 0.5, 1.0, 4.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
+     *  ,FSAERO=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
+     *  ,FTAERO=(/ 1.0, 1.0, 1.0, 1.0, 1.0,   0.0, 1.0, 1.0, 1.0, 1.0/)
      *  ,FRSULF=(/ 0.0, .33, 0.0, 0.0, 0.0,   0.0, .33, .33, 0.0, 0.0/)
 
       real*8 :: SSBTAU=0.005
@@ -4194,7 +4194,7 @@ C                         ----------------------------------------
       TAUCOL(I,J,3)=SUIWID*TAUSUI+SUIWJD*TAUSUJ
       TAUCOL(I,J,4)=WMA*TROAER(I,J,MA,1,4)+WMB*TROAER(I,J,MB,1,4)
       TAUCOL(I,J,5)=WMA*TROAER(I,J,MA,2,4)+WMB*TROAER(I,J,MB,2,4)
-      TAUCOL(I,J,6)=WMA*TROAER(I,J,MA,2,4)+WMB*TROAER(I,J,MB,2,4)
+      TAUCOL(I,J,6)=WMA*TROAER(I,J,MA,2,4)+WMB*TROAER(I,J,MB,2,4)  ! nu
       TAUCOL(I,J,7)=WMA*TROAER(I,J,MA,3,4)+WMB*TROAER(I,J,MB,3,4)
       TAUCOL(I,J,8)=WMA*TROAER(I,J,MA,4,4)+WMB*TROAER(I,J,MB,4,4)
       TAUCOL(I,J,9)=WMA*TROAER(I,J,MA,5,4)+WMB*TROAER(I,J,MB,5,4)
