@@ -597,7 +597,7 @@ C
 !@sum DIFFG to calculate tracer molecular diffusivity.
 !@auth ? HARVARD CTM
 !@ver 1.0 (based on CB436Tds3M23)
-      USE CONSTANT, only : bygasc, gasc, pi, mair
+      USE CONSTANT, only : bygasc, gasc, pi, mair, avogr
       IMPLICIT NONE
 C=====================================================================
 C  This function calculates the molecular diffusivity (m2 s-1) in air
@@ -613,7 +613,7 @@ C  in terms of calculating the diffusivity as long as molecule is not
 C  too big.
 C======================================================================
 !@param XMAIR air molecular weight (KG/mole)
-!@param AVOGAD Avogadro's number (molecules/mole)
+!@param AVOGr Avogadro's number (molecules/mole)
 !@param RADX hard-sphere molecular radius of the diffusing gas
 !@param RADAIR hard-sphere molecular radius of air
 !@param PRESS pressure (kg/s2/m) used to calculate molec. diffusivities
@@ -624,7 +624,6 @@ C======================================================================
 !@var SPEEN average speed of the gas molecules
 !@var AIRDEN local air density
       REAL*8, PARAMETER :: XMAIR = mair * 1.D-3,
-     &                     AVOGAD= 6.023D23,
      &                     RADX  = 1.5D-10,
      &                     RADAIR= 1.2D-10,
      &                     PRESS=  1.0d5
@@ -632,7 +631,7 @@ C======================================================================
       REAL*8 Z,DIAM,FRPATH,SPEED,AIRDEN     
 C
 C* Calculate air density AIRDEN:
-      AIRDEN = PRESS*AVOGAD*bygasc/TK ! can't we get this from the GCM?
+      AIRDEN = PRESS*avogr*bygasc/TK ! can't we get this from the GCM?
 C* Calculate the mean free path for gas X in air: eq. 8.5 of Seinfeld
 C*  [1986]; DIAM is the collision diameter for gas X with air :
       Z = XM/XMAIR

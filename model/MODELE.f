@@ -1381,10 +1381,11 @@ C**** Add water to relevant tracers as well
 C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
 C**** CORRECTED.
-
+      USE CONSTANT, only : tf
       USE MODEL_COM
+      USE DYNAMICS, only : pk
       IMPLICIT NONE
-      INTEGER I,J
+      INTEGER I,J,L
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
@@ -1400,10 +1401,24 @@ C**** Check all prog. arrays for Non-numbers
         DO J=1,JM
         DO I=1,IM
           IF (Q(I,J,1).gt.1d-1)print*,SUBR," Q BIG ",i,j,Q(I,J,1:LS1)
-          IF (T(I,J,1).gt.50.) print*,SUBR," T BIG ",i,j,T(I,J,1:LS1)
+          IF (T(I,J,1)*PK(1,I,J)-TF.gt.50.) print*,SUBR," T BIG ",i,j
+     *         ,T(I,J,1:LS1)*PK(1:LS1,I,J)-TF
         END DO
         END DO
-
+        DO L=1,LM
+        DO J=1,JM
+        DO I=1,IM
+          IF (Q(I,J,L).lt.0.) then
+            print*,"After ",SUBR," Q < 0 ",i,j,Q(I,J,L)
+            call stop_model('Q<0 in CHECKT',255)
+          END IF
+          IF (WM(I,J,L).lt.0.) then
+            print*,"After ",SUBR," WM < 0 ",i,j,WM(I,J,L)
+            call stop_model('WM<0 in CHECKT',255)
+          END IF
+        END DO
+        END DO
+        END DO
 C**** Check PBL arrays
         CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays

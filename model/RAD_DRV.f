@@ -887,8 +887,8 @@ C**** EVEN PRESSURES
 C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
         IF(TLm(L).LT.130..OR.TLm(L).GT.370.) THEN
-          WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
-          WRITE(99,*) 'GTEMP:',GTEMP(:,:,I,J)
+          WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
+          WRITE(6,*) 'GTEMP:',GTEMP(:,:,I,J)
 CCC       STOP 'In Radia: Temperature out of range'
           ICKERR=ICKERR+1
         END IF
@@ -903,7 +903,7 @@ C---- shl(L)=Q(I,J,L)        ! already defined
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
         IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
-        WRITE(99,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
+        WRITE(6,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
         JCKERR=JCKERR+1
         END IF
@@ -1104,7 +1104,7 @@ C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
      &     call stop_model('In Radia: Temperature out of range',11)
       IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
-C     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',11)
+      IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
