@@ -3237,7 +3237,7 @@ c          data=sday*prec/dtsrc
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=1,imaxj(j)
-              POCEAN=(.1-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
@@ -3250,7 +3250,7 @@ c          data=sday*prec/dtsrc
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + surface emission
             do i=1,imaxj(j)
-              POCEAN=(.1-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
