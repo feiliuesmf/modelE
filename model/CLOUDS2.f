@@ -1861,14 +1861,14 @@ C**** Only Calculate fractional changes of Q to W
 #endif
       FQTOW=0.                                                ! Q->CLW
       IF (FSSL(L).gt.0) THEN
-      IF (QHEAT(L)/FSSL(L)+CAREA(L)*ER(L).gt.0) THEN
+      IF (QHEAT(L)+CAREA(L)*FSSL(L)*ER(L).gt.0) THEN
         IF (LHX*QL(L)+DTsrc*CAREA(L)*FSSL(L)*ER(L).gt.0.) FQTOW=(QHEAT(L
-     *       )/FSSL(L)+CAREA(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)
+     *       )+CAREA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)
      *       *FSSL(L)*ER(L))
 #ifdef TRACERS_WATER
       ELSE
-        IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L)/FSSL(L)
-     *       +CAREA(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+        IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L)
+     *       +CAREA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
         FWTOQ=MIN(1d0,FWTOQ)
 #endif
       END IF
