@@ -124,7 +124,7 @@ C**** Some local constants
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, 
      &                          CHECKSUM_COLUMN, HALO_UPDATE_COLUMN,
-     &                          GRID, SOUTH, NORTH
+     &                          GRID, SOUTH, NORTH, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
@@ -144,6 +144,8 @@ C**** Some local constants
       INTEGER :: I,IM1,J,K,L,JR,LDN,LUP,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &        THGM_part
       REAL*8 ::
      &     BBYGV,BDTDL,BYSDSG,CDTDL,DLNP,DLNP12,DLNP23,DBYSD,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,DXYPJ,ELX,
@@ -677,9 +679,11 @@ C**** CALCULATE APE
         THJL(JM,L)=THJL(JM,L)*FIM
         THSQJL(JM,L)=THSQJL(JM,L)*FIM
       ENDIF
-      THGM=0.
-      DO 750 J=J_0,J_1
-  750 THGM=THGM+THJL(J,L)*DXYP(J)
+      THGM=0.; THGM_part=0.
+      DO J=J_0,J_1
+        THGM_part(J)=THJL(J,L)*DXYP(J)
+      ENDDO
+      CALL GLOBALSUM(grid,THGM_part(:),THGM,ALL=.TRUE.)
       THGM=THGM/AREAG
       GMEANL=GMEAN(L)/((SIG(LM1)-SIG(LP1))*AREAG)
       DO 760 J=J_0,J_1
@@ -899,9 +903,11 @@ C****
       USE DYNAMICS, only : phi,dut,dvt,plij
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP, only : SOUTH, NORTH
+      USE DOMAIN_DECOMP, only : SOUTH, NORTH, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
+      REAL*8, DIMENSION
+     &  (IMH+1,NSPHER,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE_part
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
      &     ZX,STB,UDX
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -909,6 +915,11 @@ C****
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
       REAL*8, DIMENSION(IM) :: PSEC,X1
       REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH
+      REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),
+     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
+      REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),
+     &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: HDIURN_part
+      REAL*8 :: ADIURNSUM,HDIURNSUM
 
       INTEGER ::
      &     I,IH,IHM,IM1,INCH,INCHM,IP1,IZERO,J,J45N,
@@ -1373,6 +1384,8 @@ C**** ZERO OUT SUBSURFACE VERTICAL WINDS
       ENDDO
       ENDDO
 C**** ACCUMULATE ALL VERTICAL WINDS
+      ADIURN_part=0.
+      HDIURN_part=0.
       DO 558 J=J_0,J_1
       DO 558 I=1,IM
       DO KR=1,NDIUPT
@@ -1389,9 +1402,9 @@ C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
             IHM = IH+(JDATE-1)*24
             DO INCH=1,NDAA
               IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
-              ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+1.E5*W(I,J,3)
+              ADIURN_part(IH,KR,J)=ADIURN_part(IH,KR,J)+1.E5*W(I,J,3)
      *             /DXYP(J)
-              HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+1.E5*W(I,J,3)
+              HDIURN_part(IHM,KR,J)=HDIURN_part(IHM,KR,J)+1.E5*W(I,J,3)
      *             /DXYP(J)
               IH=IH+1
               IHM=IHM+1
@@ -1399,6 +1412,20 @@ C****              mod(days_in_month,ndaa)=0  (i.e. February if Ndaa=7)
          END IF
       END DO
   558 CONTINUE
+
+      DO KR=1,NDIUPT
+        DO IH=1,size(ADIURN,1)
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,:),ADIURNSUM,
+     &                   ALL=.TRUE.)
+          ADIURN(IH,IDD_W,KR)=ADIURN(IH,IDD_W,KR)+ADIURNSUM
+        ENDDO
+        DO IHM=1,size(HDIURN,1)
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,:),HDIURNSUM,
+     &                   ALL=.TRUE.)
+          HDIURN(IHM,IDD_W,KR)=HDIURN(IHM,IDD_W,KR)+HDIURNSUM
+        ENDDO
+      ENDDO
+
       DO 565 J=J_0,J_1
       DO 565 K=1,KM
       WI=0.
@@ -1707,66 +1734,88 @@ C****
 c      KS1=LS1
 C**** TOTAL THE KINETIC ENERGIES
       KE(:,:)=0.
+      KE_part(:,:,:)=0.
 
 C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
-      DO 2140 J=J_0STG,J_1STG
-      I=IM
-      DO 2020 IP1=1,IM
-      PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
- 2020 I=IP1
-      DO 2140 K=1,KM
-        KSPHER=KLAYER(K)
-      IF (J.GT.JEQ) KSPHER=KSPHER+1
-      DO 2140 KX=IZERO,LM,LM
-      DO 2090 I=1,IM
-      DPUV=0.
-      SP=PSEC(I)
-      DO 2025 L=1,LS1-1
-      PLO(L)=SP*SIG(L)+PTOP                       ! PL or PLO ??
- 2025 PL(L)=SP*SIGE(L)+PTOP                       ! PLE or PL ??
-      PS=SP+PTOP
-      IF (PM(K+1).GE.PLO(1)) GO TO 2090           ! really ?? not PL?
-      L=1
-      PDN=PS
-      IF (PM(K).GE.PLO(1)) GO TO 2040             ! really ?? not PL?
-      PDN=PM(K)
- 2030 IF (PM(K).GT.PL(L+1)) GO TO 2040
-      L=L+1
-      GO TO 2030
- 2040 LUP=L
- 2050 IF (PM(K+1).GE.PL(LUP+1)) GO TO 2060
-      LUP=LUP+1
-      GO TO 2050
- 2060 CONTINUE
+      DO J=J_0STG,J_1STG
+        I=IM
+        DO IP1=1,IM
+          PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
+          I=IP1
+        ENDDO
+        DO K=1,KM
+          KSPHER=KLAYER(K)
+          IF (J.GT.JEQ) KSPHER=KSPHER+1
+          DO KX=IZERO,LM,LM
+            DO I=1,IM
+              DPUV=0.
+              SP=PSEC(I)
+              DO 2025 L=1,LS1-1
+              PLO(L)=SP*SIG(L)+PTOP                       ! PL or PLO ??
+ 2025         PL(L)=SP*SIGE(L)+PTOP                       ! PLE or PL ??
+              PS=SP+PTOP
+              IF (PM(K+1).GE.PLO(1)) GO TO 2090           ! really ?? not PL?
+              L=1
+              PDN=PS
+              IF (PM(K).GE.PLO(1)) GO TO 2040             ! really ?? not PL?
+              PDN=PM(K)
+ 2030         IF (PM(K).GT.PL(L+1)) GO TO 2040
+              L=L+1
+              GO TO 2030
+ 2040         LUP=L
+ 2050         IF (PM(K+1).GE.PL(LUP+1)) GO TO 2060
+              LUP=LUP+1
+              GO TO 2050
+ 2060         CONTINUE
 C**** ACCUMULATE HERE
-      SQRTDP=SQRT(PDN-PM(K+1))
- 2070 PUP=PL(L+1)
-      IF (LUP.EQ.L) PUP=PM(K+1)
-      DP=PDN-PUP
-      IF(KX.EQ.IZERO) DPUV=DPUV+DP*U(I,J,L)
-      IF(KX.EQ.LM)    DPUV=DPUV+DP*V(I,J,L)
-      IF (LUP.EQ.L) GO TO 2080
-      L=L+1
-      PDN=PL(L)
-      GO TO 2070
- 2080 IF (SQRTDP.EQ.0.) SQRTDP=teeny
-      DPUV=DPUV/SQRTDP
- 2090 X1(I)=DPUV
-      CALL FFTE (X1,X1)
-      IF (J.EQ.JEQ) GO TO 2120
-      DO 2100 N=1,NM
- 2100 KE(N,KSPHER)=KE(N,KSPHER)+X1(N)*DXYV(J)
-      IF (J.NE.J45N) GO TO 2140
-      DO 2110 N=1,NM
- 2110 KE(N,KSPHER+2)=KE(N,KSPHER+2)+X1(N)*DXYV(J)
-      GO TO 2140
- 2120 DO 2130 N=1,NM
-      KE(N,KSPHER+2)=KE(N,KSPHER+2)+X1(N)*DXYV(J)
-      KE(N,KSPHER)=KE(N,KSPHER)+.5D0*X1(N)*DXYV(J)
- 2130 KE(N,KSPHER+1)=KE(N,KSPHER+1)+.5D0*X1(N)*DXYV(J)
- 2140 CONTINUE
+              SQRTDP=SQRT(PDN-PM(K+1))
+ 2070         PUP=PL(L+1)
+              IF (LUP.EQ.L) PUP=PM(K+1)
+              DP=PDN-PUP
+              IF(KX.EQ.IZERO) DPUV=DPUV+DP*U(I,J,L)
+              IF(KX.EQ.LM)    DPUV=DPUV+DP*V(I,J,L)
+              IF (LUP.EQ.L) GO TO 2080
+              L=L+1
+              PDN=PL(L)
+              GO TO 2070
+ 2080         IF (SQRTDP.EQ.0.) SQRTDP=teeny
+              DPUV=DPUV/SQRTDP
+ 2090         X1(I)=DPUV
+            ENDDO
+            CALL FFTE (X1,X1)
+            IF (J.NE.JEQ) THEN
+              DO N=1,NM
+                KE_part(N,KSPHER,J)=KE_part(N,KSPHER,J)+X1(N)*DXYV(J)
+              ENDDO
+              IF (J.EQ.J45N) THEN
+                DO N=1,NM
+                  KE_part(N,KSPHER+2,J)=KE_part(N,KSPHER+2,J)+
+     &                                  X1(N)*DXYV(J)
+                ENDDO
+              ENDIF
+            ELSE
+              DO N=1,NM
+                KE_part(N,KSPHER+2,J)=KE_part(N,KSPHER+2,J)+
+     &                                X1(N)*DXYV(J)
+                KE_part(N,KSPHER,  J)=KE_part(N,KSPHER,J)+
+     &                                .5D0*X1(N)*DXYV(J)
+                KE_part(N,KSPHER+1,J)=KE_part(N,KSPHER+1,J)+
+     &                                .5D0*X1(N)*DXYV(J)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDDO
+
+      DO KSPHER=1,NSPHER
+        DO  N=1,NM
+          CALL GLOBALSUM(grid, KE_part(N,KSPHER,:), KE(N,KSPHER),
+     &                   ISTAG=1, ALL=.TRUE.)
+        ENDDO
+      ENDDO
+
       DO 2150 KS=1,NSPHER
       DO 2150 N=1,NM
  2150 SPECA(N,18,KS)=SPECA(N,18,KS)+KE(N,KS)
@@ -1785,12 +1834,14 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,JEQ,LS1,MDIAG,P,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DYNAMICS, only : PHI
-      USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n
+      USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
+      REAL*8, DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP,
+     & grid%J_STRT_HALO:grid%J_STOP_HALO) :: WAVE_part
       INTEGER, PARAMETER :: KM=6,KQMAX=12
       INTEGER :: NMAX=nwav_dag
       REAL*8, DIMENSION(IM,KM) :: HTRD
@@ -1807,43 +1858,68 @@ C****
       IDACC(9)=IDACC9
       IF (IDACC9.GT.Max12HR_sequ) RETURN
 
-      DO KQ=1,3
-        CALL FFT (U(1,JEQ,LDEX(KQ)),AN,BN)
-        DO N=1,NMAX
-          WAVE(1,IDACC9,N,2*KQ-1)=AN(N)
-          WAVE(2,IDACC9,N,2*KQ-1)=BN(N)
+      WAVE_part(:,:,:,1:6,:)=0.
+      IF(J_0 <= JEQ .and. JEQ <= J_1) THEN
+        DO KQ=1,3
+          CALL FFT (U(1,JEQ,LDEX(KQ)),AN,BN)
+          DO N=1,NMAX
+            WAVE_part(1,IDACC9,N,2*KQ-1,JEQ)=AN(N)
+            WAVE_part(2,IDACC9,N,2*KQ-1,JEQ)=BN(N)
+          ENDDO
+          CALL FFT (V(1,JEQ,LDEX(KQ)),AN,BN)
+          DO N=1,NMAX
+            WAVE_part(1,IDACC9,N,2*KQ,JEQ)=AN(N)
+            WAVE_part(2,IDACC9,N,2*KQ,JEQ)=BN(N)
+          ENDDO
         ENDDO
-        CALL FFT (V(1,JEQ,LDEX(KQ)),AN,BN)
+      ENDIF
+
+      DO KQ=1,6
         DO N=1,NMAX
-          WAVE(1,IDACC9,N,2*KQ)=AN(N)
-          WAVE(2,IDACC9,N,2*KQ)=BN(N)
+          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:), 
+     &                   WAVE(1,IDACC9,N,KQ), ALL=.TRUE.)
+          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:), 
+     &                   WAVE(2,IDACC9,N,KQ), ALL=.TRUE.)
         ENDDO
       ENDDO
-      DO 150 I=1,IM
-        PIJ50N=P(I,J50N)
-        K=1
-        L=1
-        PL=SIG(1)*P(I,J50N)+PTOP
- 130    L=L+1
-        IF(L.GE.LS1) PIJ50N=PSFMPT
-        PLM1=PL
-        PL=SIG(L)*PIJ50N+PTOP
-        IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+
+      WAVE_part(:,:,:,7:,:)=0.
+      IF(J_0 <= J50N .and. J50N <= J_1) THEN
+        DO 150 I=1,IM
+          PIJ50N=P(I,J50N)
+          K=1
+          L=1
+          PL=SIG(1)*P(I,J50N)+PTOP
+ 130      L=L+1
+          IF(L.GE.LS1) PIJ50N=PSFMPT
+          PLM1=PL
+          PL=SIG(L)*PIJ50N+PTOP
+          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
 C**** ASSUME THAT PHI IS LINEAR IN LOG P
-        SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
- 140    HTRD(I,K)=(PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
-        IF (K.GE.KM) GO TO 150
-        K=K+1
-        IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
-        GO TO 140
- 150  CONTINUE
-      DO KQ=7,KQMAX
-        CALL FFT(HTRD(1,KQ-6),AN,BN)
-        DO N=1,NMAX
-          WAVE(1,IDACC9,N,KQ)=AN(N)
-          WAVE(2,IDACC9,N,KQ)=BN(N)
+          SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
+ 140      HTRD(I,K)=(PHI(I,J50N,L)+SLOPE*LOG(PMB(K)/PL))*BYGRAV-GHT(K)
+          IF (K.GE.KM) GO TO 150
+          K=K+1
+          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
+          GO TO 140
+ 150    CONTINUE
+        DO KQ=7,KQMAX
+          CALL FFT(HTRD(1,KQ-6),AN,BN)
+          DO N=1,NMAX
+            WAVE_part(1,IDACC9,N,KQ,J50N)=AN(N)
+            WAVE_part(2,IDACC9,N,KQ,J50N)=BN(N)
+          END DO
         END DO
-      END DO
+      ENDIF
+      DO KQ=7,KQMAX
+        DO N=1,NMAX
+          CALL GLOBALSUM(grid, WAVE_part(1,IDACC9,N,KQ,:), 
+     &                   WAVE(1,IDACC9,N,KQ), ALL=.TRUE.)
+          CALL GLOBALSUM(grid, WAVE_part(2,IDACC9,N,KQ,:), 
+     &                   WAVE(2,IDACC9,N,KQ), ALL=.TRUE.)
+        ENDDO
+      ENDDO
+
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG7A
