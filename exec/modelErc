@@ -48,3 +48,7 @@ OUTPUT_TO_FILES=YES
 # and some other information. Otherwise most of the output will be
 # suppressed
 VERBOSE_OUTPUT=NO
+
+# MP - multiprocessing support. If set to YES gmake will compile the 
+# code with OpenMP instructions. This option has effect only on SGI.
+MP=NO
