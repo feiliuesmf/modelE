@@ -47,12 +47,12 @@ ccc   land ice data
      *     ,4)
       COMMON/CLDCOM/CLOUD2(IM,JM,5*LM),CLOUD1(IM,JM,5*LM)
       COMMON/SOILS3/GHDATA1(IM,JM,4*NGM+5),GHDATA2(IM,JM,4*NGM+5)
-      CHARACTER C*4,XLABEL*132,LABEL*16,FILEIN*60,HEADER*8
+      CHARACTER C*4,XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
       DIMENSION C(39),JC(100),RC(161)
       EQUIVALENCE (C,XLABEL,LABEL)
       COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,4),TDIURN1(IM,JM,KTD)
       COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,4),TDIURN2(IM,JM,KTD)
-      COMMON /KEYS/ KEYNR(42,50)
+      COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
 C**** coupled model ocean data
@@ -73,7 +73,7 @@ C**** coupled model ocean data
 C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
-      INTEGER itau1,itau2
+      INTEGER itau1,itau2,idacc1(12),idacc2(12)
 C****
       IF(IARGC().NE.2)  GO TO 800
 C****
@@ -81,35 +81,55 @@ C**** Read ReStartFiles
 C****
       CALL GETARG (1,FILEIN)
       OPEN (1,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
+c        write(0,*) 'trying to read label'
          READ (1) ITAU1,XLABEL
+c        write(0,*) 'trying to skip label'
          READ (1)
+c        write(0,*) 'trying to skip param'
          READ (1) ! - skip parameters
+c        write(0,*) 'trying to read model'
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
 C**** check which ocean
+c        write(0,*) 'trying to read ocean'
          READ (1) HEADER
          BACKSPACE(1)
-         IF (HEADER.eq."OCN01") THEN ! Qflux or fixed SST
+         IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN1 = 1
+c        write(0,*) 'trying to read ocea1'
            READ(1) HEADER,TOCEAN1,Z1
          ELSE
            KOCEAN1 = 2
+c        write(0,*) 'trying to read ocea2'
            READ(1) HEADER,OCEAN1
            READ(1) HEADER,STRAITS1,STRAITI1
            READ(1) HEADER,DYNICE1
          END IF
+c        write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
+c        write(0,*) 'trying to read sice'
          READ (1) HEADER,RSI1,HSI1,SNOWI1,MSI1,SSI1
+c        write(0,*) 'trying to read gdata'
          READ (1) HEADER,GDATA1
+c        write(0,*) 'trying to read soils'
          READ (1) HEADER,GHDATA1
+c        write(0,*) 'trying to read snow'
          READ (1) HEADER,NSN1,ISN1,DZSN1,WSN1,HSN1,FR_SNOW1
+c        write(0,*) 'trying to read landi'
          READ (1) HEADER,LANDI1
+c        write(0,*) 'trying to read bldat'
          READ (1) HEADER,BLDATA1
+c        write(0,*) 'trying to read pbl'
          READ (1) HEADER,PBL1,pblb1,ipbl1
-         READ (1) HEADER,U00wtr,U00ice,LMCM,CLOUD1
+c        write(0,*) 'trying to read clds'
+         READ (1) HEADER,CLOUD1
+c        write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
-         READ (1) HEADER,S0,S0X,CO2,RSD,SIND,COSD,RQT1,SRHR1,TRHR1,FSF1
-         READ (1) HEADER,KEYNR,TSFREZ1,DIAG1,TDIURN1,OA1,ITAU2
+c        write(0,*) 'trying to read radia'
+         READ (1) HEADER,S0,RSD,SIND,COSD,RQT1,SRHR1,TRHR1,FSF1
+c        write(0,*) 'trying to read diag'
+         READ (1) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1,ITAU2
          IF (KOCEAN1.eq.2) THEN
+c        write(0,*) 'trying to read ocn3'
            READ(1) HEADER,ODIAG1,itau2    !OIJ,OIJL,OL,OLNST,it
          END IF
 
@@ -124,35 +144,55 @@ C**** check which ocean
 C****
       CALL GETARG (2,FILEIN)
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
+c        write(0,*) 'trying to read label'
          READ (2) ITAU1,XLABEL
+c        write(0,*) 'trying to skip label'
          READ (2)
+c        write(0,*) 'trying to skip param'
          READ (2) ! - skip parameters
+c        write(0,*) 'trying to read model'
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
 C**** check which ocean
+c        write(0,*) 'trying to read ocean'
          READ (2) HEADER
          BACKSPACE(2)
-         IF (HEADER.eq."OCN01") THEN ! Qflux or fixed SST
+         IF (HEADER(1:8).eq."OCN01") THEN ! Qflux or fixed SST
            KOCEAN2 = 1
+c        write(0,*) 'trying to read ocea1'
            READ(2) HEADER,TOCEAN2,Z2
          ELSE
            KOCEAN2 = 2
+c        write(0,*) 'trying to read ocea2'
            READ(2) HEADER,OCEAN2
            READ(2) HEADER,STRAITS2,STRAITI2
            READ(2) HEADER,DYNICE2
          END IF
+c        write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
+c        write(0,*) 'trying to read sice'
          READ (2) HEADER,RSI2,HSI2,SNOWI2,MSI2,SSI2
+c        write(0,*) 'trying to read gdata'
          READ (2) HEADER,GDATA2
+c        write(0,*) 'trying to read soils'
          READ (2) HEADER,GHDATA2
+c        write(0,*) 'trying to read snow'
          READ (2) HEADER,NSN2,ISN2,DZSN2,WSN2,HSN2,FR_SNOW2
+c        write(0,*) 'trying to read landi'
          READ (2) HEADER,LANDI2
+c        write(0,*) 'trying to read bldat'
          READ (2) HEADER,BLDATA2
+c        write(0,*) 'trying to read pbl'
          READ (2) HEADER,PBL2,pblb2,ipbl2
-         READ (2) HEADER,U00wtr,U00ice,LMCM,CLOUD2
+c        write(0,*) 'trying to read clds'
+         READ (2) HEADER,CLOUD2
+c        write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
-         READ (2) HEADER,S0,S0X,CO2,RSD,SIND,COSD,RQT2,SRHR2,TRHR2,FSF2
-         READ (2) HEADER,KEYNR,TSFREZ2,DIAG2,TDIURN2,OA2,ITAU2
+c        write(0,*) 'trying to read radia'
+         READ (2) HEADER,S0,RSD,SIND,COSD,RQT2,SRHR2,TRHR2,FSF2
+c        write(0,*) 'trying to read diag'
+         READ (2) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2,ITAU2
          IF (KOCEAN2.eq.2) THEN
+c        write(0,*) 'trying to read ocn3'
            READ(2) HEADER,ODIAG2,itau2    !OIJ,OIJL,OL,OLNST,it
          END IF
 
@@ -258,7 +298,7 @@ c      else
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
       ERRQ=COMP8p('OA    ',IM,JM,12     ,OA1,OA2)
 
-      IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocean diags
+      IF (KOCEAN1.eq.KOCEAN2.and.KOCEAN1.eq.2) THEN ! compare ocn diags
       DAGPOS=1
       ERRQ=COMP8('OIJ   ',IM,JM,KOIJ,ODIAG1(DAGPOS),ODIAG2(DAGPOS))
       DAGPOS=DAGPOS+IM*JM*KOIJ

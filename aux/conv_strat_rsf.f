@@ -8,6 +8,7 @@ C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel
      *     ,iowrite_mon,focean,airx,lmc
+     *     ,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm
@@ -72,7 +73,12 @@ C**** must be compiled after the model
 
       XLABEL=CLABEL(1:132)
       ItimeX=NINT(TAUX)
-      print*,ItimeX,XLABEL
+      NDAY = 24
+      IYEAR1 = JC(41)
+      itimei = itimex
+      itimee = itimex
+      itime0 = itimex
+      print*,iyear1,ItimeX,xlabel
 
 C**** read in FLAKE/FOCEAN data
       iu_TOPO=10
@@ -83,7 +89,7 @@ C**** read in FLAKE/FOCEAN data
       close (iu_TOPO)
 
 C**** convert sea ice temperatures into enthalpy
-C**** and initialize sea ice salinity to 3.2 ppt (0 in snow and lake ice).
+C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
       DO J=1,JM
         DO I=1,IM
           IF (RSI(I,J).gt.0) THEN
