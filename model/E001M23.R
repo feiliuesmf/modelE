@@ -20,14 +20,14 @@ ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                              ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
-! ATURB                             ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -48,9 +48,9 @@ OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 OSST=OST4X5.B.1946-55avg.Hadl1.1
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 CDN=CD4X500S VEG=V72X46.1.cor2
-SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
+SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR      ! river direction file
+RVR=RD4X525.RVR.1      ! river direction file
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
@@ -97,8 +97,8 @@ PCONPEN=500.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000003
 
 KOCEAN=0
-U00ice  = .60   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-u00wtrx = 1.336
+U00ice  = .64   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+u00wtrx = 1.34
 RWCLDOX= 1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX = 0.3333!  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
 

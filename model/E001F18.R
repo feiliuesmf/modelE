@@ -45,7 +45,7 @@ GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
 OSST=OST144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=VEG144X90FRACTIONM
-SOIL=S144X900098M TOPO=Z144X90N ! bdy.cond
+SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
 RVR=RD144X90.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables

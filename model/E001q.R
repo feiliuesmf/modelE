@@ -46,9 +46,9 @@ OHT=E001/OTSPEC.E001.M250D.1951-1955 ! horizontal ocean heat transport
 OCNML=Z1O.B4X5.cor                   ! ocn mixed layer depth
     ! files needed for all models
 CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
-SOIL=S4X50093 TOPO=Z72X46N.cor4   ! soil/topography bdy.conds
+SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD4X525.RVR                   ! river direction file
+RVR=RD4X525.RVR.1                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv

@@ -43,9 +43,9 @@ TG3M=TG3M.E001q.19711980            ! created by 'mkdeep'
 ! OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
 EDDY=ED4X5 ! Eddy diffusivity for deep ocean mixing
 CDN=CD4X500S VEG=V72X46.1.cor2
-SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
+SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.RVR      ! river direction file
+RVR=RD4X525.RVR.1      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv

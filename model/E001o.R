@@ -50,11 +50,11 @@ OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
-TOPO_OC=Z72X46N_gas.1 ! ocean bdy.cond
+TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
 CDN=CD4X500S.ext VEG=V72X46.1.cor2.ext
-SOIL=S4X50093.ext TOPO=Z72X46N_gas.1 ! bdy.cond
+SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
-RVR=RD4X525.gas1.RVR      ! river direction file
+RVR=RD4X525.gas2.RVR      ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=radfil33k                   !     8/2003 version
 RADN3=miescatpar.abcdv
