@@ -79,8 +79,8 @@ R=00BG/B
 &&PARAMETERS
 KSOLAR=1 ! all params affecting radia are relevant
          ! most other parameters are irrelevant
-NSLP=0              ! dont touch this line
-Kvflxo=0            ! dont touch this line
+NSUBDD=0            ! don't touch this line
+Kvflxo=0            ! don't touch this line
 KCOPY=2             ! saving acc + rsf
 Kradia=1            ! use Kradia=2 for adj. forcing run
 &&END_PARAMETERS

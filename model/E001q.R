@@ -74,7 +74,8 @@ U00ice=.50   ! use same as preliminary run w/ prescribed ocean
 HRMAX=1000.  ! use same as preliminary run w/ prescribed ocean
 KSOLAR=1
 DT=450.         ! from default: DTsrc=3600.,
-NSLP=12         ! saving SLP 12hrly
+SUBDD="SLP"     ! save SLP at sub-daily frequency
+NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=0        ! don't save VFLXO (daily) if ocn is predicted
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1

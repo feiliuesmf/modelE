@@ -75,7 +75,7 @@
       integer, parameter :: MAX_IPARAMS = 128
       integer, parameter :: MAX_CPARAMS = 64
       integer, parameter :: MAX_NAME_LEN = 32
-      integer, parameter :: MAX_CHAR_LEN = 16
+      integer, parameter :: MAX_CHAR_LEN = 32
 
       character*80 :: MODULE_HEADER='PARAM02 '
 

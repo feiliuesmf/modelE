@@ -83,10 +83,9 @@ C**** slightly larger, to sample all points within the cycle
 !@dbparam NFILTR: DT_filter   =  NFILTR*DTsrc
       INTEGER :: NIdyn, NIsurf = 2, NRad = 5 , NFILTR = 2
 
-!@dbparam Ndisk:  DT_saversf  =  Ndisk *DTsrc fort.1/fort.2 saves
-!@dbparam Nssw:   DT_checkSsw =  Nssw  *DTsrc
-!@dbparam Nslp:   DT_save_SLP =  Nslp  *DTsrc
-      INTEGER :: NDisk = 24, Nssw = 1 , Nslp = 0
+!@dbparam Ndisk:  DT_saversf    =  Ndisk *DTsrc fort.1/fort.2 saves
+!@dbparam Nssw:   DT_checkSsw   =  Nssw  *DTsrc
+      INTEGER :: NDisk = 24, Nssw = 1
 
 !@dbparam NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)
 !@dbparam NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE

@@ -171,6 +171,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       CHARACTER*4, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
+!@var Z500 saved instantaneous 500 mb height field
+      REAL*8, DIMENSION(IM,JM) :: Z500
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
@@ -381,7 +383,7 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, parameter :: ib_pos=1,ib_pct=2,ib_npp=3,ib_hyb=4,ib_nnp=5
      &     ,ib_ntr=6
 
-!@var isccp_diags flag for accumulating ISCCP diagnostics (default not)
+!@dbparam isccp_diags flag for accumulating ISCCP diagnostics (default not)
       INTEGER :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics

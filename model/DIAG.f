@@ -58,7 +58,7 @@ C****
      *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
      *     ,kgz_max,pmb,ght,jl_dtdyn,jl_zmfntmom,jl_totntmom,jl_ape
      *     ,jl_uepac,jl_vepac,jl_uwpac,jl_vwpac,jl_wepac,jl_wwpac
-     *     ,jl_epflxn,jl_epflxv,ij_p850
+     *     ,jl_epflxn,jl_epflxv,ij_p850,z500
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
 
@@ -94,7 +94,7 @@ C****
      *     PKE,PL,PRQ1,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
      *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI
-      LOGICAL qpress
+      LOGICAL qpress,q500
       INTEGER nT,nQ
       REAL*8 QSAT
 
@@ -198,13 +198,15 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
 C**** Select pressure levels on which to save temperature and humidity
 C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
+          q500=.false.
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
             nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
             if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
           CASE (500)            ! 500 mb
-            nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
+            nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true. 
+            q500 = .true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
           END SELECT
@@ -216,10 +218,15 @@ C**** calculate geopotential heights + temperatures
      *           *GRAV)
             IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF
      *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
+            IF (q500) Z500(I,J)=(PHI(I,J,L)
+     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
+     *           *GRAV)
           ELSE
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
             IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF)
+            if (q500) Z500(I,J)=(PHI(I,J,L)
+     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
           END IF
           if (qpress) AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)+
      *         (Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL))
@@ -2417,27 +2424,127 @@ C****
 C****
       END SUBROUTINE DIAG4A
 
-
-      SUBROUTINE get_SLP(iu_SLP)
-C****
-C**** THIS ROUTINE SAVES THE INSTANTANEOUS SEA LEVEL PRESSURES
-C**** EVERY ABS(NSLP) HOURS. IF NSLP.LT.0 THE FIRST RECORD IS
-C**** WRITTEN TO THE BEGINNING OF UNIT 16.
-C****
-      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
-      USE MODEL_COM, only : im,jm,p,ptop,Itime,zatmo
-      USE PBLCOM, only : tsavg
+      module subdaily
+!@sum SUBDAILY defines variables associated with the sub-daily diags
+!@auth Gavin Schmidt
+      USE MODEL_COM, only : im,jm,itime
+      USE FILEMANAGER, only : openunit, closeunits
+      USE PARAM
       IMPLICIT NONE
-      INTEGER :: iu_SLP
-      REAL*4, DIMENSION(IM,JM) :: SLP
-      INTEGER :: I,J
-      DO 10 J=1,JM
-      DO 10 I=1,IM
-   10 SLP(I,J)=(P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
-      CALL WRITEI(iu_SLP,Itime,SLP,IM*JM)
-      RETURN
-      END SUBROUTINE get_SLP
+!@var kdd total number of sub-daily diags
+      INTEGER :: kdd
+!@var namedd array of names of sub-daily diags
+      CHARACTER*10, DIMENSION(10) :: namedd
+!@var iu_subdd array of unit numbers for sub-daily diags output
+      INTEGER, DIMENSION(10) :: iu_subdd
+!@dbparam subdd string contains variables to save for sub-daily diags
+C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
+      CHARACTER*32 :: subdd = "SLP"
+!@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
+      INTEGER :: Nsubdd = 0
 
+      contains
+
+      subroutine init_subdd(aDATE)
+!@sum init_subdd initialise sub daily diags and position files
+!@auth Gavin Schmidt
+      implicit none
+      character*14, intent(in) :: adate
+      integer :: i,j,k
+
+      call sync_param( "subdd" ,subdd)
+      call sync_param( "Nsubdd",Nsubdd)
+
+      if (nsubdd.ne.0) then
+C**** calculate how many names
+        k=0
+        i=1
+ 10     j=index(subdd(i:len(subdd))," ")
+        if (j.gt.1) then
+          k=k+1
+          i=i+j
+        else
+          i=i+1
+        end if
+        if (i.lt.len(subdd)) goto 10
+        kdd=k
+        if (kdd.gt.10) STOP "Number of sub-daily diagnostics too big"
+
+C**** make array of names
+        read(subdd,*) namedd(1:kdd)
+
+C**** open units and position
+        do k=1,kdd
+          call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(k),.true.,
+     *         .false.)
+          call io_POS(iu_SUBDD(k),Itime,im*jm,Nsubdd)
+        end do
+      end if
+      return
+      end subroutine init_subdd
+
+      subroutine reset_subdd(aDATE)
+!@sum reset_subdd resets sub daily diag files
+!@auth Gavin Schmidt
+      implicit none
+      character*14, intent(in) :: adate
+      integer :: k
+
+      if (nsubdd.ne.0) then
+C**** close and re-open units
+        call closeunits ( iu_SUBDD, kdd )
+        do k=1,kdd
+          call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(k),.true.,
+     *         .false.)
+        end do
+      end if
+C****
+      return
+      end subroutine reset_subdd
+
+      subroutine get_subdd
+!@sum get_SUBDD saves instantaneous variables at sub-daily frequency
+!@+   every ABS(NSUBDD) hours.
+!@+   Current options: SLP, SAT, PREC, QS, Z500
+!@+   More options can be added as extra cases in this routine
+!@auth Gavin Schmidt/Reto Ruedy
+      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
+      USE MODEL_COM, only : p,ptop,zatmo
+      USE PBLCOM, only : tsavg,qsavg
+      USE FLUXES, only : prec
+      USE DAGCOM, only : z500
+      IMPLICIT NONE
+      REAL*4, DIMENSION(IM,JM) :: DATA
+      INTEGER :: I,J,k
+
+C**** depending on namedd string choose what variables to output
+      do k=1,kdd
+        select case (namedd(k)) 
+        case ("SLP")      ! sea level pressure
+          do j=1,jm
+          do i=1,im
+            data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
+     *           **gbyrb
+          end do
+          end do
+        case ("SAT")      ! surf. air temp
+          data=tsavg
+        case ("QS")       ! surf humidity
+          data=qsavg
+        case ("PREC")     ! precip
+          data=prec
+        case ("Z500")     ! 500mb geopotential height
+          data=z500
+        case default
+          cycle
+        end select
+        call writei(iu_subdd(k),itime,data,im*jm)
+      end do
+c**** 
+      return
+      end subroutine get_subdd
+
+      end module subdaily
 
       SUBROUTINE init_DIAG(ISTART)
 !@sum  init_DIAG initializes the diagnostics

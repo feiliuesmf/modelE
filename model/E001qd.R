@@ -72,7 +72,8 @@ HRMAX=1000.  ! use same values as in corr. run with climatological ocean
 KSOLAR=1
 isccp_diags=1
 DT=450.,        ! from default: DTsrc=3600.,
-NSLP=12         ! saving SLP 12hrly
+SUBDD="SLP"     ! save SLP at sub-daily frequency
+NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=0        ! not saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 &&END_PARAMETERS

@@ -105,7 +105,8 @@ HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
 to_volume_MixRat=1,1,1, 1,1,1, 1,1,1,   ! for tracer printout
-NSLP=12         ! saving SLP 12hrly
+SUBDD="SLP"     ! save SLP at sub-daily frequency
+NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1

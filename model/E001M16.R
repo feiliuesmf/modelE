@@ -76,7 +76,8 @@ KSOLAR=1
 NIsurf=2        ! 4 for M18, 6 for M20,M24 (increase if layer 1 gets thinner)
 DT=300.         ! from default: DTsrc=3600.,
 
-NSLP=12         ! saving SLP 12hrly
+SUBDD="SLP"     ! save SLP at sub-daily frequency
+NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1

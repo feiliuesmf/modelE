@@ -7,9 +7,7 @@
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
-      USE CONSTANT, only : bygrav,   lhm,byshi,rhow,shw
       USE MODEL_COM
-      USE GEOM, only : dxyp
       USE RADNCB, only : dimrad_sv
       USE RANDOM
 #ifdef TRACERS_ON
@@ -17,10 +15,11 @@
 #endif
       USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
+      USE SUBDAILY
       IMPLICIT NONE
 
       INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n,istart
-      INTEGER iu_VFLXO,iu_SLP,iu_ACC,iu_RSF,iu_ODA
+      INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
@@ -105,10 +104,10 @@ C**** Files for an accumulation period (1-12 months)
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
-      if (Nslp.ne.0) then
-        call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
-        call io_POS(iu_SLP,Itime,im*jm,Nslp)
-      end if
+C**** Initiallise file for sub-daily diagnostics, controlled by 
+C**** space-seperated string segments in SUBDD from the rundeck
+      call init_subdd(aDATE)
+
 C****
 C**** MAIN LOOP
 C****
@@ -147,10 +146,8 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
               call closeunit( iu_VFLXO )
               call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
             end if
-            if (Nslp.ne.0) then
-              call closeunit( iu_SLP )
-              call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
-            end if
+C**** reset sub-daily diag files
+            call reset_subdd(aDATE)
           end if   !  beginning of acc.period
         END IF     !  beginning of month
       END IF       !  beginning of day
@@ -343,11 +340,9 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          CALL TIMER (MNOW,MELSE)
       END IF
 C****
-C**** WRITE SEA LEVEL PRESSURES EVERY NSLP physics-TIME STEPS (DTsrc)
+C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****
-      IF (NSLP.NE.0) THEN
-         IF (MOD(ITIME, NSLP).eq.0) CALL get_SLP(iu_SLP)
-      END IF
+      if (Nsubdd.ne.0 .and. mod(Itime,Nsubdd).eq.0) call get_subdd
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
@@ -510,7 +505,7 @@ C**** sync_param( "B", Y ) reads parameter B into variable Y
 C**** if "B" is not in the database, then Y is unchanged and its
 C**** value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NIPRNT,MFILTR,XCDLM,NDASF
-     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,Nslp,kradia
+     *     ,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR,NRAD,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,LSDRAG,P_SDRAG
      $     ,ItimeI,PSFMPT,PSTRAT,SIG,SIGE
@@ -532,7 +527,6 @@ C**** Rundeck parameters:
       call sync_param( "NFILTR", NFILTR ) !!
       call sync_param( "NRAD", NRAD ) !!
       call sync_param( "Kvflxo", Kvflxo ) !!
-      call sync_param( "Nslp", Nslp )
       call sync_param( "Ndisk", Ndisk )
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )

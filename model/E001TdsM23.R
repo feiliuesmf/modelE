@@ -142,7 +142,7 @@ XCDNST=300.,10000.   ! strat. gw drag parameters
 DT=180.,             ! from default: DTsrc=3600.,
 NIsurf=4,            ! number of surface time steps
 
-NSLP=0          ! saving SLP 12hrly
+NSUBDD=0        ! saving sub-daily diags 12hrly
 Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1

@@ -73,7 +73,7 @@ U00ice=.50   ! use same value as corresponding run with prescribed ocean
 HRMAX=1000.  ! use same value as corresponding run with prescribed ocean
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
-NSLP=0          ! saving SLP 0hrly
+NSUBDD=0        ! saving SLP 0hrly
 Kvflxo=0        ! not saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=1
