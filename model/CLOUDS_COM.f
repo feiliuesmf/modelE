@@ -1,6 +1,8 @@
+#include "rundeck_opts.h"
       MODULE CLOUDS_COM
 !@sum  CLOUDS_COM model variables for moist convction and
-!@+          large-scale condensation
+!@+    large-scale condensation
+!@+    cloud droplet number added to list of saves for rsf files
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE MODEL_COM, only : IM,JM,LM
@@ -23,6 +25,10 @@ C**** some arrays here for compatility with new clouds
 !@var FSS grid fraction for large-scale clouds
 !@+   initialised as 1. for compatibility with previous clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSS
+#ifdef CLD_AER_CDNC
+!@var OLDNO, OLDNL old CDNC for ocean and land ,SMFPM:CTEI parameter
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNO,OLDNL,SMFPM
+#endif
 
 C**** variables saved for radiation calculations
 !@var TAUSS optical depth from super-saturated clouds
@@ -59,8 +65,12 @@ C**** variables used (and saved) for gravity wave drag calculations
       USE DOMAIN_DECOMP, ONLY : DYN_GRID
       USE MODEL_COM, ONLY : IM,LM
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
-     *                       CLDSAV1,FSS,TAUSS,TAUMC,CLDSS,CLDMC,
-     *                       CSIZMC,CSIZSS,ULS,VLS,UMC,VMC,TLS,QLS,
+     *                       CLDSAV1,FSS,
+#ifdef CLD_AER_CDNC
+     *                       OLDNO,OLDNL,SMFPM,
+#endif
+     *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
+     *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC
       IMPLICIT NONE
       TYPE (DYN_GRID), INTENT(IN) :: grid
@@ -79,6 +89,11 @@ C**** variables used (and saved) for gravity wave drag calculations
      *             CLDSAV(LM,IM,J_0H:J_1H),
      *            CLDSAV1(LM,IM,J_0H:J_1H),
      *                FSS(LM,IM,J_0H:J_1H),
+#ifdef CLD_AER_CDNC
+     *             OLDNO(LM,IM,J_0H:J_1H),
+     *             OLDNL(LM,IM,J_0H:J_1H),
+     *             SMFPM(LM,IM,J_0H:J_1H),
+#endif
      *              TAUSS(LM,IM,J_0H:J_1H),
      *              TAUMC(LM,IM,J_0H:J_1H),
      *              CLDSS(LM,IM,J_0H:J_1H),
@@ -99,6 +114,13 @@ C**** variables used (and saved) for gravity wave drag calculations
 
 !@var FSS initialized to 1.
       FSS = 1. 
+#ifdef CLD_AER_CDNC
+!@var OLDNO and OLDNL are initialized to 10.
+      OLDNO = 10. 
+      OLDNL = 10. 
+!@var SMFPM is initialised to 0.5 (proxy for cloud top turbulence)
+      SMFPM = 0.5
+#endif 
 
       ALLOCATE(     DDM1(IM,J_0H:J_1H),
      *              AIRX(IM,J_0H:J_1H),
@@ -132,15 +154,21 @@ C**** Initialise some output used in dynamics
       INTEGER LDUM1
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
-     *  'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv (all old)'
+     *'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,
      *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
+#ifdef CLD_AER_CDNC
+     *     ,OLDNO,OLDNL,SMFPM
+#endif
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,
      *     TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV
+#ifdef CLD_AER_CDNC
+     *     ,OLDNO,OLDNL,SMFPM
+#endif
         IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
