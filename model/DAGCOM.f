@@ -14,7 +14,7 @@ C**** Accumulating_period information
 !ny   INTEGER, DIMENSION(nsampl) :: IDACC   !@var IDACC acc-counters
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
       CHARACTER*12 ACC_PERIOD           !@var string MONyyr1-yyr2
-!@var AMON0,JMON0,JDAY0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
+!@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 !ny   CHARACTER*4 AMON0
 !ny   INTEGER JMON0,JDATE0,JYEAR0,JHOUR0,Itime0
 
@@ -393,44 +393,43 @@ c idacc-indices of various processes
       USE MODEL_COM, only : AMONTH
       implicit none
 !@var JMON1,JYR1 month,year of beginning of period 1
-      INTEGER JMON1,JYR1  
+      INTEGER JMON1,JYR1
 !@var JMONM,JMONL middle,last month of period
-      INTEGER JMONM,JMONL 
+      INTEGER JMONM,JMONL
 !@var months,years length of 1 period,number of periods
-      INTEGER months,years 
+      INTEGER months,years
 !@var yr1,yr2 (end)year of 1st and last period
       INTEGER yr1,yr2
 !@var aDATE date string: MONyyr1(-yyr2)
       character*12 aDATE
 !@var LDATE length of date string (7 or 12)
       INTEGER LDATE
-C**** Defaults
-      aDATE = "MONyear"
-      LDATE = 7 
 
+      LDATE = 7                  ! if years=1
+      if(years.gt.1) LDATE = 12
+
+      aDATE(1:3)=AMONTH(JMON1)        ! letters 1-3 of month IF months=1
       yr1=JYR1
       JMONL=JMON1+months-1
       if(JMONL.GT.12) then
+         yr1=yr1+1
          JMONL=JMONL-12
-         yr1=JYR1+1
       end if
       yr2=yr1+years-1
-      JMONM = JMONL-1
-      IF(JMONM.eq.0) JMONM=12
-      LDATE=7
-      if(years.gt.1) LDATE=12
-
-      aDATE(1:3)=AMONTH(JMON1)                 ! letters 1-3 of month 1
       write(aDATE(4:12),'(i4.4,a1,i4.4)') yr1,'-',yr2
-      if(months.gt.12) aDATE(1:1)='x'
+
+      if(months.gt.12) aDATE(1:1)='x'                ! should not happen
       if(months.le.1 .or. months.gt.12) return
 
-C**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
-C****    =F+L                                        for 2 month periods
-C****    =FML where M=letter 1 of Middle month       for 3 month periods
-C****    =FnL where n=length of period if n>3         4-11 month periods
-      IF (months.gt.1) aDATE(3:3)=AMONTH(JMONL)(1:1)
+!**** 1<months<13: adjust characters 1-3 of aDATE (=beg) if necessary:
+!**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
+!****    =F+L                                        for 2 month periods
+!****    =FML where M=letter 1 of Middle month       for 3 month periods
+!****    =FnL where n=length of period if n>3         4-11 month periods
+      aDATE(3:3)=AMONTH(JMONL)(1:1)            ! we know: months>1
       IF (months.eq.2) aDATE(2:2)='+'
+      JMONM = JMONL-1
+      IF(JMONM.eq.0) JMONM=12
       IF (months.eq.3) aDATE(2:2)=AMONTH(JMONM)(1:1)
       IF (months.ge.4.and.months.le.9) write (aDATE(2:2),'(I1)') months
       IF (months.eq.10) aDATE(2:2)='X'         ! roman 10

@@ -223,7 +223,7 @@ C****
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
-      call set_param( "Itime", Itime, 'o' ) 
+      call set_param( "Itime", Itime, 'o' )
 
       IF (MOD(Itime,NDAY).eq.0) THEN
            CALL DIAG5A (1,0)
@@ -388,7 +388,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
 
       subroutine init_Model
-!@sum This program reads most of parameters from the datanase (DB)
+!@sum This program reads most of parameters from the database (DB)
 C**** get_param( "A", X ) reads parameter A into variable X
 C**** if "A" is not in the database, it will generate an error
 C**** message and stop
@@ -406,7 +406,7 @@ C**** value is saved in the database as "B" (here sync = synchronize)
 
       implicit none
 
-C**** Rundeck parameters: 
+C**** Rundeck parameters:
       call sync_param( "NAMD6", NAMD6, 4 )
       call sync_param( "IJD6", IJD6(1:8,1), 8)
       call sync_param( "NIPRNT", NIPRNT )
@@ -429,7 +429,7 @@ C**** Rundeck parameters:
       ! used in input but not changed
       call sync_param( "PSF", PSF )
       call sync_param( "NIsurf", NIsurf )
-C**** IYEAR0 always comes from rundeck or rsf file 
+C**** IYEAR0 always comes from rundeck or rsf file
 C**** (default necessary for pdE)
       call sync_param( "IYEAR0", IYEAR0 )
       ! the following were set only at initial start - udating
@@ -588,11 +588,11 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("PLTOP"))  call get_param( "PLTOP", PLTOP, 12 ) !!
       if(is_set_param("IYEAR0")) call get_param( "IYEAR0", IYEAR0 ) !!
 C**** need to do some diagnostic initialisation here
-      call alloc_param( "IDACC", IDACC, (/12*0/), 12) 
+      call alloc_param( "IDACC", IDACC, (/12*0/), 12)
       call reset_diag(1)
- 
-      write( 6, INPUTZ )
-      call print_param( 6 )
+
+c     write( 6, INPUTZ )
+c     call print_param( 6 )
 
       IF (ISTART.GE.9 .or. ISTART.LT.0) GO TO 400
 C***********************************************************************
@@ -840,7 +840,7 @@ C***********************************************************************
       CASE (:0)
 C****
 C****   SUM DIAGNOSTICS OVER INPUT FILES     ISTART<0
-C****   
+C****
         monacc = 0
         do k=1,iargc()
           call getarg(k,filenm)
@@ -904,13 +904,13 @@ C**** reason not to use ISTART=10 is trouble with the other file.)
       WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *   KDISK,', HOUR=',ItimeX,' ',XLABEL(1:80)
   500 CONTINUE
-C**** Get parameters we just read from rsf file. Only those 
+C**** Get parameters we just read from rsf file. Only those
 C**** parameters which we need in "INPUT" should be extrcted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
-      if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !input
+      if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
       if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
       if(is_set_param("NDAY"))   call get_param( "NDAY", NDAY ) !input
       if(is_set_param("Itime"))  call get_param( "Itime", Itime ) !main
@@ -954,13 +954,13 @@ C****
 C**** Updating Parameters. If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database
 C****
-C**** Overwrite those rundeck parameters in the DB which has been changed
+C**** Overwrite rundeck parameters in the DB that were changed
       call set_param( "DTsrc", DTsrc, 'o' )
       call set_param( "DT", DT, 'o' )
       call set_param( "keyct", keyct, 'o' )
       call set_param( "NMONAV", NMONAV, 'o' )
 
-C**** Overwrite non-rundeck parameters which has been changed
+C**** Overwrite non-rundeck parameters that were changed
       call set_param( "ItimeE", ItimeE, 'o' ) !input
       call set_param( "NIdyn", NIdyn, 'o' ) !input
       call set_param( "Itime", Itime, 'o' ) !main
@@ -969,7 +969,7 @@ ccc the following 5 lines are for information only (not read at restart)
       if(.not.is_set_param("IM0"))    call set_param( "IM0", IM0 )
       if(.not.is_set_param("JM0"))    call set_param( "JM0", JM0 )
       if(.not.is_set_param("LM0"))    call set_param( "LM0", LM0 )
-      if(.not.is_set_param("KACC0"))  call set_param( "KACC0", KACC0 ) ! not set properly
+      if(.not.is_set_param("KACC0")) call set_param( "KACC0", KACC0 ) !?
       if(.not.is_set_param("KTACC0")) call set_param( "KTACC0", KTACC0 )
 
 C**** Get the rest of parameters from DB or put defaults to DB
@@ -1068,9 +1068,10 @@ C****
       if(istart.gt.0) CALL init_CLD
       CALL init_DIAG(ISTART)
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
+      if(istart.gt.0) CALL init_MOM(im,jm,lm)
       IF (KDIAG(2).EQ.9.AND.SKIPSE.EQ.0..AND.KDIAG(3).LT.9) KDIAG(2)=8
-      if(istart.gt.0) WRITE (6,INPUTZ)
-      if(istart.gt.0) call print_param( 6 )
+      WRITE (6,INPUTZ)
+      call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       WRITE (6,'(A14,2I8)') "KACC0,KTACC0=",KACC0,KTACC0
       WRITE (6,'(A14,3I4)') "IM,JM,LM=",IM,JM,LM

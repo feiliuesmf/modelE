@@ -44,9 +44,9 @@ C**** module should own dynam variables used by other routines
       EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 
       REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
-C**** not sure if these are actually passed or not (saved just in case)
-      REAL*8, DIMENSION(IM,JM) :: FD
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
+!@var xAVRX scheme-depend. coefficient for AVRX: 1,byrt2 (2nd,4th order)
+      REAL*8 xAVRX
 
       END MODULE DYNAMICS
 
