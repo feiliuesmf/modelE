@@ -136,9 +136,9 @@ C$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2
-!obsolete !@var LPBL max level of planetary boundary layer
-!obso INTEGER :: LPBL
+      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2
+!@var DCL max level of planetary boundary layer
+      INTEGER :: DCL 
 
 C**** output variables
       REAL*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
@@ -235,7 +235,7 @@ C**** functions
 
 !@var IERRT,LERRT error reports from advection
       INTEGER :: IERRT,LERRT
-      INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL  ! ,LEVAP obsolete
+      INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
 !@var LDRAFT the layer the downdraft orginates
 !@var LEVAP the layer evaporation of precip starts
@@ -531,12 +531,12 @@ C     FPLUM0=FMP1*BYAM(LMIN)
       DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
       DTMOMR( zmoms,LMIN,1:NTX)=-TMOMOLD(zmoms,LMIN,1:NTX)*FPLUME
 #endif
-      DO K=1,KMAX !vref
-         UMP(K)=UM(K,LMIN)*FPLUME !vref
-         DUM(K,LMIN)=-UMP(K) !vref
-         VMP(K)=VM(K,LMIN)*FPLUME !vref
-         DVM(K,LMIN)=-VMP(K) !vref
-      ENDDO !vref
+      DO K=1,KMAX
+         UMP(K)=UM(K,LMIN)*FPLUME
+         DUM(K,LMIN)=-UMP(K)
+         VMP(K)=VM(K,LMIN)*FPLUME
+         DVM(K,LMIN)=-VMP(K)
+      ENDDO
 C****
 C**** RAISE THE PLUME TO THE TOP OF CONVECTION AND CALCULATE
 C**** ENTRAINMENT, CONDENSATION, AND SECONDARY MIXING
@@ -602,12 +602,12 @@ C****
         DQMOM(xymoms,L-1)=DQMOM(xymoms,L-1)+DELTA*QMOMP(xymoms)
         QMOMP(xymoms) = QMOMP(xymoms)*(1.-DELTA)
 
-        DO K=1,KMAX             !vref
-          DUM(K,L-1)=DUM(K,L-1)+UMP(K)*DELTA !vref
-          DVM(K,L-1)=DVM(K,L-1)+VMP(K)*DELTA !vref
-          UMP(K)=UMP(K)-UMP(K)*DELTA !vref
-          VMP(K)=VMP(K)-VMP(K)*DELTA !vref
-        ENDDO                   !vref
+        DO K=1,KMAX            
+          DUM(K,L-1)=DUM(K,L-1)+UMP(K)*DELTA
+          DVM(K,L-1)=DVM(K,L-1)+VMP(K)*DELTA
+          UMP(K)=UMP(K)-UMP(K)*DELTA
+          VMP(K)=VMP(K)-VMP(K)*DELTA
+        ENDDO                  
 
 #ifdef TRACERS_ON
         DTM(L-1,1:NTX) = DTM(L-1,1:NTX)+DELTA*TMP(1:NTX)
@@ -655,12 +655,12 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
      *     *FENTRA
 #endif
-      DO K=1,KMAX !vref
-         UMP(K)=UMP(K)+U_0(K,L)*EPLUME !vref
-         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME !vref
-         VMP(K)=VMP(K)+V_0(K,L)*EPLUME !vref
-         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME !vref
-      ENDDO !vref
+      DO K=1,KMAX
+         UMP(K)=UMP(K)+U_0(K,L)*EPLUME
+         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME
+         VMP(K)=VMP(K)+V_0(K,L)*EPLUME
+         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME
+      ENDDO
       END IF
 C****
 C**** CHECK THE DOWNDRAFT POSSIBILITY
@@ -705,24 +705,14 @@ C     IF(DMMIX.LT.1d-10) GO TO 291
       Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
       tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
 #endif
-      DO K=1,KMAX !vref
-         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L)) !vref
-         UMP(K)=UMP(K)*FLEFT !vref
-         DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L) !vref
-         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L)) !vref
-         VMP(K)=VMP(K)*FLEFT !vref
-         DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L) !vref
-      ENDDO !vref
-c         TMIX=SMIX*PLK(L)
-c         HMIX=SHA*TMIX+LHE*QMIX
-c         TENV=SUP*PLK(L)
-c         QENV=QUP
-c         HENV=SHA*TENV+LHE*QENV
-c         HSENV=SHA*TENV+LHE*QSAT(TENV,LHX,PL(L))
-C        IF (I.EQ.35.AND.J.EQ.13) WRITE(6,299)
-C    *     LDRAFT,TMIX,QMIX,HMIX,TENV,QENV,HENV,HSENV
-c  299 FORMAT(1X,'LDD TMIX QMIX HMIX TENV QENV HENV HSENV =',
-c     *  I3,7E12.4/)
+      DO K=1,KMAX
+         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
+         UMP(K)=UMP(K)*FLEFT
+         DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L)
+         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
+         VMP(K)=VMP(K)*FLEFT
+         DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L)
+      ENDDO
 C****
 C**** CONDENSE VAPOR IN THE PLUME AND ADD LATENT HEAT
 C****
@@ -794,18 +784,15 @@ C**** Add plume tracers at LMAX
      *   DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
 #endif
       CCM(LMAX)=0.
-      DO K=1,KMAX !vref
-         DUM(K,LMAX)=DUM(K,LMAX)+UMP(K) !vref
-         DVM(K,LMAX)=DVM(K,LMAX)+VMP(K) !vref
-      ENDDO !vref
+      DO K=1,KMAX
+         DUM(K,LMAX)=DUM(K,LMAX)+UMP(K)
+         DVM(K,LMAX)=DVM(K,LMAX)+VMP(K)
+      ENDDO
       CDHM=0.
       IF(MINLVL.GT.LMIN) MINLVL=LMIN
       IF(MAXLVL.LT.LMAX) MAXLVL=LMAX
       IF(LMCMIN.EQ.0) LMCMIN=LMIN
       IF(LMCMAX.LT.MAXLVL) LMCMAX=MAXLVL
-C     IF(.NOT.MC1) GO TO 344
-C     IF(IC.EQ.ITYPE) MC1=.FALSE.
-C 344 CONTINUE
 C****
 C**** PROCESS OF DOWNDRAFTING
 C****
@@ -824,17 +811,11 @@ C****
       DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
       DQRAT=DQ*DDRAFT/(CONSUM+teeny)
       DO 346 L=LDRAFT,1,-1
-C     TNX=SMDN*PLK(L)/DDRAFT
-C     QNX=QMDN/DDRAFT
       LHX=LHE
-      IF (L.GE.LMIN) THEN  ! avoids reference to uninitiallised value???
+      IF (L.GE.LMIN) THEN  ! avoids reference to uninitiallised value
         IF(TPSAV(L).LT.TF) LHX=LHS
       END IF
       SLH=LHX*BYSHA
-C     QSATC=QSAT(TNX,LHX,PL(L))
-c     DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
-C     IF(DQ.LT.0.) DQ=0.
-C     DQEVP=DQ*DDRAFT
       DQEVP=DQRAT*COND(L)
       IF(DQEVP.GT.COND(L)) DQEVP=COND(L)
       IF (L.LT.LMIN) DQEVP=0.
@@ -851,7 +832,7 @@ C     DQEVP=DQ*DDRAFT
       EVPSUM=EVPSUM+DQEVP*SLH
 #ifdef TRACERS_WATER
 C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
-C     (If 100% evaporation, allow all tracers to evaporate completely.)
+C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
         IF(FQEVP.eq.1.) THEN                 ! total evaporation
           TMDN(N)     = TMDN(N) + TRCOND(N,L)
@@ -867,7 +848,6 @@ C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
         DDRUP=DDRAFT
         DDRAFT=DDRAFT*(1.+ETAL(L))
-C       IF(L.GT.LMIN.AND.DDRAFT.GT.CCM(L-1)) DDRAFT=CCM(L-1)
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
      *    DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
@@ -894,19 +874,8 @@ C       IF(L.GT.LMIN.AND.DDRAFT.GT.CCM(L-1)) DDRAFT=CCM(L-1)
 #endif
       ENDIF
       IF(L.GT.1) DDM(L-1)=DDRAFT
-c         TMIX=SMDN*PLK(L)/DDRAFT
-c         QMIX=QMDN/DDRAFT
-c         HMIX=SHA*TMIX+LHX*QMIX
-c         TENV=SM1(L)*PLK(L)*BYAM(L)
-c         QENV=QM1(L)*BYAM(L)
-c         HENV=SHA*TENV+LHX*QENV
-c         HSENV=SHA*TENV+LHX*QSAT(TENV,LHX,PL(L))
-C     IF(I.EQ.35.AND.J.EQ.13) WRITE (6,399)
-C    *  L,TMIX,QMIX,HMIX,TENV,QENV,HENV,HSENV
-c  399 FORMAT(1X,'L TMIX QMIX HMIX TENV QENV HENV HSENV=',
-c     *  I5,7E12.4)
       LDMIN=L
-C     ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
+C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       IF (L.LE.LMIN.AND.L.GT.1) THEN
         SMIX=SMDN/DDRAFT
         IF (SMIX.GE.(SM1(L-1)/AIRM(L-1))) GO TO 345
@@ -921,10 +890,10 @@ C     ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
      *     TMOMDN(xymoms,1:NTX)
 #endif
-      DO K=1,KMAX !vref
-      DUM(K,LDMIN)=DUM(K,LDMIN)+UMDN(K) !vref
-      DVM(K,LDMIN)=DVM(K,LDMIN)+VMDN(K) !vref
-      ENDDO !vref
+      DO K=1,KMAX
+      DUM(K,LDMIN)=DUM(K,LDMIN)+UMDN(K)
+      DVM(K,LDMIN)=DVM(K,LDMIN)+VMDN(K)
+      ENDDO
       DM(LDMIN)=DM(LDMIN)+DDRAFT
       END IF
 C****
@@ -951,29 +920,16 @@ C**** simple upwind scheme for momentum
       IF(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
       BETA=CLDM*BYAM(L+1)
       IF(CLDM.LT.0.) BETA=CLDM*BYAM(L)
-c         FCDH=0.
-c         IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
-C***     IF(L.EQ.LDEP) FCDH=FCDH+CDHM
-c         FCDH1=0.
-c         IF(L.EQ.LMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
-c         AJ8(L)=AJ8(L)+CCM(L)
-c       AJ13(L)=AJ13(L)+PLK(L)*(-ALPHA*SM(L)+BETA*SM(L+1)+DSM(L))
-c   *                  -FCDH-FCDH1
-c       AJ51(L)=AJ51(L)+SLHE*(-ALPHA*QM(L)+BETA*QM(L+1)+DQM(L)+
-c   *           COND(L))
-c       AJ57(L)=AJ57(L)+SLHE*(-ALPHA*QM(L)+BETA*QM(L+1)+DQM(L))
-c     SM(L)=SM(L)*(1.-ALPHA)+BETA*SM(L+1)+DSM(L)
-c     QM(L)=QM(L)*(1.-ALPHA)+BETA*QM(L+1)+DQM(L)
       BETAU=BETA
       ALPHAU=ALPHA
       IF(BETA.LT.0.) BETAU=0.
       IF(ALPHA.LT.0.) ALPHAU=0.
-      DO K=1,KMAX !vref
+      DO K=1,KMAX
        UM(K,L)=
-     *    UM(K,L)+RA(K)*(-ALPHAU*UM(K,L)+BETAU*UM(K,L+1)+DUM(K,L)) !vre
+     *    UM(K,L)+RA(K)*(-ALPHAU*UM(K,L)+BETAU*UM(K,L+1)+DUM(K,L))
        VM(K,L)=
-     *    VM(K,L)+RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L)) !vref
-      ENDDO !vref
+     *    VM(K,L)+RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))
+      ENDDO
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
@@ -1021,17 +977,6 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
       ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
       END DO
 #endif
-c      SUMOLD=0.
-c      SUMNEW=0.
-c      SUMDP=0.
-c      DO 382 L=LMIN,LMAX
-c      SUMDP=SUMDP+AIRM(L)
-c      SUMOLD=SUMOLD+SM1(L)*PLK(L)
-c  382 SUMNEW=SUMNEW+SM(L)*PLK(L)
-C     DIFSUM=(SUMNEW-SUMOLD)-(CDHSUM+CDHM-EVPSUM)
-C     DO 383 L=LMIN,LMAX
-C        AJ13(L)=AJ13(L)-DIFSUM/SUMDP
-C 383 SM(L)=SM(L)-DIFSUM/SUMDP/PLK(L)
       DO 381 L=1,LM
       SM1(L)=SM(L)
   381 QM1(L)=QM(L)
@@ -1054,25 +999,16 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
 #endif
         END DO
       END IF
-C     LEVAP=LMAX-1
-C     PRCP=COND(LEVAP+1)
       PRCP=COND(LMAX)
-C     PRHEAT=CDHEAT(LEVAP+1)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
 C**** Tracer precipiation
 C Note that all of the tracers that condensed do not precipitate here,
 C since a fraction (FCLW) of TRCOND was removed above.
-C     TRPRCP(1:NTX) = TRCOND(1:NTX,LEVAP+1)
       TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
 #endif
-C     FEVAP=.5*FPLUME
-C     IF(FEVAP.GT.1.) FEVAP=1.
          AJ50(LMAX)=AJ50(LMAX)+CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
-C        IF(LMAX.EQ.LDEP) AJ50(LMAX)=AJ50(LMAX)+CDHM
-C        AJ52(LEVAP+1)=AJ52(LEVAP+1)+CDHEAT(LEVAP+1)
       DO 540 L=LMAX-1,1,-1
-C     IF(L.LE.LEVAP.AND.PRCP.LE.0.) GO TO 530  ! L.LE.LEVAP always true
       IF(PRCP.LE.0.) GO TO 530
       FCLOUD=CCM(L)*BYAM(L+1)
       IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.*CCM(L)*BYAM(L+1)
@@ -1085,19 +1021,14 @@ C     IF(L.LE.LEVAP.AND.PRCP.LE.0.) GO TO 530  ! L.LE.LEVAP always true
       FEVAP=.5*CCM(L)*BYAM(L+1)
       IF(L.LT.LMIN) FEVAP=.5*CCM(LMIN)*BYAM(LMIN+1)
       IF(FEVAP.GT..5) FEVAP=.5
-C     IF(LMAX-LMIN.LE.2) FEVAP=1.
       CLDMCL(L+1)=CLDMCL(L+1)+FCLOUD
       CLDREF=CLDMCL(L+1)
       IF(PLE(LMAX+1).GT.700..AND.CLDREF.GT.CLDSLWIJ)
      *  CLDSLWIJ=CLDREF
       IF(PLE(LMIN)-PLE(LMAX+1).GE.450..AND.CLDREF.GT.CLDDEPIJ)
      *  CLDDEPIJ=CLDREF
-C**** REEVAPORATE ALL PRECIPITATION FROM ABOVE
-C     EVAP=PRCP
-C     PRCP=0.
 C**** FORWARD STEP COMPUTES HUMIDITY CHANGE BY RECONDENSATION
 C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
-C     IF(L.GT.LEVAP) GO TO 540  ! currently impossible
       PRECNVL(L+1)=PRECNVL(L+1)+PRCP*BYGRAV
       MCLOUD=0.
       IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM(L)
@@ -1106,13 +1037,6 @@ C     IF(L.GT.LEVAP) GO TO 540  ! currently impossible
       HEAT1=0.
       IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF))
      *  HEAT1=LHM*PRCP*BYSHA
-C     TN=TOLD-PRHEAT/MCLOUD
-C     QN=QMOLD(L)*BYAM(L)+EVAP/MCLOUD
-C     LHX=LHE
-C     IF(TOLD.LT.TF) LHX=LHS
-C     SLH=LHX*BYSHA
-C     QSATC=QSAT(TN,LHX,PL(L))
-C     IF(QN-QSATC.LE.0.) GO TO 520
       TNX=TOLD
       QNX=QMOLD(L)*BYAM(L)
       LHX=LHE
@@ -1132,7 +1056,6 @@ C     IF(QN-QSATC.LE.0.) GO TO 520
       IF(DQSUM.GT.PRCP) DQSUM=PRCP
       FPRCP=DQSUM/PRCP
       PRCP=PRCP-DQSUM
-C     IF(PRCP.GT.EVAP) PRCP=EVAP
 C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       FSSUM = 0
       IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
@@ -1142,7 +1065,7 @@ C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       QM(L)=QM(L)+DQSUM
 #ifdef TRACERS_WATER
 C**** Tracer net re-evaporation
-C (If 100% evaporation, allow all tracers to evaporate completely.)
+C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       DO N=1,NTX
         IF(FPRCP.eq.1.) THEN                 !total evaporation
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
@@ -1170,7 +1093,6 @@ C**** CONDENSING and WASHOUT of TRACERS BELOW CLOUD
       END IF
 #endif
          FCDH1=0.
-C        IF(L.EQ.LDEP) FCDH1=FCDH1+CDHM
          IF(L.EQ.LDMIN) FCDH1=(CDHSUM-CDHDRT)*.5*ETADN-EVPSUM
          AJ50(L)=AJ50(L)-SLH*DQSUM+FCDH1-HEAT1
          AJ52(L)=AJ52(L)-SLH*DQSUM
@@ -1340,7 +1262,7 @@ C**** functions
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
-     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND
+     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
 !@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2 dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
@@ -1432,9 +1354,6 @@ C**** initialise vertical arrays
       DO L=1,LM
          CAREA(L)=1.-CLDSAVL(L)
          IF(WMX(L).LE.0.) CAREA(L)=1.
-C     CAREA(L)=(1.-RH(L))/(1.-RHF(L)*0.999+1.E-20)
-C     IF(CAREA(L).GT.1.) CAREA(L)=1.
-C     IF(RH(L).GT.1.) CAREA(L)=0.
       END DO
       DQUP=0.
       LHXUP=LHE
@@ -1538,13 +1457,21 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         ENDIF
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
+C**** Special formulation for PBL layers
       IF(L.GT.1.AND.L.LE.DCL) THEN
-        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
-        IF(L.EQ.DCL) HDEP=.5*HDEP
+C**** integrated HDEP over pbl depth
+        HDEP=0.
+        DO LN=1,MIN(L,DCL-1)
+          HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
+        END DO
+        IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+C**** hdep is simply layer dependent (removed due to resolution dependence)
+c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
+c        IF(L.EQ.DCL) HDEP=0.5*HDEP
         RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
-!obso IF(L.LE.LPBL) RH00(L)=.75
+C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
       IF(WMX(L).GT.0.) THEN
@@ -1575,8 +1502,6 @@ C**** COMPUTE THE CONVERGENCE OF AVAILABLE LATENT HEAT
 C**** COMPUTE EVAPORATION OF RAIN WATER, ER
       RHN=RHF(L)
       IF(RHF(L).GT.RH(L)) RHN=RH(L)
-C     QCONV0=LHX*AQ(L)-RHN*SQ(L)*SHA*PLK(L)*ATH(L)
-C    *  -TEM*QSATL(L)*RHN
       IF(WMX(L).GT.0.)  THEN
           ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       ELSE     !  WMX(l).le.0.
@@ -1616,7 +1541,6 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
       DRHDT=2.*CAREA(L)*CAREA(L)*(1.-RH00(L))*(QCONV+ER(L)+EC(L))/LHX/
      *     (WMX(L)/(FCLD+teeny)+2.*CAREA(L)*QSATL(L)*(1.-RH00(L))+teeny)
       IF(ER(L).EQ.0..AND.EC(L).EQ.0..AND.WMX(L).LE.0.) DRHDT=0.
-C     IF(RH1(L).GT.1.) DRHDT=0.
       QHEAT(L)=(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
       DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
       WMNEW =WMX(L)+DWDT*DTsrc
@@ -1820,7 +1744,6 @@ C**** ACCUMULATE SOME DIAGNOSTICS
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
-C     DO 310 L=1,LM
       DO 382 L=LM-1,1,-1
       SM(L)=TH(L)*AIRM(L)
       QM(L)=QL(L)*AIRM(L)
@@ -1851,13 +1774,8 @@ C     DO 310 L=1,LM
       EXPST=EXP(-SIGK*DTsrc)
       IF(L.LE.1) CKIJ=EXPST
       DSEC=DWM*TL(L)/BETA
-C     DSEC=.53*SLHE*DWM
-C     TIME0=ABS(8./(DSE-DSEC+1d-30))
-C     FPMAX=1.-EXP(-1./TIME0)
-C     FPMAX=1.
       IF(CK.LT.CKR) GO TO 382
       FPMAX=1.-EXPST
-C     IF(CK.GT.CKM) FPMAX=1.
       IF(FPMAX.LE.0.) GO TO 382
       IF(FPMAX.GT.1.) FPMAX=1.
       IF(DSE.GE.DSEC) GO TO 382
@@ -1869,12 +1787,12 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       SMO2=SM(L+1)
       QMO2=QM(L+1)
       WMO2=WMXM(L+1)
-      DO K=1,KMAX !vref
-         UMO1(K)=UM(K,L) !vref
-         VMO1(K)=VM(K,L) !vref
-         UMO2(K)=UM(K,L+1) !vref
-         VMO2(K)=VM(K,L+1) !vref
-      ENDDO !vref
+      DO K=1,KMAX
+         UMO1(K)=UM(K,L)
+         VMO1(K)=VM(K,L)
+         UMO2(K)=UM(K,L+1)
+         VMO2(K)=VM(K,L+1)
+      ENDDO
       FPLUME=FPMAX
       DFX=FPMAX
       DO 320 ITER=1,9
@@ -1907,7 +1825,6 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       CKM=(1.+SLHE*DQSDT)*(1.+.392d0*TLT1/SLHE)/
      *  (2.+(1.+BYMRAT*TLT1/SLHE)*SLHE*DQSDT)
       DSEC=DWM*TLT1/BETA
-C     DSEC=.53*SLHE*DWM
       DSEDIF=DSE-DSEC
       IF(DSEDIF.GT.1d-3) FPLUME=FPLUME-DFX
       IF(DSEDIF.LT.-1d-3) FPLUME=FPLUME+DFX
@@ -1936,16 +1853,16 @@ C**** mix cloud liquid water tracers as well
 #endif
       END DO
 #endif
-      DO K=1,KMAX !vref
-         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K)) !vref
-         VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K)) !vref
-         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K)) !vref
-         VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K)) !vref
-         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K) !vref
-         VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K) !vref
-         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K) !vref
-         VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K) !vref
-      ENDDO !vref
+      DO K=1,KMAX
+         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
+         VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))
+         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
+         VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K))
+         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
+         VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K)
+         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
+         VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
+      ENDDO
          QNEW=QL(L)
          QNEWU=QL(L+1)
 C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
@@ -1976,8 +1893,6 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       FCLD=CLDSSL(L)+teeny
       WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       LHX=SVLHXL(L)
-C     IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
-C    *  WTEM=1d5*WCONST*1d-3*PL(L)/(TL(L)*RGAS)
       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
      *  WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
       IF(WTEM.LT.1d-10) WTEM=1.d-10

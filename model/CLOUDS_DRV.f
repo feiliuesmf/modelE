@@ -21,7 +21,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l    ! ,lpbl obsolete
+     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l
 #ifdef TRACERS_ON
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
@@ -227,8 +227,7 @@ C****
       VS=VSAVG(I,J)
       TGV=TGVAVG(I,J)
       QG=QGAVG(I,J)
-      DCL=DCLEV(I,J)
-!obso LPBL=1
+      DCL=NINT(DCLEV(I,J))
 
       DO K=1,KMAX
          RA(K)=RAVJ(K,J)
