@@ -1039,8 +1039,8 @@ c dvz is the dep vel in m/s
       END subroutine simple_dry_dep
 
       SUBROUTINE GET_SULFATE(L,temp,fcloud,
-     *  tr_conv,wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
-     *  tm,tmcl,airm,LHX)
+     *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
+     *  tm,tmcl,airm,LHX,dt_sulf)
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -1051,7 +1051,7 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
      *     ,trname,ntm,tr_mm,lm,n_SO4
-      USE CLOUDS, only: PL,NTIX,NTX,DXYPJ,DT_SULF_MC,DT_SULF_SS
+      USE CLOUDS, only: PL,NTIX,NTX,DXYPJ
       USE MODEL_COM, only: dtsrc
 c
       IMPLICIT NONE
@@ -1093,8 +1093,9 @@ c
 c     REAL*8,  INTENT(OUT):: 
       real*8 sulfin(ntm),sulfout(ntm),tr_left(ntm)
      *  ,sulfinc(ntm)
+!@var dt_sulf accumulated diagnostic of sulfate chemistry changes
+      real*8, dimension(ntm), intent(inout) :: dt_sulf
       INTEGER, INTENT(IN) :: L
-      LOGICAL tr_conv
       do n=1,ntx
         sulfin(N)=0.
         sulfinc(N)=0.
@@ -1199,11 +1200,9 @@ c can't be more than moles going in:
        is4=ntix(n)
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,is)*tm(l,ih)
      *  +dso4d*tmcl(is,l)*tmcl(ih,l)) !kg
-       if (tr_conv) then
-        dt_sulf_mc(l,is4)=dt_sulf_mc(l,is4)+sulfout(is4)
-       else
-        dt_sulf_ss(l,is4)=dt_sulf_ss(l,is4)+sulfout(is4)
-       endif
+
+       dt_sulf(is4) = dt_sulf(is4) + sulfout(is4)
+
        case('SO2')
        is=ntix(n)
        sulfin(is)=-dso4g*tm(l,ih)*tr_mm(is)/1000. !dimnless
@@ -1214,13 +1213,8 @@ c can't be more than moles going in:
        if (fcloud.gt.dabs(sulfin(is))) then
        tr_left(is)=(fcloud+sulfin(is))
        endif
-       if (tr_conv) then
-        dt_sulf_mc(l,is)=dt_sulf_mc(l,is)+sulfin(is)*tm(l,is)
-     *   +sulfinc(is)*trdr(is)
-       else
-        dt_sulf_ss(l,is)=dt_sulf_ss(l,is)+sulfin(is)*tm(l,is)
-     *   +sulfinc(is)*trdr(is)
-       endif
+
+       dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,is)+sulfinc(is)*trdr(is)
 
        case('H2O2_s')
        ih=ntix(n)
@@ -1232,13 +1226,8 @@ c can't be more than moles going in:
        if (fcloud.gt.dabs(sulfin(ih))) then
        tr_left(ih)=fcloud+sulfin(ih)
        endif
-       if (tr_conv) then
-        dt_sulf_mc(l,ih)=dt_sulf_mc(l,ih)+sulfin(ih)*tm(l,ih)
-     *    +sulfinc(ih)*trdr(ih)
-       else
-        dt_sulf_ss(l,ih)=dt_sulf_ss(l,ih)+sulfin(ih)*tm(l,ih)
-     *  +sulfinc(ih)*trdr(ih)
-       endif
+
+       dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ih)+sulfinc(ih)*trdr(ih)
 
       end select
       END DO    

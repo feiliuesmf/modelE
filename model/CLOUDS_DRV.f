@@ -806,9 +806,9 @@ C**** TRACERS: Use only the active ones
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
             tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
-     *           dt_sulf_mc(l,n)
+     *           dt_sulf_mc(n,l)
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
-     *           dt_sulf_ss(l,n)
+     *           dt_sulf_ss(n,l)
           end if
 c save for cloud-sulfate correlation
 c          select case (trname(n))

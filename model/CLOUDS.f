@@ -157,7 +157,7 @@ c for sulfur chemistry
       REAL*8 WA_VOL
       REAL*8, DIMENSION(NTM) ::SULFOUT,SULFIN,SULFINC
 c for diagnostics
-      REAL*8, DIMENSION(LM,NTM) :: DT_SULF_MC,DT_SULF_SS
+      REAL*8, DIMENSION(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
 #endif
       COMMON/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC
      *     ,FQCONDT, FWASHT, FPRCPT, FQEVPT,WMXTR, b_beta_DT, precip_mm
@@ -434,8 +434,7 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_AEROSOLS_Koch
       DT1(:)=TM(:,1)
       DTM1(:)=TMOM(3,:,1)
-      DT_SULF_MC(:,1:NTX)=0.
-      DT_SULF_SS(:,1:NTX)=0.
+      DT_SULF_MC(1:NTM,:)=0.
 #endif
 #endif
 C**** OUTER MC LOOP OVER BASE LAYER
@@ -567,10 +566,6 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
 #endif
 #ifdef TRACERS_WATER
       TRCOND = 0.
-#ifdef TRACERS_AEROSOLS_Koch
-      DT_SULF_MC(:,1:NTX)=0.
-      DT_SULF_SS(:,1:NTM)=0.
-#endif
 #endif
       MC1=.FALSE.
       LHX=LHE
@@ -830,8 +825,9 @@ C**** CONDENSING TRACERS
           TMP_SUL(L,N)=0.
         ENDIF
       END DO
-      CALL GET_SULFATE(L,TPOLD(L),FPLUME,TR_CONV,WA_VOL,WMXTR,SULFIN
-     *     ,SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM,LHX)
+      CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
+     *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM,LHX,
+     *     DT_SULF_MC(1,L))
 #endif
       DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1266,8 +1262,9 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         b_beta_DT = FPLUME
 #ifdef TRACERS_AEROSOLS_Koch
         WA_VOL= precip_mm*DXYPJ
-        CALL GET_SULFATE(L,TNX,FPLUME,TR_CONV,WA_VOL,WMXTR,SULFIN,
-     *       SULFINC,SULFOUT,TR_LEFT,TM,TRCOND,AIRM,LHX)
+        CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
+     *       SULFINC,SULFOUT,TR_LEFT,TM,TRCOND,AIRM,LHX,
+     *       DT_SULF_MC(1,L))
 #endif
         DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1565,6 +1562,9 @@ C**** initialise vertical arrays
       CLOUD_YET=.false.
       FCLD_SV=0.
       TR_CONV = .false.
+#ifdef TRACERS_AEROSOLS_Koch
+      DT_SULF_SS(1:NTM,:)=0.
+#endif
 #endif
       DO L=1,LP50
         CAREA(L)=1.-CLDSAVL(L)
@@ -1895,8 +1895,9 @@ C****    precipitation, evaporation, condensation, and washout)
         if (wmxtr.lt.0.) wmxtr=0.
         WA_VOL=precip_mm*DXYPJ
       ENDIF
-      CALL GET_SULFATE(L,TL(L),FCLD,TR_CONV,WA_VOL
-     *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL
+     *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX
+     *     ,DT_SULF_SS(1,L))
       DO N=1,NTX
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
@@ -2009,8 +2010,9 @@ C**** CONDENSING MORE TRACERS
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
-      CALL GET_SULFATE(L,TL(L),FCLD,TR_CONV,WA_VOL,WMXTR,SULFIN,
-     *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX)
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN,
+     *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX,
+     *     DT_SULF_SS(1,L))
 #endif
       DO N=1,NTX
         TR_LEF=1.
