@@ -394,7 +394,7 @@ C****
 #endif
 
 #ifdef TRACERS_SPECIAL_Lerner
-      ALLOCATE(	frqlos(IM,J_0H:J_1H,LM),
+      ALLOCATE(      frqlos(IM,J_0H:J_1H,LM),
      *          STAT=IER)
 #endif
 #if ((defined TRACERS_DUST) && (defined TRACERS_SPECIAL_Shindell)) || (defined TRACERS_HETCHEM)
