@@ -1693,6 +1693,56 @@ c
       ir_ij(k) = ir_m1_3
 c
       k=k+1 !
+      IJ_AERUNS = k ! energy of surf runoff                      1 EA
+      lname_ij(k) = 'HEAT OF SURFACE RUNOFF OVER SOIL'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'e_runoff_surf'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_m1_3
+      k=k+1 !
+c
+      IJ_AERUNU = k ! energy of underground runoff              1 EA
+      lname_ij(k) = 'HEAT OF UNDERGROUND RUNOFF OVER SOIL'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'e_runoff_ugrnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_m1_3
+c
+      k=k+1
+      IJ_HTSOIL = k
+      lname_ij(k) = 'TOTAL SOIL HEAT STORAGE'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'soil_heat' !
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1
+      IJ_HTSNOW = k
+      lname_ij(k) = 'TOTAL LAND SNOW HEAT STORAGE'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'snow_heat' !
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_AINTRCP = k ! aintercep
+      lname_ij(k) = 'PRECIPITATION INTERCEPTED BY CANOPY'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'runoff_ugrnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      iw_ij(k) = iw_veg
+      ir_ij(k) = ir_m1_3
+c
+      k=k+1 !
       IJ_DTGDTS = k ! 18*(DEL(TG)/DEL(TS)-1),DEL= DIURN MX-MN .5*9 MN
       lname_ij(k) = 'PLANT WATER STRESS'
       units_ij(k) = '1'

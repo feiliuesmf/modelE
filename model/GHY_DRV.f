@@ -51,12 +51,12 @@ c****
      &    abetap,abetab,abeta,
      &    acna,acnc,agpp,
      &    aevap,aevapw,aevapd,aevapb,
-     &    aruns,arunu,aeruns,aerunu,aflmlt,
+     &    aruns,arunu,aeruns,aerunu,aflmlt,aintercep,
      &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
      &    qm1,qs,
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
      &    nsn,dzsn,wsn,hsn,fr_snow
-     &     ,ghy_debug
+     &     ,ghy_debug,ngr=>n
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -77,7 +77,8 @@ c****
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,tf_day1,tf_last,ndiupt,ij_aflmlt
+     *     ,idd_ev,tf_day1,tf_last,ndiupt,ij_aflmlt,ij_aeruns,ij_aerunu
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
@@ -591,6 +592,14 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
         aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)
         aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
       end if
+ccc accumulate total heat storage
+      if (moddsf.eq.0) then
+        aij(i,j,ij_htsoil)=aij(i,j,ij_htsoil) +
+     &       fb*sum(ht(1:ngr,1)) + fv*sum(ht(0:ngr,2))
+        aij(i,j,ij_htsnow)=aij(i,j,ij_htsnow)
+     &       + fb*fr_snow(1)*sum(hsn(1:nsn(1),1))
+     &       + fv*fr_snow(2)*sum(hsn(1:nsn(2),2))
+      endif
       trhdt=trheat*dtsurf-atrg
 c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
@@ -773,8 +782,11 @@ ccc not sure about the code below. hopefully that''s what is meant above
 
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
+      aij(i,j,ij_aeruns)=aij(i,j,ij_aeruns)+aeruns
+      aij(i,j,ij_aerunu)=aij(i,j,ij_aerunu)+aerunu
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
       aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt
+      aij(i,j,ij_aintrcp)= aij(i,j,ij_aintrcp)+aintercep
 
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
