@@ -3960,7 +3960,8 @@ c**** below map, show global mean and mark each quarter with a '+'
         if (kcol.gt.1) write(line(k)(nz1:nz2),'(f7.1)') gm
       else
         if (gm.eq.undef) then
-          write(line(k)(nz1:nz2),'(a)') "  Undef"
+          if (kcol.eq.1) write(line(k)(nz1:nz2),'(a)') "Undef"
+          if (kcol.gt.1) write(line(k)(nz1:nz2),'(a)') "  Undef"
         else
           if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(gm)
           if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(gm)
