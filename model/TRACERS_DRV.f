@@ -833,28 +833,36 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_clay=n
           ntm_power(n)=-9
           trpdens(n)=2.5d3
+#ifdef TRACERS_DRYDEP
           trradius(n)=0.75D-06
+#endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt1')
       n_silt1=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+#ifdef TRACERS_DRYDEP
           trradius(n)=2.2D-06
+#endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt2')
       n_silt2=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+#ifdef TRACERS_DRYDEP
           trradius(n)=4.4D-06
+#endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
       CASE('Silt3')
       n_silt3=n
           ntm_power(n)=-9
           trpdens(n)=2.65d3
+#ifdef TRACERS_DRYDEP
           trradius(n)=6.7D-06
+#endif
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
 #endif
@@ -862,7 +870,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
       end select
 
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
+#if (defined TRACERS_WATER)
 C**** Tracers that are soluble or are scavenged or are water => wet dep
       if (tr_wd_TYPE(n).eq.nWater.or.tr_wd_TYPE(n) .EQ. nPART .or.
      *  tr_RKD(n).gt.0) then
@@ -5199,6 +5207,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
 #endif
+#ifdef TRACERS_DUST
+     &     ,JMperY
+#endif
       USE DOMAIN_DECOMP, only : GRID, GET
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
@@ -5246,7 +5257,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      * ,SO2_src_3D,SO2_biosrc_3D,SO2_src
 #endif
 #ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh
+      USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh,ers_data,
+     &   gin_data,table,x1,x2,x3,lim,ljm,lkm
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -5280,7 +5292,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       real*8 carbstuff,ccnv
 #endif
 #ifdef TRACERS_DUST
-      INTEGER :: io_data
+      INTEGER :: io_data,k
       LOGICAL,SAVE :: ifirst=.TRUE.
 #endif
 
@@ -5928,6 +5940,59 @@ c**** Read input: prec-evap data
         CALL openunit('DRYHR',io_data,.true.,.true.)
         READ (io_data) dryhr
         CALL closeunit(io_data)
+c**** Read input: ERS data
+        call openunit('ERS',io_data,.true.,.true.)
+        DO k=1,JMperY
+          READ(io_data) ((ers_data(i,j,k),i=1,im),j=1,jm)
+        END DO
+        call closeunit(io_data)
+c**** Read input: GINOUX data
+        call openunit('GIN',io_data,.true.,.true.)
+        read (io_data) gin_data
+        call closeunit(io_data)
+c**** Read input: EMISSION LOOKUP TABLE data
+        call openunit('LKTAB',io_data,.true.,.true.)
+        DO k=1,lkm
+          READ(io_data) ((table(i,j,k),i=1,lim),j=1,ljm)
+        END DO
+        call closeunit(io_data)
+        do k=1,lkm
+          x3(k)=5.d0+1.d0*k
+        enddo
+
+
+        do j=1,ljm
+          if (j.le.5) then
+            x2(j)=.001d0*j
+          endif
+          if (j.gt.5.and.j.le.104) then
+            x2(j)=0.005d0*j-0.02d0
+          endif
+          if (j.gt.104.and.j.le.194) then
+            x2(j)=0.05d0*j-4.7d0
+          endif
+          if (j.gt.194) then
+            x2(j)=0.5d0*j-92.d0
+          endif
+        enddo
+        do i=1,lim
+          if (i.le.51) then
+            x1(i)=.0001d0*(i-1)
+          endif
+          if (i.gt.51.and.i.le.59) then
+            x1(i)=0.005d0*i-.25d0
+          endif
+          if (i.gt.59.and.i.le.258) then
+            x1(i)=0.05d0*i-2.95d0
+          endif
+          if (i.gt.258.and.i.le.278) then
+            x1(i)=0.5d0*i-119.5d0
+          endif
+          if (i.gt.278) then
+            x1(i)=1.d0*i-259.d0
+          endif
+        enddo
+
 #ifdef TRACERS_DUST_MINERAL8
         CALL openunit('MINFR',io_data,.true.,.true.)
         CALL closeunit(io_data)
@@ -6581,7 +6646,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
 #endif
 
 #ifdef TRACERS_DUST
-c      CALL tracers_dust
+c      CALL tracers_dust_old
 #endif
 
       return
@@ -6728,7 +6793,8 @@ C**** this is a parameterisation from Georg Hoffmann
 #endif
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! defaults to zero.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
+    (defined TRACERS_DUST)
           if(LHX.EQ.LHE.and.fq0.gt.0.) then
 c only dissolve if the cloud has grown
            CLDINC=CLDSAVT-FCLOUD 

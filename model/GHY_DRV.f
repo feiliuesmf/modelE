@@ -98,14 +98,11 @@ c****
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #ifdef TRACERS_DUST
-     &     ,ijts_source,taijs,nDustEmij,nDustEmjl
+     &     ,ijts_source,taijs,tajls,jls_source,nDustEmij,nDustEmjl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
-#endif
-#ifdef TRACERS_DUST
-     &     ,dustflux
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
@@ -114,6 +111,9 @@ c****
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
+#ifdef TRACERS_DUST
+     &     ,pprec,pevap
+#endif
       use ghycom, only : ngm,nlsn,
      &     gdeep,wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
@@ -142,15 +142,14 @@ c****
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
 #endif
+#ifdef TRACERS_DUST
+     &     ,dust_flux
+#endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
 #endif
       use snow_drvm, only : snow_cover_same_as_rad
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : dust_emission_constraints,
-     &     local_dust_emission
-#endif
 
       implicit none
 
@@ -680,6 +679,12 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
       !evap=aevapw+aevapd+aevapb
       evap = aevap
       evapor(i,j,4)=evapor(i,j,4)+evap
+#ifdef TRACERS_DUST
+c     saves precipitation for dust emission calculation at next time step
+      pprec(i,j)=prec(i,j)
+c     saves evaporation for dust emission calculation at next time step
+      pevap(i,j,itype)=evap
+#endif
       evhdt=-alhg
 C**** hack to correct energy flux
 ccc      evhdt=-evap*lhe ! hopefully not needed any more
@@ -738,25 +743,6 @@ ccc accumulate tracer dry deposition
         end if
       end do
 #endif
-#ifdef TRACERS_DUST
-ccc dust emission from earth
-      CALL dust_emission_constraints(i,j)
-      DO nx=1,ntx
-        n=ntix(nx)
-        SELECT CASE (trname(n))
-        CASE ('Clay','Silt1','Silt2','Silt3')
-          n1=n-n_clay+1
-          CALL local_dust_emission(i,j,n1)
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+dustflux(i,j,n1)
-          taijs(i,j,ijts_source(nDustEmij,n))=
-     &         taijs(i,j,ijts_source(nDustEmij,n))+dustflux(i,j,n1)*
-     &         dtsurf
-          tajls(j,1,jls_source(nDustEmjl,n))=
-     &         tajls(j,1,jls_source(nDustEmjl,n))+dustflux(i,j,n1)*
-     &         dtsurf
-        END SELECT
-      END DO
-#endif
 c****
 c**** accumulate diagnostics
 c****
@@ -791,6 +777,20 @@ ccc not sure about the code below. hopefully that''s what is meant above
         tajls(j,1,jls_source(1,n))=tajls(j,1,jls_source(1,n))
      *       +trevapor(n,itype,i,j)*ptype
       enddo
+#endif
+#ifdef TRACERS_DUST
+ccc dust emission from earth
+      DO nx=1,ntx
+        n=ntix(nx)
+        n1=n-n_clay+1
+        trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
+        taijs(i,j,ijts_source(nDustEmij,n))=
+     &       taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*dxyp(j)*
+     &       ptype*dtsurf
+        tajls(j,1,jls_source(nDustEmjl,n))=
+     &       tajls(j,1,jls_source(nDustEmjl,n))+dust_flux(n1)*dxyp(j)*
+     &       ptype*dtsurf
+      END DO
 #endif
 !      print '(a,10(e12.4))','trevapor_trunoe',
 !     &     trevapor(1,itype,i,j), trunoe(1,i,j)

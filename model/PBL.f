@@ -19,6 +19,9 @@
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
+#ifdef TRACERS_DUST
+     &     ,n_clay,Ntm_dust
+#endif
 #endif
       IMPLICIT NONE
 
@@ -131,6 +134,9 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
+#ifdef TRACERS_DUST
+     &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
+#endif
 #endif
      4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,ilong,jlat,itype)
@@ -241,8 +247,14 @@ c  internals:
      *     ,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 C****
-      real*8 :: sig0,delt,wt,wmin,wmax,sig
+      real*8 :: sig0,delt,wt,wmin,wmax
       integer :: icase
+#ifdef TRACERS_DUST
+      REAL*8,INTENT(IN) :: ptype
+      REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
+      INTEGER :: n1
+      REAL*8 :: dsrcflx
+#endif
 
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
@@ -359,7 +371,10 @@ C**** generic calculations for all tracers
 C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
-csgs      delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
+#ifdef TRACERS_DUST
+      delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
+      CALL sig(e(1),mdf,dbl,delt,ch,wsm,t(1),wsubtke,wsubwd,wsubwm)
+#endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
 csgsC**** possibly tracer specific coding
 csgs      wt = 3.                 ! threshold velocity
@@ -382,6 +397,10 @@ C**** First, define some useful quantities
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
+#endif
+
+#ifdef TRACERS_DUST
+      CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsm)
 #endif
 
 C**** loop over tracers
@@ -435,6 +454,17 @@ C****   4) tracers with interactive sources
           call read_seasalt_sources(wsm,itype,2,ilong,jlat,ss2_flux)
           trcnst=ss2_flux *byrho
         end select
+#endif
+
+#ifdef TRACERS_DUST
+ccc dust emission from earth
+      SELECT CASE (trname(ntix(itr)))
+      CASE ('Clay','Silt1','Silt2','Silt3')
+        n1=ntix(itr)-n_clay+1
+        CALL local_dust_emission(ilong,jlat,n1,wsm,dsrcflx)
+        trcnst=dsrcflx
+        dust_flux(n1)=dsrcflx
+      END SELECT
 #endif
 
 C**** solve tracer transport equation
@@ -2393,8 +2423,8 @@ c ----------------------------------------------------------------------
 
 C**** Functions and subroutines for sub-gridscale wind distribution calc
 
-      real*8 function sig(tke,mdf,dbl,delt,ch,ws,tsv)
-!@sum calculate sigma for sub-grid scale wind distribution      
+      subroutine sig(tke,mdf,dbl,delt,ch,ws,tsv,wtke,wd,wm)
+!@sum calculate sub grid scale velocities      
 !@auth Reha Cakmur/Gavin Schmidt
       use constant, only : by3,grav
       implicit none
@@ -2406,7 +2436,7 @@ C**** Functions and subroutines for sub-gridscale wind distribution calc
 !@var ch local heat exchange coefficient 
 !@var ws grid box mean wind speed (m/s)
       real*8, intent(in):: tke,mdf,dbl,delt,tsv,ch,ws
-      real*8 wtke,wm,wd
+      real*8, intent(out):: wtke,wd,wm
 
 C**** TKE contribution  ~ sqrt( 2/3 * tke)
       wtke=sqrt(2d0*tke*by3)
@@ -2419,10 +2449,8 @@ C**** dry convection/turbulence contribution ~(Qsens*g*H/rho*cp*T)^(1/3)
       endif
 C**** moist convection contribution beta/frac_conv = 200.
       wm=200.d0*mdf
-C**** sigma
-      sig=wm+wd+wtke
       return
-      end
+      end SUBROUTINE sig
 
       subroutine integrate_sgswind(sig,wt,wmin,wmax,ws,icase,wint)
 !@sum Integrate sgswind distribution for different cases
