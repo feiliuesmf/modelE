@@ -162,12 +162,12 @@ C$OMP  END PARALLEL DO
       CALL CALC_AMPK(LS1-1)
       CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
+      CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
          ENDIF
-      CALL SDRAG (DTLF)
 C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
 c      CALL CALC_AMPK(LS1-1)
