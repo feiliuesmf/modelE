@@ -11,6 +11,8 @@ C**** variables used in advection
 !@var RSIX,RSIY first order moments for seaice concentration
 !@var USI,VSI east-west, and north-south sea ice velocities (m/s)
       REAL*8, DIMENSION(IM,JM) :: RSIX,RSIY,USI,VSI
+!@var RSISAVE saved value of sea ice concentration before DYNSI
+      REAL*8, DIMENSION(IM,JM) :: RSISAVE
 
 C**** local grid variables for ice rheology scheme
 !@var nx1 number of grid points in the longitudinal direction
@@ -39,6 +41,9 @@ C**** ice dynamics input/output/work variables
 
 !@var PSTAR maximum sea ice pressure
       REAL*8, PARAMETER :: PSTAR=2.75d4
+
+!@var BYDTS reciprocal of timestep in ice dynamics code
+      REAl*8 :: BYDTS
 
       END MODULE ICEDYN
 
@@ -84,15 +89,15 @@ C****
 !@sum  DYNSI calculate ice velocites
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE CONSTANT, only : radian,twopi,rhoi,radius,rhow
+      USE CONSTANT, only : radian,twopi,rhoi,radius,rhow,grav
+      USE MODEL_COM, only : p,psf
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
-     *     ,dxypo,lmm,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz
-      USE GEOM, only : dxyp
+     *     ,dxypo,lmm,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz,imaxj
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm,out
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
-     *     ,ratic,ricat
+     *     ,ratic,ricat,bydts,rsisave
       USE FLUXES, only : dmua,dmva,dmui,dmvi
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -115,7 +120,7 @@ C**** should be defined based on ocean grid
       REAL*8 :: dlat,dlon,phit,phiu,hemi
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,J,n,k,kki,ip1,im1
-      REAL*8 DOIN,USINP,DMUINP,RAT
+      REAL*8 DOIN,USINP,DMUINP,RAT,duA,dvA
 
 C**** set up initial parameters
       IF(IFIRST.gt.0) THEN
@@ -123,6 +128,7 @@ C**** set up initial parameters
 c****
       dlat=nint(180./(jm-1))*radian
       dlon=nint(360./im)*radian
+      bydts = 1./dts
 c****
       do j = 1,ny1
         dyt(j) = dlat*radius
@@ -266,6 +272,19 @@ C**** Replicate polar boxes
         enddo
       enddo
 
+C**** save current value of sea ice concentration for ADVSI
+      RSISAVE(:,:)=RSI(:,:)
+C**** Calculate pressure anomaly at ocean surface (and scale for areas)
+C**** OPRESS is on ocean grid
+      DO J=1,JM
+        DO I=1,IMAXJ(J)
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)-PSF)+RSI(I,J)
+     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
+        END DO
+      END DO
+      OPRESS(2:IM,1)  = OPRESS(1,1)
+      OPRESS(2:IM,JM) = OPRESS(1,JM)
+
 C**** calculate sea surface tilt (incl. atmospheric pressure term)
 C**** on ocean velocity grid
       PGFU(1:IM,JM)=0
@@ -306,14 +325,14 @@ C**** This should be more generally from ocean grid to ice grid
       enddo
       do j=1,jm-1
         VIB(im,j)=0.5*(VSI(im-1,j)+VSI(im,j))
-        GWATX(im,j)=0.5*(VO(im-1,j,1)+VO(im,j,1))
+        GWATY(im,j)=0.5*(VO(im-1,j,1)+VO(im,j,1))
         PGFVB(im,j)=0.5*(PGFV(im-1,j)+PGFV(im,j))
         VIB(1,j)=0.5*(VSI(im,j)+VSI(1,j))
-        GWATX(1,j)=0.5*(VO(im,j,1)+VO(i,j,1))
-        PGFVB(1,j)=0.5*(PGFV(im,j)+PGFV(i,j))
+        GWATY(1,j)=0.5*(VO(im,j,1)+VO(1,j,1))
+        PGFVB(1,j)=0.5*(PGFV(im,j)+PGFV(1,j))
         do i=2,im-1
           VIB(i,j)=0.5*(VSI(i-1,j)+VSI(i,j))
-          GWATX(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
+          GWATY(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
           PGFVB(i,j)=0.5*(PGFV(i-1,j)+PGFV(i,j))
         enddo
       enddo
@@ -321,22 +340,22 @@ c**** set north pole
       do i=1,im
         UIB(i,jm)=USI(1,jm)
         GWATX(i,jm)=UO(1,jm,1)
-        PGFUB(i,jm)=PGFU(i,jm)
+        PGFUB(i,jm)=PGFU(1,jm)
         VIB(i,jm)=0.
-        GWATX(i,jm)=0.
+        GWATY(i,jm)=0.
         PGFVB(i,jm)=0.
       enddo
       DO J=1,NY1
         UIB(nx1-1,J)=UIB(1,J)
         VIB(nx1-1,J)=VIB(1,J)
         GWATX(nx1-1,J)=GWATX(1,J)
-        GWATX(nx1-1,J)=GWATX(1,J)
+        GWATY(nx1-1,J)=GWATY(1,J)
         PGFUB(nx1-1,J)=PGFUB(1,J)
         PGFVB(nx1-1,J)=PGFVB(1,J)
         UIB(nx1,J)=UIB(2,J)
         VIB(nx1,J)=VIB(2,J)
         GWATX(nx1,J)=GWATX(2,J)
-        GWATX(nx1,J)=GWATX(2,J)
+        GWATY(nx1,J)=GWATY(2,J)
         PGFUB(nx1,J)=PGFUB(2,J)
         PGFVB(nx1,J)=PGFVB(2,J)
       ENDDO
@@ -361,14 +380,14 @@ c**** interpolate air stress from A grid in atmos, to B grid in ocean
         im1=im
         do i=1,im
           GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)+dmua(im1,j+1,2)
-     #         +dmua(i,j+1,2))/dts
+     #         +dmua(i,j+1,2))*bydts
           GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)+dmva(im1,j+1,2)
-     #         +dmva(i,j+1,2))/dts
+     #         +dmva(i,j+1,2))*bydts
           im1=i
         enddo
       enddo
-      GAIRX(1:im,jm)=dmua(1,jm,2)/dts
-      GAIRY(1:im,jm)=dmva(1,jm,2)/dts
+      GAIRX(1:im,jm)=dmua(1,jm,2)*bydts
+      GAIRY(1:im,jm)=dmva(1,jm,2)*bydts
 
       do j=1,ny1
        GAIRX(nx1-1,j)=GAIRX(1,j)
@@ -541,6 +560,8 @@ C**** calculate mass fluxes for the ice advection
       END DO
       VSIDT(1:IM,JM)=0.
       USIDT(1:IM,JM)=USI(1,JM)*DTS
+      OIJ(1,JM,IJ_USI) =OIJ(1,JM,IJ_USI) +RSI(1,JM)*USI(1,JM)
+      OIJ(1,JM,IJ_DMUI)=OIJ(1,JM,IJ_DMUI)+RSI(1,JM)*DMUI(1,JM)
 
 C****
       END SUBROUTINE DYNSI
@@ -904,7 +925,7 @@ C THE FIRST HALF
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
       AU(I,J)=-AA2*DELX2*UVM(I,J)
       BU(I,J)=((AA1+AA2)*DELX2+AA6*BYRAD2
-     &+AMASS(I,J)/DTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
       CU(I,J)=-AA1*DELX2*UVM(I,J)
       END DO
       END DO
@@ -945,7 +966,7 @@ C THE FIRST HALF
      2+(ETA(I,J)+ETA(I+1,J))*UICE(I,J-1,2)*DELY2
      3+ETAMEAN*DELYR*(UICE(I,J+1,2)*TNG(J+1)-UICE(I,J-1,2)*TNG(J-1))
      4-ETAMEAN*DELYR*2.0*TNG(J)*(UICE(I,J+1,2)-UICE(I,J-1,2))
-      URT(I)=(URT(I)+AMASS(I,J)/DTS*UICE(I,J,2)*2.0)*UVM(I,J)
+      URT(I)=(URT(I)+AMASS(I,J)*BYDTS*UICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
       DO I=2,NXLCYC
@@ -989,7 +1010,7 @@ C NOW THE SECOND HALF
 
       AV(I,J)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
       BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
-     &+AMASS(I,J)/DTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
       CV(I,J)=(-AA1*DELY2-ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J)))*UVM(I,J)
       END DO
       END DO
@@ -1019,7 +1040,7 @@ C NOW THE SECOND HALF
       AA9=0.0
       END IF
 
-      FXY1(I,J)=AA9+AMASS(I,J)/DTS*UICE(I,J,1)*2.0
+      FXY1(I,J)=AA9+AMASS(I,J)*BYDTS*UICE(I,J,1)*2.0
      5-(AA1+AA2)*DELX2*UICE(I,J,1)
      6+((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
      6*UICE(I+1,J,1)
@@ -1112,7 +1133,7 @@ C THE FIRST HALF
       AV(I,J)=(-AA2*DELY2-(ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
      &-ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
       BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
-     &+AMASS(I,J)/DTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
       CV(I,J)=(-AA1*DELY2+(ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
      &+ETAMEAN*2.0*TNG(J)*DELYR)*UVM(I,J)
       END DO
@@ -1150,7 +1171,7 @@ C THE FIRST HALF
       VRT(J)=AA9+FXY(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
      6+((ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))*VICE(I+1,J,2)*DELX2
      7+(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))*VICE(I-1,J,2)*DELX2)/CSU(J)
-      VRT(J)=(VRT(J)+AMASS(I,J)/DTS*VICE(I,J,2)*2.0)*UVM(I,J)
+      VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
       DO J=2,NYPOLE
@@ -1196,7 +1217,7 @@ C NOW THE SECOND HALF
 
       AU(I,J)=-AA4*DELX2*UVM(I,J)
       BU(I,J)=((AA3+AA4)*DELX2+AA6*BYRAD2
-     &+AMASS(I,J)/DTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
+     &+AMASS(I,J)*BYDTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
       CU(I,J)=-AA3*DELX2*UVM(I,J)
       END DO
       END DO
@@ -1230,7 +1251,7 @@ C NOW THE SECOND HALF
       ELSE
       AA9=0.0
       END IF
-      FXY1(I,J)=AA9+AMASS(I,J)/DTS*VICE(I,J,1)*2.0
+      FXY1(I,J)=AA9+AMASS(I,J)*BYDTS*VICE(I,J,1)*2.0
      1-AA5*DELYR*VICE(I,J,1)
      1-(AA1+AA2)*DELY2*VICE(I,J,1)
      1+AA1*DELY2*VICE(I,J+1,1)-((ZETAMEAN-ETAMEAN)*TNG(J+1)*DELYR
@@ -1283,7 +1304,7 @@ C NOW THE SECOND HALF
       USE MODEL_COM, only : im,jm,focean,itocean,itoice,ftype
       USE OCEAN, only : dxyp=>dxypo,dyp=>dypo,dxp=>dxpo,dxv=>dxvo,
      *     bydxyp=>bydxypo
-      USE ICEDYN, only : usidt,vsidt,rsix,rsiy
+      USE ICEDYN, only : usidt,vsidt,rsix,rsiy,rsisave
       USE SEAICE, only : ace1i,xsi_glob=>xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
       USE ODIAG, only : oij,ij_musi,ij_mvsi
@@ -1294,7 +1315,7 @@ C NOW THE SECOND HALF
       INTEGER, PARAMETER :: NTRICE=2+2*LMI
       REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
       INTEGER I,J,L,IM1,IP1,K
-      REAL*8 SFASI,DHSI,ASI,YSI,XSI,DSSI
+      REAL*8 SFASI,DHSI,ASI,YSI,XSI,DSSI,FRSI
 !@var MHS mass/heat/salt content of sea ice
       REAL*8, DIMENSION(NTRICE,IM,JM) :: MHS
 C****
@@ -1304,6 +1325,30 @@ C****
 C**** WORK01  FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
+
+C**** Regularise ice concentration gradients to prevent advection errors
+      DO J=2,JM-1
+      DO I=1,IM
+        IF (RSI(I,J).gt.1d-4) THEN
+          IF (RSISAVE(I,J).gt.RSI(I,J)) THEN ! reduce gradients
+            FRSI=(RSISAVE(I,J)-RSI(I,J))/RSISAVE(I,J)
+            RSIX(I,J)=RSIX(I,J)*(1.-FRSI)
+            RSIY(I,J)=RSIY(I,J)*(1.-FRSI)
+          END IF
+          IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =1d0-RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
+        ELSE
+          RSIX(I,J) = 0.  ; RSIY(I,J) = 0.
+        END IF
+      END DO
+      END DO
+
 C**** set up local MSH array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
       MHS(1,:,:) = ACE1I + SNOWI
@@ -1397,9 +1442,6 @@ C**** VSIDT(J-1)=0, VSIDT(J)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(J)*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0-FAW(J)*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)<0.
   240 IF(VSIDT(I,J))  260,250,270
 C**** VSIDT(J-1)<0, VSIDT(J)=0.
@@ -1407,9 +1449,6 @@ C**** VSIDT(J-1)<0, VSIDT(J)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(J-1)*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(J-1)*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J)?0.
   260 ASI = RSI(I,J)*DXYP(J) + ( FASI(J-1)- FASI(J))
       DO 265 K=1,NTRICE
@@ -1429,9 +1468,6 @@ C**** VSIDT(J-1)<0, VSIDT(J)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0+(FAW(J-1)-FAW(J))*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0+(FAW(J-1)-FAW(J))*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)>0.
   280 IF(VSIDT(I,J).ne.0.)  GO TO 260
 C**** VSIDT(J-1)>0, VSIDT(J)=0.
@@ -1556,9 +1592,6 @@ C**** USIDT(IM1)=0, USIDT(I)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I)*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I)*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)<0.
   540 IF(USIDT(I,J))  560,550,570
 C**** USIDT(IM1)<0, USIDT(I)=0.
@@ -1566,9 +1599,6 @@ C**** USIDT(IM1)<0, USIDT(I)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(IM1)*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(IM1)*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
   560 ASI = RSI(I,J)*DXYP(J) + (FASI(IM1)- FASI(I))
       DO 565 K=1,NTRICE
@@ -1588,9 +1618,6 @@ C**** USIDT(IM1)<0, USIDT(I)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0+(FAW(IM1)-FAW(I))*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0+(FAW(IM1)-FAW(I))*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)>0.
   580 IF(USIDT(I,J).ne.0.)  GO TO 560
 C**** USIDT(IM1)>0, USIDT(I)=0.
@@ -1741,4 +1768,21 @@ C****
       RETURN
       END SUBROUTINE IT2AT
 
+      SUBROUTINE init_icedyn(iniOCEAN)
+!@sum  init_STRAITS initializes strait variables
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE ICEDYN, only : RSIX,RSIY,USI,VSI
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: iniOCEAN
 
+C**** Initiallise ice dynamic variables if ocean model starts
+      if (iniOCEAN) THEN
+        RSIX=0.
+        RSIY=0.
+        USI=0.
+        VSI=0.
+      end if
+
+      RETURN
+      END SUBROUTINE init_icedyn

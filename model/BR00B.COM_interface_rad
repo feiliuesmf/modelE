@@ -1,0 +1,38 @@
+      COMMON/RADCOM_glob/V6ALB(11,4,7)
+     *             ,TAUWC0,TAUIC0,EPSCON,RO3COL,FULGAS(13)
+     A             ,FRAYLE,FALGAE,FCLDTR,FCLDSR,PTLISO,TLGRAD,FGOLDH(13)
+     B             ,WETTRA,WETSRA,FSXAER(5),FTXAER(5),FZSRA(6),FEMTRA(6)
+     C             ,KWVCON,KEEPAL,KEEPRH,KEEP10,KCNORM,KCLDEP,ICE012,NV
+     D             ,MADVES,MRELAY,MOZONE,KO3LON,NO3COL,NORMS0,KSOLAR
+     E             ,KTREND,NTRACE,ITR(8),NL,NLP,MLAT46,MLON72,LASTVC
+C     INPUT DATA
+     X             ,S00WM2,RATLS0,S0,XXJDAY,JYEAR,JDAY,ISPARE(98)
+      COMMON/RADCOM_local/JLAT,ILON
+     F             ,PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX),U0GAS(LX,12)
+     G             ,ULGAS(LX,12),SHL(LX),RHL(LX),TRACER(LX,8)
+     H             ,TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX),CLDEPS(LX)
+     I          ,POCEAN,PEARTH,POICE,PLICE,AGESN(3),SNOWE,SNOWOI,SNOWLI
+     J             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH,FSPARE(998)
+     L             ,COSZ,PVT(11),BXA(153),SRBXAL(15,2)   ,DMOICE,DMLICE
+     X             ,hsn,hin,hmp,fmp,flags, LS1_loc
+!@var LS1_loc local tropopause level
+C**** Additional info passed for new prescription of sea ice albedo
+!@var hsn depth of snow (m)
+!@var hin depth of ice (m)
+!@var hmp depth of melt pond (m)
+!@var fmp fraction of melt pond area
+      REAL*8 :: hsn,hin,hmp,fmp
+!@var flags true is snow is wet
+      LOGICAL*4 :: flags
+C$OMP  THREADPRIVATE(/RADCOM_local/)
+
+C     OUTPUT DATA
+      COMMON/RADCOM_out/
+     M              TRDFLB(LX),TRUFLB(LX),TRNFLB(LX),TRFCRL(LX)
+     N             ,SRDFLB(LX),SRUFLB(LX),SRNFLB(LX),SRFHRL(LX),SRSLHR
+     O             ,SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,SRXATM(4)
+     P             ,SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,FSRNFG(4)
+     Q             ,SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,FTRUFG(4)
+     R             ,TRDFGW,TRUFGW,TRUFTW,BTEMPW,DTRUFG(4)
+     S             ,TRSLTS,TRSLTG,TRSLWV,TRSLBS,TTRUFG,LBOTCL,LTOPCL
+C$OMP  THREADPRIVATE(/RADCOM_out/)

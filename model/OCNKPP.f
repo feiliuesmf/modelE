@@ -1088,7 +1088,7 @@ C**** Save surface values
      *     BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *     AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
      *     GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO)
-      INTEGER ID(IM+1),LMUV(IM+1)
+      INTEGER LMUV(IM+1)
 
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1, BYBETA=1d0/BETA
@@ -1101,7 +1101,7 @@ C**** KPP variables
       LOGICAL :: LDD = .FALSE.
       INTEGER, SAVE :: IFIRST=1
       INTEGER :: ILAST=0,JLAST=0
-      INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL
+      INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
       REAL*8, SAVE :: BYDTS
       REAL*8 CORIOL,BYDTS,UISTR,VISTR,U2rho,DELTAFW,DELTAE,DELTASR,ANSTR
      *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
@@ -1137,7 +1137,7 @@ C****
       JQ=1
       KMUV=IM+1
       DO 110 I=1,IM
-        ID(I)   = I + IM*(JM-2) + IM*JM*LMO
+c        ID(I)   = I + IM*(JM-2) + IM*JM*LMO
         LMUV(I) = LMV(I,JM-1)
         RAVM(I) = 1d0/IM
         RAMV(I) = RAMVS(JM)
@@ -1147,7 +1147,7 @@ C****
           UL0(L,I) = VT(I,JM-1,L)
           UL(L,I)  = UL0(L,I)
   110   CONTINUE
-      ID(IM+1)   = 1 + IM*(JM-1)
+c      ID(IM+1)   = 1 + IM*(JM-1)
       LMUV(IM+1) = LMU(1,JM)
       RAVM(IM+1) = 1d0
       RAMV(IM+1) = 1d0
@@ -1217,10 +1217,10 @@ C****
   210 IF(LMM(I,J).LE.1)  GO TO 730
       LMIJ=LMM(I,J)
       KMUV=4
-        ID(1) = IM1 + IM*(J-1)
-        ID(2) = I   + IM*(J-1)
-        ID(3) = I   + IM*(J-2) + IM*JM*LMO
-        ID(4) = I   + IM*(J-1) + IM*JM*LMO
+c        ID(1) = IM1 + IM*(J-1)
+c        ID(2) = I   + IM*(J-1)
+c        ID(3) = I   + IM*(J-2) + IM*JM*LMO
+c        ID(4) = I   + IM*(J-1) + IM*JM*LMO
       LMUV(1) = LMU(IM1,J)
       LMUV(2) = LMU(I  ,J)
       LMUV(3) = LMV(I,J-1)
@@ -1520,9 +1520,24 @@ C**** Set diagnostics
 C****
 C**** Update current prognostic variables
 C****
-  700 DO 710 K=1,KMUV
-      DO 710 L=1,LMUV(K)
-  710 UO(ID(K),1,L) = UO(ID(K),1,L) + RAMV(K)*(UL(L,K)-UT(ID(K),1,L))
+      IF (QPOLE) THEN
+        DO II=1,IM
+          VO(II,JM-1,1:LMUV(II))=VO(II,JM-1,1:LMUV(II))+RAMV(II)*
+     *         (UL(1:LMUV(II),II)-VT(II,JM-1,1:LMUV(II)))
+        END DO
+        UO(1,JM,1:LMIJ)=UO(1,JM,1:LMIJ) + RAMV(IM+1)*
+     *       (UL(1:LMIJ,IM+1)-UT(1,JM,1:LMIJ))
+      ELSE
+        UO(IM1,J,1:LMUV(1))=UO(IM1,J,1:LMUV(1)) + RAMV(1)*
+     *       (UL(1:LMUV(1),1)-UT(IM1,J,1:LMUV(1)))
+        UO(I  ,J,1:LMUV(2))=UO(I  ,J,1:LMUV(2)) + RAMV(2)*
+     *       (UL(1:LMUV(2),2)-UT(I  ,J,1:LMUV(2)))
+        VO(I,J-1,1:LMUV(3))=VO(I,J-1,1:LMUV(3)) + RAMV(3)*
+     *       (UL(1:LMUV(3),3)-VT(I,J-1,1:LMUV(3)))
+        VO(I,J  ,1:LMUV(4))=VO(I,J  ,1:LMUV(4)) + RAMV(4)*
+     *       (UL(1:LMUV(4),4)-VT(I,J  ,1:LMUV(4)))
+      END IF
+
   725 IF(QPOLE)  GO TO 750
 C**** End of quarter box loops
       IQ=IQ+1
