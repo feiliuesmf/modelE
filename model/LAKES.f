@@ -12,9 +12,14 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER, DIMENSION(IM,JM) :: KDIREC
 !@var IDPOLE,JDPOLE special directions for south pole flow
       INTEGER :: IDPOLE,JDPOLE
-!@var RATE rate of river flow downslope (m/s)
+!@var RATE rate of river flow downslope (fraction)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
+!@var IFLOW,JFLOW grid box indexes for downstream direction
+      INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
+      INTEGER, PARAMETER :: NRVR = 42 !@param Number of specified rivers
+!@var IRVRMTH,JRVRMTH indexes for specified river mouths
+      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH 
 
       END MODULE LAKES
 
@@ -33,9 +38,8 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       IMPLICIT NONE
       LOGICAL inilake
 !@var I,J,I72,IU,JU,ID,JD,IMAX loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,IMAX
-      INTEGER iu_RVR
-      INTEGER*4 IFLOW(IM,JM),JFLOW(IM,JM)
+      INTEGER I,J,I72,IU,JU,ID,JD,IMAX,INM
+      INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1
 C****
@@ -82,9 +86,19 @@ C**** Read in CDIREC: Number = octant direction, Letter = river mouth
       END DO
       CLOSE (iu_RVR)
 C**** Create integral direction array KDIREC from CDIREC
-      DO I=1,IM*JM
-      KDIREC(I,1) = ICHAR(CDIREC(I,1)) - 48
-      IF(KDIREC(I,1).lt.0 .or. KDIREC(I,1).gt.8)  KDIREC(I,1) = 0
+      INM=0
+      DO J=1,JM
+      DO I=1,IM
+        KDIREC(I,J) = ICHAR(CDIREC(I,J)) - 48
+        IF(KDIREC(I,J).lt.0 .or. KDIREC(I,J).gt.8)  KDIREC(I,J) = 0
+C**** Check for specified river mouths
+        IF (ICHAR(CDIREC(I,J)).GE.65 .AND. ICHAR(CDIREC(I,J)).LE.90)
+     *       THEN 
+          INM=INM+1
+          IRVRMTH(INM)=I
+          JRVRMTH(INM)=J
+        END IF
+      END DO
       END DO
 C****
 C**** From each box calculate the downstream river box
@@ -199,16 +213,14 @@ C****
       USE CONSTANT, only : grav,shw,rhow
       USE E001M12_COM, only : im,jm,flake,focean,zatmo,hlake
       USE GEOM, only : dxyp
-      USE LAKES
-      USE LAKES_COM
+      USE LAKES, only : kdirec,idpole,jdpole,rate,iflow,jflow
+      USE LAKES_COM, only : tlake,gml,mwl
       USE FLUXES, only : flowo,eflowo
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr
 
       IMPLICIT NONE
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD
-      INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
-      INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
 c      REAL*8 XK(8),YK(8)
 c      DATA XK/.707107d0,0.,-.707107d0,-1.,-.707107d0, 0., .707107d0,1./
 c     *    ,YK/.707107d0,1., .707107d0, 0.,-.707107d0,-1.,-.707107d0,0./
@@ -236,9 +248,9 @@ C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)   ! if well mixed
               DGM = TLAKE(IU,JU)*DMM*SHW        ! surface only flow
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
-              AIJ(IU,JU,IJ_MRVR)=AIJ(IU,JU,IJ_MRVR) +  DMM
-              AIJ(IU,JU,IJ_ERVR)=AIJ(IU,JU,IJ_ERVR)+
-     *             (DGM+GRAV*DMM*ZATMO(IU,JU))
+              AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) +  DMM
+              AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR)+
+     *             (DGM+GRAV*DMM*(ZATMO(IU,JU)-ZATMO(ID,JD)))
               IF(FOCEAN(ID,JD).le.0.) THEN
                 FLOW(ID,JD) =  FLOW(ID,JD) + DMM
                 EFLOW(ID,JD) = EFLOW(ID,JD) +
@@ -278,8 +290,9 @@ C       DGM = GML(1,1)*DMM/MWL(1,1)
         DGM = TLAKE(1,1)*DMM*SHW
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
-          AIJ(1,1,IJ_MRVR)=AIJ(1,1,IJ_MRVR) +  DMM
-          AIJ(1,1,IJ_ERVR)=AIJ(1,1,IJ_ERVR) + (DGM+GRAV*DMM*ZATMO(1,1))
+        AIJ(IDPOLE,JDPOLE,IJ_MRVR)=AIJ(IDPOLE,JDPOLE,IJ_MRVR) +  DMM
+        AIJ(IDPOLE,JDPOLE,IJ_ERVR)=AIJ(IDPOLE,JDPOLE,IJ_ERVR) + (DGM
+     *       +GRAV*DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
          FLOW(IDPOLE,JDPOLE) =  FLOW(IDPOLE,JDPOLE) + IM*DMM
         EFLOW(IDPOLE,JDPOLE) = EFLOW(IDPOLE,JDPOLE) +
      +       IM*(DGM+GRAV*DMM*(ZATMO(1,1)-ZATMO(IDPOLE,JDPOLE)))
@@ -300,6 +313,51 @@ C****
       RETURN
 C****
       END SUBROUTINE RIVERF
+
+      SUBROUTINE diag_RIVER
+!@sum  diag_RIVER prints out the river outflow for various rivers
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : rhow
+      USE E001M12_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
+     *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday 
+      USE DAGCOM, only : aij,ij_mrvr
+      USE LAKES, only : irvrmth,jrvrmth,nrvr
+      IMPLICIT NONE
+!@var NAMERVR Names of specified rivers
+      CHARACTER*8, PARAMETER :: NAMERVR(NRVR) = (/
+     *     "Murray  ","Parana  ","Orange  ","Limpopo ","Zambezi ",
+     *     "SaoFranc","Congo   ","Amazon  ","Niger   ","Orinoco ",
+     *     "Mekon   ","Magdalen","Godavari","Irrawadi","Brahmapu",
+     *     "Indus   ","HsiChian","RioGrand","Tigris  ","Colorado",
+     *     "Mississi","Yangtze ","Nile    ","Yellow  ","Volga   ",
+     *     "Columbia","Loire   ","Danube  ","Fraser  ","StLawren",
+     *     "Rhine   ","Amur    ","Nelson  ","Elbe    ","Yukon   ",
+     *     "Severnay","Mackenzi","Kolym   ","Ob      ","Yenesei ",
+     *     "Lena    ","Indigirk"/)
+      REAL*8 RVROUT(6), SCALERVR, DAYS
+      INTEGER INM,I
+
+      DAYS=(Itime-Itime0)/DFLOAT(nday)
+      WRITE(6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
+     *     ,ITIME,DAYS
+C**** convert kg to km^3/mon
+      SCALERVR = 2.628d-2/(RHOW*DTSRC) 
+      DO INM=1,NRVR,6
+        DO I=1,6
+          RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
+     *         ,IJ_MRVR)/IDACC(1)
+        END DO
+        WRITE(6,903) (NAMERVR(I-1+INM),RVROUT(I),I=1,6)
+      END DO
+
+ 902  FORMAT ('0* River Outflow (km^3/mon) **  From:',I6,A6,I2,',  Hr'
+     *     ,I3,6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X
+     *     ,'Dif:',F7.2,' Days')
+ 903  FORMAT (' ',A8,':',F8.3,5X,A8,':',F8.3,5X,A8,':',F8.3,5X,
+     *            A8,':',F8.3,5X,A8,':',F8.3,5X,A8,':',F8.3)
+
+      END SUBROUTINE diag_RIVER
 
       SUBROUTINE CHECKL (SUBRN)
 !@sum  CHECKL checks whether the lake variables are reasonable.
@@ -404,7 +462,6 @@ c     QCHECKL = .TRUE.
       USE E001M12_COM, only : im,jm,fland,flice,flake,kocean,hlake
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,runoli,prec,eprec
-c      USE OCEAN, only : oa
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : mwl,gml,tlake
@@ -428,7 +485,6 @@ c      USE OCEAN, only : oa
       IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
 
         IF (FLAKE(I,J).gt.0) THEN
-c          OA(I,J,4)=OA(I,J,4)+ENRGP  ! not needed
           AJ(J,J_EPRCP)=AJ(J,J_EPRCP)+ENRGP*POLAKE
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ENRGP*POLAKE
         END IF
@@ -476,11 +532,12 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls 
-      USE CONSTANT, only : twopi,rhow,shw,edpery
+      USE CONSTANT, only : twopi,rhow,shw,edpery,tf
       USE E001M12_COM, only : im,jm,flake,flice,kocean,fland,hlake
+     *     ,fearth
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
-     *     runoli
+     *     runoli, runoe, erunoe
       USE OCEAN, only : osourc
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
@@ -490,19 +547,24 @@ C****
      *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo
       USE LAKES_COM, only : mwl,gml,t50,tlake,tfl
       IMPLICIT NONE
-      REAL*8 TGW, PRCP, WTRO, ENRGP, ERUN4, ENRGO, POLAKE,PLKICE
-     *     ,SMSI,ENGRW,WTRW0,WTRW,RUN0,RUN4,DXYPJ,ENRGW,ROICE,EVAP,EVAPI
-     *     ,F2DT,F0DT,WTRI0,EIW0,ENRGW0,ENRGFO,ACEFO,ACE2F,ENRGFI
-      REAL*8 FACT_T50,FACT_TSAVG,OTDT,RUNLI,PLICE
+C**** grid box variables
+      REAL*8 POLAKE, PLKICE, PEARTH, PLICE, DXYPJ
+C**** prognostic varaibles 
+      REAL*8 TGW, WTRO, SMSI, ROICE
+C**** fluxes 
+      REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0,
+     *     RUNLI, RUNE, ERUNE
+C**** output from OSOURC
+      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI 
+
+      REAL*8, PARAMETER :: FACT_T50  =1.-1./(24.*50.),
+     *                     FACT_TSAVG=1./(24.*50.)
       INTEGER I,J,IMAX,JR
 
-      FACT_T50 = 1.-1./(24.*50.)
-      FACT_TSAVG = 1./(24.*50.)
       DO J = 1,JM
-        DO I = 1,IM
-          T50(I,J) = T50(I,J)*FACT_T50
-     *             + (TSAVG(I,J)-273.16)*FACT_TSAVG
-        END DO
+      DO I = 1,IM
+        T50(I,J)=T50(I,J)*FACT_T50+(TSAVG(I,J)-TF)*FACT_TSAVG
+      END DO
       END DO
 
       DO J=1,JM
@@ -513,73 +575,78 @@ C****
       ROICE=RSI(I,J)
       PLKICE=FLAKE(I,J)*RSI(I,J)
       POLAKE=FLAKE(I,J)*(1.-RSI(I,J))
-      ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
+
+C**** Add land ice and surface runoff to lake variables
+      IF (FLAND(I,J).gt.0) THEN
+        PLICE=FLICE(I,J)
+        PEARTH=FEARTH(I,J)
+        RUNLI=RUNOLI(I,J)
+        RUNE=RUNOE(I,J)
+        ERUNE=ERUNOE(I,J)
+        MWL(I,J) = MWL(I,J) + (RUNLI*PLICE + RUNE*PEARTH)*DXYPJ
+        GML(I,J) = GML(I,J) + (             ERUNE*PEARTH)*DXYPJ
+      END IF
 
       IF (FLAKE(I,J).gt.0) THEN
 
         TGW  =TLAKE(I,J)
-        EVAP =EVAPOR(I,J,1)
+        EVAPO=EVAPOR(I,J,1)
         EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
+        F0DT =E0(I,J,1)
         SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
         RUN0=RUNOSI(I,J)        ! includes ACE2M term 
-                                ! + RUN0LI ?
         F2DT=ERUNOSI(I,J)
 
-        AJ(J,J_TG1) =AJ(J,J_TG1) +TGW *POLAKE
-        AJ(J,J_EVAP)=AJ(J,J_EVAP)+EVAP*POLAKE
+        AJ(J,J_TG1) =AJ(J,J_TG1) +TGW  *POLAKE
+        AJ(J,J_EVAP)=AJ(J,J_EVAP)+EVAPO*POLAKE
         IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TGW*POLAKE*DXYPJ
         AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TGW
-        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW*POLAKE
-        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*POLAKE
-        AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*POLAKE
+        AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POLAKE
+        AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
+        AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POLAKE
         
-        MWL(I,J) = MWL(I,J) - EVAP*POLAKE*DXYPJ
-        GML(I,J) = GML(I,J) + E0(I,J,1)*POLAKE*DXYPJ
+        MWL(I,J) = MWL(I,J) - EVAPO*POLAKE*DXYPJ
+        GML(I,J) = GML(I,J) + F0DT *POLAKE*DXYPJ
 
         IF (KOCEAN .EQ. 1) THEN
-          WTRO=HLAKE(I,J)*RHOW  !should be MWL?
-          F0DT=E0(I,J,1)
+          WTRO=HLAKE(I,J)*RHOW  
 
-          RUN4=-EVAP
-          ERUN4=RUN4*TGW*SHW
-          ENRGO=F0DT-ERUN4
-C**** Open lake diagnostics 
-          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TLAKE(I,J)*POLAKE
-          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4      *POLAKE
-          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TLAKE(I,J)*POLAKE
-          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4     *POLAKE
-          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLAKE(I,J)
-     *         *POLAKE*DXYPJ
-          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
-
-          RUN4=-EVAPI
-          ERUN4=TGW*RUN4*SHW
           OTDT=0.
-          CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,ENRGO,RUN0,RUN4,EVAPI
-     *         ,ERUN4,ENRGFO,ACEFO,ACE2F,ENRGFI,F2DT,TFL)
+          RVRRUN=0.
+          RVRERUN=0.
+C**** Calculate the amount of ice formation            
+            CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,F0DT,F2DT,RVRRUN
+     *           ,RVRERUN,EVAPO,EVAPI,TFL,RUN4O,ERUN4O,RUN4I,ERUN4I
+     *           ,ENRGFO,ACEFO,ACE2F,ENRGFI)
 
 C**** Resave prognostic variables
           TLAKE(I,J)=TGW
+C**** Open lake diagnostics 
+          AJ(J,J_TG2)  =AJ(J,J_TG2)  +TLAKE(I,J)*POLAKE
+          AJ(J,J_RUN2) =AJ(J,J_RUN2) +RUN4O     *POLAKE
+          AJ(J,J_OMLT) =AJ(J,J_OMLT) +TLAKE(I,J)*POLAKE
+          AJ(J,J_DWTR2)=AJ(J,J_DWTR2)+ERUN4O    *POLAKE
+          IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLAKE(I,J)
+     *         *POLAKE*DXYPJ
+          AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
 C**** Ice-covered ocean diagnostics
           AJ(J,J_ERUN2)=AJ(J,J_ERUN2)-ENRGFO*POLAKE
           AJ(J,J_IMELT)=AJ(J,J_IMELT)-ACEFO *POLAKE
-          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4  *PLKICE
-          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4 *PLKICE
+          CJ(J,J_RUN2) =CJ(J,J_RUN2) +RUN4I *PLKICE
+          CJ(J,J_DWTR2)=CJ(J,J_DWTR2)+ERUN4I*PLKICE
           CJ(J,J_ERUN2)=CJ(J,J_ERUN2)-ENRGFI*PLKICE
           CJ(J,J_IMELT)=CJ(J,J_IMELT)-ACE2F *PLKICE
         ELSE
+          ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
           AJ(J,J_TG2)  =AJ(J,J_TG2)  +TGW   *POLAKE
           IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW*POLAKE*DXYPJ
         END IF
-      END IF
-      IF (FLAND(I,J).gt.0) THEN
-        RUNLI=RUNOLI(I,J)
-        PLICE=FLICE(I,J)
-C**** Add mass/energy fluxes to lake variables
-        MWL(I,J) = MWL(I,J) + ((RUN0-ACE2F) *PLKICE - ACEFO*POLAKE +
-     *       RUNLI*PLICE)*DXYPJ
-        GML(I,J) = GML(I,J) + ((F2DT-ENRGFI)*PLKICE - ENRGFO*POLAKE)
+
+C**** Add ice mass/energy fluxes to lakes
+        MWL(I,J) = MWL(I,J) + ((RUN0-ACE2F) *PLKICE - ACEFO*POLAKE)
+     *       *DXYPJ
+        GML(I,J) = GML(I,J) + ((F2DT-ENRGFI)*PLKICE -ENRGFO*POLAKE)
      *       *DXYPJ
 
 C**** Store mass and energy fluxes for formation of sea ice

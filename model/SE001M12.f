@@ -39,7 +39,7 @@ C****
       USE LAKES_COM, only : tlake
       USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
-      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
+      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
       IMPLICIT NONE
 
       INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODD6
@@ -129,7 +129,7 @@ C         TGRND(I,J,4)=GDATA(I,J,4)
       END DO
 C*
 C**** Zero out fluxes summed over type
-      E0=0. ; E1=0. ; EVAPOR=0.
+      E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0. ;
 
       call pgrads1
 C****

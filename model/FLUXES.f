@@ -8,6 +8,9 @@
 !@var RUNOSI run off underneath sea/lake ice (kg/m^2) 
 !@var ERUNOSI energy of run off underneath sea/lake ice (J/m^2) 
       REAL*8, DIMENSION(IM,JM) :: RUNOSI, ERUNOSI
+!@var RUNOE run off from earth (kg/m^2) 
+!@var ERUNOE energy of run off from earth (J/m^2) 
+      REAL*8, DIMENSION(IM,JM) :: RUNOE, ERUNOE
 !@var DMSI mass change at base of sea ice (kg/m^2) 
 !@var DHSI energy change at base of sea ice (J/m^2) 
       REAL*8, DIMENSION(2,IM,JM) :: DMSI, DHSI
@@ -22,8 +25,8 @@ C**** surface energy fluxes defined over type
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: E0,E1
 !@var EVAPOR evaporation over each type (kg/m^2) 
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: EVAPOR
-!@var SOLAR solar radiation at surface over each type (J/m^2) 
-c      REAL*8, DIMENSION(IM,JM,NSTYPE) :: SOLAR
+!@var SOLAR solar radiation at surface over water and ice (J/m^2) 
+      REAL*8, DIMENSION(IM,JM,2) :: SOLAR
 !@var SENSHT sensible heat at surface over each type (J/m^2) 
 c      REAL*8, DIMENSION(IM,JM,NSTYPE) :: SENSHT
 

@@ -41,8 +41,8 @@ C****
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
      *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
-      USE LAKES_COM, only : mwl,gml
-      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec
+      USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,prec,eprec,runoe
+     *     ,erunoe
 
       IMPLICIT NONE
 
@@ -402,9 +402,9 @@ C****
          BERUN0=BERUN0+AERUNS*PEARTH
          BRUNU=BRUNU+ARUNU*PEARTH
          BERUNU=BERUNU+AERUNU*PEARTH
-C**** Add runoff to lake mass/energy resevoirs
-         MWL(I,J) = MWL(I,J) + (ARUNS+ARUNU)*PTYPE*DXYP(J)
-         GML(I,J) = GML(I,J) + (AERUNS+AERUNU)*PTYPE*DXYP(J)
+C**** Save runoff for addition to lake mass/energy resevoirs
+         RUNOE (I,J)=RUNOE (I,J)+ ARUNS+ ARUNU
+         ERUNOE(I,J)=ERUNOE(I,J)+AERUNS+AERUNU
 C****
          AIJ(I,J,IJ_RUNE)=AIJ(I,J,IJ_RUNE)+ARUNS
          AIJ(I,J,IJ_ARUNU)=AIJ(I,J,IJ_ARUNU)+ARUNU
