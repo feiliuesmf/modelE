@@ -26,7 +26,7 @@ C****    List of parameters that COULD be changed during a run:
       IF(NARGS.LE.0)  GO TO 800
       CALL GETARG (1,FILEIN)
       OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
-      call io_rsf(10,Itime1,ioread,ioerr)
+      call io_label(10,Itime1,ioread,ioerr)
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
       TOT=(MDYN+MCNDS+MRAD+MSURF+MDIAG+MELSE)/100.
       WRITE (6,906) 24.*TOT/(60.*(Itime1-Itime0)),MDYN/TOT,MCNDS/TOT
