@@ -18,9 +18,12 @@ way, see the notes below for more details. Please feel free to add to
 this document.</P>
 
 <P>This is only part of the documentation, you can find additional
-information in the glossary of terms, the Frequently Asked Questions
-(FAQ) file, the description of current functionality and options, or
-the index of all prognostic variables.</P>
+information in the glossary of terms (not yet available), the
+<a href="FAQ.html">Frequently Asked Questions (FAQ) file</a>, the
+description of current functionality and
+<a href="OPTIONS.html">options</a>, or the index of all 
+prognostic variables (determined using 'gmake htmldoc' (see
+<a href="#part3_1">below</a>).</P>  
 
 <P>The document is set up in four parts: Part 0 deals with getting the
 code, Part I deals with running the model for basic users who do not
@@ -142,7 +145,7 @@ questions about the model.</p>
 
 <h3><A name="part1">Part I: Basic user tasks</a></h3>
 
-<p><A name="part1_1">1) HOW-TO setup and run the GISS GCM</a></p>
+<p><A name="part1_1"><b>1) HOW-TO setup and run the GISS GCM</b></a></p>
 
 In order to run the GCM a 'rundeck' file (with a suffix .R) must be
 created. This contains information about the run you would like to
@@ -186,7 +189,7 @@ If this runs successfully there will be a message saying so. Once this
 is done, you can "run E001xyz" to set the model running for the
 specified length of time.
 
-<p><A name="part1_2">2) HOW-TO set rundeck parameters</A></p>
+<p><A name="part1_2"><b>2) HOW-TO set rundeck parameters</b></a></p>
 
     There are 2 types of parameters that may be set in the rundeck:
     DATA BASE (dp) parameters and NAME LIST (nl) parameters
@@ -221,8 +224,8 @@ specified length of time.
        For a list and explanation of all parameters see
           /u/exec/docE/params.txt.
 
-<p><A name="part1_2a">A: How to TUNE a specified ocean run (using
-U00wtr)</A></p> 
+<p><A name="part1_2a"><b>A: How to TUNE a specified ocean run (using
+U00wtr)</b></a></p> 
 <P>    It is desirable to run a specified ocean model in such a way that
        it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
        the ocean (which has no effect, since ocean data are specified)
@@ -250,8 +253,8 @@ U00wtr)</A></p>
        imbalance (advantage: no need to repeat the control run,
        disadvantage: Jim hated it, no longer part of the code).</p>
 
-<p><A name="part1_2b">B: How to set up a Q-flux model with a single
-ocean layer</A></p>
+<p><A name="part1_2b"><b>B: How to set up a Q-flux model with a single
+ocean layer</b></a></p>
 
 <p>    A preliminary run with prescribed climatological ocean has to
        be run for about 6 years collecting daily fluxes into the ocean
@@ -346,8 +349,8 @@ ocean layer</A></p>
      </ol>
 </ol>
 
-<p><A name="part1_2c">C: How to set up a Q-flux model with diffusion
-into a deep ocean </A></p>
+<p><A name="part1_2c"><b>C: How to set up a Q-flux model with diffusion
+into a deep ocean </b></a></p>
 <p>       Such a run needs a preliminary Q-flux model running for 10 years
        in equilibrium, saving (KCOPY=3) the data necessary for diffusion
        computations (see /u/cmrun/model/notes/deep.ocean.doc). A new
@@ -356,8 +359,8 @@ into a deep ocean </A></p>
        creates the initial conditions and climatology at the base of the 
        mixed layer. Use E001D.R as a rundeck template.</p>
 
-<p><A name="part1_2d">D: How to use parameters to control numerical
-instabilities</A></p>
+<p><A name="part1_2d"><b>D: How to use parameters to control numerical
+instabilities</b></a></p>
 <p>
        Parameter   affects:                   depends on:<br>
        DT          stability at poles         hor. resolution, AVRX<br>
@@ -366,8 +369,8 @@ instabilities</A></p>
        M/NFILTR    checker board patterns     dynamics scheme<br>
 </p>
 
-<p><A name="part1_2e">E: How to use IRANDI to create an ensemble of
-runs</A></p> 
+<p><A name="part1_2e"><b>E: How to use IRANDI to create an ensemble of
+runs</b></a></p> 
 <p>    If ISTART<10 and IRANDI/=0, all atmospheric initial temperatures
        are randomly perturbed by at most 1C . The perturbations depend
        on the value of IRANDI.</P>
@@ -380,18 +383,18 @@ runs</A></p>
        then automatically removed from the file 'I'.</p>
 
 
-<p><A name="part1_3">3) HOW-TO stop and restart the GCM</A></p>
+<p><A name="part1_3"><b>3) HOW-TO stop and restart the GCM</b></a></p>
 
 <p>Use the command 'ssw E001xyz' to stop the model run in a controlled
 fashion. Restart it with the command 'run E001xyz'. If you would like
 the run-time printout to be surpressed (to save filespace) use the
 command 'runn E001xyz'. The printout can always be recreated if needed.</p>
 
-<p><A name="part1_4">4) HOW-TO change boundary conditions</A></p>
+<p><A name="part1_4"><b>4) HOW-TO change boundary conditions</b></a></p>
 
 <p>Simply alter the file declarations in the rundeck appropriately!</p>
 
-<p><A name="part1_5">5) HOW-TO change trace gas amounts</A></p>
+<p><A name="part1_5"><b>5) HOW-TO change trace gas amounts</b></a></p>
 
 <p>This is not as obvious as it should be:
 <ol>
@@ -409,14 +412,14 @@ water vapour is more complicated and requires hacking about in the
 radiation code. Not recommended for the novice. 
 </ol>
   
-<p><A name="part1_6">6) HOW-TO have a perpetual winter</A></p>
+<p><A name="part1_6"><b>6) HOW-TO have a perpetual winter</b></a></p>
 
 <p>Orbital parameters must be fixed and so 'ORBIT' in DAILY should be
 given the same JDAY every day. (i.e. JDAY0=1 for JAN 1st conditions).
 Though this will have consequences for the polar regions (since there
 will be no seasonality there). Possibly there is another way....</p>
 
-<p><A name="part1_7">7) HOW-TO travel back/forward in time</A></p>
+<p><A name="part1_7"><b>7) HOW-TO travel back/forward in time</b></a></p>
 
 <p>A number of things can change depending on the time period concerned.
 
@@ -439,12 +442,12 @@ will be no seasonality there). Possibly there is another way....</p>
        changing the RADN input files.
 </ol>
 
-<p><A name="part1_8">8) HOW-TO move to Mars</A></p>
+<p><A name="part1_8"><b>8) HOW-TO move to Mars</b></a></p>
 
 <p>Like travelling back in time, only more complicated. Oh, and no water.
 Note that the length of year is set by EDPERY in CONST.f. </p>
 
-<p><A name="part1_9">9) HOW-TO move to Wonderland</A></p>
+<p><A name="part1_9"><b>9) HOW-TO move to Wonderland</b></a></p>
 
 <p>The wonderland model is a sector version of the GCM that is used for
 very fast or very long runs that do not have to be as true to the real
@@ -455,7 +458,7 @@ GEOM_B.f), and make sure that the radaition calculation has been
 modified to synchronise the diurnal cycle over the sector. Note that
 this has never been tested.</p>
 
-<p><A name="part1_10">10) HOW-TO get help or report a problem</A></p>
+<p><A name="part1_10"><b>10) HOW-TO get help or report a problem</b></a></p>
 
 <p>There is a mailing list 'giss-gcm-users-l@giss.nasa.gov' where queries,
 problems and comments on the gcm can be aired. Sending a message here
@@ -465,7 +468,7 @@ person.</p>
 <p>Subscribe to this by sending a message to Majordomo@giss.nasa.gov with
 a line "SUBSCRIBE giss-gcm-users-l" in the body of the text.</p>
 
-<p><A name="part1_11">11) HOW-TO keep up-to-date</A></p>
+<p><A name="part1_11"><b>11) HOW-TO keep up-to-date</b></a></p>
 
 <p>Periodically, we will release new, and hopefully improved versions of
 the model code. You will be notified through the mailing list, and you
@@ -474,7 +477,7 @@ time. None of your changes will be lost if you upgrade. However, some
 conflicts may occur, though they should be minor. Detailed
 instructions will be given at the time.</p>
 
-<p><A name="part1_12">12) HOW-TO add to this documentation</A></p>
+<p><A name="part1_12"><b>12) HOW-TO add to this documentation</b></a></p>
 
 <p>This documentation is part of the model code, and so changes to files
 in the modelE/doc directory can be uploaded to the main repository.
@@ -483,10 +486,10 @@ would like to commit.</p>
 
 <hr>
 
-<h3><A name="part2">Part II: Getting information from the
-diagnostics</A></h3>
+<h3><A name="part2"><b>Part II: Getting information from the
+diagnostics</b></a></h3>
 
-<p><A name="part2_1">1) HOW-TO look at the output</A></p>
+<p><A name="part2_1"><b>1) HOW-TO look at the output</b></a></p>
 
 <p>You can look at the output in two distinct ways: using the run-time
 printout, or using the post-processing program, pDE.</p>
@@ -532,7 +535,7 @@ ANN or DCD, and nnnn is a year or nrange of years).</p>
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
-<p><A name="part2_2">2) HOW-TO change what is included in the printout</A></p>
+<p><A name="part2_2"><b>2) HOW-TO change what is included in the printout</b></a></p>
 
 <p>The swtiches KDIAG which are set in the NAMELIST control which
 subgroups of diagnostics are calculated and output. At present, there
@@ -571,8 +574,8 @@ KDIAG(11) < 9 print out river runoff diagnostics
 KDIAG(12) < 9 print out ocean diagnostics (if there is an ocean)
 </pre>
 
-<p><A name="part2_3">3) HOW-TO produce daily/monthly or seasonal
-diagnostics</A></p> 
+<p><A name="part2_3"><b>3) HOW-TO produce daily/monthly or seasonal
+diagnostics</b></a></p> 
 
 <p>Controlling the frequency of output of the ACC files is done using the
 NAMELIST parameter NMONAV. This sets the number of months over which
@@ -593,8 +596,8 @@ be printed out that number of days. (i.e. setting NIPRNT=10, will
 print out the running average of the accumulated diagnostics at the
 end of each of the next ten days).</p>
 
-<p><A name="part2_4">4) HOW-TO control the format of the binary output
-(i.e. GISS/netcdf/hdf etc.)</A></p> 
+<p><A name="part2_4"><b>4) HOW-TO control the format of the binary output
+(i.e. GISS/netcdf/hdf etc.)</b></a></p> 
 
 <p>The binary output created from 'pdE' can be in a number of
 formats. Currently there are two options, the traditional GISS
@@ -609,9 +612,9 @@ executable (using 'gmake exe RUN=E001xyz').</p>
 file.</p> 
 
 <hr>
-<h3><A name="part3">Part III: The model code</A></h3>
+<h3><A name="part3"><b>Part III: The model code</b></a></h3>
 
-<p><A name="part3_1">1) HOW-TO find where a variable is defined</A></p>
+<p><A name="part3_1"><b>1) HOW-TO find where a variable is defined</b></a></p>
 
 <p>Variables (other than purely local variables) are defined in three
 main ways. Physical constants (real constants, not tuning parameters),
@@ -629,7 +632,7 @@ defines all important variables (well not all, but most, ok
 some!). Alternatively grep -i "varname.*=" *.[fSU] will probably find
 it for you.</p> 
 
-<p><A name="part3_2">2) HOW-TO follow the program structure</A></p>
+<p><A name="part3_2"><b>2) HOW-TO follow the program structure</b></a></p>
 
 <p>The model is essentially on three levels. MAIN in MODELE.f is the
 top level and controls the time-stepping and deals with most of the
@@ -649,8 +652,8 @@ important to keep this true. DO NOT write directly to model arrays
 within a local physics subroutine. (Some outstanding cases may appear
 to do that, but this is being written out of the model).</p>
 
-<p><A name="part3_3">3) HOW-TO use or add to the automatic
-documentation</A></p> 
+<p><A name="part3_3"><b>3) HOW-TO use or add to the automatic
+documentation</b></a></p> 
 
 <p>You will have noticed that modelE has multiple documentation
 directives such as !@var or !@sum. These are key words that can be
@@ -677,8 +680,8 @@ define similar documentation.</p>
 @+       Continuation line for @sum/@calls/@cont
 </pre>
 
-<p><A name="part3_4">4) HOW-TO ensure that your code meets the new
-standards</A></p> 
+<p><A name="part3_4"><b>4) HOW-TO ensure that your code meets the new
+standards</b></a></p> 
 
 <p>Please check the document
 <a href="http://www.giss.nasa.gov/~gavin/modelE_develop.html>Coding 
@@ -689,8 +692,8 @@ conforms. However, every time this happens it makes it harder to keep
 the model consistent, and leads to the creation of unnecessary
 complications in keeping things straight.</p> 
 
-<p><A name="part3_5">5) HOW-TO add functionality - A: variations on
-existing code</A></p> 
+<p><A name="part3_5"><b>5) HOW-TO add functionality - A: variations on
+existing code</b></a></p> 
 
 <p>Since all code is now kept within CVS, code history is preserved and
 can be retreived at any time. So for minor modifications to the code
@@ -701,7 +704,7 @@ sure to 'commit' your changes at appropriate points (on your branch
 only) so that you can retrieve the code from any intermediate (but
 functional) point. </p>
 
-<p><A name="part3_6">6) HOW-TO add functionality - B: introducing new sub-modules</A></p>
+<p><A name="part3_6"><b>6) HOW-TO add functionality - B: introducing new sub-modules</b></a></p>
 
 <p>If you want to add a completely new physical module or radically
 change an exisiting one, you will be best off creating a new 'plug and
@@ -757,8 +760,8 @@ preferred solution is 'plug and play'.</P>
 create, you should modify the <a href = "OPTIONS.html"> OPTIONS.html
 </a> file to document the details.</p>
 
-<p><A name="part3_7">7) HOW-TO add functionality - C: introducing a
-new parameter</A></p> 
+<p><A name="part3_7"><b>7) HOW-TO add functionality - C: introducing a
+new parameter</b></a></p> 
 
 <p>Only introduce a new parameter if you would like to be able to vary
 it's value at run time without recompiling the model (i.e. an
@@ -775,7 +778,7 @@ tagged with a '@dbparam' comment that explains what it does.</p>
 </pre>
 <p>which will set the value of newparam from the parameter database, if
 it has been set from the input rundeck, or from a restart. (see
-FAQ.txt for more details on how this works). </p>
+the <a href="FAQ.html">FAQ</a> for more details on how this works). </p>
 
 <p>In the rundeck you need only add to the &&PARAMETERS...&&END_PARAMETERS
 block a line like this:</p>
@@ -785,8 +788,8 @@ NEWPARAM=1        ! NEWPARAM sets something for XYZ
 <p>Of course, you should use a more obvious name! If no value is set in
 the rundeck, the default value will be used. </p>
 
-<p><A name="part3_8">8) HOW-TO add functionality - D: adding new
-diagnostics</A></p> 
+<p><A name="part3_8"><b>8) HOW-TO add functionality - D: adding new
+diagnostics</b></a></p> 
 
 <p>The diagnostic system that the GCM uses is very sophisticated and is
 almost certainly sufficient for any new need for diagnostics that
@@ -806,7 +809,7 @@ and KCON by 2+number of points at which you are saving the value.</p>
 
 <p>Other diagnostics will be explained if and when we work them out.</P>
 
-<p><A name="part3_9">9) HOW-TO read in an external file</A></p>
+<p><A name="part3_9"><b>9) HOW-TO read in an external file</b></a></p>
 
 <p>ModelE has introduced a FILEMANAGER system that controls the
 assignment of unit numbers and the opening of files. To add a new file
@@ -836,8 +839,8 @@ TRSRC=tracer_sources.1970_1980.dat
 current directory. If the file is elsewhere an absolute or relative
 pathname is needed.</p>
 
-<p><A name="part3_10">10) HOW-TO add new variables to the restart
-files</A></p> 
+<p><A name="part3_10"><b>10) HOW-TO add new variables to the restart
+files</b></a></p> 
 
 <p>Each module now has only one place that needs to be changed to
 accommodate extra variables in the rsf files: io_xyz (where xyz is a
@@ -854,8 +857,8 @@ NAMELIST, namely, you must decide how this variable gets set as a
 function of the initialisation method. Look at io_rad as an example to
 follow.</p>
 
-<p><A name="part3_11">11) HOW-TO access variables that are already
-calculated somewhere else</A></p> 
+<p><A name="part3_11"><b>11) HOW-TO access variables that are already
+calculated somewhere else</b></a></p> 
 
 <p>One of the main changes to modelE was to replace common blocks with
 Fortran 90 modules. The functionality is much the same, but since they
@@ -879,8 +882,8 @@ use the 'points-to' feature to map the PHYS_COM variable to a new name
 <p>The arrow should be read as 'points to', and thus var2_phys will be an
 alias for var2 in this routine/module only.</p>
 
-<p><A name="part3_12">12) HOW-TO deal with the inevitable bugs you
-introduce</A></p> 
+<p><A name="part3_12"><b>12) HOW-TO deal with the inevitable bugs you
+introduce</b></a></p> 
 
 <p>Nobody's code is perfect (least of all ours) and so when coding it is
 inevitable that errors are introduced. Some are minor and cause no
@@ -919,8 +922,8 @@ reduced in some process. See the document
 GCM tracer moments</a> for more details on how to do this
 properly. The CLOUDS.f tracer code is a good example of what to do.</P>
 
-<p><A name="part3_13">13) HOW-TO deal with restart problems
-(non-reprodcuibility of results)</A></p> 
+<p><A name="part3_13"><b>13) HOW-TO deal with restart problems
+(non-reprodcuibility of results)</b></a></p> 
 
 <p>Occasionally after making coding changes the model ceases to be able
 to reproduce results. For instance, after a crash, a restart from the
@@ -986,8 +989,8 @@ need to do this procedure again either starting at hour 4 (assuming a
 radaition related problem and a 5 hour radiation time step), or at
 hour 23 (assuming a daily related problem). </P>
 
-<p><A name="part3_14">14) HOW-TO get an innovation included in
-everybody's versions</A></p> 
+<p><A name="part3_14"><b>14) HOW-TO get an innovation included in
+everybody's versions</b></a></p> 
 
 <p>Since you are working on the code within CVS, it is possible to
 upload your changes to the main development branch. However, this is

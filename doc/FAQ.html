@@ -13,13 +13,6 @@ amend the response to make it clearer or more complete.</P>
 
 <H3><A HREF="#Q1">1. General questions</A></H3>
 <OL>
-  <LI><A HREF="#Q1_1"> Why does GISS sometimes use the line number
-       format for fortran files?</A> 
-  <LI><A HREF="#Q1_2"> Is line number format is 'harder' to
-       edit?</A>
-  <LI><A HREF="#Q1_3"> Don't revision control systems (rcs or cvs)
-       provide equal functionality?</A>
-  <LI><A HREF="#Q1_4">Will the update system ever change? </A>
   <LI><A HREF="#Q1_5">Why has all the coding been moved out of main?
        </A>
   <LI><A HREF="#Q1_6">Why is modular code so great anyway? </A>
@@ -35,6 +28,13 @@ amend the response to make it clearer or more complete.</P>
   <LI><A HREF="#Q1_12">Why do I get single precision answers from
        double precision variables?, and what are all those 'd0'
        doing?</A>
+  <LI><A HREF="#Q1_1"> Why does GISS sometimes use the line number
+       format for fortran files?</A> 
+  <LI><A HREF="#Q1_2"> Is line number format is 'harder' to
+       edit?</A>
+  <LI><A HREF="#Q1_3"> Don't revision control systems (rcs or cvs)
+       provide equal functionality?</A>
+  <LI><A HREF="#Q1_4">Will the update system ever change? </A>
 </OL>
 
 <H3><A HREF="#Q2">2. FAQs about the Parameter database</A></H3>
@@ -62,74 +62,8 @@ amend the response to make it clearer or more complete.</P>
 
 <H3><A NAME="Q1"> General Questions </A></H3> 
 
-<P><A NAME="Q1_1"> 1) Why does GISS use the line number
-format for fortran files?</A></P>
-
-<P>Line number format is the practive of using the first 8 characters
-of a line to insert line number information in a 'F8.3' format.</P>
-
-<P>
-Historically, this is a holdover from the days of the punchcard
-when all lines required a line number. Subsequently, it was used at
-GISS to make additions/corrections to files without having to copy
-the entire rest of the code (the update system). Further refinements
-have led to functional updates that allow the 'piggy-backing' of
-specific functionality (such as tracer code, or ocean coupling) on
-top of the underlying model code in a relatively model-version
-independent way. We have also found it very useful in tracking bugs,
-notifying users about code changes and referencing in general. 
-</P>
-
-<P>
-In modelE line number format has been replaced by the CVS revision
-control system and preprocessing options. 
-</P>
-
-<P><A NAME="Q1_2"> 2) Is line number format is 'harder' to edit?</A></P>
-
-<P>
-Since the format is written in ASCII is just as easy as any other
-text format to edit in any standard editor. In addition we have tools
-which work very well that a) allow standard fortran mode in Emacs to
-work with line-numbers (giss-fortran-mode.el) b) utilities that
-fill-in any missing line numbers, so that you don't ever need to put
-them in by hand (fillnum). This could be combined with the makefile,
-so that the it would occur automatically c) you can choose whatever
-format you like to edit (.U file, a .f file (line numbers first or
-last)) with options to upd
-</P>
-
-<P><A NAME="Q1_3"> 3) Don't revision control systems (rcs or cvs)
-provide equal functionality?</A></P> 
-
-<P>
-One part of the update file system (of which line numbers are
-part) is indeed to save space and store only changes from a base file
-and this is replicated - and improved upon with rcs or cvs. However,
-the other part of the system involves the addition of functionality
-that is generally independent of the base code (i.e the tracer code,
-the stratospheric code, the coupling to the ocean, options for
-diagnostic output etc), which can be applied directly to any version
-of the base code, hopefully with only minimal changes. This is not
-replicated by standard rcs/cvs systems (and indeed they do not try).
-This functionality is to some extent similar to the use of
-pre-processor directives, but as the number of options grow (as they
-will), this produces unwieldy and overly complicated base code.
-Thirdly, line numbers are a very easy way to refer to code sections,
-either to describe what is going on, or to refer to specific lines,
-for instance, when a bug is discovered. 
-</P>
-
-<P><A NAME="Q1_4"> 4) Will the update system ever change?</A></P>
-<P>
-We have already seen an increase in functionality of the update
-system that have made it much more useful for precisely the functions
-that rcs/cvs does not cover. However, for the new modelE code that
-was built directly in CVS, it will probably not be re-introduced.
-</P>
-
-<P><A NAME="Q1_5"> 5) Why has all the coding been moved out of main?
-</A> </P>
+<P><A NAME="Q1_5"><b> 1) Why has all the coding been moved out of main?
+</b></a> </P>
 
 <P> In order to increase the modularity of the code, many tasks that
 were previously in main and input (input/output, initialisations,
@@ -140,7 +74,7 @@ variables, the functionality etc.) should now only concern that module
 and not the rest of the model. This should make it easier to 'plug and
 play' new functionality.  </P>
 
-<P><A NAME="Q1_6"> 6) Why is modular code so great anyway?</A></P>
+<P><A NAME="Q1_6"><b> 2) Why is modular code so great anyway?</b></a></P>
 
 <P>
 So that if you want to change something, you only need to do it in
@@ -148,8 +82,8 @@ the part of the code directly affected. There should be much less
 unforseen consequences to seemingly minor changes.
 </P>
 
-<P><A NAME="Q1_7"> 7) Why are there three files for every module, why
-not just one?</A></P>
+<P><A NAME="Q1_7"><b> 3) Why are there three files for every module, why
+not just one?</b></a></P>
 
 <P>
 There are generally three logical parts of each module: a common
@@ -174,8 +108,8 @@ drivers or common block changes. However, sometimes the local physics
 is in the same file as the COM module.
 </P>
 
-<P><A NAME="Q1_8"> 8) How do I know where do find definitions and
-declarations then?</A></P> 
+<P><A NAME="Q1_8"><b> 4) How do I know where do find definitions and
+declarations then?</b></a></P> 
 
 <P>The rules are relatively simple (but not yet implemented 100% of
 the time). 
@@ -193,8 +127,8 @@ and only accessed through COM. - Drivers can USE both the COM
 variables and the local physics parameters.
 </P>
 
-<P><A NAME="Q1_9"> 9) Why doesn't the model produce 'nice' output as
-it runs?</A></P> 
+<P><A NAME="Q1_9"><b> 5) Why doesn't the model produce 'nice' output as
+it runs?</b></a></P> 
 
 <P>The GISS GCM output is of the form of accumulation files, and
 since the accumulated quantities are neither averaged or scaled,
@@ -214,8 +148,8 @@ can be derived after the fact, without having to have thought about
 them ahead of time. 
 </P>
 
-<P><A NAME="Q1_10"> 10) Something is wrong with the advection, my
-tracers are going haywire!</A></P>
+<P><A NAME="Q1_10"><b> 6) Something is wrong with the advection, my
+tracers are going haywire!</b></a></P>
 
 <P>This is not a problem in the advection. The GISS dynamical core is
 unique in that it uses more information than just the mean tracer
@@ -246,7 +180,7 @@ profile that is not positive definite. Please read the document
 moments in the GISS GCM </A> for further
 information on how to use the moments in a useful fashion.</P>
 
-<P><A NAME="Q1_11"> 11) Why should I switch to using modelE?</A></P>
+<P><A NAME="Q1_11"><b> 7) Why should I switch to using modelE?</b></a></P>
 
 <P>It is of course up to you. However, there are a number of reasons
 why it makes sense for you to make the effort involved in upgrading.
@@ -273,9 +207,9 @@ why it makes sense for you to make the effort involved in upgrading.
 </UL>
 </P>
 
-<P><A NAME="Q1_1"> 12) Why do I get single precision answers from
+<P><A NAME="Q1_1"><b> 8) Why do I get single precision answers from
 double precision variables?, and what are all those 'd0'
-doing?</A></P>
+doing?</b></a></P>
 
 <P>All numbers in the GCM should be accurate to the degree of their
 representation, however, many are not. This mostly stems from the
@@ -308,16 +242,82 @@ numerator (I think). Thus <tt>1./IM </tt>gives only single precision.
 problems, but not all. Hence for maximum portability we are trying to
 be explicit about writing those 'd0's out.</P>
 
+<P><A NAME="Q1_1"><b> 9) Why does GISS use the line number
+format for fortran files?</b></a></P>
+
+<P>Line number format is the practive of using the first 8 characters
+of a line to insert line number information in a 'F8.3' format.</P>
+
+<P>
+Historically, this is a holdover from the days of the punchcard
+when all lines required a line number. Subsequently, it was used at
+GISS to make additions/corrections to files without having to copy
+the entire rest of the code (the update system). Further refinements
+have led to functional updates that allow the 'piggy-backing' of
+specific functionality (such as tracer code, or ocean coupling) on
+top of the underlying model code in a relatively model-version
+independent way. We have also found it very useful in tracking bugs,
+notifying users about code changes and referencing in general. 
+</P>
+
+<P>
+In modelE line number format has been replaced by the CVS revision
+control system and preprocessing options. 
+</P>
+
+<P><A NAME="Q1_2"><b>10) Is line number format is 'harder' to edit?</b></a></P>
+
+<P>
+Since the format is written in ASCII is just as easy as any other
+text format to edit in any standard editor. In addition we have tools
+which work very well that a) allow standard fortran mode in Emacs to
+work with line-numbers (giss-fortran-mode.el) b) utilities that
+fill-in any missing line numbers, so that you don't ever need to put
+them in by hand (fillnum). This could be combined with the makefile,
+so that the it would occur automatically c) you can choose whatever
+format you like to edit (.U file, a .f file (line numbers first or
+last)) with options to upd
+</P>
+
+<P><A NAME="Q1_3"><b>11) Don't revision control systems (rcs or cvs)
+provide equal functionality?</b></a></P> 
+
+<P>
+One part of the update file system (of which line numbers are
+part) is indeed to save space and store only changes from a base file
+and this is replicated - and improved upon with rcs or cvs. However,
+the other part of the system involves the addition of functionality
+that is generally independent of the base code (i.e the tracer code,
+the stratospheric code, the coupling to the ocean, options for
+diagnostic output etc), which can be applied directly to any version
+of the base code, hopefully with only minimal changes. This is not
+replicated by standard rcs/cvs systems (and indeed they do not try).
+This functionality is to some extent similar to the use of
+pre-processor directives, but as the number of options grow (as they
+will), this produces unwieldy and overly complicated base code.
+Thirdly, line numbers are a very easy way to refer to code sections,
+either to describe what is going on, or to refer to specific lines,
+for instance, when a bug is discovered. 
+</P>
+
+<P><A NAME="Q1_4"><b>12) Will the update system ever change?</b></a></P>
+<P>
+We have already seen an increase in functionality of the update
+system that have made it much more useful for precisely the functions
+that rcs/cvs does not cover. However, for the new modelE code that
+was built directly in CVS, it will probably not be re-introduced.
+</P>
+
 <hr>
 
-<H3><A NAME="Q2"> 2. FAQs about the Parameter database.</A></H3>
+<H3><A NAME="Q2"><b> 2. FAQs about the Parameter database.</b></a></H3>
 
-<P><A NAME="Q2_1"> 1) What did we do? </A></P>
+<P><A NAME="Q2_1"><b> 1) What did we do? </b></a></P>
 
 <P> We replaced parameter lists JC and RC and corresponding common blocks
 with a Parameter Database.</P>  
 
-<P><A NAME="Q2_2"> 2) Why did we do this? </A></P>
+<P><A NAME="Q2_2"><b> 2) Why did we do this? </b></a></P>
 
 <P>The following goals were pursued: 
 <UL>
@@ -333,7 +333,7 @@ with a Parameter Database.</P>
 </UL>
 </P>
 
-<P><A NAME="Q2_3">3) How was it done? </A></P>
+<P><A NAME="Q2_3"><b>3) How was it done? </b></a></P>
 
 <P>We created a module which keeps a database of all parameters used
 in the model and provided a library of interface routines. These
@@ -343,7 +343,7 @@ parameters are loaded automatically (with one call in INPUT) into this
 database when the program starts. This database is saved to restart
 file each time when restart file is written.</P>
 
-<P><A NAME="Q2_4">4) How does it work? </A></P>
+<P><A NAME="Q2_4"><b>4) How does it work? </b></a></P>
 
 <P>For each parameter the database keeps its name as a character
 string and its value (or list of values for an array). To get a value
@@ -377,7 +377,7 @@ preference will be given to the rundeck and restart file value will be
 ignored. This is done so that you can always overwrite certain
 parameters using rundeck.</P>
 
-<P><A NAME="Q2_5"> 5) So what are the actual interfaces?</A></P>
+<P><A NAME="Q2_5"><b> 5) So what are the actual interfaces?</b></a></P>
 
 <P>Rundeck: All parameters have been moved out of the namelist block
 to a new block which starts with <code>&amp;&amp;PARAMETERS</code> and ends with
@@ -603,9 +603,9 @@ case&quot; below.</P>
 </pre>
 
 <hr>
-<H3><A NAME="Q3"> 3. FAQs about Preprocessing instructions.</A></H3>
+<H3><A NAME="Q3"><b> 3. FAQs about Preprocessing instructions.</b></a></H3>
 
-<P><A NAME="Q3_1">1) What is preprocessing?</A></P>
+<P><A NAME="Q3_1"><b>1) What is preprocessing?</b></a></P>
 
 <P>The preprocessor is a program that runs before the actual compiler 
 starts and does certain editing to the source code according to
@@ -643,8 +643,8 @@ preprocessing instructions:
 SGI manual pages provide good explanations to those
 instructions. On SGI type <tt>man cpp</tt>.</P>
 
-<P><A NAME="Q3_2">2) How to set up global preprocessing options in a
-rundeck?</A></P>
+<P><A NAME="Q3_2"><b>2) How to set up global preprocessing options in a
+rundeck?</b></a></P>
 
 <P>Your rundeck may contain an optional block which starts with a
 line <em>Preprocessor Options</em> and ends with a line <em>End
@@ -661,8 +661,8 @@ End Preprocessor Options
 from <tt>'!'</tt> is considered as comment and is ignored. Trailing spaces and
 empty lines are also ignored.</P>
 
-<P><A NAME="Q3_3"> 3) How to use global preprocessing options in a
-source file?</A></P>
+<P><A NAME="Q3_3"><b> 3) How to use global preprocessing options in a
+source file?</b></a></P>
 
 <P>If you want to use global preprocessing options in a certain
 source file you should include a line:</P>
@@ -687,7 +687,7 @@ be: </P>
 will be included only when global name <tt>TRACERS_ON</tt> is defined in a
 rundeck. Otherwise this code will be ignored by the compiler.</P>
 
-<P><A NAME="Q3_4"> 4) How does it work?</A></P>
+<P><A NAME="Q3_4"><b> 4) How does it work?</b></a></P>
 
 <P>When the Makefile starts to compile the model it reads the global
 preprocessing options block from the rundeck and compares it to the
@@ -705,7 +705,7 @@ checks dependencies it takes into account dependency on
 <tt>rundeck_opts.h</tt>, so that when <tt>rundeck_opts.h</tt> is changed
 all files which <tt>#include</tt> it are automatically recompiled.</P>
 
-<P><A NAME="Q3_5"> 5) Any recommendations on usage?</A></P>
+<P><A NAME="Q3_5"><b> 5) Any recommendations on usage?</b></a></P>
 
 <P>There is an understanding that global preprocessing options should
 be used only when there is no other convenient way to reach the same
