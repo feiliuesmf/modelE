@@ -25,7 +25,7 @@ CCC  &                            ,ijs_OxL1,taijs
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
-     &                   n_HOBr,n_BrONO2,n_CFC
+     &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem
 #ifdef regional_Ox_tracers
      &                   ,NregOx,regOx_t,regOx_b,regOx_n,regOx_s
 #endif  
@@ -102,10 +102,11 @@ C**** Local parameters and variables and arguments:
 !@param nlast either ntm or ntm-NregOx for chemistry loops
       INTEGER, PARAMETER :: nlast =
 #ifdef regional_Ox_tracers
-     &                              ntm-NregOx
+     &                              ntm_chem-NregOx
 #else
-     &                              ntm
+     &                              ntm_chem
 #endif
+
 C
 C     TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT:
 #ifdef Shindell_Strat_chem
@@ -630,6 +631,7 @@ cc    Loop to calculate tracer changes
         rMAbyM(L)=AM(L,I,J)/y(nM,L)
       enddo
 
+
       do igas=1,nlast
        dxbym2v=dxyp(J)/mass2vol(igas)
        do L=1,maxl
@@ -1079,6 +1081,7 @@ c     back to the gas phase
 C
 cc    Print chemical changes in a particular grid box if desired
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
+
         do igas=1,nlast
          changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      *   bydxyp(J)*byam(lprn,I,J)
@@ -1134,7 +1137,7 @@ c
       endif  !end of prnchg loop
 c
 c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
-      do igas=1,ntm
+      do igas=1,ntm_chem
        do L=1,maxl
 #ifdef regional_Ox_tracers
 c*** calculate chemical changes for regional Ox tracers ***

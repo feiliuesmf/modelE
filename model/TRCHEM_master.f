@@ -16,7 +16,7 @@ c
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
-     &                  n_AlkylNit,n_Alkenes,n_Paraffin
+     &                  n_AlkylNit,n_Alkenes,n_Paraffin,ntm_chem
 #ifdef Shindell_Strat_chem
      &                  ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,n_BrOx,
      &                  n_BrONO2,n_CFC
@@ -36,14 +36,15 @@ C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
 !@param JN J around 30 N
 !@param JS J around 30 S
-!@param nlast either ntm or ntm-NregOx for chemistry loops
+!@param nlast either ntm_chem or ntm_chem-NregOx for chemistry loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER, PARAMETER :: nlast =
 #ifdef regional_Ox_tracers
-     &                              ntm-NregOx
+     &                              ntm_chem-NregOx
 #else
-     &                              ntm
+     &                              ntm_chem
 #endif
+
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
@@ -108,6 +109,7 @@ c 30 hours.  That fraction is: dt2/dtscr.  E.g. in the first hour it
 c is (dtsrc/24)/dtsrc = 1/24th of the chemistry change is applied.
 c This is to work around initial instabilities.
 c
+
       if(Itime-ItimeI.le.3)then
         dt2=dtsrc/24.            ! 150.
       elseif(Itime-ItimeI.gt.3.and.Itime-ItimeI.le.6)then
@@ -119,6 +121,7 @@ c
       elseif(Itime-ItimeI.gt.30)then
         dt2=dtsrc                ! 3600
       endif
+
 c
 c     Calculate new photolysis rates every n_phot main timesteps
       MODPHOT=MOD(Itime-ItimeI,n_phot)
@@ -157,12 +160,12 @@ C As per Volker:
 C make sure the regional Ox tracers didn't diverge from total Ox:
        sumOx=0.
        bysumOx=0.
-       do n2=n_OxREG1,ntm
+       do n2=n_OxREG1,ntm_chem
          sumOx=sumOx+trm(i,j,l,n2)
        end do
        sumOx=MAX(sumOx,1.d-9) ! minimum to prevent NaN's as per Drew
        bysumOx=1.d0/sumOx 
-       do n2=n_OxREG1,ntm
+       do n2=n_OxREG1,ntm_chem
          trm(i,j,l,n2)=trm(i,j,l,n2)*trm(i,j,l,n_Ox)*bysumOx
        end do
 #endif
@@ -184,6 +187,7 @@ c      calculate M and set fixed ratios for O2 & H2:
 #endif
 c
 c      Tracers (converted from mass to number density)
+
        do igas=1,nlast
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
@@ -1003,7 +1007,7 @@ C >> Lower limit on HO2NO2 of 1.0 <<
         if(trm(i,j,l,n_HO2NO2)+change(i,j,l,n_HO2NO2).lt.1.)
      &  change(i,j,l,n_HO2NO2) = 1. - trm(i,j,l,n_HO2NO2)
 C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
-        DO N=1,NTM
+        DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = change(i,j,l,n) * bydtsrc
         END DO
 c Reset O3DLJI values for radiation (gcm):
@@ -1208,7 +1212,7 @@ C**** ensure that strat overwrite is only a sink
      &         (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6))
 C
 C Save stratosph change for updating tracer, apply_tracer_3Dsource:
-          DO N=1,NTM
+          DO N=1,NTM_CHEM
             tr3Dsource(i,j,l,nStratwrite,n) = change(i,j,l,n)*bydtsrc
           END DO
 C
@@ -1414,7 +1418,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only  : Itime, LM, ls1
-      USE TRACER_COM, only : ntm, trname, n_Ox
+      USE TRACER_COM, only : ntm, trname, n_Ox,ntm_chem
 #ifdef regional_Ox_tracers
      & ,NregOx
 #endif
@@ -1434,9 +1438,9 @@ C**** Local parameters and variables and arguments:
 C
       INTEGER, PARAMETER :: nlast=
 #ifdef regional_Ox_tracers
-     & ntm-NregOx
+     & ntm_chem-NregOx
 #else
-     & ntm
+     & ntm_chem
 #endif
       INTEGER L, igas
       INTEGER, INTENT(IN) :: I,J

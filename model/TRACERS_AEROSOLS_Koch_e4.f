@@ -25,7 +25,7 @@ c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
 !@auth Koch
 c want kg SO2/m2/s
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: im,jm,jmon,jday,dtsrc,zatmo,t
+      USE MODEL_COM, only: im,jm,ls1,jmon,jday,dtsrc,zatmo,t,lm
       USE GEOM, only: dxyp
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
@@ -177,10 +177,27 @@ c Aircraft emissions
       if (ifirst) then
       so2_src_3d(:,:,:,2)=0.
       call openunit('AIRCRAFT',iuc2,.true.)
-      DO L=1,LM           
+C Read 13 layer data file for 23 layer model
+      if (lm.eq.23) then
+      DO L=1,LS1+1              
       READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm) 
       END DO            
+      else
+      DO L=1,LM
+      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm) 
+      END DO   
+      endif
       call closeunit(iuc2)
+C Set emissions above LS1+1 to zero for 23 layer model
+       if (lm.eq.23) then
+       DO L=LS1+2,LM
+        DO J=1,JM
+         DO I=1,IM
+       craft(i,j,l)=0.0
+       END DO
+       END DO
+       END DO
+       endif
 c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
 c 4.d0d-4 converts to kg S
@@ -435,8 +452,8 @@ c    * Y,BESSI0,X,AX
 !@auth Dorothy Koch
       USE TRACER_COM
       USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
-     *     ,jls_OHcon,jls_HO2con,jls_NO3,jls_phot
-      USE MODEL_COM, only: im,jm,jmon,lm,jhour,dtsrc,t,q,jday
+     *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
+      USE MODEL_COM, only: im,jm,jmon,ls1,lm,jhour,dtsrc,t,q,jday
       USE DYNAMICS, only: pmid,am,pk
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only: tr3Dsource
@@ -455,8 +472,39 @@ cg      real*8 told(im,jm,lm,ntm),ttemp(im,jm,lm)
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,ltopn
       save ifirst,itopen,iuc
+
+c Set ltopn variable for 23 or 12 layer model 
+       if (lm.eq.23) then
+       ltopn=ls1-1
+       else
+       ltopn=lm
+       endif
+
+c Set tracer mass above LS1 to be zero for 23 layer model
+          if (lm.eq.23) then
+           DO L=LS1,LM
+           DO J=1,JM
+           DO I=1,IM
+           DO N=1,NTM
+           select case (trname(n))
+           case ('DMS')
+            trm(i,j,l,n)=0.0
+           case ('MSA')
+            trm(i,j,l,n)=0.0
+           case ('SO2')
+            trm(i,j,l,n)=0.0
+           case ('SO4')
+            trm(i,j,l,n)=0.0
+           case ('H2O2_S')
+            trm(i,j,l,n)=0.0
+           end select
+           END DO
+           END DO
+           END DO
+           END DO
+           endif
 
 c Do I need special treatment at the poles (like before?)
 
@@ -567,7 +615,7 @@ c need to scale TNO3, OH and PERJ using cosine of zenith angle
  27   CALL SCALERAD    
 
        dtt=dtsrc           
-      do 20 l=1,lm       
+      do 20 l=1,ltopn       
       do 21 j=1,jm   
       do 22 i=1,imaxj(j)    
 
@@ -698,7 +746,7 @@ cg this is now done automatically in apply_tracer_3Dsource
 cg       call DIAGTCA(itcon_3Dsrc(3,n_SO2),n_SO2)
 
 
-      do 30 l=1,lm       
+      do 30 l=1,ltopn       
       do 31 j=1,jm   
       do 32 i=1,imaxj(j)
 
@@ -728,7 +776,7 @@ cg       trm(i,j,l,n) = trm(i,j,l,n)-told(i,j,l,n)*(1.d0-d4)
        tr3Dsource(i,j,l,4,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 
 c diagnostics to save oxidant fields
-        najl = jls_OHcon
+        najl = jls_OHconk
         tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
         najl = jls_HO2con
         tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)

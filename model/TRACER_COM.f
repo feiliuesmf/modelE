@@ -15,6 +15,10 @@
 #endif
       IMPLICIT NONE
       SAVE
+
+!@var ntm_aero number of Koch-only tracers
+      integer, parameter :: ntm_aero=5
+
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
@@ -34,10 +38,32 @@ C**** Each tracer has a variable name and a unique index
      *     'Air     ','SF6     ','Rn222   ','CO2     ','N2O     ',
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
 #else
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
+!@var ntm_chem number of drew-only tracers
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=26,ntm_chem=21
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  ',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
+#else
+      integer, parameter :: ntm=20,ntm_chem=15
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  '/)
+#endif
+#else
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef Shindell_Strat_chem
 #ifdef regional_Ox_tracers
-      integer, parameter :: ntm=31
+      integer, parameter :: ntm=31,ntm_chem=31
 C Note: please always put the regional Ox tracers at the end,
 C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
@@ -49,7 +75,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
      *    'OxREG6  '/)
 #else
-      integer, parameter :: ntm=25
+      integer, parameter :: ntm=25,ntm_chem=25
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
      *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
@@ -59,7 +85,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #ifdef regional_Ox_tracers
-      integer, parameter :: ntm=21
+      integer, parameter :: ntm=21,ntm_chem=21
 C Note: please always put the regional Ox tracers at the end,
 C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
       character*8, parameter :: trname(ntm)=(/
@@ -69,7 +95,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
      *    'OxREG6  '/)
 #else
-      integer, parameter :: ntm=15
+      integer, parameter :: ntm=15,ntm_chem=15
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
@@ -92,6 +118,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #else ! default for TRACERS_ON
       integer, parameter :: ntm=1
       character*8, parameter :: trname(ntm)=(/'Air     '/)
+#endif
 #endif
 #endif
 #endif
@@ -153,7 +180,7 @@ C****    The following are set in tracer_IC
 !@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.
       real*8, dimension(ntm)  :: HSTAR
 #endif
-
+#endif
 C**** Note units for these parameters!
 C**** Example: clay dust; trpdens=2.5d3, trradius=0.73d-6 
 C****          silt dust; trpdens=2.65d3, trradius=6.1d-6 
@@ -174,6 +201,9 @@ C****
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
+      integer, parameter :: nt3Dsrcmax=9
+#else
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: nt3Dsrcmax=4
 #elif (defined TRACERS_AEROSOLS_Koch)

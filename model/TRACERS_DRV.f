@@ -110,7 +110,7 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
-#ifdef Ox_regional_tracers
+#ifdef regional_Ox_tracers
       Ox_a_tracer=.false.
       do n2=1,ntm; if(trname(n2).eq.'Ox')Ox_a_tracer=.true.; end do
       if(.not.Ox_a_tracer)call stop_model(
@@ -465,7 +465,7 @@ C This number wasn't adjusted when the vegetation source was added.
 #ifdef regional_Ox_tracers 
       case ('OxREG1')
       n_OxREG1 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -479,7 +479,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('OxREG2')
       n_OxREG2 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -493,7 +493,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('OxREG3')
       n_OxREG3 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -507,7 +507,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('OxREG4')
       n_OxREG4 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -521,7 +521,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('OxREG5')
       n_OxREG5 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -535,7 +535,7 @@ C This number wasn't adjusted when the vegetation source was added.
 
       case ('OxREG6')
       n_OxREG6 = n    
-          ntemp= n-(ntm-NregOx)
+          ntemp= ntemp+1 
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -674,6 +674,7 @@ C**** done each hour:
 #endif
 
       end do
+      
 
 #ifdef TRACERS_ON
 C**** Tracer sources and sinks
@@ -1972,7 +1973,7 @@ c
 #ifdef TRACERS_AEROSOLS_Koch
 c Oxidants
         k = k + 1
-        jls_OHcon = k
+        jls_OHconk = k
         sname_jls(k) = 'OH'//trname(n)
         lname_jls(k) = 'OH'
         jls_ltop(k) = LM
@@ -4647,7 +4648,7 @@ C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
 
 C**** Apply chemistry and stratosphere overwrite changes:
 
-      do n=1,ntm
+      do n=1,ntm_chem
         call apply_tracer_3Dsource(nChemistry,n)
         call apply_tracer_3Dsource(nStratwrite,n)
       end do

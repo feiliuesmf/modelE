@@ -88,6 +88,16 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
+#ifdef regional_Ox_tracers
+      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+      integer, parameter :: ktaijs=46
+      INTEGER ijs_Oxloss, ijs_Oxprod
+#else
+      INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
+      integer, parameter :: ktaijs=44
+#endif
+#else
 #ifdef TRACERS_SPECIAL_Shindell
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER ijs_flash,ijs_CtoG    ! ,ijs_OxL1
@@ -99,6 +109,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 #else
       integer, parameter :: ktaijs=25
+#endif
 #endif
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
@@ -155,9 +166,22 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
+#if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
+!@var jls_XXX index for non-tracer specific or special diags
+#ifdef regional_Ox_tracers
+      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
+      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+      INTEGER, PARAMETER :: ktajls=108
+      INTEGER jls_Oxloss, jls_Oxprod
+#else
+      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
+      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+      INTEGER, PARAMETER :: ktajls=94
+#endif
+#else
 #ifdef TRACERS_AEROSOLS_Koch
 !@var jls_XXX index for non-tracer specific or special diags
-      INTEGER jls_OHcon,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
+      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_phot,jls_incloud(2,ntm)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var jls_XXX index for diags not specific to a certain tracer
@@ -170,6 +194,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #endif
 #else
       INTEGER, PARAMETER :: ktajls=34
+#endif
 #endif
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS

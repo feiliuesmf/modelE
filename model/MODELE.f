@@ -228,7 +228,7 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
          CALL CHECKT ('PRECIP')
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
-      call set_tracer_2Dsource
+         call set_tracer_2Dsource
          CALL TIMER (MNOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
@@ -292,11 +292,13 @@ C**** SEA LEVEL PRESSURE FILTER
 #ifdef TRACERS_ON
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
-      CALL TRGRAV
+        CALL TRGRAV
 C**** Tracer radioactive decay (and possible source)
       CALL TDECAY
 C**** Calculate 3D tracers sources and sinks
+
       call tracer_3Dsource
+
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (MNOW,MTRACE)
@@ -1172,7 +1174,7 @@ C****   READ SPECIAL REGIONS FROM UNIT 29
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
-      call init_tracer
+       call init_tracer
 #endif
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
