@@ -17,22 +17,21 @@
 C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
       INTEGER ::
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Noht,Nslp,NIdyn,
+     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
      *  NSSW,NSTEP,MRCH
-      INTEGER                  IDUM
-      INTEGER, DIMENSION(13) :: NDZERO,NDPRNT
+      INTEGER, DIMENSION(25) :: IDUM
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
       COMMON /IPARMB/
      *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Noht,Nslp,NIdyn,
+     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
      *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH,   IDUM   ,NDZERO,NDPRNT    ,  IJD6     ,IDACC
+     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV,  IDUM    ,  IJD6     ,IDACC
 
 ! handle for referring to integer parameters
       INTEGER, DIMENSION(100) :: JC
@@ -44,7 +43,7 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
       DOUBLE PRECISION, DIMENSION(LM) :: SIG
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2 
+      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2
 !@var PSFMPT,PSTRAT derived pressure constants
       COMMON /RPARMB/
      *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  SKIPSE,
@@ -118,7 +117,7 @@ C**** Main model prognostic variables
       END MODULE E001M12_COM
 
       SUBROUTINE io_model(kunit,it,iaction,ioerr)
-!@sum  io_model reads and writes model variables to file 
+!@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM
@@ -143,7 +142,7 @@ C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
 C****  timing info as named array?
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
+      CASE (IOWRITE,IOWRITE_MON) ! output to end-of-month restart file
         WRITE (kunit,err=10) it,JC,CLABEL,RC
 C**** need a blank line to fool 'qrsfnt' etc.
         WRITE (kunit,err=10)
@@ -160,8 +159,8 @@ C**** need a blank line to fool 'qrsfnt' etc.
         END IF
         SELECT CASE (IACTION)   ! set model common according to iaction
         CASE (IRESTART)         ! normal restart
-          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1 
-        CASE (IRSFIC)           ! start from old restart file => do nothing
+          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+        CASE (IRSFIC)        ! start from old restart file => do nothing
         CASE (IRERUN) ! rerun or extension
           JC=JC1 ; RC=RC1
         END SELECT

@@ -196,7 +196,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       END MODULE DAGCOM
 
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
-!@sum  io_diag reads and writes diagnostics to file 
+!@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite,iowrite_single,irestart,
@@ -225,9 +225,9 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
      *     KEYNR,it
-      CASE (IOWRITE_MON)        ! output to monthly restart file
+      CASE (IOWRITE_MON)        ! output to end-of-month restart file
         WRITE (kunit,err=10) it
-      CASE (IOREAD:)            ! input from restart file
+      CASE (Irestart)           ! input from restart file
         READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL,
      *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
      *       AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
@@ -235,6 +235,8 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+      CASE (Irsfic,irerun)      ! input from end-of-month restart file
+        READ (kunit,err=10) it
       END SELECT
 
       RETURN

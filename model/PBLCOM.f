@@ -24,15 +24,15 @@
 
 !@var ROUGHL log10(zgs/roughness length), prescribed with zgs=30 m.
       double precision, dimension(im,jm) :: roughl
-
-!@var WSAVG 1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
-!@var TSAVG 2  COMPOSITE SURFACE AIR TEMPERATURE (K)
-!@var QSAVG 3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
-!@var DCLEV 4  LAYER TO WHICH DRY CONVECTION MIXES (1)
-!@var USAVG 6  COMPOSITE SURFACE U WIND
-!@var VSAVG 7  COMPOSITE SURFACE V WIND
-!@var TAUAVG 8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-!@var USTAR friction velocity for each ITYPE (sqrt of srfc momentum flux) (m/s)
+!           bldata:
+!@var WSAVG    1  COMPOSITE SURFACE WIND MAGNITUDE (M/S)
+!@var TSAVG    2  COMPOSITE SURFACE AIR TEMPERATURE (K)
+!@var QSAVG    3  COMPOSITE SURFACE AIR SPECIFIC HUMIDITY (1)
+!@var DCLEV    4  LAYER TO WHICH DRY CONVECTION MIXES (1)
+!@var USAVG    6  COMPOSITE SURFACE U WIND
+!@var VSAVG    7  COMPOSITE SURFACE V WIND
+!@var TAUAVG   8  COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
+!@var USTAR 9-12 (ITYPE) friction velocity (sqrt of srfc mom flux) (m/s)
       double precision, dimension(im,jm) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       double precision, dimension(im,jm,4) :: ustar
@@ -53,7 +53,7 @@ C**** pressure gradient arrays
       END MODULE PBLCOM
 
       SUBROUTINE io_pbl(kunit,iaction,ioerr)
-!@sum  io_pbl reads and writes model variables to file 
+!@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite
@@ -85,7 +85,7 @@ C**** pressure gradient arrays
       END SUBROUTINE io_pbl
 
       SUBROUTINE io_bldat(kunit,iaction,ioerr)
-!@sum  io_bldat reads and writes boundary layer data to file 
+!@sum  io_bldat reads and writes boundary layer data to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite
