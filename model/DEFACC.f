@@ -2224,7 +2224,7 @@ c
       units_ij(k) = '.1 N/M**2'
       scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW2 = k
@@ -2233,7 +2233,7 @@ c
       units_ij(k) = '.1 N/M**2'  ! dynes/cm^2
       scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW3 = k
@@ -2242,7 +2242,7 @@ c
       units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW4 = k
@@ -2251,7 +2251,7 @@ c
       units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW5 = k
@@ -2260,7 +2260,7 @@ c
       units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW6 = k
@@ -2269,7 +2269,7 @@ c
       units_ij(k) = '.001 N/M**2'
       scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
 c
       k=k+1                ! ij diags from gwdrag calculations
       IJ_GW7 = k
@@ -2294,7 +2294,7 @@ c
       units_ij(k) = '.0001 N/M**2'
       scale_ij(k) = 10000.*100.*BYGRAV
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_m9_26
+      ir_ij(k) = ir_m1_3
       iDO_GWDRAG = k-IJ_GW1+1
       END IF
 
