@@ -355,7 +355,7 @@ ccc output:
       integer retcode
 
 ccc main parameters: layer thickness, water equivalent, heat content
-      real*8 dz(nl+1), wsn(nl), hsn(nl)
+      real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
 ccc!!! I wonder if the following arrays should have dim (nl) instead
 ccc    of (MAX_NL) to force the allocation on a stack (for OpenMP) ?
       real*8 tsn(MAX_NL+1), csn(MAX_NL), ksn(MAX_NL+1), isn(MAX_NL)
