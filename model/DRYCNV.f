@@ -352,32 +352,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
         END DO
       ENDIF   !END NORTH POLE
 
-C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
-C**** in this block).
-      if (.not. HAVE_SOUTH_POLE) then
-
-C**** ....then, accumulate neighbors contribution to 
-C**** U,V,AJL at the J=J_0 (B-grid) corners --i.e.do a
-C**** K=3,4 iterations on the newly updated J=J_0-1 box.
-        J=J_0-1
-        IDJ(3)=IDJJ(3,J)
-        IDJ(4)=IDJJ(4,J)
-        RA(3) =RAVJ(3,J)
-        RA(4) =RAVJ(4,J)
-        DO I=1,IM
-          LMIN=LRANG(1,I,J)
-          LMAX=LRANG(2,I,J)
-          DO L=LMIN,LMAX
-            DO K=3,4
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
-              AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *              UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
-            END DO
-          END DO
-        END DO
-      ENDIF    !END NOT_SOUTH_POLE
 
 C***
 
