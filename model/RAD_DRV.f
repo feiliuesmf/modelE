@@ -660,7 +660,10 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2,n_Ox
      * ,trm
-      USE TRACER_DIAG_COM, only: taijs,ijts_fc,ijts_tau
+      USE TRACER_DIAG_COM, only: taijs,ijts_fc
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,ijts_tau
+#endif
 #endif
       IMPLICIT NONE
 C
@@ -1169,10 +1172,12 @@ C**** Sulfate forcing
           SNFST(N_SO4,I,J)=SRNFLB(4+LM)
           TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(1)=1.d0 ; FTTOPX(1)=1.d0
+#ifdef TRACERS_AEROSOLS_Koch
           do l=1,lm
           taijs(i,j,ijts_tau(n_so4))=taijs(i,j,ijts_tau(n_so4))
      *   +TTAUSV(L,1)
           end do
+#endif
 c seasalt forcing
           FSTOPX(2)=0.d0 ; FTTOPX(2)=0.d0 ! turn off seasalt1
           FSTOPX(3)=0.d0 ; FTTOPX(3)=0.d0 ! turn off seasalt2
@@ -1181,12 +1186,14 @@ c seasalt forcing
           TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
           FSTOPX(2)=1.d0 ; FTTOPX(2)=1.d0
           FSTOPX(3)=1.d0 ; FTTOPX(3)=1.d0
+#ifdef TRACERS_AEROSOLS_Koch
          do l=1,lm
           taijs(i,j,ijts_tau(n_seasalt1))=
      *       taijs(i,j,ijts_tau(n_seasalt1))+TTAUSV(L,2)
           taijs(i,j,ijts_tau(n_seasalt2))=
      *       taijs(i,j,ijts_tau(n_seasalt2))+TTAUSV(L,3)
           end do
+#endif
         end if
       end if
 #endif
