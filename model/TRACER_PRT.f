@@ -1145,9 +1145,9 @@ C**** Fill in maplet indices for sources and sinks
         aij1(:,:,k) = taijs(:,:,kx)
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
-#ifdef TRACERS_AEROSOLS_Koch
-       if (name(k).eq.'TAU'.or.name(k).eq.'SWRF'.or
-     *  .name(k).eq.'LWRF') ijtype(k)=2
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
+       if (name(k)(1:3).eq.'tau'.or.name(k)(1:4).eq.'swrf'.or
+     *  .name(k)(1:4).eq.'lwrf') ijtype(k)=2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
        if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
