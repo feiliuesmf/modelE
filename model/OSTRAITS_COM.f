@@ -84,6 +84,9 @@ C****
       REAL*8, DIMENSION(2,NMST) :: MSIST
       REAL*8, DIMENSION(LMI,NMST) :: HSIST,SSIST
 
+!@param USIFAC ratio of strait sea ice velocity to current
+      REAL*8 :: USIFAC = 0.1d0   ! used to be 1. (too much)
+      
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)

@@ -409,7 +409,7 @@ C****
 C****
 C**** MUST < 0: sea ice may be leaving western end of strait
 C****
-      USTDT = DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
       IF(RSIXST(N).LE.0.)  GO TO 120
       IF(USTDT+2d0*RSIXST(N) .LT. 0.)  GO TO 110
 C**** RSIXST > 0 and no sea ice reaches western end of strait
@@ -476,7 +476,7 @@ C****
   300 I = IST(N,2)
       J = JST(N,2)
       IF(RSI(I,J).LE.0.)  GO TO 900
-      USTDT = DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
       ALPHA = -USTDT*WIST(N)*BYDXYPO(J)
       RMEAN = RSI(I,J) + YST(N,2)*RSIY(I,J)*(1d0-ALPHA)
       ASI   = ALPHA*RMEAN*DXYPO(J)
@@ -509,7 +509,7 @@ C****
 C****
 C**** MUST > 0: sea ice may be leaving eastern end of strait
 C****
-      USTDT = DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
       IF(RSIXST(N).GE.0.)  GO TO 520
       IF(USTDT+2d0*RSIXST(N) .GT. 0.)  GO TO 510
 C**** RSIXST < 0 and no sea ice reaches eastern end of strait
@@ -576,7 +576,7 @@ C****
   700 I = IST(N,1)
       J = JST(N,1)
       IF(RSI(I,J).LE.0.)  GO TO 900
-      USTDT = DTS*MUST(1,N)*DIST(N)/MMST(1,N)
+      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
       ALPHA = USTDT*WIST(N)*BYDXYPO(J)
       RMEAN = RSI(I,J) + YST(N,1)*RSIY(I,J)*(1d0-ALPHA)
       ASI   = ALPHA*RMEAN*DXYPO(J)
