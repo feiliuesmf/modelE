@@ -32,6 +32,9 @@
       USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
       USE SEAICE_COM, only : trsi0
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only : mass2vol,bymass2vol
+#endif
       implicit none
       integer :: l,k,n
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
@@ -267,7 +270,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
 #endif
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          HSTAR(n)=1.d14
 #endif
 
       case ('H2O2')
@@ -301,7 +304,7 @@ C**** Get solar variability coefficient from namelist if it exits
           tr_RKD(n) = 6.218d1 ! mole/J = 6.3d3 mole/(L atm)
 #endif
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          HSTAR(n)=6.d3
 #endif
 
       case ('HO2NO2')
@@ -320,7 +323,7 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -11
           tr_mm(n) = 121.054d0   ! assuming CH3COOONO2 = PAN
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 3.68d0
+          HSTAR(n) = 3.6d0
 #endif
 
       case ('Isoprene')
@@ -429,6 +432,12 @@ C     Any tracers that dry deposits needs the surface concentration:
         dodrydep(n)=.true.
         needtrs(n)=.true.
       end if
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+C     Define the conversion from mass to volume units here so it is not
+C     done each hour:
+      mass2vol(n)  =mair/TR_MM(n)
+      bymass2vol(n)=TR_MM(n)/mair  
 #endif
 
       end do
