@@ -448,7 +448,7 @@ C**** this should be in an init_ep routine or something
      *     'DU/DT BY F.D. ERROR TERM 1                  ',
      *     'DU/DT BY F.D. ERROR TERM 2                  '/)
       character(len=30) :: sname(njl_out) = (/
-     *     'tot_dudt     ','dudt_meanadv ','dudt_eddycnv '
+     *     'dudt_sum1    ','dudt_meanadv ','dudt_eddycnv '
      *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
      *     ,'dudt_fderr2  '/)
       character(len=50) :: units(njl_out) = 'm/s^2'
