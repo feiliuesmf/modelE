@@ -491,7 +491,7 @@ C****
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC     ! ? ktacc ?
-     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years
+     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years,mswitch
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X
@@ -588,12 +588,11 @@ C***********************************************************************
 C**** get unit for atmospheric initial conditions if needed
       IF (ISTART.gt.1) call getunit("AIC",iu_AIC,.true.,.true.)
 C****
-C**** Set the derived quantities NDAY, Itime.., vert. layering, etc
+C**** Set quantities that are derived from the namelist parameters
 C****
-      KTACC0 = KTACC      ! ? should be set in BDINP
-      NDAY = 2*NINT(.5*SDAY/DTsrc)  !  # of time steps in a day: even
-C**** Correct the time step
-      DTsrc = SDAY/NDAY   ! currently 1 hour
+      KTACC0 = KTACC      ! ????? not needed
+!@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc later if necessary
+      NDAY = 2*NINT(.5*SDAY/DTsrc)
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IhrI = ((yearI-Iyear0)*JDperY +
      *        JDendofM(monthI-1) + dateI-1)*HR_IN_DAY + HourI
@@ -608,7 +607,7 @@ C**** The vertical layering
       IF (PLTOP(1).lt.0.) then
          write(6,*) 'Please specify PLTOP(1->12) (mb) and if PTOP=',
      *      PTOP,' is not ok also specify either PTOP or LS1'
-         STOP 'INPUT: Vertical layering not defined - PLBOT'
+         STOP 'INPUT: Vertical layering not defined - PLTOP'
       END IF
       IF (LS1.gt.0) PTOP=PLTOP(LS1-1)
       DO L=1,LM    !  SIGE(1)=1.
@@ -884,7 +883,6 @@ C**** Alternate (old) way of specifying end time
       IF(ISTART.LT.0) THEN
         call reset_diag(1)
         monacc = 0
-        write(6,*) iargc(),' files are summed up'
         do k=1,iargc()
           call getarg(k,filenm)
           call getunit(filenm,iu_AIC,.true.,.true.)
@@ -892,20 +890,30 @@ C**** Alternate (old) way of specifying end time
           write(6,*) 'read: ',filenm(1:70)
           call closeunits
         end do
-        write(acc_period,'(a3,i4,a5)') aMON0(1:3),jyear0,'     '
-        Ldate=7
+        months=0 ; years=monacc(jmon0) ; mswitch=0
+        do k=1,12
+          if (monacc(k).eq.years) then
+            months=months+1
+          else if (monacc(k).ne.0) then
+            write(6,*) 'uneven period:',monacc
+            stop 'uneven period'
+          end if
+          if(k.gt.1.and.monacc(k).ne.monacc(k-1)) mswitch = mswitch+1
+        end do
+        if (mswitch.gt.2) then
+          write(6,*) 'non-consecutive period:',monacc
+          stop 'non-consecutive period'
+        end if
+        call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
         LLAB1 = INDEX(XLABEL(1:17),'(') -1
         IF (LLAB1.LT.1) LLAB1=16
         if (index(XLABEL(1:LLAB1),' ').gt.0)
      *    LLAB1=index(XLABEL(1:LLAB1),' ')-1
         if (iargc().gt.1) then    ! save the summed acc-file
+          write(6,*) iargc(),' files are summed up'
           keyct=1 ; KEYNR=0
-          months=0 ; years=monacc(jmon0)
-          do k=1,12
-             if (monacc(k).eq.years) months=months+1
-          end do
-          call aPERIOD (JMON0,JYEAR0,months,years,acc_period,Ldate)
-          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:12)
+          XLABEL(128:132)='     '
+          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
           OPEN (30,FILE=acc_period(1:Ldate)//'.acc'//XLABEL(1:LLAB1),
      *         FORM='UNFORMATTED')
           call io_rsf (30,Itime,iowrite_single,ioerr)
@@ -925,8 +933,9 @@ C**** Alternate (old) way of specifying end time
      *     FORM='FORMATTED')
       END IF
 C****
-C**** Make sure  dtsrc/dt(dyn)  is a multiple of 2
+C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
+      DTsrc = SDAY/NDAY   ! currently 1 hour
       NIdyn = 2*nint(.5*dtsrc/dt)
       DT = DTsrc/NIdyn
 C**** Restrict NMONAV to 1(default),2,3,4,6,12, i.e. a factor of 12
