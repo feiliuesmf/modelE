@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp
 
 # modelE directory structure
 MODEL_E_ROOT = ..
@@ -50,6 +50,16 @@ gcm $(BIN_DIR)/$(RUN).exe depend:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 setup: gcm
+	$(MAKE) setup_script RUN=$(RUN)
+
+setup_nocomp:
+	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
+	@cp $(CMRUNDIR)/$(RUN)/$(RUN).exe $(BIN_DIR)/$(RUN).exe || \
+	{ echo "No executable in run directory"; \
+	echo "You have to run 'gmake setup ...' first"; exit 1; }
+	$(MAKE) setup_script RUN=$(RUN)
+
+setup_script:
 	@echo '---------       Looks like it was compiled OK        ---------'
 	@echo '----- Saving Rundeck and other info to global repository -----'
 	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
