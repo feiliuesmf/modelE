@@ -36,7 +36,7 @@ $parenth3 = "\\((?:[^()]|$parenth2)*\\)";
 #GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
 #                       || die "problem in GetOptions";
 
-GetOptions("D=s", "O=s", "R=s", "cpp") || die "problem in GetOptions";
+GetOptions("D=s", "O=s", "R=s", "CPP=s") || die "problem in GetOptions";
 
 if( $opt_O ) {
     $output_dir = $opt_O;
@@ -81,7 +81,7 @@ if ( $#ARGV < 0 ) {
 while( $current_file = shift ) {
     my $file_to_open = $current_file;
     #if -cpp option is specified try to open .cpp instead of .f
-    if ( $opt_cpp ) { $file_to_open =~ s/\.f$/\.cpp/; }
+    if ( $opt_CPP ) { $file_to_open =~ s/\.f$/\.$opt_CPP/; }
     open(SRCFILE, $file_to_open) or die "can't open $file_to_open\n";
     print "parsing $file_to_open\n";
     parse_file();
