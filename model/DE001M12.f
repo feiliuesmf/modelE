@@ -2740,13 +2740,8 @@ C****                                                             37-44
       USE CONSTANT, only : grav,rgas,kapa,sday,lhe,twopi,omega,sha
       USE E001M12_COM, only : im,jm,lm,fim,
      &     BYIM,DSIG,DT,IDACC,IMH,LS1,NCNDS,NDAA,
-<<<<<<< DE001M12.f
      &     PSF,PTOP,PSFMPT,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
       USE GEOM, only :  
-=======
-     &     PSF,PTOP,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
-      USE GEOM, only :
->>>>>>> 1.45
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM
       USE RADNCB, only : LM_REQ

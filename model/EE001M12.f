@@ -33,12 +33,8 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
       USE DAGCOM  !, only : aijg,aij,tsfrez,tdiurn,bj,areg,adaily,jreg
-<<<<<<< EE001M12.f
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
-=======
-      USE DYNAMICS, only : pmid,pk,pek,pedn
       USE LAKES_COM, only : mwl,gml
->>>>>>> 1.31
 
       IMPLICIT NONE
 
