@@ -5,41 +5,33 @@
 !@cont PREC_SI,SEA_ICE.
 
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw
-      USE E001M12_COM, only : im,jm
       IMPLICIT NONE
 
 !@var XSI1,XSI2,XSI3,XSI4 fractions of mass layer in each temp. layer
-      REAL*8, PARAMETER :: XSI1=0.5, XSI2=0.5, XSI3=0.5, XSI4=0.5
+      REAL*8, PARAMETER :: XSI1=0.5d0, XSI2=0.5d0,
+     *                     XSI3=0.5d0, XSI4=0.5d0
 !@var BYXSIn recipricol of XSIn
       REAL*8, PARAMETER :: BYXSI1=1./XSI1, BYXSI2=1./XSI2,
      *                     BYXSI3=1./XSI3, BYXSI4=1./XSI4
 !@var Z1I thickness of first layer ice (m)
-      REAL*8, PARAMETER :: Z1I = .1
+      REAL*8, PARAMETER :: Z1I = .1d0
 !@var ACE1I ice mass first layer (kg/m^2)
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
 !@var HC1I heat capacity of first layer ice (J/m^2)
       REAL*8, PARAMETER :: HC1I = ACE1I*SHI
 !@var Z2OIM thickness of 2nd layer ice (m)
-      REAL*8, PARAMETER :: Z2OIM = .4
+      REAL*8, PARAMETER :: Z2OIM = .4d0
 !@var AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@var ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
-      REAL*8, PARAMETER :: ALAMI=2.1762, ALAMS=0.35
+      REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
 !@var RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
 !@var BYRLI,BYRLS reciprical of density*lambda
       REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
      *     BYRLS = 1./(RHOS*ALAMS)
-!@var RSI fraction of open water area covered in ice
-      REAL*8, DIMENSION(IM,JM) :: RSI
-!@var MSI thickness of ice second layer (layer 1=const) (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: MSI
 !@var LMI number of temperature layers in ice
       INTEGER, PARAMETER :: LMI = 4
-!@var TSI temperature of the each ice layer (C)
-      REAL*8, DIMENSION(IM,JM,LMI) :: TSI
-!@var HSI enthaply of each ice layer (J/m^2) (will replace TSI)
-c      REAL*8, DIMENSION(IM,JM,LMI) :: HSI
 
       CONTAINS
 
@@ -234,8 +226,8 @@ C     FMSI1 = XSI2*PRCP+XSI1*FMSI2 ! > 0.(downward ice mass flux)
 c      F1 = HSI1*(XSI2*PRCP+XSI1*FMSI2)/(XSI1*MSI1) ! for prescribed
       FHSI2 = HSI2*FMSI2*BYXSI2/MSI1 ! downward heat flux from layer 2
       FHSI3 = HSI3*FMSI2*(XSI4/XSI3)/MSI2 ! downward heat flux
-      MSI1 = 0.9*SNOMAX+ACE1I ! first layer ice mass
-      SNOW=.9*SNOMAX ! snow mass
+      MSI1 = 0.9d0*SNOMAX+ACE1I ! first layer ice mass
+      SNOW=.9d0*SNOMAX ! snow mass
       DIFS = FMSI2 ! compressed snow mass
       EDIFS = FHSI2 ! energy of compressed snow mass
       HSI1 = HSI1-FHSI1
@@ -598,7 +590,7 @@ C**** SEA ICE IS TOO THIN
       ROICEN = ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM) ! new ice concentr.
       GO TO 290
   280 CONTINUE
-      OPNOCN=.06*(RHOI/(ACE1I+MSI2)-BYZICX)
+      OPNOCN=FLEAD*(RHOI/(ACE1I+MSI2)-BYZICX)
       IF ((1.-ROICE) .GE. OPNOCN) GO TO 360
       ROICEN = 1.-OPNOCN
  290  CONTINUE
@@ -628,8 +620,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       RETURN
       END SUBROUTINE ADDICE
 
-      SUBROUTINE SIMELT(ROICE,SNOW,MSI1,MSI2,ACE,TG1,TG2,TG3,TG4,TGW
-     *     ,WTRO,ENRGW,PWATER,ENRGUSED)
+      SUBROUTINE SIMELT(ROICE,SNOW,MSI1,MSI2,ACE,TG1,TG2,TG3,TG4
+     *     ,ENRGW,PWATER,ENRGUSED)
 !@sum  SIMELT melts sea ice if surrounding water is warm
 !@auth Original Development Team
 !@ver  1.0
@@ -640,8 +632,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       REAL*8, INTENT(IN) :: ENRGW
       REAL*8 MSI1, MSI2, MELT,DRSI,ROICEN,FHSI4,FHSI3,ACE
       REAL*8 E_SIDE,E_BOTTOM,GAMMA,H_C,H_ICE,PWATER,POICE
-     *     ,WTRO,ENRGI,HSI4,HSI3,HSI2,HSI1,TG1,TG2,TG3,TG4
-     *     ,SNOW,ROICE,TGW
+     *     ,ENRGI,HSI4,HSI3,HSI2,HSI1,TG1,TG2,TG3,TG4
+     *     ,SNOW,ROICE
 
 C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       HSI1 = (SHI*TG1-LHM)*XSI1*MSI1
@@ -652,15 +644,11 @@ C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       IF (ROICE*ENRGI+ENRGW.LT.0.) GO TO 230
 C**** THE WARM OCEAN MELTS ALL THE SNOW AND ICE
       ENRGUSED=-ROICE*ENRGI     ! only some energy is used
-c      TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
-      TGW=(ROICE*ENRGI+ENRGW)/(WTRO*SHW)
       ROICE=0.
       RETURN
 C**** THE WARM OCEAN COOLS TO 0 DEGREES MELTING SOME SNOW AND ICE
 C**** Reduce the ice depth
- 230  TGW=0.                    ! ODATA(I,J,1)=(ENRGW-ENRG)/(WTRO*SHW)
-      ENRGUSED=ENRGW            ! all energy is used
-c      TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
+ 230  ENRGUSED=ENRGW            ! all energy is used
       POICE = ROICE*PWATER      ! sea ice fraction
       H_C = 1.                  ! critical ice thickness [m]
       H_ICE = ACE/RHOI   ! sea ice thickness [m]
@@ -695,3 +683,24 @@ C**** CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
       END SUBROUTINE SIMELT
 
       END MODULE SEAICE
+
+      MODULE SEAICE_COM
+!@sum  SEAICE_COM contains the model arrays for seaice 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+      USE SEAICE, only : lmi
+
+      IMPLICIT NONE
+!@var RSI fraction of open water area covered in ice
+      REAL*8, DIMENSION(IM,JM) :: RSI
+!@var SNOWI snow amount on sea ice (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: SNOWI
+!@var MSI thickness of ice second layer (layer 1=const) (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: MSI
+!@var TSI temperature of the each ice layer (C)
+      REAL*8, DIMENSION(IM,JM,LMI) :: TSI
+!@var HSI enthaply of each ice layer (J/m^2) (will replace TSI)
+c      REAL*8, DIMENSION(IM,JM,LMI) :: HSI
+
+      END MODULE SEAICE_COM

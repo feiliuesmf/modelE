@@ -21,7 +21,7 @@
 
       REAL*8, PARAMETER :: TTRUNC = 0 !@var TTRUNC why does this exist?
 !@var TFO temperature of freezing ocean (C)
-      REAL*8, PARAMETER :: TFO = -1.8
+      REAL*8, PARAMETER :: TFO = -1.8d0
 !@var FLEADOC lead fraction for ocean ice (%)
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var TOCEAN temperature of the ocean (C)
@@ -201,15 +201,15 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
 C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
       DO J=1,JM
-        ZIMIN=.5
-        ZIMAX=2.
-        IF(J.GT.JM/2) ZIMAX=3.5
+        ZIMIN=.5d0
+        ZIMAX=2d0
+        IF(J.GT.JM/2) ZIMAX=3.5d0
         IMAX=IMAXJ(J)
         DO I=1,IMAX
           IF(FLAND(I,J).GE.1.) CYCLE
 C**** OST always uses quadratic fit
           ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
-     +         COST(I,J)*(TIME*TIME - 1./12.d0)
+     +         COST(I,J)*(TIME*TIME - 1./12.d0)            !-BY12
           IF(KRSI(I,J)) 410,430,420
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
  410      IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
@@ -231,11 +231,11 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
           GO TO 440
 C**** RSI uses quadratic fit
  430      RSINEW = ARSI(I,J) + BRSI(I,J)*TIME +
-     +         CRSI(I,J)*(TIME*TIME - 1./12.d0)
+     +         CRSI(I,J)*(TIME*TIME - 1./12.d0)    !-BY12
  440      ODATA(I,J,2)=RSINEW
           ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-          IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=-1.8
+          IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=TFO
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
 c     IF (ODATA(I,J,2).GT.0.) THEN
 c        BYZICE=RHOI/(Z1I*RHOI+ODATA(I,J,3))
@@ -393,7 +393,7 @@ C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       REAL*8, INTENT(IN) :: ROICE, MSI1, MSI2
 !@var TGW and WTRO mixed layer temp.(C) and mass (kg/m^2)
       REAL*8 TGW, WTRO, ENRGO
-      REAL*8 WTRI0, EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ
+      REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ
       REAL*8 WTRW0, ENRGW0, WTRW, ENRGW
       REAL*8, INTENT(IN) :: F2DT, ERUN4, OTDT
       REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACE2F
@@ -415,14 +415,7 @@ c 80      ACEFO=(ENRGO0+ENRGO-EOFRZ)/(TFW*(SHI-SHW)-LHM)
  80     ACEFO=(ENRGO0+ENRGO-EOFRZ)/(-LHM)
         ENRGFO=ACEFO*(TFW*SHI-LHM)
         IF (ROICE.LE.0.) THEN
-c     ROICE=ACEFO/(ACE1I+AC2OIM)
           TGW=TFW
-c     SNOW=0.
-c     TG1=TFW
-c     TG2=TFW
-c     TG3=TFW
-c     TG4=TFW
-c     MSI2=AC2OIM
           RETURN
         END IF
       END IF
@@ -432,69 +425,18 @@ C****
 C**** CALCULATE THE ENERGY OF THE WATER BELOW THE ICE AT FREEZING POINT
 C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       ENRGIW = F2DT+OTDT-ERUN4 ! heat flux to the ocean under ice
-      ENRGFI = 0.
       WTRI1 = WTRO-(MSI1+MSI2) ! new mass of ocean (kg/m^2)
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
-      IF (EIW0+ENRGIW .GT. EFIW) GO TO 250 ! go to no freezing case
-C**** FLUXES WOULD COOL TGW TO FREEZING POINT
-C**** AND FREEZE SOME MORE ICE
-c      ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) !
-      ACE2F = (EIW0+ENRGIW-EFIW)/(-LHM) !
-C*            ocean mass that freezes under the ice
-      ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
-cC**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
-cC     FMSI3 = -XSI3*ACE2F ! < 0.
-cC     FMSI4 = -ACE2F
-c      FHSI3 = -HSI4*ACE2F*(XSI3/XSI4)/MSI2
+      IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
+C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
+c       ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) !
+        ACE2F = (EIW0+ENRGIW-EFIW)/(-LHM) ! mass freezes under the ice
+        ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
+      END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
-      IF (ACEFO .GT. 0.) GO TO 240
-C**** NEW ICE IS FORMED BELOW OLD SEA ICE
-      WTRW = WTRW0-ROICE*ACE2F ! new ocean mass
-      ENRGW = ENRGW0+ROICE*(ENRGIW-ENRGFI)+(1.-ROICE)*ENRGO ! energy
-      TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
-c      HSI3 = HSI3-FHSI3
-c      HSI4 = HSI4+(FHSI3+ENRGFI)
-c      MSI2 = MSI2+ACE2F ! new ice mass of physical layer 2
-      GO TO 270
-  240 CONTINUE
-C**** NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
       WTRW = WTRW0-(1.-ROICE)*ACEFO-ROICE*ACE2F ! new ocean mass
       ENRGW = ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*(ENRGIW-ENRGFI)
       TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
-c      DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-c      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-c      MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACE2F))/(ROICE+DRSI) ! layer 2
-c      SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
-c      HSI1 = ((1.-ROICE)*ENRGFO*YSI1+ROICE*HSI1)/(ROICE+DRSI)
-c      HSI2 = ((1.-ROICE)*ENRGFO*YSI2+ROICE*HSI2)/(ROICE+DRSI)
-c      HSI3 = ((1.-ROICE)*ENRGFO*YSI3+ROICE*(HSI3-FHSI3))/
-c     A       (ROICE+DRSI)
-c      HSI4 = ((1.-ROICE)*ENRGFO*YSI4+ROICE*(HSI4+FHSI3+ENRGFI))/
-c     A       (ROICE+DRSI)
-c      ROICE = ROICE+DRSI ! new ice concentration
-      GO TO 270
-  250 CONTINUE
-      IF (ACEFO .GT. 0.) GO TO 260 ! new ice on the open ocean
-C**** NO NEW ICE IS FORMED UNDERNEATH THE OLD ONE
-      WTRW = WTRW0 ! new ocean mass
-      ENRGW = ENRGW0+ROICE*ENRGIW+(1.-ROICE)*ENRGO ! energy of new oc.
-      TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
-      GO TO 270
-  260 CONTINUE
-C**** NEW ICE IS FORMED ON THE OPEN OCEAN
-      WTRW = WTRW0-(1.-ROICE)*ACEFO ! new ocean mass
-      ENRGW = ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*ENRGIW
-      TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
-c      DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-c      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-c      MSI2 = (DRSI*AC2OIM+ROICE*MSI2)/(ROICE+DRSI) ! layer 2
-c      SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
-c      HSI1 = ((1.-ROICE)*ENRGFO*YSI1+ROICE*HSI1)/(ROICE+DRSI)
-c      HSI2 = ((1.-ROICE)*ENRGFO*YSI2+ROICE*HSI2)/(ROICE+DRSI)
-c      HSI3 = ((1.-ROICE)*ENRGFO*YSI3+ROICE*HSI3)/(ROICE+DRSI)
-c      HSI4 = ((1.-ROICE)*ENRGFO*YSI4+ROICE*HSI4)/(ROICE+DRSI)
-c      ROICE = ROICE+DRSI ! new ice concentration
-  270 CONTINUE
 
       RETURN
       END SUBROUTINE OSOURC
@@ -616,10 +558,10 @@ C**** (MELTING POINT OF ICE)
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*ACE
             ENRGW=WTRW*TGW*SHW  ! energy of water available for melting
-            CALL SIMELT(ROICE,SNOW,MSI1,MSI2,ACE,TG1,TG2,TG3,TG4,TGW
-     *           ,WTRO,ENRGW,PWATER,ENRGUSED)
+            CALL SIMELT(ROICE,SNOW,MSI1,MSI2,ACE,TG1,TG2,TG3,TG4
+     *           ,ENRGW,PWATER,ENRGUSED)
 C**** RESAVE PROGNOSTIC QUANTITIES
-c            TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
+            TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
             ODATA(I,J,1)=TGW
             IF (ROICE.le.0.) THEN
               ODATA(I,J,2)=0.

@@ -4,23 +4,14 @@
 !@ver  1.0 (based on LB265)
       USE E001M12_COM, only : IM,JM
       IMPLICIT NONE
-
 C****
 C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
-C****    GZM -> TLAKE (deg C),  RSI -> RLI (fract),
-C****    MSI -> MLI (kg/m^2), HSI -> HLI (J/m^2)
-C****
-!@var LMLI Number of layers of lake ice model
-      INTEGER, PARAMETER :: LMLI=4
-!@var XLI1,XLI2,XLI3,XLI4 layering for lake ice model
-      REAL*8, PARAMETER :: XLI1=.50,XLI2=.50,XLI3=.50,XLI4=.50
-!@var BYXLI1,BYXLI2,BYXLI3,BYXLI4 reciprocals of XLIx
-      REAL*8, PARAMETER :: BYXLI1=1./XLI1, BYXLI2=1./XLI2,
-     *                     BYXLI3=1./XLI3, BYXLI4=1./XLI4
+C****    GZM -> TLAKE (deg C)
 !@var KDIREC directions for river flow
-!**** (0 no flow, 1-8 anti-clockwise from top RH corner
+C**** (0 no flow, 1-8 anti-clockwise from top RH corner
+      INTEGER, DIMENSION(IM,JM) :: KDIREC
 !@var IDPOLE,JDPOLE special directions for south pole flow
-      INTEGER KDIREC(IM,JM),IDPOLE,JDPOLE
+      INTEGER :: IDPOLE,JDPOLE
 !@var RATE rate of river flow downslope (m/s)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
@@ -33,7 +24,7 @@ C****
 !@sum  init_LAKES initiallises lake variables
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shi,lhm
+      USE CONSTANT, only : shi,lhm,rhow
       USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dtsrc,flice,hlake
      *     ,kocean
       USE OCEAN, only : odata
@@ -64,41 +55,22 @@ C****
 C**** FIXDCB  FLAKE    Lake fraction (1)
 C****
 
-C**** Always set lake ice extent consistent with T50
-c      IF (KOCEAN.eq.1) CALL set_LAKEICE
-
       IF (INILAKE) THEN
-C**** Set lake variables from model blocks ODATA and GDATA
-C**** GDATA(3) and (7) are first and second thermal layers
+C**** Set lake variables from model block ODATA
 C**** This is just an estimate for the initiallisation
-      DO J=2,JM-1
-       DO I=1,IM
-         IF (FLAKE(I,J).gt.0) THEN
-           TLAKE(I,J)   = ODATA(I,J,1)
-c           RLI(I,J)   = ODATA(I,J,2)
-c           MLI(I,J,2) = ODATA(I,J,3)
-c           MLI(I,J,1) = GDATA(I,J,1) + ACE1I
-c           HLI1=(SHI*GDATA(I,J,3)-LHM)*MLI(I,J,1)
-c           HLI(I,J,1) = XLI1*HLI1
-c           HLI(I,J,2) = XLI2*HLI1
-c           HLI2=(SHI*GDATA(I,J,7)-LHM)*MLI(I,J,2)
-c           HLI(I,J,3) = XLI3*HLI2
-c           HLI(I,J,4) = XLI4*HLI2
-           MWL(I,J) = 1d3*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
-           GML(I,J) = MWL(I,J)*MAX(TLAKE(I,J),4d0)
-C**** reset GDATA correctly
-c           GDATA(I,J,3) = (HLI(I,J,1)/(XLI1*MLI(I,J,1))+LHM)/SHI
-c           GDATA(I,J,7) = (HLI(I,J,2)/(XLI2*MLI(I,J,1))+LHM)/SHI
-         ELSE
-           TLAKE(I,J)   = 0.
-c           RLI(I,J)   = 0.
-c           MLI(I,J,1:2) = 0.
-c           HLI(I,J,1:4) = 0.
-           MWL(I,J) = 0.
-           GML(I,J) = 0.
-         END IF
-       END DO
-      END DO
+        DO J=2,JM-1
+          DO I=1,IM
+            IF (FLAKE(I,J).gt.0) THEN
+              TLAKE(I,J) = ODATA(I,J,1)
+              MWL(I,J) = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
+              GML(I,J) = MWL(I,J)*MAX(TLAKE(I,J),4d0)
+            ELSE
+              TLAKE(I,J) = 0.
+              MWL(I,J) = 0.
+              GML(I,J) = 0.
+            END IF
+          END DO
+        END DO
       END IF
 C****
 C**** Always initiallise River direction and Rate
@@ -229,7 +201,7 @@ C****
 C**** RIVERF transports lake water from each GCM grid box to its
 C**** downstream neighbor according to the river direction file.
 C****
-      USE CONSTANT, only : shi,lhm,grav,shw
+      USE CONSTANT, only : shi,lhm,grav,shw,rhow
       USE E001M12_COM, only : im,jm,flake,focean,zatmo,hlake
       USE GEOM, only : dxyp
       USE LAKES
@@ -261,7 +233,7 @@ C****
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
 C**** Only overflow if lake mass is above sill height (HLAKE (m))
-            MWLSILL = 1d3*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
+            MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
 C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)
@@ -303,7 +275,7 @@ C****
        FLOW(1,1) =  FLOW(1,1)/IM
       EFLOW(1,1) = EFLOW(1,1)/IM
 C**** Only overflow if lake mass is above sill height (HLAKE (m))
-      MWLSILL = 1d3*HLAKE(1,1)*FLAKE(1,1)*DXYP(1)
+      MWLSILL = RHOW*HLAKE(1,1)*FLAKE(1,1)*DXYP(1)
       IF(MWL(1,1).gt.MWLSILL) THEN
         DMM = (MWL(1,1)-MWLSILL)*RATE(1,1)
 C       DGM = GML(1,1)*DMM/MWL(1,1)
@@ -403,9 +375,10 @@ c     QCHECKL = .TRUE.
       REAL*8 RSINEW
 
       IF (KOCEAN.eq.0) RETURN
+
       IF (IEND.eq.0 .and. ITime.gt.ITimeI) RETURN
-      ZIMIN=.5     ! minimum lake ice thickness
-      ZIMAX=2.     ! maximum lake ice thickness
+      ZIMIN=.5d0                ! minimum lake ice thickness
+      ZIMAX=2d0                 ! maximum lake ice thickness
       T_ICE = -8.  ! surface air temperature for 100% ice cover
       T_NOICE = 0. ! surface air temperature for no ice cover
       byDTMP = 1./(T_ICE-T_NOICE)

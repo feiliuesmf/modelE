@@ -2,17 +2,19 @@
 !@sum  LANDICE contains variables and routines dealing with land ice
 !@auth Original Development Team
 !@ver  1.0
+!@cont PRECLI,LNDICE
       USE CONSTANT, only : lhm,rhoi,shi
       IMPLICIT NONE
 
-      REAL*8, PARAMETER :: Z1E=.1, Z2LI=2.9
-!@var ACE1LI ice mass first layer (kg/m^2)
+!@var Z1E,Z2LI first and second layer thicknesses for land ice
+      REAL*8, PARAMETER :: Z1E=.1d0, Z2LI=2.9d0
+!@var ACE1LI first layer land ice mass (kg/m^2)
       REAL*8, PARAMETER :: ACE1LI = Z1E*RHOI
-!@var HC1LI heat capacity of first layer ice (J/m^2)
+!@var HC1LI heat capacity of first layer land ice (J/m^2)
       REAL*8, PARAMETER :: HC1LI = ACE1LI*SHI
-
-      REAL*8, PARAMETER :: HC1DE = Z1E*1129950.
+!@var ACE2LI second layer land ice mass (kg/m^2)
       REAL*8, PARAMETER :: ACE2LI = Z2LI*RHOI
+!@var HC2LI heat capacity of second layer land ice (J/m^2)
       REAL*8, PARAMETER :: HC2LI = ACE2LI*SHI
 
       CONTAINS
@@ -61,8 +63,8 @@ C**** SNOW INCREASES SNOW AMOUNT AND SNOW TEMPERATURE RECOMPUTES TG1
       SNOW=SNOW+PRCP
       IF (SNOW.gt.ACE1LI) THEN
 C**** SNOW IS COMPACTED INTO ICE, ICE MOVES DOWN THROUGH THE LAYERS
-        DIFS=SNOW-.9*ACE1LI
-        SNOW=.9*ACE1LI
+        DIFS=SNOW-.9d0*ACE1LI
+        SNOW=.9d0*ACE1LI
         EDIFS=DIFS*(TG1*SHI-LHM)
         ERUN2=DIFS*(TG2*SHI-LHM)
         TG2=TG2+(TG1-TG2)*DIFS/ACE2LI
@@ -112,4 +114,17 @@ C**** CALCULATE TG2
 
       END MODULE LANDICE
 
+      MODULE LANDICE_COM
+!@sum  LANDICE_COM contains the model arrays for land ice
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : im,jm
+
+      IMPLICIT NONE
+!@var SNOWLI snow amount on land ice (kg/m^2)
+      REAL*8, DIMENSION(IM,JM) :: SNOWLI
+!@var TLANDI temperature of each land ice layer (C)
+      REAL*8, DIMENSION(IM,JM,2) :: TLANDI
+
+      END MODULE LANDICE_COM
 
