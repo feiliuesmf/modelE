@@ -16,13 +16,13 @@ Major Changes from Model II'
 
 - physical constants all defined in CONSTANT module
 
-- Common blocks repalced with physics-related MODULEs
+- Common blocks replaced with physics-related MODULEs
 
 - Model COMMON BLOCK now E001M12_COM MODULE
 
 - Each physical submodule (ie. ice, snow, ocean, land, land ice,
   clouds,etc.) has it's own fortran MODULE. As far as possible,
-  different modules interact only through fluxes.  
+  different modules interact only through fluxes.
 
 - input/output decentralized to io_PHYS routines for each PHYS submodule
 
@@ -34,14 +34,14 @@ Major Changes from Model II'
 - compiling/linking/setup now under control of an automatic makefile process
 
 - NAMELIST input:
-	   TAU replaced with IYEAR,IDAY,IHOUR
-	   NDPRNT/NDZERO replaced with NIPRNT and NMONAV
-	   DT related varaibles such as NRAD etc, now relate to DTsrc
-	   (=1hour)
-	   SIGE setting replaced with PLTOP (pressure at the top of
-	   the level) - SIGE is now computed.
-	   U00 replaced with U00wtr and U00ice (seperate numbers for
-	   ice and water clouds)
+    TAUI/E replaced with YEARI/E,MONTHI/E,DATEI/E,HOURI/E (alt. IHOURE)
+    NDPRNT/NDZERO replaced with NIPRNT and NMONAV
+    DT related variables such as NRAD etc, now relate to DTsrc
+    (=1hour)
+    SIGE setting replaced with PLTOP (pressure at the top of
+    the level) - SIGE is now computed.
+    U00 replaced with U00wtr and U00ice (separate numbers for
+    ice and water clouds)
 
 - Many errors in diagnostics and in the seaice/Qflux model corrected
 

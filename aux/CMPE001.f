@@ -6,7 +6,7 @@ C****
       PARAMETER (IMH=IM/2, NWD=MIN(IMH,9),
      *     KACC=JM*94*6 + 24*94 +
      *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +IM*JM*29 +
-     *     20*100 + JM*KCON + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*NWD*12 
+     *     20*100 + JM*KCON + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*NWD*12
      *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
@@ -200,7 +200,7 @@ c      else
       DAGPOS=DAGPOS+JM*LM*(NWD+1)*3
       ERRQ=COMP8 ('TSFREZ',IM,JM,4      ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
-      ERRQ=COMP8 ('OA    ',IM,JM,12     ,OA1,OA2)
+      ERRQ=COMP8p('OA    ',IM,JM,12     ,OA1,OA2)
 c      endif
       STOP
 C****

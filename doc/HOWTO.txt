@@ -1,7 +1,7 @@
 HOW-TO document for the GCM
 ===========================
 
-This document outlines how to acheive some common sought results with
+This document outlines how to achieve some commonly sought results with
 the new modelE. Some of the procedures will be the same as previously,
 but it is more likely that the details will have become slightly more
 straightforward (hopefully!). However, due to the modularization that
@@ -23,9 +23,13 @@ diagnostics.
 PART I: Basic user information
 
 1) HOW-TO setup and run the GISS GCM:
+   1a: Generalities
+   1b: How to tune a specified ocean run (using U00wtr)
+   1c: How to set up a Q-flux model with a single ocean layer
+   1d: How to set up a Q-flux model with diffusion into a deep ocean
 2) HOW-TO produce a rundeck
 3) HOW-TO alter NAMELIST INPUT parameters
-4) HOW-TO restart the GCM
+4) HOW-TO stop and restart the GCM
 5) HOW-TO change boundary conditions
 6) HOW-TO change trace gas amounts
 7) HOW-TO have a perpetual winter
@@ -43,7 +47,7 @@ Part II: Getting information from the diagnostics
 3) HOW-TO produce daily/monthly or seasonal diagnostics
 3) HOW-TO produce useful diagnostics from the ACC file
 4) HOW-TO produce netcdf/hdf output
- 
+
 Part III: The model code
 
 1) HOW-TO find where a variable is defined
@@ -55,25 +59,49 @@ Part III: The model code
 7) HOW-TO add functionality - C: introducing a new NAMELIST parameter
 8) HOW-TO add functionality - D: adding new diagnostics
 9) HOW-TO read in an external file
-10) HOW-TO add new variabiles to the restart files
+10) HOW-TO add new variables to the restart files
 11) HOW-TO access variables that are already calculated somewhere else
 12) HOW-TO deal with the inevitable bugs you introduce
 13) HOW-TO get an innovation included in everybody's versions
-	 
+
 =====================================================================
 
 Part I: Basic user tasks
 
 1) HOW-TO setup and run the GISS GCM:
+   1a:
+   1b: It is desirable to run a specified ocean model in such a way that
+       it is in radiative balance, i.e. that the net flux of energy into
+       the ocean (which has no effect, since ocean data are specified)
+       is zero if averaged over a whole year. One way to approx. achieve
+       this goal is to choose the right value for U00wtr. That parameter
+       influences the cloud formation where the temperature is above 0C
+       and can therefore be used to change the radiative balance.
 
 
 2) HOW-TO produce a rundeck
 
 
 3) HOW-TO alter NAMELIST parameters
+   Namelist parameters use their default values unless they are
+   specified in the rundeck between the lines &INPUTZ and &END .
 
+   To start a run, the following parameters have to be explicitly
+   set: ISTART=2 | 7 or 8 to start from obs | model Initial State
+        PLTOP(L) = pressure (mb) at top of layer L (L=1,...,LM)
+        YEARI    = year in which model starts
+        YEARE (or IHOURE) = year (or hour) at which model stops
+        XCDLM = 5e-4,5e-5 (those should be the defaults)
 
-4) HOW-TO restart the GCM
+   After a run is started, some parameters may be changed during
+   the run by    1:    editing the file 'I' in the run directory,
+                 2:    stopping and restarting the run.
+   (Often, those changes should also be made or noted in the rundeck).
+
+   For a list and explanation of all parameters see
+   /u/exec/docE/NLparams.txt.
+
+4) HOW-TO stop and restart the GCM
 
 
 5) HOW-TO change boundary conditions
@@ -150,17 +178,17 @@ You will have noticed that modelE has multiple documentation
 directives such as !@var or !@sum. These are key words that can be
 read by a script and turned into useful documentation. Each
 subroutine, and each important variable should have such a declaration
-(which should indclude a definiton, units, etc.). The utility 'gcmdoc'
+(which should include a definition, units, etc.). The utility 'gcmdoc'
 makes html output from a rundeck containing (and sorting out) all this
 information. The various directives are all defined in the main model
 common block. If you introduce new variables or subroutines, you MUST
-define similar documentation.  
+define similar documentation.
 
 4) HOW-TO ensure that your code meets the new standards
 
 Please check the document "Coding standards for ModelE" and try to
 conform as nearly as possible to the (not very onerous)
-conditions. Unfortunatley, we do not have anybody whose job it is to
+conditions. Unfortunately, we do not have anybody whose job it is to
 make sure that added code conforms. However, every time this happens
 it makes it harder to keep the model consistent, and leads to the
 creation of unnecessary complications in keeping things straight.
@@ -190,7 +218,7 @@ Q9 for details.
 8) HOW-TO add functionality - D: adding new diagnostics
 
 The diagnostic system that the GCM uses is very sophisticated and is
-almost certainly sufficient fro any new need for diagnostics that
+almost certainly sufficient for any new need for diagnostics that
 arises. However, it can seem complex and difficult to use. As
 improvements in ease of use occur, it will get easier to modify.
 
@@ -202,8 +230,8 @@ write a routine that returns the zonally averaged quantity in
 question. Secondly, in the 'init' subroutine for the relevant physical
 module, insert a call to 'SET_CON' this sets up the points at which
 the diagnostic is called, and how it is output. (see init_DIAG for
-more detailed instructions). Thridly, you must increase NQUANT by 1,
-and KCON by 2+number of points at which you are saving the value. 
+more detailed instructions). Thirdly, you must increase NQUANT by 1,
+and KCON by 2+number of points at which you are saving the value.
 
 Other diagnostics will be explained if and when I work them out.
 
@@ -222,7 +250,7 @@ gave it. ie.
      INTEGER iu_trc1
      ....
      call getunit("TRSRC",iu_trc1,.TRUE.,.TRUE.)
-     READ(iu_trc1) DATA1,DATA2.... 
+     READ(iu_trc1) DATA1,DATA2....
 
 The first logical variable argument is true if the file is to be
 opened for unformatted (binary) read/write, .FALSE. for ASCII
@@ -230,13 +258,13 @@ input. The second logical variable denotes whether this is an already
 existing file or not. The line in the rundeck should look something
 like (depending on the filename of course):
 
-TRSRC=tracer_sources.1970_1980.dat 
+TRSRC=tracer_sources.1970_1980.dat
 
 The setup script looks automatically in /u/cmrun, /u/raid and in the
 current directory. If the file is elsewhere an absolute or relative
 pathname is needed.
- 
-10) HOW-TO add new variabiles to the restart files
+
+10) HOW-TO add new variables to the restart files
 
 Each module now has only one place that needs to be changed to
 accomodate extra variables in the rsf files: io_xyz (where xyz is a
@@ -246,12 +274,12 @@ variable, simply add it to the list of variables for both the read and
 the write statements. Note that you MUST change the MODULE_HEADER
 character string if you change what is in the rsf (ie. increment the
 number by 1 each time you do this). This is necessary to ensure that
-we can distinguish various versions. 
+we can distinguish various versions.
 
 There are some complications for variables that can be set in the
-NAMELIST, namely, you must decide who how this variable gets set as a
+NAMELIST, namely, you must decide how this variable gets set as a
 function of the initialisation method. Look at io_rad as an example to
-follow.  
+follow.
 
 10) HOW-TO access variables that are already calculated somewhere else
 
@@ -261,9 +289,9 @@ do not assume anything about where in memory variables are kept, many
 of the problems associated with common blocks are alleviated. In order
 to make use of a variable from somewhere else in the code, that
 variable must be in the relevant MODULE (usually called PHYS_COM, for
-ease of remembering). Then in the routine of module where you wish to
-use it you must specifically declare what you want using the USE
-statement. For clarity, we are insiting upon using 'USE, only' so
+ease of remembering). Then in the routine of the module where you wish  
+to use it you must specifically declare what you want using the USE
+statement. For clarity, we are insisting upon using 'USE, only' so
 that each variable that you require is explicitly declared, ie.
 
     USE PHYS_COM, only : var1,var2
