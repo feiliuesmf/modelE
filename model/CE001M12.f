@@ -64,9 +64,10 @@ C**** Subsid only works on non-plume portion of column (properly!)
       IMPLICIT NONE
 
       REAL*8 LHX,MPLUME,MCLOUD,MPMAX,MPO
-      INTEGER, DIMENSION(2*IM) :: ID    !@var ID 
-      REAL*8, DIMENSION(2*IM) :: RA,UMP,UMDN,UMPO  !@var
-      REAL*8, DIMENSION(2*IM,LM) :: UM,DUM !@var DUM
+      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
+      REAL*8, DIMENSION(IM) :: UMP,VMP,UMDN,VMDN,UMPO,VMPO  !@var
+      REAL*8, DIMENSION(IM) :: RA !@var
+      REAL*8, DIMENSION(IM,LM) :: UM,VM,U_0,V_0,DUM,DVM !@var
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM
       REAL*8, DIMENSION(LM+1) :: PLE    !@var PLE
 !@var Miscellaneous vertical arrays
@@ -225,11 +226,11 @@ C****
       POCEAN=(1.-PLAND)-POICE
 c      PLICE=FLICE(I,J)     !*PLAND
       PEARTH=FEARTH(I,J)   !PLAND-PLICE
-
       DO K=1,KMAX
-         RA(K)=RAIJ(K,I,J)
-         ID(K)=IDIJ(K,I,J)
-      END DO
+         RA(K)=RAJ(K,J)
+         IDI(K)=IDIJ(K,I,J)
+         IDJ(K)=IDJJ(K,J)
+      ENDDO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PIJ=P(I,J)
       DO 150 L=1,LM
@@ -275,11 +276,16 @@ c      QL(L)=Q(I,J,L)
          AJ8(L)=0.
       SM1(L)=SM(L)
       QM1(L)=QM(L)
-C**** SURROUNDING WINDS
-      DO K=1,KMAX
-         UM(K,L)=UC(ID(K),1,L)*AIRM(L)
-      END DO
   150 CONTINUE
+C**** SURROUNDING WINDS
+      DO L=1,LM
+         DO K=1,KMAX
+            U_0(K,L) = UC(IDI(K),IDJ(K),L)
+            V_0(K,L) = VC(IDI(K),IDJ(K),L)
+            UM(K,L) = U_0(K,L)*AIRM(L)
+            VM(K,L) = V_0(K,L)*AIRM(L)
+         ENDDO
+      ENDDO
       ETAL(LM)=ETAL(LM-1)
 c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
       PLE(LM+1)=PEDN(LM+1,I,J)
@@ -409,10 +415,9 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
         CDHEAT(L)=0.
         DM(L)=0.
         DMR(L)=0.
-        DO K=1,KMAX
-          DUM(K,L)=0.
-        END DO
       END DO
+      DUM(1:KMAX,:)=0.
+      DVM(1:KMAX,:)=0.
       DO L=1,40*LM
         DMALL(L) = 0.
       END DO
@@ -463,10 +468,12 @@ C     FPLUM0=FMP1*BYAM(LMIN)
       DQZZMR(LMIN)=-QZZMOLD(LMIN)*FPLUME
       DQYZMR(LMIN)=-QYZMOLD(LMIN)*FPLUME
       DQZXMR(LMIN)=-QZXMOLD(LMIN)*FPLUME
-      DO K=1,KMAX
-         UMP(K)=UM(K,LMIN)*FPLUME
-         DUM(K,LMIN)=-UMP(K)
-      END DO
+      DO K=1,KMAX !vref
+         UMP(K)=UM(K,LMIN)*FPLUME !vref
+         DUM(K,LMIN)=-UMP(K) !vref
+         VMP(K)=VM(K,LMIN)*FPLUME !vref
+         DVM(K,LMIN)=-VMP(K) !vref
+      ENDDO !vref
 C****
 C**** RAISE THE PLUME TO THE TOP OF CONVECTION AND CALCULATE
 C**** ENTRAINMENT, CONDENSATION, AND SECONDARY MIXING
@@ -511,9 +518,10 @@ C****
       SMPO =SMP
       QMPO =QMP
       MPO = MPLUME
-      DO K=1,KMAX
-         UMPO(K)=UMP(K)
-      END DO
+      DO K=1,KMAX !vref
+         UMPO(K)=UMP(K) !vref
+         VMPO(K)=VMP(K) !vref
+      ENDDO !vref
 C     IF(MPLUME.GT.AIRM(L)) THEN
       IF(MPLUME.GT..95*AIRM(L)) THEN
 C     DELTA=(MPLUME-AIRM(L))/MPLUME
@@ -522,9 +530,10 @@ C     DELTA=(MPLUME-AIRM(L))/MPLUME
       QMP = QMP  *(1.-DELTA)
 C     MPLUME=AIRM(L)
       MPLUME=.95*AIRM(L)
-      DO K=1,KMAX
-         UMP(K)=UMP(K)-UMP(K)*DELTA
-      END DO
+      DO K=1,KMAX !vref
+         UMP(K)=UMP(K)-UMP(K)*DELTA !vref
+         VMP(K)=VMP(K)-VMP(K)*DELTA !vref
+      ENDDO !vref
       END IF
 C****
 C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
@@ -569,9 +578,10 @@ c      QMP = QMP *(1.-DELTA)     ! already set above
       QXXMP=QXXMP*(1.-DELTA)
       QYYMP=QYYMP*(1.-DELTA)
       QXYMP=QXYMP*(1.-DELTA)
-      DO K=1,KMAX
-        DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA
-      END DO
+      DO K=1,KMAX !vref
+         DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA !vref
+         DVM(K,L-1)=DVM(K,L-1)+VMPO(K)*DELTA !vref
+      ENDDO !vref
 C****
 C**** ENTRAINMENT
 C****
@@ -620,11 +630,12 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       QXXMP=QXXMP+QXXM(L)*FENTRA
       QYYMP=QYYMP+QYYM(L)*FENTRA
       QXYMP=QXYMP+QXYM(L)*FENTRA
-      DO K=1,KMAX
-         TEMP=UC(ID(K),1,L)*EPLUME
-         UMP(K)=UMP(K)+TEMP
-         DUM(K,L)=DUM(K,L)-TEMP
-      END DO
+      DO K=1,KMAX !vref
+         UMP(K)=UMP(K)+U_0(K,L)*EPLUME !vref
+         DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME !vref
+         VMP(K)=VMP(K)+V_0(K,L)*EPLUME !vref
+         DVM(K,L)=DVM(K,L)-V_0(K,L)*EPLUME !vref
+      ENDDO !vref
       END IF
 C****
 C**** CHECK THE DOWNDRAFT POSSIBILITY
@@ -692,11 +703,14 @@ C     IF(DMMIX.LT.1.E-10) GO TO 291
       DQXYMR(L)=DQXYMR(L) - QXYM(L)*FDDL
       DQYZMR(L)=DQYZMR(L) - QYZM(L)*FDDL
       DQZXMR(L)=DQZXMR(L) - QZXM(L)*FDDL
-      DO K=1,KMAX
-         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*UC(ID(K),1,L))
-         UMP(K)=UMP(K)*FLEFT
-         DUM(K,L)=DUM(K,L)-.5*DDRAFT*UC(ID(K),1,L)
-      END DO
+      DO K=1,KMAX !vref
+         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L)) !vref
+         UMP(K)=UMP(K)*FLEFT !vref
+         DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L) !vref
+         VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L)) !vref
+         VMP(K)=VMP(K)*FLEFT !vref
+         DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L) !vref
+      ENDDO !vref
 c         TMIX=SMIX*PLK(L)
 c         HMIX=SHA*TMIX+LHE*QMIX
 c         TENV=SUP*PLK(L)
@@ -776,9 +790,10 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       DQYYM(LMAX)=DQYYM(LMAX) + QYYMPMAX
       DQXYM(LMAX)=DQXYM(LMAX) + QXYMPMAX
       CCM(LMAX)=0.
-      DO K=1,KMAX
-         DUM(K,LMAX)=DUM(K,LMAX)+UMP(K)
-      END DO
+      DO K=1,KMAX !vref
+         DUM(K,LMAX)=DUM(K,LMAX)+UMP(K) !vref
+         DVM(K,LMAX)=DVM(K,LMAX)+VMP(K) !vref
+      ENDDO !vref
       CDHM=0.
       IF(MINLVL.GT.LMIN) MINLVL=LMIN
       IF(MAXLVL.LT.LMAX) MAXLVL=LMAX
@@ -851,9 +866,10 @@ c     *  I5,7E12.4)
       DQXXM(LMIN)=DQXXM(LMIN) + QXXMDN
       DQYYM(LMIN)=DQYYM(LMIN) + QYYMDN
       DQXYM(LMIN)=DQXYM(LMIN) + QXYMDN
-      DO K=1,KMAX
-         DUM(K,LMIN)=DUM(K,LMIN)+UMDN(K)
-      END DO
+      DO K=1,KMAX !vref
+      DUM(K,LMIN)=DUM(K,LMIN)+UMDN(K) !vref
+      DVM(K,LMIN)=DVM(K,LMIN)+VMDN(K) !vref
+      ENDDO !vref
       DM(LMIN)=DM(LMIN)+DDRAFT
       END IF
 C****
@@ -892,9 +908,10 @@ c   *           COND(L))
 c       AJ57(L)=AJ57(L)+SLHE*(-ALPHA*QM(L)+BETA*QM(L+1)+DQM(L))
 c     SM(L)=SM(L)*(1.-ALPHA)+BETA*SM(L+1)+DSM(L)
 c     QM(L)=QM(L)*(1.-ALPHA)+BETA*QM(L+1)+DQM(L)
-      DO K=1,KMAX
-        UM(K,L)=UM(K,L)+(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L))*RA(K)
-      END DO
+      DO K=1,KMAX !vref
+       UM(K,L)=UM(K,L)+RA(K)*(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L)) !vref
+       VM(K,L)=VM(K,L)+RA(K)*(-ALPHA*VM(K,L)+BETA*VM(K,L+1)+DVM(K,L)) !vref
+      ENDDO !vref
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       DO L = LMIN,LMAX
@@ -1150,9 +1167,12 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
 C**** UPDATE THE MODEL WINDS
       DO L=LMCMIN,LMCMAX
          DO K=1,KMAX
-            U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
-         END DO
-      END DO
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &           +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
+         ENDDO
+      ENDDO
 C**** UPDATE MODEL TEMPERATURE, SPECIFIC HUMIDITY AND PRECIPITATION
 C**** CAL. OPTICAL THICKNESS
       PREC(I,J)=PRCPMC*100.*BYGRAV
@@ -1241,9 +1261,10 @@ C**** ADD IN CHANGE OF ANG. MOMENTUM BY MOIST CONVECTION FOR DIAGNOSTIC
       IMPLICIT NONE
 
       REAL*8 LHX,LHXUP
-      INTEGER, DIMENSION(2*IM) :: ID    !@var ID 
-      REAL*8, DIMENSION(2*IM) :: RA,UMO1,UMO2,UMN1,UMN2  !@var
-      REAL*8, DIMENSION(2*IM,LM) :: UM !@var UM
+      INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
+      REAL*8, DIMENSION(IM) :: RA  !@var
+      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2,VMO1,VMO2,VMN1,VMN2 !@var
+      REAL*8, DIMENSION(IM,LM) :: UM,VM !@var
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
      *     PL,PLK,TL,QL,TH,QSATL,RHF,RH,RH1,AQ,ATH,DPDT,WMX,SQ,ER,QHEAT,
@@ -1314,11 +1335,11 @@ C****
 c      PLICE=FLICE(I,J)     !*PLAND
       PEARTH=FEARTH(I,J)   !PLAND-PLICE
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
-
       DO K=1,KMAX
-         RA(K)=RAIJ(K,I,J)
-         ID(K)=IDIJ(K,I,J)
-      END DO
+         RA(K)=RAJ(K,J)
+         IDI(K)=IDIJ(K,I,J)
+         IDJ(K)=IDJJ(K,J)
+      ENDDO
 C**** DETERMINE THE TOP OF PBL, LPBL
       LPBL=1
 C     DO 160 L=1,2
@@ -1383,11 +1404,14 @@ C****
       PREP(L)=0.
       PREBAR(L)=0.
       QHEAT(L)=0.
-C**** SURROUNDING WINDS
-      DO K=1,KMAX
-         UM(K,L)=UC(ID(K),1,L)*AIRM(L)
-      END DO
   226 CONTINUE
+C**** SURROUNDING WINDS
+      DO L=1,LM
+         DO K=1,KMAX
+            UM(K,L) = UC(IDI(K),IDJ(K),L)*AIRM(L)
+            VM(K,L) = VC(IDI(K),IDJ(K),L)*AIRM(L)
+         ENDDO
+      ENDDO
       DQUP=0.
       LHXUP=LHE
       PREBAR(LM+1)=0.
@@ -1720,10 +1744,12 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       SMO2=SM(L+1)
       QMO2=QM(L+1)
       WMO2=WMXM(L+1)
-      DO K=1,KMAX
-         UMO1(K)=UM(K,L)
-         UMO2(K)=UM(K,L+1)
-      END DO
+      DO K=1,KMAX !vref
+         UMO1(K)=UM(K,L) !vref
+         VMO1(K)=VM(K,L) !vref
+         UMO2(K)=UM(K,L+1) !vref
+         VMO2(K)=VM(K,L+1) !vref
+      ENDDO !vref
       FPLUME=FPMAX
       DFX=FPMAX
       DO 320 ITER=1,9
@@ -1776,12 +1802,16 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
      *     FMASS*AIRMR,FMIX,FRAT,LM)
       CALL CTMIX (QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM,L,
      *     FMASS*AIRMR,FMIX,FRAT,LM)
-      DO K=1,KMAX
-         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
-         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
-         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
-         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
-      END DO
+      DO K=1,KMAX !vref
+         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K)) !vref
+         VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K)) !vref
+         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K)) !vref
+         VMN2(K)=(VMO2(K)*(1.-FRAT)+FMIX*VMO1(K)) !vref
+         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K) !vref
+         VM(K,L)=VM(K,L)+(VMN1(K)-VMO1(K))*RA(K) !vref
+         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K) !vref
+         VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K) !vref
+      ENDDO !vref
          QNEW=QL(L)
          QNEWU=QL(L+1)
 C**** RE-EVAPORATION OF LWC IN THE UPPER LAYER
@@ -1899,9 +1929,12 @@ C**** update moment changes
 C**** UPDATE MODEL WINDS
       DO L=1,LM
          DO K=1,KMAX
-            U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
-         END DO
-      END DO
+            U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
+     &           +(UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
+            V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
+     &           +(VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
+         ENDDO
+      ENDDO
   700 IM1=I
 C**** END OF MAIN LOOP FOR INDEX I
   710 CONTINUE
