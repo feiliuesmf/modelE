@@ -2045,13 +2045,11 @@ C****
 C form title string
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
-      titleo=title
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
          title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
       endif
-      TITLEO=TITLEO//XLB
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
@@ -2078,7 +2076,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
       AHEML(JHEMI)=0.
       DO 120 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
       FLAT(J)=CX(J,K)/(DPJK(J,K,J1)+1.D-20)
-         XJL(J,K) = FLAT(J)
+         XJL(J,K) = FLAT(J)*PRTFAC
       FLAT(J)=FLAT(J)*PRTFAC
          IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
       MLAT(J)=NINT(FLAT(J))
@@ -2122,9 +2120,9 @@ C**** VERTICAL SUMS
          ahem(jhemi) = ahem(jhemi)/sum(dphem(jhemi,:,j1))
       enddo
       aglob = aglob/sum(dpglob(:,j1))
-         XJL(JM+3,LM+LM_REQ+1)=AHEM(1)   ! SOUTHERN HEM
-         XJL(JM+2,LM+LM_REQ+1)=AHEM(2)   ! NORTHERN HEM
-         XJL(JM+1,LM+LM_REQ+1)=AGLOB     ! GLOBAL
+         XJL(JM+3,LM+LM_REQ+1)=AHEM(1)/SUMFAC   ! SOUTHERN HEM
+         XJL(JM+2,LM+LM_REQ+1)=AHEM(2)/SUMFAC   ! NORTHERN HEM
+         XJL(JM+1,LM+LM_REQ+1)=AGLOB/SUMFAC     ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE//XLB
          IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
@@ -2240,13 +2238,11 @@ C****
 C form title string
       PRTFAC = 10.**(-pow10p)
       title = trim(lname)//' ('//trim(units)//')'
-      titleo=title
       if(pow10p.ne.0) then
          write(tpow,'(i3)') pow10p
          tpow='10**'//trim(adjustl(tpow))
          title = trim(lname)//' ('//trim(tpow)//' '//trim(units)//')'
       endif
-      TITLEO=TITLEO//XLB
 C****
 C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
@@ -2280,7 +2276,7 @@ C****
       FHEM(JHEMI)=0.
       DO 120 J=JRANGE_HEMI(1,JHEMI,J1),JRANGE_HEMI(2,JHEMI,J1)
       FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
-         XJL(J,L) = FLAT(J)
+         XJL(J,L) = FLAT(J)   *PRTFAC
       FLAT(J)=FLAT(J)*PRTFAC
       ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
   120 FHEM(JHEMI)=FHEM(JHEMI)+FLAT(J)*WTJ(J,JWT,J1)
@@ -2298,10 +2294,11 @@ C****
       ASUM(jmby2+1)=ASUM(jmby2+1)/J1
          DO 180 J=J1,JM
   180    XJL(J   ,LM+LM_REQ+1)=ASUM(J)
-         XJL(JM+3,LM+LM_REQ+1)=HSUM(1)   ! SOUTHERN HEM
-         XJL(JM+2,LM+LM_REQ+1)=HSUM(2)   ! NORTHERN HEM
-         XJL(JM+1,LM+LM_REQ+1)=GSUM      ! GLOBAL
+         XJL(JM+3,LM+LM_REQ+1)=HSUM(1)/SUMFAC   ! SOUTHERN HEM
+         XJL(JM+2,LM+LM_REQ+1)=HSUM(2)/SUMFAC   ! NORTHERN HEM
+         XJL(JM+1,LM+LM_REQ+1)=GSUM/SUMFAC      ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
+         TITLEO=TITLE//XLB
          IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
       if(  sname.eq.'phi_amp_wave1' .or.
