@@ -590,7 +590,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
 C     Layer  1    2    3    4    5    6    7    8    9
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
-      real*4 TDUST(72,46,9,8,13)
+      real*4 TDUST(72,46,9,8,12)
       real*8 DDJDAY(9,8,72,46)
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
@@ -1391,6 +1391,49 @@ C                            -------------------------------------------
       N1=N2+1
   328 CONTINUE
 
+C         Mie scattering Qext,Cosb tables (Nr=1.30-1.60),(Reff=0.0-15.0)
+C         used for hygroscopic aerosol relative humidity size dependence
+C         -------skip over these data, they are no longer needed--------
+
+      READ (NRFU,3014)           ! (XNR(J),J=1,7)
+ 3014 FORMAT(13X,F5.3,12F9.3)
+      DO 331 I=1,183
+      READ (NRFU,3015)           ! J,SIZENR(I),(QEXTNR(I,J),J=1,7)
+ 3015 FORMAT(I3,F6.2,13F9.5)
+  331 CONTINUE
+      READ (NRFU,3014)           ! (XNR(J),J=8,13)
+      DO 332 I=1,183
+      READ (NRFU,3015)           ! J,SIZENR(I),(QEXTNR(I,J),J=8,13)
+  332 CONTINUE
+      READ (NRFU,3014)           ! (XNR(J),J=1,7)
+      DO 333 I=1,183
+      READ (NRFU,3015)           ! J,SIZENR(I),(COSBNR(I,J),J=1,7)
+  333 CONTINUE
+      READ (NRFU,3014)           ! (XNR(J),J=8,13)
+      DO 334 I=1,183
+      READ (NRFU,3015)           ! J,SIZENR(I),(COSBNR(I,J),J=8,13)
+  334 CONTINUE
+
+C                        Sinyuk Desert Dust 25 sizes, Mie parameter data
+C                        -----------------------------------------------
+
+      DO 347 N=1,25
+      READ (NRFU,3001) (SRDQEX(K,N),K=1,6)
+      READ (NRFU,3001) (SRDQSC(K,N),K=1,6)
+      READ (NRFU,3001) (SRDQCB(K,N),K=1,6)
+  347 CONTINUE
+      READ (NRFU,3008) (Q55D25(N),N=1,25)
+      READ (NRFU,3009) (REFD25(N),N=1,25)
+      READ (NRFU,3010) (VEFD25(N),N=1,25)
+      DO 348 N=1,25
+      READ (NRFU,3000) TITLE
+      READ (NRFU,3004) (TRDQEX(K,N),K=1,33)
+      READ (NRFU,3005) (TRDQSC(K,N),K=1,33)
+      READ (NRFU,3005) (TRDQCB(K,N),K=1,33)
+      READ (NRFU,3005) (TRDQAL(K,N),K=1,33)
+  348 CONTINUE
+
+      TRDQAB(:,:)=TRDQEX(:,:)-TRDQSC(:,:)  !  used in writer only
 
 C-----------------------------------------------------------------------
 CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
@@ -3710,8 +3753,8 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
 
       IF(JYEARA.GT.1850) THEN                           !   (JYEAR>1850)
       WTANI=GLOPOP(JYEARA)
-      WTOCB=(JYEARA-1850)/140.D0
-      WTBCB=(JYEARA-1850)/140.D0
+      WTOCB=min( 1d0 , (JYEARA-1850)/140.D0 )
+      WTBCB=min( 1d0 , (JYEARA-1850)/140.D0 )
       DO 124 M=1,12              !  Add time dependent JYEAR ANI,OCB,BCB
       DO 123 L=1,9
       DO 122 J=1,46
@@ -3727,8 +3770,8 @@ C     Begin current A6YEAR  with 1850 Background SO4,SEA,ANT,OCX,BCI,BCB
   123 CONTINUE
   124 CONTINUE
       WTANI=GLOPOP(JYEARA-1)
-      WTOCB=(JYEARA-1851)/140.D0
-      WTBCB=(JYEARA-1851)/140.D0
+      WTOCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
+      WTBCB=min( 139/140d0 , (JYEARA-1851)/140.D0 )
       M=12
       DO 127 L=1,9    !  Add time dependent JYEAR-1 ANI,OCB,BCB Dec data
       DO 126 J=1,46
@@ -3920,7 +3963,7 @@ C--------------------------------
 C--------------------------------
 
 C     ------------------------------------------------------------------
-C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,13) read in in RCOMP1
+C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,12) read in in RCOMP1
 C
 C      DDJDAY is interpolated daily from  TDUST seasonal data via JJDAYD
 C      -----------------------------------------------------------------
@@ -3979,12 +4022,14 @@ C                              ----------------------------------------
 
       DO 270 L=1,NL
       DO 260 K=1,6
+      SRDGQL=0.
       DO 250 N=1,8
       SRDEXT(L,K)=SRDEXT(L,K)+QXDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
       SRDSCT(L,K)=SRDSCT(L,K)+QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDGQL     =QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
+      SRDGQL     =SRDGQL +
+     +            QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
   250 CONTINUE
+      SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
   260 CONTINUE
   270 CONTINUE
 
@@ -4700,11 +4745,11 @@ C                             XTRUP,XTU0,XTRDN,XTD0,CXUCO2,CXUO3
 C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
 C     ----------------------------------------------------------
 
-C     To achieve an acceptable amount of forcing, the thermal effects of
-C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by xxgas: H2O    CO2   O3
+C     To achieve a particular amount of forcing, the amounts of
+C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by xxgas  H2O    CO2   O3
       REAL*8, PARAMETER, dimension(13) :: xxgas = (/ 1d0, .75d0, 1d0,
 C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
-     *  1d0, 1d0, 1d0, .65d0,  1.5d0,  1.1d0, 1d0, 1.5d0,  1d0, 1d0/)
+     *  1d0, 1d0, 1d0, .65d0,  1.5d0,  1.1d0, 1d0, 1.5d0,  1d0,  1d0/)
 
       INTEGER, PARAMETER :: NTX=8, NPX=19, NGUX=1008, NPUX=19, NPU2=14,
      *     NPU=5
@@ -5460,44 +5505,50 @@ C                     --------------------------------------------------
       TAUCG=10.D0*TAUAG
 
        IF(IMOL.EQ.3.AND.PLBN.GT.500.D0) THEN
-       IF(TAUAG.GT.0.05D0.AND.TAUAG.LT.0.25D0) THEN
-      F=23.71D0*TAUAG**2-7.06D0*TAUAG+1.266D0
+       IF(TAUAG.GT..05D0.AND.TAUAG.LT..25D0) THEN
+      F=23.71D0*TAUAG**2-7.113D0*TAUAG+1.296D0
       TAUBG=TAUBG*F
       GO TO 221
        ENDIF
        ENDIF
 
-      IF(TAUAG.GT.0.1) THEN
+      IF(TAUAG.GT..1D0) THEN
          IF(IMOL.EQ.1) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.75D0
-      IF(TAUAG.LT.3.D0) F=0.92D0-0.053D0*TAUAG
+      F=.761D0
+      IF(TAUAG.LT.3.D0) F=.92D0-.053D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.091D0-.906D0*TAUAG
       TAUBG=TAUBG*F
          ELSE
-      F=0.70D0
-      IF(TAUAG.LT.2.5D0) F=0.90D0-0.073D0*TAUAG
+      F=.718D0
+      IF(TAUAG.LT.2.5D0) F=.90D0-.073D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.115D0-1.146D0*TAUAG
       TAUBG=TAUBG*F
       ENDIF
       ENDIF
          IF(IMOL.EQ.2) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.58D0
-      IF(TAUAG.LT.3.5D0) F=0.93D0-0.097D0*TAUAG
+      F=.590D0
+      IF(TAUAG.LT.3.5D0) F=.93D0-.097D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.089D0-.894D0*TAUAG
       TAUBG=TAUBG*F
          ELSE
-      F=0.70D0
-      IF(TAUAG.LT.3.5D0) F=0.92D0-0.062D0*TAUAG
+      F=.703D0
+      IF(TAUAG.LT.3.5D0) F=.92D0-.062D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.092D0-.924D0*TAUAG
       TAUBG=TAUBG*F
       ENDIF
       ENDIF
          IF(IMOL.EQ.3) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.95D0
-      IF(TAUAG.LT.0.5D0) F=0.99D0-0.016D0*TAUAG
+      F=.982D0
+      IF(TAUAG.LT..5D0) F=.99D0-.016D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.013D0-.132D0*TAUAG
       TAUBG=TAUBG*F
          ELSE
-      F=0.75D0
-      IF(TAUAG.LT.3.7D0) F=0.97D0-0.060D0*TAUAG
+      F=.748D0
+      IF(TAUAG.LT.3.7D0) F=.97D0-.060D0*TAUAG
+      IF(TAUAG.LT..2D0) F=1.042D0-.420D0*TAUAG
       TAUBG=TAUBG*F
       ENDIF
       ENDIF
@@ -5508,44 +5559,50 @@ C                     --------------------------------------------------
   221 CONTINUE
 
        IF(IMOL.EQ.3.AND.PLBN.GT.500.D0) THEN
-       IF(TAUAG.GT.0.01D0.AND.TAUAG.LT.0.25D0) THEN
-      F=26.14D0*TAUAG**2-6.93D0*TAUAG+1.0567D0
+       IF(TAUAG.GT..01D0.AND.TAUAG.LT..25D0) THEN
+      F=26.14D0*TAUAG**2-6.796D0*TAUAG+1.065D0
       TAUCG=TAUCG*F
       GO TO 222
        ENDIF
        ENDIF
 
-      IF(TAUAG.GT.0.01D0) THEN
+      IF(TAUAG.GT..01D0) THEN
          IF(IMOL.EQ.1) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.65D0
-      IF(TAUAG.LT.0.37D0) F=0.96D0-0.67D0*TAUAG
+      F=.712D0
+      IF(TAUAG.LT..37D0) F=.96D0-.67D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.053D0-5.34D0*TAUAG
       TAUCG=TAUCG*F
          ELSE
-      F=0.50D0
-      IF(TAUAG.LT.0.47D0) F=0.87D0-0.71D0*TAUAG
+      F=.536D0
+      IF(TAUAG.LT..47D0) F=.87D0-.71D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.144D0-14.42D0*TAUAG
       TAUCG=TAUCG*F
       ENDIF
       ENDIF
          IF(IMOL.EQ.2) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.50D0
-      IF(TAUAG.LT.0.75D0) F=0.95D0-0.32D0*TAUAG
+      F=.710D0
+      IF(TAUAG.LT..75D0) F=.95D0-.32D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.056D0-5.64D0*TAUAG
       TAUCG=TAUCG*F
          ELSE
-      F=0.50D0
-      IF(TAUAG.LT.0.70D0) F=0.90D0-0.59D0*TAUAG
+      F=.487D0
+      IF(TAUAG.LT..70D0) F=.90D0-.59D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.112D0-11.18D0*TAUAG
       TAUCG=TAUCG*F
       ENDIF
       ENDIF
          IF(IMOL.EQ.3) THEN
          IF(PLBN.GT.250.D0) THEN
-      F=0.95D0
-      IF(TAUAG.LT.0.5D0) F=0.98D0-0.039D0*TAUAG
+      F=.961D0
+      IF(TAUAG.LT..5D0) F=.98D0-.039D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.021D0-2.08D0*TAUAG
       TAUCG=TAUCG*F
          ELSE
-      F=0.75
-      IF(TAUAG.LT.0.70D0) F=0.98D0-0.29D0*TAUAG
+      F=.777D0
+      IF(TAUAG.LT..70D0) F=.98D0-.29D0*TAUAG
+      IF(TAUAG.LT..02D0) F=1.026D0-2.58D0*TAUAG
       TAUCG=TAUCG*F
       ENDIF
       ENDIF
@@ -7594,9 +7651,9 @@ cc    AREFF=REFDRY(NA)
       QSAERN(N)=SRDQSC(K,N)
       QGAERN(N)=SRDQCB(K,N)
   131 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
+      CALL SPLINE(REFD25,QXAERN,25,AREFF,SQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFD25,QSAERN,25,AREFF,SQSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFD25,QGAERN,25,AREFF,SQCB(K),1.D0,1.D0,1)
   132 CONTINUE
       DO 134 K=1,33
       DO 133 N=1,25
@@ -7604,8 +7661,8 @@ cc    AREFF=REFDRY(NA)
       QSAERN(N)=TRDQSC(K,N)
       QGAERN(N)=TRDQCB(K,N)
   133 CONTINUE
-      CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
-      CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
+      CALL SPLINE(REFD25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
+      CALL SPLINE(REFD25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
       TQAB(K)=TQEX(K)-TQSC(K)
   134 CONTINUE
       CALL SPLINE(REFD25,Q55D25,25,AREFF,Q55,1.D0,1.D0,1)
@@ -12767,11 +12824,11 @@ C     functions
 
       !        Organic Carbon - adapted from Sulfate parametric formulas
       !        yields growth factor G=1.1 at RH=0.84 Virkkula et al 1999
-      AWOCX(X)=AWSO4(X)**0.5D0
-      DWOCX(X)=0.5D0/AWSO4(X)**0.5D0*DWSO4(X)
-      ROOCX(X)=ROSO4(X)*(1.0-X*(1.760-1.650)/1.760)
-      BXOCX(X)=BXSO4(X)**0.3D0
-      RXOCX(X)=1.3330+(RXSO4(X)-1.3330)*1.33
+      AWOCX(X)=1d0-X**8D0
+      DWOCX(X)=-8d0*X**7D0
+      ROOCX(X)=1d0+.5d0*X
+      BXOCX(X)=(1.5d0/(X*ROOCX(X)))**(1d0/3d0)
+      RXOCX(X)=1.3330d0+.193d0*X
       DRWOCX(RH)=1.00253-0.00198*RH+0.00184*RH/(1.0+0.656*RH**1.1)
       DRDOCX(RH)=1.00253
 
@@ -12905,7 +12962,11 @@ C            -----------------------------------------------------------
       IF(NAER.EQ.1) GI=DWSO4(XX)
       IF(NAER.EQ.2) GI=DWSEA(XX)
       IF(NAER.EQ.3) GI=DWNO3(XX)
-      IF(NAER.EQ.4) GI=DWOCX(XX)
+      IF(NAER.EQ.4) THEN
+        FF=.9995d0
+        XX=(1d0-FF)**.125d0
+        GI=DWOCX(XX)
+      END IF
   112 I=I-1
       FI=RHRHRH(I)
       DO 113 K=1,5
@@ -13060,7 +13121,6 @@ C     ------------------------------------------------------------------
       AERMAS=1.33333333D0*RHREFF(I)*RHDENS(I)/RHQ550(I)*RHTAUF(I)
       RHTGM2(I)=AERMAS
       RHDGM2(I)=AERMAS*RHXMFX(I)
-      IF(NAER.EQ.4) RHDGM2(I)=RHTGM2(1)
       RHWGM2(I)=RHTGM2(I)-RHDGM2(I)
       TAUM2G(I)=0.75D0/RHDENS(1)/RHREFF(1)*RHQ550(1)*RHTAUF(I)
       ANBCM2(I)=TAUM2G(I)/(1.5080*RHQ550(I)*RHREFF(I)**2)
