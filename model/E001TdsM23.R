@@ -166,6 +166,8 @@ CH4_COALBURN=methane/gcm_data/COAL_BURN_BY_POP84_4X5  ! Annual 7.2154
 CH4_BURN=methane/gcm_data/CH4BURN_4X5      ! Monthly 0.4369
 CH4_RICE=methane/gcm_data/CH4RICEC_4X5     ! Monthly 0.7533
 CH4_WETL=methane/gcm_data/CH4WETL+TUNDRA_4X5  ! Monthly 0.9818; zonal also
+DMS_FIELD=dms_conc
+SO2_FIELD=so2_conc
 
 Label and Namelist:
 E001TdsM23 (modelE1 (3.0) strat version with tropospheric chemsitry - 1980 conditions)
@@ -208,6 +210,27 @@ NSUBDD=0        ! saving sub-daily diags 12hrly
 Kvflxo=0        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
 isccp_diags=0
+
+! choose tropopause for chemistry purposes: 0=LTROPO(I,J), 1=LS1-1:
+which_trop=0 
+
+! for setting fixed methane value for chemistry:
+fix_CH4_chemistry=0
+pfix_CH4_S=1.750d-6
+pfix_CH4_N=1.855d-6
+
+! To run a preindustrial case, alter the sulfate surface area, SST, & seaice
+! files and the radiation years in this rundeck. Also, fix the ch4 chemistry
+! to the appropriate value (0.73ppmv in both hemispheres?) Then, set PI_run=1
+! and choose the various ratios for altering initial conditions, stratospheric
+! overwriting, and sources of the tracers below:
+PI_run        =    0    ! 0 =no, 1=yes for running pre-industrial cases
+PIratio_N     = 0.667d0 ! {NOx, HNO3, N2O5, HO2NO2}
+PIratio_CO_T  = 0.333d0 ! CO in troposphere
+PIratio_CO_S  = 0.500d0 ! CO in stratosphere
+PIratio_other = 0.500d0 ! {PAN,Isoprene,AlkyNit,Alkenes,Paraffin}
+PIratio_indus = 0.000d0 ! factor for industrial sources
+PIratio_bburn = 0.100d0 ! factor for biomass burning sources
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
