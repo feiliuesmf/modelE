@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/sh
 ## setup_e - set up GCM modelE run
 ## This script is not supposed to be executed by users but rather
 ## is a part of Makefile functionality. It is run as a part of
@@ -24,7 +24,7 @@
    MAILTO=
 
 ## if ~/.modelErc is present get settings from there
-   if [[ -f ~/.modelErc ]]; then
+   if [ -f ~/.modelErc ]; then
      echo "Using settings from ~/.modelErc"
      . ~/.modelErc
    else
@@ -133,15 +133,15 @@
 
 ## Remove any old link and unlink files after switching to new directory
    cd $RUNID
-   if [[ -a "$RUNID"ln ]] then rm "$RUNID"ln ; fi
-   if [[ -a "$RUNID"uln ]] then rm "$RUNID"uln ; fi
+   if [[ -a "$RUNID"ln ]] ; then rm "$RUNID"ln ; fi
+   if [[ -a "$RUNID"uln ]] ; then rm "$RUNID"uln ; fi
 ## Use the subsequent information to create the link and unlink files
    while true
    do read VAR1 VAR2 VAR3
       if [[ $? -ne 0 ]]
       then echo '"Label and Namelist:"' not found in $RFILE; exit 3
       fi
-      if [[ $VAR1 = 'Label' && $VAR2 = 'and' ]] then break ; fi
+      if [[ $VAR1 = 'Label' && $VAR2 = 'and' ]] ; then break ; fi
       echo "$BLANK"$VAR1 $VAR2 $VAR3 >> ${RUNID}.PRT
       if [[ $VAR1 != '' ]]
       then for i in $VAR1 $VAR2 $VAR3
@@ -172,7 +172,7 @@
    esac
 
 ## Copy Label and Namelist to RUNID.I.
-   if [[ -a I ]] then rm I ; fi
+   if [[ -a I ]] ; then rm I ; fi
 ## Compare beginning of label and RUNID
    read VAR1 VAR2 VAR3
    echo "$VAR1 $VAR2 $VAR3" > I
@@ -198,14 +198,14 @@
    rm -f AIC GIC OIC  #fort.[789]
    ./"$RUNID"uln
    rm -f lock
-   if [[ $retc -ne 13 && $retc -ne 12 ]] then
+   if [[ $retc -ne 13 && $retc -ne 12 ]] ; then
      echo Problem encountered while running hour 1; exit 4 ;
    else
      echo 1st hour completed sucessfully
    fi
 
 ## create executable script file RUNID
-   echo '#!/bin/ksh' > $RUNID
+   echo '#!/bin/sh' > $RUNID
    echo 'touch lock' >> $RUNID
    echo "PRTFILE=${RUNID}.PRT"  >> $RUNID
    echo 'if [[ $# -ge 1 && $1 = "-q" ]]; then'  >> $RUNID

@@ -1,25 +1,27 @@
-#!/bin/ksh
+#!/bin/sh
 
 CMRUNDIR='/u/cmrun'
-if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
+if [ -f ~/.modelErc ]; then . ~/.modelErc; fi
 
-if [[ $# -lt 2 || ! -d $CMRUNDIR/$1 ]] then 
-    echo "Usage: pdE runID acc_files (list all; deflt path:$CMRUNDIR/runID)"
+if [[ $# -lt 2 || ! -d $CMRUNDIR/$1 ]] ; then 
+    echo "Usage: pdE runID acc_files (list all; deflt path:$PWD)"
     exit
 fi
 
 runID=$1 ; shift
-cd $CMRUNDIR/$runID
-if [[ $? -ne 0 ]] then
-    echo "could not cd to $CMRUNDIR/$runID ... aborting"
-    exit 1
-fi
+RUNDIR=$CMRUNDIR/$runID
 
-if [[ $# -eq 1 ]] then 
+#cd $CMRUNDIR/$runID
+#if [[ $? -ne 0 ]] ; then
+#    echo "could not cd to $CMRUNDIR/$runID ... aborting"
+#    exit 1
+#fi
+
+if [[ $# -eq 1 ]] ; then 
   echo "processing $*"
 else 
   echo "The following $# files are added up:"
-  echo $*
+  for x in $* ; do echo $x ; done
 fi
 
 if [[ ! -s Ipd ]] ; then 
@@ -32,13 +34,13 @@ cat <<EOF > Ipd
  &&END_PARAMETERS
   
  &INPUTZ
- ISTART=-1,QDIAG=.true.,
+ ISTART=-1,QDIAG=.true.,KDIAG=12*0,
  &END
 EOF
 fi
 
-do_uln=0 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=1 ; fi
-${runID}.exe $* < Ipd > pd.PRT
-   if [[ ${do_uln} -eq 1 ]] ; then ${runID}uln ; fi
+do_uln=0 ; if [[ ! -L TOPO ]] ; then $RUNDIR/${runID}ln ; do_uln=1 ; fi
+$RUNDIR/${runID}.exe $* < Ipd > pd.PRT
+   if [[ ${do_uln} -eq 1 ]] ; then $RUNDIR/${runID}uln ; fi
 
 grep Diag pd.PRT  ; # report accumulation period   

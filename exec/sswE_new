@@ -1,13 +1,13 @@
-#!/bin/ksh
+#!/bin/sh
 
-if [[ $# -ne 1 ]] then 
+if [[ $# -ne 1 ]] ; then 
   echo "Usage: sswE RUNID"
   echo "will stop the run RUNID"
   exit;  fi
 
 RUNID=$1
 PID=`ps -ef | grep "/$RUNID[.]exe" | awk '{print $2}'`
-if [[ $PID = '' ]] then 
+if [[ $PID = '' ]] ; then 
   echo "$RUNID is not running on this machine"
   exit; fi
 
