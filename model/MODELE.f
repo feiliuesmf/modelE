@@ -638,7 +638,7 @@ C****
       call set_param("LM",LM)
       call set_param("LS1",LS1)
       call set_param("PLBOT",Plbot,LM+1)
-#ifdef (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call set_param("NTM",NTM)
       call set_param("TRNAME",TRNAME,ntm)
 #endif
@@ -655,7 +655,7 @@ C****
 C****
 C**** Print preprocessing options (if any are defined)
 C****
-#ifdef (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       write(6,*) 'This program includes tracer code'
 #endif
 #ifdef TRACERS_WATER
@@ -1366,7 +1366,7 @@ C**** Check Lake arrays
         CALL CHECKL(SUBR)
 C**** Check Earth arrays
 c       CALL CHECKE(SUBR)
-#ifdef (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** check tracers
         CALL CHECKTR(SUBR)
 #endif
