@@ -158,7 +158,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           qflx=qflux1(i,j)/rhoe(1)
           ! tvflx is virtual, potential temp. flux referenced at 1 mb
           tvflx=tflux1(i,j)*(1.d0+deltx*qsavg(i,j))/(rhoe(1)*pek(1,i,j))
-     &         +deltx*t_3d(i,j,1)*qflx
+     &         +deltx*tsavg(i,j)/pek(1,i,j)*qflx
           ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx
@@ -1015,7 +1015,8 @@ c       kq(j)=min(max(taue*sq,kqmin),kmax)
           sh=(s4+s5*ghj+s6*gmj)*byden
           kq(j)=min(max(taue*sh,kqmin),kmax)
         endif
-        ke(j)=min(max(taue*se,kemin),kmax)
+c       ke(j)=min(max(taue*se,kemin),kmax)
+        ke(j)=5.*km(j)
         kt2(j)=min(max(taue*st2,kt2min),kmax)
         gm(j)=gmj
         gh(j)=ghj

@@ -17,7 +17,7 @@ c     input data:
 !@ver  1.0
 
 C    input: ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-C    output:US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+C    output:US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,ZMIX
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
@@ -32,7 +32,7 @@ C          ,UG,VG,WG,ZMIX
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
      &     ,zgs,advanc
      &     ,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q
 #ifdef TRACERS_ON

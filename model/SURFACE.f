@@ -21,7 +21,7 @@
      &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
 C**** Interface to PBL
       USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
+     &     ,US,VS,WS,WSH,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
      &     ,UG,VG,WG,ZMIX
       USE PBL_DRV, only : pbl,evap_max,fr_sat
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
@@ -344,7 +344,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
         trconstflx(nx)=totflux/(dxyp(j)*rhosrf0)
 #else
 C**** Set surface boundary conditions for water tracers
-C**** trsfac and trconstflx are multiplied by cq*wsq in PBL
+C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
         trsfac(nx)=1.
         trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
         trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
@@ -359,7 +359,7 @@ C =====================================================================
       CH = chgs(i,j,itype)
       CQ = cqgs(i,j,itype)
       DHGS=(ZMIX-ZGS)*CH*WSH
-      DQGS=(ZMIX-ZGS)*CQ*WSQ
+      DQGS=(ZMIX-ZGS)*CQ*WSH
       DGS =DQGS
 C =====================================================================
       TS=TSV/(1.+QS*deltx)
@@ -367,7 +367,7 @@ C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
       RHOSRF=100.*PS/(RGAS*TSV)
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WSH*RHOSRF
-      RCDQWS=CQ*WSQ*RHOSRF
+      RCDQWS=CQ*WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SHEAT=SHA*RCDHWS*(TS-TG)

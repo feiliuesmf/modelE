@@ -60,7 +60,7 @@ c****
       use socpbl, only : zgs
       USE SOCPBL, only : zgs
      &     ,zs1,tgv,tkv,qg,hemi,dtsurf,pole
-     &     ,us,vs,ws,wsh,wsq,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
+     &     ,us,vs,ws,wsh,tsv,qsrf=>qs,psi,dbl,edvisc=>kms
      &     ,eds1=>khs,kq=>kqs,ppbl,ug,vg,wg,zmix
       use pbl_drv, only : pbl, evap_max,fr_sat
 
@@ -278,7 +278,7 @@ C**** Calculate trconstflx (could be dependent on itype)
         trconstflx(nx)=trflux1(i,j,n)/(dxyp(j)*dtsrc*rhosrf0)
 #else 
 C**** Set surface boundary conditions for water tracers
-C**** trsfac and trconstflx are multiplied by cq*wsq in PBL
+C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
         trsfac(nx)=1.
         trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
         trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
@@ -333,7 +333,7 @@ c***
 c***********************************************************************
 c**** calculate qs
 c      dhgs=(zmix-zgs)*cdh*wsh
-c      dqgs=(zmix-zgs)*cdq*wsq
+c      dqgs=(zmix-zgs)*cdq*wsh
       qs=qsrf
       ts=tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws

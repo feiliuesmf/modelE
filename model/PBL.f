@@ -27,8 +27,7 @@
 !@var US     = x component of surface wind, postive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WS     = magnitude of the surface wind (m/s)
-!@var WSH    = magnitude of the surface wind needed for heat flux (m/s)
-!@var WSQ    = magnitude of the surface wind needed for moisture (m/s)
+!@var WSH    = magnitude of surface wind modified by buoyancy flux(m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
 !@var PSI    = angular diff. btw geostrophic and surface winds (rads)
@@ -51,7 +50,7 @@
 !@var ZMIX   = a height used to match ground and surface fluxes
 
       real*8 :: zs1,tgv,tkv,qg,hemi,dtsurf
-      real*8 :: us,vs,ws,wsh,wsq,tsv,qs,psi,dbl,kms,khs,kqs,ppbl
+      real*8 :: us,vs,ws,wsh,tsv,qs,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix
       logical :: pole
 
@@ -111,7 +110,7 @@ c    input:
 !@var  vtop  y component of wind at the top of the layer
 !@var  ttop  temperature at the top of the layer
 !@var  qtop  moisture at the top of the layer
-!@var  tgrnd  temperature of the ground, at the roughness height
+!@var  tgrnd  virt. pot. temp. of the ground, at the roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
 !@var  evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
@@ -128,8 +127,7 @@ c   output:
 !@var  kms  surface value of km
 !@var  khs  surface value of kh
 !@var  kqs  surface value of kq
-!@var  wsh  magnitude of the surface wind needed for heat flux (m/s)
-!@var  wsq  magnitude of the surface wind needed for moisture (m/s)
+!@var  wsh  magnitude of surface wind modified by buoyancy flux (m/s)
 !@var  ustar  friction speed
 !@var  zmix  magic quantity needed in surfce
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)
@@ -175,7 +173,6 @@ c  internals:
 #endif
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
-     *     ,wstar2q
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
       integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
@@ -229,22 +226,18 @@ c   Step 1:
 
 C**** Calculate wstar term from
 C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-      wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &     -(q(2)-q(1)) )/dzh(1)
+      wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
 C**** For heat and mositure
       if(wstar3fac.gt.0.) then
         wstar2h = (wstar3fac*kh(1))**twoby3
-        wstar2q = (wstar3fac*kq(1))**twoby3
       else
         wstar2h = 0.
-        wstar2q = 0.
       endif
       wsh = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-      wsq = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
       
       call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
       
-      call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n
+      call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
      &     ,evap_max,fr_sat)
         
       call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
@@ -293,22 +286,18 @@ c   Step 2:
 
 C**** Calculate wstar term 
 C**** M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eq(7):
-        wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &       -(q(2)-q(1)) )/dzh(1)
+        wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
 C**** For heat and mositure
         if(wstar3fac.gt.0.) then
           wstar2h = (wstar3fac*kh(1))**twoby3
-          wstar2q = (wstar3fac*kq(1))**twoby3
         else
           wstar2h = 0.
-          wstar2q = 0.
         endif
         wsh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-        wsq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
         
         call t_eqn(u,v,tsave,t,z,kh,dz,dzh,ch,wsh,tgrnd,ttop,dtime,n)
 
-        call q_eqn(qsave,q,kq,dz,dzh,cq,wsq,qgrnd,qtop,dtime,n
+        call q_eqn(qsave,q,kq,dz,dzh,cq,wsh,qgrnd,qtop,dtime,n
      &       ,evap_max,fr_sat)
         
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
@@ -325,8 +314,8 @@ C**** be inside the iteration. Use moisture diffusivity
       do itr=1,ntx
 #ifdef TRACERS_WATER
 C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
-        trcnst=trconstflx(itr)*cqsave*wsq
-        trsf=trsfac(itr)*cqsave*wsq
+        trcnst=trconstflx(itr)*cqsave*wsh
+        trsf=trsfac(itr)*cqsave*wsh
 #endif
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
      *       ,trcnst,trtop(itr),dtime,n) 
@@ -1670,7 +1659,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      *     ,coriol,cm,ch,cq,lmonin
      *     ,bgrid,ustar,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test,
-     *     wstar3fac,wstar3,wstar2h,wstar2q,usurfq,usurfh
+     *     wstar3fac,wstar3,wstar2h,usurfq,usurfh
 
 c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
@@ -1766,18 +1755,15 @@ c ----------------------------------------------------------------------
       do iter=1,itmax
 
 C**** Calculate wstar term from M.J.Miller et al. 1992
-        wstar3fac=-1000.*grav*( 2.*(t(2)-t(1))/(t(2)+t(1))
-     &       -(q(2)-q(1)) )/dzh(1)
+        wstar3fac=-dbl*grav*2.*(t(2)-t(1))/((t(2)+t(1))*dzh(1))
 C**** For heat and mositure
         if(wstar3fac.gt.0.) then
           wstar2h = (wstar3fac*kh(1))**twoby3
-          wstar2q = (wstar3fac*kq(1))**twoby3
         else
           wstar2h = 0.
-          wstar2q = 0.
         endif
         usurfh  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2h)
-        usurfq  = sqrt(u(1)*u(1)+v(1)*v(1)+wstar2q)
+        usurfq  = usurfh
       
         call t_eqn_sta(t,kh,dz,dzh,ch,usurfh,tgrnd,ttop,n)
 
