@@ -19,10 +19,11 @@ RUNSRC = E001
 
 ALIAS_LIST = CMPE001 qc
 
-sinclude $(MODEL_DIR)/Rules.make
-
 help:
 	$(MAKE) -C $(MODEL_DIR) help
+
+sinclude $(MODEL_DIR)/Rules.make
+
 
 rundeck:
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
