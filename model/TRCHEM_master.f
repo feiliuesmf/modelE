@@ -11,7 +11,7 @@ C**** GLOBAL parameters and variables:
 c
       USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim
       USE DYNAMICS, only: pedn
-      USE RADNCB, only : COSZ1
+      USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
@@ -56,9 +56,9 @@ C++++ First, some INITIALIZATIONS :
 C reset change due to chemistry to zero:
       change(:,:,:,:) = 0.
 C
-C surface albedo variable used in fastj SALBFj is based on ALB(..1)
+C surface albedo variable used in fastj SALB is based on ALB(..1)
 C and set in radiation code:
-cc     SALBFJ(:,:)= ALB(:,:,1)
+cc     SALB(:,:)= ALB(:,:,1)
 C
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
@@ -614,7 +614,6 @@ C
      *       ,:,J)+ F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))*BYIM
       END DO
       CH4_569=CH4_569/(JN-JS)
-      print*,"CH4_569",CH4_569*mass2vol(n_CH4)
 
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
       r179=1/1.79d0 

@@ -13,10 +13,16 @@
       REAL*8, DIMENSION(LM,IM,JM) :: SVLHX,SVLAT
 !@var RHSAV previous relative humidity
       REAL*8, DIMENSION(LM,IM,JM) :: RHSAV
-!@var CLDSAV previous cloud cover area (percent)
-      REAL*8, DIMENSION(LM,IM,JM) :: CLDSAV
-!@var PBLTOP height of PBL (m) (NOT USED)
-      REAL*8, DIMENSION(IM,JM) :: PBLTOP
+C**** some arrays here for compatility with new clouds
+!@var CLDSAV, CLDSAV1 previous cloud cover area (percent)
+      REAL*8, DIMENSION(LM,IM,JM) :: CLDSAV,CLDSAV1
+!@var ULS,VLS,UMC,VMC velocity work arrays
+      REAL*8, DIMENSION(IM,JM,LM) :: ULS,VLS,UMC,VMC
+!@var TLS,QLS,TMC,QMC temperature and humidity work arrays
+      REAL*8, DIMENSION(IM,JM,LM) :: TLS,QLS,TMC,QMC
+!@var FSS grid fraction for large-scale clouds
+!@+   initialised as 1. for compatibility with previous clouds
+      REAL*8, DIMENSION(LM,IM,JM) :: FSS = 1. 
 
 C**** variables saved for radiation calculations
 !@var TAUSS optical depth from super-saturated clouds

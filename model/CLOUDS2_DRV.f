@@ -16,7 +16,7 @@
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
+     *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,

@@ -2637,14 +2637,8 @@ C****
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHYCOM, only : snowe
-      USE RADNCB, only : trhr
+      USE RADNCB, only : trhr,srdn,salb
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
-#ifdef TRACERS_DRYDEP
-      USE tracers_DRYDEP, only: trdrydep_rad
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: salbfj
-#endif
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,JM) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
@@ -2690,17 +2684,11 @@ C**** simple diags
           data=qflux1*lhe 
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
-C**** these next two only work with the tracer model. This should be
-C**** changed to work with all versions
-#ifdef TRACERS_DRYDEP
         case ("SWDN")           ! solar downward flux at surface (W/m^2)
-          data=trdrydep_rad
-#ifdef TRACERS_SPECIAL_Shindell
+          data=srdn
         case ("SWUP")     ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
-          data=trdrydep_rad*SALBFJ
-#endif
-#endif
+          data=srdn*salb
         case ("LWDN")     ! thermal downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
         case ("ICEF")           ! ice fraction over open water

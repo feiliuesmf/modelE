@@ -748,21 +748,15 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_ON      
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
       USE TRACER_COM
-#ifdef TRACERS_DRYDEP
-      USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,
      & yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,corrOx,ss,
-     & SALBFJ,RCLOUDFJ,O3DLJI,O3DLJI_clim,JPPJ
+     & O3DLJI,O3DLJI_clim,JPPJ
 #endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
-#ifdef TRACERS_SPECIAL_Shindell 
-      INTEGER K1,K2   !@var K1,K2 dummy loop variables
-#endif
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
@@ -790,11 +784,7 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *     ,yXO2N,yRXPAR,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
-     *     ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,CFRAC,trdrydep_rad
+     *     ,yXO2N,yRXPAR,corrOx,O3DLJI,O3DLJI_clim,ss
 #endif
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -805,11 +795,7 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
-     *       ,yXO2N,yRXPAR,corrOx,SALBFJ,RCLOUDFJ,O3DLJI
-     &       ,O3DLJI_clim,((ss(K1,K2,1,1),K1=1,jppj),K2=1,IM*JM*LM)
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,CFRAC,trdrydep_rad
+     *       ,yXO2N,yRXPAR,corrOx,O3DLJI,O3DLJI_clim,ss
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER

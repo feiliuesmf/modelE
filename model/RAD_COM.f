@@ -50,9 +50,17 @@ C**** exactly the same as the default values.
 !@var FSF Solar Forcing over each type (W/m^2)
       REAL*8, DIMENSION(4,IM,JM) :: FSF
 !@var FSRDIR Direct beam solar incident at surface (W/m^2)
-      REAL*8, DIMENSION(IM,JM) :: FSRDIR                  ! added by adf
-!@var SRVISSURF Incident solar direct+diffuse incident at surface (W/m^2)
-      REAL*8, DIMENSION(IM,JM) :: SRVISSURF               ! added by nyk
+      REAL*8, DIMENSION(IM,JM) :: FSRDIR
+!@var SRVISSURF Incident solar direct+diffuse visible at surface (W/m^2)
+      REAL*8, DIMENSION(IM,JM) :: SRVISSURF
+!@var SRDN Total incident solar at surface (W/m^2)
+      REAL*8, DIMENSION(IM,JM) :: SRDN  ! saved in rsf 
+
+!@var CFRAC Total cloud fraction as seen be radiation 
+      REAL*8, DIMENSION(IM,JM) :: CFRAC ! saved in rsf
+!@var RCLD Total cloud optical depth as seen be radiation 
+      REAL*8, DIMENSION(LM,IM,JM) :: RCLD ! saved in rsf
+
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, DIMENSION(IM,JM) :: COSZ1
 !@dbparam S0X solar constant multiplication factor
@@ -84,6 +92,9 @@ C**** exactly the same as the default values.
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, DIMENSION(IM,JM,9) :: ALB
+!@var SALB broadband surface albedo saved in rsf
+      REAL*8, DIMENSION(IM,JM) :: SALB   ! = ABL(:,:,1)
+      EQUIVALENCE (SALB,ALB)
 
 C**** Local variables initialised in init_RAD
 !@var COE
@@ -109,7 +120,7 @@ C**** Local variables initialised in init_RAD
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD03"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD04"
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
@@ -130,17 +141,19 @@ C**** Local variables initialised in init_RAD
       else
 
       MODULE_HEADER(lhead+1:80) = 'R8 Teq(3,ijm),'//
-     *  ' S0, s+tHr(0:lm,ijm,2),fs(ijm,4),fdir,SRVIS(ijm)' ! fdir:    adf
+     *  ' S0, s+tHr(0:lm,ijm,2),fs(4),fdir,SRV,sa,sd,cf,od(ijm)' 
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,RQT
-     *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF  ! needed if MODRAD>0 at restart
+     *    ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
+  ! needed if MODRAD>0 at restart
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,RQT
-     *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF! needed if MODRAD>0 at restart
+     *       ,S0,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,SALB,SRDN,CFRAC,RCLD
+  ! needed if MODRAD>0 at restart
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10

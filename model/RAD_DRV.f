@@ -1,5 +1,3 @@
-#include "rundeck_opts.h"
-
 !@sum RAD_DRV contains drivers for the radiation related routines
 !@ver  1.0
 !@cont COSZ0, init_RAD, RADIA
@@ -501,7 +499,6 @@ C****
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-     &          ,SRXVIS,SRDVIS      ! added by adf, nyk
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
@@ -515,13 +512,13 @@ C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
-     &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS
+     &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS, SRDVIS
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf
+     *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
-     *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
+     *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
@@ -545,12 +542,6 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp
-#ifdef TRACERS_DRYDEP
-      USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: RCLOUDFJ,SALBFJ
-#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -751,8 +742,9 @@ C****
         PIJ=PLIJ(L,I,J)
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
         shl(L)=QSS
-        IF(CLDSAV(L,I,J).LT.1.)
-     *       shl(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
+        IF(FSS(L,I,J)*CLDSAV(L,I,J).LT.1.)
+     *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/
+     /              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
         TAUSSL=0.
         TAUMCL=0.
@@ -813,13 +805,14 @@ C**** Determine large scale and moist convective cloud cover for radia
           AJL(j,l,jl_wcsiz)=AJL(j,l,jl_wcsiz)+sizewc(l)*tauwc(l)
           AJL(j,l,jl_icsiz)=AJL(j,l,jl_icsiz)+sizeic(l)*tauic(l)
         END IF
-#ifdef TRACERS_SPECIAL_Shindell
-        RCLOUDFJ(L,I,J)=TAUWC(L)+TAUIC(L)
-#endif
-#ifdef TRACERS_DRYDEP
+C**** save some radiation/cloud fields for wider use
+        RCLD(L,I,J)=TAUWC(L)+TAUIC(L)
+C**** Note this is cloud-computed total fraction (ie. complete blocking)
+C**** Is this really what is required?
         CFRAC(I,J) = CFRAC(I,J) + CLDSS(L,I,J) + CLDMC(L,I,J)
-#endif
+c        CFRAC(I,J) = MAX(CFRAC(I,J),MAX(CSS,CMC))  instead?
       END DO
+c   or even    CFRAC(I,J) = CLDCV ?
 C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
@@ -1041,14 +1034,11 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
-#ifdef TRACERS_DRYDEP
-      trdrydep_rad(I,J)=SRDFLB(1) ! save solar flux at surface
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      SALBFJ(I,J)=ALB(I,J,1)    ! save surface albedo for chemistry
-#endif
-      FSRDIR(I,J)=SRXVIS                  ! added by adf
-      SRVISSURF(I,J)=SRDVIS               ! nyk
+
+      SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
+C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (equivalenced)
+      FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface
+      SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface 
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
      +                                    OPNSKY*SRDFLB(1)*CSZ2

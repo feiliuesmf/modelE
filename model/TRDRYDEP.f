@@ -73,14 +73,11 @@ C
 !@var XLAI2 leaf area index variable
 !@var DRYCOEFF polynomial fittings coeffcients  
 !@var CZ Altitude (m) at which deposition velocity would be computed
-!@var CFRAC fractional cloud cover
-!@var trdrydep_rad Solar radiation in W m-2 reaching surface?
 !@var dtr_dd to save drydep change for conservation quantities
 c
       INTEGER, PARAMETER :: NPOLY   = 20,
      &                      NTYPE   = 16,
      &                      NVEGTYPE= 74
-      REAL*8,  DIMENSION(IM,JM)           :: CFRAC,trdrydep_rad
       REAL*8,  DIMENSION(IM,JM,NTYPE)     :: XYLAI,XLAI,XLAI2
       REAL*8,  DIMENSION(NPOLY)           :: DRYCOEFF
       REAL*8,  DIMENSION(JM,ntm)          :: dtr_dd
@@ -111,7 +108,7 @@ C
       USE MODEL_COM,  only : im,jm
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
-      USE RADNCB,     only : COSZ1
+      USE RADNCB,     only : COSZ1,cfrac,srdn
  ! tr_wd_TYPE,nPART are defined if drydep on
       USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname, tr_mm,
      &     dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
@@ -121,7 +118,7 @@ C
 #endif
       USE tracers_DRYDEP, only: NPOLY,IJREG,IJLAND,XYLAI,
      & DRYCOEFF,IJUSE,NTYPE,IDEP,IRI,IRLU,IRAC,IRGSS,IRGSO,
-     & IRCLS,IRCLO,IVSMAX,CFRAC,trdrydep_rad
+     & IRCLS,IRCLO,IVSMAX
      
       IMPLICIT NONE
 c
@@ -202,7 +199,7 @@ C** TEMPK and TEMPC are surface air temperatures in K and in C
 ccc      TEMPK was BLDATA(I,J,2) now input as argument
       TEMPC = TEMPK-tf
       byTEMPC = 1.D0/TEMPC    
-      RAD0 = trdrydep_rad(I,J)
+      RAD0 = srdn(I,J)
 C               
 C* Compute bulk surface resistance for gases.
 C*   

@@ -10,6 +10,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
+      USE RADNCB, only     : rcloudfj=>rcld,salbfj=>salb
 C     USE RADPAR, only     : LX
       USE TRACER_COM, only : ntm, trm, TR_MM
 c
@@ -413,7 +414,6 @@ C
       REAL*8, DIMENSION(IM,JM,LM)   :: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &                                yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      &                                TX,sulfate
-      REAL*8, DIMENSION(LM,IM,JM)      :: RCLOUDFJ
       REAL*8, DIMENSION(M__)         :: AFASTJ,C1,HFASTJ,V1
       REAL*8, DIMENSION(M__), PARAMETER ::
      *     EMU = (/.06943184420297D0, .33000947820757D0,
@@ -463,7 +463,6 @@ C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, DIMENSION(JPPJ)          :: jfacta
       REAL*8, DIMENSION(JPNL,JPPJ)      :: zj, JFASTJ
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
-      REAL*8, DIMENSION(IM,JM)          :: SALBFJ
 C     REAL*8, DIMENSION(LX,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(LM,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
