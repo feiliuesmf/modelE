@@ -20,13 +20,15 @@ C****    List of parameters that COULD be changed during a run:
      *     ,IYEAR0,KACC0,KTACC0
 
       CHARACTER*80 FILEIN(5),DIR*60
-      INTEGER N,Itime1,NARGS,K,iargc,KSTART,KFILE
+      INTEGER N,Itime1,NARGS,K,iargc,KSTART,KFILE,I
       INTEGER :: ioerr=0 
       REAL*8 TOT
       LOGICAL QCALL
 
       QCALL=.FALSE.
       KSTART=1
+      call alloc_param( "IDACC", IDACC, (/12*0/), 12) 
+     
       NARGS = IARGC()
       IF(NARGS.LE.0)  GO TO 800
 C**** check for argument
@@ -41,17 +43,17 @@ C**** loop over remaining arguments
       END DO
 C**** Check first file
       K=KSTART
-      OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=850)
+      OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=100)
       call io_label(10,Itime1,ioread,ioerr)
       CLOSE (10)
-      if (ioerr.eq.1) then  ! assume a run directory in /u/cmrun
-        NARGS=KSTART+1
-        DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
-        FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
-        FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
-      END IF
+      if (ioerr.eq.0) goto 150
+C**** problem reading file => assume a run directory in /u/cmrun
+ 100  NARGS=KSTART+1
+      DIR = "/u/cmrun/"//TRIM(FILEIN(KSTART))
+      FILEIN(KSTART) = TRIM(DIR)//"/fort.1"
+      FILEIN(KSTART+1) = TRIM(DIR)//"/fort.2"
         
-      DO K=KSTART,NARGS
+ 150  DO K=KSTART,NARGS
       OPEN (10,FILE=FILEIN(K),FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
       call io_label(10,Itime1,ioread,ioerr)
@@ -61,16 +63,7 @@ C**** Check first file
       call get_param( "Itime", Itime) 
       call get_param( "IYEAR0", IYEAR0) 
       call get_param( "NDAY", NDAY )
-
-C**** Calculate derived date info
-      JYEAR=IYEAR0+Itime/(Nday*JDperY)
-      JDAY=1+Itime/Nday-(JYEAR-IYEAR0)*JDperY
-      JMON=1
-      DO WHILE (JDAY.GT.JDendOfM(JMON))
-        JMON=JMON+1
-      END DO
-      JDATE=JDAY-JDendOfM(JMON-1)
-      JHOUR=MOD(Itime*24/NDAY,24)
+      call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
       WRITE (6,900) ITIME,JMON,JDATE,JYEAR,JHOUR,XLABEL(1:50)
       TOT=0
@@ -85,6 +78,7 @@ C**** Calculate derived date info
       END IF
       IF (QCALL) THEN
         write (6,*) "IM,JM,LM = ",IM,JM,LM
+        write (6,*) "IDACC = ",(IDACC(I),I=1,12)
         write (6,inputz)
         write (6,*) 
       END IF

@@ -14,6 +14,7 @@ C**** used to calculate the zeroeth and first harmonics of the
 C**** ocean transports.
 C****
 C**** Input:
+C**** Input:  unit  1 - restart file of a run with prescribed ODATA
 C****         4 - XCORR produced by program   vertflux.B05.S
 C****        20 - flux data from run B05 W9
 C****        15 - O4X5.1979-93means    climatological ocean data
@@ -22,7 +23,11 @@ C****        26 - Z4X500      topography
 C****        27 - dec31.O1-5.MLD.250M.DBL      O(1-5),Z1O at JAN 1
 C**** Output:
 C****        30 - OTSPEC.RB150.M250D
+C**** Output: unit  9 - augmented restart file
 C****
+      USE CONSTANT, only : omega
+      USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun  
+      USE TIMINGS, only : ntimeacc,timing,timestr 
       USE OCEAN 
       USE DAGCOM, only : OA
       USE SEAICE_COM, only : rsi,msi, snowi   
@@ -40,6 +45,9 @@ C****
       REAL*4 PWATER(IM,JM), month_day(12)
       REAL*8 TGO(IM,JM),ROICE(IM,JM),ACE2(IM,JM),
      *       TG2O(IM,JM),TG12O(IM,JM)   
+      INTEGER iu_AIC,ioerr
+      INTEGER ItimeX
+      REAL*8 onht(jm)
 C****
       character*4 month_name(12), tmonth, tyear  
       data month_name /'JAN ','FEB ','MAR ','APR ','MAY ','JUN ',
@@ -82,17 +90,20 @@ C*
 C****
 C**** Read in input files
 C****
-      CALL READT (17,0,DM,IM*JM,DM,1)
+      call getunit("SICE",iu_SICE,.true.,.true.)
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 C* 
 C**** Read in FOCEAN - ocean fraction 
 C* 
-      CALL READT (26,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
-      REWIND 26
+      call getunit("TOPO",iu_TOPO,.true.,.true.)
+      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
+      REWIND iu_TOPO
 C* 
 C**** Read in annual maximum mixed layer depth
 C* 
-      CALL READT (25,0,Z12O,IM*JM,Z12O,1)
-      REWIND 25
+      call getunit("MLMAX",iu_MLMAX,.true.,.true.)
+      CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
+      REWIND iu_MLMAX
 C* 
 C**** Read in ocean data below mixed layer on December 31
 C*
@@ -115,6 +126,10 @@ C****
 C**** Calculate spherical geometry
 C****
       call GEOM_B
+C**** set up unit numbers for ocean climatologies
+      call getunit("OSST",iu_OSST,.true.,.true.)
+C**** Set up unit number of mixed layer depth climatogies
+      call getunit("OCNML",iu_OCNML,.true.,.true.)
 C****
 C**** Loop over years of data and days in the year
 C****
@@ -146,9 +161,6 @@ C*
                kocean = 0 
                jmon = month 
                jdate = kday
-               iu_OSST =  15 
-               iu_SICE =  17 
-               iu_OCNML = 18
                CALL OCLIM (1)
 C*             
                do j = 1,jm 
@@ -215,7 +227,8 @@ C****
 C****
 C**** Calculate the ocean transports spectral coefficients
 C****
-      OMEG = TWOPI/(86400.*365.)
+c      OMEG = TWOPI/(86400.*365.)
+      OMEG=OMEGA
       DO 410 J=1,JM
       IMAX=IM
       IF((J.EQ.1).OR.(J.EQ.JM))  IMAX=1
@@ -243,6 +256,57 @@ C****
 C**** Write ocean transports spectral coefficients to disk
 C****
       WRITE (30) BOT,AOT,COT
+
+C**** Combine final restart file of PRESCRIBED OCEAN DATA model run
+C**** with mean & bottom temperature of 2nd ocean layer to create
+C**** Initial Conditions for a PREDICTED OCEAN DATA model run.
+C****
+
+      iu_AIC = 1
+      call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
+      close (iu_AIC)
+
+C* 
+C***  Set the ocean temperature below the mixed layer 
+C* 
+      do j = 1,jm 
+        do i = 1,im 
+          tocean(2,i,j) = TG2O(i,j) 
+          tocean(3,i,j) = TG12O(i,j) 
+        end do 
+      end do
+C* 
+      ntimeacc = 1
+      timing = 0 
+      timestr = " " 
+C* 
+      iu_AIC = 9      
+      call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
+      close (iu_AIC)
+
+C**** Output aplot format file of ocean heat transports
+      print*,"Calculating global northward heat transport..."
+
+      onht(jm)=cot(1,jm)*im*dxyp(jm)*focean(1,jm)
+        write(*,*) cot(1,jm),1.e-15*onht(jm),dxyp(jm)
+      do j=jm-1,2,-1
+        onht(j)=onht(j+1)
+        do i=1,im
+          onht(j)=onht(j)+COT(i,j)*dxyp(j)*focean(i,j)
+        end do
+      end do
+
+      write(99,*) 'Global Northward Ocean Heat Transport '
+      write(99,*) 'Latitude'
+      write(99,*) '10**15 W'
+      write(99,*) ' lat  ',RunID 
+      do j=2,jm
+        write(99,*) -92+(j-1)*4,1.e-15*onht(j)
+      end do
+      write(99,*) ' '
+
+      WRITE(0,*) ' NORMAL END'
+
       STOP
  555  write (*,*) ' Reached end of file ',file_name  
       END

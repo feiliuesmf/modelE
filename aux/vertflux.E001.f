@@ -22,7 +22,7 @@ C****
       implicit none 
       integer first_month, first_year, last_month, last_year, jyears
       integer months, monthe, jyear, month, itime1, 
-     *        last_day, kday, i, j 
+     *        last_day, kday, i, j, iu_SICE,iu_TOPO
       REAL*8 PWATER(im,jm),ROICE(IM,JM),AVFX(IM,JM)  
       REAL*8 GSR,GVFXSR,SYEAR,SYEARS
       real*8 VFSR, VF, XCORR 
@@ -66,7 +66,8 @@ C****
       read(title0,*) last_year
       jyears = last_year-first_year+1 
       SYEARS = SYEAR*JYEARS
-      CALL READT (17,0,DM,IM*JM,DM,1)
+      call getunit("SICE",iu_SICE,.true.,.true.)
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -74,8 +75,9 @@ C****
 C****
 C**** Read in FOCEAN - ocean fraction
 C****
-      CALL READT (26,0,PWATER,IM*JM,PWATER,1) ! Ocean fraction
-      REWIND 26
+      call getunit("TOPO",iu_TOPO,.true.,.true.)
+      CALL READT (iu_TOPO,0,PWATER,IM*JM,PWATER,1) ! Ocean fraction
+      REWIND iu_TOPO
 C****
 C**** Zero out the vertical flux and its components
 C****

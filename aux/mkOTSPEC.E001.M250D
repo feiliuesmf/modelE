@@ -1,45 +1,35 @@
+#!/bin/ksh
 ## create otspec and IC for a 4x5 Bgrid run - 5 harmonics  02/09/01
 if [[ $# -lt 5 ]] ; then echo "Usage: $0 runID first_month first_year last_month last_year"; exit
 fi
-# Input files
-  topo=Z72X46N.cor4  
-  ocean=OST4X5.B.1946-55avg.Hadl1.1 ; oice=SICE4X5.B.1946-55avg.Hadl1.1
-  z1o=/u/cmrun/Z1O.B4X5.cor ; z1ox=/u/cmrun/Z1OMAX.B4X5.250M.cor
-  echo "  Verify that the current run used the following files:"
-  echo "  $topo $ocean $oice"
-  echo "  Otherwise change and rerun $0 under"
-  echo "  a different name"
-  if [[ ! -s $z1o ]]
-  then echo " $z1o not found - no action "; exit ; fi
-  if [[ ! -s $z1ox ]]
-  then echo "$z1ox not found - no action ";  exit ; fi
-  if [[ ! -s /u/cmrun/$ocean ]]
-  then echo "/u/cmrun/$ocean not found - no action ";  exit ; fi
-  if [[ ! -s /u/cmrun/$oice ]]
-  then echo "/u/cmrun/$oice not found - no action ";  exit ; fi
-  if [[ ! -s /u/cmrun/$topo ]]
-  then echo "/u/cmrun/$topo not found - no action ";  exit ; fi
-  if [[ -s fort.1 ]]
-  then /u/exec/qrsf = fort.1 x
-       echo "This fort.1 contains part of the I.C. for the new run"
-       echo "It will be modified by this program"
-  else echo "copy or link the last DEC...rsf$1 to fort.1 and start over"
-       exit
-  fi
-
-  echo -n 'ok to continue ? (y=yes) '  ; read REPLY
-  if [[ $REPLY != [yY]* ]] ; then echo 'no action'; exit; fi
-
-  ln -s /u/cmrun/$ocean fort.15               ;#use OST  from rundeck
-  ln -s /u/cmrun/$oice  fort.17               ;#use SICE from rundeck
-  ln -s /u/cmrun/$topo  fort.26               ;#use Z from rundeck
-  ln -s $z1o fort.18 ; ln -s $z1ox fort.25
+# Input files from rundeck (actually ${RUNID}ln)
+# This script uses TOPO,OSST,SICE,OCNML,MLMAX
 
 MODEL_E_ROOT=..
 DECKS_DIR=${MODEL_E_ROOT}/decks
 AUX_DIR=${MODEL_E_ROOT}/aux
 BIN_DIR=${DECKS_DIR}/$1_bin
-#BIN_DIR=${DECKS_DIR}/E001lsn1_bin
+
+runID=$1 
+cd /u/cmrun/$runID
+
+do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
+
+echo -n 'Enter rsf file for new initial conditions'  ; read rsfic 
+ln -s $rsfic RSFIC
+if [[ -s RSFIC ]]
+then $BIN_DIR/qc RSFIC
+      echo "This fort.1 contains part of the I.C. for the new run"
+       echo "It will be modified by this program"
+  else echo "RSF file not found, please start over"
+       exit
+  fi
+
+#  ln -s /u/cmrun/$ocean fort.15               ;#use OST  from rundeck
+#  ln -s /u/cmrun/$oice  fort.17               ;#use SICE from rundeck
+#  ln -s /u/cmrun/$topo  fort.26               ;#use Z from rundeck
+#  ln -s $z1o fort.18 ; ln -s $z1ox fort.25
+#  ln -s /u/cmrun/Z72X46N.cor4 fort.26
 
 echo "  finding XCORR using fluxdata saved on monthly data "
 ${BIN_DIR}/vertflux.exe $1 $2 $3 $4 $5 > vertflux.$1.$3-$5.PRT
@@ -50,45 +40,22 @@ ${BIN_DIR}/dec31.exe > dec31.PRT
 
 echo " computing transports "
 ${BIN_DIR}/otspec.E001.exe $1 $2 $3 $4 $5 > otspec.$1.$3-$5.PRT
-  mv fort.30  OTSPEC.R$1.M250D.$3-$5
+  outfile=OTSPEC.R$1.M250D.$3-$5
+  mv fort.30 $outfile
 
-echo " creating initial conditions on fort.9 "
-${BIN_DIR}/rsfE001.addO.exe
+#echo " creating initial conditions on fort.9 "
+#${BIN_DIR}/rsfE001.addO.exe
+ icfile=IMJAN.$1.O250D
  qrsf = fort.9 x
- mv fort.9 IMJAN.$1.O250D ;#do--put on raid, link to /u/cmrun
+ mv fort.9 $icfile ;#do--put on raid, link to /u/cmrun
 
-# clean up
-   rm fort.4 fort.15 fort.17 fort.18 fort.25 fort.26 fort.27 fort.77 
-## Notes:
-   echo "=> ocn transp file <</u/cmrun/OTSPEC.R$1.M250D.$3-$5>>"
-   echo "Created init.cond.file <<<IMJAN.$1.O250D>>>"
-
-${AUX_DIR}/mkohtlat.E001 $1 $3-$5  ;# data for aplotX
+#${AUX_DIR}/mkohtlat.E001 $1 $3-$5  ;# data for aplotX
+  mv fort.99 oht$1.$3-$5.lpl
   cat SRCOR.line.$1.$3-$5
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# clean up
+   if [[ ${do_uln} -eq 0 ]] ; then ${runID}uln ; fi
+## Notes:
+   echo "=> ocn transp file <</u/cmrun/$outfile>>"
+   echo "Created init.cond.file <<<$icfile>>>"
 
