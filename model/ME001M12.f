@@ -16,7 +16,7 @@ C**** f90 changes
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
-      USE SLE001
+      USE GHYCOM
      &   , only : ghdata
       USE RANDOM
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV
@@ -522,9 +522,8 @@ C****
       USE E001M12_COM
       USE SOMTQ_COM
       USE GEOM
-      USE SLE001
-     &  , only : ngm,sinday=>sint,cosday=>cost,gw=>w,ghdata,sdata,
-     &           ghinit,ghinij,ghinht
+      USE GHYCOM
+     &  , only : ghdata
       USE RANDOM
       USE CLOUDS, only : TTOLD,QTOLD,WM,SVLHX,RHSAV,CLDSAV
       USE SOCPBL
@@ -550,7 +549,6 @@ C****
      *  PTOP,PSF,PSL,PTRUNC,DLAT,DLON,AREAG,IRAND,IJRA,MFILTR,NDIFS,
      *  KACC0,KEYCT,SKIPSE,USESLP,USEP,USET,KCOPY,XCDNST,IDACC,KDIAG,
      *  NDZERO,NDPRNT,IJD6,NAMD6,SIG,SIGE,KTACC0
-      DATA EDPERY/365./
       ISTART=10
 C**** READ SPECIAL REGIONS FROM UNIT 29 - IF AVAILABLE
 CC       KREG=0
@@ -932,45 +930,19 @@ C**** READ IN VEGETATION DATA SET: VDATA AND VADATA
   765 CALL READT (23,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
       REWIND 23
 C****
-C**** READ IN GROUND HYDROLOGY ARRAYS
+C**** INITIALIZE GROUND HYDROLOGY ARRAYS
+C**** Recompute GHDATA if redoGH (new soils data)
 C****
-C     READ (25) SDATA
-      CALL DREAD (25,SDATA,IM*JM*(11*NGM+1),SDATA)
-      REWIND 25
-      CALL GHINIT (FEARTH,VDATA,DT*NDYN/NSURF,UNUSED)
-C**** Recompute GHDATA if necessary (new soils data)
+      IUNIT=25 ! file containing soil types/parameters
+      CALL GHINIT (DT*NDYN/NSURF,UNUSED,IUNIT,redoGH)
       IF (redoGH) THEN
-        JDAY=1+MOD(NINT(TAU/24.),365)
-        COSDAY=COS(TWOPI/EDPERY*JDAY)
-        SINDAY=SIN(TWOPI/EDPERY*JDAY)
-        RHOW=1000.
+        WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
+C****   Copy Snow age info into GDATA array
         DO 930 J=1,JM
         DO 930 I=1,IM
-        PEARTH=FEARTH(I,J)
-        IF(PEARTH.LE.0.) THEN
-          DO 910 L=1,4*NGM+5
-  910     GHDATA(I,J,L)=0.
-        ELSE
-C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
-          CALL GHINIJ (I,J,WFC1)
-C****     FILL IN SOILS COMMON BLOCKS
-          SNOWDP=GDATA(I,J,2)/RHOW
-          WTR1=GDATA(I,J,5)
-          ACE1=GDATA(I,J,6)
-          TG1 =GDATA(I,J,4)
-          WTR2=GDATA(I,J,9)
-          ACE2=GDATA(I,J,10)
-          TG2 =GDATA(I,J,8)
-          CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
-C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
-          DO 920 L=1,4*NGM+5
-  920     GHDATA(I,J,L) = GW(L,1)
-        END IF
-C****   Copy Snow age info into GDATA array
         GDATA(I,J, 9)=SNOAGE(I,J,1)
         GDATA(I,J,10)=SNOAGE(I,J,2)
   930   CONTINUE
-        WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
       END IF
       IF(IRAND.LT.0.AND.TAU.EQ.TAUI) THEN
 C****   Perturb the Initial Temperatures by at most 1 degree C
@@ -2050,7 +2022,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE SLE001
-     &  , only : ghinij, cosday=>cost, sinday=>sint
+     &  , only : cosday=>cost, sinday=>sint
       USE SOCPBL
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
@@ -2389,7 +2361,7 @@ C**** TO BE POSITIVE.  REMEMBER TO SET IDACC(11) BACK TO ZERO AFTER
 C**** THE ERRORS ARE CORRECTED.
 C****
       USE E001M12_COM
-      USE SLE001
+      USE GHYCOM
      &  , only : ghdata
       IMPLICIT REAL*8 (A-H,O-Z)
       IF (IDACC(11).LE.0) RETURN

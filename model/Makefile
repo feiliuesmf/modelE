@@ -10,9 +10,10 @@ EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
 MCOM	= E001M12_COM.o
-GCOM	= GEOM_B.o
-QCOM	= SOMTQ_COM.o
-COM	= $(MCOM) $(QCOM) $(GCOM)
+GEOCOM	= GEOM_B.o
+QUSCOM	= SOMTQ_COM.o
+GHYCOM  = GHYCOM.o
+COM	= $(MCOM) $(QUSCOM) $(GEOCOM)
 RCOM    = BR00B.COM
 
 # Model object files
@@ -30,7 +31,7 @@ UOBJ    = UTILDBL.o
 FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
 OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ) $(UOBJ) \
-          $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ)
+          $(FFTOBJ) $(RNDOBJ) $(COM) $(EOBJ) $(GHYCOM)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -61,14 +62,14 @@ OBJ	= $(MOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) $(SOBJ) $(COBJ) $(ROBJ)
 	$(EXECDIR)/$(F) $<
 
 # Make object files dependent on relevant modules
-$(QCOM):	$(MCOM)
-$(GCOM):	$(MCOM)
-$(MOBJ):	$(COM) $(SLOBJ) $(RNDOBJ) $(COBJ) $(PBLOBJ)
+$(QUSCOM):	$(MCOM)
+$(GEOCOM):	$(MCOM)
+$(GHYCOM):	$(MCOM) $(SLOBJ)
+$(MOBJ):	$(COM) $(GHYCOM) $(RNDOBJ) $(COBJ) $(PBLOBJ)
 $(POBJ):	$(COM) $(ROBJ)  $(RNDOBJ) $(COBJ)
 $(PBLOBJ):	$(COM) 
-$(SOBJ):	$(COM) $(SLOBJ) $(PBLOBJ)
-$(EOBJ):	$(COM) $(SLOBJ) $(COBJ) $(PBLOBJ)
-$(SLOBJ):	$(COM)
+$(SOBJ):	$(COM) $(PBLOBJ)
+$(EOBJ):	$(COM) $(GHYCOM) $(COBJ) $(PBLOBJ)
 $(DOBJ):	$(COM)
 $(QOBJ):	$(COM) 
 $(COBJ):	$(COM) $(RNDOBJ)

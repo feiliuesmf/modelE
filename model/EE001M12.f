@@ -9,8 +9,9 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE E001M12_COM
       USE GEOM
+      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
       USE SLE001
-     &    , only : ghdata,reth,retp,retp2,advnc,ghinij,
+     &    , only : reth,retp,retp2,advnc,
      &    NGM,
      &    PR,HTPR,PRS,HTPRS,GW=>W,HT,SNOWD,TP,FICE,GHOUR=>HOUR,
      &    FV,FB,ATRG,ASHG,ALHG,
@@ -232,8 +233,13 @@ c      ZGS=10.
       PRS=PRCSS(I,J)/(DTCNDS*RHOW)
       HTPR=0.
       IF(TPREC(I,J).LT.0.) HTPR=-LHM*PREC(I,J)/DTCNDS
-      DO 2410 L=1,4*NGM+5
- 2410 GW(L,1)=GHDATA(I,J,L)
+c      DO 2410 L=1,4*NGM+5
+c 2410 GW(L,1)=GHDATA(I,J,L)
+      GW(1:NGM,1) = WBARE(I,J,1:NGM)
+      GW(0:NGM,2) = WVEGE(I,J,0:NGM)
+      HT(0:NGM,1) = HTBARE(I,J,0:NGM)
+      HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
+      SNOWD(1:2) = SNOWBV(I,J,1:2)
       CALL GHINIJ (I,J,WFC1)
       CALL RETH
       CALL RETP
@@ -296,8 +302,13 @@ C**** Calculate ground fluxes
 C     CALL QSBAL
       CALL ADVNC
       TG1=TBCS
-      DO 3410 L=1,4*NGM+5
- 3410 GHDATA(I,J,L)=GW(L,1)
+C      DO 3410 L=1,4*NGM+5
+C 3410 GHDATA(I,J,L)=GW(L,1)
+      WBARE(I,J,1:NGM) = GW(1:NGM,1)
+      WVEGE(I,J,0:NGM) = GW(0:NGM,2)
+      HTBARE(I,J,0:NGM) = HT(0:NGM,1)
+      HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
+      SNOWBV(I,J,1:2) = SNOWD(1:2)
       AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NSURF
       AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NSURF
       AIJG(I,J,11)=AIJG(I,J,11)+BETA/NSURF
@@ -490,3 +501,312 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
  7000 CONTINUE
       RETURN
       END
+
+      SUBROUTINE GHINIT (DTSURF,SHCLC0,IUNIT,redoGH)
+C**** Modifications needed for split of bare soils into 2 types
+      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau
+     &   , twopix=>twopi ! temporary for bytewise compatibility
+      USE GHYCOM
+      USE SLE001
+     &  , sinday=>sint,cosday=>cost
+      IMPLICIT REAL*8(A-H,O-Z)
+      DATA EDPERY/365./
+C**** SOILS28   Common block     9/25/90
+      REAL*8 DTSURF,SHCLC0
+      INTEGER IUNIT
+      LOGICAL redoGH
+C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
+C****
+C**** LADAY(veg type, lat belt) = day of peak LAI
+C OLD PEAK LAI:  2ND LINE IS FOR LATITUDES < 23.5 DEG
+C****    1  temperate latitudes
+C****    2  non-temperate latitudes
+C     DATA  LADAY/ 196,  196,  196,  196,  196,  196,  105,  196/
+C     DATA  LADAY/ 196,  288,  288,  288,  288,  196,  105,  288/
+C****
+C**** CONTENTS OF ALA(K,I,J),  LAI coefficients
+C****   1  AVERAGE LEAF AREA INDEX
+C****   2  REAL AMPLITUDE OF LEAF AREA INDEX
+C****   3  IMAGINARY AMPLITUDE OF LEAF AREA INDEX
+C****
+C**** CONTENTS OF ACS(K,I,J),  CS coefficients
+C****   1  AVERAGE STOMATAL CONDUCTANCE
+C****   2  REAL AMPLITUDE OF STOMATAL CONDUCTANCE
+C****   3  IMAGINARY AMPLITUDE OF STOMATAL CONDUCTANCE
+C****
+C**** CONTENTS OF SDATA(I,J,K):
+C****       1 -   NGM   DZ(NGM)
+C****   NGM+1 - 6*NGM   Q(IS,NGM)
+C**** 6*NGM+1 - 11*NGM   QK(IS,NGM)
+C**** 11*NGM+1           SL
+C
+C READ SOILS PARAMETERS
+      CALL DREAD (IUNIT,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
+      REWIND IUNIT
+C
+      ONE=1.
+   10 CONTINUE
+C****
+C**** INITIALIZE CONSTANTS
+C****
+C**** Time step for ground hydrology
+      DT=DTSURF
+C**** UNITS ARE MKS
+C**** WATER QUANTITIES ARE DENSITY TIMES USUAL VALUES IN MKS
+C**** TO GET VOLUMETRIC UNITS
+C**** 1M WATER = 1000 KG M-2; 1M3 WATER = 1000 KG
+C FSN IS THE HEAT OF FUSION
+      FSN=3.34 E+8
+C ELH IS THE HEAT OF VAPORIZATION
+      ELH=2.50 E+9
+C THE SH'S ARE THE SPECIFIC HEAT CAPACATIES
+      SHW=4.185 E+6
+      SHI=2.060 E+6
+      SHA=1003.4965
+      SHV=1911.
+C THE ALAM'S ARE THE HEAT CONDUCTIVITIES
+      ALAMW=.573345
+      ALAMI=2.1762
+      ALAMA=.025
+      ALAMSN=0.088
+      ALAMBR=2.9
+      ALAMS(1)=8.8
+      ALAMS(2)=2.9
+      ALAMS(3)=2.9
+      ALAMS(4)=.25
+C HW IS THE WILTING POINT IN METERS
+      HW=-100
+C TFRZ IS 0 C IN K
+      TFRZ=273.16
+C ZHTB IS DEPTH FOR COMBINING HEAT LAYERS FOR STABILITY
+      IF(Q(4,1).LT..01)THEN
+      ZHTB=6.
+      ELSE
+      ZHTB=6.
+      ENDIF
+C SPGSN IS THE SPECIFIG GRAVITY OF SNOW
+      SPGSN=.1
+C
+C****
+C**** Initialize global arrays  ALA, ACS, AFB, AFR
+C****
+      TWOPI=6.283185
+      FJEQ=(JM+1)/2.
+      ALA(:,:,:)=0.
+      ACS(:,:,:)=0.
+      AFB(:,:)=0.
+      AFR(:,:,:)=0.
+      DO 220 J=1,JM
+      DO 220 I=1,IM
+  220 ACS(1,I,J)=.01
+      DO 400 J=1,JM
+      DO 400 I=1,IM
+      PEARTH=FEARTH(I,J)
+      AFB(I,J)=VDATA(I,J,1)+VDATA(I,J,10)
+      IF(AFB(I,J).GT..999) AFB(I,J)=1.
+      IF(PEARTH.LE.0..OR.AFB(I,J).GE.1.) GO TO 400
+C**** CALCULATE LAI, CS COEFFICICENTS
+      SFV=0.
+      SLA0=0.
+      SLRE=0.
+      SLIM=0.
+      SCS0=0.
+      SCSRE=0.
+      SCSIM=0.
+      SVH=0.
+      DO 250 IV=1,8
+      PHASE=TWOPI*LADAY(IV)/365.
+      IF(J.LT.FJEQ) PHASE=PHASE+TWOPI/2.
+      FV=VDATA(I,J,IV+1)
+      SFV=SFV+FV
+      SVH=SVH+FV*VHGHT(IV)
+      DIF=(ALAMAX(IV) - ALAMIN(IV))
+      SLA0=SLA0+FV*(ALAMAX(IV) + ALAMIN(IV))
+      SLRE=SLRE+FV*DIF*COS(PHASE)
+      SLIM=SLIM+FV*DIF*SIN(PHASE)
+      SCS0=SCS0+FV*(ALAMAX(IV) + ALAMIN(IV))/RSAR(IV)
+      SCSRE=SCSRE+FV*DIF*COS(PHASE)/RSAR(IV)
+  250 SCSIM=SCSIM+FV*DIF*SIN(PHASE)/RSAR(IV)
+      ALA(1,I,J)=.5/SFV*SLA0
+      ALA(2,I,J)=.5/SFV*SLRE
+      ALA(3,I,J)=.5/SFV*SLIM
+      ACS(1,I,J)=.5/SFV*SCS0
+      ACS(2,I,J)=.5/SFV*SCSRE
+      ACS(3,I,J)=.5/SFV*SCSIM
+      AVH(I,J)=SVH/SFV
+C**** CALCULATE ROOT FRACTION AFR AVERAGED OVER VEGETATION TYPES
+      DO 310 N=1,NGM
+      DZ(N)=DZ_IJ(I,J,N)
+      IF(DZ(N).LE.0.) GO TO 320
+  310 CONTINUE
+  320 N=N-1
+      DO 350 IV=1,8
+      FV=VDATA(I,J,IV+1)
+      Z=0.
+      FRUP=0.
+      DO 350 L=1,N
+      Z=Z+DZ(L)
+      FRDN=AROOT(IV)*Z**BROOT(IV)
+      FRDN=MIN(FRDN,ONE)
+      IF(L.EQ.N)FRDN=1.
+      AFR(I,J,L) = AFR(I,J,L) + FV*(FRDN-FRUP)
+  350 FRUP=FRDN
+      DO 370 L=1,N
+  370 AFR(I,J,L) = AFR(I,J,L)/(1.-AFB(I,J))
+  400 CONTINUE
+C****
+      SDSTNC=100.
+      PRINT *,'SDSTNC:',SDSTNC
+      C1=90.
+      PRINT *,'C1:',C1
+      PRFR=.1
+      PRINT *,'PRFR:',PRFR
+      CALL HL0
+C****
+C code transplanted from subroutine INPUT
+C**** Recompute GHDATA if necessary (new soils data)
+      IF (redoGH) THEN
+        JDAY=1+MOD(NINT(TAU/24.),365)
+        COSDAY=COS(TWOPIX/EDPERY*JDAY)
+        SINDAY=SIN(TWOPIX/EDPERY*JDAY)
+        RHOW=1000.
+        DO 930 J=1,JM
+        DO 930 I=1,IM
+        PEARTH=FEARTH(I,J)
+        IF(PEARTH.LE.0.) THEN
+c          DO 910 L=1,4*NGM+5
+c  910     GHDATA(I,J,L)=0.
+          WBARE(I,J,:)=0.
+          WVEGE(I,J,:)=0.
+          HTBARE(I,J,:)=0.
+          HTVEGE(I,J,:)=0.
+          SNOWBV(I,J,:)=0.
+        ELSE
+C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
+          CALL GHINIJ (I,J,WFC1)
+C****     FILL IN SOILS COMMON BLOCKS
+          SNOWDP=GDATA(I,J,2)/RHOW
+          WTR1=GDATA(I,J,5)
+          ACE1=GDATA(I,J,6)
+          TG1 =GDATA(I,J,4)
+          WTR2=GDATA(I,J,9)
+          ACE2=GDATA(I,J,10)
+          TG2 =GDATA(I,J,8)
+          CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
+C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
+c          DO 920 L=1,4*NGM+5
+c  920     GHDATA(I,J,L) = W(L,1)
+          WBARE(I,J,1:NGM) = W(1:NGM,1)
+          WVEGE(I,J,0:NGM) = W(0:NGM,2)
+          HTBARE(I,J,0:NGM) = HT(0:NGM,1)
+          HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
+          SNOWBV(I,J,1:2) = SNOWD(1:2)
+        END IF
+  930   CONTINUE
+      END IF
+
+      RETURN
+      END SUBROUTINE GHINIT
+
+      SUBROUTINE GHINIJ (I0,J0, WFCAP)
+C**** INPUT:
+C**** AVH(I,J) - ARRAY OF VEGETATION HEIGHTS
+C**** SPGSN - SPECIFIC GRAVITY OF SNOW
+C**** OUTPUT:
+C**** VH - VEGETATION HEIGHT
+C**** SNOWM - SNOW MASKING DEPTH
+C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
+C****
+      USE GHYCOM
+      USE SLE001
+      IMPLICIT REAL*8(A-H,O-Z)
+C**** SOILS28   Common block     9/25/90
+      INTEGER I0,J0
+      REAl*8 WFCAP
+      ONE=1.
+      ID=I0*100+J0
+C**** SET UP LAYERS
+      DZ(1:NGM)=DZ_IJ(I0,J0,1:NGM)
+      Q(1:IMT,1:NGM)=Q_IJ(I0,J0,1:IMT,1:NGM)
+      QK(1:IMT,1:NGM)=QK_IJ(I0,J0,1:IMT,1:NGM)
+      SL=SL_IJ(I0,J0)
+      DO 20 N=1,NGM
+      IF(DZ(N).LE.0.) GO TO 21
+   20 CONTINUE
+   21 N=N-1
+      IF(N.LE.0) THEN
+         WRITE (99,*) 'GHINIJ:  N <= 0:  I,J,N=',I0,J0,N,(DZ(K),K=1,43)
+         STOP
+      END IF
+C**** CALCULATE THE BOUNDARIES, BASED ON THE THICKNESSES.
+      ZB(1)=0.
+      DO 30 L=1,N
+   30 ZB(L+1)=ZB(L)-DZ(L)
+C**** CALCULATE THE LAYER CENTERS, BASED ON THE BOUNDARIES.
+      DO 40 L=1,N
+   40 ZC(L)=.5*(ZB(L)+ZB(L+1))
+C**** FR: ROOT FRACTION IN LAYER L  (1=FR(1)+FR(2)+...+FR(N))
+      DO 45 L=1,N
+      FR(L)=AFR(I0,J0,L)
+   45 CONTINUE
+C**** VH: VEGETATION HEIGHT
+      VH=AVH(I0,J0)
+      SNOWM=VH*SPGSN
+C**** FB,FV: BARE, VEGETATED FRACTION (1=FB+FV)
+      FB=AFB(I0,J0)
+      FV=1.-FB
+C**** ALAI: LEAF AREA INDEX
+      ALAI=ALA(1,I0,J0)+COST*ALA(2,I0,J0)+SINT*ALA(3,I0,J0)
+      ALAI=MAX(ALAI,ONE)
+      ALAIC=5.0
+      ALAIE=ALAIC*(1.-EXP(-ALAI/ALAIC))
+C**** RS: MINIMUM STOMATAL RESISTANCE
+      RS=ALAI/(ACS(1,I0,J0)+COST*ACS(2,I0,J0)+SINT*ACS(3,I0,J0))
+C???  CNC=ALAI/RS   REDEFINED BEFORE BEING USED (QSBAL,COND)
+C
+CW    WRITE(6,*)'N=',N,'  R=',R
+CW    WRITE(6,91)
+CW 91 FORMAT(1X,5X,'ZB',5X,'ZC',5X,'DZ'/1X,21('-'))
+CW    DO 95 L=1,N
+CW 95 WRITE(6,100)ZB(L),ZC(L),DZ(L)
+CW    WRITE(6,100)ZB(N+1)
+CW100 FORMAT(1X,3F7.3)
+CW    WRITE(6,*)
+C****
+      DO 60 IBV=1,2
+      DO 60 L=1,N
+      THETS(L,IBV)=0.
+      THETM(L,IBV)=0.
+      DO 50 I=1,IMT-1
+      THETS(L,IBV)=THETS(L,IBV)+Q(I,L)*THM(0,I)
+      THETM(L,IBV)=THETM(L,IBV)+Q(I,L)*THM(NTH,I)
+   50 CONTINUE
+      WS(L,IBV)=THETS(L,IBV)*DZ(L)
+   60 CONTINUE
+      WS(0,2)=.0001*ALAI
+      WFCAP=FB*WS(1,1)+FV*(WS(0,2)+WS(1,2))
+C****
+      CALL XKLH0
+C****
+      DO 90 IBV=1,2
+      DO 90 L=1,N
+      SHC(L,IBV)=0.
+      DO 80 I=1,IMT
+      SHC(L,IBV)=SHC(L,IBV)+Q(I,L)*SHCAP(I)
+   80 CONTINUE
+      SHC(L,IBV)=(1.-THETS(L,IBV))*SHC(L,IBV)*DZ(L)
+   90 CONTINUE
+C****
+C SHC(0,2) IS THE HEAT CAPACITY OF THE CANOPY
+      AA=ALA(1,I0,J0)
+      SHC(0,2)=(.010+.002*AA+.001*AA**2)*SHW
+C****
+C HTPR IS THE HEAT OF PRECIPITATION.
+C SHTPR IS THE SPECIFIC HEAT OF PRECIPITATION.
+      SHTPR=0.
+      IF(PR.GT.0.)SHTPR=HTPR/PR
+C HTPRS IS THE HEAT OF LARGE SCALE PRECIPITATION
+      HTPRS=SHTPR*PRS
+C****
+      RETURN
+      END SUBROUTINE GHINIJ
