@@ -123,7 +123,7 @@ $(BIN_DIR):
 	mkdir $(BIN_DIR)
 
 # Create an executable
-gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS) $(BIN_DIR)
+gcm $(BIN_DIR)/$(RUN).exe: $(RUNDECK) $(OBJS)
 	$(F90) $(LFLAGS) $(OBJS) -o $(RUN).exe  $(LINK_OUTPUT)
 ifdef LINK_OUTPUT
 	@if [ -s $(RUN).ERR ] ; then cat $(RUN).ERR; else rm -f $(RUN).ERR; fi
@@ -134,8 +134,10 @@ endif
 	@echo '---------    executable $(RUN).exe was created       ---------'
 	@echo '--------------------------------------------------------------'
 
-gcmlib gcmlib.a: $(RUNDECK) $(OBJS)
-	ar cr gcmlib.a $(OBJS)
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(OBJS)
+	ar cr $(RUN).a $(OBJS)
+	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
+	mv $(RUN).a $(BIN_DIR)
 
 
 # Setup the gcm
@@ -161,7 +163,7 @@ clean:
 	rm -f *.LST *~ *.ERR *.CHK *.L
 
 vclean:
-	rm -f *.o *.mod *.vo *.inc .depend* *.sig gcmlib.a
+	rm -f *.o *.mod *.vo *.inc .depend* *.sig
 
 cmp:    CMPE001.f
 	$(F90) $(FFLAGS) -o CMPE001 CMPE001.f

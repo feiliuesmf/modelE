@@ -6,8 +6,6 @@
 
 .PHONY: clean vclean
 
-all: qc cmp conv_rsf acc2nc
-
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
 DECKS_DIR = .
@@ -19,38 +17,49 @@ RUNDECK = $(DECKS_DIR)/$(RUN).R
 OBJ_DIR = .
 BIN_DIR = $(DECKS_DIR)/$(RUN).bin
 
+GCMLIB = $(BIN_DIR)/$(RUN).a
+
+# netcdf library
+NCLIB	= /usr/local/netcdf-3.4/lib64/libnetcdf.a
+
+# list of targets to be built by default
+all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf
+all: $(BIN_DIR)/acc2nc
+
+# include file with implicit rules
 include $(MODEL_DIR)/Rules.make
 
 # look for .mod files in MODEL_DIR
 FFLAGS += -I $(MODEL_DIR)
 
-# netcdf library
-NCLIB	= /usr/local/netcdf-3.4/lib64/libnetcdf.a
 
 #
 #  targets
 #
 
-cmp:    CMPE001.f 
-	$(F90) $(FFLAGS) -o $(BIN_DIR)/CMPE001 CMPE001.f
+$(BIN_DIR)/CMPE001:    CMPE001.f 
+	$(F90) $(FFLAGS) -o $@ $^
 
-conv_rsf: conv_rsf.o $(MODEL_DIR)/gcmlib.a
-	$(F90) $(FFLAGS) -o $(BIN_DIR)/conv_rsf $^
+$(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
+	$(F90) $(FFLAGS) -o $@ $^
 
-conv_rsf.o: $(MODEL_DIR)/gcmlib.a
+conv_rsf.o: $(GCMLIB)
 
-qc: qc.o $(MODEL_DIR)/gcmlib.a
-	$(F90) $(FFLAGS) -o $(BIN_DIR)/qc $^
+$(BIN_DIR)/qc: qc.o $(GCMLIB)
+	$(F90) $(FFLAGS) -o $@ $^
 
-qc.o: $(MODEL_DIR)/gcmlib.a
+qc.o: $(GCMLIB)
 
-$(MODEL_DIR)/gcmlib.a: FORCE
-	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN)
+$(GCMLIB): FORCE
+	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
 
-acc2nc: acc2nc.o $(MODEL_DIR)/NCACC.o $(MODEL_DIR)/gcmlib.a $(NCLIB)
-	$(F90) $(FFLAGS) -o $(BIN_DIR)/$@ $^
+$(BIN_DIR)/acc2nc: acc2nc.o $(MODEL_DIR)/NCACC.o $(GCMLIB) $(NCLIB)
+	$(F90) $(FFLAGS) -o $@ $^
 
-$(MODEL_DIR)/NCACC.o: $(MODEL_DIR)/gcmlib.a # recomp if any changes
+acc2nc.o: $(GCMLIB)
+
+$(MODEL_DIR)/NCACC.o: $(GCMLIB) # recomp if any changes
+	rm -f $@                # force recompile
 	$(MAKE) -C $(MODEL_DIR) NCACC.o
 
 clean:
