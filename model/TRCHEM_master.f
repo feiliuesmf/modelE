@@ -14,9 +14,16 @@ c
       USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
+#ifdef Shindell_Strat_chem
+      USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
+     &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
+     &                  n_AlkylNit,n_Alkenes,n_Paraffin,n_HBr,n_HOCl,
+     &                  n_HCl,n_ClONO2,n_ClOx,n_BrOx,n_BrONO2,n_CFC
+#else
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
+#endif
       USE CONSTANT, only: radian
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
       USE TRACER_SOURCES, only: nChemistry,nStratwrite
@@ -46,6 +53,12 @@ C**** Local parameters and variables and arguments:
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
 !@var colmO2 is overhead oxygen column
 !@var CH4FACT, FACTJ, r179 for setting CH4 ICs and strat distribution
+!@var changeClONO2,changeClOx,changeHOCl,changeHCl nighttime changes
+!@var changehetClONO2 nighttime het change in ClONO2 (on sulfate)
+!@var pscX flag for psc existence
+!@var chg106,chg107,chg108,chg109 reaction rates for het rxns on pscs
+!@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
+!@var rmv dummy variable for halogne removal in trop vs height
       REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
@@ -56,7 +69,9 @@ C**** Local parameters and variables and arguments:
      * ,1.9,2.5,3.7,3.6,4.0,5.2,7.4,8.6,8.6,9.2,12.4/) 
       REAL*8, DIMENSION(JM)      :: tempO2 
       REAL*8, DIMENSION(JM,LM)   :: photO2 
-      REAL*8 sHerzberg,CLTOT,colmO2
+      REAL*8 sHerzberg,CLTOT,colmO2,changeClONO2,changeClOx,
+     *changeHOCl,changeHCl,changehetClONO2,pscX,chg106,chg107,
+     *chg108,chg109,rmrClOx,rmrBrOx,rmv
 #endif
       REAL*8 :: CH4_569
       INTEGER imonth, m
@@ -162,13 +177,13 @@ c     1.7 ppbv CFC plus 0.5 ppbv background
       CLTOT=CLTOT*y(nM,L)/
      *(y(n_ClOx,L)+y(n_HCl,L)+y(n_HOCl,L)+y(n_ClONO2,L))
       y(n_ClOx,L)=y(n_ClOx,L)*CLTOT
-      trm(I,J,L,n_ClOx)=trm(I,J,L,n_ClOx)*CLTOT
+      change(I,J,L,n_ClOx)=trm(I,J,L,n_ClOx)*(CLTOT-1.D0)
       y(n_HCl,L)=y(n_HCl,L)*CLTOT
-      trm(I,J,L,n_HCl)=trm(I,J,L,n_HCl)*CLTOT
+      change(I,J,L,n_HCl)=trm(I,J,L,n_HCl)*(CLTOT-1.D0)
       y(n_HOCl,L)=y(n_HOCl,L)*CLTOT
-      trm(I,J,L,n_HOCl)=trm(I,J,L,n_HOCl)*CLTOT
+      change(I,J,L,n_HOCl)=trm(I,J,L,n_HOCl)*(CLTOT-1.D0)
       y(n_ClONO2,L)=y(n_ClONO2,L)*CLTOT
-      trm(I,J,L,n_ClONO2)=trm(I,J,L,n_ClONO2)*CLTOT
+      change(I,J,L,n_ClONO2)=trm(I,J,L,n_ClONO2)*(CLTOT-1.D0)
       endif
 c     Save initial ClOx amount for use in ClOxfam
       ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
@@ -327,9 +342,9 @@ c
       if((SALBFJ(I,J).ne.0.).AND.(sza.lt.szamax))then ! S U N L I G H T
 #ifdef Shindell_Strat_chem
        call Oxinit(LM,I,J)
-       call HOxfam(LM,I,J,dt2,SF3)
-       call NOxfam(LM,LS1,I,J)
-       call BrOxfam(LM,LS1,I,J)
+       call HOxfam(LM,I,J)
+       call NOxfam(LM,I,J)
+       call BrOxfam(LM,I,J)
 #else
        call Oxinit(LS1-1,I,J)
        call HOxfam(LS1-1,I,J)
@@ -341,7 +356,7 @@ c
       call chemstep(I,J,change)
 c
 #ifdef Shindell_Strat_chem
-       call ClOxfam(LM,LS1,I,J,sza,ClOx_old,dt2)
+       call ClOxfam(LM,I,J,ClOx_old)
 #endif
 c
 C Some Chemistry Diagnostics:

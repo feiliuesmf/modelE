@@ -20,9 +20,9 @@ c
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
 C
 !@param p_1 number of reactants per reaction
-!@param p_2 total number of reactions
+!@param p_2 number of rxns in assembled lists (check with print rxn list)
 !@param p_3 number of rxns in assembled lists (check with print rxn list)
-!@param p_4 total number of reactions
+!@param p_4 number of rxns in assembled lists (check with print rxn list)
 !@param p_5 number of levels from top down with SRB flux
 !@param n_rx maximum number of chemical reactions
 !@param n_bi maximum number of bimolecular reactions
@@ -32,7 +32,6 @@ C
 !@param n_bnd3 maximum number of spectral bands 3
 !@param n_nst maximum number of monomolecular decompositions
 !@param n_fam maximum number of chemical families
-!@param n_spc maximum number of chemical species
 !@param n_oig max number of optically-important gases
 !@param n_srb max number of schumann-runge bands
 !@param N__ Number of levels in Mie grid: 2*(2*lpar+2+jaddto(1))+3
@@ -91,54 +90,59 @@ C
      & p_1   =     2,
 #ifdef Shindell_Strat_chem
      & p_2   =   209,
+     & p_3   =   500,
+     & p_4   =   209,
      & n_rx  =   109,
      & n_bi  =    93,
      & n_tri =    11,
      & n_nst =     3,
+     & nc     =   53,     !formerly in param sub
+     & ny     =   51,     !formerly in param sub  
+     & numfam =    4,     !formerly in param sub  
+     & nC2O3=     26,
+     & nXO2=      27,    
+     & nXO2N=     28,
+     & nRXPAR=    29,
+     & nROR=      30,
+     & nAldehyde= 31,
+     & nH2O=      32,
+     & nCH3O2=    33,
+     & nH2=       34,
+     & nOH=       35,
+     & nHO2=      36,
+     & nO3=       37,
+     & nO=        38,
+     & nO1D=      39,
+     & nNO=       40,
+     & nNO2=      41,
+     & nNO3=      42,
+     & nHONO=     43,
+     & nCl2O2=    44,
+     & nClO=      45,
+     & nOClO=     46,
+     & nCl2=      47,
+     & nCl=       48,
+     & nBrCl=     49,
+     & nBrO=      50,
+     & nBr=       51,
+     & nO2=       52,
+     & nM=        53,     !you must always put nM last (highest number)
      & JPPJ   =   28,
+     & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
+     & NLFASTJ=  400,     !300 is arbitrary for now
+     & NWFASTJ=   18, 
+     & JPNL   =   23,
 #else
      & p_2   =   111,
+     & p_3   =   200,
+     & p_4   =    70,
      & n_rx  =   101,
      & n_bi  =    96,
      & n_tri =    14,
      & n_nst =     5,
-     & JPPJ   =   16,
-#endif
-#ifdef Shindell_Strat_chem
-     & nc     =   53,     !formerly in param sub
-     & ny     =   51,     !formerly in param sub  
-     & numfam =    4,     !formerly in param sub  
-#else
      & nc     =   35,     !formerly in param sub
      & ny     =   33,     !formerly in param sub  
      & numfam =    2,     !formerly in param sub  
-#endif
-     & p_3   =   200,
-     & p_4   =    70,
-     & p_5   =    14,
-     & n_bnd1=    31,
-     & n_fam =     4,
-     & n_spc =    35,
-     & n_bnd2=    87,
-     & n_bnd3=   107,
-     & n_oig =     3,
-     & n_srb =    18,
-C ----------------------------------------------     
-c     & n_Ox=        1,    ! note, these
-c     & n_NOx=       2,    ! first 15 species are
-c     & n_N2O5=      3,    ! tracers, and therefore
-c     & n_HNO3=      4,    ! these parameters are
-c     & n_H2O2=      5,    ! to be defined in 
-c     & n_CH3OOH=    6,    ! TRACERS_DRV.f.
-c     & n_HCHO=      7,    ! Note the UNDERSCORE !!!
-c     & n_HO2NO2=    8,    !  T
-c     & n_CO=        9,    !  R
-c     & n_CH4=      10,    !  A
-c     & n_PAN=      11,    !  C
-c     & n_Isoprene= 12,    !  E
-c     & n_AlkylNit= 13,    !  R
-c     & n_Alkenes=  14,    !  S
-c     & n_Paraffin= 15,    ! ---------------
      & nC2O3=     16,
      & nXO2=      17,    
      & nXO2N=     18,
@@ -159,14 +163,39 @@ c     & n_Paraffin= 15,    ! ---------------
      & nHONO=     33,
      & nO2=       34,
      & nM=        35,     !you must always put nM last (highest number)
+     & JPPJ   =   16,
+     & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
+     & NLFASTJ=  350,     !300 is arbitrary for now
+     & NWFASTJ=   15, 
+     & JPNL   =   12,
+#endif
+     & p_5   =    14,
+     & n_fam =     4,
+     & n_bnd1=    31,
+     & n_bnd2=    87,
+     & n_bnd3=   107,
+     & n_oig =     3,
+     & n_srb =    18,
+C ----------------------------------------------     
+c     & n_Ox=        1,    ! note, these
+c     & n_NOx=       2,    ! first 15 species are
+c     & n_N2O5=      3,    ! tracers, and therefore
+c     & n_HNO3=      4,    ! these parameters are
+c     & n_H2O2=      5,    ! to be defined in 
+c     & n_CH3OOH=    6,    ! TRACER_COM.f.
+c     & n_HCHO=      7,    ! Note the UNDERSCORE !!!
+c     & n_HO2NO2=    8,    !  T
+c     & n_CO=        9,    !  R
+c     & n_CH4=      10,    !  A
+c     & n_PAN=      11,    !  C
+c     & n_Isoprene= 12,    !  E
+c     & n_AlkylNit= 13,    !  R
+c     & n_Alkenes=  14,    !  S
+c     & n_Paraffin= 15,    ! ---------------
 C ----------------------------------------------   
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
-     & NLFASTJ=  350,     !300 is arbitrary for now
      & NS     =   51,
-     & NWFASTJ=   15, 
-     & JPNL   =   12,
-     & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
      & MFIT   =    8,
      & NFASTJ =    4,
      & MFASTJ =    1,
@@ -393,7 +422,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 #ifdef Shindell_Strat_chem
       INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50/)
 #else
-      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30/)
+      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/)
 #endif
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
@@ -408,7 +437,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(12) , PARAMETER :: MDOFM =
      *     (/31,59,90,120,151,181,212,243,273,304,334,365/)
 C      
-      CHARACTER*8, DIMENSION(n_spc)    :: ay
+      CHARACTER*8, DIMENSION(nc)       :: ay
 C      
       REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,
      & BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
@@ -419,7 +448,7 @@ C
      & F569P,F569M
       REAL*8, DIMENSION(JM,LcorrOx,12) :: corrOxIN ! 12=month
       REAL*8, DIMENSION(JM,LM,12)      :: corrOx
-      REAL*8, DIMENSION(n_spc,LM)      :: y
+      REAL*8, DIMENSION(nc,LM)         :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(JPPJ,LM,IM,JM) :: ss
       REAL*8, DIMENSION(n_bi)          :: pe, ea

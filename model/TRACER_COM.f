@@ -31,11 +31,21 @@ C**** Each tracer has a variable name and a unique index
      *     'CFC11   ','14CO2   ','CH4     ','O3      '/)
 #else
 #ifdef TRACERS_SPECIAL_Shindell
+#ifdef Shindell_Strat_chem
+      integer, parameter :: ntm=25
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
+     *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
+     *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
+     *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
+     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     '/)
+#else
       integer, parameter :: ntm=15
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin'/)
+#endif
 #else
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: ntm=5
@@ -68,8 +78,10 @@ C**** Each tracer has a variable name and a unique index
      *     n_H2O18,  n_HDO,   n_HTO,   n_Ox,       n_NOx, 
      *     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,
      *     n_HO2NO2, n_CO,    n_PAN,   n_Isoprene, n_AlkylNit,
-     *     n_Alkenes, n_Paraffin, n_DMS, n_MSA, n_SO2,
-     *     n_SO4    ,n_H2O2_s 
+     *     n_Alkenes,n_Paraffin,n_DMS, n_MSA,      n_SO2,
+     *     n_SO4,    n_H2O2_s,n_ClOx,  n_BrOx,     n_HCl,
+     *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
+     *     n_CFC  
 
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive

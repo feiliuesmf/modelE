@@ -65,6 +65,12 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
         yNO3     =0.
         yXO2N    =0.
         yRXPAR   =0.
+#ifdef Shindell_Strat_chem
+        pClOx    =1.
+        pClx     =0.
+        pOClOx   =0.
+        pBrOx    =1.
+#endif
       END IF
 C
       return

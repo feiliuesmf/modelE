@@ -306,6 +306,52 @@ c
           ntm_power(n) = -12
           tr_mm(n) = 108.02d0
 
+      case ('ClOx')
+      n_ClOx = n
+          ntm_power(n) = -11
+          tr_mm(n) = 51.5d0
+
+      case ('BrOx')
+      n_BrOx = n
+          ntm_power(n) = -14
+          tr_mm(n) = 95.9d0
+
+      case ('HCl')
+      n_HCl = n
+          ntm_power(n) = -10
+          tr_mm(n) = 36.5d0
+
+      case ('HOCl')
+      n_HOCl = n
+          ntm_power(n) = -14
+          tr_mm(n) = 52.5d0
+
+      case ('ClONO2')
+      n_ClONO2 = n
+          ntm_power(n) = -11
+          tr_mm(n) = 97.5d0
+
+      case ('HBr')
+      n_HBr = n
+          ntm_power(n) = -14
+          tr_mm(n) = 80.9d0
+
+      case ('HOBr')
+      n_HOBr = n
+          ntm_power(n) = -14
+          tr_mm(n) = 96.9d0
+
+      case ('BrONO2')
+      n_BrONO2 = n
+          ntm_power(n) = -11
+          tr_mm(n) = 141.9d0
+
+      case ('CFC')
+      n_CFC = n
+          ntm_power(n) = -12
+          tr_mm(n) = 137.4d0 !CFC11
+          ntsurfsrc(n) = 1
+
       case ('HNO3')
       n_HNO3 = n
           ntm_power(n) = -11

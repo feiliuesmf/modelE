@@ -20,13 +20,20 @@ C
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
+!@var iO3form O3 formation reaction from O + O2
       real*8 az, bz, P1
       integer, intent(IN) :: lmax,I,J
-      integer L
+      integer L,iO3form
+c
+#ifdef Shindell_Strat_chem
+      iO3form=94
+#else
+      iO3form=47
+#endif
 C
       do L=1,lmax
 c       for concentration of O:
-        az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(47,L)*y(nO2,L))
+        az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(iO3form,L)*y(nO2,L))
 c       for concentration of O(1D):
         bz=ss(2,L,I,J)/
      &  (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
@@ -56,9 +63,15 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
+      USE MODEL_COM, only :  ls1
       USE TRACER_COM, only : n_NOx
+#ifdef Shindell_Strat_chem
+      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
+     &      ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,nClO,nOClO,nBrO
+#else
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                           ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
+#endif
 C
       IMPLICIT NONE
 c
@@ -67,22 +80,61 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
+!@var iNO2form NO2 formation reaction from O + NO
       real*8 b,c,p1,p2
-      integer L
+      integer L,iNO2form
       integer, intent(IN) :: lmax,I,J
-
+c
+#ifdef Shindell_Strat_chem
+      iNO2form=95
+#else
+      iNO2form=48
+#endif
+c
       do L=1,lmax
 c       If dawn then set NO3 back to zero:
         IF(yNO3(I,J,L).GT.0.)yNO3(I,J,L)=0.
 c       B is for NO->NO2 reactions :
         B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)
-     &   +rr(20,L)*yCH3O2(I,J,L) + rr(48,L)*y(nO,L)
+     &   +rr(iNO2form,L)*y(nO,L)
+
+c       Troposphere
+        if(l.lt.LS1)then
+         B=B+rr(20,L)*yCH3O2(I,J,L)
      &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
+        else
+c       Stratosphere
+#ifdef Shindell_Strat_chem
+c
+c      calculate NO3 abundance (works fine, but negligible contribution)
+c       Aqq=rr(5,L)*y(nO3,L)
+c       Bqq=rr(17,L)*y(nNO,L)+rr(66,L)*
+c     *    y(nCl,alt)+ss(6,L,i,j)+ss(5,L,i,j)
+c       if(y(n_NOx,L).gt.0)then
+c        Gqq=(rr(16,L)*y(nOH,L)*y(n_HNO3,L)+
+c     *   rr(65,L)*y(n_ClONO2,L)*y(nO,L)+
+c     *   rr(92,L)*y(n_N2O5,L)*y(nM,L)+ss(11,L,i,j)*
+c     *   y(n_HO2NO2,L)+ss(7,L,i,j)*y(n_N2O5,L)+ss(22,L,i,j)*
+c     *   y(n_ClONO2,L))/y(n_NOx,L)
+c       else
+c        Gqq=0.
+c       endif
+c       y(nNO3,L)=(Aqq*y(nNO2,L)+Gqq*y(n_NOx,L))/
+c     *   (Bqq+rr(99,L)*y(nNO2,L))
+c
+         B=B+rr(64,L)*y(nClO,L)+rr(67,L)*y(nOClO,L)
+     &   +rr(71,L)*y(nBrO,L)
+c     &   +rr(17,L)*y(nNO3,L)
+#endif
+        endif
+c
 C       C is for NO2->NO reactions :
-        C=ss(1,L,I,J)
-     &   +y(nO,L)*5.60E-12*exp(180/ta(L)) !O+NO2 rxn
-     &   +rr(7,L)*y(nO3,L)*0.75 !forms NO3, assume most goes to NO
+        C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
+        if(l.lt.LS1)C=C
+     &   +rr(7,L)*y(nO3,L)*0.25 !forms NO3, assume some goes to NO
 c        most likely rxns: NO2+NO3->NO+NO2, J5:NO3->NO+O2, J6:NO3->NO2+O
+c     &   +rr(24,L)*y(nNO3,L) !no NO3 during day
+c
         p2=B/(B+C)
         p1=1-p2
         y(nNO,L)=p1*y(n_NOx,L)
@@ -109,38 +161,57 @@ C
 c
 C**** GLOBAL parameters and variables:
 c
+      USE MODEL_COM, only :  ls1
+#ifdef Shindell_Strat_chem
+      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
+     &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
+     &                       n_HBr,n_HOCl,n_HCl
+      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
+     &    nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,ta,ss,nC2O3,nROR,
+     &    nBrO,nClO,nOClO,nBr,nCl,SF3
+#else
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
      &                           nXO2N,ta,ss,nC2O3,nROR
+#endif
 C
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
-!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx dummy variables
+!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,rcqqz,ratio dummy vars
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry (usually LS1-1 ~ tropopause)
-      real*8 aqqz, bqqz, cqqz, cz, dz, sqroot, temp_yHOx
-      integer L
+!@var iH2O2form H2O2 formation reaction from OH + OH
+!@var iHNO3form HNO3 formation reaction from OH + NO2
+!@var iHONOform HONO formation reaction from NO + OH
+!@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
+      real*8 aqqz, bqqz, cqqz, cz, dz, sqroot, temp_yHOx,
+     *rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot
+      integer L,iH2O2form,iHNO3form,iHONOform
       integer, intent(IN) :: lmax,I,J
+c
+#ifdef Shindell_Strat_chem
+      integer, parameter :: iH2O2form=96,iHNO3form=97,iHONOform=100
+#else
+      integer, parameter :: iH2O2form=49,iHNO3form=50,iHONOform=53
+#endif
 C
-      do L=1,lmax   ! >> beginning of altitude loop <<
+cc    Troposphere
+      do L=1,LS1-1   ! >> beginning of altitude loop <<
 c
 c      First calculate equilibrium amount of HOx
 c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
 c       equations are in terms of HO2 (so *pHOx when OH is reactant)
 C
-C >>> Drew: temporarily, I omitted all your debugging writes in this
-C subroutine. If you need them back, let me know.  Thanks, Greg <<<
-C
        aqqz=2.*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
-     & (rr(3,L)+rr(49,L)) + rr(15,L))
+     & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 C
        bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
-     & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(50,L)
-     & *y(nNO2,L)+rr(53,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
+     & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(iHNO3form,L)
+     & *y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
      & +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
      & *y(n_Paraffin,L)*0.89+rr(34,L)*y(n_Alkenes,L)
      & +rr(30,L)*y(n_Isoprene,L)*0.15+rr(33,L)*y(n_AlkylNit,L))
@@ -199,7 +270,112 @@ C      Some limits on OH, HO2:
        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
 C
       enddo  ! >> end of altitude loop <<
+c
+#ifdef Shindell_Strat_chem
+cc    Stratosphere
+      do L=LS1,lmax
+c
+c      First calculate equilibrium amount of HOx
+c      A: loss rxns with HOx**2, B: loss rxns linear in HOx, C: prod
+c       equations are in terms of HO2 (so *pHOx when OH is reactant)
+C
+       aqqz=2.*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
+     & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
+C
+       bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
+     & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(iHNO3form,L)
+     & *y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
+     &  +rr(52,L)*y(n_HCl,L)*pHOx(I,J,L)+rr(53,L)*y(n_HOCl,L)
+     &  *pHOx(I,J,L)+rr(56,L)*y(nOClO,L)*pHOx(I,J,L)+
+     &  rr(59,L)*y(nCl,L)+
+     &  +rr(62,L)*y(nClO,L)*pHOx(I,J,L)+rr(63,L)*y(nClO,L)
+     &  +rr(68,L)*y(n_HBr,L)*pHOx(I,J,L)+rr(72,L)*y(nBr,L)
+     &  +rr(73,L)*y(nBrO,L)+rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
+c     &  +pHOx(I,J,L)*rr(18,L)*y(n_HO2NO2,L)+rr(98,L)*y(nNO2,L)
+c
+c     Use OH production without O1D explicitly
+       cqqz=2*ss(4,L,i,j)*y(n_H2O2,L)+ss(9,L,i,j)*y(n_HNO3,L)
+c     &	+(2*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*y(nO1D,L)
+c     &	((2*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+c     &  ss(2,L,i,j)*y(nO3,L))/
+c     &  (rr(8,L)*y(n_O2,L)+rr(9,L)*y(nM,L)+
+c     &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+     &  +rr(54,L)*y(n_HCl,L)*y(nO,L)+rr(55,L)*y(n_HOCl,L)*y(nO,L)
+     &  +rr(57,L)*y(n_HOCl,L)*y(nCl,L)+rr(58,L)*y(nCl,L)*
+     &  y(n_H2O2,L)+rr(79,L)*y(nBr,L)*y(n_H2O2,L)
+     &  +rr(84,L)*y(n_HBr,L)*y(nO,L)
+     &  +SF3(I,J,L)*pHOx(I,J,L) !water vapor photolysis in SRBs
 
+c      production from O1D limited to O1D amount
+       rcqqz=rr(8,L)*y(n_O2,L)+rr(9,L)*y(nM,L)+
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L)
+       if(rcqqz.gt.1)then
+        ratio=1./rcqqz
+       else
+        ratio=1.
+       endif
+       cqqz=cqqz+ratio*        
+     & ((2.*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ss(2,L,I,J)*y(nO3,L))/
+     & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+c     &  +ss(8,L,i,j)*y(nHONO,L)
+c     &  +rr(28,L)*y(nNO3,L)*y(n_HCHO,L) !no NO3 or HONO during day
+c
+c      if(J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
+c     & write(*,*) 'HOxfam: a,b,c,p = ',aqqz,bqqz,cqqz,pHOx(I,J,L)
+c
+       sqroot=sqrt(bqqz*bqqz+4*aqqz*cqqz)
+       y(nHO2,L)=(sqroot-bqqz)/(2*aqqz)
+       y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
+       temp_yHOx=y(nOH,L)+y(nHO2,L)
+c
+c     if(J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
+c    &write(*,*)'eq end pHOx, aqqz, bqqz, cqqz, HO2, HOx, OH = ',
+c    &pHOx(I,J,L),aqqz,bqqz,cqqz,y(nHO2,L),temp_yHOx,y(nOH,L)
+c
+c      Now partition HOx into OH and HO2:
+c      CZ: OH->HO2 reactions :
+       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
+     & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
+     &  +rr(21,L)*y(n_HCHO,L)
+     &  +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
+c
+       dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
+c     &+rr(15,L)*y(nHO2,L)
+c     &*(2*ss(4,L,i,j)/(2*ss(4,L,i,j)+y(nOH,L)*rr(14,L)))
+c      Previous two lines additional OH production via 
+c      R15 then S4/(S4+S14) fraction
+     &  +rr(60,L)*y(nCl,L)+rr(90,L)*y(nO,L)
+c
+       if(cz+dz.gt.0)then
+        y(nOH,L)=(dz/(cz+dz))*temp_yHOx
+        if(y(nOH,L).gt.temp_yHOx)y(nOH,L)=temp_yHOx-1.0
+       else
+        y(nOH,L)=1.0
+       endif
+       y(nHO2,L)=(temp_yHOx-y(nOH,L))
+
+c      At low pressures, include loss of OH into H
+       if(L.gt.LM-4)then
+        rHprod=rr(89,L)*y(nOH,L)*y(nO,L)
+        rHspecloss=y(nO3,L)*1.4E-10*exp(-470./ta(L))
+        rkzero=y(nM,L)*5.7d-32*((ta(L)/300)**-1.6)
+        rktot=(rkzero/(1+(rkzero/7.5d-11)))
+        rHspecloss=rHspecloss+y(nO2,L)*rktot
+        y(nOH,L)=y(nOH,L)-rHprod/rHspecloss
+       endif
+c
+        if(y(nOH,L).lt.1)y(nOH,L)=1.0
+        if(y(nHO2,L).lt.1)y(nHO2,L)=1.0
+        if(y(nHO2,L).gt.1E9)y(nHO2,L)=1.E9
+       pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
+c      if(J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
+c    & write(*,*)'part end HO2, HOx, OH, cz, dz = ',
+c    & y(nHO2,L),temp_yHOx,y(nOH,L),cz,dz
+c
+      enddo  ! end of altitude loop
+#endif
+c
       return
       END SUBROUTINE HOxfam
-

@@ -75,7 +75,7 @@ C**** Zonal mean cloud water concentration
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,fim
+      USE MODEL_COM, only: im,jm,lm,fim,ls1
       USE GEOM, only: imaxj
       USE TRACER_COM
       USE TRACER_DIAG_COM, only: tconsrv,nofmt,title_tcon
@@ -87,7 +87,7 @@ C**** Zonal mean cloud water concentration
       INTEGER, INTENT(IN) :: nt
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(JM) :: total
-      INTEGER :: i,j,l,nm,ni
+      INTEGER :: i,j,l,nm,ni,ltop
       REAL*8 sstm,stm
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
@@ -101,10 +101,12 @@ C**** NOFMT(1,NT) is the index for the instantaneous value.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate current value TOTAL
-!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM)
+!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM,ltop)
         do j=1,jm
           sstm = 0.
-          do l=1,lm
+          ltop=lm
+          if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx')ltop=LS1-1
+          do l=1,ltop
             stm = 0.
             do i=1,imaxj(j)
               stm = stm+trm(i,j,l,nt)
