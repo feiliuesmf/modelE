@@ -3393,7 +3393,7 @@ C**** Optional Tracer aerosols initializations
         TRTQAB(K,N,NT)=TRTQAB(K,1,NT)
         END DO
         DO M=1,9
-        RTINFO(N,M,NT)=RTINFO(N,1,NT)
+        RTINFO(N,M,NT)=RTINFO(1,M,NT)
         END DO
       END DO
       END DO
