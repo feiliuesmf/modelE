@@ -85,7 +85,7 @@ Cewg Between 24N and 40N, allow biomass burning from September to April.
      *  iuc2,ib,jb,iburn,
      *  iv,jv,ivht,ir,l,najl
       save ifirst,so2_ind_input
-
+      if (imPI.eq.1) go to 88
       if (ifirst) then
       call openunit('SO2_IND',iuc,.false.)
       so2_ind_input(:,:)=0.   ! initiallise
@@ -111,6 +111,42 @@ c Actually they are kg SO2/box/yr:
 
 c??      DTT=REAL(NDYN)*DT/(86400.*30.) (ADDTC=TB*B60N*DTT)
 
+c Aircraft emissions
+      if (ifirst) then
+      so2_src_3D(:,:,:,2)=0.
+      bci_src_3D(:,:,:)=0.d0
+      call openunit('AIRCRAFT',iuc2,.true.)
+C Read 13 layer data file for 23 layer model
+      if (lm.eq.23) then
+      DO L=1,LS1+1
+      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      END DO
+      else
+      DO L=1,LM
+      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
+      END DO
+      endif
+      call closeunit(iuc2)
+C Set emissions above LS1+1 to zero for 23 layer model
+       if (lm.eq.23) then
+       DO L=LS1+2,LM
+        DO J=1,JM
+         DO I=1,IM
+       craft(i,j,l)=0.0
+       END DO
+       END DO
+       END DO
+       endif
+c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
+c adjusts 2015 source to 1990 source.
+c 4.d0d-4 converts to kg S
+c (for BC multiply this by 0.1)
+      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
+     *  /2.3d0/sday
+      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
+      ifirst=.false.
+      endif
+ 88   continue
 C  Read in emissions from biomass burning
       call openunit('SO2_BIOMASS',iuc2,.false.)
       so2_biosrc_3D(:,:,:,:)=0.   ! initiallise
@@ -159,7 +195,8 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
           IF (REAL(JDAY).LT.SDDAY.OR.REAL(JDAY).GT.ENDDAY) GOTO 154
         ENDIF
         ADDTC = TB*FDRY
- 165    SO2_biosrc_3D(IB,JB,1,jmon) =  ADDTC
+ 165    if (imPI.eq.1) ADDTC=0.5d0*ADDTC
+       SO2_biosrc_3D(IB,JB,1,jmon) =  ADDTC
  400  CONTINUE
  154  CONTINUE
  155  call closeunit(iuc2)
@@ -194,41 +231,6 @@ C ZH is height in meters of top of layer above sea level
  100   CONTINUE
  116  CONTINUE
       call closeunit(iuc2)
-c Aircraft emissions
-      if (ifirst) then
-      so2_src_3D(:,:,:,2)=0.
-      bci_src_3D(:,:,:)=0.d0
-      call openunit('AIRCRAFT',iuc2,.true.)
-C Read 13 layer data file for 23 layer model
-      if (lm.eq.23) then
-      DO L=1,LS1+1
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
-      END DO
-      else
-      DO L=1,LM
-      READ(iuc2) titleg,((craft(i,j,l),i=1,im),j=1,jm)
-      END DO
-      endif
-      call closeunit(iuc2)
-C Set emissions above LS1+1 to zero for 23 layer model
-       if (lm.eq.23) then
-       DO L=LS1+2,LM
-        DO J=1,JM
-         DO I=1,IM
-       craft(i,j,l)=0.0
-       END DO
-       END DO
-       END DO
-       endif
-c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
-c adjusts 2015 source to 1990 source.
-c 4.d0d-4 converts to kg S
-c (for BC multiply this by 0.1)
-      so2_src_3D(:,:,:,2)=craft(:,:,:)*4.0d-4*tr_mm(n_SO2)/32.d0
-     *  /2.3d0/sday
-      bci_src_3D(:,:,:)=so2_src_3D(:,:,:,2)*0.1d0
-      ifirst=.false.
-      endif
 
       end subroutine read_SO2_source
 
@@ -467,12 +469,14 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*trm(i,j,l,n) !efold of 3 day?        
+c       bciage=4.3D-6*trm(i,j,l,n) !used this first        
+        bciage=1.0D-6*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=7.3D-6*trm(i,j,l,n)        
+c       ociage=7.3D-6*trm(i,j,l,n)       !used this first 
+        ociage=3.6D-6*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
