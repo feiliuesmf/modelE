@@ -35,6 +35,7 @@ print_usage help all:
 	@echo ' newstart- remove all files in the run directory'
 	@echo ' exe     - compile gcm and put executable into RUN directory'
 	@echo ' htmldoc - create web-based documentation for this RUN'
+	@echo ' setup_nocomp - do not recompile, run only setup script'
 	@echo
 	@echo '          Recommended usage:'
 	@echo 'The targets are made in order: "rundeck", "depend", "gcm", "setup",'

@@ -789,8 +789,10 @@ C****            not yet implemented but could easily be done  ???
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 Csoon   READ (iu_AIC) XLABEL(1:80)
         CALL READT (iu_AIC,0,P,IM*JM,P,1)             ! Psurf
-        DO I=1,IM*JM
-        P(I,1)=P(I,1)-PTOP                            ! Psurf -> P
+        DO J=1,JM
+          DO I=1,IM
+            P(I,J)=P(I,J)-PTOP                        ! Psurf -> P
+          END DO
         END DO
         DO L=1,LM
         CALL READT (iu_AIC,0,U(1,1,L),IM*JM,U(1,1,L),1) ! U
