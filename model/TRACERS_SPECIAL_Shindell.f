@@ -1651,8 +1651,8 @@ C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:
 !old  TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
       TIMEC = (mod(itime,365*nday) + nday + 0.5)*DTsrc  
-      if(DTsrc.ne.3600.)call stop_model
-     &('DTsrc has changed. Please check on get_sza subroutine',255)
+!     if(DTsrc.ne.3600.)call stop_model
+!    &('DTsrc has changed. Please check on get_sza subroutine',255)
       P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
       FACT = (TIMEC/86400. - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
