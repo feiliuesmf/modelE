@@ -1858,7 +1858,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO 440 L=1,LMO
       DO 440 J=2,JM-1
       DO 440 I=1,IM
-         IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
+         IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
          IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
   440 CONTINUE
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTX ',ICKERR
@@ -2098,11 +2098,11 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO L=1,LMO
         DO J=2,JM-1
           DO I=1,IM
-            IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
+            IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
             IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
           END DO
         END DO
-        IF(FOCEAN(1,JM)*MO(1,JM,L).LE.0.)  GO TO 800
+        IF(FOCEAN(1,JM).gt.0 .and. MO(1,JM,L).LE.0.)  GO TO 800
         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
       END DO
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTY ',ICKERR
@@ -2280,7 +2280,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
         DO I=IMIN,IMAX
         LMIJ=LMM(I,J)
         DO L=1,LMIJ
-          IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
+          IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
           IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
         END DO
       END DO
