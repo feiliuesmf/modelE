@@ -958,7 +958,7 @@ c can't be more than moles going in:
      *     ,trname,ntm,tr_mm,n_SO4,trm,trmom,n_H2O2
       USE MODEL_COM, only: im,jm,lm,dtsrc,t,p,coupled_chem
       USE CLOUDS_COM, only:rhsav
-      USE DYNAMICS, only: pmid,am,pk
+      USE DYNAMICS, only: pmid,am,pk,ltropo
       USE GEOM, only: dxyp,imaxj
       USE FLUXES, only : tr3Dsource
 
@@ -985,6 +985,8 @@ C**** initialise source arrays
         tr3Dsource(i,j,l,5,n_SO2)=0.
         tr3Dsource(i,j,l,3,n_H2O2_s)=0.
 
+      if(l.le.ltropo(i,j)) then
+
       amass=am(l,i,j)*DXYP(j)   !kg
       ppas=pmid(l,i,j)*100.    !Pa
       te=pk(l,i,j)*t(i,j,l)
@@ -992,7 +994,7 @@ C**** initialise source arrays
 c  water from deliquescence; assume complete dissociation of (NH)2SO4
 c   Assume average radius of 0.1 um
       ss=rhsav(l,i,j)
-      if (ss.gt.0.99d0) go to 88
+      if (ss.gt.0.99d0.or.ss.le.0.0d0) go to 88
          R1=log(SS)
          A=3.2d-7/te*1d6
 c        B=1.09d-4*7.4 !7.4 is particle mass for 0.1 um particle
@@ -1134,6 +1136,7 @@ c diagnostic
 
 
   88  continue
+       endif
 
   20  CONTINUE
   21  CONTINUE
