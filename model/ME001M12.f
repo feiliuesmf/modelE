@@ -1,4 +1,4 @@
-!#include "rundeck_opts.h"
+#include "rundeck_opts.h"
 
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine

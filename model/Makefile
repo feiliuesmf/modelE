@@ -125,6 +125,7 @@ mkrun:
 depend $(DEPENDFILE): $(RUNDECK) $(FSRCS)
 	@echo '-------- Dependecies are out of date or do not exist ---------'
 	@echo '---------         regenerating them                  ---------'
+	[ -f $(RUN_H) ] || touch $(RUN_H)
 	$(FMAKEDEP) -f $(DEPENDFILE) $^
 	@echo '---------         done with dependencies             ---------'
 
