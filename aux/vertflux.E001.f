@@ -1,9 +1,9 @@
       program vertflux
 !@sum vertflux reads the ocean data saved from a GCM run,
 !@+   calculates the ocean vertical flux (correcting for any small
-!@+   imbalance) and writes the data onto a disk file. 
+!@+   imbalance) and writes the data onto a disk file.
 !@+   RSI is interpolated in time from the climatological
-!@+   ocean file for the run 
+!@+   ocean file for the run
 C****
 C**** Input files : VFLX = Vert flux data from model run
 C****               SICE = seaice file
@@ -12,27 +12,27 @@ C**** Output files: XCORR = XCORR
 C****               SRCOR = SRCOR-line for rundeck
 C****               SNOW  = SNOW depth information
 C****
-      USE OCEAN 
+      USE OCEAN
       USE DAGCOM, only : OA
-      USE SEAICE_COM, only : rsi,snowi 
-      USE SEAICE, only : ace1i 
+      USE SEAICE_COM, only : rsi,snowi
+      USE SEAICE, only : ace1i
       USE GEOM
       USE FILEMANAGER
-      implicit none 
-      integer first_month, first_year, last_month, last_year, jyears
-      integer months, monthe, jyear, month, itime1, 
+      implicit none
+      integer first_month, first_year, last_month, last_year, years
+      integer months, monthe, year, month, itime1,
      *     last_day, kday, i, j, iu_TOPO, iu_VFLX, iu_XCORR, iu_SRCOR
      *     ,iu_SNOW
       REAL*8 AVFX(IM,JM),GSR,GVFXSR,SYEAR,SYEARS
-      real*8 VFSR, VF, XCORR 
+      real*8 VFSR, VF, XCORR
       REAL*8 ASR(im,jm),AVFXSR(im,jm)
       REAL*4 OAS(IM,JM,5), month_day(12)
       CHARACTER*80 TITLE(4),TITLE0, RunID, file_name
-      character*4 month_name(12), tmonth, tyear  
-      character*2 tday 
+      character*4 month_name(12), tmonth, tyear
+      character*2 tday
       data month_name /'JAN ','FEB ','MAR ','APR ','MAY ','JUN ',
-     *                 'JUL ','AUG ','SEP ','OCT ','NOV ','DEC '/ 
-      data month_day /31,28,31,30,31,30,31,31,30,31,30,31/ 
+     *                 'JUL ','AUG ','SEP ','OCT ','NOV ','DEC '/
+      data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
 C****
       DATA SYEAR/31536000./
       DATA TITLE/'Uncorrected annual solar radiation (W/m**2)',
@@ -63,8 +63,8 @@ C****
       read(title0,*) last_month
       call getarg(5,title0)
       read(title0,*) last_year
-      jyears = last_year-first_year+1 
-      SYEARS = SYEAR*JYEARS
+      years = last_year-first_year+1
+      SYEARS = SYEAR*years
       call openunit("SICE",iu_SICE,.true.,.true.)
       CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 C****
@@ -86,33 +86,33 @@ C**** initialise land array
       fland = 1.-focean
 C****
       call openunit("OSST",iu_OSST,.true.,.true.)
-      call openunit("OCNML",iu_OCNML,.true.,.true.)
+CCC   call openunit("OCNML",iu_OCNML,.true.,.true.) ! not needed
       call openunit("SNOW",iu_SNOW,.true.,.false.)
       write(6,*) "Outputting Snow amount to unit ", iu_SNOW
-C* 
+C*
 C**** Loop over days of the year and read the data for each day
 C****
-      DO JYEAR=first_year,last_year
-        months = 1 
-        monthe = 12 
-        if (jyear .eq. first_year) months = first_month 
-        if (jyear .eq. last_year)  monthe = last_month 
-        do month = months, monthe 
-          tmonth = month_name(month) 
-          write (tyear, '(i4.4)') jyear
-          file_name= 
+      DO year=first_year,last_year
+        months = 1
+        monthe = 12
+        if (year .eq. first_year) months = first_month
+        if (year .eq. last_year)  monthe = last_month
+        do month = months, monthe
+          tmonth = month_name(month)
+          write (tyear, '(i4.4)') year
+          file_name=
      *         '/u/cmrun/'//trim(RunID)//'/VFLXO'//trim(tmonth)//tyear
           call openunit(file_name,iu_VFLX,.true.,.true.)
-          last_day = month_day(month) 
+          last_day = month_day(month)
           do kday = 1,last_day
-            READ (iu_VFLX, END=555) itime,OA,itime1 
+            READ (iu_VFLX, END=555) itime,OA,itime1
 C*
-            jmon = month 
+            jmon = month
             jdate = kday
-            
-            kocean = 0 
+
+            kocean = 0
             CALL OCLIM (1)
-C**** 
+C****
 C**** Accumulate ASR, the daily flux of solar radiation,
 C****     and AVFXSR, the vertical flux excluding solar radiation
 C****
@@ -127,28 +127,28 @@ C****
                 AVFXSR(I,J)   = AVFXSR(I,J)   + VF
               END DO
             END DO
-C* 
-C**** WRITE OUT OA(I,J,1) FOR THE LAST YEAR  
-C* 
-            IF (JYEAR .EQ. LAST_YEAR) THEN 
+C*
+C**** WRITE OUT OA(I,J,1) FOR THE LAST YEAR
+C*
+            IF (year .EQ. LAST_YEAR) THEN
               write (tday, '(i2.2)') kday
               TITLE0='SNOW AMOUNT ON SEA ICE, '//tyear//', '//tmonth//
      *             ', '//tday//', (kg/m^2)'
 C*
-              DO J = 1,JM 
-                DO I = 1,IM 
-                  SNOWI(I,J) = OA(I,J,1) - ACE1I 
+              DO J = 1,JM
+                DO I = 1,IM
+                  SNOWI(I,J) = OA(I,J,1) - ACE1I
                 END DO
-              END DO 
-C* 
-              WRITE(iu_SNOW) TITLE0,SNOWI 
-            END IF 
+              END DO
+C*
+              WRITE(iu_SNOW) TITLE0,SNOWI
+            END IF
           end do
           call closeunit(iu_VFLX)
-        end do 
+        end do
       end do
-C* 
-      call closeunit(iu_SNOW) 
+C*
+      call closeunit(iu_SNOW)
 C****
 C**** DETERMINE THE SOLAR RADIATION CORRECTION FACTOR, XCORR, SO THAT
 C**** THE CORRECTED GLOBAL VERTICAL FLUX IS EQUAL TO ZERO
@@ -161,8 +161,8 @@ C****
         GVFXSR = GVFXSR + AVFXSR(I,J)*FOCEAN(I,J)*DXYP(J)
       END DO
       END DO
-      GSR    = GSR/JYEARS
-      GVFXSR = GVFXSR/JYEARS
+      GSR    = GSR/years
+      GVFXSR = GVFXSR/years
       XCORR = -GVFXSR/GSR
       WRITE(6,*)  'GSR,GVFXSR,XCORR=',GSR,GVFXSR,XCORR
       call openunit("XCORR",iu_XCORR,.true.,.false.)
@@ -197,7 +197,7 @@ C****
       CALL MAP1 (IM,JM,0,TITLE(4),OAS(1,1,4),OAS(1,1,5),1.,0.,0)
 C****
       STOP
- 555  write (0,*) ' Error: Premature end of file ',file_name  
+ 555  write (0,*) ' Error: Premature end of file ',file_name
       call exit_rc (11)
       END
 
