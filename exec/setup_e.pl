@@ -188,7 +188,7 @@ foreach $_ ( @data_files ) {
 	print RUNIDLN "ln -s $GCMSEARCHPATH/$dest $name\n";
 	print RUNIDULN "rm $name\n";
     } else {
-	`ln -s $GCMSEARCHPATH/$dest $name` ; 
+	`ln -sf $GCMSEARCHPATH/$dest $name` ; 
 	print "using $GCMSEARCHPATH/$dest for IC only\n";
     }
 }
