@@ -339,7 +339,7 @@ C**** Set orbital parameters appropriately
         call orbpar(pyear, eccn, obliq, omegt)
         write(6,*)
         write(6,*) " Orbital Parameters Calculated:"
-        write(6,'(a,f6.0,a,f6.0,a)') "   Paleo-year: ",pyear," (CE);",
+        write(6,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear," (CE);",
      *       paleo_orb_yr," (BP)"
         write(6,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
      *       " (default = ",eccn_def,")"

@@ -117,12 +117,12 @@ c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
       real*8,parameter :: bykapap2 = 1./(kapa+2.)
 
-!@param sha specific heat of dry air (const. vol.) (rgas/kapa J/kg C)
+!@param sha specific heat of dry air (const. pres.) (rgas/kapa J/kg C)
       real*8,parameter :: sha = rgas/kapa
 !@param bysha 1/sha
       real*8,parameter :: bysha = 1./sha
 
-!@param shv specific heat of water vapour (const. vol.) (J/kg C)
+!@param shv specific heat of water vapour (const. pres.) (J/kg C)
 c**** shv is currently assumed to be zero to aid energy conservation in
 c**** the atmosphere. Once the heat content associated with water
 c**** vapour is included, this can be set to the standard value

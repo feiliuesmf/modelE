@@ -47,7 +47,7 @@ C**** Tracer input/output common block for PBL
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-C          ,UG,VG,WG,ZMIX
+C          ,UG,VG,WG,ZMIX,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
