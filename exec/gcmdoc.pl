@@ -290,7 +290,8 @@ foreach $name ( keys %db_modules ) {
 	#print "VAR::: $var_name\n";
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
-	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
+	if ( ! ($db_vars_used{$var_name} || $db_vars{$var_name}{used_by}) ) {
+	    $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
 	if ( $db_vars{$var_name}{decl} =~ /^used from (\w+)/ ) {
 	    print HTM " : used from "; htm_link("$1",uc("$1").".html");
@@ -315,8 +316,17 @@ foreach $name ( keys %db_modules ) {
 	my $use_list = $db_vars{$var_name}{used_by};
 	if ( $use_list ) {
 	    $use_list =~ s/^\s*\|\s*//;
+	    #print HTM "Used by: \n";
+	    #print HTM "$use_list<BR>\n";
 	    print HTM "Used by: \n";
-	    print HTM "$use_list<BR>\n";
+	    my $used_by_sub;
+	    foreach $used_by_sub ( sort split / \| /, $use_list ) {
+		$used_by_sub =~ s/:$//;
+		#print HTM "$used_by_sub<BR>\n";
+		print HTM " | ";
+		htm_link("$used_by_sub","$used_by_sub.html");
+	    }
+	    print HTM " |<BR>\n";
 	}
 
     } 
