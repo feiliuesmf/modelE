@@ -26,7 +26,7 @@
      t  550.d0, 390.d0, 285.d0, 210.d0,                 !      L=...
      1    PTOP,                                         !      L=LS1
      s  110.d0,  80.d0,   55.d0,   35.d0,    20.d0,     !      L=...
-     s  10.d0,    3.d0,   PMTOP /)                      !      L=..,LM+1
+     s  10.d0,    3.d0,    1.d0,     .3d0,   PMTOP /)   !      L=..,LM+1
 
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
