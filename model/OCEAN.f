@@ -489,7 +489,7 @@ C**** Calculate previous ice mass (before fluxes applied)
 C**** Calculate effect of lateral melt of sea ice
       IF (SIMELT.gt.0) THEN
         TGW=TGW + (ESIMELT-SIMELT*TGW*SHW)/
-     *       (SHW*(1-ROICE)*WTRO+ROICE*(WTRO-SMSI0))
+     *       (SHW*((1-ROICE)*WTRO+ROICE*(WTRO-SMSI0)))
       END IF
 
 C**** Calculate extra mass flux to ocean, balanced by deep removal
