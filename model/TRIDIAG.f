@@ -162,6 +162,8 @@
 ! Transfer the solution to the j-distributed array
         call transp( grid, u_dist, u_tr, reverse=.true.)
 
+      deallocate( a_tr, b_tr, c_tr, r_tr, u_tr )
+
       RETURN
       END SUBROUTINE TRIDIAG_2D_DIST
 
