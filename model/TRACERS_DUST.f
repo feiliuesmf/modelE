@@ -33,142 +33,142 @@ c      enddo
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : Dtsrc,fearth,im,jm,jmon,wfcs,itime
-      USE fluxes,ONLY : prec,evapor,trsrfflx
-      USE tracer_com,ONLY : n_clay,Ntm_dust,trm
-      USE trdiag_com,ONLY : ijts_source,jls_source
-      USE trdiag_com,ONLY : taijs=>taijs_loc
-      USE trdiag_com,ONLY : tajls=>tajls_loc
-      USE geom,ONLY : dxyp,imaxj
-      USE ghy_com,ONLY : snowe !earth snow amount
-      USE pblcom,ONLY : wsavg
-      USE tracers_dust,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,vtrsh,
-     &     ers_data,gin_data,wsubtke=>wsubtke_com,wsubwd=>wsubwd_com,
-     &     wsubwm=>wsubwm_com
-      USE trdiag_com,ONLY : nDustEmij,nDustEmjl
-      USE ghy_com,ONLY : wearth,aiearth
+C       USE model_com,ONLY : Dtsrc,fearth,im,jm,jmon,wfcs,itime
+C       USE fluxes,ONLY : prec,evapor,trsrfflx
+C       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
+C       USE trdiag_com,ONLY : ijts_source,jls_source
+C       USE trdiag_com,ONLY : taijs=>taijs_loc
+C       USE trdiag_com,ONLY : tajls=>tajls_loc
+C       USE geom,ONLY : dxyp,imaxj
+C       USE ghy_com,ONLY : snowe !earth snow amount
+C       USE pblcom,ONLY : wsavg
+C       USE tracers_dust,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,vtrsh,
+C      &     ers_data,gin_data,wsubtke=>wsubtke_com,wsubwd=>wsubwd_com,
+C      &     wsubwm=>wsubwm_com
+C       USE trdiag_com,ONLY : nDustEmij,nDustEmjl
+C       USE ghy_com,ONLY : wearth,aiearth
 
-      IMPLICIT NONE
+C       IMPLICIT NONE
 
-      INTEGER :: i,j,n,n1,naij,najl
-      REAL*8 :: hbaijold,hbaijd,workijn,soilwet,soilvtrsh
-      REAL*8 :: dsrcflx(Ntm_dust)
-c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
-      LOGICAL :: pmei(Im,Jm)
+C       INTEGER :: i,j,n,n1,naij,najl
+C       REAL*8 :: hbaijold,hbaijd,workijn,soilwet,soilvtrsh
+C       REAL*8 :: dsrcflx(Ntm_dust)
+C c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
+C       LOGICAL :: pmei(Im,Jm)
 
-#ifdef TRACERS_DUST_CUB_SAH
-c     Checking whether accumulated precipitation - evaporation
-c     less/equal than Zero for a succeeding number of hours greater/equal
-c     than threshold dryhr to permit dust emission
-      DO j=1,Jm
-        DO i=1,Imaxj(j)
-          hbaijold=hbaij(i,j)
-          hbaij(i,j)=hbaijold+prec(i,j)*fearth(i,j)-evapor(i,j,4)
-          hbaijd=hbaij(i,j)-hbaijold
-          IF (hbaijd <= 0) THEN
-            ricntd(i,j)=ricntd(i,j)+1.
-            IF (ricntd(i,j) >= dryhr(i,j) .AND. dryhr(i,j) /= 0) THEN
-              pmei(i,j)=.TRUE.
-            ELSE
-              pmei(i,j)=.FALSE.
-            END IF
-          ELSE
-            ricntd(i,j)=0.
-            pmei(i,j)=.FALSE.
-          END IF
-        END DO
-      END DO
-#endif
+C #ifdef TRACERS_DUST_CUB_SAH
+C c     Checking whether accumulated precipitation - evaporation
+C c     less/equal than Zero for a succeeding number of hours greater/equal
+C c     than threshold dryhr to permit dust emission
+C       DO j=1,Jm
+C         DO i=1,Imaxj(j)
+C           hbaijold=hbaij(i,j)
+C           hbaij(i,j)=hbaijold+prec(i,j)*fearth(i,j)-evapor(i,j,4)
+C           hbaijd=hbaij(i,j)-hbaijold
+C           IF (hbaijd <= 0) THEN
+C             ricntd(i,j)=ricntd(i,j)+1.
+C             IF (ricntd(i,j) >= dryhr(i,j) .AND. dryhr(i,j) /= 0) THEN
+C               pmei(i,j)=.TRUE.
+C             ELSE
+C               pmei(i,j)=.FALSE.
+C             END IF
+C           ELSE
+C             ricntd(i,j)=0.
+C             pmei(i,j)=.FALSE.
+C           END IF
+C         END DO
+C       END DO
+C #endif
 
-c     Loop for calculating dust source flux for each tracer
-      DO n=1,Ntm_dust
-        n1=n_clay+n-1
-        trsrfflx(:,:,n1)=0D0
-      END DO
+C c     Loop for calculating dust source flux for each tracer
+C       DO n=1,Ntm_dust
+C         n1=n_clay+n-1
+C         trsrfflx(:,:,n1)=0D0
+C       END DO
 
-      DO j=1,Jm
-        DO i=1,Imaxj(j)
+C       DO j=1,Jm
+C         DO i=1,Imaxj(j)
 
-          dsrcflx=0D0
+C           dsrcflx=0D0
 
-#ifdef TRACERS_DUST_CUB_SAH
+C #ifdef TRACERS_DUST_CUB_SAH
 
-          IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1 .AND.
-     &         vtrsh(i,j) > 0. .AND. wsavg(i,j) > vtrsh(i,j) .AND.
-     &         pmei(i,j)) THEN
+C           IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1 .AND.
+C      &         vtrsh(i,j) > 0. .AND. wsavg(i,j) > vtrsh(i,j) .AND.
+C      &         pmei(i,j)) THEN
 
-#ifdef TRACERS_DUST_MINERAL8
+C #ifdef TRACERS_DUST_MINERAL8
 
-            CALL loc_dsrcflx_cub_min8
+C             CALL loc_dsrcflx_cub_min8
 
-#else
+C #else
 
-            CALL loc_dsrcflx_cub_sah(dxyp(j),wsavg(i,j),vtrsh(i,j),
-     &           frclay(i,j),frsilt(i,j),fearth(i,j),dsrcflx)
+C             CALL loc_dsrcflx_cub_sah(dxyp(j),wsavg(i,j),vtrsh(i,j),
+C      &           frclay(i,j),frsilt(i,j),fearth(i,j),dsrcflx)
 
-#endif
+C #endif
 
-          ENDIF
+C           ENDIF
 
-#else
+C #else
 
-          IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1
-     &         .AND. ers_data(i,j,jmon) < -13. .AND.
-     &         ers_data(i,j,jmon) /= -99.) THEN
+C           IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1
+C      &         .AND. ers_data(i,j,jmon) < -13. .AND.
+C      &         ers_data(i,j,jmon) /= -99.) THEN
 
-            soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
-            if (soilwet.gt.1.) soilwet=1.d0
-            soilvtrsh=8.d0*(exp(0.25d0*soilwet))
+C             soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+C             if (soilwet.gt.1.) soilwet=1.d0
+C             soilvtrsh=8.d0*(exp(0.25d0*soilwet))
 
-c            WRITE(*,*) 'In dust_emission: itime,i,j,wearth,aiearth,',
-c     &           'wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
-c     &           wfcs(i,j),soilwet
+C c            WRITE(*,*) 'In dust_emission: itime,i,j,wearth,aiearth,',
+C c     &           'wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
+C c     &           wfcs(i,j),soilwet
 
-#ifdef TRACERS_DUST_MINERAL8
+C #ifdef TRACERS_DUST_MINERAL8
 
-            CALL loc_dsrcflx_turb_min8
+C             CALL loc_dsrcflx_turb_min8
 
-#else
-c     default case
+C #else
+C c     default case
 
-            CALL loc_dsrcflx_turb_sah(dxyp(j),wsavg(i,j),soilvtrsh,
-     &           fearth(i,j),gin_data(i,j),wsubtke(i,j),wsubwd(i,j),
-     &           wsubwm(i,j),dsrcflx)
+C             CALL loc_dsrcflx_turb_sah(dxyp(j),wsavg(i,j),soilvtrsh,
+C      &           fearth(i,j),gin_data(i,j),wsubtke(i,j),wsubwd(i,j),
+C      &           wsubwm(i,j),dsrcflx)
 
-c            WRITE(*,*) 'In dust_emission: itime,i,j,dsrcflx:',itime,i,j,
-c     &           dsrcflx
+C c            WRITE(*,*) 'In dust_emission: itime,i,j,dsrcflx:',itime,i,j,
+C c     &           dsrcflx
 
-          END IF
+C           END IF
 
-#endif
-#endif
+C #endif
+C #endif
 
-          DO n=1,Ntm_dust
-            n1=n_clay+n-1
-            trsrfflx(i,j,n1)=dsrcflx(n)
-          END DO
+C           DO n=1,Ntm_dust
+C             n1=n_clay+n-1
+C             trsrfflx(i,j,n1)=dsrcflx(n)
+C           END DO
 
-        END DO
-      END DO
+C         END DO
+C       END DO
 
-      DO n=1,Ntm_dust
-        n1=n_clay+n-1
-        naij=ijts_source(nDustEmij,n1)
-        najl=jls_source(nDustEmjl,n1)
-c        WRITE(*,*) 'naij,najl:',naij,najl
-        DO j=1,Jm
-          DO i=1,Imaxj(j)
-            IF (trsrfflx(i,j,n1) > 0.) THEN
-              workijn=trsrfflx(i,j,n1)*Dtsrc
-              trm(i,j,1,n1)=trm(i,j,1,n1)+workijn
+C       DO n=1,Ntm_dust
+C         n1=n_clay+n-1
+C         naij=ijts_source(nDustEmij,n1)
+C         najl=jls_source(nDustEmjl,n1)
+C c        WRITE(*,*) 'naij,najl:',naij,najl
+C         DO j=1,Jm
+C           DO i=1,Imaxj(j)
+C             IF (trsrfflx(i,j,n1) > 0.) THEN
+C               workijn=trsrfflx(i,j,n1)*Dtsrc
+C               trm(i,j,1,n1)=trm(i,j,1,n1)+workijn
 
-              taijs(i,j,naij)=taijs(i,j,naij)+workijn
-            END IF
-          END DO
-          tajls(j,1,najl)=tajls(j,1,najl)+SUM(trsrfflx(:,j,n1))*Dtsrc
-        END DO
-        trsrfflx(:,:,n1)=0D0
-      END DO
+C               taijs(i,j,naij)=taijs(i,j,naij)+workijn
+C             END IF
+C           END DO
+C           tajls(j,1,najl)=tajls(j,1,najl)+SUM(trsrfflx(:,j,n1))*Dtsrc
+C         END DO
+C         trsrfflx(:,:,n1)=0D0
+C       END DO
 #endif
             
       RETURN
@@ -180,35 +180,35 @@ c        WRITE(*,*) 'naij,najl:',naij,najl
 !@auth Ina Tegen, Jan Perlwitz, Reha Cakmur
 
 #ifdef TRACERS_DUST
-      USE tracer_com,ONLY : Ntm_dust
-      USE tracers_dust_com,ONLY : Fracn,Uplfac
+C       USE tracer_com,ONLY : Ntm_dust
+C       USE tracers_dust_com,ONLY : Fracn,Uplfac
 
-      IMPLICIT NONE
+C       IMPLICIT NONE
 
-      REAL*4,INTENT(IN) :: frclayij,frsiltij,vtrshij
-c     frclayij fraction of clay in grid cell i,j [1]
-c     frsiltij fraction of silt in grid cell i,j [1]
-c     vtrshij  wind speed threshold in grid cell i,j [m/s]
-c     dxypj    area of grid cell at j [m**2]
-      REAL*8,INTENT(IN) :: dxypj,fearthij,wsavgij
-c     fearthij  fraction of land area in grid cell i,j [1]
-c     wsavgij  wind speed at surface in grid cell i,j [m/s]
-      REAL*8,INTENT(OUT) :: dsrcflx(Ntm_dust)
-c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
-      INTEGER :: n
-      REAL*8 :: workij
+C       REAL*4,INTENT(IN) :: frclayij,frsiltij,vtrshij
+C c     frclayij fraction of clay in grid cell i,j [1]
+C c     frsiltij fraction of silt in grid cell i,j [1]
+C c     vtrshij  wind speed threshold in grid cell i,j [m/s]
+C c     dxypj    area of grid cell at j [m**2]
+C       REAL*8,INTENT(IN) :: dxypj,fearthij,wsavgij
+C c     fearthij  fraction of land area in grid cell i,j [1]
+C c     wsavgij  wind speed at surface in grid cell i,j [m/s]
+C       REAL*8,INTENT(OUT) :: dsrcflx(Ntm_dust)
+C c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
+C       INTEGER :: n
+C       REAL*8 :: workij
 
-      DO n=1,Ntm_dust
+C       DO n=1,Ntm_dust
 
-        workij=dxypj*fearthij*(wsavgij-vtrshij)*wsavgij**2
-        SELECT CASE(n)
-        CASE(1)
-          dsrcflx(n)=Uplfac(n)*frclayij*Fracn(n)*workij
-        CASE(2:Ntm_dust)
-          dsrcflx(n)=Uplfac(n)*frsiltij*Fracn(n)*workij
-        END SELECT
+C         workij=dxypj*fearthij*(wsavgij-vtrshij)*wsavgij**2
+C         SELECT CASE(n)
+C         CASE(1)
+C           dsrcflx(n)=Uplfac(n)*frclayij*Fracn(n)*workij
+C         CASE(2:Ntm_dust)
+C           dsrcflx(n)=Uplfac(n)*frsiltij*Fracn(n)*workij
+C         END SELECT
 
-      END DO
+C       END DO
 #endif
 
       RETURN
@@ -228,110 +228,110 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
 !@auth Reha Cakmur, Jan Perlwitz
 
 #ifdef TRACERS_DUST
-      USE tracer_com,ONLY : Ntm_dust
-      USE tracers_dust,ONLY : lim,ljm,Fracn,Uplfac,table,x1,x2,x3
-      USE model_com, ONLY : itime
-      INTEGER :: i,j,n
-      REAL*8 sigma,ans,dy
-      REAL*8,INTENT(OUT) :: dsrcflx(Ntm_dust)
-      REAL*4,INTENT(IN) :: gin_dataij
-      REAL*8,INTENT(IN) :: dxypj,fearthij,wsavgij,vtrshij
-      REAL*8,INTENT(IN) :: wsubtkeij,wsubwdij,wsubwmij
-      REAL*8 :: workij,workij1,workij2
+C       USE tracer_com,ONLY : Ntm_dust
+C       USE tracers_dust,ONLY : lim,ljm,Fracn,Uplfac,table,x1,x2,x3
+C       USE model_com, ONLY : itime
+C       INTEGER :: i,j,n
+C       REAL*8 sigma,ans,dy
+C       REAL*8,INTENT(OUT) :: dsrcflx(Ntm_dust)
+C       REAL*4,INTENT(IN) :: gin_dataij
+C       REAL*8,INTENT(IN) :: dxypj,fearthij,wsavgij,vtrshij
+C       REAL*8,INTENT(IN) :: wsubtkeij,wsubwdij,wsubwmij
+C       REAL*8 :: workij,workij1,workij2
 
-      do kk=1,9
-        x3(kk)=5.d0+1.d0*kk
-      enddo
-
-
-      do j=1,ljm
-        if (j.le.5) then
-          x2(j)=.001d0*j
-        endif
-        if (j.gt.5.and.j.le.104) then
-          x2(j)=0.005d0*j-0.02d0
-        endif
-        if (j.gt.104.and.j.le.194) then
-          x2(j)=0.05d0*j-4.7d0
-        endif
-        if (j.gt.194) then
-          x2(j)=0.5d0*j-92.d0
-        endif
-      enddo
-      do i=1,lim
-        if (i.le.51) then
-          x1(i)=.0001d0*(i-1)
-        endif
-        if (i.gt.51.and.i.le.59) then
-          x1(i)=0.005d0*i-.25d0
-        endif
-        if (i.gt.59.and.i.le.258) then
-          x1(i)=0.05d0*i-2.95d0
-        endif
-        if (i.gt.258.and.i.le.278) then
-          x1(i)=0.5d0*i-119.5d0
-        endif
-        if (i.gt.278) then
-          x1(i)=1.d0*i-259.d0
-        endif
-      enddo
-
-      workij=0.d0
-      workij1=0.d0
-      workij2=0.d0
-c
-c       There is no moist convection, sigma is composed of TKE and DRY convective
-c       velocity scale
-      if (wsubwmij == 0.) then
-        sigma=wsubtkeij+wsubwdij
-        if (sigma > 0.1 .OR. wsavgij > 1.) then
-          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
-     &         dy)
-          workij=exp(ans)
-        endif
-      endif
-
-c       When there is moist convection, the sigma is the combination of all
-c       three subgrid scale parameters (i.e. independent or dependent)
-c       Takes into account that the moist convective velocity scale acts
-c       only over 5% of the area.
-
-      if (wsubwmij /= 0.) then
-        sigma=wsubtkeij+wsubwdij+wsubwmij
-        if (sigma > 0.1 .OR. wsavgij > 1.) then
-          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
-     &         dy)
-          workij1=exp(ans)*0.05 !!!0.05 for the MC area
-        endif
-
-        sigma=wsubtkeij+wsubwdij
-        if (sigma > 0.1 .OR. wsavgij > 1.) then
-          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
-     &         dy)
-          workij2=exp(ans)*0.95 !!!0.95 for the rest
-        endif
-        workij=workij1+workij2
-      endif
-
-      if (sigma == 0.) then
-        if (wsavgij > vtrshij) then
-          workij=(wsavgij-vtrshij)*wsavgij**2
-        else
-          workij=0.
-        endif
-      endif
+C       do kk=1,9
+C         x3(kk)=5.d0+1.d0*kk
+C       enddo
 
 
-      DO n=1,Ntm_dust
-        SELECT CASE(n)
-        CASE(1)
-          dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
-        CASE(2:Ntm_dust)
-          dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
-        END SELECT
-      END DO
-c      WRITE(*,*) 'loc_dsrcflx_turb_sah: sigma,vtrshij,wsavgij,curint:',
-c     &       sigma,vtrshij,wsavgij,workij
+C       do j=1,ljm
+C         if (j.le.5) then
+C           x2(j)=.001d0*j
+C         endif
+C         if (j.gt.5.and.j.le.104) then
+C           x2(j)=0.005d0*j-0.02d0
+C         endif
+C         if (j.gt.104.and.j.le.194) then
+C           x2(j)=0.05d0*j-4.7d0
+C         endif
+C         if (j.gt.194) then
+C           x2(j)=0.5d0*j-92.d0
+C         endif
+C       enddo
+C       do i=1,lim
+C         if (i.le.51) then
+C           x1(i)=.0001d0*(i-1)
+C         endif
+C         if (i.gt.51.and.i.le.59) then
+C           x1(i)=0.005d0*i-.25d0
+C         endif
+C         if (i.gt.59.and.i.le.258) then
+C           x1(i)=0.05d0*i-2.95d0
+C         endif
+C         if (i.gt.258.and.i.le.278) then
+C           x1(i)=0.5d0*i-119.5d0
+C         endif
+C         if (i.gt.278) then
+C           x1(i)=1.d0*i-259.d0
+C         endif
+C       enddo
+
+C       workij=0.d0
+C       workij1=0.d0
+C       workij2=0.d0
+C c
+C c       There is no moist convection, sigma is composed of TKE and DRY convective
+C c       velocity scale
+C       if (wsubwmij == 0.) then
+C         sigma=wsubtkeij+wsubwdij
+C         if (sigma > 0.1 .OR. wsavgij > 1.) then
+C           call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+C      &         dy)
+C           workij=exp(ans)
+C         endif
+C       endif
+
+C c       When there is moist convection, the sigma is the combination of all
+C c       three subgrid scale parameters (i.e. independent or dependent)
+C c       Takes into account that the moist convective velocity scale acts
+C c       only over 5% of the area.
+
+C       if (wsubwmij /= 0.) then
+C         sigma=wsubtkeij+wsubwdij+wsubwmij
+C         if (sigma > 0.1 .OR. wsavgij > 1.) then
+C           call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+C      &         dy)
+C           workij1=exp(ans)*0.05 !!!0.05 for the MC area
+C         endif
+
+C         sigma=wsubtkeij+wsubwdij
+C         if (sigma > 0.1 .OR. wsavgij > 1.) then
+C           call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+C      &         dy)
+C           workij2=exp(ans)*0.95 !!!0.95 for the rest
+C         endif
+C         workij=workij1+workij2
+C       endif
+
+C       if (sigma == 0.) then
+C         if (wsavgij > vtrshij) then
+C           workij=(wsavgij-vtrshij)*wsavgij**2
+C         else
+C           workij=0.
+C         endif
+C       endif
+
+
+C       DO n=1,Ntm_dust
+C         SELECT CASE(n)
+C         CASE(1)
+C           dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
+C         CASE(2:Ntm_dust)
+C           dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
+C         END SELECT
+C       END DO
+C c      WRITE(*,*) 'loc_dsrcflx_turb_sah: sigma,vtrshij,wsavgij,curint:',
+C c     &       sigma,vtrshij,wsavgij,workij
 #endif
 
       RETURN

@@ -33,7 +33,7 @@
 !@param dradius soil dust particle radius [m]
 #ifdef TRACERS_DUST
       REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,2.2D-06,4.4D-06,
-     .     6.7D-06/) !n=1: clay, n=2,3,4: silt
+     .     6.7D-06,11.77D-06/) !n=1: clay, n=2,3,4,5: silt
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,0.75D-06,
@@ -58,7 +58,7 @@
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
 #ifdef TRACERS_DUST
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
-     &     52.D-9/)
+     &     52.D-9,52.D-9/)
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
@@ -83,7 +83,7 @@
       REAL*8,PARAMETER :: By8=0.25D0/2D0
 !@param fracn fraction of uplifted soil for each size class of dust [1]
 #ifdef TRACERS_DUST
-      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
+      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8,By8/)
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,

@@ -466,7 +466,7 @@ C****   4) tracers with interactive sources
 ccc dust emission from earth
         SELECT CASE (trname(ntix(itr)))
 #ifdef TRACERS_DUST
-        CASE ('Clay','Silt1','Silt2','Silt3')
+        CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
           n1=ntix(itr)-n_clay+1
 #else
 #ifdef TRACERS_MINERALS

@@ -192,9 +192,9 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
-      integer,parameter :: ntm=4,ntm_dust=4
+      integer,parameter :: ntm=5,ntm_dust=5
       character*8, parameter :: trname(ntm)=(/'Clay    ','Silt1   ',
-     &     'Silt2   ','Silt3   '/)
+     &     'Silt2   ','Silt3   ','Silt4   '/)
 #else
 #if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
       INTEGER,PARAMETER :: Ntm=24,Ntm_dust=24
@@ -276,7 +276,7 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
-     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0,
+     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
      &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,n_clayquar,
      &     n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,n_sil1gyps,
      &     n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,n_sil2gyps,

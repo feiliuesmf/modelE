@@ -21,52 +21,10 @@
       INTEGER,PARAMETER :: nDustTurbjl=2,
      &                     nDustWet3Djl=2
 !@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
-#ifdef TRACERS_DUST
 #ifdef TRACERS_DUST_CUB_SAH
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
-     &     52.D-9/)
+      REAL*8,PARAMETER :: Upclsi=52.D-9
 #else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9/)
-#endif
-#else
-#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
-     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
-     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
-     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9/)
-#else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9/)
-#endif
-#else
-#ifdef TRACERS_MINERALS
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
-     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
-     &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
-     &     52.D-9/)
-#else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9/)
-#endif
-#else
-#ifdef TRACERS_QUARZHEM
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
-     &     52.D-9/)
-#else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
-     &     2.2D-9/)
-#endif
-#endif
-#endif
-#endif
+      REAL*8,PARAMETER :: Upclsi=2.2D-9
 #endif
 #ifdef TRACERS_DUST_CUB_SAH
 !@param By8 0.25d0/2d0
@@ -75,41 +33,12 @@
       REAL*8,PARAMETER :: By4=1D0/4D0
 #endif
 !@param fracn fraction of uplifted soil for each size class of dust [1]
-#ifdef TRACERS_DUST
 #ifdef TRACERS_DUST_CUB_SAH
-      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
+      REAL*8 :: Fracl=By6,Frasi=By8
+c      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
-#endif
-#else
-#if (defined TRACERS_MINERALS) && (defined TRACERS_QUARZHEM)
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
-     &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By6,By8,By8,By8/)
-#else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
-     &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,
-     &     0.18D0,By4,By4,By4/)
-#endif
-#else
-#ifdef TRACERS_MINERALS
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
-     &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8/)
-#else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
-     &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4/)
-#endif
-#else
-#ifdef TRACERS_QUARZHEM
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
-#else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
-#endif
-#endif
-#endif
-#endif
+      REAL*8 :: Fracl=0.18D0,Frasi=By4
+c      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
 #endif
 !@var hbaij  accumulated precipitation - evaporation balance
       REAL*8 :: hbaij(im,jm),ricntd(im,jm)

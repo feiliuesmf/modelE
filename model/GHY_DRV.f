@@ -323,7 +323,7 @@ C**** are used, it can happen over land as well.
 ccc dust emission from earth
         SELECT CASE (trname(n))
 #ifdef TRACERS_DUST
-        CASE ('Clay','Silt1','Silt2','Silt3')
+        CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
           n1=n-n_clay+1
 #else
 #ifdef TRACERS_MINERALS

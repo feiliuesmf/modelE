@@ -920,6 +920,16 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           fq_aer(n)=0.
           tr_wd_TYPE(n)=nPART
           tr_mm(n) = 1.
+      CASE('Silt4')
+      n_silt4=n
+          ntm_power(n)=-9   
+          trpdens(n)=2.65d3
+#ifdef TRACERS_DRYDEP
+          trradius(n)=11.77D-06
+#endif
+          fq_aer(n)=0.
+          tr_wd_TYPE(n)=nPART
+          tr_mm(n) = 1.
 #else
 #ifdef TRACERS_MINERALS
       CASE('ClayIlli')          ! http://webmineral.com/data/Illite.shtml
@@ -2543,7 +2553,7 @@ c gravitational settling of ss2
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3',
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
@@ -4469,7 +4479,7 @@ C**** Additional Special IJ diagnostics
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3',
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
@@ -5555,7 +5565,8 @@ C**** set some defaults
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      case ('seasalt1', 'seasalt2', 'Clay', 'Silt1', 'Silt2', 'Silt3')
+      case ('seasalt1', 'seasalt2', 'Clay', 'Silt1', 'Silt2', 'Silt3',
+     &      'Silt4')
       itcon_mc(n) =13
       qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
@@ -6223,7 +6234,7 @@ C         AM=kg/m2, and DXYP=m2:
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3',
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
      &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',

@@ -152,8 +152,8 @@ c     only over 5% of the area.
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,FrHeQu
 #endif
-      USE tracers_dust,ONLY : curint,fracn,frclay,frsilt,gin_data,qdust,
-     &     uplfac,vtrsh,d_dust
+      USE tracers_dust,ONLY : curint,Fracl,Frasi,frclay,frsilt,gin_data,
+     &     qdust,upclsi,vtrsh,d_dust
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,minfr
 #endif
@@ -175,19 +175,29 @@ c     Interactive dust emission
         dsrcflx=0D0
       ELSE
 #ifdef TRACERS_DUST
+
 #ifdef TRACERS_DUST_CUB_SAH
+
         SELECT CASE(trname(n))
         CASE ('Clay')
-          frtrac=frclay(i,j)
-        CASE ('Silt1','Silt2','Silt3')
-          frtrac=frsilt(i,j)
+          frtrac=frclay(i,j)*Fracl
+        CASE ('Silt1','Silt2','Silt3','Silt4')
+          frtrac=frsilt(i,j)*Frasi
         END SELECT
 
-        dsrcflx=Uplfac(n)*frtrac*Fracn(n)*(wsm-vtrsh(i,j))*wsm**2
+        dsrcflx=Upclsi*frtrac*(wsm-vtrsh(i,j))*wsm**2
 
 #else ! default case
 
-        dsrcflx=Uplfac(n)*Fracn(n)*gin_data(i,j)*curint(i,j)
+        SELECT CASE(trname(n))
+        CASE ('Clay')
+          frtrac=Fracl
+        CASE ('Silt1','Silt2','Silt3','Silt4')
+          frtrac=Frasi
+        END SELECT
+
+        dsrcflx=Upclsi*frtrac*gin_data(i,j)*curint(i,j)
+
 #endif
 #else
 #ifdef TRACERS_MINERALS
@@ -215,38 +225,46 @@ c     Interactive dust emission
 #endif
 
 #ifdef TRACERS_DUST_CUB_SAH
+
         SELECT CASE(trname(n))
         CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc')
-          frtrac=frclay(i,j)
+          frtrac=frclay(i,j)*Fracl
         CASE ('ClayQuar')
-          frtrac=frclay(i,j)*(1-FrHeQu)
+          frtrac=frclay(i,j)*(1-FrHeQu)*Fracl
         CASE ('Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &        'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &        'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
-          frtrac=frsilt(i,j)
+          frtrac=frsilt(i,j)*Frasi
         CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
-          frtrac=frsilt(i,j)*(1-FrHeQu)
+          frtrac=frsilt(i,j)*(1-FrHeQu)*Frasi
         CASE ('ClayQuHe')
-          frtrac=frclay(i,j)*FrHeQu
+          frtrac=frclay(i,j)*FrHeQu*Fracl
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=frsilt(i,j)*FrHeQu
+          frtrac=frsilt(i,j)*FrHeQu*Frasi
         END SELECT
 
-        dsrcflx=minfr(i,j,n1)*Uplfac(n)*frtrac*Fracn(n)*
-     &       (wsm-vtrsh(i,j))*wsm**2
+        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*(wsm-vtrsh(i,j))*wsm**2
 
 #else ! default case
 
         SELECT CASE(trname(n))
-        CASE ('ClayQuar','Sil1Quar','Sil2Quar','Sil3Quar')
-          frtrac=Fracn(n)*(1-FrHeQu)
-        CASE ('ClayQuHe','Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=Fracn(n)*FrHeQu
-        CASE DEFAULT
-          frtrac=Fracn(n)
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc')
+          frtrac=Fracl
+        CASE ('ClayQuar')
+          frtrac=(1-FrHeQu)*Fracl
+        CASE ('Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &        'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &        'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          frtrac=Frasi
+        CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
+          frtrac=(1-FrHeQu)*Frasi
+        CASE ('ClayQuHe')
+          frtrac=FrHeQu*Fracl
+        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
+          frtrac=FrHeQu*Frasi
         END SELECT
 
-        dsrcflx=minfr(i,j,n1)*Uplfac(n)*frtrac*gin_data(i,j)*curint(i,j)
+        dsrcflx=minfr(i,j,n1)*Upclsi*frtrac*gin_data(i,j)*curint(i,j)
 
 #endif
 #endif
