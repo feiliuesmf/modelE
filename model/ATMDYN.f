@@ -984,11 +984,9 @@ C****
       USE DOMAIN_DECOMP, Only : grid, GET
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
-      REAL*8 PSUMO(grid%J_STRT_HALO:grid%J_STOP_HALO)
-
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      *        POLD, PRAT
-      REAL*8 PSUMN,PDIF,AKAP,TE0,TE,ediff
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
@@ -1006,9 +1004,7 @@ C**** SEA LEVEL PRESSURE FILTER ON P
 C****
 !$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=J_0S,J_1S
-        PSUMO(J)=0.
         DO I=1,IM
-          PSUMO(J)=PSUMO(J)+P(I,J)
           POLD(I,J)=P(I,J)      ! Save old pressure
           Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
           X(I,J)=(P(I,J)+PTOP)*Y(I,J)
@@ -1016,16 +1012,18 @@ C****
       END DO
 !$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
-!$OMP  PARALLEL DO PRIVATE(I,J,PSUMN,PDIF)
+!$OMP  PARALLEL DO PRIVATE(I,J,PSUMO,PSUMN,PDIF)
       DO J=J_0S,J_1S
+        PSUMO=0.
         PSUMN=0.
         DO I=1,IM
+          PSUMO=PSUMO+P(I,J)
           P(I,J)=X(I,J)/Y(I,J)-PTOP
 C**** reduce large variations (mainly due to topography)
           P(I,J)=MIN(MAX(P(I,J),0.99d0*POLD(I,J)),1.01d0*POLD(I,J))
           PSUMN=PSUMN+P(I,J)
         END DO
-        PDIF=(PSUMN-PSUMO(J))*BYIM
+        PDIF=(PSUMN-PSUMO)*BYIM
         DO I=1,IM
           P(I,J)=P(I,J)-PDIF
         END DO
