@@ -40,7 +40,8 @@
 !@param fracn fraction of uplifted soil for each size class of dust [1]
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 !@var hbaij  accumulated precipitation - evaporation balance
-      REAL*8 :: hbaij(im,jm),ricntd(im,jm)
+      REAL*8 :: hbaij(im,jm),ricntd(im,jm),wsubtke(Im,Jm),wsubwd(Im,Jm),
+     &     wsubwm(Im,Jm)
 !@var dryhr  number of hours with evaporation-precipitation greater Zero
 !@var dryhr  to allow dust emission
 !@var frclay fraction of clay

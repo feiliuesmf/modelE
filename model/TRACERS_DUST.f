@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE tracers_dust
+      SUBROUTINE tracers_dust_old
 !@sum soil dust sources and sinks
 !auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 
@@ -10,34 +10,34 @@
 
       IMPLICIT NONE
 
-      INTEGER :: i,j
-      INTEGER :: io_data
-      LOGICAL :: ifirst=.true.
+C       INTEGER :: i,j
+C       INTEGER :: io_data
+C       LOGICAL :: ifirst=.true.
 
-      if (ifirst) then
-        hbaij=0D0
-c**** Read input: threshold speed
-        call openunit('VTRSH',io_data,.true.,.true.)
-        read (io_data) vtrsh
-        call closeunit(io_data)
-c**** Read input: fraction clay
-        call openunit('FRCLAY',io_data,.true.,.true.)
-        read (io_data) frclay
-        call closeunit(io_data)
-c**** Read input: fraction silt
-        call openunit('FRSILT',io_data,.true.,.true.)
-        read (io_data) frsilt
-        call closeunit(io_data)
-c**** Read input: prec-evap data
-        call openunit('DRYHR',io_data,.true.,.true.)
-        read (io_data) dryhr
-        call closeunit(io_data)
-#ifdef TRACERS_DUST_MINERAL8
-        CALL openunit('MINFR',io_data,.true.,.true.)
-        CALL closeunit(io_data)
-#endif
-        ifirst=.false.
-      endif
+C       if (ifirst) then
+C         hbaij=0D0
+C c**** Read input: threshold speed
+C         call openunit('VTRSH',io_data,.true.,.true.)
+C         read (io_data) vtrsh
+C         call closeunit(io_data)
+C c**** Read input: fraction clay
+C         call openunit('FRCLAY',io_data,.true.,.true.)
+C         read (io_data) frclay
+C         call closeunit(io_data)
+C c**** Read input: fraction silt
+C         call openunit('FRSILT',io_data,.true.,.true.)
+C         read (io_data) frsilt
+C         call closeunit(io_data)
+C c**** Read input: prec-evap data
+C         call openunit('DRYHR',io_data,.true.,.true.)
+C         read (io_data) dryhr
+C         call closeunit(io_data)
+C #ifdef TRACERS_DUST_MINERAL8
+C         CALL openunit('MINFR',io_data,.true.,.true.)
+C         CALL closeunit(io_data)
+C #endif
+C         ifirst=.false.
+C       endif
 
 c      do j=1,jm
 c         do i=1,im
@@ -46,42 +46,48 @@ c            if (frclay(i,j)*pmei(i,j) > 0)tadd(i,j,3)=tadd(i,j,3)+1.
 c         enddo
 c      enddo
 
+#ifdef DUST_EMISSION_EXTERN
       CALL dust_emission
-c      CALL dust_grav
+#endif
 #ifndef TRACERS_WATER
       CALL dust_wet
 #endif
 #ifndef TRACERS_DRYDEP
       CALL dust_turb
+      CALL dust_grav
 #endif
 #endif
 
       RETURN
-      END SUBROUTINE tracers_dust
+      END SUBROUTINE tracers_dust_old
 
       SUBROUTINE dust_emission
 !@sum  dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : Dtsrc,fearth,im,jm
+      USE model_com,ONLY : Dtsrc,fearth,im,jm,jmon,wfcs,itime
       USE fluxes,ONLY : prec,evapor,trsrfflx
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
       USE tracer_diag_com,ONLY : ijts_source,jls_source,taijs,tajls
       USE geom,ONLY : dxyp,imaxj
       USE ghycom,ONLY : snowe !earth snow amount
       USE pblcom,ONLY : wsavg
-      USE tracers_dust_com,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,
-     &     vtrsh,nDustEmij,nDustEmjl
+      USE tracers_dust,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,vtrsh,
+     &     ers_data,gin_data,wsubtke=>wsubtke_com,wsubwd=>wsubwd_com,
+     &     wsubwm=>wsubwm_com
+      USE tracer_diag_com,ONLY : nDustEmij,nDustEmjl
+      USE ghycom,ONLY : wearth,aiearth
 
       IMPLICIT NONE
 
       INTEGER :: i,j,n,n1,naij,najl
-      REAL*8 :: hbaijold,hbaijd,workijn
+      REAL*8 :: hbaijold,hbaijd,workijn,soilwet,soilvtrsh
       REAL*8 :: dsrcflx(Ntm_dust)
 c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       LOGICAL :: pmei(Im,Jm)
 
+#ifdef TRACERS_DUST_CUB_SAH
 c     Checking whether accumulated precipitation - evaporation
 c     less/equal than Zero for a succeeding number of hours greater/equal
 c     than threshold dryhr to permit dust emission
@@ -103,6 +109,7 @@ c     than threshold dryhr to permit dust emission
           END IF
         END DO
       END DO
+#endif
 
 c     Loop for calculating dust source flux for each tracer
       DO n=1,Ntm_dust
@@ -113,32 +120,64 @@ c     Loop for calculating dust source flux for each tracer
       DO j=1,Jm
         DO i=1,Imaxj(j)
 
+          dsrcflx=0D0
+
+#ifdef TRACERS_DUST_CUB_SAH
+
           IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1 .AND.
      &         vtrsh(i,j) > 0. .AND. wsavg(i,j) > vtrsh(i,j) .AND.
      &         pmei(i,j)) THEN
 
 #ifdef TRACERS_DUST_MINERAL8
-#ifdef TRACERS_DUST_TURB
-            CALL loc_dsrcflx_turb_min8
-#else
+
             CALL loc_dsrcflx_cub_min8
-#endif
+
 #else
-#ifdef TRACERS_DUST_TURB
-            CALL loc_dsrcflx_turb_sah
-#else
-c     default case
+
             CALL loc_dsrcflx_cub_sah(dxyp(j),wsavg(i,j),vtrsh(i,j),
      &           frclay(i,j),frsilt(i,j),fearth(i,j),dsrcflx)
-#endif
+
 #endif
 
-            DO n=1,Ntm_dust
-              n1=n_clay+n-1
-              trsrfflx(i,j,n1)=dsrcflx(n)
-            END DO
+          ENDIF
+
+#else
+
+          IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1
+     &         .AND. ers_data(i,j,jmon) < -13. .AND.
+     &         ers_data(i,j,jmon) /= -99.) THEN
+
+            soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+            if (soilwet.gt.1.) soilwet=1.d0
+            soilvtrsh=8.d0*(exp(0.25d0*soilwet))
+
+            WRITE(*,*) 'In dust_emission: itime,i,j,wearth,aiearth,',
+     &           'wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
+     &           wfcs(i,j),soilwet
+
+#ifdef TRACERS_DUST_MINERAL8
+
+            CALL loc_dsrcflx_turb_min8
+
+#else
+c     default case
+
+            CALL loc_dsrcflx_turb_sah(dxyp(j),wsavg(i,j),soilvtrsh,
+     &           fearth(i,j),gin_data(i,j),wsubtke(i,j),wsubwd(i,j),
+     &           wsubwm(i,j),dsrcflx)
+
+            WRITE(*,*) 'In dust_emission: itime,i,j,dsrcflx:',itime,i,j,
+     &           dsrcflx
 
           END IF
+
+#endif
+#endif
+
+          DO n=1,Ntm_dust
+            n1=n_clay+n-1
+            trsrfflx(i,j,n1)=dsrcflx(n)
+          END DO
 
         END DO
       END DO
@@ -159,6 +198,7 @@ c        WRITE(*,*) 'naij,najl:',naij,najl
           END DO
           tajls(j,1,najl)=tajls(j,1,najl)+SUM(trsrfflx(:,j,n1))*Dtsrc
         END DO
+        trsrfflx(:,:,n1)=0D0
       END DO
 #endif
             
@@ -212,9 +252,118 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       RETURN
       END SUBROUTINE loc_dsrcflx_cub_min8
 
-      SUBROUTINE loc_dsrcflx_turb_sah
+      SUBROUTINE loc_dsrcflx_turb_sah(dxypj,wsavgij,vtrshij,
+     &     fearthij,gin_dataij,wsubtkeij,wsubwdij,wsubwmij,
+     &     dsrcflx)
 !@sum  local dust source flux physics with turbulent fluxes and Sahara dust
-!@auth Reha Cakmur, ...
+!@auth Reha Cakmur, Jan Perlwitz
+
+#ifdef TRACERS_DUST
+      USE tracer_com,ONLY : Ntm_dust
+      USE tracers_dust,ONLY : lim,ljm,Fracn,Uplfac,table,x1,x2,x3
+      USE model_com, ONLY : itime
+      INTEGER :: i,j,n
+      REAL*8 sigma,ans,dy
+      REAL*8,INTENT(OUT) :: dsrcflx(Ntm_dust)
+      REAL*4,INTENT(IN) :: gin_dataij
+      REAL*8,INTENT(IN) :: dxypj,fearthij,wsavgij,vtrshij
+      REAL*8,INTENT(IN) :: wsubtkeij,wsubwdij,wsubwmij
+      REAL*8 :: workij,workij1,workij2
+
+      do kk=1,9
+        x3(kk)=5.d0+1.d0*kk
+      enddo
+
+
+      do j=1,ljm
+        if (j.le.5) then
+          x2(j)=.001d0*j
+        endif
+        if (j.gt.5.and.j.le.104) then
+          x2(j)=0.005d0*j-0.02d0
+        endif
+        if (j.gt.104.and.j.le.194) then
+          x2(j)=0.05d0*j-4.7d0
+        endif
+        if (j.gt.194) then
+          x2(j)=0.5d0*j-92.d0
+        endif
+      enddo
+      do i=1,lim
+        if (i.le.51) then
+          x1(i)=.0001d0*(i-1)
+        endif
+        if (i.gt.51.and.i.le.59) then
+          x1(i)=0.005d0*i-.25d0
+        endif
+        if (i.gt.59.and.i.le.258) then
+          x1(i)=0.05d0*i-2.95d0
+        endif
+        if (i.gt.258.and.i.le.278) then
+          x1(i)=0.5d0*i-119.5d0
+        endif
+        if (i.gt.278) then
+          x1(i)=1.d0*i-259.d0
+        endif
+      enddo
+
+      workij=0.d0
+      workij1=0.d0
+      workij2=0.d0
+c
+c       There is no moist convection, sigma is composed of TKE and DRY convective
+c       velocity scale
+      if (wsubwmij == 0.) then
+        sigma=wsubtkeij+wsubwdij
+        if (sigma > 0.1 .OR. wsavgij > 1.) then
+          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+     &         dy)
+          workij=exp(ans)
+        endif
+      endif
+
+c       When there is moist convection, the sigma is the combination of all
+c       three subgrid scale parameters (i.e. independent or dependent)
+c       Takes into account that the moist convective velocity scale acts
+c       only over 5% of the area.
+
+      if (wsubwmij /= 0.) then
+        sigma=wsubtkeij+wsubwdij+wsubwmij
+        if (sigma > 0.1 .OR. wsavgij > 1.) then
+          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+     &         dy)
+          workij1=exp(ans)*0.05 !!!0.05 for the MC area
+        endif
+
+        sigma=wsubtkeij+wsubwdij
+        if (sigma > 0.1 .OR. wsavgij > 1.) then
+          call ratint2(x1,x2,x3,table,lim,ljm,wsavgij,sigma,vtrshij,ans,
+     &         dy)
+          workij2=exp(ans)*0.95 !!!0.95 for the rest
+        endif
+        workij=workij1+workij2
+      endif
+
+      if (sigma == 0.) then
+        if (wsavgij > vtrshij) then
+          workij=(wsavgij-vtrshij)*wsavgij**2
+        else
+          workij=0.
+        endif
+      endif
+
+
+      DO n=1,Ntm_dust
+        SELECT CASE(n)
+        CASE(1)
+          dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
+        CASE(2:Ntm_dust)
+          dsrcflx(n)=dxypj*gin_dataij*fearthij*Uplfac(n)*Fracn(n)*workij
+        END SELECT
+      END DO
+      WRITE(*,*) 'loc_dsrcflx_turb_sah: sigma,vtrshij,wsavgij,curint:',
+     &       sigma,vtrshij,wsavgij,workij
+#endif
 
       RETURN
       END SUBROUTINE loc_dsrcflx_turb_sah
@@ -236,15 +385,20 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
       USE tracer_diag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
-      USE tracers_dust_com,ONLY : Z,nDustWetij,nDustWet3Djl
+      USE tracers_dust_com,ONLY : Z
+      USE tracers_dust,ONLY : nDustWetij,nDustWet3Djl,prelay
+      USE CLOUDS_COM, ONLY : cldmc,cldss
+      USE DYNAMICS, ONLY : gz
 
       IMPLICIT NONE
 
-      INTEGER :: i,j,l,n,n1,naij,najl
+      INTEGER :: i,j,l,n,n1,naij,najl,layer
       INTEGER,DIMENSION(Jm) :: lwdep
       REAL*8,DIMENSION(jm) :: h
       REAL*8 :: y
+      REAL*8 :: cloudlay,sum1,cloudfrac(im,jm),height,cldmc1(im,jm,lm)
 
+#ifdef WET_DEPO_Ina
       DO J=1,6
          LWDEP(J) = 3
          H(J) = 2800
@@ -302,6 +456,83 @@ c**** Wet Deposition
           END DO
         END DO
       END DO
+#else
+
+      DO n=1,Ntm_dust
+        n1=n_clay+n-1
+        tr3Dsource(:,:,:,nDustWet3Djl,n1)=0D0
+        trsrfflx(:,:,n1)=0D0
+        DO j=1,Jm
+          DO i=1,im
+            sum1=0. 
+            cloudlay=0.
+            do l=1,lm
+              if (cldmc(i,j,l).gt.1.) then   
+                cldmc1(i,j,l)=1.
+                cloudlay=cldss(i,j,l)+cldmc1(i,j,l)-cldss(i,j,l)*
+     &               cldmc1(i,j,l)
+              else  
+                cloudlay=cldss(i,j,l)+cldmc(i,j,l)-cldss(i,j,l)*
+     &               cldmc(i,j,l)
+              endif
+              sum1=sum1+cloudlay-cloudlay*sum1
+            enddo   
+            cloudfrac(i,j)=sum1
+
+            layer=0
+            do l=lm,1,-1
+              if (prelay(i,j,l).ne.0.) then 
+                layer=l
+                exit
+              endif
+            enddo
+
+            if (layer.eq.1) then
+              height=400.d0/9.81d0
+              y = Z*(prec(i,j)/height)*cloudfrac(i,j)
+              IF (y > 1.) y=1.
+              DO l=1,layer
+                tr3Dsource(i,j,l,nDustWet3Djl,n1)=y*trm(i,j,l,n1)/Dtsrc
+                trsrfflx(i,j,n1)=trsrfflx(i,j,n1)+
+     &               tr3Dsource(i,j,l,nDustWet3Djl,n1)
+                trm(i,j,l,n1)=trm(i,j,l,n1)*(1.-y)
+                trmom(:,i,j,l,n1)=trmom(:,i,j,l,n1)*(1.-y)
+              END DO
+
+              naij=ijts_source(nDustWetij,n1)   
+              najl=jls_3Dsource(nDustWet3Djl,n1)
+              taijs(i,j,naij)=taijs(i,j,naij)+trsrfflx(i,j,n1)*Dtsrc
+              DO l=1,Lm
+                tajls(j,l,najl)=tajls(j,l,najl)+
+     &               tr3Dsource(i,j,l,nDustWet3Djl,n1)*Dtsrc
+              END DO
+
+            else if (layer.ne.0) then
+              height=(gz(i,j,layer)-gz(i,j,1))/9.81d0
+              y = Z*(prec(i,j)/height)*cloudfrac(i,j) 
+              IF (y > 1.) y=1.
+              DO l=1,layer
+                tr3Dsource(i,j,l,nDustWet3Djl,n1)=y*trm(i,j,l,n1)/Dtsrc
+                trsrfflx(i,j,n1)=trsrfflx(i,j,n1)+
+     &               tr3Dsource(i,j,l,nDustWet3Djl,n1)
+                trm(i,j,l,n1)=trm(i,j,l,n1)*(1.-y)
+                trmom(:,i,j,l,n1)=trmom(:,i,j,l,n1)*(1.-y)
+              END DO
+              naij=ijts_source(nDustWetij,n1)   
+              najl=jls_3Dsource(nDustWet3Djl,n1)
+              taijs(i,j,naij)=taijs(i,j,naij)+trsrfflx(i,j,n1)*Dtsrc
+              DO l=1,Lm
+                tajls(j,l,najl)=tajls(j,l,najl)+
+     &               tr3Dsource(i,j,l,nDustWet3Djl,n1)*Dtsrc
+              END DO
+            endif
+
+          END DO
+        END DO
+      END DO
+
+#endif
+
 #endif
 
       RETURN
@@ -473,5 +704,3 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
 
       RETURN
       END SUBROUTINE dust_turb
-
-
