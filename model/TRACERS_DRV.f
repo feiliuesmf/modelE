@@ -6496,7 +6496,13 @@ c only dissolve if the cloud has grown
             fq=0.
            endif
 c complete dissolution in convective clouds
-            if (TR_CONV) fq=1.d0
+c with double dissolution if partially soluble
+            if (TR_CONV) then
+               fq=1.d0
+               if (fq_aer(ntix(n)).lt.1.d0) then
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0
+               endif
+            endif
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
           if (fq.ge.1.d0) fq=0.9999
