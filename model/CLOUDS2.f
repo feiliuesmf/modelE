@@ -1529,6 +1529,7 @@ C**   Set CDNC for moist conv. clds (const at present)
               MNdO = 59.68d0
               MNdL=174.d0
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
+              MCDNCI=0           ! default
 
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
                RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
@@ -1539,6 +1540,7 @@ C**   Set CDNC for moist conv. clds (const at present)
 #ifdef CLD_AER_CDNC   !set Reff for moist conv. clds
                MCDNCI=0.06d0
 !              RCLD= 100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+               MCDNCW=0          ! default
 #endif
 
             END IF
