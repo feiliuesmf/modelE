@@ -134,6 +134,15 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       regOx_s=0.d0; regOx_e=0.d0; regOx_w=0.d0
       ntemp=0
 #endif
+C**** initialise source arrays
+       do l=1,lm
+       do j=1,jm
+       do i=1,im
+       oh_live(i,j,l)=0.0d0
+       no3_live(i,j,l)=0.0d0
+       end do
+       end do
+       end do
 #endif
 
 C**** Define a max layer for some optionally trop/strat tracers

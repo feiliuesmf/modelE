@@ -494,10 +494,10 @@ C Convert units of kg sulfate to cm2 sulfate /cm3 air
 C Number of particles * mean surface area
 C Mean surface area of sulfate particle = 7.6E-10 cm2
 C Total surface area per grid box (cm2)
-           sulfate(I,J,L)=(trm(I,J,L,n_SO4)*1.d3)/tr_mm(n_SO4)
+        sulfate(I,J,L)=(trm(I,J,L,n_SO4)*1.d3)/tr_mm(n_SO4)
      &     *6.022d23*7.6d-10
 C Divide by grid box volume (cm3)
-           sulfate(I,J,L)=sulfate(I,J,L)/(airvol(L)*1.d6)
+         sulfate(I,J,L)=sulfate(I,J,L)/(airvol(L)*1.d6)
          endif
 
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
@@ -612,6 +612,7 @@ c        Convert some changes to molecules/cm3/s:
          if(-changeNOx.gt.y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)!dts9/01
          changeN2O5=gwprodN2O5-wprod_sulf
 c
+
 c Ensure nitrogen conservation (presumably dNOx<0, others >0):
 c
          rlossN=0.d0
@@ -790,7 +791,7 @@ C
           error=.true.
          end if
          if(changeN2O5.lt.-1.d15.OR.changeN2O5.gt.1.d15) then
-          write(*,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
+        write(*,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
           error=.true.
          end if
          if(wprodHCHO.lt.-1.d15.OR.wprodHCHO.gt.1.d15) then
