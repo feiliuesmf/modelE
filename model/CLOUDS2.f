@@ -612,9 +612,9 @@ C**** calculate subsiding fraction here. Then we can use FMC1 from the
 C**** beginning. The analagous arrays are only set if plume is actually
 C**** moved up.
       IF (MCCONT.le.0) THEN
-         FCONV_tmp=MPLUME/AIRM(L)
+         FCONV_tmp=MPLUME/AIRM(LMIN+1)
          IF(FCONV_tmp.GT.1.d0) FCONV_tmp=1.d0
-         FSUB_tmp=1.d0+(AIRM(L)-100.d0)/200.d0
+         FSUB_tmp=1.d0+(AIRM(LMIN+1)-100.d0)/200.d0
          IF(FSUB_tmp.GT.1.d0/(FCONV_tmp+1.d-20)-1.d0)
      *        FSUB_tmp=1.d0/(FCONV_tmp+1.d-20)-1.d0
          IF(FSUB_tmp.LT.1.d0) FSUB_tmp=1.d0
