@@ -282,14 +282,14 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
-!@calls RE001:RCOMP1, ORBPAR
+!@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
-      USE RE001, only : rcomp1,writer,writet       ! routines
+      USE RADPAR, only : rcomp1,writer,writet       ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
@@ -483,18 +483,20 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
+      ENTRY SETATM
+      RETURN
       END SUBROUTINE init_RAD
 
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-!@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
+!@calls tropwmo,coszs,coszt, RADPAR:rcompt,RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,kapa
       USE MODEL_COM
       USE GEOM
-      USE RE001
+      USE RADPAR
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
@@ -1262,7 +1264,7 @@ C**** daily diagnostics
 !@auth R. Ruedy
 !@ver  1.0
 
-      USE RE001, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
       USE RADNCB, only : ghg_yr
       IMPLICIT NONE
       INTEGER iu,n,k

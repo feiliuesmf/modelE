@@ -3,7 +3,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE RE001, only : S0
+      USE RADPAR, only : S0
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -80,7 +80,7 @@ C**** exactly the same as the default values.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
-!@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see BR00B.COM)
+!@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, DIMENSION(IM,JM,9) :: ALB
 
 C**** Local variables initialised in init_RAD

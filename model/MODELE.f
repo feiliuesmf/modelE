@@ -1283,7 +1283,7 @@ C****
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
       USE GEOM, only : areag,dxyp
       USE DYNAMICS, only : byAM
-      USE RE001, only : ghgam,ghgyr2,ghgyr1
+      USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
      *     omegt,obliq,eccn,crops_yr
 #ifdef TRACERS_WATER

@@ -124,7 +124,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
         COSZ(1:IM,J)=0.
       END IF
   500 CONTINUE
-      RETURN
+      RETURN 
 C****
 C****
       ENTRY COSZS (ROT1,ROT2,COSZ,COSZA)
@@ -273,21 +273,21 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
         COSZA(1:IM,J)=0.
       END IF
   900 CONTINUE
-      RETURN
+      RETURN 
       END
 
       SUBROUTINE init_RAD
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
-!@calls RE001:RCOMP1, ORBPAR
+!@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
-      USE RE001, only : rcomp1,writer,writet       ! routines
+      USE RADPAR, only : rcomp1,writer,writet       ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
@@ -481,18 +481,20 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
+      entry setatm
+      return
       END SUBROUTINE init_RAD
 
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@ver  1.0
-!@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
+!@calls tropwmo,coszs,coszt, RADPAR:rcompt,RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,kapa
       USE MODEL_COM
       USE GEOM
-      USE RE001
+      USE RADPAR
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
@@ -1073,7 +1075,7 @@ C****
 !$OMP  END DO
 !$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
-      if(kradia.gt.0) return
+      if(kradia.gt.0) return 
 C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
      &     call stop_model('In Radia: Temperature out of range',11)
@@ -1228,7 +1230,7 @@ C**** daily diagnostics
      *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       END DO
 
-      RETURN
+      RETURN 
       END
 
       SUBROUTINE GHGHST(iu)
@@ -1236,7 +1238,7 @@ C**** daily diagnostics
 !@auth R. Ruedy
 !@ver  1.0
 
-      USE RE001, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
       USE RADNCB, only : ghg_yr
       IMPLICIT NONE
       INTEGER iu,n,k
@@ -1266,7 +1268,7 @@ C**** daily diagnostics
    20 continue
       if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) write(6,'(1x,a80)') title
       write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
-      return
+      return 
       end SUBROUTINE GHGHST
 
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
@@ -1359,7 +1361,7 @@ C**** for extrapolations, only use half the slope
           end do
         end do
       end do
-      return
+      return 
       end subroutine getqma
 
       SUBROUTINE ORBPAR (YEAR, ECCEN,OBLIQ,OMEGVP)
@@ -1681,7 +1683,7 @@ C****
       IF(OMEGVP.lt.0.)  OMEGVP = OMEGVP + TWOPI
       OMEGVP = OMEGVP/PI180  ! for output in degrees
 C****
-      RETURN
+      RETURN 
       END SUBROUTINE ORBPAR
 
       SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
@@ -1774,7 +1776,7 @@ C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
 C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
 C     LAMBDA = DMOD(LAMBDA,2.*PI)
 C****
-      RETURN
+      RETURN 
       END SUBROUTINE ORBIT
 
 
@@ -1798,7 +1800,7 @@ C****
       real*4 crop4(im,jm)
 
 C**** check whether update is needed
-      if (year.eq.year_old) return
+      if (year.eq.year_old) return 
 
 C**** first iteration actions:
       if (year_old.lt.0) then
@@ -1845,6 +1847,6 @@ C**** Modify the vegetation fractions
 
       year_old = year
 
-      return
+      return 
       end subroutine updveg
 
