@@ -1,5 +1,5 @@
       program convert_gic_files
-C**** convert GIC files from model II' (B399) format to modelE format 
+C**** convert GIC files from model II' (B399) format to modelE format
 C**** compile with: gmake conv_gic.o
 C**** f90 -o conv_gic conv_gic.o ../model/ *.o -O2 -64 -mips4 \
 C****                      -OPT:reorg_comm=off -w2 -listing
@@ -8,7 +8,7 @@ C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,iowrite,focean
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm
+     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
       USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
@@ -18,7 +18,7 @@ C**** must be compiled after the model
       INTEGER IARGC,iu_GIC,I,J,L,N,ioerr,kunit,iaction
       REAL*8 MSI1,X
       INTEGER*4 len
-      
+
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert GIC files from old format to new"
         PRINT*,"conv_gic filename output_file"
@@ -80,6 +80,11 @@ C**** define sea ice defaults: Use AC2OIM instead of MSI.
 
       print*,TOCEAN(1,45,2),RSI(45,2),SNOWI(45,2)
 
+C**** set default values for evaporation limiting arrays
+      evap_max_ij(:,:) = 1.d0
+      fr_sat_ij(:,:) = 1.d0
+      qg_ij(:,:) = 0.d0
+
       OPEN(iu_GIC,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")
 
@@ -101,4 +106,4 @@ C**** define sea ice defaults: Use AC2OIM instead of MSI.
       stop
  810  print*,"Premature End of file"
       stop
-      end 
+      end
