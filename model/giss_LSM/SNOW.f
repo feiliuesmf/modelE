@@ -246,7 +246,7 @@ ccc output:
       real*8 water_to_ground, heat_to_ground
       real*8 radiation_out
 ccc data arrays
-      real*8 dz(nl+1), wsn(nl), hsn(nl)
+      real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
 
 ccc tracer variables
 !@var tr_flux flux of water between snow layers (>0 is down) (m/s)
