@@ -1995,8 +1995,10 @@ c Oxidants
         call stop_model('ktajls too small',255)
       end if
 
-C**** Tracer sources and sinks
+C**** Tracer sources, sinks and specials
 C**** Defaults for ijts (sources, sinks, etc.)
+      ijts_fc(:,:)=0
+
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
@@ -4869,7 +4871,7 @@ C**** ground source
 C**** source from ice-free land
             if(tsavg(i,j).lt.tf) then !composite surface air temperature
               trsource(i,j,1,n) = 1.0d-16*steppd*dxyp(j)*fearth(i,j)
-            else
+            else  ! 1 atom/cm^2/s
               trsource(i,j,1,n) = 3.2d-16*steppd*dxyp(j)*fearth(i,j)
             end if
 C**** source from ice-free ocean

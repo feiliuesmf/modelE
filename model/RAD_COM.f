@@ -97,6 +97,8 @@ C**** exactly the same as the default values.
 !@var SALB broadband surface albedo saved in rsf
       REAL*8, DIMENSION(IM,JM) :: SALB   ! = ABL(:,:,1)
       EQUIVALENCE (SALB,ALB)
+!@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
+      INTEGER :: rad_interact_tr = 0
 
 C**** Local variables initialised in init_RAD
 !@var COE

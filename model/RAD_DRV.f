@@ -325,6 +325,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
+     *     ,rad_interact_tr
       USE DAGCOM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
 
@@ -367,6 +368,7 @@ C**** sync radiation parameters from input
         write(*,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
         call stop_model('init_RAD: snoage_fac_max out of range',255)
       end if
+      call sync_param( "rad_interact_tr", rad_interact_tr )
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
@@ -474,6 +476,7 @@ C**** (through TRACER in RADIA).
 C**** FSXAER is for the shortwave, FTXAER is for the longwave
 caer   FSXAER = (/ 1.,1.,1.,1.,1. /)     
 caer   FTXAER = (/ 1.,1.,1.,1.,1. /)     
+
 C**** There are 10 aerosol subtypes for AClim:
 C**** 1. Industrial BC, 2. Industrial OC, 3. Industrial sulfate
 C**** 4. seasalt, 5. Natural sulfate, 6. nitrate (set = natural so4),
@@ -501,14 +504,16 @@ caer   MADBAK=0
 caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 
 #ifdef TRACERS_AEROSOLS_Koch
-       FSAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
-       FTAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
-       NTRACE = 2
-       FGOLDH(5+1:5+NTRACE) = (/ 1.,1./)
-       MADBAK=1   
-       FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
+      if (rad_interact_tr.gt.0) then
+        FSAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
+        FTAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
+      end if
+      NTRACE = 2
+      FGOLDH(5+1:5+NTRACE) = (/ 1.,1./) ! superseded in RADIA
+      MADBAK=1   
+      FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 c tracer 1 is sulfate, tracer 2 is seasalt
-       ITR = (/ 3,2,0,0, 0,0,0,0 /)
+      ITR = (/ 3,2,0,0, 0,0,0,0 /)
 #endif
   
       if (ktrend.ne.0) then
@@ -571,9 +576,7 @@ C****
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-#ifdef TRACERS_AEROSOLS_Koch
-     *   ,fgoldh
-#endif
+     *          ,fgoldh
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
@@ -592,7 +595,7 @@ C     OUTPUT DATA
      &          ,BTEMPW ,O3_OUT
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_rad_save
+     *     ,O3_rad_save,rad_interact_tr
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -622,10 +625,12 @@ C     OUTPUT DATA
       USE FLUXES, only : gtemp
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,N_SO4,N_seasalt1,N_seasalt2
       USE TRACER_DIAG_COM, only: taijs,ijts_fc
+#ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: aer_tau
+#endif
 #endif
       IMPLICIT NONE
 C
@@ -638,11 +643,11 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
       REAL*8, DIMENSION(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFS,TNFS
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_ON
+!@var SNFST,TNFST like SNFS/TNFS but without specific tracers for
+!@+   radiative forcing calculations
       REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      *     SNFST,TNFST
-c Like SNFS(4,:,:) but with for calls without aerosol in order to calculate
-c  forcing 
       INTEGER N
 #endif
       REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
@@ -1015,11 +1020,11 @@ C---- shl(L)=Q(I,J,L)        ! already defined
 C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (optical depth, I think)
-caer  TRACER(L,1) = aer_tau(i,j,l)   ! maybe
-caer  TRACER(L,2) = ....
+C**** Only define TRACER is individual tracer is actually defined.
 #ifdef TRACERS_AEROSOLS_Koch
-      TRACER(L,1)=aer_tau(i,j,l,n_so4)
-      TRACER(L,2)=aer_tau(i,j,l,n_seasalt1)+aer_tau(i,j,l,n_seasalt2)
+        if (n_SO4.gt.0) TRACER(L,1)=aer_tau(i,j,l,n_so4)
+        if (n_seasalt1.gt.0. .and. n_seasalt2.gt.0) TRACER(L,2)=
+     *       aer_tau(i,j,l,n_seasalt1)+aer_tau(i,j,l,n_seasalt2)
 #endif
 
       END DO
@@ -1037,10 +1042,9 @@ CCC     STOP 'In Radia: RQT out of range'
         tauic(LM+k) = 0.
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
+#ifdef TRACERS_ON
 C**** set radiative equilibirum extra tracer amount to zero
-caer    TRACER(LM+k,1:NTRACE)=0.
-#ifdef TRACERS_AEROSOLS_Koch
-       TRACER(LM+k,1:NTRACE)=0.
+        IF (NTRACE.gt.0) TRACER(LM+k,1:NTRACE)=0.
 #endif
       END DO
       if (kradia.gt.1) then
@@ -1111,6 +1115,13 @@ c seasalt forcing
       TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
       FGOLDH(7)=1.d0
 #endif
+C**** Depending on rundeck variable allow full radiative interaction
+C**** or not. If no radiatively active tracers are defined, nothing 
+C**** changes. Currently this works for aerosols, but should be extended
+C**** to cope with trace gases. 
+C**** Possibly different values >0 could do different things
+      if (rad_interact_tr.eq.0 .and. NTRACE.gt.0)
+     *     FGOLDH(6:5+NTRACE)=0.
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
@@ -1365,18 +1376,16 @@ C****
          AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*CSZ2)
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_ON
+C**** Generic diagnostics for radiative forcing calculations
+         do n=1,ntm
 c shortwave forcing
-      taijs(i,j,ijts_fc(1,n_SO4))=taijs(i,j,ijts_fc(1,n_SO4))
-     *     +(SNFS(4,I,J)-
-     *     SNFST(N_SO4,I,J))*CSZ2
-      taijs(i,j,ijts_fc(1,n_seasalt1))=taijs(i,j,ijts_fc(1,n_seasalt1))
-     *     +(SNFS(4,I,J)-SNFST(N_seasalt1,I,J))*CSZ2
+           if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+     *          ,ijts_fc(1,n))+(SNFS(4,I,J)-SNFST(N,I,J))*CSZ2
 c longwave forcing
-      taijs(i,j,ijts_fc(2,n_so4))=taijs(i,j,ijts_fc(2,n_so4))
-     *     -(TNFS(4,I,J)-TNFST(N_so4,I,J))
-      taijs(i,j,ijts_fc(2,n_seasalt1))=taijs(i,j,ijts_fc(2,n_seasalt1))
-     *     -(TNFS(4,I,J)-TNFST(N_seasalt1,I,J))
+           if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+     *          ,ijts_fc(2,n))-(TNFS(4,I,J)-TNFST(N,I,J))
+         end do
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
@@ -1933,22 +1942,22 @@ C****
       PERIHE = OMEGA-ECCEN*SIN(OMEGA)+VERQNX*2.*PI/EDPERY
 C     PERIHE = DMOD(PERIHE,2.*PI)
       MA = 2.*PI*DAY/EDPERY - PERIHE
-      MA = DMOD(MA,2.*PI)
+      MA = MOD(MA,2.*PI)
 C****
 C**** Numerically solve Kepler's equation: MA = EA - ECCEN sin(EA)
 C****
       EA = MA+ECCEN*(SIN(MA)+ECCEN*SIN(2.*MA)/2.)
-  110 DEA = (MA-EA+ECCEN*SIN(MA))/(1.-ECCEN*COS(EA))
+  110 DEA = (MA-EA+ECCEN*SIN(EA))/(1.-ECCEN*COS(EA))
       EA = EA+DEA
-      IF (DABS(DEA).GT.1.D-8)  GO TO 110
+      IF (ABS(DEA).GT.1.D-15)  GO TO 110
 C****
 C**** Calculate the distance to the sun and the true anomaly
 C****
-      BSEMI = DSQRT(1.-ECCEN*ECCEN)
+      BSEMI = SQRT(1.-ECCEN*ECCEN)
       COSEA = COS(EA)
       SINEA = SIN(EA)
       SDIST  = (1.-ECCEN*COSEA)*(1.-ECCEN*COSEA)
-      TA = DATAN2(SINEA*BSEMI,COSEA-ECCEN)
+      TA = ATAN2(SINEA*BSEMI,COSEA-ECCEN)
 C****
 C**** Change the reference frame to be the Earth's equatorial plane
 C**** with the Earth at the center and the positive x axis parallel to
@@ -1965,14 +1974,14 @@ C**** LAMBDA = atan[tan(TA+OMEGA) cos(OBLIQ)] - GREENW
 C**** GREENW = 2*3.14159 DAY (EDPERY-1)/EDPERY
 C****
       SINDD = SIN(TA+OMEGA)*SIN(DOBLIQ)
-      COSD = DSQRT(1.-SINDD*SINDD)
+      COSD = SQRT(1.-SINDD*SINDD)
       SIND = SINDD
 C     GREENW = 2.*PI*(DAY-VERQNX)*(EDPERY+1.)/EDPERY
 C     SUNX = -COS(TA+OMEGA)
 C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
       LAMBDA = 0. ! just to keep the compiler happy
-C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
-C     LAMBDA = DMOD(LAMBDA,2.*PI)
+C     LAMBDA = ATAN2(SUNY,SUNX)-GREENW
+C     LAMBDA = MOD(LAMBDA,2.*PI)
 C****
       RETURN
       END SUBROUTINE ORBIT

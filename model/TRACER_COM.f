@@ -170,10 +170,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
-     *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0
-#ifdef TRACERS_DUST
-     &     ,n_clay,   n_silt1, n_silt2, n_silt3
-#endif
+     *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
+     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit

@@ -114,14 +114,14 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
-!@var ijts_isrc tracer independent array for TAIJS interactive surface src. diags
+!@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
       INTEGER ijts_isrc(ntsurfsrcmax,ntm)
 #ifdef TRACERS_AEROSOLS_Koch
-!@var ijts_tau tracer independent array for TAIJS hydrated optical thickness
+!@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(ntm)
-!@var ijts_fc tracer independent array for TAIJS short, long wave radiative forcings
-      INTEGER ijts_fc(2,ntm)
 #endif
+!@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
+      INTEGER ijts_fc(2,ntm)
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
