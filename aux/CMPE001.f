@@ -5,7 +5,7 @@ C**** NEWER VERSION THAT EXPECTS ARRAYS ON INDIVIDUAL RECORDS
       IMPLICIT REAL*8 (A-H,O-Z)
       PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=100,KAJK=51)
       parameter (npbl=8)
-      PARAMETER (IMH=IM/2,  
+      PARAMETER (IMH=IM/2,
      *     KACC=JM*94*3 + 24*94 +
      *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +IM*JM*29 +
      *     20*100 + JM*42 + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*10*12 +
@@ -53,12 +53,12 @@ C****
 C****
 C**** Read ReStartFiles
 C****
-      PRINT*,"THIS IS A NEW VERSION THAT EXPECTS A T50 IN BOTH FILES" 
+      PRINT*,"THIS IS A NEW VERSION THAT EXPECTS A T50 IN BOTH FILES"
       PRINT*,"THIS IS A NEWER VERSION THAT EXPECTS INDIVIDUAL RECORDS"
       CALL GETARG (1,FILEIN)
       OPEN (1,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
          READ (1) ITAU1,JC,C,RC
-         READ (1) 
+         READ (1)
          READ (1) HEADER,U1,V1,T1,P1,Q1,WM1
          READ (1) HEADER,TOCEAN1,OA1,Z1
          READ (1) HEADER,T501,LAKE1
@@ -85,7 +85,7 @@ C****
       CALL GETARG (2,FILEIN)
       OPEN (2,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',ERR=810)
          READ (2) ITAU1,JC,C,RC
-         READ (2) 
+         READ (2)
          READ (2) HEADER,U2,V2,T2,P2,Q2,WM2
          READ (2) HEADER,TOCEAN2,OA2,Z2
          READ (2) HEADER,T502,LAKE2
@@ -264,7 +264,7 @@ C****
       X2MAX=0.
       DO 10 J=1,JM
       DO 10 I=1,IM
-      IF (X2(I,J,L)*X1(I,J,L).EQ.0 .AND. X2(I,J,L)+X1(I,J,L).NE.0 
+      IF (X2(I,J,L)*X1(I,J,L).EQ.0 .AND. X2(I,J,L)+X1(I,J,L).NE.0
      *        .and. X2(I,J,L).NE.X1(I,J,L)) THEN
          WRITE (6,901) I,J,L,X1(I,J,L),X2(I,J,L)
          NP = NP+1
@@ -319,14 +319,15 @@ C****
       I2MAX=0
       DO 10 J=1,JM
       DO 10 I=1,IM
-      IF (I2(I,J,L)*I1(I,J,L).EQ.0 .AND. I2(I,J,L)+I1(I,J,L).NE.0 
+c     write(0,*) i,j,l,I2(I,J,L),I1(I,J,L)
+      IF (I2(I,J,L)*I1(I,J,L).EQ.0 .AND. I2(I,J,L)+I1(I,J,L).NE.0
      *        .and. I2(I,J,L).NE.I1(I,J,L)) THEN
-         WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L)
+c        WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L)
          NP = NP+1
          IF(NP.GE.10)  RETURN
       ELSE
          DIF = ABS(I2(I,J,L)-I1(I,J,L)) / (ABS(I1(I,J,L)) + 1.D-30)
-c         IF (DIF.NE.0.) PRINT*,I,J,L,DIF
+          IF (DIF.NE.0.) PRINT*,I,J,L,DIF
          IF(DIF.NE.0.) ICNT = ICNT + 1
          IF(DIF.LE.DIFMAX)  GO TO 10
          DIFMAX = DIF
@@ -348,5 +349,5 @@ c      IF(NP.GE.10)  RETURN
 c     IF(ICNT.GT.0) WRITE(6,*) '#pts = ',ICNT
       RETURN
   900 FORMAT (' ',A6)
-  901 FORMAT (3I4,E30.20,2E30.20)
+  901 FORMAT (3I4,2I30,E30.20)
       END FUNCTION COMPI
