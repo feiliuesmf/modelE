@@ -149,13 +149,15 @@ C
       ENDDO
 !$OMP  END PARALLEL DO
 C
-!$OMP  PARALLEL DO PRIVATE (J,L)
+!$OMP  PARALLEL DO PRIVATE (J,L,I)
       DO L=1,LM
-         DO J=1,JM-1
-            MV(:,J,L) = MV(:,J+1,L)*DT
-         ENDDO
-         MV(:,JM,L) = 0.
-      ENDDO
+        DO J=1,JM-1
+          DO I=1,IM
+            MV(I,J,L) = MV(I,J+1,L)*DT
+          END DO
+        END DO
+        MV(:,JM,L) = 0.
+      END DO
 !$OMP  END PARALLEL DO
 C
 !$OMP  PARALLEL DO PRIVATE (L)

@@ -403,6 +403,7 @@ C**** COMPUTE PU*3 AT THE POLES
       PBS=PBS*BYIM
       PBN=PBN*BYIM
       DO 1140 I=1,IM
+      PV(I,1,L)=0.
       SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
       SPA(I,JM,L)=4.*(DUMMYN(I)-PBN+PUN)/(DYP(JM-1)*PIJL(1,JM,L))
       PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
