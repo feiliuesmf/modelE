@@ -384,21 +384,22 @@ c     QCHECKL = .TRUE.
       RETURN
       END SUBROUTINE CHECKL
 
-      SUBROUTINE daily_LAKE
+      SUBROUTINE daily_LAKE(IEND)
 !@sum  daily_LAKE sets Lake Ice extent consistent with 50-day SAT
 !@auth L. Nazarenko
 !@ver  1.0
       USE CONSTANT, only : rhoi
-      USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN
+      USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN,TAU,TAUI,DT
       USE GEOM, only : IMAXJ
 !      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
       USE OCEAN, only : ODATA,T50,Z1I,DM
       IMPLICIT NONE
       REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
-      INTEGER I,J,K,IMAX
+      INTEGER I,J,K,IMAX,IEND
       REAL*8 RSINEW
 
       IF (KOCEAN.eq.0) RETURN
+      IF (IEND.eq.0 .and. TAU.GT.TAUI+DT/7200.) RETURN
       ZIMIN=.5     ! minimum lake ice thickness
       ZIMAX=2.     ! maximum lake ice thickness
       T_ICE = -8.  ! surface air temperature for 100% ice cover

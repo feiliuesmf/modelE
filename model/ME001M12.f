@@ -60,7 +60,7 @@ C**** INITIALIZE TIME PARAMETERS
          MODD5K=1000
       CALL DAILY(0)
       CALL daily_EARTH(0)
-      CALL daily_LAKE
+      CALL daily_LAKE(0)
       CALL daily_OCEAN(0)
       CALL CALC_AMPK(LM)
          CALL CHECKT ('INPUT ')
@@ -190,7 +190,7 @@ C****
          CALL DIAG5A (16,NDAILY)
          CALL DIAG9A (8)
       call daily_EARTH(1)
-      CALL daily_LAKE
+      CALL daily_LAKE(1)
       call daily_OCEAN(1)
          CALL CHECKT ('DAILY ')
       CALL TIMER (MNOW,MINC,MSURF)
@@ -760,6 +760,9 @@ C**** Set TAU to TAUI for initial starts
  399  CONTINUE
 C**** Set flag to initialise lake variables if they are not in I.C.      
       inilake=.TRUE.
+C**** ZERO OUT ARRAYS FOR OCEAN TRANSPORT
+      OA = 0.
+C**** 
       WRITE (6,'(A,I4,F11.2,3X,A/)')
      *     '0ATMOSPHERIC I.C. ISTART,TAUX=',ISTART,TAUX,CLABEL1(1:80)
 C**** Check consistency of TAU and TAUX (from IC)
@@ -828,8 +831,6 @@ C****    REPOSITION THE SEA LEVEL PRESSURE HISTORY DATA SET (UNIT 16)
      *   '0SLP HISTORY REPOSITIONED.  LAST TAU READ WAS',TAU4
   515    CONTINUE
       IF (USET.LE.0.) GO TO 600
-C**** ZERO OUT ARRAYS
-      OA = 0.
 C**** REPOSITION THE OUTPUT TAPE ON UNIT 20 FOR RESTARTING
       REWIND 20
       IF (TAU.LT.TAUO+USET) GO TO 600
