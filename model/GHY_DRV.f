@@ -87,9 +87,9 @@ c****
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
 #endif
-      use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom
+      use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,ntsurfsrc,trw0
+     *     ,nWATER,nGAS,nPART,tr_wd_TYPE,trname,trw0
 #endif
       use tracer_diag_com, only : taijn,tij_surf
 #ifdef TRACERS_WATER
@@ -120,13 +120,15 @@ C**** Tracer input/output common block for PBL
       integer n,nx,ntx
       integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
+      real*8 totflux
+      integer nsrc
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trgrnd,trsoil_tot,tevapw,tevapd,
      *     tevapb,trruns,trrunu,trpr,trsoil_rat
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
-      real*8  tdp, tdt1, wsoil_tot, frac, tevap, fracvl, totflux
-      integer ibv,nsrc
+      real*8  tdp, tdt1, wsoil_tot, frac, tevap, fracvl
+      integer ibv
 #endif
 #endif
       real*8 qsat
@@ -182,11 +184,10 @@ C$OMP*   I,ITYPE, J, KR, L,MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 C$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 C$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TS,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,
 #ifdef TRACERS_ON
-C$OMP*   ,trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix
+C$OMP*   ,trtop,trs,trsfac,trconstflx,n,nx,ntx,ntix,totflux,nsrc
 #ifdef TRACERS_WATER
 C$OMP*   ,trgrnd,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,trpr,
-C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv,
-C$OMP*   totflux,nsrc
+C$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
 #endif
 #endif
 C$OMP*   )

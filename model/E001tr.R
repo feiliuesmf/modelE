@@ -97,7 +97,7 @@ U00wtr=.49
 U00ice=.50
 
 DT=450.,        ! from default: DTsrc=3600.,
-to_volume_MixRat=1   ! for tracer printout
+to_volume_MixRat=1,1,1, 1,1,1, 1,1,1,   ! for tracer printout
 NSLP=12         ! saving SLP 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
