@@ -118,10 +118,10 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.23    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
-! U00wtrX=1.08    ! use with 1995 atmosphere/ocean
-! U00wtrX=1.21    ! use with RES_M20AT and 1880 atmosphere/ocean
-! U00wtrX=1.16    ! use with RES_M20AT and 1995 atmosphere/ocean
+U00wtrX=1.25    ! U00wtrX up => nethtz0 up  (alb down);        for global annual mean
+! U00wtrX=1.??    ! use with 1995 atmosphere/ocean
+! U00wtrX=1.??    ! use with RES_M20AT and 1880 atmosphere/ocean
+! U00wtrX=1.??    ! use with RES_M20AT and 1995 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
