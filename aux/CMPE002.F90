@@ -230,7 +230,10 @@
 #  ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only : &
            yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2 &
-           ,yAldehyde,yXO2N,yRXPAR,corrOx,ss
+           ,yAldehyde,yXO2N,yRXPAR,corrOx,ss &
+#  ifdef SHINDELL_STRAT_CHEM
+           ,SF3,pClOx,pClx,pOClOx,pBrOx
+#  endif
 #  endif
 
 #  ifdef CHECK_OCEAN
@@ -468,7 +471,7 @@
         check("ticij",ticij)
 #  endif
 
-#ifdef TRACERS_SPECIAL_Shindell
+#  ifdef TRACERS_SPECIAL_Shindell
         check("yNO3",yNO3)
         check("pHOx",pHOx)
         check("pNOx",pNOx)
@@ -482,7 +485,14 @@
         check("yRXPAR",yRXPAR)
         check("corrOx",corrOx)
         check("ss",ss)
-#endif
+#  ifdef SHINDELL_STRAT_CHEM
+        check("SF3",SF3)
+        check("pClOx",pClOx)
+        check("pClx",pClx)
+        check("pOClOx",pOClOx)
+        check("pBrOx",pBrOx)
+#  endif
+#  endif
 
 #  ifdef CHECK_OCEAN
 #    ifdef TRACERS_WATER
