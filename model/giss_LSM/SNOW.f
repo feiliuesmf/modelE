@@ -117,7 +117,8 @@ c!!!                may be ice*max_fract_water ??
 !@ver  1.0
       implicit none
       integer nl
-      real*8 dz(TOTAL_NL+1), prsnow, dt
+      !real*8 dz(TOTAL_NL+1), prsnow, dt
+      real*8 dz(:), prsnow, dt
       real*8 fract_cover, fract_cover_new
       real*8 dz_aver, fresh_snow
 
@@ -139,7 +140,8 @@ c!!!                may be ice*max_fract_water ??
 !@ver  1.0
       implicit none
       integer nl
-      real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
+      !real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
+      real*8 dz(:), wsn(:), hsn(:)
       real*8 fract_cover_ratio
       integer nlo
       real*8 dzo(TOTAL_NL+1), wsno(TOTAL_NL), hsno(TOTAL_NL)

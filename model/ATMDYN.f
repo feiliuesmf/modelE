@@ -11,7 +11,7 @@
       contains
 
       SUBROUTINE init_ATMDYN
-      CALL AVRX0
+      CALL AVRX
       end SUBROUTINE init_ATMDYN
 
 
@@ -1052,7 +1052,7 @@ C
       RETURN
       END SUBROUTINE PGF
 
-      SUBROUTINE AVRX0
+      SUBROUTINE AVRX(X)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
 !@ver  1.0
@@ -1064,7 +1064,8 @@ C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       USE MOMENTS, only : moment_enq_order
       USE constant, only : byrt2
       IMPLICIT NONE
-      REAL*8, INTENT(INOUT) :: X(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, INTENT(INOUT), optional ::
+     &     X(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 CCC   REAL*8, SAVE :: SM(IMH,grid%J_STRT_HALO:grid%J_STOP_HALO)
 CCC   REAL*8, SAVE :: DRAT(grid%J_STRT_HALO:grid%J_STOP_HALO)
 CCC   REAL*8, SAVE, DIMENSION(IMH) :: BYSN
@@ -1080,6 +1081,9 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       REAL*8, SAVE :: xAVRX
       INTEGER order
+
+      if ( present(X) ) goto 1000
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
@@ -1112,7 +1116,8 @@ C       CALL FFT0(IM)
       END IF
       RETURN
 C****
-      ENTRY AVRX (X)
+!!!      ENTRY AVRX (X)
+ 1000 continue
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
@@ -1128,7 +1133,7 @@ C****
       CALL FFTI(AN,BN,X(1,J))
   140 CONTINUE
       RETURN
-      END SUBROUTINE AVRX0
+      END SUBROUTINE AVRX
 
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction

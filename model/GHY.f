@@ -118,7 +118,7 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
       private
 
 c**** public functions:
-      public hl0, set_snow, advnc, evap_limits, xklh0
+      public hl0, set_snow, advnc, evap_limits, xklh
 
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
@@ -334,29 +334,29 @@ ccc be computed (i.e. f[bv] is not zero)
 C***
 C***   Thread Private Common Block GHYTPC
 C***
-      COMMON /GHYTPC/
-     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
-     &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
-     &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-     &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
-     &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
-     &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
-     &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
-     &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
-     &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
-     &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
-     &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
-     &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
-     &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
-     &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
-     &     ,ijdebug,n,nsn !nth
-     &     ,flux_snow,wsn_for_tr,trans_sw
+!$    COMMON /GHYTPC/
+!$   &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc,agpp
+!$   &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
+!$   &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
+!$   &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
+!$   &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb  ! dt dlm
+!$   &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
+!$   &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
+!$   &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
+!$   &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
+!$   &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
+!$   &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
+!$   &     ,snshs,srht,tbcs,theta,thetm,thets,thrm_tot,thrmsn !thm
+!$   &     ,top_index,top_stdev,tp,trht,ts,tsn1,vsm,w,ws,wsn,xinfc,xk
+!$   &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
+!$   &     ,ijdebug,n,nsn !nth
+!$   &     ,flux_snow,wsn_for_tr,trans_sw
 
 !----------------------------------------------------------------------!
-     &     ,i_bare,i_vege,process_bare,process_vege
+!$   &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
-     &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
-     &     ,atr_evap,atr_rnff,atr_g
+!$   &     ,trpr, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
+!$   &     ,atr_evap,atr_rnff,atr_g
 #endif
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
@@ -1325,7 +1325,7 @@ ccc    actually for ground hydrology it is not necessary
       end subroutine fllmt
 
 
-      subroutine xklh
+      subroutine xklh( xklh0_flag )
 c**** evaluates the heat conductivity between layers
 c**** uses the method of DeVries.
 c**** input:
@@ -1353,6 +1353,7 @@ c
 c     calculate with changing ga for air. ga is the depolarization
 c     factor for air, calculated by linear interpolation from .333d0
 c     at saturation to .035 at 0 water, following devries.
+      integer, intent(in), optional :: xklh0_flag
       real*8 gaa,gabc(3),gca,xa,xb,xden,xi,xnum,xs,xw
 ccc   real*8, save :: ba,hcwt(imt-1),hcwta,hcwtb,hcwti,hcwtw
 ccc   real*8, save :: xsha(ng,2),xsh(ng,2)
@@ -1367,6 +1368,7 @@ c the alam''s are the heat conductivities
      &     ,alama = .025d0
      &     ,alambr= 2.9d0
      &     ,alams(imt-1) = (/ 8.8d0, 2.9d0, 2.9d0, .25d0 /)
+      if ( present(xklh0_flag) ) goto 777
       do ibv=i_bare,i_vege
         do k=1,n
           gaa=.298d0*theta(k,ibv)/(thets(k,ibv)+1d-6)+.035d0
@@ -1395,7 +1397,8 @@ c     get the average conductivity between layers
       end do
 c****
       return
-      entry xklh0
+!      entry xklh0
+ 777  continue
 c gabc''s are the depolarization factors, or relative spheroidal axes.
       gabc(1)=.125d0
       gabc(2)=gabc(1)
@@ -1695,7 +1698,7 @@ ccc normal case (both present)
 cddd      print '(a,10(e12.4))', 'ghy_temp_b ',
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 ccc accm0 was not called here in older version - check
-      call accm0
+      call accm(0)
       do while ( dtr > 0.d0 )
         nit=nit+1
         if(nit.gt.limit)go to 900
@@ -1797,7 +1800,7 @@ C**** finalise surface tracer concentration here
 
       enddo
 
-      call accmf
+      call accm(1)
       call hydra
       call wtab  ! for gcm diag. only
       return
@@ -1812,18 +1815,24 @@ C**** finalise surface tracer concentration here
       end subroutine advnc
 
 
-      subroutine accm
+      subroutine accm( flag )
 c**** accumulates gcm diagnostics
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
+      integer, intent(in), optional :: flag
       real*8 qsats
       real*8 cpfac,dedifs,dqdt,el0,epen,h0
       integer k
 #ifdef TRACERS_WATER
       real*8 tot_w1
 #endif
+
+      if ( present(flag) ) then
+        if ( flag == 0 ) goto 778
+                         goto 777
+      endif
 
 ccc   main fluxes which should conserve water/energy
       atrg = atrg + ( thrm_tot(1)*fb + thrm_tot(2)*fv )*dts
@@ -1889,7 +1898,8 @@ cddd     &     evapvs, fr_snow, fv, fm
 !     &     atr_evap(1) - aevap*1000.d0, aevap*1000.d0, evapvs, fr_snow
 #endif
       return
-      entry accmf
+!      entry accmf
+ 777  continue
 c provides accumulation units fixups, and calculates
 c penman evaporation.  should be called once after
 c accumulations are collected.
@@ -1922,7 +1932,8 @@ ccc   h0=-thrm(2)+srht+trht
 ccc   computing surface temperature from thermal radiation fluxes
       tbcs = sqrt(sqrt( atrg/(dt*stbo) )) - tfrz
       return
-      entry accm0
+!      entry accm0
+ 778  continue
 c zero out accumulations
 
       atrg=0.d0                 ! thermal heat from ground
@@ -2371,10 +2382,10 @@ ccc (to make the data compatible with snow model)
           if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
      &        call stop_model("ERR in init_snow: NaN", 255)
 
-          call snow_fraction(dzsn(1,ibv), nsn(ibv), 0.d0, 0.d0,
+          call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
      &         1.d0, fr_snow(ibv) )
           if ( fr_snow(ibv) > 0.d0 ) then
-            call snow_redistr(dzsn(1,ibv), wsn(1,ibv), hsn(1,ibv),
+            call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
      &           nsn(ibv), 1.d0/fr_snow(ibv) )
             if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
      &        call stop_model("ERR in init_snow 2: NaN", 255)

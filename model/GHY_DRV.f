@@ -1684,7 +1684,7 @@ c**** snowm - snow masking depth
 c**** wfcap - water field capacity of top soil layer, m
 c****
       use snow_model, only : i_earth,j_earth
-      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh0 !spgsn,
+      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh !spgsn,
      *     ,fb,fv,prs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
@@ -1776,7 +1776,7 @@ c****
 !veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
   !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
-      call xklh0
+      call xklh(1)
 c****
 
       do ibv=1,2
@@ -1845,7 +1845,8 @@ c**** output:
 c**** ht - heat in soil layers
 c**** add calculation of wfc2
 c**** based on combination of layers 2-n, as in retp2
-      use sle001
+      use sle001, only : tp, ht, w, shc, fice, snowd, ws, fb, fv,
+     &    n, dz, fsn, thetm, shi, shw, ijdebug
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
 
@@ -1888,7 +1889,7 @@ c**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
         end do
       end do
 c****
-      entry ghexht
+!!!      entry ghexht
 c****
 c**** compute ht (heat w/m+2)
       do ibv=1,2
