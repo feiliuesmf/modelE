@@ -31,6 +31,7 @@
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
       INTEGER :: to_volume_MixRat=0 
       character*50 :: unit_string
+
 C**** Get itime_tr0 from rundeck if it exists
       call sync_param("itime_tr0",itime_tr0,ntm)
 C**** Get to_volume_MixRat from rundecks if it exists
@@ -228,7 +229,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       end SUBROUTINE set_generic_tracer_diags
 
 
-      SUBROUTINE apply_tracer_source(dtsurf)
+      SUBROUTINE apply_tracer_source(dtstep)
 !@sum apply_tracer_source adds non-interactive surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
@@ -239,7 +240,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf
       IMPLICIT NONE
-      REAL*8, INTENT(IN) :: dtsurf
+      REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
       REAL*8, DIMENSION(JM) :: dtracer
 
@@ -255,14 +256,14 @@ C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
 C**** diagnostics
           naij = ijts_source(ns,n)
-          taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtsurf
+          taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           najl = jls_source(ns,n)
           do j=1,jm
             tajls(j,1,najl) = tajls(j,1,najl)+sum(trsource(:,j,ns,n))
-     *           *dtsurf
+     *           *dtstep
             dtracer(j)=0.
             do i=1,imaxj(j)
-              dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtsurf
+              dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
             end do
           end do
           call DIAGTCB(dtracer,itcon_surf(ns,n),n)
@@ -272,11 +273,11 @@ C**** trflux1 is total flux into first layer
 C**** Interactive sources
 C**** diagnostics
 c        naij = ijts_source(ns,n)  ????
-c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtsurf
+c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtstep
 c        najl = jls_source(ns,n)   ????
 c        do j=1,jm
 c          tajls(j,1,najl) = tajls(j,1,najl)+sum(trsrfflx(:,j,n))
-c     *         *dtsurf
+c     *         *dtstep
 c        end do
 c        call DIAGTCA(itcon_surf(ns,n),n)  ????
 
@@ -285,13 +286,58 @@ C**** Accumulate interactive sources as well
 
 C**** modify vertical moments        
         trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
-     *       *dtsurf
+     *       *dtstep
         trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*trflux1(:,:,n)
-     *       *dtsurf
+     *       *dtstep
       end do
 C****
       RETURN
       END SUBROUTINE apply_tracer_source
+
+
+      SUBROUTINE apply_tracer_3Dsource(dtstep)
+!@sum apply_tracer_3Dsource adds 3D sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
+      USE MODEL_COM, only : jm,im,lm
+      USE TRACER_COM, only : ntm,trm,trmom,nt3Dsrc
+      USE QUSDEF, only: nmom
+      USE FLUXES, only : tr3Dsource
+      USE TRACER_DIAG_COM, only : tajls,jls_3Dsource,itcon_3Dsrc
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: dtstep
+      INTEGER n,ns,najl,i,j,l
+      real*8 scale_trmom(im,jm,lm,ntm)
+
+C**** This is tracer independent coding designed to work for all
+C**** 3D sources.
+
+      do n=1,ntm
+
+C**** Non-interactive sources
+        do ns=1,nt3Dsrc(n)
+          trm(:,:,:,n) = trm(:,:,:,n) + tr3Dsource(:,:,:,ns,n)*dtstep
+C**** diagnostics
+          najl = jls_3Dsource(ns,n)
+          do l=1,lm
+          do j=1,jm
+            tajls(j,l,najl) = tajls(j,l,najl)+
+     *         sum(tr3Dsource(:,j,l,ns,n))*dtstep
+          end do
+          end do
+          call DIAGTCA(itcon_3Dsrc(ns,n),n)
+        end do
+
+C**** modify vertical moments
+        do l=1,lm
+        do j=1,jm
+        do i=1,im
+        trmom(1:nmom,i,j,l,n) = trmom(1:nmom,i,j,l,n)
+     *     *scale_trmom(i,j,l,n)*dtstep
+        end do; end do; end do
+      end do
+C****
+      RETURN
+      END SUBROUTINE apply_tracer_3Dsource
 
 
       SUBROUTINE TDECAY
@@ -536,6 +582,7 @@ C**** check whether air mass is conserved
       end subroutine checktr
 
 #endif
+
 
       SUBROUTINE io_tracer(kunit,iaction,ioerr)
 !@sum  io_tracer reads and writes tracer variables to file

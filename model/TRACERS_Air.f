@@ -125,6 +125,15 @@ C**** This needs to be 'hand coded' depending on circumstances
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),' kg/s')
+      n = n_14CO2
+        k = k + 1 
+        jls_source(1,n)=k
+        sname_jls(k) = 'L1_sink_'//trname(n)
+        lname_jls(k) = 'CHANGE OF 14CO2 by SINK, L1'
+        jls_index(k) = n
+        jls_ltop(k) = 1
+        jls_power(k) = -4
+        units_jls(k) = unit_string(jls_power(k),' kg/s')
 
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
@@ -221,6 +230,16 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -11.
         units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      n = n_14CO2
+      k = k + 1
+        ijts_source(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = '14CO2 L 1 Sink'
+        sname_ijts(k) = '14CO2_L1_Sink'
+        ijts_power(k) = -21
+        units_ijts(k) = unit_string(ijts_power(k),' kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       if (k .gt. ktaijs) then
         write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
@@ -286,6 +305,15 @@ C**** First 12 are standard for all tracers and GCM
       qsum(itcon_surf(6,N)) = .false.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+      N = n_14CO2
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Observed drift'
+      itcon_3Dsrc(1,N) = 14
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Chemistry'
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
 C**** Here are some more examples of conservation diag configuration
 C**** Gravitional settling:
@@ -322,6 +350,8 @@ C**** print out total tracer diagnostic array size
       INTEGER i,n,l,j,iu_data,ipbl,it
       CHARACTER*80 title
       REAL*4 co2ic(im,jm,lm)
+      real*8 ic14CO2(im,jm,lm)
+      EQUIVALENCE (CO2ic,ic14CO2)
 
       do n=1,ntm
 
@@ -368,6 +398,15 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           do l=1,lm         !ppmv==>ppmm
           do j=1,jm
             trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*dxyp(j)*1.54d-6
+          enddo; enddo
+
+        case ('14CO2')
+         !!! NOTE: this tracer is supposed to start 10/16
+          trmom(:,:,:,:,n) = 0.
+          call get_14CO2_IC(ic14CO2)
+          do l=1,lm         !ppmv==>ppmm
+          do j=1,jm
+            trm(:,j,l,n) = am(l,:,j)*dxyp(j)*ic14CO2(:,j,l)*1.d-18
           enddo; enddo
 
       end select
@@ -497,7 +536,8 @@ C****
       SUBROUTINE set_tracer_source
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop
+      USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
+     *  ,dtsrc,NIsurf
       USE GEOM, only: dxyp,areag
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
@@ -510,7 +550,7 @@ C****
       implicit none
       integer :: i,j,ns,l,ky,n
       double precision :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp
+     *  steph,stepx,stepp,tmon,by_dtsurf
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -634,13 +674,148 @@ C****
           end do
         end do
 
+C****
+C**** Sources and sinks for 14C02
+C**** NOTE: This tracer is supposed to start on 10/16
+C**** The tracer is reset to specific values in layer 1
+C****
+      case ('14CO2')
+      by_dtsurf=NIsurf/DTsrc
+      tmon = (itime-itime_tr0(n))*jmpery/(hrday*jdpery)  !(12./8760.)
+      do j=1,jm/2
+        trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*(4.82d-18*46./mair)*
+     *   (44.5 + tmon*(1.02535d0 - tmon*(2.13565d-2 - tmon*8.61853d-5)))
+     *   -trm(:,j,1,n))*by_dtsurf   ! /dtsrc
+      end do
+      do j=1+jm/2,jm
+        trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*(4.82d-18*46./mair)*
+     *   (73.0 - tmon*(0.27823d0 + tmon*(3.45648d-3 - tmon*4.21159d-5)))
+     *   -trm(:,j,1,n))*by_dtsurf   ! /dtsrc
+      end do
+
       end select
 
       end do
 C****
       END SUBROUTINE set_tracer_source
 
-#endif
+
+      SUBROUTINE set_tracer_3Dsource
+      return
+      END SUBROUTINE set_tracer_3Dsource
+
+
+      SUBROUTINE get_14CO2_IC(CO2IJL)
+!@sum GET_14CO2_IC Calculates initial distribution for 14CO2 tracer
+!@auth J.Lerner (modified from program by G. Russell)
+C**** NOTE: tracer is supposed to start on 10/16
+C**** October 1963 14CO2 Concentrations for GCM  2/26/99
+C**** 2/2/2: generalized code for modelE
+C****           
+      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
+    ! USE CONSTANT, only: grav
+      USE DYNAMICS, only: pedn
+      USE FILEMANAGER, only : openunit,closeunit
+      IMPLICIT NONE
+      PARAMETER (kmw=60)
+      REAL*4 CO2W(37,0:30) ! ,AMASS(IM,JM)
+      real*8 p(0:60),CO2JK(JM,0:kmw),CO2IJL(IM,JM,LM)
+      CHARACTER*80 TITLE
+      integer i,j,jw,k,l,n,iu_in,iu_out,kmw
+      real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,sig,w,zk !,stratm
+
+C****
+C**** Read in CO2 concentrations from workshop
+C****
+c     OPEN (1,FILE='workshop.14co2',STATUS='OLD')
+      call openunit('14CO2_IC_DATA',iu_in,.false.)
+      DO 110 N=1,10
+  110 READ (iu_in,911)
+      READ (iu_in,911) ((CO2W(J,K),J=1,13),K=0,30)
+      READ (iu_in,911)
+      READ (iu_in,911)
+      READ (iu_in,912) ((CO2W(J,K),J=14,25),K=0,30)
+      READ (iu_in,912)
+      READ (iu_in,912)
+      READ (iu_in,912) ((CO2W(J,K),J=26,37),K=0,30)
+      call closeunit(iu_in)
+C**** Calculate workshop pressure levels (Pa)
+      DO K=0,kmw
+        ZK = 2.*K
+        P(K) = 100000.*10**(-ZK/16.)
+      end do
+C****
+C**** Interpolate workshop CO2W to CO2JK on GCM latitudes
+C****
+      DO K=31,kmw       ! above 17 Pa set all equal
+        CO2JK( 1,K) = 250.
+        CO2JK(JM,K) = 250.
+        DO J=2,JM-1
+          CO2JK(J,K) = 250.
+      end do; end do
+      DO K=0,30
+        CO2JK( 1,K) = CO2W( 1,K)
+        CO2JK(JM,K) = CO2W(37,K)
+        DO J=2,JM-1
+          W = 1. + (J-1)*36./(JM-1)
+          JW=W
+          CO2JK(J,K) = CO2W(JW,K)*(JW+1-W) + CO2W(JW+1,K)*(W-JW)
+      end do; end do
+C****
+C**** Read in GCM atmospheric mass for October
+C****
+c     OPEN (2,FILE='AIJX011.O',FORM='UNFORMATTED',STATUS='OLD')
+   !  call openunit('OCTAirMass',iu_in)
+   !  READ  (iu_in)
+   !  READ  (iu_in) TITLE,AMASS  !! in kg/m**2
+   !  call closeunit(iu_in)
+   !  WRITE (6,*) 'Read: ',TITLE
+C****
+C**** Interpoate CO2J to CO2IJL on GCM grid boxes conserving vertical
+C**** means
+C****
+C**** psf, ptrop, pdn ..... in pascals (mb*100)
+      ptrop = ptop*100.
+    ! STRATM = 101.9368   ! (kg/m**2)(10 mb x 100)/grav
+      DO 440 J=1,JM
+      DO 440 I=1,IM
+    ! PDN = (AMASS(I,J)*SIGE(1)+STRATM)*GRAV
+      PDN = pedn(1,i,j)*100.
+      psurf = pdn
+      CDN = CO2JK(J,0)
+      K=1
+      DO 430 L=1,LM
+      PSUM = 0.
+      CSUM = 0.
+      if (l.eq.ls1) psurf = psf*100.
+      PUP  =  SIGE(L+1)*(psurf-ptrop)+ptrop
+  410 IF(P(K).LE.PUP)  GO TO 420
+      PSUM = PSUM +  PDN-P(K)
+      CSUM = CSUM + (PDN-P(K))*(CDN+CO2JK(J,K))/2.
+      PDN  = P(K)
+      CDN  = CO2JK(J,K)
+      K=K+1
+      if (k.gt.kmw) stop ' Please increase kmw in get_14CO2_IC'
+      GO TO 410
+C****
+  420 CUP  = CO2JK(J,K) + (CO2JK(J,K-1)-CO2JK(J,K))*(PUP-P(K))/
+     /       (P(K-1)-P(K))
+      PSUM = PSUM +  PDN-PUP
+      CSUM = CSUM + (PDN-PUP)*(CDN+CUP)/2.
+      CO2IJL(I,J,L) = CSUM/PSUM
+      PDN = PUP
+  430 CDN = CUP
+  440 CONTINUE
+C****
+C**** Scale data to proper units (10**-18 kg 14CO2/kg air)
+C****
+      CO2IJL(:,:,:) = CO2IJL(:,:,:)*4.82d0*(14.+16.*2.)/29.029d0
+      RETURN
+C****
+  911 FORMAT (5X,13F5.0)
+  912 FORMAT (5X,12F5.0)
+      END SUBROUTINE get_14CO2_IC
+
 
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------------

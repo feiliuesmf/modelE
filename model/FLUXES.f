@@ -4,9 +4,9 @@
 !@sum  FLUXES contains the fluxes between various components
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE MODEL_COM, only : im,jm,lm
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,ntsurfsrcmax
+      USE TRACER_COM, only: ntm,ntsurfsrcmax,nt3Dsrcmax
 #endif
       IMPLICIT NONE
 
@@ -89,6 +89,8 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, DIMENSION(NTM,NSTYPE,IM,JM):: GTRACER
+!@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
+      REAL*8, DIMENSION(IM,JM,LM,nt3Dsrcmax,NTM):: tr3Dsource
 
 #ifdef TRACERS_WATER
 !@var TRPREC tracers in precip (kg)

@@ -6,7 +6,7 @@
 !@+    Mostly tracer independent, but this may deped on applications
 !@auth Jean Lerner
 !ver   1.0
-      USE TRACER_COM, only: ntm, ntsurfsrcmax
+      USE TRACER_COM, only: ntm, ntsurfsrcmax, nt3Dsrcmax
       USE MODEL_COM, only: im,jm,lm
       USE DAGCOM, only: npts !npts are conservation quantities
       IMPLICIT NONE
@@ -61,7 +61,7 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@parm KTAIJS number of special lat/lon tracer diagnostics
-      integer, parameter :: ktaijs=8
+      integer, parameter :: ktaijs=9
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, DIMENSION(IM,JM,ktaijs) :: TAIJS
 !@var ijts_source tracer independent array for TAIJS surface src. diags
@@ -105,11 +105,13 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktajls=9
+      INTEGER, PARAMETER :: ktajls=10
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, DIMENSION(JM,LM,ktajls) :: TAJLS
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
+!@var jls_3Dsource tracer independent array for TAJLS 3D source diags
+      INTEGER jls_3Dsource(nt3Dsrcmax,ntm)
 !@var jls_decay tracer independent array for radioactive sinks
       INTEGER, DIMENSION(NTM) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
@@ -158,6 +160,8 @@ C**** TCONSRV
       double precision, dimension(ntm) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
       INTEGER, DIMENSION(ntsurfsrcmax,NTM) :: itcon_surf
+!@var itcon_3D Index array for 3D source/sink conservation diags
+      INTEGER, DIMENSION(nt3Dsrcmax,NTM) :: itcon_3Dsrc
 !@var itcon_decay Index array for decay conservation diags
       INTEGER, DIMENSION(NTM) :: itcon_decay
 !@var itcon_grav Index array for gravitational settling conserv. diags
