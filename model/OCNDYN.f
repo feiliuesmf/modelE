@@ -568,8 +568,8 @@ C**** Check potential specific enthalpy/salinity
           END IF
           IF(SO1.gt.0.045 .or. SO1.lt.0.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,SO=',I,J,L,1d3*SO1
-            IF (SO1.gt.0.05 .or. SO1.lt.0. .and. .not. (I.eq.47.and.J.eq
-     *           .30)) QCHECKO=.TRUE.
+            IF ((SO1.gt.0.05 .or. SO1.lt.0.) .and. .not. (I.eq.47.and.
+     *           J.eq.30)) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
