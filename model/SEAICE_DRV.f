@@ -215,9 +215,8 @@ C****
 
 C**** Decay sea ice salinity 
         MSI1 = ACE1I + SNOW
-        if (.not. qsfix .or. FLAKE(I,J).gt.0) then
+        if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
           CALL SSIDEC(MSI1,MSI2,HSIL,SSIL,DTsrc,MFLUX,HFLUX,SFLUX)
-
         else
           MFLUX=0. ; SFLUX=0. ; HFLUX=0. 
         end if

@@ -273,7 +273,6 @@ C****
       TG2=TGRN2(2,I,J)
       ACE2=MSI(I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-      SOLAR(2,I,J) = 0.
       SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun

@@ -817,6 +817,7 @@ C**** calculate left hand side of equation 2
         lh = lhm -  Ti*shi
       end if
 C**** define fluxes (positive down)
+      m = -left2/lh
 C**** Cap mass flux at to prevent MSI2 going below minimum
 c      m = min(m,mfluxmax)
       mflux = m                 ! (kg/m^2 s)
