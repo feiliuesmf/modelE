@@ -38,10 +38,10 @@ include $(MODEL_DIR)/Rules.make
 # look for .mod files in MODEL_DIR
 ifeq ($(COMPILER),Absoft)
 FFLAGS += -p $(MODEL_DIR) -I$(MODEL_DIR)
-FFLAGSF += -p $(MODEL_DIR) -I$(MODEL_DIR)
+F90FLAGS += -p $(MODEL_DIR) -I$(MODEL_DIR)
 else
 FFLAGS += -I$(MODEL_DIR)
-FFLAGSF += -I$(MODEL_DIR)
+F90FLAGS += -I$(MODEL_DIR)
 endif
 
 #
@@ -49,7 +49,7 @@ endif
 #
 
 $(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
-	$(F90) $(FFLAGSF) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 CMPE001.o: $(GCMLIB)
 
 $(BIN_DIR)/CMPE001: CMPE001.o $(GCMLIB)

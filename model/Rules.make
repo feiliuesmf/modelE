@@ -64,14 +64,13 @@ FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -H
 F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
-#FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
 #FFLAGS = -ftpp -macro_expand -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 
 FFLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52
-FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -freeform
+F90FLAGS = -cpp -Wp,-P -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -ansi -woff124 -woff52 -freeform
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
 FFLAGS += -mp
-FFLAGSF += -mp
+F90FLAGS += -mp
 LFLAGS += -mp
 endif
 # suppress some linker warnings if no verbose output
@@ -82,7 +81,7 @@ endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
 LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
-FFLAGSF += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+F90FLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
 LFLAGSF += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
 endif
 # not sure if the following will help the debugging ...
@@ -101,7 +100,7 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U       = $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 FFLAGS = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
-FFLAGSF = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745 -freeform
+F90FLAGS = -cpp -O2 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745 -freeform
 LFLAGS = -O2 -mips4 -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
@@ -130,20 +129,20 @@ ifeq ($(COMPILER),Intel)
 F90 = efc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 FFLAGS = -fpp -Wp,-P -O2 -w95 -w90 -cm -tpp2 -common_args
-FFLAGSF = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
+F90FLAGS = -fpp -Wp,-P -O2 -FR -w95 -w90 -cm -tpp2 -common_args
 LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
 F90_VERSION = $(shell $(F90) -V 2>&1 | grep Build)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
-FFLAGSF += -openmp
+F90FLAGS += -openmp
 LFLAGS += -openmp
 endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -WB 
 LFLAGS += -WB 
-FFLAGSF += -WB
+F90FLAGS += -WB
 LFLAGSF += -WB
 endif
 endif
@@ -153,20 +152,20 @@ ifeq ($(COMPILER),Intel8)
 F90 = ifort
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 FFLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -assume dummy_aliases
-FFLAGSF = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free -assume dummy_aliases
+F90FLAGS = -fpp -O2 -Wp,-P -tpp2 -convert big_endian -free -assume dummy_aliases
 LFLAGS = -O2 -tpp2 -assume dummy_aliases
 CPP = /lib/cpp -P -traditional
 CPPFLAGS = -DMACHINE_Linux
 F90_VERSION = $(shell $(F90) -v 2>&1)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
-FFLAGSF += -openmp
+F90FLAGS += -openmp
 LFLAGS += -openmp
 endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -CB -fpe0
 LFLAGS += -CB -fpe0
-FFLAGSF += -CB -fpe0
+F90FLAGS += -CB -fpe0
 LFLAGSF += -CB -fpe0
 endif
 endif
@@ -182,13 +181,13 @@ LFLAGS =
 F90_VERSION = $(shell $(F90) --version | grep Release)
 ifeq ($(MP),YES)
 FFLAGS += --openmp
-FFLAGSF += --openmp
+F90FLAGS += --openmp
 LFLAGS += --openmp
 endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += --trap
 LFLAGS += --trap
-FFLAGSF += --trap
+F90FLAGS += --trap
 LFLAGSF += --trap
 endif
 endif
@@ -200,7 +199,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS = -DCONVERT_BIGENDIAN -DMACHINE_Linux
 FFLAGS = -O2
-FFLAGSF = -O2 -f free
+F90FLAGS = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -235,7 +234,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
 FFLAGS = -O0 # -cpp
-FFLAGSF = -O0 -f free
+F90FLAGS = -O0 -f free
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -255,7 +254,7 @@ FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
-FFLAGSF = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
+F90FLAGS = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
 # one may need to add -bmaxstack:0x1000000 if rusns out of stack
 LFLAGS = -O2 -bmaxdata:0x10000000
 # no guarantee that the following line gives correct info
@@ -273,18 +272,18 @@ FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 # LFLAGS = -O2
 CPPFLAGS = -DMACHINE_DEC
 FFLAGS = -O2 -cpp -convert big_endian
-FFLAGSF = -O2 -cpp -convert big_endian -free
+F90FLAGS = -O2 -cpp -convert big_endian -free
 LFLAGS = -O2 -convert big_endian
 ifeq ($(MP),YES)
 FFLAGS += -omp
-FFLAGSF += -omp
+F90FLAGS += -omp
 LFLAGS += -omp
 endif
 # the following switch adds extra debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -check bounds -check overflow -fpe0
 LFLAGS += -check bounds -check overflow -fpe0
-FFLAGSF += -check bounds -check overflow -fpe0
+F90FLAGS += -check bounds -check overflow -fpe0
 LFLAGSF += -check bounds -check overflow -fpe0
 endif
 F90_VERSION = $(shell $(F90) -version 2>&1)
@@ -301,7 +300,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_ABSOFT
 FFLAGS = -O2
-FFLAGSF = -O2 -f free
+F90FLAGS = -O2 -f free
 LFLAGS = -lf90math -lV77 -lU77
 # the following switch adds extra debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
@@ -317,7 +316,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_NAG
 FFLAGS = -O2
-FFLAGSF = -O2 -f free
+F90FLAGS = -O2 -f free
 LFLAGS = 
 endif
 
@@ -328,7 +327,7 @@ CPP = /usr/bin/cpp -P -traditional
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_G95
 FFLAGS = -O2 # -cpp
-FFLAGSF = -O2 -f free
+F90FLAGS = -O2 -f free
 LFLAGS =
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
@@ -347,8 +346,8 @@ FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS = -DMACHINE_MAC -DCOMPILER_XLF
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
-#FFLAGSF = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
-FFLAGSF = -O2 -qfree -qsuffix=cpp=F90 -qmaxmem=16384 -WF,-DMACHINE_IBM
+#F90FLAGS = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
+F90FLAGS = -O2 -qfree -qsuffix=cpp=F90 -qmaxmem=16384 -WF,-DMACHINE_IBM
 # one may need to add -bmaxstack:0x1000000 if rusns out of stack
 LFLAGS = -O2 # -bmaxdata:0x10000000
 # no guarantee that the following line gives correct info
@@ -470,17 +469,17 @@ endif
 	@touch .timestamp
 ifeq ($(MACHINE),MAC)
 	$(CPP) $(CPPFLAGS) $*.F90 | sed -n '/^#pragma/!p' > $*_cpp.F90
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
+	$(F90) -c $(F90FLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
 	  -o $*.o $(COMP_OUTPUT)
 	rm -f $*_cpp.F90
 else
 ifeq ($(COMPILER),Absoft)
 	$(CPP) $(CPPFLAGS) $*.F90 $*_cpp.F90
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
+	$(F90) -c $(F90FLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
 	  -o $*.o $(COMP_OUTPUT)
 	rm -f $*_cpp.F90
 else
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F90 \
+	$(F90) -c $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F90 \
 	  $(COMP_OUTPUT)
 	echo "  name for $*.F90 "
 endif
@@ -498,22 +497,6 @@ endif
 %.f.cpp: %.f
 	@echo preprocessing $<  $(MSG)
 	$(CPP) $(CPPFLAGS) $*.f > $*.f.cpp
-
-# Update files
-%.o: %.U
-	$(U)  $*
-
-# GISS-Fortran source files (with line numbers) 
-%.o: %.S
-	$(F) $<
-
-# MAPS.GCM
-%.o: %.GCM
-	$(F) $<
-
-# FUNTABLE.OCN
-%.o: %.OCN
-	$(F) $<
 
 
 # end of Pattern  rules
