@@ -5,7 +5,7 @@
 !@auth N. Kiang, I. Aleinov
 !@ver  1.0
       use model_com, only : im,jm
-      use sle001, only : ngm,imt,nlsn
+      use ghycom, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm
 #endif

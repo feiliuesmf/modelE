@@ -322,7 +322,7 @@ c**** adjust canopy conductance for incoming solar radiation
       endif
 !      TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
       TRANS_SW = 1-((1-fracsl)*abssh + fracsl*abssl)
-      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
+!      write(110,*) TRANS_SW,I0dr,I0df,abssh, abssl, sbeta, sigma, kbl
 !----------------------------------------------------------------------!
 ! Saturating Ci to calculate canopy conductance (mol/m3).
       CiPa=1.0D6
@@ -377,7 +377,10 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! OUTPUTS:
 ! Transmission of shortwave through canopy.
-
+!!!  trying something simple while the main algorithm is debugged
+!      TRANS_SW = (1.d0-2.d0/3.14d0)**alai
+      if ( TRANS_SW < 0.d0 .or. TRANS_SW > 1.d0 )
+     &     call stop_model("veg: unphysical TRANS_SW", 255)
 ! Gross primary productivity (kg[C]/m2/s).
       GPP=0.012D-6*Anet   ! should be dependent on conductance ??
 ! Canopy conductance for next timestep (m/s).

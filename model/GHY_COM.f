@@ -5,7 +5,7 @@
 !@auth Frank Abramopolus/Igor Aleinov
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE SLE001, only : ngm,imt,nlsn
+!!!      USE SLE001, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -13,6 +13,9 @@
 
       IMPLICIT NONE
       SAVE
+ccc dimensions of the GHY arrays
+      integer, parameter, public :: ngm=6, imt=5, nlsn=3
+
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WBARE

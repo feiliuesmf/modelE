@@ -25,7 +25,7 @@
       use DOMAIN_DECOMP, only : GRID, GET
       use model_com, only : fearth,jeq,jyear
       use veg_com !, only : vdata,Cint,Qfol
-      use sle001, only : ngm
+      use ghycom, only : ngm
       use vegetation, only : cond_scheme,crops_yr
       use ghycom, only : dz_ij
       use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
@@ -338,7 +338,8 @@ C****
 
       subroutine veg_set_cell (i0,j0)
 !@sum resets the vegetation module to a new cell i0,j0
-      use sle001, only : fr,snowm,ngm,ws,shc,shw
+      use ghycom, only : ngm
+      use sle001, only : fr,snowm,ws,shc,shw
       use vegetation, only : alaie,rs,nm,nf,alai,vh
      &     ,alait,vfraction
      &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk

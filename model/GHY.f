@@ -107,6 +107,7 @@ c**** Added decks parameter cond_scheme  5/1/03 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
+      use ghycom, only : ngm, imt, nlsn
 
 
       implicit none
@@ -167,7 +168,8 @@ ccc   input bc''s
       real*8, public :: dt
 
 ccc   soil prognostic variables
-      integer, parameter, public :: ngm=6, ng=ngm+1, imt=5
+!!!      integer, parameter, public :: ngm=6, ng=ngm+1, imt=5
+      integer, parameter, public :: ng=ngm+1
       real*8, public :: w(0:ngm,2),ht(0:ngm,2),dz(ngm)
 
 ccc   soil properties which need to be passed in:
@@ -198,7 +200,7 @@ ccc   soil internal variables wchich need to be passed to driver anyway
       !tp(2,:) - second soil layer
 
 ccc   snow prognostic variables
-      integer, parameter, public :: nlsn=3
+!!!      integer, parameter, public :: nlsn=3
       integer, public :: nsn(2)
       real*8, public ::  dzsn(nlsn+1,2),wsn(nlsn,2),hsn(nlsn,2)
      &     ,fr_snow(2)
@@ -790,6 +792,8 @@ c     Get canopy conductivity cnc and gpp
 !!!! test
  !!!       trans_sw = .1d0
  !!!       print *,'trans_sw = ', trans_sw
+
+ !!!       trans_sw = .1d0
 
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics

@@ -43,7 +43,6 @@ c****
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001
      &    , only : advnc,evap_limits,
-     &    ngm,
      &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,
      &    fv,fb,atrg,ashg,alhg,
      &    abetad,abetav,abetat,
@@ -54,7 +53,7 @@ c****
      &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
      &    qm1,qs,
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
-     &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
+     &    nsn,dzsn,wsn,hsn,fr_snow
      &     ,ghy_debug
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
@@ -103,7 +102,8 @@ c****
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
-      use ghycom, only : gdeep,wbare,wvege,htbare,htvege,snowbv,
+      use ghycom, only : ngm,nlsn,
+     &     gdeep,wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
@@ -1330,12 +1330,12 @@ c**** snowm - snow masking depth
 c**** wfcap - water field capacity of top soil layer, m
 c****
       use snow_model, only : i_earth,j_earth
-      use sle001, only : dz,qk,ngm,imt,ng,zb,zc,q,sl,xklh0 !spgsn,
+      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh0 !spgsn,
      *     ,fb,fv,prs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index,top_stdev
-      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij
+      use ghycom, only : ngm,imt,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
       use veg_com, only: afb
       use veg_drv, only : veg_set_cell
@@ -1866,8 +1866,7 @@ c****
       use constant, only : rhow
       use model_com, only : fim,fearth
       use geom, only : imaxj
-      use sle001, only : ngm
-      use ghycom, only : wbare,wvege,snowbv
+      use ghycom, only : ngm,wbare,wvege,snowbv
       use veg_com, only : afb
       implicit none
 !@var waterg zonal ground water (kg/m^2)
@@ -1910,8 +1909,7 @@ c****
 !@ver  1.0
       use model_com, only : fim,fearth
       use geom, only : imaxj, dxyp
-      use sle001, only : ngm
-      use ghycom, only : htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
+      use ghycom, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
       use veg_com, only : afb
       implicit none
 !@var heatg zonal ground heat (J/m^2)
@@ -1962,8 +1960,7 @@ ccc of the 'surface' to check water conservation
       use model_com, only : im,jm,fearth
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
-      use sle001, only : ngm
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,dz_ij
+      use ghycom, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
       use veg_com, only : afb
       implicit none
       integer flag
