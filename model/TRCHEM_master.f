@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
@@ -163,10 +164,15 @@ c       define pressures to be sent to FASTJ (centers):
           PFASTJ(LL) = PMID(LL/2,I,J)
         END DO
 c       define pressures to be sent to FASTJ (edges):
-        DO LL=1,(2*LM)+1,2
-          PFASTJ(LL) = PEDN(LL/2,I,J)
+        PFASTJ(1)=PEDN(1,I,J)
+        DO LL=3,(2*LM)+1,2
+          PFASTJ(LL) = PEDN((LL+1)/2,I,J)
         END DO
-        PFASTJ((2*LM)+2) = 0.1*PFASTJ((2*LM)+1) !or .00058 in M23 model
+        PFASTJ((2*LM)+2) = 0.1*PFASTJ((2*LM)+1)
+#ifdef TRACERS_SPECIAL_Shindell
+C       This is a fudge, so that we don't have to get mesosphere data:
+        PFASTJ((2*LM)+2) = 0.00058 ! for 23 layer model...
+#endif
 c
 c Interpolate O3 (in ppm) from bottom LS1-1 model sigma levels
 c (ie those levels normally in troposphere) onto bottom 2*(LS1-1) FASTJ
