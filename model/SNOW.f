@@ -1,8 +1,6 @@
-! this file is a result of conversion from a .F code which was using
-! preprocessing instructions, so some spacing or comments may look odd
-! I will fix it later after we decide if we are going to use 
-! preprocessing instructions or not - I.A.
-
+!@sum contains code related to 3 layers snow model
+!@auth I.Aleinov
+!@ver  1.0
       MODULE SNOW_MODEL
 !@sum SNOW_MODEL does column physics for 3 layers snow model
 !@auth I.Aleinov
@@ -24,21 +22,30 @@
       PUBLIC snow_adv,i_earth, j_earth
 
 ccc physical parameters
+!@var rho_fresh_snow density of fresh snow (kg m-3)
       real*8, parameter :: rho_fresh_snow =  150.d0 ! (kg m-3)
+!@var lat_fusion volumetric latent heat of fusion for water  (J m-3)
       real*8, parameter :: lat_fusion = lhm_kg * rho_water ! (J m-3)
+!@var lat_evap volumetric latent heat of evaporation for water  (J m-3)
       real*8, parameter :: lat_evap = lhe_kg * rho_water ! (J m-3)
+!@var max_fract_water max fraction of free water in a wet snow (1)
       real*8, parameter :: max_fract_water = .055d0
 
 ccc model parameters
+!@var EPS small number (used as cutoff parameter) (1)
       real*8, parameter :: EPS = 1.d-8  ! was 1.d-12
+!@var MAX_NL maximal number of snow layers (actually only 3 are used) (1)
       integer, parameter :: MAX_NL = 16
+!@var MIN_SNOW_THICKNESS minimal thickness of snow (m)
 ccc trying to increase MIN_SNOW_THICKNESS for stability
 ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
       real*8, parameter :: MIN_SNOW_THICKNESS =  0.1d0
+!@var MIN_FRACT_COVER miminal areal fraction of snow cover (cutoff param) (1)
       real*8, parameter :: MIN_FRACT_COVER = 0.0001d0
 
-ccc channels for debug output:
+!@var DEB_CH channel for debug output
       integer, save :: DEB_CH = 0
+!@var i_earth, j_earth coordinate of current point (for debugging)
       integer i_earth, j_earth
 
       CONTAINS
@@ -47,7 +54,9 @@ ccc channels for debug output:
      &                       water_down, heat_down,
      &                       lat_fusion, max_fract_water,
      &                       rho_water, rho_fresh_snow)
-ccc pass extra water to the lower layers
+!@sum  pass extra water to the lower layers
+!@auth I.Aleinov
+!@ver  1.0
       implicit none
       integer nl
       real*8  wsn(nl), hsn(nl), dz(nl)
@@ -93,6 +102,9 @@ c!!!                may be ice*max_fract_water ??
 
       subroutine snow_redistr(dz, wsn, hsn, nl,
      &                         dzo, wsno, hsno, nlo, fract_cover)
+!@sum  redistributes snow between the layers
+!@auth I.Aleinov
+!@ver  1.0
       implicit none
       integer nl,nlo
       real*8 dz(nl+1), wsn(nl), hsn(nl)
@@ -195,6 +207,9 @@ ccc the following is just for check
      &    tsn_surf, water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt )
       implicit none
+!@sum  a wrapper that calles real snow_adv (introduced for debugging)
+!@auth I.Aleinov
+!@ver  1.0
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
@@ -265,6 +280,9 @@ ccc      heat_to_ground = (srht+trht)*dt
      &    tsn_surf, water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
       implicit none
+!@sum main program that does column snow physics
+!@auth I.Aleinov
+!@ver  1.0
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
@@ -653,6 +671,22 @@ c!!! this is for debugging
      &     dz, tsn, hsn, csn, ksn, nl,
      &     flux_in, flux_in_deriv, flux_corr, dt)
       implicit none
+!@sum solves heat transport equation for snow layers
+!@auth I.Aleinov
+!@ver  1.0
+!@alg This solver is currently using a half-implicit scheme.
+!@+   Implicitness is controlled by the parameters:
+!@+       gamma - for upper boundary
+!@+       eta(MAX_NL+1) - for the rest of the boundaries
+!@+   In general we are trying to use half-implicit method (gamma = .5d0)
+!@+   at the surface. But this may introduce a systematic error when
+!@+   temperature of the snow is close to 0 C. 
+!@+   When option DO_EXPLIC_0 is enabled the program checks for possible
+!@+   error and if necessary recomputes the solution with reduced gamma,
+!@+   i.e. in more explicit way.
+!@+   DO_EXPLIC_0 is enabled by default. One may try to turn it off if
+!@+   there are serious stability problems.
+!@calls :TRIDIAG
       integer nl
       real*8 dz(nl+1), tsn(nl+1), hsn(nl)
       real*8 csn(nl), ksn(nl+1)

@@ -229,9 +229,8 @@ foreach $name ( keys %db_modules ) {
     print HTM "Version: $db_modules{$name}{ver}<BR>\n";
     #print HTM "File:";
     #htm_link(" $db_modules{$name}{file}","$db_modules{$name}{file}.html");
-    if ( $db_modules{$name}{usage} ) {
-	htm_usage( $db_modules{$name}{usage} );
-    }
+    if ( $db_modules{$name}{usage} ) { htm_usage($db_modules{$name}{usage}); }
+    if ( $db_modules{$name}{alg} ) { htm_algorithm($db_modules{$name}{alg}); }
     print HTM "<HR width=10%>\n";
     print HTM "Subroutines: \n";
     print HTM "<dl>\n";
@@ -303,7 +302,16 @@ foreach $name ( keys %db_subs ) {
     htm_text("Summary: $db_subs{$name}{sum}");
     print HTM "Author : $db_subs{$name}{auth}<BR>\n";
     print HTM "Version: $db_subs{$name}{ver}<BR>\n";
+    if ( $db_subs{$name}{usage} ) { htm_usage( $db_subs{$name}{usage} ); }
+    if ( $db_subs{$name}{alg} ) { htm_algorithm( $db_subs{$name}{alg} ); }
     print HTM "<HR width=10%>\n";
+    print HTM "Declaration:<BR>\n";
+    print HTM "<ul><code>$db_subs{$name}{decl}</code></ul>\n";
+    if ( $db_subs{$name}{calls} ) {
+	print HTM "Calls the following subroutines/functions:<BR>\n";
+	print "printing calls for $name\n";
+	htm_prt_subs( " ", (split / /, $db_subs{$name}{calls}) );
+    }
     print HTM "Variables: \n";
     print HTM "<dl>\n";
     #foreach $var_name ( keys %db_vars ) {
@@ -402,8 +410,14 @@ sub print_main_index {
     print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
     print HTM "<a href=\"http://simplex/cgi-bin/cvsweb.cgi/modelE/\">\n";
     print HTM "View source code in the repository</a>";
-    print HTM " for latest updates e.t.c.<BR>\n";
-
+    print HTM " for latest updates e.t.c. This link allows you to view \n\
+      all the source files currently in CVS repository together with their \n\
+      older versions. You can also make comparisons between different \n\
+      versions of the same file.<BR>\n";
+    print HTM "Don't use this link to download the code. Instead read the \n\
+      section "; htm_link( " Getting the code ", "HOWTO.html#part0" );
+    print HTM " of the "; htm_link( "HOWTO",  "HOWTO.html");
+    print HTM " file.<BR>\n";
 
     print HTM "<P>\n";
     print HTM '<H3><Center>Dynamic Source Code Documentation</Center></font></H3>'."\n";
@@ -455,14 +469,48 @@ sub postprocess_lists {
 	$db_vars{$var_name}{decl} = $decl;
     }
 
+    # check @calls info and correct it if necessary
+    print "postprocessing calls\n";
+    foreach $sub_name ( keys %db_subs ) {
+	if ( ! $db_subs{$sub_name}{calls} ) { next; } # no call data
+	my $calls_str = $db_subs{$sub_name}{calls};
+	$calls_str =~ s/\n/ /g;
+	$calls_str =~ s/^\s*//;
+	$calls_str =~ s/\s*$//;
+	#print "CHECKING CALLS: $sub_name\n";
+	my @call_list = split /\s*[ ,]\s*/, $calls_str;
+	foreach my $call ( @call_list ) {
+	    $call =~ tr/A-Z/a-z/;
+	    #print "CALLS: $sub_name /  $call\n";
+	    if ( $call =~ /:/ ) { next; } # looks good will not change
+	    my $mod_name = (split /:/, $sub_name)[0];
+	    #print "MOD_NAME:  $mod_name\n";
+	    if ( $db_subs{"$mod_name:$call"}{file} ) {
+		$call = "$mod_name:$call";
+	    }
+	    # just for a test look into global subs:
+	    if ( $db_subs{":$call"}{file} ) {
+		$call = ":$call";
+	    }	    
+	}
+	$db_subs{$sub_name}{calls} = join " ", @call_list;
+	#print ">>> $sub_name >>> $db_subs{$sub_name}{calls}\n";
+    }
 }
 
 sub by_name_sub_mod { 
     @aa = split /:/,$a; 
     @bb = split /:/,$b; 
-       lc($aa[2]) cmp lc($bb[2]) ||  
-	   lc($aa[1]) cmp lc($bb[1]) || 
-	       lc($aa[0]) cmp lc($bb[0])  ;
+    lc($aa[2]) cmp lc($bb[2]) ||  
+	lc($aa[1]) cmp lc($bb[1]) || 
+	    lc($aa[0]) cmp lc($bb[0])  ;
+}
+
+sub by_sub_mod { 
+    @aa = split /:/,$a; 
+    @bb = split /:/,$b; 
+    lc($aa[1]) cmp lc($bb[1]) || 
+	lc($aa[0]) cmp lc($bb[0])  ;
 }
 
 sub htm_prt_vars { # print list of variables
@@ -544,6 +592,47 @@ sub htm_prt_vars { # print list of variables
 
 }
 
+
+sub htm_prt_subs {
+    my $opts = shift;
+    my $sub_name;
+    my $file;
+    my $print_location = $opts =~ /l/i;
+    my $do_sort        = $opts =~ /s/i;
+    my @sub_list;
+    if ( $do_sort ) {
+	@sub_list = sort by_sub_mod @_;
+    } else {
+	@sub_list = @_;
+    }
+
+    #print "printing SUBS: ", join " ", @sub_list, "\n"; 
+
+    print HTM "<dl>\n";
+    foreach $sub_name ( @sub_list ) {
+	if ( $db_subs{$sub_name}{file} ) {
+	    my $file = $db_subs{$sub_name}{file};
+	    my $name, $mod_name;
+	    ($mod_name,$name) = split /:/, $sub_name;
+	    print HTM "<dt>";
+	    htm_link($name,"$sub_name.html");
+	    print HTM "<dd>";
+	    print HTM "Module: "; 
+	    if ( $mod_name ) { htm_link($mod_name,"$mod_name.html"); }
+	    else { print HTM "Global "; }
+	    print HTM " File: "; htm_link($file,"$file.html");
+	    print HTM "<BR>\n";
+	    htm_text("$db_subs{$sub_name}{sum}");
+	} else {
+	    print "Warning: Can't find \"$sub_name\" listed in \@calls\n";
+	    print "    Be more specific, use \@calls module_name:sub_name\n";
+	    print HTM "<dt>$sub_name";
+	    print HTM "<dd><br>\n";
+	}
+    }
+    print HTM "</dl>\n";
+}
+
 sub htm_start0 {
     my $filename = shift;
     my $title = shift;
@@ -595,6 +684,14 @@ sub htm_text {
 sub htm_usage {
     my $str = shift;
     print HTM "Usage:<BR>\n";
+    print HTM "<ul><pre>\n";
+    htm_text($str);
+    print HTM "</pre></ul>\n";
+}
+
+sub htm_algorithm {
+    my $str = shift;
+    print HTM "Algorithm:<BR>\n";
     print HTM "<ul><pre>\n";
     htm_text($str);
     print HTM "</pre></ul>\n";
@@ -748,7 +845,7 @@ sub parse_file {
 
 	if ( /^\s*module\s+(\w+)/i ) { #start module
 	    if ( $1 !~ /procedure/i ) {
-		$current_module = $1;
+		$current_module = uc($1);
 		$current_sub = "";
 		$db_modules{"$current_module"}{file} = $current_file;
 		push @{$db_files{"$current_file"}{modules}}, $current_module;
@@ -759,7 +856,7 @@ sub parse_file {
 	    $current_module = "";
 	}
 	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program)\s+(\w+)/i ) {
-	    $current_sub = $2;
+	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
 		push @{$db_modules{"$current_module"}{subs}}, $current_sub;
@@ -776,7 +873,7 @@ sub parse_file {
 	    $current_sub = 'BLOCK_DATA_'.$2;
 	}
 	if ( /^\s*type\s+(\w+)/i ) {
-	    $current_typedef = $1;
+	    $current_typedef = uc($1);
 	}
 	if ( /^\s*end\s+type\b/i ) {
 	    $current_typedef = "";
@@ -850,7 +947,7 @@ sub parse_fort_str {
 		#print "GLOBAL: $current_module $var_name\n";
 	    #}
 	}
-    return;
+	return;
     }
     
     # parse some extra declarations
@@ -862,6 +959,15 @@ sub parse_fort_str {
 	    $var_name = "$current_module:$current_sub:$var";
 	    $db_vars{$var_name}{decl} .= ",dimension$dim";
 	}
+	return;
+    }
+
+    # subroutine/function declaration
+    if ( $fstr =~ /^\s*(subroutine|function)/i ) {
+	my $decl = lc($fstr);
+	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
+	$decl =~ s/\s*,\s*/, /g;
+	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
     }
 }
 
