@@ -731,8 +731,10 @@ c again all except tmcl(n,l)
 c dissolved moles
       trdmol(is)=trdr(is)*1000./tr_mm(is)
 
-       case('H2O2_s')
-      if (coupled_chem.eq.1) GO TO 400
+       case('H2O2','H2O2_s')
+
+       if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 400
+       if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
 
        ih=ntix(n)
 c modified Henry's Law coefficient assuming pH of 4.5
@@ -753,28 +755,6 @@ c dissolved moles
       trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
 
  400   CONTINUE
-
-       case('H2O2')
-       if (coupled_chem.eq.0) GO TO 401
-       ih=ntix(n)
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(ih)=tr_rkd(ih)
-c mole of tracer, used to limit so4 production
-      trmol(ih)=1000.*tm(l,ih)/tr_mm(ih)*fcloud
-c partial pressure of gas x henry's law coefficient                 
-      pph(ih)=mair*1.D-3*ppas/tr_mm(ih)/amass*           
-     *   tr_rkd(ih)*dexp(-tr_dhd(ih)*tfac)    
-c the following is from Phil:                                  
-c      reduction in partial pressure as species dissolves     
-      henry_const(ih)=rkdm(ih)*dexp(-tr_dhd(ih)*tfac)   
-      pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))   
-c all except tmcl(n,l)
-      trdr(ih)=mair*ppas/tr_mm(ih)
-     *    /amass*bygasc/temp*1.D-3  !M/kg
-c dissolved moles
-      trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
-
- 401  CONTINUE
 
       end select
       end do
@@ -838,26 +818,10 @@ c can't be more than moles going in:
 
        dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,is)+sulfinc(is)*trdr(is)
 
-       case('H2O2_s')
+       case('H2O2','H2O2_s')
 
-      if (coupled_chem.eq.1) GO TO 402 
-
-       ih=ntix(n)
-       sulfin(ih)=-dso4g*tm(l,is)*tr_mm(ih)/1000.
-       sulfinc(ih)=-dso4d*tmcl(is,l)*tr_mm(ih)/1000.
-       sulfinc(ih)=max(-1d0,sulfinc(ih))
-       sulfin(ih)=max(-1d0,sulfin(ih))
-       tr_left(ih)=0.
-       if (fcloud.gt.abs(sulfin(ih))) then
-         tr_left(ih)=fcloud+sulfin(ih)
-       endif
-
-
- 402    CONTINUE
-
-       case('H2O2')
-
-      if (coupled_chem.eq.0) GO TO 403 
+       if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 401
+       if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
 
        ih=ntix(n)
        sulfin(ih)=-dso4g*tm(l,is)*tr_mm(ih)/1000.
@@ -868,7 +832,9 @@ c can't be more than moles going in:
        if (fcloud.gt.abs(sulfin(ih))) then
          tr_left(ih)=fcloud+sulfin(ih)
        endif
- 403   CONTINUE
+
+
+ 401   CONTINUE
 
        dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ih)+sulfinc(ih)*trdr(ih)
 
@@ -978,8 +944,11 @@ c      reduction in partial pressure as species dissolves
       henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
 
-       case('H2O2_s')
-        if(coupled_chem.eq.1) GO TO 404 
+       case('H2O2','H2O2_s')
+
+        if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 402
+        if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
+
       th2o2=trm(i,j,l,n)
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)  
@@ -993,24 +962,7 @@ c      reduction in partial pressure as species dissolves
       henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
 
- 404   CONTINUE
-
-       case('H2O2')
-        if(coupled_chem.eq.0) GO TO 405 
-      th2o2=trm(i,j,l,n)
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(n)=tr_rkd(n)*(1.+ rk1f/3.2d-5)  
-c mole of tracer, used to limit so4 production
-      trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
-c partial pressure of gas x henry's law coefficient                 
-      pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*           
-     *   tr_rkd(n)*dexp(-tr_dhd(n)*tfac)    
-c the following is from Phil:                                  
-c      reduction in partial pressure as species dissolves     
-      henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
-      pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
-
- 405  CONTINUE
+ 402  CONTINUE
 
       end select
       END DO 
@@ -1059,29 +1011,16 @@ c diagnostic
 
        tr3Dsource(i,j,l,5,n)=trm(i,j,l,n)*sulfin/dtsrc
 
-       case('H2O2_s')
-        if (coupled_chem.eq.1) GO TO 406
+       case('H2O2','H2O2_s')
+        if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 403
+        if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
+
        sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
        sulfin=max(-1d0,sulfin)
 
        tr3Dsource(i,j,l,3,n)=trm(i,j,l,n)*sulfin/dtsrc
 
- 406    CONTINUE
-
-       case('H2O2')
-        if (coupled_chem.eq.0) GO TO 407
-       sulfin=-dso4g*tso2*tr_mm(n)/1000. !dimnless
-       sulfin=max(-1d0,sulfin)
-cg       trm(i,j,l,n)=trm(i,j,l,n)*(1.d0+sulfin)
-cg       trmom(:,i,j,l,n)=trmom(:,i,j,l,n)*trm(i,j,l,n)/th2o2
-
-
-c Impact gas-phase chemistry H2O2
-c Check this change is applied - hardwire nChemistry.eq.1
-
-       tr3Dsource(i,j,l,1,n)=trm(i,j,l,n)*sulfin/dtsrc
-
- 407   CONTINUE
+ 403   CONTINUE
 
       end select
       END DO    
