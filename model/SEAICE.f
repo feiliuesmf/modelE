@@ -403,7 +403,7 @@ C**** MSI2 = MSI2 -(MELT3+MELT4)+(FMSI2-FMSI4)
 
 C**** Calculate output diagnostics
       RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
-      SMELT = SMELT1+SMELT2+SMELT3+SMELT3  ! salt flux to ocean
+      SMELT = SMELT12+SMELT3+SMELT3  ! salt flux to ocean
       FMOC = FMSI4              ! implicit mass flux 
       FHOC = FHSI4              ! implicit heat flux
 C****
