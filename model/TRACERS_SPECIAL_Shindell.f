@@ -842,7 +842,8 @@ C
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, TR_MM, n_CH4
-      USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX
+      USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
+     *     ch4_init_nh
 c
       IMPLICIT NONE
 c
@@ -863,9 +864,9 @@ C     First, the troposphere:
       DO J=1,JM
 C       Initial latitudinal gradient for CH4:
         IF(J.LT.JEQ)THEN ! Southern Hemisphere
-          CH4INIT=1.750d0*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
+          CH4INIT=ch4_init_sh*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
         ELSE             ! Northern Hemisphere
-          CH4INIT=1.855d0*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
+          CH4INIT=ch4_init_nh*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
         ENDIF
         DO I=1,IM
           trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT
@@ -881,9 +882,9 @@ c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
         IF(J.LT.JEQ)THEN ! Southern Hemisphere
-          CH4INIT=1.75/1.79  *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=ch4_init_sh/1.79  *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ELSE             ! Northern Hemisphere
-          CH4INIT=1.855/1.79 *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=ch4_init_nh/1.79 *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ENDIF
         IF((J.LE.JS).OR.(J.GT.JN)) THEN                 ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)

@@ -38,7 +38,8 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     & CH4altX,CH4altT,corrOxIN,corrOx,LcorrOx,PcorrOx
+     &     CH4altX,CH4altT,corrOxIN,corrOx,LcorrOx,PcorrOx,ch4_init_sh
+     *     ,ch4_init_nh 
       USE FILEMANAGER, only: openunit,closeunit
 #endif
       implicit none
@@ -175,11 +176,15 @@ C**** Define individual tracer characteristics
           tcscale(n_MPtable(n)) = 1.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+C**** determine initial CH4 distribution if set from rundeck
+C**** This is only effective with a complete restart.
+          call sync_param("ch4_init_sh",ch4_init_sh)
+          call sync_param("ch4_init_nh",ch4_init_nh)
           ntsurfsrc(n) = 14
           ntm_power(n) = -8
 C         Interpolate CH4 altitude-dependence to model resolution:
-         CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
-         CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
+          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
+          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
 #endif
 
       case ('O3')
@@ -272,12 +277,12 @@ c         read stratospheric correction from files:
            CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
      &                  tempOx2,.true.)
            CorrOx(J,:,M)=tempOx2(:)
-           END DO   ; END DO
+          END DO   ; END DO
 C          Only alter Ox between 150 and 30 hPa (lower strat):
-           DO L=1,LM
+          DO L=1,LM
              IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0) 
      &       corrOx(:,L,:)=1.0d0
-           END DO
+          END DO
 c          
           ntm_power(n) = -8
           tr_mm(n) = 48.d0

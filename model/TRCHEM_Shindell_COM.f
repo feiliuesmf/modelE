@@ -178,6 +178,11 @@ C
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian 
+
+!@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
+!@+       defaults are for 1990
+      REAL*8 :: ch4_init_sh=1.750d0    , ch4_init_nh=1.855d0
+
       REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
      & 0.9720D+03,0.9445D+03,0.9065D+03,
      & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
