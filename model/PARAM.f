@@ -77,7 +77,7 @@
 
       type ParamStr
         character(MAX_NAME_LEN) name  ! parameter name
-        integer index                 ! storage for its value
+        integer indx                 ! storage for its value
         integer dim                   ! number of elements
         character*1 attrib            ! type: real ('r') or int ('i')
       end type ParamStr
@@ -190,7 +190,7 @@
             print *, 'PARAM: Recompile param with bigger MAX_IPARAMS'
             stop 'PARAM: Maximal number of int parameters exceeded'
           endif
-          PStr%index = num_iparam + 1
+          PStr%indx = num_iparam + 1
           num_iparam = num_iparam + dim
         case ('r')
           if ( num_rparam+dim >= MAX_RPARAMS ) then
@@ -198,7 +198,7 @@
             print *, 'PARAM: Recompile param with bigger MAX_RPARAMS'
             stop 'PARAM: Maximal number of real parameters exceeded'
           endif
-          PStr%index = num_rparam + 1
+          PStr%indx = num_rparam + 1
           num_rparam = num_rparam + dim
         case ('c')
           if ( num_cparam+dim >= MAX_CPARAMS ) then
@@ -206,7 +206,7 @@
             print *, 'PARAM: Recompile param with bigger MAX_CPARAMS'
             stop 'PARAM: Maximal number of char parameters exceeded'
           endif
-          PStr%index = num_cparam + 1
+          PStr%indx = num_cparam + 1
           num_cparam = num_cparam + dim
         end select
 
@@ -275,7 +275,7 @@
       if ( present(opt) .and. opt=='o' ) flag = .true.
 
       call set_pstr( name, np, 'i', PStr, flag )
-      Idata( PStr%index : PStr%index+np-1 ) = value(1:np)
+      Idata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
       return
       end subroutine set_aiparam
 
@@ -304,7 +304,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      value(1:np) = Idata( PStr%index : PStr%index+np-1 )
+      value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
       return
       end subroutine get_aiparam
 
@@ -320,7 +320,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Idata( PStr%index )
+      pvalue => Idata( PStr%indx )
       return
       end subroutine get_piparam
 
@@ -336,7 +336,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Idata( PStr%index:PStr%index+np-1 )
+      pvalue => Idata( PStr%indx:PStr%indx+np-1 )
       return
       end subroutine get_paiparam
 
@@ -369,7 +369,7 @@
       if ( present(opt) .and. opt=='o' ) flag = .true.
 
       call set_pstr( name, np, 'r', PStr, flag )
-      Rdata( PStr%index : PStr%index+np-1 ) = value(1:np)
+      Rdata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
       return
       end subroutine set_arparam
 
@@ -398,7 +398,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      value(1:np) = Rdata( PStr%index : PStr%index+np-1 )
+      value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
       return
       end subroutine get_arparam
 
@@ -414,7 +414,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Rdata( PStr%index )
+      pvalue => Rdata( PStr%indx )
       return
       end subroutine get_prparam
 
@@ -430,7 +430,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Rdata( PStr%index:PStr%index+np-1 )
+      pvalue => Rdata( PStr%indx:PStr%indx+np-1 )
       return
       end subroutine get_parparam
 
@@ -474,7 +474,7 @@
         endif
       enddo
       call set_pstr( name, np, 'c', PStr, flag )
-      Cdata( PStr%index : PStr%index+np-1 ) = value(1:np)
+      Cdata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
       return
       end subroutine set_acparam
 
@@ -503,7 +503,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      value(1:np) = Cdata( PStr%index : PStr%index+np-1 )
+      value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
       return
       end subroutine get_acparam
 
@@ -519,7 +519,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Cdata( PStr%index )
+      pvalue => Cdata( PStr%indx )
       return
       end subroutine get_pcparam
 
@@ -535,7 +535,7 @@
         print *, 'PARAM: Can''t get - not in database : ', name
         stop 'PARAM: Can''t get parameter - not in database'
       endif
-      pvalue => Cdata( PStr%index:PStr%index+np-1 )
+      pvalue => Cdata( PStr%indx:PStr%indx+np-1 )
       return
       end subroutine get_pacparam
 
@@ -733,13 +733,13 @@
         if ( (.not. is_set_param(LParams(n)%name)) .or. ovrwrt ) then
           select case( LParams(n)%attrib )
           case ('i')
-            call set_aiparam( LParams(n)%name, LIdata(LParams(n)%index),
+            call set_aiparam( LParams(n)%name, LIdata(LParams(n)%indx),
      *           LParams(n)%dim, 'o' )
           case ('r')
-            call set_arparam( LParams(n)%name, LRdata(LParams(n)%index),
+            call set_arparam( LParams(n)%name, LRdata(LParams(n)%indx),
      *           LParams(n)%dim, 'o' )
           case ('c')
-            call set_acparam( LParams(n)%name, LCdata(LParams(n)%index),
+            call set_acparam( LParams(n)%name, LCdata(LParams(n)%indx),
      *           LParams(n)%dim, 'o' )
           end select
         endif
@@ -782,24 +782,24 @@
         case ('i')
           write( kunit, '(1x,a16,a3,8i16)' )
      $         Params(n)%name, ' = ',
-     $        ( Idata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+     $        ( Idata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
      $         write( kunit, '(20x,,8i16)' )
-     $        ( Idata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+     $        ( Idata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('r')
           write( kunit, '(1x,a16,a3,8g16.6)' )
      $         Params(n)%name, ' = ',
-     $        ( Rdata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+     $        ( Rdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
      $         write( kunit, '(20x,,8g16.6)' )
-     $        ( Rdata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+     $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('c')
           write( kunit, '(1x,a16,a3,8a16)' )
      $         Params(n)%name, ' = ',
-     $        ( Cdata(Params(n)%index+i), i=0,min(Params(n)%dim,nf)-1 )
+     $        ( Cdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
      $         write( kunit, '(20x,,8a16)' )
-     $        ( Cdata(Params(n)%index+i), i=0,Params(n)%dim-nf-1 )
+     $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         end select
       enddo
       write( kunit, * ) '&&END_PARAMETERS'
@@ -818,15 +818,15 @@
         case ('i')
           write( kunit, * )
      $         trim(Params(n)%name), ' = ',
-     $        ( Idata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+     $        ( Idata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
        case ('r')
           write( kunit, * )
      $         trim(Params(n)%name), ' = ',
-     $        ( Rdata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+     $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
         case ('c')
           write( kunit, * )
      $         trim(Params(n)%name), ' = ',
-     $        ( Cdata(Params(n)%index+i), i=0,Params(n)%dim-1 )
+     $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
         end select
       enddo
       write( kunit, * ) '&&END_PARAMETERS'

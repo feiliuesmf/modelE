@@ -29,8 +29,8 @@ C**** Numerical constants
       real*8,parameter :: by12=1./12d0 !@param by12 1/12
 !@param undef Missing value
       real*8,parameter :: undef=-1.d30
-!@param tiny  small positive value used in num/(den+tiny) to avoid 0/0
-      real*8,parameter :: tiny=1.d-30
+!@param teeny  small positive value used in num/(den+teeny) to avoid 0/0
+      real*8,parameter :: teeny=1.d-30
 
 C**** Physical constants
 

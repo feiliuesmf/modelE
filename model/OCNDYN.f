@@ -929,7 +929,7 @@ C****
       INTEGER, PARAMETER :: NMAX=IM/2, NSEGM=7, INDM=90365
       INTEGER*2, SAVE :: NSEG(LMO,4:25),IMIN(NSEGM,LMO,4:25),
      *     ILEN(NSEGM,LMO,4:25)
-      INTEGER*4, SAVE :: INDEX(IM,2:13)
+      INTEGER*4, SAVE :: INDX(IM,2:13)
       REAL*4, SAVE :: REDUCO(INDM)
       REAL*8, INTENT(INOUT) :: X(IM,JM,LMO)
       CHARACTER*80 TITLE
@@ -955,7 +955,7 @@ C**** Calculate  cos(TWOPI*N*I/IM)  and  sin(TWOPI*N*I/IM)
    20 AVSIN(I,N) = AVSIN(IN,1)
 C**** Read in reduction contribution matrices from disk
       call openunit("AVR",iu_AVR,.TRUE.,.TRUE.)
-      READ  (iu_AVR) TITLE,NSEG,IMIN,ILEN,INDEX,REDUCO
+      READ  (iu_AVR) TITLE,NSEG,IMIN,ILEN,INDX,REDUCO
       call closeunit (iu_AVR)
       WRITE (6,*) 'Read on unit ',iu_AVR,': ',TITLE
       END IF
@@ -976,7 +976,7 @@ C****
       DO 270 NS=1,NSEG(L,JX)
       I0 = IMIN(NS,L,JX)
       IL = ILEN(NS,L,JX)
-      IND= INDEX(IL,JA)
+      IND= INDX(IL,JA)
       IF(IL+I0.GT.IM)  GO TO 200
 C**** Ocean segment does not wrap around the IDL.
 C**** Copy X to temporary array and filter X in place.

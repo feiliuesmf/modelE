@@ -371,7 +371,7 @@ C**** Check for NaN/INF in ocean data
       IMPLICIT NONE
       CHARACTER LNAME*50,SNAME*30,UNITS*50
       INTEGER I,J,L
-      REAL*8 ATGO(JM,LMOM),SCALE,ONES(JM),Z(LMOM)
+      REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),Z(LMOM)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID))
@@ -393,10 +393,10 @@ C**** depths are calculated from base of the mixed layer
       DO L=2,LMOM
         Z(L)=Z(L-1)+DZ(L)
       END DO
-      SCALE=1./IDACC(12)
+      SCALED=1./IDACC(12)
       ONES(1:JM)=1.
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
-      CALL JLMAP(LNAME,SNAME,UNITS,Z,ATGO,SCALE,ONES,ONES,LMOM,2,1)
+      CALL JLMAP(LNAME,SNAME,UNITS,Z,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
       if(qcheck) call close_jl
       
