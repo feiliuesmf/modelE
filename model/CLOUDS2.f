@@ -56,7 +56,7 @@ C**** Set-able variables
 !@+       RICldX changes linearly to 1 as p->0mb
       REAL*8 :: RICldX=1.d0 , xRICld
 !@dbparam do_blU00 =1 if boundary layer U00 is treated differently
-      INTEGER :: do_blU00=0 ! default is to disable this
+      INTEGER :: do_blU00=0     ! default is to disable this
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -191,13 +191,13 @@ CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,UM1,VM1,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
-     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX,FSSL,PLAND
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX,PLAND
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
      *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT
-     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
-     *  ,FSUB,FCONV,FMCL,VLAT
+     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
+     *  ,FSUB,FCONV,FSSL,FMCL
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
@@ -390,8 +390,8 @@ c for sulfur chemistry
 !@var FG, FI fraction for graupel and ice
 !@var FITMAX set to ITMAX
 !@var CONDMU convective condensate in Kg/m^3
-      REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX
-     *     ,DDCW,VT,CONDMU
+      REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW
+     *     ,VT,CONDMU
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -636,12 +636,13 @@ C**** adjust MPLUME to take account of restricted area of subsidence
 C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
       MPLUME=MIN( MPLUME/FMC1,
      *   AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny) )
+      IF(MPLUME.LE..001*AIRM(L)) GO TO 570
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
       SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
       QMP  =  QMOLD(LMIN)*FPLUME
       QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
-      TPSAV(LMIN)=SMP*PLK(LMIN)/(MPLUME+teeny)
+      TPSAV(LMIN)=SMP*PLK(LMIN)/MPLUME
       DMR(LMIN)=-MPLUME
         DSMR(LMIN)=-SMP
       DSMOMR(xymoms,LMIN)=-SMOMP(xymoms)
@@ -1246,7 +1247,7 @@ C**** Note that TRSVWML is in mass units unlike SVWMX
       PRCP=COND(LMAX)
       PRHEAT=CDHEAT(LMAX)
 #ifdef TRACERS_WATER
-C**** Tracer precipiation
+C**** Tracer precipitation
 C Note that all of the tracers that condensed do not precipitate here,
 C since a fraction (FCLW) of TRCOND was removed above.
       TRPRCP(1:NTX) = TRCOND(1:NTX,LMAX)
@@ -1481,9 +1482,9 @@ C**** CALCULATE OPTICAL THICKNESS
 !@var IERR,WMERR,LERR error reporting
       INTEGER, INTENT(OUT) :: IERR,LERR
       REAL*8, INTENT(OUT) :: WMERR
-      REAL*8 LHX
       INTEGER, INTENT(IN) :: i_debug,j_debug
       logical :: debug_out
+      REAL*8 LHX
 
 C**** functions
       REAL*8 :: QSAT, DQSATDT,ERMAX
