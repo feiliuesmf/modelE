@@ -63,8 +63,8 @@ C****
 !@sum  STADV advects tracers and water mass through the straits
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-#ifdef TRACERS_OCEAN
       USE CONSTANT, only : teeny
+#ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit
 #endif
       USE OCEAN, only : dts,mo,dxypo,bydxypo,g0m,gxmo,gymo,gzmo,s0m,sxmo

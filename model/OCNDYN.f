@@ -2236,7 +2236,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO I=IM,IM*(JM-1)+1
         LMIJ=LMM(I,1)
         DO L=1,LMIJ
-          IF(FOCEAN(I,J)*MO(I,1,L).LE.0.)  GO TO 800
+          IF(FOCEAN(I,1)*MO(I,1,L).LE.0.)  GO TO 800
           IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
         END DO
       END DO
