@@ -2762,7 +2762,7 @@ c)
     
         return
  9999 continue
-        call exit(99)
+        call exit_rc(99)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_0
 
     !---------------------------
@@ -2835,7 +2835,7 @@ c)
     
         return
  9999 continue
-        call exit(99)
+        call exit_rc(99)
       END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_1
 
     !---------------------------
@@ -2909,7 +2909,7 @@ c)
     
         return
  9999 continue
-        call exit(99)
+        call exit_rc(99)
       END SUBROUTINE ESMF_READ_PARALLEL_REAL8_1
 
     !---------------------------
