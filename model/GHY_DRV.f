@@ -1,89 +1,17 @@
 #include "rundeck_opts.h"
 
-      module soil_drv
-!@sum soil_drv contains variables and routines for the ground
-!@+   hydrology driver
-!@auth I. Alienov/F. Abramopolous
-      use model_com, only : im,jm
-      use veg_drv, only : cosday,sinday
-      implicit none
-      private
-      save
+c******************   TRACERS             ******************************
+#ifdef TRACERS_ON
+      module ghy_tracers
 
-      public daily_earth
-      public ground_e
-      public init_gh
-      public earth
-      public conserv_wtg
-      public conserv_htg
-
-      !real*8 cosday,sinday
-      !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
-      real*8 adlmass          ! accumulator for dleafmass in daily_earth
-
-      real*8 spgsn !@var spgsn specific gravity of snow
-!@dbparam snow_cover_coef coefficient for topography variance in
-!@+       snow cover parameterisation for albedo
-      real*8 :: snow_cover_coef = .15d0
-
-      contains
-
-      subroutine earth (ns,moddsf,moddd)
-!@sum EARTH calculates surface fluxes of sensible heat,
-!@+   evaporation, thermal radiation, and momentum drag over earth.
-!@auth I. Alienov/F. Abramopolous
-c****
-      use constant, only : grav,rgas,lhe,lhs
-     *     ,sha,tf,rhow,deltx
-      use model_com, only : t,p,q,dtsrc,nisurf,dsig,qcheck,jdate
-     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
-     *     ,u,v
-      use DOMAIN_DECOMP, only : GRID, GET
-      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP, only : GLOBALSUM, HERE
-      use geom, only : imaxj,dxyp,bydxyp
-      use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
-      use somtq_com, only : mz
-      use radncb, only : trhr,fsf, cosz1
-
-      use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
-      !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
-      use sle001
-     &    , only : advnc,evap_limits,
-     &    pr,htpr,prs,htprs,w,ht,snowd,tp,fice,
-     &    fv,fb,atrg,ashg,alhg,
-     &    abetad,abetav,abetat,
-     &    abetap,abetab,abeta,
-     &    acna,acnc,agpp,
-     &    aevap,aevapw,aevapd,aevapb,
-     &    aruns,arunu,aeruns,aerunu,
-     &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
-     &    qm1,qs,
-     &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
-     &    nsn,dzsn,wsn,hsn,fr_snow
-     &     ,ghy_debug
+      use sle001, only :
 #ifdef TRACERS_WATER
-     &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
+     &     tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
 #ifdef TRACERS_SPECIAL_O18
      &     ,tr_name
 #endif
-      use veg_drv, only: veg_save_cell,veg_set_cell
-      use vegetation, only: update_veg_locals
 
-      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
-     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
-     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
-     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
-     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp, ij_dleaf,ij_pblht
-     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
-     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
-     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
-     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,tf_day1,tf_last,ndiupt
-#ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
@@ -108,38 +36,19 @@ c****
 #ifdef TRACERS_WATER
      *     ,trevapor,trunoe,gtracer,trprec
 #endif
+#ifdef TRACERS_DUST
+     &     ,pprec,pevap
+#endif
 #ifdef TRACERS_DRYDEP
      *     ,trdrydep
       use tracers_DRYDEP, only : dtr_dd
 #endif
-#endif
-      use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp,precss
-#ifdef TRACERS_DUST
-     &     ,pprec,pevap
-#endif
-      use ghycom, only : ngm,nlsn,
-     &     gdeep,wbare,wvege,htbare,htvege,snowbv,
-     &     nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
-     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
-#ifdef TRACERS_WATER
-     &     ,tr_wbare,tr_wvege,tr_wsn_ij
-#endif
-!#ifdef TRACERS_WATER
-!     *     ,trvege,trbare,trsnowbv
-!#endif
-      use vegetation, only :
-     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
 
-      USE SOCPBL, only : dtsurf         ! zgs,     ! global
-     &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole     ! rest local
-     &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
-     &     ,khs,ug,vg,wg,wint   ! ,kq=>kqs ,ppbl
-      use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean,psurf,trhr0
-#ifdef TRACERS_ON
-     *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
+#ifdef TRACERS_WATER
+      use ghycom, only : tr_wbare,tr_wvege,tr_wsn_ij
+#endif
+
+      use pbl_drv, only : trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
@@ -149,95 +58,52 @@ c****
 #ifdef TRACERS_DUST
      &     ,dust_flux
 #endif
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : avg_modPT
 #endif
-      use snow_drvm, only : snow_cover_same_as_rad
+
+#ifdef TRACERS_DUST
+      USE tracers_dust,ONLY : dust_emission_constraints,
+     &     local_dust_emission
+#endif
+
+ccc extra stuff which was present in "earth" by default
+#ifdef TRACERS_WATER
+      use ghycom, only : ngm,nlsn
+      use constant, only : rhow
+#endif
+      use dynamics, only : byam
+      use geom, only : bydxyp
 
       implicit none
+      private
 
-      integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,kr,jr,itype,ih,ihm,ibv
-      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws
-     *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
-     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
-     *     ,warmer,timez,spring,zs1co,q1
+      public ghy_tracers_set_step
+      public ghy_tracers_set_cell
+      public ghy_tracers_save_cell
 
-!@var rhosrf0 estimated surface air density
-      real*8 rhosrf0
-
-#ifdef TRACERS_ON
-      integer n,nx,nsrc
-#ifdef TRACERS_DUST
-      INTEGER :: n1
-#endif
       real*8 totflux(ntm)
 #ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
-     *     tevapb,trruns,trrunu,trsoil_rat
-      real*8, dimension(ntm,0:ngm,2) :: trw
-      real*8, dimension(ntm,2) :: trsnowd
-      real*8  tdp, tdt1, wsoil_tot, frac, tevap
-ccc new vars
+!@var ntixw index array for tracers (shared by OMP threads)
       real*8 ntixw(ntm)
-#ifdef TRACERS_SPECIAL_O18
-      real*8 fracvl
 #endif
-#endif
-#ifdef TRACERS_DRYDEP
-      real*8 tdryd, tdd, td1, rtsdt
-#endif
-#endif
-      real*8 qsat
-      real*8 srhdt
-      real*8 aregij(9,im,jm)
-!@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
-!@var qg_nsat rel. humidity at non-saturated fraction of soil
-      real*8 qg, qg_nsat
-c****
-c**** fearth    soil covered land fraction (1)
-c****
-c**** snowe     earth snow amount (kg/m**2)
-c**** tearth    earth temperature of first layer (c)
-c**** wearth    earth water of first layer (kg/m**2)
-c**** aiearth   earth ice of first layer (kg/m**2)
-c****
-c**** wbare  1-6 water of bare soil layer 1-6 (m)
-c**** wvege   0  water of vegetation canopy (m)
-c****        1-6 water of vegetated soil layer 1-6 (m)
-c**** htbare  0  bare soil layer 0 is unused
-c****        1-6 heat content of bare soil layer 1-6 (j m-2)
-c**** htvege  0  heat content of vegetation canopy (j m-2)
-c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
-c**** snowbv  1  snow depth over bare soil (m)
-c****         2  snow depth over vegetated soil (m)
-c****
+      integer, parameter :: itype=4
 
-C**** Work array for regional diagnostic accumulation
-C****   define local grid
-      integer J_0, J_1, J_0H, J_1H
+      common /ghy_tracers_tp/ totflux
+!$OMP  THREADPRIVATE (/ghy_tracers_tp/)
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-      dtsurf=dtsrc/nisurf
-      zs1co=.5*dsig(1)*rgas/grav
+      contains
 
-      spring=-1.
-      if((jday.ge.32).and.(jday.le.212)) spring=1.
-      ih=1+jhour
-      ihm = ih+(jdate-1)*24
-c****
-c**** outside loop over time steps, executed nisurf times every hour
-c****
-      timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
-      if(jday.le.31) timez=timez+365.
 
+      subroutine ghy_tracers_set_step
+!@sum tracers stuff to be called at the beginning of ghy time step
+!@+   i.e. before the i,j loop
 ccc set i,j - independent stuff for tracers
-#ifdef TRACERS_ON
+      use model_com, only : itime
+      implicit none
+      integer n
+
       ntx=0
 #ifdef TRACERS_WATER
       ntg=0
@@ -258,110 +124,28 @@ ccc set i,j - independent stuff for tracers
 #endif
         end if
       end do
-#endif
 
-      aregij = 0.
-c****
-c**** outside loop over j and i, executed once for each grid point
-c****
-C**** halo update u and v for distributed parallelization
-       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
-       call halo_update(grid, U, from=NORTH)
-       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
-       call halo_update(grid, V, from=NORTH)
+      end subroutine ghy_tracers_set_step
 
-!$OMP  PARALLEL DO PRIVATE
-!$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
-!$OMP*   I,ITYPE,ibv, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
-!$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
-!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WTR2AV,q1
-#if defined(TRACERS_ON)
-!$OMP*   ,n,nx,totflux,nsrc
-#if defined(TRACERS_WATER)
-!$OMP*   ,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
-!$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap
-#endif
-#if defined(TRACERS_DRYDEP)
-!$OMP*   ,tdryd,tdd,td1,rtsdt
-#endif
-#ifdef TRACERS_DUST
-!$OMP&   ,n1
-#endif
-#endif
-!$OMP*   )
-!$OMP*   SCHEDULE(DYNAMIC,2)
 
-      loop_j: do j=J_0,J_1
-      hemi=1.
-      if(j.le.jm/2) hemi=-1.
-c**** conditions at the south/north pole
-      pole= ( j.eq.1 .or. j.eq.jm )
+      subroutine ghy_tracers_set_cell(i,j,qg,evap_max)
+!@sum tracers code to be called before the i,j cell is processed
+      use model_com, only : dtsrc
+#ifdef TRACERS_WATER
+      use sle001, only : qm1
+#endif
+      implicit none
+      integer, intent(in) :: i,j
+      real*8, intent(in) :: qg,evap_max
+      integer n,nx,nsrc
 
-ccc   if(j.lt.jeq) warmer=-spring
-ccc   if(j.ge.jeq) warmer=spring
-      if(j.lt.jeq)  then
-         warmer=-spring
-       else
-         warmer=spring
-      end if
-      loop_i: do i=1,imaxj(j)
-c****
-c**** determine surface conditions
-c****
-      pearth=fearth(i,j)
-      psoil=pearth
-      pij=p(i,j)
-      ps=pedn(1,i,j)
-      psk=pek(1,i,j)
-      p1k=pk(1,i,j)
-      th1=t(i,j,1)
-      q1=q(i,j,1)
-      thv1=th1*(1.+q1*deltx)
-      tkv=thv1*psk
-      tfs=tf*psoil
-      ma1=am(1,i,j)
-      qm1=q1*ma1
-c     rhosrf=100.*ps/(rgas*tsv)
-c     rhosrf=100.*ps/(rgas*tkv)
-ccc   jr=jreg(i,j)
-c****
-c**** earth
-c****
-      if (pearth.le.0.) then
-        ipbl(i,j,4)=0
-        cycle loop_i
-      endif
-
-#ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
       do nx=1,ntx
         n = ntix(nx)
 C**** Calculate first layer tracer concentration
         trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
       end do
-#endif
-      itype=4
-      ptype=pearth
-      pr=prec(i,j)/(dtsrc*rhow)
-C**** This variable was originally assoicated with super-saturated
-C**** large-scale precip, but has not worked for many moons.
-C**** If you want to reinstate it, uncomment this calculation.
-c      prs=precss(i,j)/(dtsrc*rhow)
-      prs=0.
-      htpr=eprec(i,j)/dtsrc
-!!! insert htprs here
-      w(1:ngm,1) =  wbare(1:ngm,i,j)
-      w(0:ngm,2) =  wvege(0:ngm,i,j)
-      ht(0:ngm,1) = htbare(0:ngm,i,j)
-      ht(0:ngm,2) = htvege(0:ngm,i,j)
-      snowd(1:2)  = snowbv(1:2,i,j)
-ccc extracting snow variables
-      nsn(1:2)          = nsn_ij    (1:2, i, j)
-      !isn(1:2)          = isn_ij    (1:2, i, j)
-      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i, j)
-      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i, j)
-      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i, j)
-      fr_snow(1:2)      = fr_snow_ij(1:2, i, j)
+
 ccc tracers variables
 #ifdef TRACERS_WATER
       do nx=1,ntg
@@ -381,76 +165,7 @@ ccc tracers variables
         end if
       enddo
 #endif
-      tg1 = tearth(i,j)
-      srheat=fsf(itype,i,j)*cosz1(i,j)
-! need this
-      srhdt=srheat*dtsurf
-c****
-c**** boundary layer interaction
-c****
-      zs1=zs1co*tkv*pij/pmid(1,i,j)
-c**** loop over ground time steps
-      tg=tg1+tf
-      elhx=lhe
-      if(tg1.lt.0.)  elhx=lhs
-      qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
-      qg = qg_ij(i,j)
-      ! if ( qg > 999.d0 ) qg = qg_sat
-      qg_aver = qg
-      tgv=tg*(1.+qg*deltx)
-      psurf=ps
-      trhr0 = TRHR(0,I,J)
-      rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-C**** Obviously there are no ocean currents for earth points, but
-C**** variables set for consistency with surfce
-      uocean=0 ; vocean=0
-#ifdef TRACERS_ON
-C**** Set up b.c. for tracer PBL calculation if required
-cddd#ifdef TRACERS_WATER_OLD
-cdddC**** Quick and dirty calculation of water tracer amounts in
-cdddC**** soils to ensure conservation. Should be replaced with proper
-cdddC**** calculation at some point
-cdddC**** Calculate mean tracer ratio
-cddd      trsoil_tot = 0 ; wsoil_tot = 0
-cddd      fb=afb(i,j) ; fv=1.-fb
-cddd      do ibv=1,2
-cddd        frac=fb
-cddd        if (ibv.eq.2) frac=fv
-cddd        wsoil_tot=wsoil_tot+snowd(ibv)*frac
-cddd        do nx=1,ntx
-cddd          n=ntix(nx)
-cddd          if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd            trsnowd(nx,ibv) = TRSNOWBV(n,ibv,i,j)
-cddd            trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
-cddd          end if
-cddd        end do
-cddd        do k= 2-ibv,ngm
-cddd          wsoil_tot=wsoil_tot+w(k,ibv)*frac
-cddd          do nx=1,ntx
-cddd            n=ntix(nx)
-cddd            if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd              if (ibv.eq.1) then
-cddd                trw(nx,k,ibv)= TRBARE(n,k,i,j)
-cddd              else
-cddd                trw(nx,k,ibv)= TRVEGE(n,k,i,j)
-cddd              end if
-cddd              trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,k,ibv)*frac
-cddd            end if
-cddd          end do
-cddd        end do
-cddd      end do
-cdddC**** calculate new tracer ratio after precip
-cddd      wsoil_tot=wsoil_tot+dtsurf*pr
-cddd      do nx=1,ntx
-cddd        n=ntix(nx)
-cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cddd          trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc ! kg/m^2 s
-cddd          trsoil_tot(nx)=trsoil_tot(nx)+dtsurf*trpr(nx)
-cddd          trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
-cddd        end if
-cddd      end do
-cddd#endif
-C****
+
       do nx=1,ntx
         n=ntix(nx)
 C**** set defaults
@@ -489,12 +204,7 @@ C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
         end if
 #endif
       end do
-#endif
-c***********************************************************************
-c****
-ccc actually PBL needs evap (kg/m^2*s) / rho_air
-      evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
-      fr_sat = fr_sat_ij(i,j)
+
 #ifdef TRACERS_WATER
 c**** water tracers are also flux limited
       do nx=1,ntx
@@ -507,115 +217,27 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end do
 #endif
 
-      call pbl(i,j,itype,ptype)
-c****
-      cdm = cmgs(i,j,itype)
-      cdh = chgs(i,j,itype)
-      cdq = cqgs(i,j,itype)
-c***********************************************************************
-c**** calculate qs
-      qs=qsrf
-      ts=tsv/(1.+qs*deltx)
-c**** calculate rhosrf*cdm*ws
-      rhosrf=100.*ps/(rgas*tsv)
-      rcdmws=cdm*wsm*rhosrf
-      rcdhws=cdh*wsh*rhosrf
-c**** calculate fluxes of sensible heat, latent heat, thermal
-c****   radiation, and conduction heat (watts/m**2)
-c      snht=-sha*rcdhws*(ts-tg)  ! -not used
-      trheat=trhr(0,i,j)
-c***********************************************************************
-c****
-c  define extra variables to be passed in surfc:
-      pres  =ps
-      veg_pres = ps
-      rho   =rhosrf
-      vsm   =ws
-      veg_vsm = ws
-      ch    =cdh
-      veg_ch = cdh
-      srht  =srheat
-      veg_srht = srheat
-      trht  =trheat
-  !    zs    =zgs  !!! will not need after qsbal is replaced
-  !    eddy  =khs   !!! will not need after qsbal is replaced
-c     tspass=ts
-c***********************************************************************
-c****
-c**** calculate ground fluxes
-c     call qsbal
+      end subroutine ghy_tracers_set_cell
 
-      call ghinij (i,j)
-      call veg_set_cell(i,j)
-      !call init_localveg
-      call advnc
-      call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
-      call veg_save_cell(i,j)
+      subroutine ghy_tracers_save_cell(i,j,ptype)
+!@sum tracers code to be called after the i,j cell is processed
+      use model_com, only : itime
+      use somtq_com, only : mz
+      use socpbl, only : dtsurf
+      use geom, only : dxyp
+      use sle001, only : nsn,fb,fv
+      implicit none
+      integer, intent(in) :: i,j
+      real*8, intent(in) :: ptype
+#ifdef TRACERS_DUST
+      integer n1
+#endif
+      integer n,nx
+#ifdef TRACERS_DRYDEP
+      real*8 tdryd,tdd,td1,rtsdt
+#endif
 
-      tg1=tbcs
-      !qg_ij(i,j) = qs  !!! - this seemed to work ok
-      !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
-      qg_sat = qsat(tg1+tf,elhx,ps) ! saturated soil
-      qg_nsat = qs              ! non-sat soil, no evap
-      if ( rcdhws > 1.d-30 ) then   ! correction to non-sat, due to evap
-        qg_nsat = qg_nsat + evap_max_ij(i,j)/(0.001*rcdhws)
-      endif
-      qg_nsat = min( qg_nsat, qg_sat )
-      qg_ij(i,j) = fr_sat_ij(i,j) * qg_sat
-     &     + (1.d0 -fr_sat_ij(i,j)) * qg_nsat
-
-      wbare(1:ngm,i,j) = w(1:ngm,1)
-      wvege(0:ngm,i,j) = w(0:ngm,2)
-      htbare(0:ngm,i,j) = ht(0:ngm,1)
-      htvege(0:ngm,i,j) = ht(0:ngm,2)
-      snowbv(1:2,i,j)   = snowd(1:2)
-
-!!! test test test
-!      aevap = 0.d0
-
-cddd#ifdef TRACERS_WATER_OLD
-cdddC**** reset tracer variables
-cdddc      wsoil_tot=wsoil_tot-(aevapw+aevapd+aevapb+aruns+arunu)/rhow
-cddd      wsoil_tot=wsoil_tot-(aevap+aruns+arunu)/rhow
-cddd      do nx=1,ntx
-cddd        n=ntix(nx)
-cddd        if (tr_wd_TYPE(n).eq.nWATER) THEN
-cdddc**** fix outputs to mean ratio (TO BE REPLACED WITHIN SOIL TRACERS)
-cddd        trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
-cddd        trrunu(nx)=arunu * trsoil_rat(nx)
-cdddc#ifdef TRACERS_SPECIAL_O18
-cdddc        tevapw(nx)=aevapw*trsoil_rat(nx)*fracvl(tp(1,1),trname(n))
-cdddc#else
-cdddc        tevapw(nx)=aevapw * trsoil_rat(nx)
-cdddc#endif
-cdddc        tevapd(nx)=aevapd * trsoil_rat(nx)
-cdddc        tevapb(nx)=aevapb * trsoil_rat(nx)
-cddd        tevapw(nx)=aevap * trsoil_rat(nx)
-cdddc**** update ratio
-cc       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+tevapd(nx)+tevapb(nx)
-cdddc     *       +trruns(nx)+trrunu(nx))
-c       trsoil_tot(nx)=trsoil_tot(nx)-(tevapw(nx)+trruns(nx)+trrunu(nx))
-cddd        trsoil_rat(nx)=trsoil_tot(nx)/(rhow*wsoil_tot)
-cddd        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*w(1:ngm,1)*rhow
-cddd        trvege(n,:,i,j) = trsoil_rat(nx)*w(:,2)*rhow
-cddd        trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow
-cdddc       trbare(n,:,i,j) = trw(nx,:,1)
-cdddc       trvege(n,:,i,j) = trw(nx,:,2)
-cdddc       trsnowbv(n,:,i,j) = trsnowd(nx,:)
-cddd        gtracer(n,itype,i,j)=trsoil_rat(nx)
-cddd        end if
-cddd      end do
-cddd#endif
-ccc copy snow variables back to storage
-      nsn_ij    (1:2, i, j)         = nsn(1:2)
-      !isn_ij    (1:2, i, j)         = isn(1:2)
-      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
-      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
-      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
-      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
-ccc Save canopy temperature.
-      canopy_temp_ij(i,j) = tp(0,2)  !nyk
 ccc tracers
 #ifdef TRACERS_WATER
       do nx=1,ntg
@@ -625,85 +247,12 @@ ccc tracers
         tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
-
-c**** set snow fraction for albedo computation (used by RAD_DRV.f)
-      if ( snow_cover_same_as_rad == 0 ) then
-        do ibv=1,2
-          call snow_cover(fr_snow_rad_ij(ibv,i,j),
-     &         snowbv(ibv,i,j), top_dev_ij(i,j) )
-          fr_snow_rad_ij(ibv,i,j) = min (
-     &         fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
-        enddo
-      else
-        do ibv=1,2
-          fr_snow_rad_ij(ibv,i,j) = fr_snow_ij(ibv, i, j)
-        enddo
-      endif
-
-      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
-      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
-      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw
-      aij(i,j,ij_g05)=aij(i,j,ij_g05)+abetab/nisurf
-      aij(i,j,ij_g06)=aij(i,j,ij_g06)+abetap/nisurf
-      aij(i,j,ij_g11)=aij(i,j,ij_g11)+abeta/nisurf
-      aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
-      aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
-      aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
-      aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
-      aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
-      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
-      if (moddsf.eq.0) then
-        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
-        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
-        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
-        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
-        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
-        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
-        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
-        aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
-      end if
-      trhdt=trheat*dtsurf-atrg
-c           for radiation find composite values over earth
-c           for diagnostic purposes also compute gdeep 1 2 3
-      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
-      tearth(i,j)=tg1
-      wearth(i,j)=1000.*( fb*w(1,1)*(1.-fice(1,1)) +
-     &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
-      aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
-     &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
-      call retp2 (tg2av,wtr2av,ace2av)
-      gdeep(i,j,1)=tg2av
-      gdeep(i,j,2)=wtr2av
-      gdeep(i,j,3)=ace2av
-      gtemp(1,4,i,j)=tearth(i,j)
-c**** calculate fluxes using implicit time step for non-ocean points
-      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(us-uocean)
-      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(vs-vocean)
-c**** accumulate surface fluxes and prognostic and diagnostic quantities
-      !evap=aevapw+aevapd+aevapb
-      evap = aevap
-      evapor(i,j,4)=evapor(i,j,4)+evap
 #ifdef TRACERS_DUST
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
-      pevap(i,j,itype)=evap
+      pevap(i,j,itype)=aevap
 #endif
-      evhdt=-alhg
-C**** hack to correct energy flux
-ccc      evhdt=-evap*lhe ! hopefully not needed any more
-      shdt=-ashg
-      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
-      dq1(i,j) =dq1(i,j)+evap*ptype/ma1
-      qsavg(i,j)=qsavg(i,j)+qs*ptype
-      qsats=qsat(ts,elhx,ps)
-c**** save runoff for addition to lake mass/energy resevoirs
-      runoe (i,j)=runoe (i,j)+ aruns+ arunu
-      erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
-c****
-      e0(i,j,4)=e0(i,j,4)+af0dt
-      e1(i,j,4)=e1(i,j,4)+af1dt
-
 #ifdef TRACERS_WATER
 ccc accumulate tracer evaporation and runoff
       do nx=1,ntg
@@ -747,10 +296,7 @@ ccc accumulate tracer dry deposition
         end if
       end do
 #endif
-c****
-c**** accumulate diagnostics
-c****
-#ifdef TRACERS_ON
+
 C**** Save surface tracer concentration whether calculated or not
       nx=0
       do n=1,ntm
@@ -765,7 +311,7 @@ C**** Save surface tracer concentration whether calculated or not
           end if
         end if
       end do
-#endif
+
 ccc not sure about the code below. hopefully that''s what is meant above
 #ifdef TRACERS_WATER
       do nx=1,ntg
@@ -796,10 +342,521 @@ ccc dust emission from earth
      &       ptype*dtsurf
       END DO
 #endif
-!      print '(a,10(e12.4))','trevapor_trunoe',
-!     &     trevapor(1,itype,i,j), trunoe(1,i,j)
-!     &     ,aevap,atr_evap(1),aruns,arunu,atr_rnff(1),pr,trpr
+#ifdef INTERACTIVE_WETLANDS_CH4
+C**** update running-average of ground temperature:
+      call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
+#endif
+      end subroutine ghy_tracers_save_cell
+      
+      end module ghy_tracers
+#endif
+c******************   END   TRACERS             ************************
 
+
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+
+
+      module soil_drv
+!@sum soil_drv contains variables and routines for the ground
+!@+   hydrology driver
+!@auth I. Alienov/F. Abramopolous
+      use model_com, only : im,jm
+      use veg_drv, only : cosday,sinday
+      implicit none
+      private
+      save
+
+      public daily_earth
+      public ground_e
+      public init_gh
+      public earth
+      public conserv_wtg
+      public conserv_htg
+
+      !real*8 cosday,sinday
+      !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
+      real*8 adlmass          ! accumulator for dleafmass in daily_earth
+
+      real*8 spgsn !@var spgsn specific gravity of snow
+!@dbparam snow_cover_coef coefficient for topography variance in
+!@+       snow cover parameterisation for albedo
+      real*8 :: snow_cover_coef = .15d0
+
+      contains
+
+      subroutine earth (ns,moddsf,moddd)
+!@sum EARTH calculates surface fluxes of sensible heat,
+!@+   evaporation, thermal radiation, and momentum drag over earth.
+!@auth I. Alienov/F. Abramopolous
+c****
+      use constant, only : grav,rgas,lhe,lhs
+     *     ,sha,tf,rhow,deltx
+      use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
+     *     ,jday,jhour,nday,itime,jeq,fearth
+     *     ,u,v
+      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
+      !use DOMAIN_DECOMP, only : GLOBALSUM
+      use geom, only : imaxj
+      use dynamics, only : pmid,pk,pek,pedn,am
+      use radncb, only : trhr,fsf, cosz1
+
+      !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
+      !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
+      use sle001, only : advnc,evap_limits,
+     &    pr,htpr,prs,htprs,w,snowd,tp,fice,
+     &    fv,fb,ashg,alhg,
+     &    aevap,
+     &    aruns,arunu,aeruns,aerunu,
+     &    tbcs,af0dt,af1dt,
+     &    qm1,qs,
+     &    pres,rho,ts,vsm,ch,srht,trht
+
+
+      use veg_drv, only: veg_save_cell,veg_set_cell
+
+      use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
+     *     ,runoe,erunoe,gtemp,precss
+      use ghycom, only : snowbv,
+     &     fr_snow_ij,
+     *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
+     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
+
+      use vegetation, only :
+     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
+
+      USE SOCPBL, only : dtsurf         ! zgs,     ! global
+     &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole     ! rest local
+     &     ,us,vs,ws,wsm,wsh,tsv,qsrf
+      use pblcom, only : ipbl,cmgs,chgs,cqgs,qsavg
+      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean,psurf,trhr0
+
+
+      use snow_drvm, only : snow_cover_same_as_rad
+
+      use dagcom , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
+     &     ,j_tsrf,j_tg1,j_tg2,areg,jreg
+#ifdef TRACERS_ON
+      use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
+     &     ghy_tracers_save_cell
+#endif
+      implicit none
+
+      integer, intent(in) :: ns,moddsf,moddd
+      integer i,j,itype,ibv
+      real*8 shdt,evhdt,rcdmws,rcdhws
+     *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
+     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
+     *     ,spring,zs1co,q1
+
+!@var rhosrf0 estimated surface air density
+      real*8 rhosrf0
+
+
+      real*8 qsat
+ccc hack for openMP: need temporary array
+      real*8 aregij(9,im,jm)
+      integer jr
+!@var qg rel. humidity at the ground, defined: total_evap = Cq V (qg-qs)
+!@var qg_nsat rel. humidity at non-saturated fraction of soil
+      real*8 qg, qg_nsat
+c****
+c**** fearth    soil covered land fraction (1)
+c****
+c**** snowe     earth snow amount (kg/m**2)
+c**** tearth    earth temperature of first layer (c)
+c**** wearth    earth water of first layer (kg/m**2)
+c**** aiearth   earth ice of first layer (kg/m**2)
+c****
+c**** wbare  1-6 water of bare soil layer 1-6 (m)
+c**** wvege   0  water of vegetation canopy (m)
+c****        1-6 water of vegetated soil layer 1-6 (m)
+c**** htbare  0  bare soil layer 0 is unused
+c****        1-6 heat content of bare soil layer 1-6 (j m-2)
+c**** htvege  0  heat content of vegetation canopy (j m-2)
+c****        1-6 heat content of vegetated soil layer 1-6 (j m-2)
+c**** snowbv  1  snow depth over bare soil (m)
+c****         2  snow depth over vegetated soil (m)
+c****
+
+C****   define local grid
+      integer J_0, J_1, J_0H, J_1H
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      dtsurf=dtsrc/nisurf
+      zs1co=.5*dsig(1)*rgas/grav
+
+      spring=-1.
+      if((jday.ge.32).and.(jday.le.212)) spring=1.
+c****
+c**** outside loop over time steps, executed nisurf times every hour
+c****
+ccc set i,j - independent stuff for tracers
+#ifdef TRACERS_ON
+      call ghy_tracers_set_step
+#endif
+
+      aregij = 0.
+c****
+c**** outside loop over j and i, executed once for each grid point
+c****
+C**** halo update u and v for distributed parallelization
+       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
+       call halo_update(grid, U, from=NORTH)
+       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
+       call halo_update(grid, V, from=NORTH)
+
+!$OMP  PARALLEL DO PRIVATE
+!$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
+!$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
+!$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1
+!$OMP*   )
+!$OMP*   SHARED(ns,moddsf,moddd)
+!$OMP*   SCHEDULE(DYNAMIC,2)
+
+      loop_j: do j=J_0,J_1
+      hemi=1.
+      if(j.le.jm/2) hemi=-1.
+c**** conditions at the south/north pole
+      pole= ( j.eq.1 .or. j.eq.jm )
+
+      loop_i: do i=1,imaxj(j)
+c****
+c**** determine surface conditions
+c****
+      ptype=fearth(i,j)
+      pij=p(i,j)
+      ps=pedn(1,i,j)
+      psk=pek(1,i,j)
+      p1k=pk(1,i,j)
+      th1=t(i,j,1)
+      q1=q(i,j,1)
+      thv1=th1*(1.+q1*deltx)
+      tkv=thv1*psk
+      tfs=tf*ptype
+      ma1=am(1,i,j)
+      qm1=q1*ma1
+c     rhosrf=100.*ps/(rgas*tsv)
+c     rhosrf=100.*ps/(rgas*tkv)
+c****
+c**** earth
+c****
+      if (ptype.le.0.) then
+        ipbl(i,j,4)=0
+        cycle loop_i
+      endif
+      itype=4
+
+      pr=prec(i,j)/(dtsrc*rhow)
+C**** This variable was originally assoicated with super-saturated
+C**** large-scale precip, but has not worked for many moons.
+C**** If you want to reinstate it, uncomment this calculation.
+c      prs=precss(i,j)/(dtsrc*rhow)
+      prs=0.
+      htpr=eprec(i,j)/dtsrc
+
+C>>>>>>>>>>>>>>>>>>>>>>>>
+ccc tracers variables
+
+      tg1 = tearth(i,j)
+      srheat=fsf(itype,i,j)*cosz1(i,j)
+c****
+c**** boundary layer interaction
+c****
+      zs1=zs1co*tkv*pij/pmid(1,i,j)
+c**** loop over ground time steps
+      tg=tg1+tf
+      elhx=lhe
+      if(tg1.lt.0.)  elhx=lhs
+      qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
+      qg = qg_ij(i,j)
+      ! if ( qg > 999.d0 ) qg = qg_sat
+      qg_aver = qg
+      tgv=tg*(1.+qg*deltx)
+      psurf=ps
+      trhr0 = TRHR(0,I,J)
+      rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+C**** Obviously there are no ocean currents for earth points, but
+C**** variables set for consistency with surfce
+      uocean=0 ; vocean=0
+
+c***********************************************************************
+c****
+ccc actually PBL needs evap (kg/m^2*s) / rho_air
+      evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
+      fr_sat = fr_sat_ij(i,j)
+
+c**** call tracers stuff
+#ifdef TRACERS_ON
+      call ghy_tracers_set_cell(i,j,qg,evap_max)
+#endif
+      call pbl(i,j,itype,ptype)
+c****
+      cdm = cmgs(i,j,itype)
+      cdh = chgs(i,j,itype)
+      cdq = cqgs(i,j,itype)
+c***********************************************************************
+c**** calculate qs
+      qs=qsrf
+      ts=tsv/(1.+qs*deltx)
+c**** calculate rhosrf*cdm*ws
+      rhosrf=100.*ps/(rgas*tsv)
+      rcdmws=cdm*wsm*rhosrf
+      rcdhws=cdh*wsh*rhosrf
+      trheat=trhr(0,i,j)
+c***********************************************************************
+c****
+c  define extra variables to be passed in surfc:
+      pres  =ps
+      veg_pres = ps
+      rho   =rhosrf
+      vsm   =ws
+      veg_vsm = ws
+      ch    =cdh
+      veg_ch = cdh
+      srht  =srheat
+      veg_srht = srheat
+      trht  =trheat
+c***********************************************************************
+c****
+c**** calculate ground fluxes
+c     call qsbal
+!!! insert htprs here ???
+
+
+      call ghinij (i,j,1)
+      call veg_set_cell(i,j)
+      call advnc
+      call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
+
+      call veg_save_cell(i,j)
+      call ghy_save_cell(i,j)
+
+      tg1=tbcs
+
+c**** computing ground humidity to be used on next time step
+      !qg_ij(i,j) = qs  !!! - this seemed to work ok
+      !! trying more precise value for qg :  qsat(tg1+tf,elhx,ps)
+      qg_sat = qsat(tg1+tf,elhx,ps) ! saturated soil
+      qg_nsat = qs              ! non-sat soil, no evap
+      if ( rcdhws > 1.d-30 ) then   ! correction to non-sat, due to evap
+        qg_nsat = qg_nsat + evap_max_ij(i,j)/(0.001*rcdhws)
+      endif
+      qg_nsat = min( qg_nsat, qg_sat )
+      qg_ij(i,j) = fr_sat_ij(i,j) * qg_sat
+     &     + (1.d0 -fr_sat_ij(i,j)) * qg_nsat
+
+ccc Save canopy temperature.
+ccc canopy_temp_ij is not used so far... do we need it?
+      canopy_temp_ij(i,j) = tp(0,2)  !nyk
+
+c**** set snow fraction for albedo computation (used by RAD_DRV.f)
+      if ( snow_cover_same_as_rad == 0 ) then
+        ! recompute snow fraction using different formula
+        do ibv=1,2
+          call snow_cover(fr_snow_rad_ij(ibv,i,j),
+     &         snowbv(ibv,i,j), top_dev_ij(i,j) )
+          fr_snow_rad_ij(ibv,i,j) = min (
+     &         fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+        enddo
+      else
+        ! snow fraction same as in snow model
+        fr_snow_rad_ij(:,i,j) = fr_snow_ij(:, i, j)
+      endif
+
+c**** snowe used in RADIATION
+      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c**** tearth used only internaly in GHY_DRV
+      tearth(i,j)=tg1
+c**** wearth+aiearth are used in radiation only
+      wearth(i,j)=1000.*( fb*w(1,1)*(1.-fice(1,1)) +
+     &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
+      aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
+     &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
+      gtemp(1,4,i,j)=tearth(i,j)
+c**** calculate fluxes using implicit time step for non-ocean points
+      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(us-uocean)
+      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(vs-vocean)
+c**** accumulate surface fluxes and prognostic and diagnostic quantities
+      evapor(i,j,4)=evapor(i,j,4)+aevap
+      shdt=-ashg
+      dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
+      dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+      qsavg(i,j)=qsavg(i,j)+qs*ptype
+c**** save runoff for addition to lake mass/energy resevoirs
+      runoe (i,j)=runoe (i,j)+ aruns+ arunu
+      erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
+c****
+      e0(i,j,4)=e0(i,j,4)+af0dt
+      e1(i,j,4)=e1(i,j,4)+af1dt
+
+      call ghy_diag( i,j,ns,moddsf,moddd
+     &     ,rcdmws,cdm,cdh,cdq,qg
+     &     ,aregij )
+
+c**** update tracers
+#ifdef TRACERS_ON
+      call ghy_tracers_save_cell(i,j,ptype)
+#endif
+      end do loop_i
+      end do loop_j
+!$OMP  END PARALLEL DO
+
+ccc hack for OpenMP
+      DO 825 J=J_0,J_1
+      DO 825 I=1,IMAXJ(J)
+         IF(FEARTH(I,J).LE.0.0)  GO TO 825
+         JR=JREG(I,J)
+         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(1,I,J)
+         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(2,I,J)
+         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(3,I,J)
+         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(4,I,J)
+         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(5,I,J)
+         areg(jr,j_run  )=areg(jr,j_run  )+AREGIJ(6,I,J)
+         if( moddsf == 0 ) then
+           areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(7,I,J)
+           areg(jr,j_tg1 )=areg(jr,j_tg1 )+AREGIJ(8,I,J)
+           areg(jr,j_tg2 )=areg(jr,j_tg2 )+AREGIJ(9,I,J)
+         end if
+  825 CONTINUE
+
+C
+      return
+      end subroutine earth
+
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+
+      subroutine ghy_diag( i,j,ns,moddsf,moddd
+     &     ,rcdmws,cdm,cdh,cdq,qg
+     &     ,aregij )
+
+      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
+     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
+     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
+     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
+     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
+     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
+     *     ,ij_gpp,ij_pblht
+     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
+     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
+     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
+     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
+     *     ,idd_ev,tf_day1,tf_last,ndiupt
+
+
+
+      use constant, only : tf
+      use model_com, only : dtsrc,nisurf,jdate
+     *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
+      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
+      use DOMAIN_DECOMP, only : GLOBALSUM
+      use geom, only : dxyp
+      use radncb, only : trhr,fsf, cosz1
+
+      use sle001, only :
+     &     tp
+     &    ,fv,fb,atrg,ashg,alhg
+     &    ,abetad,abetav,abetat
+     &    ,abetap,abetab,abeta
+     &    ,acna,acnc,agpp
+     &    ,aevap,aevapw,aevapd,aevapb
+     &    ,aruns,arunu,aeruns,aerunu
+     &    ,aepc,aepb,aepp,zw,tbcs
+     &    ,qs,ts
+
+      use ghycom, only : gdeep
+
+      USE SOCPBL, only : dtsurf         ! zgs,     ! global
+     &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
+     &     ,khs,ug,vg,wg
+      use pbl_drv, only : uocean,vocean
+
+
+
+
+      implicit none
+      integer, intent(in) :: i,j,ns,moddsf,moddd
+      real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
+      real*8, intent(out) :: aregij(:,:,:)
+
+      real*8 timez
+      real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
+      real*8 warmer,spring,trheat,evhdt
+      integer, parameter :: itype=4
+      integer kr,ih,ihm,jr
+
+
+      timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
+      if(jday.le.31) timez=timez+365.
+
+
+      spring=-1.
+      if((jday.ge.32).and.(jday.le.212)) spring=1.
+
+      if(j.lt.jeq)  then
+         warmer=-spring
+       else
+         warmer=spring
+      end if
+      ih=1+jhour
+      ihm = ih+(jdate-1)*24
+
+      ptype=fearth(i,j)
+      jr=jreg(i,j)
+
+      srheat=fsf(itype,i,j)*cosz1(i,j)
+      srhdt=srheat*dtsurf
+      trheat=trhr(0,i,j)
+
+      tg1=tbcs
+      shdt=-ashg
+      evhdt=-alhg
+
+
+      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
+      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
+      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw
+      aij(i,j,ij_g05)=aij(i,j,ij_g05)+abetab/nisurf
+      aij(i,j,ij_g06)=aij(i,j,ij_g06)+abetap/nisurf
+      aij(i,j,ij_g11)=aij(i,j,ij_g11)+abeta/nisurf
+      aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
+      aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
+      aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
+      aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
+      aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
+      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
+      if (moddsf.eq.0) then
+        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
+        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
+        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(3,1)
+        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
+        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
+        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
+        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(3,2)
+        aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
+      end if
+      trhdt=trheat*dtsurf-atrg
+c           for radiation find composite values over earth
+c           for diagnostic purposes also compute gdeep 1 2 3
+      call retp2 (tg2av,wtr2av,ace2av)
+      gdeep(i,j,1)=tg2av
+      gdeep(i,j,2)=wtr2av
+      gdeep(i,j,3)=ace2av
 
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
@@ -819,20 +876,25 @@ ccc dust emission from earth
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-ccc   areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
-ccc   areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
-ccc   areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
-ccc   areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
-ccc   areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*pearth*dxyp(j)
-ccc   areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*pearth*dxyp(j)
-ccc   if ( moddsf == 0 )
-ccc  $     areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+cddd      areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
+cddd      areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
+cddd      areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
+cddd      areg(jr,j_evap )=areg(jr,j_evap )+aevap*ptype*dxyp(j)
+cddd      areg(jr,j_erun)=areg(jr,j_erun)+(aeruns+aerunu)*ptype*dxyp(j)
+cddd      areg(jr,j_run )=areg(jr,j_run )+(aruns+arunu)*ptype*dxyp(j)
+cddd      if ( moddsf == 0 ) then
+cddd        areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
+cddd        areg(jr,j_tg1 ) =areg(jr,j_tg1 ) + tg1   *ptype*dxyp(j)
+cddd        areg(jr,j_tg2 ) =areg(jr,j_tg2 ) + tg2av *ptype*dxyp(j)
+cddd      end if
+
+c!!! do something with regional diag !!!
       AREGIJ(1,I,J)  = trhdt*ptype*dxyp(j)
       AREGIJ(2,I,J)  = shdt*ptype*dxyp(j)
       AREGIJ(3,I,J)  = evhdt*ptype*dxyp(j)
-      AREGIJ(4,I,J)  = evap*ptype*dxyp(j)
-      AREGIJ(5,I,J)  = (aeruns+aerunu)*pearth*dxyp(j)
-      AREGIJ(6,I,J)  = (aruns+arunu)*pearth*dxyp(j)
+      AREGIJ(4,I,J)  = aevap*ptype*dxyp(j)
+      AREGIJ(5,I,J)  = (aeruns+aerunu)*ptype*dxyp(j)
+      AREGIJ(6,I,J)  = (aruns+arunu)*ptype*dxyp(j)
       if ( moddsf == 0 ) THEN
         AREGIJ(7,I,J)  = (ts-tf)*ptype*dxyp(j)
         AREGIJ(8,I,J)  = tg1    *ptype*dxyp(j)
@@ -845,7 +907,7 @@ c**** quantities accumulated for latitude-longitude maps in diagij
      *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
       aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdt+trhdt+shdt+evhdt)*ptype
-      aij(i,j,ij_evap)=aij(i,j,ij_evap)+evap*ptype
+      aij(i,j,ij_evap)=aij(i,j,ij_evap)+aevap*ptype
       if ( moddsf == 0 ) then
         aij(i,j,ij_ws)=aij(i,j,ij_ws)+ws*ptype
         aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
@@ -886,7 +948,7 @@ c**** quantities accumulated hourly for diagDD
             adiurn(ih,idd_cq,kr)=adiurn(ih,idd_cq,kr)+cdq*ptype
             adiurn(ih,idd_eds,kr)=adiurn(ih,idd_eds,kr)+khs*ptype
             adiurn(ih,idd_dbl,kr)=adiurn(ih,idd_dbl,kr)+dbl*ptype
-            adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+evap*ptype
+            adiurn(ih,idd_ev,kr)=adiurn(ih,idd_ev,kr)+aevap*ptype
             hdiurn(ihm,idd_ts,kr)=hdiurn(ihm,idd_ts,kr)+ts*ptype
             hdiurn(ihm,idd_tg1,kr)=hdiurn(ihm,idd_tg1,kr)+(tg1+tf)*ptype
             hdiurn(ihm,idd_qs,kr)=hdiurn(ihm,idd_qs,kr)+qs*ptype
@@ -909,50 +971,32 @@ c**** quantities accumulated hourly for diagDD
             hdiurn(ihm,idd_cq,kr)=hdiurn(ihm,idd_cq,kr)+cdq*ptype
             hdiurn(ihm,idd_eds,kr)=hdiurn(ihm,idd_eds,kr)+khs*ptype
             hdiurn(ihm,idd_dbl,kr)=hdiurn(ihm,idd_dbl,kr)+dbl*ptype
-            hdiurn(ihm,idd_ev,kr)=hdiurn(ihm,idd_ev,kr)+evap*ptype
+            hdiurn(ihm,idd_ev,kr)=hdiurn(ihm,idd_ev,kr)+aevap*ptype
           end if
         end do
       endif
 c**** quantities accumulated for surface type tables in diagj
-      aj(j,j_evap ,itearth)=aj(j,j_evap ,itearth)+ evap*pearth
-      aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*pearth
-      aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*pearth
-      aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+ shdt*pearth
-      aj(j,j_erun ,itearth)=aj(j,j_erun ,itearth)+(aeruns+aerunu)*pearth
-      aj(j,j_run  ,itearth)=aj(j,j_run  ,itearth)+(aruns+arunu)*pearth
+      aj(j,j_evap ,itearth)=aj(j,j_evap ,itearth)+ aevap*ptype
+      aj(j,j_trhdt,itearth)=aj(j,j_trhdt,itearth)+trhdt*ptype
+      aj(j,j_evhdt,itearth)=aj(j,j_evhdt,itearth)+evhdt*ptype
+      aj(j,j_shdt ,itearth)=aj(j,j_shdt ,itearth)+ shdt*ptype
+      aj(j,j_erun ,itearth)=aj(j,j_erun ,itearth)+(aeruns+aerunu)*ptype
+      aj(j,j_run  ,itearth)=aj(j,j_run  ,itearth)+(aruns+arunu)*ptype
       if(moddsf.eq.0) then
-        aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*pearth
-        aj(j,j_tg1 ,itearth)=aj(j,j_tg1 ,itearth)+    tg1*pearth
-        aj(j,j_tg2 ,itearth)=aj(j,j_tg2 ,itearth)+  tg2av*pearth
-        aj(j,j_type,itearth)=aj(j,j_type,itearth)+        pearth
+        aj(j,j_tsrf,itearth)=aj(j,j_tsrf,itearth)+(ts-tf)*ptype
+        aj(j,j_tg1 ,itearth)=aj(j,j_tg1 ,itearth)+    tg1*ptype
+        aj(j,j_tg2 ,itearth)=aj(j,j_tg2 ,itearth)+  tg2av*ptype
+        aj(j,j_type,itearth)=aj(j,j_type,itearth)+        ptype
       end if
-#ifdef INTERACTIVE_WETLANDS_CH4
-C**** update running-average of ground temperature:
-      call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
-#endif
-      end do loop_i
-      end do loop_j
-!$OMP  END PARALLEL DO
 
-      DO 825 J=J_0,J_1
-      DO 825 I=1,IMAXJ(J)
-         IF(FEARTH(I,J).LE.0.0)  GO TO 825
-         JR=JREG(I,J)
-         areg(jr,j_trhdt)=areg(jr,j_trhdt)+AREGIJ(1,I,J)
-         areg(jr,j_shdt )=areg(jr,j_shdt )+AREGIJ(2,I,J)
-         areg(jr,j_evhdt)=areg(jr,j_evhdt)+AREGIJ(3,I,J)
-         areg(jr,j_evap )=areg(jr,j_evap )+AREGIJ(4,I,J)
-         areg(jr,j_erun )=areg(jr,j_erun )+AREGIJ(5,I,J)
-         areg(jr,j_run  )=areg(jr,j_run  )+AREGIJ(6,I,J)
-         if( moddsf == 0 ) then
-           areg(jr,j_tsrf)=areg(jr,j_tsrf)+AREGIJ(7,I,J)
-           areg(jr,j_tg1 )=areg(jr,j_tg1 )+AREGIJ(8,I,J)
-           areg(jr,j_tg2 )=areg(jr,j_tg2 )+AREGIJ(9,I,J)
-         end if
-  825 CONTINUE
-C
-      return
-      end subroutine earth
+      end subroutine ghy_diag
+
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+c***********************************************************************
+
 
       subroutine snow_cover( fract_snow, snow_water, top_dev )
 !@sum computes snow cover from snow water eq. and topography
@@ -1178,7 +1222,7 @@ ccc   ??? remove next 5 lines? -check the old version
             snowd(1:2) =  snowbv(1:2,i,j)
 
 c**** compute soil heat capacity and ground water saturation gws
-            call ghinij (i,j)
+            call ghinij (i,j,1)
 c**** fill in soils common blocks
             snowdp=snowe(i,j)/rhow
             wtr1=wearth(i,j)
@@ -1410,7 +1454,7 @@ ccc ugly, should fix later
       end subroutine reset_gh_to_defaults
 
 
-      subroutine ghinij (i0,j0)
+      subroutine ghinij (i0,j0,foo)
 c**** input:
 c**** avh(i,j) - array of vegetation heights
 c**** spgsn - specific gravity of snow
@@ -1425,8 +1469,11 @@ c****
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index,top_stdev
-      use ghycom, only : ngm,imt,dz_ij,sl_ij,q_ij,qk_ij
+     &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+      use ghycom, only : ngm,imt,nlsn,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
+     &     ,wbare,wvege,htbare,htvege,snowbv,nsn_ij,dzsn_ij,wsn_ij
+     &     ,hsn_ij,fr_snow_ij
       use veg_com, only: afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET
 !      use veg_drv, only : veg_set_cell
@@ -1438,11 +1485,28 @@ c****
       real*8 shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
+      integer, optional :: foo
 
 
       ijdebug=i0*1000+j0
       i_earth = i0
       j_earth = j0
+
+ccc extracting ghy prognostic vars
+      w(1:ngm,1) =  wbare(1:ngm,i0,j0)
+      w(0:ngm,2) =  wvege(0:ngm,i0,j0)
+      ht(0:ngm,1) = htbare(0:ngm,i0,j0)
+      ht(0:ngm,2) = htvege(0:ngm,i0,j0)
+      snowd(1:2)  = snowbv(1:2,i0,j0)
+ccc extracting snow variables
+      if ( present(foo) ) then
+      nsn(1:2)          = nsn_ij    (1:2, i0, j0)
+      !isn(1:2)          = isn_ij    (1:2, i0, j)
+      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i0, j0)
+      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
+      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
+      fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
+      endif
 
 ccc setting vegetation
  !     call veg_set_cell(i0,j0)
@@ -1521,6 +1585,31 @@ c htprs is the heat of large scale precipitation
 c****
       return
       end subroutine ghinij
+
+
+      subroutine ghy_save_cell(i,j)
+      use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
+      use ghycom, only : ngm,nlsn
+     &     ,dz_ij,wbare,wvege,htbare,htvege,snowbv
+     &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
+      implicit none
+      integer, intent(in) :: i,j
+
+      wbare(1:ngm,i,j) = w(1:ngm,1)
+      wvege(0:ngm,i,j) = w(0:ngm,2)
+      htbare(0:ngm,i,j) = ht(0:ngm,1)
+      htvege(0:ngm,i,j) = ht(0:ngm,2)
+      snowbv(1:2,i,j)   = snowd(1:2)
+ccc copy snow variables back to storage
+      nsn_ij    (1:2, i, j)         = nsn(1:2)
+      !isn_ij    (1:2, i, j)         = isn(1:2)
+      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
+      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
+      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
+      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
+
+      end subroutine ghy_save_cell
+
 
       subroutine ghinht (snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2)
 c**** initializes new ground (w,ht,snw) from old (t,w,ice,snw)
