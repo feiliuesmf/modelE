@@ -5,6 +5,7 @@
 #ifdef TRACERS_ON
 
       USE TRACER_COM
+      USE MODEL_COM, only : nisurf
 
       IMPLICIT NONE
       SAVE
@@ -43,6 +44,39 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       real*8 CO_src(im,jm,nCOsrc),CH4_src(im,jm,nch4src),
      & Alkenes_src(im,jm,nAlkenessrc),Paraffin_src(im,jm,nParaffinsrc),
      & Isoprene_src(im,jm,nIsoprenesrc),NOx_src(im,jm,nNOxsrc)
+#ifdef INTERACTIVE_WETLANDS_CH4
+!@param nra_ch4 number of running averages needed for int-wetlands
+!@param maxHR_ch4 maximum number of sub-daily accumulations
+!@param fact_ncep for temp: nothing, for prec: 24 converts from model
+!@+     units kg/m2/hr to mm/day
+!@param nday_ncep number of days in running average (prec,temp)
+!@var by_nday_ncep  1/real(nday_ncep)
+!@var day_ncep daily NCEP precipitation (mm/day) (prec,temp)
+!@var DRA_ch4 daily running average of model (prec,temp)
+!@var avg_ncep running average (prec,temp) over nday_ncep days
+!@var avg_modPT equivalent of avg_ncep, but based on model variables
+!@var sum_ncep,day_ncep_tmp temp arrays for computing running average
+!@var PRS_ch4 period running sum of model (prec,temp)
+!@var HRA_ch4 hourly running average of model (prec,temp)
+!@var iday_ncep current day (counter) of averaging period (prec,temp)
+!@var iHch4 "hourly" index for averages of model (prec,temp)
+!@var iDch4 "daily"  index for averages of model (prec,temp)
+!@var i0ch4 ponter to current index in running sum of mode (prec,temp)
+!@var first_ncep whether in the first ncep averaging period (prec,temp)
+!@var first_mod whether in the first model averaging per.   (prec,temp)
+      integer, parameter :: nra_ch4 = 2, maxHR_ch4=24*NIsurf
+      real*8, parameter, dimension(nra_ch4)  :: fact=(/24.d0,1.d0/)
+      integer, parameter, dimension(nra_ch4) :: nday_ncep = (/28,14/)
+      real*8, dimension(nra_ch4)             :: by_nday_ncep
+      real*8, dimension(im,jm,nday_ncep(1),nra_ch4):: day_ncep,DRA_ch4
+      real*8, dimension(im,jm,nra_ch4)       :: avg_ncep,avg_modPT,
+     &                                   sum_ncep,day_ncep_tmp,PRS_ch4
+      real*8, dimension(im,jm,maxHR_ch4,nra_ch4)   :: HRA_ch4
+      integer, dimension(nra_ch4)            :: iday_ncep, i0_ncep
+      integer, dimension(im,jm,nra_ch4)      :: iHch4, iDch4, i0ch4  
+      logical, dimension(nra_ch4) :: first_ncep = (/.true.,.true./)
+     &                               first_mod  = (/.true.,.true./)
+#endif
 #endif
       END MODULE TRACER_SOURCES
       
@@ -593,6 +627,11 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>ch4_src,nsrc=>nch4src
+#ifdef INTERACTIVE_WETLANDS_CH4      
+     &       ,nday_ncep,by_nday_ncep,first_ncep,iday_ncep,day_ncep
+     &       ,i0_ncep,avg_ncep,sum_ncep,fact_ncep,avg_modPT
+#endif
+      
       implicit none
       character*80 title
 !@var adj Factors that tune the total amount of individual sources
@@ -620,9 +659,15 @@ C**** Monthly sources are interpolated each day
       real*8 frac
       integer i,j,nt,iact,iu,k,imon(nmons)
       integer :: jdlast=0
+#ifdef INTERACTIVE_WETLANDS_CH4
+      integer n,m
+#endif
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
       if (itime.lt.itime_tr0(nt)) return
+#ifdef INTERACTIVE_WETLANDS_CH4
+      by_nday_ncep(:)=1.d0/real(nday_ncep(:))
+#endif
 C****
 C**** Annual Sources and sinks
 C**** Apply adjustment factors to bring sources into balance
@@ -675,6 +720,53 @@ C**** Also, increase the wetlands + tundra CH4 emissions:
 C****
       src(:,:,kwet)=2.2d0*src(:,:,kwet)
 C  
+#ifdef INTERACTIVE_WETLANDS_CH4
+C****
+C**** Adjust the wetlands+tundra CH4 source based on 1st layer ground
+C**** temperature from one week ago, precipitation from 2 weeks ago,
+C**** and B. Walter's regression coefficients.  I.e.:
+C**** 
+C**** CH4emis = CH4emis + (alpha*TempAnom + beta*PrecAnom)
+C****
+C
+C NCEP Precipitation(m=1) and Temperature(m=2) running averages:
+C
+      do m=1,2
+        if(m.gt.2)call stop_model('check on ncep index m',255)
+        if(first_ncep(m))then !accumulate first nday_ncep(m) days
+          iday_ncep(m) = iday_ncep(m) + 1
+          day_ncep(:,:,iday_ncep,m)=PTBA(:,:,m)
+          if(iday_ncep(m).eq.nday_ncep(m))then !end of averaging period
+            sum_ncep(:,:,m)=0.d0
+            do n=1,nday_ncep(m)
+              sum_ncep(:,:,m) = sum_ncep(:,:,m) + day_ncep(:,:,n,m)
+            end do
+            first_ncep(m)=.false.
+            iday_ncep(m) = 0
+            i0_ncep(m)   = 0
+            avg_ncep(:,:,m) = sum_ncep(:,:,m) * by_nday_ncep(m)
+          end if
+        else                     ! no longer first averaging period
+          i0_ncep(m) = i0_ncep(m) + 1
+          if(i0_ncep(m).gt.nday_ncep(m)) i0_ncep(m) = 1
+C         UPDATE RUNNING AVERAGE:
+          day_ncep_tmp(:,:,m) = PTBA(:,:,m)
+          sum_ncep(:,:,m)=sum_ncep(:,:,m)-day_ncep(:,:,i0_ncep(m),m)
+          day_ncep(:,:,i0_ncep(m),m) = day_ncep_tmp(:,:,m)
+          sum_ncep(:,:,m) = sum_ncep(:,:,m) + day_ncep(:,:,i0_ncep(m),m)
+          avg_ncep(:,:,m) = sum_ncep(:,:,m) * by_nday_ncep(m)
+        endif
+      end do ! m
+C
+C Don't alter source until enough statistics are built up:
+      if(first_ncep(1) .or. first_ncep(2)) RETURN
+C Otherwise, apply the adjustments, limit change to be positive:
+      do m=1,2
+        src(:,:,kwet) = src(:,:,kwet) + PTBA(:,:,m+2) * 
+     &            (fact_ncep(m)*avg_modPT(:,:,m) - avg_ncep(:,:,m))
+      end do
+      src(:,:,kwet)=max(src(:,j,kwet),0.d0)   
+#endif
       return
       end subroutine read_CH4_sources
 
@@ -1685,4 +1777,76 @@ c
 c      
       RETURN
       END SUBROUTINE special_layers_init
+#endif
+
+
+#ifdef INTERACTIVE_WETLANDS_CH4
+      subroutine running_average(var_in,I,J,avg_out,nicall,m)
+!@sum running_average keeps a running average of the model 1st layer
+!@+ ground temperature and precipitaion for use with the interactive
+!@+ wetlands CH4.  I suppose I could generalized this in the future.
+!@auth Greg Faluvegi
+!@ver 1.0
+C
+C**** Global variables:
+c
+      USE TRACER_SOURCES, only: iH=>iHch4,iD=>iDch4,i0=>i0ch4,
+     & first_mod,HRA=>HRA_ch4,DRA=>DRA_ch4,PRS=>PRS_ch4,
+     & nday_ncep,by_nday_ncep,nra_ch4
+C
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments
+C     
+!@var var_in model variable which will be used in the average
+!@var avg_out the updated running average to be returned
+!@var nicall number of times routine is called per main timesetep
+!@var m for now, 1=precipitation, 2=1st layer ground temperature
+!@var temp just for holding current day average for use in avg_out
+      real*8, intent(IN) :: var_in
+      real*8, intent(OUT):: avg_out
+      real*8 temp, by24N
+      integer, intent(IN):: nicall, m, I, J
+      integer n
+            
+      if(m.gt.nra_ch4)call stop_model('nra_ch4 problem',255)
+      iH(I,J,m) = iH(I,J,m) + 1
+      HRA(I,J,iH(I,J,m),m) = var_in
+      ! do no more, unless it is the end of the day:
+      
+      if(iH(I,J,m).eq.24*nicall)then ! end of "day":
+        by24N=1.d0/real(24*nicall)
+        iH(I,J,m) = 0
+        if(first_mod(m))then ! first averaging period only
+          iD(I,J,m) = ID(I,J,m) + 1 
+          do n=1,24*nicall
+            DRA(I,J,iD(I,J,m),m) = DRA(I,J,iD(I,J,m),m) + HRA(I,J,n,m)
+          end do
+          DRA(I,J,iD(I,J,m),m) = DRA(I,J,iD(I,J,m),m)*by24N
+          if(iD(I,J,m).eq.nday_ncep(m))then !end first period
+            PRS(I,J,m) = 0.d0
+            do n=1,nday_ncep(m)
+              PRS(I,J,m) = PRS(I,J,m) + DRA(I,J,iD(I,J,m),m)
+            end do
+            avg_out = PRS(I,J,m) * by_nday_ncep(m)
+            first_mod(m)=.false.
+            iD(I,J,m)=0
+            i0(I,J,m)=0
+          end if
+        else ! not first averaging period: update the running average
+          i0(I,J,m) = i0(I,J,m) + 1 ! move pointer
+          if(i0(I,J,m) .eq. nday_ncep(m)+1) i0(I,J,m)=1
+          temp=0.d0
+          do n=1,24*nicall
+            temp = temp + HRA(I,J,n,m) 
+          end do
+          temp = temp * by24N ! i.e. today's average
+          PRS(I,J,m) = PRS(I,J,m) - DRA(I,J,i0(I,J,m),m)
+          DRA(I,J,i0(I,J,m),m) = temp
+          PRS(I,J,m) = PRS(I,J,m) + DRA(I,J,i0(I,J,m),m)
+          avg_out = PRS(I,J,m) * by_nday_ncep(m)
+        end if
+      end if
+  
+      END SUBROUTINE running_average
 #endif

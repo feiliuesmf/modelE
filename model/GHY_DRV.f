@@ -133,6 +133,9 @@ c****
      *     ,dep_vel,gs_vel
 #endif
 #endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use tracer_sources, only : avg_modPT
+#endif
       use snow_drvm, only : snow_cover_same_as_rad
       implicit none
 
@@ -878,7 +881,10 @@ c**** quantities accumulated for surface type tables in diagj
         aj(j,j_tg2 ,itearth)=aj(j,j_tg2 ,itearth)+  tg2av*pearth
         aj(j,j_type,itearth)=aj(j,j_type,itearth)+        pearth
       end if
-
+#ifdef INTERACTIVE_WETLANDS_CH4
+C**** update running-average of ground temperature:
+      call running_average(tg1,I,J,avg_modPT(I,J,2),nisurf,2)
+#endif
       end do loop_i
       end do loop_j
 !$OMP  END PARALLEL DO

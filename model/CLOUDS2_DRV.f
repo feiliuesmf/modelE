@@ -6,7 +6,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
-     *     ,teeny
+     *     ,teeny,sday
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,fim,focean,fland,flice
@@ -86,6 +86,9 @@
       USE FLUXES, only : prec,eprec,precss,gtemp
 #ifdef TRACERS_WATER
      *     ,trprec
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      use tracer_sources, only : avg_modPT
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -861,6 +864,10 @@ C**** WRITE TO GLOBAL ARRAYS
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
+#ifdef INTERACTIVE_WETLANDS_CH4
+C**** update running-average of precipitation (in mm/day):
+      call running_average(prcp*sday*byDTsrc,I,J,avg_modPT(I,J,1),1,1)
+#endif
 
       DO L=1,LM
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
