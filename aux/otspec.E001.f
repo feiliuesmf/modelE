@@ -23,7 +23,7 @@ C****
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
       USE DAGCOM, only : OA
-      USE SEAICE_COM, only : rsi,msi, snowi
+      USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
       USE GEOM
       USE FILEMANAGER
@@ -174,9 +174,8 @@ C****
      *               +XCORR*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)+OA(I,J,10)
      *               +OA(I,J,11)+XCORR*OA(I,J,12))
 C*
-                OE = RSI(I,J)*(OA(I,J,1)*(OA(I,J,2)*SHI-LHM)
-     *               + MSI(I,J)*(OA(I,J,3)*SHI-LHM))
-     *               + ((Z1O(I,J)*RHOW-(OA(I,J,1)+MSI(I,J))*RSI(I,J))
+                OE = RSI(I,J)*OA(I,J,3)
+     *               + ((Z1O(I,J)*RHOW-(OA(I,J,1)+OA(I,J,2))*RSI(I,J))
      *               *TOCEAN(1,I,J)+
      *               (Z12O(I,J)-Z1O(I,J))*RHOW*TOCEAN(2,I,J))*SHW
 C*

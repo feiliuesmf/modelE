@@ -43,16 +43,17 @@ C****
 C**** Contents of OA(I,J,K) saved from the GCM
 C****
 C****    K= 1  ACE1I+SNOWOI  (instantaneous at noon GMT)
-C****       2  TG1OI  (instantaneous at noon GMT)
-C****       3  TG2OI  (instantaneous at noon GMT)
+C****       2  MSI2   (instantaneous at noon GMT)
+C****       3  HSIT   (instantaneous at noon GMT)
 C****       4  ENRGP  (integrated over the day)
-C****       5  SRHDT  (integrated over the day)
+C****       5  SRHDT  (for ocean, integrated over the day)
 C****       6  TRHDT  (for ocean, integrated over the day)
 C****       7  SHDT   (for ocean, integrated over the day)
 C****       8  EVHDT  (for ocean, integrated over the day)
 C****       9  TRHDT  (for ocean ice, integrated over the day)
 C****      10  SHDT   (for ocean ice, integrated over the day)
 C****      11  EVHDT  (for ocean ice, integrated over the day)
+C****      12  SRHDT  (for ocean ice, integrated over the day)
 C****
       call getarg(1,RunID )
       call getarg(2,title0)

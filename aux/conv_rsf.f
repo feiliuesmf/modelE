@@ -17,9 +17,9 @@ C**** must be compiled after the model
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
      *     ustar_pbl,egcm,tgvavg,qgavg
-      USE STATIC_OCEAN, only : tocean,z1o,tfo
+      USE STATIC_OCEAN, only : tocean,z1o,sss0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
-      USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
+      USE SEAICE, only : ace1i,xsi,ac2oim,ssi0,tfrez
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
       USE FILEMANAGER
@@ -27,7 +27,7 @@ C**** must be compiled after the model
       CHARACTER infile*60, outfile*60              ,clabel*156
       INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO   ,jc(100)
       REAL*8 TAUX,X                                ,rc(161)
-      REAL*8 MSI1
+      REAL*8 MSI1,tfo
       INTEGER ItimeX
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5
@@ -97,6 +97,7 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
           IF (RSI(I,J).gt.0) THEN
             MSI1=SNOWI(I,J)+ACE1I
             IF (FOCEAN(I,J).gt.0) THEN
+              TFO=tfrez(sss0)   ! use default salinity
               HSI(1:2,I,J)=(SHI*MIN(HSI(1:2,I,J),TFO)-LHM)*XSI(1:2)*MSI1
               HSI(3:4,I,J)=(SHI*MIN(HSI(3:4,I,J),TFO)-LHM)*XSI(3:4)
      *             *MSI(I,J)
@@ -118,6 +119,7 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow & lake ice).
             MSI(I,J)=AC2OIM
             SNOWI(I,J)=0.
             IF (FOCEAN(I,J).gt.0) THEN
+              TFO=tfrez(sss0)   ! use default salinity
               HSI(1:2,I,J) = (SHI*TFO-LHM)*XSI(1:2)*ACE1I
               HSI(3:4,I,J) = (SHI*TFO-LHM)*XSI(3:4)*AC2OIM
               SSI(1:2,I,J)=SSI0 * ACE1I  * XSI(1:2)
