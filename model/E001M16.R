@@ -32,8 +32,8 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M16b.D771201 ! initial conditions (atm.)
-GIC=GIC.E005gasA.1DEC1956 ! initial conditions (ground)
+AIC=AIC.RES_M16b.D771201   ! initial conditions (atm.)
+GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
@@ -64,7 +64,7 @@ E001M16 (strat.H2O - dry cnv - Sdrag->20mb, no GW drag)
 R=00BG/B
 
 &&PARAMETERS
-XCDLM=.0005,.00005
+XCDLM=.00025,.000025
 P_sdrag=20.
 KOCEAN=0
 U00wtr=.50      ! ???
