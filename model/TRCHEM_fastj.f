@@ -17,7 +17,7 @@ C
       USE MODEL_COM, only    : LM
       USE CONSTANT, only      : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
-     &                          szamax,U0,NCFASTJ
+     &                          szamax,U0,NCFASTJ,iprn,jprn,prnrts
 c
       IMPLICIT NONE
 c
@@ -47,7 +47,8 @@ C
 C-----------------------------------------------------------------------
         CALL CTM_ADJ(NSLON,NSLAT) !define pres & aerosol profiles
         CALL INT_PROF(NSLON,NSLAT)!define    T &      O3 profiles
-c       CALL PRTATM(1,NSLON,NSLAT)! Print out atmosphere (working?)
+        IF(prnrts.and.NSLON.eq.iprn.and.NSLAT.eq.jprn)
+     &  CALL PRTATM(NSLON,NSLAT)  ! Print out atmosphere 
         CALL JVALUE(NSLON,NSLAT)  !
         CALL JRATET(NSLON,NSLAT)  !
 C-----------------------------------------------------------------------
@@ -75,6 +76,7 @@ C
       USE TRCHEM_Shindell_COM, only:SALBFJ,RCLOUDFJ,jndlev,NCFASTJ,aer,
      &                          ZFASTJ,jaddlv,jaddto,PFASTJ,RFLECT,
      &                          odtmp,odsum,odmax,luselb,nlbatm,zlbatm
+     &                          ,iprn,jprn
 c
       IMPLICIT NONE
 c
@@ -114,7 +116,7 @@ c
 c Associated altitudes
       zfastj(1) = 0.d0
       do i=2,NCFASTJ
-        zfastj(i) = 16.d0*1.d+5*log10(PFASTJ(1)/PFASTJ(i))
+        zfastj(i)= 16.d0*1.d+5*log10(PFASTJ(1)/PFASTJ(i))
       enddo
 c
 c Zero level indices
@@ -130,7 +132,7 @@ c
 c Scale optical depths as appropriate
       odsum =   0.d0
       do i=1,LM
-        odtmp(i) = dble(RCLOUDFJ(i,nslon,nslat))
+        odtmp(i) = RCLOUDFJ(i,nslon,nslat)
         odsum    = odsum + odtmp(i)
       enddo
       if(odsum.gt.odmax) then
@@ -326,24 +328,23 @@ C
       END SUBROUTINE JRATET
 C
 C
-      SUBROUTINE PRTATM(NFASTJ,NSLON,NSLAT)
-!@sum PRTATM Print out atmosphere if N>1, and calculate approx. columns.
+      SUBROUTINE PRTATM(NSLON,NSLAT)
+!@sum PRTATM Print out atmosphere, calculate approx. columns.
 !@auth Lee Grenfell/Oliver Wild (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3_fastjlg_ozone_M23)
 c
 C**** GLOBAL parameters and variables:
 C
-      USE TRCHEM_Shindell_COM, only: NLFASTJ,DO3,AER,DMFASTJ,DBC,ZZHT,
+      USE TRCHEM_Shindell_COM, only:NLFASTJ,DO3,AER,DMFASTJ,DBC,ZZHT,
      &                              NCFASTJ,ZFASTJ,PFASTJ,TJ
 c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
-!@var nfastj switch passed from photoj
 !@var i dummy variable
 !@var COLO3,COLAX,COLO2,COLBC,ZKM,ZSTAR local variables for printing
-      INTEGER, INTENT(IN) :: nslon, nslat,NFASTJ
+      INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER i
       REAL*4, DIMENSION(NLFASTJ) :: COLO3,COLAX,COLO2,COLBC
       REAL*4 ZKM,ZSTAR
@@ -362,22 +363,18 @@ C     assuming 10 m2/g Black Carbon:
        COLBC(i) = COLBC(i+1)+(DBC(i)+DBC(i+1))*0.5*
      $ (ZFASTJ(i+1)-ZFASTJ(i))*10.0
       ENDDO
-      if(nslon.eq.37.and.nslat.eq.36) then
-        WRITE(6,1200) ' O3-column(DU)=',COLO3(1)/2.687E16,
-     $                           '  column aerosol @1000nm=',COLAX(1)
-     $                          ,'  column black carbon=',COLBC(1)
-      endif
+      WRITE(6,1200) ' O3-column(DU)=',COLO3(1)/2.687E16,
+     $              '  column aerosol @1000nm=',COLAX(1),
+     $              '  column black carbon=',COLBC(1)
 C---Print out atmosphere
-      IF(NFASTJ.GT.1) THEN
-        WRITE(6,1000)
-        DO I=1,NCFASTJ
-          ZKM = 1.d-5*ZFASTJ(I)
-          ZSTAR = 16.d0*LOG10(1000.D0/PFASTJ(I))
+      WRITE(6,1000)
+      DO I=1,NCFASTJ
+        ZKM = 1.d-5*ZFASTJ(I)
+        ZSTAR = 16.d0*LOG10(1000.D0/PFASTJ(I))
         WRITE(6,1100) I,ZKM,ZSTAR,DMFASTJ(I),DO3(I),
-     $    1.d6*DO3(I)/DMFASTJ(I),
-     $    TJ(I),PFASTJ(I),AER(I),COLO3(I),COLAX(I),COLO2(I),COLBC(I)
-        ENDDO
-      ENDIF
+     $  1.d6*DO3(I)/DMFASTJ(I),
+     $  TJ(I),PFASTJ(I),AER(I),COLO3(I),COLAX(I),COLO2(I),COLBC(I)
+      ENDDO
       RETURN
  1000 format(5X,3HZkm,3X,2HZ*,8X,1HM,8X,2HO3,6X,4Hf-O3,5X,1HT,7X,1HP,
      $    7X,5HAER-X,4X,6Hcol-O3,2X,7Hcol-AER,3X,6Hcol-O2,3X,6Hcol-BC)
