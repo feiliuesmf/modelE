@@ -157,7 +157,7 @@ C****  48  4*PU4I*PV4I/P4I (100 N/S**2)  (UV GRID)                 4 DA
 C****  49  4*PUV4I (100 N/S**2)  (UV GRID)                         4 DA
 C****  50  DT(MC)*P (100 PA*K)  CHANGE OF PHASE                    1 CN
 C****  51  CLHE*DQ(MC BEFORE COND)*P (100 PA*K)                    1 CN
-C****  52  FREE                                                    4 DA
+C****  52  DU/DT BY SDRAG (M S-2)                                  1 SD 
 C****  53  FREE                                                    4 DA
 C****  54  SIGMA  (VARIANCE FOR MOIST CONVECTION)                  1 CN
 C****
@@ -3387,6 +3387,9 @@ C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
 C**** WIND: DU/DT BY STRAT. DRAG
       SCALE=1.D6/(FIM*IDACC(1)*DT*NCNDS+1.E-20)
       CALL JLMAP (1,PLM,AJL(1,1,20),SCALE,ONES,ONES,LM,2,2)
+C**** DU/DT BY SDRAG
+      SCALE=1.D6/(FIM*IDACC(1)*DT*NCNDS+1.D-20)
+      CALL JLMAP (53,PLM,AJL(1,1,52),SCALE,ONES,ONES,LM,2,2)
 C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
       IF (IDACC(4).LE.1) GO TO 750
       SCALE=1.D1*SDAY/((IDACC(4)-1)*DT*NDAA)
@@ -3634,7 +3637,8 @@ C****                                                             44-52
       CHARACTER*64 TITLE8(8)
       DATA TITLE8/
 C****                                                             53-60
-     3'POTENTIAL VORTICITY (10**-6 K/(MB-S))                          ',
+c    3'POTENTIAL VORTICITY (10**-6 K/(MB-S))                          ',
+     3'DU/DT BY SDRAG (10**-6 M S-2)                                  ',
      4'NORTHWARD TRANSPORT OF Q-G POT. VORTICITY  (10**18 JOULES/DSIG)',
      1'P-K BY EDDY PRESSURE GRADIENT FORCE  (10**-1 W/M**2/UNIT SIGMA)',
      6'Q-G POT. VORTICITY CHANGE OVER LATITUDES (10**-12 1/(SEC-M))   ',
@@ -4719,7 +4723,7 @@ C**FREQUENCY BAND AVERAGE
 C****
 C**** TITLES, LEGENDS AND CHARACTERS FOR DIAGIJ
 C****
-      COMMON/DIJCOM/TITLE1(18),TITLE2(18),TITLE3(18),
+      COMMON/DIJCOM/TITLE1(18),TITLE2(18),TITLE3(18),TITLE4(18),
      *  LEGND1(10),LEGND2(14),ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
 C****
       CHARACTER*32 TITLE1
@@ -4782,12 +4786,18 @@ C
      *   'THICKNESS TEMPERATURE 300-100  ',
      *   'THICKNESS TEMPERATURE 100-30   ',
 C
-     *   'TOTAL EARTH WATER (KG/M**2)    ',
+     9   'TOTAL EARTH WATER (KG/M**2)    ',
      *   'LIQUID WATER PATH  (.1 KG/M**2)',
      *   'DEEP CONV CLOUD FREQUENCY      ',
      *   'SHALLOW CONV CLOUD FREQUENCY   ',
      *   'DEEP CONVECTIVE CLOUD COVER    ',
      *   'SHALLOW CONVECTIVE CLOUD COVER '/
+      CHARACTER*32 TITLE4
+      DATA TITLE4/
+     5   'DU/DT BY SDRAG (10**-6 M S-2)  ',
+     *   5* '                               ',
+     *   6* '                               ',
+     *   6* '                               '/
 C****
       CHARACTER*40 LEGND1
       DATA LEGND1/
@@ -4891,12 +4901,14 @@ C****  12,13  THICKNESS TEMPERATURE FROM 500 TO 300 MB (DEGREES CENT.)
 C****  13,14  THICKNESS TEMPERATURE FROM 300 TO 100 MB (DEGREES CENT.)
 C****  14,15  THICKNESS TEMPERATURE FROM 100 TO 30 MB (DEGREES CENT.)
 C****
-C****  50  TOTAL EARTH WATER (KG H2O/M**2)
+C**49  50  TOTAL EARTH WATER (KG H2O/M**2)
 C****  81  LIQUID WATER PATH (.1 kg/M**2)
 C****  84  DEEP CONVECTIVE CLOUD FREQUENCY (%)
 C****  85  SHALLOW CONVECTIVE CLOUD FREQUENCY (%)
 C****  83  DEEP CONVECTIVE CLOUD COVER (%)
 C****  82  SHALLOW CONVECTIVE CLOUD COVER (%)
+C****
+C**55  98  DU/DT BY SDRAG (10**-6 M S-2) 
 C****
       USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa
       USE E001M12_COM, only : im,jm,lm,fim,
@@ -4913,7 +4925,7 @@ C****
       INTEGER, DIMENSION(3) :: MLAT,MGLOBE
       DOUBLE PRECISION, DIMENSION(3) :: FLAT,FNH,FGLOBE,GNUM,GDEN
 
-      COMMON/DIJCOM/TITLE(3,18),LEGEND(10,24),ACHAR(38),BCHAR(23),
+      COMMON/DIJCOM/TITLE(4,18),LEGEND(10,24),ACHAR(38),BCHAR(23),
      *  CCHAR(38),DCHAR(37),ECHAR(38)
       CHARACTER*4 LEGEND,TITLE*32
       CHARACTER*1 ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
@@ -4925,26 +4937,31 @@ C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
       CHARACTER*1 LINE(IM,3),LONGTD(36)
       DATA LONGTD/'+',35*' '/
 
-      INTEGER, DIMENSION(54), PARAMETER :: IND=(/
+      INTEGER, DIMENSION(60), PARAMETER :: IND=(/
      &   1, 1, 1, 2, 3,29,    5, 6, 4, 7,32,28,   34,39,36,86,39,36,
      &  19,17,18,41,42,43,   21,22,44,24,26,45,   21,23,31,20, 1, 2,
-     &  10,11,12,13,14,15,    9,10,11,12,13,14,   50,81,84,85,83,82/)
-      INTEGER, DIMENSION(54), PARAMETER :: IA=(/
+     &  10,11,12,13,14,15,    9,10,11,12,13,14,   50,81,84,85,83,82,
+     &  98,    1,1,1,1,1/)
+      INTEGER, DIMENSION(60), PARAMETER :: IA=(/
      &   0, 0, 1, 4, 4, 4,    1, 1, 1, 1, 1, 1,    3, 4, 3, 1, 0, 0,
      &   2, 2, 0, 2, 2, 2,    2, 1, 2, 0, 0, 0,    2, 1, 4, 4, 4, 4,
-     &   4, 4, 4, 4, 4, 4,    4, 4, 4, 4, 4, 4,    1, 1, 1, 1, 1, 1/)
-      INTEGER, DIMENSION(3,18) :: ILEG
+     &   4, 4, 4, 4, 4, 4,    4, 4, 4, 4, 4, 4,    1, 1, 1, 1, 1, 1,
+     &   1, 0,0,0,0,0/)
+
+      INTEGER, DIMENSION(3,24) :: ILEG
       DATA ILEG/7,3*1,9,1,   10,10,12, 1,18,11,    3, 5, 3, 4, 2, 2,
      *   1, 1, 6, 1, 1, 1,   13,20,11, 1, 1, 1,   13,13, 3,20,20,18,
-     *  12,13,14,15,15,16,   11,11,11,11,11,11,    8, 3, 1, 1, 1, 1/
-      DOUBLE PRECISION, DIMENSION(54) :: SCALE
+     *  12,13,14,15,15,16,   11,11,11,11,11,11,    8, 3, 1, 1, 1, 1,
+     *  21, 5*1/
+      DOUBLE PRECISION, DIMENSION(60) :: SCALE
       DATA SCALE/1.,3*100.,1.,100.,  3*1.,100.,2*1.,  6*1.,
-     *  2*100.,1.,3*100.,  3*1.,3*100.,  2*1.,2.,21*1./
-      DOUBLE PRECISION, DIMENSION(54) :: FAC
+     *  2*100.,1.,3*100.,  3*1.,3*100.,  2*1.,2.,21*1.,
+     *  6*1./
+      DOUBLE PRECISION, DIMENSION(60) :: FAC
       DATA FAC/.01,3*.2,1.,.2,  2*10.,.1,.2,10.,.3333333,
      *  2.,.5,2.,10.,2*.1,  2*.2,.02,3*.2,  .05,.1,.3333333,3*.2,
      *  2*.05,2.,2*.1,10.,  .1,.05,.02,.01,.01,.006666667,  6*.3333333,
-     *  .05,2.0,.2,.2,.2,.2/
+     *  .05,2.0,.2,.2,.2,.2,  .05,5*0./
       INTEGER, DIMENSION(KAIJ) :: JGRID
       DATA JGRID/19*1,2, 18*1,2*2, 40*1, 5*1,2*2,13*1/
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: PMB=(/
@@ -4997,6 +5014,7 @@ c      BYIM=1./FIM
       SCALE(52)=100.
       SCALE(53)=100.
       SCALE(54)=100.
+      SCALE(55)=1.D6/(DTCNDS+1.D-20)
       IF (IDACC(12).LT.1) IDACC(12)=1
 C****
       IHOUR0=TOFDY0+.5
@@ -5045,7 +5063,7 @@ C****
   170 AIJ(I,JM,N)=AIJ(1,JM,N)
   180 CONTINUE
       IFRSTP=1
-      LASTP=9
+      LASTP=10
       IF (KDIAG(3).GT.0) LASTP=9-KDIAG(3)
       IF (KDIAG(3).LT.0) IFRSTP=-KDIAG(3)
       IF (KDIAG(3).LT.0) LASTP=IFRSTP
@@ -5054,6 +5072,7 @@ C****
       WRITE (6,902) IDAY0,IHOUR0,JDATE0,JMNTH0,JYEAR0,TAU0,IDAY,IHOUR,
      *  JDATE,JMONTH,JYEAR,TAU,TAUDIF
       DO 610 KROW=1,2
+      IF (KPAGE.EQ.LASTP .AND. KROW.EQ.2) GO TO 610
       KR=2*(KPAGE-1)+KROW
       WRITE (6,903) (TITLE(K,KR),K=1,3)
       DO 200 KCOLMN=1,3
@@ -5073,7 +5092,14 @@ C****
      *       380,300,300,475,240,240, 400,400,260,400,400,400,
      *       220,420,460,260,260,260, 460,460,380,420,280,280,
      *       460,460,460,460,460,460, 360,360,360,360,360,360,
-     *       380,380,400,400,400,400),K
+     *       380,380,400,400,400,400, 420,215,215,215,215,215),K
+C**** Blanks
+  215 CONTINUE
+      DO I=1,IM
+        LINE(I,KCOLMN)=' '
+      END DO
+      FLATK=0.
+      GO TO 500
 C**** SUM OF TWO ARRAYS
   220 DO 230 I=1,IM
       A=(AIJ(I,J,IJ_TRNFP0)+AIJ(I,J,IJ_SRNFP0))*SCALE(K)*BYIACC
@@ -7237,7 +7263,7 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_PVQ  = 56  ! 8*P*V*Q (VERT. INTEGRATED) (12.5 PA*M/S) 4 DA
       IJ_TGO  = 57  ! TGO= ODATA(1)  (C)                       1 GD
       IJ_MSI2 = 58  ! ACE2OI= ODATA(3)*POICE  (KG/M**2)        1 GD
-      IJ_WLM  = 59  ! WIND SPEED IN TOP LAYER (M/S)            1 SD
+      IJ_WLM  = 59  ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
       IJ_TGO2 = 60  ! TGO12= ODATA(5)  (C)                  .5*9 MN
       IJ_EVAPO = 61  ! EVAP*POCEAN  (KG/M**2)                  1 GD
       IJ_EVAPI = 62  ! EVAP*POICE  (KG/M**2)                   1 GD
@@ -7276,6 +7302,7 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_FGZV = 95 ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
       IJ_ERVR=96 ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
       IJ_MRVR=97 ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
+      IJ_SDRAG=98 ! DU/DT BY SDRAG (M S-2)                       1 SD
 C**** Definiton of IA_IJ (IDACC index) and NAME_IJ
       NAME_IJ(IJ_RSOI)   = "RSOI" ; IA_IJ(IJ_RSOI) = 1
       NAME_IJ(IJ_RSNW)   = "RSNW" ; IA_IJ(IJ_RSNW) = 4
@@ -7378,6 +7405,7 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
       NAME_IJ(IJ_ERVR)   = "ERVR"   ; IA_IJ(IJ_ERVR) = 1
       NAME_IJ(IJ_MRVR)   = "MRVR"   ; IA_IJ(IJ_MRVR) = 1
+      NAME_IJ(IJ_SDRAG)  = "IJ_SDRAG" ; IA_IJ(IJ_SDRAG) = 1
 
 C**** AJ diagnostic names: (SUM OVER LONGITUDE AND TIME)
 C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION 

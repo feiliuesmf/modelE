@@ -1787,7 +1787,7 @@ c the following line gives bytewise different ajl
   500 IM1=I
       RETURN
       END
-      SUBROUTINE SDRAG
+      SUBROUTINE SDRAG !(DT1) in stratosphere model
 C****
 C**** THIS SUBROUTINE PUTS A DRAG ON THE WINDS ON THE TOP LAYER OF
 C**** THE ATMOSPHERE
@@ -1795,37 +1795,37 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
-      USE DAGCOM, only : aij, IJ_WLM
+      USE DAGCOM, only : aij, IJ_WLM,AJL,IJ_SDRAG
       USE DYNAMICS, only : pk
       IMPLICIT NONE
 
-      INTEGER I,J,IP1
-      REAL*8 PIJU,WLM,RHO,CDN,X
+      INTEGER I,J,IP1,L
+      REAL*8 PIJU,WL,RHO,CDN,X,BYPIJU
 
-      REAL*8 XCDLM(2)
-      NAMELIST/SDRNML/XCDLM
-      INTEGER :: IFIRST = 1
-      IF(IFIRST.EQ.1) THEN
-        READ(5,SDRNML)
-        WRITE(6,SDRNML)
-        IFIRST=0
-      END IF
+      PIJU = PSFMPT
+      BYPIJU=1./PSFMPT
+      DO L=LM,LM
       DO 100 J=2,JM
       I=IM
       DO 100 IP1=1,IM
-      PIJU=PSFMPT
-      WLM=SQRT(U(I,J,LM)*U(I,J,LM)+V(I,J,LM)*V(I,J,LM))
-      RHO=(PIJU*SIGE(LM+1)+PTOP)/(RGAS*T(I,J,LM)*PK(LM,I,J))
-      CDN=XCDLM(1)+XCDLM(2)*WLM
-         AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WLM
-      X=NDYN*DT*RHO*CDN*WLM*GRAV/(PIJU*DSIG(LM))
+      WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+      RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
+      CDN=XCDLM(1)+XCDLM(2)*WL
+         AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
+      X=NDYN*DT*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
       IF(X.GT.1) THEN
-        write(99,*) 'SDRAG: TAU,I,J,PIJU,X,RHO,CDN,U(I,J,LM),V(I,J,LM)',
-     *   TAU,I,J,PIJU,X,RHO,CDN,U(I,J,LM),V(I,J,LM)
+        write(99,*) 'SDRAG: TAU,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)',
+     *   TAU,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L),
+     *   ' If problem persists, winds are too high! ',
+     *   'Try setting XCDLM smaller.'
         X=1.
       END IF
-      U(I,J,LM)=U(I,J,LM)*(1.-X)
-      V(I,J,LM)=V(I,J,LM)*(1.-X)
+         AJL(J,L,52) = AJL(J,L,52)-U(I,J,L)*X
+c        IF(L.EQ.LM) AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+      U(I,J,L)=U(I,J,L)*(1.-X)
+      V(I,J,L)=V(I,J,L)*(1.-X)
   100 I=IP1
+      END DO
       RETURN
       END
