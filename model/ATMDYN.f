@@ -180,12 +180,12 @@ C**** Restart after 8 steps due to divergence of solutions
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
 
-C**** This fix adjusts thermal energy to conserve total energy (TE=KE+PE)
+C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C 
+      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
 C$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
@@ -919,11 +919,11 @@ C$OMP  END PARALLEL DO
 #endif
       CALL CALC_AMPK(LS1-1)
 
-C**** This fix adjusts thermal energy to conserve total energy (TE=KE+PE)
+C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
       TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
-      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C 
+      ediff=(TE-TE0)/(PSF*SHA*mb2kg)        ! C
 C$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
@@ -985,7 +985,7 @@ cq    LOGICAL*4 QFILY,QFIL2D
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
       REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8, ISIGN=(-1.0)**(NSHAP-1)
-      REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP) 
+      REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
       REAL*8 ediff
 C****
 cq       QFILY  = .FALSE.
@@ -1342,13 +1342,13 @@ C**** to be used in the PBL, at the promary grids
         dpx0=0. ; dpy0=0.
         DO K=1,IM
           dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K)) 
+     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
           dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K)) 
+     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
           dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K)) 
+     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
           dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K)) 
+     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
         END DO
         DPDX_BY_RHO(1,j)  =dpx1*BYIM
         DPDY_BY_RHO(1,j)  =dpy1*BYIM
@@ -1383,8 +1383,8 @@ C**** SDRAG_const is applied everywhere else above PTOP (150 mb)
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,JM)    :: ang_mom, sum_airm
 !@param wmax imposed limit for stratospheric winds (m/s)
-      real*8, parameter :: wmax = 200.d0
-      real*8 ediff
+      real*8, parameter :: wmax = 200.d0 , wmaxp = wmax*3.d0/4.d0
+      real*8 ediff,wmaxj
 
       ang_mom=0. ;  sum_airm=0.
 C*
@@ -1395,6 +1395,8 @@ C*
       cd_lin=.false.
       IF( L.ge.LSDRAG .or.
      *    (L.ge.LPSDRAG.and.COSV(J).LE..15) ) cd_lin=.true.
+      wmaxj=wmax
+      if(COSV(J).LE..15) wmaxj=wmaxp
       I=IM
       DO IP1=1,IM
         TL=T(I,J,L)*PK(L,I,J)
@@ -1407,9 +1409,9 @@ C**** check T to make sure it stayed within physical bounds
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
 C**** WL is restricted to Wmax (incorporated in X for diag. purposes)
                     CDN=C_SDRAG
-        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmax)
-        X=DT1*RHO*CDN*min(WL,wmax)*GRAV*BYDSIG(L)*BYPIJU
-        if (wl.gt.wmax) X = 1. - (1.-X)*wmax/wl
+        IF (cd_lin) CDN=X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj)
+        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*BYDSIG(L)*BYPIJU
+        if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
         DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
@@ -1503,7 +1505,7 @@ C$OMP  END PARALLEL DO
       END SUBROUTINE CALC_TROP
 
       SUBROUTINE DISSIP
-!@sum DISSIP adds in dissipated KE as heat locally      
+!@sum DISSIP adds in dissipated KE as heat locally
 !@auth Gavin Schmidt
       USE CONSTANT, only : sha
       USE MODEL_COM, only : jm,lm,t
