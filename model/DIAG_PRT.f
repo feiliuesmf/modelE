@@ -363,7 +363,6 @@ c          if (n .gt. 13) n = (n+123)/10
       ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
         KEYNR(1:42,KEYCT)=0
       END IF
-      WRITE(*,*)'KEYNR= ', KEYNR
 #ifdef TRACERS_ON
       IF (KDIAG(8).LT.9) then
         CALL DIAGJLT
@@ -5347,7 +5346,6 @@ C****
 C**** ENTRIES CALLED FROM DIAGJ
 C****
       ENTRY KEYDJ (N,FGLOB,FNH)
-      WRITE(*,*)'KEYNR= ', N
 
       GO TO (                100,100,100,110,100, 100,100,100,100,115,
      *  100,100,120,125,100, 100,100,130,100,135, 100,100,100,100,100,
