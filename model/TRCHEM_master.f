@@ -2,15 +2,15 @@
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_master_apr1902_M23)
-!@calls ZENITH,photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
+!@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only: q, JDAY
+      USE MODEL_COM, only: q,JDAY,IM,JM
       USE DYNAMICS, only: pedn
-      USE RADNCB, only : ALB
+      USE RADNCB, only : ALB,COSZ1
       USE GEOM, only : BYDXYP, DXYP
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
@@ -90,7 +90,6 @@ C
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 c     ILIMT=IM
 c     if(J.eq.1.or.J.eq.JM)ILIMT=1
-      FASTJLAT=-90.+float(J-1)*180./float(JM-1)
 C
       DO I=1,IM                          ! >>>> MAIN I LOOP BEGINS <<<<
       DO L=1,LM
@@ -155,17 +154,22 @@ c       set NO2 & NO for use in Oxinit & nighttime NO2
        endif
       END DO ! L
 
-      FASTJLON=-180.+float(I-1)*360./float(IM-1)
-c Calculate the solar zenith angle, sza:
-      CALL ZENITH(Itime,SZA,FASTJLAT,FASTJLON)
-C
-C     call checktracer(I,J) ! < for debugging only
-C
+C For solar zenith angle, we now use the arccosine of the COSZ1
+C from the radiation code, which is the cosine of the solar zenith 
+C angle averaged over the physics time step.
+C If the solar zenith angle (sza) from the radiation code is > 90 deg,
+C (and hence COSZ1 is set to 0), recalculate it with get_sza routine:
+      IF(COSZ1(I,J).eq.0.) THEN
+        call get_sza(I,J,sza)
+      ELSE
+        sza = acos(COSZ1(I,J))*byradian
+      END IF
+c
 c     update radiation and temperatures, call PHOTOLYSIS every
 c     [desired number] of hours:
       if(MODPHOT.eq.0)then             !  >>>> PHOTOLYSIS IF BEGIN <<<<
 c      additional SUNLIGHT criterion (see also fam chem criterion):
-       if((SALBFJ(I,J).ne.0.).AND.(sza.lt.98.))then!>>SUNLIGHT BEGIN<<<
+       if((SALBFJ(I,J).ne.0.).AND.(sza.lt.szamax))then!>>SUNLIGHT<<<
 c
 c       define temperatures to be sent to FASTJ:
         do L=1,LM
@@ -184,7 +188,7 @@ c
 c Interpolate O3 (in ppm) from bottom LS1-1 model sigma levels
 c (ie those levels normally in troposphere) onto bottom 2*(LS1-1) FASTJ
 c levels. Above these levels fastj uses climatological (Nagatani) O3
-c read in by chem_init. lg.feb99., gsf.feb02.
+c read in by chem_init.
 c
 c       define O3 to be sent to FASTJ (centers):
         DO LL=2,2*(LS1-1),2
@@ -230,7 +234,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 c
 c     Family partitioning:
 c
-      if((SALBFJ(I,J).ne.0.).AND.(sza.lt.98.))then !   S U N L I G H T
+      if((SALBFJ(I,J).ne.0.).AND.(sza.lt.szamax))then ! S U N L I G H T
        call Oxinit(LS1-1,I,J)
        call HOxfam(LS1-1,I,J)
        call NOxfam(LS1-1,I,J)
@@ -855,8 +859,9 @@ c check for unreal (not-a-number) tracers:
       enddo
       end do
       END IF
-
-
       RETURN
 
       END SUBROUTINE checktracer
+      
+      
+
