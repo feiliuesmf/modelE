@@ -2744,7 +2744,7 @@ C**FREQUENCY BAND AVERAGE
 !@var ij_xxx non single-aij diagnostic names
       INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_fland,
-     *  ij_ntdsete, ij_dzt1
+     *  ij_ntdsete, ij_dzt1, ij_albgv
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(24), PARAMETER :: LEGEND=(/ !
@@ -2939,6 +2939,12 @@ c
       units_ij(k) = '%'
 
       k = k + 1
+      ij_albgv = k
+      name_ij(k) = 'grnd_alb_vis'
+      lname_ij(k) = 'GROUND ALBEDO IN VISUAL RANGE'
+      units_ij(k) = '%'
+
+      k = k + 1
       ij_ntdsese = k
       name_ij(k) = 'stand_eddy_nt_dse'
       lname_ij(k) = 'NT DRY STAT ENR BY ST ED' ! NORTHWD TRANSP
@@ -3113,10 +3119,12 @@ c**** linear combinations (sums, differences, etc)
 
 c**** ratios of lin. comb.: albedos from net radiation
       else if (k.eq.ij_albp .or. k.eq.ij_albg) then
-        n2=ij_srincp0
-        if (k.eq.ij_albg) n2=ij_srincg
         n1=ij_srnfp0
-        if (k.eq.ij_albg) n1=ij_srnfg
+        n2=ij_srincp0
+        if (k.eq.ij_albg) then
+          n2=ij_srincg
+          n1=ij_srnfg
+        end if
         do j=1,jm
         do i=1,im
           adenom(i,j)=aij(i,j,n2)
@@ -3125,11 +3133,17 @@ c**** ratios of lin. comb.: albedos from net radiation
         end do
 
 c**** ratios: albedos from reflected radiation
-      else if (k.eq.ij_albv) then
+      else if (k.eq.ij_albv .or. k.eq.ij_albgv) then
+        n1=ij_srref
+        n2=ij_srincp0
+        if (k.eq.ij_albgv) then
+          n1=ij_srvis
+          n2=ij_srincp0
+        end if
         do j=1,jm
         do i=1,im
-          adenom(i,j)=aij(i,j,ij_srincp0)
-          anum(i,j)=100.*aij(i,j,ij_srref)
+          anum(i,j)=100.*aij(i,j,n1)
+          adenom(i,j)=aij(i,j,n2)
         end do
         end do
 

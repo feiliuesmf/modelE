@@ -660,6 +660,11 @@ C****
           Q(I,J,1)=qmin
           QMOM(:,I,J,1)=0.
         ENDIF
+
+C**** Diurnal cycle of temperature diagnostics
+        tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
+        if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
+        if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
       END DO
       END DO
 C****

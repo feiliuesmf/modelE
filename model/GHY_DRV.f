@@ -185,10 +185,6 @@ c**** earth
 c****
       if (pearth.le.0.) then
         ipbl(i,j,4)=0
-        tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
-        if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
-c       if(tsavg(i,j).gt.aij(i,j,ij_tmax)) aij(i,j,ij_tmax)=tsavg(i,j)
-c       if(tsavg(i,j).lt.aij(i,j,ij_tmin)) aij(i,j,ij_tmin)=tsavg(i,j)
         cycle loop_i
       endif
 c     ngrndz=ngrnd has to be 1
@@ -363,15 +359,6 @@ c****
       if(tg1.gt.tdiurn(i,j,2)) tdiurn(i,j,2)=tg1
       if(ts.lt.tdiurn(i,j,3)) tdiurn(i,j,3)=ts
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
-c**** non-ocean points which are not melting or freezing water use
-c****   implicit time steps
-c****
-c**** update surface and first layer quantities
-c****
-      tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
-      if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
-c        if(tsavg(i,j).gt.aij(i,j,ij_tmax)) aij(i,j,ij_tmax)=tsavg(i,j)
-c        if(tsavg(i,j).lt.aij(i,j,ij_tmin)) aij(i,j,ij_tmin)=tsavg(i,j)
 c****
 c**** accumulate diagnostics
 c****
@@ -1141,7 +1128,7 @@ c**** check for reasonable temperatures over earth
       use model_com, only : nday,nisurf,jday,fearth,wfcs
       use geom, only : imaxj
       use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
-     *     ,ij_tdsl,ij_tmnmx
+     *     ,ij_tdsl,ij_tmnmx,ij_tdcomp
       use ghycom, only : snoage
       implicit none
       real*8 tsavg,wfc1
@@ -1179,6 +1166,8 @@ c****
      *           tdiurn(i,j,1))/(tdiurn(i,j,4)-tdiurn(i,j,3)+1.d-20)-1.)
             aij(i,j,ij_tdsl)=aij(i,j,ij_tdsl)+
      *           (tdiurn(i,j,4)-tdiurn(i,j,3))
+            aij(i,j,ij_tdcomp)=aij(i,j,ij_tdcomp)+
+     *           (tdiurn(i,j,6)-tdiurn(i,j,9))
             aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+(tdiurn(i,j,4)-tf)
             if (tdiurn(i,j,6).lt.aij(i,j,ij_tmnmx))
      *           aij(i,j,ij_tmnmx)=tdiurn(i,j,6)

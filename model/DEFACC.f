@@ -660,7 +660,7 @@ c  AJ55
       J_BRTEMP= k ! BTEMPW-TF                                     2 RD
       name_j(k) = 'btemp_window'
       lname_j(k) = 'BRIGHTNESS TEMP THROUGH WINDOW REGION'
-      units_j(k) = 'degC'
+      units_j(k) = 'C'
       stitle_j(k)= ' LW WINDOW BTEMP'
       scale_j(k) = 1.
       ia_j(k) = ia_rad
@@ -918,6 +918,11 @@ c AJ83
       scale_j(k) = 1.
       ia_j(k) = ia_rad
 c
+      if (k .gt. kaj) then
+        write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
+        stop 'kaj too small'
+      end if
+
       return
       end subroutine j_defs
 
@@ -1145,14 +1150,59 @@ c
       ir_ij(k) = ir_m5300_1900
       end if
 c
+      k=k+1 !  
+      IJ_T300 = k ! 
+      lname_ij(k) = 'TEMPERATURE AT 300mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 'T300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !  
+      IJ_T500 = k ! 
+      lname_ij(k) = 'TEMPERATURE AT 500mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 'T500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
       k=k+1 !  'AIJ016'
-      IJ_T850 = k ! T850-TF (K-TF)*GRAV) (NO PRT) 4 DA
+      IJ_T850 = k ! 
       lname_ij(k) = 'TEMPERATURE AT 850mb'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'T850'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+c
+      k=k+1 
+      IJ_Q300 = k 
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'Q300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d4
+      ir_ij(k) = ir_0_180
+c
+      k=k+1 
+      IJ_Q500 = k 
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'Q500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d4
+      ir_ij(k) = ir_0_180
+c
+      k=k+1 
+      IJ_Q850 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'Q850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d4
+      ir_ij(k) = ir_0_180
 c
       k=k+1 !  'AIJ017'
       IJ_PMCCLD = k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
@@ -1257,7 +1307,7 @@ c
       k=k+1 !  'AIJ028'
       IJ_TG1  = k ! TG1 (K-TF)                                1 GD
       lname_ij(k) = 'GROUND TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TG1'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
@@ -1281,10 +1331,19 @@ c
       iw_ij(k) = iw_soil
       ir_ij(k) = ir_0_18
 c
+      k=k+1 
+      IJ_TDCOMP = k 
+      lname_ij(k) = 'DIURNAL SURF AIR TEMP'
+      units_ij(k) = 'C'
+      name_ij(k) = 'TDCOMP'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_0_18
+c
       k=k+1 !  'AIJ031'
       IJ_DTDP = k ! DTHETA/DPHI (K S**2/m**2) IN TROPOSPHERE  4 DA
       lname_ij(k) = 'TROP STATIC STABILITY'
-      units_ij(k) = 'degC/km'
+      units_ij(k) = 'C/km'
       name_ij(k) = 'DTDP'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1000.*GRAV*P1000K
@@ -1322,7 +1381,7 @@ c
       k=k+1 !  'AIJ035'
       IJ_TS   = k ! TS (K-TF)                                 3 SF
       lname_ij(k) = 'SURFACE AIR TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TS'
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
@@ -1402,7 +1461,7 @@ c
       k=k+1 !  'AIJ044'
       IJ_BTMPW = k ! BTEMPW-TF (K-TF)                         2 RD
       lname_ij(k) = 'BRIGHTNESS TEMP THRU WNDW' ! window region
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'BTMPW'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
@@ -1417,10 +1476,19 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710
 c
+      k=k+1
+      IJ_SRVIS = k ! ALBVIS*S0*COSZ (W/m**2)                  2 RD
+      lname_ij(k) = 'REFLECTED SOLAR RADIATION IN VISUAL AT SURF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'SRVIS'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
       k=k+1 !  'AIJ046'
       IJ_TOC2 = k ! TGO2= TOCEAN(2)  (C)                   .5*9 MN
       lname_ij(k) = 'OCEAN TEMPERATURE BELOW MIXED LAYER' ! lyr 2
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TOC2'
       ia_ij(k) = ia_12hr
       scale_ij(k) = 2.
@@ -1522,7 +1590,7 @@ c
       k=k+1 !  'AIJ057'
       IJ_TGO  = k ! TGO= TOCEAN(1)  (C)                      1 GD
       lname_ij(k) = 'MIXED-LAYER OCEAN TEMPERATURE'    ! layer 1
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TGO'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
@@ -1552,7 +1620,7 @@ c
       k=k+1 !  'AIJ060'
       IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)                  .5*9 MN
       lname_ij(k) = 'OCEAN TEMPERATURE AT ANN-MAX MIXED-LAYER' ! layer 3
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TGO2'
       ia_ij(k) = ia_12hr
       scale_ij(k) = 2.
@@ -1661,7 +1729,7 @@ c
       k=k+1 !  'AIJ071'
       IJ_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
       lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TSLI'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0/NIsurf
@@ -1708,26 +1776,10 @@ c
       iw_ij(k) = iw_lice
       ir_ij(k) = ir_m38_106
 c
-c     k=k+1 !  'AIJ076'
-cfree IJ_TMAX  = k ! MAX(COMPOSITE TS)                      12 SF
-cfree lname_ij(k) = 'MAX(COMPOSITE TS)'
-cfree units_ij(k) = 'degK'
-cfree name_ij(k) = 'TMAX'
-cfree ia_ij(k) = ia_inst
-cfree scale_ij(k) = 1.
-c
-c     k=k+1 !  'AIJ077'
-cfree IJ_TMIN  = k ! MIN(COMPOSITE TS)                      12 SF
-cfree lname_ij(k) = 'MIN(COMPOSITE TS)'
-cfree units_ij(k) = 'degK'
-cfree name_ij(k) = 'TMIN'
-cfree ia_ij(k) = ia_inst
-cfree scale_ij(k) = 1.
-c
       k=k+1 !  'AIJ078'
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
       lname_ij(k) = 'SURFC AIR TEMPERATURE: LOWEST DIURNAL HIGH  + TF'
-      units_ij(k) = 'degC' ! after offset (TF=273.16)
+      units_ij(k) = 'C' ! after offset (TF=273.16)
       name_ij(k) = 'TMNMX'
       ia_ij(k) = ia_inst
       scale_ij(k) = 1.
@@ -1745,7 +1797,7 @@ c
       k=k+1 !  'AIJ080'
       IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C).5*9 MN
       lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH/SOIL'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       name_ij(k) = 'TMAXE'
       ia_ij(k) = ia_12hr
       scale_ij(k) = 2.
@@ -2068,7 +2120,7 @@ c
       IJ_G15 = k
       name_ij(k) = 'bs_tlay1' !'AIJG15'
       lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_bare
@@ -2078,7 +2130,7 @@ c
       IJ_G16 = k
       name_ij(k) = 'bs_tlay2' !'AIJG16'
       lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_bare
@@ -2088,7 +2140,7 @@ c
       IJ_G17 = k
       name_ij(k) = 'bs_tlay3' !'AIJG17'
       lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_bare
@@ -2128,7 +2180,7 @@ c
       IJ_G21 = k
       name_ij(k) = 'can_temp' !'AIJG21'
       lname_ij(k) = 'CANOPY TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_veg
@@ -2138,7 +2190,7 @@ c
       IJ_G22 = k
       name_ij(k) = 'vs_tlay1' !'AIJG22'
       lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_veg
@@ -2148,7 +2200,7 @@ c
       IJ_G23 = k
       name_ij(k) = 'vs_tlay2' !'AIJG23'
       lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_veg
@@ -2158,7 +2210,7 @@ c
       IJ_G24 = k
       name_ij(k) = 'vs_tlay3' !'AIJG24'
       lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
-      units_ij(k) = 'degC'
+      units_ij(k) = 'C'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./NIsurf
       iw_ij(k) = iw_veg
@@ -2382,12 +2434,6 @@ c
       scale_il(k) = -1d-13
       ia_il(k)    = ia_rad
       k = k + 1
-c      name_il(k) = ''
-c      lname_il(k) = ''
-c      units_il(k) = ''
-c      scale_il(k) = 1.
-c      ia_il(k)    = 0
-      k = k + 1
       IL_W50N=k
       name_il(k) = 'vvel_50N'
       lname_il(k) = 'VERTICAL VELOCITY AT 50 N'
@@ -2521,18 +2567,6 @@ c
       lname_jl(k) = 'DT(MC)*P  DRY HEATING'
       units_jl(k) = '100 PA*K'
 c
-!     k=k+1
-!     jl_free14 = k
-!     sname_jl(k) = 'AJL14'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free15 = k
-!     sname_jl(k) = 'AJL15'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
       k=k+1
       jl_ape = k
       sname_jl(k) = 'avail_pe' !'AJL16'
@@ -2664,12 +2698,6 @@ c
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
-!     k=k+1
-!     jl_free30 = k
-!     sname_jl(k) = 'AJL30'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
       k=k+1
       jl_sdifcoef = k
       sname_jl(k) = 'strat_diff_coeff' !'AJL31'
@@ -2691,18 +2719,6 @@ c
       scale_jl(k) = SDAY/(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
-c
-!     k=k+1
-!     jl_free34 = k
-!     sname_jl(k) = 'AJL34'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free35 = k
-!     sname_jl(k) = 'AJL35'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_epflxv = k
@@ -2914,7 +2930,7 @@ c
       k=k+1
       name_sjl(k) = 'ASJL01'
       lname_sjl(k) = 'TX'
-      units_sjl(k) = 'degC'
+      units_sjl(k) = 'C'
       scale_sjl(k) = BYIM
       ia_sjl(k) = ia_dga
 c
@@ -3257,7 +3273,7 @@ c
       scale_jk(k) = -.25*100.*BYGRAV*BYIM
       ia_jk(k) = ia_dga
       jgrid_jk(k) = 2
-c should remove uearth from this diagnostic
+c 
       k=k+1
       jk_totvtam = k
       sname_jk(k) = 'tot_vt_u' !'AJK38'
@@ -3746,55 +3762,6 @@ c
       units_dd(k)='1d-5 kg/kg'
       scale_dd(k)=1d5
       lname_dd(k)=' QG     '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
-c
-      k=k+1
-c      IDD_=k
-c      name_dd(k)=''
-c      units_dd(k)=''
-c      scale_dd(k)=''
-c      lname_dd(k)='        '
 c
       k=k+1
       IDD_SWG=k

@@ -320,21 +320,6 @@ C****  10  ENERGY IN DIAG5 FROM FILTER  (DT: NFILTR*DTsrc)
 C****  11  NOT USED
 C****  12  ALWAYS =1 (UNLESS SEVERAL RESTART FILES WERE ACCUMULATED)
 C****
-C**** CONTENTS OF AUXILIARY ARRAYS (TSFREZ(I,J,1-4),TDIURN(I,J,N))
-C****   1  FIRST DAY OF GROWING SEASON (JULIAN DAY)
-C****   2  LAST DAY OF GROWING SEASON (JULIAN DAY)
-C****   3  LAST DAY OF ICE-FREE LAKE (JULIAN DAY)
-C****   4  LAST DAY OF ICED-UP LAKE  (JULIAN DAY)
-C****
-C****   1  MIN TG1 OVER EARTH FOR CURRENT DAY (C)
-C****   2  MAX TG1 OVER EARTH FOR CURRENT DAY (C)
-C****   3  MIN TS OVER EARTH FOR CURRENT DAY (K)
-C****   4  MAX TS OVER EARTH FOR CURRENT DAY (K)
-C****   5  SUM OF COMPOSITE TS OVER TIME FOR CURRENT DAY (C)
-C****   6  MAX COMPOSITE TS FOR CURRENT DAY (K)
-C****   7  MAX TG1 OVER OCEAN ICE FOR CURRENT DAY (C)
-C****   8  MAX TG1 OVER LAND ICE FOR CURRENT DAY (C)
-C****
 
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
@@ -349,14 +334,14 @@ C****
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,J5NUV
      *     ,J5SUV,J5S,J5N,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
-     *     ,ij_pvq,ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp
-     *     ,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro
-     *     ,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq
-     *     ,il_veq,il_weq,il_teq,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n
-     *     ,il_t70n,il_u70n,KGZ_max,pmb,ght,
-     &     JL_DTDYN,JL_ZMFNTMOM,JL_TOTNTMOM,JL_APE,JL_UEPAC,
-     &     JL_VEPAC,JL_UWPAC,JL_VWPAC,JL_WEPAC,JL_WWPAC,
-     &     JL_EPFLXN,JL_EPFLXV
+     *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
+     *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
+     *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
+     *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
+     *     ,il_qeq,il_w50n,il_t50n,il_u50n,il_w70n,il_t70n,il_u70n
+     *     ,KGZ_max,pmb,ght,JL_DTDYN,JL_ZMFNTMOM,JL_TOTNTMOM,JL_APE
+     *     ,JL_UEPAC,JL_VEPAC,JL_UWPAC,JL_VWPAC,JL_WEPAC,JL_WWPAC
+     *     ,JL_EPFLXN,JL_EPFLXV
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd
       USE RADNCB, only : rqt,lm_req
       USE PBLCOM, only : tsavg
@@ -393,7 +378,8 @@ C****
      *     PKE,PL,PRQ1,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
      *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI
-
+      LOGICAL qpress
+      INTEGER nT,nQ
       REAL*8 QSAT
 
       CALL GETTIME(MBEGIN)
@@ -488,8 +474,23 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
       BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
   174 AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *     -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)*GRAV)
-      IF (K.EQ.2) AIJ(I,J,IJ_T850)=AIJ(I,J,IJ_T850)+(TX(I,J,L)-TF
-     *     +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
+C**** Save temperature and humidity on fixed pressure levels
+      qpress = .false.
+      SELECT CASE (NINT(PMB(K)))
+      CASE (850)    ! 850 mb
+        nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
+      CASE (500)    ! 500 mb 
+        nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true.
+      CASE (300)    ! 300 mb
+        nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
+      END SELECT
+      IF (qpress) THEN
+        AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF
+     *       +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
+        AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)
+     *       +(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL))
+      END IF
+C****
       IF (K.GE.KGZ_max) GO TO 180
       K=K+1
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
@@ -3203,6 +3204,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             TDIURN(I,J,6)=-1000.
             TDIURN(I,J,7)=-1000.
             TDIURN(I,J,8)=-1000.
+            TDIURN(I,J,9)= 1000.
             IF (FEARTH(I,J).LE.0.) THEN
                TSFREZ(I,J,1)=365.
                TSFREZ(I,J,2)=365.

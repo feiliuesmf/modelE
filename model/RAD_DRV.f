@@ -437,11 +437,11 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     j_cdldep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
-     *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref,
-     *     j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n,il_r70n,
-     *     ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2,idd_cl1,
-     *     idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n,
-     &     jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
+     *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
+     *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
+     *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
+     *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
+     *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo
       USE SEAICE_COM, only : rsi,snowi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -809,6 +809,7 @@ C****
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(1,I,J)*COSZ)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
          AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*COSZ*ALB(I,J,2)
+         AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*COSZ*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*COSZ)
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
