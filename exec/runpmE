@@ -72,7 +72,7 @@ $taun = $tau + 48;
 seek I,0,0;
 open IX, ">Ix" or die "can't open 'Ix' for writing\n";
 while(<I>) {
-  print IX " DT=$dt.,\n" if /^ *&&END_PARAMETERS/i;
+  print IX " DT=$dt.,\n Ndisk=24,\n" if /^ *&&END_PARAMETERS/i;
   print IX " ISTART=99,IHOURE=$taun,\n" if /^ *&end/i;
   print IX;
 }
@@ -80,7 +80,7 @@ while(<I>) {
 close I;
 close IX;
 
-`echo ' ' >> I ; echo "Bombed $date" >> I ; tail -1 nohup.out >> I`;
+`echo ' ' >> I ; echo "Bombed $date" >> I ; cat -s fort.99 >> I`;
 `mv $runID.PRT ERR.$runID.PRT.$date`;
 `touch lock; "$runID"ln`; 
 `$runID.exe < Ix > $runID.PRT.dt$dt.$date`; $rcode = $? >> 8;
