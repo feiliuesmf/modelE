@@ -410,7 +410,7 @@ C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
 C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
             MSINEW=MSI(I,J)*(1.-RHOW*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
-     *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2.I,J)))))
+     *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
             HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
 #ifdef TRACERS_WATER
