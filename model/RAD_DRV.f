@@ -1783,7 +1783,7 @@ C****
 
       integer :: year1,year2,year_old=-1, iu, i,j,k
       real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o
-      save    year1,year2,year_old,vdata0,crop1,crop2    ! to limit i/o
+      save   year1,year2,year_old,vdata0,crop1,crop2,iu  ! to limit i/o
 
       character*80 title
       real*4 crop4(im,jm)
