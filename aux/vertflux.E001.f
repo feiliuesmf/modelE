@@ -14,7 +14,7 @@ C****               SNOW  = SNOW depth information
 C****
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
-      use domain_decomp, only : init_decomp, grid, finish_decomp
+      use domain_decomp, only : init_app, grid, finish_app
 !AOO end of part 1 of 3
 !!    use model_com, only : ioread
       use model_com, only : im,jm
@@ -67,7 +67,7 @@ C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
       off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_decomp(grid,im,jm)
+      call init_app(grid,im,jm)
       call alloc_drv()
 !AOO end of part 2 of 3
       call getarg(1,RunID )
@@ -216,7 +216,7 @@ C****
       CALL MAP1 (IM,JM,0,TITLE(4),OAS(1,1,4),OAS(1,1,5),1.,0.,0)
 C****
 !AOO not sure if this is needed, but just in case ...  part 3 of 3
-      call finish_decomp()
+      call finish_app()
 !AOO end of part 3 of 3
       STOP
  555  write (0,*) ' Error: Premature end of file ',file_name

@@ -20,7 +20,7 @@ C****     RSFNEW - augmented restart file
 C****
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
-      use domain_decomp, only : init_decomp, grid, finish_decomp
+      use domain_decomp, only : init_app, grid, finish_app
 !AOO end of part 1 of 3
 !!    use model_com, only : ioread
       use model_com, only : im,jm
@@ -82,7 +82,7 @@ C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
       off_line = .true. ! skip unneeded parts in OCLIM
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_decomp(grid,im,jm)
+      call init_app(grid,im,jm)
       call alloc_drv()
 !AOO end of part 2 of 3
       call getarg(1,RunID )
@@ -335,7 +335,7 @@ C**** Output aplot format file of ocean heat transports
       call closeunit(iu_OHTLP)
       WRITE(0,*) ' NORMAL END'
 !AOO not sure if this is needed, but just in case ...  part 3 of 3
-      call finish_decomp()
+      call finish_app()
 !AOO end of part 3 of 3
 
       STOP

@@ -5,7 +5,7 @@
 C**** Note this must be compiled using the deep ocean gcmlib
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
-      use domain_decomp, only : init_decomp, grid, finish_decomp
+      use domain_decomp, only : init_app, grid, finish_app
 !AOO end of part 1 of 3
       USE MODEL_COM, only : ioread,Itime,im,jm,amonth
       USE DIAG_COM, only : ij_tgo2,aij
@@ -17,7 +17,7 @@ C**** Note this must be compiled using the deep ocean gcmlib
      *     ,iu_oda,lf
 
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_decomp(grid,im,jm)
+      call init_app(grid,im,jm)
       call alloc_drv()
 !AOO end of part 2 of 3
 C**** ZERO OUT ACCUMULATING ARRAYS
@@ -85,7 +85,7 @@ C**** DIVIDE EACH MONTH BY NUMBER OF ACCUMULATIONS
       call closeunit(iu_oda)
 
 !AOO not sure if this is needed, but just in case ...  part 3 of 3
-      call finish_decomp()
+      call finish_app()
 !AOO end of part 3 of 3
 
       STOP
