@@ -29,8 +29,8 @@
 #endif
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp,sss,fwsim,mlhc
-      USE DIAG_COM, only : aij=>aij_loc, areg, jreg, ij_smfx, aj=>aj_loc
-     *, j_implh,j_implm, j_imelt, j_hmelt, j_smelt
+      USE DIAG_COM, only : aij=>aij_loc, areg, jreg,ij_smfx,aj=>aj_loc
+     *     ,j_implh, j_implm, j_imelt, j_hmelt, j_smelt, NREG, KAJ
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -130,8 +130,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
       USE DOMAIN_DECOMP, only : HERE
-      USE DOMAIN_DECOMP, ONLY : SKIP_PARALLEL, CHECKSUM
-
+      USE DOMAIN_DECOMP, ONLY : GLOBALSUM,AM_I_ROOT
       IMPLICIT NONE
 
 C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
@@ -148,6 +147,8 @@ C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,J
       INTEGER, SAVE :: IMON = 0
 !@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use of common block OOBS in MODULE STATIC_OCEAN
       REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
+      REAL*8 :: gsum
 
       INTEGER :: J_0,J_1
       LOGICAL :: HAVE_NORTH_POLE
@@ -192,12 +193,10 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           CALL HERE(__FILE__,__LINE__)
           CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),IM*JM,ERSI0,LSTMON)
-            CALL CHECKSUM(grid,ERSI0,__LINE__,__FILE__)
           if (ocn_cycl.eq.1) then
              CALL HERE(__FILE__,__LINE__)
             CALL READT_PARALLEL
      *           (grid,iu_OSST,NAMEUNIT(iu_OSST),IM*JM,EOST0,LSTMON)
-            CALL CHECKSUM(grid,EOST0,__LINE__,__FILE__)
           else ! if (ocn_cycl.eq.2) then
             LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
   290       read (iu_OSST) M
@@ -244,7 +243,6 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
           CALL HERE(__FILE__,__LINE__)
-c$$$          CALL SKIP_PARALLEL(iu_SICE) ! skip over DM-record  
           read (iu_SICE)  
         end if
           CALL HERE(__FILE__,__LINE__)
@@ -466,6 +464,8 @@ C**** Interpolate the mixed layer depth z1o to the current day and
 C**** limit it to the annual maxmimal mixed layer depth z12o
       FRAC = REAL(JDmidOFM(IMON)-JDAY,KIND=8)/
      a           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
+      areg_part = 0
+
       DO J=J_0,J_1
       DO I=1,IM
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
@@ -500,10 +500,12 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *           *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
             JR=JREG(I,J)
-            AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)-FOCEAN(I,J)*RSI(I,J)
+            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)-
+     *           FOCEAN(I,J)*RSI(I,J)
      *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
      *               /MSI(I,J))*DXYP(J)
-            AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)-FOCEAN(I,J)*RSI(I,J)
+            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)-
+     *           FOCEAN(I,J)*RSI(I,J)
      *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYP(J)
             MSI(I,J)=MSINEW
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
@@ -513,6 +515,13 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END IF
       END DO
       END DO
+      DO JR = 1, NREG
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
+      END DO
+
       RETURN
       END SUBROUTINE OCLIM
 
@@ -855,14 +864,19 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE DIAG_COM, only : NREG, KAJ
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
+      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
+      REAL*8 :: gsum
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      areg_part = 0
 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -908,14 +922,23 @@ C**** Additional mass (precip) is balanced by deep removal
             AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
             AJ(J,J_IMPLM,ITOICE) =AJ(J,J_IMPLM,ITOICE) +RUN4 *POICE
             AJ(J,J_IMPLH,ITOICE) =AJ(J,J_IMPLH,ITOICE) +ERUN4*POICE
-            AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+RUN4 *FOCEAN(I,J)*DXYP(J)
-            AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+ERUN4*FOCEAN(I,J)*DXYP(J)
+            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)+
+     &           RUN4 *FOCEAN(I,J)*DXYP(J)
+            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)+
+     &           ERUN4*FOCEAN(I,J)*DXYP(J)
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
         END IF
       END DO
       END DO
+      DO JR = 1, NREG
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
+      END DO
+
       RETURN
 C****
       END SUBROUTINE PRECIP_OC
@@ -942,7 +965,8 @@ C****
 #endif
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE DIAG_COM, only : NREG, KAJ
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ, TFO
@@ -956,9 +980,12 @@ C**** output from OSOURC
 
       INTEGER I,J,JR
       INTEGER :: J_0,J_1
+      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
+      REAL*8 :: gsum
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
+      areg_part = 0
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -1006,9 +1033,9 @@ C**** Ice-covered ocean diagnostics
             AJ(J,J_IMPLM,ITOICE)=AJ(J,J_IMPLM,ITOICE)+RUN4I *POICE
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)+ERUN4I*POICE
 C**** regional diagnostics
-            AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+
+            AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)+
      *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
-            AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+
+            AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)+
      *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
             MLHC(I,J)=SHW*WTRW
           ELSE
@@ -1035,6 +1062,12 @@ C**** store surface temperatures
         END IF
       END DO
       END DO
+      DO JR = 1, NREG
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
+      END DO
       RETURN
 C****
       END SUBROUTINE OCEANS
@@ -1050,20 +1083,25 @@ C****
       USE SEAICE, only : ace1i,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
 #ifdef TRACERS_WATER
-     *     ,trsi
+      USE SEAICE_COM, only : trsi
 #endif
+
+      USE DIAG_COM, only : NREG, KAJ
       USE FLUXES, only : fwsim,msicnv,mlhc
       USE DIAG_COM, only : aj=>aj_loc,areg,J_IMPLM,J_IMPLH,jreg
      *     ,aij=>aij_loc,j_imelt,j_hmelt,j_smelt
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
       INTEGER :: J_0,J_1
+      REAL*8 :: AREG_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG,KAJ)
+      REAL*8 :: gsum
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IF (KOCEAN.eq.1) THEN   ! qflux model
+        areg_part = 0
       DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -1104,10 +1142,12 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
      *               /MSI(I,J))
                 AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)
      *               *RSI(I,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
-                AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)-FOCEAN(I,J)*RSI(I,J)
+                AREG_part(J,JR,J_IMPLM)=AREG_part(J,JR,J_IMPLM)-
+     *               FOCEAN(I,J)*RSI(I,J)
      *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
      *               /MSI(I,J))*DXYPJ
-                AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)-FOCEAN(I,J)*RSI(I,J)
+                AREG_part(J,JR,J_IMPLH)=AREG_part(J,JR,J_IMPLH)-
+     *               FOCEAN(I,J)*RSI(I,J)
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPJ
                 MSI(I,J)=MSINEW
                 FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)
@@ -1127,6 +1167,12 @@ C**** regional diagnostics
           AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+ERUN4*FOCEAN(I,J)*DXYPJ
         END IF
       END DO
+      END DO
+      DO JR = 1, NREG
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLM), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLM)=AREG(JR,J_IMPLM)+gsum
+        CALL GLOBALSUM(grid, AREG_part(:,JR,J_IMPLH), gsum)
+        IF (AM_I_ROOT()) AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+gsum
       END DO
       END IF
 
