@@ -652,7 +652,7 @@ C**** Save sea ice tracer amount
       do n=1,ntm
         if (itime_tr0(n).le.itime .and. tr_wd_TYPE(n).eq.nWater) then
           taijn(i,j,tij_seaice,n)=taijn(i,j,tij_seaice,n)+
-     *         rsi(i,j)*sum(trsil(n,:))
+     *         POICE*sum(trsil(n,:))
         end if
       end do
 #endif

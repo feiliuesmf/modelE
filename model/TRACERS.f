@@ -159,7 +159,7 @@ C**** Set defaults that are true for all tracers and layers
         if (to_per_mil(n) .eq.1) ijtc_power(n) = 0
 #endif
       end do
-C**** Tracer concentrations (AIJLN)
+C**** Tracer concentrations (TAIJLN)
       do n=1,ntm
       do l=1,lm
         write(sname_ijt(l,n),'(a,i2.2)') trim(TRNAME(n))//'_L_',l 
@@ -623,7 +623,7 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           do i=1,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
               write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
-     *             ,n)," in ",SUBR,"." 
+     *             ,n)," after ",SUBR,"." 
               QCHECKT=.true.
             end if
           end do
