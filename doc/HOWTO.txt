@@ -28,7 +28,7 @@ PART I: Basic user information
 3) HOW-TO set rundeck parameters
    3a: How to set and alter them
    3b: How to use them to control numerical instabilities
-   3c: How to use IRAND to create an ensemble of runs
+   3c: How to use IRANDI to create an ensemble of runs
    1b: How to tune a specified ocean run (using U00wtr)
    1c: How to set up a Q-flux model with a single ocean layer
    1d: How to set up a Q-flux model with diffusion into a deep ocean
@@ -70,22 +70,22 @@ Part III: The model code
 Finally, CREDITS where CREDITS are due:
 
 For ongoing development (who to blame for the current shambles):
-	Gavin Schmidt,	Reto Ruedy,	Jean Lerner,	Max Kelley,
-	Igor Aleinov,	Gary Russell,	Ye Cheng,	Andy Lacis,
-	M. S. Yao.  
+ Gavin Schmidt, Reto Ruedy, Jean Lerner, Max Kelley,
+ Igor Aleinov, Gary Russell, Ye Cheng, Andy Lacis,
+ M. S. Yao.
 
 Historical development (stuff we haven't rewritten yet):
-	Bob Suozzo,	Suki Sheth,	Hans-Peter Zinn,	Rick Healy,
+ Bob Suozzo, Suki Sheth, Hans-Peter Zinn, Rick Healy,
         Frank Abramopoulos
 
 Inspiration (the people paying for this):
-	David Rind, Jim Hansen, Tony Del Genio
+ David Rind, Jim Hansen, Tony Del Genio
 
 =====================================================================
 
 Part 0: Getting the code
 
-The modelE code including source code, scripts and some documentation. 
+The modelE code including source code, scripts and some documentation.
 This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:
    export CVSDIR=/u/cmrun/cvs/repository
@@ -95,10 +95,10 @@ be checked-out to your home directory using the following commands:
 This will create a directory modelE/ in your directory. The code will
 correspond to rel-1.0 - the first release. It will be tagged with your
 own tag name so that your developments can be maintained by CVS, without
-conflicting with the main development branch. 
+conflicting with the main development branch.
 
-Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov' 
-by sending a message to Majordomo@giss.nasa.gov with a line 
+Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov'
+by sending a message to Majordomo@giss.nasa.gov with a line
 
 SUBSCRIBE giss-gcm-users-l
 
@@ -119,7 +119,7 @@ etc.). Most of the specifics have been automated using 'gmake'.
 
 The sub-directory 'decks' is the main control directory, most commands
 will be issued in this directory. Typing 'gmake' will produce some
-documentation. 
+documentation.
 
 There are three sample rundecks: E001.R, E001A.R and E001B.R. These
 represent a standard fixed SST atmosphere only run, a Qflux run and a
@@ -153,44 +153,57 @@ specified length of time.
 
 3) HOW-TO set rundeck parameters
 
-   3a: How to set and alter NAMELIST parameters
-       Namelist parameters take the default values unless they are
-       specified in the rundeck between the lines &INPUTZ and &END .
+    There are 2 types of parameters that may be set in the rundeck:
+    DATA BASE (dp) parameters and NAME LIST (nl) parameters
+    The dp-params are set between &&PARAMETERS and &&END_PARAMETERS
+    The nl-params are set between  &INPUTZ     and  &END
 
-       To start a run, the following parameters HAVE to be explicitly
-       set: ISTART=2 | 7 or 8 to start from obs | model Initial State
-            PLTOP(L) = pressure (mb) at top of layer L (L=1,...,LM)
-            YEARI    = year in which model starts
-            YEARE (or IHOURE) = year (or hour) at which model stops
+    The dp-params are saved in record 3 of the save files (acc,rsf)
+       They are tuning or control parameters.
+    the nl-params are saved in record 1 (ISTART,IRANDI,IYEAR1) or
+       not at all (all others). These others set start and stop
+       date for the run: (YEAR/MONTH/DATE/HOUR)IorE or IHOURE
+       or determine the (debug) printout: KDIAG,IWRITE,...,QCHECK
 
-       After a run is started, some parameters may be changed during
-       the run:      1:    edit the file 'I' in the run directory,
-                     2:    stop and restart the run,
-                     3:    re-edit I to ready it for the next restart
-       (If the change affects the results, attach a log of all such    
+    When a run starts, parameters not set in the rundeck take their
+    default values. On restarts, YEAR/MONTH/DATE/HOURI are ignored;
+    all other parameters are determined first by the rundeck, then
+    by the restart file if they were saved, else use the defaults.
+    So the priorities are: 1. rundeck, 2. restart file, 3. defaults.
+
+    To start a run, the following parameters HAVE to be explicitly
+    set: ISTART=2 | 7 or 8 to start from obs | model Initial State
+         YEARI    = year in which model starts
+         YEARE (or IHOURE) = year (or hour) at which model stops
+
+    To change parameters after a run was started, do the following:
+         1:    edit the file 'I' in the run directory,
+         2:    stop and restart the run,
+         3:    re-edit I to ready it for the next restart
+       (If the change affects the results, attach a log of all such
         changes to the end of the rundeck)
 
        For a list and explanation of all parameters see
-          /u/exec/docE/NLparams.txt.
+          /u/exec/docE/params.txt.
 
-   3b: How to use NAMELIST parameters to control numerical instabilities
+   3b: How to use parameters to control numerical instabilities
        Parameter   affects:                   depends on:
        DT          stability at poles         hor. resolution, AVRX
        NIsurf      stability at the surface   vert.resolution near surf
        XcdLM       stability at the top       model top pressure PMTOP
        M/NFILTR    checker board patterns     dynamics scheme
 
-   3c: How to use IRAND to create an ensemble of runs
-       If ISTART<9 and IRAND<0, all atmospheric initial temperatures 
+   3c: How to use IRANDI to create an ensemble of runs
+       If ISTART<10 and IRANDI/=0, all atmospheric initial temperatures
        are randomly perturbed by at most 1C . The perturbations depend
-       on the value of IRAND (since -IRAND is used as the first seed).
-       After the perturbations, IRAND is reset to its default 123456789.
+       on the value of IRANDI.
        So to create an ensemble of N runs whose only difference is the
-       initial state they start up from, pick N (odd) negative numbers
-       and create N copies of the rundeck that only differ in the runID
-       and the value set for IRAND. Make sure, IRAND is set on the SAME
-       LINE as ISTART, so that IRAND=-.... is not kept in the 'I'-file
-       and used in restarts.
+       initial state they start up from, pick N (odd) numbers and
+       create N copies of the rundeck that only differ in the runID and
+       the value set for IRANDI.
+       It is good practice to put IRANDI on the same line as ISTART
+       so it will not affect later extensions or reruns, since it is
+       then automatically removed from the file 'I'.
 
    1b: How to TUNE a specified ocean run (using U00wtr)
        It is desirable to run a specified ocean model in such a way that
@@ -203,7 +216,7 @@ specified length of time.
 
        Run the model for a year and find the annual mean net heating at
        the ground (budget page). That quantity may change from year to
-       year within 1/2 W/m2 . Increasing U00wtr by .01 increases that
+       year within .5 W/m2 . Increasing U00wtr by .01 increases that
        quantity by about .3 W/m2 . Rerun that year with a new value of
        U00wtr hoping that the annual mean net heating at the ground
        averages out to less than .3 W/m2 in absolute value over the next
@@ -237,80 +250,80 @@ specified length of time.
        The model is said to be in balance as soon as that happens.
 
 
-       To run the Q-flux model it is necessary to supply the implied 
-       horizontal heat transports and proper initial condition as 
-       input files. To calculate the horizontal ocean heat transports 
-       it is necessary to run the model with prescribed ocean mixed 
-       layer temperature and sea ice extent for 5-6 years. It is 
+       To run the Q-flux model it is necessary to supply the implied
+       horizontal heat transports and proper initial condition as
+       input files. To calculate the horizontal ocean heat transports
+       it is necessary to run the model with prescribed ocean mixed
+       layer temperature and sea ice extent for 5-6 years. It is
        desirable to have this control run well balanced (Net Heat at
-       z0 is supposed to be close to 0 for annual mean. This Net  
-       Heat at z0 can be found on the first budget page for the global 
-       quantities. To get the balanced control run, you can adjust 
+       z0 is supposed to be close to 0 for annual mean. This Net
+       Heat at z0 can be found on the first budget page for the global
+       quantities. To get the balanced control run, you can adjust
        U00wtr (see 1b). In your control run-decks, you have to have
-       Kvflxo=1. Then the model will save the data for the heat 
-       tansport.  
-       	    
-       For the ocean heat transport calculation, it is necessary to 
-       skip the first year of this control run because of the spin-up 
-       of the atmosphere. For this calculation you need to do next 
-       (suppose your control run is RunIDcontrol): 
-       	    
-       (a) go to your ../modelE/decks directory and do 
-       	   gmake aux RUN=RunIDcontrol. This will create executables 
-       	   for the ocean heat transport calculation and it will put 
-       	   them to the directory ../modelE/decks/RunIDcontrol_bin. 
-       	    
-       (b) go to your ../modelE/aux directory and 
-       	    
-       	   (1) do a symbolic link of the restart file of your control 
-       	       run, which you would like to use as a start-up for your 
-       	       Q-flux model, to fort.1 (Usually this restart is the last 
-       	       December restart file of the control run. But someone 
-       	       might want to start the Q-flux model Dec. 1 in order to 
-       	       have the complete December-January-February season, then 
-       	       you would need to link the last year November restart file
-       	       to fort.1. It is really up to you which restart you choose 
-       	       for your Q-flux start-up).
-       	    
-       	   (2) do mkOTSPEC.E001.M250D RunIDcontrol first_month first_year 
-       	       last_month last_year, 
-       	       where first_month and first_year are the first month and 
-       	       the first year of your control run you start the ocean heat 
-       	       transport calculation, last_month and last_year are the 
-       	       last month and the last year of your control run you end up 
-       	       the transport calculation. 
-       	       Usually first_month=1, first_year=1951, last_month=12, 
-       	       last_year=1955 if you did run your control model for 6 years 
-       	       starting Jan.1 1950. 
-       	    
-       After this you will get two files which you will use as unput data 
-       for your Q-flux model: 
-       1. OTSPEC.RRunIDcontrol.M250D.first_year-last_year 
-       	  This file is the implied ocean heat transport data. In your 
-       	  Q-flux run-deck the input file OHT has to have this name, in 
-       	  other words OHT=OTSPEC.RRunIDcontrol.M250D.first_year-last_year.
-       	  You have to move this file to /u/cmrun directory.  
-       2. IMJAN.RunIDcontrol.O250D is the corrected restart for your 
-       	  Q-flux model. This restart is basicly is the same restart as your 
-       	  control model restart but it also has corrected temperatures of 
-       	  the ocean which were not used in the control run. These
-       	  temperatures are the temperature between the mixed layer and the 
-       	  annual maximal mixed layer depths (TOCEAN(2,im,jm)) and the 
-       	  temperature at annual maximal mixed layer depth (TOCEAN(3,im,jm)).
-       	  You have to specify AIC=IMJAN.RunIDcontrol.O250D in your Q-flux 
-       	  run-deck. You have to move this file to /u/cmrun directory as well. 
-       	    
-       In your Q-flux model run-decks, you have to 
-       	  (1) specify KOCEAN=1; 
-       	  (2) make sure that U00wtr and U00ice are the same as in you 
-       	      control run. Then your Q-flux model will be as well balanced 
-       	      as your control run. 
-       	    
+       Kvflxo=1. Then the model will save the data for the heat
+       tansport.
+
+       For the ocean heat transport calculation, it is necessary to
+       skip the first year of this control run because of the spin-up
+       of the atmosphere. For this calculation you need to do next
+       (suppose your control run is RunIDcontrol):
+
+       (a) go to your ../modelE/decks directory and do
+           gmake aux RUN=RunIDcontrol. This will create executables
+           for the ocean heat transport calculation and it will put
+           them to the directory ../modelE/decks/RunIDcontrol_bin.
+
+       (b) go to your ../modelE/aux directory and
+
+           (1) do a symbolic link of the restart file of your control
+               run, which you would like to use as a start-up for your
+               Q-flux model, to fort.1 (Usually this restart is the last
+               December restart file of the control run. But someone
+               might want to start the Q-flux model Dec. 1 in order to
+               have the complete December-January-February season, then
+               you would need to link the last year November restart file
+               to fort.1. It is really up to you which restart you choose
+               for your Q-flux start-up).
+
+           (2) do mkOTSPEC.E001.M250D RunIDcontrol first_month first_year
+               last_month last_year,
+               where first_month and first_year are the first month and
+               the first year of your control run you start the ocean heat
+               transport calculation, last_month and last_year are the
+               last month and the last year of your control run you end up
+               the transport calculation.
+               Usually first_month=1, first_year=1951, last_month=12,
+               last_year=1955 if you did run your control model for 6 years
+               starting Jan.1 1950.
+
+       After this you will get two files which you will use as unput data
+       for your Q-flux model:
+       1. OTSPEC.RRunIDcontrol.M250D.first_year-last_year
+          This file is the implied ocean heat transport data. In your
+          Q-flux run-deck the input file OHT has to have this name, in
+          other words OHT=OTSPEC.RRunIDcontrol.M250D.first_year-last_year.
+          You have to move this file to /u/cmrun directory.
+       2. IMJAN.RunIDcontrol.O250D is the corrected restart for your
+          Q-flux model. This restart is basicly is the same restart as your
+          control model restart but it also has corrected temperatures of
+          the ocean which were not used in the control run. These
+          temperatures are the temperature between the mixed layer and the
+          annual maximal mixed layer depths (TOCEAN(2,im,jm)) and the
+          temperature at annual maximal mixed layer depth (TOCEAN(3,im,jm)).
+          You have to specify AIC=IMJAN.RunIDcontrol.O250D in your Q-flux
+          run-deck. You have to move this file to /u/cmrun directory as well.
+
+       In your Q-flux model run-decks, you have to
+          (1) specify KOCEAN=1;
+          (2) make sure that U00wtr and U00ice are the same as in you
+              control run. Then your Q-flux model will be as well balanced
+              as your control run.
+
        P.S. In your ../modelE/aux directory you will also get the line-plot
-       	    file ohtRunIDcontrol.first_year-last_year.lpl which you can plot 
-       	    and compare with observational data if you like. 
-       	    You will also get few PRT files which you can remove. And you 
-       	    can remove the symbolic link for fort.1. 
+            file ohtRunIDcontrol.first_year-last_year.lpl which you can plot
+            and compare with observational data if you like.
+            You will also get few PRT files which you can remove. And you
+            can remove the symbolic link for fort.1.
 
 
    1d: How to set up a Q-flux model with diffusion into a deep ocean
@@ -320,7 +333,7 @@ specified length of time.
 
 4) HOW-TO stop and restart the GCM
 
-Use the command 'sswB E001xyz' to stop the model run in a controlled
+Use the command 'ssw E001xyz' to stop the model run in a controlled
 fashion. Restart it with the command 'run E001xyz'.
 
 5) HOW-TO change boundary conditions
@@ -338,7 +351,7 @@ fashion. Restart it with the command 'run E001xyz'.
 There is a mailing list 'giss-gcm-users-l@giss.nasa.gov' where queries,
 problems and comments on the gcm can be aired. Sending a message here
 is probably more likely to get a quick response than emailing any one
-person. 
+person.
 Subscribe to this by sending a message to Majordomo@giss.nasa.gov with
 a line "SUBSCRIBE giss-gcm-users-l" in the body of the text.
 
@@ -354,9 +367,9 @@ instructions will be given at the time.
 13) HOW-TO add to this documentation
 
 This documentation is part of the model code, and so changes to files
-in the modelE/doc directory can be uploaded to the main repository. 
+in the modelE/doc directory can be uploaded to the main repository.
 Please contact one of the developers if you have some changes that you
-would like to commit. 
+would like to commit.
 
 Part II: Getting information from the diagnostics
 
@@ -587,4 +600,4 @@ how to do it! Instead, please discuss it with one of the development
 team. If you wish to make a lot of changes and be part of the ongoing
 development of modelE, then please read the file
 http://www.giss.nasa.gov/~gavin/gcm_develop.html and then come and
-talk to me (gavin@giss.nasa.gov). 
+talk to me (gavin@giss.nasa.gov).
