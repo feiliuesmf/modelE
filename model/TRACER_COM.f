@@ -208,7 +208,7 @@ C****
       integer, dimension(ntm) :: ntsurfsrc 
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_SPECIAL_Shindell)
-      integer, parameter :: nt3Dsrcmax=9
+      integer, parameter :: nt3Dsrcmax=5
 #else
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: nt3Dsrcmax=4
