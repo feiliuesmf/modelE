@@ -108,10 +108,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
       INTEGER ijts_isrc(ntsurfsrcmax,ntm)
-#ifdef TRACERS_AEROSOLS_Koch
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(ntm)
-#endif
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
       INTEGER ijts_fc(2,ntm)
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
