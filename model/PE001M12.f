@@ -869,7 +869,6 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       COMMON/WORK2c/ TOTCLD(LM)
 
       DIMENSION COE(LM+3)
-      LOGICAL POLE
 
       DATA TCIR/258.16/,STBO/.567257D-7/,IFIRST/1/,JDLAST/-9/
 C****
@@ -959,20 +958,17 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
          WRITE (6,47) LLOW,LMID1,LMID,LHI1,LHI
    47    FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
-C**** NO RADIATION AVERAGING          IJRA=1   JRA=1   IRA=1
-C**** RADIATION AVERAGING IN I             2       1       2
-C**** RADIATION AVERAGING IN I AND J       4       2       2
-      IF(IJRA.NE.1) STOP 'FSF not ready for radiation averaging'
-      JRA=(IJRA+2)/3
-      IRA=IJRA/JRA
-   50 JALTER=MOD(NSTEP,NRAD*JRA)/NRAD
-      IALTER=MOD(NSTEP,NRAD*IJRA)/(NRAD*JRA)
-C**** CALCULATE AVERAGE COSINE OF ZENITH ANGLE FOR CURRENT COMP3 STEP
-C****   AND RADIATION PERIOD
+C**** Calculate mean cosine of zenith angle for the current physics step
+   50 CONTINUE
       ROT1=TWOPI*TOFDAY/24.
       ROT2=ROT1+TWOPI*DTCNDS/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
-      IF (MODRD.NE.0) GO TO 840
+         IHOUR=1.5+TOFDAY
+      IF (MODRD.NE.0) GO TO 900
+C****
+C**** Interface with radiation routines, done only every NRAD time steps
+C****
+C**** Calculate mean cosine of zenith angle for the full radiation step
       ROT2=ROT1+TWOPI*NRAD*DT/SDAY
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
 C****
@@ -983,30 +979,17 @@ C****
       IF(JDAY.NE.JDLAST) CALL RCOMPT
       S0=S0X*S00WM2*RATLS0/RSDIST
       JDLAST=JDAY
-         IHOUR=1.5+TOFDAY
 C****
 C**** MAIN J LOOP
 C****
       DO 600 J=1,JM
-      IF ((J-1)*(JM-J).NE.0) GO TO 140
-C**** CONDITIONS AT THE POLES
-      POLE=.TRUE.
-      MODRJ=0
-      IMAX=1
-      GO TO 160
-C**** CONDITIONS AT NON-POLAR POINTS
-  140 POLE=.FALSE.
-      MODRJ=MOD(J+JALTER,JRA)
-      IMAX=IM
-  160 CONTINUE
-      JLAT=NINT(1.+(J-1.)*45./(JM-1.))
+      IMAX=IMAXJ(J) 
+      JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
 C****
       IM1=IM
       DO 500 I=1,IMAX
-      MODRIJ=MODRJ+MOD(I+IALTER,IRA)
-      IF (POLE) MODRIJ=0
          JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
@@ -1023,7 +1006,6 @@ C****
          CSS=0.
          CMC=0.
          DEPTH=0.
-CF       LTOP=0
       DO 240 L=1,LM
       IF(L.EQ.LS1)  PIJ=PSF-PTOP
       QSS=Q(I,J,L)/(RHSAV(I,J,L)+1.D-20)
@@ -1045,12 +1027,10 @@ CF       LTOP=0
          CSS=1.
          AJL(J,L,28)=AJL(J,L,28)+CSS
          TOTCLD(L)=1.
-CF       LTOP=L
   220 IF (CLDMC(I,J,L).LT.RANDMC.OR.TAUMC(I,J,L).LE.0.) GO TO 230
          CMC=1.
          AJL(J,L,29)=AJL(J,L,29)+CMC
          TOTCLD(L)=1.
-CF       LTOP=L
          DEPTH=DEPTH+PIJ*DSIG(L)
       IF(TAUMC(I,J,L).LE.TAUSSL) GO TO 230
       TAUMCL=TAUMC(I,J,L)
@@ -1144,7 +1124,7 @@ CF       LTOP=L
             END IF
          END DO
 C****
-  300 IF (MODRIJ.NE.0) GO TO 500
+  300 CONTINUE
 C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
@@ -1224,102 +1204,13 @@ C-OLD FGOLDU(3)=XFRADJ*PEARTH
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
-      IF (MODRJ.GT.IRA-2) GO TO 600
-      IF (POLE) GO TO 600
-C**** AVERAGING RADIATION NUMBERS AT ROW J AND EVERY OTHER COLUMN IN I
-      IM1=IM-IALTER
-      I=IM1+1
-      IF (I.GT.IM) I=1
-      IP11=2-IALTER
-      DO 580 IP1=IP11,IM,2
-         JR=JREG(I,J)
-      SUMSR=0.
-      SUMTR=0.
-      DO 520 L=2,LS1-1
-      SRHR(I,J,L)=P(I,J)*.5*(SRHR(IM1,J,L)/P(IM1,J)+
-     *  SRHR(IP1,J,L)/P(IP1,J))
-      SUMSR=SUMSR+SRHR(I,J,L)
-      TRHR(I,J,L)=P(I,J)*.5*(TRHR(IM1,J,L)/P(IM1,J)+
-     *  TRHR(IP1,J,L)/P(IP1,J))
-  520 SUMTR=SUMTR+TRHR(I,J,L)
-      DO 525 L=LS1,LM+1
-      SRHR(I,J,L)=.5*(SRHR(IM1,J,L)+SRHR(IP1,J,L))
-      SUMSR=SUMSR+SRHR(I,J,L)
-      TRHR(I,J,L)=.5*(TRHR(IM1,J,L)+TRHR(IP1,J,L))
-  525 SUMTR=SUMTR+TRHR(I,J,L)
-      DO 530 LR=1,3
-C     CORRECTION FOR THE RESTART OF RUN A05 W9 AT YEAR 51
-      SRHRS(I,J,LR)=.5*(SRHRS(IM1,J,LR)+SRHRS(IP1,J,LR))
-  530 TRHRS(I,J,LR)=.5*(TRHRS(IM1,J,LR)+TRHRS(IP1,J,LR))
-         DENOM=1./(COSZ2(IM1,J)+COSZ2(IP1,J)+1.D-20)
-         DO 540 K=1,9
-  540    ALB(I,J,K)=(ALB(IM1,J,K)*COSZ2(IM1,J)+ALB(IP1,J,K)
-     *     *COSZ2(IP1,J))*DENOM
-      DTR=SUMTR+.5*(TNFS(IM1,J,1)+TNFS(IP1,J,1))
-      DO 560 K=1,4
-      SNFS(I,J,K)=.5*(SNFS(IM1,J,K)+SNFS(IP1,J,K))
-  560 TNFS(I,J,K)=.5*(TNFS(IM1,J,K)+TNFS(IP1,J,K))-DTR
-      SRHR(I,J,1)=SNFS(I,J,1)-SUMSR
-      TRHR(I,J,1)=.5*(TRHR(IM1,J,1)+TRHR(IP1,J,1))
-         TRINCG(I,J)=.5*(TRINCG(IM1,J)+TRINCG(IP1,J))
-         BTMPW(I,J)=.5*(BTMPW(IM1,J)+BTMPW(IP1,J))
-      IM1=IP1
-  580 I=IM1+1
   600 CONTINUE
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
-      IF (JRA.LE.1) GO TO 700
-C**** AVERAGING RADIATION NUMBERS AT EVERY OTHER ROW IN J
-      LMT2P2=LM*2+2
-      DO 620 K=1,LMT2P2
-      DO 620 I=2,IM
-      SRHR(I,1,K)=SRHR(1,1,K)
-  620 SRHR(I,JM,K)=SRHR(1,JM,K)
-      DO 640 K=1,14
-      DO 640 I=2,IM
-      SNFS(I,1,K)=SNFS(1,1,K)
-  640 SNFS(I,JM,K)=SNFS(1,JM,K)
-      J1=3-JALTER
-      DO 690 J=J1,JM-1,2
-      JP1=J+1
-      JM1=J-1
-      DO 690 I=1,IM
-         JR=JREG(I,J)
-      SUMSR=0.
-      SUMTR=0.
-      DO 660 L=2,LS1-1
-      SRHR(I,J,L)=P(I,J)*.5*(SRHR(I,JP1,L)/P(I,JP1)+
-     *  SRHR(I,JM1,L)/P(I,JM1))
-      SUMSR=SUMSR+SRHR(I,J,L)
-      TRHR(I,J,L)=P(I,J)*.5*(TRHR(I,JP1,L)/P(I,JP1)+
-     *  TRHR(I,JM1,L)/P(I,JM1))
-  660 SUMTR=SUMTR+TRHR(I,J,L)
-      DO 664 L=LS1,LM+1
-      SRHR(I,J,L)=.5*(SRHR(I,JP1,L)+SRHR(I,JM1,L))
-      SUMSR=SUMSR+SRHR(I,J,L)
-      TRHR(I,J,L)=.5*(TRHR(I,JP1,L)+TRHR(I,JM1,L))
-  664 SUMTR=SUMTR+TRHR(I,J,L)
-      DO 665 LR=1,3
-      SRHRS(I,J,LR)=.5*(SRHRS(I,JP1,LR)+SRHRS(I,JM1,LR))
-  665 TRHRS(I,J,LR)=.5*(TRHRS(I,JP1,LR)+TRHRS(I,JM1,LR))
-         DENOM=1./(COSZ2(I,JP1)+COSZ2(I,JM1)+1.D-20)
-         DO 670 K=1,9
-  670    ALB(I,J,K)=(ALB(I,JP1,K)*COSZ2(I,JP1)+ALB(I,JM1,K)*
-     *     COSZ2(I,JM1))*DENOM
-      DTR=SUMTR+.5*(TNFS(I,JP1,1)+TNFS(I,JM1,1))
-      DO 680 K=1,4
-      SNFS(I,J,K)=.5*(SNFS(I,JP1,K)+SNFS(I,JM1,K))
-  680 TNFS(I,J,K)=.5*(TNFS(I,JP1,K)+TNFS(I,JM1,K))-DTR
-      SRHR(I,J,1)=SNFS(I,J,1)-SUMSR
-      TRHR(I,J,1)=.5*(TRHR(I,JP1,1)+TRHR(I,JM1,1))
-         TRINCG(I,J)=.5*(TRINCG(I,JP1)+TRINCG(I,JM1))
-         BTMPW(I,J)=.5*(BTMPW(I,JP1)+BTMPW(I,JM1))
-  690 CONTINUE
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
-  700 CONTINUE
          DO 780 J=1,JM
          DXYPJ=DXYP(J)
          IMAX=IMAXJ(J)
@@ -1429,7 +1320,7 @@ C****
   790    AIL(I,L,15)=AIL(I,L,15)+(SRHR(I,J70N,L+1)*COSZ2(I,J70N)+
      *     TRHR(I,J70N,L+1))*DXYP(J70N)
 C****
-C**** UPDATE THE TEMPERATURES BY RADIATION
+C**** Update radiative equilibrium temperatures
 C****
       DO LR=1,3
          DO J=1,JM
@@ -1440,7 +1331,10 @@ C****
             END DO
          END DO
       END DO
-  840 DO L=1,LS1-1
+C****
+C**** Update other temperatures every physics time step
+C****
+  900 DO L=1,LS1-1
          DO J=1,JM
             IMAX=IMAXJ(J)
             DO I=1,IMAX
