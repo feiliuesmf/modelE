@@ -193,8 +193,7 @@ C       VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-
-      IMPLICIT REAL*8(A-H,O-Z)
+      IMPLICIT NONE
 
 C-----------------------------------------
 C     Grid parameters: Vertical resolution
@@ -260,38 +259,44 @@ C----------------
       integer :: LASTVC=-123456  ! for OFF-line use only (set_io)
 
 !@var COSZ          cosine of zenith angle  (1)
+      real*8 cosz
 !@var JLAT,ILON     lat,lon index  w.r.to 72x46 lon-lat grid
 !@var NL,NLP        number of rad. model layers, layer edges (NLP=NL+1)
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
+      integer   :: JLAT,ILON,NL,NLP, LS1_loc
 !@var JYEAR,JDAY    current year, Julian date
-         integer :: JYEAR=1980, JDAY=1
-
+      integer :: JYEAR=1980, JDAY=1
 !@var PLB           layer pressure (mb) at bottom of layer
 !@var HLB           height (km) at bottom of layer - currently NOT Used
 !@var TLm           mean layer temperature (K)
 !@var TLb,TLt       bottom,top layer temperature (K) - computed from TLm
 !@+                 except if TLGRAD<0 ; TLGRAD,PTLISO control T-profile
+      real*8 :: PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)
 !@var       TLGRAD     0<TLGRAD<1 controls T-profile within a layer, but
 !@var       PTLISO     tlt=tlb=tlm above PTLISO mb independent of TLGRAD
-          real*8 :: TLGRAD=1.,  PTLISO=2.5d0             ! control param
+      real*8 :: TLGRAD=1.,  PTLISO=2.5d0 ! control param
 
 !@var ULGAS,U0GAS   gas amounts: curr.,ref.values (cm atm) (get/setgas)
 !@var TAUWC,TAUIC   opt.depth of water,ice cloud layer (1)
 !@var SIZEWC,SIZEIC particle size of water,ice clouds (micron)
 !@var CLDEPS        cloud heterogeneity; is computed using KCLDEP,EPSCON
+      real*8 :: ULGAS(LX,13),TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX)
+     *     ,CLDEPS(LX)
 !@var       EPSCON  cldeps=EPSCON if KCLDEP=1
 !@var       KCLDEP  KCLDEP=0->CLDEPS=0, 1->=EPSCON, 2->as is, 3,4->isccp
-          real*8 :: EPSCON=0. ; integer :: KCLDEP=4      ! control param
+      real*8 :: EPSCON=0. ; integer :: KCLDEP=4 ! control param
 
 !@var SHL,RHL       layer specific,relative humidity (1)
+      real*8 :: SHL(LX),RHL(LX)
 !@var       KEEPRH  if 0, RHL is computed from SHL, else SHL from RHL
-         integer :: KEEPRH=0                             ! control param
+      integer :: KEEPRH=0       ! control param
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
+      real*8 :: SRBALB(15),SRXALB(15)
 !@var       KEEPAL  if 0, SRBALB,SRXALB are computed in SET/GETSUR
-         integer :: KEEPAL=0                             ! control param
+      integer :: KEEPAL=0       ! control param
 !@dbparm    KSIALB  sea ice albedo computation flag: 0=Hansen 1=Lacis
-         integer :: KSIALB=0
+      integer :: KSIALB=0
 !@var PVT           frac. of surf.type (bareWhite+veg*8+bareDark+ocn)(1)
 !@var AGESN         age of snow    (over soil,oice,land ice) (days)
 !@var SNOWE,SNOWLI  amount of snow (over soil,land ice)   (kg/m^2)
@@ -306,6 +311,8 @@ C----------------
 !@var TGO           top layer water temperature (K) of ocean/lake
 !@var TGE,TGOI,TGLI top layer ground temperature (K) soil,seaice,landice
 !@var TSL           surface air temperature (K)
+      real*8 PVT(11),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
+     *     ,PEARTH,POICE,PLICE,PLAKE,TGO,TGE,TGOI,TGLI,TSL
 !@var KZSNOW        =1 for snow/ice albedo zenith angle dependence
       integer :: KZSNOW=1
 !     Additional info for Schramm/Schmidt/Hansen sea ice albedo KSIALB=1
@@ -319,24 +326,24 @@ C----------------
 !@var snoage_fac_max  max snow age reducing-factor for sea ice albedo
       REAL*8 :: snoage_fac_max=.5d0
 
-      REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake ! etc,etc
-      integer   :: JLAT,ILON,NL,NLP, LS1_loc
+      REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
+      real*8    :: TRACER(LX,8)  ! ??? defn
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
-     A              PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX),ULGAS(LX,13)
-     B             ,TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX),CLDEPS(LX)
-     C             ,SHL(LX),RHL(LX),TRACER(LX,8),SRBALB(15),SRXALB(15)
-     D             ,PVT(11),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
+     A              PLB,HLB,TLB,TLT,TLM,ULGAS
+     B             ,TAUWC,TAUIC,SIZEWC,SIZEIC,CLDEPS
+     C             ,SHL,RHL,TRACER,SRBALB,SRXALB
+     D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,TGO,TGE,TGOI,TGLI,TSL,COSZ
-     X             ,zsnwoi,zoice,zmp,fmp,snow_frac(2),zlake, PLAKE
+     X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake, PLAKE
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
 !$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
 C     array with local and global entries: repeat this section in driver
-      REAL*8 U0GAS
-      COMMON/RADPAR_hybrid/U0GAS(LX,13)
+      REAL*8 U0GAS(LX,13)
+      COMMON/RADPAR_hybrid/U0GAS
 !$OMP THREADPRIVATE(/RADPAR_hybrid/)
 C     end of section to be repeated in driver (needed for 'copyin')
 
@@ -353,25 +360,37 @@ C--------------------------------------------------------
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var O3_OUT column variable for exporting ozone field to rest of model
 
-      real*8  :: TRDFLB,TRUFLB,TRNFLB ! etc,etc
-     &           ,O3_OUT
-      integer :: LBOTCL,LTOPCL
-
-      COMMON/RADPAR_OUTPUT_IJDATA/
-     A              TRDFLB(LX),TRUFLB(LX),TRNFLB(LX),TRFCRL(LX)
-     B             ,SRDFLB(LX),SRUFLB(LX),SRNFLB(LX),SRFHRL(LX)
-     C             ,SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,SRXATM(4)
-     D             ,SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,FSRNFG(4)
-     E             ,SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,FTRUFG(4)
-     F             ,TRDFGW,TRUFGW,TRUFTW,BTEMPW,DTRUFG(4)
-     G             ,WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3),SRKINC(16)
-     I             ,SRKALB(16),SRKGAX(16,4),SRKGAD(16,4),SKDFLB(LX,17)
-     J             ,SKUFLB(LX,17),SKNFLB(LX,17),SKFHRL(LX,17)
+      real*8, dimension(lx) :: TRDFLB,TRUFLB,TRNFLB,TRFCRL,
+     *     SRDFLB,SRUFLB,SRNFLB,SRFHRL,O3_OUT
+      real*8 :: SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
+     *     SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
+     *     SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,TRDFGW,
+     *     TRUFGW,TRUFTW,BTEMPW,SRXVIS,SRXNIR
+      real*8, dimension(4) :: SRXATM,FSRNFG,FTRUFG,DTRUFG
+      real*8 :: WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3),SRKINC(16),
+     *     SRKALB(16),SRKGAX(16,4),SRKGAD(16,4),SKDFLB(LX,17),
+     *     SKUFLB(LX,17),SKNFLB(LX,17),SKFHRL(LX,17)
 !sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
 !nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
-     L             ,LBOTCL,LTOPCL
-     M             ,O3_OUT(LX)
+
+      integer :: LBOTCL,LTOPCL
+
+      COMMON/RADPAR_OUTPUT_IJDATA/
+     A              TRDFLB,TRUFLB,TRNFLB,TRFCRL
+     B             ,SRDFLB,SRUFLB,SRNFLB,SRFHRL
+     C             ,SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,SRXATM
+     D             ,SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,FSRNFG
+     E             ,SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR,FTRUFG
+     F             ,TRDFGW,TRUFGW,TRUFTW,BTEMPW,DTRUFG
+     G             ,WINDZF,WINDZT,TOTLZF,TOTLZT,SRKINC
+     I             ,SRKALB,SRKGAX,SRKGAD,SKDFLB
+     J             ,SKUFLB,SKNFLB,SKFHRL
+!sl  K             ,FTAUSL,TAUSL    ! input rather than output ?
+!nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
+!sl  K             ,TRSLTS,TRSLTG,TRSLBS
+     K             ,O3_OUT
+     L             ,LBOTCL,LTOPCL   ! integers last for alignment
 !$OMP  THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
       EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
@@ -380,32 +399,51 @@ C----------------   scratch pad for temporary arrays that are passed to
 C     Work arrays - other routines while working on a lat/lon point; but
 C----------------   in multi-cpu mode, each cpu needs its own copy !!
 
+      real*8, dimension(LX,6) ::
+     *     SRAEXT,SRASCT,SRAGCB,SRBEXT,SRBSCT,SRBGCB,
+     *     SRDEXT,SRDSCT,SRDGCB,SRVEXT,SRVSCT,SRVGCB,
+     *     SRCEXT,SRCSCT,SRCGCB,DBLEXT,DBLSCT,DBLGCB,DBLPI0,SRCPI0,
+     *     QAERO,SAERO,CAERO,QDUST,SDUST,CDUST
+      real*8, dimension(LX,33) :: TRCALK,TRAALK,TRBALK,TRTAUK,TRDALK
+     *     ,TRVALK,TRGXLK,DFLB,UFLB,WFLB,AAERO,ADUST
+      real*8, dimension(33) :: TRCTCA,DFSL,UFSL,WFSL,CLPI0,TXCTPG,TSCTPG
+     *     ,TGCTPG,AVH2S
+      real*8, dimension(LX) :: PL,DPL,TRGALB,BGFEMT,BGFEMD,WTLB,WTLT
+     *     ,ENA,ENB,ENC,TRA,TRB,TRC,AERX1,AERS1,AERG1,TRAXNL,AERX2,AERS2
+     *     ,AERG2,UGAS0,UGASR,RNB,RNX,TNB,TNX,XNB,XNX,SRB,SRX,VRU,VRD
+     *     ,FAC,DNA,DNB,DNC,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X,O2FHRB,AO3D
+     *     ,AO3U,HTPROF
+      real*8 :: UXGAS(LX,9),TAUN(33*LX),BXA(7),PRNB(6,4),PRNX(6,4)
+     *     ,Q55H2S,RIJTCK(6,33),FDXTCK(3,33),ALBTCK(3,33),FEMTCK(3,33)
+     *     ,QVH2S(6),SVH2S(6),GVH2S(6),XTRU(LX,4),XTRD(LX,4)
+      integer, dimension(LX) :: ITLB,ITLT
+
       COMMON/WORKDATA/          !          Temp data generated by RCOMPX
-     A              SRAEXT(LX,6),SRASCT(LX,6),SRAGCB(LX,6),TRCALK(LX,33)
-     B             ,SRBEXT(LX,6),SRBSCT(LX,6),SRBGCB(LX,6),TRAALK(LX,33)
-     C             ,SRDEXT(LX,6),SRDSCT(LX,6),SRDGCB(LX,6),TRBALK(LX,33)
-     D             ,SRVEXT(LX,6),SRVSCT(LX,6),SRVGCB(LX,6),TRTAUK(LX,33)
-     E             ,DBLEXT(LX,6),DBLSCT(LX,6),DBLGCB(LX,6),DBLPI0(LX,6)
-     F             ,SRCEXT(LX,6),SRCSCT(LX,6),SRCGCB(LX,6),SRCPI0(LX,6)
-     G             ,TRDALK(LX,33),TRVALK(LX,33),TRGXLK(LX,33),TRCTCA(33)
-     H             ,DFLB(LX,33),UFLB(LX,33),WFLB(LX,33),PL(LX),DPL(LX)
-     I             ,TRGALB(LX),BGFEMT(LX),BGFEMD(LX),WTLB(LX),WTLT(LX)
-     J             ,ENA(LX),ENB(LX),ENC(LX),TRA(LX),TRB(LX),TRC(LX)
-     K             ,DFSL(33),UFSL(33),WFSL(33),ITLB(LX),ITLT(LX)
-     L             ,AERX1(LX),AERS1(LX),AERG1(LX),TRAXNL(LX)
-     M             ,AERX2(LX),AERS2(LX),AERG2(LX),UGAS0(LX),UGASR(LX)
-     N             ,RNB(LX),RNX(LX),TNB(LX),TNX(LX),XNB(LX),XNX(LX)
-     O             ,SRB(LX),SRX(LX),VRU(LX),VRD(LX),FAC(LX)
-     P             ,UXGAS(LX,9),TAUN(33*LX),BXA(7),PRNB(6,4),PRNX(6,4)
-     Q             ,DNA(LX),DNB(LX),DNC(LX),Q55H2S
-     R             ,RIJTCK(6,33),FDXTCK(3,33),ALBTCK(3,33),CLPI0(33)
-     S             ,FEMTCK(3,33),TXCTPG(33),TSCTPG(33),TGCTPG(33)
-     T             ,QAERO(LX,6),SAERO(LX,6),CAERO(LX,6),AAERO(LX,33)
-     U             ,QDUST(LX,6),SDUST(LX,6),CDUST(LX,6),ADUST(LX,33)
-     V             ,O2FHRL(LX),SRAXNL(LX),SRASNL(LX),SRAGNL(LX),AO3X(LX)
-     W             ,O2FHRB(LX),AO3D(LX),AO3U(LX)
-     X             ,HTPROF(LX),QVH2S(6),SVH2S(6),GVH2S(6),AVH2S(33)
-     F             ,XTRU(LX,4),XTRD(LX,4)
+     A              SRAEXT,SRASCT,SRAGCB,TRCALK
+     B             ,SRBEXT,SRBSCT,SRBGCB,TRAALK
+     C             ,SRDEXT,SRDSCT,SRDGCB,TRBALK
+     D             ,SRVEXT,SRVSCT,SRVGCB,TRTAUK
+     E             ,DBLEXT,DBLSCT,DBLGCB,DBLPI0
+     F             ,SRCEXT,SRCSCT,SRCGCB,SRCPI0
+     G             ,TRDALK,TRVALK,TRGXLK,TRCTCA
+     H             ,DFLB,UFLB,WFLB,PL,DPL
+     I             ,TRGALB,BGFEMT,BGFEMD,WTLB,WTLT
+     J             ,ENA,ENB,ENC,TRA,TRB,TRC
+     K             ,DFSL,UFSL,WFSL
+     L             ,AERX1,AERS1,AERG1,TRAXNL
+     M             ,AERX2,AERS2,AERG2,UGAS0,UGASR
+     N             ,RNB,RNX,TNB,TNX,XNB,XNX
+     O             ,SRB,SRX,VRU,VRD,FAC
+     P             ,UXGAS,TAUN,BXA,PRNB,PRNX
+     Q             ,DNA,DNB,DNC,Q55H2S
+     R             ,RIJTCK,FDXTCK,ALBTCK,CLPI0
+     S             ,FEMTCK,TXCTPG,TSCTPG,TGCTPG
+     T             ,QAERO,SAERO,CAERO,AAERO
+     U             ,QDUST,SDUST,CDUST,ADUST
+     V             ,O2FHRL,SRAXNL,SRASNL,SRAGNL,AO3X
+     W             ,O2FHRB,AO3D,AO3U
+     X             ,HTPROF,QVH2S,SVH2S,GVH2S,AVH2S
+     F             ,XTRU,XTRD,ITLB,ITLT   ! integers last
 !$OMP  THREADPRIVATE(/WORKDATA/)
 
       real*8 ::                      !  Temp data used by WRITER, WRITET
@@ -518,12 +556,13 @@ C--------------------------------------    have to deal  1 point in time
       real*8  :: X0YBCI=1.d-3,      X0YOCI=1.d-3,      X0YSUI=1.d-3
 
 
-      PARAMETER(NLO3=18) !  number of layers of ozone data files
-      COMMON/O3JCOM/O3JDAY(NLO3,MLON72,MLAT46)
+      INTEGER, PARAMETER :: NLO3=18 !  number of layers of ozone data files
+      real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
+      COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      DIMENSION PLBO3(NLO3+1)
-      DATA PLBO3/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
-     +          55.,35.,20.,10.,3.,1.,0.3,0.1/    ! Current standard PLB
+      REAL*8, DIMENSION(NLO3+1) :: PLBO3 = 
+     *     (/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
+     +     55.,35.,20.,10.,3.,1.,0.3,0.1/) ! Current standard PLB
 
 !@var PLB12L Vert. Layering for tropospheric aerosols/dust (reference)
       real*8, parameter, dimension(13) :: PLB12L=(/
@@ -707,6 +746,8 @@ C                    6      7      8       9      10    11    12    13
 !@+          1: total 2:background 3: AClim? 4:dust 5:volcanic
       real*8, dimension(5) ::  FSXAER=(/1.,1.,1.,1.,1./)
       real*8, dimension(5) ::  FTXAER=(/1.,1.,1.,1.,1./)
+      real*8 FSTAER,FTTAER,FSBAER,FTBAER,FSAAER,FTAAER,FSDAER,FTDAER
+     *     ,FSVAER,FTVAER
       EQUIVALENCE (FSXAER(1),FSTAER),  (FTXAER(1),FTTAER)
       EQUIVALENCE (FSXAER(2),FSBAER),  (FTXAER(2),FTBAER)
       EQUIVALENCE (FSXAER(3),FSAAER),  (FTXAER(3),FTAAER)
@@ -954,8 +995,8 @@ C---------------------
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
-
-      SAVE  IFIRST ! ,NRFN0
+      IMPLICIT NONE
+      INTEGER, SAVE :: IFIRST=1 ! ,NRFN0
       CHARACTER*80 EPSTAG,TITLE
 
       REAL*4 OZONLJ(44,46),R72X46(72,46),VTAUR4(1800,24)
@@ -969,19 +1010,22 @@ c                                                         REFF0= 0.3
 c                                                         VEFF0= 0.35
 C     ------------------------------------------------------------------
 
-      DIMENSION EJMLAT(47),E20LAT(20)
+      REAL*8 :: EJMLAT(47),E20LAT(20)
 
 
 c     NRFUN is now set as an argument from calling routine so that unit
 c     numbers can be set automatically
-      DIMENSION NRFUN(14)
+      INTEGER, DIMENSION(14) :: NRFUN
 C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
 !?    DATA NRFN0/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
 
 C       LPATH1 = Character Length of Path Leader of Input Data File Path
 C       ----------------------------------------------------------------
+      INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
+     *     ,JJDAYG,JYEARG
+      REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUM,EPK,EPL,DEP,SFNORM,D,O,Q,S
+     *     ,OCM,WCM
 
-      DATA IFIRST/1/
 !?    IF(LASTVC.GT.0) NRFUN=NRFN0
       IF(IFIRST.LT.1) GO TO 9999
 
@@ -1721,7 +1765,7 @@ C--------------------------------
       END SUBROUTINE RCOMP1
 
       SUBROUTINE RCOMPT
-
+      IMPLICIT NONE
 
 C-----------------------------------------------------------------------
 C
@@ -1762,6 +1806,8 @@ C     MADGHG   =  1  Default Enables UPDGHG update. (MADGHG=0),no update
 C     MADSUR   =  1          V72X46N.1.cor Vegetation type data   RFILEC
 C                            Z72X46N Ocean fraction, topography   RFILED
 C     ------------------------------------------------------------------
+      INTEGER JJDAYS,JYEARS,JJDAYG,JYEARG,JJDAYO,JYEARO,JJDAYA,JYEARA
+     *     ,JJDAYD,JYEARD,JJDAYV,JYEARV,JJDAYE,JYEARE,JJDAYR,JYEARR      
 
 C                      -------------------------------------------------
 C                      Set Seasonal and Time (JDAY) Dependent Quantities
@@ -1836,7 +1882,7 @@ C----------------------------------------------
       END SUBROUTINE RCOMPT
 
       SUBROUTINE RCOMPX
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
@@ -1906,12 +1952,7 @@ C--------------------------------
       END SUBROUTINE RCOMPX
 
       SUBROUTINE SETSOL(JYEARS,JJDAYS)
-
-
-      DATA LMOREF/0/ ; SAVE LMOREF
-
-
-
+      IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
 C     SETSOL Parameters:
@@ -1993,7 +2034,12 @@ C                NOT Interpolated in Time, but get Updated with Changing
 C                Month, i.e., whenever JDAY/30.5 Reaches Integer Value.)
 C
 C-----------------------------------------------------------------------
-
+      REAL*8, PARAMETER :: CORFAC=1366.2911D0/1366.4487855D0
+      INTEGER, INTENT(IN) :: JYEARS,JJDAYS
+      INTEGER, SAVE :: LMOREF=0
+      INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J
+      REAL*8 FLXSUM,F1FLUX,F2FLUX,F3FLUX,UVNORM,XX,OCM
+     *     ,TAUK,UVWAVA,UVWAVB,AO33
 
       IF(KSOLAR.GE.0) THEN
 C                                           Lean99 Solar Flux, UV Option
@@ -2018,7 +2064,7 @@ C                        CORFAC accounts for DSLEAN units in BLOCK DATA,
 C                        and TSI1/TSI2 normalization of Lean input data.
 C                        -----------------------------------------------
 
-      CORFAC=1366.2911D0/1366.4487855D0
+c     CORFAC=1366.2911D0/1366.4487855D0
       FLXSUM=0.D0
       DO 110 K=1,190
       IF(MADLUV.EQ.0) FLXSUM=FLXSUM+FRLEAN(K)*DSLEAN(K)*CORFAC
@@ -2212,7 +2258,7 @@ C                                         ------------------------------
       END SUBROUTINE SETSOL
 
       SUBROUTINE SETGHG(JYEARG,JJDAYG)
-C
+      IMPLICIT NONE
 C
 C     ---------------------------------------------------------------
 C     SETGHG  Sets Default Greenhouse Gas Reference Year (for FULGAS)
@@ -2223,6 +2269,9 @@ C               Default
 C     KTREND  =   1
 C     Selects   GTREND
 C     ---------------------------------------------------------------
+      INTEGER, INTENT(IN) :: JYEARG,JJDAYG
+      REAL*8 TREF,TNOW
+      INTEGER I
 C
       TREF=JYEARG+(JJDAYG-0.999D0)/366.D0
 C
@@ -2288,36 +2337,32 @@ C
 
 !!!   use RADPAR, only : IM=>MLON72,JM=>MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
-!!!   IMPLICIT REAL*8(A-H,O-Z)
-      parameter         (im=72,jm=46)          ! ??? temporarily
+      IMPLICIT NONE
+      integer, parameter :: im=72,jm=46  ! ??? temporarily
 
 !     In aug2003, 9 decadal files and an ozone trend data file
 !     have been defined using 18-layer PLB pressure levels
 
-      PARAMETER(NFO3x=9) !  max. number of decadal ozone files used
-!!!   PARAMETER(NLO3=18) !  number of layers of ozone data files
-      PARAMETER(IYIO3=1850,IYEO3=2050) ! beg & end year of O3 trend file
-
-      PARAMETER(LMONTR=12*(IYEO3-IYIO3+1)) ! length of O3 trend file
+      integer, PARAMETER ::
+     *     NFO3x=9,      !  max. number of decadal ozone files used
+!!!  *     NLO3=18,      !  number of layers of ozone data files
+     *     IYIO3=1850, IYEO3=2050, ! beg & end year of O3 trend file
+     *     LMONTR=12*(IYEO3-IYIO3+1) ! length of O3 trend file
 
       REAL*4 O3YEAR(MLON72,MLAT46,NLO3,0:12),OTREND(MLAT46,NLO3,LMONTR)
       REAL*4 O3ICMA(im,jm,NLO3,12),O3JCMA(im,jm,NLO3,12),A(im,jm)
-!!!   DIMENSION PLBO3(NLO3+1),LJTTRO(jm)
-      DIMENSION LJTTRO(jm)
+!!!   REAl*8 PLBO3(NLO3+1)
+      INTEGER LJTTRO(jm)
 !!!   COMMON/O3JCOM/O3JDAY(NLO3,im,jm) ! to 'save' & for offline testing
 
 C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
 C     -----------------------------------------------------------------
 
       CHARACTER*80 TITLE
-      CHARACTER*40 DDFILE
-      CHARACTER*40 OTFILE
-      logical qexist, qbinary  ;  data qbinary/.true./
-      DIMENSION DDFILE(NFO3X)
-      DIMENSION IYEAR(NFO3X)
+      logical :: qexist, qbinary=.true.
 
 C**** The data statements below are only used if  MADO3M > -1
-      DATA DDFILE/
+      CHARACTER*40, DIMENSION(NFO3X) :: DDFILE = (/
      1            'aug2003_o3_shindelltrop_72x46x18x12_1850'
      2           ,'aug2003_o3_shindelltrop_72x46x18x12_1890'
      3           ,'aug2003_o3_shindelltrop_72x46x18x12_1910'
@@ -2326,21 +2371,27 @@ C**** The data statements below are only used if  MADO3M > -1
      6           ,'aug2003_o3_shindelltrop_72x46x18x12_1960'
      7           ,'aug2003_o3_shindelltrop_72x46x18x12_1970'
      8           ,'aug2003_o3_shindelltrop_72x46x18x12_1980'
-     9           ,'aug2003_o3_shindelltrop_72x46x18x12_1990'/
-      DATA IYEAR/1850,1890,1910,1930,1950,1960,1970,1980,1990/
-      DATA NFO3/NFO3X/
-      DATA OTFILE/'aug2003_o3timetrend_46x18x2412_1850_2050'/
-      DATA IFILE/11/             ! not used in GCM runs
+     9           ,'aug2003_o3_shindelltrop_72x46x18x12_1990'/)
+      INTEGER, DIMENSION(NFO3X) :: IYEAR =
+     *     (/1850,1890,1910,1930,1950,1960,1970,1980,1990/)
+      INTEGER :: NFO3 = NFO3X
+      CHARACTER*40 :: OTFILE ='aug2003_o3timetrend_46x18x2412_1850_2050'
+      INTEGER :: IFILE=11            ! not used in GCM runs
 
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
 !!!   DATA PLBO3/984.,934.,854.,720.,550.,390.,285.,210.,150.,110.,80.,
 !!!  +          55.,35.,20.,10.,3.,1.,0.3,0.1/    ! Current standard PLB
 C**** LJTTRO(jm)    could be computed from PLBO3
       DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of troposphere
-      DATA IYR/0/, JYRNOW/0/, IYRDEC/0/, IFIRST/1/
+      INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
-      save nfo3,iyear,plbo3,ljttro,otrend,o3year
-      save iyr,jyr,JYRNOW,iyrdec,ddfile,ifile
+      save nfo3,iyear,ljttro,otrend,o3year
+!!!   save plbo3      
+      save ddfile,ifile
+
+      INTEGER :: JYEARO,JJDAYO
+      INTEGER I,J,L,M,N,IY,JYEARX,jy,MI,MJ,MK,MN,NLT,ILON,JLAT
+      REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
 
       IF(IFIRST.EQ.1) THEN
 
@@ -2650,41 +2701,43 @@ c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
       END SUBROUTINE O3_WTS
 
       SUBROUTINE SETGAS
-
-
-      DIMENSION SINLAT(46)
-
+      IMPLICIT NONE
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
 
-      DIMENSION P36(36),UFAC36(36)
-      DATA P36/
-     $1.2000E+03, .9720E+03, .9445E+03, .9065E+03, .8515E+03, .7645E+03,
-     $ .6400E+03, .4975E+03, .3695E+03, .2795E+03, .2185E+03, .1710E+03,
-     $ .1250E+03, .8500E+02, .6000E+02, .4000E+02, .2500E+02, .1500E+02,
-     $ .7500E+01, .4000E+01, .2500E+01, .1500E+01, .7500E+00, .4000E+00,
-     $ .2500E+00, .1500E+00, .7810E-01, .4390E-01, .2470E-01, .1390E-01,
-     $ .7594E-02, .3623E-02, .1529E-02, .7030E-03, .2059E-03, .0E0/
-      DATA UFAC36/
-     $ 0.800,0.800,0.800,0.750,0.750,0.750,0.700,0.750,0.846,0.779,
-     $ 0.892,0.886,0.881,0.875,0.870,0.846,0.840,0.902,0.880,0.775,
-     $ 0.796,0.842,0.866,0.861,0.821,0.903,1.264,1.732,2.000,1.701,
-     $ 1.609,1.478,1.253,1.372,1.571,1.571/
+      REAL*8, PARAMETER, DIMENSION(36) ::
+     *     P36 = (/
+     $1.2000D+03, .9720D+03, .9445D+03, .9065D+03, .8515D+03, .7645D+03,
+     $ .6400D+03, .4975D+03, .3695D+03, .2795D+03, .2185D+03, .1710D+03,
+     $ .1250D+03, .8500D+02, .6000D+02, .4000D+02, .2500D+02, .1500D+02,
+     $ .7500D+01, .4000D+01, .2500D+01, .1500D+01, .7500D+00, .4000D+00,
+     $ .2500D+00, .1500D+00, .7810D-01, .4390D-01, .2470D-01, .1390D-01,
+     $ .7594D-02, .3623D-02, .1529D-02, .7030D-03, .2059D-03, .0D0/),
+     *     UFAC36 =(/
+     $     0.800d0,0.800d0,0.800d0,0.750d0,0.750d0,0.750d0,0.700d0,
+     *     0.750d0,0.846d0,0.779d0,0.892d0,0.886d0,0.881d0,0.875d0,
+     *     0.870d0,0.846d0,0.840d0,0.902d0,0.880d0,0.775d0,0.796d0,
+     *     0.842d0,0.866d0,0.861d0,0.821d0,0.903d0,1.264d0,1.732d0,
+     *     2.000d0,1.701d0,1.609d0,1.478d0,1.253d0,1.372d0,1.571d0,
+     *     1.571d0/)
 
-      DIMENSION SPLB(8),STLB(8),SHLB(8),SDLB(8)
-      DATA SPLB/1013.25,226.32,54.748,8.6801,1.109,.66938,.039564
-     +         ,3.7338E-03/
-      DATA STLB/288.15,216.65,216.65,228.65,270.65,270.65,214.65,186.87/
-      DATA SHLB/0.0,11.0,20.0,32.0,47.0,51.0,71.0,84.852/
-      DATA SDLB/-6.5,0.0,1.0,2.8,0.0,-2.8,-2.0,0.0/
+      REAL*8, PARAMETER, DIMENSION(8) :: SPLB=(/
+     *     1013.25d0, 226.32d0, 54.748d0 , 8.6801d0,
+     *     1.109d0  , .66938d0, .039564d0, 3.7338d-03/),
+     *     STLB=(/288.15d0, 216.65d0, 216.65d0, 228.65d0,
+     *            270.65d0, 270.65d0, 214.65d0, 186.87d0/),
+     *     SHLB=(/0d0,11d0,20d0,32d0,47d0,51d0,71d0,84.852d0/),
+     *     SDLB=(/-6.5d0,0d0,1d0,2.8d0,0d0,-2.8d0,-2d0,0d0/)
 
-      SAVE P36,UFAC36,SPLB,STLB,SHLB,SDLB,SINLAT,NL0,NL1
-
-      PARAMETER(HPCON=34.16319,P0=1013.25,PI=3.141592653589793D0)
-      DATA IFIRST/1/
-
-      SAVE  IFIRST
+      REAL*8, PARAMETER :: HPCON=34.16319d0,P0=1013.25d0,
+     *     PI=3.141592653589793D0
+      REAL*8, SAVE :: SINLAT(46)
+      INTEGER, SAVE :: IFIRST=1, NL0,NL1
+      INTEGER I,NLAY,NATM,L,J,K,N
+      REAL*8 RADLAT,RHP,EST,FWB,FWT,PLT,DP,EQ,ES,ACM,HI,FI,HL,HJ,FJ,DH
+     *     ,FF,GGVDF,ZT,ZB,EXPZT,EXPZB,PARTTR,PARTTG,PTRO,DL,DLS,DLN
+     *     ,Z0LAT,SUMCOL,ULGASL
 
       IF(IFIRST.EQ.1) THEN
       DO 90 I=1,MLAT46
@@ -2994,9 +3047,9 @@ C-----------------
       END SUBROUTINE SETGAS
 
       SUBROUTINE SETO2A
+      IMPLICIT NONE
 
-
-      DIMENSION SFWM2(18),SIGMA(18,6)
+      REAL*8 SFWM2(18),SIGMA(18,6)
       DATA SFWM2/
      A 2.196E-03, 0.817E-03, 1.163E-03, 1.331E-03, 1.735E-03, 1.310E-03,
      B 1.311E-03, 2.584E-03, 2.864E-03, 4.162E-03, 5.044E-03, 6.922E-03,
@@ -3021,15 +3074,15 @@ C-----------------
      Q     1.71E-23, 1.71E-23, 1.71E-23, 1.71E-23, 1.71E-23, 2.68E-23,
      R     1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23, 1.00E-23/
 
-      DIMENSION WTKO2(6)
+      REAL*8, DIMENSION(6) :: WTKO2 = (/0.05,0.20,0.25,0.25,0.20,0.05/)
+      INTEGER NL0,NL1
+      SAVE  SFWM2,SIGMA,WTKO2,NL0,NL1
 
-      DATA WTKO2/0.05,0.20,0.25,0.25,0.20,0.05/
-
-      SAVE  SFWM2,SIGMA,WTKO2,NL0,NL1,IFIRST
-
-      PARAMETER(STPMOL=2.68714D+19,S00=1367.0)
-      PARAMETER(NW=18,NZ=11,NKO2=6)
-      DATA IFIRST/1/
+      REAL*8, PARAMETER :: STPMOL=2.68714D+19
+      INTEGER, PARAMETER :: NW=18, NZ=11, NKO2=6
+      INTEGER, SAVE :: IFIRST=1
+      REAL*8 FSUM,SUMMOL,ZCOS,WSUM,TAU,DLFLUX,WTI,WTJ
+      INTEGER I,J,K,L,JI,JJ,N,LL
 
       IF(IFIRST.EQ.1) THEN
       NL0=NL
@@ -3103,7 +3156,7 @@ C              ---------------------------------------------------------
       END SUBROUTINE SETO2A
 
       SUBROUTINE SETBAK
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     SETBAK,GETBAK  Initializes Background Aerosol Specification, i.e.,
@@ -3123,12 +3176,14 @@ C                        FSBAER    SW   SETBAKonly Aerosol Optical Depth
 C                        FTBAER    LW   SETBAKonly Aerosol Optical Depth
 C                        -----------------------------------------------
 
-      DIMENSION SGOLDH(5),TGOLDH(5)
+      REAL*8, DIMENSION(5) :: SGOLDH,TGOLDH
 
-      DATA IFIRST/1/,NL0/0/
+      INTEGER, SAVE :: IFIRST=1
+      INTEGER, SAVE :: NL0=0
 
-      SAVE  IFIRST,NL0
-
+      REAL*8 C,BC,ABC,HXPB,HXPT,ABCD,SRAQX,SRAQS,SUMABS,EXTSUM,SCTSUM
+     *     ,COSSUM,SUMEXT
+      INTEGER I,J,K,L,JJ
 C     ------------------------------------------------------------------
 C     Thermal: Set (5) Aerosol Type Compositions & Vertical Distribution
 C     ------------------------------------------------------------------
@@ -3361,7 +3416,7 @@ C                                                                -------
       END SUBROUTINE SETBAK
 
       SUBROUTINE SETAER
-
+      IMPLICIT NONE
 
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
@@ -3415,9 +3470,8 @@ C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
 C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
 C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
 
-      DIMENSION QXAERN(25),QSAERN(25),QGAERN(25)
-      DIMENSION SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
-
+      REAL*8, DIMENSION(25) :: QXAERN,QSAERN,QGAERN
+      REAL*8, DIMENSION(12) :: SRAX12,SRAS12,SRAG12,TRAX12
 
 C     ------------------------------------------------------------------
 C     TROAER: Monthly-Mean Tropospheric Aerosols  (Column Optical Depth)
@@ -3449,6 +3503,14 @@ C     Set Size ANT (N=6) = Nitrate (Anthrop) Aerosol  (Nominal Reff=1.0)
 C     Set Size OCN (N=7) = Organic (Natural) Aerosol  (Nominal Reff=0.3)
 C     Set Size OCB (N=8) = Organic (Anthrop) Aerosol  (Nominal Reff=0.3)
 C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: JYEARA,JJDAYA
+      REAL*8 AREFF,WTS,WTA,QGAERX,PI0F,PI0,XJYEAR,XJYBCI,XJYOCI,XJYSUI
+     *     ,DJYEAR,WMA,WMB,TAUBCI,TAUBCJ,TAUOCI,TAUOCJ,TAUSUI,TAUSUJ
+     *     ,VDTAU,QSUM,SSUM,CSUM,VDQS,ASUM,FSXTAU,FTXTAU,BCIWID,BCIWJD
+     *     ,OCIWID,OCIWJD,SUIWID,SUIWJD,XMO
+      INTEGER I,J,K,L,NA,N0,N,NN,NNA,JJYEAR,MA,MB,IBCI,JBCI,IOCI,JOCI
+     *     ,ISUI,JSUI
+
 
       DO 115 NA=2,8
       N0=0
@@ -3786,7 +3848,7 @@ C                                 -------------------------------------
       END SUBROUTINE SETAER
 
       SUBROUTINE SETDST
-
+      IMPLICIT NONE
 
 C     ---------------------------------------------------------------
 C     GISS MONTHLY-MEAN AEROSOL (1950-1990) & DESERT DUST CLIMATOLOGY
@@ -3841,17 +3903,18 @@ C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
 C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
 C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
 
-      DIMENSION SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
+      REAL*8, DIMENSION(12) :: SRAX12,SRAS12,SRAG12,TRAX12
 
-      DIMENSION FRACD1(9),FRACD2(9),FRACDL(9),LFRACD(9)
-!nu   DIMENSION TAUCON(8)
+      REAL*8, DIMENSION(9) :: FRACD1,FRACD2,FRACDL
+      INTEGER, DIMENSION(9) :: LFRACD
+!nu   REAL*8 TAUCON(8)
 
       DATA FRACD1/105.0, 30.0, 60.0, 50.0, 30.0, 30.0, 20.0, 3.0, 1.0/
       DATA FRACD2/135.0,135.0,105.0, 80.0, 80.0, 60.0, 60.0, 4.0, 6.0/
       DATA LFRACD/  6,    6,    7,    8,    8,    9,    9,    8,  12/
 
-      DATA IFIRST/1/
-      SAVE  IFIRST,FRACD1,FRACD2,FRACDL,LFRACD
+      INTEGER, SAVE :: IFIRST=1
+      SAVE  FRACD1,FRACD2,FRACDL,LFRACD
 
 C     ------------------------------------------------------------------
 C     DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
@@ -3869,7 +3932,10 @@ C                   column optical depth data of the (72x46) global maps
 C
 C     IFIRST=0      Subsequent CALLs to SETAER can reset scaling factors
 C     ------------------------------------------------------------------
-
+      INTEGER, INTENT(IN) :: JYEARD,JJDAYD
+      REAL*8 FNDUST,DSUM,XJYEAR,DJYEAR,WMA,WMB,XMO,DUSTTL,VDF,QSUM,SSUM
+     *     ,CSUM,SRDN,ASUM,FSXTAU,FTXTAU
+      INTEGER I,J,K,L,N,M,JJYEAR,MA,MB
 
       IF(IFIRST.EQ.1) THEN
 
@@ -4092,15 +4158,18 @@ C                                 -------------------------------------
       END SUBROUTINE SETDST
 
       SUBROUTINE SETVOL
+      IMPLICIT NONE
 
+      REAL*8, SAVE :: E24LAT(25),EJMLAT(47)
+      REAL*8, SAVE :: HLATTF(4),
+     *     HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
+      INTEGER, SAVE :: LATVOL = 0
 
-      DIMENSION E24LAT(25),EJMLAT(47)
-      DIMENSION HLATTF(4),HLATKM(5)
-
-      DATA HLATKM/ 15.0, 20.0, 25.0, 30.0, 35.0/,LATVOL/0/
-
-      parameter (htplim=1.d-3)
-      SAVE E24LAT,EJMLAT,HLATKM,FSXTAU,FTXTAU,NJ25,NJJM,LATVOL
+      real*8, parameter :: htplim=1.d-3
+      INTEGER, SAVE :: FSXTAU,FTXTAU,NJ25,NJJM
+      INTEGER, INTENT(IN) :: JYEARV,JDAYVA
+      INTEGER J,L,MI,MJ,K
+      REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SUMHTF,SIZVOL
 
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
@@ -4249,25 +4318,28 @@ C                      ------------------------------------------------
       END SUBROUTINE SETVOL
 
       SUBROUTINE SETQVA(VEFF)
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     SETQVA   Selects (interpolates) H2SO4 Mie Parameters for specified
 C              Variance VEFF for subsequent Size interpolation by GETQVA
 C     ------------------------------------------------------------------
 
-ceq   DIMENSION SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
-ceq   DIMENSION TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
-      DIMENSION TRAB(33,20),V5(5),Q5(5),RV20(20),QV20(20)
+ceq   REAL*8 SRQV( 6,20),SRSV( 6,20),SRGV( 6,20),Q55V(   20),REFV(20)
+ceq   REAL*8 TRQV(33,20),TRSV(33,20),TRGV(33,20),TRAV(33,20),VEFV(20)
+      REAL*8 TRAB(33,20),Q5(5),RV20(20),QV20(20)
 
-      DATA V5/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/
-      SAVE TRAB,V5
+      REAL*8, SAVE, DIMENSION(5) :: V5=(/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/)
+      SAVE TRAB
 
 C     ------------------------------------------------------------------
 C     SRVQEX Volcanic Aerosol sizes (Reff) range from 0.1 to 5.0 microns
 C     To utilize equal interval interpolation, Reff N=9,20 are redefined
 C     so Volcanic Aerosol sizes have effective range of 0.1-2.0 microns.
 C     ------------------------------------------------------------------
+      REAL*8, INTENT(IN) :: SIZVOL,VEFF
+      REAL*8 REFN,RADX,WTJHI,WTJLO
+      INTEGER I,K,N,JRXLO,JRXHI
 
       DO 130 N=1,20
       RV20(N)=REFV20(N,1)
@@ -4411,7 +4483,7 @@ C     ------------------------------------------------------------------
       END SUBROUTINE SETQVA
 
       SUBROUTINE SETCLD
-
+      IMPLICIT NONE
 
 C-----------------------------------------------------------------------
 C     Control Parameters used in SETCLD,GETCLD,GETEPS: defined in RADPAR
@@ -4439,6 +4511,13 @@ C
 C     Define Solar,Thermal Cloud Single Scattering Albedo: SRCQPI( 6,15)
 C                                                          TRCQPI(33,15)
 C-----------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: JYEARE,JJDAYE
+      INTEGER I,J,N,K,L,LBOTCW,LTOPCW,LBOTCI,LTOPCI,IRWAT,IRICE,MI,MJ
+      REAL*8 SIZWCL,SIZICL,XRW,XMW,XPW,EPS,VEP,VEP1,VEP2,VEPP,TAUWCL
+     *     ,TAUICL,QAWATK,QPWATK,SRCGFW,QXWATK,QSWATK,QGWATK,XRI,XMI,XPI
+     *     ,QAICEK,QPICEK,SRCGFC,QXICEK,QSICEK,QGICEK,SCTTAU,GCBICE
+     *     ,SCTGCB,TCTAUW,TCTAUC,ALWATK,WTI,WTW,ALICEK,TRCTCI,XJDAY,XMO
+     *     ,WTMJ,WTMI
 
       DO 120 N=1,15
       DO 110 K=1,33
@@ -4771,7 +4850,7 @@ C                     --------------------------------------------------
 
 
       SUBROUTINE TAUGAS
-
+      IMPLICIT NONE
 
 C     ----------------------------------------------------------
 C     TAUGAS INPUT REQUIRES:  NL,PL,DPL,TLM,ULGAS
@@ -4781,48 +4860,55 @@ C                             XTRUP,XTU0,XTRDN,XTD0,XCUCO2,CXUO3
 C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
 C     ----------------------------------------------------------
 
-      PARAMETER(NTX=8, TLOX=181.d0, DTX=23.d0, NPX=19, NGUX=1008,
-     +       NPUX=19, NPU2=14, NPU=5, P0=1013.25d0)
+      INTEGER, PARAMETER :: NTX=8, NPX=19, NGUX=1008, NPUX=19, NPU2=14,
+     *     NPU=5 
+      REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
 
-      DIMENSION IGASX(20),KGX(20),NUX(15),IGUX(15),NGX(4),IG1X(4)
-     +     ,PX(19),XKCFCW(8,2),MLGAS(20),PDPU2(14),PU(5)
-     +     ,CXUO(7),CXUC(7)
-      DATA       PX/1000.,750.,500.,300.,200.,100.,50.,20.,10.,5.,
-     +              2.,1.,.5,.2,.1,.03,.01,.003,.001/
+      REAL*8, PARAMETER :: PX(19)= (/1000.,750.,500.,300.,200.,100.,50.
+     *     ,20.,10.,5.,2.,1.,.5,.2,.1,.03,.01,.003,.001/)
 
-      DATA NGX/12,12,08,33/, IG1X/2,14,26,1/
-      DATA PDPU2/1.E4,1.E5,2.E5,5.E5,1.E6,2.E6,5.E6,1.E7,2.E7
-     +          ,5.E7,1.E8,2.E8,5.E8,1.E9/
-      DATA    PU/  50.,200.,800.,3200.,12800./
-      DATA IGASX/ 1, 2, 3, 1, 1, 2, 2, 3, 3, 6, 6, 6, 7,13,13,
-     +            8, 8, 9, 9, 1/
-      DATA   KGX/ 1, 2, 3, 2, 3, 1, 3, 1, 2, 1, 2, 3, 1, 1, 3,
-     +            2, 3, 2, 3, 4/
-      DATA   NUX/25, 9, 9, 9, 9, 5, 5, 5, 5, 2, 2, 2, 2, 2, 2/
-      DATA  IGUX/ 0,300,408,480,588,660,720,760,820,880,904,928,944,
-     +            968,992/
+      INTEGER, PARAMETER :: NGX(4) = (/12,12,08,33/),
+     *     IG1X(4) = (/2,14,26,1/)
+      REAL*8, PARAMETER :: PDPU2(14) = (/1.D4,1.D5,2.D5,5.D5,1.D6,2.D6,
+     *     5.D6,1.D7,2.D7,5.D7,1.D8,2.D8,5.D8,1.D9/)
+      REAL*8, PARAMETER ::  PU(5) = (/  50.,200.,800.,3200.,12800./)
+      INTEGER, PARAMETER :: IGASX(20) = (/ 1, 2, 3, 1, 1, 2, 2, 3, 3, 6,
+     *     6, 6, 7,13,13, 8, 8, 9, 9, 1/)
+      INTEGER, PARAMETER :: KGX(20) = (/ 1, 2, 3, 2, 3, 1, 3, 1, 2, 1, 2
+     *     , 3, 1, 1,3, 2, 3, 2, 3, 4/)
+      INTEGER, PARAMETER :: NUX(15) = (/25, 9, 9, 9, 9, 5, 5, 5, 5, 2, 2
+     *     , 2, 2, 2,2/)
+      INTEGER, PARAMETER :: IGUX(15) = (/ 0,300,408,480,588,660,720,760
+     *     ,820,880,904,928,944,968,992/)
 
+      REAL*8 XKCFCW(8,2)
       DATA XKCFCW/
      + 12.4414,11.7842,11.3630,10.8109,10.3200, 9.8900, 9.3916, 8.8933,
      +  5.3994, 5.6429, 5.8793, 6.1687, 6.2300, 6.5200, 6.8650, 7.2100/
 
-      DIMENSION XTU(24,3),XTD(24,3),P24(24),DP24(24),XUCH(9),XUN2(9)
-      DATA P24/
-     $ .100E+04,.973E+03,.934E+03,.865E+03,.752E+03,.603E+03,
-     $ .439E+03,.283E+03,.156E+03,.754E+02,.350E+02,.162E+02,
-     $ .754E+01,.350E+01,.162E+01,.743E+00,.340E+00,.152E+00,
-     $ .701E-01,.347E-01,.159E-01,.750E-02,.350E-02,.100E-02/
-      DATA DP24/
-     $ 24.4,32.0,46.6,89.8,136.8,162.0,165.4,146.9,106.5,55.2,25.6,11.9,
-     $ 5.52,2.56,1.20,.551,.256,.119,.0452,.0256,.0119,.005,.003,.002/
-      DATA DLSQ2/.1505/, ULMNH2/2.060/, ULMNCH/-1.028/, ULMNN2/-1.530/,
-     $     DLOG2/.3010/, ULMNO3/-1.393/, ULMNCO/1.529/
-
-      SAVE IGASX,KGX,NUX,IGUX,NGX,IG1X
-      SAVE PX,XKCFCW,PDPU2,PU
-      SAVE P24,DP24
-      SAVE DLSQ2,ULMNH2,ULMNCH,ULMNN2  ! ? or make them parameters
-      SAVE DLOG2,ULMNO3,ULMNCO         ! ? or make them parameters
+      REAL*8, PARAMETER ::  P24(24) = (/
+     $ .100D+04,.973D+03,.934D+03,.865D+03,.752D+03,.603D+03,
+     $ .439D+03,.283D+03,.156D+03,.754D+02,.350D+02,.162D+02,
+     $ .754D+01,.350D+01,.162D+01,.743D+00,.340D+00,.152D+00,
+     $ .701D-01,.347D-01,.159D-01,.750D-02,.350D-02,.100D-02/)
+      REAL*8, PARAMETER ::  DP24(24) = (/
+     $     24.4,32.0,46.6,89.8,136.8,162.0,165.4,146.9,106.5,55.2,25.6
+     *     ,11.9,5.52,2.56,1.20,.551,.256,.119,.0452,.0256,.0119,.005,
+     *     .003,.002/)
+      REAL*8, PARAMETER :: DLSQ2=.1505D0, ULMNH2=2.060D0,
+     *     ULMNCH=-1.028D0, ULMNN2=-1.530D0, DLOG2=.3010D0,
+     *     ULMNO3=-1.393D0, ULMNCO=1.529D0
+      REAL*8 XTU(24,3),XTD(24,3),XUCH(9),XUN2(9),CXUO(7),CXUC(7)
+      INTEGER MLGAS(20)
+      INTEGER I,K,L,IP,IM,IULOW,IU1,IU2,IU,II,IPX,IAA,IBA,ITX,ITX1
+     *     ,ITX2,IPXM1,IGAS,NG,KK,IK0,IKF,IPU,IPUI,IPU1,IK,IGCFC,NU,IUA
+     *     ,IUB,IAAA,IAAB,IABA,IABB,IBAA,IBAB,IBBA,IBBB,IH2O0,IG
+      REAL*8 UH2O,UCO2,UO3,UCH4,UN2O,UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,CXCO2
+     *     ,CXO3,DUH2,DU1,DU2,DUCO,DUO3,DUCH,XCH4,DUN2,XN2O,PLI,DENO
+     *     ,ANUM,DELP24,PRAT,XTR0,WPB,WTB,WBB,WBA,WAB,WAA,UGAS,XF
+     *     ,FPL,U,PU2,WTPU,TAUT1,TAUT2,TAUHCN,UP,TAUHFB,XA,XB,XK,TAUCF
+     *     ,XUA,XUB,QAA,QAB,QBA,QBB,FNU1,UAB,UBB,UAA,UBA,WAAA,WAAB,WABA
+     *     ,WABB,WBAA,WBAB,WBBA,WBBB,TAUIPG,TAUSUM,TAU11,TAU12
 
       DO 100 K=1,33
       DO 100 L=1,NL
@@ -5261,11 +5347,7 @@ C                               ----------------------------------------
 
 
       SUBROUTINE THERML
-
-
-      PARAMETER (R6=.16666667D0,R24=4.1666667D-02)
-      PARAMETER (A=0.3825D0,B=0.5742D0,C=0.0433D0)
-
+      IMPLICIT NONE
 C     ------------------------------------------------------------------
 C             Top-cloud Thermal Scattering Correction Control Parameters
 C             ----------------------------------------------------------
@@ -5302,7 +5384,18 @@ C                 Pressure level above which model layers are defined to
 C                 be isothermal.  This is appropriate for optically thin
 C                 layers where emitted flux depends on mean temperature.
 C     ------------------------------------------------------------------
+      REAL*8, PARAMETER :: R6=.16666667D0, R24=4.1666667D-02
+      REAL*8, PARAMETER :: A=0.3825D0,B=0.5742D0,C=0.0433D0
 
+      REAL*8 TA,TB,TC,P1,P2,P3,P4,DT1CPT,DTHALF,CLTAUX,CLTAUS,CLCOSB
+     *     ,CLPI0K,CTX,DT2,DT1,CTG,DG2,DG1,WT1,WT2,WT3,WT4,WT5,WT6,WT7
+     *     ,WT8,BG,DNACUM,DNBCUM,DNCCUM,TAUAG,TAUAP,TAUBP,TAUCP,TAUAX
+     *     ,TAUBX,TAUCX,XTRDL,BTOP,BBOT,BBAR,TX,PLBN,F,TAUA,TAUB,TAUC
+     *     ,BDIF,BBTA,BBTB,BBTC,TAUA2,TRANA,TAUB2,TRANB,TAUC2,TRANC,DEC
+     *     ,DEB,DEA,COALB1,COALB2,COALB3,FDNABC,UNA,UNB,UNC,FUNABC
+     *     ,PFW,DPF,CTP,DP1,DP2,TAUBG,TAUCG,DDFLUX,XTRUL
+      INTEGER K,L,N,II,ITL,ICT,IT1,IT2,IP1,IP2,ICG,IG1,IG2,ITK0,IMOL
+     *     ,IPF,ICP
 
       IF(TLGRAD.LT.0.D0) GO TO 130
       TA=TLM(1)
@@ -5911,12 +6004,14 @@ C     IF(IPF.GT.899) IPF=899
       END SUBROUTINE THERML
 
       SUBROUTINE SOLAR0
+      IMPLICIT NONE
 
-
-      DIMENSION NMKWAV(17),LORDER(16)
-      DATA NMKWAV/ 200, 360, 770, 795, 805, 810, 860,1250,1500,1740,
-     +            2200,3000,3400,3600,3800,4000,9999/
-      DATA LORDER/15,14, 8, 7, 6, 5, 13, 12, 4, 3, 2, 1, 11, 10, 9,16/
+      INTEGER, PARAMETER, DIMENSION(17) :: NMKWAV = (/ 200, 360, 770,
+     *     795, 805, 810, 860,1250,1500,1740,2200,3000,3400,3600,3800
+     *     ,4000,9999/)
+      INTEGER, PARAMETER, DIMENSION(16) :: LORDER = (/15,14, 8, 7, 6, 5,
+     *     13, 12, 4, 3, 2, 1, 11, 10, 9,16/)
+      INTEGER N2,I
 
       N2=1
       DO 1 I=1,30
@@ -5935,7 +6030,7 @@ C     IF(IPF.GT.899) IPF=899
       END SUBROUTINE SOLAR0
 
       SUBROUTINE SOLARM
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     SOLARM Returns:
@@ -6022,12 +6117,24 @@ C             WavB (nm)=  4000  2200  1500  1250   860      770
 C
 C     ------------------------------------------------------------------
 
-      DIMENSION COLEXT(6),COLSCT(6),COLGCB(6)   ! ,ALLGCB(6)
+      REAL*8 COLEXT(6),COLSCT(6),COLGCB(6)   ! ,ALLGCB(6)
 
 C                            -------------------------------------------
 C                            NO2, O3 Chappuis Band, Rayleigh, parameters
 C                            -------------------------------------------
-      PARAMETER(XCMNO2=5.465,XCMO3=.0399623,TOTRAY=0.000155)
+      REAL*8, PARAMETER :: XCMNO2=5.465d0, XCMO3=.0399623d0,
+     *     TOTRAY=0.000155d0
+
+      REAL*8 S0COSZ,COSMAG,SECZ,TAURAY,RTAU,SUMEXT,SUMCST,SUMCGB,COLPFG
+     *     ,SURFBB,TAUSBB,ALLTAU,TAULAY,GCBLAY,RTAUL,DKS0X,RBNB,RBNX
+     *     ,RCNB,RCNX,TLN,PLN,ULN,TERMA,TERMB,TAU1,TAU,PIZERO,PR,PT,DBLS
+     *     ,XANB,XANX,TANB,TANX,XXT,RASB,RASX,BNORM,XNORM,RARB,RARX,XATB
+     *     ,DENOM,DB,DX,UB,UX,RBXTOA,ATOPX,ATOPD,O3CMX,O3CMD
+     *     ,SUMSCT,SUMGCB,XXG,SURX,PFF,XATC,XBNB,XBNX,TBNB,TBNX,XBTB
+     *     ,ABOTX,ABOTD,AO3UXN,AO3UDN,SRKA16,DKS0XX,TRNC,CLX,TRNU,TRN1
+     *     ,TRN2,TRN3,TAUG,TAU2,TAU3,S0VIS,S0NIR,SUMX,SUMD,SUMU,SUMN
+     *     ,SUMH,SGPG
+      INTEGER I,K,KK,L,M,N,NN,KLAM,NDBLS
 
       S0COSZ=S0
       IF(NORMS0.EQ.0) S0COSZ=S0*COSZ
@@ -6557,8 +6664,8 @@ C             ----------------------------------------------------------
       RASB=RNB(N)*(1.D0-AO3U(N))
       TANX=TNX(N)*(1.D0-AO3D(N))
       TANB=TNB(N)*(1.D0-AO3D(N))
-      ABSRTX=1.D0-XANX-TANX-RASX
-      ABSRTB=1.D0-XANB-TANB-RASB
+!nu      ABSRTX=1.D0-XANX-TANX-RASX
+!nu      ABSRTB=1.D0-XANB-TANB-RASB
       RARB=RASB*RBNB
       RARX=RASB*RBNX
       XATB=XANB+TANB
@@ -6805,12 +6912,19 @@ C              ---------------------------------------------------------
 
       SUBROUTINE SETGTS
 CCC   SUBROUTINE GTSALB(GIN,TAUIN,RBBOUT,RBBIN,EGIN,TAUOUT,KGTAUR)
-
-
-      DIMENSION FFKG(4,3),RBBK(3)
-      DIMENSION GVALUE(14)
-      DATA GVALUE/.0,.25,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1./
-      SAVE GVALUE
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: GIN,TAUIN,RBBIN,EGIN
+      INTEGER, INTENT(IN) :: KGTAUR
+      REAL*8, INTENT(OUT) :: RBBOUT,TAUOUT
+      REAL*8 FFKG(4,3),RBBK(3)
+      REAL*8, PARAMETER, DIMENSION(14) :: GVALUE = (/.0,.25,.45,.50,.55,
+     *     .60,.65,.70,.75,.80,.85,.90,.95,1./) 
+      REAL*8 CWM,CWE,TIJ,RBBI,RBB,BTAU,CUSPWM,CUSPWE,G,TAU,EG,DELTAU,TI
+     *     ,WTJ,WTI,GI,WGI,WGJ,F1,F2,F3,F4,F21,F32,F43,F3221,F4332,A,B,C
+     *     ,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
+     *     ,XP,RBBB,RI,WRJ,WRI,EI,WEI,WEJ,DELALB,X1,X2,X3,X4,XX,BB,DTAU
+      INTEGER I,J,K,KTERPL,IT,JT,IG,JG,ITERPL,IGM,JGP,KG,IR,JR,IE,JE,IEM
+     *     ,JEP
 
       DO 100 I=1,122
       TAUTGD(I)=(I-1)*0.1D0
@@ -7161,14 +7275,16 @@ CCC   END SUBROUTINE GTSALB
       END SUBROUTINE SETGTS
 
       SUBROUTINE SGPGXG(XMU,TAU,G,GG)
-
+      IMPLICIT NONE
 
 C     ----------------------------------------------------------------
 C     COSBAR ADJUSTMENT TO REPRODUCE THE SOLAR ZENITH ANGLE DEPENDENCE
 C     FOR AEROSOL ALBEDO FOR OPTICAL THICKNESSES [0.0 < TAU < 10000.0]
 C     ----------------------------------------------------------------
-
-
+      REAL*8, INTENT(IN) :: XMU,TAU,G
+      REAL*8, INTENT(OUT) :: GG
+      REAL*8 XI,WXI,WXJ,GI,WGI,WGJ,TI,WTJ,WTI
+      INTEGER IX,JX,IG,JG,IT,IT0,JT
 C                          -------------------------------------------
 C                          XMU (COSZ) SOLAR ZENITH ANGLE INTERPOLATION
 C                          DATA INTERVAL:  0.02  ON  [0.0 < XMU < 1.0]
@@ -7252,7 +7368,7 @@ C                            -----------------------------------------
       END SUBROUTINE SGPGXG
 
       SUBROUTINE BCTAUW(XJYEAR,IDEC,JDEC,BCWTID,BCWTJD)
-      IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT NONE
 
 C-------------------------------------------------------------------
 C     Black Carbon interdecadal TAU interpolation is based on linear
@@ -7270,9 +7386,9 @@ C              BCWTJD    (Multiplicative Weight for BC TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 
-      DIMENSION EYEAR(50),BCEHC(50),BCEBC(50),BCEDI(50),BCTOT(50)
+      REAL*8, DIMENSION(50) :: EYEAR,BCEHC,BCEBC,BCEDI,BCTOT
 
-      DIMENSION BCE(5,45)
+      REAL*8 BCE(5,45)
 
 C    Global Annual Emissions of BC U   Emission (Mt/yr)
 
@@ -7328,12 +7444,17 @@ ceq   DATA BCE3/
      F 93.0, 7.393332005, 1.2448183300, 1.4543261530, 10.09271908,
      G 94.0, 7.515841007, 1.2333894970, 1.4780857560, 10.22745800/
 
-C     DATA POST90/50.D0/
-C     DATA PRE50/50.D0/
-      PARAMETER(POST90=-250.D0)
-      DATA IFIRST/1/
+C     REAL*8, PARAMETER :: POST90=50.D0
+C     REAL*8, PARAMETER :: PRE50 =50.D0
+      REAL*8, PARAMETER :: POST90=-250.D0
+      INTEGER, SAVE :: IFIRST=1
+      INTEGER, INTENT(OUT) :: IDEC,JDEC
+      REAL*8, INTENT(OUT) :: BCWTID,BCWTJD
+      REAL*8, INTENT(IN) :: XJYEAR
+      INTEGER I,DYEAR,IYDI,IYDJ,IYEAR,IYYI,IYYJ
+      REAL*8 XDEC,DDEC,DELTAY,DELDEC,BCED,BCEY,RATYD
 
-      SAVE IFIRST,EYEAR,BCEHC,BCEBC,BCEDI,BCTOT,BCE
+      SAVE EYEAR,BCEHC,BCEBC,BCEDI,BCTOT,BCE
 
       IF(IFIRST.EQ.1) THEN
       DO 110 I=1,45
@@ -7394,7 +7515,7 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
       END SUBROUTINE BCTAUW
 
       SUBROUTINE SUTAUW(XJYEAR,IDEC,JDEC,SUWTID,SUWTJD)
-      IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT NONE
 
 C-------------------------------------------------------------------
 C     Anthropogenic Sulfate inter-decadal TAU interpolation is based
@@ -7412,9 +7533,9 @@ C              SUWTJD    (Multiplicative Weight for SU TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 
-      DIMENSION EYEAR(50),SUANT(50),SUNAT(50)
+      REAL*8, DIMENSION(50) :: EYEAR,SUANT,SUNAT
 
-      DIMENSION SUE(3,41)
+      REAL*8 SUE(3,41)
 
 C     Global Emission of Sulfate
 
@@ -7465,12 +7586,18 @@ ceq   DATA SUE3/
      B          1989.0,     72.06355286,           14.4,
      C          1990.0,     71.29174805,           14.4/
 
-C     DATA POST90/100.D0/
-C     DATA PRE50/50.D0/
-      PARAMETER(POST90=-250.D0)
-      DATA IFIRST/1/
+C     REAL*8, PARAMETER :: POST90=100.D0
+C     REAL*8, PARAMETER :: PRE50 =50.D0
+      REAL*8, PARAMETER :: POST90=-250.D0
+      INTEGER, SAVE :: IFIRST=1
 
-      SAVE  IFIRST,EYEAR,SUANT,SUNAT,SUE
+      SAVE  EYEAR,SUANT,SUNAT,SUE
+
+      REAL*8, INTENT(IN) :: XJYEAR
+      REAL*8, INTENT(OUT) :: SUWTID,SUWTJD
+      INTEGER, INTENT(OUT) :: IDEC,JDEC
+      REAL*8 XDEC,DDEC,DYEAR,SUED,SUEY,RATYD,DELDEC,DELTAY
+      INTEGER I,IYEAR,IYDI,IYDJ,IYYI,IYYJ
 
       IF(IFIRST.EQ.1) THEN
       DO 110 I=1,41
@@ -7529,15 +7656,18 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
       END SUBROUTINE SUTAUW
 
 !nu   SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
-!nu
+!nu   IMPLICIT NONE
+!nu  
 !nu
 !nu   ------------------------------------------------------------------
 !nu   STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
 !nu                   and applies PIAMAX, FSAERA, FTAERA Scaling Factors
 !nu                   --------------------------------------------------
 !nu
-!nu   DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
-!nu   DIMENSION FSAERA(10),FTAERA(10),PIAMAX(10)
+!nu   REAL*8 QXAER(6),QSAER(6),QCAER(6),ATAER(33)
+!nu   REAL*8 FSAERA(10),FTAERA(10),PIAMAX(10)
+!nu   REAL*8 PI0F,PI0
+!nu   INTEGER I
 !nu   FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
 !nu   FTAERN=1.D0
 !nu
@@ -7558,14 +7688,18 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
 !nu   END SUBROUTINE STDAER
 
       SUBROUTINE SDDUST(QQDUST,SSDUST,GGDUST,Q55DST,SIZDST,FNDUST)
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     SDDUST     Selects Solar Mie Scattering Parameters for Desert Dust
 C                                     and applies FSDUST Scaling Factors
 C                                     ----------------------------------
 
-      DIMENSION QQDUST(6),SSDUST(6),GGDUST(6)
+      REAL*8, DIMENSION(6), INTENT(OUT) :: QQDUST,SSDUST,GGDUST
+      REAL*8, INTENT(OUT) :: Q55DST
+      REAL*8, INTENT(IN) :: SIZDST,FNDUST
+      REAL*8 RDI,RDJ,WTJ,WTI
+      INTEGER I,J,K
 
       RDI=0.0
       DO 110 J=1,25
@@ -7593,15 +7727,19 @@ C                                     ----------------------------------
       END SUBROUTINE SDDUST
 
       SUBROUTINE TDDUST(ADDUST,SIZDST,FNDUST)
-
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C     TDDUST   Selects Thermal Mie Scattering Parameters for Desert Dust
 C                                     and applies FTDUST Scaling Factors
 C                                     ----------------------------------
 
-      DIMENSION QDDUST(33),SDDUST(33),ADDUST(33)
-!nu   DIMENSION GDDUST(33)
+      REAL*8, INTENT(IN) :: SIZDST,FNDUST
+      REAL*8, DIMENSION(33), INTENT(OUT) :: ADDUST
+      REAL*8, DIMENSION(33) :: QDDUST,SDDUST
+!nu  *                        ,GDDUST
+      REAL*8 RDI,RDJ,WTI,WTJ
+      INTEGER I,J,K
 
       RDI=0.0
       DO 110 J=1,25
@@ -7629,7 +7767,7 @@ C                                     ----------------------------------
       END SUBROUTINE TDDUST
 
       SUBROUTINE AO3ABS(OCM,O3ABS)
-
+      IMPLICIT NONE
 
 C              ---------------------------------------------------------
 C              UV absorption by Ozone  is expressed as a fraction of the
@@ -7638,6 +7776,10 @@ C              flux absored by OCM cm ofozone) must be normalized within
 C              SOLARM by dividing O3ABS by the corresponding fraction of
 C              the solar flux within the spectral interval DKS0(15)=0.05
 C              ---------------------------------------------------------
+      REAL*8, INTENT(IN) :: OCM
+      REAL*8, INTENT(OUT) :: O3ABS
+      REAL*8 XX,DX
+      INTEGER IP,IX
 
       O3ABS=AO3(460)
       IP=0
@@ -7669,6 +7811,7 @@ C
       USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM,
      *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
      *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
+      IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
 C     WRITER Radiative Input/Output Cloud/Aerosol Data/Conrol Parameters
@@ -7714,30 +7857,39 @@ C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: INDEX
-      CHARACTER*8 FTYPE
-      CHARACTER*6 GHG
-      CHARACTER*3 TRABCD,TRAXSG,snotyp
-      DIMENSION TRABCD(5),TRAXSG(5),TRPI0K(25)
+      CHARACTER*8, PARAMETER :: FTYPE(5) =
+     *     (/'DOWNWARD','  UPWARD','UPWD NET','COOLRATE','FRACTION'/)
+      CHARACTER*6, PARAMETER :: GHG(12) =
+     *     (/'   H2O','   CO2','    O3','    O2','   NO2','   N2O'
+     +      ,'   CH4','CCL3P1','CCL2P2','    N2',' CFC-Y',' CFC-Z'/)
+      CHARACTER*3 TRABCD(5),TRAXSG(5),snotyp
       DATA TRABCD/'TRA','TRB','TRC','TRD','TRE'/
       DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
 
-      DIMENSION TKEFF(3)
+      REAL*8 TKEFF(3),TRPI0K(25)
 
-      DIMENSION BGFLUX(33),BGFRAC(33),TAUSUM(33)
-      DIMENSION SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX),FTYPE(5),GHG(12)
-      DIMENSION WSREXT(LX,6),WSRSCT(LX,6),WSRGCB(LX,6),WSRPI0(LX,6)
-      DIMENSION FSR1(17),FSR2(17),ISR1(16),KSLAMW(16),IORDER(16)
-      DATA KSLAMW/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/
-      DATA IORDER/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/
+      REAL*8, DIMENSION(33) :: BGFLUX,BGFRAC,TAUSUM
+      REAL*8 SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX)
+      REAL*8, DIMENSION(LX,6) :: WSREXT,WSRSCT,WSRGCB,WSRPI0
+      REAL*8, DIMENSION(17) :: FSR1,FSR2
+      INTEGER :: ISR1(16), KWRU
+      INTEGER, PARAMETER, DIMENSION(16) ::
+     *     KSLAMW=(/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/),
+     *     IORDER=(/12,11,10, 9, 6, 5, 4, 3,15,14,13, 8, 7, 2, 1,16/)
 
-      DATA FTYPE/'DOWNWARD','  UPWARD','UPWD NET','COOLRATE','FRACTION'/
-      DATA GHG/'   H2O','   CO2','    O3','    O2','   NO2','   N2O'
-     +        ,'   CH4','CCL3P1','CCL2P2','    N2',' CFC-Y',' CFC-Z'/
-      character*1,dimension(4) :: AUXGAS = (/'0','L','X','X'/)
-      PARAMETER(P0=1013.25)
-      SAVE  KSLAMW,IORDER,FTYPE,AUXGAS
+      character*1,parameter,dimension(4) :: AUXGAS = (/'0','L','X','X'/)
+      REAL*8, PARAMETER :: P0=1013.25,SIGMA=5.6697D-08,
+     *     xxxxxx=0. ! dummy for obsolete variables 
+      REAL*8 ACOLX,BCOLX,DCOLX,VCOLX,TCOLX,FACTOR,PPMCO2,PPMO2
+     *     ,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12,EPS,TAER,HLM,TLAPS
+     *     ,TAU55,TGMEAN,PSUM,SRALB,STNFLB,CRHRF,STFHR,TRDCR,SRDHR,STDHR
+     *     ,PFW,DPF,FRACSL,SUM,SIGT4,WTG,SUMK,SUMT,SUMK1,SUMK2
+     *     ,ASUM1,BSUM1,CSUM1,DSUM1,ESUM1,FSUM1,ASUM2,BSUM2,CSUM2,DSUM2
+     *     ,ESUM2,FSUM2,ASUM3,BSUM3,CSUM3,DSUM3,ESUM3,FSUM3,SUML,SUMA
+     *     ,SUMB,SUMC,SUMD,SUME,SUMF
+      INTEGER I,J,K,L,KW,INDJ,INDI,INDX,KPAGE,NPAGE,LUXGAS,LGS,IPI0,IRHL
+     *     ,N,II,IPF,ITG,LK,KK,NW,LINFIL
 
-      xxxxxx=0.  ! dummy for obsolete variables
       DO 20 K=1,6
       DO 10 L=1,NL
       WSREXT(L,K)=SRAEXT(L,K)+SRBEXT(L,K)
@@ -8596,7 +8748,7 @@ C-------------
 C
       NPAGE=1
       IF(INDEX.LT.11) NPAGE=KPAGE
-      SIGMA=5.6697D-08
+c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
       TGMEAN=SQRT(TGMEAN)
@@ -8675,7 +8827,7 @@ C-------------
 C
       NPAGE=1
       IF(INDEX.LT.11) NPAGE=KPAGE
-      SIGMA=5.6697D-08
+c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
       TGMEAN=SQRT(TGMEAN)
@@ -8750,7 +8902,7 @@ C-------------
   700 CONTINUE
 C-------------
 C
-      SIGMA=5.6697D-08
+c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
       TGMEAN=SQRT(TGMEAN)
@@ -8796,7 +8948,7 @@ C
       WRITE(KW,6714)
   706 CONTINUE
 C
-      SIGMA=5.6697D-08
+c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
       TGMEAN=SQRT(TGMEAN)
@@ -9192,7 +9344,7 @@ C-------------
   900 CONTINUE
 C-------------
 C
-      SIGMA=5.6697D-08
+c      SIGMA=5.6697D-08
       TGMEAN=POCEAN*TGO**4+PEARTH*TGE**4+PLICE*TGLI**4+POICE*TGOI**4
       TGMEAN=SQRT(TGMEAN)
       TGMEAN=SQRT(TGMEAN)
@@ -9354,6 +9506,7 @@ C
       END SUBROUTINE WRITER
 
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
+      IMPLICIT NONE
 C
 C
 C     ------------------------------------------------------------------
@@ -9394,20 +9547,28 @@ C                 KLIMIT = 0 full output,  KLIMIT > 0 abbreviated output
 C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
-      CHARACTER*32 CHAER(4)
+      INTEGER, INTENT(IN) :: KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT
 
-      DIMENSION WREF(7),WDAT(7),WPPM(7),DWM2(7),XDT0(5),XRAT(5)
-      DIMENSION QX(49,LX),QS(49,LX),QG(49,LX),QP(49,LX),O3(49,LX)
-      DIMENSION QXCOL(49),QSCOL(49),QGCOL(49),QPCOL(49),O3COL(49)
-      DIMENSION SFL0(5),SFLX(5),DFLX(5),RFLX(5),O3L(46,72),LO3(36)
+      REAL*8 WREF(7),WDAT(7),WPPM(7),DWM2(7),XDT0(5),XRAT(5)
+      REAL*8, DIMENSION(49,LX) :: QX,QS,QG,QP,O3
+      REAL*8, DIMENSION(49) :: QXCOL,QSCOL,QGCOL,QPCOL,O3COL
+      REAL*8 SFL0(5),SFLX(5),DFLX(5),RFLX(5),O3L(46,72)
+      INTEGER :: LO3(36)
 C
-      DATA NSW1/24/, NSW2/32/, NSW3/40/, NSW4/48/
+      INTEGER, PARAMETER :: NSW1=24, NSW2=32, NSW3=40, NSW4=48
 C
-      DATA CHAER/'Tropospheric Climatology Aerosol',
-     +           'Tropospheric Desert Dust Aerosol',
-     +           'Stratospheric (Volcanic) Aerosol',
-     +           'Total Column Atmospheric Aerosol'/
-      SAVE  NSW1,NSW2,NSW3,NSW4,CHAER
+      CHARACTER*32, DIMENSION(4), PARAMETER :: CHAER =(/
+     *     'Tropospheric Climatology Aerosol',
+     +     'Tropospheric Desert Dust Aerosol',
+     +     'Stratospheric (Volcanic) Aerosol',
+     +     'Total Column Atmospheric Aerosol'/)
+
+      REAL*8 YREF11,ZREF12,YNOW11,ZNOW12,SDT0,DFL0,SUMO3,QOSH,QONH,QOGL
+     *     ,SUMXL,SUMGL,SUMSL,QXSH,QXNH,QXGL,QSSH,QSNH,QSGL,QPSH,QPNH
+     *     ,QPGL,QGSH,QGNH,QGGL
+      INTEGER KW,INDJ,INDI,INDX,KINDEX,I,JJDAYG,JYEARG,KWSKIP,J,IYEAR
+     *     ,NSPACE,LMO,K,mavg,iyr1,lmax,icyc,JYEARS,M,JJDAYO,L,JJ,N,N1
+     *     ,N2,II,KAEROS,L1,KA,JJDAY
 C
       KW=KWRU
       INDJ=MOD(INDEX,10)
@@ -9710,19 +9871,19 @@ C
   560 CONTINUE
 C
       IF(N.EQ.1)
-     +WRITE(KW,6510) JYRREF,JJDAY,JMONTH,MADO3M,(I,I=10,310,10)
+     +WRITE(KW,6510) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6510 FORMAT(/'  5A=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Troposphere'
      +      ,' (Wang-Jacobs) Surf to 150 mb',T126,'MADO3M=',I1
      +      /'  J LON=0',31I4)
       IF(N.EQ.2)
-     +WRITE(KW,6520) JYRREF,JJDAY,JMONTH,MADO3M,(I,I=10,310,10)
+     +WRITE(KW,6520) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6520 FORMAT(/'  5B=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Stratosphere'
      +      ,' (London-NCAR) 150 mb to TOA',T126,'MADO3M=',I1
      +      /'  J LON=0',31I4)
       IF(N.EQ.3.AND.KLIMIT.LT.1)
-     +WRITE(KW,6530) JYRREF,JJDAY,JMONTH,MADO3M,(I,I=10,310,10)
+     +WRITE(KW,6530) JYRREF,JJDAYO,JMONTH,MADO3M,(I,I=10,310,10)
  6530 FORMAT(/'  5C=INDEX  JYEAR=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone Longitudinal Variation:  Total Column'
      +      ,' (W-J/London) Surface to TOA',T126,'MADO3M=',I1
@@ -9946,8 +10107,7 @@ C
       END MODULE RADPAR
 
       SUBROUTINE BOXAV1(DEGLAT,TAULAT,NLAT,JALIM,JBLIM,TAU)
-      IMPLICIT REAL*8(A-H,O-Z)
-      REAL*8 DEGLAT(NLAT),TAULAT(NLAT)
+      IMPLICIT NONE
 C
 C--------------------------------------------------------------------
 C     BOXAV1  Performs:
@@ -9963,6 +10123,12 @@ C
 C                 TAU   Area-weighted (TAULAT) latitude average value
 C--------------------------------------------------------------------
 C
+      INTEGER, INTENT(IN) :: NLAT, JALIM, JBLIM
+      REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT, TAULAT
+      REAL*8, INTENT(OUT) :: TAU
+      REAL*8 ASUM,TSUM,PI,RADIAN,RLAT1,ALAT1,RLAT2,ALAT2,ALATJ
+      INTEGER J1,J,J2
+
       ASUM=0.D0
       TSUM=0.D0
       PI=ACOS(-1.D0)
@@ -9987,8 +10153,7 @@ C
       END SUBROUTINE BOXAV1
 
       SUBROUTINE BOXAV2(DEGLAT,TAULAT,SIZLAT,NLAT,JALIM,JBLIM,SIZ)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION DEGLAT(NLAT),TAULAT(NLAT),SIZLAT(NLAT)
+      IMPLICIT NONE
 C
 C--------------------------------------------------------------------
 C     BOXAV2  Performs:
@@ -10005,6 +10170,12 @@ C
 C                 SIZ   TAULAT-weighted latitudinal average of SIZLAT
 C--------------------------------------------------------------------
 C
+      REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT,TAULAT,SIZLAT
+      INTEGER, INTENT(IN) :: NLAT,JALIM,JBLIM
+      REAL*8, INTENT(OUT) :: SIZ
+      REAL*8 ASUM,TSUM,PI,RADIAN,RLAT1,RLAT2,ALAT1,ALAT2,ALATJ
+      INTEGER J,J1,J2
+
       ASUM=0.D0
       TSUM=0.D0
       PI=ACOS(-1.D0)
@@ -10032,6 +10203,7 @@ C
       SUBROUTINE GTREND(XNOW,TNOW)
 C
       USE RADPAR, only: nghg,ghgyr1,ghgyr2,ghgam
+      IMPLICIT NONE
       real*8 xnow(nghg),tnow,year,dy,frac
       integer iy,n
 C
@@ -10064,6 +10236,7 @@ C
       END SUBROUTINE GTREND
 
       SUBROUTINE PHATMO(P,H,D,T,O,Q,S,OCM,WCM,NPHD,NATM)
+      IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     -------------     MCCLATCHY (1972) ATMOSPHERE DATA     -----------
 C     ------------------------------------------------------------------
@@ -10107,15 +10280,13 @@ C                  R = Q/S          GIVES RELATIVE HUMIDITY
 C                  W = Q/(1-Q)      GIVES WATER VAPOR MIXING RATIO
 C                  N = D*2.079E 16  GIVES NUMBER DENSITY PER CM**3
 C
-
-      IMPLICIT REAL*8 (A-H,O-Z)
-
-      DIMENSION    PRS1(33),PRS2(33),PRS3(33),PRS4(33),PRS5(33),PRS6(33)
-     1            ,DNS1(33),DNS2(33),DNS3(33),DNS4(33),DNS5(33),DNS6(33)
-     2            ,TMP1(33),TMP2(33),TMP3(33),TMP4(33),TMP5(33),TMP6(33)
-     3            ,WVP1(33),WVP2(33),WVP3(33),WVP4(33),WVP5(33),WVP6(33)
-     4            ,OZO1(33),OZO2(33),OZO3(33),OZO4(33),OZO5(33),OZO6(33)
-      DIMENSION   PRES(33,6),DENS(33,6),TEMP(33,6),WVAP(33,6),OZON(33,6)
+      REAL*8, DIMENSION(33) ::
+     *             PRS1,PRS2,PRS3,PRS4,PRS5,PRS6
+     1            ,DNS1,DNS2,DNS3,DNS4,DNS5,DNS6
+     2            ,TMP1,TMP2,TMP3,TMP4,TMP5,TMP6
+     3            ,WVP1,WVP2,WVP3,WVP4,WVP5,WVP6
+     4            ,OZO1,OZO2,OZO3,OZO4,OZO5,OZO6
+      REAL*8, DIMENSION(33,6) :: PRES,DENS,TEMP,WVAP,OZON
 
       EQUIVALENCE
      +     (PRES(1,1),PRS1(1)),(DENS(1,1),DNS1(1)),(TEMP(1,1),TMP1(1))
@@ -10131,24 +10302,23 @@ C
       EQUIVALENCE (WVAP(1,5),WVP5(1)),(OZON(1,5),OZO5(1))
       EQUIVALENCE (WVAP(1,6),WVP6(1)),(OZON(1,6),OZO6(1))
 
-      DIMENSION HTKM(33)
-      DATA HTKM/1.0E-09, 1., 2., 3., 4., 5., 6., 7., 8., 9.,10.,11.
-     1         ,12.,13.,14.,15.,16.,17.,18.,19.,20.,21.,22.,23.,24.
-     2         ,25.,30.,35.,40.,45.,50.,70.,99.9/
-
+      REAL*8, PARAMETER, DIMENSION(33) :: HTKM = 
+     *     (/1d-9, 1d0, 2d0, 3d0, 4d0, 5d0, 6d0, 7d0, 8d0, 9d0,10d0,11d0
+     1     ,12d0,13d0,14d0,15d0,16d0,17d0,18d0,19d0,20d0,21d0,22d0,23d0
+     *     ,24d0,25d0,30d0,35d0,40d0,45d0,50d0,70d0,99.9d0/)
 
 C----------------------------------------------------------------------
 C0000 GLOBAL   U.S. (1976) STANDARD ATMOSPHERE   P, T, GEO H  PARAMETERS
 C----------------------------------------------------------------------
 
-      DIMENSION SPLB(8),STLB(8),SHLB(8),SDLB(8)
-      DATA SPLB/1013.25,226.32,54.748,8.6801,1.109,.66938,.039564
-     +         ,3.7338E-03/
-      DATA STLB/288.15,216.65,216.65,228.65,270.65,270.65,214.65,186.87/
-      DATA SHLB/0.0,11.0,20.0,32.0,47.0,51.0,71.0,84.852/
-      DATA SDLB/-6.5,0.0,1.0,2.8,0.0,-2.8,-2.0,0.0/
-      DATA HPCON/34.16319/
-
+      REAL*8, PARAMETER, DIMENSION(8) :: SPLB=(/
+     *     1013.25d0, 226.32d0, 54.748d0 , 8.6801d0,
+     *     1.109d0  , .66938d0, .039564d0, 3.7338d-03/),
+     *     STLB=(/288.15d0, 216.65d0, 216.65d0, 228.65d0,
+     *            270.65d0, 270.65d0, 214.65d0, 186.87d0/),
+     *     SHLB=(/0d0,11d0,20d0,32d0,47d0,51d0,71d0,84.852d0/),
+     *     SDLB=(/-6.5d0,0d0,1d0,2.8d0,0d0,-2.8d0,-2d0,0d0/)
+      REAL*8, PARAMETER :: HPCON = 34.16319d0
 
 C-----------------------------------------------------------------------
 C1111 TROPICAL LATITUDES      MCCLATCHY (1972) ATMOSPHERE DATA VS HEIGHT
@@ -10340,6 +10510,11 @@ C----------------------------------------------------------------------
      4      3.904E-04,3.872E-04,3.728E-04,2.344E-04,9.932E-05,3.677E-05,
      5      1.227E-05,4.324E-06,5.294E-08,1.262E-10/
 
+      REAL*8, INTENT(INOUT) :: H,P
+      INTEGER, INTENT(IN) :: NATM,NPHD
+      REAL*8, INTENT(OUT) :: O,Q,S,OCM,WCM,D,T
+      REAL*8 :: XX,XI,XJ,DELTA,RAT,PI,PJ,DI,DJ,DP,ES,RS,OI,OJ,QI,QJ
+      INTEGER :: I,J,K,N
 
       IF(NATM.GT.0) GO TO 200
       O=1.E-10
@@ -10472,7 +10647,7 @@ C----------------------------------------------------------------------
       RETURN
       END SUBROUTINE PHATMO
 
-      FUNCTION PFOFTK(WAVNA,WAVNB,TK)
+      REAL*8 FUNCTION PFOFTK(WAVNA,WAVNB,TK)
 C     ------------------------------------------------------------------
 C
 C        INPUT DATA
@@ -10489,29 +10664,35 @@ C           REMARKS
 C                   PLANCK INTENSITY (W/M**2/STER) IS GIVEN BY PFOFTK/PI
 C
 C     ------------------------------------------------------------------
-      IMPLICIT REAL*8 (A-H,O-Z)
-      DIMENSION BN(21),BD(21)
-      DATA BN/1.D0,-1.D0,1.D0,-1.D0,1.D0,-1.D0,5.D0,-691.D0,7.D0
-     1,-3617.D0,43867.D0,-174611.D0,854513.D0,-236364091.D0
-     2,8553103.D0,-23749461029.D0,8615841276005.D0,-7709321041217.D0
-     3,2577687858367.D0,-2631527155305348D 04,2929993913841559D0/
-      DATA BD/1.D0,2.D0,6.D0,30.D0,42.D0,30.D0,66.D0,2730.D0,6.D0
-     1,510.D0,798.D0,330.D0,138.D0,2730.D0,6.D0,870.D0,14322.D0
-     2,510.D0,6.D0,1919190.D0,6.D0/
-      DATA PI4/97.40909103400244D0/
-C     DATA  PI/3.141592653589793D0/
-      DATA HCK/1.43879D0/
-      DATA DGXLIM/1.D-06/
-      PFOFTK=0.D0
-      IF(TK.LT.1.D-06) RETURN
+      IMPLICIT NONE
+      REAL*8, PARAMETER, DIMENSION(21) :: 
+     *     BN = (/1D0, -1D0, 1D0, -1D0, 1D0, -1D0, 5D0, -691D0, 7D0,
+     1     -3617D0, 43867D0, -174611D0, 854513D0, -236364091D0,
+     2     8553103D0, -23749461029D0, 8615841276005D0, -7709321041217D0,
+     *     2577687858367D0, -2631527155305348D4, 2929993913841559D0 /),
+     *     BD = (/1D0, 2D0, 6D0, 30D0, 42D0, 30D0, 66D0, 2730D0, 6D0
+     1     ,510D0, 798D0, 330D0, 138D0, 2730D0, 6D0, 870D0, 14322D0
+     2     ,510D0, 6D0, 1919190D0, 6D0/)
+      REAL*8, PARAMETER :: PI4 =97.40909103400244D0
+C     REAL*8, PARAMETER :: PI =3.141592653589793D0
+      REAL*8, PARAMETER :: HCK=1.43879D0
+      REAL*8, PARAMETER :: DGXLIM=1D-06
+
+      REAL*8, INTENT(IN) :: WAVNA, WAVNB, TK
+      REAL*8 GSUM,B,DG,DGB,GX,PNORM,GTERM,GXA,GXB,X,XX,XN,XN3,XNN,XNM
+     *     ,XNF,XNX
+      INTEGER II,NB,NNB,N
+
+      PFOFTK=0D0
+      IF(TK.LT.1D-06) RETURN
       DO 160 II=1,2
       IF(II.EQ.1) X=HCK*WAVNA/TK
       IF(II.EQ.2) X=HCK*WAVNB/TK
       IF(X.GT.2.3D0) GO TO 120
       XX=X*X
-      GSUM=1.D0/3.D0-X/8.D0+XX/60.D0
+      GSUM=1D0/3D0-X/8D0+XX/60D0
       NB=3
-      XNF=XX/2.D0
+      XNF=XX/2D0
       DO 100 N=4,38,2
       NB=NB+1
       NNB=NB
@@ -10553,7 +10734,7 @@ C     DATA  PI/3.141592653589793D0/
       RETURN
       END FUNCTION PFOFTK
 
-      FUNCTION TKOFPF(WAVNA,WAVNB,FLUXAB)
+      REAL*8 FUNCTION TKOFPF(WAVNA,WAVNB,FLUXAB)
 C     ------------------------------------------------------------------
 C
 C        INPUT DATA
@@ -10576,10 +10757,15 @@ C                                 FLUXAB=PFOFTK(WAVNA,WAVNB,TK)
 C                   (UNITS FOR FLUXAB AND PFOFTK MUST BE IDENTICAL)
 C
 C     ------------------------------------------------------------------
-      IMPLICIT REAL*8 (A-H,O-Z)
+      IMPLICIT NONE
       LOGICAL LOGFIT
-      DATA DELFIT/1.D-06/
-      DATA NMAX/20/
+      REAL*8, PARAMETER :: DELFIT=1.D-06
+      INTEGER, PARAMETER :: NMAX=20
+      REAL*8, INTENT(IN) :: WAVNA,WAVNB,FLUXAB
+      REAL*8 XA,YA,XB,YB,XX,YY,XC,YC,XBA,XCA,XBC,YBA,YCA,YBC,YXBA,YXCA,A
+     *     ,B,C,ROOT,PF,PFOFTK
+      INTEGER NFIT
+
       IF(FLUXAB.LE.0.D0) RETURN
       LOGFIT=.FALSE.
       NFIT=0
@@ -10675,9 +10861,7 @@ C     ------------------------------------------------------------------
       END FUNCTION TKOFPF
 
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION X(NXF),F(NXF)
-
+      IMPLICIT NONE
 C---------------------------------------------------------------------
 C
 C    SPLINE locates XX between points (F2,X2)(F3,X3) on 4-point spread
@@ -10716,6 +10900,13 @@ C                        1    Fixed Extrapolation (F(XX) = edge value)
 C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
+      REAL*8, DIMENSION(NXF), INTENT(IN) :: X,F
+      REAL*8, INTENT(IN) :: XX,CUSPWM,CUSPWE
+      INTEGER, INTENT(IN) :: NXF,KXTRAP
+      REAL*8, INTENT(OUT) :: FF
+      REAL*8 BETW,X1,X2,X3,X4,F1,F2,F3,F4,X21,X31,X32,X43,X42,F21,F32
+     *     ,F43,F3221,F4332,A,B,C,D,XF,FFCUSP,XE,XEXM,CUSPWT,FFLINR
+      INTEGER K
 
       K=2
       X2=X(K)
@@ -10870,8 +11061,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       END SUBROUTINE SPLINE
 
       SUBROUTINE REPART(FXL,XLB,NXB,GYL,YLB,NYB)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION FXL(NXB),XLB(NXB),GYL(NYB),YLB(NYB)
+      IMPLICIT NONE
 
 C     ------------------------------------------------------------------
 C
@@ -10893,6 +11083,12 @@ C              conserved, within the Repartition Interval that is common
 C              to to XLB and YLB (layer bottom edge and top edge) limits
 C
 C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NXB,NYB
+      REAL*8, INTENT(IN) :: FXL(NXB),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB)
+      INTEGER NXF,NYG
+      REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
+      INTEGER I,J
 
       NXF=NXB-1
       NYG=NYB-1
@@ -11009,9 +11205,7 @@ C     ------------------------------------------------------------------
       END SUBROUTINE REPART
 
       SUBROUTINE RETERP(FXL,XLB,NXB,GYL,YLB,NYB)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION FXL(NXB),XLB(NXB),GYL(NYB),YLB(NYB)
-
+      IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     RETERP
 C              Interpolates FXL (a histogram-type distribution function)
@@ -11028,6 +11222,12 @@ C     RETURNS  GYL as a histogram-type distribution function, with NYB-1
 C              values assumed to be constant between YLB(N) and YLB(N+1)
 C
 C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NXB,NYB
+      REAL*8, INTENT(IN) :: FXL(NXB),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB)
+      INTEGER NXF,NYG
+      REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
+      INTEGER I,J
 
       NXF=NXB-1
       NYG=NYB-1
@@ -11144,10 +11344,7 @@ C     ------------------------------------------------------------------
       END SUBROUTINE RETERP
 
       SUBROUTINE FABINT(F,X,NX,ALIM,BLIM,ABINT)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION F(NX),X(NX)
-      PARAMETER (DELTA=1.D-07)
-
+      IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     FABINT  PERFORMS NUMERICAL INTEGRATION (AREA UNDER CURVE) OF F(X)
 C             BETWEEN THE LIMITS X=ALIM AND X=BLIM  (WITH BLIM GT ALIM)
@@ -11158,6 +11355,12 @@ C             THE  X  COORDINATE CAN BE IN ASCENDING OR DESCENDING ORDER
 C
 C             (F(X) IS ZERO OUTSIDE THE INTERVAL BETWEEN X(1) AND X(NX))
 C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NX
+      REAL*8, INTENT(IN) :: F(NX),X(NX),ALIM,BLIM
+      REAL*8, INTENT(OUT) :: ABINT
+      REAL*8, PARAMETER :: DELTA=1.D-07
+      REAL*8 XA,XB,XX,XMIN,XMAX,XJ,XI,FI,FJ,BF,AF,DINT,X2,X1
+      INTEGER JX,KX,IX
 
       ABINT=0.D0
       JX=1
@@ -11207,10 +11410,7 @@ C     ------------------------------------------------------------------
       END SUBROUTINE FABINT
 
       SUBROUTINE FXGINT(F,X,NX,G,Y,NY,ALIM,BLIM,ABINT)
-      IMPLICIT REAL*8(A-H,O-Z)
-      DIMENSION F(NX),X(NX),G(NY),Y(NY)
-      PARAMETER (DELTA=1.D-07)
-
+      IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     FXGINT  PERFORMS NUMERICAL INTEGRATION (AREA UNDER CURVE) OF  F*G
 C             BETWEEN THE LIMITS X=ALIM AND X=BLIM  (WITH BLIM GT ALIM)
@@ -11228,6 +11428,13 @@ C
 C             (F(X) IS ZERO OUTSIDE THE INTERVAL BETWEEN X(1) AND X(NX))
 C             (G(Y) IS ZERO OUTSIDE THE INTERVAL BETWEEN Y(1) AND Y(NY))
 C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NX,NY
+      REAL*8, INTENT(IN) :: F(NX),X(NX),G(NY),Y(NY),ALIM,BLIM
+      REAL*8, INTENT(OUT) :: ABINT
+      REAL*8, PARAMETER :: DELTA=1.D-07
+      REAL*8 XA,YA,XB,YB,XX,XMIN,XMAX,XJ,XI,FI,FJ,BF,AF,YI,YJ,GI,GJ,AG
+     *     ,BG,DINT,X2,X1
+      INTEGER JX,JY,KX,KY,IX,IY
 
       ABINT=0.D0
       JX=1
