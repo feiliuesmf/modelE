@@ -91,8 +91,8 @@ C note, tr_evap_fact is not dimensioned as NTM:
 !@var tr_DHD: coefficient of temperature-dependence term of Henry's
 !@+   Law coefficient (joule/mole !)
       real*8, dimension(ntm) :: tr_DHD
-!@var tr_H20byCH4 conc. of tracer in water from methane oxidation 
-      real*8, dimension(ntm) :: tr_H20byCH4
+!@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
+      real*8, dimension(ntm) :: tr_H2ObyCH4
 !@var TRW0 default tracer concentration in water (kg/kg)
       real*8, dimension(ntm) :: trw0
 !@var TRWM tracer in cloud liquid water amount (kg)
