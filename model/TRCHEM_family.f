@@ -25,7 +25,7 @@ C
       integer, intent(IN) :: lmax,I,J
       integer L,iO3form
 c
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       iO3form=94
 #else
       iO3form=47
@@ -67,7 +67,7 @@ c
       USE TRACER_COM, only : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                        ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO
-#ifdef Shindell_Strat_chem     
+#ifdef SHINDELL_STRAT_CHEM     
      &                        ,nClO,nOClO,nBrO
 #endif
 C
@@ -83,7 +83,7 @@ C**** Local parameters and variables and arguments:
       integer L,iNO2form
       integer, intent(IN) :: lmax,I,J
 c
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       iNO2form=95
 #else
       iNO2form=48
@@ -102,7 +102,7 @@ c       Troposphere
      &   +rr(39,L)*y(nC2O3,L)+4.2E-12*exp(180./ta(L))*y(nXO2,L)
         else
 c       Stratosphere
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
 c
 c      calculate NO3 abundance (works fine, but negligible contribution)
 c       Aqq=rr(5,L)*y(nO3,L)
@@ -162,14 +162,14 @@ c
       USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      &                       ,n_HBr,n_HOCl,n_HCl
 #endif
 
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                           nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,
      &                           nXO2N,ta,ss,nC2O3,nROR
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      &                           ,nBrO,nClO,nOClO,nBr,nCl,SF3
 #endif
 C
@@ -189,7 +189,7 @@ C**** Local parameters and variables and arguments:
       integer L
       integer, intent(IN) :: lmax,I,J
 c
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
       integer, parameter :: iH2O2form=96,iHNO3form=97,iHONOform=100
 #else
       integer, parameter :: iH2O2form=49,iHNO3form=50,iHONOform=53
@@ -267,7 +267,7 @@ C      Some limits on OH, HO2:
 C
       enddo  ! >> end of altitude loop <<
 c
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
 cc    Stratosphere
       do L=LTROPO(I,J)+1,lmax
 c

@@ -29,8 +29,8 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER i,j,k
 C
-#ifdef Shindell_Strat_chem
-      call stop_model('Shindell_Strat_chem use TRCHEM_fastj2',255)
+#ifdef SHINDELL_STRAT_CHEM
+      call stop_model('SHINDELL_STRAT_CHEM use TRCHEM_fastj2',255)
 #endif
 C
       zj(:,:)    =0.d0

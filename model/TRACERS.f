@@ -866,7 +866,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      & yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      & ,SF3,pClOx,pOClOx,pBrOx
 #endif
 #endif
@@ -905,7 +905,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
      *     ,yXO2N,yRXPAR,ss
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      *     ,SF3,pClOx,pOClOx,pBrOx
 #endif
 #endif
@@ -922,7 +922,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
      *       ,yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde
      *       ,yXO2N,yRXPAR,ss
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
      *       ,SF3,pClOx,pOClOx,pBrOx
 #endif
 #endif

@@ -70,7 +70,7 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 #endif
 #else
 #ifdef TRACERS_SPECIAL_Shindell
-#ifdef Shindell_Strat_chem
+#ifdef SHINDELL_STRAT_CHEM
 #ifdef regional_Ox_tracers
       integer, parameter :: ntm=31,ntm_chem=31
 C Note: please always put the regional Ox tracers at the end,
