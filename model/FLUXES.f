@@ -89,8 +89,10 @@ C**** sea ice melt.
       REAL*8, DIMENSION(IM,JM) :: SSS
 !@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
       REAL*8, DIMENSION(IM,JM) :: MLHC
-!@var UOSURF, VOSURF ocean surface velocity (m/s)
+!@var UOSURF, VOSURF ocean surface velocity (Atm C grid) (m/s)
       REAL*8, DIMENSION(IM,JM) :: UOSURF,VOSURF
+!@var UISURF, VISURF dynamic ice surface velocity (Atm C grid) (m/s)
+      REAL*8, DIMENSION(IM,JM) :: UISURF,VISURF
 !@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
       REAL*8, DIMENSION(IM,JM) :: APRESS
 

@@ -554,7 +554,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,sss
+      USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
@@ -569,7 +569,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       INTEGER :: I,J,ISTART,ioerr
 
 C**** if starting from AIC/GIC files need additional read for ocean
-      if (istart.le.2) then
+      if (istart.le.2 .and. istart.gt.0) then
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
         call io_ocean (iu_GIC,ioread,ioerr)
@@ -635,7 +635,7 @@ C*****  set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
 
       END IF
-C**** Set gtemp array for oceans
+C**** Set fluxed arrays for oceans
       DO J=1,JM
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
@@ -647,6 +647,9 @@ C**** Set gtemp array for oceans
         ELSE
           SSS(I,J) = 0.
         END IF
+C**** For the time being assume zero surface velocities for drag calc
+        uosurf(i,j)=0. ; vosurf(i,j)=0. 
+        uisurf(i,j)=0. ; visurf(i,j)=0.
       END DO
       END DO
 C**** keep salinity in sea ice constant for fixed-SST and qflux models
