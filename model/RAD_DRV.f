@@ -410,7 +410,7 @@ C**** Set orbital parameters appropriately
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*) " Orbital Parameters Calculated:"
         call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear," 
+        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear,"
      *       (CE);", paleo_orb_yr," (BP)"
         call write_parallel(trim(out_line),unit=6)
         write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
@@ -420,7 +420,7 @@ C**** Set orbital parameters appropriately
      *       obliq,
      *       " (default = ",obliq_def,")"
         call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f7.3,a,f7.3,a)') 
+        write(out_line,'(a,f7.3,a,f7.3,a)')
      *       "   Precession (degs from ve): ",
      *       omegt," (default = ",omegt_def,")"
         call write_parallel(trim(out_line),unit=6)
@@ -710,9 +710,9 @@ C**** Save initial (currently permanent and global) Q in rad.layers
 !@calls RADPAR:RCOMPT
       USE MODEL_COM, only : jday,jyear
       USE RADPAR, only : rcompt,writet,FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
-     *     ,xref
+     *     ,xref,KYEARV
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
-     *     ,ghg_yr,co2ppm
+     *     ,ghg_yr,co2ppm,Volc_yr
       USE DIAG_COM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -720,6 +720,10 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       JDAYR=JDAY
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
+      if(volc_yr.eq.-1) then ! create some future volcanos
+         if(JYEAR.GT.2000) KYEARV=JYEAR-50
+         if(JYEAR.GT.2050) KYEARV=JYEAR-150
+      end if
       CALL RCOMPT
 C**** FULGAS gets set initially, and updated daily for time-varying GHGs
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
@@ -928,7 +932,7 @@ C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           if (qcheck) then
             write(out_line,*) 'reading RADfile at Itime',Itime,it,iy
             call write_parallel(trim(out_line),unit=6)
-          endif 
+          endif
         end do
         iend = 0
    10   if (it.ne.iy.or.iend.eq.1) then
@@ -1815,7 +1819,7 @@ C       delayed accumulation to preserve order of summation
            AREG_part(J,JR,7) = AREG_part(J,JR,7) + AREGIJ(7,I,J)
          END DO
          END DO
-         
+
          DO JR = 1, SIZE(AREG,1)
            CALL GLOBALSUM(grid, AREG_part(:,JR,1), AREGSUM)
            AREG(JR,J_PCLDSS) = AREG(JR,J_PCLDSS) + AREGSUM
@@ -2038,14 +2042,14 @@ c longwave forcing at surface (if required)
              DUM_IL_REQ(I,J_0:J_1,L)=0.
              DO J=max(J_0,J5S), min(J_1,J5N)
                     DUM_IL_REQ(i,j,l)= (SRHR(L,I,J)*COSZ2(I,J)+
-     &                                  TRHR(L,I,J))*DXYP(J)   
+     &                                  TRHR(L,I,J))*DXYP(J)
              END DO
            END DO
          END DO
-C ESMF: GLOBAL_SUM DUM_IL_REQ over the "J band" j5s-j5n and store in a 
+C ESMF: GLOBAL_SUM DUM_IL_REQ over the "J band" j5s-j5n and store in a
 C       second dummy array: AIL_REQ_SUM(I,L) in the root procesor.
          CALL GLOBALSUM(GRID,DUM_IL_REQ,AIL_REQ_SUM,jband=(/J5S,J5N/))
-C ESMF:     Root processor adds summed terms to the AIL array 
+C ESMF:     Root processor adds summed terms to the AIL array
          IF (AM_I_ROOT()) THEN
            DO L=1,LM
              DO I=1,IM
@@ -2062,7 +2066,7 @@ C       dummy work array: dum_il_j50
            DO I=1,IM
            DUM_IL_J50(I,J_0:J_1,L)=0.
              if (J50N.ge.J_0 .and. J50N.le.J_1) then
-               DUM_IL_J50(I,J50N,L)=DUM_IL_J50(I,J50N,L) + 
+               DUM_IL_J50(I,J50N,L)=DUM_IL_J50(I,J50N,L) +
      *                               (SRHR(L,I,J50N)*COSZ2(I,J50N)+
      *                                TRHR(L,I,J50N))*DXYP(J50N)
              END IF
