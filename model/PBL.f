@@ -299,6 +299,7 @@ C**** end special threadprivate common block
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
 
+        if (iter.lt.itmax) then
         do i=1,n-1
           u(i)=w*usave1(i)+(1.-w)*u(i)
           v(i)=w*vsave1(i)+(1.-w)*v(i)
@@ -311,6 +312,7 @@ C**** end special threadprivate common block
           qsave1(i)=q(i)
           esave1(i)=e(i)
         end do
+        end if
 
         ustar0=ustar
 
