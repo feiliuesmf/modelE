@@ -174,7 +174,7 @@ C****
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DAGCOM, only : ajl,jl_dudtsdif,JL_dTdtsdrg
+      USE DAGCOM, only : ajl,jl_dudtvdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk,ang_gwd
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
@@ -291,7 +291,7 @@ C**** dq/dt by diffusion as tridiagonal matrix
 C**** Update model winds
         IF (MRCH.GT.0) THEN
           DO L=1,LM
-            AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
+            AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)
             DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
             DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
             DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
@@ -320,7 +320,7 @@ C**** Save AM change and update U,V
             DO L=1,LMAX
               DKE(I,J,L) = DKE(I,J,L) + DU(L)*(U(I,J,L)+0.5*DU(L))
               DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
-              AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
+              AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)
             END DO
           END IF
           DO L=1,LMAX
@@ -484,7 +484,7 @@ C**** Do I need to put the common decalaration here also?
      *     ,kmaxj,rapj,idij,idjj
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
-     &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
+     &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
@@ -960,8 +960,8 @@ C9430 FORMAT (' 7267 DIFFX > LIMIT:',4I3,1P,3E10.2,0P,2F7.1)
       FLUXV=DX/(1.+DX*(MUP+MDN)/(MUP*MDN))*(VL(L)-VL(L-1))
       DUT(L-1)=DUT(L-1)-(FLUXUD-FLUXU)/MDN
       DVT(L-1)=DVT(L-1)-(FLUXVD-FLUXV)/MDN
-C        IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=
-C    *      AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
+         IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=
+     *      AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
       FLUXUD=FLUXU
       FLUXVD=FLUXV
       YDN=YUP
@@ -974,7 +974,7 @@ C**** DIFFUSION IN THE TOP LAYER COMES ONLY FROM BELOW.
 
 C**** ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
       IF (MRCH.EQ.2) THEN
-C        AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
+         AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
         DO L=LDRAG,LM
 cc          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
 cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR

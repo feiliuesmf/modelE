@@ -1763,9 +1763,18 @@ C**** DU/DT BY STRAT. DRAG - TOTAL
       DO 745 J=1,JM
   745 AX(J,L)=AJL(J,L,jl_dumtndrg)+AJL(J,L,jl_dushrdrg)+
      *   (AX(J,L)+BX(J,L)+DX(J,L)) + AJL(J,L,jl_dudfmdrg)
+     *                             + AJL(J,L,jl_dudtsdif)
       n = jl_sumdrg
       CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
      *     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+C**** CHANGE IN EAST WIND BY STRATOSPHERIC DIFFUSION
+      n = jl_dudtsdif
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+C**** CHANGE IN EAST WIND BY VERTICAL DIFFUSION
+      n = jl_dudtvdif
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       end if
 C**** DU/DT BY SDRAG
       n = jl_dudtsdrg

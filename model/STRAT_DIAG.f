@@ -428,7 +428,7 @@ C****
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,jl_dumcdrgm20,jl_dumcdrgp20
-     &     ,jl_dudtsdif,jl_damdc,jl_dammc
+     &     ,jl_dudtsdif,jl_damdc,jl_dammc,jl_dudtvdif
       IMPLICIT NONE
 C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
 c      REAL*8, DIMENSION(JM,LM,KEP) :: AEP
@@ -603,7 +603,8 @@ C****
      &             (AJL(J,L,JL_DUSHRDRG)+AJL(J,L,JL_DUMCDRGM10))+
      *       ((AJL(J,L,JL_DUMCDRGP10)+AJL(J,L,JL_DUMCDRGM40))+
      &        (AJL(J,L,JL_DUMCDRGP40)+AJL(J,L,JL_DUMCDRGM20)))+
-     *       (AJL(J,L,JL_DUMCDRGP20)+AJL(J,L,JL_DUDTSDIF)))
+     *        (AJL(J,L,JL_DUMCDRGP20)+
+     &         AJL(J,L,JL_DUDTSDIF)+AJL(J,L,JL_DUDTVDIF)))
       END DO
       END DO
       SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)

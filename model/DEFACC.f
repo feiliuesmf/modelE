@@ -2838,10 +2838,21 @@ c
       units_jl(k) = 'm^2/s'
 c
       k=k+1
-      jl_dudtsdif = k
+      jl_dudtsdif = k                   
       sname_jl(k) = 'dudt_sdiff' !     ! gwdrag
-      lname_jl(k) = 'DU/DT  STRATOSPHERIC DIFFUSION'
+      lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE'
+      lname_jl(k) = 'DU/DT BY GRAVITY WAVE DIFFUSION'
       units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = 2
+c
+      k=k+1
+      jl_dudtvdif = k                   
+      sname_jl(k) = 'dudt_vdiff' !     ! vdiff
+      lname_jl(k) = 'DU/DT BY VERTICAL DIFFUSION'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = 2
 c
       k=k+1
       jl_dtdtsdrg = k

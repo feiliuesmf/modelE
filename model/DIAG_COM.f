@@ -441,7 +441,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_dammc,jl_40,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac
      *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
      *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
-     *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss
+     *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
