@@ -36,6 +36,7 @@ c****
      *     ,jday,jhour,nday,itime,jeq,fearth,modrd,itearth
      *     ,u,v
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
+      use DOMAIN_DECOMP, only : GLOBALSUM
       use geom, only : imaxj,dxyp,bydxyp
       use dynamics, only : pmid,pk,pek,pedn,pdsig,am,byam
       use somtq_com, only : mz
@@ -975,7 +976,8 @@ c**** modifications needed for split of bare soils into 2 types
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf
       use DOMAIN_DECOMP, only : GRID, READT_PARALLEL, DREAD_PARALLEL
-      use DOMAIN_DECOMP, only : CHECKSUM, HERE
+      use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
+      use DOMAIN_DECOMP, only : GLOBALSUM
       use model_com, only : fearth,itime,nday,jeq,jyear
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -1021,7 +1023,8 @@ c**** 11*ngm+1           sl
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
 
-C**** define local grid
+       real*8 :: evap_max_ij_sum
+C****	define local grid
       integer J_0, J_1
       integer J_H0, J_H1
 
@@ -1207,7 +1210,9 @@ C-BMP Global sum on evap_max_ij
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
        
-      if ( sum(evap_max_ij(:,:)) > im*jm-1.d0 ) then ! old default
+       call globalsum(grid, evap_max_ij,evap_max_ij_sum, 
+     &                all=.true.) 
+      if ( evap_max_ij_sum > im*jm-1.d0 ) then ! old default
         do j=J_0,J_1
           do i=1,im
             if ( fearth(i,j) .le. 0.d0 ) cycle
@@ -1854,6 +1859,7 @@ c****
 !@ver  1.0
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
+      use DOMAIN_DECOMP, only : GLOBALSUM
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
      *     ,fr_snow_ij,fr_snow_rad_ij, gdeep
       use veg_com, only : afb
