@@ -1149,6 +1149,12 @@ C**** Fill in maplet indices for sources and sinks
        if (name(k).eq.'TAU'.or.name(k).eq.'SWRF'.or
      *  .name(k).eq.'LWRF') ijtype(k)=2
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+       if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
+     *  name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
+     *  .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
+     *  'J(H2O2)_') ijtype(k)=2
+#endif
       end do
 
 #ifdef TRACERS_COSMO
