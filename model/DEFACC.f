@@ -2329,7 +2329,7 @@ c      scale_ij(k) = 1.
 
       k=k+1
       IJ_TTROP = k
-      lname_ij(k) = 'TROPOPAUSE TEMPERATUPE (WMO)'
+      lname_ij(k) = 'TROPOPAUSE TEMPERATURE (WMO)'
       units_ij(k) = 'K'
       name_ij(k) = 'TTROP'
       ia_ij(k) = ia_src
