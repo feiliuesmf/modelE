@@ -23,14 +23,15 @@ C**** have to wait.
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
      &    ,ndims_out,dimids_out,file_dimlens
-     &    ,units,long_name,missing
+     &    ,units,long_name,missing,real_att_name,real_att
+     &    ,nf_disk_type,nf_arr_type
 
       character(len=80) :: outfile
       integer :: status_out,out_fid
       integer :: ndims_out
       integer :: varid_out
       integer, dimension(7) :: dimids_out
-      character(len=20) :: units=''
+      character(len=30) :: units=''
       character(len=80) :: long_name=''
 
       integer, parameter :: ndfmax=100 ! max dims in file
@@ -39,7 +40,16 @@ C**** have to wait.
       integer, dimension(ndfmax) :: file_dimlens
       character(len=20), dimension(ndfmax) :: file_dimnames
 
-      real :: missing=-1.e30
+      real, parameter :: missing=-1.e30
+
+      integer, parameter :: real_att_max_size=100
+      character(len=30) :: real_att_name=''
+      real, dimension(real_att_max_size) :: real_att = missing
+
+c netcdf library will convert prog_dtype to disk_dtype 
+c these are the defaults for converting GCM real*8 to real*4 on disk
+      integer :: disk_dtype = nf_real
+      integer :: prog_dtype = nf_double
 
       contains
       
@@ -113,7 +123,7 @@ c check to make sure that variable isn't already defined in output file
          write(6,*) 'wrtarr: variable already defined: ',trim(var_name)
          stop
       endif
-      status_out=nf_def_var(out_fid,trim(var_name),nf_real,
+      status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
      &     ndims_out,dimids_out,varid_out)
       if(len_trim(units).gt.0) status_out =
      &     nf_put_att_text(out_fid,varid_out,
@@ -121,6 +131,9 @@ c check to make sure that variable isn't already defined in output file
       if(len_trim(long_name).gt.0) status_out =
      &     nf_put_att_text(out_fid,varid_out,
      &     'long_name',len_trim(long_name),long_name)
+      if(len_trim(real_att_name).gt.0) status_out =
+     &     nf_put_att_real(out_fid,varid_out,trim(real_att_name),
+     &     nf_float,count(real_att.ne.missing),real_att)
 c define missing value attribute only if there are missing values
       var_nelems = product(file_dimlens(dimids_out(1:ndims_out)))
       do n=1,var_nelems
@@ -131,9 +144,23 @@ c define missing value attribute only if there are missing values
          endif
       enddo
       status_out = nf_enddef(out_fid)
-      status_out = nf_put_var_double(out_fid,varid_out,var)
+      select case (prog_dtype)
+      case (nf_double)
+         status_out = nf_put_var_double(out_fid,varid_out,var)
+      case (nf_real  )
+         status_out = nf_put_var_real  (out_fid,varid_out,var)
+      case (nf_int   )
+         status_out = nf_put_var_int   (out_fid,varid_out,var)
+      case (nf_char  )
+         status_out = nf_put_var_text  (out_fid,varid_out,var)
+      end select
+c restore defaults
       units=''
       long_name=''
+      real_att_name=''
+      real_att=missing
+      disk_dtype = nf_real
+      prog_dtype = nf_double
       return
       end subroutine wrtarr
 
@@ -142,6 +169,7 @@ c this subroutine is like wrtarr, but writes the outer_pos-th element
 c of an arbitrarily shaped array.  when outer_pos=1, it defines the
 c array as well.  the first call to it for a particular array MUST have
 c outer_pos=1, otherwise it stops.
+c wrtarrn does not currently have the capability to write any real_atts
       use ncout
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
@@ -157,17 +185,19 @@ c outer_pos=1, otherwise it stops.
          write(6,*) 'wrtarrn: invalid outer_pos'
          stop
       endif
+
+      status_out = nf_redef(out_fid)
+
 c define the variable if outer_pos is 1
       if(outer_pos.eq.1) then
 
-      status_out = nf_redef(out_fid)
 c check to make sure that variable isn't already defined in output file
       if(nf_inq_varid(out_fid,trim(var_name),varid_out)
      &                 .eq.nf_noerr) then
          write(6,*) 'wrtarrn: variable already defined: ',trim(var_name)
          stop
       endif
-      status_out=nf_def_var(out_fid,trim(var_name),nf_real,
+      status_out=nf_def_var(out_fid,trim(var_name),disk_dtype,
      &     ndims_out,dimids_out,varid_out)
       if(len_trim(units).gt.0) status_out =
      &     nf_put_att_text(out_fid,varid_out,
@@ -184,7 +214,6 @@ c define missing value attribute only if there are missing values
             exit
          endif
       enddo
-      status_out = nf_enddef(out_fid)
 
       else
 c check to make sure that variable is already defined in output file
@@ -196,15 +225,30 @@ c check to make sure that variable is already defined in output file
 
       endif
 
+      status_out = nf_enddef(out_fid)
+
       srt(1:ndims_out-1) = 1
       srt(ndims_out) = outer_pos
       do n=1,ndims_out-1
          cnt(n) = file_dimlens(dimids_out(n))
       enddo
       cnt(ndims_out) = 1
-      status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
+
+      select case (prog_dtype)
+      case (nf_double)
+         status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
+      case (nf_real  )
+         status_out = nf_put_vara_real  (out_fid,varid_out,srt,cnt,var)
+      case (nf_int   )
+         status_out = nf_put_vara_int   (out_fid,varid_out,srt,cnt,var)
+      case (nf_char  )
+         status_out = nf_put_vara_text  (out_fid,varid_out,srt,cnt,var)
+      end select
+c restore defaults
       units=''
       long_name=''
+      disk_dtype = nf_real
+      prog_dtype = nf_double
       return
       end subroutine wrtarrn
 
@@ -305,7 +349,8 @@ c check to make sure that variable is already defined in output file
       var_name=sname_ij(nt_ij)
       long_name=lname_ij(nt_ij)
       units=units_ij(nt_ij)
-
+      real_att_name='glb_mean'
+      real_att(1)=xsum
       if(ijgrid.eq.1) then
          call wrtarr(var_name,xij(1,1))
       else
@@ -456,6 +501,8 @@ c check to make sure that variable is already defined in output file
       else
          stop 'pout_jl: unknown output list'
       endif
+      real_att_name='g-nh-sh_sums-means'
+      real_att(1:3)=XJL(JM+1:JM+3,LM+LM_REQ+1)
 
       if(j1.eq.1) then
          xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
@@ -600,6 +647,8 @@ c check to make sure that variable is already defined in output file
       var_name=sname_il(nt_il)
       long_name=lname_il(nt_il)
       units=units_il(nt_il)
+      real_att_name='mean'
+      real_att(1)=gsum
 
       call wrtarr(var_name,xil)
 
@@ -626,6 +675,7 @@ c check to make sure that variable is already defined in output file
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='stype'; call def_dim_out(dim_name,nstype_out)
+      dim_name='stype_clen'; call def_dim_out(dim_name,16)
 
       ndims_out = 1
       dim_name='latitude'; call set_dim_out(dim_name,1)
@@ -660,6 +710,9 @@ c check to make sure that variable is already defined in output file
       USE BDJ, units_j=>units,
      &         lname_j=>lname,sname_j=>sname
       IMPLICIT NONE
+c temporary, to see nf_char
+      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
@@ -668,13 +721,21 @@ c check to make sure that variable is already defined in output file
 
       character(len=30) :: var_name,dim_name
 
-! set shape of output array
+! write out surface type name
+      ndims_out = 2
+      dim_name='stype_clen'; call set_dim_out(dim_name,1)
+      dim_name='stype'; call set_dim_out(dim_name,2)
+      disk_dtype = nf_char
+      prog_dtype = nf_char
+      var_name='stype_names';call wrtarrn(var_name,terrain,iotype)
+
+
+! (re)set shape of output array
       ndims_out = 2
       dim_name='latitude'; call set_dim_out(dim_name,1)
       dim_name='stype'; call set_dim_out(dim_name,2)
 
       DO K=1,KMAX
-c        var_name=trim(terr_name)//'_'//trim(sname_j(nt_j(k)))
         var_name=sname_j(nt_j(k))
         long_name=lname_j(nt_j(k))
         units=units_j(nt_j(k))
