@@ -155,14 +155,14 @@ This is stored through the CVS revision control system, and copies can
 be checked-out to your home directory using the following commands:</p>
 <tt>
    export CVSROOT=/u/cmrun/cvs/repository<br>
-   cvs checkout -r modelE-2-0-1 modelE<br>
+   cvs checkout -r modelE-2-1 modelE<br>
    cd modelE<br>
    cvs tag -b your_tag_here<br>
    cvs update -r your_tag_here<br>
 </tt>
 
 <p>This will create a directory modelE/ in your directory. The code
-will correspond to modelE-2-0-1. Please check to see if this is the
+will correspond to modelE-2-1. Please check to see if this is the
 latest release. It will be tagged with your own tag name so that your
 developments can be maintained by CVS, without conflicting with the
 main development branch.</P>
@@ -517,7 +517,7 @@ source files to tell gmake that they need to be recompiled.
     So the priorities are: 1. rundeck, 2. restart file, 3. defaults.
 
     To start a run, the following parameters HAVE to be explicitly
-    set: ISTART=2 | 6, 7 or 8 to start from obs | model Initial State
+    set: ISTART=2 | 4 5 6 7 or 8 to start from obs | model Initial State
          YEARI    = year in which model starts
          YEARE (or IHOURE) = year (or hour) at which model stops
 
@@ -687,12 +687,12 @@ T1 = temperature of mixed layer (C)                       =TOCEAN(1)
 T2 = T between mixed layer and ann.max mixed layer depth  =TOCEAN(2)
 T3 = temperature at annual maximal mixed layer depth.     =TOCEAN(3)
 
-RTGO(I,J,L=1->lmom) is set to 0 at the beginning of the run
-RTGO(I,J,L) = temperature anomaly for deep ocean layer L (2->LMOM)
-RTGO(I,J,1) BEFORE the diffusion computation equals the annual mean
+RTGO(L=1->lmom) is set to 0 at the beginning of the run
+RTGO(L) = temperature anomaly for deep ocean layer L (2->LMOM)
+RTGO(1) BEFORE the diffusion computation equals the annual mean
             anomaly of T3 (based on the most recent 12-month period)
             and is kept constant throughout the month
-RTGO(I,J,1) is changed during the diffusion; that change is added 
+RTGO(1) is changed during the diffusion; that change is added 
             to T1,T2,T3, then RTGO(I,J,1) is reset to the current
             annual mean anomaly 
 
@@ -701,18 +701,18 @@ The heat flux at interface of layers L and L+1 is given by
 however, a semi-implicit scheme is used to compute these fluxes.
 
 The following auxiliary arrays are used:
-STG3(I,J) is set to 0 at the beginning of each month, at the end of
+STG3 is set to 0 at the beginning of each month, at the end of
           each day  T3  is added; at the end of month M, STG3 is
           saved in TG3M(I,J,M)
 
-TG3M(I,J,M) initially contains a 10-year mean of Sum T3 for month M
+TG3M(M) initially contains a 10-year mean of Sum T3 for month M
           (the sum is taken over each day of month M)
           of the Q-flux run without deep ocean that is used to start
           up the current run, at the end of month M it is set to STG3.
 
-DTG3(I,J) is set to 0 initially and is updated at the end of  month M
+DTG3 is set to 0 initially and is updated at the end of  month M
           by adding (STG3-TG3M(.,.,M)). At that point we have:
-ADTG3 = DTG3(I,J)/365 = 12-month running mean of T3 - T3clim ;
+ADTG3 = DTG3/365 = 12-month running mean of T3 - T3clim ;
           this is used to initialize RTGO(.,.,1) before the diffusion.
 
 Note: After 1 year we have ADTG3 = ( SumD T3_yr1 - SumM init.TG3M )/365
@@ -724,7 +724,8 @@ Note: After 1 year we have ADTG3 = ( SumD T3_yr1 - SumM init.TG3M )/365
 
 <p> Compared to the Qflux model without deep ocean, the model with
 deep ocean needs one extra input file (EDDY = diffusivity
-coefficients) and uses the ODEEP module instead of OCNML. </p>
+coefficients) and uses the ODEEP module instead of OCNML. If starting from a
+restart file from the qflux run, you must use ISTART=4.</p>
 
 <p><A name="part1_2d"><b>D: How to use parameters to control numerical
 instabilities</b></a></p>
@@ -845,7 +846,7 @@ always be recreated if needed.</p>
     The above files provide boundary conditions. One also needs to use a
     compatible restart file with extended prognostic variables, currently
     <pre>
-    AIC=DEC1958.rsfB394M12.modelE.15.ext  ! - initial conditions
+    AIC=DEC1958.rsfB394M12.modelE.17.ext  ! - initial conditions
     </pre>
     One should keep in mind that the data should be extended in a compatible
     way. At least the data in <tt>SOIL</tt> and <tt>AIC</tt> should be 
@@ -1202,13 +1203,13 @@ module. The frequency of saving is controlled by the variable
 variables saved are controlled by the string <tt>SUBDD</tt>, this is a
 space seperated list of names for the required diagnostics.  These are
 currently limited to instantaneous values of some standard fields
-(SAT, PREC, SLP, QS, LCLD, MCLD, HCLD), the geopotential height,
-relative humidity and temperature on any of the following fixed
+(SAT, PREC, SLP, QS, LCLD, MCLD, HCLD, TROP), the geopotential height,
+relative humidity and temperature on any (or all) of the following fixed
 pressure levels (if available): 1000, 850, 700, 500, 300, 100, 30 ,
 10, 3.4, 0.7, .16, .07, .03, and velocities on any model level. The
 fixed pressure level diags are set using Z850, R700 and T100, for
 instance, to request the 850 mb goepotential height, 700 mb relative
-humidity and 100 mb temperatures, respectively. The velocities are set
+humidity and 100 mb temperatures, respectively. Requests for ZALL or UALL, will produce files of all available levels. The velocities are set
 using U1, U5, U12, for instance, to get the 1st, 5th and 12th layer U
 velocities, respectively. More options can be added as cases in
 subroutine get_subdd in DIAG.f if required. For example, including the
@@ -1247,12 +1248,15 @@ POUT_xyz.f file.</p>
 
 <p>There is an RMS.f program in the aux/ directory which calculates a
 'score' for a model run based on the RMS difference with some selected
-observations.  It is compiled whenever the 'gmake aux RUN=....'
-command is run. Like CMPE001 or qc, it is technically model dependent
-(since it uses im,jm etc.), but in practice you will not need to
-recompile it for every version. The executable will be put into the
-RUNNAME_bin directory (i.e. for gmake aux RUN=E001xyz, the executable
-will be E001xyz_bin/RMS). Running RMS on its own gives its usage.</p>
+observations. Additionally, it calculates the Arcsin Mielke score,
+which is a non-dimensional statisitic (between -1,1 (1 being perfect))
+which also includes effects of mean bias and variance. It is compiled
+whenever the 'gmake aux RUN=....'  command is run. Like CMPE001 or qc,
+it is technically model dependent (since it uses im,jm etc.), but in
+practice you will not need to recompile it for every version. The
+executable will be put into the RUNNAME_bin directory (i.e. for gmake
+aux RUN=E001xyz, the executable will be E001xyz_bin/RMS). Running RMS
+on its own gives its usage.</p>
 
 <p>You should produce diagnostic files over at least a five year mean. So
 for a particular run, use pdE to create the JAN and JUL averages</p>
@@ -1273,8 +1277,11 @@ for a particular run, use pdE to create the JAN and JUL averages</p>
 <pre>
       ~/modelE/decks/E001xyz_bin/RMS E001xyz JAN1951-1955.ijE001xyz JUL1951-1955.ijE001xyz</pre>
 
-<p>This will create a file 'E001xyz' in the directory
-/u/cmrun/modelE/RMS, which you can compare with other existing versions.
+<p>This will create files 'E001xyz' in the directories
+/u/cmrun/modelE/RMS and /u/cmrun/modelE/AMS, which contain the RMS
+statistics and the Arcsin Mielke score for each selected
+field,respectively. You can then compare these scores with other
+existing versions.
 </P>
 
 <hr>
