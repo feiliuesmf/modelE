@@ -4939,6 +4939,7 @@ C              ---------------------------------------------------------
       IF(MLGAS(IGAS).LT.1) GO TO 500
       NG = NGX(KGX(IGAS))
       UGAS = ULGAS(IP,IGASX(IGAS))
+      IF(IGAS.EQ.16.OR.IGAS.EQ.17) UGAS=UGAS+ULGAS(IP,11) ! +'other'CFCs
       KK=IG1X(KGX(IGAS))
 C                       Apply absorber scaling for H2O in CO2 & O3 bands
 C                       ------------------------------------------------
@@ -5173,7 +5174,7 @@ C                               ----------------------------------------
 
       IF(MLGAS(16).EQ.1.OR.MLGAS(17).EQ.1) THEN
       XK=WTB*(XKCFCW(ITX2,1)-XKCFCW(ITX1,1))+XKCFCW(ITX1,1)
-      TAU11=XK*ULGAS(IP,8)
+      TAU11=XK*(ULGAS(IP,8)+ULGAS(IP,11))   ! add 'other' CFCs to CFC11
       TRGXLK(IP,1)=TRGXLK(IP,1)+TAU11
       ENDIF
       IF(MLGAS(18).EQ.1.OR.MLGAS(19).EQ.1) THEN
