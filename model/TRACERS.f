@@ -227,9 +227,9 @@ C**** Surface concentration
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water. 
 C**** Tracers in precipitation (=Wet deposition)
-      if (dowetdep(n)) then
       k = k+1
       tij_prec = k
+      if (dowetdep(n)) then
         if (to_per_mil(n) .eq.1) then
           write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_prec'
           write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
@@ -246,9 +246,9 @@ C**** Tracers in precipitation (=Wet deposition)
         end if
       end if
 C**** Tracers in evaporation
-      if (tr_wd_type(n).eq.nWater) then
       k = k+1
       tij_evap = k
+      if (tr_wd_type(n).eq.nWater) then
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
@@ -336,9 +336,9 @@ C**** Tracers conc. in soil water
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
-      if (dodrydep(n)) then
       k = k+1
       tij_drydep = k
+      if (dodrydep(n)) then
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_dry_dep'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Dry Deposition'
