@@ -1,4 +1,9 @@
+#include "rundeck_opts.h"
+
       MODULE TRACER_SOURCES
+
+#ifdef TRACERS_ON
+
       USE TRACER_COM
 
       IMPLICIT NONE
@@ -29,6 +34,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       real*8 CO_src(im,jm,nCOsrc),CH4_src(im,jm,nch4src),
      & Alkenes_src(im,jm,nAlkenessrc),Paraffin_src(im,jm,nParaffinsrc),
      & Isoprene_src(im,jm,nIsoprenesrc),NOx_src(im,jm,nNOxsrc)
+#endif
       END MODULE TRACER_SOURCES
       
       
@@ -36,6 +42,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
 !@sum  LIGHTNING_COM model variables lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
 !@ver  1.0 (taken from CB436Tds3M23)
+
       USE MODEL_COM, only : IM,JM,LM,LS1
 
       IMPLICIT NONE
@@ -47,8 +54,10 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
 
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       INTEGER I
+#ifdef TRACERS_ON
       REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
       REAL*8, DIMENSION(LM) :: SRCLIGHT
+#endif
       
 !@var HGT Pickering vertical lightning distributions (1998)
       REAL*8 HGT(2,2,16)
@@ -64,6 +73,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       END MODULE LIGHTNING 
       
           
+#ifdef TRACERS_ON
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 surface sources and sinks
 !@auth Jean Lerner
@@ -542,7 +552,7 @@ C****    Determine if over land or ocean:
          IF(fland(I,J).GE.0.5) THEN
            LANDINDX=1
          ELSE
-            LANDINDX=2
+           LANDINDX=2
          END IF
 C****    Choose appropriate height file:
          DO IH=1,16
@@ -895,8 +905,8 @@ c     mixing ratios to 1.79 (observed):
 C
       RETURN
       end subroutine get_CH4_IC
-   
-      
+C  
+C     
       SUBROUTINE calc_lightning(I,J,LMAX,LFRZ)
 !@sum calc_lightning to calculate lightning flash amount and cloud-
 !@+   to-ground amount, based on cloud top height. WARNING: this 
@@ -979,19 +989,19 @@ c parameter.  The algorithm is only valid for thicknesses greater
 c than 5.5km and less than 14km.
 
       th=(HTCON-HTFRZ)
-      If (th.lt.5.5) th=5.5
-      If (th.gt.14.) th=14.
+      th=min(max(th,5.5d0),14.d0)
       th2=th*th
       th3=th2*th
       th4=th3*th
-      zlt=0.021*th4-0.648*th3+7.493*th2-36.544*th+63.088
+      zlt = 0.021d0*th4 - 0.648d0*th3 + 7.493d0*th2 
+     &    - 36.544d0*th + 63.088d0
       CG=flash/(1.+zlt)
 
 c Given the number of cloud-to-ground flashes, we can now calculate
 c the NOx production rate based on the Price et al. (1997) JGR paper.
 c The units are grams of Nitrogen per minute:
 
-      RNOx_lgt(i,j)=15611.*(CG + 0.1*(flash-CG))
+      RNOx_lgt(i,j)=15611.d0*(CG + 0.1d0*(flash-CG))
 
 C If flash is indeed in flashes/min, accumulate it in flashes:
        TAIJS(I,J,ijs_flash)=TAIJS(I,J,ijs_flash) + flash*60.d0
@@ -1050,6 +1060,7 @@ C     more representative throughout the 1 hour time step:
 
       RETURN
       END SUBROUTINE get_sza
+#endif
 C
 C
       SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT,min_zero)
@@ -1116,6 +1127,7 @@ C
       END SUBROUTINE LOGPINT
 C
 C
+#ifdef TRACERS_ON
       SUBROUTINE special_layers_init
 !@sum special_layers_init determined special altitude levels that
 !@+ are important to Drew Shindell's tracer code.  This is done to
@@ -1162,3 +1174,4 @@ c
 c      
       RETURN
       END SUBROUTINE special_layers_init
+#endif
