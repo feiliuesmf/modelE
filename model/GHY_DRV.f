@@ -472,12 +472,12 @@ c**** modifications needed for split of bare soils into 2 types
       implicit none
 
       real*8 dtsurf
-      integer iu_soil,iu_top_index
+      integer iu_soil,iu_top_index,iu_veg
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical redogh, inisnow
       logical :: qcon(npts)
-      integer i, j
+      integer i, j, k
       real*8 one,wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 slim,slre,svh,z
@@ -497,7 +497,6 @@ c**** modifications needed for split of bare soils into 2 types
      $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
       integer, parameter :: laday(8) =
      $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
-
 
 c****             tundr grass shrub trees decid evrgr rainf crops
 c****
@@ -523,7 +522,13 @@ c****       1 -   ngm   dz(ngm)
 c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
-c
+
+c read in vegetation data set: vdata
+      call openunit("VEG",iu_VEG,.true.,.true.)
+      do k=1,11
+        call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
+      end do
+      call closeunit(iu_VEG)
 c read soils parameters
       call openunit("SOIL",iu_SOIL,.true.,.true.)
       call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
@@ -533,11 +538,6 @@ ccc read topmodel parameters
       call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
       call closeunit (iu_TOP_INDEX)
 C
-ccc  for debug:
-c      do j=1,46
-c       print '(72f6.2)', ( top_index_ij(i,j), i=1,72 )
-c      enddo
-ccc      stop 77
       one=1.
 c****
 c**** initialize constants
@@ -570,8 +570,6 @@ c      alamsn=0.088d0
       alams(4)=.25d0
 c hw is the wilting point in meters
       hw=-100
-c tfrz is 0 c in k
-c      tfrz=273.16d0
 c zhtb is depth for combining heat layers for stability
 ccc looks like zhtb is not used
 c      if(q(4,1).lt..01)then
@@ -585,16 +583,50 @@ c
 c****
 c**** initialize global arrays  ala, acs, afb, afr
 c****
-c      twopi=6.283185    ! should be taken from constant
-
       ala(:,:,:)=0.
       acs(:,:,:)=0.
       afb(:,:)=0.
       afr(:,:,:)=0.
       acs(1,:,:)=.01d0
+
       do j=1,jm
         do i=1,im
           pearth=fearth(i,j)
+c**** check whether data exist at this point. We should use a
+c**** nearest neighbour apporximation. 
+c**** In the meantime, use arbitrary point 10,40 (TEMPORARY FIX)
+          if (pearth.gt.0) then
+            if (sum(vdata(i,j,1:10)).eq.0) then
+              print*,"No vege data: i,j=",i,j,vdata(i,j,1:10)
+              vdata(i,j,1:11)=vdata(10,40,1:11)
+c**** or these
+              snowe(i,j)=0.
+              tearth(i,j)=tearth(10,40)
+              wearth(i,j)=wearth(10,40)
+              aiearth(i,j)=aiearth(10,40)
+            end if
+            if (top_index_ij(i,j).eq.-1.) then
+              print*,"No topo data: i,j=",i,j,top_index_ij(i,j)
+              top_index_ij(i,j)=top_index_ij(10,40)
+            end if
+            if (sum(dz_ij(i,j,1:ngm)).eq.0) then
+              print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm)
+              dz_ij(i,j,1:ngm)=dz_ij(10,40,1:ngm)
+              q_ij(i,j,1:imt,1:ngm)=q_ij(10,40,1:imt,1:ngm)
+              qk_ij(i,j,1:imt,1:ngm)=qk_ij(10,40,1:imt,1:ngm)
+              sl_ij(i,j)=sl_ij(10,40)
+c**** Not really sure what these should be set to.
+              wbare(:,i,j) = wbare(:,10,40)
+              wvege(:,i,j) = wvege(:,10,40)
+              htbare(:,i,j)= htbare(:,10,40)
+              htvege(:,i,j)= htvege(:,10,40)
+              snowbv(:,i,j)= 0.
+c**** or these
+              NSN_IJ(:,i,j)=0. ; ISN_IJ(:,i,j)=0 ; DZSN_IJ(:,:,i,j) =0.
+              WSN_IJ(:,:,i,j)=0. ; HSN_IJ(:,:,i,j)=0.
+              FR_SNOW_IJ(:,i,j)=0
+            end if
+          end if
           afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
           if(afb(i,j).gt..999) afb(i,j)=1.
           if(pearth.le.0..or.afb(i,j).ge.1.) cycle
@@ -736,8 +768,8 @@ ccc!!! this should be done only when restarting from an old
 ccc!!! restart file (without snow model data)
 
       if (inisnow) then
-      do i=1,im
         do j=1,jm
+        do i=1,im
           pearth=fearth(i,j)
           if(pearth.le.0.) then
             nsn_ij(:,i,j)     = 0
@@ -821,6 +853,7 @@ c****
       ijdebug=i0*100+j0
       i_earth = i0
       j_earth = j0
+
 ccc passing topmodel parameters
       top_index = top_index_ij(i0, j0)
 c**** set up layers
@@ -828,6 +861,7 @@ c**** set up layers
       q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
       qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
       sl=sl_ij(i0,j0)
+
       do n=1,ngm
         if(dz(n).le.0.) go to 21
       end do

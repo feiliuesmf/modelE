@@ -7,8 +7,8 @@
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE LANDICE_COM, only : tlandi
+      USE MODEL_COM, only : im,jm,flice
+      USE LANDICE_COM, only : tlandi,snowli
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J
@@ -16,7 +16,7 @@
 C**** set GTEMP array for landice
       DO J=1,JM
         DO I=1,IM
-          GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+          IF (FLICE(I,J).gt.0) GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
         END DO
       END DO
 C****

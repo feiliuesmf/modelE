@@ -307,6 +307,16 @@ C things to be done regardless of inipbl
       call readt (iu_CDN,0,roughl,im*jm,roughl,1)
       call closeunit(iu_CDN)
 
+      do j=1,jm
+        do i=1,im
+          if (fland(i,j).gt.0.and.roughl(i,j).eq.0) then
+            print*,"Roughness length not defined for i,j",i,j
+     *           ,roughl(i,j),fland(i,j),flice(i,j)
+            roughl(i,j)=roughl(10,40)
+          end if
+        end do
+      end do
+
       call ccoeff0
       call getb(zgs,ztop,bgrid)
 
@@ -388,11 +398,7 @@ c ******************************************************************
 
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*RVX)*psk
-            if (itype.gt.2) then
-              zgrnd=30./(10.**roughl(i,j))
-              else
-              zgrnd=0.1
-            endif
+            if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
 
             dpdxrij  = DPDX_BY_RHO(i,j)
             dpdyrij  = DPDY_BY_RHO(i,j)

@@ -456,11 +456,11 @@ C****
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
-     *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
+     *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : geom_b
+      USE GEOM, only : geom_b,imaxj
       USE RANDOM
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
@@ -475,12 +475,11 @@ C****
       USE PARAM
       USE PARSER
       USE SOIL_DRV, only: init_gh
+      USE FLUXES, only : gtemp   ! tmp. fix
       IMPLICIT NONE
-!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG unit numbers for input files
-      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
-
-      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1
-     *     ,IR,IREC,NOFF,ioerr
+!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
+      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG
+      INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,IR,IREC,NOFF,ioerr
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
@@ -503,7 +502,6 @@ C****
      *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
-
 C****
 C**** default settings for prog. variables etc
 C****
@@ -996,7 +994,7 @@ C**** Initialize land ice (must come after oceans)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=1,JM
-      DO I=1,IM
+      DO I=1,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN
@@ -1009,25 +1007,24 @@ C**** as residual terms. (deals with SP=>DP problem)
         ELSE
           FLAND(I,J)=1.
         END IF
-        FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+        IF (FLICE(I,J).gt.FLAND(I,J)) THEN
+          WRITE(6,*) "LAND ICE greater than LAND fraction at i,j:",I,J
+     *         ,FLICE(I,J),FLAND(I,J),FOCEAN(I,J),FEARTH(I,J)
+          FLICE(I,J)=FLAND(I,J)
+          FEARTH(I,J)=0.
+        ELSE
+          FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+        END IF
       END DO
       END DO
+     
 C**** set land components of FTYPE array. Summation is necessary for
 C**** cases where Earth and Land Ice are lumped together
       FTYPE(ITLANDI,:,:)=0.
       FTYPE(ITEARTH,:,:)=FEARTH
       FTYPE(ITLANDI,:,:)=FTYPE(ITLANDI,:,:)+FLICE
-
-C**** READ IN VEGETATION DATA SET: VDATA
-c     if(istart.gt.0) then
-        call openunit("VEG",iu_VEG,.true.,.true.)
-        DO K=1,11
-          CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
-        END DO
-        call closeunit(iu_VEG)
-c     end if
 C****
-C**** INITIALIZE GROUND HYDROLOGY ARRAYS
+C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
 C****
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW)

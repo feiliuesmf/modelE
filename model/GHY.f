@@ -2059,9 +2059,9 @@ ccc since we don't know what kind of data we are dealing with,
 ccc better check it
 
        if( snowd(ibv) .gt. w(1,ibv)-dz(1)*thetm(1,ibv)  ) then
-          write(96,*) 'snowd corrected: old=', snowd(ibv)
+          write(99,*) 'snowd corrected: old=', snowd(ibv)
           snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
-          write(96,*) '                 new=', snowd(ibv)
+          write(99,*) '                 new=', snowd(ibv)
           if ( snowd(ibv) .lt. -0.001d0 ) call abort
           if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
        endif

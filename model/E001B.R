@@ -36,6 +36,7 @@ AIC=DEC1958.rsfB394M12.modelE.12
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=AVR4X5LD.Z12                ! ocean filter
+KBASIN=KB4X513.OCN              ! ocean basin designations
 TOPO_OC=Z72X46N.cor4 ! ocean bdy.cond
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond

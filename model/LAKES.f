@@ -248,7 +248,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake,ftype
-     *     ,itlake,itlkice
+     *     ,itlake,itlkice,focean,fearth,fland
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : tsavg
@@ -355,6 +355,10 @@ C**** Create integral direction array KDIREC from CDIREC
       INM=0
       DO J=1,JM
       DO I=1,IM
+        IF (FOCEAN(I,J).le.0.and.CDIREC(I,J).eq." ") THEN
+          WRITE(6,*) "Land box has no river direction I,J: ",I,J
+     *     ,FLAND(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH(I,J)
+        END IF
         KDIREC(I,J) = ICHAR(CDIREC(I,J)) - 48
         IF(KDIREC(I,J).lt.0 .or. KDIREC(I,J).gt.8)  KDIREC(I,J) = 0
 C**** Check for specified river mouths

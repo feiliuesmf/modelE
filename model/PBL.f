@@ -428,7 +428,7 @@ c  Compute roughness lengths using rough surface formulation:
           endif
         endif
 c *********************************************************************
-        else
+      else
 c *********************************************************************
 c  For land and land ice, z0m is specified. For z0h and z0q,
 c    empirical evidence suggests:
