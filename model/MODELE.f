@@ -1410,14 +1410,15 @@ C**** check tracers
       nargs = iargc()
       do n=1,nargs
         call getarg(n,arg)
+        if ( arg(1:1) .ne. '-' ) exit  ! end of options
         select case (arg)
         case ("-r")
           qcrestart = .true.
         ! new options can be included here
-c        case default
-c          print *,'Unknown option specified: ', arg
-c          print *,'Aborting...'
-c          call stop_model("Unknown option on a command line",255)
+        case default
+          print *,'Unknown option specified: ', arg
+          print *,'Aborting...'
+          call stop_model("Unknown option on a command line",255)
         end select
       enddo
 
