@@ -663,6 +663,7 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 !@var KRHAER(4) 0/1=off/on flag to make aeros.sizes humidity dependent
+!@+             if 0: dry sizes are used, if <0: 70% rel.hum is assumed
       integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SeaSalt,Nitr,org
 !@var KRHTRA(8) 0/1=off/on flag to make tracer aeros.sizes humidity dep.
       integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
@@ -870,14 +871,14 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
 
      * ,REFWET=(/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 1.000,1.000/)
 
-     * ,DRYM2G=(/4.667, 0.866, 4.448, 5.018, 9.000, 9.000, 1.000,1.000/)
+     * ,DRYM2G=(/4.667, 0.866, 4.448, 5.017, 9.000, 9.000, 1.000,1.000/)
 
 CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
 
 !nu     RHTMAG=(/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/)
 !nu alt RHTMAG=(/1.982, 3.042, 1.708, 1.033, 1.000, 1.000, 1.000,1.000/)
-!nu  *  WETM2G=(/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 1.000,1.000/)
-!nu alt WETM2G=(/9.250, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
+!old *  WETM2G=(/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 1.000,1.000/)
+     *  WETM2G=(/9.086, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
      * ,Q55DRY=(/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.000,1.000/)
 
      * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
@@ -3306,10 +3307,11 @@ C     ------------------------------------------------------------------
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
       AREFF=REFDRY(NA)
-      IF(KRHAER(NA).EQ.0) AREFF=REFWET(NA)
+      IF(KRHAER(NA).LT.0) AREFF=REFWET(NA)
       CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
       DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
+      IF(KRHAER(NA).LT.0) DRYM2G(NA)=WETM2G(NA)
       RHINFO(1,1,NA)=0.D0                                     !  Rel Hum
       RHINFO(1,2,NA)=1.D0                                     !  TAUFAC
       RHINFO(1,3,NA)=AREFF                                    !  AerSize
@@ -8008,7 +8010,8 @@ C
       SUM0(I)=SUM0(I)+ULGAS(L,I)
   208 CONTINUE
       DO 209 I=1,4
-      SUM0(12+I)=SUM0(12+I)+TRACER(L,I)*1000.d0*TRRDRY(I)
+      SUM0(12+I)=SUM0(12+I)+TRACER(L,I)*
+     *  1d3*.75d0/DENAER(ITR(I))*Q55DRY(ITR(I))/TRRDRY(I)
   209 CONTINUE
       SUM0(10)=SUM0(10)+TAUWC(L)
       SUM0(11)=SUM0(11)+TAUIC(L)
