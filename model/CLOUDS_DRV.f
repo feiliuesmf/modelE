@@ -39,6 +39,9 @@
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE LIGHTNING, only : i_lgt,j_lgt,RNOx_lgt
+#endif
 #endif
       USE CLOUDS, only : BYDTsrc,mstcnv,lscond ! glb var & subroutines
      *     ,airm,byam,etal,sm,smom,qm,qmom
@@ -297,6 +300,13 @@ C**** SET PRECIPITATION AND LATENT HEAT
 
 C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
+      
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Save current i,j for lightning calculation in MSTCNV:
+      i_lgt = i
+      j_lgt = j
+      RNOx_lgt(i,j) = 0.
+#endif
 
 C**** MOIST CONVECTION
       CALL MSTCNV(IERR,LERR)
