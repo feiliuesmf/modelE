@@ -25,7 +25,7 @@ C****
 C**** ZERO1 HAS TO EQUAL THE CUT-OFF VALUE FOR COSZ USED IN SOLAR
 C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       REAL*8, PARAMETER :: ZERO1=1.D-2
-      INTEGER I,J,L
+      INTEGER I,J
       REAL*8 S2DAWN,S2DUSK,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN
      *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT
       INTEGER :: I_0, I_1, J_0, J_1
@@ -333,7 +333,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,MADVEL,LONR,LATR
+      INTEGER J,L,LR,LONR,LATR
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -708,10 +708,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1,N,onoff
+      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,X,OPNSKY,CSZ2,tauup,taudn
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -878,7 +878,7 @@ C****
       JCKERR=0
       KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,icc1,LFRC, N, onoff,OPNSKY,
+!$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
@@ -2078,7 +2078,7 @@ C**** Output:
       REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,LAMBDA
 
       REAL*8 MA,OMEGA,DOBLIQ,ECCEN,PERIHE,EA,DEA,BSEMI,COSEA
-     *     ,SINEA,TA,SUNX,SUNY,GREENW,SINDD
+     *     ,SINEA,TA,SINDD  ! ,SUNX,SUNY,GREENW
 C****
       OMEGA=OMEGT*radian
       DOBLIQ=OBLIQ*radian

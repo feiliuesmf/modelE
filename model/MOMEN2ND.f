@@ -28,7 +28,7 @@
 
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S
       INTEGER,SAVE :: IFIRST = 1
-      INTEGER I,J,IP1,IM1,L,K  !@var I,J,IP1,IM1,L,K  loop variables
+      INTEGER I,J,IP1,IM1,L  !@var I,J,IP1,IM1,L  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,SDU,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
 

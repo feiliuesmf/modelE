@@ -44,10 +44,10 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       logical, parameter :: call_diag=.false.
 
       real*8, dimension(lm) :: u,v,t,q,e,u0,v0,t0,q0,e0
-     &    ,tau,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
-     &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze,gm,gh
-     &    ,km,kh,ke,wt_nl,wq_nl,ew_nl
-     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,uw,vw,w2,wt,wq
+     &    ,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
+     &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze
+     &    ,km,kh,ke,wt_nl,wq_nl
+     &    ,lscale,qturb,p3,p4,rhobydze,bydzrhoe,uw,vw,wt,wq
       real*8, dimension(lm+1) :: ze
 
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
@@ -59,7 +59,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
       real*8 :: uflx,vflx,tvflx,qflx,tvs
      &   ,ustar2,t0ijl,tijl,rak,alpha1,ustar
-     &   ,flux_bot,flux_top,x_surf,dgcdz
+     &   ,flux_bot,flux_top,x_surf
      &   ,wstar,dbl,lmonin
       integer :: idik,idjk,ldbl,kmax,
      &    i,j,l,k,n,iter !@i,j,l,k,n,iter loop variable
@@ -747,7 +747,6 @@ C**** Save additional changes in KE for addition as heat later
       real*8, dimension(n), intent(out) :: x
 
       real*8, dimension(n) :: sub,dia,sup,rhs
-      real*8 :: alpha
       integer :: j  !@var j loop variable
 
       ! sub(j)*x_jm1_kp1+dia(j)*x_j_kp1+sup(j)*x_jp1_kp1 = rhs(j)
@@ -875,7 +874,7 @@ C****
 
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
-      real*8 :: HEMI,u_t,v_t,rak,ck,sk,uk,vk
+      real*8 :: HEMI,rak,ck,sk,uk,vk
       integer :: i,j,l,k,idik,idjk,kmax
 
       u=0.d0; v=0.d0

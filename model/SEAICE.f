@@ -1260,7 +1260,7 @@ C****  G_mole_S = 12.5 * 2432d0**(2d0/3d0) - 6. = 2255d0
 !@var m melt rate (negative implies freezing) (kg/m^2/s)
 !@var Tb temperature at interface (C)
 !@var Tib,Sib actual temperature/salinity in melting/freezing ice (psu)
-      real*8 :: m,Tb,Sib,Tib
+      real*8 :: m,Tb,Sib  ! ,Tib
       real*8 :: lh,left2,df3dm,dmdTb,dmdSi,alamdh,f0,df,rsg
       integer, parameter :: niter=5 !@param niter number of iterations
       integer :: i

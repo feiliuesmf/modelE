@@ -139,9 +139,9 @@ C**** Tracer concentration in ice assumed constant
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRUN0
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: TRDIFS
+      INTEGER N
 #endif
       REAL*8 :: SNANDI,HC1,ENRG1
-      INTEGER N
 
 C**** initiallize output
       EDIFS=0. ; DIFS=0. ; RUN0=0.

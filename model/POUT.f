@@ -453,7 +453,7 @@ C**** set dimensions
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
-      INTEGER :: I,K
+      INTEGER :: K
 
       DO K=1,LM
          WRITE(iu_ijk) TITLE(K), REAL(XIJK(:,:,K),KIND=4),

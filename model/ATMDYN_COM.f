@@ -88,8 +88,6 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
 
-      INTEGER :: I,J,L
-
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
       J_0H = grid%J_STRT_HALO

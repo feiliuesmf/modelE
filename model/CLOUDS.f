@@ -1594,8 +1594,8 @@ c for sulfur chemistry
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
-     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-     *     ,PRATW,PRATM,SMN12,SMO12
+     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND
+     *     ,PRATM,SMN12,SMO12
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
@@ -2643,11 +2643,10 @@ C-----------------------------------------------------------------------
 !@var dem,bb,bbs working variables for 10.5 micron longwave emissivity
 !@+ in part of gridbox under consideration
       real*8 dem(ncol),bb(nlev),bbs
-      integer seed  !@var seed saved value for random number generator
-!@var dtautmp,demtmp temporary variables for dtau,dem
-      real*8, dimension(ncol) :: dtautmp, demtmp
+!@var dtautmp temporary variables for dtau,dem
+      real*8, dimension(ncol) :: dtautmp
       real*8 ptrop,attrop,atmax,atmin,btcmin,transmax
-      integer ilev,ibox,ipres,itau,ilev2
+      integer ilev,ibox,ipres,itau
       integer acc(nlev,ncol),match(nlev-1),nmatch,levmatch(ncol)
 
       !variables needed for water vapor continuum absorption

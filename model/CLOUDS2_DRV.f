@@ -312,6 +312,7 @@ C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
 C****
       DEBUG = .FALSE.   ! use for individual box diags in clouds
+c      debug=j.eq.38    ! .and. (i.eq.12.or.i.eq.37)
       PEARTH=FEARTH(I,J)
       PLAND=FLAND(I,J)
       TS=TSAVG(I,J)
@@ -379,6 +380,7 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
       do l=1,lm
         tm(l,nx) = trm(i,j,l,ntix(nx))
+        if (debug .and. nx.eq.1) print*,"drv0",i,l,tm(l,nx)
         tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
       end do
       end do
@@ -563,6 +565,7 @@ C**** TRACERS: Use only the active ones
      *         + trsvwml(nx,l)
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
+      if (debug .and. nx.eq.1) print*,"drv1",i,l,tm(l,nx),trsvwml(nx,l)
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
           tmomsv(:,l,nx) = tmom(:,l,nx)
           tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only

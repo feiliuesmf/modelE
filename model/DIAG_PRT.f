@@ -199,12 +199,10 @@ c
       IMPLICIT NONE
       REAL*8, DIMENSION(JM), SAVE ::S1
       REAL*8, DIMENSION(NREG), SAVE :: SAREA
-      REAL*8, DIMENSION(JM) :: CONTJ,CONTO,CONTL,CONTOI
-     *     ,FLAT
+      REAL*8, DIMENSION(JM) :: FLAT
       REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
       REAL*8, DIMENSION(2) :: FHEM
       INTEGER, DIMENSION(JM) :: MLAT
-      INTEGER, DIMENSION(2) :: MHEM
       LOGICAL QALB,qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24,JMHALF=JM/2
 !@param NTYPE_OUT number of output budgets pages
@@ -1010,14 +1008,14 @@ c Check the count
       REAL*8, PARAMETER :: ONE=1.
 
       INTEGER ::
-     &     I,IX,J,J0,J1,JH,JHEMI,K,K1,KDN,KM,KUP,L,LR,M,N
+     &     I,IX,J,J1,JH,JHEMI,K,K1,KDN,KM,KUP,L,LR,M,N
 
       REAL*8 ::
      &     BDN,BUP,BYDP2,BYDPK,BYFSQ,BYIADA,
      &     BYIMDA,BYN,BYRCOS,DALPHA,DAM4,DE4TI,
      &     DP,DPG,DPH,DPTI,DTHETA,EL4QI,ELOFIM,
      &     GBYRSQ,GSQ,PDN,PIG,PIH,PMK,PUP,
-     &     PUTI,PVTI,SCALES,SCALET,SDDP,SKEI,SMALL,
+     &     PUTI,PVTI,SCALES,SCALET,SDDP,SKEI,
      &     SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
 
@@ -1589,15 +1587,14 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
 C****
 C**** Wave Energy (ELIASSEN PALM) FLUX:  NORTHWARD, VERTICAL, DIVERGENCE
 C****
-c      SMALL=teeny
 c      DO 510 K=1,KM
 c      AX(1,K)=0.
 c      DO 510 J=2,JM
 c      UX=AJK(J,K,JK_U)/(AJK(J,K,JK_DPB)+teeny)
-c      IF (ABS(UX).GE.SMALL) GO TO 510
+c      IF (ABS(UX).GE.teeny) GO TO 510
 c      SN=+1.
 c      IF (UX.LT.0.) SN=-1.
-c      UX=SN*SMALL
+c      UX=SN*teeny
 c  510 AX(J,K)=(AJK(J,K,JK_TOTNTGEO)-AJK(J,K,JK_ZMFNTGEO))/UX!*DXV(J)
 c      n = jk_we_flx_nor
 c      SCALET = scale_jk(n)
@@ -1617,10 +1614,10 @@ c  516 UX=(AJK(J,K,JK_U)+AJK(J+1,K,JK_U)
 c     &   +AJK(J,K+1,JK_U)+AJK(J+1,K+1,JK_U))/
 c     *   (AJK(J,K,JK_DPB)+AJK(J+1,K,JK_DPB)+
 c     &    AJK(J,K+1,JK_DPB)+AJK(J+1,K+1,JK_DPB)+teeny)
-c  518 IF (ABS(UX).GE.SMALL) GO TO 520
+c  518 IF (ABS(UX).GE.teeny) GO TO 520
 c      SN=+1.
 c      IF (UX.LT.0.) SN=-1.
-c      UX=SN*SMALL
+c      UX=SN*teeny
 c  520 BX(J,K)=AJK(J,K,JK_VTGEOEDDY)/(UX*RHO(J,K))
 c      n = jk_epflx_v
 c      SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
@@ -2668,19 +2665,17 @@ C****
 
 
       INTEGER :: J1,JWT,LMAX
-      REAL*8 :: SCALET,SCALER,PRTFAC
+      REAL*8 :: SCALET,PRTFAC
       INTEGER :: POW10P
       REAL*8, DIMENSION(JM,LM) :: AX,VWT
-      REAL*8, DIMENSION(JM,LM_REQ) :: ARQX
       REAL*8, DIMENSION(JM) :: SCALEJ,SCALJR
       REAL*8, DIMENSION(LM) :: SCALEL
-      REAL*8, DIMENSION(LM_REQ) :: SCALLR
       REAL*8, DIMENSION(LM+LM_REQ) :: PL
 
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
-      INTEGER :: IWORD,J,JH,JHEMI,K,L
+      INTEGER :: IWORD,J,JHEMI,K,L
       REAL*8 :: FGLOB,GSUM,SUMFAC,GVWT
 
       REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
@@ -2843,7 +2838,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       REAL*8, DIMENSION(IM) :: ASUM
       INTEGER, DIMENSION(IM) :: MLON
       INTEGER, INTENT(IN) :: JWT,ISHIFT
-      INTEGER :: I,K,L,LMAX
+      INTEGER :: I,L,LMAX
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
 C****
@@ -2951,7 +2946,7 @@ C****
       REAL*8, DIMENSION(43+1,NWAV_DAG+1) :: FPOWER
       REAL*8, DIMENSION(41,2) :: period_e
       REAL*8, DIMENSION(nwav_dag) :: xnwav
-      CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
+      CHARACTER XLB*14,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'PERIOD EASTWARD'/,CPRES/'N'/,CBLANK/' '/
 
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
@@ -3113,11 +3108,11 @@ C****
       DIMENSION C(1800),S(1800),B1(62),B2(62),A(12),AA(11),P(13)
       DIMENSION SERIES(*),POWER(*),FPE(*)
       REAL*8 ARG,PP,POWERX,P,C,S,POWER,FPE
-      COMPLEX*16 CI,CSUM,SS,A,AA,B1,B2,ANOM,ADEN
+      COMPLEX*16 CI,CSUM,A,AA,B1,B2,ANOM,ADEN
       COMPLEX*16 SERIES
       REAL*8 :: PNU,VAR
       INTEGER ::
-     &     I,ITM,L,M,MM1,MMAX,MMAXP1,NU,NUA,
+     &     I,ITM,L,M,MMAX,MMAXP1,NU,NUA,
      &     NUAMAX,NUB,NUBMAX,NUMAX,NUTM
       CI=CMPLX(0.D0,1.D0)
       MMAXP1=MMAX+1
@@ -3781,7 +3776,7 @@ c**** find hemispheric and global means
      &     iu_Iij,koff
 
       REAL*8 ::
-     &     DAYS,ZNDE16,ZS,DPTI,PVTI,gm,
+     &     DAYS,ZNDE16,DPTI,PVTI,gm,
      &     DE4TI,BYDPK,SZNDEG
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
@@ -4927,7 +4922,7 @@ C****
 
       INTEGER ::
      &     I,I35,I70,IEND,ISIGN,
-     &     J,J60,JMAX,JEQP1,JNDEX,JSTART,
+     &     J,J60,JMAX,JNDEX,JSTART,
      &     K,KEYMAX,KNDEX,
      &     L,LL,LMAX,LNLM,LNM,LSLM,LSM,
      &     N,NT,NTDIF
@@ -5227,7 +5222,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       REAL*8 SMAP(IM,JM,LM),SMAPJK(JM,LM),SMAPK(LM)
       REAL*8 flat,press,dp
       CHARACTER*8 CPRESS(LM)
-      INTEGER i,j,l,kxlb,ni,kcomp,k,iu_Iij
+      INTEGER i,j,l,kxlb,ni,k,iu_Iij
       logical, dimension (kaijkx) :: Qk
 
 C****
@@ -5352,7 +5347,7 @@ C****
      *     "0ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
       REAL*8 area(nisccp)
       REAL*8 AX(ntau,npres,nisccp)
-      INTEGER N,ITAU,IPRESS,J,IU_ISCCP
+      INTEGER N,ITAU,IPRESS,J
 
       character*30 :: sname
       character*50 :: lname,units

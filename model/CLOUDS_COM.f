@@ -149,9 +149,6 @@ C**** Initialise some output used in dynamics
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "CLD01"
-!@var UDUM1,UDUM2,LDUM dummy variables
-      REAL*8 UDUM1,UDUM2
-      INTEGER LDUM1
 
       write(MODULE_HEADER(lhead+1:80),'(a)')
      *'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'

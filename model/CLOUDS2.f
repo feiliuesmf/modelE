@@ -1251,12 +1251,16 @@ C**** diagnostics
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
+        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
+     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
+        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
       ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
       TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
       TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
+        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
       END DO
@@ -1366,6 +1370,8 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       IF(FPRCP.eq.1.) THEN      !total evaporation
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
+          if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
+     *         *FEVAP
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -1381,6 +1387,8 @@ C**** estimate effective humidity
           CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
      *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
+          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
+     *         ,FPRCPT,TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
       END IF
@@ -1423,6 +1431,8 @@ cdmk GET_WASH now has gas dissolution, extra arguments
             TMFAC=0.
           ENDIF
           TM(L,N)=TM(L,N)*(1.-FWASHT)-THLAW
+          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
+     *         ,THLAW
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
      &                (1.-FWASHT-TMFAC)
         END DO
@@ -1652,15 +1662,15 @@ c for sulfur chemistry
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
-     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-     *     ,PRATW,PRATM,SMN12,SMO12
+     *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND
+     *     ,PRATM,SMN12,SMO12
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU,QCRIT
        real*8 dynvis(LM),DSGL(LM)
 #endif
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variabls
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
@@ -1716,7 +1726,7 @@ c for sulfur chemistry
 !@var WMNEW updated cloud water mixing ratio
 !@var WTEM cloud water density (g m**-3)
 !@var VVEL vertical velocity (cm/s)
-!@var XY,FCOND dummy variables
+!@var FCOND dummy variables
       INTEGER LN,ITER !@var LN,ITER loop variables
       LOGICAL BANDF  !@var BANDF true if Bergero-Findeisen proc. occurs
       LOGICAL FORM_CLOUDS !@var FORM_CLOUDS true if clouds are formed
@@ -2714,11 +2724,10 @@ C-----------------------------------------------------------------------
 !@var dem,bb,bbs working variables for 10.5 micron longwave emissivity
 !@+ in part of gridbox under consideration
       real*8 dem(ncol),bb(nlev),bbs
-      integer seed  !@var seed saved value for random number generator
-!@var dtautmp,demtmp temporary variables for dtau,dem
-      real*8, dimension(ncol) :: dtautmp, demtmp
+!@var dtautmp temporary variables for dtau,dem
+      real*8, dimension(ncol) :: dtautmp
       real*8 ptrop,attrop,atmax,atmin,btcmin,transmax
-      integer ilev,ibox,ipres,itau,ilev2
+      integer ilev,ibox,ipres,itau
       integer acc(nlev,ncol),match(nlev-1),nmatch,levmatch(ncol)
 
       !variables needed for water vapor continuum absorption

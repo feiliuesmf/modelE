@@ -402,7 +402,7 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       INTEGER I,J,L,IP1,IM1
-      REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
+      REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
       REAL*8 WT,DXDSIG,DYDSIG,PVSA(LM),PVNA(LM),xx
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
@@ -673,7 +673,7 @@ C****
       REAL*8, INTENT(IN) :: P(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8, INTENT(OUT) :: PA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8, INTENT(IN) :: DT1
-      INTEGER I,J,L,K  !@var I,J,L,K  loop variables
+      INTEGER I,J,L  !@var I,J,L  loop variables
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
@@ -729,11 +729,9 @@ C****
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: U,V,T
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO):: FD,RFDUX
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     *  UT, VT, TT, QT, P,
-     *  SZ
+     *  UT, VT, QT, P, SZ
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *  PA, PB
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,1) :: PU0
+     *  PB
 
       REAL*8 PKE(LS1:LM+1)
       REAL*8 DT4,DT1
