@@ -1,6 +1,6 @@
-E001A.R GISS Model E                                 gas 06/00
+E001D.R GISS Model E                                 gas 06/00
 
-E001A: new modelE (Qflux version)
+E001D: new modelE (Qflux version with deep diffusion)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -21,7 +21,7 @@ ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-OCEAN OCNML                         ! ocean modules 
+OCEAN ODEEP                         ! ocean modules 
 SNOW                                ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -33,6 +33,8 @@ AIC=DEC1958.rsfB394M12.modelE.12
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+EDDY=
+TG3M=
 CDN=CD4X500S VEG=V72X46.1.cor
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
@@ -52,7 +54,7 @@ RADNE=topcld.trscat8
 TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
-E001A (new modelE based on B402A - Qflux version)
+E001D (new modelE based on B402A - Qflux + deep diffusion)
 R=00BG/B
 
 &&PARAMETERS
