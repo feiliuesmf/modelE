@@ -201,6 +201,7 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
       call set_tracer_source
+         CALL TIMER (MNOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
@@ -263,6 +264,7 @@ C**** Calculate 3D tracers sources and sinks
       call apply_tracer_3Dsource(dtsrc)
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
+         CALL TIMER (MNOW,MTRACE)
 #endif
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
@@ -284,6 +286,7 @@ C****
         call daily_ICE
 #ifdef TRACERS_ON
         call daily_tracer(1)
+           CALL TIMER (MNOW,MTRACE)
 #endif
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
@@ -409,7 +412,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
           PERCENT(M) = TIMING(M)/(TOTALT+.00001)
         END DO
         DTIME = NDAY*TOTALT/(60.*(Itime-Itime0))  ! minutes/day
-        WRITE (6,'(/A,F7.2,A,(6(A13,F5.1/))//)')
+        WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         TIMING = 0
         MSTART= MNOW

@@ -743,22 +743,26 @@ C**** First 12 are standard for all tracers and GCM
          sum_unit(n) = unit_string(kt_power_change(n),' kg/m^2 s)')
       end do
 
-      N = n_air
+      k = 0
+      do n=1,ntm
+      select case (trname(n))
+      
+      case ('Air')
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_SF6
+      case ('SF6')
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_Rn222
+      case ('Rn222')
       itcon_decay(n) = 13
       qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
       qsum(itcon_decay(n)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_CO2
+      case ('CO2')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
 !     qsum(itcon_surf(1,N)) = .false.
@@ -783,7 +787,7 @@ C**** First 12 are standard for all tracers and GCM
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      N = n_N2O
+      case ('N2O')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Reset in L1'
       itcon_3Dsrc(1,N) = 14
@@ -792,7 +796,7 @@ C**** First 12 are standard for all tracers and GCM
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_CFC11
+      case ('CFC11')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
       itcon_3Dsrc(1,N) = 14
@@ -801,13 +805,13 @@ C**** First 12 are standard for all tracers and GCM
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_14CO2
+      case ('14CO2')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Observed drift'
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
 
-      N = n_CH4
+      case ('CH4')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
       itcon_surf(2,N) = 14
@@ -848,7 +852,7 @@ C**** First 12 are standard for all tracers and GCM
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
-      N = n_O3
+      case ('O3')
       itcon_3Dsrc(1,N) = 1
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Tropos. Chem'
       itcon_3Dsrc(2,N) = 2
@@ -869,6 +873,9 @@ c      qsum(itcon_mc(n)) = .false.
 c      itcon_ss(n)=xx
 c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
 c      qsum(itcon_ss(n)) = .false.
+
+       end select
+       end do
 
 C**** print out total tracer diagnostic array size
       WRITE (6,'(A14,2I8)') "KTACC=",KTACC
@@ -1272,8 +1279,8 @@ C**** Distribute source over ice-free land
         if (trname(n).eq.'SF6') then
 C         Make sure index KY=1 in year that tracer turns on
             ky = 1 + (itime-itime_tr0(n))/(hrday*JDperY)
-            WRITE (6,'(A,I2,A,I9)')
-     *        ' >> KY FOR SF6 IS',KY,' AT itime',itime
+!           WRITE (6,'(A,I2,A,I9)')
+!    *        ' >> KY FOR SF6 IS',KY,' AT itime',itime
             base = (0.3d-12)*tr_mm(n)/mair !pptm
             x = base*ky*steppy
             airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
@@ -1596,7 +1603,6 @@ C****
 
 C**** Read chemical loss rate dataset (5-day frequency)
       if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
-c     if (tofday.ne.0. .and. .not.ifirst) go to 550
       if (jhour.ne.0 .and. .not.ifirst) go to 550
       ifirst = .false.
       call openunit('CH4_TROP_FRQ',ifile,.true.,.true.)
@@ -1637,8 +1643,8 @@ C**** Apply the chemistry
         end do
       end do
       end do
-      IF (jhour.eq.0.) write(6,'(a,i10,F10.0)') 
-     *  ' Tropo chem for CH4 performed',itime,TAUY
+!     IF (jhour.eq.0.) write(6,'(a,i10,F10.0)') 
+!    *  ' Tropo chem for CH4 performed',itime,TAUY
       return
       END SUBROUTINE Trop_chem_CH4
 
