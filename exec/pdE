@@ -1,11 +1,19 @@
 #!/bin/ksh
-if [[ $# -lt 2 || ! -s /u/cmrun/$1 ]] then 
-    echo 'Usage: pdE runID acc_files (list all; deflt path:/u/cmrun/runID)' 
+
+CMRUNDIR='/u/cmrun'
+if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
+
+if [[ $# -lt 2 || ! -d $CMRUNDIR/$1 ]] then 
+    echo "Usage: pdE runID acc_files (list all; deflt path:$CMRUNDIR/runID)"
     exit
 fi
 
 runID=$1 ; shift
-cd /u/cmrun/$runID
+cd $CMRUNDIR/$runID
+if [[ $? -ne 0 ]] then
+    echo "could not cd to $CMRUNDIR/$runID ... aborting"
+    exit 1
+fi
 
 if [[ $# -eq 1 ]] then 
   echo "processing $*"
