@@ -692,7 +692,7 @@ c
       REAL*8 Ppas, tfac, ssfac, RKD, Henry_const(ntm)
       real*8 clwc,rk1f,rkdm(ntm),amass,trd(ntm),trdr(ntm),
      * dso4g,dso4d,pph(ntm),trmol(ntm),trdmol(ntm),dso4gt,dso4dt
-      integer n,ih,is,is4
+      integer n,ih,is,is4,ihx,isx,is4x
       real*8, parameter :: rk1=1.3d-2 !M
       real*8, parameter :: dh1=-1.6736d4 !J/mol
       real*8, parameter :: rk=6.357d14    !1/(M*M*s)
@@ -723,22 +723,23 @@ C H2O2 + SO2 -> H2O + SO3 -> H2SO4
       tfac = (1./temp - by298k)*bygasc  !mol/J
 c  cloud liquid water content
       clwc=wmxtr*mair*ppas/temp*bygasc/1.D6/fcloud
-      rk1f=rk1*dexp(-dh1*tfac)
+      rk1f=rk1*exp(-dh1*tfac)
  
       do n=1,ntx
        select case (trname(ntix(n)))
        case('SO2')
        is=ntix(n)
+       isx=n
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(is)=tr_rkd(is)*(1.+ rk1f/3.2d-5)  
 c mole of tracer, used to limit so4 production
-      trmol(is)=1000.*tm(l,is)/tr_mm(is)*fcloud
+      trmol(is)=1000.*tm(l,isx)/tr_mm(is)*fcloud
 c partial pressure of gas x henry's law coefficient                 
       pph(is)=mair*1.d-3*ppas/tr_mm(is)/amass*           
-     *   tr_rkd(is)*dexp(-tr_dhd(is)*tfac)    
+     *   tr_rkd(is)*exp(-tr_dhd(is)*tfac)    
 c the following is from Phil:                                  
 c      reduction in partial pressure as species dissolves     
-      henry_const(is)=rkdm(is)*dexp(-tr_dhd(is)*tfac)   
+      henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)   
       pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
 c again all except tmcl(n,l)
       trdr(is)=mair*ppas/tr_mm(is)/amass*bygasc
@@ -748,20 +749,22 @@ c dissolved moles
 
        case('H2O2','H2O2_s')
 
-       if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 400
-       if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 400
+         if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
+         if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto
+     *        400
 
        ih=ntix(n)
+       ihx=n
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(ih)=tr_rkd(ih)
 c mole of tracer, used to limit so4 production
-      trmol(ih)=1000.*tm(l,ih)/tr_mm(ih)*fcloud
+      trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)*fcloud
 c partial pressure of gas x henry's law coefficient                 
       pph(ih)=mair*1.D-3*ppas/tr_mm(ih)/amass*           
-     *   tr_rkd(ih)*dexp(-tr_dhd(ih)*tfac)    
+     *   tr_rkd(ih)*exp(-tr_dhd(ih)*tfac)    
 c the following is from Phil:                                  
 c      reduction in partial pressure as species dissolves     
-      henry_const(ih)=rkdm(ih)*dexp(-tr_dhd(ih)*tfac)   
+      henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)   
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))   
 c all except tmcl(n,l)
       trdr(ih)=mair*ppas/tr_mm(ih)
@@ -773,25 +776,25 @@ c dissolved moles
 
       end select
       end do
-      if (tm(l,ih).lt.teeny.or.tm(l,is).lt.teeny) then
+      if (tm(l,ihx).lt.teeny.or.tm(l,isx).lt.teeny) then
       dso4g=0.
       go to 21
       endif
 c this part from gas phase:moles/kg/kg
-      dso4g=rk*dexp(-ea/(gasc*temp))*rk1f
+      dso4g=rk*exp(-ea/(gasc*temp))*rk1f
      *    *pph(ih)*pph(is)*dtsrc*wa_vol
 c check to make sure no overreaction: moles of production:
-      dso4gt=dso4g*tm(l,ih)*tm(l,is)
+      dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
 c can't be more than moles going in:
       if (dso4gt.gt.trmol(is)) then
-        dso4g=trmol(is)/(tm(l,ih)*tm(l,is))
+        dso4g=trmol(is)/(tm(l,ihx)*tm(l,isx))
       endif
-      dso4gt=dso4g*tm(l,ih)*tm(l,is)
+      dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
       if (dso4gt.gt.trmol(ih)) then
-        dso4g=trmol(ih)/(tm(l,ih)*tm(l,is))
+        dso4g=trmol(ih)/(tm(l,ihx)*tm(l,isx))
       endif
 c this part from dissolved gases
- 21    dso4d=rk*dexp(-ea/(gasc*temp))*rk1f
+ 21    dso4d=rk*exp(-ea/(gasc*temp))*rk1f
      *    *trdr(ih)*trdr(is)*dtsrc*wa_vol
 
       if (trdr(ih).lt.teeny.or.trdr(is).lt.teeny) then
@@ -815,43 +818,48 @@ c can't be more than moles going in:
        select case (trname(ntix(n)))
        case('SO4')
        is4=ntix(n)
-       sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,is)*tm(l,ih)
-     *  +dso4d*tmcl(is,l)*tmcl(ih,l)) !kg
+!       is4x=n
+       sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
+     *  +dso4d*tmcl(isx,l)*tmcl(ihx,l)) !kg
 
        dt_sulf(is4) = dt_sulf(is4) + sulfout(is4)
 
        case('SO2')
        is=ntix(n)
-       sulfin(is)=-dso4g*tm(l,ih)*tr_mm(is)/1000. !dimnless
-       sulfinc(is)=-dso4d*tmcl(ih,l)*tr_mm(is)/1000.
+       isx=n
+! is ih/ihx set here, then why isn't is/isx?
+       sulfin(is)=-dso4g*tm(l,ihx)*tr_mm(is)/1000. !dimnless
+       sulfinc(is)=-dso4d*tmcl(ihx,l)*tr_mm(is)/1000.
        sulfinc(is)=max(-1d0,sulfinc(is))
        sulfin(is)=max(-1d0,sulfin(is))
-       tr_left(is)=0.
+       tr_left(isx)=0.
        if (fcloud.gt.abs(sulfin(is))) then
-         tr_left(is)=(fcloud+sulfin(is))
+         tr_left(isx)=(fcloud+sulfin(is))
        endif
 
-       dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,is)+sulfinc(is)*trdr(is)
+       dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,isx)+sulfinc(is)*trdr(is)
 
        case('H2O2','H2O2_s')
 
-       if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 401
-       if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
+         if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
+         if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto
+     *        401
 
        ih=ntix(n)
-       sulfin(ih)=-dso4g*tm(l,is)*tr_mm(ih)/1000.
-       sulfinc(ih)=-dso4d*tmcl(is,l)*tr_mm(ih)/1000.
+       ihx=n
+       sulfin(ih)=-dso4g*tm(l,isx)*tr_mm(ih)/1000.
+       sulfinc(ih)=-dso4d*tmcl(isx,l)*tr_mm(ih)/1000.
        sulfinc(ih)=max(-1d0,sulfinc(ih))
        sulfin(ih)=max(-1d0,sulfin(ih))
-       tr_left(ih)=0.
+       tr_left(ihx)=0.
        if (fcloud.gt.abs(sulfin(ih))) then
-         tr_left(ih)=fcloud+sulfin(ih)
+         tr_left(ihx)=fcloud+sulfin(ih)
        endif
 
 
  401   CONTINUE
 
-       dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ih)+sulfinc(ih)*trdr(ih)
+       dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ihx)+sulfinc(ih)*trdr(ih)
 
       end select
       END DO    
@@ -926,7 +934,7 @@ c avol is air volume
       avol=amass/mair*1000.d0*gasc*te/ppas*1000.d0   !L
       clwc=tv/avol
 c
-      rk1f=rk1*dexp(-dh1*tfac)
+      rk1f=rk1*exp(-dh1*tfac)
 
 
       if (coupled_chem.eq.1) then
@@ -954,10 +962,10 @@ c mole of tracer, used to limit so4 production
       trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
 c partial pressure of gas x henry's law coefficient                 
       pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*           
-     *   tr_rkd(n)*dexp(-tr_dhd(n)*tfac)    
+     *   tr_rkd(n)*exp(-tr_dhd(n)*tfac)    
 c the following is from Phil:                                  
 c      reduction in partial pressure as species dissolves     
-      henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
+      henry_const(n)=rkdm(n)*exp(-tr_dhd(n)*tfac)   
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
 
        case('H2O2','H2O2_s')
@@ -972,10 +980,10 @@ c mole of tracer, used to limit so4 production
       trmol(n)=1000.*trm(i,j,l,n)/tr_mm(n)
 c partial pressure of gas x henry's law coefficient                 
       pph(n)=mair*1.d-3*ppas/tr_mm(n)/amass*           
-     *   tr_rkd(n)*dexp(-tr_dhd(n)*tfac)    
+     *   tr_rkd(n)*exp(-tr_dhd(n)*tfac)    
 c the following is from Phil:                                  
 c      reduction in partial pressure as species dissolves     
-      henry_const(n)=rkdm(n)*dexp(-tr_dhd(n)*tfac)   
+      henry_const(n)=rkdm(n)*exp(-tr_dhd(n)*tfac)   
       pph(n)=pph(n)/(1+(henry_const(n)*clwc*gasc*te))
 
  402  CONTINUE
@@ -985,11 +993,11 @@ c      reduction in partial pressure as species dissolves
 
 c this part from gas phase:moles/kg/kg
         if(coupled_chem.eq.1) then
-      dso4g=rk*dexp(-ea/(gasc*te))*rk1f
+      dso4g=rk*exp(-ea/(gasc*te))*rk1f
      *    *pph(n_h2o2)*pph(n_so2)*dtsrc*tv
          endif
         if(coupled_chem.eq.0) then
-      dso4g=rk*dexp(-ea/(gasc*te))*rk1f
+      dso4g=rk*exp(-ea/(gasc*te))*rk1f
      *    *pph(n_h2o2_s)*pph(n_so2)*dtsrc*tv
          endif
 

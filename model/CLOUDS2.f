@@ -955,10 +955,10 @@ C**** CONDENSING TRACERS
 #endif
       DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 401
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 401
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 401
 
 c first apply chemistry
 c removal of precursers
@@ -1371,10 +1371,10 @@ C**** WASHOUT of TRACERS BELOW CLOUD
 #endif
         DO N=1,NTX
 #ifdef TRACERS_AEROSOLS_Koch
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 402
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 402
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
 
           TRCOND(N,L)=TRCOND(N,L)*(1.+SULFINC(N))
           TM(L,N)=TM(L,N)*(1.+SULFIN(N))
@@ -2052,10 +2052,10 @@ c CLDSAVT is current FCLD
      *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX
      *     ,DT_SULF_SS(1,L))
       DO N=1,NTX
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 403
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 403
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 403
 
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
@@ -2087,10 +2087,10 @@ c precip. tracer evap
         CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
         TR_LEF=1.D0
 #ifdef TRACERS_AEROSOLS_Koch
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 404
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 404
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 404
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 404
 
         TR_LEF=TR_LEFT(N)
  404    CONTINUE
@@ -2194,10 +2194,10 @@ c   processes - this should be all in-cloud
       DO N=1,NTX
         TR_LEF=1.
 #ifdef TRACERS_AEROSOLS_Koch
-      select case (trname(ntx))
+      select case (trname(n))
       case('SO2','SO4','H2O2_s','H2O2')
-      if (trname(ntx).eq."H2O2" .and. coupled_chem.eq.0) goto 405
-      if (trname(ntx).eq."H2O2_s" .and. coupled_chem.eq.1) goto 405
+      if (trname(n).eq."H2O2" .and. coupled_chem.eq.0) goto 405
+      if (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1) goto 405
 
         TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
         TM(L,N)=TM(L,N)*(1.+SULFIN(N))
