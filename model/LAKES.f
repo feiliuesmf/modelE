@@ -1112,7 +1112,7 @@ C**** simelt is given as kg, so divide by area
 #ifdef TRACERS_WATER
         TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYDXYP(J)
      *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
-        IF (FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:) + TRFLOWO(I,J)*BYDXYP(J)
+        IF (FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRFLOWO(:,I,J)*BYDXYP(J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*DXYP(J)
 #endif
 
