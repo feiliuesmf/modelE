@@ -52,7 +52,7 @@
 !@dbparam oi_ustar0 default ice-ocean friction velocity (m/s) 
       REAL*8 :: oi_ustar0 = 5d-3  
 !@dbparam silmfac factor controlling lateral melt of ocean ice
-      REAL*8 :: silmfac = 2.5d-8 ! = pi*(1.6d-6)/0.66/300
+      REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
       REAL*8 :: silmpow = 1.36d0 
 
@@ -753,19 +753,16 @@ C**** Calculate temperatures for diagnostics and radiation
 #endif
 
 C**** Estimate DRSI
-      IF (POCEAN.gt.0) THEN
-        IF (ROICE.lt.1d-4) THEN
-          DRSI=ROICE
-        ELSE
+      DRSI=0.
+      IF (ROICE.lt.1d-4) THEN
+        DRSI=ROICE
+      ELSEIF (POCEAN.gt.0) THEN
 C**** Estimate lateral melt using parameterisation from Makyut/Steele
-C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(1.6d-6)*(delT)^(1.36)
+C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
 C**** This assumes called only once a day (SDAY-> DTS otherwise)
-          dtemp=MAX(Tm-TFO,0d0)
-          DRSI=ROICE*MIN(SDAY*SILMFAC*dtemp**SILMPOW,1d0)
-          IF (ROICE-DRSI.lt.1d-4) DRSI=ROICE
-        END IF
-      ELSE
-        DRSI=ROICE  ! all lake ice is melted
+        dtemp=MAX(Tm-TFO,0d0)
+        DRSI=SDAY*SILMFAC*dtemp**SILMPOW
+        IF (ROICE-DRSI.lt.1d-4) DRSI=ROICE
       END IF
 C**** Remove DRSI amount of ice
       ENRGUSED=-DRSI*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
