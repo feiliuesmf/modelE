@@ -184,13 +184,13 @@ C**** APPLY FLUXES TO OCEAN AND DETERMINE ICE FORMATION
       CALL GROUND_OC
          CALL CHECKT ('GRNDOC')
 C**** CALCULATE ICE DYNAMICS
-c      CALL DYNSI
+      CALL DYNSI
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
          CALL CHECKT ('FORMSI')
 C**** ADVECT ICE 
-c      CALL ADVSI
-c         CALL CHECKT ('ADVSI')
+      CALL ADVSI
+         CALL CHECKT ('ADVSI ')
 C**** if aturb_on=.false., CALCULATE DRY CONVECTION ABOVE PBL
       if(.not. aturb_on) CALL DRYCNV (2,LM-1)
          IF (MODD5S.EQ.0) CALL DIAG9A (7)
@@ -1132,20 +1132,21 @@ c       CALL CHECKE(SUBR)
       CHARACTER*2, INTENT(IN) :: FIELD
 !@var A array being tested
       REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
-
+      LOGICAL QCHECK3
       INTEGER I,J,L !@var I,J,L loop variables
 
+      QCHECK3 = .FALSE.
       DO L=1,LN
         DO J=1,JN
           DO I=1,IN
             IF (.NOT.(A(I,J,L).GT.0..OR.A(I,J,L).LE.0.)) THEN
-              WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after '
-     *             ,SUBR
-              IF (J.LT.JN.AND.J.GT.1) STOP 'CHECK3'
+              WRITE (6,*) FIELD,': ',I,J,L,A(I,J,L),'after ',SUBR
+              IF (J.LT.JN.AND.J.GT.1) QCHECK3 = .TRUE.
             END IF
           END DO
         END DO
       END DO
+      IF (QCHECK3) STOP 'CHECK3'
       RETURN
       END SUBROUTINE CHECK3
 
