@@ -121,14 +121,14 @@ QCHECK, Iwrite,Jwrite,ITwrite  - Debug tools
 
 KDIAG(1->13) - Suppressing printout if >0
   KDIAG(i) may be used to (partially) suppress type i diagn. printout
-      i=1  budget pages,zonal means: 
+      i=1  budget pages,zonal means:
              kdiag(1)=0    print all budget pages
                       1-7  produce pages listed in Ibp
                       8    regional page only
                       9    skip all budget pages
              Editing Ibp: just delete lines, rearranging has no effect
              Note: no regional data files are produced even if qdiag=.true.
-        2  latitude-height tables   
+        2  latitude-height tables
              kdiag(2)=0   produce all possible tables
                       1-8 produce the tables listed in Ijk (if still possible)
                       9   skip all tables
@@ -137,19 +137,17 @@ KDIAG(1->13) - Suppressing printout if >0
         3  lat-lon maps
              kdiag(3)=0   standard printout, all binary files if QDIAG=.true.
                       1   ij-fields as in list Iij, all ijk-fields
-                      2-6 ij and ijk fields are handled according to list Iij
-                      7   ij-fields as in list Iij, no ijk-fields are produced
-                      8   like 0 except that a standard Iij is recreated
+                      2-7 ij and ijk fields are handled according to list Iij
+                      8   ij-fields as in list Iij, no ijk-fields are produced
                       9   suppress all ij and ijk fields
              Editing Iij: don't touch lines starting with 'List' or 'list'
                      you may delete any other lines
                      you may rearrange the remaining ij-fields only (not ijk)
                      you may add blank maplets (up to 10)
-             Note: kdiag(3)=8 is same as kdiag(3)=0 if no Iij exists
         4  energy history           skip if kdiag(4)=9
         5  spectral analysis        skip if kdiag(5)>3
                                        else: with 1=SH  2=NH  3=Equ  4=45N
-                                    show lats 1->4-kdiag(5)                
+                                    show lats 1->4-kdiag(5)
                                     show only lat i if kdiag(5)=-i<0
         6  diurnal diagnostics      skip if kdiag(6)>3  else:
                                     show points 1->4-kdiag(6)
