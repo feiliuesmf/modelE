@@ -2086,7 +2086,7 @@ C****
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
 c        IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) =
 c     *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
-        CALL REDUCE_FIG(NSIGG,TXMST(L,N,ITR))
+        CALL REDUCE_FIG(NSIGT,TXMST(L,N,ITR))
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
 C****
         if (t_qlimit(itr)) then  ! limit gradients
