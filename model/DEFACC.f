@@ -2444,47 +2444,47 @@ c
 c
       k=0
 c
-      k=k+1
-      jl_free01 = k
-      sname_jl(k) = 'AJL01'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free01 = k
+!     sname_jl(k) = 'AJL01'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free02 = k
-      sname_jl(k) = 'AJL02'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free02 = k
+!     sname_jl(k) = 'AJL02'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free03 = k
-      sname_jl(k) = 'AJL03'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free03 = k
+!     sname_jl(k) = 'AJL03'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free04 = k
-      sname_jl(k) = 'AJL04'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free04 = k
+!     sname_jl(k) = 'AJL04'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free05 = k
-      sname_jl(k) = 'AJL05'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free05 = k
+!     sname_jl(k) = 'AJL05'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free06 = k
-      sname_jl(k) = 'AJL06'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free06 = k
+!     sname_jl(k) = 'AJL06'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free07 = k
-      sname_jl(k) = 'AJL07'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free07 = k
+!     sname_jl(k) = 'AJL07'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_mcmflx = k
@@ -2537,17 +2537,17 @@ c
       lname_jl(k) = 'DT(MC)*P  DRY HEATING'
       units_jl(k) = '100 PA*K'
 c
-      k=k+1
-      jl_free14 = k
-      sname_jl(k) = 'AJL14'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free14 = k
+!     sname_jl(k) = 'AJL14'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free15 = k
-      sname_jl(k) = 'AJL15'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free15 = k
+!     sname_jl(k) = 'AJL15'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_ape = k
@@ -2670,11 +2670,11 @@ c
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
-      k=k+1
-      jl_free30 = k
-      sname_jl(k) = 'AJL30'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free30 = k
+!     sname_jl(k) = 'AJL30'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_sdifcoef = k
@@ -2697,17 +2697,17 @@ c
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
-      k=k+1
-      jl_free34 = k
-      sname_jl(k) = 'AJL34'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free34 = k
+!     sname_jl(k) = 'AJL34'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
-      k=k+1
-      jl_free35 = k
-      sname_jl(k) = 'AJL35'
-      lname_jl(k) = 'unknown'
-      units_jl(k) = 'unknown'
+!     k=k+1
+!     jl_free35 = k
+!     sname_jl(k) = 'AJL35'
+!     lname_jl(k) = 'unknown'
+!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_epflxv = k
