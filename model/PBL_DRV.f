@@ -36,12 +36,18 @@ C**** Tracer input/output common block for PBL
 !@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
       real*8, dimension(ntm) :: dep_vel
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      real*8 :: DMS_flux,ss1_flux,ss2_flux
+#endif
       common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
 
 !$OMP  THREADPRIVATE (/trspec/)
@@ -214,6 +220,9 @@ C        roughness lengths from Brutsaert for rough surfaces
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
      *     dep_vel,
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *     DMS_flux,ss1_flux,ss2_flux,
 #endif
      4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,i,j,itype)
