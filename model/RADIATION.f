@@ -4,7 +4,7 @@
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       implicit none
       save
-!@var number of K-bands
+!@var NKBAND number of K-bands
       integer, parameter :: NKBAND=33
 
 !@var NVEG number of real vegetation types (not including bare soil)
