@@ -120,7 +120,7 @@ c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh0
 
 ccc   rundeck parameters  5/1/03 nyk
-!@dbparam cond_scheme selects which vegetation conductance scheme to use:
+!@dbparam cond_scheme selects vegetation conductance scheme:
 !@+       = 1     default, original conductance scheme.
 !@+       = 2     conductance scheme of Andrew Friend
       integer, public :: cond_scheme = 1
@@ -156,7 +156,7 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &      , agpp      
+     &      , agpp
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -174,9 +174,9 @@ ccc   input fluxes
 !@var parinc Incident photosynthetically active (visible solar, dir+dif)
 !     radiation on the surface (W/m2) (nyk)
       real*8, public :: parinc
-!@var vegalbedo  Vegetation canopy albedo averaged over the grid cell. (nyk)
+!@var vegalbedo  Vegetation canopy albedo averaged over the grid cell. 
 !     This is a temporary hack to keep the prescribed albedos until
-!     a canopy radiation scheme is in place.
+!     a canopy radiation scheme is in place. (nyk)
       real*8, public :: vegalbedo
 !@var sbeta Sine of solar zenith angle (rad).
       real*8, public :: sbeta
@@ -356,7 +356,7 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr
      &     ,fdir,sbeta,Ci,Qf,nm,nf,alai ! added by adf
-     &     ,Cin,Qfn,qv,vh               ! added by ia
+     &     ,Cin,Qfn,qv,vh,parinc,vegalbedo    ! added by ia
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
 #ifdef TRACERS_WATER
@@ -454,7 +454,7 @@ c     solve for h using bisection
 c     we assume that if j1.lt.j2 then hlm(j1).gt.hlm(j2)
 c     and thm(j1,i).gt.thm(j2,i).
 c
-c     algdel=alog(1.d0+alph0)
+c     algdel=log(1.d0+alph0)
 c
       real*8 d1,d2,dl,hl,temp,thr,thr0,thr1,thr2,xk1,xkl,xklu,xku1,xku2
       real*8 xkud
@@ -777,12 +777,10 @@ c     fr(l) is the fraction of roots in layer l
         abetad=betad            ! return to old diagnostics
 c     Get canopy conductivity cnc and gpp
         if ( cond_scheme.eq.1 ) then !if switch added by nyk 5/1/03
-!         call stop_model("cond_scheme=1",255)  !nyk DEBUG TEMP
           call cond
-          gpp=0                   ! dummy value for GPP if old cond_scheme
-        else                      ! cond_scheme=2 or anything else
-!         call stop_model("cond_scheme=2",255)  !nyk DEBUG TEMP
-          call veg                ! added by adf
+          gpp=0                 ! dummy value for GPP if old cond_scheme
+        else                    ! cond_scheme=2 or anything else
+          call veg              ! added by adf
         endif
         betat=cnc/(cnc+cna+1d-12)
         abetat=betat            ! return to old diagnostics
@@ -1019,10 +1017,10 @@ c**** adjust canopy conductance for incoming solar radiation
 ! Replaced back-calculation with actual incident PAR at surface.
 ! nyk  For 400-700 nm, energy is 3.3-6 umol photons/J.
 !      Top-of-atmosphere flux-weighted average of energy is 4.54 umol/J.
-!      Univ. Maryland, Dept. of Met., PAR Project, suggests nominal 485 nm 
-!      for conversion, which gives 4.05 umol/J.       
+!      Univ. Maryland, Dept. of Met., PAR Project, suggests nominal
+!      485 nm for conversion, which gives 4.05 umol/J.
       PAR=4.05d0*parinc          !W/m2 to umol/m2/s
-!      write (99,*) 'PAR umol/m2/s',PAR,'PARsrht', 
+!      write (99,*) 'PAR umol/m2/s',PAR,'PARsrht',
 !     $     2.3d0*srht0/(1.0D0-0.08D0)
       !DEBUG
 ! Convert canopy temperature from oC to K.
@@ -1042,7 +1040,7 @@ c**** adjust canopy conductance for incoming solar radiation
         rhor=((1.0D0-temp)/(1.0D0+temp))*(2.0D0/(1.0D0+1.6D0*sbeta))
         !write (99,*) 'rhor', rhor
       else
-       !Temporary - keep prescribed veg albedos until have canopy scheme.
+       !Temporary: keep prescribed veg albedos until have canopy scheme.
         rhor = vegalbedo
         !write (99,*) 'vegalbedo', vegalbedo
       end if
@@ -1305,7 +1303,7 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! Cumulative nitrogen concentration at which photosynthesis becomes
 ! light-limited in shaded foliage (mmol/m2).
-      Nlim=-alog(msat/(alpha*Isha*ka*n3*m1+EPS))/(ka*n3)
+      Nlim=-log(msat/(alpha*Isha*ka*n3*m1+EPS))/(ka*n3)
 ! Impose limits on Nsat based on actual foliage nitrogen (mmol/m2).
       if(Nlim.lt.0.0D0)then
         Nsat=0.0D0

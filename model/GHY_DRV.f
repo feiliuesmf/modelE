@@ -13,8 +13,8 @@
      $     ,conserv_htg
 
       real*8 cosday,sinday
-      real*8 cosdaym1, sindaym1  !nyk TEMPORARY for jday-1
-      real*8 adlmass             !nyk accumulator for dleafmass in daily_earth
+      real*8 cosdaym1, sindaym1                !nyk TEMPORARY for jday-1
+      real*8 adlmass          ! accumulator for dleafmass in daily_earth
 
 !@var gdeep keeps average (2:n) values of temperature, water and ice
       real*8, dimension(im,jm,3) :: gdeep
@@ -40,8 +40,8 @@ c****
       use somtq_com, only : mz
       use radncb, only : trhr,fsf,cosz1
      &    ,FSRDIR,SRVISSURF  !adf, nyk
-      use surf_albedo, only: albvnh   !nyk added 5/23/03 from RADIATION.f
-          !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
+      use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
+      !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001
      &    , only : advnc,evap_limits,
      &    ngm,
@@ -131,8 +131,8 @@ c****
 
       integer, intent(in) :: ns,moddsf,moddd
       integer i,j,l,kr,jr,itype,ih,ibv
-      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws !,dhgs
-     *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
+      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws 
+     *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av    !,dhgs
      *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij,psoil,pearth
      *     ,warmer,brun0,berun0,bts,bevhdt,brunu,berunu
      *     ,bshdt,btrhdt,timez,spring,zs1co,q1
@@ -422,7 +422,7 @@ C**** Calculate trsfac (set to zero for const flux)
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) trsfac(nx) = 1.   ! rhosrf0
-          !then multiplied by deposition velocity in PBL 
+          !then multiplied by deposition velocity in PBL
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
           totflux=0.
@@ -488,14 +488,14 @@ c  define extra variables to be passed in surfc:
         fdir=FSRDIR(i,j)
 ! nyk Calculate incident PAR, photosynthetically active radiation.
 !     *SRVISSURF is from SRDVIS:
-!     = incident visible solar radiation (dir+dif) on the surface 
-!     = estimated as 53% of total solar flux density, 
-!       so wavelength range is UV through ~760 or 770 nm cutoff (not strict)
+!     = incident visible solar radiation (dir+dif) on the surface
+!     = estimated as 53% of total solar flux density, so wavelength
+!       range is UV through ~760 or 770 nm cutoff (not strict)
 !     *SRDVIS is normalized to solar zenith = 0.
-!     *From integrating solar flux density (TOA) over solar spectrum, 
+!     *From integrating solar flux density (TOA) over solar spectrum,
 !       PAR(400-700 nm) is ~ 82% of the flux density of SRDVIS.
         parinc=0.82*SRVISSURF(i,j)*sbeta
-! nyk Get vegetation grid albedo  (temporary hack until canopy scheme in place
+! nyk Get vegetation grid albedo, temporary until canopy scheme in place
         vegalbedo = aalbveg(i,j)
 ! Internal foliage CO2 concentration (mol/m3).
         Ci=Cint(i,j)
@@ -515,9 +515,9 @@ c     call qsbal
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
-      if (cond_scheme.eq.2) then !new conductance scheme only
-        Cint(i,j)=Cin           ! New CO2 for next timestep (adf)
-        Qfol(i,j)=Qfn           ! New mixing ratio for next timestep (adf)
+      if (cond_scheme.eq.2) then            !new conductance scheme only
+        Cint(i,j)=Cin                  ! New CO2 for next timestep (adf)
+        Qfol(i,j)=Qfn         ! New mixing ratio for next timestep (adf)
       end if
 
       tg1=tbcs
@@ -674,7 +674,7 @@ ccc accumulate tracer evaporation and runoff
       do nx=1,ntx
         n=ntix(nx)
 ccc accumulate tracer dry deposition
-        if(dodrydep(n)) then       
+        if(dodrydep(n)) then
 #ifdef TRACERS_WATER
           if (tr_wd_TYPE(n).eq.nWATER) call stop_model
      &    ('A water tracer should not undergo dry deposition.',255)
@@ -947,11 +947,11 @@ c**** modifications needed for split of bare soils into 2 types
 
 ! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
 ! Values below 1/(m2/kg) to get kg/m2 for multiplying.
-! Sources:  White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
-!           Leonardos, E.D., et.al. (2003), Physiologia Plantarum, 117:521+.
+! Sources: White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
+!          Leonardos,E.D.,et.al.(2003), Physiologia Plantarum, 117:521+.
 !               From winter wheat grown at 20 C (20 m2/kg[dry mass])
 !                                      and  5 C (13 m2/kg[dry mass])
-!           Francesco Tubiello, personal communication, crop 18-20 m2/kg.
+!          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
       real*8, parameter :: sleafa(8) =
      $     1./(/30.5d0,49.0d0,30.5d0,40.5d0,32.0d0,8.2d0,32.0d0,18.0d0/)
 
@@ -969,7 +969,7 @@ c****   1  average leaf area index
 c****   2  real amplitude of leaf area index
 c****   3  imaginary amplitude of leaf area index
 c****
-c**** contents of almass(i,j),  leaf mass 
+c**** contents of almass(i,j),  leaf mass
 c****      leaf mass = ala*sleafa = kg[C]/ground area
 c****
 c**** contents of acs(k,i,j),  cs coefficients
@@ -1190,7 +1190,7 @@ c**** calculate lai, cs coefficicents
             slre=slre+fv*dif*cos(phase)
             slim=slim+fv*dif*sin(phase)
             !nyk-------------
-            !almaxmin = almaxmin + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
+            !almaxmin = almaxmin + sleafa(iv)*fv*(alamax(iv)-alamin(iv))
             almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
             !almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) + alamin(iv))
             !almassre = almassre + sleafa(iv)*fv*dif*cos(phase)
@@ -1209,8 +1209,8 @@ c**** calculate lai, cs coefficicents
           avh(i,j)=svh/sfv
           anm(i,j)=snm/sfv ! adf
           anf(i,j)=snf/sfv ! adf
-          almass(1,i,j) = almass0  !This just computes total growth for year
-          almass(2,i,j) = 0.       !via difference between max and min.
+          almass(1,i,j) = almass0   !This just computes total growth for
+          almass(2,i,j) = 0.   ! year via difference between max and min
           almass(3,i,j) = 0.
           !almass(1,i,j)= 0.5/sfv*almass0 !nyk
           !almass(2,i,j)= 0.5/sfv*almassre !nyk
@@ -1589,7 +1589,7 @@ c**** vh: vegetation height
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       fb=afb(i0,j0)
       fv=1.-fb
-c**** alai: leaf area index 
+c**** alai: leaf area index
       alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
       alai=max(alai,one)
 
@@ -1602,7 +1602,7 @@ c???  cnc=alai/rs   redefined before being used (qsbal,cond)
       !---------------------------------------------------------
       !nyk vegetation albedo.  Only really updated daily, but have to
       !get it initialized somewhere after ALBVNH is calculated.
-      !ALBVNH is unfortunately calculated *after* ground hydr is initialized.
+      !ALBVNH is unfortunately set *after* ground hydr is initialized.
       !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
 !      aalbveg0=0.d0               !nyk
 !      sfv=0.d0
@@ -1868,7 +1868,7 @@ c**** check for reasonable temperatures over earth
      *     ,almass,aalbveg       !nyk
       use sle001, only: cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
-      
+
 
       implicit none
       real*8 tsavg,wfc1
@@ -1906,7 +1906,8 @@ c****
                 !write (99,*) 'fv',fv
                 !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
               end do
-              aalbveg(i,j) = aalbveg0/sfv !nyk
+              aalbveg(i,j) = 0.
+              if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
              !write (99,*) 'daily aalbveg', aalbveg(i,j)
             end if
             !-----------------------------------------------------------
@@ -1919,7 +1920,7 @@ c****
             !get aleafmass(i,j) at jday
             aleafmass=
      $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
-            
+
             !Calculate dlmass(i,j) increment from last jday
             !cosdaym1=cos(twopi/edpery*(jday-1))
             !sindaym1=sin(twopi/edpery*(jday-1))
@@ -1929,13 +1930,13 @@ c****
             !adlmass = aleafmass - aleafmasslast
             adlmass = aleafmass
             !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
-            aij(i,j,ij_dleaf)=adlmass  !accumulate just instantaneous value
+            aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
           end if
         end do
       end do
-      
+
       if (end_of_day) then
         do j=1,jm
         do i=1,imaxj(j)
