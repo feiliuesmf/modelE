@@ -6,16 +6,28 @@
 #Usage:  gcmdoc.pl [-D output_dir] file1.f [file2.f ...]
 #           output_dir - a directory were to write HTML files
 
-use Getopt::Long;  #module to process command line options
+use Getopt::Long;         #module to process command line options
+use Shell qw(date cp);    #module to use shell commands
 
 #some global definitions:
 
 $output_dir = "./";
+$doc_dir = "../doc";
 
 #some useful patterns
 
-$some_decl = "integer|real|double\\s+precision|character|logical|complex";
-$some_decl = "(?:$some_decl)(?:\\s*\\*\\s*(?:\\d+|\\(\\d+\\)))?";
+# this pattern is not very precise, but if one makes it absolutely
+# correct it will be a mile long with this crazy fortran syntax
+$some_decl = "integer|real|logical|complex";
+$some_decl = "(?:$some_decl)(?:\\s*\\*\\s*(?:\\d+|\\(\\[0-9 ]+\\)))?";
+$some_decl .= "|double\\s+precision";
+#$some_decl .= "|character(?:\\s*\\*\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
+$some_decl .= "|character(?:\\s*\\*?\\s*(?:\\d+|\\([0-9a-z*= ]+\\)))?";
+$some_decl .= "|type\\s+\\(\\w+\\)";
+
+$parenth  = "\\([^()]*\\)";
+$parenth2 = "\\((?:[^()]|$parenth)*\\)";
+$parenth3 = "\\((?:[^()]|$parenth2)*\\)";
 
 print "$some_decl\n";
 
@@ -45,6 +57,8 @@ while( $current_file = shift ) {
     close SRCFILE; #just in case want to reset line counter ($.)
 }
 
+postprocess_lists();
+
 #print " PRINTING INFO \n";
 
 #while ( ($name,$ref) = each %db_subs ) {
@@ -70,13 +84,45 @@ htm_start("index.html","GISS GCM Documentation Index");
 print HTM '<H5><Center>GISS GCM Documentation Index</Center></H5>'."\n";
 print HTM "<HR>\n";
 
+print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
+htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
+print HTM "<BR>\n";
+htm_link("HOW-TO document for the GCM","HOWTO.html"); 
+print HTM "<BR>\n";
+
+print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
+print HTM "<a href=\"http://simplex/cgi-bin/cvsweb.cgi/modelE/\">\n";
+print HTM "View source code in the repository</a>";
+print HTM " for latest updates e.t.c.<BR>\n";
+
+
+print HTM "<P>\n";
+print HTM '<H3><Center>Dynamic Source Code Documentation</Center></font></H3>'."\n";
+
 htm_link("Source Files","files.html"); print HTM "<BR>\n";
 htm_link("Fortran Modules","modules.html"); print HTM "<BR>\n";
 htm_link("Database Variables","vars_db.html"); print HTM "<BR>\n";
 htm_link("Namelist Variables","vars_nl.html"); print HTM "<BR>\n";
+htm_link("Global Variables ( LONG! )","vars_global.html"); print HTM "<BR>\n";
 htm_link("ALL Variables ( LONG! )","vars_all.html"); print HTM "<BR>\n";
 
 htm_end();
+
+print  "copying FAQ and HOWTO\n";
+cp("$doc_dir/FAQ.html", "$output_dir/FAQ.html");
+cp("$doc_dir/HOWTO.html", "$output_dir/HOWTO.html");
+#htm_start("FAQ.html","FAQ");
+#htm_link("Index","index.html");
+#open(DOCFILE, "$doc_dir/FAQ.txt") or die "can't open $doc_dir/FAQ.txt\n";
+#htm_incl_file();
+#close DOCFILE;
+#htm_end();
+#htm_start("HOWTO.html","FAQ");
+#htm_link("Index","index.html");
+#open(DOCFILE, "$doc_dir/HOWTO.txt") or die "can't open $doc_dir/HOWTO.txt\n";
+#htm_incl_file();
+#close DOCFILE;
+#htm_end();
 
 htm_start("files.html","GCM Source Files");
 htm_link("Index","index.html");
@@ -145,6 +191,20 @@ foreach $name ( keys %db_vars ) {
 htm_prt_vars( "sl", @var_list );
 htm_end();
 
+htm_start("vars_global.html","GCM ALL Variables");
+htm_link("Index","index.html");
+print HTM '<H3><Center>List of All Global Variables</Center></font></H3>'."\n";
+@var_list = ();
+foreach $name ( keys %db_vars ) {
+    #if ( $db_vars{$name}{tag} =~ /\bnlparam\b/i ) {
+    if ( $name =~ /\w+::\w+/ ) {
+	push @var_list, $name;
+    }
+}
+htm_prt_vars( "sl", @var_list );
+htm_end();
+
+
 htm_start("vars_all.html","GCM ALL Variables");
 htm_link("Index","index.html");
 print HTM '<H3><Center>List of All Variables</Center></font></H3>'."\n";
@@ -212,6 +272,9 @@ foreach $name ( keys %db_modules ) {
     print HTM "Version: $db_modules{$name}{ver}<BR>\n";
     #print HTM "File:";
     #htm_link(" $db_modules{$name}{file}","$db_modules{$name}{file}.html");
+    if ( $db_modules{$name}{usage} ) {
+	htm_usage( $db_modules{$name}{usage} );
+    }
     print HTM "<HR width=10%>\n";
     print HTM "Subroutines: \n";
     print HTM "<dl>\n";
@@ -323,6 +386,25 @@ print "to view the documentation do: \"netscape $output_dir/index.html\"\n";
 
 #### this is the end of the main program ######
 
+
+sub postprocess_lists {
+    # make variable declarations look nicer
+    foreach $var_name ( keys %db_vars ) {
+	$decl = $db_vars{$var_name}{decl};
+	$decl =~ s/doubleprecision/real*8/; #make it uniform and shorter
+	if ( $decl !~ /$some_decl/i ) { next; } #leave it alone for now
+	if ( $decl !~ /^,($some_decl)/i ) {
+	    $decl =~ s/,($some_decl)//i;
+	    $decl = $1.$decl;
+	} else {
+	    $decl =~ s/^,//;
+	}
+	$decl =~ s/,/, /g;
+	$db_vars{$var_name}{decl} = $decl;
+    }
+
+}
+
 sub by_name_sub_mod { 
     @aa = split /:/,$a; 
     @bb = split /:/,$b; 
@@ -343,14 +425,26 @@ sub htm_prt_vars { # print list of variables
     } else {
 	@var_list = @_;
     }
+    my $first_letter;
+    foreach $first_letter ( 'a' .. 'z' ) {
+	print HTM "  <A HREF=\"#$first_letter\">$first_letter</A>";
+    }
     print HTM "<dl>\n";
+    $first_letter = "a";
+    print HTM "<A NAME=a></A>\n";
     foreach $var_name ( @var_list ) {
 	$var_name =~ /(\w*):(\w*):(\w+)/ || next;
 	my $mod = $1;
 	my $subr = $2;
 	my $var = $3;
 	#print "PRT_VARS: $var_name, $mod, $subr, $var\n";
-
+	if ( $var !~ /^$first_letter/ ) {
+	    my $first_letter_prev = ++$first_letter;
+	    $var =~ /^(.)/; $first_letter = $1;
+	    foreach my $letter ( $first_letter_prev .. $first_letter ) {
+		print HTM "<A NAME=$letter></A>\n";
+	    }
+	}
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
@@ -387,9 +481,14 @@ sub htm_prt_vars { # print list of variables
 	if ( ! ($db_vars{$var_name}{sum} || $db_vars{$var_name}{value}) ) {
 	    print HTM "<BR>\n";
 	}
-	
     }
-print HTM "</dl>\n";
+    if ( $first_letter !~ /z/ ) {
+	++$first_letter;
+	foreach my $letter ( $first_letter .. 'z' ) {
+	    print HTM "<A NAME=$letter></A>\n";
+	}
+    }
+    print HTM "</dl>\n";
 
 }
 
@@ -419,8 +518,25 @@ sub htm_link {
 
 sub htm_text {
     my $str = shift;
-    $str =~ s/>/&gt;/g; $str =~ s/</&lt;/g; $str =~ s/&/&amp;/g;
+    $str =~ s/&/&amp;/g; $str =~ s/>/&gt;/g; $str =~ s/</&lt;/g; 
     print HTM "$str<BR>\n";
+}
+
+sub htm_usage {
+    my $str = shift;
+    print HTM "Usage:<BR>\n";
+    print HTM "<ul><pre>\n";
+    htm_text($str);
+    print HTM "</pre></ul>\n";
+}
+
+sub htm_incl_file {
+    print HTM "<pre>\n";
+    while ( <DOCFILE> ) {
+	s/&/&amp;/g; s/>/&gt;/g; s/</&lt;/g;
+	print HTM;
+    }
+    print HTM "</pre>\n";
 }
 
 #@sum   UNITNAME Brief summary/description of the current program unit or file
@@ -440,6 +556,7 @@ sub parse_file {
     # resetting globals
     $current_module = "";
     $current_sub = "";
+    $current_typedef = "";
     while( <SRCFILE> ) {
 	chop;
 	#strip regular comments
@@ -494,7 +611,7 @@ sub parse_file {
 
 	if( /^!\@\+/i ) { #continuation line
 	    #$doc_tag = "var";
-	    s/^!\@\+\s*//i;
+	    s/^!\@\+\s?\s?\s?//i;
 	    if ( $doc_tag =~ "var" ) {
 		while( $name = pop @var_list ) {
 		    $var_name = "$current_module:$current_sub:$name";
@@ -588,6 +705,12 @@ sub parse_file {
 	if ( /^\s*(block\s+data)\s+(\w+)/i ) { # block data hack
 	    $current_sub = 'BLOCK_DATA_'.$2;
 	}
+	if ( /^\s*type\s+(\w+)/i ) {
+	    $current_typedef = $1;
+	}
+	if ( /^\s*end\s+type\b/i ) {
+	    $current_typedef = "";
+	}
 
 	# beginning of the new fortran line
 	$fstr = $_;
@@ -599,18 +722,25 @@ sub parse_file {
 sub parse_fort_str {
     #print "$fstr\n";
 
+    if ( $current_typedef ) { return; } #skip typedefs for now
+
     # variable declaration string
-    if ( $fstr =~ /^\s*(integer|real|double|character|logical|complex)/i ) {
-	if ( $fstr =~ s/^\s*(\S+.*)::\s*//i ) {
-	    $var_type = $1;
-	} else {
-	    $fstr =~ s/^\s*(\S+)\s*//i;
-	    $var_type = $1;
-	    if ( $var_type =~ /double/i ) {
-		$var_type = "real*8";
-		$fstr =~ s/^\s*(\S+)\s*//i;
-	    }
+    if ( $fstr =~ s/^\s*($some_decl)\s*//i ) {
+	$var_type = $1;
+	if ( $fstr =~ s/([^"']*)\s*::\s*//i ) {        #"))){
+	    $var_type .= $1;
 	}
+    #if ( $fstr =~ /^\s*(integer|real|double|character|logical|complex)/i ) {
+	#if ( $fstr =~ s/^\s*(\S+.*)::\s*//i ) {
+	#    $var_type = $1;
+	#} else {
+	#    $fstr =~ s/^\s*(\S+)\s*//i;
+	#    $var_type = $1;
+	#    if ( $var_type =~ /double/i ) {
+	#	$var_type = "real*8";
+	#	$fstr =~ s/^\s*(\S+)\s*//i;
+	#    }
+	#}
 	$var_type =~ s/ //g;
 	$var_type =~ tr/A-Z/a-z/;
 	#print "VAR_TYPE:  $var_type\n";
@@ -640,7 +770,7 @@ sub parse_fort_str {
 		#print "VAR:  $cvar   ::: $var_val\n";
 	    }
 	    $var_name = "$current_module:$current_sub:$var";
-	    $db_vars{$var_name}{decl} = $var_type;
+	    $db_vars{$var_name}{decl} .= ",$var_type";
 	    if ( $dim ) { $db_vars{$var_name}{decl} .= ",dimension$dim"; }
 	    $db_vars{$var_name}{value} = $var_val;
 	    if ( ! $db_vars{$var_name}{sum} ) { #wasn't included earlier
@@ -651,6 +781,17 @@ sub parse_fort_str {
 	    #}
 	}
     return;
+    }
+    
+    # parse some extra declarations
+    if ( $fstr =~ s/^\s*dimension\s*//i ) {
+	while ( $fstr =~ s/^\s*,*\s*(\w+)\s*($parenth3)//i ) {
+	    $var = $1;
+	    $dim = $2;
+	    $var =~ tr/A-Z/a-z/;
+	    $var_name = "$current_module:$current_sub:$var";
+	    $db_vars{$var_name}{decl} .= ",dimension$dim";
+	}
     }
 }
 
