@@ -75,7 +75,8 @@ For ongoing development (who to blame for the current shambles):
 	M. S. Yao.  
 
 Historical development (stuff we haven't rewritten yet):
-	Bob Suozzo,	Suki Sheth,	Hans-Peter Zinn,	Rick Healy
+	Bob Suozzo,	Suki Sheth,	Hans-Peter Zinn,	Rick Healy,
+        Frank Abramopoulos
 
 Inspiration (the people paying for this):
 	David Rind, Jim Hansen, Tony Del Genio
