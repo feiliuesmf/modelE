@@ -133,7 +133,7 @@ c     real*8,parameter :: shv = 4.*rvap  ????
       real*8,parameter :: shv = 0.
 
 !@var visc_air dynamic viscosity of air (kg/m s)
-      real*8,parameter :: visc_air = 1.7d-5       
+      real*8,parameter :: visc_air = 1.7d-5
 
 C**** Astronomical constants
 
@@ -275,6 +275,7 @@ C****
 C     GREENW = 2.*PI*(DAY-VERQNX)*(EDPERY+1.)/EDPERY
 C     SUNX = -COS(TA+OMEGA)
 C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
+      LAMBDA = 0. ! just to keep the compiler happy
 C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
 C     LAMBDA = DMOD(LAMBDA,2.*PI)
 C****

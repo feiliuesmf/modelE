@@ -19,10 +19,10 @@
 !@+       database if it is not yet there, otherwise gets it
 !@+
 !@+ Subroutines to work with pointers:
-!@+     alloc_param( name, pvalue, initval, dim ) - allocates space in 
-!@+       the database for the parameter <name>, fills it with data 
+!@+     alloc_param( name, pvalue, initval, dim ) - allocates space in
+!@+       the database for the parameter <name>, fills it with data
 !@+       provided in <initval> and returns pointer to it in <pvalue>
-!@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to 
+!@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to
 !@+       the parameter data of the parameter <name> in the database
 !@+
 !@+ Reading/writing subroutines:
@@ -265,8 +265,8 @@
       subroutine set_aiparam( name, value, np, opt )
       implicit none
       character*(*), intent(in) :: name
-      integer, intent(in) :: value(np)
       integer, intent(in) :: np
+      integer, intent(in) :: value(np)
       character*1, optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
@@ -297,8 +297,8 @@
       subroutine get_aiparam( name, value, np )
       implicit none
       character*(*), intent(in) ::  name
-      integer, intent(out) ::  value(np)
       integer, intent (in) :: np
+      integer, intent(out) ::  value(np)
       type (ParamStr), pointer :: PStr
 
       call get_pstr( name, np, 'i', PStr )
@@ -361,8 +361,8 @@
       subroutine set_arparam( name, value, np, opt )
       implicit none
       character*(*), intent(in) :: name
-      real*8, intent(in) :: value(np)
       integer, intent(in) :: np
+      real*8, intent(in) :: value(np)
       character*1, optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
@@ -393,8 +393,8 @@
       subroutine get_arparam( name, value, np )
       implicit none
       character*(*), intent(in) ::  name
-      real*8, intent(out) ::  value(np)
       integer, intent (in) :: np
+      real*8, intent(out) ::  value(np)
       type (ParamStr), pointer :: PStr
 
       call get_pstr( name, np, 'r', PStr )
@@ -460,8 +460,8 @@
       subroutine set_acparam( name, value, np, opt )
       implicit none
       character*(*), intent(in) :: name
-      character*(*), intent(in) :: value(np)
       integer, intent(in) :: np
+      character*(*), intent(in) :: value(np)
       character*1, optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       integer n
@@ -500,8 +500,8 @@
       subroutine get_acparam( name, value, np )
       implicit none
       character*(*), intent(in) ::  name
-      character*(*), intent(out) ::  value(np)
       integer, intent (in) :: np
+      character*(*), intent(out) ::  value(np)
       type (ParamStr), pointer :: PStr
 
       call get_pstr( name, np, 'c', PStr )
@@ -628,8 +628,8 @@
       subroutine sync_aiparam( name, value, np )
       implicit none
       character*(*), intent(in) :: name
-      integer, intent(inout) :: value(np)
       integer, intent(in) :: np
+      integer, intent(inout) :: value(np)
 
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )
@@ -655,8 +655,8 @@
       subroutine sync_arparam( name, value, np )
       implicit none
       character*(*), intent(in) :: name
-      real*8, intent(inout) :: value(np)
       integer, intent(in) :: np
+      real*8, intent(inout) :: value(np)
 
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )
@@ -682,8 +682,8 @@
       subroutine sync_acparam( name, value, np )
       implicit none
       character*(*), intent(in) :: name
-      character*(*), intent(inout) :: value(np)
       integer, intent(in) :: np
+      character*(*), intent(inout) :: value(np)
 
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )

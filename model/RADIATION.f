@@ -4,6 +4,7 @@ C**** Weak puddling; Land Ice Alb set to 80% (95% vis) in Greenl/Antarct
       MODULE RE001
 
       INCLUDE 'BR00B.COM'
+      REAL*4 yr1S0,yr2S0
       SAVE
 
       CONTAINS
@@ -10335,7 +10336,7 @@ C
      *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
       if(ksolar.lt.2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
  6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
-     +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid',
+     +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid'
      +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
      +      ,T57,'Delta Solar UV Spectral Flux W/m2'
      +      ,T97,'Solar UV Spectral Flux Ratios'
