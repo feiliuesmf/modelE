@@ -678,7 +678,8 @@ c$$$      end subroutine set_cparam
         return
       endif
 
-      print *, 'READING PARAMETERS from rsf'
+c printout is sometimes inappropriate (i.e. for qc)
+c      print *, 'READING PARAMETERS from rsf'
  
       read( kunit, err=10 ) lmagic,
      *     lnum_param, lnum_rparam, lnum_iparam, lnum_cparam,

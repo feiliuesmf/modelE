@@ -256,19 +256,15 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var itime input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
-!@var JC1 dummy array
-      INTEGER JC1(100),k,kk
-!@var RC1 dummy array
-      REAL*8 RC1(161)
-!@var CLABEL1 dummy label
-      CHARACTER*156 CLABEL1
+!@var XLABEL1 dummy label
       CHARACTER*132 XLABEL1
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal Itime of acc files to be summed up
-      INTEGER, SAVE :: ITmin , ITmax=-1
-      INTEGER, DIMENSION(5) :: IDtim0=(/10,36,38,40,42/) ! tmporary ????
+      INTEGER, SAVE :: ITmin=999999, ITmax=-1
+      INTEGER it1,idacc0(12) !@var it1,idacc1 dummy variables
+      INTEGER, DIMENSION(11) :: idind = (/1,2,3,4,6,7,8,9,10,11,12/)
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
@@ -288,9 +284,8 @@ C**** write parameters database here
 C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         READ (kunit,err=10)
         SELECT CASE (IACTION)   ! set model common according to iaction
-        CASE (ioread) ! parameters/label from restartefile
-          call read_param(kunit,.false.)
-          !JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+        CASE (ioread) ! parameters/label from restart file
+          call read_param(kunit,.true.)
           XLABEL=XLABEL1
           NTIMEACC=NTIM1
           TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
@@ -300,35 +295,25 @@ C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
          ! switch 'it' to 'ihour' using 'nday' of restart file ?????
         CASE (IRERUN)  ! params: rsfile, label: rundeck
           call read_param(kunit,.false.)
-          !JC=JC1 ; RC=RC1 ; CLABEL(133:156)=CLABEL1(133:156)
         CASE (IOREAD_SINGLE) ! parameters/label from restart file
-        !!! this case will not work unless fixed
-        !!! since JC() doesn't contain data any more and will removed soon
-          call read_param(kunit,.false.)
-          if (ITmax.lt.0) then
-            JC=JC1 ; RC=RC1 ; CLABEL=CLABEL1 ; ITmax=it ; ITmin=it
-            NTIMEACC=NTIM1
-            TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
-            TIMING(1:NTIM1)=TIM1(1:NTIM1)
-          else
-            do k=89,100
-               jc(k) = jc(k) + jc1(k)
-            end do
-            jc(93) = min(jc1(93),jc(93)-jc1(93))
-            jc1(89:100) = jc(89:100)   ! temporary ????
-            if (it.gt.ITmax) then
-               do k=1,5
-                  JC1(IDtim0(k)) = JC(IDtim0(k))
-               end do
-               JC=JC1 ; CLABEL(149:152)=CLABEL1(149:152) ; ITmax=it
-            else if (it.lt.ITmin) then
-               CLABEL(153:156)=CLABEL1(153:156)          ; ITmin=it
-               do k=1,5
-                  JC(IDtim0(k)) = JC1(IDtim0(k))
-               end do
-            end if
-            it=ITmax
-          end if
+                             ! accumulate idacc and keep track of Itmax/min
+          call read_param(kunit,.true.)
+          XLABEL=XLABEL1
+          NTIMEACC=NTIM1
+          TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
+          TIMING(1:NTIM1)=TIMING(1:NTIM1)+TIM1(1:NTIM1)
+          IDACC0=IDACC
+          call read_param(kunit,.true.)
+
+          call get_param("Itime",it1)
+          if (it1.gt.ITmax) ITmax=it1
+          if (it1.lt.ITmin) ITmin=it1
+          call set_param("Itime",ITmax,'o')
+
+C**** This should probably be moved to io_diags
+          IDACC(idind) = IDACC(idind) + IDACC0(idind)
+          IDACC(5) = MIN(IDACC(5),IDACC0(5))
+
         END SELECT ! namelist parameters may still be changed in rundeck
       END SELECT
       RETURN
