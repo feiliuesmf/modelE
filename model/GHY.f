@@ -1535,7 +1535,7 @@ c**** soils28   common block     9/25/90
       real*8 dtm,tb0,tc0,dtr
       integer ibv,l,ll,limit,nit
       real*8 dum1, dum2
-      limit=200
+      limit=300   ! 200 increase to avoid a few more stops
       nit=0
       dtr=dt
 ccc trying to skip fb==0 and fv==0 fractions of the cell

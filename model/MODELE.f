@@ -460,12 +460,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine init_Model
 !@sum This program reads most of parameters from the database (DB)
-C**** get_param( "A", X ) reads parameter A into variable X
-C**** if "A" is not in the database, it will generate an error
-C**** message and stop
-C**** sync_param( "B", Y ) reads parameter B into variable Y
-C**** if "B" is not in the database, then Y is unchanged and its
-C**** value is saved in the database as "B" (here sync = synchronize)
+!@+   get_param( "A", X ) reads parameter A into variable X
+!@+   if "A" is not in the database, it will generate an error
+!@+   message and stop
+!@+   sync_param( "B", Y ) reads parameter B into variable Y
+!@+   if "B" is not in the database, then Y is unchanged and its
+!@+   value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : LM,NIPRNT,dt_UVfilter,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1

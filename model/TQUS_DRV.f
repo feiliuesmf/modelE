@@ -281,7 +281,7 @@ C****     1/2 x-direction
         call stop_model('AADVQ0: ncyc>=10',11)
       end if
  600  enddo
-      if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
+      if(ncyc.gt.2) write(6,*) 'AADVQ0: ncyc>2',ncyc
 C**** Divide the mass fluxes by the number of cycles
       byn = 1./ncyc
 ccc   mu(:,:,:)=mu(:,:,:)*byn
