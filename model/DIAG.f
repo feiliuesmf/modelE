@@ -2582,8 +2582,8 @@ c****
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 
-      call sync_param( "NAMDD", NAMDD, 4 )
-      call sync_param( "IJDD", IJDD(1:2,1), 8)
+      call sync_param( "NAMDD", NAMDD, NDIUPT )
+      call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
       call sync_param( "isccp_diags",isccp_diags)
 
       IF(ISTART.LT.0) THEN

@@ -182,12 +182,12 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c adiurn
 c-----------------------------------------------------------------------
-      status = nf_def_dim(ncid, 'HR_IN_DAY', 24, dimids(1))
-      status = nf_def_dim(ncid, 'NDIUVAR',   63, dimids(2))
-      status = nf_def_dim(ncid, 'NDIUPT', 4, dimids(3))
+      status = nf_def_dim(ncid, 'HR_IN_DAY', hr_in_day, dimids(1))
+      status = nf_def_dim(ncid, 'NDIUVAR',   ndiuvar, dimids(2))
+      status = nf_def_dim(ncid, 'NDIUPT', ndiupt, dimids(3))
       status = nf_def_var(ncid, 'ADIURN',nf_real,3,dimids,varid)
-      status = nf_put_att_text(ncid,varid,'NAMDD',16,namdd)
-      status = nf_put_att_int(ncid,varid,'IJDD',nf_int,8,IJDD)
+      status = nf_put_att_text(ncid,varid,'NAMDD',4*ndiupt,namdd)
+      status = nf_put_att_int(ncid,varid,'IJDD',nf_int,2*ndiupt,IJDD)
 c-----------------------------------------------------------------------
 c wave power
 c-----------------------------------------------------------------------
