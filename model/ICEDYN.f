@@ -24,7 +24,7 @@ C**** local grid variables for ice rheology scheme
       integer, parameter :: nx1=im+2, ny1=jm
 
 C**** ice dynamics input/output/work variables
-      REAL*8, DIMENSION(NX1,NY1) :: PRESS,HEFFM,UVM,OUT,DWATN,COR,SINEN
+      REAL*8, DIMENSION(NX1,NY1) :: PRESS,HEFFM,UVM,DWATN,COR,SINEN
      *     ,BYDXDY
       REAl*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
       REAl*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
@@ -34,7 +34,7 @@ C**** ice dynamics input/output/work variables
 
 !@var OIPHI ice-ocean turning angle (25 degrees)
 !@var ECCEN value of eccentricity for ellipse
-      REAL*8, PARAMETER :: OIPHI=25d0*radian, ECCEN=2.0
+      REAL*8, PARAMETER :: ECCEN=2.0, OIPHI=25d0*radian
 !@var SINWAT,COSWAT sin and cos of ice-ocean turning angle
       REAL*8 SINWAT,COSWAT
 
@@ -92,11 +92,11 @@ C****
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE CONSTANT, only : radian,twopi,rhoi,radius,rhow,grav
-      USE MODEL_COM, only : p,psf
+      USE MODEL_COM, only : p,ptop,itime
 C**** Dynamic sea ice should be on the ocean grid
       USE OCEAN, only : im,jm,focean,lmu,lmv,uo,vo,dxyno,dxyso,dxyvo
-     *     ,dxypo,lmm,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz,imaxj
-      USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm,out
+     *     ,dxypo,bydxypo,ratoc,rocat,dxpo,dyvo,opress,ogeoz,imaxj
+      USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
      *     ,ratic,ricat,bydts,rsisave
@@ -110,18 +110,17 @@ C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
 C**** working arrays for V-P rheology scheme (on B grid)
       REAL*8, DIMENSION(NX1,NY1,3) :: UICE,VICE
-      REAL*8, DIMENSION(NX1,NY1,3) :: HEFF,AREA   ! SAVE
+      REAL*8, DIMENSION(NX1,NY1,3) :: HEFF,AREA
       REAL*8, DIMENSION(NX1,NY1) ::  ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY
      *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
-     *     ,VIB,DMU,DMV 
-      INTEGER, DIMENSION(NX1,NY1) :: KMT,KMU
+     *     ,VIB,DMU,DMV,USAVE,VSAVE
 C**** intermediate calculation for pressure gradient term
       REAL*8, DIMENSION(IM,JM) :: PGFU,PGFV
 
 C**** should be defined based on ocean grid
-      REAL*8 :: dlat,dlon,phit,phiu,hemi
+      REAL*8 :: dlat,dlon,phit,phiu,hemi,rms
       INTEGER, SAVE :: IFIRST = 1
-      INTEGER I,J,n,k,kki,ip1,im1,sumk
+      INTEGER I,J,n,k,kki,ip1,im1,sumk,l
       REAL*8 DOIN,USINP,DMUINP,RAT,duA,dvA
 
 C**** set up initial parameters
@@ -175,69 +174,62 @@ c****
 C**** set area ratios for converting fluxes
       RATIC = RATOC  ! currently the same as for ocean
       RICAT = ROCAT
+
 C**** Set land masks for tracer and velocity points
 C**** This is defined based on the ocean grid
       do j=1,ny1
         do i=2,nx1-1
-          kmt(i,j)=NINT(focean(i-1,j)) !  lmm(i-1,j)
+          heffm(i,j)=nint(focean(i-1,j))
         enddo
-        kmt(1,j)=kmt(nx1-1,j)   ! lmm(im,j)
-        kmt(nx1,j)=kmt(2,j)     ! lmm(1,j)
+        heffm(1,j)=heffm(nx1-1,j)
+        heffm(nx1,j)=heffm(2,j)  
       enddo
+C**** define velocity points (including exterior corners)
       do j=1,ny1-1
         do i=1,nx1-1
-c          sumk=kmt(i,j)+kmt(i+1,j)+kmt(i,j+1)+kmt(i+1,j+1)
-c          if (sumk.ge.3) kmu(i,j)=1  ! includes exterior corners
-          kmu(i,j) = min(kmt(i,j), kmt(i+1,j), kmt(i,j+1), kmt(i+1,j+1))
+c          sumk=heffm(i,j)+heffm(i+1,j)+heffm(i,j+1)+heffm(i+1,j+1)
+c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
+          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
+     *         heffm(i+1,j+1)))
         end do
       end do
-      n = 0
-      write (*,'(/a)') 'Searching for isolated T cells...'
+C**** reset tracer points to surround velocity points (except for single
       do j=2,ny1-1
         do i=2,nx1-1
-          k = max (kmu(i,j), kmu(i-1,j), kmu(i,j-1), kmu(i-1,j-1))
-          if (kmt(i,j) .ne. k) then
-            n = n + 1
-          end if
-c set to k except if an island (i.e. sumk=4 but focean(i-1,j).eq.0)
-          kmt(i,j) = k
+          k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
+c         sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
+c set to k except if an island 
+c         if (.not. (sumk.eq.4.and.focean(i-1,j).eq.0) ) then
+            heffm(i,j) = k
+c         end if
         enddo
       enddo
-      if (n .gt. 0) then
-        write (*,*) '-> Found ',n,' and filled them in.'
-      else
-        write (*,*) '-> None Found.'
-      endif
+C**** final sweep to reinstate islands
+c      do j=2,ny1-1
+c        do i=2,nx1-1
+c          sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
+c          if (sumk.eq.4.and.heffm(i,j).eq.0.) then
+c            uvm(i,j)=0 ; uvm(i+1,j)=0 ; uvm(i,j+1)=0 ; uvm(i+1,j+1)=0
+c          end if
+c        enddo
+c      enddo
 c set lateral boundary conditions
       do j=1,ny1
-        kmt(1,j)   = kmt(nx1-1,j)
-        kmt(nx1,j) = kmt(2,j)
+        heffm(1,j)   = heffm(nx1-1,j)
+        heffm(nx1,j) = heffm(2,j)
       enddo
       do j=1,ny1-1
         do i=1,nx1-1
-          kmu(i,j) = min(kmt(i,j), kmt(i+1,j), kmt(i,j+1), kmt(i+1,j+1))
+          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
+     *         heffm(i+1,j+1)))
         end do
       end do
 c set cyclic conditions on eastern and western boundary
       do j=1,ny1
-        kmu(1,j) = kmu(nx1-1,j)
-        kmu(nx1,j) = kmu(2,j)
+        uvm(1,j) = uvm(nx1-1,j)
+        uvm(nx1,j) = uvm(2,j)
       enddo
-C**** set up sea ice thickness and velocity mask
-      DO J=1,NY1
-        DO I=1,NX1
-          HEFFM(I,J)=0.
-          UVM(I,J)=0.
-          IF(KMT(I,J).GE.1) HEFFM(I,J)=1.
-          IF(KMU(I,J).GE.1) UVM(I,J)=1.
-        END DO
-      END DO
-c**** set up outflow mask
-      DO J=1,NY1
-        DO I=1,NX1
-          OUT(I,J)=HEFFM(I,J)
-        END DO
-      END DO
+
 c**** initialize heff and area
       do j=1,NY1
         do i=2,NX1-1
@@ -245,10 +237,6 @@ c**** initialize heff and area
           HEFF(I,J,2)=0.
           AREA(I,J,3)=1.
           AREA(I,J,2)=1.
-c          HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
-c          HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
-c          AREA(I,J,1)=RSI(I-1,J)
-c if kmt(i,j).eq.1 .and. focean(i-1,j).eq.0 interpolate.....
         enddo
         AREA(1,j,3)=1.
         AREA(1,j,2)=1.
@@ -273,9 +261,19 @@ C**** Replicate polar boxes
       do j=1,NY1
         do i=2,NX1-1
           HEFF(I,J,1)=RSI(I-1,J)*RATIC(J)*(ACE1I+MSI(I-1,J))*BYRHOI
-          HEFF(I,J,1)=HEFF(I,J,1)*OUT(I,J)
           AREA(I,J,1)=RSI(I-1,J)
-c if kmt(i,j).eq.1 .and. focean(i-1,j).eq.0 interpolate.....
+c if heffm(i,j).eq.1 .and. focean(i-1,j).eq.0 interpolate.....
+c          if (heffm(i,j).eq.1 .and. focean(i-1,j).eq.0) then
+c     rsifix=(rsi(i-2,j)*focean(i-2,j)+rsi(i,j)*focean(i,j)+rsi(i-1,j+1)
+c    *  *focean(i-1,j+1)+rsi(i-1,j-1)*focean(i-1,j-1))/(focean(i-2,j)
+c    *  +focean(i,j)+focean(i-1,j+1)+focean(i-1,j-1))
+c     msifix=(msi(i-2,j)*focean(i-2,j)+msi(i,j)*focean(i,j)+msi(i-1,j+1)
+c    *  *focean(i-1,j+1)+msi(i-1,j-1)*focean(i-1,j-1))/(focean(i-2,j)
+c    *  +focean(i,j)+focean(i-1,j+1)+focean(i-1,j-1))
+c      HEFF(I,J,1)=rsifix**RATIC(J)*(ACE1I+msifix)*BYRHOI
+c      AREA(I,J,1)=rsifix
+c          end if
+          HEFF(I,J,1)=HEFF(I,J,1)*HEFFM(I,J)
         enddo
       enddo
 
@@ -285,7 +283,7 @@ C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** OPRESS is on ocean grid
       DO J=1,JM
         DO I=1,IMAXJ(J)
-          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)-PSF)+RSI(I,J)
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV)
         END DO
       END DO
@@ -321,34 +319,23 @@ C**** on ocean velocity grid
 c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
       do j=1,jm-1
-        UIB(1,j)=0.5*(USI(im,j)+USI(im,j+1))
-        GWATX(1,j)=0.5*(UO(im,j,1)+UO(im,j+1,1))
-        PGFUB(1,j)=0.5*(PGFU(im,j)+PGFU(im,j+1))
-        do i=2,im
-          UIB(i,j)=0.5*(USI(i-1,j)+USI(i-1,j+1))
-          GWATX(i,j)=0.5*(UO(i-1,j,1)+UO(i-1,j+1,1))
-          PGFUB(i,j)=0.5*(PGFU(i-1,j)+PGFU(i-1,j+1))
-        enddo
-      enddo
-      do j=1,jm-1
-        VIB(im,j)=0.5*(VSI(im-1,j)+VSI(im,j))
-        GWATY(im,j)=0.5*(VO(im-1,j,1)+VO(im,j,1))
-        PGFVB(im,j)=0.5*(PGFV(im-1,j)+PGFV(im,j))
-        VIB(1,j)=0.5*(VSI(im,j)+VSI(1,j))
-        GWATY(1,j)=0.5*(VO(im,j,1)+VO(1,j,1))
-        PGFVB(1,j)=0.5*(PGFV(im,j)+PGFV(1,j))
-        do i=2,im-1
-          VIB(i,j)=0.5*(VSI(i-1,j)+VSI(i,j))
-          GWATY(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
-          PGFVB(i,j)=0.5*(PGFV(i-1,j)+PGFV(i,j))
+        im1=im
+        do i=1,im
+          UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))
+          GWATX(i,j)=0.5*(UO  (im1,j,1)+UO  (im1,j+1,1))
+          PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))
+          VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))
+          GWATY(i,j)=0.5*(VO  (im1,j,1)+VO  (i,j,1))
+          PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))
+          im1=i
         enddo
       enddo
 c**** set north pole
       do i=1,im
-        UIB(i,jm)=USI(1,jm)
+        UIB  (i,jm)=USI(1,jm)
         GWATX(i,jm)=UO(1,jm,1)
         PGFUB(i,jm)=PGFU(1,jm)
-        VIB(i,jm)=0.
+        VIB  (i,jm)=0.
         GWATY(i,jm)=0.
         PGFVB(i,jm)=0.
       enddo
@@ -424,7 +411,9 @@ c**** read in sea ice velocity
       END DO
 
 C KKI LOOP IS FOR PSEUDO-TIMESTEPPING
-      DO KKI=1,5
+      KKI=0.
+ 10   KKI=KKI+1
+
 C FIRST DO PREDICTOR
       DO J=1,NY1
       DO I=1,NX1
@@ -482,11 +471,26 @@ C NOW SET U(1)=U(2) AND SAME FOR V
        VICE(NX1,J,1)=VICE(2,J,1)
       END DO
 
-      END DO
+      if (kki.gt.1) then ! test convergence
+        rms=0.
+        do i=1,nx1
+          do j=1,ny1
+            rms=rms+(USAVE(i,j)-UICE(i,j,1))**2+(VSAVE(i,J)-VICE(i,j,1))
+     *           **2
+          end do
+        end do
+      end if
+
+      if (kki.eq.10) then
+        write(6,*) "Too many iterations in DYNSI. kki:",kki,rms
+      elseif (kki.eq.1 .or. rms.gt.0.01d0) then
+        USAVE=UICE(:,:,1)
+        VSAVE=VICE(:,:,1)
+        goto 10 
+      end if
 
 C**** Calculate stress on ice velocity grid
-
-      doin=DTS*rhoi/rhow
+      doin=DTS
       DO J=1,NY1
         hemi=-1.
         if (J.gt.NY1/2) hemi=1.
@@ -586,7 +590,6 @@ C**** calculate mass fluxes for the ice advection
       USIDT(1:IM,JM)=USI(1,JM)*DTS
       OIJ(1,JM,IJ_USI) =OIJ(1,JM,IJ_USI) +RSI(1,JM)*USI(1,JM)
       OIJ(1,JM,IJ_DMUI)=OIJ(1,JM,IJ_DMUI)+RSI(1,JM)*DMUI(1,JM)
-
 C****
       END SUBROUTINE DYNSI
 
@@ -717,9 +720,9 @@ C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
       DO J=1,NY1
       DO I=1,NX1
-        PRESS(I,J)=PRESS(I,J)*OUT(I,J)
-        ETA(I,J)=ETA(I,J)*OUT(I,J)
-        ZETA(I,J)=ZETA(I,J)*OUT(I,J)
+        PRESS(I,J)=PRESS(I,J)*HEFFM(I,J)
+        ETA(I,J)=ETA(I,J)*HEFFM(I,J)
+        ZETA(I,J)=ZETA(I,J)*HEFFM(I,J)
       END DO
       END DO
 
@@ -1570,13 +1573,13 @@ C**** Sea ice crunches into itself at North Pole box
       MHS(1,1,JM) = AMSI(1)/ASI
       MHS(2,1,JM) =(AMSI(1)+AMSI(2))*BYDXYP(JM) - MHS(1,1,JM)
       DO K=1,(NTRICE-2)/LMI
-        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
-        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
+        MHS(3+LMI*(K-1),1,JM) = AMSI(3+LMI*(K-1)) / ASI
+        MHS(4+LMI*(K-1),1,JM) = AMSI(4+LMI*(K-1)) / ASI
         DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
-     *       +AMSI(6+LMI*(K-1)))*(BYDXYP(J) -1d0/ ASI)
-        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
+     *       +AMSI(6+LMI*(K-1)))*(BYDXYP(JM) -1d0/ ASI)
+        MHS(5+LMI*(K-1),1,JM) = AMSI(5+LMI*(K-1)) / ASI +
      *       XSI_GLOB(3)*DMHSI
-        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
+        MHS(6+LMI*(K-1),1,JM) = AMSI(6+LMI*(K-1)) / ASI +
      *       XSI_GLOB(4)*DMHSI
       END DO
 C****

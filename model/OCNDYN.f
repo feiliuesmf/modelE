@@ -5,10 +5,10 @@
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : grav
-      USE MODEL_COM, only : idacc,modd5s,p,psf
+      USE MODEL_COM, only : idacc,modd5s,p,ptop
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
-     *     ,ratoc,imaxj,focean
+     *     ,ratoc,imaxj,focean,ogeoz
 #ifdef TRACERS_OCEAN
      *     ,ntm,trmo,txmo,tymo,tzmo
 #endif
@@ -18,7 +18,7 @@
      *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE SEAICE_COM, only : rsi,msi,snowi
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       USE SEAICE, only : ace1i
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
@@ -31,7 +31,7 @@ C**** Calculate pressure anomaly at ocean surface (and scale for areas)
 C**** Updated using latest sea ice 
       DO J=1,JM
         DO I=1,IMAXJ(J)
-          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)-PSF)+RSI(I,J)
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
      *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) 
         END DO
       END DO
@@ -120,6 +120,9 @@ C**** Advection of Potential Enthalpy and Salt
           END DO
         END DO
 #endif
+C**** smooth OGEOZ to remove gridpoint noise
+        CALL OPFIL(OGEOZ,1)
+      
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S.EQ.0) CALL DIAGCA (11)
@@ -622,7 +625,7 @@ C**** Check potential specific enthalpy of first layer over open ocean
           GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
             WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1
-            QCHECKO=.TRUE.
+            IF (GO1.lt.-20000. .or. GO1.gt.200000.) QCHECKO=.TRUE.
           END IF
           END DO
 C**** Check all ocean currents
@@ -699,7 +702,7 @@ C****
 !@sum  conserv_OKE calculates zonal ocean kinetic energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : shw,rhow
+      USE CONSTANT, only : shw
       USE OCEAN, only : im,jm,lmo,fim,imaxj,focean,mo,uo,vo,lmm
       IMPLICIT NONE
 !@var OKE zonal ocean kinetic energy per unit area (J/m**2)
@@ -965,7 +968,7 @@ C**** Smooth the West-East velocity near the poles
       DO 110 L=1,LMO
       DO 110 I=IM+1,IM*(JM-1)
   110   MU(I,1,L) = UO(I,1,L)
-      CALL OPFIL (MU)
+      CALL OPFIL (MU,LMO)
 C**** Compute MU, the West-East mass flux, at non-polar points
       DO 220 L=1,LMO
       DO J=2,JM-1
@@ -1053,7 +1056,7 @@ C****
       RETURN
       END SUBROUTINE OFLUX
 
-      SUBROUTINE OPFIL (X)
+      SUBROUTINE OPFIL (X,LMAX)
 !@sum  OPFIL smoothes X in zonal direction
 !@auth Gary Russell
 !@ver  1.0
@@ -1068,6 +1071,7 @@ C****
       USE FILEMANAGER, only : openunit, closeunit
       IMPLICIT NONE
       REAL*8, PARAMETER :: DLON=TWOPI/IM
+      INTEGER, INTENT(IN) :: LMAX
       INTEGER, PARAMETER :: NMAX=IM/2, NSEGM=7, INDM=90365
       INTEGER*2, SAVE :: NSEG(LMO,4:25),IMIN(NSEGM,LMO,4:25),
      *     ILEN(NSEGM,LMO,4:25)
@@ -1109,7 +1113,7 @@ C****
       JA=JX
       IF(JX.GT.13)  J =20+JX
       IF(JX.GT.13)  JA=27-JX
-      DO 330 L=1,LMO
+      DO 330 L=1,LMAX
       IF(ILEN(1,L,JX).GE.IM)  GO TO 300
 C****
 C**** Land boxes exist at this latitude and layer, loop over ocean
@@ -1514,7 +1518,7 @@ C****
       DO 220 L=LMU(I,J)+1,LMO
   220 DUM(I,J,L) = 0.
   230 I=IP1
-      CALL OPFIL (DUM)
+      CALL OPFIL (DUM,LMO)
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****

@@ -1,5 +1,5 @@
       MODULE GM_COM
-!@sum  GM_COM variables related to GM isopyncal and Redi fluxes
+!@sum  GM_COM variables related to GM isopycnal and Redi fluxes
 !@auth Gavin Schmidt/Dan Collins
 !@ver  1.0
       USE CONSTANT, only : radius,omega,grav
