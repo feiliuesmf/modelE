@@ -2222,7 +2222,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT DEFORM WAVE MOM FLX'
       lname_ij(k) = 'DEFORM. DRAG MOM FLUX'
       units_ij(k) = '.1 NT/M**2'
-      scale_ij(k) = 1000.*BYGRAV
+      scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2232,7 +2232,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT MTN WAVE MOM FLX'
       lname_ij(k) = 'MTN WAVE MOM. FLUX'
       units_ij(k) = '.1 NT/M**2'  ! dynes/cm^2
-      scale_ij(k) = 1000.*BYGRAV
+      scale_ij(k) = 10.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2242,7 +2242,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT SHR WAVE MOM FLX'
       lname_ij(k) = 'SHEAR WAVE MOM. FLUX'
       units_ij(k) = '.001 NT/M**2'
-      scale_ij(k) = 1000.E2*BYGRAV
+      scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2252,7 +2252,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT MC C=-10 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-10R MOM. FLUX'
       units_ij(k) = '.001 NT/M**2'
-      scale_ij(k) = 1000.E2*BYGRAV
+      scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2262,7 +2262,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT MC C=-20 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-20R MOM. FLUX'
       units_ij(k) = '.001 NT/M**2'
-      scale_ij(k) = 1000.E2*BYGRAV
+      scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2272,7 +2272,7 @@ c
 !     lname_ij(k) = 'E/W INCIDENT MC C=-40 M/S WAVE MOM FLX'
       lname_ij(k) = 'MC C=-40R MOM. FLUX'
       units_ij(k) = '.001 NT/M**2'
-      scale_ij(k) = 1000.E2*BYGRAV
+      scale_ij(k) = 1000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 c
@@ -2299,7 +2299,7 @@ c
 !     lname_ij(k) = 'EXIT MOM. FLUX OF ALL WAVES'   !???
       lname_ij(k) = 'EXIT TOT. MOM. FLUX'
       units_ij(k) = '.0001 NT/M**2'
-      scale_ij(k) = 1000.E3*BYGRAV
+      scale_ij(k) = 10000.*100.*BYGRAV
       ia_ij(k) = ia_src
       ir_ij(k) = ir_m9_26
 
@@ -2935,7 +2935,7 @@ c
       k=0
 c
       k=k+1
-      jk_dpa = k
+      jk_dpa = k             !'AJK01'
       sname_jk(k) = 'dp_cp1' !   DP=MIN(PM(K),PS)-MIN(PM(K+1),PS)
       lname_jk(k) =  'PRESSURE DIFFERENCES (CP,PT)' ! DP (PT GRID)
       units_jk(k) = 'mb'

@@ -215,7 +215,6 @@ C****  31  SNOW COVER (10**-2)
 C****  30  OCEAN ICE COVER (10**-2)
 C**71  69  SURFACE TYPE FRACTION (1)
 C****
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,omega,kapa,bygrav
       USE MODEL_COM, only :
@@ -545,7 +544,7 @@ C****
 !@param names of derived jk/jl output fields
       INTEGER :: jl_rad_cool,jl_nt_qgpv,jk_dudt_econv,
      *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
-     *  jk_dtempdt_econv,jk_phi_amp_wave1,jk_phi_phase_wave1,
+     *  jk_dtempdt_econv,jk_phi_amp_wave1,jl_phi_phase_wave1,
      *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
      *  jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
      *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
@@ -554,7 +553,7 @@ C****
      *  jk_nt_lh_e,jk_nt_see,jk_tot_nt_se,
      *  jk_nt_am_stand_eddy,jk_nt_am_eddy,jk_tot_nt_am,
      *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
-     *  jk_del_qgpv,jk_nt_lh_se,
+     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,
      *  jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
 
       END MODULE BDjkjl
@@ -601,7 +600,7 @@ c
       lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
       units_jl(k) = 'METERS'
       k = k + 1 ! 7
-      jk_phi_phase_wave1 = k
+      jl_phi_phase_wave1 = k
       sname_jl(k) = 'phi_phase_wave1'
       lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
       units_jl(k) = 'DEG WEST LONG'
@@ -825,6 +824,11 @@ c
       sname_jk(k) = 'nt_lh_stand_eddy'
       lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
       units_jk(k) = '10**13 WATTS/DSIG'
+      k=k+1      !36
+      jk_wstar = k
+      sname_jk(k) = 'wstar' 
+      lname_jk(k) = 'W*    RESIDUAL VERTICAL VELOCITY'
+      units_jk(k) = '10**-2 CM/S'
 
 c Check the count
       if (k .gt. KAJKx) then
@@ -837,7 +841,6 @@ c Check the count
 
 
       SUBROUTINE DIAGJK
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf
       USE MODEL_COM, only :
@@ -877,12 +880,13 @@ c      USE PRTCOM, only :
      &     I,J,J0,J1,JH,JHEMI,K,K1,KDN,KM,KUP,L,LR,M,N,NS,NT,IX
 
       DOUBLE PRECISION ::
-     &     BY100G,BYDP2,BYDPK,BYFSQ,BYIACN,BYIADA,BYIARD,BYIMDA,BYN,
-     &     BYRCOS,BDN,BUP,
+     &     AREA,BY100G,BYDP2,BYDPK,BYFSQ,BYIACN,BYIADA,BYIARD,BYIMDA,
+     &     BYN,BYRCOS,BDN,BUP,
      &     DAM4,DXCVN,DXCVS,DALPHA,DE4TI,DP,DPG,DPH,DPTI,DTHDP,DTHETA,
      &     EL4QI,ELOFIM,   GBYRSQ,GSQ,
-     &     PDN,PIG,PIH,PMK,PUP,PUTI,PVTI,SCALET,SCALES,SCALEV,SDDP,
-     &     SKEI,SMALL,SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,SZNELG,
+     &     PDN,PIG,PIH,PMK,PUP,PUTI,PVTI,RHO,
+     &     SCALET,SCALES,SCALEV,SCALEW,
+     &     SDDP,SKEI,SMALL,SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,SZNELG,
      &     THDN,THETA,THUP,TX,UDXN,UDXS,UX,WTKP1,WTN,WTNK,
      &     WTS,WTSK,XWON
 
@@ -1050,6 +1054,30 @@ C**** U AND V WINDS, STREAM FUNCTION
       n = jk_psi_tem
       CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,BX,SCALET,DXV,ONES,KM,2,2)
+C**** RESIDUAL VERTICAL VELOCITY
+      SCALEW = 100.*XWON*BYIADA*BYGRAV
+      DO 125 K=2,KM-1
+      DO 125 J=2,JM-1
+      RHO=100.*PME(K)/(RGAS*(tf+AJK(J,K-1,jk_temp)/
+     * (AJK(J,K-1,jk_dpa)+1.D-20)+
+     * (AJK(J,K  ,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20)
+     * -AJK(J,K-1,jk_temp)/(AJK(J,K-1,jk_dpa)+1.D-20))
+     * *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
+      IF(RHO.LE.1.D-10)
+     *RHO=100.*PME(K)/(RGAS*(tf+AJK(J+1,K-1,jk_temp)/
+     * (AJK(J+1,K-1,jk_dpa)+1.D-20)+
+     * (AJK(J+1,K  ,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20)
+     * -AJK(J+1,K-1,jk_temp)/(AJK(J+1,K-1,jk_dpa)+1.D-20))
+     * *(PME(K)-PLM(K-1))/(PLM(K)-PLM(K-1))))
+      AREA=XWON*FIM*DXYV(J)
+      BX(J,K)=-(BX(J+1,K)-BX(J,K))*SCALEW*DXV(jmby2)/(RHO*AREA)
+  125 CONTINUE
+      BX( 1,:) = 0.  ; BX(:,KM) = 0.
+      BX(JM,:) = 0.  ; BX(:, 1) = 0. 
+      SCALET=1.D+4
+      n = jk_wstar
+      CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),
+     &  PME,BX,SCALET,ONES,ONES,KM-1,2,1)
 C**** VERTICAL WINDS
       SCALET=-1.D5*BYIMDA
       n = JK_VVEL
@@ -1058,6 +1086,7 @@ C**** VERTICAL WINDS
 C****
 C**** CALCULATIONS FOR STANDING EDDIES
 C****
+  120 CONTINUE
         AX=0.
         BX=0.
         CX=0.
@@ -1822,7 +1851,7 @@ C****
      &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
       ENDDO
       SCALET=360./TWOPI
-      IX = jk_phi_phase_wave1-1
+      IX = jl_phi_phase_wave1-1
       DO N=1,4
       CALL JLMAP(LNAME_jl(N+ix),SNAME_jl(N+ix),UNITS_jl(N+ix),
      &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
@@ -2345,7 +2374,6 @@ C****
 C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
-c      USE PRTCOM, only :
       USE DAGCOM, only :
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
       USE MODEL_COM, only :
@@ -3499,7 +3527,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     twopi
       USE MODEL_COM, only :
@@ -3641,7 +3668,6 @@ C****
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
 !@ver  1.0
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi
       USE MODEL_COM, only :
@@ -3804,7 +3830,6 @@ C****
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
 !@ver  1.0
-c      USE PRTCOM, only :
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
       USE DAGCOM, only :   kdiag,
@@ -3871,7 +3896,6 @@ C****
 !@sum  DIAG4 prints out a time history of the energy diagnostics
 !@auth G. Russell
 !@ver  1.0
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi,bygrav
       USE MODEL_COM, only :
@@ -4086,7 +4110,6 @@ C**** 40 MAX. NORTH. TRANS. OF ANGULAR MOMENTUM BY EDDIES
 C**** 41 MAX. TOTAL NORTH. TRANS. OF ANGULAR MOMENTUM
 C**** 42 LATITUDE CORRESPONDING TO 41
 C****
-c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     twopi
       USE MODEL_COM, only :
