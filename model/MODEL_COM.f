@@ -124,6 +124,8 @@ C**** slightly larger, to sample all points within the cycle
 !@var NSTEP number of dynamics steps since start of run
 !@var MRCH  flags position in dynamics cycle (>0 fw, <0 bw step)
       INTEGER :: IRAND=123456789, KDISK=1, NSTEP,MRCH
+!@param rsf_file_name names of restart files
+      CHARACTER(6), PARAMETER :: rsf_file_name(2)=(/'fort.1','fort.2'/)
 !@var MODRD,MODD5K,MODD5S: if MODxxx=0 do xxx, else skip xxx
       INTEGER :: MODRD, MODD5K, MODD5S
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices

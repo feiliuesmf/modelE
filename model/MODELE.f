@@ -111,7 +111,9 @@ C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
-         call io_rsf(KDISK,Itime,iowrite,ioerr)
+         call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+         call io_rsf(iu_RSF,Itime,iowrite,ioerr)
+         call closeunit(iu_RSF)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -436,7 +438,9 @@ C****
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
-      call io_rsf(KDISK,Itime,iowrite,ioerr)
+      call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
+      call io_rsf(iu_RSF,Itime,iowrite,ioerr)
+      call closeunit(iu_RSF)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
      *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -471,7 +475,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,PSF,NIsurf,iyear1
      $     ,PTOP,LS1,IRAND,ItimeI,PSFMPT,PSTRAT,SIG,SIGE,UOdrag
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
-     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,ang_uv
+     $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -480,7 +484,6 @@ C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
       call sync_param( "NIPRNT", NIPRNT )
       call sync_param( "dt_UVfilter", dt_UVfilter )
-      call sync_param( "ANG_UV", ANG_UV )
       call sync_param( "MFILTR", MFILTR )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
@@ -554,7 +557,7 @@ C****
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
-     *     ,Jhour0
+     *     ,Jhour0,rsf_file_name
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
@@ -572,8 +575,8 @@ C****
       USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
       IMPLICIT NONE
-!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
-      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG
+!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
+      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,IR,IREC,NOFF,ioerr
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
@@ -1035,11 +1038,15 @@ C****
 C**** CHOOSE DATA SET TO RESTART ON
       CASE (10,13:)
          Itime1=-1
-         READ (1,ERR=410) Itime1
-  410    REWIND 1
+         call openunit(rsf_file_name(1),iu_RSF,.true.,.true.)
+         READ (iu_RSF,ERR=410) Itime1
+         call closeunit(iu_RSF)
+  410    continue !REWIND 1
          Itime2=-1
-         READ (2,ERR=420) Itime2
-  420    REWIND 2
+         call openunit(rsf_file_name(2),iu_RSF,.true.,.true.)
+         READ (iu_RSF,ERR=420) Itime2
+         call closeunit(iu_RSF)
+  420    continue !REWIND 2
          IF (Itime1+Itime2.LE.-2.) GO TO 850
                                KDISK=1
          IF (Itime2.GT.Itime1) KDISK=2
@@ -1047,7 +1054,10 @@ C**** CHOOSE DATA SET TO RESTART ON
       CASE (11,12)
                                KDISK=ISTART-10
       END SELECT
-  430 call io_rsf(KDISK,Itime,ioread,ioerr)
+  430 continue
+      call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
+      call io_rsf(iu_RSF,Itime,ioread,ioerr)
+      call closeunit(iu_RSF)
       if (ioerr.eq.1) then
          if (istart.gt.10) go to 850  ! no 2nd chance if istart/=10
          KDISK=3-KDISK                ! try the earlier restart file
