@@ -384,7 +384,7 @@ C**** Check for reasonable values for ocean variables
 !@$          It is NOT parallelized.
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : jm,lrunid,xlabel,idacc
+      USE MODEL_COM, only : jm,lrunid,xlabel,idacc,focean
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo,dz
       USE DIAG_COM, only : acc_period,qdiag,zoc
@@ -392,7 +392,7 @@ C**** Check for reasonable values for ocean variables
       IMPLICIT NONE
       CHARACTER LNAME*50,SNAME*30,UNITS*50
       INTEGER I,J,L
-      REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM)
+      REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),focnj
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.o'//XLABEL(1:LRUNID),
@@ -404,9 +404,12 @@ C**** calculate zonal average
       DO L=1,LMOM
         DO J=1,JM
           ATGO(J,L)=0.
+          focnj=0.
           DO I=1,IMAXJ(J)
-            ATGO(J,L)=ATGO(J,L)+RTGO(L,I,J)
+            ATGO(J,L)=ATGO(J,L)+RTGO(L,I,J)*focean(i,j)
+            focnj=focnj+focean(i,j)
           END DO
+          if(focnj.gt.0.) ATGO(J,L)=ATGO(J,L)/focnj
         END DO
       END DO
 C**** depths are calculated from base of the mixed layer
@@ -417,7 +420,7 @@ C**** depths are calculated from base of the mixed layer
       SCALED=1./IDACC(12)
       ONES(1:JM)=1.
 C**** Print out a depth/latitude plot of the deep ocean temp anomaly
-      CALL JLMAP(LNAME,SNAME,UNITS,0,ZOC,ATGO,SCALED,ONES,ONES,LMOM,2,1)
+      CALL JLMAP(LNAME,SNAME,UNITS,-1,ZOC,ATGO,SCALED,ONES,ONES,LMOM,2,1)
 C****
       if(qdiag) call close_jl
 
