@@ -1082,9 +1082,6 @@ C---- shl(L)=Q(I,J,L)        ! already defined
           shl(l)=0.
         end if
         RHL(L) = shl(L)/QSAT(TLm(L),LHE,PMID(L,I,J))
-        do k=1,4
-          kdeliq(L,k)=kliq(L,k,i,j)
-        end do
 C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
@@ -1212,6 +1209,7 @@ C**** one before seasalt2 in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! add seasalt1 to seasalt2
             FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff
           END IF
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
           SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
           TNFST(NTRIX(n),I,J)=TRNFLB(LFRC)
@@ -1225,11 +1223,14 @@ C**** Ozone:
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
 
       use_tracer_ozone=1-onoff
+      kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX
       SNFST(n_Ox,I,J)=SRNFLB(LFRC)
       TNFST(n_Ox,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff
 #endif
+
+      kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
