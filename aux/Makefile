@@ -6,11 +6,11 @@
 
 .PHONY: clean vclean
 
-all: qc cmp conv_rsf
+all: qc cmp conv_rsf acc2nc
 
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
-DECKS_DIR = $(MODEL_E_ROOT)/decks
+DECKS_DIR = .
 SCRIPTDIR = $(MODEL_E_ROOT)/exec
 
 RUN     =
@@ -45,7 +45,7 @@ qc: qc.o $(MODEL_DIR)/gcmlib.a
 qc.o: $(MODEL_DIR)/gcmlib.a
 
 $(MODEL_DIR)/gcmlib.a: FORCE
-	$(MAKE) -C $(MODEL_DIR) gcmlib.a RUN=$(RUN)
+	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN)
 
 acc2nc: acc2nc.o $(MODEL_DIR)/NCACC.o $(MODEL_DIR)/gcmlib.a $(NCLIB)
 	$(F90) $(FFLAGS) -o $(BIN_DIR)/$@ $^
