@@ -2796,7 +2796,7 @@ C**** At North Pole
 C**** Solve diffusion equations semi implicitly
       DT2=DTDIFF*5d-1     ! half time-step
 !$OMP PARALLEL DO  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU,DTV,
-!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RE,RU,RV,
+!$OMP&  FUX,FUY,FVX,FVY, I,IP1,IM1,II, J, L, RU,RV,
 !$OMP&  UU,UV,UT,UY,UX, VT,VY,VX) 
       DO L=1,LMO
 C**** Save (0.5*) mass reciprical for velocity points

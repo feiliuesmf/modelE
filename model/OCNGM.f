@@ -309,9 +309,6 @@ C**** Add and Subtract horizontal Y fluxes
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
       END IF
-C**** Loop for Fluxes in Z-direction
-      IF(KPL(I,J).gt.L) GO TO 610
-      IF(LMM(I,J).lt.L) GO TO 610
 C**** Gradient fluxes in all directions. NOT QUITE CORRECT
 c      TXM(IM1,J,L) = TXM(IM1,J,L)* (1.-((BXX(I,J,L)+BXX(IM1,J,L)) *
 c     *              DTS * BYDXP(J) * BYDXP(J)))
@@ -319,21 +316,6 @@ c      TYM(I,J,L) = TYM(I,J,L)* (1.- ((BYY(I,J,L)+BYY(I,J-1,L)) *
 c     *              DTS * BYDYP(J) * BYDYP(J)))
 c      TZM(I,J,L) = TZM(I,J,L)* (1.- ((BZZ(I,J,L)+BZZ(I,J,L-1)) *
 c     *              DTS * BYDH(I,J,L) * BYDH(I,J,L)))
-      IF(LMM(I,J).gt.L) THEN
-C**** Calculate new tracer/salinity/enthalpy
-        MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
-     *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
-        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
-C**** Add and Subtract vertical flux. Note +ve upward flux
-        TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
-        TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
-        IF (QLIMIT) THEN  ! eliminate round off problems
-          TRM(I,J,L)   = MAX(0d0,TRM(I,J,L))
-          TRM(I,J,L+1) = MAX(0d0,TRM(I,J,L+1))
-        END IF
-C**** Save Diagnostic, GIJL(3) = RFZT
-        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
-      END IF
 C**** END of I and J loops
   610 IM1 = I
       END DO
@@ -354,9 +336,48 @@ C**** Add and Subtract horizontal Y fluxes
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(1,JM  ,L,2) = GIJL(1,JM  ,L,2) + RFYT/IM
       END IF
+C**** Gradient fluxes in all directions. NOT QUITE CORRECT
+c      TYM(1,JM,L) = TYM(1,JM,L)* (1.- ((BYY(1,JM,L)+BYY(1,JM-1,L)) *
+c     *              DTS * BYDYP(J) * BYDYP(J)))
+c      TZM(1,JM,L) = TZM(1,JM,L)* (1.- ((BZZ(1,JM,L)+BZZ(1,JM,L-1)) *
+c     *              DTS * BYDH(1,JM,L) * BYDH(1,JM,L)))
+ 620  END DO
+!$OMP END PARALLEL DO
+
+C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
+C**** Extracted from preceding L loop to allow parallelization of that
+C**** loop; this loop can't be
+      DO L=1,LMO
+C**** Non-Polar boxes
+      DO J=2,JM-1
+      DO I=1,IM
+      IF(LMM(I,J).le.0) GO TO 710
 C**** Loop for Fluxes in Z-direction
-      IF(KPL(1,JM).gt.L) GO TO 620
-      IF(LMM(1,JM).lt.L) GO TO 620
+      IF(KPL(I,J).gt.L) GO TO 710
+      IF(LMM(I,J).lt.L) GO TO 710
+      IF(LMM(I,J).gt.L) THEN
+C**** Calculate new tracer/salinity/enthalpy
+        MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
+     *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
+        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+C**** Add and Subtract vertical flux. Note +ve upward flux
+        TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
+        TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(I,J,L)   = MAX(0d0,TRM(I,J,L))
+          TRM(I,J,L+1) = MAX(0d0,TRM(I,J,L+1))
+        END IF
+C**** Save Diagnostic, GIJL(3) = RFZT
+        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
+      END IF
+C**** END of I and J loops
+ 710  CONTINUE
+      END DO
+      END DO
+C**** North Polar box
+C**** Loop for Fluxes in Z-direction
+      IF(KPL(1,JM).gt.L) GO TO 720
+      IF(LMM(1,JM).lt.L) GO TO 720
       IF(LMM(1,JM).gt.L) THEN
 C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
@@ -372,8 +393,9 @@ C**** Add and Subtract vertical flux. Note +ve upward flux
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(1,JM,L  ,3) = GIJL(1,JM,L  ,3) + RFZT
       END IF
- 620  END DO
-!$OMP END PARALLEL DO
+ 720  CONTINUE
+      END DO
+
       RETURN
       END SUBROUTINE GMFEXP
 C****
