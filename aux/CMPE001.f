@@ -1,8 +1,12 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
-      USE MODEL_COM, only : im,jm,lm
-      USE DAGCOM, ONLY: KTD,KAIJ,KAJK,KCON,kacc,ktsf
+      USE MODEL_COM, only : im,jm,lm,ntype
+      USE DAGCOM, ONLY: kacc,ktsf,KTD,kaj,nreg,ntype,kapj
+     *  ,kajl,lm_req,KASJL,KAIJ,KAIL,NEHIST,HIST_DAYS,KCON
+     *  ,KSPECA,NSPHER,KTPE,NHEMI,HR_IN_DAY,NDIUVAR,NDIUPT
+     *  ,Max12HR_sequ,NWAV_DAG,KWP,KAJK,KAIJK
       USE SLE001, ONLY: NGM
+      USE RADNCB, only : LM_REQ
       IMPLICIT REAL*8 (A-H,O-Z)
 c     PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
 c    *     )
@@ -100,7 +104,7 @@ C**** check whether stratosphere
 c        write(0,*) 'trying to read stratosphere'
          READ (1) HEADER
          BACKSPACE(1)
-         IF (HEADER(1:8).eq."STRAT01") THEN 
+         IF (HEADER(1:8).eq."STRAT01") THEN
 c        write(0,*) 'trying to read stratosphere'
            READ(1) HEADER,STRAT1,istrat1
          END IF
@@ -175,7 +179,7 @@ C**** check whether stratosphere
 c        write(0,*) 'trying to read stratosphere'
          READ (2) HEADER
          BACKSPACE(2)
-         IF (HEADER(1:8).eq."STRAT01") THEN 
+         IF (HEADER(1:8).eq."STRAT01") THEN
 c        write(0,*) 'trying to read stratosphere'
            READ(2) HEADER,STRAT2,istrat2
          END IF
@@ -294,37 +298,41 @@ c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
 c only check diagnostics if no prognostic errors
 c      else
       DAGPOS=1
-      ERRQ=COMP8 ('AJ    ',JM,94,6  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*94*6
-      ERRQ=COMP8 ('AREG  ',24,94,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+24*94
-      ERRQ=COMP8 ('APJ   ',JM,3,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*3
-      ERRQ=COMP8 ('AJL   ',JM,LM,57 ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*LM*57
-      ERRQ=COMP8 ('ASJL  ',JM,3,4   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+JM*3*4
+      ERRQ=COMP8 ('AJ    ',JM,kaj,ntype,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*kaj*ntype
+      ERRQ=COMP8 ('AREG  ',nreg,kaj,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+nreg*kaj
+      ERRQ=COMP8 ('APJ   ',JM,kapj,1   ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*kapj
+      ERRQ=COMP8 ('AJL   ',JM,LM,kajl ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*LM*kajl
+      ERRQ=COMP8 ('ASJL  ',JM,lm_req,KASJL,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+JM*lm_req*KASJL
       ERRQ=COMP8 ('AIJ   ',IM,JM,KAIJ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+IM*JM*KAIJ
-      ERRQ=COMP8 ('AIL   ',IM,LM,16 ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+IM*LM*16
-      ERRQ=COMP8 ('ENERGY',20,100,1 ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+20*100
+      ERRQ=COMP8 ('AIL   ',IM,LM,KAIL,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+IM*LM*KAIL
+      ERRQ=COMP8 ('ENERGY',NEHIST,NEHIST,HIST_DAYS
+     *                                  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+NEHIST*HIST_DAYS
       ERRQ=COMP8 ('CONSRV',JM,KCON,1  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+JM*KCON
-      ERRQ=COMP8 ('SPECA ',IMH+1,20,8,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+(IMH+1)*20*8
-      ERRQ=COMP8 ('ATPE  ',8,2,1    ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+8*2
-      ERRQ=COMP8 ('ADAILY',24,63,4  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+24*63*4
-      ERRQ=COMP8 ('WAVE  ',124,NWD,12,DIAG1(DAGPOS),DIAG2(DAGPOS))
-      DAGPOS=DAGPOS+2*62*NWD*12
+      ERRQ=COMP8 ('SPECA ',IMH+1,KSPECA,NSPHER
+     *                               ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+(IMH+1)*KSPECA*NSPHER
+      ERRQ=COMP8 ('ATPE  ',KTPE,NHEMI,1,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+KTPE*NHEMI
+      ERRQ=COMP8 ('ADAILY',HR_IN_DAY,NDIUVAR,NDIUPT
+     *                              ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+HR_IN_DAY*NDIUVAR*NDIUPT
+      ERRQ=COMP8 ('WAVE  ',2*Max12HR_sequ,NWAV_DAG,KWP
+     *                               ,DIAG1(DAGPOS),DIAG2(DAGPOS))
+      DAGPOS=DAGPOS+2*Max12HR_sequ*NWAV_DAG*KWP
       ERRQ=COMP8 ('AJK   ',JM,LM,KAJK,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+JM*LM*KAJK
       ERRQ=COMP8 ('AIJK  ',IM,JM,LM*6,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+IM*JM*LM*6
-      ERRQ=COMP8 ('TSFREZ',IM,JM,4      ,TSFREZ1,TSFREZ2)
+      ERRQ=COMP8 ('TSFREZ',IM,JM,ktsf   ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
       ERRQ=COMP8p('OA    ',IM,JM,12     ,OA1,OA2)
 
