@@ -15,7 +15,6 @@
 #endif
       IMPLICIT NONE
       SAVE
-
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
 !@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
@@ -32,6 +31,19 @@ C**** Each tracer has a variable name and a unique index
 #else
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef Shindell_Strat_chem
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=31
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
+     *    'HNO3    ','H2O2    ','CH3OOH  ','HCHO    ','HO2NO2  ',
+     *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
+     *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
+     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  '/)
+#else
       integer, parameter :: ntm=25
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','ClOx    ','BrOx    ','N2O5    ',
@@ -39,12 +51,25 @@ C**** Each tracer has a variable name and a unique index
      *    'CO      ','CH4     ','PAN     ','Isoprene','AlkylNit',
      *    'Alkenes ','Paraffin','HCl     ','HOCl    ','ClONO2  ',
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     '/)
+#endif
+#else
+#ifdef regional_Ox_tracers
+      integer, parameter :: ntm=21
+C Note: please always put the regional Ox tracers at the end,
+C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
+      character*8, parameter :: trname(ntm)=(/
+     *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
+     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
+     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+     *    'OxREG1  ','OxREG2  ','OxREG3  ','OxREG4  ','OxREG5  ',
+     *    'OxREG6  '/)
 #else
       integer, parameter :: ntm=15
       character*8, parameter :: trname(ntm)=(/
      *    'Ox      ','NOx     ','N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin'/)
+#endif
 #endif
 #else
 #ifdef TRACERS_AEROSOLS_Koch
@@ -68,6 +93,15 @@ C**** Each tracer has a variable name and a unique index
 #endif
 #endif
 #endif
+#ifdef regional_Ox_tracers
+!@var NregOx number of regional Ox tracers
+      integer, parameter :: NregOx=6
+!@var regOx_s southern limit of regional Ox tracers (deg)
+!@var regOx_n northern limit of regional Ox tracers (deg)
+!@var regOx_t upper (top) limit of regional Ox tracers (hPa)
+!@var regOx_b lower (bottom) limit of regional Ox tracers (hPa)
+      real*8, dimension(NregOx)::regOx_s,regOx_n,regOx_t,regOx_b
+#endif
 !@var N_XXX: variable names of indices for tracers
       integer :: 
      *     n_Air,    n_SF6,   n_Rn222, n_CO2,      n_N2O,
@@ -79,7 +113,9 @@ C**** Each tracer has a variable name and a unique index
      *     n_SO4,    n_H2O2_s,n_ClOx,  n_BrOx,     n_HCl,
      *     n_HOCl,   n_ClONO2,n_HBr,   n_HOBr,     n_BrONO2,
      *     n_CFC  
-
+#ifdef regional_Ox_tracers
+     *     ,n_OxREG1,n_OxREG2,n_OxREG3,n_OxREG4,n_OxREG5,n_OxREG6
+#endif
 C****    The following are set in tracer_IC
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
       logical, dimension(ntm) :: t_qlimit
