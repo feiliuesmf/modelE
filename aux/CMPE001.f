@@ -59,19 +59,23 @@ ccc   land ice data
 C**** coupled model ocean data (cannot be read in from module for 
 C**** compatibility across model configurations)
       INTEGER, PARAMETER :: NMST=12, LMO=13
-      INTEGER, PARAMETER :: KOIJ=17,KOIJL=22,KOL=6,KOLNST=8,
+      INTEGER, PARAMETER :: KOIJ=5,KOIJL=22,KOL=6,KOLNST=8,
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
       REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
       REAL*8 STRAITS1(LMO,NMST,7),STRAITS2(LMO,NMST,7)
       REAL*8 STRAITI1(NMST,4+LMI),STRAITI2(NMST,4+LMI)
-      REAL*8 ICEDYN1(IM,JM,4),ICEDYN2(IM,JM,4)
       REAL*8 ODIAG1(KACCO),ODIAG2(KACCO)
       COMMON /ODAG1/OIJ1(IM,JM,KOIJ),OIJL1(IM,JM,LMO,KOIJL),
      *     OL1(LMO,KOL),OLNST1(LMO,NMST,KOLNST)
       COMMON /ODAG2/OIJ2(IM,JM,KOIJ),OIJL2(IM,JM,LMO,KOIJL),
      *     OL2(LMO,KOL),OLNST2(LMO,NMST,KOLNST)
       EQUIVALENCE (ODIAG1,OIJ1),(ODIAG2,OIJ2)
+C**** ice dynamic data (cannot be read in from module for 
+C**** compatibility across model configurations)
+      INTEGER, PARAMETER :: KICIJ=12, IMIC=IM,JMIC=JM
+      REAL*8 ICDIAG1(IMIC,JMIC,KICIJ),ICDIAG2(IMIC,JMIC,KICIJ)
+      REAL*8 ICEDYN1(IMIC,JMIC,4),ICEDYN2(IMIC,JMIC,4)
 C****
       INTEGER DAGPOS,DAGPOS1,DAGPOS2
       LOGICAL ERRQ,COMP8,COMP8p,COMPI,COMP8LIJp,COMPILIJ
@@ -115,7 +119,6 @@ c        write(0,*) 'trying to read ocea1'
 c        write(0,*) 'trying to read ocea2'
            READ(1) HEADER,OCEAN1
            READ(1) HEADER,STRAITS1,STRAITI1
-           READ(1) HEADER,DYNICE1
          END IF
 c        write(0,*) 'trying to read lake'
          READ (1) HEADER,LAKE1
@@ -140,6 +143,7 @@ c        write(0,*) 'trying to read mom'
 c        write(0,*) 'trying to read radia'
          READ (1) HEADER,RQT1, S0,SRHR1,TRHR1,FSF1
 c        write(0,*) 'trying to read diag'
+         IF (KOCEAN1.eq.2) READ(1) HEADER,ICEDYN1
          READ (1,ERR=100) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1
      *        ,ITAU2
          GOTO 200
@@ -148,6 +152,7 @@ c        write(0,*) 'trying to read diag'
  200     IF (KOCEAN1.eq.2) THEN
 c        write(0,*) 'trying to read ocn3'
            READ(1) HEADER,ODIAG1,itau2    !OIJ,OIJL,OL,OLNST,it
+           READ(1) HEADER,ICDIAG1
          END IF
 
          IF (ITAU1.ne.ITAU2) then
@@ -190,7 +195,6 @@ c        write(0,*) 'trying to read ocea1'
 c        write(0,*) 'trying to read ocea2'
            READ(2) HEADER,OCEAN2
            READ(2) HEADER,STRAITS2,STRAITI2
-           READ(2) HEADER,DYNICE2
          END IF
 c        write(0,*) 'trying to read lake'
          READ (2) HEADER,LAKE2
@@ -215,6 +219,7 @@ c        write(0,*) 'trying to read mom'
 c        write(0,*) 'trying to read radia'
          READ (2) HEADER,RQT2, S0,SRHR2,TRHR2,FSF2
 c        write(0,*) 'trying to read diag'
+         IF (KOCEAN2.eq.2) READ(2) HEADER,ICEDYN2
          READ (2,ERR=300) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2
      *        ,ITAU2
          GOTO 400
@@ -223,6 +228,7 @@ c        write(0,*) 'trying to read diag'
  400     IF (KOCEAN2.eq.2) THEN
 c        write(0,*) 'trying to read ocn3'
            READ(2) HEADER,ODIAG2,itau2    !OIJ,OIJL,OL,OLNST,it
+           READ(2) HEADER,ICDIAG2
          END IF
 
       IF (itau1.ne.itau2) then
@@ -255,7 +261,9 @@ C****
           ERRQ=COMP8LIJp('STRATO',LMO,NMST,7,STRAITS1,STRAITS2).or.ERRQ
           ERRQ=COMP8LIJp('STRATI',NMST,4+LMI,1,STRAITI1,STRAITI2).or
      *         .ERRQ
-          ERRQ=COMP8LIJp('ICEDYN',IM,JM,4,ICEDYN1,ICEDYN2).or.ERRQ
+          ERRQ=COMP8LIJp('ICEDYN',IMIC,JMIC,4,ICEDYN1,ICEDYN2).or.ERRQ
+          ERRQ=COMP8LIJp('ICEDAG',IMIC,JMIC,KICIJ,ICDIAG1,ICDIAG2).or
+     *         .ERRQ
         END IF
       END IF
       ERRQ=COMP8 ('RSI   ',IM,JM,1      ,   RSI1,   RSI2) .or. ERRQ
