@@ -36,7 +36,7 @@
      *     ,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui
      *     ,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags
      *     ,ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,hdiurn,
-     *     ntau,npres,aisccp,isccp_reg
+     *     ntau,npres,aisccp,isccp_reg,ndiuvar,nisccp
 #ifdef CLD_AER_CDNC 
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -168,19 +168,48 @@ Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
 CRKF...FIX
-      REAL*8  AJEQIL(J5N-J5S+1,IM,JM),
+      REAL*8  AJEQIL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      REAL*8  :: AJEQIL_SUM(IM,LM)
       REAL*8  :: AREG_SUM
       INTEGER :: ibox
       REAL*8  :: randxx
       REAL*8, DIMENSION(
      &        size(AREG,1),grid%j_strt_halo:grid%j_stop_halo,3 )
      &        :: AREG_part
+
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: hdiurn_part
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: adiurn_part
+      REAL*8 :: HDIURNSUM, ADIURNSUM
+      INTEGER, PARAMETER :: n_idx1 = 5
+      INTEGER, PARAMETER :: n_idx2 = 3
+      INTEGER, PARAMETER :: n_idx3 = 6
+      INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
+      REAL*8 :: tmp(NDIUVAR)
+      REAL*8, 
+     *  DIMENSION(ntau,npres,nisccp,grid%J_STRT_HALO:grid%J_STOP_HALO)::
+     *     AISCCP_part
+      REAL*8 :: AISCCPSUM
+      INTEGER :: ii, ivar
+
+
+C**** Initialize
+      AJEQIL(:,:,:)=0.
+      hdiurn_part = 0
+      adiurn_part = 0
+      AISCCP_part = 0
+      idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
+      idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
+      idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
+
+
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
@@ -298,7 +327,7 @@ C****
       if (isccp_diags.eq.1) then
        DO J = 1, J_0-1
          DO I = 1, IMAXJ(J)
-           DO ibox = 1, (NCOL+1)*LM
+           DO ibox = 1, NCOL*(LM+1)
              randxx = RANDU(xx) ! burn random numbers
            END DO
          END DO
@@ -516,7 +545,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*
+     *      AJEQIL(I,J,L) = (DGDSM(L)+DPHASE(L))*
      *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
@@ -533,16 +562,15 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-            ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
-            ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
-            ADIURN(IH,IDD_MCP ,KR)=ADIURN(IH,IDD_MCP ,KR)+PRCPMC
-            ADIURN(IH,IDD_DMC ,KR)=ADIURN(IH,IDD_DMC ,KR)+CLDDEPIJ
-            ADIURN(IH,IDD_SMC ,KR)=ADIURN(IH,IDD_SMC ,KR)+CLDSLWIJ
-            HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPMC
-            HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDMC
-            HDIURN(IHM,IDD_MCP ,KR)=HDIURN(IHM,IDD_MCP ,KR)+PRCPMC
-            HDIURN(IHM,IDD_DMC ,KR)=HDIURN(IHM,IDD_DMC ,KR)+CLDDEPIJ
-            HDIURN(IHM,IDD_SMC ,KR)=HDIURN(IHM,IDD_SMC ,KR)+CLDSLWIJ
+            tmp(IDD_PR)  =+PRCPMC
+            tmp(IDD_ECND)=+HCNDMC  
+            tmp(IDD_MCP) =+PRCPMC  
+            tmp(IDD_DMC) =+CLDDEPIJ
+            tmp(IDD_SMC) =+CLDSLWIJ
+            hdiurn_part(J,idx1(:),kr)=hdiurn_part(J,idx1(:),kr)+
+     &           tmp(idx1(:))
+            adiurn_part(J,idx1(:),kr)=adiurn_part(J,idx1(:),kr)+
+     &           tmp(idx1(:))
           END IF
         END DO
 #ifdef CLD_AER_CDNC
@@ -765,12 +793,13 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
-             ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
-             ADIURN(IH,IDD_SSP ,KR)=ADIURN(IH,IDD_SSP ,KR)+PRCPSS
-             HDIURN(IHM,IDD_PR  ,KR)=HDIURN(IHM,IDD_PR  ,KR)+PRCPSS
-             HDIURN(IHM,IDD_ECND,KR)=HDIURN(IHM,IDD_ECND,KR)+HCNDSS
-             HDIURN(IHM,IDD_SSP ,KR)=HDIURN(IHM,IDD_SSP ,KR)+PRCPSS
+             tmp(IDD_PR)  =+PRCPSS
+             tmp(IDD_ECND)=+HCNDSS  
+             tmp(IDD_SSP) =+PRCPSS  
+             hdiurn_part(J,idx2(:),kr)=hdiurn_part(J,idx2(:),kr)+
+     &            tmp(idx2(:))
+             adiurn_part(J,idx2(:),kr)=adiurn_part(J,idx2(:),kr)+
+     &            tmp(idx2(:))
            END IF
          END DO
 
@@ -874,7 +903,8 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
 C**** Save area weighted isccp histograms
         n=isccp_reg(j)
         if (n.gt.0) then
-          AISCCP(:,:,n) = AISCCP(:,:,n) + fq_isccp(:,:)*DXYP(j)
+          AISCCP_part(:,:,n,J) = AISCCP_part(:,:,n,J) + 
+     &         fq_isccp(:,:)*DXYP(j)
         end if
       end if
 
@@ -1050,7 +1080,7 @@ C**** diagnostics
 #endif
       end do
 #endif
-
+      
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
 
@@ -1096,16 +1126,37 @@ C**** Save the conservation quantities for tracers
 #endif
 
 C**** Delayed summations (to control order of summands)
-      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
-      DO I=1,IM
-        IF(LMC(1,I,J).GT.0) THEN
-          DO L=1,LMC(2,I,J)-1
-            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL(J-J5S+1,I,L)
-          END DO
-        END IF
-      END DO
-      END DO
 C
+C First: Set to zero all (non-zero) terms that are not meant to be added in
+C        the global summ into AIL below.
+      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
+        DO I=1,IM
+          IF(LMC(1,I,J).LE.0) THEN
+            AJEQIL(I,J,:)=0.
+          ELSE
+            AJEQIL(I,J,LMC(2,I,J):)=0.
+          END IF
+        END DO
+      END DO
+C Second: Add all contributions to be summed into AIL into a dummy array.
+          CALL GLOBALSUM(GRID,AJEQIL,AJEQIL_SUM,jband=(/J5S,J5N/))
+C Third: Store the accumulations into AIL:
+      IF (AM_I_ROOT()) THEN
+        DO I=1,IM
+          DO L=1,LM
+            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL_SUM(I,L)
+          END DO
+        END DO
+      END IF
+C**** Accumulate AISCCP array
+      Do itau = 1, ntau
+        Do i = 1, npres
+          Do n = 1, nisccp
+            CALL GLOBALSUM(grid,AISCCP_part(itau,i,n,:),AISCCPSUM)
+            AISCCP(itau,i,n)=AISCCP(itau,i,n)+AISCCPSUM
+          END DO
+        END DO
+      END DO
 
 C****Accumulate diagnostigs into AREG in a way that insures bitwise
 C    identical results regardless of number of distributed processes used.
@@ -1133,6 +1184,19 @@ C    identical results regardless of number of distributed processes used.
         CALL GLOBALSUM(GRID, AREG_part(JR,:,3), AREG_SUM, ALL=.TRUE.)
         AREG(JR,J_EPRCP ) = AREG(JR,J_EPRCP ) + AREG_SUM
       END DO
+
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX3
+          ivar = idx3(ii)
+          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          IF (AM_I_ROOT()) THEN
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+          END IF
+        END DO
+      END DO
+
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
@@ -1149,9 +1213,28 @@ CAOO      J=1
           END DO
         END DO
       ENDIF
+          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
+          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
 C
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
+        if (.not. HAVE_SOUTH_POLE) then
+
+C**** ....then, accumulate neighbors contribution to
+C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
+C**** K=3,4 iterations on the newly updated J=J_0-1 box.
+          J=J_0-1
+          DO K=3,4  !  KMAXJ(J)
+            IDJ(K)=IDJJ(K,J)
+          END DO
+          DO I=1,IM
+            DO K=3,4 ! KMAXJ(J)
+              IDI(K)=IDIJ(K,I,J)
+              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+            END DO
+          END DO
+        end if           !NOT SOUTH POLE
         DO J=J_0S,J_1-1       !J_1 updated below
           DO K=1,4  !  KMAXJ(J)
             IDJ(K)=IDJJ(K,J)
@@ -1178,34 +1261,6 @@ C**** First half of loop cycle for j=j_1 for internal blocks
             END DO
           END DO
         ENDIF
-
-C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
-C**** in this block).
-          CALL CHECKSUM_COLUMN(grid,UKM,__LINE__,
-     &     __FILE__,SKIP=.true.)
-          CALL CHECKSUM_COLUMN(grid,VKM,__LINE__,
-     &     __FILE__,SKIP=.true.)
-
-          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
-          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
-
-        if (.not. HAVE_SOUTH_POLE) then
-
-C**** ....then, accumulate neighbors contribution to
-C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
-C**** K=3,4 iterations on the newly updated J=J_0-1 box.
-          J=J_0-1
-          DO K=3,4  !  KMAXJ(J)
-            IDJ(K)=IDJJ(K,J)
-          END DO
-          DO I=1,IM
-            DO K=3,4 ! KMAXJ(J)
-              IDI(K)=IDIJ(K,I,J)
-              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
-              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
-            END DO
-          END DO
-        end if           !NOT SOUTH POLE
       END DO       !LM
 
 !$OMP  END PARALLEL DO
@@ -1238,6 +1293,9 @@ C**** and save changes in KE for addition as heat later
       END DO
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUMj(grid, AJL(:,:,JL_DAMMC),
+     &     __LINE__,__FILE__)
+
 
       if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
 
@@ -1308,7 +1366,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=J_0,J_1
+      do j=1,JM ! purposefully not J_0,J_1
         isccp_reg(j)=0
         do n=1,nisccp
            if(lat_dg(j,1).ge.isccp_late(n) .and.
