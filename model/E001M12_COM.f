@@ -94,6 +94,13 @@ C**** (Simplified) Calendar Related Terms
       LOGICAL :: Q_GISS=.FALSE.,Q_HDF=.FALSE.,
      *           Q_PRT =.FALSE.,Q_NETCDF=.FALSE.
 
+!@var aturb_on switches diffus on/off, drycnv off/on
+      LOGICAL :: aturb_on=.true.
+
+!@var vt_on switches on/off surface and turbulence temperature virtual.
+c**** not working yet for EE001M12.f
+      LOGICAL :: vt_on=.true.
+
 C**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
 !@param IOWRITE_SINGLE Flag used for saving diags in single precision

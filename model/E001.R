@@ -11,6 +11,7 @@ CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
 SE001M12                            ! surface calculation
 GHYCOM EE001M12 SLE001              ! land surface and soils
 PBLCOM PBLDRV PBLE001               ! atmospheric pbl
+ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules

@@ -8,9 +8,10 @@ C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
-     *     ,sha,tf,rhow,rhoi,shw,shi,edpery
+     *     ,sha,tf,rhow,rhoi,shw,shi,edpery,deltx
       USE MODEL_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
      *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6,itearth
+     *     ,vt_on
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
@@ -51,14 +52,15 @@ C****
 
       INTEGER, INTENT(IN) :: NS,MODDSF,MODD6
       INTEGER I,J,L,KR,JR,ITYPE,IM1,IMAX,IHOUR
-      REAL*8 SHDT,QSATS,EVAP,EVHDT,TG2AV,ACE2AV,TRHDT,CDN,TK,RCDMWS
+      REAL*8 SHDT,QSATS,EVAP,EVHDT,TG2AV,ACE2AV,TRHDT,CDN,RCDMWS
      *     ,RCDHWS,DHGS,CDQ,CDM,CDH,ELHX,TG,SRHEAT,TG1,PTYPE,QSATSS
      *     ,EVAPS,PPBLS,EDS1S,DBLS,DGSS,CDHS,CDMS,QGS,SRHDTS,SHDTS
      *     ,EVHDTS,TG1S,DXYPJ,TRHEAT,WTR2AV,WFC1,WGS,VGS,UGS,TRHDTS
      *     ,RTAUVS,RTAUUS,RTAUS,TAUS,WSS,TSS,QSS,USS,VSS,RHOSRF,RMBYA
      *     ,TFS,TH1,THV1,P1K,PSK,TS,PS,PIJ,PSOIL,PEARTH,WARMER,BRUN0
      *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
-     *     ,TIMEZ,SPRING,ZS1CO,RVX,F1DTS
+     *     ,TIMEZ,SPRING,ZS1CO,F1DTS
+     *     ,rvx
 
 c      REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
 c      COMMON /WORK1d/DTH1,DQ1
@@ -103,9 +105,13 @@ C****    22-27  HEAT CONTENT OF VEGETATED SOIL LAYER 1-6 (J M-2)
 C****       28  SNOW DEPTH OVER BARE SOIL (M)
 C****       29  SNOW DEPTH OVER VEGETATED SOIL (M)
 C****
+c     if(.not. vt_on) then
+          rvx=0.
+c     else
+c         rvx=deltx !not working yet
+c     endif
 
       DTSURF=DTsrc/NISURF
-      RVX=0.
       ZS1CO=.5*DSIG(1)*RGAS/GRAV
 
          SPRING=-1.
@@ -162,10 +168,11 @@ C****
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*RVX)
       TKV=THV1*PSK
-         TFS=TF*PSOIL
+      TFS=TF*PSOIL
       RMBYA=100.*PDSIG(1,I,J)/GRAV
       QM1=Q1*RMBYA
-      RHOSRF=100.*PS/(RGAS*TKV)
+c     RHOSRF=100.*PS/(RGAS*TKV)
+      RHOSRF=100.*PS/(RGAS*TSV)
 C**** ZERO OUT QUANTITIES TO BE SUMMED OVER SURFACE TYPES
       USS=0.
       VSS=0.
@@ -275,7 +282,6 @@ C**** CALCULATE QS
 C****    dqgs=(zmix-zgs)*cdq*ws
       QS=QSRF
       TS=TSV/(1.+QS*RVX)
-      TK=TKV/(1.+QS*RVX)
 C**** CALCULATE RHOSRF*CDM*WS
       RCDMWS=CDM*WS*RHOSRF
       RCDHWS=CDH*WS*RHOSRF
@@ -518,7 +524,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
          IF(MODDSF.EQ.0) AJ(J,J_TSRF,ITEARTH)=AJ(J,J_TSRF,ITEARTH)+BTS
       END DO
       RETURN
-      END
+      END SUBROUTINE EARTH
 
       SUBROUTINE init_GH(DTSURF,redoGH,iniSNOW)
 C**** Modifications needed for split of bare soils into 2 types

@@ -16,7 +16,7 @@ C     THV1   = virtual temperature of the first model layer (K)
 C     HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
 C     SHA    = specific heat at constant pressure (RGAS/KAPA)
 C     OMEGA2 = 2.*OMEGA where OMEGA is the angular frequency of
-C              the earth (sec)
+C              the earth (1/sec)
 C     POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
 C
 C The quantities passed thru common block PBLOUT constitute the output
@@ -45,18 +45,20 @@ C              (m/sec)
 C     WG     = magnitude of the geostrophic wind (m/sec)
 C
 C --------------------------------------------------------------------
-      USE CONSTANT, only :  rgas,grav
+      USE CONSTANT, only :  rgas,grav,omega2,deltx
       USE MODEL_COM
-     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf
+     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,vt_on
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE PBLCOM, ustar_type=>ustar
-      USE SOCPBL, uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
+     &     ,uflux=>uflux,vflux=>vflux,tflux=>tflux,qflux=>qflux
+      USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
+     &     ,zgs,advanc
       IMPLICIT NONE
-
+     
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
@@ -81,8 +83,14 @@ C
       REAL*8 Z0M,ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
       REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,z0h,z0q,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
+     *     ,rvx  
       INTEGER LDC,L,k
 
+      if(.not. vt_on) then
+          rvx=0.
+      else
+          rvx=deltx
+      endif
 
       IF (ITYPE.GT.2) THEN
         Z0M=30./(10.**ROUGHL(I,J))
@@ -108,12 +116,13 @@ C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
 C FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND COMPUTE WG THERE:
           zpbl=ztop
           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-          tl1=t(i,j,1)*pk(1,i,j)  !expbyk(pl1)
+          ! pk(1,i,j) = expbyk(pl1)
+          tl1=t(i,j,1)*(1.+RVX*q(i,j,1))*pk(1,i,j)
           do l=2,ls1
             pl=pmid(l,i,j)        !pij*sig(l)+ptop
-            tl=t(i,j,l)*pk(l,i,j) !expbyk(pl)
+            tl=t(i,j,l)*(1.+RVX*q(i,j,l))*pk(l,i,j) !virtual,absolute
             tbar=thbar(tl1,tl)
-            zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
+            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
             if (zpbl.ge.dbl) go to 200
             pl1=pl
             tl1=tl
@@ -129,7 +138,7 @@ C  LDC IS THE LEVEL TO WHICH DRY CONVECTION MIXES. IF THE BOUNDARY
 C   LAYER HEIGHT IS LESS THAN 3 KM, ASSIGN LDC TO L, OTHERWISE MUST
 C   FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
 C
-        LDC=DCLEV(I,J)
+        LDC=nint(DCLEV(I,J))
         IF (LDC.EQ.0) LDC=1
         if (ldc.eq.1) then
           dbl=ztop
@@ -137,13 +146,13 @@ C
           else
           zpbl=ztop
           pl1=pmid(1,i,j)          !pij*sig(1)+ptop
-          tl1=t(i,j,1)*pk(1,i,j)   !expbyk(pl1)
+          tl1=t(i,j,1)*(1.+RVX*q(i,j,1))*pk(1,i,j)   !expbyk(pl1)
           zpbl1=ztop
           do l=2,ldc
             pl=pmid(l,i,j)         !pij*sig(l)+ptop
-            tl=t(i,j,l)*pk(l,i,j)  !expbyk(pl)
+            tl=t(i,j,l)*(1.+RVX*q(i,j,l))*pk(l,i,j)  !expbyk(pl)
             tbar=thbar(tl1,tl)
-            zpbl=zpbl+(rgas/grav)*tbar*(pl1-pl)/pl1
+            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
             if (zpbl.ge.3000.) then
               zpbl=zpbl1
               go to 400
@@ -232,13 +241,18 @@ c1003 format(a,4(1pe14.4))
       psi   =psisrf-psitop
       ustar_type(i,j,itype)=ustar
 C ******************************************************************
-      TS=TSV ! /(1.+QS*RVX) ! rvx=0 for now
+      TS=TSV/(1.+QS*RVX)
       WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
       TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
       if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QS*PTYPE
       USAVG(I,J)=USAVG(I,J)+US*PTYPE
       VSAVG(I,J)=VSAVG(I,J)+VS*PTYPE
       TAUAVG(I,J)=TAUAVG(I,J)+CM*WS*WS*PTYPE
+
+      uflux(I,J)=uflux(I,J)+ufluxs*PTYPE
+      vflux(I,J)=vflux(I,J)+vfluxs*PTYPE
+      tflux(I,J)=tflux(I,J)+tfluxs*PTYPE
+      qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
 
       RETURN
       END SUBROUTINE PBL
@@ -253,11 +267,11 @@ c  fields are obtained by solving the static equations of the
 c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
-      USE CONSTANT, only : lhe,lhs,tf
+      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
       USE PBLCOM, ustar_type=>ustar
-      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0,omega2
+      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
@@ -273,9 +287,6 @@ c -------------------------------------------------------------
       logical, intent(in) :: inipbl
 !@var iu_CDN unit number for roughness length input file
       integer :: iu_CDN
-
-      real*8, parameter :: rvx=0.
-
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
       real*8 tgvdat(im,jm,4)
@@ -285,7 +296,13 @@ c -------------------------------------------------------------
       real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
      *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
-      real*8 qsat
+      real*8 qsat,rvx
+
+      if(.not. vt_on) then
+          rvx=0.
+      else
+          rvx=deltx
+      endif
 
 C things to be done regardless of inipbl
       call getunit("CDN",iu_CDN,.TRUE.,.true.)
@@ -297,7 +314,6 @@ C things to be done regardless of inipbl
 
       if(.not.inipbl) return
 
-c     call pgrads1   !   added 6/19/00
       do j=1,jm
       do i=1,im
         pland=fland(i,j)
@@ -376,7 +392,7 @@ c ******************************************************************
             endif
 
             qtop=q(i,j,1)
-            ttop=t(i,j,1)*(1.+qtop*rvx)*psk
+            ttop=t(i,j,1)*(1.+qtop*RVX)*psk
             if (itype.gt.2) then
               zgrnd=30./(10.**roughl(i,j))
               else
@@ -608,7 +624,7 @@ c ----------------------------------------------------------------------
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     *     ,ustar
+     *     ,ustar,uflux,vflux,tflux,qflux
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -623,6 +639,11 @@ C**** Check for NaN/INF in boundary layer data
       CALL CHECK3(vsavg,IM,JM,1,SUBR,'vsavg')
       CALL CHECK3(tauavg,IM,JM,1,SUBR,'tauavg')
       CALL CHECK3(ustar,IM,JM,4,SUBR,'ustar')
+
+      CALL CHECK3(uflux,IM,JM,1,SUBR,'uflux')
+      CALL CHECK3(vflux,IM,JM,1,SUBR,'vflux')
+      CALL CHECK3(tflux,IM,JM,1,SUBR,'tflux')
+      CALL CHECK3(qflux,IM,JM,1,SUBR,'qflux')
 
       END SUBROUTINE CHECKPBL
 

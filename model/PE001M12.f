@@ -831,7 +831,7 @@ C****
 C**** THIS SUBROUTINE MIXES AIR CAUSED BY DRY CONVECTION.
 C**** THIS VERSION CHECKS BASE LAYERS LBASE_MIN TO LBASE_MAX.
 C****
-      USE CONSTANT, only : lhe,sha
+      USE CONSTANT, only : lhe,sha,deltx
       USE MODEL_COM
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
@@ -852,11 +852,17 @@ C****
       INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
 
       DOUBLE PRECISION, DIMENSION(NMOM) :: TMOMS,QMOMS
-      REAL*8 RVX,DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
+      REAL*8 DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS
      *     ,TVMS,THETA,RDP,THM
+     *     ,rvx
+
+      if(.not. vt_on) then
+          rvx=0.
+      else
+          rvx=deltx
+      endif
 
       if(LBASE_MAX.GE.LM) stop 'DRYCNV: LBASE_MAX.GE.LM'
-      RVX=0.
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
 

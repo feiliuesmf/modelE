@@ -22,9 +22,6 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-C**** model related constants (should really be taken from E001M12_COM)
-      real*8, parameter :: omega2 = 2.*omega !@var omega2 2*omega (s^-1)
-
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
 !@var  t  local potential temperature
@@ -45,8 +42,9 @@ C**** model related constants (should really be taken from E001M12_COM)
 !@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-!@varinput:
+c    input:
 !@var  z0m  roughness height for momentum (if itype>2)
+!@var  coriol  2.*omega*sin(latitude), the coriolis factor
 !@var  ug   x component of the geostrophic wind
 !@var  vg   y component of the geostrophic wind
 !@var  utop  x component of wind at the top of the layer
@@ -69,7 +67,6 @@ c   output:
 !@var  kmsurf  surface value of km
 !@var  khsurf  surface value of kh
 !@var  ustar  friction speed
-!@var  coriol  2.*omega*sin(latitude), the coriolis factor
 !@var  zmix  magic quantity needed in surfce
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)
 !@var  ch  dimensionless heat flux at surface (stanton number)
@@ -304,6 +301,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
         sum2=sum2+sqrt(e(j))*dzh(j)
       end do
       l0=alpha*sum1/sum2
+      if (l0.lt.zhat(1)) l0=zhat(1)
 
       do i=1,n-1
         l1=kappa*zhat(i)
@@ -971,9 +969,9 @@ c
 !@var qstar   moisture scale
 !@var z0h  roughness height for heat
 !@var z0q  roughness height for moisture
-!@var tgrnd potentail temperature at the ground
+!@var tgrnd virtual potential temperature at the ground
 !@var qgrnd relative humidity at the ground
-!@var ttop potentail temperature at the first GCM layer
+!@var ttop virtual potential temperature at the first GCM layer
 !@var qtop relative humidity at the first GCM layer
 !@var dtime time step
 !@var n number of vertical subgrid main layers
@@ -1130,9 +1128,9 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 !@var dzh(j)  z(j+1)-z(j)
 !@var ch  dimensionless heat flux at surface (stanton number)
 !@var cq  dimensionless moisture flux at surface (dalton number)
-!@var tgrnd potentail temperature at the ground
+!@var tgrnd virtual potential temperature at the ground
 !@var qgrnd relative humidity at the ground
-!@var ttop potentail temperature at the first GCM layer
+!@var ttop virtual potential temperature at the first GCM layer
 !@var qtop relative humidity at the first GCM layer
 !@var n number of vertical main subgrid layers
       implicit none
@@ -1314,14 +1312,14 @@ c       rhs1(i)=-coriol*(u(i)-ug)
 !@sum  and humidity using static solutions of the GISS 2000
 !@sum  turbulence model at level 2
 !@var  n number of sub-grid levels for the PBL
-!@var  tgrnd  temperature of the ground, at the roughness height
+!@var  tgrnd virtual potential temperature of ground,at roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
 !@var  zgrnd
 !@var  zgs  height of the surface layer (nominally 10 m)
 !@var  ztop height of the first model layer, approx 200 m if lm=9
 !@var  utop  x component of wind at the top of the layer
 !@var  vtop  y component of wind at the top of the layer
-!@var  ttop  temperature at the top of the layer
+!@var  ttop  virtual potential temperature at the top of the layer
 !@var  qtop  moisture at the top of the layer
 !@var  coriol the Coriolis parameter
 !@var  cm  dimensionless  momentum flux at surface (drag coeff.)

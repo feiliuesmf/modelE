@@ -140,6 +140,8 @@ c      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
       real*8,parameter :: EDPERY = 365.
       real*8,parameter :: omega = TWOPI*(EDPERD+EDPERY)/
      *                            (EDPERD*EDPERY*SDAY)
+!@param omega2 2*omega
+      real*8,parameter :: omega2 = 2.*omega
 
 !@param radius radius of the earth (6371000 m)
 c**** radius of spherical earth, same volume = 6371000 m

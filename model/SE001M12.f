@@ -19,16 +19,17 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-     *     ,byrhoi
+     *     ,byrhoi,deltx
       USE MODEL_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
-     *     ,itoice,itlake,itlkice,itlandi
+     *     ,itoice,itlake,itlkice,itlandi,aturb_on,vt_on
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
+     &     ,uflux,vflux,tflux,qflux
       USE SOCPBL, only : zgs
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adaily,ndlypt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
@@ -60,6 +61,7 @@ C****
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
      *     ,PLK,PLKI,EVAPLIM,F1DTS,HICE,F2,FSRI(2)
+     *     ,rvx
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -73,7 +75,7 @@ C**** Interface to PBL
       COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,UG,VG,WG,ZMIX
 
       REAL*8, PARAMETER :: qmin=1.e-12
-      REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
+      REAL*8, PARAMETER :: S1BYG1 = 0.57735,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT,TOFREZ
 C****
@@ -85,6 +87,12 @@ C**** GTEMP(1)  GROUND TEMPERATURE ARRAY OVER ALL SURFACE TYPES (C)
 C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
+      if(.not. vt_on) then
+          rvx=0.
+      else
+          rvx=deltx
+      endif
+
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
 
@@ -105,7 +113,6 @@ C**** Zero out fluxes summed over type
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
 
-c     call pgrads1
 C****
 C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
@@ -139,6 +146,12 @@ C****
       USAVG(I,J)=0.
       VSAVG(I,J)=0.
       TAUAVG(I,J)=0.
+
+      ! initialize fluxes before calling PBL subroutine
+      uflux(I,J)=0.
+      vflux(I,J)=0.
+      tflux(I,J)=0.
+      qflux(I,J)=0.
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -661,9 +674,13 @@ C**** non polar boxes
         END DO
       END DO
 C****
-C**** DRY CONVECTION ORIGINATING FROM THE FIRST LAYER
-C****
-      CALL DRYCNV(1,1)
+      if(.not. aturb_on) then
+C****     DRY CONVECTION ORIGINATING FROM THE FIRST LAYER
+          CALL DRYCNV(1,1)
+      else
+C****     turbulence throughout whole atmosphere
+          call diffus(dtsurf)
+      endif
 C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
@@ -685,4 +702,4 @@ C****
      *  33X,3F10.4,10X,2F10.4)
  9993 FORMAT ('0',I2,10F10.4/23X,7F10.4/33X,7F10.4)
  9994 FORMAT ('0',I2,11F10.4)
-      END
+      END SUBROUTINE SURFCE

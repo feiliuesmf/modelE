@@ -39,6 +39,9 @@
 !@var egcm  3-d turbulent kinetic energy in the whole atmospher
        real*8, dimension(im,jm,lm) :: egcm
 
+!@var egcm  2-d turbulent fluxes
+       real*8, dimension(im,jm) :: uflux,vflux,tflux,qflux
+
       END MODULE PBLCOM
 
       SUBROUTINE io_pbl(kunit,iaction,ioerr)
