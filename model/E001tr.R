@@ -4,8 +4,9 @@ E001tr: new modelE (based on B402A with sample tracers)
  Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, O3, Water
 
 Preprocessor Options
-#define TRACERS_ON                  ! include tracers code
-!#define TRACERS_WATER               ! include water tracers code
+#define TRACERS_ON          ! include tracers code
+!#define TRACERS_SPECIAL     ! include special tracer code (chemistry, etc.)
+!#define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
