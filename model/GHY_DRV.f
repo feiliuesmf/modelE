@@ -219,16 +219,16 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       end subroutine ghy_tracers_set_cell
 
 
-      subroutine ghy_tracers_save_cell(i,j,ptype)
+      subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf)
 !@sum tracers code to be called after the i,j cell is processed
       use model_com, only : itime
       use somtq_com, only : mz
-      use socpbl, only : dtsurf
+ !     use socpbl, only : dtsurf
       use geom, only : dxyp
       use sle001, only : nsn,fb,fv
       implicit none
       integer, intent(in) :: i,j
-      real*8, intent(in) :: ptype
+      real*8, intent(in) :: ptype,dtsurf
 #ifdef TRACERS_DUST
       integer n1
 #endif
@@ -429,11 +429,13 @@ c****
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm !ia
 
-      USE SOCPBL, only : dtsurf         ! zgs,     ! global
-     &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole     ! rest local
-     &     ,us,vs,ws,wsm,wsh,tsv,qsrf
-      use pblcom, only : ipbl,cmgs,chgs,cqgs,qsavg
-      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean,psurf,trhr0
+  !    USE SOCPBL, only :
+  !   &     dtsurf               ! zgs,     ! global
+  !   &     ,zs1,tgv,tkv,qg_sat,qg_aver,hemi,pole,     ! rest local
+  !   &     us,vs,ws,wsm,wsh,tsv,qsrf
+  !    use pblcom, only : ipbl,cmgs,chgs,cqgs,qsavg
+      use pbl_drv, only : pbl, t_pbl_args
+  !   &     , evap_max,fr_sat,uocean,vocean,psurf,trhr0
 
 
       use snow_drvm, only : snow_cover_same_as_rad
@@ -483,6 +485,10 @@ c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
 
+c**** input/output for PBL
+      type (t_pbl_args) pbl_args
+      real*8 qg_sat
+
 C**** Work array for regional diagnostic accumulation
       real*8 :: areg_sum
       real*8, DIMENSION(
@@ -497,7 +503,8 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
-      dtsurf=dtsrc/nisurf
+      ! dtsurf=dtsrc/nisurf
+
       zs1co=.5*dsig(1)*rgas/grav
 
       spring=-1.
@@ -524,18 +531,25 @@ C**** halo update u and v for distributed parallelization
 !$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
 !$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,
-!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1
+!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat
 !$OMP*   )
 !$OMP*   SHARED(ns,moddsf,moddd)
 !$OMP*   SCHEDULE(DYNAMIC,2)
 
       loop_j: do j=J_0,J_1
-      hemi=1.
-      if(j.le.jm/2) hemi=-1.
+  !    hemi=1.
+  !    if(j.le.jm/2) hemi=-1.
+
 c**** conditions at the south/north pole
-      pole= ( j.eq.1 .or. j.eq.jm )
+  !    pole= ( j.eq.1 .or. j.eq.jm )
 
       loop_i: do i=1,imaxj(j)
+
+      pbl_args%dtsurf=dtsrc/nisurf
+      pbl_args%hemi=1.
+      if(j.le.jm/2) pbl_args%hemi=-1.
+      pbl_args%pole= ( j.eq.1 .or. j.eq.jm )
+
 c****
 c**** determine surface conditions
 c****
@@ -547,7 +561,9 @@ c****
       th1=t(i,j,1)
       q1=q(i,j,1)
       thv1=th1*(1.+q1*deltx)
-      tkv=thv1*psk
+      pbl_args%tkv=thv1*psk
+  !    tkv=thv1*psk
+
       tfs=tf*ptype
       ma1=am(1,i,j)
       qm1=q1*ma1
@@ -557,7 +573,7 @@ c****
 c**** earth
 c****
       if (ptype.le.0.) then
-        ipbl(i,j,4)=0
+  !      ipbl(i,j,4)=0
         cycle loop_i
       endif
       itype=4
@@ -578,46 +594,61 @@ ccc tracers variables
 c****
 c**** boundary layer interaction
 c****
-      zs1=zs1co*tkv*pij/pmid(1,i,j)
+      pbl_args%zs1=zs1co*pbl_args%tkv*pij/pmid(1,i,j)
+  !    zs1=zs1co*tkv*pij/pmid(1,i,j)
+
 c**** loop over ground time steps
       tg=tg1+tf
       elhx=lhe
       if(tg1.lt.0.)  elhx=lhs
-      qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
+      pbl_args%qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
+  !    qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
+
       qg = qg_ij(i,j)
       ! if ( qg > 999.d0 ) qg = qg_sat
-      qg_aver = qg
-      tgv=tg*(1.+qg*deltx)
-      psurf=ps
-      trhr0 = TRHR(0,I,J)
-      rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+      pbl_args%qg_aver = qg
+  !    qg_aver = qg
+
+      pbl_args%tgv=tg*(1.+qg*deltx)
+  !    tgv=tg*(1.+qg*deltx)
+
+      pbl_args%psurf=ps
+  !    psurf=ps
+
+      pbl_args%trhr0 = TRHR(0,I,J)
+  !    trhr0 = TRHR(0,I,J)
+
+      rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 C**** Obviously there are no ocean currents for earth points, but
 C**** variables set for consistency with surfce
-      uocean=0 ; vocean=0
+      pbl_args%uocean=0 ; pbl_args%vocean=0
+  !    uocean=0 ; vocean=0
 
 c***********************************************************************
 c****
 ccc actually PBL needs evap (kg/m^2*s) / rho_air
-      evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
-      fr_sat = fr_sat_ij(i,j)
+      pbl_args%evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
+      pbl_args%fr_sat = fr_sat_ij(i,j)
+  !    evap_max = evap_max_ij(i,j) * 1000.d0 / rhosrf0
+  !    fr_sat = fr_sat_ij(i,j)
 
 c**** call tracers stuff
 #ifdef TRACERS_ON
       call ghy_tracers_set_cell(i,j,qg,evap_max)
 #endif
-      call pbl(i,j,itype,ptype)
+      call pbl(i,j,itype,ptype,pbl_args)
 c****
-      cdm = cmgs(i,j,itype)
-      cdh = chgs(i,j,itype)
-      cdq = cqgs(i,j,itype)
+      cdm = pbl_args%cm ! cmgs(i,j,itype)
+      cdh = pbl_args%ch ! chgs(i,j,itype)
+      cdq = pbl_args%cq ! cqgs(i,j,itype)
 c***********************************************************************
 c**** calculate qs
-      qs=qsrf
-      ts=tsv/(1.+qs*deltx)
+      qs=pbl_args%qsrf
+      ts=pbl_args%tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
-      rhosrf=100.*ps/(rgas*tsv)
-      rcdmws=cdm*wsm*rhosrf
-      rcdhws=cdh*wsh*rhosrf
+      rhosrf=100.*ps/(rgas*pbl_args%tsv)
+      rcdmws=cdm*pbl_args%wsm*rhosrf
+      rcdhws=cdh*pbl_args%wsh*rhosrf
       trheat=trhr(0,i,j)
 c***********************************************************************
 c****
@@ -625,8 +656,8 @@ c  define extra variables to be passed in surfc:
       pres  =ps
       veg_pres = ps
       rho   =rhosrf
-      vsm   =ws
-      veg_vsm = ws
+      vsm   =pbl_args%ws
+      veg_vsm = pbl_args%ws
       ch    =cdh
       veg_ch = cdh
       srht  =srheat
@@ -690,14 +721,14 @@ c**** wearth+aiearth are used in radiation only
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
       gtemp(1,4,i,j)=tearth(i,j)
 c**** calculate fluxes using implicit time step for non-ocean points
-      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(us-uocean)
-      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(vs-vocean)
+      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
+      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       evapor(i,j,4)=evapor(i,j,4)+aevap
       shdt=-ashg
       dth1(i,j)=dth1(i,j)-shdt*ptype/(sha*ma1*p1k)
       dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
-      qsavg(i,j)=qsavg(i,j)+qs*ptype
+  !    qsavg(i,j)=qsavg(i,j)+qs*ptype
 c**** save runoff for addition to lake mass/energy resevoirs
       runoe (i,j)=runoe (i,j)+ aruns+ arunu
       erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
@@ -707,11 +738,11 @@ c****
 
       call ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij )
+     &     ,aregij, pbl_args, pbl_args%dtsurf )
 
 c**** update tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_save_cell(i,j,ptype)
+      call ghy_tracers_save_cell(i,j,ptype,dtsurf)
 #endif
       end do loop_i
       end do loop_j
@@ -787,7 +818,7 @@ c***********************************************************************
 
       subroutine ghy_diag( i,j,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg
-     &     ,aregij )
+     &     ,aregij, pbl_args, dtsurf )
 
       use diag_com , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
@@ -824,11 +855,11 @@ c***********************************************************************
 
       use ghy_com, only : gdeep
 
-      USE SOCPBL, only : dtsurf         ! zgs,     ! global
-     &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
-     &     ,khs,ug,vg,wg
-      use pbl_drv, only : uocean,vocean
-
+ !     USE SOCPBL, only : dtsurf         ! zgs,     ! global
+ !    &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
+ !    &     ,khs,ug,vg,wg
+ !     use pbl_drv, only : uocean,vocean
+      use pbl_drv, only : t_pbl_args
 
 
 
@@ -836,6 +867,8 @@ c***********************************************************************
       integer, intent(in) :: i,j,ns,moddsf,moddd
       real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
       real*8, intent(out) :: aregij(:,:,:)
+      type (t_pbl_args) :: pbl_args
+      real*8, intent(in) :: dtsurf
 
       real*8 timez
       real*8 trhdt,tg2av,wtr2av,ace2av,tg1,shdt,ptype,srheat,srhdt
@@ -843,6 +876,19 @@ c***********************************************************************
       integer, parameter :: itype=4
       integer kr,ih,ihm,jr
 
+ccc the following values are returned by PBL
+      real*8 us,vs,ws,wsm,psi,dbl,khs,ug,vg,wg
+
+      us = pbl_args%us
+      vs = pbl_args%vs
+      ws = pbl_args%ws
+      wsm = pbl_args%wsm
+      psi = pbl_args%psi
+      dbl = pbl_args%dbl
+      khs = pbl_args%khs
+      ug = pbl_args%ug
+      vg = pbl_args%vg
+      wg = pbl_args%wg
 
       timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(jday.le.31) timez=timez+365.
@@ -957,8 +1003,8 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
         aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
         aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*wsm*ptype
-        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us-uocean)*ptype
-        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs-vocean)*ptype
+        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us)*ptype !-uocean
+        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs)*ptype !-vocean
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
         aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype

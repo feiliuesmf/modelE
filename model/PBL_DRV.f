@@ -10,19 +10,6 @@
       implicit none
 ccc   save
 
-c     input data:
-!@var uocean,vocean ocean/ice velocities for use in drag calulation
-      real*8 uocean,vocean
-
-!@var evap_max maximal evaporation from unsaturated soil
-!@var  fr_sat fraction of saturated soil
-      real*8 :: evap_max,fr_sat
-      real*8 :: psurf, trhr0
-      common/pbl_loc/evap_max,fr_sat,uocean,vocean,psurf,trhr0
-
-!$OMP  THREADPRIVATE (/pbl_loc/)
-
-
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -65,9 +52,20 @@ C**** Tracer input/output common block for PBL
 !$OMP  THREADPRIVATE (/trspec/)
 #endif
 
+      type t_pbl_args
+        ! input:
+        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi
+        real*8  evap_max,fr_sat,uocean,vocean,psurf,trhr0
+        logical :: pole
+        ! output:
+        real*8 us,vs,ws,wsm,wsh,tsv,qsrf,cm,ch,cq
+        ! the following args needed for diagnostics
+        real*8 psi,dbl,khs,ug,vg,wg
+      end type t_pbl_args
+
       contains
 
-      SUBROUTINE PBL(I,J,ITYPE,PTYPE)
+      SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
 !@sum  PBL calculate pbl profiles for each surface type
 !@auth Greg. Hartke/Ye Cheng
 !@ver  1.0
@@ -78,7 +76,7 @@ C          ,UG,VG,WG,W2_1
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE MODEL_COM
-     &     , only : IM,JM,LM, t,q,u,v,p,ptop,ls1,psf,itime
+     &     , only : t,q,u,v,ls1
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -87,11 +85,10 @@ C          ,UG,VG,WG,W2_1
      &     ,dpdxr,dpdyr
      &     ,dpdxr0,dpdyr0
      &     ,advanc                      ! subroutine
-     &     ,zgs,DTSURF                  ! global
-     &     ,ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,POLE    ! rest local
-     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-     &     ,UG,VG,WG,mdf
-     &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
+     &     ,zgs                  ! global
+     &     ,US,VS,WSM,WSH,TSV,QSRF,DBL,KHS
+     &     ,UG,VG,mdf
+     &     ,ustar,cm,ch,cq,z0m,w2_1
 #ifdef TRACERS_ON
      *     ,tr
 #ifdef TRACERS_AEROSOLS_Koch
@@ -108,6 +105,7 @@ C          ,UG,VG,WG,W2_1
       INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
+      type (t_pbl_args) :: pbl_args
 
       REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
       real*8, parameter :: S1byG1=.57735d0
@@ -121,13 +119,45 @@ c
       REAL*8 ttop,qtop,tgrndv,qgrnd,qgrnd_sat,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
-
+!@var uocean,vocean ocean/ice velocities for use in drag calulation
+      real*8 uocean,vocean
+!@var evap_max maximal evaporation from unsaturated soil
+!@var  fr_sat fraction of saturated soil
+      real*8 :: evap_max,fr_sat
+      real*8 :: psurf, trhr0
+!@var ZS1    = height of the first model layer (m)
+!@var TGV    = virtual potential temperature of the ground (K)
+!@var TKV    = virtual potential temperature of first model layer (K)
+!@var WS     = magnitude of the surface wind (m/s)
+!@var PSI    = angular diff. btw geostrophic and surface winds (rads)
+!@var WG     = magnitude of the geostrophic wind (m/s)
+!@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
+      real*8 zs1,tgv,tkv,ws,psi,wg,qg_sat,qg_aver,dtsurf,hemi
+!@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
+      logical pole
+ 
 c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
       common/pbluvtq/upbl,vpbl,tpbl,qpbl,epbl
 !$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
+
+ccc extract data from the pbl_args structure
+      dtsurf = pbl_args%dtsurf
+      zs1 = pbl_args%zs1
+      tgv = pbl_args%tgv
+      tkv = pbl_args%tkv
+      qg_sat = pbl_args%qg_sat
+      qg_aver = pbl_args%qg_aver
+      hemi = pbl_args%hemi
+      pole = pbl_args%pole
+      evap_max = pbl_args%evap_max
+      fr_sat = pbl_args%fr_sat
+      uocean = pbl_args%uocean
+      vocean = pbl_args%vocean
+      psurf = pbl_args%psurf
+      trhr0 = pbl_args%trhr0
 
 C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
@@ -208,7 +238,7 @@ C        roughness lengths from Brutsaert for rough surfaces
 #if (defined TRACERS_DRYDEP) && (defined TRACERS_AEROSOLS_Koch)
       IF (ITYPE.eq.1) PBLH(I,J)=dbl
 #endif
-      ppbl=pedn(l,i,j)
+  !    ppbl=pedn(l,i,j)  ! - not used anywhere ?
       coriol=sinp(j)*omega2
       ttop=tkv
       qtop=q(i,j,1)
@@ -314,7 +344,8 @@ C ******************************************************************
       end if
       WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
       TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
-      if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
+  !    if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
+      QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
       USAVG(I,J)=USAVG(I,J)+US*PTYPE
       VSAVG(I,J)=VSAVG(I,J)+VS*PTYPE
       TAUAVG(I,J)=TAUAVG(I,J)+CM*WS*WS*PTYPE
@@ -327,6 +358,25 @@ C ******************************************************************
       tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
       qgAVG(I,J)=qgAVG(I,J)+qgrnd*PTYPE
       w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
+
+ccc put data backto pbl_args structure
+      pbl_args%us = us
+      pbl_args%vs = vs
+      pbl_args%ws = ws
+      pbl_args%wsm = wsm
+      pbl_args%wsh = wsh
+      pbl_args%tsv = tsv
+      pbl_args%qsrf = qsrf
+      pbl_args%cm = cm
+      pbl_args%ch = ch
+      pbl_args%cq = cq
+      pbl_args%psi = psi
+      pbl_args%dbl = dbl
+      pbl_args%khs = khs
+      pbl_args%ug = ug
+      pbl_args%vg = vg
+      pbl_args%wg = wg
+
 
       RETURN
       END SUBROUTINE PBL
@@ -723,6 +773,9 @@ C**** initialise some pbl common variables
           vflux(I,J)=0.
           tflux(I,J)=0.
           qflux(I,J)=0.
+
+ccc???
+         ipbl(i,j,:) = 0 ! - will be set to 1s when pbl is called
 
       end do
       end do

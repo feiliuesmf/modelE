@@ -9,8 +9,8 @@
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
-      USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
-     &                     ,by3,shv,sha,shw,lhe,stbo,rhow,rgas
+      USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx
+     &                     ,by3
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname,trradius
 #ifdef TRACERS_WATER
@@ -27,20 +27,12 @@
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
-!@var ZS1    = height of the first model layer (m)
-!@var TGV    = virtual potential temperature of the ground (K)
-!@var TKV    = virtual potential temperature of first model layer (K)
-!@var HEMI   = 1 for northern hemisphere, -1 for southern hemisphere
-!@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-
 !@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
-!@var WS     = magnitude of the surface wind (m/s)
 !@var WSM    = magnitude of the surface wind - ocean currents (m/s)
 !@var WSH    = magnitude of surface wind modified by buoyancy flux(m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
-!@var PSI    = angular diff. btw geostrophic and surface winds (rads)
 !@var DBL    = boundary layer height (m)
 !@var KMS    = momentum transport coefficient at ZGS (m**2/s)
 !@var KHS    = heat transport coefficient at ZGS (m**2/s)
@@ -56,13 +48,11 @@
 !@var z0q   = roughness length for water vapor (m)
 !@var UG     = eastward component of the geostrophic wind (m/s)
 !@var VG     = northward component of the geostrophic wind (m/s)
-!@var WG     = magnitude of the geostrophic wind (m/s)
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
-      real*8 :: zs1,tgv,tkv,qg_sat,qg_aver,hemi,dtsurf,w2_1,mdf,wint
-      real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
-     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,XCDpbl=1d0
-      logical :: pole
+      real*8 :: w2_1,mdf
+      real*8 :: us,vs,wsm,wsh,tsv,qsrf,dbl,kms,khs,kqs
+     *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,XCDpbl=1d0
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
@@ -102,10 +92,9 @@ C***
 #endif
 !$OMP  THREADPRIVATE (/PBLTPC/)
 
-      COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,qg_aver,HEMI,POLE
-      COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
-     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,W2_1,MDF,WINT
-!$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
+      COMMON /PBLOUT/US,VS,WSM,WSH,TSV,QSRF,DBL,KMS,KHS,KQS,
+     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,W2_1,MDF
+!$OMP  THREADPRIVATE (/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid

@@ -33,12 +33,13 @@
 #endif
 #endif
 C**** Interface to PBL
-      USE SOCPBL, only : ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
-     &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS !,KQS !,PPBL ! ,KMS
-     &     ,UG,VG,WG !,WINT
+  !    USE SOCPBL, only : ZS1,TGV,TKV,QG_SAT,QG_AVER,HEMI,DTSURF,POLE
+  !   &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KHS !,KQS !,PPBL ! ,KMS
+  !   &     ,UG,VG,WG !,WINT
 
-      USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,dclev
-      USE PBL_DRV, only : pbl,evap_max,fr_sat,uocean,vocean,psurf,trhr0
+      USE PBLCOM, only : tsavg,dclev
+      USE PBL_DRV, only : pbl, t_pbl_args
+  !   &     ,evap_max,fr_sat,uocean,vocean,psurf,trhr0
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
@@ -113,6 +114,10 @@ C**** Interface to PBL
       REAL*8 QSAT,DQSATDT
       REAL*8, DIMENSION(7,3,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      *                                                         AREGIJ
+c**** input/output for PBL
+      type (t_pbl_args) pbl_args
+      real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws
+      logical pole
 c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
@@ -218,7 +223,8 @@ C****
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1, ! QSDEN,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS, SHEAT,SRHEAT, ! QSCON,QSMUL,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,  ! TGDEN,
-!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
+!$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L,
+!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,QSRF,pbl_args
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
 #if defined(TRACERS_WATER)
@@ -303,7 +309,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          END IF
 C****
       DO ITYPE=1,3       ! no earth type
-      ipbl(i,j,itype)=0
+  !    ipbl(i,j,itype)=0
 !!!      SELECT CASE (ITYPE)
 C****
 C**** OPEN OCEAN/LAKE
@@ -445,8 +451,8 @@ C****
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
-      TKV=THV1*PSK  ! TKV is referenced to the surface pressure
-      ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PMID(1,I,J)
+  !    TKV=THV1*PSK  ! TKV is referenced to the surface pressure
+  !    pbl_args%ZS1=.5*DSIG(1)*RGAS*BYGRAV*TKV*PIJ/PMID(1,I,J)
       SHDT=0.
       EVHDT=0.
       TRHDT=0.
@@ -455,10 +461,9 @@ C****
       TG=TG1+TF
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
-      QG_AVER=QG_SAT
-      TGV=TG*(1.+QG_SAT*deltx)
-      psurf=PS   ! extra values to pass to PBL, possibly temporary
-      trhr0 = TRHR(0,I,J)
+      pbl_args%TGV=TG*(1.+QG_SAT*deltx)
+   !   psurf=PS   ! extra values to pass to PBL, possibly temporary
+   !   trhr0 = TRHR(0,I,J)
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
@@ -486,7 +491,7 @@ C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
-          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+          rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
             trsfac(nx)=1. 
@@ -510,19 +515,36 @@ C**** Now send kg/m^2/s to PBL, and dived by rho there.
       end do
 #endif
 C =====================================================================
-      fr_sat = 1. ! entire surface is saturated
-      evap_max = 1.
-      CALL PBL(I,J,ITYPE,PTYPE)
-      CM = cmgs(i,j,itype)
-      CH = chgs(i,j,itype)
-      CQ = cqgs(i,j,itype)
+      pbl_args%dtsurf = dtsurf
+      pbl_args%TKV=THV1*PSK     ! TKV is referenced to the surface pressure
+      pbl_args%ZS1=.5*DSIG(1)*RGAS*BYGRAV* pbl_args%TKV*PIJ/PMID(1,I,J)
+      pbl_args%qg_sat = qg_sat
+      pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
+      pbl_args%hemi = hemi
+      pbl_args%pole = pole
+      pbl_args%evap_max = 1.
+      pbl_args%fr_sat = 1. ! entire surface is saturated
+      pbl_args%uocean = uocean
+      pbl_args%vocean = vocean
+      pbl_args%psurf = PS
+      pbl_args%trhr0 = TRHR(0,I,J)
+      
+      CALL PBL(I,J,ITYPE,PTYPE,pbl_args)
+
+      us = pbl_args%us
+      vs = pbl_args%vs
+      ws = pbl_args%ws
+      qsrf = pbl_args%qsrf
+      CM = pbl_args%cm
+      CH = pbl_args%ch
+      CQ = pbl_args%cq
 C =====================================================================
-      TS=TSV/(1.+QSRF*deltx)
+      TS=pbl_args%TSV/(1.+QSRF*deltx)
 C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
-      RHOSRF=100.*PS/(RGAS*TSV)
-      RCDMWS=CM*WSM*RHOSRF
-      RCDHWS=CH*WSH*RHOSRF
-      RCDQWS=CQ*WSH*RHOSRF
+      RHOSRF=100.*PS/(RGAS*pbl_args%TSV)
+      RCDMWS=CM*pbl_args%WSM*RHOSRF
+      RCDHWS=CH*pbl_args%WSH*RHOSRF
+      RCDQWS=CQ*pbl_args%WSH*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SHEAT=SHA*RCDHWS*(TS-TG)
@@ -651,8 +673,8 @@ C****
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*
-     *           fracvl(tg1,trname(n)))*FRACLK(WSM,trname(n))
-            dTEVdTQS =-RCDQWS*FRACLK(WSM,trname(n))
+     *           fracvl(tg1,trname(n)))*FRACLK(pbl_args%WSM,trname(n))
+            dTEVdTQS =-RCDQWS*FRACLK(pbl_args%WSM,trname(n))
 #else
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx))
             dTEVdTQS =-RCDQWS
@@ -815,12 +837,12 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
           AIJ(I,J,IJ_US)=AIJ(I,J,IJ_US)+US*PTYPE
           AIJ(I,J,IJ_VS)=AIJ(I,J,IJ_VS)+VS*PTYPE
-          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*WSM*PTYPE
+          AIJ(I,J,IJ_TAUS)=AIJ(I,J,IJ_TAUS)+RCDMWS*pbl_args%WSM*PTYPE
           AIJ(I,J,IJ_TAUUS)=AIJ(I,J,IJ_TAUUS)+RCDMWS*(US-UOCEAN)*PTYPE
           AIJ(I,J,IJ_TAUVS)=AIJ(I,J,IJ_TAUVS)+RCDMWS*(VS-VOCEAN)*PTYPE
           AIJ(I,J,IJ_QS)=AIJ(I,J,IJ_QS)+QSRF*PTYPE
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
-          AIJ(I,J,IJ_PBLHT)=AIJ(I,J,IJ_PBLHT)+dbl*PTYPE
+          AIJ(I,J,IJ_PBLHT)=AIJ(I,J,IJ_PBLHT)+pbl_args%dbl*PTYPE
         END IF
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
@@ -837,18 +859,24 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               ADIURN(IH,IDD_LH,KR)=ADIURN(IH,IDD_LH,KR)+EVHDT*PTYPE
               ADIURN(IH,IDD_HZ0,KR)=ADIURN(IH,IDD_HZ0,KR)
      *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
-              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)+UG*PTYPE
-              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)+VG*PTYPE
-              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)+WG*PTYPE
+              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)
+     &             +pbl_args%UG*PTYPE
+              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)
+     &             +pbl_args%VG*PTYPE
+              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)
+     &             +pbl_args%WG*PTYPE
               ADIURN(IH,IDD_US,KR)=ADIURN(IH,IDD_US,KR)+US*PTYPE
               ADIURN(IH,IDD_VS,KR)=ADIURN(IH,IDD_VS,KR)+VS*PTYPE
               ADIURN(IH,IDD_WS,KR)=ADIURN(IH,IDD_WS,KR)+WS*PTYPE
-              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)+PSI*PTYPE
+              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)
+     &             +pbl_args%PSI*PTYPE
               ADIURN(IH,IDD_CM,KR)=ADIURN(IH,IDD_CM,KR)+CM*PTYPE
               ADIURN(IH,IDD_CH,KR)=ADIURN(IH,IDD_CH,KR)+CH*PTYPE
               ADIURN(IH,IDD_CQ,KR)=ADIURN(IH,IDD_CQ,KR)+CQ*PTYPE
-              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)+KHS*PTYPE
-              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)+DBL*PTYPE
+              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)
+     &             +pbl_args%KHS*PTYPE
+              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)
+     &             +pbl_args%DBL*PTYPE
               ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAP*PTYPE
               HDIURN(IHM,IDD_TS,KR)=HDIURN(IHM,IDD_TS,KR)+TS*PTYPE
               HDIURN(IHM,IDD_TG1,KR)=HDIURN(IHM,IDD_TG1,KR)+(TG1+TF)
@@ -862,18 +890,24 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               HDIURN(IHM,IDD_LH,KR)=HDIURN(IHM,IDD_LH,KR)+EVHDT*PTYPE
               HDIURN(IHM,IDD_HZ0,KR)=HDIURN(IHM,IDD_HZ0,KR)
      *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
-              HDIURN(IHM,IDD_UG,KR)=HDIURN(IHM,IDD_UG,KR)+UG*PTYPE
-              HDIURN(IHM,IDD_VG,KR)=HDIURN(IHM,IDD_VG,KR)+VG*PTYPE
-              HDIURN(IHM,IDD_WG,KR)=HDIURN(IHM,IDD_WG,KR)+WG*PTYPE
+              HDIURN(IHM,IDD_UG,KR)=HDIURN(IHM,IDD_UG,KR)
+     &             +pbl_args%UG*PTYPE
+              HDIURN(IHM,IDD_VG,KR)=HDIURN(IHM,IDD_VG,KR)
+     &             +pbl_args%VG*PTYPE
+              HDIURN(IHM,IDD_WG,KR)=HDIURN(IHM,IDD_WG,KR)
+     &             +pbl_args%WG*PTYPE
               HDIURN(IHM,IDD_US,KR)=HDIURN(IHM,IDD_US,KR)+US*PTYPE
               HDIURN(IHM,IDD_VS,KR)=HDIURN(IHM,IDD_VS,KR)+VS*PTYPE
               HDIURN(IHM,IDD_WS,KR)=HDIURN(IHM,IDD_WS,KR)+WS*PTYPE
-              HDIURN(IHM,IDD_CIA,KR)=HDIURN(IHM,IDD_CIA,KR)+PSI*PTYPE
+              HDIURN(IHM,IDD_CIA,KR)=HDIURN(IHM,IDD_CIA,KR)
+     &             +pbl_args%PSI*PTYPE
               HDIURN(IHM,IDD_CM,KR)=HDIURN(IHM,IDD_CM,KR)+CM*PTYPE
               HDIURN(IHM,IDD_CH,KR)=HDIURN(IHM,IDD_CH,KR)+CH*PTYPE
               HDIURN(IHM,IDD_CQ,KR)=HDIURN(IHM,IDD_CQ,KR)+CQ*PTYPE
-              HDIURN(IHM,IDD_EDS,KR)=HDIURN(IHM,IDD_EDS,KR)+KHS*PTYPE
-              HDIURN(IHM,IDD_DBL,KR)=HDIURN(IHM,IDD_DBL,KR)+DBL*PTYPE
+              HDIURN(IHM,IDD_EDS,KR)=HDIURN(IHM,IDD_EDS,KR)
+     &             +pbl_args%KHS*PTYPE
+              HDIURN(IHM,IDD_DBL,KR)=HDIURN(IHM,IDD_DBL,KR)
+     &             +pbl_args%DBL*PTYPE
               HDIURN(IHM,IDD_EV,KR)=HDIURN(IHM,IDD_EV,KR)+EVAP*PTYPE
             END IF
           END DO
