@@ -663,9 +663,9 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
 !@var KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
-      integer, dimension(4) :: KRHAER=(/-1,-1,-1,-1/) ! SO4,SSalt,NO3,OC
+      integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
 !@var KRHTRA(8) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
-      integer, dimension(8) :: KRHTRA=(/0,0,0,0,0,0,0,0/)
+      integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
       real*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
      B              ,TRHQAB(33,190,4),RHINFO(190,9,4),A6JDAY(9,6,72,46)
@@ -3344,7 +3344,7 @@ C     ------------------------------------------------------------------
       TRHQAB(K,N,NA)=TRHQAB(K,1,NA)
   132 CONTINUE
       DO 133 M=1,9
-      RHINFO(N,M,NA)=RHINFO(N,1,NA)
+      RHINFO(N,M,NA)=RHINFO(1,M,NA)
   133 CONTINUE
   134 CONTINUE
   135 CONTINUE

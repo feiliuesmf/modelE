@@ -516,9 +516,8 @@ caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
 C**** The last 2 entries are used to scale the other 2 aerosol types:
 C**** 7. Dust aerosols, 8. Volcanic aerosols
-C**** Particle size of the first 4 groups has RelHum dependence:  
-C???? Because that scheme is not safe yet, the default is kRHaer(:)=-1
-C**** if kRHaer(1->4)=-1 use RH=70%; if =0 use RH=0%, if =1 use model RH
+C**** Particle size of the first 4 groups has RelHum dependence: 
+C**** default: kRHaer(1->4)=1:use model RH (-1:use RH=70%; 0:use RH=0%)
 
 C**** To add up to 8 further aerosols:
 C****  1) set NTRACE to the number of extra aerosol fields
@@ -1275,7 +1274,7 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
 #ifdef TRACERS_SPECIAL_Shindell
-      sv_SRNFLB(I,J)=SRNFLB(LTROPO(I,J)) ! save these for 
+      sv_SRNFLB(I,J)=SRNFLB(LTROPO(I,J)) ! save these for
       sv_TRNFLB(I,J)=TRNFLB(LTROPO(I,J)) ! the diagnostics
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
