@@ -1,13 +1,13 @@
-E010F12.R GISS Model E                                 gas 06/00
+E010F18.R GISS Model E                                 gas 06/00
 
-E010F12: new modelE 2x2.5, 12 layer
+E010F18: new modelE 2x2.5, 18 layers
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_F12                             ! horiz/vert resolution
+RES_F18  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 18 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
@@ -32,13 +32,13 @@ CONST FFT144 UTILDBL SYSTEM         ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_F12.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01     ! initial ground conditions      ISTART=2
+AIC=AIC.RES_F18.D771201  ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90DEC01     ! initial ground conditions      ISTART=2
 ! OHT=OTSPEC.RunIDM12.M250D ! hor.heat transp.  for q-flux ocean only
 ! OCNML=Z1O.B144X90         ! mixed layer depth,needed for post-processing only
 OSST=OST144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE144X90.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
-CDN=CD144X90 VEG=VEG144X90M
+CDN=CD144X90 VEG=VEG144X90FRACTIONM
 SOIL=S144X900098M TOPO=Z144X90N.1 ! bdy.cond
 REG=REG2X2.5_CAFE     ! special regions-diag
 RVR=RD144X90.RVR      ! river direction file
@@ -50,8 +50,8 @@ RADN5=TROAER.1875-1990.Jun2002
 RADN6=dust8.tau9x8x13
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-!  RADN9=solar.lean99.uvflux         ! need KSOLAR<2
-RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
+! RADN9=solar.lean99.uvflux         ! need KSOLAR<2
+RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNA=O3.1850-2050.depl.rec       ! with recovery of O3 after 2000
 !  RADNA=O3.1850-2050.depl.con    ! O3 'constant' after 2000
 RADNB=o3WangJacob.1890.1979
@@ -61,7 +61,7 @@ dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_144x90.ij.ext
 
 Label and Namelist:
-E010F12 (modelE 2x2.5 version)
+E010F18 (modelE 2x2.5, 18 layer version)
 
 DTFIX=112.5
 &&PARAMETERS
