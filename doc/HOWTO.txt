@@ -28,7 +28,10 @@ PART I: Basic user information
    1c: How to set up a Q-flux model with a single ocean layer
    1d: How to set up a Q-flux model with diffusion into a deep ocean
 2) HOW-TO produce a rundeck
-3) HOW-TO alter NAMELIST INPUT parameters
+3) HOW-TO use NAMELIST INPUT parameters
+   3a: How to set and alter them
+   3b: How to use them to control numerical instabilities
+   3c: How to use IRAND to create an ensemble of runs
 4) HOW-TO stop and restart the GCM
 5) HOW-TO change boundary conditions
 6) HOW-TO change trace gas amounts
@@ -69,37 +72,98 @@ Part III: The model code
 Part I: Basic user tasks
 
 1) HOW-TO setup and run the GISS GCM:
-   1a:
-   1b: It is desirable to run a specified ocean model in such a way that
-       it is in radiative balance, i.e. that the net flux of energy into
+   1b: How to TUNE a specified ocean run (using U00wtr)
+       It is desirable to run a specified ocean model in such a way that
+       it is in RADIATIVE BALANCE, i.e. that the net flux of energy into
        the ocean (which has no effect, since ocean data are specified)
-       is zero if averaged over a whole year. One way to approx. achieve
-       this goal is to choose the right value for U00wtr. That parameter
+       is zero if averaged over a whole year. One way to roughly achieve
+       this goal is to pick the right value for U00wtr. That parameter
        influences the cloud formation where the temperature is above 0C
        and can therefore be used to change the radiative balance.
 
+       Run the model for a year and find the annual mean net heating at
+       the ground (budget page). That quantity may change from year to
+       year within 1/2 W/m2 . Increasing U00wtr by .01 increases that
+       quantity by about .3 W/m2 . Rerun that year with a new value of
+       U00wtr hoping that the annual mean net heating at the ground
+       averages out to less than .3 W/m2 in absolut value over the next
+       few years.
+
+       Increasing U00ice works in the opposite direction but changes
+       the global cloud cover considerably. It could be used to tune
+       the cloud cover (before picking the final U00wtr).
+
+       Other ways to handle the rad.balance problem: Change the solar
+       constant until rad. balance results (most people hate that way),
+       change the solar irradiance into the ocean when running the
+       Qflux model (using the old SRCOR parameter) offsetting the
+       imbalance (advantage: no need to repeat the control run,
+       disadvantage: Jim hated it, no longer part of the code).
+
+   1c: How to set up a Q-flux model with a single ocean layer
+       A preliminary run with prescribed climatological ocean has to
+       be run for about 6 years collecting daily fluxes into the ocean
+       (Kvflxo=1). Based on these data, a new input file (OTSPEC...)
+       has to be created that specifies the horizontal heat transports
+       in the ocean; in addition, the ocean temperatures at the annual
+       maximum mixed layer depth and the mean temperature between that
+       level and the bottom of the current mixed layer depth have to be
+       computed for the final time of the preliminary run and added to
+       the final restart file of that preliminary run. That augmented
+       restart file will serve as initial state file for the new run.
+       During the first few years, monitor the time series of global
+       annual means of  Ocean Ice Cover  and  Surface Air Temperature.
+       Hopefully, they will no longer change after a few years (10-25).
+       The model is said to be in balance as soon as that happens.
+
+   1d: How to set up a Q-flux model with diffusion into a deep ocean
+       Such a run needs a preliminary Q-flux model running for 10 years
+       in equilibrium, saving (KCOPY=3) the data necessary for diffusion
+       computations (see /u/cmrun/model/notes/deep.ocean.doc)
 
 2) HOW-TO produce a rundeck
 
 
-3) HOW-TO alter NAMELIST parameters
-   Namelist parameters use their default values unless they are
-   specified in the rundeck between the lines &INPUTZ and &END .
+3) HOW-TO use NAMELIST parameters
 
-   To start a run, the following parameters have to be explicitly
-   set: ISTART=2 | 7 or 8 to start from obs | model Initial State
-        PLTOP(L) = pressure (mb) at top of layer L (L=1,...,LM)
-        YEARI    = year in which model starts
-        YEARE (or IHOURE) = year (or hour) at which model stops
-        XCDLM = 5e-4,5e-5 (those should be the defaults)
+   3a: How to set and alter NAMELIST parameters
+       Namelist parameters take the default values unless they are
+       specified in the rundeck between the lines &INPUTZ and &END .
 
-   After a run is started, some parameters may be changed during
-   the run by    1:    editing the file 'I' in the run directory,
-                 2:    stopping and restarting the run.
-   (Often, those changes should also be made or noted in the rundeck).
+       To start a run, the following parameters HAVE to be explicitly
+       set: ISTART=2 | 7 or 8 to start from obs | model Initial State
+            PLTOP(L) = pressure (mb) at top of layer L (L=1,...,LM)
+            YEARI    = year in which model starts
+            YEARE (or IHOURE) = year (or hour) at which model stops
 
-   For a list and explanation of all parameters see
-   /u/exec/docE/NLparams.txt.
+       After a run is started, some parameters may be changed during
+       the run:      1:    edit the file 'I' in the run directory,
+                     2:    stop and restart the run,
+                     3:    re-edit I to ready it for the next restart
+       (If the change affects the results, attach a log of all such    
+        changes to the end of the rundeck)
+
+       For a list and explanation of all parameters see
+          /u/exec/docE/NLparams.txt.
+
+   3b: How to use NAMELIST parameters to control numerical instabilities
+       Parameter   affects:                   depends on:
+       DT          stability at poles         hor. resolution, AVRX
+       NIsurf      stability at the surface   vert.resolution near surf
+       XcdLM       stability at the top       model top pressure PMTOP
+       M/NFILTR    checker board patterns     dynamics scheme
+
+   3c: How to use IRAND to create an ensemble of runs
+       If ISTART<9 and IRAND<0, all atmospheric initial temperatures 
+       are randomly perturbed by at most 1C . The perturbations depend
+       on the value of IRAND (since -IRAND is used as the first seed).
+       After the perturbations, IRAND is reset to its default 123456789.
+       So to create an ensemble of N runs whose only difference is the
+       initial state they start up from, pick N (odd) negative numbers
+       and create N copies of the rundeck that only differ in the runID
+       and the value set for IRAND. Make sure, IRAND is set on the SAME
+       LINE as ISTART, so that IRAND=-.... is not kept in the 'I'-file
+       and used in restarts.
 
 4) HOW-TO stop and restart the GCM
 
@@ -289,7 +353,7 @@ do not assume anything about where in memory variables are kept, many
 of the problems associated with common blocks are alleviated. In order
 to make use of a variable from somewhere else in the code, that
 variable must be in the relevant MODULE (usually called PHYS_COM, for
-ease of remembering). Then in the routine of the module where you wish  
+ease of remembering). Then in the routine of the module where you wish
 to use it you must specifically declare what you want using the USE
 statement. For clarity, we are insisting upon using 'USE, only' so
 that each variable that you require is explicitly declared, ie.
