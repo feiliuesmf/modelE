@@ -909,13 +909,13 @@ C**** save plume temperature after possible condensation
         CONDP(L)=RHOW*(PI*by6)*CN0*EXP(-FLAMW*DCW)*
      *     (DCW*DCW*DCW/FLAMW+3.*DCW*DCW/(FLAMW*FLAMW)+
      *     6.*DCW/(FLAMW*FLAMW*FLAMW)+6./FLAMW**4)
-        CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
+        CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
       ENDIF
       IF (TP.LE.TI) THEN
         CONDP(L)=RHOIP*(PI*by6)*CN0*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
-        CONDP(L)=.01d0*CONDP(L)*AIRM(L)*TL(L)*RGAS/PL(L)
+        CONDP(L)=.01d0*CONDP(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
       ENDIF
       IF (TP.LT.TF.AND.TP.GT.TI) THEN
         FG=(TP-TF+40.)*0.025d0
@@ -926,8 +926,8 @@ C**** save plume temperature after possible condensation
         CONDGP=RHOG*(PI*by6)*CN0*EXP(-FLAMG*DCG)*
      *    (DCG*DCG*DCG/FLAMG+3.*DCG*DCG/(FLAMG*FLAMG)+
      *    6.*DCG/(FLAMG*FLAMG*FLAMG)+6./FLAMG**4)
-        CONDP(L)=.01d0*(FG*CONDGP+FI*CONDIP)*CCM(L-1)*BYAM(L)*
-     *     AIRM(L)*TL(L)*RGAS/PL(L)
+        CONDP(L)=.01d0*(FG*CONDGP+FI*CONDIP)*CCM(L-1)*
+     *     TL(L)*RGAS/PL(L)
       ENDIF
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
