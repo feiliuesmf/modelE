@@ -26,9 +26,9 @@ C**** local grid variables for ice rheology scheme
 C**** ice dynamics input/output/work variables
       REAL*8, DIMENSION(NX1,NY1) :: PRESS,HEFFM,UVM,DWATN,COR,SINEN
      *     ,BYDXDY
-      REAl*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
-      REAl*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
-     *     ,SINE
+      REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
+      REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,CSU,TNGT,TNG
+     *     ,SINE,BYCSU
 !@var RATIC,RICAT area ratios for atmospheric tracer grid to ice grid
       REAL*8, DIMENSION(NY1) :: RATIC, RICAT
 
@@ -99,7 +99,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE ICEDYN, only : rsix,rsiy,usi,vsi,nx1,ny1,press,heffm,uvm
      *     ,dwatn,cor,sinen,dxt,dxu,dyt,dyu,cst,csu,tngt,tng,sine,usidt
      *     ,vsidt,bydx2,bydxr,bydxdy,bydy2,bydyr,dts,sinwat,coswat,oiphi
-     *     ,ratic,ricat,bydts,rsisave,omega
+     *     ,ratic,ricat,bydts,rsisave,omega,bycsu
       USE FLUXES, only : dmua,dmva,dmui,dmvi,UI2rho
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -161,6 +161,7 @@ c****
        phiu = (-88.+(j-1)*4.)*radian
        cst(j) = cos(phit)
        csu(j) = cos(phiu)
+       bycsu(j) = 1./csu(j)
        sine(j) = sin(phiu)
        tng(j) = sine(j)/csu(j)
        TNGT(J)=SIN(PHIT)/CST(J)
@@ -171,6 +172,7 @@ c****
       TNGT(NY1)=TNGT(NY1-1)
       TNG(NY1)=TNG(NY1-1)
       CSU(NY1)=CSU(NY1-1)
+      bycsu(NY1) = 1./csu(NY1)
 C**** set area ratios for converting fluxes
       RATIC = RATOC  ! currently the same as for ocean
       RICAT = ROCAT
@@ -910,27 +912,27 @@ C THE FIRST HALF
      3+VICEC(I,J)-VICEC(I+1,J-1)-VICEC(I,J-1))+ZETA(I,J+1)
      3*(VICEC(I,J)+VICEC(I-1,J)-VICEC(I,J+1)-VICEC(I-1,J+1))
      3+ZETA(I,J)*(VICEC(I,J-1)+VICEC(I-1,J-1)-VICEC(I,J)
-     3-VICEC(I-1,J)))*DELXY/CSU(J)
+     3-VICEC(I-1,J)))*DELXY*BYCSU(J)
      3
      4-0.5*(ETA(I+1,J+1)*(VICEC(I+1,J+1)+VICEC(I,J+1)
      4-VICEC(I+1,J)-VICEC(I,J))+ETA(I+1,J)*(VICEC(I+1,J)
      4+VICEC(I,J)-VICEC(I+1,J-1)-VICEC(I,J-1))+ETA(I,J+1)
      4*(VICEC(I,J)+VICEC(I-1,J)-VICEC(I,J+1)-VICEC(I-1,J+1))
      4+ETA(I,J)*(VICEC(I,J-1)+VICEC(I-1,J-1)-VICEC(I,J)
-     4-VICEC(I-1,J)))*DELXY/CSU(J)
+     4-VICEC(I-1,J)))*DELXY*BYCSU(J)
      4
      5+0.5*(VICEC(I+1,J)-VICEC(I-1,J))*(ETA(I,J+1)+ETA(I+1,J+1)
-     5-ETA(I,J)-ETA(I+1,J))*DELXY/CSU(J)+0.5*ETAMEAN*((VICEC(I+1,J+1)
-     5-VICEC(I-1,J+1))/CSU(J+1)-(VICEC(I+1,J-1)-VICEC(I-1,J-1))
-     5/CSU(J-1))*DELXY
+     5-ETA(I,J)-ETA(I+1,J))*DELXY*BYCSU(J)+0.5*ETAMEAN*((VICEC(I+1,J+1)
+     5-VICEC(I-1,J+1))*BYCSU(J+1)-(VICEC(I+1,J-1)-VICEC(I-1,J-1))
+     5*BYCSU(J-1))*DELXY
      5
      6-((ZETA(I+1,J+1)+ZETA(I+1,J)-ZETA(I,J)-ZETA(I,J+1))
      6+(ETA(I+1,J+1)+ETA(I+1,J)-ETA(I,J)-ETA(I,J+1)))
-     6*TNG(J)*VICEC(I,J)*DELXR/CSU(J)
+     6*TNG(J)*VICEC(I,J)*DELXR*BYCSU(J)
      6-(ETAMEAN+ZETAMEAN)*TNG(J)*(VICEC(I+1,J)-VICEC(I-1,J))
-     6*DELXR/CSU(J)
+     6*DELXR*BYCSU(J)
      6
-     7-ETAMEAN*2.0*TNG(J)*(VICEC(I+1,J)-VICEC(I-1,J))*DELXR/CSU(J)
+     7-ETAMEAN*2.0*TNG(J)*(VICEC(I+1,J)-VICEC(I-1,J))*DELXR*BYCSU(J)
 
       END DO
       END DO
@@ -941,10 +943,10 @@ C THE FIRST HALF
       DELY2=BYDY2(J)       ! 0.5/(DYU(J)*DYU(J))
       DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
-      AA1=((ETA(I+1,J)+ZETA(I+1,J))/CSU(J)+(ETA(I+1,J+1)+ZETA(I+1,J+1))
-     &     /CSU(J))/CSU(J)
-      AA2=((ETA(I,J)+ZETA(I,J))/CSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
-     &     /CSU(J))/CSU(J)
+      AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
+     *     (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
+      AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
+     &     *BYCSU(J))*BYCSU(J)
       AA3=ETA(I,J+1)+ETA(I+1,J+1)
       AA4=ETA(I,J)+ETA(I+1,J)
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
@@ -969,10 +971,10 @@ C THE FIRST HALF
       DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
 
-      AA1=((ETA(I+1,J)+ZETA(I+1,J))/CSU(J)+(ETA(I+1,J+1)+ZETA(I+1,J+1))
-     &     /CSU(J))/CSU(J)
-      AA2=((ETA(I,J)+ZETA(I,J))/CSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
-     &     /CSU(J))/CSU(J)
+      AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
+     *     (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
+      AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
+     &     *BYCSU(J))*BYCSU(J)
       AA3=ETA(I,J+1)+ETA(I+1,J+1)
       AA4=ETA(I,J)+ETA(I+1,J)
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
@@ -1053,10 +1055,10 @@ C NOW THE SECOND HALF
       DELYR=BYDYR(J)       ! 0.5/(DYU(J)*RADIUS)
       ETAMEAN=0.25*(ETA(I,J+1)+ETA(I+1,J+1)+ETA(I,J)+ETA(I+1,J))
 
-      AA1=((ETA(I+1,J)+ZETA(I+1,J))/CSU(J)+(ETA(I+1,J+1)+ZETA(I+1,J+1))
-     &     /CSU(J))/CSU(J)
-      AA2=((ETA(I,J)+ZETA(I,J))/CSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
-     &     /CSU(J))/CSU(J)
+      AA1=((ETA(I+1,J)  +ZETA(I+1,J)  )*BYCSU(J)+
+     *     (ETA(I+1,J+1)+ZETA(I+1,J+1))*BYCSU(J))*BYCSU(J)
+      AA2=((ETA(I,J)+ZETA(I,J))*BYCSU(J)+(ETA(I,J+1)+ZETA(I,J+1))
+     &     *BYCSU(J))*BYCSU(J)
 
       IF(J.EQ.NYPOLE) THEN
       AA9=( (ETA(I,J+1)+ETA(I+1,J+1))*DELY2*UICEC(I,J+1)
@@ -1071,7 +1073,7 @@ C NOW THE SECOND HALF
      6+((ETA(I+1,J)+ZETA(I+1,J)+ETA(I+1,J+1)+ZETA(I+1,J+1))
      6*UICE(I+1,J,1)
      6+(ETA(I,J)+ZETA(I,J)+ETA(I,J+1)+ZETA(I,J+1))*UICE(I-1,J,1))
-     6*DELX2/CSU(J)/CSU(J)
+     6*DELX2*BYCSU(J)*BYCSU(J)
 
       END DO
       END DO
@@ -1115,28 +1117,28 @@ C THE FIRST HALF
 
       FXY(I,J)=-DRAGA(I,J)*UICEC(I,J)+FORCEY(I,J)
      3+(0.5*(UICEC(I+1,J)-UICEC(I-1,J))*(ZETA(I,J+1)+ZETA(I+1,J+1)
-     3-ZETA(I,J)-ZETA(I+1,J))*DELXY/CSU(J)+0.5*ZETAMEAN*
+     3-ZETA(I,J)-ZETA(I+1,J))*DELXY*BYCSU(J)+0.5*ZETAMEAN*
      3((UICEC(I+1,J+1)
-     3-UICEC(I-1,J+1))/CSU(J+1)-(UICEC(I+1,J-1)-UICEC(I-1,J-1))
-     3/CSU(J-1))*DELXY)
+     3-UICEC(I-1,J+1))*BYCSU(J+1)-(UICEC(I+1,J-1)-UICEC(I-1,J-1))
+     3*BYCSU(J-1))*DELXY)
      3
      4-(0.5*(UICEC(I+1,J)-UICEC(I-1,J))*(ETA(I,J+1)+ETA(I+1,J+1)
-     4-ETA(I,J)-ETA(I+1,J))*DELXY/CSU(J)+0.5*ETAMEAN*((UICEC(I+1,J+1)
-     4-UICEC(I-1,J+1))/CSU(J+1)-(UICEC(I+1,J-1)-UICEC(I-1,J-1))
-     4/CSU(J-1))*DELXY)
+     4-ETA(I,J)-ETA(I+1,J))*DELXY*BYCSU(J)+0.5*ETAMEAN*((UICEC(I+1,J+1)
+     4-UICEC(I-1,J+1))*BYCSU(J+1)-(UICEC(I+1,J-1)-UICEC(I-1,J-1))
+     4*BYCSU(J-1))*DELXY)
      4
      5+0.5*(ETA(I+1,J+1)*(UICEC(I+1,J+1)+UICEC(I,J+1)
      5-UICEC(I+1,J)-UICEC(I,J))+ETA(I+1,J)*(UICEC(I+1,J)
      5+UICEC(I,J)-UICEC(I+1,J-1)-UICEC(I,J-1))+ETA(I,J+1)
      5*(UICEC(I,J)+UICEC(I-1,J)-UICEC(I,J+1)-UICEC(I-1,J+1))
      5+ETA(I,J)*(UICEC(I,J-1)+UICEC(I-1,J-1)-UICEC(I,J)
-     5-UICEC(I-1,J)))*DELXY/CSU(J)
+     5-UICEC(I-1,J)))*DELXY*BYCSU(J)
      5
      6+(ETA(I+1,J+1)+ETA(I+1,J)-ETA(I,J)-ETA(I,J+1))
-     6*TNG(J)*UICEC(I,J)*DELXR/CSU(J)
-     6+ETAMEAN*TNG(J)*(UICEC(I+1,J)-UICEC(I-1,J))*DELXR/CSU(J)
+     6*TNG(J)*UICEC(I,J)*DELXR*BYCSU(J)
+     6+ETAMEAN*TNG(J)*(UICEC(I+1,J)-UICEC(I-1,J))*DELXR*BYCSU(J)
      6
-     7+ETAMEAN*2.0*TNG(J)*(UICEC(I+1,J)-UICEC(I-1,J))*DELXR/CSU(J)
+     7+ETAMEAN*2.0*TNG(J)*(UICEC(I+1,J)-UICEC(I-1,J))*DELXR*BYCSU(J)
 
       END DO
       END DO
@@ -1150,8 +1152,8 @@ C THE FIRST HALF
       ZETAMEAN=0.25*(ZETA(I,J+1)+ZETA(I+1,J+1)+ZETA(I,J)+ZETA(I+1,J))
       AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
       AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))/CSU(J)
-      AA4=(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))/CSU(J)
+      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
       AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
      &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
@@ -1181,8 +1183,8 @@ C THE FIRST HALF
 
       AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
       AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))/CSU(J)
-      AA4=(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))/CSU(J)
+      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
       AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
      &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
@@ -1195,8 +1197,9 @@ C THE FIRST HALF
       END IF
 
       VRT(J)=AA9+FXY(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
-     6+((ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))*VICE(I+1,J,2)*DELX2
-     7+(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))*VICE(I-1,J,2)*DELX2)/CSU(J)
+     6+((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
+     7     +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
+     *     *BYCSU(J)
       VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
@@ -1237,8 +1240,8 @@ C NOW THE SECOND HALF
 
       AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
       AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))/CSU(J)
-      AA4=(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))/CSU(J)
+      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
       AU(I,J)=-AA4*DELX2*UVM(I,J)
@@ -1264,8 +1267,8 @@ C NOW THE SECOND HALF
 
       AA1=ETA(I,J+1)+ZETA(I,J+1)+ETA(I+1,J+1)+ZETA(I+1,J+1)
       AA2=ETA(I,J)+ZETA(I,J)+ETA(I+1,J)+ZETA(I+1,J)
-      AA3=(ETA(I+1,J)/CSU(J)+ETA(I+1,J+1)/CSU(J))/CSU(J)
-      AA4=(ETA(I,J)/CSU(J)+ETA(I,J+1)/CSU(J))/CSU(J)
+      AA3=(ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*BYCSU(J)
+      AA4=(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*BYCSU(J)
       AA5=((ZETA(I,J+1)-ETA(I,J+1))+(ZETA(I+1,J+1)-ETA(I+1,J+1))
      &-(ZETA(I,J)-ETA(I,J))-(ZETA(I+1,J)-ETA(I+1,J)))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)

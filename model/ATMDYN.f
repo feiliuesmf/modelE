@@ -201,12 +201,14 @@ C**** Scale WM mixing ratios to conserve liquid water
 C****
 C**** convert from concentration to mass units
 C****
+!$OMP PARALLEL DO PRIVATE (L,J,I)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
         Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
       enddo; enddo; enddo
+!$OMP END PARALLEL DO
 C**** ADVECT
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
@@ -221,6 +223,7 @@ C**** ADVECT
 C****
 C**** convert from mass to concentration units (using updated MA)
 C****
+!$OMP PARALLEL DO PRIVATE (L,I,J,BYMA)
       DO L=1,LM
       DO J=1,JM
       DO I=1,IM
@@ -228,6 +231,7 @@ C****
         Q(I,J,L)=Q(I,J,L)*BYMA
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
       enddo; enddo; enddo
+!$OMP END PARALLEL DO
 
       RETURN
       END SUBROUTINE QDYNAM
@@ -494,7 +498,11 @@ C$OMP  END PARALLEL DO
  2450 SD(I,JM,L)=SD(1,JM,L)
 C**** temporary fix for CLOUDS module
       SD_CLOUDS(:,:,1)    = PIT
-      SD_CLOUDS(:,:,2:LM) = SD(:,:,1:LM-1)
+!$OMP PARALLEL DO PRIVATE (L)
+      DO L=2,LM
+        SD_CLOUDS(:,:,L) = SD(:,:,L-1)
+      END DO
+!$OMP END PARALLEL DO
 C****
       RETURN
       END SUBROUTINE AFLUX
