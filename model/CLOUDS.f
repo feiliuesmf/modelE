@@ -252,7 +252,7 @@ C**** functions
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
 c for tracers in general, added by Koch
-      REAL*8 THLAW,TR_LEF,TMFAC,TR_LEFT(ntm)
+      REAL*8 THLAW,TR_LEF,TMFAC,TR_LEFT(ntm),CLDSAVT
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
@@ -436,6 +436,7 @@ C**** save initial values (which will be updated after subsid)
       VLAT=LHE
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
+      CLDSAVT=0.
 #endif
 C**** SAVE ORIG PROFILES
       SMOLD(:) = SM(:)
@@ -881,7 +882,7 @@ c convert condp to the same units as cond
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
 #ifdef TRACERS_AEROSOLS_Koch
-      WA_VOL=COND(L)*1.d2*BYGRAV
+      WA_VOL=COND(L)*1.d2*BYGRAV*DXYPJ
       DO N=1,NTX
       select case (trname(ntx))
       case('SO2','SO4','H2O2_s','H2O2')
@@ -924,8 +925,8 @@ c formation of sulfate
 #endif
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix)
-
+     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
+     *       ,CLDSAVT)
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
@@ -1530,11 +1531,12 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
 c for tracers in general, added by Koch
-      REAL*8 THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT(ntm)
+      REAL*8 THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT(ntm),CLDSAVT
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var THWASH Henry's Law for below cloud dissolution
 !@var TMFAC,TMFAC2 used to adjust tracer moments
+!@var CLDSAVT is present cloud fraction, saved for tracer use
 #ifdef TRACERS_AEROSOLS_Koch
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -1956,6 +1958,12 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** update tracers from cloud formation (in- and below-cloud
 C****    precipitation, evaporation, condensation, and washout)
+c CLDSAVT is current FCLD
+        IF(RH(L).LE.1.) CLDSAVT=1.-DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CLDSAVT.LT.0.) CLDSAVT=0.
+        IF(RH(L).GT.1.) CLDSAVT=1.
+        IF (CLDSAVT.GT.1.) CLDSAVT=1.
+        IF (WMX(L).LE.0.) CLDSAVT=0. 
 #ifdef TRACERS_AEROSOLS_Koch
       WA_VOL=0.
       IF (WMNEW.GT.teeny) THEN
@@ -1969,10 +1977,9 @@ C****    precipitation, evaporation, condensation, and washout)
         if (wmxtr.lt.0.) wmxtr=0.
         WA_VOL=precip_mm*DXYPJ
       ENDIF
-      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL
+      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
      *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX
      *     ,DT_SULF_SS(1,L))
-
 
       DO N=1,NTX
       select case (trname(ntx))
@@ -1996,6 +2003,7 @@ C****    precipitation, evaporation, condensation, and washout)
       END DO
 
 #endif
+        
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
         FPRT  =0.
@@ -2029,14 +2037,14 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TEMP,LHX,WMXTR,FCLD,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
+     *     ,TEMP,LHX,WMXTR,CLDSAVT,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
-     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix)
+     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
@@ -2046,7 +2054,7 @@ cdmk added arguments above; THLAW added below (no way to factor this)
           TMFAC=0.
           TMFAC2=0.
         ENDIF
-        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FPR,FPRT,ntix) !precip CLW
+        CALL GET_PREC_FACTOR(N,BELOW_CLOUD,CM,CLDSAVT,FPR,FPRT,ntix) !precip CLW
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
@@ -2102,10 +2110,15 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       WMXTR = WMX(L)
+        IF(RH(L).LE.1.) CLDSAVT=1.-DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(CLDSAVT.LT.0.) CLDSAVT=0.
+        IF(RH(L).GT.1.) CLDSAVT=1.
+        IF (CLDSAVT.GT.1.) CLDSAVT=1.
+        IF (WMX(L).LE.0.) CLDSAVT=0. 
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
-      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN,
+      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX,
      *     DT_SULF_SS(1,L))
 #endif
@@ -2131,7 +2144,7 @@ c   processes - this should be all in-cloud
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
         CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
-     *       ,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF,pl(l),ntix)
+     *       ,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF,pl(l),ntix,CLDSAVT)
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
         ELSE
@@ -2332,6 +2345,8 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
         TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
+       do n=1,ntx
+       end do
         TRWML(1:NTX,L+1)=0.
 #endif
         IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
