@@ -125,7 +125,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (1) HEADER,TMOM1,QMOM1
 c        write(0,*) 'trying to read radia'
-         READ (1) HEADER,S0,RSD,SIND,COSD,RQT1,SRHR1,TRHR1,FSF1
+         READ (1) HEADER,RQT1, S0,SRHR1,TRHR1,FSF1
 c        write(0,*) 'trying to read diag'
          READ (1) HEADER,KEYNR,TSFREZ1,idacc1,DIAG1,TDIURN1,OA1,ITAU2
          IF (KOCEAN1.eq.2) THEN
@@ -188,7 +188,7 @@ c        write(0,*) 'trying to read clds'
 c        write(0,*) 'trying to read mom'
          READ (2) HEADER,TMOM2,QMOM2
 c        write(0,*) 'trying to read radia'
-         READ (2) HEADER,S0,RSD,SIND,COSD,RQT2,SRHR2,TRHR2,FSF2
+         READ (2) HEADER,RQT2, S0,SRHR2,TRHR2,FSF2
 c        write(0,*) 'trying to read diag'
          READ (2) HEADER,KEYNR,TSFREZ2,idacc2,DIAG2,TDIURN2,OA2,ITAU2
          IF (KOCEAN2.eq.2) THEN
