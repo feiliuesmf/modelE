@@ -596,7 +596,7 @@ c H2O2 losses:5 and 6
 
 
       SUBROUTINE SCALERAD
-      use MODEL_COM, only: im,jm,lm,jday,jhour,jmon
+      use MODEL_COM, only: im,jm,lm,jday,jhour,jmon,itime,nday,dtsrc
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       use CONSTANT, only: radian,teeny
 c     use RADNCB, only: cosz1
@@ -619,9 +619,7 @@ C*** Calculate cos theta (RAD) at the beginning of the time step (RAD)
       vlat=-90.d0+(j-1)*4.d0
       if (j.eq.1) vlat=-88.d0
       if (j.eq.46) vlat=88.d0
-      ctime = (jday*24.d0) + jhour
-      timec = ctime*3600.d0
-      ! better: TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc
+      TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc
       p1 = 15.d0*(timec/3600.d0 + hrstrt - vlon/15.d0 - 12.d0)
       fact = (jdstrt + timec/86400.d0 - 81.1875d0)*ang1
       p2 = 23.5d0*sin(fact*radian)
@@ -631,7 +629,7 @@ C*
      1            (COS(p1*radian)*COS(p2*radian)*COS(p3*radian))
       if (rad.lt.0.d0) rad = 0.d0
       suncos(I,J) = rad
-c     if (i.eq.30.and.j.eq.40) write(6,*) 'ohrad',ctime,jday,jhour,
+c     if (i.eq.30.and.j.eq.40) write(6,*) 'ohrad',timec,jday,jhour,
 c    * rad,p1,p2,p3
  100  CONTINUE
 c Scale OH and PERJ depending on time of day
