@@ -36,7 +36,6 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
       USE FILEMANAGER, only : openunit,closeunit
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
-      USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -84,7 +83,7 @@ C****
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsficno,lhead
       USE STATIC_OCEAN
       USE ODEEP_COM
       IMPLICIT NONE
@@ -106,8 +105,11 @@ C****
      *     TG3M
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
-        CASE (IRSFIC)           ! initial conditions
-          READ (kunit)          ! no read - initialise in init_ODEEP
+        CASE (IRSFICNO)         ! no ocean initial conditions
+C**** Note this is for reading in a full rsf file, but from a qflux run
+C**** We do not check HEADER here because it will be wrong. The other
+C**** data MUST be initialised by setting iniOCEAN=.TRUE. in init_ODEEP.
+          READ (kunit) HEADER,TOCEAN,Z1O 
         CASE DEFAULT            ! restart file
           READ (kunit,err=10) HEADER,TOCEAN,Z1O,STG3,DTG3,RTGO,TG3M
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN

@@ -552,7 +552,8 @@ C****
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
-     *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
+     *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
+     *     ,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
@@ -910,8 +911,15 @@ C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if they are not in I.C.
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
       SELECT CASE (ISTART)
-      CASE (3:4)
-         go to 890   !  not available
+      CASE (3)
+        go to 890               !  not available
+C****
+C**** I.C FROM FULL MODEL RESTART FILE (but re-initialise ocean)
+C****
+      CASE (4)
+        call io_rsf(iu_AIC,IhrX,irsficno,ioerr)
+        if (ioerr.eq.1) goto 800
+        iniOCEAN = .TRUE. ! read in ocean ic
 C****
 C**** I.C FROM FULL MODEL RESTART FILE (but no tracers)
 C****
@@ -941,7 +949,6 @@ C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
         if (ioerr.eq.1) goto 800
-        iniOCEAN = .TRUE. ! read in ocean ic
       END SELECT
 C**** Check consistency of starting time
       IF (ISTART.ge.3.and.(MOD(IHRI-IHRX,8760).ne.0)) THEN

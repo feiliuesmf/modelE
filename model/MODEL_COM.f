@@ -149,9 +149,10 @@ C**** slightly larger, to sample all points within the cycle
 !@param IOREADNT Flag used for reading in restart files (w/o tracers)
 !@param IRSFIC Flag used for reading in restart part to start NEW run
 !@param IRSFICNT Flag used for reading restart (w/o tracers) for NEW run
+!@param IRSFICNO Flag used for reading restart (w/o ocean) for NEW run
 !@param IRERUN Flag used for reading in restart part to extend OLD run
       INTEGER, PARAMETER :: ioread=1,ioread_single=2,
-     *     irerun=3,irsfic=4,irsficnt=5,ioreadnt=6,
+     *     irerun=3,irsfic=4,irsficnt=5,ioreadnt=6,irsficno=7,
      *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 !**** Main model prognostic variables

@@ -45,7 +45,7 @@ CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR      ! river direction file
-ZVAR=ZVAR4X5         ! topogrphic variation for gwdrag
+ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=kdist33.tautab8
 RADN3=miescatpar.abcdv

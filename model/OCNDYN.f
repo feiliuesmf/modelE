@@ -442,7 +442,7 @@ C****
 !@sum  io_ocdyn reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
+      USE MODEL_COM, only : ioread,iowrite,irsficno,irerun,lhead
       USE OCEAN
       IMPLICIT NONE
 
@@ -472,7 +472,7 @@ C****
 #endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
-          CASE (IRSFIC)   ! initial conditions
+          CASE (IRSFICNO)   ! initial conditions (no ocean data)
             READ (kunit)
           CASE (ioread,irerun) ! restarts
             READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
