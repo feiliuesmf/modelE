@@ -12,7 +12,7 @@
       integer, parameter :: NVEG = 9, NV=11
 
 !@var SRFOAM look up table for ocean foam as a function of wind speed
-      real*8, parameter, dimension(25) :: SRFOAM = (/
+      real*8, dimension(25) :: SRFOAM = (/
      *     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
      *     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
      *     0.138,0.164,0.191,0.218,0.246/)
@@ -81,19 +81,22 @@ C     BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
      * 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001
      *     /)
 
+!@var AHMZOI IceAlb half-max at ice depth=1/AHMZOI m (original version)
+      real*8 :: AHMZOI=10.
 !@var ASNALB snow albedo (original version)
 !@var AOIALB seaice albedo (original version)
 !@var ALIALB land ice albedo (original version)
 C****  albedo = asnalb+snowage*snowage_fac so these numbers are the min
-      real*8, parameter ::
+      real*8 ::
 C                        VIS  NIR1  NIR2  NIR3  NIR4  NIR5    NIR
      *     ASNALB(7)=(/.60d0,.55d0,.55d0,.30d0,.10d0,.05d0, .35d0/),
      *     AOIALB(7)=(/.55d0,.50d0,.45d0,.25d0,.10d0,.05d0, .30d0/),
-     *     ALIALB(7)=(/.60d0,.55d0,.50d0,.30d0,.10d0,.05d0, .35d0/),
+     *     ALIALB(7)=(/.60d0,.55d0,.50d0,.30d0,.10d0,.05d0, .35d0/)
 C**** shorthand for the 2 band version
-     *     ASNVIS=ASNALB(1), ASNNIR=ASNALB(7),
-     *     AOIVIS=AOIALB(1), AOINIR=AOIALB(7),
-     *     ALIVIS=ALIALB(1), ALINIR=ALIALB(7)
+      real*8 ASNVIS,ASNNIR, AOIVIS,AOINIR, ALIVIS,ALINIR
+      equivalence (ASNVIS,ASNALB(1)),(ASNNIR,ASNALB(7))
+      equivalence (AOIVIS,AOIALB(1)),(AOINIR,AOIALB(7))
+      equivalence (ALIVIS,ALIALB(1)),(ALINIR,ALIALB(7))
 
 C**** variables that control original snow aging calculation
 !@var AGEXPF exponent in snowage calculation depends on hemi/surf type
@@ -153,7 +156,7 @@ C                     AGSNOW  AGLICE  AGROCK  AGVEG
      *        (/ NKBAND,4 /) )
 
 !@var AVSCAT,ANSCAT,AVFOAM,ANFOAM for ocean albedo calc
-      real*8, parameter ::
+      real*8 ::
      *     AVSCAT=0.0156d0, ANSCAT=0d0, AVFOAM=0.2197d0, ANFOAM=0.1514d0
 
 C**** miscellaneous tuning parameters
@@ -199,21 +202,21 @@ C-----------------------------------------
 
 !@var LX max.number of vertical layer edges of the radiation (1D)-model
 !@+
-!@+   The Radiation Model can accomodate arbitrary vertical resolution,
-!@+               the number of layers may be time or location dependent
-!@+               as long as it does not exceed LX-1.
+!@+   The Radiation Model can accomodate  arbitrary vertical resolution,
+!@+              the number of layers may be time or location dependent,
+!@+              but it cannot exceed LX-1.
 !@+   Since the GCM uses 3 radiative equilibrium layers on top of the
 !@+   model atmosphere, the number LM of GCM layers may be at most LX-4.
       integer, parameter :: LX = 53+4
 
-!@var PTOPTR top of sigma layer part of vertical grid (mb)
-!@+          constant pressure levels are used above PTOPTR mb
+!@var PTOPTR top of sigma layer part of vertical grid (mb), i.e.
+!@+          the pressure levels are unchanging above PTOPTR mb
       real*8 :: PTOPTR = 150.d0
 
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
 !@+   KEEP10, RO3COL, NO3COL may be used to modify this repartitioning:
 !@+           if NO3COL=1, column amount of O3 is reset to RO3COL
-!@+   (for OFF-line use if number of layers is time-dependent)
+!@+   (for OFF-line use if number of layers is time-dependent only)
       integer :: MRELAY=0, KEEP10=0, NO3COL=0 ; real*8 :: RO3COL=1.
 
 !@var PLB12L Vert. Layering for tropospheric aerosols/dust (reference)
@@ -230,10 +233,10 @@ C-------------------------------------------
 !@+               For GCM resolution other than 72x46, set JLAT and ILON
 !@+               to appropriately Sample  (rather than interpolate) the
 !@+               72x46 aerosol, ozone, cloud heterogeneity data sets
-      integer, PARAMETER ::  MLAT46=46,MLON72=72
+      integer, parameter ::  MLAT46=46,MLON72=72
 
 !@var JNORTH latitude index defining northern hemisphere : jlat>jnorth
-      integer, PARAMETER ::  JNORTH=MLAT46/2
+      integer, parameter ::  JNORTH=MLAT46/2
 
 !@var DLAT46 latitudes of box centers (degrees)
       real*8, dimension(46) :: DLAT46=(/
@@ -255,8 +258,8 @@ C----------------
 C     Input data
 C----------------
 
-!@var LASTVC if not < zero, atmosph. and ground data are set
-      integer :: LASTVC=-123456  ! for OFF-line use only (seticb)
+!@var LASTVC if not < zero, atmosph. and ground data are being set
+      integer :: LASTVC=-123456  ! for OFF-line use only (setio)
 
 !@var COSZ          cosine of zenith angle  (1)
 !@var JLAT,ILON     lat,lon index  w.r.to 72x46 lon-lat grid
@@ -274,7 +277,7 @@ C----------------
 !@var       PTLISO     tlt=tlb=tlm above PTLISO mb independent of TLGRAD
           real*8 :: TLGRAD=1.,  PTLISO=2.5d0             ! control param
 
-!@var ULGAS,U0GAS   gas amounts: current,reference values (from setgas)
+!@var ULGAS,U0GAS   gas amounts: curr.,ref.values (cm atm) (get/setgas)
 !@var TAUWC,TAUIC   opt.depth of water,ice cloud layer (1)
 !@var SIZEWC,SIZEIC particle size of water,ice clouds (micron)
 !@var CLDEPS        cloud heterogeneity; is computed using KCLDEP,EPSCON
@@ -307,7 +310,9 @@ C----------------
 !@var TGO           top layer water temperature (K) of ocean/lake
 !@var TGE,TGOI,TGLI top layer ground temperature (K) soil,seaice,landice
 !@var TSL           surface air temperature (K)
-!        Additional info for Schramm/Schmidt/Hansen sea ice albedo
+!@dbparm KZSNOW =1 for snow/ice albedo zenith angle dependence
+      integer :: KZSNOW=1
+!     Additional info for Schramm/Schmidt/Hansen sea ice albedo
 !@var hsn           depth of snow (m)
 !@var hin           depth of ice (m)
 !@var hmp           depth of melt pond (m)
@@ -317,8 +322,6 @@ C----------------
 !@var snow_frac(2)  fraction of snow over bare,vegetated soil
 !@dbparm snoage_fac_max  max snow age reducing-factor for sea ice albedo
       REAL*8 :: snoage_fac_max=.5d0
-!@dbparm kzsnow =1 for snow/ice albedo zenith angle dependence
-      integer :: KZSNOW=1
 
       REAL*8    :: hsn,hin,hmp,fmp,lkdepth ! etc,etc
       integer   :: JLAT,ILON,NL,NLP, LS1_loc
@@ -331,15 +334,15 @@ C----------------
      D             ,PVT(11),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,TGO,TGE,TGOI,TGLI,TSL,COSZ
      X             ,hsn,hin,hmp,fmp,snow_frac(2),lkdepth, PLAKE
-C          integer variables start here, followed by logicals
+C                     integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
 !$OMP  THREADPRIVATE(/RADCOM_INPUT_IJDATA/)
 
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS
       COMMON/RADCOM_hybrid/U0GAS(LX,12)
-!$OMP  THREADPRIVATE(/RADCOM_hybrid/)
-C          end of section to be repeated in driver (needed for 'copyin')
+!$OMP THREADPRIVATE(/RADCOM_hybrid/)
+C     end of section to be repeated in driver (needed for 'copyin')
 
 C--------------------------------------------------------
 C     Output data     (from RCOMPX)  grid point dependent
@@ -366,8 +369,9 @@ C--------------------------------------------------------
      G             ,WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3),SRKINC(16)
      I             ,SRKALB(16),SRKGAX(16,4),SRKGAD(16,4),SKDFLB(LX,17)
      J             ,SKUFLB(LX,17),SKNFLB(LX,17),SKFHRL(LX,17)
-!sl  K             ,FTAUSL(33),TAUSL(33),TRDFSL,TRUFSL  ! FTAUSL=TAUSL=0
-!sl  K             ,TRSLCR,SRSLHR,TRSLTS,TRSLTG,TRSLWV,TRSLBS
+!sl  K             ,FTAUSL(33),TAUSL(33)    ! input rather than output ?
+!nu  K             ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV   !nu = not used
+!sl  K             ,TRSLTS,TRSLTG,TRSLBS
      L             ,LBOTCL,LTOPCL
 !$OMP  THREADPRIVATE(/RADCOM_OUTPUT_IJDATA/)
       EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
@@ -476,6 +480,10 @@ C            RADDAT_OZONE_MCPETERS                              radfile4
      B           ,SO3JFS(11,19,2),TOPO3(30,46,12),SAGEZP(50,12,12)
      C           ,SZP50(50,46,12),O3NCAR(72,46,12)
 
+!o3l  Arrays equivalenced to SO3JFS
+!o3l  real*8 SO3JF(11,19)  ;  EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1))
+!o3l  real*8 SO3SO(11,19)  ;  EQUIVALENCE (SO3JFS(1,1,2),SO3SO(1,1))
+
 C--------------------------------------
 C     History files (+ control options)
 C--------------------------------------
@@ -502,7 +510,7 @@ C--------------------------------------
 !@+   -------------    only KJDAYx=0: data cycle through year KYEARx
 !@+                    neither is 0 : yr/day=KYEARx/KJDAYx data are used
 !@+   KYEARS,KJDAYS: Solar Trend
-!@+   KKYEAR,KJDAYO: Ozone Trend
+!@+   KYEARO,KJDAYO: Ozone Trend
 !@+   KYEARD,KJDAYD: Dust Trend
 !@+   KYEARE,KJDAYE: CldEps Trend
 !@+   KYEARG,KJDAYG: GHG  Trend
@@ -524,16 +532,11 @@ C            RADMAD1_OZONE_DECADAL      (user SETO3D)  radfileA,radfileB
 !@var FO3LON scales amplitude of long. variation of O3
       integer :: MOZONE=6, KO3LON=0 ; real*8 :: O3WJT0=1.d-3, FO3LON=1.
 
-!@var iy1O3,MO3X first year, max.number of months of read-in O3 history
+!@var iy1O3,MO3X first_year,max.number_of_months of read-in O3 history
       integer, parameter :: iy1O3=1850, MO3X=12*(2050-iy1O3+1)
       real*4  O3CLIM(MO3X,LX,46)
       real*8  WJ1890(72,46,LX,12),WJ1979(72,46,LX,12),
      B        O3WJA(72,46,LX,12),O3LF(72,46,LX)
-
-C     Arrays equivalenced to some of the above arrays:
-      real*8 AO3AV1(18*12) ;  EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))    !?
-      real*8 SO3JF(11,19)  ;  EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1))
-      real*8 SO3SO(11,19)  ;  EQUIVALENCE (SO3JFS(1,1,1),SO3SO(1,1))
 
 C            RADMAD2_TROPAER_DECADAL          (user SETAER)     radfile5
       real*4 ::      TROAER(72,46,13,8,4),VDBCSU(46,12,13,3)
@@ -556,7 +559,7 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 !@var icycs0,mcycs0 solar cycle in yrs,months used to extend S0 history
 !@var KSOLAR controls which data are used: <0 Thekaekara, else Lean:
 !@+          1: use monthly data, 2: use annual data, 0: constant data
-      integer :: KSOLAR=1
+      integer :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
 
       integer, parameter :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
       integer, parameter :: icycs0=11,  mcycs0=icycs0*12
@@ -1101,19 +1104,12 @@ C**** values for height, density, temperature, ozone, water vapor
       TLT(L)=TLB(L+1)
       TLM(L)=0.5D0*(TLB(L)+TLT(L))
   121 CONTINUE
-c
-c     Set Undefined Variables to Zero
-c
-!sl   TRSLCR=0.0
+
+!sl   De-activate surface layer computations
 !sl   DO I=1,33
 !sl      TAUSL(I)=0.0
 !sl      FTAUSL(I)=0.0
 !sl   END DO
-
-!arc  DO L=1,1800   ! archive data - no longer used
-!arc  DO I=1,27
-!arc     TAUARC(I,L)=0.0
-!arc  END DO ; END DO
 
 C-----------------------------------------------------------------------
 CR(1) Reads GTAU Asymmetry Parameter Conversion Table used within SGPGXG
@@ -1432,7 +1428,7 @@ C                                        -------------------------------
   416 CONTINUE
   417 CONTINUE
       READ (NRFU,5401) TITLE
-      READ (NRFU,5404) (AO3AV1(I),I=1,216)
+      READ (NRFU,5404) AO3AVE
  5404 FORMAT(30X,7(F5.4,1X),19(/6X,11(F5.4,1X)))
 
 
@@ -3115,8 +3111,8 @@ C-----------------
       WTLSEP(J)=DLSEP-LSEP
       WTLJAN(J)=DLJAN-LJAN
   203 CONTINUE
-!obso IF(KO3LON.EQ.1) RETURN
-!obso IF(AO3J.GT.1.D-10) GO TO 400
+!o3l  IF(KO3LON.EQ.1) RETURN
+!o3l  IF(AO3J.GT.1.D-10) GO TO 400
       RETURN
 
 C--------------------------------
@@ -3164,78 +3160,78 @@ C--------------------------------
       DO 310 I=1,MLON72
       WO3LON(I)=AO3JIM(I)/O3MEAN
   310 CONTINUE
-!obso AO3J=AO3JJ+(AO3JIM(ILON)-AO3JJ)*FO3LON
-!obso IF(KO3LON.EQ.1) RETURN
+!o3l  AO3J=AO3JJ+(AO3JIM(ILON)-AO3JJ)*FO3LON
+!o3l  IF(KO3LON.EQ.1) RETURN
       RETURN
 
-!obso 400 CONTINUE
-!obso     CKMJ=0.25D0*AO3J/CONCJ
-!obso     GTOP=0.D0
-!obso     POI=0.D0
-!obso     FI=0.D0
-!obso     L=NL0
-!obso     PLL=PLB0(L)
-!obso     J=12
-!obso 401 CONTINUE
-!obso     J=J-1
-!obso     IF(J.LT.1) GO TO 404
-!obso     POJ=PLBSO3(J)
-!obso     FJ=WTSEP*(WTLS*SO3SO(J,LSEP+1)+(1.D0-WTLS)*SO3SO(J,LSEP))
-!obso    +  +WTJAN*(WTLJ*SO3JF(J,LJAN+1)+(1.D0-WTLJ)*SO3JF(J,LJAN))
-!obso 402 CONTINUE
-!obso     DP=POJ-POI
-!obso     IF(POJ.GT.PLL) GO TO 403
-!obso     GTOP=GTOP+(FI+FJ)*DP*ACMMGG
-!obso     POI=POJ
-!obso     FI=FJ
-!obso     GO TO 401
-!obso 403 CONTINUE
-!obso     FF=(FJ-FI)/DP
-!obso     DP=PLL-POI
-!obso     FF=FI+FF*DP
-!obso     GTOP=GTOP+(FI+FF)*DP*ACMMGG
-!obso     POI=PLL
-!obso     FI=FF
-!obso     O3LB(L)=GTOP
-!obso     L=L-1
-!obso     PLL=PLB0(L)
-!obso     GO TO 402
-!obso 404 CONTINUE
-!obso     FI=FJ*ACMPKM
-!obso     HI=H10MB
-!obso     HJ=BHKMJ+CKMJ
-!obso     XPBC=EXP(-BHKMJ/CKMJ)
-!obso     XPHC=EXP(HJ/CKMJ)
-!obso     DTERM=1.D0+XPHC*XPBC
-!obso     ATERM=(1.D0+XPBC)/DTERM
-!obso     FTERM=ATERM/DTERM*XPHC*XPBC/CKMJ
-!obso     TTERM=AO3J-GTOP-FI*(HI-HJ)*0.5D0
-!obso     AA=TTERM/(FTERM*(HI-HJ)*0.5D0+1.D0-ATERM)
-!obso     FJ=AA*FTERM
-!obso     GTOPBC=GTOP+(FI+FJ)*(HI-HJ)*0.5D0-AA*ATERM
-!obso     TOP=AA*(1.D0+XPBC)
-!obso     GO TO 406
-!obso 405 CONTINUE
-!obso     DH=HI-HJ
-!obso     FF=(FJ-FI)/DH
-!obso     DH=HI-H
-!obso     FF=FI+FF*DH
-!obso     GTOP=GTOP+(FI+FF)*DH*0.5D0
-!obso     HI=H
-!obso     FI=FF
-!obso     O3LB(L)=GTOP
-!obso     L=L-1
-!obso 406 CONTINUE
-!obso     H=HLB(L)
-!obso     IF(H.GT.HJ) GO TO 405
-!obso     O3LB(L)=TOP/(1.+XPBC*EXP(H/CKMJ))+GTOPBC
-!obso     L=L-1
-!obso     IF(L.GT.0) GO TO 406
-!obso     O3LB(NL1)=0.D0
-!obso     DO 407 L=1,NL0
-!obso     U0GAS(L,3)=(O3LB(L)-O3LB(L+1))
-!obso 407 CONTINUE
-!obso     RETURN
+!o3l  400 CONTINUE
+!o3l      CKMJ=0.25D0*AO3J/CONCJ
+!o3l      GTOP=0.D0
+!o3l      POI=0.D0
+!o3l      FI=0.D0
+!o3l      L=NL0
+!o3l      PLL=PLB0(L)
+!o3l      J=12
+!o3l  401 CONTINUE
+!o3l      J=J-1
+!o3l      IF(J.LT.1) GO TO 404
+!o3l      POJ=PLBSO3(J)
+!o3l      FJ=WTSEP*(WTLS*SO3SO(J,LSEP+1)+(1.D0-WTLS)*SO3SO(J,LSEP))
+!o3l     +  +WTJAN*(WTLJ*SO3JF(J,LJAN+1)+(1.D0-WTLJ)*SO3JF(J,LJAN))
+!o3l  402 CONTINUE
+!o3l      DP=POJ-POI
+!o3l      IF(POJ.GT.PLL) GO TO 403
+!o3l      GTOP=GTOP+(FI+FJ)*DP*ACMMGG
+!o3l      POI=POJ
+!o3l      FI=FJ
+!o3l      GO TO 401
+!o3l  403 CONTINUE
+!o3l      FF=(FJ-FI)/DP
+!o3l      DP=PLL-POI
+!o3l      FF=FI+FF*DP
+!o3l      GTOP=GTOP+(FI+FF)*DP*ACMMGG
+!o3l      POI=PLL
+!o3l      FI=FF
+!o3l      O3LB(L)=GTOP
+!o3l      L=L-1
+!o3l      PLL=PLB0(L)
+!o3l      GO TO 402
+!o3l  404 CONTINUE
+!o3l      FI=FJ*ACMPKM
+!o3l      HI=H10MB
+!o3l      HJ=BHKMJ+CKMJ
+!o3l      XPBC=EXP(-BHKMJ/CKMJ)
+!o3l      XPHC=EXP(HJ/CKMJ)
+!o3l      DTERM=1.D0+XPHC*XPBC
+!o3l      ATERM=(1.D0+XPBC)/DTERM
+!o3l      FTERM=ATERM/DTERM*XPHC*XPBC/CKMJ
+!o3l      TTERM=AO3J-GTOP-FI*(HI-HJ)*0.5D0
+!o3l      AA=TTERM/(FTERM*(HI-HJ)*0.5D0+1.D0-ATERM)
+!o3l      FJ=AA*FTERM
+!o3l      GTOPBC=GTOP+(FI+FJ)*(HI-HJ)*0.5D0-AA*ATERM
+!o3l      TOP=AA*(1.D0+XPBC)
+!o3l      GO TO 406
+!o3l  405 CONTINUE
+!o3l      DH=HI-HJ
+!o3l      FF=(FJ-FI)/DH
+!o3l      DH=HI-H
+!o3l      FF=FI+FF*DH
+!o3l      GTOP=GTOP+(FI+FF)*DH*0.5D0
+!o3l      HI=H
+!o3l      FI=FF
+!o3l      O3LB(L)=GTOP
+!o3l      L=L-1
+!o3l  406 CONTINUE
+!o3l      H=HLB(L)
+!o3l      IF(H.GT.HJ) GO TO 405
+!o3l      O3LB(L)=TOP/(1.+XPBC*EXP(H/CKMJ))+GTOPBC
+!o3l      L=L-1
+!o3l      IF(L.GT.0) GO TO 406
+!o3l      O3LB(NL1)=0.D0
+!o3l      DO 407 L=1,NL0
+!o3l      U0GAS(L,3)=(O3LB(L)-O3LB(L+1))
+!o3l  407 CONTINUE
+!o3l      RETURN
       END SUBROUTINE SETO3L
 
       SUBROUTINE SETGAS
@@ -3293,9 +3289,9 @@ CCC   PS0=PLB0(1)
       DO 100 L=1,NL0
       DPL(L)=PLB0(L)-PLB0(L+1)
       PL(L)=(PLB0(L)+PLB0(L+1))*0.5D0
-!obso HLB(L)=HLB0(L)
+!nu   HLB(L)=HLB0(L)
   100 CONTINUE
-!obso HLB(NL1)=HLB0(NL1)
+!nu   HLB(NL1)=HLB0(NL1)
       CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
 cc    IUFAC=1
 cc    IF(IUFAC.EQ.0) THEN
@@ -3415,7 +3411,7 @@ c**** Only adjust stratospheric water levels (above LS1_loc)
       END IF
 C****
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
+!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5) ! redefined below
   230 CONTINUE
 
       IF(KPFOZO.EQ.1) THEN
@@ -3430,7 +3426,7 @@ C****
       DO 239 K=2,12
       IF(K.EQ.3) GO TO 239
       PARTTG=PARTTR
-ccc   IF(KPGRAD.GT.0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
+!nojl IF(KPGRAD.GT.0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
       ULGAS(L,K)=U0GAS(L,K)*FULGAS(K)*PARTTG
   239 CONTINUE
   240 CONTINUE
@@ -3463,15 +3459,15 @@ C                -----------------------------------------------------
       IF(DL.LT.DLS) PTRO=189.D0-(DL+40.D0)*2.22D0
       IF(DL.GT.DLN) PTRO=189.D0+(DL-40.D0)*2.22D0
       DO 249 N=1,NL0
-      IF(PLB0(N).GE.PTRO) Z0LAT=HLB0(N)
+      IF(PLB0(N).GE.PTRO) Z0LAT=HLB0(N)  ! hlb not hlb0
   249 CONTINUE
       DO 251 K=6,12
       IF(K.EQ.10) GO TO 251
       DO 250 N=1,NL0
       U0GAS(N,K)=PPMV80(K)*0.8D0*(PLB0(N)-PLB0(N+1))/P0
-      ZT=(HLB0(N+1)-Z0LAT)/ZH(K)
+      ZT=(HLB0(N+1)-Z0LAT)/ZH(K)         ! hlb not hlb0
       IF(ZT.LE.0.D0) GO TO 250
-      ZB=(HLB0(N)-Z0LAT)/ZH(K)
+      ZB=(HLB0(N)-Z0LAT)/ZH(K)           ! hlb not hlb0
       EXPZT=EXP(-ZT)
       EXPZB=EXP(-ZB)
       IF(ZB.LT.0.D0) EXPZB=1.D0-ZB
@@ -3514,7 +3510,7 @@ C****
 
       DO 330 L=1,NL0
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
-!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
+!obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5) ! redefined below
   330 CONTINUE
 
       IF(KPFOZO.EQ.1) THEN
@@ -3816,7 +3812,7 @@ C-----------------------------------------------------------------------
       SRBEXT(L,K)=1.D-20
       SRBSCT(L,K)=0.D0
       SRBGCB(L,K)=0.D0
-!obso SRBPI0(L,K)=0.D0
+!nu   SRBPI0(L,K)=0.D0
   118 CONTINUE
   119 CONTINUE
 
@@ -4797,7 +4793,7 @@ C                      ------------------------------------------------
 !nu   N=NLP-L
 !nu   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
 !nu   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
-!nu   END DO 
+!nu   END DO
       SUMHTF=1.D-10
       DO 330 L=1,NL
       IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
@@ -5951,7 +5947,6 @@ C     ------------------------------------------------------------------
       TOTLZF(3)=0.D0
 !sl   TRSLTS=0.D0
 !sl   TRSLTG=0.D0
-!sl   TRSLWV=0.D0
 !sl   TRSLBS=0.D0
 
       K=0
@@ -6558,7 +6553,6 @@ C                     Direct beam, fractional S0 VIS/NIR subdivision
 C                     ----------------------------------------------
       SRXVIS=0.D0
       SRXNIR=0.D0
-!sl   SRSLHR=0.D0
 C                     Ground surface absorbed solar flux subdivision
 C                     according to 4 fractional surface-type albedos
 C                     ----------------------------------------------
@@ -7662,7 +7656,7 @@ C                          XMU (COSZ) SOLAR ZENITH ANGLE INTERPOLATION
 C                          DATA INTERVAL:  0.02  ON  [0.0 < XMU < 1.0]
 C                          -------------------------------------------
 
-      XI=XMU*50.D0+0.999999D0  ! safer: +1.  ?????
+      XI=XMU*50.D0+0.999999D0  ! >1 since XMU=COSZ>.001
       IX=XI
       JX=IX+1
       WXJ=XI-IX
@@ -8016,35 +8010,35 @@ C**** lin. interpolate obs. data (every 10 years) 1950-1990
       RETURN
       END SUBROUTINE SUTAUW
 
-!!    SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
-!!
-!!
-C     ------------------------------------------------------------------
-C     STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
-C                     and applies PIAMAX, FSAERA, FTAERA Scaling Factors
-C                     --------------------------------------------------
-!!
-!!    DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
-!!    DIMENSION FSAERA(10),FTAERA(10),PIAMAX(10)
-!!    FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
-!!    FTAERN=1.D0
-!!
-!!    DO 110 I=1,6
-!!    PI0F=1.D0
-!!    PI0=SRBQSC(I,NA)/SRBQEX(I,NA)
-!!    IF(PI0.GT.PIAMAX(NA)) PI0F=PIAMAX(NA)/PI0
-!!    QXAER(I)=SRBQEX(I,NA)*FSAERN
-!!    QSAER(I)=SRBQSC(I,NA)*FSAERN*PI0F
-!!    QCAER(I)=SRBQCB(I,NA)
-!!110 CONTINUE
-!!
-!!    DO 120 I=1,33
-!!    ATAER(I)=(TRBQEX(I,NA)-TRBQSC(I,NA))*FTAERN
-!!120 CONTINUE
-!!
-!!    RETURN
-!!    END SUBROUTINE STDAER
-!!
+!nu   SUBROUTINE STDAER(QXAER,QSAER,QCAER,ATAER,PIAMAX,NA)
+!nu
+!nu
+!nu   ------------------------------------------------------------------
+!nu   STDAER   Selects Mie Scattering Parameters for Aerosol Climatology
+!nu                   and applies PIAMAX, FSAERA, FTAERA Scaling Factors
+!nu                   --------------------------------------------------
+!nu
+!nu   DIMENSION QXAER(6),QSAER(6),QCAER(6),ATAER(33)
+!nu   DIMENSION FSAERA(10),FTAERA(10),PIAMAX(10)
+!nu   FSAERN=1.D0                ! FSAERA,FTAERA Scaling moved to GETAER
+!nu   FTAERN=1.D0
+!nu
+!nu   DO I=1,6
+!nu   PI0F=1.D0
+!nu   PI0=SRBQSC(I,NA)/SRBQEX(I,NA)
+!nu   IF(PI0.GT.PIAMAX(NA)) PI0F=PIAMAX(NA)/PI0
+!nu   QXAER(I)=SRBQEX(I,NA)*FSAERN
+!nu   QSAER(I)=SRBQSC(I,NA)*FSAERN*PI0F
+!nu   QCAER(I)=SRBQCB(I,NA)
+!nu   END DO
+!nu
+!nu   DO I=1,33
+!nu   ATAER(I)=(TRBQEX(I,NA)-TRBQSC(I,NA))*FTAERN
+!nu   END DO
+!nu
+!nu   RETURN
+!nu   END SUBROUTINE STDAER
+
       SUBROUTINE SDDUST(QQDUST,SSDUST,GGDUST,Q55DST,SIZDST,FNDUST)
 
 
@@ -8278,7 +8272,7 @@ C
      2      /7X,'   MEANAC = ',I1,'     0      Use Ann-Mean Aer Clim'
      3      /7X,'   MEANDD = ',I1,'     0      Use Ann-Mean Des Dust'
      4      /7X,'   MEANVA = ',I1,'     0      Use Ann-Mean Volc Aer'
-!obso5      /7X,'   NCARO3 = ',I1,'     0      NCAR London 1976 Ozon'
+!nu  5      /7X,'   NCARO3 = ',I1,'     0      NCAR London 1976 Ozon'
      6      /7X,'   KUVFAC = ',I1,'     0      ON/OFF UV Mult Factor'
      7      /7X,'   KSNORM = ',I1,'     0      Norm S0 when KUVFAC=1'
      8      /7X,'   KWTRAB = ',I1,'     0      WRITER: Qab,Qex,Qsc,g'
@@ -9137,7 +9131,7 @@ C
      +      ,/T23,6('-'),3X,101('-'))
  6502 FORMAT(' LN     PL     TLM      K=',I1,4X,'K=',I2,9I9,3I8)
  6503 FORMAT(1X,I2,F8.3,F7.2,1X,10F9.4,3F8.3)
-!!6504 FORMAT(/4X,'SURFACE LAYER= ',10F9.4,3F8.3)
+!sl6504 FORMAT(/4X,'SURFACE LAYER= ',10F9.4,3F8.3)
  6505 FORMAT( 4X,'COLUMN AMOUNT= ',10F9.4,3F8.3)
  6506 FORMAT(/1X,'PF W/M**2= '  ,F6.2,1X,10F9.3,3F8.3)
  6507 FORMAT( 1X,'TG=',F6.2,'= ',F6.2,1X,10F9.4,3F8.3)
@@ -9223,7 +9217,7 @@ C
      +      /4X,76('-'),2X,50('-'))
  6609 FORMAT(1X,'LN  K=',I2,5I7,6I6,3X,'K=',I2,3I7,6I6)
  6610 FORMAT( 1X,  I2,6F7.4,2F6.3,3F6.2,1F6.1,4F7.4,3F6.3,F6.2)
-!6611 FORMAT(/1X,'SL',6F7.4,2F6.3,3F6.2,1F6.1,4F7.4,3F6.3,F6.2)
+!sl6611 FORMAT(/1X,'SL',6F7.4,2F6.3,3F6.2,1F6.1,4F7.4,3F6.3,F6.2)
  6612 FORMAT( 1X,'CA',5F7.4,1F7.3,3F6.2,2F6.1,1F6.0,4F7.4,2F6.3,2F6.2)
  6613 FORMAT(/1X,'PF',1F7.4,5F7.3,1F6.2,3F6.3,2F6.3,2F7.3,2F7.4,4F6.3)
  6614 FORMAT( 1X,'FR',6F7.4,2F6.3,3F6.3,1F6.3,4F7.4,3F6.3,F6.3)
@@ -9704,8 +9698,8 @@ C
       IF(NW.EQ.2) WFSL(K)=UFSL(K)
       IF(NW.EQ.3) WFSL(K)=UFSL(K)-DFSL(K)
       IF(NW.EQ.4) WFSL(K)=WFSL(K)-UFLB(1,K)+DFLB(1,K)
-!obso IF(NW.EQ.5.AND.ABS(TRSLCR).LT.1.E-10) WFSL(K)=1.E-30
-      IF(NW.EQ.5) WFSL(K)=0.   !obsolete: =WFSL(K)/(ABS(TRSLCR)+1.E-10)
+!sl   IF(NW.EQ.5.AND.ABS(TRSLCR).LT.1.E-10) WFSL(K)=1.E-30
+      IF(NW.EQ.5) WFSL(K)=0.   !nu =WFSL(K)/(ABS(TRSLCR)+1.E-10)
   903 CONTINUE
       DO 907 L=1,NLP
       IF(L.GT.NL.AND.NW.GT.3) GO TO 907
@@ -11751,7 +11745,7 @@ c*********************************************************************
 !@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
       use SURF_ALBEDO, only : albvnh,albvnd,season,nv
       implicit none
-!@var jyearr radiation year (not used for anything)
+!@var jyearr radiation year (not used for anything yet)
 !@var jjdayr julian day (used for seasonality of veg albedo)
       integer, intent(in) :: jyearr, jjdayr
       integer K,KS1,KS2,KN1,KN2,L
@@ -11814,7 +11808,7 @@ C**** output
      *     ,WMI,FRFOAM,AV,BV,WTOC,BOCM,BOCP,TRAPOC,BOCM1,BOCP1,BOC
      *     ,DSFRAC,VGFRAC,SEAVIS,SEANIR,VTFRAC,WTEA,BEAM,BEAP,TRAPEA
      *     ,BEAM1,BEAP1,BEA,WTOI,BOIM,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN
-     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO
+     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO,FDZICE
 
 C**** local variables for albedos for each surface type
       real*8 BOCVIS,BEAVIS,BOIVIS,BLIVIS,BOCNIR,BEANIR,BOINIR,BLINIR,
@@ -12306,9 +12300,10 @@ C**** Set snow albedo over sea ice
       ENDIF
 
 C**** set ice albedo
+      FDZICE=AHMZOI*hin/(1.+AHMZOI*hin) ! hin = ZOICE = ice depth (m)
       IF (KVEGA6.le.0) THEN     ! 2 band
-      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
-      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
+      BOIVIS=FDZICE*AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
+      BOINIR=FDZICE*AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
 c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
 c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
       if (kvega6.eq.-3) then
@@ -12348,7 +12343,7 @@ C**** Set zenith angle dependence if required (KZSNOW>0)
         END IF
       ELSE   ! KVEGA6=1 or 2    ! end of 2-band original versions
         DO L=1,6                !        6-band original versions
-          BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
+          BOIVN(L)=FDZICE*AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
 C**** Set zenith angle dependence if required
           IF (KKZSNO.GT.0) THEN
             CALL RXSNOW(BOIVN(L),COSZ,GZSNOW(L,2,JH),XOIVN(L))
@@ -12589,9 +12584,9 @@ C                     --------------------------------------------------
         BGF=BGF+BGFEMT(K)
       END DO
 C
-!obso BGM=BOCM*POCEAN+BEAM*PEARTH+BOIM*POICE+BLIM*PLICE
-!obso BGP=BOCP*POCEAN+BEAP*PEARTH+BOIP*POICE+BLIP*PLICE
-!obso TTRUFG=0.5D0*(BGP-BGM)
+!nu   BGM=BOCM*POCEAN+BEAM*PEARTH+BOIM*POICE+BLIM*PLICE
+!nu   BGP=BOCP*POCEAN+BEAP*PEARTH+BOIP*POICE+BLIP*PLICE
+!nu   TTRUFG=0.5D0*(BGP-BGM)
       FTRUFG(1)=BOCSUM/BGF
       FTRUFG(2)=BEASUM/BGF
       FTRUFG(3)=BOISUM/BGF
