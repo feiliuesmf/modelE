@@ -616,7 +616,7 @@ C****
       CHARACTER xlb*32,title*48,lname*80,name*30,units*30
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,irange
+      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,irange,k_generic
       DOUBLE PRECISION :: DAYS,gm
 
       if (kdiag(8).ge.1) return
@@ -660,8 +660,12 @@ C**** Fill in maplet indices for sources and sinks
       nmaplets = k
 c**** always skip unused fields
       Qk = .true.
-      do k=1,ktmax
+      k_generic = (lm+ktaij)*ntm
+      do k=1,k_generic
         if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
+      end do
+      do k=k_generic+1,ktmax
+        if (index(lname_ijts(k),'unused').gt.0) Qk(k) = .false.
       end do
 
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
