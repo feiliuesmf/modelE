@@ -377,9 +377,9 @@ C note, tr_evap_fact is not dimensioned as NTM:
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE TRACER_COM
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER

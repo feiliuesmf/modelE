@@ -74,7 +74,7 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
 
 
       SUBROUTINE ALLOC_DYNAMICS(grid)
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE RESOLUTION , ONLY : LM
       USE DYNAMICS, ONLY : PLIJ,PDSIG,AM,BYAM,PMID,PK,PEDN,PEK,
      $                     SD_CLOUDS,GZ,PU,PV,CONV,PHI,SPA,DUT,
@@ -83,7 +83,7 @@ c$$$      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
      $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
      $                     PS,SMASS
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER

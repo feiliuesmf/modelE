@@ -76,7 +76,7 @@ C**** Ice advection diagnostics
 !@auth Rosalinda de Fainchtein
 
       USE DOMAIN_DECOMP, only : GET
-      USE DOMAIN_DECOMP, only : DYN_GRID
+      USE DOMAIN_DECOMP, only : DIST_GRID
       USE MODEL_COM, only : im
       USE ICEDYN, only : imic
       USE ICEDYN, only : grid_MIC
@@ -92,7 +92,7 @@ C**** Ice advection diagnostics
       INTEGER :: J_1H    , J_0H
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
-      TYPE(DYN_GRID) :: grid
+      TYPE(DIST_GRID) :: grid
 
       If (init) Then
          Return ! Only invoke once
@@ -289,7 +289,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
       USE MODEL_COM, only : im,jm,p,ptop,dts=>dtsrc,focean
-      USE DOMAIN_DECOMP, only : grid, DYN_GRID, GET
+      USE DOMAIN_DECOMP, only : grid, DIST_GRID, GET
       USE DOMAIN_DECOMP, only : CHECKSUM, HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
@@ -315,7 +315,7 @@ C****
 C**** Declare a new grid data type grid_NXY (to handle do j=1,ny1 type
 C     Loops. Set grid_NXY=grid, consistent with curr. state of the code.
 
-      TYPE(DYN_GRID) :: grid_NXY
+      TYPE(DIST_GRID) :: grid_NXY
       INTEGER :: J_1NXY, J_0NXY
       INTEGER :: J_1NXYS
       INTEGER :: J_1   , J_0
@@ -384,8 +384,6 @@ c     CALL CHECKSUM(   grid, APRESS, __LINE__, __FILE__)
 c     CALL HALO_UPDATE(grid, APRESS, from=NORTH )
       CALL CHECKSUM(   grid, OGEOZA, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, OGEOZA, from=NORTH )
-      CALL CHECKSUM(   grid, DYV   , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DYV   , from=NORTH )
       CALL CHECKSUM(   grid, MSI   , __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, MSI   , from=NORTH )
       CALL CHECKSUM(   grid, SNOWI , __LINE__, __FILE__)
@@ -423,12 +421,12 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
 C**** Set up ice grid variables
 C**** HEFF,AREA on primary (tracer) grid for ice
 C**** Fill halos for RSI, FOCEAN, MSI
-      CALL CHECKSUM(   grid, RSI   , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, RSI   , from=NORTH+SOUTH )
-      CALL CHECKSUM(   grid, FOCEAN, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, FOCEAN, from=NORTH+SOUTH )
-      CALL CHECKSUM(   grid, MSI   , __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, MSI   , from=NORTH+SOUTH )
+c$$$      CALL CHECKSUM(   grid, RSI   , __LINE__, __FILE__)
+c$$$      CALL HALO_UPDATE(grid, RSI   , from=NORTH+SOUTH )
+c$$$      CALL CHECKSUM(   grid, FOCEAN, __LINE__, __FILE__)
+c$$$      CALL HALO_UPDATE(grid, FOCEAN, from=NORTH+SOUTH )
+c$$$      CALL CHECKSUM(   grid, MSI   , __LINE__, __FILE__)
+c$$$      CALL HALO_UPDATE(grid, MSI   , from=NORTH+SOUTH )
 
       do j=J_0NXY,J_1NXY
         do i=2,NX1-1
@@ -730,6 +728,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, SOUTH, NORTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
@@ -758,6 +757,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       REAL*8 TRSNOW(NTM), TRICE(NTM)
 #endif
       REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
+      REAL*8 FMSJ(NTRICE,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 BYFOA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER I,J,L,IM1,IP1,K
       REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE
@@ -772,9 +772,11 @@ C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 
       INTEGER J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_NORTH_POLE
 C**** Get grid parameters
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
+     &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Regularise ice concentration gradients to prevent advection errors
       DO J=J_0S, J_1S
@@ -851,8 +853,6 @@ C****
 C**** Calculate south-north sea ice fluxes at grid box edges
 C****
 C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
-      CALL CHECKSUM(grid,    DXV  ,  __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXV  , FROM=NORTH)
       CALL CHECKSUM(grid,    RSIY ,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, RSIY , FROM=NORTH)
       CALL CHECKSUM(grid,    RSIX ,  __LINE__, __FILE__)
@@ -861,12 +861,10 @@ C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
       CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
       CALL CHECKSUM(grid,   FOCEAN,  __LINE__, __FILE__)
       CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH)
-      CALL CHECKSUM(grid,   BYDXYP,  __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid,BYDXYP, FROM=NORTH)
-      CALL CHECKSUM(grid,    MHS  ,  __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, MHS  , FROM=NORTH)
+      CALL CHECKSUM_COLUMN(grid,    MHS  ,  __LINE__, __FILE__)
+      CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
 
-      DO 120 J=2,JM-2
+      DO 120 J=J_0S,MIN(JM-2,J_1)
       IF(VSIDT(I,J).eq.0.)  GO TO 120
       FAW(J) = VSIDT(I,J)*DXV(J+1) ! be careful with atm. grid index
       IF(VSIDT(I,J).le.0.) THEN
@@ -876,7 +874,7 @@ C**** Sea ice velocity is southward at grid box edge
         FXSI(J)=FAW(J)*RSIX(I,J+1)*FOCEAN(I,J+1)
         FYSI(J)=FAW(J)*(FAW(J)*BYDXYP(J+1)*
      *       FAW(J)*RSIY(I,J+1)*FOCEAN(I,J+1) - 3d0*FASI(J))
-        FMSI(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J+1)
+        FMSJ(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J+1)
       ELSE
 C**** Sea ice velocity is northward at grid box edge
         FASI(J)=FAW(J)*(RSI(I,J)+(1d0-FAW(J)*BYDXYP(J))*RSIY(I,J))
@@ -884,22 +882,22 @@ C**** Sea ice velocity is northward at grid box edge
         FXSI(J)=FAW(J)*RSIX(I,J)*FOCEAN(I,J)
         FYSI(J)=FAW(J)*(FAW(J)*BYDXYP(J)*FAW(J)*RSIY(I,J)*FOCEAN(I,J)
      *       -3d0*FASI(J))
-        FMSI(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J)
+        FMSJ(1:NTRICE,J) = FASI(J)*MHS(1:NTRICE,I,J)
       END IF
-         ICIJ(I,J,IJ_MVSI)=ICIJ(I,J,IJ_MVSI)+SUM(FMSI(1:2,J))
-         ICIJ(I,J,IJ_HVSI)=ICIJ(I,J,IJ_HVSI)+SUM(FMSI(3:2+LMI,J))
-         ICIJ(I,J,IJ_SVSI)=ICIJ(I,J,IJ_SVSI)+SUM(FMSI(3+LMI:2+2*LMI,J))
+         ICIJ(I,J,IJ_MVSI)=ICIJ(I,J,IJ_MVSI)+SUM(FMSJ(1:2,J))
+         ICIJ(I,J,IJ_HVSI)=ICIJ(I,J,IJ_HVSI)+SUM(FMSJ(3:2+LMI,J))
+         ICIJ(I,J,IJ_SVSI)=ICIJ(I,J,IJ_SVSI)+SUM(FMSJ(3+LMI:2+2*LMI,J))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
            TICIJ(I,J,TICIJ_TVSI,ITR)=TICIJ(I,J,TICIJ_TVSI,ITR)+
-     *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
+     *          SUM(FMSJ(3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
          END DO
 #endif
   120 CONTINUE
 C****
 C**** Calculate south-north sea ice fluxes near North Pole
 C****
-      IF (grid%HAVE_NORTH_POLE) THEN
+      IF (HAVE_NORTH_POLE) THEN
         IF(VSIDT(I,JM-1).eq.0.)  GO TO 200
         FAW(JM-1) = VSIDT(I,JM-1)*DXV(JM) ! careful with atm.grid index!
         IF(VSIDT(I,JM-1).le.0.) THEN
@@ -907,7 +905,7 @@ C**** Sea ice velocity is southward from North Pole box
           FASI(JM-1) = FAW(JM-1)*RSI(1,JM)*FOCEAN(1,JM)
           FXSI(JM-1) = 0.
           FYSI(JM-1) = -FAW(JM-1)*FASI(JM-1)
-          FMSI(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,1,JM)
+          FMSJ(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,1,JM)
         ELSE
 C**** Sea ice velocity is northward into North Pole box
           FASI(JM-1) = FAW(JM-1)*FOCEAN(I,JM-1)*
@@ -915,20 +913,20 @@ C**** Sea ice velocity is northward into North Pole box
           FXSI(JM-1) = FAW(JM-1)*RSIX(I,JM-1)*FOCEAN(I,JM-1)
           FYSI(JM-1) = FAW(JM-1)*(FAW(JM-1)*BYDXYP(JM-1)*
      *       FAW(JM-1)*RSIY(I,JM-1)*FOCEAN(I,JM-1)-3d0*FASI(JM-1))
-          FMSI(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,I,JM-1)
+          FMSJ(1:NTRICE,JM-1) = FASI(JM-1)*MHS(1:NTRICE,I,JM-1)
         END IF
 C**** Accumulate sea ice leaving and entering North Pole box
         SFASI = SFASI + FASI(JM-1)
-        SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSI(1:NTRICE,JM-1)
-         ICIJ(I,JM-1,IJ_MVSI)=ICIJ(I,JM-1,IJ_MVSI)+SUM(FMSI(1:2,JM-1))
+        SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSJ(1:NTRICE,JM-1)
+         ICIJ(I,JM-1,IJ_MVSI)=ICIJ(I,JM-1,IJ_MVSI)+SUM(FMSJ(1:2,JM-1))
          ICIJ(I,JM-1,IJ_HVSI)=ICIJ(I,JM-1,IJ_HVSI)
-     &                        +SUM(FMSI(3:2+LMI,JM-1))
+     &                        +SUM(FMSJ(3:2+LMI,JM-1))
          ICIJ(I,JM-1,IJ_SVSI)=ICIJ(I,JM-1,IJ_SVSI)+
-     *      SUM(FMSI(3+LMI:2+2*LMI,JM-1))
+     *      SUM(FMSJ(3+LMI:2+2*LMI,JM-1))
 #ifdef TRACERS_WATER
            DO ITR=1,NTM
              TICIJ(I,JM-1,TICIJ_TVSI,ITR)=TICIJ(I,JM-1,TICIJ_TVSI,ITR)+
-     *            SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
+     *            SUM(FMSJ(3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
            END DO
 #endif
       ENDIF
@@ -945,8 +943,8 @@ C****Update halo of VSIDT, FASI, FAW, FOCEAN, FMSI, and FXSI
       CALL HALO_UPDATE(grid, FAW, FROM=SOUTH)
        CALL CHECKSUM(grid,    FOCEAN,  __LINE__, __FILE__)
        CALL HALO_UPDATE(grid, FOCEAN, FROM=SOUTH)
-      CALL CHECKSUM(grid,    FMSI,  __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, FMSI, FROM=SOUTH)
+      CALL CHECKSUM_COLUMN(grid,    FMSJ,  __LINE__, __FILE__)
+      CALL HALO_UPDATE_COLUMN(grid, FMSJ, FROM=SOUTH)
        CALL CHECKSUM(grid,    FXSI,  __LINE__, __FILE__)
        CALL HALO_UPDATE(grid, FXSI, FROM=SOUTH)
        CALL CHECKSUM(grid,    FYSI,  __LINE__, __FILE__)
@@ -959,7 +957,7 @@ C**** VSIDT(J-1)=0.
 C**** VSIDT(J-1)=0, VSIDT(J)<0.
   220 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) -  FASI(J)
       DO 225 K=1,NTRICE
-  225 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) - FMSI(K,J)
+  225 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) - FMSJ(K,J)
       IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
       YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) - FYSI(J)
      *    + 3d0*(FAW(J)*ASI-DXYP(J)*FASI(J))) / (DXYP(J)-FAW(J))
@@ -984,7 +982,7 @@ C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
   260 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + ( FASI(J-1)- FASI(J))
       DO 265 K=1,NTRICE
   265 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) +
-     *       (FMSI(K,J-1)-FMSI(K,J))
+     *       (FMSJ(K,J-1)-FMSJ(K,J))
       IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
       YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J)+(FYSI(J-1)-FYSI(J))
      *    + 3d0*((FAW(J-1)+FAW(J))*ASI-DXYP(J)*(FASI(J-1)+FASI(J))))
@@ -1006,7 +1004,7 @@ C**** VSIDT(J-1)>0.
 C**** VSIDT(J-1)>0, VSIDT(J)=0.
       ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + FASI(J-1)
       DO 285 K=1,NTRICE
-  285 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) + FMSI(K,J-1)
+  285 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) + FMSJ(K,J-1)
       IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
       YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) + FYSI(J-1)
      *    + 3d0*(FAW(J-1)*ASI-DXYP(J)*FASI(J-1))) / (DXYP(J)+FAW(J-1))
@@ -1048,7 +1046,7 @@ C**** End of loop over I
 C****
 C**** Advection of Sea Ice leaving and entering North Pole box
 C****
-      IF (grid%HAVE_NORTH_POLE) THEN
+      IF (HAVE_NORTH_POLE) THEN
         ASI = RSI(1,JM)*DXYP(JM)*FOCEAN(1,JM) + SFASI/IM
         DO 345 K=1,NTRICE
   345   AMSI(K) = RSI(1,JM)*DXYP(JM)*MHS(K,1,JM)*FOCEAN(1,JM)+
@@ -1277,13 +1275,16 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
             END IF
           END DO
         END DO
-        DO I=2,IM               ! North pole
-          APRESS(I,JM)=APRESS(1,JM)
-          GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
+        IF (HAVE_NORTH_POLE) THEN
+          DO I=2,IM             ! North pole
+            APRESS(I,JM)=APRESS(1,JM)
+            GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
 #ifdef TRACERS_WATER
           GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
 #endif
-        END DO
+          END DO
+        END IF
+
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)

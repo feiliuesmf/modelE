@@ -29,6 +29,7 @@
 #endif
       USE DAGCOM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
+      USE DOMAIN_DECOMP, only : GRID,GET, GLOBALSUM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 C**** The net accumulation from IPCC2 report is 2016x10**12 kg/year
@@ -44,9 +45,11 @@ C****
       REAL*8 ACCPCA,ACCPCG,FWAREA
       LOGICAL :: do_glmelt
       INTEGER I,J,N
+      INTEGER :: J_0,J_1
 
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 C**** set GTEMP array for landice
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IM
           IF (FLICE(I,J).gt.0) THEN
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
@@ -106,7 +109,7 @@ C**** Antarctica
 ! accumulation (kg per source time step) per water column
 C**** integrate area (which will depend on resolution/landmask)
       FWAREA=0.
-      DO J=JML,JMU
+      DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
           IF (FOCEAN(I,J).GT.0.) THEN
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
@@ -183,6 +186,7 @@ C****
 #endif
       USE DAGCOM, only : aj,areg,aij,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
@@ -199,8 +203,11 @@ C****
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
       INTEGER I,J,JR
+      INTEGER :: J_0,J_1
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
       PLICE=FLICE(I,J)
@@ -292,6 +299,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
 #endif
 #endif
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ
@@ -309,8 +317,10 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
       INTEGER I,J,JR
+      INTEGER :: J_0,J_1
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
       PLICE=FLICE(I,J)
@@ -417,19 +427,26 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli
       USE LANDICE, only : lndice,ace1li,ace2li
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var ICE total land ice snow and ice mass (kg/m^2)
-      REAL*8, DIMENSION(JM) :: ICE
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: ICE
       INTEGER I,J
+      INTEGER :: J_0,J_1
+      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      DO J=J_0,J_1
         ICE(J)=0
         DO I=1,IMAXJ(J)
           ICE(J)=ICE(J)+FLICE(I,J)*(ACE1LI+ACE2LI+SNOWLI(I,J))
         END DO
       END DO
-      ICE(1) =FIM*ICE(1)
-      ICE(JM)=FIM*ICE(JM)
+      IF(HAVE_SOUTH_POLE) ICE(1) =FIM*ICE(1)
+      IF(HAVE_NORTH_POLE) ICE(JM)=FIM*ICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_MLI
@@ -443,20 +460,28 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : ace1li,ace2li
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total land ice energy (J/m^2)
-      REAL*8, DIMENSION(JM) :: EICE
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICE
       INTEGER I,J
+      INTEGER :: J_0,J_1
+      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+
+      DO J=J_0,J_1
         EICE(J)=0
         DO I=1,IMAXJ(J)
           EICE(J)=EICE(J)+FLICE(I,J)*((TLANDI(1,I,J)*SHI-LHM)*(ACE1LI
      *         +SNOWLI(I,J))+(TLANDI(2,I,J)*SHI-LHM)*ACE2LI)
         END DO
       END DO
-      EICE(1) =FIM*EICE(1)
-      EICE(JM)=FIM*EICE(JM)
+      IF(HAVE_SOUTH_POLE) EICE(1) =FIM*EICE(1)
+      IF(HAVE_NORTH_POLE) EICE(JM)=FIM*EICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_HLI

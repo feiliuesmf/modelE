@@ -2260,7 +2260,6 @@ ccc output
 
       end subroutine snow
 
-
       subroutine set_snow
 !@sum set_snow extracts snow from the first soil layer and initializes
 !@+   snow model prognostic variables

@@ -4,7 +4,7 @@ c *****************************************************************
 !@auth 
 !@ver  
       USE MODEL_COM, only : im,jm,lm
-c      USE DOMAIN_DECOMP, only : grid
+      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 !@param  nlevnc vertical levels of NCEP data  
@@ -34,10 +34,25 @@ c******************************************************************
       USE DOMAIN_DECOMP, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
       IMPLICIT NONE
-      REAL*8,DIMENSION(IM,JM,LM) ::  ugcm,vgcm
+      REAL*8 DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: UGCM, VGCM
 c     LOCAL
       INTEGER i,j,l
-      REAL*8   alphau,alphav,a,dtstep
+      REAL*8  alphau,alphav,a,dtstep
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0SG, J_1SG
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
+      J_0S = grid%J_STRT_SKP
+      J_1S = grid%J_STOP_SKP
+      J_0SG = grid%J_STRT_STGR
+      J_1SG = grid%J_STOP_STGR
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - |
 c   x_gcm = a * x_gcm + ( 1 - a ) * x_reanalys      |
@@ -143,6 +158,7 @@ c******************************************************************
       include 'netcdf.inc'
 
       integer timestep,l
+
       integer start(4),count(4),status
 
 c -----------------------------------------------------------------
@@ -162,6 +178,7 @@ c -----------------------------------------------------------------
 c  u
       status=NF_GET_VARA_REAL(ncidu,uid,start,count,un2)
 c  v
+
       status=NF_GET_VARA_REAL(ncidv,vid,start,count,vn2)
 
       return
@@ -188,7 +205,9 @@ c ==============
         REAL varn(im,jm,lm) !  Variable on the new grid (output)
         real coef,dp1,dp2
  
-        do j= 2,jm              ! Please pay attention j starts at 2
+        J_0SG = grid%J_STRT_STGR
+        J_1SG = grid%J_STOP_STGR
+        do j= J_OSG, J_1SG             ! Please pay attention j starts at 2
           do i=1,im
           do ln=1,lm
 

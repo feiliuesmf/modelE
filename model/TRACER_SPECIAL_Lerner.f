@@ -1512,9 +1512,9 @@ C****
       USE TRACER_MPchem_COM
       USE CO2_SOURCES
       USE CH4_SOURCES
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
@@ -1547,9 +1547,9 @@ C****
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE LINOZ_CHEM_COM
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER

@@ -29,12 +29,22 @@ cc    REAL*8, DIMENSION(:), ALLOCATABLE :: CM,F_L
 cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
       END MODULE QUSCOM
 
-      SUBROUTINE init_QUS(IM_GCM,JM_GCM,LM_GCM)
+      SUBROUTINE init_QUS(grd_dum,IM_GCM,JM_GCM,LM_GCM)
 !@sum  init_QUS sets gcm-specific advection parameters/workspace
 !@auth Maxwell Kelley
+      USE DOMAIN_DECOMP, only : DIST_GRID, GET
       use QUSCOM
       USE PARAM
       INTEGER, INTENT(IN) :: IM_GCM,JM_GCM,LM_GCM
+      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
+
+C****
+C**** Extract local domain parameters from "grd_dum"
+C****
+      INTEGER J_0,J_1,J_0H,J_1H
+      CALL GET(grd_dum, J_STRT=J_0,       J_STOP=J_1,
+     &                  J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
 C**** SET RESOLUTION
       IM = IM_GCM
       JM = JM_GCM
@@ -42,13 +52,13 @@ C**** SET RESOLUTION
       BYIM = 1.D0/REAL(IM,KIND=8)
       XSTRIDE = 1
       YSTRIDE = IM
-      ZSTRIDE = IM*JM
+      ZSTRIDE = IM*(J_1H-J_0H+1)
 C**** ALLOCATE SPACE FOR AIR MASS FLUXES
-      ALLOCATE(MFLX(IM,JM,LM))
+      ALLOCATE(MFLX(IM,J_0H:J_1H,LM))
 C**** ALLOCATE WORKSPACE FOR AADVTX
 cc    ALLOCATE(AM(IM),F_I(IM),FMOM_I(NMOM,IM))
 C**** ALLOCATE WORKSPACE FOR AADVTY
-cc    ALLOCATE(BM(JM),F_J(JM),FMOM_J(NMOM,JM))
+cc    ALLOCATE(BM(JM),F_J(J_0H:J_1H),FMOM_J(NMOM,J_0H:J_1H))
 C**** ALLOCATE WORKSPACE FOR AADVTZ
 cc    ALLOCATE(CM(LM),F_L(LM),FMOM_L(NMOM,LM))
 
@@ -73,45 +83,74 @@ c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
 c****     ma (kg) = fluid mass
 c****
+      USE DOMAIN_DECOMP, only: grid, get
+      USE DOMAIN_DECOMP, only: HALO_UPDATE,NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM, MFLX
       IMPLICIT NONE
 
-      REAL*8, dimension(im,jm,lm) :: rm,ma
-      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
+     &                  rm,ma
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) 
+     &               :: rmom
 
       REAL*8, INTENT(IN) :: DT
-      REAL*8, dimension(im,jm,lm), intent(in) :: pu,pv
-      REAL*8, dimension(im,jm,lm-1), intent(in) :: sd
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm), 
+     &    intent(in) :: pu,pv
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm-1),
+     &    intent(in) :: sd
       LOGICAL, INTENT(IN) :: QLIMIT
 
-      REAL*8, dimension(im,jm), intent(inout) :: fqu,fqv
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO), 
+     & intent(inout) :: fqu,fqv
 
       INTEGER :: I,J,L,N
       REAL*8 :: BYMA
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Initialise diagnostics
       FQU=0.  ; FQV=0.
 
 C**** Fill in values at the poles
+C**** SOUTH POLE:
+      if (HAVE_SOUTH_POLE) then
 !$OMP  PARALLEL DO PRIVATE(I,L,N)
-      DO L=1,LM
-         DO I=2,IM
-           RM(I,1 ,L) =   RM(1,1 ,L)
-           RM(I,JM,L) =   RM(1,JM,L)
-           DO N=1,NMOM
-             RMOM(N,I,1 ,L) =  RMOM(N,1,1 ,L)
-             RMOM(N,I,JM,L) =  RMOM(N,1,JM,L)
-         enddo
-         enddo
-      enddo
+        DO L=1,LM
+          DO I=2,IM
+            RM(I,1 ,L) =   RM(1,1 ,L)
+            DO N=1,NMOM
+              RMOM(N,I,1 ,L) =  RMOM(N,1,1 ,L)
+            enddo
+          enddo
+        enddo
 !$OMP  END PARALLEL DO
+      end if       !SOUTH POLE
+
+c**** NORTH POLE:
+      if (HAVE_NORTH_POLE) then
+!$OMP  PARALLEL DO PRIVATE(I,L,N)
+        DO L=1,LM
+          DO I=2,IM
+            RM(I,JM,L) =   RM(1,JM,L)
+            DO N=1,NMOM
+              RMOM(N,I,JM,L) =  RMOM(N,1,JM,L)
+            enddo
+          enddo
+        enddo
+!$OMP  END PARALLEL DO
+      end if    ! NORTH POLE
 C****
 C**** convert from concentration to mass units
 C****
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
          RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
          RMOM(:,I,J,L)=RMOM(:,I,J,L)*MA(I,J,L)
@@ -129,14 +168,18 @@ CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
        ENDDO
 !$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
+
 CC    mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
 CC    mflx(:,jm,:)=0.
+C**** Halo boxes for pv updated before call to AADVT.
+!      call HALO_UPDATE(grid, pv, from=NORTH)
 !$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
-          mflx(:,1:jm-1,l)=pv(:,2:jm,l)*dt
-          mflx(:,jm,l)=0.
+          mflx(:,J_0:J_1S,l)=pv(:,J_0+1:J_1S+1,l)*dt
        ENDDO
 !$OMP  END PARALLEL DO
+       if (HAVE_NORTH_POLE) mflx(:,jm,:)=0.
+
       CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
 CC    mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
 CC    mflx(:,:,lm)=0.
@@ -162,7 +205,7 @@ C**** convert from mass to concentration units
 C****
 !$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
       DO L=1,LM
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
          BYMA = 1.D0/MA(I,J,L)
          RM(I,J,L)=RM(I,J,L)*BYMA
@@ -191,17 +234,26 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use DOMAIN_DECOMP, only : grid, GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mu,hfqu
-      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
+     &                  rm,mass,mu,hfqu
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &                  rmom
       logical ::  qlimit
-      REAL*8, INTENT(OUT), DIMENSION(IM,JM) :: FQU
+      REAL*8, INTENT(OUT), 
+     &        DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: FQU
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
      &     ,MASS_I(IM), COURMAX, BYNSTEP
       integer :: i,ip1,j,l,ierr,nerr,ICKERR,ns,nstep
+
+c**** Get useful local parameters for domain decomposition
+      integer :: J_0, J_1, J_0S, J_1S
+      CALL GET(grid, J_STRT = J_0 , J_STOP=J_1,
+     &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 c**** loop over layers and latitudes
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR,
@@ -209,7 +261,7 @@ c**** loop over layers and latitudes
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
-      do j=2,jm-1
+      do j=J_0S,J_1S
 c****
 c**** decide how many timesteps to take
 c****
@@ -277,7 +329,7 @@ c
 c     now sum into fqu
 c
 !$OMP  PARALLEL DO PRIVATE(J,L)
-      do j=2,jm-1
+      do j=J_0S,J_1S
       do l=1,lm
          fqu(:,j)  = fqu(:,j) + hfqu(:,j,l)
       enddo ! j
@@ -307,78 +359,158 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use DOMAIN_DECOMP, only : grid, get, halo_update
+      use DOMAIN_DECOMP, only : halo_update_column
+      use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
+      use DOMAIN_DECOMP, only : ArrayGather, ArrayScatter
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       use QUSCOM, only : im,jm,lm, ystride,               byim
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mv
-      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: 
+     &                  rm,mass,mv
+      REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:
+     &                          grid%J_STOP_HALO,LM) :: rmom
       logical ::  qlimit
-      REAL*8, intent(out), dimension(im,jm) :: fqv
-      REAL*8  HFQV(IM,JM,LM),BM(JM),F_J(JM),FMOM_J(NMOM,JM)
+      REAL*8, intent(out), dimension(im,grid%J_STRT_HALO:
+     &                                  grid%J_STOP_HALO) :: fqv
+      REAL*8      HFQV(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
+!    &                 BM(grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &                F_J(grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &        FMOM_J(NMOM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       integer :: i,j,l,ierr,nerr,ICKERR
       REAL*8 ::
      &     m_sp,m_np,rm_sp,rm_np,rzm_sp,rzm_np,rzzm_sp,rzzm_np
+
+c****Temporary global arrays
+      INTEGER :: nm
+      REAL*8, DIMENSION(IM,JM) :: RM_GLOB,MASS_GLOB,MV_GLOB
+      REAL*8, DIMENSION(NMOM,IM,JM) :: RMOM_GLOB
+      REAL*8  F_J_GLOB(JM), FMOM_J_GLOB(NMOM,JM)
+      REAL*8  BM(JM)
+c****Get relevant local distributed parameters
+      INTEGER J_0,J_1,J_0H,J_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0,
+     &               J_STOP = J_1,
+     &               J_STRT_HALO = J_0H,
+     &               J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 c**** loop over layers
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE(I,L,M_SP,M_NP,RM_SP,RM_NP,RZM_SP,RZZM_SP,
-!$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR)
+!$OMP*             F_J,FMOM_J,RZM_NP,RZZM_NP,BM,IERR,NERR,
+!$OMP*             rm_glob,rmom_glob,mass_glob,mv_glob,
+!$OMP*             f_j_glob,fmom_j_glob,nm)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
+
 c**** scale polar boxes to their full extent
-      mass(:,1:jm:jm-1,l)=mass(:,1:jm:jm-1,l)*im
-      m_sp = mass(1,1 ,l)
-      m_np = mass(1,jm,l)
-      rm(:,1:jm:jm-1,l)=rm(:,1:jm:jm-1,l)*im
-      rm_sp = rm(1,1 ,l)
-      rm_np = rm(1,jm,l)
-      do i=1,im
-         rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
-         rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
-      enddo
-      rzm_sp  = rmom(mz ,1,1 ,l)
-      rzzm_sp = rmom(mzz,1,1 ,l)
-      rzm_np  = rmom(mz ,1,jm,l)
-      rzzm_np = rmom(mzz,1,jm,l)
+      if (HAVE_SOUTH_POLE) then
+        mass(:,1,l)=mass(:,1,l)*im
+        m_sp = mass(1,1 ,l)
+        rm(:,1,l)=rm(:,1,l)*im
+        rm_sp = rm(1,1 ,l)
+        do i=1,im
+           rmom(:,i,1 ,l)=rmom(:,i,1 ,l)*im
+        enddo
+        rzm_sp  = rmom(mz ,1,1 ,l)
+        rzzm_sp = rmom(mzz,1,1 ,l)
+      end if                       !SOUTH POLE
+
+      if (HAVE_NORTH_POLE) then
+        mass(:,jm,l)=mass(:,jm,l)*im
+        m_np = mass(1,jm,l)
+        rm(:,jm,l)=rm(:,jm,l)*im
+        rm_np = rm(1,jm,l)
+        do i=1,im
+           rmom(:,i,jm,l)=rmom(:,i,jm,l)*im
+        enddo
+        rzm_np  = rmom(mz ,1,jm,l)
+        rzzm_np = rmom(mzz,1,jm,l)
+      end if                       !NORTH POLE
+
+c**** GATHER GLOBAL ARRAYS TO BE USED IN ADV1D CALL
+      call arraygather( grid, rm(:,:,l), rm_glob )
+      do nm=1,nmom
+        call arraygather( grid,rmom(nm,:,:,l),rmom_glob(nm,:,:))
+      end do
+      call arraygather( grid, mass(:,:,l), mass_glob )
+      call arraygather(  grid,  mv(:,:,l), mv_glob )
+
 c**** loop over longitudes
       do i=1,im
 c****
 c**** load 1-dimensional arrays
 c****
-      bm   (:) = mv(i,:,l) !/nstep
-      bm(jm)= 0.
-      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
-      rmom(ihmoms,i,jm,l) = 0.
+      bm   (:) = mv_glob(i,:) !/nstep
+
+c**** POLES
+         rmom_glob(ihmoms,i,1 ) = 0. ! horizontal moments are zero at pole
+        bm(jm)= 0.
+        rmom_glob(ihmoms,i,jm) = 0.
+
 c****
 c**** call 1-d advection routine
 c****
-      call adv1d(rm(i,1,l),rmom(1,i,1,l), f_j,fmom_j, mass(i,1,l),
-     &     bm, jm,qlimit,ystride,ydir,ierr,nerr)
-      if (ierr.gt.0) then
-        write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
-        if (ierr.eq.2) then
-          write(0,*) "Error in qlimit: abs(b) > 1"
-ccc       call stop_model('Error in qlimit: abs(b) > 1',11)
-          ICKERR=ICKERR+1
-        endif
+      if (AM_I_ROOT()) then
+        call adv1d( rm_glob(i,1), rmom_glob(1,i,1), f_j_glob,
+     &       fmom_j_glob, mass_glob(i,1),
+     &       bm,jm,qlimit,ystride,ydir,ierr,nerr)
+
+        if (ierr.gt.0) then
+          write(6,*) "Error in aadvty: i,j,l=",i,nerr,l
+          if (ierr.eq.2) then
+            write(0,*) "Error in qlimit: abs(b) > 1"
+ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
+            ICKERR=ICKERR+1
+          endif
+        end if
+! horizontal moments are zero at pole
+        rmom_glob(ihmoms,i,1) = 0
+        rmom_glob(ihmoms,i,jm) = 0.
       end if
+
 c**** store tracer flux in fqv array
 ccc   fqv(i,:) = fqv(i,:) + f_j(:)
-ccc   fqv(i,jm) = 0.   ! play it safe
-      hfqv(i,:,l) = f_j(:)
-      rmom(ihmoms,i,1 ,l) = 0.! horizontal moments are zero at pole
-      rmom(ihmoms,i,jm,l) = 0.
+ccc    if (HAVE_NORTH_POLE) fqv(i,jm) = 0.   ! play it safe
+
+c*** SCATTER GLOBAL "1D" ARRAYS BACK TO LOCAL ONES
+!     hfqv(i,:,l) = f_j(:)
+      call arrayscatter( grid, hfqv(i,:,l), f_j_glob(1:jm))
+      do nm=1,nmom
+        call arrayscatter( grid, fmom_j(nm,:), fmom_j_glob(nm,:) )
+      end do
+
       enddo ! end loop over longitudes
+
+c**** SCATTER "2D" GLOBAL ARRAYS BACK TO LOCAL ONES
+      call arrayscatter( grid, rm(:,:,l), rm_glob )
+      do nm=1,nmom
+        call arrayscatter( grid, rmom(nm,:,:,l),
+     &                           rmom_glob(nm,:,:) )
+      end do
+      call arrayscatter( grid, mass(:,:,l), mass_glob )
+
+
 c**** average and unscale polar boxes
-      mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
-      mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
-      rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
-      rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
-      rmom(mz ,:,1 ,l) = (rzm_sp  + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
-      rmom(mzz,:,1 ,l) = (rzzm_sp + sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
-      rmom(mz ,:,jm,l) = (rzm_np  + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
-      rmom(mzz,:,jm,l) = (rzzm_np + sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+      if (HAVE_SOUTH_POLE) then
+        mass(:,1 ,l) = (m_sp + sum(mass(:,1 ,l)-m_sp))*byim
+        rm(:,1 ,l) = (rm_sp + sum(rm(:,1 ,l)-rm_sp))*byim
+        rmom(mz ,:,1 ,l) = (rzm_sp + sum(rmom(mz ,:,1 ,l)-rzm_sp ))*byim
+        rmom(mzz,:,1 ,l) = (rzzm_sp+ sum(rmom(mzz,:,1 ,l)-rzzm_sp))*byim
+      end if   !SOUTH POLE
+
+      if (HAVE_NORTH_POLE) then
+        mass(:,jm,l) = (m_np + sum(mass(:,jm,l)-m_np))*byim
+        rm(:,jm,l) = (rm_np + sum(rm(:,jm,l)-rm_np))*byim
+        rmom(mz ,:,jm,l) = (rzm_np + sum(rmom(mz ,:,jm,l)-rzm_np ))*byim
+        rmom(mzz,:,jm,l) = (rzzm_np+ sum(rmom(mzz,:,jm,l)-rzzm_np))*byim
+      end if  !NORTH POLE
+
       enddo ! end loop over levels
 !$OMP  END PARALLEL DO
 c
@@ -391,7 +523,7 @@ c
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO
-      fqv(:,jm) = 0. ! not really needed
+      if (HAVE_NORTH_POLE) fqv(:,jm) = 0. ! not really needed
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvty',11)
 C
@@ -417,23 +549,29 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
+      use DOMAIN_DECOMP, only : grid, GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
       implicit none
-      REAL*8, dimension(im,jm,lm) :: rm,mass,mw
-      REAL*8, dimension(NMOM,IM,JM,LM) :: rmom
+      REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) 
+     &        :: rm,mass,mw
+      REAL*8, dimension(NMOM,IM,grid%j_strt_halo:grid%j_stop_halo,LM) 
+     &        :: rmom
       logical ::  qlimit
       REAL*8  CM(LM),F_L(LM),FMOM_L(NMOM,LM),MASS_L(LM)
       real*8 bynstep,courmax
       integer :: i,j,l,ierr,nerr,ICKERR,ns,nstep
+c**** Get useful local parameters for domain decomposition
+      integer :: J_0, J_1
+      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
 c**** loop over latitudes and longitudes
       ICKERR=0
 !$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR,
 !$OMP* NSTEP,COURMAX,BYNSTEP,MASS_L,NS,L)
 !$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 !$OMP* REDUCTION(+:ICKERR)
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,im
 c****
 c**** decide how many timesteps to take

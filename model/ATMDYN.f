@@ -1,5 +1,9 @@
 #include "rundeck_opts.h"
-
+#ifdef USE_ESMF
+#define JJ(J) (J)-J_0H+1
+#else
+#define JJ(J) J
+#endif      
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
@@ -14,8 +18,9 @@
      &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave
       USE DAGCOM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GLOBALSUM
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST,CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, only : LOG_PARALLEL
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -29,7 +34,8 @@
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
-      REAL*8 ediff,TE0,TE
+      REAL*8 ediff,TE0,TE,TE0_a,TE0_b
+      
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
@@ -47,9 +53,15 @@ c**** Extract domain decomposition info
       NSOLD=0                            ! strat
       PTOLD(:,:) = P(:,:)
 C**** Initialise total energy (J/m^2)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-      TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+!     TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
+      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
+      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
+      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
+      TE0 = (TE0_a + TE0_b)/AREAG
 C**** Initialize mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -80,51 +92,119 @@ C
 #ifdef NUDGE_ON
       CALL NUDGE_PREP
 #endif
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
       PA(:,:) = P(:,:)
       PB(:,:) = P(:,:)
       PC(:,:) = P(:,:)
 C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
       MRCH=0
 C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
       CALL CALC_PIJL(LM,P,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
       CALL AFLUX (U,V,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
       CALL ADVECM (P,PB,DTFS)
       CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS)   ! strat
 #ifdef NUDGE_ON
       CALL NUDGE (UX,VX,DTFS)
 #endif
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
+      CALL CHECKSUM(grid,  P, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PB, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid,  U, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid,  V, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid,Pijl, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
       if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL CALC_PIJL(LS1-1,PB,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL AFLUX (UX,VX,PIJL)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL ADVECM (P,PA,DT)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DT)
 #endif
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT)   ! strat
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
+      CALL CHECKSUM(grid,  P, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PA, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VX, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,Pijl, __LINE__, __FILE__, STGR=.true.)
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
+      CALL CHECKSUM(grid,Pijl, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
 C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL CALC_PIJL(LS1-1,P,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       CALL AFLUX (U,V,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       CALL ADVECM (PA,PB,DTLF)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DTLF)
 #endif
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF)   ! strat
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
+      CALL CHECKSUM(grid, PA, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, PB, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, U , __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, V , __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid,Pijl, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
@@ -132,13 +212,24 @@ C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
          MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
       MRCH=2
 C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       CALL CALC_PIJL(LS1-1,PA,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       CALL AFLUX (UT,VT,PIJL)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
       CALL ADVECM (PC,P,DTLF)
 #ifdef NUDGE_ON
       CALL NUDGE  (U,V,DTLF)
 #endif
       CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF)   ! strat
+      CALL CHECKSUM(grid, PC, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, U , __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, V , __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, P , __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, UT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid,Pijl, __LINE__, __FILE__, STGR=.true.)
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
@@ -160,7 +251,16 @@ CCC   TZT(:,:,:)= TZ(:,:,:)
       ENDDO
 !$OMP  END PARALLEL DO
       call calc_amp(pc,ma)
+C**** Update halo of PV from the north (needed in AADVT).
+      CALL CHECKSUM(grid, PV, __LINE__,__FILE__,STGR=.true.)
+      CALL HALO_UPDATE(grid, PV, from=NORTH)
+      CALL CHECKSUM(grid,   T, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  MA, __LINE__, __FILE__)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
+      CALL CHECKSUM(grid,  MA, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,   T, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
 !     save z-moment of temperature in contiguous memory for later
 CCC   tz(:,:,:) = tmom(mz,:,:,:)
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -168,21 +268,41 @@ CCC   tz(:,:,:) = tmom(mz,:,:,:)
          TZ(:,:,L) = TMOM(MZ,:,:,L)
       ENDDO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid,   T, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
 CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
 CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-!$OMP  PARALLEL DO PRIVATE (L)
+      CALL CHECKSUM(grid,   T, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
+!$OMP PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TT(:,:,L)  = .5*(T(:,:,L)+TT(:,:,L))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
-!$OMP  END PARALLEL DO
-
+!$OMP END PARALLEL DO
+CCC      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
+CCC      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
+CCC         DO L=1,LM
+CCC           AIJ(:,J_0STG:J_1STG,IJ_FMV)  = 
+CCC     &         AIJ(:,J_0STG:J_1STG,IJ_FMV )+PV(:,J_0STG:J_1STG,L)*DTLF
+CCC           If (HAVE_SOUTH_POLE) 
+CCC     &        AIJ(:,1,IJ_FMU)  = AIJ(:, 1,IJ_FMU )+PU(:, 1,L)*DTLF*BY3
+CCC           If (HAVE_NORTH_POLE) 
+CCC     &        AIJ(:,JM,IJ_FMU) = AIJ(:,JM,IJ_FMU )+PU(:,JM,L)*DTLF*BY3
+CCC           AIJ(:,J_0S:J_1S,IJ_FMU)=
+CCC     &        AIJ(:,J_0S:J_1S,IJ_FMU)+PU(:,J_0S:J_1S,L)*DTLF
+CCC         END DO
       CALL CALC_PIJL(LS1-1,PC,PIJL)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  TT, __LINE__, __FILE__)
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
 
       CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE (J,L,I,IP1)
       DO J=J_0S,J_1S ! eastward transports
@@ -206,15 +326,30 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
       END DO
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
       CALL CALC_AMPK(LS1-1)
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
+      CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__)
       CALL SDRAG (DTLF)
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
+      CALL LOG_PARALLEL(grid, __FILE__, __LINE__, 
+     &     i0 = MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2))
+      CALL LOG_PARALLEL(grid, __FILE__, __LINE__, 
+     &     i0 = MRCH)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
            CALL DIAGB
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
            CALL EPFLUX (U,V,T,P)
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
          ENDIF
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
 C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
@@ -249,16 +384,24 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-      TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+
+      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
+      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
+      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
+      TE = (TE0_a + TE0_b)/AREAG
       ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
-        T(:,:,L)=T(:,:,L)-ediff/PK(L,:,:)
+        T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
       end do
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
 
 C**** Scale WM mixing ratios to conserve liquid water
       PRAT(:,:)=PTOLD(:,:)/P(:,:)
+      CALL CHECKSUM(grid,P, __LINE__, __FILE__)
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
         WM(:,:,L)=WM(:,:,L)*PRAT(:,:)
@@ -267,11 +410,12 @@ C**** Scale WM mixing ratios to conserve liquid water
 
 C**** Calculate 3D vertical velocity (take SD_CLOUDS which has units
 C**** mb*m2/s and convert to WSAVE, units of m/s):
+      CALL CHECKSUM_COLUMN(grid,pmid, __LINE__, __FILE__)
 !$OMP PARALLEL DO PRIVATE (l,i)
       do l=1,lm
         do i=1,im
-          wsave(i,:,l)=sd_clouds(i,:,l)*bydxyp(:)*rgas*
-     &         T(i,:,l)*pk(l,i,:)*bygrav/pmid(l,i,:)
+          wsave(i,J_0:J_1,l)=sd_clouds(i,J_0:J_1,l)*bydxyp(J_0:J_1)*
+     &    rgas*T(i,J_0:J_1,l)*pk(l,i,J_0:J_1)*bygrav/pmid(l,i,J_0:J_1)
         end do
       end do
 !$OMP END PARALLEL DO
@@ -292,7 +436,7 @@ C**** mb*m2/s and convert to WSAVE, units of m/s):
       USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP, only : grid, GET, HERE
       IMPLICIT NONE
       REAL*8 DTLF,byncyc,byma
       INTEGER I,J,L   !@var I,J,L loop variables
@@ -304,8 +448,11 @@ c**** Extract domain decomposition info
 
 
       DTLF=2.*DT
+      CALL HERE(__FILE__,__LINE__)
       CALL CALC_AMP(PS,MB)
+      CALL HERE(__FILE__,__LINE__)
       CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+      CALL HERE(__FILE__,__LINE__)
 C****
 C**** convert from concentration to mass units
 C****
@@ -399,8 +546,10 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 !@var U,V input velocities (m/s)
 !@var PIJL input 3-D pressure field (mb) (no DSIG)
-      REAL*8, INTENT(IN),    DIMENSION(IM,JM,LM) :: U,V
-      REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: PIJL
+      REAL*8, INTENT(INOUT),    
+     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: U,V
+      REAL*8, INTENT(INOUT), 
+     &  DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LM) :: PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
       INTEGER I,J,L,IP1,IM1,IPOLE
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN
@@ -418,6 +567,9 @@ c**** Extract domain decomposition info
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+      CALL HALO_UPDATE(grid, U,FROM=NORTH)
+
 !$OMP  PARALLEL DO PRIVATE (I,J,L,IM1,IP1,DXDSIG,DYDSIG,DUMMYS,DUMMYN,
 !$OMP*                      PUS,PUN,PVS,PVN,PBS,PBN)
       DO 2000 L=1,LM
@@ -426,10 +578,19 @@ C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
 C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
 C****
 C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid,SPA, __LINE__, __FILE__, STGR=.true.)
+
       DO 2154 J=J_0S,J_1S
       DO 2154 I=1,IM
  2154 SPA(I,J,L)=U(I,J,L)+U(I,J+1,L)
+!     CALL CHECKSUM(grid,SPA, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid,PIJL, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       CALL AVRX (SPA(1,J_0H,L))
+!     CALL CHECKSUM(grid,PIJL, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid,SPA, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       I=IM
       DO 2166 J=J_0S,J_1S
       DYDSIG = 0.25D0*DYP(J)*DSIG(L)
@@ -438,8 +599,11 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
  2165 I=IP1
  2166 CONTINUE
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
-      CALL CHECKSUM(grid, PIJL, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, PIJL, FROM=SOUTH)
+!     CALL CHECKSUM(grid, V, __LINE__, __FILE__,STGR=.true.)
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+!     CALL CHECKSUM(grid,PV, __LINE__, __FILE__,STGR=.true.)
+!     CALL CHECKSUM(grid, PIJL, __LINE__, __FILE__)
+!     CALL HALO_UPDATE(grid, PIJL(:,:,L), FROM=SOUTH)
       IM1=IM
       DO 2172 J=J_0STG, J_1STG
       DXDSIG = 0.25D0*DXV(J)*DSIG(L)
@@ -448,6 +612,9 @@ C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
 
  2170 IM1=I
  2172 CONTINUE
+!     CALL CHECKSUM(grid,PV, __LINE__, __FILE__,STGR=.true.)
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
+
 C**** COMPUTE PU*3 AT THE POLES
       IF (HAVE_SOUTH_POLE) THEN
         PUS=0.
@@ -470,7 +637,6 @@ C**** COMPUTE PU*3 AT THE POLES
         END DO
         PBS=PBS*BYIM
         DO I=1,IM
-          PV(I,1,L)=0.
           SPA(I,1,L)=4.*(PBS-DUMMYS(I)+PUS)/(DYP(2)*PIJL(1,1,L))
           PU(I,1,L)=3.*(PBS-DUMMYS(I)+PUS)*DSIG(L)
         END DO
@@ -500,6 +666,7 @@ C**** COMPUTE PU*3 AT THE POLES
           PU(I,JM,L)=3.*(DUMMYN(I)-PBN+PUN)*DSIG(L)
         END DO
       END IF
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
 C****
 C**** CONTINUITY EQUATION
 C****
@@ -538,6 +705,7 @@ C**** END OF HORIZONTAL ADVECTION LAYER LOOP
 C****
 c
 c modify uphill air mass fluxes around steep topography
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       do 2015 j=J_0S,J_1S
       i = im
       do 2010 ip1=1,im
@@ -564,6 +732,7 @@ ccc         if((zatmo(ip1,j)-zatmo(i,j))*pu(i,j,l).gt.0.) then
  2010 CONTINUE
  2015 CONTINUE
 
+      CALL CHECKSUM(grid,PV, __LINE__, __FILE__,STGR=.true.)
       CALL CHECKSUM(grid, zatmo, __LINE__, __FILE__)
       CALL CHECKSUM(grid, pijl, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, zatmo, FROM=SOUTH)
@@ -591,12 +760,13 @@ ccc         if((zatmo(i,j)-zatmo(i,j-1))*pv(i,j,l).gt.0.) then
             endif
  2020    CONTINUE
  2035 CONTINUE
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
 C
 C     Now Really Do  CONTINUITY EQUATION
 C
 C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
 C
-      CALL CHECKSUM(grid,PV, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,PV, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, PV, FROM=NORTH)
 !$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
       DO 2400 L=1,LM
@@ -611,61 +781,64 @@ C
 !$OMP  END PARALLEL DO
 C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
-CC    PIT(I,J)=CONV(I,J,1)
+CC    PIT(I,JJ(J))=CONV(I,J1)
 C     DO 2420 L=LM,2,-1
-C     IF (HAVE_SOUTH_POLE) PIT(1,1)=PIT(1,1)+CONV(1,1,L)
-C     IF (HAVE_NORTH_POLE) PIT(1,JM)=PIT(1,JM)+CONV(1,JM,L)
+C     IF (HAVE_SOUTH_POLE) PIT(1,JJ(1))=PIT(1,JJ(1))+CONV(1,1,L)
+C     IF (HAVE_NORTH_POLE) PIT(1,JJ(JM))=PIT(1,JJ(JM))+CONV(1,JM,L)
 C     DO 2420 J=J_0S,J_1S
 C     DO 2420 I=1,IM
-C2420 PIT(I,J)=PIT(I,J)+CONV(I,J,L)
+C2420 PIT(I,JJ(J))=PIT(I,JJ(J))+CONV(I,J,L)
+      CALL CHECKSUM(grid, PIT, __LINE__,__FILE__)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2420 J=J_0,J_1
          DO 2410 I=1,IMAXJ(J)
          DO 2410 L=LM-1,1,-1
-            PIT(I,J)=PIT(I,J)+SD(I,J,L)
+            PIT(I,JJ(J))=PIT(I,JJ(J))+SD(I,JJ(J),L)
  2410    CONTINUE
  2420 CONTINUE
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, PIT, __LINE__,__FILE__)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
 C**** COMPUTE SD, SIGMA DOT                                             -------
-C     IF (HAVE_SOUTH_POLE) SD(1, 1,LM-1)=CONV(1, 1,LM)                     |
-C     IF (HAVE_NORTH_POLE) SD(1,JM,LM-1)=CONV(1,JM,LM)             completely wasteful
+C     IF (HAVE_SOUTH_POLE) SD(1, JJ(1),LM-1)=CONV(1, JJ(1),LM)                     |
+C     IF (HAVE_NORTH_POLE) SD(1,JJ(J)M,LM-1)=CONV(1,JM,LM)             completely wasteful
 C     DO 2430 J=J_0S,J_1S                                                  |
 C     DO 2430 I=1,IM                                                       |
-C2430 SD(I,J,LM-1)=CONV(I,J,LM)                                         -------
+C2430 SD(I,JJ(J),LM-1)=CONV(I,J,LM)                                         -------
 C     DO 2435 L=LM-2,LS1-1,-1
-C     IF (HAVE_SOUTH_POLE) SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)
-C     IF (HAVE_NORTH_POLE) SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)
+C     IF (HAVE_SOUTH_POLE) SD(1,JJ( 1),L)=SD(1,JJ( 1),L+1)+CONV(1, 1,L+1)
+C     IF (HAVE_NORTH_POLE) SD(1,JJ(JM),L)=SD(1,JJ(JM),L+1)+CONV(1,JM,L+1)
 C     DO 2435 J=J_0S, J_1S
 C     DO 2435 I=1,IM
-C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)
+C     SD(I,JJ( J),L)=SD(I,JJ( J),L+1)+CONV(I, J,L+1)
 C2435 CONTINUE
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2435 J=J_0,J_1
          DO 2430 I=1,IMAXJ(J)
          DO 2430 L=LM-2,LS1-1,-1
-            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
+            SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)
  2430    CONTINUE
  2435 CONTINUE
 !$OMP  END PARALLEL DO
 C     DO 2440 L=LS1-2,1,-1
-C     IF (HAVE_SOUTH_POLE) SD(1, 1,L)=SD(1, 1,L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1, 1)
-C     IF (HAVE_NORTH_POLE) SD(1,JM,L)=SD(1,JM,L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JM)
+C     IF (HAVE_SOUTH_POLE) SD(1,JJ( 1),L)=SD(1,JJ( 1),L+1)+CONV(1, 1,L+1)-DSIG(L+1)*PIT(1,JJ( 1))
+C     IF (HAVE_NORTH_POLE) SD(1,JJ(JM),L)=SD(1,JJ(JM),L+1)+CONV(1,JM,L+1)-DSIG(L+1)*PIT(1,JJ(JM))
 C     DO 2440 J=J_0S,J_1S
 C     DO 2440 I=1,IM
-C     SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I, J)
+C     SD(I,JJ( J),L)=SD(I,JJ( J),L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I,JJ( J))
 C2440 CONTINUE
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2440 J=J_0,J_1
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
-            SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)-DSIG(L+1)*PIT(I,J)
+            SD(I,JJ(J),L)=SD(I,JJ(J),L+1)+SD(I,JJ(J),L)-DSIG(L+1)*PIT(I,JJ(J))
  2438    CONTINUE
  2440 CONTINUE
 !$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
-        IF (HAVE_SOUTH_POLE) SD(I,1,L)=SD(1,1,L)
- 2450   IF (HAVE_NORTH_POLE) SD(I,JM,L)=SD(1,JM,L)
+        IF (HAVE_SOUTH_POLE) SD(I,JJ(1),L)=SD(1,JJ(1),L)
+ 2450   IF (HAVE_NORTH_POLE) SD(I,JJ(JM),L)=SD(1,JJ(JM),L)
 C**** temporary fix for CLOUDS module
       SD_CLOUDS(:,:,1)    = PIT
 !$OMP PARALLEL DO PRIVATE (L)
@@ -674,6 +847,7 @@ C**** temporary fix for CLOUDS module
       END DO
 !$OMP END PARALLEL DO
 C****
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__, STGR=.true.)
       RETURN
       END SUBROUTINE AFLUX
 
@@ -694,10 +868,14 @@ C****
       REAL*8, INTENT(IN) :: DT1
       INTEGER I,J,L  !@var I,J,L  loop variables
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S)
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO=J_0H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       CALL CHECKSUM(grid, U, __LINE__, __FILE__)
@@ -706,7 +884,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       CALL HALO_UPDATE(grid, V, FROM=NORTH)
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
+          PA(I,J)=P(I,J)+(DT1*PIT(I,JJ(J))*BYDXYP(J))
           IF (PA(I,J)+PTOP.GT.1160. .or. PA(I,J)+PTOP.LT.350.) THEN
             WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),ZATMO(I,J),DT1,
      *           (U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
@@ -718,8 +896,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
           END IF
         END DO
       END DO
-      PA(2:IM, 1)=PA(1,1)
-      PA(2:IM,JM)=PA(1,JM)
+      IF (HAVE_SOUTH_POLE) PA(2:IM, 1)=PA(1,1)
+      IF (HAVE_NORTH_POLE) PA(2:IM,JM)=PA(1,JM)
 C****
       RETURN
   990 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
@@ -760,11 +938,12 @@ C****
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
       INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
@@ -780,6 +959,11 @@ C****
       SPA(:,:,L)=0.
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,   T, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,   P, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, ZATMO, __LINE__, __FILE__)
+
 !$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
 !$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=J_0,J_1
@@ -831,18 +1015,21 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
       END DO
 !$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       IF (HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           SPA(2:IM,1,L)=SPA(1,1,L)
           PHI(2:IM,1,L)=PHI(1,1,L)
         END DO
       END IF
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
       IF (HAVE_NORTH_POLE) THEN
         DO L=1,LM
           SPA(2:IM,JM,L)=SPA(1,JM,L)
           PHI(2:IM,JM,L)=PHI(1,JM,L)
         END DO
       END IF
+      CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
 
 !$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
@@ -876,8 +1063,6 @@ C
 C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C
-      CALL CHECKSUM(grid, PU, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, PU, FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO 3300 L=1,LM
       IF (HAVE_SOUTH_POLE) PU(:,1,L)=0.
@@ -889,8 +1074,11 @@ C
      *  (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
  3280 I=IP1
  3290 CONTINUE
-      CALL AVRX (PU(1,J_0,L))
-      DO 3294 J=2,JM
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__)
+      CALL AVRX (PU(1,J_0H,L))
+!     CALL CHECKSUM(grid, PU, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PU, FROM=SOUTH)
+      DO 3294 J=J_0STG,J_1STG
       FACTOR = -DT4*DYV(J)*DSIG(L)
       DO 3294 I=1,IM
  3294 DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
@@ -1051,12 +1239,12 @@ C****
       USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
 #endif
       USE PBLCOM, only : tsavg
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP, Only : grid, GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff
+      REAL*8 PSUMO,PSUMN,PDIF,AKAP,TE0,TE,ediff,TE0_a,TE0_b,TE_a,TE_b
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
 c**** Extract domain decomposition info
@@ -1068,7 +1256,10 @@ c**** Extract domain decomposition info
 C**** Initialise total energy (J/m^2)
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-      TE0=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
+      CALL GLOBALSUM(grid, PEJ, TE0_a,ALL=.true.)
+      CALL GLOBALSUM(grid, KEJ, TE0_b, istag = 1,ALL=.true.)
+      TE0 = (TE0_a + TE0_b)/AREAG
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
@@ -1147,7 +1338,10 @@ C**** But if n_air=0 this will cause problems...
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       call conserv_PE(PEJ)
       call conserv_KE(KEJ)
-      TE=(sum(PEJ(:)*DXYP(:))+sum(KEJ(2:JM)))/AREAG
+      PEJ(J_0:J_1)=PEJ(J_0:J_1)*DXYP(J_0:J_1)
+      CALL GLOBALSUM(grid, PEJ, TE_a,ALL=.true.)
+      CALL GLOBALSUM(grid, KEJ, TE_b, istag = 1,ALL=.true.)
+      TE = (TE_a + TE_b)/AREAG
       ediff=(TE-TE0)/((PSF-PMTOP)*SHA*mb2kg)        ! C
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
@@ -1220,16 +1414,19 @@ C**********************************************************************
       REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
-      REAL*8 ediff,angm,dpt
+      REAL*8 ediff,angm,dpt,D2V,D2U
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0STG, J_1STG
-      logical :: have_north_pole, have_south_pole
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      INTEGER :: II
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, 
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       USAVE=U ; VSAVE=V
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
       if (DT_XUfilter.gt.0.) then
         XUby4toN = (DT/DT_XUfilter)*by4toN
       else
@@ -1275,12 +1472,53 @@ C**** Filter V component of velocity
   340 V(I,J,L) = V(I,J,L) - X(I)*XVby4toN
   350 CONTINUE
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
 C****
 C**** Filtering in north-south direction
 C****
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
+
       IF (DT_YVfilter.gt.0.) THEN
       YVby4toN = (DT/DT_YVfilter)*by4toN
 C**** Filter V component of velocity
+
+      IF (HAVE_SOUTH_POLE) THEN
+        J = 2
+        DO L = 1, LM
+          DO I = 1, IM/2
+            II = I + IM/2
+            D2V = V(I,J+1,L) - V(I,J,L) - V(I,J,L) - V(II,J,L) 
+            V(I, J,L) = V(I, J,L) - YVby4toN * D2V
+            V(II,J,L) = V(II,J,L) - YVby4toN * D2V
+          END DO
+        END DO
+      END IF
+      IF (HAVE_NORTH_POLE) THEN
+        J = JM
+        DO L = 1, LM
+          DO I = 1, IM/2
+            II = I + IM/2
+            D2V = -V(II,J-1,L) - V(I,J,L) - V(I,J,L) + V(I,J,L) 
+            V(I, J,L) = V(I, J,L) - YVby4toN * D2V
+            V(II,J,L) = V(II,J,L) - YVby4toN * D2V
+          END DO
+        END DO
+      END IF
+
+      CALL HALO_UPDATE(grid, V, FROM=SOUTH+NORTH)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,D2V)
+      DO L=1,LM
+        DO J=MAX(3,J_0S),J_1S
+          DO I=1,IM
+            D2V= V(I,J-1,L)-V(I,J,L)-V(I,J,L)+V(I,J+1,L)
+            V(I,J,L)=V(I,J,L) - YVby4toN * D2V
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
+
 C**** Filtering longitudes on opposite sides of the globe simultaneously
 C**** This is designed for resolutions with 1/2 boxes at poles and must
 C****   be re-thought for others.
@@ -1311,10 +1549,48 @@ C****   be re-thought for others.
   650 CONTINUE
 !$OMP  END PARALLEL DO
       END IF
+      CALL CHECKSUM(grid, V, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
 
       IF (DT_YUfilter.gt.0.) THEN
       YUby4toN = (DT/DT_YUfilter)*by4toN
 C**** Filter U component of velocity
+
+      IF (HAVE_SOUTH_POLE) THEN
+        J = 2
+        DO L = 1, LM
+          DO I = 1, IM/2
+            II = I + IM/2
+            D2U = U(I,J+1,L) - U(I,J,L) - U(I,J,L) - U(II,J,L) 
+            U(I, J,L) = U(I, J,L) - YUby4toN * D2U
+            U(II,J,L) = U(II,J,L) - YUby4toN * D2U
+          END DO
+        END DO
+      END IF
+      IF (HAVE_NORTH_POLE) THEN
+        J = JM
+        DO L = 1, LM
+          DO I = 1, IM/2
+            II = I + IM/2
+            D2U = -U(II,J-1,L) - U(I,J,L) - U(I,J,L) + U(I,J,L) 
+            U(I, J,L) = U(I, J,L) - YUby4toN * D2U
+            U(II,J,L) = U(II,J,L) - YUby4toN * D2U
+          END DO
+        END DO
+      END IF
+
+      CALL HALO_UPDATE(grid, U, FROM=SOUTH+NORTH)
+!$OMP  PARALLEL DO PRIVATE (I,J,L,D2U)
+      DO L=1,LM
+        DO J=MAX(3,J_0S),J_1S
+          DO I=1,IM
+            D2U= U(I,J-1,L)-U(I,J,L)-U(I,J,L)+U(I,J+1,L)
+            U(I,J,L)=U(I,J,L) - YUby4toN * D2U
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+
 C**** Filtering longitudes on opposite sides of the globe simultaneously
 C**** This is designed for resolutions with 1/2 boxes at poles and must
 C****   be re-thought for others.
@@ -1350,12 +1626,14 @@ C****   be re-thought for others.
          if(have_south_pole) call isotropuv(u,v,-1)
          if(have_north_pole) call isotropuv(u,v,+1)
       endif
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
 
 C**** Conserve angular momentum along latitudes
-      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
       CALL CHECKSUM_COLUMN(grid, PDSIG, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
       CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
+      CALL CHECKSUM(grid, USAVE, __LINE__, __FILE__, STGR=.true.)
 !$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=J_0STG,J_1STG
@@ -1379,13 +1657,15 @@ C**** Conserve angular momentum along latitudes
         END DO
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
 
 C**** Call diagnostics and KE dissipation only for even time step 
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
         
-        CALL CHECKSUM   (grid, DKE, __LINE__, __FILE__)
-        CALL HALO_UPDATE(grid, DKE, from=NORTH)
+        CALL CHECKSUM(grid, DKE, __LINE__, __FILE__,STGR=.true.)
+        CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
+
 
 C**** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
@@ -1402,6 +1682,7 @@ C**** Add in dissipiated KE as heat locally
         END DO
 !$OMP  END PARALLEL DO
       END IF
+      CALL CHECKSUM(grid, U, __LINE__, __FILE__, STGR=.true.)
 
       RETURN
       END SUBROUTINE FLTRUV
@@ -1633,7 +1914,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, HERE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
@@ -1657,6 +1938,7 @@ C**** to be used in the PBL, at the promary grids
       CALL HALO_UPDATE(grid, P,   FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid, ZATMO, FROM=SOUTH+NORTH)
+      CALL HERE(__FILE__,__LINE__)
 
       DO I=1,IM
         DO J=J_0S,J_1S
@@ -1725,6 +2007,7 @@ C**** to be used in the PBL, at the promary grids
         DPDX_BY_RHO_0(1,JM)=dpx0*BYIM
         DPDY_BY_RHO_0(1,JM)=dpy0*BYIM
       END IF
+      CALL HERE(__FILE__,__LINE__)
 
       END SUBROUTINE PGRAD_PBL
 
@@ -1775,12 +2058,13 @@ c**** Extract domain decomposition info
 
       ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
 C*
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__)
       BYPIJU=1./PSFMPT
       DUT=0. ; DVT=0.
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__)
       CALL CHECKSUM_COLUMN(grid, PDSIG, __LINE__, __FILE__)
-      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
       CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
       DO L=LS1,LM
       DO J=J_0STG, J_1STG
       cd_lin=.false.
@@ -1821,6 +2105,8 @@ C**** adjust diags for possible difference between DT1 and DTSRC
       END DO
       END DO
       END DO
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__)
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
 C*
 C***  Add the lost angular momentum uniformly back in if ang_sdrag>0
 C***  only below 150mb if ang_sdrag=1, into whole column if ang_sdrag>1
@@ -1849,8 +2135,11 @@ C*
         end do
       end if
 
-      CALL CHECKSUM   (GRID, DKE, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DKE, from=NORTH)
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__//'::PK')
+      CALL CHECKSUM(grid, DKE, __LINE__, __FILE__,STGR=.true.)
+      CALL HALO_UPDATE(grid, DKE, FROM=NORTH)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__//'::PK')
 
 C***** Add in dissipiated KE as heat locally
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
@@ -1864,12 +2153,17 @@ C***** Add in dissipiated KE as heat locally
             T(I,J,L)=T(I,J,L)-ediff/(SHA*PK(L,I,J))
           END DO
         END DO
+!     CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__//'::PK')
       END DO
 !$OMP  END PARALLEL DO
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__//'::PK')
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
       CALL DIAGCD (4,U,V,DUT,DVT,DT1)
+      CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__//'::PK')
+      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
       RETURN
       END SUBROUTINE SDRAG
 
@@ -1928,8 +2222,8 @@ C**** Find WMO Definition of Tropopause to Nearest L
       USE MODEL_COM, only : jm,lm,t
       USE GEOM, only : imaxj,kmaxj,idij,idjj,rapj
       USE DYNAMICS, only : dke,pk
-      USE DOMAIN_DECOMP, Only : grid, GET
-      USE DOMAIN_DECOMP, Only : HALO_UPDATE, CHECKSUM, NORTH
+      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, Only : NORTH, SOUTH, EAST, WEST
       IMPLICIT NONE
       INTEGER I,J,L,K
       REAL*8 ediff
@@ -1944,8 +2238,8 @@ c**** Extract domain decomposition info
 
 C**** DKE (m^2/s^2) is saved from surf,dry conv,aturb and m.c
 
-      CALL CHECKSUM   (GRID, DKE, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DKE, from=NORTH)
+      CALL CHECKSUM(grid, DKE, __LINE__, __FILE__,STGR=.true.)
+      CALL HALO_UPDATE(grid, DKE, FROM=SOUTH)
 
 !$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
       DO L=1,LM

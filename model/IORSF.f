@@ -7,6 +7,7 @@
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@+     io_ocdiag,io_icedyn,io_icdiag
+      USE DOMAIN_DECOMP, only : REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
 
       IMPLICIT NONE
@@ -22,7 +23,7 @@
       INTEGER IT1,itm
 
       ioerr=-1
-      rewind kunit
+      CALL REWIND_PARALLEL( kunit )
 
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 C**** Particular values may produce variations in indiv. i/o routines

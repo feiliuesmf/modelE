@@ -260,9 +260,9 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 C**** halo update u and v for distributed parallelization
-       call checksum   (grid, U, __LINE__, __FILE__)
+       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, U, from=NORTH)
-       call checksum   (grid, V, __LINE__, __FILE__)
+       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, V, from=NORTH)
 
 !$OMP  PARALLEL DO PRIVATE
@@ -973,6 +973,8 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf
+      use DOMAIN_DECOMP, only : GRID, READT_PARALLEL, DREAD_PARALLEL
+      use DOMAIN_DECOMP, only : CHECKSUM, HERE
       use model_com, only : fearth,itime,nday,jeq,jyear
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
@@ -1006,7 +1008,9 @@ c**** modifications needed for split of bare soils into 2 types
       real*8 trsoil_tot,wsoil_tot,fm
 #endif
 c****
-c**** contents of sdata(i,j,k):
+      REAL*8 :: 
+     * TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
+c**** contents of TEMP_LOCAL used for reading the following in a block:
 c****       1 -   ngm   dz(ngm)
 c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
@@ -1018,11 +1022,13 @@ c**** 11*ngm+1           sl
 
 C**** define local grid
       integer J_0, J_1
+      integer J_H0, J_H1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               J_STRT_HALO=J_H0, J_STOP_HALO=J_H1)
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -1050,12 +1056,21 @@ c**** read land surface parameters or use defaults
         !!!if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
-        call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
+        call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
+        DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
+         Q_IJ(:,J_0:J_1,:,:) = RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM:) , 
+     *                   (/im,J_1-J_0+1,imt,ngm/) )
+        QK_IJ(:,J_0:J_1,:,:) = 
+     *                 RESHAPE( TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT:) , 
+     *                   (/im,J_1-J_0+1,imt,ngm/) )
+        SL_IJ(:,J_0:J_1)  = TEMP_LOCAL(:,J_0:J_1,1+NGM+NGM*IMT+NGM*IMT)
         call closeunit (iu_SOIL)
 c**** read topmodel parameters
         call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
-        call readt(iu_TOP_INDEX,0,top_index_ij,im*jm,top_index_ij,1)
-        call readt(iu_TOP_INDEX,0,top_dev_ij,  im*jm,top_dev_ij,  1)
+        call READT_PARALLEL
+     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_index_ij,1)
+        call READT_PARALLEL
+     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_dev_ij  ,1)
         call closeunit (iu_TOP_INDEX)
       else  ! reset to default data
         if ( istart>0 .and. istart<10 ) then ! reset all
@@ -1399,7 +1414,6 @@ c****
       use veg_com, only: afb
 !      use veg_drv, only : veg_set_cell
 
-
       implicit none
       integer i0,j0
 !      real*8 wfcap
@@ -1466,6 +1480,7 @@ c****
 c****
       call xklh0
 c****
+
       do ibv=1,2
         do k=1,n
           shc(k,ibv)=0.

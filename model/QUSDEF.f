@@ -215,6 +215,7 @@ c-----------------------------------------------------------------
       enddo
       return
       end subroutine adv1d
+c************************************************************************
 
       subroutine limitq(anm1,an,fnm1,fn,sn,sx,sxx,ierr)
 !@sum  limitq adjusts moments to maintain non-neg. tracer means/fluxes

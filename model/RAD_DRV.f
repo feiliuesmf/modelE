@@ -308,7 +308,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,ls1,dsig,sige,psfmpt,ptop,dtsrc,nrad
      *     ,kradia
-      USE DOMAIN_DECOMP, only : grid, get
+      USE DOMAIN_DECOMP, only : grid, get, write_parallel
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
@@ -349,6 +349,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
 
       INTEGER J_0,J_1,J_1S
       LOGICAL HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      character(len=300) :: out_line
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1
      *             ,  J_STOP_SKP=J_1S
@@ -386,7 +387,8 @@ C**** sync radiation parameters from input
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
       call sync_param( "snoage_fac_max", snoage_fac_max )
       if(snoage_fac_max.lt.0. .or. snoage_fac_max.gt.1.) then
-        write(*,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
+        write(out_line,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
+        call write_parallel(trim(out_line),unit=6)
         call stop_model('init_RAD: snoage_fac_max out of range',255)
       end if
       call sync_param( "rad_interact_tr", rad_interact_tr )
@@ -396,17 +398,26 @@ C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
         pyear=1950.-paleo_orb_yr ! since 0 BP is defined as 1950CE
         call orbpar(pyear, eccn, obliq, omegt)
-        write(6,*)
-        write(6,*) " Orbital Parameters Calculated:"
-        write(6,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear," (CE);",
-     *       paleo_orb_yr," (BP)"
-        write(6,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) " Orbital Parameters Calculated:"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear," 
+     *       (CE);", paleo_orb_yr," (BP)"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
      *       " (default = ",eccn_def,")"
-        write(6,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",obliq,
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
+     *       obliq,
      *       " (default = ",obliq_def,")"
-        write(6,'(a,f7.3,a,f7.3,a)') "   Precession (degs from ve): ",
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f7.3,a,f7.3,a)') 
+     *       "   Precession (degs from ve): ",
      *       omegt," (default = ",omegt_def,")"
-        write(6,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
       else  ! set from defaults (defined in CONSTANT module)
         omegt=omegt_def
         obliq=obliq_def
@@ -414,7 +425,6 @@ C**** Set orbital parameters appropriately
       end if
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
-
       if (HAVE_SOUTH_POLE) then
         PHIS=-.25*TWOPI
         SPHIS=-1.
@@ -424,7 +434,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
         SPHIS=SIN(PHIS)
         CPHIS=COS(PHIS)
       end if
-      DO J=1,JM-1
+      DO J=J_0,J_1S
         PHIN=DLAT*(J-.5*JM)
         SPHIN=SIN(PHIN)
         CPHIN=COS(PHIN)
@@ -620,7 +630,8 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       do LR=1,LM_REQ
         shl0(LR) = shl(LM+LR)
       end do
-      write(6,*) 'spec.hum in rad.equ.layers:',shl0
+      write(out_line,*) 'spec.hum in rad.equ.layers:',shl0
+      call write_parallel(trim(out_line),unit=6)
 C**** Optionally scale selected greenhouse gases
       FULGAS(2)=FULGAS(2)*CO2X
       FULGAS(6)=FULGAS(6)*N2OX
@@ -699,9 +710,10 @@ C     OUTPUT DATA
       USE VEG_COM, only : vdata
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : gtemp
-      USE DOMAIN_DECOMP, ONLY: grid
-      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM
+      USE FLUXES, only : gtemp,nstype
+      USE DOMAIN_DECOMP, ONLY: grid,write_parallel
+      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE, CHECKSUM, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP, ONLY: GLOBALSUM, AM_I_ROOT, HERE
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII
@@ -748,6 +760,7 @@ C
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      character(len=300) :: out_line
 C
 C****
       I_0 = grid%I_STRT
@@ -794,11 +807,16 @@ C****   output data: really needed only if kradia=2
      *     ,srhra,trhra                                ! 2(LM+LM_REQ+1)}
 C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
      *     ,iy
-          if (qcheck) write(6,*) 'reading RADfile at Itime',Itime,it,iy
+          if (qcheck) then
+            write(out_line,*) 'reading RADfile at Itime',Itime,it,iy
+            call write_parallel(trim(out_line),unit=6)
+          endif 
         end do
         iend = 0
    10   if (it.ne.iy.or.iend.eq.1) then
-          write(6,*) 'RAD input file bad or too short:',itime,it,iy,iend
+          write(out_line,*) 'RAD input file bad or too short:',itime,
+     *                       it,iy,iend
+          call write_parallel(trim(out_line),unit=6)
           call stop_model('RADIA: input file bad or too short',255)
         end if
 C****   Find arrays derived from P : PEdn and PK (forcing experiments)
@@ -1602,22 +1620,40 @@ c longwave forcing at surface (if required)
   780    CONTINUE
          DO L=1,LM
            DO I=1,IM
-             DO J=max(J_0,J5S),min(J_1,J5N)
+C ESMF: GLOBAL SUM EXCEPTION:
+C        DUM(I,J,L)=0.
+C        if (j.ge.j5s .and. j.le.j5n) 
+C             DUM(i,j,l)= (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J) )  
+C--->ESMF_GLOBAL_SUM DUM over all J and store in a second dummy array:
+C     --e.g. AIL_REQ_SUM(I,L):
+C
+C       { AIL_REQ_SUM(i,L)=AIL_REQ_SUM(i,L) + DUM(i,j,l) }
+C        Broadcast to all processes. 
+C        ==> AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+ AIL_REQ_SUM(I,L)
+             DO J=J5S,J5N
                AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+
      *              (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J)
              END DO
-             IF(J_0 <= J50N .and. J_1 >= J50N)
-     *        AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
-     *            ,J50N)+TRHR(L,I,J50N))*DXYP(J50N)
-             IF(J_0 <= J70N .and. J_1 >= J70N)
-     *        AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
-     *            ,J70N)+TRHR(L,I,J70N))*DXYP(J70N)
            END DO
          END DO
-
-C****EXCEPTION: partial-global sum above!
-C     CALL GLOBAL_SUM(AIL(:,:,IL_REQ), .....)
-C
+C****Accumulate diagnostics for lattitude 50N
+         if (J50N.ge.J_0 .and. J50N.le.J_1) then
+           DO L=1,LM
+             DO I=1,IM
+               AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
+     *            ,J50N)+TRHR(L,I,J50N))*DXYP(J50N)
+             END DO
+           END DO
+         end if
+C****Accumulate diagnostics for lattitude 70N
+         if (J70N.ge.J_0 .and. J70N.le.J_1) then
+           DO L=1,LM
+             DO I=1,IM
+               AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
+     *              ,J70N)+TRHR(L,I,J70N))*DXYP(J70N)
+             END DO
+           END DO
+         END IF
 C****
 C**** Update radiative equilibrium temperatures
 C****
@@ -1658,20 +1694,25 @@ C**** daily diagnostics
 !@auth R. Ruedy
 !@ver  1.0
 
+      use domain_decomp, only : write_parallel
       USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
       USE RADNCB, only : ghg_yr
       IMPLICIT NONE
       INTEGER iu,n,k
       CHARACTER*80 title
+      character(len=300) :: out_line
 
-      write(6,*)
+      write(out_line,*)
+      call write_parallel(trim(out_line),unit=6)
       do n=1,5
       read(iu,'(a)') title
-      write(6,'(1x,a80)') title
+      write(out_line,'(1x,a80)') title
+      call write_parallel(trim(out_line),unit=6)
       end do
       if(title(1:2).eq.'--') then                 ! older format
         read(iu,'(a)') title
-        write(6,'(1x,a80)') title
+        write(out_line,'(1x,a80)') title
+        call write_parallel(trim(out_line),unit=6)
       end if
 
       read(title,*) ghgyr1,(ghgam(k,1),k=1,nghg)
@@ -1679,15 +1720,21 @@ C**** daily diagnostics
       do n=2,nyrsghg
         read(iu,'(a)',end=20) title
         read(title,*) ghgyr2,(ghgam(k,n),k=1,nghg)
-        if(ghg_yr.eq.0.or.abs(ghg_yr-ghgyr2).le.1)
-     *      write(6,'(1x,a80)') title
+        if(ghg_yr.eq.0.or.abs(ghg_yr-ghgyr2).le.1) then
+          write(out_line,'(1x,a80)') title
+          call write_parallel(trim(out_line),unit=6)
+        endif
         do k=1,nghg
           if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
         end do
       end do
    20 continue
-      if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) write(6,'(1x,a80)') title
-      write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
+      if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) then
+        write(out_line,'(1x,a80)') title
+        call write_parallel(trim(out_line),unit=6)
+      endif
+      write(out_line,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
+      call write_parallel(trim(out_line),unit=6)
       return
       end SUBROUTINE GHGHST
 
@@ -1695,20 +1742,25 @@ C**** daily diagnostics
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
 !@ver  1.0
+      use domain_decomp, only : grid,get,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
-      integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
-      real*8 PLB(lm+1),dH2O(jm,lm,12)
+      integer m,iu,jm,lm,j,j1,j2j,j2,l,ll,ldn(lm),lup(lm)
+      real*8 PLB(lm+1),dH2O(grid%j_strt_halo:grid%j_stop_halo,lm,12)
      *     ,dglat(jm)
       real*4 pb(0:lma+1),h2o(jma,0:lma),xlat(jma),z(lma),dz(0:lma)
       character*100 title
       real*4 pdn,pup,w1,w2,dh,fracl
+      integer :: j_0,j_1
+      character(len=300) :: out_line
 
 C**** read headers/latitudes
       read(iu,'(a)') title
-      write(6,'(''0'',a100)') title
+      write(out_line,'(''0'',a100)') title
+      call write_parallel(trim(out_line),unit=6)
       read(iu,'(a)') title
-      write(6,'(1x,a100)') title
+      write(out_line,'(1x,a100)') title
+      call write_parallel(trim(out_line),unit=6)
       read(iu,'(a)') title
 c      write(6,'(1x,a100)') title
       read(title(10:100),*) (xlat(j),j=1,jma)
@@ -1716,7 +1768,8 @@ c      write(6,'(1x,a100)') title
 C**** read heights z(km) and data (kg/km^3/year)
       do m=1,12
         read(iu,'(a)') title
-        write(6,'(1x,a100)') title
+        write(out_line,'(1x,a100)') title
+        call write_parallel(trim(out_line),unit=6)
         do l=lma,1,-1
           read(iu,'(a)') title
 c          write(6,'(1x,a100)') title

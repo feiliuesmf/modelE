@@ -19,7 +19,7 @@ C*************************************************************
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : DYN_GRID
+      USE DOMAIN_DECOMP, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
       IMPLICIT NONE
       SAVE
@@ -38,8 +38,8 @@ C**** rheology calculations without changing ADVSI grid.
       integer, parameter :: nx1=imic+2, ny1=jmic
       INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
       integer :: NPOL=1,LCYC=1
-       TYPE(DYN_GRID) :: grid_MIC
-       TYPE(DYN_GRID) :: grid_NXY
+       TYPE(DIST_GRID) :: grid_MIC
+       TYPE(DIST_GRID) :: grid_NXY
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN
@@ -92,8 +92,6 @@ C**** Geometry
 
 !@var BYDTS reciprocal of timestep in ice dynamics code
       REAL*8 :: BYDTS
-
-      INTEGER :: CHECKSUM_UNIT
 
       CONTAINS 
 
@@ -343,21 +341,24 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@ver  1.0
       USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
       USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, CHECKSUM
+      USE DOMAIN_DECOMP, ONLY : PACK, UNPACK, AM_I_ROOT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      &         AU,BU,CU,FXY,FXY1
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,NX1) :: 
      &         AV,BV,CV,FXYa,FXY1a
+      REAL*8, DIMENSION(JM,NX1) :: AV_GLOB,BV_GLOB,CV_GLOB
       REAL*8, DIMENSION(NX1) :: CUU,URT         !CUU,
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
      &         CVV,VRT,U_tmp                     !CVV,
+      REAL*8, DIMENSION(JM ) :: VRT_GLOB, U_TMP_GLOB
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
       INTEGER I,J,J1,J2,IMD,JMD
       REAL*8 DELXY,DELXR,DELX2,DELY2,DELYR,ETAMEAN,ZETAMEAN,AA1,AA2
      *     ,AA3,AA4,AA5,AA6,AA9
 
-      INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
+      INTEGER :: J_0,J_1, J_0S,J_1S, J_0H,J_1H, J_0STG,J_1STG
 
 C**** Replaces NYPOLE in loops. 
       INTEGER :: J_NYP 
@@ -366,6 +367,7 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
 C****
@@ -438,11 +440,9 @@ C**Update halos for arrays eta,zeta,vicec,bycsu as needed in the next loop
       CALL CHECKSUM(grid, ZETA, __LINE__, __FILE__)
         CALL HALO_UPDATE(grid, ZETA, FROM=NORTH)
       CALL CHECKSUM(grid, VICEC, __LINE__, __FILE__)
-        CALL HALO_UPDATE(grid, VICEC, FROM=NORTH)
-        CALL HALO_UPDATE(grid, VICEC, FROM=SOUTH)
+        CALL HALO_UPDATE(grid, VICEC, FROM=NORTH+SOUTH)
       CALL CHECKSUM(grid, BYCSU, __LINE__, __FILE__)
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH)
-        CALL HALO_UPDATE(grid, BYCSU, FROM=SOUTH)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -615,6 +615,14 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
+C**** Pack the distributed arrays into temporary global arrays in preparation
+C**** for call to TRIDIAG.
+      DO I=1,NX1
+        CALL PACK( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
+        CALL PACK( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
+        CALL PACK( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
+      END DO
+
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
         DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
@@ -651,7 +659,16 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
       VRT(J)=VRT(J)*UVM(I,J)
       END DO
 
-      CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
+C**** Pack the distributed array VRT into the global array VRT_GLOB.
+      CALL PACK(GRID,VRT,VRT_GLOB)
+C****DEGUB
+CCC      write(*,*)'call to tridiag in 1300 loop: i=',i,bv_glob(2,i) 
+      IF (AM_I_ROOT())
+     &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
+     &               U_tmp_GLOB(2),NYPOLE-1)
+
+C**** Unpack the output global arrays into the corresponding distributed ones.
+      CALL UNPACK(grid, U_TMP_GLOB, U_tmp)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
@@ -752,6 +769,14 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
+C**** Pack the distributed arrays into temporary global arrays in preparation
+C**** for call to TRIDIAG.
+      DO I=1,NX1
+        CALL PACK( GRID, AV(J_0H:,I), AV_GLOB(1:,I) )
+        CALL PACK( GRID, BV(J_0H:,I), BV_GLOB(1:,I) )
+        CALL PACK( GRID, CV(J_0H:,I), CV_GLOB(1:,I) )
+      END DO
+
       DO 1301 I=2,NXLCYC
       DO J=J_0S,J_NYP
         DELX2=BYDX2(I)       ! 0.5/(DXU(I)*DXU(I))
@@ -783,7 +808,16 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         VRT(J)=(VRT(J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
 
-      CALL TRIDIAG(AV(2,I),BV(2,I),CV(2,I),VRT(2),U_tmp(2),NYPOLE-1)
+C**** Pack distributed array VRT into temporary global one.
+      CALL PACK(GRID, VRT, VRT_GLOB)
+
+      IF (AM_I_ROOT())
+     &  CALL TRIDIAG(AV_GLOB(2,I),BV_GLOB(2,I),CV_GLOB(2,I),VRT_GLOB(2),
+     &               U_tmp_GLOB(2),NYPOLE-1)
+
+C**** Unpack the tridiag output global array into the corresponding distributed
+C**** one.
+      CALL UNPACK(GRID, U_TMP_GLOB, U_TMP)
 
 c      DO J=J_0S,J_NYP
 c      CVV(J)=CV(J,I)
@@ -981,6 +1015,7 @@ c****
         CSU(NY1)=CSU(NY1-1)
         bycsu(NY1) = 1./csu(NY1)
       end if
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
 
 C**** sin/cos ice-ocean turning angle
       SINWAT=SIN(OIPHI)
@@ -996,6 +1031,7 @@ C**** Set land masks for tracer and velocity points
       enddo
 C**** define velocity points (including exterior corners)
       CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
@@ -1007,6 +1043,7 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
       end do
 C**** reset tracer points to surround velocity points (except for single
       CALL CHECKSUM(grid, UVM, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
 c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
       do j=j_0s,j_1s
@@ -1036,6 +1073,7 @@ c set lateral boundary conditions
 
 C**** Update halo of PHI for distributed memory implementation
       CALL CHECKSUM(grid, HEFFM, __LINE__, __FILE__)
+        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
       CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
@@ -1166,9 +1204,9 @@ C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
 
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
-      USE DOMAIN_DECOMP, ONLY : INIT_DECOMP
+      USE DOMAIN_DECOMP, ONLY : INIT_APP,INIT_GRID
       USE ICEDYN, ONLY : FOCEAN
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
      &                   ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY,
@@ -1180,7 +1218,7 @@ C**** to ALLOC_ICEDYN.
       USE ICEDYN, ONLY : grid_MIC, grid_NXY
       IMPLICIT NONE
       LOGICAL, SAVE :: init = .false.
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
@@ -1192,8 +1230,8 @@ C**** to ALLOC_ICEDYN.
       End If
       init = .true.
 
-      CALL INIT_DECOMP(grid_MIC, IMIC, JMIC)
-      CALL INIT_DECOMP(grid_NXY, NX1, NY1)
+      CALL INIT_GRID(grid_MIC, IMIC, JMIC)
+      CALL INIT_GRID(grid_NXY, NX1, NY1)
       CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H, 
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 

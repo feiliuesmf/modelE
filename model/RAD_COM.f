@@ -130,7 +130,7 @@ C**** Local variables initialised in init_RAD
 !@auth Rodger Abel
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM, LM
       USE RADNCB, ONLY : LM_REQ
@@ -139,7 +139,7 @@ C**** Local variables initialised in init_RAD
      *     dH2O, ALB, SALB, SINJ, COSJ
 
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_0H, J_1H
       INTEGER :: IER

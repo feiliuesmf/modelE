@@ -541,6 +541,10 @@ C****      '(' is required, so it is inserted
 !@dbparam dump_core if set to 1 dump core for debugging
       integer :: dump_core = 0
       integer, parameter :: iu_err = 9
+      integer :: mpi_err
+#ifdef USE_ESMF
+      include 'mpif.h'
+#endif
 
 c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       if ( message(1:6) .ne. 'PARAM:' ) then
@@ -565,8 +569,15 @@ c**** don't call sync_param if the error is in 'PARAM' to avoid loops
       call sys_flush(6)
 
       if ( retcode > 13 .and. dump_core > 0 ) then
+#ifdef USE_ESMF
+        call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
+#else
         call abort
+#endif
       else
+#ifdef USE_ESMF
+        call mpi_finalize(mpi_err)
+#endif
         call exit_rc ( retcode )
       endif
 

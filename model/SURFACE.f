@@ -190,17 +190,17 @@ C**** Set up tracers for PBL calculation if required
       ntx = nx
 #endif
 
-      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, u     , __LINE__, __FILE__)
-      Call CHECKSUM(GRID, v     , __LINE__, __FILE__)
+      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, u     , __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, v     , __LINE__, __FILE__,STGR=.true.)
 
-      Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH)
-      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH)
-      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH)
-      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH)
+      Call HALO_UPDATE(GRID, uosurf, FROM=NORTH)
+      Call HALO_UPDATE(GRID, vosurf, FROM=NORTH)
+      Call HALO_UPDATE(GRID, uisurf, FROM=NORTH)
+      Call HALO_UPDATE(GRID, visurf, FROM=NORTH)
       Call HALO_UPDATE(GRID, u     , FROM=NORTH)
       Call HALO_UPDATE(GRID, v     , FROM=NORTH)
 
@@ -949,10 +949,10 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__)
-      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__)
+      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__,STGR=.true.)
+      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__,STGR=.true.)
 
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -1025,13 +1025,16 @@ C****
       IF(MODDD.EQ.0) THEN
         DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
-          IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
-            ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
-            ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
-     *           +DCLEV(IJDD(1,KR),IJDD(2,KR))
-            HDIURN(IHM,IDD_DCF,KR)=HDIURN(IHM,IDD_DCF,KR)+1.
-            HDIURN(IHM,IDD_LDC,KR)=HDIURN(IHM,IDD_LDC,KR)
-     *           +DCLEV(IJDD(1,KR),IJDD(2,KR))
+C**** For distributed implementation - ensure point is on local process.          
+          IF ((IJDD(2,KR) >= J_0) .AND. (IJDD(2,KR) <= J_1)) THEN
+            IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
+              ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
+              ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
+     *             +DCLEV(IJDD(1,KR),IJDD(2,KR))
+              HDIURN(IHM,IDD_DCF,KR)=HDIURN(IHM,IDD_DCF,KR)+1.
+              HDIURN(IHM,IDD_LDC,KR)=HDIURN(IHM,IDD_LDC,KR)
+     *             +DCLEV(IJDD(1,KR),IJDD(2,KR))
+            END IF
           END IF
         END DO
       END IF

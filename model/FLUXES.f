@@ -166,10 +166,10 @@ C**** sea ice melt and iceberg/glacial melt.
 !@auth  Rosalinda de Fainchtein
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE FLUXES
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grd_dum
+      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
@@ -311,5 +311,3 @@ C**** sea ice melt and iceberg/glacial melt.
 #endif
 
       END SUBROUTINE ALLOC_FLUXES
-
-

@@ -62,7 +62,7 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE MODEL_COM, ONLY : IM,LM
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
@@ -73,7 +73,7 @@ C**** variables used (and saved) for gravity wave drag calculations
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER

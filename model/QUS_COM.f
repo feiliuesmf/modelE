@@ -18,12 +18,12 @@
 !@+    must now be dynamic for the distributed memory implementation.
 !@auth Rosalinda de Fainchtein
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE QUSDEF, ONLY : NMOM
       USE MODEL_COM, ONLY : LM
       USE SOMTQ_COM, ONLY : TMOM,QMOM
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER

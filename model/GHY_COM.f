@@ -24,16 +24,10 @@ C 0 index for legacy reasons
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTVEGE
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWBV
 
-C GISS-ESMF EXCEPTIONAL CASE
-C-BMP Should be allocatable, but not sure about common block
-      REAL*8, DIMENSION(IM,JM,NGM) :: DZ_IJ
-      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ
-      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: QK_IJ
-      REAL*8, DIMENSION(IM,JM) :: SL_IJ
-C this common only for purpose of reading its contents from a
-C file opened in fortran unformatted sequential access mode
-C containing its contents in a contiguous real*4 block
-      COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: DZ_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: Q_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: QK_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)     :: SL_IJ
 
 ccc the following arrays contain prognostic variables for the snow model
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:)     :: NSN_IJ
@@ -99,9 +93,9 @@ ccc TRSNOWBV is not used
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE GHYCOM
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
@@ -116,6 +110,12 @@ C****
      *              HTBARE(0:NGM,IM,J_0H:J_1H),
      *              HTVEGE(0:NGM,IM,J_0H:J_1H),
      *              SNOWBV(    2,IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(     DZ_IJ(IM,J_0H:J_1H,NGM),
+     *               Q_IJ(IM,J_0H:J_1H,IMT,NGM),
+     *              QK_IJ(IM,J_0H:J_1H,IMT,NGM),
+     *              SL_IJ(IM,J_0H:J_1H),
      *         STAT=IER)
 
       ALLOCATE(      NSN_IJ(     2,IM,J_0H:J_1H),
@@ -177,6 +177,7 @@ C**** Initialize to zero
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHYCOM
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -186,16 +187,38 @@ C**** Initialize to zero
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
 
+      REAL*8, DIMENSION(IM,JM) :: SNOWE_glob, TEARTH_glob, WEARTH_glob,
+     &                            AIEARTH_GLOB,evap_max_ij_glob, 
+     &                            fr_sat_ij_glob, qg_ij_glob
+      REAL*8 :: SNOAGE_glob(3,IM,JM)
+      INTEGER :: J_0, J_1
+
+
       MODULE_HEADER(lhead+1:80) =
      *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
+
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
      *       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+c$$$        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
+c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+        READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob,WEARTH_glob
+     &       ,AIEARTH_glob,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob
+     &       ,qg_ij_glob
+
+        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+        SNOWE(:,J_0:J_1)       = SNOWE_glob(:,J_0:J_1)
+        TEARTH(:,J_0:J_1)      = TEARTH_glob(:,J_0:J_1)
+        WEARTH(:,J_0:J_1)      = WEARTH_glob(:,J_0:J_1)
+        AIEARTH(:,J_0:J_1)     = AIEARTH_glob(:,J_0:J_1)
+        SNOAGE(:,:,J_0:J_1)    = SNOAGE_glob(:,:,J_0:J_1)
+        evap_max_ij(:,J_0:J_1) = evap_max_ij_glob(:,J_0:J_1)
+        fr_sat_ij(:,J_0:J_1)   = fr_sat_ij_glob(:,J_0:J_1)
+        qg_ij(:,J_0:J_1)       = qg_ij_glob(:,J_0:J_1)
+
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
@@ -212,6 +235,7 @@ C**** Initialize to zero
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
+      USE DOMAIN_DECOMP, ONLY: GRID, GET, CHECKSUM_COLUMN
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -222,8 +246,12 @@ C**** Initialize to zero
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
+      REAL*8 WBARE_GLOB(NGM,IM,JM), SNOWBV_GLOB(2,IM,JM)
+      REAL*8, DIMENSION(0:NGM,IM,JM)::WVEGE_GLOB,HTBARE_GLOB,HTVEGE_GLOB
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS02"
+      INTEGER :: J_0, J_1
+
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
@@ -245,11 +273,28 @@ C**** Initialize to zero
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
 #endif
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
+        READ(kunit,err=10) HEADER,wbare_glob,wvege_glob,htbare_glob,
+     &                            htvege_glob,snowbv_glob
+c$$$        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+
+        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+        wbare(:,:,J_0:J_1)  = wbare_glob(:,:,J_0:J_1)
+        wvege(:,:,J_0:J_1)  = wvege_glob(:,:,J_0:J_1)
+        htbare(:,:,J_0:J_1) = htbare_glob(:,:,J_0:J_1)
+        htvege(:,:,J_0:J_1) = htvege_glob(:,:,J_0:J_1)
+        snowbv(:,:,J_0:J_1) = snowbv_glob(:,:,J_0:J_1)
+
+c$$$        CALL CHECKSUM_COLUMN(grid,wbare,__LINE__,__FILE__)
+c$$$        CALL CHECKSUM_COLUMN(grid,wvege,__LINE__,__FILE__)
+c$$$        CALL CHECKSUM_COLUMN(grid,htbare,__LINE__,__FILE__)
+c$$$        CALL CHECKSUM_COLUMN(grid,htvege,__LINE__,__FILE__)
+c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
+
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts

@@ -14,7 +14,8 @@
      *     ,jyear,jmon
 #endif
       USE DOMAIN_DECOMP, only : HALO_UPDATE,GRID,GET
-      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH
+      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
@@ -162,15 +163,17 @@ C        not clear yet whether they still speed things up
 Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
-      REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
+!     REAL*8  AJEQIL(J5N-J5S+1,IM,LM),
+      REAL*8  AJEQIL(GRID%J_STRT_HALO:GRID%J_STOP_HALO,IM,LM),
      *        AREGIJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,3)
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
       REAL*8  UKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      *        VKM(4,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-      REAL*8, DIMENSION(IM,LM) :: DEL_U, DEL_V
 
+C**** Initialize
+      AJEQIL(:,:,:)=0.
 C**** define local grid
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
@@ -211,13 +214,13 @@ C**** COMPUTE ZONAL MEAN U AND V AT POLES
         VZM(2,L)=0.
       ENDDO
       DO L=1,LM
-        IF(GRID%HAVE_SOUTH_POLE) THEN
+        IF(HAVE_SOUTH_POLE) THEN
           DO I=1,IM
             UZM(1,L)=UZM(1,L)+UC(I,2,L)
             VZM(1,L)=VZM(1,L)+VC(I,2,L)
           ENDDO
         ENDIF
-        IF(GRID%HAVE_NORTH_POLE) THEN
+        IF(HAVE_NORTH_POLE) THEN
           DO I=1,IM
             UZM(2,L)=UZM(2,L)+UC(I,JM,L)
             VZM(2,L)=VZM(2,L)+VC(I,JM,L)
@@ -446,7 +449,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           IF(J.GE.J5S.AND.J.LE.J5N)     ! add in after parallel region
-     *      AJEQIL(J-J5S+1,I,L) = (DGDSM(L)+DPHASE(L))*
+     *      AJEQIL(J,I,L) = (DGDSM(L)+DPHASE(L))*
      *                            (DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCHEAT)=AJL(J,L,JL_MCHEAT)+
      &         (DPHASE(L)+DGDSM(L))*BYDSIG(L)
@@ -589,14 +592,14 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         DTDZS=(THV1-THSV)*BYDH1S
         DTDZ=(THV2-THV1)*BYDH12
 CAOO        IF (J.EQ.1) THEN
-        IF(GRID%HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
+        IF(HAVE_SOUTH_POLE .AND. J.EQ.J_0) THEN
           DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
           DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
           DUDZS=(UZM(1,1)-US)*BYDH1S
           DVDZS=(VZM(1,1)-VS)*BYDH1S
         ENDIF
 CAOO        IF (J.EQ.JM) THEN
-        IF(GRID%HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
+        IF(HAVE_NORTH_POLE .AND. J.EQ.J_1) THEN
           DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
           DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
           DUDZS=(UZM(2,1)-US)*BYDH1S
@@ -975,12 +978,15 @@ c      call closeunit(iuc_s)
 #endif
 #endif
 
+!ESMF-GLOBAL SUM accumulated into AIL!!!
+! note that sum is only over l<lmc(2,i,j) with each addition inside an if block
 C**** Delayed summations (to control order of summands)
-      DO J=MAX(J_0,J5S),MIN(J_1,J5N)
+!     DO J=MAX(J_0,J5S),MIN(J_1,J5N)
+      DO J=J_0,J_1
       DO I=1,IM
         IF(LMC(1,I,J).GT.0) THEN
           DO L=1,LMC(2,I,J)-1
-            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL(J-J5S+1,I,L)
+            AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+AJEQIL(J,I,L)
           END DO
         END IF
       END DO
@@ -1001,7 +1007,7 @@ C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C 
 CAOO      J=1
-      IF(GRID%HAVE_SOUTH_POLE) THEN
+      IF(HAVE_SOUTH_POLE) THEN
         DO K=1,IM ! KMAXJ(J)
           IDI(K)=IDIJ(K,1,1)
           IDJ(K)=IDJJ(K,1)
@@ -1015,8 +1021,6 @@ CAOO      J=1
       ENDIF
 C 
 C**** Initialize dummy work arrays
-        DEL_U(1:IM,1:LM)=0.
-        DEL_V(1:IM,1:LM)=0.
 
 !$OMP  PARALLEL DO PRIVATE(I,J,K,L,IDI,IDJ)
       DO L=1,LM
@@ -1032,9 +1036,10 @@ C**** Initialize dummy work arrays
              END DO
            END DO
         END DO
+C**** First half of loop cycle for j=j_1 for internal blocks
         IF (.not. HAVE_NORTH_POLE) then
           J=J_1
-          DO K=1,4  !  KMAXJ(J)
+          DO K=1,2  !  KMAXJ(J)
             IDJ(K)=IDJJ(K,J)
           END DO
           DO I=1,IM
@@ -1043,17 +1048,39 @@ C**** Initialize dummy work arrays
               U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
             END DO
-            DO K=3,4
-              DEL_U(IDI(K),L) = DEL_U(IDI(K),L) + UKM(K,I,J,L)
-              DEL_V(IDI(K),L) = DEL_V(IDI(K),L) + VKM(K,I,J,L)
-            END DO
           END DO
         ENDIF
-      END DO
+
+C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
+C**** in this block).
+
+        if (.not. HAVE_SOUTH_POLE) then
+          CALL CHECKSUM_COLUMN(grid, UKM, __LINE__, __FILE__)
+          CALL CHECKSUM_COLUMN(grid, VKM, __LINE__, __FILE__)
+
+          CALL HALO_UPDATE_COLUMN(grid, UKM, from=SOUTH)
+          CALL HALO_UPDATE_COLUMN(grid, VKM, from=SOUTH)
+
+C**** ....then, accumulate neighbors contribution to
+C**** U,V, at the J=J_0 (B-grid) corners --i.e.do a
+C**** K=3,4 iterations on the newly updated J=J_0-1 box.
+          J=J_0-1
+          DO K=3,4  !  KMAXJ(J)
+            IDJ(K)=IDJJ(K,J)
+          END DO
+          DO I=1,IM
+            DO K=3,4 ! KMAXJ(J)
+              IDI(K)=IDIJ(K,I,J)
+              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)
+              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)
+            END DO
+          END DO
+        end if           !NOT SOUTH POLE
+      END DO       !LM
 !$OMP  END PARALLEL DO
 C 
 CAOO      J=JM
-      IF(GRID%HAVE_NORTH_POLE) THEN
+      IF(HAVE_NORTH_POLE) THEN
         DO K=1,IM  !  KMAXJ(J)
           IDI(K)=IDIJ(K,1,JM)
           IDJ(K)=IDJJ(K,JM)
@@ -1065,17 +1092,6 @@ CAOO      J=JM
           END DO
         END DO
       END IF
-C****EXCEPTIONS!!
-C****Transfer the sums above: DEL_U DEL_V  to the block to the north
-C*** and add them to U(I,J_0,L), V(I,J_0,L) respectively.
-!PSEUDOCODE:
-!     IF (.not. HAVE_NORTH_POLE )
-!      ===>  send del_u del_v  to neighbor to the north
-!     if (.not. HAVE_SOUTH_POLE)
-!      ===>  receive del_u_r del_v_r  from neighbor to the south
-!      ===>    U(1:IM,J_0,1:LM) = U(1:IM,J_0,1:LM) + DEL_U_R(1:IM,1:LM)
-!              V(1:IM,J_0,1:LM) = V(1:IM,J_0,1:LM) + DEL_V_R(1:IM,1:LM)
-!END_PSEUDOCODE
 
 C
 C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI

@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+#define JJ(J) (J)-J_0H+1
 
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
@@ -68,14 +69,14 @@ C**** Some local constants
 
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP, only : GET
-      USE DOMAIN_DECOMP, only : DYN_GRID
+      USE DOMAIN_DECOMP, only : DIST_GRID
       USE MODEL_COM, only : im,imh,lm
       USE DIAG_LOC, only  : W,TX,TJL0,FCUVA,FCUVB
       IMPLICIT NONE
       LOGICAL, SAVE :: init=.false.
       INTEGER :: J_1H    , J_0H
       INTEGER :: IER
-      TYPE(DYN_GRID) :: grid
+      TYPE(DIST_GRID) :: grid
 
       If (init) Then
          Return ! Only invoke once
@@ -121,8 +122,9 @@ C**** Some local constants
       USE DYNAMICS, only : pk,phi,pmid,plij, pit,sd,pedn
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,lupa,ldna,jet,tjl0
-      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP, only : SOUTH, NORTH
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, 
+     &                          CHECKSUM_COLUMN, HALO_UPDATE_COLUMN,
+     &                          GRID, SOUTH, NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) :: GMEAN
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
@@ -159,13 +161,17 @@ C**** Some local constants
      *     I135W = IM*(180-135)/360+1  ! WEST EDGE OF 135 WEST
 
       REAL*8 QSAT
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GETTIME(MBEGIN)
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, 
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       IDACC(4)=IDACC(4)+1
 
@@ -175,25 +181,25 @@ C**** Some local constants
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
 C****
-      IF(GRID%HAVE_SOUTH_POLE) THEN
+      IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           DO I=2,IM
             Q(I,1,L)=Q(1,1,L)
           END DO
         END DO
-      ENDIF        ! GRID%HAVE_SOUTH_POLE
-      IF(GRID%HAVE_NORTH_POLE) THEN
+      ENDIF        ! HAVE_SOUTH_POLE
+      IF(HAVE_NORTH_POLE) THEN
         DO L=1,LM
           DO I=2,IM
             Q(I,JM,L)=Q(1,JM,L)
           END DO
         END DO
-      ENDIF        ! GRID%HAVE_NORTH_POLE
+      ENDIF        ! HAVE_NORTH_POLE
 C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
      
-      IF(GRID%HAVE_SOUTH_POLE) THEN
+      IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
           DO I=2,IM
@@ -201,8 +207,8 @@ C****
             TX(I,1,L)=TX(1,1,L)
           END DO
         END DO
-      ENDIF        ! GRID%HAVE_SOUTH_POLE 
-      IF(GRID%HAVE_NORTH_POLE) THEN
+      ENDIF        ! HAVE_SOUTH_POLE 
+      IF(HAVE_NORTH_POLE) THEN
         DO L=1,LM
           TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
           DO I=2,IM
@@ -210,7 +216,7 @@ C****
             TX(I,JM,L)=TX(1,JM,L)
           END DO
         END DO
-      ENDIF          ! GRID%HAVE_NORTH_POLE
+      ENDIF          ! HAVE_NORTH_POLE
       DO L=1,LM
         DO J=J_0S,J_1S
           DO I=1,IM
@@ -435,7 +441,7 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
         END DO
       END DO
 
-      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
 
       DO J=J_0S,J_1S
@@ -454,7 +460,7 @@ C**** NUMBERS ACCUMULATED OVER THE TROPOSPHERE
           END DO
         END DO
 
-        CALL CHECKSUM(grid, UI, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, UI, __LINE__, __FILE__,STGR=.true.)
         CALL HALO_UPDATE(grid, UI, FROM=NORTH)
 
         DO J=J_0S,J_1S
@@ -484,7 +490,7 @@ C**** the different model tops
         END DO
       END DO
 
-      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__)
+      CALL CHECKSUM(grid, DUDVSQ, __LINE__, __FILE__,STGR=.true.)
       CALL HALO_UPDATE(grid, DUDVSQ, FROM=NORTH)
 
       DO J=J_0S,J_1S
@@ -503,7 +509,7 @@ C**** the different model tops
           END DO
         END DO
 
-        CALL CHECKSUM(grid, UI, __LINE__, __FILE__)
+        CALL CHECKSUM(grid, UI, __LINE__, __FILE__,STGR=.true.)
         CALL HALO_UPDATE(grid, UI, FROM=NORTH)
 
         DO J=J_0S,J_1S
@@ -549,8 +555,7 @@ C**** DRY ADIABATIC LAPSE RATE
       END DO
 
       CALL CHECKSUM(grid, TIL, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, TIL, FROM=NORTH)
-      CALL HALO_UPDATE(grid, TIL, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, TIL, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_1S
         X=SINP(J)*GRAV/(COSP(J)*RGAS*2.*DLAT)
@@ -583,8 +588,8 @@ C****
 
 !Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL CHECKSUM(grid, PLIJ, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, PLIJ, FROM=SOUTH)
+      CALL CHECKSUM_COLUMN(grid, PLIJ, __LINE__, __FILE__)
+      CALL HALO_UPDATE_COLUMN(grid, PLIJ, FROM=SOUTH)
 !Not necessary here, done above      CALL CHECKSUM(grid, TX, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
       CALL CHECKSUM(grid, PHI, __LINE__, __FILE__)
@@ -635,7 +640,7 @@ C****
         PE=SIGE(L+1)*PIJ+PTOP
         PKE=PE**KAPA
         THETA=THBAR(T(I,J,L+1),T(I,J,L))
-        W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
+        W(I,J,L)=SD(I,JJ(J),L)*THETA*PKE/PE
       END DO
       END DO
       END DO
@@ -664,11 +669,11 @@ C**** CALCULATE APE
       DO 760 L=1,LM
       LP1=LUPA(L)
       LM1=LDNA(L)
-      IF(GRID%HAVE_SOUTH_POLE) THEN
+      IF(HAVE_SOUTH_POLE) THEN
         THJL(1,L)=THJL(1,L)*FIM
         THSQJL(1,L)=THSQJL(1,L)*FIM
       ENDIF
-      IF(GRID%HAVE_NORTH_POLE) THEN
+      IF(HAVE_NORTH_POLE) THEN
         THJL(JM,L)=THJL(JM,L)*FIM
         THSQJL(JM,L)=THSQJL(JM,L)*FIM
       ENDIF
@@ -751,8 +756,6 @@ C****
 C**** NORTHWARD TRANSPORT
 !Not necessary here, done above      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 !Not necessary here, done above      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
       CALL CHECKSUM(grid, T, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
 
@@ -799,7 +802,7 @@ C**** VERTICAL TRANSPORT
       DO 878 J=J_0S,J_1S
       PITMN=0.
       DO 870 I=1,IM
-  870 PITMN=PITMN+PIT(I,J)
+  870 PITMN=PITMN+PIT(I,JJ(J))
       PITMN=PITMN/FIM
       DO 878 L=1,LM-1
       IF(L.GE.LS1-1) PITMN=0.
@@ -809,7 +812,7 @@ C**** VERTICAL TRANSPORT
       DO 872 I=1,IM
       DTHDP=DTHDP+T(I,J,L+1)-T(I,J,L)
       THMN=THMN+T(I,J,L+1)+T(I,J,L)
-  872 SDMN=SDMN+SD(I,J,L)
+  872 SDMN=SDMN+SD(I,JJ(J),L)
       SMALL=.0001*FIM*T(1,J,L+1)
 c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
@@ -830,9 +833,9 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1) DP=(SIG(L)-SIG(L+1))*PSFMPT
       IF(L.EQ.LS1-1) DP=P(I,J)*SIG(L)-PSFMPT*SIG(LS1)
       PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
-      PITIJ=PIT(I,J)
+      PITIJ=PIT(I,JJ(J))
       IF(L.GE.LS1-1) PITIJ=0.
-      SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
+      SDPU=SDPU+(SD(I,JJ(J),L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
   874 IM1=I
       AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+
      &     (.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU
@@ -900,7 +903,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
-     &     ZX,STB
+     &     ZX,STB,UDX
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
@@ -920,19 +923,25 @@ C****
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
      &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,
      &     SMALL,SP,SP2,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
-     &     UDUTI,UDX,UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
+     &     UDUTI,    UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
 
       REAL*8, PARAMETER :: BIG=1.E20
       REAL*8 :: QSAT
+      LOGICAL :: pm_ge_ps(im,grid%j_strt_halo:grid%j_stop_halo,lm)
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GETTIME(MBEGIN)
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      pm_ge_ps(:,:,:)=.false.
 C****
 C**** INTERNAL QUANTITIES T,TH,Q,RH
 C****
@@ -1051,8 +1060,9 @@ C**** CALCULATE STJK; THE MEAN STATIC STABILITY
 C****
 C**** CONSTANT PRESSURE DIAGNOSTICS:  FLUX, ENERGY, ANGULAR MOMENTUM
 C****
-      IF(GRID%HAVE_SOUTH_POLE) THEN
-        ZX(:,1,:)=0.
+      ZX(:,:,:)=0.
+      IF(HAVE_SOUTH_POLE) THEN
+        UDX(:,1,:)=0.
       ENDIF
 
 C Needs to check later if all these halo calls are necessary.
@@ -1071,19 +1081,18 @@ C from the previous halo call.
       CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
       CALL CHECKSUM(grid, T, __LINE__, __FILE__)
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
-      CALL CHECKSUM(grid, ZX, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, ZX, FROM=SOUTH)
-      CALL CHECKSUM(grid, STJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, STJK, FROM=SOUTH)
-      CALL CHECKSUM(grid, DXYN, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXYN, FROM=SOUTH)
+      DO L=1,LM
+         CALL CHECKSUM(grid, STJK(:,L), __LINE__, __FILE__)
+         CALL HALO_UPDATE(grid, STJK(:,L), FROM=SOUTH)
+      END DO
 
       DO 390 J=J_0STG,J_1STG
       I=IM
       DO 280 IP1=1,IM
       PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
-      DO 270 K=1,KM
-  270 ZX(I,J,K)=0.
+      DO  K=1,KM
+        UDX(I,J,K)=0.
+      END DO
       DO 275 L=1,LS1-1
       DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
   275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
@@ -1118,28 +1127,31 @@ C from the previous halo call.
       PS=SP+PTOP
       DO 286 L=1,LS1-1
   286 PL(L)=SP*SIGE(L)+PTOP
-      IF (PM(K+1).GE.PS) GO TO 336
-      L=1
-      PDN=PS
-      IF (PM(K).GE.PS) GO TO 300
-      PDN=PM(K)
-  290 IF (PM(K).GT.PL(L+1)) GO TO 300
-      L=L+1
-      GO TO 290
-  300 LUP=L
-  310 IF (PM(K+1).GE.PL(LUP+1)) GO TO 320
-      LUP=LUP+1
-      GO TO 310
-  320 CONTINUE
-      DPK=PDN-PM(K+1)
-      PUK=0.
-      PVK=0.
-      PT4K=0.
-      PZ4K=0.
-      PQ4K=0.
-      DUTK=0.
-      DVTK=0.
-      PS4K=0.
+      IF (PM(K+1).GE.PS) THEN 
+        pm_ge_ps(i,j-1,k)=.true.
+        UDX(I,J,K)=BIG
+      ELSE
+        L=1
+        PDN=PS
+        IF (PM(K).GE.PS) GO TO 300
+        PDN=PM(K)
+  290   IF (PM(K).GT.PL(L+1)) GO TO 300
+        L=L+1
+        GO TO 290
+  300   LUP=L
+  310   IF (PM(K+1).GE.PL(LUP+1)) GO TO 320
+        LUP=LUP+1
+        GO TO 310
+  320   CONTINUE
+        DPK=PDN-PM(K+1)
+        PUK=0.
+        PVK=0.
+        PT4K=0.
+        PZ4K=0.
+        PQ4K=0.
+        DUTK=0.
+        DVTK=0.
+        PS4K=0.
 C**** INTERPOLATE HERE
   330 PUP=PL(L+1)
       IF (LUP.EQ.L) PUP=PM(K+1)
@@ -1185,16 +1197,15 @@ C**** ACCUMULATE HERE
       AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
       AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
 C**** EDDY TRANSPORT OF THETA;  VORTICITY
-  334 PS4I=PS4I+PS4K
-      PSV4I=PSV4I+BYDP*PVK*PS4K
-      UDX=BYDP*PUK*DXV(J)
-      ZX(I,J,K)=-UDX
-      IF (ZX(I,J-1,K).LT.BIG) ZX(I,J-1,K)=ZX(I,J-1,K)+UDX
-      IF (ZX(I,J-1,K).GE.BIG) ZX(I,J-1,K)=0.
-      GO TO 340
-  336 ZX(I,J,K)=BIG
-      ZX(I,J-1,K)=0.
-  340 I=IP1
+  334   PS4I=PS4I+PS4K
+        PSV4I=PSV4I+BYDP*PVK*PS4K
+        UDX(I,J,K)=BYDP*PUK*DXV(J)
+!ESMF   IF (UDX(I,J-1,K).LT.BIG) ZX(I,J-1,K)=UDX(I,J,K)-UDX(I,J-1,K)
+!ESMF   IF (UDX(I,J-1,K).GE.BIG) ZX(I,J-1,K)=0.
+!ESMF   IF (ZX(I,J-1,K).GE.BIG) ZX(I,J-1,K)=0.
+      END IF                            !---> (PM(K+1).GE.PS)
+
+  340 I=IP1     !-->END I Loop (IP1) from IM to IM-1 (1-IM).
       DPM(K)=DPI/(FIMI+teeny)
       DPJK(J,K)=DPI
       AJK(J,K,JK_DPB)=AJK(J,K,JK_DPB)+DPI
@@ -1227,6 +1238,23 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
          AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
   350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
   390 CONTINUE
+
+C**** ZX for distributed parallelization
+c****
+      CALL CHECKSUM(GRID,UDX,__LINE__,__FILE__)
+      CALL HALO_UPDATE( grid, UDX, from=NORTH )
+      DO J=J_0,J_1S
+        DO K=1,KM
+          DO I=1,IM
+            if (.not. pm_ge_ps(i,j,k)) then
+            IF (UDX(I,J,K).LT.BIG )  ZX(I,J,K)=-UDX(I,J,K)+UDX(I,J+1,K)
+            IF (UDX(I,J,K).GE.BIG)   ZX(I,J,K)=0.
+            IF (ZX(I,J,K).GE.BIG)    ZX(I,J,K)=0
+            end if
+          END DO
+        END DO
+      END DO
+
 C****
 C**** VERTICAL MASS FLUXES  W(I,J,K)
 C****
@@ -1310,15 +1338,14 @@ C**** CALCULATE HERE
       CALL HALO_UPDATE(grid, DVT, FROM=NORTH)
 
       DO 560 K=KM,1,-1
-C**** POLAR VERTICAL MASS FLUX
-        IF(GRID%HAVE_SOUTH_POLE) THEN
+        IF(HAVE_SOUTH_POLE) THEN
           W(1,1,K)=0.
           IF (K.LT.KM) W(1,1,K)=W(1,1,K+1)
           DO I=1,IM
             W(1,1,K)=W(1,1,K)-.5*DVT(I,2,K)
           ENDDO
         ENDIF
-        IF(GRID%HAVE_NORTH_POLE) THEN
+        IF(HAVE_NORTH_POLE) THEN
           W(1,JM,K)=0.
           IF (K.LT.KM) W(1,JM,K)=W(1,JM,K+1)
           DO I=1,IM
@@ -1499,13 +1526,13 @@ C**** ACCUMULATE UV VERTICAL TRANSPORTS
 C****
 C**** DOUBLE POLAR WINDS
       DO 640 K=1,KM
-        IF(GRID%HAVE_SOUTH_POLE) THEN
+        IF(HAVE_SOUTH_POLE) THEN
           WSP=2.*W(1,1,K)/FIM
           DO I=1,IM
             W(I,1,K)=WSP
           ENDDO
         ENDIF
-        IF(GRID%HAVE_NORTH_POLE) THEN
+        IF(HAVE_NORTH_POLE) THEN
           WNP=2.*W(1,JM,K)/FIM
           DO I=1,IM
             W(I,JM,K)=WNP
@@ -1611,8 +1638,10 @@ C****
       KDN=K-1
       IF (K.EQ.1) KDN=1
 
-      CALL CHECKSUM(grid, TJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, TJK, FROM=SOUTH)
+      DO L=1,LM
+         CALL CHECKSUM(grid, TJK(:,L), __LINE__, __FILE__)
+         CALL HALO_UPDATE(grid, TJK(:,L), FROM=SOUTH)
+      END DO
 
       DO 780 J=J_0STG,J_1STG
       TY(J,K)=(TJK(J,K)-TJK(J-1,K))/DYV(J)
@@ -1622,22 +1651,24 @@ C**** E-P FLUX NORTHWARD COMPONENT
      *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
   780 CONTINUE
 
-      CALL CHECKSUM(grid, UJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, UJK, FROM=NORTH)
-      CALL CHECKSUM(grid, PSIJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, PSIJK, FROM=NORTH)
-      CALL CHECKSUM(grid, DXV, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, DXV, FROM=NORTH)
-      CALL CHECKSUM(grid, VJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, VJK, FROM=NORTH)
-      CALL CHECKSUM(grid, UP, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, UP, FROM=NORTH)
-      CALL CHECKSUM(grid, TY, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, TY, FROM=NORTH)
-      CALL CHECKSUM(grid, WJK, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, WJK, FROM=NORTH)
-      CALL CHECKSUM(grid, PSIP, __LINE__, __FILE__)
-      CALL HALO_UPDATE(grid, PSIP, FROM=NORTH)
+      DO L=1,LM
+         CALL CHECKSUM(grid, PSIJK(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, PSIJK(:,L), FROM=NORTH)
+         CALL CHECKSUM(grid, UJK(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, UJK(:,L), FROM=NORTH)
+         CALL CHECKSUM(grid, VJK(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, VJK(:,L), FROM=NORTH)
+         If (L > 1) THEN
+           CALL CHECKSUM(grid, WJK(:,L), __LINE__, __FILE__,STGR=.true.)
+           CALL HALO_UPDATE(grid, WJK(:,L), FROM=NORTH)
+         END IF
+         CALL CHECKSUM(grid, UP(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, UP(:,L), FROM=NORTH)
+         CALL CHECKSUM(grid, TY(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, TY(:,L), FROM=NORTH)
+         CALL CHECKSUM(grid, PSIP(:,L), __LINE__, __FILE__,STGR=.true.)
+         CALL HALO_UPDATE(grid, PSIP(:,L), FROM=NORTH)
+      END DO
 
       DO 800 J=J_0S,J_1S
       DO 800 K=2,KM-1
@@ -1756,6 +1787,7 @@ C****
       USE DYNAMICS, only : PHI
       USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n
       USE DIAG_LOC, only : ldex
+      USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -1767,6 +1799,9 @@ C****
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
       REAL*8 :: PIJ50N,PL,PLE,PLM1,SLOPE
       INTEGER I,IDACC9,JLK,K,KQ,L,LX,MNOW,N
+      INTEGER :: J_0, J_1
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IDACC9=IDACC(9)+1
       IDACC(9)=IDACC9
@@ -1919,6 +1954,8 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
       USE DAGCOM, only : consrv
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCD IS BEING CALLED
@@ -1934,27 +1971,44 @@ C****
 !@var DT1 current time step
       REAL*8, INTENT(IN) :: DT1
 !@var UX,VX current velocities
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UX,VX
+      REAL*8, INTENT(IN), 
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &        UX,VX
 !@var DUT,DVT current momentum changes
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: DUT,DVT
+      REAL*8, INTENT(IN), 
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &        DUT,DVT
 !@var PIT current pressure tendency
-      REAL*8, INTENT(IN), OPTIONAL, DIMENSION(IM,JM) :: PIT
-      REAL*8, DIMENSION(JM) :: PI
+      REAL*8, INTENT(IN), OPTIONAL, 
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PIT
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PI
       INTEGER :: I,J,L,MBEGIN,N,IP1
       LOGICAL dopit
       REAL*8 :: DUTI,DUTIL,RKEI,RKEIL
       INTEGER, DIMENSION(6) ::
      *     NAMOFM=(/2,3,4,5,6,7/), NKEOFM=(/14,15,16,17,18,19/)
 
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
       CALL GETTIME(MBEGIN)
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               J_STRT_HALO=J_0H,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
 C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
 C****
       IF (M.eq.1) THEN
         dopit=.true.
-        PI(1)=FIM*PIT(1,1)
-        PI(JM)=FIM*PIT(1,JM)
-        DO J=2,JM-1
+        CALL CHECKSUM(grid,PIT, __LINE__, __FILE__)
+        IF(HAVE_SOUTH_POLE) PI(1)=FIM*PIT(1,1)
+        IF(HAVE_NORTH_POLE) PI(JM)=FIM*PIT(1,JM)
+        DO J=J_0S,J_1S
           PI(J)=SUM(PIT(:,J))
         END DO
       ELSE
@@ -1965,8 +2019,13 @@ C****
 C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY VARIOUS
 C**** PROCESSES IN DYNAMICS
 C****
+C****
+
+      CALL CHECKSUM(grid, PI, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
+
 !$OMP PARALLEL DO PRIVATE (J,L,I,DUTIL,RKEIL,DUTI,RKEI,N)
-      DO J=2,JM
+      DO J=J_0STG,J_1STG
         DUTIL=0.
         RKEIL=0.
         DO L=1,LM
@@ -2000,6 +2059,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm
+      USE DOMAIN_DECOMP, only : GET, GRID
       USE DAGCOM, only : consrv,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
@@ -2009,8 +2069,11 @@ C****
 !@var CONSFN external routine that calculates total conserved quantity
       EXTERNAL CONSFN
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(JM) :: TOTAL
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
       INTEGER :: I,J,NM,NI
+      INTEGER :: J_0,J_1
+
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
 
 C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
@@ -2023,12 +2086,12 @@ C**** Calculate current value TOTAL
         NI=NOFM(1,ICON)
 C**** Accumulate difference from last time in CONSRV(NM)
         IF (M.GT.1) THEN
-          DO J=1,JM
+          DO J=J_0,J_1
             CONSRV(J,NM)=CONSRV(J,NM)+(TOTAL(J)-CONSRV(J,NI))
           END DO
         END IF
 C**** Save current value in CONSRV(NI)
-        DO J=1,JM
+        DO J=J_0,J_1
           CONSRV(J,NI)=TOTAL(J)
         END DO
       END IF
@@ -2044,24 +2107,41 @@ C****
       USE CONSTANT, only : omega,radius,mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
       USE GEOM, only : cosv,dxyn,dxys,dxyv
+      USE DOMAIN_DECOMP, only : GET, SOUTH, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : CHECKSUM
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(JM) :: AM,PI
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM,PI
       INTEGER :: I,IP1,J,L
       REAL*8 :: UMI,UMIL
+
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
 C**** ANGULAR MOMENTUM
 C****
-      AM(1)=0.
-      PI(1)=FIM*P(1,1)
-      PI(JM)=FIM*P(1,JM)
-      DO J=2,JM-1
+      IF(HAVE_SOUTH_POLE) PI(1)=FIM*P(1,1)
+      IF(HAVE_SOUTH_POLE) AM(1)=0.
+      IF(HAVE_NORTH_POLE) PI(JM)=FIM*P(1,JM)
+      DO J=J_0S,J_1S
         PI(J)=0.
         DO I=1,IM
           PI(J)=PI(J)+P(I,J)
         END DO
       END DO
-      DO J=2,JM
+
+      CALL CHECKSUM(grid, PI, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
+      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO J=J_0STG,J_1STG
         UMIL=0.
         DO L=1,LM
           UMI=0.
@@ -2092,16 +2172,28 @@ C****
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
       USE GEOM, only : dxyn,dxys,dxyv
+      USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(JM) :: RKE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
       INTEGER :: I,IP1,J,L
+      INTEGER :: J_0STG,J_1STG
       REAL*8 :: RKEI,RKEIL
+      LOGICAL :: HAVE_SOUTH_POLE
+
+      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG, 
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+
 C****
 C**** KINETIC ENERGY
 C****
-      RKE(1)=0.
-      DO J=2,JM
+
+      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      IF (HAVE_SOUTH_POLE) RKE(1)=0.
+      DO J=J_0STG,J_1STG
         RKEIL=0.
         DO L=1,LM
           RKEI=0.
@@ -2132,15 +2224,24 @@ C****
 !@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,fim,p,pstrat
+      USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM) :: RMASS
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RMASS
       INTEGER :: I,J
+      INTEGER :: J_0S,J_1S
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+
 C****
 C**** MASS
 C****
-      RMASS(1) =FIM*(P(1,1) +PSTRAT)*mb2kg
-      RMASS(JM)=FIM*(P(1,JM)+PSTRAT)*mb2kg
-      DO J=2,JM-1
+      IF(HAVE_SOUTH_POLE) RMASS(1) =FIM*(P(1,1) +PSTRAT)*mb2kg
+      IF(HAVE_NORTH_POLE) RMASS(JM)=FIM*(P(1,JM)+PSTRAT)*mb2kg
+      DO J=J_0S,J_1S
         RMASS(J)=FIM*PSTRAT
         DO I=1,IM
           RMASS(J)=RMASS(J)+P(I,J)
@@ -2160,14 +2261,21 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,t,p,ptop,zatmo
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pk,pdsig
+      USE DOMAIN_DECOMP, only : GET,GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM) :: TPE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TPE
       INTEGER :: I,J,L
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
       REAL*8 :: TPEI,TPEIL,SGEOI
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 C****
 C**** TOTAL POTENTIAL ENERGY (J/m^2)
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         TPEIL=0.
         DO L=1,LM
           TPEI=0.
@@ -2182,8 +2290,8 @@ C****
         END DO
         TPE(J)=(SGEOI+TPEIL*SHA)*mb2kg
       END DO
-      TPE(1)=FIM*TPE(1)
-      TPE(JM)=FIM*TPE(JM)
+      IF(HAVE_SOUTH_POLE) TPE(1)=FIM*TPE(1)
+      IF(HAVE_NORTH_POLE) TPE(JM)=FIM*TPE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_PE
@@ -2196,14 +2304,21 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,wm,q
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig
+      USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(JM) :: WATER
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: WATER
       INTEGER :: I,J,L
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+
+      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 C****
 C**** TOTAL WATER MASS (kg/m^2)
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         WATER(J) = 0.
         DO L=1,LM
           DO I=1,IMAXJ(J)
@@ -2211,8 +2326,8 @@ C****
           END DO
         END DO
       END DO
-      WATER(1) = FIM*WATER(1)
-      WATER(JM)= FIM*WATER(JM)
+      IF (HAVE_SOUTH_POLE) WATER(1) = FIM*WATER(1)
+      IF (HAVE_NORTH_POLE) WATER(JM)= FIM*WATER(JM)
       RETURN
 C****
       END SUBROUTINE conserv_WM
@@ -2227,15 +2342,23 @@ C****
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
+      USE DOMAIN_DECOMP, only : GET, GRID
       IMPLICIT NONE
       REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km
-      REAL*8, DIMENSION(JM) :: EWATER
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: EWATER
       INTEGER :: I,J,L
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
       REAL*8 W,EL
+
+      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 C****
 C**** TOTAL WATER ENERGY (J/m^2)
 C****
-      DO J=1,JM
+      DO J=J_0,J_1
         EWATER(J) = 0.
         DO L=1,LM
           DO I=1,IMAXJ(J)
@@ -2248,8 +2371,8 @@ c this calculation currently only calculates latent heat
           END DO
         END DO
       END DO
-      EWATER(1) = FIM*EWATER(1)
-      EWATER(JM)= FIM*EWATER(JM)
+      IF(HAVE_SOUTH_POLE) EWATER(1) = FIM*EWATER(1)
+      IF(HAVE_NORTH_POLE) EWATER(JM)= FIM*EWATER(JM)
       RETURN
 C****
       END SUBROUTINE conserv_EWM
@@ -2260,11 +2383,13 @@ C****
      &     DSIG,JEQ,LS1,MDIAG,MDYN
       USE DAGCOM, only : speca,nspher,klayer
       USE DIAG_LOC, only : FCUVA,FCUVB
+      USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM, WRITE_PARALLEL
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &        DUT,DVT
 
-c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
+c      REAL*8, DIMENSION(0:IMH,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,2) :: FCUVA,FCUVB
 c      COMMON/WORK7/FCUVA,FCUVB
 
       INTEGER :: M5,NDT
@@ -2274,14 +2399,19 @@ c      COMMON/WORK7/FCUVA,FCUVB
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
 
       INTEGER :: J,J45N,KUV,KSPHER,L,MBEGIN,MKE,N,NM
+      INTEGER :: J_0STG,J_1STG
+
+      CALL GET(GRID,J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
 
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
       MKE=M5
 
       GO TO (810,810,810,100,100,  100,810),M5
-  810 WRITE (6,910) M5
-  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)
+C****  810 WRITE (6,910) M5
+  810 CALL WRITE_PARALLEL(M5, UNIT=6, format=
+     & "('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)")
+C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5D.  M5=',I5)
       call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5D',255)
 C****
 C**** KINETIC ENERGY
@@ -2292,7 +2422,7 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
 
       DO 170 L=1,LM
         KSPHER=KLAYER(L)
-      DO 170 J=2,JM
+      DO 170 J=J_0STG,J_1STG
       DO 170 KUV=1,2 ! loop over u,v
       IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
       IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
@@ -2359,14 +2489,17 @@ C****
      &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS
       USE DAGCOM, only : speca,atpe,nspher,kspeca,klayer
+      USE DAGCOM, only : SQRTM
       USE DYNAMICS, only : sqrtp,pk
+      USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE
+      USE DOMAIN_DECOMP, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
       IMPLICIT NONE
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM) :: X
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
       REAL*8, DIMENSION(IMH+1,4) :: VAR
       REAL*8, DIMENSION(2) :: TPE
-      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
+CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
       REAL*8, DIMENSION(LM) :: THJSP,THJNP,THGM
 
       INTEGER, PARAMETER :: IZERO=0
@@ -2378,6 +2511,14 @@ C****
      &     LUP,MAPE,MKE,MNOW,MTPE,N,NM
 
       REAL*8 :: GMEAN,GMSUM,SQRTPG,SUMI,SUMT,THGSUM,THJSUM
+
+      INTEGER :: J_0S,J_1S,J_0STG,J_1STG
+      LOGICAl :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       SQRTPG = SQRT(PSFMPT)
       NM=1+IM/2
@@ -2406,12 +2547,18 @@ C****
       GO TO (200,200,810,810,810,  810,200,810,205,810,
      *       296,205,810,205,810,  205,810,810,810,810),M5
 
-  810 WRITE (6,910) M5
-  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
+C***  810 WRITE (6,910) M5
+  810 CALL WRITE_PARALLEL(M5, UNIT=6, format=
+     & "('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)")
+C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
       call stop_model('INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.',255)
 C**** MASS FOR KINETIC ENERGY
   200 I=IM
-      DO 202 J=2,JM
+
+      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+
+      DO 202 J=J_0STG,J_1STG
       DO 202 IP1=1,IM
       SQRTM(I,J)=SQRT(.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+
      *  P(IP1,J-1))*DXYN(J-1)))
@@ -2422,7 +2569,7 @@ C****
 C**** CURRENT KINETIC ENERGY
       DO 240 L=1,LM
         KSPHER=KLAYER(L)
-      DO 240 J=2,JM
+      DO 240 J=J_0STG,J_1STG
       DO 240 K=IZERO,LM,LM
       IF(K.EQ.IZERO) X(1:IM)=U(1:IM,J,L)*SQRTM(1:IM,J)
       IF(K.EQ.LM)    X(1:IM)=V(1:IM,J,L)*SQRTM(1:IM,J)
@@ -2456,14 +2603,15 @@ C****
 C**** CURRENT AVAILABLE POTENTIAL ENERGY
       LUP=0
   300 LUP=LUP+1
-      THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
-      THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
       IF(LUP.GE.LS1) THEN
-      THJSP(LUP) = T(1,1,LUP)*SQRTPG
-      THJNP(LUP) = T(1,JM,LUP)*SQRTPG
+        IF(HAVE_SOUTH_POLE) THJSP(LUP) = T(1,1,LUP)*SQRTPG
+        IF(HAVE_NORTH_POLE) THJNP(LUP) = T(1,JM,LUP)*SQRTPG
+      ELSE
+        IF(HAVE_SOUTH_POLE) THJSP(LUP)=T(1,1,LUP)*SQRTP(1,1)
+        IF(HAVE_NORTH_POLE) THJNP(LUP)=T(1,JM,LUP)*SQRTP(1,JM)
       ENDIF
       THGSUM=FIM*(THJSP(LUP)*DXYP(1)+THJNP(LUP)*DXYP(JM))
-      DO 320 J=2,JM-1
+      DO 320 J=J_0S,J_1S
       THJSUM=0.
       DO 310 I=1,IM
   310 THJSUM=THJSUM+T(I,J,LUP)*SQRTP(I,J)
@@ -2476,13 +2624,13 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
   350 CONTINUE
 
       VAR(2:NM,1:2)=0.
-      VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
-      VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
+      IF(HAVE_SOUTH_POLE) VAR(1,1)=.5*(THJSP(L)-THGM(L))**2*DXYP(1)*FIM
+      IF(HAVE_NORTH_POLE) VAR(1,2)=.5*(THJNP(L)-THGM(L))**2*DXYP(JM)*FIM
       GMEAN=((THJSP(LUP)-THJSP(LDN))*DXYP(1)*(SIG(L)*P(1,1)+PTOP)/
      *  (SQRTP(1,1)*P(1,1)*PK(L,1,1))+(THJNP(LUP)-THJNP(LDN))*DXYP(JM)*
      *  (SIG(L)*P(1,JM)+PTOP)/(SQRTP(1,JM)*P(1,JM)*PK(L,1,JM)))*FIM
       JHEMI=1
-      DO 388 J=2,JM-1
+      DO 388 J=J_0S,J_1S
         GMSUM=0.
         DO I=1,IM
           X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
@@ -2505,6 +2653,7 @@ C**** CURRENT AVAILABLE POTENTIAL ENERGY
         END DO
  388  CONTINUE
       GMEAN=DSIG(L)*AREAG*(SIG(LDN)-SIG(LUP))/GMEAN
+
       KS=KLAYER(L)
       DO JHEMI=1,4
         DO N=1,NM
@@ -2525,7 +2674,7 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
   455 SUMT=SUMT+T(1,JP,L)*PK(L,1,JP)*DSIG(L)
       TPE(JHEMI)=FIM*DXYP(JP)*(ZATMO(1,JP)*(P(1,JP)+PTOP)+
      *  SUMT*SHA*P(1,JP))
-      DO 480 JH=2,JEQ-1
+      DO 480 JH=MAX(J_0S,2),MIN(J_1S,JEQ-1)
       J=JH+(JEQ-2)*(JHEMI-1)
       SUMI=0.
       DO 470 I=1,IM
@@ -2569,17 +2718,21 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,MDIAG,MDYN
       USE DIAG_LOC, only : FCUVA,FCUVB
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,JM,LM) :: UX,VX
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: 
+     &        UX,VX
 c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
 c      COMMON/WORK7/FCUVA,FCUVB
       INTEGER :: J,L,MBEGIN
+      INTEGER :: J_0STG, J_1STG
 
+      CALL GET(GRID, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
       CALL GETTIME(MBEGIN)
       IDACC(6)=IDACC(6)+1
       DO L=1,LM
-         DO J=2,JM
+         DO J=J_0STG,J_1STG
             CALL FFT(UX(1,J,L),FCUVA(0,J,L,1),FCUVB(0,J,L,1))
             CALL FFT(VX(1,J,L),FCUVA(0,J,L,2),FCUVB(0,J,L,2))
          ENDDO
@@ -2812,12 +2965,18 @@ C****
       USE GHYCOM, only : snowe
       USE RADNCB, only : trhr,srdn,salb,cfrac,cosz1
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
-      REAL*4, DIMENSION(IM,JM) :: DATA
+      REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       INTEGER :: I,J,K,L,kp,kunit
       CHARACTER namel*3
       REAL*8 POICE,PEARTH,PLANDI
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       kunit=0
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
@@ -2825,14 +2984,14 @@ C**** depending on namedd string choose what variables to output
 C**** simple diags
         select case (namedd(k))
         case ("SLP")      ! sea level pressure (mb)
-          do j=1,jm
+          do j=J_0,J_1
           do i=1,imaxj(j)
             data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
      *           **gbyrb
           end do
           end do
         case ("PS")      ! surface pressure (mb)
-          do j=1,jm
+          do j=J_0,J_1
           do i=1,imaxj(j)
             data(i,j)=p(i,j)+ptop
           end do
@@ -2840,7 +2999,7 @@ C**** simple diags
         case ("SAT")      ! surf. air temp (C)
           data=tsavg-tf
         case ("SST")      ! sea surface temp (C)
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
                 data(i,j)=GTEMP(1,1,i,j)
@@ -2850,7 +3009,7 @@ C**** simple diags
             end do
           end do
         case ("SIT")      ! surface ice temp (C)
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
                 data(i,j)=GTEMP(1,2,i,j)
@@ -2864,7 +3023,7 @@ C**** simple diags
         case ("PREC")     ! precip (mm/day)
           data=sday*prec/dtsrc
         case ("SNOWD")     ! snow depth (w.e. mm)
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
@@ -2892,7 +3051,7 @@ C**** simple diags
           data=vflux1
         case ("LCLD")           ! low level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               do l=1,llow
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
@@ -2902,7 +3061,7 @@ C**** simple diags
           end do
         case ("MCLD")           ! mid level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               do l=llow+1,lmid
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
@@ -2912,7 +3071,7 @@ C**** simple diags
           end do
         case ("HCLD")           ! high level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
-          do j=1,jm
+          do j=J_0,J_1
             do i=1,imaxj(j)
               do l=lmid+1,lhi
                 data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
@@ -2929,8 +3088,8 @@ C**** simple diags
         end select
         kunit=kunit+1
 C**** fix polar values
-        data(2:im,1) =data(1,1)
-        data(2:im,jm)=data(1,jm)
+        IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+        IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
         call writei(iu_subdd(kunit),itime,data,im*jm)
         cycle
@@ -2951,8 +3110,8 @@ C**** get pressure level
                 data=t_inst(kp,:,:)
               end select
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
@@ -2970,8 +3129,8 @@ C**** write out
                 data=t_inst(kp,:,:)
               end select
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
@@ -2989,8 +3148,8 @@ C**** write out
               case ("W")
                 data=wsave(:,:,kp) ! vertical velocity
 C**** fix polar values for W only (calculated on tracer points)
-                data(2:im,1) =data(1,1)
-                data(2:im,jm)=data(1,jm)
+                IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+                IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
               end select
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
@@ -3026,15 +3185,15 @@ C**** fix polar values for W only (calculated on tracer points)
           if (namedd(k)(3:5) .eq. "ALL") then
             kunit=kunit+1
             do kp=1,LmaxSUBDD
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                   data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mair/
      *                 (tr_mm(n_Ox)*am(kp,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
             end do
@@ -3049,15 +3208,15 @@ C**** get model level
             end if
             if (trim(namedd(k)(3:6)) .eq. trim(namel)) then
               kunit=kunit+1
-              do j=1,jm
+              do j=J_0,J_1
                 do i=1,imaxj(j)
                   data(i,j)=1d6*trm(i,j,l,n_Ox)*mair/
      *                 (tr_mm(n_Ox)*am(l,i,j)*dxyp(j))
                 end do
               end do
 C**** fix polar values
-              data(2:im,1) =data(1,1)
-              data(2:im,jm)=data(1,jm)
+              IF(HAVE_SOUTH_POLE) data(2:im,1) =data(1,1)
+              IF(HAVE_NORTH_POLE) data(2:im,jm)=data(1,jm)
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
@@ -3089,6 +3248,7 @@ c****
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
+      USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL
       IMPLICIT NONE
       integer, intent(in) :: ISTART,num_acc_files
       INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate,iu_AIC
@@ -3097,7 +3257,11 @@ c****
       CHARACTER FILENM*100
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      INTEGER :: J_0,J_1
+!@var out_line local variable to hold mixed-type output for parallel I/O
+      character(len=300) :: out_line
 
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       call sync_param( "NAMDD", NAMDD, NDIUPT )
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
       call sync_param( "isccp_diags",isccp_diags)
@@ -3114,7 +3278,9 @@ c****
           if (monacc(k).eq.years) then
             months=months+1
           else if (monacc(k).ne.0) then
-            write(6,*) 'uneven period:',monacc
+C****            write(6,*) 'uneven period:',monacc
+            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
+     &                          "('uneven period:',12I5)")
             call stop_model( 'uneven period', 255 )
           end if
           if(monacc(k).ne.monacc(kb)) mswitch = mswitch+1
@@ -3122,16 +3288,20 @@ c****
           kb = k
         end do
         if (mswitch.gt.2) then
-          write(6,*) 'non-consecutive period:',monacc
+C****          write(6,*) 'non-consecutive period:',monacc
+            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
+     &                          "('non-consecutive period:',12I5)")
           call stop_model( 'non-consecutive period', 255 )
         end if
         call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
         if (num_acc_files.gt.1) then  ! save the summed acc-file
-          write(6,*) num_acc_files,' files are summed up'
+          write(out_line,*) num_acc_files,' files are summed up'
+          CALL WRITE_PARALLEL(TRIM(out_line), UNIT=6)
           keyct=1 ; KEYNR=0
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-          write(6,*) XLABEL
+C****          write(6,*) XLABEL
+          CALL WRITE_PARALLEL(XLABEL, UNIT=6)
           call openunit(acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
      *         ,iu_ACC,.true.,.false.)
           call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
@@ -3185,9 +3355,13 @@ C**** From DIAG7A
         IF (PLE_tmp.LT.250.) JET=L
         IF (PLE_tmp.LT.50.) L50=L
       END DO
-      WRITE (6,888) JET
- 888  FORMAT (' JET WIND LEVEL FOR DIAG',I3)
-      WRITE (6,889) L850,L300,L50
+C      WRITE (6,888) JET
+      CALL WRITE_PARALLEL(JET, UNIT=6, format=
+     & "(' JET WIND LEVEL FOR DIAG',I3)")
+C 888  FORMAT (' JET WIND LEVEL FOR DIAG',I3)
+C****      WRITE (6,889) L850,L300,L50
+      WRITE (out_line,889) L850,L300,L50
+      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
  889  FORMAT (' LEVELS FOR WIND WAVE POWER DIAG  L850=',I3,
      *     ' L300=',I3,' L50=',I3)
       LDEX(1)=L850
@@ -3301,9 +3475,16 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         KLAYER(L)=4*(KL-1)+1
       END DO
       IF (KL*4 .gt. NSPHER) THEN
-        WRITE(6,*) "Inconsistent definitions of stratosphere:"
-        WRITE(6,*) "Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
-        WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
+C****        WRITE(6,*) "Inconsistent definitions of stratosphere:"
+        CALL WRITE_PARALLEL("Inconsistent definitions of stratosphere:"
+     &                       ,UNIT=6)
+C****        WRITE(6,*) "Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
+        CALL WRITE_PARALLEL("Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
+     &                       ,UNIT=6)
+C****        WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
+        WRITE(out_line,*) "ISTRAT,PSPEC,NSPHER,KL=",
+     &                     ISTRAT,PSPEC,NSPHER,KL
+        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
         call stop_model(
      *    "Stratospheric definition problem for spectral diags.",255)
       END IF
@@ -3313,8 +3494,11 @@ C**** Calculate the max number of geopotential heights
         if (pmb(k).le.pmtop) exit
         kgz_max = k
       end do
-      write(6,'(a)') " Geopotential height diagnostics at (mb): "
-      write(6,'(20F9.3)') PMB(1:kgz_max)
+C****      write(6,'(a)') " Geopotential height diagnostics at (mb): "
+      CALL WRITE_PARALLEL(" Geopotential height diagnostics at (mb): ",
+     &                      UNIT=6)
+C*****      write(6,'(20F9.3)') PMB(1:kgz_max)
+      CALL WRITE_PARALLEL(PMB(1:kgz_max), UNIT=6, format="(20F9.3)")
 
 c**** Initialize acc-array names, units, idacc-indices
       call def_acc
@@ -3325,7 +3509,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
      *       ,amon)
         CALL reset_DIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
-        DO J=1,JM
+        DO J=J_0,J_1
           DO I=1,IMAXJ(J)
             TSFREZ(I,J,TF_DAY1)=365.
             TSFREZ(I,J,TF_LAST)=365.
@@ -3408,23 +3592,26 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE LAKES_COM, only : flake
       USE DAGCOM, only : aij,ij_lkon,ij_lkoff,ij_lkice,tsfrez,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
+      INTEGER :: J_0, J_1
 
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       IF (JDAY.EQ.32) THEN
-         DO J=1+JM/2,JM
+         DO J=MAX(J_0,1+JM/2),MIN(J_1,JM)
             DO I=1,IM
                TSFREZ(I,J,TF_DAY1)=JDAY
             END DO
          END DO
-         DO J=1,JM/2
+         DO J=MAX(J_0,1),MIN(J_1,JM/2)
             DO I=1,IM
                TSFREZ(I,J,TF_LAST)=JDAY
             END DO
          END DO
       ELSEIF (JDAY.EQ.213) THEN
-         DO J=1,JM/2
+         DO J=MAX(J_0,1),MIN(J_1,JM/2)
             DO I=1,IM
               TSFREZ(I,J,TF_DAY1)=JDAY
             END DO
@@ -3434,7 +3621,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
 C**** The AIJ diagnostics are set once a year (zero otherwise)
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (J.le.JM/2) THEN
 C**** initiallise/save South. Hemi. on Feb 28
@@ -3475,7 +3662,7 @@ C**** set ice on/off days
       END DO
 
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
-      DO J=1,JM
+      DO J=J_0,J_1
          DO I=1,IM
             TDIURN(I,J,1)= 1000.
             TDIURN(I,J,2)=-1000.
@@ -3506,6 +3693,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
      *     ,lname_consrv,units_consrv
+      USE DOMAIN_DECOMP, only : WRITE_PARALLEL
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
@@ -3525,14 +3713,20 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       CHARACTER*16, INTENT(IN) :: SUM_UNIT
 !@var ICON index for the conserved quantity
       INTEGER, INTENT(OUT) :: ICON
+!@var out_line local variable to hold mixed-type output for parallel I/O
+      character(len=300) :: out_line
 
       INTEGER NI,NM,NS,N,k
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
 
       NQ=NQ+1
       IF (NQ.gt.NQUANT) THEN
-        WRITE(6,*) "Number of conserved quantities larger than NQUANT"
+C****        WRITE(6,*) "Number of conserved quantities larger than NQUANT"
+C****     *       ,NQUANT,NQ
+        WRITE(out_line,*)
+     *       "Number of conserved quantities larger than NQUANT"
      *       ,NQUANT,NQ
+        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
         call stop_model("Change NQUANT in diagnostic common block",255)
       END IF
 C**** remove spaces in NAME_CON for netcdf names
@@ -3579,8 +3773,12 @@ C****
       END DO
       NS=NM+1
       IF (NS.gt.KCON) THEN
-        WRITE(6,*) "KCON not large enough for extra conserv diags",
+C****        WRITE(6,*) "KCON not large enough for extra conserv diags",
+C****     *       KCON,NI,NM,NQ,NS,NAME_CON
+        WRITE(out_line,*)
+     *      "KCON not large enough for extra conserv diags",
      *       KCON,NI,NM,NQ,NS,NAME_CON
+        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
         call stop_model("Change KCON in diagnostic common block",255)
       END IF
       TITLE_CON(NS) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
@@ -3606,10 +3804,13 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
+      INTEGER :: J_0,J_1
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE,I,J)

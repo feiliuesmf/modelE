@@ -8,7 +8,6 @@ c set-up for MPI implementation
       call alloc_dynamics(grid)
       call alloc_model_com(grid)
       call alloc_fluxes(grid)
-      call alloc_geom(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
@@ -20,6 +19,9 @@ c set-up for MPI implementation
       call alloc_strat_com(grid)
       call alloc_seaice_com(grid)
       call alloc_rad_com(grid)
+      call alloc_lakes(grid)
+      call alloc_lakes_com(grid)
+      call alloc_landice_com(grid)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call alloc_tracer_com(grid)
 #ifdef TRACERS_SPECIAL_Lerner
@@ -29,5 +31,6 @@ c set-up for MPI implementation
 #endif
       call alloc_tracer_adv(grid)
       call alloc_veg_com(grid)
+      call alloc_static_ocean(grid)
 
       end subroutine alloc_drv

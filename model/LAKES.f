@@ -1,11 +1,13 @@
-#include "rundeck_opts.h"
-
+#include "rundeck_opts.h" 
+C23456789012345678901234567890123456789012345678901234567890123456789012
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
       USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : WRITE_PARALLEL
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
 #endif
@@ -16,12 +18,12 @@ C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
 C****                         GZM -> TLAKE (deg C)
 !@var KDIREC directions for river flow
 C**** (0 no flow, 1-8 anti-clockwise from top RH corner
-      INTEGER, DIMENSION(IM,JM) :: KDIREC
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KDIREC
 !@var RATE rate of river flow downslope (fraction)
 !@var DHORZ horizontal distance to downstream box (m)
-      REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RATE,DHORZ
 !@var IFLOW,JFLOW grid box indexes for downstream direction
-      INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
+      INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFLOW,JFLOW
 !@param NRVRMX Max No. of specified rivers
       INTEGER, PARAMETER :: NRVRMX = 42 
 !@var NRVR actual No. of specified rivers
@@ -80,6 +82,8 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
       REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
       REAL*8 FRATO,FRATI,E2O,E2I
+!@var out_line local variable to hold mixed-type output for parallel I/O
+      character(len=300) :: out_line
 C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
 
@@ -196,9 +200,12 @@ C**** limit freezing if lake is between 50 and 20cm depth
           MLAKE(1)=MLAKE(1)-ACEF1
           FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW
           IF (FH0.lt.-1d-8) THEN ! max. amount of lake frozen, cool ice
-            if (qcheck) WRITE(6,*)
+            if (qcheck) then
+              WRITE(out_line,*)
      *           "Minimum lake level reached: rsi,mlake,elake",i0,j0
      *           ,roice,mlake(1)/rhow,elake(1)
+              CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+            endif
             ENRGF1  =ENRGF1+FH0
             ELAKE(1)=MLAKE(1)*TFL*SHW
           END IF
@@ -349,6 +356,29 @@ C****
 
       END MODULE LAKES
 
+       SUBROUTINE ALLOC_LAKES (GRID)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+!@SUM  To alllocate arrays whose sizes now need to be determined
+!@+    at run-time
+!@auth Raul Garza-Robles
+!@ver  1.0
+      USE DOMAIN_DECOMP, only: DIST_GRID, GET
+      USE MODEL_COM, only : IM, JM
+      USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW 
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      INTEGER IER
+
+      ALLOCATE ( KDIREC (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            IFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            JFLOW  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            RATE   (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *            DHORZ  (IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
+     *            )
+      RETURN
+      END SUBROUTINE ALLOC_LAKES
+
+  
       SUBROUTINE init_LAKES(inilake,istart)
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
@@ -357,6 +387,8 @@ C****
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,fearth,jday
+      USE DOMAIN_DECOMP, only : GRID,CHECKSUM,WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
       USE GEOM, only : dxyp,dxv,dyv,dxp,dyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -369,6 +401,8 @@ C****
       USE LAKES_COM
       USE DAGCOM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       IMPLICIT NONE
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
       LOGICAL, INTENT(IN) :: inilake
       INTEGER, INTENT(IN) :: ISTART
@@ -378,6 +412,15 @@ C****
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+!@var out_line local variable to hold mixed-type output for parallel I/O
+      character(len=300) :: out_line
+
+
+      CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE, 
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
@@ -391,7 +434,7 @@ C****
       FLAKE = FLAKE0   ! this is only here until FLAKE is variable
 
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
-      DO J=1,JM
+      DO J=J_0, J_1
         DO I=1,IM
           IF (FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
             print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),HLAKE(I,J)
@@ -404,7 +447,7 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
-        DO J=1,JM
+        DO J=J_0, J_1
           DO I=1,IM
 c            FLAKE(I,J) = FLAKE0(I,J)
             IF (FLAKE(I,J).gt.0) THEN
@@ -436,7 +479,7 @@ c            FLAKE(I,J) = FLAKE0(I,J)
 
 C**** Set geometric variables
 C**** TANLK=TAN(ALPHA) = R/H for a conical lake of equivalent volume
-      DO J=1,JM
+      DO J=J_0, J_1
         DO I=1,IM
           IF (FLAKE0(I,J).gt.0) THEN
             TANLK(I,J) = SQRT(FLAKE0(I,J)*DXYP(J)/PI)/(3d0*HLAKE(I,J))
@@ -449,7 +492,7 @@ C**** TANLK=TAN(ALPHA) = R/H for a conical lake of equivalent volume
       CALL PRINTLK("IN")
 C**** Set GTEMP arrays for lakes
       IF (ISTART.gt.0) THEN
-      DO J=1,JM
+       DO J=J_0, J_1
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
@@ -475,10 +518,11 @@ C**** Always initiallise River direction and Rate
 C**** Read in CDIREC: Number = octant direction, Letter = river mouth
       call openunit("RVR",iu_RVR,.false.,.true.)
       READ  (iu_RVR,910) TITLEI
-      WRITE (6,*) 'River Direction file read: ',TITLEI
+      WRITE (out_line,*) 'River Direction file read: ',TITLEI
+      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
       READ  (iu_RVR,910)
       DO I72=1,1+(IM-1)/72
-        DO J=JM,1,-1
+        DO J=J_1, J_0, -1
           READ  (iu_RVR,911) (CDIREC(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
         END DO
       END DO
@@ -492,9 +536,11 @@ C**** read in named rivers (if any)
         END DO
       END IF
  10   call closeunit (iu_RVR)
+
+
 C**** Create integral direction array KDIREC from CDIREC
       INM=0
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IM
 C**** KD: -16 = blank, 0-8 directions >8 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
@@ -517,14 +563,16 @@ C**** Check for specified river mouths
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
           IF (CDIREC(I,J).ne.NAMERVR(INM)(1:1)) THEN
-            WRITE(6,*) "Warning: Named river in RVR does not correspond"
+            WRITE(6,*) 
+     *           "Warning: Named river in RVR does not correspond"
      *           //" with letter in direction file. Please check"
             WRITE(6,*) "INM, CDIREC, NAMERVR = ",INM,CDIREC(I,J)
      *           ," ",NAMERVR(INM)
             NAMERVR(INM)=CDIREC(I,J)  ! set default
           END IF
           IF (FOCEAN(I,J).le.0) THEN
-            WRITE(6,*) "Warning: Named river outlet must be in ocean",i
+            WRITE(6,*) 
+     *       "Warning: Named river outlet must be in ocean",i
      *           ,j,NAMERVR(INM),FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
      *           ,FEARTH(I,J) 
           END IF
@@ -535,7 +583,7 @@ C**** Check for specified river mouths
 C****
 C**** From each box calculate the downstream river box
 C****
-      DO J=2,JM-1
+        DO J=J_0S, J_1S
         DO I=1,IM
           SELECT CASE (KDIREC(I,J))
           CASE (0)
@@ -588,25 +636,30 @@ C****
         END DO
       END DO
 C**** South Pole is a special case
-      DO I=1,IM
-        IF(KDIREC(I,1).eq.2)  THEN
-          IFLOW(1,1) = I
-          JFLOW(1,1) = 2
-          DHORZ(1,1) = DYV(2)    ! DYV(1)
-        END IF
-        IF(KDIREC(I,2).eq.6)  THEN
-          IFLOW(I,2) = 1
-          JFLOW(I,2) = 1
-        END IF
-      END DO
+      IF (HAVE_SOUTH_POLE) Then
+         DO I=1,IM
+            IF(KDIREC(I,1).eq.2)  THEN
+               IFLOW(1,1) = I
+               JFLOW(1,1) = 2
+               DHORZ(1,1) = DYV(2) ! DYV(1)
+            END IF
+            IF(KDIREC(I,2).eq.6)  THEN
+               IFLOW(I,2) = 1
+               JFLOW(I,2) = 1
+            END IF
+         END DO
+      END IF
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
+      CALL CHECKSUM(grid, zatmo, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, zatmo, FROM=NORTH)
+
       SPEED0= .35d0
       SPMIN = .15d0
       SPMAX = 5.
       DZDH1 = .00005
-      DO JU=1,JM-1
+      DO JU = J_0, J_1S
         DO IU=1,IMAXJ(JU)
           IF(KDIREC(IU,JU).gt.0) THEN
             JD=JFLOW(IU,JU)
@@ -646,9 +699,11 @@ C****
       USE CONSTANT, only : grav,shw,rhow,teeny
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
+     *        GLOBALSUM
       USE GEOM, only : dxyp,bydxyp
-      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,j_rvrd
-     *     ,j_ervr
+      USE DAGCOM, only : aij,ij_ervr,ij_mrvr,ij_f0oc,aj,areg,jreg,
+     *        j_rvrd,j_ervr
 #ifdef TRACERS_WATER
       USE TRACER_DIAG_COM, only : taijn,tij_rvr
       USE FLUXES, only : trflowo,gtracer
@@ -662,14 +717,18 @@ C****
       USE SEAICE_COM, only : rsi
       IMPLICIT NONE
 
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
       REAL*8 MWLSILL,DMM,DGM,HLK1,DPE
-      REAL*8, DIMENSION(IM,JM) :: FLOW,EFLOW
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     *     FLOW,EFLOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRFLOW
+      REAL*8, DIMENSION(NTM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     * :: TRFLOW
 #endif
+
 C****
 C**** LAKECB  MWL  Liquid lake mass  (kg)
 C****         GML  Liquid lake enthalpy  (J)
@@ -677,13 +736,16 @@ C****         TLAKE  Lake surface temperature (C)
 C****
 C**** Calculate net mass and energy changes due to river flow
 C****
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
 #ifdef TRACERS_WATER
       TRFLOW = 0.
       TRFLOWO = 0.
 #endif
-      DO JU=2,JM-1
+        DO JU=J_0S, J_1S
         DO IU=1,IM
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
           IF (KDIREC(IU,JU).gt.0 .or.
@@ -798,7 +860,7 @@ c        END IF
 C****
 C**** Apply net river flow to continental reservoirs
 C****
-      DO J=2,JM-1
+        DO J=J_0S, J_1S
         DO I=1,IM
           IF(FLAND(I,J)+FLAKE(I,J).gt.0.) THEN
             MWL(I,J) = MWL(I,J) +  FLOW(I,J)
@@ -873,7 +935,7 @@ C**** accumulate some diagnostics
 
       CALL PRINTLK("RV")
 C**** Set GTEMP array for lakes
-      DO J=1,JM
+        DO J=J_0, J_1
         DO I=1,IM
           IF (FLAKE(I,J).gt.0) THEN
             GTEMP(1,1,I,J)=TLAKE(I,J)
@@ -897,6 +959,8 @@ C****
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH, 
+     *    WRITE_PARALLEL
       USE GEOM, only : bydxyp
       USE DAGCOM, only : aij,ij_mrvr
 #ifdef TRACERS_WATER
@@ -912,10 +976,13 @@ C****
 #ifdef TRACERS_WATER
       REAL*8 TRRVOUT(6,NTM)
 #endif
+!@var out_line local variable to hold mixed-type output for parallel I/O
+      character(len=300) :: out_line
 
       DAYS=(Itime-Itime0)/REAL(nday,kind=8)
-      WRITE(6,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
-     *     ,ITIME,DAYS
+      WRITE(out_line,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,
+     *      JHOUR,ITIME,DAYS
+      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
 C**** convert kg/(source time step) to km^3/mon
       SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)
       DO INM=1,NRVR,6
@@ -923,14 +990,17 @@ C**** convert kg/(source time step) to km^3/mon
           RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
      *         ,IJ_MRVR)/IDACC(1)
         END DO
-        WRITE(6,901) (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM))
+        WRITE(out_line,901) 
+     *     (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM)) 
+        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
       END DO
 
 #ifdef TRACERS_WATER
       DO N=1,NTM
         if (itime.ge.itime_tr0(n) .and. tr_wd_TYPE(n).eq.nWater) then
-          WRITE(6,*) "River outflow tracer concentration "
+          WRITE(out_line,*) "River outflow tracer concentration "
      *         ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
+          CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
           DO INM=1,NRVR,6
             DO I=1,MIN(6,NRVR+1-INM)
               IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
@@ -950,8 +1020,9 @@ C**** convert kg/(source time step) to km^3/mon
                 TRRVOUT(I,N)=undef
               END IF
             END DO
-            WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),
-     *           I=1,MIN(6,NRVR+1-INM))
+            WRITE(out_line,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),
+     *           I=1,MIN(6,NRVR+1-INM)) 
+            CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
           END DO
         end if
       END DO
@@ -972,6 +1043,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
       USE GEOM, only : dxyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -979,7 +1051,7 @@ C****
       USE LAKES
       USE LAKES_COM
       IMPLICIT NONE
-
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,N !@var I,J loop variables
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKL
@@ -987,21 +1059,22 @@ C****
       integer :: imax,jmax
       real*8 relerr,errmax
 #endif
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
-C**** Check for NaN/INF in lake data
-      CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
+C**** Check for NaN/INF in lake data CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
       CALL CHECK3(GML,IM,JM,1,SUBR,'gml')
       CALL CHECK3(MLDLK,IM,JM,1,SUBR,'mld')
       CALL CHECK3(TLAKE,IM,JM,1,SUBR,'tlk')
 
       QCHECKL = .FALSE.
-      DO J=2,JM-1
+      DO J=J_0S, J_1S
       DO I=1,IM
         IF(FEARTH(I,J).gt.0.) THEN
 C**** check for negative mass
           IF (MWL(I,J).lt.0 .or. MLDLK(I,J).lt.0) THEN
-            WRITE(6,*) 'After ',SUBR,': I,J,TSL,MWL,GML,MLD=',I,J
-     *           ,TLAKE(I,J),MWL(I,J),GML(I,J),MLDLK(I,J)
+            WRITE(6,*) 'After ',SUBR,': I,J,TSL,MWL,GML,MLD=',
+     *           I,J,TLAKE(I,J),MWL(I,J),GML(I,J),MLDLK(I,J)
             QCHECKL = .TRUE.
           END IF
 C**** check for reasonable lake surface temps
@@ -1031,7 +1104,7 @@ C**** Check total lake mass ( <0.4 m, >20x orig depth)
       do n=1,ntm
 C**** Check for neg tracers in lake
         if (t_qlimit(n)) then
-          do j=1,jm
+         do j=J_0, J_1
           do i=1,imaxj(j)
             if (fearth(i,j).gt.0) then
               if (trlake(n,1,i,j).lt.0 .or. trlake(n,2,i,j).lt.0) then
@@ -1046,7 +1119,7 @@ C**** Check for neg tracers in lake
 C**** Check conservation of water tracers in lake
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1
-          do j=1,jm
+          do j=J_0, J_1
           do i=1,imaxj(j)
             if (fearth(i,j).gt.0) then
               if (flake(i,j).gt.0) then
@@ -1131,6 +1204,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET,NORTH,SOUTH
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
@@ -1145,14 +1219,18 @@ C****
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
+      INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0H,I_1H
       INTEGER I,J,ITYPE
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
 
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
       CALL PRINTLK("PR")
 
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
         POLAKE=(1.-RSI(I,J))*FLAKE(I,J)
@@ -1224,6 +1302,9 @@ C****
       USE CONSTANT, only : rhow,shw,teeny
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,fearth,dtsrc,itlake,itlkice
+      USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE, 
+     *    NORTH,SOUTH
+
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
      *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp
@@ -1256,10 +1337,15 @@ C**** output from LKSOURC
       REAL*8, DIMENSION(NTM,2) :: TRLAKEL
 #endif
       INTEGER I,J,JR
+      INTEGER :: J_0,J_1,J_0S,J_1S
+
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
 
       CALL PRINTLK("GR")
 
-      DO J=1,JM
+      DO J=J_0, J_1
       DO I=1,IMAXJ(J)
       JR=JREG(I,J)
       ROICE=RSI(I,J)
@@ -1471,23 +1557,33 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fland,fearth,fim
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : mwl,flake
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM) :: LKM
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKM
       INTEGER :: I,J
+      INTEGER :: J_0,J_1,J_0S,J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
+
+
 C****
 C**** LAKE MASS (kg/m^2)
 C****
-      DO J=1,JM
+        DO J=J_0, J_1
         LKM(J)=0.
         DO I=1,IMAXJ(J)
           IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKM(J)=LKM(J)+MWL(I,J)
         END DO
         LKM(J)=LKM(J)*BYDXYP(J)
       END DO
-      LKM(1) =FIM*LKM(1)
-      LKM(JM)=FIM*LKM(JM)
+      IF (HAVE_SOUTH_POLE) LKM(1) =FIM*LKM(1)
+      IF (HAVE_NORTH_POLE) LKM(JM)=FIM*LKM(JM)
       RETURN
       END SUBROUTINE conserv_LKM
 
@@ -1496,16 +1592,25 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,zatmo,fim,fland,fearth
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM) :: LKE
-      INTEGER :: I,J
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: LKE
+
       REAL*8 AREA
+      INTEGER :: I,J
+      INTEGER :: FROM,J_0,J_1,J_0S,J_1S
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 C****
 C**** LAKE ENERGY (J/m^2) (includes potential energy (DISABLED))
 C****
-      DO J=1,JM
+        DO J=J_0, J_1
         LKE(J)=0.
         DO I=1,IMAXJ(J)
           IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)
@@ -1513,7 +1618,7 @@ c     *         +ZATMO(I,J)*MWL(I,J)
         END DO
         LKE(J)=LKE(J)*BYDXYP(J)
       END DO
-      LKE(1) =FIM*LKE(1)
-      LKE(JM)=FIM*LKE(JM)
+      IF (HAVE_SOUTH_POLE) LKE(1)=FIM*LKE(1)
+      IF (HAVE_NORTH_POLE) LKE(JM)=FIM*LKE(JM)
       RETURN
       END SUBROUTINE conserv_LKE

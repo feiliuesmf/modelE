@@ -8,6 +8,13 @@
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
       USE CONSTANT, only : lhm,rhows,rhoi,shw,shi,by12,byshi
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID, GET,
+     *                          DREAD_PARALLEL,
+     *                          MREAD_PARALLEL,
+     *                          READT_PARALLEL,
+     *                          REWIND_PARALLEL,
+     *                          BACKSPACE_PARALLEL
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
@@ -31,32 +38,35 @@
 !@+       after 1 year - 0:no 1:yes 2:seaice repeats,sst does not
       integer :: ocn_cycl = 1
 !@var TOCEAN temperature of the ocean (C)
-      REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TOCEAN
 !@var SSS0 default sea surface salinity (psu)
       REAL*8 :: SSS0=34.7d0
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
-      REAL*8, DIMENSION(IM,JM,4) :: OTA,OTB
-      REAL*8, DIMENSION(IM,JM) :: OTC
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OTC
 !@var SINANG,COSANG Fourier coefficients for heat transports
       REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
      *          COSANG,CS2ANG,CS3ANG,CS4ANG
 
 !@var Z1O ocean mixed layer depth
-      REAL*8, DIMENSION(IM,JM) :: Z1O
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z1O
 !@var Z1OOLD previous ocean mixed layer depth
-      REAL*8, DIMENSION(IM,JM) :: Z1OOLD
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z1OOLD
 !@var Z12O annual maximum ocean mixed layer depth
-      REAL*8, DIMENSION(IM,JM) :: Z12O
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z12O
 
-      REAL*8, DIMENSION(IM,JM) :: DM,AOST,EOST1,EOST0,BOST
-     *     ,COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
-      INTEGER, DIMENSION(IM,JM) ::  KRSI
-      COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
-     *     ,CRSI,KRSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::DM,AOST,EOST1,EOST0,BOST, 
+     *     COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  KRSI
+C      COMMON/OOBS/DM,AOST,EOST1,EOST0,BOST,COST,ARSI,ERSI1,ERSI0,BRSI
+C     *     ,CRSI,KRSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: XZO,XZN
 
 !@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
       INTEGER iu_OSST,iu_SICE,iu_OCNML
+      INTEGER :: J_0,J_1
+      LOGICAL :: HAVE_NORTH_POLE
 
       CONTAINS
 
@@ -82,7 +92,9 @@ C**** FWSIM     Fresh water sea ice amount (KG/M**2)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
@@ -118,9 +130,12 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
+      USE DOMAIN_DECOMP, only : HERE
+      USE DOMAIN_DECOMP, ONLY : SKIP_PARALLEL, CHECKSUM
+
       IMPLICIT NONE
 
-      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
+C now allocated from ALLOC_STATIC OCEAN      REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
       INTEGER n,J,I,LSTMON,K,m,m1,JR
@@ -132,7 +147,12 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       INTEGER, SAVE :: IMON0 = 0
 !@var IMON current month for ocean mixed layer climatology reading
       INTEGER, SAVE :: IMON = 0
+!@var TEMP_LOCAL stores AOST+EOST1 or ARSI+ERST1 to avoid the use of common block OOBS in MODULE STATIC_OCEAN
+      REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
 
+      CALL HERE(__FILE__,__LINE__)
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       IF (KOCEAN.EQ.1) GO TO 500
       if(.not.(end_of_day.or.itime.eq.itimei.or.off_line)) return
 C****
@@ -157,35 +177,55 @@ C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
+      
+      CALL HERE(__FILE__,__LINE__)
       IF (JMON.EQ.IMON0) GO TO 400
+      CALL HERE(__FILE__,__LINE__)
       IF (IMON0.EQ.0) THEN
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
+         CALL HERE(__FILE__,__LINE__)
         if (ocn_cycl.ge.1) then
           LSTMON=JMON-1
           if (lstmon.eq.0) lstmon = 12
-          call readt (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
+          CALL HERE(__FILE__,__LINE__)
+          CALL READT_PARALLEL
+     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),IM*JM,ERSI0,LSTMON)
+            CALL CHECKSUM(grid,ERSI0,__LINE__,__FILE__)
           if (ocn_cycl.eq.1) then
-            call readt (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
+             CALL HERE(__FILE__,__LINE__)
+            CALL READT_PARALLEL
+     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),IM*JM,EOST0,LSTMON)
+            CALL CHECKSUM(grid,EOST0,__LINE__,__FILE__)
           else ! if (ocn_cycl.eq.2) then
             LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
   290       read (iu_OSST) M
             if (m.lt.lstmon) go to 290
-            backspace iu_OSST
-            CALL MREAD (iu_OSST, m,IM*JM,EOST0,IM*JM,EOST0)
+            CALL HERE(__FILE__,__LINE__)
+            CALL BACKSPACE_PARALLEL( iu_OSST )
+            CALL HERE(__FILE__,__LINE__)
+            CALL MREAD_PARALLEL
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,IM*JM,EOST0)
             WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
             IF(M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
           end if
         else   !  if (ocn_cycl.eq.0) then
           LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
+          CALL HERE(__FILE__,__LINE__)
   300     read (iu_OSST) M
           if (m.lt.lstmon) go to 300
-          backspace iu_OSST
+          CALL HERE(__FILE__,__LINE__)
+          CALL BACKSPACE_PARALLEL( iu_OSST )
+          CALL HERE(__FILE__,__LINE__)
   310     read (iu_SICE) m
           if (m.lt.lstmon) go to 310
-          backspace iu_SICE
-          CALL MREAD (iu_OSST, m,IM*JM,EOST0,IM*JM,EOST0)
-          CALL MREAD (iu_SICE,m1,IM*JM,ERSI0,IM*JM,ERSI0)
+          CALL BACKSPACE_PARALLEL( iu_SICE )
+          CALL HERE(__FILE__,__LINE__)
+          CALL MREAD_PARALLEL
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,IM*JM,EOST0)
+          CALL HERE(__FILE__,__LINE__)
+          CALL MREAD_PARALLEL
+     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,IM*JM,ERSI0)
           WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
           IF(M.NE.M1.OR.M.NE.LSTMON)
      &         call stop_model('Read error: ocean data',255)
@@ -199,28 +239,50 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       IMON0=JMON
       if (ocn_cycl.ge.1) then
         if (jmon.eq.1) then
-          if (ocn_cycl.eq.1) rewind iu_OSST
-          rewind iu_SICE
-          read (iu_SICE)  ! skip over DM-record
+          if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
+          CALL REWIND_PARALLEL( iu_SICE )
+          CALL HERE(__FILE__,__LINE__)
+c$$$          CALL SKIP_PARALLEL(iu_SICE) ! skip over DM-record  
+          read (iu_SICE)  
         end if
-        call readt (iu_SICE,0,ARSI,2*im*jm,ARSI,1) ! reads ARSI,ERSI1
+          CALL HERE(__FILE__,__LINE__)
+        CALL READT_PARALLEL
+     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),0,TEMP_LOCAL,1)
+        ARSI  = TEMP_LOCAL(:,:,1)
+        ERSI1 = TEMP_LOCAL(:,:,2)
         if (ocn_cycl.eq.1) then
-          call readt (iu_OSST,0,AOST,2*im*jm,AOST,1) ! reads AOST,EOST1
+          CALL HERE(__FILE__,__LINE__)
+          CALL READT_PARALLEL
+     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),0,TEMP_LOCAL,1)
+          AOST  = TEMP_LOCAL(:,:,1)
+          EOST1 = TEMP_LOCAL(:,:,2)
         else  ! if (ocn_cycl.eq.2) then
-          CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
+          CALL HERE(__FILE__,__LINE__)
+          CALL MREAD_PARALLEL
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
+          AOST  = TEMP_LOCAL(:,:,1)
+          EOST1 = TEMP_LOCAL(:,:,2)
           WRITE(6,*) 'Read in ocean data for month',JMON,M
           IF(JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         end if
       else   !  if (ocn_cycl.eq.0) then
-        CALL MREAD (iu_OSST, M,0,AOST,2*IM*JM,AOST) ! READS AOST,EOST1
-        CALL MREAD (iu_SICE,M1,0,ARSI,2*IM*JM,ARSI) ! READS ARSI,ERSI1
+          CALL HERE(__FILE__,__LINE__)
+        CALL MREAD_PARALLEL
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
+        AOST  = TEMP_LOCAL(:,:,1)
+        EOST1 = TEMP_LOCAL(:,:,2)
+          CALL HERE(__FILE__,__LINE__)
+        CALL MREAD_PARALLEL
+     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M,0,TEMP_LOCAL)
+        ARSI  = TEMP_LOCAL(:,:,1)
+        ERSI1 = TEMP_LOCAL(:,:,2)
         WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
-      DO J=1,JM
+      DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           BOST(I,J)=EOST1(I,J)-EOST0(I,J)
           COST(I,J)=3.*(EOST1(I,J)+EOST0(I,J)) - 6.*AOST(I,J)
@@ -248,7 +310,7 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
       END DO
 C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
-      DO J=1,JM
+      DO J=J_0,J_1
         ZIMIN=Z1I+Z2OIM
         ZIMAX=2d0
         IF(J.GT.JM/2) ZIMAX=3.5d0
@@ -338,20 +400,22 @@ C**** SET DEFAULTS IF NO OCEAN ICE
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE (for prescribed data only)
-      IF (FOCEAN(1,JM).gt.0) THEN
-        DO I=2,IM
-          SNOWI(I,JM)=SNOWI(1,JM)
-          TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
-          RSI(I,JM)=RSI(1,JM)
-          MSI(I,JM)=MSI(1,JM)
-          HSI(:,I,JM)=HSI(:,1,JM)
-          SSI(:,I,JM)=SSI(:,1,JM)
+      IF(HAVE_NORTH_POLE) THEN
+        IF (FOCEAN(1,JM).gt.0) THEN
+          DO I=2,IM
+            SNOWI(I,JM)=SNOWI(1,JM)
+            TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
+            RSI(I,JM)=RSI(1,JM)
+            MSI(I,JM)=MSI(1,JM)
+            HSI(:,I,JM)=HSI(:,1,JM)
+            SSI(:,I,JM)=SSI(:,1,JM)
 #ifdef TRACERS_WATER
-          TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
+            TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
-          GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-          FWSIM(I,JM)=FWSIM(1,JM)
-        END DO
+            GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+            FWSIM(I,JM)=FWSIM(1,JM)
+          END DO
+        END IF
       END IF
       RETURN
 C****
@@ -365,13 +429,14 @@ C**** Read in climatological ocean mixed layer depths efficiently
       IF (JDLAST.eq.0) THEN ! need to read in first month climatology
         IMON=1          ! IMON=January
         IF (JDAY.LE.16)  THEN ! JDAY in Jan 1-15, first month is Dec
-          CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,12)
-          REWIND iu_OCNML
+          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZO,12)
+          CALL REWIND_PARALLEL( iu_OCNML )
         ELSE            ! JDAY is in Jan 16 to Dec 16, get first month
   520     IMON=IMON+1
           IF (JDAY.GT.JDmidOFM(IMON) .and. IMON.LE.12) GO TO 520
-          CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,IMON-1)
-          IF (IMON.EQ.13)  REWIND iu_OCNML
+          CALL READT_PARALLEL
+     *           (grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZO,IMON-1)
+          IF (IMON.EQ.13)  CALL REWIND_PARALLEL( iu_OCNML )
         END IF
       ELSE                      ! Do we need to read in second month?
         IF (JDAY.NE.JDLAST+1) THEN ! Check that data is read in daily
@@ -387,16 +452,16 @@ C**** Read in climatological ocean mixed layer depths efficiently
         IF (JDAY.LE.JDmidOFM(IMON)) GO TO 530
         IMON=IMON+1          ! read in new month of climatological data
         XZO = XZN
-        IF (IMON.EQ.13) REWIND iu_OCNML
+        IF (IMON.EQ.13) CALL REWIND_PARALLEL( iu_OCNML )
       END IF
-      CALL READT (iu_OCNML,0,XZN,IM*JM,XZN,1)
+      CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZN,1)
  530  JDLAST=JDAY
 
 C**** Interpolate the mixed layer depth z1o to the current day and
 C**** limit it to the annual maxmimal mixed layer depth z12o
       FRAC = REAL(JDmidOFM(IMON)-JDAY,KIND=8)/
      a           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
@@ -529,6 +594,46 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       END MODULE STATIC_OCEAN
 
+      SUBROUTINE ALLOC_STATIC_OCEAN(grid)
+      USE MODEL_COM, only : im
+      USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
+     &                          DM,AOST,EOST1,EOST0,BOST,
+     &                          COST,ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
+      USE STATIC_OCEAN, only  : KRSI
+      USE DOMAIN_DECOMP, only : DIST_GRID,GET
+      IMPLICIT NONE
+      INTEGER :: J_0H,J_1H,IER
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
+      ALLOCATE(TOCEAN(3,IM,J_0H:J_1H),
+     &    STAT=IER)
+      ALLOCATE(OTA(IM,J_0H:J_1H,4),
+     &         OTB(IM,J_0H:J_1H,4),
+     &    STAT=IER)
+      ALLOCATE(KRSI(IM,J_0H:J_1H),
+     &    STAT=IER)
+      ALLOCATE(OTC(IM,J_0H:J_1H),
+     &         Z1O(IM,J_0H:J_1H),
+     &         Z1OOLD(IM,J_0H:J_1H),
+     &         Z12O(IM,J_0H:J_1H),
+     &         DM(IM,J_0H:J_1H),
+     &         AOST(IM,J_0H:J_1H),
+     &         EOST1(IM,J_0H:J_1H),
+     &         EOST0(IM,J_0H:J_1H),
+     &         BOST(IM,J_0H:J_1H),
+     &         COST(IM,J_0H:J_1H),
+     &         ARSI(IM,J_0H:J_1H),
+     &         ERSI1(IM,J_0H:J_1H),
+     &         ERSI0(IM,J_0H:J_1H),
+     &         BRSI(IM,J_0H:J_1H),
+     &         CRSI(IM,J_0H:J_1H),
+     &         XZO(IM,J_0H:J_1H),
+     &         XZN(IM,J_0H:J_1H),
+     &    STAT=IER)
+      END SUBROUTINE ALLOC_STATIC_OCEAN
+
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initiallises ocean variables
@@ -536,6 +641,12 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
+      USE DOMAIN_DECOMP, only : GRID, GET,
+     *                          DREAD_PARALLEL,
+     *                          MREAD_PARALLEL,
+     *                          READT_PARALLEL,
+     *                          REWIND_PARALLEL,
+     *                          BACKSPACE_PARALLEL
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,fearth,iyear1,ioreadnt,jmpery
 #ifdef TRACERS_WATER
@@ -557,7 +668,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       INTEGER :: I,J,m,ISTART,ioerr
 !@var z12o_max maximal mixed layer depth (m) for qflux model
       real*8 :: z12o_max
-      real*8 z1ox(im,jm)
+      real*8 z1ox(im,grid%j_strt_halo:grid%j_stop_halo)
+      integer :: j_0,j_1
+
+      call get(grid,j_strt=j_0,j_stop=j_1)
 
       if (kocean.eq.1) then
 C****   set conservation diagnostic for ocean heat
@@ -595,7 +709,7 @@ C****   set up unit numbers for ocean climatologies
         end if
 
 C****   Read in constant factor relating RSI to MSI from sea ice clim.
-        CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+        CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),0,DM,1)
 
       else !  IF (KOCEAN.eq.1) THEN
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
@@ -611,8 +725,8 @@ C****   Set up unit number of observed mixed layer depth data
 C****   find and limit ocean ann max mix layer depths
         z12o = 0.
         do m=1,jmpery
-          CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
-          do j=1,jm
+          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,z1ox,1)
+          do j=j_0,j_1
           do i=1,im
 ccc         z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
 ccc     the above line could substitute for next 3 lines w/o any change
@@ -622,7 +736,7 @@ ccc     the above line could substitute for next 3 lines w/o any change
           end do
           end do
         end do
-        rewind iu_OCNML
+        CALL REWIND_PARALLEL( iu_OCNML )
         write(6,*) 'Mixed Layer Depths limited to',z12o_max
 
 C****   initialise deep ocean arrays if required
@@ -630,7 +744,7 @@ C****   initialise deep ocean arrays if required
 
       END IF
 C**** Set fluxed arrays for oceans
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
@@ -668,10 +782,14 @@ C****
       USE FLUXES, only : gtemp,mlhc,fwsim
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
       LOGICAL, INTENT(IN) :: end_of_day
       REAL*8 ANGLE
+      INTEGER :: J_0,J_1
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
 C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
@@ -691,7 +809,7 @@ C**** Set fourier coefficients for heat transport calculations
 
 C**** Only do this at end of the day
       IF (KOCEAN.EQ.1.and.end_of_day) THEN
-        DO J=1,JM
+        DO J=J_0,J_1
           DO I=1,IM
             AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
             AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
@@ -704,7 +822,7 @@ C**** RESTRUCTURE THE OCEAN LAYERS
       END IF
 
 C**** set gtemp array for ocean temperature
-      DO J=1,JM
+      DO J=J_0,J_1
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
@@ -729,12 +847,16 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
+      INTEGER :: J_0,J_1
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
@@ -812,6 +934,7 @@ C****
 #endif
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ, TFO
@@ -824,8 +947,11 @@ C**** output from OSOURC
      *     WTRW
 
       INTEGER I,J,JR
+      INTEGER :: J_0,J_1
 
-      DO J=1,JM
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+
+      DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
@@ -921,12 +1047,16 @@ C****
       USE FLUXES, only : fwsim,msicnv,mlhc
       USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg,aij,j_imelt
      *     ,j_hmelt,j_smelt
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
+      INTEGER :: J_0,J_1
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IF (KOCEAN.eq.1) THEN   ! qflux model
-      DO J=1,JM
+      DO J=J_0,J_1
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
         JR=JREG(I,J)
@@ -1053,12 +1183,16 @@ C****
       USE GEOM, only : imaxj
       USE TRACER_COM, only : trw0,ntm,itime_tr0
       USE FLUXES, only : gtracer
+      USE DOMAIN_DECOMP, only : grid,get
       IMPLICIT NONE
       INTEGER i,j,n
+      INTEGER :: j_0,j_1
+
+      call get(grid,j_strt=j_0,j_stop=j_1)
 
       do n=1,ntm
         if (itime.eq.itime_tr0(n)) then
-          do j=1,jm
+          do j=j_0,j_1
           do i=1,imaxj(j)
             if (focean(i,j).gt.0) gtracer(n,1,i,j)=trw0(n)
           end do

@@ -728,6 +728,8 @@ C****
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP, only : GRID, READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
       real*8 tlca(im,jm),tlcb(im,jm),data(im,jm),frac
@@ -736,13 +738,13 @@ C****
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
         if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
-          call readt(iu,0,tlca,im*jm,tlca,12)
-          rewind iu
+          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,12)
+          CALL REWIND_PARALLEL( iu )
         else            ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
           if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
-          call readt(iu,0,tlca,im*jm,tlca,imon-1)
-          if (imon.eq.13)  rewind iu
+          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,imon-1)
+          if (imon.eq.13)  CALL REWIND_PARALLEL( iu )
         end if
       else              ! Do we need to read in second month?
         if (jday.ne.jdlast+1) then ! Check that data is read in daily
@@ -757,9 +759,9 @@ C****
         if (jday.le.idofm(imon)) go to 130
         imon=imon+1     ! read in new month of data
         tlca(:,:) = tlcb(:,:)
-        if (imon.eq.13) rewind iu
+        if (imon.eq.13) CALL REWIND_PARALLEL( iu  )
       end if
-      call readt(iu,0,tlcb,im*jm,tlcb,1)
+      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,1)
   130 continue
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))

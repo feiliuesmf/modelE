@@ -7,8 +7,10 @@
 !@ver  1.0
       USE CONSTANT, only : lhe,sha,deltx
       USE MODEL_COM
-      USE DOMAIN_DECOMP, only : grid
-      USE DOMAIN_DECOMP, only : halo_update,NORTH,checksum
+      USE DOMAIN_DECOMP, only : grid, get
+      USE DOMAIN_DECOMP, only : halo_update, checksum
+      USE DOMAIN_DECOMP, only : halo_update_column, checksum_column
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
@@ -33,9 +35,8 @@
 C
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
 
-!RKF: No halo needed by UKM or VMK. Not used at the poles.
-      REAL*8  UKM(4,IM,grid%J_STRT_SKP:grid%J_STOP_SKP,LM)
-      REAL*8  VKM(4,IM,grid%J_STRT_SKP:grid%J_STOP_SKP,LM)
+      REAL*8  UKM(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      REAL*8  VKM(4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
       INTEGER  LRANG(2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
 C
       REAL*8, DIMENSION(NMOM) :: TMOMS,QMOMS
@@ -48,25 +49,18 @@ C
       REAL*8 SDPL,BYSDPL
 #endif
 
-      REAL*8, DIMENSION(IM,LM) :: DEL_U, DEL_V
-      REAL*8  DEL_AJL(LM)
 
       INTEGER ::  J_1, J_0
       INTEGER ::  J_1H, J_0H
       INTEGER ::  J_1S, J_0S
       INTEGER ::  J_1STG, J_0STG
+      LOGICAL ::  HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-      J_0   = grid%J_STRT
-      J_1   = grid%J_STOP
-
-      J_0H  = grid%J_STRT_HALO
-      J_1H  = grid%J_STOP_HALO
-
-      J_0S  = grid%J_STRT_SKP 
-      J_1S  = grid%J_STOP_SKP 
-
-      J_0STG= grid%J_STRT_STGR
-      J_1STG= grid%J_STOP_STGR
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if(LBASE_MAX.GE.LM) call stop_model('DRYCNV: LBASE_MAX.GE.LM',255)
 
@@ -250,7 +244,7 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
-      IF (grid%HAVE_SOUTH_POLE) then
+      IF (HAVE_SOUTH_POLE) then
        J=1
        DO K=1,KMAXJ(J)
          IDI(K)=IDIJ(K,1,J)
@@ -288,7 +282,7 @@ C
         END DO
       END DO
 C
-      IF (grid%HAVE_NORTH_POLE) THEN
+      IF (HAVE_NORTH_POLE) THEN
        J=JM
        KMAX=KMAXJ(J)
        DO K=1,KMAX
@@ -307,15 +301,11 @@ C
        END DO ; END DO
 
       ELSE
-C**** Loop cycle for j=j_1 for internal blocks
+C**** First half of loop cycle for j=j_1 for internal blocks
         J=J_1
-C***  Initialize dummy work arrays
-        DEL_U(1:IM,1:LM)=0.
-        DEL_V(1:IM,1:LM)=0.
-        DEL_AJL(1:LM)=0.
 
         KMAX=KMAXJ(J)
-        DO K=1,KMAX
+        DO K=1,2
            IDJ(K)=IDJJ(K,J)
            RA(K) =RAVJ(K,J)
         END DO
@@ -330,30 +320,47 @@ C***  Initialize dummy work arrays
               AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
      *              UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
             END DO 
-            DO K=3,4
-              IDI(K)=IDIJ(K,I,J)
-              DEL_U(IDI(K),L) = DEL_U(IDI(K),L) + UKM(K,I,J,L)*RA(K)  
-              DEL_V(IDI(K),L) = DEL_V(IDI(K),L) + VKM(K,I,J,L)*RA(K)  
-              DEL_AJL(L)   = DEL_AJL(L) + UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
-            END DO
           END DO
         END DO
       ENDIF   !END NORTH POLE
 
-C****EXCEPTIONS!!
-C****Transfer the sums above: DEL_U DEL_V DEL_AJL to the block to the north
-C*** and add them to U(I,J_0,L), V(I,J_0,L) and AJL(J_0,L,JL_DAMDC)
-C*** respectively.
-!PSEUDOCODE:
-!     IF (.not. HAVE_NORTH_POLE ) 
-!      ===>  send del_u del_v del_ajl to neighbor to the north
-!     if (.not. HAVE_SOUTH_POLE) 
-!      ===>  receive del_u_r del_v_r del_ajl_r from neighbor to the south 
-!      ===>    U(1:IM,J_0,1:LM) = U(1:IM,J_0,1:LM) + DEL_U_R(1:IM,1:LM)
-!              V(1:IM,J_0,1:LM) = V(1:IM,J_0,1:LM) + DEL_V_R(1:IM,1:LM)
-!              AJL(J_0,1:LM,JL_DAMDC) = AJL(J_0,1:LM,JL_DAMDC) +
-!                                                    DEL_AJL_R(L)
-!END_PSEUDOCODE
+C**** Second half of southern neighbor's j=j_1 cycle (equivalent to j=j_0-1
+C**** in this block).
+      if (.not. HAVE_SOUTH_POLE) then
+
+C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
+        call checksum_column(grid, UKM, __LINE__, __FILE__)
+        call checksum_column(grid, VKM, __LINE__, __FILE__)
+        call checksum_column(grid,PLIJ, __LINE__, __FILE__)
+        call checksum_column(grid,LRANG,__LINE__, __FILE__)
+   
+        call halo_update_column(grid, UKM, from=SOUTH) 
+        call halo_update_column(grid, VKM, from=SOUTH) 
+        call halo_update_column(grid,PLIJ, from=SOUTH) 
+        call halo_update_column(grid,LRANG,from=SOUTH)
+
+C**** ....then, accumulate neighbors contribution to 
+C**** U,V,AJL at the J=J_0 (B-grid) corners --i.e.do a
+C**** K=3,4 iterations on the newly updated J=J_0-1 box.
+        J=J_0-1
+        IDJ(3)=IDJJ(3,J)
+        IDJ(4)=IDJJ(4,J)
+        RA(3) =RAVJ(3,J)
+        RA(4) =RAVJ(4,J)
+        DO I=1,IM
+          LMIN=LRANG(1,I,J)
+          LMAX=LRANG(2,I,J)
+          DO L=LMIN,LMAX
+            DO K=3,4
+              IDI(K)=IDIJ(K,I,J)
+              U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
+              V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
+              AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
+     *              UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+            END DO
+          END DO
+        END DO
+      ENDIF    !END NOT_SOUTH_POLE
 
 C***
 
@@ -379,7 +386,9 @@ C**** Save additional changes in KE for addition as heat later
 !@ver  1.0
       USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
       USE DOMAIN_DECOMP, only : grid, get
-      USE DOMAIN_DECOMP, only : halo_update,NORTH,checksum
+      USE DOMAIN_DECOMP, only : halo_update,checksum
+      USE DOMAIN_DECOMP, only : halo_update_column,checksum_column
+      USE DOMAIN_DECOMP, only : NORTH, SOUTH
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,dxyp
       USE DYNAMICS, only : byam,am,dke
 #ifdef TRACERS_ON
@@ -395,15 +404,11 @@ C**** Save additional changes in KE for addition as heat later
       integer i,j,k,n
       real*8, intent(in) :: dt
       real*8 hemi,trmin
-      real*8, dimension(im,jm) :: usave,vsave
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: 
+     &                       usave,vsave
       INTEGER :: J_0,J_1,J_0S,J_1S,J_0STG,J_1STG
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-C****For distributed parallelization
-            REAL*8, DIMENSION(IM) :: DEL_U, DEL_V
-
-      del_u(1:im)=0.
-      del_v(1:im)=0.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -488,6 +493,7 @@ c**** non polar boxes
       end do
 
 C****For distr. parallelization: North-most lattitude of internal blocks.
+C   *--->(First half of j=j_1 loop cycle for internal blocks --k=1,2)
         IF (.not. HAVE_NORTH_POLE) then
           j=j_1
           do i=1,imaxj(j)
@@ -497,27 +503,38 @@ C****For distr. parallelization: North-most lattitude of internal blocks.
               v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
      *               ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
             end do
-            do k=3,4
-              del_u(idij(k,i,j)) = del_u(idij(k,i,j)) -
-     *               ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
-              del_v(idij(k,i,j)) = del_v(idij(k,i,j)) -
-     *               ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
-            end do
           end do
         ENDIF   !.not. NORTH POLE
 
+C   *....update halo (J_0-1 values) of  byam, uflux1, vflux1.
+        call checksum_column(grid, byam, __LINE__, __FILE__)
+        call halo_update_column(grid, byam, from=SOUTH)
 
-C****EXCEPTIONS!!
-!****Transfer the sums above: DEL_U DEL_V to the block to the north
-!*** and add them to U(I,J_0,L), V(I,J_0,L) respectively
-!PSEUDOCODE:
-!     IF (.not. HAVE_NORTH_POLE )
-!      ===>  send del_u del_v to neighbor to the north
-!     if (.not. HAVE_SOUTH_POLE)
-!      ===>  receive del_u_r del_v_r from neighbor to the south
-!      ===>    U(1:IM,J_0,1:LM) = U(1:IM,J_0,1:LM) + DEL_U_R(1:IM)
-!              V(1:IM,J_0,1:LM) = V(1:IM,J_0,1:LM) + DEL_V_R(1:IM)
-!END_PSEUDOCODE
+        call checksum(grid,uflux1, __LINE__, __FILE__//'::uflux1')
+        call checksum(grid,vflux1, __LINE__, __FILE__)
+
+        call halo_update(grid,uflux1, from=SOUTH)
+        call halo_update(grid,vflux1, from=SOUTH)
+
+C   *--->Second half of southern neighbor's j=j_1 cycle 
+C   -    (equivalent to j=j_0-1 in this block).
+       if (.not. HAVE_SOUTH_POLE) then
+
+
+C     *...then, accumulate neighbors contribution to
+C     -   U,V at the J=J_0 (B-grid) corners --i.e.do a
+C     -   K=3,4 iterations on the newly updated J=J_0-1 box.
+
+          j=j_0-1
+          do i=1,imaxj(j)
+            do k=3,4
+              u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
+     *               ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
+              v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
+     *               ravj(k,j)*vflux1(i,j)*dt*byam(1,I,J)
+            end do
+          end do
+        end if
 
 C**** save change of KE for addition as heat later
       do j=J_0STG, J_1STG

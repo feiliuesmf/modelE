@@ -857,6 +857,7 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE
 C****
       USE CONSTANT, only : undef
+      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
       USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
@@ -889,10 +890,27 @@ C****
       INTEGER :: IWORD,J,JHEMI,K,L
       REAL*8 :: FGLOB,FLATJ,GSUM,SDSIG
 
+cBMP - added
+      REAL*8, DIMENSION(JM) :: FLAT
+cBMP - added
+
 !?    REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
       REAL*8, DIMENSION(JM+3,LM+1) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
+
+      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
@@ -922,6 +940,7 @@ C****
 c GISS-ESMF EXCEPTIONAL CASE
 c   Hemisphere specific Loops and I/O issues, plus
 c   N-Hemi, S-Hemi, and Global Sums 
+
 
       DO 230 JHEMI=1,2
       FHEM(JHEMI) = 0.

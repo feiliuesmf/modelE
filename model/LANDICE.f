@@ -217,26 +217,61 @@ C**** CALCULATE TG2
       IMPLICIT NONE
       SAVE
 !@var SNOWLI snow amount on land ice (kg/m^2)
-      REAL*8, DIMENSION(IM,JM) :: SNOWLI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWLI 
 !@var TLANDI temperature of each land ice layer (C)
-      REAL*8, DIMENSION(2,IM,JM) :: TLANDI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLANDI 
 
 #ifdef TRACERS_WATER
 !@var TRSNOWLI tracer amount in land ice snow (kg/m^2)
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWLI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSNOWLI 
 !@var TRLNDI tracer amount in land ice (kg/m^2)
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRLNDI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRLNDI
 !@var TRLI0 default tracer conc. for land ice (kg/kg)
       REAL*8, DIMENSION(NTM) :: TRLI0 
 #endif
 
       END MODULE LANDICE_COM
 
+      SUBROUTINE ALLOC_LANDICE_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE RESOLUTION, ONLY : IM,LM
+      USE LANDICE_COM, ONLY : SNOWLI, TLANDI
+#ifdef TRACERS_WATER
+      USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI
+      USE TRACER_COM, only : ntm
+#endif
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      ALLOCATE( SNOWLI(IM,J_0H:J_1H),
+     *          TLANDI(2,IM,J_0H:J_1H),
+     *          STAT=IER)
+#ifdef TRACERS_WATER
+      ALLOCATE( TRSNOWLI(NTM,IM,J_0H:J_1H),
+     *          TRLNDI  (NTM,IM,J_0H:J_1H),
+     *          STAT=IER)
+#endif 
+
+      RETURN
+      END SUBROUTINE ALLOC_LANDICE_COM
+
       SUBROUTINE io_landice(kunit,iaction,ioerr)
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
+      USE DOMAIN_DECOMP, only : grid, ARRAYGATHER, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : PACK, UNPACK, PACK_COLUMN, UNPACK_COLUMN
       USE LANDICE_COM
       IMPLICIT NONE
 
@@ -246,10 +281,18 @@ C**** CALCULATE TG2
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "GLAIC01"
+!@var SNOWLI_GLOB dummy global array used for esmf i/o
+      REAL*8, DIMENSION(IM,JM) :: SNOWLI_GLOB
+!@var TLANDI_GLOB dummy global array used for esmf i/o
+      REAL*8, DIMENSION(2,IM,JM) :: TLANDI_GLOB
+      INTEGER :: J_0H,J_1H, IN
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRGLAC01"
-
+!@var TRSNOWLI_GLOB  dummy global arrays used for i/o
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWLI_GLOB
+!@var TRLNDI_GLOB  dummy global arrays used for i/o
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRLNDI_GLOB
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a)')'R8 dim(',NTM,',im,jm):TRSNOWLI,TRLNDI'
 #endif
@@ -257,28 +300,63 @@ C**** CALCULATE TG2
       MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm)'
 
       SELECT CASE (IACTION)
+
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,SNOWLI,TLANDI
+C**** Gather into global arrays
+        CALL PACK(grid,SNOWLI,SNOWLI_GLOB)  	
+        CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB )  	
+        IF (AM_I_ROOT())
+     &    WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
 #ifdef TRACERS_WATER
-        WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI,TRLNDI
+C**** Gather into global arrays
+          CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )     
+          CALL PACK_COLUMN( grid,TRLNDI,  TRLNDI_GLOB  )      
+        IF (AM_I_ROOT())
+     &    WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
 #endif
+
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,SNOWLI,TLANDI
+        READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
+C****** Get useful ESMF parameters
+        CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+C****** Load data into distributed arrays
+        CALL UNPACK( GRID, SNOWLI_GLOB, SNOWLI,local=.true. )
+        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI,local=.true. )
+!       SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
+!       TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
+
+C****** Load data into distributed arrays
+        SNOWLI(    1:IM,J_0H:J_1H) = SNOWLI_GLOB(1:IM,J_0H:J_1H)
+        TLANDI(1:2,1:IM,J_0H:J_1H) = TLANDI_GLOB(1:2,1:IM,J_0H:J_1H)
+
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
-          READ (kunit,err=10) TRHEADER,TRSNOWLI,TRLNDI
+          READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
+C********* Load data into distributed arrays
+          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB,TRSNOWLI,local=.true.)
+          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,  TRLNDI,local=.true.  )
+!         TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
+!    &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
+!         TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 
+!    &  = TRLNDI_GLOB(  1:NTM,1:IM,J_0H:J_1H)
+C********* Load data into distributed arrays
+          TRSNOWLI(     1:NTM,1:IM,J_0H:J_1H) 
+     &  = TRSNOWLI_GLOB(1:NTM,1:IM,J_0H:J_1H)
+          TRLNDI(       1:NTM,1:IM,J_0H:J_1H) 
+     &  = TRLNDI_GLOB(  1:NTM,1:IM,J_0H:J_1H)
         END SELECT
 #endif
+
       END SELECT
 
       RETURN

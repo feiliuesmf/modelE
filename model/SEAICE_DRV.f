@@ -37,11 +37,15 @@
 #endif
       INTEGER I,J,JR,ITYPE,N
       LOGICAL WETSNOW
-      integer :: J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      integer :: J_0, J_1, J_0H, J_1H
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, 
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       DO J=J_0, J_1
       DO I=1,IMAXJ(J)
@@ -122,8 +126,8 @@ C**** Calculate pressure anomaly at surface
 
       END DO
       END DO
-      APRESS(2:IM,1)  = APRESS(1,1)
-      APRESS(2:IM,JM) = APRESS(1,JM)
+      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
+      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE PRECIP_SI
 
@@ -429,11 +433,15 @@ C****
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
      *     ,tralpha
 #endif
-      integer :: J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      integer :: J_0, J_1, J_0H, J_1H
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0,     J_STOP = J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
       debug=.false.
       DO J=J_0, J_1
@@ -577,8 +585,8 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
 
       END DO
       END DO
-      APRESS(2:IM,1)  = APRESS(1,1)
-      APRESS(2:IM,JM) = APRESS(1,JM)
+      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
+      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE GROUND_SI
 
@@ -621,11 +629,15 @@ C****
 #endif
       LOGICAL QFIXR
       INTEGER I,J,JR,ITYPE,ITYPEO,N
-      integer :: J_0, J_1
 C****
 C**** Extract useful local domain parmeters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      integer :: J_0, J_1, J_0H, J_1H
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE   ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE   )
 
       debug=.false.
       DO J=J_0, J_1
@@ -754,19 +766,21 @@ C**** Save sea ice tracer amount
       END DO
       END DO
 C**** replicate ice values at the north pole
-      DO I=2,IM
+      IF (HAVE_NORTH_POLE) THEN
+        DO I=2,IM
         RSI(I,JM)=RSI(1,JM)
-        MSI(I,JM)=MSI(1,JM)
-        HSI(:,I,JM)=HSI(:,1,JM)
-        SSI(:,I,JM)=SSI(:,1,JM)
-        SNOWI(I,JM)=SNOWI(1,JM)
-        GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
+          MSI(I,JM)=MSI(1,JM)
+          HSI(:,I,JM)=HSI(:,1,JM)
+          SSI(:,I,JM)=SSI(:,1,JM)
+          SNOWI(I,JM)=SNOWI(1,JM)
+          GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
 #ifdef TRACERS_WATER
-        TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
-        GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
+          TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
+          GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
 #endif
-        FWSIM(I,JM) = FWSIM(1,JM)
-      END DO
+          FWSIM(I,JM) = FWSIM(1,JM)
+        END DO
+      END IF
 C****
       END SUBROUTINE FORM_SI
 
@@ -933,20 +947,28 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !@var ICE total ocean snow and ice mass (kg/m^2)
-      REAL*8, DIMENSION(JM) :: ICE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ICE
       INTEGER I,J
 
-      DO J=1,JM
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, J_0H, J_1H
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      DO J=J_0,J_1
         ICE(J)=0
         DO I=1,IMAXJ(J)
           ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
      *         *FOCEAN(I,J)
         END DO
       END DO
-      ICE(1) =FIM*ICE(1)
-      ICE(JM)=FIM*ICE(JM)
+      IF (HAVE_SOUTH_POLE) ICE(1) =FIM*ICE(1)
+      IF (HAVE_NORTH_POLE) ICE(JM)=FIM*ICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_OMSI
@@ -958,19 +980,28 @@ C****
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total ocean snow and ice energy (J/m^2)
-      REAL*8, DIMENSION(JM) :: EICE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: EICE
       INTEGER I,J
 
-      DO J=1,JM
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, J_0H, J_1H
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+
+      DO J=J_0,J_1
         EICE(J)=0
         DO I=1,IMAXJ(J)
           EICE(J)=EICE(J)+RSI(I,J)*FOCEAN(I,J)*SUM(HSI(:,I,J))
         END DO
       END DO
-      EICE(1) =FIM*EICE(1)
-      EICE(JM)=FIM*EICE(JM)
+      IF (HAVE_SOUTH_POLE) EICE(1) =FIM*EICE(1)
+      IF (HAVE_NORTH_POLE) EICE(JM)=FIM*EICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_OHSI
@@ -982,12 +1013,21 @@ C****
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,ssi,lmi
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var SALT total salt in ocean ice (kg/m^2)
-      REAL*8, DIMENSION(JM) :: SALT
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: SALT
       INTEGER I,J,L
 
-      DO J=1,JM
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, J_0H, J_1H
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+
+      DO J=J_0,J_1
         SALT(J)=0
         DO I=1,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
@@ -995,8 +1035,8 @@ C****
           END IF
         END DO
       END DO
-      SALT(1) =FIM*SALT(1)
-      SALT(JM)=FIM*SALT(JM)
+      IF (HAVE_SOUTH_POLE) SALT(1) =FIM*SALT(1)
+      IF (HAVE_NORTH_POLE) SALT(JM)=FIM*SALT(JM)
       RETURN
 C****
       END SUBROUTINE conserv_OSSI
@@ -1010,20 +1050,29 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var ICE total lake snow and ice mass (kg/m^2)
-      REAL*8, DIMENSION(JM) :: ICE
+      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ICE
       INTEGER I,J
 
-      DO J=1,JM
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, J_0H, J_1H
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+
+      DO J=J_0,J_1
         ICE(J)=0
         DO I=1,IMAXJ(J)
           ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
      *         *FLAKE(I,J)
         END DO
       END DO
-      ICE(1) =FIM*ICE(1)
-      ICE(JM)=FIM*ICE(JM)
+      IF (HAVE_SOUTH_POLE) ICE(1) =FIM*ICE(1)
+      IF (HAVE_NORTH_POLE) ICE(JM)=FIM*ICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_LMSI
@@ -1036,19 +1085,29 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total lake snow and ice energy (J/m^2)
-      REAL*8, DIMENSION(JM) :: EICE
+      REAL*8, DIMENSION(GRID%J_STRT:GRID%J_STOP) :: EICE
       INTEGER I,J
 
-      DO J=1,JM
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, J_0H, J_1H
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+
+
+      DO J=J_0,J_1
         EICE(J)=0
         DO I=1,IMAXJ(J)
           EICE(J)=EICE(J)+RSI(I,J)*FLAKE(I,J)*SUM(HSI(:,I,J))
         END DO
       END DO
-      EICE(1) =FIM*EICE(1)
-      EICE(JM)=FIM*EICE(JM)
+      IF (HAVE_SOUTH_POLE) EICE(1) =FIM*EICE(1)
+      IF (HAVE_NORTH_POLE) EICE(JM)=FIM*EICE(JM)
       RETURN
 C****
       END SUBROUTINE conserv_LHSI

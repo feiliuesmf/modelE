@@ -2,8 +2,8 @@
       integer :: imic=0
       contains
       subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP, only : DYN_GRID
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      use DOMAIN_DECOMP, only : DIST_GRID
+      TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn
       END MODULE ICEDYN
@@ -15,8 +15,8 @@
       real*8,dimension(2) :: icij=0,ticij=0
       contains
       subroutine alloc_icedyn_com(grid)
-      use DOMAIN_DECOMP, only : DYN_GRID
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      use DOMAIN_DECOMP, only : DIST_GRID
+      TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn_com
       END MODULE ICEDYN_COM

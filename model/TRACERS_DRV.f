@@ -6129,7 +6129,6 @@ C         Make sure index KY=1 in year that tracer turns on
         else
           anngas = 310.d6
         endif
-
 C GISS-ESMF EXCEPTIONAL CASE
 c   Several regions defined need to be addressed with domain decomposition
 c     We can use lat_dg to distinguish regions in resolution independent

@@ -22,6 +22,10 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: AJ
 
+!@var SQRTM moved from DIAG5A where it was a saved local array to this
+!@var place so its size could be allocated dynamically and still have
+!@var it preserved from call to call of DIAG5A
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTM
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER :: NREG=24
 !@var AREG regional budget diagnostics
@@ -589,19 +593,19 @@ c idacc-indices of various processes
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE
       USE DAGCOM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD
       USE RADNCB, only : LM_REQ
-      USE DAGCOM, ONLY : AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,
+      USE DAGCOM, ONLY : SQRTM,AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,
      &        AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ,OA,
      &        wt_ij
 
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
       LOGICAL, SAVE :: init = .false.
@@ -618,6 +622,7 @@ c idacc-indices of various processes
      &         STAT = IER)
 
       ALLOCATE( JREG(IM, J_0H:J_1H),
+     &         SQRTM(IM, J_0H:J_1H),
      &         STAT = IER)
 
       ALLOCATE( APJ(J_0H:J_1H, KAPJ),

@@ -1,3 +1,4 @@
+#define JJ(J) (J)-J_0H+1
       subroutine init_MOM
 !@sum  init_MOM sets an order dependent coefficient for AVRX
       USE DYNAMICS, only : XAVRX
@@ -12,10 +13,11 @@
 !@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
      &     ,do_polefix
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
+      USE DOMAIN_DECOMP, only : CHECKSUM
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
+      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv
       USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
@@ -28,11 +30,13 @@
      * FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       REAL*8, SAVE :: SMASS(JM)
 
-      INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S
       INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L  !@var I,J,IP1,IM1,L  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
+      REAL*8 FLUXU_N_S,FLUXV_N_S
+      REAL*8 FLUXU_SW_NE,FLUXV_SW_NE
+      REAL*8 FLUXU_SE_NW,FLUXV_SE_NW
 
       REAL*8   VMASS2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      *         ASDU(IM,GRID%J_STRT_SKP:GRID%J_STOP_HALO,LM-1)
@@ -42,12 +46,16 @@ c pole fix variables
       real*8, dimension(im) :: dmt
       real*8, dimension(im,2) :: usv,vsv
 C****
-      J_0 =GRID%J_STRT
-      J_1 =GRID%J_STOP
-      J_0H=GRID%J_STRT_HALO
-      J_1H=GRID%J_STOP_HALO
-      J_0S=GRID%J_STRT_SKP
-      J_1S=GRID%J_STOP_SKP
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO=J_0H,
+     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
       IF(IFIRST.EQ.1) THEN
@@ -83,8 +91,9 @@ C 150 VT(I,J,L)=VT(I,J,L)*VMASS
 C     DUT=0.
 C     DVT=0.
 C
-      CALL HALO_UPDATE(GRID,PA,FROM=SOUTH)
-      CALL HALO_UPDATE(GRID,DXYN,FROM=SOUTH)
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, PA, __LINE__, __FILE__)
+      CALL HALO_UPDATE(grid, PA, FROM=SOUTH)
       DO 110 J=J_0S,J_1
       I=IM
       DO 110 IP1=1,IM
@@ -112,19 +121,38 @@ C
         END IF
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, PV, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV)
+      CALL HALO_UPDATE(GRID,PU ,FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(GRID,PV ,FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(GRID,U  ,FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(GRID,V  ,FROM=SOUTH+NORTH)
+CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
+CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
+      CALL CHECKSUM(grid, PU, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid, PV, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
+
+!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV,
+!$OMP+   FLUXU_N_S,FLUXV_N_S,FLUXU_SW_NE, FLUXV_SW_NE,
+!$OMP+   FLUXU_SE_NW, FLUXV_SE_NW)
       DO 300 L=1,LM
 C****
 C**** HORIZONTAL ADVECTION OF MOMENTUM
 C****
-      CALL HALO_UPDATE(GRID,PU,FROM=SOUTH)
       I=IM
       DO 230 IP1=1,IM
 C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
-      DO 210 J=J_0S,J_1
+      DO 210 J=J_0STG,J_1STG
       FLUX=DT12*(PU(IP1,J,L)+PU(IP1,J-1,L)+PU(I,J,L)+PU(I,J-1,L))
       FLUXU=FLUX*(U(IP1,J,L)+U(I,J,L))
       DUT(IP1,J,L)=DUT(IP1,J,L)+FLUXU
@@ -132,36 +160,75 @@ C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
       FLUXV=FLUX*(V(IP1,J,L)+V(I,J,L))
       DVT(IP1,J,L)=DVT(IP1,J,L)+FLUXV
   210 DVT(I,J,L)  =DVT(I,J,L)  -FLUXV
-      CALL HALO_UPDATE(GRID,PV ,FROM=NORTH)
-      CALL HALO_UPDATE(GRID,U  ,FROM=NORTH)
-      CALL HALO_UPDATE(GRID,V  ,FROM=NORTH)
-CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
-CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
-      DO 220 J=J_0S,J_1S
+
+      IF (HAVE_SOUTH_POLE) THEN ! No southern contribution off boundary.
+        FLUXU_N_S  =0.
+        FLUXV_N_S  =0.
+        FLUXU_SW_NE=0.
+        FLUXV_SW_NE=0.
+        FLUXU_SE_NW=0.
+        FLUXV_SE_NW=0.
+      ELSE ! from lower boundary
+        J=J_0-1
+        FLUX=DT12*(PV(I,J,L)+PV(IP1,J,L)+PV(I,J+1,L)+PV(IP1,J+1,L))
+        FLUXU_N_S=FLUX*(U(I,J,L)+U(I,J+1,L))
+        FLUXV_N_S=FLUX*(V(I,J,L)+V(I,J+1,L))
+        FLUX=DT24*(PU(IP1,J,L)+PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
+        FLUXU_SW_NE=FLUX*(U(IP1,J+1,L)+U(I,J,L))
+        FLUXV_SW_NE=FLUX*(V(IP1,J+1,L)+V(I,J,L))
+        FLUX=DT24*(-PU(IP1,J,L)-PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
+        FLUXU_SE_NW=FLUX*(U(I,J+1,L)+U(IP1,J,L))
+        FLUXV_SE_NW=FLUX*(V(I,J+1,L)+V(IP1,J,L))
+      END IF
+
+      DO J=J_0S,J_1S
+
+        DUT(I,J,L)   = DUT(I,J,L)   + FLUXU_N_S
+        DVT(I,J,L)   = DVT(I,J,L)   + FLUXV_N_S
+        DUT(IP1,J,L) = DUT(IP1,J,L) + FLUXU_SW_NE
+        DVT(IP1,J,L) = DVT(IP1,J,L) + FLUXV_SW_NE
+        DUT(I,J,L)   = DUT(I,J,L)   + FLUXU_SE_NW
+        DVT(I,J,L)   = DVT(I,J,L)   + FLUXV_SE_NW
+
 C**** CONTRIBUTION FROM THE SOUTH-NORTH MASS FLUX
-      FLUX=DT12*(PV(I,J,L)+PV(IP1,J,L)+PV(I,J+1,L)+PV(IP1,J+1,L))
-      FLUXU=FLUX*(U(I,J,L)+U(I,J+1,L))
-      DUT(I,J+1,L)=DUT(I,J+1,L)+FLUXU
-      DUT(I,J,L)  =DUT(I,J,L)  -FLUXU
-      FLUXV=FLUX*(V(I,J,L)+V(I,J+1,L))
-      DVT(I,J+1,L)=DVT(I,J+1,L)+FLUXV
-      DVT(I,J,L)=  DVT(I,J,L)  -FLUXV
+
+        FLUX=DT12*(PV(I,J,L)+PV(IP1,J,L)+PV(I,J+1,L)+PV(IP1,J+1,L))
+        FLUXU_N_S=FLUX*(U(I,J,L)+U(I,J+1,L))
+        FLUXV_N_S=FLUX*(V(I,J,L)+V(I,J+1,L))
+      
+        DUT(I,J,L)=DUT(I,J,L)-FLUXU_N_S
+        DVT(I,J,L)=DVT(I,J,L)-FLUXV_N_S
+
 C**** CONTRIBUTION FROM THE SOUTHWEST-NORTHEAST MASS FLUX
-      FLUX=DT24*(PU(IP1,J,L)+PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
-      FLUXU=FLUX*(U(IP1,J+1,L)+U(I,J,L))
-      DUT(IP1,J+1,L)=DUT(IP1,J+1,L)+FLUXU
-      DUT(I,J,L)=    DUT(I,J,L)    -FLUXU
-      FLUXV=FLUX*(V(IP1,J+1,L)+V(I,J,L))
-      DVT(IP1,J+1,L)=DVT(IP1,J+1,L)+FLUXV
-      DVT(I,J,L)=    DVT(I,J,L)    -FLUXV
+        FLUX=DT24*(PU(IP1,J,L)+PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
+        FLUXU_SW_NE=FLUX*(U(IP1,J+1,L)+U(I,J,L))
+        FLUXV_SW_NE=FLUX*(V(IP1,J+1,L)+V(I,J,L))
+
+        DUT(I,J,L) = DUT(I,J,L) - FLUXU_SW_NE
+        DVT(I,J,L) = DVT(I,J,L) - FLUXV_SW_NE
+
 C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
-      FLUX=DT24*(-PU(IP1,J,L)-PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
-      FLUXU=FLUX*(U(I,J+1,L)+U(IP1,J,L))
-      DUT(I,J+1,L)=DUT(I,J+1,L)+FLUXU
-      DUT(IP1,J,L)=DUT(IP1,J,L)-FLUXU
-      FLUXV=FLUX*(V(I,J+1,L)+V(IP1,J,L))
-      DVT(I,J+1,L)=DVT(I,J+1,L)+FLUXV
-  220 DVT(IP1,J,L)=DVT(IP1,J,L)-FLUXV
+        FLUX=DT24*(-PU(IP1,J,L)-PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
+        FLUXU_SE_NW=FLUX*(U(I,J+1,L)+U(IP1,J,L))
+        FLUXV_SE_NW=FLUX*(V(I,J+1,L)+V(IP1,J,L))
+
+        DUT(IP1,J,L) = DUT(IP1,J,L) - FLUXU_SE_NW
+        DVT(IP1,J,L) = DVT(IP1,J,L) - FLUXV_SE_NW
+
+      END DO
+
+      IF (HAVE_NORTH_POLE) THEN
+        J=JM
+        DUT(I,J,L) = DUT(I,J,L) + FLUXU_N_S
+        DVT(I,J,L) = DVT(I,J,L) + FLUXV_N_S
+
+        DUT(IP1,J,L) = DUT(IP1,J,L) + FLUXU_SW_NE
+        DVT(IP1,J,L) = DVT(IP1,J,L) + FLUXV_SW_NE
+
+        DUT(I,J,L) = DUT(I,J,L) + FLUXU_SE_NW
+        DVT(I,J,L) = DVT(I,J,L) + FLUXV_SE_NW
+      END IF
+
   230 I=IP1
   300 CONTINUE
 !$OMP  END PARALLEL DO
@@ -268,27 +335,37 @@ C     DO 310 L=1,LM-1
 C     DO 310 J=2,JM
 C     I=IM
 C     DO 310 IP1=1,IM
-C     SDU=DT2*((SD(I,J-1,L)+SD(IP1,J-1,L))*RAVPN(J-1)+
-C    *  (SD(I,J,L)+SD(IP1,J,L))*RAVPS(J))
+C     SDU=DT2*((SD(I,JJ(J-1),L)+SD(IP1,JJ(J-1),L))*RAVPN(J-1)+
+C    *  (SD(I,JJ(J),L)+SD(IP1,JJ(J),L))*RAVPS(J))
 C     DUT(I,J,L)  =DUT(I,J,L)  +SDU*(U(I,J,L)+U(I,J,L+1))
 C     DUT(I,J,L+1)=DUT(I,J,L+1)-SDU*(U(I,J,L)+U(I,J,L+1))
 C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
-      CALL HALO_UPDATE(GRID,SD,FROM=SOUTH)
-      CALL HALO_UPDATE(GRID,RAVPN,FROM=SOUTH)
+!!! MUST USE CONV for HALO update not SD which is aliased to it.
+      CALL HALO_UPDATE(GRID,CONV,FROM=SOUTH)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM-1
       DO J=J_0S,J_1
          DO I=1,IM-1
-           ASDU(I,J,L)=DT2*((SD(I,J-1,L)+SD(I+1,J-1,L))*RAVPN(J-1)+
-     *                (SD(I,J,L)+SD(I+1,J,L))*RAVPS(J))
+           ASDU(I,J,L)=DT2*(
+     *                (SD(I,JJ(J-1),L)+SD(I+1,JJ(J-1),L))
+     *                 *RAVPN(J-1)+
+     *                (SD(I,JJ(J),L)+SD(I+1,JJ(J),L))
+     *                 *RAVPS(J) )
          END DO
-           ASDU(IM,J,L)=DT2*((SD(IM,J-1,L)+SD(1,J-1,L))*RAVPN(J-1)+
-     *                (SD(IM,J,L)+SD(1,J,L))*RAVPS(J))
+           ASDU(IM,J,L)=DT2*(
+     *                (SD(IM,JJ(J-1),L)+SD(1,JJ(J-1),L))
+     *                  *RAVPN(J-1)+
+     *                (SD(IM,JJ(J),L)+SD(1,JJ(J),L))
+     *                  *RAVPS(J) )
       END DO
       END DO
 !$OMP  END PARALLEL DO
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  V, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,  U, __LINE__, __FILE__,STGR=.true.)
       L=1
       DO J=J_0S,J_1
          DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
@@ -310,8 +387,11 @@ C 310 I=IP1
          DVT(:,J,L)=DVT(:,J,L)-ASDU(:,J,L-1)*(V(:,J,L-1)+V(:,J,L))
       END DO
 C**** CALL DIAGNOSTICS
+      CALL CHECKSUM(grid,PIT, __LINE__, __FILE__)
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (1,U,V,DUT,DVT,DT1,PIT)
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
+      CALL CHECKSUM(grid,DVT, __LINE__, __FILE__,STGR=.true.)
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=J_0S,J_1
@@ -327,6 +407,7 @@ C**** CALL DIAGNOSTICS
 C****
 C**** CORIOLIS FORCE
 C****
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
 !$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
       DO L=1,LM
         IM1=IM
@@ -344,7 +425,7 @@ C****     Set the Coriolis term to zero at the Poles:
      *                 DXV(J_1)
           IM1=I
         END DO
-        CALL HALO_UPDATE(GRID,DXV ,FROM=NORTH)
+
         DO J=J_0S,J_1S
           IM1=IM
           DO I=1,IM
@@ -404,6 +485,7 @@ c which has already been included in advective form
          enddo
       endif
 
+      CALL CHECKSUM(grid, VT, __LINE__, __FILE__,STGR=.true.)
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)
@@ -412,7 +494,6 @@ C**** ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
 C**** AND UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
       CALL HALO_UPDATE(GRID,PB,FROM=SOUTH)
-      CALL HALO_UPDATE(GRID,DXYN,FROM=SOUTH)
       DO J=J_0S,J_1
         I=IM
         DO IP1=1,IM

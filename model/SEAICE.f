@@ -1760,7 +1760,7 @@ C**** albedo calculations
 !@+    run-time
 !@auth Rodger Abel
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM
 #ifdef TRACERS_WATER
@@ -1774,7 +1774,7 @@ C**** albedo calculations
       USE SEAICE_COM, ONLY : TRSI, TRSI0
 #endif
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
@@ -1808,6 +1808,7 @@ C**** albedo calculations
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1816,6 +1817,11 @@ C**** albedo calculations
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "SICE02"
+      REAL*8, DIMENSION(IM,JM) :: RSI_GLOB, SNOWI_GLOB
+      REAL*8, DIMENSION(IM,JM) :: MSI_GLOB, POND_MELT_GLOB
+      LOGICAL, DIMENSION(IM,JM) :: FLAG_DSWS_GLOB
+      REAL*8 :: HSI_GLOB(LMI,IM,JM), SSI_GLOB(LMI,IM,JM)
+      INTEGER :: J_0,J_1
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSICE01"
@@ -1836,8 +1842,20 @@ C**** albedo calculations
         WRITE (kunit,err=10) TRMODULE_HEADER,TRSI
 #endif
       CASE (IOREAD:)            ! input from restart file
-         READ (kunit,err=10) HEADER,RSI,HSI,SNOWI,MSI,SSI
-     *     ,POND_MELT,FLAG_DSWS
+         READ (kunit,err=10) HEADER,RSI_GLOB,HSI_GLOB,
+     *      SNOWI_GLOB,MSI_GLOB,SSI_GLOB
+     *     ,POND_MELT_GLOB,FLAG_DSWS_GLOB
+
+        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+         RSI(:,J_0:J_1)       = RSI_GLOB(:,J_0:J_1)
+         HSI(:,:,J_0:J_1)     = HSI_GLOB(:,:,J_0:J_1)
+         SNOWI(:,J_0:J_1)     = SNOWI_GLOB(:,J_0:J_1)
+         MSI(:,J_0:J_1)       = MSI_GLOB(:,J_0:J_1)
+         SSI(:,:,J_0:J_1)     = SSI_GLOB(:,:,J_0:J_1)
+         POND_MELT(:,J_0:J_1) = POND_MELT_GLOB(:,J_0:J_1)
+         FLAG_DSWS(:,J_0:J_1) = FLAG_DSWS_GLOB(:,J_0:J_1)
+
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

@@ -33,11 +33,7 @@ C**** momentum passes through model top.
       REAL*8 :: PBREAKTOP = 0.05d0   ! default is 0.05mb
 
 !@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
-C**** (must be in common due to read statement)
-cBMP      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZVART,ZVARX,ZVARY,ZWT
-c GISS-ESMF EXCEPTIONAL CASE
-      REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
-      COMMON/ZVARCB/ZVART,ZVARX,ZVARY,ZWT
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ZVART,ZVARX,ZVARY,ZWT
 !@var DEFRM deformation field
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DEFRM
 !@var LDEF,LDEFM deformation levels
@@ -75,13 +71,16 @@ C**** accumulated in the routines contained herein
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,do_gwdrag,ptop,sig,psfmpt,sige
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, CHECKSUM,
-     *                          NORTH, SOUTH
+     *                          NORTH, SOUTH,
+     *                          DREAD_PARALLEL,
+     *                          READT_PARALLEL
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
+      REAL*8 :: TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,4)
       INTEGER I,J,L,iu_zvar
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -138,7 +137,11 @@ C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
       call openunit("ZVAR",iu_ZVAR,.true.,.true.)
-      CALL READT (iu_ZVAR,0,ZVART,IM*JM*4,ZVART,1)
+      CALL READT_PARALLEL(grid,iu_ZVAR,NAMEUNIT(iu_ZVAR),0,TEMP_LOCAL,1)
+      ZVART(:,:) = TEMP_LOCAL(:,:,1)
+      ZVARX(:,:) = TEMP_LOCAL(:,:,2)
+      ZVARY(:,:) = TEMP_LOCAL(:,:,3)
+        ZWT(:,:) = TEMP_LOCAL(:,:,4)
       call closeunit(iu_ZVAR)
 
       CALL CHECKSUM(GRID, ZVART, __LINE__, __FILE__)
@@ -584,6 +587,7 @@ C****
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
      *                          NORTH, SOUTH
+      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN, CHECKSUM_COLUMN
       USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
@@ -708,14 +712,14 @@ C****
       CALL CHECKSUM(GRID, T     , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, P     , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, AIRX  , __LINE__, __FILE__)
-cBMP      CALL CHECKSUM(GRID, LMC   , __LINE__, __FILE__)
+      CALL CHECKSUM_COLUMN(GRID, LMC   , __LINE__, __FILE__)
       CALL CHECKSUM(GRID, RAPVN , __LINE__, __FILE__)
       CALL HALO_UPDATE(GRID, PK    , from=SOUTH)
       CALL HALO_UPDATE(GRID, SZ    , from=SOUTH)
       CALL HALO_UPDATE(GRID, T     , from=SOUTH)
       CALL HALO_UPDATE(GRID, P     , from=SOUTH)
       CALL HALO_UPDATE(GRID, AIRX  , from=SOUTH)
-cBMP      CALL HALO_UPDATE(GRID, LMC   , from=SOUTH)
+      CALL HALO_UPDATE_COLUMN(GRID, LMC   , from=SOUTH)
       CALL HALO_UPDATE(GRID, RAPVN , from=SOUTH)
 
 C****
@@ -1444,9 +1448,9 @@ C****
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE STRAT
-      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
-      TYPE (DYN_GRID), INTENT(IN) :: grid
+      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
@@ -1459,6 +1463,10 @@ C****
       ALLOCATE(    DEFRM(im,J_0H:J_1H),
      *                PK(im,J_0H:J_1H,lm),
      *                EK(nm,J_0H:J_1H),
+     *             ZVART(im,J_0H:J_1H),
+     *             ZVARX(im,J_0H:J_1H),
+     *             ZVARY(im,J_0H:J_1H),
+     *               ZWT(im,J_0H:J_1H),
      *         STAT=IER)
 
       END SUBROUTINE ALLOC_STRAT_COM

@@ -22,7 +22,7 @@
       use filemanager
       use param
       use constant, only : twopi,one
-      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
       use model_com, only : fearth,jeq,jyear
       use veg_com !, only : vdata,Cint,Qfol
       use ghycom, only : ngm
@@ -130,7 +130,8 @@ c**** read rundeck parameters
 c**** read land surface parameters or use defaults
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,10                 !  11 ????
-        call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
+        CALL READT_PARALLEL
+     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,K),1)
       end do
 c**** zero-out vdata(11) until it is properly read in
       vdata(:,:,11) = 0.
@@ -495,15 +496,13 @@ c shc(0,2) is the heat capacity of the canopy
       real*8 wt,crops         ! temporary vars ! ,crop(im,jm)
 
       integer :: year1,year2,year_old=-1, iu, i,j,k
-      real*8 vdata0(im,jm,11) ! to limit i/o
-      real*8  crop1(im,jm)    ! to limit i/o
-      real*8  crop2(im,jm)    ! to limit i/o
+      real*8, Allocatable :: crop1(:,:), crop2(:,:), vdata0(:,:,:)
       save   year1,year2,year_old,vdata0,crop1,crop2,iu      ! to limit i/o
 
       character*80 title
-      real*4 crop4(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*4 crop4(im,jm)
 
-      INTEGER :: I_0, I_1, J_1, J_0
+      INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
@@ -512,6 +511,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &               J_STRT_HALO =J_0H,   J_STOP_HALO =J_1H,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -531,8 +531,13 @@ C****     check whether a no-crops vege-file was used
 C****     open and read input file
         call openunit('CROPS',iu,.true.,.true.)
         read(iu) title,crop4
+
         read(title,*) year1
-        crop1=crop4 ; crop2=crop4 ; year2=year1
+        Allocate(crop1(IM,J_0H:J_1H), crop2(IM,J_0H:J_1H),
+     &           VDATA0(IM,J_0H:J_1H,11))
+        crop1(:,J_0:J_1)=crop4(:,J_0:J_1) 
+        crop2(:,J_0:J_1)=crop4(:,J_0:J_1)
+        year2=year1
         if (year1.ge.year)          year2=year+1
 C****     save orig. (no-crop) vdata to preserve restart-independence
         vdata0 = vdata
@@ -543,7 +548,7 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
          year1 = year2 ; crop1 = crop2
          read (iu,end=10) title,crop4
          read(title,*) year2
-         crop2 = crop4
+         crop2(:,J_0:J_1) = crop4(:,J_0:J_1)
       end do
       wt = (year-year1)/(real(year2-year1,kind=8))
    10 continue

@@ -12,25 +12,59 @@
       IMPLICIT NONE
       SAVE
 !@var MWL mass of lake water (kg)
-      REAL*8, DIMENSION(IM,JM) :: MWL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MWL
 !@var GML total enthalpy of lake (J)
-      REAL*8, DIMENSION(IM,JM) :: GML
+      REAL*8, ALLOCATABLE,  DIMENSION(:,:) :: GML
 !@var TLAKE temperature of lake (C)
-      REAL*8, DIMENSION(IM,JM) :: TLAKE
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: TLAKE
 !@var MLDLK mixed layer depth in lake (m)
-      REAL*8, DIMENSION(IM,JM) :: MLDLK
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: MLDLK
 !@var FLAKE variable lake fraction (1)
-      REAL*8, DIMENSION(IM,JM) :: FLAKE
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: FLAKE
 !@var TANLK tan(alpha) = slope for conical lake (1)
-      REAL*8, DIMENSION(IM,JM) :: TANLK
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: TANLK
 
 #ifdef TRACERS_WATER
 !@var TRLAKE tracer amount in each lake level (kg)      
-      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRLAKE
+Crgr      REAL*8,  ALLOCATABLE, DIMENSION(NTM,2,:,:) :: TRLAKE
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:,:,:) :: TRLAKE
 #endif
 
       END MODULE LAKES_COM
 
+
+       SUBROUTINE ALLOC_LAKES_COM (GRID)
+C23456789012345678901234567890123456789012345678901234567890123456789012
+!@SUM  To alllocate arrays whose sizes now need to be determined
+!@+    at run-time
+!@auth Raul Garza-Robles
+!@ver  1.0
+      USE DOMAIN_DECOMP, only: DIST_GRID, GET
+      USE MODEL_COM, only : IM, JM
+      USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : NTM
+      USE LAKES_COM, ONLY:  TRLAKE
+#endif
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      INTEGER IER
+#ifdef TRACERS_WATER
+!@var TRLAKE tracer amount in each lake level (kg)
+      ALLOCATE( TRLAKE(NTM,2,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     * , STAT=IER)
+#endif
+
+      ALLOCATE ( MWL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           GML(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           TLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           MLDLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           FLAKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           TANLK(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *           STAT=IER
+     *            )
+      RETURN
+      END SUBROUTINE ALLOC_LAKES_COM
       SUBROUTINE io_lakes(kunit,iaction,ioerr)
 !@sum  io_lakes reads and writes lake arrays to file
 !@auth Gavin Schmidt
