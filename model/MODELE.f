@@ -12,7 +12,7 @@
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
 #ifdef TRACERS_ON
-      USE TRACER_COM
+      USE TRACER_COM, only: mtrace
 #endif
       IMPLICIT NONE
 

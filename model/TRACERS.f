@@ -688,64 +688,58 @@ C****
       END SUBROUTINE set_tcon
 
 
-      SUBROUTINE tracer_IC(tname)
+      SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
       USE MODEL_COM, only: itime,im,jm,lm
       USE GEOM, only: dxyp
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
-      USE TRACER_COM
-      USE TRACER_DIAG_COM
+      USE PBLCOM, only : npbl,trabl
+      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trname,needtrs
       USE FILEMANAGER, only : openunit,closeunit
       IMPLICIT NONE
-      INTEGER i,n,l,j,iu_data
-      CHARACTER*8 tname
+      INTEGER i,n,l,j,iu_data,ipbl,it
       CHARACTER*80 title
       REAL*4 co2ic(im,jm,lm)
 
-      select case (tname)
+      do n=1,ntm
 
-      case default
-        write(6,*) 'In TRACER_IC:',tname,' does not exist '
-        stop
+      if (itime.eq.itime_tr0(n)) then
+      select case (trname(n)) 
+          
+        case default            
+c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
+          stop "TRACER_IC"
   
-      case ('Air')
-        n = n_air
-        if (itime.eq.itime_tr0(n)) then
+        case ('Air')
           CALL CALC_AM(lm)
           do l=1,lm
           do j=1,jm
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)
           end do; enddo
           do i=2,im
-            trm(i,1,:,n) =  trm(1,1,:,n)   !poles
-            trm(i,jm,:,n) = trm(1,jm,:,n)   !poles
+            trm(i,1,:,n) =  trm(1,1,:,n) !poles
+            trm(i,jm,:,n) = trm(1,jm,:,n) !poles
           enddo
           trmom(:,:,:,:,n) = 0.
-        end if
-      case ('SF6')
-        n = n_SF6
-        if (itime.eq.itime_tr0(n)) then
+
+        case ('SF6')
           trm(:,:,:,n) = 0.
           trmom(:,:,:,:,n) = 0.
-        end if
-      case ('Rn222')
-        n = n_Rn222
-        if (itime.eq.itime_tr0(n)) then
+
+        case ('Rn222')
           CALL CALC_AM(lm)
           do l=1,lm
-          do j=1,jm
-            trm(:,j,l,n) = am(l,:,j)*dxyp(j)*1.d-22
+            do j=1,jm
+              trm(:,j,l,n) = am(l,:,j)*dxyp(j)*1.d-22
           end do; end do
           do i=2,im
             trm(i,1,:,n) =  trm(1,1,:,n)   !poles
             trm(i,jm,:,n) = trm(1,jm,:,n)   !poles
           enddo
           trmom(:,:,:,:,n) = 0.
-        end if
-      case ('CO2')
-        n = n_CO2
-        if (itime.eq.itime_tr0(n)) then
+ 
+        case ('CO2')
           trm(:,:,:,n) = 0.
           trmom(:,:,:,:,n) = 0.
           CALL CALC_AM(lm)
@@ -757,9 +751,21 @@ C****
           do j=1,jm
             trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*dxyp(j)*1.54d-6
           enddo; enddo
-        end if
+
       end select
+
+C**** Initialise pbl profile if necessary
+      if (needtrs(n)) then
+        do it=1,4
+          do ipbl=1,npbl
+            trabl(ipbl,n,:,:,it) = trm(:,:,1,n)
+          end do
+        end do
+      end if
+
       write(6,*) ' Tracer ',trname(n),' initialized at itime=',itime
+      end if
+      end do
 C****
       end subroutine tracer_IC
 
@@ -780,9 +786,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C****  at any time
-      do n=1,ntm
-        call tracer_IC(trname(n))
-      end do
+      call tracer_IC
 
 C**** Tracer specific call for CO2
       do n=1,ntm
@@ -938,7 +942,7 @@ C**** All sources are saved as kg/s
       select case (trname(n))
 
       case default
-!     write(6,*) ' Sources for ',tname,' tracer are not in this routine'
+!     write(6,*) ' Sources for ',trname(n),' tracer are not in this routine'
 C****
 C**** Surface Sources of SF6 (Same grid as CFC)
 C****
@@ -1111,7 +1115,7 @@ C****
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc
-      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0
+      USE TRACER_COM, only : ntm,trm,trmom,trdecy,itime_tr0,trname
 #ifdef TRACERS_WATER
      *     ,trwm
 #endif
@@ -1130,7 +1134,7 @@ C****
       end if
 
       do n=1,ntm
-        if (trdecy(n).gt.0. .and. itime_tr0(n).ge.itime) then
+        if (trdecy(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
           trm(:,:,:,n)=expdec(n)*trm(:,:,:,n)
