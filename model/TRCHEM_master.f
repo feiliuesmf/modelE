@@ -1,8 +1,10 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_0C4.1_M23)
+!@ver  1.0 (based on masterchem0C9.2_M23p but non-parallel!)
 !@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
+C
+C To parallelize, see masterchem0C9_M23p vs. ds3ch4_master_0C4.2_M23
 C
 C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
@@ -16,11 +18,14 @@ c
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
+      USE CONSTANT, only: radian
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
+!@param by35 1/35 used for sherical geometry constant
+      REAL*8, PARAMETER :: by35=1.d0/35.d0
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
 !@var bydtsrc reciprocal of the timestep dtsrc
@@ -31,18 +36,19 @@ C**** Local parameters and variables and arguments:
 c
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
+      BYFJM=1./float(JM)
 C reset change due to chemistry to zero:
       change = 0.
 c
 C set surface albedo variable used in fastj, based on ALB(..1)
 C from radiation code:
       DO J=1,JM
-        BYFJM=1./float(JM)
         DO I=1,IM
           SALBFJ(I,J)= ALB(I,J,1)
         END DO
       END DO
 C fill in mass2vol arrays (no longer hard-coded):
+C note: this could be moved out of here, since constant in time:
       DO n=1,NTM
         mass2vol(n)  =mair/TR_MM(n)
         bymass2vol(n)=TR_MM(n)/mair
@@ -75,8 +81,6 @@ C**** (note this section is already done in DIAG.f)
         TX(1,1,L)=T(1,1,L)*PK(L,1,1)
         TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
         DO I=2,IM
-          T(I,1,L)=T(1,1,L)
-          T(I,JM,L)=T(1,JM,L)
           TX(I,1,L)=TX(1,1,L)
           TX(I,JM,L)=TX(1,JM,L)
         END DO
@@ -100,32 +104,12 @@ c      calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*1.38E-19)
        y(nO2,L)=y(nM,L)*pfix_O2
        y(nH2,L)=y(nM,L)*pfix_H2
-C      If this is the first hour, set Aldehyde initial conditions:
-       IF(Itime.eq.ItimeI) y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
 c
 c      Tracers (converted from mass mixing ratio to number density)
        do igas=1,ntm
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
        enddo
-c
-C      In model II', NOx and N2O5 were occasionally comming back
-C      from tracer dynamics as NaN (in polar stratosphere).  In case
-C      it happens in modelE, this is to fix:
-       if(y(n_NOx,L).ge.1.E2.and.y(n_NOx,L).le.1.E20)then
-         continue
-       else
-         y(n_NOx,L)=1.E4
-         trm(I,J,L,n_NOx)=
-     &   y(n_NOx,L)*AM(L,I,J)*DXYP(J)*bymass2vol(n_NOx)/y(nM,L)
-       endif
-       if(y(n_N2O5,L).ge.1.E-2.and.y(n_N2O5,L).le.1.E20)then
-         continue
-       else
-         y(n_N2O5,L)=1.E0
-         trm(I,J,L,n_N2O5)=
-     &   y(n_N2O5,L)*AM(L,I,J)*DXYP(J)*bymass2vol(n_N2O5)/y(nM,L)
-       endif
 c
 c      Fix methane used in chemistry
 c      if(J.lt.JEQ)then ! SH
@@ -139,19 +123,22 @@ c Limit N2O5 number density:
 c Set H2O, based on Q:
        y(nH2O,L)=Q(I,J,L)*MWabyMWw*y(nM,L)
 c
-       if(pHOx(I,J,L).eq.0)then !initial startup
-c       set [NO]=0 for first HOx calc, NO2 = NOx
-        y(nNO,L)     =0.
-        y(nNO2,L)    =y(n_NOx,L)
-        pOx(I,J,L)   =1.
-        pNOx(I,J,L)  =1.
-        pHOx(I,J,L)  =1.
-        yCH3O2(I,J,L)=1.E5
+       if(Itime.eq.ItimeI)then !initial startup
+        y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
        else
-c       set NO2 & NO for use in Oxinit & nighttime NO2
-        y(nNO2,L)=y(n_NOx,L)*pNOx(I,J,L)
-        y(nNO,L) =y(n_NOx,L)*(1.-pNOx(I,J,L))
+        y(nAldehyde,L)=yAldehyde(I,J,L)
        endif
+c      set [NO]=0 for first HOx calc, NO2 = NOx
+c      set reactive species for use in Oxinit & nighttime NO2
+       y(nNO2,L)     =y(n_NOx,L)*pNOx(I,J,L)
+       y(nNO,L)      =y(n_NOx,L)*(1.-pNOx(I,J,L))
+       y(nO3,L)      =pOx(I,J,L)*y(n_Ox,L)
+       y(nCH3O2,L)   =yCH3O2(I,J,L)
+       y(nC2O3,L)    =yC2O3(I,J,L)
+       y(nXO2,L)     =yXO2(I,J,L)
+       y(nXO2N,L)    =yXO2N(I,J,L)
+       y(nRXPAR,L)   =yRXPAR(I,J,L)
+       y(nROR,L)     =yROR(I,J,L)
       END DO ! L
 
 C For solar zenith angle, we now use the arccosine of the COSZ1
@@ -215,19 +202,20 @@ C
        call photoj(I,J)
 c
 C And fill in the photolysis coefficients: ZJ --> ss:
-c
+
         DO L=1,JPNL
           do inss=1,JPPJ
-           ss(inss,I,J,L)=zj(L,inss)
+           ss(inss,I,J,L)=zj(L,inss)*
+     &     by35 * SQRT(1.224d3*(cos(sza*radian))**2. + 1.d0)
           enddo
         END DO
 
        endif                               ! >>>> SUNLIGHT IF END <<<<
+      endif                             !  >>>> PHOTOLYSIS IF END <<<<
 c
 c      calculate the chemical reaction rates:
-       call Crates (I,J)
+       call Crates (I,J)      
 c
-      endif                             !  >>>> PHOTOLYSIS IF END <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 cc    Main chemistry calculations    cc
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -259,7 +247,7 @@ c     * pNOx(I,J,l),pOx(I,J,l)
         write(6,195) ' J',inss,ay(1,ks(inss)),ay(2,ks(inss)),' = ',
      *   (ss(inss,I,J,Lqq),Lqq=1,11)
        enddo
-       write(6,196) ' RCloud',(RCLOUDFJ(I,J,Lqq),Lqq=1,11)
+       write(6,196) ' RCloud',(RCLOUDFJ(Lqq,I,J),Lqq=1,11)
        write(6,196) ' Ozone ',(y(nO3,Lqq),Lqq=1,11)
        write(6,*) ' '
       endif
@@ -294,10 +282,9 @@ c
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
          RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.
-C        Calculate sulfate sink, and cap it at 50% of N2O5:
-         wprod_sulf=0.25*DT2*sulfate(I,J,L)
-     &    *y(n_N2O5,L)*RGAMMASULF*RVELN2O5
-         if(wprod_sulf.gt.0.5*y(n_N2O5,L))wprod_sulf=0.5*y(n_N2O5,L)
+C        Calculate sulfate sink, and cap it at 90% of N2O5:
+         wprod_sulf=DT2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5
+         if(wprod_sulf.gt.0.9*y(n_N2O5,L))wprod_sulf=0.9*y(n_N2O5,L)
          prod_sulf=wprod_sulf*pfactor
 C        Update N2O5 sulfate chemistry Diagnostic
 C         'TAJLS(J,L,10)=TAJLS(J,L,10)-(prod_sulf*bymass2vol(n_N2O5))
@@ -437,8 +424,7 @@ C
          yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
 c         'note, in the section below, there used to be lines like:
 c          tempJLS(J,L,n_N2O5)=tempJLS(J,L,n_N2O5)+change(I,J,L,n_N2O5)
-c          I need to make sure that the identical diagnostics are in
-c          effect being done in the modelE version...' GSF 2/02
+c          Still need to put these in the modelE version GSF 11/02
 C
 C Note: there is a lower limit of 1 placed on the resulting tracer mass
 C from the following changes. This is to prevent negative tracer mass:
@@ -594,6 +580,8 @@ C
 C W A R N I N G :Unfortunately, there is still a hardcoded dependence
 C                on the verticle resolution in how we deal with the
 C                CH4 overwriting... It is set up for the 23 layer model.
+C                Not worth fixing, since we'll soon have stratospheric
+C                chemistry instead.
 C W A R N I N G :If there is ever stratospheric chemistry (i.e. the
 C                'change' variable for L>LS1-1 is non-zero at this point
 C                in the code), then the stratospheric changes below
@@ -704,11 +692,11 @@ c
 !@+   #13 CO+OH->HO2+CO2, #15 HO2+HO2->H2O2+O2, #16 OH+HNO3->H2O+NO3,
 !@+   and reactions #29, and #42.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_apr1902_M23)
+!@ver  1.0 (based on ds3ch4_master_0C4.2_M23)
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only : ls1
+      USE MODEL_COM, only : ls1
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &                          r1,sb,nst,y,nM,nH2O,ro,sn
 c
@@ -778,12 +766,11 @@ c
       SUBROUTINE checktracer(I,J)
 !@sum checktracer for various debugging of tracer chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_master_apr1902_M23)
+!@ver  1.0 (based on ds3ch4_master_0C4.2_M23)
 c
 C**** GLOBAL parameters and variables:
 C
-      USE RESOLUTION, only : LM, ls1
-      USE MODEL_COM, only  : Itime
+      USE MODEL_COM, only  : Itime, LM, ls1
       USE TRACER_COM, only : ntm, trname, n_Ox
       USE TRCHEM_Shindell_COM, only: y, nM
 c
