@@ -36,7 +36,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.16.ext
+AIC=DEC1958.rsfB394M12.modelE.17.ext
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
