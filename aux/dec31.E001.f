@@ -18,7 +18,7 @@ C****        TOPO = topography
 C****        SNOW = daily snow amounts (from vertflux)
 C****
       USE STATIC_OCEAN
-      USE SEAICE_COM, only : rsi,msi,snowi
+      USE SEAICE_COM, only : snowi
       USE FILEMANAGER
       implicit none
       integer i, j, k, last_day, kday, jday0, IH,

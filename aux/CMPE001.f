@@ -5,18 +5,13 @@ C****
      *  ,kajl,lm_req,KASJL,KAIJ,KAIL,NEHIST,HIST_DAYS,KCON
      *  ,KSPECA,NSPHER,KTPE,NHEMI,HR_IN_DAY,NDIUVAR,NDIUPT
      *  ,Max12HR_sequ,NWAV_DAG,KWP,KAJK,KAIJK
-      USE SLE001, ONLY: NGM
+      USE SLE001, ONLY: NGM,nlsn
       USE RADNCB, only : LM_REQ
+      USE SEAICE_COM, only : lmi
+      USE PBLCOM, only : npbl
       IMPLICIT REAL*8 (A-H,O-Z)
       SAVE
-c     PARAMETER (IM=72,JM=46,LM=12,NGM=6,KTD=8,KAIJ=150,KAJK=51,KCON=125
-c    *     )
-      parameter (npbl=8)
-c     PARAMETER (IMH=IM/2, NWD=MIN(IMH,9),
-c    *     KACC=JM*94*6 + 24*94 +
-c    *     JM*3 +JM*LM*57 + JM*3*4 + IM*JM*KAIJ + IM*LM*16 +
-c    *     20*100 + JM*KCON + (IMH+1)*20*8 +8*2 + 24*63*4 + 2*62*NWD*12
-c    *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
+
       COMMON/TADV/TMOM1(IM,JM,9*LM),TMOM2(IM,JM,9*LM)
       COMMON/QADV/QMOM1(IM,JM,9*LM),QMOM2(IM,JM,9*LM)
       COMMON/BNDYCB1/TOCEAN1(3,IM,JM),GDATA1(IM,JM,7),
@@ -24,7 +19,6 @@ c    *     + JM*LM*KAJK +IM*JM*LM*6 + IM*JM*LM*5 + JM*LM*(NWD+1)*3)
       COMMON/BNDYCB2/TOCEAN2(3,IM,JM),GDATA2(IM,JM,7),
      *     BLDATA2(IM,JM,11+LM),Z2(IM,JM)
 ccc   ice data:
-      INTEGER, PARAMETER  :: LMI=4
       REAL*8 MSI1,MSI2
       LOGICAL IFLAG1(IM,JM),IFLAG2(IM,JM)
       COMMON/SICECB/ RSI1(IM,JM),HSI1(LMI,IM,JM),MSI1(IM,JM),SNOWI1(IM
@@ -35,7 +29,6 @@ ccc   ice data:
      *               TRHR1(1+LM,IM,JM),TRHR2(1+LM,IM,JM),
      *               FSF1(   4,IM,JM),FSF2(   4,IM,JM)
 ccc   snow data:
-      INTEGER, PARAMETER  :: NLSN=3
       INTEGER, DIMENSION(2,IM,JM)     :: NSN1, NSN2
       INTEGER, DIMENSION(2,IM,JM)     :: ISN1, ISN2
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN1, DZSN2
@@ -56,17 +49,17 @@ ccc   land ice data
      *     ,4)
       COMMON/CLDCOM/CLOUD2(IM,JM,5*LM),CLOUD1(IM,JM,5*LM)
       COMMON/SOILS3/GHDATA1(IM,JM,4*NGM+5),GHDATA2(IM,JM,4*NGM+5)
-      CHARACTER C*4,XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
-      DIMENSION C(39),JC(100),RC(161)
-      EQUIVALENCE (C,XLABEL,LABEL)
+      CHARACTER XLABEL*132,LABEL*16,FILEIN*60,HEADER*80
+      EQUIVALENCE (XLABEL,LABEL)
       COMMON/DAG1/DIAG1(KACC),TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
       COMMON/DAG2/DIAG2(KACC),TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
       COMMON /KEYS/ KEYNR(1+42*50)  !  also incl. keyct
       REAL*8 LAKE1,LAKE2
       COMMON /LAKE/LAKE1(IM,JM,4),LAKE2(IM,JM,4)
-C**** coupled model ocean data
+C**** coupled model ocean data (cannot be read in from module for 
+C**** compatibility across model configurations)
       INTEGER, PARAMETER :: NMST=12, LMO=13
-      INTEGER, PARAMETER :: KOIJ=11,KOIJL=22,KOL=6,KOLNST=8,
+      INTEGER, PARAMETER :: KOIJ=17,KOIJL=22,KOL=6,KOLNST=8,
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
       REAL*8 OCEAN1(IM,JM,LMO*11+1),OCEAN2(IM,JM,LMO*11+1)
