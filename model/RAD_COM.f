@@ -46,8 +46,8 @@
       REAL*8 :: H2OstratX = 1.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
       INTEGER :: H2ObyCH4 = 0
-!@var dH2O1 zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
-      DOUBLE PRECISION, DIMENSION(JM,LM) :: dH2O
+!@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
+      DOUBLE PRECISION, DIMENSION(JM,LM) :: dH2O = 0.
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAl*8 :: RSDIST,SIND,COSD
 
