@@ -156,7 +156,7 @@ C
 !$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
 !$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
 !$OMP* changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
-!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
+!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,FACT_SO4,
 #ifdef SHINDELL_STRAT_CHEM
 !$OMP* CLTOT, ClOx_old, COLMO2, changeClONO2, changeClOx,
 !$OMP* changehetClONO2, changeHOCl, changeHCl,
