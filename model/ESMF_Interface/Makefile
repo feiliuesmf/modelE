@@ -17,7 +17,7 @@ clean:
 	@touch .timestamp
 ifeq ($(MACHINE),MAC)
 	$(CPP) $(CPPFLAGS) $< | sed -n '/^#pragma/!p' > $*_cpp.F90
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
+	$(F90) -c $(FFLAGSF) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.F90 \
 	  -o $@ $(COMP_OUTPUT)
 	rm -f $*_cpp.F90
 else
@@ -26,7 +26,7 @@ ifeq ($(COMPILER),Absoft)
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f -o $@ $(COMP_OUTPUT)
 	rm -f $*_cpp.f
 else
-	@$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $<  $(COMP_OUTPUT)
+	$(F90) -c $(FFLAGSF) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $<  $(COMP_OUTPUT)
 endif
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \

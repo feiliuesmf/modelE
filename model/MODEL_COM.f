@@ -7,7 +7,10 @@
 !      USE DOMAIN_DECOMP, only : grid
       USE ESMF_CUSTOM_MOD, ONLY: FIELD
       IMPLICIT NONE
+! just to make all compilers happy (should check later)
+#if ! defined(COMPILER_G95)
       SAVE
+#endif
 
 !@param IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
@@ -176,44 +179,44 @@ C**** slightly larger, to sample all points within the cycle
       REAL*8, POINTER, DIMENSION(:,:,:) :: T => Null()
       REAL*8, POINTER, DIMENSION(:,:,:) :: Q => Null()
       REAL*8, POINTER, DIMENSION(:,:,:) :: WM => Null()
-      TYPE (FIELD) :: field_U
-      TYPE (FIELD) :: field_V
-      TYPE (FIELD) :: field_T
-      TYPE (FIELD) :: field_Q
-      TYPE (FIELD) :: field_WM
+      TYPE (FIELD), save :: field_U
+      TYPE (FIELD), save :: field_V
+      TYPE (FIELD), save :: field_T
+      TYPE (FIELD), save :: field_Q
+      TYPE (FIELD), save :: field_WM
 
 !**** Boundary condition arrays:
 !@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
       REAL*8, POINTER, DIMENSION(:,:)   :: ZATMO  => Null()
       REAL*8, POINTER, DIMENSION(:,:)   :: HLAKE  => Null()
-      TYPE (FIELD) :: field_ZATMO
-      TYPE (FIELD) :: field_HLAKE
+      TYPE (FIELD), save :: field_ZATMO
+      TYPE (FIELD), save :: field_HLAKE
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
       REAL*8, POINTER, DIMENSION(:,:)   :: FLAND  => Null()
       REAL*8, POINTER, DIMENSION(:,:)   :: FOCEAN => Null()
       REAL*8, POINTER, DIMENSION(:,:)   :: FLICE  => Null()
       REAL*8, POINTER, DIMENSION(:,:)   :: FLAKE0 => Null()
       REAL*8, POINTER, DIMENSION(:,:)   :: FEARTH => Null()
-      TYPE (FIELD) :: field_FLAND
-      TYPE (FIELD) :: field_FOCEAN
-      TYPE (FIELD) :: field_FLICE
-      TYPE (FIELD) :: field_FLAKE0
-      TYPE (FIELD) :: field_FEARTH
+      TYPE (FIELD), save :: field_FLAND
+      TYPE (FIELD), save :: field_FOCEAN
+      TYPE (FIELD), save :: field_FLICE
+      TYPE (FIELD), save :: field_FLAKE0
+      TYPE (FIELD), save :: field_FEARTH
 
 !@var WFCS water field capacity of first ground layer (kg/m2)  ???
       REAL*8, POINTER, DIMENSION(:,:)   :: WFCS   => Null()
-      TYPE (FIELD) :: field_WFCS
+      TYPE (FIELD), save :: field_WFCS
 
 !@var P surface pressure (hecto-Pascals - PTOP)
       REAL*8, POINTER, DIMENSION(:,:)   :: P      => Null()
-      TYPE (FIELD) :: field_P
+      TYPE (FIELD), save :: field_P
 
 C**** Define surface types (mostly used for weighting diagnostics)
 !@param NTYPE number of different surface types
       INTEGER, PARAMETER :: NTYPE=6   ! orig = 3
 !@var FTYPE fractions of each surface type
       REAL*8, POINTER, DIMENSION(:,:,:)   :: FTYPE  => Null()
-      TYPE (FIELD) :: field_FTYPE
+      TYPE (FIELD), save :: field_FTYPE
 
 !@param ITxx indices of various types (used only when it matters)
       INTEGER, PARAMETER :: ITOCEAN=1, ITOICE=2, ITEARTH=3,

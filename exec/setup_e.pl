@@ -232,6 +232,7 @@ if ( $uname =~ /IRIX64/ ) {
     print RUNTIMEOPTS "export XLFRTEOPTS=NAMELIST=OLD\n";
 } elsif ( $uname =~ /Linux/ ) {
     print RUNTIMEOPTS "export F_UFMTENDIAN=big\n";
+    print RUNTIMEOPTS "export G95_ENDIAN=BIG\n";   #needed for g95
 }
 print RUNTIMEOPTS <<EOF;
     if [ `ulimit -s` -lt $MIN_STACK ] ; then

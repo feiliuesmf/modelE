@@ -9,7 +9,9 @@
 
       CONTAINS
 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+#if defined(MACHINE_SGI) \
+ || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
+ || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
@@ -21,7 +23,10 @@
       RETURN
       END FUNCTION RANDU
 #elif defined( MACHINE_IBM ) \
- || ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+ || ( defined(MACHINE_MAC) && defined(COMPILER_NAG) ) \
+ || ( defined(MACHINE_Linux) && defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
       REAL*8 X                       !@var X      dummy variable
@@ -73,7 +78,8 @@
 
       END MODULE RANDOM
 
-#if defined( MACHINE_SGI ) || defined( MACHINE_IBM )
+#if defined( MACHINE_SGI ) || defined( MACHINE_IBM ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       SUBROUTINE GETTIME (MNOW)
 !@sum  GETTIME returns current CPU time
 !@auth Gary Russell
@@ -84,7 +90,8 @@
       MNOW = MCLOCK()
       RETURN
       END SUBROUTINE GETTIME
-#elif defined( MACHINE_Linux ) || defined(MACHINE_MAC)
+#elif defined( MACHINE_Linux ) \
+ || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
       SUBROUTINE GETTIME (MNOW)
 !@sum  GETTIME returns current CPU time
 !@auth Gary Russell
@@ -121,9 +128,10 @@
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: code !@var code return code set by user
 #if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
- || defined(MACHINE_MAC)
+ || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
       call exit(code) !!! should check if it works for Absoft and DEC
-#elif defined( MACHINE_IBM )
+#elif defined( MACHINE_IBM ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call exit_(code)
 #else
       None of supported architectures was specified.
@@ -142,9 +150,10 @@
 #if defined(MACHINE_SGI)
       call flush(unit,status)
 #elif defined(MACHINE_Linux) || defined(MACHINE_DEC) \
- || defined(MACHINE_MAC)
+ || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
       call flush(unit) !!! should check if it works for Absoft and DEC
-#elif defined( MACHINE_IBM )
+#elif defined( MACHINE_IBM ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call flush_(unit)
 #else
       None of supported architectures was specified.
@@ -162,12 +171,17 @@
       INTEGER, INTENT(IN) :: sig
 !@var prog handler subroutine for given signal
       EXTERNAL prog
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+#if defined(MACHINE_SGI) \
+ || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) ) \
+ || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       call signal( sig, prog, -1 ) 
-#elif defined( MACHINE_IBM )
+#elif defined( MACHINE_IBM ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call signal( sig, prog )
-#elif ( defined(MACHINE_MAC) && defined(COMPILER_NAG) )
+#elif ( defined(MACHINE_MAC) && defined(COMPILER_NAG) ) \
+ || ( defined(MACHINE_Linux) && defined(COMPILER_G95) ) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_G95) )
       ! do nothing if "signal" is not supported by NAG
 #else
       None of supported architectures was specified.

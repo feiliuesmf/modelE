@@ -228,6 +228,24 @@ endif
 endif
 endif
 
+## This is for the G95 GNU compiler
+ifeq ($(COMPILER),G95)
+F90 = /tmp/g95-install/bin/i686-pc-linux-gnu-g95
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CPPFLAGS = -DMACHINE_Linux -DCOMPILER_G95
+FFLAGS = -O0 # -cpp
+FFLAGSF = -O0 -f free
+LFLAGS =
+# uncomment next two lines for extensive debugging
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
+LFLAGS += -lefence
+endif
+endif
+
+
 # IBM - specific options here
 ifeq ($(UNAME),AIX)
 MACHINE = IBM
@@ -303,6 +321,40 @@ FFLAGSF = -O2 -f free
 LFLAGS = 
 endif
 
+#... with g95
+ifeq ($(COMPILER),G95)
+F90 = g95
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+CPPFLAGS = -DMACHINE_MAC -DCOMPILER_G95
+FFLAGS = -O2 # -cpp
+FFLAGSF = -O2 -f free
+LFLAGS =
+# uncomment next two lines for extensive debugging
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
+LFLAGS += -lefence
+endif
+endif
+
+ifeq ($(COMPILER),XLF)
+#MACHINE = IBM
+#F90 = xlf90_r
+F90 = f95
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+# ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
+CPPFLAGS = -DMACHINE_MAC -DCOMPILER_XLF
+FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
+#FFLAGSF = -O2 -qfree -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
+FFLAGSF = -O2 -qfree -qsuffix=cpp=F90 -qmaxmem=16384 -WF,-DMACHINE_IBM
+# one may need to add -bmaxstack:0x1000000 if rusns out of stack
+LFLAGS = -O2 # -bmaxdata:0x10000000
+# no guarantee that the following line gives correct info
+F90_VERSION = $(shell what /usr/lpp/xlf/bin/xlfentry | tail -1)
+endif
+
 endif
 
 # end of machine - specific options
@@ -368,6 +420,12 @@ ifeq ($(COMPILER),Absoft)
 	  -o $*.o $(COMP_OUTPUT)
 	rm -f $*_cpp.f
 else
+ifeq ($(COMPILER),G95)
+	$(CPP) $(CPPFLAGS) $*.f $*_cpp.f
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(RFLAGS) $*_cpp.f \
+	  -o $*.o $(COMP_OUTPUT)
+	#rm -f $*_cpp.f
+else
 ifeq ($(COMPILER),Lahey)
 	cp $*.f $*.F
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
@@ -383,6 +441,7 @@ else
 	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
 	  $(COMP_OUTPUT)
 	echo "  name for $*.f "
+endif
 endif
 endif
 endif
