@@ -201,11 +201,14 @@ close RUNIDULN;
 
 open RUNTIMEOPTS, ">runtime_opts" or die "can't create runtime_opts\n";
 ## Architecture-dependent settings
+## Linux setting is only for Intel 7 compilers, but harmless otherwise
 $uname = `uname`;
 if ( $uname =~ /IRIX64/ ) {
     print RUNTIMEOPTS "export PAGESIZE_DATA=64 PAGESIZE_STACK=64\n";
 } elsif ( $uname =~ /AIX/ ) {
     print RUNTIMEOPTS "export NAMELIST=OLD\n";
+} elsif ( $uname =~ /Linux/ ) {
+    print RUNTIMEOPTS "export F_UFMTENDIAN=big\n";
 }
 print RUNTIMEOPTS <<EOF;
     if [ `ulimit -s` -lt $MIN_STACK ] ; then

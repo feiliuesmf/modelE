@@ -109,7 +109,8 @@ endif
 # Linux - specific options here
 # If COMPILER is set will use options for that compiler, otherwise will
 # use the default (Absoft). The following compilers are recognized:
-# Absoft, Lahey, PGI, Intel (not working yet), Vast (not working yet).
+# Absoft, Lahey, PGI, Intel (version 7), Intel8 (not working yet), 
+# Vast (not working yet).
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
 ifndef COMPILER
@@ -123,12 +124,50 @@ F90 = f90
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m vo
 endif
 
-## this is for Intel Compiler (DOES NOT WORK WELL)
+## this is for Intel Compiler (Version 7 - some problems remain)
 ifeq ($(COMPILER),Intel)
-F90 = ifc
-FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -m d -int
-FFLAGS = -O2
-LFLAGS = -O2
+F90 = efc
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+FFLAGS = -fpp -O2 -w95 -w90 -cm -tpp2 -common_args
+FFLAGSF = -fpp -O2 -FR -w95 -w90 -cm -tpp2 -common_args
+LFLAGS = -O2 -w95 -w90 -tpp2 -common_args -Vaxlib
+CPP = /lib/cpp -P -traditional
+CPPFLAGS = -DMACHINE_Linux
+F90_VERSION = $(shell $(F90) -V 2>&1 | grep Build)
+ifeq ($(MP),YES)
+FFLAGS += -openmp
+FFLAGSF += -openmp
+LFLAGS += -openmp
+endif
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -WB 
+LFLAGS += -WB 
+FFLAGSF += -WB
+LFLAGSF += -WB
+endif
+endif
+
+## this is for Intel Compiler (version 8 - compiles but problems remain) 
+ifeq ($(COMPILER),Intel8)
+F90 = ifort
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
+FFLAGS = -fpp -O2 -tpp2 -convert big_endian -assume dummy_aliases
+FFLAGSF = -fpp -O2 -tpp2 -convert big_endian -free -assume dummy_aliases
+LFLAGS = -O2 -tpp2 -convert big_endian -assume dummy_aliases
+CPP = /lib/cpp -P -traditional
+CPPFLAGS = -DMACHINE_Linux
+F90_VERSION = $(shell $(F90) -v 2>&1)
+ifeq ($(MP),YES)
+FFLAGS += -openmp
+FFLAGSF += -openmp
+LFLAGS += -openmp
+endif
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -CB -fpe0
+LFLAGS += -CB -fpe0
+FFLAGSF += -CB -fpe0
+LFLAGSF += -CB -fpe0
+endif
 endif
 
 ## This is for the Lahey/Fujitsu compiler
@@ -204,9 +243,7 @@ LFLAGS = -O2 -bmaxdata:0x10000000
 F90_VERSION = $(shell what /usr/lpp/xlf/bin/xlfentry | tail -1)
 endif
 
-
 # DEC Alpha - specific options here
-# This option has not been tested yet. It may need some adjustment.
 ifeq ($(UNAME),OSF1)
 MACHINE = DEC
 F90 = f90
