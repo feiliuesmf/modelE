@@ -90,7 +90,6 @@ C****
 
       ENTRY init_ODEEP
 
-      ENTRY DYNSI
       ENTRY ADVSI
       ENTRY io_icedyn
       ENTRY io_icdiag

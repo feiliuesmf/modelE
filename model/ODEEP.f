@@ -408,7 +408,6 @@ C****
 !@sum  DUMMY necessary entry points for non-dynamic oceans
 !@auth Gavin Schmidt
 !@ver  1.0
-      ENTRY DYNSI
       ENTRY ADVSI
       ENTRY io_icedyn
       ENTRY io_icdiag
