@@ -609,8 +609,8 @@ C****
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
 !@+     only important for fields 1->nmaplets+nmaps (appear in printout)
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
-      INTEGER Iord(ktmax+10),nmaplets,nmaps ! 10 extra blank maplets
-      INTEGER kmaplets,nt(ktmax+10),ijtype(ktmax+10)
+      INTEGER Iord(ktmax),nmaplets,nmaps 
+      INTEGER kmaplets,nt(ktmax),ijtype(ktmax)
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48,lname*80,name*30,units*30
@@ -629,6 +629,8 @@ C**** standard printout
 !     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
       nmaps = 0
 
+c**** always skip unused fields
+      Qk = .true.
 C**** Fill in maplet indices for tracer concentrations
       k = 0
       do n=1,ntm
@@ -638,6 +640,7 @@ C**** Fill in maplet indices for tracer concentrations
         iord(k) = l
         nt(k) = n
         ijtype(k) = 1
+        if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
       end do
 C**** Fill in maplet indices for tracer sums and means
       do l=1,ktaij
@@ -645,6 +648,7 @@ C**** Fill in maplet indices for tracer sums and means
         iord(k) = l
         nt(k) = n
         ijtype(k) = 2
+        if (index(lname_tij(l,n),'unused').gt.0) Qk(k) = .false.
       end do
       end do
 C**** Fill in maplet indices for sources and sinks
@@ -655,18 +659,10 @@ C**** Fill in maplet indices for sources and sinks
         iord(k) = kx
         nt(k) = kx
         ijtype(k) = 3
+        if (index(lname_ijts(kx),'unused').gt.0) Qk(k) = .false.
       end do
 
       nmaplets = k
-c**** always skip unused fields
-      Qk = .true.
-      k_generic = (lm+ktaij)*ntm
-      do k=1,k_generic
-        if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
-      end do
-      do k=k_generic+1,ktmax
-        if (index(lname_ijts(k),'unused').gt.0) Qk(k) = .false.
-      end do
 
       xlb=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
 C****
