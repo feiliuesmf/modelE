@@ -336,8 +336,10 @@
 
       ! Direction bits
       PUBLIC :: NORTH, SOUTH, EAST, WEST
-      INTEGER, PARAMETER :: NORTH=B'0001', SOUTH=B'0010'
-      INTEGER, PARAMETER :: EAST =B'0100', WEST =B'1000'
+      ! Use powers of two such that addition can be used
+      ! to create combination
+      INTEGER, PARAMETER :: NORTH = 2**0, SOUTH = 2**1
+      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, PARAMETER :: ALL = NORTH + SOUTH ! no east/west for now
 
       INTEGER, PARAMETER :: HALO_WIDTH = 1
