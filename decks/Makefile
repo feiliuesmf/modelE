@@ -135,11 +135,24 @@ clean vclean:
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe:  $(BIN_DIR)/$(RUN).exe
-	@if find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) >/dev/null; then\
+	@if find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER) >/dev/null; then \
 	echo 'Rundeck in repository is ok - will add info'; \
 	else \
-	echo 'Either you didn''t run setup yet or the rundeck name $(RUN)'; \
-	echo 'belongs to somebody else'; echo 'please check'; exit 1; fi
+	if [ -f $(DECKS_REPOSITORY)/$(RUN).R ] ; then \
+	  echo 'repository file for $(RUN) belongs to somebody else'; \
+	  echo 'Info not written. Please check!'; exit 1 ; fi ; \
+	echo 'repository file for $(RUN) is missing'; \
+	echo 'Either you didn''t run setup yet or repository is corrupted'; \
+	echo 'PLEASE CHECK! You may be loosing important data!'; echo ; \
+	echo 'trying to create a new repository file'; \
+	echo '--- no information on original rundeck ---' \
+	  > $(DECKS_REPOSITORY)/$(RUN).R ; \
+	cat $(RUN).R >> $(DECKS_REPOSITORY)/$(RUN).R ; \
+	echo '### Information below describes your run.' \
+	  >> $(DECKS_REPOSITORY)/$(RUN).R ; \
+	if [ ! -f $(DECKS_REPOSITORY)/$(RUN).R ] ; then \
+	  echo 'no luck...' ; exit 1 ; fi ; \
+	echo 'new $(DECKS_REPOSITORY)/$(RUN).R created'; fi
 	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \
 	echo \
 	  'directory $(CMRUNDIR)/$(RUN) or input files inside it are missing';\
@@ -158,8 +171,8 @@ exe:  $(BIN_DIR)/$(RUN).exe
 	echo 'CVS Repository: MAIN Branch' \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; fi
 	@echo 'diff old.R new.R :' >> $(DECKS_REPOSITORY)/$(RUN).R
-	@if ! diff $(DECKS_REPOSITORY)/$(RUN).R.tmp $(RUN).R \
-	>> $(DECKS_REPOSITORY)/$(RUN).R; then echo 'rundeck changed'; fi
+	@diff $(DECKS_REPOSITORY)/$(RUN).R.tmp $(RUN).R \
+	>> $(DECKS_REPOSITORY)/$(RUN).R || echo 'rundeck changed'
 	@rm -f $(DECKS_REPOSITORY)/$(RUN).R.tmp
 	@echo done
 
