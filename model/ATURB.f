@@ -16,9 +16,9 @@
 !@var mout 0:don't call dout; 1:call dout
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
-      USE DYNAMICS, only : pk,plij
+      USE DYNAMICS, only : pmid,pk,pedn
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,psf,ptop,ls1,u,v,t,q,p
+     *      im,jm,lm,sig,sige,u,v,t,q,p
      *     ,vt_on      
       USE CONSTANT, only : kapa,deltx
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
@@ -30,13 +30,14 @@
 
       real*8, dimension(lm) :: uij,vij,tij,pij,qij,eij
       real*8, dimension(lm) :: u0ij,v0ij,t0ij,q0ij,e0ij
+      real*8, dimension(lm) :: rhoebydz,bydzerho
       real*8, dimension(lm) :: km,kh,ke,lscale,gm,gh,rhoij,rhoeij
-      real*8, dimension(lm-1) :: dzij,dzeij
-      real*8, dimension(im,jm,lm) :: rho,rhoe
-      real*8, dimension(im,jm,lm-1) :: dz,dzedge
+      real*8, dimension(lm) :: dzij,dzeij
+      real*8, dimension(lm,im,jm) :: rho,rhoe
+      real*8, dimension(lm,im,jm) :: dz,dzedge
       real*8, dimension(lm) :: peij,ttest
-      real*8, dimension(im,jm,lm) :: u_tcell,v_tcell,tv_ucell,t_virtual
-      real*8, dimension(im,jm,lm) :: km_gcm,km_gcm_ucell
+      real*8, dimension(lm,im,jm) :: u_tcell,v_tcell,tv_ucell,t_virtual
+      real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_ucell
      2        ,dz_ucell,dzedge_ucell,rho_ucell,rhoe_ucell
       real*8, dimension(im,jm) :: p_ucell,tsavg_ucell,qsavg_ucell
       real*8, dimension(im,jm) :: uflux_ucell,vflux_ucell
@@ -46,7 +47,7 @@
       integer, save :: ifirst=1
       real*8, save :: p1000k=1.d0
       real*8 :: uflx,vflx,tflx,qflx,pijgcm,pl,rvx
-      real*8 :: temp0,ps,ustar2,dbll,reserv,test,check
+      real*8 :: temp0,ustar2,dbll,reserv,test,check
       integer :: loc,icount
       integer :: i,j,l,iter  !@var i,j,l,iter loop variable
 
@@ -65,7 +66,7 @@
       do l=1,lm
         do j=1,jm
           do i=1,im
-            t_virtual(i,j,l)=t(i,j,l)*(1.d0+RVX*Q(i,j,l))
+            t_virtual(l,i,j)=t(i,j,l)*(1.d0+RVX*Q(i,j,l))
           end do
         end do
       end do
@@ -73,22 +74,22 @@
 c     integrate T,Q equations at tcells
 
       ! get u_tcell and v_tcell at t-cells
-      call ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
+      call ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
 
-      call getdz(t_virtual,p,sig,sige,ptop,psf,
-     2           dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm)
+      call getdz(t_virtual,p,sig,sige,dz,dzedge,rho,rhoe
+     2           ,tsavg,qsavg,rvx,im,jm,lm)
 
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
           do l=1,lm
-            uij(l)=u_tcell(i,j,l)
-            vij(l)=v_tcell(i,j,l)
-            tij(l)=t_virtual(i,j,l)*p1000k  !virtual,potential temp.
-            pij(l)=100.d0*(plij(l,i,j)*sig(l)+ptop)
+            uij(l)=u_tcell(l,i,j)
+            vij(l)=v_tcell(l,i,j)
+            tij(l)=t_virtual(l,i,j)*p1000k  !virtual,potential temp.
+            pij(l)=100.d0*pmid(l,i,j)
             qij(l)=q(i,j,l)
             eij(l)=egcm(l,i,j)
-            rhoeij(l)=rhoe(i,j,l)
-            rhoij(l)=rho(i,j,l)
+            rhoeij(l)=rhoe(l,i,j)
+            rhoij(l)=rho(l,i,j)
             u0ij(l)=uij(l)
             v0ij(l)=vij(l)
             t0ij(l)=tij(l)
@@ -96,8 +97,12 @@ c     integrate T,Q equations at tcells
             e0ij(l)=eij(l)
           end do
           do l=1,lm-1
-            dzij(l)=dz(i,j,l)
-            dzeij(l)=dzedge(i,j,l)
+            dzij(l)=dz(l,i,j)
+            rhoebydz(l+1)=rhoeij(l+1)/dzij(l)
+          end do
+          do l=1,lm
+            dzeij(l)=dzedge(l,i,j)
+            bydzerho(l)=1.d0/(dzeij(l)*rhoij(l))
           end do
 
           uflx  =uflux(i,j)
@@ -108,12 +113,12 @@ c     integrate T,Q equations at tcells
 
           call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
           call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
-          call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,
-     2           dzij,dzeij,rhoij,rhoeij,dtime,ustar2,lm)
+          call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,dzij,dzeij
+     2         ,rhoij,rhoeij,dtime,ustar2,lm)
           call diff_tq(t0ij,tij,kh,dzij,dzeij,
-     2                 rhoij,rhoeij,tflx,dtime,lm)
+     2                 rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
           call diff_tq(q0ij,qij,kh,dzij,dzeij,
-     2                 rhoij,rhoeij,qflx,dtime,lm)
+     2                 rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
 
           do 300 iter=1,itmax
 
@@ -123,12 +128,12 @@ c     integrate T,Q equations at tcells
 
             call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
             call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
-            call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,
-     2           dzij,dzeij,rhoij,rhoeij,dtime,ustar2,lm)
-            call diff_tq(t0ij,tij,kh,dzij,dzeij,
-     2                   rhoij,rhoeij,tflx,dtime,lm)
-            call diff_tq(q0ij,qij,kh,dzij,dzeij,
-     2                   rhoij,rhoeij,qflx,dtime,lm)
+            call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,dzij,dzeij
+     2           ,rhoij,rhoeij,dtime,ustar2,lm)
+            call diff_tq(t0ij,tij,kh,dzij,dzeij
+     2           ,rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
+            call diff_tq(q0ij,qij,kh,dzij,dzeij
+     2           ,rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
             call find_pbl_top(eij,dbll,lm)
 
             test=0.d0
@@ -147,28 +152,23 @@ c           test=test/float(lm-2)
 300       continue
 
           do l=1,lm
-            t_virtual(i,j,l)=tij(l)/p1000k
+            t_virtual(l,i,j)=tij(l)/p1000k
             q(i,j,l)=max(qij(l),qmin)
-            t(i,j,l)=t_virtual(i,j,l)/(1.d0+RVX*Q(i,j,l))
+            t(i,j,l)=t_virtual(l,i,j)/(1.d0+RVX*Q(i,j,l))
             egcm(l,i,j)=eij(l)
-            km_gcm(i,j,l)=km(l)
+            km_gcm(l,i,j)=km(l)
           end do
           dclev(i,j)=dbll
 c
 c         Write out diagnostics if at the correct grid point:
 c
           if (mout.eq.1.and.(i.eq.itest).and.(j.eq.jtest)) then
-            ps=100.d0*(p(i,j)+ptop)
             do l=1,lm
-              if (l.ge.ls1) then
-                peij(l)=100.d0*((psf-ptop)*sige(l)+ptop)
-              else
-                peij(l)=100.d0*(p(i,j)*sige(l)+ptop)
-              endif
+                peij(l)=100.d0*pedn(l,i,j)
             end do
             call dout(uij,vij,tij,pij,peij,qij,eij,dzij,dzeij,
      2                rhoij,rhoeij,u0ij,v0ij,t0ij,q0ij,
-     3                km,kh,ke,gm,gh,lscale,ps,reserv,tsavg(i,j),
+     3                km,kh,ke,gm,gh,lscale,reserv,tsavg(i,j),
      4                uflx,vflx,tflx,qflx,itest,jtest,lm)
           endif
 
@@ -179,41 +179,46 @@ c     integrate U,V equations at ucells
 
       ! average some quantities at u-cells
 c     call ave_to_ucell(p,p_ucell,im,jm,1)
-      call ave_to_ucell(uflux,uflux_ucell,im,jm,1)
-      call ave_to_ucell(vflux,vflux_ucell,im,jm,1)
+c     call ave_ufvf_to_ucell(uflux,vflux,uflux_ucell,vflux_ucell,im,jm)
+c     call ave_to_ucell(uflux,uflux_ucell,im,jm,1)
+c     call ave_to_ucell(vflux,vflux_ucell,im,jm,1)
 c     call ave_to_ucell(tsavg,tsavg_ucell,im,jm,1)
 c     call ave_to_ucell(qsavg,qsavg_ucell,im,jm,1)
 
 c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
-      call ave_to_ucell(km_gcm,km_gcm_ucell,im,jm,lm)
- 
-      call ave_to_ucell(dz,dz_ucell,im,jm,lm)
-      call ave_to_ucell(dzedge,dzedge_ucell,im,jm,lm)
-      call ave_to_ucell(rho,rho_ucell,im,jm,lm)
-      call ave_to_ucell(rhoe,rhoe_ucell,im,jm,lm)
+
+      call ave_to_ucell1(km_gcm,km_gcm_ucell,im,jm,lm)
+      call ave_to_ucell1(dz,dz_ucell,im,jm,lm)
+      call ave_to_ucell1(dzedge,dzedge_ucell,im,jm,lm)
+      call ave_to_ucell1(rho,rho_ucell,im,jm,lm)
+      call ave_to_ucell1(rhoe,rhoe_ucell,im,jm,lm)
 
       loop_j_uv: do j=2,jm
         loop_i_uv: do i=1,im
           do l=1,lm
             uij(l)=u(i,j,l)
             vij(l)=v(i,j,l)
-            rhoeij(l)=rhoe_ucell(i,j,l)
-            rhoij(l)=rho_ucell(i,j,l)
+            rhoeij(l)=rhoe_ucell(l,i,j)
+            rhoij(l)=rho_ucell(l,i,j)
             u0ij(l)=uij(l)
             v0ij(l)=vij(l)
           end do
           do l=1,lm-1
-            dzij(l)=dz_ucell(i,j,l)
-            dzeij(l)=dzedge_ucell(i,j,l)
-            km(l)=km_gcm_ucell(i,j,l)
+            dzij(l)=dz_ucell(l,i,j)
+            rhoebydz(l+1)=rhoeij(l+1)/dzij(l)
+            km(l)=km_gcm_ucell(l,i,j)
+          end do
+          do l=1,lm
+            dzeij(l)=dzedge_ucell(l,i,j)
+            bydzerho(l)=1.d0/(dzeij(l)*rhoij(l))
           end do
 
           uflx  =uflux_ucell(i,j)
           vflx  =vflux_ucell(i,j)
 
           do iter=1,itmax
-            call diff_uv(u0ij,v0ij,uij,vij,km,dzij,dzeij,rhoij,rhoeij,
-     2                   uflx,vflx,dtime,lm)
+            call diff_uv(u0ij,v0ij,uij,vij,km,dzij,dzeij,rhoij,rhoeij
+     2                   ,rhoebydz,bydzerho,uflx,vflx,dtime,lm)
           end do !loop iter
 
           do l=1,lm
@@ -227,20 +232,20 @@ c     call ave_to_ucell(t_virtual,tv_ucell,im,jm,lm)
       return
       end subroutine diffus
 
-      subroutine getdz(tv,p,sig,sige,ptop,psf,
-     2   dz,dzedge,rho,rhoe,tsavg,qsavg,rvx,ls1,im,jm,lm)
+      subroutine getdz(tv,p,sig,sige,dz,dzedge,rho,rhoe
+     2          ,tsavg,qsavg,rvx,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
 !@sum  as well as the 3d density rho and rhoe
 !@sum  called at the primary cells (t-cells)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
-!@var  dz(i,j,l) z(i,j,l+1) - z(i,j,l)
-!@var  dzedge(i,j,l) zedge(i,j,l+1) - zedge(i,j,l)
+!@var  dz(l,i,j) z(l+1,i,j) - z(l,i,j)
+!@var  dzedge(l,i,j) zedge(l+1,i,j) - zedge(l,i,j)
 !@var  z vertical coordinate associated with SIG(l)
 !@var  zedge vertical coordinate associated with SIGE(l)
-!@var  temp0  actual temperature (K) at (i,j) and SIG(l)
-!@var  temp1  actual temperature (K) at (i,j) and SIG(l+1)
-!@var  temp1e actual temperature (K) at (i,j) and SIGE(l+1)
+!@var  temp0 virtual temperature (K) at (i,j) and SIG(l)
+!@var  temp1 virtual temperature (K) at (i,j) and SIG(l+1)
+!@var  temp1e virtual temperature (K) at (i,j) and SIGE(l+1)
 !@var  tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
 
 c
@@ -259,70 +264,58 @@ c                2   - - - - - - - - - - - - -
 c                    -------------------------    2
 c                1   - - - - - - - - - - - - -
 c                    -------------------------    1
-c           rhoe(i,j,l+1)=100.d0*(pl-pl1)/(grav*dz(i,j,l))
-c           rho(i,j,l)=100.d0*(ple-pl1e)/(grav*dzedge(i,j,l))
+c           rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
+c           rho(l,i,j)=100.d0*(ple-pl1e)/(grav*dzedge(l,i,j))
 c
 c     at main: u,v,tv,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
 c
       USE CONSTANT, only : grav,rgas,kapa
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : gz
+      USE DYNAMICS, only : pmid,pk,pedn
       implicit none
 
-      integer, intent(in) :: ls1,im,jm,lm
-      real*8, intent(in) :: ptop,psf,rvx
-      real*8, dimension(im,jm,lm), intent(in) :: tv
+      integer, intent(in) :: im,jm,lm
+      real*8, intent(in) :: rvx
+      real*8, dimension(lm,im,jm), intent(in) :: tv
       real*8, dimension(im,jm), intent(in) :: p,tsavg,qsavg
       real*8, dimension(lm), intent(in) :: sig
       real*8, dimension(lm+1), intent(in) :: sige
-      real*8, dimension(im,jm,lm), intent(out) :: rho,rhoe
-      real*8, dimension(im,jm,lm-1), intent(out) :: dz,dzedge
+      real*8, dimension(lm,im,jm), intent(out) :: rho,rhoe
+      real*8, dimension(lm,im,jm), intent(out) :: dz,dzedge
 
       real*8 :: temp0,temp1,temp1e,pl1,pl,pl1e,ple,pijgcm
       integer :: i,j,l  !@var i,j,l loop variable
       integer :: imax
       real*8 :: plm1e
 
-      do l=1,lm-1
-        do j=1,jm
-          do i=1,imaxj(j)
+      do j=1,jm
+        do i=1,imaxj(j)
+          do l=1,lm-1
 
-            pijgcm=p(i,j)
-            if (l.ge.ls1) then
-              pl1 =(psf-ptop)*sig(l+1)+ptop
-              pl  =(psf-ptop)*sig(l)  +ptop
-              pl1e=(psf-ptop)*sige(l+1)+ptop
-              ple =(psf-ptop)*sige(l)  +ptop
-            else
-              pl1 =pijgcm*sig(l+1)+ptop
-              pl  =pijgcm*sig(l)  +ptop
-              pl1e=pijgcm*sige(l+1)+ptop
-              ple =pijgcm*sige(l)  +ptop
-            endif
-            temp0 =tv(i,j,l)*pl**kapa
-            temp1 =tv(i,j,l+1)*pl1**kapa
+            pl1 =pmid(l+1,i,j)
+            pl  =pmid(l,i,j)
+            pl1e=pedn(l+1,i,j)
+            ple =pedn(l,i,j)
+            temp0 =tv(l,i,j)*pk(l,i,j)
+            temp1 =tv(l+1,i,j)*pk(l+1,i,j)
             temp1e=((sig (l+1)-sige(l+1))*temp0+
      2              (sige(l+1)-sig (l))  *temp1)/
      3              (sig(l+1)-sig(l))
-            dz(i,j,l)    =-(rgas/grav)*temp1e*log(pl1/pl)
-            dzedge(i,j,l)=-(rgas/grav)*temp0 *log(pl1e/ple)
-            rhoe(i,j,l+1)=100.d0*(pl-pl1)/(grav*dz(i,j,l))
-            rho(i,j,l)=100.d0*(ple-pl1e)/(grav*dzedge(i,j,l))
-
+            dz(l,i,j)    =-(rgas/grav)*temp1e*log(pl1/pl)
+            dzedge(l,i,j)=-(rgas/grav)*temp0 *log(pl1e/ple)
+            rhoe(l+1,i,j)=100.d0*(pl-pl1)/(grav*dz(l,i,j))
+            rho(l,i,j)=100.d0*(ple-pl1e)/(grav*dzedge(l,i,j))
             if(l.eq.1) then
-              rhoe(i,j,1)=100.d0*ple/(tsavg(i,j)*
+              rhoe(1,i,j)=100.d0*ple/(tsavg(i,j)*
      2                    (1.d0+RVX*qsavg(i,j))*rgas)
-c             rhoe(i,j,1)=2.d0*rho(i,j,1)-rhoe(i,j,2)       
+c             rhoe(1,i,j)=2.d0*rho(1,i,j)-rhoe(2,i,j)       
             endif
             if(l.eq.lm-1) then
-c             rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
-              if (l.ge.ls1) then
-                plm1e=(psf-ptop)*sige(lm+1)+ptop
-              else
-                plm1e=pijgcm*sige(lm+1)+ptop
-              endif
-              rho(i,j,lm)=100.d0*(pl1e-plm1e)/(grav*dzedge(i,j,lm))
+c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
+              plm1e=pedn(lm+1,i,j)
+              dzedge(lm,i,j)=-(rgas/grav)*temp1 *log(plm1e/pl1e)
+              rho(lm,i,j)=100.d0*(pl1e-plm1e)/(grav*dzedge(lm,i,j))
             endif
           end do
         end do
@@ -332,7 +325,7 @@ c             rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
 
       subroutine dout(u,v,t,pres,prese,q,e,dz,dzedge,
      2                rho,rhoe,u0,v0,t0,q0,
-     3                km,kh,ke,gm,gh,lscale,ps,reserv,tsurf,
+     3                km,kh,ke,gm,gh,lscale,reserv,tsurf,
      4                uflx,vflx,tflx,qflx,itest,jtest,n)
 !@sum writes out diagnostics at i=itest, j=jtest
 !@auth  Ye Cheng/G. Hartke
@@ -377,16 +370,16 @@ c             rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
       real*8, dimension(n), intent(in) :: rho,rhoe,u0,v0,t0,q0
       real*8, dimension(n), intent(in) :: km,kh,ke,gm,gh,lscale
       real*8, dimension(n-1), intent(in) :: dz,dzedge
-      real*8, intent(in) :: ps,reserv,tsurf
+      real*8, intent(in) :: reserv,tsurf
       real*8, intent(in) :: uflx,vflx,tflx,qflx
 
       real*8 :: z,utotal,du,dv,dt,dq,zedge,qturb,dmdz,dtdz,dqdz
       real*8 :: galpha,an2,dudz,dvdz,as2,uf,hf,qf
-      real*8 :: ri,rif,sigmat,reserv2
+      real*8 :: ri,rif,sigmat,reserv2,ps
       integer :: i,j,l  !@var i,j,l loop variable
 
 c     Fields on main vertical grid:
-
+      ps=prese(1)
       z=(rgas/grav)*0.5d0*(tsurf+t(1))*log(ps/pres(1))+10.d0
       Write (67,1000) itest,jtest,reserv,ps,uflx,vflx,tflx,qflx
       do l=1,n-1
@@ -491,8 +484,8 @@ c
 9000  format (1h )
       end subroutine dout
 
-      subroutine diff_uv(u0,v0,u,v,km,dz,dzedge,rho,rhoe,
-     2                   uflx,vflx,dtime,n)
+      subroutine diff_uv(u0,v0,u,v,km,dz,dzedge,rho,rhoe
+     2                   ,rhoebydz,bydzerho,uflx,vflx,dtime,n)
 !@sum integrates differential eqns for u and v (tridiagonal method)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
@@ -515,6 +508,7 @@ c
 
       integer, intent(in) :: n
       real*8, dimension(n), intent(in) :: u0,v0,km,rho,rhoe
+     2        ,rhoebydz,bydzerho      
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: dz,dzedge
       real*8, intent(in) :: uflx,vflx,dtime
@@ -534,8 +528,10 @@ c       p1(j+1/2)=km(j+1)
 c       similarly in subroutine diff_tq
 c
       do j=2,n-1
-          sub(j)=-dtime*km(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
-          sup(j)=-dtime*km(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+c         sub(j)=-dtime*km(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
+c         sup(j)=-dtime*km(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+          sub(j)=-dtime*km(j)*rhoebydz(j)*bydzerho(j)
+          sup(j)=-dtime*km(j+1)*rhoebydz(j+1)*bydzerho(j)
           dia(j)=1.d0-(sub(j)+sup(j))
           rhs(j)=u0(j)
           rhs1(j)=v0(j)
@@ -554,7 +550,8 @@ c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-      alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+c     alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      alpha=dtime*km(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=u0(1)
@@ -570,7 +567,8 @@ c     d/dz uw = (uw(n+1)-uw(n))/dze(n), dze(n)=ze(n+1)-ze(n)
 c     uw(n)=-km(n)*(u(n)-u(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
 c     uw(n+1)=0 
 c
-      alpha=dtime*km(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+c     alpha=dtime*km(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      alpha=dtime*km(n)*rhoebydz(n)*bydzerho(n)
       sub(n)=-alpha
       dia(n)=1.d0+alpha
       rhs(n)=u0(n)
@@ -582,7 +580,8 @@ c
       return
       end subroutine diff_uv
 
-      subroutine diff_tq(tq0,tq,khq,dz,dzedge,rho,rhoe,sflx,dtime,n)
+      subroutine diff_tq(tq0,tq,khq,dz,dzedge,rho,rhoe
+     2                   ,rhoebydz,bydzerho,sflx,dtime,n)
 !@sum integrates differential eqns for t and q (tridiagonal method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -601,6 +600,7 @@ c
 
       integer, intent(in) :: n
       real*8, dimension(n), intent(in) :: tq0,khq,rho,rhoe
+     2        ,rhoebydz,bydzerho      
       real*8, dimension(n), intent(inout) :: tq
       real*8, dimension(n-1), intent(in) :: dz,dzedge
       real*8, intent(in) :: sflx,dtime
@@ -613,8 +613,10 @@ c     tq = t or q; khq = kh or kq
 c     sub(j)*tq_jm1_kp1+dia(j)*tq_j_kp1+sup(j)*tq_jp1_kp1 = rhs(j)
 c
       do j=2,n-1
-          sub(j)=-dtime*khq(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
-          sup(j)=-dtime*khq(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+c         sub(j)=-dtime*khq(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
+c         sup(j)=-dtime*khq(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+          sub(j)=-dtime*khq(j)*rhoebydz(j)*bydzerho(j)
+          sup(j)=-dtime*khq(j+1)*rhoebydz(j+1)*bydzerho(j)
           dia(j)=1.d0-(sub(j)+sup(j))
           rhs(j)=tq0(j)
       end do
@@ -631,7 +633,9 @@ c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-      alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+c     ok:
+c     alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      alpha=dtime*khq(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=tq0(1)
@@ -645,7 +649,8 @@ c     d/dz wt = (wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
 c     wt(n)=-kh(n)*(T(n)-T(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
 c     wt(n+1)=0 
 c
-      alpha=dtime*khq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+c     alpha=dtime*khq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      alpha=dtime*khq(n)*rhoebydz(n)*bydzerho(n)
       sub(n)=-alpha
       dia(n)=1.d0+alpha
       rhs(n)=tq0(n)
@@ -655,8 +660,8 @@ c
       return
       end subroutine diff_tq
 
-      subroutine diff_e(e0,e,km,kh,ke,lscale,u,v,t,
-     2           dz,dzedge,rho,rhoe,dtime,ustar2,n)
+      subroutine diff_e(e0,e,km,kh,ke,lscale,u,v,t,dz,dzedge
+     2          ,rho,rhoe,dtime,ustar2,n)
 !@sum integrates differential eqns for e (tridiagonal method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -918,6 +923,172 @@ c     at edge: e,lscale,km,kh,gm,gh
       end subroutine find_pbl_top
 
       subroutine ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
+!@sum Computes u_tcell,v_tcell from u,v, where u and v may be the
+!@sum x and y components of a vector defined at secondary grids 
+!@sum Note that u_tcell,v_tcell are of dimension (lm,im,jm)
+!@var u an x-component at secondary grids (ucell)
+!@var v a  y-component at secondary grids (ucell)
+!@var u_tcell an x-component at primary grids (tcell)
+!@var v_tcell a  y-component at primary grids (tcell)
+!@aut  Ye Cheng
+!@ver  1.0
+      USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
+      implicit none
+
+      integer, intent(in) :: im,jm,lm
+      real*8, dimension(im,jm,lm), intent(in) ::  u,v
+      real*8, dimension(lm,im,jm), intent(out) :: u_tcell,v_tcell
+
+      real*8 :: HEMI,u_t,v_t
+      integer :: i,j,l,k,IMAX,KMAX
+
+c     polar boxes
+      DO J=1,JM,JM-1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        HEMI=1.
+        IF(J.LE.JM/2) HEMI=-1.
+        DO I=1,IMAX
+          DO L=1,LM
+            u_t=0.d0; v_t=0.d0
+            DO K=1,KMAX
+              u_t=u_t+rapj(k,j)*(u(idij(k,i,j),idjj(k,j),L)*cosiv(k)-
+     2                      hemi*v(idij(k,i,j),idjj(k,j),L)*siniv(k))
+              v_t=v_t+rapj(k,j)*(v(idij(k,i,j),idjj(k,j),L)*cosiv(k)+
+     2                      hemi*u(idij(k,i,j),idjj(k,j),L)*siniv(k))
+            END DO
+            u_tcell(l,i,j)=u_t
+            v_tcell(l,i,j)=v_t
+          END DO
+        END DO
+      END DO
+c     non polar boxes
+      DO J=2,JM-1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        DO I=1,IMAX
+          DO L=1,LM
+            u_t=0.d0; v_t=0.d0
+            DO K=1,KMAX
+              u_t=u_t+u(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
+              v_t=v_t+v(idij(k,i,j),idjj(k,j),L)*rapj(k,j)
+            END DO
+            u_tcell(l,i,j)=u_t
+            v_tcell(l,i,j)=v_t
+          END DO
+        END DO
+      END DO
+C****
+      return
+      end subroutine ave_uv_to_tcell
+
+      subroutine ave_ufvf_to_ucell(uf,vf,uf_ucell,vf_ucell,im,jm)
+!@sum Computes uf_ucell,vf_ucell from uf,vf where uf and vf may be the
+!@sum x and y components of a vector defined at primary grids 
+!@var uf an x-component at primary grids (tcell)
+!@var vf a  y-component at primary grids (tcell)
+!@var uf_ucell an x-component at secondary grids (ucell)
+!@var vf_ucell an y-component at secondary grids (ucell)
+!@aut  Ye Cheng
+!@ver  1.0
+      USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj,cosiv,siniv
+      implicit none
+
+      integer, intent(in) :: im,jm
+      real*8, dimension(im,jm), intent(in) ::  uf,vf
+      real*8, dimension(im,jm), intent(out) :: uf_ucell,vf_ucell
+
+      real*8 :: HEMI
+      integer :: i,j,l,k,IMAX,KMAX
+
+      uf_ucell=0.d0; vf_ucell=0.d0
+c     polar boxes
+      DO J=1,JM,JM-1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        HEMI=1.
+        IF(J.LE.JM/2) HEMI=-1.
+        DO I=1,IMAX
+        DO K=1,KMAX
+          uf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
+     *    uf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
+     *      RAVJ(K,J)*(uf(I,J)*COSIV(K)+vf(I,J)*SINIV(K)*HEMI)
+          vf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
+     *    vf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
+     *      RAVJ(K,J)*(vf(I,J)*COSIV(K)-uf(I,J)*SINIV(K)*HEMI)
+        END DO
+        END DO
+      END DO
+c     non polar boxes
+      DO J=2,JM-1
+        IMAX=IMAXJ(J)
+        KMAX=KMAXJ(J)
+        DO I=1,IMAX
+        DO K=1,KMAX
+          uf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
+     *    uf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
+     *           RAVJ(K,J)*uf(I,J)
+          vf_ucell(IDIJ(K,I,J),IDJJ(K,J))=
+     *    vf_ucell(IDIJ(K,I,J),IDJJ(K,J)) -
+     *           RAVJ(K,J)*vf(I,J)
+        END DO
+        END DO
+      END DO
+C****
+
+      return
+      end subroutine ave_ufvf_to_ucell
+
+      subroutine ave_to_ucell(s,s_ucell,im,jm,lm)
+!@sum Computes s_ucell from s
+!@sum Note that all arrays here are of dimension (lm,im,jm)
+!@var s a scalar at primary grids (tcell)
+!@var s_ucell a scalar at secondary grids (ucell)
+!@aut  Ye Cheng/G. Hartke
+!@ver  1.0
+      USE GEOM, only : imaxj,idij,idjj,kmaxj,ravj
+      implicit none
+
+      integer, intent(in) :: im,jm,lm
+      real*8, dimension(lm,im,jm), intent(in) :: s
+      real*8, dimension(lm,im,jm), intent(out) :: s_ucell
+
+      real*8 :: s_u
+      integer :: i,j,l,k,ip1
+
+      ! ucell is from j=2 to j=jm, no ucell on the poles
+      DO J=3,JM-1
+        DO I=1,IMAXJ(J)
+          DO L=1,LM
+            s_u=0.d0
+            DO K=1,KMAXJ(J)
+              s_u=s_u+s(l,idij(k,i,j),idjj(k,j))*ravj(k,j)
+            END DO
+            s_ucell(l,i,j)=s_u
+          END DO
+        END DO
+      END DO
+      ! for j = 2 and j = jm
+        do i=1,im
+          if(i.eq.im) then
+             ip1=1
+          else
+             ip1=i+1
+          endif
+          do l=1,lm
+            s_ucell(l,i,2)=0.333333333333333d0*(s(l,1,1)
+     2               +s(l,i,2)+s(l,ip1,2))
+            s_ucell(l,i,jm)=0.333333333333333d0*(s(l,1,jm)
+     2               +s(l,i,jm-1)+s(l,ip1,jm-1))
+          end do
+        end do
+
+      return
+      end subroutine ave_to_ucell
+
+ccccccccccccccccccccccccccccc
+
+      subroutine ave_uv_to_tcell1(u,v,u_tcell,v_tcell,im,jm,lm)
 !@sum Computes u_tcell,v_tcell from u,v
 !@sum u_tcell is the average of 4 nearest u
 !@sum v_tcell is the average of 4 nearest v
@@ -931,7 +1102,7 @@ c     at edge: e,lscale,km,kh,gm,gh
 
       integer, intent(in) :: im,jm,lm
       real*8, dimension(im,jm,lm), intent(in) :: u,v
-      real*8, dimension(im,jm,lm), intent(out) :: u_tcell,v_tcell
+      real*8, dimension(lm,im,jm), intent(out) :: u_tcell,v_tcell
 
       integer :: im1,iq1,iq2,iq3
       integer :: i,j,l
@@ -945,9 +1116,9 @@ c     at edge: e,lscale,km,kh,gm,gh
           endif
 
           do l=1,lm
-            u_tcell(i,j,l)=0.25d0*(u(im1,j+1,l)+u(i,j+1,l)
+            u_tcell(l,i,j)=0.25d0*(u(im1,j+1,l)+u(i,j+1,l)
      2                          +u(im1,j,l)+u(i,j,l))
-            v_tcell(i,j,l)=0.25d0*(v(im1,j+1,l)+v(i,j+1,l)
+            v_tcell(l,i,j)=0.25d0*(v(im1,j+1,l)+v(i,j+1,l)
      2                          +v(im1,j,l)+v(i,j,l))
           end do
         end do
@@ -958,31 +1129,31 @@ c     at edge: e,lscale,km,kh,gm,gh
       iq2=nint(0.50d0*im)+1
       iq3=nint(0.75d0*im)+1
       do l=1,lm
-            u_tcell(1,1,l)=0.25d0*(u(1,2,l)-u(iq2,2,l)
+            u_tcell(l,1,1)=0.25d0*(u(1,2,l)-u(iq2,2,l)
      2                            +v(iq1,2,l)-v(iq3,2,l))
-            u_tcell(1,jm,l)=0.25d0*(u(1,jm,l)-u(iq2,jm,l)
+            u_tcell(l,1,jm)=0.25d0*(u(1,jm,l)-u(iq2,jm,l)
      2                             -v(iq1,jm,l)+v(iq3,jm,l))
-            v_tcell(1,1,l)=0.25d0*(v(1,2,l)-v(iq2,2,l)
+            v_tcell(l,1,1)=0.25d0*(v(1,2,l)-v(iq2,2,l)
      2                            -u(iq1,2,l)+u(iq3,2,l))
-            v_tcell(1,jm,l)=0.25d0*(v(1,jm,l)-v(iq2,jm,l)
+            v_tcell(l,1,jm)=0.25d0*(v(1,jm,l)-v(iq2,jm,l)
      2                             +u(iq1,jm,l)-u(iq3,jm,l))
       end do
 
       return
-      end subroutine ave_uv_to_tcell
+      end subroutine ave_uv_to_tcell1
 
-      subroutine ave_to_ucell(t,t_ucell,im,jm,lm)
-!@sum Computes t_ucell from t
-!@sum t_ucell is the average of 4 nearest t
-!@var t scalar at primary grids (tcell)
-!@var t_ucell t at secondary grids (ucell)
+      subroutine ave_to_ucell1(s,s_ucell,im,jm,lm)
+!@sum Computes s_ucell from s
+!@sum s_ucell is the average of 4 nearest s
+!@var s scalar at primary grids (tcell)
+!@var s_ucell s at secondary grids (ucell)
 !@aut  Ye Cheng/G. Hartke
 !@ver  1.0
       implicit none
 
       integer, intent(in) :: im,jm,lm
-      real*8, dimension(im,jm,lm), intent(in) :: t
-      real*8, dimension(im,jm,lm), intent(out) :: t_ucell
+      real*8, dimension(lm,im,jm), intent(in) :: s
+      real*8, dimension(lm,im,jm), intent(out) :: s_ucell
 
       integer :: ip1
       integer :: i,j,l
@@ -995,8 +1166,8 @@ c     at edge: e,lscale,km,kh,gm,gh
              ip1=i+1
           endif
           do l=1,lm
-            t_ucell(i,j,l)=0.25d0*(t(i,j,l)+t(ip1,j,l)
-     2                         + t(i,j-1,l)+t(ip1,j-1,l))
+            s_ucell(l,i,j)=0.25d0*(s(l,i,j)+s(l,ip1,j)
+     2                         + s(l,i,j-1)+s(l,ip1,j-1))
           end do
         end do
       end do
@@ -1008,12 +1179,12 @@ c     at edge: e,lscale,km,kh,gm,gh
              ip1=i+1
           endif
           do l=1,lm
-            t_ucell(i,2,l)=0.333333333333333d0*(t(1,1,l)
-     2               +t(i,2,l)+t(ip1,2,l))
-            t_ucell(i,jm,l)=0.333333333333333d0*(t(1,jm,l)
-     2               +t(i,jm-1,l)+t(ip1,jm-1,l))
+            s_ucell(l,i,2)=0.333333333333333d0*(s(l,1,1)
+     2               +s(l,i,2)+s(l,ip1,2))
+            s_ucell(l,i,jm)=0.333333333333333d0*(s(l,1,jm)
+     2               +s(l,i,jm-1)+s(l,ip1,jm-1))
           end do
         end do
 
       return
-      end subroutine ave_to_ucell
+      end subroutine ave_to_ucell1
