@@ -176,9 +176,9 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
-for q-flux run, also replace the above namelist by
- &INPUTZ
-   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
- &END
+!for q-flux run, also replace the above namelist by
+! &INPUTZ
+!   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
+!   YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
+!   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
+! &END
