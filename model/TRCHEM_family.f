@@ -190,7 +190,7 @@ C**** Local parameters and variables and arguments:
 !@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
       real*8 aqqz, bqqz, cqqz, cz, dz, sqroot, temp_yHOx,
      *rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot
-      integer L,iH2O2form,iHNO3form,iHONOform
+      integer L
       integer, intent(IN) :: lmax,I,J
 c
 #ifdef Shindell_Strat_chem
