@@ -176,7 +176,7 @@
       use CMP
       use filemanager
 !ccc module to allocate dynamic arrays
-!AOO use statements added for domain_decomp and dynamics to pull in 
+!AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays
       use domain_decomp, only : init_decomp, grid, finish_decomp
       use dynamics, only : init_dynamics
@@ -208,7 +208,7 @@
       use clouds_com, only : ttold,qtold,svlhx,rhsav,cldsav,airx,lmc
       use somtq_com, only : tmom,qmom
       use radncb, only : tchg,rqt,s0,srhr,trhr,fsf,fsrdir,srvissurf, &
-	   srdn,cfrac,rcld,salb
+    srdn,cfrac,rcld,salb,O3_rad_save
       use icedyn_com, only : rsix,rsiy,usi,vsi
 
       use dagcom, only : keynr,tsfrez,tdiurn,oa
@@ -413,6 +413,7 @@
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
+        check("O3_rad_save",O3_rad_save)
         ! icedyn
         check("RSIX",RSIX)
         check("RSIY",RSIY)
