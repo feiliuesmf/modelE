@@ -29,7 +29,7 @@ POUT                                ! for post-processing
 PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.11x
+AIC=DEC1958.rsfB394M12.modelE.12
 OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor
 MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn

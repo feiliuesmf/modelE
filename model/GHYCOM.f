@@ -29,7 +29,7 @@ C containing its contents in a contiguous real*4 block
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
       INTEGER, DIMENSION(2,IM,JM)     :: NSN_IJ
-      INTEGER, DIMENSION(2,IM,JM)     :: ISN_IJ   
+      INTEGER, DIMENSION(2,IM,JM)     :: ISN_IJ
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN_IJ
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: WSN_IJ
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN_IJ
@@ -47,10 +47,10 @@ ccc topmodel input data
       END MODULE GHYCOM
 
       SUBROUTINE io_earth(kunit,iaction,ioerr)
-!@sum  io_earth reads and writes ground data to file 
+!@sum  io_earth reads and writes ground data to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHYCOM
       IMPLICIT NONE
 
@@ -59,7 +59,10 @@ ccc topmodel input data
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "EARTH01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH01"
+
+      MODULE_HEADER(lhead+1:80) =
+     *   'R8 dim(im,jm) : SNOWe,Te,WTRe,ICEe, SNOage(3,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -67,7 +70,7 @@ ccc topmodel input data
      *       ,SNOAGE
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -79,10 +82,10 @@ ccc topmodel input data
       END SUBROUTINE io_earth
 
       SUBROUTINE io_soils(kunit,iaction,ioerr)
-!@sum  io_soils reads and writes soil arrays to file 
+!@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHYCOM
       IMPLICIT NONE
 
@@ -91,7 +94,10 @@ ccc topmodel input data
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "SOILS01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "SOILS01"
+
+      write(MODULE_HEADER(lhead+1:80),'(a6,i1,a13,i1,a)') 'R8 Wb(',
+     *   ngm,',im,jm), dim(',ngm+1,',im,jm):Wv,HTb,HTv, SNWbv(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -99,7 +105,7 @@ ccc topmodel input data
      *       ,snowbv
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -111,10 +117,10 @@ ccc topmodel input data
       END SUBROUTINE io_soils
 
       SUBROUTINE io_snow(kunit,iaction,ioerr)
-!@sum  io_snow reads and writes snow model arrays to file 
+!@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHYCOM
       IMPLICIT NONE
 
@@ -123,16 +129,19 @@ ccc topmodel input data
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "SNOW01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "SNOW01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a31,I1,a)') 'I dim(2,im,jm):'//
+     *  'Nsn,Isn, R8 dim(',NLSN,',2,im,jm):dz,w,ht, Fsn(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ 
+     *       ,HSN_IJ,FR_SNOW_IJ
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ 
-        IF (HEADER.NE.MODULE_HEADER) THEN
+     *       ,HSN_IJ,FR_SNOW_IJ
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

@@ -31,7 +31,7 @@ POUT                                ! for post-processing
 PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.11x
+AIC=DEC1958.rsfB394M12.modelE.12
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=AVR4X5LD.Z12                ! ocean filter

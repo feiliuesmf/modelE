@@ -42,7 +42,7 @@
         ELSE
           ITYPE=ITLKICE
           QFIXR=.FALSE.
-          TFO = 0. 
+          TFO = 0.
         END IF
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
@@ -72,7 +72,7 @@ C**** ACCUMULATE DIAGNOSTICS
           AJ(J,J_ERUN2,ITYPE)=AJ(J,J_ERUN2,ITYPE)+FHOC*POICE
 c         AJ(J,J_SRUN2,ITYPE)=AJ(J,J_SRUN2,ITYPE)+FSOC*POICE
           AREG(JR,J_DIFS)    =AREG(JR,J_DIFS)    +FMOC*POICE*DXYPJ
-c         AREG(JR,J_ERUN2)=AREG(JR,J_ERUN2)+FHOC*POICE*DXYPJ   ! why not?
+c         AREG(JR,J_ERUN2)=AREG(JR,J_ERUN2)+FHOC*POICE*DXYPJ  ! why not?
 c         AREG(JR,J_SRUN2)=AREG(JR,J_SRUN2)+FSOC*POICE*DXYPJ
         END IF
         AJ(J,J_RUN1,ITYPE)=AJ(J,J_RUN1,ITYPE)+RUN0*POICE
@@ -124,7 +124,7 @@ C****
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layer (J/m^2)
         EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
-        SROX(1)=SOLAR(2,I,J) ! solar radiation absorbed by sea ice (J/m^2)
+        SROX(1)=SOLAR(2,I,J) ! solar radiation absrbd by sea ice (J/m^2)
         SNOW= SNOWI(I,J)  ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
@@ -153,7 +153,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 20cm)
 
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
      *       ,TFO,RUN0,SALT,FMOC,FHOC,FSOC,F2DT,QFIXR,QFLUXLIM,FLUXLIM)
-        
+
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) =SNOW
         HSI(:,I,J) =HSIL(:)
@@ -170,10 +170,10 @@ C**** ACCUMULATE DIAGNOSTICS
           IF (SNOWI(I,J).GT.0) SCOVI=POICE
           AJ(J,J_RSNOW,ITYPE)=AJ(J,J_RSNOW,ITYPE)+SCOVI
           AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+SCOVI*DXYPJ
-          AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI      
+          AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
           AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
-          
+
           AJ(J,J_DIFS ,ITYPE)=AJ(J,J_DIFS ,ITYPE)+FMOC*POICE
           AJ(J,J_EDIFS,ITYPE)=AJ(J,J_EDIFS,ITYPE)+FHOC*POICE
           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+FMOC*POICE
@@ -460,7 +460,7 @@ C****
       IMPLICIT NONE
 !@var SALT total salt in ocean ice (kg/m^2)
       REAL*8, DIMENSION(JM) :: SALT
-      INTEGER I,J,L 
+      INTEGER I,J,L
 
       DO J=1,JM
         SALT(J)=0

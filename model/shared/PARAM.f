@@ -5,14 +5,14 @@
 !@use Module param has the following public subroutines:
 !@use set_rparam( name, value ) - add parameter <name> to the database
 !@use                             and set it to <value>
-!@use get_rparam( name, value ) - extract value of <name> from the database
+!@use get_rparam( name, value ) - get value of <name> from the database
 !@use read_param( kunit ) - read parameters from <kunit> unit
 !@use write_param( kunit ) - write paramerers to <kunit> unit
-!@use 
+!@use
 !@use Here <name> is a character string with length up to 32
 !@use      <value> is real*8 or integer variable (recognized implicitly)
 !@use Each parameter can be set only once. If an attempt is made to set
-!@use a parameter which is already in the database, an error will be 
+!@use a parameter which is already in the database, an error will be
 !@use generated.
 
       implicit none
@@ -30,7 +30,7 @@
       integer, parameter :: MAX_NAME_LEN = 32
       integer, parameter :: MAX_CHAR_LEN = 16
 
-      integer, parameter :: MAGIC = 287649201
+      character*80 :: MODULE_HEADER='PARAM01 '
 
       type ParamStr
         character(MAX_NAME_LEN) name  ! parameter name
@@ -176,7 +176,7 @@
       character*(*), intent(in) :: name_in
       integer, intent(in) :: dim
       character*1, intent(in) ::  attrib
-      type (ParamStr), pointer :: PStr     
+      type (ParamStr), pointer :: PStr
       integer n
       character*(MAX_NAME_LEN) name
 
@@ -197,7 +197,7 @@
         print *, 'DIM: set: ', Params(n)%dim, ' called: ', dim
         stop 'PARAM: wrong type or dim of parameter'
       endif
-    
+
       PStr => Params(n)
       return
       end subroutine get_pstr
@@ -206,7 +206,7 @@
 
       !***** integers ******!
 
-      
+
       subroutine set_iparam( name, value, opt )
       implicit none
       character*(*), intent(in) :: name
@@ -217,7 +217,7 @@
       call set_aiparam( name, v, 1, opt )
       return
       end subroutine set_iparam
- 
+
 
       subroutine set_aiparam( name, value, np, opt )
       implicit none
@@ -311,7 +311,7 @@
       call set_arparam( name, v, 1, opt )
       return
       end subroutine set_rparam
- 
+
 
       subroutine set_arparam( name, value, np, opt )
       implicit none
@@ -408,7 +408,7 @@
       call set_acparam( name, v, 1, opt )
       return
       end subroutine set_cparam
-    
+
 
       subroutine set_acparam( name, value, np, opt )
       implicit none
@@ -560,14 +560,14 @@
       call get_pparam( name, pvalue, dim )
       end subroutine alloc_acparam
 
-      
+
       !***** sync functions ******!
 
       subroutine sync_iparam( name, value )
       implicit none
       character*(*), intent(in) :: name
       integer, intent(inout) :: value
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value )
       else
@@ -581,7 +581,7 @@
       character*(*), intent(in) :: name
       integer, intent(inout) :: value(np)
       integer, intent(in) :: np
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )
       else
@@ -594,7 +594,7 @@
       implicit none
       character*(*), intent(in) :: name
       real*8, intent(inout) :: value
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value )
       else
@@ -608,7 +608,7 @@
       character*(*), intent(in) :: name
       real*8, intent(inout) :: value(np)
       integer, intent(in) :: np
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )
       else
@@ -621,7 +621,7 @@
       implicit none
       character*(*), intent(in) :: name
       character*(*), intent(inout) :: value
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value )
       else
@@ -635,7 +635,7 @@
       character*(*), intent(in) :: name
       character*(*), intent(inout) :: value(np)
       integer, intent(in) :: np
-      
+
       if ( is_set_param( name ) ) then
         call get_param( name, value, np )
       else
@@ -657,30 +657,30 @@
       integer, save :: LIdata(MAX_IPARAMS)
       character*(MAX_CHAR_LEN), save :: LCdata(MAX_CPARAMS)
       integer lnum_param, lnum_rparam, lnum_iparam, lnum_cparam
-      integer lmagic
+      character*80 HEADER
 
-      read( kunit, err=10 ) lmagic
+      read( kunit, err=10 ) HEADER
       backspace kunit
 
-      if ( lmagic /= MAGIC ) then
+      if (HEADER(1:8).ne.MODULE_HEADER(1:8)) then
         print *, 'WARNING: No parameter data'
         return
       endif
 
 c printout is sometimes inappropriate (i.e. for qc)
 c      print *, 'READING PARAMETERS from rsf'
- 
-      read( kunit, err=10 ) lmagic,
+
+      read( kunit, err=10 ) HEADER,
      *     lnum_param, lnum_rparam, lnum_iparam, lnum_cparam,
      *     ( LParams(n), n=1,min(lnum_param,MAX_PARAMS) ),
      *     ( LRdata(n), n=1,min(lnum_rparam,MAX_RPARAMS) ),
      *     ( LIdata(n), n=1,min(lnum_iparam,MAX_IPARAMS) ),
      *     ( LCdata(n), n=1,min(lnum_cparam,MAX_CPARAMS) )
 
-      if (     lnum_param  > MAX_PARAMS 
-     *     .or. lnum_rparam > MAX_RPARAMS 
-     *     .or. lnum_iparam > MAX_IPARAMS 
-     *     .or. lnum_cparam > MAX_CPARAMS 
+      if (     lnum_param  > MAX_PARAMS
+     *     .or. lnum_rparam > MAX_RPARAMS
+     *     .or. lnum_iparam > MAX_IPARAMS
+     *     .or. lnum_cparam > MAX_CPARAMS
      *     ) then
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
@@ -709,14 +709,17 @@ c      print *, 'READING PARAMETERS from rsf'
  10   print *, 'PARAM: Error reading, unit = ', kunit
       stop 'PARAM: Error reading'
       end subroutine read_param
-  
+
 
       subroutine write_param( kunit )
       implicit none
       integer, intent(in) :: kunit
       integer n
-      
-      write( kunit, err=10 ) MAGIC,
+
+      write (MODULE_HEADER(9:80),'(i10,a)')
+     *  num_param,' is the current number of parameters in database DB'
+
+      write( kunit, err=10 ) MODULE_HEADER,
      *     num_param, num_rparam, num_iparam, num_cparam,
      *     ( Params(n), n=1,min(num_param,MAX_PARAMS) ),
      *     ( Rdata(n), n=1,min(num_rparam,MAX_RPARAMS) ),
@@ -816,7 +819,7 @@ c      print *, 'READING PARAMETERS from rsf'
       character*(*) str
       integer n, i
       integer A, Z, shift, c
- 
+
       A = iachar( 'A' )
       Z = iachar( 'Z' )
       shift = iachar( 'a' ) - iachar( 'A' )
@@ -834,7 +837,7 @@ c      print *, 'READING PARAMETERS from rsf'
 #ifdef TEST_MODULE_PARAM
 ccc this part is for testing - will be removed soon
 
-  ! trying to add some code 
+  ! trying to add some code
 
       program foo
       use param
@@ -847,7 +850,7 @@ ccc this part is for testing - will be removed soon
       integer, pointer :: ppi(:), ppi1
       real*8, pointer :: ppr(:), ppr1
       character*4, pointer :: ppc(:), ppc1
-      integer :: d6(2,4) 
+      integer :: d6(2,4)
       data d6 /63,17, 17,34, 37,27, 13,23/
       integer dd(8)
 
@@ -861,11 +864,11 @@ ccc this part is for testing - will be removed soon
       ai(1) = 11
       ai(2) = 12
       ai(3) = 13+100
-      
+
       cc(1) = 'fd'
       cc(2) = '12'
       cc(3) = 'a'
-      
+
       !call read_param( 99 )
 
       dd(1:8) =  d6(1:8,1)
@@ -887,7 +890,7 @@ ccc this part is for testing - will be removed soon
       print *, 'ppi = ', (ppi(i), i=1,3), ' :: ',ppi1
 
       call get_param( 'ppi', ai, 3 )
-      
+
       print *, 'ppi = ', ai
 
 
@@ -902,7 +905,7 @@ ccc this part is for testing - will be removed soon
       print *, 'ppr = ', (ppr(i), i=1,3), ' :: ',ppr1
 
       call get_param( 'ppr', w , 3 )
-      
+
       print *, 'ppr = ', w
 
 
@@ -915,7 +918,7 @@ ccc this part is for testing - will be removed soon
       print *, 'ppc = ', (ppc(i), i=1,4), ' :: ',ppc1
 
       call get_param( 'ppc', cc, 4 )
-      
+
       print *, 'ppc = ', cc
 
 
@@ -945,7 +948,7 @@ ccc this part is for testing - will be removed soon
 
       call get_param( 'par_cc', cc, 3 )
       print *, 'cc = ', cc
-      
+
 
       !call get_pparam( 'par_i', pi, 3 )
 
@@ -953,7 +956,7 @@ ccc this part is for testing - will be removed soon
       print *, 'b = ', a
 
       call set_param( 'par_d', 12301, 'o' )
-     
+
 
       call get_param( 'par_c', c )
       print *, 'c = ', c

@@ -307,8 +307,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
 
 C**** sync radiation parameters from input
-      call sync_param( "S0X", S0X ) 
-      call sync_param( "CO2", CO2 ) 
+      call sync_param( "S0X", S0X )
+      call sync_param( "CO2", CO2 )
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -354,7 +354,7 @@ C****
 C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
 C****     For control runs e.g. with Jul 1,1951 atmosphere use
       JYFIX=1951
-      JDFIX=182                 !  Julian day (if JDFIX=0, annual cycle is used)
+      JDFIX=182       !  Julian day (if JDFIX=0, annual cycle is used)
       CALL SETNEW(11,JYFIX,JDFIX, 1,0,0.D0) ! fix sol.const. - KSOLAR
       CALL SETNEW( 2,JYFIX,JDFIX, 0,0,0.D0) ! fix GHG (trend KTREND)
       CALL SETNEW(13,0    ,0    , 0,0,0.D0) ! no GHG-resets - MADGAS
@@ -396,7 +396,7 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
       WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
  47   FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN',
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
-C**** 
+C****
       END SUBROUTINE init_RAD
 
       SUBROUTINE RADIA
@@ -456,7 +456,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,IHOUR,IMAX,IM1,JR,IH,INCH,JK,IT
       REAL*8 ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS,CMC,DEPTH,QSS,TAUSSL
-     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X 
+     *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X
       REAL*8 QSAT
 C****
 C**** FLAND     LAND COVERAGE (1)

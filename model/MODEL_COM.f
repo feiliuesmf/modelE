@@ -7,70 +7,123 @@
       IMPLICIT NONE
       SAVE
 
-      CHARACTER*132 XLABEL !@var runID+brief description of run
-
-      INTEGER :: LRUNID !@var Run name stored in XLABEL(1:LRUNID)
-
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
 !@var FIM,BYIM real parameter values for the number of long. grid boxes
       REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
-!@var JEQ grid box immediately north of the equator
+!@var JEQ grid box zone around or immediately north of the equator
       INTEGER, PARAMETER :: JEQ=1+JM/2
 
-!@var Itime current time in int. time units (+1 every physics time step)
-!@var ItimeI,ItimeE   time at start,end of run
-!@var Itime0          time at start of current accumulation period
-      INTEGER :: Itime,ItimeI,ItimeE,Itime0,
+      CHARACTER*132 XLABEL !@var XLABEL=runID+brief description of run
+      INTEGER :: LRUNID    !@var Run name stored in XLABEL(1:LRUNID)
+      INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers
 
-     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Kvflxo,Nslp,NIdyn,
-     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
-     *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
-     *  IYEAR1,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
-     *  NSSW,NSTEP,MRCH,NIPRNT,NMONAV
-      INTEGER, DIMENSION(12) :: IDACC
+!**** Model control parameters:
+!@var KOCEAN: if 0 => specified, if 1 => predicted ocean        DB-param
+!@var MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered DB-param
+      integer :: KOCEAN = 1, MFILTR = 1
+!@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude           DB-param
+      double precision, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
+!@var ATURB_ON switches diffus on/off, drycnv off/on
+      logical :: ATURB_ON = .TRUE.
+!@var VT_ON switches on/off surface and turbulence temperature virtual.
+c**** not working yet for EARTH
+      logical :: VT_ON = .TRUE.
 
-      DOUBLE PRECISION :: DTsrc = 3600., DT = 450.
-
-      INTEGER, DIMENSION(2,4) :: IJD6
-      CHARACTER*4 :: NAMD6(4)
-
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: FLAND,FOCEAN,FLICE,FLAKE0
-     *     ,FEARTH,ZATMO,HLAKE
-
-      DOUBLE PRECISION, DIMENSION(IM,JM,11) :: VDATA
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: WFCS
-
-!@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
-      DOUBLE PRECISION, DIMENSION(2) :: XCDLM = (/5.D-4,5.D-5/)
+!**** Diagnostic control parameters
+!@var IJD6,NAMD6 coord,names of 4 pts for diurnal cycle diag    DB-param
+      INTEGER, DIMENSION(2,4)  :: IJD6
+      DATA                        IJD6    /63,17, 17,34, 37,27, 13,23/
+      CHARACTER*4,DIMENSION(4) :: NAMD6=(/'AUSD','MWST','SAHL','EPAC'/)
+!@var KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved   DB-param
+!@var NMONAV number of months in a diagnostic accuml. period    DB-param
+!@var Kvflxo if 1 => vert.fluxes into ocean are saved daily     DB-param
+!@var NIPRNT number of instantaneous initial printouts          DB-param
+      integer :: KCOPY=2, NMONAV=1, Kvflxo=0, NIPRNT=1
 
 C**** (Simplified) Calendar Related Terms
-!@VAR JDperY,JMperY    number of days,months per year
-!@VAR JDendOfM(0:12)   last Julian day in month
-!@VAR JDmidOfM(0:13)   middle Julian day in month
-      INTEGER, PARAMETER :: JDPERY = 365, JMPERY = 12
-      INTEGER :: JDendOfM(0:JMPERY) = (
+!@var JDperY,JMperY    number of days,months per year
+!@var JDendOfM(0:12)   last Julian day in month
+!@var JDmidOfM(0:13)   middle Julian day in month
+      integer, PARAMETER :: JDPERY = 365, JMPERY = 12
+      integer :: JDendOfM(0:JMPERY) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      INTEGER :: JDmidOfM(0:JMPERY+1) = (
+      integer :: JDmidOfM(0:JMPERY+1) = (
      *     /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/)
-!@VAR AMON,AMONTH(0:12)  (3-4 letter) names for current,all months
-!@VAR AMON0  (3-4 letter) name of first month of the current acc-period
+
+!@var AMON,AMONTH(0:12)  (3-4 letter) names for current,all months
+!@var AMON0  (3-4 letter) name of first month of the current acc-period
       CHARACTER*4 :: AMON='none',AMON0='none', AMONTH(0:12) = (/'IC  ',
      *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
 
-!@var Q_GISS,Q_HDF,Q_PRT,Q_NETCDF are switches for post-processing
-      LOGICAL :: Q_GISS=.FALSE.,Q_HDF=.FALSE.,
-     *           Q_PRT =.FALSE.,Q_NETCDF=.FALSE.
+!@var NDAY and IYEAR1 relate CALENDAR TIME and INTERNAL TIME Itime :
+!@var NDAY number of Internal Time Units per day (1 ITU = DTsrc sec)
+!@var IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)    NL-param
+      INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
-!@var aturb_on switches diffus on/off, drycnv off/on
-      LOGICAL :: aturb_on=.true.
+!@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
+!@var JDAY,JMON,JDATE,JYEAR,JHOUR current Julian day,month,day,year,hour
+      INTEGER :: Itime,JDAY,JMON,JDATE,JYEAR,JHOUR
+!@var ItimeI,ItimeE   time at start,end of run
+!@var Itime0          time at start of current accumulation period
+!@var JMON0,JDATE0,JYEAR0,JHOUR0 date-info about Itime0 (beg.of acc.per)
+      INTEGER :: ItimeI,ItimeE,   Itime0,JMON0,JDATE0,JYEAR0,JHOUR0
 
-!@var vt_on switches on/off surface and turbulence temperature virtual.
-c**** not working yet for EARTH
-      LOGICAL :: vt_on=.true.
+!@var DTSRC source time step (s)   = 1 ITU                      DB-param
+      DOUBLE PRECISION :: DTsrc = 3600.
+!@var DT (atmospheric) dynamics time step (s)                   DB-param
+      DOUBLE PRECISION :: DT    =  450.         ! DT = DTdyn_atm
 
-C**** IO read/write flags used by the io_xyz routines
+C**** Time step related multipliers:  N... NI...
+C**** general rule:   DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
+C**** except that the time steps related to NDAa, NDA5k, NDAsf are
+C**** slightly larger, to sample all points within the cycle
+
+!@var NIdyn:  DT atm_dyn  =  DTsrc/NIdyn     (NIdyn=DTsrc/DT)
+!@var NIsurf: DT_Surface  =  DTsrc/NIsurf                       DB-param
+!@var NRad:   DT_Rad      =  NRad*DTsrc                         DB-param
+!@var NFILTR: DT_filter   =  NFILTR*DTsrc                       DB-param
+      INTEGER :: NIdyn, NIsurf = 2, NRad = 5 , NFILTR = 2
+
+!@var Ndisk:  DT_saversf  =  Ndisk *DTsrc fort.1/fort.2 saves   DB-param
+!@var Nssw:   DT_checkSsw =  Nssw  *DTsrc                       DB-param
+!@var Nslp:   DT_save_SLP =  Nslp  *DTsrc                       DB-param
+      INTEGER :: NDisk = 24, Nssw = 1 , Nslp = 0
+
+!@var NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)             DB-param
+!@var NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE  DB-param
+!@var NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn DB-param
+!@var NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src DB-param
+!@var NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history       DB-param
+      INTEGER :: NDAa=7, NDA5d=7, NDA5k=7, NDA5s=7, NDASf=1, NDA4=24
+
+!**** Accounting variables
+!@var IRAND last seed used by rand.number generator             DB-param
+!@var KDISK next rsf (fort.)1 or 2 to be written to
+!@var KEYCT next index in key-nr-array to be used
+!@var NSTEP number of dynamics steps since start of run
+!@var MRCH  flags position in dynamics cycle (>0 fw, <0 bw step)
+      INTEGER :: IRAND=123456789, KDISK=1, KEYCT=1, NSTEP,MRCH
+!@var MODRD,MODD5K,MODD5S MODxxx=0 indicates: xxx_time_step arrived
+      INTEGER :: MODRD, MODD5K, MODD5S
+!@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
+      INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
+!@var NSAMPL, IDACC(NSAMPL) counters for diagn. accumulations
+      INTEGER, PARAMETER :: NSAMPL = 12
+      INTEGER, DIMENSION(NSAMPL) :: IDACC
+
+!**** Boundary condition arrays:
+!@var ZATMO,HLAKE Topography arrays: elevation (m), lake depth (m) ???
+      DOUBLE PRECISION, DIMENSION(IM,JM) :: ZATMO,HLAKE,
+!@var Fxx fraction of gridbox of type xx (land,ocean,...)
+     *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
+!@var VDATA(:,:,k)  fraction of gridbox of veg.type k=1-11
+      DOUBLE PRECISION, DIMENSION(IM,JM,11) :: VDATA
+!@var WFCS water field capacity of first ground layer (kg/m2)  ???
+      DOUBLE PRECISION, DIMENSION(IM,JM) :: WFCS
+
+!**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
 !@param IOWRITE_SINGLE Flag used for saving diags in single precision
 !@param IOWRITE_MON Flag used for saving restart part only (no diags)
@@ -78,9 +131,9 @@ C**** IO read/write flags used by the io_xyz routines
 !@param IRSFIC Flag used for reading in restart part to start NEW run
 !@param IRERUN Flag used for reading in restart part to extend OLD run
       INTEGER, PARAMETER :: ioread=1,ioread_single=2,irerun=3,irsfic=4
-     *    ,iowrite=-1,iowrite_single=-2,iowrite_mon=-3
+     *                 ,iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
-C**** Main model prognostic variables
+!**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
@@ -100,28 +153,8 @@ C**** Define surface types (mostly used for weighting diagnostics)
 
 !@var AIRX, AIRMX*DXYP(J) Used in stratosphere model. (kg?)
       REAL*8 AIRX(IM,JM)
-!@var LMC max layer of mc convective mass flux. (Strat model)
+!@var LMC max layer of mc convective mass flux. (Strat model)   DB-param
       INTEGER, DIMENSION(2,IM,JM) :: LMC
-
-      DATA
-     *  KOCEAN,KDISK,KEYCT,KCOPY,     IRAND,MFILTR,Ndisk,Kvflxo,Nslp/
-     *       1,    1,    1,    2, 123456789,     1,   24,   0,   0/,
-     *  Nrad, Nfiltr, NIsurf, Nssw, NIPRNT, NMONAV,         IYEAR1/
-     *     5,      2,      2,    1,      1,      1,             -1/,
-     *  NDAa,   NDA5d, NDA5k, NDA5s, NDA4, NDAsf/
-     *     7,       7,     7,     7,   24,     1/,
-     *  MODRD,MODD5K,MODD5S/
-     *      0,     0,     0/
-C****
-C**** Note:           DT = DTdyn and NIdyn = DTsrc/DTdyn (set in INPUT)
-C**** In general      DTxxx = Nxxx*DTsrc  and  DTxxx = DTsrc/NIxxx
-C**** except that the time steps related to NDAa, NDA5k, NDAsf are
-C****          slightly larger,     NDAa:   NDAa*DTsrc + 2*DT(dyn),
-C****                              NDA5k:  NDA5k*DTsrc + 2*DT(dyn),
-C****                              NDAsf:  NDAsf*DTsrc + DTsrc/NIsurf,
-C****          to sample all points within the cycle
-      DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
-     *  IJD6/63,17, 17,34, 37,27, 13,23/
 
       END MODULE MODEL_COM
 
@@ -231,16 +264,15 @@ C****
       CHARACTER*12 TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal time in acc periods to be combined
       INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
-      INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01
+      INTEGER it1,it0,idac1(12),nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
 
 C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
-C****  size of common block arrays (and/or should we be explicit?)
-C****  timing info as named array?
+                                 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to end-of-month restart file
         WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,
      *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
-C**** need a doc line: basic model parameters
+C**** doc line: basic model parameters
         write(label2(14:80),'(4i4,a)') im,jm,lm,ls1,' PLbot(lm+1) (R*4)'
         WRITE (kunit,err=10) LABEL2,SNGL(PTOP+PSFMPT*SIGE)
 C**** write parameters database here
@@ -248,8 +280,12 @@ C**** write parameters database here
       CASE (IOREAD:)          ! label always from input file
         READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
      *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
-C**** skip doc-record
-        READ (kunit,err=10)
+C**** use doc-record to check the basic model parameters
+       READ (kunit,err=10) LABEL2
+        READ (label2,'(13x,4i4)',err=10) im0,jm0,lm0,ls10
+        if (im.ne.im0.or.jm.ne.jm0.or.lm.ne.lm0.or.ls10.ne.ls1) then
+          ioerr = 0   ! warning
+        end if
         SELECT CASE (IACTION)   ! set model common according to iaction
         CASE (ioread)           ! parameters from rundeck & restart file
           call read_param(kunit,.false.)
@@ -275,8 +311,8 @@ C**** skip doc-record
           TIMING(1:NTIM1)=TIMING(1:NTIM1)+TIM1(1:NTIM1)
 
 C**** keep track of min/max time over the combined diagnostic period
-          if (it.gt.ITmax)                   ITmax=it
-          if (ITmin.lt.0 .or. it01.lt.ITmin) ITmin=it01
+          if (it.gt.ITmax)                   ITmax = it
+          if (ITmin.lt.0 .or. it01.lt.ITmin) ITmin = it01
           it = ITmax
           itime0 = ITmin
 
@@ -287,7 +323,7 @@ C**** keep track of min/max time over the combined diagnostic period
       RETURN
       END SUBROUTINE io_label
 
-       SUBROUTINE io_model(kunit,iaction,ioerr)
+      SUBROUTINE io_model(kunit,iaction,ioerr)
 !@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -299,14 +335,17 @@ C**** keep track of min/max time over the combined diagnostic period
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "MODEL01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "MODEL01"
+
+      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
+     *  ' dim(im,jm,lm):q,MliqW'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
-        IF (HEADER.ne.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

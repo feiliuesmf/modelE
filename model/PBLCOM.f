@@ -48,7 +48,7 @@
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE PBLCOM
       IMPLICIT NONE
 
@@ -57,7 +57,10 @@
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "PBL01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "PBL01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',n,
+     *  ',ijm,4):Ut,Vt,Tt,Qt,Et dim(ijm,4,3):Cmhq, I:Ipb(ijm,4)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -66,7 +69,7 @@
       CASE (IOREAD:)            ! input from restart file
         READ (KUNIT,ERR=10) HEADER,UABL,VABL,TABL,QABL,EABL,CMGS,CHGS,
      *     CQGS,IPBL
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -80,7 +83,7 @@
 !@sum  io_bldat reads and writes boundary layer data to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE PBLCOM
       IMPLICIT NONE
 
@@ -89,7 +92,10 @@
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "BLD01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "BLD01"
+
+      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):ws,ts,qs,'//
+     *  'LvlDC,us,vs,tau, u*(im,jm,4),ke(LM,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -98,7 +104,7 @@
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
      *       ,vsavg,tauavg,ustar,egcm
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

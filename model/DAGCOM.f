@@ -203,7 +203,9 @@ C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****
-      REAL*8, DIMENSION(IM,JM,12) :: OA
+!@param KOA number of diagnostics needed for ocean heat transp. calcs
+      INTEGER, PARAMETER :: KOA = 12
+      REAL*8, DIMENSION(IM,JM,KOA) :: OA
 
 C****
 C**** Information about acc-arrays:
@@ -323,11 +325,12 @@ c idacc-indices of various processes
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun,irsfic,
-     *     iowrite,iowrite_mon,iowrite_single , idacc
+     *     iowrite,iowrite_mon,iowrite_single,lhead, keyct,idacc,nsampl
       USE DAGCOM
       IMPLICIT NONE
       REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
-      integer monac1(12)
+c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
+      integer monac1(12),i_ida,i_xtra,l_xtra
 !@var Kcomb counts acc-files as they are added up
       INTEGER, SAVE :: Kcomb=0
 
@@ -337,51 +340,72 @@ c idacc-indices of various processes
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "DIAG01"
-      CHARACTER*72 :: hd2 = '  '
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "DIAG01"
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
-      write(hd2(4:17),'(a6,i3,a1,i3,a1)') 'keynr(',NKEYNR,',',NKEYMO,')'
-      write(hd2(18:33),'(a14,i1,a1)') ',TSFREZ(IM,JM,',KTSF,')'
-      write(hd2(34:43),'(a7,i2,a1)') ',idacc(',12,')'
-      write(hd2(44:58),'(a5,i9,a1)') ',acc(',kacc,')'
+      write (MODULE_HEADER(LHEAD+1:LHEAD+14),'(a9,i4,a1)')
+     *   'R8: keys(',1+NKEYNR*NKEYMO,')'              ! keyct,keynr(:,:)
+      i_ida = Lhead+14+13+1
+      write (MODULE_HEADER(LHEAD+15:i_ida-1),'(a10,i2,a1)')
+     *   ',TSFR(IJM,',KTSF,')'
+      write (MODULE_HEADER(i_ida:i_ida+9),'(a7,i2,a1)')
+     *   ',idacc(',nsampl,')'
+      write (MODULE_HEADER(i_ida+10:i_ida+9+15),'(a5,i9,a1)')
+     *   ',acc(',kacc,')'
+      i_xtra = i_ida+9+15+1
+
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,   ! idacc,
-     *     AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
-     *     ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it    ,idacc !!????
+        write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
+     *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
+        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
+     *     idacc,ACC,
+c??? *     idacc,AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
+c??? *     ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
+     *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
-        WRITE (kunit,err=10) MODULE_HEADER,hd2,KEYNR,SNGL(TSFREZ),idacc,
-     *     SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
-     *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
-     *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
-     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),monacc,
-     *     it
+        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+        MODULE_HEADER(i_xtra:80) = ',monacc(12)'
+        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,SNGL(TSFREZ),
+     *     idacc,SNGL(ACC),
+c??? *     idacc,SNGL(AJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
+c??? *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(ENERGY),
+c??? *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
+c??? *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),
+     *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
-        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
+        MODULE_HEADER(i_ida:80) = ',it '
+        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,KEYNR,TSFREZ,           ! idacc,
-     *      AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
-     *      ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it ,idacc !!????
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
+     *      idacc, ACC,
+c??? *      idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,
+c??? *      CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
+     *      TDIURN,OA,it
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       CASE (IOREAD_SINGLE)      !
-        READ (kunit,err=10)HEADER,hd2,KEYNR,TSFREZS,idac1,ACCS,monac1,it
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZS,
+     *      idac1,ACCS,
+c??? *  add a couple of lines to avoid 'COMMON BLOCK'
+     *      monac1,it
+!**** Here we could check the dimensions written into HEADER  ??????
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
+c??? *  add many lines to avoid 'COMMON BLOCK' - do I really have to ???
         IDACC = IDACC + IDAC1
-!@var idacc(5) is the length of a time series (daily energy history)
-!****   if combining acc-files, rather than concatenating the series,
-!****   we take the mean time series, truncated to the shortest series.
-        Kcomb = Kcomb + 1
+!@var idacc(5) is the length of a time series (daily energy history).
+!****   If combining acc-files, rather than concatenating these series,
+!****   we average their beginnings (up to the length of the shortest)
+        Kcomb = Kcomb + 1          ! go back before the adding, take min
         if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
         monacc = monacc + monac1
       CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
-        READ (kunit,err=10) HEADER,KEYNR,TSFREZ  ! 'it' is not read in
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

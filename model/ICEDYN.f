@@ -37,7 +37,7 @@ C**** ice dynamics input/output/work variables
 !@var USIDT,VSIDT sea ice mass fluxes, saved for advection
       REAL*8, DIMENSION(IM,JM) :: USIDT,VSIDT
 
-!@var PSTAR maximum sea ice pressure 
+!@var PSTAR maximum sea ice pressure
       REAL*8, PARAMETER :: PSTAR=2.75d4
 
       END MODULE ICEDYN
@@ -46,7 +46,7 @@ C**** ice dynamics input/output/work variables
 !@sum  io_icedyn reads and writes dynamic ice arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
       USE ICEDYN
       IMPLICIT NONE
 
@@ -55,7 +55,9 @@ C**** ice dynamics input/output/work variables
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "ICEDYN01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
+
+      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):RSIX,RSIY,USI,VSI'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -65,7 +67,7 @@ C**** ice dynamics input/output/work variables
         CASE (IRSFIC)           ! initial conditions
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,RSIX,RSIY,USI,VSI
-          IF (HEADER.NE.MODULE_HEADER) THEN
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
@@ -97,7 +99,7 @@ C**** Dynamic sea ice should be on the ocean grid
       USE ODIAG, only : oij,ij_usi,ij_vsi,ij_dmui,ij_dmvi,ij_pice
       IMPLICIT NONE
       SAVE
-C**** 
+C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
 C**** working arrays for V-P rheology scheme (on B grid)
       REAL*8, DIMENSION(NX1,NY1,3) :: UICE,VICE
@@ -118,7 +120,7 @@ C**** set up initial parameters
 c****
       dlat=nint(180./(jm-1))*radian
       dlon=nint(360./im)*radian
-c****           
+c****
       do j = 1,ny1
         dyt(j) = dlat*radius
         dyu(j) = dlat*radius
@@ -145,7 +147,7 @@ c****
       end do
 
       do j = 1,ny1
-       phit = (-90.+(j-1)*4.)*radian 
+       phit = (-90.+(j-1)*4.)*radian
        phiu = (-88.+(j-1)*4.)*radian
        cst(j) = cos(phit)
        csu(j) = cos(phiu)
@@ -207,7 +209,7 @@ c set cyclic conditions on eastern and western boundary
         kmu(1,j) = kmu(nx1-1,j)
         kmu(nx1,j) = kmu(2,j)
       enddo
-C**** set up sea ice thickness and velocity mask 
+C**** set up sea ice thickness and velocity mask
       DO J=1,NY1
         DO I=1,NX1
           HEFFM(I,J)=0.
@@ -250,8 +252,8 @@ C**** Replicate polar boxes
       MSI(2:IM,JM)=MSI(1,JM)
       UO(2:IM,JM,1)=UO(1,JM,1)
       VO(1:IM,JM,1)=0.
-      DMUA(2:IM,JM,2) = DMUA(1,JM,2) 
-      DMVA(2:IM,JM,2) = DMVA(1,JM,2) 
+      DMUA(2:IM,JM,2) = DMUA(1,JM,2)
+      DMVA(2:IM,JM,2) = DMVA(1,JM,2)
 
       do j=1,NY1
         do i=2,NX1-1
@@ -265,7 +267,7 @@ c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
       do j=1,jm-1
        UIB(1,j)=0.5*(USI(im,j)+USI(im,j+1))
-       GWATX(1,j)=0.5*(UO(im,j,1)+UO(im,j+1,1)) 
+       GWATX(1,j)=0.5*(UO(im,j,1)+UO(im,j+1,1))
       do i=2,im
        UIB(i,j)=0.5*(USI(i-1,j)+USI(i-1,j+1))
        GWATX(i,j)=0.5*(UO(i-1,j,1)+UO(i-1,j+1,1))
@@ -280,8 +282,8 @@ C**** This should be more generally from ocean grid to ice grid
        VIB(i,j)=0.5*(VSI(i-1,j)+VSI(i,j))
        GWATX(i,j)=0.5*(VO(i-1,j,1)+VO(i,j,1))
       enddo
-      enddo 
-c**** set north pole 
+      enddo
+c**** set north pole
       do i=1,im
        UIB(i,jm)=USI(1,jm)
        GWATX(i,jm)=UO(1,jm,1)
@@ -299,11 +301,11 @@ c**** set north pole
        GWATX(nx1,J)=GWATX(2,J)
       ENDDO
 
-C**** DMUA is defined over the whole box (not just over ptype) 
-C**** Convert to stress over ice fraction only,  and convert to ocean area
+C**** DMUA is defined over the whole box (not just over ptype)
+C**** Convert to stress over ice fraction only, & convert to ocean area
       DO J=1,JM
         DO I=1,IM
-          IF (RSI(I,J).gt.0) THEN 
+          IF (RSI(I,J).gt.0) THEN
             RAT=RATIC(J)/RSI(I,J)
             DMUA(I,J,2) = DMUA(I,J,2)*RAT
             DMVA(I,J,2) = DMVA(I,J,2)*RAT
@@ -321,7 +323,7 @@ c**** interpolate air stress from A grid in atmos, to B grid in ocean
           GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)+dmua(im1,j+1,2)
      #         +dmua(i,j+1,2))/dts
           GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)+dmva(im1,j+1,2)
-     #         +dmva(i,j+1,2))/dts 
+     #         +dmva(i,j+1,2))/dts
           im1=i
         enddo
       enddo
@@ -424,7 +426,7 @@ C**** Calculate stress on ice velocity grid
         if (J.gt.NY1/2) hemi=1.
         DO I=1,NX1
           DMU(i,j)=doin*dwatn(i,j)*(COSWAT*(UICE(i,j,1)-GWATX(i,j))-
-     *         HEMI*SINWAT*(VICE(i,j,1)-GWATY(i,j))) 
+     *         HEMI*SINWAT*(VICE(i,j,1)-GWATY(i,j)))
           DMV(i,j)=doin*dwatn(i,j)*(HEMI*SINWAT*(UICE(i,j,1)-GWATX(i,j))
      *         +COSWAT*(VICE(i,j,1)-GWATY(i,j)))
         END DO
@@ -469,14 +471,14 @@ C**** set north pole in C grid
       USINP=USINP/IM
       DMUINP=DMUINP/IM
       USI(1:im,jm)=USINP
-      DMUI(1:im,jm)=DMUINP   
+      DMUI(1:im,jm)=DMUINP
       VSI(1:im,jm)=0.
       DMVI(1:im,jm)=0.
 
-C**** calculate mass fluxes for the ice advection 
+C**** calculate mass fluxes for the ice advection
       DO J=1,JM-1
         I=IM
-        DO IP1=1,IM 
+        DO IP1=1,IM
           USIDT(I,J)=0.
           IF (LMU(I,J).gt.0. .and. RSI(I,J)+RSI(IP1,J).gt.1d-4) THEN
             USIDT(I,J)=USI(I,J)*DTS
@@ -500,20 +502,20 @@ C**** calculate mass fluxes for the ice advection
       VSIDT(1:IM,JM)=0.
       USIDT(1:IM,JM)=USI(1,JM)*DTS
 
-C**** 
+C****
       END SUBROUTINE DYNSI
 
 C*************************************************************
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
-C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang  
+C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
 C Latest finite differencing scheme for treatment of NP,
 C 9/9/1996,Jinlun Zhang
 C Alternating direction implicit (ADI) method is used, 10/1998,
 C Jinlun Zhang
-C For details about ADI dynamics model, see Zhang and Rothrock, 
+C For details about ADI dynamics model, see Zhang and Rothrock,
 C "Modeling
-C Arctic Sea ice with an efficient plastic solution", 
+C Arctic Sea ice with an efficient plastic solution",
 C submitted to JGR, 1999
 C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C*************************************************************
@@ -543,7 +545,7 @@ C****
       END DO
 C****
 C**** Set up non linear water drag
-C**** 
+C****
       DO J=1,NY1-1
       DO I=1,NX1-1
         DWATN(I,J)=5.5*SQRT((UICE(I,J,1)-GWATX(I,J))**2
@@ -940,7 +942,7 @@ C NOW THE SECOND HALF
       AA2=ETA(I,J)+ETA(I+1,J)
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
-  
+
       AV(I,J)=(-AA2*DELY2+ETAMEAN*DELYR*(TNG(J-1)-2.0*TNG(J)))*UVM(I,J)
       BV(I,J)=((AA1+AA2)*DELY2+AA5*DELYR+AA6*BYRAD2
      &+AMASS(I,J)/DTS*2.0+DRAGS(I,J))*UVM(I,J)+(1.0-UVM(I,J))
@@ -966,7 +968,7 @@ C NOW THE SECOND HALF
      &     /CSU(J))/CSU(J)
 
       IF(J.EQ.NYPOLE) THEN
-      AA9=( (ETA(I,J+1)+ETA(I+1,J+1))*DELY2*UICEC(I,J+1) 
+      AA9=( (ETA(I,J+1)+ETA(I+1,J+1))*DELY2*UICEC(I,J+1)
      &     +ETAMEAN*DELYR*(TNG(J+1)-2.0*TNG(J))*UICEC(I,J+1) )*UVM(I,J)
      &*FLOAT(NPOL-0)
       ELSE
@@ -1630,8 +1632,8 @@ C****
       REAL*8, INTENT(OUT), DIMENSION(NF,NX1,NY1) :: FIELDI
       INTEGER I,J
 
-C**** currently no need for interpolation, 
-C**** just scaling due to area differences for fluxes 
+C**** currently no need for interpolation,
+C**** just scaling due to area differences for fluxes
 C**** and shift one box in longitude
       IF (QCONSERV) THEN
         DO J=1,NY1
@@ -1647,7 +1649,7 @@ C**** and shift one box in longitude
         END DO
       END IF
       FIELDI(:,1,J)=FIELDI(:,NX1-1,J)
-      FIELDI(:,NX1,J)=FIELDI(:,2,J)  
+      FIELDI(:,NX1,J)=FIELDI(:,2,J)
 C****
       RETURN
       END SUBROUTINE AT2IT
@@ -1671,8 +1673,8 @@ C****
       REAL*8, INTENT(IN), DIMENSION(NF,NX1,NY1) :: FIELDI
       INTEGER I,J
 
-C**** currently no need for interpolation, 
-C**** just scaling due to area differences for fluxes 
+C**** currently no need for interpolation,
+C**** just scaling due to area differences for fluxes
 C**** and shift one box in longitude
       IF (QCONSERV) THEN
         DO J=1,JMA
@@ -1689,7 +1691,7 @@ C**** and shift one box in longitude
       END IF
       DO I=2,IMA
         FIELDA(:,I,  1)=FIELDA(:,1,JMA)
-        FIELDA(:,I,JMA)=FIELDI(:,1,  1)  
+        FIELDA(:,I,JMA)=FIELDI(:,1,  1)
       END DO
 C****
       RETURN

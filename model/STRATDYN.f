@@ -2,8 +2,8 @@
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
 
-C**** This module now compiles, but I can't check the results. 
-C**** TO DO: 
+C**** This module now compiles, but I can't check the results.
+C**** TO DO:
 C****    i) check that no arrays that are needed are not being passed
 C****   ii) Any common block dependences that I missed?
 C****  iii) A-grid <-> B-grid  should be done with indexes etc.
@@ -18,12 +18,12 @@ C****   iv) PK type variables should be done in dynamics and used here
       SAVE
 !@var XCDNST parameters for GW drag (in param. database)
       REAL*8, DIMENSION(2) :: XCDNST(2)
-!@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance 
+!@var ZVART,ZVARX,ZVARY,ZWT topogrpahic variance
 C**** (must be in common due to read statement)
       REAL*8, DIMENSION(IM,JM) :: ZVART,ZVARX,ZVARY,ZWT
       COMMON/ZVARCB/ZVART,ZVARX,ZVARY,ZWT
 !@var DEFRM deformation field
-      REAL*8, DIMENSION(IM,JM) :: DEFRM 
+      REAL*8, DIMENSION(IM,JM) :: DEFRM
 !@var LDEF,LDEFM deformation levels
       INTEGER LDEF,LDEFM
 
@@ -86,7 +86,7 @@ C**** Calculate RHO(I,J,L)
       END DO
       END DO
       END DO
-      
+
       DO L=LS1,LM
       DO J=1,JM
       DO I=1,IMAXJ(J)
@@ -234,7 +234,7 @@ C****
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
 !@var Vert. Diffusion coefficent
-      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LM+1) :: VKEDDY 
+      REAL*8, INTENT(OUT), DIMENSION(IM,JM,LM+1) :: VKEDDY
       REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V
       INTEGER, INTENT(IN) :: LDIFM
       REAL*8, PARAMETER :: XEDDY = 10., DV2MAX = 25.**2
@@ -344,8 +344,8 @@ c     *   PDEF,LDEF,LDEFM
      *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM)
       REAL*8, SAVE :: EK(NM,JM),CN(NM),PKS(LM)
       DATA CN(1)/0./
-      REAL*8, SAVE :: ERR,GRAVS,G2DT,DTHR,BYDT1,H0,FMC,VARMIN,XFROUD,USEDEF
-     *     ,XLIMIT,ROTK,RKBY3,EKS,EK1,EK2,EKX
+      REAL*8, SAVE :: ERR,GRAVS,G2DT,DTHR,BYDT1,H0,FMC,VARMIN,XFROUD
+     *     ,USEDEF,XLIMIT,ROTK,RKBY3,EKS,EK1,EK2,EKX
       INTEGER, SAVE :: IFIRST=1
       INTEGER, SAVE :: L500,LSHR,LD2
       INTEGER LD(NM),IO(4),JO(4)
@@ -444,7 +444,7 @@ C****
         AIRX(I,JM)=AIRX(1,JM)
         LMC(I,JM,1)=LMC(1,JM,1)
         LMC(I,JM,2)=LMC(1,JM,2)
-      END DO 
+      END DO
       DO L=1,LM
       DO I=2,IM
         T(I,1,L)=T(1,1,L)
@@ -455,7 +455,7 @@ C****
         PK(I,JM,L)=PK(1,JM,L)
       END DO
       END DO
-C**** 
+C****
 C**** DEFORMATION
 C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
@@ -940,14 +940,15 @@ C****
       IMPLICIT NONE
 c      COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
 c      COMMON/WORK3/PK(IM,JM,LM),UBAR(IM,JM,LM),WSQ(IM,JM,LM),
-c      COMMON/WORK3/WSQ(IM,JM,LM),UDXS(IM),DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
+c      COMMON/WORK3/WSQ(IM,JM,LM),UDXS(IM)
+c     *     ,DUMS1(IM),DUMS2(IM),DUMN1(IM),DUMN2(IM)
 c      COMMON/DRGCOM/AIRX(IM,JM),LMC(IM,JM,2),DEFRM(IM,JM),
 c     *   ZVART(IM,JM),ZVARX(IM,JM),ZVARY(IM,JM),ZWT(IM,JM),
 c     *   PDEF,LDEF,LDEFM
 c??      EQUIVALENCE (WSQ(1,1,1),DEFRM1), (WSQ(1,1,2),DEFRM2)
 c??      EQUIVALENCE (WSQ(1,1,3),DEF1A), (WSQ(1,1,4),DEF2A)
-      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V 
-      REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P 
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
+      REAL*8, DIMENSION(IM,JM), INTENT(INOUT) :: P
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
       REAL*8, DIMENSION(IM,JM) ::  DEFRM1,DEFRM2,DEF1A,DEF2A
       INTEGER, SAVE :: IFIRST = 1
@@ -1082,14 +1083,16 @@ C****
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "STRAT01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "STRAT01"
+
+      MODULE_HEADER(lhead+1,80) = 'R8: airx(im,jm), I: lmc(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
         WRITE (kunit,err=10) MODULE_HEADER,AIRX,LMC
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,AIRX,LMC
-        IF (HEADER.ne.MODULE_HEADER) THEN
+        IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -1098,4 +1101,4 @@ C****
  10   IOERR=1
       RETURN
       END SUBROUTINE io_strat
-      
+

@@ -11,10 +11,10 @@
       END MODULE SOMTQ_COM
 
       SUBROUTINE io_somtq(kunit,iaction,ioerr)
-!@sum  io_somtq reads and writes second order moments to file 
+!@sum  io_somtq reads and writes second order moments to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -23,14 +23,17 @@
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "QUS01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "QUS01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)')
+     * 'R8 dim(',nmom,',im,jm,lm):Tmom,Qmom'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
         WRITE (KUNIT,ERR=10) MODULE_HEADER,TMOM,QMOM
       CASE (IOREAD:)            ! input from restart file
         READ (KUNIT,ERR=10) HEADER,TMOM,QMOM
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

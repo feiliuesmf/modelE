@@ -1,5 +1,5 @@
       MODULE STRAITS
-!@sum  STRAITS ocean strait related variables 
+!@sum  STRAITS ocean strait related variables
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only : lmo
@@ -29,7 +29,7 @@ C****
 !@var G0MST,GXMST,GYMST pot. enthalpy of water in strait (+ moments) (J)
 !@var S0MST,SXMST,SYMST salinity of water in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST) :: MMST,MUST,G0MST,GXMST,GZMST,S0MST
-     *     ,SXMST,SZMST 
+     *     ,SXMST,SZMST
 
 !@var WIST width of strait (m)
 !@var DIST distance along strait (m)
@@ -38,7 +38,7 @@ C****
      *     WIST = (/  2d4,   5d3, 2.5d4, 3.5d4,   6d4, 6d3,
      *              2.5d5, 2.5d4,   5d4,   5d4, 1.7d5, 4d4/)
 
-!@var XST,YST 
+!@var XST,YST
       REAL*8, DIMENSION(NMST,2) :: XST = RESHAPE( (/
      *     0d0  ,6d-1, 6d-1,  1d0,  1d0, 0d0, 6d-1, 6d-1,  1d0,6d-1,
      *     0d0  ,6d-1,  0d0,-8d-1,-8d-1, 0d0,-6d-1,-8d-1,-8d-1,-1d0,
@@ -60,11 +60,11 @@ C****
      *     (/NMST,2/) )
 
 !@var LMST no. of levels in strait
-      INTEGER, DIMENSION(NMST) :: LMST = (/ 
+      INTEGER, DIMENSION(NMST) :: LMST = (/
      *     2,  5,  5,  2,  2,  2,  6,  6,  2,  3,  4,  2/)
 
 !@var RSIST Sea ice fraction in strait
-!@var RSIXST Center of sea ice in strait (m) 
+!@var RSIXST Center of sea ice in strait (m)
 !@var MSIST Mass of ice within strait (kg)
 !@var HSIST Enthalpy of ice within strait (J)
 !@var SSIST Salinity of ice within strait (kg)
@@ -78,7 +78,7 @@ C****
 !@sum  io_straits reads and writes ocean straits arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
       USE STRAITS
       IMPLICIT NONE
 
@@ -87,7 +87,11 @@ C****
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "OCSTR01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCSTR01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
+     *  i2,a1,i2,a)  'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
+     *  'RSI(',nmst,',2),ms(2,',nmst,'),E+S(',lmi,',',nmst,',2)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -99,7 +103,7 @@ C****
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-          IF (HEADER.NE.MODULE_HEADER) THEN
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
             GO TO 10

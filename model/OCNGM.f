@@ -9,7 +9,7 @@
       USE OCEAN_DYN, only  : dh, vbar
       IMPLICIT NONE
       SAVE
-!@var AI0,AI1,AI2,AI3  Components of GM mixing coeff = F(isopycnal slopes)
+!@var AI0,AI1,AI2,AI3 Cmponents of GM mixing coeff = F(isopycnal slopes)
 !@var SIX0-SIX3,SIY0-SIY3: Slopes calculated from 4 triads of density.
       REAL*8, DIMENSION(IM,JM,LMO) ::
      *     ASX0,ASX1,ASX2,ASX3,AIX0,AIX1,AIX2,AIX3,
@@ -20,14 +20,14 @@
       REAL*8, DIMENSION(IM,JM,LMO) :: BXX, BYY, BZZ, AZX, BZX, CZX,AEZX,
      *     EZX,CEZX, AZY, BZY,  CZY,AEZY, EZY,CEZY
       REAL*8, DIMENSION(IM,JM,LMO) :: BYDZV,BYDH,DZV
-      
+
       REAL*8, DIMENSION(IM,JM,LMO) ::  RHOX,RHOY,RHOMZ,BYRHOZ
 !@var AINV Calculated Isopycnal thickness diffusion (m^2/s)
 !@var ARIV Calculated Redi diffusion (m^2/s)
       REAL*8, DIMENSION(IM,JM) ::  AINV,ARIV
 
 !@var ARAI Scaling for Redi diffusion terms to GM diffusion term (1)
-      REAL*8, PARAMETER :: ARAI = 1d0 
+      REAL*8, PARAMETER :: ARAI = 1d0
 !@var QCROSS true if cross terms should be calculated
       LOGICAL, PARAMETER :: QCROSS = .NOT. (ARAI.eq.1d0) ! i.e..FALSE.
 !@var AMU = Visbeck scheme scaling parameter (1)
@@ -49,11 +49,11 @@ C****
       INTEGER I,J,L,IM1
 
 C**** Initialize SLOPES common block of coefficients
-      ASX0=0. ; ASX1=0. ; ASX2=0. ; ASX3=0. 
+      ASX0=0. ; ASX1=0. ; ASX2=0. ; ASX3=0.
       AIX0=0. ; AIX1=0. ; AIX2=0. ; AIX3=0.
-      ASY0=0. ; ASY1=0. ; ASY2=0. ; ASY3=0. 
+      ASY0=0. ; ASY1=0. ; ASY2=0. ; ASY3=0.
       AIY0=0. ; AIY1=0. ; AIY2=0. ; AIY3=0.
-      S2X0=0. ; S2X1=0. ; S2X2=0. ; S2X3=0. 
+      S2X0=0. ; S2X1=0. ; S2X2=0. ; S2X3=0.
       S2Y0=0. ; S2Y1=0. ; S2Y2=0. ; S2Y3=0.
 
 C**** Calculate all diffusivities
@@ -87,7 +87,7 @@ C**** Calculate coefficients of Tracer Operator
 C**** ASX0,ASX1,ASX2,ASX3 (ASY0..) A*S for 4 triads in x (y) direction
 C**** FXZ   coefficients
       IF (QCROSS) THEN
-        DXZ(I,J,L)     = -ASX1(I,J,L) * BYDH(I,J,L) 
+        DXZ(I,J,L)     = -ASX1(I,J,L) * BYDH(I,J,L)
         CDXZ(IM1,J,L)  = -ASX3(I,J,L) * BYDH(I,J,L)
         BXZ(I,J,L)     = (ASX1(I,J,L) - ASX0(I,J,L))*BYDH(I,J,L)
         CXZ(IM1,J,L)   = (ASX3(I,J,L) - ASX2(I,J,L))*BYDH(I,J,L)
@@ -99,22 +99,22 @@ C**** ASY1(I,JM-1,L), ASY0(I,JM-1,LM1) and ASY3(I,2,L), ASY2(I,2,LM1)??
         BYZ(I,J,L)     = (ASY1(I,J,L) - ASY0(I,J,L))*BYDH(I,J,L)
         CDYZ(I,J-1,L)  = -ASY3(I,J,L) * BYDH(I,J,L)
         CYZ(I,J-1,L)   = (ASY3(I,J,L) - ASY2(I,J,L))*BYDH(I,J,L)
-        CEYZ(I,J-1,L)  =  ASY2(I,J,L) * BYDH(I,J,L)   
-        EYZ(I,J,L)     =  ASY0(I,J,L) * BYDH(I,J,L)    
+        CEYZ(I,J-1,L)  =  ASY2(I,J,L) * BYDH(I,J,L)
+        EYZ(I,J,L)     =  ASY0(I,J,L) * BYDH(I,J,L)
       END IF
 C**** Diagonal terms of Horizontal fluxes are decoupled
 C**** from downgradients (-ve gradT)  !!!Sign!!!
       BXX(I,J  ,L) = (AIX2(I,J,L) + AIX0(IM1,J  ,L) +
-     *                AIX3(I,J,L) + AIX1(IM1,J  ,L)) 
+     *                AIX3(I,J,L) + AIX1(IM1,J  ,L))
       BYY(I,J-1,L) = (AIY2(I,J,L) + AIY0(I  ,J-1,L) +
-     *                AIY3(I,J,L) + AIY1(I  ,J-1,L)) 
+     *                AIY3(I,J,L) + AIY1(I  ,J-1,L))
       IF(KPL(I,J).gt.L) GO TO 110
 C**** Z-direction fluxes
 C**** Diagonal (Includes AI and DYV/DYP)
       IF (L.gt.1) BZZ(I,J,L-1) = (S2X1(I,J,L  ) + S2X3(I,J,L  ) +
      *                            S2X0(I,J,L-1) + S2X2(I,J,L-1) +
      *                            S2Y1(I,J,L  ) + S2Y3(I,J,L  ) +
-     *                            S2Y0(I,J,L-1) + S2Y2(I,J,L-1)) 
+     *                            S2Y0(I,J,L-1) + S2Y2(I,J,L-1))
 C****
 C**** Off-diagonal
 C**** FZXbot(I,J,L) = ASX0(I,J,L)*(TR(I  ,J,L) - TR(IP1,J,L))
@@ -122,19 +122,19 @@ C****               + ASX2(I,J,L)*(TR(IM1,J,L) - TR(I  ,J,L))
 C**** FZXtop(I,J,L) = ASX1(I,J,L)*(TR(I  ,J,L) - TR(IP1,J,L))
 C****               + ASX3(I,J,L)*(TR(IM1,J,L) - TR(I  ,J,L))
 C**** Coeficients for (I,J,L) are multiplied by T(IP1,J,L) and T(IM1)
-      AZX(I,J,L)   =  ASX2(I,J,L)               
-      BZX(I,J,L)   =  ASX0(I,J,L) - ASX2(I,J,L) 
-      CZX(I,J,L)   = -ASX0(I,J,L)          
-      AEZX(I,J,L)  =  ASX3(I,J,L)               
-      EZX(I,J,L)   =  ASX1(I,J,L) - ASX3(I,J,L) 
-      CEZX(I,J,L)  = -ASX1(I,J,L)          
+      AZX(I,J,L)   =  ASX2(I,J,L)
+      BZX(I,J,L)   =  ASX0(I,J,L) - ASX2(I,J,L)
+      CZX(I,J,L)   = -ASX0(I,J,L)
+      AEZX(I,J,L)  =  ASX3(I,J,L)
+      EZX(I,J,L)   =  ASX1(I,J,L) - ASX3(I,J,L)
+      CEZX(I,J,L)  = -ASX1(I,J,L)
 C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
-      AZY(I,J,L)   =  ASY2(I,J,L)               
+      AZY(I,J,L)   =  ASY2(I,J,L)
       BZY(I,J,L)   =  ASY0(I,J,L) - ASY2(I,J,L)
-      CZY(I,J,L)   = -ASY0(I,J,L)         
-      AEZY(I,J,L)  =  ASY3(I,J,L)              
-      EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L) 
-      CEZY(I,J,L)  = -ASY1(I,J,L)          
+      CZY(I,J,L)   = -ASY0(I,J,L)
+      AEZY(I,J,L)  =  ASY3(I,J,L)
+      EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L)
+      CEZY(I,J,L)  = -ASY1(I,J,L)
   110 IM1 = I
       END DO
       END DO
@@ -142,7 +142,7 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
 C**** End of Main Loop of GMKDIF
       RETURN
       END SUBROUTINE GMKDIF
-C**** 
+C****
       SUBROUTINE GMFEXP (TRM, TXM, TYM, TZM, GIJL)
 !@sum  GMFEXP apply GM fluxes to tracer quantities
 !@auth Gavin Schmidt/Dan Collins
@@ -163,14 +163,14 @@ C**** Calculate tracer concentration
         DO J = 1,JM
           DO I = 1,IM
             IF(L.le.LMM(I,J)) TR(I,J,L)=TRM(I,J,L)/(DXYPO(J)*MO(I,J,L))
-            FXX(I,J,L) = 0. ; FXZ(I,J,L) = 0.  
+            FXX(I,J,L) = 0. ; FXZ(I,J,L) = 0.
             FYY(I,J,L) = 0. ; FYZ(I,J,L) = 0.
             FZZ(I,J,L) = 0. ; FZX(I,J,L) = 0. ; FZY(I,J,L) = 0.
           END DO
         END DO
       END DO
       DO L=1,LMO
-      DO J=2,JM-1 
+      DO J=2,JM-1
 C**** 1/DYPO(DXP) from Y(X) gradient of T for FZY(FZX)
       DT4DY = 0.25*DTS*BYDYP(J)
       DT4DX = 0.25*DTS*BYDXP(J)
@@ -281,7 +281,7 @@ C**** Loop for Fluxes in Y-direction
         MOFY =((MO(I,J-1,L)*BYDYP(J-1)*DXYPO(J-1)) +
      *         (MO(I,J  ,L)*BYDYP(J  )*DXYPO(J  )))*0.5
         RFYT =(FYY(I,J-1,L) + FYZ(I,J-1,L))*MOFY
-C**** Add and Subtract horizontal Y fluxes 
+C**** Add and Subtract horizontal Y fluxes
         TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
         TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
 C**** Save Diagnostic, GIJL(2) = RFYT
@@ -314,13 +314,13 @@ C**** END of I and J loops
   610 IM1 = I
       END DO
       END DO
-C**** North Polar box 
+C**** North Polar box
 C**** Fluxes in Y-direction
       IF(LMV(1,JM-1).ge.L) THEN
         MOFY =((MO(1,JM-1,L)*BYDYP(JM-1)*DXYPO(JM-1)) +
      *         (MO(1,JM  ,L)*BYDYP(JM  )*DXYPO(JM  )))*0.5
         RFYT =(FYY(1,JM-1,L) + FYZ(1,JM-1,L))*MOFY
-C**** Add and Subtract horizontal Y fluxes 
+C**** Add and Subtract horizontal Y fluxes
         TRM(1,JM  ,L) = TRM(1,JM  ,L) + RFYT/IM
         TRM(1,JM-1,L) = TRM(1,JM-1,L) - RFYT
 C**** Save Diagnostic, GIJL(2) = RFYT
@@ -384,10 +384,10 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         AIY0(I,J,L) = 0.
         AIY2(I,J,L) = 0.
       ELSE
-        AIX0ST = AINV(I,J) 
-        AIX2ST = AINV(I,J) 
-        AIY0ST = AINV(I,J) 
-        AIY2ST = AINV(I,J) 
+        AIX0ST = AINV(I,J)
+        AIX2ST = AINV(I,J)
+        AIY0ST = AINV(I,J)
+        AIY2ST = AINV(I,J)
         SIX0 = RHOX(I  ,J,L) * BYRHOZ(I,J,L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
@@ -450,14 +450,14 @@ C**** AI are always * layer thickness for vertical gradient in FXX, FYY
         AIY3(I,J,L) = AIY3ST * DZV(I,J,L-1) * BYDH(I,J,L)
       ENDIF
 C**** AIX0...AIX3, AIY0...AIY3
-      ASX0(I,J,L) = AIX0ST * SIX0 
-      ASX1(I,J,L) = AIX1ST * SIX1 
-      ASX2(I,J,L) = AIX2ST * SIX2 
-      ASX3(I,J,L) = AIX3ST * SIX3 
-      ASY0(I,J,L) = AIY0ST * SIY0 
-      ASY1(I,J,L) = AIY1ST * SIY1 
-      ASY2(I,J,L) = AIY2ST * SIY2 
-      ASY3(I,J,L) = AIY3ST * SIY3 
+      ASX0(I,J,L) = AIX0ST * SIX0
+      ASX1(I,J,L) = AIX1ST * SIX1
+      ASX2(I,J,L) = AIX2ST * SIX2
+      ASX3(I,J,L) = AIX3ST * SIX3
+      ASY0(I,J,L) = AIY0ST * SIY0
+      ASY1(I,J,L) = AIY1ST * SIY1
+      ASY2(I,J,L) = AIY2ST * SIY2
+      ASY3(I,J,L) = AIY3ST * SIY3
 C**** S2X0...S2X3, S2Y0...S2Y3
       S2X0(I,J,L) = AIX0ST * SIX0 * SIX0
       S2X1(I,J,L) = AIX1ST * SIX1 * SIX1
@@ -481,7 +481,7 @@ C****
       USE GM_COM
       USE FILEMANAGER
       IMPLICIT NONE
-      
+
       REAL*8, DIMENSION(IM,JM,LMO) :: RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DH0
@@ -500,17 +500,17 @@ C**** set up geometry needed
 C**** Calculate level at 1km depth
         LUP=0
    10   LUP=LUP + 1
-        IF (ZE(LUP+1).lt.1d3) GOTO 10  
+        IF (ZE(LUP+1).lt.1d3) GOTO 10
         HUP = ZE(LUP)
 c        IFIRST = 0. ! extra IFIRST bit at bottom
       END IF
-C**** 
+C****
       DO L=1,LMO
       DO J=1,JM
       DO I=1,IM
 C**** Bottom layer LMM(I,J)
-        RHOMZ(I,J,L) = 0d0 
-C**** Initialize RHOX and RHOY as 0. 
+        RHOMZ(I,J,L) = 0d0
+C**** Initialize RHOX and RHOY as 0.
         RHOX(I,J,L) = 0d0
         RHOY(I,J,L) = 0d0
 C**** Skip non-ocean grid points
@@ -518,7 +518,7 @@ C**** Skip non-ocean grid points
 C**** RHO(I,J,L)  Density=1/specific volume
           BYRHO = VBAR(I,J,L)
             DH0 =   DH(I,J,L)
-c         IF (J.eq.1)  THEN         ! South pole 
+c         IF (J.eq.1)  THEN         ! South pole
 c           BYRHO = VBAR(IM,1,L)
 c             DH0 =   DH(IM,1,L)
 c         END IF
@@ -553,7 +553,7 @@ C**** minus vertical gradient
 C**** Calculate horizontal gradients
             IF(LMV(I,J-1).ge.L) RHOY(I,J-1,L) =
      *           (RHO(I,J,L) - RHO(I,J-1,L))*BYDYV(J-1)
-            IF(LMU(IM1,J).ge.L) RHOX(IM1,J,L) = 
+            IF(LMU(IM1,J).ge.L) RHOX(IM1,J,L) =
      *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
   931       IM1 = I
           END DO
@@ -561,7 +561,7 @@ C**** Calculate horizontal gradients
       END DO
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
-      ARIV = 0. 
+      ARIV = 0.
       DO J=2,JM-1
         CORI = ABS(2d0*OMEGA*SINPO(J))
         BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
@@ -613,7 +613,7 @@ C**** Calculate average density + gradients over [1,LUP]
           IM1=I
         END DO
       END DO
-      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient 
+      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
         call openunit('ODIFF',iu_ODIFF,.true.,.false.)
         TITLE = "Visbeck scaling for GM coefficient m^2/s"
         WRITE(iu_ODIFF) TITLE,((REAL(AINV(i,J)),i=1,im),j=1,jm)

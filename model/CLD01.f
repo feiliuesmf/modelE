@@ -13,7 +13,7 @@
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
 !@param WMU critical cloud water content for rapid conversion (g m**-3)
-      REAL*8, PARAMETER :: WMU=.25       
+      REAL*8, PARAMETER :: WMU=.25
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU over ice
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
@@ -24,19 +24,19 @@ C**** parameters and constants
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 
-C**** Set-able variables from NAMELIST
-!@var LMCM max level for originating MC plumes (set in init_CLD)
-      INTEGER :: LMCM = -1 ! if not set in rundeck it will default to LS1-1
-!@var U00wtr critical humidity for water cloud condensation (default)
-      REAL*8 :: U00wtr = .7d0
-!@var U00ice critical humidity for ice cloud condensation (default)
-      REAL*8 :: U00ice = .7d0
+C**** Set-able variables 
+!@var LMCM max level for originating MC plumes                  DB-param
+      INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
+!@var U00wtr critical humidity for water cloud condensation     DB-param
+      REAL*8 :: U00wtr = .7d0       ! default
+!@var U00ice critical humidity for ice cloud condensation       DB-param
+      REAL*8 :: U00ice = .7d0       ! default
 
 C**** input variables
 !@var RA ratio of primary grid box to secondary gridbox
-      REAL*8, DIMENSION(IM) :: RA 
+      REAL*8, DIMENSION(IM) :: RA
 !@var UM,VM,U_0,V_0 velocity related variables (UM,VM)=(U,V)*AIRM
-      REAL*8, DIMENSION(IM,LM) :: UM,VM 
+      REAL*8, DIMENSION(IM,LM) :: UM,VM
       REAL*8, DIMENSION(IM,LM) :: U_0,V_0
 
 !@var Miscellaneous vertical arrays set in driver
@@ -240,7 +240,7 @@ C**** functions
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var DUM, DVM changes of UM,VM
-      REAL*8, DIMENSION(IM,LM) :: DUM,DVM 
+      REAL*8, DIMENSION(IM,LM) :: DUM,DVM
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 C****
@@ -957,7 +957,7 @@ C****
 C**** ADJUSTMENT TO CONSERVE CP*T
         SUMAJ=0.
         SUMDP=0.
-        DO L=LMCMIN,LMCMAX 
+        DO L=LMCMIN,LMCMAX
           SUMDP=SUMDP+AIRM(L)
           SUMAJ=SUMAJ+AJ13(L)
         END DO
@@ -965,7 +965,7 @@ C**** ADJUSTMENT TO CONSERVE CP*T
           AJ13(L)=AJ13(L)-SUMAJ*AIRM(L)/SUMDP
           SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
         END DO
-C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG                               
+C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
         AIRXL = 0.
         DO L=LMCMIN,LMCMAX
           AIRXL = AIRXL+AJ8(L)

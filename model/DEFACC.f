@@ -64,7 +64,6 @@ c contents of iparmb common block
       call set_iparm('NDA5S',NDA5S)
       call set_iparm('NDA4',NDA4)
       call set_iparm('NDASF',NDASF)
-      call set_iparm('MLAST',MLAST)
       call set_iparm('MDYN',MDYN)
       call set_iparm('MCNDS',MCNDS)
       call set_iparm('MRAD',MRAD)

@@ -107,12 +107,12 @@ C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
 C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,OIJL(1,1,1,IJL_GGMFL))
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL)) 
+      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL))
         CALL CHECKO ('GMDIFF')
         IF (MODD5S.EQ.0) CALL DIAG9A (12)
-C**** 
+C****
 C**** Acceleration and advection of tracers through ocean straits
-C**** 
+C****
       CALL STPGF
       CALL STCONV
       CALL STBDRA
@@ -122,8 +122,8 @@ C****
       CALL STADVI
         CALL CHECKO ('STADVI')
         CALL TIMER (MNOW,MSGSO)
-      CALL TOC2SST  
-        
+      CALL TOC2SST
+
       RETURN
   945 FORMAT (' Ocean dynamic terms integrated          ',
      *  I8,A5,I2,', Hr',I2,2I8,F6.1,'    IHOUR=',F7.2)
@@ -139,7 +139,7 @@ C****
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno
-      USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs 
+      USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE FILEMANAGER, only : openunit,closeunit
       USE SW2OCEAN, only : init_solar
       USE TIMINGS, only : timing,ntimeacc
@@ -384,7 +384,7 @@ C**** Calculate temperature (on atmos. grid)
               HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
               SSIL(:)= SSI(:,I,J) ! sea ice salt
 C**** calculate energy available for melting
-              ENRGW=(GO1-GFREZS(SO1))*MO(I,J,1)*FDAILY 
+              ENRGW=(GO1-GFREZS(SO1))*MO(I,J,1)*FDAILY
               CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
      *             ,ENRGW,ENRGUSED,RUN0,SALT)
 C**** RESAVE PROGNOSTIC QUANTITIES
@@ -443,7 +443,7 @@ C****
 !@sum  io_ocdyn reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
       USE OCEAN
       IMPLICIT NONE
 
@@ -452,7 +452,10 @@ C****
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "OCDYN01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
+     *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGEOZ(im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -465,7 +468,8 @@ C****
           CASE (ioread,irerun) ! restarts
             READ (kunit,err=10) HEADER,MO,UO,VO,G0M,GXMO,GYMO,GZMO,S0M
      *           ,SXMO,SYMO,SZMO,OGEOZ
-            IF (HEADER.NE.MODULE_HEADER) THEN
+c???        Could check here whether header(14:15) contains LMO
+            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *             ,MODULE_HEADER
               GO TO 10
@@ -529,7 +533,7 @@ C**** Check all ocean currents
           END DO
 C**** Check first layer ocean mass
           IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
-            IF (I.eq.47 .and. (J.eq.33 .or. J.eq.34)) GOTO 230 ! not Caspian
+            IF (I.eq.47.and.(J.eq.33.or.J.eq.34)) GOTO 230 ! not Caspian
             WRITE (6,*) 'After ',SUBR,': I,J,MO,MSI2=',I,J,MO(I,J,1
      *           ),MSI(I,J),RSI(I,J)
             QCHECKO=.TRUE.
@@ -587,7 +591,7 @@ C****
         OKE(JM)= OKE(JM)+ OKEIN*MO(1,JM,L)
       END DO
       OKE(JM)= OKE(JM)*2.
-C**** 
+C****
       RETURN
       END SUBROUTINE conserv_OKE
 
@@ -631,12 +635,12 @@ C****
       OAM=0
       DO J=2,JM-1
         UMIL = 0.
-        I=IM                                                               
+        I=IM
         DO IP1=1,IM
           DO L=1,LMU(I,J)
             UMIL = UMIL + UO(I,J,L)*(MO(I,J,L)+MO(IP1,J,L))
           END DO
-          I=IP1                                                              
+          I=IP1
         END DO
         OAM(J) = UMIL*COSPO(J) + OMSSV(J)*RADIUS*OMEGA*(COSVO(J-1)
      *       *COSVO(J-1)+COSVO(J)*COSVO(J))
@@ -646,7 +650,7 @@ C****
         UMIL = UMIL + UO(1,JM,L)*MO(1,JM,L)
       END DO
       OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
-     *     *COSVO(JM-1)*COSVO(JM-1)                 
+     *     *COSVO(JM-1)*COSVO(JM-1)
 C****
       RETURN
       END SUBROUTINE conserv_OAM
@@ -692,7 +696,7 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OSALT(J) = OSALT(J) + S0M(I,J,L)*BYDXYPO(J) 
+            OSALT(J) = OSALT(J) + S0M(I,J,L)*BYDXYPO(J)
           END DO
         END DO
       END DO
@@ -712,7 +716,7 @@ C**** Input:  M (kg/m**2), U (m/s), V (m/s)
 C**** Output: MM (kg), UM (kg*m/s), VM (kg*m/s)
       REAL*8, INTENT(OUT) :: MM(IM,JM,LMO),UM(IM,JM,LMO),VM(IM,JM,LMO)
       INTEGER I,J,L,IP1
-      
+
       DO 70 L=1,LMO
 C**** Convert density to mass
       DO 10 J=1,JM
@@ -931,7 +935,7 @@ C****
       CHARACTER*80 TITLE
       REAL*8, SAVE :: AVCOS(IM,NMAX),AVSIN(IM,NMAX)
       REAl*8  AN(0:NMAX),BN(0:NMAX), Y(IM)
-      INTEGER, SAVE :: IFIRST=1 
+      INTEGER, SAVE :: IFIRST=1
       INTEGER I,J,L,N,JA,JX,NS,I0,IL,IND,K,iu_AVR,IN
       REAL*8 :: REDUC,DRATM,SM
 C****
@@ -1030,7 +1034,7 @@ C****  320 X(I,J,L) = X(I,J,L) - SM*(AN(N)*AVCOS(I,N)+BN(N)*AVSIN(I,N))
 !@sum  OADVM calculates the updated column mass
 !@auth Gary Russell
 !@ver  1.0
-C**** 
+C****
 C**** Input:  MM0 (kg), CONV (kg/s), MW (kg/s), DT (s)
 C**** Output: MM2 (kg) = MM0 + DT*DM*DSIGO
 C****
@@ -1067,7 +1071,7 @@ C     MM2(I, 1,L) = MM2(IM,1,L)
 !@sum  OADVV advects oceanic momentum (with coriolis force)
 !@auth Gary Russell
 !@ver  1.0
-C**** 
+C****
 C**** Input:  MO (kg/m**2), UO (m/s), VO (m/s) = from odd solution
 C****          MU (kg/s), MV (kg/s), MW (kg/s) = fluid fluxes
 C**** Output: UM2 (kg*m/s) = UM0 + DT*(MU*U-MU*U+MV*U-MV*U+M*CM*V)
@@ -1305,7 +1309,7 @@ C**** V component
      *     ,focean,dypo,dxvo,opress,ogeoz,imaxj
       USE OCEAN_DYN, only : po,phi,dh,dzgdp,vbar
       IMPLICIT NONE
-C**** 
+C****
 C**** Input: G0M (J), GZMO, S0M (kg), SZMO, DT (s), MO (kg/m**2)
 C**** Output: UM (kg*m/s) = UM - DT*(DH*D(P)+MO*D(PHI))*DYP
 C****         VM (kg*m/s) = VM - DT*(DH*D(P)+MO*D(PHI))*DXV
@@ -1314,7 +1318,7 @@ C****
       REAL*8, INTENT(IN) :: DT1
       REAL*8, DIMENSION(IM,JM,LMO) :: DUM,DVM
       INTEGER I,J,L,IP1
-      REAL*8, SAVE :: PHIE 
+      REAL*8, SAVE :: PHIE
       REAL*8 DT2
 C****
 C**** SURFCB  OPRESS  Atmospheric and sea ice pressure (Pa-101325)
@@ -1393,7 +1397,7 @@ C****
 !@sum  OPGF0 calculates specific volume of each grid box
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-C**** 
+C****
 C**** OPGF0 calculates VOLGSP at two locations inside each grid box,
 C**** which will be kept constant during the dynamics of momentum,
 C**** and calculates two weighted averages from those values
@@ -1477,7 +1481,7 @@ C     RZ(I, 1,L) = RZ(IM,1,L)
       END
 
       SUBROUTINE OADVTX (RM,RX,RY,RZ,MO,MU,DT,QLIMIT,OIJL)
-!@sum  OADVTX advects tracers in x direction using linear upstream scheme
+!@sum  OADVTX advects tracer in x direction using linear upstream scheme
 !@auth Gary Russell
 !@ver  1.0
 C**** If QLIMIT is true, the gradients are
@@ -2077,7 +2081,7 @@ C**** Reduce South-North gradient of tracers
       IMPLICIT NONE
       INTEGER I,J,IP1
 C****
-C**** All stress now defined over whole box, not just ocean or ice fraction
+C**** All stress now defined for whole box, not just ocn or ice fraction
 C**** FLUXCB  DMUA(1)  U momentum downward into open ocean (kg/m*s)
 C****         DMVA(1)  V momentum downward into open ocean (kg/m*s)
 C****         DMUA(2,JM,1)  polar atmo. mass slowed to zero (kg/m**2)
@@ -2157,7 +2161,7 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff)
         IF (LMM(I,J).gt.1) THEN
           TGW2= TEMGS(G0M(I,J,2)/(MO(I,J,2)*DXYPJ),
      *         S0M(I,J,2)/(MO(I,J,2)*DXYPJ))
-        ELSE 
+        ELSE
           TGW2=TGW
         END IF
 
@@ -2261,9 +2265,9 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
         DSOO = 0.
       END IF
       END IF
-C**** 
+C****
 C**** Ocean underneath the ice
-C**** 
+C****
       IF(ROICE.gt.0.) THEN
         MOI  = MO + RUNI
         GMOI = G0ML(1)*BYDXYPJ + ERUNI
@@ -2321,7 +2325,7 @@ C**** of fluxes is necessary anyway
       DO J=2,JM
         DO I=1,IMAXJ(J)
           PREC  (I,J)=PRECA  (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
-          EPREC (I,J)=EPRECA (I,J)*DXYP(J)             ! J 
+          EPREC (I,J)=EPRECA (I,J)*DXYP(J)             ! J
           RUNPSI(I,J)=RUNPSIA(I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           RSI   (I,J)=RSIA   (I,J)
         END DO
@@ -2341,16 +2345,16 @@ C**** Convert ocean surface temp to atmospheric SST array
 
       RETURN
       END SUBROUTINE PRECIP_OC
-      
+
       SUBROUTINE ODIFF (DTDIFF)
 !@sum  ODIFF applies Wasjowicz horizontal viscosity to velocities
 !@auth Gavin Schmidt
 !@ver  1.0
 C****
 C**** ODIFF calculates horizontal Wasjowicz viscosity terms in momentum
-C**** equations implicitly using ADI method and assumes no slip/free 
-C**** slip conditions at the side. K_h (m^2/s) may vary spatially 
-C**** based on Munk length though must remain isotropic. 
+C**** equations implicitly using ADI method and assumes no slip/free
+C**** slip conditions at the side. K_h (m^2/s) may vary spatially
+C**** based on Munk length though must remain isotropic.
 C**** (If longitudinal variation is wanted just make K arrays K(I,J))
 C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
@@ -2370,7 +2374,7 @@ C****
 C**** Local variables
       REAL*8, DIMENSION(IIP) :: AU,BU,CU,RU,UU,AV,BV,CV,RV,UV
       REAL*8, SAVE, DIMENSION(IM,JM,LMO) :: UXA,UXB,UXC,UYA,UYB,UYC,VXA
-     *     ,VXB,VXC,VYA,VYB,VYC 
+     *     ,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
       REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
       REAL*8, INTENT(IN) :: DTDIFF
@@ -2389,7 +2393,7 @@ C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
         KHP(J)=2d0*RHOW*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
         KHV(J)=2d0*RHOW*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
-        KHP(J)=MAX(KHP(J),AKHMIN) 
+        KHP(J)=MAX(KHP(J),AKHMIN)
         KHV(J)=MAX(KHV(J),AKHMIN)
         BYDXYV(J)=1D0/DXYVO(J)
         BYDXV(J)=1D0/DXVO(J)
@@ -2413,16 +2417,16 @@ C**** Discretisation errors need TANP/V to be defined like this
       BYDXYPJM=1D0/(DXYPO(JM)*IM)
       PRINT*,"Kh: ",(J,KHP(J),J=1,JM)
 C****
-C**** Calculate operators fixed in time for U and V equations 
-C****                      
+C**** Calculate operators fixed in time for U and V equations
+C****
       UXA=0. ; UXB=0. ; UXC=0. ; UYA=0. ; UYB=0. ; UYC=0.
       VXA=0. ; VXB=0. ; VXC=0. ; VYA=0. ; VYB=0. ; VYC=0.
-      UYPB=0.; UYPA=0. 
+      UYPB=0.; UYPA=0.
 
       DO L=1,LMO
-C**** Calculate flux operators 
+C**** Calculate flux operators
 C**** i.e DUDX(1) and DUDX(2) are the coefficients of u1 and u2 for
-C**** calculating centered difference K_h du/dx 
+C**** calculating centered difference K_h du/dx
 C**** including metric terms in y derivatives
         DUDX=0.
         DUDY=0.
@@ -2434,8 +2438,8 @@ C**** including metric terms in y derivatives
             IF (L.LE.LMU(IP1,J)) DUDX(IP1,J,1) = KYPXP(J)
             IF (L.LE.LMU(I,J)) THEN
               DUDX(IP1,J,2) = -KYPXP(J)
-              IF (L.LE.LMU(I,J+1)) THEN 
-                DUDY(I,J,1) =  KXPYV(J)*(1. +0.5*TANV(J)*DYVO(J)) 
+              IF (L.LE.LMU(I,J+1)) THEN
+                DUDY(I,J,1) =  KXPYV(J)*(1. +0.5*TANV(J)*DYVO(J))
                 DUDY(I,J,2) = -KXPYV(J)*(1. -0.5*TANV(J)*DYVO(J))
               ELSE
                 DUDY(I,J,2) = -(1.-FSLIP)*2d0*KXPYV(J)
@@ -2470,9 +2474,9 @@ C****
               UXB(IM1,J,L) = (DUDX(I  ,J,2) -DUDX(IM1,J  ,1))*BYDXYPO(J)
               UXC(IM1,J,L) =  DUDX(I  ,J,1)                  *BYDXYPO(J)
               UYA(IM1,J,L) = -DUDY(IM1,J-1,2)                *BYDXYPO(J)
-     *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J) 
+     *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J)
               UYB(IM1,J,L) =(DUDY(IM1,J  ,2)-DUDY(IM1,J-1,1))*BYDXYPO(J)
-     *                     + TANP(J)*TANP(J)*KHP(J) 
+     *                     + TANP(J)*TANP(J)*KHP(J)
               UYC(IM1,J,L) = DUDY(IM1,J  ,1)                 *BYDXYPO(J)
      *                     - 0.5*TANP(J)*KHP(J)*BYDYP(J)
             END IF
@@ -2481,26 +2485,26 @@ C****
               VXB(I,J,L) = (DVDX(I  ,J,2) - DVDX(IM1,J,1))*BYDXYV(J)
               VXC(I,J,L) =  DVDX(I  ,J,1)                 *BYDXYV(J)
               VYA(I,J,L) = -DVDY(I,J  ,2)                 *BYDXYV(J)
-     *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J) 
+     *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J)
               VYB(I,J,L) = (DVDY(I,J+1,2) - DVDY(I  ,J,1))*BYDXYV(J)
-     *                   + TANV(J)*TANV(J)*KHV(J) 
+     *                   + TANV(J)*TANV(J)*KHV(J)
               VYC(I,J,L) =  DVDY(I,J+1,1)                 *BYDXYV(J)
      *                   - 0.5*TANV(J)*KHV(J)*BYDYV(J)
             END IF
             IM1=I
           END DO
         END DO
-C**** At North Pole 
-        IF(L.LE.LMU(1,JM)) THEN 
+C**** At North Pole
+        IF(L.LE.LMU(1,JM)) THEN
           DO I=1,IM
             UYPB(L) = UYPB(L) - DUDY(I,JM-1,1)
-            UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM 
+            UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM
           END DO
-          UYPB(L) = UYPB(L)*BYDXYPJM 
+          UYPB(L) = UYPB(L)*BYDXYPJM
         END IF
       END DO
       END IF
-C**** Solve diffusion equations semi implicitly 
+C**** Solve diffusion equations semi implicitly
       DT2=DTDIFF*5d-1     ! half time-step
       DO L=1,LMO
 C**** Save (0.5*) mass reciprical for velocity points
@@ -2515,16 +2519,16 @@ C**** Save (0.5*) mass reciprical for velocity points
       IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
 C**** Calculate Wasjowicz boundary terms
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
-      FUX=0             ! flux in U equation at the x_+ boundary 
+      FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
-      DO J=1,JM-1     
+      DO J=1,JM-1
         IM1=IM-1
         DO I=1,IM
-          UT=0          ! mean u*tan on x_+ boundary for V equation   
+          UT=0          ! mean u*tan on x_+ boundary for V equation
           UY=0          ! mean du/dx on y_+ boundary for V equation
-          UX=0          ! mean du/dy on x_+ boundary for V equation 
+          UX=0          ! mean du/dy on x_+ boundary for V equation
           IF (L.LE.LMU(I  ,J+1)) THEN
             UT=     UO(I  ,J+1,L)*TANP(J+1)
             UX=     UO(I  ,J+1,L)
@@ -2536,9 +2540,9 @@ C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
           END IF
           IF (L.LE.LMU(IM1,J+1)) UX=UX-    UO(IM1,J+1,L)
           UT=0.5*UT
-          UX=UX*BYDXP(J+1)   
+          UX=UX*BYDXP(J+1)
           UY=UY*BYDYV(J)
-C**** 
+C****
           VT=0          ! mean v*tan on x_+ boundary for U equation
           VX=0          ! mean dv/dx on y_+ boundary for U equation
           VY=0          ! mean dv/dy on x_+ boundary for U equation
@@ -2553,11 +2557,11 @@ C****
           END IF
           IF (L.LE.LMV(IM1,J  )) VX=VX - VO(IM1,J  ,L)
           VT=0.5*VT
-          VY=VY*BYDYP(J)   
+          VY=VY*BYDYP(J)
           VX=VX*BYDXV(J)
 C**** Calculate fluxes (including FSLIP condition)
           IF (FSLIP.EQ.1.) THEN
-            IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J)) 
+            IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J))
      *           FUY(IM1,J)=KHV(J)*VX
             IF (L.LE.LMU(I,J) .AND. L.LE.LMU(I,J+1))
      *           FVX(I  ,J)=KHV(J)*(UY + UT)
@@ -2574,7 +2578,7 @@ C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
 C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0. ; UU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0. ; UV=0.
-      DO J=2,JM-1   
+      DO J=2,JM-1
         IM1=IM-1
         I=IM
         DO IP1=1,IM
@@ -2594,7 +2598,7 @@ C**** Make properly tridiagonal by making explicit cyclic terms
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
-     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))  
+     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
@@ -2616,8 +2620,8 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
         END DO
       END DO
 C**** At North Pole (no metric terms)
-      BU(IIP) = 1d0 
-      BV(IIP) = 1d0 
+      BU(IIP) = 1d0
+      BV(IIP) = 1d0
       IF (L.LE.LMU(1,JM)) THEN
       DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
         RU(IIP) = UO(1,JM,L) +DTU*UYPB(L)*UO(1,JM,L)
@@ -2626,7 +2630,7 @@ C**** At North Pole (no metric terms)
      *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
         END DO
       END IF
-C**** Call tridiagonal solver                     
+C**** Call tridiagonal solver
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP)
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP)
       DO II=1,IIP
@@ -2634,25 +2638,25 @@ c       J= 2 + (II-1)/IM
 c       I= II-(J-2)*IM
 c       UO(I,J,L) = UU(II)
 c       VO(I,J,L) = UV(II)
-        UO(II,2,L) = UU(II)   ! this cycles through correctly   
+        UO(II,2,L) = UU(II)   ! this cycles through correctly
         VO(II,2,L) = UV(II)
       END DO
       DO I=2,IM
         UO(I,JM,L) = UO(1,JM,L)
       END DO
-C**** Now do semi implicit solution in y                      
+C**** Now do semi implicit solution in y
 C**** Calc. cross-term fluxes + second metric term (at half time step)
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
-      FUX=0             ! flux in U equation at the x_+ boundary 
+      FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
-      DO J=1,JM-1     
+      DO J=1,JM-1
         IM1=IM-1
         DO I=1,IM
-          UT=0         ! mean u*tan on x_+ boundary for V equation    
+          UT=0         ! mean u*tan on x_+ boundary for V equation
           UY=0         ! mean du/dx on y_+ boundary for V equation
-          UX=0         ! mean du/dy on x_+ boundary for V equation  
+          UX=0         ! mean du/dy on x_+ boundary for V equation
           IF (L.LE.LMU(I  ,J+1)) THEN
             UT=     UO(I  ,J+1,L)*TANP(J+1)
             UX=     UO(I  ,J+1,L)
@@ -2664,10 +2668,10 @@ C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
           END IF
           IF (L.LE.LMU(IM1,J+1)) UX=UX-    UO(IM1,J+1,L)
           UT=0.5*UT
-          UX=UX*BYDXP(J+1)   
+          UX=UX*BYDXP(J+1)
           UY=UY*BYDYV(J)
-C**** 
-          VT=0         ! mean v*tan on x_+ boundary for U equation    
+C****
+          VT=0         ! mean v*tan on x_+ boundary for U equation
           VX=0         ! mean dv/dx on y_+ boundary for U equation
           VY=0         ! mean dv/dy on x_+ boundary for U equation
           IF (L.LE.LMV(I  ,J  )) THEN
@@ -2681,11 +2685,11 @@ C****
           END IF
           IF (L.LE.LMV(IM1,J  )) VX=VX - VO(IM1,J  ,L)
           VT=0.5*VT
-          VY=VY*BYDYP(J)   
+          VY=VY*BYDYP(J)
           VX=VX*BYDXV(J)
 C**** Calculate fluxes (including FSLIP condition)
           IF (FSLIP.EQ.1.) THEN
-            IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J)) 
+            IF (L.LE.LMV(I,J) .AND. L.LE.LMV(IM1,J))
      *           FUY(IM1,J)=KHV(J)* VX
             IF (L.LE.LMU(I,J) .AND. L.LE.LMU(I,J+1))
      *           FVX(I,J)=KHV(J)*(UY + UT)
@@ -2705,7 +2709,7 @@ C**** Minor complication due to singular nature of polar box
       IM1=IM-1
       I=IM
       DO IP1=1,IM
-        DO J=2,JM-1   
+        DO J=2,JM-1
           II=(JM-2)*(I-1)+(J-1)
           BU(II) = 1d0
           BV(II) = 1d0
@@ -2719,9 +2723,9 @@ C**** Minor complication due to singular nature of polar box
 C**** Make properly tridiagonal by making explicit polar terms
             IF (J.lt.JM-1) RU(II)=RU(II) + DTU*UYC(I,J,L)*UO(1,JM,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
-            RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J)) 
+            RU(II) = RU(II) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
-     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))  
+     *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
@@ -2730,7 +2734,7 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
             IF (J.lt.JM-1) CV(II) =     - DTV*VYC(I,J,L)
             RV(II) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
      *           +VXB(I,J,L)*VO(I,J,L) + VXC(I,J,L)*VO(IP1,J,L))
-C**** Add Wasjowicz cross-terms to RV + second metric term 
+C**** Add Wasjowicz cross-terms to RV + second metric term
             RV(II) = RV(II) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
@@ -2739,19 +2743,19 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
           I=IP1
         END DO
       END DO
-C**** At North Pole (do partly explicitly) no metric terms  
-      BU(IIP) = 1d0 
-      BV(IIP) = 1d0 
+C**** At North Pole (do partly explicitly) no metric terms
+      BU(IIP) = 1d0
+      BV(IIP) = 1d0
       IF (L.LE.LMU(1,JM)) THEN
         DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
         BU(IIP) = BU(IIP) - DTU*UYPB(L)
-        RU(IIP) = UO(1,JM,L) 
+        RU(IIP) = UO(1,JM,L)
         DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
           RU(IIP)= RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
      *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
         END DO
       END IF
-C**** Call tridiagonal solver                     
+C**** Call tridiagonal solver
       CALL TRIDIAG(AU,BU,CU,RU,UU,IIP)
       CALL TRIDIAG(AV,BV,CV,RV,UV,IIP)
       DO II=1,IIP-1
@@ -2763,12 +2767,12 @@ C**** Call tridiagonal solver
       DO I=1,IM
         UO(I,JM,L) = UU(IIP)
       END DO
-C****                      
+C****
       END DO
 C**** Done!
       RETURN
       END
-        
+
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
@@ -2803,7 +2807,7 @@ c            GTEMP(2,1,I,J)= TO
       END DO
       RETURN
 C****
-      END 
+      END
 
       DOUBLE PRECISION FUNCTION TOFREZ(I,J)
 !@sum  TOFREZ returns the value of the seawater freezing temp
@@ -2849,8 +2853,8 @@ C****
       REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
       INTEGER I,J
 
-C**** currently no need for interpolation, 
-C**** just scaling due to area differences for fluxes 
+C**** currently no need for interpolation,
+C**** just scaling due to area differences for fluxes
       IF (QCONSERV) THEN
         DO J=1,JMO
           DO I=1,IMAXJ(J)
@@ -2887,8 +2891,8 @@ C****
       REAL*8 RAT
       INTEGER I,J
 
-C**** currently no need for interpolation, 
-C**** just scaling due to area differences for fluxes 
+C**** currently no need for interpolation,
+C**** just scaling due to area differences for fluxes
       IF (QCONSERV) THEN
         DO J=1,JMA
           DO I=1,IMAXJ(J)

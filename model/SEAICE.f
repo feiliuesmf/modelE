@@ -40,7 +40,7 @@
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0
 !@param SSI0 default value for sea ice salinity (kg/kg) (=3.2ppt)
-      REAL*8, PARAMETER :: SSI0 = 0.0032   
+      REAL*8, PARAMETER :: SSI0 = 0.0032
 
       CONTAINS
 
@@ -67,7 +67,7 @@
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL, SSIL
 !@var TSIL temperature of ice layers (J/m^2) (DIAGNOSTIC ONLY)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
-!@var TFO temperature of freezing of water below ice (C) 
+!@var TFO temperature of freezing of water below ice (C)
       REAL*8, INTENT(IN) :: TFO
 !@var FHOC implied energy flux at base to keep fixed ice mass (J/m^2)
       REAL*8, INTENT(OUT) :: FHOC
@@ -92,7 +92,7 @@ c      BYM4=1./(XSI(4)*MSI2)
       HSIL(1) = HSIL(1)+ENRGP  ! add total energy of precipitation
 
 C**** Snowfall is calculated from precip energy (0 deg or colder)
-      SNWF = MAX(0d0,MIN(PRCP,-ENRGP*BYLHM)) 
+      SNWF = MAX(0d0,MIN(PRCP,-ENRGP*BYLHM))
 C**** Rain is remaining precip (0 deg or warmer)
       RAIN = PRCP-SNWF
 C**** Calculate whether rain causes freezing or melting in first layer
@@ -105,7 +105,7 @@ C**** Calculate whether rain causes freezing or melting in first layer
       END IF
 
 C**** Calculate remaining snow and necessary mass flux using
-C**** SNOW =SNOW  + SNWF  - CMPRS - MELT1  
+C**** SNOW =SNOW  + SNWF  - CMPRS - MELT1
 C**** ACE1I=ACE1I + FREZ1 + CMPRS - FMSI2
 C**** SALTI=SALTI - SMELT1        - FSSI2
 
@@ -116,7 +116,7 @@ C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
           CMPRS = SNOW+SNWF-0.9d0*SNOMAX
         ELSE
 C**** RAIN and MELT COMRESSES SNOW INTO ICE
-          CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1) ! compression
+          CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1) ! cmpression
         END IF
         DSNOW = SNWF - (MELT1+CMPRS)
         SMELT1= 0.
@@ -126,7 +126,7 @@ C**** RAIN MELTS ALL SNOW AND SOME ICE
         DSNOW = -SNOW
         SMELT1=(MELT1-SNOW-SNWF)*(SSIL(1)+SSIL(2))/ACE1I
       END IF
-C**** Mass fluxes required to keep first layer ice = ACE1I 
+C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = SNWF+FREZ1-MELT1-DSNOW ! either up or down
       FMSI1 = XSI(1)*FMSI2+XSI(2)*(SNWF+FREZ1-MELT1)
 
@@ -147,15 +147,15 @@ C***** Calculate consequential heat/salt flux between layers
 C**** Calculate mass/heat flux at base if required
       IF (QFIXR) THEN ! fixed sea ice, calculate implicit base fluxes
         FMSI4 = FMSI2
-        IF (FMSI4.gt.0) THEN    ! downward flux to ocean
+        IF (FMSI4.gt.0) THEN   ! downward flux to ocean
           FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2)
           FSSI4 = FMSI4*SSIL(4)/(XSI(4)*MSI2)
-        ELSE                    ! upward flux, at freezing point of ocean
+        ELSE                   ! upward flux, at freezing point of ocean
           FHSI4 = FMSI4*(SHI*TFO-LHM)
           FSSI4 = FMSI4*SSI0
         END IF
-      ELSE                      ! coupled models allow MSI2 to melt
-        FMSI4 = 0. 
+      ELSE                     ! coupled models allow MSI2 to melt
+        FMSI4 = 0.
         FHSI4 = 0.
         FSSI4 = 0.
       END IF
@@ -192,9 +192,9 @@ C**** salinity is evenly shared over ice portion
       SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
 
 C**** Diagnostics for output
-      RUN0 = MELT1+RAIN-FREZ1   ! runoff mass to ocean 
+      RUN0 = MELT1+RAIN-FREZ1   ! runoff mass to ocean
       SALT = SMELT1             ! salt in runoff
-      FMOC = FMSI4              ! implicit mass flux 
+      FMOC = FMSI4              ! implicit mass flux
       FHOC = FHSI4              ! implicit heat flux
       FSOC = FSSI4              ! implicit salt flux
 
@@ -226,7 +226,7 @@ C**** Diagnostics for output
 !@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
 !@var QFLUXLIM true if the flux at base of ice is limited
       LOGICAL,INTENT(IN) :: QFIXR, QFLUXLIM
-!@var FLUXLIM limit of water-ice flux if QFLUXLIM is true 
+!@var FLUXLIM limit of water-ice flux if QFLUXLIM is true
       REAL*8, INTENT(IN) :: FLUXLIM
 !@var TFO freezing temperature of water below ice (C)
       REAL*8, INTENT(IN) :: TFO
@@ -247,9 +247,9 @@ C**** Initiallise output
 
       IF (ROICE .EQ. 0.) RETURN
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
-      FHSI1=0. ; FHSI2=0. ; FHSI3=0.  
+      FHSI1=0. ; FHSI2=0. ; FHSI3=0.
       SMELT12=0; SMELT3=0.; SMELT4=0.
-      FSSI2=0. ; FSSI3=0.  
+      FSSI2=0. ; FSSI3=0.
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
 C**** Calculate solar fractions
@@ -274,7 +274,7 @@ C****
       HC4 = SHI*XSI(4)*MSI2 ! heat capacity of ice L=4 (J/(degC*m^2))
 C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
 C**** First layer flux calculated already as part of surface calculation
-c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS) 
+c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS)
       dF2dTI = ALAMI*RHOI*DTSRCE/(0.5*XSI(2)*MSI1+0.5*XSI(3)*MSI2)
 C****          temperature derivative from F2 diffusive flux
       dF3dTI = ALAMI*RHOI*DTSRCE*2./MSI2
@@ -287,11 +287,11 @@ CEXP  F3 = dF3dTI*(TSIL(3)-TSIL(4))+SROX(1)*FSRI(3)
 CEXP  FO = dF4dTI*(TSIL(4)-TFO)    +SROX(1)*FSRI(4)
 C**** DIFFUSIVE FLUXES FROM PARTIALLY IMPLICIT METHOD
 c      F1DT=(dF1dTI*(HC1*(TSIL(1)-TSIL(2))+ALPHA*F0DT)
-c     *    +HC1*SROX(1)*FSRI(1))/(HC1+ALPHA*dF1dTI) ! already calculated 
+c     *    +HC1*SROX(1)*FSRI(1))/(HC1+ALPHA*dF1dTI) ! already calculated
       F2=(dF2dTI*(HC2*(TSIL(2)-TSIL(3))+ALPHA*F1DT)+HC2*SROX(1)*FSRI(2))
-     *     /(HC2+ALPHA*dF2dTI)    
+     *     /(HC2+ALPHA*dF2dTI)
       F3=(dF3dTI*(HC3*(TSIL(3)-TSIL(4))+ALPHA*F2)+HC3*SROX(1)*FSRI(3))/
-     *     (HC3+ALPHA*dF3dTI)    
+     *     (HC3+ALPHA*dF3dTI)
       FO=(dF4dTI*(HC4*(TSIL(4)-TFO)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
      *     (HC4+ALPHA*dF4dTI)
       SROX(2) = SROX(1)*FSRI(4)
@@ -340,15 +340,15 @@ C****
         DSNOW = -SNOW
         SMELT12=(MELT1+MELT2-SNOW-EVAP1)*SALTI/ACE1I
       END IF
-C**** Mass fluxes required to keep first layer ice = ACE1I 
+C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = -DSNOW+DEW-MELT1-MELT2 ! either up or down
       FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1-CMPRS
 
 C**** Check for melting in levels 3 and 4
-      MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2) 
+      MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2)
       MELT4 = MAX(0d0,HSIL(4)*BYLHM+XSI(4)*MSI2)
-      SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2) 
-      SMELT4 = MELT3*SSIL(4)/(XSI(4)*MSI2) 
+      SMELT3 = MELT3*SSIL(3)/(XSI(3)*MSI2)
+      SMELT4 = MELT3*SSIL(4)/(XSI(4)*MSI2)
 
 C***** Calculate consequential heat flux between layers
       IF (FMSI1.gt.0) THEN ! downward flux to thermal layer 2
@@ -366,7 +366,7 @@ C***** Calculate consequential heat flux between layers
 
 C**** Calculate mass/heat flux at base if required
       IF (QFIXR) THEN ! fixed sea ice, calculate implicit base fluxes
-        FMSI4 = FMSI2 - MELT3 - MELT4 
+        FMSI4 = FMSI2 - MELT3 - MELT4
         IF (FMSI4.gt.0) THEN ! downward flux to ocean
           FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2-MELT4)
           FSSI4 = FMSI4*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4)
@@ -375,13 +375,13 @@ C**** Calculate mass/heat flux at base if required
           FSSI4 = FMSI4*SSI0
         END IF
       ELSE   ! coupled models allow MSI2 to melt
-        FMSI4 = 0. 
+        FMSI4 = 0.
         FHSI4 = 0.
         FSSI4 = 0.
       END IF
 
 C**** Calculate mass/heat flux between layers 3 and 4
-      FMSI3 = XSI(3)*(FMSI4+MELT4) + XSI(4)*(FMSI2-MELT3) 
+      FMSI3 = XSI(3)*(FMSI4+MELT4) + XSI(4)*(FMSI2-MELT3)
       IF (FMSI3.gt.0) THEN ! downward flux to layer 4
         FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-MELT3)
         FSSI3 = FMSI3*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
@@ -415,7 +415,7 @@ C**** salinity is evenly shared over ice portion
 C**** Calculate output diagnostics
       RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
       SMELT = SMELT12+SMELT3+SMELT3  ! salt flux to ocean
-      FMOC = FMSI4              ! implicit mass flux 
+      FMOC = FMSI4              ! implicit mass flux
       FHOC = FHSI4              ! implicit heat flux
       FSOC = FSSI4              ! implicit salt flux
 C****
@@ -512,8 +512,8 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       END IF
   270 CONTINUE
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2))   ! -BYZICX) sometime -ve!
-      IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN 
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2)) ! -BYZICX) sometime -ve!
+      IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
       DRI = ROICE-ROICEN ! > 0. for diagnostics
@@ -530,9 +530,9 @@ C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
 C     SNOW = SNOW   ! snow thickness is conserved
       ROICE = ROICEN
-C**** 
+C****
       END IF
-C**** 
+C****
       END IF
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2))    ! -BYZICX)
@@ -678,7 +678,7 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE SEAICE_COM
       IMPLICIT NONE
 
@@ -687,14 +687,18 @@ C**** CALCULATE SEA ICE TEMPERATURE (FOR OUTPUT ONLY)
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "SICE01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "SICE01"
+
+      write (MODULE_HEADER(lhead+1:80),'(a14,i1,a34,i1,a7)')
+     * 'R8 F(im,jm),H(',lmi,',im,jm),snw(im,jm),msi(im,jm),ssi(',
+     *   lmi,',im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
          WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOWI,MSI,SSI
       CASE (IOREAD:)            ! input from restart file
          READ (kunit,err=10) HEADER,RSI,HSI,SNOWI,MSI,SSI
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -754,5 +758,5 @@ c              QCHECKI = .TRUE.
         END DO
       END DO
       IF (QCHECKI) STOP "CHECKI: Ice variables out of bounds"
-          
+
       END SUBROUTINE CHECKI

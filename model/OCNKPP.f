@@ -19,7 +19,7 @@ C****
 !@sum  KPPE contains variables and routines for KPP mixing scheme
 !@auth NCAR (modifications by Gavin Schmidt)
 !@ver  1.0
-c====================== include file "KPP_1D.COM" =========================
+c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
@@ -27,7 +27,7 @@ c
       SAVE
 c     main parameter file which sets kpp ocean characteristics:
 
-c set max. number of ocean levels 
+c set max. number of ocean levels
 c LMO is max number of main ocean model, km is max number of KPP layers
       INTEGER, PARAMETER :: km=LMO
 
@@ -55,13 +55,13 @@ c
       real*8,parameter :: r24=c1/c24, r60=c1/c60, r1440=c1/c1440
       real*8,parameter :: secday=c1/(c60*c1440)
 c
-      real*8,parameter :: c1p5 = 1.5 , c3   = 3.     , c35   = 35.    
-      real*8,parameter :: c10 = 10. , c100 = 100.   , c1000 = 1000. 
-      real*8,parameter :: c10000 = 10000.  
+      real*8,parameter :: c1p5 = 1.5 , c3   = 3.     , c35   = 35.
+      real*8,parameter :: c10 = 10. , c100 = 100.   , c1000 = 1000.
+      real*8,parameter :: c10000 = 10000.
       real*8,parameter :: r3 = c1/c3 , r10  = c1/c10 , r100 = r10/c10
       real*8,parameter :: r1000  = c1/c1000, r10000 = r10*r1000
 
-c====================== include file CVMIX_CLEAN.COM =========================
+c====================== include file CVMIX_CLEAN.COM ==================
 
 c     variables used for vertical diffusion
 c
@@ -75,12 +75,12 @@ c vvclim = vertical viscosity coefficient limit
 c vdclim = vertical diffusion coefficient limit
 c
 c vvcric = maximum viscosity   due to shear instability    (cm**2/s)
-c              (based on local richardson number)  
+c              (based on local richardson number)
 c vdcric = maximum diffusivity due to shear instability    (cm**2/s)
 c
 c arrays used for vertical diffusion in "k-profile" mixing scheme,
 c computed in "kmix.F" and "kmixs.F".
-c note, that in this scheme temperature diffusvity might be 
+c note, that in this scheme temperature diffusvity might be
 c different from the diffusivity of all other tracers due to double
 c diffusion.
 c
@@ -94,18 +94,18 @@ c      common /cvmix1/ fkph,fkpm,bvdc,bvvc,vvclim,vdclim,vvcric,vdcric
       real*8, parameter :: vvcric=50d0, vdcric=50d0, fkpm=10d0, fkph=0
      *     .3d0,vvclim = 1000d0, vdclim = 1000d0
 
-c====================== include file "KMIX_CLEAN.COM" =======================
+c====================== include file "KMIX_CLEAN.COM" =================
 c     Define various parameters and common blocks for kmix vertical-
 c     mixing scheme; used in "kmixs.F" subroutines
 c
 c parameters for several subroutines
 c
-c  epsl    = epsln in "pconst.h" (set in "kmixinit")    = 1.0e-20 
+c  epsl    = epsln in "pconst.h" (set in "kmixinit")    = 1.0e-20
 c  epsilon = nondimensional extent of the surface layer = 0.1
 c  vonk    = von Karman's constant                      = 0.4
 c  conc1,conam,concm,conc2,zetam,conas,concs,conc3,zetas
 c          = scalar coefficients
-      
+
       real*8, parameter :: epsl=epsln, epsilon=0.1d0, vonk=0.4d0, conc1
      *     =5d0,conam=1.257d0, concm=8.380d0, conc2=16d0,zetam= -0.2d0
      *     ,conas=-28.86d0,concs=98.96d0,conc3=16d0,zetas= -1d0
@@ -117,12 +117,12 @@ c     parameters for subroutine "bldepth"
 c to compute depth of boundary layer:
 c
 c  Ricr    = critical bulk Richardson Number            = 0.3
-c  cekman  = coefficient for ekman depth                = 0.7 
+c  cekman  = coefficient for ekman depth                = 0.7
 c  cmonob  = coefficient for Monin-Obukhov depth        = 1.0
-c  concv   = ratio of interior buoyancy frequency to 
+c  concv   = ratio of interior buoyancy frequency to
 c               buoyancy frequency at entrainment depth    = 1.8
-c  hbf     = fraction of bounadry layer depth to 
-c               which absorbed solar radiation 
+c  hbf     = fraction of bounadry layer depth to
+c               which absorbed solar radiation
 c               contributes to surface buoyancy forcing    = 1.0
 c  Vtc     = non-dimensional coefficient for velocity
 c               scale of turbulant velocity shear
@@ -140,9 +140,9 @@ c
 c  nni     = number of values for zehat in the look up table
 c  nnj     = number of values for ustar in the look up table
 c
-c  wmt     = lookup table for wm, the turbulent velocity scale 
+c  wmt     = lookup table for wm, the turbulent velocity scale
 c               for momentum
-c  wst     = lookup table for ws, the turbulent velocity scale 
+c  wst     = lookup table for ws, the turbulent velocity scale
 c               for scalars
 c  deltaz  = delta zehat in table
 c  deltau  = delta ustar in table
@@ -163,23 +163,23 @@ c
 
 c      common /kmixcws2/ deltaz,deltau,rdeltaz,rdeltau,zmin,zmax,umin
 c     *     ,umax
-c for some reason, I could not compile the module if the above lines were
-c in the same comon block.
+c for some reason, I could not compile the module if the above lines
+c were in the same comon block.
 c
 c     parameters for subroutine "ri_iwmix"
 c     to compute vertical mixing coefficients below boundary layer:
 c
-c  Riinfty = local Richardson Number limit 
+c  Riinfty = local Richardson Number limit
 c              for shear instability                      = 0.7
 c  rRiinfty = 1/Riinfty
-c    (note: the vertical mixing coefficients are defined 
-c    in (m2/s) units in "kmixinit". they are initialized 
-c    in "kmixbdta" and read via namelist "eddy" in (cm2/s) 
+c    (note: the vertical mixing coefficients are defined
+c    in (m2/s) units in "kmixinit". they are initialized
+c    in "kmixbdta" and read via namelist "eddy" in (cm2/s)
 c    units using their c-g-s names)
 c   (m2/s)                                                 (cm2/s)
-c  difm0   = viscosity max due to shear instability     = vvcric 
+c  difm0   = viscosity max due to shear instability     = vvcric
 c  difs0   = diffusivity ..                             = vdcric
-c  difmiw  = viscosity background due to internal waves = fkpm 
+c  difmiw  = viscosity background due to internal waves = fkpm
 c  difsiw  = diffusivity ..                             = fkph
 c  difmcon = viscosity due to convective instability    = vvclim
 c  difscon = diffusivity ..                             = vdclim
@@ -216,7 +216,7 @@ c      common /kmixcbm/ cstar,cg
 
 c solar radiation penetration common block (used in swfrac)
 c      PARAMETER (LSRPD=3)
-c      common /SWFRCB/FSR(LSRPD),FSRZ(LSRPD),dFSRdZ(LSRPD),dFSRdZB(LSRPD)
+c      common/SWFRCB/FSR(LSRPD),FSRZ(LSRPD),dFSRdZ(LSRPD),dFSRdZB(LSRPD)
 
 c add variables for depth dependent mixing due to rough topography
 
@@ -350,12 +350,12 @@ c evaluate f of   smooth Ri (fri) for shear instability store in fri
          ratio = DMIN1( Rigg * rRiinfty , c1 )
          fri   = (c1 - ratio*ratio)
          fri   = fri  * fri   * fri
-c add increased tracer mixing over rough topography. As a first cut, 
-c assume that topography is 'rough' if kmtj != LMO. 
+c add increased tracer mixing over rough topography. As a first cut,
+c assume that topography is 'rough' if kmtj != LMO.
 c functional form kv_top = diftop * exp (-z/500) where z is
-c distance from the bottom. 
+c distance from the bottom.
 c The array FZ500 is zero if kmtj=LMO
- 
+
           ftop =  FZ500(ki,kmtj)
 
 c evaluate diffusivities and viscosity
@@ -953,7 +953,7 @@ c local
       real*8 ZE(0:LMO)                  ! GCM vertical grid
       integer lbot,j,i,l
       real*8 usta
-      
+
 c define some non-dimensional constants and
 c the vertical mixing coefficients in m-k-s units
 
@@ -1002,14 +1002,14 @@ c      rdeltau = 1./deltau
 c  set up depth dependent factor for mixing due to rough topography
 c  assume FZ500 = exp (-z/500)
 c  for two levels above bottom, starting at level km/2
- 
+
       FZ500=0.
       do lbot=LMO/2,LMO-1
          do l=lbot-2,lbot-1
             FZ500(l,lbot)=exp(-(ZE(lbot)-ZE(l))/500.)
          end do
       end do
- 
+
       return
       end subroutine kmixinit
 
@@ -1451,7 +1451,7 @@ C**** Bo includes all buoyancy and heat forcing
 
       Bo    = - GRAV*BYRHO(1)**2 *(talpha(1)*BYSHC*DELTAE -
      *       ( sbeta(1)*S(1)*1d3 + talpha(1)*BYSHC*G(1) ) * DELTAFW)
-      Bosol = - GRAV*BYRHO(1)**2 * talpha(1)*BYSHC*DELTASR 
+      Bosol = - GRAV*BYRHO(1)**2 * talpha(1)*BYSHC*DELTASR
 
 C**** Double diffusive option (ddmix) needs alphaDT,betaDS
 C**** alphaDT  = mean -talpha * delta(temp.) at interfaces (kg/m3)
@@ -1531,8 +1531,8 @@ C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
-         OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L)  ! heat flux
-         OIJL(I,J,L,IJL_WSFL)= OIJL(I,J,L,IJL_WSFL) + FLS(L)  ! salt flux
+         OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
+         OIJL(I,J,L,IJL_WSFL)= OIJL(I,J,L,IJL_WSFL) + FLS(L) ! salt flux
 c         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
 c         OIJL(I,J,L,IJL_KVGG) = OIJL(I,J,L,IJL_KVGG) + AKVG(L)*GHATG(L)
 c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
@@ -1544,8 +1544,8 @@ C**** Also set vertical diagnostics
 C**** Set diagnostics
          OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
          OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
-         OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoyancy forcing
-         OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turbulent friction speed
+         OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
+         OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
          IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL  ! save max. mixed layer depth
 C****
 C**** Update current prognostic variables
@@ -1789,7 +1789,7 @@ C**** Salinity
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
 C**** Implicitly apply interpolated KV to linear profile
-C**** No surface fluxes 
+C**** No surface fluxes
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
       GZML(1,IQ)=(GZML(1,IQ)+3d0*FLG(1))/(1d0+DTBYDZ2*AKVG(1))
       SZML(1,IQ)=(SZML(1,IQ)+3d0*FLS(1))/(1d0+DTBYDZ2*AKVS(1))
@@ -1898,7 +1898,7 @@ C****            kv * ghats * surface flux
 C**** DTBYDZ  DT/DZ_L
 C**** BYDZ2  1d0/DZ_L+1/2
 C****    DT  timestep (s)
-C****    FL  diffusive flux at boundary in units of total tracer 
+C****    FL  diffusive flux at boundary in units of total tracer
 C**** Boundary conditions assumed to be no-flux at Z=0, Z=Z(LMIJ)
 C**** Calculate operators for tridiagonal solver
       A(1) = 0

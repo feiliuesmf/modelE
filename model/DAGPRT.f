@@ -2155,7 +2155,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       USE DAGCOM, only : qcheck,acc_period,iu_il
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
-     *     ,jyear0,sige,xlabel 
+     *     ,jyear0,sige,xlabel
       USE GEOM, only : dlon,lon_dg
       IMPLICIT NONE
 
@@ -2258,7 +2258,7 @@ C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
 c      USE PRTCOM, only :
-      USE DAGCOM, only : 
+      USE DAGCOM, only :
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
@@ -3103,7 +3103,7 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
       IF(QCHECK) THEN
         DO KC=1,3
           IF(TITLE(KC,KR).ne.' ') CALL POUT_IJ(TITLE(KC,KR)//XLB,
-     *         SMAP(1,1,KC),SMAPJ(1,KC),FGLOBE(KC)) 
+     *         SMAP(1,1,KC),SMAPJ(1,KC),FGLOBE(KC))
 c     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
 c     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
             END DO
@@ -4059,7 +4059,6 @@ CB815    FKEYDS(I)=KEYNR(I,KEYCT)
       KEYCT=KEYCT+1
       KEYMAX=49
       IF (KEYNR(1,1).NE.0) KEYMAX=48
-      call set_param( "keyct", keyct, 'o' )
       IF (KEYCT.LE.KEYMAX) RETURN
 C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       DO 820 K=1,36
@@ -4069,7 +4068,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       DO 880 I=1,NKEYNR
   880 KEYNR(I,K)=0
       KEYCT=37
-      call set_param( "keyct", keyct, 'o' )
       RETURN
   901 FORMAT('1',A)
   902 FORMAT ('0',7X,'SN+IC NH NH AL AB NT NT PR        T   T-OF-ATM  EK

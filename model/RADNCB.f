@@ -19,14 +19,14 @@
       DOUBLE PRECISION, DIMENSION(4,IM,JM) :: FSF
 !@var COSZ1 Integral of Solar Zenith angle over time (????)
       DOUBLE PRECISION, DIMENSION(IM,JM) :: COSZ1
-!@var S0X solar constant multiplication factor (set-able in NAMELIST)
+!@var S0X solar constant multiplication factor                 DB-param
       REAL*8 :: S0X = 1.
-!@var CO2 carbon dioxide multiplication factor (set-able in NAMELIST)
+!@var CO2 carbon dioxide multiplication factor                 DB-param
       REAL*8 :: CO2 = 1.
 !@var RSDIST,SIND,COSD orbit related variables
       REAl*8 :: RSDIST,SIND,COSD
 
-C**** Local varaibles initialised in init_RAD
+C**** Local variables initialised in init_RAD
 !@var COE
       REAL*8, DIMENSION(LM+LM_REQ) :: COE
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
@@ -40,7 +40,7 @@ C**** Local varaibles initialised in init_RAD
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
       USE RADNCB
       IMPLICIT NONE
 
@@ -49,23 +49,26 @@ C**** Local varaibles initialised in init_RAD
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "RAD01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "RAD01"
 !@var RADDUM dummy variable
       REAL*8, DIMENSION(6) :: RADDUM
 
+      MODULE_HEADER(lhead+1:80) = 'R8 S0,SunE,sinD,cosD,Teq(3,im,jm),'//
+     *  's+tHr(0:lm,im,jm,2),fs(im,jm,4)'
+
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,
+        WRITE (kunit,err=10) MODULE_HEADER,S0,RSDIST,SIND,COSD,
      *     RQT,SRHR,TRHR,FSF
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
         CASE (ioread,IRERUN)  ! input for restart, rerun or extension
-          READ (kunit,err=10) HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,
+          READ (kunit,err=10) HEADER,S0,RSDIST,SIND,COSD,
      *       RQT,SRHR,TRHR,FSF
         CASE (IRSFIC)           ! start from old restart file
           READ (kunit,err=10) HEADER,RADDUM,RQT
         END SELECT
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

@@ -117,7 +117,7 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  1.0
 !@cont io_landice
-      USE MODEL_COM, only : im,jm,ioread,iowrite
+      USE MODEL_COM, only : im,jm
 
       IMPLICIT NONE
 !@var SNOWLI snow amount on land ice (kg/m^2)
@@ -131,7 +131,7 @@ C**** CALCULATE TG2
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,LHEAD
       USE LANDICE_COM
       IMPLICIT NONE
 
@@ -140,14 +140,16 @@ C**** CALCULATE TG2
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "GLAIC01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "GLAIC01"
+
+      MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,SNOWLI,TLANDI
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,SNOWLI,TLANDI
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF

@@ -107,12 +107,12 @@ C**** CHECK FOR BEGINNING OF EACH MONTH => RESET DIAGNOSTICS
           if (Kvflxo.ne.0) then
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
             call closeunit( iu_VFLXO )
-            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.) 
+            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
           end if
           if (Nslp.ne.0) then
             write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
             call closeunit( iu_SLP )
-            call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.) 
+            call openunit('SLP'//aDATE(1:7),iu_SLP,.true.,.false.)
           end if
         end if
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -559,7 +559,7 @@ C**** Get those parameters which are needed in this subroutine
       if(is_set_param("DT"))     call get_param( "DT", DT )
       if(is_set_param("NIsurf")) call get_param( "NIsurf", NIsurf ) !
       if(is_set_param("IRAND"))  call get_param( "IRAND", IRAND )
-      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
       call reset_diag(1)
 
@@ -877,7 +877,7 @@ C**** Get parameters we just read from rsf file. Only those
 C**** parameters which we need in "INPUT" should be extracted here.
       if(is_set_param("DTsrc"))  call get_param( "DTsrc", DTsrc )
       if(is_set_param("DT"))     call get_param( "DT", DT )
-      if(is_set_param("keyct"))  call get_param( "keyct", keyct )
+C??   if(is_set_param("keyct"))  call get_param( "keyct", keyct )
       if(is_set_param("NMONAV")) call get_param( "NMONAV", NMONAV )
 C??   if(is_set_param("ItimeE")) call get_param( "ItimeE", ItimeE ) !inp
 C??   if(is_set_param("NIdyn"))  call get_param( "NIdyn", NIdyn ) !input
@@ -892,7 +892,7 @@ C***********************************************************************
 
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
       IF (KEYCT.LE.1) KEYNR=0
-      IF (KEYCT.LE.1) KEYCT=1
+C??   IF (KEYCT.LE.1) KEYCT=1
 C****
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
@@ -909,26 +909,27 @@ C****
         stop 'INPUT: DTsrc inappropriately set'
       end if
       DTsrc = SDAY/NDAY   ! currently 1 hour
+      call set_param( "DTsrc", DTsrc, 'o' )
       NIdyn = 2*nint(.5*dtsrc/dt)
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
         stop 'INPUT: DT inappropriately set'
       end if
       DT = DTsrc/NIdyn
-C**** Restrict NMONAV to 1(default),2,3,4,6,12, i.e. a factor of 12
-      if (NMONAV.lt. 1) NMONAV=1
-      if (NMONAV.gt.12) NMONAV=12
-      NMONAV = 12/nint(12./nmonav)
+      call set_param( "DT", DT, 'o' )
+C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
+      if (NMONAV.lt.1 .or. MOD(12,NMONAV).ne.0) then
+        write (6,*) 'NMONAV has to be 1,2,3,4,6 or 12, not',NMONAV
+        stop 'INPUT: nmonav inappropriately set'
+      end if
       write (6,*) 'Diag. acc. period:',NMONAV,' month(s)'
 C****
 C**** Updating Parameters. If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database
 C****
 C**** Overwrite rundeck parameters in the DB that were changed
-      call set_param( "DTsrc", DTsrc, 'o' )
-      call set_param( "DT", DT, 'o' )
-      call set_param( "keyct", keyct, 'o' )
-      call set_param( "NMONAV", NMONAV, 'o' )
+C??   call set_param( "keyct", keyct, 'o' )
+C??   call set_param( "NMONAV", NMONAV, 'o' )
 
 C**** Overwrite non-rundeck parameters that were changed
 C??   call set_param( "ItimeE", ItimeE, 'o' ) !input
@@ -1201,7 +1202,7 @@ c        CALL CHECKE(SUBR)
       INTEGER, INTENT(IN) :: iaction,kunit
 !@var it hour of model run
       INTEGER, INTENT(INOUT) :: it
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var IT1 hour for correct reading check
       INTEGER IT1

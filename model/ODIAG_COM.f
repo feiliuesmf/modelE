@@ -11,9 +11,9 @@
      *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
      *     *KOLNST
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
-!@var OIJL  3-dimensional ocean diagnostics 
-!@var OL    vertical ocean diagnostics 
-!@var OLNST strait diagnostics 
+!@var OIJL  3-dimensional ocean diagnostics
+!@var OL    vertical ocean diagnostics
+!@var OLNST strait diagnostics
       REAL*8, DIMENSION(IM,JM,KOIJ)  :: OIJ
       REAL*8, DIMENSION(IM,JM,LMO,KOIJL) :: OIJL
       REAL*8, DIMENSION(LMO,KOL)   :: OL
@@ -21,7 +21,7 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_HBL,IJ_BO
      *     ,IJ_BOSOL,IJ_USTAR,IJ_MUSI,IJ_MVSI
-!@var IJL_xxx Names for OIJL diagnostics 
+!@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL
@@ -32,14 +32,14 @@
       INTEGER L_RHO,L_TEMP,L_SALT
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
-C**** 
+C****
       END MODULE ODIAG
 
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
 !@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun
+      USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,lhead
       USE ODIAG
       IMPLICIT NONE
 
@@ -48,10 +48,14 @@ C****
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "OCDIAG01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDIAG01"
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
+      write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
+     *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
+     *  koijl,'),Ol(',lmo,   ',',kol,'),OLNST(',LMO*NMST*KOLNST,'),it'
+   
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,OIJ,OIJL,OL,OLNST,it
@@ -60,7 +64,7 @@ C****
         CASE (IRSFIC)           ! initial conditions
         CASE (ioread,irerun)    ! restarts
           READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
-          IF (HEADER.NE.MODULE_HEADER) THEN
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version",HEADER
      *           ,MODULE_HEADER
             GO TO 10
@@ -112,7 +116,7 @@ C**** OCEAN KINETIC ENERGY
 C**** OCEAN POTENTIAL ENTHALPY
       CALL conserv_DIAG(M,conserv_OCE,icon_OCE)
 
-C**** OCEAN SALT 
+C**** OCEAN SALT
       CALL conserv_DIAG(M,conserv_OSL,icon_OSL)
 
 C****
@@ -128,16 +132,16 @@ C****
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
 
 C**** Set names for OIJ diagnostics
-      IJ_USI=1  ; IJ_VSI=2  ; IJ_DMUI=3  ; IJ_DMVI=4 
-      IJ_PICE=5 ; IJ_MUSI=6 ; IJ_MVSI=7 
+      IJ_USI=1  ; IJ_VSI=2  ; IJ_DMUI=3  ; IJ_DMVI=4
+      IJ_PICE=5 ; IJ_MUSI=6 ; IJ_MVSI=7
       IJ_HBL=8   ; IJ_BO=9  ; IJ_BOSOL=10; IJ_USTAR=11
 C**** Set names for OIJL diagnostics
       IJL_MO=1  ; IJL_G0M=2  ; IJL_S0M=3   ; IJL_MFU=4    ; IJL_MFV=5
       IJL_MFW=6 ; IJL_KVM=13; IJL_KVG=14 ; IJL_WGFL=15 ; IJL_WSFL=16
-C**** These flux diagnostics need 3 spots each      
+C**** These flux diagnostics need 3 spots each
       IJL_GFLX=7 ; IJL_SFLX=10 ; IJL_GGMFL=17 ; IJL_SGMFL=20
 C**** Set names for OLNST diagnostics
-      LN_KVM=1  ; LN_KVG=2  ; LN_WGFL=3 ; LN_WSFL=4 
+      LN_KVM=1  ; LN_KVG=2  ; LN_WGFL=3 ; LN_WSFL=4
       LN_MFLX=5 ; LN_GFLX=6 ; LN_SFLX=7 ; LN_ICFL=8
 C**** Set names for OL diagnostics
       L_RHO=1   ; L_TEMP=2  ; L_SALT=3

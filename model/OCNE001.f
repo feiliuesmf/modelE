@@ -232,7 +232,7 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
                 RSINEW = 1.     !  T0 < TIME < T1
             END IF
 C**** RSI uses quadratic fit
-            CASE (0)  
+            CASE (0)
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
             END SELECT
             RSI(I,J)=RSINEW
@@ -317,7 +317,7 @@ C**** Read in climatological ocean mixed layer depths efficiently
       END IF
       CALL READT (iu_OCNML,0,XZN,IM*JM,XZN,1)
  530  JDLAST=JDAY
-                    
+
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       FRAC = DBLE(JDmidOFM(IMON)-JDAY)/(JDmidOFM(IMON)-JDmidOFM(IMON-1))
       DO J=1,JM
@@ -583,7 +583,7 @@ C****
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
-!@var FDAILY fraction of energy available to be used for melting 
+!@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,WTRW,ENRGW,ENRGUSED,ANGLE,RUN0
@@ -634,7 +634,7 @@ C**** (FREEZING POINT OF WATER)
             SSIL(:)= SSI(:,I,J) ! sea ice salt
             WTRO=Z1O(I,J)*RHOW
             WTRW=WTRO-ROICE*(SNOW + ACE1I + MSI2)
-            ENRGW=WTRW*(TGW-TFO)*SHW*FDAILY ! energy available for melting
+            ENRGW=WTRW*(TGW-TFO)*SHW*FDAILY ! energy avail. for melting
             CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
      *           ,ENRGW,ENRGUSED,RUN0,SALT)
 C****       RUN0, SALT not needed for Qflux ocean
@@ -670,7 +670,7 @@ C****
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite
+      USE MODEL_COM, only : ioread,iowrite,lhead
       USE OCEAN
       IMPLICIT NONE
 
@@ -679,14 +679,16 @@ C****
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "OCN01"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCN01"
+
+      MODULE_HEADER(lhead+1:80) = 'R8 Tocn(3,im,jm),MixLD(im,jm)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,Z1O
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,TOCEAN,Z1O
-        IF (HEADER.NE.MODULE_HEADER) THEN
+        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
@@ -699,7 +701,7 @@ C****
       END SUBROUTINE io_ocean
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
-!@sum  io_oda reads and writes ocean data for initialisaing deep ocean 
+!@sum  io_oda reads and writes ocean data for initialisaing deep ocean
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
@@ -1157,7 +1159,7 @@ C**** This is here so that a coupled ocean is easier to implement
       USE OCEAN, only : tfo
 !@var I,J atmospheric grid point
       INTEGER, INTENT(IN) :: I,J
- 
+
 C**** for Q-flux ocean no variation with salinity is required
       TOFREZ = tfo
 

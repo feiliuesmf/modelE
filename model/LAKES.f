@@ -758,7 +758,7 @@ C**** Also remove ice fractions less than 0.0001
               HSIL =HSI(:,I,J) ! sea ice enthalpy
               SSIL =0.         ! sea ice salt (always 0)
               POCEAN=0.        ! ocean fraction (always 0)
-              TFO = 0.         ! freezing point (always 0) 
+              TFO = 0.         ! freezing point (always 0)
 C**** energy of water available for melting
               ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW*FDAILY
               CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,POCEAN,TFO,TSIL
@@ -850,7 +850,7 @@ C**** save diagnostics
 
 C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
-        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) = 0
+        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
         MWL(I,J) = MWL(I,J) +  RUN0*DXYPJ
         GML(I,J) = GML(I,J) + ERUN0*DXYPJ
@@ -984,7 +984,7 @@ C**** Resave prognostic variables
         MWL(I,J)  =(MLAKE(1)+MLAKE(2))*(FLAKE(I,J)*DXYPJ)
         GML(I,J)  =(ELAKE(1)+ELAKE(2))*(FLAKE(I,J)*DXYPJ)
         MLDLK(I,J)= MLAKE(1)/RHOW
-        IF (MLAKE(2).eq.0.) MLDLK(I,J)=MIN(MINMLD,MLDLK(I,J)) 
+        IF (MLAKE(2).eq.0.) MLDLK(I,J)=MIN(MINMLD,MLDLK(I,J))
         TLAKE(I,J)= ELAKE(1)/(SHW*MLAKE(1))
         IF (MLAKE(2).gt.0) THEN
           TLK2    = ELAKE(2)/(SHW*MLAKE(2))
