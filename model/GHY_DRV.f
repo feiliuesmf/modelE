@@ -940,6 +940,7 @@ c**** read topmodel parameters
         else   ! do not reset ghy prognostic variables
           call reset_gh_to_defaults( .false. )
         endif
+        if (istart.le.0) return
       endif
         
 ccc temporary code: dump all land surface data here
