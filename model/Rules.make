@@ -162,9 +162,9 @@ ifdef COMP_OUTPUT
 endif
 
 # cpp preprocessing
-%.cpp: %.f
+%.f.cpp: %.f
 	@echo preprocessing $<  $(MSG)
-	$(CPP) $(CPPFLAGS) $*.f > $*.cpp
+	$(CPP) $(CPPFLAGS) $*.f > $*.f.cpp
 
 # Update files
 %.o: %.U
