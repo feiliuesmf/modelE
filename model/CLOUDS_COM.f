@@ -102,6 +102,10 @@ C**** variables used (and saved) for gravity wave drag calculations
       ALLOCATE(     LMC(2,IM,J_0H:J_1H),
      *         STAT=IER)
 
+C**** Initialise some output used in dynamics
+      LMC(:,:,J_0H:J_1H)=0
+      AIRX(:,J_0H:J_1H)=0.
+
       END SUBROUTINE INIT_CLOUDS_COM
 
       END MODULE CLOUDS_COM

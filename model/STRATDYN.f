@@ -500,12 +500,11 @@ C****
 
       REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE,TLS,THLS,BVS
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
-      REAL*8, DIMENSION(LM,JM) :: DUJL
+      REAL*8, DIMENSION(JM,LM) :: DUJL
       REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,UL,VL,DL,DUT,DVT,
      *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
       REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM)
      *     ,VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
-      DATA CN(1)/0./
       REAL*8 :: DTHR,BYDT1
       INTEGER LD(NM)
       INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,LMAX
@@ -603,7 +602,7 @@ C**** parallel reductions
          THIL(:,:)=THLS(:,J,:)
          BVIL(:,:)=BVS(:,J,:)
 
-      CN(1)=0.
+      CN(:)=0.
       FCORU=(ABS(FCOR(J-1))+ABS(FCOR(J)))*BYDXYV(J)
       I=IM
       DO IP1=1,IM
@@ -627,9 +626,9 @@ c      BVFSQ=.5*(SZ(I,J-1,L)+SZ(IP1,J-1,L)+SZ(I,J,L)+SZ(IP1,J,L))/
 c     *  (DP(L)*THL(L))*GRAV*GRAV*RHO(L)
       BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAV*GRAV*RHO(L)
       IF (PL(L).GE..4d0) THEN
-         BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
-        ELSE
-         BVF(L)=SQRT(MAX(BVFSQ,1.d-4))
+        BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
+      ELSE
+        BVF(L)=SQRT(MAX(BVFSQ,1.d-4))
       END IF
 CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
       DL(L)=0.
@@ -644,6 +643,7 @@ C****
 C**** INITIALIZE THE MOMENTUM FLUX FOR VARIOUS WAVES
 C****
       MU(:)=0.
+      UR(:)=0
       LD(:)=LM+1                ! set drag level = LM+1 (turns off drag)
       WT(:)=1.                  ! initialize area weight to 1
       MUB(:,:)=0.
@@ -975,7 +975,7 @@ C**** ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
         DO L=LDRAG,LM
 cc          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
 cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR
-          DUJL(L,J)=DL(L)/(BVF(L)*BVF(L))*DTHR
+          DUJL(J,L)=DL(L)/(BVF(L)*BVF(L))*DTHR
         END DO
 C****
 C**** Save KE change and diffusion coefficient on A-grid
@@ -1048,7 +1048,7 @@ C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
               T(I,J,L)=T(I,J,L)-ediff
               AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
             END DO
-            AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(L,J)
+            AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(J,L)
           END DO
         END DO
 !$OMP  END PARALLEL DO

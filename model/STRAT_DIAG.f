@@ -132,8 +132,10 @@ C****
 C**** FMZ .............. (WUdA) VERTICAL MEAN MOMENTUM TRANSPORT
 C**** FEZ, UW(I,J,L) ... (U'W'dA) VERTICAL EDDY MOMENTUM TRANSPORT
 C****                           (m3 mb s-2)
+      UW(:,:,1)=0.
       DO L=2,LM
         WXXS(1:IM)=0.
+        UW(1:IM,1,L)=0.
         DO J=2,JM
           FMZ(J,L) = (WI(J-1,L)*RAPVN(J-1)+WI(J,L)*RAPVS(J))
      *         * (UI(J,L-1)+UI(J,L))
