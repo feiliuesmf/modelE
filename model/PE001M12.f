@@ -21,7 +21,7 @@ C****
      *     ,rhow,rhoi,shw,shi
       USE E001M12_COM
       USE GEOM
-      USE CLOUDS, only : PREC,TPREC
+      USE CLD01_COM_E001, only : PREC,TPREC
       USE DAGCOM, only : aj,bj,cj,dj,aij,jreg
       USE OCEAN, only : ODATA,OA,XSI1,XSI2,XSI3,XSI4,R2,R3,TTRUNC,Z1I
      *     ,Z2OIM,ACE1I,AC2OIM,TFO
@@ -857,7 +857,7 @@ c    &             ,QXAERO ,QSAERO ,QCAERO ,ATAERO
 c    &             ,QAER55 ,REAERO ,VEAERO ,ROAERO ,PI0MAX
 c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE RANDOM
-      USE CLOUDS, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
+      USE CLD01_COM_E001, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily,
@@ -1461,6 +1461,11 @@ C****
      *              )*COE(L)/((PSF-PTOP)*PK(L,I,J))
             END DO
          END DO
+      END DO
+C**** daily diagnostics
+      DO KR=1,4
+         ADAILY(IHOUR,1,KR)=ADAILY(IHOUR,1,KR)+S0*COSZ1(IJD6(1,KR)
+     *        ,IJD6(2,KR))
       END DO
 
       RETURN

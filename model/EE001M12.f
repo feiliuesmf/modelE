@@ -29,7 +29,7 @@ C****
      &    PRES,RHO,TSPASS=>TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
      &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
-      USE CLOUDS, only : PREC,TPREC
+      USE CLD01_COM_E001, only : PREC,TPREC
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
       USE DAGCOM, only : aijg,aij,tsfrez,tdiurn,bj,dj,adaily,jreg
