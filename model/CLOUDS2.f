@@ -1516,14 +1516,14 @@ C**** CALCULATE OPTICAL THICKNESS
      *           WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
 C**   Set CDNC for moist conv. clds (const at present)
-              MNdO = 59.68d0
+              MNdO = 59.68d0/(RWCLDOX**3)
               MNdL = 174.d0
               MNdI = 0.06417127d0          
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
               MCDNCI=MNdI                  
             IF(SVLATL(L).EQ.LHE)  THEN
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-               RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+               RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
              ELSE
 !              RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
                RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
@@ -1915,7 +1915,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
       END DO
 #endif
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
-      SNdO = 59.68d0
+      SNdO = 59.68d0/(RWCLDOX**3)
       SNdL = 174.d0
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
@@ -2003,7 +2003,7 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
 !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
-            RCLD=1d-6*RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+            RCLD=1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
@@ -2543,7 +2543,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
      *       WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
         IF(WTEM.LT.1d-10) WTEM=1.d-10
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
-      SNdO = 59.68d0
+      SNdO = 59.68d0/(RWCLDOX**3)
       SNdL = 174.d0
       SNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
@@ -2566,7 +2566,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
         IF(LHX.EQ.LHE) THEN
 
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-          RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+          RCLD=100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           QHEATC=(QHEAT(L)+FSSL(L)*CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
