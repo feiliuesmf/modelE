@@ -404,6 +404,39 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       return
       end subroutine readi
 
+      subroutine WRITEI8 (iunit,it,aout,len8)
+!@sum   WRITEI8 writes real*8 array surrounded by IT and secures it
+!@auth  Original Development Team
+!@ver   1.0
+!@var NAME name of record being read
+      USE FILEMANAGER, only : NAME=>nameunit
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT       !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: IT          !@var  IT time, 1st & last word
+      INTEGER, INTENT(IN) :: LEN8        !@var  LENGTH size of array
+      REAL*8,  INTENT(IN) :: AOUT(LEN8)  !@var  AOUT   real*8 array
+
+      write (iunit) it,aout,it
+      call sys_flush(iunit)
+      write (6,*) "Wrote to file ",TRIM(NAME(IUNIT)),", time=",it
+      return
+      END subroutine WRITEI8
+
+      subroutine READI8 (iunit,it,ain,it1,len8,iok)
+!@sum  READI reads array surrounded by IT (for post processing)
+!@auth  Original Development Team
+!@ver   1.0
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IUNIT,LEN8
+      INTEGER, INTENT(out) :: IT,it1,iok ! iok: 0='ok',1='not ok'
+      real*8  AIN(LEN8)
+      iok = 0
+      read(iunit,end=555) it,ain,it1
+      return
+  555 iok=1
+      return
+      end subroutine readi8
+
       subroutine io_POS (iunit,it,len4,itdif)
 !@sum   io_POS  positions a seq. output file for the next write operat'n
 !@auth  Original Development Team
