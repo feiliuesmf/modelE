@@ -588,7 +588,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,tf
       USE E001M12_COM
-      USE GEOM
+      USE GEOM, Jdummy=>JLAT
       USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2
       USE RE001
      &  , only : setnew,rcomp1,writer,rcompx,rcompt ! routines

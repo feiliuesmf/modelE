@@ -23,6 +23,8 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
+!@var  JLAT latitude of mid points of primary and secondary grid boxs (degrees)
+      INTEGER, DIMENSION(JM,2) :: JLAT
 !@var  LON longitude of mid points of primary and secondary grid boxs (degrees)
       REAL*8, DIMENSION(IM,2) :: LON
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
@@ -129,12 +131,17 @@ c      USE E001M12_COM
          RAVPS(J)   = .5*DXYS(J)/DXYP(J)
          RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
-C**** LONGITUDES (degrees); used in ILMAP
+C**** LONGITUDES (degrees); used in ILMAP and elsewhere
       LON(1,1) = -180.+360./(2.*FLOAT(IM))
       LON(1,2) = -180.+360./    FLOAT(IM)  
       DO I=2,IM
          LON(I,1) = LON(I-1,1)+360./FLOAT(IM)
          LON(I,2) = LON(I-1,2)+360./FLOAT(IM)
+      END DO
+C**** LATITUDES (degrees); used extensively in the diagnostic print routines
+      DO J=1,JM
+        JLAT(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
+        JLAT(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
       END DO
 C**** CALCULATE CORIOLIS PARAMETER
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
