@@ -668,7 +668,6 @@ C****
 C**** set weighting for denominator (different only for J_TYPE)
       MD=M
       IF (name_j(N).eq.'J_surf_type_frac') MD=0
-      print *, __LINE__, __FILE__, M
       DO J=1,JM
 C**** Sum over types
           QJ=0
@@ -5041,7 +5040,7 @@ C**** KP packs the quantities for postprocessing (skipping unused)
       IREGF=1
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
       IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)
-      IF (KDIAG(13).LT.0) IREGL=IREGF       ! kd13<0: show only pt -kd13    
+      IF (KDIAG(13).LT.0) IREGL=IREGF       ! kd13<0: show only pt -kd13
       DO KR=IREGF,IREGL
         WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
         WRITE (6,903)NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
