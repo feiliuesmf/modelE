@@ -1293,7 +1293,8 @@ C**** functions
 !@var FERT tracer-specific fraction of tracer in precipitate evaporating
       REAL*8 ::DTWRT,DTPRT,DTERT,DTQWT,FWTOQT,FQTOWT,FPRT,FERT
 !@var BELOW_CLOUD logical- is the current level below cloud?
-      LOGICAL BELOW_CLOUD
+!@var CLOUD_YET logical- in L loop, has there been any cloud so far?
+      LOGICAL BELOW_CLOUD,CLOUD_YET
 #endif
 
       REAL*8 Q1,AIRMR,BETA,BMAX
@@ -1393,6 +1394,7 @@ C**** initialise vertical arrays
       TRPRICE = 0.
 #endif
       BELOW_CLOUD=.false.
+      CLOUD_YET=.false.
 #endif
       DO L=1,LM
          CAREA(L)=1.-CLDSAVL(L)
@@ -1798,7 +1800,8 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(CAREA(L).LT.0.) CAREA(L)=0.
       CLDSSL(L)=1.-CAREA(L)
 #ifdef TRACERS_WATER
-      IF(CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
+      IF(CLDSSL(L).gt.0.) CLOUD_YET=.true.
+      IF(CLOUD_YET.and.CLDSSL(L).eq.0.) BELOW_CLOUD=.true.
 #endif
       TOLDUP=TOLD
       LHXUP=LHX
