@@ -42,7 +42,7 @@
       real*8, dimension(im,jm) :: uflux_ucell,vflux_ucell
 
       integer, parameter :: mout=0,itest=52,jtest=33,itmax=2
-      real*8, parameter :: tol=1.d-4,qmin=1.d-12,p00=1000.d0
+      real*8, parameter :: tol=1.d-4,qmin=1.d-20,p00=1000.d0
       integer, save :: ifirst=1
       real*8, save :: p1000k=1.d0
       real*8 :: uflx,vflx,tflx,qflx,pijgcm,pl,rvx
@@ -107,8 +107,7 @@ c     integrate T,Q equations at tcells
           qflx  =qflux(i,j)
 
           call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
-          call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij
-     2             ,dbll,lm)
+          call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
           call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,
      2           dzij,dzeij,rhoij,rhoeij,dtime,ustar2,lm)
           call diff_tq(t0ij,tij,kh,dzij,dzeij,
@@ -123,14 +122,14 @@ c     integrate T,Q equations at tcells
             end do
 
             call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
-            call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij
-     2               ,dbll,lm)
+            call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
             call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,
      2           dzij,dzeij,rhoij,rhoeij,dtime,ustar2,lm)
             call diff_tq(t0ij,tij,kh,dzij,dzeij,
      2                   rhoij,rhoeij,tflx,dtime,lm)
             call diff_tq(q0ij,qij,kh,dzij,dzeij,
      2                   rhoij,rhoeij,qflx,dtime,lm)
+            call find_pbl_top(eij,dbll,lm)
 
             test=0.d0
             icount=0
@@ -694,7 +693,7 @@ c
       real*8 :: qturb,tmp,an2,dudz,dvdz,as2
       integer :: j  !@var j loop variable
 
-      real*8, parameter :: emin=5.d-5,emax=2.d0
+      real*8, parameter :: emin=1.d-20,emax=10.d0
 c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     note: the j on the leftmost refers to the secondary grid
@@ -764,7 +763,7 @@ c
       real*8, dimension(n-1), intent(in) :: dz,dzedge
 
       real*8, dimension(n) :: zedge
-      real*8, parameter :: alpha0=0.2d0,emin=5.d-5,emax=2.d0
+      real*8, parameter :: alpha0=0.2d0
       real*8 :: dudz,dvdz,as2,lmax2
       real*8 :: sum1,sum2,qi,qim1,l0,l1,kz,an2,lmax
       integer :: i  !@var i loop variable
@@ -813,7 +812,7 @@ c     trapezoidal rule
       end subroutine lgcm
 
 
-      subroutine kgcm(km,kh,ke,gm,gh,u,v,t,e,lscale,dz,dbll,n)
+      subroutine kgcm(km,kh,ke,gm,gh,u,v,t,e,lscale,dz,n)
 c
 c     Grids:
 c
@@ -842,7 +841,6 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@var ke turbulent diffusivity for e equation
 !@var gm normalized velocity gradient, tau**2*as2
 !@var gh normalized temperature gradient, tau**2*an2
-!@var dbll number of layers where the PBL height corresponds to (real*8)
 !@var n number of GCM layers
 !@var tau B1*lscale/sqrt(2*e) 
 !@var as2 shear squared, (dudz)**2+(dvdz)**2
@@ -858,7 +856,6 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n), intent(in) :: u,v,t,e,lscale
       real*8, dimension(n-1), intent(in) :: dz
       real*8, dimension(n), intent(out) :: km,kh,ke,gm,gh
-      real*8, intent(out) :: dbll
 
       ! 0.2*lscale*qturb \approx 0.02*e*tau, because b1/2 \approx 10
       real*8, parameter ::  sq=0.02d0
@@ -895,18 +892,30 @@ c     at edge: e,lscale,km,kh,gm,gh
       do i=1,n-1
         ke(i)=0.5d0*(ke(i)+ke(i+1))
       end do
-
-c     find the pbl top (at main level lpbl)
-
-      e_lpbl=0.1d0*e(1) ! if e(main i) < e_lpbl, i is the pbl top
-      do i=1,n-1
-        e_main_i = 0.5d0*(e(i)+e(i+1))
-        dbll=i        ! dbll is real*8
-        if (e_main_i.lt.e_lpbl) exit
-      end do
-
       return
       end subroutine kgcm
+
+      subroutine find_pbl_top(e,dbll,n)
+!@sum Find the pbl top (at main level lpbl)
+!@sum if e(i) le certain fraction of e(1), real(i) is pbl top
+!@auth  Ye Cheng
+!@ver   1.0
+!@car dbll the (real*8) layer number corresponds to the top of the pbl
+      real*8, dimension(n), intent(in) :: e
+      real*8, intent(out) :: dbll
+      real*8 :: e_1,e_i ! tke at primary layer 1,i
+      real*8 :: e_1p    ! certain percent of e_1
+      integer i
+
+      e_1=0.5d0*(e(1)+e(2))
+      e_1p=0.1d0*e_1
+      do i=1,n-1
+        e_i = 0.5d0*(e(i)+e(i+1))
+        if (e_i.le.e_1p) exit
+      end do
+      dbll=i   ! dbll is real*8
+      return
+      end subroutine find_pbl_top
 
       subroutine ave_uv_to_tcell(u,v,u_tcell,v_tcell,im,jm,lm)
 !@sum Computes u_tcell,v_tcell from u,v
