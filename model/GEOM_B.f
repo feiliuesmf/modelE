@@ -46,10 +46,15 @@ c      REAL*8 :: AREAG
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and secondary grid
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
-!@var  RAIJ scaling to get A grid velocities to B grid points
-      REAL*8, DIMENSION(2*IM,IM,JM) :: RAIJ 
-!@var  IDIJ index of adjacent velocity points for A grid points
-      INTEGER, DIMENSION(2*IM,IM,JM) :: IDIJ
+!@var  RAJ scaling to get A grid velocities to B grid points
+!      as function of latitude j
+      REAL*8, DIMENSION(IM,JM) :: RAJ 
+!@var  IDJJ J index of adjacent velocity points for A grid points
+!      as function of latitude j
+      INTEGER, DIMENSION(IM,JM) :: IDJJ
+!@var  IDIJ I index of adjacent velocity points for A grid points
+!      as function of longitude i and latitude j
+      INTEGER, DIMENSION(IM,IM,JM) :: IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
 !@var  IMAXJ varying number of used longitudes 
@@ -143,33 +148,30 @@ C**** Conditions at the poles
             JVPO=JM
             RAPO=2.*RAPVS(JM)
          END IF
-         KMAXJ(J)=2*IM
+         KMAXJ(J)=IM
          IMAXJ(J)=1
+         RAJ(1:KMAXJ(J),J)=RAPO
+         IDJJ(1:KMAXJ(J),J)=JVPO
          DO I=1,IM
-            RAIJ(I   ,1:IM,J)=RAPO
-            RAIJ(I+IM,1:IM,J)=RAPO
-            IDIJ(I   ,1:IM,J)=I+(JVPO-1)*IM
-            IDIJ(I+IM,1:IM,J)=I+(JVPO-1)*IM+IM*JM*LM
+            IDIJ(I,1:IM,J)=I
          END DO
       END DO
 C**** Conditions at non-polar points
       DO J=2,JM-1
-         KMAXJ(J)=8
+         KMAXJ(J)=4
          IMAXJ(J)=IM
-         DO K=1,4
-            RAIJ(K  ,1:IM,J)=RAPVS(J)
-            RAIJ(K+4,1:IM,J)=RAPVN(J)
+         DO K=1,2
+            RAJ(K,J)=RAPVS(J)
+            IDJJ(K,J)=J
+            RAJ(K+2,J)=RAPVN(J)
+            IDJJ(K+2,J)=J+1
          END DO
          IM1=IM
          DO I=1,IM
-            IDIJ(1,I,J)=IM1+(J-1)*IM
-            IDIJ(2,I,J)=IDIJ(1,I,J)+IM*JM*LM
-            IDIJ(3,I,J)=I+(J-1)*IM
-            IDIJ(4,I,J)=IDIJ(3,I,J)+IM*JM*LM
-            IDIJ(5,I,J)=IM1+J*IM
-            IDIJ(6,I,J)=IDIJ(5,I,J)+IM*JM*LM
-            IDIJ(7,I,J)=I+J*IM
-            IDIJ(8,I,J)=IDIJ(7,I,J)+IM*JM*LM
+            IDIJ(1,I,J)=IM1
+            IDIJ(2,I,J)=I
+            IDIJ(3,I,J)=IM1
+            IDIJ(4,I,J)=I
             IM1=I
          END DO
       END DO
