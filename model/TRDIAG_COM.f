@@ -116,6 +116,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
       INTEGER ijts_isrc(ntsurfsrcmax,ntm)
+!@var ijts_aq tracer independent array for TAIJS aqueous change
+      INTEGER ijts_aq(ntm)
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings

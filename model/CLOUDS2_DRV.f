@@ -53,7 +53,7 @@
 #ifdef TRACERS_WATER
      *     ,jls_prec,taijn,tajls,tij_prec
 #ifdef TRACERS_AEROSOLS_Koch
-     *     ,jls_incloud
+     *     ,jls_incloud,taijs,ijts_aq
 #endif
 #endif
       USE CLOUDS, only : tm,tmom ! local  (i,j)
@@ -971,6 +971,8 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)*(1.-fssl(l))
             tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
      *           dt_sulf_ss(n,l)
+            taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
+     *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
           end if
 c save for cloud-sulfate correlation
           if (trname(n).eq.'SO4') then

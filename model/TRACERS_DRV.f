@@ -2388,6 +2388,7 @@ C**** Tracer sources, sinks and specials
 C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
+      ijts_aq(:)=0
 
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
@@ -3667,6 +3668,16 @@ c put in loss of SO4 from heter chem
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
+c put in source of SO4 from aqueous chem
+        k = k + 1
+        ijts_aq(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4 aqueous chem source'
+        sname_ijts(k) = 'SO4_aq_chem_source'
+        ijts_power(k) = -10.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 optical thickness
         k = k + 1
         ijts_tau(1,n) = k
