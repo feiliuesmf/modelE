@@ -183,7 +183,7 @@ C     OUTPUT DATA
      B       ,O3WJA(72,46,LX,12),O3LF(72,46,LX)
 
       COMMON/RADMAD2_TROPAER_DECADAL/      !  (user SETAER)     radfile5
-     A               TROAER(72,46,13,5,4),VDBCSU(46,12,13,3)
+     A               TROAER(72,46,13,8,4),VDBCSU(46,12,13,3)
      B              ,TAUCOL(72,46,10),VDAERO(46,12,10)
 
       COMMON/RADMAD3_DUST_SEASONAL/        !  (user SETDST)     radfile6
