@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       Subroutine atm_diffus(lbase_min,lbase_max,dtime)
 !@sum  atm_diffus updates u,v,t,q due to
 !@+  turbulent transport throughout all GCM layers
@@ -16,7 +18,7 @@
 
       USE DYNAMICS, only : pk,pdsig,plij,pek
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,u,v,t,q,p
+     *      im,jm,lm,sig,sige,u,v,t,q,p,itime
       USE CONSTANT, only : grav,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
      *     ,t2gcm,uflux1,vflux1,tflux1,qflux1
@@ -24,6 +26,13 @@
       USE DAGCOM, only : ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : b2,prt,kappa,zgs,nlevel
+cc      USE QUSDEF, only : nmom,zmoms,xymoms
+cc      USE SOMTQ_COM, only : tmom,qmom
+#ifdef TRACERS_ON
+      USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
+      USE FLUXES, only : trflux1=>tot_trsource
+      USE TRACER_DIAG_COM, only: tajln,jlnt_turb
+#endif
 
       IMPLICIT NONE
 
@@ -47,12 +56,21 @@
       real*8, dimension(lm,im,jm) :: km_gcm,km_gcm_bgrid
      2        ,dz_bgrid,dzedge_bgrid,rho_bgrid,rhoe_bgrid
       real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
+cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 
       real*8 :: uflx,vflx,tflx,qflx,tvs
       real*8 :: ustar2,dbll,reserv,t0ijl,rak,alpha1,thes,ustar,qs
       integer :: imax,kmax,idik,idjk
-      integer :: i,j,l,k,iter !@i,j,l,k loop variable
-      
+      integer :: i,j,l,k,n,iter !@i,j,l,k loop variable
+#ifdef TRACERS_ON
+!@var tr0ij initial vertical tracer concentration profile (kg/kg)
+!@var trij vertical tracer concentration profile (kg/kg)
+!@var trmomij vertical tracer concentration moment profile (kg/kg)
+      real*8, dimension(lm,ntm) :: tr0ij,trij
+cc      real*8, dimension(nmom,lm,ntm) :: trmomij
+!@var trflx surface tracer flux (-w tr) (kg/kg m/s)
+      real*8, dimension(ntm) :: trflx
+#endif
 cccc
 c     real*8, save :: p1000k
 c     REAL*8,save, DIMENSION(IM,JM,4) :: sum=0.
@@ -106,6 +124,8 @@ c     endif
             tij(l)=t_virtual(l,i,j)
             if(q(i,j,l).lt.0.d0) q(i,j,l)=qmin
             qij(l)=q(i,j,l)
+cc            qmomij(:,l)=qmom(:,i,j,l)
+cc            tmomij(:,l)=tmom(:,i,j,l) ! vertical gradients should virtual ?
             eij(l)=egcm(l,i,j)
 c           t2ij(l)=t2gcm(l,i,j)
             rhoij(l)=rho(l,i,j)
@@ -114,6 +134,15 @@ c           t2ij(l)=t2gcm(l,i,j)
             q0ij(l)=qij(l)
             e0ij(l)=eij(l)
 c           t20ij(l)=t2ij(l)
+#ifdef TRACERS_ON
+            do n=1,ntm
+              if (itime_tr0(n).le.itime) then
+                trij(l,n)=trm(i,j,l,n)
+cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
+                tr0ij(l,n)=trij(l,n)
+              end if
+            end do
+#endif
           end do
           do l=1,lm-1
             dzij(l)=dz(l,i,j)
@@ -144,6 +173,13 @@ c           t20ij(l)=t2ij(l)
           ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx
+#ifdef TRACERS_ON
+          do n=1,ntm
+            if (itime_tr0(n).le.itime) then
+              trflx(n)=trflux1(n,i,j)/rhoe(1,i,j)
+            end if
+          end do
+#endif
 
 c         if ((i.eq.itest).and.(j.eq.jtest)) then
 c           write(99,*) i,j
@@ -195,9 +231,26 @@ c    3      ustar2,tflx,dtime,lm)
           call diff_t(t0ij,tij,kh,gc,dzij,dzeij,
      2                 rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
 
+C**** also diffuse moments
+cc        call diff_mom(tmomij)
+
           ! integrate eqn for specific humidity qij
           call diff_q(q0ij,qij,kq,dzij,dzeij,
-     2         rhoij,rhoeij,rhoebydz,bydzerho,qflx,qmin,dtime,lm)
+     2         rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
+
+C**** also diffuse moments
+cc        call diff_mom(qmomij)
+
+#ifdef TRACERS_ON
+C**** Use q diffusion coefficient for tracers
+          do n=1,ntm
+            if (itime_tr0(n).le.itime) then
+              call diff_q(tr0ij(1,n),trij(1,n),kq,dzij,dzeij,
+     2             rhoij,rhoeij,rhoebydz,bydzerho,trflx(1,n),dtime,lm)
+cc        call diff_mom(trmomij)
+            end if
+          end do
+#endif
 
           !@var dbll PBL top layer number counted from below, real*8
           call find_pbl_top(eij,dbll,lm)
@@ -208,6 +261,9 @@ c    3      ustar2,tflx,dtime,lm)
             q(i,j,l)=max(qij(l),qmin)
             t0ijl=t(i,j,l)
             t(i,j,l)=tij(l)/(1.d0+deltx*Q(i,j,l))
+C**** moment variation to be added
+cc            qmom(:,i,j,l)=qmomij(:,l)
+cc            tmom(:,i,j,l)=tmomij(:,l)
             egcm(l,i,j)=eij(l)
 c           t2gcm(l,i,j)=t2ij(l)
             km_gcm(l,i,j)=km(l)
@@ -217,6 +273,16 @@ c           t2gcm(l,i,j)=t2ij(l)
             AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)
      2                 +(Q(I,J,L)-q0ij(l))*PDSIG(L,I,J)*LHE/SHA
             AJL(J,L,JL_TRBKE)=AJL(J,L,JL_TRBKE)+eij(l)
+#ifdef TRACERS_ON
+            do n=1,ntm
+              if (itime_tr0(n).le.itime) then
+                tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
+     &               (trij(l,n)-tr0ij(l,n))
+                trm(i,j,l,n)=trij(l,n)
+cc                trmom(:,i,j,l,n)=trmomij(:,l,n)
+              end if
+            end do
+#endif
           end do
 
           ! Write out diagnostics if at selected grid point:
@@ -776,7 +842,7 @@ c
       end subroutine diff_t
 
       subroutine diff_q(q0,q,kq,dz,dzedge,rho,rhoe
-     2                   ,rhoebydz,bydzerho,qflx,qmin,dtime,n)
+     2                   ,rhoebydz,bydzerho,qflx,dtime,n)
 !@sum diff_q integrates differential eqns for q (tridiag. method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -797,7 +863,7 @@ c
       real*8, dimension(n), intent(in) :: q0,kq,dz,dzedge
      2        ,rho,rhoe,rhoebydz,bydzerho
       real*8, dimension(n), intent(out) :: q
-      real*8, intent(in) :: qflx,qmin,dtime
+      real*8, intent(in) :: qflx,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
@@ -850,10 +916,6 @@ c     alpha=dtime*kq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
 c
       call tridiag(sub,dia,sup,rhs,q,n)
 c
-      do j=1,n
-         if(q(j).lt.qmin) q(j)=qmin
-      end do
-
       return
       end subroutine diff_q
 
