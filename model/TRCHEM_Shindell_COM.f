@@ -56,7 +56,11 @@ C
 !@param ny number of chemically calculated gases (no O2 or N2)
 !@param numfam number of chemical families
 !@param n_phot how often to do photolysis (in increments of DTsrc)
-!@param O3MULT =2.14D-2    !is 1.E10*2.69E13*48./6.02E26
+!@param O3MULT =2.14d-2 This is the conversion from (atm*cm) units
+!@+     (i.e. related to a Dobson Unit) to KG/m2. It is: 
+!@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
+!@+     molecules/cm3 at 1 atm pressure, 48. is molecular wt of O3,
+!@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
 !@param BYO3MULT = 1/O3MULT
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
