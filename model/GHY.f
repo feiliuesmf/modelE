@@ -1202,7 +1202,7 @@ c**** adjust canopy conductance for incoming solar radiation
            SUM=SUM+func1
            X=X+DEL
    11    continue
-         S=0.5D0*(S+(B-A)*SUM/RCL
+         S=0.5D0*(S+(B-A)*SUM/RCL)
       endif
       return
       end subroutine trapzd
