@@ -543,8 +543,18 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       real*8 :: z12o_max
       real*8 z1ox(im,jm)
 
+      if (kocean.eq.1) then
+C****   set conservation diagnostic for ocean heat
+        CONPT=CONPT0
+        QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
+        CALL SET_CON(QCON,CONPT,"OCN HEAT","(10^6 J/M**2)   ",
+     *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
+      end if
+
+      if (istart.le.0) return
+
 C**** if starting from AIC/GIC files need additional read for ocean
-      if (istart.le.2 .and. istart.gt.0) then
+      if (istart.le.2) then
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
         call io_ocean (iu_GIC,ioreadnt,ioerr)
@@ -601,12 +611,6 @@ ccc     the above line could substitute for next 3 lines w/o any change
 
 C****   initialise deep ocean arrays if required
         call init_ODEEP(iniOCEAN)
-
-C*****  set conservation diagnostic for ocean heat
-        CONPT=CONPT0
-        QCON=(/ F, F, F, T, F, T, F, T, T, F, F/)
-        CALL SET_CON(QCON,CONPT,"OCN HEAT","(10^6 J/M**2)   ",
-     *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
 
       END IF
 C**** Set fluxed arrays for oceans
