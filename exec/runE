@@ -2,7 +2,7 @@
 ## RUN     Run Climate Model saving the printout  10/21/91
    CMRUNDIR='/u/cmrun'
    OPTS=
-   if [ -f ~/.modelErc ]; then . ~/.modelErc; fi
+   if [ -f $HOME/.modelErc ]; then . $HOME/.modelErc; fi
 
    if [[ $# -le 0 ]] ; then
       echo "Usage: runE [-q] RUNID [max_#_of_processors_to_be_used (default:1)]"

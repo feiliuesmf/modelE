@@ -2,7 +2,7 @@
 
 ## defaults
   CMRUNDIR='/u/cmrun'
-  if [ -f ~/.modelErc ]; then . ~/.modelErc; fi
+  if [ -f $HOME/.modelErc ]; then . $HOME/.modelErc; fi
 
   if [[ $# -ne 1 ]] ; then
       echo "Usage: sswE RUNID"

@@ -4,7 +4,7 @@
 ## is a part of Makefile functionality. It is run as a part of
 ##           gmake setup RUN=RunID
 ## Inside the Makefile it is called (from .../decks): setup_e RunID
-## It looks for ~/.modelErc file and extracts all necessary options from
+## It looks for $HOME/.modelErc file and extracts all necessary options from
 ## there. If such file is not present the default options which are
 ## specified below will be used. Those default options are adjusted for
 ## working environment of ra.giss.nasa.gov.
@@ -23,12 +23,12 @@
    GCMSEARCHPATH="/u/cmrun"
    MAILTO=
 
-## if ~/.modelErc is present get settings from there
-   if [ -f ~/.modelErc ]; then
-     echo "Using settings from ~/.modelErc"
-     . ~/.modelErc
+## if $HOME/.modelErc is present get settings from there
+   if [ -f $HOME/.modelErc ]; then
+     echo "Using settings from $HOME/.modelErc"
+     . $HOME/.modelErc
    else
-     echo "~/.modelErc is not present. Using default settings."
+     echo "$HOME/.modelErc is not present. Using default settings."
    fi
    if [[ $MAILTO = '' ]]; then MAILTO=`whoami`; fi
    echo CMRUNDIR = $CMRUNDIR
