@@ -926,7 +926,7 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DT1,DP
+      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DP
       REAL*8 :: DT1=0.
       LOGICAL*4, SAVE :: QFILY,QFILX,QFIL2D
       INTEGER, SAVE :: NSHAP,ISIGN
