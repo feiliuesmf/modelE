@@ -5136,740 +5136,6 @@ C
       RETURN
       END SUBROUTINE SETCLD
 
-      SUBROUTINE SETSUR
-C
-C     !INCLUDE 'BR00B.COM'
-C
-ceq   DIMENSION ALBVND(11,4,6),FIELDC(11,3),VTMASK(11)
-C
-ceq   DIMENSION PRNB(6,4),PRNX(6,4)
-C
-ceq   EQUIVALENCE
-ceq  +          (V6ALB(1,1,1),ALBVND(1,1,1))
-ceq  +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
-C
-ceq   EQUIVALENCE
-ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
-C
-ceq   EQUIVALENCE
-ceq  + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
-ceq  +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
-ceq  +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
-ceq  +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
-C
-ceq  +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
-C
-ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
-C
-ceq   EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
-C
-ceq   EQUIVALENCE (ASNALB(1),ASNVIS),(ASNALB(7),ASNNIR)
-ceq   EQUIVALENCE (AOIALB(1),AOIVIS),(AOIALB(7),AOINIR)
-ceq   EQUIVALENCE (ALIALB(1),ALIVIS),(ALIALB(7),ALINIR)
-C
-ceq   DIMENSION    SRBALB(6),SRXALB(6)
-ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
-C
-ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
-C
-ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
-ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
-ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
-ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
-ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
-C
-ceq   EQUIVALENCE (FSPARE(52),BVSOIL)
-ceq   EQUIVALENCE (FSPARE(53),XVSOIL)
-ceq   EQUIVALENCE (FSPARE(54),BNSOIL)
-ceq   EQUIVALENCE (FSPARE(55),XNSOIL)
-ceq   EQUIVALENCE (FSPARE(56),BVVEGE)
-ceq   EQUIVALENCE (FSPARE(57),XVVEGE)
-ceq   EQUIVALENCE (FSPARE(58),BNVEGE)
-ceq   EQUIVALENCE (FSPARE(59),XNVEGE)
-C
-ceq   EQUIVALENCE (FSPARE(72), TSOIL)
-ceq   EQUIVALENCE (FSPARE(73), TVEGE)
-ceq   EQUIVALENCE (FSPARE(74),FTRUFS)
-ceq   EQUIVALENCE (FSPARE(75),FTRUFV)
-ceq   EQUIVALENCE (FSPARE(76),DTRUFS)
-ceq   EQUIVALENCE (FSPARE(77),DTRUFV)
-C
-CCC   SAVE
-C
-      COMMON /SSURCM/ SRFOAM,SEASON,JNORTH,NVEG
-C
-      DIMENSION BOCVN(6),BEAVN(6),BOIVN(6),BLIVN(6),BSNVN(6),BVNSUR(6)
-      DIMENSION XOCVN(6),XEAVN(6),XOIVN(6),XLIVN(6),XSNVN(6),XVNSUR(6)
-C
-CCC   DIMENSION SRFOAM(25),WMFOAM(25)
-      DIMENSION SRFOAM(25)
-C
-CCC   DATA SRFOAM/
-CCC  +     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
-CCC  +     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
-CCC  +     0.138,0.164,0.191,0.218,0.246/
-C
-CCC   DATA WMFOAM/
-CCC  +      1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00,10.00,
-CCC  +     11.00,12.00,13.00,14.00,15.00,16.00,17.00,18.00,19.00,20.00,
-CCC  +     21.00,22.00,23.00,24.00,25.00/
-C
-      DIMENSION SEASON(4)
-C                     1       2       3       4
-C                   WINTER  SPRING  SUMMER  AUTUMN
-CCC   DATA SEASON/  15.00,  105.0,  196.0,  288.0/
-C
-      REAL*8 almp(4),alsd(4),alsf(4),patchy,ali(4),albtf(4),albtr(4)
-     *     ,snfac(4)
-C
-C     -----------------------------------------------------------------
-C     Solar:     Ocean Albedo Dependence on Zenith Angle and Wind Speed
-C
-      BVH2O(WMAG)=.0488D0+.0974D0/(5.679D0+WMAG)+.0004D0/(.3333D0+WMAG)
-      XVH2O(WMAG,X)=.021D0+X*X*(.0421D0+X*(.1283D0+X*(-.04D0+X*(3.117D0
-     +              /(5.679D0+WMAG)+X*.025D0/(.3333D0+WMAG)))))
-C     -----------------------------------------------------------------
-C
-      JNORTH=MLAT46/2
-CCC   AVSCUM=0.D0
-CCC   ANSCUM=0.D0
-C
-      NV=11
-      NVEG=9
-C
-      IF(KVEGA6.LE.0) THEN  ! go from 6 bands to 2 bands
-      DO 30 K=3,6
-      DO 20 J=1,4
-      DO 10 I=1,11
-      V6ALB(I,J,K)=V6ALB(I,J,2)
-   10 CONTINUE
-   20 CONTINUE
-   30 CONTINUE
-      ENDIF
-C
-      RETURN
-C
-C--------------------------------
-      ENTRY UPDSUR(JYEARR,JJDAYR)
-C--------------------------------
-C
-C                      Define Seasonal Albedo Dependence (ALVISD,ALNIRD)
-C                      -------------------------------------------------
-C
-      XJDAY=JJDAYR
-      SEASN1=-77.0D0
-      DO 110 K=1,4
-      SEASN2=SEASON(K)
-      IF(XJDAY.LE.SEASN2) GO TO 120
-      SEASN1=SEASN2
-  110 CONTINUE
-      K=1
-      SEASN2=380.0D0
-  120 CONTINUE
-      WT2=(XJDAY-SEASN1)/(SEASN2-SEASN1)
-      WT1=1.D0-WT2
-      KS1=1+MOD(K,4)
-      KS2=1+MOD(K+1,4)
-      KN1=1+MOD(K+2,4)
-      KN2=K
-
-
-      DO 130 K=1,11
-      DO 125 L=1,6
-C     -------------------
-C     Southern Hemisphere
-C     -------------------
-      ALBVNH(K,L,1)=WT1*ALBVND(K,KS1,L)+WT2*ALBVND(K,KS2,L)
-C     -------------------
-C     Northern Hemisphere
-C     -------------------
-      ALBVNH(K,L,2)=WT1*ALBVND(K,KN1,L)+WT2*ALBVND(K,KN2,L)
-  125 CONTINUE
-  130 CONTINUE
-      RETURN
-C
-C
-C-----------------
-      ENTRY GETSUR
-C-----------------
-C
-C-----------------------------------------------------------------------
-C     Select albedo computations and fixups using KVEGA6
-C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, puddling  (SI2000)
-C     KVEGA6=-2  2-band albedo, Antarc/Greenl alb=.8, no puddling
-C     KVEGA6=-1  2-band albedo - no 'fixups'
-C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8
-C     KVEGA6= 1  6-band albedo - no 'fixups'
-C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
-C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
-C
-C                     Define Vegetation Fractions for ILON,JLAT grid box
-C                     --------------------------------------------------
-C
-CF    IF(MADSUR.GE.0) THEN
-CF    DO 200 K=1,11
-CF    PVT(K)=FVEG11(ILON,JLAT,K)
-CF200 CONTINUE
-CF    ENDIF
-C
-C           Get Albedo, Thermal Flux, Flux Derivative for each Surf Type
-C           ------------------------------------------------------------
-C
-      LATHEM=1
-      IF(JLAT.GT.JNORTH) LATHEM=2
-C
-C                                              -------------------------
-C                                              Snow Albedo Specification
-C                                              -------------------------
-      fspare(52:59)=0. ! for writer only : soil albedos
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      XSNVIS=BSNVIS
-      XSNNIR=BSNNIR
-      BSNVN(1)=BSNVIS
-      XSNVN(1)=XSNVIS
-      DO 201 L=2,6
-      BSNVN(L)=BSNNIR
-      XSNVN(L)=XSNNIR
-  201 CONTINUE
-      IF(KVEGA6.GT.0) THEN
-      DO 202 L=1,6
-      FSNAGE=1.D0
-      IF(L.GT.2) FSNAGE=2.0D0/L
-      BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-      XSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-  202 CONTINUE
-      ENDIF
-C
-      EXPSNE=1.D0
-      EXPSNO=1.D0
-      EXPSNL=1.D0
-C
-      DO 205 I=1,16
-      BXA(I)=0.D0
-  205 CONTINUE
-C
-      DO 210 K=1,33
-      TRGALB(K)=0.D0
-      BGFEMD(K)=0.D0
-      BGFEMT(K)=0.D0
-  210 CONTINUE
-C
-      BOCSUM=0.D0
-      BEASUM=0.D0
-      BOISUM=0.D0
-      BLISUM=0.D0
-      DO 220 K=1,4
-      DTRUFG(K)=0.D0
-  220 CONTINUE
-C
-      AVSCUM=0.D0
-      ANSCUM=0.D0
-C                                             --------------------------
-C                                             Ocean Albedo Specification
-C                                             --------------------------
-C
-      BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
-      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
-      IF(POCEAN.LT.1.D-04) GO TO 400
-      X=0.5D0+(0.5D0-COSZ)*ZOCSRA
-      BOCVIS=BVH2O(WMAG)  +AVSCAT+AVSCUM
-      XOCVIS=XVH2O(WMAG,X)+AVSCAT+AVSCUM
-      BOCNIR=BVH2O(WMAG)  +ANSCAT+ANSCUM
-      XOCNIR=XVH2O(WMAG,X)+ANSCAT+ANSCUM
-C
-      IWM=WMAG
-      IF(IWM.LT.1) IWM=1
-      IF(IWM.GT.24) IWM=24
-      JWM=IWM+1
-      WMJ=WMAG-IWM
-      WMI=1.D0-WMJ
-      FRFOAM=WMI*SRFOAM(IWM)+WMJ*SRFOAM(JWM)
-C
-      BOCVIS=BOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
-      XOCVIS=XOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
-      BOCNIR=BOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
-      XOCNIR=XOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
-      IF(KVEGA6.GT.0) THEN
-      BOCVN(1)=BOCVIS
-      XOCVN(1)=XOCVIS
-      DO 301 L=2,6
-      BOCVN(L)=BOCNIR
-      XOCVN(L)=XOCNIR
-  301 CONTINUE
-      ENDIF
-C
-      X=1.D0/(1.D0+WMAG)
-      AV=(-.0147087D0*X*X+.0292266D0*X-.0081079D0)*EOCTRA
-      BV=(1.01673D0-0.0083652D0*WMAG)*EOCTRA
-C
-      ITOC=TGO
-      WTOC=TGO-ITOC
-      ITOC=ITOC-ITPFT0
-      IF(ITOC.LT.124) ITOC=124
-      BOCSUM=0.D0
-      BOCM=0.D0
-      BOCP=0.D0
-C
-      DO 310 K=1,33
-      TRAPOC=AV+BV*AOCEAN(K)
-      BOCM1 =(PLANCK(ITOC-1)-(PLANCK(ITOC-1)-PLANCK(ITOC  ))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCM  =BOCM+BOCM1
-      BOCP1 =(PLANCK(ITOC+1)-(PLANCK(ITOC+1)-PLANCK(ITOC+2))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCP  =BOCP+BOCP1
-      BOC   =(PLANCK(ITOC  )-(PLANCK(ITOC  )-PLANCK(ITOC+1))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCSUM=BOCSUM+BOC
-      ITOC=ITOC+ITNEXT
-C
-      TRGALB(K)=TRGALB(K)+POCEAN*TRAPOC
-      BGFEMD(K)=BGFEMD(K)+POCEAN*(BOCP1-BOCM1)
-      BGFEMT(K)=BGFEMT(K)+POCEAN*BOC
-  310 CONTINUE
-      DTRUFG(1)=0.5D0*(BOCP-BOCM)
-C                                          -----------------------------
-C                                          Soil/Veg Albedo Specification
-C                                          -----------------------------
-  400 CONTINUE
-      IF(KVEGA6.LE.0) THEN                                      ! 2-band
-      DSFRAC=PVT(1)+PVT(10)
-      VGFRAC=1.D0-DSFRAC
-      IF(PEARTH.LT.1.D-04) GO TO 500
-      IF(SNOWE .GT.1.D-04) GO TO 420
-      BEAVIS=PVT(1)*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BEANIR=PVT(1)*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BVSOIL=BEAVIS
-      BNSOIL=BEANIR
-      DO 410 K=2,NVEG
-      BEAVIS=BEAVIS+PVT(K)*ALBVNH(K,1,LATHEM)
-      BEANIR=BEANIR+PVT(K)*ALBVNH(K,2,LATHEM)
-  410 CONTINUE
-      SEAVIS=BEAVIS
-      SEANIR=BEANIR
-      BVVEGE=BVSOIL
-      BNVEGE=BNSOIL
-      IF(VGFRAC.GT.0.001D0) THEN
-      BVVEGE=(BEAVIS-BVSOIL*DSFRAC)/VGFRAC
-      BNVEGE=(BEANIR-BNSOIL*DSFRAC)/VGFRAC
-      ENDIF
-      GO TO 440
-  420 CONTINUE
-      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
-      EXPSNE=VTFRAC
-      DSFRAC=VTFRAC
-      BEAVIS=VTFRAC*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BEANIR=VTFRAC*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      DO 430 K=2,NVEG
-      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
-      BEAVIS=BEAVIS+VTFRAC*ALBVNH(K,1,LATHEM)
-      BEANIR=BEANIR+VTFRAC*ALBVNH(K,2,LATHEM)
-      EXPSNE=EXPSNE+VTFRAC
-  430 CONTINUE
-  440 CONTINUE
-      XEAVIS=BEAVIS
-      XEANIR=BEANIR
-      BEAVIS=BEAVIS+BSNVIS*(1.D0-EXPSNE)
-      BEANIR=BEANIR+BSNNIR*(1.D0-EXPSNE)
-      XEAVIS=XEAVIS+XSNVIS*(1.D0-EXPSNE)
-      XEANIR=XEANIR+XSNNIR*(1.D0-EXPSNE)
-      VGFRAC=EXPSNE-DSFRAC
-      XVSOIL=BVSOIL
-      XNSOIL=BNSOIL
-      XVVEGE=BVVEGE
-      XNVEGE=BNVEGE
-C
-      ELSE                                                      ! 6-band
-      DSFRAC=PVT(1)+PVT(10)
-      VGFRAC=1.D0-DSFRAC
-      IF(PEARTH.LT.1.D-04) GO TO 500
-      IF(SNOWE .GT.1.D-04) GO TO 442
-      DO 431 L=1,6
-      BEAVN(L)=PVT(1)*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-  431 CONTINUE
-      BVSOIL=BEAVN(1)
-      BNSOIL=BEAVN(2)
-      DO 441 K=2,NVEG
-      DO 432 L=1,6
-      BEAVN(L)=BEAVN(L)+PVT(K)*ALBVNH(K,L,LATHEM)
-  432 CONTINUE
-  441 CONTINUE
-      SEAVIS=BEAVN(1)
-      SEANIR=BEAVN(2)
-      BVVEGE=BVSOIL
-      BNVEGE=BNSOIL
-      IF(VGFRAC.GT.0.001D0) THEN
-      BVVEGE=(BEAVN(1)-BVSOIL*DSFRAC)/VGFRAC
-      BNVEGE=(BEAVN(2)-BNSOIL*DSFRAC)/VGFRAC
-      ENDIF
-      GO TO 444
-  442 CONTINUE
-      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
-      EXPSNE=VTFRAC
-      DSFRAC=VTFRAC
-      DO 433 L=1,6
-      BEAVN(L)=VTFRAC*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-  433 CONTINUE
-      DO 443 K=2,NVEG
-      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
-      DO 434 L=1,6
-      BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,LATHEM)
-  434 CONTINUE
-      EXPSNE=EXPSNE+VTFRAC
-  443 CONTINUE
-  444 CONTINUE
-      DO 435 L=1,6
-      XEAVN(L)=BEAVN(L)
-  435 CONTINUE
-      DO 436 L=1,6
-      BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
-      XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
-  436 CONTINUE
-      VGFRAC=EXPSNE-DSFRAC
-      XVSOIL=BVSOIL
-      XNSOIL=BNSOIL
-      XVVEGE=BVVEGE
-      XNVEGE=BNVEGE
-      ENDIF                                                 ! end 6-band
-C
-      ITEA=TGE
-      WTEA=TGE-ITEA
-      ITEA=ITEA-ITPFT0
-      BEASUM=0.D0
-      BEAM=0.D0
-      BEAP=0.D0
-C
-      DO 450 K=1,33
-      TRAPEA=AGSIDV(K,1)*(1.D0-EXPSNE)
-     +      +AGSIDV(K,3)*DSFRAC*EDSTRA*(1.D0-WETTRA*WEARTH)
-     +      +AGSIDV(K,4)*VGFRAC
-      BEAM1 =(PLANCK(ITEA-1)-(PLANCK(ITEA-1)-PLANCK(ITEA  ))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEAM  =BEAM+BEAM1
-      BEAP1 =(PLANCK(ITEA+1)-(PLANCK(ITEA+1)-PLANCK(ITEA+2))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEAP  =BEAP+BEAP1
-      BEA   =(PLANCK(ITEA  )-(PLANCK(ITEA  )-PLANCK(ITEA+1))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEASUM=BEASUM+BEA
-      ITEA=ITEA+ITNEXT
-C
-      TRGALB(K)=TRGALB(K)+PEARTH*TRAPEA
-      BGFEMD(K)=BGFEMD(K)+PEARTH*(BEAP1-BEAM1)
-      BGFEMT(K)=BGFEMT(K)+PEARTH*BEA
-  450 CONTINUE
-      DTRUFG(2)=0.5D0*(BEAP-BEAM)
-C
-C                                         ------------------------------
-C                                         Ocean Ice Albedo Specification
-C                                         ------------------------------
-  500 CONTINUE
-      IF(POICE.LT.1.D-04) GO TO 600
-      IF(KVEGA6.EQ.0 .or. KVEGA6.eq.3) then
-C**** This albedo specification comes from Schramm et al 96 (4 spectral
-C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
-C**** Bare ice:
-        if(hin.gt.0. .and. hin.lt.1.)then
-          ali(1)=.76d0+.14d0*log(hin)
-          ali(2)=.247d0+.029d0*log(hin)
-          ali(3)=.055d0
-          ali(4)=.036d0
-        elseif (hin.ge.1. .and. hin.lt.2.) then
-          ali(1)=.77d0+.018d0*(hin-1)
-          ali(2)=.247d0+.196d0*(hin-1)
-          ali(3)=.055d0
-          ali(4)=.036d0
-        elseif (hin.ge.2.) then
-          ali(1)=.778d0
-          ali(2)=.443d0
-          ali(3)=.055d0
-          ali(4)=.036d0
-        endif
-        albtf(1:4)=ali(1:4)
-        albtr(1:4)=ali(1:4)
-C**** Snow:
-        if(hsn.gt.0.)then
-          if(hsn.ge.0.1d0)then
-            patchy=1d0
-          else
-            patchy=hsn/0.1d0
-          endif
-          if(flags)then         ! wet snow
-            alsf(1)=.871d0
-            alsf(2)=.702d0
-            alsf(3)=.079d0
-            alsf(4)=.001d0
-            alsd(1:4)=alsf(1:4)
-          else                  ! dry snow
-            alsf(1)=.975d0
-            alsf(2)=.832d0
-            alsf(3)=.25d0
-            alsf(4)=.025d0
-            alsd(1)=.98d0-.008d0*cosz
-            alsd(2)=.902d0-.116d0*cosz
-            alsd(3)=.384d0-.222d0*cosz
-            alsd(4)=.053d0-.0047d0*cosz
-C**** consider snow age for dry snow (not yet fully tested)
-cC**** As dry snow ages it moves towards wet snow value (Who knows?)
-c            snfac(1)=.104d0 ; snfac(2)=.130d0
-c            snfac(3)=.171d0 ; snfac(4)=.024d0
-c            ASNAGE=EXP(-0.2D0*AGESN(2))-1.
-c            alsf(1:4)=alsf(1:4)+snfac(1:4)*ASNAGE
-c            alsd(1:4)=alsd(1:4)+snfac(1:4)*ASNAGE
-          endif
-          albtf(1:4)=albtf(1:4)*(1.-patchy)+alsf(1:4)*patchy
-          albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
-        endif
-C**** Melt ponds:
-        almp(1)=.15d0+exp(-8.1d0*hmp-.47d0)
-        almp(2)=.054d0+exp(-31.8d0*hmp-.94d0)
-        almp(3)=.033d0+exp(-2.6d0*hmp-3.82d0)
-        almp(4)=.03d0
-c**** combined sea ice albedo
-        albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
-        albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
-
-        IF(KVEGA6.GT.0) THEN
-C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
-C****  (1)  250-690    -->  330-770  (1)
-C****  (2) 690-1190    -->  770-860   (2)
-C****                  -->  860-1250  (3)
-C****  (3) 1190-2380   --> 1250-1500  (4)
-C****                  --> 1500-2200  (5)
-C****  (4) 2380-4000   --> 2200-4400  (6)
-          BOIVN(1)=albtf(1)
-          XOIVN(1)=albtr(1)
-          BOIVN(2:3)=albtf(2)
-          XOIVN(2:3)=albtr(2)
-          BOIVN(4:5)=albtf(3)
-          XOIVN(4:5)=albtr(3)
-          BOIVN(6)=albtf(4)
-          XOIVN(6)=albtr(4)
-        ELSE
-C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
-C**** create a composite NIR value.
-          BOIVIS=albtf(1)
-          XOIVIS=albtr(1)
-          BOINIR=(.33d0*albtf(2)+.14d0*albtf(3)+.01d0*albtf(4))/.48d0
-          XOINIR=(.33d0*albtr(2)+.14d0*albtr(3)+.01d0*albtr(4))/.48d0
-        END IF
-        EXPSNO=1.-patchy
-C**** end of Schramm's version
-      else
-C**** original version
-      EXPSNO=EXP(-SNOWOI/DMOICE)
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
-      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
-
-c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
-c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
-      if (kvega6.lt.-2) then
-         IF(TSL.GT.273.16) THEN
-            BOIVIS=.3                                     !   Ts > 10C
-            BOINIR=.15
-            IF(TSL.LT.283.16) THEN
-               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
-               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
-            END IF
-         END IF
-      end if
-c**** End of puddling section
-      XOIVIS=BOIVIS
-      XOINIR=BOINIR
-      IF(KVEGA6.GT.0) THEN
-      DO 501 L=1,6
-      BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
-      XOIVN(L)=BOIVN(L)
-  501 CONTINUE
-      ENDIF
-      ENDIF                     ! end of pre-Schramm version
-C
-      ITOI=TGOI
-      WTOI=TGOI-ITOI
-      ITOI=ITOI-ITPFT0
-      BOISUM=0.D0
-      BOIM=0.D0
-      BOIP=0.D0
-C
-      DO 510 K=1,33
-      TRAPOI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNO)
-     +      +AGSIDV(K,2)*EICTRA*EXPSNO
-      BOIM1 =(PLANCK(ITOI-1)-(PLANCK(ITOI-1)-PLANCK(ITOI  ))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOIM  =BOIM+BOIM1
-      BOIP1 =(PLANCK(ITOI+1)-(PLANCK(ITOI+1)-PLANCK(ITOI+2))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOIP  =BOIP+BOIP1
-      BOI   =(PLANCK(ITOI  )-(PLANCK(ITOI  )-PLANCK(ITOI+1))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOISUM=BOISUM+BOI
-      ITOI=ITOI+ITNEXT
-C
-      TRGALB(K)=TRGALB(K)+POICE*TRAPOI
-      BGFEMD(K)=BGFEMD(K)+POICE*(BOIP1-BOIM1)
-      BGFEMT(K)=BGFEMT(K)+POICE*BOI
-  510 CONTINUE
-      DTRUFG(3)=0.5D0*(BOIP-BOIM)
-C                                          -----------------------------
-C                                          Land Ice Albedo Specification
-C                                          -----------------------------
-  600 CONTINUE
-      IF(PLICE.LT.1.E-04) GO TO 700
-      EXPSNL=EXP(-SNOWLI/DMLICE)
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(3))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      BLIVIS=ALIVIS*EXPSNL+BSNVIS*(1.D0-EXPSNL)
-      BLINIR=ALINIR*EXPSNL+BSNNIR*(1.D0-EXPSNL)
-C****
-C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
-C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
-C****
-      if (kvega6.ne.-1) then
-      IF( JLAT.LT.NINT(MLAT46/6.) .OR.
-     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-         AMEAN=.8
-         BLIVIS=.95
-         BLINIR=(AMEAN-.57*BLIVIS)/.43
-      END IF
-      end if
-C****
-      XLIVIS=BLIVIS
-      XLINIR=BLINIR
-      IF(KVEGA6.GT.0) THEN                             ! 6-band
-      DO 601 L=1,6
-      BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
-      XLIVN(L)=BLIVN(L)
-  601 CONTINUE
-C****
-C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
-C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
-C****
-      if (kvega6.gt.2) then
-        IF( JLAT.LT.NINT(MLAT46/6.) .OR.
-     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-          BLIVN(1)=BLIVIS
-          XLIVN(1)=XLIVIS
-          DO L=2,6
-            BLIVN(L)=BLINIR
-            XLIVN(L)=XLINIR
-          END DO
-        END IF
-      end if
-      END IF                                          ! end 6-band
-C
-      ITLI=TGLI
-      WTLI=TGLI-ITLI
-      ITLI=ITLI-ITPFT0
-      BLISUM=0.D0
-      BLIM=0.D0
-      BLIP=0.D0
-      BGF=0.D0
-      DO 610 K=1,33
-      TRAPLI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNL)
-     +      +AGSIDV(K,2)*EICTRA*EXPSNL
-      BLIM1 =(PLANCK(ITLI-1)-(PLANCK(ITLI-1)-PLANCK(ITLI  ))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLIM  =BLIM+BLIM1
-      BLIP1 =(PLANCK(ITLI+1)-(PLANCK(ITLI+1)-PLANCK(ITLI+2))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLIP  =BLIP+BLIP1
-      BLI   =(PLANCK(ITLI  )-(PLANCK(ITLI  )-PLANCK(ITLI+1))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLISUM=BLISUM+BLI
-      ITLI=ITLI+ITNEXT
-      TRGALB(K)=TRGALB(K)+PLICE*TRAPLI
-      BGFEMD(K)=BGFEMD(K)+PLICE*(BLIP1-BLIM1)
-      BGFEMT(K)=BGFEMT(K)+PLICE*BLI
-  610 CONTINUE
-      DTRUFG(4)=0.5D0*(BLIP-BLIM)
-  700 CONTINUE
-C
-      IF(KVEGA6.LT.1) THEN                                      ! 2-band
-      BVSURF= POCEAN*BOCVIS +PEARTH*BEAVIS +POICE*BOIVIS +PLICE*BLIVIS
-      XVSURF= POCEAN*XOCVIS +PEARTH*XEAVIS +POICE*XOIVIS +PLICE*XLIVIS
-      BNSURF= POCEAN*BOCNIR +PEARTH*BEANIR +POICE*BOINIR +PLICE*BLINIR
-      XNSURF= POCEAN*XOCNIR +PEARTH*XEANIR +POICE*XOINIR +PLICE*XLINIR
-C
-      K=1
-      DO 710 I=1,4
-      PRNB(6,I)=BXA(K)
-      PRNX(6,I)=BXA(K+2)
-      K=K+4
-  710 CONTINUE
-      K=2
-      DO 730 I=1,4
-      DO 720 J=1,5
-      PRNB(J,I)=BXA(K)
-      PRNX(J,I)=BXA(K+2)
-  720 CONTINUE
-      K=K+4
-  730 CONTINUE
-C
-      IF(KEEPAL.EQ.1) GO TO 800
-      SRBALB(6)=BVSURF
-      SRXALB(6)=XVSURF
-      DO 740 J=1,5
-      SRBALB(J)=BNSURF
-      SRXALB(J)=XNSURF
-  740 CONTINUE
-C
-      ELSE                                                      ! 6-band
-      DO 750 L=1,6
-      BVNSUR(L)=POCEAN*BOCVN(L)+PEARTH*BEAVN(L)
-     +         + POICE*BOIVN(L)+ PLICE*BLIVN(L)
-      XVNSUR(L)=POCEAN*XOCVN(L)+PEARTH*XEAVN(L)
-     +         + POICE*XOIVN(L)+ PLICE*XLIVN(L)
-  750 CONTINUE
-      DO 760 L=1,6
-      J=7-L
-      PRNB(J,1)=BOCVN(L)
-      PRNB(J,2)=BEAVN(L)
-      PRNB(J,3)=BOIVN(L)
-      PRNB(J,4)=BLIVN(L)
-      PRNX(J,1)=XOCVN(L)
-      PRNX(J,2)=XEAVN(L)
-      PRNX(J,3)=XOIVN(L)
-      PRNX(J,4)=XLIVN(L)
-  760 CONTINUE
-      IF(KEEPAL.EQ.1) GO TO 800
-      DO 770 J=1,6
-      L=7-J
-      SRBALB(J)=BVNSUR(L)
-      SRXALB(J)=XVNSUR(L)
-  770 CONTINUE
-      ENDIF                                                 ! end 6-band
-C
-C                     --------------------------------------------------
-C                     Define each Surface Flux Factors, Flux Derivatives
-C                     --------------------------------------------------
-  800 CONTINUE
-      BGF=0.D0
-      DO 810 K=1,33
-      BGFEMD(K)=BGFEMD(K)*0.5D0
-      BGF=BGF+BGFEMT(K)
-  810 CONTINUE
-C
-      !BGM=BOCM*POCEAN+BEAM*PEARTH+BOIM*POICE+BLIM*PLICE
-      !BGP=BOCP*POCEAN+BEAP*PEARTH+BOIP*POICE+BLIP*PLICE
-      !TTRUFG=0.5D0*(BGP-BGM)
-      FTRUFG(1)=BOCSUM/BGF
-      FTRUFG(2)=BEASUM/BGF
-      FTRUFG(3)=BOISUM/BGF
-      FTRUFG(4)=BLISUM/BGF
-      RETURN
-      END SUBROUTINE SETSUR
 
       SUBROUTINE TGAS0
 C
@@ -5896,6 +5162,7 @@ C
 C
       RETURN
       END SUBROUTINE TGAS0
+
 
       SUBROUTINE TAUGAS
 C
@@ -13639,3 +12906,719 @@ c     DATA  QAERO / LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0 /
 c     DATA  TRAXNL / LX*0.0 /
 C
 c     END BLOCK DATA RADBET
+
+
+c*********************************************************************
+c  The following part computes the albedo. It has been taken out
+c  from the radiation module with the intention to convert it later
+c  into a separate module.
+c*********************************************************************
+
+      SUBROUTINE SETSUR
+      use RE001, only: MLAT46,ALBVNH,FSPARE,AGESN,BSNVIS,ASNVIS,BSNNIR
+     &     ,ASNNIR,ASNALB,EXPSNE,EXPSNO,EXPSNL,BXA,BGFEMD,BGFEMT,DTRUFG
+     &     ,COSZ,BOCVIS,AVSCAT,BOCNIR,ANSCAT,AVFOAM,ANFOAM,EOCTRA
+     &     ,AOCEAN,BEAVIS,BEANIR,BVSOIL,BNSOIL,BVVEGE,BNVEGE,AGSIDV
+     &     ,EDSTRA,HIN,FLAGS,FMP,BOIVIS,BOINIR,DMOICE,AOIVIS,AOINIR
+     &     ,AOIALB,ESNTRA,EICTRA,DMLICE,BLIVIS,ALIVIS,BLINIR,ALINIR
+     &     ,ALIALB,BVSURF,BNSURF,FTRUFG,NV,KVEGA6,V6ALB,ALBVND,JLAT
+     &     ,XSNVIS,XSNNIR,TRGALB,POCEAN,ZOCSRA,WMAG,XOCVIS,XOCNIR
+     &     ,TGO,ITPFT0,PLANCK,ITNEXT,PVT,PEARTH,SNOWE,WEARTH,WETSRA
+     &     ,SNOLIM,VTMASK,XEAVIS,XEANIR,XVSOIL,XNSOIL,XVVEGE,XNVEGE
+     &     ,TGE,WETTRA,POICE,HSN,HMP,XOIVIS,XOINIR,SNOWOI,TSL,TGOI
+     &     ,PLICE,SNOWLI,ILON,XLIVIS,XLINIR, TGLI, XVSURF
+     &     ,XNSURF,PRNB ,PRNX,KEEPAL,SRBALB,SRXALB,SNOW_FRAC
+      implicit none
+      integer K,J,I,JYEARR,JJDAYR,KS1,KS2,KN1,KN2,L,LATHEM,IWM,JWM,
+     &     ITOC,ITEA,ITOI,ITLI
+      real*8 XJDAY,SEASN1,SEASN2,WT2,WT1,ASNAGE,FSNAGE,BOCSUM,BEASUM
+     &     ,BOISUM,BLISUM,AVSCUM,ANSCUM,WMJ,WMI,FRFOAM,AV,BV,WTOC,BOCM
+     &     ,BOCP,TRAPOC,BOCM1,BOCP1,BOC,DSFRAC,VGFRAC,SEAVIS,SEANIR
+     &     ,VTFRAC,WTEA,BEAM,BEAP,TRAPEA,BEAM1,BEAP1,BEA,WTOI,BOIM
+     &     ,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN,WTLI,BLIM,BLIP,BGF
+     &     ,TRAPLI,BLIM1,BLIP1,BLI
+      COMMON /SSURCM/ SRFOAM,SEASON,JNORTH,NVEG
+      integer JNORTH,NVEG
+C
+      real*8 BOCVN(6),BEAVN(6),BOIVN(6),BLIVN(6),BSNVN(6),BVNSUR(6)
+      real*8 XOCVN(6),XEAVN(6),XOIVN(6),XLIVN(6),XSNVN(6),XVNSUR(6)
+C
+CCC   DIMENSION SRFOAM(25),WMFOAM(25)
+      real*8 SRFOAM(25)
+C
+CCC   DATA SRFOAM/
+CCC  +     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
+CCC  +     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
+CCC  +     0.138,0.164,0.191,0.218,0.246/
+C
+CCC   DATA WMFOAM/
+CCC  +      1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00,10.00,
+CCC  +     11.00,12.00,13.00,14.00,15.00,16.00,17.00,18.00,19.00,20.00,
+CCC  +     21.00,22.00,23.00,24.00,25.00/
+C
+      real*8 SEASON(4)
+C                     1       2       3       4
+C                   WINTER  SPRING  SUMMER  AUTUMN
+CCC   DATA SEASON/  15.00,  105.0,  196.0,  288.0/
+C
+      REAL*8 almp(4),alsd(4),alsf(4),patchy,ali(4),albtf(4),albtr(4)
+     *     ,snfac(4)
+C
+C     -----------------------------------------------------------------
+C     Solar:     Ocean Albedo Dependence on Zenith Angle and Wind Speed
+C
+      real*8 BVH2O, XVH2O, WMAG1, X
+      BVH2O(WMAG1)=.0488D0+.0974D0/(5.679D0+WMAG1)+
+     &     .0004D0/(.3333D0+WMAG1)
+      XVH2O(WMAG1,X)=.021D0+X*X*(.0421D0+X*(.1283D0+X*(-.04D0+X*(3.117D0
+     +              /(5.679D0+WMAG1)+X*.025D0/(.3333D0+WMAG1)))))
+C     -----------------------------------------------------------------
+C
+      JNORTH=MLAT46/2
+CCC   AVSCUM=0.D0
+CCC   ANSCUM=0.D0
+C
+      NV=11
+      NVEG=9
+C
+      IF(KVEGA6.LE.0) THEN  ! go from 6 bands to 2 bands
+      DO 30 K=3,6
+      DO 20 J=1,4
+      DO 10 I=1,11
+      V6ALB(I,J,K)=V6ALB(I,J,2)
+   10 CONTINUE
+   20 CONTINUE
+   30 CONTINUE
+      ENDIF
+C
+      RETURN
+C
+C--------------------------------
+      ENTRY UPDSUR(JYEARR,JJDAYR)
+C--------------------------------
+C
+C                      Define Seasonal Albedo Dependence (ALVISD,ALNIRD)
+C                      -------------------------------------------------
+C
+      XJDAY=JJDAYR
+      SEASN1=-77.0D0
+      DO 110 K=1,4
+      SEASN2=SEASON(K)
+      IF(XJDAY.LE.SEASN2) GO TO 120
+      SEASN1=SEASN2
+  110 CONTINUE
+      K=1
+      SEASN2=380.0D0
+  120 CONTINUE
+      WT2=(XJDAY-SEASN1)/(SEASN2-SEASN1)
+      WT1=1.D0-WT2
+      KS1=1+MOD(K,4)
+      KS2=1+MOD(K+1,4)
+      KN1=1+MOD(K+2,4)
+      KN2=K
+
+
+      DO 130 K=1,11
+      DO 125 L=1,6
+C     -------------------
+C     Southern Hemisphere
+C     -------------------
+      ALBVNH(K,L,1)=WT1*ALBVND(K,KS1,L)+WT2*ALBVND(K,KS2,L)
+C     -------------------
+C     Northern Hemisphere
+C     -------------------
+      ALBVNH(K,L,2)=WT1*ALBVND(K,KN1,L)+WT2*ALBVND(K,KN2,L)
+  125 CONTINUE
+  130 CONTINUE
+      RETURN
+C
+C
+C-----------------
+      ENTRY GETSUR
+C-----------------
+C
+C-----------------------------------------------------------------------
+C     Select albedo computations and fixups using KVEGA6
+C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, puddling  (SI2000)
+C     KVEGA6=-2  2-band albedo, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6=-1  2-band albedo - no 'fixups'
+C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8
+C     KVEGA6= 1  6-band albedo - no 'fixups'
+C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
+C
+C                     Define Vegetation Fractions for ILON,JLAT grid box
+C                     --------------------------------------------------
+C
+CF    IF(MADSUR.GE.0) THEN
+CF    DO 200 K=1,11
+CF    PVT(K)=FVEG11(ILON,JLAT,K)
+CF200 CONTINUE
+CF    ENDIF
+C
+C           Get Albedo, Thermal Flux, Flux Derivative for each Surf Type
+C           ------------------------------------------------------------
+C
+      LATHEM=1
+      IF(JLAT.GT.JNORTH) LATHEM=2
+C
+C                                              -------------------------
+C                                              Snow Albedo Specification
+C                                              -------------------------
+      fspare(52:59)=0. ! for writer only : soil albedos
+      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
+      BSNVIS=ASNVIS+ASNAGE
+      BSNNIR=ASNNIR+ASNAGE
+      XSNVIS=BSNVIS
+      XSNNIR=BSNNIR
+      BSNVN(1)=BSNVIS
+      XSNVN(1)=XSNVIS
+      DO 201 L=2,6
+      BSNVN(L)=BSNNIR
+      XSNVN(L)=XSNNIR
+  201 CONTINUE
+      IF(KVEGA6.GT.0) THEN
+      DO 202 L=1,6
+      FSNAGE=1.D0
+      IF(L.GT.2) FSNAGE=2.0D0/L
+      BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+      XSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+  202 CONTINUE
+      ENDIF
+C
+      EXPSNE=1.D0
+      EXPSNO=1.D0
+      EXPSNL=1.D0
+C
+      DO 205 I=1,16
+      BXA(I)=0.D0
+  205 CONTINUE
+C
+      DO 210 K=1,33
+      TRGALB(K)=0.D0
+      BGFEMD(K)=0.D0
+      BGFEMT(K)=0.D0
+  210 CONTINUE
+C
+      BOCSUM=0.D0
+      BEASUM=0.D0
+      BOISUM=0.D0
+      BLISUM=0.D0
+      DO 220 K=1,4
+      DTRUFG(K)=0.D0
+  220 CONTINUE
+C
+      AVSCUM=0.D0
+      ANSCUM=0.D0
+C                                             --------------------------
+C                                             Ocean Albedo Specification
+C                                             --------------------------
+C
+      BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
+      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
+      IF(POCEAN.LT.1.D-04) GO TO 400
+      X=0.5D0+(0.5D0-COSZ)*ZOCSRA
+      BOCVIS=BVH2O(WMAG)  +AVSCAT+AVSCUM
+      XOCVIS=XVH2O(WMAG,X)+AVSCAT+AVSCUM
+      BOCNIR=BVH2O(WMAG)  +ANSCAT+ANSCUM
+      XOCNIR=XVH2O(WMAG,X)+ANSCAT+ANSCUM
+C
+      IWM=WMAG
+      IF(IWM.LT.1) IWM=1
+      IF(IWM.GT.24) IWM=24
+      JWM=IWM+1
+      WMJ=WMAG-IWM
+      WMI=1.D0-WMJ
+      FRFOAM=WMI*SRFOAM(IWM)+WMJ*SRFOAM(JWM)
+C
+      BOCVIS=BOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
+      XOCVIS=XOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
+      BOCNIR=BOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
+      XOCNIR=XOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
+      IF(KVEGA6.GT.0) THEN
+      BOCVN(1)=BOCVIS
+      XOCVN(1)=XOCVIS
+      DO 301 L=2,6
+      BOCVN(L)=BOCNIR
+      XOCVN(L)=XOCNIR
+  301 CONTINUE
+      ENDIF
+C
+      X=1.D0/(1.D0+WMAG)
+      AV=(-.0147087D0*X*X+.0292266D0*X-.0081079D0)*EOCTRA
+      BV=(1.01673D0-0.0083652D0*WMAG)*EOCTRA
+C
+      ITOC=TGO
+      WTOC=TGO-ITOC
+      ITOC=ITOC-ITPFT0
+      IF(ITOC.LT.124) ITOC=124
+      BOCSUM=0.D0
+      BOCM=0.D0
+      BOCP=0.D0
+C
+      DO 310 K=1,33
+      TRAPOC=AV+BV*AOCEAN(K)
+      BOCM1 =(PLANCK(ITOC-1)-(PLANCK(ITOC-1)-PLANCK(ITOC  ))*WTOC)
+     +      *(1.D0-TRAPOC)
+      BOCM  =BOCM+BOCM1
+      BOCP1 =(PLANCK(ITOC+1)-(PLANCK(ITOC+1)-PLANCK(ITOC+2))*WTOC)
+     +      *(1.D0-TRAPOC)
+      BOCP  =BOCP+BOCP1
+      BOC   =(PLANCK(ITOC  )-(PLANCK(ITOC  )-PLANCK(ITOC+1))*WTOC)
+     +      *(1.D0-TRAPOC)
+      BOCSUM=BOCSUM+BOC
+      ITOC=ITOC+ITNEXT
+C
+      TRGALB(K)=TRGALB(K)+POCEAN*TRAPOC
+      BGFEMD(K)=BGFEMD(K)+POCEAN*(BOCP1-BOCM1)
+      BGFEMT(K)=BGFEMT(K)+POCEAN*BOC
+  310 CONTINUE
+      DTRUFG(1)=0.5D0*(BOCP-BOCM)
+C                                          -----------------------------
+C                                          Soil/Veg Albedo Specification
+C                                          -----------------------------
+  400 CONTINUE
+!!! teting with no snow
+!!!   snowe = 0.
+      IF(KVEGA6.LE.0) THEN                                      ! 2-band
+      DSFRAC=PVT(1)+PVT(10)
+      VGFRAC=1.D0-DSFRAC
+      IF(PEARTH.LT.1.D-04) GO TO 500
+      IF(SNOWE .GT.1.D-04) GO TO 420
+      BEAVIS=PVT(1)*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+      BEANIR=PVT(1)*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+      BVSOIL=BEAVIS
+      BNSOIL=BEANIR
+      DO 410 K=2,NVEG
+      BEAVIS=BEAVIS+PVT(K)*ALBVNH(K,1,LATHEM)
+      BEANIR=BEANIR+PVT(K)*ALBVNH(K,2,LATHEM)
+  410 CONTINUE
+      SEAVIS=BEAVIS
+      SEANIR=BEANIR
+      BVVEGE=BVSOIL
+      BNVEGE=BNSOIL
+      IF(VGFRAC.GT.0.001D0) THEN
+      BVVEGE=(BEAVIS-BVSOIL*DSFRAC)/VGFRAC
+      BNVEGE=(BEANIR-BNSOIL*DSFRAC)/VGFRAC
+      ENDIF
+      GO TO 440
+  420 CONTINUE
+cc      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
+       VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
+ccc      EXPSNE=VTFRAC
+ccc      DSFRAC=VTFRAC
+cc      EXPSNE=VTFRAC + PVT(10)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(10)))
+      EXPSNE=VTFRAC +
+     &      PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
+      DSFRAC=EXPSNE
+      BEAVIS=VTFRAC*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+      BEANIR=VTFRAC*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+      DO 430 K=2,NVEG
+cc      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
+      VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
+      BEAVIS=BEAVIS+VTFRAC*ALBVNH(K,1,LATHEM)
+      BEANIR=BEANIR+VTFRAC*ALBVNH(K,2,LATHEM)
+      EXPSNE=EXPSNE+VTFRAC
+  430 CONTINUE
+  440 CONTINUE
+      XEAVIS=BEAVIS
+      XEANIR=BEANIR
+      BEAVIS=BEAVIS+BSNVIS*(1.D0-EXPSNE)
+      BEANIR=BEANIR+BSNNIR*(1.D0-EXPSNE)
+      XEAVIS=XEAVIS+XSNVIS*(1.D0-EXPSNE)
+      XEANIR=XEANIR+XSNNIR*(1.D0-EXPSNE)
+      VGFRAC=EXPSNE-DSFRAC
+      XVSOIL=BVSOIL
+      XNSOIL=BNSOIL
+      XVVEGE=BVVEGE
+      XNVEGE=BNVEGE
+C
+      ELSE                                                      ! 6-band
+      DSFRAC=PVT(1)+PVT(10)
+      VGFRAC=1.D0-DSFRAC
+      IF(PEARTH.LT.1.D-04) GO TO 500
+      IF(SNOWE .GT.1.D-04) GO TO 442
+      DO 431 L=1,6
+      BEAVN(L)=PVT(1)*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+  431 CONTINUE
+      BVSOIL=BEAVN(1)
+      BNSOIL=BEAVN(2)
+      DO 441 K=2,NVEG
+      DO 432 L=1,6
+      BEAVN(L)=BEAVN(L)+PVT(K)*ALBVNH(K,L,LATHEM)
+  432 CONTINUE
+  441 CONTINUE
+      SEAVIS=BEAVN(1)
+      SEANIR=BEAVN(2)
+      BVVEGE=BVSOIL
+      BNVEGE=BNSOIL
+      IF(VGFRAC.GT.0.001D0) THEN
+      BVVEGE=(BEAVN(1)-BVSOIL*DSFRAC)/VGFRAC
+      BNVEGE=(BEAVN(2)-BNSOIL*DSFRAC)/VGFRAC
+      ENDIF
+      GO TO 444
+  442 CONTINUE
+cc      VTFRAC=PVT(1)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(1)))
+      VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
+ccc      EXPSNE=VTFRAC
+ccc      DSFRAC=VTFRAC
+cc      EXPSNE=VTFRAC + PVT(10)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(10)))
+      EXPSNE=VTFRAC +
+     &     PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
+      DSFRAC=EXPSNE
+      DO 433 L=1,6
+      BEAVN(L)=VTFRAC*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+  433 CONTINUE
+      DO 443 K=2,NVEG
+cc      VTFRAC=PVT(K)*MAX(SNOLIM,EXP(-SNOWE/VTMASK(K)))
+      VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
+      DO 434 L=1,6
+      BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,LATHEM)
+  434 CONTINUE
+      EXPSNE=EXPSNE+VTFRAC
+  443 CONTINUE
+  444 CONTINUE
+      DO 435 L=1,6
+      XEAVN(L)=BEAVN(L)
+  435 CONTINUE
+      DO 436 L=1,6
+      BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
+      XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
+  436 CONTINUE
+      VGFRAC=EXPSNE-DSFRAC
+      XVSOIL=BVSOIL
+      XNSOIL=BNSOIL
+      XVVEGE=BVVEGE
+      XNVEGE=BNVEGE
+      ENDIF                                                 ! end 6-band
+C
+      ITEA=TGE
+      WTEA=TGE-ITEA
+      ITEA=ITEA-ITPFT0
+      BEASUM=0.D0
+      BEAM=0.D0
+      BEAP=0.D0
+C
+      DO 450 K=1,33
+      TRAPEA=AGSIDV(K,1)*(1.D0-EXPSNE)
+     +      +AGSIDV(K,3)*DSFRAC*EDSTRA*(1.D0-WETTRA*WEARTH)
+     +      +AGSIDV(K,4)*VGFRAC
+      BEAM1 =(PLANCK(ITEA-1)-(PLANCK(ITEA-1)-PLANCK(ITEA  ))*WTEA)
+     +      *(1.D0-TRAPEA)
+      BEAM  =BEAM+BEAM1
+      BEAP1 =(PLANCK(ITEA+1)-(PLANCK(ITEA+1)-PLANCK(ITEA+2))*WTEA)
+     +      *(1.D0-TRAPEA)
+      BEAP  =BEAP+BEAP1
+      BEA   =(PLANCK(ITEA  )-(PLANCK(ITEA  )-PLANCK(ITEA+1))*WTEA)
+     +      *(1.D0-TRAPEA)
+      BEASUM=BEASUM+BEA
+      ITEA=ITEA+ITNEXT
+C
+      TRGALB(K)=TRGALB(K)+PEARTH*TRAPEA
+      BGFEMD(K)=BGFEMD(K)+PEARTH*(BEAP1-BEAM1)
+      BGFEMT(K)=BGFEMT(K)+PEARTH*BEA
+  450 CONTINUE
+      DTRUFG(2)=0.5D0*(BEAP-BEAM)
+C
+C                                         ------------------------------
+C                                         Ocean Ice Albedo Specification
+C                                         ------------------------------
+  500 CONTINUE
+      IF(POICE.LT.1.D-04) GO TO 600
+      IF(KVEGA6.EQ.0 .or. KVEGA6.eq.3) then
+C**** This albedo specification comes from Schramm et al 96 (4 spectral
+C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
+C**** Bare ice:
+        if(hin.gt.0. .and. hin.lt.1.)then
+          ali(1)=.76d0+.14d0*log(hin)
+          ali(2)=.247d0+.029d0*log(hin)
+          ali(3)=.055d0
+          ali(4)=.036d0
+        elseif (hin.ge.1. .and. hin.lt.2.) then
+          ali(1)=.77d0+.018d0*(hin-1)
+          ali(2)=.247d0+.196d0*(hin-1)
+          ali(3)=.055d0
+          ali(4)=.036d0
+        elseif (hin.ge.2.) then
+          ali(1)=.778d0
+          ali(2)=.443d0
+          ali(3)=.055d0
+          ali(4)=.036d0
+        endif
+        albtf(1:4)=ali(1:4)
+        albtr(1:4)=ali(1:4)
+C**** Snow:
+        if(hsn.gt.0.)then
+          if(hsn.ge.0.1d0)then
+            patchy=1d0
+          else
+            patchy=hsn/0.1d0
+          endif
+          if(flags)then         ! wet snow
+            alsf(1)=.871d0
+            alsf(2)=.702d0
+            alsf(3)=.079d0
+            alsf(4)=.001d0
+            alsd(1:4)=alsf(1:4)
+          else                  ! dry snow
+            alsf(1)=.975d0
+            alsf(2)=.832d0
+            alsf(3)=.25d0
+            alsf(4)=.025d0
+            alsd(1)=.98d0-.008d0*cosz
+            alsd(2)=.902d0-.116d0*cosz
+            alsd(3)=.384d0-.222d0*cosz
+            alsd(4)=.053d0-.0047d0*cosz
+C**** consider snow age for dry snow (not yet fully tested)
+cC**** As dry snow ages it moves towards wet snow value (Who knows?)
+c            snfac(1)=.104d0 ; snfac(2)=.130d0
+c            snfac(3)=.171d0 ; snfac(4)=.024d0
+c            ASNAGE=EXP(-0.2D0*AGESN(2))-1.
+c            alsf(1:4)=alsf(1:4)+snfac(1:4)*ASNAGE
+c            alsd(1:4)=alsd(1:4)+snfac(1:4)*ASNAGE
+          endif
+          albtf(1:4)=albtf(1:4)*(1.-patchy)+alsf(1:4)*patchy
+          albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
+        endif
+C**** Melt ponds:
+        almp(1)=.15d0+exp(-8.1d0*hmp-.47d0)
+        almp(2)=.054d0+exp(-31.8d0*hmp-.94d0)
+        almp(3)=.033d0+exp(-2.6d0*hmp-3.82d0)
+        almp(4)=.03d0
+c**** combined sea ice albedo
+        albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
+        albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
+
+        IF(KVEGA6.GT.0) THEN
+C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
+C****  (1)  250-690    -->  330-770  (1)
+C****  (2) 690-1190    -->  770-860   (2)
+C****                  -->  860-1250  (3)
+C****  (3) 1190-2380   --> 1250-1500  (4)
+C****                  --> 1500-2200  (5)
+C****  (4) 2380-4000   --> 2200-4400  (6)
+          BOIVN(1)=albtf(1)
+          XOIVN(1)=albtr(1)
+          BOIVN(2:3)=albtf(2)
+          XOIVN(2:3)=albtr(2)
+          BOIVN(4:5)=albtf(3)
+          XOIVN(4:5)=albtr(3)
+          BOIVN(6)=albtf(4)
+          XOIVN(6)=albtr(4)
+        ELSE
+C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
+C**** create a composite NIR value.
+          BOIVIS=albtf(1)
+          XOIVIS=albtr(1)
+          BOINIR=(.33d0*albtf(2)+.14d0*albtf(3)+.01d0*albtf(4))/.48d0
+          XOINIR=(.33d0*albtr(2)+.14d0*albtr(3)+.01d0*albtr(4))/.48d0
+        END IF
+        EXPSNO=1.-patchy
+C**** end of Schramm's version
+      else
+C**** original version
+      EXPSNO=EXP(-SNOWOI/DMOICE)
+      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
+      BSNVIS=ASNVIS+ASNAGE
+      BSNNIR=ASNNIR+ASNAGE
+      BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
+      BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
+
+c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
+c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
+      if (kvega6.lt.-2) then
+         IF(TSL.GT.273.16) THEN
+            BOIVIS=.3                                     !   Ts > 10C
+            BOINIR=.15
+            IF(TSL.LT.283.16) THEN
+               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
+               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
+            END IF
+         END IF
+      end if
+c**** End of puddling section
+      XOIVIS=BOIVIS
+      XOINIR=BOINIR
+      IF(KVEGA6.GT.0) THEN
+      DO 501 L=1,6
+      BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
+      XOIVN(L)=BOIVN(L)
+  501 CONTINUE
+      ENDIF
+      ENDIF                     ! end of pre-Schramm version
+C
+      ITOI=TGOI
+      WTOI=TGOI-ITOI
+      ITOI=ITOI-ITPFT0
+      BOISUM=0.D0
+      BOIM=0.D0
+      BOIP=0.D0
+C
+      DO 510 K=1,33
+      TRAPOI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNO)
+     +      +AGSIDV(K,2)*EICTRA*EXPSNO
+      BOIM1 =(PLANCK(ITOI-1)-(PLANCK(ITOI-1)-PLANCK(ITOI  ))*WTOI)
+     +      *(1.D0-TRAPOI)
+      BOIM  =BOIM+BOIM1
+      BOIP1 =(PLANCK(ITOI+1)-(PLANCK(ITOI+1)-PLANCK(ITOI+2))*WTOI)
+     +      *(1.D0-TRAPOI)
+      BOIP  =BOIP+BOIP1
+      BOI   =(PLANCK(ITOI  )-(PLANCK(ITOI  )-PLANCK(ITOI+1))*WTOI)
+     +      *(1.D0-TRAPOI)
+      BOISUM=BOISUM+BOI
+      ITOI=ITOI+ITNEXT
+C
+      TRGALB(K)=TRGALB(K)+POICE*TRAPOI
+      BGFEMD(K)=BGFEMD(K)+POICE*(BOIP1-BOIM1)
+      BGFEMT(K)=BGFEMT(K)+POICE*BOI
+  510 CONTINUE
+      DTRUFG(3)=0.5D0*(BOIP-BOIM)
+C                                          -----------------------------
+C                                          Land Ice Albedo Specification
+C                                          -----------------------------
+  600 CONTINUE
+      IF(PLICE.LT.1.E-04) GO TO 700
+      EXPSNL=EXP(-SNOWLI/DMLICE)
+      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(3))
+      BSNVIS=ASNVIS+ASNAGE
+      BSNNIR=ASNNIR+ASNAGE
+      BLIVIS=ALIVIS*EXPSNL+BSNVIS*(1.D0-EXPSNL)
+      BLINIR=ALINIR*EXPSNL+BSNNIR*(1.D0-EXPSNL)
+C****
+C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
+C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
+C****
+      if (kvega6.ne.-1) then
+      IF( JLAT.LT.NINT(MLAT46/6.) .OR.
+     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
+         AMEAN=.8
+         BLIVIS=.95
+         BLINIR=(AMEAN-.57*BLIVIS)/.43
+      END IF
+      end if
+C****
+      XLIVIS=BLIVIS
+      XLINIR=BLINIR
+      IF(KVEGA6.GT.0) THEN                             ! 6-band
+      DO 601 L=1,6
+      BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
+      XLIVN(L)=BLIVN(L)
+  601 CONTINUE
+C****
+C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
+C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
+C****
+      if (kvega6.gt.2) then
+        IF( JLAT.LT.NINT(MLAT46/6.) .OR.
+     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
+          BLIVN(1)=BLIVIS
+          XLIVN(1)=XLIVIS
+          DO L=2,6
+            BLIVN(L)=BLINIR
+            XLIVN(L)=XLINIR
+          END DO
+        END IF
+      end if
+      END IF                                          ! end 6-band
+C
+      ITLI=TGLI
+      WTLI=TGLI-ITLI
+      ITLI=ITLI-ITPFT0
+      BLISUM=0.D0
+      BLIM=0.D0
+      BLIP=0.D0
+      BGF=0.D0
+      DO 610 K=1,33
+      TRAPLI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNL)
+     +      +AGSIDV(K,2)*EICTRA*EXPSNL
+      BLIM1 =(PLANCK(ITLI-1)-(PLANCK(ITLI-1)-PLANCK(ITLI  ))*WTLI)
+     +      *(1.D0-TRAPLI)
+      BLIM  =BLIM+BLIM1
+      BLIP1 =(PLANCK(ITLI+1)-(PLANCK(ITLI+1)-PLANCK(ITLI+2))*WTLI)
+     +      *(1.D0-TRAPLI)
+      BLIP  =BLIP+BLIP1
+      BLI   =(PLANCK(ITLI  )-(PLANCK(ITLI  )-PLANCK(ITLI+1))*WTLI)
+     +      *(1.D0-TRAPLI)
+      BLISUM=BLISUM+BLI
+      ITLI=ITLI+ITNEXT
+      TRGALB(K)=TRGALB(K)+PLICE*TRAPLI
+      BGFEMD(K)=BGFEMD(K)+PLICE*(BLIP1-BLIM1)
+      BGFEMT(K)=BGFEMT(K)+PLICE*BLI
+  610 CONTINUE
+      DTRUFG(4)=0.5D0*(BLIP-BLIM)
+  700 CONTINUE
+C
+      IF(KVEGA6.LT.1) THEN                                      ! 2-band
+      BVSURF= POCEAN*BOCVIS +PEARTH*BEAVIS +POICE*BOIVIS +PLICE*BLIVIS
+      XVSURF= POCEAN*XOCVIS +PEARTH*XEAVIS +POICE*XOIVIS +PLICE*XLIVIS
+      BNSURF= POCEAN*BOCNIR +PEARTH*BEANIR +POICE*BOINIR +PLICE*BLINIR
+      XNSURF= POCEAN*XOCNIR +PEARTH*XEANIR +POICE*XOINIR +PLICE*XLINIR
+C
+      K=1
+      DO 710 I=1,4
+      PRNB(6,I)=BXA(K)
+      PRNX(6,I)=BXA(K+2)
+      K=K+4
+  710 CONTINUE
+      K=2
+      DO 730 I=1,4
+      DO 720 J=1,5
+      PRNB(J,I)=BXA(K)
+      PRNX(J,I)=BXA(K+2)
+  720 CONTINUE
+      K=K+4
+  730 CONTINUE
+C
+      IF(KEEPAL.EQ.1) GO TO 800
+      SRBALB(6)=BVSURF
+      SRXALB(6)=XVSURF
+      DO 740 J=1,5
+      SRBALB(J)=BNSURF
+      SRXALB(J)=XNSURF
+  740 CONTINUE
+C
+      ELSE                                                      ! 6-band
+      DO 750 L=1,6
+      BVNSUR(L)=POCEAN*BOCVN(L)+PEARTH*BEAVN(L)
+     +         + POICE*BOIVN(L)+ PLICE*BLIVN(L)
+      XVNSUR(L)=POCEAN*XOCVN(L)+PEARTH*XEAVN(L)
+     +         + POICE*XOIVN(L)+ PLICE*XLIVN(L)
+  750 CONTINUE
+      DO 760 L=1,6
+      J=7-L
+      PRNB(J,1)=BOCVN(L)
+      PRNB(J,2)=BEAVN(L)
+      PRNB(J,3)=BOIVN(L)
+      PRNB(J,4)=BLIVN(L)
+      PRNX(J,1)=XOCVN(L)
+      PRNX(J,2)=XEAVN(L)
+      PRNX(J,3)=XOIVN(L)
+      PRNX(J,4)=XLIVN(L)
+  760 CONTINUE
+      IF(KEEPAL.EQ.1) GO TO 800
+      DO 770 J=1,6
+      L=7-J
+      SRBALB(J)=BVNSUR(L)
+      SRXALB(J)=XVNSUR(L)
+  770 CONTINUE
+      ENDIF                                                 ! end 6-band
+C
+C                     --------------------------------------------------
+C                     Define each Surface Flux Factors, Flux Derivatives
+C                     --------------------------------------------------
+  800 CONTINUE
+      BGF=0.D0
+      DO 810 K=1,33
+      BGFEMD(K)=BGFEMD(K)*0.5D0
+      BGF=BGF+BGFEMT(K)
+  810 CONTINUE
+C
+      !BGM=BOCM*POCEAN+BEAM*PEARTH+BOIM*POICE+BLIM*PLICE
+      !BGP=BOCP*POCEAN+BEAP*PEARTH+BOIP*POICE+BLIP*PLICE
+      !TTRUFG=0.5D0*(BGP-BGM)
+      FTRUFG(1)=BOCSUM/BGF
+      FTRUFG(2)=BEASUM/BGF
+      FTRUFG(3)=BOISUM/BGF
+      FTRUFG(4)=BLISUM/BGF
+      RETURN
+      END SUBROUTINE SETSUR
