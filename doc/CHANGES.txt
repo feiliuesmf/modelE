@@ -1,83 +1,99 @@
 Major Changes from Model II'
 ============================
 
-- FDATA replaced with FLAND/FOCEAN/FLICE/FLAKE/FEARTH
+Variable name changes/re-definitions:
 
-- GDATA replaced with:
-   SNOWI,HSI  (sea ice)
-   SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE (earth)
-   TLANDI, SNOWLI (land ice)
+  - FDATA replaced with FLAND/FOCEAN/FLICE/FLAKE/FEARTH
 
-- ODATA replaced with: TOCEAN, RSI and MSI (TLAKE over land)
+  - GDATA replaced with:
+    SNOWI,HSI  (sea ice)
+    SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE (earth)
+    TLANDI, SNOWLI (land ice)
 
-- Named files in rundeck instead of unit numbers
+  - ODATA replaced with: TOCEAN, RSI and MSI (TLAKE over land)
 
-- FILEMANAGER module to allocate unit numbers
+  - Second order moments are condensed to one array. Whether the
+    quadratic or linear upstream scheme is required now only requires
+    a change in the QUSCOM/QUSDEF modules. Multiple advection routines
+    replaced with one general purpose routine.
 
-- physical constants all defined in CONSTANT module
+  - Arrays that are used for column physics only are now written with
+    the column index first (i.e. L,I,J) for performance improvement
+ 
+  - Ground temperatures for SURFCE/RADIA and PBL are now saved in the
+    GTEMP array.
 
-- Common blocks replaced with physics-related MODULEs
+  - parameters for both the model and all sub modules are now saved in a
+    parameter block that is of variable length and self-documenting
+    (replacing JC/RC in the old code).
 
-- Model COMMON BLOCK now MODEL_COM MODULE
+Structural and Fortran 90 related changes
 
-- Each physical submodule (ie. ice, snow, ocean, land, land ice,
-  clouds,etc.) has it's own fortran MODULE. As far as possible,
-  different modules interact only through fluxes.
+  - Common blocks replaced with physics-related MODULEs
 
-- input/output decentralized to io_PHYS routines for each PHYS submodule
+  - Model common block (i.e. BB399xyz.COM) now MODEL_COM MODULE
 
-- initialisation of each sub-module is now in init_PHYS (if required)
-- daily processes moved into daily_PHYS (if needed)
+  - physical constants all defined in CONSTANT module
 
-- diagnostic arrays now addressed by name, not number
+  - Each physical submodule (ie. ice, snow, ocean, land, land ice,
+    clouds,etc.) has it's own fortran MODULE. As far as possible,
+    different modules interact only through fluxes.
 
-- compiling/linking/setup now under control of an automatic makefile process
+  - initialisation of each sub-module is now in init_PHYS (if required)
 
-- NAMELIST input:
-    TAUI/E replaced with YEARI/E,MONTHI/E,DATEI/E,HOURI/E (alt. IHOURE)
-    NDPRNT/NDZERO replaced with NIPRNT and NMONAV
-    DT related variables such as NRAD etc, now relate to DTsrc
-    (=1hour)
-    SIGE setting replaced with PLTOP (pressure at the top of
-    the level) - SIGE is now computed.
-    U00 replaced with U00wtr and U00ice (separate numbers for
-    ice and water clouds)
+  - daily processes moved into daily_PHYS (if needed)
 
-- Many errors in diagnostics and in the seaice/Qflux model corrected
+  - Many errors in diagnostics and in the seaice/Qflux model corrected
 
-- Arrays that are used for column physics only are now written with
-  the column index first (i.e. L,I,J) for performance improvement
+  - lakes are seperated from ocean variables/code.
 
-- Second order moments are condensed to one array. Whether the
-  quadratic or linear upstream scheme is required now only requires
-  a change in the QUSCOM/QUSDEF modules. Multiple advection routines
-  replaced with one general purpose routine.
+  - sea ice now seperated from ocean/lakes code. All fluxes are now passed.
 
-- lakes are seperated from ocean variables/code.
+  - Explicit use of B-grid velocity points is now implicit.
 
-- lake temperature/ice cover are now predicted using a two layer
-  energy/mass conserving model.
+Diagnostics
 
-- Explicit use of B-grid velocity points is now implicit.
+  - pdE (used to print diagnostics) is now just an alternate entry to
+    the model, and thus cannot be out of date.
 
-- sea ice now seperated from ocean/lakes code. All fluxes are now passed.
+  - diagnostic arrays now addressed by name, not number
 
-- Ground temperatures for SURFCE/RADIA and PBL are now saved in the
-  GTEMP array.
+Input/Output
 
-- pdE (used to print diagnostics) is now just an alternate entry to
-  the model, and thus cannot be out of date.
+  - Named files in rundeck instead of unit numbers
 
-- parameters for both the model and all sub modules are now saved in a
-  parameter block that is of variable length and self-documenting
-  (replacing JC/RC in the old code).
+  - FILEMANAGER module to allocate unit numbers
 
-- Turbulence is now applied throughtout the atmosphere (ATURB.f).
+  - input/output decentralized to io_PHYS routines for each PHYS submodule
 
-- Sea ice over the ocean is now formed at TFO (=-1.8 deg).
+Runtime environment
 
-- Solar radiation now penetrates into (and through) the sea ice.
+  - compiling/linking/setup now under control of an automatic makefile process
 
-- Sea ice salinity is now a prognostic variable (though not yet
-  fully coupled to the thermodynamics).
+  - NAMELIST input:
+      TAUI/E replaced with YEARI/E,MONTHI/E,DATEI/E,HOURI/E (alt. IHOURE)
+      NDPRNT/NDZERO replaced with NIPRNT and NMONAV
+      DT related variables such as NRAD etc, now relate to DTsrc
+      (=1hour)
+      SIGE setting replaced with PLTOP (pressure at the top of
+      the level) - SIGE is now computed.
+      U00 replaced with U00wtr and U00ice (separate numbers for
+      ice and water clouds)
 
+  - Local parameters are now stored in the parameter database which mainly 
+    supplants the NAMELIST input. 
+
+
+New physics
+
+  - Sea ice over the ocean is now formed at TFO (=-1.8 deg).
+
+  - Solar radiation now penetrates into (and through) the sea ice.
+
+  - Sea ice salinity is now a prognostic variable (though not yet
+    fully coupled to the thermodynamics).
+
+  - lake temperature/ice cover are now predicted using a two layer
+    energy/mass conserving model.
+
+  - Turbulence is now applied throughtout the atmosphere (ATURB.f).
