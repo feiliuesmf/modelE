@@ -511,7 +511,7 @@ c Some More Chemistry Diagnostics:
      *            gwprodN2O5,' molec prod fm gas;  ',
      *      100.*(gwprodN2O5)/y(n_N2O5,L),' percent of'
      *     ,y(n_N2O5,L),'(',1.E9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          write(6,198) ay(n_N2O5),': ',
+          write(6,198) ay(n_HCHO),': ',
      *         wprodHCHO,' molecules produced; ',
      *      100.*(wprodHCHO)/y(n_HCHO,L),' percent of'
      *     ,y(n_HCHO,L),'(',1.E9*y(n_HCHO,L)/y(nM,L),' ppbv)'
