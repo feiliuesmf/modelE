@@ -368,7 +368,13 @@ C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
       KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
       MADVEL=123456         ! suppress reading i-th time series by i->0
-C**** set up unit numbers for 14 radiation input files
+      if (ktrend.ne.0) then
+C****   Read in time history of well-mixed greenhouse gases
+        call openunit('GHG',iu,.false.,.true.)
+        call ghghst(iu)
+        call closeunit(iu)
+      end if
+C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE ! not used in GCM
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
@@ -438,7 +444,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_cldtppr,lm_req,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
-     *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
+     *     ,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
      *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
      *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
      *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
@@ -809,7 +815,6 @@ C****
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(1,I,J)*COSZ)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
          AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*COSZ*ALB(I,J,2)
-         AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*COSZ*ALB(I,J,4)
          AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) - TNFS(4,I,J)
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*COSZ)
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
@@ -862,3 +867,30 @@ C**** daily diagnostics
 
       RETURN
       END
+
+      SUBROUTINE GHGHST(iu)
+!@sum  reads history for nghg well-mixed greenhouse gases
+!@auth R. Ruedy
+!@ver  1.0
+
+      USE RE001, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      INTEGER iu,n,k
+      CHARACTER*80 title
+
+      do n=1,4
+      read(iu,'(a)') title
+      write(*,*) title
+      end do
+
+      read(iu,*) ghgyr1,(ghgam(k,1),k=1,nghg)
+      do n=2,nyrsghg
+        read(iu,*,end=20) ghgyr2,(ghgam(k,n),k=1,nghg)
+        do k=1,nghg
+          if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
+        end do
+      end do
+   20 continue
+      write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
+      return
+      end SUBROUTINE GHGHST
+

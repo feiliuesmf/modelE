@@ -1183,7 +1183,7 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q300'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
+      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_180
 c
       k=k+1 
@@ -1192,7 +1192,7 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q500'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
+      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_180
 c
       k=k+1 
@@ -1201,7 +1201,7 @@ c
       units_ij(k) = 'g/kg'
       name_ij(k) = 'Q850'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1d4
+      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_180
 c
       k=k+1 !  'AIJ017'
@@ -3169,7 +3169,7 @@ c
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
       units_jk(k) = 'W/mb'
       pow_jk(k) = 10
-      scale_jk(k) = .25*LHE*XWON*FIM
+      scale_jk(k) = .25*LHE*XWON*FIM*100.*BYGRAV
       jgrid_jk(k) = 2
 c
       k=k+1
