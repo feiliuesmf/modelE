@@ -483,7 +483,8 @@ C****
 
       COMMON/WORK1/NLREC(256),SNOAGE(IM,JM,2)
 
-      LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.
+      LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
+     &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf 
 
       CHARACTER NLREC*80
       REAL*4 TAU4,TAUY4,XX4
@@ -690,6 +691,7 @@ C****     ISTART=3: C ARRAY IS BUILT UP FROM DEFAULTS AND NAMELIST
      5  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
      6  RQT,T50
       CLOSE (iu_AIC)
+      iniSNOW = .TRUE.  ! extract snow data from first soil layer
       GO TO 398
 C****     ISTART=4: C ARRAY IS COPIED FROM INPUT DATA EXCEPT FOR XLABEL
 C**** USE ISTART=4 TO START FROM THIS RUN'S .rsf FILE
@@ -706,6 +708,7 @@ C***********************************************************************
       CLABEL(133:156)=CLABEL1(133:156)
       JC(32:37)=0
       CLOSE (iu_AIC)
+      iniSNOW = .TRUE.  ! extract snow data from first soil layer
       GO TO 399
 C**** ISTART=5-9; ICfile looks different from restart file
 C**** ISTART=5; initial start from run B140 (snow ages not yet in GDATA)
@@ -717,6 +720,7 @@ C**** ISTART=5; initial start from run B140 (snow ages not yet in GDATA)
      6  RQT,SRHR,TRHR,TSFREZ,SNOAGE
       close (iu_AIC)
       redoGH=.TRUE.
+      iniSNOW = .TRUE.  ! extract snow data from first soil layer
       GO TO 350
 C**** ISTART=6 ; start from run B120 (no QUS, only 1 snow age)
  325  READ(iu_AIC,ERR=800)TAUX,JC1,CLABEL1,RC1,KEYNR,U,V,T,P,Q,ODATA,
@@ -887,7 +891,7 @@ C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS
 C**** Recompute GHDATA if redoGH (new soils data)
 C****
-      CALL init_GH(DT*NDYN/NSURF,redoGH)
+      CALL init_GH(DT*NDYN/NSURF,redoGH,iniSNOW)
       IF (redoGH) THEN
         WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
 C****   Copy Snow age info into GDATA array
@@ -1105,7 +1109,8 @@ C**** Temporary io_rsf
 !@ver   1.0
       USE E001M12_COM, only : JC,CLABEL,RC,U,V,T,P,Q,WM,GDATA
       USE SOMTQ_COM
-      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
+      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
+     &     NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
       USE RADNCB, only : S0X,CO2,RQT,SRHR,TRHR,FSF
       USE CLD01_COM_E001, only : U00wtr,U00ice,LMCM,TTOLD,QTOLD,SVLHX
      *     ,RHSAV,CLDSAV
@@ -1144,6 +1149,8 @@ C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TLAKE,GML
          WRITE (kunit,err=10) "ERT01  ",GDATA
          WRITE (kunit,err=10) "SOL01  ",wbare,wvege,htbare,htvege,snowbv
+         WRITE (kunit,err=10) "SNOW01 ",
+     *         NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
          WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,Z1O
      *        ,usavg,vsavg,tauavg,ustar
          WRITE (kunit,err=10) "PBL01  ",uabl,vabl,tabl,qabl,eabl,cm,ch
@@ -1165,6 +1172,8 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TLAKE,GML
          READ (kunit,err=10) HEADER,GDATA
          READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
+         READ (kunit,err=10) HEADER,
+     *         NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
          READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,Z1O,usavg
      *        ,vsavg,tauavg,ustar
          READ (kunit,err=10) HEADER,uabl,vabl,tabl,qabl,eabl,cm,ch,cq

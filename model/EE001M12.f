@@ -13,7 +13,8 @@ C****
      *     ,jday,tofday,tau,jeq,fearth,modrd,ijd6
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
-      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv
+      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
+     &    NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
       USE SLE001
      &    , only : reth,retp,advnc,
      &    NGM,
@@ -29,7 +30,8 @@ C****
      &    QM1,Q1,QS,
      &    PRES,RHO,TSPASS=>TS,VSM,CH,CD,SNHT,SRHT,TRHT,ZS,
      &    ZMIXE=>Z1,CN=>CDN,P1,PBLP=>PPBL,
-     &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY
+     &    TGPASS=>TG,TKPASS=>T1,VGM=>VG,EDDY,
+     &    NLSN,ISN,NSN,DZSN,WSN,HSN,FR_SNOW
       USE CLD01_COM_E001, only : prec,tprec
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
@@ -243,6 +245,13 @@ c 2410 GW(L,1)=GHDATA(I,J,L)
       HT(0:NGM,1) = HTBARE(I,J,0:NGM)
       HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
       SNOWD(1:2) = SNOWBV(I,J,1:2)
+ccc extracting snow variables
+      NSN(1:2)          = NSN_IJ    (I, J, 1:2)
+      ISN(1:2)          = ISN_IJ    (I, J, 1:2) 
+      DZSN(1:NLSN, 1:2) = DZSN_IJ   (I, J, 1:NLSN, 1:2)
+      WSN(1:NLSN, 1:2)  = WSN_IJ    (I, J, 1:NLSN, 1:2)
+      HSN(1:NLSN, 1:2)  = HSN_IJ    (I, J, 1:NLSN, 1:2)
+      FR_SNOW(1:2)      = FR_SNOW_IJ(I, J, 1:2)
       CALL GHINIJ (I,J,WFC1)
       CALL RETH
       CALL RETP
@@ -315,6 +324,14 @@ C 3410 GHDATA(I,J,L)=GW(L,1)
       HTBARE(I,J,0:NGM) = HT(0:NGM,1)
       HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
       SNOWBV(I,J,1:2) = SNOWD(1:2)
+ccc copy snow variables back to storage
+      NSN_IJ    (I, J, 1:2)         = NSN(1:2)
+      ISN_IJ    (I, J, 1:2)         = ISN(1:2)
+      DZSN_IJ   (I, J, 1:NLSN, 1:2) = DZSN(1:NLSN,1:2)
+      WSN_IJ    (I, J, 1:NLSN, 1:2) = WSN(1:NLSN,1:2)
+      HSN_IJ    (I, J, 1:NLSN, 1:2) = HSN(1:NLSN,1:2)
+      FR_SNOW_IJ(I, J, 1:2)         = FR_SNOW(1:2)
+
       AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NSURF
       AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NSURF
       AIJG(I,J,11)=AIJG(I,J,11)+BETA/NSURF
@@ -509,7 +526,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
       RETURN
       END
 
-      SUBROUTINE init_GH(DTSURF,redoGH)
+      SUBROUTINE init_GH(DTSURF,redoGH,iniSNOW)
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopix=>twopi,rhow,edpery
       USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau,jeq
@@ -522,7 +539,8 @@ C**** Modifications needed for split of bare soils into 2 types
       INTEGER iu_SOIL
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
-      LOGICAL redoGH
+      LOGICAL redoGH, iniSNOW
+      INTEGER I, J
 C****             TUNDR GRASS SHRUB TREES DECID EVRGR RAINF CROPS
 C****
 C**** LADAY(veg type, lat belt) = day of peak LAI
@@ -691,7 +709,15 @@ C**** Recompute GHDATA if necessary (new soils data)
           HTBARE(I,J,:)=0.
           HTVEGE(I,J,:)=0.
           SNOWBV(I,J,:)=0.
+
         ELSE
+ccc??? remove next 5 lines? -check the old version
+           W(1:NGM,1) = WBARE(I,J,1:NGM)
+           W(0:NGM,2) = WVEGE(I,J,0:NGM)
+           HT(0:NGM,1) = HTBARE(I,J,0:NGM)
+           HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
+           SNOWD(1:2) = SNOWBV(I,J,1:2)
+
 C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
           CALL GHINIJ (I,J,WFC1)
 C****     FILL IN SOILS COMMON BLOCKS
@@ -703,6 +729,7 @@ C****     FILL IN SOILS COMMON BLOCKS
           ACE2=GDATA(I,J,10)
           TG2 =GDATA(I,J,8)
           CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
+
 C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
           WBARE(I,J,1:NGM) = W(1:NGM,1)
           WVEGE(I,J,0:NGM) = W(0:NGM,2)
@@ -713,6 +740,60 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
       END DO
       END DO
       END IF
+
+ccc   some extra code from snowmodel GHINIT
+      SO_%ROSMP = 8.  ! no idea what this number means, but it is used 
+                      ! in computation of RUNOFF
+
+ccc   init snow here
+ccc hope this is the right place to split first layer into soil
+ccc and snow  and to set snow arrays
+ccc!!! this should be done only when restarting from an old
+ccc!!! restart file (without snow model data)
+
+      if( iniSNOW ) then
+      DO I=1,IM
+        DO J=1,JM
+          PEARTH=FEARTH(I,J)
+          IF(PEARTH.LE.0.) THEN
+            NSN_IJ(I,J,:)     = 0
+            ISN_IJ(I,J,:)     = 0
+            DZSN_IJ(I,J,:,:)  = 0.
+            WSN_IJ(I,J,:,:)   = 0.
+            HSN_IJ(I,J,:,:)   = 0.
+            FR_SNOW_IJ(I,J,:) = 0.
+          ELSE
+            JDAY=1+MOD(NINT(TAU/24.),365)
+            COSDAY=COS(TWOPIx/EDPERY*JDAY)
+            SINDAY=SIN(TWOPIx/EDPERY*JDAY)
+
+            W(1:NGM,1) = WBARE(I,J,1:NGM)
+            W(0:NGM,2) = WVEGE(I,J,0:NGM)
+            HT(0:NGM,1) = HTBARE(I,J,0:NGM)
+            HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
+            SNOWD(1:2) = SNOWBV(I,J,1:2)
+
+            CALL GHINIJ (I,J,WFC1)
+            CALL SET_SNOW
+
+            NSN_IJ    (I, J, 1:2)         = NSN(1:2)
+            ISN_IJ    (I, J, 1:2)         = ISN(1:2)
+            DZSN_IJ   (I, J, 1:NLSN, 1:2) = DZSN(1:NLSN,1:2)
+            WSN_IJ    (I, J, 1:NLSN, 1:2) = WSN(1:NLSN,1:2)
+            HSN_IJ    (I, J, 1:NLSN, 1:2) = HSN(1:NLSN,1:2)
+            FR_SNOW_IJ(I, J, 1:2)         = FR_SNOW(1:2)
+
+C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
+            WBARE(I,J,1:NGM) = W(1:NGM,1)
+            WVEGE(I,J,0:NGM) = W(0:NGM,2)
+            HTBARE(I,J,0:NGM) = HT(0:NGM,1)
+            HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
+            SNOWBV(I,J,1:2) = SNOWD(1:2)
+
+          ENDIF
+        ENDDO
+      ENDDO
+      endif
 
       RETURN
       END SUBROUTINE init_GH

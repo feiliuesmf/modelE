@@ -3,7 +3,7 @@
       USE E001M12_COM
      &     , only : im,jm
       USE SLE001
-     &     , only : ngm,imt
+     &     , only : ngm,imt, nlsn
       IMPLICIT NONE
 
 C bare/veg not in merged array because WBARE does not contain
@@ -28,5 +28,15 @@ C containing its contents in a contiguous real*4 block
       DOUBLE PRECISION, DIMENSION(IM,JM,NGM) :: AFR
       DOUBLE PRECISION, DIMENSION(3,IM,JM) :: ALA,ACS
       DOUBLE PRECISION, DIMENSION(IM,JM) :: AFB,AVH
+
+ccc the following arrays contain prognostic variables for the snow model
+ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
+      INTEGER, DIMENSION(IM,JM,2)     :: NSN_IJ
+      INTEGER, DIMENSION(IM,JM,2)     :: ISN_IJ   
+      REAL*8, DIMENSION(IM,JM,NLSN,2) :: DZSN_IJ
+      REAL*8, DIMENSION(IM,JM,NLSN,2) :: WSN_IJ
+      REAL*8, DIMENSION(IM,JM,NLSN,2) :: HSN_IJ
+      REAL*8, DIMENSION(IM,JM,2)      :: FR_SNOW_IJ
+
 
       end module GHYCOM
