@@ -16,11 +16,11 @@
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLOUDS, only : kmax,ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
-     *     ,tl,ri1,ri2,aj13
+     *     ,tl,ris,ri1,ri2,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-     *     ,mstcnv,qs,us,vs,dcl
+     *     ,mstcnv,qs,us,vs,tgv,qg,dcl
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj53,BYDTsrc,lscond,airxl
 #ifdef TRACERS_ON
@@ -34,7 +34,7 @@
      *     ,trwm
 #endif
 #endif
-      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
+      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -82,14 +82,15 @@
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,THV1
       REAL*8 :: DH12,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV2
-      REAL*8 :: DH1S,BYDH1S,BYDH12
+      REAL*8 :: DH1S,BYDH1S,BYDH12,ALPHAS,DTDZG,DUDZG,DVDZG
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipipation
 !@var TPRCP temperature of precip  (deg. C)
 !@var EPRCP sensible heat of precip
 !@var ENRGP energy of precip
-!@var WMERR DH12,BYDH12,DH1S,BYDH1S,THV1,THV2 dummy variables
+!@var WMERR DH12,BYDH12,DH1S,BYDH1S,THV1,THV2 dummy variable
 !@var ALPHA1,ALPHA2,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS dummy variables
+!@var ALPHAS,DTDZG,DUDZG,DVDZG dummy variables
 
 C**** parameters and variables for isccp diags
       integer, parameter :: ntau=7,npres=7
@@ -145,6 +146,8 @@ C****
       QS=QSAVG(I,J)
       US=USAVG(I,J)
       VS=VSAVG(I,J)
+      TGV=TGVAVG(I,J)
+      QG=QGAVG(I,J)
       DCL=DCLEV(I,J)
       LPBL=1
 
@@ -302,6 +305,7 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         THSV=TS*(1.+DELTX*QS)/PEK(1,I,J)
         THV1=TH(1)*(1.+DELTX*QL(1))
         THV2=TH(2)*(1.+DELTX*QL(2))
+        ALPHAS=2./(TGV/(1.+DELTX*QG)+TS)/PEK(1,I,J)
         ALPHA1=2./(TH(1)+TS/PEK(1,I,J))
         ALPHA2=2./(TH(1)+TH(2))
         DH1S=(PLE(1)-PL(1))*TL(1)*RGAS/(GRAV*PL(1))
@@ -338,8 +342,13 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
      *         VC(IDI(3),IDJ(3),1)+VC(IDI(4),IDJ(4),1)-
      *         4.*VS)*.25*BYDH1S
         ENDIF
+        DUDZG=.1*US
+        DVDZG=.1*VS
+        DTDZG=.1*(THSV-TGV/PEK(1,I,J))
+        RIS=(GRAV*ALPHAS*DTDZG)/(DUDZG*DUDZG+DVDZG*DVDZG)
         RI1=(GRAV*ALPHA1*DTDZS)/(DUDZS*DUDZS+DVDZS*DVDZS)
         RI2=(GRAV*ALPHA2*DTDZ)/(DUDZ*DUDZ+DVDZ*DVDZ)
+C       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
       ENDIF
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 

@@ -113,8 +113,8 @@ C**** new arrays must be set to model arrays in driver (after COND)
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
-!@var RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,DCL,RI1,RI2
+!@var RIS, RI1, RI2 Richardson numbers 
+      REAL*8 :: PEARTH,TS,QS,US,VS,TGV,QG,DCL,RIS,RI1,RI2
 !@var LPBL max level of planetary boundary layer
       INTEGER :: LPBL
 
@@ -1421,23 +1421,17 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
         RH00(L)=1.-GRAV*LHE*HDEP/(RVAP*TS*TS)
         IF(DCL.LE.1) THEN
-         IF(RI1.LT..25) HDEP1=.5*HDEP
-         IF(RI1.GE..25.AND.RI1.LT.1.) HDEP1=.01d0-(.5*HDEP-.01d0)*
-     *     (RI1-1.)/.75
-         IF(RI1.GE.1.) HDEP1=.01d0
-        IF(RI1.LT..25) THEN
-         IF(RI2.LT..25) HDEP1=HDEP
-         IF(RI2.GE..25.AND.RI2.LT.1.) HDEP1=.5*HDEP-.5*HDEP*(RI2-1.)/.75
-         IF(RI2.GE.1.) HDEP1=.5*HDEP
-        ENDIF 
+         IF(RIS.GT.1.) HDEP1=.01
+         IF(RIS.LE.1..AND.RI1.GT.1.) HDEP1=.05
+         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP1=.1
+         IF(RIS.LE.1..AND.RI1.LE.1..AND.RI2.LE.1.) HDEP1=HDEP
          RH00(L)=1.-GRAV*LHE*HDEP1/(RVAP*TS*TS)
         ENDIF
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
-      IF(L.GT.1.AND.PLE(L+1).GT.930.) THEN
-        HDEP=0.
-        DO 216 LN=L,1,-1
-  216   HDEP=HDEP+AIRM(LN)*TL(LN)*RGAS/(1000.*GRAV*PL(LN))
+      IF(L.GT.1.AND.L.LE.DCL) THEN
+        HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
+        IF(L.EQ.DCL) HDEP=.5*HDEP
         RH00(L)=1.-9.8d0*LHE*HDEP/(RVAP*TS*TS)
         IF(RH00(L).LT.0.) RH00(L)=0.
       ENDIF
@@ -1834,14 +1828,14 @@ C**** CALCULATE OPTICAL THICKNESS
       IF(TAUMCL(L).GT.0..AND.CKIJ.EQ.1.) GO TO 526
       BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
       IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
-      IF(L.EQ.1.OR.PLE(L+1).GT.930.) THEN
+      IF(L.EQ.1.OR.L.LE.DCL) THEN
         CLDSSL(L)=CLDSSL(L)+
      *               (BMAX-CLDSSL(L))*CKIJ
         TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/
      *               (CLDSSL(L)+1.E-20)
       ENDIF
       IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
-      IF(L.EQ.1.OR.PLE(L+1).GT.930..OR.TAUMCL(L).GT.0.) GO TO 526
+      IF(L.EQ.1.OR.L.LE.DCL.OR.TAUMCL(L).GT.0.) GO TO 526
       CLDSSL(L)=CLDSSL(L)**(2.*BY3)
       TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)**BY3
   526 CONTINUE
