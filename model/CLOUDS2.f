@@ -20,14 +20,7 @@ CCC   USE RANDOM
       SAVE
 C**** parameters and constants
       REAL*8, PARAMETER :: TI=233.16d0   !@param TI pure ice limit
-!@param RHOG,RHOIP density of graupel and ice particles
       REAL*8, PARAMETER :: CLDMIN=.25d0 !@param CLDMIN min MC/LSC region
-!@param ITMAX max iteration index
-!@param CN0 constant use in computing FLAMW, etc
-!@param PN tuning exponential for computing WV
-      REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0
-      REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
-      INTEGER,  PARAMETER :: ITMAX=50
 !@param WMU critical cloud water content for rapid conversion (g m**-3)
       REAL*8, PARAMETER :: WMU=.25
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
@@ -41,20 +34,10 @@ C**** parameters and constants
 !@param COETAU multiplier for convective cloud optical thickness
       REAL*8, PARAMETER :: CCMUL=1.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
-      REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND,FLAMW,FLAMG,FLAMI,FMC1
-     *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
+      REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 !@var PLAND land fraction
-!@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
-!@var FMC1 grid fraction for moist convection
-!@var WMAX specified maximum convective vertical velocity
-!@var WV convetive vertical velocity
-!@var VT precip terminal velocity
-!@var DCW,DCG,DCI critical cloud particle sizes
-!@var FG, FI fraction for graupel and ice
-!@var FITMAX set to ITMAX
-!@var CONDMU convective condensate in Kg/m^3
 
 C**** Set-able variables
 !@dbparam LMCM max level for originating MC plumes
@@ -72,6 +55,8 @@ C**** Set-able variables
 !@dbparam RICldX multiplies part.size of ice clouds at 1000mb
 !@+       RICldX changes linearly to 1 as p->0mb
       REAL*8 :: RICldX=1.d0 , xRICld
+!@dbparam do_blU00 =1 if boundary layer U00 is treated differently
+      INTEGER :: do_blU00=0 ! default is to disable this
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -212,8 +197,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
      *  ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT
      *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
-     *  ,FLAMW,FLAMG,FLAMI,FMC1,FSUB,FCONV,FMCL,VLAT
-     *  ,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX,DDCW,VT,CONDMU
+     *  ,FSUB,FCONV,FMCL,VLAT
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
@@ -231,6 +215,8 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 !@var MCLOUD air mass available for re-evaporation of precip
 !@var MPMAX convective plume at the detrainment level
 !@var SENV,QENV dummy variables
+!@var FMC1 grid fraction for moist convection
+      REAL*8 FMC1
 
 C**** functions
       REAL*8 :: QSAT, DQSATDT
@@ -388,7 +374,23 @@ c for sulfur chemistry
       LOGICAL MC1  !@var MC1 true for the first convective event
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
-
+!@param RHOG,RHOIP density of graupel and ice particles
+!@param ITMAX max iteration index
+!@param CN0 constant use in computing FLAMW, etc
+!@param PN tuning exponential for computing WV
+      REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0
+      REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
+      INTEGER,  PARAMETER :: ITMAX=50
+!@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
+!@var WMAX specified maximum convective vertical velocity
+!@var WV convetive vertical velocity
+!@var VT precip terminal velocity
+!@var DCW,DCG,DCI critical cloud particle sizes
+!@var FG, FI fraction for graupel and ice
+!@var FITMAX set to ITMAX
+!@var CONDMU convective condensate in Kg/m^3
+      REAL*8 :: FLAMW,FLAMG,FLAMI,WMAX,WV,DCW,DCG,DCI,FG,FI,FITMAX
+     *     ,DDCW,VT,CONDMU 
       INTEGER K,L,N  !@var K,L,N loop variables
       INTEGER ITYPE  !@var convective cloud types
 !@var IERR,LERR error reports from advection
@@ -1780,25 +1782,28 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
     ! this formulation is used for consistency with current practice
       RH00(L)=U00wtrX*U00ice
       IF(LHX.EQ.LHS) RH00(L)=U00ice
-C     IF (L.LE.DCL) THEN   ! boundary layer clouds
+C**** Option to treat boundary layer differently
+      IF (do_blU00.eq.1) then
+        IF (L.LE.DCL) THEN      ! boundary layer clouds
 C**** calculate total pbl depth
-C       HPBL=0.
-C       DO LN=1,DCL
-C         HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
-C       END DO
+          HPBL=0.
+          DO LN=1,DCL
+            HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
+          END DO
 C**** Scale HPBL by HRMAX to provide tuning control for PBL clouds
-C       HDEP = MIN(HPBL,HRMAX*(1.-EXP(-HPBL/HEFOLD)))
+          HDEP = MIN(HPBL,HRMAX*(1.-EXP(-HPBL/HEFOLD)))
 C**** Special conditions for boundary layer contained wholly in layer 1
-C       IF (DCL.LE.1) THEN
-C         IF (RIS.GT.1.) HDEP=10d0
-C         IF (RIS.LE.1..AND.RI1.GT.1.) HDEP=50d0
-C         IF (RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP=100d0
-C       END IF
+          IF (DCL.LE.1) THEN
+            IF (RIS.GT.1.) HDEP=10d0
+            IF (RIS.LE.1..AND.RI1.GT.1.) HDEP=50d0
+            IF (RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP=100d0
+          END IF
 C**** Estimate critical rel. hum. based on parcel lifting argument
-C       RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
-C       IF(RH00(L).LT.0.) RH00(L)=0.
-C     END IF
-C****
+          RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
+          IF(RH00(L).LT.0.) RH00(L)=0.
+        END IF
+      END IF
+C**** 
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above

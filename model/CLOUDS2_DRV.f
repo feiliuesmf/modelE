@@ -1068,7 +1068,7 @@ C**** and save changes in KE for addition as heat later
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
-     *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld
+     *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
       USE CLOUDS_COM, only : llow,lmid,lhi
       USE DAGCOM, only : nisccp,isccp_reg
       USE PARAM
@@ -1085,6 +1085,7 @@ C**** and save changes in KE for addition as heat later
       xRIcld = .001d0*(RICldX-1.d0)
       call sync_param( "RWCldOX", RWCldOX )
       call sync_param( "ISC", ISC)
+      call sync_param( "do_blU00", do_blU00)
 
       IF(LMCM.LT.0) LMCM = LS1-1
       call set_param( "LMCM", LMCM, 'o' )
