@@ -150,8 +150,7 @@ C                           I  J  M N K         I  J L N  M
      B             ,ATITLE(13,5,4),VTITLE(13,2),DTITLE(13,9),TITLE
 
 C not initiallised
-      COMMON/VOLCOM1/TAUARC(27,1800),SIZA13(27,13)
-     J             ,FDATA(80),GDATA(80),REFFA,VEFF0
+      COMMON/VOLCOM1/FDATA(80),GDATA(80),REFFA,VEFF0
      J ! local     ,HTPROF(LX)                     ,Q55H2S,TAUVOL
      K                        ,TAULAT(49),SIZLAT(49),HTFLAT(49,4)
      L ! local     ,QVH2S(6),SVH2S(6),GVH2S(6),AVH2S(33)

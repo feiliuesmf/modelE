@@ -659,10 +659,10 @@ C
 !obso    COSLAT(I)=0.0
 ! 140 CONTINUE
 C
-      DO 144 L=1,1800
-      DO 144 I=1,27
-         TAUARC(I,L)=0.0
-  144 CONTINUE
+!obso DO 144 L=1,1800
+!obso DO 144 I=1,27
+!obso    TAUARC(I,L)=0.0
+! 144 CONTINUE
 C
 C-----------------------------------------------------------------------
 CR(1) Reads GTAU Asymmetry Parameter Conversion Table used within SGPGXG
@@ -4444,11 +4444,11 @@ C                   ---------------------------------------------------
       EJMLAT(   1)=-90.D0
       EJMLAT(NJJM)= 90.D0
 C
-      DO 140 M=1,13
-      DO 130 J=1,27
-      SIZA13(J,M)=REFF0
-  130 CONTINUE
-  140 CONTINUE
+!obso DO 140 M=1,13
+!obso DO 130 J=1,27
+!obso SIZA13(J,M)=REFF0
+! 130 CONTINUE
+! 140 CONTINUE
 C
       DO 150 L=1,NL
       HTPROF(L)=0.D0
