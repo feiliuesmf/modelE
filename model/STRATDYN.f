@@ -426,6 +426,7 @@ C****
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
+     *     ,kmaxj,rapj,idij,idjj
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst
@@ -443,24 +444,23 @@ C**** Do I need to put the common decalaration here also?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
       REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE,TLS,THLS,BVS
-      REAL*8, DIMENSION(LM,IM,2:JM) :: RADKEX
       INTEGER, DIMENSION(IM,2:JM) :: LDRAGA
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
       REAL*8, DIMENSION(LM,JM) :: DUJL
-      REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,WL,UL,VL,DL,DUT,DVT,
+      REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,UL,VL,DL,DUT,DVT,
      *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
-      REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM),RA(4)
+      REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM)
      *     ,VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
       DATA CN(1)/0./
       REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN
       INTEGER, SAVE :: IFIRST=1
-      INTEGER LD(NM),IO(4),JO(4)
-      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1,IA,JA
+      INTEGER LD(NM)
+      INTEGER I,J,L,N,K,LN,LMC0,LMC1,NMX,LDRAG,LD1,LTOP,IP1
       REAL*8 FCORU,PIJ,SP,U0,V0,W0,BV0,ZVAR,P0,DU,DV,DW,CU,USRC,VSRC
      *     ,AIRX4,AIRXS,CLDDEP,FPLUME,CLDHT,WTX,TEDGE,WMCE,BVEDGE,DFMAX
      *     ,EXCESS,ALFA,XDIFF,DFT,DWT,FDEFRM,WSRC,WCHECK,DUTN,PDN
-     *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,DKEX,MDN
-     *     ,MUP,MUR,BVFSQ
+     *     ,YDN,FLUXUD,FLUXVD,PUP,YUP,DX,DLIMIT,FLUXU,FLUXV,MDN
+     *     ,MUP,MUR,BVFSQ,ediff
 C****
       IF (IFIRST.EQ.1) THEN
         GRAVS=GRAV*GRAV
@@ -470,7 +470,7 @@ C****
         VARMIN=XCDNST(1)*XCDNST(1)
         IFIRST=0
       END IF
-
+      
 C**** Start main loop
 C$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
@@ -518,7 +518,7 @@ C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
 C$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
-        DKE(:,:,L)=0. ; DUT3(:,:,L)=0. ; DVT3(:,:,L)=0.
+        DUT3(:,:,L)=0. ; DVT3(:,:,L)=0.
       END DO
 C$OMP  END PARALLEL DO
 C$OMP  PARALLEL DO PRIVATE(I,IP1,J,L)
@@ -543,10 +543,10 @@ C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
 C$OMP  PARALLEL DO PRIVATE(ALFA,AIRX4,BVF,BVFSQ,BV0,BVEDGE,BYFACS,
 C$OMP*  CN,CU,DP,DL,DUT,DVT,DU,DV,DW,DFM,DFR,DFT,DFMAX,DFTL,DWT,DUTN,DX,
-C$OMP*  DLIMIT,DKEX,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD,
+C$OMP*  DLIMIT,EXCESS,FCORU,FDEFRM,FLUXU,FLUXV,FLUXUD,FLUXVD,
 C$OMP*  I,IP1,J,L,LD,LD1,LMC0,LMC1,LN,LDRAG,LTOP, MU,MUB,MDN,MUP,MUR,
 C$OMP*  N,NMX, PIJ,PLE,PL,P0,PDN,PUP, RHO,SP,TL,THL,TEDGE,
-C$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, WL,W0,WSRC,WCHECK,
+C$OMP*  UL,U0,UR,USRC,UEDGE, VL,V0,VR,VSRC,VEDGE, W0,WSRC,WCHECK,
 C$OMP*  WMCE,WMC, XDIFF, YDN,YUP, ZVAR,WTX,WT,AIRXS,CLDDEP,CLDHT,FPLUME,
 C$OMP*  UIL,VIL, TLIL,THIL,BVIL)
       DO J=2,JM
@@ -559,20 +559,6 @@ C**** parallel reductions
 
       CN(1)=0.
       FCORU=(ABS(FCOR(J-1))+ABS(FCOR(J)))*BYDXYV(J)
-      DO K=1,2
-        RA(K)=RAVPN(J-1)
-        RA(K+2)=RAVPS(J)
-        JO(K)=J-1
-        JO(K+2)=J
-      END DO
-      IF (J.EQ.2) THEN
-        RA(1)=RA(1)*BYIM
-        RA(2)=RA(2)*BYIM
-      END IF
-      IF (J.EQ.JM) THEN
-        RA(3)=RA(3)*BYIM
-        RA(4)=RA(4)*BYIM
-      END IF
       I=IM
       DO IP1=1,IM
 C****
@@ -603,9 +589,8 @@ CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
       DL(L)=0.
       DUT(L)=0.
       DVT(L)=0.
-      UL(L)=U(I,J,L)
-      VL(L)=V(I,J,L)
-      WL(L)=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
+      UL(L)=UIL(I,L)   ! U(I,J,L)
+      VL(L)=VIL(I,L)   ! V(I,J,L)
       END DO
       PLE(LM+1)=PIJ*SIGE(LM+1)+PTOP
       PIJ=SP
@@ -947,9 +932,8 @@ C****
 C**** Save KE change and diffusion coefficient on A-grid
 C****
         DO L=LDRAG-1,LM
-          DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
-     *         (U(I,J,L)**2+V(I,J,L)**2))
-          RADKEX(L,I,J)=DKEX
+          DKE(I,J,L)=.5*(((DUT(L)+UIL(I,L))**2+(DVT(L)+VIL(I,L))**2)-
+     *         (UIL(I,L)**2+VIL(I,L)**2))
           DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
           DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
         END DO
@@ -958,8 +942,8 @@ C****
 C**** UPDATE THE U AND V WINDS
 C****
       DO L=LDRAG-1,LM
-        U(I,J,L)=U(I,J,L)+DUT(L)
-        V(I,J,L)=V(I,J,L)+DVT(L)
+        UIL(I,L)=UIL(I,L)+DUT(L)
+        VIL(I,L)=VIL(I,L)+DVT(L)
       END DO
 
 C**** END OF LOOP OVER I
@@ -976,55 +960,20 @@ C****
 C**** conservation diagnostic
         CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
 
-C**** RECONSTRUCT DKE AS ORIGINALLY COMPUTED
-        DO J=2,JM
-        DO K=1,2
-          RA(K)=RAVPN(J-1)
-          RA(K+2)=RAVPS(J)
-          JO(K)=J-1
-          JO(K+2)=J
-        END DO
-        IF(J.EQ.2)  THEN
-          RA(1)=RA(1)*BYIM
-          RA(2)=RA(2)*BYIM
-        ELSE IF(J.EQ.JM)  THEN
-          RA(3)=RA(3)*BYIM
-          RA(4)=RA(4)*BYIM
-        END IF
-        I=IM
-        DO IP1=1,IM
-          LDRAG=LDRAGA(I,J)
-          IF(LDRAG.LE.LM) THEN
-            DO K=1,2
-              IO(2*K-1)=I
-              IO(2*K)=IP1
-            END DO
-            IF(J.EQ.2)  THEN
-              IO(1)=1
-              IO(2)=1
-            ELSE IF(J.EQ.JM)  THEN
-              IO(3)=1
-              IO(4)=1
-            END IF
-            DO L=LDRAG-1,LM
-              DO K=1,4
-                IA=IO(K)
-                JA=JO(K)
-                DKE(IA,JA,L)=DKE(IA,JA,L)+RA(K)*RADKEX(L,I,J)
-              END DO
-            END DO
-          END IF
-          I=IP1
-        END DO
-      END DO
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
-C$OMP  PARALLEL DO PRIVATE(I,J,L)
-        DO L=LDRAG-1,LM
+C$OMP  PARALLEL DO PRIVATE(I,J,L,K,ediff)
+        DO L=1,LM
           DO J=1,JM
             DO I=1,IMAXJ(J)
-              T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
-              AJL(J,L,JL_dtdtsdrg)=AJL(J,L,JL_dtdtsdrg)-
-     &             DKE(I,J,L)/(SHA*PK(I,J,L))
+              IF (L.ge.LDRAGA(I,J)-1) THEN
+              ediff=0.
+              DO K=1,KMAXJ(J)   ! loop over surrounding vel points
+                ediff=ediff+DKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
+              END DO
+              ediff=ediff/(SHA*PK(I,J,L))
+              T(I,J,L)=T(I,J,L)-ediff
+              AJL(J,L,JL_dTdtsdrg)=AJL(J,L,JL_dTdtsdrg)-ediff
+              END IF
             END DO
             AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(L,J)
           END DO
