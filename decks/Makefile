@@ -39,7 +39,7 @@ mkexe:  $(BIN_DIR)/$(RUN).exe
 	echo 'directory /u/cmrun/$(RUN) or input files inside it are missing';\
 	echo 'you should make "setup" first'; \
 	exit 1; fi
-	cp -f $(BIN_DIR)/$(RUN).exe /u/cmrun/$(RUN)/
+	mv -f $(BIN_DIR)/$(RUN).exe /u/cmrun/$(RUN)/
 
 newstart:
 	@if [ "$(RUN)" = "" ]; then \
