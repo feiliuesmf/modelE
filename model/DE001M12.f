@@ -4723,7 +4723,7 @@ C**FREQUENCY BAND AVERAGE
 C****
 C**** TITLES, LEGENDS AND CHARACTERS FOR DIAGIJ
 C****
-      COMMON/DIJCOM/TITLE1(18),TITLE2(18),TITLE3(18),TITLE4(18),
+      COMMON/DIJCOM/TITLE1(18),TITLE2(18),TITLE3(18), !TITLE4(18),
      *  LEGND1(10),LEGND2(14),ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
 C****
       CHARACTER*32 TITLE1
@@ -4792,12 +4792,12 @@ C
      *   'SHALLOW CONV CLOUD FREQUENCY   ',
      *   'DEEP CONVECTIVE CLOUD COVER    ',
      *   'SHALLOW CONVECTIVE CLOUD COVER '/
-      CHARACTER*32 TITLE4
-      DATA TITLE4/
-     5   'DU/DT BY SDRAG (10**-6 M S-2)  ',
-     *   5* '                               ',
-     *   6* '                               ',
-     *   6* '                               '/
+c     CHARACTER*32 TITLE4
+c     DATA TITLE4/
+c    5   'DU/DT BY SDRAG (10**-6 M S-2)  ',
+c    *   5* '                               ',
+c    *   6* '                               ',
+c    *   6* '                               '/
 C****
       CHARACTER*40 LEGND1
       DATA LEGND1/
@@ -4925,7 +4925,7 @@ C****
       INTEGER, DIMENSION(3) :: MLAT,MGLOBE
       DOUBLE PRECISION, DIMENSION(3) :: FLAT,FNH,FGLOBE,GNUM,GDEN
 
-      COMMON/DIJCOM/TITLE(4,18),LEGEND(10,24),ACHAR(38),BCHAR(23),
+      COMMON/DIJCOM/TITLE(3,18),LEGEND(10,24),ACHAR(38),BCHAR(23),
      *  CCHAR(38),DCHAR(37),ECHAR(38)
       CHARACTER*4 LEGEND,TITLE*32
       CHARACTER*1 ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
@@ -5063,7 +5063,7 @@ C****
   170 AIJ(I,JM,N)=AIJ(1,JM,N)
   180 CONTINUE
       IFRSTP=1
-      LASTP=10
+      LASTP=9
       IF (KDIAG(3).GT.0) LASTP=9-KDIAG(3)
       IF (KDIAG(3).LT.0) IFRSTP=-KDIAG(3)
       IF (KDIAG(3).LT.0) LASTP=IFRSTP
@@ -5072,7 +5072,6 @@ C****
       WRITE (6,902) IDAY0,IHOUR0,JDATE0,JMNTH0,JYEAR0,TAU0,IDAY,IHOUR,
      *  JDATE,JMONTH,JYEAR,TAU,TAUDIF
       DO 610 KROW=1,2
-      IF (KPAGE.EQ.LASTP .AND. KROW.EQ.2) GO TO 610
       KR=2*(KPAGE-1)+KROW
       WRITE (6,903) (TITLE(K,KR),K=1,3)
       DO 200 KCOLMN=1,3
@@ -5092,7 +5091,7 @@ C****
      *       380,300,300,475,240,240, 400,400,260,400,400,400,
      *       220,420,460,260,260,260, 460,460,380,420,280,280,
      *       460,460,460,460,460,460, 360,360,360,360,360,360,
-     *       380,380,400,400,400,400, 420,215,215,215,215,215),K
+     *       380,380,400,400,400,400),K
 C**** Blanks
   215 CONTINUE
       DO I=1,IM
