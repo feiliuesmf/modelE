@@ -5,7 +5,7 @@ C**** f90 -o conv_rsf conv_rsf.o *.o -O2 -64 -mips4 -static \
 C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
-      USE CONSTANT, only : lhm,shi
+      USE CONSTANT, only : lhm,shi,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
@@ -16,7 +16,7 @@ C**** must be compiled after the model
       USE DAGCOM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
-     *     ustar_pbl,egcm,tgvavg,qgavg
+     *     ustar_pbl,egcm,w2gcm,tgvavg,qgavg
       USE STATIC_OCEAN, only : tocean,z1o,sss0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0,tfrez
@@ -159,6 +159,7 @@ c     the subroutine diffus.
         do i=1,im
           do l=1,lm
             egcm(l,i,j)=egcm_init_max/(float(l)**2)
+            w2gcm(l,i,j)=egcm(l,i,j)*by3
           end do
         end do
       end do
