@@ -469,7 +469,7 @@ C****
      *     ,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
      *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
-     *     ,mdyn,mcnds,mrad,msurf,mdiag,melse
+     *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
       USE RANDOM
@@ -493,7 +493,7 @@ C****
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC     ! ? ktacc ?
-     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years,mswitch
+     *     ,IR,IREC,NOFF,ioerr,Ldate,months,years,mswitch,jday0
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X
@@ -936,9 +936,7 @@ C**** Alternate (old) way of specifying end time
         end do
         call get_param("NDAY",Nday)
         call get_param("IYEAR0",Iyear0)
-        call get_param("Itime",Itime)
         call get_param("Itime0",Itime0)
-        call getdte(Itime,Nday,Iyear0,Jyear,Jmon,Jday,Jdate,Jhour,amon)
         call getdte(Itime0,Nday,Iyear0,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
         months=0 ; years=monacc(jmon0) ; mswitch=0
