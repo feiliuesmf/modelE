@@ -19,7 +19,9 @@ c
 c
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
+!@var title read in from file
       integer iu_data
+      character*80 title
 C
 C     Read chem diagnostics parameters and molecule names
 C     from MOLEC file:
@@ -63,7 +65,8 @@ C     Initialize a few (IM,JM,LM) arrays, first hour only:
         yRXPAR   =0.
 C       Also, initialize the ozone-radiation interaction fields:
         call openunit('O3D_IC',iu_data,.true.,.true.)
-        read(iu_data) O3DLJI,O3DLJI_clim
+        READ(iu_data)title,O3DLJI      ; WRITE(6,*)'READING: ',title
+        READ(iu_data)title,O3DLJI_clim ; WRITE(6,*)'READING: ',title
         close(iu_data)
       END IF
 C
@@ -528,9 +531,7 @@ c Read in quantum yield jfacta and fastj label jlabel
  10   read(iu_data,'(a)',err=20) cline
       if(cline(2:5).eq.'9999') then
          go to 20
-      elseif(cline(1:1).eq.'#') then
-         go to 10
-      elseif(cline(5:5).eq.'$') then
+      elseif(cline(1:1).eq.'#' .or. cline(5:5).eq.'$') then
          go to 10
       else
          ipr=ipr+1
