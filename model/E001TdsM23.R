@@ -59,8 +59,8 @@ DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
+ICEDYN_DUM ICEDYN  ! or: ICEDYN_DRV ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
-ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! dynamic ice modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
@@ -68,7 +68,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1986.rsfB436TM23.modelE.17
+AIC=DEC1981.rsfB396M23_AIC_2.3.3
 ! OHT=OTSPEC.RB399AM12.M250D   !  not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor ! needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
