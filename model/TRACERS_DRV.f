@@ -626,7 +626,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 7.d0
           trdecay(n) =  1.51d-7
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
-          trradius(n) = 3.d-7  !again S04 value
+          trradius(n) = 1.d-7  !appropriate for stratosphere
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART ! same as SO4
 
@@ -635,7 +635,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           ntm_power(n) = -23
           tr_mm(n) = 10.d0
           trpdens(n) = 1.7d3   !kg/m3 this is SO4 value
-          trradius(n) = 3.d-7  !again S04 value
+          trradius(n) = 1.d-7  !appropriate for stratosphere
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART ! same as SO4
 
@@ -2768,7 +2768,7 @@ c SO4 longwave radiative forcing
         ia_ijts(k) = ia_rad   !? 
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'LWRF'
-        ijts_power(k) = -6.
+        ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -2879,7 +2879,7 @@ c SS longwave radiative forcing
         ia_ijts(k) = ia_rad  !? 
         lname_ijts(k) = 'SS LW radiative forcing'
         sname_ijts(k) = 'LWRF'
-        ijts_power(k) = -6.
+        ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
@@ -4715,15 +4715,6 @@ C         (lightning called from tracer_3Dsource)
       end do
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
-      do n=1,ntm
-        select case (trname(n))
-        case ('SO2')
-          call read_SO2_source(n,iact)
-        end select
-      end do
-#endif
-
 #ifdef TRACERS_COSMO
       do n=1,ntm
         if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
@@ -4993,23 +4984,8 @@ C****
         end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-c     case ('DMS')
-c     call read_DMS_sources(n)
-c        do j=1,jm
-c           trsource(:,j,1,n) = DMS_src(:,j)*dxyp(j)
-c        end do
-
-c     case ('seasalt1')
-c     call read_seasalt_sources
-c        do j=1,jm
-c           trsource(:,j,1,n) = ss_src(:,j,1)*dxyp(j)
-c        end do
-c     case ('seasalt2')
-c        do j=1,jm
-c           trsource(:,j,1,n) = ss_src(:,j,2)*dxyp(j)
-c        end do
-
       case ('SO2')
+        call read_SO2_source(n)
         do ns=1,ntsurfsrc(n)
          do j=1,jm
             trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.97d0
