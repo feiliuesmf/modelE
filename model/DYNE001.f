@@ -37,7 +37,7 @@ C**** module should own dynam variables used by other routines
       REAL*8, SAVE,DIMENSION(IM,JM)    :: PTOLD 
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
       REAL*8, SAVE,DIMENSION(IM,JM,LM) :: SD_CLOUDS 
-!@var GZ geopotential height (for Clouds) 
+!@var GZ geopotential height (for Clouds and Diagnostics) 
       REAL*8, SAVE,DIMENSION(IM,JM,LM) :: GZ
 !@var DPDX,DPDY surface pressure gradients (for PBL)
 c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
@@ -348,8 +348,8 @@ C****
       DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
   310 I=IP1
 C**** CALL DIAGNOSTICS
-         IF(MODD5K.LT.MRCH) CALL DIAG5A (4,MRCH)
-         IF(MRCH.GT.0) CALL DIAG9D (1,DT1,U,V)
+         IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
+         IF(MRCH.GT.0) CALL DIAG9D (1,DT1,U,V,DUT,DVT,PIT)
       DO L=1,LM
          DO J=2,JM
             DO I=1,IM
@@ -383,8 +383,8 @@ C**** Set the Coriolis term to zero at the Poles:
   420 DVT(IM1,J,L)=DVT(IM1,J,L)-ALPH*U(IM1,J,L)
   430 IM1=I
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
-         IF(MODD5K.LT.MRCH) CALL DIAG5A (5,MRCH)
-         IF(MRCH.GT.0) CALL DIAG9D (2,DT1,U,V)
+         IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
+         IF(MRCH.GT.0) CALL DIAG9D (2,DT1,U,V,DUT,DVT,PIT)
       DO L=1,LM
          DO J=2,JM
             DO I=1,IM
@@ -568,8 +568,8 @@ C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
  3340 CONTINUE
 C**** CALL DIAGNOSTICS
       IF(MRCH.LE.0) GO TO 500
-         IF(MODD5K.LT.MRCH) CALL DIAG5A (6,MRCH)
-         IF(MODD5K.LT.MRCH) CALL DIAG9D (3,DT1,U,V)
+         IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
+         IF(MODD5K.LT.MRCH) CALL DIAG9D (3,DT1,U,V,DUT,DVT,PIT)
 C****
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF DYNAM
@@ -993,6 +993,8 @@ C****
       REAL*8 PIT,SD,PU,PV,PHI
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
       COMMON/WORK3/PHI(IM,JM,LM)
+      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: DUT,DVT
+      COMMON/WORK5/DUT,DVT
 
       REAL*8 DTFS,DTLF,PP,UU,VV
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -1132,8 +1134,8 @@ C**** LOAD P TO PC
       DO 371 I=1,IM
   371 PC(I,J)=P(I,J)
          IF (MOD(NSTEP+NS-NDYN+NDAA,NDAA).LT.MRCH) THEN
-           CALL DIAGA (UT,VT,TT,PB,Q)
-           CALL DIAGB (UT,VT,TT,PB,Q,WMT)
+           CALL DIAGA (UT,VT,TT,PB,Q,PIT,SD)
+           CALL DIAGB (UT,VT,TT,PB,Q,WMT,DUT,DVT)
          ENDIF
       IF (NS.LT.NDYN) GO TO 340
 C**** Scale WM mixing ratios to conserve liquid water

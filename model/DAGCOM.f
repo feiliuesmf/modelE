@@ -28,22 +28,28 @@ C**** DIAGNOSTIC ARRAYS
 
       INTEGER, PARAMETER :: KAIJ=100
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJ) :: AIJ
-
+ 
       INTEGER, PARAMETER :: KAIL=16
       DOUBLE PRECISION, DIMENSION(IM,LM,KAIL) :: AIL
 
       INTEGER, PARAMETER :: KAIJG=29
       DOUBLE PRECISION, DIMENSION(IM,JM,KAIJG) :: AIJG
 
-      DOUBLE PRECISION, DIMENSION(20,100) :: ENERGY
+C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
+      INTEGER, PARAMETER :: NEHIST=20
+      INTEGER, PARAMETER :: HIST_DAYS=100
+      DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
 
       INTEGER, PARAMETER :: KCON=36
       DOUBLE PRECISION, DIMENSION(JM,KCON) :: CONSRV
 
-      DOUBLE PRECISION, DIMENSION((IMH+1),20,8) :: SPECA
+      INTEGER, PARAMETER :: KSPECA=20
+      INTEGER, PARAMETER :: NSPHER=8
+      DOUBLE PRECISION, DIMENSION((IMH+1),KSPECA,NSPHER) :: SPECA
 
+      INTEGER, PARAMETER :: KTPE=8 ! a P.E. subset of KSPECA
       integer, parameter :: NHEMI=2
-      DOUBLE PRECISION, DIMENSION(8,NHEMI) :: ATPE
+      DOUBLE PRECISION, DIMENSION(KTPE,NHEMI) :: ATPE
 
       integer, parameter :: HR_IN_DAY=24
       integer, parameter :: NDLYVAR=63
@@ -65,26 +71,30 @@ C**** DIAGNOSTIC ARRAYS
 
       integer, parameter :: N12HRS_IN_31DAY=62
       integer, parameter :: RE_AND_IM=2
+      integer, parameter :: KWP=12
       DOUBLE PRECISION,
-     &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,12) :: WAVE
+     &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,KWP) :: WAVE
 
       INTEGER, PARAMETER :: KACC=
-     &     JM*KAJ + JM*KAJ + JM*KAJ + 24*KAJ +
-     &     JM*KAPJ +
-     &     JM*LM*KAJL +
-     &     JM*LM_REQ*KASJL +
-     &     IM*JM*KAIJ +
-     &     IM*LM*KAIL +
-     &     IM*JM*KAIJG +
-     &     20*100 +
-     &     JM*KCON +
-     &     (IMH+1)*20*8 +
-     &     8*NHEMI +
-     &     HR_IN_DAY*NDLYVAR*NDLYPT +
-     &     RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*12 +
-     &     JM*LM*KAJK +
-     &     IM*JM*LM*KAIJK +
-     &     IM*JM*LM*KAIJL +
+     &     JM*KAJ + 
+     &     JM*KAJ + 
+     &     JM*KAJ + 
+     &     NREG*KAJ + 
+     &     JM*KAPJ + 
+     &     JM*LM*KAJL + 
+     &     JM*LM_REQ*KASJL + 
+     &     IM*JM*KAIJ + 
+     &     IM*LM*KAIL + 
+     &     IM*JM*KAIJG + 
+     &     NEHIST*HIST_DAYS + 
+     &     JM*KCON + 
+     &     (IMH+1)*KSPECA*NSPHER + 
+     &     KTPE*NHEMI + 
+     &     HR_IN_DAY*NDLYVAR*NDLYPT + 
+     &     RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*KWP + 
+     &     JM*LM*KAJK + 
+     &     IM*JM*LM*KAIJK + 
+     &     IM*JM*LM*KAIJL + 
      &     JM*LM*NWAV_DAG*KAJLSP
 
       COMMON /ACCUM/ AJ,BJ,CJ,DJ,APJ,AJL,ASJL,AIJ,AIL,
@@ -97,14 +107,14 @@ C**** DIAGNOSTIC ARRAYS
       DOUBLE PRECISION, DIMENSION(IM,JM,KTD) :: TDIURN
 
       INTEGER, DIMENSION(IM,JM) :: JREG
-      COMMON /REGION/ JREG
-      INTEGER, DIMENSION(42,50) :: KEYNR
+
+      INTEGER, PARAMETER :: NKEYNR=42
+      INTEGER, PARAMETER :: NKEYMO=50
+      INTEGER, DIMENSION(NKEYNR,NKEYMO) :: KEYNR
       INTEGER, DIMENSION(12) :: KDIAG
-      COMMON /KEYS/ KEYNR,KDIAG
 
       INTEGER :: KREG
       CHARACTER*4 TITREG*80,NAMREG(2,23)
-      COMMON/TNKREG/TITREG,NAMREG,KREG
 
 !@var IWRITE,JWRITE,ITWRITE grid point and surface type for diag. output
       INTEGER :: IWRITE = 0, JWRITE = 0, ITWRITE = 0
