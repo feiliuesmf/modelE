@@ -189,8 +189,6 @@ C
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
-      REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
-     & (/569d0, 100.d0, 32.d0, 3.2d0, 0.23d0/)
       REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx = 
      & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
 C  
@@ -450,10 +448,12 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
-C**** additional tropospheric value to avoid extrapolation...
-      REAL*8, DIMENSION(LCH4alt), PARAMETER ::   
-     *     CH4altINT =(/1.79d0, 1.620d0,1.460d0,0.812d0,0.230d0/),
-     *     CH4altINX =(/1.79d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
+C**** additional levsls for CH4 to avoid extrapolation...
+      REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
+     &     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
+      REAL*8, PARAMETER, DIMENSION(LCH4alt) ::   
+     *   CH4altINT =(/1.79d0, 1.75d0, 1.620d0,1.460d0,0.812d0,0.230d0/),
+     *   CH4altINX =(/1.79d0, 1.75d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
 
       REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX
       REAL*8, DIMENSION(NS)            :: VALJ
