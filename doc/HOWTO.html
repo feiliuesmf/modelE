@@ -352,13 +352,16 @@ you do.
    <LI> <A name="part1_1a"><b> How to select a rundeck name </b></A>
 
 <p>In order to make a rundeck that you can use and modify, you must
-first select a unique name for your run. There is a central database
+first select a unique name for your run. <em> Note that there is a 16 character
+limit on the length of the rundeck name due to limitations in the
+batch processing system we normally use</em>. There is a central database
 for storing user's rundecks (along with other pertinent information
 such as the time of compilation, the compiler version, and the current
 CVS branch) in <tt>ra:/u/cmrun/modelE/decks</tt> (configurable in
 <tt>~/.modelErc</tt>). This allows us to automatically tell whether a
-rundeck name has already been used. However, in order to minimise any
-confusion, we propose the following naming convention: </p>
+rundeck name has already been used.  However, in order to
+minimise any confusion, we propose the following naming convention:
+</p>
  <ul>
  <li> Each rundeck should start with 'E' (to distinguish it
              from other models in the building)
