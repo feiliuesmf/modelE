@@ -1274,7 +1274,7 @@ C**** functions
 #ifdef TRACERS_SPECIAL_O18
 !@var TRPRICE tracer in frozen precip entering layer top (kg)
       REAL*8, DIMENSION(NTM,LM+1) :: TRPRICE
-      REAL*8 PRLIQ,TRPRLIQ,DTERTICE
+      REAL*8 PRLIQ,TRPRLIQ
 #endif
 !@var DTPR change of tracer by precip (kg)
 !@var DTER change of tracer by evaporation (kg)
@@ -1622,11 +1622,19 @@ C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
         TRPRICE(:,L+1)=0.
 #endif
       END IF
-      PREICE(L)=MAX(0d0,PREICE(L+1)-AIRM(L)*ER(L)*CAREA(L)*PREICE(L+1)/ 
-     *          (GRAV*LHX*PREBAR(L+1)+teeny))
+      IF (PREBAR(L+1).gt.0) THEN ! to avoid round off problem
+        PREICE(L)=MAX(0d0,PREICE(L+1)-AIRM(L)*ER(L)*CAREA(L)*PREICE(L+1)
+     *       /(GRAV*LHX*PREBAR(L+1)))
+      ELSE
+        PREICE(L)=0.
+      END IF
       IF(LHX.EQ.LHS) PREICE(L)=PREICE(L)+AIRM(L)*PREP(L)*BYGRAV
-      PREBAR(L)=MAX(0d0,PREBAR(L+1)+
-     *          AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV)
+      IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
+        PREBAR(L)=AIRM(L)*PREP(L)*BYGRAV
+      ELSE
+        PREBAR(L)=MAX(0d0,PREBAR(L+1)+
+     *       AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV)
+      END IF
 C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       QNEW =QL(L)-DTsrc*QHEAT(L)/LHX
       IF(QNEW.LT.0.) THEN
@@ -1645,11 +1653,12 @@ C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
 C**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
       FPR=0.
-      IF (WMX(L).gt.0.) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
+      IF (WMX(L).gt.0.) FPR=PREP(L)*DTsrc/WMX(L)              ! CLW->P
       FER=0.
       IF (PREBAR(L+1).gt.0.) FER=CAREA(L)*ER(L)*AIRM(L)/(
      *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
       FER=MIN(1d0,FER)
+      IF (ER(L).eq.ERMAX) FER=1d0
       FPR=MIN(1d0,FPR)
       FWTOQ=0.                                                ! CLW->Q
 #endif
@@ -1704,33 +1713,30 @@ c         so saving it here for below cloud case:
 c ---------------------- calculate fluxes ------------------------
         DTWRT = FWASHT*TM(L,N)
         DTERT = FERT  *TRPRBAR(N,L+1)
-#ifdef TRACERS_SPECIAL_O18
-        DTERTICE=FERT *TRPRICE(N,L+1)
-#endif
         DTPRT = FPRT  *TRWML(N,L)
         DTQWT =
      &   FQTOWT*(TM(L,N)+DTERT) - FWTOQT*(TRWML(N,L)-DTPRT)
 c ---------------------- apply fluxes ------------------------
-        TRWML(N,L) = TRWML(N,L)     - DTPRT                 + DTQWT
+        TRWML(N,L) = TRWML(N,L)*(1.-FPRT)                   + DTQWT
         TM(L,N)    = TM(L,N)                + DTERT - DTWRT - DTQWT
-        TRPRBAR(N,L)=TRPRBAR(N,L+1) + DTPRT - DTERT + DTWRT
+        TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT)+DTPRT + DTWRT
         IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
 c
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT)
 #ifdef TRACERS_SPECIAL_O18
-C**** need seperate accounting for liquid/solid precip
-        TRPRICE(N,L) = TRPRICE(N,L+1) - DTERTICE
+C**** need separate accounting for liquid/solid precip
+        TRPRICE(N,L) = TRPRICE(N,L+1)*(1.-FERT)
         IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
         IF (PREICE(L).eq.0) TRPRICE(N,L)=0.  ! remove round off error
 C**** Isotopic equilibration of the CLW and water vapour
-        IF (TL(L).gt.TF) THEN  ! only if above freezing
+        IF (TL(L).gt.TF .and. WMX(L).gt.0) THEN  ! only if above freezing
           CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L)
      *         ,1d0)
         END IF
 C**** Isotopic equilibration of the liquid Precip and water vapour
-C**** only if T> -20 deg ???
+C**** only if T> pure ice limit temperature
         PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
-        IF (TL(L)-TF.GT.-20.AND.PRLIQ.gt.0) THEN
+        IF (TL(L).GT.TI.AND.PRLIQ.gt.0) THEN
           TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
           CALL ISOEQUIL(NTIX(N),TL(L),QL(L),PRLIQ,TM(L,N),TRPRLIQ,1d0)
           TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)
@@ -1790,8 +1796,10 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
      *       PRECHK*TRPRBAR(1:NTX,L)/PREBAR(L)
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L)*FPR
       END IF
+      TRPRICE(1:NTX,L)=MIN(TRPRICE(1:NTX,L),TRPRBAR(1:NTX,L))
 #endif
       PREBAR(L)=PREBAR(L)+(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
+      PREICE(L)=MIN(PREICE(L),PREBAR(L))
       WMX(L)=teeny
       END IF
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER

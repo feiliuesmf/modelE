@@ -2433,13 +2433,13 @@ C**** for gradients defined on water mass (should be an option?)
 c     tmominit = 0.
         case ('H2O18')        ! d18O=-80
           trinit=0.92d0*trw0(n)
-          tmominit = 0.
+          tmominit = trinit
         case ('HDO')   ! dD=-650
           trinit=0.35d0*trw0(n)
-          tmominit = 0.
+          tmominit = trinit
         case ('HTO')
           trinit=0.
-          tmominit = 0.
+          tmominit = trinit
         end select
 
         do l=1,lm

@@ -274,4 +274,18 @@ C****
 
       return
       end function kin_evap_prec
+
+      FUNCTION delta(W,T,n)
+!@sum calculate per mil values
+      use TRACER_COM, only : trw0
+      implicit none
+      real*8, intent(in) :: W,T
+      integer, intent(in) :: n
+      real*8 delta
+
+      delta=0.
+      if (trw0(n).gt.0 .and. W.gt.0) delta=(T/(W*trw0(n))-1.)*1d3
+
+      return
+      end function delta
 #endif
