@@ -109,6 +109,19 @@ C          SH EA   SH OC   SH LI   NH EA   NH OC   NH LI
 !@var DMOICE, DMLICE masking depth for snow on ice and land ice
       real*8, parameter :: DMOICE = 10., DMLICE = 10.
 
+!@var AOImin seaice albedo (Hansen)
+!@var AOImax seaice albedo (Hansen)
+!@var ASNwet wet snow albedo (Hansen)
+!@var ASNdry dry snow albedo (Hansen)
+!@var AMPmin min melt pond albedo (Hansen)
+      real*8, parameter ::
+C                         VIS   NIR1   NIR2   NIR3   NIR4   NIR5
+     *     AOImin(6)=(/ .05d0, .05d0, .05d0, .050d0, .05d0, .03d0/),
+     *     AOImax(6)=(/ .62d0, .42d0, .30d0, .120d0, .05d0, .03d0/),
+     *     ASNwet(6)=(/ .85d0, .75d0, .50d0, .175d0, .03d0, .01d0/),
+     *     ASNdry(6)=(/ .90d0, .85d0, .65d0, .450d0, .10d0, .10d0/),
+     *     AMPmin(6)=(/ .10d0, .05d0, .05d0, .050d0, .05d0, .03d0/)
+
 !@var AOCEAN K-band dependent Thermal radiation characteristics for ocn
       real*8, parameter, dimension(NKBAND) :: AOCEAN = (/
      +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
@@ -10834,7 +10847,7 @@ C----------------------------------------------------------------------
 C     ------------------------------------------------------------------
 C
 C        INPUT DATA
-C                  WAVNA,WAVNB  SPECLTRAL INTERVAL IN WAVENUMBERS
+C                  WAVNA,WAVNB  SPECTRAL INTERVAL IN WAVENUMBERS
 C                               (ORDER OF WAVNA,WAVNB NOT IMPORTANT)
 C
 C                  TK           ABSOLUTE TEMPERATURE IN DEGREES KELVIN
@@ -10916,7 +10929,7 @@ C     ------------------------------------------------------------------
 C
 C        INPUT DATA
 C------------------
-C                  WAVNA,WAVNB  SPECLTRAL INTERVAL IN WAVENUMBERS
+C                  WAVNA,WAVNB  SPECTRAL INTERVAL IN WAVENUMBERS
 C                               (ORDER OF WAVNA,WAVNB NOT IMPORTANT)
 C                  FLUXAB       PLANCK FLUX (W/M**2) IN INTERVAL
 C                                                       (WAVNA,WAVNB)
@@ -12205,8 +12218,10 @@ C**** Equivalence 2 band variables to 6 band array for easier passing
      *     (BVNSUR(1),BVSURF),(BVNSUR(2),BNSURF),
      *     (XVNSUR(1),XVSURF),(XVNSUR(2),XNSURF)
 
-C**** variables used for sea ice albedo calculation (for 4 bands)
+C**** variables used for sea ice albedo calculation (4 bands, Schramm)
       real*8, dimension(4) :: almp,alsd,alsf,ali,albtf,albtr
+C**** variables used for sea ice albedo calculation (6 bands, Hansen)
+      real*8, dimension(6) :: almp6,alsf6
       real*8 :: patchy,snagfac
 
 C     -----------------------------------------------------------------
@@ -12230,6 +12245,7 @@ C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8
 C     KVEGA6= 1  6-band albedo - no 'fixups'
 C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
 C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
+C     KVEGA6= 4  6-band Hansen oi.alb, Antarc/Greenl alb=.8
 C
 C           Get Albedo, Thermal Flux, Flux Derivative for each Surf Type
 C           ------------------------------------------------------------
@@ -12510,7 +12526,7 @@ C                                         ------------------------------
 C**** This albedo specification comes from Schramm et al 96 (4 spectral
 C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
 C**** Bare ice:
-        if(hin.gt.0. .and. hin.lt.1.)then
+        if(hin.lt.1.)then         ! hin=ice depth is at least Z1I(=.1m)
           ali(1)=.76d0+.14d0*log(hin)
           ali(2)=.247d0+.029d0*log(hin)
           ali(3)=.055d0
@@ -12541,12 +12557,14 @@ C**** Snow:
             alsf(2)=.702d0
             alsf(3)=.079d0
             alsf(4)=.001d0
+
             alsd(1:4)=alsf(1:4)
           else                  ! dry snow
             alsf(1)=.975d0
             alsf(2)=.832d0
             alsf(3)=.25d0
             alsf(4)=.025d0
+
             alsd(1)=.98d0-.008d0*cosz
             alsd(2)=.902d0-.116d0*cosz
             alsd(3)=.384d0-.222d0*cosz
@@ -12557,7 +12575,7 @@ C****  Dry, Wet(thick), Wet(thin) snow decreases by
 C**** 0.006,  0.015 and 0.071 per day, respectively (for mean)
 C**** assume decrease for each band is proportional
           if (flags) then
-            if (hsn.gt.0.25) then
+            if (hsn.gt.0.25) then     ! hsn: snow depth (m)
               snagfac = 0.015d0/0.7d0
             else
               snagfac = 0.071d0/0.7d0
@@ -12578,17 +12596,16 @@ C**** Melt ponds:
         almp(2)=.054d0+exp(-31.8d0*hmp-.94d0)
         almp(3)=.033d0+exp(-2.6d0*hmp-3.82d0)
         almp(4)=.03d0
+
 c**** combined sea ice albedo
         albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
-C**** The zenith angle dependence from Schramm is only used is KKSNOW
-C**** is zero. This only includes dry snow. Otherwise, Andy's
-C**** calculation is used for all surface types (dry/wet snow, ice,
-C**** meltponds)
-
-C**** Zenith angle dependence for dry snow only
+C**** albtr: The zenith angle dependence from Schramm affects dry snow
+C**** only; it is used if KKSNOW=KZSNOW=0. Otherwise the
+C**** expressions below are replaced by a computation due to A.Lacis
+C**** which affects all surface types (dry/wet snow, ice, meltponds)
         albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
 C**** Uncomment code below for zenith angle dependence for all types
-C**** based on Dickinson (1981) (only possible if KKSNOW=0)
+C**** based on Dickinson (1981) (only effective if KZSNOW=KKSNOW=0)
 C****          a = a1                                   cosz>0.5
 C****              a1 + (1-a1)*0.5 * (3/(1+4*cosz) -1) 0<cosz<.5
 C**** ==> a_diff = 0.84 a1 + 0.16 (integrating over cosz)
@@ -12600,7 +12617,7 @@ c          albtr(1:4) = (1.5*(albtf(1:4)-0.16d0)/0.84d0+1.-2.*cosz)/
 c     *         (4.*cosz+1.)
 c        end if
 
-        IF(KVEGA6.GT.0) THEN
+        IF(KVEGA6.GT.0) THEN     ! KVEGA6=3
 C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
 C**** Band#  range  %solar(grnd)  range   %solar(grnd)  band#
 C****  (1)  250-690  (49.3%)   -->  300-770    (58.5%) (1)
@@ -12626,7 +12643,7 @@ C**** set zenith angle dependence if required
             XOIVN(4:5)=albtr(3)*.148d0/.114d0
             XOIVN(6)=albtr(4)*.01d0/.02d0
           END IF
-        ELSE
+        ELSE                     ! KVEGA6=0
 C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
 C**** create a composite NIR value.
 C**** Adjust weighting to force same broadband albedo
@@ -12644,9 +12661,9 @@ C**** set zenith angle dependence if required
         END IF
         EXPSNO=1.-patchy
 C**** end of Schramm's version
-      else
-C**** original version
 
+      elseif (KVEGA6 .lt. 3) then
+C**** original versions
       EXPSNO=EXP(-SNOWOI/DMOICE)
 C**** Set snow albedo over sea ice
       ASNAGE=ALBDIF(2,JH)*EXP(-AGEXPF(2,JH)*AGESN(2))
@@ -12694,7 +12711,7 @@ c**** Puddlings: weak in NH, strong (or extreme) in SH
       end if
 c**** End of puddling section
 
-C**** Set zenith angle dependence if required
+C**** Set zenith angle dependence if required (KZSNOW>0)
         IF (KKZSNO.GT.0) THEN
           CALL RXSNOW(BOIVIS,COSZ,GZSNOW(1,2,JH),XOIVIS)
           CALL RXSNOW(BOINIR,COSZ,GZSNOW(7,2,JH),XOINIR)
@@ -12702,8 +12719,8 @@ C**** Set zenith angle dependence if required
           XOIVIS=BOIVIS
           XOINIR=BOINIR
         END IF
-      ELSE                      ! end of 2-band original version
-        DO L=1,6                !        6-band original version
+      ELSE   ! KVEGA6=1 or 2    ! end of 2-band original versions
+        DO L=1,6                !        6-band original versions
           BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
 C**** Set zenith angle dependence if required
           IF (KKZSNO.GT.0) THEN
@@ -12713,8 +12730,65 @@ C**** Set zenith angle dependence if required
           END IF
         END DO
       ENDIF
-      endif                     ! end of original version
-C
+C**** end of original versions
+
+      else
+C**** J. Hansen's sea ice albedo formulas (6 spectral bands)
+C**** Bare ice:
+        BOIVN(1:6) = aoimax(1:6)
+        if(hin.lt.1.)then       ! hin: ice depth (at least Z1I=.1m)
+          BOIVN(1:4)=aoimin(1:4)+(aoimax(1:4)-aoimin(1:4))*sqrt(hin)
+        endif
+C**** Snow:    patchy: snow_cover_fraction (<1 if snow depth < .1m)
+        patchy = 0.       !  max(0.d0 , min(1.d0, 10.d0*hsn) )
+        if(hsn.gt.0.)then
+          if(hsn.ge.0.1d0)then      ! snow deeper than .1m
+            patchy=1d0
+          else
+            patchy=hsn/0.1d0
+          endif
+          if(flags)then         ! wet snow
+            alsf6(1:6)=asnwet(1:6)
+          else                  ! dry snow
+            alsf6(1:6)=asndry(1:6)
+          endif
+C       snow aging based on Loth and Graf (1998)
+C       Dry, Wet(thick), Wet(thin) snow decreases by
+C       0.006,  0.015 and 0.071 per day, respectively (for mean)
+C       assume decrease for each band is proportional
+          if (flags) then
+            if (hsn.gt.0.25) then
+              snagfac = 0.015d0/0.7d0 * AGESN(2)
+            else
+              snagfac = 0.071d0/0.7d0 * AGESN(2)
+            end if
+          else
+            snagfac = 0.006d0/0.82d0  * AGESN(2)
+          end if
+C       make sure snow albedo doesn't get too low!
+          snagfac=min(snoage_fac_max,snagfac)
+          alsf6(1:6)=alsf6(1:6)*(1.-snagfac)
+C       combine bare ice and snow albedos
+          BOIVN(1:6)=BOIVN(1:6)*(1.-patchy)+alsf6(1:6)*patchy
+        endif
+C**** Melt ponds:
+        almp6(1:6)=ampmin(1:6)    ! used if melt pond deeper than .5m
+        if(hmp.gt.0. .and. hmp.lt.0.5)then
+          almp6(1:6)=almp6(1:6)+(aoimax(1:6)-almp6(1:6))*(1.-2.*hmp)**2
+        end if
+c**** combined sea ice albedo
+        BOIVN(1:6)=BOIVN(1:6)*(1.-fmp)+almp6(1:6)*fmp
+C**** set zenith angle dependence
+        IF (KKZSNO.GT.0) THEN     ! for all surface types
+          DO L=1,6
+            CALL RXSNOW(BOIVN(L),COSZ,GZSNOW(L,2,JH),XOIVN(L))
+          END DO
+        ELSE
+          XOIVN(1:6)=BOIVN(1:6)
+        END IF
+        EXPSNO=1.-patchy
+      end if  !  (KVEGA6.EQ.4)
+C*
       ITOI=TGOI
       WTOI=TGOI-ITOI
       ITOI=ITOI-ITPFT0
@@ -12921,7 +12995,6 @@ C
         RXSNO=RBSNO
         RETURN
       ENDIF
-      call sys_flush(6)
       XXG=0.D0
       XXT=0.D0
       GGSN=GGSNO
