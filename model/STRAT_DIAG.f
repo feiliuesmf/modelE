@@ -451,7 +451,8 @@ C**** this should be in an init_ep routine or something
      *     'tot_dudt     ','dudt_meanadv ','dudt_eddycnv '
      *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
      *     ,'dudt_fderr2  '/)
-      character(len=50) :: units(njl_out) = '10**-6 M S-2'
+      character(len=50) :: units(njl_out) = 'm/s^2'
+      integer, dimension(njl_out) :: pow = (/ -6,-6,-6,-6,-6,-6,-6 /)
 
 C**** ARRAYS CALCULATED HERE:
       REAL*8 DXCOSV(JM), ONES(JM+LM),PMO(LM),DP(LM)
@@ -595,7 +596,7 @@ CW      END DO
 CW      END DO
 C****
 C**** Print maps of EP fluxes
-C****   note:  JLMAP (lname,sname,units,Pres,Array,SCALEP,ScaleJ,ScaleL)
+C**** note: JLMAP (lname,sname,units,power,Pres,Array,SCALEP,ScaleJ,ScaleL)
 C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
       DO L=1,LM
@@ -619,25 +620,24 @@ C****
         DUDS(J,L) = (DUD(J,L)-ER2(J,L)) + DUDS(J,L)*SCALE1
       END DO
       END DO
-      SCALEP=1.E6
+      SCALEP=1
 CW      CALL WRITJL ('DUDT: EUL+SOURCE',DUDS,SCALEP)
 CW      CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALEP) ! AJK-47 DIAGJK
-      CALL JLMAP (LNAME(1),SNAME(1),UNITS(1),PMO,DUDS,SCALEP,ONES,ONES
-     *     ,LM,2,2)
+      CALL JLMAP (LNAME(1),SNAME(1),UNITS(1),POW(1),PMO,DUDS,SCALEP,ONES
+     *     ,ONES,LM,2,2)
 C****
-      SCALEP = 1.E6
-      CALL JLMAP (LNAME(2),SNAME(2),UNITS(2),PMO,DMF,SCALEP,BYDXYV,ONES
-     *     ,LM,2,2)
-      CALL JLMAP (LNAME(3),SNAME(3),UNITS(3),PMO,DEF,SCALEP,BYDXYV,ONES
-     *     ,LM,2,2)
-      CALL JLMAP (LNAME(4),SNAME(4),UNITS(4),PMO,DMFR,SCALEP,BYDXYV,ONES
-     *     ,LM,2,2)
-      CALL JLMAP (LNAME(5),SNAME(5),UNITS(5),PMO,DEFR,SCALEP,BYDXYV,ONES
-     *     ,LM,2,2)
-      CALL JLMAP (LNAME(6),SNAME(6),UNITS(6),PMO,ER1,SCALEP,ONES,ONES,LM
-     *     ,2,2)
-      CALL JLMAP (LNAME(7),SNAME(7),UNITS(7),PMO,ER2,SCALEP,ONES,ONES,LM
-     *     ,2,2)
+      CALL JLMAP (LNAME(2),SNAME(2),UNITS(2),POW(2),PMO,DMF,SCALEP
+     *     ,BYDXYV,ONES,LM,2,2)
+      CALL JLMAP (LNAME(3),SNAME(3),UNITS(3),POW(3),PMO,DEF,SCALEP
+     *     ,BYDXYV,ONES,LM,2,2)
+      CALL JLMAP (LNAME(4),SNAME(4),UNITS(4),POW(4),PMO,DMFR,SCALEP
+     *     ,BYDXYV,ONES,LM,2,2)
+      CALL JLMAP (LNAME(5),SNAME(5),UNITS(5),POW(5),PMO,DEFR,SCALEP
+     *     ,BYDXYV,ONES,LM,2,2)
+      CALL JLMAP (LNAME(6),SNAME(6),UNITS(6),POW(6),PMO,ER1,SCALEP,ONES
+     *     ,ONES,LM,2,2)
+      CALL JLMAP (LNAME(7),SNAME(7),UNITS(7),POW(7),PMO,ER2,SCALEP,ONES
+     *     ,ONES,LM,2,2)
 C****
 CW      DO L=1,LM
 CW      DO J=2,JM
