@@ -42,10 +42,11 @@ FFTOBJ  = FFT72.o
 RNDOBJ  = RANDSGI.o
 OUTOBJ  = POUT.o
 LOBJ    = LAKES.o
+LIOBJ   = LANDICE.o
 OBJ	= $(MOBJ) $(DYOBJ) $(QOBJ) $(DOBJ) $(PBLOBJ) $(SLOBJ) $(POBJ) \
 	  $(SOBJ) $(COBJ1) $(COBJ2) $(CLDCOM) $(ROBJ) $(UOBJ) $(OOBJ)  \
 	  $(COM) $(EOBJ) $(GHYCOM) $(DAGCOM) $(RADCOM) $(PBLCOM) $(PBLDRV) \
-          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ) $(LKCOM) $(LOBJ)
+          $(FFTOBJ) $(RNDOBJ) $(OUTOBJ) $(LKCOM) $(LOBJ) $(LIOBJ)
 
 # Make rules for generating object files from GISS-Fortran files
 .SUFFIXES:
@@ -86,7 +87,7 @@ $(PBLCOM):	$(MCOM) $(PBLOBJ)
 $(LKCOM):	$(MCOM)
 $(DYOBJ):	$(COM) $(PBLCOM) $(OOBJ) $(DAGCOM)
 $(MOBJ):	$(COM) $(GHYCOM) $(DAGCOM) $(RNDOBJ) $(CLDCOM) $(PBLOBJ) $(DYOBJ) $(RADCOM) $(PBLCOM) $(OOBJ) $(UOBJ) $(LOBJ)
-$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(CLDCOM) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ)
+$(POBJ):	$(COM) $(DAGCOM) $(ROBJ)  $(RNDOBJ) $(CLDCOM) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ) $(LOBJ) $(LIOBJ)
 $(PBLDRV):	$(COM) $(PBLOBJ) $(PBLCOM) $(DYOBJ) $(OOBJ) $(UOBJ)
 $(SOBJ):	$(COM) $(DAGCOM) $(PBLOBJ) $(RADCOM) $(PBLCOM) $(DYOBJ) $(OOBJ)
 $(EOBJ):	$(COM) $(DAGCOM) $(GHYCOM) $(CLDCOM) $(PBLOBJ) $(RADCOM) $(PBLCOM) $(DYOBJ) $(UOBJ)

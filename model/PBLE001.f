@@ -26,10 +26,7 @@ C**** boundary layer parameters
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 C**** model related constants (should really be taken from E001M12_COM)
-c      real*8, parameter :: grav=9.81   !@var grav gravitational accel.
-      real*8, save :: omega2 = 2.*omega    !@var omega2 2*omega (s^-1)
-
-c      real*8 expbyk
+      real*8, parameter :: omega2 = 2.*omega !@var omega2 2*omega (s^-1)
 
 c@var u,v,t,q,e local boundary layer profiles
       real*8, dimension(n) :: u,v,t,q

@@ -27,12 +27,21 @@
       REAL*8, PARAMETER :: Z1I = .1
 !@var ACE1I ice mass first layer (kg/m^2)
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
+!@var HC1I heat capacity of first layer ice (J/m^2)
+      REAL*8, PARAMETER :: HC1I = ACE1I*SHI
 !@var Z2OIM thickness of 2nd layer ice (m)
       REAL*8, PARAMETER :: Z2OIM = .4
 !@var AC2OIM ice mass 2nd layer (kg/m^2)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8
+!@var ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
+      REAL*8, PARAMETER :: ALAMI=2.1762, ALAMS=0.35
+!@var RHOS density of snow (kg/m^3)
+      REAL*8, PARAMETER :: RHOS = 300.0
+!@var BYRLI,BYRLS reciprical of density*lambda
+      REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
+     *     BYRLS = 1./(RHOS*ALAMS)
 
 c      REAL*8, DIMENSION(IM,JM) :: TSO
 c      REAL*8, DIMENSION(IM,JM) :: RSI

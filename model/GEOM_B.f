@@ -4,7 +4,7 @@
 !@ver  1.0 (B grid version)
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY
-      USE E001M12_COM, only : IM,JM,LM,FIM
+      USE E001M12_COM, only : IM,JM,LM,FIM,BYIM
       IMPLICIT NONE
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
@@ -13,7 +13,7 @@ C**** Polar boxes have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
 
 !@param  DLON grid spacing in longitude (deg)
-      REAL*8  :: DLON    !=TWOPI/IM
+      REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@param  DLAT grid spacing in latitude (deg)
@@ -52,20 +52,18 @@ C**** some B-grid conseravtion quantities
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
-!@var  RAJ scaling to get A grid velocities to B grid points
-!      as function of latitude j
+!@var SINI,COSI sin and cos values for velocity points surrounding pole
+      REAL*8, DIMENSION(IM) :: SINI,COSI
+!@var  RAJ scaling for A grid U/V to B grid points (func. of lat. j)
       REAL*8, DIMENSION(IM,JM) :: RAJ
-!@var  IDJJ J index of adjacent velocity points for A grid points
-!      as function of latitude j
+!@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
       INTEGER, DIMENSION(IM,JM) :: IDJJ
-!@var  IDIJ I index of adjacent velocity points for A grid points
-!      as function of longitude i and latitude j
+!@var  IDIJ I index of adjacent U/V points for A grid (func. of lat/lon)
       INTEGER, DIMENSION(IM,IM,JM) :: IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
 !@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JM) :: IMAXJ
-
 !@var  FCOR latitudinally varying coriolis parameter
       REAL*8, DIMENSION(JM) :: FCOR
 
@@ -83,7 +81,7 @@ c      USE E001M12_COM
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAPO
 
-      DLON=TWOPI/IM
+c      DLON=TWOPI*BYIM
       DLAT=.5*TWOPI/(JM-1)
       LAT(1)  = -.25*TWOPI
       LAT(JM) = -LAT(1)
@@ -168,6 +166,12 @@ c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
 C**** Set indexes and scalings for the influence of A grid points on
 C**** adjacent velocity points
 
+C**** Calculate relative directions of polar box to nearby U,V points
+      DO I=1,IM
+         SINI(I)=SIN((I-1)*TWOPI*BYIM)
+         COSI(I)=COS((I-1)*TWOPI*BYIM)
+      END DO
+
 C**** Conditions at the poles
       DO J=1,JM,JM-1
          IF(J.EQ.1) THEN
@@ -181,8 +185,8 @@ C**** Conditions at the poles
          IMAXJ(J)=1
          RAJ(1:KMAXJ(J),J)=RAPO
          IDJJ(1:KMAXJ(J),J)=JVPO
-         DO I=1,IM
-            IDIJ(I,1:IM,J)=I
+         DO K=1,KMAXJ(J)
+            IDIJ(K,1:IM,J)=K
          END DO
       END DO
 C**** Conditions at non-polar points
