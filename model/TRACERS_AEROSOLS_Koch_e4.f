@@ -24,7 +24,6 @@ c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3
       real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
-      integer, DIMENSION(NTM):: itrsw
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt,iact)
