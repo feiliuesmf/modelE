@@ -159,7 +159,7 @@ C Assume all emissions occur at top of plume.
         pl1=pmid(l,iv,jv)
         pl2=pmid(l+1,iv,jv)
         te=pk(l,iv,jv)*t(iv,jv,l)
-        HIGHT = 2.9271E+01*TE*LOG(PL1/PL2)   
+        HIGHT = 2.9271d+01*TE*LOG(PL1/PL2)   
 C ZH is height in meters of top of layer above sea level   
         ZH = ZH + HIGHT     
         IF (VHT .LT. ZH) GO TO 24    
@@ -302,7 +302,7 @@ c use this for Tans et al. source
 c     AKW = 0.0                     
 c     IF (SWIND.GT.3.0)          
 c    *  AKW = 0.016*(SWIND -3.)  
-c     ERATE = AKW*CONC*1.E-6*TCMASS(5)*NDYN*DT/(3600.*24.*365.)  
+c     ERATE = AKW*CONC*1.d-6*TCMASS(5)*NDYN*DT/(3600.*24.*365.)  
 c    *      *(1.-ODATA(I,J,2))*(ODATA(I,J,1)+273.15)*.082 
 cccccccccccccccccccccc   
 c Subgrid surface wind parameterization, using Liss and Merlivat 
@@ -418,7 +418,7 @@ c source -> return
         Y=(X/3.75d0)**2.d0
         BESSI0=exx*(P1+Y*(P2+Y*(P3+Y*(P4+Y*(P5+Y*(P6+Y*P7))))))
       ELSE
-        AX=dABS(X)
+        AX=ABS(X)
         Y=3.75d0/AX
         BESSI0=(dEXP(AX)/dSQRT(AX))*exx*
      *     (Q1+Y*(Q2+Y*(Q3+Y*(Q4
@@ -594,7 +594,7 @@ c      PPRES = (SIG(L)*(PSF-PTOP)+PTOP)*9.869d-4 !in atm
 c      TE = T(I,J,L)*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA 
 c      MM = (PSF-PTOP)*DSIG(L)*100./GRAV*DXYP(J) 
 c      ELSE                      
-c      PPRES = (SIG(L)*P(I,J) + PTOP)*9.869E-4 !in atm   
+c      PPRES = (SIG(L)*P(I,J) + PTOP)*9.869d-4 !in atm   
 c      TE = EXPBYK(SIG(L)*P(I,J) + PTOP)*T(I,J,L)  
 c      MM = P(I,J)*DSIG(L)*100./GRAV*DXYP(J)   
 c      ENDIF               
@@ -824,8 +824,8 @@ cg       call DIAGTCA(itcon_3Dsrc(1,n_H2O2_s),n_H2O2_s)
 
 c BC: insoluble -> soluble                                              6643.4  
 c      DBC=10.*DSO4*TCMASS(6)/TCMASS(3)                                 6643.5  
-c      DBC=T0M(I,J,L,6)*(1.-DEXP(-9.9E-6*DT*NDYN))                      6643.55 
-c      DBC=T0M(I,J,L,6)*9.736E-6*DT*NDYN  !this used last               6643.56 
+c      DBC=T0M(I,J,L,6)*(1.-DEXP(-9.9d-6*DT*NDYN))                      6643.55 
+c      DBC=T0M(I,J,L,6)*9.736d-6*DT*NDYN  !this used last               6643.56 
 c      IF (DBC.GT.T0M(I,J,L,6)) DBC=T0M(I,J,L,6)*.985                   6643.6  
 c      T0M(I,J,L,6)=T0M(I,J,L,6)-DBC  !0.95*DBC                         6643.7  
 c      T0M(I,J,L,7)=T0M(I,J,L,7)+DBC  !0.95*DBC                         6643.8  
@@ -1020,7 +1020,7 @@ c dvz is the dep vel in m/s
       p1=pmid(1,i,j)
       p2=pmid(2,i,j)
       te=pk(1,i,j)*t(i,j,1)
-      THIK = 2.9271E+01*TE*LOG(P1/P2)     
+      THIK = 2.9271d+01*TE*LOG(P1/P2)     
        DRYLOSS = dtsrc/THIK*DVZ*2.  
        trm(i,j,1,n)=trm(i,j,1,n)*(1.-dryloss)
        do nm=1,nmom
@@ -1084,10 +1084,10 @@ c
       real*8 clwc,rk1f,rkdm(ntm),amass,trd(ntm),trdr(ntm),
      * dso4g,dso4d,pph(ntm),trmol(ntm),trdmol(ntm),dso4gt,dso4dt
       integer n,ih,is,is4
-      real*8, parameter :: rk1=1.3E-2 !M
-      real*8, parameter :: dh1=-1.6736E4 !J/mol
-      real*8, parameter :: rk=6.357E14    !1/(M*M*s)
-      real*8, parameter :: ea=3.95E4 !J/mol
+      real*8, parameter :: rk1=1.3d-2 !M
+      real*8, parameter :: dh1=-1.6736d4 !J/mol
+      real*8, parameter :: rk=6.357d14    !1/(M*M*s)
+      real*8, parameter :: ea=3.95d4 !J/mol
       REAL*8,  INTENT(IN) :: fcloud,temp,wa_vol,wmxtr,LHX
       real*8 tm(lm,ntm), tmcl(ntm,lm), airm(lm)
 c     REAL*8,  INTENT(OUT):: 
@@ -1121,7 +1121,7 @@ c  cloud liquid water content
        case('SO2')
        is=ntix(n)
 c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(is)=tr_rkd(is)*(1.+ rk1f/3.2e-5)  
+      rkdm(is)=tr_rkd(is)*(1.+ rk1f/3.2d-5)  
 c mole of tracer, used to limit so4 production
       trmol(is)=1000.*tm(l,is)/tr_mm(is)*fcloud
 c partial pressure of gas x henry's law coefficient                 
@@ -1210,8 +1210,8 @@ c can't be more than moles going in:
        sulfinc(is)=max(-1d0,sulfinc(is))
        sulfin(is)=max(-1d0,sulfin(is))
        tr_left(is)=0.
-       if (fcloud.gt.dabs(sulfin(is))) then
-       tr_left(is)=(fcloud+sulfin(is))
+       if (fcloud.gt.abs(sulfin(is))) then
+         tr_left(is)=(fcloud+sulfin(is))
        endif
 
        dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,is)+sulfinc(is)*trdr(is)
@@ -1223,8 +1223,8 @@ c can't be more than moles going in:
        sulfinc(ih)=max(-1d0,sulfinc(ih))
        sulfin(ih)=max(-1d0,sulfin(ih))
        tr_left(ih)=0.
-       if (fcloud.gt.dabs(sulfin(ih))) then
-       tr_left(ih)=fcloud+sulfin(ih)
+       if (fcloud.gt.abs(sulfin(ih))) then
+         tr_left(ih)=fcloud+sulfin(ih)
        endif
 
        dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ih)+sulfinc(ih)*trdr(ih)
@@ -1250,10 +1250,10 @@ c can't be more than moles going in:
       IMPLICIT NONE
       integer i,j,l,n,najl
       REAL*8, PARAMETER :: BY298K=3.3557D-3
-      real*8, parameter :: rk1=1.3E-2 !M
-      real*8, parameter :: dh1=-1.6736E4 !J/mol
-      real*8, parameter :: rk=6.357E14    !1/(M*M*s)
-      real*8, parameter :: ea=3.95E4 !J/mol
+      real*8, parameter :: rk1=1.3d-2 !M
+      real*8, parameter :: dh1=-1.6736d4 !J/mol
+      real*8, parameter :: rk=6.357d14    !1/(M*M*s)
+      real*8, parameter :: ea=3.95d4 !J/mol
       real*8 te,amass,ppas,rk1f,tfac,ssfac,RKD,Henry_const(ntm),
      * pph(ntm),r1,A,B,pp,rr,aa,bb,BA,B2,xx,y,pn,tv,avol,
      * dso4g,dso4gt,tso2,th2o2,sulfout,sulfin,wv,ss,clwc,
@@ -1278,9 +1278,9 @@ c   Assume average radius of 0.1 um
       ss=rhsav(l,i,j)
       if (ss.gt.0.99d0) go to 88
          R1=log(SS)
-         A=3.2E-7/te*1E6
-c        B=1.09E-4*7.4 !7.4 is particle mass for 0.1 um particle
-         B=1.09E-4*4.d0*pi/3.d0*1760.d0*ptr*ptr*ptr
+         A=3.2d-7/te*1d6
+c        B=1.09d-4*7.4 !7.4 is particle mass for 0.1 um particle
+         B=1.09d-4*4.d0*pi/3.d0*1760.d0*ptr*ptr*ptr
          pp=-A/R1
          rr=B/R1
          aa=-pp*pp/3.

@@ -959,15 +959,10 @@ c below TR_LEFT(N) limits the amount of available tracer in gridbox
         TR_LEF=1.D0
         CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF)
-#ifdef TRACERS_AEROSOLS_Koch
-        TRCOND(N,L) = FQCONDT * TR_LEFT(N)*TMP(N) + TRCOND(N,L)
-        TMP(N)         = TMP(N)   *(1.-FQCONDT*TR_LEFT(N))
-        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT*TR_LEFT(N))
-#else
+
         TRCOND(N,L) = FQCONDT * TMP(N)
         TMP(N)         = TMP(N)         *(1.-FQCONDT)
         TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
-#endif
       END DO
 #endif
       TAUMCL(L)=TAUMCL(L)+DQSUM*FMC1
