@@ -31,7 +31,6 @@ c
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
       USE TRACER_SOURCES, only: nChemistry,nStratwrite
       USE TRCHEM_Shindell_COM
-      USE RADPAR, only: O3DLJ
 c
       IMPLICIT NONE
 c
@@ -52,8 +51,6 @@ C**** Local parameters and variables and arguments:
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
 !@var bydtsrc reciprocal of the timestep dtsrc
-!@var imonth month index for Ox strat correction factor
-!@var m dummy loop variable for Ox strat correction factor
 !@var local logical for error checking 
 !@var byam75 the reciprocal air mass near 75 hPa level
 !@var average tropospheric ch4 value near 569 hPa level
@@ -87,7 +84,6 @@ C**** Local parameters and variables and arguments:
      *chg108,chg109,rmrClOx,rmrBrOx,rmv
 #endif
       REAL*8 :: CH4_569
-      INTEGER imonth, m
       LOGICAL error
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2,n2 dummy loop variables
       INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2,n2
@@ -292,12 +288,12 @@ c
 #ifdef Shindell_Strat_chem
 c       define pressures to be sent to FASTJ (centers):
         DO LL=1,LM
-          PFASTJ(LL) = PMID(LL,I,J)
+          PFASTJ2(LL) = PMID(LL,I,J)
         END DO
 
-      PFASTJ(LM+1)=0.00206  ! P at SIGE(LM+1)
-      PFASTJ(LM+2)=0.00058  ! unknown, so fudged for now.
-      PFASTJ(LM+3)=0.00028  ! unknown, so fudged for now.
+      PFASTJ2(LM+1)=0.00206d0  ! P at SIGE(LM+1)
+      PFASTJ2(LM+2)=0.00058d0  ! unknown, so fudged for now.
+      PFASTJ2(LM+3)=0.00028d0  ! unknown, so fudged for now.
 #else
 c       define pressures to be sent to FASTJ (centers):
         DO LL=2,2*LM,2
@@ -1055,11 +1051,12 @@ C Save chemistry changes for updating tracers in apply_tracer_3Dsource.
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = change(i,j,l,n) * bydtsrc
         END DO
-c Reset O3DLJI values for radiation (gcm):
-        O3DLJI(L,J,I)=
-     &  (trm(I,J,L,n_Ox)+change(I,J,L,n_Ox))*BYDXYP(J)*BYO3MULT
+c Reset radiation O3 values here, if interactive ozone:
+        !
+        !
+        !
 #ifdef Shindell_Strat_chem
-        DU_O3(J)=DU_O3(J)+O3DLJI(L,J,I)
+        DU_O3(J)=0.d0! this used to be  updated with radiation O3 value
 #endif
 
       END DO       ! end current troposphere loop
@@ -1181,7 +1178,7 @@ C     Make sure that change is zero:
 C 
 C Calculate an average tropical CH4 value near 569 hPa:
 C
-      CH4_569=0.   
+      CH4_569=0.d0   
       DO J=JS+1,JN
         FACTj= 1.d6*bydxyp(j)
         CH4_569=CH4_569+FACTJ*SUM(F569M*trm(:,J,L569M,n_CH4)*byam(L569M
@@ -1191,28 +1188,18 @@ C
 
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
       r179=1/1.79d0 
-
-C Use Ox correction factor for the proper month:
-      imonth= 1
-      DO m=2,12
-       IF((JDAY.LE.MDOFM(m)).AND.(JDAY.GT.MDOFM(m-1))) THEN
-        imonth=m
-        GOTO 217
-       END IF
-      END DO
- 217  CONTINUE
 C
 c     Update stratospheric ozone to amount set in radiation
-      do i=1,im; DO l=1,lm
-        O3DLJI(L,:,I)=O3DLJ(L,:)
-      end do   ; end do
+         ! here was code to set
+         ! ozone field to radiation field
+         ! for stratospheric overwriting below
 c
       do j=1,jm
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
        do L=LS1J(J),LM               ! >> BEGIN LOOP OVER STRATOSPHERE <<
         do i=1,IM
-          change(I,J,L,n_Ox)=  O3DLJI(L,J,I)*DXYP(J)*O3MULT*
-     &    corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
+          change(I,J,L,n_Ox)= 0.d0 ! need to put this back in, based on
+                                 ! the radiation climatology !!!
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
           change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4 - trm(I,J,L,n_NOx)
@@ -1224,7 +1211,7 @@ C         dts 12/19/01:NOx strat-trop flux too big, alter lower strat:
           change(I,J,L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
           change(I,J,L,n_CH3OOH)=FACT1            - trm(I,J,L,n_CH3OOH)
           change(I,J,L,n_HCHO)=  FACT1            - trm(I,J,L,n_HCHO)
-          change(I,J,L,n_HO2NO2)=FACT1*70.        - trm(I,J,L,n_HO2NO2)
+          change(I,J,L,n_HO2NO2)=FACT1*70.d0      - trm(I,J,L,n_HO2NO2)
 C         note above: 70. = 1.4E-7/2.0E-9
           change(I,J,L,n_CO)=(COlat(J3)*COalt(L)*1.D-9*bymass2vol(n_CO)
      &    *AM(L,I,J)*DXYP(J))                   - trm(I,J,L,n_CO)
