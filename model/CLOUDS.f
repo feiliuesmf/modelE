@@ -1723,24 +1723,24 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
     ! this formulation is used for consistency with current practice
       RH00(L)=U00wtrX*U00ice
       IF(LHX.EQ.LHS) RH00(L)=U00ice
-      IF (L.LE.DCL) THEN   ! boundary layer clouds
+C     IF (L.LE.DCL) THEN   ! boundary layer clouds
 C**** calculate total pbl depth
-        HPBL=0.
-        DO LN=1,DCL
-          HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
-        END DO
+C       HPBL=0.
+C       DO LN=1,DCL
+C         HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
+C       END DO
 C**** Scale HPBL by HRMAX to provide tuning control for PBL clouds
-        HDEP = MIN(HPBL,HRMAX*(1.-EXP(-HPBL/HEFOLD)))
+C       HDEP = MIN(HPBL,HRMAX*(1.-EXP(-HPBL/HEFOLD)))
 C**** Special conditions for boundary layer contained wholly in layer 1
-        IF (DCL.LE.1) THEN
-          IF (RIS.GT.1.) HDEP=10d0
-          IF (RIS.LE.1..AND.RI1.GT.1.) HDEP=50d0
-          IF (RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP=100d0
-        END IF
+C       IF (DCL.LE.1) THEN
+C         IF (RIS.GT.1.) HDEP=10d0
+C         IF (RIS.LE.1..AND.RI1.GT.1.) HDEP=50d0
+C         IF (RIS.LE.1..AND.RI1.LE.1..AND.RI2.GT.1.) HDEP=100d0
+C       END IF
 C**** Estimate critical rel. hum. based on parcel lifting argument
-        RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
-        IF(RH00(L).LT.0.) RH00(L)=0.
-      END IF
+C       RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
+C       IF(RH00(L).LT.0.) RH00(L)=0.
+C     END IF
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
