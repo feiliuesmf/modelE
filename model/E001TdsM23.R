@@ -34,7 +34,7 @@ ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-TRACER_COM TRACERS_Air              ! common and driver for tracers
+TRACER_COM TRACERS_DRV              ! common and driver for tracers
 ! ---TRACER SPECIFIC CODES----------
 TRACERS_SPECIAL_Shindell            ! routines specific to drew's 15-tracers
 TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common

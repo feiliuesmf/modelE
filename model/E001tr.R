@@ -17,7 +17,7 @@ PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
-TRACER_COM TRACERS_Air              ! air mass tracers
+TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 ! use next line if #define TRACER_SPECIAL_Lerner
