@@ -1186,7 +1186,6 @@ c     endif
         gmmax=(1+d1*gh+d3*gh*gh)/(d2+d4*gh)
         gmmax=min(gmmax,gmmax0)
         if(gm.gt.gmmax) gm=gmmax
-        write(99,*) "gmmax",gmmax,gm,gmmax0,d1,d2,d3,d4,gh
         den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
