@@ -64,8 +64,8 @@ F       = $(SCRIPTS_DIR)/fco2_90
 U	= $(SCRIPTS_DIR)/uco2_f90
 CPPFLAGS = -DMACHINE_SGI
 #FFLAGS = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=5745
-FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000
-FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6000 -freeform
+FFLAGS = -ftpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500
+FFLAGSF = -cpp -O2 -64 -mips4 -OPT:reorg_comm=off -w2 -OPT:Olimit=6500 -freeform
 LFLAGS = -64 -O2 -mips4 -lfastm -OPT:reorg_common=OFF
 ifeq ($(MP),YES)
 FFLAGS += -mp
@@ -76,9 +76,13 @@ endif
 ifeq ($(VERBOSE_OUTPUT),NO)
 LFLAGS += -LD_MSG:OFF=84,85,15,134
 endif
-# uncomment next two lines for extra debugging
-#FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
-#LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+LFLAGS += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+FFLAGSF += -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+LFLAGSF += -DEBUG:conform_check=YES -DEBUG:div_check=3 -DEBUG:subscript_check=ON -DEBUG:trap_uninitialized=ON
+endif
 # not sure if the following will help the debugging ...
 # FFLAGS += -DEBUG:verbose_runtime=ON
 # LFLAGS += -DEBUG:verbose_runtime=ON
