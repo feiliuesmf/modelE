@@ -53,7 +53,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux         ! need KSOLAR<2
 !  RADN9=solar.lean02.ann.uvflux  ! need KSOLAR=2
-RADNA=o3trend.1850-2050 
+RADNA=o3trend.1850-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Sep2001
@@ -71,7 +71,7 @@ U00ice=.50   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 HRMAX=1000.  ! tune this to get rad.equilibrium (range: 100.-1500. meters)
 KSOLAR=1
 DT=450.,        ! from default: DTsrc=3600.,
-SUBDD="SLP"     ! save SLP at sub-daily frequency
+SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
