@@ -1549,7 +1549,9 @@ c****
       real*8 :: a01 = -.0575d0, a02 = -2.154996d-4, a03 =1.710523d-3
 
       pr=0.
-      if (present(press)) pr=press
+      if (present(press)) then
+        pr=press
+      end if
 C**** linear approximation
 c      tfrez = -mu*sss + dtdp*pr
 C**** UNESCO formula (1983)
@@ -1847,7 +1849,7 @@ C**** Check for NaN/INF in ice data
       QCHECKI = .FALSE.
 C**** Check for reasonable values for ice variables
       DO J=1,JM
-        DO I=1,IM
+        DO I=1,IMAXJ(J)
           IF (RSI(I,J).lt.0 .or. RSI(I,j).gt.1 .or. MSI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,RSI(I,J)
      *           ,MSI(I,J)
