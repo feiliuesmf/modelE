@@ -173,7 +173,8 @@ c   (m2/s)                                                 (cm2/s)
 !@var num_v_smooth_Ri = number of vertical smoothings of Ri
 
       real*8, parameter :: Riinfty= 0.7d0, rRiinfty=1./Riinfty, BVSQcon=
-     *     -1d-7,rBVSQcon=1./BVSQcon, num_v_smooth_Ri=1
+     *     -1d-7,rBVSQcon=1./BVSQcon
+      integer, parameter :: num_v_smooth_Ri=1
       real*8, parameter :: difm0   = vvcric * r10000, difs0   = vdcric
      *     * r10000,difmiw  = fkpm   * r10000, difsiw  = fkph   * r10000
      *     ,difmcon = vvclim * r10000, difscon = vdclim * r10000
@@ -1162,6 +1163,7 @@ C****
 !$OMP&  N,TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT,
 #endif
 !$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
+!$OMP&  SHARED(DTS)
       DO 790 J=2,JM
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
@@ -1336,7 +1338,7 @@ C**** Loop over quarter boxes
       UL(1,4) = VO1(I,J  )
       S0ML(1,IQ,JQ)=2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))
       if (abs(SZML(1,IQ,JQ))>S0ML(1,IQ,JQ))
-     \     SZML(1,IQ,JQ) = sign(S0ML(1,IQ,JQ),SZML(1,IQ,JQ))
+     *     SZML(1,IQ,JQ) = sign(S0ML(1,IQ,JQ),SZML(1,IQ,JQ))
       DO 250 L=2,LMIJ
       UL0(L,1) = UT(IM1,J,L)
       UL0(L,2) = UT(I  ,J,L)
@@ -1352,7 +1354,7 @@ C**** Loop over quarter boxes
       UL(L,4) = UL0(L,4)
       S0ML(L,IQ,JQ) = S0ML0(L,IQ,JQ)
       if (abs(SZML(L,IQ,JQ))>S0ML(L,IQ,JQ))
-     \     SZML(L,IQ,JQ) = sign(S0ML(L,IQ,JQ),SZML(L,IQ,JQ))
+     *     SZML(L,IQ,JQ) = sign(S0ML(L,IQ,JQ),SZML(L,IQ,JQ))
   250 CONTINUE
       G0ML(1,IQ,JQ)=2.5d-1*(G0M1(I,J,1)+ RI*GXM1(I,J) + RJ*GYM1(I,J))
       DO L=2,MIN(LSRPD,LMIJ)
@@ -1373,7 +1375,7 @@ C****
           if (t_qlimit(N)) then
             TRML(L,N,IQ,JQ) = MAX(0d0,TRML(L,N,IQ,JQ))
             if (abs(TZML(L,N,IQ,JQ))>TRML(L,N,IQ,JQ))
-     \           TZML(L,N,IQ,JQ) = sign(TRML(L,N,IQ,JQ),TZML(L,N,IQ,JQ))
+     *           TZML(L,N,IQ,JQ) = sign(TRML(L,N,IQ,JQ),TZML(L,N,IQ,JQ))
           end if
         END DO
       END DO
