@@ -919,11 +919,11 @@ C****
 C**** convert kg/(source time step) to km^3/mon
       SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)
       DO INM=1,NRVR,6
-        DO I=1,6
+        DO I=1,MIN(6,NRVR+1-INM)
           RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
      *         ,IJ_MRVR)/IDACC(1)
         END DO
-        WRITE(6,901) (NAMERVR(I-1+INM),RVROUT(I),I=1,6)
+        WRITE(6,901) (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM))
       END DO
 
 #ifdef TRACERS_WATER
@@ -932,7 +932,7 @@ C**** convert kg/(source time step) to km^3/mon
           WRITE(6,*) "River outflow tracer concentration "
      *         ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
           DO INM=1,NRVR,6
-            DO I=1,6
+            DO I=1,MIN(6,NRVR+1-INM)
               IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
      *             THEN
               if (to_per_mil(n).gt.0) then
@@ -950,7 +950,8 @@ C**** convert kg/(source time step) to km^3/mon
                 TRRVOUT(I,N)=undef
               END IF
             END DO
-            WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),I=1,6)
+            WRITE(6,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),
+     *           I=1,MIN(6,NRVR+1-INM))
           END DO
         end if
       END DO
