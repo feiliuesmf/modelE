@@ -353,7 +353,7 @@ C**** set dimensions
 !@auth Gavin Schmidt
 !@ver  1.0
       USE GISSOUT
-      USE DAGCOM, only : KAJ
+      USE DIAG_COM, only : KAJ
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16 :: NEWTIT

@@ -1,12 +1,12 @@
 #include "rundeck_opts.h"
-      MODULE DAGCOM
-!@sum  DAGCOM Diagnostic model variables
+      MODULE DIAG_COM
+!@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat
       USE GEOM, only : dlon
-      USE RADNCB, only : LM_REQ
+      USE RAD_COM, only : LM_REQ
 
       IMPLICIT NONE
       SAVE
@@ -587,9 +587,9 @@ c idacc-indices of various processes
 !@var ZOC, ZOC1 ocean depths for diagnostics (m) (ONLY FOR DEEP OCEAN)
       REAL*8 :: ZOC(LMOMAX) = 0. , ZOC1(LMOMAX+1) = 0.
 
-      END MODULE DAGCOM
+      END MODULE DIAG_COM
 
-      SUBROUTINE ALLOC_DAGCOM(grid)
+      SUBROUTINE ALLOC_DIAG_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
@@ -598,12 +598,12 @@ c idacc-indices of various processes
       USE DOMAIN_DECOMP, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE
-      USE DAGCOM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
+      USE DIAG_COM, ONLY : KAJ,KAPJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD
-      USE RADNCB, only : LM_REQ
-      USE DAGCOM, ONLY : SQRTM,AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,
-     &        AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ,OA,
-     &        wt_ij
+      USE RAD_COM, only : LM_REQ
+      USE DIAG_COM, ONLY : SQRTM,AJ,JREG,APJ,AJL,ASJL,AIJ,CONSRV,AJK
+     *     ,AIJK,AFLX_ST,isccp_reg,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ
+     *     ,OA,wt_ij
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -649,7 +649,7 @@ c idacc-indices of various processes
      &         STAT = IER)
 
       RETURN
-      END SUBROUTINE ALLOC_DAGCOM
+      END SUBROUTINE ALLOC_DIAG_COM
 
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
@@ -658,7 +658,7 @@ c idacc-indices of various processes
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
-      USE DAGCOM
+      USE DIAG_COM
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements

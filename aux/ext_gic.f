@@ -10,11 +10,11 @@ C**** must be compiled after the model
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
      *     ,ioread,iowrite,ioreadnt
       USE SOMTQ_COM
-      USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
+      USE GHY_COM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
-      USE RADNCB, only : rqt,lm_req
+      USE RAD_COM, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
-      USE DAGCOM, only : keynr,tsfrez
+      USE DIAG_COM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
      *     ustar_pbl,egcm,tgvavg,qgavg

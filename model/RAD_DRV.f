@@ -13,7 +13,7 @@ C****
       USE CONSTANT, only : twopi
       USE MODEL_COM
       USE GEOM, only : dlat,dlon,lon,sinip,cosip
-      USE RADNCB, only : cosd,sind,sinj,cosj
+      USE RAD_COM, only : cosd,sind,sinj,cosj
       USE DOMAIN_DECOMP, ONLY: grid
       USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
       IMPLICIT NONE
@@ -319,14 +319,14 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
-      USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
+      USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,rad_interact_tr,rad_forc_lev,ntrix
-      USE DAGCOM, only : iwrite,jwrite,itwrite
+      USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -683,7 +683,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
      &          ,BTEMPW ,O3_OUT ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
-      USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
+      USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,coe,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
@@ -692,7 +692,7 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,hdiurn,
+      USE DIAG_COM, only : aj,areg,jreg,aij,ail,ajl,asjl,adiurn,hdiurn,
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
@@ -709,7 +709,7 @@ C     OUTPUT DATA
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
-      USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
+      USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij
       USE VEG_COM, only : vdata
       USE LANDICE_COM, only : snowli_com=>snowli
@@ -1895,7 +1895,7 @@ C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
 
       use domain_decomp, only : write_parallel
       USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
-      USE RADNCB, only : ghg_yr
+      USE RAD_COM, only : ghg_yr
       IMPLICIT NONE
       INTEGER iu,n,k
       CHARACTER*80 title

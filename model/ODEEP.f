@@ -236,7 +236,7 @@ C****
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
       USE SEAICE_COM, only : rsi
-      USE DAGCOM, only : aj,j_ftherm
+      USE DIAG_COM, only : aj,j_ftherm
       USE FLUXES, only : gtemp
       USE STATIC_OCEAN, only : z12o,tocean
       IMPLICIT NONE
@@ -385,7 +385,7 @@ C**** Check for reasonable values for ocean variables
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo,dz
-      USE DAGCOM, only : acc_period,qdiag,zoc
+      USE DIAG_COM, only : acc_period,qdiag,zoc
       IMPLICIT NONE
       CHARACTER LNAME*50,SNAME*30,UNITS*50
       INTEGER I,J,L

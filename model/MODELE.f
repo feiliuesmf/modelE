@@ -10,12 +10,12 @@
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
       USE DYNAMICS
-      USE RADNCB, only : dimrad_sv
+      USE RAD_COM, only : dimrad_sv
       USE RANDOM
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: mtrace
 #endif
-      USE DAGCOM, only : oa,monacc,koa
+      USE DIAG_COM, only : oa,monacc,koa
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
       IMPLICIT NONE
@@ -616,7 +616,7 @@ C****
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
       USE RANDOM
-      USE RADNCB, only : rqt,lm_req,cloud_rad_forc
+      USE RAD_COM, only : rqt,lm_req,cloud_rad_forc
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
@@ -624,7 +624,7 @@ C****
      *     ,mchem
 #endif
 #endif
-      USE DAGCOM, only : acc_period,monacc,jreg,titreg,namreg
+      USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
@@ -1398,13 +1398,13 @@ C****
       USE GEOM, only : areag,dxyp,imaxj
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
-      USE RADNCB, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
+      USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
      *     omegt,obliq,eccn
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
 #endif
-      USE DAGCOM, only : aj,j_h2och4
+      USE DIAG_COM, only : aj,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4

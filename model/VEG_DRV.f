@@ -25,9 +25,9 @@
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
       use model_com, only : fearth,jeq,jyear
       use veg_com !, only : vdata,Cint,Qfol
-      use ghycom, only : ngm
+      use ghy_com, only : ngm
       use vegetation, only : cond_scheme,crops_yr
-      use ghycom, only : dz_ij
+      use ghy_com, only : dz_ij
       use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
 
       implicit none
@@ -307,7 +307,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
       subroutine reset_veg_to_defaults( reset_prognostic )
       use veg_com, only: vdata
       use DOMAIN_DECOMP, only : GRID, GET
-      !use ghycom
+      !use ghy_com
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -339,14 +339,14 @@ C****
 
       subroutine veg_set_cell (i0,j0,ghy_data_only)
 !@sum resets the vegetation module to a new cell i0,j0
-      use ghycom, only : ngm
+      use ghy_com, only : ngm
       use sle001, only : fr,snowm,ws,shc,shw
       use vegetation, only : alaie,rs,nm,nf,alai,vh
      &     ,alait,vfraction
      &     ,fdir,parinc,vegalbedo,sbeta,Ci,Qf ! added by adf, nyk
      &     ,cond_scheme         !nyk
      &     ,cnc
-      use radncb, only : cosz1
+      use rad_com, only : cosz1
      &    ,FSRDIR,SRVISSURF  !adf, nyk
       use veg_com, only :
      &     Cint,Qfol           ! added by adf

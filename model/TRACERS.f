@@ -17,7 +17,7 @@
 !@calls sync_param
       USE CONSTANT, only: mair,sday
       USE MODEL_COM, only: dtsrc,nisurf
-      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,ir_0_71
+      USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE PARAM
@@ -543,7 +543,7 @@ C****
       USE SEAICE_COM, only : trsi
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
-      USE GHYCOM, only : tr_wbare,tr_wvege,tr_wsn_ij
+      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
       USE TRACER_DIAG_COM, only : tajls,jls_decay,itcon_decay
       IMPLICIT NONE

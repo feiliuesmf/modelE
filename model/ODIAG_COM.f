@@ -9,7 +9,7 @@
 #endif
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
-      USE DAGCOM, only : npts  ! needed for conservation diags
+      USE DIAG_COM, only : npts  ! needed for conservation diags
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8
@@ -212,7 +212,7 @@ C****
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : ze
-      USE DAGCOM, only : ia_src,conpt0,zoc,zoc1
+      USE DIAG_COM, only : ia_src,conpt0,zoc,zoc1
       USE ODIAG
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.

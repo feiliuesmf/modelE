@@ -14,7 +14,7 @@ c set-up for MPI implementation
       call alloc_pbl_com(grid)
       call alloc_icedyn(grid)
       call alloc_icedyn_com(grid)
-      call alloc_dagcom(grid)
+      call alloc_diag_com(grid)
       call alloc_diag_loc(grid)
       call alloc_smomtq(grid)
       call alloc_strat_com(grid)

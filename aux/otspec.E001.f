@@ -29,7 +29,7 @@ C****
       USE MODEL_COM, only: lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
-      USE DAGCOM, only : oa,koa
+      USE DIAG_COM, only : oa,koa
       USE SEAICE_COM, only : rsi,snowi,msi,ssi
       USE SEAICE, only : ace1i,ac2oim
       USE FLUXES, only : sss

@@ -26,7 +26,7 @@
 !@sum print_diag prints out binary and ascii diag output.
 !@auth  Original Development Team
       USE MODEL_COM, only : itime,itimeI
-      USE DAGCOM, only : kdiag,keynr,keyct,isccp_diags
+      USE DIAG_COM, only : kdiag,keynr,keyct,isccp_diags
       IMPLICIT NONE
 !@var ipos =1 (after input), =2 (current diags), =3 (end of diag period)
       INTEGER, INTENT(IN) :: ipos
@@ -87,7 +87,7 @@
 !@sum  J_TITLES calculated zonal diagnostics
 !@auth M. Kelley/G. Schmidt
 !@ver  1.0
-      USE DAGCOM, only : j_srincp0,j_srnfp0,j_plavis,j_planir,j_srnfg
+      USE DIAG_COM, only : j_srincp0,j_srnfp0,j_plavis,j_planir,j_srnfg
      *     ,j_srincg,j_albvis,j_albnir,j_srrvis,j_srrnir,j_sravis
      *     ,j_sranir,j_clddep,j_pcldmc
       USE BDJ
@@ -212,7 +212,7 @@ c
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg
-      USE DAGCOM, only :
+      USE DIAG_COM, only :
      &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
@@ -627,7 +627,7 @@ C****
       USE DOMAIN_DECOMP, only : WRITE_PARALLEL
       USE MODEL_COM, only : byim,DTsrc
       USE BDjkjl
-      USE DAGCOM
+      USE DIAG_COM
       IMPLICIT NONE
       INTEGER :: K,kk,iu_Ijk
       LOGICAL qIjk,Ql(KAJLx),Qk(KAJKx)
@@ -1047,7 +1047,7 @@ c Check the count
       USE GEOM, only : JRANGE_HEMI,
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
      &    ,BYDXYV,lat_dg
-      USE DAGCOM
+      USE DIAG_COM
       USE BDjkjl
       USE WORKJK
       IMPLICIT NONE
@@ -2378,7 +2378,7 @@ C****
       USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
-      USE DAGCOM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
+      USE DIAG_COM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2638,7 +2638,8 @@ C****
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
-      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
+      USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
+     *     ,jmby2
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2865,7 +2866,8 @@ C****
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
-      USE DAGCOM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect,jmby2
+      USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
+     *     ,jmby2
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -3026,7 +3028,7 @@ C**** Vertical means
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid
-      USE DAGCOM, only : ail,lm_req,acc_period, qdiag,lname_il,name_il
+      USE DIAG_COM, only : ail,lm_req,acc_period, qdiag,lname_il,name_il
      *     ,units_il,scale_il,ia_il,kail,plm,ple,linect
       IMPLICIT NONE
       CHARACTER sname*20,unit*20,lname*80
@@ -3079,7 +3081,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
       USE GEOM, only : dlon,lon_dg
-      USE DAGCOM, only : qdiag,acc_period,inc=>inci,linect
+      USE DIAG_COM, only : qdiag,acc_period,inc=>inci,linect
       IMPLICIT NONE
       CHARACTER XLB*80,CWORD*8
       character(len=20), intent(in) :: sname,unit
@@ -3192,7 +3194,7 @@ C**** THIS ENTRY PRINTS THE TABLES
 C****
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
-      USE DAGCOM, only : qdiag,ia_12hr,ia_inst,
+      USE DIAG_COM, only : qdiag,ia_12hr,ia_inst,
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
       IMPLICIT NONE
 
@@ -3437,7 +3439,7 @@ C**FREQUENCY BAND AVERAGE
 !@sum  stores information for outputting lon-lat diagnostics
 !@auth M. Kelley
       use MODEL_COM, only : IM,JM
-      use DAGCOM
+      use DIAG_COM
       IMPLICIT NONE
       SAVE
 
@@ -3539,7 +3541,7 @@ c          if (n .gt. 13) n = (n+123)/10
 !@+    the remaining attributes (value,wt,grid,range) are set in ij_MAPk
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
-      USE DAGCOM
+      USE DIAG_COM
       USE BDIJ
       IMPLICIT NONE
       INTEGER :: k,k1
@@ -3693,7 +3695,7 @@ c Check the count
      &     FLAND,FLICE,FEARTH,FOCEAN,   IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,ZATMO
-      USE DAGCOM
+      USE DIAG_COM
       USE BDIJ
 
       IMPLICIT NONE
@@ -4078,11 +4080,11 @@ c**** find hemispheric and global means
      &     FLAND,FLICE,FEARTH,FOCEAN,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
-      USE RADNCB, only : cloud_rad_forc
+      USE RAD_COM, only : cloud_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
       USE VEG_COM, only : vdata
-      USE DAGCOM
+      USE DIAG_COM
       USE BDIJ
 
       IMPLICIT NONE
@@ -4338,7 +4340,7 @@ C****
 !@ver  1.0
       use constant, only : undef
       use model_com, only : im,jm,fland
-      use dagcom, only : inci,incj
+      use diag_com, only : inci,incj
       use bdij
 
       IMPLICIT NONE
@@ -4435,7 +4437,7 @@ C**** Print out full-page digital maps
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
-      use dagcom, only : inc=>inci
+      use diag_com, only : inc=>inci
       IMPLICIT NONE
 
       CHARACTER*48 TITLE
@@ -4504,7 +4506,7 @@ C****
 !@sum set_ijout either lists or sets the fields to be processed
 !@auth Reto A. Ruedy
 !@ver  1.0
-      USE DAGCOM
+      USE DIAG_COM
       USE BDIJ
       use filemanager
 
@@ -4583,7 +4585,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
       USE GEOM, only :
      &     areag,dlon,dxyp,dxyv,LAT_DG,WTJ
-      USE DAGCOM, only :
+      USE DIAG_COM, only :
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
      *     inc=>incj,xwon,ia_inst
       IMPLICIT NONE
@@ -4730,7 +4732,7 @@ C****
      &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
       USE GEOM, only : DLON,DXYV
-      USE DAGCOM, only :
+      USE DIAG_COM, only :
      &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
      &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
@@ -4892,7 +4894,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
-      USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,
+      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,ia_12hr
       IMPLICIT NONE
@@ -4975,9 +4977,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
-      USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month,
-     &   hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
-     *     ,ia_12hr
+      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
+     *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
+     *     ,name_dd,ia_12hr
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
@@ -5057,7 +5059,7 @@ C****
      &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL,istrat
       USE GEOM, only :
      &     DLON
-      USE DAGCOM, only :
+      USE DIAG_COM, only :
      &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a
       IMPLICIT NONE
 
@@ -5272,7 +5274,7 @@ C****
      &     PSFMPT,AMONTH,nday
       USE GEOM, only :
      &     DLAT,DXYP,LAT_DG
-      USE DAGCOM, only :
+      USE DIAG_COM, only :
      &     keyct,keynr,nehist,nkeynr
       USE PARAM
       IMPLICIT NONE
@@ -5554,8 +5556,8 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE CONSTANT, only : bygrav
-      USE DAGCOM, only : kaijk,kaijkx,
-     *   units_ijk,name_ijk,lname_ijk,scale_ijk  !  dagcom
+      USE DIAG_COM, only : kaijk,kaijkx,
+     *   units_ijk,name_ijk,lname_ijk,scale_ijk  !  diag_com
       IMPLICIT NONE
       INTEGER :: K
 c
@@ -5583,7 +5585,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       USE MODEL_COM, only :
      &     im,jm,lm,
      &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
-      USE DAGCOM, only : kdiag,jgrid_ijk,
+      USE DIAG_COM, only : kdiag,jgrid_ijk,
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
       use filemanager
@@ -5707,7 +5709,7 @@ C****
 !@auth Gavin Schmidt
       USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc
       USE GEOM, only : dxyp
-      USE DAGCOM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
+      USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_tau,isccp_press
       IMPLICIT NONE
 
@@ -5764,7 +5766,7 @@ C**** write the binary file
 !@auth Reto A Ruedy (input file created by Makiko Sato)
       use filemanager
       USE CONSTANT
-      USE DAGCOM
+      USE DIAG_COM
       USE MODEL_COM
       USE BDIJ
 

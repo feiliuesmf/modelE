@@ -23,7 +23,7 @@
 #ifdef TRACERS_WATER
      *     ,ntm,trsi
 #endif
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
+      USE DIAG_COM, only : aj,areg,aij,jreg,ij_f0oi,ij_erun2,j_imelt
      *     ,j_smelt
       USE DOMAIN_DECOMP, only : GRID
       USE DOMAIN_DECOMP, only : GET, GLOBALSUM
@@ -275,7 +275,7 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
-      USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
+      USE DIAG_COM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE SEAICE, only : simelt,tfrez
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -414,7 +414,7 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : mwl,gml,flake
-      USE DAGCOM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
+      USE DIAG_COM, only : aj,areg,aij,jreg,ij_erun2,ij_rsoi,ij_msi2
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp
       USE DOMAIN_DECOMP, only : GRID
@@ -602,7 +602,7 @@ C****
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater
 #endif
-      USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
+      USE DIAG_COM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
@@ -789,7 +789,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,focean
-      USE DAGCOM, only : oa
+      USE DIAG_COM, only : oa
       USE SEAICE_COM, only : hsi,snowi
       USE FLUXES, only : fwsim
       USE DOMAIN_DECOMP, only : GRID
@@ -838,7 +838,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-      USE DAGCOM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
+      USE DIAG_COM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
      *     ,icon_LHSI,conpt0
       USE PARAM
       USE DOMAIN_DECOMP, only : GRID

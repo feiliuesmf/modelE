@@ -251,7 +251,7 @@ C**** No need to save current value
       USE TRACER_DIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv
-      USE DAGCOM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
+      USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
       IMPLICIT NONE
 
       INTEGER, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MAREA
@@ -455,7 +455,7 @@ C****
      &   ,sige,ptop,bydsig,dsig,ls1
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
-      USE DAGCOM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
+      USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
       USE TRACER_DIAG_COM
       USE BDJLT
       IMPLICIT NONE
@@ -867,7 +867,7 @@ C****
       USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
-      USE DAGCOM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
+      USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
       USE TRACER_DIAG_COM, only : pdsigjl
       IMPLICIT NONE
 
@@ -1034,7 +1034,7 @@ C****
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
-      USE DAGCOM
+      USE DIAG_COM
       USE TRACER_DIAG_COM
       IMPLICIT NONE
 
@@ -1355,7 +1355,7 @@ C****
       USE MODEL_COM, only:im,jm, idacc
       USE GEOM, only: dxyp
       USE TRACER_COM
-      USE DAGCOM
+      USE DIAG_COM
 
       IMPLICIT NONE
 

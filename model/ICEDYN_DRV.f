@@ -752,7 +752,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-      USE DAGCOM, only : oa
+      USE DIAG_COM, only : oa
       IMPLICIT NONE
       REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
@@ -1301,7 +1301,7 @@ C****
 !@sum  init_icedyn initializes ice dynamics variables
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,dtsrc,foceanA=>focean
-      USE DAGCOM, only : ia_src
+      USE DIAG_COM, only : ia_src
       USE ICEDYN_COM
       USE ICEDYN, only : setup_icedyn_grid,focean,osurf_tilt
       USE FLUXES, only : uisurf,visurf
@@ -1493,7 +1493,7 @@ C**** set properties for TICIJ diagnostics
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,ntrocn
 #endif
-      USE DAGCOM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag,acc_period
       USE ICEDYN_COM
       USE ICEDYN, only : focean
       USE FILEMANAGER, only : openunit

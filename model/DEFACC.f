@@ -3,7 +3,7 @@
 c-----------------------------------------------------------------------
 c define acc names, units, etc
 c-----------------------------------------------------------------------
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k
       call tsf_defs
@@ -31,7 +31,7 @@ c-----------------------------------------------------------------------
 !@auth G. Schmidt/M. Kelley
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
       use MODEL_COM, only : jm,lm,ls1,dtsrc,fim,sige,kocean,qcheck
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -792,7 +792,7 @@ c
       subroutine ij_defs
       use constant
       use MODEL_COM
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -2653,7 +2653,7 @@ c
       USE MODEL_COM, only : dtsrc,jeq,qcheck
       USE DOMAIN_DECOMP, only : grid,get
       USE GEOM, only : dxyp
-      use DAGCOM
+      use DIAG_COM
       implicit none
       real*8 :: bydj,bydjuv,daeq
       integer :: k,j,kk
@@ -2800,7 +2800,7 @@ c
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
       use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
       use GEOM, only : dlon
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -3425,7 +3425,7 @@ c
       subroutine sjl_defs
       use CONSTANT, only : grav,sday,sha,bygrav
       use MODEL_COM, only : byim,qcheck
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -3477,7 +3477,7 @@ c
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,bymrat
       use MODEL_COM, only : fim,byim,dt,qcheck
       use GEOM, only : dlon
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -3910,7 +3910,7 @@ c
       subroutine ijk_defs
       use CONSTANT, only : bygrav,tf
       use MODEL_COM, only : qcheck
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c
@@ -3983,7 +3983,7 @@ c
 
 
       subroutine wave_defs
-      use DAGCOM
+      use DIAG_COM
       use MODEL_COM, only : qcheck
       implicit none
       integer :: k,kk
@@ -4066,7 +4066,7 @@ c
 
 
       subroutine pj_defs
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k
 c
@@ -4092,7 +4092,7 @@ c
       end subroutine pj_defs
 
       subroutine tsf_defs
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k
 c
@@ -4137,7 +4137,7 @@ c
 !@ver  1.0
       use CONSTANT, only : sha,rgas,twopi,sday,grav
       use MODEL_COM, only : dtsrc,nisurf,qcheck
-      use DAGCOM
+      use DIAG_COM
       implicit none
       integer :: k,kk
 c

@@ -206,7 +206,7 @@ C****
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DAGCOM, only : ajl,jl_dudtvdif,JL_dTdtsdrg
+      USE DIAG_COM, only : ajl,jl_dudtvdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk,ang_gwd
       USE DIAG, only : diagcd
       IMPLICIT NONE
@@ -592,7 +592,7 @@ C****
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
-      USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
+      USE DIAG_COM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
       USE DIAG, only : diagcd

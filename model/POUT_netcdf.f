@@ -14,7 +14,7 @@ C**** have to wait.
 !@sum  ncout handles the writing of output fields in netcdf-format
 !@auth M. Kelley
       use MODEL_COM, only : xlabel,lrunid
-      use DAGCOM, only : acc_period
+      use DIAG_COM, only : acc_period
       implicit none
 
       include 'netcdf.inc'
@@ -566,7 +566,7 @@ c secondary grid
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : sig,sige
-      USE DAGCOM, only : plm,ple,ple_dn,pmb,kgz_max,zoc,zoc1
+      USE DIAG_COM, only : plm,ple,ple_dn,pmb,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -657,7 +657,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : LS1
-      USE DAGCOM, only : plm,ple,ple_dn,kgz_max,zoc,zoc1
+      USE DIAG_COM, only : plm,ple,ple_dn,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -752,7 +752,7 @@ C**** set dimensions
 !@ver  1.0
       USE MODEL_COM, only : sig,sige
       USE GEOM, only : lon_dg
-      USE DAGCOM, only : plm,ple,ple_dn
+      USE DIAG_COM, only : plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -824,7 +824,7 @@ C**** set units
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg
-      USE DAGCOM, only : plm,ple,ple_dn
+      USE DIAG_COM, only : plm,ple,ple_dn
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -955,7 +955,7 @@ C**** set dimensions
 !@sum  POUT_J output zonal budget file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : KAJ
+      USE DIAG_COM, only : KAJ
       USE NCOUT
       IMPLICIT NONE
 c
@@ -1000,7 +1000,7 @@ c
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg,lat_dg
-      USE DAGCOM, only : plm
+      USE DIAG_COM, only : plm
       USE NCOUT, only : im,jm,lm,iu_ijk,set_dim_out,def_dim_out,out_fid
      *     ,outfile,units,ndims_out,open_out,var_name
       IMPLICIT NONE
@@ -1135,7 +1135,7 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
 !@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : isccp_press,isccp_tau,isccp_lat
+      USE DIAG_COM, only : isccp_press,isccp_tau,isccp_lat
       USE NCOUT, only : im,jm,lm,iu_isccp,set_dim_out,def_dim_out,
      &     out_fid,outfile,units,long_name,ndims_out,open_out
      &     ,var_name
@@ -1239,7 +1239,7 @@ C**** set dimensions
 !@sum  OPEN_DIURN opens the average diurnal cycle netcdf output file
 !@auth M. Kelley
 !@ver  1.0
-      USE DAGCOM, only : ndiupt,namdd,ijdd
+      USE DIAG_COM, only : ndiupt,namdd,ijdd
       USE NCOUT, only : im,jm,lm,im_data,iu_diurn,set_dim_out
      &   ,def_dim_out,out_fid,outfile,units,long_name,ndims_out,open_out
       IMPLICIT NONE
@@ -1342,7 +1342,7 @@ c      var_name='hour';call wrtdarr(hours)
 ! any files are currently open through open_diurn
       use NCOUT
       use MODEL_COM, only : idacc ! get # of hours in this month
-      use DAGCOM, only : ia_12hr,hr_in_day
+      use DIAG_COM, only : ia_12hr,hr_in_day
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename

@@ -13,7 +13,7 @@ c
       USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim,ls1,
      & COUPLED_CHEM
       USE DYNAMICS, only: pedn,LTROPO
-      USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld,O3_rad_save
+      USE RAD_COM, only : COSZ1,salbfj=>salb,rcloudfj=>rcld,O3_rad_save
      & ,O3_tracer_save 
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource

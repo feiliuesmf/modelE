@@ -107,7 +107,7 @@ c**** Added decks parameter cond_scheme  5/1/03 nyk
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
      &     ,shw_kg=>shw,shi_kg=>shi,lhm
-      use ghycom, only : ngm, imt, nlsn
+      use ghy_com, only : ngm, imt, nlsn
 
 
       implicit none

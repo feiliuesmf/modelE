@@ -29,7 +29,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM, 
      *                          SOUTH, NORTH
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE  DAGCOM, only : ajl,kajl,kep,pl=>plm
+      USE  DIAG_COM, only : ajl,kajl,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
 
       IMPLICIT NONE
@@ -573,7 +573,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE, CHECKSUM,
      *                          SOUTH, NORTH
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DAGCOM, only : ajl,kajl,kep,apj
+      USE DIAG_COM, only : ajl,kajl,kep,apj
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40

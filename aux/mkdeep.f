@@ -8,7 +8,7 @@ C**** Note this must be compiled using the deep ocean gcmlib
       use domain_decomp, only : init_decomp, grid, finish_decomp
 !AOO end of part 1 of 3
       USE MODEL_COM, only : ioread,Itime,im,jm,amonth
-      USE DAGCOM, only : ij_tgo2,aij
+      USE DIAG_COM, only : ij_tgo2,aij
       USE FILEMANAGER, only : closeunit,openunit
       IMPLICIT NONE
       CHARACTER TITLE*80,FNAME*60,RUNID*20

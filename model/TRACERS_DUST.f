@@ -69,7 +69,7 @@ c      CALL dust_grav
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
       USE tracer_diag_com,ONLY : ijts_source,jls_source,taijs,tajls
       USE geom,ONLY : dxyp,imaxj
-      USE ghycom,ONLY : snowe !earth snow amount
+      USE ghy_com,ONLY : snowe !earth snow amount
       USE pblcom,ONLY : wsavg
       USE tracers_dust_com,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,
      &     vtrsh,nDustEmij,nDustEmjl

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
-      MODULE GHYCOM
-!@sum  GHYCOM contains the areas used by the Ground Hydrology routines
+      MODULE GHY_COM
+!@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth Frank Abramopolus/Igor Aleinov
 !@ver  1.0
       USE MODEL_COM, only : im,jm
@@ -85,14 +85,14 @@ ccc TRSNOWBV is not used
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
 #endif
 
-      END MODULE GHYCOM
+      END MODULE GHY_COM
 
       SUBROUTINE ALLOC_GHY_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE GHYCOM
+      USE GHY_COM
       USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -176,7 +176,7 @@ C**** Initialize to zero
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE GHYCOM
+      USE GHY_COM
       USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_DATA, PACK_COLUMN
       IMPLICIT NONE
@@ -252,7 +252,7 @@ c$$$     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
-      USE GHYCOM
+      USE GHY_COM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -354,7 +354,7 @@ c$$$        CALL CHECKSUM_COLUMN(grid,snowbv,__LINE__,__FILE__)
       USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
       USE DOMAIN_DECOMP, only : PACK_BLOCK  , PACK_COLUMN
       USE DOMAIN_DECOMP, only : UNPACK_BLOCK, UNPACK_COLUMN
-      USE GHYCOM
+      USE GHY_COM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

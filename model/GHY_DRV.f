@@ -45,7 +45,7 @@ c******************   TRACERS             ******************************
 #endif
 
 #ifdef TRACERS_WATER
-      use ghycom, only : tr_wbare,tr_wvege,tr_wsn_ij
+      use ghy_com, only : tr_wbare,tr_wvege,tr_wsn_ij
 #endif
 
       use pbl_drv, only : trtop,trs,trsfac,trconstflx,ntx,ntix
@@ -69,7 +69,7 @@ c******************   TRACERS             ******************************
 
 ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
-      use ghycom, only : ngm,nlsn
+      use ghy_com, only : ngm,nlsn
       use constant, only : rhow
 #endif
       use dynamics, only : byam
@@ -404,7 +404,7 @@ c****
       !use DOMAIN_DECOMP, only : GLOBALSUM
       use geom, only : imaxj
       use dynamics, only : pmid,pk,pek,pedn,am
-      use radncb, only : trhr,fsf, cosz1
+      use rad_com, only : trhr,fsf, cosz1
 
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
@@ -422,7 +422,7 @@ c****
 
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
-      use ghycom, only : snowbv,
+      use ghy_com, only : snowbv,
      &     fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
@@ -439,7 +439,7 @@ c****
 
       use snow_drvm, only : snow_cover_same_as_rad
 
-      use dagcom , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
+      use diag_com , only : j_trhdt,j_shdt,j_evhdt,j_evap,j_erun,j_run
      &     ,j_tsrf,j_tg1,j_tg2,areg,jreg
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
@@ -745,18 +745,17 @@ c***********************************************************************
      &     ,rcdmws,cdm,cdh,cdq,qg
      &     ,aregij )
 
-      use dagcom , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn,
-     *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
-     *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
-     *     ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt,
-     *     j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
+      use diag_com , only : aij,tsfrez,tdiurn,aj,areg,adiurn,jreg,hdiurn
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
+     *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
+     *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
+     *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp,ij_pblht
-     *     ,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23,ij_g24,ij_g25
-     *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
-     *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
-     *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,tf_day1,tf_last,ndiupt
+     *     ,ij_gpp,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
+     *     ,ij_g24,ij_g25,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs
+     *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
+     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
+     *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
 
 
 
@@ -766,7 +765,7 @@ c***********************************************************************
       use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
       use DOMAIN_DECOMP, only : GLOBALSUM
       use geom, only : dxyp
-      use radncb, only : trhr,fsf, cosz1
+      use rad_com, only : trhr,fsf, cosz1
 
       use sle001, only :
      &     tp
@@ -779,7 +778,7 @@ c***********************************************************************
      &    ,aepc,aepb,aepp,zw,tbcs
      &    ,qs,ts
 
-      use ghycom, only : gdeep
+      use ghy_com, only : gdeep
 
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
      &     ,us,vs,ws,wsm,psi,dbl    ! ,edvisc=>kms
@@ -1029,7 +1028,7 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
       use model_com, only : fearth,itime,nday,jeq,jyear
-      use dagcom, only : npts,icon_wtg,icon_htg,conpt0
+      use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
@@ -1037,7 +1036,7 @@ c**** modifications needed for split of bare soils into 2 types
       use veg_com, only:  afb, avh
 #endif
       use fluxes, only : gtemp
-      use ghycom
+      use ghy_com
       use dynamics, only : pedn
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
@@ -1378,7 +1377,7 @@ ccc still not quite correct (assumes fw=1)
       subroutine reset_gh_to_defaults( reset_prognostic )
       !use model_com, only: vdata
       USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use ghycom
+      use ghy_com
       use veg_drv, only : reset_veg_to_defaults
       logical, intent(in) :: reset_prognostic
       integer i,j
@@ -1470,7 +1469,7 @@ c****
      *     ,htpr
      *     ,top_index,top_stdev
      &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-      use ghycom, only : ngm,imt,nlsn,dz_ij,sl_ij,q_ij,qk_ij
+      use ghy_com, only : ngm,imt,nlsn,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
      &     ,wbare,wvege,htbare,htvege,snowbv,nsn_ij,dzsn_ij,wsn_ij
      &     ,hsn_ij,fr_snow_ij
@@ -1589,7 +1588,7 @@ c****
 
       subroutine ghy_save_cell(i,j)
       use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-      use ghycom, only : ngm,nlsn
+      use ghy_com, only : ngm,nlsn
      &     ,dz_ij,wbare,wvege,htbare,htvege,snowbv
      &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
       implicit none
@@ -1757,7 +1756,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@ver  1.0
       use model_com, only : fearth,itime,wfcs
       use geom, only : imaxj
-      use ghycom, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
+      use ghy_com, only : tearth,wearth,aiearth,snowe,wbare,wvege,htbare
      *     ,htvege,snowbv,ngm
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       implicit none
@@ -1820,9 +1819,9 @@ c**** check for reasonable temperatures over earth
       use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
       use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
-      use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
+      use diag_com, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghycom, only : snoage, snoage_def
+      use ghy_com, only : snoage, snoage_def
       use veg_com, only : almass,aalbveg       !nyk
       use vegetation, only: crops_yr,cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
@@ -1964,10 +1963,10 @@ c****
       use geom, only : imaxj,dxyp
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       use DOMAIN_DECOMP, only : GLOBALSUM
-      use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-     *     ,fr_snow_ij,fr_snow_rad_ij, gdeep
+      use ghy_com, only : snowe, tearth,wearth,aiearth,wbare,wvege
+     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep
       use veg_com, only : afb
-      use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
+      use diag_com, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow
@@ -2055,7 +2054,7 @@ c****
       use constant, only : rhow
       use model_com, only : fim,fearth
       use geom, only : imaxj
-      use ghycom, only : ngm,wbare,wvege,snowbv
+      use ghy_com, only : ngm,wbare,wvege,snowbv
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2099,7 +2098,7 @@ c****
 !@ver  1.0
       use model_com, only : fim,fearth
       use geom, only : imaxj, dxyp
-      use ghycom, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
+      use ghy_com, only : ngm,htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
       use veg_com, only : afb
       USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
       implicit none
@@ -2152,7 +2151,7 @@ ccc of the 'surface' to check water conservation
       use model_com, only : im,jm,fearth
       use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
-      use ghycom, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
+      use ghy_com, only : ngm,wbare,wvege,htbare,htvege,snowbv,dz_ij
       use veg_com, only : afb
       implicit none
       integer flag

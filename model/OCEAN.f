@@ -29,8 +29,8 @@
 #endif
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp,sss,fwsim,mlhc
-      USE DAGCOM, only : aij, areg, jreg, ij_smfx, aj, j_implh, j_implm,
-     *     j_imelt, j_hmelt, j_smelt
+      USE DIAG_COM, only : aij, areg, jreg, ij_smfx, aj, j_implh,
+     *     j_implm, j_imelt, j_hmelt, j_smelt
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -666,7 +666,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0
-      USE DAGCOM, only : npts,icon_OCE,conpt0
+      USE DIAG_COM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
@@ -786,7 +786,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : twopi,edpery,shw,rhows
       USE MODEL_COM, only : im,jm,kocean,focean,jday
-      USE DAGCOM, only : aij,ij_toc2,ij_tgo2
+      USE DIAG_COM, only : aij,ij_toc2,ij_tgo2
       USE FLUXES, only : gtemp,mlhc,fwsim
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
@@ -849,7 +849,7 @@ C****
       USE CONSTANT, only : rhows,shw
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
-      USE DAGCOM, only : aj,j_implm,j_implh,oa,areg,jreg
+      USE DIAG_COM, only : aj,j_implm,j_implh,oa,areg,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
      *     ,emelti,smelti,fwsim
       USE SEAICE, only : ace1i
@@ -929,7 +929,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
-      USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,j_oht,oa
+      USE DIAG_COM, only : aj,areg,jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
      *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt
 #ifdef TRACERS_WATER
@@ -1053,7 +1053,7 @@ C****
      *     ,trsi
 #endif
       USE FLUXES, only : fwsim,msicnv,mlhc
-      USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg,aij,j_imelt
+      USE DIAG_COM, only : aj,areg,J_IMPLM,J_IMPLH,jreg,aij,j_imelt
      *     ,j_hmelt,j_smelt
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
@@ -1138,7 +1138,7 @@ C**** regional diagnostics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : kocean
-      USE DAGCOM, only : icon_OCE
+      USE DIAG_COM, only : icon_OCE
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called
       INTEGER, INTENT(IN) :: M
@@ -1159,7 +1159,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
-      USE DAGCOM, only : ij_tgo2,aij
+      USE DIAG_COM, only : ij_tgo2,aij
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE STATIC_OCEAN, only : tocean
       IMPLICIT NONE

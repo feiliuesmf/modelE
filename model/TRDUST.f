@@ -7,7 +7,7 @@
       USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
       USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
-      USE ghycom,ONLY : snowe,wearth,aiearth
+      USE ghy_com,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : curint,dryhr,ers_data,hbaij,lim,ljm,qdust,
      &     ricntd,table,vtrsh,x1,x2,x3,wsubtke_com,wsubwd_com,wsubwm_com
       USE pbl_drv,ONLY : wsubtke,wsubwd,wsubwm

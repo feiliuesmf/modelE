@@ -11,7 +11,7 @@ C**** ocean grid.
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,ndyno,dts,dto,imaxj,lmm,ze
-      USE DAGCOM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag,acc_period
       USE ODIAG
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
@@ -110,7 +110,7 @@ C****
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DAGCOM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag,acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
 #ifdef TRACERS_OCEAN
@@ -622,7 +622,7 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj
-      USE DAGCOM, only : qdiag,acc_period,zoc1
+      USE DIAG_COM, only : qdiag,acc_period,zoc1
       USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
@@ -714,7 +714,7 @@ C****
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DAGCOM, only : acc_period
+      USE DIAG_COM, only : acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
       IMPLICIT NONE
@@ -1104,7 +1104,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo
-      USE DAGCOM, only : qdiag,zoc
+      USE DIAG_COM, only : qdiag,zoc
       USE ODIAG
 #ifdef TRACERS_OCEAN
       USE TRACER_DIAG_COM, only : to_per_mil
@@ -1496,7 +1496,7 @@ C****
       USE MODEL_COM, only : idacc
       USE OCEAN, only : im,jm,lmo,ndyno,dts
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
-      USE DAGCOM, only : qdiag
+      USE DIAG_COM, only : qdiag
       USE ODIAG
       IMPLICIT NONE
       CHARACTER TITLE*80, NAME(7)*50,YAXIS(3)*8

@@ -16,7 +16,7 @@
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
      &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,wsave
-      USE DAGCOM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
+      USE DIAG_COM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GLOBALSUM
       USE DOMAIN_DECOMP, only : NORTH, SOUTH, EAST, WEST,CHECKSUM_COLUMN
@@ -432,7 +432,8 @@ C**** mb*m2/s and convert to WSAVE, units of m/s):
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,q,dt,byim
       USE SOMTQ_COM, only : tmom,qmom
-      USE DAGCOM, only: ajl,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
+      USE DIAG_COM, only: ajl,jl_totntlh,jl_zmfntlh,jl_totvtlh
+     *     ,jl_zmfvtlh
       USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
@@ -2141,7 +2142,7 @@ C**** to be used in the PBL, at the promary grids
      *  ,q,x_sdrag,csdragl,lsdrag,lpsdrag,ang_sdrag,itime
      *  ,Wc_Jdrag
       USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
-      USE DAGCOM, only : ajl,jl_dudtsdrg
+      USE DIAG_COM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
       USE DIAG, only : diagcd
       USE DOMAIN_DECOMP, only : grid, GET
@@ -2294,7 +2295,7 @@ C**** (technically we should use U,V from before but this is ok)
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,t
       USE GEOM, only : imaxj
-      USE DAGCOM, only : aij, ij_ptrop, ij_ttrop
+      USE DIAG_COM, only : aij, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
       USE DOMAIN_DECOMP, Only : grid, GET
       IMPLICIT NONE

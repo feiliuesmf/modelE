@@ -19,7 +19,7 @@
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz,nmom
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij,am,byam
-      USE RADNCB, only : trhr,fsf,cosz1
+      USE RAD_COM, only : trhr,fsf,cosz1
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
@@ -51,7 +51,7 @@ C**** Interface to PBL
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
-      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
+      USE DIAG_COM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc

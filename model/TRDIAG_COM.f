@@ -7,7 +7,7 @@
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
       USE DOMAIN_DECOMP, ONLY: grid
-      USE DAGCOM, only: npts !npts are conservation quantities
+      USE DIAG_COM, only: npts !npts are conservation quantities
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_ON
      *     , ntsurfsrcmax, nt3Dsrcmax
@@ -292,7 +292,8 @@ C**** include some extra troposphere only ones
 !@ver  1.0
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc,nfiltr
-      USE DAGCOM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src,conpt0
+      USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
+     *     ,conpt0
       USE TRACER_DIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons

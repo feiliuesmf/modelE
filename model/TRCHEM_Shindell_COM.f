@@ -13,7 +13,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE GEOM, only       : BYDXYP,dxyp
-      USE RADNCB, only     : rcloudfj=>rcld,salbfj=>salb
+      USE RAD_COM, only     : rcloudfj=>rcld,salbfj=>salb
 C     USE RADPAR, only     : LX
       USE TRACER_COM, only : ntm, trm, TR_MM
 c

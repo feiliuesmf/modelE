@@ -1,5 +1,5 @@
-      MODULE RADNCB
-!@sum  RADNCB Model radiation arrays and parameters
+      MODULE RAD_COM
+!@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
@@ -125,7 +125,7 @@ C**** Local variables initialised in init_RAD
 !@var NTRIX Indexing array for optional aerosol interaction
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 
-      END MODULE RADNCB
+      END MODULE RAD_COM
 
       SUBROUTINE ALLOC_RAD_COM(grid)
 !@sum  To allocate arrays who sizes now need to be determined at
@@ -136,8 +136,8 @@ C**** Local variables initialised in init_RAD
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE DOMAIN_DECOMP, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM, LM
-      USE RADNCB, ONLY : LM_REQ
-      USE RADNCB, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
+      USE RAD_COM, ONLY : LM_REQ
+      USE RAD_COM, ONLY : RQT, Tchg, SRHR, TRHR, FSF, FSRDIR, SRVISSURF,
      *     SRDN, CFRAC, RCLD, O3_rad_save, O3_tracer_save, KLIQ, COSZ1,
      *     dH2O, ALB, SALB, SINJ, COSJ
 
@@ -181,7 +181,7 @@ C**** Local variables initialised in init_RAD
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
      *         ,lhead,Kradia,irsficnt,irsficno
-      USE RADNCB
+      USE RAD_COM
       USE PARAM
       USE DOMAIN_DECOMP, ONLY : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY : UNPACK_COLUMN, PACK_COLUMN

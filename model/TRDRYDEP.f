@@ -108,7 +108,7 @@ C
       USE MODEL_COM,  only : im,jm
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
-      USE RADNCB,     only : COSZ1,cfrac,srdn
+      USE RAD_COM,     only : COSZ1,cfrac,srdn
  ! tr_wd_TYPE,nPART are defined if drydep on
       USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname, tr_mm,
      &     dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR

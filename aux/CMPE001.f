@@ -3,8 +3,8 @@
 C**** CMPE001.F    CoMPare restartfiles for modelE          6/00
 C****
       USE MODEL_COM, only : im,jm,lm,ntype,imh
-      USE DAGCOM
-      USE GHYCOM, ONLY: NGM,nlsn
+      USE DIAG_COM
+      USE GHY_COM, ONLY: NGM,nlsn
       USE SEAICE_COM, only : lmi
       USE PBLCOM, only : npbl
 #ifdef TRACERS_ON

@@ -7,7 +7,7 @@ C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,iowrite,focean
-      USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
+      USE GHY_COM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
      *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
       use veg_com, only : cint,qfol,cnc_ij
       USE STATIC_OCEAN, only : tocean,z1o

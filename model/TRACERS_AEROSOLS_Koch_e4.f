@@ -858,7 +858,7 @@ C Accumulate diagnostics for chemistry
       use MODEL_COM, only: im,jm,lm,jday,jhour,jmon,itime,nday,dtsrc
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       use CONSTANT, only: radian,teeny
-c     use RADNCB, only: cosz1
+c     use RAD_COM, only: cosz1
       implicit none
       real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
      *  rad1,rad2,rad3,stfac

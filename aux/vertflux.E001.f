@@ -19,7 +19,7 @@ C****
 !!    use model_com, only : ioread
       use model_com, only : im,jm
       USE STATIC_OCEAN
-      USE DAGCOM, only : oa,koa
+      USE DIAG_COM, only : oa,koa
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
       USE FLUXES, only : sss,fwsim

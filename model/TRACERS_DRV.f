@@ -16,7 +16,7 @@
       USE DOMAIN_DECOMP, only : GRID, GET
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm,itime
-      USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
+      USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRACER_DIAG_COM
@@ -5393,7 +5393,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHYCOM, only : tr_wbare,tr_wvege,tr_wsn_ij,wbare,wvege
+      USE GHY_COM, only : tr_wbare,tr_wvege,tr_wsn_ij,wbare,wvege
      &     ,wsn_ij,nsn_ij,fr_snow_ij
       USE FLUXES, only : gtracer
 #endif
@@ -5409,7 +5409,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RADNCB, ONLY : O3_tracer_save
+      USE RAD_COM, ONLY : O3_tracer_save
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM
      &  ,COalt,JCOlat,OxIC,byO3MULT,pfix_CH4_S,pfix_CH4_N,PI_run,
      &  fix_CH4_chemistry,PIratio_N,PIratio_CO_T,PIratio_CO_S,

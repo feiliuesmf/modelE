@@ -26,7 +26,7 @@
      *     ,oldno,oldnl,smfpm
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
-      USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
+      USE DIAG_COM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
@@ -82,7 +82,7 @@
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
-      USE GHYCOM, only : snoage
+      USE GHY_COM, only : snoage
       USE LAKES_COM, only : flake
       USE FLUXES, only : prec,eprec,precss,gtemp
 #ifdef TRACERS_WATER
@@ -1101,7 +1101,7 @@ C**** and save changes in KE for addition as heat later
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00
       USE CLOUDS_COM, only : llow,lmid,lhi
-      USE DAGCOM, only : nisccp,isccp_reg,isccp_late
+      USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
       USE PARAM
 
       IMPLICIT NONE

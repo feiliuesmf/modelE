@@ -107,8 +107,8 @@ C**** Some local constants
      *     ,u,v,t,p,q
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
-      USE RADNCB, only : rqt,lm_req
-      USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
+      USE RAD_COM, only : rqt,lm_req
+      USE DIAG_COM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300
@@ -884,7 +884,7 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm,km=>lm
       USE GEOM, only :
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
-      USE DAGCOM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
+      USE DIAG_COM, only : ajk,aijk,speca,nspher,  ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
@@ -1833,7 +1833,7 @@ C****
       USE MODEL_COM, only : im,imh,jm,lm,
      &     IDACC,JEQ,LS1,MDIAG,P,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DYNAMICS, only : PHI
-      USE DAGCOM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
+      USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM
       IMPLICIT NONE
@@ -1933,7 +1933,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,ntm  !xcon
 #endif
-      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
+      USE DIAG_COM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
      *     ,icon_HLI,title_con
@@ -2028,7 +2028,7 @@ C****
       USE CONSTANT, only : omega,mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps
-      USE DAGCOM, only : consrv
+      USE DIAG_COM, only : consrv
       USE DOMAIN_DECOMP, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP, only : SOUTH
       IMPLICIT NONE
@@ -2135,7 +2135,7 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : jm
       USE DOMAIN_DECOMP, only : GET, GRID
-      USE DAGCOM, only : consrv,nofm
+      USE DIAG_COM, only : consrv,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -2456,7 +2456,7 @@ C****
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
       USE MODEL_COM, only : im,imh,jm,lm,fim,
      &     DSIG,JEQ,LS1,MDIAG,MDYN
-      USE DAGCOM, only : speca,nspher,klayer
+      USE DIAG_COM, only : speca,nspher,klayer
       USE DIAG_LOC, only : FCUVA,FCUVB
       USE DOMAIN_DECOMP, only : GRID,GET,GLOBALSUM, WRITE_PARALLEL
       IMPLICIT NONE
@@ -2563,8 +2563,8 @@ C****
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
      &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS
-      USE DAGCOM, only : speca,atpe,nspher,kspeca,klayer
-      USE DAGCOM, only : SQRTM
+      USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
+      USE DIAG_COM, only : SQRTM
       USE DYNAMICS, only : sqrtp,pk
       USE DOMAIN_DECOMP, only : GRID,GET,CHECKSUM,HALO_UPDATE
       USE DOMAIN_DECOMP, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
@@ -2574,7 +2574,7 @@ C****
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
       REAL*8, DIMENSION(IMH+1,4) :: VAR
       REAL*8, DIMENSION(2) :: TPE
-CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
+CMoved to DIAG_COM so it could be declared allocatable      REAL*8, SAVE, DIMENSION(IM,JM) :: SQRTM
       REAL*8, DIMENSION(LM) :: THJSP,THJNP,THGM
 
       INTEGER, PARAMETER :: IZERO=0
@@ -2825,7 +2825,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
       USE GEOM, only : DXYV
-      USE DAGCOM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp,ned
+      USE DIAG_COM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp,ned
       IMPLICIT NONE
 
       INTEGER ::
@@ -2865,7 +2865,7 @@ C****
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,lm,itime
       USE FILEMANAGER, only : openunit, closeunits
-      USE DAGCOM, only : kgz_max,pmname
+      USE DIAG_COM, only : kgz_max,pmname
       USE PARAM
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
       USE TRACER_COM, only : trm,tr_mm
@@ -3047,9 +3047,9 @@ C****
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
-      USE GHYCOM, only : snowe
-      USE RADNCB, only : trhr,srdn,salb,cfrac,cosz1
-      USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
+      USE GHY_COM, only : snowe
+      USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
       REAL*4, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
@@ -3346,7 +3346,7 @@ c****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
-      USE DAGCOM
+      USE DIAG_COM
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
@@ -3529,10 +3529,10 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
       units_consrv(14:24)="10**-3 W/M^2"
       lname_consrv(1:25)=TITLE_CON(1:25)
 C**** To add a new conservation diagnostic:
-C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
+C****    i) Add 1 to NQUANT, and increase KCON in DIAG_COM.f
 C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
 C****       set up scales, titles, etc. The icon_XX index must be
-C****       declared in DAGCOM.f for the time being
+C****       declared in DIAG_COM.f for the time being
 C**** QCON denotes when the conservation diags should be done
 C**** 1:NPTS ==> DYN,   COND,   RAD,   PREC,   LAND,  SURF,
 C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
@@ -3642,7 +3642,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 !@ver  1.0
       USE MODEL_COM, only : Itime,iyear1,nday,kradia,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
-      USE DAGCOM
+      USE DIAG_COM
       USE PARAM
 #ifdef TRACERS_ON
       USE TRACER_DIAG_COM, only: TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
@@ -3692,7 +3692,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
-      USE DAGCOM, only : aij,ij_lkon,ij_lkoff,ij_lkice,tsfrez,tdiurn
+      USE DIAG_COM, only : aij,ij_lkon,ij_lkoff,ij_lkice,tsfrez,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DOMAIN_DECOMP, only : GRID,GET
       IMPLICIT NONE
@@ -3792,7 +3792,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 !@ver  1.0
       USE CONSTANT, only : sday
       USE MODEL_COM, only : dtsrc,nfiltr
-      USE DAGCOM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
+      USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
      *     ,lname_consrv,units_consrv
       USE DOMAIN_DECOMP, only : WRITE_PARALLEL

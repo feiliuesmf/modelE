@@ -14,7 +14,7 @@
       USE GEOM
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
-      USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
+      USE DIAG_COM, only : ajl,jl_trbhr,jl_damdc,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRACER_DIAG_COM, only: TAJLN,JLNT_TURB

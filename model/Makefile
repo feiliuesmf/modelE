@@ -131,7 +131,7 @@ OBJS = $(OBJ_LIST:=.o)
 # OBJSA - list of objects to include into gcmlib.a
 OBJSA = $(OBJS)
 ifneq ($(NETCDFHOME)blank,blank)
-OBJSA += NCACC.o
+OBJSA += 
 endif
 # extracting list of modules from from DEPENDFILE
 MODS = $(shell perl \
