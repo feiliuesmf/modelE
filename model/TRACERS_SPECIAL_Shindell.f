@@ -659,7 +659,8 @@ C****
       end do
       jdlast = jday
       call closeunits(mon_units,nmons)
-      write(6,*)trname(n_NOx),'frm aircraft interpd to currnt day',frac
+      write(6,*)trname(n_NOx)
+     *     ,'from aircraft interpolated to current day',frac
       call sys_flush(6)
 C====
 C====   Place aircraft sources onto model levels:
@@ -742,7 +743,7 @@ C
       end do
       jdlast = jday
       call closeunits(mon_units,nmons)
-      write(6,*) 'Sulfate srface area interpolated to current day',frac
+      write(6,*) 'Sulfate surface area interpolated to current day',frac
       call sys_flush(6) 
 C====
 C====   Place sulfate onto model levels ("sulfate" array to be used in
@@ -882,9 +883,9 @@ c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
         IF(J.LT.JEQ)THEN ! Southern Hemisphere
-          CH4INIT=ch4_init_sh/1.79  *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=ch4_init_sh/1.79d0*TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ELSE             ! Northern Hemisphere
-          CH4INIT=ch4_init_nh/1.79 *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=ch4_init_nh/1.79d0*TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ENDIF
         IF((J.LE.JS).OR.(J.GT.JN)) THEN                 ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)

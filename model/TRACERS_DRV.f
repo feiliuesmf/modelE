@@ -1795,7 +1795,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Coal Mine source'
-        sname_ijts(k) = 'CH4_Coal Mine source'
+        sname_ijts(k) = 'CH4_Coal_Mine_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1804,7 +1804,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Gas Leak source'
-        sname_ijts(k) = 'CH4_Gas Leak source'
+        sname_ijts(k) = 'CH4_Gas_Leak_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1813,7 +1813,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Gas Venting source'
-        sname_ijts(k) = 'CH4_Gas Venting source'
+        sname_ijts(k) = 'CH4_Gas_Venting_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1822,7 +1822,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Municipal solid waste src'
-        sname_ijts(k) = 'CH4_Municipal solid waste src'
+        sname_ijts(k) = 'CH4_MSW_src'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1831,7 +1831,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 sink due to soil absorp.'
-        sname_ijts(k) = 'CH4_sink due to soil absorp.'
+        sname_ijts(k) = 'CH4_soil_sink.'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1840,7 +1840,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Termite source'
-        sname_ijts(k) = 'CH4_Termite source'
+        sname_ijts(k) = 'CH4_Termite_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1849,7 +1849,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Coal combustion source'
-        sname_ijts(k) = 'CH4_Coal combustion source'
+        sname_ijts(k) = 'CH4_Coal_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1867,7 +1867,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Fresh Water lake source'
-        sname_ijts(k) = 'CH4_Fresh Water lake source'
+        sname_ijts(k) = 'CH4_lake_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1876,7 +1876,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Misc. Ground source'
-        sname_ijts(k) = 'CH4_Misc. Ground source'
+        sname_ijts(k) = 'CH4_Misc._Ground_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1885,7 +1885,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Biomass burning source'
-        sname_ijts(k) = 'CH4_Biomass burning source'
+        sname_ijts(k) = 'CH4_Biomass_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1894,7 +1894,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Rice cultivation source'
-        sname_ijts(k) = 'CH4_Rice cultivation source'
+        sname_ijts(k) = 'CH4_Rice_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -1903,7 +1903,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Wetlands+Tundra source'
-        sname_ijts(k) = 'CH4_Wetlands+Tundra source'
+        sname_ijts(k) = 'CH4_Wetlands+Tundra_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc

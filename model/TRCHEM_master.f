@@ -9,7 +9,7 @@ C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf
+      USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim
       USE DYNAMICS, only: pedn
       USE RADNCB, only : COSZ1
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
@@ -39,9 +39,11 @@ C**** Local parameters and variables and arguments:
 !@var byam75 the reciprocal air mass near 75 hPa level
 !@var average tropospheric ch4 value near 569 hPa level
 !@var PRES2 local nominal pressure for verticle interpolations
+!@var CH4FACT, FACTJ, r179 for setting CH4 ICs and strat distribution
+      REAL*8 :: CH4FACT,FACTj,r179
       REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
-      REAL*8, DIMENSION(IM,JM):: CH4_569
+      REAL*8 :: CH4_569
       INTEGER imonth, m
       LOGICAL error
 !@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2 dummy loop variables
@@ -603,15 +605,19 @@ C
 C     Make sure that change is zero:
       change(:,:,:,:) = 0.
 C 
-C Calculate an average CH4 value near 569 hPa:
+C Calculate an average tropical CH4 value near 569 hPa:
 C
-      DO J=1,JM
-       FACTj=(mass2vol(n_CH4)*1.d6*bydxyp(j))
-       CH4_569(:,J)=FACTJ*(F569M*trm(:,J,L569M,n_CH4)*byam(L569M,:,J)
-     & + F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))
+      CH4_569=0.   
+      DO J=JS+1,JN
+        FACTj= 1.d6*bydxyp(j)
+        CH4_569=CH4_569+FACTJ*SUM(F569M*trm(:,J,L569M,n_CH4)*byam(L569M
+     *       ,:,J)+ F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))*BYIM
       END DO
+      CH4_569=CH4_569/(JN-JS)
+      print*,"CH4_569",CH4_569*mass2vol(n_CH4)
+
 C     0.55866= 1/1.79 is 1/(obs. tropsph. CH4):
-      r179m2v=0.55866d0*bymass2vol(n_CH4)
+      r179=1/1.79d0 
 
 C Use Ox correction factor for the proper month:
       imonth= 1
@@ -654,7 +660,7 @@ c         Overwrite stratospheric ch4 based on HALOE obs for tropics
 c         and extratropics and scale by the ratio of near-569hPa
 c         mixing ratios to 1.79:
 c
-          CH4FACT=CH4_569(i,j)*r179m2v
+          CH4FACT=CH4_569*r179
           IF((J.LE.JS).OR.(J.GT.JN)) THEN                ! extratropics
             DO L2=L,LS1,-1
               IF(CH4altX(L2).ne.0.) THEN
@@ -670,8 +676,9 @@ c
               END IF
             END DO
           END IF
-          change(I,J,L,n_CH4)=
-     &    (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6) - trm(I,J,L,n_CH4)
+C**** ensure that strat overwrite is only a sink
+          change(I,J,L,n_CH4)=-MAX(0d0,trm(I,J,L,n_CH4)-
+     &         (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6))
 C
 C Save stratosph change for updating tracer, apply_tracer_3Dsource:
           DO N=1,NTM

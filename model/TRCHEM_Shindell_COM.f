@@ -86,7 +86,7 @@ C
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
-     & LCH4alt=    4,
+     & LCH4alt=    5,
      & LcorrOX=    4,
      & p_1   =     2,
      & p_2   =   111,
@@ -190,7 +190,7 @@ C
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
-     & (/100.d0, 32.d0, 3.2d0, 0.23d0/)
+     & (/569d0, 100.d0, 32.d0, 3.2d0, 0.23d0/)
       REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx = 
      & (/133.5d0, 101.6d0, 71.2d0, 43.9d0/)
 C  
@@ -330,7 +330,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var COalt adjustments of COlat by altitude (unitless,LM levels)
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
-!@var CH4FACT, FACTJ,r179m2v for setting CH4 ICs and strat distribution
 !@var BYFJM = 1/JM
 !@var mass2vol local array to convert between mass and volume units.
 !@var bymass2vol local array to convert between mass and volume units.
@@ -393,8 +392,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 C      
       CHARACTER*8, DIMENSION(n_spc)    :: ay
 C      
-      REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,CH4FACT,FACTj,
-     & r179m2v,BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
+      REAL*8 ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,
+     & BYFJM,FASTJLAT,FASTJLON,SZA,RVELN2O5,
      & prod_sulf,DT2,wprod_sulf,dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,
      & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
      & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
@@ -451,10 +450,11 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
+C**** additional tropospheric value to avoid extrapolation...
       REAL*8, DIMENSION(LCH4alt), PARAMETER ::   
-     *     CH4altINT =(/1.620d0,1.460d0,0.812d0,0.230d0/),
-     *     CH4altINX =(/1.700d0,1.130d0,0.473d0,0.202d0/)    
-           ! drew changed 1.440 to 1.700 above...                                
+     *     CH4altINT =(/1.79d0, 1.620d0,1.460d0,0.812d0,0.230d0/),
+     *     CH4altINX =(/1.79d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
+
       REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
