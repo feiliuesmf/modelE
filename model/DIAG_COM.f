@@ -156,6 +156,16 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8,
      &     DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP) :: WAVE
 
+C**** parameters and variables for ISCCP diags
+!@param ntau, npress number of ISCCP optical depth and pressure categories 
+      integer, parameter :: ntau=7,npres=7
+!@param nisccp number of ISCCP histogram regions
+      integer, parameter :: nisccp = 5
+!@var isccp_reg latitudinal index for ISCCP histogram regions
+      integer :: isccp_reg(JM)
+!@var AISCCP accumlated array of ISCCP histogram
+      real*8 :: AISCCP(ntau,npres,nisccp)
+
 !@param KGZ number of pressure levels for geopotential height diag
       INTEGER, PARAMETER :: KGZ = 13
 !@param kgz_max is the actual number of geopotential heights saved
@@ -182,11 +192,11 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
-     *     IM*JM*LM*KAIJK
+     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
 
       COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
      &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
-     &  AJK,AIJK
+     &  AJK,AIJK,AISCCP
       REAL*8, DIMENSION(KACC) :: ACC
       REAL*8, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
       EQUIVALENCE (ACC,AJ,AFLX_ST)
@@ -546,16 +556,6 @@ c idacc-indices of various processes
 
 !@var XWON scale factor for diag. printout needed for Wonderland model
       REAL*8 :: XWON = TWOPI/(DLON*FIM)
-
-C**** parameters and variables for ISCCP diags
-!@param ntau, npress number of ISCCP optical depth and pressure categories 
-      integer, parameter :: ntau=7,npres=7
-!@param nisccp number of ISCCP histogram regions
-      integer, parameter :: nisccp = 5
-!@var isccp_reg latitudinal index for ISCCP histogram regions
-      integer :: isccp_reg(JM)
-!@var AISCCP accumlated array of ISCCP histogram
-      real*8 :: AISCCP(ntau,npres,nisccp)
 
       END MODULE DAGCOM
 
