@@ -22,6 +22,7 @@ TQUS_DRV                            ! advection of Q and tracer gases
 ! pick one of the next two lines
 TRACER_COM TRACERS_Air              ! air mass tracers
 ! TRACER_Water_COM TRACERS_Water    ! water mass tracers
+TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
