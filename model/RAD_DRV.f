@@ -1249,13 +1249,19 @@ C**** BCB forcing
 #endif
       use_tracer_ozone = 0 ! by default use climatological ozone
 #ifdef TRACERS_SPECIAL_Shindell
+      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
       if(rad_interact_tr.gt.0)then
-        O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
         use_tracer_ozone = 0 ! first, call with climatological ozone
-        CALL RCOMPX
-        SNFST(n_Ox,I,J)=SRNFLB(4+LM)
-        TNFST(n_Ox,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+      else
+        use_tracer_ozone = 1 ! first, call with calculated ozone
+      end if
+      CALL RCOMPX
+      SNFST(n_Ox,I,J)=SRNFLB(LTROPO(I,J))
+      TNFST(n_Ox,I,J)=TRNFLB(LTROPO(I,J))
+      if(rad_interact_tr.gt.0)then
         use_tracer_ozone = 1 ! for main call, use calculated ozone
+      else
+        use_tracer_ozone = 0 ! for main call, use climatological ozone
       end if
 #endif
 C*****************************************************
@@ -1540,15 +1546,24 @@ C**** diagnostic sign changes
          rsign=1.
          if (rad_interact_tr.gt.0) rsign=-1.
          if (ntrace.gt.0) then
-         do n=1,ntm
+          do n=1,ntm
 c shortwave forcing
            if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
      *          ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SNFS(4,I,J))*CSZ2
 c longwave forcing
            if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
      *          ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(4,I,J))
-         end do
+          end do
          end if
+#ifdef TRACERS_SPECIAL_Shindell
+         n=n_Ox
+c shortwave forcing
+         if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
+     *    ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SRNFLB(LTROPO(I,J)))*CSZ2
+c longwave forcing
+         if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
+     *    ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TRNFLB(LTROPO(I,J)))
+#endif
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      *        (ALB(I,J,1)+1.D-20))
