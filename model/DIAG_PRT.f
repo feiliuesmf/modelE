@@ -799,7 +799,7 @@ c
       sname_jk(k) = 'nt_lh_e'
       lname_jk(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM
+      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
       pow_jk(k) = 9
       k = k + 1
       jk_nt_see = k                           ; jgrid_jk(k) = 2
@@ -882,7 +882,7 @@ c      units_jk(k) = '10**11 JOULES/METER/UNIT SIGMA'
       sname_jk(k) = 'nt_lh_stand_eddy'        ; jgrid_jk(k) = 2
       lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
       units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM
+      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
       pow_jk(k) = 9
       k = k + 1
       jk_wstar = k                            ; jgrid_jk(k) = 1

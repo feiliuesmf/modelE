@@ -3208,7 +3208,7 @@ c
       lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
       units_jk(k) = 'W/mb'
       pow_jk(k) = 10
-      scale_jk(k) = .25*LHE*XWON*FIM
+      scale_jk(k) = .25*LHE*XWON*FIM*100.*BYGRAV
       jgrid_jk(k) = 2
 c
       k=k+1
