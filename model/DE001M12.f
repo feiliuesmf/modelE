@@ -4314,8 +4314,16 @@ C     CALL ILMAP (15,PL,AIL(1,1,15),SCALE,BYDSIG,LM,1,1)
       USE CONSTANT, only : twopi
       USE E001M12_COM, only : im,jm,lm,
      &     DSIG,JDATE,JDATE0,JMNTH0,JMONTH,JYEAR,JYEAR0,SIGE,XLABEL
+     *    ,Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
       USE GEOM, only : dlon
       IMPLICIT NONE
+
+C---- Constants and arrays for post processing
+      REAL*4 XIL(IM+1,LM+1)
+      CHARACTER XLB*16,CWORD*8
+      CHARACTER*16, PARAMETER :: CBLANK=' ',
+     *  CLAT='LONGITUDE',CPRES='PRESSURE (MB)'
+C----
 
       DOUBLE PRECISION :: FGLOB,FLON,GSUM,SDSIG
       INTEGER :: I,JY,JY0,K,L
@@ -4350,6 +4358,10 @@ C****
       IF (ISHIFT.NE.2) WRITE (6,904) WORD(JWT),(I,I=1,IM,INC)
       IF (ISHIFT.EQ.2) WRITE (6,906) WORD(JWT),(I,I=1,IM,INC)
       WRITE (6,905) (DASH,I=1,IM,INC)
+         CWORD=WORD(JWT)
+         DO 40 L=1,LM+1                                                 
+         DO 40 I=1,IM+1                                                 
+   40    XIL(I,L) = -1.E30     
       DO 110 I=1,IM
   110 ASUM(I)=0.
       GSUM=0.
@@ -4357,21 +4369,32 @@ C****
       FGLOB=0.
       DO 120 I=1,IM
       FLON=AX(I,L)*SCALE*SCALEL(L)
-CB       QILMAP(I,L,NT)=FLON
+         XIL(I,L)=FLON             
       MLON(I)=NINT(FLON)
   115 ASUM(I)=ASUM(I)+FLON*DSIG(L)/SDSIG
   120 FGLOB=FGLOB+FLON
       FGLOB=FGLOB/IM
       IF (JWT.EQ.1) FGLOB=FGLOB*TWOPI/DLON
-CB       QILMAP(IM+1,L,NT)=FGLOB
+            XIL(IM+1,L)=FGLOB     
       WRITE (6,902) PL(L),FGLOB,(MLON(I),I=1,IM,INC)
   130 GSUM=GSUM+FGLOB*DSIG(L)/SDSIG
       DO 140 I=1,IM
-CB       QILMAP(I,LM+1,NT)=ASUM(I)
+            XIL(I,LM+1)=ASUM(I)     
   140 MLON(I)=NINT(ASUM(I))
-CB       QILMAP(IM+1,LM+1,NT)=GSUM
+         XIL(IM+1,LM+1)=GSUM            
       WRITE (6,905) (DASH,I=1,IM,INC)
       WRITE (6,903) GSUM,(MLON(I),I=1,IM,INC)
+C**** Output for post-processing
+      IF (Q_GISS) THEN
+         WRITE(XLB,'(1X,A3,I5)') JMNTH0,JYEAR0
+         WRITE (85) TITLE(NT),XLB,IM,LMAX,1,1,
+     *     ((XIL(I,L),I=1,IM),L=1,LMAX),
+     *     (FLOAT(I),I=1,IM),(SNGL(PL(L)),L=1,LMAX),1.,1., 
+     *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
+     *     (XIL(I,LM+1),I=1,IM+1),(XIL(IM+1,L),L=1,LMAX)
+      END IF
+C     IF (Q_HDF) CALL POUT_HDF
+C     IF (Q_NETCDF) CALL POUT_NETCDF
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
   902 FORMAT (F6.1,F8.1,1X,36I3)

@@ -86,6 +86,10 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION, DIMENSION(36) :: DSIG,BYDSIG
       DOUBLE PRECISION, DIMENSION(35) :: DSIGO
 
+!@var Q_GISS,Q_HDF,Q_PRT,Q_NETCDF are switches for post-processing
+      LOGICAL Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
+      COMMON /Q_PP/Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
+
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
