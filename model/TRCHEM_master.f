@@ -14,15 +14,15 @@ c
       USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
-#ifdef Shindell_Strat_chem
-      USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
-     &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
-     &                  n_AlkylNit,n_Alkenes,n_Paraffin,n_HBr,n_HOCl,
-     &                  n_HCl,n_ClONO2,n_ClOx,n_BrOx,n_BrONO2,n_CFC
-#else
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
      &                  n_AlkylNit,n_Alkenes,n_Paraffin
+#ifdef Shindell_Strat_chem
+     &                  ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,n_BrOx,
+     &                  n_BrONO2,n_CFC
+#endif
+#ifdef regional_Ox_tracers
+     &                  ,NregOx,n_OxREG1
 #endif
       USE CONSTANT, only: radian
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls
@@ -36,7 +36,14 @@ C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
 !@param JN J around 30 N
 !@param JS J around 30 S
+!@param nlast either ntm or ntm-NregOx for chemistry loops
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+      INTEGER, PARAMETER :: nlast =
+#ifdef regional_Ox_tracers
+     &                              ntm-NregOx
+#else
+     &                              ntm
+#endif
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
 !@var FACT1 temp variable for start overwrite
@@ -76,8 +83,13 @@ C**** Local parameters and variables and arguments:
       REAL*8 :: CH4_569
       INTEGER imonth, m
       LOGICAL error
-!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2 dummy loop variables
-      INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2
+!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2,n2 dummy loop variables
+      INTEGER igas,LL,I,J,L,N,inss,Lqq,JJ,J3,L2,n2
+#ifdef regional_Ox_tracers
+!@var sumOx for summing regional Ox tracers
+!@var bysumOx reciprocal of sum of regional Ox tracers
+      REAL*8 sumOx, bysumOx
+#endif
 c
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
@@ -126,9 +138,13 @@ C**** (note this section is already done in DIAG.f)
         END DO
         END DO
       END DO
+C 
 C
-!$OMP  PARALLEL DO PRIVATE (FASTJ_PFACT, LL, 
-!$OMP*    I,igas,inss, J, L,Lqq, N,error )
+!$OMP  PARALLEL DO PRIVATE (FASTJ_PFACT, 
+#ifdef regional_Ox_tracers
+!$OMP* bysumOx, sumOx, n2,
+#endif
+!$OMP* LL, I, igas, inss, J, L, Lqq, N, error )
 
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
 #ifdef Shindell_Strat_chem
@@ -136,6 +152,20 @@ C
 #endif
       DO I=1,IMAXJ(J)                    ! >>>> MAIN I LOOP BEGINS <<<<
       DO L=1,LM
+#ifdef regional_Ox_tracers
+C As per Volker:
+C make sure the regional Ox tracers didn't diverge from total Ox:
+       sumOx=0.
+       bysumOx=0.
+       do n2=n_OxREG1,ntm
+         sumOx=sumOx+trm(i,j,l,n2)
+       end do
+       sumOx=MAX(sumOx,1.d-9) ! minimum to prevent NaN's as per Drew
+       bysumOx=1.d0/sumOx 
+       do n2=n_OxREG1,ntm
+         trm(i,j,l,n2)=trm(i,j,l,n2)*trm(i,j,l,n_Ox)*bysumOx
+       end do
+#endif
 c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
@@ -153,8 +183,8 @@ c      calculate M and set fixed ratios for O2 & H2:
        y(nH2,L)=y(nM,L)*pfix_H2
 #endif
 c
-c      Tracers (converted from mass mixing ratio to number density)
-       do igas=1,ntm
+c      Tracers (converted from mass to number density)
+       do igas=1,nlast
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      *   BYDXYP(J)*BYAM(L,I,J)
        enddo
@@ -1003,8 +1033,8 @@ c
       if(prnchg)then
        write(*,*) 'Map of O3 production from O2 (Herz & SRB + NO SRB)'
        write(*,'(a4,7(i10))') 'Jqq:',(Jqq,Jqq=3,44,6)
-       do Lqq=23,LS1,-1
-          pres(Lqq)=(PSF-PTOP)*SIG(Lqq)+PTOP   !GSF
+       do Lqq=LM,LS1,-1
+          pres(Lqq)=(PSF-PTOP)*SIG(Lqq)+PTOP
         do jqq=1,JM
          tempO2(Jqq)=pres(Lqq)/(TX(1,Jqq,Lqq)*1.38E-19)*0.209476
          photO2(Jqq,Lqq)=0.
@@ -1384,6 +1414,9 @@ C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only  : Itime, LM, ls1
       USE TRACER_COM, only : ntm, trname, n_Ox
+#ifdef regional_Ox_tracers
+     & ,NregOx
+#endif
       USE TRCHEM_Shindell_COM, only: y, nM
 c
       IMPLICIT NONE
@@ -1396,10 +1429,17 @@ C**** Local parameters and variables and arguments:
 !@var checkmax logical: should I check for large tracers throughout?
 !@var checkNeg logical: should I check for negative tracers?
 !@var checkNaN logical: should I check for unreal tracers?
+!@var nlast either ntm or ntm-NregOx
 C
+      INTEGER, PARAMETER :: nlast=
+#ifdef regional_Ox_tracers
+     & ntm-NregOx
+#else
+     & ntm
+#endif
       INTEGER L, igas
       INTEGER, INTENT(IN) :: I,J
-      REAL*8, DIMENSION(ntm) :: tlimit
+      REAL*8, DIMENSION(nlast) :: tlimit
       DATA tlimit/9.E-5,1.E-5,1.E-7,3.E-6,1.E-1,1.E-6,3.E-6,1.E-1,1.E-1,
      &1.E-1,1.E-1,1.E-1,1.E-1,1.E-1,1.E-1/
       LOGICAL checkOx, checkmax, checkNeg, checkNan
@@ -1427,7 +1467,7 @@ C check if ozone gets really big in the troposphere:
 c general check on maximum of tracers:
       IF(checkmax) THEN
       do L=1,LM
-       do igas=1,ntm
+       do igas=1,nlast
         if(y(igas,L)/y(nM,L).gt.tlimit(igas)) then
           write(6,*) trname(igas),'@ I,J,L,Ox :',I,J,L,y(igas,L)
           call stop_model('checktracer: tracer upper limit',255)
@@ -1438,7 +1478,7 @@ c general check on maximum of tracers:
 c check for negative tracers:
       IF(checkNeg) THEN
       do L=1,LM
-      do igas=1,NTM
+      do igas=1,nlast
        if(y(igas,L).lt.0.) THEN
          write(6,*)trname(igas),
      &   'negative @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
@@ -1450,7 +1490,7 @@ c check for negative tracers:
 c check for unreal (not-a-number) tracers:
       IF(checkNaN) THEN
       do L=1,LM
-      do igas=1,NTM
+      do igas=1,nlast
         if(.NOT.(y(igas,L).gt.0..OR.y(igas,L).le.0.)) THEN
          write(6,*)trname(igas),
      &   'is not a number @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
