@@ -203,9 +203,14 @@ C**** limit freezing if lake is between 50 and 20cm depth
       END IF
 #ifdef TRACERS_WATER
       TRF1(:) = ACEF1*FRAC(:)*TRLAKEL(:,1)/(MLAKE(1)+ACEF1)
-      TRF2(:) = ACEF2*FRAC(:)*TRLAKEL(:,2)/(MLAKE(2)+ACEF2+teeny)
       TRLAKEL(:,1)=TRLAKEL(:,1)-TRF1(:)
-      TRLAKEL(:,2)=TRLAKEL(:,2)-TRF2(:)
+      IF (MLAKE(2).gt.0) THEN
+        TRF2(:) = ACEF2*FRAC(:)*TRLAKEL(:,2)/(MLAKE(2)+ACEF2)
+        TRLAKEL(:,2)=TRLAKEL(:,2)-TRF2(:)
+      ELSE ! possibility of complete freezing (and so no frac)
+        TRF2(:) = TRLAKEL(:,2)
+        TRLAKEL(:,2) = 0.
+      END IF
 #endif
 
 C**** combine mass and energy fluxes for output
