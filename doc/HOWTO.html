@@ -734,6 +734,7 @@ for a period of 1-12 consecutive months).</p>
         monyear.jk$RUNID latitude-height binary file
         monyear.il$RUNID longitude-height binary file
         monyear.ij$RUNID lat-lon binary file
+        monyear.wp$RUNID Wave power binary file
 </pre>
 <p>which can be read using the appropriate graphical software. </p>
 
@@ -778,6 +779,11 @@ KDIAG(6)  < 9 print diurnal cycle diagnostics at selected points (up to 4)
         -1 - -4 print out for -KDIAG(6) point only.
 
 KDIAG(7)  < 9 print wave power tables
+
+KDIAG(8)  < 9 print tracer diagnostics
+          = 0 print all tracer diagnostics
+          = 1 skip lat/lon tracer diagnostics
+          = 2 skip tracer conservation diagnostics and lat/lon diagnostics
 
 KDIAG(9)  < 9 print out conservation diagnostics
 KDIAG(10) < 9 print out Longitude-height diagnostics

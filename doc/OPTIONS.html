@@ -108,8 +108,44 @@ STRATDYN  ! Calculates and applies gravity wave drag in the
 
 <pre>
 FFT72: Suitable for IM=72 models 
-FFT144: Suiable for IM=144 models
+FFT144: Suitable for IM=144 models
 </pre>
+
+<li> Tracers <P>
+
+<p>
+Tracers are implemented through a combination of 'plug and play' and user 
+routines.  Some tracer code is embedded in MAIN, INPUT, CONDSE, MSTCNV, 
+LSCOND, DIFFUS, DYNAM, DEF_ACC, DIAGCA, reset_DIAG, and io_rsf through the use 
+of pre-processing directives.  To activate the directives, change the 
+rundeck line: </p>
+<pre>
+!#define TRACERS_ON                  ! include tracers code
+to 
+#define TRACERS_ON                  ! include tracers code
+</pre>
+
+Also, 'plug in':
+<pre>
+TRACER_COM TRACERS       ! trace gasses (depend on individual tracers)
+TQUS_DRV                 ! advection of trace gasses
+TRACER_PRT               ! tracer diagnostics
+</pre>
+<p>The plug-in code does not need pre-processing directives since it pertains 
+entirely to tracers.
+TQUS_DRV and TRACER_PRT were written to be independent of tracer type.
+For most users, only TRACER_COM and TRACERS need be changed.  The tracers in
+these routines are for illustrative purposes only.  However, the 'Air' tracer
+may prove useful as a diagnostic tool since it is designed to mimic the 
+movement of air mass.  The user is responsible for checking that tracer 
+subroutines are called at the appropriate times in MAIN for his purpose.
+Be sure to check that .f files with tracer directives start with
+#include "rundeck_opts.h"
+Tracers parameters that can be changed in the rundeck: </p>
+<pre>
+to_volume_MixRat=1: tracer concentration printout in volume mixing ratio
+to_volume_MixRat=0: tracer concentration printout in mass mixing ratio
+itime_tr0: the model time at which each tracer 'turns on'.</pre>
 
 </ul>
 </BODY>
