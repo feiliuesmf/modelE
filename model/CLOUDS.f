@@ -1317,7 +1317,7 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8 AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
-     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE,PRECHK
+     *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE
      *     ,FUNIL,FUNIO,HCHANG,HDEP,HPHASE,OLDLAT,OLDLHX,PFR,PMI,PML
      *     ,HDEP1,PRATIO,QCONV,QHEATC,QLT1,QLT2,QMN1,QMN2,QMO1,QMO2,QNEW
      *     ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1
@@ -1336,7 +1336,7 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var DFX iteration increment
 !@var DQ condensed water vapor
 !@var DQSDT derivative of saturation vapor pressure w.r.t. temperature
-!@var DQSUM,DQUP,PRECHK dummy variables
+!@var DQSUM,DQUP dummy variables
 !@var DRHDT time change of relative humidity
 !@var DSE moist static energy jump at cloud top
 !@var DSEC critical DSE for CTEI to operate
@@ -1503,6 +1503,7 @@ C**** If liquid rain falls into an ice cloud, B-F must occur
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
+      RH(L)=RH1(L)
       IF(LHX.EQ.LHS) THEN
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=.00536d0*TL(L)-.276d0
@@ -1555,10 +1556,16 @@ c        IF(L.EQ.DCL) HDEP=0.5*HDEP
       ENDIF
 C****
       IF(RH00(L).GT.1.) RH00(L)=1.
+      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))  
+      IF(CAREA(L).GT.1.) CAREA(L)=1.                                 
+      IF(RH(L).GT.1.) CAREA(L)=0.                                    
+      IF(WMX(L).LE.0.) CAREA(L)=1.                                   
+      IF(CAREA(L).LT.0.) CAREA(L)=0.                                 
+      FCLD=1.-CAREA(L)+1.E-20
       RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))
 C**** Set precip phase to be the same as the cloud, unless precip above
 C**** is ice and temperatures are still below freezing
-      LHP(L)=LHX 
+      LHP(L)=LHX
       IF (LHP(L+1).eq.LHS .and. TL(L).lt.TF) LHP(L)=LHP(L+1)
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
@@ -1597,7 +1604,7 @@ C****
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF (FORM_CLOUDS) THEN
 C**** COMPUTE EVAPORATION OF RAIN WATER, ER
-        RHN=MIN(RH(L),RHF(L))
+        RHN=RHF(L)
         IF(WMX(L).GT.0.)  THEN
           ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ELSE                    !  WMX(l).le.0.
@@ -1819,8 +1826,13 @@ C**** CONDENSING MORE TRACERS
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       END IF
-      PRECHK=-WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
-      IF(RH(L).LE.RHF(L).AND.WMX(L).gt.0.) THEN
+      IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))  
+      IF(CAREA(L).GT.1.) CAREA(L)=1.                                 
+      IF(RH(L).GT.1.) CAREA(L)=0.                                    
+      IF(WMX(L).LE.0.) CAREA(L)=1.                                   
+      IF(CAREA(L).LT.0.) CAREA(L)=0.                                 
+      RHF(L)=RH00(L)+(1.-CAREA(L))*(1.-RH00(L))                     
+      IF(RH(L).LE.RHF(L).AND.RH(L).LT..999999.AND.WMX(L).gt.0.) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
@@ -1963,7 +1975,7 @@ C**** need to scale SM moments for conservation purposes
         CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
         SMOM(:,L)=SMOM(:,L)/PLK(L)
         SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
-C**** 
+C****
         CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
 #ifdef TRACERS_ON
         DO N=1,NTX
