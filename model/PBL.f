@@ -107,13 +107,17 @@ c  internals:
 
       real*8 :: lmonin,tstar,qstar,ustar0,test
       real*8, parameter ::  tol=1d-4
-      integer :: itmax
+      integer :: itmax, ierr
       integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave,esave
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
       integer :: i,j,iter  !@var i,j,iter loop variable
 
-      call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n)
+      call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
+      if (ierr.gt.0) then
+        print*,"In advanc: i,j =",ilong,jlat,us,vs,tsv,qs
+        stop "PBL error in advanc"
+      end if
       zmix=dzh(1)+zgs
 
       itmax=1
@@ -586,15 +590,15 @@ c *********************************************************************
       return
       end subroutine simil
 
-      subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n)
+      subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n,ierr)
 !@sum Computes altitudes on the vertical grid. The XI coordinates are
-!@sum uniformly spaced and are mapped in a log-linear fashion onto the
-!@sum Z grid. (The Z's are the physical coords.) Also computes the
-!@sum altitudes on the secondary grid, ZHAT(I), and the derivatives
-!@sum dxi/dz evaluated at both all Z(I) and ZHAT(I).
-!@sum The parameter BGRID determines how strongly non-linear the
-!@sum mapping is. BGRID=0 gives linear mapping. Increasing BGRID
-!@sum packs more points into the bottom of the layer.
+!@+   uniformly spaced and are mapped in a log-linear fashion onto the
+!@+   Z grid. (The Z's are the physical coords.) Also computes the
+!@+   altitudes on the secondary grid, ZHAT(I), and the derivatives
+!@+   dxi/dz evaluated at both all Z(I) and ZHAT(I).
+!@+   The parameter BGRID determines how strongly non-linear the
+!@+   mapping is. BGRID=0 gives linear mapping. Increasing BGRID
+!@+   packs more points into the bottom of the layer.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c     Grids:
@@ -621,11 +625,13 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 !@var  dz   dxi/(dxi/dz)
 !@var  dzh  dxi/(dxi/dzh)
 !@var  dxi  (ztop - zbottom)/(n-1)
+!@var  ierr Error reporting flag  
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n), intent(out) :: z,xi,dz
       real*8, dimension(n-1), intent(out) :: zhat,xihat,dzh
+      integer, intent(out) :: ierr
       real*8, intent(in) :: z1,zn,bgrid
 
       real*8, parameter ::  tolz=1d-3
@@ -654,15 +660,18 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       dxidz=1.+bgrid*((zn-z1)/z1-lznbyz1)
       dz(1)=dxi/dxidz
       xipass=xihat(1)
-      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz)     !zbrent(fgrid,zmin, ...)
+      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+      if (ierr.gt.0) return
       dxidzh=1.+bgrid*((zn-z1)/zhat(1)-lznbyz1)
       dzh(1)=dxi/dxidzh
 
       do i=2,n-1
         xipass=xi(i)
-        z(i)=rtsafe(fgrid2,zmin,zmax,tolz)      !zbrent(fgrid,zmin, ...)
+        z(i)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+        if (ierr.gt.0) return
         xipass=xihat(i)
-        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz)   !zbrent(fgrid,zmin, ...)
+        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz,ierr)
+        if (ierr.gt.0) return
         dxidz=1.+bgrid*((zn-z1)/z(i)-lznbyz1)
         dxidzh=1.+bgrid*((zn-z1)/zhat(i)-lznbyz1)
         dz(i)=dxi/dxidz
@@ -1469,13 +1478,17 @@ c     integer, parameter ::  n=8
       integer, parameter ::  itmax=100
       integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-4,epslon=1d-20
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
       z0m=zgrnd
       z0h=z0m
       z0q=z0m
-c      write(99,*) "inside inits"
-      call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n)
+
+      call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
+      if (ierr.gt.0) then
+        print*,"In inits: i,j =",ilong,jlat,tgrnd,qgrnd
+        stop "PBL error in inits"
+      end if
 
 c Initialization for iteration:
       if (coriol.le.0.) then
@@ -1961,20 +1974,25 @@ c ----------------------------------------------------------------------
       return
       end subroutine fgrid2
 
-      function rtsafe(funcd,x1,x2,xacc)
+      function rtsafe(funcd,x1,x2,xacc,ierr)
 !@sum   rtsafe use Newton-Rapheson + safeguards to solve F(x)=0
 !@auth  Numerical Recipes
 !@ver   1.0
       integer,parameter :: maxit=100
       real*8, intent(in) :: x1,x2,xacc
+      integer, intent(out) :: ierr
       real*8 rtsafe
       external funcd
       integer j
       real*8 df,dx,dxold,f,fh,fl,temp,xh,xl
-
+      
+      ierr = 0
       call funcd(x1,fl,df)
       call funcd(x2,fh,df)
-      if(fl*fh.gt.0.) stop 'root must be bracketed in rtsafe'
+      if(fl*fh.gt.0.) then
+        ierr = 1
+        print*, 'Error: root must be bracketed in rtsafe'
+      end if
       if(fl.eq.0.)then
         rtsafe=x1
         return
@@ -2014,7 +2032,8 @@ c ----------------------------------------------------------------------
           xh=rtsafe
         endif
       end do
-      stop 'rtsafe exceeding maximum iterations'
+      ierr = 1
+      print*, 'Error: rtsafe exceeding maximum iterations'
       return
       END
 

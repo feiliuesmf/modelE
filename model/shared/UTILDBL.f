@@ -422,7 +422,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       CHARACTER*2, INTENT(IN) :: FIELD
 !@var A array being tested
       REAL*8, DIMENSION(IN,JN,LN),INTENT(IN) :: A
-      LOGICAL QCHECK3
+      LOGICAL :: QCHECK3 = .FALSE.
       INTEGER I,J,L !@var I,J,L loop variables
 
       DO L=1,LN
@@ -435,6 +435,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       END DO
       END DO
       END DO
+      CALL FLUSH(6)
       IF (QCHECK3) STOP 'CHECK3'
       RETURN
       END SUBROUTINE CHECK3

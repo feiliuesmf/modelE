@@ -47,6 +47,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@sum  LKSOURC applies fluxes to lake in ice-covered and ice-free areas
 !@auth Gary Russell
 !@ver  1.0
+      USE DAGCOM, only : qcheck
       IMPLICIT NONE
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
@@ -67,6 +68,7 @@ C**** Calculate heat and mass fluxes to lake
       ENRGI2=     +SROX(2)*FSR2 ! under ice, second layer
       RUNO  =-EVAPO
       RUNI  = RUN0
+
 C**** Bring up mass from second layer if required/allowed
       IF (MLAKE(1)+RUNO.lt.MINMLD*RHOW.and.MLAKE(2).gt.0) THEN
         DM2 = MIN(MLAKE(2),MINMLD*RHOW-(MLAKE(1)+RUNO))
@@ -132,14 +134,18 @@ C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
         IF (FH1.lt.0) THEN      ! all layer 2 froze, freeze layer 1
           ACEF1   =FH1/(TFL*(SHI-SHW)-LHM)
 C**** limit freezing if lake is between 50 and 20cm depth
-          IF (MLAKE(1).lt.0.5d0*RHOW)
-     *         ACEF1=MIN(ACEF1,MAX(0.5*(MLAKE(1)-0.2d0*RHOW),0d0))
+          IF (MLAKE(1).lt.0.5d0*RHOW) THEN
+            ACEF1=MIN(ACEF1,MAX(0.5*(MLAKE(1)-0.2d0*RHOW),0d0))
+            if (qcheck) print*,"Lake freezing limited",ACEF1/RHOW
+     *           ,MLAKE(1)/RHOW
+          END IF
           ENRGF1  =ACEF1*(TFL*SHI-LHM)
           ELAKE(1)=ELAKE(1)-ENRGF1
           MLAKE(1)=MLAKE(1)-ACEF1
           FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW
           IF (FH0.lt.-1d-8) THEN ! max. amount of lake frozen, cool ice
-            PRINT*,"Minimum lake level reached: rsi,mlake,elake",i0,j0
+            if (qcheck) WRITE(6,*)
+     *           "Minimum lake level reached: rsi,mlake,elake",i0,j0
      *           ,roice,mlake(1)/rhow,elake(1)
             ENRGF1  =ENRGF1+FH0
             ELAKE(1)=MLAKE(1)*TFL*SHW
@@ -1045,11 +1051,11 @@ C****
       USE DAGCOM, only : qcheck
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
-      INTEGER, PARAMETER :: NDIAG=6
+      INTEGER, PARAMETER :: NDIAG=2   !6
       INTEGER I,J,N,IDIAG(NDIAG),JDIAG(NDIAG)
-      DATA IDIAG/57,53,15,18,22,23/,  !10/,
-     *     JDIAG/31,32,37,33,25,22/  !,40/
-      REAL*8 HLK2,TLK2
+      DATA IDIAG/16,59/, !   ,53,15,18,22/,  !23/,  !10/,
+     *     JDIAG/33,35/  !,32,37,33,25/   !22/  !,40/
+      REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
 
@@ -1063,8 +1069,14 @@ C****
         ELSE
           TLK2=0.
         END IF
+        TSIL(:)=0.
+        IF (RSI(I,J).gt.0) THEN
+          TSIL(1:2) = (HSI(1:2,I,J)/(XSI(1:2)*(ACE1I+SNOWI(I,J)))+LHM)
+     *         *BYSHI
+          TSIL(3:4) = (HSI(3:4,I,J)/(XSI(3:4)*MSI(I,J))+LHM)*BYSHI
+        END IF
         WRITE(99,*) STR,I,J,TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
-     *       ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW
+     *       ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
       END DO
 
       RETURN
