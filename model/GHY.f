@@ -1553,7 +1553,7 @@ ccc accm0 was not called here in older version - check
 c     call fhlmt
          ! call check_f11
         !call check_water(0)
-#ifdef TRACERS_ON
+#ifdef TRACERS_WATER
         call ghy_tracers
 #endif
         call apply_fluxes
@@ -2347,6 +2347,8 @@ ccc internal vars:
 
 ccc for debug
       real*8 tr_w_o(ntgm,0:ngm,2), tr_wsn_o(ntgm,nlsn,2)
+
+      if ( ntg < 1 ) return   ! no water tracers
 
       !m = 2 !!! testing
       m = ntg
