@@ -231,7 +231,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       cqgs(i,j,itype)=cq
       ipbl(i,j,itype)=1  ! ipbl is used in subroutine init_pbl
 
-      ws    =sqrt(us*us+vs*vs)
+      ws    =wsm
       wg    =sqrt(ug*ug+vg*vg)
 
       psitop=atan2(vg,ug+teeny)
