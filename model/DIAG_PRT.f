@@ -3786,7 +3786,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
       call ij_titlex
 C**** standard printout
-      kmaplets = 54
+      kmaplets = 55
       nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags
       nmaps = 2
       iord(1:kmaplets) = (/
@@ -3807,7 +3807,8 @@ C**** standard printout
      *  ij_wtrcld,  ij_optdw,   ij_cldtppr,  ! pg  8  row 1
      *  ij_icecld,  ij_optdi,   ij_cldtpt,   !        row 2
      *  ij_cldcv1,  ij_cldt1p,  ij_cldt1t,   ! pg  9  row 1
-     *  ij_pcldl,   ij_pcldm,   ij_pcldh/)   !        row 2
+     *  ij_pcldl,   ij_pcldm,   ij_pcldh,    !        row 2
+     *  ij_pblht                         /)  ! pg  10 row 1
 
 C**** include ISCCP diags if requested
       if (isccp_diags.eq.1) then
@@ -3820,10 +3821,6 @@ C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
       end do
-
-C**** include PBL Height
-        iord(kmaplets+1:kmaplets+1) = (/ij_pblht/)
-        kmaplets=kmaplets+1
 
 C**** Fill in maplet indices for geoptential heights and thickness T's
       koff = kmaplets+iDO_GWDRAG
