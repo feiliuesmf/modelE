@@ -262,7 +262,7 @@ C****
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal Itime of acc files to be summed up
-      INTEGER, SAVE :: ITmin=999999, ITmax=-1
+      INTEGER, SAVE :: ITmin=999999, ITmax=-1, IT0min
       INTEGER it1,it0,idacc0(12) !@var it1,it0,idacc1 dummy variables
       INTEGER, DIMENSION(11) :: idind = (/1,2,3,4,6,7,8,9,10,11,12/)
 
