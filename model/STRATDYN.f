@@ -129,12 +129,14 @@ C****
       END DO
 
 C**** define wave number array EK for GWDRAG
+C**** EKX is the mean wave number for wave lengths between a 1x1 degree
+C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       EKS=0.
       DO J=2,JM
-        EK1=TWOPI/SQRT(DXYV(J))
-        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))
-        EKX=(EK2-EK1)/LOG(EK2/EK1)
-        IF (EKX.LT.0.) EKX=0.
+        EK1=TWOPI/SQRT(DXYV(J))                ! 2pi/grid_box_size
+        EK2=EK1*SQRT((360./IM)*(180./(JM-1)))  ! 2pi/1x1deg_box_size
+        EKX=0.
+        if(EK2.gt.EK1) EKX=(EK2-EK1)/LOG(EK2/EK1) ! weighted mean
         EKS=EKS+EKX*DXYV(J)
         EK(1,J)=EKX
         EK(2,J)=EKX
