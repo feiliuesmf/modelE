@@ -60,6 +60,9 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       trli0 = 0.
       trsi0 = 0.
       tr_H2ObyCH4 = 0.
+#ifdef TRACERS_OCEAN
+      trglac = 0.
+#endif
 #endif
 C**** Define individual tracer characteristics
       do n=1,ntm
@@ -151,6 +154,9 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 1.
           trsi0(n) = 1.
           tr_H2ObyCH4(n) = 1.
+#ifdef TRACERS_OCEAN
+          trglac(n) = 1.
+#endif
 
 #ifdef TRACERS_SPECIAL_O18
       case ('H2O18')
@@ -162,7 +168,10 @@ C**** Get solar variability coefficient from namelist if it exits
           trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
           trsi0(n) = fracls(trname(n))*trw0(n)
-          tr_H2ObyCH4(n) = trw0(n)
+          tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
+#ifdef TRACERS_OCEAN
+          trglac(n) = trw0(n)*0.98d0   ! d=-20
+#endif
 
       case ('HDO')
       n_HDO = n
@@ -173,7 +182,10 @@ C**** Get solar variability coefficient from namelist if it exits
           trw0(n) = 3.29d-4    ! SMOW mass ratio of water molecules
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
           trsi0(n) = fracls(trname(n))*trw0(n)
-          tr_H2ObyCH4(n) = trw0(n)
+          tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
+#ifdef TRACERS_OCEAN
+          trglac(n) = trw0(n)*0.84d0   ! d=-160
+#endif
 
       case ('HTO')
       n_HTO = n
@@ -186,6 +198,9 @@ C**** Get solar variability coefficient from namelist if it exits
           trsi0(n) = 0.
           tr_H2ObyCH4(n) = 0.
           trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
+#ifdef TRACERS_OCEAN
+          trglac(n) = 0.
+#endif
 #endif
 #endif
 

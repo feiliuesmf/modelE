@@ -76,6 +76,7 @@ C****
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 #ifdef TRACERS_OCEAN
      *     ,toijl,tlnst
+      USE TRACER_COM, only : t_qlimit
 #endif
       IMPLICIT NONE
       INTEGER I1,J1,I2,J2,N,L,ITR
@@ -92,14 +93,15 @@ C****
       MM1 = MO(I1,J1,L)*DXYPO(J1)
       MM2 = MO(I2,J2,L)*DXYPO(J2)
       CALL STADVT (N,L,AM,MM1,MM2,G0MST(L,N),GXMST(L,N),GZMST(L,N),
-     *     G0M,GXMO,GYMO,GZMO,OLNST(L,N,LN_GFLX))
+     *     G0M,GXMO,GYMO,GZMO,OLNST(L,N,LN_GFLX),.FALSE.)
       CALL STADVT (N,L,AM,MM1,MM2,S0MST(L,N),SXMST(L,N),SZMST(L,N),
-     *     S0M,SXMO,SYMO,SZMO,OLNST(L,N,LN_SFLX))
+     *     S0M,SXMO,SYMO,SZMO,OLNST(L,N,LN_SFLX),.TRUE.)
 #ifdef TRACERS_OCEAN
       DO ITR = 1,NTM
         CALL STADVT (N,L,AM,MM1,MM2,TRMST(L,N,ITR),TXMST(L,N,ITR),
      *       TZMST(L,N,ITR),TRMO(1,1,1,ITR),TXMO(1,1,1,ITR),
-     *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR))
+     *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR),
+     *       t_qlimit(ITR))
       END DO
 #endif                                               
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
@@ -110,7 +112,8 @@ C****
       RETURN
       END
 
-      SUBROUTINE STADVT(N,L,AM,MM1,MM2,RMST,RXST,RZST,RM,RX,RY,RZ,OLN)
+      SUBROUTINE STADVT(N,L,AM,MM1,MM2,RMST,RXST,RZST,RM,RX,RY,RZ,OLN
+     *     ,QLIMIT)
 !@sum  STADVT advects tracers through the straits
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
@@ -121,7 +124,8 @@ C****
       REAL*8, INTENT(INOUT) :: RMST,RXST,RZST
       REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: RX,RY,RZ,RM
       REAL*8, INTENT(INOUT) :: OLN
-      REAl*8 A1,A2,FM1,FZ1,FM2,FZ2
+      LOGICAL, INTENT(IN) :: QLIMIT
+      REAl*8 A1,A2,FM1,FZ1,FM2,FZ2,RXY
       INTEGER I1,I2,J1,J2,N,L
 C****
       I1=IST(N,1)
@@ -177,6 +181,26 @@ C****
       RMST        = RMST   + (FM1-FM2)
       RZST        = RZST   + (FZ1-FZ2)
        OLN        =  OLN   + (FM1+FM2)
+C****
+      if ( QLIMIT ) then ! limit gradients at ends of strait
+        RXY = abs(RX(I1,J1,L)) + abs(RY(I1,J1,L))
+        if ( RXY > RM(I1,J1,L) ) then
+          RX(I1,J1,L) = RX(I1,J1,L)*( RM(I1,J1,L)/(RXY + tiny(RXY)) )
+          RY(I1,J1,L) = RY(I1,J1,L)*( RM(I1,J1,L)/(RXY + tiny(RXY)) )
+        endif
+        if ( abs(RZ(I1,J1,L)) > RM(I1,J1,L) )
+     \       RZ(I1,J1,L) = sign(RM(I1,J1,L), RZ(I1,J1,L)+0d0)
+        RXY = abs(RX(I2,J2,L)) + abs(RY(I2,J2,L))
+        if ( RXY > RM(I2,J2,L) ) then
+          RX(I2,J2,L) = RX(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
+          RY(I2,J2,L) = RY(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
+        endif
+        if ( abs(RZ(I2,J2,L)) > RM(I2,J2,L) )
+     \       RZ(I2,J2,L) = sign(RM(I2,J2,L), RZ(I2,J2,L)+0d0)
+        if ( abs(RXST) > RMST ) RXST = sign(RMST, RXST)
+        if ( abs(RZST) > RMST ) RZST = sign(RMST, RZST)
+      end if
+C****
       RETURN
       END
 

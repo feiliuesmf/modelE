@@ -684,6 +684,9 @@ C****
       STOP 'Water tracers need TRACERS_ON as well as TRACERS_WATER'
 #endif
 #endif
+#ifdef TRACERS_OCEAN
+      write(6,*) '...and ocean tracer code'
+#endif
 #ifdef TRACERS_SPECIAL_O18
       write(6,*) '...and water isotope code'
 #ifndef TRACERS_WATER

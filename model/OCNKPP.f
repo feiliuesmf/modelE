@@ -1095,6 +1095,7 @@ C**** Save surface values
      *     ,dxypo,cosic,sinic,uo,vo,ramvn
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo,tzmo,ntm
+      USE TRACER_COM, only : t_qlimit
 #endif
       USE SEAICE_COM, only : rsi
       USE ODIAG, only : oijl,oij,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm
@@ -1114,7 +1115,7 @@ C**** Save surface values
      *     UL0(LMO,IM+2),G0ML0(LMO,2,2),S0ML0(LMO,2,2),MML0(LMO),
      *     BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *     AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
-     *     GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO)
+     *     GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO),TXY
 #ifdef TRACERS_OCEAN
      *     ,TRML(LMO,NTM,2,2),TZML(LMO,NTM,2,2),TRML1(NTM,2,2)
      *     ,DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
@@ -1325,6 +1326,8 @@ C**** Loop over quarter boxes
       UL(1,3) = VO1(I,J-1)
       UL(1,4) = VO1(I,J  )
       S0ML(1,IQ,JQ)=2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))
+      if (abs(SZML(1,IQ,JQ))>S0ML(1,IQ,JQ))
+     \     SZML(1,IQ,JQ) = sign(S0ML(1,IQ,JQ),SZML(1,IQ,JQ))
       DO 250 L=2,LMIJ
       UL0(L,1) = UT(IM1,J,L)
       UL0(L,2) = UT(I  ,J,L)
@@ -1339,6 +1342,8 @@ C**** Loop over quarter boxes
       UL(L,3) = UL0(L,3)
       UL(L,4) = UL0(L,4)
       S0ML(L,IQ,JQ) = S0ML0(L,IQ,JQ)
+      if (abs(SZML(L,IQ,JQ))>S0ML(L,IQ,JQ))
+     \     SZML(L,IQ,JQ) = sign(S0ML(L,IQ,JQ),SZML(L,IQ,JQ))
   250 CONTINUE
       G0ML(1,IQ,JQ)=2.5d-1*(G0M1(I,J,1)+ RI*GXM1(I,J) + RJ*GYM1(I,J))
       DO L=2,MIN(LSRPD,LMIJ)
@@ -1348,12 +1353,20 @@ C**** Loop over quarter boxes
         G0ML(L,IQ,JQ) = G0ML0(L,IQ,JQ)
       END DO
 #ifdef TRACERS_OCEAN
-      TRML1(:,IQ,JQ) = 2.5d-1*(TRMO1(:,I,J)+RI*TXMO1(:,I,J)
-     *     + RJ*TYMO1(:,I,J))
-      DO L = 1,LMIJ
-        TRML(L,:,IQ,JQ) = 2.5d-1*(TRMO(I,J,L,:)+RI*TXMO(I,J,L,:)
-     *       + RJ*TYMO(I,J,L,:))
-        TZML(L,:,IQ,JQ) = 2.5d-1* TZMO(I,J,L,:)
+      DO N=1,NTM
+        TRML1(N,IQ,JQ) = 2.5d-1*(TRMO1(N,I,J)+RI*TXMO1(N,I,J)
+     *       + RJ*TYMO1(N,I,J))
+        DO L=1,LMIJ
+          TRML(L,N,IQ,JQ) = 2.5d-1*(TRMO(I,J,L,N)+RI*TXMO(I,J,L,N)
+     *         + RJ*TYMO(I,J,L,N))
+          TZML(L,N,IQ,JQ) = 2.5d-1* TZMO(I,J,L,N)
+C**** 
+          if (t_qlimit(N)) then
+            TRML(L,N,IQ,JQ) = MAX(0d0,TRML(L,N,IQ,JQ))
+            if (abs(TZML(L,N,IQ,JQ))>TRML(L,N,IQ,JQ))
+     \           TZML(L,N,IQ,JQ) = sign(TRML(L,N,IQ,JQ),TZML(L,N,IQ,JQ))
+          end if
+        END DO
       END DO
 #endif
 
@@ -1649,6 +1662,15 @@ C****
       IF (NSIGS+30.gt.EXPONENT(SYMO(I,J,L))) SYMO(I,J,L) =
      *     SCALE(REAL(NINT(SCALE(SYMO(I,J,L),-NSIGS)),KIND=8),NSIGS)
       SZMO(I,J,L)= SZML(L,2,2)+SZML(L,2,1)+SZML(L,1,2)+SZML(L,1,1)
+C**** limit salinity gradients
+      TXY = abs(SXMO(I,J,L)) + abs(SYMO(I,J,L))
+      if ( TXY > S0M(I,J,L) ) then
+        SXMO(I,J,L)=SXMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
+        SYMO(I,J,L)=SYMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
+      end if
+      if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
+     *     SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
+C****
       END DO
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
@@ -1666,6 +1688,19 @@ C****
      *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
      *                  TZML(L,N,1,2) + TZML(L,N,1,1) 
+C**** 
+        if (t_qlimit(n)) then   ! limit gradients
+          TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
+          if ( TXY > TRMO(I,J,L,N) ) then
+            TXMO(I,J,L,N) = TXMO(I,J,L,N)
+     *           *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
+            TYMO(I,J,L,N) = TYMO(I,J,L,N)
+     *           *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
+          end if
+          if ( abs(TZMO(I,J,L,N)) > TRMO(I,J,L,N) )
+     *         TZMO(I,J,L,N) = sign(TRMO(I,J,L,N),TZMO(I,J,L,N)+0d0)
+        end if
+C****
       END DO
       END DO
 #endif      
@@ -1704,6 +1739,7 @@ C**** End of outside J loop
      *     ,lmst,nmst,dist,wist,jst
 #ifdef TRACERS_OCEAN
      *     ,trmst,txmst,tzmst,ntm
+      USE TRACER_COM, only : t_qlimit
 #endif
       IMPLICIT NONE
       REAL*8 MMLT,MML0
@@ -1953,6 +1989,12 @@ C****
       IF (NSIGS+30.gt.EXPONENT(SXMST(L,N))) SXMST(L,N) =
      *     SCALE(REAL(NINT(SCALE(SXMST(L,N),-NSIGS)),KIND=8),NSIGS)
       SZMST(L,N) =  SZML(L,2) + SZML(L,1)
+C****  limit salinity gradients
+      if ( abs(SXMST(L,N)) > S0MST(L,N) )
+     *     SXMST(L,N) = sign(S0MST(L,N),SXMST(L,N))
+      if ( abs(SZMST(L,N)) > S0MST(L,N) )
+     *     SZMST(L,N) = sign(S0MST(L,N),SZMST(L,N))
+C****
 #ifdef TRACERS_OCEAN
       DO ITR=1,NTM
         TRMST(L,N,ITR) = TRML(L,ITR,2) + TRML(L,ITR,1)
@@ -1961,6 +2003,14 @@ C****
         IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) = 
      *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
+C****  
+        if (t_qlimit(itr)) then  ! limit gradients
+          if ( abs(TXMST(L,N,ITR)) > TRMST(L,N,ITR) )
+     *         TXMST(L,N,ITR) = sign(TRMST(L,N,ITR),TXMST(L,N,ITR))
+          if ( abs(TZMST(L,N,ITR)) > TRMST(L,N,ITR) )
+     *         TZMST(L,N,ITR) = sign(TRMST(L,N,ITR),TZMST(L,N,ITR))
+        end if
+C****
       END DO
 #endif
       END DO
@@ -2049,7 +2099,7 @@ C**** Calculate operators for tridiagonal solver
       CALL TRIDIAG(A,B,C,R,U,LMIJ)
 
       DO L=1,LMIJ-1
-       FL(L)=K(L)*(DTBYDZ(L+1)*U(L+1)-DTBYDZ(L)*U(L))*BYDZ2(L)
+        FL(L)=K(L)*(DTBYDZ(L+1)*U(L+1)-DTBYDZ(L)*U(L))*BYDZ2(L)
       END DO
 C****
       RETURN

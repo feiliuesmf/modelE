@@ -143,13 +143,14 @@ C**** End of Main Loop of GMKDIF
       RETURN
       END SUBROUTINE GMKDIF
 C****
-      SUBROUTINE GMFEXP (TRM, TXM, TYM, TZM, GIJL)
+      SUBROUTINE GMFEXP (TRM, TXM, TYM, TZM, QLIMIT, GIJL)
 !@sum  GMFEXP apply GM fluxes to tracer quantities
 !@auth Gavin Schmidt/Dan Collins
 !@ver  1.0
       USE GM_COM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: TRM,TXM,TYM,TZM
+      LOGICAL, INTENT(IN) :: QLIMIT
 !@var GIJL Tracer flux 
       REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
       REAL*8, DIMENSION(IM,JM,LMO) :: TR
@@ -275,6 +276,10 @@ C**** Loop for Fluxes in X-direction
 C**** Add and Subtract horizontal X flux
         TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
         TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(I  ,J,L) = MAX(0d0,TRM(I  ,J,L))
+          TRM(IM1,J,L) = MAX(0d0,TRM(IM1,J,L))
+        END IF
 C**** Save Diagnostic, GIJL(1) = RFXT
         GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
       END IF
@@ -286,6 +291,10 @@ C**** Loop for Fluxes in Y-direction
 C**** Add and Subtract horizontal Y fluxes
         TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
         TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(I,J  ,L) = MAX(0d0,TRM(I,J  ,L))
+          TRM(I,J-1,L) = MAX(0d0,TRM(I,J-1,L))
+        END IF
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
       END IF
@@ -307,6 +316,10 @@ C**** Calculate new tracer/salinity/enthalpy
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
         TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(I,J,L)   = MAX(0d0,TRM(I,J,L))
+          TRM(I,J,L+1) = MAX(0d0,TRM(I,J,L+1))
+        END IF
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
       END IF
@@ -323,6 +336,10 @@ C**** Fluxes in Y-direction
 C**** Add and Subtract horizontal Y fluxes
         TRM(1,JM  ,L) = TRM(1,JM  ,L) + RFYT/IM
         TRM(1,JM-1,L) = TRM(1,JM-1,L) - RFYT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(1,JM  ,L) = MAX(0d0,TRM(1,JM  ,L))
+          TRM(1,JM-1,L) = MAX(0d0,TRM(1,JM-1,L))
+        END IF
 C**** Save Diagnostic, GIJL(2) = RFYT
         GIJL(1,JM  ,L,2) = GIJL(1,JM  ,L,2) + RFYT/IM
         GIJL(1,JM-1,L,2) = GIJL(1,JM-1,L,2) - RFYT
@@ -338,6 +355,10 @@ C**** Calculate new tracer/salinity/enthalpy
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
         TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
+        IF (QLIMIT) THEN  ! eliminate round off problems
+          TRM(1,JM,L)   = MAX(0d0,TRM(1,JM,L))
+          TRM(1,JM,L+1) = MAX(0d0,TRM(1,JM,L+1))
+        END IF
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(1,JM,L  ,3) = GIJL(1,JM,L  ,3) + RFZT
         GIJL(1,JM,L+1,3) = GIJL(1,JM,L+1,3) - RFZT

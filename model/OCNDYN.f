@@ -10,7 +10,8 @@
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
      *     ,ratoc,imaxj,focean,ogeoz
 #ifdef TRACERS_OCEAN
-     *     ,ntm,trmo,txmo,tymo,tzmo
+     *     ,trmo,txmo,tymo,tzmo
+      USE TRACER_COM, only : t_qlimit,ntm
 #endif
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
@@ -99,7 +100,7 @@ C**** Advection of Potential Enthalpy and Salt
 #ifdef TRACERS_OCEAN
       DO N=1,NTM
         CALL OADVT(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
-     *       TZMO(1,1,1,N),DTOLF,.TRUE.,TOIJL(1,1,1,TOIJL_TFLX,N))
+     *       TZMO(1,1,1,N),DTOLF,t_qlimit(n),TOIJL(1,1,1,TOIJL_TFLX,N))
       END DO
 #endif
         CALL CHECKO ('OADVT ')
@@ -128,12 +129,12 @@ C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
         CALL CHECKO ('ODIFF ')
 C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF
-      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,OIJL(1,1,1,IJL_GGMFL))
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL))
+      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,1,1,IJL_GGMFL))
+      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE.,OIJL(1,1,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM                                                
         CALL GMFEXP(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
-     *              TZMO(1,1,1,N),TOIJL(1,1,1,TOIJL_GMFL,N))
+     *       TZMO(1,1,1,N),t_qlimit(n),TOIJL(1,1,1,TOIJL_GMFL,N))
       END DO                                                        
 #endif
         CALL CHECKO ('GMDIFF')
@@ -1628,7 +1629,7 @@ C     RZ(I, 1,L) = RZ(IM,1,L)
 !@auth Gary Russell
 !@ver  1.0
 C**** If QLIMIT is true, the gradients are
-C**** limited to prevent the mean tracer from becoming non-negative.
+C**** limited to prevent the mean tracer from becoming negative.
 C****
 C**** Input: DT (s) = time step
 C****     MU (kg/s) = west to east mass flux
@@ -1646,6 +1647,7 @@ C****
       LOGICAL*4, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(IM) :: AM,A,FM,FX,FY,FZ
+      REAL*8 RXY
       INTEGER I,J,L,IM1,IP1
 
 C**** Loop over layers and latitudes
@@ -1741,15 +1743,25 @@ C****
   300 IM1=IM
       DO 310 I=1,IM
       IF(L.GT.LMM(I,J))  GO TO 310
-      RM(I,J,L) = RM(I,J,L) +  FM(IM1)-FM(I)
+      RM(I,J,L) = RM(I,J,L) +  (FM(IM1)-FM(I))
       RX(I,J,L) = (RX(I,J,L)*MO(I,J,L) + (FX(IM1)-FX(I))
      *  + 3d0*((AM(IM1)+AM(I))*RM(I,J,L)-MO(I,J,L)*(FM(IM1)+FM(I))))
      *  / (MO(I,J,L)+AM(IM1)-AM(I))
       RY(I,J,L) = RY(I,J,L) + (FY(IM1)-FY(I))
       RZ(I,J,L) = RZ(I,J,L) + (FZ(IM1)-FZ(I))
-       MO(I,J,L) =  MO(I,J,L) +  AM(IM1)-AM(I)
+C****
+      if ( QLIMIT ) then ! limit tracer gradients
+        RXY = abs(RX(I,J,L)) + abs(RY(I,J,L))
+        if ( RXY > RM(I,J,L) ) then
+          RX(I,J,L) = RX(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+          RY(I,J,L) = RY(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+        end if
+        if ( abs(RZ(I,J,L)) > RM(I,J,L) )
+     *       RZ(I,J,L) = sign(RM(I,J,L), RZ(I,J,L)+0d0)
+      end if
+C****
+      MO(I,J,L) = MO(I,J,L) +  AM(IM1)-AM(I)
          IF(MO(I,J,L).LE.0.)  GO TO 800
-         IF(QLIMIT .AND. RM(I,J,L).LT.0.)  GO TO 810
          OIJL(I,J,L) = OIJL(I,J,L) + FM(I)
   310 IM1=I
   320 CONTINUE
@@ -1764,7 +1776,7 @@ C****
 C****
 C**** OADVTY advects tracers in the south to north direction using the
 C**** linear upstream scheme.  If QLIMIT is true, the gradients are
-C**** limited to prevent the mean tracer from becoming non-negative.
+C**** limited to prevent the mean tracer from becoming negative.
 C****
 C**** Input: DT (s) = time step
 C****     MV (kg/s) = south to north mass flux
@@ -1783,7 +1795,7 @@ C****
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(JM) :: BM,B,FM,FX,FY,FZ
       INTEGER I,J,L
-      REAL*8 SBMN,SFMN,SFZN
+      REAL*8 SBMN,SFMN,SFZN,RXY
 
 C**** Loop over layers and longitudes
       DO 350 L=1,LMO
@@ -1941,13 +1953,24 @@ C**** Calculate new tracer mass and first moments of tracer mass
 C****
       DO 310 J=2,JM-1
       IF(L.GT.LMM(I,J))  GO TO 310
-      RM(I,J,L) = RM(I,J,L) +  FM(J-1)-FM(J)
+      RM(I,J,L) = RM(I,J,L) + (FM(J-1)-FM(J))
       RX(I,J,L) = RX(I,J,L) + (FX(J-1)-FX(J))
       RY(I,J,L) = (RY(I,J,L)*MO(I,J,L) + (FY(J-1)-FY(J))
      *  + 3d0*((BM(J-1)+BM(J))*RM(I,J,L)-MO(I,J,L)*(FM(J-1)+FM(J))))
      *  / (MO(I,J,L)+BM(J-1)-BM(J))
       RZ(I,J,L) = RZ(I,J,L) + (FZ(J-1)-FZ(J))
-       MO(I,J,L) =  MO(I,J,L) +  BM(J-1)-BM(J)
+C****
+      if ( QLIMIT ) then ! limit tracer gradients
+        RXY = abs(RX(I,J,L)) + abs(RY(I,J,L))
+        if ( RXY > RM(I,J,L) ) then
+          RX(I,J,L) = RX(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+          RY(I,J,L) = RY(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
+        end if
+        if ( abs(RZ(I,J,L)) > RM(I,J,L) )
+     *       RZ(I,J,L) = sign(RM(I,J,L), RZ(I,J,L)+0d0)
+      end if
+C****
+      MO(I,J,L) = MO(I,J,L) +  BM(J-1)-BM(J)
          IF(MO(I,J,L).LE.0.)  GO TO 800
          IF(QLIMIT.AND.RM(I,J,L).LT.0.)  GO TO 810
   310 CONTINUE
@@ -1957,13 +1980,13 @@ C****
 C     IF(L.GT.LMM(IM,1))  GO TO 340
 C     RM(IM,1,L) = RM(IM,1,L) - SFMS/IM
 C     RZ(IM,1,L) = RZ(IM,1,L) - SFZS/IM
-C      MO(IM,1,L) =  MO(IM,1,L) - SBMS/IM
+C     MO(IM,1,L) =  MO(IM,1,L) - SBMS/IM
 C        IF(MO(IM,1,L).LE.0.)  GO TO 800
 C        IF(QLIMIT.AND.RM(IM,1,L).LT.0.)  GO TO 810
   340 IF(L.GT.LMM(1,JM))  GO TO 350
       RM(1,JM,L) = RM(1,JM,L) + SFMN/IM
       RZ(1,JM,L) = RZ(1,JM,L) + SFZN/IM
-       MO(1,JM,L) =  MO(1,JM,L) + SBMN/IM
+      MO(1,JM,L) = MO(1,JM,L) + SBMN/IM
          IF(MO(1,JM,L).LE.0.)  GO TO 800
          IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
   350 CONTINUE
@@ -1978,7 +2001,7 @@ C        IF(QLIMIT.AND.RM(IM,1,L).LT.0.)  GO TO 810
 C****
 C**** OADVTZ advects tracers in the vertical direction using the
 C**** linear upstream scheme.  If QLIMIT is true, the gradients are
-C**** limited to prevent the mean tracer from becoming non-negative.
+C**** limited to prevent the mean tracer from becoming negative.
 C****
 C**** Input: DT (s) = time step
 C****     MW (kg/s) = downward vertical mass flux
@@ -1997,7 +2020,7 @@ C****
       REAL*8, INTENT(IN) :: DT
       REAL*8, DIMENSION(0:LMO) :: CM,C,FM,FX,FY,FZ
       INTEGER I,J,L,LMIJ
-      REAL*8 SBMN,SFMN,SFZN
+      REAL*8 SBMN,SFMN,SFZN,RXY
 C****
       CM(0) = 0.
        C(0) = 0.
@@ -2094,13 +2117,24 @@ C****
 C**** Calculate new tracer mass and first moments of tracer mass
 C****
   300 DO 310 L=1,LMIJ
-      RM(I,1,L) = RM(I,1,L) +  FM(L-1)-FM(L)
+      RM(I,1,L) = RM(I,1,L) + (FM(L-1)-FM(L))
       RX(I,1,L) = RX(I,1,L) + (FX(L-1)-FX(L))
       RY(I,1,L) = RY(I,1,L) + (FY(L-1)-FY(L))
       RZ(I,1,L) = (RZ(I,1,L)*MO(I,1,L) + (FZ(L-1)-FZ(L))
      *  + 3d0*((CM(L-1)+CM(L))*RM(I,1,L)-MO(I,1,L)*(FM(L-1)+FM(L))))
      *  / (MO(I,1,L)+CM(L-1)-CM(L))
-       MO(I,1,L) =  MO(I,1,L) +  CM(L-1)-CM(L)
+C****
+      if ( QLIMIT ) then ! limit tracer gradients
+        RXY = abs(RX(I,1,L)) + abs(RY(I,1,L))
+        if ( RXY > RM(I,1,L) ) then
+          RX(I,1,L) = RX(I,1,L)*( RM(I,1,L)/(RXY + tiny(RXY)) )
+          RY(I,1,L) = RY(I,1,L)*( RM(I,1,L)/(RXY + tiny(RXY)) )
+        end if
+        if ( abs(RZ(I,1,L)) > RM(I,1,L) )
+     *       RZ(I,1,L) = sign(RM(I,1,L), RZ(I,1,L)+0d0)
+      end if
+C****
+      MO(I,1,L) = MO(I,1,L) +  CM(L-1)-CM(L)
          IF(MO(I,1,L).LE.0.)  GO TO 800
          IF(QLIMIT.AND.RM(I,1,L).LT.0.)  GO TO 810
   310 CONTINUE
@@ -2346,6 +2380,7 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
         TRUNI(:)=TRFLOWO(:,I,J)*    FSICE *BYDXYPJ+
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
+
 C**** Diagnostics on atmospheric grid
           AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *POCEAN
           AJ(J,J_TG2, ITOCEAN)=AJ(J,J_TG2, ITOCEAN)+TGW2*POCEAN
@@ -2504,7 +2539,7 @@ C**** GOO*MOO = GFOO*(MOO-DMOO) + (TFOO*SHCI-ELHM)*DMOO
         DEOO = (TFOO*SHCI-ELHM)*DMOO
         DSOO = FSSS*SOO*DMOO
 #ifdef TRACERS_OCEAN
-        DTROO(:) = TMOO(:)*FRAC(n)*(DMOO-DSOI)/(MOO-SMOO)
+        DTROO(:) = TMOO(:)*FRAC(:)*(DMOO-DSOO)/(MOO-SMOO)
 #endif
       END IF
       END IF
@@ -3313,7 +3348,7 @@ C****
 !@auth Sukeshi Sheth/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : lhm
-      USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo
+      USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo,dxypo
 #ifdef TRACERS_OCEAN
      *     ,trmo
       USE TRACER_COM, only : ntm,trglac
@@ -3357,7 +3392,7 @@ C**** that is proportional to the depth of the column
                 MO(I,J,L)  =  MO(I,J,L) + DMM
                 G0M(I,J,L) = G0M(I,J,L) - DGM
 #ifdef TRACERS_OCEAN
-                TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM
+                TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM*DXYPO(J)
 #endif
               END IF
             END IF
@@ -3379,7 +3414,7 @@ C**** this accumulation is again distributed as above
           MO(I,J,L)  =  MO(I,J,L) + DMM
           G0M(I,J,L) = G0M(I,J,L) - DGM
 #ifdef TRACERS_OCEAN
-          TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM
+          TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM*DXYPO(J)
 #endif
         END DO
       END DO

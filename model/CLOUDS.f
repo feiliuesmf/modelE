@@ -1469,7 +1469,7 @@ C**** integrated HDEP over pbl depth
         END DO
         IF(L.EQ.DCL) HDEP=HDEP+0.5*AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
         HRISE=HRMAX 
-        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-1./EXP(HDEP/HEFOLD))   
+        IF(HDEP.LT.10.*HEFOLD) HRISE=HRMAX*(1.-EXP(-HDEP/HEFOLD))   
         IF(HRISE.GT.HDEP) HRISE=HDEP
 C**** hdep is simply layer dependent (removed due to resolution dependence)
 c        HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
@@ -1917,7 +1917,7 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
  388  IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
-      TRPRSS(1:NTX) = TRPRBAR(1:NTX,1)
+      TRPRSS(1:NTX)=MAX(0d0,TRPRBAR(1:NTX,1))
 #endif
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM

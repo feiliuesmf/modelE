@@ -863,7 +863,7 @@ C****
       DO J=1,JM
         SUMB = 0
         DO I=1,IM
-          SUMB(KBASIN(I,J))=1.
+          IF (KBASIN(I,J).gt.0) SUMB(KBASIN(I,J))=1.
         END DO
         SUMB(4)=SUMB(1)+SUMB(2)+SUMB(3)+SUMB(4)
         DO K=1,4
