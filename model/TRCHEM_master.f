@@ -12,7 +12,7 @@ c
       USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf,byim,
      & COUPLED_CHEM
       USE DYNAMICS, only: pedn
-      USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld
+      USE RADNCB, only : COSZ1,salbfj=>salb,rcloudfj=>rcld,O3_rad_save
       USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
@@ -1180,9 +1180,9 @@ C Calculate an average tropical CH4 value near 569 hPa:
 C
       CH4_569=0.d0   
       DO J=JS+1,JN
-        FACTj= 1.d6*bydxyp(j)
-        CH4_569=CH4_569+FACTJ*SUM(F569M*trm(:,J,L569M,n_CH4)*byam(L569M
-     *       ,:,J)+ F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))*BYIM
+       FACTj= 1.d6*bydxyp(j)
+       CH4_569=CH4_569+FACTJ*SUM(F569M*trm(:,J,L569M,n_CH4)*
+     & byam(L569M,:,J)+F569P*trm(:,J,L569P,n_CH4)*byam(L569P,:,J))*BYIM
       END DO
       CH4_569=CH4_569/(JN-JS)
 
@@ -1198,8 +1198,8 @@ c
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
        do L=LS1J(J),LM               ! >> BEGIN LOOP OVER STRATOSPHERE <<
         do i=1,IM
-          change(I,J,L,n_Ox)= 0.d0 ! need to put this back in, based on
-                                 ! the radiation climatology !!!
+          change(I,J,L,n_Ox)=O3_rad_save(L,I,J)*DXYP(J)*O3MULT
+     &    - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
           change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4 - trm(I,J,L,n_NOx)
