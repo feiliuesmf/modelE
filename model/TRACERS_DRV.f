@@ -13,6 +13,7 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
+      USE DOMAIN_DECOMP, only : GRID, GET
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ptop,psf,sig,lm,jm
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
@@ -79,6 +80,11 @@
       logical Ox_a_tracer
 #endif
 #endif
+      INTEGER J_0, J_1
+C****                
+C**** Extract useful local domain parameters from "grid"
+C****                   
+      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0 = 0
@@ -384,7 +390,6 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
       n_CFC = n
           ntm_power(n) = -12
           tr_mm(n) = 137.4d0 !CFC11
-          ntsurfsrc(n) = 1
 
       case ('HNO3')
       n_HNO3 = n
@@ -4419,28 +4424,28 @@ c**** earth
         case ('ClOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) =
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClOxalt
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClOxalt(l)
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 
         case ('BrOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*BrOxalt
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*BrOxalt(l)
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 
         case ('HCl')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*HClalt
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*HClalt(l)
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 
         case ('ClONO2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
-     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClONO2alt
+     &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClONO2alt(l)
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 #endif
@@ -4539,7 +4544,7 @@ C         AM=kg/m2, and DXYP=m2:
             if(l.ge.LS1) then
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-13
             else
-              trm(i,j,l,n) = 0.d0
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
             end if
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
@@ -4549,7 +4554,7 @@ C         AM=kg/m2, and DXYP=m2:
             if(l.ge.LS1) then
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-11
             else
-              trm(i,j,l,n) = 0.d0
+              trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
             end if
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
