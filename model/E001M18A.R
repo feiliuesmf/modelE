@@ -41,7 +41,7 @@ POUT                                ! post-processing output
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
 AIC=AIC.RES_M18A.D771201          ! initial conditions (atm.)
-GIC=GIC.rsfB357M12.1DEC1956.1     ! initial conditions (ground)
+GIC=GIC.rsfB357M12.1DEC1956.1.ext ! initial conditions (ground)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:

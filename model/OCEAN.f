@@ -291,7 +291,7 @@ C**** Ensure that lead fraction is consistent with kocean=1 case
               END IF
             END IF
 C**** accumulate diagnostics
-            IF(MSI(I,J).eq.0) MSI(I,J)=MSINEW
+            IF(MSI(I,J).eq.0) MSI(I,J)=MSINEW  ! does this happen?
             IF (end_of_day) THEN
               AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
@@ -303,7 +303,8 @@ C**** accumulate diagnostics
               AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)-FOCEAN(I,J)
      *             *(RSINEW-RSI(I,J))*(MSINEW+ACE1I+SNOWI(I,J))
               AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)-FOCEAN(I,J)
-     *             *(RSINEW-RSI(I,J))*SUM(HSI(1:4,I,J))
+     *             *(RSINEW-RSI(I,J))*(SUM(HSI(1:2,I,J))+
+     *             SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)))
             END IF
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
