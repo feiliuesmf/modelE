@@ -86,10 +86,10 @@ C note, tr_evap_fact is not dimensioned as NTM:
 
 !@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
       integer, dimension(ntm) :: tr_wd_TYPE
-!@var tr_RKD: Henry's Law coefficient (JOULE/mole !)
+!@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
       real*8, dimension(ntm) :: tr_RKD
 !@var tr_DHD: coefficient of temperature-dependence term of Henry's
-!@+   Law coefficient (joule/mole !)
+!@+   Law coefficient (in Joule/mole please !)
       real*8, dimension(ntm) :: tr_DHD
 !@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
       real*8, dimension(ntm) :: tr_H2ObyCH4
