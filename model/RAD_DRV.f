@@ -410,7 +410,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
 !@calls tropwmo, RE001:rcompt, RE001:rcompx, RE001:writer, coszs, coszt
-      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo
+      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow
       USE MODEL_COM
       USE GEOM
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,co2,rsdist,lm_req
@@ -424,6 +424,7 @@ C     INPUT DATA
      &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH
      &             ,S00WM2,RATLS0,S0,COSZ,PVT
      &             ,JYEARR=>JYEAR,JDAYR=>JDAY,JLAT,ILON
+     &             ,hsn,hin,hmp,fmp,flags
 C     OUTPUT DATA
      &             ,TRDFLB ,TRNFLB ,TRFCRL
      &             ,SRDFLB ,SRNFLB ,SRFHRL
@@ -447,9 +448,10 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ,ij_srvis,j50n,j70n,j_clrtoa,j_clrtrp,j_tottrp,il_req,il_r50n
      *     ,il_r70n,ijdd,idd_cl7,idd_cl6,idd_cl5,idd_cl4,idd_cl3,idd_cl2
      *     ,idd_cl1,idd_ccv,idd_isw,idd_palb,idd_galb,idd_absa,j5s,j5n
-     *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
+     *     ,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld,ij_frmp
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo
-      USE SEAICE_COM, only : rsi,snowi
+      USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
+      USE SEAICE, only : rhos,ace1i,rhoi
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth
       USE LANDICE_COM, only : snowli_com=>snowli
@@ -665,6 +667,17 @@ C****
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
+C**** set up parameters for new sea ice albedo
+      hsn=snowoi/rhos
+      if (poice.gt.0.) then
+        hin=(ace1i+msi(i,j))/rhoi
+        flags=flag_dsws(i,j)
+        fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
+        hmp=min(0.8d0*fmp,0.9d0*hin)
+      else
+        hin = 0. ; flags=.FALSE. ; fmp=0. ; hmp=0. 
+      endif
+C**** 
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       if (wearth.gt.1.) wearth=1.
       DO K=1,11
@@ -821,6 +834,7 @@ C****
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
+         AIJ(I,J,IJ_FRMP)   =AIJ(I,J,IJ_FRMP)   +fmp*POICE
   770    CONTINUE
   780    CONTINUE
          DO L=1,LM

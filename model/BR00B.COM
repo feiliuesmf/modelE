@@ -171,6 +171,14 @@ C
      B             ,SKFHRL(LX,17),NORDER(16),NMWAVA(16),NMWAVB(16)
 CF   C             ,FVEG11(72,46,11),FOLGIZ(72,46,9)
 
+C**** Additional info passed for new prescription of sea ice albedo
+!@var hsn depth of snow (m)
+!@var hin depth of ice (m) 
+!@var hmp depth of melt pond (m)
+!@var fmp fraction of maelt pond area  
+      REAL*8 :: hsn,hin,hmp,fmp
+!@var flags true is snow is wet
+      LOGICAL :: flags
 
       REAL*4 HTFA98(612,24)
       EQUIVALENCE (HTF498(1,1,1),HTFA98(1,1))
