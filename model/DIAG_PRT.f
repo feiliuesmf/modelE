@@ -1020,12 +1020,12 @@ c Check the count
      &     SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
 
+C**** avoid printing out diagnostics that are not yet defined
+      if (IDACC(ia_dga).eq.0) RETURN
+
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID)
      *     ,jm,lm,lm_req,lat_dg)
-
-C**** avoid printing out diagnostics that are not yet defined
-      if (IDACC(ia_dga).eq.0) RETURN
 
 C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
