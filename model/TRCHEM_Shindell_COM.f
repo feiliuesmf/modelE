@@ -328,6 +328,7 @@ C     HSTAR(K)- Henrys Law constant
 !@var nmm # of monomolecular     reactions read in from gs_jpl00_trop_15
 !@var nhet # of heterogenous     reactions read in from gs_jpl00_trop_15
 !@var pfactor to convert units on species chemical changes
+!@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
@@ -361,7 +362,7 @@ C
      & prod_sulf,DT2,wprod_sulf,dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,
      & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,wprodHCHO,
      & changeAlkylNit,changeHNO3,changeNOx,changeN2O5,wprodCO,
-     & rlossN,rprodN,ratioN,pfactor
+     & rlossN,rprodN,ratioN,pfactor,bypfactor
       REAL*8, DIMENSION(JM,4,12)       :: corrOx ! JM,(L=12,15),month
       REAL*8, DIMENSION(n_spc,LM)      :: y
       REAL*8, DIMENSION(n_rx,IM,JM,LM) :: rr, ss
