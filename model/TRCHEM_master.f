@@ -9,10 +9,10 @@ C PLEASE SEE THE WARNINGS IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only: q,JDAY,IM,JM
+      USE MODEL_COM, only: q,JDAY,IM,JM,sig,ptop,psf
       USE DYNAMICS, only: pedn
       USE RADNCB, only : COSZ1
-      USE GEOM, only : BYDXYP, DXYP, LAT_DG
+      USE GEOM, only : BYDXYP, DXYP, LAT_DG, IMAXJ
       USE FLUXES, only : tr3Dsource
       USE TRACER_COM, only: n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                  n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,n_Isoprene,
@@ -38,6 +38,8 @@ C**** Local parameters and variables and arguments:
 !@var local logical for error checking 
 !@var byam75 the reciprocal air mass near 75 hPa level
 !@var average tropospheric ch4 value near 569 hPa level
+!@var PRES2 local nominal pressure for verticle interpolations
+      REAL*8, DIMENSION(LM) :: PRES2
       REAL*8 FASTJ_PFACT, FACT1, bydtsrc, byam75
       REAL*8, DIMENSION(IM,JM):: CH4_569
       INTEGER imonth, m
@@ -48,6 +50,7 @@ c
 C++++ First, some INITIALIZATIONS :
       bydtsrc = 1./dtsrc
       BYFJM=1./float(JM)
+      PRES2(:)=SIG(:)*(PSF-PTOP)+PTOP
 C reset change due to chemistry to zero:
       change(:,:,:,:) = 0.
 C
@@ -96,10 +99,7 @@ C
 !$OMP*    I,igas,inss, J, L,Lqq, N,error )
 
       DO J=1,JM                          ! >>>> MAIN J LOOP BEGINS <<<<
-c     ILIMT=IM
-c     if(J.eq.1.or.J.eq.JM)ILIMT=1
-C
-      DO I=1,IM                          ! >>>> MAIN I LOOP BEGINS <<<<
+      DO I=1,IMAXJ(J)                    ! >>>> MAIN I LOOP BEGINS <<<<
       DO L=1,LM
 c      save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
@@ -626,19 +626,15 @@ C
       do L=LS1,LM                  ! >> BEGIN LOOP OVER STRATOSPHERE <<
        do j=1,jm
         J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
-        do i=1,im
-          if(L.le.15) then
-            change(I,J,L,n_Ox)=
-     &      OxIC(I,J,L)*corrOx(J,L-11,imonth) - trm(I,J,L,n_Ox)
-          else
-            change(I,J,L,n_Ox)= OxIC(I,J,L)   - trm(I,J,L,n_Ox)
-          end if
+        do i=1,IM
+          change(I,J,L,n_Ox)=  O3DLJI(L,J,I)*DXYP(J)*O3MULT*
+     &    corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
           change(I,J,L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4 - trm(I,J,L,n_NOx)
-C      dts 12/19/01:NOx strat-trop flux too big, alter lower strat NOx:
-          if((L.eq.LS1).or.(L.eq.LS1+1)) change(I,J,L,n_NOx)=
-     &         0.9d0*trm(I,J,L,n_Ox)*2.3d-4-trm(I,J,L,n_NOx)
+C         dts 12/19/01:NOx strat-trop flux too big, alter lower strat:
+          if(PRES2(L).lt.150.d0 .and. PRES2(L).gt.100.d0)
+     &    change(I,J,L,n_NOx)=change(I,J,L,n_NOx)*0.9d0
           change(I,J,L,n_N2O5)=  FACT1            - trm(I,J,L,n_N2O5)
           change(I,J,L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3-trm(I,J,L,n_HNO3)
           change(I,J,L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
