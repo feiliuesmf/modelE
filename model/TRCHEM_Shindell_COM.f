@@ -86,7 +86,7 @@ C
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
-     & LCH4alt=    5,
+     & LCH4alt=    6,
      & LcorrOX=    4,
      & p_1   =     2,
      & p_2   =   111,
