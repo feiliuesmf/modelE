@@ -174,6 +174,7 @@ C****
      *             qabl(npbl,    im,J_0H:J_1H,4),
      *             eabl(npbl,    im,J_0H:J_1H,4),
      *         STAT=IER)
+      qabl=0.  ! initialise to make life easier
 
 #ifdef TRACERS_ON
       ALLOCATE(    trabl(npbl,ntm,im,J_0H:J_1H,4),
