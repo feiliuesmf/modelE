@@ -109,6 +109,22 @@ C****
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
       MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM
+
+C**** Limit temperature gradients to 10% (to prevent problems in
+C**** Red sea area)
+      if ( ABS(GXMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GXMO(I1,J1,L) =
+     *     GXMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GXMO(I1,J1,L)) )
+      if ( ABS(GYMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GYMO(I1,J1,L) =
+     *     GYMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GYMO(I1,J1,L)) )
+      if ( ABS(GZMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GZMO(I1,J1,L) =
+     *     GZMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GZMO(I1,J1,L)) )
+      if ( ABS(GXMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GXMO(I2,J2,L) =
+     *     GXMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GXMO(I2,J2,L)) )
+      if ( ABS(GYMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GYMO(I2,J2,L) =
+     *     GYMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GYMO(I2,J2,L)) )
+      if ( ABS(GZMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GZMO(I2,J2,L) =
+     *     GZMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GZMO(I2,J2,L)) )
+
       END DO
       END DO
       RETURN
@@ -650,7 +666,7 @@ c      END
 !@sum  CHECKOST Checks whether Straits are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : qcheck
+      USE MODEL_COM, only : qcheck,dtsrc
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : ntm, trname
 #endif
@@ -683,6 +699,15 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
 c      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
 #endif
+
+      DO N=1,NMST
+        DO L=1,LMST(N)
+          IF (ABS(DTSrc*MUST(L,N)/MMST(L,N)).gt.0.2) THEN
+            print*,"After ",SUBR," MASS FLUX > 20% ",L,N,DTSrc*MUST(L,N)
+     *           /MMST(L,N)
+          END IF
+        END DO
+      END DO
 
 #ifdef TRACERS_OCEAN
 C**** Check conservation of water tracers in straits
