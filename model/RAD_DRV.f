@@ -779,7 +779,7 @@ C**** Calculate mean cosine of zenith angle for the current physics step
       if (kradia.gt.0) then    ! read in all rad. input data (frc.runs)
         iend = 1
         it = itime-1           ! make sure, at least 1 record is read
-        do while (mod(itime-it,8760).ne.0)
+        do while (mod(itime-it,NDAY*JDPERY).ne.0)
           read(iu_rad,end=10,err=10) it
 C****   input data:          WARNINGS
 C****        1 - any changes here also go in later (look for 'iu_rad')
@@ -1272,10 +1272,10 @@ C*****************************************************
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 C**** Save optical depth diags
       do n=1,NTRACE
-        if (ijts_tau(1,NTRIX(n)).gt.0) 
+        if (ijts_tau(1,NTRIX(n)).gt.0)
      *    taijs(i,j,ijts_tau(1,NTRIX(n)))
      *    =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-        if (ijts_tau(2,NTRIX(n)).gt.0) 
+        if (ijts_tau(2,NTRIX(n)).gt.0)
      *    taijs(i,j,ijts_tau(2,NTRIX(n)))
      *    =taijs(i,j,ijts_tau(2,NTRIX(n)))
      *    +SUM(TTAUSV(1:lm,n))*OPNSKY
