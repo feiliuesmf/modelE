@@ -390,7 +390,7 @@ ccc partial cover
         if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
           if ( DEB_CH == 0 )
      $         call openunit("snow_debug", DEB_CH, .false., .false.)
-          write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
+          write(DEB_CH,*) 'ERROR: fract_cover= ', fract_cover
           write(DEB_CH,*) dz(1), fresh_snow
           if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS

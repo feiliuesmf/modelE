@@ -928,7 +928,6 @@ c
 
       subroutine ij_defs
       use DAGCOM
-      use BDIJ
       use MODEL_COM
       use constant
       implicit none

@@ -319,6 +319,60 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER :: IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI
 
+!@param LEGEND "contour levels" for ij-maps
+      CHARACTER(LEN=40), DIMENSION(25), PARAMETER :: LEGEND=(/ !
+     1  '0=0,1=5...9=45,A=50...K=100             ', ! ir_pct    fac=.2
+     2  '0=0...9=90,A=100...I=180...R=270        ', ! ir_angl       .1
+     3  '1=.5...9=4.5,A=5...Z=17.5,+=MORE        ', ! ir_0_18        2
+     4  '1=.1...9=.9,A=1...Z=3.5,+=MORE          ', ! ir_0_4        10
+     5  '1=2...9=18,A=20...Z=70,+=MORE           ', ! ir_0_71       .5
+     6  '1=50...9=450,A=500...Z=1750,+=MORE      ', ! ir_0_1775     .02
+     7  '1=100...9=900,A=1000...Z=3500,+=MORE    ', ! ir_0_3550     .01
+     8  '1=20...9=180,A=200...Z=700,+=MORE       ', ! ir_0_710      .05
+     9  'A=1...Z=26,3=30...9=90,+=100-150,*=MORE ', ! ir_0_26_150    1
+     O  '0=0,A=.1...Z=2.6,3=3...9=9,+=10-15      ', ! ir_0_3_15     10
+     1  '-=LESS,Z=-78...0=0...9=27,+=MORE        ', ! ir_m80_28     .33
+     2  '-=LESS,Z=-260...0=0...9=90,+=MORE       ', ! ir_m265_95    .1
+     3  '-=LESS,Z=-520...0=0...9=180,+=MORE      ', ! ir_m530_190   .05
+     4  '-=LESS,Z=-1300...0=0...9=450,+=MORE     ', ! ir_m1325_475  .02
+     5  '-=LESS,Z=-2600...0=0...9=900,+=MORE     ', ! ir_m2650_950  .01
+     6  '-=LESS,Z=-3900...0=0...9=1350,+=MORE    ', ! ir_m3975_1425 .007
+     7  '-=LESS,Z=-5200...0=0...9=1800,+=MORE    ', ! ir_m5300_1900 .005
+     8  '-=LESS,9=-.9...0=0,A=.1...Z=2.6,+=MORE  ', ! ir_m1_3       10
+     9  '-=LESS,9=-45...0=0,A=5...I=45...+=MORE  ', ! ir_m45_130    .2
+     O  '-=LESS,9=-90...0=0,A=10...Z=260,+=MORE  ', ! ir_m95_265    .1
+     1  '-=LESS,9=-180...A=20...Z=520,+=MORE     ', ! ir_m190_530   .05
+     2  '-=LESS,9=-9...0=0,A=1...Z=26,+=MORE     ', ! ir_m9_26       1
+     3  '-=LESS,9=-36...0=0,A=4...Z=104,+=MORE   ', ! ir_m38_106    .25
+     4  '1=5...9=45,A=50...Z=175,+=MORE          ', ! ir_0_180      .2
+     5  '9=-512...1=-2,0=0,A=2,B=4,C=8...+=MORE  '/)! ir_log2       1.
+!@var ir_xxxx names for indices to LEGEND indicating the (rounded) range
+      integer, parameter :: ir_pct=1, ir_angl=2, ir_0_18=3, ir_0_4=4,
+     * ir_0_71=5, ir_0_1775=6, ir_0_3550=7, ir_0_710=8, ir_0_26_150=9,
+     * ir_0_3_15=10, ir_m80_28=11, ir_m265_95=12, ir_m530_190=13,
+     * ir_m1325_475=14, ir_m2650_950=15, ir_m3975_1425=16,
+     * ir_m5300_1900=17, ir_m1_3=18, ir_m45_130=19, ir_m95_265=20,
+     * ir_m190_530=21, ir_m9_26=22, ir_m38_106=23, ir_0_180=24,
+     * ir_log2=25
+!@var fac_legnd = 1/(range_of_1_colorbox)
+      real*8, dimension(25) :: fac_legnd=(/
+     1      1d0/5,  1d0/10,    2.d0,   10.d0,   1d0/2,
+     6     1d0/50, 1d0/100,  1d0/20,    1.d0,   10.d0,
+     1      1d0/3,  1d0/10,  1d0/20,  1d0/50, 1d0/100,
+     6    1d0/150, 1d0/200,   10.d0,   1d0/5,  1d0/10,
+     1     1d0/20,    1.d0,   1d0/4,   1d0/5,     1d0  /)
+
+!@param CBAR "color bars" for ij-maps
+      CHARACTER(LEN=38), PARAMETER, DIMENSION(5) :: CBAR=(/
+     &     ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+',  ! ib_pos
+     &     ' 0123456789ABCDEFGHIJKX               ',  ! ib_pct
+     &     '-9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZ+',  ! ib_npp,ib_ntr
+     &     ' 0ABCDEFGHIJKLMNOPQRSTUVWXYZ3456789+* ',  ! ib_hyb
+     &     '-ZYXWVUTSRQPONMLKJIHGFEDCBA0123456789+'/) ! ib_nnp
+!@var ib_xxx indices for color bars
+      integer, parameter :: ib_pos=1,ib_pct=2,ib_npp=3,ib_hyb=4,ib_nnp=5
+     &     ,ib_ntr=6
+
 !@var isccp_diags flag for accumulating ISCCP diagnostics (default not)
       INTEGER :: isccp_diags = 0
 

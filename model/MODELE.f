@@ -4,7 +4,7 @@
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
-      USE CONSTANT, only : bygrav
+      USE CONSTANT, only : bygrav,   lhm,byshi,rhow,shw
       USE MODEL_COM
       USE RANDOM
       USE DAGCOM, only : keyct,keynr,kdiag,oa,monacc,koa
@@ -13,6 +13,13 @@
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
       USE GEOM, only : dxyp
+c** extra
+      USE SEAICE_COM, only : msi,hsi,ssi,rsi
+      USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
+     *     ,rhoi
+      USE LAKES_COM, only : tlake,mwl,flake,gml,mldlk
+      USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
+c**
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace,trm
 #endif
@@ -274,15 +281,16 @@ C****
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
            CALL TIMER (MNOW,MELSE)
         call daily_EARTH(1)
-        CALL daily_LAKE(1)
+        call daily_LAKE(1)
         call daily_OCEAN(1)
+        call daily_ICE
+#ifdef TRACERS_ON
+        call daily_tracer(1)
+#endif
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAGCA (10)
-#ifdef TRACERS_ON
-        call daily_tracer(1)
-#endif
         call sys_flush(6)
       END IF
 C****
@@ -1128,7 +1136,7 @@ C****
 C**** Initialise tracer parameters and diagnostics
       call init_tracer
 #endif
-      CALL init_RAD
+      if(istart.gt.0) CALL init_RAD
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
@@ -1210,6 +1218,71 @@ C**** Tasks to be done at end of day only (none so far)
       RETURN
       END SUBROUTINE DAILY
 
+      SUBROUTINE io_rsf(kunit,it,iaction,ioerr)
+!@sum   io_rsf controls the reading and writing of the restart files
+!@auth  Gavin Schmidt
+!@ver   1.0
+!@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
+!@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
+!@+     io_ocdiag
+      USE MODEL_COM, only : ioread_single,iowrite_single
+
+      IMPLICIT NONE
+!@var iaction flag for reading or writing rsf file
+!@var kunit Fortran unit number of file i/o
+      INTEGER, INTENT(IN) :: iaction,kunit
+!@var it hour of model run
+      INTEGER, INTENT(INOUT) :: it
+!@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var IT1 hour for correct reading check
+      INTEGER IT1
+
+      ioerr=-1
+      rewind kunit
+
+C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
+C**** Particular values may produce variations in indiv. i/o routines
+
+C**** Calls to individual i/o routines
+      call io_label  (kunit,it,iaction,ioerr)
+      it1=it
+      if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then
+        call io_model  (kunit,iaction,ioerr)
+        call io_strat  (kunit,iaction,ioerr)
+        call io_ocean  (kunit,iaction,ioerr)
+        call io_lakes  (kunit,iaction,ioerr)
+        call io_seaice (kunit,iaction,ioerr)
+        call io_earth  (kunit,iaction,ioerr)
+        call io_soils  (kunit,iaction,ioerr)
+        call io_snow   (kunit,iaction,ioerr)
+        call io_landice(kunit,iaction,ioerr)
+        call io_bldat  (kunit,iaction,ioerr)
+        call io_pbl    (kunit,iaction,ioerr)
+        call io_clouds (kunit,iaction,ioerr)
+        call io_somtq  (kunit,iaction,ioerr)
+        call io_rad    (kunit,iaction,ioerr)
+#ifdef TRACERS_ON
+        call io_tracer (kunit,iaction,ioerr)
+#endif
+      end if
+      call io_diags  (kunit,it,iaction,ioerr)
+      call io_ocdiag (kunit,it,iaction,ioerr)
+#ifdef TRACERS_ON
+      call io_trdiag (kunit,it,iaction,ioerr)
+#endif
+
+      if (it1.ne.it) THEN
+        WRITE(6,*) "TIMES DO NOT MATCH READING IN RSF FILE",it,it1
+        ioerr=1
+      END IF
+      if (ioerr.eq.1) WRITE(6,*) "I/O ERROR IN RESTART FILE: KUNIT="
+     *     ,kunit
+      close (kunit)
+
+      RETURN
+      END SUBROUTINE io_rsf
+
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team
@@ -1224,6 +1297,7 @@ C**** CORRECTED.
       INTEGER I,J
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
         CALL CHECK3(U,IM,JM,LM,SUBR,'u ')
@@ -1241,18 +1315,18 @@ C**** Check all prog. arrays for Non-numbers
         END DO
 
 C**** Check PBL arrays
-         CALL CHECKPBL(SUBR)
+        CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
-         CALL CHECKO(SUBR)
+        CALL CHECKO(SUBR)
 C**** Check Ice arrays
-         CALL CHECKI(SUBR)
+        CALL CHECKI(SUBR)
 C**** Check Lake arrays
-         CALL CHECKL(SUBR)
+        CALL CHECKL(SUBR)
 C**** Check Earth arrays
-c        CALL CHECKE(SUBR)
+c       CALL CHECKE(SUBR)
 #ifdef TRACERS_ON
 C**** check tracers
-         CALL CHECKTR(SUBR)
+        CALL CHECKTR(SUBR)
 #endif
       END IF
 
