@@ -537,304 +537,303 @@ C****
       END SUBROUTINE DIAGJ
 
 
-      MODULE BDjkl
+      MODULE BDjkjl
 !@sum  stores information for outputting lat-sigma/pressure diagnostics
 !@auth M. Kelley
       IMPLICIT NONE
 
-!@param njkl_out number of derived jk/jl-format output fields
-      integer, parameter :: njkl_out=50
-
 !@param names of derived jk/jl output fields
-      INTEGER :: jkl_rad_cool,jkl_nt_qgpv,jkl_dudt_econv,
-     *  jkl_psi_cp,jkl_dudt_epdiv,jkl_stdev_dp,
-     *  jkl_dtempdt_econv,jkl_phi_amp_wave1,jkl_phi_phase_wave1,
-     *  jkl_epflx_div,jkl_vt_dse_e,jkl_vt_lh_eddy,jkl_vt_se_eddy,
-     *  jkl_tot_vt_se,jkl_psi_tem,jkl_epflx_v,
-     *  jkl_nt_eqgpv,jkl_dyn_conv_eddy_geop,jkl_nt_sheat_e,
-     *  jkl_dyn_conv_dse,jkl_seke,jkl_eke,
-     *  jkl_nt_dse_se,jkl_nt_dse_e,jkl_tot_nt_dse,
-     *  jkl_nt_lh_e,jkl_nt_see,jkl_tot_nt_se,
-     *  jkl_nt_am_stand_eddy,jkl_nt_am_eddy,jkl_tot_nt_am,
-     *  jkl_we_flx_nor,jkl_we_flx_div,jkl_refr_ind_wave1,
-     *  jkl_del_qgpv,jkl_nt_lh_se,
-     *  jkl_mcdrgpm10,jkl_mcdrgpm40,jkl_mcdrgpm20,
-     *  jkl_sumdrg
+      INTEGER :: jl_rad_cool,jl_nt_qgpv,jk_dudt_econv,
+     *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
+     *  jk_dtempdt_econv,jk_phi_amp_wave1,jk_phi_phase_wave1,
+     *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
+     *  jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
+     *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
+     *  jk_dyn_conv_dse,jk_seke,jk_eke,
+     *  jk_nt_dse_se,jk_nt_dse_e,jk_tot_nt_dse,
+     *  jk_nt_lh_e,jk_nt_see,jk_tot_nt_se,
+     *  jk_nt_am_stand_eddy,jk_nt_am_eddy,jk_tot_nt_am,
+     *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
+     *  jk_del_qgpv,jk_nt_lh_se,
+     *  jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
 
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(njkl_out) :: UNITS_jkl
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(njkl_out) :: LNAME_jkl
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(njkl_out) :: SNAME_jkl
-
-      END MODULE BDjkl
+      END MODULE BDjkjl
 
 
-      SUBROUTINE jkl_TITLES
-      USE BDjkl
+      SUBROUTINE JKJL_TITLEX
+!@sum  JKJL_TITLEX titles etc for composite jl, jk output
+!@auth G. Schmidt/M. Kelley/J. Lerner
+!@ver  1.0
+      USE BDjkjl
+      USE DAGCOM
       IMPLICIT NONE
       INTEGER :: K
 c
-      k = 0
-c
 c derived JL-arrays
 c
+      k = kajl
+c
       k = k + 1 ! 01
-      jkl_rad_cool = k
-      sname_jkl(k) = 'rad_cool'
-      lname_jkl(k) = 'TOTAL RADIATION COOLING RATE'
-      units_jkl(k) = '10**13 WATTS/UNIT SIGMA'
+      jl_rad_cool = k
+      sname_jl(k) = 'rad_cool'
+      lname_jl(k) = 'TOTAL RADIATION COOLING RATE'
+      units_jl(k) = '10**13 WATTS/UNIT SIGMA'
       k = k + 1 ! 02
-      jkl_nt_qgpv = k
-      sname_jkl(k) = 'nt_qgpv'
-      lname_jkl(k) = 'NORTHWARD TRANSPORT OF Q-G POT. VORTICITY'
-      units_jkl(k) = '10**18 JOULES/DSIG'
+      jl_nt_qgpv = k
+      sname_jl(k) = 'nt_qgpv'
+      lname_jl(k) = 'NORTHWARD TRANSPORT OF Q-G POT. VORTICITY'
+      units_jl(k) = '10**18 JOULES/DSIG'
       k = k + 1 ! 03
-      jkl_dudt_econv = k
-      sname_jkl(k) = 'dudt_eddy_conv'
-      lname_jkl(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
-      units_jkl(k) = '10**-6 M/S/S'
+      jk_phi_amp_wave1 = k
+      sname_jl(k) = 'phi_amp_wave1'
+      lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_jl(k) = 'METERS'
       k = k + 1 ! 04
-      jkl_psi_cp = k
-      sname_jkl(k) = 'psi_cp'
-      lname_jkl(k) = 'STREAM FUNCTION (CP)'
-      units_jkl(k) = '10**9 KILOGRAMS/SECOND'
-      k = k + 1 ! 05
-      jkl_dudt_epdiv = k
-      sname_jkl(k) = 'dudt_epdiv'
-      lname_jkl(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE (CP)'
-      units_jkl(k) = '10**-6 M/S/S'
-      k = k + 1 ! 06
-      jkl_stdev_dp = k
-      sname_jkl(k) = 'stdev_dp'
-      lname_jkl(k) = 'STANDARD DEVIATION OF PRESSURE DIFFERENCES'
-      units_jkl(k) = 'MB'
-      k = k + 1 ! 07
-      jkl_dtempdt_econv = k
-      sname_jkl(k) = 'dtempdt_eddy_conv'
-      lname_jkl(k) = 'DTEMP/DT BY EDDY CONVERGENCE (CP)'
-      units_jkl(k) = '10**-1 DEG-K/DAY'
-      k = k + 1 ! 08
-      jkl_phi_amp_wave1 = k
-      sname_jkl(k) = 'phi_amp_wave1'
-      lname_jkl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
-      units_jkl(k) = 'METERS'
-      k = k + 1 ! 09
-      sname_jkl(k) = 'phi_amp_wave2'
-      lname_jkl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
-      units_jkl(k) = 'METERS'
+      sname_jl(k) = 'phi_amp_wave2'
+      lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_jl(k) = 'METERS'
+      k = k + 1 ! 5
+      sname_jl(k) = 'phi_amp_wave3'
+      lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_jl(k) = 'METERS'
+      k = k + 1 ! 6
+      sname_jl(k) = 'phi_amp_wave4'
+      lname_jl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_jl(k) = 'METERS'
+      k = k + 1 ! 7
+      jk_phi_phase_wave1 = k
+      sname_jl(k) = 'phi_phase_wave1'
+      lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_jl(k) = 'DEG WEST LONG'
+      k = k + 1 ! 8
+      sname_jl(k) = 'phi_phase_wave2'
+      lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_jl(k) = 'DEG WEST LONG'
+      k = k + 1 ! 9
+      sname_jl(k) = 'phi_phase_wave3'
+      lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_jl(k) = 'DEG WEST LONG'
       k = k + 1 ! 10
-      sname_jkl(k) = 'phi_amp_wave3'
-      lname_jkl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
-      units_jkl(k) = 'METERS'
+      sname_jl(k) = 'phi_phase_wave4'
+      lname_jl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_jl(k) = 'DEG WEST LONG'
       k = k + 1 ! 11
-      sname_jkl(k) = 'phi_amp_wave4'
-      lname_jkl(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
-      units_jkl(k) = 'METERS'
-      k = k + 1 ! 12
-      jkl_phi_phase_wave1 = k
-      sname_jkl(k) = 'phi_phase_wave1'
-      lname_jkl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
-      units_jkl(k) = 'DEG WEST LONG'
-      k = k + 1 ! 13
-      sname_jkl(k) = 'phi_phase_wave2'
-      lname_jkl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
-      units_jkl(k) = 'DEG WEST LONG'
-      k = k + 1 ! 14
-      sname_jkl(k) = 'phi_phase_wave3'
-      lname_jkl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
-      units_jkl(k) = 'DEG WEST LONG'
-      k = k + 1 ! 15
-      sname_jkl(k) = 'phi_phase_wave4'
-      lname_jkl(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
-      units_jkl(k) = 'DEG WEST LONG'
-      k = k + 1 ! 16
-      jkl_epflx_div = k
-      sname_jkl(k) = 'epflx_div'
-      lname_jkl(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
-      units_jkl(k) = '10**17 JOULES/UNIT SIGMA'
-      k = k + 1 ! 17
-      jkl_vt_dse_e = k
-      sname_jkl(k) = 'vt_dse_e'
-      lname_jkl(k) = 'VERT. TRANS. OF DRY STATIC ENERGY BY EDDIES (CP)'
-      units_jkl(k) = '10**12 WATTS'
-      k = k + 1 ! 18
-      jkl_vt_lh_eddy = k
-      sname_jkl(k) = 'vt_lh_eddy'
-      lname_jkl(k) = 'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (CP)'
-      units_jkl(k) = '10**12 WATTS'
-      k = k + 1 ! 19
-      jkl_vt_se_eddy = k
-      sname_jkl(k) = 'vt_se_eddy'
-      lname_jkl(k) ='VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (CP)'
-      units_jkl(k) = '10**13 WATTS'
-      k = k + 1 ! 20
-      jkl_tot_vt_se = k
-      sname_jkl(k) = 'tot_vt_se'
-      lname_jkl(k) = 
-     &    'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY (CP)'
-      units_jkl(k) = '10**14 WATTS'
-      k = k + 1 ! 21
-      jkl_psi_tem = k
-      sname_jkl(k) = 'psi_tem'
-      lname_jkl(k) = 'TRANSFORMED STREAM FUNCTION (CP)'
-      units_jkl(k) = '10**9 KG/SEC'
-      k = k + 1 ! 22
-      jkl_epflx_v = k
-      sname_jkl(k) = 'epflx_vert_cp'
-      lname_jkl(k) = 'VERTICAL ELIASSEN-PALM FLUX (CP)'
-      units_jkl(k) = '10**11 JOULES/METER'
+      jl_epflx_div = k
+      sname_jl(k) = 'epflx_div'
+      lname_jl(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
+      units_jl(k) = '10**17 JOULES/UNIT SIGMA'
+      k=k+1      !12
+      jl_mcdrgpm10 = k
+      sname_jl(k) = 'dudt_mcdrgpm10' !ajl22+23
+      lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
+      units_jl(k) = '10**-6 M/S**2'
+      k=k+1      !13
+      jl_mcdrgpm40 = k
+      sname_jl(k) = 'dudt_mcdrgpm40' !AJL24+25
+      lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
+      units_jl(k) = '10**-6 M/S**2'
+      k=k+1      !14
+      jl_mcdrgpm20 = k
+      sname_jl(k) = 'dudt_mcdrgpm20' !AJL26+27
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
+      units_jl(k) = '10**-6 M/S**2'
+      k=k+1      !15
+      jl_sumdrg = k
+      sname_jl(k) = 'dudt_sumdrg' !AJL(18+20-27)
+      lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
+      units_jl(k) = '10**-6 M/S**2'
+
+c Check the count
+      if (k .gt. KAJLx) then
+        write (6,*) 'Increase KAJLx=',KAJLx,' to at least ',k
+        stop 'JL_TITLES: KAJLx too small'
+      end if
 c
 c derived JK-arrays
 c
+      k = KAJK
+c
+      k = k + 1 ! 01
+      jk_dudt_econv = k
+      sname_jk(k) = 'dudt_eddy_conv'
+      lname_jk(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
+      units_jk(k) = '10**-6 M/S**2'
+      k = k + 1 ! 02
+      jk_psi_cp = k
+      sname_jk(k) = 'psi_cp'
+      lname_jk(k) = 'STREAM FUNCTION (CP)'
+      units_jk(k) = '10**9 KILOGRAMS/SECOND'
+      k = k + 1 ! 03
+      jk_dudt_epdiv = k
+      sname_jk(k) = 'dudt_epdiv'
+      lname_jk(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE (CP)'
+      units_jk(k) = '10**-6 M/S**2'
+      k = k + 1 ! 04
+      jk_stdev_dp = k
+      sname_jk(k) = 'stdev_dp'
+      lname_jk(k) = 'STANDARD DEVIATION OF PRESSURE DIFFERENCES'
+      units_jk(k) = 'MB'
+      k = k + 1 ! 05
+      jk_dtempdt_econv = k
+      sname_jk(k) = 'dtempdt_eddy_conv'
+      lname_jk(k) = 'DTEMP/DT BY EDDY CONVERGENCE (CP)'
+      units_jk(k) = '10**-1 DEG-K/DAY'
+      k = k + 1 ! 06
+      jk_vt_dse_e = k
+      sname_jk(k) = 'vt_dse_e'
+      lname_jk(k) = 'VERT. TRANS. OF DRY STATIC ENERGY BY EDDIES (CP)'
+      units_jk(k) = '10**12 WATTS'
+      k = k + 1 ! 07
+      jk_vt_lh_eddy = k
+      sname_jk(k) = 'vt_lh_eddy'
+      lname_jk(k) = 'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (CP)'
+      units_jk(k) = '10**12 WATTS'
+      k = k + 1 ! 08
+      jk_vt_se_eddy = k
+      sname_jk(k) = 'vt_se_eddy'
+      lname_jk(k) ='VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (CP)'
+      units_jk(k) = '10**13 WATTS'
+      k = k + 1 ! 09
+      jk_tot_vt_se = k
+      sname_jk(k) = 'tot_vt_se'
+      lname_jk(k) = 
+     &    'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY (CP)'
+      units_jk(k) = '10**14 WATTS'
+      k = k + 1 ! 10
+      jk_psi_tem = k
+      sname_jk(k) = 'psi_tem'
+      lname_jk(k) = 'TRANSFORMED STREAM FUNCTION (CP)'
+      units_jk(k) = '10**9 KG/SEC'
+      k = k + 1 ! 11
+      jk_epflx_v = k
+      sname_jk(k) = 'epflx_vert_cp'
+      lname_jk(k) = 'VERTICAL ELIASSEN-PALM FLUX (CP)'
+      units_jk(k) = '10**11 JOULES/METER'
+      k = k + 1 ! 12
+      jk_nt_eqgpv = k
+      sname_jk(k) = 'nt_eddy_qgpv'
+      lname_jk(k) = 'NORTH. TRANS. OF EDDY Q-G POT. VORTICITY'
+      units_jk(k) = '10**-6 M/S**2'
+      k = k + 1 ! 13
+      jk_dyn_conv_eddy_geop = k
+      sname_jk(k) = 'dyn_conv_eddy_geop'
+      lname_jk(k) = 'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL'
+      units_jk(k) = '.1 WATTS/M**2/DSIGMA'
+      k = k + 1 ! 14
+      jk_nt_sheat_e = k
+      sname_jk(k) = 'nt_sheat_eddy'
+      lname_jk(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
+      units_jk(k) = '10**14 WATTS/DSIGMA'
+      k = k + 1 ! 15
+      jk_dyn_conv_dse = k
+      sname_jk(k) = 'dyn_conv_dse'
+      lname_jk(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
+      units_jk(k) = '10 WATTS/M**2/DSIGMA'
+      k = k + 1 ! 16
+      jk_seke = k
+      sname_jk(k) = 'stand_eddy_ke'
+      lname_jk(k) = 'STANDING EDDY KINETIC ENERGY'
+      units_jk(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1 ! 17
+      jk_eke = k
+      sname_jk(k) = 'eddy_ke'
+      lname_jk(k) = 'EDDY KINETIC ENERGY'
+      units_jk(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1 ! 18
+      jk_nt_dse_se = k
+      sname_jk(k) = 'nt_dse_stand_eddy'
+      lname_jk(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
+      units_jk(k) = '10**14 W/DSIG'
+      k = k + 1 ! 19
+      jk_nt_dse_e = k
+      sname_jk(k) = 'nt_dse_eddy'
+      lname_jk(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
+      units_jk(k) = '10**14 WATTS/DSIG'
+      k = k + 1 ! 20
+      jk_tot_nt_dse = k
+      sname_jk(k) = 'tot_nt_dse'
+      lname_jk(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
+      units_jk(k) = '10**15 WATTS/DSIG'
+      k = k + 1 ! 21
+      jk_nt_lh_e = k
+      sname_jk(k) = 'nt_lh_e'
+      lname_jk(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
+      units_jk(k) = '10**13 WATTS/DSIG'
+      k = k + 1 ! 22
+      jk_nt_see = k
+      sname_jk(k) = 'nt_se_eddy'
+      lname_jk(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
+      units_jk(k) = '10**14 WATTS/DSIGMA'
       k = k + 1 ! 23
-      jkl_nt_eqgpv = k
-      sname_jkl(k) = 'nt_eddy_qgpv'
-      lname_jkl(k) = 'NORTH. TRANS. OF EDDY Q-G POT. VORTICITY'
-      units_jkl(k) = '10**-6 M/S**2'
+      jk_tot_nt_se = k
+      sname_jk(k) = 'tot_nt_se'
+      lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
+      units_jk(k) = '10**15 WATTS/DSIGMA'
       k = k + 1 ! 24
-      jkl_dyn_conv_eddy_geop = k
-      sname_jkl(k) = 'dyn_conv_eddy_geop'
-      lname_jkl(k) = 'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL'
-      units_jkl(k) = '.1 WATTS/M**2/DSIGMA'
+      jk_nt_am_stand_eddy = k
+      sname_jk(k) = 'nt_am_stand_eddy'
+      lname_jk(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES'
+      units_jk(k) = '10**18 J/DSIG'
       k = k + 1 ! 25
-      jkl_nt_sheat_e = k
-      sname_jkl(k) = 'nt_sheat_eddy'
-      lname_jkl(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
-      units_jkl(k) = '10**14 WATTS/DSIGMA'
+      jk_nt_am_eddy = k
+      sname_jk(k) = 'nt_am_eddy'
+      lname_jk(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES'
+      units_jk(k) = '10**18 JOULES/DSIGMA'
       k = k + 1 ! 26
-      jkl_dyn_conv_dse = k
-      sname_jkl(k) = 'dyn_conv_dse'
-      lname_jkl(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
-      units_jkl(k) = '10 WATTS/M**2/DSIGMA'
+      jk_tot_nt_am = k
+      sname_jk(k) = 'tot_nt_am'
+      lname_jk(k) = 'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM'
+      units_jk(k) = '10**19 JOULES/DSIG'
       k = k + 1 ! 27
-      jkl_seke = k
-      sname_jkl(k) = 'stand_eddy_ke'
-      lname_jkl(k) = 'STANDING EDDY KINETIC ENERGY'
-      units_jkl(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      jk_we_flx_nor = k
+      sname_jk(k) = 'we_flx_nor'
+      lname_jk(k) = 'NORTHWARD WAVE ENERGY FLUX'
+      units_jk(k) = '10**11 JOULES/METER/UNIT SIGMA'
       k = k + 1 ! 28
-      jkl_eke = k
-      sname_jkl(k) = 'eddy_ke'
-      lname_jkl(k) = 'EDDY KINETIC ENERGY'
-      units_jkl(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      jk_we_flx_div = k
+      sname_jk(k) = 'we_flx_div'
+      lname_jk(k) = 'DIVERGENCE OF THE WAVE ENERGY FLUX'
+      units_jk(k) = '10**-5 M/S**2'
       k = k + 1 ! 29
-      jkl_nt_dse_se = k
-      sname_jkl(k) = 'nt_dse_stand_eddy'
-      lname_jkl(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
-      units_jkl(k) = '10**14 W/DSIG'
+      jk_refr_ind_wave1 = k  !!!!! Refraction Inicies must be in order
+      sname_jk(k) = 'refr_ind_wave1'
+      lname_jk(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
+      units_jk(k) = '10**-8 PER METER**2'
       k = k + 1 ! 30
-      jkl_nt_dse_e = k
-      sname_jkl(k) = 'nt_dse_eddy'
-      lname_jkl(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
-      units_jkl(k) = '10**14 WATTS/DSIG'
+      sname_jk(k) = 'refr_ind_wave2'
+      lname_jk(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
+      units_jk(k) = '10**-8 PER METER**2'
       k = k + 1 ! 31
-      jkl_tot_nt_dse = k
-      sname_jkl(k) = 'tot_nt_dse'
-      lname_jkl(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
-      units_jkl(k) = '10**15 WATTS/DSIG'
+      sname_jk(k) = 'refr_ind_wave3'
+      lname_jk(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
+      units_jk(k) = '10**-8 PER METER**2'
       k = k + 1 ! 32
-      jkl_nt_lh_e = k
-      sname_jkl(k) = 'nt_lh_e'
-      lname_jkl(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
-      units_jkl(k) = '10**13 WATTS/DSIG'
+      sname_jk(k) = 'refr_ind_wave6'
+      lname_jk(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
+      units_jk(k) = '10**-8 PER METER**2'
       k = k + 1 ! 33
-      jkl_nt_see = k
-      sname_jkl(k) = 'nt_se_eddy'
-      lname_jkl(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
-      units_jkl(k) = '10**14 WATTS/DSIGMA'
+      sname_jk(k) = 'refr_ind_wave9'
+      lname_jk(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
+      units_jk(k) = '10**-8 PER METER**2'
       k = k + 1 ! 34
-      jkl_tot_nt_se = k
-      sname_jkl(k) = 'tot_nt_se'
-      lname_jkl(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
-      units_jkl(k) = '10**15 WATTS/DSIGMA'
+      jk_del_qgpv = k
+      sname_jk(k) = 'del_qgpv'
+      lname_jk(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
+      units_jk(k) = '10**-12 1/(SEC-M)'
       k = k + 1 ! 35
-      jkl_nt_am_stand_eddy = k
-      sname_jkl(k) = 'nt_am_stand_eddy'
-      lname_jkl(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES'
-      units_jkl(k) = '10**18 J/DSIG'
-      k = k + 1 ! 36
-      jkl_nt_am_eddy = k
-      sname_jkl(k) = 'nt_am_eddy'
-      lname_jkl(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES'
-      units_jkl(k) = '10**18 JOULES/DSIGMA'
-      k = k + 1 ! 37
-      jkl_tot_nt_am = k
-      sname_jkl(k) = 'tot_nt_am'
-      lname_jkl(k) = 'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM'
-      units_jkl(k) = '10**19 JOULES/DSIG'
-      k = k + 1 ! 38
-      jkl_we_flx_nor = k
-      sname_jkl(k) = 'we_flx_nor'
-      lname_jkl(k) = 'NORTHWARD WAVE ENERGY FLUX'
-      units_jkl(k) = '10**11 JOULES/METER/UNIT SIGMA'
-      k = k + 1 ! 39
-      jkl_we_flx_div = k
-      sname_jkl(k) = 'we_flx_div'
-      lname_jkl(k) = 'DIVERGENCE OF THE WAVE ENERGY FLUX'
-      units_jkl(k) = '10**-5 M/S**2'
-      k = k + 1 ! 40
-      jkl_refr_ind_wave1 = k  !!!!! Refraction Inicies must be in order
-      sname_jkl(k) = 'refr_ind_wave1'
-      lname_jkl(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
-      units_jkl(k) = '10**-8 PER METER**2'
-      k = k + 1 ! 41
-      sname_jkl(k) = 'refr_ind_wave2'
-      lname_jkl(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
-      units_jkl(k) = '10**-8 PER METER**2'
-      k = k + 1 ! 42
-      sname_jkl(k) = 'refr_ind_wave3'
-      lname_jkl(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
-      units_jkl(k) = '10**-8 PER METER**2'
-      k = k + 1 ! 43
-      sname_jkl(k) = 'refr_ind_wave6'
-      lname_jkl(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
-      units_jkl(k) = '10**-8 PER METER**2'
-      k = k + 1 ! 44
-      sname_jkl(k) = 'refr_ind_wave9'
-      lname_jkl(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
-      units_jkl(k) = '10**-8 PER METER**2'
-      k = k + 1 ! 45
-      jkl_del_qgpv = k
-      sname_jkl(k) = 'del_qgpv'
-      lname_jkl(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
-      units_jkl(k) = '10**-12 1/(SEC-M)'
-      k = k + 1 ! 46
-      jkl_nt_lh_se = k
-      sname_jkl(k) = 'nt_lh_stand_eddy'
-      lname_jkl(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
-      units_jkl(k) = '10**13 WATTS/DSIG'
-c
-c More derived arrays
-c
-      k=k+1      !47
-      jkl_mcdrgpm10 = k
-      sname_jkl(k) = 'dudt_mcdrgpm10' !ajl22+23
-      lname_jkl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
-      units_jkl(k) = '10**-6 M/S/S'
-      k=k+1      !48
-      jkl_mcdrgpm40 = k
-      sname_jkl(k) = 'dudt_mcdrgpm40' !AJL24+25
-      lname_jkl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
-      units_jkl(k) = '10**-6 M/S/S'
-      k=k+1      !49
-      jkl_mcdrgpm20 = k
-      sname_jkl(k) = 'dudt_mcdrgpm20' !AJL26+27
-      lname_jkl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
-      units_jkl(k) = '10**-6 M/S/S'
-      k=k+1      !50
-      jkl_sumdrg = k
-      sname_jkl(k) = 'dudt_sumdrg' !AJL(18+20-27)
-      lname_jkl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
-      units_jkl(k) = '10**-6 M/S/S'
+      jk_nt_lh_se = k
+      sname_jk(k) = 'nt_lh_stand_eddy'
+      lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
+      units_jk(k) = '10**13 WATTS/DSIG'
 
-      if (k .gt. njkl_out) then
-        write (6,*) 'Increase njkl_out=',njkl_out,' to at least ',k
-        stop 'jkl_TITLES: njkl_out too small'
+c Check the count
+      if (k .gt. KAJKx) then
+        write (6,*) 'Increase KAJKx=',KAJKx,' to at least ',k
+        stop 'JK_TITLES: KAJKx too small'
       end if
 
       RETURN
-      END SUBROUTINE jkl_TITLES
+      END SUBROUTINE JKJL_TITLEX
 
 
       SUBROUTINE DIAGJK
@@ -850,7 +849,7 @@ c      USE PRTCOM, only :
       USE DAGPCOM, only :
      &     PLM,PLE,P1000K,linect,jmby2
       USE DAGCOM
-      USE BDjkl
+      USE BDjkjl
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -892,7 +891,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
-      call jkl_titles
+      call JKJL_TITLEX
 
       IF (KDIAG(2).GE.8) GO TO 120
       XWON=TWOPI/(DLON*FIM)
@@ -1002,8 +1001,8 @@ C**** # OF GRIDPOINTS, DELTA P, S.D. OF DELTA P
       AX(J,K)=0.
       SDDP=(AJK(J,K,JK_DPSQR)-AJK(J,K,JK_DPB)*AJK(J,K,JK_DPB)*BYN)*BYN
    98 IF (SDDP.GT.0.) AX(J,K)=SQRT(SDDP)
-      n = jkl_stdev_dp
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_stdev_dp
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,ONE,ONES,ONES,LS1-1,2,2)
 C**** TEMPERATURE, HEIGHT, SPECIFIC AND RELATIVE HUMIDITY
       n = JK_TEMP
@@ -1042,14 +1041,14 @@ C**** U AND V WINDS, STREAM FUNCTION
       DO 100 K=2,KM
   100 AX(J,K)=AX(J,K-1)+AJK(J,K,JK_V)
       SCALET=100.D-9*XWON*BYIADA*BYGRAV
-      n = jkl_psi_cp
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_psi_cp
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,AX,SCALET,DXV,ONES,KM,2,2)
       DO 110 K=1,KM
       DO 110 J=2,JM
   110 BX(J,K)=AX(J,K)+.25*DX(J,K)
-      n = jkl_psi_tem
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_psi_tem
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,BX,SCALET,DXV,ONES,KM,2,2)
 C**** VERTICAL WINDS
       SCALET=-1.D5*BYIMDA
@@ -1059,14 +1058,10 @@ C**** VERTICAL WINDS
 C****
 C**** CALCULATIONS FOR STANDING EDDIES
 C****
-  120 DO J=2,JM
-      DO K=1,KM
-        EX(J,K)=0.
-        AX(J,K)=0.
-        BX(J,K)=0.
-        CX(J,K)=0.
-      END DO
-      END DO
+        AX=0.
+        BX=0.
+        CX=0.
+        EX=0.
       DO 170 J=2,JM
       DO 170 K=1,KM
       DPTI=0.
@@ -1097,18 +1092,19 @@ C****
       SZNELG=EL4QI*PVTI/(DPTI+1.D-20)
       EX(J,K)=SNELGI-SZNELG
       BX(J,K)=SNDEGI-SZNDEG
-  170 CX(J,K)=SNAMI-PUTI*PVTI/(DPTI+1.D-20)
+      CX(J,K)=SNAMI-PUTI*PVTI/(DPTI+1.D-20)
+  170 CONTINUE
       IF (KDIAG(2).GE.8) RETURN
 C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
       SCALET=50.D-4*BYIMDA*BYGRAV
-      n = jkl_seke
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_seke
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,ONES,ONES,KM,2,2)
       DO 200 K=1,KM
       DO 200 J=2,JM
   200 AX(J,K)=AJK(J,K,JK_TOTKE)-AJK(J,K,JK_ZMFKE)
-      n = jkl_eke
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_eke
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,ONES,ONES,KM,2,2)
       n = jk_totke
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),
@@ -1133,27 +1129,27 @@ C**** NORTHWARD TRANSPORT OF SENSIBLE HEAT BY EDDIES
       DO 210 K=1,KM
       DO 210 J=2,JM
   210 AX(J,K)=AJK(J,K,JK_TOTNTSH)-AJK(J,K,JK_ZMFNTSH)
-      N = jkl_nt_sheat_e
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      N = jk_nt_sheat_e
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &    PLM,AX,SCALET,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF DRY STATIC ENERGY BY STANDING EDDIES,
 C****   EDDIES, AND TOTAL
 C**** Individual wave transports commented out. (gas - 05/2001)
       SCALET=25.D-14*XWON*BYIADA*BYGRAV
-      N = jkl_nt_dse_se
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      N = jk_nt_dse_se
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,2)
       DO 230 K=1,KM
       DO 230 J=2,JM
       AX(J,K)=SHA*(AJK(J,K,JK_TOTNTSH)-AJK(J,K,JK_ZMFNTSH))+
      &            (AJK(J,K,JK_TOTNTGEO)-AJK(J,K,JK_ZMFNTGEO))
   230 BX(J,K)=SHA*AJK(J,K,JK_TOTNTSH)+AJK(J,K,JK_TOTNTGEO)
-      n = jkl_nt_dse_e
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_dse_e
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,DXV,ONES,KM,2,2)
       SCALET=SCALET*.1
-      n = jkl_tot_nt_dse
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_tot_nt_dse
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
       DO 240 K=1,KM
@@ -1161,11 +1157,11 @@ C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
       DX(J,K)=AJK(J,K,JK_TOTNTLH)-AJK(J,K,JK_ZMFNTLH)
   240 AX(J,K)=AX(J,K)+LHE*DX(J,K)
       SCALET=25.D-13*XWON*LHE*BYIADA*BYGRAV
-      n = jkl_nt_lh_se
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_lh_se
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,EX,SCALET,DXV,ONES,KM,2,2)
-      n = jkl_nt_lh_e
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_lh_e
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,DX,SCALET,DXV,ONES,KM,2,2)
       SCALET=SCALET*.1
       n = jk_totntlh
@@ -1176,12 +1172,12 @@ C**** NORTHWARD TRANSPORT OF STATIC ENERGY BY EDDIES AND TOTAL
       DO 245 J=2,JM
   245 DX(J,K)=BX(J,K)+LHE*AJK(J,K,JK_TOTNTLH)
       SCALET=25.D-14*XWON*BYIADA*BYGRAV
-      n = jkl_nt_see
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_see
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,DXV,ONES,KM,2,2)
       SCALET=SCALET*.1
-      n = jkl_tot_nt_se
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_tot_nt_se
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,DX,SCALET,DXV,ONES,KM,2,2)
 C**** NORTHWARD TRANSPORT OF KINETIC ENERGY
       SCALET=50.D-12*XWON*BYIADA*BYGRAV
@@ -1190,19 +1186,19 @@ C**** NORTHWARD TRANSPORT OF KINETIC ENERGY
      &     PLM,AJK(1,1,n),SCALET,DXV,ONES,KM,2,JGRID_JK(n))
 C**** NOR. TRANS. OF ANG. MOMENTUM BY STANDING EDDIES, EDDIES AND TOTAL
       SCALET=100.D-18*XWON*RADIUS*BYIADA*BYGRAV
-      n = jkl_nt_am_stand_eddy
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_am_stand_eddy
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,CX,SCALET,DXCOSV,ONES,KM,2,2)
       DO 260 K=1,KM
       DO 260 J=2,JM
       CX(J,K)=AJK(J,K,JK_TOTNTMOM)-AJK(J,K,JK_ZMFNTMOM)
   260 DX(J,K)=AJK(J,K,JK_TOTNTMOM)+RADIUS*OMEGA*COSV(J)*AJK(J,K,JK_V)
-      n = jkl_nt_am_eddy
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_am_eddy
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,CX,SCALET,DXCOSV,ONES,KM,2,2)
       SCALET=.1*SCALET
-      n = jkl_tot_nt_am
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_tot_nt_am
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,DX,SCALET,DXCOSV,ONES,KM,2,2)
 C****
 C**** DYNAMIC CONVERGENCE OF ENERGY
@@ -1228,12 +1224,12 @@ C     DX(1,K)=-(AJK(2,K,JK_TOTNTGEO)-AJK(2,K,JK_ZMFNTGEO))*SCALET*DXV(2)
       CX(J,K+1)=CX(J,K+1)+AJK(J,K,JK_TOTVTDSE)*SCALET
       DX(J,K)=DX(J,K)-AJK(J,K,JK_VTGEOEDDY)*SCALET
   380 DX(J,K+1)=DX(J,K+1)+AJK(J,K,JK_VTGEOEDDY)*SCALET
-      n = jkl_dyn_conv_dse
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_dyn_conv_dse
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,CX,ONE,BYDXYP,ONES,KM,2,1)
       SCALET=100.
-      n = jkl_dyn_conv_eddy_geop
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_dyn_conv_eddy_geop
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,DX,SCALET,BYDXYP,ONES,KM,2,1)
 C**** BAROCLINIC EKE GENERATION, P-K BY EDDY PRESSURE GRADIENT FORCE
       SCALET=50.E1*BYIMDA*RGAS*BYGRAV
@@ -1258,8 +1254,8 @@ C**** VERTICAL TRANSPORT OF DRY STATIC ENERGY BY EDDIES AND TOTAL
       AX(J,K)=AJK(J,K,JK_TOTVTDSE)-AJK(J,K,JK_ZMFVTDSE)
   390 BX(J,K)=AJK(J,K,JK_TOTVTLH)-AJK(J,K,JK_ZMFVTLH)
       SCALET=-100.D-12*XWON*BYIADA*BYGRAV
-      n = jkl_vt_dse_e
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_vt_dse_e
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,AX,SCALET,ONES,ONES,KM-1,1,1)
       SCALET=SCALET*.01
       n = jk_totvtdse
@@ -1267,8 +1263,8 @@ C**** VERTICAL TRANSPORT OF DRY STATIC ENERGY BY EDDIES AND TOTAL
      &     PM,AJK(1,1,n),SCALET,ONES,ONES,KM-1,1,JGRID_JK(n))
 C**** VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES AND TOTAL
       SCALET=-100.D-12*XWON*LHE*BYIADA*BYGRAV
-      n = jkl_vt_lh_eddy
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_vt_lh_eddy
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,BX,SCALET,ONES,ONES,KM-1,1,1)
       SCALET=SCALET*.1
       n = jk_totvtlh
@@ -1280,12 +1276,12 @@ C**** VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES AND TOTAL
       AX(J,K)=AX(J,K)+LHE*BX(J,K)
   420 BX(J,K)=AJK(J,K,JK_TOTVTDSE)+LHE*AJK(J,K,JK_TOTVTLH)
       SCALET=-100.D-13*XWON*BYIADA*BYGRAV
-      n = jkl_vt_se_eddy
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_vt_se_eddy
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,AX,SCALET,ONES,ONES,KM-1,1,1)
       SCALET=SCALET*.1
-      n = jkl_tot_vt_se
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_tot_vt_se
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,BX,SCALET,ONES,ONES,KM-1,1,1)
 C**** VERTICAL TRANSPORT OF KINETIC ENERGY
       SCALET=-12.5E-11*XWON*BYIADA*BYGRAV
@@ -1327,8 +1323,8 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
       DO 500 J=2,JM-1
   500 AX(J,K)=AJK(J,K,JK_DPA)*(AX(J,K)+.25*DX(J,K))
       SCALET=1.D6
-      n = jkl_nt_eqgpv
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_nt_eqgpv
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,BYPDA,ONES,KM,2,1)
 C****
 C**** ELIASSEN PALM FLUX:  NORTHWARD, VERTICAL, DIVERGENCE
@@ -1344,8 +1340,8 @@ C****
       IF (UX.LT.0.) SN=-1.
       UX=SN*SMALL
   510 AX(J,K)=(AJK(J,K,JK_TOTNTGEO)-AJK(J,K,JK_ZMFNTGEO))/UX*DXV(J)
-      n = jkl_we_flx_nor
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_we_flx_nor
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,ONES,ONES,KM,2,2)
       SCALET=-100.D-11*XWON*BYIADA*BYGRAV
       DO 520 K=1,KM-1
@@ -1367,8 +1363,8 @@ C****
       IF (UX.LT.0.) SN=-1.
       UX=SN*SMALL
   520 BX(J,K)=AJK(J,K,JK_VTGEOEDDY)/UX
-      n = jkl_epflx_v
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_epflx_v
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PM,BX,SCALET,ONES,ONES,KM-1,1,1)
       DO 530 K=1,KM
       CX(1,K)=0.
@@ -1380,8 +1376,8 @@ C****
       CX(J,K)=CX(J,K)-BX(J,K)
   540 CX(J,K+1)=CX(J,K+1)+BX(J,K)
       SCALET=1.D5
-      n = jkl_we_flx_div
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_we_flx_div
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,CX,SCALET,BYPDA,ONES,KM,2,1)
 C****
 C**** D/DY OF Q-G POTENTIAL VORTICITY AND REFRACTION INDICES
@@ -1438,8 +1434,8 @@ C**** FIND DQ/DY = (Q12(J)-Q12(J-1)+Q3(J)-Q3(J-1))/DY
      &     (AJK(J,K,JK_DPA)+AJK(J-1,K,JK_DPA)+1.D-20))/DYP(3)
   620 CONTINUE
       SCALET=1.D12
-      n = jkl_del_qgpv
-      CALL JKMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jk_del_qgpv
+      CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &     PLM,AX,SCALET,BYPV,ONES,KM,2,2)
 C**** TERMS FOR THE REFRACTION INDEX EXPRESSION
       DO 640 J=2,JM
@@ -1459,7 +1455,7 @@ C**** TERMS FOR THE REFRACTION INDEX EXPRESSION
   640 CONTINUE
 C**** COMBINE TERMS, PRINT OUT REFRACTION INDICES
       SCALET=1.D8
-      IX = jkl_refr_ind_wave1-1
+      IX = jk_refr_ind_wave1-1
       DO 660 M=1,5
       SQM=MW(M)*MW(M)
       DO 650 J=2,JM
@@ -1467,7 +1463,7 @@ C**** COMBINE TERMS, PRINT OUT REFRACTION INDICES
       DO 650 K=1,KM
       DP=AJK(J,K,JK_DPB)
   650 BX(J,K)=DP*(CX(J,K)*(AX(J,K)-SQM*BYRCOS)-.25*DX(J,K))
-  660 CALL JKMAP(LNAME_jkl(M+IX),SNAME_jkl(M+IX),UNITS_jkl(M+IX),
+  660 CALL JKMAP(LNAME_jk(M+IX),SNAME_jk(M+IX),UNITS_jk(M+IX),
      &    PLM,BX,SCALET,BYPV,ONES,KM,2,2)
   670 CONTINUE
 C**** SKIP REMAINING MAPS IF DATA NOT AVAILABLE
@@ -1510,16 +1506,16 @@ C**** output full or approximate version
         CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),
      &       PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n))
         SCALET=1.D6
-        n = jkl_dudt_econv
-        CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+        n = jk_dudt_econv
+        CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &       PLM,AX,SCALET,ONES,ONES,KM,2,1)
 C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
         SCALET=1.D6*BYIADA
         n = jk_dudttem
         CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),
      &       PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n))
-        n = jkl_dudt_epdiv
-        CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+        n = jk_dudt_epdiv
+        CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &       PLM,BX,SCALET,ONES,ONES,KM,2,1)
       END IF
 C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
@@ -1540,19 +1536,19 @@ C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
       AX(J,L)=AJL(J,L,jl_dumcdrgm10)+AJL(J,L,jl_dumcdrgp10)
       BX(J,L)=AJL(J,L,jl_dumcdrgm40)+AJL(J,L,jl_dumcdrgp40)
   740 DX(J,L)=AJL(J,L,jl_dumcdrgm20)+AJL(J,L,jl_dumcdrgp20)
-      CALL JLMAP (LNAME_jkl(jkl_mcdrgpm10),SNAME_jkl(jkl_mcdrgpm10),
-     &     UNITS_jkl(jkl_mcdrgpm10),PLM,AX,SCALET,ONES,ONES,LM,2,2)
-      CALL JLMAP (LNAME_jkl(jkl_mcdrgpm40),SNAME_jkl(jkl_mcdrgpm40),
-     &     UNITS_jkl(jkl_mcdrgpm40),PLM,BX,SCALET,ONES,ONES,LM,2,2)
-      CALL JLMAP (LNAME_jkl(jkl_mcdrgpm20),SNAME_jkl(jkl_mcdrgpm20),
-     &     UNITS_jkl(jkl_mcdrgpm20),PLM,DX,SCALET,ONES,ONES,LM,2,2)
+      CALL JLMAP (LNAME_jl(jl_mcdrgpm10),SNAME_jl(jl_mcdrgpm10),
+     &     UNITS_jl(jl_mcdrgpm10),PLM,AX,SCALET,ONES,ONES,LM,2,2)
+      CALL JLMAP (LNAME_jl(jl_mcdrgpm40),SNAME_jl(jl_mcdrgpm40),
+     &     UNITS_jl(jl_mcdrgpm40),PLM,BX,SCALET,ONES,ONES,LM,2,2)
+      CALL JLMAP (LNAME_jl(jl_mcdrgpm20),SNAME_jl(jl_mcdrgpm20),
+     &     UNITS_jl(jl_mcdrgpm20),PLM,DX,SCALET,ONES,ONES,LM,2,2)
 C**** DU/DT BY STRAT. DRAG - TOTAL
       DO 745 L=1,LM
       DO 745 J=1,JM
   745 AX(J,L)=AJL(J,L,jl_dumtndrg)+AJL(J,L,jl_dushrdrg)+
      *   (AX(J,L)+BX(J,L)+DX(J,L)) + AJL(J,L,jl_dudfmdrg)
-      n = jkl_sumdrg
-      CALL JLMAP (LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jl_sumdrg
+      CALL JLMAP (LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),
      *     PLM,AX,SCALET,ONES,ONES,LM,2,2)
       end if
 C**** CHANGE IN EAST WIND BY STRATOSPHERIC DIFFUSION
@@ -1584,9 +1580,9 @@ C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
      &     (PM(K-1)-PM(K))*BYIADA*PKM(K)
       end do
       end do
-      n = jkl_dtempdt_econv
+      n = jk_dtempdt_econv
       SCALET=1.D1*SDAY
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_jk(n),
      &      PLM,CX,SCALET,ONES,ONES,KM,2,1)
 C**** TEMPERATURE: TRANSFORMED ADVECTION
       n = JK_DTDTTEM
@@ -1645,8 +1641,8 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       ENDDO
       SCALET=-1.D-13*XWON*BYIARD
       SCALES=SCALET*PSFMPT
-      n = jkl_rad_cool
-      CALL JLMAPS(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jl_rad_cool
+      CALL JLMAPS(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),
      &     PLM,AX,SCALET,DXYPPO,BYDSIG,LM,1,1,  
      &     ARQX,SCALES,DXYPPO,BYDPS)
 
@@ -1721,8 +1717,8 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
       CX(JM,L)=0.
   366 CONTINUE
       SCALET=25.D-18*XWON*BYIADA*RADIUS*BYGRAV * 0. ! AJL47 not done
-      n = jkl_nt_qgpv
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jl_nt_qgpv
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),
      &     PLM,CX,SCALET,ONES,ONES,LM,1,1)
 C****
 C**** VERTICAL TRANSPORTS
@@ -1791,8 +1787,8 @@ C****
       DO 550 L=1,LM
       AX(1,L)=0.
   550 AX(JM,L)=0.
-      n = jkl_epflx_div
-      CALL JLMAP(LNAME_jkl(n),SNAME_jkl(n),UNITS_jkl(n),
+      n = jl_epflx_div
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,1,1)
 
 C****
@@ -1820,15 +1816,15 @@ C****
       ENDDO
       ENDDO
       SCALET=BYIADA*BYGRAV
-      IX = jkl_phi_amp_wave1-1
+      IX = jk_phi_amp_wave1-1
       DO N=1,4
-      CALL JLMAP(LNAME_jkl(N+ix),SNAME_jkl(N+ix),UNITS_jkl(N+ix),
+      CALL JLMAP(LNAME_jl(N+ix),SNAME_jl(N+ix),UNITS_jl(N+ix),
      &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
       ENDDO
       SCALET=360./TWOPI
-      IX = jkl_phi_phase_wave1-1
+      IX = jk_phi_phase_wave1-1
       DO N=1,4
-      CALL JLMAP(LNAME_jkl(N+ix),SNAME_jkl(N+ix),UNITS_jkl(N+ix),
+      CALL JLMAP(LNAME_jl(N+ix),SNAME_jl(N+ix),UNITS_jl(N+ix),
      &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz_max,2,1)
       ENDDO
 

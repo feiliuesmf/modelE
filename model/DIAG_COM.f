@@ -34,8 +34,8 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var APJ zonal pressure diagnostics
       DOUBLE PRECISION, DIMENSION(JM,KAPJ) :: APJ
 
-!@param KAJL number of accumulated AJL diagnostics
-      INTEGER, PARAMETER :: KAJL=57+KEP
+!@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
+      INTEGER, PARAMETER :: KAJL=57+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJL) :: AJL
 
@@ -124,7 +124,8 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDIUVAR,NDIUPT) :: ADIURN
 
 !@param KAJK number of zonal constant pressure diagnostics
-      INTEGER, PARAMETER :: KAJK=51
+!@param KAJKX number of zonal constant pressure composit diagnostics
+      INTEGER, PARAMETER :: KAJK=51, KAJKX=KAJK+100
 !@var AJK zonal constant pressure diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,KAJK) :: AJK
 
@@ -334,13 +335,13 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JL_mcdry
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
-      character(len=30), dimension(kajl) :: sname_jl
+      character(len=30), dimension(kajlx) :: sname_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
-      character(len=50), dimension(kajl) :: lname_jl,units_jl
+      character(len=50), dimension(kajlx) :: lname_jl,units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
-      double precision, dimension(kajl) :: scale_jl
+      double precision, dimension(kajlx) :: scale_jl
 !@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
-      integer, dimension(kajl) :: ia_jl,jgrid_jl
+      integer, dimension(kajlx) :: ia_jl,jgrid_jl
 
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
       character(len=30), dimension(kasjl) :: name_sjl
@@ -368,13 +369,13 @@ C****      names, indices, units, idacc-numbers, etc.
      &    ,JK_totdtdt ,JK_eddvtpt ,JK_cldh2o
 
 !@var SNAME_JK Names of lat-pressure JK diagnostics
-      character(len=30), dimension(kajl) :: sname_jk
+      character(len=30), dimension(kajkx) :: sname_jk
 !@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
-      character(len=50), dimension(kajl) :: lname_jk,units_jk
+      character(len=50), dimension(kajkx) :: lname_jk,units_jk
 !@var SCALE_JK printout scaling factors for JK diagnostics
-      double precision, dimension(kajk) :: scale_jk
+      double precision, dimension(kajkx) :: scale_jk
 !@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
-      integer, dimension(kajk) :: ia_jk,jgrid_jk
+      integer, dimension(kajkx) :: ia_jk,jgrid_jk
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER :: IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q

@@ -2462,55 +2462,13 @@ c
       implicit none
       integer :: k
 c
-      do k=1,kajl
+      do k=1,kajlx
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
          lname_jl(k) = 'unused'
          units_jl(k) = 'unused'
       enddo
 c
       k=0
-c
-!     k=k+1
-!     jl_free01 = k
-!     sname_jl(k) = 'AJL01'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free02 = k
-!     sname_jl(k) = 'AJL02'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free03 = k
-!     sname_jl(k) = 'AJL03'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free04 = k
-!     sname_jl(k) = 'AJL04'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free05 = k
-!     sname_jl(k) = 'AJL05'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free06 = k
-!     sname_jl(k) = 'AJL06'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
-c
-!     k=k+1
-!     jl_free07 = k
-!     sname_jl(k) = 'AJL07'
-!     lname_jl(k) = 'unknown'
-!     units_jl(k) = 'unknown'
 c
       k=k+1
       jl_mcmflx = k
@@ -2968,7 +2926,7 @@ c
       implicit none
       integer :: k
 c
-      do k=1,kajk
+      do k=1,kajkx
          write(sname_jk(k),'(a3,i3.3)') 'AJK',k
          lname_jk(k) = 'unused'
          units_jk(k) = 'unused'
