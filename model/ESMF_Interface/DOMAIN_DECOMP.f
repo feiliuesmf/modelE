@@ -100,7 +100,6 @@
 !@var RANK_LAT_RANK index of _this_ process in meridional set.
       INTEGER :: RANK_LAT
 
-      LOGICAL :: init = .false.
       INTEGER :: CHECKSUM_UNIT
 
       CONTAINS
@@ -113,10 +112,6 @@
       TYPE (DYN_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM, JM
 
-      If (init) Then
-         Return ! Only invoke once
-      End If
-      init = .true.
 
       ! Trivial topology for now
       NPES     = 1
