@@ -9,13 +9,13 @@
      *     ,teeny
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
-     *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
+     *     ,ntype,itime,fim,focean,fland,flice
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj,dyp
       USE RANDOM
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
+     *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss,ddm1,airx,lmc
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adiurn,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
      *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mceq,j5s,j5n,
@@ -61,7 +61,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug
+     *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,ddmflx
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -110,7 +110,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep
+     *     ,E,E1,ep,TSV
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -122,6 +122,7 @@ c       integer nc_tr,id,ixx,ix1,ixm1,iuc_s
 !@var ALPHA1,ALPHA2,ALPHAS,DIFT,CSC dummy variables
 !@var DTDZ,DTDZS,DTDZG vertical potential temperature gradients
 !@var DUDZ,DVDZ,DUDZS,DVDZS,DUDZG,DVDZG vertical wind gradients
+!@var TSV virtual surface temperature (K)
 
 C**** parameters and variables for isccp diags
       real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
@@ -214,7 +215,7 @@ C****
 #endif
 !$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
-!$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
+!$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
 !$OMP*  LP600,LP850,CSC,DIFT, E,E1,ep)
 !$OMP*    SCHEDULE(DYNAMIC,2)
 !$OMP*    REDUCTION(+:ICKERR,JCKERR)
@@ -260,6 +261,7 @@ C****
       VS=VSAVG(I,J)
       TGV=TGVAVG(I,J)
       QG=QGAVG(I,J)
+      TSV=TS*(1+QS*DELTX)
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
       DCL=INT(DCLEV(I,J)+.5)
 
@@ -330,8 +332,9 @@ C**** temperature of precip is based on pre-mstcnv profile
       TRPREC(:,I,J) = 0.
 #endif
 
-C**** SET DEFAULT FOR AIR MASS FLUX (STRAT MODEL)
+C**** SET DEFAULTS FOR AIR MASS FLUX (STRAT MODEL)
       AIRX(I,J)=0.
+      DDM1(I,J)=0.
 C****
 C**** Energy conservation note: For future reference the energy function
 C**** for these column calculations (assuming energy reference level
@@ -433,6 +436,8 @@ C         EPRCP=PRCP*TPRCP*SHI
         END DO
         CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
         AIRX(I,J) = AIRXL*DXYP(J)
+C**** level 1 downfdraft mass flux/rho (m/s)
+        DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
       END IF                    ! should this be after tracers....????
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones

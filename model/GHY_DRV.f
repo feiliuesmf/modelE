@@ -116,7 +116,7 @@ c****
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
      &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
-     &     ,khs,ug,vg,wg,zmix   ! ,kq=>kqs ,ppbl
+     &     ,khs,ug,vg,wg,zmix,wint   ! ,kq=>kqs ,ppbl
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_ON

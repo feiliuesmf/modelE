@@ -474,12 +474,12 @@ C**** 3-8 Convective waves
 C**** 9   Deformation wave
 C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
-      USE MODEL_COM, only : im,jm,lm,byim,airx,lmc,nidyn,sig,sige
+      USE MODEL_COM, only : im,jm,lm,byim,nidyn,sig,sige
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
+      USE CLOUDS_COM, only :: airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
      *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
-C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
@@ -1205,6 +1205,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
+      USE CLOUDS_COM, only :: airx,lmc
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

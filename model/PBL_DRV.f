@@ -64,6 +64,7 @@ C          ,UG,VG,WG,ZMIX,W2_1
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
+      USE CLOUDS_COM, only : ddm1
       USE SOCPBL, only : npbl=>n
      &     ,dpdxr,dpdyr
      &     ,dpdxr0,dpdyr0
@@ -71,7 +72,7 @@ C          ,UG,VG,WG,ZMIX,W2_1
      &     ,zgs,DTSURF                  ! global
      &     ,ZS1,TGV,TKV,QG_SAT,HEMI,POLE    ! rest local
      &     ,US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
-     &     ,UG,VG,WG,ZMIX
+     &     ,UG,VG,WG,ZMIX,mdf
      &     ,ustar,cm,ch,cq,z0m,z0h,z0q,w2_1
 #ifdef TRACERS_ON
      *     ,tr
@@ -200,6 +201,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       dpdyr0 = DPDY_BY_RHO_0(i,j)
 
       ts_guess = ttop - tmom(mz,i,j,1)*S1byG1
+      mdf = ddm1(i,j)
 
       call advanc(
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,

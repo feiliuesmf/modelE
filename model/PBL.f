@@ -55,8 +55,9 @@
 !@var VG     = northward component of the geostrophic wind (m/s)
 !@var WG     = magnitude of the geostrophic wind (m/s)
 !@var ZMIX   = a height used to match ground and surface fluxes
-
-      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1
+!@var MDF    = downdraft mass flux (m/s)
+!@var WINT   = integrated surface wind speed over sgs wind distribution
+      real*8 :: zs1,tgv,tkv,qg_sat,hemi,dtsurf,w2_1,mdf,wint
       real*8 :: us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl,kms,khs,kqs,ppbl
      *         ,ustar,cm,ch,cq,z0m,z0h,z0q,ug,vg,wg,zmix,XCDpbl=1d0
       logical :: pole
@@ -102,7 +103,7 @@ C***
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG_SAT,HEMI,POLE
       COMMON /PBLOUT/US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL,
-     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX,W2_1
+     *     USTAR,CM,CH,CQ,Z0M,Z0H,Z0Q,UG,VG,WG,ZMIX,W2_1,MDF,WINT
 !$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
 
 CCC !@var bgrid log-linear gridding parameter
@@ -231,6 +232,9 @@ c  internals:
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
      *     ,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+C****
+      real*8 :: sig0,delt,wt,wmin,wmax,sig
+      integer :: icase
 
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
@@ -339,6 +343,20 @@ c     write(97,*) "iter=",iter,ustar
 
       wsh = sqrt((u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h)
       wsm = wsh
+
+C**** Preliminary coding for use of sub-gridscale wind distribution
+C**** generic calculations for all tracers
+C**** To use, uncomment next two lines and adapt the next chunk for
+C**** your tracers. The integrated wind value is passed back to SURFACE
+C**** and GHY_DRV. This may need to be tracer dependent?
+csgs      delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
+csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,wsh,t(1))
+csgsC**** possibly tracer specific coding
+csgs      wt = 3.                 ! threshold velocity
+csgs      wmin = wt               ! minimum wind velocity (usually wt?)
+csgs      wmax = 50.              ! maxmimum wind velocity 
+csgs      icase=3                 ! icase=3 ==> w^3 dependency  
+csgs      call integrate_sgswind(sig0,wt,wmin,wmax,wsh,icase,wint)
 
 #ifdef TRACERS_ON
 C**** tracer calculations are passive and therefore do not need to
@@ -2323,4 +2341,120 @@ c ----------------------------------------------------------------------
       print*, 'Error: rtsafe exceeding maximum iterations'
       return
       END
+
+C**** Functions and subroutines for sub-gridscale wind distribution calc
+
+      real*8 function sig(tke,mdf,dbl,delt,ch,ws,tsv)
+!@sum calculate sigma for sub-grid scale wind distribution      
+!@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : by3,grav
+      implicit none
+!@var tke local turbulent kinetic energy at surface (J/kg)
+!@var mdf downdraft mass flux from moist convection (m/s)
+!@var dbl boundary layer height (m)
+!@var delt difference between surface and ground T (ts-tg) (K)
+!@var tsv virtual surface temperature (K)
+!@var ch local heat exchange coefficient 
+!@var ws grid box mean wind speed (m/s)
+      real*8, intent(in):: tke,mdf,dbl,delt,tsv,ch,ws
+      real*8 wtke,wm,wd
+
+C**** TKE contribution  ~ sqrt( 2/3 * tke)
+      wtke=sqrt(2d0*tke*by3)
+
+C**** dry convection/turbulence contribution ~(Qsens*g*H/rho*cp*T)^(1/3)
+      if (delt.lt.0d0) then
+        wd=(-delt*ch*ws*grav*dbl/tsv)**by3
+      else
+        wd=0.d0
+      endif
+C**** moist convection contribution beta/frac_conv = 200.
+      wm=200.d0*mdf
+C**** sigma
+      sig=wm+wd+wtke
+      print*,"sigw",wm,wd,wtke
+      return
+      end
+
+      subroutine integrate_sgswind(sig,wt,wmin,wmax,ws,icase,wint)
+!@sum Integrate sgswind distribution for different cases
+!@auth Reha Cakmur/Gavin Schmidt
+      use constant, only : by3
+      implicit none
+!@var sig distribution parameter (m/s)
+!@var wt threshold velocity (m/s)
+!@var ws resolved wind speed (m/s)
+!@var wmin,wmax min and max wind speed for integral
+      real*8, intent(in):: sig,wt,ws,wmin,wmax
+      real*8, intent(out) :: wint
+      integer, intent(in) :: icase
+      integer, parameter :: nstep = 100
+      integer i
+      real*8 x,sgsw,bysig2
+
+C**** integrate distribution from wmin to wmax using Simpsons' rule
+C**** depending on icase, integral is done on w, w^2 or w^3
+C**** Integration maybe more efficient with a log transform (putting
+C**** more points near wmin), but that's up to you...
+      bysig2=1./(sig*sig)
+      wint=0
+      do i=1,nstep+1
+        x=wmin+(wmax-wmin)*(i-1)/dble(nstep)
+        if (i.eq.1.or.i.eq.nstep+1) then
+          wint=wint+sgsw(x,ws,wt,bysig2,icase)*by3
+        elseif (mod(i,2).eq.0) then
+          wint=wint+4d0*sgsw(x,ws,wt,bysig2,icase)*by3
+        else
+          wint=wint+2d0*sgsw(x,ws,wt,bysig2,icase)*by3
+        end if
+      end do
+      wint=wint*(wmax-wmin)/dble(nstep)
+
+      return
+      end
+
+      real*8 function sgsw(x,ws,wt,bysig2,icase)
+!@sum sgsw function to be integrated for sgs wind calc
+!@auth Reha Cakmur/Gavin Schmidt
+      implicit none
+      real*8, intent(in) :: x,ws,wt,bysig2
+      integer, intent(in) :: icase
+      real*8 :: besf,exx,bessi0
+
+      besf=x*ws*bysig2
+      if (0.5*(x*x+ws*ws)*bysig2.lt.100.d0 .or. besf.lt.100d0 ) then
+        exx=exp(-0.5*(x*x+ws*ws)*bysig2)
+        sgsw=(x)**(icase)*(x-wt)*bysig2*BESSI0(besf)*exx
+      else
+        sgsw=0.
+      end if
+      
+      return
+      end
+
+      real*8 function bessi0(x)
+!@sum Bessel's function I0
+!@auth  Numerical Recipes
+      implicit none
+      real*8 ax,y
+      real*8, parameter:: p1=1.0d0, p2=3.5156229d0, p3=3.0899424d0,
+     *     p4=1.2067492d0, p5=0.2659732d0, p6=0.360768d-1,
+     *     p7=0.45813d-2
+      real*8, parameter:: q1=0.39894228d0,q2=0.1328592d-1,
+     *     q3=0.225319d-2, q4=-0.157565d-2, q5=0.916281d-2,
+     *     q6=-0.2057706d-1, q7=0.2635537d-1, q8=-0.1647633d-1,
+     *     q9=0.392377d-2
+      real*8, intent(in)::x
+
+      if (abs(x).lt.3.75d0) then
+        y=(x/3.75d0)**2.d0
+        bessi0=(p1+y*(p2+y*(p3+y*(p4+y*(p5+y*(p6+y*p7))))))
+      else
+        ax=abs(x)
+        y=3.75d0/ax
+        bessi0=(exp(ax)/sqrt(ax))*(q1+y*(q2+y*(q3+y*(q4
+     *       +y*(q5+y*(q6+y*(q7+y*(q8+y*q9))))))))
+      end if
+      end function bessi0
+
 

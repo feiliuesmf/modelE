@@ -36,6 +36,16 @@ C**** variables saved for radiation calculations
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
       REAL*8, DIMENSION(LM,IM,JM) :: CSIZMC,CSIZSS
 
+C**** variables saved for surface wind spectrum calculations
+!@var DDM1 downdraft mass flux/rho at lowest level (m/s)
+      REAL*8, DIMENSION(IM,JM) :: DDM1
+
+C**** variables used (and saved) for gravity wave drag calculations
+!@var AIRX, AIRMX*DXYP(J) convective mass flux (kg/s)
+      REAL*8, DIMENSION(IM,JM) :: AIRX
+!@var LMC max layer of mc convective mass flux. 
+      INTEGER, DIMENSION(2,IM,JM) :: LMC
+
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
       INTEGER LLOW,LMID,LHI
 

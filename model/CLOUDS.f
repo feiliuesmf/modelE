@@ -77,6 +77,7 @@ C**** input variables
       REAL*8, DIMENSION(LM+1) :: PLE,LHP
       REAL*8, DIMENSION(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,WMX
      *     ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1
+     *     ,DDMFLX
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -89,6 +90,7 @@ C**** input variables
 !@var WMX cloud water mixing ratio (kg/kg)
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
+!@var DDMFLX accumulated downdraft mass flux (mb)
 !@var AQ time change rate of specific humidity (s**-1)
 !@var DPDT time change rate of pressure (mb/s)
       REAL*8, DIMENSION(LM+1) :: PRECNVL
@@ -196,7 +198,7 @@ C**** output variables
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
-CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj
+CCOMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypj,DDMFLX
 CCOMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
 CCOMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
 CCOMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
@@ -204,7 +206,7 @@ CCOMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
 CCOMP*  ,LMCMIN,KMAX,DEBUG)
       COMMON/CLDPRV/RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
-     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ
+     *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPJ,DDMFLX
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
@@ -414,6 +416,7 @@ C**** zero out diagnostics
          DTOTW=0.
          DQCOND=0.
          DGDQM=0.
+         DDMFLX=0.
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
@@ -431,6 +434,8 @@ C**** SAVE ORIG PROFILES
 #ifdef TRACERS_AEROSOLS_Koch
       DT1(:)=TM(:,1)
       DTM1(:)=TMOM(3,:,1)
+      DT_SULF_MC(:,1:NTX)=0.
+      DT_SULF_SS(:,1:NTX)=0.
 #endif
 #endif
 C**** OUTER MC LOOP OVER BASE LAYER
@@ -1088,6 +1093,7 @@ C**** diagnostics
         DGDSM(L)=DGDSM(L)+PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))
+        DDMFLX(L)=DDMFLX(L)+DDM(L)
       END DO
 #ifdef TRACERS_ON
 #ifdef TRACERS_AEROSOLS_Koch

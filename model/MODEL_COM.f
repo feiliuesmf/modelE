@@ -178,10 +178,6 @@ C**** Define surface types (mostly used for weighting diagnostics)
      *                      ITLANDI=4, ITLAKE=5, ITLKICE=6
 
 C**** Variables specific for stratosphere and/or strat diagnostics
-!@var AIRX, AIRMX*DXYP(J) Used in stratosphere model. (mb m^2)
-      REAL*8 AIRX(IM,JM)
-!@var LMC max layer of mc convective mass flux. (Strat model)
-      INTEGER, DIMENSION(2,IM,JM) :: LMC
 !@var DO_GWDRAG when true, prints Gravity Wave diagnostics
       LOGICAL :: DO_GWDRAG = .false.
 !@var iDO_GWDRAG number if AIJ Gravity wave diagnostics
