@@ -10,11 +10,12 @@
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny ! ,byrt3
       USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM, HALO_UPDATE, SOUTH
-      USE DOMAIN_DECOMP, only : NORTH
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,ndasf,fland,flice,focean
      *     ,nday,modrd,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+      USE DOMAIN_DECOMP, only : NORTH
+      USE DOMAIN_DECOMP, only : PACK_DATA, AM_I_ROOT, GLOBALSUM
       USE GEOM, only : dxyp,imaxj,bydxyp,idjj,idij,rapj,kmaxj,sinip
      *     ,cosip
       USE SOMTQ_COM, only : tmom,qmom,mz
@@ -63,7 +64,7 @@ C**** Interface to PBL
      *     ,idd_q5,idd_q4,idd_q3,idd_q2,idd_q1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht
+     *     ,idd_ev,idd_ldc,idd_dcf,hdiurn,ij_pblht,ndiuvar,NREG
       USE LANDICE, only : z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
       USE SEAICE, only : xsi,ace1i,alami,byrli,byrls, ! z1i,
@@ -113,12 +114,13 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: ! S1BYG1 = BYRT3, Z1IBYL=Z1I/ALAMI,
      &     Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
       REAL*8 QSAT,DQSATDT
-      REAL*8, DIMENSION(7,3,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     *                                                         AREGIJ
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
       real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws
       logical pole
+      REAL*8, DIMENSION(7,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NREG) ::
+     *     AREG_part
+      REAL*8 :: AREGSUM
 c
 #ifdef TRACERS_ON
       real*8 rhosrf0, totflux(ntm)
@@ -134,6 +136,20 @@ c
       real*8 tdryd, tdd, td1, rtsdt
 #endif
 #endif
+
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: hdiurn_part
+      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,
+     &     NDIUVAR, NDIUPT) :: adiurn_part
+      REAL*8 :: HDIURNSUM, ADIURNSUM
+      INTEGER, PARAMETER :: n_idx1 = 11
+      INTEGER, PARAMETER :: n_idx2 = 22
+      INTEGER, PARAMETER :: n_idx3 = 2
+      INTEGER, PARAMETER :: n_idx4 = n_idx1+n_idx2
+      INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
+      INTEGER :: idx4(n_idx1+n_idx2)
+      REAL*8 :: tmp(NDIUVAR)
+      INTEGER :: ii, ivar
 
       INTEGER :: J_0, J_1, J_0H, J_1H
 C****
@@ -161,7 +177,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
 C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
-      AREGIJ = 0.
+      AREG_part = 0.
 #ifdef TRACERS_WATER
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
@@ -203,12 +219,27 @@ C**** Set up tracers for PBL calculation if required
       Call CHECKSUM(GRID, u     , __LINE__, __FILE__,STGR=.true.)
       Call CHECKSUM(GRID, v     , __LINE__, __FILE__,STGR=.true.)
 
-      Call HALO_UPDATE(GRID, uosurf, FROM=NORTH)
-      Call HALO_UPDATE(GRID, vosurf, FROM=NORTH)
-      Call HALO_UPDATE(GRID, uisurf, FROM=NORTH)
-      Call HALO_UPDATE(GRID, visurf, FROM=NORTH)
-      Call HALO_UPDATE(GRID, u     , FROM=NORTH)
-      Call HALO_UPDATE(GRID, v     , FROM=NORTH)
+      Call HALO_UPDATE(GRID, uosurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, vosurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, u     , FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(GRID, v     , FROM=SOUTH+NORTH)
+
+      adiurn_part=0
+      hdiurn_part=0
+
+      idx1 = (/ IDD_SPR, 
+     &     IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1,
+     &     IDD_Q5,  IDD_Q4,  IDD_Q3,  IDD_Q2,  IDD_Q1 /)
+      idx2 = (/ IDD_TS,  IDD_TG1, IDD_QS,  IDD_QG,  IDD_SWG,
+     &          IDD_LWG, IDD_SH,  IDD_LH,  IDD_HZ0, IDD_UG,
+     &          IDD_VG,  IDD_WG,  IDD_US,  IDD_VS,  IDD_WS,
+     &          IDD_CIA, IDD_CM,  IDD_CH,  IDD_CQ,  IDD_EDS,
+     &          IDD_DBL, IDD_EV /)
+      idx3 = (/ IDD_DCF, IDD_LDC /)
+      idx4(:n_idx1)   = idx1
+      idx4(n_idx1+1:) = idx2
 
 
 C****
@@ -283,28 +314,21 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          IF(MODDD.EQ.0) THEN
          DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             ADIURN(IH,IDD_SPR,KR)=ADIURN(IH,IDD_SPR,KR)+PS
-             ADIURN(IH,IDD_PT5,KR)=ADIURN(IH,IDD_PT5,KR)+PSK*T(I,J,5)
-             ADIURN(IH,IDD_PT4,KR)=ADIURN(IH,IDD_PT4,KR)+PSK*T(I,J,4)
-             ADIURN(IH,IDD_PT3,KR)=ADIURN(IH,IDD_PT3,KR)+PSK*T(I,J,3)
-             ADIURN(IH,IDD_PT2,KR)=ADIURN(IH,IDD_PT2,KR)+PSK*T(I,J,2)
-             ADIURN(IH,IDD_PT1,KR)=ADIURN(IH,IDD_PT1,KR)+PSK*T(I,J,1)
-             ADIURN(IH,IDD_Q5,KR)=ADIURN(IH,IDD_Q5,KR)+Q(I,J,5)
-             ADIURN(IH,IDD_Q4,KR)=ADIURN(IH,IDD_Q4,KR)+Q(I,J,4)
-             ADIURN(IH,IDD_Q3,KR)=ADIURN(IH,IDD_Q3,KR)+Q(I,J,3)
-             ADIURN(IH,IDD_Q2,KR)=ADIURN(IH,IDD_Q2,KR)+Q(I,J,2)
-             ADIURN(IH,IDD_Q1,KR)=ADIURN(IH,IDD_Q1,KR)+Q1
-             HDIURN(IHM,IDD_SPR,KR)=HDIURN(IHM,IDD_SPR,KR)+PS
-             HDIURN(IHM,IDD_PT5,KR)=HDIURN(IHM,IDD_PT5,KR)+PSK*T(I,J,5)
-             HDIURN(IHM,IDD_PT4,KR)=HDIURN(IHM,IDD_PT4,KR)+PSK*T(I,J,4)
-             HDIURN(IHM,IDD_PT3,KR)=HDIURN(IHM,IDD_PT3,KR)+PSK*T(I,J,3)
-             HDIURN(IHM,IDD_PT2,KR)=HDIURN(IHM,IDD_PT2,KR)+PSK*T(I,J,2)
-             HDIURN(IHM,IDD_PT1,KR)=HDIURN(IHM,IDD_PT1,KR)+PSK*T(I,J,1)
-             HDIURN(IHM,IDD_Q5,KR)=HDIURN(IHM,IDD_Q5,KR)+Q(I,J,5)
-             HDIURN(IHM,IDD_Q4,KR)=HDIURN(IHM,IDD_Q4,KR)+Q(I,J,4)
-             HDIURN(IHM,IDD_Q3,KR)=HDIURN(IHM,IDD_Q3,KR)+Q(I,J,3)
-             HDIURN(IHM,IDD_Q2,KR)=HDIURN(IHM,IDD_Q2,KR)+Q(I,J,2)
-             HDIURN(IHM,IDD_Q1,KR)=HDIURN(IHM,IDD_Q1,KR)+Q1
+             tmp(IDD_SPR)=+PS
+             tmp(IDD_PT5)=+PSK*T(I,J,5)
+             tmp(IDD_PT4)=+PSK*T(I,J,4)
+             tmp(IDD_PT3)=+PSK*T(I,J,3)
+             tmp(IDD_PT2)=+PSK*T(I,J,2)
+             tmp(IDD_PT1)=+PSK*T(I,J,1)
+             tmp(IDD_Q5)=+Q(I,J,5)
+             tmp(IDD_Q4)=+Q(I,J,4)
+             tmp(IDD_Q3)=+Q(I,J,3)
+             tmp(IDD_Q2)=+Q(I,J,2)
+             tmp(IDD_Q1)=+Q1
+             ADIURN_part(J,idx1(:),kr)=ADIURN_part(J,idx1(:),kr)+
+     &            tmp(idx1(:))
+             HDIURN_part(J,idx1(:),kr)=HDIURN_part(J,idx1(:),kr)+
+     &            tmp(idx1(:))
            END IF
          END DO
          END IF
@@ -815,14 +839,15 @@ CCC     AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+EVHDT*PTYPE*DXYP(J)
 CCC     AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+EVAP *PTYPE*DXYP(J)
 CCC     IF(MODDSF.EQ.0)
 CCC  *       AREG(JR,J_TSRF)=AREG(JR,J_TSRF)+(TS-TF)*PTYPE*DXYP(J)
-        AREGIJ(1,ITYPE,I,J)=TRHDT*PTYPE*DXYP(J)
-        AREGIJ(2,ITYPE,I,J)=SHDT *PTYPE*DXYP(J)
-        AREGIJ(3,ITYPE,I,J)=EVHDT*PTYPE*DXYP(J)
-        AREGIJ(4,ITYPE,I,J)=EVAP *PTYPE*DXYP(J)
+        JR=JREG(I,J)
+        AREG_part(1,J,JR)=AREG_part(1,J,JR)+TRHDT*PTYPE*DXYP(J)
+        AREG_part(2,J,JR)=AREG_part(2,J,JR)+SHDT *PTYPE*DXYP(J)
+        AREG_part(3,J,JR)=AREG_part(3,J,JR)+EVHDT*PTYPE*DXYP(J)
+        AREG_part(4,J,JR)=AREG_part(4,J,JR)+EVAP *PTYPE*DXYP(J)
         IF(MODDSF.EQ.0) THEN
-          AREGIJ(5,ITYPE,I,J)=(TS-TF)*PTYPE*DXYP(J)
-          AREGIJ(6,ITYPE,I,J)=    TG1*PTYPE*DXYP(J)
-          AREGIJ(7,ITYPE,I,J)=    TG2*PTYPE*DXYP(J)
+          AREG_part(5,J,JR)=AREG_part(5,J,JR)+(TS-TF)*PTYPE*DXYP(J)
+          AREG_part(6,J,JR)=AREG_part(6,J,JR)+    TG1*PTYPE*DXYP(J)
+          AREG_part(7,J,JR)=AREG_part(7,J,JR)+    TG2*PTYPE*DXYP(J)
         END IF
 C
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
@@ -849,67 +874,34 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
           DO KR=1,NDIUPT
             IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              ADIURN(IH,IDD_TS,KR)=ADIURN(IH,IDD_TS,KR)+TS*PTYPE
-              ADIURN(IH,IDD_TG1,KR)=ADIURN(IH,IDD_TG1,KR)+(TG1+TF)*PTYPE
-              ADIURN(IH,IDD_QS,KR)=ADIURN(IH,IDD_QS,KR)+QSRF*PTYPE
-              ADIURN(IH,IDD_QG,KR)=ADIURN(IH,IDD_QG,KR)+QG_SAT*PTYPE
-              ADIURN(IH,IDD_SWG,KR)=ADIURN(IH,IDD_SWG,KR)+SRHEAT*DTSURF
+              tmp(IDD_TS)=+TS*PTYPE
+              tmp(IDD_TG1)=+(TG1+TF)*PTYPE
+              tmp(IDD_QS)=+QSRF*PTYPE
+              tmp(IDD_QG)=+QG_SAT*PTYPE
+              tmp(IDD_SWG)=+SRHEAT*DTSURF
      *             *PTYPE
-              ADIURN(IH,IDD_LWG,KR)=ADIURN(IH,IDD_LWG,KR)+TRHDT*PTYPE
-              ADIURN(IH,IDD_SH,KR)=ADIURN(IH,IDD_SH,KR)+SHDT*PTYPE
-              ADIURN(IH,IDD_LH,KR)=ADIURN(IH,IDD_LH,KR)+EVHDT*PTYPE
-              ADIURN(IH,IDD_HZ0,KR)=ADIURN(IH,IDD_HZ0,KR)
+              tmp(IDD_LWG)=+TRHDT*PTYPE
+              tmp(IDD_SH)=+SHDT*PTYPE
+              tmp(IDD_LH)=+EVHDT*PTYPE
+              tmp(IDD_HZ0)=
      *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
-              ADIURN(IH,IDD_UG,KR)=ADIURN(IH,IDD_UG,KR)
-     &             +pbl_args%UG*PTYPE
-              ADIURN(IH,IDD_VG,KR)=ADIURN(IH,IDD_VG,KR)
-     &             +pbl_args%VG*PTYPE
-              ADIURN(IH,IDD_WG,KR)=ADIURN(IH,IDD_WG,KR)
-     &             +pbl_args%WG*PTYPE
-              ADIURN(IH,IDD_US,KR)=ADIURN(IH,IDD_US,KR)+US*PTYPE
-              ADIURN(IH,IDD_VS,KR)=ADIURN(IH,IDD_VS,KR)+VS*PTYPE
-              ADIURN(IH,IDD_WS,KR)=ADIURN(IH,IDD_WS,KR)+WS*PTYPE
-              ADIURN(IH,IDD_CIA,KR)=ADIURN(IH,IDD_CIA,KR)
-     &             +pbl_args%PSI*PTYPE
-              ADIURN(IH,IDD_CM,KR)=ADIURN(IH,IDD_CM,KR)+CM*PTYPE
-              ADIURN(IH,IDD_CH,KR)=ADIURN(IH,IDD_CH,KR)+CH*PTYPE
-              ADIURN(IH,IDD_CQ,KR)=ADIURN(IH,IDD_CQ,KR)+CQ*PTYPE
-              ADIURN(IH,IDD_EDS,KR)=ADIURN(IH,IDD_EDS,KR)
-     &             +pbl_args%KHS*PTYPE
-              ADIURN(IH,IDD_DBL,KR)=ADIURN(IH,IDD_DBL,KR)
-     &             +pbl_args%DBL*PTYPE
-              ADIURN(IH,IDD_EV,KR)=ADIURN(IH,IDD_EV,KR)+EVAP*PTYPE
-              HDIURN(IHM,IDD_TS,KR)=HDIURN(IHM,IDD_TS,KR)+TS*PTYPE
-              HDIURN(IHM,IDD_TG1,KR)=HDIURN(IHM,IDD_TG1,KR)+(TG1+TF)
-     *             *PTYPE
-              HDIURN(IHM,IDD_QS,KR)=HDIURN(IHM,IDD_QS,KR)+QSRF*PTYPE
-              HDIURN(IHM,IDD_QG,KR)=HDIURN(IHM,IDD_QG,KR)+QG_SAT*PTYPE
-              HDIURN(IHM,IDD_SWG,KR)=HDIURN(IHM,IDD_SWG,KR)+SRHEAT
-     *             *DTSURF*PTYPE
-              HDIURN(IHM,IDD_LWG,KR)=HDIURN(IHM,IDD_LWG,KR)+TRHDT*PTYPE
-              HDIURN(IHM,IDD_SH,KR)=HDIURN(IHM,IDD_SH,KR)+SHDT*PTYPE
-              HDIURN(IHM,IDD_LH,KR)=HDIURN(IHM,IDD_LH,KR)+EVHDT*PTYPE
-              HDIURN(IHM,IDD_HZ0,KR)=HDIURN(IHM,IDD_HZ0,KR)
-     *             +(SRHEAT*DTSURF+TRHDT+SHDT+EVHDT)*PTYPE
-              HDIURN(IHM,IDD_UG,KR)=HDIURN(IHM,IDD_UG,KR)
-     &             +pbl_args%UG*PTYPE
-              HDIURN(IHM,IDD_VG,KR)=HDIURN(IHM,IDD_VG,KR)
-     &             +pbl_args%VG*PTYPE
-              HDIURN(IHM,IDD_WG,KR)=HDIURN(IHM,IDD_WG,KR)
-     &             +pbl_args%WG*PTYPE
-              HDIURN(IHM,IDD_US,KR)=HDIURN(IHM,IDD_US,KR)+US*PTYPE
-              HDIURN(IHM,IDD_VS,KR)=HDIURN(IHM,IDD_VS,KR)+VS*PTYPE
-              HDIURN(IHM,IDD_WS,KR)=HDIURN(IHM,IDD_WS,KR)+WS*PTYPE
-              HDIURN(IHM,IDD_CIA,KR)=HDIURN(IHM,IDD_CIA,KR)
-     &             +pbl_args%PSI*PTYPE
-              HDIURN(IHM,IDD_CM,KR)=HDIURN(IHM,IDD_CM,KR)+CM*PTYPE
-              HDIURN(IHM,IDD_CH,KR)=HDIURN(IHM,IDD_CH,KR)+CH*PTYPE
-              HDIURN(IHM,IDD_CQ,KR)=HDIURN(IHM,IDD_CQ,KR)+CQ*PTYPE
-              HDIURN(IHM,IDD_EDS,KR)=HDIURN(IHM,IDD_EDS,KR)
-     &             +pbl_args%KHS*PTYPE
-              HDIURN(IHM,IDD_DBL,KR)=HDIURN(IHM,IDD_DBL,KR)
-     &             +pbl_args%DBL*PTYPE
-              HDIURN(IHM,IDD_EV,KR)=HDIURN(IHM,IDD_EV,KR)+EVAP*PTYPE
+              tmp(IDD_UG)=+pbl_args%UG*PTYPE
+              tmp(IDD_VG)=+pbl_args%VG*PTYPE
+              tmp(IDD_WG)=+pbl_args%WG*PTYPE
+              tmp(IDD_US)=+US*PTYPE
+              tmp(IDD_VS)=+VS*PTYPE
+              tmp(IDD_WS)=+WS*PTYPE
+              tmp(IDD_CIA)=+pbl_args%PSI*PTYPE
+              tmp(IDD_CM)=+CM*PTYPE
+              tmp(IDD_CH)=+CH*PTYPE
+              tmp(IDD_CQ)=+CQ*PTYPE
+              tmp(IDD_EDS)=+pbl_args%KHS*PTYPE
+              tmp(IDD_DBL)=+pbl_args%DBL*PTYPE
+              tmp(IDD_EV)=+EVAP*PTYPE
+              ADIURN_part(J,idx2(:),kr)=ADIURN_part(J,idx2(:),kr)+
+     &             tmp(idx2(:))
+              HDIURN_part(J,idx2(:),kr)=HDIURN_part(J,idx2(:),kr)+
+     &             tmp(idx2(:))
             END IF
           END DO
         END IF
@@ -986,27 +978,39 @@ C****
       END DO   ! end of J loop
 !$OMP  END PARALLEL DO
 
-      Call CHECKSUM(GRID, uosurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, vosurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, uisurf, __LINE__, __FILE__,STGR=.true.)
-      Call CHECKSUM(GRID, visurf, __LINE__, __FILE__,STGR=.true.)
 
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-        JR=JREG(I,J)
-        DO K=1,3
-          AREG(JR,J_TRHDT)=AREG(JR,J_TRHDT)+AREGIJ(1,K,I,J)
-          AREG(JR,J_SHDT )=AREG(JR,J_SHDT )+AREGIJ(2,K,I,J)
-          AREG(JR,J_EVHDT)=AREG(JR,J_EVHDT)+AREGIJ(3,K,I,J)
-          AREG(JR,J_EVAP )=AREG(JR,J_EVAP )+AREGIJ(4,K,I,J)
-          IF(MODDSF.EQ.0) THEN
-            AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+AREGIJ(5,K,I,J)
-            AREG(JR,J_TG1)=AREG(JR,J_TG1)+AREGIJ(6,K,I,J)
-            AREG(JR,J_TG2)=AREG(JR,J_TG2)+AREGIJ(7,K,I,J)
+      DO kr = 1, ndiupt
+        DO ii = 1, N_IDX4
+          ivar = idx4(ii)
+          CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+          CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+          IF (AM_I_ROOT()) THEN
+            ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+            HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
           END IF
         END DO
       END DO
-      END DO
+
+      
+      DO JR = 1, NREG
+        CALL GLOBALSUM(grid, AREG_part(1,:,JR), AREGSUM)
+        AREG(JR,J_TRHDT) = AREG(JR,J_TRHDT) + AREGSUM
+        CALL GLOBALSUM(grid, AREG_part(2,:,JR), AREGSUM)
+        AREG(JR,J_SHDT) = AREG(JR,J_SHDT) + AREGSUM
+        CALL GLOBALSUM(grid, AREG_part(3,:,JR), AREGSUM)
+        AREG(JR,J_EVHDT) = AREG(JR,J_EVHDT) + AREGSUM
+        CALL GLOBALSUM(grid, AREG_part(4,:,JR), AREGSUM)
+        AREG(JR,J_EVAP) = AREG(JR,J_EVAP) + AREGSUM
+        IF(MODDSF.EQ.0) THEN
+          CALL GLOBALSUM(grid, AREG_part(5,:,JR), AREGSUM)
+          AREG(JR,J_TSRF) = AREG(JR,J_TSRF) + AREGSUM
+          CALL GLOBALSUM(grid, AREG_part(6,:,JR), AREGSUM)
+          AREG(JR,J_TG1) = AREG(JR,J_TG1) + AREGSUM
+          CALL GLOBALSUM(grid, AREG_part(7,:,JR), AREGSUM)
+          AREG(JR,J_TG2) = AREG(JR,J_TG2) + AREGSUM
+        End IF
+      End Do
+
 C****
 C**** EARTH
 C****
@@ -1060,19 +1064,33 @@ C****
 C**** ACCUMULATE SOME ADDITIONAL BOUNDARY LAYER DIAGNOSTICS
 C****
       IF(MODDD.EQ.0) THEN
+         ADIURN_part = 0
+         HDIURN_part = 0
         DO KR=1,NDIUPT
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
 C**** For distributed implementation - ensure point is on local process.          
-          IF ((IJDD(2,KR) >= J_0) .AND. (IJDD(2,KR) <= J_1)) THEN
-            IF(DCLEV(IJDD(1,KR),IJDD(2,KR)).GT.1.) THEN
-              ADIURN(IH,IDD_DCF,KR)=ADIURN(IH,IDD_DCF,KR)+1.
-              ADIURN(IH,IDD_LDC,KR)=ADIURN(IH,IDD_LDC,KR)
-     *             +DCLEV(IJDD(1,KR),IJDD(2,KR))
-              HDIURN(IHM,IDD_DCF,KR)=HDIURN(IHM,IDD_DCF,KR)+1.
-              HDIURN(IHM,IDD_LDC,KR)=HDIURN(IHM,IDD_LDC,KR)
-     *             +DCLEV(IJDD(1,KR),IJDD(2,KR))
+          I = IJDD(1,KR)
+          J = IJDD(2,KR)
+          IF ((J >= J_0) .AND. (J <= J_1)) THEN
+            IF(DCLEV(I,J).GT.1.) THEN
+              tmp(IDD_DCF)=+1.
+              tmp(IDD_LDC)=+DCLEV(I,J)
+              ADIURN_part(J,idx3(:),kr)=ADIURN_part(J,idx3(:),kr)+
+     &             tmp(idx3(:))
+              HDIURN_part(J,idx3(:),kr)=HDIURN_part(J,idx3(:),kr)+
+     &            tmp(idx3(:))
             END IF
           END IF
+          DO ii = 1, N_IDX3
+            ivar = idx3(ii)
+            CALL GLOBALSUM(grid, ADIURN_part(:,ivar,kr), ADIURNSUM)
+            CALL GLOBALSUM(grid, HDIURN_part(:,ivar,kr), HDIURNSUM)
+            IF (AM_I_ROOT()) THEN
+              ADIURN(ih,ivar,kr)=ADIURN(ih,ivar,kr) + ADIURNSUM
+              HDIURN(ihm,ivar,kr)=HDIURN(ihm,ivar,kr) + HDIURNSUM
+            END IF
+          END DO
+
         END DO
       END IF
 C****
