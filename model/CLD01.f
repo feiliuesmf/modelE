@@ -167,7 +167,7 @@ C**** output variables
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
      *     ,QMN1,SMN2,QMN2,SMP,QMP,TP,GAMA,DQSUM,TNX
-     *     ,DQ,DMSE1,FTYPE
+     *     ,DQ,DMSE1,FCTYPE
      *     ,CDHDRT,DDRAFT,DELTA
      *     ,ALPHA,BETA,CDHM,CDHSUM,CLDM,CLDREF,CONSUM,DQEVP
      *     ,DQRAT,EPLUME,ETADN,ETAL1,EVPSUM,FCDH
@@ -190,7 +190,7 @@ C**** output variables
 !@var TP plume's temperature
 !@var GAMA,DQSUM,TNX,DQ,CONSUM variables
 !@var DMSE1 difference in moist static energy
-!@var FTYPE fraction for conective cloud types
+!@var FCTYPE fraction for convective cloud types
 !@var CDHDRT,DELTA.ALPHA,BETA,CDHM,CDHSUM,CLDREF dummy variables
 !@var DDRAFT downdraft mass
 !@var DELTA fraction of plume stays in the layer
@@ -364,7 +364,7 @@ C**** ITERATION THROUGH CLOUD TYPES
 C****
       ITYPE=2                        ! always 2 types of clouds:
 C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
-      FTYPE=1.
+      FCTYPE=1.
 C**** SET PROFILE TO BE CONSTANT FOR BOTH TYPES OF CLOUDS
       SMOLD(:) = SM(:)
       SMOMOLD(:,:) = SMOM(:,:)
@@ -393,12 +393,12 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       MPLUME=MIN(1.*AIRM(LMIN),1.*AIRM(LMIN+1))
       IF(MPLUME.GT.FMP2) MPLUME=FMP2
       IF(ITYPE.EQ.2) THEN
-      FTYPE=1.
-      IF(MPLUME.GT.FMP0) FTYPE=FMP0/MPLUME
-      IF(IC.EQ.2) FTYPE=1.-FTYPE
-      IF(FTYPE.LT.0.001) GO TO 570
+      FCTYPE=1.
+      IF(MPLUME.GT.FMP0) FCTYPE=FMP0/MPLUME
+      IF(IC.EQ.2) FCTYPE=1.-FCTYPE
+      IF(FCTYPE.LT.0.001) GO TO 570
       END IF
-      MPLUME=MPLUME*FTYPE
+      MPLUME=MPLUME*FCTYPE
 C     FPLUM0=FMP1*BYAM(LMIN)
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
@@ -487,7 +487,7 @@ C     SMP=SMP-WORK
       DSM(L-1)=DSM(L-1)-WORK
       CCM(L-1)=MPLUME
       DM(L-1)=DM(L-1)+DELTA*MPO
-C**** TEST FOR CONENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
+C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
       TP=SMP*PLK(L)/MPLUME
       TPSAV(L)=TP
       IF(TPSAV(L-1).GE.TF.AND.TPSAV(L).LT.TF) LFRZ=L-1
