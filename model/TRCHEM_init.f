@@ -2,7 +2,7 @@
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_chem_init_M23)
-!@calls jplrts,phtlst,inphot,wave,reactn,precalc
+!@calls jplrts,phtlst,inphot,wave,reactn
 c
 C**** GLOBAL parameters and variables:
 C
@@ -11,8 +11,9 @@ C
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &                          ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,
      &                          nr2,nr3,nmm,nhet,prnls,prnrts,prnchg,
-     &                          lprn,jprn,iprn,ay,nss,pHOx,
-     &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3
+     &                          lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
+     &                          yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,
+     &                          yRXPAR,yXO2N,O3DLJI,O3DLJI_clim
 c
       IMPLICIT NONE
 c
@@ -47,16 +48,23 @@ C
 c     Set up arrays of reaction numbers involving each molecule.
       call reactn
 C
-C     Initialize a few arrays to zero: all are dimension (IM,JM,LM),
-C     but we can set the whole array at once: Do this only first hour:
+C     Initialize a few (IM,JM,LM) arrays, first hour only:
       IF(Itime.eq.ItimeI) THEN
-        pHOx     =0.
-        yCH3O2   =0.
+        pHOx     =1.
+        pOx      =1.
+        pNOx     =1.
+        yCH3O2   =1.E5
         yC2O3    =0.
         yROR     =0.
         yXO2     =0.
         yAldehyde=0.
         yNO3     =0.
+        yXO2N    =0.
+        yRXPAR   =0.
+C       Also, initialize the ozone-radiation interaction fields:
+        call openunit('O3D_IC',iu_data,.true.,.true.)
+        read(iu_data) O3DLJI,O3DLJI_clim
+        close(iu_data)
       END IF
 C
       return
@@ -290,12 +298,12 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on ds3ch4_chem_init_M23)
 C
-C Note: I didn't get around to modernizing much of this subr. GSF 2/02
+C Note: code could use more modernizations (e.g. the goto 5's):
 C
 C**** GLOBAL parameters and variables:
 C
       USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, p_4, nfam,
-     &                              prnls
+     &                               prnls
 c
       IMPLICIT NONE
 c
