@@ -1398,11 +1398,6 @@ C**** Save optical depth diags
      *       =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
         if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
      *       =taijs(i,j,ijts_tau(2,NTRIX(n)))+SUM(TTAUSV(1:lm,n))*OPNSKY
-        IF (i == 16 .AND. j == 32)
-     & WRITE(*,*)
-     & 'In radia: itime,i,j,n,ntrix,ijts_tau(1),ttausv(n),taijs:',
-     & itime,i,j,n,ntrix(n),ijts_tau(1,ntrix(n)),ttausv(1:lm,n),
-     &       taijs(i,j,ijts_tau(1,NTRIX(n)))
       end do
 #endif
 
