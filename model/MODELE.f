@@ -69,7 +69,7 @@ C**** INITIALIZE TIME PARAMETERS
         CALL daily_EARTH(.false.)          ! not end_of_day
         CALL daily_OCEAN(.false.)          ! not end_of_day
         CALL CALC_AMPK(LS1-1)
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
         CALL daily_tracer(0)
 #endif
            CALL CHECKT ('INPUT ')
@@ -655,7 +655,7 @@ C****
 C****
 C**** Print preprocessing options (if any are defined)
 C****
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       write(6,*) 'This program includes tracer code'
 #endif
 #ifdef TRACERS_WATER
