@@ -1825,7 +1825,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO 440 L=1,LMO
       DO 440 J=2,JM-1
       DO 440 I=1,IM
-         IF(MO(I,J,L).LE.0.)  GO TO 800
+         IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
          IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
   440 CONTINUE
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTX ',ICKERR
@@ -1833,7 +1833,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
 
   800 WRITE (6,*) 'MO<0 in OADVTX:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTX:',I,J,L,RM(I,J,L)
-      WRITE (6,*) 'A=',(I,A(I),I=1,IM)
+c      WRITE (6,*) 'A=',(I,A(I),I=1,IM)
       call stop_model("OADVTX",255)
       END SUBROUTINE OADVTX
 
@@ -2065,11 +2065,11 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO L=1,LMO
         DO J=2,JM-1
           DO I=1,IM
-            IF(MO(I,J,L).LE.0.)  GO TO 800
+            IF(FOCEAN(I,J)*MO(I,J,L).LE.0.)  GO TO 800
             IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
           END DO
         END DO
-        IF(MO(1,JM,L).LE.0.)  GO TO 800
+        IF(FOCEAN(1,JM)*MO(1,JM,L).LE.0.)  GO TO 800
         IF(QLIMIT.AND.RM(1,JM,L).LT.0.)  GO TO 810
       END DO
       WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTY ',ICKERR
@@ -2077,7 +2077,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
 
   800 WRITE (6,*) 'MO<0 in OADVTY:',I,J,L,MO(I,J,L)
   810 WRITE (6,*) 'RM in OADVTY:',I,J,L,RM(I,J,L)
-      WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
+c      WRITE (6,*) 'B=',(J,B(J),J=1,JM-1)
       call stop_model("OADVTY",255)
       END SUBROUTINE OADVTY
 
@@ -2235,7 +2235,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       DO I=IM,IM*(JM-1)+1
         LMIJ=LMM(I,1)
         DO L=1,LMIJ
-          IF(MO(I,1,L).LE.0.)  GO TO 800
+          IF(FOCEAN(I,J)*MO(I,1,L).LE.0.)  GO TO 800
           IF(QLIMIT .AND. RM(I,1,L).LT.0.) GO TO 810
         END DO
       END DO
@@ -2244,7 +2244,7 @@ C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
 
   800 WRITE (6,*) 'MO<0 in OADVTZ:',I,L,MO(I,1,L)
   810 WRITE (6,*) 'RM in OADVTZ:',I,L,RM(I,1,L)
-      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
+c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       call stop_model("OADVTZ",255)
       END SUBROUTINE OADVTZ
 
