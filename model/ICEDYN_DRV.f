@@ -1005,13 +1005,15 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
         END DO
 C**** For qflux model need to adjust diagnostics
         CALL ADVSI_DIAG
-      ELSE                      ! fixed SST case, save implied heat convergence
+      ELSE          ! fixed SST case, save implied heat convergence
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
-     *           -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
+            IF (FOCEAN(I,J).gt.0) THEN
+              OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
+     *             -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
 C**** reset sea ice concentration
-            RSI(I,J)=RSISAVE(I,J)
+              RSI(I,J)=RSISAVE(I,J)
+            END IF
           END DO
         END DO
       END IF
@@ -1319,7 +1321,3 @@ C****
       RETURN
       END SUBROUTINE diag_ICEDYN
 
-      SUBROUTINE ADVSI_DIAG
-!@sum ADVSI_DIAG dummy routine
-      RETURN
-      END

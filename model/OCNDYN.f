@@ -3244,6 +3244,11 @@ C****
       RETURN
       END SUBROUTINE io_oda
 
+      SUBROUTINE ADVSI_DIAG
+!@sum ADVSI_DIAG dummy routine for consitency with qflux model
+      RETURN
+      END
+
       SUBROUTINE AT2OT(FIELDA,FIELDO,NF,QCONSERV)
 !@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid
 !@auth Gavin Schmidt
