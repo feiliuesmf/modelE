@@ -163,7 +163,7 @@ DMSI, DHSI, DSSI mass (kg/m^2), energy (J/m^2) and salt (kg/m^2)
      only the ocean knows over what depth the surface fluxes are
      spread (see MLHC above), whether any deep freezing occurs and
      what salinity any ice should have). There are two I,J arrays for 
-     each term, DMSI(:,:,1) is for the open ocean fraction, DMSI(:,:,2) 
+     each term, DMSI(1,:,:) is for the open ocean fraction, DMSI(2,:,:) 
      is for the ice-covered fraction. 
 
 II) On ice dynamic grid (currently the atmospheric grid, but could be the 
@@ -171,7 +171,8 @@ II) On ice dynamic grid (currently the atmospheric grid, but could be the
 
 DMUI, DMVI N-S and E-W components of the ice-ocean stress (kg/ms). 
       Note that these are on the dynamic ice velocity grid, and are the
-      stresses to be applied over the whole box.
+      stresses to be applied over the whole box (i.e. they are already
+      weighted by ice fraction).
 
 
 Tracers: Generally there are equivalent tracer fluxes for most of the
