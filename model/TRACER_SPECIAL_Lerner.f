@@ -429,7 +429,7 @@ cc      najl = jls_3Dsource(ns,n)
           T0Mold=trm(i,j,l,n)
           dmass = (ratio*am(l,i,j)*dxyp(j)-trm(i,j,l,n))*coeff
           if(trm(i,j,l,n) + dmass .lt.0.) then
-            write(6,'(a,3i4,2f15.2,i9)')
+            write(6,'(a,3i4,2f20.2,i9)')
      *        ' Negative tracer in Trop_chem_O3',
      *        i,j,l,trm(i,j,l,n),dmass,itime
               dmass = -trm(i,j,l,n)
@@ -437,7 +437,7 @@ cc              trm(i,j,l,n) = 0.d0
 cc            else
 cc              trm(i,j,l,n) = trm(i,j,l,n) + dmass
           end if
-          tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
+          tr3Dsource(i,j,l,ns,n) = dmass/dtchem
 cc          sdmass = sdmass+dmass
 c scale moments by fractional change in total tracer mass
 cc          if (dmass.lt.0.d0) then
@@ -546,7 +546,7 @@ c change in ozone mass due to chemistry:
             dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtchem))
 c update ozone mass
             if (T0Mold+dmass.lt.0.) then
-               write(6,'(a,3i4,2f15.2,i9)')
+               write(6,'(a,3i4,2f20.2,i9)')
      *           ' Negative tracer in Strat_chem_O3',
      *                i,j,l,T0Mold,dmass,itime
                dmass = -T0Mold
@@ -554,7 +554,7 @@ cc               trm(i,j,l,n) = 0.d0
 cc            else
 cc               trm(i,j,l,n) = T0Mold + dmass
             end if
-           tr3Dsource(i,j,l,ns,n) = (T0Mold + dmass)/dtchem
+            tr3Dsource(i,j,l,ns,n) = dmass/dtchem
 cc            tajls(j,l,najl) = tajls(j,l,najl) + dmass
 c scale moments by fractional change in total tracer mass
 cc        if (dmass.lt.0.d0) then
