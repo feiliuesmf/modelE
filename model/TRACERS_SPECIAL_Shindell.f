@@ -791,18 +791,23 @@ C
       if (jdlast.EQ.0) then   ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1                ! imon=January
         if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
+          do L=1,LDim*11
+            read(iu)
+          end do
           DO L=1,Ldim
-            call readt(iu,0,A2D,im*jm,A2D,11*Ldim+L)
+            call readt(iu,0,A2D,im*jm,A2D,1)
             tlca(:,:,L)=A2d(:,:)
-            rewind iu
           END DO
+          rewind iu
         else              ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
           if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
-          DO L=1,Ldim-1
-            call readt(iu,0,A2D,im*jm,A2D,(imon-2)*Ldim+L)
+          do L=1,LDim*(imon-1)
+            read(iu)
+          end do
+          DO L=1,Ldim
+            call readt(iu,0,A2D,im*jm,A2D,1)
             tlca(:,:,L)=A2d(:,:)
-            rewind iu
           END DO
           if (imon.eq.13)  rewind iu
         end if
