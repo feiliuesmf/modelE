@@ -188,6 +188,7 @@ c        CALL CHECKO ('STADVI')
      *     ,ndyno,imaxj,bydxypo,ogeoz_sv,bydts
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
+      USE FLUXES, only : ogeoza, uosurf, vosurf
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO
@@ -387,6 +388,9 @@ C**** Initialize KPP mixing scheme
 C**** Set diagnostics for ocean tracers
       call init_tracer_ocean
 #endif
+
+C**** Initialize some info passed to atmsophere
+      uosurf=0 ; vosurf=0. ; ogeoza=0.
 
 C**** Set atmospheric surface variables
       IF (ISTART.gt.0) CALL TOC2SST
@@ -3288,16 +3292,19 @@ C**** do poles
 #endif
         END DO
       END IF
-c     IF (FOCEAN(1,1).gt.0) THEN
-c       DO I=2,IM
-c         GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
-c         SSS(I,1)=SSS(1,1)
-c         MLHC(I,1)=MLHC(1,1)
+      IF (FOCEAN(1,1).gt.0) THEN
+        DO I=2,IM
+          GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
+          SSS(I,1)=SSS(1,1)
+          MLHC(I,1)=MLHC(1,1)
+          UOSURF(I,1)=UOSURF(1,1)
+          VOSURF(I,1)=VOSURF(1,1)
+          OGEOZA(I,1)=OGEOZA(1,1)
 #ifdef TRACERS_WATER
-c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
-c       END DO
-c     END IF
+        END DO
+      END IF
       RETURN
 C****
       END SUBROUTINE TOC2SST

@@ -577,8 +577,8 @@ C--------------------------------------    have to deal  1 point in time
       real*8 :: O3JDAY(NLO3,MLON72,MLAT46)
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
-      REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 = (/
-     *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+      REAL*8, DIMENSION(NLO3+1) :: PLBO3 = (/ ! plbo3(1) depends on plb0
+     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
      *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
      *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
      *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
@@ -889,7 +889,7 @@ C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
 C      ---------------------------------  ------------------  --------
 C       1    2    3    4    5    6    7    8    9   10   11   12   13
 C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
-     + 1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
+     + 1.0, 1.0, .26, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
 
       real*8, dimension(8) ::
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
@@ -2330,8 +2330,8 @@ C**** The data statements below are only used if  MADO3M > -1
 !!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
 !!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
 !!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
-C**** LJTTRO(jm)    could be computed from PLBO3
-      DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of Drew's data
+C**** LJTTRO(jm) below layer 1+LJTTRO,  O3-interpolation is based on CH4
+      DATA LJTTRO/9*0,4*7,20*8,7*7,6*6/ ! does not work well near S.Pole
       INTEGER, SAVE :: IYR=0, JYRNOW=0, IYRDEC=0, IFIRST=1, JYR
 
       save nfo3,iyear,ljttro,otrend,o3year
@@ -2339,7 +2339,7 @@ C**** LJTTRO(jm)    could be computed from PLBO3
       save ddfile,ifile
 
       INTEGER :: JYEARO,JJDAYO
-      INTEGER I,J,L,M,N,IY,JYEARX,jy,MI,MJ,MK,MN,NLT,ILON,JLAT
+      INTEGER I,J,L,M,N,IY,JY,MI,MJ,MN,NLT,JYEARX  !! ,ILON,JLAT
       REAL*8 WTTI,WTTJ, WTSI,WTSJ,WTMJ,WTMI, XMI,DSO3
 
 C**** Deal with out-of-range years (incl. starts before 1850)
@@ -2348,6 +2348,7 @@ C**** Deal with out-of-range years (incl. starts before 1850)
 
       IF(IFIRST.EQ.1) THEN
 
+      if(plbo3(1).lt.plb0(1)) plbo3(1)=plb0(1)
       IF(MADO3M.lt.0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
         nfo3=0
@@ -2472,7 +2473,7 @@ C          Stratospheric ozone (above level LJTTRO(J)) is linear in time
 C     ------------------------------------------------------------------
 
       CALL O3_WTS (IYIO3,LMONTR, IYR,IYEAR(IY-1), JYEARX-1,12,     ! in
-     *             WTTI,WTTJ, WTSI,WTSJ, MI,MK,MN)                 ! out
+     *             WTTI,WTTJ, WTSI,WTSJ, MI,MJ,MN)                 ! out
 
       DO 290 J=1,JM
       NLT=LJTTRO(J)     !      NLT=LJTTRO(J) is top layer of troposphere
@@ -2486,7 +2487,7 @@ C     ------------------------------------------------------------------
 C     DSO3 = add-on residual intra-decadal stratospheric O3 variability
 C     ------------------------------------------------------------------
       DO 280 L=NLT+1,NLO3
-      DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MK)
+      DSO3=OTREND(J,L,MN)-WTSI*OTREND(J,L,MI)-WTSJ*OTREND(J,L,MJ)
       DO 270 I=1,IM
       O3YEAR(I,J,L,0)=WTSI*O3ICMA(I,J,L,12)+WTSJ*O3JCMA(I,J,L,12)+ DSO3
       IF(O3YEAR(I,J,L,0).LT.0.) O3YEAR(I,J,L,0)=0.
@@ -3650,7 +3651,7 @@ C       Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
 C       ---------------------------------  ------------------  --------
 C        1    2    3    4    5    6    7    8    9   10   11   12   13
 C       SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
-C    +  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
+C    +  1.0, 1.0, .26, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/
 
 C      A6YEAR          PRE                  SUI         OCI        BCI
 C     ------------------------------------------------------------------
@@ -9729,13 +9730,18 @@ C
   460 CONTINUE
 C
       IF(KLIMIT.GT.0)
-     +WRITE(KW,6400) JYRREF,JJDAYO,JMONTH,MADO3M,(L,L=2,15)
+     +WRITE(KW,6400) JYRREF,JJDAYO,JMONTH,MADO3M,(L,L=2,NL)
  6400 FORMAT(/' (4)=INDEX  JYRREF=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone: Zonal-mean Vertical Distribution (cmSTP)'
-     +      ,T126,'MADO3=',I2/'  JLAT DLAT46   COLUMN  L =   1',14I7)
+     +      ,T126,'MADO3=',I2/'  JLAT DLAT46   COLUMN  L =   1',14I7/
+     +    I31,14I7)
       IF(KLIMIT.LT.1)
      +WRITE(KW,7400) JYRREF,JJDAYO,JMONTH,MADO3M
-     +              ,(PLB0(I),I=1,15),(L,L=2,15)
+     +      ,(PLB0(I),I=1,15),(L,L=2,15)
+      IF(KLIMIT.LT.1.and.nl.gt.15) then
+        write(KW,'(F33.2,14F7.2)') (PLB0(I),I=16,NL)
+        write(KW,'(I31,14I7)') (L,L=16,NL)
+      END IF
  7400 FORMAT(/' (4)=INDEX  JYRREF=',I5,'  JDAY=',I3,'   JMONTH=',I2
      +      ,T50,' Ozone: Zonal-mean Vertical Distribution (cmSTP)'
      +      ,T126,'MADO3=',I2//21X,'PLB0 =',F6.1,9F7.1,5F7.2
@@ -9744,19 +9750,19 @@ C
       DO 470 JJ=1,46
       J=47-JJ
       IF(KLIMIT.GT.0) GO TO 470
-      WRITE(KW,6401) J,DLAT46(J),O3COL(J),(O3(J,L),L=1,15)
- 6401 FORMAT(I5,F8.2,F9.5,4X,15F7.5)
+      WRITE(KW,6401) J,DLAT46(J),O3COL(J),(O3(J,L),L=1,NL)
+ 6401 FORMAT(I5,F8.2,F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
   470 CONTINUE
       IF(KLIMIT.LT.1) WRITE(KW,6402)
  6402 FORMAT(' ')
-      WRITE(KW,6403) O3COL(48),(O3(48,L),L=1,15)
- 6403 FORMAT(11X,'NH',F9.5,4X,15F7.5)
+      WRITE(KW,6403) O3COL(48),(O3(48,L),L=1,NL)
+ 6403 FORMAT(11X,'NH',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
       IF(KLIMIT.LT.1) WRITE(KW,6402)
-      WRITE(KW,6404) O3COL(47),(O3(47,L),L=1,15)
- 6404 FORMAT(11X,'SH',F9.5,4X,15F7.5)
+      WRITE(KW,6404) O3COL(47),(O3(47,L),L=1,NL)
+ 6404 FORMAT(11X,'SH',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
       IF(KLIMIT.LT.1) WRITE(KW,6402)
-      WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,15)
- 6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15F7.5)
+      WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,NL)
+ 6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
       GO TO 9999
 C
 C

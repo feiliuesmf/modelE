@@ -1,7 +1,7 @@
 E001C12.R GISS Model E                                 gas 06/00
 
 WARNING: The boundary conditions used here may not be what you want
-         and no tuning has yet been done.
+         and only preliminary tuning has been done.
   Please check and see before running
 E001C12: modelE1 (3.0) 8x10
 
@@ -64,16 +64,16 @@ RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux  ! need KSOLAR=2
 RADNE=topcld.trscat8
 ! new ozone files (minimum 1, maximum 9 files)
-O3file_01=aug2003_o3_shindelltrop_72x46x49x12_1850
-O3file_02=aug2003_o3_shindelltrop_72x46x49x12_1890
-O3file_03=aug2003_o3_shindelltrop_72x46x49x12_1910
-O3file_04=aug2003_o3_shindelltrop_72x46x49x12_1930
-O3file_05=aug2003_o3_shindelltrop_72x46x49x12_1950
-O3file_06=aug2003_o3_shindelltrop_72x46x49x12_1960
-O3file_07=aug2003_o3_shindelltrop_72x46x49x12_1970
-O3file_08=aug2003_o3_shindelltrop_72x46x49x12_1980
-O3file_09=aug2003_o3_shindelltrop_72x46x49x12_1990
-O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
+O3file_01=jan2004_o3_shindelltrop_72x46x49x12_1850
+O3file_02=jan2004_o3_shindelltrop_72x46x49x12_1890
+O3file_03=jan2004_o3_shindelltrop_72x46x49x12_1910
+O3file_04=jan2004_o3_shindelltrop_72x46x49x12_1930
+O3file_05=jan2004_o3_shindelltrop_72x46x49x12_1950
+O3file_06=jan2004_o3_shindelltrop_72x46x49x12_1960
+O3file_07=jan2004_o3_shindelltrop_72x46x49x12_1970
+O3file_08=jan2004_o3_shindelltrop_72x46x49x12_1980
+O3file_09=jan2004_o3_shindelltrop_72x46x49x12_1990
+O3trend=jan2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_8x10.ij
@@ -90,7 +90,7 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 do_polefix=0    ! polefix enhancements not yet valid for real 8x10 resolution
 
 KOCEAN=0
-U00ice=.55   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
+U00ice=.74   ! tune this first to get reas.alb/cldcvr 
 U00wtrX=1.
 
 ! parameters that control the Shapiro filter

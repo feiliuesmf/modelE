@@ -47,8 +47,8 @@ AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, IS
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
-!1979 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-!1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
+!1980 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! also change SICE and U00wtrX (1.39->1.37) and *_yr=
+!1980 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! also change OSST and U00wtrX (1.39->1.37) and *_yr=
     ! if the prescr. ocean varies from year to year use instead:
 ! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - 2002
 ! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - 2002
@@ -78,16 +78,16 @@ RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux      ! need KSOLAR=2
 RADNE=topcld.trscat8
 ! new ozone files (minimum 1, maximum 9 files)
-O3file_01=aug2003_o3_shindelltrop_72x46x49x12_1850
-O3file_02=aug2003_o3_shindelltrop_72x46x49x12_1890
-O3file_03=aug2003_o3_shindelltrop_72x46x49x12_1910
-O3file_04=aug2003_o3_shindelltrop_72x46x49x12_1930
-O3file_05=aug2003_o3_shindelltrop_72x46x49x12_1950
-O3file_06=aug2003_o3_shindelltrop_72x46x49x12_1960
-O3file_07=aug2003_o3_shindelltrop_72x46x49x12_1970
-O3file_08=aug2003_o3_shindelltrop_72x46x49x12_1980
-O3file_09=aug2003_o3_shindelltrop_72x46x49x12_1990
-O3trend=aug2003_o3timetrend_46x49x2412_1850_2050
+O3file_01=jan2004_o3_shindelltrop_72x46x49x12_1850
+O3file_02=jan2004_o3_shindelltrop_72x46x49x12_1890
+O3file_03=jan2004_o3_shindelltrop_72x46x49x12_1910
+O3file_04=jan2004_o3_shindelltrop_72x46x49x12_1930
+O3file_05=jan2004_o3_shindelltrop_72x46x49x12_1950
+O3file_06=jan2004_o3_shindelltrop_72x46x49x12_1960
+O3file_07=jan2004_o3_shindelltrop_72x46x49x12_1970
+O3file_08=jan2004_o3_shindelltrop_72x46x49x12_1980
+O3file_09=jan2004_o3_shindelltrop_72x46x49x12_1990
+O3trend=jan2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46.ij
@@ -121,9 +121,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.59      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.40    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
-!        U00wtrX=1.345    ! use with 1880 atmosphere/ocean
-!1979    U00wtrX=1.22     ! use with 1979 atmosphere/ocean
+U00wtrX=1.39    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+!1980 U00wtrX=1.37  !  also change OSST/SICE files and atm.constituents *_yr=
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
 
 RWCLDOX=1.   !  wtr cld particle size *RWCLDx over ocean
