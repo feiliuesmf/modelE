@@ -502,11 +502,13 @@ C**** update tracer mass and diagnostics
         taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
 !$OMP END PARALLEL DO
+      if (naij.gt.0) then
       do j=1,jm
         do i=1,imaxj(j)
           taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
         end do
       end do
+      end if 
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
       RETURN

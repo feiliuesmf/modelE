@@ -6,6 +6,8 @@
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
+!@param lmAER maximum height for AEROCOM emissions (RESOLUTION DEPENDENT?)
+      INTEGER, PARAMETER :: lmAER = 7    
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8 DMSinput(im,jm,12)
 c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
@@ -20,13 +22,13 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var BCI_src    BC Industrial source (kg/s/box)
       real*8 BCI_src(im,jm)
 !@var BCB_src    BC Biomass source (kg/s/box)
-      real*8 BCB_src(im,jm,6,12)
+      real*8 BCB_src(im,jm,lmAER,12)
 !@var OCI_src    OC Industrial source (kg/s/box)
       real*8 OCI_src(im,jm)
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8 OCT_src(im,jm,12)
 !@var OCB_src    OC Biomass source (kg/s/box)
-      real*8 OCB_src(im,jm,6,12)
+      real*8 OCB_src(im,jm,lmAER,12)
 !@var BCII_src_3D  BCI aircraft source (kg/s)
       real*8 BCI_src_3D(im,jm,lm)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
@@ -36,7 +38,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var SO2_src_3D SO2 volcanic, aircraft sources (and biomass) (kg/s)
       real*8 SO2_src_3D(im,jm,lm,nso2src_3D)
 !@var SO2_biosrc_3D SO2  biomass(kg/s)
-      real*8 SO2_biosrc_3D(im,jm,7,12)
+      real*8 SO2_biosrc_3D(im,jm,lmAER,12)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, DIMENSION(IM,JM):: PBLH = 0,shdtt = 0.   ! ,MDF
@@ -368,8 +370,8 @@ C**** initialise source arrays
       do l=1,lm
         tr3Dsource(:,:,l,1,n_DMS)=0. ! DMS chem sink
         tr3Dsource(:,:,l,1,n_MSA)=0. ! MSA chem sink
-        tr3Dsource(:,:,l,3,n_SO2)=0. ! SO2 chem source
-        tr3Dsource(:,:,l,4,n_SO2)=0. ! SO2 chem sink
+        tr3Dsource(:,:,l,4,n_SO2)=0. ! SO2 chem source
+        tr3Dsource(:,:,l,5,n_SO2)=0. ! SO2 chem sink
         tr3Dsource(:,:,l,1,n_SO4)=0. ! SO4 chem source
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
@@ -547,7 +549,7 @@ c     *  PPRES,RK4,EK4,R4,D4,ohmc
        d42 = exp(-rxts2(i,j,l)*dtsrc)     
        d43 = exp(-rxts3(i,j,l)*dtsrc)     
        d44 = exp(-rxts4(i,j,l)*dtsrc)     
-       tr3Dsource(i,j,l,4,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
+       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)

@@ -2387,6 +2387,7 @@ c Oxidants
 C**** Tracer sources, sinks and specials
 C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
+      ijts_3Dsource(:,:)=0
 
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
@@ -3493,9 +3494,19 @@ c production of SO2 from aircraft
         ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c put in production of SO2 from DMS
+c emissions of biomass SO2
         k = k + 1
         ijts_3Dsource(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Biomass SO2 source'
+        sname_ijts(k) = 'SO2_source_from_biomass'
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in production of SO2 from DMS
+        k = k + 1
+        ijts_3Dsource(4,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from DMS'
@@ -3505,7 +3516,7 @@ c put in production of SO2 from DMS
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in chemical loss of SO2
         k = k + 1
-        ijts_3Dsource(4,n) = k
+        ijts_3Dsource(5,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 Chemical sink'
@@ -3525,21 +3536,11 @@ c emissions of industrial SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in production of SO2 from heter chem
         k = k + 1
-        ijts_3Dsource(5,n) = k
+        ijts_3Dsource(6,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 heter chem sink'
         sname_ijts(k) = 'SO2_het_chem_sink'
-        ijts_power(k) = -15.
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c emissions of biomass SO2
-        k = k + 1
-        ijts_3Dsource(6,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Biomass SO2 source'
-        sname_ijts(k) = 'SO2_source_from_biomass'
         ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5624,10 +5625,12 @@ c 1.3 converts OC to OM
       else ! AEROCOM
       call openunit('TERPENE',mon_unit,.false.)
       do mmm=1,99999
-      read(mon_unit,*) ii,jj,mm,carbstuff
+c      read(mon_unit,*) ii,jj,mm,carbstuff
+      read(mon_unit,*) ii,jj,carbstuff  ! temp fix
       if (ii.eq.0.) go to 18
       carbstuff=carbstuff/(sday*30.4d0)
-      OCT_src(ii,jj,mm)=carbstuff
+c      OCT_src(ii,jj,mm)=carbstuff
+      OCT_src(ii,jj,:)=carbstuff  ! temp fix
       end do
  18   continue
       call closeunit(mon_unit)
@@ -5686,7 +5689,7 @@ c convert from month to second. dxyp??
       BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
       OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0
       do m=1,12 
-      do l=1,6
+      do l=1,7
       BCB_src(i,j,l,m)=BCB_src(i,j,l,m)*ccnv
       OCB_src(i,j,l,m)=OCB_src(i,j,l,m)*ccnv
       end do
@@ -6148,10 +6151,7 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: itime
-#ifdef TRACERS_AEROSOLS_Koch
-     * ,jmon
-#endif
+      USE MODEL_COM, only: itime,jmon
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
@@ -6160,7 +6160,7 @@ C****
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: SO2_src_3d,BCI_src_3d,BCB_src,
-     * OCB_src,SO2_biosrc_3D
+     *     OCB_src,SO2_biosrc_3D,lmAER
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow
@@ -6216,16 +6216,18 @@ C**** three 3D sources (aircraft, volcanos and biomass) read in from files
       call apply_tracer_3Dsource(1,n) ! volcanos
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,2)
       if (imAER.eq.0) call apply_tracer_3Dsource(2,n) ! aircraft
-      tr3Dsource(:,J_0:J_1,1:7,3,n) = SO2_biosrc_3D(:,J_0:J_1,1:7,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = SO2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.975d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
       call apply_tracer_3Dsource(3,n) ! biomass
 
       case ('SO4')
 C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,3,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(3,n) ! volcanos
-      tr3Dsource(:,J_0:J_1,1:7,4,n) = SO2_biosrc_3D(:,J_0:J_1,1:7,jmon)
+      tr3Dsource(:,J_0:J_1,1:lmAER,4,n) = SO2_biosrc_3D(:,J_0:J_1,:,jmon)
      *     *0.0375d0
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,4,n) = 0.
       call apply_tracer_3Dsource(4,n) ! biomass
 
        case ('BCII')
@@ -6235,14 +6237,14 @@ C**** aircraft source for fresh industrial BC
 
        case ('BCB')
 C**** biomass source for BC 
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      tr3Dsource(:,J_0:J_1,1:6,1,n) = BCB_src(:,J_0:J_1,1:6,jmon)
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,1,n) = 0.
+      tr3Dsource(:,J_0:J_1,1:lmAER,1,n) = BCB_src(:,J_0:J_1,:,jmon)
       call apply_tracer_3Dsource(1,n) ! biomass 
 
        case ('OCB')
 C**** biomass source for OC 
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      tr3Dsource(:,J_0:J_1,1:6,1,n) = OCB_src(:,J_0:J_1,1:6,jmon)
+      tr3Dsource(:,J_0:J_1,lmAER+1:lm,1,n) = 0.
+      tr3Dsource(:,J_0:J_1,1:lmAER,1,n) = OCB_src(:,J_0:J_1,:,jmon)
       call apply_tracer_3Dsource(1,n) ! biomass 
 #endif
 #ifdef TRACERS_COSMO
@@ -6277,8 +6279,8 @@ C****
        call aerosol_gas_chem
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(1,n_MSA)  ! MSA chem source
-       call apply_tracer_3Dsource(3,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem sink
+       call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem source
+       call apply_tracer_3Dsource(5,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
        call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
@@ -6290,7 +6292,7 @@ C****
        call apply_tracer_3Dsource(1,n_OCB) ! OCB biomass source 
 
        call heter
-       call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
+       call apply_tracer_3Dsource(6,n_SO2) ! SO2 het chem sink
        call apply_tracer_3Dsource(2,n_SO4) ! SO4 het chem source
        call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink
 
