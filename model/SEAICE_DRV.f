@@ -258,7 +258,7 @@ C****
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice,jhour
-     *     ,itocean,itlake
+     *     ,itocean,itlake,dtsrc
       USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE SEAICE, only : simelt,tfrez
@@ -267,7 +267,7 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc
+      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc,fwsim
 #ifdef TRACERS_WATER
      *     ,trmelti
 #endif
@@ -745,7 +745,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,sss,ui2rho,fwsim
+      USE FLUXES, only : gtemp,sss,ui2rho,fwsim,msicnv
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -811,6 +811,7 @@ C**** set GTEMP etc. array for ice
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif
         FWSIM(I,J) = RSI(I,J)*(MSI1+MSI(I,J)-SUM(SSI(1:LMI,I,J)))
+        MSICNV(I,J)=0.   ! always initialise to zero
       END DO
       END DO
 

@@ -3238,14 +3238,14 @@ C****
       END SUBROUTINE TOC2SST
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
-!@sum  io_oda dummy routine for consitency with uncoupled model
+!@sum  io_oda dummy routine for consistency with uncoupled model
 !@auth Gavin Schmidt
 !@ver  1.0
       RETURN
       END SUBROUTINE io_oda
 
       SUBROUTINE ADVSI_DIAG
-!@sum ADVSI_DIAG dummy routine for consitency with qflux model
+!@sum ADVSI_DIAG dummy routine for consistency with qflux model
       RETURN
       END
 

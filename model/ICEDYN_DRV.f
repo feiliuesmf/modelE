@@ -547,7 +547,7 @@ c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv
+      USE FLUXES, only : gtemp,apress,msicnv,fwsim
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -956,7 +956,7 @@ C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
         DO J=1,JM
           DO I=1,IMAXJ(J)
-C**** Fresh water sea ice mass convergence
+C**** Fresh water sea ice mass convergence (needed for qflux model)
             MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
      *           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
      *           +MSI(I,J)-SUM(SSI(:,I,J)))
@@ -972,6 +972,8 @@ C**** sea ice prognostic variables
               END DO
 #endif
             END DO
+            FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
+     *           SUM(SSI(1:LMI,I,J)))
           END DO
         END DO
 C**** Set atmospheric arrays
@@ -997,8 +999,6 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
           GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
 #endif
         END DO
-C**** For qflux model need to adjust diagnostics
-        CALL ADVSI_DIAG
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=1,JM
           DO I=1,IMAXJ(J)

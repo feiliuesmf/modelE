@@ -256,6 +256,7 @@ C**** CALCULATE DRY CONVECTION ABOVE PBL
          IF (MODD5S.EQ.0) CALL DIAGCA (9)
 C**** ADVECT ICE
       CALL ADVSI
+      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise 
          CALL CHECKT ('ADVSI ')
 C**** UPDATE DIAGNOSTIC TYPES
       CALL UPDTYPE
@@ -1343,7 +1344,7 @@ C**** CORRECTED.
       INTEGER I,J
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
-
+      
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
         CALL CHECK3(U,IM,JM,LM,SUBR,'u     ')

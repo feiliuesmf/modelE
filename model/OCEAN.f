@@ -21,7 +21,7 @@
      *     ,trsi,trsi0,ntm
 #endif
       USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp,sss,fwsim
+      USE FLUXES, only : gtemp,sss,fwsim,mlhc
       USE DAGCOM, only : aij, ij_smfx, aj, j_implh, j_implm
       IMPLICIT NONE
       SAVE
@@ -422,6 +422,8 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
             AJ(J,J_IMPLH,ITOICE)=AJ(J,J_IMPLH,ITOICE)-FOCEAN(I,J)*RSI(I
      *           ,J)*SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)
             MSI(I,J)=MSINEW
+            FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
+     *           ,I,J)))
           END IF
         END IF
       END IF
@@ -431,7 +433,7 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       END SUBROUTINE OCLIM
 
       SUBROUTINE OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
-     *     ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O
+     *     ,RVRERUN,EVAPO,EVAPI,TFW,WTRW,RUN4O,ERUN4O
      *     ,RUN4I,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@+    ACEFO/I are the freshwater ice amounts,
@@ -447,9 +449,9 @@ C**** Calculate freshwater mass to be removed, and then any energy/salt
       REAL*8, INTENT(IN) :: ROICE, SMSI, WTRO, EVAPO, EVAPI, RUN0
       REAL*8, INTENT(IN) :: FODT, FIDT, OTDT, RVRRUN, RVRERUN
       REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACEFI, RUN4O, RUN4I
-     *     , ERUN4O, ERUN4I
+     *     , ERUN4O, ERUN4I, WTRW
       REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ, ENRGO
-      REAL*8 WTRW0, ENRGW0, WTRW, ENRGW, WTRI0, SMSI0
+      REAL*8 WTRW0, ENRGW0, ENRGW, WTRI0, SMSI0
 C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
 
@@ -642,11 +644,11 @@ C****
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : twopi,edpery
+      USE CONSTANT, only : twopi,edpery,shw,rhows
       USE MODEL_COM, only : im,jm,kocean,focean,jday
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
-      USE FLUXES, only : gtemp
-      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1O,
+      USE FLUXES, only : gtemp,mlhc,fwsim
+      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       IMPLICIT NONE
       INTEGER I,J
@@ -686,7 +688,10 @@ C**** RESTRUCTURE THE OCEAN LAYERS
 C**** set gtemp array for ocean temperature
       DO J=1,JM
       DO I=1,IM
-        IF (FOCEAN(I,J).gt.0) GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
+        IF (FOCEAN(I,J).gt.0) THEN
+          GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
+          MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
+        END IF
       END DO
       END DO
 C****
@@ -778,7 +783,7 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim
+     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -797,7 +802,8 @@ C**** prognostic variables
 C**** fluxes
       REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0
 C**** output from OSOURC
-      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI
+      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI,
+     *     WTRW
 
       INTEGER I,J,JR
 
@@ -834,7 +840,7 @@ C**** get river runoff/simelt flux
 
 C**** Calculate the amount of ice formation
             CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
-     *           ,RVRERUN,EVAPO,EVAPI,TFO,RUN4O,ERUN4O
+     *           ,RVRERUN,EVAPO,EVAPI,TFO,WTRW,RUN4O,ERUN4O
      *           ,RUN4I,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 
 C**** Resave prognostic variables
@@ -852,6 +858,7 @@ C**** regional diagnostics
      *             (RUN4O *POCEAN+RUN4I *POICE)*DXYPJ
             AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+
      *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
+            MLHC(I,J)=SHW*WTRW
           ELSE
             ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
           END IF
@@ -881,19 +888,20 @@ C****
       END SUBROUTINE OCEANS
 
       SUBROUTINE ADVSI_DIAG
-!@sum  ADVSI_DIAG adjust diagnostics for qflux if ADVSI used
+!@sum  ADVSI_DIAG adjust diagnostics + mlhc for qflux
 !@auth Gavin Schmidt
-      USE CONSTANT, only : shw
-      USE MODEL_COM, only : focean,im,jm,itocean,itoice
+      USE CONSTANT, only : shw,rhows
+      USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean
       USE GEOM, only : dxyp,imaxj
-      USE STATIC_OCEAN, only : tocean
+      USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi
-      USE FLUXES, only : fwsim,msicnv
+      USE FLUXES, only : fwsim,msicnv,mlhc
       USE DAGCOM, only : aj,areg,J_IMPLM,J_IMPLH,jreg
       IMPLICIT NONE
       INTEGER I,J,JR
       REAL*8 DXYPJ,RUN4,ERUN4,TGW,POICE,POCEAN
 
+      IF (KOCEAN.eq.1) THEN   ! qflux model
       DO J=1,JM
       DXYPJ=DXYP(J)
       DO I=1,IMAXJ(J)
@@ -904,6 +912,7 @@ C****
           TGW  = TOCEAN(1,I,J)
           RUN4  = MSICNV(I,J)
           ERUN4 = TGW*SHW*RUN4
+          MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
 C**** Open Ocean diagnostics
           AJ(J,J_IMPLM,ITOCEAN)=AJ(J,J_IMPLM,ITOCEAN)+RUN4 *POCEAN
           AJ(J,J_IMPLH,ITOCEAN)=AJ(J,J_IMPLH,ITOCEAN)+ERUN4*POCEAN
@@ -916,6 +925,7 @@ C**** regional diagnostics
         END IF
       END DO
       END DO
+      END IF
 
       RETURN
       END
