@@ -192,8 +192,10 @@ C**** limit freezing if lake is between 50 and 20cm depth
         END IF
       END IF
 #ifdef TRACERS_WATER
-      TRF1(:) = ACEF1*TRLAKEL(:,1)/MLAKE(1)
-      TRF2(:) = ACEF2*TRLAKEL(:,2)/(MLAKE(2)+teeny)
+      TRF1(:) = ACEF1*TRLAKEL(:,1)/(MLAKE(1)+ACEF1)
+      TRF2(:) = ACEF2*TRLAKEL(:,2)/(MLAKE(2)+ACEF2+teeny)
+      TRLAKEL(:,1)=TRLAKEL(:,1)-TRF1(:)
+      TRLAKEL(:,2)=TRLAKEL(:,2)-TRF2(:)
 #endif
 
 C**** combine mass and energy fluxes for output
@@ -352,8 +354,8 @@ C****
       IMPLICIT NONE
 
       LOGICAL inilake
-!@var I,J,I72,IU,JU,ID,JD,IMAX loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,IMAX,INM
+!@var I,J,I72,IU,JU,ID,JD loop variables
+      INTEGER I,J,I72,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
@@ -552,8 +554,7 @@ C****
       SPMAX = 5.
       DZDH1 = .00005
       DO JU=1,JM-1
-        IMAX=IMAXJ(JU)
-        DO IU=1,IMAX
+        DO IU=1,IMAXJ(JU)
           IF(KDIREC(IU,JU).gt.0) THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
@@ -823,15 +824,21 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,fearth,qcheck
-      USE GEOM, only : dxyp
+      USE GEOM, only : dxyp,imaxj
       USE LAKES
       USE LAKES_COM
-
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm, trname
+#endif      
       IMPLICIT NONE
 
-      INTEGER I,J !@var I,J loop variables
+      INTEGER I,J,N !@var I,J loop variables
       CHARACTER*6, INTENT(IN) :: SUBR
       LOGICAL QCHECKL
+#ifdef TRACERS_WATER
+      integer :: imax,jmax
+      real*8 relerr,errmax
+#endif      
 
 C**** Check for NaN/INF in lake data
       CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
@@ -871,6 +878,33 @@ C**** Check total lake mass (<10%, >10x orig depth)
         END IF
       END DO
       END DO
+
+#ifdef TRACERS_WATER
+C**** Check conservation of water tracers in lake
+      do n=1,ntm
+        if (trname(n).eq.'Water') then
+          errmax = 0. ; imax=1 ; jmax=1 
+          do j=1,jm
+          do i=1,imaxj(j)
+            if (flake(i,j).gt.0) then
+            relerr=max(
+     *             abs(trlake(n,1,i,j)-mldlk(i,j)*rhow*flake(i,j)*dxyp(j
+     *             ))/trlake(n,1,i,j),abs(trlake(n,1,i,j)+trlake(n,2,i,j
+     *             )-mwl(i,j))/(trlake(n,1,i,j)+trlake(n,2,i,j)))
+            if (relerr.gt.errmax) then
+              imax=i ; jmax=j ; errmax=relerr
+            end if
+            end if
+          end do
+          end do
+          print*,"Relative error in lake mass after ",subr,":",imax
+     *         ,jmax,errmax,trlake(n,:,imax,jmax),mldlk(imax,jmax)*rhow
+     *         *flake(imax,jmax)*dxyp(jmax),mwl(imax,jmax)-mldlk(imax
+     *         ,jmax)*rhow*flake(imax,jmax)*dxyp(jmax)
+        end if
+      end do
+#endif
+
       IF (QCHECKL) STOP 'CHECKL: Lake variables out of bounds'
       RETURN
 C****
@@ -898,7 +932,7 @@ C****
 #endif
       USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
-      INTEGER IMAX,I,J,L
+      INTEGER I,J,L
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -945,8 +979,7 @@ C**** set ice on/off days
 
 C**** Melt too small lake ice
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           IF (FLAKE(I,J)*RSI(I,J) .GT. 0 .and. RSI(I,J).lt.1d-4) THEN
             ROICE=RSI(I,J)
             MSI2 =MSI(I,J)
@@ -1024,7 +1057,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny
       USE MODEL_COM, only : im,jm,fland,flice,itlake,itlkice
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,dxyp,bydxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
@@ -1037,8 +1070,8 @@ C****
       USE DAGCOM, only : aj,aij,ij_f0oc
       IMPLICIT NONE
 
-      REAL*8 PRCP,ENRGP,DXYPJ,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
-      INTEGER I,J,IMAX
+      REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
+      INTEGER I,J
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
@@ -1046,9 +1079,7 @@ C****
       CALL PRINTLK("PR")
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
       IF (FLAKE(I,J)+FLICE(I,J).gt.0) THEN
         POLAKE=(1.-RSI(I,J))*FLAKE(I,J)
         PLKICE=RSI(I,J)*FLAKE(I,J)
@@ -1065,12 +1096,12 @@ C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
-        MWL(I,J) = MWL(I,J) +  RUN0*DXYPJ
-        GML(I,J) = GML(I,J) + ERUN0*DXYPJ
+        MWL(I,J) = MWL(I,J) +  RUN0*DXYP(J)
+        GML(I,J) = GML(I,J) + ERUN0*DXYP(J)
 #ifdef TRACERS_WATER
-        TRUN0(:) = POLAKE*TRPREC(:,I,J) + PLKICE*TRUNPSI(:,I,J)
-     *                                  + PLICE *TRUNOLI(:,I,J)
-        TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*DXYPJ
+        TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYDXYP(J)
+     *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
+        TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*DXYP(J)
 #endif
 
         IF (FLAKE(I,J).gt.0) THEN
@@ -1120,7 +1151,7 @@ C****
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
       IMPLICIT NONE
 C**** grid box variables
-      REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE, DXYPJ
+      REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE
 !@var MLAKE,ELAKE mass and energy /m^2 for lake model layers
       REAL*8, DIMENSION(2) :: MLAKE,ELAKE
 C**** fluxes
@@ -1129,18 +1160,16 @@ C**** fluxes
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
 #ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM) :: TRUN0,TRO,TRI,TREVAP
+      REAL*8, DIMENSION(NTM) :: TRUN0,TRO,TRI,TREVAP,TOTTRL
       REAL*8, DIMENSION(NTM,2) :: TRLAKEL
 #endif
 
-      INTEGER I,J,IMAX,JR
+      INTEGER I,J,JR
 
       CALL PRINTLK("GR")
 
       DO J=1,JM
-      IMAX=IMAXJ(J)
-      DXYPJ=DXYP(J)
-      DO I=1,IMAX
+      DO I=1,IMAXJ(J)
       JR=JREG(I,J)
       ROICE=RSI(I,J)
       PLKICE=FLAKE(I,J)*ROICE
@@ -1156,8 +1185,8 @@ C**** Add land ice and surface runoff to lake variables
 C**** calculate flux over whole box
         RUN0 =RUNLI*PLICE + RUNE*PEARTH
         ERUN0=             ERUNE*PEARTH
-        MWL(I,J) = MWL(I,J) + RUN0*DXYPJ
-        GML(I,J) = GML(I,J) +ERUN0*DXYPJ
+        MWL(I,J) = MWL(I,J) + RUN0*DXYP(J)
+        GML(I,J) = GML(I,J) +ERUN0*DXYP(J)
         IF (FLAKE(I,J).gt.0) THEN
           HLK1=TLAKE(I,J)*MLDLK(I,J)*RHOW*SHW
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
@@ -1168,7 +1197,7 @@ C**** calculate flux over whole box
         END IF
 #ifdef TRACERS_WATER
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
-     *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)
+     *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*DXYP(J)
 #endif
       END IF
 
@@ -1184,18 +1213,22 @@ C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
         F2DT =ERUNOSI(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(1)=MLDLK(I,J)*RHOW
-        MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYPJ)-MLAKE(1),0d0)
+        MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYP(J))-MLAKE(1),0d0)
         ELAKE(1)=TLK1*SHW*MLAKE(1)
-        ELAKE(2)=GML(I,J)/(FLAKE(I,J)*DXYPJ)-ELAKE(1)
+        ELAKE(2)=GML(I,J)/(FLAKE(I,J)*DXYP(J))-ELAKE(1)
+#ifdef TRACERS_WATER
+        TRLAKEL(:,:)=TRLAKE(:,:,I,J)/(FLAKE(I,J)*DXYP(J))
+        TRUN0(:)=TRUNOSI(:,I,J)
+        TREVAP(:)=TREVAPOR(:,1,I,J)
+#endif
         IF (MLAKE(2).lt.1d-10) THEN
           MLAKE(2)=0.
           ELAKE(2)=0.
-        END IF
 #ifdef TRACERS_WATER
-        TRLAKEL(:,:)=TRLAKE(:,:,I,J)
-        TRUN0(:)=TRUNOSI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,I,J,1)
+          TRLAKEL(:,2)=0.
 #endif
+        END IF
+
 C**** Limit FSR2 in the case of thin second layer
         FSR2=MIN(FSR2,MLAKE(2)/(MLAKE(1)+MLAKE(2)))
 
@@ -1203,7 +1236,7 @@ C**** Limit FSR2 in the case of thin second layer
         AJ(J,J_EVAP,ITLAKE) =AJ(J,J_EVAP,ITLAKE) +EVAPO*POLAKE
         AJ(J,J_TYPE,ITLAKE) =AJ(J,J_TYPE,ITLAKE) +      POLAKE
         AJ(J,J_TYPE,ITLKICE)=AJ(J,J_TYPE,ITLKICE)+      PLKICE
-        IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TLK1*POLAKE*DXYPJ
+        IF (JR.ne.24) AREG(JR,J_TG1)=AREG(JR,J_TG1)+TLK1*POLAKE*DXYP(J)
         AIJ(I,J,IJ_TGO)  =AIJ(I,J,IJ_TGO)  +TLK1
         AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TLK1 *POLAKE
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
@@ -1229,8 +1262,8 @@ c       TKE=0.5 * (19.3)^(2/3) * U2rho /rhoair ! (m/s)^2
      *       HLAKE(I,J),TKE,ROICE,DTSRC)
 
 C**** Resave prognostic variables
-        MWL(I,J)  =(MLAKE(1)+MLAKE(2))*(FLAKE(I,J)*DXYPJ)
-        GML(I,J)  =(ELAKE(1)+ELAKE(2))*(FLAKE(I,J)*DXYPJ)
+        MWL(I,J)  =(MLAKE(1)+MLAKE(2))*(FLAKE(I,J)*DXYP(J))
+        GML(I,J)  =(ELAKE(1)+ELAKE(2))*(FLAKE(I,J)*DXYP(J))
         MLDLK(I,J)= MLAKE(1)/RHOW
         IF (MLAKE(2).eq.0.) MLDLK(I,J)=MIN(MINMLD,MLDLK(I,J))
         TLAKE(I,J)= ELAKE(1)/(SHW*MLAKE(1))
@@ -1240,8 +1273,13 @@ C**** Resave prognostic variables
           TLK2    = TLAKE(I,J)
         END IF
 #ifdef TRACERS_WATER
-        TRLAKE(:,:,I,J)=TRLAKEL(:,:)
-        GTRACER(:,1,I,J)=TRLAKEL(:,1)/MLAKE(1)
+        IF (MLAKE(2).eq.0.) THEN
+          TOTTRL(:)=TRLAKEL(:,1)
+          TRLAKEL(:,2)=(MLAKE(1)-MLDLK(I,J)*RHOW)*TRLAKEL(:,1)/MLAKE(1)
+          TRLAKEL(:,1)=TOTTRL(:)-TRLAKEL(:,2)
+        END IF
+        TRLAKE(:,:,I,J)=TRLAKEL(:,:)*(FLAKE(I,J)*DXYP(J))
+        GTRACER(:,1,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
 #endif
         GTEMP(1,1,I,J)=TLAKE(I,J)
         GTEMP(2,1,I,J)=TLK2       ! not used
@@ -1249,7 +1287,7 @@ C**** Resave prognostic variables
 C**** Open lake diagnostics
         AJ(J,J_TG2, ITLAKE)=AJ(J,J_TG2, ITLAKE)+TLK2*POLAKE
         IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TLK2
-     *       *POLAKE*DXYPJ
+     *       *POLAKE*DXYP(J)
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POLAKE
 C**** Ice-covered ocean diagnostics
         AJ(J,J_ERUN2,ITLAKE) =AJ(J,J_ERUN2,ITLAKE) -ENRGFO*POLAKE

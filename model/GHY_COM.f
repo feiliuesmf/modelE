@@ -1,9 +1,14 @@
+#include "rundeck_opts.h"
+
       MODULE GHYCOM
 !@sum  GHYCOM contains the areas used by the Ground Hydrology routines
 !@auth Frank Abramopolus/Igor Aleinov
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE SLE001, only : ngm,imt,nlsn
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
       SAVE
 C bare/veg not in merged array because WBARE does not contain
@@ -45,11 +50,11 @@ ccc topmodel input data
       REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ
 
 #ifdef TRACERS_WATER
-!@var TRBARE,TRVEGE tracer amount in bare and veg. soil fraction (kg)      
+!@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
       REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TRBARE
       REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TRVEGE
 C**** What is the prognostic variable for snow here?
-!@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg) ?????
+!@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
       REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV
 !@var TRSN_IJ tracer amount in snow on earth (kg)  ???? Is this correct?
       REAL*8, DIMENSION(NTM,NLSN,2,IM,JM) :: TRSN_IJ
@@ -96,7 +101,7 @@ C**** What is the prognostic variable for snow here?
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic
       USE GHYCOM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
@@ -114,9 +119,9 @@ C**** What is the prognostic variable for snow here?
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS01"
 
       write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a10,i3,a1,i3,a,i3,a1,i3,a,i3,a)')'R8 TRBARE(',NTM,
-     *     ',',NGM,',im,jm,) TRVEGE(',NTM,',',NGM,'+1,im,jm,),TRSNOWBV('
-     *     ,ntm,'2,im,jm)'
+     *     ,'(a21,i3,a1,i2,a9,i3,a1,i2,a11,i3,a2)')
+     *     'R8 dim(im,jm) TRBARE(',NTM,',',NGM,'),TRVEGE(',NTM,',',NGM+1
+     *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
       write(MODULE_HEADER(lhead+1:80),'(a6,i1,a13,i1,a)') 'R8 Wb(',
@@ -158,7 +163,7 @@ C**** What is the prognostic variable for snow here?
 !@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic
       USE GHYCOM
       IMPLICIT NONE
 

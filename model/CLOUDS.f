@@ -1422,9 +1422,9 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
         RH00(L)=1.-GRAV*LHE*HDEP/(RVAP*TS*TS)
         IF(DCL.LE.1) THEN
          IF(RI1.LT..25) HDEP1=.5*HDEP
-         IF(RI1.GE..25.AND.RI1.LT.1.) HDEP1=.01-(.5*HDEP-.01)*
+         IF(RI1.GE..25.AND.RI1.LT.1.) HDEP1=.01d0-(.5*HDEP-.01d0)*
      *     (RI1-1.)/.75
-         IF(RI1.GE.1.) HDEP1=.01
+         IF(RI1.GE.1.) HDEP1=.01d0
         IF(RI1.LT..25) THEN
          IF(RI2.LT..25) HDEP1=HDEP
          IF(RI2.GE..25.AND.RI2.LT.1.) HDEP1=.5*HDEP-.5*HDEP*(RI2-1.)/.75

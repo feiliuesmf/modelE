@@ -46,7 +46,7 @@ C****
 !@ver  1.0
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runoli,prec,eprec,gtemp
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
@@ -97,7 +97,7 @@ C****
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)
+        TRPRCP(:)=TRPREC(:,I,J)*BYDXYP(J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
 

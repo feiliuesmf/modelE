@@ -81,19 +81,20 @@ C**** currently saved - should be replaced by fluxed quantities
 #ifdef TRACERS_ON
 !@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
       REAL*8, DIMENSION(IM,JM,ntsurfsrcmax,NTM):: trsource
-!@var TOT_TRSOURCE total of TRSOURCE for each tracers (kg/s)
-      REAL*8, DIMENSION(IM,JM,NTM):: tot_trsource
+!@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
+      REAL*8, DIMENSION(IM,JM,NTM):: trsrfflx
+!@var TRFLUX1 total surface flux for each tracer (kg/s)
+      REAL*8, DIMENSION(IM,JM,NTM):: trflux1
 !@var TRGRDEP gravitationally settled tracers at surface (kg)
       REAL*8, DIMENSION(NTM,IM,JM):: TRGRDEP
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
       REAL*8, DIMENSION(NTM,NSTYPE,IM,JM):: GTRACER
-#endif
 
 #ifdef TRACERS_WATER
 !@var TRPREC tracers in precip (kg)
       REAL*8, DIMENSION(NTM,IM,JM):: TRPREC
-!@var TREVAPOR tracer evaporation over each type (kg) 
-      REAL*8, DIMENSION(NTM,IM,JM,NSTYPE) :: TREVAPOR
+!@var TREVAPOR tracer evaporation over each type (kg/m^2) 
+      REAL*8, DIMENSION(NTM,NSTYPE,IM,JM) :: TREVAPOR
 !@var TRUNPSI tracer in run off from sea/lake ice after precip (kg)
 !@var TRUNOSI tracer in run off from sea/lake ice after surface (kg)
 !@var TRUNOE tracer runoff from earth (kg)
@@ -105,6 +106,7 @@ C**** currently saved - should be replaced by fluxed quantities
       REAL*8, DIMENSION(NTM,2,IM,JM) :: DTRSI
 !@var ftrsi_io ice-ocean tracer fluxes under ice (kg)
       REAL*8, DIMENSION(NTM,IM,JM) :: ftrsi_io
+#endif
 #endif
 
       END MODULE FLUXES

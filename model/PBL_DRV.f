@@ -464,6 +464,9 @@ c ----------------------------------------------------------------------
       USE GEOM, only : imaxj
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_type=>ustar
+#ifdef TRACERS_ON
+     *     ,trabl
+#endif
       IMPLICIT NONE
       integer i,j,iter,lpbl  !@var i,j,iter,lpbl loop variable
 
@@ -485,6 +488,9 @@ c ******* itype=1: Ocean
               vabl(npbl,i,j,1)=vabl(npbl,i,j,2)
               tabl(npbl,i,j,1)=tabl(npbl,i,j,2)
               qabl(npbl,i,j,1)=qabl(npbl,i,j,2)
+#ifdef TRACERS_ON
+              trabl(:,:,i,j,1)=trabl(:,:,i,j,2)
+#endif
               cmgs(i,j,1)=cmgs(i,j,2)
               chgs(i,j,1)=chgs(i,j,2)
               cqgs(i,j,1)=cqgs(i,j,2)
@@ -507,6 +513,9 @@ c ******* itype=2: Ocean ice
               vabl(npbl,i,j,2)=vabl(npbl,i,j,1)
               tabl(npbl,i,j,2)=tabl(npbl,i,j,1)
               qabl(npbl,i,j,2)=qabl(npbl,i,j,1)
+#ifdef TRACERS_ON
+              trabl(:,:,i,j,2)=trabl(:,:,i,j,1)
+#endif
               cmgs(i,j,2)=cmgs(i,j,1)
               chgs(i,j,2)=chgs(i,j,1)
               cqgs(i,j,2)=cqgs(i,j,1)
@@ -529,6 +538,9 @@ c ******* itype=3: Land ice
               vabl(npbl,i,j,3)=vabl(npbl,i,j,4)
               tabl(npbl,i,j,3)=tabl(npbl,i,j,4)
               qabl(npbl,i,j,3)=qabl(npbl,i,j,4)
+#ifdef TRACERS_ON
+              trabl(:,:,i,j,3)=trabl(:,:,i,j,4)
+#endif
               cmgs(i,j,3)=cmgs(i,j,4)
               chgs(i,j,3)=chgs(i,j,4)
               cqgs(i,j,3)=cqgs(i,j,4)
@@ -551,6 +563,9 @@ c ******* itype=4: Land
               vabl(npbl,i,j,4)=vabl(npbl,i,j,3)
               tabl(npbl,i,j,4)=tabl(npbl,i,j,3)
               qabl(npbl,i,j,4)=qabl(npbl,i,j,3)
+#ifdef TRACERS_ON
+              trabl(:,:,i,j,4)=trabl(:,:,i,j,3)
+#endif
               cmgs(i,j,4)=cmgs(i,j,3)
               chgs(i,j,4)=chgs(i,j,3)
               cqgs(i,j,4)=cqgs(i,j,3)

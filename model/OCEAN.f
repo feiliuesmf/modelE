@@ -293,8 +293,8 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
 #ifdef TRACERS_WATER
               DO N=1,NTM
-                TRSI(N,1:2,I,J)=TRSI0(N)*XSI(3:4)*ACE1I
-                TRSI(N,3:4,I,J)=TRSI0(N)*XSI(3:4)*AC2OIM
+                TRSI(N,1:2,I,J)=TRSI0(N)*XSI(1:2)*(ACE1I-SSI0)
+                TRSI(N,3:4,I,J)=TRSI0(N)*XSI(3:4)*(AC2OIM-SSI0)
               END DO
 #endif
               SNOWI(I,J)=0.
@@ -521,6 +521,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix
       USE SEAICE_COM, only : snowi,rsi
       USE FLUXES, only : gtemp,sss,ui2rho
+#ifdef TRACERS_WATER
+     *     ,gtracer
+      USE TRACER_COM, only : trw0
+#endif
       USE DAGCOM, only : npts,icon_OCE
       USE FILEMANAGER
       USE PARAM
@@ -598,6 +602,9 @@ C**** Set ftype array for oceans
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           SSS(I,J) = 34.7d0
+#ifdef TRACERS_WATER
+          GTRACER(:,1,I,J)=trw0(:)
+#endif
         ELSE
           SSS(I,J) = 0.
         END IF
@@ -705,7 +712,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
               SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
               TRSI(:,:,I,J)=TRSIL(:,:)
-              GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+              GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
 C**** set ftype/gtemp arrays
               FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
@@ -907,8 +914,9 @@ C**** Store mass and energy fluxes for formation of sea ice
           DSSI(1,I,J)=SSI0*ACEFO   ! assume constant mean salinity
           DSSI(2,I,J)=SSI0*ACE2F
 #ifdef TRACERS_WATER
-          DTRSI(:,1,I,J)=TRSI0(:)*ACEFO  ! assume const mean tracer conc
-          DTRSI(:,2,I,J)=TRSI0(:)*ACE2F
+C**** assume const mean tracer conc over freshwater amount
+          DTRSI(:,1,I,J)=TRSI0(:)*(1.-SSI0)*ACEFO 
+          DTRSI(:,2,I,J)=TRSI0(:)*(1.-SSI0)*ACE2F
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)

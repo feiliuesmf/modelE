@@ -10,10 +10,10 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : byshi,lhm
+      USE CONSTANT, only : byshi,lhm,teeny
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
      *     ,jday
-      USE GEOM, only : imaxj,dxyp
+      USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
@@ -28,7 +28,7 @@
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DXYPJ,POICE,SALT
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,DXYPJ,POICE,SRUN0
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
@@ -59,13 +59,13 @@
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
 #ifdef TRACERS_WATER
         TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
-        TRPRCP(:)=TRPREC(:,I,J)   ! tracer in precip
+        TRPRCP(:)=TRPREC(:,I,J)*BYDXYP(J)   ! tracer in precip
 #endif
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
-        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SALT,
+        CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
 #ifdef TRACERS_WATER
      *       TRSIL,TRPRCP,TRUN0,
 #endif
@@ -73,7 +73,7 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
         SNOWI(I,J)  =SNOW
         RUNPSI(I,J) =RUN0
-        SRUNPSI(I,J)=SALT
+        SRUNPSI(I,J)=SRUN0
         HSI(:,I,J)=HSIL(:)
         SSI(:,I,J)=SSIL(:)
 #ifdef TRACERS_WATER
@@ -91,7 +91,7 @@ C**** set gtemp array
         MSI(I,J)=MSI2
         GTEMP(1:2,2,I,J)=TSIL(1:2)
 #ifdef TRACERS_WATER
-        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
@@ -149,7 +149,7 @@ C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
 #ifdef TRACERS_WATER
             Trm(:)=GTRACER(:,1,I,J)
-            Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J))
+            Tri(:)=TRSI(:,LMI,I,J)/(XSI(LMI)*MSI(I,J)-SSI(LMI,I,J))
             tralpha(:)=1.
 #endif
             dh = 0.5*(XSI(LMI)*MSI(I,J))/RHOI
@@ -174,6 +174,9 @@ c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
      *               /(XSI(LMI)*MSI(I,J)))
                 mflux=0.
                 sflux=0.
+#ifdef TRACERS_WATER
+                trflux= 0.
+#endif
               END IF
             ELSE   ! for lakes (no salinity so solve directly)
               Ti = (HSI(LMI,I,J)/(XSI(LMI)*MSI(I,J))+LHM)*BYSHI
@@ -282,7 +285,7 @@ C****
         HSIL(:) = HSI(:,I,J)  ! sea ice enthalpy
         SSIL(:) = SSI(:,I,J)  ! sea ice salt
 #ifdef TRACERS_WATER
-        TREVAP(:) = TREVAPOR(:,I,J,2)
+        TREVAP(:) = TREVAPOR(:,2,I,J)
         FTROC(:)  = ftrsi_io(:,i,j)
         TRSIL(:,:)= TRSI(:,:,I,J)
 #endif
@@ -302,6 +305,7 @@ C****
      *       ,TRSIL,TREVAP,FTROC
 #endif
      *       ,FMOC,FHOC,FSOC,MELT12)
+
 C**** Decay sea ice salinity
         MSI1 = ACE1I + SNOW
         if (.not. qsfix .and. FOCEAN(I,J).gt.0) then
@@ -480,7 +484,7 @@ C**** set ftype arrays
 C**** set gtemp array
         GTEMP(1:2,2,I,J)=TSIL(1:2)
 #ifdef TRACERS_WATER
-        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+        GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
 
 C**** ACCUMULATE DIAGNOSTICS
@@ -609,7 +613,7 @@ C**** set GTEMP array for ice
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
 #ifdef TRACERS_WATER
-        GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1)
+        GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #endif
       END DO
       END DO

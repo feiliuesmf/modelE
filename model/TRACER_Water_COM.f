@@ -53,9 +53,9 @@ C****
 
 !@var ITIME_TR0: start time for each tracer
       integer, dimension(ntm) :: itime_tr0=0.
-!@var TRM: Tracer array
+!@var TRM: Tracer array (kg)
       real*8, dimension(im,jm,lm,ntm) :: trm
-!@var TRMOM: Second order moments for tracers
+!@var TRMOM: Second order moments for tracers (kg)
       real*8, dimension(nmom,im,jm,lm,ntm) :: trmom
 !@var MTRACE: timing index for tracers
       integer mtrace

@@ -526,7 +526,7 @@ C****
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE FLUXES, only : trsource,tot_trsource
+      USE FLUXES, only : trsource,trflux1
       USE SEAICE_COM, only : rsi
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair
       USE PBLCOM, only: tsavg
@@ -660,10 +660,10 @@ C****
 
       end select
 
-C**** tot_trsource is required for PBL calculations
-      tot_trsource(:,:,n) = 0.
+C**** trflux1 is required for PBL calculations
+      trflux1(:,:,n) = 0.
       do ns=1,ntsurfsrc(n)
-        tot_trsource(:,:,n) = tot_trsource(:,:,n)+trsource(:,:,ns,n)
+        trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
       end do
 
       end do

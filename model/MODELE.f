@@ -13,13 +13,6 @@
       USE PARAM
       USE SOIL_DRV, only: daily_earth, ground_e
       USE GEOM, only : dxyp
-c** extra
-      USE SEAICE_COM, only : msi,hsi,ssi,rsi
-      USE SEAICE, only : lmi,xsi,icelake,iceocean,ac2oim,alami,alpha
-     *     ,rhoi
-      USE LAKES_COM, only : tlake,mwl,flake,gml,mldlk
-      USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
-c**
 #ifdef TRACERS_ON
       USE TRACER_COM, only: mtrace,trm
 #endif

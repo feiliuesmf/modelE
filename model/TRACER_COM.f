@@ -27,7 +27,7 @@ C**** Each tracer has a variable name and a unique index
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, parameter, dimension(ntm) :: ntm_power=
      *     (/   -2,         -14,       -21,       -6 /)
-!@var TR_MM: molecular mass of each tracer
+!@var TR_MM: molecular mass of each tracer (g/mole)
       real*8, parameter, dimension(ntm) :: tr_mm=
      *     (/ mair,    146.01d0,    222.d0,    44.d0 /)
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
@@ -51,11 +51,11 @@ C****
       real*8, parameter, dimension (ntm) :: trradius=
      *     (/    0d0,      0d0,    0d0,      0d0 /)
 
-!@var ITIME_TR0: start time for each tracer
+!@var ITIME_TR0: start time for each tracer (hours)
       integer, dimension(ntm) :: itime_tr0=0.
-!@var TRM: Tracer array
+!@var TRM: Tracer array (kg)
       real*8, dimension(im,jm,lm,ntm) :: trm
-!@var TRMOM: Second order moments for tracers
+!@var TRMOM: Second order moments for tracers (kg)
       real*8, dimension(nmom,im,jm,lm,ntm) :: trmom
 !@var MTRACE: timing index for tracers
       integer mtrace

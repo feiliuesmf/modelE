@@ -8,14 +8,13 @@
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6,byshi
-     *     ,byrhoi,deltx,byrt3
+     *     ,byrhoi,deltx,byrt3,teeny
       USE MODEL_COM, only : im,jm,lm,fim,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,dsig,jday,ndasf,jeq,fland,flice,focean
      *     ,fearth,nday,modrd,itime,jhour,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
-     *     ,bydxyp
+      USE GEOM, only : dxyp,imaxj,bydxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
@@ -45,9 +44,9 @@ C**** Interface to PBL
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
 #ifdef TRACERS_ON
-     *     ,tot_trsource
+     *     ,trsrfflx,trflux1
 #ifdef TRACERS_WATER
-     *     ,trevapor,trunoe
+     *     ,trevapor,trunoe,gtracer
 #endif
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom
       USE TRACER_DIAG_COM, only : taijn,tij_surf
@@ -55,18 +54,16 @@ C**** Interface to PBL
       USE SOIL_DRV, only: earth
       IMPLICIT NONE
 
-      INTEGER I,J,K,IM1,IP1,KR,JR,NS,NSTEPS,MODDSF,MODDD,KMAX,ITYPE
-     *     ,NGRNDZ,NG,IH,IDTYPE 
+      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IDTYPE 
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,PGK,PKDN
      *     ,BETA,ELHX,ACE2,CDTERM,CDENOM,HC1,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,DHGS,DQGS,DGS,BETAUP,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG,dEVdQS,HSDEN,HSCON
-     *     ,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,VAP,TIMEZ
-     *     ,PWATER,PXSOIL,PSK,TH1,Q1,THV1,TFS,Q0M1,PTYPE,TG1,SRHEAT,SNOW
-     *     ,TG2,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT
-     *     ,TRHEAT,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP
-     *     ,Z2BY4L,Z1BY6L,QZ1,EVAPLIM,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2)
-     *     ,HTLIM
+     *     ,HSMUL,dHS,dQS,dT2,dTS,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
+     *     ,PXSOIL,PSK,TH1,Q1,THV1,TFS,Q0M1,PTYPE,TG1,SRHEAT,SNOW,TG2
+     *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT
+     *     ,QSDEN,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,Z2BY4L
+     *     ,Z1BY6L,QZ1,EVAPLIM,HICE,HSNOW,HICE1,HSNOW1,F2,FSRI(2),HTLIM
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -81,8 +78,13 @@ C**** Tracer input/output common block for PBL
 !@var ntx number of tracers that need pbl calculation
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
       real*8 rhosrf0
-      integer itr,n,ntx
+      integer n,nx,ntx
+      integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
+#ifdef TRACERS_WATER
+      real*8, dimension(ntm) :: tevaplim,tevap,trgrnd
+      real*8  TEV, dTEVdTQS, dTQS, TDP, TDT1
+#endif
 #endif
 
       NSTEPS=NIsurf*ITime
@@ -100,7 +102,7 @@ C       TGRND(4,I,J)=GTEMP(1,4,I,J)
       END DO
       END DO
 
-C**** Zero out fluxes summed over type
+C**** Zero out fluxes summed over type and surface time step
       E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
       DMUA=0. ; DMVA=0. ; SOLAR=0.
 #ifdef TRACERS_WATER
@@ -114,22 +116,21 @@ C****
          MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
-         TIMEZ=JDAY+(MOD(Itime,nday)+(NS-1.)/NIsurf)/NDAY ! -1 ??
-         IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
-C**** ZERO OUT LAYER 1 WIND INCREMENTS
+C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
+#ifdef TRACERS_WATER
+         trsrfflx = 0.
+#endif
 
       call loadbl
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
-      DO 7000 J=1,JM
-         KMAX=KMAXJ(J)
+      DO J=1,JM
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
-      POLE=.FALSE.
-      IF(J.EQ.1 .or. J.EQ.JM) POLE = .TRUE.
-      IM1=IM
+      POLE= (J.EQ.1 .or. J.EQ.JM)
+
       DO I=1,IMAXJ(J)
 
       ! until pbl loops over i,j,itype
@@ -148,6 +149,9 @@ C****
       tflux(I,J)=0.
       qflux(I,J)=0.
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
+#ifdef TRACERS_WATER
+      tevaplim = 0.
+#endif
 C****
 C**** DETERMINE SURFACE CONDITIONS
 C****
@@ -175,15 +179,16 @@ C****
       PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          ntix(nx) = n
 C**** Calculate first layer tracer concentration
-          trtop(n)=trm(i,j,1,itr)*byam(1,i,j)*bydxyp(j)
+          trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
         end if
       end do
-      ntx = n
+      ntx = nx
 #endif
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          IF(MODDD.EQ.0) THEN
@@ -214,7 +219,6 @@ C****
 
       PTYPE=POCEAN
       IF (PTYPE.gt.0) THEN
-      NGRNDZ=1
       TG1=GTEMP(1,1,I,J)
       IF (FLAKE(I,J).gt.0) THEN
 C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
@@ -224,6 +228,10 @@ C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         ELSE
           EVAPLIM=MWL(I,J)/(FLAKE(I,J)*DXYP(J))-(0.5*MINMLD+0.2d0)*RHOW
         END IF
+#ifdef TRACERS_WATER
+C**** limit on tracer evporation from lake
+        TEVAPLIM(1:NTX)=EVAPLIM*GTRACER(NTIX(1:NTX),1,I,J)
+#endif
         HTLIM = GML(I,J)/(FLAKE(I,J)*DXYP(J)) + 0.5*LHM*EVAPLIM
         IDTYPE=ITLAKE
       ELSE
@@ -247,7 +255,6 @@ C****
       ELSE
         IDTYPE=ITOICE
       END IF
-      NGRNDZ=1    ! NIgrnd>1 currently not an option
       SNOW=SNOWI(I,J)
       TG1=TGRND(2,I,J)
       TG2=TGRN2(2,I,J)
@@ -293,7 +300,6 @@ C****
       PTYPE=PLICE
       IF (PTYPE.gt.0) THEN
       IDTYPE=ITLANDI
-      NGRNDZ=1
       SNOW=SNOWLI(I,J)
       TG1=TGRND(3,I,J)
       TG2=GTEMP(2,3,I,J)
@@ -325,16 +331,20 @@ C****
       TGV=TG*(1.+QG*deltx)
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
+      do nx=1,ntx
+#ifndef TRACERS_WATER
 C**** Calculate trsfac (set to zero for const flux)
-          trsfac(n)=0.
+        trsfac(nx)=0.
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          rhosrf0=100.*PS/(RGAS*TGV) ! estimated surface density
-          trconstflx(n)=tot_trsource(i,j,itr)/(dxyp(j)*rhosrf0)
-        end if
+        rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+        trconstflx(nx)=trflux1(i,j,ntix(nx))/(dxyp(j)*rhosrf0)
+#else
+C**** Set surface boundary conditions for water tracers
+C**** trsfac and trconstflx are multiplied by cq*wsq in PBL
+        trsfac(nx)=1.
+        trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
+        trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
+#endif
       end do
 #endif
 C =====================================================================
@@ -435,7 +445,7 @@ C****
 
       END SELECT
 
-CC**** CALCULATE EVAPORATION
+C**** CALCULATE EVAPORATION
       DQ1X =EVHDT/((LHE+TG1*SHV)*MA1)
       EVHDT0=EVHDT
 C**** Limit evaporation if lake mass is at minimum
@@ -452,6 +462,47 @@ C**** Limit evaporation if lake mass is at minimum
       EVHDT=DQ1X*(LHE+TG1*SHV)*MA1
       IF (ITYPE.NE.1) TG1=TG1+(EVHDT-EVHDT0)/HCG1
  3720 EVAP=-DQ1X*MA1
+#ifdef TRACERS_WATER
+C****
+C**** Calculate Water Tracer Evaporation
+C****                                                            
+      DO NX=1,NTX                                                 
+        N=NTIX(NX)
+        IF (ITYPE.EQ.1) THEN ! OCEAN                             
+C**** do calculation implicitly for TQS                          
+          TEV=-RCDQWS*(trs(nx)-trgrnd(nx)) !*FRACLK(WS,ITRSPC)
+          dTEVdTQS =-RCDQWS                !*FRACLK(WS,ITRSPC) 
+          dTQS = -(1.+2.*S1BYG1)*DTSURF*TEV/                     
+     *           ((1.+2.*S1BYG1)*DTSURF*dTEVdTQS-MA1)            
+          TEVAP(NX)=DTSURF*(TEV+dTQS*dTEVdTQS)                    
+        ELSE ! ICE AND LAND ICE
+C**** tracer flux is set by source tracer concentration
+          IF (EVAP.GE.0) THEN   ! EVAPORATION                        
+            TEVAP(NX)=EVAP*trgrnd(nx)/QG
+          ELSE                  ! DEW                                
+c           TEVAP(NX)=EVAP*trs(nx)/(QS*FRACVL(TG1,ITRSPC))
+            TEVAP(NX)=EVAP*trs(nx)/(QS+teeny)
+          END IF            
+        END IF
+C**** Limit evaporation if lake mass is at minimum
+        IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and. 
+     *       (TREVAPOR(n,1,I,J)+TEVAP(NX).gt.TEVAPLIM(NX))) THEN
+          WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL",N
+     *         ,TREVAPOR(n,1,I,J)+TEVAP(NX),TEVAPLIM(NX)
+          TEVAP(NX)= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
+        END IF                                                          
+        TDP = TEVAP(NX)*DXYP(J)*ptype
+        TDT1 = trsrfflx(I,J,n)*DTSURF
+        IF (TRM(I,J,1,n)+TDT1+TDP.lt.1d-5) THEN
+          WRITE(99,*) "LIMITING TEVAP",I,J,N,TDP,TRM(I,J,1,n)
+          TEVAP(NX) = - (TRM(I,J,1,n)+TDT1-1d-5)/(DXYP(J)*ptype)
+          trsrfflx(I,J,n)= - TRM(I,J,1,n)+1d-5
+        ELSE                                                            
+          trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
+        END IF                                                          
+        TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP(NX)
+      END DO
+#endif
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
@@ -548,15 +599,14 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 C****
 #ifdef TRACERS_ON
 C**** Save surface tracer concentration whether calculated or not
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
-          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
-     *         + trs(n)*ptype
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
         else
-          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
-     *         +max((trm(i,j,1,itr)-trmom(mz,i,j,1,itr))*byam(1,i,j)
+          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+     *         +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *         *bydxyp(j),0d0)*ptype
         end if
       end do
@@ -584,10 +634,9 @@ C****
       END IF
       END DO   ! end of itype loop
  
-      IM1=I
       END DO   ! end of I loop
 
- 7000 CONTINUE  ! end of J loop
+      END DO   ! end of J loop
 C****
 C**** EARTH
 C****
@@ -611,7 +660,7 @@ C****
           QMOM(:,I,J,1)=0.
         ENDIF
 c****   retrieve fluxes
-        P1K=PK(1,I,J)     ! EXPBYK(P1)
+        P1K=PK(1,I,J)
         tflux1(i,j)=dth1(i,j)*(-AM(1,I,J)*P1K)/(dtsurf)
         qflux1(i,j)=dq1(i,j)*(-AM(1,I,J))/(dtsurf)
 C**** Diurnal cycle of temperature diagnostics
@@ -651,10 +700,6 @@ C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
 C****
       END DO   ! end of surface time step
       RETURN
- 9991 FORMAT ('0SURFACE ',4I4,5F10.4,3F11.7)
- 9992 FORMAT ('0',I2,10F10.4/23X,4F10.4,10X,2F10.4/
-     *  33X,3F10.4,10X,2F10.4)
- 9993 FORMAT ('0',I2,10F10.4/23X,7F10.4/33X,7F10.4)
- 9994 FORMAT ('0',I2,11F10.4)
+C****
       END SUBROUTINE SURFCE
 

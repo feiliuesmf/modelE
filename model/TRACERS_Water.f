@@ -57,13 +57,13 @@ C**** This needs to be 'hand coded' depending on circumstances
         stop 'ktajls too small'
       end if
 
-C**** TAIJN
+C**** TAIJN: fill in if necessary
 
-      if (k .gt. ktaij) then
-        write (6,*) 
-     &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
-        stop 'ktaij too small'
-      end if
+c      if (k .gt. ktaij) then
+c        write (6,*) 
+c     &   'tij_defs: Increase ktaij=',ktaij,' to at least ',k
+c        stop 'ktaij too small'
+c      end if
 
 C**** Tracer sources and sinks
 C**** Defaults for ijts (sources, sinks, etc.)
@@ -117,20 +117,23 @@ C**** print out total tracer diagnostic array size
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only: itime,im,jm,lm,q,wm,flice
+      USE MODEL_COM, only: itime,im,jm,lm,q,wm,flice,fearth
       USE SOMTQ_COM, only : qmom
       USE GEOM, only: dxyp,bydxyp
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only : npbl,trabl,qabl
       USE LANDICE_COM, only : trlndi,trsnowli,snowli,trli0
       USE LANDICE, only : ace1li,ace2li
-      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0
+      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE SEAICE, only : xsi,ace1i
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
+      USE GHYCOM, only : trbare,trvege,trsnowbv,wbare,wvege,snowbv,afb
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trname,needtrs,trwm
      *     ,trw0
+      USE FLUXES, only : gtracer
       IMPLICIT NONE
       INTEGER i,n,l,j,ipbl,it
+      REAL*8 conv
 
       do n=1,ntm
 
@@ -161,32 +164,45 @@ c           trmom(:,:,j,l,n) = 0.
             trmom(:,i, 1,:,n)=0.
             trmom(:,i,jm,:,n)=0.
           enddo
+
+          do j=1,jm
+          do i=1,im
 C**** lakes
-          do j=1,jm
-          do i=1,im
-            if (flake(i,j).gt.0) THEN
-              trlake(:,1,i,j)=trw0(:)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
-              trlake(:,2,i,j)=trw0(:)*mwl(i,j)-trlake(:,1,i,j)
+            if (flake(i,j).gt.0) then
+              trlake(n,1,i,j)=trw0(n)*mldlk(i,j)*rhow*flake(i,j)*dxyp(j)
+              trlake(n,2,i,j)=trw0(n)*mwl(i,j)-trlake(n,1,i,j)
+              gtracer(n,1,i,j)=trw0(n)
             end if
-          end do
-          end do
-C**** ice 
-          do j=1,jm
-          do i=1,im
+c**** ice 
             if (rsi(i,j).gt.0) then
-              TRSI(:,1,I,J)=TRSI0(:)*XSI(1)*(SNOWI(I,J)+ACE1I)
-              TRSI(:,2,I,J)=TRSI0(:)*XSI(2)*(SNOWI(I,J)+ACE1I)
-              TRSI(:,3,I,J)=TRSI0(:)*XSI(3)*MSI(I,J)
-              TRSI(:,4,I,J)=TRSI0(:)*XSI(4)*MSI(I,J)
+              trsi(n,1,i,j)=trsi0(n)*
+     *             (xsi(1)*(snowi(i,j)+ace1i)-ssi(1,i,j))
+              trsi(n,2,i,j)=trsi0(n)*
+     *             (xsi(2)*(snowi(i,j)+ace1i)-ssi(2,i,j))
+              trsi(n,3,i,j)=trsi0(n)*(xsi(3)*msi(i,j)-ssi(3,i,j))
+              trsi(n,4,i,j)=trsi0(n)*(xsi(4)*msi(i,j)-ssi(4,i,j))
+              gtracer(n,2,i,j)=trsi0(n)
+            else
+              gtracer(n,2,i,j)=0.
             end if
-          end do
-          end do
-C**** landice
-          do j=1,jm
-          do i=1,im
+c**** landice
             if (flice(i,j).gt.0) then
-              TRLNDI(:,I,J)=TRLI0(:)*(ACE1LI+ACE2LI)
-              TRSNOWLI(:,I,J)=TRLI0(:)*SNOWLI(I,J)
+              trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)
+              trsnowli(n,i,j)=trli0(n)*snowli(i,j)
+              gtracer(n,3,i,j)=trli0(n)
+            else
+              gtracer(n,3,i,j)=0.
+            end if
+c**** earth
+            if (fearth(i,j).gt.0) then
+              conv=rhow  ! convert from m to kg/m^2
+              trbare  (n,:,i,j)=trw0(n)*wbare (:,i,j)*conv
+              trvege  (n,:,i,j)=trw0(n)*wvege (:,i,j)*conv
+              trsnowbv(n,1,i,j)=trw0(n)*snowbv(1,i,j)*conv
+              trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
+              gtracer (n,4,i,j)=trw0(n)
+            else
+              gtracer(n,4,i,j)=0.
             end if
           end do
           end do
@@ -198,7 +214,7 @@ C**** Initialise pbl profile if necessary
         do it=1,4
         do j=1,jm
         do ipbl=1,npbl
-          trabl(ipbl,n,:,j,it) = qabl(ipbl,:,j,it) 
+          trabl(ipbl,n,:,j,it) = trw0(n)*qabl(ipbl,:,j,it) 
         end do
         end do
         end do
@@ -231,7 +247,7 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime
       USE TRACER_COM
-      USE FLUXES, only : trsource,tot_trsource
+      USE FLUXES, only : trsource,trflux1
       implicit none
       integer :: ns,n
 
@@ -244,17 +260,17 @@ C**** All sources are saved as kg/s
       case default
 !     write(6,*) ' Sources for ',trname(n),' tracer are not in this routine'
 C****
-C**** No un-interactive surface sources of Water
+C**** No non-interactive surface sources of Water
 C****
       case ('Water')
         trsource(:,:,:,n)=0
 
       end select
 
-C**** tot_trsource is required for PBL calculations
-      tot_trsource(:,:,n) = 0.
+C**** trflux1 is required for PBL calculations
+      trflux1(:,:,n) = 0.
       do ns=1,ntsurfsrc(n)
-        tot_trsource(:,:,n) = tot_trsource(:,:,n)+trsource(:,:,ns,n)
+        trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
       end do
 
       end do

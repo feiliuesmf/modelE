@@ -233,7 +233,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       USE MODEL_COM, only : jm
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc
       USE QUSDEF, only : mz,mzz
-      USE FLUXES, only : trsource,tot_trsource
+      USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRACER_DIAG_COM, only : taijs,tajls,ijts_source,jls_source
      *     ,itcon_surf
       IMPLICIT NONE
@@ -241,12 +241,11 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       INTEGER n,ns,naij,najl,j
 
 C**** This is tracer independent coding designed to work for all
-C**** surface sources that do not vary as a function of the surface
-C**** variables (non-interactive). With no daily varying sources setting 
-C**** these sources can be done once a day, otherwise it should be
-C**** every source time step. 
+C**** surface sources.
 
       do n=1,ntm
+
+C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
           trm(:,:,1,n) = trm(:,:,1,n) + trsource(:,:,ns,n)*dtsurf
 C**** diagnostics
@@ -259,10 +258,26 @@ C**** diagnostics
           end do
           call DIAGTCA(itcon_surf(ns,n),n)
         end do
+C**** Interactive sources
+        trm(:,:,1,n) = trm(:,:,1,n) + trsrfflx(:,:,n)*dtsurf
+C**** diagnostics
+c        naij = ijts_source(ns,n)  ????
+c        taijs(:,:,naij) = taijs(:,:,naij) + trsrfflx(:,:,n)*dtsurf
+c        najl = jls_source(ns,n)   ????
+c        do j=1,jm
+c          tajls(j,1,najl) = tajls(j,1,najl)+sum(trsrfflx(:,j,n))
+c     *         *dtsurf
+c        end do
+c        call DIAGTCA(itcon_surf(ns,n),n)  ????
+
+C**** trflux1 is required for PBL calculations
+C**** Accumulate interactive and non-interactive sources
+        trflux1(:,:,n) = trflux1(:,:,n)+trsrfflx(:,:,n)
+
 C**** modify vertical moments        
-        trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*tot_trsource(:,:,n)
+        trmom( mz,:,:,1,n) = trmom( mz,:,:,1,n)-1.5*trflux1(:,:,n)
      *       *dtsurf
-        trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*tot_trsource(:,:,n)
+        trmom(mzz,:,:,1,n) = trmom(mzz,:,:,1,n)+0.5*trflux1(:,:,n)
      *       *dtsurf
       end do
 C****
@@ -399,7 +414,7 @@ C****
       USE TRACER_COM
       IMPLICIT NONE
       LOGICAL QCHECKO
-      INTEGER I,J,L,N,imax,jmax,lmax
+      INTEGER I,J,L,N, imax,jmax,lmax
       REAL*8 relerr, errmax
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
@@ -415,7 +430,7 @@ C****
 C**** check whether air mass is conserved
         
         if (trname(n).eq.'Air') then
-          errmax = 0. ; lmax=0 ; imax=0 ; jmax=0 
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)
@@ -434,7 +449,7 @@ C**** check whether air mass is conserved
       
 #ifdef TRACERS_WATER
         if (trname(n).eq.'Water') then
-          errmax = 0. ; lmax=0 ; imax=0 ; jmax=0 
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
           do l=1,lm
           do j=1,jm
           do i=1,imaxj(j)

@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 
-
       module soil_drv
 !@sum soil_drv contains variables and routines for the ground
 !@+   hydrology driver
@@ -37,6 +36,9 @@ c****
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     snowe,tearth,wearth,aiearth
+#ifdef TRACERS_WATER
+     *     ,trvege,trbare,trsnowbv
+#endif
       use sle001
      &    , only : reth,retp,advnc,
      &    ngm,
@@ -77,7 +79,10 @@ c****
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp
 #ifdef TRACERS_ON
-     *     ,tot_trsource
+     *     ,trflux1
+#ifdef TRACERS_WATER
+     *     ,trevapor,trunoe,gtracer,trsrfflx,trprec
+#endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom
       use tracer_diag_com, only : taijn,tij_surf
 #endif
@@ -85,14 +90,12 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,l,kr,jr,itype,imax,ih
-      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws
-     *     ,rcdhws,dhgs,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype
-     *     ,dxypj,trheat,wtr2av,wfc1
-     *     ,rhosrf,ma1
-     *     ,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth,warmer,brun0
-     *     ,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu,bshdt,btrhdt
-     *     ,timez,spring,zs1co
+      integer i,j,l,kr,jr,itype,ih
+      real*8 shdt,qsats,evap,evhdt,tg2av,ace2av,trhdt,rcdmws,rcdhws,dhgs
+     *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat,wtr2av
+     *     ,wfc1,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ts,ps,pij,psoil,pearth
+     *     ,warmer,brun0,berun0,bdifs,bedifs,bts,bevhdt,brunu,berunu
+     *     ,bshdt,btrhdt,timez,spring,zs1co
 
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
@@ -102,11 +105,19 @@ C**** Tracer input/output common block for PBL
 !@var trsfac, trconstflx factors in surface flux boundary cond.
 !@var ntx number of tracers that need pbl calculation
       real*8, dimension(ntm) :: trtop,trs,trsfac,trconstflx
-      integer itr,n,ntx
       real*8 rhosrf0
+      integer n,nx,ntx
+      integer, dimension(ntm) :: ntix
       common /trspec/trtop,trs,trsfac,trconstflx,ntx
+#ifdef TRACERS_WATER
+      real*8, dimension(ntm) :: trgrnd,trsoil_tot,tevapw,tevapd,
+     *     tevapb,trruns,trrunu,trpr,trsoil_rat
+      real*8, dimension(ntm,0:ngm,2) :: trw
+      real*8, dimension(ntm,2) :: trsnowd
+      real*8  tdp, tdt1, wsoil_tot, frac, tevap
+      integer ibv
 #endif
-
+#endif
       real*8 qsat
       real*8 srhdt
 c****
@@ -151,14 +162,12 @@ c****
       loop_j: do j=1,jm
       hemi=1.
       if(j.le.jm/2) hemi=-1.
-      imax=imaxj(j)
-      pole=.false.
 c**** conditions at the south/north pole
-      if( j.eq.1 .or. j.eq.jm ) pole = .true.
+      pole= ( j.eq.1 .or. j.eq.jm )
 
       if(j.lt.jeq) warmer=-spring
       if(j.ge.jeq) warmer=spring
-      loop_i: do i=1,imax
+      loop_i: do i=1,imaxj(j)
 c****
 c**** determine surface conditions
 c****
@@ -178,18 +187,21 @@ c****
 c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
       jr=jreg(i,j)
-      dxypj=dxyp(j)
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          ntix(nx) = n
 C**** Calculate first layer tracer concentration
-          trtop(n)=trm(i,j,1,itr)*byam(1,i,j)*bydxyp(j)
+          trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
         end if
       end do
-      ntx = n
+      ntx = nx
+#ifdef TRACERS_WATER
+      TEVAPW=0. ; TEVAPD=0. ; TEVAPB=0. ; TRRUNS=0. ; TRRUNU=0. 
+#endif
 #endif
 c**** new quantities to be zeroed out over ground timesteps
          aruns=0.
@@ -216,8 +228,7 @@ c****
         ipbl(i,j,4)=0
         cycle loop_i
       endif
-c     ngrndz=ngrnd has to be 1
-c      zgs=10.
+
       itype=4
       ptype=pearth
       pr=prec(i,j)/(dtsrc*rhow)
@@ -258,16 +269,54 @@ c**** loop over ground time steps
       tgv=tg*(1.+qg*deltx)
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
+      do nx=1,ntx
+#ifndef TRACERS_WATER
 C**** Calculate trsfac (set to zero for const flux)
-          trsfac(n)=0.
+        trsfac(nx)=0.
 C**** Calculate trconstflx (could be dependent on itype)
-          rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
-          trconstflx(n)=tot_trsource(i,j,itr)/(dxyp(J)*dtsrc*rhosrf0)
-        end if
+        rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
+        trconstflx(nx)=trflux1(i,j,n)/(dxyp(j)*dtsrc*rhosrf0)
+#else 
+C**** Set surface boundary conditions for water tracers
+C**** trsfac and trconstflx are multiplied by cq*wsq in PBL
+        trsfac(nx)=1.
+        trconstflx(nx)=gtracer(ntix(nx),itype,i,j)*QG
+        trgrnd(nx)=gtracer(ntix(nx),itype,i,j)*QG
+#endif
+      end do
+#endif
+#ifdef TRACERS_WATER
+C**** Quick and dirty calculation of water tracer amounts in 
+C**** soils to ensure conservation. Should be replaced with proper
+C**** calculation at some point
+C**** Calculate mean tracer ratio
+      trsoil_tot = 0 ; wsoil_tot = 0
+      do ibv=1,2
+        frac=fb
+        if (ibv.eq.2) frac=fv
+        wsoil_tot=wsoil_tot+snowd(ibv)*frac
+        do nx=1,ntx
+          trsnowd(nx,ibv) = TRSNOWBV(ntix(nx),ibv,i,j)
+          trsoil_tot(nx)=trsoil_tot(nx)+trsnowd(nx,ibv)*frac
+        end do
+        do l= 2-ibv,ngm
+          wsoil_tot=wsoil_tot+gw(l,ibv)*frac
+          do nx=1,ntm
+            if (ibv.eq.1) then
+              trw(nx,l,ibv)= TRBARE(ntix(nx),l,i,j)
+            else
+              trw(nx,l,ibv)= TRVEGE(ntix(nx),l,i,j)
+            end if
+            trsoil_tot(nx)=trsoil_tot(nx)+trw(nx,l,ibv)*frac
+          end do
+        end do
+      end do
+C**** calculate new tracer ratio after precip
+      do nx=1,ntx
+        n=ntix(nx)
+        trpr(nx)=(trprec(n,i,j)*bydxyp(j))/dtsrc   ! kg/m^2 s
+        trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx))
+     *       /(rhow*(wsoil_tot+dtsurf*pr))
       end do
 #endif
 c***********************************************************************
@@ -302,17 +351,12 @@ c  define extra variables to be passed in surfc:
       rho   =rhosrf
       vsm   =ws
       ch    =cdh
-      ! cd    =cdm  ! - not used
       srht  =srheat
       trht  =trheat
       zs    =zgs
       zmixe =zmix
-      !pblp  =ppbl ! not used
       vgm   =wg
       eddy  =eds1
-      ! cn    =cdn ! not used
-c     tgpass=tgv
-c     tspass=tsv
       tgpass=tg
       tspass=ts
       tkpass=tkv/(1.+q(i,j,1)*deltx)
@@ -328,6 +372,30 @@ c     call qsbal
       htbare(0:ngm,i,j) = ht(0:ngm,1)
       htvege(0:ngm,i,j) = ht(0:ngm,2)
       snowbv(1:2,i,j)   = snowd(1:2)
+
+#ifdef TRACERS_WATER
+C**** reset tracer variables
+      do nx=1,ntm
+        n=ntix(nx)
+c**** fix outputs to mean ratio (TO BE REPLACED BY WITHIN SOIL TRACERS)
+        trruns(nx)=aruns * trsoil_rat(nx) ! kg/m^2
+        trrunu(nx)=arunu * trsoil_rat(nx)
+        tevapw(nx)=evapw * trsoil_rat(nx) ! *fraclv
+        tevapd(nx)=evapd * trsoil_rat(nx)
+        tevapb(nx)=evapb * trsoil_rat(nx)
+c**** update ratio
+        trsoil_rat(nx)=(trsoil_tot(nx)+dtsurf*trpr(nx)-
+     *       (tevapw(nx)+tevapd(nx)+tevapb(nx)+trruns(nx)+trrunu(nx)))/
+     *      (rhow*(wsoil_tot+dtsurf*pr)-(evapw+evapd+evapb+aruns+arunu))
+        trbare(n,1:ngm,i,j) = trsoil_rat(nx)*gw(1:ngm,1)*rhow
+        trvege(n,:,i,j) = trsoil_rat(nx)*gw(:,2)*rhow
+        trsnowbv(n,:,i,j)=trsoil_rat(nx)*snowd(:)*rhow
+c       trbare(n,:,i,j) = trw(nx,:,1)
+c       trvege(n,:,i,j) = trw(nx,:,2)
+c       trsnowbv(n,:,i,j) = trsnowd(nx,:)
+        gtracer(ntix(nx),itype,i,j)=trsoil_rat(nx)
+      end do
+#endif
 ccc copy snow variables back to storage
       nsn_ij    (1:2, i, j)         = nsn(1:2)
       isn_ij    (1:2, i, j)         = isn(1:2)
@@ -356,22 +424,7 @@ ccc copy snow variables back to storage
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+betav/nisurf
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+betat/nisurf
       trhdt=trheat*dtsurf-atrg
-#ifdef TRACERS_ON
-C**** Save surface tracer concentration whether calculated or not
-      n=0
-      do itr=1,ntm
-        if (itime_tr0(itr).le.itime .and. needtrs(itr)) then
-          n=n+1
-          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
-     *         + trs(n)*ptype
-        else
-          taijn(i,j,tij_surf,itr) = taijn(i,j,tij_surf,itr)
-     *         +max((trm(i,j,1,itr)-trmom(mz,i,j,1,itr))*byam(1,i,j)
-     *         *bydxyp(j),0d0)*ptype
-        end if
-      end do
-#endif
-c     for radiation find composite values over earth
+c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
       tearth(i,j)=tg1
@@ -400,13 +453,49 @@ c**** save runoff for addition to lake mass/energy resevoirs
       runoe (i,j)=runoe (i,j)+ aruns+ arunu
       erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
 c****
+      e0(i,j,4)=e0(i,j,4)+af0dt
+      e1(i,j,4)=e1(i,j,4)+af1dt
+
+#ifdef TRACERS_WATER
+C****
+C**** Calculate Water Tracer Evaporation
+C****                                                            
+      do nx=1,ntx
+        n=ntix(nx)
+        tevap = tevapw(nx)+tevapd(nx)+tevapb(nx)
+        tdp = tevap*dxyp(j)*ptype
+        tdt1 = trsrfflx(i,j,n)*dtsurf
+        if (trm(i,j,1,n)+tdt1+tdp.lt.1d-5) then
+          write(99,*) "limiting tevap earth",i,j,n,tdp,trm(i,j,1,n)
+          tevap = - (trm(i,j,1,n)+tdt1-1d-5)/(dxyp(j)*ptype)
+          trsrfflx(i,j,n)= - trm(i,j,1,n)+1d-5
+        else
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdp/dtsurf
+        end if
+        trevapor(n,itype,i,j)=trevapor(n,itype,i,j)+tevap
+        trunoe(n,i,j) = trunoe(n,i,j)+trruns(nx)+trrunu(nx)
+      end do
+#endif
+c****
+c**** accumulate diagnostics
+c****
+#ifdef TRACERS_ON
+C**** Save surface tracer concentration whether calculated or not
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)+trs(nx)*ptype
+        else
+          taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
+     *         +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
+     *         *bydxyp(j),0d0)*ptype
+        end if
+      end do
+#endif
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
-         !bdifs=bdifs+difs*pearth
-         !bedifs=bedifs+edifs*pearth
-      e0(i,j,4)=e0(i,j,4)+af0dt
-      e1(i,j,4)=e1(i,j,4)+af1dt
 
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,1)=timez
@@ -420,23 +509,21 @@ c****
       if(tg1.gt.tdiurn(i,j,2)) tdiurn(i,j,2)=tg1
       if(ts.lt.tdiurn(i,j,3)) tdiurn(i,j,3)=ts
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
-c****
-c**** accumulate diagnostics
-c****
+
 c**** quantities accumulated for regions in diagj
       if ( jr /= 24 ) then
-        areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxypj
-        areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxypj
-        areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxypj
-        areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxypj
-        areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxypj
-        areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxypj
-        areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxypj
-        areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxypj
-        areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxypj
-        areg(jr,j_f1dt )=areg(jr,j_f1dt )+af1dt*ptype*dxypj
+        areg(jr,j_trhdt)=areg(jr,j_trhdt)+trhdt*ptype*dxyp(j)
+        areg(jr,j_shdt )=areg(jr,j_shdt )+shdt*ptype*dxyp(j)
+        areg(jr,j_evhdt)=areg(jr,j_evhdt)+evhdt*ptype*dxyp(j)
+        areg(jr,j_evap )=areg(jr,j_evap )+evap*ptype*dxyp(j)
+        areg(jr,j_erun1)=areg(jr,j_erun1)+aeruns*pearth*dxyp(j)
+        areg(jr,j_difs )=areg(jr,j_difs )+difs*pearth*dxyp(j)
+        areg(jr,j_run2 )=areg(jr,j_run2 )+arunu*pearth*dxyp(j)
+        areg(jr,j_dwtr2)=areg(jr,j_dwtr2)+aerunu*pearth*dxyp(j)
+        areg(jr,j_run1 )=areg(jr,j_run1 )+aruns*pearth*dxyp(j)
+        areg(jr,j_f1dt )=areg(jr,j_f1dt )+af1dt*ptype*dxyp(j)
         if ( moddsf == 0 )
-     $       areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxypj
+     $       areg(jr,j_tsrf )=areg(jr,j_tsrf )+(ts-tf)*ptype*dxyp(j)
 c**** quantities accumulated for latitude-longitude maps in diagij
       endif
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
@@ -512,6 +599,10 @@ c**** modifications needed for split of bare soils into 2 types
       use ghycom
       use sle001
       use fluxes, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+      use tracer_com, only : trw0
+#endif
       use dagcom, only : npts,icon_wtg,icon_htg
       use filemanager
       implicit none
@@ -812,6 +903,9 @@ c**** set gtemp array
         do i=1,im
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
+#ifdef TRACERS_WATER
+            gtracer(:,4,i,j)=trw0(:)    ! temporary assignment
+#endif
           end if
         end do
       end do
@@ -1145,7 +1239,7 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
       implicit none
 
       real*8 x,tgl,wtrl,acel
-      integer i,j,k,imax
+      integer i,j,k
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
 
@@ -1159,8 +1253,7 @@ c**** check for nan/inf in earth data
 c**** check for reasonable temperatures over earth
       x=1.001
       do j=1,jm
-        imax=imaxj(j)
-        do i=1,imax
+        do i=1,imaxj(j)
           if (fearth(i,j).gt.0.) then
             tgl=tearth(i,j)
             wtrl=wearth(i,j)
@@ -1192,7 +1285,7 @@ c**** check for reasonable temperatures over earth
       use ghycom, only : snoage
       implicit none
       real*8 tsavg,wfc1
-      integer i,j,imax,itype
+      integer i,j,itype
       logical, intent(in) :: end_of_day
 c****
 c**** find leaf-area index & water field capacity for ground layer 1
@@ -1214,8 +1307,7 @@ c****
 c**** increase snow age each day (independent of ts)
 c****
         do j=1,jm
-          imax=imaxj(j)
-          do i=1,imax
+          do i=1,imaxj(j)
             do itype=1,3
               snoage(itype,i,j)=1.+.98d0*snoage(itype,i,j)
             end do
@@ -1253,14 +1345,12 @@ c****
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
-      real*8 snow,tg1,tg2,f0dt,f1dt,evap,dxypj,wtr1,wtr2,ace1,ace2
+      real*8 snow,tg1,tg2,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
      *     ,pearth,enrgp,scove
-      integer i,j,imax,jr,k
+      integer i,j,jr,k
 
       do j=1,jm
-      imax=imaxj(j)
-      dxypj=dxyp(j)
-      do i=1,imax
+      do i=1,imaxj(j)
       pearth=fearth(i,j)
       jr=jreg(i,j)
       if (pearth.gt.0) then
@@ -1283,7 +1373,7 @@ c**** accumulate diagnostics
      *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
         !if (snowe(i,j).gt.0.) scove=pearth
         aj(j,j_rsnow,itearth)=aj(j,j_rsnow,itearth)+scove
-        areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxypj
+        areg(jr,j_rsnow)=areg(jr,j_rsnow)+scove*dxyp(j)
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
         aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
         aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
@@ -1299,13 +1389,13 @@ c**** accumulate diagnostics
         aj(j,j_f1dt,itearth)=aj(j,j_f1dt,itearth)+f1dt*pearth
         aj(j,j_evap,itearth)=aj(j,j_evap,itearth)+evap*pearth
         if (jr.ne.24) then
-        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxypj
-        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxypj
-        areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxypj
-        areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxypj
-        areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxypj
-        areg(jr,j_wtr2)=areg(jr,j_wtr2)+wtr2*pearth*dxypj
-        areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxypj
+        areg(jr,j_tg1) =areg(jr,j_tg1) +tg1 *pearth*dxyp(j)
+        areg(jr,j_tg2) =areg(jr,j_tg2) +tg2 *pearth*dxyp(j)
+        areg(jr,j_snow)=areg(jr,j_snow)+snow*pearth*dxyp(j)
+        areg(jr,j_wtr1)=areg(jr,j_wtr1)+wtr1*pearth*dxyp(j)
+        areg(jr,j_ace1)=areg(jr,j_ace1)+ace1*pearth*dxyp(j)
+        areg(jr,j_wtr2)=areg(jr,j_wtr2)+wtr2*pearth*dxyp(j)
+        areg(jr,j_ace2)=areg(jr,j_ace2)+ace2*pearth*dxyp(j)
         end if
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_tg1)  =aij(i,j,ij_tg1)  +tg1 *pearth

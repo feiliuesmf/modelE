@@ -57,8 +57,6 @@
 
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
-      real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
-
       real*8 :: rimax,ghmin,ghmax,gmmax0,d1,d2,d3,d4,d5
      *     ,s0,s1,s2,s4,s5,s6,c1,c2,c3,c4,c5,b1,b123,b2,prt
 
@@ -167,10 +165,12 @@ c  internals:
       integer, intent(in) :: ilong,jlat,itype
 #ifdef TRACERS_ON
       real*8, intent(in), dimension(ntm) :: trtop
-      real*8, intent(inout), dimension(ntm) :: trconstflx,trsfac
+      real*8, intent(in), dimension(ntm) :: trconstflx,trsfac
       real*8, intent(out), dimension(ntm) :: trs
       integer, intent(in) :: ntx
       real*8, dimension(n,ntm) :: trsave
+      real*8 trcnst,trsf,cqsave
+      real*8, dimension(n-1) :: kqsave
       integer itr
 #endif
 
@@ -257,6 +257,12 @@ C**** For heat and mositure
           itmax=2
         endif
       endif
+
+#ifdef TRACERS_ON
+C**** save cq,kq now in case further calculations are unnescessary
+      kqsave=kq
+      cqsave=cq
+#endif
 c
 c     call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
 c
@@ -277,7 +283,11 @@ c   Step 2:
         test=abs((ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
         ustar0=ustar
- 
+#ifdef TRACERS_ON
+        kqsave=kq
+        cqsave=cq
+#endif
+
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
@@ -304,7 +314,7 @@ C**** For heat and mositure
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,
      2              ustar,cm,z0m,utop,vtop,dtime,coriol,
      3              ug,vg,n)
- 
+
         call getl2(e,u,v,t,zhat,dzh,lscale,ustar,lmonin,n)
  
       end do
@@ -315,11 +325,11 @@ C**** be inside the iteration. Use moisture diffusivity
       do itr=1,ntx
 #ifdef TRACERS_WATER
 C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
-        trconstflx(itr)=trconstflx(itr)*cq*wsq
-        trsfac(itr)=trsfac(itr)*cq*wsq
+        trcnst=trconstflx(itr)*cqsave*wsq
+        trsf=trsfac(itr)*cqsave*wsq
 #endif
-        call tr_eqn(trsave(1,itr),tr(1,itr),kq,dz,dzh,trsfac(itr)
-     *       ,trconstflx(itr),trtop(itr),dtime,n) 
+        call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
+     *       ,trcnst,trtop(itr),dtime,n) 
         trs(itr) = tr(1,itr)
       end do
 #endif
@@ -1020,6 +1030,7 @@ c       sq=sq_by_sh*sh
       implicit none
 
       integer, intent(in) :: n    !@var n  array dimension
+      real*8, dimension(n) :: sub,dia,sup,rhs
 
       real*8, intent(in) :: ustar, dtime
       real*8, dimension(n), intent(in) :: u,v,t,dz
@@ -1121,6 +1132,8 @@ c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs
+
       real*8, dimension(n), intent(in) :: u,v,t0,z,dz
       real*8, dimension(n-1), intent(in) :: dzh,kh
       real*8, dimension(n), intent(inout) :: t
@@ -1184,14 +1197,16 @@ c     rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/(gm+teeny),teeny)
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs
+
       real*8, dimension(n), intent(in) :: q0,dz
       real*8, dimension(n-1), intent(in) :: dzh,kq
-      real*8, dimension(n), intent(inout) :: q
+      real*8, dimension(n), intent(out) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
       real*8, intent(in) :: flux_max,fr_sat
 
       real*8 :: factq
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i  !@var i loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*kq(i-1)
@@ -1259,9 +1274,11 @@ c                  + ( 1 - fr_sat ) * flux_max
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs
+
       real*8, dimension(n), intent(in) :: tr0,dz
       real*8, dimension(n-1), intent(in) :: dzh,kq
-      real*8, dimension(n), intent(inout) :: tr
+      real*8, dimension(n), intent(out) :: tr
       real*8, intent(in) :: sfac,constflx,trtop,dtime
 
       real*8 :: facttr
@@ -1326,6 +1343,8 @@ c                  + ( 1 - fr_sat ) * flux_max
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
+
       real*8, dimension(n), intent(in) :: u0,v0,z,dz
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh
@@ -1396,6 +1415,8 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs
+
       real*8, dimension(n), intent(in) :: dz
       real*8, dimension(n), intent(inout) :: t
       real*8, dimension(n-1), intent(in) :: kh,dzh
@@ -1453,6 +1474,8 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs
+
       real*8, dimension(n), intent(in) :: dz
       real*8, dimension(n), intent(inout) :: q
       real*8, dimension(n-1), intent(in) :: kq,dzh
@@ -1515,6 +1538,8 @@ c       rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
       implicit none
 
       integer, intent(in) :: n
+      real*8, dimension(n) :: sub,dia,sup,rhs,rhs1
+
       real*8, dimension(n), intent(in) :: z,dz
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh

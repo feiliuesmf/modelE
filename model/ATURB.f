@@ -30,7 +30,7 @@ cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm  !,trmom
-      USE FLUXES, only : trflux1=>tot_trsource
+      USE FLUXES, only : trflux1
       USE TRACER_DIAG_COM, only: tajln,jlnt_turb
 #endif
 
