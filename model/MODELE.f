@@ -520,7 +520,7 @@ C****
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
-      USE CONSTANT, only : grav,kapa,sday,shi,lhm,teeny
+      USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
@@ -844,10 +844,8 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
             QTOLD(L,I,J)=Q(I,J,L)
           END DO
 C**** initialize egcm to be used in ATURB.f
-         egcm(1,i,j)=egcm_init_max/(float(1)**2)
-         w2gcm(1,i,j)=1.d0/3.d0*egcm(1,i,j)
-          DO L=2,LM
-            egcm(l,i,j)=teeny
+          DO L=1,LM
+            egcm(l,i,j)=egcm_init_max/(float(l)**2)
             w2gcm(l,i,j)=1.d0/3.d0*egcm(l,i,j)
           END DO
         END DO
