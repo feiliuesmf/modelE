@@ -29,14 +29,13 @@ C****
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : zgs
-      USE DAGCOM, only : aij,tdiurn,aj,areg,adaily,ndlypt,jreg
+      USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adaily,ndlypt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt,j_f1dt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
       USE LANDICE_COM, only : snowli
-      USE OCEAN, only : oa,tfo
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor,runoe,erunoe
@@ -57,7 +56,7 @@ C****
      *     ,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,SHEAT,TRHEAT,QSDEN
      *     ,QSCON,QSMUL,T2DEN,T2CON,T2MUL,TGDEN,FQEVAP,ZS1CO,USS
      *     ,VSS,WSS,VGS,WGS,USRS,VSRS,Z2,Z2BY4L,Z1BY6L,THZ1,QZ1,POC,POI
-     *     ,PLK,PLKI,F1DTS
+     *     ,PLK,PLKI,F1DTS,SSS
 
       REAL*8 MSUM, MA1, MSI1, MSI2
       REAL*8, DIMENSION(NSTYPE,IM,JM) :: TGRND,TGRN2
@@ -73,7 +72,7 @@ C**** Interface to PBL
       REAL*8, PARAMETER :: qmin=1.e-12
       REAL*8, PARAMETER :: S1BYG1 = 0.57735, RVX=0.,
      *     Z1IBYL=Z1I/ALAMI, Z2LI3L=Z2LI/(3.*ALAMI), Z1LIBYL=Z1E/ALAMI
-      REAL*8 QSAT,DQSATDT
+      REAL*8 QSAT,DQSATDT,TOFREZ
 C****
 C**** ZATMO     GEOPOTENTIAL (G*Z)
 C**** FLAND     LAND COVERAGE (1)
@@ -242,7 +241,8 @@ C****
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
       Z1BY6L=(Z1IBYL+SNOW*BYRLS)*BY6
-      CDTERM=1.5*TG2-.5*TFO
+      SSS = 35d0
+      CDTERM=1.5*TG2-.5*TOFREZ(SSS)
       CDENOM=1./(2.*Z1BY6L+Z2BY4L)
       HC1=HC1I+SNOW*SHI
       BETA=1.

@@ -15,7 +15,7 @@ C**** must be compiled after the model
       USE DAGCOM, only : keynr
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
-      USE OCEAN, only : tocean,oa,z1o
+      USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
       USE SEAICE, only : ace1i,xsi
       USE LANDICE_COM, only : tlandi,snowli

@@ -91,7 +91,6 @@ C****
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,gtemp
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
       USE SEAICE, only : sea_ice,lmi
-      USE OCEAN, only : tocean
       USE LAKES_COM, only : tlake
       USE DAGCOM, only : aj,areg,aij,jreg,
      *     ij_f0oi,ij_erun2,ij_rsoi,ij_msi2,ij_evapi,j_difs
@@ -191,11 +190,9 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi
-      USE SEAICE, only : ace1i,addice,lmi
+      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk
       USE DAGCOM, only : aj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_type
-      USE OCEAN, only : fleadoc
-      USE LAKES_COM, only : fleadlk
       USE FLUXES, only : dmsi,dhsi,gtemp
       IMPLICIT NONE
 
@@ -298,7 +295,7 @@ C****
 !@ver  1.0
       USE E001M12_COM, only : im,jm,focean
       USE CONSTANT, only : byshi,lhm
-      USE OCEAN, only : oa
+      USE DAGCOM, only : oa
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : msi,hsi,snowi
       IMPLICIT NONE

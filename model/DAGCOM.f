@@ -168,9 +168,28 @@ c     &  AJK,AIJK,AIJL,AJLSP
 !@var QCHECK TRUE for running diagnostic checks
       LOGICAL :: QCHECK = .FALSE.
 
-c
-c**** Information about acc-arrays:  names, indices, units, idacc-numbers, etc.
-c
+!@var OA generic diagnostic array for ocean heat transport calculations
+C****
+C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
+C****
+C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
+C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
+C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
+C****       4  ENRGP  (INTEGRATED OVER THE DAY)
+C****       5  SRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       6  TRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       7  SHDT   (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       8  EVHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       9  TRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****
+      REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
+
+C****
+C**** Information about acc-arrays:  
+C****      names, indices, units, idacc-numbers, etc.
 
 !@var iparm/dparm int/double global parameters written to acc-file
       integer, parameter :: niparm_max=100
@@ -297,7 +316,7 @@ c idacc-indices of various processes
       CASE (IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,
      *       ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
-     *       AJK,AIJK,AIJL,AJLSP,TDIURN,it
+     *       AJK,AIJK,AIJL,AJLSP,TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         WRITE (kunit,err=10) MODULE_HEADER,KEYNR,SNGL(TSFREZ),SNGL(AJ),
      *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
@@ -310,7 +329,7 @@ c idacc-indices of various processes
       CASE (ioread)           ! input from restart file
         READ (kunit,err=10) HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
      *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
-     *       AIJK,AIJL,AJLSP,TDIURN,it
+     *       AIJK,AIJL,AJLSP,TDIURN,OA,it
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

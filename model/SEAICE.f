@@ -27,6 +27,10 @@
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
+!@var FLEADOC lead fraction for ocean ice (%)
+      REAL*8, PARAMETER :: FLEADOC = 0.06d0
+!@var FLEADLK lead fraction for lakes (%)
+      REAL*8, PARAMETER :: FLEADLK = 0.
 !@param BYRLI,BYRLS reciprical of density*lambda
       REAL*8, PARAMETER :: BYRLI = 1./(RHOI*ALAMI),
      *     BYRLS = 1./(RHOS*ALAMS)

@@ -4,10 +4,8 @@
 !@ver  1.0 (Based originally on B399)
       USE E001M12_COM
       USE RANDOM
-      USE DAGCOM, only : aij,keynr,kdiag,ij_tgo2
+      USE DAGCOM, only : keynr,kdiag,oa
       USE DYNAMICS, only : filter,calc_ampk
-      USE OCEAN, only : tocean,oa
-      USE SEAICE_COM, only : rsi,msi
       USE FILEMANAGER, only : getunit
       IMPLICIT NONE
 
@@ -122,6 +120,11 @@ C****
       CALL DYNAM
 
       CALL CALC_AMPK(LS1-1)
+
+C****
+C**** CALL OCEAN DYNAMIC ROUTINES
+C****
+      CALL ODYNAM
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MDYN)
@@ -314,8 +317,9 @@ C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           OPEN (30,FILE=CDATE//'.acc'//LABEL1(1:LLAB1),
      *         FORM='UNFORMATTED')
-          call io_label(30,Itime,iowrite,ioerr)
-          call io_diags(30,Itime,iowrite_single,ioerr)
+          call io_label (30,Itime,iowrite,ioerr)
+          call io_diags (30,Itime,iowrite_single,ioerr)
+          call io_ocdiag(30,Itime,iowrite_single,ioerr)
           CLOSE (30)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
@@ -326,12 +330,10 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
             CLOSE (30)
           END IF
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
-C**** Note minor change of format to accomodate replacement of ODATA
           IF (KCOPY.GT.2) THEN
             OPEN (30,FILE=CDATE//'.oda'//LABEL1(1:LLAB1),
      *           FORM='UNFORMATTED')
-            WRITE (30) Itime,TOCEAN,RSI,MSI,((AIJ(I,J,IJ_TGO2),I=1,IM),
-     *           J=1,JM)
+            call io_oda(30,Itime,iowrite,ioerr)
             CLOSE (30)
           END IF
         END IF
@@ -489,9 +491,9 @@ C****
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : kacc,tsfrez,kdiag,keynr,jreg
-     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
+     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
       USE DYNAMICS, only : filter,calc_ampk
-      USE OCEAN, only : tocean,oa
+      USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,snowi,hsi
       USE SEAICE, only : xsi,ace1i,ac2oim
       USE LAKES_COM, only : t50
@@ -1153,6 +1155,7 @@ C**** Check Earth arrays
 !@ver   1.0
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@calls io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
+!@calls io_ocdiag
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
@@ -1188,6 +1191,7 @@ C**** Calls to individual i/o routines
       call io_somtq  (kunit,iaction,ioerr)
       call io_rad    (kunit,iaction,ioerr)
       call io_diags  (kunit,it,iaction,ioerr)
+      call io_ocdiag (kunit,it,iaction,ioerr)
 
       if (it1.ne.it) THEN
         WRITE(6,*) "TIMES DO NOT MATCH READING IN RSF FILE",it,it1

@@ -12,7 +12,7 @@
      *     cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
-      USE SEAICE, only : xsi,ace1i,z1i,ac2oim
+      USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim
       USE LANDICE_COM, only : snowli,tlandi
       USE LAKES_COM, only : tlake,tfl
       USE FLUXES, only : gtemp
@@ -20,29 +20,9 @@
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
       INTEGER, PARAMETER :: LMOM = 9
-!@var OA generic array for ocean heat transport calculations
-C****
-C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
-C****
-C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
-C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
-C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
-C****       4  ENRGP  (INTEGRATED OVER THE DAY)
-C****       5  SRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       6  TRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       7  SHDT   (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       8  EVHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
-C****       9  TRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
-C****
-      REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
 
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8d0
-!@var FLEADOC lead fraction for ocean ice (%)
-      REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var TOCEAN temperature of the ocean (C)
       REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
 
@@ -218,7 +198,7 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
 C**** Calculate OST, RSI and MSI for current day
   400 TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
       DO J=1,JM
-        ZIMIN=.5d0
+        ZIMIN=Z1I+Z2OIM 
         ZIMAX=2d0
         IF(J.GT.JM/2) ZIMAX=3.5d0
         IMAX=IMAXJ(J)
@@ -695,9 +675,9 @@ C****
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,OA,Z1O
+        WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,Z1O
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,TOCEAN,OA,Z1O
+        READ (kunit,err=10) HEADER,TOCEAN,Z1O
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
@@ -710,6 +690,39 @@ C****
 C****
       END SUBROUTINE io_ocean
 
+      SUBROUTINE io_oda(kunit,it,iaction,ioerr)
+!@sum  io_oda reads and writes ocean data for initialisaing deep ocean 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : ioread,iowrite,Itime,im,jm
+      USE OCEAN, only : tocean
+      USE SEAICE_COM, only : rsi,msi
+      USE DAGCOM, only : ij_tgo2,aij
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var it input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+      INTEGER I,J
+
+      SELECT CASE (IACTION)
+      CASE (:IOWRITE)            ! output to standard restart file
+        WRITE (kunit,err=10) it,TOCEAN,RSI,MSI,((AIJ(I,J,IJ_TGO2),
+     *     I=1,IM),J=1,JM)
+      CASE (IOREAD:)            ! input from restart file
+        READ (kunit,err=10) it,TOCEAN,RSI,MSI,((AIJ(I,J,IJ_TGO2),
+     *     I=1,IM),J=1,JM)
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+C****
+      END SUBROUTINE io_oda
+
       SUBROUTINE PRECIP_OC
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
@@ -719,10 +732,10 @@ C****
       USE E001M12_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,prec,eprec,gtemp
-      USE OCEAN, only : oa,tocean,z1o
+      USE OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
-      USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2
+      USE DAGCOM, only : aj,aij,ij_f0oc,j_run2,j_dwtr2,oa
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,ENRGO,POCEAN,POICE,SNOW
      *     ,SMSI,ENRGW,WTRW0,WTRW,RUN0,RUN4,DXYPJ,ROICE
@@ -785,13 +798,13 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,
      *     flowo,eflowo,gtemp
-      USE OCEAN, only : tocean,z1o,oa,ota,otb,otc,tfo,osourc,
+      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
-     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type
+     *     ,ij_tgo,ij_tg1,ij_evap,ij_evapo,j_type,oa
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ
@@ -1111,3 +1124,38 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 
       RETURN
       END SUBROUTINE ODFFUS
+
+      SUBROUTINE ODYNAM
+!@sum  ODYNAM Dummy routine for non-dynamic oceans
+!@auth Gavin Schmidt
+!@ver  1.0
+      RETURN
+      END SUBROUTINE ODYNAM
+
+      SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
+!@sum  io_ocdiag Dummy io routine for non-dynamic oceans
+!@auth Gavin Schmidt
+!@ver  1.0
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var it input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+      RETURN
+      END SUBROUTINE io_ocdiag
+
+C**** This is here so that a coupled ocean is easier to implement
+
+      DOUBLE PRECISION FUNCTION TOFREZ(S)
+!@sum  TOFREZ returns the value of the seawater freezing temp
+!@auth Gavin Schmidt
+!@var  1.0
+      USE OCEAN, only : tfo
+      REAL*8, INTENT(IN) :: S  !@var S salinity of water (ppt)
+
+C**** for Q-flux ocean no variation with salinity is required
+      TOFREZ = tfo
+
+      RETURN
+      END FUNCTION TOFREZ
