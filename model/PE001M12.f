@@ -589,7 +589,7 @@ C****
      *     ,tf
       USE E001M12_COM
       USE GEOM
-      USE RADNCB
+      USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2
       USE RE001
      &  , only : setnew,rcomp1,writer,rcompx,rcompt ! routines
      &             ,lx

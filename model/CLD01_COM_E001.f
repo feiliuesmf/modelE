@@ -4,6 +4,10 @@
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE E001M12_COM, only : IM,JM,LM
+C**** Note that we USE the NAMELIST set-able parameters from CLD01 only
+C**** to be able to pass them to INPUT. and possibly write out to rsf
+C**** and acc files
+      USE CLD01, only : U00wtr,U00ice,LMCM
 
       IMPLICIT NONE
       SAVE

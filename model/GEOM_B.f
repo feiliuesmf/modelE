@@ -136,8 +136,7 @@ c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       END DO
 
 C**** Set indexes and scalings for the influence of A grid points on
-C**** adjacent velocity points (assumes that U,V are sequential in a
-C**** common block) 
+C**** adjacent velocity points 
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1

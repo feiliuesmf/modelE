@@ -71,16 +71,16 @@ c**** lhe = 334590 + 2.05d3 T (in C)
       real*8,parameter :: byshi = 1d0/shi
 
 !@param rgas gas constant (J/K kg)
+c**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol 
 c**** for values of CO2 much larger than present day (4x conc)
 c**** the molecular weight of dry air M_A could change
-c**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol 
 c**** (US Stand. Atm.) assuming M_w for O2 = 31.9988 and CO2 = 44.00995
 c**** and current percentage 20.946% and 0.0350% 
 c**** assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
 c**** where n is multiple of present day CO2 conc (350 ppm)
 c**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
 c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
-!param gasc  gas constant J/mol K
+!@param gasc  gas constant J/mol K
 c     real*8,parameter :: gasc = 8.314510d0
 !@param mair molecular weight of dry air 
 c     real*8,parameter :: mair = 28.9655d0 

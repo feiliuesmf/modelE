@@ -26,8 +26,10 @@ C**** parameters and constants
 C**** Set-able variables from NAMELIST 
 !@var LMCM max level for originating MC plumes (set in init_CLD)
       INTEGER :: LMCM 
-!@var U00 critical humidity for condensation (default value)
-      REAL*8 :: U00 = .7  
+!@var U00wtr critical humidity for water cloud condensation (default value)
+      REAL*8 :: U00wtr = .7  
+!@var U00ice critical humidity for ice cloud condensation (default value)
+      REAL*8 :: U00ice = .7  
 
 C**** input variables
 !@var RA,UM,VM,U_0,V_0 velocity related variables
@@ -1180,8 +1182,8 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       ATH(L)=(TH(L)-TTOLDL(L))*BYDTCN
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
-      RH00(L)=U00
-      IF(LHX.EQ.LHS) RH00(L)=U00
+      RH00(L)=U00wtr
+      IF(LHX.EQ.LHS) RH00(L)=U00ice
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(1000.*GRAV*PL(L))
         RH00(L)=1.-9.8d0*LHE*HDEP/(461.5d0*TS*TS)

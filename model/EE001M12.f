@@ -103,7 +103,6 @@ C****
       DTSRCE=DT*NDYN
       RVX=0.
       ZS1CO=.5*DSIG(1)*RGAS/GRAV
-c      S0=S0X*1367./RSDIST
 
          SPRING=-1.
          IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
