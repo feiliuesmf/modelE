@@ -273,7 +273,7 @@ C**** functions
 #endif
 
       REAL*8, DIMENSION(LM) ::
-     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,SVTP,DDM
+     *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,DDM
      *    ,CONDP,CONDGP,CONDIP,CONDD
 !@var DM change in air mass
 !@var COND,CONDGP,CONDIP,CONDD condensate
@@ -283,7 +283,7 @@ C**** functions
 !@var DMR change of air mass
 !@var ML layer air mass
 !@var SMT, QMT dummy variables
-!@var TPSAV, SVTP  arrays to save plume temperature
+!@var TPSAV  arrays to save plume temperature
 !@var DDM downdraft mass
 
 !@var IERRT,LERRT error reports from advection
@@ -411,7 +411,6 @@ C**** initiallise arrays of computed ouput
       CLDSLWIJ=0
       CLDDEPIJ=0
       PRCPMC=0.
-      SVTP=0
       TPSAV=0
       CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
 #ifdef TRACERS_WATER
@@ -633,7 +632,6 @@ C****
       LFRZ=0
       LMAX=LMIN
  220  L=LMAX+1
-      SVTP(L)=SMP*PLK(L)/(MPLUME+teeny)
 C**** TEST FOR SUFFICIENT AIR, MOIST STATIC STABILITY AND ENERGY
 C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       IF(MPLUME.LE..001*AIRM(L)) GO TO 340
@@ -1275,7 +1273,7 @@ C**** and deal with possible inversions and re-freezing of rain
 C**** UPDATE TEMPERATURE AND HUMIDITY DUE TO NET REVAPORATION IN CLOUDS
       FSSUM = 0
       IF (ABS(PLK(L)*SM(L)).gt.teeny) FSSUM = (SLH*DQSUM+HEAT1)/
-     *     (PLK(L)*SM(L))
+     *     (PLK(L)*SM(L)*FMC1)
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1)/PLK(L)/FMC1
       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
       QM(L)=QM(L)+DQSUM/FMC1
@@ -1393,8 +1391,8 @@ C**** CALCULATE OPTICAL THICKNESS
          END IF
          IF(SVLATL(L).EQ.0.) THEN
             SVLATL(L)=LHE
-            IF ( (SVTP(L).gt.0. .and. SVTP(L).LT.TF) .or.
-     *           (SVTP(L).eq.0. .and. TL(L).lt.TF) ) SVLATL(L)=LHS
+            IF ( (TPSAV(L).gt.0. .and. TPSAV(L).LT.TF) .or.
+     *           (TPSAV(L).eq.0. .and. TL(L).lt.TF) ) SVLATL(L)=LHS
          ENDIF
          IF(SVWMXL(L).GT.0.) THEN
             FCLD=CLDMCL(L)+1.E-20
@@ -1887,8 +1885,8 @@ C**** Only Calculate fractional changes of Q to W
       FWTOQ=0.                                                ! CLW->Q
 #endif
       FQTOW=0.                                                ! Q->CLW
-      IF (QHEAT(L)+CAREA(L)*ER(L).gt.0) THEN
-        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L)
+      IF (QHEAT(L)/FSSL(L)+CAREA(L)*ER(L).gt.0) THEN
+       IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L)/FSSL(L)
      *       +CAREA(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)*ER(L))
 #ifdef TRACERS_WATER
       ELSE
