@@ -150,9 +150,10 @@ C**** output variables
 !@var PRCPSS precip due to large-scale condensation
 !@var HCNDSS heating due to large-scale condensation
 !@var WMSUM cloud liquid water path
-      REAL*8 :: CLDSLWIJ,CLDDEPIJ
+      REAL*8 :: CLDSLWIJ,CLDDEPIJ,PPHASE
 !@var CLDSLWIJ shallow convective cloud cover
 !@var CLDDEPIJ deep convective cloud cover
+!@var PPHASE precip phase of large-scale condensation 
       INTEGER :: LMCMAX,LMCMIN
 !@var LMCMAX upper-most convective layer
 !@var LMCMIN lowerest convective layer
@@ -1616,8 +1617,10 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
   230 CONTINUE
 C**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
       HPHASE=0.
-      IF(L.LT.LM.AND.TL(L).GT.TF)
-     *  HPHASE=LHM*PREICE(L+1)*GRAV*BYAM(L)
+      IF(L.LT.LM.AND.TL(L).GT.TF) THEN
+        HPHASE=LHM*PREICE(L+1)*GRAV*BYAM(L)
+        IF(PREICE(L+1).GT.0.D0) PPHASE=LHE
+      ENDIF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF(TL(L).GT.TF) THEN
         PREICE(L+1)=0.
@@ -1638,6 +1641,8 @@ C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
         PREBAR(L)=MAX(0d0,PREBAR(L+1)+
      *       AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV)
       END IF
+      IF(PREBAR(L).GT.0.D0.AND.PREP(L).GT.0.D0) PPHASE=LHX
+      IF(PREBAR(L).LE.0.D0) PPHASE=0.
 C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       QNEW =QL(L)-DTsrc*QHEAT(L)/LHX
       IF(QNEW.LT.0.) THEN

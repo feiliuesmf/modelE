@@ -50,7 +50,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l
+     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo
@@ -503,6 +503,8 @@ C       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
       ENDIF
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
+      PPHASE=0.D0
+
       CALL LSCOND(IERR,WMERR,LERR)
 
 C**** Error reports
@@ -645,7 +647,7 @@ C**** WRITE TO GLOBAL ARRAYS
 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
-C**** The PRECSS array is only used if a distinction is being made 
+C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 
