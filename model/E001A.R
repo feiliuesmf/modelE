@@ -7,7 +7,8 @@ E001M12_COM SOMTQ_COM GEOM_B        ! model modules
 GHYCOM const DAGCOM RADNCB          ! more model modules
 PBLCOM                              ! more model modules
 ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
-CE001M12 SUBSIDEM12 PE001M12        ! mstcnv,condse phys(no surfce)
+CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
+SUBSIDEM12 PE001M12                 ! phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr
 PBLDRV                              ! surfce and its subr
 OCNE001                             ! ocean and sea ice modules
