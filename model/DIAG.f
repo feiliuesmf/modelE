@@ -1,10 +1,7 @@
-C**** DE001M12 E001M12 SOMTQ D_f90 DB285M12
-C****
-C**** Modified Model II diagnostics in double precision for work station
-C**** subroutines in DB192SM15: All Diagnostics subroutines
-C**** Additional diagnostics for moist energy fluxes
-C**** changes for f90
-C****
+!@sum  DIAG ModelE diagnostic calculations
+!@auth G. Schmidt/J. Lenrer/R. Reto/M. Kelley
+!@ver  1.0 
+
       MODULE DAGPCOM
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
 !@auth Jean Lerner
