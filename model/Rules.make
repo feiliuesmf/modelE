@@ -17,8 +17,8 @@ EXTRA_FFLAGS =
 # to the screen or to a file ( no arg = screen )
 #COMP_OUTPUT =   
 #LINK_OUTPUT =
-COMP_OUTPUT = > $*.ERR 2>&1
-LINK_OUTPUT = > $(RUN).ERR 2>&1
+COMP_OUTPUT = > $*.ERR 2>&1 || { r=$$? ; cat $*.ERR ; exit $$r ; }
+LINK_OUTPUT = > $(RUN).ERR 2>&1 || { r=$$? ; cat $(RUN).ERR ; exit $$r ; }
 
 # overwriting above options if environment var MODELE_MAKE_OUTPUT=SCREEN
 ifeq ($(MODELE_MAKE_OUTPUT),SCREEN)
