@@ -30,7 +30,7 @@ C
 !@param n_bnd1 maximum number of spectral bands 1
 !@param n_bnd2 maximum number of spectral bands 2
 !@param n_bnd3 maximum number of spectral bands 3
-!@param n_nst maximum number of reverse reactions
+!@param n_nst maximum number of monomolecular decompositions
 !@param n_fam maximum number of chemical families
 !@param n_spc maximum number of chemical species
 !@param n_oig max number of optically-important gases
@@ -53,10 +53,9 @@ C
 !@param MFIT expansion of phase function in OPMIE
 !@param MFASTJ ?
 !@param CMEQ1 ?
-!@param nc "number of molecules considered" ?
-!@param ny "number of calculated gases" ?
-!@param numfam number of families
-!@param n_igas uknown: number of prod/dest gases?
+!@param nc total number of molecules included (incl. O2 and N2)
+!@param ny number of chemically calculated gases (no O2 or N2)
+!@param numfam number of chemical families
 !@param n_phot how often to do photolysis (in increments of DTsrc)
 !@param O3MULT =2.14D-2    !is 1.E10*2.69E13*48./6.02E26
 !@param BYO3MULT = 1/O3MULT
@@ -90,15 +89,34 @@ C
      & LCH4alt=    6,
      & LcorrOX=    4,
      & p_1   =     2,
+#ifdef Shindell_Strat_chem
+     & p_2   =   209,
+     & n_rx  =   109,
+     & n_bi  =    93,
+     & n_tri =    11,
+     & n_nst =     3,
+     & JPPJ   =   28,
+#else
      & p_2   =   111,
-     & p_3   =   200,
-     & p_4   =    70,
-     & p_5   =    14,
      & n_rx  =   101,
      & n_bi  =    96,
      & n_tri =    14,
-     & n_bnd1=    31,
      & n_nst =     5,
+     & JPPJ   =   16,
+#endif
+#ifdef Shindell_Strat_chem
+     & nc     =   53,     !formerly in param sub
+     & ny     =   51,     !formerly in param sub  
+     & numfam =    4,     !formerly in param sub  
+#else
+     & nc     =   35,     !formerly in param sub
+     & ny     =   33,     !formerly in param sub  
+     & numfam =    2,     !formerly in param sub  
+#endif
+     & p_3   =   200,
+     & p_4   =    70,
+     & p_5   =    14,
+     & n_bnd1=    31,
      & n_fam =     4,
      & n_spc =    35,
      & n_bnd2=    87,
@@ -147,16 +165,11 @@ C ----------------------------------------------
      & NLFASTJ=  350,     !300 is arbitrary for now
      & NS     =   51,
      & NWFASTJ=   15, 
-     & JPPJ   =   16,
      & JPNL   =   12,
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
      & MFIT   =    8,
      & NFASTJ =    4,
      & MFASTJ =    1,
-     & nc     =   35,     !formerly in param sub
-     & ny     =   33,     !formerly in param sub  
-     & numfam =    2,     !formerly in param sub  
-     & n_igas =   43,
      & n_phot=     2      ! currently means 2 hours
 C     
       REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
@@ -372,10 +385,16 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var L569M first model level below nominal 569 hPa
 !@var F569P interpolation coeff. of higher altitude value (units ln(P))
 !@var F569M interpolation coeff. of lower altitude value (units ln(P))
+!@var DU_O3 total column ozone in latitude band
+!@var SF3 is H2O photolysis in Schumann-Runge Bands
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ                                 
-      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/) ! why 4?
+#ifdef Shindell_Strat_chem
+      INTEGER, DIMENSION(n_fam)        :: nfam = (/37,40,44,50/)
+#else
+      INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30/)
+#endif
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
@@ -465,15 +484,24 @@ C**** additional levsls for CH4 to avoid extrapolation...
       REAL*8, DIMENSION(p_2,LM)         :: chemrate, photrate 
 C     REAL*8, DIMENSION(LX,JM,IM)       :: O3DLJI, O3DLJI_clim
       REAL*8, DIMENSION(LM,JM,IM)       :: O3DLJI, O3DLJI_clim
+#ifdef Shindell_Strat_chem
+      REAL*8, DIMENSION(2*(LM))         :: O3_FASTJ
+#else
       REAL*8, DIMENSION(2*(LS1-1))      :: O3_FASTJ
+
+#endif
 C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(JCOlat), PARAMETER  :: COlat = (/40.,40.,40.,40.
      *     ,45.,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.
      *     ,165.,150./)
-      REAL*8, DIMENSION(n_igas,LM)      :: dest, prod
+      REAL*8, DIMENSION(ny,LM)          :: dest, prod
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
+#ifdef Shindell_Strat_chem
+      REAL*8, DIMENSION(JM)             :: DU_O3
+      REAL*8, DIMENSION(IM,JM,LM)       :: SF3
+#endif
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
 C      
