@@ -489,7 +489,7 @@ C****
       OIJ=0. ; OIJL=0. ; OL=0. ; OLNST=0. 
 
 #ifdef TRACERS_OCEAN
-      TOIJL=0. ; TLSNT = 0. ; TOIJ=0.
+      TOIJL=0. ; TLNST = 0. ; TOIJ=0.
 #endif
       return
       END SUBROUTINE reset_odiag
