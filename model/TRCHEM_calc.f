@@ -1,7 +1,7 @@
       SUBROUTINE chemstep(I,J,change)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_mar2602_M23)
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
 !@calls rates,chem1,chem1prn    
 c
 C**** GLOBAL parameters and variables:  
@@ -383,7 +383,7 @@ c
        end do ! L
       end do  ! igas
 c
-cc      Insure nitrogen conservation
+cc    Insure nitrogen conservation
       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
        write(*,*) 'changes before nitrogen conservation routine'
        write(*,*) 'NOx, N2O5, HO2NO2, HNO3, PAN, AlkylNit'
@@ -392,39 +392,40 @@ cc      Insure nitrogen conservation
      & change(I,J,lprn,n_PAN),change(I,J,lprn,n_AlkylNit)
       endif
 c
-        do L=1,maxl
+      do L=1,maxl
 c
-c        First check for nitrogen loss > 100%
-         if(-change(I,J,L,n_NOx).gt.trm(I,J,L,n_NOx))
-     &   change(I,J,L,n_NOx)=1.-trm(I,J,L,n_NOx)
-         if(-change(I,J,L,n_N2O5).gt.trm(I,J,L,n_N2O5))
-     &   change(I,J,L,n_N2O5)=1.-trm(I,J,L,n_N2O5)
-         if(-change(I,J,L,n_HO2NO2).gt.trm(I,J,L,n_HO2NO2))
-     &   change(I,J,L,n_HO2NO2)=1.-trm(I,J,L,n_HO2NO2)
-         if(-change(I,J,L,n_HNO3).gt.trm(I,J,L,n_HNO3))
-     &   change(I,J,L,n_HNO3)=1.-trm(I,J,L,n_HNO3)
-         if(-change(I,J,L,n_PAN).gt.trm(I,J,L,n_PAN))
-     &   change(I,J,L,n_PAN)=1.-trm(I,J,L,n_PAN)
-         if(-change(I,J,L,n_AlkylNit).gt.trm(I,J,L,n_AlkylNit))
-     &   change(I,J,L,n_AlkylNit)=1.-trm(I,J,L,n_AlkylNit)
+c       First check for nitrogen loss > 100%
+        if(-change(I,J,L,n_NOx).gt.trm(I,J,L,n_NOx))
+     &  change(I,J,L,n_NOx)=1.-trm(I,J,L,n_NOx)
+        if(-change(I,J,L,n_N2O5).gt.trm(I,J,L,n_N2O5))
+     &  change(I,J,L,n_N2O5)=1.-trm(I,J,L,n_N2O5)
+        if(-change(I,J,L,n_HO2NO2).gt.trm(I,J,L,n_HO2NO2))
+     &  change(I,J,L,n_HO2NO2)=1.-trm(I,J,L,n_HO2NO2)
+        if(-change(I,J,L,n_HNO3).gt.trm(I,J,L,n_HNO3))
+     &  change(I,J,L,n_HNO3)=1.-trm(I,J,L,n_HNO3)
+        if(-change(I,J,L,n_PAN).gt.trm(I,J,L,n_PAN))
+     &  change(I,J,L,n_PAN)=1.-trm(I,J,L,n_PAN)
+        if(-change(I,J,L,n_AlkylNit).gt.trm(I,J,L,n_AlkylNit))
+     &  change(I,J,L,n_AlkylNit)=1.-trm(I,J,L,n_AlkylNit)
 c          
-c        Next insure balance between dNOx and sum of dOthers
-         sumN=(change(I,J,L,n_N2O5))*mass2vol(n_N2O5)+
-     *   (change(I,J,L,n_HNO3))*mass2vol(n_HNO3)+
-     *   (change(I,J,L,n_HO2NO2))*mass2vol(n_HO2NO2)+
-     *   (change(I,J,L,n_PAN))*mass2vol(n_PAN)+
-     *   (change(I,J,L,n_AlkylNit))*mass2vol(n_AlkylNit)
-         dNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)
-         if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
-     &   write(*,*) 'sumN, dNOx = ',sumN,dNOx
-c        NOx being produced (net positive change)
+c       Next insure balance between dNOx and sum of dOthers
+        sumN=(2.*change(I,J,L,n_N2O5))*mass2vol(n_N2O5)+
+     *  (change(I,J,L,n_HNO3))*mass2vol(n_HNO3)+
+     *  (change(I,J,L,n_HO2NO2))*mass2vol(n_HO2NO2)+
+     *  (change(I,J,L,n_PAN))*mass2vol(n_PAN)+
+     *  (change(I,J,L,n_AlkylNit))*mass2vol(n_AlkylNit)
+        dNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)
+        if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
+     &  write(*,*) 'sumN, dNOx = ',sumN,dNOx
+        ratio=-sumN/dNOx
+        IF(ratio.le.0.999 .OR. ratio.ge.1.001) THEN
          if(dNOx.gt.0.)then
-          ratio=-sumN/dNOx
+c         NOx being produced (net positive change)         
           if (ratio.gt.1.)then
            sumD=0.
 c          reduce N destruction to match NOx prodcution
            if(change(I,J,L,n_N2O5).lt.0.)   sumD=sumD+
-     *     change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
+     *     2.*change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
            if(change(I,J,L,n_HO2NO2).lt.0.) sumD=sumD+
      *     change(I,J,L,n_HO2NO2)*mass2vol(n_HO2NO2)
            if(change(I,J,L,n_HNO3).lt.0.)   sumD=sumD+
@@ -447,18 +448,17 @@ c          reduce N destruction to match NOx prodcution
      *     change(I,J,L,n_AlkylNit)*ratioD
           endif
 c
-          if (ratio.lt.1..and.ratio.gt.0.)then
+          if (ratio.le.1..and.ratio.gt.0.)then
 c          reduce NOx production to match N loss
            change(I,J,L,n_NOx)=change(I,J,L,n_NOx)*ratio
           endif
          else
-c        NOx being destroyed (net change is negative)
-          ratio=-sumN/dNOx
+c         NOx being destroyed (net change is negative)
           if (ratio.gt.1.)then
            sumP=0
 c          reduce N production to match NOx loss
            if(change(I,J,L,n_N2O5).gt.0.)    sumP=sumP+
-     *     change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
+     *     2.*change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
            if(change(I,J,L,n_HO2NO2).gt.0.)  sumP=sumP+
      *     change(I,J,L,n_HO2NO2)*mass2vol(n_HO2NO2)
            if(change(I,J,L,n_HNO3).gt.0.)    sumP=sumP+
@@ -480,11 +480,11 @@ c          reduce N production to match NOx loss
            if(change(I,J,L,n_AlkylNit).gt.0.)change(I,J,L,n_AlkylNit)=
      *        change(I,J,L,n_AlkylNit)*ratioP
           endif
-          if (ratio.lt.1.and.ratio.gt.0)then
+          if (ratio.le.1.and.ratio.gt.0)then
 c          increase N production to match NOx loss (12/4/2001)
            sumP=0.
            if(change(I,J,L,n_N2O5).gt.0.)    sumP=sumP+
-     *     change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
+     *     2.*change(I,J,L,n_N2O5)*mass2vol(n_N2O5)
            if(change(I,J,L,n_HO2NO2).gt.0.)  sumP=sumP+
      *     change(I,J,L,n_HO2NO2)*mass2vol(n_HO2NO2)
            if(change(I,J,L,n_HNO3).gt.0.)    sumP=sumP+
@@ -507,65 +507,67 @@ c          increase N production to match NOx loss (12/4/2001)
      *     change(I,J,L,n_AlkylNit)*ratioP
           endif
          endif
+         
+        END IF ! skipped section above if ratio very close to one
 C
-         if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
-     &   write(*,*) 'ratio for conservation =',ratio
+        if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)
+     &  write(*,*) 'ratio for conservation =',ratio
 C     
-       end do ! L
+      end do ! L
 C
-cc     Print chemical changes in a particular grid box if desired
-       if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
-         do igas=1,ntm                                   
-          changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
-     *    bydxyp(J)*byam(lprn,I,J)
-          if(y(igas,lprn).eq.0.)then
-             write(6,156) ay(1,igas),ay(2,igas),': ',changeA
-     *             ,' molecules;  y=0'
-          else
-             write(6,155) ay(1,igas),ay(2,igas),': ',changeA
-     *            ,' molecules produced; ',
-     *    (100.*changeA)/y(igas,lprn),' percent of'
-     *    ,y(igas,lprn),'(',1.E9*y(igas,lprn)/y(nM,lprn),' ppbv)'
-          endif
+cc    Print chemical changes in a particular grid box if desired
+      if(prnchg.and.J.eq.jprn.and.I.eq.iprn)then
+        do igas=1,ntm                                   
+         changeA=change(I,J,Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
+     *   bydxyp(J)*byam(lprn,I,J)
+         if(y(igas,lprn).eq.0.)then
+            write(6,156) ay(1,igas),ay(2,igas),': ',changeA
+     *            ,' molecules;  y=0'
+         else
+            write(6,155) ay(1,igas),ay(2,igas),': ',changeA
+     *           ,' molecules produced; ',
+     *   (100.*changeA)/y(igas,lprn),' percent of'
+     *   ,y(igas,lprn),'(',1.E9*y(igas,lprn)/y(nM,lprn),' ppbv)'
+         endif
 c
-          if(igas.eq.ntm)then
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
-     *     y(nM,LPRN))*1.E6,' ppmv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
-     *     y(nM,LPRN))*1.E9,' ppbv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.E9,
-     *     ' ppbv'           
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/y(nM,LPRN))*1.E9,
-     *     ' ppbv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
-     *     y(nM,LPRN))*1.E9,' ppbv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
-     *     y(nM,LPRN))*1.E9,' ppbv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
-     *     y(nM,LPRN))*1.E9,' ppbv'
-           write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
-     *     ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
-     *     y(nM,LPRN))*1.E9,' ppbv'
-          endif
-         enddo
-        endif  !end of prnchg loop
+         if(igas.eq.ntm)then
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
+     *    y(nM,LPRN))*1.E6,' ppmv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
+     *    y(nM,LPRN))*1.E9,' ppbv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.E9,
+     *    ' ppbv'           
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/y(nM,LPRN))*1.E9,
+     *    ' ppbv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
+     *    y(nM,LPRN))*1.E9,' ppbv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
+     *    y(nM,LPRN))*1.E9,' ppbv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
+     *    y(nM,LPRN))*1.E9,' ppbv'
+          write(6,'(a10,58x,e13.3,6x,f10.3,a5)')
+     *    ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
+     *    y(nM,LPRN))*1.E9,' ppbv'
+         endif
+        enddo
+      endif  !end of prnchg loop
 c
 c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
-       do igas=1,ntm
-        do L=1,maxl
-         if(change(I,J,L,igas).gt.1.E20 .OR. 
-     &     -change(I,J,L,igas).gt.trm(I,J,L,igas)) THEN
-            WRITE(6,*)'>>change set to 0 in chemstep: I,J,L,igas,change'
-     &     ,I,J,L,igas,change(I,J,L,igas)
-            change(I,J,L,igas) = 0.
-         endif
+      do igas=1,ntm
+       do L=1,maxl
+        if(change(I,J,L,igas).gt.1.E20 .OR. 
+     &    -change(I,J,L,igas).gt.trm(I,J,L,igas)) THEN
+           WRITE(6,*)'>>change set to 0 in chemstep: I,J,L,igas,change'
+     &    ,I,J,L,igas,change(I,J,L,igas)
+           change(I,J,L,igas) = 0.
+        endif
 c
 c Leaving this here to reinstate it later in some form. GSF 2/14/02 : 
 c         if(change(I,J,L,igas).le.1.E20) THEN
@@ -595,7 +597,7 @@ cc    __________________________________________________________________
       SUBROUTINE rates(maxl,I,J)
 !@sum rates calculate reaction rates with present concentrations
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_mar2602_M23) 
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23) 
 c
 C**** GLOBAL parameters and variables:  
 C
@@ -633,7 +635,7 @@ cc    __________________________________________________________________
       SUBROUTINE chem1(kdnr,maxl,numel,nn,ndnr,chemrate,dest,multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_mar2602_M23)  
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)  
 c
 C**** GLOBAL parameters and variables:  
 C
@@ -713,7 +715,7 @@ cc    __________________________________________________________________
      &                    index,multip,igas,total,maxl,I,J)
 !@sum chem1prn for printing out the chemical reactions
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_calc_mar2602_M23)
+!@ver  1.0 (based on ds3ch4_chem_calc_jun1202_M23)
 c
 C**** GLOBAL parameters and variables:  
 C
