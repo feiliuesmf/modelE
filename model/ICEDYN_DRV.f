@@ -79,6 +79,7 @@ C**** Ice advection diagnostics
       USE DOMAIN_DECOMP, only : DYN_GRID
       USE MODEL_COM, only : im
       USE ICEDYN, only : imic
+      USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USI,VSI,USIDT,VSIDT,
      &                       RSISAVE,ICIJ
@@ -91,7 +92,7 @@ C**** Ice advection diagnostics
       INTEGER :: J_1H    , J_0H
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
-      TYPE(DYN_GRID) :: grid, grid_MIC
+      TYPE(DYN_GRID) :: grid
 
       If (init) Then
          Return ! Only invoke once
@@ -102,6 +103,10 @@ C**** Ice advection diagnostics
 !    This is consistent with the current status of the code for
 !    parallelization along latitude (j)
       grid_MIC =grid
+
+C**** Get dimensioning parameters for arrays defined in the grid  and grid_MIC 
+C**** stencils.
+
       CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
       CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
@@ -349,6 +354,7 @@ C**** surface due to presence of ice). This is ignored in favour of
 C**** geostrophy if osurf_tilt=0.
 C**** PGF is an accelaration
       if (grid%HAVE_NORTH_POLE) PGFU(1:IM,JM)=0
+      if (grid%HAVE_SOUTH_POLE) PGFU(1:IM, 1)=0  !RKF
       DO J=J_0S,J_1S
         I=IM
         DO IP1=1,IM
