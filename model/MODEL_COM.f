@@ -260,8 +260,8 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var itime input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
-!@var XLABEL1 dummy label
-      CHARACTER*80 :: LABEL2 = 'IM,JM,LM,LS1='
+!@var LABEL2 content of record 2
+      CHARACTER*80 :: LABEL2
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
       INTEGER NTIM1,TIM1(NTIMEMAX)
       CHARACTER*12 TSTR1(NTIMEMAX)
@@ -276,7 +276,7 @@ C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
         WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,itime0,
      *       NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** doc line: basic model parameters
-        write(label2(14:29),'(4i4)') im,jm,lm,ls1
+        write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
         WRITE (kunit,err=10) LABEL2
 C**** write parameters database here
         call write_param(kunit)

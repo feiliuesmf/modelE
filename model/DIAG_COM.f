@@ -160,7 +160,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      *     40000.,50000.,61000.,67000.,72000./)
       CHARACTER*3, DIMENSION(KGZ), PARAMETER :: PMNAME=(/
      *     "1K ","850","700","500","300","100","30 ","10 ",
-     *     "3.4","0.7",".16",".07",".03" /) 
+     *     "3.4","0.7",".16",".07",".03" /)
 
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
@@ -447,7 +447,7 @@ c idacc-indices of various processes
       IMPLICIT NONE
       REAL*4 ACCS(KACC),TSFREZS(IM,JM,KTSF)
 c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
-      integer monac1(12),i_ida,i_xtra,l_xtra
+      integer monac1(12),i_ida,i_xtra
 !@var Kcomb counts acc-files as they are added up
       INTEGER, SAVE :: Kcomb=0
 
@@ -461,16 +461,16 @@ c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 
-      write (MODULE_HEADER(LHEAD+1:LHEAD+14),'(a9,i4,a1)')
-     *   'R8: keys(',1+NKEYNR*NKEYMO,')'              ! keyct,keynr(:,:)
-      i_ida = Lhead+14+13+1
-      write (MODULE_HEADER(LHEAD+15:i_ida-1),'(a10,i2,a1)')
+      write (MODULE_HEADER(LHEAD+1:LHEAD+14),'(a10,i4,a1)')
+     *   'I/R8 keys(',1+NKEYNR*NKEYMO,')'             ! keyct,keynr(:,:)
+      i_ida = Lhead + 10+4+1 + 10+2+1 + 1
+      write (MODULE_HEADER(LHEAD+10+4+1+1:i_ida-1),'(a10,i2,a1)')
      *   ',TSFR(IJM,',KTSF,')'
       write (MODULE_HEADER(i_ida:i_ida+9),'(a7,i2,a1)')
      *   ',idacc(',nsampl,')'
-      write (MODULE_HEADER(i_ida+10:i_ida+9+15),'(a5,i9,a1)')
+      write (MODULE_HEADER(i_ida+9+1:i_ida+9 + 5+8+1),'(a5,i8,a1)')
      *   ',acc(',kacc,')'
-      i_xtra = i_ida+9+15+1
+      i_xtra = i_ida+9 + 5+8+1 + 1
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
