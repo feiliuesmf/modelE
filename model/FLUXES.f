@@ -65,12 +65,14 @@ C**** currently saved - should be replaced by fluxed quantities
 !@var qflux1 surface turbulent q-flux (=-<qw>)
       real*8, dimension(im,jm) :: uflux1,vflux1,tflux1,qflux1
 
-C**** The E/S/FLOWO arrays are used to flux quantities to the ocean that
-C**** are not tied to the open water/ice covered fractions. This
-C**** is currently done for river flow and complete sea ice melt.
-!@var FLOWO,EFLOWO mass, energy from rivers/simelt into ocean (kg, J)
-!@var SFLOWO salt from simelt into ocean (kg)
-      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO,SFLOWO
+C**** The E/FLOWO and E/S/MELTI arrays are used to flux quantities to 
+C**** the ocean that are not tied to the open water/ice covered 
+C**** fractions. This is done separately for river flow and complete
+C**** sea ice melt.
+!@var FLOWO,EFLOWO mass, energy from rivers into ocean (kg, J)
+      REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
+!@var MELTI,EMELTI,SMELTI mass,energy,salt from simelt into ocean (kg,J)
+      REAL*8, DIMENSION(IM,JM) :: MELTI,EMELTI,SMELTI
 
 !@var PREC precipitation (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: PREC
@@ -116,6 +118,8 @@ C**** is currently done for river flow and complete sea ice melt.
       REAL*8, DIMENSION(NTM,IM,JM):: TRUNPSI, TRUNOSI, TRUNOE, TRUNOLI
 !@var TRFLOWO tracer in river runoff into ocean (kg)
       REAL*8, DIMENSION(NTM,IM,JM) :: TRFLOWO
+!@var TRMELTI tracer from simelt into ocean (kg)
+      REAL*8, DIMENSION(NTM,IM,JM) :: TRMELTI
 !@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
       REAL*8, DIMENSION(NTM,2,IM,JM) :: DTRSI
 !@var ftrsi_io ice-ocean tracer fluxes under ice (kg/m^2)

@@ -2391,9 +2391,9 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,trmo,ntm
 #endif
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
-     *     ,flowo,eflowo,sflowo,srunosi,apress
+     *     ,flowo,eflowo,srunosi,apress,melti,emelti,smelti
 #ifdef TRACERS_OCEAN
-     *     ,trflowo,trevapor,dtrsi,trunosi
+     *     ,trflowo,trevapor,dtrsi,trunosi,trmelti
 #endif
       USE SEAICE_COM, only : rsi
       IMPLICIT NONE
@@ -2416,12 +2416,16 @@ C****
         POCEAN=FOCEAN(I,J)*(1.-ROICE)
         POICE =FOCEAN(I,J)*ROICE
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)-RATOC(J)*EVAPOR(I,J,1)
-        RUNI = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*RUNOSI(I,J)
-        ERUNO=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*E0(I,J,1)
-        ERUNI=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*ERUNOSI(I,J)
-        SRUNO=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
-        SRUNI=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*SRUNOSI(I,J)
+        RUNO = (FLOWO(I,J)+ MELTI(I,J))/(FOCEAN(I,J)*DXYPJ)-
+     *                                   RATOC(J)*EVAPOR(I,J,1)
+        RUNI = (FLOWO(I,J)+ MELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+     *                                   RATOC(J)*RUNOSI(I,J)
+        ERUNO=(EFLOWO(I,J)+EMELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+     *                                   RATOC(J)*E0(I,J,1)
+        ERUNI=(EFLOWO(I,J)+EMELTI(I,J))/(FOCEAN(I,J)*DXYPJ)+
+     *                                   RATOC(J)*ERUNOSI(I,J)
+        SRUNO=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
+        SRUNI=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)+RATOC(J)*SRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
         SROX(1)=SOLAR(1,I,J)*RATOC(J) ! open water
@@ -2430,9 +2434,9 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         SO1 = S0M(I,J,1)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
-        TRUNO(:)=TRFLOWO(:,I,J)/(FOCEAN(I,J)*DXYPJ)-
+        TRUNO(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)-
      *       RATOC(J)*TREVAPOR(:,1,I,J)
-        TRUNI(:)=TRFLOWO(:,I,J)/(FOCEAN(I,J)*DXYPJ)+
+        TRUNI(:)=(TRFLOWO(:,I,J)+TRMELTI(:,I,J))/(FOCEAN(I,J)*DXYPJ)+
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
 

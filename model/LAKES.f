@@ -47,7 +47,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 
       CONTAINS
 
-      SUBROUTINE LKSOURC (I0,J0,ROICE,MLAKE,ELAKE,RUN0,F0DT,F2DT,SROX
+      SUBROUTINE LKSOURC (I0,J0,ROICE,MLAKE,ELAKE,RUN0,FODT,FIDT,SROX
      *     ,FSR2,
 #ifdef TRACERS_WATER
      *     TRLAKEL,TRUN0,TREVAP,TRO,TRI,
@@ -62,7 +62,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
       INTEGER, INTENT(IN) :: I0,J0
       REAL*8, INTENT(IN) :: ROICE, EVAPO, RUN0
-      REAL*8, INTENT(IN) :: F0DT, F2DT, SROX(2)
+      REAL*8, INTENT(IN) :: FODT, FIDT, SROX(2)
       REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACEFI
 #ifdef TRACERS_WATER
       REAL*8, INTENT(INOUT), DIMENSION(NTM,2) :: TRLAKEL
@@ -81,9 +81,9 @@ C**** initiallize output
       ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
 
 C**** Calculate heat and mass fluxes to lake
-      ENRGO = F0DT-SROX(1)*FSR2 ! in open water
+      ENRGO = FODT-SROX(1)*FSR2 ! in open water
       ENRGO2=     +SROX(1)*FSR2 ! in open water, second layer
-      ENRGI = F2DT-SROX(2)*FSR2 ! under ice
+      ENRGI = FIDT-SROX(2)*FSR2 ! under ice
       ENRGI2=     +SROX(2)*FSR2 ! under ice, second layer
       RUNO  =-EVAPO
       RUNI  = RUN0
@@ -675,10 +675,10 @@ C****
 C**** Calculate net mass and energy changes due to river flow
 C****
       FLOW = 0. ; EFLOW = 0.
-c      FLOWO = 0. ; EFLOWO = 0.  ! arrays now initialised in MELTSI
+      FLOWO = 0. ; EFLOWO = 0.
 #ifdef TRACERS_WATER
       TRFLOW = 0.
-c      TRFLOWO = 0.              ! array now initialised in MELTSI
+      TRFLOWO = 0.
 #endif
       DO JU=2,JM-1
         DO IU=1,IM
@@ -1165,9 +1165,9 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,flowo,eflowo
+      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,melti,emelti
 #ifdef TRACERS_WATER
-     *     ,trunpsi,trunoli,trprec,gtracer,trflowo
+     *     ,trunpsi,trunoli,trprec,gtracer,trmelti
 #endif
       USE DAGCOM, only : aj,j_run
       IMPLICIT NONE
@@ -1195,8 +1195,8 @@ C**** calculate fluxes over whole box
 
 C**** simelt is given as kg, so divide by area
         IF (FLAKE(I,J).gt.0) THEN
-          RUN0  =RUN0+ FLOWO(I,J)*BYDXYP(J)
-          ERUN0=ERUN0+EFLOWO(I,J)*BYDXYP(J)
+          RUN0  =RUN0+ MELTI(I,J)*BYDXYP(J)
+          ERUN0=ERUN0+EMELTI(I,J)*BYDXYP(J)
         END IF
 
         MWL(I,J) = MWL(I,J) +  RUN0*DXYP(J)
@@ -1204,7 +1204,7 @@ C**** simelt is given as kg, so divide by area
 #ifdef TRACERS_WATER
         TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYDXYP(J)
      *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
-        IF (FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRFLOWO(:,I,J)*BYDXYP(J)
+        IF (FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)*BYDXYP(J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*DXYP(J)
 #endif
 
@@ -1265,7 +1265,7 @@ C**** grid box variables
 !@var MLAKE,ELAKE mass and energy /m^2 for lake model layers
       REAL*8, DIMENSION(2) :: MLAKE,ELAKE
 C**** fluxes
-      REAL*8 EVAPO, F2DT, F0DT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
+      REAL*8 EVAPO, FIDT, FODT, RUN0, ERUN0, RUNLI, RUNE, ERUNE,
      *     HLK1,TLK1,TLK2,TKE,SROX(2),FSR2, U2RHO
 C**** output from LKSOURC
       REAL*8 ENRGFO, ACEFO, ACEFI, ENRGFI
@@ -1329,13 +1329,13 @@ C**** no regional diagnostics required
       IF (FLAKE(I,J).gt.0) THEN
         TLK1 =TLAKE(I,J)
         EVAPO=EVAPOR(I,J,1)     ! evap/dew over open lake (kg/m^2)
-        F0DT =E0(I,J,1)         ! net heat over open lake (J/m^2)
+        FODT =E0(I,J,1)         ! net heat over open lake (J/m^2)
         SROX(1)=SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
         SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-ocean fluxes from sea ice routine (over ice fraction)
         RUN0 =RUNOSI(I,J) ! includes ACE2M + basal term
-        F2DT =ERUNOSI(I,J)
+        FIDT =ERUNOSI(I,J)
 C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(1)=MLDLK(I,J)*RHOW
         MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYP(J))-MLAKE(1),0d0)
@@ -1358,7 +1358,7 @@ C**** Limit FSR2 in the case of thin second layer
         FSR2=MIN(FSR2,MLAKE(2)/(MLAKE(1)+MLAKE(2)))
 
 C**** Apply fluxes and calculate the amount of frazil ice formation
-        CALL LKSOURC (I,J,ROICE,MLAKE,ELAKE,RUN0,F0DT,F2DT,SROX,FSR2,
+        CALL LKSOURC (I,J,ROICE,MLAKE,ELAKE,RUN0,FODT,FIDT,SROX,FSR2,
 #ifdef TRACERS_WATER
      *       TRLAKEL,TRUN0,TREVAP,TRO,TRI,
 #endif
@@ -1366,7 +1366,7 @@ C**** Apply fluxes and calculate the amount of frazil ice formation
 
 C**** Mixing and entrainment
 C**** Calculate turbulent kinetic energy for lake
-        U2rho=(1.-ROICE)*SQRT(DMUA(I,J,1)**2+DMVA(I,J,1)**2)/DTSRC
+c       U2rho=(1.-ROICE)*SQRT(DMUA(I,J,1)**2+DMVA(I,J,1)**2)/DTSRC
 c       TKE=0.5 * (19.3)^(2/3) * U2rho /rhoair ! (m/s)^2
         TKE=0.  ! 3.6d0*U2rho/rhoair*MLAKE(1)  ! (J/m^2)
 
@@ -1447,10 +1447,10 @@ C****
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
-      INTEGER, PARAMETER :: NDIAG=1 !2   !6
-      INTEGER I,J,N,IDIAG(NDIAG),JDIAG(NDIAG)
-      DATA IDIAG/23/, !   ,53,15,18,22/,  !23/,  !10/,
-     *     JDIAG/40/  !,32,37,33,25/   !22/  !,40/
+      INTEGER, PARAMETER :: NDIAG=3
+      INTEGER I,J,N
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/ 8,53,62/),
+     *                             JDIAG = (/39,32,41/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN

@@ -269,9 +269,9 @@ C****
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,flowo,eflowo,sflowo,gtemp
+      USE FLUXES, only : sss,melti,emelti,smelti,gtemp
 #ifdef TRACERS_WATER
-     *     ,trflowo
+     *     ,trmelti
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -285,8 +285,7 @@ C****
 
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
-C**** add fluxes to oceans/lakes. This is a little more confusing, but
-C**** we can use the S/E/FLOWO arrays to pass the information.
+C**** add fluxes to oceans/lakes. 
       IF (Jhour.eq.0) THEN
         DT=SDAY    ! if called more frequently this should change
         DO J=1,JM
@@ -298,7 +297,8 @@ C**** we can use the S/E/FLOWO arrays to pass the information.
           TRUN0(:) = 0.
 #endif
 C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
-          IF ( (RSI(I,J).lt.1d-4 .and. FLAKE(I,J)*RSI(I,J).gt.0)
+C**** now include lat melt for lakes and any RSI < 1
+          IF ( (RSI(I,J).lt.1. .and. FLAKE(I,J)*RSI(I,J).gt.0)
      *         .or. (KOCEAN.eq.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
@@ -341,18 +341,18 @@ C**** Update prognostic sea ice variables
 #endif
           END IF
 C**** Save fluxes (in kg, J etc.), positive into ocean
-          FLOWO(I,J) = RUN0*PWATER*DXYP(J)
-          EFLOWO(I,J)=-ENRGUSED*PWATER*DXYP(J)
-          SFLOWO(I,J)= SALT*PWATER*DXYP(J)
+          MELTI(I,J) = RUN0*PWATER*DXYP(J)
+          EMELTI(I,J)=-ENRGUSED*PWATER*DXYP(J)
+          SMELTI(I,J)= SALT*PWATER*DXYP(J)
 #ifdef TRACERS_WATER
-          TRFLOWO(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
+          TRMELTI(:,I,J)=TRUN0(:)*PWATER*DXYP(J)
 #endif
         END DO
         END DO
       ELSE
-        FLOWO=0. ; EFLOWO=0. ; SFLOWO=0.
+        MELTI=0. ; EMELTI=0. ; SMELTI=0.
 #ifdef TRACERS_WATER
-        TRFLOWO=0.
+        TRMELTI=0.
 #endif
       END IF
 C****
@@ -547,7 +547,7 @@ C****
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACE2F,ENRGFI,SALTO,SALTI
+      REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACEFI,ENRGFI,SALTO,SALTI
      *     ,POICE,PWATER,FLEAD,POCEAN,DMIMP,DHIMP,DSIMP
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
@@ -590,7 +590,7 @@ C****
         END IF
 
         ACEFO=DMSI(1,I,J)
-        ACE2F=DMSI(2,I,J)
+        ACEFI=DMSI(2,I,J)
         ENRGFO=DHSI(1,I,J)
         ENRGFI=DHSI(2,I,J)
         SALTO=DSSI(1,I,J)
@@ -607,16 +607,16 @@ C**** open ocean diagnostics
 C**** Ice-covered ocean diagnostics
         AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SALTI *POICE
         AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGFI*POICE
-        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACE2F *POICE
+        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-ACEFI *POICE
 C**** regional diagnostics
         AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-
-     *       (ACEFO *POCEAN+ACE2F *POICE)*DXYP(J)
+     *       (ACEFO *POCEAN+ACEFI *POICE)*DXYP(J)
         AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-
      *       (ENRGFO*POCEAN+ENRGFI*POICE)*DXYP(J)
         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
      *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
-        CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACE2F,
+        CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
      *       TRSIL,TRO,TRI,DTRIMP,

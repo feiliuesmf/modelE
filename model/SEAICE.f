@@ -135,7 +135,7 @@ C**** Calculate changes to snow
 C**** TOO MUCH SNOW HAS ACCUMULATED, SOME SNOW IS COMPACTED INTO ICE
           CMPRS = SNOW+SNWF-0.9d0*SNOMAX
         ELSE
-C**** RAIN and MELT COMRESSES SNOW INTO ICE
+C**** RAIN and MELT COMPRESSES SNOW INTO ICE
           CMPRS = MIN(dSNdRN*(RAIN+MELT1), SNOW+SNWF-MELT1)
         END IF
         DSNOW = SNWF - (MELT1+CMPRS)
@@ -839,7 +839,7 @@ C**** Estimate DRSI
       DRSI=0.
       IF (ROICE.lt.1d-4) THEN
         DRSI=ROICE
-      ELSEIF (POCEAN.gt.0) THEN
+      ELSE      ! IF (POCEAN.gt.0) THEN ! now for lakes too
 C**** Estimate lateral melt using parameterisation from Makyut/Steele
 C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
         dtemp=MAX(Tm-TFO,0d0)

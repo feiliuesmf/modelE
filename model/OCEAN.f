@@ -461,9 +461,9 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
       RETURN
       END SUBROUTINE OCLIM
 
-      SUBROUTINE OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,F0DT,F2DT,RVRRUN
-     *           ,RVRERUN,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I,ERUN4I
-     *           ,ENRGFO,ACEFO,ACE2F,ENRGFI)
+      SUBROUTINE OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
+     *     ,RVRERUN,SIMELT,ESIMELT,EVAPO,EVAPI,TFW,RUN4O,ERUN4O,RUN4I
+     *     ,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell
 !@ver  1.0
@@ -474,13 +474,23 @@ C**** PREVENT Z1O, THE MIXED LAYER DEPTH, FROM EXCEEDING Z12O
 !@var TGW mixed layer temp.(C)
       REAL*8, INTENT(INOUT) :: TGW
       REAL*8, INTENT(IN) :: ROICE, SMSI, WTRO, EVAPO, EVAPI, RUN0
-      REAL*8, INTENT(IN) :: F0DT, F2DT, OTDT, RVRRUN, RVRERUN
-      REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACE2F, RUN4O, RUN4I
+      REAL*8, INTENT(IN) :: FODT, FIDT, OTDT, RVRRUN, RVRERUN, SIMELT,
+     *     ESIMELT
+      REAL*8, INTENT(OUT) :: ENRGFO, ACEFO, ENRGFI, ACEFI, RUN4O, RUN4I
      *     , ERUN4O, ERUN4I
       REAL*8 EIW0, ENRGIW, WTRI1, EFIW, ENRGO0, EOFRZ, ENRGO
       REAL*8 WTRW0, ENRGW0, WTRW, ENRGW, WTRI0, SMSI0
 C**** initiallize output
-      ENRGFO=0. ; ACEFO=0. ; ACE2F=0. ; ENRGFI=0.
+      ENRGFO=0. ; ACEFO=0. ; ACEFI=0. ; ENRGFI=0.
+
+C**** Calculate previous ice mass (before fluxes applied)
+      SMSI0=SMSI+RUN0+EVAPI
+
+C**** Calculate effect of lateral melt of sea ice
+      IF (SIMELT.gt.0) THEN
+        TGW=TGW + (ESIMELT-SIMELT*TGW*SHW)/
+     *       (SHW*(1-ROICE)*WTRO+ROICE*(WTRO-SMSI0))
+      END IF
 
 C**** Calculate extra mass flux to ocean, balanced by deep removal
       RUN4O=-EVAPO+RVRRUN  ! open ocean
@@ -489,8 +499,8 @@ C**** Calculate extra mass flux to ocean, balanced by deep removal
       ERUN4I=RUN4I*TGW*SHW !                              (under ice)
 
 C**** Calculate heat fluxes to ocean
-      ENRGO  = F0DT+OTDT+RVRERUN-ERUN4O ! in open water
-      ENRGIW = F2DT+OTDT+RVRERUN-ERUN4I ! under ice
+      ENRGO  = FODT+OTDT+RVRERUN-ERUN4O ! in open water
+      ENRGIW = FIDT+OTDT+RVRERUN-ERUN4I ! under ice
 
 C**** Calculate energy in mixed layer (open ocean)
       ENRGO0=WTRO*TGW*SHW
@@ -498,7 +508,7 @@ C**** Calculate energy in mixed layer (open ocean)
       IF (ENRGO0+ENRGO.GE.EOFRZ) THEN
 C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         IF (ROICE.LE.0.) THEN
-          TGW=TGW+(ENRGO/(WTRO*SHW))
+          TGW=TGW+ENRGO/(WTRO*SHW)
           RETURN
         END IF
       ELSE
@@ -514,7 +524,6 @@ C****
       IF (ROICE.le.0) RETURN
 
 C**** Calculate initial energy of mixed layer (before fluxes applied)
-      SMSI0=SMSI+RUN0+EVAPI  ! previous ice mass
       WTRI0=WTRO-SMSI0       ! mixed layer mass below ice (kg/m^2)
       EIW0=WTRI0*TGW*SHW     ! energy of mixed layer below ice (J/m^2)
 
@@ -527,11 +536,11 @@ C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
-        ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
-        ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
+        ACEFI = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
+        ENRGFI = ACEFI*(TFW*SHI-LHM) ! energy of frozen ice
       END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
-      WTRW = WTRO  -(1.-ROICE)* ACEFO        -ROICE*(SMSI+ACE2F)
+      WTRW = WTRO  -(1.-ROICE)* ACEFO        -ROICE*(SMSI+ACEFI)
       ENRGW= ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*(ENRGIW-ENRGFI)
       TGW  = ENRGW/(WTRW*SHW) ! new ocean temperature
 
@@ -773,7 +782,7 @@ C****
       USE DAGCOM, only : aj,areg,jreg,j_implm,j_implh,
      *     j_oht,j_imelt,j_hmelt,j_smelt,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss
+     *     ,dssi,flowo,eflowo,gtemp,sss,melti,emelti
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -790,9 +799,10 @@ C**** grid box variables
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
-      REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0, SALT
+      REAL*8 EVAPO, EVAPI, FIDT, FODT, OTDT, RVRRUN, RVRERUN, RUN0, 
+     *     SALT, SIMELT, ESIMELT
 C**** output from OSOURC
-      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI
+      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI
 
       INTEGER I,J,JR
 
@@ -807,18 +817,20 @@ C**** output from OSOURC
           TGW  =TOCEAN(1,I,J)
           EVAPO=EVAPOR(I,J,1)
           EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
-          F0DT =E0(I,J,1)
+          FODT =E0(I,J,1)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
           TFO  =tfrez(sss(i,j))
 C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
-          F2DT=ERUNOSI(I,J)
+          FIDT=ERUNOSI(I,J)
           SALT=SRUNOSI(I,J)
 C**** get river runoff/simelt flux
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
-c          RVRSRUN=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
-          OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
+          SIMELT = MELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
+          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
+c         SSIMELT=SMELTI(I,J)/(FOCEAN(I,J)*DXYPJ)
+          OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
           AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+RUN0   *POICE
           AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+SALT   *POICE
@@ -833,9 +845,9 @@ c          RVRSRUN=SFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
      *           +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
 
 C**** Calculate the amount of ice formation
-            CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,F0DT,F2DT,RVRRUN
-     *           ,RVRERUN,EVAPO,EVAPI,TFO,RUN4O,ERUN4O,RUN4I,ERUN4I
-     *           ,ENRGFO,ACEFO,ACE2F,ENRGFI)
+            CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,FODT,FIDT,RVRRUN
+     *           ,RVRERUN,SIMELT,ESIMELT,EVAPO,EVAPI,TFO,RUN4O,ERUN4O
+     *           ,RUN4I,ERUN4I,ENRGFO,ACEFO,ACEFI,ENRGFI)
 
 C**** Resave prognostic variables
             TOCEAN(1,I,J)=TGW
@@ -853,20 +865,20 @@ C**** regional diagnostics
             AREG(JR,J_IMPLH)=AREG(JR,J_IMPLH)+
      *             (ERUN4O*POCEAN+ERUN4I*POICE)*DXYPJ
           ELSE
-            ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
+            ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
           END IF
 
 C**** Store mass and energy fluxes for formation of sea ice
           DMSI(1,I,J)=ACEFO
-          DMSI(2,I,J)=ACE2F
+          DMSI(2,I,J)=ACEFI
           DHSI(1,I,J)=ENRGFO
           DHSI(2,I,J)=ENRGFI
           DSSI(1,I,J)=SSI0*ACEFO   ! assume constant mean salinity
-          DSSI(2,I,J)=SSI0*ACE2F
+          DSSI(2,I,J)=SSI0*ACEFI
 #ifdef TRACERS_WATER
 C**** assume const mean tracer conc over freshwater amount
           DTRSI(:,1,I,J)=TRSI0(:)*(1.-SSI0)*ACEFO
-          DTRSI(:,2,I,J)=TRSI0(:)*(1.-SSI0)*ACE2F
+          DTRSI(:,2,I,J)=TRSI0(:)*(1.-SSI0)*ACEFI
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
