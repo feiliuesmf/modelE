@@ -1065,15 +1065,13 @@ c      BYDXYP(J)=1./DXYP(J)
          BYP(:,L) = BYP(:,1)
          BYPV(:,L) = BYPV(:,1)
       ENDDO
-      DO L=1,LS1-1
-        BYPDSIG(:,L) = BYP(:,L)*BYDSIG(L)
-        BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
-      ENDDO
       DO L=LS1,LM
         BYP(:,L) = ONESPO(:)*BYIM/PSFMPT
-        BYPDSIG(:,L) = BYDSIG(L)*BYP(:,L)
-        BYPV(:,L) = ONESPO(:)*BYIM/PSFMPT
-        BYPVDSIG(:,L) = BYDSIG(L)*BYPV(:,L)
+        BYPV(:,L) = ONES(:)*BYIM/PSFMPT
+      ENDDO
+      DO L=1,LM
+        BYPDSIG(:,L) = BYP(:,L)*BYDSIG(L)
+        BYPVDSIG(:,L) = BYPV(:,L)*BYDSIG(L)
       ENDDO
       LINECT=65
       WRITE (6,901)
