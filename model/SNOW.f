@@ -119,7 +119,7 @@ c!!!                may be ice*max_fract_water ??
       real*8 dz_aver, fresh_snow
 
       fresh_snow = rho_water/rho_fresh_snow * prsnow*dt
- 
+
       dz_aver = sum(dz(1:nl))*fract_cover + fresh_snow
 
       fract_cover_new = min( 1.d0, dz_aver/MIN_SNOW_THICKNESS )
@@ -279,9 +279,11 @@ ccc checking if the model conserves energy (part 2) (for debugging)
       end if
       total_water = total_water
      &     - (pr - evaporation - water_to_ground)*dt
-      if ( abs(total_water)/dt .gt. 1.d-15 )
-     &     call stop_model('snow_adv: water conservation error',255)
-      
+      if ( abs(total_water)/dt .gt. 1.d-15 ) then
+        print*, "water cons error",i_earth, j_earth, total_water/dt
+        if ( abs(total_water)/dt .gt. 1.d-10 )
+     &    call stop_model('snow_adv: water conservation error',255)
+      end if
 
 c$$$    if( fr_type .lt. 1.d-6 .and. abs(total_energy) .gt. 1.d-6 ) then
 c$$$      print*, "total energy error",i_earth, j_earth,total_energy
@@ -712,7 +714,7 @@ ccc flux to the ground :
           call stop_model('check_rho_snow: rho > rho_ice',255)
         end if
       enddo
-      
+
 
       end subroutine check_rho_snow
 

@@ -16,7 +16,7 @@
 !@param XSI fractions of mass layer in each temp. layer
 !@param BYXSI recipricol of XSI
       REAL*8, PARAMETER, DIMENSION(LMI) ::
-     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/), 
+     *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/),
      *     BYXSI= (/ 1./XSI(1), 1./XSI(2), 1./XSI(3), 1./XSI(4) /)
 !@param Z1I thickness of first layer ice (m)
       REAL*8, PARAMETER :: Z1I = .1d0
@@ -24,9 +24,9 @@
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
 !@param HC1I heat capacity of first layer ice (J/m^2)
       REAL*8, PARAMETER :: HC1I = ACE1I*SHI
-!@param Z2OIM thickness of 2nd layer ice (m)
+!@param Z2OIM min. thickness of 2nd layer ice (m) (if > 0)
       REAL*8, PARAMETER :: Z2OIM = .1d0    ! .4d0
-!@param AC2OIM ice mass 2nd layer (kg/m^2)
+!@param AC2OIM min. ice mass 2nd layer (kg/m^2)   (if > 0)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 !@param ALAMI,ALAMS lambda coefficient for ice/snow J/(m*degC*sec)
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
@@ -49,12 +49,12 @@
       LOGICAL :: QSFIX = .false.
 !@var alpha implicity for heat diffusion in sea ice (1=fully implicit)
       REAL*8, PARAMETER :: ALPHA = 1.0
-!@dbparam oi_ustar0 default ice-ocean friction velocity (m/s) 
+!@dbparam oi_ustar0 default ice-ocean friction velocity (m/s)
       REAL*8 :: oi_ustar0 = 1d-3  ! 5d-3 ! not used if ice dynamics is
 !@dbparam silmfac factor controlling lateral melt of ocean ice
       REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
-      REAL*8 :: silmpow = 1.36d0 
+      REAL*8 :: silmpow = 1.36d0
 !@var DEBUG flag
       LOGICAL DEBUG
 
@@ -125,7 +125,7 @@ C**** ACE1I=ACE1I + FREZI + CMPRS - FMSI2
 C**** SALTI=SALTI - SMELTI        - FSSI2
       IF (SNOW.gt.0) THEN ! apply fluxes to snow portion first
         SNOW1 = MIN(SNOW,XSI(1)*MSI1)
-        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)        
+        HSNOW = HSIL(1)*MIN(SNOW1/(XSI(1)*MSI1),1d0)
         HICE  = HSIL(1)-HSNOW
         SICE  = SSIL(1)
 #ifdef TRACERS_WATER
@@ -207,8 +207,8 @@ C**** Mass fluxes required to keep first layer ice = ACE1I
 
 C***** Calculate consequential heat/salt flux between layers
       IF (FMSI2.gt.0) THEN      ! downward flux to thermal layer 3
-        FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1) 
-        FSSI2 = FMSI2*SSIL(2)/(XSI(2)*MSI1) 
+        FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1)
+        FSSI2 = FMSI2*SSIL(2)/(XSI(2)*MSI1)
 #ifdef TRACERS_WATER
         FTRSI2(:)=FMSI2*TRSIL(:,2)/(XSI(2)*MSI1)
 #endif
@@ -221,7 +221,7 @@ C***** Calculate consequential heat/salt flux between layers
       END IF
 
 C**** Calculate total snow and ice in upper layers
-      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice originally in first layer
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice originally in layer 1
         SNOW = SNOW1
         HICE = HICE + HSIL(2)
         SICE = SICE + SSIL(2)
@@ -240,7 +240,7 @@ C**** Calculate total snow and ice in upper layers
      *       -SSIL(2))
 #endif
       END IF
-     
+
 C**** reconstitute upper layers
       MSI1 = ACE1I + SNOW
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
@@ -257,8 +257,8 @@ C**** reconstitute upper layers
         TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/(MSI1-ACE1I)
 #endif
       END IF
-      HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW 
-      SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW 
+      HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW
+      SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW
 #ifdef TRACERS_WATER
       TRSIL(:,2) = TRICE(:) - TRSIL(:,1) - FTRSI2(:) + TRSNOW(:)
 #endif
@@ -366,7 +366,7 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
 !@var MSI1 first layer ice mass (= SNOW + ACE1I) (kg/m^2)
 !@var MSI2 second layer ice mass (kg/m^2)
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
-!@var TSIL temperature of ice layers (C) 
+!@var TSIL temperature of ice layers (C)
       REAL*8, DIMENSION(LMI) :: TSIL
       REAL*8 MSI1, MELTS, MELTI, MELT3, MELT4, DSNOW
       REAL*8 DEW, CMPRS, DEWS, DEWI
@@ -457,8 +457,8 @@ C**** MELTS,MELTI are the amounts of snow and ice melt
      *       /(XSI(2)*MSI1-SICE),0d0)
 #endif
       ELSE  ! first layer is snow and some ice
-        DEWS = -MIN(SNOW,-(DEW-MAX(0d0,DEW))) ! <0 evap up to snow amount
-        DEWI = DEW - DEWS       ! either sign, evap/dew applied to ice 
+        DEWS = -MIN(SNOW,-(DEW-MAX(0d0,DEW))) ! <0 evap upto snow amount
+        DEWI = DEW - DEWS       ! either sign, evap/dew applied to ice
         HSNOW = HSIL(1)*MIN((SNOW+DEWS)/(XSI(1)*MSI1+DEW),1d0)
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRSIL(:,1)*MIN(SNOW/(XSI(1)*MSI1-SSIL(1)),1d0)
@@ -549,7 +549,7 @@ C**** reconstitute upper layers
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
         HSIL(1) = (HICE+HCMPRS-FHSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I + HSNOW
      *       -HCMPRS
-        SSIL(1) = (SICE-SMELTI-FSSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I ! + SSNOW
+        SSIL(1) = (SICE-SMELTI-FSSI2)*(ACE1I-XSI(2)*MSI1)/ACE1I ! +SSNOW
 #ifdef TRACERS_WATER
         TRSIL(:,1) = (TRICE(:)-TRMELTI(:)+TRCMPRS(:)-FTRSI2(:))*(ACE1I
      *       -XSI(2)*MSI1)/ACE1I +TRSNOW(:)-TRMELTS(:)-TRCMPRS(:)
@@ -562,8 +562,8 @@ C**** reconstitute upper layers
      *       -ACE1I)
 #endif
       END IF
-      HSIL(2) = HICE          - HSIL(1) - FHSI2 + HSNOW 
-      SSIL(2) = SICE - SMELTI - SSIL(1) - FSSI2 ! + SSNOW 
+      HSIL(2) = HICE          - HSIL(1) - FHSI2 + HSNOW
+      SSIL(2) = SICE - SMELTI - SSIL(1) - FSSI2 ! + SSNOW
 #ifdef TRACERS_WATER
       TRSIL(:,2) = TRICE(:) - TRMELTI(:) - TRSIL(:,1) - FTRSI2(:) +
      *     TRSNOW(:) - TRMELTS(:)
@@ -630,8 +630,8 @@ C****
       REAL*8, PARAMETER, DIMENSION(LMI) :: YSI =
      *     (/XSI(1)* ACE1I/(ACE1I+AC2OIM),XSI(2)*ACE1I/(ACE1I+AC2OIM),
      *       XSI(3)*AC2OIM/(ACE1I+AC2OIM),XSI(4)*AC2OIM/(ACE1I+AC2OIM)/)
-      REAL*8, PARAMETER :: Z2OIX = 4.9,
-     *                     BYZICX=1./(Z1I+Z2OIX)
+c     REAL*8, PARAMETER :: Z2OIX = 5.d0-Z1I,     ! max ice thickness l=2
+c    *                     BYZICX=1./(Z1I+Z2OIX)
 !@var QFIXR true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
 !@var FLEAD minimum lead fraction for ice (%)
@@ -644,8 +644,8 @@ C****
 !@var SALTI salt in ice formed in ocean for ice covered frac (kg/m^2)
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACEFI, SALTO, SALTI
 !@var ROICE  ice fraction over open water
-!@var SNOW snow amount on ice (kg/m^2) 
-!@var MSI2 second mass layer ice thickness (kg/m^2) 
+!@var SNOW snow amount on ice (kg/m^2)
+!@var MSI2 second mass layer ice thickness (kg/m^2)
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
 !@var HSIL enthalpy of ice layers (J/m^2)
 !@var SSIL salt in ice layers (kg/m^2)
@@ -653,7 +653,7 @@ C****
 !@var TSIL temperature of ice layers (C)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 !@var DMIMP,DSIMP,DHIMP implicit mass,salt and heat fluxes required
-!@+   to maintain minimum ice thickness if ice fraction is fixed 
+!@+   to maintain minimum ice thickness if ice fraction is fixed
       REAL*8, INTENT(OUT) :: DMIMP,DSIMP,DHIMP
 #ifdef TRACERS_WATER
 !@var TRSIL tracer amount in ice layers (kg/m^2)
@@ -661,8 +661,8 @@ C****
 !@var TRO tracer in ice formed in ocean for open water frac (kg/m^2)
 !@var TRI tracer in ice formed in ocean for ice covered frac (kg/m^2)
       REAL*8, INTENT(IN), DIMENSION(NTM) :: tro,tri
-!@var DTRIMP implicit tracer flux required to maintain minimum ice 
-!@+   thickness if ice fraction is fixed 
+!@var DTRIMP implicit tracer flux required to maintain minimum ice
+!@+   thickness if ice fraction is fixed
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: DTRIMP
       REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4,TRSNOW,TRICE
       INTEGER N
@@ -697,7 +697,7 @@ C****   TSIL=(ENRGFO/ACEFO + (1-S)*LHM)*BYSHI ! but hsi is primary var.
         MSI2=AC2OIM
       ELSEIF (ROICE.gt.0) THEN
 C**** Create new ice in partially ice-covered ocean
-      IF (ACEFI.gt.0) THEN 
+      IF (ACEFI.gt.0) THEN
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
 CC      FMSI3 = -XSI(3)*ACEFI ! < 0.
 CC      FMSI4 = -ACEFI
@@ -707,7 +707,7 @@ CC      FMSI4 = -ACEFI
         FTRSI3(:) = -TRSIL(:,4)*ACEFI*(XSI(3)/XSI(4))/MSI2
 #endif
       ELSE
-        FHSI3 = 0. ; FSSI3 = 0. 
+        FHSI3 = 0. ; FSSI3 = 0.
 #ifdef TRACERS_WATER
         FTRSI3(:) = 0.
 #endif
@@ -775,7 +775,7 @@ CC      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
 #endif
         END IF
         HSIL(2) = HICE - HSIL(1) + HSNOW
-        SSIL(2) = SICE - SSIL(1) ! + SSNOW 
+        SSIL(2) = SICE - SSIL(1) ! + SSNOW
 #ifdef TRACERS_WATER
         TRSIL(:,2) = TRICE(:) - TRSIL(:,1) + TRSNOW(:)
 #endif
@@ -799,7 +799,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
         ROICE = ROICEN          ! new ice concentration
       END IF
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2))) 
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))
       IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
@@ -838,7 +838,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FMSI4 = (ACE1I+MSI2)*(DRSI/ROICEN) ! >0 ice mass out of layer 4
         FHSI4 = HSIL(4)*FMSI4/(XSI(4)*MSI2)
         FSSI4 = SSIL(4)*FMSI4/(XSI(4)*MSI2)
-        FHSI3 = HSIL(3)*FMSI4/MSI2 ! downward heat flux into layer 4 
+        FHSI3 = HSIL(3)*FMSI4/MSI2 ! downward heat flux into layer 4
         FSSI3 = SSIL(3)*FMSI4/MSI2 ! downward salt flux into layer 4
 #ifdef TRACERS_WATER
         FTRSI4(:) = TRSIL(:,4)*FMSI4/(XSI(4)*MSI2)
@@ -894,7 +894,7 @@ CC      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
 #endif
         END IF
         HSIL(2) = HICE - HSIL(1) + HSNOW
-        SSIL(2) = SICE - SSIL(1) ! + SSNOW 
+        SSIL(2) = SICE - SSIL(1) ! + SSNOW
 #ifdef TRACERS_WATER
         TRSIL(:,2) = TRICE(:) - TRSIL(:,1) + TRSNOW(:)
 #endif
@@ -931,7 +931,7 @@ C**** Ensure that MSI2 does not get too small for fixed-SST case.
 C**** Calculate temperatures for diagnostics and radiation
       TSIL(1:2)=((HSIL(1:2)-SSIL(1:2)*LHM)/(XSI(1:2)*MSI1)+LHM)*BYSHI
       TSIL(3:4)=((HSIL(3:4)-SSIL(3:4)*LHM)/(XSI(3:4)*MSI2)+LHM)*BYSHI
-      
+
       RETURN
       END SUBROUTINE ADDICE
 
@@ -988,7 +988,7 @@ C**** (via C. Bitz): Rside=dt*pi/(floesize*eta)*(3d-6)*(delT)^(1.36)
       END IF
 C**** Remove DRSI amount of ice
       ENRGUSED=-DRSI*(HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4)) !  [J/m^2]
-      RUN0=DRSI*(SNOW + ACE1I + MSI2) 
+      RUN0=DRSI*(SNOW + ACE1I + MSI2)
       SALT=DRSI*(SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))
 #ifdef TRACERS_WATER
       TRUN0(:)=DRSI*(TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))
@@ -1029,12 +1029,12 @@ C****
 !@var HSIL enthalpy of ice layers (J/m^2)
 !@var SSIL salt in ice layers (kg/m^2)
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: SSIL,HSIL
-!@var MSI2 second mass layer ice thickness (kg/m^2) 
-!@var MSI1 first mass layer ice thickness (kg/m^2) 
+!@var MSI2 second mass layer ice thickness (kg/m^2)
+!@var MSI1 first mass layer ice thickness (kg/m^2)
 !@var DT source time step (s)
       REAL*8, INTENT(INOUT) :: MSI2
       REAL*8, INTENT(IN) :: DT, MSI1
-!@var MFLUX,SFLUX,HFLUX mass, salt and heat flux arising from 
+!@var MFLUX,SFLUX,HFLUX mass, salt and heat flux arising from
 !@+   sea salinity decay
       REAL*8, INTENT(OUT) :: MFLUX,HFLUX,SFLUX
 #ifdef TRACERS_WATER
@@ -1139,8 +1139,8 @@ C**** reconstitute upper layers
           TRSIL(:,1) = TRSNOW(:)*XSI(1)*MSI1/(MSI1-ACE1I)
 #endif
         END IF
-        HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW 
-        SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW 
+        HSIL(2) = HICE - HSIL(1) - FHSI2 + HSNOW
+        SSIL(2) = SICE - SSIL(1) - FSSI2 ! + SSNOW
 #ifdef TRACERS_WATER
         TRSIL(:,2) = TRICE(:) - TRSIL(:,1) - FTRSI2(:) + TRSNOW(:)
 #endif
@@ -1293,7 +1293,7 @@ C**** Similarly for temperature Tib
 c no salinity effects
 c         lh = lhm + Tb*(shw-shi)
 c salinity effects only mass
-          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi) 
+          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
 c S thermo
 c         lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
           m = -left2/lh
@@ -1323,7 +1323,7 @@ c         dmdSi = (left2*mu*(lhm/Tb+shw-shi))/(lh*lh)
 c no salinity effects
 c         lh = lhm + Tb*shw - Ti*shi
 c salinity effects only mass
-          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi) 
+          lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
 c S thermo
 c         lh = lhm*(1.+mu*Sib/Ti) + (Ti+mu*Sib)*(shw-shi) - shw*(Ti-Tb)
           m = -left2/lh
@@ -1694,11 +1694,11 @@ C**** Check for reasonable values for ice variables
      *           *(ACE1I+SNOWI(I,J)))+LHM)/SHI
             IF (L.gt.2) TICE = ((HSI(L,I,J)-SSI(L,I,J)*LHM)/(XSI(L)
      *           *MSI(I,J))+LHM)/SHI
-            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-4.or.TICE.lt.-80.) THEN
-              WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
-     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),SSI(:,I,J)
-              if (HSI(L,I,J).gt.0.or.TICE.gt.0. .or.TICE.lt.-80.)
-     *             QCHECKI = .TRUE.
+            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
+              WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
+     *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)
+              WRITE(6,*) HSI(:,I,J),MSI(I,J),SNOWI(I,J),SSI(:,I,J)
+              IF (TICE.gt.1d-1) QCHECKI = .TRUE.
             END IF
             IF (SSI(L,I,J).lt.0) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
@@ -1720,7 +1720,7 @@ c            QCHECKI = .TRUE.
 
 #ifdef TRACERS_WATER
       do n=1,ntm
-C**** check negative tracer mass        
+C**** check negative tracer mass
         if (t_qlimit(n)) then
         do j=1,jm
           do i=1,imaxj(j)
@@ -1731,7 +1731,7 @@ C**** check negative tracer mass
      *                 trname(n),trsi(n,l,i,j),rsi(i,j),msi(i,j),ssi(l,i
      *                 ,j)
                   QCHECKI=.true.
-                end if 
+                end if
               end do
             end if
           end do
