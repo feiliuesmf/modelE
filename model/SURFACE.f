@@ -696,7 +696,7 @@ C****
         OA(I,J,8)=OA(I,J,8)+EVHDT
         IF (MODDSF.eq.0) AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TG1
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
-        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +F0DT
+        IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT
      *       *PTYPE
 C****
       CASE (2)  ! seaice

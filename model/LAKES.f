@@ -624,7 +624,7 @@ C****
 
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE
-      REAL*8 MWLSILL,DMM,DGM,HLK1,POICE
+      REAL*8 MWLSILL,DMM,DGM,HLK1,POICE,POCEAN
       REAL*8, DIMENSION(IM,JM) :: FLOW,EFLOW
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
@@ -686,17 +686,18 @@ c              END IF
                 TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)
 #endif
 C**** accumulate river runoff diags (moved from ground)
-                POICE=RSI(ID,JD)*FOCEAN(ID,JD)
+                POICE =RSI(ID,JD)*FOCEAN(ID,JD)
+                POCEAN=(1.-RSI(ID,JD))*FOCEAN(ID,JD)
                 AJ(JD,J_RVRD,ITOCEAN)=AJ(JD,J_RVRD,ITOCEAN)+
-     *               (1.-POICE)*DMM*BYDXYP(JD)
+     *               POCEAN*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOCEAN)=AJ(JD,J_ERVR,ITOCEAN)+
-     *               (1.-POICE)*DGM*BYDXYP(JD)
+     *               POCEAN*DGM*BYDXYP(JD)
                 AJ(JD,J_RVRD,ITOICE)=AJ(JD,J_RVRD,ITOICE) +
      *               POICE*DMM*BYDXYP(JD)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
      *               POICE*DGM*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               DGM*FOCEAN(ID,JD)*BYDXYP(JD)
+     *               POCEAN*DGM*BYDXYP(JD) 
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM

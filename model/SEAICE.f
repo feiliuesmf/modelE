@@ -1240,11 +1240,15 @@ c****
       real*8, intent(in), optional :: press 
 !@var tfrez approx. freezing point of sea water (C)
       real*8 tfrez,pr
+      real*8, parameter :: dtdp = -7.5d-8
+      real*8 :: a01 = -.0575d0, a02 = -2.154996d-4, a03 =1.710523d-3
 
       pr=0.
       if (present(press)) pr=press
 C**** linear approximation 
-      tfrez = -mu*sss - 7.5d-8*pr
+      tfrez = -mu*sss + dtdp*pr
+C**** UNESCO formula (1983)
+c     tfrez = (a01 + a02*sss)*sss + a03*sss*sqrt(sss)+ dtdp*pr
 
       return
       end function tfrez

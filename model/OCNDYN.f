@@ -164,7 +164,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : twopi,radius,by3,grav
-      USE MODEL_COM, only : dtsrc
+      USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
@@ -181,6 +181,12 @@ C****
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
+C**** 
+C**** Check that KOCEAN is set correctly
+C****
+      IF (KOCEAN.eq.0) THEN
+        STOP "Must have KOCEAN > 0 for interactive ocean runs"
+      END IF
 C****
 C**** set up time steps from atmospheric model
 C****
@@ -400,8 +406,8 @@ C****
       USE ICEDYN, only : rsix,rsiy
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 ROICE,TGW,GO1,SO1,MSI2,SNOW,ENRGW,ENRGUSED,RUN0,TFO,SALT
-      REAL*8 TFREZS,TEMGS,GFREZS
+      REAL*8 ROICE,GO1,SO1,MSI2,SNOW,ENRGW,ENRGUSED,RUN0,TFO,SALT
+      REAL*8 TFREZS,GFREZS
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
@@ -439,6 +445,9 @@ C**** Calculate freezing temperature (on atmos. grid)
 #endif
      *           ENRGUSED,RUN0,SALT)
 C**** accumulate diagnostics
+            if (i.eq.41.and.j.eq.11) print*,"simelt",i,j,ENRGUSED,RUN0
+     *           ,SALT
+
             AJ(J,J_HMELT,ITOICE)=AJ(J,J_HMELT,ITOICE)-ENRGUSED
             AJ(J,J_SMELT,ITOICE)=AJ(J,J_SMELT,ITOICE)+    SALT
             AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)+    RUN0
@@ -764,7 +773,7 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OMASS(J) = OMASS(J) + MO(I,J,L)
+            OMASS(J) = OMASS(J) + MO(I,J,L)*FOCEAN(I,J)
           END DO
         END DO
         OMASS(J)=OMASS(J)*DXYPO(J)*BYDXYP(J)
@@ -830,7 +839,7 @@ C****
       DO J=1,JM
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OSALT(J) = OSALT(J) + S0M(I,J,L)*BYDXYP(J)
+            OSALT(J) = OSALT(J) + S0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
           END DO
         END DO
       END DO
@@ -2327,8 +2336,8 @@ C**** Surface stress is applied to V component at the North Pole
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
-     *     ,MO1,SO1,FSICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),TGW,TGW2,TEMGS
-     *     ,SRUNI,DSOO,DSOI,POCEAN,POICE
+     *     ,MO1,SO1,ROICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),SRUNI,DSOO,DSOI
+     *     ,POCEAN,POICE 
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
 #endif
@@ -2340,14 +2349,14 @@ C****
         BYDXYPJ=BYDXYPO(J)
       DO I=1,IMAXJ(J)
       IF(FOCEAN(I,J).gt.0.) THEN
-        FSICE = RSI(I,J)
-        POCEAN=FOCEAN(I,J)*(1.-FSICE)
-        POICE =FOCEAN(I,J)*FSICE
+        ROICE = RSI(I,J)
+        POCEAN=FOCEAN(I,J)*(1.-ROICE)
+        POICE =FOCEAN(I,J)*ROICE
 C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = FLOWO(I,J)*(1.-FSICE)*BYDXYPJ-RATOC(J)*EVAPOR(I,J,1)
-        RUNI = FLOWO(I,J)*    FSICE *BYDXYPJ+RATOC(J)*RUNOSI(I,J)
-        ERUNO=EFLOWO(I,J)*(1.-FSICE)*BYDXYPJ+RATOC(J)*E0(I,J,1)
-        ERUNI=EFLOWO(I,J)*    FSICE *BYDXYPJ+RATOC(J)*ERUNOSI(I,J)
+        RUNO = FLOWO(I,J)*POICE *BYDXYPJ-RATOC(J)*EVAPOR(I,J,1)
+        RUNI = FLOWO(I,J)*POICE *BYDXYPJ+RATOC(J)*RUNOSI(I,J)
+        ERUNO=EFLOWO(I,J)*POCEAN*BYDXYPJ+RATOC(J)*E0(I,J,1)
+        ERUNI=EFLOWO(I,J)*POCEAN*BYDXYPJ+RATOC(J)*ERUNOSI(I,J)
         SRUNI= RATOC(J)*SRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
@@ -2355,22 +2364,15 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
         SROX(2)=SOLAR(3,I,J)*RATOC(J) ! through ice
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
-        TGW = TEMGS(G0M(I,J,1)/(MO1*DXYPJ),S0M(I,J,1)/(MO1*DXYPJ))
-        IF (LMM(I,J).gt.1) THEN
-          TGW2= TEMGS(G0M(I,J,2)/(MO(I,J,2)*DXYPJ),
-     *         S0M(I,J,2)/(MO(I,J,2)*DXYPJ))
-        ELSE
-          TGW2=TGW
-        END IF
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
-        TRUNO(:)=TRFLOWO(:,I,J)*(1.-FSICE)*BYDXYPJ-
+        TRUNO(:)=TRFLOWO(:,I,J)*POCEAN*BYDXYPJ-
      *       RATOC(J)*TREVAPOR(:,1,I,J)
-        TRUNI(:)=TRFLOWO(:,I,J)*    FSICE *BYDXYPJ+
+        TRUNI(:)=TRFLOWO(:,I,J)*POICE *BYDXYPJ+
      *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
 
-        CALL OSOURC(FSICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
+        CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
      *         TRO1,TRUNO,TRUNI,DTROO,DTROI,
@@ -3081,16 +3083,22 @@ C**** set GTEMP array for ice as well (possibly changed by STADVI)
       END DO
 C**** do poles
       DO I=2,IM
-        GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
-        SSS(I,JM)=SSS(1,JM)
-        MLHC(I,JM)=MLHC(1,JM)
-c       GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
-c       SSS(I,1)=SSS(1,1)
-c       MLHC(I,1)=MLHC(1,1)
+        IF (FOCEAN(1,JM).gt.0) THEN
+          GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
+          SSS(I,JM)=SSS(1,JM)
+          MLHC(I,JM)=MLHC(1,JM)
 #ifdef TRACERS_OCEAN
         GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
-c       GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
 #endif
+        END IF
+c       IF (FOCEAN(1,1).gt.0) THEN
+c         GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
+c         SSS(I,1)=SSS(1,1)
+c         MLHC(I,1)=MLHC(1,1)
+#ifdef TRACERS_OCEAN
+c         GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
+#endif
+c       END IF
       END DO
       RETURN
 C****
