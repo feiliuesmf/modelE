@@ -6,7 +6,7 @@
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
-!@+    PRECIP_OC,GROUND_OC
+!@+    PRECIP_OC,OCEANS
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12,byshi
       USE MODEL_COM, only : im,jm,lm,focean,fland,fearth,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
@@ -733,8 +733,8 @@ C****
 C****
       END SUBROUTINE PRECIP_OC
 
-      SUBROUTINE GROUND_OC
-!@sum  GROUND_OC driver for applying surface fluxes to ocean fraction
+      SUBROUTINE OCEANS
+!@sum  OCEANS driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
 !@calls OCEAN:OSOURC
@@ -848,7 +848,7 @@ C**** store surface temperatures
       END DO
       RETURN
 C****
-      END SUBROUTINE GROUND_OC
+      END SUBROUTINE OCEANS
 
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties

@@ -83,7 +83,6 @@ C****
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
 !@auth Gavin Schmidt
 !@ver  1.0
-      ENTRY ODYNAM
       ENTRY ODIFS
       ENTRY io_ocdiag
       ENTRY reset_ODIAG

@@ -1,11 +1,11 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE ODYNAM
-!@sum  ODYNAM integrate ocean dynamics
+      SUBROUTINE OCEANS
+!@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : grav
-      USE MODEL_COM, only : idacc,modd5s,p,ptop
+      USE MODEL_COM, only : idacc,modd5s,p,ptop,msurf
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
@@ -39,9 +39,14 @@ C**** Updated using latest sea ice
       OPRESS(2:IM,1)  = OPRESS(1,1)
       OPRESS(2:IM,JM) = OPRESS(1,JM)
 
+C**** Apply surface fluxes to ocean
+      CALL GROUND_OC
+         CALL CHECKO('GRNDOC')
+
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
+         CALL TIMER (MNOW,MSURF)
 
 C**** Calculate vertical diffusion
       CALL OCONV
@@ -160,9 +165,7 @@ c        CALL CHECKO ('STADVI')
       CALL TOC2SST
 
       RETURN
-  945 FORMAT (' Ocean dynamic terms integrated          ',
-     *  I8,A5,I2,', Hr',I2,2I8,F6.1,'    IHOUR=',F7.2)
-      END SUBROUTINE ODYNAM
+      END SUBROUTINE OCEANS
 
       SUBROUTINE init_OCEAN(iniOCEAN)
 !@sum init_OCEAN initiallises ocean variables
