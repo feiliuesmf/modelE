@@ -1042,11 +1042,11 @@ CRAD  MUR=MU(N)*EXP(-2.*DTW/(DTR+ ERR))
       DFR(L)=MU(N)-MUR
 C**** MECHANICAL (TURBULENT) DRAG
       MU(N)=MUR
-      IF (N.NE.1.AND.N.NE.9) THEN    ! not mtn or deformation
+c      IF (N.NE.1.AND.N.NE.9) THEN    ! not mtn or deformation
       IF (MUR.LT.MUB(L+1,N)) MU(N)=MUB(L+1,N)  ! saturation drag
-      ELSE
-         IF (MUR.LT.MUB(L+1,N)) MU(N)=0.     ! sensitivity test
-      ENDIF
+c      ELSE
+c         IF (MUR.LT.MUB(L+1,N)) MU(N)=0.     ! sensitivity test
+c      ENDIF
       DFM(L)=MUR-MU(N)
   300 CONTINUE
 C**** LIMIT THE CONVERGENCE TO XLIMIT*(U-C)
