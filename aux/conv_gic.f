@@ -8,7 +8,8 @@ C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
       USE MODEL_COM, only : im,jm,lm,iowrite,focean
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
+     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij,cint
+     *     ,qfol
       USE STATIC_OCEAN, only : tocean,z1o
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
       USE SEAICE, only : ace1i,xsi,ac2oim,ssi0
@@ -85,6 +86,11 @@ C**** set default values for evaporation limiting arrays
       evap_max_ij(:,:) = 1.d0
       fr_sat_ij(:,:) = 1.d0
       qg_ij(:,:) = 0.d0
+
+C**** set default foliage values
+      Qfol=3.D-6
+      Cint=0.0127D0
+
 
       OPEN(iu_GIC,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")

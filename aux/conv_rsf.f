@@ -10,7 +10,8 @@ C**** must be compiled after the model
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
+     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij,cint
+     *     ,qfol
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
@@ -58,8 +59,6 @@ C**** must be compiled after the model
         call closeunit (iu_CI)
       endif
 
-c??   iu_AIC=9
-c??   OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
       call openunit (trim(infile), iu_AIC, .true. , .true. )
 
       READ (iu_AIC,ERR=800,END=810) TAUX,JC,CLABEL,RC,KEYNR,
@@ -85,7 +84,6 @@ c??   OPEN(iu_AIC,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
      *     ,L=1,LM),((((TMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9)
      *     ,((((QMOM(N,I,J,L),I=1,IM),J=1,JM),L=1,LM),N=1,9),(((RQT(L,I
      *     ,J),I=1,IM),J=1,JM),L=1,LM_REQ)
-c??   CLOSE (iu_AIC)
       call closeunit (iu_AIC)
 
       xlabel=clabel(1:132)
@@ -98,13 +96,9 @@ c??   CLOSE (iu_AIC)
       print*,iyear1,ItimeX,xlabel
 
 C**** read in FLAKE/FOCEAN data
-c??   iu_TOPO=10
-c??   OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
-c??  *     ,STATUS="OLD")
-      call openunit ("/u/cmrun/Z72X46N.cor4", iu_TOPO, .true., .true.)
+      call openunit ("TOPO", iu_TOPO, .true., .true.)
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
-c??   close (iu_TOPO)
       call closeunit (iu_TOPO)
 
 C**** convert sea ice temperatures into enthalpy
@@ -194,10 +188,11 @@ C**** extending ground hydrology
           end do
         end do
       endif
-      
 
-c??   OPEN(iu_AIC,FILE=trim(outfile),
-c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
+C**** set default foliage values
+      Qfol=3.D-6
+      Cint=0.0127D0
+
       call openunit (trim(outfile),iu_AIC, .true.,.false.)
 
       call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
