@@ -478,7 +478,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,DMOICE,DMLICE
+     &             ,AGESN,SNOWE,SNOWOI,SNOWLI
      &             ,hsn,hin,hmp,fmp,flags,LS1_loc,snow_frac
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
@@ -856,8 +856,6 @@ C**** set up parameters for new sea ice and snow albedo
       else
         hin=0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
-      dmoice = 10.
-      dmlice = 10.
 C****
       if (kradia .le. 0) then
         WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)

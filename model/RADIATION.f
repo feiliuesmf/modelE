@@ -1,4 +1,158 @@
         
+      MODULE SURF_ALBEDO
+!@sum SURF_ALBEDO contains parameter and variables needed for albedo calc
+!@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
+      implicit none
+      save
+!@var number of K-bands 
+      integer, parameter :: NKBAND=33 
+
+!@var NVEG number of real vegetation types (not including bare soil) 
+!@var NV total number of vegetation types
+      integer, parameter :: NVEG = 9, NV=11 
+
+!@var SRFOAM look up table for ocean foam as a function of wind speed
+      real*8, parameter, dimension(25) :: SRFOAM = (/
+     *     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
+     *     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
+     *     0.138,0.164,0.191,0.218,0.246/)
+
+!@var SEASON julian day for start of season (used for veg albedo calc)
+C                      1       2       3       4
+C                    WINTER  SPRING  SUMMER  AUTUMN
+      real*8, parameter, dimension(4):: 
+     *     SEASON=(/ 15.00,  105.0,  196.0,  288.0/)
+C**** parameters used for vegetation albedo
+!@var albvnd veg alb by veg type, season and band
+      real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
+C     (1)  >SRBALB(6) = VIS  (330 - 770 nm)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
+     2 .500, .062, .100, .100, .073, .055, .067, .061, .100, .000, .200,
+     3 .500, .085, .091, .139, .085, .058, .083, .061, .091, .000, .200,
+     4 .500, .080, .090, .111, .064, .055, .061, .061, .090, .000, .200,
+C
+C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
+     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
+     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
+     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
+C
+C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
+     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
+     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
+     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
+C
+C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .080, .107, .107, .093, .120, .080, .073, .107, .000, .200,
+     2 .500, .082, .140, .120, .096, .083, .080, .073, .140, .000, .200,
+     3 .500, .119, .145, .167, .119, .115, .100, .073, .145, .000, .200,
+     4 .500, .102, .126, .132, .081, .087, .073, .073, .126, .000, .200,
+C
+C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .100, .133, .133, .116, .150, .100, .091, .133, .000, .200,
+     2 .500, .103, .175, .150, .120, .109, .100, .091, .175, .000, .200,
+     3 .500, .148, .182, .208, .148, .144, .125, .091, .182, .000, .200,
+     4 .500, .127, .157, .166, .102, .109, .091, .091, .157, .000, .200,
+C
+C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
+C        1     2     3     4     5     6     7     8     9    10    11
+C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     1 .500, .020, .027, .027, .023, .030, .020, .018, .027, .000, .200,
+     2 .500, .021, .035, .030, .024, .022, .020, .018, .035, .000, .200,
+     3 .500, .030, .036, .042, .030, .029, .025, .018, .036, .000, .200,
+     4 .500, .026, .032, .033, .020, .022, .018, .018, .032, .000, .200
+     *     /), (/11,4,6/) )
+C
+!@var VTMASK vegetation depth mask by type (kg/m^2)
+      real*8, parameter :: VTMASK(NV) = (/
+C        1     2     3     4     5     6     7     8     9    10    11
+C     BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
+     * 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001
+     *     /)
+
+!@var ASNALB snow albedo (original version)
+!@var AOIALB seaice albedo (original version)
+!@var ALIALB land ice albedo (original version)
+C****  albedo = asnalb+snowage*snowage_fac so these numbers are the min
+      real*8, parameter ::
+C                       VIS  NIR1 NIR2 NIR3 NIR4 NIR5    NIR
+     *     ASNALB(7)=(/0.600,0.55,0.55,0.30,0.10,0.05,  0.350/),
+     *     AOIALB(7)=(/0.550,0.50,0.45,0.25,0.10,0.05,  0.300/),
+     *     ALIALB(7)=(/0.600,0.55,0.50,0.30,0.10,0.05,  0.350/),
+C**** shorthand for the 2 band version
+     *     ASNVIS=ASNALB(1), ASNNIR=ASNALB(7),
+     *     AOIVIS=AOIALB(1), AOINIR=AOIALB(7),
+     *     ALIVIS=ALIALB(1), ALINIR=ALIALB(7)
+
+!@var DMOICE, DMLICE masking depth for snow on ice and land ice
+      real*8, parameter :: DMOICE = 10., DMLICE = 10.
+ 
+!@var AOCEAN K-band dependent Thermal radiation characteristics for ocean
+      real*8, parameter, dimension(NKBAND) :: AOCEAN = (/
+     +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
+     +        0.10666,0.10697,0.10665,0.10719,0.10728,0.11007,0.04009,
+     +        0.04553,0.05554,0.08178,0.09012,0.09464,0.09548,0.09532,
+     +        0.09558,0.09558,0.09568,0.09565,0.05771,0.04985,0.04670,
+     +        0.04630,0.04575,0.04474,0.04468,0.04500/)
+
+!@var AGSIDV K-band dependent Thermal radiation for other types
+C                     AGSNOW  AGLICE  AGROCK  AGVEG
+      real*8, parameter, dimension(NKBAND,4) :: AGSIDV = RESHAPE( (/
+     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
+     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
+     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
+     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
+     +        0.01986,0.01994,0.02013,0.02041,0.02100,
+     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
+     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
+     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
+     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
+     +        0.01986,0.01994,0.02013,0.02041,0.02100,
+     +        0.04500,0.10209,0.08806,0.05856,0.04835,0.04052,0.04001,
+     +        0.03775,0.03687,0.03740,0.03637,0.03692,0.03570,0.07001,
+     +        0.05665,0.05326,0.05349,0.04356,0.03845,0.03589,0.03615,
+     +        0.03610,0.03602,0.03613,0.03471,0.13687,0.14927,0.16484,
+     +        0.16649,0.16820,0.17199,0.17484,0.18000,
+     +        0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,
+     *        0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0. /),
+     *        (/ NKBAND,4 /) )
+
+!@var AVSCAT,ANSCAT,AVFOAM,ANFOAM for ocean albedo calc
+      real*8, parameter ::
+     *     AVSCAT=0.0156, ANSCAT=0.0000, AVFOAM=0.2197, ANFOAM=0.1514
+
+C**** miscellaneous constants
+      real*8, parameter ::
+!@var WETTRA,WETSRA adjustment factors for wet earth albedo calc
+     *     WETTRA=1.0, WETSRA=1.0,
+!@var ZOCSRA,ZSNSRA,ZICSRA,ZDSSRA,ZVGSRA adjustment factors for
+!@+   solar zenith angle effects (not fully enabled)
+     *     ZOCSRA=1.0, ZSNSRA=1.0, ZICSRA=1.0, ZDSSRA=1.0, ZVGSRA=1.0,
+!@var EOCTRA,ESNTRA,EICTRA,EDSTRA,EVGTRA adjustment factors for
+!@+   thermal radiation effects  (not fully enabled)
+     *     EOCTRA=1.0, EDSTRA=1.0, ESNTRA=1.0, EICTRA=1.0, EVGTRA=1.0
+
+C**** ALBVNH is set only once a day then saved
+!@var ALBVNH hemispherically varying vegetation albedo 
+      real*8, dimension(NV,6,2) :: ALBVNH
+
+C**** JNORTH is set at the beginning and saved
+!@var JNORTH latitude index defining northern hemisphere
+      integer :: JNORTH = 0
+
+      END MODULE SURF_ALBEDO
+
       MODULE RE001
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -13,11 +167,6 @@
       SUBROUTINE SETNEW(NIPSET,IJYEAR,IJDAY,NVALUE,ILAYER,XVALUE)
 C
       !INCLUDE 'BR00B.COM'
-C
-ceq   DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12),PPMVK0(12)
-ceq   EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
-ceq   EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
-ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
 C
 C          Internal Control Parameter (Initialization / Dynamic Control)
 C          -------------------------------------------------------------
@@ -215,14 +364,14 @@ C            13         PSOIL                  Bare-Soil PEARTH Frac
 C            14        REFSET       0.0000     If>0, Reset VAer Reff
 C            15        VEFSET       0.0000     If>0, Reset VAer Veff
 C            16        O3WJT0       0.0010     O3 LonDep Extrap Time
-C            17        SNOLIM       0.3670     Min SnowMask Exposure
+C            17        unused
 C            18        X0YBCI       0.0001     BCI Aer TimeDep Reset
 C            19        X0YOCI       0.0001     OCI Aer TimeDep Reset
 C            20        X0YSUI       0.0001     SUI Aer TimeDep Reset
-C            21        AVSCAT       0.0156     Ocean VIS  Scat Param
-C            22        ANSCAT       0.0002     Ocean NIR  Scat Param
-C            23        AVFOAM       0.2197     Foam  VIS  Scat Param
-C            24        ANFOAM       0.1514     Foam  NIR  Scat Param
+C                      AVSCAT       0.0156     Ocean VIS  Scat Param
+C                      ANSCAT       0.0002 (?) Ocean NIR  Scat Param
+C                      AVFOAM       0.2197     Foam  VIS  Scat Param
+C                      ANFOAM       0.1514     Foam  NIR  Scat Param
 C
 C          25-27       UVWAVL                  UV Sol Flx Partitions
 C          28-30       UVFACT                  UV Solar Flux Factors
@@ -276,7 +425,7 @@ C            90    1.0     110    1.0      130   1.0     150    1.0
 C            91    1.0     111    1.0      131   1.0     151    1.0
 C            92    1.0     112    1.0      132   1.0     152    1.0
 C
-C          FSPAER     PARAMETER
+C          FSPARE     PARAMETER
 C          93-100      unused
 C         113-120      unused
 C         133-140      unused
@@ -298,7 +447,7 @@ C            170        .9000000     190    1.00000    210    .00000
 C            171        .0000978     191     .88888    211    .06000
 C            172        .0000000     192     .88888    212    .06000
 C
-C          FSPAER     PARAMETER
+C          FSPARE     PARAMETER
 C         173-180      unused
 C         193-200      unused
 C         213-998      unused
@@ -453,10 +602,10 @@ C
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
 C                                           Process       KYEARX  KJDAYX
-ceq   EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
-ceq   EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
-ceq   EQUIVALENCE (ISPARE(41),KJDAYS),(FSPARE(14),REFSET) !  REFSET= 0.0
-ceq   EQUIVALENCE (ISPARE(42),KJDAYG),(FSPARE(15),VEFSET) !  VEFSET= 0.0
+c                                         SolarCon, UV       0       0
+c                                         GH Gas Trend       0       0
+c                                                      REFSET= 0.0
+c                                                      VEFSET= 0.0
 C     ------------------------------------------------------------------
 C
 C
@@ -1693,26 +1842,15 @@ C             When Non-Zero Values are specified for  KYEARX and KJDAYX,
 C             the JYEAR,JDAY Time Dependence of the Specified Process is
 C             over-ridden by the Non-Zero KYEARX and KJDAYX Value.
 C             ----------------------------------------------------------
-C                                           Process       KYEARX  KJDAYX
-ceq   EQUIVALENCE (ISPARE(31),KYEARS)   ! SolarCon, UV       0       0
-ceq   EQUIVALENCE (ISPARE(32),KYEARG)   ! GH Gas Trend       0       0
-ceq   EQUIVALENCE (ISPARE(33),KYEARO)   ! Ozone Distr        0       0
-ceq   EQUIVALENCE (ISPARE(34),KYEARA)   ! AerClimtolgy       0       0
-ceq   EQUIVALENCE (ISPARE(35),KYEARD)   ! Desert Dust        0       0
-ceq   EQUIVALENCE (ISPARE(36),KYEARV)   ! Volcanic Aer       0       0
-ceq   EQUIVALENCE (ISPARE(37),KYEARE)   ! Epsilon Clds       0       0
-ceq   EQUIVALENCE (ISPARE(38),KYEARR)   ! Refl Surface       0       0
-C
-ceq   EQUIVALENCE (ISPARE(41),KJDAYS)
-ceq   EQUIVALENCE (ISPARE(42),KJDAYG)
-ceq   EQUIVALENCE (ISPARE(43),KJDAYO)
-ceq   EQUIVALENCE (ISPARE(44),KJDAYA)
-ceq   EQUIVALENCE (ISPARE(45),KJDAYD)
-ceq   EQUIVALENCE (ISPARE(46),KJDAYV)
-ceq   EQUIVALENCE (ISPARE(47),KJDAYE)
-ceq   EQUIVALENCE (ISPARE(48),KJDAYR)
-C
-C
+C                 Process       KYEARX  KJDAYX
+c   KYEARS   ! SolarCon, UV       0       0
+c   KYEARG   ! GH Gas Trend       0       0
+c   KYEARO   ! Ozone Distr        0       0
+c   KYEARA   ! AerClimtolgy       0       0
+c   KYEARD   ! Desert Dust        0       0
+c   KYEARV   ! Volcanic Aer       0       0
+c   KYEARE   ! Epsilon Clds       0       0
+c   KYEARR   ! Refl Surface       0       0
 C
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
@@ -1733,7 +1871,6 @@ C     MADGHG   =  1  Default Enables UPDGHG update. (MADGHG=0),no update
 C     MADSUR   =  1          V72X46N.1.cor Vegetation type data   RFILEC
 C                            Z72X46N Ocean fraction, topography   RFILED
 C     ------------------------------------------------------------------
-C
 C
 C                      -------------------------------------------------
 C                      Set Seasonal and Time (JDAY) Dependent Quantities
@@ -1883,17 +2020,7 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-ceq   DIMENSION UVWAVL(3),UVFACT(3)
-ceq   EQUIVALENCE (FSPARE(25),UVWAVL(1)),(FSPARE(28),UVFACT(1))
-ceq   EQUIVALENCE (ISPARE( 6),KUVFAC),(ISPARE( 7),KSNORM)
-C
-CCC   SAVE
-CCC   DATA LMOREF/0/
       COMMON /RSETCM/ LMOREF,MMOREF,NL0,NL1,N150MB,NTOPMB
-C
-C     DATA S00WM2/1366.2911D0/
-C     DATA RATLS0/1.0000000D0/
-C
 C
 C-----------------------------------------------------------------------
 C
@@ -2197,25 +2324,6 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-ceq   EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
-ceq   EQUIVALENCE (GHGREF(1,3),ZREF(1))
-ceq   EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
-ceq   EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
-ceq   EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
-ceq   EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
-ceq   EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
-ceq   EQUIVALENCE (GHGDAT(1,3),XFOR(1))
-C
-ceq   DIMENSION XREF(5),YREF(5),ZREF(5)
-ceq   DIMENSION XNOW(5),YNOW(5),ZNOW(5)
-ceq   DIMENSION XDT0(5),YDT0(5),ZDT0(5)
-ceq   DIMENSION XDAT(5),XRAT(5),XFOR(5)
-c     SAVE
-c     DIMENSION KFOR(5)
-C
-ceq   DIMENSION PPMVK0(12)
-ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
-C
 C     ---------------------------------------------------------------
 C     SETGHG  Sets Default Greenhouse Gas Reference Year (for FULGAS)
 C
@@ -2293,10 +2401,6 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
-C
-CCC   SAVE
-CCC   DATA IFIRST/1/, MMOREF/0/, NL0/0/, N150MB/8/
       SAVE  IFIRST,MPI,MPJ,WTMPI,WTMPJ
       DATA IFIRST/1/
       COMMON /RSETCM/ LMOREF,MMOREF,NL0,NL1,N150MB,NTOPMB
@@ -2671,42 +2775,18 @@ C
 C        (these data are used to define Ozone longitudinal dependence)
 C-----------------------------------------------------------------------
 C
-ceq   DIMENSION AO3AVE(18,12),SO3JF(11,19),SO3SO(11,19)
 C
-ceq   EQUIVALENCE (AO3AV1(1),AO3AVE(1,1))
-ceq   EQUIVALENCE (SO3JFS(1,1,1),SO3JF(1,1)),(SO3JFS(1,1,2),SO3SO(1,1))
-C
-CCC   SAVE
       SAVE  IFIRST,IMO,JMO,WTIM,WTJM,WTSPR,WTAUT
       DIMENSION XJDMO(14),HKMSPR(14),HKMAUT(14)
       DIMENSION CNCAUT(14),CNCSPR(14),DEGLAT(14)
-CCC   DATA DEGLAT/-85.0,-71.0,-59.0,-47.0,-35.0,-22.0,-9.0,
-CCC  +            9.0,22.0,35.0,47.0,59.0,71.0,85.0/
-CCC   DATA XJDMO/-15.0,16.0,45.0,75.0,105.0,136.0,166.0,197.0,228.0
-CCC  +           ,258.0,289.0,319.0,350.0,381.0/
-CCC   DATA HKMSPR/18.5,18.5,19.0,23.5,24.0,24.5,26.5,
-CCC  +            26.5,25.0,22.5,21.0,20.0,18.5,16.5/
-CCC   DATA HKMAUT/16.5,18.5,20.0,21.0,22.5,25.0,26.5,
-CCC  +            26.5,24.5,24.0,23.5,19.0,18.5,18.5/
-CCC   DATA CNCSPR/0.0181,0.0212,0.0187,0.0167,0.0162,0.0183,0.0175,
-CCC  +            0.0187,0.0200,0.0196,0.0225,0.0291,0.0287,0.0300/
-CCC   DATA CNCAUT/0.0300,0.0287,0.0291,0.0225,0.0196,0.0200,0.0187,
-CCC  +            0.0175,0.0183,0.0162,0.0167,0.0187,0.0212,0.0181/
 C
       DIMENSION PLBSO3(11),SOJDAY(6),PMLAT(6)
-CCC   DATA PLBSO3/10.0,7.0,5.0,3.0,2.0,1.5,1.0,0.7,0.5,0.3,0.1/
-CCC   DATA SOJDAY/-91.,31.,92.,213.,274.,396./
-CCC   DATA PMLAT/1.,1.,-1.,-1.,1.,1./
-CCC   DIMENSION AO3JIM(144),O3LB(LX),PLBX(LX),WO3LON(360)
       DIMENSION AO3JIM(144),O3LB(LX),         WO3LON(360)
       DIMENSION CONCS(144),CONCA(144),BHKMS(144),BHKMA(144)
       DIMENSION WTJLAT(144),WTJLON(144),ILATIJ(144),ILONIJ(144)
       DIMENSION WTLSEP(144),WTLJAN(144),LSEPJ(144),LJANJ(144)
-CCC   DATA ACMMGG/2.37251E-4/,ACMPKM/7.1509E-4/,H10MB/31.05467/
       PARAMETER(ACMMGG=2.37251E-4,ACMPKM=7.1509E-4,H10MB=31.05467)
-CCC   DATA A,B,C,D/0.331,23.0,4.553,5.23/
       DATA IFIRST/1/
-CCC   DATA NL0/0/
       COMMON /O3LCOM/ XJDMO,HKMSPR,HKMAUT,CNCAUT,CNCSPR,DEGLAT,
      *        PLBSO3,SOJDAY,PMLAT,AO3JIM,O3LB,CONCS,CONCA,
      *        BHKMS,BHKMA,WTJLAT,WTJLON,ILATIJ,ILONIJ,
@@ -2956,30 +3036,16 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-CCC   SAVE
       DIMENSION SINLAT(46)
-ceq   DIMENSION PPMVDF(12),PPGRAD(12),SINLAT(46)
-ceq   EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
-ceq   EQUIVALENCE (ISPARE(14),KPFCO2),(ISPARE(15),KPFOZO)
-ceq   EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
-ceq   EQUIVALENCE (ISPARE(11),KLATZ0),(FSPARE(31),PTOPTR)
 C
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
 C
       DIMENSION SPLB(8),STLB(8),SHLB(8),SDLB(8)
-CCC   DATA SPLB/1013.25,226.32,54.748,8.6801,1.109,.66938,.039564
-CCC  +         ,3.7338E-03/
-CCC   DATA STLB/288.15,216.65,216.65,228.65,270.65,270.65,214.65,186.87/
-CCC   DATA SHLB/0.0,11.0,20.0,32.0,47.0,51.0,71.0,84.852/
-CCC   DATA SDLB/-6.5,0.0,1.0,2.8,0.0,-2.8,-2.0,0.0/
 C
       COMMON /GASCOM/ SPLB,STLB,SHLB,SDLB,SINLAT,NL0,NL1
 C
-CCC   DATA HPCON/34.16319/,  P0/1013.25/
-CCC   DATA PI/3.141592653589793D0/
-CCC   DATA IFIRST/1/, NL0/0/
       PARAMETER(HPCON=34.16319,P0=1013.25,PI=3.141592653589793D0)
       DATA IFIRST/1/
 C
@@ -3408,9 +3474,9 @@ C                    BLOCK DATA RADPAR by AGOLDH, BGOLDH, CGOLDH Factors
 C                    and controlled by FGOLDH ON/OFF Scaling Parameters.
 C
 C     ------------------------------------------------------------------
-C     Tau Scaling Factors:    Solar             Thermal    apply to:
-ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-ceq   EQUIVALENCE (FSXAER(2),FSBAER),(FTXAER(2),FTBAER)  ! Bgrnd Aerosol
+C     Tau Scaling Factors:    Solar    Thermal    apply to:
+c                             FSTAER   FTTAER  ! Total Aerosol
+c                             FSBAER   FTBAER  ! Bgrnd Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3419,13 +3485,11 @@ C                        FSBAER    SW   SETBAKonly Aerosol Optical Depth
 C                        FTBAER    LW   SETBAKonly Aerosol Optical Depth
 C                        -----------------------------------------------
 C
-CCC   SAVE
       DIMENSION SGOLDH(5),TGOLDH(5)
 C
       COMMON /RSETC2/ NL0
 C
       DATA IFIRST/1/
-CCC   DATA NL0/0/
 C
       SAVE  IFIRST
 C
@@ -3699,14 +3763,10 @@ C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
 C               (This takes Topography & Model Layering into account)
 C     ---------------------------------------------------------------
 C
-ceq   EQUIVALENCE (ISPARE( 1),KVRAER),(ISPARE( 2),MEANAC)
-ceq   EQUIVALENCE (FSPARE(18),X0YBCI),(FSPARE(19),X0YOCI)
-ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
-C
 C     ------------------------------------------------------------------
-C     Tau Scaling Factors:    Solar             Thermal    apply to:
-ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-ceq   EQUIVALENCE (FSXAER(3),FSAAER),(FTXAER(3),FTAAER)  ! AClim Aerosol
+C     Tau Scaling Factors:    Solar    Thermal    apply to:
+c                             FSTAER   FTTAER  ! Total Aerosol
+c                             FSAAER   FTAAER  ! AClim Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -3715,9 +3775,6 @@ C                        FSAAER    SW   AClim Aer  Aerosol Optical Depth
 C                        FTAAER    LW   AClim Aer  Aerosol Optical Depth
 C                        -----------------------------------------------
 C
-ceq   DIMENSION VDFAER(20,3)
-ceq   EQUIVALENCE (FSPARE( 81),VDFAER(1,1))
-C
 C            Aerosol Vertical Profile (Optical Depth) Scaling Factors
 C            --------------------------------------------------------
 C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
@@ -3725,16 +3782,10 @@ C     Ptop 934  854  720  550  390  285  255  150  100   60   30   10
 C     Pbot 984  934  854  720  550  390  285  255  150  100   60   30
 C
 C
-CCC   SAVE
       DIMENSION QXAERN(25),QSAERN(25),QGAERN(25)
       DIMENSION PLB12L(13),SRAX12(12),SRAS12(12),SRAG12(12),TRAX12(12)
 C
       COMMON /SAERCM/ PLB12L
-C
-CCC   DATA PLB12L/
-CCC  A            984.0, 934.0, 854.0, 720.0, 550.0, 390.0, 285.0
-CCC  B           ,255.0, 150.0, 100.0,  60.0,  30.0,  10.0/
-C
 C
 C     ------------------------------------------------------------------
 C     TROAER: Monthly-Mean Tropospheric Aerosols  (Column Optical Depth)
@@ -4112,13 +4163,10 @@ C               PLB Pressure levels, i.e., from PLB(1) up to PLB(NLP)
 C               (This takes Topography & Model Layering into account)
 C     ---------------------------------------------------------------
 C
-ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
-ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
-C
 C-----------------------------------------------------------------------
-C     Tau Scaling Factors:    Solar             Thermal    apply to:
-ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-ceq   EQUIVALENCE (FSXAER(4),FSDAER),(FTXAER(4),FTDAER)  ! Dust  Aerosol
+C     Tau Scaling Factors:    Solar    Thermal    apply to:
+c                             FSTAER   FTTAER  ! Total Aerosol
+c                             FSDAER   FTDAER  ! Dust  Aerosol
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW   (All-type) Aerosol Optical Depth
@@ -4126,9 +4174,6 @@ C                        FTTAER    LW   (All-type) Aerosol Optical Depth
 C                        FSDAER    SW   Dust Aer   Aerosol Optical Depth
 C                        FTDAER    LW   Dust Aer   Aerosol Optical Depth
 C                        -----------------------------------------------
-C
-ceq   DIMENSION VDFDST(12)
-ceq   EQUIVALENCE (FSPARE(141),VDFDST(1))
 C
       COMMON /SAERCM/ PLB12L
       COMMON /DSTCOM/ FRACD1,FRACD2,FRACDL,LFRACD
@@ -4399,21 +4444,16 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-CCC   SAVE
       DIMENSION E24LAT(25),EJMLAT(47)
       DIMENSION HLATTF(4),HLATKM(5)
 C
       COMMON /SVOLCM/ E24LAT,EJMLAT,HLATKM,REFF0,
      *                 FSXTAU,FTXTAU,NJ25,NJJM
-CCC   PARAMETER (HTPLIM=1.D-03)
-C
-CCC   DATA HLATKM/ 15.0, 20.0, 25.0, 30.0, 35.0/
-CCC   DATA LATVOL/0/
 C
 C     -----------------------------------------------------------------
-C     Tau Scaling Factors:    Solar             Thermal    apply to:
-ceq   EQUIVALENCE (FSXAER(1),FSTAER),(FTXAER(1),FTTAER)  ! Total Aerosol
-ceq   EQUIVALENCE (FSXAER(5),FSVAER),(FTXAER(5),FTVAER)  ! SETVOL Aer
+C     Tau Scaling Factors:    Solar    Thermal    apply to:
+c                             FSTAER   FTTAER  ! Total Aerosol
+c                             FSVAER   FTVAER  ! SETVOL Aer
 C
 C     Control Parameters/Aerosol Scaling (kill) Factors
 C                        FSTAER    SW  (All-type) Aerosol Optical Depth
@@ -4433,7 +4473,6 @@ C     -----------------------------------------------------------------
 C
       FSXTAU=FSTAER*FSVAER
       FTXTAU=FTTAER*FTVAER
-CCC   HTPLIM=1.D-03
 C
 C                   Set Grid-Box Edge Latitudes for Data Repartitioning
 C                   ---------------------------------------------------
@@ -4585,14 +4624,6 @@ C
 C
       DIMENSION TRAB(33,20),V5(5),Q5(5),RV20(20),QV20(20)
 C
-ceq   EQUIVALENCE (SRVQEX(1,1,6),SRQV(1,1)),(SRVQSC(1,1,6),SRSV(1,1))
-ceq   EQUIVALENCE (SRVQCB(1,1,6),SRGV(1,1)),(Q55V20(1,6),Q55V(1))
-ceq   EQUIVALENCE (TRVQEX(1,1,6),TRQV(1,1)),(TRVQSC(1,1,6),TRSV(1,1))
-ceq   EQUIVALENCE (TRVQCB(1,1,6),TRGV(1,1)),(TRVQAL(1,1,6),TRAV(1,1))
-ceq   EQUIVALENCE (REFV20(1,6),REFV(1)),(VEFV20(1,6),VEFV(1))
-C
-CCC   DATA V5/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/
-C
 C     ------------------------------------------------------------------
 C     SRVQEX Volcanic Aerosol sizes (Reff) range from 0.1 to 5.0 microns
 C     To utilize equal interval interpolation, Reff N=9,20 are redefined
@@ -4743,9 +4774,6 @@ C
       SUBROUTINE SETCLD
 C
       !INCLUDE 'BR00B.COM'
-C
-ceq   EQUIVALENCE (FEMTRA(1),ECLTRA),(SRBXAL(1,1),SRBALB(1))
-ceq   DIMENSION SRBALB(6)
 C
 C-----------------------------------------------------------------------
 C     Control Parameters used in SETCLD,GETCLD,GETEPS: defined in RADCOM
@@ -5532,28 +5560,18 @@ C
 C
       !INCLUDE 'BR00B.COM'
 C
-ceq   DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
-C
-ceq   EQUIVALENCE (FSPARE(1),WINDZF(1)),(FSPARE(4),WINDZT(1))
-ceq   EQUIVALENCE (FSPARE(7),TOTLZF(1)),(FSPARE(10),TOTLZT(1))
-ceq   EQUIVALENCE (FEMTRA(1),ECLTRA),(ISPARE(12),KCLDEM)
-C
-CCC   SAVE
-CCC   DATA R6,R24/.16666667D0,4.1666667D-02/
-CCC   DATA A,B,C/0.3825D0,0.5742D0,0.0433D0/
       PARAMETER (R6=.16666667D0,R24=4.1666667D-02)
       PARAMETER (A=0.3825D0,B=0.5742D0,C=0.0433D0)
-C
 C
 C     ------------------------------------------------------------------
 C             Top-cloud Thermal Scattering Correction Control Parameters
 C             ----------------------------------------------------------
 C
-C             FEMTRA(1) = ECLTRA = 1.0  Scattering correction is enabled
+C             ECLTRA = 1.0  Scattering correction is enabled
 C             with KCLDEM = 1, Rigorous scattering correction is applied
 C             with KCLDEM = 0, Approximate scattering correction is used
 C
-C             FEMTRA(1) = ECLTRA = 0.0  No scattering correction is used
+C             ECLTRA = 0.0  No scattering correction is used
 C                                          (Independent of KCLDEM value)
 C
 C     ------------------------------------------------------------------
@@ -6248,58 +6266,12 @@ C             WavB (nm)=  4000  2200  1500  1250   860      770
 C
 C     ------------------------------------------------------------------
 C
-CCC   DATA NKSLAM/14/   ,KSLAM/1,1,2,2,5,5,5,5,1,1,1,3,4,6,6,1/
-C
-CCC   DATA NMKWAV/ 200, 360, 770, 795, 805, 810, 860,1250,1500,1740,
-CCC  +            2200,3000,3400,3600,3800,4000,9999/
-CCC   DATA LORDER/15,14, 8, 7, 6, 5, 13, 12, 4, 3, 2, 1, 11, 10, 9,16/
-C
-CCC   DIMENSION S0FRAC(17)
-ceq   DIMENSION SRBALB(6),SRXALB(6),S0FRAC(17)
-ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
-C
-ceq   EQUIVALENCE
-ceq  + (BXA(1),BOCVIS),(BXA(5),BEAVIS),(BXA( 9),BOIVIS),(BXA(13),BLIVIS)
-ceq  +,(BXA(2),BOCNIR),(BXA(6),BEANIR),(BXA(10),BOINIR),(BXA(14),BLINIR)
-ceq  +,(BXA(3),XOCVIS),(BXA(7),XEAVIS),(BXA(11),XOIVIS),(BXA(15),XLIVIS)
-ceq  +,(BXA(4),XOCNIR),(BXA(8),XEANIR),(BXA(12),XOINIR),(BXA(16),XLINIR)
-ceq  +,               (BXA(17),EXPSNE),(BXA(18),EXPSNO),(BXA(19),EXPSNL)
-ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
-C
-ceq   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
-ceq   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)
-C
-ceq   DIMENSION            PRNB(6,4),          PRNX(6,4)
-ceq   EQUIVALENCE (BXA(31),PRNB(1,1)),(BXA(61),PRNX(1,1))
-C
-CCC   DIMENSION COLEXT(6),COLSCT(6),COLGCB(6),ALLGCB(6)
       DIMENSION COLEXT(6),COLSCT(6),COLGCB(6)
 C
 C                            -------------------------------------------
 C                            NO2, O3 Chappuis Band, Rayleigh, parameters
 C                            -------------------------------------------
-CCC   DATA XCMNO2/5.465/
-CCC   DATA XCMO3/.0399623/
-CCC   DATA TOTRAY/0.000155/
       PARAMETER(XCMNO2=5.465,XCMO3=.0399623,TOTRAY=0.000155)
-C
-CCC   DATA IFIRST/1/
-C
-CCC   IF(IFIRST.EQ.1) THEN            ---------------
-CCC   N2=1                                   |
-CCC   DO 1 I=1,30
-CCC   N2=N2*2                                |
-CCC   DBLN(I)=N2
-CCC 1 CONTINUE
-CCC   DO 2 I=1,16
-CCC   SKDKS0(I)=DKS0(I)                      |
-CCC   NORDER(I)=LORDER(I)                    |
-CCC   NMWAVA(I)=NMKWAV(I)                    |
-CCC   NMWAVB(I)=NMKWAV(I+1)                  |
-CCC 2 CONTINUE
-CCC   IFIRST=0                               |
-CCC   ENDIF                           ---------------
 C
       S0COSZ=S0
       IF(NORMS0.EQ.0) S0COSZ=S0*COSZ
@@ -7632,6 +7604,9 @@ C****
 
       SUBROUTINE WRITER(KWRU,INDEX)
 C
+      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM, 
+     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
+     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA
       !INCLUDE 'BR00B.COM'   ! use RE001
 C
 C     ------------------------------------------------------------------
@@ -7685,83 +7660,6 @@ CCC   SAVE
       DATA TRAXSG/'QAB','QEX','QSC','QCB','PI0'/
 C
       DIMENSION TKEFF(3)
-ceq   DIMENSION TKEFF(3),SRBALB(6),SRXALB(6)
-ceq   EQUIVALENCE (SRBXAL(1,1),SRBALB(1)),(SRBXAL(1,2),SRXALB(1))
-C
-ceq  +,               (BXA(20),BSNVIS),(BXA(21),BSNNIR)
-ceq  +,               (BXA(22),XSNVIS),(BXA(23),XSNNIR)
-C
-ceq   EQUIVALENCE (ASNALB(1),ASNVIS),(ASNALB(7),ASNNIR)
-ceq   EQUIVALENCE (AOIALB(1),AOIVIS),(AOIALB(7),AOINIR)
-ceq   EQUIVALENCE (ALIALB(1),ALIVIS),(ALIALB(7),ALINIR)
-C
-ceq   EQUIVALENCE
-ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
-C
-ceq   EQUIVALENCE (PVT( 1),DESRT),(PVT( 2),TNDRA),(PVT( 3),GRASS)
-ceq  +           ,(PVT( 4),SHRUB),(PVT( 5),TREES),(PVT( 6),DECID)
-ceq  +           ,(PVT( 7),EVERG),(PVT( 8),RAINF),(PVT( 9),ROCKS)
-ceq  +           ,(PVT(10),CROPS),(PVT(11),ALGAE)
-C
-ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
-ceq   EQUIVALENCE (ISPARE( 2),MEANAC)
-ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
-ceq   EQUIVALENCE (ISPARE( 4),MEANVA)
-ceq   EQUIVALENCE (ISPARE( 5),NCARO3)
-ceq   EQUIVALENCE (ISPARE( 8),KWTRAB)
-ceq   EQUIVALENCE (ISPARE(10),KPGRAD)
-ceq   EQUIVALENCE (ISPARE(11),KLATZ0)
-ceq   EQUIVALENCE (ISPARE(12),KCLDEM)
-ceq   EQUIVALENCE (ISPARE(13),KANORM)
-ceq   EQUIVALENCE (ISPARE(14),KPFCO2)
-ceq   EQUIVALENCE (ISPARE(15),KPFOZO)
-ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
-ceq   EQUIVALENCE (ISPARE(17),KORDER)
-C
-ceq   DIMENSION WINDZF(3),WINDZT(3),TOTLZF(3),TOTLZT(3)
-C
-ceq   EQUIVALENCE (FSPARE( 1),WINDZF(1))
-ceq   EQUIVALENCE (FSPARE( 4),WINDZT(1))
-ceq   EQUIVALENCE (FSPARE( 7),TOTLZF(1))
-ceq   EQUIVALENCE (FSPARE(10),TOTLZT(1))
-C
-ceq   EQUIVALENCE (FSPARE(13), PSOIL)
-ceq   EQUIVALENCE (FSPARE(14),REFSET)
-ceq   EQUIVALENCE (FSPARE(15),VEFSET)
-ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
-ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
-ceq   EQUIVALENCE (FSPARE(18),X0YBCI)
-ceq   EQUIVALENCE (FSPARE(19),X0YOCI)
-ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
-C
-ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
-ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
-ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
-ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
-ceq   EQUIVALENCE (FSPARE(25),UVWAVL)
-ceq   EQUIVALENCE (FSPARE(28),UVFACT)
-C
-ceq   DIMENSION PI0VIS(11),PI0TRA(11)
-C
-ceq   EQUIVALENCE (FSPARE( 41),PI0VIS(1))
-ceq   EQUIVALENCE (FSPARE( 61),PI0TRA(1))
-C
-ceq   EQUIVALENCE (FSXAER(1),FSTAER)
-ceq   EQUIVALENCE (FSXAER(2),FSBAER)
-ceq   EQUIVALENCE (FSXAER(3),FSAAER)
-ceq   EQUIVALENCE (FSXAER(4),FSDAER)
-ceq   EQUIVALENCE (FSXAER(5),FSVAER)
-C
-ceq   EQUIVALENCE (FTXAER(1),FTTAER)
-ceq   EQUIVALENCE (FTXAER(2),FTBAER)
-ceq   EQUIVALENCE (FTXAER(3),FTAAER)
-ceq   EQUIVALENCE (FTXAER(4),FTDAER)
-ceq   EQUIVALENCE (FTXAER(5),FTVAER)
 C
       DIMENSION BGFLUX(33),BGFRAC(33),TAUSUM(33)
       DIMENSION SUM0(20),SUM1(LX),SUM2(LX),SUM3(LX),FTYPE(5),AUXGAS(4)
@@ -7872,19 +7770,19 @@ C
 C
       WRITE(KW,6006)
  6006 FORMAT(1H0,'FSPARE  PARAMTER    VALUE',16X,' DEFAULT')
-      WRITE(KW,6007) (I,FSPARE(I),I=13,24)
+      WRITE(KW,6007) (I,FSPARE(I),I=13,20),AVSCAT,ANSCAT,AVFOAM,ANFOAM
  6007 FORMAT(5X,I2,' =  PSOIL = ',F7.3,6X,'BARE-SOIL FRACTION OF PEARTH'
      A      /5X,I2,' = REFSET = ',F7.3,'                 0.000         '
      B      /5X,I2,' = VEFSET = ',F7.3,'                 0.000         '
      C      /5X,I2,' = O3WJT0 = ',F7.5,'                 0.001         '
-     D      /5X,I2,' = SNOLIM = ',F7.5,' reset to 0 (was 0.367 )       '
+     D      /5X,I2,'            ',F7.5,'                unused         '
      E      /5X,I2,' = X0YBCI = ',F7.3,'                 0.001         '
      F      /5X,I2,' = X0YOCI = ',F7.3,'                 0.001         '
      G      /5X,I2,' = X0YSUI = ',F7.3,'                 0.0001        '
-     H      /5X,I2,' = AVSCAT = ',F7.5,'                  .01560       '
-     I      /5X,I2,' = ANSCAT = ',F7.5,'                  .00020       '
-     J      /5X,I2,' = AVFOAM = ',F7.5,'                  .21970       '
-     K      /5X,I2,' = ANFOAM = ',F7.5,'                  .15140       '
+     H      /7X,   '   AVSCAT = ',F7.5,'                  .01560       '
+     I      /7X,   '   ANSCAT = ',F7.5,'                  .00020       '
+     J      /7X,   '   AVFOAM = ',F7.5,'                  .21970       '
+     K      /7X,   '   ANFOAM = ',F7.5,'                  .15140       '
      X      )
       WRITE(KW,6008)
  6008 FORMAT(/10X,'UV Solar Flux Spectral Partitions and Factors')
@@ -7925,7 +7823,7 @@ C
 
       WRITE(KW,6015)
  6015 FORMAT(/1H ,3('FSPARE     VALUE   '))
-      WRITE(KW,6016) (I+51,FSPARE(I+51),I=1,9)
+c      WRITE(KW,6016) (I+51,FSPARE(I+51),I=1,9)
       WRITE(KW,6016) (I+71,FSPARE(I+71),I=1,9)
  6016 FORMAT(I7,' = ',F8.6,I8,' = ',F8.6,I8,' = ',F8.6)
 C
@@ -8099,8 +7997,8 @@ C
       WRITE(KW,6203) (SUM0(I),I=1,3),(SUM0(I),I=6,9),SUM0(5)
      +               ,SUM0(10),SUM0(11),SUM0(12)
       WRITE(KW,6204) POCEAN,TGO,AGESN(1),WMAG,SUM0(13),JYEAR
-     +             ,BSNVIS,BSNNIR,LASTVC
-      WRITE(KW,6205) PEARTH,TGE,SNOWE,WEARTH,SUM0(14),JDAY,XSNVIS,XSNNIR
+     +             ,BXA(4:5),LASTVC
+      WRITE(KW,6205) PEARTH,TGE,SNOWE,WEARTH,SUM0(14),JDAY,BXA(6:7)
       WRITE(KW,6206) POICE,TGOI,SNOWOI,      SUM0(15),JLAT
      +             ,(SRBALB(I),I=1,6)
       WRITE(KW,6207) PLICE,TGLI,SNOWLI,FULGAS(10),SUM0(16),ILON
@@ -8110,8 +8008,8 @@ C
      +               ,PSUM,TSL,FULGAS(5),(PVT(I),I=1,11)
       write(kw,*) 'hsn,hin,hmp,fmp, flags, LS1_loc',
      * hsn,hin,hmp,fmp, flags, LS1_loc
-C     WRITE(KW,6209) (BXA(I),I=1,19)
-C     WRITE(KW,6210)
+      WRITE(KW,6209) (PRNB(1:2,I),PRNX(1:2,I),I=1,4),BXA(1:3)
+      WRITE(KW,6210)
  6201 FORMAT(' (2) RADCOM G/L: (Input Data)'
      +      ,2X,'Absorber Amount per Layer:'
      +      ,'  U',1A1,'GAS(L,K) in cm**3(STP)/cm**2',2X,'S00WM2=',F9.4
@@ -9469,19 +9367,8 @@ C                 KLIMIT = 0 full output,  KLIMIT > 0 abbreviated output
 C                 KWRU directs the output to selected (KWRU) file number
 C     ------------------------------------------------------------------
 C
-CCC   SAVE
       CHARACTER*32 CHAER(4)
-ceq   EQUIVALENCE (GHGREF(1,1),XREF(1)),(GHGREF(1,2),YREF(1))
-ceq   EQUIVALENCE (GHGREF(1,3),ZREF(1))
-ceq   EQUIVALENCE (GHGNOW(1,1),XNOW(1)),(GHGNOW(1,2),YNOW(1))
-ceq   EQUIVALENCE (GHGNOW(1,3),ZNOW(1))
-ceq   EQUIVALENCE (GHGDT0(1,1),XDT0(1)),(GHGDT0(1,2),YDT0(1))
-ceq   EQUIVALENCE (GHGDT0(1,3),ZDT0(1))
-ceq   EQUIVALENCE (GHGDAT(1,1),XDAT(1)),(GHGDAT(1,2),XRAT(1))
-ceq   EQUIVALENCE (GHGDAT(1,3),XFOR(1))
 C
-ceq   DIMENSION XREF(5),YREF(5),ZREF(5)
-ceq   DIMENSION XNOW(5),YNOW(5),ZNOW(5)
       DIMENSION XDT0(5)                   !obso ,YDT0(5),ZDT0(5)
       DIMENSION XRAT(5)                   !obso ,XDAT(5),XFOR(5)
       DIMENSION WREF(7),WDAT(7),WPPM(7),DWM2(7)  ! ,kfor(5)
@@ -10123,9 +10010,6 @@ C
       INCLUDE 'BR00B.COM'
 C
 C
-ceq   DIMENSION WLEAN1(152),WLEAN2(38)
-ceq   EQUIVALENCE (WSLEAN(1),WLEAN1(1)),(WSLEAN(153),WLEAN2(1))
-C
 C     Lean Spectral irradiance on following wavelength (nm) grid centers
 C         with the following wavelength bands (nm) centered on above wls
 cg    DATA WSLEAN/
@@ -10176,9 +10060,6 @@ cg   P  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
 cg   Q  100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
 cg   R  100., 100., 100., 100., 100., 100., 100., 100., 100.,1000.,
 cg   S 1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,8.5E+04/
-C
-ceq   DIMENSION F1LEAN(95),F2LEAN(95)
-ceq   EQUIVALENCE (FRLEAN(1),F1LEAN(1)),(FRLEAN(96),F2LEAN(1))
 C
 C      Lean Solar UV Flux  1950     1      1366.291100      1366.448785
 cg    DATA FRLEAN/
@@ -10256,11 +10137,6 @@ C
      E 13.5,12.3,11.1,10.3, 9.5,8.70,7.80,7.10,6.50,5.92,5.35,4.86,4.47,
      F   4.11,3.79,1.82,0.99,.585,.367,.241,.165,.117,.0851,.0634,.0481/
 C
-C
-ceq   DIMENSION OWMUV2(115),OWMUV3(111),OKEUV2(115),OKEUV3(111)
-ceq   EQUIVALENCE (XWAVO3(1),OWMUV2(1)),(XWAVO3(116),OWMUV3(1))
-ceq   EQUIVALENCE (FUVKO3(1),OKEUV2(1)),(FUVKO3(116),OKEUV3(1))
-C
       DATA XWAVO3/.2002,.2012,.2022,.2032,.2042,.2052,.2062,.2072,.2082,
      A.2092,.2102,.2112,.2122,.2132,.2142,.2152,.2162,.2172,.2182,.2192,
      B.2202,.2212,.2222,.2232,.2242,.2252,.2262,.2272,.2282,.2292,.2302,
@@ -10313,11 +10189,6 @@ C-----------------------------------------------------------------------
 C                     TRACE GAS ABSORPTION COEFFICIENTS FOR  F11 & F12
 C-----------------------------------------------------------------------
 C
-ceq   DIMENSION ULOA(114),ULOB(114),ULOC(19),DUA(114),DUB(114),DUC(19)
-C
-ceq   EQUIVALENCE (ULOX(  1),ULOA(1)),(ULOX(115),ULOB(1))
-ceq  +           ,(ULOX(229),ULOC(1))
-ceq   EQUIVALENCE (DUX(1),DUA(1)),(DUX(115),DUB(1)),(DUX(229),DUC(1))
 C
       DATA ULOX/
      A         .25D+2,.40D+2,.75D+1,.85D+0,.25D+0,.10D-1,.60D-1,.30D-1,
@@ -10417,132 +10288,9 @@ C
      5  1.66E-09,6.57E-10,2.58E-10,1.02E-10,4.11E-11,1.71E-11,7.73E-12,
      6  9.07E-12,4.63E-12,2.66E-12,1.73E-12,1.28E-12,1.02E-12,1.00E-30/
 C
-C
-C
-C-----------------------------------------------------------------------
-C     Seasonal Albedos:  11 Vegetation Types (Hemispherically Reflected)
-C-----------------------------------------------------------------------
-C
-ceq   EQUIVALENCE
-ceq  +          (V6ALB(1,1,1),ALBVND(1,1,1))
-ceq  +,         (V6ALB(1,1,7),FIELDC(1,1)),(V6ALB(1,4,7),VTMASK(1))
-C
-ceq   EQUIVALENCE
-ceq  +          (FEMTRA(1),ECLTRA),  (FZSRA(1),ZCLSRA)
-ceq  +,         (FEMTRA(2),EOCTRA),  (FZSRA(2),ZOCSRA)
-ceq  +,         (FEMTRA(3),ESNTRA),  (FZSRA(3),ZSNSRA)
-ceq  +,         (FEMTRA(4),EICTRA),  (FZSRA(4),ZICSRA)
-ceq  +,         (FEMTRA(5),EDSTRA),  (FZSRA(5),ZDSSRA)
-ceq  +,         (FEMTRA(6),EVGTRA),  (FZSRA(6),ZVGSRA)
-C
-ceq   DIMENSION ALBVND(11,4,6)
-ceq   DIMENSION FIELDC(11,3),VTMASK(11)
-C
-C                          1       2       3       4
-C                        WINTER  SPRING  SUMMER  AUTUMN
-C
-      DATA ALBVND/
-C     DATA ALVISK/  (1)  >SRBALB(6) = VIS  (330 - 770 nm)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .067, .089, .089, .078, .100, .067, .061, .089, .000, .200,
-     2 .500, .062, .100, .100, .073, .055, .067, .061, .100, .000, .200,
-     3 .500, .085, .091, .139, .085, .058, .083, .061, .091, .000, .200,
-     4 .500, .080, .090, .111, .064, .055, .061, .061, .090, .000, .200,
-C
-C     DATA ALNIRK/  (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
-C     DATA ALNIRK/  (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .200, .267, .267, .233, .300, .200, .183, .267, .000, .200,
-     2 .500, .206, .350, .300, .241, .218, .200, .183, .350, .000, .200,
-     3 .500, .297, .364, .417, .297, .288, .250, .183, .364, .000, .200,
-     4 .500, .255, .315, .333, .204, .218, .183, .183, .315, .000, .200,
-C
-C     DATA ALNIRK/  (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .080, .107, .107, .093, .120, .080, .073, .107, .000, .200,
-     2 .500, .082, .140, .120, .096, .083, .080, .073, .140, .000, .200,
-     3 .500, .119, .145, .167, .119, .115, .100, .073, .145, .000, .200,
-     4 .500, .102, .126, .132, .081, .087, .073, .073, .126, .000, .200,
-C
-C     DATA ALNIRK/  (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .100, .133, .133, .116, .150, .100, .091, .133, .000, .200,
-     2 .500, .103, .175, .150, .120, .109, .100, .091, .175, .000, .200,
-     3 .500, .148, .182, .208, .148, .144, .125, .091, .182, .000, .200,
-     4 .500, .127, .157, .166, .102, .109, .091, .091, .157, .000, .200,
-C
-C     DATA ALNIRK/  (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 .500, .020, .027, .027, .023, .030, .020, .018, .027, .000, .200,
-     2 .500, .021, .035, .030, .024, .022, .020, .018, .035, .000, .200,
-     3 .500, .030, .036, .042, .030, .029, .025, .018, .036, .000, .200,
-     4 .500, .026, .032, .033, .020, .022, .018, .018, .032, .000, .200/
-C
-      DATA FIELDC/
-C          (KG/M**2)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     1 10.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 200., 30.0, 10.0, 999.,
-     2 10.0, 200., 200., 300., 300., 450., 450., 450., 200., 10.0, 999.,
-     3 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, 999./
-C
-      DATA VTMASK/
-C          (KG/M**2)
-C        1     2     3     4     5     6     7     8     9    10    11
-C      BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
-     4 10.0, 20.0, 20.0, 50.0, 200., 500.,1000.,2500., 20.0, 10.0, .001/
-C
-C
-      DATA ASNALB/0.600,0.55,0.55,0.30,0.10,0.05,  0.350,8*0.0/
-C
-      DATA AOIALB/0.550,0.50,0.45,0.25,0.10,0.05,  0.300,8*0.0/
-C
-      DATA ALIALB/0.600,0.55,0.50,0.30,0.10,0.05,  0.350,8*0.0/
-C
       DATA PVT/8*0.125,3*0.0/
 C
       DATA SRBXAL/30*0.0/
-      DATA BXA/153*0.0/
-C
-C
-C                     AGSNOW  AGLICE  AGROCK  AGVEG
-      DATA AGSIDV/
-     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
-     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
-     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
-     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
-     +        0.01986,0.01994,0.02013,0.02041,0.02100,
-     +        0.01400,0.09262,0.09170,0.07767,0.07130,0.06603,0.06540,
-     +        0.06397,0.06358,0.06361,0.06365,0.06386,0.06564,0.01354,
-     +        0.01537,0.02320,0.04156,0.03702,0.03633,0.03417,0.03346,
-     +        0.03342,0.03322,0.03350,0.03170,0.01967,0.01845,0.01977,
-     +        0.01986,0.01994,0.02013,0.02041,0.02100,
-     +        0.04500,0.10209,0.08806,0.05856,0.04835,0.04052,0.04001,
-     +        0.03775,0.03687,0.03740,0.03637,0.03692,0.03570,0.07001,
-     +        0.05665,0.05326,0.05349,0.04356,0.03845,0.03589,0.03615,
-     +        0.03610,0.03602,0.03613,0.03471,0.13687,0.14927,0.16484,
-     +        0.16649,0.16820,0.17199,0.17484,0.18000,
-     +        33*0.00/
-C
-      DATA AOCEAN/
-     +        0.04000,0.09566,0.10273,0.10389,0.10464,0.10555,0.10637,
-     +        0.10666,0.10697,0.10665,0.10719,0.10728,0.11007,0.04009,
-     +        0.04553,0.05554,0.08178,0.09012,0.09464,0.09548,0.09532,
-     +        0.09558,0.09558,0.09568,0.09565,0.05771,0.04985,0.04670,
-     +        0.04630,0.04575,0.04474,0.04468,0.04500/
-C
 C
       DATA DLAT46/
      A    -90.,-86.,-82.,-78.,-74.,-70.,-66.,-62.,-58.,-54.,-50.,-46.,
@@ -10604,19 +10352,13 @@ C
       DATA   FSXAER/5*1.D0/,  FTXAER/5*1.D0/
       DATA   PIVMAX/1.0000/
 C
-      DATA                    TLGRAD/ 1.0/, EOCTRA/1.0/, ZOCSRA/1.0/
-      DATA                                  ESNTRA/1.0/, ZSNSRA/1.0/
-      DATA                    RO3COL/ 1.0/, EICTRA/1.0/, ZICSRA/1.0/
-      DATA                    ECLTRA/1.00/, EDSTRA/1.0/, ZDSSRA/1.0/
-      DATA   PTLISO/2.5E+00/, ZCLSRA/1.00/, EVGTRA/1.0/, ZVGSRA/1.0/
+      DATA   TLGRAD/ 1.0/,    RO3COL/ 1.0/, ECLTRA/1.00/
+      DATA   PTLISO/2.5E+00/, ZCLSRA/1.00/
 C
-      DATA                    FCLDTR/1.0/,  NTRACE/0/
-      DATA   WETTRA/1.00/,    FCLDSR/1.0/
-      DATA   WETSRA/1.00/,    FALGAE/1.0/,   ITR/8*0/
-      DATA   DMOICE/10.0/,    FRAYLE/1.0/
-      DATA   DMLICE/10.0/,    EPSCON/0.0/
+      DATA   FCLDTR/1.0/,     FCLDSR/1.0/,  NTRACE/0/
+      DATA   FALGAE/1.0/,     ITR/8*0/,     FRAYLE/1.0/,  EPSCON/0.0/
 C
-      DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/,        NV/11/
+      DATA   KSOLAR/1/,       KTREND/1/,    MADBAK/0/
       DATA   KEEPRH/0/,       KEEP10/0/,    NO3COL/0/
       DATA   KCNORM/0/,       KEEPAL/0/,    MRELAY/0/
       DATA   KCLDEP/4/,       KO3LON/0/,    MOZONE/5/
@@ -10632,37 +10374,10 @@ cg    DATA    POICE/0.200/,  TGOI/288.15/,  SNOWOI/0.10/,
 cg    DATA    PLICE/0.100/,  TGLI/288.15/,  SNOWLI/0.20/
 cg    DATA                    TSL/288.15/
 C
-ceq   EQUIVALENCE (ISPARE( 1),KVRAER)
-ceq   EQUIVALENCE (ISPARE( 2),MEANAC)
-ceq   EQUIVALENCE (ISPARE( 3),MEANDD)
-ceq   EQUIVALENCE (ISPARE( 4),MEANVA)
-ceq   EQUIVALENCE (ISPARE( 5),NCARO3)
-ceq   EQUIVALENCE (ISPARE( 6),KUVFAC)
-ceq   EQUIVALENCE (ISPARE( 7),KSNORM)
-ceq   EQUIVALENCE (ISPARE( 8),KWTRAB)
-C
-ceq   EQUIVALENCE (ISPARE(12),KCLDEM)
-ceq   EQUIVALENCE (ISPARE(13),KANORM)
-C
       DATA KVRAER/1/,  MEANAC/0/,  MEANDD/0/,  MEANVA/0/,  NCARO3/0/
       DATA KUVFAC/0/,  KWTRAB/0/   KCLDEM/1/,  KANORM/0/
 C
-ceq   EQUIVALENCE (ISPARE(14),KPFCO2)
-ceq   EQUIVALENCE (ISPARE(15),KPFOZO)
-ceq   EQUIVALENCE (ISPARE(16),KVEGA6)
-ceq   EQUIVALENCE (ISPARE(17),KORDER)
-C
       DATA KPFCO2/0/,  KPFOZO/0/,  KVEGA6/0/,  KORDER/0/
-C
-C
-ceq   EQUIVALENCE (ISPARE(31),KYEARS),(ISPARE(41),KJDAYS)
-ceq   EQUIVALENCE (ISPARE(32),KYEARG),(ISPARE(42),KJDAYG)
-ceq   EQUIVALENCE (ISPARE(33),KYEARO),(ISPARE(43),KJDAYO)
-ceq   EQUIVALENCE (ISPARE(34),KYEARA),(ISPARE(44),KJDAYA)
-ceq   EQUIVALENCE (ISPARE(35),KYEARD),(ISPARE(45),KJDAYD)
-ceq   EQUIVALENCE (ISPARE(36),KYEARV),(ISPARE(46),KJDAYV)
-ceq   EQUIVALENCE (ISPARE(37),KYEARE),(ISPARE(47),KJDAYE)
-ceq   EQUIVALENCE (ISPARE(38),KYEARR),(ISPARE(48),KJDAYR)
 C
       DATA KYEARS/    0/, KJDAYS/  0/
       DATA KYEARG/    0/, KJDAYG/  0/
@@ -10673,35 +10388,14 @@ C
       DATA KYEARE/    0/, KJDAYE/  0/
       DATA KYEARR/    0/, KJDAYR/  0/
 C
-ceq   EQUIVALENCE (FSPARE(14),REFSET)
-ceq   EQUIVALENCE (FSPARE(15),VEFSET)
       DATA                              REFSET/0.000/,  VEFSET/0.000/
 C
-ceq   EQUIVALENCE (FSPARE(16),O3WJT0)
-ceq   EQUIVALENCE (FSPARE(17),SNOLIM)
-      DATA                              O3WJT0/0.001/,  SNOLIM/0.000/
+      DATA                              O3WJT0/0.001/
 C
-ceq   EQUIVALENCE (FSPARE(18),X0YBCI)
-ceq   EQUIVALENCE (FSPARE(19),X0YOCI)
-ceq   EQUIVALENCE (FSPARE(20),X0YSUI)
       DATA              X0YBCI/0.001/,  X0YOCI/0.001/,  X0YSUI/0.001/
-C
-ceq   EQUIVALENCE (FSPARE(21),AVSCAT)
-ceq   EQUIVALENCE (FSPARE(22),ANSCAT)
-ceq   EQUIVALENCE (FSPARE(23),AVFOAM)
-ceq   EQUIVALENCE (FSPARE(24),ANFOAM)
-C
-      DATA AVSCAT/0.0156/, ANSCAT/0.0000/
-      DATA AVFOAM/0.2197/, ANFOAM/0.1514/
-C
-ceq                                      DIMENSION UVWAVL(3),UVFACT(3)
-ceq   EQUIVALENCE (FSPARE(25),UVWAVL(1))
-ceq   EQUIVALENCE (FSPARE(28),UVFACT(1))
 C
       DATA UVWAVL/0.0010,0.0020,0.0030/
       DATA UVFACT/1.0000,1.0000,1.0000/
-C
-ceq   EQUIVALENCE (FSPARE(31),PTOPTR)
 C
       DATA PTOPTR/150.0/
 C
@@ -10737,10 +10431,6 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
      4   .0,   .0,   .0,   .0,   .0,   .0,   .0, 1.00, 1.00,   .0,   .0,
      5   .0,   .0,   .0, 1.00,   .0,   .0,   .0,   .0,   .0,   .0, 1.00/
 C
-C
-ceq   DIMENSION PI0VIS(11)
-C
-ceq   EQUIVALENCE (FSPARE(41),PI0VIS(1))
 C
 C           1          2          3          4          5          6
 C         ACID1      SSALT      SLFT1      SLFT2      BSLT1      BSLT2
@@ -10810,10 +10500,6 @@ C       L=   1    2    3    4    5    6    7    8    9   10   11   12
      I     .00, .00, .00, .00, .00, .00, .25, .20, .20, .20, .10, .05,
      J     .30, .20, .20, .15, .10, .05, .00, .00, .00, .00, .00, .00/
 C
-ceq   DIMENSION VDFBCI(12),VDFOCI(12),VDFSUI(12),VDFDST(12)
-ceq   EQUIVALENCE (FSPARE( 81),VDFBCI(1)),(FSPARE(101),VDFOCI(1))
-ceq   EQUIVALENCE (FSPARE(121),VDFSUI(1)),(FSPARE(141),VDFDST(1))
-C
 C            Aerosol Vertical Profile (Optical Depth) Scaling Factors
 C            --------------------------------------------------------
 C     Layr  1    2    3    4    5    6    7    8    9    10   11   12
@@ -10847,9 +10533,6 @@ C     GAS  NUMBER   8           9        10        11         12
 C                 CCL3F1      CCL2F2     N2       CFC-Y      CFC-Z
      +         ,0.1666E-03, 0.3003E-03, 0.0,   0.0978D-03, 0.0010D-10/
 C
-ceq   DIMENSION PPMVK0(12)
-ceq   EQUIVALENCE (FSPARE(161),PPMVK0(1))
-C
 C     KTREND=0  Direct Set Default Values
 C     -----------------------------------
 C
@@ -10875,10 +10558,6 @@ C       IF(KLATZ0.GT.0) Then: Z0 depends on latitude, KGGVDF not used
 C     Pole-to-Pole latitudinal gradient (PPGRAD) is also superimposed
 C     ---------------------------------------------------------------
 C
-ceq   DIMENSION PPMVDF(12),PPGRAD(12)
-ceq   EQUIVALENCE (FSPARE(181),PPMVDF(1)),(FSPARE(201),PPGRAD(1))
-ceq   EQUIVALENCE (ISPARE( 9),KGGVDF),(ISPARE(10),KPGRAD)
-ceq   EQUIVALENCE (ISPARE(11),KLATZ0)
       DATA KGGVDF/0/, KPGRAD/1/, KLATZ0/1/
 C
 C     GAS  NUMBER  1     2    3    4    5       6         7
@@ -10918,13 +10597,9 @@ C              BCWTJD    (Multiplicative Weight for BC TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 C
-CCC   SAVE
       DIMENSION EYEAR(50),BCEHC(50),BCEBC(50),BCEDI(50),BCTOT(50)
 C
       DIMENSION BCE(5,45)
-ceq   DIMENSION BCE1(5,19),BCE2(5,19),BCE3(5, 7),BCE(5,45)
-ceq   EQUIVALENCE (BCE(1, 1),BCE1(1,1)),(BCE(1,20),BCE2(1,1))
-ceq   EQUIVALENCE (BCE(1,39),BCE3(1,1))
 C
       COMMON /BCTCOM/ EYEAR,BCEHC,BCEBC,BCEDI,BCTOT,BCE
 C
@@ -11066,13 +10741,9 @@ C              SUWTJD    (Multiplicative Weight for SU TAU-Map JDEC)
 C
 C-------------------------------------------------------------------
 C
-CCC   SAVE
       DIMENSION EYEAR(50),SUANT(50),SUNAT(50)
 C
       DIMENSION SUE(3,41)
-ceq   DIMENSION SUE1(3,19),SUE2(3,19),SUE3(3, 3),SUE(3,41)
-ceq   EQUIVALENCE (SUE(1, 1),SUE1(1,1)),(SUE(1,20),SUE2(1,1))
-ceq   EQUIVALENCE (SUE(1,39),SUE3(1,1))
 C
       COMMON /SCTCOM/ EYEAR,SUANT,SUNAT,SUE
 C
@@ -12856,26 +12527,6 @@ C
       DATA V5/0.1D0,0.2D0,0.3D0,0.4D0,0.5D0/
 C
 C*************************************************************
-C     SETSUR
-C*************************************************************
-C
-      COMMON /SSURCM/ SRFOAM,SEASON,JNORTH,NVEG
-C
-      DIMENSION SRFOAM(25)
-C
-      DATA SRFOAM/
-     +     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
-     +     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
-     +     0.138,0.164,0.191,0.218,0.246/
-C
-      DIMENSION SEASON(4)
-C                     1       2       3       4
-C                   WINTER  SPRING  SUMMER  AUTUMN
-      DATA SEASON/  15.00,  105.0,  196.0,  288.0/
-C
-      DATA JNORTH/0/
-C
-C*************************************************************
 C     SOLARM
 C*************************************************************
 C
@@ -12922,101 +12573,38 @@ c  into a separate module.
 c*********************************************************************
 
       SUBROUTINE SETSUR
-!@sum computes surface albedo
-!@ver 1.0
-!@auth Original develpment team
-      use RE001, only: MLAT46,ALBVNH,FSPARE,AGESN,BSNVIS,ASNVIS,BSNNIR
-     &     ,ASNNIR,ASNALB,EXPSNE,EXPSNO,EXPSNL,BXA,BGFEMD,BGFEMT,DTRUFG
-     &     ,COSZ,BOCVIS,AVSCAT,BOCNIR,ANSCAT,AVFOAM,ANFOAM,EOCTRA
-     &     ,AOCEAN,BEAVIS,BEANIR,BVSOIL,BNSOIL,BVVEGE,BNVEGE,AGSIDV
-     &     ,EDSTRA,HIN,FLAGS,FMP,BOIVIS,BOINIR,DMOICE,AOIVIS,AOINIR
-     &     ,AOIALB,ESNTRA,EICTRA,DMLICE,BLIVIS,ALIVIS,BLINIR,ALINIR
-     &     ,ALIALB,BVSURF,BNSURF,FTRUFG,NV,KVEGA6,V6ALB,ALBVND,JLAT
-     &     ,XSNVIS,XSNNIR,TRGALB,POCEAN,ZOCSRA,WMAG,XOCVIS,XOCNIR
-     &     ,TGO,ITPFT0,PLANCK,ITNEXT,PVT,PEARTH,SNOWE,WEARTH,WETSRA
-     &     ,SNOLIM,VTMASK,XEAVIS,XEANIR,XVSOIL,XNSOIL,XVVEGE,XNVEGE
-     &     ,TGE,WETTRA,POICE,HSN,HMP,XOIVIS,XOINIR,SNOWOI,TSL,TGOI
-     &     ,PLICE,SNOWLI,ILON,XLIVIS,XLINIR, TGLI, XVSURF
-     &     ,XNSURF,PRNB ,PRNX,KEEPAL,SRBALB,SRXALB,SNOW_FRAC
+!@sum SETSUR sets up surface albedo calculation
+!@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
+      use SURF_ALBEDO, only : jnorth
+      use RE001, only : mlat46
       implicit none
-      integer K,J,I,JYEARR,JJDAYR,KS1,KS2,KN1,KN2,L,LATHEM,IWM,JWM,
-     &     ITOC,ITEA,ITOI,ITLI
-      real*8 XJDAY,SEASN1,SEASN2,WT2,WT1,ASNAGE,FSNAGE,BOCSUM,BEASUM
-     &     ,BOISUM,BLISUM,AVSCUM,ANSCUM,WMJ,WMI,FRFOAM,AV,BV,WTOC,BOCM
-     &     ,BOCP,TRAPOC,BOCM1,BOCP1,BOC,DSFRAC,VGFRAC,SEAVIS,SEANIR
-     &     ,VTFRAC,WTEA,BEAM,BEAP,TRAPEA,BEAM1,BEAP1,BEA,WTOI,BOIM
-     &     ,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN,WTLI,BLIM,BLIP,BGF
-     &     ,TRAPLI,BLIM1,BLIP1,BLI
-      COMMON /SSURCM/ SRFOAM,SEASON,JNORTH,NVEG
-      integer JNORTH,NVEG
-C
-      real*8 BOCVN(6),BEAVN(6),BOIVN(6),BLIVN(6),BSNVN(6),BVNSUR(6)
-      real*8 XOCVN(6),XEAVN(6),XOIVN(6),XLIVN(6),XSNVN(6),XVNSUR(6)
-C
-CCC   DIMENSION SRFOAM(25),WMFOAM(25)
-      real*8 SRFOAM(25)
-C
-CCC   DATA SRFOAM/
-CCC  +     0.000,0.000,0.000,0.000,0.001,0.002,0.003,0.005,0.007,0.010,
-CCC  +     0.014,0.019,0.025,0.032,0.041,0.051,0.063,0.077,0.094,0.112,
-CCC  +     0.138,0.164,0.191,0.218,0.246/
-C
-CCC   DATA WMFOAM/
-CCC  +      1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00,10.00,
-CCC  +     11.00,12.00,13.00,14.00,15.00,16.00,17.00,18.00,19.00,20.00,
-CCC  +     21.00,22.00,23.00,24.00,25.00/
-C
-      real*8 SEASON(4)
-C                     1       2       3       4
-C                   WINTER  SPRING  SUMMER  AUTUMN
-CCC   DATA SEASON/  15.00,  105.0,  196.0,  288.0/
-C
-      REAL*8 almp(4),alsd(4),alsf(4),patchy,ali(4),albtf(4),albtr(4)
-     *     ,snfac(4)
-C
-C     -----------------------------------------------------------------
-C     Solar:     Ocean Albedo Dependence on Zenith Angle and Wind Speed
-C
-      real*8 BVH2O, XVH2O, WMAG1, X
-      BVH2O(WMAG1)=.0488D0+.0974D0/(5.679D0+WMAG1)+
-     &     .0004D0/(.3333D0+WMAG1)
-      XVH2O(WMAG1,X)=.021D0+X*X*(.0421D0+X*(.1283D0+X*(-.04D0+X*(3.117D0
-     +              /(5.679D0+WMAG1)+X*.025D0/(.3333D0+WMAG1)))))
-C     -----------------------------------------------------------------
-C
+C could this be replaced with a parameter statement?
       JNORTH=MLAT46/2
-CCC   AVSCUM=0.D0
-CCC   ANSCUM=0.D0
-C
-      NV=11
-      NVEG=9
-C
-      IF(KVEGA6.LE.0) THEN  ! go from 6 bands to 2 bands
-      DO 30 K=3,6
-      DO 20 J=1,4
-      DO 10 I=1,11
-      V6ALB(I,J,K)=V6ALB(I,J,2)
-   10 CONTINUE
-   20 CONTINUE
-   30 CONTINUE
-      ENDIF
 C
       RETURN
+      END SUBROUTINE SETSUR
+
+      SUBROUTINE UPDSUR(JYEARR,JJDAYR)
+!@sum UPDSUR updates variables for surface albedo once a day
+!@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
+      use SURF_ALBEDO, only : albvnh,albvnd,season,nv
+      implicit none
+!@var jyearr radiation year (not used for anything) 
+!@var jjdayr julian day (used for seasonality of veg albedo)
+      integer, intent(in) :: jyearr, jjdayr
+      integer K,KS1,KS2,KN1,KN2,L
+      real*8 XJDAY,SEASN1,SEASN2,WT2,WT1
 C
-C--------------------------------
-      ENTRY UPDSUR(JYEARR,JJDAYR)
-C--------------------------------
-C
-C                      Define Seasonal Albedo Dependence (ALVISD,ALNIRD)
-C                      -------------------------------------------------
+C                      Define Seasonal Albedo Dependence 
+C                      ---------------------------------
 C
       XJDAY=JJDAYR
       SEASN1=-77.0D0
-      DO 110 K=1,4
-      SEASN2=SEASON(K)
-      IF(XJDAY.LE.SEASN2) GO TO 120
-      SEASN1=SEASN2
-  110 CONTINUE
+      DO K=1,4
+        SEASN2=SEASON(K)
+        IF(XJDAY.LE.SEASN2) GO TO 120
+        SEASN1=SEASN2
+      END DO
       K=1
       SEASN2=380.0D0
   120 CONTINUE
@@ -13027,25 +12615,84 @@ C
       KN1=1+MOD(K+2,4)
       KN2=K
 
-
-      DO 130 K=1,11
-      DO 125 L=1,6
+      DO K=1,NV
+      DO L=1,6
 C     -------------------
 C     Southern Hemisphere
 C     -------------------
-      ALBVNH(K,L,1)=WT1*ALBVND(K,KS1,L)+WT2*ALBVND(K,KS2,L)
+        ALBVNH(K,L,1)=WT1*ALBVND(K,KS1,L)+WT2*ALBVND(K,KS2,L)
 C     -------------------
 C     Northern Hemisphere
 C     -------------------
-      ALBVNH(K,L,2)=WT1*ALBVND(K,KN1,L)+WT2*ALBVND(K,KN2,L)
-  125 CONTINUE
-  130 CONTINUE
+        ALBVNH(K,L,2)=WT1*ALBVND(K,KN1,L)+WT2*ALBVND(K,KN2,L)
+      END DO
+      END DO
       RETURN
+      END SUBROUTINE UPDSUR
+
+      SUBROUTINE GETSUR
+!@sum GETSUR computes surface albedo for each grid box
+!@auth A. Lacis/V. Oinas (modifications by I. Alienov/G. Schmidt)
+      use SURF_ALBEDO
+      use RE001, only: 
+C**** config data
+     *     MLAT46,KEEPAL,KVEGA6,
+C**** input from radiation 
+     *     COSZ,PLANCK,ITNEXT,ITPFT0,
+C**** input from driver
+     *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,
+     *     TGO,TGOI,TGE,TGLI,TSL,HIN,FLAGS,FMP,HSN,HMP,
+     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
+C**** output 
+     *     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,BGFEMD,BGFEMT,
+     *     DTRUFG,FTRUFG
+      implicit none
+      integer K,J,I,L,LATHEM,IWM,JWM,ITOC,ITEA,ITOI,ITLI
+      real*8 ASNAGE,FSNAGE,BOCSUM,BEASUM,BOISUM,BLISUM,AVSCUM,ANSCUM,WMJ
+     *     ,WMI,FRFOAM,AV,BV,WTOC,BOCM,BOCP,TRAPOC,BOCM1,BOCP1,BOC
+     *     ,DSFRAC,VGFRAC,SEAVIS,SEANIR,VTFRAC,WTEA,BEAM,BEAP,TRAPEA
+     *     ,BEAM1,BEAP1,BEA,WTOI,BOIM,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN
+     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI
+
+C**** local variables for albedos for each surface type
+      real*8 BOCVIS,BEAVIS,BOIVIS,BLIVIS,BOCNIR,BEANIR,BOINIR,BLINIR,
+     +       XOCVIS,XEAVIS,XOIVIS,XLIVIS,XOCNIR,XEANIR,XOINIR,XLINIR,
+     +       EXPSNE,EXPSNO,EXPSNL,BSNVIS,BSNNIR,XSNVIS,XSNNIR,
+     +       BVSOIL,BNSOIL,BVVEGE,BNVEGE,XVSOIL,XNSOIL,XVVEGE,XNVEGE,
+     +       BVSURF,BNSURF,XVSURF,XNSURF
+
+C**** arrays needed if 6 band albedo is used
+      real*8, dimension(6) :: BOCVN,BEAVN,BOIVN,BLIVN,BSNVN,BVNSUR,
+     *                        XOCVN,XEAVN,XOIVN,XLIVN,XSNVN,XVNSUR
+
+C**** Equilvalence 2 band variables to 6 band array for easier passing
+      EQUIVALENCE 
+     *     (BOCVN(1),BOCVIS),(BOCVN(2),BOCNIR),
+     *     (BEAVN(1),BEAVIS),(BEAVN(2),BEANIR),
+     *     (BOIVN(1),BOIVIS),(BOIVN(2),BOINIR),
+     *     (BLIVN(1),BLIVIS),(BLIVN(2),BLINIR),
+     *     (BSNVN(1),BSNVIS),(BSNVN(2),BSNNIR),
+     *     (XOCVN(1),XOCVIS),(XOCVN(2),XOCNIR),
+     *     (XEAVN(1),XEAVIS),(XEAVN(2),XEANIR),
+     *     (XOIVN(1),XOIVIS),(XOIVN(2),XOINIR),
+     *     (XLIVN(1),XLIVIS),(XLIVN(2),XLINIR),
+     *     (XSNVN(1),XSNVIS),(XSNVN(2),XSNNIR),
+     *     (BVNSUR(1),BVSURF),(BVNSUR(2),BNSURF),
+     *     (XVNSUR(1),XVSURF),(XVNSUR(2),XNSURF),
+      
+C**** variables used for sea ice albedo calculation (for 4 bands)
+      real*8, dimension(4) :: almp,alsd,alsf,ali,albtf,albtr
+      real*8 :: patchy,snagfac
+
+C     -----------------------------------------------------------------
+C     Ocean Albedo Dependence on Zenith Angle and Wind Speed
 C
-C
-C-----------------
-      ENTRY GETSUR
-C-----------------
+      real*8 BVH2O, XVH2O, WMAG1, X
+      BVH2O(WMAG1)=.0488D0+.0974D0/(5.679D0+WMAG1)+
+     &     .0004D0/(.3333D0+WMAG1)
+      XVH2O(WMAG1,X)=.021D0+X*X*(.0421D0+X*(.1283D0+X*(-.04D0+X*(3.117D0
+     +              /(5.679D0+WMAG1)+X*.025D0/(.3333D0+WMAG1)))))
+C     -----------------------------------------------------------------
 C
 C-----------------------------------------------------------------------
 C     Select albedo computations and fixups using KVEGA6
@@ -13057,15 +12704,6 @@ C     KVEGA6= 1  6-band albedo - no 'fixups'
 C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
 C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
 C
-C                     Define Vegetation Fractions for ILON,JLAT grid box
-C                     --------------------------------------------------
-C
-CF    IF(MADSUR.GE.0) THEN
-CF    DO 200 K=1,11
-CF    PVT(K)=FVEG11(ILON,JLAT,K)
-CF200 CONTINUE
-CF    ENDIF
-C
 C           Get Albedo, Thermal Flux, Flux Derivative for each Surf Type
 C           ------------------------------------------------------------
 C
@@ -13075,7 +12713,6 @@ C
 C                                              -------------------------
 C                                              Snow Albedo Specification
 C                                              -------------------------
-      fspare(52:59)=0. ! for writer only : soil albedos
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
       BSNVIS=ASNVIS+ASNAGE
       BSNNIR=ASNNIR+ASNAGE
@@ -13083,49 +12720,45 @@ C                                              -------------------------
       XSNNIR=BSNNIR
       BSNVN(1)=BSNVIS
       XSNVN(1)=XSNVIS
-      DO 201 L=2,6
-      BSNVN(L)=BSNNIR
-      XSNVN(L)=XSNNIR
-  201 CONTINUE
+      DO L=2,6
+        BSNVN(L)=BSNNIR
+        XSNVN(L)=XSNNIR
+      END DO
       IF(KVEGA6.GT.0) THEN
-      DO 202 L=1,6
-      FSNAGE=1.D0
-      IF(L.GT.2) FSNAGE=2.0D0/L
-      BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-      XSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-  202 CONTINUE
+        DO L=1,6
+          FSNAGE=1.D0
+          IF(L.GT.2) FSNAGE=2.0D0/L
+          BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+          XSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+        END DO
       ENDIF
 C
-      EXPSNE=1.D0
-      EXPSNO=1.D0
-      EXPSNL=1.D0
+      EXPSNE=1.D0 ; EXPSNO=1.D0 ;  EXPSNL=1.D0
 C
-      DO 205 I=1,16
-      BXA(I)=0.D0
-  205 CONTINUE
-C
-      DO 210 K=1,33
-      TRGALB(K)=0.D0
-      BGFEMD(K)=0.D0
-      BGFEMT(K)=0.D0
-  210 CONTINUE
+      DO K=1,NKBAND
+        TRGALB(K)=0.D0
+        BGFEMD(K)=0.D0
+        BGFEMT(K)=0.D0
+      END DO
 C
       BOCSUM=0.D0
       BEASUM=0.D0
       BOISUM=0.D0
       BLISUM=0.D0
-      DO 220 K=1,4
-      DTRUFG(K)=0.D0
-  220 CONTINUE
+      DO K=1,4
+        DTRUFG(K)=0.D0
+      END DO
 C
       AVSCUM=0.D0
       ANSCUM=0.D0
+C
+      BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
+      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
+C
 C                                             --------------------------
 C                                             Ocean Albedo Specification
 C                                             --------------------------
 C
-      BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
-      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
       IF(POCEAN.LT.1.D-04) GO TO 400
       X=0.5D0+(0.5D0-COSZ)*ZOCSRA
       BOCVIS=BVH2O(WMAG)  +AVSCAT+AVSCUM
@@ -13148,10 +12781,10 @@ C
       IF(KVEGA6.GT.0) THEN
       BOCVN(1)=BOCVIS
       XOCVN(1)=XOCVIS
-      DO 301 L=2,6
-      BOCVN(L)=BOCNIR
-      XOCVN(L)=XOCNIR
-  301 CONTINUE
+      DO L=2,6
+        BOCVN(L)=BOCNIR
+        XOCVN(L)=XOCNIR
+      END DO
       ENDIF
 C
       X=1.D0/(1.D0+WMAG)
@@ -13166,23 +12799,23 @@ C
       BOCM=0.D0
       BOCP=0.D0
 C
-      DO 310 K=1,33
-      TRAPOC=AV+BV*AOCEAN(K)
-      BOCM1 =(PLANCK(ITOC-1)-(PLANCK(ITOC-1)-PLANCK(ITOC  ))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCM  =BOCM+BOCM1
-      BOCP1 =(PLANCK(ITOC+1)-(PLANCK(ITOC+1)-PLANCK(ITOC+2))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCP  =BOCP+BOCP1
-      BOC   =(PLANCK(ITOC  )-(PLANCK(ITOC  )-PLANCK(ITOC+1))*WTOC)
-     +      *(1.D0-TRAPOC)
-      BOCSUM=BOCSUM+BOC
-      ITOC=ITOC+ITNEXT
+      DO K=1,NKBAND
+        TRAPOC=AV+BV*AOCEAN(K)
+        BOCM1 =(PLANCK(ITOC-1)-(PLANCK(ITOC-1)-PLANCK(ITOC  ))*WTOC)
+     +       *(1.D0-TRAPOC)
+        BOCM  =BOCM+BOCM1
+        BOCP1 =(PLANCK(ITOC+1)-(PLANCK(ITOC+1)-PLANCK(ITOC+2))*WTOC)
+     +       *(1.D0-TRAPOC)
+        BOCP  =BOCP+BOCP1
+        BOC   =(PLANCK(ITOC  )-(PLANCK(ITOC  )-PLANCK(ITOC+1))*WTOC)
+     +       *(1.D0-TRAPOC)
+        BOCSUM=BOCSUM+BOC
+        ITOC=ITOC+ITNEXT
 C
-      TRGALB(K)=TRGALB(K)+POCEAN*TRAPOC
-      BGFEMD(K)=BGFEMD(K)+POCEAN*(BOCP1-BOCM1)
-      BGFEMT(K)=BGFEMT(K)+POCEAN*BOC
-  310 CONTINUE
+        TRGALB(K)=TRGALB(K)+POCEAN*TRAPOC
+        BGFEMD(K)=BGFEMD(K)+POCEAN*(BOCP1-BOCM1)
+        BGFEMT(K)=BGFEMT(K)+POCEAN*BOC
+      END DO
       DTRUFG(1)=0.5D0*(BOCP-BOCM)
 C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
@@ -13198,38 +12831,37 @@ c**** obtained using the vegetation masking.
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
       IF(PEARTH.LT.1.D-04) GO TO 500
-      IF(SNOWE .GT.1.D-04) GO TO 420
-      BEAVIS=PVT(1)*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BEANIR=PVT(1)*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BVSOIL=BEAVIS
-      BNSOIL=BEANIR
-      DO 410 K=2,NVEG
-      BEAVIS=BEAVIS+PVT(K)*ALBVNH(K,1,LATHEM)
-      BEANIR=BEANIR+PVT(K)*ALBVNH(K,2,LATHEM)
-  410 CONTINUE
-      SEAVIS=BEAVIS
-      SEANIR=BEANIR
-      BVVEGE=BVSOIL
-      BNVEGE=BNSOIL
-      IF(VGFRAC.GT.0.001D0) THEN
-      BVVEGE=(BEAVIS-BVSOIL*DSFRAC)/VGFRAC
-      BNVEGE=(BEANIR-BNSOIL*DSFRAC)/VGFRAC
-      ENDIF
-      GO TO 440
-  420 CONTINUE
-      VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
-      EXPSNE=VTFRAC +
-     &      PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
-      DSFRAC=EXPSNE
-      BEAVIS=VTFRAC*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      BEANIR=VTFRAC*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-      DO 430 K=2,NVEG
-      VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
-      BEAVIS=BEAVIS+VTFRAC*ALBVNH(K,1,LATHEM)
-      BEANIR=BEANIR+VTFRAC*ALBVNH(K,2,LATHEM)
-      EXPSNE=EXPSNE+VTFRAC
-  430 CONTINUE
-  440 CONTINUE
+      IF(SNOWE .LE.1.D-04) THEN
+        BEAVIS=PVT(1)*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        BEANIR=PVT(1)*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        BVSOIL=BEAVIS
+        BNSOIL=BEANIR
+        DO K=2,NVEG
+          BEAVIS=BEAVIS+PVT(K)*ALBVNH(K,1,LATHEM)
+          BEANIR=BEANIR+PVT(K)*ALBVNH(K,2,LATHEM)
+        END DO
+        SEAVIS=BEAVIS
+        SEANIR=BEANIR
+        BVVEGE=BVSOIL
+        BNVEGE=BNSOIL
+        IF(VGFRAC.GT.0.001D0) THEN
+          BVVEGE=(BEAVIS-BVSOIL*DSFRAC)/VGFRAC
+          BNVEGE=(BEANIR-BNSOIL*DSFRAC)/VGFRAC
+        ENDIF
+      ELSE
+        VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
+        EXPSNE=VTFRAC +
+     &       PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
+        DSFRAC=EXPSNE
+        BEAVIS=VTFRAC*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        BEANIR=VTFRAC*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        DO K=2,NVEG
+          VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
+          BEAVIS=BEAVIS+VTFRAC*ALBVNH(K,1,LATHEM)
+          BEANIR=BEANIR+VTFRAC*ALBVNH(K,2,LATHEM)
+          EXPSNE=EXPSNE+VTFRAC
+        END DO
+      END IF
       XEAVIS=BEAVIS
       XEANIR=BEANIR
       BEAVIS=BEAVIS+BSNVIS*(1.D0-EXPSNE)
@@ -13246,49 +12878,48 @@ C
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
       IF(PEARTH.LT.1.D-04) GO TO 500
-      IF(SNOWE .GT.1.D-04) GO TO 442
-      DO 431 L=1,6
-      BEAVN(L)=PVT(1)*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-  431 CONTINUE
-      BVSOIL=BEAVN(1)
-      BNSOIL=BEAVN(2)
-      DO 441 K=2,NVEG
-      DO 432 L=1,6
-      BEAVN(L)=BEAVN(L)+PVT(K)*ALBVNH(K,L,LATHEM)
-  432 CONTINUE
-  441 CONTINUE
-      SEAVIS=BEAVN(1)
-      SEANIR=BEAVN(2)
-      BVVEGE=BVSOIL
-      BNVEGE=BNSOIL
-      IF(VGFRAC.GT.0.001D0) THEN
-      BVVEGE=(BEAVN(1)-BVSOIL*DSFRAC)/VGFRAC
-      BNVEGE=(BEAVN(2)-BNSOIL*DSFRAC)/VGFRAC
-      ENDIF
-      GO TO 444
-  442 CONTINUE
-      VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
-      EXPSNE=VTFRAC +
-     &     PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
-      DSFRAC=EXPSNE
-      DO 433 L=1,6
-      BEAVN(L)=VTFRAC*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
-  433 CONTINUE
-      DO 443 K=2,NVEG
-      VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
-      DO 434 L=1,6
-      BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,LATHEM)
-  434 CONTINUE
-      EXPSNE=EXPSNE+VTFRAC
-  443 CONTINUE
-  444 CONTINUE
-      DO 435 L=1,6
-      XEAVN(L)=BEAVN(L)
-  435 CONTINUE
-      DO 436 L=1,6
-      BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
-      XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
-  436 CONTINUE
+      IF(SNOWE .LE.1.D-04) THEN
+        DO L=1,6
+          BEAVN(L)=PVT(1)*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        END DO
+        BVSOIL=BEAVN(1)
+        BNSOIL=BEAVN(2)
+        DO K=2,NVEG
+          DO L=1,6
+            BEAVN(L)=BEAVN(L)+PVT(K)*ALBVNH(K,L,LATHEM)
+          END DO
+        END DO
+        SEAVIS=BEAVN(1)
+        SEANIR=BEAVN(2)
+        BVVEGE=BVSOIL
+        BNVEGE=BNSOIL
+        IF(VGFRAC.GT.0.001D0) THEN
+          BVVEGE=(BEAVN(1)-BVSOIL*DSFRAC)/VGFRAC
+          BNVEGE=(BEAVN(2)-BNSOIL*DSFRAC)/VGFRAC
+        ENDIF
+      ELSE
+        VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
+        EXPSNE=VTFRAC +
+     &       PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
+        DSFRAC=EXPSNE
+        DO L=1,6
+          BEAVN(L)=VTFRAC*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
+        END DO
+        DO K=2,NVEG
+          VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
+          DO L=1,6
+            BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,LATHEM)
+          END DO
+          EXPSNE=EXPSNE+VTFRAC
+        END DO
+      END IF
+      DO L=1,6
+        XEAVN(L)=BEAVN(L)
+      END DO
+      DO L=1,6
+        BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
+        XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
+      END DO
       VGFRAC=EXPSNE-DSFRAC
       XVSOIL=BVSOIL
       XNSOIL=BNSOIL
@@ -13303,25 +12934,25 @@ C
       BEAM=0.D0
       BEAP=0.D0
 C
-      DO 450 K=1,33
-      TRAPEA=AGSIDV(K,1)*(1.D0-EXPSNE)
-     +      +AGSIDV(K,3)*DSFRAC*EDSTRA*(1.D0-WETTRA*WEARTH)
-     +      +AGSIDV(K,4)*VGFRAC
-      BEAM1 =(PLANCK(ITEA-1)-(PLANCK(ITEA-1)-PLANCK(ITEA  ))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEAM  =BEAM+BEAM1
-      BEAP1 =(PLANCK(ITEA+1)-(PLANCK(ITEA+1)-PLANCK(ITEA+2))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEAP  =BEAP+BEAP1
-      BEA   =(PLANCK(ITEA  )-(PLANCK(ITEA  )-PLANCK(ITEA+1))*WTEA)
-     +      *(1.D0-TRAPEA)
-      BEASUM=BEASUM+BEA
-      ITEA=ITEA+ITNEXT
+      DO K=1,NKBAND
+        TRAPEA=AGSIDV(K,1)*(1.D0-EXPSNE)
+     +        +AGSIDV(K,3)*DSFRAC*EDSTRA*(1.D0-WETTRA*WEARTH)
+     +        +AGSIDV(K,4)*VGFRAC
+        BEAM1 =(PLANCK(ITEA-1)-(PLANCK(ITEA-1)-PLANCK(ITEA  ))*WTEA)
+     +       *(1.D0-TRAPEA)
+        BEAM  =BEAM+BEAM1
+        BEAP1 =(PLANCK(ITEA+1)-(PLANCK(ITEA+1)-PLANCK(ITEA+2))*WTEA)
+     +       *(1.D0-TRAPEA)
+        BEAP  =BEAP+BEAP1
+        BEA   =(PLANCK(ITEA  )-(PLANCK(ITEA  )-PLANCK(ITEA+1))*WTEA)
+     +       *(1.D0-TRAPEA)
+        BEASUM=BEASUM+BEA
+        ITEA=ITEA+ITNEXT
 C
-      TRGALB(K)=TRGALB(K)+PEARTH*TRAPEA
-      BGFEMD(K)=BGFEMD(K)+PEARTH*(BEAP1-BEAM1)
-      BGFEMT(K)=BGFEMT(K)+PEARTH*BEA
-  450 CONTINUE
+        TRGALB(K)=TRGALB(K)+PEARTH*TRAPEA
+        BGFEMD(K)=BGFEMD(K)+PEARTH*(BEAP1-BEAM1)
+        BGFEMT(K)=BGFEMT(K)+PEARTH*BEA
+      END DO
       DTRUFG(2)=0.5D0*(BEAP-BEAM)
 C
 C                                         ------------------------------
@@ -13373,14 +13004,25 @@ C**** Snow:
             alsd(2)=.902d0-.116d0*cosz
             alsd(3)=.384d0-.222d0*cosz
             alsd(4)=.053d0-.0047d0*cosz
-C**** consider snow age for dry snow (not yet fully tested)
-cC**** As dry snow ages it moves towards wet snow value (Who knows?)
-c            snfac(1)=.104d0 ; snfac(2)=.130d0
-c            snfac(3)=.171d0 ; snfac(4)=.024d0
-c            ASNAGE=EXP(-0.2D0*AGESN(2))-1.
-c            alsf(1:4)=alsf(1:4)+snfac(1:4)*ASNAGE
-c            alsd(1:4)=alsd(1:4)+snfac(1:4)*ASNAGE
           endif
+C**** consider snow aging based on Loth and Graf (1998)
+C****  Dry, Wet(thick), Wet(thin) snow decreases by 
+C**** 0.006,  0.015 and 0.071 per day, respectively (for mean)
+C**** assume decrease for each band is proportional
+          if (flags) then
+            if (hsn.gt.0.25) then
+              snagfac = 0.015d0/0.7d0
+            else
+              snagfac = 0.071d0/0.7d0
+            end if
+          else
+            snagfac = 0.006d0/0.82d0
+          end if
+C**** make sure it doesn't get too low!
+          snagfac=min(0.5d0,snagfac*AGESN(2))
+c          alsf(1:4)=alsf(1:4)*(1.-snagfac)
+c          alsd(1:4)=alsd(1:4)*(1.-snagfac)
+C****
           albtf(1:4)=albtf(1:4)*(1.-patchy)+alsf(1:4)*patchy
           albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
         endif
@@ -13431,23 +13073,23 @@ C**** original version
 c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
 c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
       if (kvega6.lt.-2) then
-         IF(TSL.GT.273.16) THEN
-            BOIVIS=.3                                     !   Ts > 10C
-            BOINIR=.15
-            IF(TSL.LT.283.16) THEN
-               BOIVIS=AOIVIS-(TSL-273.16)*.1*(AOIVIS-.30) !   0<Ts<10C
-               BOINIR=AOINIR-(TSL-273.16)*.1*(AOINIR-.15)
-            END IF
-         END IF
+        IF(TSL.GT.273.16d0) THEN
+          BOIVIS=.3d0           !   Ts > 10C
+          BOINIR=.15d0
+          IF(TSL.LT.283.16d0) THEN
+            BOIVIS=AOIVIS-(TSL-273.16d0)*.1d0*(AOIVIS-.30d0) !   0<Ts<10C
+            BOINIR=AOINIR-(TSL-273.16d0)*.1d0*(AOINIR-.15d0)
+          END IF
+        END IF
       end if
 c**** End of puddling section
       XOIVIS=BOIVIS
       XOINIR=BOINIR
       IF(KVEGA6.GT.0) THEN
-      DO 501 L=1,6
-      BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
-      XOIVN(L)=BOIVN(L)
-  501 CONTINUE
+      DO L=1,6
+        BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
+        XOIVN(L)=BOIVN(L)
+      END DO
       ENDIF
       ENDIF                     ! end of pre-Schramm version
 C
@@ -13458,24 +13100,24 @@ C
       BOIM=0.D0
       BOIP=0.D0
 C
-      DO 510 K=1,33
-      TRAPOI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNO)
-     +      +AGSIDV(K,2)*EICTRA*EXPSNO
-      BOIM1 =(PLANCK(ITOI-1)-(PLANCK(ITOI-1)-PLANCK(ITOI  ))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOIM  =BOIM+BOIM1
-      BOIP1 =(PLANCK(ITOI+1)-(PLANCK(ITOI+1)-PLANCK(ITOI+2))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOIP  =BOIP+BOIP1
-      BOI   =(PLANCK(ITOI  )-(PLANCK(ITOI  )-PLANCK(ITOI+1))*WTOI)
-     +      *(1.D0-TRAPOI)
-      BOISUM=BOISUM+BOI
-      ITOI=ITOI+ITNEXT
+      DO K=1,NKBAND
+        TRAPOI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNO)
+     +        +AGSIDV(K,2)*EICTRA*EXPSNO
+        BOIM1 =(PLANCK(ITOI-1)-(PLANCK(ITOI-1)-PLANCK(ITOI  ))*WTOI)
+     +       *(1.D0-TRAPOI)
+        BOIM  =BOIM+BOIM1
+        BOIP1 =(PLANCK(ITOI+1)-(PLANCK(ITOI+1)-PLANCK(ITOI+2))*WTOI)
+     +       *(1.D0-TRAPOI)
+        BOIP  =BOIP+BOIP1
+        BOI   =(PLANCK(ITOI  )-(PLANCK(ITOI  )-PLANCK(ITOI+1))*WTOI)
+     +       *(1.D0-TRAPOI)
+        BOISUM=BOISUM+BOI
+        ITOI=ITOI+ITNEXT
 C
-      TRGALB(K)=TRGALB(K)+POICE*TRAPOI
-      BGFEMD(K)=BGFEMD(K)+POICE*(BOIP1-BOIM1)
-      BGFEMT(K)=BGFEMT(K)+POICE*BOI
-  510 CONTINUE
+        TRGALB(K)=TRGALB(K)+POICE*TRAPOI
+        BGFEMD(K)=BGFEMD(K)+POICE*(BOIP1-BOIM1)
+        BGFEMT(K)=BGFEMT(K)+POICE*BOI
+      END DO
       DTRUFG(3)=0.5D0*(BOIP-BOIM)
 C                                          -----------------------------
 C                                          Land Ice Albedo Specification
@@ -13495,19 +13137,19 @@ C****
       if (kvega6.ne.-1) then
       IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-         AMEAN=.8
-         BLIVIS=.95
-         BLINIR=(AMEAN-.57*BLIVIS)/.43
+        AMEAN=.8
+        BLIVIS=.95
+        BLINIR=(AMEAN-.57*BLIVIS)/.43
       END IF
       end if
 C****
       XLIVIS=BLIVIS
       XLINIR=BLINIR
       IF(KVEGA6.GT.0) THEN                             ! 6-band
-      DO 601 L=1,6
-      BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
-      XLIVN(L)=BLIVN(L)
-  601 CONTINUE
+      DO L=1,6
+        BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
+        XLIVN(L)=BLIVN(L)
+      END DO
 C****
 C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
 C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
@@ -13532,97 +13174,83 @@ C
       BLIM=0.D0
       BLIP=0.D0
       BGF=0.D0
-      DO 610 K=1,33
-      TRAPLI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNL)
-     +      +AGSIDV(K,2)*EICTRA*EXPSNL
-      BLIM1 =(PLANCK(ITLI-1)-(PLANCK(ITLI-1)-PLANCK(ITLI  ))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLIM  =BLIM+BLIM1
-      BLIP1 =(PLANCK(ITLI+1)-(PLANCK(ITLI+1)-PLANCK(ITLI+2))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLIP  =BLIP+BLIP1
-      BLI   =(PLANCK(ITLI  )-(PLANCK(ITLI  )-PLANCK(ITLI+1))*WTLI)
-     +      *(1.D0-TRAPLI)
-      BLISUM=BLISUM+BLI
-      ITLI=ITLI+ITNEXT
-      TRGALB(K)=TRGALB(K)+PLICE*TRAPLI
-      BGFEMD(K)=BGFEMD(K)+PLICE*(BLIP1-BLIM1)
-      BGFEMT(K)=BGFEMT(K)+PLICE*BLI
-  610 CONTINUE
+      DO K=1,NKBAND
+        TRAPLI=AGSIDV(K,1)*ESNTRA*(1.-EXPSNL)
+     +        +AGSIDV(K,2)*EICTRA*EXPSNL
+        BLIM1 =(PLANCK(ITLI-1)-(PLANCK(ITLI-1)-PLANCK(ITLI  ))*WTLI)
+     +       *(1.D0-TRAPLI)
+        BLIM  =BLIM+BLIM1
+        BLIP1 =(PLANCK(ITLI+1)-(PLANCK(ITLI+1)-PLANCK(ITLI+2))*WTLI)
+     +       *(1.D0-TRAPLI)
+        BLIP  =BLIP+BLIP1
+        BLI   =(PLANCK(ITLI  )-(PLANCK(ITLI  )-PLANCK(ITLI+1))*WTLI)
+     +       *(1.D0-TRAPLI)
+        BLISUM=BLISUM+BLI
+        ITLI=ITLI+ITNEXT
+        TRGALB(K)=TRGALB(K)+PLICE*TRAPLI
+        BGFEMD(K)=BGFEMD(K)+PLICE*(BLIP1-BLIM1)
+        BGFEMT(K)=BGFEMT(K)+PLICE*BLI
+      END DO
       DTRUFG(4)=0.5D0*(BLIP-BLIM)
   700 CONTINUE
-C
+
+C**** if 2-band, fill in rest of 6-band arrays
       IF(KVEGA6.LT.1) THEN                                      ! 2-band
-      BVSURF= POCEAN*BOCVIS +PEARTH*BEAVIS +POICE*BOIVIS +PLICE*BLIVIS
-      XVSURF= POCEAN*XOCVIS +PEARTH*XEAVIS +POICE*XOIVIS +PLICE*XLIVIS
-      BNSURF= POCEAN*BOCNIR +PEARTH*BEANIR +POICE*BOINIR +PLICE*BLINIR
-      XNSURF= POCEAN*XOCNIR +PEARTH*XEANIR +POICE*XOINIR +PLICE*XLINIR
-C
-      K=1
-      DO 710 I=1,4
-      PRNB(6,I)=BXA(K)
-      PRNX(6,I)=BXA(K+2)
-      K=K+4
-  710 CONTINUE
-      K=2
-      DO 730 I=1,4
-      DO 720 J=1,5
-      PRNB(J,I)=BXA(K)
-      PRNX(J,I)=BXA(K+2)
-  720 CONTINUE
-      K=K+4
-  730 CONTINUE
-C
-      IF(KEEPAL.EQ.1) GO TO 800
-      SRBALB(6)=BVSURF
-      SRXALB(6)=XVSURF
-      DO 740 J=1,5
-      SRBALB(J)=BNSURF
-      SRXALB(J)=XNSURF
-  740 CONTINUE
-C
-      ELSE                                                      ! 6-band
-      DO 750 L=1,6
-      BVNSUR(L)=POCEAN*BOCVN(L)+PEARTH*BEAVN(L)
-     +         + POICE*BOIVN(L)+ PLICE*BLIVN(L)
-      XVNSUR(L)=POCEAN*XOCVN(L)+PEARTH*XEAVN(L)
-     +         + POICE*XOIVN(L)+ PLICE*XLIVN(L)
-  750 CONTINUE
-      DO 760 L=1,6
-      J=7-L
-      PRNB(J,1)=BOCVN(L)
-      PRNB(J,2)=BEAVN(L)
-      PRNB(J,3)=BOIVN(L)
-      PRNB(J,4)=BLIVN(L)
-      PRNX(J,1)=XOCVN(L)
-      PRNX(J,2)=XEAVN(L)
-      PRNX(J,3)=XOIVN(L)
-      PRNX(J,4)=XLIVN(L)
-  760 CONTINUE
-      IF(KEEPAL.EQ.1) GO TO 800
-      DO 770 J=1,6
-      L=7-J
-      SRBALB(J)=BVNSUR(L)
-      SRXALB(J)=XVNSUR(L)
-  770 CONTINUE
-      ENDIF                                                 ! end 6-band
+        DO L=3,6
+          BOCVN(L)=BOCVN(2)
+          BEAVN(L)=BEAVN(2)
+          BOIVN(L)=BOIVN(2)
+          BLIVN(L)=BLIVN(2)
+          XOCVN(L)=XOCVN(2)
+          XEAVN(L)=XEAVN(2)
+          XOIVN(L)=XOIVN(2)
+          XLIVN(L)=XLIVN(2)
+        END DO
+      END IF
+C**** write some BXA for diagnostic output (in WRITER) (replaces equivalence)
+      BXA(1)=EXPSNE ; BXA(2)=EXPSNO ; BXA(3)=EXPSNL
+      BXA(4)=BSNVIS ; BXA(5)=BSNNIR ; BXA(6)=XSNVIS ; BXA(7)=XSNNIR
+
+C**** calculate final variables always over 6-bands
+      DO L=1,6
+        BVNSUR(L)=POCEAN*BOCVN(L)+PEARTH*BEAVN(L)
+     +           + POICE*BOIVN(L)+ PLICE*BLIVN(L)
+        XVNSUR(L)=POCEAN*XOCVN(L)+PEARTH*XEAVN(L)
+     +           + POICE*XOIVN(L)+ PLICE*XLIVN(L)
+      END DO
+      DO L=1,6
+        J=7-L
+        PRNB(J,1)=BOCVN(L)
+        PRNB(J,2)=BEAVN(L)
+        PRNB(J,3)=BOIVN(L)
+        PRNB(J,4)=BLIVN(L)
+        PRNX(J,1)=XOCVN(L)
+        PRNX(J,2)=XEAVN(L)
+        PRNX(J,3)=XOIVN(L)
+        PRNX(J,4)=XLIVN(L)
+      END DO
+      IF(KEEPAL.NE.1) THEN
+        DO J=1,6
+          L=7-J
+          SRBALB(J)=BVNSUR(L)
+          SRXALB(J)=XVNSUR(L)
+        END DO
+      ENDIF   
 C
 C                     --------------------------------------------------
 C                     Define each Surface Flux Factors, Flux Derivatives
 C                     --------------------------------------------------
-  800 CONTINUE
       BGF=0.D0
-      DO 810 K=1,33
-      BGFEMD(K)=BGFEMD(K)*0.5D0
-      BGF=BGF+BGFEMT(K)
-  810 CONTINUE
+      DO K=1,NKBAND
+        BGFEMD(K)=BGFEMD(K)*0.5D0
+        BGF=BGF+BGFEMT(K)
+      END DO
 C
-      !BGM=BOCM*POCEAN+BEAM*PEARTH+BOIM*POICE+BLIM*PLICE
-      !BGP=BOCP*POCEAN+BEAP*PEARTH+BOIP*POICE+BLIP*PLICE
-      !TTRUFG=0.5D0*(BGP-BGM)
       FTRUFG(1)=BOCSUM/BGF
       FTRUFG(2)=BEASUM/BGF
       FTRUFG(3)=BOISUM/BGF
       FTRUFG(4)=BLISUM/BGF
+C
       RETURN
-      END SUBROUTINE SETSUR
+      END SUBROUTINE GETSUR
+
