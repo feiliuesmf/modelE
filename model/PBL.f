@@ -122,18 +122,15 @@ CCC      real*8 :: bgrid
      3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
-#endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#if defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
+#if defined(TRACERS_DRYDEP)
      *     dep_vel,
 #endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_AEROSOLS_Koch)
+#if defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
+#endif
 #endif
      4     psurf,trhr0,ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,ilong,jlat,itype)

@@ -120,7 +120,7 @@ c****
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
      &     ,khs,ug,vg,wg,wint   ! ,kq=>kqs ,ppbl
       use pblcom, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
-      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean
+      use pbl_drv, only : pbl, evap_max,fr_sat,uocean,vocean,psurf,trhr0
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
@@ -148,7 +148,7 @@ c****
       real*8 totflux(ntm)
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: trsoil_tot,tevapw,tevapd,
-     *     tevapb,trruns,trrunu,trsoil_rat  ! trpr,
+     *     tevapb,trruns,trrunu,trsoil_rat 
       real*8, dimension(ntm,0:ngm,2) :: trw
       real*8, dimension(ntm,2) :: trsnowd
       real*8  tdp, tdt1, wsoil_tot, frac, tevap
@@ -228,20 +228,18 @@ c****
 
 !$OMP  PARALLEL DO PRIVATE
 !$OMP*  (ACE2AV, ELHX,EVAP,EVHDT, CDM,CDH,CDQ,
-!$OMP*   I,ITYPE, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
+!$OMP*   I,ITYPE,ibv, J, KR, MA1,PIJ,PSK,PEARTH,PSOIL,PS,P1K,PTYPE, QG,
 !$OMP*   QG_NSAT,QSATS, RHOSRF,RHOSRF0,RCDMWS,RCDHWS, SRHDT,SRHEAT,SHDT,
 !$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,TRHDT,TG2AV, WARMER,WFC1,WTR2AV,q1
 #if defined(TRACERS_ON)
 !$OMP*   ,n,nx,totflux,nsrc
-#endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#if defined(TRACERS_WATER)
 !$OMP*   ,trsoil_tot,tevapw,tevapd,tevapb,trruns,trrunu,
-!$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap,ibv
+!$OMP*   trsoil_rat,trw,trsnowd,tdp, tdt1, wsoil_tot,frac,tevap
 #endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
+#if defined(TRACERS_DRYDEP)
 !$OMP*   ,tdryd,tdd,td1
+#endif
 #endif
 !$OMP*   )
 !$OMP*   SCHEDULE(DYNAMIC,2)
@@ -352,6 +350,8 @@ c**** loop over ground time steps
       qg = qg_ij(i,j)
       ! if ( qg > 999.d0 ) qg = qg_sat
       tgv=tg*(1.+qg*deltx)
+      psurf=ps
+      trhr0 = TRHR(0,I,J)
       rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 C**** Obviously there are no ocean currents for earth points, but
 C**** variables set for consistency with surfce
@@ -405,6 +405,10 @@ cddd#endif
 C****
       do nx=1,ntx
         n=ntix(nx)
+C**** set defaults
+        trsfac(nx)=0.
+        totflux(nx)=0.
+        trconstflx(nx)=0.
 #ifdef TRACERS_WATER
 C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
@@ -423,13 +427,11 @@ C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
-          trsfac(nx)=0.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) trsfac(nx) = 1.
           !then multiplied by deposition velocity in PBL
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          totflux(nx)=0.
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do
@@ -456,7 +458,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
       end do
 #endif
-
+      
       call pbl(i,j,itype,ptype)
 c****
       cdm = cmgs(i,j,itype)

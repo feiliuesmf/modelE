@@ -166,6 +166,18 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
 #endif
 
       call loadbl
+
+#ifdef TRACERS_ON
+C**** Set up tracers for PBL calculation if required
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          ntix(nx) = n
+        end if
+      end do
+      ntx = nx
+#endif
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -182,14 +194,12 @@ C****
 !$OMP*  THV1,TG,TG1,TG2,TRHDT,TRHEAT,Z1BY6L
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,rhosrf0,totflux
-#endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#if defined(TRACERS_WATER)
 !$OMP*  ,tevaplim,tevap,trgrnd,TEV,dTEVdTQS,dTQS,TDP,TDT1,frac
 #endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
+#if defined(TRACERS_DRYDEP)
 !$OMP*  ,tdryd,tdd,td1
+#endif
 #endif
 !$OMP*  )
 !$OMP*  SCHEDULE(DYNAMIC,2)
@@ -227,16 +237,13 @@ c     PGK = (PS*100.)**KAPA
 c     PKDN = (GRAV*(MSUM-MA1*0.25))**KAPA
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
-      nx=0
-      do n=1,ntm
+      do nx=1,ntx
+        n=ntix(nx)
         if (itime_tr0(n).le.itime .and. needtrs(n)) then
-          nx=nx+1
-          ntix(nx) = n
 C**** Calculate first layer tracer concentration
           trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*bydxyp(j)
         end if
       end do
-      ntx = nx
 #endif
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          IF(MODDD.EQ.0) THEN
@@ -428,6 +435,10 @@ C****
 C**** Set up b.c. for tracer PBL calculation if required
       do nx=1,ntx
         n=ntix(nx)
+C**** set defaults
+        trsfac(nx)=0.
+        totflux(nx)=0.
+        trconstflx(nx)=0.
 C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
@@ -447,7 +458,6 @@ C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
 C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
 C**** is a non-soluble tracer mixed in.)
 C**** Calculate trsfac (set to zero for const flux)
-          trsfac(nx)=0.
           rhosrf0=100.*ps/(rgas*tgv) ! estimated surface density
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
@@ -461,7 +471,6 @@ C**** Calculate trsfac (set to zero for const flux)
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and dived by rho there.
-          totflux(nx)=0.
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
           end do

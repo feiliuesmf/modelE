@@ -39,7 +39,7 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_AEROSOLS_Koch
       real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
-      common /trspec/trtop,trs,trsfac,trconstflx,ntx,ntix
+      common /trspec/trtop,trs,trsfac,trconstflx
 #ifdef TRACERS_WATER
      *     ,tr_evap_max
 #endif
@@ -214,18 +214,15 @@ C        roughness lengths from Brutsaert for rough surfaces
      3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #if defined(TRACERS_ON)
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
-#endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#if defined(TRACERS_WATER)
      *     tr_evap_max,
 #endif
-!
-#if defined(TRACERS_ON) && defined(TRACERS_DRYDEP)
+#if defined(TRACERS_DRYDEP)
      *     dep_vel,
 #endif
-!
 #ifdef TRACERS_AEROSOLS_Koch
      *     DMS_flux,ss1_flux,ss2_flux,
+#endif
 #endif
      4     psurf,trhr0,ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,
      5     uocean,vocean,ts_guess,i,j,itype)
