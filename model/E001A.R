@@ -6,7 +6,7 @@ Object modules: (in order of decreasing priority)
 E001M12_COM SOMTQ_COM QUSDEF GEOM_B ! model modules
 GHYCOM const DAGCOM RADNCB          ! more model modules
 PBLCOM LAKES_COM FLUXES             ! more model modules
-ME001M12 QUSEM12 DYNE001            ! daily dyn,Filt adv/avrx (2d ord mom.)
+ME001M12 QUSEM12 DYNE001 DYNCOM     ! daily dyn,Filt adv/avrx (2d ord mom.)
 CLD01 CLD01_DRV_E001 CLD01_COM_E001 ! clouds modules
 PE001M12                            ! phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr

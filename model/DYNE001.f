@@ -1,65 +1,10 @@
-      MODULE DYNAMICS
-!@sum  DYNAMICS contains all the routines for calulating dynamics
-!@sum           related variables
-!@auth Original development team
-!@ver  1.0
-!@cont ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
-
-      USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
-     *     ,v,t,q,p,wm,mfiltr,zatmo,fim,mrch,modd5k,psfmpt,bydsig,byim
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
-     *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
-      USE SOMTQ_COM, only : tmom,qmom
-      USE PBLCOM, only : tsavg
-
-      USE GEOM
-      IMPLICIT NONE
-      SAVE
-C**** Some helpful arrays (arrays should be L first)
-!@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PLIJ
-!@var  PDSIG  Surface pressure * DSIG(L) (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PDSIG
-!@var  AM  Air mass of each box (kg/m^2)
-!      REAL*8, DIMENSION(LM,IM,JM) :: AM     ! PLIJ*DSIG(L)*100/grav
-!@var  BYAM  1/Air mass (m^2/kg)
-!      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
-!@var  PMID  Pressure at mid point of box (mb)
-      REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
-!@var  PK   PMID**KAPA
-      REAL*8, DIMENSION(LM,IM,JM) :: PK
-!@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN  ! SIGE(L)*PLIJ+PTOP
-!@var  PEK  PEUP**KAPA
-      REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
-!@var  SQRTP  square root of P (used in diagnostics)
-      REAL*8, DIMENSION(IM,JM) :: SQRTP
-
-C**** module should own dynam variables used by other routines
-!@var PTOLD pressure at beginning of dynamic time step (for clouds)
-      REAL*8, DIMENSION(IM,JM)    :: PTOLD
-!@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
-      REAL*8, DIMENSION(IM,JM,LM) :: SD_CLOUDS
-!@var GZ geopotential height (for Clouds and Diagnostics)
-      REAL*8, DIMENSION(IM,JM,LM) :: GZ
-!@var DPDX,DPDY surface pressure gradients (for PBL)
-c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
-
-
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PU,PV,CONV
-      DOUBLE PRECISION, DIMENSION(IM,JM,LM-1) :: SD
-      DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
-      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
-      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
-
-      CONTAINS
-
       SUBROUTINE AFLUX (U,V,PA)
 C****
-C**** THIS SUBROUTINE CALCULATES THE HORIZONTAL AIR MASS FLUXES
+C**** CALCULATE THE HORIZONTAL AIR MASS FLUXES
 C**** AND VERTICAL AIR MASS FLUXES AS DETERMINED BY U, V AND P.
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
+      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
       REAL*8 PHI,SPA
@@ -73,15 +18,9 @@ C****
 C**** BEGINNING OF LAYER LOOP
 C****
       L=LM
-      DO 70 J=1,JM
-      DO 70 I=1,IM
-   70 P(I,J)=PSFMPT
+      P(:,:)=PSFMPT
 C****
- 2150 IF(L.EQ.LS1-1) THEN
-      DO 80 J=1,JM
-      DO 80 I=1,IM
-   80 P(I,J)=PA(I,J)
-      ENDIF
+ 2150 IF(L.EQ.LS1-1) P(:,:)=PA(:,:)
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
 C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
@@ -92,17 +31,19 @@ C**** COMPUTE PU, THE WEST-EAST MASS FLUX, AT NON-POLAR POINTS
  2154 SPA(I,J,L)=U(I,J,L)+U(I,J+1,L)
       CALL AVRX (SPA(1,1,L))
       I=IM
-      DO 2166 IP1=1,IM
-      DO 2165 J=2,JM-1
- 2165 PU(I,J,L)=.25*DYP(J)*SPA(I,J,L)*(P(I,J)+P(IP1,J))*DSIG(L)
- 2166 I=IP1
+      DO 2166 J=2,JM-1
+      DO 2165 IP1=1,IM
+      PU(I,J,L)=.25*DYP(J)*SPA(I,J,L)*(P(I,J)+P(IP1,J))*DSIG(L)
+ 2165 I=IP1
+ 2166 CONTINUE
 C**** COMPUTE PV, THE SOUTH-NORTH MASS FLUX
       IM1=IM
-      DO 2172 I=1,IM
-      DO 2170 J=2,JM
- 2170 PV(I,J,L)=.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
+      DO 2172 J=2,JM
+      DO 2170 I=1,IM
+      PV(I,J,L)=.25*DXV(J)*(V(I,J,L)+V(IM1,J,L))*
      *   (P(I,J)+P(I,J-1))*DSIG(L)
- 2172 IM1=I
+ 2170 IM1=I
+ 2172 CONTINUE
 C**** COMPUTE PU*3 AT THE POLES
       PUS=0.
       PUN=0.
@@ -179,11 +120,9 @@ C**** COMPUTE SD, SIGMA DOT
       SD(I, J,L)=SD(I, J,L+1)+CONV(I, J,L+1)-DSIG(L+1)*PIT(I, J)
  2440 CONTINUE
       DO 2450 L=1,LM-1
-      SDSP=SD(1,1,L)
-      SDNP=SD(1,JM,L)
-      DO 2450 I=1,IM
-      SD(I,1,L)=SDSP
- 2450 SD(I,JM,L)=SDNP
+      DO 2450 I=2,IM
+      SD(I,1,L)=SD(1,1,L)
+ 2450 SD(I,JM,L)=SD(1,JM,L)
 C**** temporary fix for CLOUDS module
       SD_CLOUDS(:,:,1)    = PIT
       SD_CLOUDS(:,:,2:LM) = SD(:,:,1:LM-1)
@@ -193,21 +132,21 @@ C****
 
       SUBROUTINE ADVECM (P,PA,DT1)
 C****
-C**** THIS SUBROUTINE CALCULATES UPDATED COLUMN PRESSURES AS
+C**** CALCULATE UPDATED COLUMN PRESSURES AS
 C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
 C****
+      USE DYNAMICS, PGLOB=>P
       IMPLICIT NONE
       REAL*8 P(IM,JM)
       REAL*8 FD
-       COMMON/WORK4/FD(IM,JM)
+      COMMON/WORK4/FD(IM,JM)
       REAL*8 PA(IM,JM)
       INTEGER I,J,L,K,IMAX  !@var I,J,L,K  loop variables
       REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO J=1,JM
-        IMAX=IMAXJ(J)
-        DO I=1,IMAX
+        DO I=1,IMAXJ(J)
           PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
           IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
      *         ZATMO(I,J),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
@@ -224,16 +163,14 @@ C****
      *  '0    U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)    V(I-1,J)',
      *   '     V(I,J)   V(I-1,J+1)    V(I,J+1)     T(I,J)     Q(I,J)'/
      *  (1X,9F12.3,F12.6))
-  991 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
-     *  '     DATA=',11F10.3/10X,11F10.3/
-     *  '0     T(I,J)      Q(I,J)'/(F13.3,F12.6))
       END SUBROUTINE ADVECM
 
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 C****
-C**** THIS SUBROUTINE ADVECTS MOMENTUM (INCLUDING THE CORIOLIS FORCE)
+C**** ADVECT MOMENTUM (INCLUDING THE CORIOLIS FORCE)
 C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
 C****
+      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P
       IMPLICIT NONE
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
       REAL*8 PHI,SPA
@@ -298,27 +235,27 @@ C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
       FLUX=DT12*(PU(IP1,J,L)+PU(IP1,J-1,L)+PU(I,J,L)+PU(I,J-1,L))
       FLUXU=FLUX*(U(IP1,J,L)+U(I,J,L))
       DUT(IP1,J,L)=DUT(IP1,J,L)+FLUXU
-      DUT(I,J,L)=DUT(I,J,L)-FLUXU
+      DUT(I,J,L)  =DUT(I,J,L)  -FLUXU
       FLUXV=FLUX*(V(IP1,J,L)+V(I,J,L))
       DVT(IP1,J,L)=DVT(IP1,J,L)+FLUXV
-  210 DVT(I,J,L)=DVT(I,J,L)-FLUXV
+  210 DVT(I,J,L)  =DVT(I,J,L)  -FLUXV
       DO 220 J=2,JM-1
 C**** CONTRIBUTION FROM THE SOUTH-NORTH MASS FLUX
       FLUX=DT12*(PV(I,J,L)+PV(IP1,J,L)+PV(I,J+1,L)+PV(IP1,J+1,L))
       FLUXU=FLUX*(U(I,J,L)+U(I,J+1,L))
       DUT(I,J+1,L)=DUT(I,J+1,L)+FLUXU
-      DUT(I,J,L)=DUT(I,J,L)-FLUXU
+      DUT(I,J,L)  =DUT(I,J,L)  -FLUXU
       FLUXV=FLUX*(V(I,J,L)+V(I,J+1,L))
       DVT(I,J+1,L)=DVT(I,J+1,L)+FLUXV
-      DVT(I,J,L)=DVT(I,J,L)-FLUXV
+      DVT(I,J,L)=  DVT(I,J,L)  -FLUXV
 C**** CONTRIBUTION FROM THE SOUTHWEST-NORTHEAST MASS FLUX
       FLUX=DT24*(PU(IP1,J,L)+PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
       FLUXU=FLUX*(U(IP1,J+1,L)+U(I,J,L))
       DUT(IP1,J+1,L)=DUT(IP1,J+1,L)+FLUXU
-      DUT(I,J,L)=DUT(I,J,L)-FLUXU
+      DUT(I,J,L)=    DUT(I,J,L)    -FLUXU
       FLUXV=FLUX*(V(IP1,J+1,L)+V(I,J,L))
       DVT(IP1,J+1,L)=DVT(IP1,J+1,L)+FLUXV
-      DVT(I,J,L)=DVT(I,J,L)-FLUXV
+      DVT(I,J,L)=    DVT(I,J,L)    -FLUXV
 C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
       FLUX=DT24*(-PU(IP1,J,L)-PU(I,J,L)+PV(IP1,J,L)+PV(IP1,J+1,L))
       FLUXU=FLUX*(U(I,J+1,L)+U(IP1,J,L))
@@ -361,23 +298,30 @@ C**** CORIOLIS FORCE
 C****
       DO 430 L=1,LM
       IM1=IM
-      DO 430 I=1,IM
+      DO 405 I=1,IM
 C     FD(I,1)=FCOR(1)*2.-.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
 C     FD(I,JM)=FCOR(JM)*2.+.5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
 C**** Set the Coriolis term to zero at the Poles:
       FD(I,1)=  -.5*(SPA(IM1,1,L)+SPA(I,1,L))*DXV(2)
       FD(I,JM)=  .5*(SPA(IM1,JM,L)+SPA(I,JM,L))*DXV(JM)
+  405 IM1=I
       DO 410 J=2,JM-1
-  410 FD(I,J)=FCOR(J)+.25*(SPA(IM1,J,L)+SPA(I,J,L))*(DXV(J)-DXV(J+1))
-      DO 420 J=2,JM
+      DO 410 I=1,IM
+      FD(I,J)=FCOR(J)+.25*(SPA(IM1,J,L)+SPA(I,J,L))*(DXV(J)-DXV(J+1))
+  410 IM1=I
+  415 CONTINUE
+      DO 425 J=2,JM
+      DO 420 I=1,IM
       PDT4=DT8*(P(I,J-1)+P(I,J))
       IF(L.GE.LS1) PDT4=DT4*PSFMPT
       ALPH=PDT4*(FD(I,J)+FD(I,J-1))*DSIG(L)
       DUT(I,J,L)=DUT(I,J,L)+ALPH*V(I,J,L)
       DUT(IM1,J,L)=DUT(IM1,J,L)+ALPH*V(IM1,J,L)
       DVT(I,J,L)=DVT(I,J,L)-ALPH*U(I,J,L)
-  420 DVT(IM1,J,L)=DVT(IM1,J,L)-ALPH*U(IM1,J,L)
-  430 IM1=I
+      DVT(IM1,J,L)=DVT(IM1,J,L)-ALPH*U(IM1,J,L)
+  420 IM1=I
+  425 CONTINUE
+  430 CONTINUE
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAG9D (2,DT1,U,V,DUT,DVT,PIT)
@@ -414,12 +358,13 @@ C****
 
       SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
 C****
-C**** THIS SUBROUTINE ADDS TO MOMENTUM THE TENDENCIES DETERMINED BY
+C**** ADD TO MOMENTUM THE TENDENCIES DETERMINED BY
 C**** THE PRESSURE GRADIENT FORCE
 C****
+      USE DYNAMICS, UGLOB=>U, VGLOB=>V, PGLOB=>P, TGLOB=>T
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
-      REAL*8, DIMENSION(IM,JM) :: P
+      REAL*8, DIMENSION(IM,JM) :: P,RFDUX
 
       REAL*8, DIMENSION(IM,JM,LM) :: PHI,SPA
       COMMON/WORK3/PHI,SPA
@@ -437,7 +382,8 @@ C****
       REAL*8 SZ(IM,JM,LM),DT4,DT1
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
      *     ,BYDP
-      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
+!     REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN,FACTORS
+      REAL*8 TZBYDP,FLUX,FDNP,FDSP,      RFDU,PHIDN,FACTORS
       INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
 C****
       DT4=DT1/4.
@@ -512,48 +458,61 @@ C****
 C**** PRESSURE GRADIENT FORCE
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
-      IM1=IM
       DO 3236 L=1,LS1-1
-      DO 3236 I=1,IM
-      DO 3234 J=2,JM
+      DO 3236 J=2,JM
+      IM1=IM
+      DO 3234 I=1,IM
       FLUX=DT4*((P(I,J)+P(I,J-1))*(PHI(I,J,L)-PHI(I,J-1,L))+
      *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J)-P(I,J-1)))*DXV(J)*DSIG(L)
-      DVT(I,J,L)=DVT(I,J,L)-FLUX
- 3234 DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
- 3236 IM1=I
+      DVT(I,J,L)  =DVT(I,J,L)  -FLUX
+      DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
+ 3234 IM1=I
+ 3236 CONTINUE
       DO 3246 L=LS1,LM
-      DO 3246 I=1,IM
-      DO 3244 J=2,JM
+      DO 3246 J=2,JM
+!     FACTORS = 2.*DT4*PSFMPT*DXV(J)*DSIG(L)
+!     FACTORS =               DXV(J)*DSIG(L)
+      IM1=IM
+      DO 3244 I=1,IM
       FLUX=2.*DT4*PSFMPT*(PHI(I,J,L)-PHI(I,J-1,L))*DXV(J)*DSIG(L)
-      DVT(I,J,L)=DVT(I,J,L)-FLUX
- 3244 DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
- 3246 IM1=I
+!     FLUX=2.*DT4*PSFMPT*(PHI(I,J,L)-PHI(I,J-1,L))*FACTORS
+      DVT(I,J,L)  =DVT(I,J,L)  -FLUX
+      DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
+ 3244 IM1=I
+ 3246 CONTINUE
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
-      DO 3294 L=1,LS1-1
-      I=IM
-      DO 3293 IP1=1,IM
+      DO 3295 L=1,LS1-1
+      DO 3275 I=1,IM
       PU(I,1,L)=0.
-      PU(I,JM,L)=0.
-      DO 3280 J=2,JM-1
- 3280 PU(I,J,L)=(P(IP1,J)+P(I,J))*(PHI(IP1,J,L)-PHI(I,J,L))+
+ 3275 PU(I,JM,L)=0.
+      I=IM
+      DO 3290 J=2,JM-1
+      DO 3280 IP1=1,IM
+      PU(I,J,L)=(P(IP1,J)+P(I,J))*(PHI(IP1,J,L)-PHI(I,J,L))+
      *  (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J)-P(I,J))
- 3293 I=IP1
+ 3280 I=IP1
+ 3290 CONTINUE
       CALL AVRX (PU(1,1,L))
       DO 3294 J=2,JM
+!     FACTORS = -DT4*DYV(J)*DSIG(L)
       DO 3294 I=1,IM
  3294 DUT(I,J,L)=DUT(I,J,L)-DT4*DYV(J)*(PU(I,J,L)+PU(I,J-1,L))*DSIG(L)
-      DO 3314 L=LS1,LM
-      I=IM
-      DO 3313 IP1=1,IM
+!3294 DUT(I,J,L)=DUT(I,J,L)-FACTORS   *(PU(I,J,L)+PU(I,J-1,L))
+ 3295 CONTINUE
+      DO 3340 L=LS1,LM
+      DO 3315 I=1,IM
       PU(I,1,L)=0.
-      PU(I,JM,L)=0.
-      DO 3310 J=2,JM-1
- 3310 PU(I,J,L)=2.*PSFMPT*(PHI(IP1,J,L)-PHI(I,J,L))
- 3313 I=IP1
+ 3315 PU(I,JM,L)=0.
+      I=IM
+      DO 3325 J=2,JM-1
+      DO 3320 IP1=1,IM
+      PU(I,J,L)=2.*PSFMPT*(PHI(IP1,J,L)-PHI(I,J,L))
+ 3320 I=IP1
+ 3325 CONTINUE
       CALL AVRX (PU(1,1,L))
-      DO 3314 J=2,JM
-      DO 3314 I=1,IM
- 3314 DUT(I,J,L)=DUT(I,J,L)-DT4*DYV(J)*(PU(I,J,L)+PU(I,J-1,L))*DSIG(L)
+      DO 3330 J=2,JM
+      DO 3330 I=1,IM
+ 3330 DUT(I,J,L)=DUT(I,J,L)-DT4*DYV(J)*(PU(I,J,L)+PU(I,J-1,L))*DSIG(L)
  3340 CONTINUE
 C**** CALL DIAGNOSTICS
       IF(MRCH.LE.0) GO TO 500
@@ -574,19 +533,23 @@ C****
       DO 3520 I=1,IM
       FD(I, 1)=FDSP
  3520 FD(I,JM)=FDNP
-      I=IM
-      DO 3540 IP1=1,IM
+
       DO 3530 J=2,JM
-      RFDUX=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
-      DO 3530 L=1,LM
-      IF(L.GE.LS1) THEN
-          RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
-      ELSE
-          RFDU=RFDUX*BYDSIG(L)
-      ENDIF
+      I=IM
+      DO 3525 IP1=1,IM
+      RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
+ 3525 I = IP1
+ 3530 CONTINUE
+      DO 3550 L=1,LM
+      DO 3550 J=2,JM
+      RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
+      I=IM
+      DO 3540 I=1,IM
+      IF(L.LT.LS1) RFDU=RFDUX(I,J)*BYDSIG(L)
       VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)*RFDU
- 3530 UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
- 3540 I=IP1
+      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
+ 3540 CONTINUE
+ 3550 CONTINUE
       RETURN
       END SUBROUTINE PGF
 
@@ -596,6 +559,7 @@ C**** THIS SUBROUTINE SMOOTHES THE ZONAL MASS FLUX AND GEOPOTENTIAL
 C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
 C****
+      USE DYNAMICS
       IMPLICIT NONE
       REAL*8 X(IM,JM)
       REAL*8, SAVE :: SM(IMH,JM),DRAT(JM)
@@ -644,6 +608,7 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
+      USE DYNAMICS
       IMPLICIT NONE
       REAL*8 X,XS,Y
       COMMON/WORK2/X(IM,JM),XS(IM),Y(IM,JM)
@@ -727,6 +692,7 @@ C**** VELOCITY FIELDS (U,V) IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
 C**** THE SMALLEST SCALES.
 C**********************************************************************
+      USE DYNAMICS, UGLOB=>U, VGLOB=>V
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM) :: U,V
       REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM)
@@ -855,6 +821,7 @@ C****
 C**** THIS SUBROUTINE SMOOTHES THE ARRAY X IN THE ZONAL DIRECTION
 C**** USING AN N-TH ORDER SHAPIRO FILTER.  N MUST BE EVEN.
 C****
+      USE E001M12_COM, only :im,jm
       IMPLICIT NONE
       REAL*8 X,XS,RE4TON,XS1,XSIM1,XSI
       INTEGER I,J,N,NORDER    !@var I,J,N  loop variables
@@ -881,6 +848,7 @@ C****
 !@sum  CALC_AMPK calculate air mass and pressure functions
 !@auth Jean Lerner/Gavin Schmidt
 !@ver  1.0
+      USE DYNAMICS
       IMPLICIT NONE
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
@@ -930,6 +898,7 @@ c               BYAM(L,I,J) = 1./AM(L,I,J)
 
       SUBROUTINE CALC_AMP(p,amp)
 C**** Compute AMP: kg air * grav/100, including constant pressure strat
+      USE DYNAMICS, PGLOB=>P
       implicit none
       double precision, dimension(im,jm) :: p
       double precision, dimension(im,jm,lm) :: amp
@@ -947,7 +916,6 @@ C**** Compute AMP: kg air * grav/100, including constant pressure strat
       return
       end subroutine calc_amp
 
-      END MODULE DYNAMICS
 
       SUBROUTINE DYNAM
 C****
@@ -958,8 +926,7 @@ C****
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : ptold,advecm,advecv,aflux,pgf,fltruv
-     &     ,pu,pv,pit,sd,calc_amp
+      USE DYNAMICS, only : ptold,pu,pv,pit,sd
 
       USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
      *     ,ij_fgzu,ij_fgzv

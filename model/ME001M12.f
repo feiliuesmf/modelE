@@ -5,7 +5,6 @@
       USE E001M12_COM
       USE RANDOM
       USE DAGCOM, only : keynr,kdiag,oa
-      USE DYNAMICS, only : filter,calc_ampk
       USE FILEMANAGER, only : getunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       IMPLICIT NONE
@@ -488,7 +487,6 @@ C****
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : kacc,tsfrez,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
-      USE DYNAMICS, only : filter,calc_ampk
       USE OCEAN, only : tocean
       USE SEAICE_COM, only : rsi,snowi,hsi
       USE SEAICE, only : xsi,ace1i,ac2oim
@@ -1030,7 +1028,6 @@ C****
       USE E001M12_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
      *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,amon,amonth
       USE GEOM, only : areag,dxyp
-      USE DYNAMICS, only : calc_ampk
       USE RADNCB, only : RSDIST,COSD,SIND
 
       IMPLICIT NONE
