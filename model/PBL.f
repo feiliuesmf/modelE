@@ -15,7 +15,7 @@
 #endif
       IMPLICIT NONE
 CCC   SAVE
-      SAVE  BGRID
+CCC   SAVE  BGRID
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
 
@@ -97,8 +97,8 @@ C$OMP  THREADPRIVATE (/PBLPAR/,/PBLOUT/)
       real*8, dimension(n,ntm) :: tr
 #endif
 
-!@var bgrid log-linear gridding parameter
-      real*8 :: bgrid
+CCC !@var bgrid log-linear gridding parameter
+CCC      real*8 :: bgrid
 
 !@var smax,smin,cmax,cmin limits on drag coeffs.
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
@@ -203,6 +203,7 @@ c  internals:
 #endif
 
       real*8 :: lmonin,tstar,qstar,ustar0,test,wstar3,wstar3fac,wstar2h
+      real*8 :: bgrid
       real*8, parameter ::  tol=1d-4
       integer :: itmax, ierr
       integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
@@ -771,9 +772,6 @@ c *********************************************************************
 !@+   Z grid. (The Z's are the physical coords.) Also computes the
 !@+   altitudes on the secondary grid, ZHAT(I), and the derivatives
 !@+   dxi/dz evaluated at both all Z(I) and ZHAT(I).
-!@+   The parameter BGRID determines how strongly non-linear the
-!@+   mapping is. BGRID=0 gives linear mapping. Increasing BGRID
-!@+   packs more points into the bottom of the layer.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c     Grids:
@@ -793,6 +791,20 @@ c                    -------------------------    1
 c                1   - - - - - - - - - - - - -
 c
 c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
+!@var The parameter BGRID determines how strongly non-linear the
+!@+   mapping is. BGRID=0 gives linear mapping. Increasing BGRID
+!@+   packs more points into the bottom of the layer.
+!@+   Bgrid is calculated in the beginning of this subroutine every
+!@+   time this subroutine is called. zs is the first grid height
+!@+   and dzs is the grid separation near the surface. The values of
+!@+   parameters byzs(=1/zs) and bydzs(=1/dzs) are obtained by
+!@+   calling an old version of this subroutine with bgrid=0.2927
+!@+   and has been tested as appropriate for pe(2)=934mb.
+!@+   Now we impose that for other pe(2)s, zs and dzs be the same
+!@+   as when pe(2)=934mb, so as to maintain the balance between
+!@+   the accuracy and stability.
+!@+   The new value of bgrid is then calculated below which
+!@+   also depends on ztop (i.e., depends on pe(2)).
 !@var  z       hieght of main grids (meter)
 !@var  zhat    hieght of secondary grids (meter)
 !@var  xi      an uniformly spaced coordinate mapped to z
@@ -807,9 +819,11 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8, dimension(n), intent(out) :: z,xi,dz
       real*8, dimension(n-1), intent(out) :: zhat,xihat,dzh
       integer, intent(out) :: ierr
-      real*8, intent(in) :: z1,zn,bgrid
+      real*8, intent(in) :: z1,zn
+      real*8, intent(out) :: bgrid
 
       real*8, parameter ::  tolz=1d-3
+     &  ,byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
 C$OMP  THREADPRIVATE(/GRIDS_99/)
@@ -821,6 +835,8 @@ C$OMP  THREADPRIVATE(/GRIDS_99/)
       z1pass=z1
       znpass=zn
       dxi=(zn-z1)/float(n-1)
+      bgrid=max((dxi*bydzs-1.)/((zn-z1)*byzs-log(zn/z1)),0.d0)
+c     write(75,*) "bgrid, zn=",bgrid, zn
       b=bgrid
       zmin=z1
       zmax=zn
@@ -1715,7 +1731,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
       end subroutine level2
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
+     2                 ttop,qtop,coriol,cm,ch,cq,ustar,
      3                 ilong,jlat,itype)
 !@sum  inits initializes the winds, potential temperature,
 !@+    and humidity using static solutions of the GISS 2000

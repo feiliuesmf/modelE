@@ -290,10 +290,8 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
-      USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
-     &     ,e
-     &     ,dpdxr,dpdyr
-     &     ,dpdxr0,dpdyr0
+      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0
+     &     ,e,dpdxr,dpdyr,dpdxr0,dpdyr0
       USE PBLCOM
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -339,7 +337,7 @@ C things to be done regardless of inipbl
       end do
 
       call ccoeff0
-      call getb(zgs,ztop,bgrid)
+      call getztop(zgs,ztop)
 
       if(.not.inipbl) return
 
@@ -427,7 +425,7 @@ c ******************************************************************
             dpdyr0 = DPDY_BY_RHO_0(i,j)
 
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
+     2                 ttop,qtop,coriol,cm,ch,cq,ustar,
      3                 ilong,jlat,itype)
             cmgs(i,j,itype)=cm
             chgs(i,j,itype)=ch
@@ -610,66 +608,32 @@ c ******* itype=4: Land
       return
       end subroutine loadbl
 
-      subroutine getb(zgs,ztop,bgrid)
-c ----------------------------------------------------------------------
-c This routine computes the value of bgrid to be used in the gridding
-c  scheme. This parameter determines the strength of the logarithmic
-c  component in the log-linear scheme. This fitting for bgrid was
-c  determined by doing a series of off-line runs comparing the reduced
-c  domain simulation to the full BL simulation and determining the value
-c  of bgrid that gave the best fit for a range of ztop = [50.,200.] m
-c  for the reduced domain simulation.
-c This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
-c  average value for zs1. The quantity theta was computed on the
-c  assumption of zs1=200 m from the original 9-layer model (actually
-c  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)
-c  and is then applied to all vertical resolutions.
-c
-c Input:
-c
-c    zgs   = The height of the surface layer.
-c
-c Output:
-c
-c    ztop  = The height of the top of the BL simulation domain.
-c            Corresponds to the height of the middle of the first model
-c            layer and is only needed if the BL fields require
-c            initialization.
-c    bgrid = The parameter that determines the strength of the log
-c            term in the log-linear gridding scheme.
-c ----------------------------------------------------------------------
+      subroutine getztop(zgs,ztop)
+!@sum  getztop computes the value of ztop which is the height in meters
+!@+  of the first GCM layer from the surface
+!@+  This form for z1 = zgs + zs1 (in terms of GCM parameters) yields an
+!@+  average value for zs1. The quantity theta was computed on the
+!@+  assumption of zs1=200 m from the original 9-layer model (actually
+!@+  was misconstrued as z1 = 200 m when it should have been zs1 = 200 m)
+!@+  and is then applied to all vertical resolutions.
+!@auth Greg. Hartke/Ye Cheng
+!@var zgs The height of the surface layer.
+!@var ztop The height of the top of the BL simulation domain.
+!@+   Corresponds to the height of the middle of the first model
+!@+   layer and is only needed if the BL fields require initialization.
+
       USE CONSTANT, only : rgas,grav
-      USE MODEL_COM, only : sige,psf,ptop,psfmpt
-      USE SOCPBL, only : n
+      USE MODEL_COM, only : sige,psf,psfmpt
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
-      REAL*8, INTENT(OUT) :: ZTOP,BGRID
-      real*8, parameter :: byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
-      real*8 theta,z1,x,dxi
+      REAL*8, INTENT(OUT) :: ZTOP
+      real*8, parameter :: theta=269.0727251d0
 
-      theta=269.0727251d0
-      z1=zgs+0.5*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
-      x=z1/100.
-      ztop=z1
-c     bgrid=(((0.177427d0*x - 1.0504d0)*x + 2.34169d0)*x -
-c    2      2.4772d0)*x + 1.44509d0
-      !
-      ! The following values of z and dz are obtained from a call
-      ! to the routine griddr with bgrid=0.2927; this value of
-      ! bgrid has been tested as appropriate for pe(2)=934mb.
-      ! Now we require that for other pe(2)s, at the same
-      ! lowest height z, dz be the same as when pe(2)=934mb, so as to
-      ! maintain the balance between the accuracy and stability.
-      ! The new value of bgrid is then calculated below which
-      ! depends on ztop (i.e., depends on pe(2)).
-      ! The relations used are from the routine griddr.
-      !
-       dxi=(ztop-zgs)/float(n-1)
-       bgrid=max((dxi*bydzs-1.)/((ztop-zgs)*byzs-log(ztop/zgs)),0.d0)
+      ztop=zgs+0.5d0*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
 
       return
-      end subroutine getb
+      end subroutine getztop
 
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
