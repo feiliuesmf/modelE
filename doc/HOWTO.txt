@@ -236,6 +236,83 @@ specified length of time.
        Hopefully, they will no longer change after a few years (10-25).
        The model is said to be in balance as soon as that happens.
 
+
+       To run the Q-flux model it is necessary to supply the implied 
+       horizontal heat transports and proper initial condition as 
+       input files. To calculate the horizontal ocean heat transports 
+       it is necessary to run the model with prescribed ocean mixed 
+       layer temperature and sea ice extent for 5-6 years. It is 
+       desirable to have this control run well balanced (Net Heat at
+       z0 is supposed to be close to 0 for annual mean. This Net  
+       Heat at z0 can be found on the first budget page for the global 
+       quantities. To get the balanced control run, you can adjust 
+       U00wtr (see 1b). In your control run-decks, you have to have
+       Kvflxo=1. Then the model will save the data for the heat 
+       tansport.  
+       	    
+       For the ocean heat transport calculation, it is necessary to 
+       skip the first year of this control run because of the spin-up 
+       of the atmosphere. For this calculation you need to do next 
+       (suppose your control run is RunIDcontrol): 
+       	    
+       (a) go to your ../modelE/decks directory and do 
+       	   gmake aux RUN=RunIDcontrol. This will create executables 
+       	   for the ocean heat transport calculation and it will put 
+       	   them to the directory ../modelE/decks/RunIDcontrol_bin. 
+       	    
+       (b) go to your ../modelE/aux directory and 
+       	    
+       	   (1) do a symbolic link of the restart file of your control 
+       	       run, which you would like to use as a start-up for your 
+       	       Q-flux model, to fort.1 (Usually this restart is the last 
+       	       December restart file of the control run. But someone 
+       	       might want to start the Q-flux model Dec. 1 in order to 
+       	       have the complete December-January-February season, then 
+       	       you would need to link the last year November restart file
+       	       to fort.1. It is really up to you which restart you choose 
+       	       for your Q-flux start-up).
+       	    
+       	   (2) do mkOTSPEC.E001.M250D RunIDcontrol first_month first_year 
+       	       last_month last_year, 
+       	       where first_month and first_year are the first month and 
+       	       the first year of your control run you start the ocean heat 
+       	       transport calculation, last_month and last_year are the 
+       	       last month and the last year of your control run you end up 
+       	       the transport calculation. 
+       	       Usually first_month=1, first_year=1951, last_month=12, 
+       	       last_year=1955 if you did run your control model for 6 years 
+       	       starting Jan.1 1950. 
+       	    
+       After this you will get two files which you will use as unput data 
+       for your Q-flux model: 
+       1. OTSPEC.RRunIDcontrol.M250D.first_year-last_year 
+       	  This file is the implied ocean heat transport data. In your 
+       	  Q-flux run-deck the input file OHT has to have this name, in 
+       	  other words OHT=OTSPEC.RRunIDcontrol.M250D.first_year-last_year.
+       	  You have to move this file to /u/cmrun directory.  
+       2. IMJAN.RunIDcontrol.O250D is the corrected restart for your 
+       	  Q-flux model. This restart is basicly is the same restart as your 
+       	  control model restart but it also has corrected temperatures of 
+       	  the ocean which were not used in the control run. These
+       	  temperatures are the temperature between the mixed layer and the 
+       	  annual maximal mixed layer depths (TOCEAN(2,im,jm)) and the 
+       	  temperature at annual maximal mixed layer depth (TOCEAN(3,im,jm)).
+       	  You have to specify AIC=IMJAN.RunIDcontrol.O250D in your Q-flux 
+       	  run-deck. You have to move this file to /u/cmrun directory as well. 
+       	    
+       In your Q-flux model run-decks, you have to 
+       	  (1) specify KOCEAN=1; 
+       	  (2) make sure that U00wtr and U00ice are the same as in you 
+       	      control run. Then your Q-flux model will be as well balanced 
+       	      as your control run. 
+       	    
+       P.S. In your ../modelE/aux directory you will also get the line-plot
+       	    file ohtRunIDcontrol.first_year-last_year.lpl which you can plot 
+       	    and compare with observational data if you like. 
+       	    You will also get few PRT files which you can remove. And you 
+       	    can remove the symbolic link for fort.1. 
+
+
    1d: How to set up a Q-flux model with diffusion into a deep ocean
        Such a run needs a preliminary Q-flux model running for 10 years
        in equilibrium, saving (KCOPY=3) the data necessary for diffusion
