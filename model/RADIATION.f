@@ -3508,7 +3508,7 @@ C     ------------------------------------------------------------------
       TTAULX(L,NT)=TRACER(L,NT)*1000.D0*TRRDRY(NT)
       END DO
       END DO
-                 
+
       FSXTAU=FSTAER*FSBAER+1.D-10
       FTXTAU=FTTAER*FTBAER
 
@@ -8003,7 +8003,7 @@ C
       SUM0(I)=SUM0(I)+ULGAS(L,I)
   208 CONTINUE
       DO 209 I=1,4
-      SUM0(12+I)=SUM0(12+I)+TRACER(L,I)
+      SUM0(12+I)=SUM0(12+I)+TTAUXL(L,I)
   209 CONTINUE
       SUM0(10)=SUM0(10)+TAUWC(L)
       SUM0(11)=SUM0(11)+TAUIC(L)
