@@ -1289,7 +1289,7 @@ could be chosen, but are probably not very useful.</p>
 module. The frequency of saving is controlled by the variable
 <tt>Nsubdd</tt> which is the number of hours between each snapshot
 (i.e. <tt>Nsubdd=1</tt> implies hourly diags, =24 daily).  The
-variables saved are controlled by the string <tt>SUBDD</tt>, this is a
+variables saved are controlled by the string <tt>SUBDD</tt>, which is a
 space seperated list of names for the required diagnostics.  These are
 currently limited to instantaneous values of some standard fields
 (SAT, PREC, SLP, QS, LCLD, MCLD, HCLD, TROP), the geopotential height,
@@ -1298,9 +1298,8 @@ pressure levels (if available): 1000, 850, 700, 500, 300, 100, 30 ,
 10, 3.4, 0.7, .16, .07, .03, and velocities on any model level. The
 fixed pressure level diags are set using Z850, R700 and T100, for
 instance, to request the 850 mb goepotential height, 700 mb relative
-humidity and 100 mb temperatures, respectively. Requests for ZALL or UALL, will produce files of all available levels. The velocities are set
-using U1, U5, U12, for instance, to get the 1st, 5th and 12th layer U
-velocities, respectively. More options can be added as cases in
+humidity and 100 mb temperatures, respectively. Requests for ZALL or TALL, will produce individual files of all available levels. The velocities are set using U1, U5, U12, for instance, to get the 1st, 5th and 12th layer U
+velocities, respectively. If "ALL" levels are requested for a velocity, only one file per variable will be output, containing all requested levels.  To limit the number of output levels, set the <tt>LmaxSUBDD</tt> parameter in the rundeck, and only levels L=1,LmaxSUBDD will be output. <p>More options can be added as cases in
 subroutine get_subdd in DIAG.f if required. For example, including the
 following string in the rundeck (i.e. <tt>SUBDD="SLP SAT Z500 R850 U5
 V5"</tt> will produce diags of the sea level pressure, surface air
