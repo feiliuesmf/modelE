@@ -15,7 +15,7 @@ OCNE001 SEAICE LAKES LANDICE        ! ocean, lake and sea ice modules
 SEAICE_DRV LANDICE_DRV              ! ocean, lake and sea ice modules
 snowmodel                           ! snow model
 RE001                               ! setsur  rad.subr_incl._forcings
-DE001M12 DEFACC                     ! diagnostics
+DE001M12 DEFACC DAGPRT              ! diagnostics
 FFT72  UTILDBL RAND~                ! utilities
 POUT                                ! for post-processing
 
