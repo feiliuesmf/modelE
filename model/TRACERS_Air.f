@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
 #ifdef TRACERS_ON
-!@sum  TRACERS_Air: tracer-dependent routines for air mass tracers
+!@sum  TRACERS_DRV: tracer-dependent routines for air mass tracers
 !@+    Routines included:
 !@+      Those that MUST EXIST for all tracers: 
 !@+        Diagnostic specs: init_tracer
@@ -21,6 +21,13 @@
       USE TRACER_COM
       USE TRACER_DIAG_COM
       USE CONSTANT, only: mair,mwat,sday
+#ifdef TRACERS_SPECIAL_Lerner
+      USE PARAM
+      USE TRACER_MPchem_COM, only: n_MPtable,tcscale
+!@dbparam dsol describes portion of solar cycle being modeled for linoz
+!@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
+      USE LINOZ_CHEM_COM, only: dsol
+#endif
       USE PARAM
       implicit none
       integer :: l,k,n
@@ -38,10 +45,14 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       t_qlimit = .true.
       needtrs = .false.
       trdecay = 0.d0
-      nt3Dsrc = 0;
+      nt3Dsrc = 0
       ntsurfsrc = 0
       trpdens = 0
       trradius = 0
+#ifdef TRACERS_SPECIAL_Lerner
+      n_MPtable = 0
+      tcscale = 0.
+#endif
 #ifdef TRACERS_WATER
        tr_wd_TYPE = nGas   ! or  nPART  or nWATER
        tr_DHD = 0.
@@ -96,6 +107,10 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 44.d0
           nt3Dsrc(n) = 1
           ntsurfsrc(n) = 1
+#ifdef TRACERS_SPECIAL_Lerner
+          n_MPtable(n) = 1
+          tcscale(n_MPtable(n)) = 1.
+#endif
 
       case ('CFC11')   !!! should start April 1
       n_CFC11 = n
@@ -104,6 +119,10 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 137.4d0
           nt3Dsrc(n) = 1
           ntsurfsrc(n) = 1
+#ifdef TRACERS_SPECIAL_Lerner
+          n_MPtable(n) = 2
+          tcscale(n_MPtable(n)) = 1.
+#endif
 
       case ('14CO2')   !!! should start 10/16
       n_14CO2 = n
@@ -118,12 +137,19 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 16.d0
           nt3Dsrc(n) = 2
           ntsurfsrc(n) = 14
+#ifdef TRACERS_SPECIAL_Lerner
+          n_MPtable(n) = 3
+          tcscale(n_MPtable(n)) = 1.
+#endif
 
       case ('O3')
       n_O3 = n
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
           nt3Dsrc(n) = 2
+C**** Get solar variability coefficient from namelist if it exits
+          dsol = 0.
+          call sync_param("dsol",dsol)
 
 #ifdef TRACERS_WATER
       case ('Water')
@@ -175,7 +201,7 @@ C****
         lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
         jls_index(k) = n
         jls_ltop(k) = lm
-        jls_power(k) = -11.
+        jls_power(k) = -12.
         units_jls(k) = unit_string(jls_power(k),' kg/s')
         k = k + 1
         jls_source(1,n) = k
@@ -270,7 +296,7 @@ C****
         lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
         jls_index(k) = n
         jls_ltop(k) = lm
-        jls_power(k) = -14
+        jls_power(k) = -4
         units_jls(k) = unit_string(jls_power(k),' kg/s')
 
       case ('14CO2')   !!! should start 10/16
@@ -793,27 +819,20 @@ C**** First 12 are standard for all tracers and GCM
       case ('CO2')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
-!     qsum(itcon_surf(1,N)) = .false.
       itcon_surf(2,N) = 14
       qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
-!     qsum(itcon_surf(2,N)) = .false.
       itcon_surf(3,N) = 15
       qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
-!     qsum(itcon_surf(3,N)) = .false.
       itcon_surf(4,N) = 16
       qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
-!     qsum(itcon_surf(4,N)) = .false.
       itcon_surf(5,N) = 17
       qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
-!     qsum(itcon_surf(5,N)) = .false.
       itcon_surf(6,N) = 18
       qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
-!     qsum(itcon_surf(6,N)) = .false.
-      qsum(itcon_surf(1:6,N)) = .false.
+      qsum(itcon_surf(1:6,N)) = .false.  ! prevent summing twice
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
-      qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('N2O')
       itcon_surf(1,N) = 13
@@ -823,21 +842,26 @@ C**** First 12 are standard for all tracers and GCM
       qsum(itcon_3Dsrc(1,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CFC11')
       itcon_surf(1,N) = 13
       qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
       itcon_3Dsrc(1,N) = 14
-      qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Strat. Chem'
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
       qsum(itcon_3Dsrc(1,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('14CO2')
       itcon_surf(1,N) = 13
-      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Observed drift'
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Bombs and drift'
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('CH4')
       itcon_surf(1,N) = 13
@@ -868,7 +892,7 @@ C**** First 12 are standard for all tracers and GCM
       qcon(itcon_surf(13,N)) = .true.; conpts(13) = 'Rice source'
       itcon_surf(14,N) = 26
       qcon(itcon_surf(14,N)) = .true.; conpts(14) = 'Wetlands+Tundra'
-      qsum(itcon_surf(1:14,N)) = .false.
+      qsum(itcon_surf(1:14,N)) = .false.  ! prevent summing twice
       itcon_3Dsrc(1,N) = 27
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(15) = 'Tropos. Chem'
       qsum(itcon_3Dsrc(1,N)) = .true.
@@ -881,12 +905,16 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('O3')
-      itcon_3Dsrc(1,N) = 1
+      itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Tropos. Chem'
-      itcon_3Dsrc(2,N) = 2
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 14
       qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Stratos. Chem'
+      qsum(itcon_3Dsrc(2,N)) = .true.
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
 #ifdef TRACERS_WATER
       case ('Water')
@@ -948,6 +976,10 @@ C**** print out total tracer diagnostic array size
      *   tr_mm
 #ifdef TRACERS_WATER
      *  ,trwm,trw0
+#endif
+#ifdef TRACERS_SPECIAL_Lerner
+      USE LINOZ_CHEM_COM, only: TLT0M,TLTZM, TLTZZM
+      USE QUSDEF, only : mz,mzz
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -1025,11 +1057,13 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('14CO2')   !!! this tracer is supposed to start 10/16
           trmom(:,:,:,:,n) = 0.
+#ifdef TRACERS_SPECIAL_Lerner
           call get_14CO2_IC(ic14CO2)
           do l=1,lm         !ppmv==>ppmm
           do j=1,jm
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*ic14CO2(:,j,l)*1.d-18
           enddo; enddo
+#endif
 
         case ('CH4')
           trmom(:,:,:,:,n) = 0.
@@ -1048,17 +1082,19 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           do j=1,jm
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*20.d-9*tr_mm(n)/mair
           enddo; enddo
+#ifdef TRACERS_SPECIAL_Lerner
           do l=lm,ls1+1,-1
           lr = lm+1-l
-c           do j=1,jm
-c           trm(:,j,l,n) = 
-c    *          tlt0m(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
-c           trmom(mz,:,j,l,n)  =
-c    *          tltzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
-c           trmom(mzz,:,j,l,n)  =
-c    *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
-c           end do
+            do j=1,jm
+            trm(:,j,l,n) = 
+     *          tlt0m(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+            trmom(mz,:,j,l,n)  =
+     *          tltzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+            trmom(mzz,:,j,l,n)  =
+     *         tltzzm(j,lr,1)*am(l,:,j)*dxyp(j)*tr_mm(n)/mair
+            end do
           end do
+#endif
 
 #ifdef TRACERS_WATER
       case ('Water')
@@ -1156,15 +1192,58 @@ C****
 
       subroutine daily_tracer(iact)
 !@sum daily_tracer is called once a day for tracers
+!@+   SUBROUTINE tracer_IC is called from daily_tracer to allow for
+!@+     tracers that 'turn on' on different dates.
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
-      USE TRACER_COM, only: ntm,trname
+      USE MODEL_COM, only: jmon,itime
+      USE TRACER_COM, only: ntm,trname,itime_tr0
+#ifdef TRACERS_SPECIAL_Lerner
+      USE TRACER_MPchem_COM, only: n_MPtable,tcscale
+      USE LINOZ_CHEM_COM, only: LINOZ_SETUP
+#endif
       IMPLICIT NONE
-      INTEGER n,iact
+      INTEGER n,iact,last_month
+      data last_month/-1/
 
-C**** Initialize tracers here to allow for tracers that 'turn on'
-C****  at any time
-      call tracer_IC
+#ifdef TRACERS_SPECIAL_Lerner
+      if (iact.eq.0) then
+C**** Initialize tables for linoz
+      do n=1,ntm
+        if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
+          call linoz_setup(n)
+          exit
+        end if
+      end do
+
+C**** Initialize tables for Prather StratChem tracers
+      do n=1,ntm
+        if (trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
+     *      trname(n).eq."CFC11") then
+          if (itime.ge.itime_tr0(n))
+     *    call stratchem_setup(n_MPtable(n),trname(n))
+        end if
+      end do
+      end if  ! iact=0
+
+C**** Prather StratChem tracers and linoz tables change each month
+      IF (JMON.NE.last_month) THEN
+        do n=1,ntm
+          if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
+     *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
+            CALL STRTL  ! one call does all based on n_MPtable_max
+            exit
+          end if
+        end do
+        do n=1,ntm
+          if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
+            CALL linoz_STRATL
+            exit
+          end if
+        end do
+        last_month = JMON
+         WRITE(*,*) ' DEBUGGING O3 in daily_tracer', JMON,LAST_MONTH
+      END IF
 
 C**** Tracer specific call for CO2
       do n=1,ntm
@@ -1181,190 +1260,15 @@ C**** Tracer specific call for CH4
           exit
         end if
       end do
+#endif
+
+C****
+C**** Initialize tracers here to allow for tracers that 'turn on'
+C****  at any time
+      call tracer_IC
 
       return
       end subroutine daily_tracer
-
-
-      MODULE CH4_SOURCES
-      USE TRACER_COM
-!@var CH4_src CH4 surface sources and sinks (kg/s)
-      integer, parameter :: nch4src=14
-      real*8 CH4_src(im,jm,nch4src)
-      END MODULE CH4_SOURCES
-
-
-      subroutine read_CH4_sources(nt,iact)
-!@sum reads in CH4 sources and sinks
-!@auth Jean Lerner
-C****
-C**** There are 3 monthly sources and 11 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth
-      USE LAKES_COM, only: flake
-      USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
-      USE TRACER_COM, only: itime_tr0,trname
-      use CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
-      implicit none
-      character*80 title
-      logical :: ifirst=.true.
-      real*8 adj(nsrc)
-      data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-     *  7.2154,3.7247d-5,3.1399d-4,5.4838d-5,
-     *  0.4369,0.7533,0.9818/
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=11,nmons=3
-      integer ann_units(nanns-3),mon_units(nmons-3)
-      character*12 :: ann_files(nanns-3) =
-     *  (/'CH4_ANIMALS ','CH4_COALMINE','CH4_GASLEAK ','CH4_GASVENT ',
-     *    'CH4_CITYDUMP','CH4_SOIL_ABS','CH4_TERMITES','CH4_COALBURN'/)
-      logical :: ann_bins(nanns-3)=(/.true.,.true.,.true.,.true.,
-     *        .true.,.true.,.true.,.true./)
-      character*8 :: mon_files(nmons) =
-     *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
-      real*8 adj_wet(jm)
-      data adj_wet/15*0.6585,16*1.761,15*0.6585/ !zonal adj FOR WETLANDS
-      data iwet/14/  !!! position of wetlands array in src
-      logical :: mon_bins(nmons)=(/.true.,.true.,.true./)
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
-      integer i,j,nt,iact,iu,k,jdlast,iwet
-      data jdlast /0/
-      save ifirst,jdlast,tlca,tlcb
-
-      if (itime.lt.itime_tr0(nt)) return
-C****
-C**** Annual Sources and sinks
-C**** Apply adjustment factors to bring sources into balance
-C**** Annual sources are in KG C/M2/Y
-C**** Sources need to be kg/m^2 s; convert /year to /s
-C****
-      if (ifirst) then
-        k = 0
-        call openunits(ann_files,ann_units,ann_bins,nanns-3)
-        ann_units(nanns-1:nanns) = ann_units(nanns-3) 
-        do iu = ann_units(1),ann_units(nanns-3)
-          k = k+1
-          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
-        end do
-        call closeunits(ann_units,nanns-3)
-        ! 3 miscellaneous sources
-          k = k+1
-          src(:,:,k) = focean(:,:)*adj(k)/(sday*JDperY)
-          k = k+1
-          src(:,:,k) =  flake(:,:)*adj(k)/(sday*JDperY)
-          k = k+1
-          src(:,:,k) = fearth(:,:)*adj(k)/(sday*JDperY)
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** Also, Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-C****
-      if (iact.eq.1 .and. .not.ifirst) return
-      ifirst = .false.
-      call openunits(mon_files,mon_units,mon_bins,nmons)
-      j = 0
-      do k = nanns+1,nsrc
-        j = j+1
-        call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k))
-        src(:,:,k) = src(:,:,k)*adj(k)
-      end do
-      jdlast = jday
-
-      call closeunits(mon_units,nmons)
-      write(6,*) trname(nt),'Sources interpolated to current day'
-C****
-C**** Zonal adjustment for combined wetlands and tundra
-C****
-      do j=1,jm
-        src(:,j,iwet) = src(:,j,iwet)*adj_wet(j)
-      end do
-      return
-      end subroutine read_CH4_sources
-
-
-      MODULE CO2_SOURCES
-      USE TRACER_COM
-!@var co2_src C02 surface sources and sinks (kg/s)
-      integer, parameter :: nco2src=6
-      real*8 co2_src(im,jm,nco2src)
-      END MODULE CO2_SOURCES
-
-
-      subroutine read_CO2_sources(nt,iact)
-!@sum reads in CO2 sources and sinks
-!@auth Jean Lerner
-C****
-C**** There are two monthly sources and 4 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
-      USE TRACER_COM, only: itime_tr0,trname
-      use CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
-      implicit none
-      character*80 title
-      logical :: ifirst=.true.
-      real*8 adj(nsrc)
-c     data adj/1.038,1.,1.,5.33,1.,1.749/          ! c
-      data adj/3.81d0,3.67d0,3.67d0,19.54d0,3.67d0,6.42d0/     ! co2
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=4,nmons=2
-      integer ann_units(nanns),mon_units(nmons)
-      character*12 :: ann_files(nanns) = 
-     *  (/'CO2_FOS_FUEL','CO2_FERT    ','CO2_REGROWTH','CO2_LAND_USE'/)
-      logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./)
-      character*9 :: mon_files(nmons) = (/'CO2_VEG  ','CO2_OCEAN'/)
-      logical :: mon_bins(nmons)=(/.true.,.true./)
-      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
-      integer i,j,nt,iact,iu,k,jdlast
-      data jdlast /0/
-      save ifirst,jdlast,tlca,tlcb
-
-      if (itime.lt.itime_tr0(nt)) return
-C****
-C**** Annual Sources and sink
-C**** Apply adjustment factors to bring sources into balance
-C**** Annual sources are in KG C/M2/Y
-C**** Sources need to be kg/m^2 s; convert /year to /s
-C****
-      if (ifirst) then
-        call openunits(ann_files,ann_units,ann_bins,nanns)
-        k = 0
-        do iu = ann_units(1),ann_units(nanns)
-          k = k+1
-          call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
-        end do
-        call closeunits(ann_units,nanns)
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** Also, Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-      if (iact.eq.1 .and. .not.ifirst) return
-      ifirst = .false.
-      call openunits(mon_files,mon_units,mon_bins,nmons)
-      j = 0
-      do k=nanns+1,nsrc
-        j = j+1
-        call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k))
-        src(:,:,k) = src(:,:,k)*adj(k)
-      end do
-      jdlast = jday
-      call closeunits(mon_units,nmons)
-      write(6,*) trname(nt),'Sources interpolated to current day'
-C****
-      return
-      end subroutine read_CO2_sources
 
 
       SUBROUTINE set_tracer_2Dsource
@@ -1385,7 +1289,7 @@ C****
       implicit none
       integer :: i,j,ns,l,ky,n
       double precision :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  steph,stepx,stepp,tmon,by_dt
+     *  steph,stepx,stepp,tmon,by_dt,tnew
 
       by_dt = 1./DTsrc
 C**** All sources are saved as kg/s
@@ -1397,7 +1301,7 @@ C**** All sources are saved as kg/s
       case default
 !     write(6,*) ' Sources for ',trname(n),' are not in this routine'
 C****
-C**** Surface Sources of SF6 (Same grid as CFC)
+C**** Surface Sources of SF6 (Same grid as CFC11)
 C****
       case ('SF6','CFC11')
         trsource(:,:,:,n)=0
@@ -1538,19 +1442,27 @@ C****
 C****
 C**** Sources and sinks for 14C02
 C**** NOTE: This tracer is supposed to start on 10/16
-C**** The tracer is reset to specific values in layer 1
+C**** The tracer is reset to specific values in layer 1 only if
+C****   this results in a sink
 C****
       case ('14CO2')
       tmon = (itime-itime_tr0(n))*jmpery/(hrday*jdpery)  !(12./8760.)
+      trsource(:,:,1,n) = 0.
       do j=1,jm/2
-        trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*(4.82d-18*46./mair)*
+      do i=1,im
+        tnew = am(1,i,j)*dxyp(j)*(4.82d-18*46./mair)*
      *   (44.5 + tmon*(1.02535d0 - tmon*(2.13565d-2 - tmon*8.61853d-5)))
-     *   -trm(:,j,1,n))*by_dt
+        if (tnew.lt.trm(i,j,1,n)) 
+     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*by_dt
+      end do
       end do
       do j=1+jm/2,jm
-        trsource(:,j,1,n) = (am(1,:,j)*dxyp(j)*(4.82d-18*46./mair)*
+      do i=1,im
+        tnew = am(1,i,j)*dxyp(j)*(4.82d-18*46./mair)*
      *   (73.0 - tmon*(0.27823d0 + tmon*(3.45648d-3 - tmon*4.21159d-5)))
-     *   -trm(:,j,1,n))*by_dt
+        if (tnew.lt.trm(i,j,1,n)) 
+     *         trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*by_dt
+      end do
       end do
 
 C****
@@ -1582,248 +1494,35 @@ C**** All sources are saved as kg/s
       select case (trname(n))
 
       case default
+#ifdef TRACERS_SPECIAL_Lerner
 C****
       case ('CH4')
       tr3Dsource(:,:,:,:,n) = 0.
       call Trop_chem_CH4(n,1)
       call apply_tracer_3Dsource(n,1)
       call Strat_chem_Prather(n,2)
-      call apply_tracer_3Dsource(n,2)
 C****
       case ('O3')
       tr3Dsource(:,:,:,:,n) = 0.
       call Trop_chem_O3(n,1)
-      call apply_tracer_3Dsource(n,1)
+   !  call apply_tracer_3Dsource(n,1)
       call Strat_chem_O3(n,2)
-      call apply_tracer_3Dsource(n,2)
+   !  call apply_tracer_3Dsource(n,2)
 C****
       case ('N2O')
       tr3Dsource(:,:,:,:,n) = 0.
       call Strat_chem_Prather(n,1)
-      call apply_tracer_3Dsource(n,1)
 C****
-      case ('CFC')
+      case ('CFC11')
       tr3Dsource(:,:,:,:,n) = 0.
       call Strat_chem_Prather(n,1)
-      call apply_tracer_3Dsource(n,1)
 C****
+#endif
       end select
 
       end do
       return
       END SUBROUTINE tracer_3Dsource
-
-
-      SUBROUTINE get_14CO2_IC(CO2IJL)
-!@sum GET_14CO2_IC Calculates initial distribution for 14CO2 tracer
-!@auth J.Lerner (modified from program by G. Russell)
-C**** NOTE: tracer is supposed to start on 10/16
-C**** October 1963 14CO2 Concentrations for GCM  2/26/99
-C**** 2/2/2: generalized code for modelE
-C****           
-      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
-      USE DYNAMICS, only: pedn
-      USE FILEMANAGER, only: openunit,closeunit
-      IMPLICIT NONE
-      PARAMETER (kmw=60)
-      REAL*4 CO2W(37,0:30) ! ,AMASS(IM,JM)
-      real*8 p(0:60),CO2JK(JM,0:kmw),CO2IJL(IM,JM,LM)
-      CHARACTER*80 TITLE
-      integer i,j,jw,k,l,n,iu_in,iu_out,kmw
-      real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,sig,w,zk !,stratm
-
-C****
-C**** Read in CO2 concentrations from workshop
-C****
-c     OPEN (1,FILE='workshop.14co2',STATUS='OLD')
-      call openunit('14CO2_IC_DATA',iu_in,.false.)
-      DO 110 N=1,10
-  110 READ (iu_in,911)
-      READ (iu_in,911) ((CO2W(J,K),J=1,13),K=0,30)
-      READ (iu_in,911)
-      READ (iu_in,911)
-      READ (iu_in,912) ((CO2W(J,K),J=14,25),K=0,30)
-      READ (iu_in,912)
-      READ (iu_in,912)
-      READ (iu_in,912) ((CO2W(J,K),J=26,37),K=0,30)
-      call closeunit(iu_in)
-C**** Calculate workshop pressure levels (Pa)
-      DO K=0,kmw
-        ZK = 2.*K
-        P(K) = 100000.*10**(-ZK/16.)
-      end do
-C****
-C**** Interpolate workshop CO2W to CO2JK on GCM latitudes
-C****
-      DO K=31,kmw       ! above 17 Pa set all equal
-        CO2JK( 1,K) = 250.
-        CO2JK(JM,K) = 250.
-        DO J=2,JM-1
-          CO2JK(J,K) = 250.
-      end do; end do
-      DO K=0,30
-        CO2JK( 1,K) = CO2W( 1,K)
-        CO2JK(JM,K) = CO2W(37,K)
-        DO J=2,JM-1
-          W = 1. + (J-1)*36./(JM-1)
-          JW=W
-          CO2JK(J,K) = CO2W(JW,K)*(JW+1-W) + CO2W(JW+1,K)*(W-JW)
-      end do; end do
-C****
-C**** Read in GCM atmospheric mass for October
-C****
-c     OPEN (2,FILE='AIJX011.O',FORM='UNFORMATTED',STATUS='OLD')
-   !  call openunit('OCTAirMass',iu_in)
-   !  READ  (iu_in)
-   !  READ  (iu_in) TITLE,AMASS  !! in kg/m**2
-   !  call closeunit(iu_in)
-   !  WRITE (6,*) 'Read: ',TITLE
-C****
-C**** Interpoate CO2J to CO2IJL on GCM grid boxes conserving vertical
-C**** means
-C****
-C**** psf, ptrop, pdn ..... in pascals (mb*100)
-      ptrop = ptop*100.
-    ! STRATM = 101.9368   ! (kg/m**2)(10 mb x 100)/grav
-      DO 440 J=1,JM
-      DO 440 I=1,IM
-    ! PDN = (AMASS(I,J)*SIGE(1)+STRATM)*GRAV
-      PDN = pedn(1,i,j)*100.
-      psurf = pdn
-      CDN = CO2JK(J,0)
-      K=1
-      DO 430 L=1,LM
-      PSUM = 0.
-      CSUM = 0.
-      if (l.eq.ls1) psurf = psf*100.
-      PUP  =  SIGE(L+1)*(psurf-ptrop)+ptrop
-  410 IF(P(K).LE.PUP)  GO TO 420
-      PSUM = PSUM +  PDN-P(K)
-      CSUM = CSUM + (PDN-P(K))*(CDN+CO2JK(J,K))/2.
-      PDN  = P(K)
-      CDN  = CO2JK(J,K)
-      K=K+1
-      if (k.gt.kmw) stop ' Please increase kmw in get_14CO2_IC'
-      GO TO 410
-C****
-  420 CUP  = CO2JK(J,K) + (CO2JK(J,K-1)-CO2JK(J,K))*(PUP-P(K))/
-     /       (P(K-1)-P(K))
-      PSUM = PSUM +  PDN-PUP
-      CSUM = CSUM + (PDN-PUP)*(CDN+CUP)/2.
-      CO2IJL(I,J,L) = CSUM/PSUM
-      PDN = PUP
-  430 CDN = CUP
-  440 CONTINUE
-C****
-C**** Scale data to proper units (10**-18 kg 14CO2/kg air)
-C****
-      CO2IJL(:,:,:) = CO2IJL(:,:,:)*4.82d0*(14.+16.*2.)/29.029d0
-      RETURN
-C****
-  911 FORMAT (5X,13F5.0)
-  912 FORMAT (5X,12F5.0)
-      END SUBROUTINE get_14CO2_IC
-
-
-      SUBROUTINE Trop_chem_CH4(n,ns)
-!@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
-!@+     by applying a pre-determined chemical loss rate
-!@auth Jean Lerner
-      USE TRACER_COM
-      USE DYNAMICS, only: ltropo
-      USE MODEL_COM, only: im,jm,lm,ls1,byim,jyear,jhour,jday,itime
-      USE GEOM, only: imaxj
-      USE FLUXES, only: tr3Dsource
-      USE FILEMANAGER, only: openunit,closeunit
-      implicit none
-      integer n,ns,i,j,l,ifile
-      REAL*4 frqlos(im,jm,ls1),taux
-      real*8 tauy,tune
-      parameter (tune = 445./501.)
-      logical, save :: ifirst=.true.
-      save frqlos,tauy
-
-C**** Read chemical loss rate dataset (5-day frequency)
-      if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
-      if (jhour.ne.0 .and. .not.ifirst) go to 550
-      ifirst = .false.
-      call openunit('CH4_TROP_FRQ',ifile,.true.,.true.)
-  510 continue
-      read (ifile,end=515) taux,frqlos
-      tauy = nint(taux)+(jyear-1950)*8760.
-      IF (itime+ 60..gt.tauy+120.) go to 510
-      IF (itime+180..le.tauy+120.) then
-        write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,JYEAR
-        STOP 'PROBLEM MATCHING itime ON FLUX FILE'
-      end if
-      rewind (ifile)
-      go to 518
-C**** FOR END OF YEAR, USE FIRST RECORD
-  515 continue
-      rewind (ifile)
-      read (ifile,end=515) taux,frqlos
-      rewind (ifile)
-      tauy = nint(taux)+(jyear-1950)*8760.
-  518 continue
-      call closeunit(ifile)
-      WRITE(6,'(A,2F10.0,2I10)')
-     * ' *** CHEMICAL LOSS RATES READ FOR TAUX,TAUY,itime,JYEAR=',
-     * TAUX,TAUY,itime,JYEAR
-C**** AVERAGE POLES
-      do l=1,ls1
-        frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
-        frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
-      end do
-C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
-      frqlos(:,:,:) = frqlos(:,:,:)*tune
-C**** Apply the chemistry
-  550 continue
-      do j=1,jm
-      do i=1,imaxj(j)
-        do l = 1,ltropo(i,j)
-          if (l.le.ls1) 
-     *     tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
-        end do
-      end do
-      end do
-!     IF (jhour.eq.0.) write(6,'(a,i10,F10.0)') 
-!    *  ' Tropo chem for CH4 performed',itime,TAUY
-      return
-      END SUBROUTINE Trop_chem_CH4
-
-
-      SUBROUTINE Trop_chem_O3(n,ns)
-!@sum Trop_chem_O3 calculates tropospheric chemistry for O3
-!@auth Jean Lerner
-      USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
-      implicit none
-      integer n,ns
-      return
-      END SUBROUTINE Trop_chem_O3
-
-
-      SUBROUTINE Strat_chem_O3(n,ns)
-!@sum Trop_chem_O3 calculates stratospheric chemistry for O3
-!@auth Jean Lerner
-      USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
-      implicit none
-      integer n,ns
-      return
-      END SUBROUTINE Strat_chem_O3
-
-
-      SUBROUTINE Strat_chem_Prather(n,ns)
-!@sum Strat_chem_Prather calculates stratospheric chemistry for 
-!@+        CFC, N2O and CH4
-!@auth Michael Prather (J.Lerner adopted code)
-      USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
-      implicit none
-      integer n,ns
-      return
-      END SUBROUTINE Strat_chem_Prather
 
 #endif
 
