@@ -7,12 +7,13 @@
 #           output_dir - a directory were to write HTML files
 
 use Getopt::Long;         #module to process command line options
-use Shell qw(date cp);    #module to use shell commands
+use Shell qw(date cp ls);    #module to use shell commands
 
-#some global definitions:
+# defaults for some global definitions:
 
-$output_dir = "./";
+$output_dir = ".";
 $doc_dir = "../doc";
+$run_name = "";
 
 #some useful patterns
 
@@ -35,14 +36,34 @@ print "$some_decl\n";
 #GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
 #                       || die "problem in GetOptions";
 
-GetOptions("D=s") || die "problem in GetOptions";
+GetOptions("D=s", "O=s", "R=s") || die "problem in GetOptions";
 
-if( $opt_D ) {
-    $output_dir = $opt_D;
+if( $opt_O ) {
+    $output_dir = $opt_O;
     $output_dir =~ s/\/?\s*$//;
 }
 
+if( $opt_D ) {
+    $doc_dir = $opt_D;
+    $doc_dir =~ s/\/?\s*$//;
+}
+
+if( $opt_R ) {
+    $run_name = $opt_R;
+}
+
+
 print "will write output to: $output_dir\n";
+
+# define some useful global variablers
+
+$current_date = date();
+$pwd = `pwd`; chop $pwd;
+$abs_doc_dir = $doc_dir; $abs_doc_dir =~ s/^(?!\/)/$pwd\//;
+$abs_output_dir = $output_dir; $abs_output_dir =~ s/^(?!\/)/$pwd\//;
+$path_doc_output = relpath($abs_doc_dir,$abs_output_dir);
+$path_output_doc = relpath($abs_output_dir,$abs_doc_dir);
+if ( ! $run_name ) { $run_name = $output_dir; }
 
 #init global hashes:
 %db_vars = {};       #var name: module:sub:var
@@ -50,6 +71,11 @@ print "will write output to: $output_dir\n";
 %db_modules = {};
 %db_files = {};
 
+
+if ( $#ARGV < 0 ) {
+    print_main_index();
+    exit;
+}
 
 while( $current_file = shift ) {
     open(SRCFILE, $current_file) or die "can't open $current_file\n";
@@ -59,73 +85,10 @@ while( $current_file = shift ) {
 
 postprocess_lists();
 
-#print " PRINTING INFO \n";
-
-#while ( ($name,$ref) = each %db_subs ) {
-#    print "subroutine: $name\n";
-#    print "Comment: $$ref{sum}\n";
-#    print "Author: $$ref{auth}\n";
-#    print "Version: $$ref{ver}\n";
-#}
-
-#print " PRINTING VARIABLES \n";
-
-#foreach $name ( sort keys %db_vars ) {
-#    print "$name\n";
-#    print "    declaration: $db_vars{$name}{decl}\n";
-#    print "    value      : $db_vars{$name}{value}\n";
-#    print "    description: $db_vars{$name}{sum}\n"; 
-#}
-
 # printing output to html files
 
-print  "printing index\n";
-htm_start("index.html","GISS GCM Documentation Index");
-print HTM '<H5><Center>GISS GCM Documentation Index</Center></H5>'."\n";
-print HTM "<HR>\n";
-
-print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
-htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
-print HTM "<BR>\n";
-htm_link("HOW-TO document for the GCM","HOWTO.html"); 
-print HTM "<BR>\n";
-
-print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
-print HTM "<a href=\"http://simplex/cgi-bin/cvsweb.cgi/modelE/\">\n";
-print HTM "View source code in the repository</a>";
-print HTM " for latest updates e.t.c.<BR>\n";
-
-
-print HTM "<P>\n";
-print HTM '<H3><Center>Dynamic Source Code Documentation</Center></font></H3>'."\n";
-
-htm_link("Source Files","files.html"); print HTM "<BR>\n";
-htm_link("Fortran Modules","modules.html"); print HTM "<BR>\n";
-htm_link("Database Variables","vars_db.html"); print HTM "<BR>\n";
-htm_link("Namelist Variables","vars_nl.html"); print HTM "<BR>\n";
-htm_link("Global Variables ( LONG! )","vars_global.html"); print HTM "<BR>\n";
-htm_link("ALL Variables ( LONG! )","vars_all.html"); print HTM "<BR>\n";
-
-htm_end();
-
-print  "copying FAQ and HOWTO\n";
-cp("$doc_dir/FAQ.html", "$output_dir/FAQ.html");
-cp("$doc_dir/HOWTO.html", "$output_dir/HOWTO.html");
-#htm_start("FAQ.html","FAQ");
-#htm_link("Index","index.html");
-#open(DOCFILE, "$doc_dir/FAQ.txt") or die "can't open $doc_dir/FAQ.txt\n";
-#htm_incl_file();
-#close DOCFILE;
-#htm_end();
-#htm_start("HOWTO.html","FAQ");
-#htm_link("Index","index.html");
-#open(DOCFILE, "$doc_dir/HOWTO.txt") or die "can't open $doc_dir/HOWTO.txt\n";
-#htm_incl_file();
-#close DOCFILE;
-#htm_end();
-
-htm_start("files.html","GCM Source Files");
-htm_link("Index","index.html");
+print  "printing file list\n";
+htm_start("$output_dir/files.html","GCM Source Files");
 print HTM '<H3><Center>FILES</Center></font></H3>'."\n";
 print HTM "<dl>\n";
 foreach $name ( sort keys %db_files ) {
@@ -150,8 +113,8 @@ foreach $name ( sort keys %db_files ) {
 print HTM "</dl>\n";
 htm_end();
 
-htm_start("modules.html","GCM Fortran Modules");
-htm_link("Index","index.html");
+print  "printing module list\n";
+htm_start("$output_dir/modules.html","GCM Fortran Modules");
 print HTM '<H3><Center>MODULES</Center></font></H3>'."\n";
 print HTM "<dl>\n";
 foreach $name ( sort keys %db_modules ) {
@@ -167,8 +130,7 @@ htm_end();
 
 print  "printing variables\n";
 
-htm_start("vars_db.html","GCM ALL Variables");
-htm_link("Index","index.html");
+htm_start("$output_dir/vars_db.html","GCM ALL Variables");
 print HTM '<H3><Center>List of Database Variables</Center></font></H3>'."\n";
 @var_list = ();
 foreach $name ( keys %db_vars ) {
@@ -179,8 +141,7 @@ foreach $name ( keys %db_vars ) {
 htm_prt_vars( "sl", @var_list );
 htm_end();
 
-htm_start("vars_nl.html","GCM ALL Variables");
-htm_link("Index","index.html");
+htm_start("$output_dir/vars_nl.html","GCM ALL Variables");
 print HTM '<H3><Center>List of Namelist Variables</Center></font></H3>'."\n";
 @var_list = ();
 foreach $name ( keys %db_vars ) {
@@ -191,8 +152,7 @@ foreach $name ( keys %db_vars ) {
 htm_prt_vars( "sl", @var_list );
 htm_end();
 
-htm_start("vars_global.html","GCM ALL Variables");
-htm_link("Index","index.html");
+htm_start("$output_dir/vars_global.html","GCM ALL Variables");
 print HTM '<H3><Center>List of All Global Variables</Center></font></H3>'."\n";
 @var_list = ();
 foreach $name ( keys %db_vars ) {
@@ -205,8 +165,7 @@ htm_prt_vars( "sl", @var_list );
 htm_end();
 
 
-htm_start("vars_all.html","GCM ALL Variables");
-htm_link("Index","index.html");
+htm_start("$output_dir/vars_all.html","GCM ALL Variables");
 print HTM '<H3><Center>List of All Variables</Center></font></H3>'."\n";
 htm_prt_vars( "sl", keys %db_vars );
 htm_end();
@@ -214,8 +173,7 @@ htm_end();
 print  "printing files\n";
 
 foreach $name ( keys %db_files ) {
-    htm_start("$name.html","$name");
-    htm_link("Index","index.html");
+    htm_start("$output_dir/$name.html","$name");
     print HTM "<H3><Center>$name</Center></font></H3>\n";
     #$str = $db_files{$name}{sum};
     #$str =~ s/>/&gt;/g; $str =~ s/</&lt;/g; 
@@ -254,8 +212,7 @@ foreach $name ( keys %db_files ) {
 print "printing modules\n";
 
 foreach $name ( keys %db_modules ) {
-    htm_start("$name.html","$name");
-    htm_link("Index","index.html");
+    htm_start("$output_dir/$name.html","$name");
     print HTM "<table width=\"100%\">\n";
     print HTM "<tr align=center>";
     print HTM "<td><H3>$name</font></H3><td>\n";
@@ -321,8 +278,7 @@ foreach $name ( keys %db_modules ) {
 
 print "printing sub's\n";
 foreach $name ( keys %db_subs ) {
-    htm_start("$name.html","$name");
-    htm_link("Index","index.html");
+    htm_start("$output_dir/$name.html","$name");
     #if ( ! $name =~ /([^:]*):([^:]*)/ ) { 
 	#print "wrong sub name: $name\n"; next; };
     $sub_name = $name; $sub_name =~ s/^.*://;
@@ -376,15 +332,111 @@ foreach $name ( keys %db_subs ) {
     }
     print HTM "</dl>\n";
     htm_end();
+
+}
+
+print_index();
+print_main_index();
+
+print "done\n";
+print "to view the documentation do: \"netscape $abs_doc_dir/index.html\"\n";
+
+
+#### this is the end of the main program ######
+
+sub abs_path {
+    my $rel_path;
+}
+
+
+sub relpath {
+  my ($src,$dst) = @_;
+  $src =~ s/[^\/]*\/\.\.\///g;
+  $src =~ s/^(?!\/)/\//;
+  $src =~ s/\/+$//;
+  $dst =~ s/[^\/]*\/\.\.\///g;
+  $dst =~ s/^(?!\/)/\//;
+  $dst =~ s/\/+$//;
+  my $back = 0;
+  while(1) {    # relative path
+    return '../'x$back.$1 if $dst =~ /$src\/(.*)/;
+    $src =~ s/\/[^\/]*$//;
+   $back++;
+  }
 }
 
 
 
-print "done\n";
-print "to view the documentation do: \"netscape $output_dir/index.html\"\n";
+
+sub print_main_index {
+    my %run_index = {};
+    print  "printing main index\n";
+    if ( open ( IND, "$doc_dir/index.html" ) ) {
+	while ( <IND> ) {
+	    if ( /<!rundeck!><a href=\"([^"]+)\">([^<]+)</ ) { #"))){
+	    #if ( /<!rundeck!>/ ) {
+		#print "parsing index: $1 $2\n";
+		$run_index{$2} = $1;
+	    }
+	}
+    }
+    $run_index{ $run_name } = $path_doc_output."/index.html";
+
+    #print "doc, out, rel\n";
+    #print "$abs_doc_dir\n";
+    #print "$abs_output_dir\n";
+    #print relpath($abs_doc_dir,$abs_output_dir)."\n";
+
+    htm_start0("$doc_dir/index.html","GISS GCM Documentation Index");
+    print HTM '<H5><Center>GISS GCM Documentation Index</Center></H5>'."\n";
+    print HTM "<HR>\n";
+
+    print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
+    htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
+    print HTM "<BR>\n";
+    htm_link("HOW-TO document for the GCM","HOWTO.html"); 
+    print HTM "<BR>\n";
+    htm_link("Options for running the GISS GCM","OPTIONS.html"); 
+    print HTM "<BR>\n";
+
+    print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
+    print HTM "<a href=\"http://simplex/cgi-bin/cvsweb.cgi/modelE/\">\n";
+    print HTM "View source code in the repository</a>";
+    print HTM " for latest updates e.t.c.<BR>\n";
 
 
-#### this is the end of the main program ######
+    print HTM "<P>\n";
+    print HTM '<H3><Center>Dynamic Source Code Documentation</Center></font></H3>'."\n";
+
+    #print HTM "<!rundeck!>";
+    #htm_link("new","$output_dir/index.html"); print HTM "<BR>\n";
+    
+    foreach my $run ( sort keys %run_index ) {
+	#print "testing: $run $run_index{$run}\n";
+	if ( ! -f "$doc_dir/$run_index{$run}" ) { next; }
+	print HTM "Rundeck: \n";
+	print HTM "<!rundeck!>";
+	htm_link($run,$run_index{$run}); print HTM "<BR>\n";
+    }
+    htm_end();
+ 
+}
+
+sub print_index {
+    print  "printing index\n";
+    htm_start("$output_dir/index.html","Rundeck Documentation Index");
+    print HTM '<H3><Center>Dynamic Source Code Documentation</Center></font></H3>'."\n";
+
+    htm_link("Source Files","files.html"); print HTM "<BR>\n";
+    htm_link("Fortran Modules","modules.html"); print HTM "<BR>\n";
+    htm_link("Database Variables","vars_db.html"); print HTM "<BR>\n";
+    htm_link("Namelist Variables","vars_nl.html"); print HTM "<BR>\n";
+    htm_link("Global Variables ( LONG! )","vars_global.html"); print HTM "<BR>\n";
+    htm_link("ALL Variables ( LONG! )","vars_all.html"); print HTM "<BR>\n";
+
+    htm_end();
+ 
+}
 
 
 sub postprocess_lists {
@@ -492,15 +544,33 @@ sub htm_prt_vars { # print list of variables
 
 }
 
-sub htm_start {
+sub htm_start0 {
     my $filename = shift;
     my $title = shift;
-    open ( HTM, ">$output_dir/$filename" ) || die "can't open $filename";
+    open ( HTM, ">$filename" ) || die "can't open $filename";
     print HTM "<html>\n";
     print HTM "<head>\n";
     print HTM "<TITLE>$title</TITLE>\n";
     print HTM "</head>\n";
     print HTM '<body BGCOLOR="#FFFFFF"TEXT="#000000">'."\n";
+}
+
+sub htm_start {
+    my $filename = shift;
+    my $title = shift;
+    htm_start0( $filename, $title );
+    print HTM "<table width=\"100%\">\n";
+    print HTM "<tr align=left>";
+    print HTM "<td>";
+    htm_link("Index","$path_output_doc/index.html");
+    print HTM "</td><td>";
+    print HTM "Rundeck: ";
+    htm_link($run_name,"index.html");
+    print HTM "</td><td align=right>";
+    print HTM "<i>Created: $current_date</i>";
+    print HTM "</td>";
+    print HTM "</tr>";
+    print HTM "</table>\n";
 }
 
 sub htm_end {
