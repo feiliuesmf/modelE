@@ -31,6 +31,7 @@ c
 #endif
       USE CONSTANT, only: radian,gasc,mair,mb2kg,pi
       USE TRACER_DIAG_COM, only : jls_N2O5sulf,tajls,taijs,ijs_JH2O2
+     &                           ,ijs_NO3
       USE TRCHEM_Shindell_COM
 c
       IMPLICIT NONE
@@ -801,6 +802,10 @@ C
          endif
          if(error)call stop_model('nighttime chem: big changes',255)
 C
+C ACCUMULATE 3D NO3 diagnostic: -------------------
+         if (yNO3(I,J,L).gt.0.d0 .and. yNO3(I,J,L).lt.1.d20)
+     &   taijs(i,j,ijs_NO3(l))=taijs(i,j,ijs_NO3(l))+y(nNO3,l)
+C -------------------------------------------------
        enddo  ! troposphere loop
 C
 #ifdef SHINDELL_STRAT_CHEM
@@ -1150,8 +1155,7 @@ c Save new tracer Ox field, in case interactive ozone is used:
      &  *bydxyp(j)*byO3MULT
 !      
 #ifdef SHINDELL_STRAT_CHEM
-        DU_O3(J)=0.d0! this used to be updated with radiation O3 value
-        call stop_model('masterchem needs attention.',255)
+        DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
 #endif
 c
       END DO       ! end current altitude loop
@@ -1159,9 +1163,12 @@ C Since o3_tracer_save only got filled up to LL, need to fill
 C the rest with the values from the radiation? right?
       DO L=LL+1,LM
         o3_tracer_save(l,i,j)=O3_rad_save(l,i,j)
+#ifdef SHINDELL_STRAT_CHEM
+        DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
+#endif
       END DO
 C
-CC    if(checktracer_on) call checktracer(I,J)
+      if(checktracer_on) call checktracer(I,J)
 c
       END DO ! >>>> MAIN I LOOP ENDS <<<<
 c
@@ -1580,17 +1587,25 @@ C check if ozone gets really big in the troposphere:
        IF(checkOx) THEN
        do L=1,LTROPO(I,J)
          if(y(n_Ox,L)/y(nM,L).gt.1.d-5) then
-           write(6,*)'Ox @ I,J,L,Ox,tau:',I,J,L,y(n_Ox,L),Itime
+           write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
            call stop_model('checktracer: Ox too big in tropo.',255)
          end if
        end do
+#ifdef SHINDELL_STRAT_CHEM
+       do L=LTROPO(I,J),LM
+         if(y(n_Ox,L)/y(nM,L).gt.1.5d-5) then
+           write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
+           call stop_model('checktracer: Ox too big in strato.',255)
+         end if
+       end do
+#endif
        END IF
 c general check on maximum of tracers:
       IF(checkmax) THEN
       do L=1,LM
        do igas=1,nlast
         if(y(igas,L)/y(nM,L).gt.tlimit(igas)) then
-          write(6,*) trname(igas),'@ I,J,L,Ox :',I,J,L,y(igas,L)
+          write(6,*) trname(igas),'@ I,J,L,Y :',I,J,L,y(igas,L)
           call stop_model('checktracer: tracer upper limit',255)
         end if
        end do
