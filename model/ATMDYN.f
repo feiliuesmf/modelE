@@ -7,6 +7,9 @@
 
       public init_ATMDYN, DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK
+#ifdef TRACERS_ON
+     &     ,trdynam
+#endif
 
       contains
 

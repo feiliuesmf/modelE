@@ -21,6 +21,9 @@
       USE DIAG_SERIAL, only : print_diags
       USE ATMDYN, only : DYNAM,QDYNAM,CALC_TROP,PGRAD_PBL
      &     ,DISSIP,FILTER,CALC_AMPK
+#ifdef TRACERS_ON
+     &     ,trdynam
+#endif
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
