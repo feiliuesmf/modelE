@@ -179,6 +179,7 @@ C**** Local variables initialised in init_RAD
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
      *         ,lhead,Kradia,irsficnt,irsficno
       USE RADNCB
+      USE PARAM
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
