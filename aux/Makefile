@@ -24,7 +24,7 @@ NCLIB	= /usr/local/netcdf-3.4/lib64/libnetcdf.a
 
 # list of targets to be built by default
 all: $(BIN_DIR)/qc $(BIN_DIR)/CMPE001 $(BIN_DIR)/conv_rsf
-all: $(BIN_DIR)/acc2nc
+all: $(BIN_DIR)/acc2nc $(BIN_DIR)/conv_gic
 
 # include file with implicit rules
 include $(MODEL_DIR)/Rules.make
@@ -44,6 +44,11 @@ $(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
 	$(F90) $(FFLAGS) -o $@ $^
 
 conv_rsf.o: $(GCMLIB)
+
+$(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
+	$(F90) $(FFLAGS) -o $@ $^
+
+conv_gic.o: $(GCMLIB)
 
 $(BIN_DIR)/qc: qc.o $(GCMLIB)
 	$(F90) $(FFLAGS) -o $@ $^
