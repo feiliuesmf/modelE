@@ -185,7 +185,7 @@ C**** parse options
 #ifdef CONVERT_BIGENDIAN
      *       CONVERT='BIG_ENDIAN',
 #endif
-     *       RECL=65536, ERR=10 )
+     *       RECL=65534, ERR=10 )
       else
         open( iunit, FILE=filename, FORM=form, STATUS=status,
 #ifdef CONVERT_BIGENDIAN
