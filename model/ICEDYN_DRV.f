@@ -470,6 +470,13 @@ C**** Update halo for HEFF
         COR(I,J)=AMASS(I,J)*2.0*OMEGA*SINEN(I,J)
       END DO
       END DO
+c**** set north pole
+      if (grid%HAVE_NORTH_POLE) then
+        do i=1,nx1
+          AMASS(i,jm)= RHOI*HEFF(1,JM) 
+          COR  (i,jm)= AMASS(i,jm)*2.0*OMEGA*SINEN(1,JM)
+        end do
+      end if                    !end NORTH_POLE block if
 
 c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
@@ -505,7 +512,7 @@ c**** set north pole
           GWATY(i,jm)=0.
           PGFVB(i,jm)=0.
         enddo
-       end if  !end NORTH_POLE block if
+      end if                    !end NORTH_POLE block if
       DO J=J_0NXY,J_1NXY
         UIB(nx1-1,J)=UIB(1,J)
         VIB(nx1-1,J)=VIB(1,J)
@@ -519,7 +526,7 @@ c**** set north pole
         GWATY(nx1,J)=GWATY(2,J)
         PGFUB(nx1,J)=PGFUB(2,J)
         PGFVB(nx1,J)=PGFVB(2,J)
-      ENDDO
+      END DO
 
 c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
@@ -540,10 +547,10 @@ C**** Update halo for USI,UOSURF,PGFU
         enddo
       enddo
       IF (grid%HAVE_NORTH_POLE) THEN
-        GAIRX(1:im,jm)=dmua(1,jm,2)*bydts
-        GAIRY(1:im,jm)=dmva(1,jm,2)*bydts
+        GAIRX(1:nx1,jm)=dmua(1,jm,2)*bydts
+        GAIRY(1:nx1,jm)=dmva(1,jm,2)*bydts
       END IF
-      do j=J_0NXY,J_1NXY
+      do j=J_0NXY,J_1NXYS
        GAIRX(nx1-1,j)=GAIRX(1,j)
        GAIRY(nx1-1,j)=GAIRY(1,j)
        GAIRX(nx1,j)=GAIRX(2,j)
@@ -569,12 +576,16 @@ C**** Calculate stress on ice velocity grid (B grid)
       DO J=J_0NXY,J_1NXY
         hemi=-1.
         if (J.gt.NY1/2) hemi=1.
-        DO I=1,NX1
+        DO I=1,NX1-1
           DMU(i,j)=DTS*dwatn(i,j)*(COSWAT*(UICE(i,j,1)-GWATX(i,j))-
      *         HEMI*SINWAT*(VICE(i,j,1)-GWATY(i,j)))
           DMV(i,j)=DTS*dwatn(i,j)*(HEMI*SINWAT*(UICE(i,j,1)-GWATX(i,j))
      *         +COSWAT*(VICE(i,j,1)-GWATY(i,j)))
         END DO
+      END DO
+      DO J=J_0NXY,J_1NXY
+        DMU(1,J)=DMU(NX1-1,J)
+        DMU(NX1,J)=DMU(2,J)
       END DO
 
 C**** interpolate ice velocity and stress from B grid to C grid in atm
