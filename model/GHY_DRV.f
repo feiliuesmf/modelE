@@ -88,11 +88,11 @@ c****
       real*8, dimension(im,jm) :: prcss
       common /workls/prcss
 c**** interface to pbl
-      real*8 zs1,tgv,tkv,qg,hemi,dtsurf,us,vs,ws,tsv,qsrf,psi,dbl,edvisc
-     *     ,eds1,kq,ppbl,ug,vg,wg,zmix
+      real*8 zs1,tgv,tkv,qg,hemi,dtsurf,us,vs,ws,wsh,wsq,tsv,qsrf,psi
+     *     ,dbl,edvisc,eds1,kq,ppbl,ug,vg,wg,zmix
       logical pole
       common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
-      common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,kq,
+      common /pblout/us,vs,ws,wsh,wsq,tsv,qsrf,psi,dbl,edvisc,eds1,kq,
      *     ppbl,ug,vg,wg,zmix
 
 #ifdef TRACERS_ON
@@ -277,14 +277,14 @@ c***
       cdq = cqgs(i,j,itype)
 c***********************************************************************
 c**** calculate qs
-      dhgs=(zmix-zgs)*cdh*ws
-c****    dqgs=(zmix-zgs)*cdq*ws
+c      dhgs=(zmix-zgs)*cdh*wsh
+c      dqgs=(zmix-zgs)*cdq*wsq
       qs=qsrf
       ts=tsv/(1.+qs*deltx)
 c**** calculate rhosrf*cdm*ws
       rhosrf=100.*ps/(rgas*tsv)
       rcdmws=cdm*ws*rhosrf
-      rcdhws=cdh*ws*rhosrf
+      rcdhws=cdh*wsh*rhosrf
 c**** calculate fluxes of sensible heat, latent heat, thermal
 c****   radiation, and conduction heat (watts/m**2)
 c      snht=-sha*rcdhws*(ts-tg)  ! -not used

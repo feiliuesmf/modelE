@@ -29,6 +29,8 @@ C
 !@var US     = x component of surface wind, postive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
 !@var WS     = magnitude of the surface wind (m/s)
+!@var WSH    = magnitude of the surface wind needed for heat flux (m/s)
+!@var WSQ    = magnitude of the surface wind needed for moisture (m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
 !@var QS     = surface value of the specific moisture
 !@var PSI    = angular diff. btw geostrophic and surface winds (rads)
@@ -69,13 +71,13 @@ C --------------------------------------------------------------------
       REAL*8 KMSURF,KHSURF,KQSURF
       LOGICAL POLE
 
-      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF
-      REAL*8 US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,USTAR,PPBL,
+      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,USURFH,USURFQ
+      REAL*8 US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,USTAR,PPBL,
      2               CM,CH,CQ,UG,VG,WG,ZMIX, TS
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,
+      COMMON /PBLOUT/US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,
      2               UG,VG,WG,ZMIX
 #ifdef TRACERS_ON
 C**** Tracer input/output common block
@@ -227,7 +229,7 @@ c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
       call advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
      2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,
+     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,usurfh,usurfq,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
@@ -253,6 +255,8 @@ c1003 format(a,4(1pe14.4))
       cqgs(i,j,itype)=cq
       ipbl(i,j,itype)=1
 
+      wsh   =usurfh
+      wsq   =usurfq
       ws    =sqrt(us*us+vs*vs)
       wg    =sqrt(ug*ug+vg*vg)
       km    =kmsurf

@@ -60,7 +60,7 @@ C**** boundary layer parameters
 
       subroutine advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
      2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
-     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,
+     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,usurfh,usurfq,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
@@ -94,6 +94,8 @@ c   output:
 !@var  kmsurf  surface value of km
 !@var  khsurf  surface value of kh
 !@var  kqsurf  surface value of kq
+!@var  usurfh magnitude of the surface wind needed for heat flux (m/s)
+!@var  usurfq magnitude of the surface wind needed for moisture (m/s)
 !@var  ustar  friction speed
 !@var  zmix  magic quantity needed in surfce
 !@var  cm  dimensionless momentum flux at surface (drag coeff.)

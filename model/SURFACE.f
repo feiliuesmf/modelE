@@ -72,12 +72,13 @@
       REAL*8 QSAT,DQSATDT,TOFREZ
 
 C**** Interface to PBL
-      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,TSV,QS,PSI,DBL,KM,KH,
-     *     KQ,PPBL,UG,VG,WG,ZMIX
+      REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL
+     *     ,KM,KH,KQ,PPBL,UG,VG,WG,ZMIX
       LOGICAL POLE
       COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,UG,VG,WG,ZMIX
+      COMMON /PBLOUT/US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,UG,VG
+     *     ,WG,ZMIX
 
 #ifdef TRACERS_ON
 C**** Tracer input/output common block for PBL
@@ -365,8 +366,8 @@ C =====================================================================
       CM = cmgs(i,j,itype)
       CH = chgs(i,j,itype)
       CQ = cqgs(i,j,itype)
-      DHGS=(ZMIX-ZGS)*CH*WS
-      DQGS=(ZMIX-ZGS)*CQ*WS
+      DHGS=(ZMIX-ZGS)*CH*WSH
+      DQGS=(ZMIX-ZGS)*CQ*WSQ
       DGS =DQGS
 C =====================================================================
       TS=TSV/(1.+QS*deltx)
@@ -374,8 +375,8 @@ C**** CALCULATE RHOS*CM*WS AND RHOS*CH*WS
 3500  CONTINUE
       RHOSRF=100.*PS/(RGAS*TSV)
       RCDMWS=CM*WS*RHOSRF
-      RCDHWS=CH*WS*RHOSRF
-      RCDQWS=CQ*WS*RHOSRF
+      RCDHWS=CH*WSH*RHOSRF
+      RCDQWS=CQ*WSQ*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SHEAT=SHA*RCDHWS*(TS-TG)
