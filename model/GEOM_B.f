@@ -9,7 +9,7 @@
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
 C**** vertices of the A grid
-C**** Polar boxes have different latitudinal size and are treated 
+C**** Polar boxes have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
 
 !@param  DLON grid spacing in longitude (deg)
@@ -18,14 +18,14 @@ C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@param  DLAT grid spacing in latitude (deg)
       REAL*8  :: DLAT    !=.5*TWOPI/(JM-1)
-!@param  FJEQ equatorial value of J 
+!@param  FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
 
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
-!@var  JLAT latitude of mid points of primary and secondary grid boxs (degrees)
+!@var  JLAT latitude of mid points of primary and sec. grid boxs (deg)
       INTEGER, DIMENSION(JM,2) :: JLAT
-!@var  LON longitude of mid points of primary and secondary grid boxs (degrees)
+!@var  LON longitude of mid points of primary and sec. grid boxs (deg)
       REAL*8, DIMENSION(IM,2) :: LON
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
@@ -39,22 +39,22 @@ C**** some B-grid conseravtion quantities
 !@var  DXYV area of grid box around a velocity point (m^2)
       REAL*8, DIMENSION(JM) :: DXYV
 
-!@var  DXP,DYP distance between points on primary grid  
+!@var  DXP,DYP distance between points on primary grid
       REAL*8, DIMENSION(JM) :: DXP,DYP
 !@var  DXP,DYP distance between velocity points (secondary grid)
       REAL*8, DIMENSION(JM) :: DXV,DYV
-!@var  DXYN,DXYS half box areas to the North and South of primary grid point
+!@var  DXYN,DXYS half box areas to the North,South of primary grid point
       REAL*8, DIMENSION(JM) :: DXYS,DXYN
-!@var  SINP sin of latitude at primary grid points 
+!@var  SINP sin of latitude at primary grid points
       REAL*8, DIMENSION(JM) :: SINP
-!@var  COSP, COSV cos of latitude at primary, secondary latitudes 
+!@var  COSP, COSV cos of latitude at primary, secondary latitudes
       REAL*8, DIMENSION(JM) :: COSP,COSV
-!@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and secondary grid
+!@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
 !@var  RAJ scaling to get A grid velocities to B grid points
 !      as function of latitude j
-      REAL*8, DIMENSION(IM,JM) :: RAJ 
+      REAL*8, DIMENSION(IM,JM) :: RAJ
 !@var  IDJJ J index of adjacent velocity points for A grid points
 !      as function of latitude j
       INTEGER, DIMENSION(IM,JM) :: IDJJ
@@ -63,7 +63,7 @@ C**** some B-grid conseravtion quantities
       INTEGER, DIMENSION(IM,IM,JM) :: IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
-!@var  IMAXJ varying number of used longitudes 
+!@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JM) :: IMAXJ
 
 !@var  FCOR latitudinally varying coriolis parameter
@@ -135,12 +135,12 @@ c      USE E001M12_COM
       END DO
 C**** LONGITUDES (degrees); used in ILMAP
       LON(1,1) = -180.+360./(2.*FLOAT(IM))
-      LON(1,2) = -180.+360./    FLOAT(IM)  
+      LON(1,2) = -180.+360./    FLOAT(IM)
       DO I=2,IM
          LON(I,1) = LON(I-1,1)+360./FLOAT(IM)
          LON(I,2) = LON(I-1,2)+360./FLOAT(IM)
       END DO
-C**** LATITUDES (degrees); used extensively in the diagnostic print routines
+C**** LATITUDES (degrees); used extensively in the diagn. print routines
       DO J=1,JM
         JLAT(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
         JLAT(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
@@ -166,7 +166,7 @@ c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       END DO
 
 C**** Set indexes and scalings for the influence of A grid points on
-C**** adjacent velocity points 
+C**** adjacent velocity points
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1

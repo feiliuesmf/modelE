@@ -2,8 +2,8 @@
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from PBLB336E)
-!@cont pbl,advanc,stars,getl1,getl2,dflux,simil,getb,griddr
-!@cont tfix,ccoeff0,getk,trislv,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
+!@cont pbl,advanc,stars,getl1,getl2,dflux,simil,getb,griddr,tfix
+!@cont ccoeff0,getk,trislv,eeqns,tqeqns,uveqns,tqeqns_sta,uveqns_sta
 !@cont getk_old,elevl2,inits,tcheck,ucheck,check1,output,zbrent
 
 C --------------------------------------------------------------------
@@ -24,7 +24,7 @@ C**** boundary layer parameters
       real*8, parameter :: kappa=0.40  !@var kappa  Von Karman constant
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
-C**** model related constants (should be taken directly from E001M12_COM)
+C**** model related constants (should really be taken from E001M12_COM)
       real*8, parameter :: grav=9.81   !@var grav gravitational accel.
       real*8, save :: omega2          !@var omega2 2*omega (s^-1)
 
@@ -43,7 +43,7 @@ c@var bgrid log-linear gridding parameter
      2                  z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
      3                  qgrnd,zgs,ztop,zmix,dtime,ufluxs,vfluxs,
      4                  tfluxs,qfluxs,ilong,jlat,itype)
-!@sum   advanc  time steps the solutions for the boundary layer variables
+!@sum  advanc  time steps the solutions for the boundary layer variables
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c ----------------------------------------------------------------------
@@ -133,7 +133,7 @@ c    compared to full simulation for z=[10.,3000.] and n=128.
 c ----------------------------------------------------------------------
 c ----------------------------------------------------------------------
       implicit none
- 
+
       real*8 us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
      2     z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
      3     qgrnd,zgs,ztop,zmix,dtime,ufluxs,vfluxs,
@@ -143,14 +143,14 @@ c ----------------------------------------------------------------------
 
       real*8, parameter ::  tol=1.e-4
 
-      integer, parameter ::  iprint= 0,jprint=33  ! set iprint=52 e.g.  to debug
+      integer, parameter :: iprint= 0,jprint=33  ! set iprint>0 to debug
 
       real*8 lscale(n-1)
       real*8, dimension(n) :: z,dz,xi
       real*8, dimension(n-1) :: zhat,dzh,xihat,km,kh,ke,gm,gh
       real*8, dimension(n) :: usave,vsave,tsave,qsave,esave
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       integer ::  itmax
 c
       itmax=1
@@ -345,7 +345,7 @@ c ----------------------------------------------------------------------
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c ----------------------------------------------------------------------
-c  Computes the master length scale of the turbulence model. Keep in mind
+c  Finds the master length scale of the turbulence model. Keep in mind
 c  that LSCALE is computed on the secondary grid. This routine computes
 c  l0 (the asymptotic length scale) according to the usual prescription
 c  used in the Mellor and Yamada models.
@@ -420,7 +420,7 @@ c ----------------------------------------------------------------------
 
       subroutine dflux(lmonin,ustar,vsurf,z0m,z0h,z0q,zgs,
      2                 cm,ch,cq,itype)
-!@sum   dflux computes (dimensionless) surf. fluxes of mom.,heat,moisture
+!@sum   dflux computes (dimensionless) surf.fluxes of mom.,heat,moisture
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c *********************************************************************
@@ -438,8 +438,8 @@ c *********************************************************************
       real*8,  intent(in) :: zgs
 !@var    itype  = integer identifying surface type
       integer,  intent(in) :: itype
-!@var    z0m    = momentum roughness length, prescribed (itype=3 or 4) (m)
-!@var    z0m   = roughness length for momentum, computed (itype=1 or 2)
+!@var    z0m   = momentum roughness length, prescribed (itype=3,4) (m)
+!@var    z0m   = roughness length for momentum, computed (itype=1,2)
       real*8,  intent(inout) :: z0m
 
 !@var    cm    = drag coefficient for momentum
@@ -562,7 +562,7 @@ c *********************************************************************
 
       subroutine simil(u,t,q,z,ustar,tstar,qstar,
      2                 z0m,z0h,z0q,lmonin,tg,qg)
-!@sum   simil calculates the similarity solutions for wind speed, 
+!@sum   simil calculates the similarity solutions for wind speed,
 !@sum   temperature, and moisture mixing ratio at height z.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -666,7 +666,7 @@ c ----------------------------------------------------------------------
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       real*8, external :: fgrid
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
 c      real*8 zbrent
 
@@ -719,9 +719,9 @@ c      real*8 zbrent
       integer, parameter :: itmax=100
       real*8 :: func  !@func func  external function
 !@var  x1,x2 limits of x (must bracket the root)
-      real*8, intent(in) :: x1,x2 
-      real*8, intent(in) :: tol   !@var tol  tolerance for estimate of root 
-      real*8 zbrent 
+      real*8, intent(in) :: x1,x2
+      real*8, intent(in) :: tol !@var tol tolerance for estimate of root
+      real*8 zbrent
 
       real*8 a,b,c,d,e,fa,fb,fc,tol1,xm
       real*8 p,q,r,s
@@ -809,7 +809,7 @@ c      real*8 zbrent
       real*8, intent(out) :: lmonin
 
       real*8 tsurf
-      integer i  !@var i loop variable 
+      integer i  !@var i loop variable
 
       tsurf=tgrnd+0.2*(ttop-tgrnd)
       t(1)=tsurf
@@ -905,7 +905,7 @@ c      write(99,*) "gmmax0=",gmmax0
       real*8 lscale(n-1)
 
       real*8 an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
 
 c-----------------------------------------------------------------------
       do i=1,n-1
@@ -982,7 +982,7 @@ c-----to solve the real tridiagonal difference matrix equation
 
       real*8 ustar,dtime
       real*8 an2,dudz,dvdz,as2,qturb
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
 c ----------------------------------------------------------------------
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     from kirk:/u/acyxc/papers/2ndOrder/maple/phik.1,
@@ -1057,8 +1057,8 @@ c ----------------------------------------------------------------------
       real*8 ch,cq,tstar,qstar,z0h,z0q,tgrnd,qgrnd,
      3                  ttop,qtop,dtime
 
-      integer i,j,iter  !@var i,j,iter loop variable 
-      
+      integer i,j,iter  !@var i,j,iter loop variable
+
       real*8 wstar3,wstar2,usurf,facth,factq
 c ----------------------------------------------------------------------
 c compute the lhss of the prognostic equations. the (1,j) and (n,j)
@@ -1139,7 +1139,7 @@ c ----------------------------------------------------------------------
       real*8 km(n-1),dz(n),dzh(n-1)
       real*8 ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 factx,facty,dpdx,dpdy,usurf,factor
 c ----------------------------------------------------------------------
 c compute the lhss of the prognostic equations. the (1,j) and (n,j)
@@ -1206,7 +1206,7 @@ c ----------------------------------------------------------------------
       real*8 u(n),v(n),t(n),q(n),kh(n-1),dz(n),dzh(n-1)
       real*8 ch,cq,tgrnd,qgrnd,ttop,qtop
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 wstar3,wstar2,usurf,facth,factq
 
 c ----------------------------------------------------------------------
@@ -1266,7 +1266,7 @@ c ----------------------------------------------------------------------
       real*8 u(n),v(n),z(n),km(n-1),dz(n),dzh(n-1)
       real*8 ustar,cm,utop,vtop,coriol
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
 
       real*8 factx,facty,dpdx,dpdy,usurf,factor
 c ----------------------------------------------------------------------
@@ -1372,9 +1372,9 @@ c     real*8, parameter ::  rimaxm=0.045840,rimaxh=0.098800
       real*8, parameter ::  rimaxm=0.0780715,rimaxh=0.089044
       real*8, parameter ::  p1=1./3.,p2=4./3.
       real*8, parameter ::  emin=1.e-2
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 bvfrq2,khtest,shear2,rich,sm,sh,xm,xh,richf,smmin,prndtl
-     *     ,prandtl,kmtest 
+     *     ,prandtl,kmtest
 
       do i=1,n-1
 
@@ -1462,7 +1462,7 @@ c         endif
       end subroutine getk_old
 
       subroutine elevl2(e,u,v,t,km,kh,lscale,dzh,ustar,n)
-!@sum   elevl2 computes the turbulence energy using the Level 2 prescription.
+!@sum   elevl2 computes the turbulence energy using the Level 2 prescr.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none
@@ -1501,7 +1501,7 @@ c ----------------------------------------------------------------------
       real*8, parameter ::  w=0.50,tol=1.e-4,epslon=1.e-20
 c      integer, parameter ::  n=8
       integer, parameter ::  itmax=100
-      integer, parameter ::  iprint= 0,jprint=25  ! set iprint=39 e.g..to debug
+      integer, parameter ::  iprint= 0,jprint=25 ! set iprint>0 to debug
       integer, intent(in) :: ilong  !@var ilong  longitude identifier
       integer, intent(in) :: jlat   !@var jlat  latitude identifier
       integer, intent(in) :: itype  !@var itype  surface type
@@ -1515,7 +1515,7 @@ c      integer, parameter ::  n=8
      *     ,cq,bgrid,ustar,pi,radian,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,tstar0,dtime,test
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
 
       pi=dacos(-1.d0)
       radian=pi/180.
@@ -1688,16 +1688,16 @@ c  *way* outside any reasonable range.) This routine keeps the temp
 c  between the maximum and minimum of the boundary temperatures.
 c ----------------------------------------------------------------------
       implicit none
-      
+
       integer, intent(in) :: n    !@var n array dimension
-      real*8, dimension(n),intent(inout) ::  t  !@var t  temperature array
+      real*8, dimension(n),intent(inout) ::  t !@var t temperature array
       real*8, intent(in) :: tgrnd  !@var tgrnd ground temperature
 
       integer, dimension(20) :: imax,imin
       integer nmin,nmax
       real*8 tmin,tmax,dt
       integer i                 !@var i  loop and dummy variables
-    
+
       if (tgrnd.lt.t(n)) then
         tmin=tgrnd
         tmax=t(n)
@@ -1845,7 +1845,7 @@ c --------------------------------------------------------------------
       real*8, dimension(n), intent(in) ::  a !@var a  real array
 
       integer i,k !@var i,k loop and dummy variables
-      character*16 str  !@var str  output string 
+      character*16 str  !@var str  output string
 
       do i=1,n
         write(str,'(e16.8)')a(i)
@@ -1876,7 +1876,7 @@ c ----------------------------------------------------------------------
 !@ver   1.0
 !@calls simil
       implicit none
-      real*8, parameter :: epslon=1.e-40 
+      real*8, parameter :: epslon=1.e-40
       real*8, parameter :: degree=180./3.141592654
 
       real*8, parameter :: gammah=11.6
@@ -1894,8 +1894,8 @@ c ----------------------------------------------------------------------
       real*8, intent(in) :: cm,ch,cq,z0m,z0h,z0q,ustar,tstar,qstar,tgrnd
      *     ,qgrnd,utop,vtop,ttop,qtop,dtime,bgrid
 
-      integer i  !@var i loop variable 
-      
+      integer i  !@var i loop variable
+
       real*8 :: psitop,psi,utotal,utot1,utot2,sign,shear,tgrad,qgrad
      *     ,egrad,uflux,hflux,qflux,bvfrq2,shear2,rich,dqdz,dtdz,dudz
      *     ,phim,phih,dudzs,dtdzs,dqdzs,uratio,tratio,qratio,dbydzh

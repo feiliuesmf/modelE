@@ -10,7 +10,7 @@
 !@var tabl boundary layer profile for temperature
 !@var qabl boundary layer profile for humidity
       real*8, dimension(n,im,jm,4) :: uabl,vabl,tabl,qabl
-!@var eabl boundary layer profile for turbulent KE (calc. on secondary grid)
+!@var eabl boundary layer profile for turbulent KE (calc. on sec. grid)
       real*8, dimension(n,im,jm,4) :: eabl
 
 !@var cmgs drag coefficient (dimensionless surface momentum flux)
@@ -18,7 +18,7 @@
 !@var cqgs Dalton number    (dimensionless surface moisture flux)
       real*8, dimension(im,jm,4) :: cmgs,chgs,cqgs
 
-!@var ipbl flag for whether pbl properties were calculated at last timestep
+!@var ipbl flag for whether pbl properties were found at last timestep
       integer, dimension(im,jm,4) :: ipbl
 
 C****
@@ -45,7 +45,7 @@ C new     9-12  ustar for each ITYPE (sqrt of srfc momentum flux) (m/s)
       DOUBLE PRECISION, DIMENSION(IM,JM,12) :: BLDATA
       EQUIVALENCE(BLDATA(1,1,1),WSAVG(1,1))
 
-C**** model related constants (should be taken directly from E001M12_COM)
+C**** model related constants (should really be taken from E001M12_COM)
       integer, parameter ::  iq1=im/4+1,iq2=im/2+1,iq3=3*im/4+1
 
 C**** pressure gradient arrays

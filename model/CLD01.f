@@ -1,5 +1,5 @@
       MODULE CLD01
-!@sum  CLD01 column physics of moist convction and large-scale condensation
+!@sum  CLD01 column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/T. Del Genio (modifications by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@cont MSTCNV_loc,CONDSE_loc
@@ -16,7 +16,7 @@ C**** parameters and constants
       REAL*8, PARAMETER :: RVAP=461.5d0  !@param RVAP
       REAL*8, PARAMETER :: BY3=1.d0/3.d0 !@param BY3 = 1/3
       REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
-      REAL*8, PARAMETER :: WMU=.25       !@param WMU 
+      REAL*8, PARAMETER :: WMU=.25       !@param WMU
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
@@ -24,13 +24,13 @@ C**** parameters and constants
       REAL*8 :: DTCNDS,PK1000,BYBR,SLHE,SLHS
      *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
 
-C**** Set-able variables from NAMELIST 
+C**** Set-able variables from NAMELIST
 !@var LMCM max level for originating MC plumes (set in init_CLD)
-      INTEGER :: LMCM 
-!@var U00wtr critical humidity for water cloud condensation (default value)
-      REAL*8 :: U00wtr = .7  
-!@var U00ice critical humidity for ice cloud condensation (default value)
-      REAL*8 :: U00ice = .7  
+      INTEGER :: LMCM
+!@var U00wtr critical humidity for water cloud condensation (default)
+      REAL*8 :: U00wtr = .7
+!@var U00ice critical humidity for ice cloud condensation (default)
+      REAL*8 :: U00ice = .7
 
 C**** input variables
 !@var RA,UM,VM,U_0,V_0 velocity related variables
@@ -63,7 +63,7 @@ C**** input variables
       REAL*8 QMALL(10*LM),SMALL(10*LM)
       EQUIVALENCE (QMALL,QM),(SMALL,SM)
 
-!@var KMAX number of surrounding velocity points 
+!@var KMAX number of surrounding velocity points
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
 !@var TS     average surface temperture (C)
@@ -81,7 +81,7 @@ C**** output variables
       CONTAINS
 
       SUBROUTINE MSTCNV_LOC
-!@sum  MSTCNV moist convective processes (incl. precip and convective clouds)
+!@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls SUBSID,QSAT,THBAR
@@ -783,8 +783,10 @@ c       AJ57(L)=AJ57(L)+SLHE*(-ALPHA*QM(L)+BETA*QM(L+1)+DQM(L))
 c     SM(L)=SM(L)*(1.-ALPHA)+BETA*SM(L+1)+DSM(L)
 c     QM(L)=QM(L)*(1.-ALPHA)+BETA*QM(L+1)+DQM(L)
       DO K=1,KMAX !vref
-       UM(K,L)=UM(K,L)+RA(K)*(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L)) !vref
-       VM(K,L)=VM(K,L)+RA(K)*(-ALPHA*VM(K,L)+BETA*VM(K,L+1)+DVM(K,L)) !vref
+       UM(K,L)=
+     *      UM(K,L)+RA(K)*(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L)) !vref
+       VM(K,L)=
+     *      VM(K,L)+RA(K)*(-ALPHA*VM(K,L)+BETA*VM(K,L+1)+DVM(K,L)) !vref
       ENDDO !vref
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
@@ -999,10 +1001,10 @@ C**** CALCULATE OPTICAL THICKNESS
          IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM
          IF (CLDMCL(L).GT.0.) TAUMCL(L)=AIRM(L)*.08d0
          IF(PLE(LMCMIN)-PLE(LMCMAX+1).LT.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.EQ.LMCMAX) TAUMCL(L)=AIRM(L)*.02d0 
+            IF(L.EQ.LMCMAX) TAUMCL(L)=AIRM(L)*.02d0
          ENDIF
          IF(PLE(LMCMIN)-PLE(LMCMAX+1).GE.450..AND.(CLDMCL(L).GT.0.))THEN
-            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0 
+            IF(L.EQ.LMCMIN) TAUMCL(L)=AIRM(L)*.02d0
          ENDIF
          IF(SVLATL(L).EQ.0.) THEN
             SVLATL(L)=LHE
@@ -1037,7 +1039,7 @@ C**** CALCULATE OPTICAL THICKNESS
 !@calls CTMIX,QSAT,THBAR
       IMPLICIT NONE
 
-!@var I0,J0 grid point for diagnostic purposes 
+!@var I0,J0 grid point for diagnostic purposes
       INTEGER, INTENT(IN) :: I0,J0
       REAL*8 LHX,LHXUP
 
@@ -1045,7 +1047,8 @@ C**** CALCULATE OPTICAL THICKNESS
       REAL*8, PARAMETER :: WM0=.5d-3
       REAL*8, PARAMETER :: EPS=.622d0
 
-      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2,VMO1,VMO2,VMN1,VMN2 !@var
+      REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var
+      REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var
 !@var Miscellaneous vertical arrays
       REAL*8, DIMENSION(LM) ::
      *     QSATL,RHF,RH1,ATH,SQ,ER,QHEAT,
@@ -1554,14 +1557,14 @@ C****
       SUBROUTINE CTMIX (RM,RX,RY,RZ,RXX,RXY,RYY,RYZ,RZZ,RZX,L,FMAIR,
      *     FMIX,FRAT,LM)
 !@sum CTMIX  Cloud top mixing of tracer moments (incl. q,t) from CONDSE
-!@auth Jean Lerner 
+!@auth Jean Lerner
 !@ver 1.0
 !@var RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX mean and moments of tracer
       IMPLICIT NONE
       REAL*8, DIMENSION(LM) ::  RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
       REAL*8 FMIX      !@var FMIX  fraction of lower box mixed up
       REAL*8 FRAT      !@var FRAT  fraction of upper box mixed down
-      REAL*8 FMAIR     !@var FMAIR mass of air mixed 
+      REAL*8 FMAIR     !@var FMAIR mass of air mixed
       REAL*8 RTEMP     !@var RTEMP dummy variable
       INTEGER L        !@var L   level of mixing
       INTEGER LM       !@var LM  max level
@@ -1606,7 +1609,7 @@ C ZZ
 
 C**** This function to be replaced by standard version in UTILDBL
       FUNCTION QSAT (TM,QL,PR)
-!@sum   QSAT calculates saturation vapour mixing ratio 
+!@sum   QSAT calculates saturation vapour mixing ratio
 !@auth  Original development team
 !@ver   1.0 (CLOUDS ONLY)
       USE CONSTANT, only : RGAS

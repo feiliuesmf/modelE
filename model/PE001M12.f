@@ -23,7 +23,7 @@ C****
       USE GEOM
       USE CLD01_COM_E001, only : PREC,TPREC
       USE DAGCOM  !, only : aj,bj,cj,areg,aij,jreg
-      USE OCEAN, only : ODATA,OA,Z1O,ACE1I,PREC_SI,PREC_OC 
+      USE OCEAN, only : ODATA,OA,Z1O,ACE1I,PREC_SI,PREC_OC
       IMPLICIT NONE
       REAL*8 MSI1, MSI2
 
@@ -144,7 +144,7 @@ C****
       IF (ROICE.GT.0.) GO TO 110
       CALL PREC_OC(I,J,ENRGP,ERUN4)
       GO TO 400
-      END IF 
+      END IF
 C****
   100 IF (POICE.LE.0.) GO TO 400
 C****
@@ -168,7 +168,7 @@ C*
 
 C*
 C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
-C* 
+C*
       CALL PREC_SI(I,J,PRCP,TPRCP,EPRCP,RUN0,DIFS,EDIFS,ERUN2)
 C*
       IF (KOCEAN .NE. 1) THEN
@@ -192,7 +192,7 @@ C*
       ENRGW=ENRGW0-ROICE*ERUN4+(1.-ROICE)*ENRGP
       TGW=ENRGW/(WTRW*SHW) ! mixed layer temperature
       ODATA(I,J,1)=TGW
-      END IF 
+      END IF
 C*
          CRUN0=CRUN0+RUN0*POICE
          RUN0S=RUN0S+RUN0*POICE
@@ -311,7 +311,7 @@ C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       INTEGER I,J,L
       REAL*8 PHIS,PSHIS,CPHIS,SPHIS,PHIN,SPHIN,CPHIN,PHIM,S2DAWN,S2DUSK
      *     ,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN,SDUSK,SDAWN
-     *     ,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT 
+     *     ,CJCD,SJSD,SR1,CR1,SR2,CR2,ROT1,ROT2,DROT
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       PHIS=-.25*TWOPI
@@ -719,9 +719,9 @@ C**** New options (currently not used)
 C**** set up unit numbers for 14 radiation input files
       DO IU=1,14
          IF (IU.EQ.12.OR.IU.EQ.13) CYCLE    ! not used in GCM
-         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU))   
+         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU))
       END DO
-      CALL RCOMP1 (MADVEL,NRFUN) ! 1=O3 2=TrAer 3=Dust 4=VAer 5=Clds 6=SoUV
+      CALL RCOMP1 (MADVEL,NRFUN) ! MAD 1-6: O3 TrAer Dust VAer Clds SoUV
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
          CALL WRITER (6,0)
@@ -770,7 +770,7 @@ C****
 C**** MAIN J LOOP
 C****
       DO 600 J=1,JM
-      IMAX=IMAXJ(J) 
+      IMAX=IMAXJ(J)
       JLAT=NINT(1.+(J-1.)*45./(JM-1.))  !  j w.r.to 72x46 grid
 C****
 C**** MAIN I LOOP
@@ -1159,7 +1159,7 @@ C****
       USE GHYCOM, only : ghdata
       USE DAGCOM  !, only : aj,bj,cj,areg,aij,jreg
       USE OCEAN, only : ODATA,XSI1,XSI2,XSI3,XSI4,Z1I
-     *     ,Z1O,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,T50, SEA_ICE 
+     *     ,Z1O,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,T50, SEA_ICE
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML = 0.,FLEAD = 0.10d0
@@ -1330,7 +1330,7 @@ C****
          EVAPS=EVAPS+EVAP*POCEAN
          AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+ODATA(I,J,1)
          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*POCEAN
-      IF (KOCEAN .NE. 1) THEN 
+      IF (KOCEAN .NE. 1) THEN
          ATG2=ATG2+ODATA(I,J,1)*POCEAN
          TG2S=TG2S+ODATA(I,J,1)*POCEAN
       ELSE
@@ -1352,26 +1352,26 @@ C****
          ARUN4=ARUN4+RUN4*POCEAN
       ENRGO=F0DT+OTDT-ERUN4
       END IF
-C* 
-C***  CALL SEA ICE SUBROUTINE 
-C* 
-      EDIFSI = 0.0 
-      DIFSI  = 0.0 
-C* 
-      F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2) 
+C*
+C***  CALL SEA ICE SUBROUTINE
+C*
+      EDIFSI = 0.0
+      DIFSI  = 0.0
+C*
+      F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
       F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layers (J/m^2)
-      EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2) 
-      MSI2=ODATA(I,J,3) 
+      EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
+      MSI2=ODATA(I,J,3)
       CALL SEA_ICE(DTSRCE,I,J,POICE,F0DT,F1DT,EVAP,
      *             TGW,WTRO,OTDT,ENRGO,
-     *             RUN0,RUN4,ERUN4,DIFSI,EDIFSI,DIFS,EDIFS, 
+     *             RUN0,RUN4,ERUN4,DIFSI,EDIFSI,DIFS,EDIFS,
      *             ENRGFO,ACEFO,ACE2M,ACE2F,ENRGFI,F2DT)
 C****
          AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
          AIJ(I,J,IJ_MSI2) =AIJ(I,J,IJ_MSI2) +MSI2*POICE
          AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*POICE
          AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*POICE
-      IF (KOCEAN .EQ. 1) THEN 
+      IF (KOCEAN .EQ. 1) THEN
          AEFO=AEFO-ENRGFO*POCEAN
          AIFO=AIFO-ACEFO*POCEAN
 C*
@@ -1388,21 +1388,21 @@ C*
          CDIFS=CDIFS+DIFSI*PWATER
          DIFSS=DIFSS+DIFSI*PWATER
 C*
-      ELSE 
+      ELSE
          CEDIFS=CEDIFS+EDIFS*POICE
          CDIFS=CDIFS+DIFS*POICE
          CERUN2=CERUN2+EDIFS*POICE
          CRUN2=CRUN2+DIFS*POICE
          DIFSS=DIFSS+DIFS*POICE
 
-      END IF 
+      END IF
          CRUN0=CRUN0+RUN0*POICE
          RUN0S=RUN0S+RUN0*POICE
 C*
       MSI2 = ODATA(I,J,3)
-      SNOW = GDATA(I,J,1) 
-      TG1 = GDATA(I,J,3) 
-      TG2 = GDATA(I,J,7) 
+      SNOW = GDATA(I,J,1)
+      TG1 = GDATA(I,J,3)
+      TG2 = GDATA(I,J,7)
          CSNOW=CSNOW+SNOW*POICE
          CTG1=CTG1+TG1*POICE
          CTG2=CTG2+TG2*POICE

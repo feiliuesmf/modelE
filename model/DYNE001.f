@@ -1,5 +1,5 @@
       MODULE DYNAMICS
-!@sum  DYNAMICS contains all the routines for calulating dynamics 
+!@sum  DYNAMICS contains all the routines for calulating dynamics
 !@sum           related variables
 !@auth Original development team
 !@ver  1.0
@@ -7,7 +7,7 @@
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
      *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice
-     *     ,gdata,modd5k,psfmpt 
+     *     ,gdata,modd5k,psfmpt
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE SOMTQ_COM
       USE PBLCOM, only : tsavg
@@ -27,7 +27,7 @@ C**** Some helpful arrays (arrays should be L first)
 !      REAL*8, DIMENSION(LM,IM,JM) :: BYAM
 !@var  PMID  Pressure at mid point of box (mb)
       REAL*8, DIMENSION(LM,IM,JM) :: PMID    ! SIG(L)*PLIJ+PTOP
-!@var  PK   PMID**KAPA 
+!@var  PK   PMID**KAPA
       REAL*8, SAVE,DIMENSION(LM,IM,JM) :: PK
 !@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
       REAL*8, DIMENSION(LM+1,IM,JM) :: PEDN  ! SIGE(L)*PLIJ+PTOP
@@ -38,10 +38,10 @@ C**** Some helpful arrays (arrays should be L first)
 
 C**** module should own dynam variables used by other routines
 !@var PTOLD pressure at beginning of dynamic time step (for clouds)
-      REAL*8, SAVE,DIMENSION(IM,JM)    :: PTOLD 
+      REAL*8, SAVE,DIMENSION(IM,JM)    :: PTOLD
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
-      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: SD_CLOUDS 
-!@var GZ geopotential height (for Clouds and Diagnostics) 
+      REAL*8, SAVE,DIMENSION(IM,JM,LM) :: SD_CLOUDS
+!@var GZ geopotential height (for Clouds and Diagnostics)
       REAL*8, SAVE,DIMENSION(IM,JM,LM) :: GZ
 !@var DPDX,DPDY surface pressure gradients (for PBL)
 c      REAL*8, SAVE,DIMENSION(IM,JM)    :: DPDX,DPDY
@@ -451,7 +451,7 @@ C****
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
       REAL*8 EXPBYK
-      INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX  loop variables
+      INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
 C****
       KAPAP1=KAPA+1.
       DT4=DT1/4.
@@ -618,7 +618,7 @@ C****
       DATA IFIRST/1/
 
       INTEGER J,N
- 
+
       IF (IFIRST.NE.1) GO TO 100
       IFIRST=0
 C     CALL FFT0(IM)
@@ -765,7 +765,7 @@ C**********************************************************************
       INTEGER I,J,L,N  !@var I,J,L,N  loop variables
       REAL*8 X4TON,X1,XI,XIM1
       REAL*8 Y4TO8,YJ,YJM1
- 
+
       DATA IFIRST/1/
       IF(IFIRST.EQ.1) THEN
          IFIRST = 0
@@ -917,7 +917,7 @@ C****
       REAL*8 EXPBYK
 
 C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
-C**** Note that only layers LS1 and below vary as a function of surface 
+C**** Note that only layers LS1 and below vary as a function of surface
 C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
 
@@ -994,7 +994,7 @@ C****
       COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
       REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
-      
+
       REAL*8 PIT,SD,PU,PV,PHI
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
       COMMON/WORK3/PHI(IM,JM,LM)

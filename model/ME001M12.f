@@ -182,7 +182,7 @@ C****
          NDAILY=SDAY/DT
          CALL DIAG5A (16,NDAILY)
          CALL DIAG9A (8)
-      call daily_SNOW   
+      call daily_SNOW
       call daily_OCEAN
          CALL CHECKT ('DAILY ')
       CALL TIMER (MNOW,MINC,MSURF)
@@ -268,7 +268,7 @@ C**** KCOPY > 1 : SAVE THE RESTART INFORMATION
      *           FORM='UNFORMATTED')
 
             call io_rsf(30,TAU,iowrite,ioerr)
-            
+
             CLOSE (30)
          END IF
          IF (KCOPY.GT.2) THEN
@@ -329,7 +329,7 @@ C****
 C**** END OF MAIN LOOP
 C****
 
-C**** PRINT OUT DIAGNOSTICS IF NO TIME-STEP WAS DONE 
+C**** PRINT OUT DIAGNOSTICS IF NO TIME-STEP WAS DONE
       IF (RUNON.eq.-1) THEN
          WRITE (6,'("1"/64(1X/))')
          IF (KDIAG(1).LT.9) CALL DIAGJ
@@ -369,7 +369,7 @@ C****
       USE E001M12_COM
      &     , only : im,jm,lm
 
-      IMPLICIT NONE 
+      IMPLICIT NONE
 
       INTEGER, DIMENSION(3) :: IDUM
       INTEGER, DIMENSION(13) :: NDZERO,NDPRNT
@@ -487,7 +487,7 @@ C****
 
       ioread=1
       ISTART=10
-C**** READ SPECIAL REGIONS FROM UNIT 29 
+C**** READ SPECIAL REGIONS FROM UNIT 29
       call getunit("REG",iu_REG,.TRUE.)
       READ(iu_REG) TITREG,JREG,NAMREG
       WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
@@ -841,11 +841,11 @@ C**** CALCULATE DSIG AND DSIGO
 
 C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
       call getunit("TOPO",iu_TOPO,.TRUE.)
-      
+
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1)   ! Lake fraction
-      CALL READT (iu_TOPO,0,FEARTH,IM*JM,FEARTH,1) ! Earth fraction (no LI)
-      CALL READT (iu_TOPO,0,FLICE,IM*JM,FLICE,1)   ! Land ice fraction  
+      CALL READT (iu_TOPO,0,FEARTH,IM*JM,FEARTH,1) ! Earth frac. (no LI)
+      CALL READT (iu_TOPO,0,FLICE,IM*JM,FLICE,1)   ! Land ice fraction
       FLAND = FEARTH + FLICE                       ! Land fraction
 C**** DON'T  adjust Land ice fraction to be fraction only over land
 c      FLICE = (FLICE/(FLAND+1.D-20))
@@ -856,7 +856,7 @@ c      FLICE = (FLICE/(FLAND+1.D-20))
 C**** Init pbl (and read in file containing roughness length data)
       call pblini(iniPBL)
 
-C**** read in ocean heat transports and max. mixed layer depths 
+C**** read in ocean heat transports and max. mixed layer depths
       IF(KOCEAN.EQ.1) CALL OHT_INIT
 
 C**** READ IN VEGETATION DATA SET: VDATA AND VADATA
@@ -1027,7 +1027,7 @@ C****
             END IF
          END DO
       END DO
-   
+
 C      IF (KOCEAN.EQ.1) GO TO 500 ! Lake Ice is prescribed for KOCEAN=1
       CALL OCLIM(DOZ1O)
 
@@ -1049,7 +1049,7 @@ C*****
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team
-!@ver  1.0 
+!@ver  1.0
 
 C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
@@ -1059,7 +1059,7 @@ C**** CORRECTED.
       USE DAGCOM, only : QCHECK
       IMPLICIT NONE
 !@var SUBR identifies where CHECK was called from
-      CHARACTER*6, INTENT(IN) :: SUBR 
+      CHARACTER*6, INTENT(IN) :: SUBR
 
       IF (QCHECK) THEN
 C**** Check all prog. arrays for Non-numbers
@@ -1070,11 +1070,11 @@ C**** Check all prog. arrays for Non-numbers
          CALL CHECK3(P,IM,JM,1,SUBR,'p ')
          CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
          CALL CHECK3(GDATA,IM,JM,16,SUBR,'gd')
-C**** Check PBL arrays      
+C**** Check PBL arrays
          CALL CHECKPBL(SUBR)
-C**** Check Ocean arrays      
+C**** Check Ocean arrays
          CALL CHECKO(SUBR)
-C**** Check Earth arrays      
+C**** Check Earth arrays
          CALL CHECKE(SUBR)
       END IF
       RETURN
@@ -1126,7 +1126,7 @@ C**** Temporary io_rsf
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,mld,usavg,vsavg
      *        ,tauavg,ustar
-      USE DAGCOM 
+      USE DAGCOM
       USE OCEAN, only : ODATA,OA,T50
 
       IMPLICIT NONE
@@ -1140,19 +1140,19 @@ C**** Temporary io_rsf
 !@var TAU1,TAU2 hours for correct reading check
       REAL*8 TAU1,TAU2
 !@var TAU input/ouput value of hour
-      REAL*8, INTENT(INOUT) :: TAU 
+      REAL*8, INTENT(INOUT) :: TAU
 !@var HEADER Character string label for individual restart files
       CHARACTER HEADER*7
       ioerr=1
       rewind (kunit)
 
 C**** headers are introduced so that individual modules will be able to
-C**** tell whether the version of the model variables is current 
-      select case (iaction) 
+C**** tell whether the version of the model variables is current
+      select case (iaction)
       case (:iowrite)
          WRITE (kunit,err=10) TAU,JC,CLABEL,RC
 C**** need a blank line to fool 'qrsfnt' etc.
-         WRITE (kunit,err=10) 
+         WRITE (kunit,err=10)
          WRITE (kunit,err=10) "E001M12",U,V,T,P,Q,WM
          WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50
          WRITE (kunit,err=10) "ERT01  ",GDATA
@@ -1168,18 +1168,18 @@ C**** need a blank line to fool 'qrsfnt' etc.
          WRITE (kunit,err=10) "RAD01  ",S0X,CO2,RQT,SRHR,TRHR,FSF
          WRITE (kunit,err=10) "DAG01  ",TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL
      *        ,ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE
-     *        ,AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR  
+     *        ,AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR
          WRITE (kunit,err=10) TAU
          ioerr=-1
       case (ioread:)
          READ (kunit,err=10) TAU1,JC,CLABEL,RC
-         READ (kunit,err=10) 
+         READ (kunit,err=10)
          READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
          READ (kunit,err=10) HEADER,ODATA,OA,T50
          READ (kunit,err=10) HEADER,GDATA
          READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
          READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,mld,usavg
-     *        ,vsavg,tauavg,ustar 
+     *        ,vsavg,tauavg,ustar
          READ (kunit,err=10) HEADER,uabl,vabl,tabl,qabl,eabl,cm,ch,cq
      *        ,ipbl
          READ (kunit,err=10) HEADER,U00wtr,U00ice,LMCM,TTOLD,QTOLD,SVLHX
@@ -1189,7 +1189,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
          READ (kunit,err=10) HEADER,S0X,CO2,RQT,SRHR,TRHR,FSF
          READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL
      *        ,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK
-     *        ,AIJK,AIJL,AJLSP,TDIURN,KEYNR 
+     *        ,AIJK,AIJL,AJLSP,TDIURN,KEYNR
          READ (kunit,err=10) TAU2
          IF (TAU1.ne.TAU2) THEN
             STOP "PROBLEM READING RSF FILE"
@@ -1209,8 +1209,8 @@ C      SUBROUTINE io_rsf(kunit,iaction,ioerr)
 C!@sum   io_rsf controls the reading and writing of the restart files
 C!@auth  Gavin Schmidt
 C!@ver   1.0
-C!@calls io_model,io_ocean,io_seaice,io_lakes,io_ground,io_soils,io_bndry,
-C!@calls io_pbl,io_clouds,io_radiation,io_diags
+C!@calls io_model,io_ocean,io_seaice,io_lakes,io_ground,io_soils,
+C!@calls io_bndry,io_pbl,io_clouds,io_radiation,io_diags
 C
 C      IMPLICIT NONE
 C!@var iaction flag for reading or writing rsf file
@@ -1229,9 +1229,9 @@ C      rewind kunit
 C
 CC**** For all iaction < 0  ==> WRITE
 CC**** For all iaction > 0  ==> READ
-CC**** Particular values may produce variations in individual i/o routines
+CC**** Particular values may produce variations in indiv. i/o routines
 C
-C      select case (iaction) 
+C      select case (iaction)
 C      case (:iowrite)
 C         WRITE (kunit) TAU
 C      case (ioread:)
@@ -1251,7 +1251,7 @@ C      call io_clouds   (kunit,iaction,ioerr)
 C      call io_radiation(kunit,iaction,ioerr)
 C      call io_diags    (kunit,iaction,ioerr)
 C
-C      select case (iaction) 
+C      select case (iaction)
 C      case (:iowrite)
 C         WRITE (kunit) TAU
 C      case (ioread:)

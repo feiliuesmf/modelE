@@ -1184,7 +1184,7 @@ C****
       AIL(I,L,1)=AIL(I,L,1)+U(I,J,L)
       AIL(I,L,2)=AIL(I,L,2)+V(I,J,L)
       AIL(I,L,4)=AIL(I,L,4)+(TX(I,J,L)-273.16)
-  785 AIL(I,L,5)=AIL(I,L,5)+Q(I,J,L)/QSAT(TX(I,J,L),SIG(L)*PIJ+PTOP,LHE)      
+  785 AIL(I,L,5)=AIL(I,L,5)+Q(I,J,L)/QSAT(TX(I,J,L),SIG(L)*PIJ+PTOP,LHE)
       DO 788 I=1,IM
       AIL(I,L,10)=AIL(I,L,10)+(TX(I,J50N,L)-273.16)
       AIL(I,L,12)=AIL(I,L,12)+(U(I,J50N,L)+U(I,J50N+1,L))
@@ -2468,7 +2468,7 @@ C**** CALCULATE THE DERIVED QUANTITIES
       DO 210 J=1,JM
       SPOICE(J)=CJ(J,30)*BYA1
       SPOCEN(J)=S1(J)-SPLAND(J)-SPOICE(J)
-c      AJ(J,32)=(1.-SRCOR)*AJ(J,6)   !obsolete 
+c      AJ(J,32)=(1.-SRCOR)*AJ(J,6)   !obsolete
 c      CJ(J,32)=(1.-SRCOR)*CJ(J,6)   !obsolete
       AJ(J,60)=IDACC(2)*SPOCEN(J)*AJ(J,80)/(AJ(J,58)+1.D-20)
       BJ(J,60)=IDACC(2)*SPLAND(J)*BJ(J,80)/(BJ(J,58)+1.D-20)
@@ -2485,9 +2485,9 @@ c      CJ(J,32)=(1.-SRCOR)*CJ(J,6)   !obsolete
       AJ(J,10)=AJ(J,2)+AJ(J,7)
       BJ(J,10)=BJ(J,2)+BJ(J,7)
       CJ(J,10)=CJ(J,2)+CJ(J,7)
-      AJ(J,11)=AJ(J,3)+AJ(J,8)   
-      BJ(J,11)=BJ(J,3)+BJ(J,8)   
-      CJ(J,11)=CJ(J,3)+CJ(J,8)   
+      AJ(J,11)=AJ(J,3)+AJ(J,8)
+      BJ(J,11)=BJ(J,3)+BJ(J,8)
+      CJ(J,11)=CJ(J,3)+CJ(J,8)
       AJ(J,12)=A1BYA2*AJ(J,6)*DTSRCE+AJ(J,9)
       BJ(J,12)=A1BYA2*BJ(J,6)*DTSRCE+BJ(J,9)
       CJ(J,12)=A1BYA2*CJ(J,6)*DTSRCE+CJ(J,9)
@@ -2743,7 +2743,7 @@ C****                                                             37-44
       USE E001M12_COM, only : im,jm,lm,fim,
      &     BYIM,DSIG,DT,IDACC,IMH,LS1,NCNDS,NDAA,
      &     PSF,PTOP,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
-      USE GEOM, only :  
+      USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM
       USE RADNCB, only : LM_REQ
@@ -3413,12 +3413,12 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       INTEGER :: J1,JWT,KMAX,NT
       DOUBLE PRECISION :: SCALE,SCALER
       DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! 3 should be passed as arg
+      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! pass 3 as arg ??
       DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ,SCALJR
       DOUBLE PRECISION, DIMENSION(LM) :: SCALEK
-      DOUBLE PRECISION, DIMENSION(3) :: SCALLR ! 3 should be passed as arg
-      DOUBLE PRECISION, DIMENSION(LM+3) :: PM ! 3 should be passed as arg
-      
+      DOUBLE PRECISION, DIMENSION(3) :: SCALLR ! pass 3 as arg ??
+      DOUBLE PRECISION, DIMENSION(LM+3) :: PM ! pass 3 as arg ??
+
       COMMON/DJKTTL/TITLE(1)
       CHARACTER*4 DASH,WORD(4),TITLE*64
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
@@ -3778,7 +3778,7 @@ C****                                                            143-156
       USE E001M12_COM, only : im,jm,lm,FIM,
      &     BYDSIG,BYIM,DSIG,DT,IDACC,IMH,LMM1,NCNDS,
      &     PSF,PTOP,SIG,SIGE,TOFDAY,TOFDY0
-      USE GEOM, only : 
+      USE GEOM, only :
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,FCOR,RADIUS,WTJ
       USE DAGPCOM
       USE RADNCB, only : LM_REQ
@@ -4059,7 +4059,7 @@ C****
       INTEGER :: J1,JWT,LMAX,NT
       DOUBLE PRECISION :: SCALE,SCALER
       DOUBLE PRECISION, DIMENSION(JM,LM) :: AX
-      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! 3 should be passed as arg
+      DOUBLE PRECISION, DIMENSION(JM,3) :: ARQX ! pass 3 as arg ??
       DOUBLE PRECISION, DIMENSION(JM) :: SCALEJ,SCALJR
       DOUBLE PRECISION, DIMENSION(LM) :: SCALEL
       DOUBLE PRECISION, DIMENSION(3) :: SCALLR
@@ -4146,7 +4146,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       DO 210 JH=1,JMHALF
       J=(JHEMI-1)*(JMHALF-J0)+JH-J0
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
-      MLAT(J)=NINT(FLATJ) 
+      MLAT(J)=NINT(FLATJ)
   210 FHEM(JHEMI)=FHEM(JHEMI)+FLATJ*WTJ(J,JWT,J1)
   220 FGLOB=FGLOB+FHEM(JHEMI)/JWT
   230 WRITE (6,902) PL(L+LM),FGLOB,FHEM(2),FHEM(1),
@@ -4213,7 +4213,7 @@ C****                                                              9-16
       DOUBLE PRECISION :: BYIACN,BYIADA,BYIARD,DTCNDS,SCALE
 
       INTEGER, PARAMETER :: K_PIL=16
-      INTEGER, DIMENSION(K_PIL) :: 
+      INTEGER, DIMENSION(K_PIL) ::
      *  KNDEX=(/1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16/),
      *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 0,1,2,3,0, 1/)
 c    *  CASEIL=(/1,1,2,3,3, 4,5,0,2,3, 5,1,2,3,5, 1/)
@@ -4249,10 +4249,10 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SIL(14)=BYIADA
       SIL(15)=-1.D-13*BYIARD
       SIL(16)=BYIADA/2.
-      
+
       DO K=1,K_PIL
       SELECT CASE (CASEIL(K))
-      CASE DEFAULT 
+      CASE DEFAULT
       CASE (1)  ! Centered in L; secondary grid; hor. mean; vert. sum
         CALL ILMAP(TITLE(K),PLM,AIL(1,1,KNDEX(K)),SIL(K),ONES,LM,2,2)
       CASE (2)  ! Vertical edges; primary grid; hor. mean; vert. sum
@@ -4319,14 +4319,14 @@ C**** ISHIFT: When=2, print longitude indices off center (U-grid)
       FGLOB=0.
       DO 120 I=1,IM
       FLON=AX(I,L)*SCALE*SCALEL(L)
-         XIL(I,L)=FLON             
+         XIL(I,L)=FLON
       MLON(I)=NINT(FLON)
       ASUM(I)=ASUM(I)+FLON*DSIG(L)/SDSIG
       FGLOB=FGLOB+FLON
   120 CONTINUE
       FGLOB=FGLOB/IM
       IF (JWT.EQ.1) FGLOB=FGLOB*TWOPI/DLON
-         ZONAL(L)=FGLOB     
+         ZONAL(L)=FGLOB
       WRITE (6,902) PL(L),FGLOB,(MLON(I),I=1,IM,INC)
       GSUM=GSUM+FGLOB*DSIG(L)/SDSIG
   130 CONTINUE
@@ -4342,7 +4342,7 @@ C**** Output for post-processing
 c     IF (Q_GISS) THEN
 c        WRITE (85) XLB,IM,LMAX,1,1,
 c    *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-c    *     (LON(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0., 
+c    *     (LON(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
 c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
 c    *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
 c     END IF
@@ -5487,7 +5487,7 @@ C****
      *  ' CHANGE OF TPE BY DAILY RESTOR  ',
      *  ' SUM OF CHANGES (10**-2 W/M**2) '/
       CHARACTER*32 TITLE5(6)
-      DATA TITLE5/ 
+      DATA TITLE5/
      *  '0INSTANT WATER (10**-2 KG/M**2) ',
      *  ' CHANGE OF WATER BY DYNAMICS    ',
      *  ' CHANGE OF WATER BY CLOUDS      ',
@@ -5497,7 +5497,7 @@ C****
       END BLOCK DATA BDCNS
 
       SUBROUTINE DIAG9A (M)
-!@sum  DIAG9A Keeps track of the conservation properties of angular 
+!@sum  DIAG9A Keeps track of the conservation properties of angular
 !@sum  momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell
 !@ver  1.0
@@ -5513,7 +5513,7 @@ C****
 
 !@var M index denoting from where DIAG9A is called
       INTEGER, INTENT(IN) :: M
-!@var NAMOFM,NKEOFM,NMSOFM,NPEOFM,NWVOFM indices for CONSRV array 
+!@var NAMOFM,NKEOFM,NMSOFM,NPEOFM,NWVOFM indices for CONSRV array
       INTEGER :: NAMOFM(8) = (/1,6,1,1,7,8,9,10/)
       INTEGER :: NKEOFM(8) = (/1,17,18,1,19,20,21,22/)
       INTEGER :: NMSOFM(8) = (/1,25,1,1,1,1,26,27/)
@@ -5608,9 +5608,9 @@ C****
       END DO
       IF (M.EQ.6) GO TO 495
       IF (M.EQ.3.OR.M.EQ.5) GO TO 400
-C**** 
+C****
 C**** MASS
-C**** 
+C****
  300  RMASS(1)=FIM*(P(1,1)+PSTRAT)
       RMASS(JM)=FIM*(P(1,JM)+PSTRAT)
       DO J=2,JM-1
@@ -5628,9 +5628,9 @@ C****
       DO J=1,JM
          CONSRV(J,24)=RMASS(J)
       END DO
-C**** 
+C****
 C**** TOTAL POTENTIAL ENERGY
-C**** 
+C****
  400  DO J=1,JM
          IMAX=IMAXJ(J)
          TPEIL=0.
@@ -5663,7 +5663,7 @@ C****
          CONSRV(J,29)=TPE(J)
       END DO
       IF (M.EQ.4.OR.M.EQ.7) GO TO 495
-C**** 
+C****
 C**** TOTAL WATER MASS
 C****
       DO J=1,JM
@@ -5682,7 +5682,7 @@ C****
       END DO
       VAPOR(1) = VAPOR( 1)*IM
       VAPOR(JM)= VAPOR(JM)*IM
-      IF (M.GT.1) THEN    
+      IF (M.GT.1) THEN
          N=NWVOFM(M)
          DO J=1,JM
             CONSRV(J,N) = CONSRV(J,N) + (VAPOR(J)-CONSRV(J,37))
@@ -5691,13 +5691,13 @@ C****
       DO J=1,JM
          CONSRV(J,37) = VAPOR(J)
       END DO
-C**** 
+C****
  495  CALL TIMER (MNOW,MINC,MDIAG)
       RETURN
       END SUBROUTINE DIAG9A
-      
+
       SUBROUTINE DIAG9D (M,DT1,UX,VX,DUT,DVT,PIT)
-!@sum  DIAG9D Keeps track of the conservation properties of angular 
+!@sum  DIAG9D Keeps track of the conservation properties of angular
 !@sum  momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
 !@ver  1.0
@@ -5715,9 +5715,9 @@ C****   3  AFTER PRESSURE GRADIENT FORCE IN DYNAMICS
 C****
 !@var M index denoting from where DIAG9D is called
       INTEGER, INTENT(IN) :: M
-!@var DT1 current time step 
+!@var DT1 current time step
       DOUBLE PRECISION, INTENT(IN) :: DT1
-!@var UX,VX current velocities 
+!@var UX,VX current velocities
       DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM,LM) :: UX,VX
 !@var DUT,DVT current momentum changes
       DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM,LM) :: DUT,DVT
@@ -5762,7 +5762,7 @@ C****
             CONSRV(J,13)=CONSRV(J,13)+RKEIL
          END DO
       ELSE
-C**** 
+C****
 C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY CORIOLIS AND
 C**** PRESSURE GRADIENT FORCES
 C****
@@ -5802,7 +5802,7 @@ C****
      &     JMONTH,JYEAR,JYEAR0,NDYN,NFILTR,
      &     TAU,TAU0,TOFDAY,TOFDY0,XLABEL
 
-      USE GEOM, only : 
+      USE GEOM, only :
      &     AREAG,COSV,DLON,DXYP,DXYV,RADIUS,JLAT
       USE DAGCOM, only : consrv,kcon
       IMPLICIT NONE
@@ -6861,7 +6861,7 @@ c      = 256*(256*(256*iachar('J')+iachar('A'))+iachar('N'))+iachar(' ')
       DOUBLE PRECISION, DIMENSION(2) :: HSUM
       INTEGER, DIMENSION(NEHIST) :: IK
 
-      INTEGER :: 
+      INTEGER ::
      &     I,I35,I70,IEND,ISIGN,IHOUR,IHOUR0,INT_JMNTH0,
      &     J,J60,JMAX,JEQP1,JNDEX,JSTART,
      &     K,KEYMAX,KNDEX,
@@ -7151,7 +7151,7 @@ C****
       SUBROUTINE init_DIAG
 !@sum  init_DIAG initiallises the diagnostics
 !@auth Gavin Schmidt
-!@ver  1.0  
+!@ver  1.0
       USE E001M12_COM
       USE DAGCOM
       USE DAGPCOM
@@ -7159,7 +7159,7 @@ C****
       INTEGER L
 
 C**** AIJ diagnostic names:
-C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION 
+C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION
 C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       IJ_RSOI = 1  ! POICE (1)            1 GD
       IJ_RSNW = 2  ! PSNOW (1)            4 DA
@@ -7183,8 +7183,8 @@ C**** IJ_P4UV = 8  ! 4*P4 (100 PA)  (UV GRID)     4 DA ! OBS
       IJ_PMCCLD = 17  ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
       IJ_CLDTPPR = 18 ! P-CLOUD TOP   (100 PA)                  2 RD
       IJ_CLDCV = 19   ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
-      IJ_PEV  = 20 
-       ! 16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA	
+      IJ_PEV  = 20
+       ! 16*P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA
       IJ_TRNFP0 = 21  ! TRNFP0 (W/M**2)                         2 RS
       IJ_SRTR = 22    ! SRHDT+TRHDT (J/M**2)                    1 SF
       IJ_NETH = 23    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/M**2)   1 SP
@@ -7261,20 +7261,20 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_FQV = 93  ! NORTH-SOUTH WATER VAPOR FLUX (KG/S) /3600.*1 DY
       IJ_FGZU = 94  ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
       IJ_FGZV = 95  ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
-      
+
 C**** Definiton of IA_IJ (IDACC index) and NAME_IJ
       NAME_IJ(IJ_RSOI)   = "RSOI" ; IA_IJ(IJ_RSOI) = 1
-      NAME_IJ(IJ_RSNW)   = "RSNW" ; IA_IJ(IJ_RSNW) = 4 
-      NAME_IJ(IJ_SNOW)   = "SNOW" ; IA_IJ(IJ_SNOW) = 4 
+      NAME_IJ(IJ_RSNW)   = "RSNW" ; IA_IJ(IJ_RSNW) = 4
+      NAME_IJ(IJ_SNOW)   = "SNOW" ; IA_IJ(IJ_SNOW) = 4
       NAME_IJ(IJ_SHDT)   = "SHDT" ; IA_IJ(IJ_SHDT) = 1
       NAME_IJ(IJ_PREC)   = "PREC" ; IA_IJ(IJ_PREC) = 1
       NAME_IJ(IJ_EVAP)   = "EVAP" ; IA_IJ(IJ_EVAP) = 1
 C**** NAME_IJ(IJ_SSAT)   = "SSAT" ; IA_IJ(IJ_SSAT) = 1
-      NAME_IJ(IJ_BETA)   = "BETA" ; IA_IJ(IJ_BETA) = 1 
+      NAME_IJ(IJ_BETA)   = "BETA" ; IA_IJ(IJ_BETA) = 1
 C**** NAME_IJ(IJ_SLP1)   = "SLP1" ; IA_IJ(IJ_SLP1) = 4
 C**** NAME_IJ(IJ_P4UV)   = "P4UV" ; IA_IJ(IJ_P4UV) = 4
       NAME_IJ(IJ_PRES)   = "PRES" ; IA_IJ(IJ_PRES) = 4
-      NAME_IJ(IJ_PHI1K)  = "PHI1K"  ; IA_IJ(IJ_PHI1K ) = 4 
+      NAME_IJ(IJ_PHI1K)  = "PHI1K"  ; IA_IJ(IJ_PHI1K ) = 4
       NAME_IJ(IJ_PHI850) = "PHI850" ; IA_IJ(IJ_PHI850) = 4
       NAME_IJ(IJ_PHI700) = "PHI700" ; IA_IJ(IJ_PHI700) = 4
       NAME_IJ(IJ_PHI500) = "PHI500" ; IA_IJ(IJ_PHI500) = 4
@@ -7295,7 +7295,7 @@ C**** NAME_IJ(IJ_P4UV)   = "P4UV" ; IA_IJ(IJ_P4UV) = 4
       NAME_IJ(IJ_SRINCG) = "SRINCG" ; IA_IJ(IJ_SRINCG) = 2
       NAME_IJ(IJ_TG1)    = "TG1"    ; IA_IJ(IJ_TG1) = 1
       NAME_IJ(IJ_RSIT)   = "RSIT"   ; IA_IJ(IJ_RSIT) = 4
-      NAME_IJ(IJ_TDSL)   = "TDSL"   ; IA_IJ(IJ_TDSL) = 9 
+      NAME_IJ(IJ_TDSL)   = "TDSL"   ; IA_IJ(IJ_TDSL) = 9
       NAME_IJ(IJ_DTDP)   = "DTDP"   ; IA_IJ(IJ_DTDP) = 4
       NAME_IJ(IJ_RUNE)   = "RUNE"   ; IA_IJ(IJ_RUNE) = 1
 C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
@@ -7332,8 +7332,8 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_EVAPLI) = "EVAPLI" ; IA_IJ(IJ_EVAPLI) = 1
       NAME_IJ(IJ_EVAPE)  = "EVAPE"  ; IA_IJ(IJ_EVAPE) = 1
       NAME_IJ(IJ_F0OC)   = "F0OC"   ; IA_IJ(IJ_F0OC) = 1
-      NAME_IJ(IJ_F0OI)   = "F0OI"   ; IA_IJ(IJ_F0OI) = 1 
-      NAME_IJ(IJ_F0LI)   = "F0LI"   ; IA_IJ(IJ_F0LI) = 1 
+      NAME_IJ(IJ_F0OI)   = "F0OI"   ; IA_IJ(IJ_F0OI) = 1
+      NAME_IJ(IJ_F0LI)   = "F0LI"   ; IA_IJ(IJ_F0LI) = 1
       NAME_IJ(IJ_F0E)    = "F0E"    ; IA_IJ(IJ_F0E) = 1
       NAME_IJ(IJ_F1LI)   = "F1LI"   ; IA_IJ(IJ_F1LI) = 1
       NAME_IJ(IJ_SNWF)   = "SNWF"   ; IA_IJ(IJ_SNWF) = 1
@@ -7364,7 +7364,7 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
 
 C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (TAU.le.TAUI) THEN 
+      IF (TAU.le.TAUI) THEN
          CALL reset_DIAG
          CALL daily_DIAG
       END IF
@@ -7385,7 +7385,7 @@ C**** Initialize certain arrays used by more than one print routine
       SUBROUTINE reset_DIAG
 !@sum  reset_DIAG resets/initiallises diagnostics
 !@auth Original Development Team
-!@ver  1.0  
+!@ver  1.0
       USE E001M12_COM
       USE DAGCOM
       IMPLICIT NONE
@@ -7396,13 +7396,13 @@ C**** Initialize certain arrays used by more than one print routine
       JDATE0=JDATE
       JMNTH0=JMONTH
       JYEAR0=JYEAR
-      
+
       IDACC(1:10)=0
       AJ=0    ; BJ=0   ; CJ=0     ; AREG=0
       APJ=0   ; AJL=0  ; ASJL=0   ; AIJ=0
       AIL=0   ; AIJG=0 ; ENERGY=0 ; CONSRV=0
       SPECA=0 ; ATPE=0 ; ADAILY=0 ; WAVE=0
-      AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0 
+      AJK=0   ; AIJK=0 ; AIJL=0   ; AJLSP=0
 
       AIJ(:,:,IJ_TMNMX)=1000.
 
@@ -7412,7 +7412,7 @@ C**** Initialize certain arrays used by more than one print routine
       SUBROUTINE daily_DIAG
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
-!@ver  1.0  
+!@ver  1.0
       USE E001M12_COM
       USE DAGCOM
       IMPLICIT NONE
@@ -7432,7 +7432,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
          END DO
       ELSEIF (JDAY.EQ.213) THEN
          DO J=1,JM/2
-            DO I=1,IM 
+            DO I=1,IM
               TSFREZ(I,J,1)=JDAY
             END DO
          END DO
@@ -7454,5 +7454,5 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             END IF
          END DO
       END DO
-         
+
        END SUBROUTINE daily_DIAG

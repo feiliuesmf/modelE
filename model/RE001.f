@@ -483,7 +483,7 @@ c     numbers can be set automatically
       DIMENSION NRFUN(14)
 c
 C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
-c      DATA NRFUN/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
+c     DATA NRFUN/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
 C
 C       LPATH1 = Character Length of Path Leader of Input Data File Path
 C       ----------------------------------------------------------------

@@ -1,4 +1,4 @@
-   
+    
       FUNCTION THBAR (X,Y)
 C****
 C**** TH-mean used for vertical differencing (Arakawa)
@@ -115,8 +115,8 @@ C****
 !@param IUNITMX maxiumum unit number allowed
       INTEGER, PARAMETER :: IUNITMX = 98
 !@var NUNIT number of already opened files (initially zero)
-      INTEGER, SAVE :: NUNIT = 0 
-!@var NAME name of unit number (or at least first ten characters) 
+      INTEGER, SAVE :: NUNIT = 0
+!@var NAME name of unit number (or at least first ten characters)
       CHARACTER*10 :: NAME(IUNIT0:IUNITMX)
 
       CONTAINS
@@ -149,7 +149,7 @@ C**** Open file
       END IF
 C**** set NAME for error tracking purposes
       NAME (IUNIT) = FILENM
-C**** increment no of files      
+C**** increment no of files
       NUNIT = NUNIT + 1
 
       RETURN
@@ -177,7 +177,7 @@ C**** increment no of files
       IF (IUNIT0+NUNIT+NREQ-1.gt.IUNITMX)
      *     STOP "Maximum file number reached"
 
-      DO I=1,NREQ 
+      DO I=1,NREQ
 C**** Set unit number
          IUNIT(I) = IUNIT0 + NUNIT
 C**** Open file
@@ -190,7 +190,7 @@ C**** Open file
          END IF
 C**** set NAME for error tracking purposes
          WRITE(NAME(IUNIT(I)),'(A8,I2)') FILENM(1:8),I
-C**** increment no of files      
+C**** increment no of files
          NUNIT = NUNIT + 1
       END DO
 
@@ -244,7 +244,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 
       SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
 !@sum   MREAD   read in integer and real*4 array and convert to real*8
-!@auth  Reto Ruedy (should become obsolete)
+!@auth  Original Development Team
 !@ver   1.0
       USE FILEMANAGER, only : NAME !@var NAME name of record being read
       IMPLICIT NONE
