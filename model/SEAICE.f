@@ -292,7 +292,6 @@ c     HFLUX= 0                  ! energy of runoff (currently at 0 deg)
       REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3, FO
 
-      IF (ROICE .EQ. 0.) RETURN
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
       FHSI1=0. ; FHSI2=0. ; FHSI3=0.
       SMELT1=0 ; SMELT2=0. ; SMELT3=0.; SMELT4=0.

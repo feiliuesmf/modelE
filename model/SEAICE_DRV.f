@@ -389,12 +389,14 @@ C****
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       JR=JREG(I,J)
+      SOLAR(3,I,J)=0
       RUNOSI(I,J)=0
       ERUNOSI(I,J)=0
+      SRUNOSI(I,J)=0
 #ifdef TRACERS_WATER
       TRUNOSI(:,I,J) = 0.
 #endif
-      IF (PWATER*ROICE.gt.0) THEN
+      IF (POICE.gt.0) THEN
 
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layer (J/m^2)
