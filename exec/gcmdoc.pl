@@ -405,6 +405,8 @@ sub print_main_index {
     print HTM "<HR>\n";
 
     print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
+    htm_link("ModelE Reference Manual","modelE.html"); 
+    print HTM "<BR>\n";
     htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
     print HTM "<BR>\n";
     htm_link("HOW-TO document for the GCM","HOWTO.html"); 
