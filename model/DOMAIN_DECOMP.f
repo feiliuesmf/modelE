@@ -1,4 +1,3 @@
-#define DEBUG_DECOMP
       MODULE DOMAIN_DECOMP
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
