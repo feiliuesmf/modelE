@@ -21,6 +21,7 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
 #ifdef CLD_AER_CDNC 
      *     ,oldno,oldnl,smfpm
+     *     ,ctem,cd3d,cl3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,uls,vls,umc,vmc,tls,qls,tmc,qmc,ddm1,airx,lmc
@@ -76,11 +77,16 @@
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,nlsw,nlsi,nmcw,nmci
      *     ,oldcdo,oldcdl,smfpml
+     *     ,sme
+     *     ,cteml,cd3dl,cl3dl,cdn3dl,cre3dl,smlwp
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      *     ,prebar1
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
+#ifdef CLD_AER_CDNC
+     *     ,egcm
+#endif
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
       USE SEAICE_COM, only : rsi
@@ -346,6 +352,14 @@ C**** other fields where L is the leading index
         OLDCDL(:)=OLDNL(:,I,J)
         OLDCDO(:)=OLDNO(:,I,J)  ! OLDN is for rsf save
         SMFPML(:)=SMFPM(:,I,J)
+        SME(:)  =egcm(:,I,J)  !saving 3D TKE value
+        CTEML(:) =CTEM(:,I,J)
+c       write(6,*)"CTEM_DRV",CTEML(L),CTEM(L,I,J)
+        CD3DL(:) =CD3D(:,I,J)
+        CL3DL(:) =CL3D(:,I,J)
+        CDN3DL(:)=CDN3D(:,I,J)
+        CRE3DL(:)=CRE3D(:,I,J)
+        SMLWP=CLWP(I,J)
 #endif
       FSSL(:)=FSS(:,I,J)
       DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
@@ -872,6 +886,13 @@ C**** WRITE TO GLOBAL ARRAYS
          OLDNL(:,I,J)=OLDCDL(:)
          OLDNO(:,I,J)=OLDCDO(:)
          SMFPM(:,I,J)=SMFPML(:)
+         egcm(:,I,J) = SME(:) 
+         CTEM(:,I,J) =CTEML(:)
+         CD3D(:,I,J) =CD3DL(:)
+         CL3D(:,I,J) =CL3DL(:)
+         CDN3D(:,I,J)=CDN3DL(:)
+         CRE3D(:,I,J)=CRE3DL(:)
+         CLWP(I,J) = SMLWP
 #endif
 
       TTOLD(:,I,J)=TH(:)
@@ -892,6 +913,7 @@ C**** update running-average of precipitation (in mm/day):
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
         AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
+c       write(6,*) "CTEM_DRV",CTEML(L),CTEM(I,J,L),L,I,J
         AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
 
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
