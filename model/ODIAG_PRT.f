@@ -1117,7 +1117,7 @@ C**** Correct SF for mean E-W drift (SF over topography --> 0)
       REAL*8 XB0(JM,LMO,0:NBAS),X0(IM,LMO),XS(IM,LMO),
      *     XBG(JM,LMO,0:NBAS),XBS(JM,LMO,0:NBAS),XG(IM,LMO)
 #ifdef TRACERS_OCEAN
-      REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM)
+      REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,0:NBAS)
 #endif
       CHARACTER TITLE*80,EW*1,NS*1,LNAME*50,SNAME*50,UNITS*50
       CHARACTER LABI*16,LABJ*16
@@ -1174,6 +1174,7 @@ C****
       XBS(:,:,4) = XBS(:,:,1) + XBS(:,:,2) + XBS(:,:,3)
 #ifdef TRACERS_OCEAN
       XBT(:,:,4,:)= XBT(:,:,1,:)+XBT(:,:,2,:)+XBT(:,:,3,:)
+      if (n_water.ne.0) XBTW(:,:,:) =  XBT(:,:,:,n_water)
 #endif
       DO KB=1,4
         DO J=1,JM
@@ -1182,9 +1183,9 @@ C****
 #ifdef TRACERS_OCEAN
               do n=1,ntm
               if (to_per_mil(n).gt.0) then
-                if (XBT(j,l,kb,n_water).gt.0) then
+                if (XBTW(j,l,kb).gt.0) then
                   XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-     *                 (XBT(j,l,kb,n_water)*trw0(n))-1.)
+     *                 (XBTW(j,l,kb)*trw0(n))-1.)
                 else
                   XBT(j,l,kb,n)=undef
                 end if

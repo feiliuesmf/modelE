@@ -936,10 +936,18 @@ C**** convert kg/(source time step) to km^3/mon
               IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
      *             THEN
               if (to_per_mil(n).gt.0) then
-                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
-     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
-     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
-     *               ))) -1.)
+c                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
+c     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
+c     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*BYDXYP(JRVRMTH(I-1+INM
+c     *               ))) -1.)
+                if (TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),TIJ_RVR
+     *               ,N_water).gt.0) then 
+                  TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
+     *                 +INM),TIJ_RVR,N)/(trw0(n)*TAIJN(IRVRMTH(I-1+INM)
+     *                 ,JRVRMTH(I-1+INM),TIJ_RVR,N_water))-1.)
+                else 
+                  TRRVOUT(I,N)=undef
+                endif
               else
                 TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
      *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)
