@@ -333,7 +333,7 @@ C----------------
       REAL*8 :: snoage_fac_max=.5d0
 
 !@var ITRMAX maximum number of optional tracers
-      integer, parameter :: ITRMAX=20
+      integer, parameter :: ITRMAX=50
 !@var TRACER array to add up to ITRMAX additional aerosol species
       real*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
@@ -1004,7 +1004,7 @@ C---------------------
 C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
      *  TRRDRY= .1d0
 !nu  * ,TRVEFF= .2d0
-!nu  * ,TRADEN= 1.d0
+     * ,TRADEN= 1.d0
 !loc * ,FSTOPX= 1.d0
 !loc * ,FTTOPX= 1.d0
 
@@ -3350,7 +3350,7 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8          TTAULX(LX,ITRMAX),   SRBGQL
-      INTEGER K,L,NA,N,NRH,M,KDREAD,NT,ntd
+      INTEGER K,L,NA,N,NRH,M,KDREAD,NT
 
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
@@ -3556,12 +3556,10 @@ C     NOTE:  Aerosol carried as a tracer is assumed to be in kg/m2 units
 C     ------------------------------------------------------------------
 
       DO L=1,NL
-      ntd=0
       DO NT=1,NTRACE
-        IF (itr(nt) == 7) THEN
-          ntd=ntd+1
+        IF (ITR(NT) == 7) THEN
           TTAULX(L,NT)=TRACER(L,NT)*
-     *         1d3*.75d0/rodust(ntd)*RTINFO(1,9,NT)/TRRDRY(NT)
+     *         1d3*.75d0/TRADEN(NT)*RTINFO(1,9,NT)/TRRDRY(NT)
         ELSE
           TTAULX(L,NT)=TRACER(L,NT)*
      *         1d3*.75d0/DENAER(ITR(NT))*Q55DRY(ITR(NT))/TRRDRY(NT)

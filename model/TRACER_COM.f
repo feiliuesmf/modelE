@@ -252,7 +252,11 @@ c    *    'DMS     ','SO2     ','SO4     ','H2O2_s  '/)
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
-     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
+     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0,
+     &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,n_clayquar,
+     &     n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,n_sil1gyps,
+     &     n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,n_sil2gyps,
+     &     n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps
 
 !@var 3D on-line radical array for interactive aerosol and gas
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
@@ -281,7 +285,7 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
       INTEGER :: imDUST=0
 #endif

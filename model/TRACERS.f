@@ -46,7 +46,7 @@ C**** decide on AEROCOM or standard emissions
 C**** decide if preindustrial emissions  
       call sync_param("imPI",imPI)
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 C**** decide on AEROCOM or interactive emissions 
       CALL sync_param('imDUST',imDUST)
 #endif
@@ -901,7 +901,7 @@ C**** check whether air mass is conserved
      & ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE tracers_dust,ONLY : hbaij
 #endif
       IMPLICIT NONE
@@ -940,7 +940,7 @@ C**** check whether air mass is conserved
      *     ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,hbaij
 #endif
       CASE (IOREAD:)          ! input from restart file
@@ -957,7 +957,7 @@ C**** check whether air mass is conserved
      *       ,SF3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,hbaij
 #endif
           IF (HEADER(1:lhead).ne.MODULE_HEADER(1:lhead)) THEN

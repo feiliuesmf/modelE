@@ -3,7 +3,7 @@
       module PBL_DRV
 #ifdef TRACERS_ON
       use tracer_com, only : ntm
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,Ntm_dust
 #endif
 #endif
@@ -45,7 +45,7 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_AEROSOLS_Koch
       real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8 :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
 #endif
       common /trspec/trtop,trs,trsfac,trconstflx
@@ -58,7 +58,7 @@ C**** Tracer input/output common block for PBL
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux,ss1_flux,ss2_flux
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,dust_flux,wsubtke,wsubwd,wsubwm
 #endif
 
@@ -275,7 +275,7 @@ C        roughness lengths from Brutsaert for rough surfaces
 #ifdef TRACERS_AEROSOLS_Koch
      *     DMS_flux,ss1_flux,ss2_flux,
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
 #endif
 #endif

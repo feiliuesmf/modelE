@@ -319,7 +319,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,RHfix
@@ -581,10 +581,13 @@ C**** should also work if other aerosols are not used
 c tracer 7 is dust
       ITR(n1:NTRACE) = (/ 7,7,7,7,7,7,7 /)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for dust
-C**** particle size for dust  (from trradius?)
+C**** effective radii for dust
 c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
       TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,
      &     2.773D0,5.545D0/)
+C**** Particle density of dust
+      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,
+     &     2.65D0/)
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics. Adjust if number of dust tracers changes.
       NTRIX(n1:NTRACE)=(/n_clay,n_clay,n_clay,n_clay,n_silt1,n_silt2,
@@ -593,6 +596,52 @@ C**** define weighting for different clays
       WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,1D0,1D0,1D0/)
 C**** If some tracers are not being used reduce NTRACE accordingly
       NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#else
+#ifdef TRACERS_MINERALS
+C**** add minerals optionally to radiatively active aerosol tracers
+C**** so far all minerals have the properties of far traveled Saharan dust
+C**** to be changed soon
+      if (rad_interact_tr.gt.0) then ! turn off default dust
+        FS8OPX(7) = 0. ; FT8OPX(7) = 0.
+      end if
+      n1=NTRACE+1
+      NTRACE=NTRACE+ntm_dust+15  ! add dust tracers
+c tracer 7 is dust
+      ITR(n1:NTRACE) = (/7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+     &     7,7,7,7,7,7,7,7,7,7,7,7,7,7/)
+      KRHTRA(n1:NTRACE)= 0.  ! no deliq for minerals
+C**** effective radii for minerals
+c      TRRDRY(n1:NTRACE)=(/ .75d0, 2.2d0, 4.4d0, 6.7d0/)
+      TRRDRY(n1:NTRACE)=(/0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,
+     &     0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,0.132D0,
+     &     0.23D0,0.416D0,0.766D0,0.132D0,0.23D0,0.416D0,0.766D0,
+     &     1.386D0,1.386D0,1.386D0,1.386D0,1.386D0,2.773D0,2.773D0,
+     &     2.773D0,2.773D0,2.773D0,5.545D0,5.545D0,5.545D0,5.545D0,
+     &     5.545D0/)
+C**** Particle density of dust
+      TRADEN(n1:NTRACE)=(/2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,
+     &     2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,2.5D0,
+     &     2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,
+     &     2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,2.65D0,
+     &     2.65D0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics. Adjust if number of dust tracers changes.
+      NTRIX(n1:NTRACE)=(/n_clayilli,n_clayilli,n_clayilli,n_clayilli,
+     &     n_claykaol,n_claykaol,n_claykaol,n_claykaol,n_claysmec,
+     &     n_claysmec,n_claysmec,n_claysmec,n_claycalc,n_claycalc,
+     &     n_claycalc,n_claycalc,n_clayquar,n_clayquar,n_clayquar,
+     &     n_clayquar,n_sil1quar,n_sil1feld,n_sil1calc,n_sil1hema,
+     &     n_sil1gyps,n_sil2quar,n_sil2feld,n_sil2calc,n_sil2hema,
+     &     n_sil2gyps,n_sil3quar,n_sil3feld,n_sil3calc,n_sil3hema,
+     &     n_sil3gyps/)
+C**** define weighting for different clays
+      WTTR(n1:NTRACE)=(/0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,
+     &     0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,0.009D0,
+     &     0.081D0,0.234D0,0.676D0,0.009D0,0.081D0,0.234D0,0.676D0,1D0,
+     &     1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0,1D0/)
+C**** If some tracers are not being used reduce NTRACE accordingly
+      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
+#endif
 #endif
 
       if (ktrend.ne.0) then
@@ -753,7 +802,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
-      LOGICAL NO_CLOUD_ABOVE, set_clay
+      LOGICAL NO_CLOUD_ABOVE, set_clay,set_clayilli,set_claykaol,
+     &     set_claysmec,set_claycalc,set_clayquar
 C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -918,6 +968,8 @@ C****
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,tauex5,tauex6,tausct,taugcb,set_clay,
+!$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
+!$OMP*   set_clayquar,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
@@ -1130,7 +1182,8 @@ C**** Extra aerosol data
 C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** loop over tracers that are passed to radiation.
 C**** Two special cases for black carbon and organic carbon where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1241,14 +1294,25 @@ C**** or not.
       onoff=0
       if (rad_interact_tr.gt.0) onoff=1
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
         FSTOPX(:)=onoff ; FTTOPX(:)=onoff
         set_clay=.false.
+        set_clayilli=.FALSE.
+        set_claykaol=.FALSE.
+        set_claysmec=.FALSE.
+        set_claycalc=.FALSE.
+        set_clayquar=.FALSE.
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
           IF (trname(ntrix(n)) == 'Clay' .AND. set_clay) cycle
+          IF (trname(ntrix(n)) == 'ClayIlli' .AND. set_clayilli) cycle
+          IF (trname(ntrix(n)) == 'ClayKaol' .AND. set_claykaol) cycle
+          IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
+          IF (trname(ntrix(n)) == 'ClayCalc' .AND. set_claycalc) cycle
+          IF (trname(ntrix(n)) == 'ClayQuar' .AND. set_clayquar) cycle
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
@@ -1257,10 +1321,26 @@ C**** one before seasalt2 in NTRACE array
           END IF
 C**** Do radiation calculations for all clay classes at once
 C**** Assumes that 4 clay tracers are adjacent in NTRACE array
-          IF (trname(ntrix(n)) == 'Clay') THEN
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay')
             fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
             set_clay=.true.
-          END IF
+          CASE ('ClayIlli')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clayilli=.true.
+          CASE ('ClayKaol')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claykaol=.true.
+          CASE ('ClaySmec')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claysmec=.true.
+          CASE ('ClayCalc')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_claycalc=.true.
+          CASE ('ClayQuar')
+            fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+            set_clayquar=.true.
+          END SELECT
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX
           SNFST(1,NTRIX(n),I,J)=SRNFLB(1) ! surface forcing
@@ -1271,9 +1351,11 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt1") THEN ! for seasalt2 as well
             FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
           END IF
-          IF (trname(ntrix(n)) == 'Clay') THEN
+          SELECT CASE (trname(ntrix(n)))
+          CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
+     &           'ClayQuar')
             fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff  ! for clays as well
-          END IF
+          END SELECT
         end do
       end if
 #endif
@@ -1309,13 +1391,19 @@ C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
 C*****************************************************
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
 C**** Save optical depth diags
       do n=1,NTRACE
         if (ijts_tau(1,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(1,NTRIX(n)))
      *       =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
         if (ijts_tau(2,NTRIX(n)).gt.0) taijs(i,j,ijts_tau(2,NTRIX(n)))
      *       =taijs(i,j,ijts_tau(2,NTRIX(n)))+SUM(TTAUSV(1:lm,n))*OPNSKY
+        IF (i == 16 .AND. j == 32)
+     & WRITE(*,*)
+     & 'In radia: itime,i,j,n,ntrix,ijts_tau(1),ttausv(n),taijs:',
+     & itime,i,j,n,ntrix(n),ijts_tau(1,ntrix(n)),ttausv(1:lm,n),
+     &       taijs(i,j,ijts_tau(1,NTRIX(n)))
       end do
 #endif
 
@@ -1611,7 +1699,8 @@ C**** CRF diags if required
      *          (TNFS(3,I,J)-TNFSCRF(I,J))
          end if
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes

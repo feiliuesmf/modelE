@@ -87,11 +87,14 @@ c****
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_DUST)
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,trname
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
+#endif
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
 #endif
       use tracer_diag_com, only : taijn,tij_surf
      *  ,taijs,ijts_isrc,jls_isrc,tajls
@@ -101,10 +104,11 @@ c****
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DUST)
+#if (defined TRACERS_WATER) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS)
      &     ,jls_source
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,ijts_source,nDustEmij,nDustEmjl
 #endif
       use fluxes, only : trsource,trsrfflx
@@ -118,7 +122,7 @@ c****
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,pprec,pevap
 #endif
       use ghycom, only : ngm,nlsn,
@@ -152,7 +156,7 @@ c****
 #ifdef TRACERS_AEROSOLS_Koch
      *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,dust_flux
 #endif
 #endif
@@ -175,7 +179,7 @@ c****
 
 #ifdef TRACERS_ON
       integer n,nx,nsrc
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       INTEGER :: n1
 #endif
       real*8 totflux(ntm)
@@ -289,7 +293,7 @@ C**** halo update u and v for distributed parallelization
 #if defined(TRACERS_DRYDEP)
 !$OMP*   ,tdryd,tdd,td1,rtsdt
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !$OMP&   ,n1
 #endif
 #endif
@@ -608,7 +612,7 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
       !evap=aevapw+aevapd+aevapb
       evap = aevap
       evapor(i,j,4)=evapor(i,j,4)+evap
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -671,11 +675,21 @@ C**** are used, it can happen over land as well.
      *         ss2_flux*dxyp(j)*ptype*dtsurf
         end select
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccc dust emission from earth
         SELECT CASE (trname(n))
+#ifdef TRACERS_DUST
         CASE ('Clay','Silt1','Silt2','Silt3')
           n1=n-n_clay+1
+#else
+#ifdef TRACERS_MINERALS
+      CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &      'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &      'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &      'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          n1=n-n_clayilli+1
+#endif
+#endif
           trsrfflx(i,j,n)=trsrfflx(i,j,n)+dust_flux(n1)*dxyp(j)*ptype
           taijs(i,j,ijts_source(nDustEmij,n))=
      &         taijs(i,j,ijts_source(nDustEmij,n))+dust_flux(n1)*

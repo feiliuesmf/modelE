@@ -19,8 +19,14 @@
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     ,Ntm_dust
+#endif
 #ifdef TRACERS_DUST
-     &     ,n_clay,Ntm_dust
+     &     ,n_clay
+#endif
+#ifdef TRACERS_MINERALS
+     &     ,n_clayilli
 #endif
 #endif
       IMPLICIT NONE
@@ -134,7 +140,7 @@ CCC      real*8 :: bgrid
 #if defined(TRACERS_AEROSOLS_Koch)
      *     DMS_flux, ss1_flux, ss2_flux,
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ptype,dust_flux,wsubtke,wsubwd,wsubwm,
 #endif
 #endif
@@ -249,7 +255,7 @@ c  internals:
 C****
       real*8 :: sig0,delt,wt,wmin,wmax
       integer :: icase
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,INTENT(IN) :: ptype
       REAL*8,INTENT(OUT) :: dust_flux(Ntm_dust),wsubtke,wsubwd,wsubwm
       INTEGER :: n1
@@ -371,7 +377,7 @@ C**** generic calculations for all tracers
 C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
       CALL sig(e(1),mdf,dbl,delt,ch,wsm,t(1),wsubtke,wsubwd,wsubwm)
 #endif
@@ -399,7 +405,7 @@ C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts,dep_vel)
 #endif
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       CALL dust_emission_constraints(ilong,jlat,itype,ptype,wsm)
 #endif
 
@@ -456,11 +462,21 @@ C****   4) tracers with interactive sources
         end select
 #endif
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccc dust emission from earth
       SELECT CASE (trname(ntix(itr)))
+#ifdef TRACERS_DUST
       CASE ('Clay','Silt1','Silt2','Silt3')
         n1=ntix(itr)-n_clay+1
+#else
+#ifdef TRACERS_MINERALS
+      CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &      'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &      'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &      'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+        n1=ntix(itr)-n_clayilli+1
+#endif
+#endif
         CALL local_dust_emission(ilong,jlat,n1,wsm,ptype,dsrcflx)
         trcnst=dsrcflx*byrho
         dust_flux(n1)=dsrcflx

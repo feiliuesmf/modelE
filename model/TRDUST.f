@@ -3,7 +3,7 @@
 !@sum  local constrainsts for dust tracer emission valid for all dust bins
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
       USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
@@ -142,13 +142,16 @@ c     only over 5% of the area.
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE constant,ONLY : sday
       USE model_com,ONLY : jday
       USE geom,ONLY : dxyp
-      USE tracer_com,ONLY : trname,imDUST
+      USE tracer_com,ONLY : trname,imDUST,n_clayilli
       USE tracers_dust,ONLY : curint,fracn,frclay,frsilt,gin_data,qdust,
      &     uplfac,vtrsh,d_dust
+#ifdef TRACERS_MINERALS
+     &     ,minfr
+#endif
 
 #ifndef DUST_EMISSION_EXTERN
       IMPLICIT NONE
@@ -157,6 +160,7 @@ c     only over 5% of the area.
       REAL*8,INTENT(IN) :: ptype,wsm
       REAL*8,INTENT(OUT) :: dsrcflx
 
+      INTEGER :: n1
       REAL*8 :: frtrac
 
       IF (imDUST == 0) THEN
@@ -165,13 +169,7 @@ c     Interactive dust emission
       IF (.NOT. qdust(i,j)) THEN
         dsrcflx=0D0
       ELSE
-#ifdef TRACERS_DUST_MINERAL8
-#ifdef TRACERS_DUST_CUB_SAH
-        CALL loc_dustflux_cub_min8
-#else
-        CALL loc_dustflux_turb_min8
-#endif
-#else
+#ifdef TRACERS_DUST
 #ifdef TRACERS_DUST_CUB_SAH
         SELECT CASE(trname(n))
         CASE ('Clay')
@@ -186,6 +184,39 @@ c     Interactive dust emission
 
         dsrcflx=Uplfac(n)*Fracn(n)*gin_data(i,j)*curint(i,j)
 #endif
+#else
+#ifdef TRACERS_MINERALS
+
+        SELECT CASE(trname(n))
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
+          n1=n-n_clayilli+1
+        CASE ('Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps')
+          n1=n-n_clayilli-4
+        CASE ('Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          n1=n-n_clayilli-9
+        END SELECT
+
+#ifdef TRACERS_DUST_CUB_SAH
+        SELECT CASE(trname(n))
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
+          frtrac=frclay(i,j)
+        CASE ('Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
+     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
+     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          frtrac=frsilt(i,j)
+        END SELECT
+
+        dsrcflx=minfr(i,j,n1)*Uplfac(n)*frtrac*Fracn(n)*
+     &       (wsm-vtrsh(i,j))*wsm**2
+
+#else ! default case
+
+        dsrcflx=minfr(i,j,n1)*Uplfac(n)*Fracn(n)*gin_data(i,j)*
+     &       curint(i,j)
+
+#endif
+#endif
 #endif
 
       END IF
@@ -196,7 +227,25 @@ c     prescribed AEROCOM dust emission
       IF (.NOT. qdust(i,j)) THEN
         dsrcflx=0D0
       ELSE
+
         dsrcflx=d_dust(i,j,n,jday)/Sday/dxyp(j)/ptype
+
+#ifdef TRACERS_MINERALS
+      
+        SELECT CASE(trname(n))
+        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
+     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
+          n1=n-n_clayilli+1
+        CASE ('Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps')
+          n1=n-n_clayilli-4
+        CASE ('Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
+          n1=n-n_clayilli-9
+        END SELECT
+
+        dsrcflx=dsrcflx*minfr(i,j,n1)
+
+#endif
+
       END IF
 
       END IF
@@ -207,23 +256,9 @@ c     prescribed AEROCOM dust emission
       RETURN
       END SUBROUTINE local_dust_emission
 
-      SUBROUTINE loc_dustflux_cub_min8
-!@sum  local dust source flux physics with Ina's cubic scheme and 8 minerals
-!@auth Jan Perlwitz, ...
-
-      RETURN
-      END SUBROUTINE loc_dustflux_cub_min8
-
-      SUBROUTINE loc_dustflux_turb_min8
-!@sum  local dust source flux physics with turbulent fluxes and 8 minerals
-!@auth Jan Perlwitz, Reha Cakmur
-
-      RETURN
-      END SUBROUTINE loc_dustflux_turb_min8
-
       SUBROUTINE ratint2(x1a,x2a,x3a,ya,m,n,x1,x2,x3,y,dy)
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       implicit none
       INTEGER, INTENT(IN) :: m,n
       INTEGER NMAX,MMAX
@@ -284,7 +319,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE ratint(xa,ya,n,x,y,dy)
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       IMPLICIT NONE
 
       INTEGER NMAX
@@ -338,7 +373,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE polint(xa,ya,n,x,y,dy)
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 
       IMPLICIT NONE
 
@@ -390,7 +425,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       SUBROUTINE locate(xx,n,x,j)
 
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

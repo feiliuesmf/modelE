@@ -191,7 +191,11 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER, PARAMETER :: ktajls=96
 #endif
 #else
+#ifdef TRACERS_MINERALS
+      INTEGER,PARAMETER :: ktajls=80
+#else
       INTEGER, PARAMETER :: ktajls=36   ! default
+#endif
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
