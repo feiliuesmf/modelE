@@ -871,7 +871,7 @@ c     find rimax:
       rimax=int(rimax*1000.)/1000.
       c4 = d1-s4*b1
       c5 = s0*b1-d2
-      write(99,*) "in ccoeff0, rimax=",rimax
+c      write(99,*) "in ccoeff0, rimax=",rimax
 c     find ghmax:
       del=(2.*d1+s4)**2-8.*(2.*d3+s5)
       ghmax=( b1*s4-d1-sqrt( (b1*s4-d1)**2-4*(d3-b1*s5) ) )
@@ -880,18 +880,18 @@ c     find ghmax:
       ghmin=-0.281d0
       gmmax0=3.80d0
 c
-      write(99,*) "g1=",g1
-      write(99,*) "g2=",g2
-      write(99,*) "g3=",g3
-      write(99,*) "g4=",g4
-      write(99,*) "g5=",g5
-      write(99,*) "g6=",g6
-      write(99,*) "g7=",g7
-      write(99,*) "g8=",g8
-      write(99,*) "rimax=",rimax
-      write(99,*) "ghmax=",ghmax
-      write(99,*) "ghmin=",ghmin
-      write(99,*) "gmmax0=",gmmax0
+c      write(99,*) "g1=",g1
+c      write(99,*) "g2=",g2
+c      write(99,*) "g3=",g3
+c      write(99,*) "g4=",g4
+c      write(99,*) "g5=",g5
+c      write(99,*) "g6=",g6
+c      write(99,*) "g7=",g7
+c      write(99,*) "g8=",g8
+c      write(99,*) "rimax=",rimax
+c      write(99,*) "ghmax=",ghmax
+c      write(99,*) "ghmin=",ghmin
+c      write(99,*) "gmmax0=",gmmax0
       return
       end subroutine ccoeff0
 

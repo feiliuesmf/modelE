@@ -484,8 +484,8 @@ C****
       CHARACTER*4 XLABEL,NAMD6,JMONTH,JMNTH0
       COMMON /TEXT/ XLABEL(33),NAMD6(4),JMONTH,JMNTH0
 
-      DATA IM0,JM0,LM0,  LS1,LBLMx/
-     *     IM ,JM ,LM ,   12,   5/,
+      DATA IM0,JM0,LM0,  LS1/
+     *     IM ,JM ,LM ,   12/,
      *  KOCEAN,KDISK,KEYCT,KCOPY,     IRAND,IJRA,MFILTR,NDYN/
      *       1,    1,    1,    2, 123456789,   2,     1,   8/,
      *       NSURF,NGRND,  IYEAR/

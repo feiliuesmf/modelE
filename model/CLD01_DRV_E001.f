@@ -242,12 +242,12 @@ C**** ADD IN CHANGE OF ANG. MOMENTUM BY MOIST CONVECTION FOR DIAGNOSTIC
       USE E001M12_COM
       USE SOMTQ_COM
       USE CLD01_COM_E001
-      USE CLD01, only : dxypj,kmax,pearth,pij0,ra,pl,ple,ptoldij,qtoldl
+      USE CLD01, only : dxypj,kmax,pearth,pij0,ra,pl,ple,aq,dpdt
      *     ,plk,airm,byam,tl,th,ql,wmx,ttoldl,rh,sm,sxm,sym,szm
      *     ,sxxm,sxym,syym,syzm,szzm,szxm,qm,qxm,qym,qzm,qxxm,qxym,qyym
      *     ,qyzm,qzzm,qzxm,lpbl,ts,bygrav,taussl,cldssl,cldsavl,csizel
      *     ,precnvl,vsubl,prcpss,hcndss,wmsum,um,vm,aj11,aj55,svlhxl,wml
-     *     ,sdl,svwmxl,svlatl,taumcl,condse_loc
+     *     ,sdl,svwmxl,svlatl,taumcl,bydtcn,condse_loc
       USE GEOM
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
@@ -330,7 +330,7 @@ C**** set up tracer moments
       QZZM(L)=QZZ(I,J,L)*AIRM(L)
       QZXM(L)=QZX(I,J,L)*AIRM(L)
       TTOLDL(L)=TTOLD(I,J,L)
-      QTOLDL(L)=QTOLD(I,J,L)
+c      QTOLDL(L)=QTOLD(I,J,L)
       CLDSAVL(L)=CLDSAV(I,J,L)
       TAUMCL(L)=TAUMC(I,J,L)
       SVLHXL(L)=SVLHX(I,J,L)
@@ -341,11 +341,14 @@ C**** set up tracer moments
       VSUBL(L)=VSUB(I,J,L)
       WML(L)=WM(I,J,L)
       SDL(L)=SD_CLOUDS(I,J,L)
+      AQ(L)=(QL(L)-QTOLD(I,J,L))*BYDTCN
+      DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTCN
+      IF(L.GE.LS1) DPDT(L)=0.
   180 CONTINUE
       PLE(LM+1)=PEDN(LM+1,I,J)
       PRECNVL(LM+1)=PRECNV(I,J,LM+1)
       PIJ0 = P(I,J)
-      PTOLDIJ=PTOLD(I,J)
+c      PTOLDIJ=PTOLD(I,J)
       DXYPJ=DXYP(J)
 C**** SURROUNDING WINDS
       DO L=1,LM
