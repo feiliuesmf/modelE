@@ -36,6 +36,9 @@ aux:
 auxqflux:
 	$(MAKE) qflux -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
+auxdeep:
+	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+
 clean vclean:
 	$(MAKE) -C $(MODEL_DIR) $@
 	$(MAKE) -C $(AUX_DIR) $@
