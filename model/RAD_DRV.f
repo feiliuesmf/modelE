@@ -531,8 +531,8 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
-        FS8OPX = (/0., 0., 1., 1., 2., 2.,    1.   , 1./)
-        FT8OPX = (/0., 0., 1., 1., 1., 1.,    1.3d0, 1./)
+        FS8OPX = (/0d0, 0d0, 1d0, 1d0, 2d0, 2d0,  1d0 , 1d0/)
+        FT8OPX = (/0d0, 0d0, 1d0, 1d0, 1d0, 1d0, 1.3d0, 1d0/)
       end if
       NTRACE=2
 c tracer 1 is sulfate, tracer 2 is seasalt
