@@ -1,9 +1,12 @@
+#include "rundeck_opts.h"
+
       MODULE TRCHEM_Shindell_COM
 !@sum  TRCHEM_Shindell_COM declares variables for tracer chemistry
 !@+    and sources.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
+#ifdef TRACERS_ON
       USE MODEL_COM, only :  im,jm,lm,ls1,psf,
      &                       ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T,JEQ
@@ -92,6 +95,7 @@ C
 !@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
 !@param dtausub # of optic. depths at top of cloud requiring subdivision
 !@param masfac Conversion factor for pressure to column density (fastj2)
+!@param NP maximum aerosol phase functions
       INTEGER, DIMENSION(JM), PARAMETER ::
      & LS1J = (/LS1,LS1,LS1,LS1,LS1,LS1,
      & LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1,LS1+1,LS1+1,LS1+1,
@@ -103,8 +107,9 @@ C
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
-     & p_1   =     2,
+     & p_1   =     2 
 #ifdef Shindell_Strat_chem
+      INTEGER, PARAMETER ::
      & p_2   =   209,
      & p_3   =   500,
      & p_4   =   209,
@@ -151,7 +156,9 @@ C
      & NCFASTJ2 = 2*LM+2,  ! fastj2
      & NBFASTJ  = LM+1,    ! fastj2
      & MXFASTJ  =  3,      ! fastj2
+     & NP       = 21       ! fastj2
 #else
+      INTEGER, PARAMETER ::
      & p_2   =   111,
      & p_3   =   200,
      & p_4   =    70,
@@ -187,7 +194,9 @@ C
      & NLFASTJ=  350,     !300 is arbitrary for now
      & NWFASTJ=   15, 
      & JPNL   =   12,
+     & NP     =    9
 #endif
+      INTEGER, PARAMETER ::
      & p_5   =    14,
      & n_fam =     4,
      & n_bnd1=    31,
@@ -459,6 +468,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var AER2 fastj2 aerosol profile?
 !@var dtausub fastj2 ?
 !@var odcol Optical depth at each model level
+!@var MIEDX2 choice of aerosol index
+!@var AMF Air mass factor for slab between level and level above
       INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ
@@ -475,9 +486,13 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(n_bnd1)       :: lbeg, nir
       INTEGER, DIMENSION(LM)           :: jndlv,jndlev
       INTEGER, DIMENSION(JPPJ)         :: jind
-      INTEGER, DIMENSION(NLFASTJ)      :: jaddlv, jaddto
+      INTEGER, DIMENSION(NLFASTJ)      :: jaddlv
 #ifdef Shindell_Strat_chem
                                           ,jadsub
+      INTEGER, DIMENSION(NLFASTJ+1)    :: jaddto
+      INTEGER, DIMENSION(MXFASTJ)      :: MIEDX2
+#else 
+     &                                    ,jaddto
 #endif
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
       INTEGER, DIMENSION(12) , PARAMETER :: MDOFM =
@@ -525,8 +540,11 @@ C
       REAL*8, DIMENSION(NWFASTJ)       :: WL, FL, QRAYL, QBC
       REAL*8, DIMENSION(NWFASTJ,3)     :: QO3, QO2, Q1D, zpdep
       REAL*8, DIMENSION(3,NS)          :: TQQ
-      REAL*8, DIMENSION(4,9)           :: QAAFASTJ, WAAFASTJ
-      REAL*8, DIMENSION(8,4,9)         :: PAA
+      REAL*8, DIMENSION(4,NP)          :: QAAFASTJ, WAAFASTJ
+#ifdef Shindell_Strat_chem
+                                          ,SSA
+#endif
+      REAL*8, DIMENSION(8,4,NP)        :: PAA
       REAL*8, DIMENSION(31,18,12)      :: OREF
       REAL*8, DIMENSION(41,18,12)      :: TREF
       REAL*8, DIMENSION(41)            :: BREF
@@ -590,11 +608,13 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
 #ifdef Shindell_Strat_chem
       REAL*8, DIMENSION(JM)             :: DU_O3
       REAL*8, DIMENSION(IM,JM,LM)       :: SF3
-      REAL*8, DIMENSION(MX,NBFASTJ)     :: AER2
+      REAL*8, DIMENSION(MXFASTJ,NBFASTJ):: AER2
+      REAL*8, DIMENSION(NBFASTJ,NBFASTJ):: AMF
       REAL*8, DIMENSION(NBFASTJ)      :: TJ2,DO32,DBC2,ZFASTJ2,DMFASTJ2
       REAL*8, DIMENSION(LM+3)           :: PFASTJ2
       REAL*8, DIMENSION(51,18,12)       :: OREF2,TREF2
       REAL*8, DIMENSION(51)             :: BREF2
+      REAL*8                            :: dsubdiv
 #endif
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
@@ -626,8 +646,8 @@ C
 
 #ifdef Shindell_Strat_chem
       COMMON/FASTJ2_LOC/AER2,odcol,TJ2,jadsub,DO32,DBC2,ZFASTJ2,
-     &     DMFASTJ,PFASTJ2
+     &     DMFASTJ,PFASTJ2,MIEDX2,QAAFASTJ,WAAFASTJ,SSA,AMF
 !$OMP THREADPRIVATE(/FJAST2_LOC/)
 #endif
-
+#endif
       END MODULE TRCHEM_Shindell_COM
