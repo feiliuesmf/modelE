@@ -1278,7 +1278,7 @@ C**** estimate effective humidity
           heff=1.
         end if
         DO N=1,NTX
-          CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCP
+          CALL GET_EVAP_FACTOR(N,TNX,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
      *         ,ntix)
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
           TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
@@ -1984,7 +1984,7 @@ c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
           b_beta_DT = FCLD*CM*dtsrc
           CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
-     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,ntix)
+     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix)
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
@@ -2079,9 +2079,6 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
         TM(L,N)     =TM(L,N)    *(1.-FQCONDT)   -THLAW
         TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT - TMFAC)
       END DO
-        if (debug) print*,"cld3",l,tm(l,1),qm(l)*100.*bygrav
-     *       *dxypj*fssl(l),trwml(1,l),WMX(L)*100.*bygrav
-     *       *dxypj*airm(l)
 #endif
       ELSE
       TL(L)=TNEW
