@@ -789,6 +789,7 @@ C
       REAL*8  RDSS(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,RDMC(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,AREGIJ(7,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: AREGSUM
       REAL*8, DIMENSION(size(adiurn,1),size(adiurn,3),8,
      &        GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ADIURN_part
       REAL*8, DIMENSION(size(hdiurn,1),size(hdiurn,3),8,
@@ -797,6 +798,14 @@ C
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: I_0, I_1, J_0, J_1
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      REAL*8 :: DUM_IL_REQ(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      REAL*8 :: DUM_IL_J50(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      REAL*8 :: DUM_IL_J70(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
+      REAL*8 :: AIL_REQ_SUM(IM,LM)
+      REAL*8 :: AIL_J50_SUM(IM,LM)
+      REAL*8 :: AIL_J70_SUM(IM,LM)
+      REAL*8 ::
+     &     AREG_part(grid%J_STRT_HALO:grid%J_STOP_HALO,SIZE(AREG,1),17)
       character(len=300) :: out_line
 C
 C****
@@ -969,6 +978,9 @@ C force random number generation for all latitudes for parallel consistency
       END DO
 
       end if                    ! kradia le 0
+
+      aregij = 0
+      areg_part = 0
 C****
 C**** MAIN J LOOP
 C****
@@ -1102,10 +1114,10 @@ CCC      AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+CSS  *DXYP(J)
 CCC      AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+CMC  *DXYP(J)
 CCC      AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+DEPTH*DXYP(J)
 CCC      AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +CLDCV*DXYP(J)
-         AREGIJ(1,I,J)=CSS  *DXYP(J)
-         AREGIJ(2,I,J)=CMC  *DXYP(J)
-         AREGIJ(3,I,J)=DEPTH*DXYP(J)
-         AREGIJ(4,I,J)=CLDCV*DXYP(J)
+         AREGIJ(1,I,J)=AREGIJ(1,I,J)+CSS  *DXYP(J)
+         AREGIJ(2,I,J)=AREGIJ(2,I,J)+CMC  *DXYP(J)
+         AREGIJ(3,I,J)=AREGIJ(3,I,J)+DEPTH*DXYP(J)
+         AREGIJ(4,I,J)=AREGIJ(4,I,J)+CLDCV*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -1141,24 +1153,40 @@ C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
                IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
                IH=IHM
                IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
-               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
-               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
-               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
-               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
-               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
-               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
-               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+C****               ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+TOTCLD(7)
+               ADIURN_part(IH,KR,7,J)=ADIURN_part(IH,KR,7,J)+TOTCLD(7)
+C****               ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+TOTCLD(6)
+               ADIURN_part(IH,KR,6,J)=ADIURN_part(IH,KR,6,J)+TOTCLD(6)
+C****               ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+TOTCLD(5)
+               ADIURN_part(IH,KR,5,J)=ADIURN_part(IH,KR,5,J)+TOTCLD(5)
+C****               ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+TOTCLD(4)
+               ADIURN_part(IH,KR,4,J)=ADIURN_part(IH,KR,4,J)+TOTCLD(4)
+C****               ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+TOTCLD(3)
+               ADIURN_part(IH,KR,3,J)=ADIURN_part(IH,KR,3,J)+TOTCLD(3)
+C****               ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+TOTCLD(2)
+               ADIURN_part(IH,KR,2,J)=ADIURN_part(IH,KR,2,J)+TOTCLD(2)
+C****               ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+TOTCLD(1)
+               ADIURN_part(IH,KR,1,J)=ADIURN_part(IH,KR,1,J)+TOTCLD(1)
+C****               ADIURN(IH,IDD_CCV,KR)=ADIURN(IH,IDD_CCV,KR)+CLDCV
+               ADIURN_part(IH,KR,8,J)=ADIURN_part(IH,KR,8,J)+CLDCV
                IHM = IHM+(JDATE-1)*HR_IN_DAY
                IF(IHM.GT.HR_IN_MONTH) CYCLE
-               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
-               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
-               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
-               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
-               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
-               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
-               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
-               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
+C****               HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+TOTCLD(7)
+               HDIURN_part(IHM,KR,7,J)=HDIURN_part(IHM,KR,7,J)+TOTCLD(7)
+C****               HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+TOTCLD(6)
+               HDIURN_part(IHM,KR,6,J)=HDIURN_part(IHM,KR,6,J)+TOTCLD(6)
+C****               HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+TOTCLD(5)
+               HDIURN_part(IHM,KR,5,J)=HDIURN_part(IHM,KR,5,J)+TOTCLD(5)
+C****               HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+TOTCLD(4)
+               HDIURN_part(IHM,KR,4,J)=HDIURN_part(IHM,KR,4,J)+TOTCLD(4)
+C****               HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+TOTCLD(3)
+               HDIURN_part(IHM,KR,3,J)=HDIURN_part(IHM,KR,3,J)+TOTCLD(3)
+C****               HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+TOTCLD(2)
+               HDIURN_part(IHM,KR,2,J)=HDIURN_part(IHM,KR,2,J)+TOTCLD(2)
+C****               HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+TOTCLD(1)
+               HDIURN_part(IHM,KR,1,J)=HDIURN_part(IHM,KR,1,J)+TOTCLD(1)
+C****               HDIURN(IHM,IDD_CCV,KR)=HDIURN(IHM,IDD_CCV,KR)+CLDCV
+               HDIURN_part(IHM,KR,8,J)=HDIURN_part(IHM,KR,8,J)+CLDCV
              END DO
            END IF
          END DO
@@ -1514,11 +1542,11 @@ CCC   AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+OPNSKY*
 CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
 CCC   AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+
 CCC  *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-      AREGIJ(5,I,J)=OPNSKY*(SRNFLB(LM+LM_REQ+1)
+      AREGIJ(5,I,J)=AREGIJ(5,I,J)+OPNSKY*(SRNFLB(LM+LM_REQ+1)
      *     *CSZ2-TRNFLB(LM+LM_REQ+1))*DXYP(J)
-      AREGIJ(6,I,J)=OPNSKY*
+      AREGIJ(6,I,J)=AREGIJ(6,I,J)+OPNSKY*
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
-      AREGIJ(7,I,J)=
+      AREGIJ(7,I,J)=AREGIJ(7,I,J)+
      *     (SRNFLB(LTROPO(I,J))*CSZ2-TRNFLB(LTROPO(I,J)))*DXYP(J)
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
@@ -1553,25 +1581,25 @@ C****
 !$OMP  END PARALLEL
       DO KR=1,NDIUPT
         DO IH=1,size(ADIURN,1)
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,7,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL7,KR)=ADIURN(IH,IDD_CL7,KR)+ADIURNSUM
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,2,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,6,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL6,KR)=ADIURN(IH,IDD_CL6,KR)+ADIURNSUM
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,3,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,5,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL5,KR)=ADIURN(IH,IDD_CL5,KR)+ADIURNSUM
           CALL GLOBALSUM(grid,ADIURN_part(IH,KR,4,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL4,KR)=ADIURN(IH,IDD_CL4,KR)+ADIURNSUM
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,5,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,3,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL3,KR)=ADIURN(IH,IDD_CL3,KR)+ADIURNSUM
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,6,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,2,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL2,KR)=ADIURN(IH,IDD_CL2,KR)+ADIURNSUM
-          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,7,:),ADIURNSUM,
+          CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
      &                   ALL=.TRUE.)
           ADIURN(IH,IDD_CL1,KR)=ADIURN(IH,IDD_CL1,KR)+ADIURNSUM
           CALL GLOBALSUM(grid,ADIURN_part(IH,KR,8,:),ADIURNSUM,
@@ -1580,25 +1608,25 @@ C****
         ENDDO
 
         DO IHM=1,size(HDIURN,1)
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,1,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,7,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL7,KR)=HDIURN(IHM,IDD_CL7,KR)+HDIURNSUM
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,2,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,6,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL6,KR)=HDIURN(IHM,IDD_CL6,KR)+HDIURNSUM
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,3,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,5,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL5,KR)=HDIURN(IHM,IDD_CL5,KR)+HDIURNSUM
           CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,4,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL4,KR)=HDIURN(IHM,IDD_CL4,KR)+HDIURNSUM
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,5,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,3,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL3,KR)=HDIURN(IHM,IDD_CL3,KR)+HDIURNSUM
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,6,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,2,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL2,KR)=HDIURN(IHM,IDD_CL2,KR)+HDIURNSUM
-          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,7,:),HDIURNSUM,
+          CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,1,:),HDIURNSUM,
      &                   ALL=.TRUE.)
           HDIURN(IHM,IDD_CL1,KR)=HDIURN(IHM,IDD_CL1,KR)+HDIURNSUM
           CALL GLOBALSUM(grid,HDIURN_part(IHM,KR,8,:),HDIURNSUM,
@@ -1630,18 +1658,38 @@ C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
 C       delayed accumulation to preserve order of summation
          DO J=J_0,J_1
+           AREG_part(J,:,:) = 0
          DO I=1,IMAXJ(J)
            JR=JREG(I,J)
-           AREG(JR,J_PCLDSS)=AREG(JR,J_PCLDSS)+AREGIJ(1,I,J)
-           AREG(JR,J_PCLDMC)=AREG(JR,J_PCLDMC)+AREGIJ(2,I,J)
-           AREG(JR,J_CLDDEP)=AREG(JR,J_CLDDEP)+AREGIJ(3,I,J)
-           AREG(JR,J_PCLD)  =AREG(JR,J_PCLD)  +AREGIJ(4,I,J)
-           AREG(JR,J_CLRTOA)=AREG(JR,J_CLRTOA)+AREGIJ(5,I,J)
-           AREG(JR,J_CLRTRP)=AREG(JR,J_CLRTRP)+AREGIJ(6,I,J)
-           AREG(JR,J_TOTTRP)=AREG(JR,J_TOTTRP)+AREGIJ(7,I,J)
+           AREG_part(J,JR,1) = AREG_part(J,JR,1) + AREGIJ(1,I,J)
+           AREG_part(J,JR,2) = AREG_part(J,JR,2) + AREGIJ(2,I,J)
+           AREG_part(J,JR,3) = AREG_part(J,JR,3) + AREGIJ(3,I,J)
+           AREG_part(J,JR,4) = AREG_part(J,JR,4) + AREGIJ(4,I,J)
+           AREG_part(J,JR,5) = AREG_part(J,JR,5) + AREGIJ(5,I,J)
+           AREG_part(J,JR,6) = AREG_part(J,JR,6) + AREGIJ(6,I,J)
+           AREG_part(J,JR,7) = AREG_part(J,JR,7) + AREGIJ(7,I,J)
          END DO
+         END DO
+         
+         DO JR = 1, SIZE(AREG,1)
+           CALL GLOBALSUM(grid, AREG_part(:,JR,1), AREGSUM)
+           AREG(JR,J_PCLDSS) = AREG(JR,J_PCLDSS) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,2), AREGSUM)
+           AREG(JR,J_PCLDMC) = AREG(JR,J_PCLDMC) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,3), AREGSUM)
+           AREG(JR,J_CLDDEP) = AREG(JR,J_CLDDEP) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,4), AREGSUM)
+           AREG(JR,J_PCLD) = AREG(JR,J_PCLD) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,5), AREGSUM)
+           AREG(JR,J_CLRTOA) = AREG(JR,J_CLRTOA) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,6), AREGSUM)
+           AREG(JR,J_CLRTRP) = AREG(JR,J_CLRTRP) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,7), AREGSUM)
+           AREG(JR,J_TOTTRP) = AREG(JR,J_TOTTRP) + AREGSUM
          END DO
 C
+         AREG_part = 0 ! reset
+
          ADIURN_part=0.; HDIURN_part=0.
          DO 780 J=J_0,J_1
          DXYPJ=DXYP(J)
@@ -1666,19 +1714,19 @@ C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
                IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
                IH=IHM
                IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-               ADIURN(IH,IDD_PALB,KR)=ADIURN(IH,IDD_PALB,KR)+
+               ADIURN_part(IH,KR,1,J)=ADIURN_part(IH,KR,1,J)+
      *              (1.-SNFS(3,I,J)/S0)
-               ADIURN(IH,IDD_GALB,KR)=ADIURN(IH,IDD_GALB,KR)+
+               ADIURN_part(IH,KR,2,J)=ADIURN_part(IH,KR,2,J)+
      *              (1.-ALB(I,J,1))
-               ADIURN(IH,IDD_ABSA,KR)=ADIURN(IH,IDD_ABSA,KR)+
+               ADIURN_part(IH,KR,3,J)=ADIURN_part(IH,KR,3,J)+
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
                IHM = IHM+(JDATE-1)*HR_IN_DAY
                IF(IHM.GT.HR_IN_MONTH) CYCLE
-               HDIURN(IHM,IDD_PALB,KR)=HDIURN(IHM,IDD_PALB,KR)+
+               HDIURN_part(IHM,KR,1,J)=HDIURN_part(IHM,KR,1,J)+
      *              (1.-SNFS(3,I,J)/S0)
-               HDIURN(IHM,IDD_GALB,KR)=HDIURN(IHM,IDD_GALB,KR)+
+               HDIURN_part(IHM,KR,2,J)=HDIURN_part(IHM,KR,2,J)+
      *              (1.-ALB(I,J,1))
-               HDIURN(IHM,IDD_ABSA,KR)=HDIURN(IHM,IDD_ABSA,KR)+
+               HDIURN_part(IHM,KR,3,J)=HDIURN_part(IHM,KR,3,J)+
      *              (SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
              END DO
            END IF
@@ -1699,10 +1747,10 @@ C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
          AJ(J,J_HATM   ,IT)=AJ(J,J_HATM   ,IT)-(TNFS(2,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J)
          END DO
-         AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*CSZ2)*DXYPJ
-         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(3,I,J)*CSZ2)*DXYPJ
-         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(2,I,J)*CSZ2)*DXYPJ
-         AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
+         AREG_part(J,JR,1)=AREG_part(J,JR,1)+(S0*CSZ2)*DXYPJ
+         AREG_part(J,JR,2)=AREG_part(J,JR,2)+(SNFS(3,I,J)*CSZ2)*DXYPJ
+         AREG_part(J,JR,3)=AREG_part(J,JR,3)+(SNFS(2,I,J)*CSZ2)*DXYPJ
+         AREG_part(J,JR,4)=AREG_part(J,JR,4)+
      *     (SRHR(0,I,J)*CSZ2/(ALB(I,J,1)+1.D-20))*DXYPJ
 C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*CSZ2)
@@ -1718,19 +1766,20 @@ C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITLKICE)=AJ(J,J_SRNFG,ITLKICE)+(FSF(2,I,J)*CSZ2)
      *        * FLAKE(I,J)*RSI(I,J)
 C****
-         AREG(JR,J_HATM)  =AREG(JR,J_HATM)  -(TNFS(2,I,J)-TNFS(1,I,J))
+         AREG_part(J,JR,5)=AREG_part(J,JR,5)  -(TNFS(2,I,J)-TNFS(1,I,J))
      *        *DXYPJ
-         AREG(JR,J_SRNFG) =AREG(JR,J_SRNFG) +(SRHR(0,I,J)*CSZ2)*DXYPJ
-         AREG(JR,J_HSURF) =AREG(JR,J_HSURF) -(TNFS(3,I,J)-TNFS(1,I,J))
+         AREG_part(J,JR,6) =AREG_part(J,JR,6) +(SRHR(0,I,J)*CSZ2)*DXYPJ
+         AREG_part(J,JR,7) =AREG_part(J,JR,7) -(TNFS(3,I,J)-TNFS(1,I,J))
      *        *DXYPJ
-         AREG(JR,J_BRTEMP)=AREG(JR,J_BRTEMP)+  BTMPW(I,J)      *DXYPJ
-         AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+ TRINCG(I,J)      *DXYPJ
+         AREG_part(J,JR,8)=AREG_part(J,JR,8)+  BTMPW(I,J)      *DXYPJ
+         AREG_part(J,JR,9)=AREG_part(J,JR,9)+ TRINCG(I,J)      *DXYPJ
          DO K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              AJ(J,JK,IT)=AJ(J,JK,IT)+(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J)
            END DO
-           AREG(JR,JK)=AREG(JR,JK)+(S0*CSZ2)*ALB(I,J,K)*DXYPJ
+           AREG_part(J,JR,10+k-2)=AREG_part(J,JR,10+k-2)+
+     *          (S0*CSZ2)*ALB(I,J,K)*DXYPJ
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
@@ -1785,6 +1834,33 @@ c longwave forcing at surface (if required)
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
+
+         DO JR = 1, SIZE(AREG,1)
+           CALL GLOBALSUM(grid, AREG_part(:,JR,1), AREGSUM)
+           AREG(JR,J_SRINCP0) = AREG(JR,J_SRINCP0) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,2), AREGSUM)
+           AREG(JR,J_SRNFP0) = AREG(JR,J_SRNFP0) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,3), AREGSUM)
+           AREG(JR,J_SRNFP1) = AREG(JR,J_SRNFP1) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,4), AREGSUM)
+           AREG(JR,J_SRINCG) = AREG(JR,J_SRINCG) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,5), AREGSUM)
+           AREG(JR,J_HATM) = AREG(JR,J_HATM) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,6), AREGSUM)
+           AREG(JR,J_SRNFG) = AREG(JR,J_SRNFG) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,7), AREGSUM)
+           AREG(JR,J_HSURF) = AREG(JR,J_HSURF) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,8), AREGSUM)
+           AREG(JR,J_BRTEMP) = AREG(JR,J_BRTEMP) + AREGSUM
+           CALL GLOBALSUM(grid, AREG_part(:,JR,9), AREGSUM)
+           AREG(JR,J_TRINCG) = AREG(JR,J_TRINCG) + AREGSUM
+           DO K=2,9
+             JK=K+J_PLAVIS-2
+             CALL GLOBALSUM(grid, AREG_part(:,JR,10+k-2), AREGSUM)
+             AREG(JR,JK)=AREG(JR,JK)+AREGSUM
+           END DO
+         END DO
+
       DO KR=1,NDIUPT
         DO IH=1,size(ADIURN,1)
           CALL GLOBALSUM(grid,ADIURN_part(IH,KR,1,:),ADIURNSUM,
@@ -1813,37 +1889,65 @@ c longwave forcing at surface (if required)
 
          DO L=1,LM
            DO I=1,IM
-C ESMF: GLOBAL SUM EXCEPTION:
-C        DUM(I,J,L)=0.
-C        if (j.ge.j5s .and. j.le.j5n) 
-C             DUM(i,j,l)= (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J) )  
-C--->ESMF_GLOBAL_SUM DUM over all J and store in a second dummy array:
-C     --e.g. AIL_REQ_SUM(I,L):
-C
-C       { AIL_REQ_SUM(i,L)=AIL_REQ_SUM(i,L) + DUM(i,j,l) }
-C        Broadcast to all processes. 
-C        ==> AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+ AIL_REQ_SUM(I,L)
-             DO J=J5S,J5N
-               AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+
-     *              (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*DXYP(J)
+             DUM_IL_REQ(I,J_0:J_1,L)=0.
+             DO J=max(J_0,J5S), min(J_1,J5N)
+                    DUM_IL_REQ(i,j,l)= (SRHR(L,I,J)*COSZ2(I,J)+
+     &                                  TRHR(L,I,J))*DXYP(J)   
              END DO
            END DO
          END DO
-C****Accumulate diagnostics for lattitude 50N
-         if (J50N.ge.J_0 .and. J50N.le.J_1) then
+C ESMF: GLOBAL_SUM DUM_IL_REQ over the "J band" j5s-j5n and store in a 
+C       second dummy array: AIL_REQ_SUM(I,L) in the root procesor.
+         CALL GLOBALSUM(GRID,DUM_IL_REQ,AIL_REQ_SUM,jband=(/J5S,J5N/))
+C ESMF:     Root processor adds summed terms to the AIL array 
+         IF (AM_I_ROOT()) THEN
            DO L=1,LM
              DO I=1,IM
-               AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+(SRHR(L,I,J50N)*COSZ2(I
-     *            ,J50N)+TRHR(L,I,J50N))*DXYP(J50N)
+               AIL(I,L,IL_REQ)=AIL(I,L,IL_REQ)+ AIL_REQ_SUM(I,L)
+             END DO
+           END DO
+         END IF
+C ESMF: For now use global sum in lieu of point to point comm. to get the
+C       50N and 70N diagnostics into the root process....
+C****Accumulate diagnostics for lattitude 50N
+C       Compute each j-term to be acumulated into AIL and store it in a
+C       dummy work array: dum_il_j50
+         DO L=1,LM
+           DO I=1,IM
+           DUM_IL_J50(I,J_0:J_1,L)=0.
+             if (J50N.ge.J_0 .and. J50N.le.J_1) then
+               DUM_IL_J50(I,J50N,L)=DUM_IL_J50(I,J50N,L) + 
+     *                               (SRHR(L,I,J50N)*COSZ2(I,J50N)+
+     *                                TRHR(L,I,J50N))*DXYP(J50N)
+             END IF
+           END DO
+         END DO
+         CALL GLOBALSUM(GRID,DUM_IL_J50,AIL_J50_SUM,jband=(/j50n,j50n/))
+         IF (AM_I_ROOT()) THEN
+           DO L=1,LM
+             DO I=1,IM
+               AIL(I,L,IL_R50N)=AIL(I,L,IL_R50N)+AIL_J50_SUM(I,L)
              END DO
            END DO
          end if
 C****Accumulate diagnostics for lattitude 70N
-         if (J70N.ge.J_0 .and. J70N.le.J_1) then
+C ESMF: Compute each j-term to be acumulated into AIL and store it in a
+C       dummy work array: dum_il_j70
+         DO L=1,LM
+           DO I=1,IM
+           DUM_IL_J70(I,J_0:J_1,L)=0.
+             if (J70N.ge.J_0 .and. J70N.le.J_1) then
+               DUM_IL_J70(I,J70N,L)=DUM_IL_J70(I,J70N,L) +
+     *                               (SRHR(L,I,J70N)*COSZ2(I,J70N)+
+     *                                TRHR(L,I,J70N))*DXYP(J70N)
+             END IF
+           END DO
+         END DO
+         CALL GLOBALSUM(GRID,DUM_IL_J70,AIL_J70_SUM,jband=(/j70n,j70n/))
+         IF (AM_I_ROOT()) THEN
            DO L=1,LM
              DO I=1,IM
-               AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+(SRHR(L,I,J70N)*COSZ2(I
-     *              ,J70N)+TRHR(L,I,J70N))*DXYP(J70N)
+               AIL(I,L,IL_R70N)=AIL(I,L,IL_R70N)+AIL_J70_SUM(I,L)
              END DO
            END DO
          END IF
@@ -1964,6 +2068,8 @@ C****     *           S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       integer :: j_0,j_1
       character(len=300) :: out_line
 
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 C**** read headers/latitudes
       read(iu,'(a)') title
       write(out_line,'(''0'',a100)') title
@@ -2019,7 +2125,7 @@ C**** Interpolate vertical resolution to model layers
 
 C**** Interpolate (extrapolate) horizontally and vertically
         j2=2
-        do j=1,jm
+        do j=j_0,j_1
 C**** coeff. for latitudinal linear inter/extrapolation
           do while (j2.lt.jma .and. dglat(j).gt.xlat(j2))
             j2 = j2+1
