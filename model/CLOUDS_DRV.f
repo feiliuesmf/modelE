@@ -23,7 +23,7 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
      *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
-     *     ij_sstabx,isccp_diags
+     *     ij_sstabx,isccp_diags,ndiupt
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -50,7 +50,7 @@
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
-     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase
+     *     ,kmax,ra,pl,ple,plk,rndss1l,rndss2l,pphase,debug
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo
@@ -92,10 +92,10 @@
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
 !@var HCNDMC heating due to moist convection
-!@var PRCP precipipation
-!@var TPRCP temperature of precip  (deg. C)
+!@var PRCP precipitation
+!@var TPRCP temperature of mc. precip  (deg. C)
 !@var EPRCP sensible heat of precip
-!@var ENRGP energy of precip
+!@var ENRGP total energy of precip
 !@var WMERR DH12,BYDH12,DH1S,BYDH1S,SSTAB dummy variable
 !@var THSV,THV1,THV2 vertual potential temperatures
 !@var QG,TGV ground humidity,virt.temperature from pbl
@@ -226,6 +226,7 @@ cc       JR=JREG(I,J)  ! summing done outside parallel region
 C****
 C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
+      DEBUG = .FALSE.   ! use for individual box diags in clouds
       PEARTH=FEARTH(I,J)
       TS=TSAVG(I,J)
       QS=QSAVG(I,J)
@@ -296,8 +297,9 @@ C**** SURROUNDING WINDS
 
 C**** INITIALISE PRECIPITATION AND LATENT HEAT
       PRCP=0.
-      EPRCP=0.
-C     TPRCP=T(I,J,1)*PK(1,I,J)-TF ! should be defined after moist conv
+      ENRGP=0.
+C**** temperature of precip is based on pre-mstcnv profile
+      TPRCP=T(I,J,1)*PK(1,I,J)-TF
 #ifdef TRACERS_WATER
       TRPREC(:,I,J) = 0.
 #endif
@@ -311,6 +313,20 @@ C**** Save current i,j for lightning calculation in MSTCNV:
       j_lgt = j
       RNOx_lgt(i,j) = 0.
 #endif
+
+C****
+C**** Energy conservation note: For future reference the energy function
+C**** for these column calculations (assuming energy reference level
+C**** of 0 K for air, and 0 C liquid for water) is:
+C****  E = SH + LH_vapour + LH_clw + ENRGP
+C****    =  (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +
+C****        sum(WML(:)*(LHE-SVLHXL(:))*AIRM(:)))*100.*BYGRAV
+C**** The LH_clw term is slightly different after MSTCNV:
+C****   LH_clw = sum((WML(:)*(LHE-SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))
+C****                *AIRM(:))*100.*BYGRAV
+C**** and again after LSCOND:
+C****          = sum(WMX(:)*(LHE-SVLHXL(:))*AIRM(:))*100.*BYGRAV
+C****
 
 C**** MOIST CONVECTION
       CALL MSTCNV(IERR,LERR)
@@ -350,7 +366,7 @@ CCC  *         (AJ13(L)+AJ50(L))*(DXYP(J)*BYDSIG(L))
         END DO
 CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
         AREGIJ(I,J,1)=PRCPMC*DXYP(J)  ! add in after parallel region
-        DO KR=1,4
+        DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPMC
             ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDMC
@@ -364,15 +380,14 @@ C**** ACCUMULATE PRECIP
         PRCP=PRCPMC*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
-      TPRCP=SM(1)*BYAM(1)*PK(1,I,J)-TF
         IF (TPRCP.gt.0) THEN
 C         EPRCP=PRCP*TPRCP*SHW
           EPRCP=0.
-          ENRGP=EPRCP
+          ENRGP=ENRGP+EPRCP
         ELSE
 C         EPRCP=PRCP*TPRCP*SHI
           EPRCP=0.
-          ENRGP=EPRCP-PRCP*LHM
+          ENRGP=ENRGP+EPRCP-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
         END IF
 
@@ -519,7 +534,7 @@ C**** Accumulate diagnostics of LSCOND
          END DO
 CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          AREGIJ(I,J,2)=PRCPSS*DXYP(J)  ! add in after parallel region
-         DO KR=1,4
+         DO KR=1,NDIUPT
            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
              ADIURN(IH,IDD_PR  ,KR)=ADIURN(IH,IDD_PR  ,KR)+PRCPSS
              ADIURN(IH,IDD_ECND,KR)=ADIURN(IH,IDD_ECND,KR)+HCNDSS
@@ -531,7 +546,7 @@ C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PRCP=PRCP+PRCPSS*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
-      IF (TPRCP.gt.0) THEN
+      IF (PPHASE.ne.LHS) THEN
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
         EPRCP=0.
         ENRGP=ENRGP+EPRCP
@@ -553,7 +568,7 @@ CCC     AREG(JR,J_EPRCP)=AREG(JR,J_EPRCP)+ENRGP*DXYP(J)
         IF (FOCEAN(I,J).gt.0) AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+
      *       ENRGP*FOCEAN(I,J)*(1.-RSI(I,J))
 
-      IF(TPRCP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
+      IF(ENRGP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
@@ -854,13 +869,13 @@ C$OMP  END PARALLEL DO
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
-      USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
+      USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,HRMAX,ISC
       USE PARAM
 
       IMPLICIT NONE
 
-      call sync_param( 'U00wtr', U00wtr )
+      call sync_param( 'U00wtrX', U00wtrX )
       call sync_param( 'U00ice', U00ice )
       call sync_param( "LMCM", LMCM )
       call sync_param( "HRMAX", HRMAX )

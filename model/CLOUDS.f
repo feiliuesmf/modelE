@@ -39,12 +39,12 @@ C**** Set-able variables
       INTEGER :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
 !@dbparam ISC integer to turn on computation of stratocumulus clouds
       INTEGER :: ISC = 0  ! set ISC=1 to compute stratocumulus clouds
-!@dbparam U00wtr critical humidity for water cloud condensation
-      REAL*8 :: U00wtr = .7d0       ! default
+!@dbparam U00wtrX multiplies U00ice for critical humidity for water clouds
+      REAL*8 :: U00wtrX = 1.0d0     ! default
 !@dbparam U00ice critical humidity for ice cloud condensation
       REAL*8 :: U00ice = .7d0       ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
-      REAL*8 :: HRMAX = 1000.d0     ! default (in meter)
+      REAL*8 :: HRMAX = 1000.d0     ! default (m)
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -53,6 +53,7 @@ C**** Set-able variables
 #endif
 
 C**** input variables
+      LOGICAL DEBUG
 !@var RA ratio of primary grid box to secondary gridbox
       REAL*8, DIMENSION(IM) :: RA
 !@var UM,VM,U_0,V_0 velocity related variables (UM,VM)=(U,V)*AIRM
@@ -173,7 +174,7 @@ CCOMP* ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX,LMCMIN,KMAX)
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSS1L,RNDSS2L
      *  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL
-     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ
+     *  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,DEBUG
      *  ,LMCMAX,LMCMIN,KMAX,DCL     ! integers last (alignment)
 C$OMP  THREADPRIVATE (/CLDPRV/)
 
@@ -204,7 +205,7 @@ C**** functions
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
      * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR
-!@var SMOLD,QMOLD old SM, QM
+!@var SMOLD,QMOLD profiles prior to any moist convection
       REAL*8, DIMENSION(LM) :: F,CMNEG
       REAL*8, DIMENSION(NMOM,LM) :: FMOM
       REAL*8, DIMENSION(NMOM,LM) :: SMOMOLD,QMOMOLD
@@ -368,11 +369,20 @@ C**** zero out diagnostics
          AJ51=0.
          AJ52=0.
          AJ57=0.
-C**** save initial values
+C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
+#endif
+C**** SAVE ORIG PROFILES
+      SMOLD(:) = SM(:)
+      SMOMOLD(:,:) = SMOM(:,:)
+      QMOLD(:) = QM(:)
+      QMOMOLD(:,:) = QMOM(:,:)
+#ifdef TRACERS_ON
+      TMOLD(:,1:NTX) = TM(:,1:NTX)
+      TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
 #endif
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
@@ -469,15 +479,7 @@ C****
       ITYPE=2                        ! always 2 types of clouds:
 C     IF(LMIN.LE.2) ITYPE=2          ! entraining & non-entraining
       FCTYPE=1.
-C**** SET PROFILE TO BE CONSTANT FOR BOTH TYPES OF CLOUDS
-      SMOLD(:) = SM(:)
-      SMOMOLD(:,:) = SMOM(:,:)
-      QMOLD(:) = QM(:)
-      QMOMOLD(:,:) = QMOM(:,:)
-#ifdef TRACERS_ON
-      TMOLD(:,1:NTX) = TM(:,1:NTX)
-      TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#endif
+
       DO 570 IC=1,ITYPE
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
@@ -1009,9 +1011,11 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
       ierr=max(ierrt,ierr) ; lerr=max(lerrt,lerr)
       END DO
 #endif
-      DO 381 L=1,LM
-      SM1(L)=SM(L)
-  381 QM1(L)=QM(L)
+C**** save new 'environment' profile for static stability calc.
+      DO L=1,LM
+        SM1(L)=SM(L)
+        QM1(L)=QM(L)
+      END DO
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
 #endif
@@ -1066,9 +1070,12 @@ C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
       IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM(L)
       TOLD=SMOLD(L)*PLK(L)*BYAM(L)
       TOLD1=SMOLD(L+1)*PLK(L+1)*BYAM(L+1)
+C**** decide whether to melt snow/ice
       HEAT1=0.
-      IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF))
-     *  HEAT1=LHM*PRCP*BYSHA
+      IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF.AND.L.GT
+     *     .LFRZ)) HEAT1=LHM*PRCP*BYSHA
+C**** and deal with possible inversions and re-freezing of rain
+      IF (TOLD.LT.TF.AND.TOLD1.GT.TF) HEAT1=-LHM*PRCP*BYSHA
       TNX=TOLD
       QNX=QMOLD(L)*BYAM(L)
       LHX=LHE
@@ -1275,11 +1282,6 @@ C**** functions
 #ifdef TRACERS_WATER
 !@var TRPRBAR tracer precip entering layer top for total (kg)
       REAL*8, DIMENSION(NTM,LM+1) :: TRPRBAR
-#ifdef TRACERS_SPECIAL_O18
-!@var TRPRICE tracer in frozen precip entering layer top (kg)
-      REAL*8, DIMENSION(NTM,LM+1) :: TRPRICE
-      REAL*8 PRLIQ,TRPRLIQ
-#endif
 !@var DTPR change of tracer by precip (kg)
 !@var DTER change of tracer by evaporation (kg)
 !@var DTQW change of tracer by condensation (kg)
@@ -1301,7 +1303,7 @@ C**** functions
       LOGICAL BELOW_CLOUD,CLOUD_YET
 #endif
 
-      REAL*8 Q1,AIRMR,BETA,BMAX
+      REAL*8 AIRMR,BETA,BMAX
      *     ,CBF,CBFC0,CK,CKIJ,CK1,CK2,CKM,CKR,CM,CM0,CM1,DFX,DQ,DQSDT
      *     ,DQSUM,DQUP,DRHDT,DSE,DSEC,DSEDIF,DWDT,DWDT1,DWM,ECRATE,EXPST
      *     ,FCLD,FMASS,FMIX,FPLUME,FPMAX,FQTOW,FRAT,FUNI,HRISE,PRECHK
@@ -1311,7 +1313,7 @@ C**** functions
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-!@var Q1,BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE dummy variables
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,HRISE dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1383,6 +1385,7 @@ C****
       PRCPSS=0.
       HCNDSS=0.
       CKIJ=1.
+      PPHASE=0.
 C**** initialise vertical arrays
       ER=0.
       EC=0.
@@ -1394,15 +1397,12 @@ C**** initialise vertical arrays
 #ifdef TRACERS_WATER
       TRPRSS = 0.
       TRPRBAR = 0.
-#ifdef TRACERS_SPECIAL_O18
-      TRPRICE = 0.
-#endif
       BELOW_CLOUD=.false.
       CLOUD_YET=.false.
 #endif
       DO L=1,LM
-         CAREA(L)=1.-CLDSAVL(L)
-         IF(WMX(L).LE.0.) CAREA(L)=1.
+        CAREA(L)=1.-CLDSAVL(L)
+        IF(WMX(L).LE.0.) CAREA(L)=1.
       END DO
       DQUP=0.
       LHXUP=LHE
@@ -1494,7 +1494,8 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
-      RH00(L)=U00ice
+    ! this formulation is used for consistency with current practice
+      RH00(L)=U00wtrX*U00ice
       IF(LHX.EQ.LHS) RH00(L)=U00ice
       IF(L.EQ.1) THEN
         HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
@@ -1599,64 +1600,52 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
       DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
       WMNEW =WMX(L)+DWDT*DTsrc
       IF(WMNEW.LT.0.) THEN
-      WMNEW=0.
-      QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*ER(L)
+        WMNEW=0.
+        QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*ER(L)
       END IF
       GO TO 230
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
-  220 Q1=0.
-      IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
+  220 IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
       ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
      *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF(ER(L).GT.ERMAX) ER(L)=ERMAX
       IF(ER(L).LT.0.) ER(L)=0.
-      QHEAT(L)=-CAREA(L)*ER(L)+Q1
+      QHEAT(L)=-CAREA(L)*ER(L)
       WMNEW=0.
   230 CONTINUE
 C**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
+C**** This occurs if 0 C isotherm is crossed, or ice is falling into 
+C**** a super-cooled water cloud (that has not had B-F occur).
+C**** Note: on rare occasions we have ice clouds even if T>0
+C**** In such a case, no energy of phase change is needed.
       HPHASE=0.
-      IF(L.LT.LM.AND.TL(L).GT.TF) THEN
+      IF(L.LT.LM .AND. PREICE(L+1).GT.0. .AND. LHX.EQ.LHE) THEN
         HPHASE=LHM*PREICE(L+1)*GRAV*BYAM(L)
-        IF(PREICE(L+1).GT.0.D0) PPHASE=LHE
+        PREICE(L+1)=0.
       ENDIF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
-      IF(TL(L).GT.TF) THEN
-        PREICE(L+1)=0.
-#ifdef TRACERS_SPECIAL_O18
-        TRPRICE(:,L+1)=0.
-#endif
-      END IF
-      IF (PREBAR(L+1).gt.0) THEN ! to avoid round off problem
-        PREICE(L)=MAX(0d0,PREICE(L+1)-AIRM(L)*ER(L)*CAREA(L)*PREICE(L+1)
-     *       /(GRAV*LHX*PREBAR(L+1)))
-      ELSE
-        PREICE(L)=0.
-      END IF
-      IF(LHX.EQ.LHS) PREICE(L)=PREICE(L)+AIRM(L)*PREP(L)*BYGRAV
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
-        PREBAR(L)=AIRM(L)*PREP(L)*BYGRAV
+        PREBAR(L)=PREBAR(L+1)*(1.-CAREA(L))+AIRM(L)*PREP(L)*BYGRAV
       ELSE
         PREBAR(L)=MAX(0d0,PREBAR(L+1)+
      *       AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV)
       END IF
-      IF(PREBAR(L).GT.0.D0.AND.PREP(L).GT.0.D0) PPHASE=LHX
-      IF(PREBAR(L).LE.0.D0) PPHASE=0.
 C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       QNEW =QL(L)-DTsrc*QHEAT(L)/LHX
       IF(QNEW.LT.0.) THEN
-      QNEW=0.
-      QHEAT(L)=QL(L)*LHX*BYDTsrc
-      DWDT1=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
-      WMNEW=WMX(L)+DWDT1*DTsrc
+        QNEW=0.
+        QHEAT(L)=QL(L)*LHX*BYDTsrc
+        DWDT1=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
+        WMNEW=WMX(L)+DWDT1*DTsrc
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
-      IF(WMNEW.LT.0.) THEN
-        IERR=1
-        LERR=L
-        WMERR=WMNEW
-        WMNEW=0.
-      END IF
+        IF(WMNEW.LT.0.) THEN
+          IERR=1
+          LERR=L
+          WMERR=WMNEW
+          WMNEW=0.
+        END IF
       END IF
 C**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
@@ -1732,23 +1721,16 @@ c ---------------------- apply fluxes ------------------------
 c
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT)
 #ifdef TRACERS_SPECIAL_O18
-C**** need separate accounting for liquid/solid precip
-        TRPRICE(N,L) = TRPRICE(N,L+1)*(1.-FERT)
-        IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
-        IF (PREICE(L).eq.0) TRPRICE(N,L)=0.  ! remove round off error
 C**** Isotopic equilibration of the CLW and water vapour
         IF (LHX.eq.LHE .and. WMX(L).gt.0) THEN  ! only if liquid
           CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),WMX(L),TM(L,N)
      *         ,TRWML(N,L),1d0)
         END IF
-C**** Isotopic equilibration of the liquid Precip and water vapour
-C**** only if T> pure ice limit temperature
-        PRLIQ = (PREBAR(L)-PREICE(L))*DTsrc*BYAM(L)*GRAV
-        IF (LHX.eq.LHE .AND. PRLIQ.gt.0) THEN
-          TRPRLIQ = MAX(0d0,TRPRBAR(N,L) - TRPRICE(N,L))
-          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PRLIQ,TM(L,N),TRPRLIQ
-     *         ,1d0)
-          TRPRBAR(N,L) = TRPRLIQ + TRPRICE(N,L)
+C**** Isotopic equilibration of Precip (if liquid) and water vapour
+C**** Note that precip is either all water or all ice
+        IF (LHX.eq.LHE .AND. PREBAR(L).gt.0) THEN
+          CALL ISOEQUIL(NTIX(N),TL(L),.TRUE.,QL(L),PREBAR(L),TM(L,N)
+     *         ,TRPRBAR(N,L),1d0)
         END IF
 #endif
       END DO
@@ -1757,12 +1739,13 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       IF(RH(L).GT.1.) THEN
       SLH=LHX*BYSHA
       DQSUM=0.
-      DO 231 N=1,3
-      IF(N.NE.1) QSATC=QSAT(TL(L),LHX,PL(L))
-      DQ=(QL(L)-QSATC)/(1.+SLH*QSATC*DQSATDT(TL(L),LHX))
-      TL(L)=TL(L)+SLH*DQ
-      QL(L)=QL(L)-DQ
-  231 DQSUM=DQSUM+DQ
+      DO N=1,3
+        IF(N.NE.1) QSATC=QSAT(TL(L),LHX,PL(L))
+        DQ=(QL(L)-QSATC)/(1.+SLH*QSATC*DQSATDT(TL(L),LHX))
+        TL(L)=TL(L)+SLH*DQ
+        QL(L)=QL(L)-DQ
+        DQSUM=DQSUM+DQ
+      END DO
       IF(DQSUM.GT.0.) THEN
       WMX(L)=WMX(L)+DQSUM
       FCOND=DQSUM/QNEW
@@ -1805,13 +1788,16 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
      *       PRECHK*TRPRBAR(1:NTX,L)/PREBAR(L)
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L)*FPR
       END IF
-#ifdef TRACERS_SPECIAL_O18
-      TRPRICE(1:NTX,L)=MIN(TRPRICE(1:NTX,L),TRPRBAR(1:NTX,L))
-#endif
 #endif
       PREBAR(L)=PREBAR(L)+(WMX(L)-teeny)*AIRM(L)*BYGRAV*BYDTsrc
-      PREICE(L)=MIN(PREICE(L),PREBAR(L))
       WMX(L)=teeny
+      END IF
+C**** set phase of condensation for next box down
+      PREICE(L)=0.
+      PPHASE=0.
+      IF (PREBAR(L).gt.0) THEN
+        PPHASE=LHX
+        IF (LHX.EQ.LHS) PREICE(L)=PREBAR(L)
       END IF
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
@@ -2015,10 +2001,8 @@ C**** CALCULATE OPTICAL THICKNESS
       BMAX=1.-EXP(-(CLDSAVL(L)/.3d0))
       IF(CLDSAVL(L).GE..95d0) BMAX=CLDSAVL(L)
       IF(L.EQ.1.OR.L.LE.DCL) THEN
-        CLDSSL(L)=CLDSSL(L)+
-     *               (BMAX-CLDSSL(L))*CKIJ
-        TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/
-     *               (CLDSSL(L)+teeny)
+        CLDSSL(L)=CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ
+        TAUSSL(L)=TAUSSL(L)*CLDSAVL(L)/(CLDSSL(L)+teeny)
       ENDIF
       IF(TAUSSL(L).LE.0.) CLDSSL(L)=0.
       IF(L.EQ.1.OR.L.LE.DCL.OR.TAUMCL(L).GT.0.) GO TO 526
