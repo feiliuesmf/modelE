@@ -6,7 +6,7 @@
 c
 C**** GLOBAL parameters and variables:
 C
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
       USE MODEL_COM, only: Itime, ItimeI, IM, LM
       USE RADPAR, only: O3DLJ
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
@@ -33,7 +33,7 @@ C
  100  format(/3(50x,l1/),3(50x,i8/))
       read(iu_data,110)ay
  110  format(3(///10(a8)),(///5(a8)))
-      CLOSE(iu_data)
+      call closeunit(iu_data)
 C
 C     Read JPL chemical reactions/rates from unit JPLRX:
 C
@@ -80,7 +80,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 c
 C**** GLOBAL parameters and variables:
 C
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: nr,nr2,nr3,nmm,nhet,pe,ea,nst,ro,
      &                          r1,sn,sb,nn,nnr,nc
 c
@@ -138,7 +138,7 @@ C
   25  format(//32x,2f7.1,i6)
   16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0,i4)
   30  format(1x,i2,2x,a8,a3,a8,a5,a8,a3,a8)
-      close(iu_data)
+      call closeunit(iu_data)
       return
       end SUBROUTINE jplrts
 C
@@ -184,7 +184,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 c
 C**** GLOBAL parameters and variables:
 C
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: nss,ks,kss,nc,JPPJ
 c
       IMPLICIT NONE
@@ -220,7 +220,7 @@ c     assign ks and kss gas numbers of photolysis reactants from list
  121  format(//2(45x,i2/),43x,f4.2/44x,i3/45x,i2/2(40x,e7.1/))
  112  format(4x,a8,3x,a8,1x,a8)
  172  format(1x,i2,2x,a8,a12,a8,a3,a8)
-      close(iu_data)
+      call closeunit(iu_data)
 C
       return
       end SUBROUTINE phtlst
@@ -503,7 +503,7 @@ c     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 C
 C**** GLOBAL parameters and variables:
 C
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
 c
       IMPLICIT NONE
@@ -539,7 +539,7 @@ c Read in quantum yield jfacta and fastj label jlabel
          jfacta(ipr)=jfacta(ipr)/100.d0
          go to 10
       endif
- 20   close(iu_data)
+ 20   call closeunit(iu_data)
       if(ipr.ne.jppj) then
          write(6,1000) ipr,jppj
          call stop_model('problem with # photolysis reactions',255)
@@ -556,12 +556,12 @@ c
 c Read in JPL spectral data set
       CALL openunit('SPECFJ',iu_data,.false.,.true.)
       CALL RD_TJPL(iu_data)
-      CLOSE(iu_data)
+      call closeunit(iu_data)
 c
 c Read in T & O3 climatology
       CALL openunit('ATMFJ',iu_data,.false.,.true.)
       CALL RD_PROF(iu_data)
-      CLOSE(iu_data)
+      call closeunit(iu_data)
 c
       return
       end SUBROUTINE inphot

@@ -660,7 +660,7 @@ C
 c
 C**** GLOBAL parameters and variables:  
 C
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
       USE tracers_DRYDEP, only: NPOLY,DRYCOEFF
      
       IMPLICIT NONE
@@ -677,7 +677,7 @@ C
       READ(iu_data,'(A80)') DUM
 C--   read polynomial coefficients for drydep:   
       READ(iu_data,'(8(1PE10.2))') (DRYCOEFF(I),I=1,NPOLY)
-      CLOSE(iu_data)
+      call closeunit(iu_data)
       RETURN
       END SUBROUTINE RDDRYCF
       
@@ -696,7 +696,7 @@ C      IJREG(I,J), IJLAND(I,J,LDT), IJUSE(I,J,LDT)
 C
 C**** GLOBAL parameters and variables:  
 C
-      USE FILEMANAGER, only   : openunit
+      USE FILEMANAGER, only   : openunit,closeunit
       USE MODEL_COM, only    : im,jm
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
      &                          IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,
@@ -736,7 +736,7 @@ C
      2                     (IUSE(I,J,K),K=1,IREG(I,J))
       GO TO 100
 110   CONTINUE
-      CLOSE(iu_data)
+      call closeunit(iu_data)
       DO J=1,JM
         DO I=1,IM
           FRCLND(I,J) = 1000.
@@ -779,7 +779,7 @@ C** Read parameters for each deposition surface type:
      *   IRGSS(I),IRGSO(I),IRCLS(I),IRCLO(I),IVSMAX(I)
       END DO
  400  CONTINUE
-      CLOSE(iu_data)
+      call closeunit(iu_data)
 C******************** END MODIN SECTION **************************
       RETURN
       END SUBROUTINE RDLAND
@@ -878,7 +878,7 @@ C**** GLOBAL parameters and variables:
 C
       USE tracers_DRYDEP, only: XLAI,XLAI2,IREG
       USE MODEL_COM, only: IM,JM,JMON,JMperY
-      USE FILEMANAGER, only: openunit
+      USE FILEMANAGER, only: openunit,closeunit
 C     
       IMPLICIT NONE
 c
@@ -909,7 +909,7 @@ C Read current month's lai:
 10    READ(IUNIT,"(3I3,20F5.1)",END=20) I,J,INDEX,
      &(XLAI(I,J,K),K=1,INDEX)
       GOTO 10
-20    CLOSE(IUNIT)
+ 20   call closeunit(iunit)
       
 C Read following months lai:
       IF(JMON.eq.12) THEN
@@ -921,7 +921,7 @@ C Read following months lai:
 30    READ(IUNIT,"(3I3,20F5.1)",END=40) I,J,INDEX,
      &(XLAI2(I,J,K),K=1,INDEX)
       GOTO 30
-40    CLOSE(IUNIT)
+40    call closeunit(iunit)
       RETURN
       END SUBROUTINE READLAI
 #endif
