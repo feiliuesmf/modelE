@@ -335,21 +335,11 @@ CCC         END DO
       CALL CHECKSUM(grid, T, __LINE__, __FILE__,STGR=.true.)
       CALL CHECKSUM_COLUMN(grid, PK, __LINE__, __FILE__)
       CALL SDRAG (DTLF)
-      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
-      CALL LOG_PARALLEL(grid, __FILE__, __LINE__, 
-     &     i0 = MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2))
-      CALL LOG_PARALLEL(grid, __FILE__, __LINE__, 
-     &     i0 = MRCH)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA
-      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
            CALL DIAGB
-      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
            CALL EPFLUX (U,V,T,P)
-      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
          ENDIF
-      CALL CHECKSUM(grid,  T, __LINE__, __FILE__,STGR=.true.)
-      CALL CHECKSUM_COLUMN(grid,PK, __LINE__, __FILE__)
 C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
