@@ -2249,7 +2249,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
       USE E001M12_COM
       USE GEOM
-      USE DAGCOM, only : aj,bj,cj,dj,jreg,kdiag
+      USE DAGCOM, only : aj,bj,cj,dj,jreg,kdiag,namreg,kreg
       IMPLICIT REAL*8 (A-H,O-Z)
 CF    COMMON/WORK3/GBUDG(27,80,4),RBUDG(23,80),PAD3(5288)
       DIMENSION CONTJ(JM),CONTO(JM),CONTL(JM),CONTOI(JM)
@@ -2262,8 +2262,6 @@ C****
      *     /'    (GLOBAL)','      (LAND)','     (OCEAN)',
      *      ' (OCEAN ICE)','   (REGIONS)'/)
       CHARACTER*16 TITLE(94),TITLEA(10)
-      CHARACTER*4 TITREG*80,NAMREG(2,23)
-      COMMON/TNKREG/TITREG,NAMREG,KREG
       CHARACTER(LEN=16), DIMENSION(94) :: TITLE = (/
      1  ' INC SW(WT/M**2)', '0SW ABS BELOW P0', ' SW ABS BELOW P1',
      4  ' SW ABS BY ATMOS', ' SW INC ON Z0   ', ' SW ABS AT Z0   ',

@@ -529,6 +529,7 @@ C****
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
      &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
+     &  ,TITREG,NAMREG,KREG
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION JC1(100),CLABEL1(39),RC1(161)
       CHARACTER*4 CLABEL1,RUNID
@@ -538,8 +539,7 @@ C****
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
 
-      CHARACTER*8 RECORD(10),NLREC*80,TITREG*80,NAMREG(23)
-      COMMON/TNKREG/TITREG,NAMREG,KREG
+      CHARACTER*8 RECORD(10),NLREC*80
       REAL*4 TAU4,TAUY4,XX4
       NAMELIST/INPUTZ/IM0,JM0,LM0,LS1,LBLM,LMCM,LSSM,KOCEAN,ISTART,
      *  KDISK,TAUP,TAUI,TAUE,TAUT,TAUO,NDYN,NCNDS,NRAD,NSURF,NGRND,
