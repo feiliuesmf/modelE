@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE CLOUDS
 !@sum  CLOUDS column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
@@ -7,6 +9,9 @@
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat
       USE MODEL_COM, only : IM,LM,DTsrc
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: NTM
+#endif
       USE RANDOM
       IMPLICIT NONE
       SAVE
@@ -85,6 +90,15 @@ C**** new arrays must be set to model arrays in driver (after COND)
       DOUBLE PRECISION, DIMENSION(LM) :: SM,QM
       DOUBLE PRECISION, DIMENSION(NMOM,LM) :: SMOM,QMOM
 
+#ifdef TRACERS_ON
+!@var TM Vertical profiles of tracers
+      DOUBLE PRECISION, DIMENSION(LM,NTM) :: TM
+      DOUBLE PRECISION, DIMENSION(nmom,lm,ntm) :: TMOM
+!@var NTIX: Indicies of tracers used in convection
+      integer, dimension(ntm) :: ntix 
+      integer ntx
+#endif
+
 !@var KMAX index for surrounding velocity
       INTEGER ::  KMAX
 !@var PEARTH fraction of land in grid box
@@ -143,6 +157,15 @@ C**** functions
       DOUBLE PRECISION, DIMENSION(NMOM,LM) :: DSMOM,DQMOM,DSMOMR,DQMOMR
       DOUBLE PRECISION, DIMENSION(NMOM) ::
      &     SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
+
+#ifdef TRACERS_ON
+!@var TMOLD: old TM (tracer mass)
+!@var DTM,DTMR: Vertical profiles of Tracers mass and changes
+      DOUBLE PRECISION, DIMENSION(LM,NTM)      :: TMOLD,  DTM,  DTMR,TM1
+      DOUBLE PRECISION, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR
+      DOUBLE PRECISION, DIMENSION(NTM)      :: TMP,  TMPMAX,  TMDN, TENV
+      DOUBLE PRECISION, DIMENSION(NMOM,NTM) :: TMOMP,TMOMPMAX,TMOMDN
+#endif
 
       REAL*8, DIMENSION(LM) ::
      *     DM,COND,CDHEAT,CCM,SM1,QM1,DMR,ML,SMT,QMT,TPSAV,SVTP,DDM
@@ -276,6 +299,9 @@ C**** zero out diagnostics
 C**** save initial values
       SM1=SM
       QM1=QM
+#ifdef TRACERS_ON
+      TM1(:,1:NTX) = TM(:,1:NTX)
+#endif
 C**** OUTER MC LOOP OVER BASE LAYER
       DO 600 LMIN=1,LMCM-1
       MAXLVL=0
@@ -376,6 +402,10 @@ C**** SET PROFILE TO BE CONSTANT FOR BOTH TYPES OF CLOUDS
       SMOMOLD(:,:) = SMOM(:,:)
       QMOLD(:) = QM(:)
       QMOMOLD(:,:) = QMOM(:,:)
+#ifdef TRACERS_ON
+      TMOLD(:,1:NTX) = TM(:,1:NTX)
+      TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
+#endif
       DO 570 IC=1,ITYPE
 C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DO L=1,LM
@@ -396,6 +426,12 @@ C**** INITIALLISE VARIABLES USED FOR EACH TYPE
       DQMOM(:,:) = 0.
       DQMR(:) = 0.
       DQMOMR(:,:) = 0.
+#ifdef TRACERS_ON
+      DTM(:,1:NTX) = 0.
+      DTMOM(:,:,1:NTX) = 0.
+      DTMR(:,1:NTX) = 0.
+      DTMOMR(:,:,1:NTX) = 0.
+#endif
       MC1=.FALSE.
       LHX=LHE
       MPLUME=MIN(1.*AIRM(LMIN),1.*AIRM(LMIN+1))
@@ -421,6 +457,13 @@ C     FPLUM0=FMP1*BYAM(LMIN)
         DQMR(LMIN)=-QMP
       DQMOMR(xymoms,LMIN)=-QMOMP(xymoms)
       DQMOMR(zmoms,LMIN)=-QMOMOLD(zmoms,LMIN)*FPLUME
+#ifdef TRACERS_ON
+      TMP(1:NTX) = TMOLD(LMIN,1:NTX)*FPLUME
+      TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
+        DTMR(LMIN,1:NTX)=-TMP(1:NTX)
+      DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
+      DTMOMR( zmoms,LMIN,1:NTX)=-TMOMOLD(zmoms,LMIN,1:NTX)*FPLUME
+#endif
       DO K=1,KMAX !vref
          UMP(K)=UM(K,LMIN)*FPLUME !vref
          DUM(K,LMIN)=-UMP(K) !vref
@@ -498,6 +541,14 @@ C****
           UMP(K)=UMP(K)-UMP(K)*DELTA !vref
           VMP(K)=VMP(K)-VMP(K)*DELTA !vref
         ENDDO                   !vref
+
+#ifdef TRACERS_ON
+        DTM(L-1,1:NTX) = DTM(L-1,1:NTX)+DELTA*TMP(1:NTX)
+        DTMOM(xymoms,L-1,1:NTX)=DTMOM(xymoms,L-1,1:NTX)+DELTA
+     *       *TMOMP(xymoms,1:NTX)
+        TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
+        TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
+#endif
       END IF
 C****
 C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
@@ -530,6 +581,13 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
        SMOMP(xymoms)= SMOMP(xymoms)+ SMOM(xymoms,L)*FENTRA
       QMP=QMP+EPLUME*QUP
        QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
+#ifdef TRACERS_ON
+      DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA  
+      DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
+      TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
+      TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
+     *     *FENTRA
+#endif
       DO K=1,KMAX !vref
          UMP(K)=UMP(K)+U_0(K,L)*EPLUME !vref
          DUM(K,L)=DUM(K,L)-U_0(K,L)*EPLUME !vref
@@ -562,15 +620,24 @@ C     IF(DMMIX.LT.1.E-10) GO TO 291
       SMOMDN(xymoms)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
       SMP=FLEFT*SMP
        SMOMP(xymoms)= SMOMP(xymoms)*FLEFT
-      QMDN=DDRAFT*QMIX        ! = QM(L)*FDDL +  QMP*FDDP
+      QMDN=DDRAFT*QMIX         ! = QM(L)*FDDL +  QMP*FDDP
       QMOMDN(xymoms)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
       QMP=FLEFT*QMP
        QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
       DMR(L) = DMR(L)-.5*DDRAFT
       DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
       DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
-      DQMR(L)=DQMR(L)-.5*DDRAFT*QUP       ! = DQM(L)-QM(L)*FDDL
+      DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
       DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
+#ifdef TRACERS_ON
+       Tmdn(1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
+       tmomdn(xymoms,1:NTX) = tmom(xymoms,l,1:NTX)*fddl+
+     *                       tmomp(xymoms,  1:NTX)*fddp
+       dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
+       dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
+       Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
+       tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
+#endif
       DO K=1,KMAX !vref
          UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L)) !vref
          UMP(K)=UMP(K)*FLEFT !vref
@@ -627,6 +694,11 @@ C****
       SMOMPMAX(xymoms) =  SMOMP(xymoms)
       QMPMAX=QMP
       QMOMPMAX(xymoms) =  QMOMP(xymoms)
+#ifdef TRACERS_ON
+C**** Tracers at top of plume
+      TMPMAX(1:NTX) = TMP(1:NTX)
+      TMOMPMAX(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)
+#endif
       MPMAX=MPLUME
       LMAX = LMAX + 1
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
@@ -638,6 +710,12 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       DSMOM(xymoms,LMAX)=DSMOM(xymoms,LMAX) + SMOMPMAX(xymoms)
       DQM(LMAX)=DQM(LMAX)+QMPMAX
       DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
+#ifdef TRACERS_ON
+C**** Add plume tracers at LMAX
+      DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
+      DTMOM(xymoms,LMAX,1:NTX) = 
+     *   DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
+#endif
       CCM(LMAX)=0.
       DO K=1,KMAX !vref
          DUM(K,LMAX)=DUM(K,LMAX)+UMP(K) !vref
@@ -711,6 +789,14 @@ C       IF(L.GT.LMIN.AND.DDRAFT.GT.CCM(L-1)) DDRAFT=CCM(L-1)
         DQMR(L)=DQMR(L)-EDRAFT*QENV
         DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
         DMR(L)=DMR(L)-EDRAFT
+#ifdef TRACERS_ON
+        Tenv(1:NTX)=tm1(l,1:NTX)/airm(l)
+        TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
+        TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)+ TMOM(xymoms,L,1:NTX)
+     *       *FENTRA
+        DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
+        DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
+#endif
       ENDIF
       IF(L.GT.1) DDM(L-1)=DDRAFT
 c         TMIX=SMDN*PLK(L)/DDRAFT
@@ -735,6 +821,11 @@ C     ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVE BUOYANT
       DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
       DQM(LDMIN)=DQM(LDMIN)+QMDN
       DQMOM(xymoms,LDMIN)=DQMOM(xymoms,LDMIN) + QMOMDN(xymoms)
+#ifdef TRACERS_ON
+      DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
+      DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) +
+     *     TMOMDN(xymoms,1:NTX)
+#endif
       DO K=1,KMAX !vref
       DUM(K,LDMIN)=DUM(K,LDMIN)+UMDN(K) !vref
       DVM(K,LDMIN)=DVM(K,LDMIN)+VMDN(K) !vref
@@ -820,6 +911,18 @@ C**** diagnostics
         AJ51(L)=AJ51(L)+SLHE*(QM(L)-QMT(L)+COND(L))
         AJ57(L)=AJ57(L)+SLHE*(QM(L)-QMT(L))
       END DO
+#ifdef TRACERS_ON
+C**** Subsidence of tracers by Quadratic Upstream Scheme 
+      DO N=1,NTX
+      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
+      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
+      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
+      call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
+     &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierr,lerr)
+      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
+      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
+      END DO
+#endif
 c      SUMOLD=0.
 c      SUMNEW=0.
 c      SUMDP=0.
@@ -834,6 +937,9 @@ C 383 SM(L)=SM(L)-DIFSUM/SUMDP/PLK(L)
       DO 381 L=1,LM
       SM1(L)=SM(L)
   381 QM1(L)=QM(L)
+#ifdef TRACERS_ON
+      TM1(:,1:NTX) = TM(:,1:NTX)
+#endif
 C****
 C**** REEVAPORATION AND PRECIPITATION
 C****
@@ -1517,6 +1623,11 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
       WMX(L+1)=WMN2*BYAM(L+1)
       CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
       CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+#ifdef TRACERS_ON
+      DO N=1,NTX
+        CALL CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
+      END DO
+#endif
       DO K=1,KMAX !vref
          UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K)) !vref
          VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K)) !vref
@@ -1572,7 +1683,6 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
   388    IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
       PRCPSS=PREBAR(1)*GRAV*DTsrc
-
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM
       CLDSAVL(L)=CLDSSL(L)
@@ -1597,6 +1707,7 @@ C**** CALCULATE OPTICAL THICKNESS
       END SUBROUTINE LSCOND
 
       END MODULE CLOUDS
+
 
 C-----------------------------------------------------------------------------
 
