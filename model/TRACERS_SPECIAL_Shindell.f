@@ -754,7 +754,7 @@ C====
         DO L=1,Lsulf
           srcLin(L)=src(I,J,L,k)
         END DO
-        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout)
+        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
         DO L=1,LM
           sulfate(I,J,L)=srcLout(L)
         ENDDO         
@@ -831,8 +831,6 @@ c**** Interpolate two months of data to current day
 
       subroutine get_CH4_IC
 !@sum get_CH4_IC to generate initial conditions for methane.
-!@+ >>WARNING<<: This routine is still mostly 'hard coded' for the
-!@+ 4 x 5, 23 layer model. It needs to be generalized!
 !@auth Greg Faluvegi/Drew Shindell
 !@ver  1.0 (based on DB396Tds3M23)
 c
@@ -843,32 +841,30 @@ C
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, TR_MM, n_CH4
+      USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX
 c
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments:
 c
 !@var CH4INIT temp variable for ch4 initial conditions
-!@var j2 dummy
 !@var I,J,L dummy loop variables
 !@param bymair 1/molecular wt. of air = 1/mair
+!@var JN J around 30 N
+!@var JS J arount 30 S
+      INTEGER, PARAMETER:: JS = JM/3 + 1, JN = 2*JM/3
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT
-      INTEGER J2, I, J, L
-
-      WRITE(6,*) '>>WARNING : you are using CH4 initial condition in'
-      WRITE(6,*) 'the stratosphere which are specific to the 4x5 deg,'
-      WRITE(6,*) '23-layer model. Otherwise, subroutine get_CH4_IC'
-      WRITE(6,*) 'needs to be generalized. <<'
+      INTEGER I, J, L
 
 C     First, the troposphere:
       DO L=1,LS1-1
       DO J=1,JM
 C       Initial latitudinal gradient for CH4:
         IF(J.LT.JEQ)THEN ! Southern Hemisphere
-          CH4INIT=1.75 *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=1.750d0*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
         ELSE             ! Northern Hemisphere
-          CH4INIT=1.855*TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
+          CH4INIT=1.855d0*TR_MM(n_CH4)*bymair*1.d-6*DXYP(J)
         ENDIF
         DO I=1,IM
           trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT
@@ -879,38 +875,26 @@ c
 C     Now, the stratosphere:
       do L=LS1,LM
       do j=1,jm
-        j2=NINT((FLOAT(j)-1.)/3.)
-         if(j.le.2) j2=1
-         if(j.ge.45)j2=14
 c
 c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
-c     mixing ratios to 1.79 (observed). The 12 "stratospheric" levels
-c     are grouped into 4 categories: L={12,13,14} based on 100mb obs.
-c     L={15,16,17} on 32mb obs, L={18,19,20} on 3.2mb obs and
-c     L={21,22,23} on 0.32mb obs (average of mar,jun,sep,dec).
+c     mixing ratios to 1.79 (observed):
         IF(J.LT.JEQ)THEN ! Southern Hemisphere
           CH4INIT=1.75/1.79  *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ELSE             ! Northern Hemisphere
           CH4INIT=1.855/1.79 *TR_MM(n_CH4)*bymair*1.E-6*DXYP(J)
         ENDIF
-        IF((J.LE.16).OR.(J.GT.30)) THEN               ! extratropics
-          IF((L.GE.LS1).AND.(L.LE.14)) CH4INIT=CH4INIT*1.700!was1.44
-          IF((L.GE.15).AND.(L.LE.17))  CH4INIT=CH4INIT*   1.130
-          IF((L.GE.18).AND.(L.LE.20))  CH4INIT=CH4INIT*   0.473
-          IF((L.GE.21).AND.(L.LE.LM))  CH4INIT=CH4INIT*   0.202
-        ELSE IF((J.GT.16).AND.(J.LE.30)) THEN           ! tropics
-          IF((L.GE.LS1).AND.(L.LE.14)) CH4INIT=CH4INIT*   1.620
-          IF((L.GE.15).AND.(L.LE.17))  CH4INIT=CH4INIT*   1.460
-          IF((L.GE.18).AND.(L.LE.20))  CH4INIT=CH4INIT*   0.812
-          IF((L.GE.21).AND.(L.LE.LM))  CH4INIT=CH4INIT*   0.230
+        IF((J.LE.JS).OR.(J.GT.JN)) THEN                 ! extratropics
+          CH4INIT=CH4INIT*CH4altX(L)
+        ELSE IF((J.GT.JS).AND.(J.LE.JN)) THEN           ! tropics
+          CH4INIT=CH4INIT*CH4altT(L)
         END IF
-        do i=1,im
+        do i=1,im  
           trm(i,j,l,n_CH4)= am(L,I,J)*CH4INIT
         end do ! i
       end do   ! j
       end do   ! l
-      j2=0
+C
       RETURN
       end subroutine get_CH4_IC
    
@@ -1070,7 +1054,7 @@ C     more representative throughout the 1 hour time step:
       END SUBROUTINE get_sza
 C
 C
-      SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT)
+      SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT,min_zero)
 !@sum LOGPINT does vertical interpolation of column variable,
 !@+   linearly in ln(P).
 !@auth Greg Faluvegi
@@ -1088,8 +1072,10 @@ C
 !@var AOUT output (interpolated) column variable
 !@var LNPIN natural log of PIN
 !@var LNPOUT natural log of POUT
+!@var min_zero if true, don't allow negatives
 !@var slope slope of line used for extrapolations
 C
+      LOGICAL, INTENT(IN)                 :: min_zero
       INTEGER, INTENT(IN)                 :: LIN, LOUT
       REAL*8, INTENT(IN), DIMENSION(LIN)  :: PIN, AIN
       REAL*8, INTENT(OUT),DIMENSION(LOUT) :: POUT, AOUT 
@@ -1122,6 +1108,58 @@ C
         END DO
        END IF
       END DO          
+C      
+C If necessary: limit interpolated array to positive numbers:
+C
+      IF(min_zero)AOUT(:)=MAX(0.d0,AOUT(:)) 
 C           
       RETURN
       END SUBROUTINE LOGPINT
+C
+C
+      SUBROUTINE special_layers_init
+!@sum special_layers_init determined special altitude levels that
+!@+ are important to Drew Shindell's tracer code.  This is done to
+!@+ so that hardcoded levels are not needed when switching 
+!@+ vertical resolutions.
+!@auth Greg Faluvegi
+!@ver 1.0
+C
+C**** Global variables:
+c
+      USE MODEL_COM, only : LM,SIG,PSF,PTOP
+      USE TRCHEM_Shindell_COM, only: L75P,L75M,F75P,F75M, ! FACT1
+     &                           L569P,L569M,F569P,F569M  ! CH4
+C
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments
+C
+!@var natural log of nominal pressure for verticle interpolations
+!@var log75 natural log of 75 hPa
+!@var log569 natural log of 569 hPa
+      REAL*8 log75,log569
+      REAL*8, DIMENSION(LM) :: LOGP
+      INTEGER L      
+c      
+      LOGP(:)=LOG(SIG(:)*(PSF-PTOP)+PTOP)
+      log75=LOG(75.d0)
+      log569=LOG(569.d0)
+c 
+      DO L=1,LM
+        IF(LOGP(L).gt.log75 .and. LOGP(L+1).lt.log75) THEN
+          L75P=L+1 ! these are for FACT1 variable in strat overwrite
+          L75M=L   ! hence effects several tracers
+          F75P=(log75-LOGP(L75M))/(LOGP(L75P)-LOGP(L75M))
+          F75M=(LOGP(L75P)-log75)/(LOGP(L75P)-LOGP(L75M))
+        END IF
+        IF(LOGP(L).gt.log569 .and. LOGP(L+1).lt.log569) THEN
+          L569P=L+1 ! these are for the CH4 strat overwrite
+          L569M=L
+          F569P=(log569-LOGP(L569M))/(LOGP(L569P)-LOGP(L569M))
+          F569M=(LOGP(L569P)-log569)/(LOGP(L569P)-LOGP(L569M))
+        END IF
+      END DO    
+c      
+      RETURN
+      END SUBROUTINE special_layers_init
