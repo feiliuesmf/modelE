@@ -469,7 +469,7 @@ C****
       USE CONSTANT, only : grav,kapa,sday,shi,lhm
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,dsigo
-     *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
+     *     ,bydsig,xlabel,clabel,namd6,ijd6,niprnt,nmonav
      *     ,skipse,keyct,mfiltr,irand,psf,ptop
      *     ,xcdlm,ndasf,nda4,nda5s,nda5k,nda5d,ndaa,nfiltr
      *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk
@@ -480,7 +480,6 @@ C****
      *     ,itlandi
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
-      USE GHYCOM, only : ghdata,snowe,snoage,tearth,wearth,aiearth
       USE RANDOM
       USE RADNCB, only : rqt,s0x,co2,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav,
@@ -489,11 +488,7 @@ C****
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : kacc,tsfrez,kdiag,keynr,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck,oa
-      USE OCEAN, only : tocean
-      USE SEAICE_COM, only : rsi,snowi,hsi
-      USE SEAICE, only : xsi,ace1i,ac2oim
       USE LAKES_COM, only : flake
-      USE LANDICE_COM, only : snowli,tlandi
       USE FILEMANAGER, only : getunit
       USE TIMINGS, only : timing,ntimeacc
 
@@ -505,7 +500,7 @@ C****
      *     ,IR,IREC,NOFF,ioerr
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
-      REAL*8 TIJL,X,CDM,TEMP,PLTOP(LM),MSI1   ! ,SNOAGE ? obsolete
+      REAL*8 TIJL,CDM,TEMP,PLTOP(LM),X   
       REAL*4 XX4
       INTEGER Itime1,Itime2,ItimeX,IhrX
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
@@ -636,33 +631,19 @@ C****
 C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
-C**** GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
+C**** Read in ground initial conditions
         call getunit("GIC",iu_GIC,.true.,.true.)
-c        READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
-c     *       ,JM),RSI
-C**** Note that these HSI are temperatures (not enthalpy) but we need
-C**** MSI to be able to convert them. For KOCEAN=0 this initialisation
-C**** is overridden by OCLIM (but not for lakes!), for KOCEAN=1 this
-C**** should not be used.
-        READ(iu_GIC,ERR=830) SNOWI,SNOWE,
-     *       ((HSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
-     *       ((HSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
-     *       (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
-     *       (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
-     *       (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
-     *       GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
-        CLOSE (iu_GIC)
-C**** define defaults: (this should not be here, but be set in an
-C**** updated GIC file). Use AC2OIM instead of MSI.
-        DO J=1,JM
-        DO I=1,IM
-          MSI1=SNOWI(I,J)+ACE1I
-          HSI(1,I,J) = (SHI*HSI(1,I,J)-LHM)*XSI(1)*MSI1
-          HSI(2,I,J) = (SHI*HSI(2,I,J)-LHM)*XSI(2)*MSI1
-          HSI(3,I,J) = (SHI*HSI(3,I,J)-LHM)*XSI(3)*AC2OIM
-          HSI(4,I,J) = (SHI*HSI(4,I,J)-LHM)*XSI(4)*AC2OIM
-        END DO
-        END DO
+        ioerr=-1
+        call io_ocean  (iu_GIC,ioread,ioerr)
+        call io_seaice (iu_GIC,ioread,ioerr)
+        call io_earth  (iu_GIC,ioread,ioerr)
+        call io_soils  (iu_GIC,ioread,ioerr)
+        call io_landice(iu_GIC,ioread,ioerr)
+        if (ioerr.eq.1) then
+          WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
+          STOP "GIC READ IN ERROR"
+        end if
+        close (iu_GIC)
       END IF
 C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
