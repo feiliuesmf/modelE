@@ -666,7 +666,7 @@ C****
           if (trm(i,j,1,n)+td1+tdd.lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
      *           ,trm(i,j,1,n),td1
-            tdd= -(trm(i,j,1,n)+td1)
+            tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(dxyp(j)*ptype)
             trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
           else
