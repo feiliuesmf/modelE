@@ -32,9 +32,14 @@ done
 
 do_uln=1 ; if [[ ! -L TOPO ]] ; then ${runID}ln ; do_uln=0 ; fi
 
+set -A month -- xx JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC
+rsfic=1${month[$2]}$(( $5 + $4/12 )).rsf${1}
+
 echo 'Enter rsf file for new initial conditions'
 echo "   (path from `pwd` or absolute pathname):"
-read rsfic
+echo "   or hit enter if $rsfic is ok:"
+read rsficx
+if [[ ${rsficx} != '' ]] ; then rsfic=${rsficx} ; fi
 ln -s $rsfic RSFIC
 if [[ -s RSFIC ]]
 then
