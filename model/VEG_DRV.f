@@ -17,113 +17,39 @@
       contains
 
 
+
       subroutine init_vegetation(redogh,istart)
-!@sum reads vegetation arrays and initializes the vegetation
+!@sum initializes vegetation
+      integer, intent(in) :: istart
+      logical, intent(in) :: redogh
+
+      call read_veg_data(redogh,istart)
+      call upd_gh
+      end subroutine init_vegetation
+
+
+      subroutine read_veg_data(redogh,istart)
+!@sum reads vegetation arrays and rundeck parameters
       use filemanager
       use param
-      use constant, only : twopi,one
       use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
-      use model_com, only : fearth,jeq,jyear
-      use veg_com !, only : vdata,Cint,Qfol
-      use ghy_com, only : ngm
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
-      use ghy_com, only : dz_ij
-!      use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
+      use veg_com
+      use model_com, only : fearth,jyear
 
       implicit none
 
       integer, intent(in) :: istart
       logical, intent(in) :: redogh
-!---  local vars
-      integer iu_veg
-      integer i, j, k
-      real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
-      real*8 almass0, almassre, almassim  !nyk
-!      real*8 sla0f, slimf, slref !nyk
-      real*8 slim,slre,svh,z
-      real*8 snm,snf  ! temporary sums (adf)
-      real*8 cwc_sum
-      integer iv, l
-      logical veg_data_missing
-      real*8 fv,dz(ngm)
-      integer n
-!---  parameters for different types of vegetation
-!---          tundr  grass  shrub  trees  decid evrgr  rainf crops
-      real*8, parameter :: alamax(11) =
-     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
-     &     ,0.d0, 0.d0, 2.d0 /)
-      real*8, parameter :: alamin(11) =
-     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
-     &     ,0.d0, 0.d0, 1.d0 /)
 
-      real*8, parameter :: aroot(11) =
-     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
-      real*8, parameter :: broot(11) =
-     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
-      real*8, parameter :: rsar(11) =
-     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0
-     &     ,0.d0, 0.d0, 100d0 /)
-      real*8, parameter :: vhght(11) =
-     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
-     &     ,0.d0, 0.d0, 1.5d0 /)
-! Mean canopy nitrogen (nmv; g/m2[leaf]) and Rubisco factors (nfv) for each
-! vegetation type (adf)
-      real*8, parameter :: nmv(11) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
-     &     ,0.d0, 0.d0, 0.82d0 /)
-      real*8, parameter :: nfv(11) =
-     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0
-     &     ,0.d0, 0.d0, 1.5d0 /)
-      integer, parameter :: laday(11) =
-     $     (/ 196,  196,  196,  196,  196,  196,  196,  196
-     &     ,0, 0, 196 /)
-      real*8, parameter :: can_w_coef(11) =
-     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4
-     &     ,0.d0, 0.d0, 1.d-4 /)
-
-! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
-! Values below 1/(m2/kg) to get kg/m2 for multiplying.
-! Sources: White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
-!          Leonardos,E.D.,et.al.(2003), Physiologia Plantarum, 117:521+.
-!               From winter wheat grown at 20 C (20 m2/kg[dry mass])
-!                                      and  5 C (13 m2/kg[dry mass])
-!          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
-      real*8, parameter :: sleafa(11) =
-     $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
-     $        1./8.2d0,1./32.0d0,1./18.0d0, 0.d0, 0.d0, 1./49.0d0 /) 
-
-c****             tundr grass shrub trees decid evrgr rainf crops
-c****
-c**** laday(veg type, lat belt) = day of peak lai
-c old peak lai:  2nd line is for latitudes < 23.5 deg
-c****    1  temperate latitudes
-c****    2  non-temperate latitudes
-c     data  laday/ 196,  196,  196,  196,  196,  196,  105,  196/
-c     data  laday/ 196,  288,  288,  288,  288,  196,  105,  288/
-c****
-c**** contents of ala(k,i,j),  lai coefficients
-c****   1  average leaf area index
-c****   2  real amplitude of leaf area index
-c****   3  imaginary amplitude of leaf area index
-c****
-c**** contents of almass(i,j),  leaf mass
-c****      leaf mass = ala*sleafa = kg[C]/ground area
-c****
-c**** contents of acs(k,i,j),  cs coefficients
-c****   1  average stomatal conductance
-c****   2  real amplitude of stomatal conductance
-c****   3  imaginary amplitude of stomatal conductance
-c****
-!@dbparam ghy_default_data if == 1 reset all GHY data to defaults
-!@+ (do not read it from files)
-      integer :: ghy_default_data = 0
-      integer :: northsouth  !1=south, 2=north hemisphere
-
-      INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
+      INTEGER :: J_1, J_0, J_1H, J_0H
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      integer iu_veg
+      integer i, j, k
+      logical veg_data_missing
+
       real*8, allocatable :: veg_c4(:,:)
       real*8 :: vc4
       integer :: read_c4_grass = 0
@@ -208,7 +134,111 @@ c**** check whether ground hydrology data exist at this point.
      &       'Vegetation data is missing at some cells',255)
       endif
 
-      entry upd_gh ! need to redo if vdata changes
+      end subroutine read_veg_data
+
+
+      subroutine upd_gh
+!@sum initializes (or re-initializes) the vegetation data
+      use constant, only : twopi,one
+      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
+      use model_com, only : fearth,jeq
+      use veg_com !, only : vdata,Cint,Qfol
+      use ghy_com, only : ngm
+      use ghy_com, only : dz_ij
+!      use surf_albedo, only: albvnh  !nyk !!! not used? i.a.
+
+      implicit none
+
+!---  local vars
+      integer i, j
+      real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
+      real*8 almass0, almassre, almassim  !nyk
+!      real*8 sla0f, slimf, slref !nyk
+      real*8 slim,slre,svh,z
+      real*8 snm,snf  ! temporary sums (adf)
+      real*8 cwc_sum
+      integer iv, l
+      real*8 fv,dz(ngm)
+      integer n
+!---  parameters for different types of vegetation
+!---          tundr  grass  shrub  trees  decid evrgr  rainf crops
+      real*8, parameter :: alamax(11) =
+     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+     &     ,0.d0, 0.d0, 2.d0 /)
+      real*8, parameter :: alamin(11) =
+     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+     &     ,0.d0, 0.d0, 1.d0 /)
+
+      real*8, parameter :: aroot(11) =
+     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
+     &     ,0.d0, 0.d0, 0.9d0 /)
+      real*8, parameter :: broot(11) =
+     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
+     &     ,0.d0, 0.d0, 0.9d0 /)
+      real*8, parameter :: rsar(11) =
+     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0
+     &     ,0.d0, 0.d0, 100d0 /)
+      real*8, parameter :: vhght(11) =
+     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
+     &     ,0.d0, 0.d0, 1.5d0 /)
+! Mean canopy nitrogen (nmv; g/m2[leaf]) and Rubisco factors (nfv) for each
+! vegetation type (adf)
+      real*8, parameter :: nmv(11) =
+     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
+     &     ,0.d0, 0.d0, 0.82d0 /)
+      real*8, parameter :: nfv(11) =
+     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.3d0
+     &     ,0.d0, 0.d0, 1.5d0 /)
+      integer, parameter :: laday(11) =
+     $     (/ 196,  196,  196,  196,  196,  196,  196,  196
+     &     ,0, 0, 196 /)
+      real*8, parameter :: can_w_coef(11) =
+     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4
+     &     ,0.d0, 0.d0, 1.d-4 /)
+
+! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
+! Values below 1/(m2/kg) to get kg/m2 for multiplying.
+! Sources: White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
+!          Leonardos,E.D.,et.al.(2003), Physiologia Plantarum, 117:521+.
+!               From winter wheat grown at 20 C (20 m2/kg[dry mass])
+!                                      and  5 C (13 m2/kg[dry mass])
+!          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
+      real*8, parameter :: sleafa(11) =
+     $     (/ 1./30.5d0,1./49.0d0,1./30.5d0,1./40.5d0,1./32.0d0,
+     $        1./8.2d0,1./32.0d0,1./18.0d0, 0.d0, 0.d0, 1./49.0d0 /) 
+
+c****             tundr grass shrub trees decid evrgr rainf crops
+c****
+c**** laday(veg type, lat belt) = day of peak lai
+c old peak lai:  2nd line is for latitudes < 23.5 deg
+c****    1  temperate latitudes
+c****    2  non-temperate latitudes
+c     data  laday/ 196,  196,  196,  196,  196,  196,  105,  196/
+c     data  laday/ 196,  288,  288,  288,  288,  196,  105,  288/
+c****
+c**** contents of ala(k,i,j),  lai coefficients
+c****   1  average leaf area index
+c****   2  real amplitude of leaf area index
+c****   3  imaginary amplitude of leaf area index
+c****
+c**** contents of almass(i,j),  leaf mass
+c****      leaf mass = ala*sleafa = kg[C]/ground area
+c****
+c**** contents of acs(k,i,j),  cs coefficients
+c****   1  average stomatal conductance
+c****   2  real amplitude of stomatal conductance
+c****   3  imaginary amplitude of stomatal conductance
+c****
+!@dbparam ghy_default_data if == 1 reset all GHY data to defaults
+!@+ (do not read it from files)
+      integer :: ghy_default_data = 0
+      integer :: northsouth  !1=south, 2=north hemisphere
+
+      INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+!      entry upd_gh ! need to redo if vdata changes
 C****
 C**** Extract parameters from "grid" in case we entered here
 C****
@@ -342,7 +372,7 @@ c**** calculate root fraction afr averaged over vegetation types
       ! write(98,*) afr
 
       return
-      end subroutine init_vegetation
+      end subroutine upd_gh
 
 
       subroutine reset_veg_to_defaults( reset_prognostic )
