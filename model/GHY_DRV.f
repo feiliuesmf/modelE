@@ -837,7 +837,7 @@ c**** set conservation diagnostics for ground water mass and energy
       qcon=(/ .false., .false., .false., .true., .false., .false.
      $     , .false., .false., .true., .false., .false./)
       call set_con(qcon,conpt,"GRND ENG","(10**6 J/m^2)   ",
-     *     "(10^-3 J/s/m^2) ",1d-6,1d3,icon_htg)
+     *     "(10^-3 W/m^2)   ",1d-6,1d3,icon_htg)
 
 c**** read in vegetation data set: vdata
       call openunit("VEG",iu_VEG,.true.,.true.)
@@ -1078,8 +1078,7 @@ C**** Quick and dirty calculation of water tracer amounts to calculate
 C**** gtracer. Should be replaced with proper calculation at some point
 C**** Calculate mean tracer ratio
             fb=afb(i,j) ; fv=1.-fb
-            wsoil_tot = 0
-            wsoil_tot=wsoil_tot+snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
+            wsoil_tot=snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
      *           sum(wbare(1:ngm,i,j))*fb+sum(wvege(0:ngm,i,j))*fv
             trsoil_tot = 0
             do n=1,ntm
@@ -1625,14 +1624,14 @@ c****
       end subroutine ground_e
 
       subroutine conserv_wtg(waterg)
-!@sum  conserv_wtg calculates zonal ground water
+!@sum  conserv_wtg calculates zonal ground water incl snow
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
       use model_com, only : fim,fearth
       use geom, only : imaxj
       use sle001, only : ngm
-      use ghycom, only : wbare,wvege,afb
+      use ghycom, only : wbare,wvege,afb,snowbv
       implicit none
 !@var waterg zonal ground water (kg/m^2)
       real*8, dimension(jm) :: waterg
@@ -1644,7 +1643,7 @@ c****
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
             fb=afb(i,j)
-            wij=(1.-fb)*wvege(0,i,j)
+            wij=fb*snowbv(1,i,j)+(1.-fb)*(wvege(0,i,j)+snowbv(2,i,j))
             do n=1,ngm
               wij=wij+fb*wbare(n,i,j)+(1.-fb)*wvege(n,i,j)
             end do
@@ -1658,7 +1657,7 @@ c****
       end subroutine conserv_wtg
 
       subroutine conserv_htg(heatg)
-!@sum  conserv_htg calculates zonal ground energy
+!@sum  conserv_htg calculates zonal ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
       use model_com, only : fim,fearth
