@@ -53,7 +53,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux             ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
-RADNA=o3trend.1951-2050.2
+RADNA=o3trend.1850-2050 
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Sep2001

@@ -34,7 +34,7 @@ POUT                                ! post-processing output
 Data input files:
 !
 ! The files in the next 2 lines are created by aux/mkOTSPEC.E001.M250D
-AIC=1JAN1956.rsfE001.O250D         ! initial conditions 
+AIC=1JAN1956.rsfE001.O250D         ! initial conditions
 OHT=OTSPEC.E001.M250D.1951-1955    ! horizontal ocean heat transports
 ! base the above 2 lines on the preliminary run with prescribed ocean
 !
@@ -56,7 +56,7 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=o3trend.1951-2050.2
+RADNA=o3trend.1850-2050 
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000

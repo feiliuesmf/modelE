@@ -1,7 +1,7 @@
 E001TdsM23.R GISS Model E                                 gas 06/00
 
 E001TdsM23: new modelE (based on B402A - strat. version)
-! example run deck with Drew Shindell's tropospheric 
+! example run deck with Drew Shindell's tropospheric
 ! chemistry and 15 tracers...
  T1=Ox
  T2=NOx
@@ -37,7 +37,7 @@ TQUS_DRV                            ! advection of Q
 TRACER_COM TRACERS_Air              ! common and driver for tracers
 ! ---TRACER SPECIFIC CODES----------
 TRACERS_SPECIAL_Shindell            ! routines specific to drew's 15-tracers
-TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common 
+TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common
 TRCHEM_calc                         ! chemical reaction calculations
 TRCHEM_init                         ! chemistry initialization, I/O
 TRCHEM_family                       ! tracer family chemistry
@@ -83,14 +83,14 @@ RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean99.uvflux          ! need KSOLAR<2
 ! RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
-RADNA=o3trend.1951-2050.2
+RADNA=o3trend.1850-2050 
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Oct2000
 dH2O=dH2O_by_CH4
 TOP_INDEX=top_index_72x46.ij
 !-----------------------------------------------
-MOLEC=chem_files/ds3ch4_moleculesXX 
+MOLEC=chem_files/ds3ch4_moleculesXX
 JPLRX=chem_files/gs_jpl00_trop_15_fix
 JPLPH=chem_files/ds_photlist_trop_15
 RATJ=chem_files/ratj.giss_15
