@@ -639,7 +639,7 @@ c     call qsbal
 !!! insert htprs here ???
 
 
-      call ghinij (i,j,1)
+      call ghinij (i,j)
       call veg_set_cell(i,j)
       call advnc
       call evap_limits( .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
@@ -1264,7 +1264,7 @@ ccc   ??? remove next 5 lines? -check the old version
             snowd(1:2) =  snowbv(1:2,i,j)
 
 c**** compute soil heat capacity and ground water saturation gws
-            call ghinij (i,j,1)
+            call ghinij (i,j)
 c**** fill in soils common blocks
             snowdp=snowe(i,j)/rhow
             wtr1=wearth(i,j)
@@ -1496,7 +1496,7 @@ ccc ugly, should fix later
       end subroutine reset_gh_to_defaults
 
 
-      subroutine ghinij (i0,j0,foo)
+      subroutine ghinij (i0,j0)
 c**** input:
 c**** avh(i,j) - array of vegetation heights
 c**** spgsn - specific gravity of snow
@@ -1527,7 +1527,6 @@ c****
       real*8 shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
-      integer, optional :: foo
 
 
       ijdebug=i0*1000+j0
@@ -1541,14 +1540,12 @@ ccc extracting ghy prognostic vars
       ht(0:ngm,2) = htvege(0:ngm,i0,j0)
       snowd(1:2)  = snowbv(1:2,i0,j0)
 ccc extracting snow variables
-      if ( present(foo) ) then
       nsn(1:2)          = nsn_ij    (1:2, i0, j0)
       !isn(1:2)          = isn_ij    (1:2, i0, j)
       dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i0, j0)
       wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
       hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
       fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
-      endif
 
 ccc setting vegetation
  !     call veg_set_cell(i0,j0)

@@ -151,6 +151,13 @@ C**** Initialize evaporation limits
       fr_sat_ij(:,J_0H:J_1H)=1.
       qg_ij(:,J_0H:J_1H)=0.
 
+ccc init snow arrays to prevent addressing uninitialized vars
+      nsn_ij    (:,:,J_0H:J_1H)=0
+      fr_snow_ij(:,:,J_0H:J_1H)=0.
+      dzsn_ij (:,:,:,J_0H:J_1H)=0.
+      hsn_ij  (:,:,:,J_0H:J_1H)=0.
+      wsn_ij  (:,:,:,J_0H:J_1H)=0.
+
 #ifdef TRACERS_WATER_OLD
       ALLOCATE(     TRBARE(NTM,  NGM,IM,J_0H:J_1H),
      *              TRVEGE(NTM,0:NGM,IM,J_0H:J_1H),
