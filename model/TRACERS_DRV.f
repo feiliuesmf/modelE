@@ -667,6 +667,60 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
+      case ('BCII')  !Insoluble industrial BC
+      n_BCII = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 1    
+          tr_mm(n) = 12.
+          trpdens(n)=1.3d3   !kg/m3 
+          trradius(n)=1.d-7 !m
+          fq_aer(n)=0.1   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('BCIA') !Soluble (aged) industrial BC
+      n_BCIA = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 0    
+          tr_mm(n) = 12.
+          trpdens(n)=1.3d3   !kg/m3 
+          trradius(n)=1.d-7 !m
+          fq_aer(n)=0.95   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('BCB') !Biomass BC
+      n_BCB = n
+          ntm_power(n) = -12
+          ntsurfsrc(n) = 1    
+          tr_mm(n) = 12.
+          trpdens(n)=1.3d3   !kg/m3 
+          trradius(n)=1.d-7 !m
+          fq_aer(n)=0.6   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('OCII') !Insoluble industrial organic mass
+      n_OCII = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 2 !Terpene and industrial emissions    
+          tr_mm(n) = 15.6
+          trpdens(n)=1.5d3   !kg/m3 
+          trradius(n)=3.d-7 !m
+          fq_aer(n)=0.1   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('OCIA') !Aged industrial organic mass
+      n_OCIA = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0    
+          tr_mm(n) = 15.6
+          trpdens(n)=1.5d3   !kg/m3 
+          trradius(n)=3.d-7 !m
+          fq_aer(n)=0.95   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('OCB') !Insoluble industrial organic mass
+      n_OCB = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 1    
+          tr_mm(n) = 15.6
+          trpdens(n)=1.5d3   !kg/m3 
+          trradius(n)=3.d-7 !m
+          fq_aer(n)=0.8   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
       case ('Be7')
       n_Be7 = n
           ntm_power(n) = -23        ! power of ten for tracer
@@ -1866,6 +1920,90 @@ c photolysis rate
         jls_power(k) =-9
         units_jls(k) = unit_string(jls_power(k),'/s')
 #endif
+      case ('BCII')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Aging_sink_of'//trname(n)
+        lname_jls(k) = 'BCII aging sink'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Aircraft_source_of'//trname(n)
+        lname_jls(k) = 'BCII aircraft source'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of BCII 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of BCII'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+      case ('BCIA')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Aging_source_of'//trname(n)
+        lname_jls(k) = 'BCIA aging source'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of BCIA 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of BCIA'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+      case ('BCB')
+c gravitational settling of BCB 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of BCB'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('OCII')
+c gravitational settling of OCII 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of OCII'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+      case ('OCIA')
+        k = k + 1
+        jls_isrc(1,n) = k
+        sname_jls(k) = 'Aging source of'//trname(n)
+        lname_jls(k) = 'OCIA aging source'
+        jls_ltop(k) = 1
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of OCIA 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of OCIA'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+      case ('OCB')
+c gravitational settling of OCB 
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of OCB'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('seasalt1')
         k = k + 1
         jls_isrc(1,n) = k
@@ -2889,6 +3027,176 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
+      case ('BCII')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BC Industrial source'
+        sname_ijts(k) = 'BC_Industrial_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('BCIA')
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BC Aging source'
+        sname_ijts(k) = 'BC_Aging_Source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+#ifdef TRACERS_AEROSOLS_Koch
+c BCI optical thickness
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCI optical thickness'
+        sname_ijts(k) = 'TAU'
+        ijts_power(k) = -4.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCI shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCI SW radiative forcing'
+        sname_ijts(k) = 'SWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCI longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCI LW radiative forcing'
+        sname_ijts(k) = 'LWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
+      case ('BCB')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BC Biomass source'
+        sname_ijts(k) = 'BC_Biomass_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+#ifdef TRACERS_AEROSOLS_Koch
+c BCB optical thickness
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCB optical thickness'
+        sname_ijts(k) = 'TAU'
+        ijts_power(k) = -4.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCB shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCB SW radiative forcing'
+        sname_ijts(k) = 'SWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c BCB longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'BCB LW radiative forcing'
+        sname_ijts(k) = 'LWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
+
+      case ('OCII')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'OC Industrial source'
+        sname_ijts(k) = 'OC_Industrial_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_isrc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Terpene source'
+        sname_ijts(k) = 'OC_Terpene_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('OCIA')
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'OC Aging source'
+        sname_ijts(k) = 'OC_Aging_Source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef TRACERS_AEROSOLS_Koch
+c OC optical thickness
+        k = k + 1
+        ijts_tau(n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'OC optical thickness'
+        sname_ijts(k) = 'TAU'
+        ijts_power(k) = -4.
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c OC shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'OC SW radiative forcing'
+        sname_ijts(k) = 'SWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c OC longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad   !?
+        lname_ijts(k) = 'OC LW radiative forcing'
+        sname_ijts(k) = 'LWRF'
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+#endif
+      case ('OCB')
+        k = k + 1
+        ijts_isrc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'OC Biomass source'
+        sname_ijts(k) = 'OC_Biomass_source'
+        ijts_power(k) = -12.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       case ('DMS')
         k = k + 1
         ijts_isrc(1,n) = k
@@ -3911,7 +4219,168 @@ C**** set some defaults
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
 
+      case ('BCII')
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Industrial src'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_3Dsrc(1,N) = 14
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Aging loss'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_3Dsrc(2,N) = 15
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Aircraft source'
+      qsum(itcon_3Dsrc(2,N)) = .true.
+      itcon_grav(n) = 16
+      qcon(itcon_grav(n)) = .true.; conpts(4) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 17
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 18
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=19
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('BCIA')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('BCB')
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Biomass src'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('OCII')
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Industrial src'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_surf(2,N) = 14
+      qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Terpene src'
+      qsum(itcon_surf(2,N)) = .false.
+      itcon_3Dsrc(1,N) = 15
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(3) = 'Aging loss'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 16
+      qcon(itcon_grav(n)) = .true.; conpts(4) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 17
+      qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 18
+      qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=19
+        qcon(itcon_dd(n)) = .true. ; conpts(7) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('OCIA')
+      itcon_3Dsrc(1,N) = 13
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+      qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
+      CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+      qcon(13:) = .false.  ! reset to defaults for next tracer
+      qsum(13:) = .false.  ! reset to defaults for next tracer
+
+      case ('OCB')
+      itcon_surf(1,N) = 13
+      qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Biomass src'
+      qsum(itcon_surf(1,N)) = .false.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      qsum(itcon_mc(n)) = .false.
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+      if(dodrydep(n)) then
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        qsum(itcon_dd(n)) = .false.
+      end if
+#endif
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
@@ -4112,9 +4581,15 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 !@auth Jean Lerner
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow
+#ifdef TRACERS_AEROSOLS_Koch
+     *,sday
+#endif
       USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_SPECIAL_Shindell
      & ,jday,JEQ
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,dtsrc
 #endif
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
@@ -4156,7 +4631,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      USE AEROSOL_SOURCES, only: dmsinput
+      USE AEROSOL_SOURCES, only: dmsinput,BCI_src,OCI_src,
+     * BCB_src,OCB_src,OCT_src
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -4185,8 +4661,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      REAL*8 dmsconc,dmstx
-      INTEGER mon_unit, mont,ii,jj,ir,mm
+      REAL*8 dmsconc
+      INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm
+      real*8 carbstuff,ccnv
 #endif
 
       INTEGER J_0, J_1
@@ -4599,6 +5076,36 @@ C         AM=kg/m2, and DXYP=m2:
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
 
+        case('BCII')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+ 
+        case('BCIA')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+
+        case('BCB')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+ 
+        case('OCII')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+ 
+        case('OCIA')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+
+        case('OCB')
+          do l=1,lm; do j=J_0,J_1; do i=1,im
+            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
+          end do; end do; end do
+
         case('H2O2_s')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
@@ -4656,8 +5163,7 @@ c read in DMS source
       DO 8 mm =1,12
       READ(mon_unit,*) mont
       do ir=1,9999
-      read(mon_unit,901) ii,jj,dmsconc,dmstx,dmstx,dmstx,
-     * dmstx,dmstx
+      read(mon_unit,901) ii,jj,dmsconc
 c I'm not using the moments
       IF (II.EQ.0) GO TO 8
       dmsinput(ii,jj,mm)=dmsconc
@@ -4665,6 +5171,82 @@ c I'm not using the moments
   8   CONTINUE
         call closeunit(mon_unit)
  901  FORMAT(3X,2(I4),E11.3,5F9.2)
+c read in BC and OC sources
+c Terpenes first
+      OCT_src(:,:,:)=0.d0
+      call openunit('TERPENE',mon_unit,.false.)
+      do mm=1,12
+      do mmm=1,9999
+      read(mon_unit,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 15
+      OCT_src(ii,jj,mm)=carbstuff
+      end do
+ 15   continue
+      end do
+      call closeunit(mon_unit)
+      OCT_src(:,:,:)=OCT_src(:,:,:)*dtsrc/1.D6*0.1d0
+     *  /30.4d0*1.3d0
+c This assumes 10% emission yield (Chin, Penner)
+c 1.3 converts OC to OM
+c Now industrial and biomass
+      BCI_src(:,:)=0.d0
+      call openunit('BC_BIOFUEL',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 9
+      BCI_src(ii,jj)=carbstuff
+      end do
+  9   call closeunit(iuc)
+      call openunit('BC_FOSSIL_FUEL',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 10
+      BCI_src(ii,jj)=BCI_src(ii,jj)+carbstuff
+      end do
+ 10   call closeunit(iuc)
+      OCI_src(:,:)=0.d0
+      call openunit('OC_BIOFUEL',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 11
+      OCI_src(ii,jj)=carbstuff*1.3d0
+      end do
+ 11   call closeunit(iuc)
+      call openunit('OC_FOSSIL_FUEL',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,carbstuff
+      if (ii.eq.0.) go to 12
+      OCI_src(ii,jj)=OCI_src(ii,jj)+carbstuff*1.3d0
+      end do
+ 12   call closeunit(iuc)
+      BCB_src(:,:,:)=0.d0
+      call openunit('BC_BIOMASS',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,mmm,carbstuff 
+      if (ii.eq.0.) go to 13
+      BCB_src(ii,jj,mmm)=carbstuff
+      end do
+ 13   call closeunit(iuc)
+      OCB_src(:,:,:)=0.d0
+      call openunit('OC_BIOMASS',iuc,.false.)
+      do mm=1,9999
+      read(iuc,*) ii,jj,mmm,carbstuff 
+      if (ii.eq.0.) go to 14
+      OCB_src(ii,jj,mmm)=carbstuff*1.3d0
+      end do
+ 14   call closeunit(iuc)
+      do i=1,im
+      do j=j_0,J_1
+      ccnv=1.d0/(sday*30.4)  !*dxyp(j))
+c convert from month to second. dxyp??
+      BCI_src(i,j)=BCI_src(i,j)*ccnv/12.d0
+      OCI_src(i,j)=OCI_src(i,j)*ccnv/12.d0
+      do m=1,12 
+      BCB_src(i,j,m)=BCB_src(i,j,m)*ccnv
+      OCB_src(i,j,m)=OCB_src(i,j,m)*ccnv
+      end do
+      end do
+      end do
 #endif
 
       end subroutine tracer_IC
@@ -4800,6 +5382,9 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: FEARTH,itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc
+#ifdef TRACERS_AEROSOLS_Koch
+     *  ,jmon
+#endif
       USE DOMAIN_DECOMP, only : GRID, GET
 
       USE GEOM, only: dxyp,areag,lat_dg
@@ -4819,7 +5404,8 @@ C**** at the start of any day
      &                          Alkenes_src,Paraffin_src
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-       USE AEROSOL_SOURCES, only: SO2_src
+       USE AEROSOL_SOURCES, only: SO2_src,BCI_src,OCI_src,BCB_src,
+     * OCB_src,OCT_src
 #endif
       implicit none
       integer :: i,j,ns,l,ky,n
@@ -5089,13 +5675,29 @@ C****
          end do
         end do
 c we assume 97% emission as SO2, 3% as sulfate (*tr_mm/tr_mm)
-
       case ('SO4')
         do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
             trsource(:,j,ns,n) = SO2_src(:,j,ns)*0.045d0
          end do
         end do
+      case ('BCII')
+         do j=J_0,J_1
+            trsource(:,j,1,n) = BCI_src(:,j)
+         end do
+      case ('BCB')
+         do j=J_0,J_1
+            trsource(:,j,1,n) = BCB_src(:,j,jmon)
+         end do
+      case ('OCII')
+         do j=J_0,J_1
+            trsource(:,j,1,n) = OCI_src(:,j)
+            trsource(:,j,2,n) = OCT_src(:,j,jmon)
+         end do
+      case ('OCB')
+         do j=J_0,J_1
+            trsource(:,j,1,n) = OCB_src(:,j,jmon)
+         end do
 #endif
       end select
 
@@ -5121,7 +5723,7 @@ C****
       USE COSMO_SOURCES, only: be7_src_3d, be7_src_param
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      USE AEROSOL_SOURCES, only: SO2_src_3d
+      USE AEROSOL_SOURCES, only: SO2_src_3d,BCI_src_3d
 #endif
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow
@@ -5173,10 +5775,15 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       case ('SO2')
 C**** two 3D sources (aircraft and volcanos) read in from files
-        tr3Dsource(:,J_0:J_1,:,1:2,n) = so2_src_3d(:,J_0:J_1,:,1:2)
+        tr3Dsource(:,J_0:J_1,:,1:2,n) = SO2_src_3d(:,J_0:J_1,:,1:2)
         call apply_tracer_3Dsource(1,n) ! volcanos
         call apply_tracer_3Dsource(2,n) ! aircraft
 c      call apply_SO2_3Dsrc
+
+       case ('BCII')
+C**** aircraft source for fresh industrial BC 
+        tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
+        call apply_tracer_3Dsource(2,n) ! aircraft
 #endif
 #ifdef TRACERS_COSMO
 C****
@@ -5209,12 +5816,16 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
        call aerosol_gas_chem
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(1,n_MSA)  ! MSA chem sink
+       call apply_tracer_3Dsource(1,n_MSA)  ! MSA chem source
        call apply_tracer_3Dsource(3,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
        call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+       call apply_tracer_3Dsource(1,n_BCII) ! BCII aging sink 
+       call apply_tracer_3Dsource(1,n_BCIA) ! BCIA aging source 
+       call apply_tracer_3Dsource(1,n_OCII) ! OCII aging sink 
+       call apply_tracer_3Dsource(1,n_OCIA) ! OCIA aging source 
 
        call heter
        call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
