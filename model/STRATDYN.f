@@ -176,6 +176,7 @@ C****
      *     vsurf=>vsavg
       USE DAGCOM, only : ajl,jl_dudtvdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk,ang_gwd
+      USE DIAG, only : diagcd
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -483,6 +484,7 @@ C****
       USE DAGCOM, only : aij,ajl,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      &     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
+      USE DIAG, only : diagcd
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)

@@ -1721,6 +1721,9 @@ C****
       END SUBROUTINE DIAGCA
 
 
+      module DIAG
+      contains
+
       SUBROUTINE DIAGCD (M,UX,VX,DUT,DVT,DT1,PIT)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
@@ -1802,6 +1805,8 @@ C****
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGCD
+
+      end module DIAG
 
 
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)

@@ -15,6 +15,7 @@
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
+      USE DIAG, only : diagcd
       IMPLICIT NONE
 
       REAL*8 U(IM,JM,LM),V(IM,JM,LM),P(IM,JM,LM)

@@ -395,9 +395,9 @@ C**** change of unit from change of momentum, to flux
         im1=im
         do i=1,im
           GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)+dmua(im1,j+1,2)
-     #         +dmua(i,j+1,2))*bydts
+     &         +dmua(i,j+1,2))*bydts
           GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)+dmva(im1,j+1,2)
-     #         +dmva(i,j+1,2))*bydts
+     &         +dmva(i,j+1,2))*bydts
           im1=i
         enddo
       enddo

@@ -14,6 +14,7 @@
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
+      USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      * V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),

@@ -606,6 +606,7 @@ C****
      *     ,zatmo,sig,modd5k,bydsig
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp
       USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
+      USE DIAG, only : diagcd
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: U,V,T
@@ -994,6 +995,7 @@ C
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,dt_UVfilter,t,ang_uv
       USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
       USE DYNAMICS, only : pdsig,pk
+      USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
@@ -1402,6 +1404,7 @@ C**** to be used in the PBL, at the promary grids
       USE GEOM, only : cosv,dxyn,dxys,imaxj,kmaxj,idij,idjj,rapj
       USE DAGCOM, only : ajl,jl_dudtsdrg
       USE DYNAMICS, only : pk,pdsig
+      USE DIAG, only : diagcd
       IMPLICIT NONE
 
 !@var DT1 time step (s)
