@@ -289,8 +289,9 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE GEOM, only : dlat,lat_dg
       USE RE001, only : setnew,rcomp1,writer,writet      ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL
+     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
+     *     ,OptDwX,OptDiX
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,llow,lmid,lhi,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -319,6 +320,8 @@ C**** sync radiation parameters from input
       call sync_param( "CH4X", CH4X )
       call sync_param( "H2OstratX", H2OstratX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
+      call sync_param( "OptDwX", OptDwX )
+      call sync_param( "OptDiX", OptDiX )
       call sync_param( "S0_yr", S0_yr )
       call sync_param( "ghg_yr", ghg_yr )
       call sync_param( "ghg_day", ghg_day )
@@ -332,6 +335,11 @@ C**** sync radiation parameters from input
       call sync_param( "KVEGA6", KVEGA6 )
       call sync_param( "calc_orb_par", calc_orb_par )
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
+      call sync_param( "snoage_fac_max", snoage_fac_max )
+      if(snoage_fac_max.lt.0. .or. snoage_fac_max.gt.1.) then
+        write(*,*) 'set 0<snoage_fac_max<1, not',snoage_fac_max
+        call stop_model('init_RAD: snoage_fac_max out of range',255)
+      end if
 
 C**** Set orbital parameters appropriately
       if (calc_orb_par.eq.1) then ! calculate from paleo-year
@@ -515,6 +523,7 @@ C     OUTPUT DATA
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
      *     ,llow,lmid,lhi,coe,PLB0,shl0,tchg,ALB
+     *     ,OptDwX,OptDiX
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss
@@ -763,27 +772,27 @@ C**** Determine large scale and moist convective cloud cover for radia
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
-            SIZEWC(L)=CSIZMC(L,I,J)
-            SIZEIC(L)=CSIZMC(L,I,J)
+            SIZEWC(L)=CSIZMC(L,I,J)/OptDwX
+            SIZEIC(L)=CSIZMC(L,I,J)/OptDiX
             IF(SVLAT(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUMCL
-              OPTDW=OPTDW+TAUMCL
+              TAUWC(L)=TAUMCL*OptDwX
+              OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUMCL
-              OPTDI=OPTDI+TAUMCL
+              TAUIC(L)=TAUMCL*OptDiX
+              OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           ELSE
-            SIZEWC(L)=CSIZSS(L,I,J)
-            SIZEIC(L)=CSIZSS(L,I,J)
+            SIZEWC(L)=CSIZSS(L,I,J)/OptDwX
+            SIZEIC(L)=CSIZSS(L,I,J)/OptDiX
             IF(SVLHX(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUSSL
-              OPTDW=OPTDW+TAUSSL
+              TAUWC(L)=TAUSSL*OptDwX
+              OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUSSL
-              OPTDI=OPTDI+TAUSSL
+              TAUIC(L)=TAUSSL*OptDiX
+              OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           END IF

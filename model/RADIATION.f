@@ -12556,16 +12556,6 @@ C
       DATA GVALUE/.0,.25,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1./
 C
       END BLOCK DATA RADSET
-c     BLOCK DATA RADBET
-C
-c     INCLUDE 'BR00B.COM'
-C
-c     DATA  PL / LX*0.0 /
-c     DATA  QAERO / LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0, LX*0.0 /
-c     DATA  TRAXNL / LX*0.0 /
-C
-c     END BLOCK DATA RADBET
-
 
 c*********************************************************************
 c  The following part computes the albedo. It has been taken out
@@ -12637,7 +12627,7 @@ C     -------------------
       use SURF_ALBEDO
       use RE001, only:
 C**** config data
-     *     MLAT46,KEEPAL,KVEGA6,
+     *     MLAT46,KEEPAL,KVEGA6,snoage_fac_max
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
@@ -13013,7 +13003,7 @@ C**** assume decrease for each band is proportional
             snagfac = 0.006d0/0.82d0
           end if
 C**** make sure it doesn't get too low!
-          snagfac=min(0.5d0,snagfac*AGESN(2))
+          snagfac=min(snoage_fac_max,snagfac*AGESN(2))
           alsf(1:4)=alsf(1:4)*(1.-snagfac)
           alsd(1:4)=alsd(1:4)*(1.-snagfac)
 C****
