@@ -117,6 +117,7 @@ C****
       SUBROUTINE STADVT(N,L,AM,MM1,MM2,RMST,RXST,RZST,RM,RX,RY,RZ,OLN
      *     ,QLIMIT)
 !@sum  STADVT advects tracers through the straits (improved calculation)
+!@+    GOES BACK TO OLD CODING FOR STABILITY
 !@auth Gary Russell/Gavin Schmidt
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst,lmst,ist,jst,xst,yst,mmst
@@ -142,20 +143,28 @@ C****
 C**** Water flux is moving from grid box 1 to grid box 2  (AM > 0)
 C****
        A1 = AM/MM1
-      FM1 = A1*(RM(I1,J1,L) + X1*RX(I1,J1,L) + Y1*RY(I1,J1,L))
+c      FM1 = A1*(RM(I1,J1,L) + X1*RX(I1,J1,L) + Y1*RY(I1,J1,L))
+      FM1 = A1*(RM(I1,J1,L)+(1d0-A1)*(X1*RX(I1,J1,L)+Y1*RY(I1,J1,L)))
       FZ1 = A1*RZ(I1,J1,L)
        A2 = AM/MMST(L,N)
       FM2 = A2*(RMST + (1d0-A2)*RXST)
       FZ2 = A2*RZST
 C**** Calculate first moments of tracer mass for grid boxes
-      RX(I1,J1,L) = RX(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*X1*X1))
-      RY(I1,J1,L) = RY(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*Y1*Y1))
-      RXST        = RXST*(1.-A2)**3 - 3.*FM1 + 3.*A2*RMST
-      RXold = RX(I2,J2,L)
-      RX(I2,J2,L) = RX(I2,J2,L) + (RX(I2,J2,L)*AM*(.5 - 1.5*X2*X2) +
-     *     3.*X2*(FM2*MM2 - (RM(I2,J2,L)+Y2*RY(I2,J2,L))*AM)) / (MM2+AM)
-      RY(I2,J2,L) = RY(I2,J2,L) + (RY(I2,J2,L)*AM*(.5 - 1.5*Y2*Y2) +
-     *     3.*Y2*(FM2*MM2 - (RM(I2,J2,L)+X2*RXold)*AM)) / (MM2+AM)
+c      RX(I1,J1,L) = RX(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*X1*X1))
+c      RY(I1,J1,L) = RY(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*Y1*Y1))
+c      RXST        = RXST*(1.-A2)**3 - 3.*FM1 + 3.*A2*RMST
+c      RXold = RX(I2,J2,L)
+c      RX(I2,J2,L) = RX(I2,J2,L) + (RX(I2,J2,L)*AM*(.5 - 1.5*X2*X2) +
+c     *     3.*X2*(FM2*MM2 - (RM(I2,J2,L)+Y2*RY(I2,J2,L))*AM)) / (MM2+AM)
+c      RY(I2,J2,L) = RY(I2,J2,L) + (RY(I2,J2,L)*AM*(.5 - 1.5*Y2*Y2) +
+c     *     3.*Y2*(FM2*MM2 - (RM(I2,J2,L)+X2*RXold)*AM)) / (MM2+AM)
+      RX(I1,J1,L) = RX(I1,J1,L)*(1d0-A1)*(1d0-A1*X1*X1)
+      RY(I1,J1,L) = RY(I1,J1,L)*(1d0-A1)*(1d0-A1*Y1*Y1)
+      RXST        = RXST*(1d0-2d0*A2) - FM1 + FM2
+      RX(I2,J2,L) = RX(I2,J2,L) + X2*(FM2 - (RM(I2,J2,L)-X2*RX(I2,J2,L))
+     $     *AM/MM2) 
+      RY(I2,J2,L) = RY(I2,J2,L) + Y2*(FM2 - (RM(I2,J2,L)-Y2*RY(I2,J2,L))
+     $     *AM/MM2) 
       GO TO 300
 C****
 C**** Water flux is moving from grid box 2 to grid box 1  (AM < 0)
@@ -164,17 +173,25 @@ C****
       FM1 = A1*(RMST - (1d0+A1)*RXST)
       FZ1 = A1*RZST
        A2 = AM/MM2
-      FM2 = A2*(RM(I2,J2,L) + RX(I2,J2,L)*X2 + RY(I2,J2,L)*Y2)
+c      FM2 = A2*(RM(I2,J2,L) + RX(I2,J2,L)*X2 + RY(I2,J2,L)*Y2)
+      FM2 = A2*(RM(I2,J2,L)+(1d0+A2)*(X2*RX(I2,J2,L)+Y2*RY(I2,J2,L)))
       FZ2 = A2*RZ(I2,J2,L)
 C**** Calculate first moments of tracer mass for grid boxes
-      RXold = RX(I1,J1,L)
-      RX(I1,J1,L) = RX(I1,J1,L) - (RX(I1,J1,L)*AM*(.5 - 1.5*X1*X1) +
-     *     3.*X1*(FM1*MM1 - (RM(I1,J1,L)+Y1*RY(I1,J1,L))*AM)) / (MM1-AM)
-      RY(I1,J1,L) = RY(I1,J1,L) - (RY(I1,J1,L)*AM*(.5 - 1.5*Y1*Y1) +
-     *     3.*Y1*(FM1*MM1 - (RM(I1,J1,L)+X1*RXold)*AM)) / (MM1-AM)
-      RXST        = RXST*(1.+A1)**3 - 3.*FM2 + 3.*A1*RMST
-      RX(I2,J2,L) = RX(I2,J2,L)*(1. + A2*(.5+1.5*X2*X2))
-      RY(I2,J2,L) = RY(I2,J2,L)*(1. + A2*(.5+1.5*Y2*Y2))
+c      RXold = RX(I1,J1,L)
+c      RX(I1,J1,L) = RX(I1,J1,L) - (RX(I1,J1,L)*AM*(.5 - 1.5*X1*X1) +
+c     *     3.*X1*(FM1*MM1 - (RM(I1,J1,L)+Y1*RY(I1,J1,L))*AM)) / (MM1-AM)
+c      RY(I1,J1,L) = RY(I1,J1,L) - (RY(I1,J1,L)*AM*(.5 - 1.5*Y1*Y1) +
+c     *     3.*Y1*(FM1*MM1 - (RM(I1,J1,L)+X1*RXold)*AM)) / (MM1-AM)
+c      RXST        = RXST*(1.+A1)**3 - 3.*FM2 + 3.*A1*RMST
+c      RX(I2,J2,L) = RX(I2,J2,L)*(1. + A2*(.5+1.5*X2*X2))
+c      RY(I2,J2,L) = RY(I2,J2,L)*(1. + A2*(.5+1.5*Y2*Y2))
+      RX(I1,J1,L) = RX(I1,J1,L) -
+     *     X1*(FM1 - (RM(I1,J1,L)-X1*RX(I1,J1,L))*AM/MM1)
+      RY(I1,J1,L) = RY(I1,J1,L) -
+     *     Y1*(FM1 - (RM(I1,J1,L)-Y1*RY(I1,J1,L))*AM/MM1)
+      RXST        = RXST*(1d0+2d0*A1) + FM1 - FM2
+      RX(I2,J2,L) = RX(I2,J2,L)*(1d0+A2)*(1d0+A2*X2*X2)
+      RY(I2,J2,L) = RY(I2,J2,L)*(1d0+A2)*(1d0+A2*Y2*Y2)
 C****
 C**** Calculate new tracer mass, vertical moment of tracer mass,
 C**** and horizontal moment of tracer mass for the straits
