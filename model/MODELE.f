@@ -454,7 +454,7 @@ C****
      *     ,irand,psf,ptop
      *     ,nisurf,nidyn,nday,dt,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,ls1,psfmpt,pstrat,idacc
+     *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,vdata,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
      *     ,ioread_single,irsfic,iowrite_single,ftype,itearth,itlandi
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
@@ -944,6 +944,9 @@ C**** use set_param(.., .., 'o') to update them in the database (DB)
 
 C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
+
+C**** Set julian date information
+      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C****
 C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS

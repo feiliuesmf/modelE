@@ -798,18 +798,22 @@ c
       return
       end subroutine close_ijk
 
-      subroutine POUT_IJK(TITLE,XIJK,XJK,XK)
+      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS_IN,XIJK,XJK,XK)
 !@sum  POUT_IJK output lat-lon-height binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : IM,JM,LM
       USE DAGCOM, only : iu_ijk
       USE NCOUT
-      USE BDIJK, title_ijk=>title,units_ijk=>units,
-     &           lname_ijk=>lname,sname_ijk=>sname
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: UNITS_IN*50
 !@var XIJK lat/lon/height output field 
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field 
@@ -830,9 +834,9 @@ c
       dim_name = 'p'
       call set_dim_out(dim_name,3)
 
-      var_name=sname_ijk(nt_ijk)
-      long_name=lname_ijk(nt_ijk)
-      units=units_ijk(nt_ijk)
+      var_name=sname
+      long_name=lname
+      units=units_in
 
       call wrtarr(var_name,xijk)
       return

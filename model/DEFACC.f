@@ -25,6 +25,7 @@ c-----------------------------------------------------------------------
       call ijk_defs
       call ijl_defs
       call jlsp_defs
+      call daily_defs
       return
       end subroutine def_acc
 
@@ -2805,7 +2806,6 @@ c
          write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
          lname_ijk(k) = 'unused'
          units_ijk(k) = 'unused'
-         scname_ijk(k)= 'unused'
          scale_ijk(k) = 1.
          off_ijk(k)   = 0.
       enddo
@@ -2816,8 +2816,7 @@ c
       IJK_U=k
       name_ijk(k) = 'UDPB'
       lname_ijk(k) = 'U-WIND            x delta p, b-grid'
-      units_ijk(k) = '100 PA*m/s'
-      scname_ijk(k)= '     U-WIND           at        mb (m/s, UV G)'
+      units_ijk(k) = 'm/s'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
@@ -2825,44 +2824,39 @@ c
       IJK_V=k
       name_ijk(k) = 'VDPB'
       lname_ijk(k) = 'V-WIND            x delta p, b-grid'
-      units_ijk(k) = '100 PA*m/s'
-      scname_ijk(k)= '     V-WIND           at        mb (m/s, UV G)'
+      units_ijk(k) = 'm/s'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
       IJK_DSE=k
-      name_ijk(k) = 'DSEDPBx4'
-      lname_ijk(k) = 'dry stat. energy  x delta p x 4, b-grid'
-      units_ijk(k) = '100 N/s^2'
-      scname_ijk(k)='       HEIGHT         at        mb (m, UV Grid)' 
-      scale_ijk(k) = .25*BYGRAV
+      name_ijk(k) = 'DSEDPB'
+      lname_ijk(k) = 'DRY STAT. ENERGY  x delta p x 4, b-grid'
+      units_ijk(k) = 'm^2/s^2'
+      scale_ijk(k) = .25 
       off_ijk(k)   = 0.
 c
       k=k+1
       IJK_DP=k
       name_ijk(k) = 'DPB'
-      lname_ijk(k) = 'delta p, b-grid'
+      lname_ijk(k) = 'DELTA-P           b-grid'
       units_ijk(k) = '100 PA'
-      scname_ijk(k)='       DELTA-P        at        mb (m, UV Grid)' 
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
       IJK_T=k
-      name_ijk(k) = 'TDPBx4'
+      name_ijk(k) = 'TDPB'
       lname_ijk(k) = 'TEMPERATURE       x delta p x 4, b-grid'
-      units_ijk(k) = '100 K*PA'
-      scname_ijk(k)= '     TEMPERATURE      at        mb (C, UV Grid)'
+      units_ijk(k) = 'C'
       scale_ijk(k) = 0.25
       off_ijk(k)   = -TF
 c
       k=k+1
       IJK_Q=k
-      name_ijk(k) = 'QDPBx4'
+      name_ijk(k) = 'QDPB'
       lname_ijk(k) = 'SPECIFIC HUMIDITY x delta p x 4, b-grid'
-      units_ijk(k) = '100 PA'
-      scname_ijk(k)='    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
+      units_ijk(k) = '10**-5'
       scale_ijk(k) = 0.25*1d5
       off_ijk(k)   = 0.
 c
@@ -3087,3 +3081,466 @@ c
 c
       return
       end subroutine tsf_defs
+
+      subroutine daily_defs
+!@sum  daily_defs definitions for daily diagnostic accumulated arrays
+!@auth G. Schmidt
+!@ver  1.0
+      use CONSTANT, only : sha,rgas,twopi,sday,grav
+      use MODEL_COM, only : dtsrc,nisurf
+      use DAGCOM
+      implicit none
+      integer :: k
+c
+      do k=1,NDLYVAR
+         write(name_dd(k),'(a5,i3.3)') 'DAILY',k
+         lname_dd(k) = 'unused'
+         units_dd(k) = 'unused'
+         scale_dd(k) = 1.
+      enddo
+c
+      k=0
+c    
+      k=k+1
+      IDD_ISW=k
+      name_dd(k)='INCSW'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' INC SW RADIATION'
+c 
+      k=k+1
+      IDD_PALB=k
+      name_dd(k)='PLALB'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' P ALBD '
+c 
+      k=k+1
+      IDD_GALB=k
+      name_dd(k)='GRDALB'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' G ALBD '
+c 
+      k=k+1
+      IDD_ABSA=k
+      name_dd(k)='ABSATM'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=1.
+      lname_dd(k)=' ABS ATM'
+c 
+      k=k+1
+      IDD_ECND=k
+      name_dd(k)='ENRGCND'
+      units_dd(k)='W/M^2'    ! ??? not sure
+      scale_dd(k)=100.*SHA/(GRAV*DTsrc)
+      lname_dd(k)=' E CNDS '
+c 
+      k=k+1
+      IDD_SPR=k
+      name_dd(k)='SRFPRS'
+      units_dd(k)='mb'
+      scale_dd(k)=1.
+      lname_dd(k)=' SRF PRS'
+c 
+      k=k+1
+      IDD_PT5=k
+      name_dd(k)='POTT5'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' PT 5   '
+c 
+      k=k+1
+      IDD_PT4=k
+      name_dd(k)='POTT4'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' PT 4   '
+c 
+      k=k+1
+      IDD_PT3=k
+      name_dd(k)='POTT3'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' PT 3   '
+c 
+      k=k+1
+      IDD_PT2=k
+      name_dd(k)='POTT2'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' PT 2   '
+c 
+      k=k+1
+      IDD_PT1=k
+      name_dd(k)='POTT1'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' PT 1   '
+c 
+      k=k+1
+      IDD_TS=k
+      name_dd(k)='TSURF'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TS     '
+c 
+      k=k+1
+      IDD_TG1=k
+      name_dd(k)='TGRND'
+      units_dd(k)='K'
+      scale_dd(k)=1.
+      lname_dd(k)=' TG1    '
+c 
+      k=k+1
+      IDD_Q5=k
+      name_dd(k)='Q5'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' Q 5    '
+c 
+      k=k+1
+      IDD_Q4=k
+      name_dd(k)='Q4'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' Q 4    '
+c 
+      k=k+1
+      IDD_Q3=k
+      name_dd(k)='Q3'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' Q 3    '
+c 
+      k=k+1
+      IDD_Q2=k
+      name_dd(k)='Q2'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' Q 2    '
+c 
+      k=k+1
+      IDD_Q1=k
+      name_dd(k)='Q1'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' Q 1    '
+c 
+      k=k+1
+      IDD_QS=k
+      name_dd(k)='QSURF'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' QS     '
+c 
+      k=k+1
+      IDD_QG=k
+      name_dd(k)='QGRND'
+      units_dd(k)='1d-5 kg/kg'
+      scale_dd(k)=1d5
+      lname_dd(k)=' QG     '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+c      IDD_=k
+c      name_dd(k)=''
+c      units_dd(k)=''
+c      scale_dd(k)=''
+c      lname_dd(k)='        '
+c 
+      k=k+1
+      IDD_SWG=k
+      name_dd(k)='SWGRND'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=NISURF/DTsrc
+      lname_dd(k)=' SW ON G'
+c 
+      k=k+1
+      IDD_LWG=k
+      name_dd(k)='LWGRND'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=NISURF/DTsrc
+      lname_dd(k)=' LW AT G'
+c 
+      k=k+1
+      IDD_SH=k
+      name_dd(k)='SENSHT'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=NISURF/DTsrc
+      lname_dd(k)=' SNSB HT'
+c 
+      k=k+1
+      IDD_LH=k
+      name_dd(k)='LATHT'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=NISURF/DTsrc
+      lname_dd(k)=' LAT HT '
+c 
+      k=k+1
+      IDD_HZ0=k
+      name_dd(k)='NETHT'
+      units_dd(k)='W/M^2'
+      scale_dd(k)=NISURF/DTsrc
+      lname_dd(k)=' HEAT Z0'
+c 
+      k=k+1
+      IDD_UG=k
+      name_dd(k)='UGEOS'
+      units_dd(k)='0.1 m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' UG*10  '
+c 
+      k=k+1
+      IDD_VG=k
+      name_dd(k)='VGEOS'
+      units_dd(k)='0.1 m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' VG*10  '
+c 
+      k=k+1
+      IDD_WG=k
+      name_dd(k)='WGEOS'
+      units_dd(k)='0.1 m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WG*10  '
+c 
+      k=k+1
+      IDD_US=k
+      name_dd(k)='USURF'
+      units_dd(k)='0.1 m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' US*10  '
+c 
+      k=k+1
+      IDD_VS=k
+      name_dd(k)='VSURF'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' VS*10  '
+c 
+      k=k+1
+      IDD_WS=k
+      name_dd(k)='WSURF'
+      units_dd(k)='m/s'
+      scale_dd(k)=10.
+      lname_dd(k)=' WS*10  '
+c 
+      k=k+1
+      IDD_CIA=k
+      name_dd(k)='CRISOANG'
+      units_dd(k)=''
+      scale_dd(k)=360./TWOPI
+      lname_dd(k)=' ALPHA0 '
+c 
+      k=k+1
+      IDD_RIS=k
+      name_dd(k)='RIS1'
+      units_dd(k)='0.01'
+      scale_dd(k)=100.
+      lname_dd(k)=' RIS1*E2'
+c 
+      k=k+1
+      IDD_RIG=k
+      name_dd(k)='RIGS'
+      units_dd(k)='0.01'
+      scale_dd(k)=100.
+      lname_dd(k)=' RIGS*E2'
+c 
+      k=k+1
+      IDD_CM=k
+      name_dd(k)='CM'
+      units_dd(k)='1d-4'
+      scale_dd(k)=1d4
+      lname_dd(k)=' CM*E4  '
+c 
+      k=k+1
+      IDD_CH=k
+      name_dd(k)='CH'
+      units_dd(k)='1d-4'
+      scale_dd(k)=1d4
+      lname_dd(k)=' CH*E4  '
+c 
+      k=k+1
+      IDD_CQ=k
+      name_dd(k)='CQ'
+      units_dd(k)='1d-4'
+      scale_dd(k)=1d4
+      lname_dd(k)=' CQ*E4  '
+c 
+      k=k+1
+      IDD_EDS=k
+      name_dd(k)='EDS'
+      units_dd(k)='0.1'
+      scale_dd(k)=10.
+      lname_dd(k)=' EDS1*10'
+c 
+      k=k+1
+      IDD_DBL=k
+      name_dd(k)='DBL'
+      units_dd(k)='m'
+      scale_dd(k)=1.
+      lname_dd(k)=' DBL    '
+c 
+      k=k+1
+      IDD_DCF=k
+      name_dd(k)='DCFREQ'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' DC FREQ'
+c 
+      k=k+1
+      IDD_LDC=k
+      name_dd(k)='LDC'
+      units_dd(k)='0.1 L'
+      scale_dd(k)=10.
+      lname_dd(k)=' LDC*10 '
+c 
+      k=k+1
+      IDD_PR=k
+      name_dd(k)='PREC'
+      units_dd(k)='0.01 mm/day'
+      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      lname_dd(k)=' PRC*100'  ! check scale
+c 
+      k=k+1
+      IDD_EV=k
+      name_dd(k)='EVAP'
+      units_dd(k)='0.01 mm/day'
+      scale_dd(k)=100.*SDAY*NISURF/DTsrc
+      lname_dd(k)=' EVP*100'
+c 
+      k=k+1
+      IDD_DMC=k
+      name_dd(k)='DEEPMC'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' DEEP MC'
+c 
+      k=k+1
+      IDD_SMC=k
+      name_dd(k)='SHLWMC'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' SHLW MC'
+c 
+      k=k+1
+      IDD_CL7=k
+      name_dd(k)='CLD7'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 7  '
+c 
+      k=k+1
+      IDD_CL6=k
+      name_dd(k)='CLD6'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 6  '
+c 
+      k=k+1
+      IDD_CL5=k
+      name_dd(k)='CLD5'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 5  '
+c 
+      k=k+1
+      IDD_CL4=k
+      name_dd(k)='CLD4'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 4  '
+c 
+      k=k+1
+      IDD_CL3=k
+      name_dd(k)='CLD3'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 3  '
+c 
+      k=k+1
+      IDD_CL2=k
+      name_dd(k)='CLD2'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 2  '
+c 
+      k=k+1
+      IDD_CL1=k
+      name_dd(k)='CLD1'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' CLD 1  '
+c 
+      k=k+1
+      IDD_W=k
+      name_dd(k)='VERTVEL'
+      units_dd(k)='1d-5 m/s'
+      scale_dd(k)=1.
+      lname_dd(k)=' W TO-5 '
+c 
+      k=k+1
+      IDD_CCV=k
+      name_dd(k)='CLDCOV'
+      units_dd(k)='%'
+      scale_dd(k)=100.
+      lname_dd(k)=' C COVER'
+c 
+      k=k+1
+      IDD_SSP=k
+      name_dd(k)='SSPREC'
+      units_dd(k)='0.01 mm/day'
+      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      lname_dd(k)='SS P*100'
+c 
+      k=k+1
+      IDD_MCP=k
+      name_dd(k)='MCPREC'
+      units_dd(k)='0.01 mm/day'
+      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      lname_dd(k)='MC P*100'
+
+      return
+      end subroutine daily_defs

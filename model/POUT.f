@@ -275,7 +275,7 @@ C**** output hemispheric and global means
       return
       end subroutine close_ijk
 
-      subroutine POUT_IJK(TITLE,XIJK,XJK,XK)
+      subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS,XIJK,XJK,XK)
 !@sum  POUT_IJK outputs lat-lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
@@ -284,13 +284,18 @@ C**** output hemispheric and global means
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: UNITS*50
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field
       REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
-
       INTEGER :: I,K
 
       DO K=1,LM

@@ -4804,107 +4804,64 @@ C****
   909 FORMAT (/'0TPE',I18,I32,I14,I7,I12,2I13,I20)
       END SUBROUTINE DIAG5P
 
-      BLOCK DATA BDDLY
-C****
-C**** TITLES FOR SUBROUTINE DIAG6
-C****
-      COMMON/D6COM/TITLE
-      CHARACTER*8 TITLE(63)
-      DATA TITLE/
-     *  '0INC SW ',' P ALBD ',' G ALBD ',' ABS ATM',' E CNDS ',
-     *  '0SRF PRS',' PT 5   ',' PT 4   ',' PT 3   ',' PT 2   ',
-     *  ' PT 1   ',' TS     ',' TG1    ','0Q 5    ',' Q 4    ',
-     *  ' Q 3    ',' Q 2    ',' Q 1    ',' QS     ',' QG     ',
-     *  '        ','        ','        ','        ','        ',
-     *  '        ','        ','0SW ON G',' LW AT G',' SNSB HT',
-     *  ' LAT HT ',' HEAT Z0','0UG*10  ',' VG*10  ',' WG*10  ',
-     *  ' US*10  ',' VS*10  ',' WS*10  ',' ALPHA0 ','0RIS1*E2',
-     *  ' RIGS*E2',' CM*E4  ',' CH*E4  ',' CQ*E4  ',' EDS1*10',
-     *  '0DBL    ',' DC FREQ',' LDC*10 ','0PRC*10 ',' EVP*10 ',
-     *  ' DEEP MC',' SHLW MC',' CLD 7  ',' CLD 6  ',' CLD 5  ',
-     *  ' CLD 4  ',' CLD 3  ',' CLD 2  ',' CLD 1  ',' W TO-5 ',
-     *  ' C COVER',' SS P*10',' MC P*10'/
-      END BLOCK DATA BDDLY
-
       SUBROUTINE DIAG6
-C****
-C**** THIS SUBROUTINE PRINTS THE DIURNAL CYCLE OF SOME QUANTITIES
-C****
+!@sum  DIAG6 print out diurnal cycle diagnostics
+!@auth G. Russell
+!@ver  1.0
 c      USE PRTCOM, only :
-      USE CONSTANT, only :
-     &     grav,sha,sday,twopi
       USE MODEL_COM, only :
-     &     dtsrc,idacc,
-     &     IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,
-     &     NISURF,XLABEL
+     &     idacc,IJD6,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,NAMD6,XLABEL
       USE DAGCOM, only :
-     &     adaily,kdiag,ndlyvar,hr_in_day
+     &     adaily,kdiag,ndlyvar,hr_in_day,scale_dd,lname_dd,name_dd
       IMPLICIT NONE
 
-      DOUBLE PRECISION, DIMENSION(NDLYVAR) :: SCALE
-      DATA SCALE/1.,2*100.,2*1.,  5*1.,  3*1.,2*1.D5,  5*1.D5,
-     *  5*100.,  2*100.,3*1.,  2*1.,3*10.,  3*10.,1.,100.,
-     *  100.,3*1.D4,1*10.,  1.,100.,10.,2*1.,
-     *  2*100., 7*100., 1.,100., 2*10./
       DOUBLE PRECISION, DIMENSION(HR_IN_DAY+1) :: XHOUR
       INTEGER, DIMENSION(HR_IN_DAY+1) :: MHOUR
-
-      CHARACTER*8 TITLE
-      COMMON/D6COM/TITLE(NDLYVAR)
-
-      DOUBLE PRECISION :: AVE,AVED,AVEN,BYIDAC,DTSURF
+      DOUBLE PRECISION :: AVE,AVED,AVEN,BYIDAC
       INTEGER :: I,IH,IREGF,IREGL,IS,K,KQ,KR,NDAYS
-
 C****
       NDAYS=IDACC(9)/2
       IF (NDAYS.LE.0) RETURN
-      DTSURF=DTsrc/NISURF
       BYIDAC=1./NDAYS
-      SCALE(5)=100.*SHA/(GRAV*DTsrc)
-      SCALE(28)=1./DTSURF
-      SCALE(29)=1./DTSURF
-      SCALE(30)=1./DTSURF
-      SCALE(31)=1./DTSURF
-      SCALE(32)=1./DTSURF
-      SCALE(39)=360./TWOPI
-      SCALE(49)=100.*100.*SDAY/(DTsrc*GRAV)
-      SCALE(62)=100.*100.*SDAY/(DTsrc*GRAV)
-      SCALE(63)=SCALE(62)
-      SCALE(50)=100.*SDAY/DTSURF
 C****
       IREGF=1
       IREGL=4
       IF (KDIAG(6).GT.0) IREGL=4-KDIAG(6)
       IF (KDIAG(6).LT.0.AND.KDIAG(6).GT.-5) IREGF=-KDIAG(6)
       IF (KDIAG(6).LT.0) IREGL=IREGF
-      DO 500 KR=IREGF,IREGL
+      DO KR=IREGF,IREGL
       WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       WRITE (6,903) NAMD6(KR),IJD6(1,KR),IJD6(2,KR),(I,I=1,HR_IN_DAY)
-      DO 500 KQ=1,NDLYVAR
-      IF (KQ.EQ.48) GO TO 200
-      IF (len_trim(TITLE(KQ)).eq.0) GO TO 500
+      DO KQ=1,NDLYVAR
+        IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
+        IF (LNAME_DD(KQ).eq."unused") CYCLE
+        SELECT CASE (NAME_DD(KQ))
+        CASE DEFAULT
 C**** NORMAL QUANTITIES
-      AVE=0.
-      DO 120 IH=1,HR_IN_DAY
-      AVE=AVE+ADAILY(IH,KQ,KR)
-  120 XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE(KQ)*BYIDAC
-      XHOUR(25)=AVE/FLOAT(HR_IN_DAY)*SCALE(KQ)*BYIDAC
-      GO TO 480
+          AVE=0.
+          DO IH=1,HR_IN_DAY
+            AVE=AVE+ADAILY(IH,KQ,KR)
+            XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)*BYIDAC
+          END DO
+          XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
 C**** RATIO OF TWO QUANTITIES
-  200 AVEN=0.
-      AVED=0.
-      DO 220 IH=1,HR_IN_DAY
-      AVEN=AVEN+ADAILY(IH,KQ,KR)
-      AVED=AVED+ADAILY(IH,KQ-1,KR)
-  220 XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE(KQ)/(ADAILY(IH,KQ-1,KR)+1.D-20)
-      XHOUR(25)=AVEN*SCALE(KQ)/(AVED+1.D-20)
-  480 CONTINUE
-      DO 490 IS=1,HR_IN_DAY+1
-CB       FHOUR(IS,KQ,KR)=XHOUR(IS)
-      MHOUR(IS)=NINT(XHOUR(IS))
-  490 CONTINUE
-      WRITE (6,904) TITLE(KQ),MHOUR
-  500 CONTINUE
+        CASE ('LDC')
+          AVEN=0.
+          AVED=0.
+          DO IH=1,HR_IN_DAY
+            AVEN=AVEN+ADAILY(IH,KQ,KR)
+            AVED=AVED+ADAILY(IH,KQ-1,KR)
+            XHOUR(IH)=ADAILY(IH,KQ,KR)*SCALE_DD(KQ)/
+     *           (ADAILY(IH,KQ-1,KR)+1D-20)
+          END DO
+          XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
+        END SELECT
+        DO IS=1,HR_IN_DAY+1
+CB        FHOUR(IS,KQ,KR)=XHOUR(IS)
+          MHOUR(IS)=NINT(XHOUR(IS))
+        END DO
+        WRITE (6,904) LNAME_DD(KQ),MHOUR
+      END DO
       RETURN
 C****
   901 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
@@ -4913,8 +4870,9 @@ C****
       END SUBROUTINE DIAG6
 
       SUBROUTINE DIAG4
-C**** THIS ENTRY PRODUCES A TIME HISTORY TABLE OF ENERGIES
-C****
+!@sum  DIAG4 prints out a time history of the energy diagnostics
+!@auth G. Russell
+!@ver  1.0
 c      USE PRTCOM, only :
       USE CONSTANT, only :
      &     grav,rgas,twopi,bygrav
@@ -4925,13 +4883,13 @@ c      USE PRTCOM, only :
       USE GEOM, only :
      &     DLON
       USE DAGCOM, only :
-     &     energy,nehist,hist_days
+     &     energy,ned,nehist,hist_days
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(2) :: FAC
-      DOUBLE PRECISION, DIMENSION(10) :: SCALE
-      DOUBLE PRECISION, DIMENSION(20) :: SUM
-      INTEGER, DIMENSION(20) :: IK
+      DOUBLE PRECISION, DIMENSION(NED) :: SCALE
+      DOUBLE PRECISION, DIMENSION(2*NED) :: SUM
+      INTEGER, DIMENSION(2*NED) :: IK
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS+1) :: EHIST
 
       INTEGER ::
@@ -4952,21 +4910,21 @@ c      USE PRTCOM, only :
       SCALE(8)=SCALE(7)
       SCALE(9)=SCALE(7)
       SCALE(10)=SCALE(7)
-      DO K=1,10
+      DO K=1,NED
         SCALE(K)=(TWOPI/(DLON*FIM))*SCALE(K)/IDACC(12)
       END DO
 C****
       DO K0=1,MIN(1+ISTRAT,2)
         WRITE (6,901) XLABEL
         IF (K0.eq.1) THEN
-          FAC(1) = 1.
-          FAC(2) = 10.
+          FAC(1) = 1.         
+          FAC(2) = 1.   !10.   check these factors 
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,903)
         ELSE
-          FAC(1) = 100.
-          FAC(2) = 1000.
+          FAC(1) = 10.  !100.  do they correspond to titles? 
+          FAC(2) = 10.  !1000.
           WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
      *         ,JHOUR
           WRITE (6,907)
@@ -4978,9 +4936,9 @@ C****
           IDAYXM=MOD(IDAYX,100000)
           TOFDYX=MOD(ItimeX,NDAY)*24./NDAY
           DO KSPHER=1,2
-            DO K=1,10
-              KS=K+(KSPHER-1)*10
-              KN=KS+(K0-1)*10
+            DO K=1,NED
+              KS=K+(KSPHER-1)*NED
+              KN=KS+(K0-1)*NED
               IF (KN.le.NEHIST) THEN
                 EHIST(KN,I)=ENERGY(KN,I)*SCALE(K)*FAC(KSPHER)
                 IK(KS)=EHIST(KN,I)+.5
@@ -4993,9 +4951,9 @@ C****
           WRITE (6,904) IDAYXM,TOFDYX,IK
         END DO
         DO KSPHER=1,2
-          DO K=1,10
-            KS=K+(KSPHER-1)*10
-            KN=KS+(K0-1)*10
+          DO K=1,NED
+            KS=K+(KSPHER-1)*NED
+            KN=KS+(K0-1)*NED
             IF (KN.le.NEHIST) THEN
               EHIST(KN,HIST_DAYS+1)=SUM(KS)*SCALE(K)*FAC(KSPHER)/IDACC5
               IK(KS)=EHIST(KN,HIST_DAYS+1)+.5
@@ -5425,27 +5383,26 @@ C****
       MODULE BDIJK
 !@sum  stores information for outputting lon-lat-press diagnostics
 !@auth M. Kelley
-
       IMPLICIT NONE
+!@param nijk_out number of composite ijk output fields
+      integer, parameter :: nijk_out=1
 
-!@param nijk_out number of ijk-format output fields
-      integer, parameter :: nijk_out=5
-
-!@var title string, formed as concatentation of lname//units
-      CHARACTER(LEN=48), DIMENSION(nijk_out) :: TITLE
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nijk_out) :: SNAME
-
-!@var nt_ijk index telling pout_ijk which field is being output
-      integer :: nt_ijk
+!@var units_ijk_o string containing output field units
+      CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS_IJK_O
+!@var lname_ijk_o string describing output field
+      CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME_IJK_O
+!@var name_ijk_o ref. string for output field 
+      CHARACTER(LEN=30), DIMENSION(nijk_out) :: NAME_IJK_O
+!@var scale_ijk_o scaling for output field
+      REAL*8, DIMENSION(nijk_out) :: scale_ijk_o
 
       END MODULE BDIJK
 
       SUBROUTINE IJK_TITLES
+!@sum  IJK_TITLES extra titles for composite ijk output
+!@auth G. Schmidt/M. Kelley
+!@ver  1.0
+      USE CONSTANT, only : bygrav
       USE BDIJK
       IMPLICIT NONE
       INTEGER :: K
@@ -5453,41 +5410,21 @@ c
       k = 0
 c
       k = k + 1
-      sname(k) = 'u'
-      lname(k) = 'ZONAL WIND (U COMPONENT)'
-      units(k) = 'METERS/SECOND'
-      k = k + 1
-      sname(k) = 'v'
-      lname(k) = 'MERIDIONAL WIND (V COMPONENT)'
-      units(k) = 'METERS/SECOND'
-      k = k + 1
-      sname(k) = 'temp'
-      lname(k) = 'TEMPERATURE'
-      units(k) = 'deg C'
-      k = k + 1
-      sname(k) = 'q'
-      lname(k) = 'SPECIFIC HUMIDITY'
-      units(k) = '10**-5'
-      k = k + 1
-      sname(k) = 'height'
-      lname(k) = 'HEIGHT'
-      units(k) = 'm'
-
-c create titles by concatenating long names with units
-c no checks whether total length of lname+units exceeds length of title
-      do k=1,nijk_out
-         title(k)=''
-         if(lname(k).ne.'')
-     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
-      enddo
+      name_ijk_o(k) = 'HEIGHT'
+      lname_ijk_o(k) = 'HEIGHT'
+      units_ijk_o(k) = 'm'
+      scale_ijk_o(k) = 0.25*BYGRAV
 
       return
       END SUBROUTINE IJK_TITLES
 
       SUBROUTINE IJKMAP
-C****
-C**** CALCULATE 3-D output fields on B-grid
-C****
+!@sum  IJKMAP output 3-D constant pressure output fields
+!@auth G. Schmidt
+!@ver  1.0
+C**** Note that since all IJK diags are weighted w.r.t pressure, all
+C**** diagnostics must be divided by the accumulated pressure
+C**** All titles/names etc. implicitly assume that this will be done.
       USE CONSTANT, only :
      &     grav,sha
       USE MODEL_COM, only :
@@ -5495,190 +5432,100 @@ C****
      &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
       USE DAGCOM, only :
      &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
+     *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
       USE BDIJK, only :
-     &     nt_ijk
+     &     name_ijk_o,lname_ijk_o,units_ijk_o,scale_ijk_o
       IMPLICIT NONE
 
       CHARACTER XLB*24,TITLEX*56
       CHARACTER*80 TITLEL(LM)
-      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM),SMAPK(LM)
+      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM)   
       REAL*8 UNDEF,flat,press,dp
       CHARACTER*4 CPRESS(LM)
-      INTEGER i,j,l,kxlb,ni
+      INTEGER i,j,l,kxlb,ni,kcomp,k
 
 C**** OPEN PLOTTABLE OUTPUT FILE
       call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID))
-
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
       call ijk_titles
       UNDEF = -1.E30
-      SMAPK(:) = UNDEF
+      SMAP(:,:,:) = UNDEF
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
       XLB = ' '
       XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
       XLB(15:14+KXLB) = XLABEL(1:KXLB)
 C****
-C**** Complete 3D-field titles  and select fields
+C**** Complete 3D-field titles
 C****
       DO L=1,LM
-      PRESS = PTOP+PSFMPT*SIG(L)
-      IF (PRESS.GE.1.) THEN
-        WRITE(CPRESS(L),'(I4)') NINT(PRESS)
-      ELSE
-        WRITE(CPRESS(L),'(F4.3)') PRESS
-      END IF
+        PRESS = PTOP+PSFMPT*SIG(L)
+        IF (PRESS.GE.1.) THEN
+          WRITE(CPRESS(L),'(I4)') NINT(PRESS)
+        ELSE
+          WRITE(CPRESS(L),'(F4.3)') PRESS
+        END IF
+      END DO
+
+C**** Select fields
+      kcomp=0
+      DO K=1,KAIJK
+        IF (K.ne.IJK_DSE) THEN
+          TITLEX = lname_ijk(k)(1:19)//"   at        mb ("//
+     *         trim(units_ijk(k))//", UV grid)"
+          DO L=1,LM
+            DO J=1,JM
+              NI = 0
+              FLAT = 0.
+              SMAPJK(J,L) = UNDEF
+              DO I=1,IM
+                DP=AIJK(I,J,L,IJK_DP)
+                SMAP(I,J,L) = UNDEF
+                IF(DP.GT.0.) THEN
+                  SMAP(I,J,L) = SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
+                  FLAT = FLAT+SMAP(I,J,L)
+                  NI = NI+1
+                END IF
+              END DO
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+            END DO
+            WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+          END DO
+          TITLEL(L) = TITLEX//XLB
+          CALL POUT_IJK(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
+     *         ,SMAP,SMAPJK,UNDEF)
+        ELSE  ! special compound case
+          kcomp=kcomp+1
+          TITLEX = lname_ijk_o(kcomp)(1:19)//"   at        mb ("//
+     *         trim(units_ijk_o(kcomp))//", UV grid)"
+          DO L=1,LM
+            DO J=1,JM
+              NI = 0
+              FLAT = 0.
+              SMAPJK(J,L) = UNDEF
+              DO I=1,IM
+                DP=AIJK(I,J,L,IJK_DP)
+                SMAP(I,J,L) = UNDEF
+                IF(DP.GT.0.) THEN
+                  SMAP(I,J,L) = SCALE_IJK_O(kcomp)*(AIJK(I,1,L,K)-
+     *                 SHA*AIJK(I,1,L,IJK_T))/DP
+                  FLAT = FLAT+SMAP(I,J,L)
+                  NI = NI+1
+                END IF
+              END DO
+              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
+            END DO
+            WRITE(TITLEX(27:30),'(A)') CPRESS(L)
+            TITLEL(L) = TITLEX//XLB
+          END DO
+          CALL POUT_IJK(TITLEL,name_ijk_o(kcomp),lname_ijk_o(kcomp)
+     *         ,units_ijk_o(kcomp),SMAP,SMAPJK,UNDEF)
+        END IF
       END DO
 C****
-      TITLEX = '     U-WIND           at        mb (m/s, UV G)'
-      DO 715 L=1,LM
-
-      DO J=1,JM-1
-      DO I=1,IM
-      DP=AIJK(I,J+1,L,IJK_DP)
-      SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,IJK_U)/DP
-      ENDDO
-      ENDDO
-
-      DO J=1,JM-1
-        SMAPJK(J,L) = UNDEF
-        NI = 0
-        FLAT = 0.
-        DO I=1,IM
-        IF (SMAP(I,J,L).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J,L)
-          NI = NI+1
-        END IF
-        END DO
-        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-      END DO
-      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      TITLEL(L) = TITLEX//XLB
-  715 CONTINUE
-      nt_ijk = 1
-      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
-C****
-      TITLEX = '     V-WIND           at        mb (m/s, UV G)'
-      DO 725 L=1,LM
-
-      DO J=1,JM-1
-      DO I=1,IM
-      DP=AIJK(I,J+1,L,IJK_DP)
-      SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,IJK_V)/DP
-      ENDDO
-      ENDDO
-
-      DO J=1,JM-1
-        SMAPJK(J,L) = UNDEF
-        NI = 0
-        FLAT = 0.
-        DO I=1,IM
-        IF (SMAP(I,J,L).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J,L)
-          NI = NI+1
-        END IF
-        END DO
-        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-      END DO
-      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      TITLEL(L) = TITLEX//XLB
-  725 CONTINUE
-      nt_ijk = 2
-      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
-C****
-      TITLEX = '     TEMPERATURE      at        mb (C, UV Grid)'
-      DO 735 L=1,LM
-
-      DO J=1,JM-1
-      DO I=1,IM
-      DP=AIJK(I,J+1,L,IJK_DP)
-      SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = (.25*AIJK(I,J+1,L,IJK_T)/DP - 273.16)
-      ENDDO
-      ENDDO
-
-      DO J=1,JM-1
-        SMAPJK(J,L) = UNDEF
-        NI = 0
-        FLAT = 0.
-        DO I=1,IM
-        IF (SMAP(I,J,L).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J,L)
-          NI = NI+1
-        END IF
-        END DO
-        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-      END DO
-      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      TITLEL(L) = TITLEX//XLB
-  735 CONTINUE
-      nt_ijk = 3
-      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
-C****
-      TITLEX = '    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
-      DO 745 L=1,LM
-
-      DO J=1,JM-1
-      DO I=1,IM
-      DP=AIJK(I,J+1,L,IJK_DP)
-      SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = .25*1.E5*AIJK(I,J+1,L,IJK_Q)/DP
-      ENDDO
-      ENDDO
-
-      DO J=1,JM-1
-        SMAPJK(J,L) = UNDEF
-        NI = 0
-        FLAT = 0.
-        DO I=1,IM
-        IF (SMAP(I,J,L).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J,L)
-          NI = NI+1
-        END IF
-        END DO
-        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-      END DO
-      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      TITLEL(L) = TITLEX//XLB
-  745 CONTINUE
-      nt_ijk = 4
-      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
-C****
-      TITLEX = '       HEIGHT         at        mb (m, UV Grid)'
-      DO 755 L=1,LM
-
-      DO J=1,JM-1
-      DO I=1,IM
-      DP=AIJK(I,J+1,L,IJK_DP)
-      SMAP(I,J,L) = UNDEF
-      IF(DP.GT.0.) SMAP(I,J,L) = .25*(AIJK(I,J+1,L,IJK_DSE)-
-     *   SHA*AIJK(I,J+1,L,IJK_T))/(GRAV*DP)
-      ENDDO
-      ENDDO
-
-      DO J=1,JM-1
-        SMAPJK(J,L) = UNDEF
-        NI = 0
-        FLAT = 0.
-        DO I=1,IM
-        IF (SMAP(I,J,L).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J,L)
-          NI = NI+1
-        END IF
-        END DO
-        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-      END DO
-      WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      TITLEL(L) = TITLEX//XLB
-  755 CONTINUE
-      nt_ijk = 5
-      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
-
       call close_ijk
-
+C****
       RETURN
       END SUBROUTINE IJKMAP

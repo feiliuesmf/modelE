@@ -2961,7 +2961,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,
      &     IDACC,JEQ,LS1,ISTRAT          !! ,SKIPSE
       USE GEOM, only : DXYV
-      USE DAGCOM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp
+      USE DAGCOM, only : energy,speca,ajk,aijk,ijk_u,ijk_v,ijk_dp,ned
       IMPLICIT NONE
 
       INTEGER ::
@@ -3005,17 +3005,17 @@ c  530 CONTINUE
 C**** OTHER ENERGIES COME FROM LATEST SPECTRAL ANALYSIS
 c  540 CONTINUE
       DO I=0,1+ISTRAT  ! loop over number of 'spheres'
-        ENERGY(1+10*I,IDACC5)=SPECA(1,19,1+4*I)   ! SH
-        ENERGY(2+10*I,IDACC5)=SPECA(1,19,2+4*I)   ! NH
-        ENERGY(5+10*I,IDACC5)=SPECA(2,19,2+4*I)   ! NH wave 1
-        ENERGY(6+10*I,IDACC5)=SPECA(3,19,2+4*I)   ! NH wave 2
-        ENERGY(7+10*I,IDACC5)=SPECA(1,20,1+4*I)
-        ENERGY(8+10*I,IDACC5)=SPECA(1,20,2+4*I)
+        ENERGY(1+NED*I,IDACC5)=SPECA(1,19,1+4*I)   ! SH
+        ENERGY(2+NED*I,IDACC5)=SPECA(1,19,2+4*I)   ! NH
+        ENERGY(5+NED*I,IDACC5)=SPECA(2,19,2+4*I)   ! NH wave 1
+        ENERGY(6+NED*I,IDACC5)=SPECA(3,19,2+4*I)   ! NH wave 2
+        ENERGY(7+NED*I,IDACC5)=SPECA(1,20,1+4*I)
+        ENERGY(8+NED*I,IDACC5)=SPECA(1,20,2+4*I)
         DO N=2,NM
-        ENERGY( 3+10*I,IDACC5)=ENERGY( 3+10*I,IDACC5)+SPECA(N,19,1+4*I)
-        ENERGY( 4+10*I,IDACC5)=ENERGY( 4+10*I,IDACC5)+SPECA(N,19,2+4*I)
-        ENERGY( 9+10*I,IDACC5)=ENERGY( 9+10*I,IDACC5)+SPECA(N,20,1+4*I)
-        ENERGY(10+10*I,IDACC5)=ENERGY(10+10*I,IDACC5)+SPECA(N,20,2+4*I)
+        ENERGY( 3+NED*I,IDACC5)=ENERGY( 3+10*I,IDACC5)+SPECA(N,19,1+4*I)
+        ENERGY( 4+NED*I,IDACC5)=ENERGY( 4+10*I,IDACC5)+SPECA(N,19,2+4*I)
+        ENERGY( 9+NED*I,IDACC5)=ENERGY( 9+10*I,IDACC5)+SPECA(N,20,1+4*I)
+        ENERGY(10+NED*I,IDACC5)=ENERGY(10+10*I,IDACC5)+SPECA(N,20,2+4*I)
         END DO
       END DO
       IDACC(5)=IDACC5

@@ -61,8 +61,10 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       INTEGER :: J50N,J70N
 
 C NEHIST = (TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
-!@param NEHIST,HISTDAYS number of energy history diagnostics, and days
-      INTEGER, PARAMETER :: NEHIST=10*(2+ISTRAT)
+!@param NED number of different energy history diagnostics
+!@param NEHIST,HIST_DAYS total number of energy history diagnostics, and days
+      INTEGER, PARAMETER :: NED=10
+      INTEGER, PARAMETER :: NEHIST=NED*(2+ISTRAT)
       INTEGER, PARAMETER :: HIST_DAYS=100
 !@var ENERGY energy diagnostics
       DOUBLE PRECISION, DIMENSION(NEHIST,HIST_DAYS) :: ENERGY
@@ -308,7 +310,7 @@ C****      names, indices, units, idacc-numbers, etc.
       REAL*8, DIMENSION(KAIJK) :: OFF_IJK
 
       character(len=20), dimension(kaijk) :: name_ijk,units_ijk
-      character(len=80), dimension(kaijk) :: lname_ijk,scname_ijk
+      character(len=80), dimension(kaijk) :: lname_ijk
 
       character(len=20), dimension(kaijl) :: name_ijl,units_ijl
       character(len=80), dimension(kaijl) :: lname_ijl
@@ -325,7 +327,22 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kail) :: name_il,units_il
       character(len=80), dimension(kail) :: lname_il
 
-C**** tf_xxx tsfrez diagnostic names
+      character(len=20), dimension(ndlyvar) :: name_dd,units_dd
+      character(len=80), dimension(ndlyvar) :: lname_dd
+      real*8, dimension(ndlyvar) :: scale_dd
+
+!@var IDD_xxx names for daily diagnostics
+      INTEGER :: IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
+     *     IDD_SPR, IDD_PT5, IDD_PT4, IDD_PT3, IDD_PT2, IDD_PT1, IDD_TS,
+     *     IDD_TG1, IDD_Q5, IDD_Q4, IDD_Q3, IDD_Q2, IDD_Q1, IDD_QS,
+     *     IDD_QG, IDD_SWG, IDD_LWG, IDD_SH, IDD_LH, IDD_HZ0, IDD_UG,
+     *     IDD_VG, IDD_WG, IDD_US, IDD_VS, IDD_WS, IDD_CIA, IDD_RIS,
+     *     IDD_RIG, IDD_CM, IDD_CH, IDD_CQ, IDD_EDS, IDD_DBL, IDD_DCF,
+     *     IDD_LDC, IDD_PR, IDD_EV, IDD_DMC, IDD_SMC, IDD_CL7, IDD_CL6,
+     *     IDD_CL5, IDD_CL4, IDD_CL3, IDD_CL2, IDD_CL1, IDD_W, IDD_CCV,
+     *     IDD_SSP, IDD_MCP
+
+!@var tf_xxx tsfrez diagnostic names
       INTEGER :: tf_day1,tf_last,tf_lkon,tf_lkoff
       character(len=20), dimension(ktsf) :: name_tsf,units_tsf
       character(len=80), dimension(ktsf) :: lname_tsf
