@@ -62,12 +62,11 @@ c      CALL dust_grav
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE resolution, ONLY : Im,Jm
-      USE model_com,ONLY : Dtsrc,fearth
+      USE model_com,ONLY : Dtsrc,fearth,im,jm
       USE fluxes,ONLY : prec,evapor,trsrfflx
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm
       USE tracer_diag_com,ONLY : ijts_source,jls_source,taijs,tajls
-      USE geom,ONLY : dxyp
+      USE geom,ONLY : dxyp,imaxj
       USE ghycom,ONLY : snowe !earth snow amount
       USE pblcom,ONLY : wsavg
       USE tracers_dust_com,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,
@@ -85,7 +84,7 @@ c     Checking whether accumulated precipitation - evaporation
 c     less/equal than Zero for a succeeding number of hours greater/equal
 c     than threshold dryhr to permit dust emission
       DO j=1,Jm
-        DO i=1,Im
+        DO i=1,Imaxj(j)
           hbaijold=hbaij(i,j)
           hbaij(i,j)=hbaijold+prec(i,j)*fearth(i,j)-evapor(i,j,4)
           hbaijd=hbaij(i,j)-hbaijold
@@ -110,7 +109,7 @@ c     Loop for calculating dust source flux for each tracer
       END DO
 
       DO j=1,Jm
-        DO i=1,Im
+        DO i=1,Imaxj(j)
 
           IF (fearth(i,j) > 0. .AND. snowe(i,j) <= 1 .AND.
      &         vtrsh(i,j) > 0. .AND. wsavg(i,j) > vtrsh(i,j) .AND.
@@ -148,7 +147,7 @@ c     default case
         najl=jls_source(nDustEmjl,n1)
 c        WRITE(*,*) 'naij,najl:',naij,najl
         DO j=1,Jm
-          DO i=1,Im
+          DO i=1,Imaxj(j)
             IF (trsrfflx(i,j,n1) > 0.) THEN
               workijn=trsrfflx(i,j,n1)*Dtsrc
               trm(i,j,1,n1)=trm(i,j,1,n1)+workijn
