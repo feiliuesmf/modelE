@@ -24,7 +24,7 @@ C****
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim,itocean
      *     ,itoice,itlake,itlkice,itlandi
       USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
+      USE GEOM, only : dxyp,imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
@@ -605,9 +605,9 @@ C**** Polar boxes
         DO I=1,IMAX
         DO K=1,KMAX
           U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAJ(K,J)*(DU1(I,J)*COSI(K)+DV1(I,J)*SINI(K)*HEMI)
+     *           RAVJ(K,J)*(DU1(I,J)*COSIV(K)+DV1(I,J)*SINIV(K)*HEMI)
           V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAJ(K,J)*(DV1(I,J)*COSI(K)-DU1(I,J)*SINI(K)*HEMI)
+     *           RAVJ(K,J)*(DV1(I,J)*COSIV(K)-DU1(I,J)*SINIV(K)*HEMI)
         END DO
         END DO
       END DO
@@ -618,9 +618,9 @@ C**** non polar boxes
         DO I=1,IMAX
         DO K=1,KMAX
           U(IDIJ(K,I,J),IDJJ(K,J),1)=U(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAJ(K,J)*DU1(I,J)
+     *           RAVJ(K,J)*DU1(I,J)
           V(IDIJ(K,I,J),IDJJ(K,J),1)=V(IDIJ(K,I,J),IDJJ(K,J),1) -
-     *           RAJ(K,J)*DV1(I,J)
+     *           RAVJ(K,J)*DV1(I,J)
         END DO
         END DO
       END DO

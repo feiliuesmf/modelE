@@ -222,9 +222,6 @@ c     &  AJK,AIJK,AIJL,AJLSP
       character(len=20), dimension(ktsf) :: tsf_name,tsf_units
       character(len=80), dimension(ktsf) :: tsf_lname
 
-      character(len=20), dimension(ktd) :: tdn_name,tdn_units
-      character(len=80), dimension(ktd) :: tdn_lname
-
       character(len=20), dimension(kaj) :: aj_name,aj_units
       character(len=80), dimension(kaj) :: aj_lname
       character(len=20), dimension(kaj) :: dj_name
@@ -277,7 +274,7 @@ c     &  AJK,AIJK,AIJL,AJLSP
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,irerun,irsfic,        
+      USE E001M12_COM, only : ioread,irerun,irsfic,
      *     iowrite,iowrite_mon,iowrite_single
       USE DAGCOM
       IMPLICIT NONE

@@ -23,10 +23,12 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JM) :: LAT
-!@var  JLAT latitude of mid points of primary and sec. grid boxs (deg)
-      INTEGER, DIMENSION(JM,2) :: JLAT
-!@var  LON longitude of mid points of primary and sec. grid boxs (deg)
-      REAL*8, DIMENSION(IM,2) :: LON
+!@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+      INTEGER, DIMENSION(JM,2) :: LAT_DG
+!@var  LON longitude of mid points of primary grid box (radians)
+      REAL*8, DIMENSION(IM) :: LON
+!@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
+      REAL*8, DIMENSION(IM,2) :: LON_DG
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conseravtion quantities
@@ -52,10 +54,10 @@ C**** some B-grid conseravtion quantities
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
-!@var SINI,COSI sin and cos values for velocity points surrounding pole
-      REAL*8, DIMENSION(IM) :: SINI,COSI
-!@var  RAJ scaling for A grid U/V to B grid points (func. of lat. j)
-      REAL*8, DIMENSION(IM,JM) :: RAJ
+!@var SINIV,COSIV,SINIP,COSIP longitud. sin,cos for wind,pressure grid
+      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
+!@var  RAVJ scaling for A grid U/V to B grid points (func. of lat. j)
+      REAL*8, DIMENSION(IM,JM) :: RAPJ,RAVJ
 !@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
       INTEGER, DIMENSION(IM,JM) :: IDJJ
 !@var  IDIJ I index of adjacent U/V points for A grid (func. of lat/lon)
@@ -79,7 +81,7 @@ c      USE E001M12_COM
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAPO
+      REAL*8  :: RAVPO,RAPPO
 
 c      DLON=TWOPI*BYIM
       DLAT=.5*TWOPI/(JM-1)
@@ -123,7 +125,9 @@ c      DLON=TWOPI*BYIM
       END DO
       AREAG = AREAG*FIM
       RAVPS(1)  = 0.
+      RAPVS(1)  = 0.
       RAVPN(JM) = 0.
+      RAPVN(JM) = 0.
       DO J=2,JM
          DXYV(J) = DXYN(J-1)+DXYS(J)
          RAPVS(J)   = .5*DXYS(J)/DXYV(J)
@@ -132,16 +136,16 @@ c      DLON=TWOPI*BYIM
          RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
 C**** LONGITUDES (degrees); used in ILMAP
-      LON(1,1) = -180.+360./(2.*FLOAT(IM))
-      LON(1,2) = -180.+360./    FLOAT(IM)
+      LON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
+      LON_DG(1,2) = -180.+360./    FLOAT(IM)
       DO I=2,IM
-         LON(I,1) = LON(I-1,1)+360./FLOAT(IM)
-         LON(I,2) = LON(I-1,2)+360./FLOAT(IM)
+         LON_DG(I,1) = LON_DG(I-1,1)+360./FLOAT(IM)
+         LON_DG(I,2) = LON_DG(I-1,2)+360./FLOAT(IM)
       END DO
 C**** LATITUDES (degrees); used extensively in the diagn. print routines
       DO J=1,JM
-        JLAT(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
-        JLAT(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
+        LAT_DG(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
+        LAT_DG(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
       END DO
 C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
       JMHALF= JM/2
@@ -168,22 +172,28 @@ C**** adjacent velocity points
 
 C**** Calculate relative directions of polar box to nearby U,V points
       DO I=1,IM
-         SINI(I)=SIN((I-1)*TWOPI*BYIM)
-         COSI(I)=COS((I-1)*TWOPI*BYIM)
+         SINIV(I)=SIN((I-1)*TWOPI*BYIM)  ! DLON)
+         COSIV(I)=COS((I-1)*TWOPI*BYIM)  ! DLON)
+         LON(I)=DLON*(I-.5)
+         SINIP(I)=SIN(LON(I))
+         COSIP(I)=COS(LON(I))
       END DO
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1
          IF(J.EQ.1) THEN
             JVPO=2
-            RAPO=2.*RAPVN(1)
+            RAVPO=2.*RAPVN(1)
+            RAPPO=2.*RAVPN(1)
          ELSE
             JVPO=JM
-            RAPO=2.*RAPVS(JM)
+            RAVPO=2.*RAPVS(JM)
+            RAPPO=2.*RAVPS(JM)
          END IF
          KMAXJ(J)=IM
          IMAXJ(J)=1
-         RAJ(1:KMAXJ(J),J)=RAPO
+         RAVJ(1:KMAXJ(J),J)=RAVPO
+         RAPJ(1:KMAXJ(J),J)=RAPPO
          IDJJ(1:KMAXJ(J),J)=JVPO
          DO K=1,KMAXJ(J)
             IDIJ(K,1:IM,J)=K
@@ -194,9 +204,11 @@ C**** Conditions at non-polar points
          KMAXJ(J)=4
          IMAXJ(J)=IM
          DO K=1,2
-            RAJ(K,J)=RAPVS(J)
+            RAVJ(K,J)=RAPVS(J)
+            RAPJ(K,J)=RAVPS(J)
             IDJJ(K,J)=J
-            RAJ(K+2,J)=RAPVN(J)
+            RAVJ(K+2,J)=RAPVN(J)
+            RAPJ(K+2,J)=RAVPN(J)
             IDJJ(K+2,J)=J+1
          END DO
          IM1=IM

@@ -9,7 +9,7 @@
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
      *     ,ntype,itime
       USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
+      USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLD01, only : kmax,ra,pl,ple,plk
@@ -79,7 +79,7 @@ C****
       LPBL=1
 
       DO K=1,KMAX
-         RA(K)=RAJ(K,J)
+         RA(K)=RAVJ(K,J)
          IDI(K)=IDIJ(K,I,J)
          IDJ(K)=IDJJ(K,J)
       END DO

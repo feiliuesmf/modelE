@@ -2220,7 +2220,7 @@ C****
      &     only : im,jm,lm,fim,flice,
      &     dtsrc,fland,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,sige,itime,itime0,nday,xlabel,ntype
-      USE GEOM, only : dxyp,lat,jlat
+      USE GEOM, only : dxyp,lat,LAT_DG
       USE DAGCOM, only : aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      *     j_ctopp,j_cdldep,j_pcldmc,j_srabs,j_srnfp0,j_srnfg,j_trnfp0,
      *     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
@@ -2424,7 +2424,7 @@ C****
       WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
 
-      WRITE (6,903) (JLAT(J,1),J=JM,INC,-INC)
+      WRITE (6,903) (LAT_DG(J,1),J=JM,INC,-INC)
       WRITE (6,905)
       DO K=1,KD1M
       N=NDEX(K)
@@ -2528,7 +2528,7 @@ CF       GBUDG(JM+3,KA+KD1M,M)=FGLOB
       END DO
       END IF
       END DO
-      WRITE (6,903) (JLAT(J,1),J=JM,INC,-INC)
+      WRITE (6,903) (LAT_DG(J,1),J=JM,INC,-INC)
       WRITE (6,905)
       IF (KDIAG(1).GT.1) RETURN
       END DO
@@ -3326,7 +3326,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       SUBROUTINE JKMAP (NT,PM,AX,SCALE,SCALEJ,SCALEK,KMAX,JWT,J1)
       USE E001M12_COM, only : jm,lm,
      &     JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
-      USE GEOM, only : JLAT,WTJ
+      USE GEOM, only : LAT_DG,WTJ
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MLAT
@@ -3366,7 +3366,7 @@ C****
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       LINECT=KMAX+8
    20 WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
-      WRITE (6,904) WORD(JWT),(JLAT(J,J1),J=JM,J1,-INC)
+      WRITE (6,904) WORD(JWT),(LAT_DG(J,J1),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
   100 DO 110 J=J1,JM
@@ -3428,7 +3428,7 @@ C****
   230 J0=J1-1
 C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
-      WRITE (6,904) WORD(JWT),(JLAT(J,J1),J=JM,J1,-INC)
+      WRITE (6,904) WORD(JWT),(LAT_DG(J,J1),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       DO 260 L=3,1,-1
       FGLOB=0.
@@ -3971,7 +3971,7 @@ C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
       USE E001M12_COM, only : jm,lm,
      &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
-      USE GEOM, only : JLAT,WTJ
+      USE GEOM, only : LAT_DG,WTJ
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MLAT
@@ -4005,7 +4005,7 @@ C****
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
       LINECT=LMAX+8
    20 WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
-      WRITE (6,904) WORD(JWT),(JLAT(J,J1),J=JM,J1,-INC)
+      WRITE (6,904) WORD(JWT),(LAT_DG(J,J1),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       J0=J1-1
   100 SDSIG=1.-SIGE(LMAX+1)
@@ -4058,7 +4058,7 @@ C****
   200 J0=J1-1
 C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       WRITE (6,901) TITLE(NT),(DASH,J=J1,JM,INC)
-      WRITE (6,904) WORD(JWT),(JLAT(J,J1),J=JM,J1,-INC)
+      WRITE (6,904) WORD(JWT),(LAT_DG(J,J1),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
       DO 230 L=3,1,-1
       FGLOB=0.
@@ -4192,7 +4192,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       USE E001M12_COM, only : im,jm,lm,
      &     DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
      &    ,Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
-      USE GEOM, only : DLON,LON,JLAT
+      USE GEOM, only : DLON,LON_DG,LAT_DG
       IMPLICIT NONE
 
       DOUBLE PRECISION :: XIL(IM,LM),ZONAL(LM) ! used for post-proc
@@ -4258,18 +4258,18 @@ C**** Output for post-processing
 c     IF (Q_GISS) THEN
 c        WRITE (85) XLB,IM,LMAX,1,1,
 c    *     ((XIL(I,L),I=1,IM),L=1,LMAX),
-c    *     (LON(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
+c    *     (LON_DG(I,ISHIFT),I=1,IM),(PL(L),L=1,LMAX),0.,0.,
 c    *     CLAT,CPRES,CBLANK,CBLANK,CWORD,
 c    *     (ASUM(I),I=1,IM),GSUM,(ZONAL(L),L=1,LMAX)
 c     END IF
       IF (Q_GISS) CALL POUT_GISS
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
      *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
       IF (Q_HDF) CALL POUT_HDF
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
      *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
       IF (Q_NETCDF) CALL POUT_NETCDF
-     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON(1,ISHIFT),PL,0.,0.,
+     *  ('IL',XLB,IM,LMAX,1,1,XIL,LON_DG(1,ISHIFT),PL,0.,0.,
      *     CLAT,CPRES,CBLANK,CBLANK,CWORD,ASUM,GSUM,ZONAL)
       RETURN
   901 FORMAT ('0',30X,A64/1X,14('-'),36A3)
@@ -5261,7 +5261,7 @@ C****
       USE E001M12_COM, only : im,jm,
      &     BYIM,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL
-      USE GEOM, only : JLAT,LON
+      USE GEOM, only : LAT_DG,LON_DG
       IMPLICIT NONE
 
       INTEGER :: NT
@@ -5336,7 +5336,7 @@ CB       QIJMAP(I,J,NT)=A
       FLAT=FLAT*BYIM
 CB       QIJMAP(IM+1,J,NT)=FLAT
       WRITE(AVG,'(F9.2)') FLAT
-      WRITE (6,920) JLAT(J,1),J,(LINE(I),I=1,IM,INC),AVG
+      WRITE (6,920) LAT_DG(J,1),J,(LINE(I),I=1,IM,INC),AVG
       DO 260 I=1,IM
       IF (FLAND(I,J).GE..5) GO TO 260
       DO 255 K=1,3
@@ -5346,7 +5346,7 @@ C     WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
   300 IF (JM.LE.24) WRITE (6,940)
-      WRITE (6,930) (LON(I,1),I=1,IM,INC*2)
+      WRITE (6,930) (LON_DG(I,1),I=1,IM,INC*2)
       RETURN
 C****
   900 FORMAT('0',45X,A48)
@@ -5510,7 +5510,7 @@ C****
      &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,nfiltr,
      &     itime,itime0,xlabel
-      USE GEOM, only : areag,dlon,dxyp,dxyv,jlat
+      USE GEOM, only : areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only : consrv,kcon,scale_con,title_con,nsum_con,ia_con
       IMPLICIT NONE
 
@@ -5602,7 +5602,7 @@ C**** LOOP OVER HEMISPHERES
         JVM=JEQ+(JHEMI-1)*(JEQ-2)
 C**** PRODUCE TABLES FOR ANGULAR MOMENTUM AND KINETIC ENERGY
         WRITE (6,903) (DASH,J=JV1,JVM,INC)
-        WRITE (6,904) HEMIS(JHEMI),(JLAT(JX,2),JX=JVM,JV1,-INC)
+        WRITE (6,904) HEMIS(JHEMI),(LAT_DG(JX,2),JX=JVM,JV1,-INC)
         WRITE (6,903) (DASH,J=JV1,JVM,INC)
         DO N=1,23
           WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
@@ -5615,7 +5615,7 @@ C**** PRODUCE TABLES FOR ANGULAR MOMENTUM AND KINETIC ENERGY
 C**** PRODUCE TABLES FOR OTHER CONSERVED QUANTITIES
         WRITE (6,907)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
-        WRITE (6,904) HEMIS(JHEMI),(JLAT(JX,1),JX=JPM,JP1,-INC)
+        WRITE (6,904) HEMIS(JHEMI),(LAT_DG(JX,1),JX=JPM,JP1,-INC)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         DO N=24,KCON
           WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
@@ -6678,7 +6678,7 @@ C****
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
      &     KEYCT,Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,
      &     PSFMPT,AMONTH,nday
-      USE GEOM, only : DLAT,DXYP,JLAT
+      USE GEOM, only : DLAT,DXYP,LAT_DG
       USE DAGCOM, only : keynr,nehist,nkeynr
       IMPLICIT NONE
 
@@ -6879,10 +6879,10 @@ C**** NORTHWARD TRANSPORTS
   390 CONTINUE
   392 KEYNR(NT+11,KEYCT)=NINT(BIG)
       RETURN
-  394 KEYNR(38,KEYCT)=JLAT(JNDEX,2)
+  394 KEYNR(38,KEYCT)=LAT_DG(JNDEX,2)
   396 KEYNR(NT+9,KEYCT)=NINT(BIG)
       RETURN
-  398 KEYNR(42,KEYCT)=JLAT(JNDEX,2)
+  398 KEYNR(42,KEYCT)=LAT_DG(JNDEX,2)
   400 KEYNR(NT+8,KEYCT)=NINT(BIG)
       RETURN
 C****
