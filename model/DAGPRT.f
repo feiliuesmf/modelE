@@ -9,8 +9,8 @@ c no checks whether total length of lname+units exceeds length of title
       CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME
       CHARACTER(LEN=30), DIMENSION(nj_out) :: SNAME
 
-      integer, dimension(nj_out) :: nt_j ! tells pout_j which output field
-c nstype_out=number of output surf types, iotype=current output surf type
+      integer, dimension(nj_out) :: nt_j ! tells pout_j output field
+c nstype_out=nr of output surf types, iotype=current output surf type
       integer :: nstype_out,iotype
       END MODULE BDJ
 
@@ -116,11 +116,11 @@ c
       k = k + 1
       sname(k) = 'sstab_strat'
       lname(k) = 'STAT STB(STRAT)'
-      units(k) = '?'
+      units(k) = 'C/km'
       k = k + 1
       sname(k) = 'sstab_trop'
       lname(k) = 'STAT STB(TROPO)'
-      units(k) = '?'
+      units(k) = 'C/km'
       k = k + 1
       sname(k) = 'rich_num_strat'
       lname(k) = 'RICH NUM(STRAT)'
@@ -200,15 +200,15 @@ c
       k = k + 1
       sname(k) = 'h2o_difs_z1'
       lname(k) = 'H2O DIFS AT -Z1'
-      units(k) = '?'
+      units(k) = 'mm/day'
       k = k + 1
       sname(k) = 'ice_thru_z1z2'
       lname(k) = 'ICE THRU -Z1-Z2'
-      units(k) = '?'
+      units(k) = 'mm H2O/day'
       k = k + 1
       sname(k) = 'h2o_runoff_mld'
       lname(k) = 'WATR RUNOFF MLD'
-      units(k) = '?'
+      units(k) = 'mm/day'
       k = k + 1
       sname(k) = 'ht_runoff_mld'
       lname(k) = 'HEAT RUNOFF MLD'
@@ -216,27 +216,27 @@ c
       k = k + 1
       sname(k) = 'wat_g1'
       lname(k) = 'WATER IN G1'
-      units(k) = '?'
+      units(k) = 'kg/m**2'
       k = k + 1
       sname(k) = 'ice_g1'
       lname(k) = 'ICE IN G1'
-      units(k) = '?'
+      units(k) = 'kg/m**2'
       k = k + 1
       sname(k) = 'wat_g2'
       lname(k) = 'WATER IN G2'
-      units(k) = '?'
+      units(k) = 'kg/m**2'
       k = k + 1
       sname(k) = 'ice_g2'
       lname(k) = 'ICE IN G2'
-      units(k) = '?'
+      units(k) = 'kg/m**2'
       k = k + 1
       sname(k) = 'snowdp'
       lname(k) = 'SNOW DEPTH'
-      units(k) = '?'
+      units(k) = 'kg/m**2'
       k = k + 1
       sname(k) = 'wat_runoff_z0'
       lname(k) = 'WATER RUNOFF Z0'
-      units(k) = '?'
+      units(k) = 'mm/day'
       k = k + 1
       sname(k) = 'btemp_window'
       lname(k) = 'LW WINDOW BTEMP'
@@ -3908,7 +3908,7 @@ C**** IA now set from DEFACC
      *  .05,2.0,.2,.2,.2,.2,  .05,5*0./
       INTEGER, DIMENSION(KAIJ) :: JGRID
       DATA JGRID/19*1,2, 18*1,2*2, 40*1, 5*1,2*2,13*1/
-      INTEGER, DIMENSION(3) :: JGRID_THIS_ROW ! for green sheet gymnastics
+      INTEGER, DIMENSION(3) :: JGRID_THIS_ROW ! for green sheet printout
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: PMB=(/
      &     1000.,850.,700.,500.,300.,100.,30. /)
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: GHT=(/

@@ -44,11 +44,11 @@ C**** have to wait.
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
-!@var XIJ lat/lon output field 
+!@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
-!@var XJ lat sum/mean of output field 
+!@var XJ lat sum/mean of output field
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
-!@var XSUM global sum/mean of output field 
+!@var XSUM global sum/mean of output field
       REAL*8, INTENT(IN) :: XSUM
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
@@ -94,19 +94,19 @@ C**** have to wait.
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
-!@var XJL output field 
+!@var XJL output field
 !@+       (J1:JM,1:KLMAX) is field
 !@+       (JM+1:JM+3,1:KLMAX) are global/NH/SH average over L
 !@+       (J1:JM+3,LM+LM_REQ+1) are averages over J
       REAL*8, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
 !@var PM pressure levels (MB)
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
-      
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
+
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
       REAL*8 XCOOR(JM)
       INTEGER J,L,JXMAX
-      
+
       XCOOR(1:JM-J1) = LAT_DG(J1:JM,J1)
       JXMAX = JM-J1+1
 
@@ -159,22 +159,22 @@ C**** have to wait.
 !@var KLMAX max level to output
 !@var ISHIFT flag for secondary grid
       INTEGER, INTENT(IN) :: KLMAX,ISHIFT
-!@var XIL output field 
+!@var XIL output field
       REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
 !@var PM pressure levels (MB)
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 !@var ASUM vertical mean/sum
-      REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM 
-!@var GSUM total sum/mean 
+      REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM
+!@var GSUM total sum/mean
       REAL*8, INTENT(IN) :: GSUM
-!@var ZONAL zonal sum/mean 
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL 
-      
+!@var ZONAL zonal sum/mean
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL
+
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
       REAL*8 XCOOR(IM)
       INTEGER I,L
-      
+
       XCOOR(1:IM) = LON_DG(1:IM,ISHIFT)
       WRITE (iu_il) TITLE,IM,KLMAX,1,1,
      *     ((SNGL(XIL(I,L)),I=1,IM),L=1,KLMAX),(SNGL(XCOOR(I)),I=1,IM)
@@ -240,7 +240,7 @@ C**** Convert spaces in TITLE to underscore
         WRITE(iu_j,'(I4,100(1X,F8.3))') NINT(LAT_DG(J,1)),
      *       (BUDG(J,K),K=1,KMAX)
       END DO
-      WRITE(iu_j,*) 
+      WRITE(iu_j,*)
 C**** output hemispheric and global means
       WRITE(iu_j,'(A4,100F8.3)') "NH",(BUDG(JM+1,K),K=1,KMAX)
       WRITE(iu_j,'(A4,100F8.3)') "SH",(BUDG(JM+2,K),K=1,KMAX)
@@ -284,18 +284,18 @@ C**** output hemispheric and global means
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
-!@var XIJK lat/lon/height output field 
+!@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
-!@var XJK lat sum/mean of output field 
+!@var XJK lat sum/mean of output field
       REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
-!@var XK global sum/mean of output field 
+!@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 
       INTEGER :: I,K
 
       DO K=1,LM
          WRITE(iu_ijk) TITLE(K),
-c fill in missing first row for GISS format (should put in missing value)
+c fill in missing first row for GISS format(should put in missing value)
      &        ((0.,i=1,im)),SNGL(XIJK(:,:,K)),
      &        0.           , SNGL(XJK(:,K)),
      &        SNGL(XK(K))
