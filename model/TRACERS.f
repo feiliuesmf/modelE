@@ -457,7 +457,11 @@ C**** calculate fractional loss
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
         tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
+#ifdef TRACERS_AEROSOLS_Koch
+C**** this code should be for everyone, but only the aerosols have 
+C**** been properly defined.
         taijs(i,j,naij)=taijs(i,j,naij)+tr3Dsource(i,j,l,ns,n)*dtsrc
+#endif
       end do; end do; end do
       call DIAGTCA(itcon_3Dsrc(ns,n),n)
 C****
@@ -580,7 +584,7 @@ C**** should this operate in the first layer? Surely dry dep is dominant?
 #ifdef TRACERS_DRYDEP
 C**** maybe this should be a separate diag (or not be done at all?)
               taijn(i,j,tij_drydep,n) = taijn(i,j,tij_drydep,n) +
-     *             trgrdep(i,j,n)*bydxyp(j)
+     *             trgrdep(i,j,n)
 #endif
             else               ! above layer 1
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))

@@ -1461,6 +1461,7 @@ c heterogenous sink SO2
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef TRACERS_AEROSOLS_Koch
 c convective chem cloud phase sink of SO2
         k = k + 1
         jls_incloud(1,n) = k
@@ -1477,6 +1478,7 @@ c stratiform chem cloud phase sink of SO2
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 
         case ('SO4')
 c gas phase source of SO4
@@ -1495,6 +1497,7 @@ c heterogeneous source of SO4
         jls_ltop(k) = LM
         jls_power(k) = -3 
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef TRACERS_AEROSOLS_Koch
 c convective cloud phase source of SO4
         k = k + 1
         jls_incloud(1,n) = k
@@ -1511,6 +1514,7 @@ c stratiform cloud phase source of SO4
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 c industrial source
         k = k + 1
         jls_source(1,n) = k
@@ -1552,6 +1556,7 @@ c heterogenous sink H2O2_s
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef TRACERS_AEROSOLS_Koch
 c convective chem cloud phase sink of H2O2
         k = k + 1
         jls_incloud(1,n) = k
@@ -1568,7 +1573,6 @@ c stratiform chem cloud phase sink of H2O2
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-C
 c photolysis rate
         k = k + 1
         jls_phot = k
@@ -1577,6 +1581,7 @@ c photolysis rate
         jls_ltop(k) =LM
         jls_power(k) =-8
         units_jls(k) = unit_string(jls_power(k),'/s')
+#endif
 
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
@@ -1667,7 +1672,6 @@ c Oxidants
         jls_power(k) =5
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif
-
         
       if (k.gt. ktajls) then
         write (6,*)
