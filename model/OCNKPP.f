@@ -12,32 +12,219 @@
       REAL*8, DIMENSION(IM,JM,LSRPD) :: G0M1
       REAL*8, DIMENSION(IM,JM) :: MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1
 
-
       END MODULE
 
-C**** Is this still necessary now that fluxes are saved?
-      SUBROUTINE KVINIT
-C**** Initialise KMIX and save pre-source term surface values of
-C**** enthalpy, mass and horizontal gradients for kppmix calculation
-      USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,mo,uo,vo
-      USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1,lsrpd
+C****
+      MODULE KPPE
+!@sum  KPPE contains variables and routines for KPP mixing scheme
+!@auth NCAR (modifications by Gavin Schmidt)
+!@ver  1.0
+c====================== include file "KPP_1D.COM" =========================
+c
+      USE OCEAN, only : lmo
+      USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
-      INTEGER I,J
-C**** Save surface values
-      DO J=1,JM
-         DO I=1,IM
-            G0M1(I,J,1:LSRPD) = G0M(I,J,1:LSRPD)
-            GXM1(I,J) = GXMO(I,J,1)
-            GYM1(I,J) = GYMO(I,J,1)
-            SXM1(I,J) = SXMO(I,J,1)
-            SYM1(I,J) = SYMO(I,J,1)
-            MO1(I,J)  = MO(I,J,1)
-            UO1(I,J)  = UO(I,J,1)
-            VO1(I,J)  = VO(I,J,1)
-         END DO
-      END DO
-      RETURN
-      END
+      SAVE
+c     main parameter file which sets kpp ocean characteristics:
+
+c set max. number of ocean levels 
+c LMO is max number of main ocean model, km is max number of KPP layers
+      INTEGER, PARAMETER :: km=LMO
+
+c imt    = number of grid points in longitudinal direction
+c jmt    = number of grid points in latitudinal direction
+c km     = number of grid points in the vertical direction
+c      parameter (imt=1, jmt=46, km=13, kmp1=km+1)
+
+c     rules for parameter constants
+c
+c use prefix of "c" for whole real numbers (ie: c57 for 57.0)
+c use "m" after prefix to designate negative values (minus sign)
+c      (ie: cm7 for -7.0)
+c use prefix of "p" for non repeating fractions (ie: p5 for 0.5)
+c use prefix of "r" for reciprocals (ie: r3 for 1/3.0)
+c combine use of prefix above and "e" for scientific notation, with
+c       (ie: c5e4 for 5.0e4, c1em10 for 1.0e-10)
+c
+      real*8,parameter :: c0=0.0, c1=1.0, c2=2.0, c4=4.0, c5=5.0, c8=8.0
+      real*8,parameter :: c16=16.0, c360=360.0
+      real*8,parameter :: p25=0.25, p5=0.5, p75=0.75
+      real*8,parameter :: epsln=1.0e-20
+c
+      real*8,parameter :: c24=24.0, c60=60.0, c1440=1440.0
+      real*8,parameter :: r24=c1/c24, r60=c1/c60, r1440=c1/c1440
+      real*8,parameter :: secday=c1/(c60*c1440)
+c
+      real*8,parameter :: c1p5 = 1.5 , c3   = 3.     , c35   = 35.    
+      real*8,parameter :: c10 = 10. , c100 = 100.   , c1000 = 1000. 
+      real*8,parameter :: c10000 = 10000.  
+      real*8,parameter :: r3 = c1/c3 , r10  = c1/c10 , r100 = r10/c10
+      real*8,parameter :: r1000  = c1/c1000, r10000 = r10*r1000
+
+c====================== include file CVMIX_CLEAN.COM =========================
+
+c     variables used for vertical diffusion
+c
+c inputs: (set through namelist)
+c
+c fkph   = vertical diffusion coefficient (cm**2/sec)
+c fkpm   = vertical viscosity coefficient (cm**2/sec)
+c bvdc   = background vertical diffusion constant
+c bvvc   = background vertical viscosity constant
+c vvclim = vertical viscosity coefficient limit
+c vdclim = vertical diffusion coefficient limit
+c
+c vvcric = maximum viscosity   due to shear instability    (cm**2/s)
+c              (based on local richardson number)  
+c vdcric = maximum diffusivity due to shear instability    (cm**2/s)
+c
+c arrays used for vertical diffusion in "k-profile" mixing scheme,
+c computed in "kmix.F" and "kmixs.F".
+c note, that in this scheme temperature diffusvity might be 
+c different from the diffusivity of all other tracers due to double
+c diffusion.
+c
+c vvc           = vertical viscosity coeff
+c vdc(imt,km,1) = temperature vertical diffusivity coeff.  (cm**2/s)
+c vdc(imt,km,2) = salinity    vertical diffusivity coeff.  (cm**2/s)
+c               = diffusivity coeff. for all other tracers
+c
+c      common /kmixc/ vvc(imt,km), vdc(imt,km,2)
+c      common /cvmix1/ fkph,fkpm,bvdc,bvvc,vvclim,vdclim,vvcric,vdcric
+      real*8, parameter :: vvcric=50d0, vdcric=50d0, fkpm=10d0, fkph=0
+     *     .3d0,vvclim = 1000d0, vdclim = 1000d0
+
+c====================== include file "KMIX_CLEAN.COM" =======================
+c     Define various parameters and common blocks for kmix vertical-
+c     mixing scheme; used in "kmixs.F" subroutines
+c
+c parameters for several subroutines
+c
+c  epsl    = epsln in "pconst.h" (set in "kmixinit")    = 1.0e-20 
+c  epsilon = nondimensional extent of the surface layer = 0.1
+c  vonk    = von Karman's constant                      = 0.4
+c  conc1,conam,concm,conc2,zetam,conas,concs,conc3,zetas
+c          = scalar coefficients
+      
+      real*8, parameter :: epsl=epsln, epsilon=0.1d0, vonk=0.4d0, conc1
+     *     =5d0,conam=1.257d0, concm=8.380d0, conc2=16d0,zetam= -0.2d0
+     *     ,conas=-28.86d0,concs=98.96d0,conc3=16d0,zetas= -1d0
+c      common /kmixcom/ epsl,epsilon,vonk,conc1,conam,concm,conc2,zetam,
+c     $                                         conas,concs,conc3,zetas
+
+c     parameters for subroutine "bldepth"
+
+c to compute depth of boundary layer:
+c
+c  Ricr    = critical bulk Richardson Number            = 0.3
+c  cekman  = coefficient for ekman depth                = 0.7 
+c  cmonob  = coefficient for Monin-Obukhov depth        = 1.0
+c  concv   = ratio of interior buoyancy frequency to 
+c               buoyancy frequency at entrainment depth    = 1.8
+c  hbf     = fraction of bounadry layer depth to 
+c               which absorbed solar radiation 
+c               contributes to surface buoyancy forcing    = 1.0
+c  Vtc     = non-dimensional coefficient for velocity
+c               scale of turbulant velocity shear
+c               (=function of concv,concs,epsilon,vonk,Ricr)
+c
+c      common /kmixcbd/ Ricr,cekman,cmonob,concv,hbf,Vtc
+      real*8, parameter :: Ricr= 0.3d0, cekman= 0.7d0, cmonob=1d0, concv
+     *     =1.8d0,hbf=1d0
+      real*8 Vtc
+      common /kmixcbd/ Vtc
+
+c     parameters and common arrays for subroutines "kmixinit" and
+c     "wscale" to compute turbulent velocity scales:
+c
+c  nni     = number of values for zehat in the look up table
+c  nnj     = number of values for ustar in the look up table
+c
+c  wmt     = lookup table for wm, the turbulent velocity scale 
+c               for momentum
+c  wst     = lookup table for ws, the turbulent velocity scale 
+c               for scalars
+c  deltaz  = delta zehat in table
+c  deltau  = delta ustar in table
+c  rdeltaz  = recipricol of delta zehat in table
+c  rdeltau  = recipricol of delta ustar in table
+c  zmin    = minimum limit for zehat in table (m3/s3)
+c  zmax    = maximum limit for zehat in table
+c  umin    = minimum limit for ustar in table (m/s)
+c  umax    = maximum limit for ustar in table
+
+      integer, parameter :: nni = 890, nnj = 480
+c
+      real*8 wmt,wst
+      common /kmixcws/ wmt(0:nni+1,0:nnj+1),wst(0:nni+1,0:nnj+1)
+      real*8, parameter :: zmin=-4d-7,zmax=0.,umin=0.,umax=4d-2,
+     *     deltaz = (zmax-zmin)/(nni+1), deltau = (umax-umin)/(nnj+1),
+     *     rdeltaz = 1./deltaz, rdeltau = 1./deltau
+
+c      common /kmixcws2/ deltaz,deltau,rdeltaz,rdeltau,zmin,zmax,umin
+c     *     ,umax
+c for some reason, I could not compile the module if the above lines were
+c in the same comon block.
+c
+c     parameters for subroutine "ri_iwmix"
+c     to compute vertical mixing coefficients below boundary layer:
+c
+c  Riinfty = local Richardson Number limit 
+c              for shear instability                      = 0.7
+c  rRiinfty = 1/Riinfty
+c    (note: the vertical mixing coefficients are defined 
+c    in (m2/s) units in "kmixinit". they are initialized 
+c    in "kmixbdta" and read via namelist "eddy" in (cm2/s) 
+c    units using their c-g-s names)
+c   (m2/s)                                                 (cm2/s)
+c  difm0   = viscosity max due to shear instability     = vvcric 
+c  difs0   = diffusivity ..                             = vdcric
+c  difmiw  = viscosity background due to internal waves = fkpm 
+c  difsiw  = diffusivity ..                             = fkph
+c  difmcon = viscosity due to convective instability    = vvclim
+c  difscon = diffusivity ..                             = vdclim
+c  BVSQcon = value of N^2 where the convection coefs first become max
+c  rBVSQcon = 1/BVSQcon
+c  num_v_smooth_Ri = number of vertical smoothings of Ri
+
+c      common /kmixcri/ Riinfty,rRiinfty,
+c     $                 difm0,difs0,difmiw,difsiw,difmcon,difscon,
+c     $                 BVSQcon,rBVSQcon,num_v_smooth_Ri
+      real*8, parameter :: Riinfty= 0.7d0, rRiinfty=1./Riinfty, BVSQcon=
+     *     -1d-7,rBVSQcon=1./BVSQcon, num_v_smooth_Ri=1
+      real*8, parameter :: difm0   = vvcric * r10000, difs0   = vdcric
+     *     * r10000,difmiw  = fkpm   * r10000, difsiw  = fkph   * r10000
+     *     ,difmcon = vvclim * r10000, difscon = vdclim * r10000
+
+c     parameters for subroutine "ddmix"
+c     to compute additional diffusivity due to double diffusion:
+c  Rrho0   = limit for double diffusive density ratio
+c  dsfmax  = maximum diffusivity in case of salt fingering (m2/s)
+
+c      common /kmixcdd/ Rrho0,dsfmax
+      real*8, parameter :: Rrho0 = 1.9d0, dsfmax = 0.001d0
+
+c     parameters for subroutine "blmix"
+c     to compute mixing within boundary layer:
+c  cstar   = proportionality coefficient for nonlocal transport
+c  cg      = non-dimensional coefficient for counter-gradient term
+
+c      common /kmixcbm/ cstar,cg
+      real*8, parameter :: cstar = 10d0
+      real*8 cg
+      common /kmixcbm/ cg
+
+c solar radiation penetration common block (used in swfrac)
+c      PARAMETER (LSRPD=3)
+c      common /SWFRCB/FSR(LSRPD),FSRZ(LSRPD),dFSRdZ(LSRPD),dFSRdZB(LSRPD)
+
+c add variables for depth dependent mixing due to rough topography
+
+      real*8, parameter :: diftop=0d0    ! 10d0 * r10000)
+      real*8 fz500
+      common /topomix/FZ500(km,km)
+
+      END MODULE
 
       SUBROUTINE KPPMIX(LDD   , ZE    ,
      $                  zgrid , hwide , kmtj  , Shsq   , dVsq  ,
@@ -56,7 +243,8 @@ c                  bill large, january 25, 1995 : "dVsq" and 1d code
 c     modified for GISS by Gavin Schmidt, march 1998
 c
 c
-      INCLUDE "KPPE.COM"
+c      INCLUDE "KPPE.COM"
+      USE KPPE
 !@var number of diffusivities for local arrays
       integer, parameter :: mdiff = 3
 c input
@@ -112,7 +300,7 @@ c local wscale
      *            ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide
       INTENT (OUT) visc, difs, dift, ghats, hbl, kbl
       INTEGER ki,mr,ka,ku,kl,iz,izp1,ju,jup1,ksave,kn,kt
-      REAL*8 epsl,ratio,zdiff,zfrac,fzfrac,wam,wbm,was,wbs,u3,bvsq
+      REAL*8 ratio,zdiff,zfrac,fzfrac,wam,wbm,was,wbs,u3,bvsq
      *     ,delhat,dvdzup,dvdzdn,viscp,diftp,visch,difsh,f1,bywm,byws
      *     ,sig,a1,a2,a3,gm,gs,gt,dstar,udiff,ufrac,vtsq,r,difsp,difth
      *     ,dkmp5
@@ -634,7 +822,7 @@ c combine interior and boundary layer coefficients and nonlocal term
       ghats(kbl:km)=0.
 
       return
-      end
+      end subroutine kppmix
 
       subroutine wscale(sigma, hbl, ustar, bfsfc, wm , ws)
 
@@ -645,7 +833,8 @@ c
 c     note: the lookup table is only used for unstable conditions
 c     (zehat.le.0), in the stable domain wm (=ws) gets computed
 c     directly.
-      INCLUDE "KPPE.COM"
+c      INCLUDE "KPPE.COM"
+      USE KPPE
       INTENT (IN) sigma,hbl,ustar,bfsfc
       INTENT (OUT) wm,ws
 
@@ -696,29 +885,7 @@ c stable formulae
       endif
 
       return
-      end
-
-      subroutine z121 (v,kmtj,km)
-c     Apply 121 smoothing in k to 2-d array V(k=1,km)
-c     top (0) value is used as a dummy
-c     bottom (km+1) value is set to input value from above.
-
-      PARAMETER (p5=5d-1, p25=2.5d-1)
-      INTENT (IN) kmtj,km
-      INTENT (INOUT) v
-c  input
-      real*8 V(0:km+1)  ! 2-D array to be smoothed
-
-      V(0)      =  p25 * V(1)
-      V(kmtj+1) =        V(kmtj)
-
-      do k=1,kmtj
-         tmp      =  V(k)
-         V(k)   =  V(0)  + p5 * V(k) + p25 * V(k+1)
-         V(0)   =  p25 * tmp
-      end do
-      return
-      end
+      end subroutine wscale
 
       subroutine ddmix (alphaDT, betaDS, visc, difs, dift, kmtj)
 
@@ -726,7 +893,8 @@ c     Rrho dependent interior flux parameterization.
 c     Add double-diffusion diffusivities to Ri-mix values at blending
 c     interface and below.
 
-      INCLUDE "KPPE.COM"
+c      INCLUDE "KPPE.COM"
+      USE KPPE
       INTENT (IN) alphaDT,betaDS,kmtj
       INTENT (INOUT) visc, difs, dift
 c input
@@ -770,14 +938,15 @@ c diffusive convection
          endif
  100  continue
       return
-      end
+      end subroutine ddmix
 
       subroutine kmixinit(ZE)
 c     initialize some constants for kmix subroutines, and initialize
 c     for kmix subroutine "wscale" the 2D-lookup table for wm and ws
 c     as functions of ustar and zetahat (=vonk*sigma*hbl*bfsfc).
 
-      INCLUDE "KPPE.COM"
+c      INCLUDE "KPPE.COM"
+      USE KPPE
 c local
       real*8 zehat                        ! = zeta *  ustar**3
       real*8 zeta                       ! = stability parameter d/L
@@ -842,7 +1011,7 @@ c  for two levels above bottom, starting at level km/2
       end do
  
       return
-      end
+      end subroutine kmixinit
 
       subroutine swfrac(z,ZE,k,kmtj,kmax,bfsfc)
 
@@ -856,7 +1025,8 @@ C****      kmtj is number of grid points in column
 C****      kmax is the number of grid points in column that recieve
 C****           solar radiation
 C****
-      INCLUDE "KPPE.COM"
+c      INCLUDE "KPPE.COM"
+      USE KPPE
       INTENT (IN) z,k,kmtj,kmax,ZE
       INTENT (OUT) bfsfc
       real*8 z,bfsfc
@@ -878,7 +1048,53 @@ C**** calculate fraction
       end if
 
       return
-      end
+      end subroutine swfrac
+
+      subroutine z121 (v,kmtj,km)
+c     Apply 121 smoothing in k to 2-d array V(k=1,km)
+c     top (0) value is used as a dummy
+c     bottom (km+1) value is set to input value from above.
+      IMPLICIT NONE
+      REAL*8, PARAMETER :: p5=5d-1, p25=2.5d-1
+      INTEGER, INTENT (IN) :: kmtj,km
+      REAL*8, INTENT (INOUT) :: V(0:km+1)  ! 2-D array to be smoothed
+      INTEGER K
+      REAL*8 tmp
+
+      V(0)      =  p25 * V(1)
+      V(kmtj+1) =        V(kmtj)
+
+      do k=1,kmtj
+         tmp      =  V(k)
+         V(k)   =  V(0)  + p5 * V(k) + p25 * V(k+1)
+         V(0)   =  p25 * tmp
+      end do
+      return
+      end subroutine z121
+
+C**** Is this still necessary now that fluxes are saved?
+      SUBROUTINE KVINIT
+C**** Initialise KMIX and save pre-source term surface values of
+C**** enthalpy, mass and horizontal gradients for kppmix calculation
+      USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,mo,uo,vo
+      USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,SXM1,SYM1,UO1,VO1,lsrpd
+      IMPLICIT NONE
+      INTEGER I,J
+C**** Save surface values
+      DO J=1,JM
+         DO I=1,IM
+            G0M1(I,J,1:LSRPD) = G0M(I,J,1:LSRPD)
+            GXM1(I,J) = GXMO(I,J,1)
+            GYM1(I,J) = GYMO(I,J,1)
+            SXM1(I,J) = SXMO(I,J,1)
+            SYM1(I,J) = SYMO(I,J,1)
+            MO1(I,J)  = MO(I,J,1)
+            UO1(I,J)  = UO(I,J,1)
+            VO1(I,J)  = VO(I,J,1)
+         END DO
+      END DO
+      RETURN
+      END
 
       SUBROUTINE OCONV
 !@sum  OCONV does vertical mixing using coefficients from KPP scheme
@@ -1399,7 +1615,6 @@ C**** End of outside J loop
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
       IMPLICIT NONE
-
       REAL*8 MMLT,MML0
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
@@ -1488,6 +1703,7 @@ C**** Initiallise fields
       dbloc=0.
       dbsfc=0.
       Ritop=0.
+      alphaDT=0. ; betaDS=0.
 
 C**** velocity shears
 
@@ -1547,7 +1763,6 @@ C**** betaDS  = mean sbeta  * delta(salt)     at interfaces  (kg/m3)
       end if
 
 C**** Get diffusivities for the whole column
-
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
