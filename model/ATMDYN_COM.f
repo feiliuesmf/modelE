@@ -52,5 +52,10 @@ C**** module should own dynam variables used by other routines
 !@var xAVRX scheme-depend. coefficient for AVRX: 1,byrt2 (2nd,4th order)
       REAL*8 xAVRX
 
+!@var PUA,PVA,SDA,PS save PU,PV,SD,P for hourly tracer advection
+!@var MB Air mass array for tracers
+      REAL*8, DIMENSION(IM,JM,LM) :: PUA,PVA,SDA,MB
+      REAL*8, DIMENSION(IM,JM) :: PS
+
       END MODULE DYNAMICS
 
