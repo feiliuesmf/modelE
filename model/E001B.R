@@ -19,7 +19,6 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices:
-! (ATURB and SURFACE_turb) or (DRYCNV and SURFACE)
 ! ATURB                             ! turbulence in whole atmosphere
 DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
@@ -36,7 +35,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.13
+AIC=DEC1958.rsfB394M12.modelE.14
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=AVR4X5LD.Z12                ! ocean filter
