@@ -41,6 +41,9 @@
      &     ClOxalt,ClONO2alt,HClalt
 #endif
 #endif
+#ifdef TRACERS_COSMO
+      USE COSMO_SOURCES, only: be7_src_param
+#endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
       integer :: l,k,n,ntemp,n2,ltop,g
@@ -130,6 +133,11 @@ C**** Define a max layer for some optionally trop/strat tracers
        IF(LS1J(J).gt.LTOP+1)call stop_model('LS1J > LS1Jmax',255)
       END DO 
 #endif
+#endif
+
+#ifdef TRACERS_COSMO
+C**** get rundeck parameter for cosmogenic source factor
+      call sync_param("be7_src_param", be7_src_param)
 #endif
 
 C**** Define individual tracer characteristics
@@ -3821,19 +3829,19 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           trm(:,:,:,n) = 0.
           trmom(:,:,:,:,n) = 0.
 
-        case('Be7')
+        case ('Be7')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
             end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
-        case('Be10')
+        case ('Be10')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.
 
-        case('Pb210')
+        case ('Pb210')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
@@ -4296,10 +4304,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
 #endif
-#ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only: be7_src_3d
-#endif
-
       IMPLICIT NONE
       INTEGER n,iact,last_month
       data last_month/-1/
@@ -4402,11 +4406,10 @@ C         (lightning called from tracer_3Dsource)
       do n=1,ntm
         if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
           call read_Be_source
+          exit
         end if
-        end do
+      end do
 #endif
-
-
 
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
@@ -4709,7 +4712,7 @@ C****
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_COSMO
-      USE COSMO_SOURCES, only: be7_src_3d
+      USE COSMO_SOURCES, only: be7_src_3d, be7_src_param
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: SO2_src_3d
@@ -4767,17 +4770,25 @@ c      call apply_SO2_3Dsrc
 #ifdef TRACERS_COSMO
 C****
       case ('Be7')
-        tr3Dsource(:,:,:,1,n) = be7_src_3d(:,:,:) !cosmogenic src
-      call apply_tracer_3Dsource(1,n)
+c cosmogenic src
+        do l=1,lm; do j=1,jm; do i=1,im
+          tr3Dsource(i,j,l,1,n) = be7_src_param * am(l,i,j) *
+     *         be7_src_3d(i,j,l) 
+        end do; end do; end do
+        call apply_tracer_3Dsource(1,n)
 C****
       case ('Be10')
-c 0.55 is ratio of Be10 to Be7 production
-c 10./7. is ratio of molecular weights
-        tr3Dsource(:,:,:,1,n) = 0.55d0*10./7.*be7_src_3d(:,:,:) !cosmogenic src
-      call apply_tracer_3Dsource(1,n)
+c 0.52 is ratio of Be10 to Be7 production
+c tr_mm(n_Be10)/tr_mm(n_Be7)= 10./7. is ratio of molecular weights
+c cosmogenic src
+        do l=1,lm; do j=1,jm; do i=1,im
+          tr3Dsource(i,j,l,1,n)=0.52d0 * be7_src_param * am(l,i,j)
+     *         * be7_src_3d(i,j,l) * tr_mm(n_Be10)/tr_mm(n_Be7)
+        end do; end do; end do
+        call apply_tracer_3Dsource(1,n)
 C****
       case('Pb210')
-      call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
+        call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
 #endif
 
       end select
