@@ -1,7 +1,6 @@
 !     MODULE CLOUD_DROP_PRED
 !     USE TRACER_COM
 !     USE CLOUDS_COM
-!     real*8, DIMENSION(IM,JM,LM)::DSG,
 !     END MODULE CLOUD_DROP_PRED
 
       SUBROUTINE GET_CDNC(L,LHX,WCONST,WMUI,AIRM,WMX,DXYPJ,
@@ -19,13 +18,11 @@
       integer L
 
 !add in terms for AMASS from other program to get aerosol mass conc.
-      amass=AIRM*mb2kg*DXYPJ  !1./AIRM*1.292
+      amass=AIRM*mb2kg*DXYPJ  
       tams=1.d0/amass*1.292d0
-c     write(6,*)"MASS",amass,DXYPJ,l
       DSU =(1.d9*DSGL)*tams          
-c     write(6,*)"DSU",DSU,DSGL(L),l,tams
 C** use CTEI effect for CDNC as in Menon et al. 2002 JAS
-      smalphaf=(1.d0+ 2.d0*SMFPML)*0.5d0  ! SMFPM was 3D
+      smalphaf=(1.d0+ 2.d0*SMFPML)*0.5d0 
 C** Converting aerosol mass to number
       SSM1=DSU/1769.d0
       SSM7=SSM1/(0.004189d0*(.050d0**3.d0))
@@ -40,7 +37,6 @@ C** Here we use Gultepe's paramet for CDNC = f(Na)
       IF (EXPL.LT.10.d0) EXPL=10.0d0
       WCDNO= EXPO*smalphaf
       WCDNL= EXPL*smalphaf
-c     write(6,*) "CDNC",WCDNO,WCDNL,SMFPML(L),OLDCDL(L),OLDCDO(L),l
       CDNL0=OLDCDL   !term initialised to 10. CLOUDS_DRV                  
       CDNO0=OLDCDO   
 
@@ -50,8 +46,6 @@ C** gas phase sulfate and cloud area changes
       CCLD1 = 1.d0-CAREA  !CLDSS(L)cld frac from present time step 
       DCLD = CCLD1-CCLD0     ! cloud fraction change
       dfn = 0.0d0
-c     if(WMX(L).le.0.) WMX=1.d-20  ! you are not allowed to modify main model
-c     ! values, since then you wont get the same answer with and without tracers!
       IF(LHX.EQ.LHE.AND.WMX/FCLD.GE.WCONST*1.d-3) dfn=0.1d0  
       IF(LHX.EQ.LHS.AND.WMX/FCLD.GE.WMUI*1.d-3) dfn=0.1d0
 
@@ -70,14 +64,14 @@ C** If previous time step is cloudy then depending on cld frac change
 
       IF (CDNL1.le.10.d0) CDNL1=10.d0
       IF (CDNO1.le.10.d0) CDNO1=10.d0
-c    *write(6,*) "CDNC1st",CDNL1,CDNO1,DSU,smalphaf
+!     if(CDNL1.gt.1000.d0) 
+!    *write(6,*) "CDNC1st",CDNL1,DSU,smalphaf,L
 
       RETURN
       
       END SUBROUTINE GET_CDNC 
 
       SUBROUTINE GET_QAUT(L,TL,FCLD,WMX,SCDNCW,RHO,QCRIT,QAUT)
-!     USE CLOUDS_COM
       USE TRACER_COM
       USE CONSTANT,only:TWOPI,GRAV
       IMPLICIT NONE
@@ -92,7 +86,6 @@ C     using Qcrit for QAUT
       QCRIT=(2.d0/3.d0)*TWOPI*1.d9*((rcr*1.d-06)**3.d0)*SCDNCW/
      *(.001d0*RHO)
    
-c      if(WMX.le.0.d0) WMX=1.d-20  ! as above
       QAUT=(0.104d0*GRAV*0.55d0*((.001d0*RHO)**(4.d0/3.d0))*
      * ((WMX/(FCLD+1.d-20))**(7.d0/3.d0)))/
      * (dynvis*((SCDNCW*1.d09)**(1.d0/3.d0)))
@@ -107,7 +100,6 @@ c     if(QAUT.eq.0.) write(6,*)"QCR",QAUT,SCDNCW,WMX(L),l
      *CLDSSL,CLDSAVL,DSU,SMFPML,OLDCDO,OLDCDL,CDNL1,CDNO1)
       USE CLOUDS_COM
       USE CONSTANT,only:LHE,LHS
-!     USE CLOUDS,only:OLDCDO,OLDCDL,SMFPML
       USE TRACER_COM
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
@@ -141,7 +133,6 @@ C** gas phase sulfate and cloud area changes
       CCLD1 = CLDSSL    !cld frac from present time step  was 3D
       DCLD = CCLD1-CCLD0   ! cloud fraction change
       dfn = 0.d0
-c      if(WMX.le.0.) WMX=1.d-20 ! again as above
       IF(LHX.EQ.LHE.AND.WMX/FCLD.GE.WCONST*1.d-3) dfn=0.1d0
       IF(LHX.EQ.LHS.AND.WMX/FCLD.GE.WMUI*1.d-3) dfn=0.1d0
 
@@ -157,8 +148,8 @@ C** If previous time step is cloudy then depending on cld frac change
         CDNL1 = (((CDNL0*CCLD0)+(WCDNL*DCLD))/CCLD1) - dfn*CDNL0
         CDNO1 = (((CDNO0*CCLD0)+(WCDNO*DCLD))/CCLD1) - dfn*CDNO0
       endif
-c     if (CDNL1.gt.1200.) 
-c    *write(6,*) "CDNCUPD",CDNL1,CDNO1,DSU,smalfaf
+!     if (CDNL1.gt.1000.) 
+!    *write(6,*) "CDNCUPD",CDNL1,DSU,smalfaf
       IF (CDNL1.le.10.d0) CDNL1=10.d0
       IF (CDNO1.le.10.d0) CDNO1=10.d0
 
