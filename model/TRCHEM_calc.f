@@ -6,7 +6,7 @@
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only       : im,jm,lm,ls1,byim
+      USE MODEL_COM, only       : im,jm,lm,ls1
       USE DYNAMICS, only        : am, byam
       USE GEOM, only            : BYDXYP,dxyp
       USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,tajls
@@ -601,10 +601,6 @@ C**** special diags not associated with a particular tracer
          if (y(nOH,L).gt.0. .and. y(nOH,L).lt.1.E20) 
      &   TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
          TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
-         if(J.ne.1.and.J.ne.JM)then
-           TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)*byim
-           TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)*byim
-         end if 
       END DO
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
