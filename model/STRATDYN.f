@@ -22,6 +22,8 @@ C**** (used to be FMC)
       REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
+!@dbparam PCONPEN level of penetrating moist conv (in param. database)
+      REAL*8 :: PCONPEN = 400.   ! default is 400mb
 !@dbparam DEFTHRESH threshold for deformation wave (1/s)
       REAL*8 :: DEFTHRESH = 15d-6  ! default is 15x10^-6 s^-1
 !@dbparam PBREAKTOP p. level to force GW breaking in top layer
@@ -69,7 +71,7 @@ C**** accumulated in the routines contained herein
       USE GEOM, only : areag,dxyv,dlat_dg
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,ldefm,zvarx,zvary,zvart,zwt,pks,nm,ek, cmtn
-     *     ,cdef,cmc,pbreak,pbreaktop,defthresh
+     *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       INTEGER I,J,L,iu_zvar
@@ -83,6 +85,7 @@ C**** sync gwdrag parameters from input
       call sync_param( "CDEF", CDEF)
       call sync_param( "CMC", CMC)
       call sync_param( "PBREAK", PBREAK)
+      call sync_param( "PCONPEN", PCONPEN)
       call sync_param( "PBREAKTOP", PBREAKTOP)
       call sync_param( "DEFTHRESH", DEFTHRESH)
 
@@ -442,7 +445,7 @@ C****
      *     ,dsig,psfmpt,ptop,ls1,mrch,zatmo
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef,ldefm
      *     ,lbreak,ld2,lshr,pk,ek,pks, qgwmtn, qgwshr, qgwdef, qgwcnv
-     *     ,cmtn,cdef,cmc,pbreaktop,defthresh
+     *     ,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen
 C**** Do I need to put the common decalaration here also?
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,ravpn,ravps,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
@@ -719,8 +722,8 @@ CCC     CLDHT=H0*LOG((PIJ*SIGE(LMC0)+PTOP)/(PIJ*SIGE(LMC1)+PTOP))
         LD(4)=10
         WT(3)=WTX
         WT(4)=WTX
-C**** If convection is penetrating (i.e. above 400mb) do second set
-        IF (PLE(LMC1).LT.400. .AND. NM.GE.8) THEN
+C**** If convection is penetrating (i.e. above PCONPEN) do second set
+        IF (PLE(LMC1).LT.PCONPEN .AND. NM.GE.8) THEN
           NMX=8
           DO N=3,NMX
             WT(N)=WTX
