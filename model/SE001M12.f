@@ -36,7 +36,8 @@ C****
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
-      USE OCEAN, only : odata,oa,tfo
+      USE OCEAN, only : tocean,oa,tfo
+      USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
 
       IMPLICIT NONE
@@ -93,9 +94,9 @@ C**** ZATMO     GEOPOTENTIAL (G*Z)
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** ODATA  1  OCEAN TEMPERATURE (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
+C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
 C****        2  EARTH SNOW AMOUNT (KG/M**2)
@@ -190,7 +191,7 @@ C****
       PLAND=FLAND(I,J)
       PWATER=1.-PLAND
       PLICE=FLICE(I,J)
-      POICE=ODATA(I,J,2)*PWATER
+      POICE=RSI(I,J)*PWATER
       POCEAN=PWATER-POICE
       PXSOIL=POCEAN+POICE+PLICE
       PIJ=P(I,J)
@@ -260,8 +261,8 @@ C****
       ITYPE=1
       PTYPE=POCEAN
       NGRNDZ=1
-      TG1=ODATA(I,J,1)
-      SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
+      TG1=TOCEAN(1,I,J)
+      SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       BETA=1.
       ELHX=LHE
@@ -280,8 +281,8 @@ C****
       SNOW=GDATA(I,J,1)
       TG1=TGRND(I,J,2)
       TG2=TGRN2(I,J,2)
-      ACE2=ODATA(I,J,3)
-      SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
+      ACE2=MSI(I,J)
+      SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
@@ -312,7 +313,7 @@ C****
       SNOW=GDATA(I,J,12)
       TG1=TGRND(I,J,3)
       TG2=GDATA(I,J,14)
-      SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
+      SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2
       CDENOM=1./(2.*Z1BY6L+Z2LI3L)
@@ -359,7 +360,7 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       BETAUP = BETA
       IF (QS .GT. QG) BETAUP = 1.
       EVHEAT=(LHE+TG1*SHV)*BETAUP*RCDQWS*(QS-QG)
-      TRHEAT=TRHR(I,J,1)-STBO*(TG*TG)*(TG*TG)
+      TRHEAT=TRHR(1,I,J)-STBO*(TG*TG)*(TG*TG)
       IF(ITYPE.EQ.1) GO TO 3620
 C**** CALCULATE FLUXES USING IMPLICIT TIME STEP FOR NON-OCEAN POINTS
       IF (ITYPE .EQ. 2) GO TO 3550

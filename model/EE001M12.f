@@ -237,19 +237,19 @@ c      ZGS=10.
       HT(0:NGM,2) = HTVEGE(I,J,0:NGM)
       SNOWD(1:2) = SNOWBV(I,J,1:2)
 ccc extracting snow variables
-      NSN(1:2)          = NSN_IJ    (I, J, 1:2)
-      ISN(1:2)          = ISN_IJ    (I, J, 1:2)
-      DZSN(1:NLSN, 1:2) = DZSN_IJ   (I, J, 1:NLSN, 1:2)
-      WSN(1:NLSN, 1:2)  = WSN_IJ    (I, J, 1:NLSN, 1:2)
-      HSN(1:NLSN, 1:2)  = HSN_IJ    (I, J, 1:NLSN, 1:2)
-      FR_SNOW(1:2)      = FR_SNOW_IJ(I, J, 1:2)
+      NSN(1:2)          = NSN_IJ    (1:2, I, J)
+      ISN(1:2)          = ISN_IJ    (1:2, I, J)
+      DZSN(1:NLSN, 1:2) = DZSN_IJ   (1:NLSN, 1:2, I, J)
+      WSN(1:NLSN, 1:2)  = WSN_IJ    (1:NLSN, 1:2, I, J)
+      HSN(1:NLSN, 1:2)  = HSN_IJ    (1:NLSN, 1:2, I, J)
+      FR_SNOW(1:2)      = FR_SNOW_IJ(1:2, I, J)
       CALL GHINIJ (I,J,WFC1)
       CALL RETH
       CALL RETP
 C     CALL HYDRA
 C??   SNOW = SNOWD(1)*FB + SNOWD(2)*FV
       TG1=TBCS
-      SRHEAT=FSF(I,J,ITYPE)*COSZ1(I,J)
+      SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
          SRHDTS=SRHDTS+SRHEAT*DTSURF*PTYPE
 C****
 C**** BOUNDARY LAYER INTERACTION
@@ -282,7 +282,7 @@ C**** CALCULATE RHOSRF*CDM*WS
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2)
       SNHT=-SHA*RCDHWS*(TS-TG)
-      TRHEAT=TRHR(I,J,1)
+      TRHEAT=TRHR(1,I,J)
 C **********************************************************************
 C *****
 C  Define extra variables to be passed in SURFC:
@@ -316,12 +316,12 @@ C 3410 GHDATA(I,J,L)=GW(L,1)
       HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
       SNOWBV(I,J,1:2) = SNOWD(1:2)
 ccc copy snow variables back to storage
-      NSN_IJ    (I, J, 1:2)         = NSN(1:2)
-      ISN_IJ    (I, J, 1:2)         = ISN(1:2)
-      DZSN_IJ   (I, J, 1:NLSN, 1:2) = DZSN(1:NLSN,1:2)
-      WSN_IJ    (I, J, 1:NLSN, 1:2) = WSN(1:NLSN,1:2)
-      HSN_IJ    (I, J, 1:NLSN, 1:2) = HSN(1:NLSN,1:2)
-      FR_SNOW_IJ(I, J, 1:2)         = FR_SNOW(1:2)
+      NSN_IJ    (1:2, I, J)         = NSN(1:2)
+      ISN_IJ    (1:2, I, J)         = ISN(1:2)
+      DZSN_IJ   (1:NLSN, 1:2, I, J) = DZSN(1:NLSN,1:2)
+      WSN_IJ    (1:NLSN, 1:2, I, J) = WSN(1:NLSN,1:2)
+      HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
+      FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
 
       AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NIsurf
       AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NIsurf
@@ -743,17 +743,17 @@ ccc and snow  and to set snow arrays
 ccc!!! this should be done only when restarting from an old
 ccc!!! restart file (without snow model data)
 
-      if( iniSNOW ) then
+      IF (iniSNOW) THEN
       DO I=1,IM
         DO J=1,JM
           PEARTH=FEARTH(I,J)
           IF(PEARTH.LE.0.) THEN
-            NSN_IJ(I,J,:)     = 0
-            ISN_IJ(I,J,:)     = 0
-            DZSN_IJ(I,J,:,:)  = 0.
-            WSN_IJ(I,J,:,:)   = 0.
-            HSN_IJ(I,J,:,:)   = 0.
-            FR_SNOW_IJ(I,J,:) = 0.
+            NSN_IJ(:,I,J)     = 0
+            ISN_IJ(:,I,J)     = 0
+            DZSN_IJ(:,:,I,J)  = 0.
+            WSN_IJ(:,:,I,J)   = 0.
+            HSN_IJ(:,:,I,J)   = 0.
+            FR_SNOW_IJ(:,I,J) = 0.
           ELSE
             JDAY=1+MOD(ITime/NDAY,365)
             COSDAY=COS(TWOPI/EDPERY*JDAY)
@@ -768,12 +768,12 @@ ccc!!! restart file (without snow model data)
             CALL GHINIJ (I,J,WFC1)
             CALL SET_SNOW
 
-            NSN_IJ    (I, J, 1:2)         = NSN(1:2)
-            ISN_IJ    (I, J, 1:2)         = ISN(1:2)
-            DZSN_IJ   (I, J, 1:NLSN, 1:2) = DZSN(1:NLSN,1:2)
-            WSN_IJ    (I, J, 1:NLSN, 1:2) = WSN(1:NLSN,1:2)
-            HSN_IJ    (I, J, 1:NLSN, 1:2) = HSN(1:NLSN,1:2)
-            FR_SNOW_IJ(I, J, 1:2)         = FR_SNOW(1:2)
+            NSN_IJ    (1:2, I, J)         = NSN(1:2)
+            ISN_IJ    (1:2, I, J)         = ISN(1:2)
+            DZSN_IJ   (1:NLSN, 1:2, I, J) = DZSN(1:NLSN,1:2)
+            WSN_IJ    (1:NLSN, 1:2, I, J) = WSN(1:NLSN,1:2)
+            HSN_IJ    (1:NLSN, 1:2, I, J) = HSN(1:NLSN,1:2)
+            FR_SNOW_IJ(1:2, I, J)         = FR_SNOW(1:2)
 
 C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
             WBARE(I,J,1:NGM) = W(1:NGM,1)
@@ -782,10 +782,10 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
             HTVEGE(I,J,0:NGM) = HT(0:NGM,2)
             SNOWBV(I,J,1:2) = SNOWD(1:2)
 
-          ENDIF
-        ENDDO
-      ENDDO
-      endif
+          END IF
+        END DO
+      END DO
+      END IF
 
       RETURN
       END SUBROUTINE init_GH

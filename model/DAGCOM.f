@@ -34,8 +34,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
 !@var KASJL number of ASJL diagnostics
       INTEGER, PARAMETER :: KASJL=4
-!@var ASJL latitude/height supplementary diagnostics
-c**** (merge with AJL?)
+!@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
       DOUBLE PRECISION, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
 !@var KAIJ number of AIJ diagnostics
@@ -78,13 +77,13 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(KTPE,NHEMI) :: ATPE
 
 !@var HR_IN_DAY hours in day
-      integer, parameter :: HR_IN_DAY=24
+      INTEGER, PARAMETER :: HR_IN_DAY=24
 !@var NDLYVAR number of daily diagnostics
-      integer, parameter :: NDLYVAR=63
+      INTEGER, PARAMETER :: NDLYVAR=63
 !@var NDLYPT number of points where daily diagnostics are kept
-      integer, parameter :: NDLYPT=4
+      INTEGER, PARAMETER :: NDLYPT=4
 !@var ADAILY daily diagnostics (24 hour cycles at selected points)
-      double precision, dimension(HR_IN_DAY,NDLYVAR,NDLYPT) :: adaily
+      DOUBLE PRECISION, DIMENSION(HR_IN_DAY,NDLYVAR,NDLYPT) :: ADAILY
 
 !@var KAJK number of zonal constant pressure diagnostics
       INTEGER, PARAMETER :: KAJK=51
@@ -102,18 +101,18 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION, DIMENSION(IM,JM,LM,KAIJL) :: AIJL
 
 !@var NWAV_DAG number of components in spectral diagnostics
-      integer, parameter :: NWAV_DAG=10
+      INTEGER, PARAMETER :: NWAV_DAG=10
 !@var KAJLSP number of spectral diagnostics
       INTEGER, PARAMETER :: KAJLSP=3
 !@var AJLSP spectral diagnostics
       DOUBLE PRECISION, DIMENSION(JM,LM,NWAV_DAG,KAJLSP) :: AJLSP
 
 !@var N12HRS_IN_31DAY number of frequency diagnostics
-      integer, parameter :: N12HRS_IN_31DAY=62
+      INTEGER, PARAMETER :: N12HRS_IN_31DAY=62
 !@var RE_AND_IM complex components of frequency diagnostics
-      integer, parameter :: RE_AND_IM=2
+      INTEGER, PARAMETER :: RE_AND_IM=2
 !@var KWP number of frequency diagnostics
-      integer, parameter :: KWP=12
+      INTEGER, PARAMETER :: KWP=12
 !@var WAVE frequency diagnostics
       DOUBLE PRECISION,
      &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,KWP) :: WAVE
@@ -161,7 +160,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     IJ_TRNFP0, IJ_SRTR,IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1,IJ_RSIT, IJ_TDSL, IJ_DTDP, IJ_RUNE, IJ_TS1,
      *     IJ_RUNLI, IJ_WS,IJ_TS, IJ_US, IJ_VS, IJ_SLP,IJ_UJET, IJ_VJET,
-     *     IJ_PCLDL, IJ_PCLDM, IJ_PCLDH, IJ_BTMPW, IJ_SRREF, IJ_ODATA4,
+     *     IJ_PCLDL, IJ_PCLDM, IJ_PCLDH, IJ_BTMPW, IJ_SRREF, IJ_TOC2,
      *     IJ_TAUS, IJ_TAUUS, IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS,
      *     IJ_ARUNU, IJ_DTGDTS, IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI2, IJ_WLM,
      *     IJ_TGO2,IJ_EVAPO, IJ_EVAPI, IJ_EVAPLI, IJ_EVAPE, IJ_F0OC,
@@ -195,3 +194,48 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER IA_J(KAIJ)
 
       END MODULE DAGCOM
+
+      SUBROUTINE io_diags(kunit,it,iaction,ioerr)
+!@sum  io_diag reads and writes diagnostics to file 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : ioread,iowrite,iowrite_single,irestart,
+     *     irsfic,irerun
+      USE DAGCOM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "DIAG01"
+!@var it input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+
+      SELECT CASE (IACTION)
+      CASE (IOWRITE)            ! output to standard restart file
+        WRITE (kunit,err=10) MODULE_HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,
+     *       ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
+     *       AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
+      CASE (IOWRITE_SINGLE)     ! output in single precision
+        WRITE (kunit,err=10) MODULE_HEADER,SNGL(TSFREZ),SNGL(AJ),
+     *     SNGL(BJ),SNGL(CJ),SNGL(AREG),SNGL(APJ),SNGL(AJL),
+     *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(AIJG),SNGL(ENERGY),
+     *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
+     *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
+     *     KEYNR,it
+      CASE (IOREAD:)            ! input from restart file
+        READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL,
+     *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
+     *       AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
+        IF (HEADER.NE.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_diags

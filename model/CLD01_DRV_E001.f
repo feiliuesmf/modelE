@@ -23,7 +23,7 @@
       USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,j_prcpmc,j_prcpss
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
-      USE OCEAN, only : odata
+      USE SEAICE_COM, only : rsi
 
       IMPLICIT NONE
 
@@ -100,10 +100,10 @@ C**** MOISTURE (SPECIFIC HUMIDITY)
 c      QL(L)=Q(I,J,L)
       WML(L)=WM(I,J,L)
       SDL(L)=SD_CLOUDS(I,J,L)*BYDXYP(J)
-      SVLHXL(L)=SVLHX(I,J,L)
-         TTOLDL(L)=TTOLD(I,J,L)
-         CLDSAVL(L)=CLDSAV(I,J,L)
-         RH(L)=RHSAV(I,J,L)
+      SVLHXL(L)=SVLHX(L,I,J)
+         TTOLDL(L)=TTOLD(L,I,J)
+         CLDSAVL(L)=CLDSAV(L,I,J)
+         RH(L)=RHSAV(L,I,J)
          DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTsrc
          IF(L.GE.LS1) DPDT(L)=0.
   150 CONTINUE
@@ -147,9 +147,9 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
             AJL(J,L,8)=AJL(J,L,8)+AJ8(L)
          END DO
          AJ(J,J_PRCPMC)=AJ(J,J_PRCPMC)+PRCPMC*(1.-FLAND(I,J))*
-     *        (1.-ODATA(I,J,2))
+     *        (1.-RSI(I,J))
          BJ(J,J_PRCPMC)=BJ(J,J_PRCPMC)+PRCPMC*FLAND(I,J)
-         CJ(J,J_PRCPMC)=CJ(J,J_PRCPMC)+PRCPMC*ODATA(I,J,2)*
+         CJ(J,J_PRCPMC)=CJ(J,J_PRCPMC)+PRCPMC*RSI(I,J)*
      *        (1.-FLAND(I,J))
          AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
          DO KR=1,4
@@ -178,7 +178,7 @@ C****
          TH(L)=T(I,J,L)
          QL(L)=Q(I,J,L)
          WMX(L)=WML(L)+SVWMXL(L)
-         AQ(L)=(QL(L)-QTOLD(I,J,L))*BYDTsrc
+         AQ(L)=(QL(L)-QTOLD(L,I,J))*BYDTsrc
       END DO
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
@@ -188,9 +188,9 @@ C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** Accumulate diagnostics of CONDSE
          AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
          AJ(J,J_PRCPSS)=AJ(J,J_PRCPSS)+PRCPSS*(1.-FLAND(I,J))*
-     *        (1.-ODATA(I,J,2))
+     *        (1.-RSI(I,J))
          BJ(J,J_PRCPSS)=BJ(J,J_PRCPSS)+PRCPSS*FLAND(I,J)
-         CJ(J,J_PRCPSS)=CJ(J,J_PRCPSS)+PRCPSS*ODATA(I,J,2)*
+         CJ(J,J_PRCPSS)=CJ(J,J_PRCPSS)+PRCPSS*RSI(I,J)*
      *        (1.-FLAND(I,J))
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
@@ -214,12 +214,12 @@ C**** WRITE TO GLOBAL ARRAYS
       DO L=1,LM
          TAUMC(L,I,J)=TAUMCL(L)
          CLDMC(L,I,J)=CLDMCL(L)
-         SVLAT(I,J,L)=SVLATL(L)
+         SVLAT(L,I,J)=SVLATL(L)
 
          TAUSS(L,I,J)=TAUSSL(L)
          CLDSS(L,I,J)=CLDSSL(L)
-         CLDSAV(I,J,L)=CLDSAVL(L)
-         SVLHX(I,J,L)=SVLHXL(L)
+         CLDSAV(L,I,J)=CLDSAVL(L)
+         SVLHX(L,I,J)=SVLHXL(L)
          CSIZSS(L,I,J)=CSIZEL(L)
          AJL(J,L,11)=AJL(J,L,11)+AJ11(L)
          AJL(J,L,55)=AJL(J,L,55)+AJ55(L)
@@ -245,9 +245,9 @@ C**** update moment changes
          QYZ(I,J,L)=QYZM(L)*BYAM(L)
          QZZ(I,J,L)=QZZM(L)*BYAM(L)
          QZX(I,J,L)=QZXM(L)*BYAM(L)
-         RHSAV(I,J,L)=RH(L)
-         TTOLD(I,J,L)=TH(L)
-         QTOLD(I,J,L)=QL(L)
+         RHSAV(L,I,J)=RH(L)
+         TTOLD(L,I,J)=TH(L)
+         QTOLD(L,I,J)=QL(L)
          WM(I,J,L)=WMX(L)
 
 C**** UPDATE MODEL WINDS

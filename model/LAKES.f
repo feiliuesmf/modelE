@@ -27,7 +27,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       USE CONSTANT, only : shi,lhm,rhow
       USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dtsrc,flice,hlake
      *     ,kocean
-      USE OCEAN, only : odata
+      USE OCEAN, only : tocean
       USE SEAICE, only : ace1i
       USE GEOM, only : dxyp,dxv,dyv,dxp,imaxj
       USE LAKES
@@ -56,12 +56,12 @@ C**** FIXDCB  FLAKE    Lake fraction (1)
 C****
 
       IF (INILAKE) THEN
-C**** Set lake variables from model block ODATA
+C**** Set lake variables from model block TOCEAN
 C**** This is just an estimate for the initiallisation
         DO J=2,JM-1
           DO I=1,IM
             IF (FLAKE(I,J).gt.0) THEN
-              TLAKE(I,J) = ODATA(I,J,1)
+              TLAKE(I,J) = TOCEAN(1,I,J)
               MWL(I,J) = RHOW*HLAKE(I,J)*FLAKE(I,J)*DXYP(J)
               GML(I,J) = MWL(I,J)*MAX(TLAKE(I,J),4d0)
             ELSE
@@ -367,7 +367,8 @@ c     QCHECKL = .TRUE.
       USE GEOM, only : IMAXJ
 !      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
       USE LAKES_COM, only : T50
-      USE OCEAN, only : ODATA,DM
+      USE OCEAN, only : DM
+      USE SEAICE_COM, only : RSI,MSI
       USE SEAICE, only : Z1I
       IMPLICIT NONE
       REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
@@ -387,8 +388,8 @@ c     QCHECKL = .TRUE.
         DO I=1,IMAX
           IF (FLAKE(I,J) .GT. 0.) THEN ! linear fit for -8< T50 <0
             RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*byDTMP))
-            ODATA(I,J,2)=RSINEW
-            ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            RSI(I,J)=RSINEW
+            MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
             IF (RSINEW.LE.0.) THEN
               GDATA(I,J,1)=0.
               GDATA(I,J,3)=0.

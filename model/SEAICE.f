@@ -3,7 +3,6 @@
 !@auth Original Development Team
 !@ver  1.0
 !@cont PREC_SI,SEA_ICE.
-
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw
       IMPLICIT NONE
 
@@ -699,8 +698,58 @@ C**** CONVERT SEA ICE ENTHALPY MINUS LATENT HEAT INTO TEMPERATURE
 !@var MSI thickness of ice second layer (layer 1=const) (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: MSI
 !@var TSI temperature of the each ice layer (C)
-      REAL*8, DIMENSION(IM,JM,LMI) :: TSI
+      REAL*8, DIMENSION(LMI,IM,JM) :: TSI
 !@var HSI enthaply of each ice layer (J/m^2) (will replace TSI)
-c      REAL*8, DIMENSION(IM,JM,LMI) :: HSI
+c      REAL*8, DIMENSION(LMI,IM,JM) :: HSI
 
       END MODULE SEAICE_COM
+
+      SUBROUTINE io_seaice(kunit,iaction,ioerr)
+!@sum  io_seaice reads and writes seaice variables to file 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : ioread,iowrite
+      USE SEAICE_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "SICE01"
+
+      SELECT CASE (IACTION)
+      CASE (IOWRITE)            ! output to standard restart file
+c         WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOW,MSI
+         WRITE (kunit,err=10) MODULE_HEADER,RSI,TSI,SNOWI,MSI
+      CASE (IOREAD:)            ! input from restart file
+c         READ (kunit,err=10) HEADER,RSI,HSI,SNOW,MSI
+         READ (kunit,err=10) HEADER,RSI,TSI,SNOWI,MSI
+        IF (HEADER.NE.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_seaice
+
+      SUBROUTINE CHECKI(SUBR)
+!@sum  CHECKI Checks whether Ice values are reasonable
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM
+      USE SEAICE_COM, only : RSI,MSI
+      IMPLICIT NONE
+
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+
+C**** Check for NaN/INF in ice data
+      CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
+      CALL CHECK3(MSI,IM,JM,1,SUBR,'msi')
+
+      END SUBROUTINE CHECKI

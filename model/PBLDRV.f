@@ -276,7 +276,8 @@ c -------------------------------------------------------------
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek  
-      USE OCEAN, only : odata
+      USE OCEAN, only : tocean
+      USE SEAICE_COM, only : rsi
       USE FILEMANAGER
 
       IMPLICIT NONE
@@ -316,9 +317,9 @@ C things to be done regardless of inipbl
           pwater=1.-pland
           plice=flice(i,j)
           psoil=fearth(i,j)
-          poice=odata(i,j,2)*pwater
+          poice=rsi(i,j)*pwater
           pocean=pwater-poice
-          tgvdat(i,j,1)=odata(i,j,1) +273.16
+          tgvdat(i,j,1)=tocean(1,i,j) +273.16
           if (pocean.le.0.) tgvdat(i,j,1)=0.
           tgvdat(i,j,2)=gdata(i,j,3) +273.16
           if (poice.le.0.)  tgvdat(i,j,2)=0.
@@ -798,14 +799,22 @@ c ----------------------------------------------------------------------
 !@auth Original Development Team
 !@ver  1.0
       USE E001M12_COM, only : im,jm
-      USE PBLCOM, only : bldata
+      USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
+     *     ,ustar
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
-C**** Check for NaN/INF in ocean data
-      CALL CHECK3(BLDATA,IM,JM,12,SUBR,'bl')
+C**** Check for NaN/INF in boundary layer data
+      CALL CHECK3(wsavg,IM,JM,1,SUBR,'wsavg')
+      CALL CHECK3(tsavg,IM,JM,1,SUBR,'tsavg')
+      CALL CHECK3(qsavg,IM,JM,1,SUBR,'qsavg')
+      CALL CHECK3(dclev,IM,JM,1,SUBR,'dclev')
+      CALL CHECK3(usavg,IM,JM,1,SUBR,'usavg')
+      CALL CHECK3(vsavg,IM,JM,1,SUBR,'vsavg')
+      CALL CHECK3(tauavg,IM,JM,1,SUBR,'tauavg')
+      CALL CHECK3(ustar,IM,JM,4,SUBR,'ustar')
 
       END SUBROUTINE CHECKPBL
 

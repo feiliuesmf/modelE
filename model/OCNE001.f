@@ -8,10 +8,11 @@
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl,Z1O
+     *     cq=>cqgs,ipbl
       USE GEOM
-      USE SEAICE, only : xsi1,xsi2,xsi3,xsi4,ace1i,z1i,ac2oim,byxsi3
-     *     ,byxsi4
+      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE, only : xsi1,xsi2,xsi3,xsi4,ace1i,z1i,ac2oim
+     *     ,byxsi3,byxsi4
 
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
@@ -19,21 +20,19 @@
 !@var OA generic array for ocean heat transport calculations
       REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
 
-      REAL*8, PARAMETER :: TTRUNC = 0 !@var TTRUNC why does this exist?
 !@var TFO temperature of freezing ocean (C)
       REAL*8, PARAMETER :: TFO = -1.8d0
 !@var FLEADOC lead fraction for ocean ice (%)
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var TOCEAN temperature of the ocean (C)
-      REAL*8, DIMENSION(IM,JM,3) :: TOCEAN
-
-      REAL*8, SAVE,DIMENSION(IM,JM,5) :: ODATA
+      REAL*8, DIMENSION(3,IM,JM) :: TOCEAN
 
 !@var OTA,OTB,OTC ocean heat transport coefficients
       REAL*8, SAVE,DIMENSION(IM,JM,4) :: OTA,OTB
       REAL*8, SAVE,DIMENSION(IM,JM) :: OTC
 
-!@var Z1O ocean mixed layer depth (temporarily in PBLCOM)
+!@var Z1O ocean mixed layer depth
+      REAL*8, SAVE,DIMENSION(IM,JM) :: Z1O
 !@var Z12O annual maximum ocean mixed layer depth
       REAL*8, SAVE,DIMENSION(IM,JM) :: Z12O
 
@@ -61,11 +60,11 @@
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
-C**** ODATA  1  OCEAN TEMPERATURE OF FIRST LAYER (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
-C****        4  MEAN OCEAN TEMPERATURE OF SECOND LAYER (C)
-C****        5  OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)
+C**** TOCEAN 1  OCEAN TEMPERATURE OF FIRST LAYER (C)
+C****        2  MEAN OCEAN TEMPERATURE OF SECOND LAYER (C)
+C****        3  OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)
+C****     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C****     MSI   OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
 C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
@@ -80,27 +79,27 @@ C****
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
-          WTR1O=RHOW*Z1O(I,J)-ODATA(I,J,2)*(GDATA(I,J,1)
-     *         +ACE1I+ODATA(I,J,3))
+          WTR1O=RHOW*Z1O(I,J)-RSI(I,J)*(GDATA(I,J,1)
+     *         +ACE1I+MSI(I,J))
           DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
           WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
           IF (DWTRO.GT.0.) GO TO 120
 C**** MIX LAYER DEPTH IS GETTING SHALLOWER
-          ODATA(I,J,4)=ODATA(I,J,4)
-     *         +((ODATA(I,J,4)-ODATA(I,J,1))*DWTRO/WTR2O+TTRUNC)
+          TOCEAN(2,I,J)=TOCEAN(2,I,J)
+     *         +((TOCEAN(2,I,J)-TOCEAN(1,I,J))*DWTRO/WTR2O)
           CYCLE
 C**** MIX LAYER DEPTH IS GETTING DEEPER
- 120      TGAVE=(ODATA(I,J,4)*DWTRO+(2.*ODATA(I,J,4)-ODATA(I,J,5))*WTR2O
-     *         )/(WTR2O+DWTRO)
-          ODATA(I,J,1)=ODATA(I,J,1)+((TGAVE-ODATA(I,J,1))*DWTRO/WTR1O
-     *         +TTRUNC)
+ 120      TGAVE=(TOCEAN(2,I,J)*DWTRO+(2.*TOCEAN(2,I,J)-TOCEAN(3,I,J))
+     *         *WTR2O)/(WTR2O+DWTRO)
+          TOCEAN(1,I,J)=TOCEAN(1,I,J)+((TGAVE-TOCEAN(1,I,J))
+     *         *DWTRO/WTR1O)
           IF (Z1O(I,J).GE.Z12O(I,J)) GO TO 140
-          ODATA(I,J,4)=ODATA(I,J,4)
-     *         +((ODATA(I,J,5)-ODATA(I,J,4))*DWTRO/(WTR2O+DWTRO)+TTRUNC)
+          TOCEAN(2,I,J)=TOCEAN(2,I,J)
+     *         +((TOCEAN(3,I,J)-TOCEAN(2,I,J))*DWTRO/(WTR2O+DWTRO))
           CYCLE
 C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
- 140      ODATA(I,J,4)=ODATA(I,J,1)
-          ODATA(I,J,5)=ODATA(I,J,1)
+ 140      TOCEAN(2,I,J)=TOCEAN(1,I,J)
+          TOCEAN(3,I,J)=TOCEAN(1,I,J)
         END DO
       END DO
       RETURN
@@ -143,9 +142,9 @@ C****                1: continuous piecewise linear fit at upper limit
 C****
 C**** CALCULATE DAILY OCEAN DATA FROM CLIMATOLOGY
 C****
-C**** ODATA  1  OCEAN TEMPERATURE (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
+C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** READ IN OBSERVED OCEAN DATA
       IF (JMON.EQ.MONTHO) GO TO 400
@@ -208,7 +207,7 @@ C**** Calculate OST, RSI and MSI for current day
         DO I=1,IMAX
           IF(FLAND(I,J).GE.1.) CYCLE
 C**** OST always uses quadratic fit
-          ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
+          TOCEAN(1,I,J) = AOST(I,J) + BOST(I,J)*TIME +
      +         COST(I,J)*(TIME*TIME - 1./12.d0)            !-BY12
           IF(KRSI(I,J)) 410,430,420
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
@@ -232,17 +231,17 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
 C**** RSI uses quadratic fit
  430      RSINEW = ARSI(I,J) + BRSI(I,J)*TIME +
      +         CRSI(I,J)*(TIME*TIME - 1./12.d0)    !-BY12
- 440      ODATA(I,J,2)=RSINEW
-          ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+ 440      RSI(I,J)=RSINEW
+          MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** WHEN TGO IS NOT DEFINED, MAKE IT A REASONABLE VALUE
-          IF (ODATA(I,J,1).LT.-1.8) ODATA(I,J,1)=TFO
+          IF (TOCEAN(1,I,J).LT.-1.8) TOCEAN(1,I,J)=TFO
 C**** REDUCE THE RATIO OF OCEAN ICE TO WATER BY .1*RHOI/ACEOI
-c     IF (ODATA(I,J,2).GT.0.) THEN
-c        BYZICE=RHOI/(Z1I*RHOI+ODATA(I,J,3))
-c        ODATA(I,J,2)=ODATA(I,J,2)*(1.-.06*(BYZICE-1./5.))
+c     IF (RSI(I,J).GT.0.) THEN
+c        BYZICE=RHOI/(Z1I*RHOI+MSI(I,J))
+c        RSI(I,J)=RSI(I,J)*(1.-.06*(BYZICE-1./5.))
 c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
-          IF (ODATA(I,J,2).LE.0.) THEN
+          IF (RSI(I,J).LE.0.) THEN
             GDATA(I,J,1)=0.
             GDATA(I,J,3)=0.
             GDATA(I,J,7)=0.
@@ -258,9 +257,9 @@ C**** REPLICATE VALUES AT POLE
         GDATA(I,JM,7)=GDATA(1,JM,7)
         GDATA(I,JM,15)=GDATA(1,JM,15)
         GDATA(I,JM,16)=GDATA(1,JM,16)
-        DO K=1,3
-          ODATA(I,JM,K)=ODATA(1,JM,K)
-        END DO
+        TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
+        RSI(I,JM)=RSI(1,JM)
+        MSI(I,JM)=MSI(1,JM)
       END DO
       RETURN
 C****
@@ -307,9 +306,9 @@ C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       DO I=1,IM
       Z1O(I,J)=FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J)
 
-      IF (ODATA(I,J,2)*FOCEAN(I,J).le.0) CYCLE
+      IF (RSI(I,J)*FOCEAN(I,J).le.0) CYCLE
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-      Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+ODATA(I,J,3))/RHOW
+      Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+MSI(I,J))/RHOW
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
       WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
   602 FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
@@ -318,15 +317,15 @@ C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
 C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       PLICE=FLICE(I,J)
       PLICEN=1.-FEARTH(I,J)
-      POICE=FOCEAN(I,J)*ODATA(I,J,2)
-      POCEAN=FOCEAN(I,J)*(1.-ODATA(I,J,2))
+      POICE=FOCEAN(I,J)*RSI(I,J)
+      POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
       GDATA(I,J,12)=(GDATA(I,J,12)*PLICE+GDATA(I,J,1)*POICE)/PLICEN
       GDATA(I,J,13)=(GDATA(I,J,13)*PLICE+
      *  (GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2)*POICE+
-     *  (LHM+SHW*ODATA(I,J,1))*POCEAN/SHI)/PLICEN
+     *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       GDATA(I,J,14)=(GDATA(I,J,14)*PLICE+
      *  (GDATA(I,J,15)*XSI3+GDATA(I,J,16)*XSI4)*POICE+
-     *  (LHM+SHW*ODATA(I,J,1))*POCEAN/SHI)/PLICEN
+     *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
 C**** MARK THE POINT FOR RESTART PURPOSES
@@ -375,7 +374,7 @@ C**** SET MARKER INDICATING THAT Z1O HAS BEEN SET
       REAL*8 TGW, PRCP, WTRO, ENRGP, ERUN4, ENRGO
 
       ENRGO=ENRGP-ERUN4
-      TGW=TGW+(ENRGO/(WTRO*SHW)+TTRUNC)
+      TGW=TGW+(ENRGO/(WTRO*SHW))
 
       RETURN
       END SUBROUTINE PREC_OC
@@ -406,7 +405,7 @@ C**** Calculate energy in mixed layer
       IF (ENRGO0+ENRGO.GE.EOFRZ) THEN
 C**** FLUXES RECOMPUTE TGW WHICH IS ABOVE FREEZING POINT FOR OCEAN
         IF (ROICE.LE.0.) THEN
-          TGW=TGW+(ENRGO/(WTRO*SHW)+TTRUNC)
+          TGW=TGW+(ENRGO/(WTRO*SHW))
           RETURN
         END IF
       ELSE
@@ -436,7 +435,7 @@ c       ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) !
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       WTRW = WTRW0-(1.-ROICE)*ACEFO-ROICE*ACE2F ! new ocean mass
       ENRGW = ENRGW0+(1.-ROICE)*(ENRGO-ENRGFO)+ROICE*(ENRGIW-ENRGFI)
-      TGW = ENRGW/(WTRW*SHW)+TTRUNC ! new ocean temperature
+      TGW = ENRGW/(WTRW*SHW) ! new ocean temperature
 
       RETURN
       END SUBROUTINE OSOURC
@@ -447,15 +446,15 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM
-      USE OCEAN
+      USE E001M12_COM, only : im,jm
+      USE OCEAN, only : tocean
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
 C**** Check for NaN/INF in ocean data
-      CALL CHECK3(ODATA,IM,JM,5,SUBR,'od')
+      CALL CHECK3(TOCEAN,3,IM,JM,SUBR,'toc')
 
       END SUBROUTINE CHECKO
 
@@ -513,10 +512,11 @@ C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,kocean,focean,gdata
-      USE OCEAN, only : odata,ostruc,oclim,tfo,z1O
-      USE DAGCOM, only : aij, ij_odata4,ij_tgo2
+      USE OCEAN, only : tocean,ostruc,oclim,tfo,z1O
+      USE DAGCOM, only : aij,ij_toc2,ij_tgo2
+      USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : simelt,ace1i
-      USE GEOM, only : IMAXJ
+      USE GEOM, only : imaxj
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
       REAL*8 MSI1, MSI2, ROICE, SNOW, TG1, TG2, TG3, TG4, TGW, WTRO,
@@ -529,8 +529,8 @@ C**** Only do this at end of the day
       IF (KOCEAN.EQ.1.and.IEND.eq.1) THEN
         DO J=1,JM
           DO I=1,IM
-            AIJ(I,J,IJ_ODATA4)=AIJ(I,J,IJ_ODATA4)+ODATA(I,J,4)
-            AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+ODATA(I,J,5)
+            AIJ(I,J,IJ_TOC2)=AIJ(I,J,IJ_TOC2)+TOCEAN(2,I,J)
+            AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+TOCEAN(3,I,J)
           END DO
         END DO
 C**** RESTRUCTURE THE OCEAN LAYERS
@@ -540,13 +540,13 @@ C**** AND ELIMINATE SMALL AMOUNTS OF SEA ICE
           IMAX=IMAXJ(J)
           DO I=1,IMAX
 C**** Only melting of ocean ice (no lakes) (?)
-            IF (FOCEAN(I,J)*ODATA(I,J,2) .LE. 0.) CYCLE
+            IF (FOCEAN(I,J)*RSI(I,J) .LE. 0.) CYCLE
 C**** REDUCE ICE EXTENT IF OCEAN TEMPERATURE IS GREATER THAN ZERO
 C**** (MELTING POINT OF ICE)
-            TGW=ODATA(I,J,1)
+            TGW=TOCEAN(1,I,J)
             IF (TGW.LE.0.) CYCLE
-            ROICE=ODATA(I,J,2)
-            MSI2=ODATA(I,J,3)
+            ROICE=RSI(I,J)
+            MSI2=MSI(I,J)
             SNOW=GDATA(I,J,1)   ! snow mass
             MSI1 = SNOW + ACE1I
             TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
@@ -562,18 +562,18 @@ C**** (MELTING POINT OF ICE)
      *           ,ENRGW,PWATER,ENRGUSED)
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
-            ODATA(I,J,1)=TGW
+            TOCEAN(1,I,J)=TGW
             IF (ROICE.le.0.) THEN
-              ODATA(I,J,2)=0.
-              ODATA(I,J,3)=0.
+              RSI(I,J)=0.
+              MSI(I,J)=0.
               GDATA(I,J,1)=0.
               GDATA(I,J,3)=0.
               GDATA(I,J,7)=0.
               GDATA(I,J,15)=0.
               GDATA(I,J,16)=0.
             ELSE
-              ODATA(I,J,2)=ROICE
-              ODATA(I,J,3)=MSI2
+              RSI(I,J)=ROICE
+              MSI(I,J)=MSI2
               GDATA(I,J,1)=SNOW
               GDATA(I,J,3)=TG1
               GDATA(I,J,7)=TG2
@@ -623,4 +623,35 @@ C****
 
       RETURN
       END
+
+      SUBROUTINE io_ocean(kunit,iaction,ioerr)
+!@sum  io_ocean reads and writes ocean arrays to file 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : ioread,iowrite
+      USE OCEAN
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "OCN01"
+
+      SELECT CASE (IACTION)
+      CASE (IOWRITE)            ! output to standard restart file
+        WRITE (kunit,err=10) MODULE_HEADER,TOCEAN,OA,Z1O
+      CASE (IOREAD:)            ! input from restart file
+        READ (kunit,err=10) HEADER,TOCEAN,OA,Z1O
+        IF (HEADER.NE.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_ocean
 

@@ -6,13 +6,12 @@
 !@cont ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
-     *     ,v,t,q,p,wm,ptrunc,mfiltr,zatmo,fim,mrch,fland,flice
+     *     ,v,t,q,p,wm,mfiltr,zatmo,fim,mrch,fland,flice
      *     ,gdata,modd5k,psfmpt,bydsig,byim
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
      *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
       USE SOMTQ_COM
       USE PBLCOM, only : tsavg
-      USE OCEAN, only : odata
 
       USE GEOM
       IMPLICIT NONE
@@ -200,34 +199,26 @@ C****
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1)
       COMMON/WORK4/FD(IM,JM)
       REAL*8 PA(IM,JM)
-      INTEGER I,J,L,K      !@var I,J,L,K  loop variables
+      INTEGER I,J,L,K,IMAX  !@var I,J,L,K  loop variables
       REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
-      PA(1,1)=P(1,1)+(DT1*PIT(1,1)*BYDXYP(1))   !  +PTRUNC)
-         IF (PA(1,1).GT.1150.) WRITE(6,991) 1,1,MRCH,P(1,1),PA(1,1),
-     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
-     *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
-      PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)*BYDXYP(JM))  !  +PTRUNC)
-         IF (PA(1,JM).GT.1150.) WRITE(6,991) 1,JM,MRCH,P(1,JM),PA(1,JM),
-     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
-     *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
-      DO 2424 I=2,IM
-      PA(I,1)=PA(1,1)
- 2424 PA(I,JM)=PA(1,JM)
-      DO 2426 J=2,JM-1
-      DO 2426 I=1,IM
-      PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))   !  +PTRUNC)
-         IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
-     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
-     *     ,(GDATA(1,1,K),K=1,16),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),
-     *     U(I,J+1,L),V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
-     *     T(I,J,L),Q(I,J,L),L=1,LM)
- 2426 CONTINUE
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))
+          IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
+     *         ZATMO(I,J),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),U(I,J+1,L),
+     *         V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
+     *         T(I,J,L),Q(I,J,L),L=1,LM)
+        END DO
+      END DO
+      PA(2:IM, 1)=PA(1,1)
+      PA(2:IM,JM)=PA(1,JM)
 C****
       RETURN
   990 FORMAT (/'0PRESSURE DIAGNOSTIC     I,J,MRCH,P,PA=',3I4,2F10.2/
-     *  '     DATA=',11F10.3/10X,11F10.3/
+     *  '     ZATMO=',F10.3/
      *  '0    U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)    V(I-1,J)',
      *   '     V(I,J)   V(I-1,J+1)    V(I,J+1)     T(I,J)     Q(I,J)'/
      *  (1X,9F12.3,F12.6))
@@ -671,8 +662,6 @@ C****
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-c      BBYG=.0065/GRAV
-c      GBYRB=GRAV/(RGAS*.0065)
       DO 120 J=2,JM-1
          PSUMO(J)=0.
       DO 120 I=1,IM
@@ -684,7 +673,7 @@ c      GBYRB=GRAV/(RGAS*.0065)
       DO 150 J=2,JM-1
          PSUMN=0.
       DO 140 I=1,IM
-      P(I,J)=X(I,J)/Y(I,J)-PTOP   !  +PTRUNC
+      P(I,J)=X(I,J)/Y(I,J)-PTOP
   140 PSUMN=PSUMN+P(I,J)
          PDIF=(PSUMN-PSUMO(J))*BYIM
       DO 145 I=1,IM

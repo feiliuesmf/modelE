@@ -25,8 +25,9 @@ C****
      *     ,ij_f0li,ij_f1li,ij_erun2,ij_runli,ij_f0e,j_eprcp,j_difs
      *     ,j_run1,ij_prec,ij_neth,j_edifs,j_erun2,j_imelt,j_run2
      *     ,j_dwtr2
-      USE OCEAN, only : odata,oa,z1o,prec_oc
+      USE OCEAN, only : tocean,oa,z1o,prec_oc
       USE SEAICE, only : ace1i,prec_si
+      USE SEAICE_COM, only : rsi,msi
       USE LAKES_COM, only : mwl,gml
       USE LANDICE, only : precli
       IMPLICIT NONE
@@ -45,9 +46,9 @@ C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** ODATA  1  OCEAN TEMPERATURE (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
+C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C****  RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C****  MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
 C****        2  EARTH SNOW AMOUNT (KG/M**2)
@@ -107,7 +108,7 @@ C****
       PWATER=1.-PLAND
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
-      ROICE=ODATA(I,J,2)
+      ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       POCEAN=PWATER-POICE
       POLAKE=FLAKE(I,J)*(1.-ROICE)
@@ -141,7 +142,7 @@ C****
         GML(I,J) = GML(I,J) + ENRGP*POLAKE*DXYP(J)
       END IF
       IF (KOCEAN .EQ. 1) THEN  ! .and. .not. lake?
-        TGW=ODATA(I,J,1)
+        TGW=TOCEAN(1,I,J)
         WTRO=Z1O(I,J)*RHOW
         RUN4=PRCP
         ERUN4=RUN4*TGW*SHW
@@ -149,7 +150,7 @@ C****
           ARUN4=ARUN4+RUN4*POCEAN
         IF (ROICE.GT.0.) GO TO 110
         CALL PREC_OC(TGW,WTRO,PRCP,ENRGP,ERUN4)
-        ODATA(I,J,1)=TGW
+        TOCEAN(1,I,J)=TGW
         GO TO 400
       END IF
 C****
@@ -159,7 +160,7 @@ C**** OCEAN AND LAKE ICE
 C****
   110 CONTINUE
       SNOW=GDATA(I,J,1)
-      MSI2=ODATA(I,J,3)
+      MSI2=MSI(I,J)
       MSI1 = SNOW + ACE1I
          CENRGP=CENRGP+ENRGP*POICE
          AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
@@ -167,7 +168,7 @@ C****
           CERUN4=CERUN4+ERUN4*POICE
           CRUN4=CRUN4+RUN4*POICE
         WTRW0=WTRO-ROICE*(MSI1+MSI2)
-        ENRGW0=WTRW0*ODATA(I,J,1)*SHW
+        ENRGW0=WTRW0*TOCEAN(1,I,J)*SHW
       END IF
       TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
       TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
@@ -182,7 +183,7 @@ C***  CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
      *     ,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
 
       IF (KOCEAN.EQ.1) THEN
-        ODATA(I,J, 3)=MSI2
+        MSI(I,J)=MSI2
         GDATA(I,J,15)=TG3
         GDATA(I,J,16)=TG4
       END IF
@@ -200,7 +201,7 @@ C**** CALCULATE THE COMPOSITE WATER MASS AND WATER ENERGY
         WTRW=WTRW0+ROICE*(RUN0-RUN4)
         ENRGW=ENRGW0-ROICE*ERUN4+(1.-ROICE)*ENRGP
         TGW=ENRGW/(WTRW*SHW)    ! mixed layer temperature
-        ODATA(I,J,1)=TGW
+        TOCEAN(1,I,J)=TGW
       END IF
 C**** If lake ice, add runoff to lake amount (E. of runoff always = 0)
       IF (PLKICE.gt.0) THEN
@@ -284,6 +285,7 @@ C**** by time or by sun light.
 C****
       USE CONSTANT, only : kapa,lhe,twopi
       USE E001M12_COM
+      USE RADNCB, only : COSD,SIND
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: LT1,LT2,SLT1,SLT2,S2LT1,S2LT2
@@ -568,15 +570,15 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
   900 CONTINUE
       RETURN
       END
+
       SUBROUTINE RADIA
-C****
-C**** THIS SUBROUTINES ADDS THE RADIATION HEATING TO THE TEMPERATURES
-C****
-      USE CONSTANT, only : grav,rgas,kapa,sday,lhe,lhs,twopi
-     *     ,tf,stbo
+!@sum  RADIA adds the radiation heating to the temperatures
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : grav,rgas,kapa,sday,lhe,lhs,twopi,tf,stbo
       USE E001M12_COM
       USE GEOM, Jdummy=>JLAT
-      USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2
+      USE RADNCB, only : RQT,SRHR,TRHR,FSF,COSZ1,S0X,CO2,RSDIST
       USE RE001
      &  , only : setnew,rcomp1,writer,rcompx,rcompt ! routines
      &             ,lx
@@ -609,24 +611,21 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
-      USE OCEAN, only : odata
+      USE OCEAN, only : tocean
+      USE SEAICE_COM, only : rsi
       USE FILEMANAGER
 
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: COSZ2,COSZA,TRINCG,BTMPW
-      REAL*8, DIMENSION(IM,JM,4) :: SNFS,TNFS
-      REAL*8, DIMENSION(IM,JM,3) :: TRHRS,SRHRS
+      REAL*8, DIMENSION(4,IM,JM) :: SNFS,TNFS
+      REAL*8, DIMENSION(LM_REQ,IM,JM) :: TRHRS,SRHRS
       REAL*8, DIMENSION(IM,JM,9) :: ALB
-      COMMON/WORK1d/COSZ2,COSZA,TRINCG,BTMPW,SNFS,TNFS,TRHRS,SRHRS,ALB
 
       REAL*8, DIMENSION(LM) :: TOTCLD
-      COMMON/WORK2c/ TOTCLD
 
       REAL*8, DIMENSION(LM+3) :: COE
 
-c      REAl*8 STBO
-c      DATA STBO/.567257D-7/
       INTEGER :: IFIRST = 1, JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,J50N,J70N,LLOW,LMID
      *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK
@@ -641,14 +640,14 @@ c      DATA STBO/.567257D-7/
      *     "RADN9","RADNA","RADNB","RADNC","RADND",
      *     "RADNE"/)
 !@var QBIN true if files for radiation routines are binary
-      LOGICAL :: QBIN(14) = (/.T.,.T.,.F.,.F.,.T.,.T.,.T.,.T.,.F.,.T.,
-     *     .T.,.T.,.T.,.T./)
+      LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.FALSE.,.TRUE.,.TRUE.
+     *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** ODATA  1  OCEAN TEMPERATURE (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****
 C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
 C****        2  EARTH SNOW AMOUNT (KG/M**2)
@@ -768,7 +767,7 @@ C****
          JR=JREG(I,J)
 C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
@@ -782,10 +781,10 @@ C****
          DEPTH=0.
       DO 240 L=1,LM
       PIJ=PLIJ(L,I,J)
-      QSS=Q(I,J,L)/(RHSAV(I,J,L)+1.D-20)
+      QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
       QL(L)=QSS
-      IF(CLDSAV(I,J,L).LT.1.)
-     *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(I,J,L))/(1.-CLDSAV(I,J,L))
+      IF(CLDSAV(L,I,J).LT.1.)
+     *  QL(L)=(Q(I,J,L)-QSS*CLDSAV(L,I,J))/(1.-CLDSAV(L,I,J))
       TL(L)=T(I,J,L)*PK(L,I,J)
       IF(CLDSS(L,I,J).EQ.0.) RANDSS=RANDU(X)
       TAUSSL=0.
@@ -813,21 +812,21 @@ C****
       QL(L)=QSAT(TL(L),ELHX,PMID(L,I,J))
   230    AJL(J,L,19)=AJL(J,L,19)+TOTCLD(L)
       IF(TAUSSL+TAUMCL.GT.0.) THEN
-         IF(TAUMCL.GT.TAUSSL) THEN
-           IF(SVLAT(I,J,L).EQ.LHE) THEN
-             TAUWC(L)=TAUMCL
-           ELSE
-             TAUIC(L)=TAUMCL
-           END IF
-         ELSE
-           IF(SVLHX(I,J,L).EQ.LHE) THEN
-             TAUWC(L)=TAUSSL
-             SIZEWC(L)=CSIZSS(L,I,J)
-           ELSE
-             TAUIC(L)=TAUSSL
-             SIZEIC(L)=CSIZSS(L,I,J)
-           END IF
-         END IF
+        IF(TAUMCL.GT.TAUSSL) THEN
+          IF(SVLAT(L,I,J).EQ.LHE) THEN
+            TAUWC(L)=TAUMCL
+          ELSE
+            TAUIC(L)=TAUMCL
+          END IF
+        ELSE
+          IF(SVLHX(L,I,J).EQ.LHE) THEN
+            TAUWC(L)=TAUSSL
+            SIZEWC(L)=CSIZSS(L,I,J)
+          ELSE
+            TAUIC(L)=TAUSSL
+            SIZEIC(L)=CSIZSS(L,I,J)
+          END IF
+        END IF
       END IF
   240 CONTINUE
          AJ(J,J_PCLDSS)=AJ(J,J_PCLDSS)+CSS*POCEAN
@@ -872,28 +871,28 @@ C****
          GO TO 285
   280    CONTINUE
   285    DO KR=1,NDLYPT
-            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               IH=IHOUR
-               DO INCH=1,NRAD
-                  IF (IH.GT.24) IH=IH-24
-                  ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
-                  ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
-                  ADAILY(IH,23,KR)=ADAILY(IH,23,KR)+TOTCLD(4)
-                  ADAILY(IH,24,KR)=ADAILY(IH,24,KR)+TOTCLD(3)
-                  ADAILY(IH,25,KR)=ADAILY(IH,25,KR)+TOTCLD(2)
-                  ADAILY(IH,26,KR)=ADAILY(IH,26,KR)+TOTCLD(1)
-                  ADAILY(IH,27,KR)=ADAILY(IH,27,KR)+CLDCV
-                  ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
-                  ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
-                  ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
-                  ADAILY(IH,56,KR)=ADAILY(IH,56,KR)+TOTCLD(4)
-                  ADAILY(IH,57,KR)=ADAILY(IH,57,KR)+TOTCLD(3)
-                  ADAILY(IH,58,KR)=ADAILY(IH,58,KR)+TOTCLD(2)
-                  ADAILY(IH,59,KR)=ADAILY(IH,59,KR)+TOTCLD(1)
-                  ADAILY(IH,61,KR)=ADAILY(IH,61,KR)+CLDCV
-                  IH=IH+1
-               END DO
-            END IF
+           IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+             IH=IHOUR
+             DO INCH=1,NRAD
+               IF (IH.GT.24) IH=IH-24
+               ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
+               ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
+               ADAILY(IH,23,KR)=ADAILY(IH,23,KR)+TOTCLD(4)
+               ADAILY(IH,24,KR)=ADAILY(IH,24,KR)+TOTCLD(3)
+               ADAILY(IH,25,KR)=ADAILY(IH,25,KR)+TOTCLD(2)
+               ADAILY(IH,26,KR)=ADAILY(IH,26,KR)+TOTCLD(1)
+               ADAILY(IH,27,KR)=ADAILY(IH,27,KR)+CLDCV
+               ADAILY(IH,53,KR)=ADAILY(IH,53,KR)+TOTCLD(7)
+               ADAILY(IH,54,KR)=ADAILY(IH,54,KR)+TOTCLD(6)
+               ADAILY(IH,55,KR)=ADAILY(IH,55,KR)+TOTCLD(5)
+               ADAILY(IH,56,KR)=ADAILY(IH,56,KR)+TOTCLD(4)
+               ADAILY(IH,57,KR)=ADAILY(IH,57,KR)+TOTCLD(3)
+               ADAILY(IH,58,KR)=ADAILY(IH,58,KR)+TOTCLD(2)
+               ADAILY(IH,59,KR)=ADAILY(IH,59,KR)+TOTCLD(1)
+               ADAILY(IH,61,KR)=ADAILY(IH,61,KR)+CLDCV
+               IH=IH+1
+             END DO
+           END IF
          END DO
 C****
   300 CONTINUE
@@ -915,14 +914,15 @@ C---- QL(L)=Q(I,J,L)        ! already defined
 C****
 C**** RADIATION, SOLAR AND THERMAL
 C****
-      DO 420 K=1,LM_REQ
-      IF(RQT(I,J,K).LT.130..OR.RQT(I,J,K).GT.370.) THEN
-         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(I,J,K)
-         STOP 'In Radia: RQT out of range'
-      END IF
-  420 TL(LM+K)=RQT(I,J,K)
+      DO K=1,LM_REQ
+        IF(RQT(K,I,J).LT.130..OR.RQT(K,I,J).GT.370.) THEN
+        WRITE(99,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
+        STOP 'In Radia: RQT out of range'
+        END IF
+        TL(LM+K)=RQT(K,I,J)
+      END DO
       COSZ=COSZA(I,J)
-      TGO=ODATA(I,J,1)+TF
+      TGO=TOCEAN(1,I,J)+TF
       TGOI=GDATA(I,J,3)+TF
       TGLI=GDATA(I,J,13)+TF
       TGE=GDATA(I,J,4)+TF
@@ -934,30 +934,31 @@ C****
       AGESN(2)=GDATA(I,J,9)     ! ocean ice
       AGESN(3)=GDATA(I,J,10)    ! land ice
       WEARTH=(GDATA(I,J,5)+GDATA(I,J,6))/(WFCS(I,J)+1.D-20)
-      DO 430 K=1,11
-  430 PVT(K)=VDATA(I,J,K)
+      DO K=1,11
+        PVT(K)=VDATA(I,J,K)
+      END DO
       WS=WSAVG(I,J)
 C-OLD FGOLDU(2)=XFRADJ*(1.-PEARTH)
 C-OLD FGOLDU(3)=XFRADJ*PEARTH
       ILON=NINT(.5+(I-.5)*72./IM)
       CALL RCOMPX
-      FSF(I,J,1)=FSRNFG(1)   !  ocean
-      FSF(I,J,2)=FSRNFG(3)   !  ocean ice
-      FSF(I,J,3)=FSRNFG(4)   !  land ice
-      FSF(I,J,4)=FSRNFG(2)   !  soil
+      FSF(1,I,J)=FSRNFG(1)   !  ocean
+      FSF(2,I,J)=FSRNFG(3)   !  ocean ice
+      FSF(3,I,J)=FSRNFG(4)   !  land ice
+      FSF(4,I,J)=FSRNFG(2)   !  soil
       IF(I.EQ.IWRITE.AND.J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
-      SRHR(I,J,1)=SRNFLB(1)
-      TRHR(I,J,1)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
+      SRHR(1,I,J)=SRNFLB(1)
+      TRHR(1,I,J)=STBO*(POCEAN*TGO**4+POICE*TGOI**4+PLICE*TGLI**4
      *  +PEARTH*TGE**4)-TRNFLB(1)
       DO 440 L=1,LM
-      SRHR(I,J,L+1)=SRFHRL(L)
-  440 TRHR(I,J,L+1)=-TRFCRL(L)
+      SRHR(L+1,I,J)=SRFHRL(L)
+  440 TRHR(L+1,I,J)=-TRFCRL(L)
       DO 450 LR=1,LM_REQ
-      SRHRS(I,J,LR)=SRFHRL(LM+LR)
-  450 TRHRS(I,J,LR)=-TRFCRL(LM+LR)
+      SRHRS(LR,I,J)= SRFHRL(LM+LR)
+  450 TRHRS(LR,I,J)=-TRFCRL(LM+LR)
       DO 460 K=1,4
-      SNFS(I,J,K)=SRNFLB(K+LM)
-  460 TNFS(I,J,K)=TRNFLB(K+LM)-TRNFLB(1)
+      SNFS(K,I,J)=SRNFLB(K+LM)
+  460 TNFS(K,I,J)=TRNFLB(K+LM)-TRNFLB(1)
          TRINCG(I,J)=TRDFLB(1)
          BTMPW(I,J)=BTEMPW-TF
          ALB(I,J,1)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
@@ -983,14 +984,16 @@ C****
          DO 780 J=1,JM
          DXYPJ=DXYP(J)
          IMAX=IMAXJ(J)
-         DO 720 L=1,LM
-         ASRHR=0.
-         ATRHR=0.
-         DO 710 I=1,IMAX
-         ASRHR=ASRHR+SRHR(I,J,L+1)*COSZ2(I,J)
-  710    ATRHR=ATRHR+TRHR(I,J,L+1)
-         AJL(J,L,9)=AJL(J,L,9)+ASRHR
-  720    AJL(J,L,10)=AJL(J,L,10)+ATRHR
+         DO L=1,LM
+           ASRHR=0.
+           ATRHR=0.
+           DO I=1,IMAX
+             ASRHR=ASRHR+SRHR(L+1,I,J)*COSZ2(I,J)
+             ATRHR=ATRHR+TRHR(L+1,I,J)
+           END DO
+           AJL(J,L,9)=AJL(J,L,9)+ASRHR
+           AJL(J,L,10)=AJL(J,L,10)+ATRHR
+         END DO
          ASNFS1=0.
          BSNFS1=0.
          CSNFS1=0.
@@ -1000,52 +1003,53 @@ C****
          DO 770 I=1,IMAX
          COSZ=COSZ2(I,J)
          PLAND=FLAND(I,J)
-         POICE=ODATA(I,J,2)*(1.-PLAND)
+         POICE=RSI(I,J)*(1.-PLAND)
          POCEAN=(1.-PLAND)-POICE
          JR=JREG(I,J)
-         DO 740 LR=1,LM_REQ
-         ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(I,J,LR)*COSZ
-  740    ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(I,J,LR)
+         DO LR=1,LM_REQ
+           ASJL(J,LR,3)=ASJL(J,LR,3)+SRHRS(LR,I,J)*COSZ
+           ASJL(J,LR,4)=ASJL(J,LR,4)+TRHRS(LR,I,J)
+         END DO
          DO KR=1,NDLYPT
-            IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               IH=IHOUR
-               DO INCH=1,NRAD
-                  IF (IH.GT.24) IH=IH-24
-                  ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(I,J,4)/S0)
-                  ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
-                  ADAILY(IH,4,KR)=ADAILY(IH,4,KR)
-     *                 +((SNFS(I,J,4)-SNFS(I,J,1))*COSZ-TNFS(I,J,4)
-     *                 +TNFS(I,J,1))
-                  IH=IH+1
-               END DO
-            END IF
+           IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
+             IH=IHOUR
+             DO INCH=1,NRAD
+               IF (IH.GT.24) IH=IH-24
+               ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(4,I,J)/S0)
+               ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
+               ADAILY(IH,4,KR)=ADAILY(IH,4,KR)
+     *              +((SNFS(4,I,J)-SNFS(1,I,J))*COSZ-TNFS(4,I,J)
+     *              +TNFS(1,I,J))
+               IH=IH+1
+             END DO
+           END IF
          END DO
   750    CONTINUE
          AJ(J,J_SRINCP0)=AJ(J,J_SRINCP0)+(S0*COSZ)*POCEAN
          BJ(J,J_SRINCP0)=BJ(J,J_SRINCP0)+(S0*COSZ)*PLAND
          CJ(J,J_SRINCP0)=CJ(J,J_SRINCP0)+(S0*COSZ)*POICE
          AREG(JR,J_SRINCP0)=AREG(JR,J_SRINCP0)+(S0*COSZ)*DXYPJ
-         AJ(J,J_SRNFP0)=AJ(J,J_SRNFP0)+(SNFS(I,J,4)*COSZ)*POCEAN
-         BJ(J,J_SRNFP0)=BJ(J,J_SRNFP0)+(SNFS(I,J,4)*COSZ)*PLAND
-         CJ(J,J_SRNFP0)=CJ(J,J_SRNFP0)+(SNFS(I,J,4)*COSZ)*POICE
-         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(I,J,4)*COSZ)*DXYPJ
-         ASNFS1=ASNFS1+(SNFS(I,J,1)*COSZ)*POCEAN
-         BSNFS1=BSNFS1+(SNFS(I,J,1)*COSZ)*PLAND
-         CSNFS1=CSNFS1+(SNFS(I,J,1)*COSZ)*POICE
-         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(I,J,1)*COSZ)*DXYPJ
-         AJ(J,J_SRINCG)=AJ(J,J_SRINCG)+(SRHR(I,J,1)*COSZ/
+         AJ(J,J_SRNFP0)=AJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*POCEAN
+         BJ(J,J_SRNFP0)=BJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*PLAND
+         CJ(J,J_SRNFP0)=CJ(J,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*POICE
+         AREG(JR,J_SRNFP0)=AREG(JR,J_SRNFP0)+(SNFS(4,I,J)*COSZ)*DXYPJ
+         ASNFS1=ASNFS1+(SNFS(1,I,J)*COSZ)*POCEAN
+         BSNFS1=BSNFS1+(SNFS(1,I,J)*COSZ)*PLAND
+         CSNFS1=CSNFS1+(SNFS(1,I,J)*COSZ)*POICE
+         AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*COSZ)*DXYPJ
+         AJ(J,J_SRINCG)=AJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))*POCEAN
-         BJ(J,J_SRINCG)=BJ(J,J_SRINCG)+(SRHR(I,J,1)*COSZ/
+         BJ(J,J_SRINCG)=BJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))*PLAND
-         CJ(J,J_SRINCG)=CJ(J,J_SRINCG)+(SRHR(I,J,1)*COSZ/
+         CJ(J,J_SRINCG)=CJ(J,J_SRINCG)+(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))*POICE
          AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
-     *     (SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
-         AJ(J,J_SRNFG)=AJ(J,J_SRNFG)+(FSF(I,J,1)*COSZ)*POCEAN
-         SRNFLG=FSF(I,J,3)*FLICE(I,J)+FSF(I,J,4)*(PLAND-FLICE(I,J))
+     *     (SRHR(1,I,J)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
+         AJ(J,J_SRNFG)=AJ(J,J_SRNFG)+(FSF(1,I,J)*COSZ)*POCEAN
+         SRNFLG=FSF(3,I,J)*FLICE(I,J)+FSF(4,I,J)*(PLAND-FLICE(I,J))
          BJ(J,J_SRNFG)=BJ(J,J_SRNFG)+(SRNFLG*COSZ)
-         CJ(J,J_SRNFG)=CJ(J,J_SRNFG)+(FSF(I,J,2)*COSZ)*POICE
-         AREG(JR,J_SRNFG)=AREG(JR,J_SRNFG)+(SRHR(I,J,1)*COSZ)*DXYPJ
+         CJ(J,J_SRNFG)=CJ(J,J_SRNFG)+(FSF(2,I,J)*COSZ)*POICE
+         AREG(JR,J_SRNFG)=AREG(JR,J_SRNFG)+(SRHR(1,I,J)*COSZ)*DXYPJ
          AJ(J,J_BRTEMP)=AJ(J,J_BRTEMP)+BTMPW(I,J)*POCEAN
          BJ(J,J_BRTEMP)=BJ(J,J_BRTEMP)+BTMPW(I,J)*PLAND
          CJ(J,J_BRTEMP)=CJ(J,J_BRTEMP)+BTMPW(I,J)*POICE
@@ -1054,25 +1058,25 @@ C****
          BJ(J,J_TRINCG)=BJ(J,J_TRINCG)+TRINCG(I,J)*PLAND
          CJ(J,J_TRINCG)=CJ(J,J_TRINCG)+TRINCG(I,J)*POICE
          AREG(JR,J_TRINCG)=AREG(JR,J_TRINCG)+TRINCG(I,J)*DXYPJ
-         AJ(J,J_HSURF)=AJ(J,J_HSURF)-TNFS(I,J,4)*POCEAN
-         BJ(J,J_HSURF)=BJ(J,J_HSURF)-TNFS(I,J,4)*PLAND
-         CJ(J,J_HSURF)=CJ(J,J_HSURF)-TNFS(I,J,4)*POICE
-         AREG(JR,J_HSURF)=AREG(JR,J_HSURF)-TNFS(I,J,4)*DXYPJ
-         ATNFS1=ATNFS1-TNFS(I,J,1)*POCEAN
-         BTNFS1=BTNFS1-TNFS(I,J,1)*PLAND
-         CTNFS1=CTNFS1-TNFS(I,J,1)*POICE
-         AREG(JR,J_HATM)=AREG(JR,J_HATM)-TNFS(I,J,1)*DXYPJ
+         AJ(J,J_HSURF)=AJ(J,J_HSURF)-TNFS(4,I,J)*POCEAN
+         BJ(J,J_HSURF)=BJ(J,J_HSURF)-TNFS(4,I,J)*PLAND
+         CJ(J,J_HSURF)=CJ(J,J_HSURF)-TNFS(4,I,J)*POICE
+         AREG(JR,J_HSURF)=AREG(JR,J_HSURF)-TNFS(4,I,J)*DXYPJ
+         ATNFS1=ATNFS1-TNFS(1,I,J)*POCEAN
+         BTNFS1=BTNFS1-TNFS(1,I,J)*PLAND
+         CTNFS1=CTNFS1-TNFS(1,I,J)*POICE
+         AREG(JR,J_HATM)=AREG(JR,J_HATM)-TNFS(1,I,J)*DXYPJ
          DO 760 K=2,9
            JK=K+J_PLAVIS-2     ! accumulate 8 radiation diags.
          AJ(J,JK)=AJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*POCEAN
          BJ(J,JK)=BJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*PLAND
          CJ(J,JK)=CJ(J,JK)+(S0*COSZ)*ALB(I,J,K)*POICE
   760    AREG(JR,JK)=AREG(JR,JK)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
-         AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(I,J,4)
-         AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(I,J,4)*COSZ)
+         AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(4,I,J)
+         AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(4,I,J)*COSZ)
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
-         AIJ(I,J,IJ_SRNFG)=AIJ(I,J,IJ_SRNFG)+(SRHR(I,J,1)*COSZ)
-         AIJ(I,J,IJ_SRINCG)=AIJ(I,J,IJ_SRINCG)+(SRHR(I,J,1)*COSZ/
+         AIJ(I,J,IJ_SRNFG)=AIJ(I,J,IJ_SRNFG)+(SRHR(1,I,J)*COSZ)
+         AIJ(I,J,IJ_SRINCG)=AIJ(I,J,IJ_SRINCG)+(SRHR(1,I,J)*COSZ/
      *        (ALB(I,J,1)+1.D-20))
          AIJ(I,J,IJ_BTMPW)=AIJ(I,J,IJ_BTMPW)+BTMPW(I,J)
          AIJ(I,J,IJ_SRREF)=AIJ(I,J,IJ_SRREF)+S0*COSZ*ALB(I,J,2)
@@ -1086,37 +1090,37 @@ C****
   780    CONTINUE
          DO 790 L=1,LM
          DO 790 I=1,IM
-         AIL(I,L,7)=AIL(I,L,7)+((SRHR(I,JEQ-2,L+1)*COSZ2(I,JEQ-2)+
-     *     TRHR(I,JEQ-2,L+1))*DXYP(JEQ-2)+(SRHR(I,JEQ-1,L+1)*
-     *     COSZ2(I,JEQ-1)+TRHR(I,JEQ-1,L+1))*DXYP(JEQ-1)+
-     *     (SRHR(I,JEQ,L+1)*COSZ2(I,JEQ)+TRHR(I,JEQ,L+1))*DXYP(JEQ))
-         AIL(I,L,11)=AIL(I,L,11)+(SRHR(I,J50N,L+1)*COSZ2(I,J50N)+
-     *     TRHR(I,J50N,L+1))*DXYP(J50N)
-  790    AIL(I,L,15)=AIL(I,L,15)+(SRHR(I,J70N,L+1)*COSZ2(I,J70N)+
-     *     TRHR(I,J70N,L+1))*DXYP(J70N)
+         AIL(I,L,7)=AIL(I,L,7)+((SRHR(L+1,I,JEQ-2)*COSZ2(I,JEQ-2)+
+     *     TRHR(L+1,I,JEQ-2))*DXYP(JEQ-2)+(SRHR(L+1,I,JEQ-1)*
+     *     COSZ2(I,JEQ-1)+TRHR(L+1,I,JEQ-1))*DXYP(JEQ-1)+
+     *     (SRHR(L+1,I,JEQ)*COSZ2(I,JEQ)+TRHR(L+1,I,JEQ))*DXYP(JEQ))
+         AIL(I,L,11)=AIL(I,L,11)+(SRHR(L+1,I,J50N)*COSZ2(I,J50N)+
+     *     TRHR(L+1,I,J50N))*DXYP(J50N)
+  790    AIL(I,L,15)=AIL(I,L,15)+(SRHR(L+1,I,J70N)*COSZ2(I,J70N)+
+     *     TRHR(L+1,I,J70N))*DXYP(J70N)
 C****
 C**** Update radiative equilibrium temperatures
 C****
-      DO LR=1,LM_REQ
-         DO J=1,JM
-            IMAX=IMAXJ(J)
-            DO I=1,IMAX
-               RQT(I,J,LR)=RQT(I,J,LR)+(SRHRS(I,J,LR)*COSZ2(I,J)
-     *              +TRHRS(I,J,LR))*COE(LR+LM)
-            END DO
-         END DO
+      DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          DO LR=1,LM_REQ
+            RQT(LR,I,J)=RQT(LR,I,J)+(SRHRS(LR,I,J)*COSZ2(I,J)
+     *           +TRHRS(LR,I,J))*COE(LR+LM)
+          END DO
+        END DO
       END DO
 C****
 C**** Update other temperatures every physics time step
 C****
-  900 DO L=1,Lm
-         DO J=1,JM
-            IMAX=IMAXJ(J)
-            DO I=1,IMAX
-               T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1)
-     *              )*COE(L)/(PLIJ(L,I,J)*PK(L,I,J))
-            END DO
-         END DO
+  900 DO J=1,JM
+        IMAX=IMAXJ(J)
+        DO I=1,IMAX
+          DO L=1,LM
+            T(I,J,L)=T(I,J,L)+(SRHR(L+1,I,J)*COSZ1(I,J)+TRHR(L+1,I,J))*
+     *           COE(L)/(PLIJ(L,I,J)*PK(L,I,J))
+          END DO
+        END DO
       END DO
 C**** daily diagnostics
       DO KR=1,NDLYPT
@@ -1143,8 +1147,9 @@ C****
      *     j_ace2,j_snow,j_run1,j_f2dt,j_evap,j_oht,j_omlt,j_edifs,
      *     j_f1dt,j_erun2,j_imelt,j_run2,j_dwtr2
 
-      USE OCEAN, only : odata,z1o,ota,otb,otc,tfo,fleadoc,osourc
+      USE OCEAN, only : tocean,z1o,ota,otb,otc,tfo,fleadoc,osourc
       USE SEAICE, only : ace1i,sea_ice,addice
+      USE SEAICE_COM, only : rsi,msi
       USE LAKES_COM, only : mwl,gml,tfl,fleadlk,t50
       USE LANDICE, only : ace2li,lndice
       IMPLICIT NONE
@@ -1178,9 +1183,9 @@ C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
 C****
-C**** ODATA  1  OCEAN TEMPERATURE (C)
-C****        2  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
-C****        3  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
+C**** TOCEAN(1)  OCEAN TEMPERATURE (C)
+C****   RSI  RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+C****   MSI  OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
 C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
 C****        2  EARTH SNOW AMOUNT (KG/M**2)
@@ -1277,7 +1282,7 @@ C****
       PWATER=1.-PLAND
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
-      ROICE=ODATA(I,J,2)
+      ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       POCEAN=PWATER-POICE
       POLAKE=FLAKE(I,J)*(1.-ROICE)
@@ -1300,20 +1305,20 @@ C****
 C**** OCEAN AND LAKE
 C****
       EVAP=EVAPOR(I,J,1)
-         ATG1=ATG1+ODATA(I,J,1)*POCEAN
-         TG1S=TG1S+ODATA(I,J,1)*POCEAN
+         ATG1=ATG1+TOCEAN(1,I,J)*POCEAN
+         TG1S=TG1S+TOCEAN(1,I,J)*POCEAN
          AEVAP=AEVAP+EVAP*POCEAN
          EVAPS=EVAPS+EVAP*POCEAN
-         AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+ODATA(I,J,1)
+         AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+TOCEAN(1,I,J)
          AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*POCEAN
       IF (POLAKE.GT.0.) THEN
         MWL(I,J) = MWL(I,J) - EVAP*POLAKE*DXYP(J)
         GML(I,J) = GML(I,J) + E0(I,J,1)*POLAKE*DXYP(J)
       END IF
-      TGW=ODATA(I,J,1)
+      TGW=TOCEAN(1,I,J)
       IF (KOCEAN .NE. 1) THEN ! .and. NOT LAKE?
-           ATG2=ATG2+ODATA(I,J,1)*POCEAN
-           TG2S=TG2S+ODATA(I,J,1)*POCEAN
+           ATG2=ATG2+TOCEAN(1,I,J)*POCEAN
+           TG2S=TG2S+TOCEAN(1,I,J)*POCEAN
       ELSE
         WTRO=Z1O(I,J)*RHOW
         F0DT=E0(I,J,1)
@@ -1322,9 +1327,9 @@ C****
      *          +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *          +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *          +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
-           ATG2=ATG2+ODATA(I,J,4)*POCEAN
-           TG2S=TG2S+ODATA(I,J,4)*POCEAN
-           ATG3=ATG3+ODATA(I,J,5)*POCEAN
+           ATG2=ATG2+TOCEAN(2,I,J)*POCEAN
+           TG2S=TG2S+TOCEAN(2,I,J)*POCEAN
+           ATG3=ATG3+TOCEAN(3,I,J)*POCEAN
            AOTDT=AOTDT+OTDT*POCEAN
         RUN4=-EVAP
         ERUN4=RUN4*TGW*SHW
@@ -1337,7 +1342,7 @@ C***  CALL SEA ICE SUBROUTINE
       F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
       F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layers (J/m^2)
       EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
-      MSI2= ODATA(I,J,3)
+      MSI2= MSI(I,J)
       SNOW= GDATA(I,J,1)  ! snow mass (kg/m^2)
       TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
       TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
@@ -1387,9 +1392,9 @@ C****
       GDATA(I,J,15)=TG3
       GDATA(I,J,16)=TG4
       IF (KOCEAN.eq.1) THEN
-         ODATA(I,J,1)=TGW
-         ODATA(I,J,2)=ROICE
-         ODATA(I,J,3)=MSI2
+         TOCEAN(1,I,J)=TGW
+         RSI(I,J)=ROICE
+         MSI(I,J)=MSI2
       END IF
 
       IF (PLKICE.GT.0.) THEN ! Add mass/energy fluxes to lake variables

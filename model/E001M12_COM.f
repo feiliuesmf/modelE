@@ -1,7 +1,7 @@
-C**** E001M12_COM
-C**** COMMON BLOCK    4x5 deg Model  - Real*8 - VDATA:10->11+1
-
       MODULE E001M12_COM
+!@sum  E001M12_COM Main model variables 4x5 deg Model, 12 layers
+!@auth Original Development Team
+!@ver  1.0
 
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels (limited to 40 by BR00B.COM)
@@ -9,10 +9,8 @@ C**** COMMON BLOCK    4x5 deg Model  - Real*8 - VDATA:10->11+1
 
 !@var IMH half the number of latitudinal boxes
       INTEGER, PARAMETER :: IMH=IM/2
-
 !@var FIM,BYIM real parameter values for the number of long. grid boxes
       REAL*8, PARAMETER :: FIM=IM, BYIM=1./FIM
-
 !@var JEQ grid box immediately north of the equator
       INTEGER, PARAMETER :: JEQ=1+JM/2
 
@@ -42,16 +40,15 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
 
 C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION ::
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
-     *  RSDIST,SIND,COSD 
-      DOUBLE PRECISION, DIMENSION(4+12) :: TAUTR0  ! to keep sig fixed?
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG, SKIPSE
+      DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
       DOUBLE PRECISION, DIMENSION(LM) :: SIG
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(161-29-2*LM) :: RDM2 
+      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2 
 !@var PSFMPT,PSTRAT derived pressure constants
       COMMON /RPARMB/
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
-     *  RSDIST,SIND,COSD,        TAUTR0,SIG,SIGE,  RDM2   ! S0, ??
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  SKIPSE,
+     *  TAUTR0,SIG,SIGE,  RDM2
 
 !@var RC handle for referring to real parameters
       DOUBLE PRECISION, DIMENSION(161) :: RC
@@ -96,39 +93,80 @@ C**** (Simplified) Calendar Related Terms
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
 
 !@var Q_GISS,Q_HDF,Q_PRT,Q_NETCDF are switches for post-processing
-      LOGICAL Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
-      COMMON /Q_PP/Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
+      LOGICAL :: Q_GISS=.FALSE.,Q_HDF=.FALSE.,
+     *           Q_PRT =.FALSE.,Q_NETCDF=.FALSE.
+
+C**** IO read/write flags used by the io_xyz routines
+!@param IOWRITE,IOREAD Flags set for writing or reading files
+!@param IOWRITE_SINGLE Flag used for writing out in single precision
+!@param IRESTART Flag used for reading in normal restart files
+!@param IRSFIC Flag used for reading in a restart file I.C.
+!@param IRERUN Flag used for reading in a restart file I.C. for rerun
+      INTEGER, PARAMETER :: iowrite=-1,ioread=1,iowrite_single=-2,
+     *     irestart=1,irsfic=2,irerun=3
 
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-!@var P surface pressure (hecto-Pascals - PTOP)
-
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
+!@var P surface pressure (hecto-Pascals - PTOP)
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P
 
-c      CONTAINS
-c
-c      SUBROUTINE io_model(iunit,irw)
-c
-c      INTEGER iunit  !@var iunit unit number of read/write
-c      INTEGER irw    !@var irw   read or write flag
-c      INTEGER, PARAMETER :: iwrite=1,iread=2
-c      CHARACTER*20 HEADER,MODULE_HEADER
-c      DATA MODULE_HEADER/"E001M12"
-c
-c      select case (irw)
-c      case (iwrite)
-c         write(iunit) TAU,MODULE_HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q
-c      case (iread)
-c         read(iunit) TAU,HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q
-c         if (HEADER.ne.MODULE_HEADER)
-c     &      print*,"Discrepancy in module version",HEADER,MODULE_HEADER
-c      end select
-c
-c      RETURN
-c      END SUBROUTINE io_model
-
       END MODULE E001M12_COM
+
+      SUBROUTINE io_model(kunit,it,iaction,ioerr)
+!@sum  io_model reads and writes model variables to file 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "E001M12"
+!@var itime input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+!@var JC1 dummy array
+      INTEGER JC1(100)
+!@var RC1 dummy array
+      REAL*8 RC1(161)
+!@var CLABEL1 dummy label
+      CHARACTER*156 CLABEL1
+
+C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
+C****  size of common block arrays (and/or should we be explicit?)
+C****  timing info as named array?
+      SELECT CASE (IACTION)
+      CASE (IOWRITE)            ! output to standard restart file
+        WRITE (kunit,err=10) it,JC,CLABEL,RC
+C**** need a blank line to fool 'qrsfnt' etc.
+        WRITE (kunit,err=10)
+        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
+      CASE (IOWRITE_SINGLE)   ! output to single precision ACC file
+        WRITE (kunit,err=10) it,JC,CLABEL,SNGL(RC)
+      CASE (IOREAD:)          ! input from restart file
+        READ (kunit,err=10) it,JC1,CLABEL1,RC1
+        READ (kunit,err=10)
+        READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
+        IF (HEADER.ne.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
+        SELECT CASE (IACTION)   ! set model common according to iaction
+        CASE (IRESTART)         ! normal restart
+          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1 
+        CASE (IRSFIC)           ! start from old restart file => do nothing
+        CASE (IRERUN) ! rerun or extension
+          JC=JC1 ; RC=RC1
+        END SELECT
+      END SELECT
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_model
+

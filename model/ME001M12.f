@@ -1,36 +1,22 @@
-C**** ME001M12 E001M12 SOMTQ M_f90 MB399M12   07/00
-C****
-C**** Second order scheme for momentum advection, with FLTRUV
-C****
-C**** Snow ages each day independent of temperature
-C****
-C**** No extra leads - works with both: KOCEAN=0 and KOCEAN=1
-C****
-C**** Basic model II (OA,PALMER omitted) .5 box longitude shift
-C**** Pressure replaces Sigma above LS1 as the vertical coordinate
-C**** Modified for using new MC codes, radiation, 11 veg.types
-C**** Quadratic upstream scheme + 4th order scheme, Cor.term=0 at poles
-C**** Routines included: MAIN,INPUT,DAILY,CHECKT,CHECK3
-C**** f90 changes
-*****
+      PROGRAM GISS_modelE
+!@sum  MAIN GISS modelE main time-stepping routine
+!@auth Original Development Team
+!@ver  1.0 (Based originally on B399)
       USE CONSTANT, only : sday
       USE E001M12_COM
       USE GEOM
       USE RANDOM
-
-      USE DAGCOM, only : aj,kacc,aij,tsfrez,keynr,kdiag,ij_tgo2
-      USE DYNAMICS, only : FILTER,CALC_AMPK
-      USE OCEAN, only : ODATA,OA
-
+      USE DAGCOM, only : aij,keynr,kdiag,ij_tgo2
+      USE DYNAMICS, only : filter,calc_ampk
+      USE OCEAN, only : tocean,oa
+      USE SEAICE_COM, only : rsi,msi
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MSUM
-     *     ,MODD5D,iowrite,ioerr
+      INTEGER I,J,L,K,LLAB1,KSS6,MSTART,MNOW,MINC,MSUM,MODD5D,ioerr
       REAL*8 DTIME,PELSE,PDIAG,PSURF,PRAD,PCDNS,PDYN,TOTALT
 
       CHARACTER CYEAR*4,CMMND*80
       CHARACTER*8 :: LABSSW,OFFSSW = 'XXXXXXXX'
-
 C****
 C**** INITIALIZATIONS
 C****
@@ -55,7 +41,6 @@ C**** INITIALIZE TIME PARAMETERS
      *   'Year',JYEAR,AMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',IYEAR0,ITIME
       CALL TIMER (MNOW,MINC,MELSE)
-
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -74,7 +59,6 @@ C****
          CALL DIAGKN
          STOP 13          ! no output files are affected
       END IF
-
 C****
 C**** MAIN LOOP
 C****
@@ -84,8 +68,7 @@ C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternatingly onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
-         iowrite=-1
-         call io_rsf(KDISK, dfloat(Itime) ,iowrite,ioerr) ! no dfloat?
+         call io_rsf(KDISK,Itime,iowrite,ioerr)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     ' Restart file written on fort.',KDISK,'Year',
      *     JYEAR,AMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
@@ -277,24 +260,24 @@ C**** KCOPY > 1 : SAVE THE RESTART INFORMATION
                CALL RFINAL (IRAND)
                OPEN(30,FILE=AMON0(1:3)//CYEAR//'.rsf'//LABEL1(1:LLAB1),
      *              FORM='UNFORMATTED')
-               iowrite=-1   ! ? should be different
-               call io_rsf(30,Dfloat(Itime),iowrite,ioerr)  ! ? temp
+               call io_rsf(30,Itime,iowrite,ioerr)
 
                CLOSE (30)
              END IF
 C**** KCOPY > 2 : SAVE THE OCEAN DATA FOR INITIALIZING DEEP OCEAN RUNS
+C**** Note minor change of format to accomodate replacement of ODATA
              IF (KCOPY.GT.2) THEN
                OPEN (30,FILE=AMON0(1:3)//CYEAR//'.oda'//LABEL1(1:LLAB1),
      *              FORM='UNFORMATTED')
-               WRITE (30) Itime,ODATA,((AIJ(I,J,IJ_TGO2),I=1,IM),J=1,JM)
+               WRITE (30) Itime,TOCEAN,RSI,MSI,((AIJ(I,J,IJ_TGO2),I=1,IM
+     *              ),J=1,JM)
                CLOSE (30)
              END IF
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
              OPEN (30,FILE=AMON0(1:3)//CYEAR//'.acc'//LABEL1(1:LLAB1),
      *            FORM='UNFORMATTED')
-             WRITE (30) Itime,JC,CLABEL,(SNGL(RC(I)),I=1,161),KEYNR,
-     *            (SNGL(TSFREZ(I,1,1)),I=1,IM*JM*2),
-     *            (SNGL(AJ(I,1)),I=1,KACC),Itime
+             call io_model(30,Itime,iowrite_single,ioerr)
+             call io_diags(30,Itime,iowrite_single,ioerr)
              CLOSE (30)
            END IF
 
@@ -342,8 +325,7 @@ C****
 
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
-      iowrite=-1
-      call io_rsf(KDISK,Dfloat(Itime),iowrite,ioerr)   ! temporary ?
+      call io_rsf(KDISK,Itime,iowrite,ioerr)
       WRITE (6,'(A,I1,55X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  ' Restart file written on fort.',KDISK,'Year',JYEAR,
      *        AMON,JDATE,', Hr',JHOUR,'  Internal clock',ITIME
@@ -360,8 +342,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 C****
 C**** DEFAULT PARAMETERS FOR MODEL COMMON BLOCK
 C****
-      USE E001M12_COM
-     &     , only : im,jm,lm
+      USE E001M12_COM, only : im,jm,lm
       USE DAGCOM, only : kacc
 
       IMPLICIT NONE
@@ -387,15 +368,14 @@ C****
      *  NSSW,NSTEP,MRCH, IDUM   ,NDZERO,NDPRNT    ,  IJD6     ,IDACC
 
       DOUBLE PRECISION ::
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
-     *  RSDIST,SIND,COSD 
-      DOUBLE PRECISION, DIMENSION(4+12) :: TAUTR0  ! to keep sig fixed?
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,SKIPSE
+      DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
       DOUBLE PRECISION, DIMENSION(LM) :: SIG
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(161-29-2*LM) :: RDM2 
+      DOUBLE PRECISION, DIMENSION(161-13-2*LM) :: RDM2 
        COMMON /RPARMB/   
-     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
-     *  RSDIST,SIND,COSD,        TAUTR0,SIG,SIGE,  RDM2   ! S0, ??
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  SKIPSE,
+     *  TAUTR0,SIG,SIGE,  RDM2
 
 
       CHARACTER*4 NAMD6,AMON,AMON0
@@ -422,17 +402,14 @@ C**** slightly larger:     NDAa:   NDAa*DTsrc + 2*DT(dyn),
 C****                      NDA5k: NDA5k*DTsrc + 2*DT(dyn),
 C****                      NDAsf: NDAsf*DTsrc + DTsrc/NIsurf
 C****
-     *  PTOP, PSF, PSDRAG,PTRUNC,SKIPSE/
-     *  150.,984.,  500.,    0.,     0./
+     *  PTOP, PSF, PSDRAG,SKIPSE/
+     *  150.,984.,  500.,     0./
       DATA SIGE /1.0000000,LM*0./                    ! Define in rundeck
       DATA NAMD6 /'AUSD','MWST','SAHL','EPAC'/,
      *  NDZERO/ 0,1,32,60,91,121,152,182,213,244,274,305,335/,
      *  NDPRNT/-1,1,32,60,91,121,152,182,213,244,274,305,335/,
      *  IJD6/63,17, 17,34, 37,27, 13,23/
 
-      LOGICAL Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
-      COMMON /Q_PP/Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
-      DATA Q_GISS,Q_HDF,Q_PRT,Q_NETCDF/.FALSE.,.FALSE.,.FALSE.,.FALSE./
       END
 
       SUBROUTINE INPUT
@@ -444,29 +421,31 @@ C****
      *     ,rhow
       USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,gdata,fearth,fland
      *     ,focean,flake,flice,hlake,zatmo,sig,dsig,sige,dsigo
-     *     ,bydsig,xlabel,jc,rc,clabel,NAMD6,IJD6,NDPRNT,NDZERO
-     *     ,SKIPSE,KEYCT,MFILTR,IRAND,PTRUNC,PSF,PTOP
-     *     ,XCDLM,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,NFILTR
-     *     ,NIsurf,NRAD,NIdyn,NDAY,dt,dtsrc,KDISK
-     *     ,Iyear0,Itime,ItimeI,ItimeE,  Noht,Nslp,Ndisk,Nssw,Kcopy
-     *     ,KOCEAN,LS1,PSFMPT,PSTRAT,KACC0,KTACC0,IDACC,IM0,JM0,LM0
-     *     ,VDATA,amonth,JDendOfM,JDperY  ,amon,amon0
+     *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,ndprnt,ndzero
+     *     ,skipse,keyct,mfiltr,irand,psf,ptop
+     *     ,xcdlm,ndasf,nda4,nda5s,nda5k,nda5d,ndaa,nfiltr
+     *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk
+     *     ,iyear0,itime,itimei,itimee,noht,nslp,ndisk,nssw,kcopy
+     *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
+     *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,irestart,irerun
+     *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse
       USE SOMTQ_COM
       USE GEOM, only : geom_b
       USE GHYCOM
      &  , only : ghdata
       USE RANDOM
-      USE RADNCB, only : RQT,SRHR,TRHR,FSF,S0X,CO2
-      USE CLD01_COM_E001, only : TTOLD,QTOLD,SVLHX,RHSAV,CLDSAV,
-     *     U00wtr,U00ice,LMCM
+      USE RADNCB, only : rqt,s0x,co2,lm_req
+      USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav,
+     *     U00wtr,U00ice,lmcm
       USE PBLCOM
      &     , only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq=>cqgs
-     &  ,ipbl,bldata,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
+     &     ,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
-     &  ,TITREG,NAMREG,HR_in_DAY,iwrite,jwrite,itwrite,qcheck
-      USE DYNAMICS, only : FILTER,CALC_AMPK
-      USE OCEAN, only : odata,OA
-      USE LAKES_COM, only : T50
+     &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
+      USE DYNAMICS, only : filter,calc_ampk
+      USE OCEAN, only : tocean,oa,z1o
+      USE SEAICE_COM, only : rsi,msi
+      USE LAKES_COM, only : t50
       USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
@@ -474,13 +453,13 @@ C****
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
 
       INTEGER I,J,L,K,KLAST,KDISK0,ITYPE,IM1,KTACC     ! ? ktacc ?
-     *     ,IR,IREC,NOFF,ioread,ioerr,itime1,itime2
+     *     ,IR,IREC,NOFF,ioerr
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *  ISTART=10, HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHRE=-1
       REAL*8 TIJL,X,RDSIG,CDM,TEMP   ! ,SNOAGE ? obsolete
       REAL*4 XX4
-      REAL*8 TAU2,TAUX,TAUY,TAU1   ! ? temporary for compatibility only
-
+      REAL*8 TAUX   ! ? temporary for compatibility only
+      INTEGER Itime1,Itime2,ItimeX
       INTEGER JC1(100)
       REAL*8 RC1(161)
       INTEGER :: LRUNID=4                       ! RUNID longer than 4?
@@ -497,7 +476,7 @@ C****    List of parameters that CANNOT be changed during a run:
 C****    List of parameters that COULD be changed during a run:
      *     ,ISTART,DT,  NRAD,NIsurf,NFILTR, MFILTR
      *     ,SKIPSE,  NDAA,NDA5D,NDA5K,NDA5S,NDA4,NDASF
-     *     ,U00wtr,U00ice,LMCM, S0X,CO2,XCDLM,IRAND ! ,PTRUNC obsolete
+     *     ,U00wtr,U00ice,LMCM, S0X,CO2,XCDLM,IRAND
      *     ,Nslp,Noht,KCOPY,Ndisk, Nssw        ,keyct ! keyct??
      *     ,KDIAG,NDZERO,NDPRNT,IJD6,NAMD6
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK
@@ -515,19 +494,15 @@ C****
       T(:,:,:)=TEMP  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
 C**** ADVECTION TERMS FOR SECOND ORDER MOMENTS
-      DO I=1,IM*JM*LM*9
-         TX(I,1,1) = 0.
-      END DO
-      DO I=1,IM*JM*LM*9
-         QX(I,1,1) = 0.
-      END DO
+      TX=0; TY=0; TZ=0; TXX=0; TYY=0; TZZ=0; TXY=0; TZX=0; TYZ=0
+      QX=0; QY=0; QZ=0; QXX=0; QYY=0; QZZ=0; QXY=0; QZX=0; QYZ=0
 C**** Auxiliary clouds arrays
       RHSAV (:,:,:)=.85
       CLDSAV(:,:,:)=0.
       SVLHX (:,:,:)=0.
       WM    (:,:,:)=0.
-C****    ocean info saved for ocean heat transport calculations
-         OA = 0.
+C**** Ocean info saved for ocean heat transport calculations
+      OA = 0.
 C**** All diagn. are enabled unless KDIAG is changed in the rundeck
       KDIAG(1:12)=0
 C****
@@ -539,7 +514,6 @@ C****
       IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
       WRITE (6,'(A,A/)') '0',XLABEL
-      CLABEL1=XLABEL                            ! save for istart=9 case
 C****
 C**** Print and Copy Namelist parameter changes to disk so they may be
 C**** read in repeatedly. Then read them in to overwrite the defaults
@@ -590,8 +564,6 @@ C**** Derived quantities related to vertical layering (sige->ls1,sig)
       END DO
       PSFMPT = PSF-PTOP
       PSTRAT = (PSF-PTOP)*(SIGE(LS1)-SIGE(LM+1))
-      JC1=JC          ! save from being overwritten by reading I.C.s
-      RC1=RC          ! save from being overwritten by reading I.C.s
 C****
 C**** Get Ground conditions from a separate file - ISTART=1,2
 C****
@@ -601,7 +573,8 @@ C**** Set flag to initialise pbl and snow variables
          iniSNOW = .TRUE.  ! extract snow data from first soil layer
 C**** new: GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
          call getunit("GIC",iu_GIC,.TRUE.)
-         READ(iu_GIC,ERR=830) GDATA,GHDATA,(ODATA(I,1,1),I=1,IM*JM*2)
+         READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
+     *        ,JM),RSI
          CLOSE (iu_GIC)
       END IF
 C****
@@ -634,26 +607,26 @@ C****
 C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
       IF(ISTART.LE.2) THEN
-         WSAVG(1,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
-         USAVG(1,1)=U(1,2,1)
-         VSAVG(1,1)=V(1,2,1)
-         WSAVG(1,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
-         USAVG(1,JM)=U(1,JM,1)
-         VSAVG(1,JM)=V(1,JM,1)
-         DO J=2,JM-1
-            IM1=IM
-            DO I=1,IM
+        WSAVG(1,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
+        USAVG(1,1)=U(1,2,1)
+        VSAVG(1,1)=V(1,2,1)
+        WSAVG(1,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
+        USAVG(1,JM)=U(1,JM,1)
+        VSAVG(1,JM)=V(1,JM,1)
+        DO J=2,JM-1
+          IM1=IM
+          DO I=1,IM
             WSAVG(I,J)=.25*SQRT(
-     *         (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
-     *        +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
+     *           (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
+     *           +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
             USAVG(I,J)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
             VSAVG(I,J)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
             IM1=I
-            END DO
-         END DO
-         CDM=.001
-         DO J=1,JM
-         DO I=1,IM
+          END DO
+        END DO
+        CDM=.001
+        DO J=1,JM
+          DO I=1,IM
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
             TAUAVG(I,J)=CDM*WSAVG(I,J)**2
 C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
@@ -661,8 +634,8 @@ C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
             QSAVG(I,J)=Q(I,J,1)
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
-            DO K=1,3
-              RQT(I,J,K)=T(I,J,LM)
+            DO K=1,LM_REQ
+              RQT(K,I,J)=T(I,J,LM)
             END DO
 C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
             DO L=1,LS1-1
@@ -672,27 +645,26 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
               T(I,J,L)=T(I,J,L)/((SIG(L)*(PSF-PTOP)+PTOP)**KAPA)
             END DO
             DO L=1,LM
-              TTOLD(I,J,L)=T(I,J,L)
-              QTOLD(I,J,L)=Q(I,J,L)
+              TTOLD(L,I,J)=T(I,J,L)
+              QTOLD(L,I,J)=Q(I,J,L)
             END DO
-         END DO
-         END DO
+          END DO
+        END DO
 C**** INITIALIZE TSFREZ
-         TSFREZ(:,:,1:2)=365.
+        TSFREZ(:,:,1:2)=365.
 C**** Initialize surface friction velocity
-         DO ITYPE=1,4
-         DO J=1,JM
-         DO I=1,IM
-            USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
-         END DO
-         END DO
-         END DO
+        DO ITYPE=1,4
+          DO J=1,JM
+            DO I=1,IM
+              USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
+            END DO
+          END DO
+        END DO
 C**** Initiallise T50
-         T50=TSAVG
+        T50=TSAVG
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
-C***?    or leave them =0 by removing this section
-         DO J=1,JM
-         DO I=1,IM
+        DO J=1,JM
+          DO I=1,IM
             RDSIG=(SIG(1)-SIGE(2))/(SIG(1)-SIG(2))
             TZ(I,J,1)=(T(I,J,2)-T(I,J,1))*RDSIG
             QZ(I,J,1)=(Q(I,J,2)-Q(I,J,1))*RDSIG
@@ -707,10 +679,10 @@ C***?    or leave them =0 by removing this section
             TZ(I,J,LM)=(T(I,J,LM)-T(I,J,LM-1))*RDSIG
             QZ(I,J,LM)=(Q(I,J,LM)-Q(I,J,LM-1))*RDSIG
             IF (Q(I,J,LM)+QZ(I,J,LM).LT.0.) QZ(I,J,LM) = -Q(I,J,LM)
-         END DO
-         END DO
+          END DO
+        END DO
       END IF
-C****
+C**** 
 C**** I.C FROM OLDER INCOMPLETE MODEL OUTPUT, ISTART=4-7    just hints
 C****
 C**** Read what's there and substitute rest as needed (as above)
@@ -728,32 +700,38 @@ C****
 C**** I.C FROM RESTART FILE WITH COMPLETE DATA        ISTART=3,8
 C****
       CASE (3)                  ! old format
-         READ (iu_AIC,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,
+C**** Changes to array index orders for greater efficiency (?)
+        READ (iu_AIC,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,
      *     U,V,T,P,Q,
-     2     ODATA,GDATA,GHDATA,BLDATA,
+     2     ((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI,MSI,
+     *     (((TOCEAN(L,I,J),I=1,IM),J=1,JM),L=2,3),
+     *     GDATA,GHDATA,
+     *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar,
      *     uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
-     3     TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
+     A     (((TTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
+     B     (((QTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),
+     C     (((SVLHX(L,I,J),I=1,IM),J=1,JM),L=1,LM),
+     D     (((RHSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),WM,
+     E     (((CLDSAV(L,I,J),I=1,IM),J=1,JM),L=1,LM),
      4     TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      5     QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     6     RQT,T50
-         CLOSE (iu_AIC)
+     6     (((RQT(L,I,J),I=1,IM),J=1,JM),L=1,LM_REQ),T50
+        CLOSE (iu_AIC)
 C**** New additions
-      iniSNOW = .TRUE.  ! extract snow data from first soil layer
+        iniSNOW = .TRUE.        ! extract snow data from first soil layer
 C****
 C****   Data from current type of RESTART FILE     ISTART=8
 C****
-      CASE (8)
-        ioread=3 ! ??? no need to read SRHR,TRHR,FSF.TSFREZ,diag.arrays
-        call io_rsf(iu_AIC,TAUX,ioread,ioerr)
+      CASE (8)  ! no need to read SRHR,TRHR,FSF.TSFREZ,diag.arrays
+        call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
         if (ioerr.eq.1) goto 800
-        JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
       END SELECT
 C**** Check consistency of starting date
-      IF (ISTART.ge.3.and.(MOD(IHRI-nint(TAUX),8760).ne.0)) THEN
-          WRITE (6,*) ' Difference in hours between ',
-     *       'Starting date and Data date:',MOD(IHRI-nint(TAUX),8760)
-          WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
-          STOP 'ERROR: start date inconsistent with data'
+      IF (ISTART.ge.3.and.(MOD(IHRI-ItimeX,8760).ne.0)) THEN
+        WRITE (6,*) ' Difference in hours between ',
+     *       'Starting date and Data date:',MOD(IHRI-ItimeX,8760)
+        WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
+        STOP 'ERROR: start date inconsistent with data'
       END IF
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
@@ -796,29 +774,28 @@ C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****                          used for REPEATS and delayed EXTENSIONS
   400 SELECT CASE (ISTART)
-      CASE (9)
-        ioread=2 ! ??? no need to read diag.arrays
-        call io_rsf(iu_AIC,TAUX,ioread,ioerr)
+      CASE (9)    ! no need to read diag.arrays
+        call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
         if (ioerr.eq.1) goto 800
-         WRITE (6,'(A,I2,A,F11.2,A,A/)') '0Model restarted; ISTART=',
-     *     ISTART,', TAU=',TAUX,' ',CLABEL(1:80)
-        JC(32:37)=0
-        CLABEL(1:132)=CLABEL1(1:132)
+         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
+     *     ISTART,', HOUR=',ItimeX,' ',CLABEL(1:80)
+        MDYN=0 ; MCNDS=0 ; MRAD=0 ; MSURF=0 ; MDIAG=0 ; MELSE=0   
+c        CLABEL(1:132)=CLABEL1(1:132)
         GO TO 500
 C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
 C****
 C**** CHOOSE DATA SET TO RESTART ON
       CASE (10,13:)
-         TAU1=-1.                    ! temporarily tau still real*8 ???
-         READ (1,ERR=410) TAU1
+         Itime1=-1
+         READ (1,ERR=410) Itime1
   410    REWIND 1
-         TAU2=-1.
-         READ (2,ERR=420) TAU2
+         Itime2=-1
+         READ (2,ERR=420) Itime2
   420    REWIND 2
          KDISK=1
-         IF (TAU1+TAU2.LE.-2.) GO TO 850
-         IF (TAU2.GT.TAU1) KDISK=2
+         IF (Itime1+Itime2.LE.-2.) GO TO 850
+         IF (Itime2.GT.Itime1) KDISK=2
          IF (ISTART.GE.13) KDISK=3-KDISK
       CASE (11,12)
          KDISK=ISTART-10
@@ -831,15 +808,14 @@ C**** was used WITHOUT PROBLEMS (since then - in case of trouble - we
 C**** can go back to the earlier file). In all other cases we want to
 C**** first overwrite the other (potentially bad) file. (The most likely
 C**** reason not to use ISTART=10 is trouble with the other file.)
-      ioread=1
-      call io_rsf(KDISK0,TAUX,ioread,ioerr)
+      call io_rsf(KDISK0,ItimeX,irestart,ioerr)
       if (ioerr.eq.1) then    ! try the other restart file
          rewind kdisk0
          KDISK=3-KDISK0
          WRITE (6,'(A,I1,A,I1)')
 *          ' Read Error on fort.',kdisk0,' trying fort.',kdisk
          KDISK0=KDISK
-         call io_rsf(KDISK0,TAUX,ioread,ioerr)
+         call io_rsf(KDISK0,ItimeX,irestart,ioerr)
          if (ioerr.eq.1) go to 850
          if(istart.eq.10) KDISK0=3-KDISK
       end if
@@ -850,8 +826,8 @@ c        WRITE (6,*) 'THIS RESTART FILE IS FOR RUN ', !   when rsfs were
 c    *   XLABEL(1:LRUNID),' NOT RUN ',CLABEL1(1:LRUNID)   ! shared among
 c        STOP 'ERROR: WRONG RESTART FILES, MISMATCHED LABELS'    !  runs
 c     ENDIF
-      WRITE (6,'(A,I2,A,F11.2,A,A/)') '0RESTART DISK READ, UNIT',
-     *   KDISK,', TAUX=',TAUX,' ',CLABEL(1:80)
+      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
+     *   KDISK,', HOUR=',ItimeX,' ',CLABEL(1:80)
   500 CONTINUE
 C**** UPDATE C ARRAY FROM INPUTZ
       REWIND 8
@@ -866,22 +842,22 @@ c     END IF
 C****    REPOSITION THE SEA LEVEL PRESSURE HISTORY DATA SET (UNIT 16)
          REWIND 16
   510    READ (16,ERR=870,END=880) Itime1,((XX4,I=1,IM),J=1,JM),Itime2
-         IF (itime1.NE.itime2) THEN
+         IF (Itime1.NE.Itime2) THEN
             write(6,*) 'slp history record destroyed; time tags',
-     *        itime1,itime2,' inconsistent. Try ISTART=99'
+     *        Itime1,Itime2,' inconsistent. Try ISTART=99'
             stop 'slp record bad'
          end if
-         IF (itime.LT.itime1) REWIND 16     ! for some false starts
-         IF (itime.GE.itime1+NSLP) GO TO 510
+         IF (Itime.LT.Itime1) REWIND 16     ! for some false starts
+         IF (Itime.GE.Itime1+NSLP) GO TO 510
          WRITE (6,'(A,I8/)')
      *      '0SLP HISTORY REPOSITIONED.  LAST RECORD:',Itime1
       END IF
       IF (Noht.GT.0) THEN
 C****    REPOSITION THE OUTPUT TAPE ON UNIT 20 FOR RESTARTING
          REWIND 20
-  520    READ (20,ERR=870,END=880) itime1
-         IF (itime.LT.itime1) REWIND 20
-         IF (itime.GE.itime1+Noht) GO TO 520
+  520    READ (20,ERR=870,END=880) Itime1
+         IF (Itime.LT.Itime1) REWIND 20
+         IF (Itime.GE.Itime1+Noht) GO TO 520
          WRITE (6,'(A,I8/)')
      *        '0VFLX-file for OHT repositioned, last record:',Itime1
       END IF
@@ -893,7 +869,7 @@ C***********************************************************************
   600 CONTINUE
       IF (KEYCT.LE.1) KEYNR=0
 C****
-C**** Update  ItimE only if YearE is specified in the rundeck
+C**** Update  ItimeE only if YearE is specified in the rundeck
 C****
       if(yearE.ge.0) ItimeE = ((yearE-Iyear0)*JDperY +
      *   (JDendofM(monthE-1)+dateE-1)*HR_IN_DAY + HourE)*NDAY/24
@@ -990,10 +966,10 @@ C****
      *  '0ERRORS ON BOTH RESTART DATA SETS. TERMINATE THIS JOB'
       STOP 'ERRORS ON BOTH RESTART FILES'
   870 WRITE (6,'(A,2i8)') '0READ ERROR WHILE POSITIONING UNIT 16 OR 20;
-     *   MODEL TIME, LAST TIME READ ON OUTPUT FILE:', itime,itime1
+     *   MODEL TIME, LAST TIME READ ON OUTPUT FILE:', Itime,Itime1
       STOP 'READ ERROR ON OUTPUT FILE ON UNIT 16 OR 20'
   880 WRITE (6,'(A,2i8)') '0EOF ON UNIT 16 OR 20 WHILE REPOSITIONING.
-     *   MODEL TIME, LAST TIME READ ON OUTPUT FILE:', itime,itime1
+     *   MODEL TIME, LAST TIME READ ON OUTPUT FILE:', Itime,Itime1
       STOP 'POSITIONING ERROR: EOF REACHED ON UNIT 16 OR 20'
   890 WRITE (6,'(A,I5)') '0INCORRECT VALUE OF ISTART',ISTART
       STOP 'ERROR: ISTART-SPECIFICATION INVALID'
@@ -1007,6 +983,7 @@ C****
       USE E001M12_COM
       USE GEOM, only : areag,dxyp
       USE DYNAMICS, only : calc_ampk
+      USE RADNCB, only : RSDIST,COSD,SIND
 
       IMPLICIT NONE
 
@@ -1084,6 +1061,8 @@ C**** Check PBL arrays
          CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
          CALL CHECKO(SUBR)
+C**** Check Ice arrays
+         CALL CHECKI(SUBR)
 C**** Check Lake arrays
          CALL CHECKL(SUBR)
 C**** Check Earth arrays
@@ -1123,161 +1102,53 @@ C**** Check Earth arrays
       RETURN
       END
 
-C**** Temporary io_rsf
-
-      SUBROUTINE io_rsf(kunit,TAU,iaction,ioerr)     ! ?? TAU->Itime
+      SUBROUTINE io_rsf(kunit,it,iaction,ioerr)
 !@sum   io_rsf controls the reading and writing of the restart files
 !@auth  Gavin Schmidt
 !@ver   1.0
-      USE E001M12_COM, only : JC,CLABEL,RC,U,V,T,P,Q,WM,GDATA
-      USE SOMTQ_COM
-      USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
-     &     NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
-      USE RADNCB, only : S0X,CO2,RQT,SRHR,TRHR,FSF
-      USE CLD01_COM_E001, only : U00wtr,U00ice,LMCM,TTOLD,QTOLD,SVLHX
-     *     ,RHSAV,CLDSAV
-      USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
-     *     cq=>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg
-     *        ,tauavg,ustar
-      USE DAGCOM
-      USE OCEAN, only : ODATA,OA,Z1O
-      USE LAKES_COM, only : MWL,TLAKE,GML,T50
+!@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
+!@calls io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 
       IMPLICIT NONE
 !@var iaction flag for reading or writing rsf file
 !@var kunit Fortran unit number of file i/o
       INTEGER, INTENT(IN) :: iaction,kunit
-!@param IOWRITE,IOREAD Values for writing or reading file
-      INTEGER, PARAMETER :: IOWRITE=-1, IOREAD=1
+!@var it hour of model run
+      INTEGER, INTENT(INOUT) :: it
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(OUT) :: IOERR
-!@var TAU1,TAU2 hours for correct reading check
-      REAL*8 TAU1,TAU2
-!@var TAU input/ouput value of hour
-      REAL*8, INTENT(INOUT) :: TAU
-!@var HEADER Character string label for individual restart files
-      CHARACTER HEADER*7
-      ioerr=1
-      rewind (kunit)
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var IT1 hour for correct reading check
+      INTEGER IT1
 
-C**** headers are introduced so that individual modules will be able to
-C**** tell whether the version of the model variables is current
-      select case (iaction)
-      case (:iowrite)
-         WRITE (kunit,err=10) TAU,JC,CLABEL,RC
-C**** need a blank line to fool 'qrsfnt' etc.
-         WRITE (kunit,err=10)
-         WRITE (kunit,err=10) "E001M12",U,V,T,P,Q,WM
-         WRITE (kunit,err=10) "OCN01  ",ODATA,OA,T50,MWL,TLAKE,GML
-         WRITE (kunit,err=10) "ERT01  ",GDATA
-         WRITE (kunit,err=10) "SOL01  ",wbare,wvege,htbare,htvege,snowbv
-         WRITE (kunit,err=10) "SNOW01 ",
-     *         NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
-         WRITE (kunit,err=10) "BLD01  ",wsavg,tsavg,qsavg,dclev,Z1O
-     *        ,usavg,vsavg,tauavg,ustar
-         WRITE (kunit,err=10) "PBL01  ",uabl,vabl,tabl,qabl,eabl,cm,ch
-     *        ,cq,ipbl
-         WRITE (kunit,err=10) "CLD01  ",U00wtr,U00ice,LMCM,TTOLD,QTOLD
-     *        ,SVLHX,RHSAV,CLDSAV
-         WRITE (kunit,err=10) "QUS01  ",TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ
-     *        ,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ
-         WRITE (kunit,err=10) "RAD01  ",S0X,CO2,RQT,SRHR,TRHR,FSF
-         WRITE (kunit,err=10) "DAG01  ",TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL
-     *        ,ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE
-     *        ,AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR
-         WRITE (kunit,err=10) TAU
-         ioerr=-1
-      case (ioread:)
-         READ (kunit,err=10) TAU1,JC,CLABEL,RC
-         READ (kunit,err=10)
-         READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
-         READ (kunit,err=10) HEADER,ODATA,OA,T50,MWL,TLAKE,GML
-         READ (kunit,err=10) HEADER,GDATA
-         READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
-         READ (kunit,err=10) HEADER,
-     *         NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
-         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,Z1O,usavg
-     *        ,vsavg,tauavg,ustar
-         READ (kunit,err=10) HEADER,uabl,vabl,tabl,qabl,eabl,cm,ch,cq
-     *        ,ipbl
-         READ (kunit,err=10) HEADER,U00wtr,U00ice,LMCM,TTOLD,QTOLD,SVLHX
-     *        ,RHSAV,CLDSAV
-         READ (kunit,err=10) HEADER,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     *        QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ
-         READ (kunit,err=10) HEADER,S0X,CO2,RQT,SRHR,TRHR,FSF
-         READ (kunit,err=10) HEADER,TSFREZ,AJ,BJ,CJ,AREG,APJ,AJL,ASJL
-     *        ,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK
-     *        ,AIJK,AIJL,AJLSP,TDIURN,KEYNR
-         READ (kunit,err=10) TAU2
-         IF (TAU1.ne.TAU2) THEN
-            STOP "PROBLEM READING RSF FILE"
-         ELSE
-            TAU=TAU1
-            ioerr=-1
-         END IF
-      end select
+      ioerr=-1
+      rewind kunit
 
- 10   REWIND kunit
+C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
+C**** Particular values may produce variations in indiv. i/o routines
+
+C**** Calls to individual i/o routines
+      call io_model  (kunit,it,iaction,ioerr)
+      it1=it
+      call io_ocean  (kunit,iaction,ioerr)
+      call io_lakes  (kunit,iaction,ioerr)
+      call io_seaice (kunit,iaction,ioerr)
+      call io_earth  (kunit,iaction,ioerr)
+      call io_soils  (kunit,iaction,ioerr)
+      call io_snow   (kunit,iaction,ioerr)
+c      call io_landice(kunit,iaction,ioerr)
+      call io_bldat  (kunit,iaction,ioerr)
+      call io_pbl    (kunit,iaction,ioerr)
+      call io_clouds (kunit,iaction,ioerr)
+      call io_somtq  (kunit,iaction,ioerr)
+      call io_rad    (kunit,iaction,ioerr)
+      call io_diags  (kunit,it,iaction,ioerr)
+
+      if (it1.ne.it) THEN
+        WRITE(6,*) "TIMES DO NOT MATCH READING IN RSF FILE",it,it1
+        ioerr=1
+      END IF
+      if (ioerr.eq.1) WRITE(6,*) "I/O ERROR IN RESTART FILE: KUNIT="
+     *     ,kunit
+
       RETURN
-      END
-
-C**** What io_rsf should look like....
-
-C      SUBROUTINE io_rsf(kunit,iaction,ioerr)
-C!@sum   io_rsf controls the reading and writing of the restart files
-C!@auth  Gavin Schmidt
-C!@ver   1.0
-C!@calls io_model,io_ocean,io_seaice,io_lakes,io_ground,io_soils,
-C!@calls io_bndry,io_pbl,io_clouds,io_radiation,io_diags
-C
-C      IMPLICIT NONE
-C!@var iaction flag for reading or writing rsf file
-C!@var kunit Fortran unit number of file i/o
-C      INTEGER, INTENT(IN) :: iaction,kunit
-C!@var TAU hour of model run
-C      REAL*8, INTENT(INOUT) :: TAU
-C!@param IOWRITE,IOREAD Values for writing or reading file
-C      INTEGER, PARAMETER :: IOWRITE=-1, IOREAD=1
-C!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-C      INTEGER, INTENT(OUT) :: IOERR
-C!@var TAU1,TAU2 hours for correct reading check
-C      REAL*8 TAU1,TAU2
-C
-C      rewind kunit
-C
-CC**** For all iaction < 0  ==> WRITE
-CC**** For all iaction > 0  ==> READ
-CC**** Particular values may produce variations in indiv. i/o routines
-C
-C      select case (iaction)
-C      case (:iowrite)
-C         WRITE (kunit) TAU
-C      case (ioread:)
-C         READ (kunit) TAU1
-C      end select
-C
-CC**** Calls to individual i/o routines
-C      call io_model    (kunit,iaction,ioerr)
-C      call io_ocean    (kunit,iaction,ioerr)
-C      call io_lakes    (kunit,iaction,ioerr)
-C      call io_ice      (kunit,iaction,ioerr)
-C      call io_lakes    (kunit,iaction,ioerr)
-C      call io_ground   (kunit,iaction,ioerr)
-C      call io_soils    (kunit,iaction,ioerr)
-C      call io_bndry    (kunit,iaction,ioerr)
-C      call io_pbl      (kunit,iaction,ioerr)
-C      call io_clouds   (kunit,iaction,ioerr)
-C      call io_radiation(kunit,iaction,ioerr)
-C      call io_diags    (kunit,iaction,ioerr)
-C
-C      select case (iaction)
-C      case (:iowrite)
-C         WRITE (kunit) TAU
-C      case (ioread:)
-C         READ (kunit) TAU2
-C         IF (TAU1.ne.TAU2) STOP "PROBLEM READING RSF FILE"
-C         TAU=TAU1
-C      end select
-C
-C      RETURN
-C      END
+      END SUBROUTINE io_rsf

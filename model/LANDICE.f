@@ -118,13 +118,46 @@ C**** CALCULATE TG2
 !@sum  LANDICE_COM contains the model arrays for land ice
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : im,jm
+!@cont io_landice
+      USE E001M12_COM, only : im,jm,ioread,iowrite
 
       IMPLICIT NONE
 !@var SNOWLI snow amount on land ice (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: SNOWLI
 !@var TLANDI temperature of each land ice layer (C)
-      REAL*8, DIMENSION(IM,JM,2) :: TLANDI
+      REAL*8, DIMENSION(2,IM,JM) :: TLANDI
 
       END MODULE LANDICE_COM
+
+      SUBROUTINE io_landice(kunit,iaction,ioerr)
+!@sum  io_diag reads and writes diagnostics to file 
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM, only : ioread,iowrite
+      USE LANDICE_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "GLAIC01"
+
+      SELECT CASE (IACTION)
+      CASE (IOWRITE)            ! output to standard restart file
+        WRITE (kunit,err=10) MODULE_HEADER,SNOWLI,TLANDI
+      CASE (IOREAD:)            ! input from restart file
+        READ (kunit,err=10) HEADER,SNOWLI,TLANDI
+        IF (HEADER.NE.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_landice
+
 

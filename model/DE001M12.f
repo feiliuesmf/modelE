@@ -216,7 +216,7 @@ C****  42  PCLD(MID) (1)                                           2 RD
 C****  43  PCLD(HIGH) (1)                                          2 RD
 C****  44  BTEMPW-TF (K-273.16)                                    2 RD
 C****  45  PLAVIS*S0*COSZ (W/M**2)                                 2 RD
-C****  46  TGO2=ODATA(4)  (C)                                   .5*9 MN
+C****  46  TGO2=TOCEAN(2) (C)                                   .5*9 MN
 C****  47  TAUS  (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
 C****  48  TAUUS (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
 C****  49  TAUVS (MOMENTUM SURFACE DRAG) (kg/m**2)  (NO PRINTOUT)  3 SF
@@ -227,10 +227,10 @@ C****  53  40.6+.72*(2TS(C)-(QSATS-QS)*LHA/SHA)                    3 SF
 C****  54  18*(DEL(TG)/DEL(TS)-1), DEL=DIURNAL MAX-MIN          .5*9 MN
 C****  55  8*P*U*Q (VERTICALLY INTEGRATED)  (12.5 PA*M/S)          4 DA
 C****  56  8*P*V*Q (VERTICALLY INTEGRATED)  (12.5 PA*M/S)          4 DA
-C****  57  TGO=ODATA(1)  (C)                                       1 GD
-C****  58  ACE2OI=ODATA(3)*POICE  (KG/M**2)                        1 GD
+C****  57  TGO=TOCEAN(1)  (C)                                      1 GD
+C****  58  ACE2OI=MSI2*POICE  (KG/M**2)                            1 GD
 C****  59  WIND SPEED IN TOP LAYER (M/S)                           1 SD
-C****  60  TGO12=ODATA(5)  (C)                                  .5*9 MN
+C****  60  TGO12=TOCEAN(3)  (C)                                 .5*9 MN
 C****  61  EVAP*POCEAN  (KG/M**2)                                  1 GD
 C****  62  EVAP*POICE  (KG/M**2)                                   1 GD
 C****  63  EVAP OVER LAND ICE  (KG/M**2)                           1 GD
@@ -370,7 +370,7 @@ C****
      *     j_rsnow,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
      *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc
 
-      USE OCEAN, only : odata
+      USE SEAICE_COM, only : rsi
 
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q
@@ -532,7 +532,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       DO 120 I=1,IMAX
       JR=JREG(I,J)
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       PLICE=FLICE(I,J)
       POCEAN=(1.-PLAND)-POICE
       PEARTH=FEARTH(I,J)
@@ -645,7 +645,7 @@ C     RHPI=0.
       DO 220 I=1,IMAX
       JR=JREG(I,J)
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       PIJ=P(I,J)
       IF(L.GE.LS1) PIJ=PSFMPT
@@ -691,7 +691,7 @@ C**** MEAN TROPOSPHERIC NORTHWARD TEMPERATURE GRADIENT
       CDTDL=0.
       DO 335 I=1,IM
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       ADTDL=ADTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POCEAN
       BDTDL=BDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*PLAND
@@ -708,7 +708,7 @@ C**** MEAN STRATOSPHERIC NORTHWARD TEMPERATURE GRADIENT
       CDTDL=0.
       DO 350 I=1,IM
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       ADTDL=ADTDL+(TX(I,J+1,L)-TX(I,J-1,L))*POCEAN
       BDTDL=BDTDL+(TX(I,J+1,L)-TX(I,J-1,L))*PLAND
@@ -732,7 +732,7 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
       DO 390 I=1,IMAX
       JR=JREG(I,J)
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       SS=(T(I,J,LS1-1)-T(I,J,1))/(PHI(I,J,LS1-1)-PHI(I,J,1)+ZERO20)
       ASS=ASS+SS*POCEAN
@@ -750,7 +750,7 @@ C**** OLD STRATOSPHERIC STATIC STABILITY
       DO 440 I=1,IMAX
       JR=JREG(I,J)
       PLAND=FLAND(I,J)
-      POICE=ODATA(I,J,2)*(1.-PLAND)
+      POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       SS=(T(I,J,LM)-T(I,J,LS1-1))/((PHI(I,J,LM)-PHI(I,J,LS1-1))+ZERO20)
       ASS=ASS+SS*POCEAN
@@ -767,11 +767,11 @@ C****
       DO 470 LR=1,LM_REQ
       TRI(LR)=0.
       DO 460 I=1,IMAX
-  460 TRI(LR)=TRI(LR)+RQT(I,J,LR)
+  460 TRI(LR)=TRI(LR)+RQT(LR,I,J)
   470 ASJL(J,LR,1)=ASJL(J,LR,1)+(TRI(LR)-273.16*IMAX)
       PHIRI=0.
       DO 480 I=1,IMAX
-  480 PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(I,J,1))
+  480 PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(1,I,J))
      *  *LOG((SIG(LM)*PSFMPT+PTOP)/PRQ1))
       ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
@@ -6825,7 +6825,7 @@ C**** 42 LATITUDE CORRESPONDING TO 41
 C****
       USE CONSTANT, only : twopi
       USE E001M12_COM, only : jm,lm,jeq, JHOUR,JHOUR0,
-     &     JDATE,JDATE0,JEQ,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
+     &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
      &     KEYCT,Itime,ItimeI,Itime0,PSF,PTOP,SIG,XLABEL,
      &     PSFMPT,AMONTH,nday
       USE GEOM, only : DLAT,DXYP,JLAT
@@ -7018,8 +7018,7 @@ C****
       ENTRY KEYJKN (NT,ASUM,SUMFAC)
 C**** NORTHWARD TRANSPORTS
   500 BIG=-99999.
-      JEQP1=JEQ+1
-      DO 510 I=JEQP1,JM
+      DO 510 I=JEQ+1,JM
       IF (ASUM(I).LT.BIG) GO TO 510
       BIG=ASUM(I)
       JNDEX=I
@@ -7185,7 +7184,7 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_PCLDH = 43  ! PCLD(HIGH) (1)                           2 RD
       IJ_BTMPW = 44  ! BTEMPW-TF (K-273.16)                     2 RD
       IJ_SRREF = 45  ! PLAVIS*S0*COSZ (W/M**2)                  2 RD
-      IJ_ODATA4 = 46  ! TGO2= ODATA(4)  (C)                  .5*9 MN
+      IJ_TOC2 = 46  ! TGO2= TOCEAN(2)  (C)                   .5*9 MN
       IJ_TAUS = 47  ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
       IJ_TAUUS = 48 ! TAUUS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
       IJ_TAUVS = 49 ! TAUVS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
@@ -7196,10 +7195,10 @@ C**** IJ_TS1  = 33 ! TS (K-273.16) (W/ LAPSE RATE FROM TX1) 4 DA ! OBS
       IJ_DTGDTS = 54 ! 18*(DEL(TG)/DEL(TS)-1),DEL= DIURN MX-MN .5*9 MN
       IJ_PUQ  = 55  ! 8*P*U*Q (VERT. INTEGRATED) (12.5 PA*M/S) 4 DA
       IJ_PVQ  = 56  ! 8*P*V*Q (VERT. INTEGRATED) (12.5 PA*M/S) 4 DA
-      IJ_TGO  = 57  ! TGO= ODATA(1)  (C)                       1 GD
-      IJ_MSI2 = 58  ! ACE2OI= ODATA(3)*POICE  (KG/M**2)        1 GD
+      IJ_TGO  = 57  ! TGO= TOCEAN(1)  (C)                      1 GD
+      IJ_MSI2 = 58  ! ACE2OI= MSI2*POICE  (KG/M**2)        1 GD
       IJ_WLM  = 59  ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
-      IJ_TGO2 = 60  ! TGO12= ODATA(5)  (C)                  .5*9 MN
+      IJ_TGO2 = 60  ! TGO12= TOCEAN(3) (C)                  .5*9 MN
       IJ_EVAPO = 61  ! EVAP*POCEAN  (KG/M**2)                  1 GD
       IJ_EVAPI = 62  ! EVAP*POICE  (KG/M**2)                   1 GD
       IJ_EVAPLI = 63  ! EVAP OVER LAND ICE  (KG/M**2)          1 GD
@@ -7288,7 +7287,7 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_PCLDH)  = "PCLDH"  ; IA_IJ(IJ_PCLDH) = 2
       NAME_IJ(IJ_BTMPW)  = "BTMPW"  ; IA_IJ(IJ_BTMPW) = 2
       NAME_IJ(IJ_SRREF)  = "SRREF"  ; IA_IJ(IJ_SRREF) = 2
-      NAME_IJ(IJ_ODATA4) = "ODATA4" ; IA_IJ(IJ_ODATA4) = 9
+      NAME_IJ(IJ_TOC2)   = "TOC2"   ; IA_IJ(IJ_TOC2) = 9
       NAME_IJ(IJ_TAUS)   = "TAUS"   ; IA_IJ(IJ_TAUS) = 3
       NAME_IJ(IJ_TAUUS)  = "TAUUS"  ; IA_IJ(IJ_TAUUS) = 3
       NAME_IJ(IJ_TAUVS)  = "TAUVS"  ; IA_IJ(IJ_TAUVS) = 3

@@ -1,16 +1,19 @@
-  
+!@sum  UTILDBL Model Independent Utilities 
+!@auth Original Development Team
+!@ver  1.0
+!@cont THBAR,QSAT,DQSATDT,TRIDAIG,TIMER,FILEMANAGER,READT,DREAD,MREAD
+
       FUNCTION THBAR (X,Y)
+!@sum  THBAR calculates mean temperature used in vertical differencing
+!@auth Gary Russell, Jean Lerner, Arakawa
+!@ver  1.0
 C****
-C**** TH-mean used for vertical differencing (Arakawa)
 C**** THBAR(T1,T2) = (ln(T1) - ln(T2))/(1/T2 - 1/T1)
 C****              = T1*g(x) with x=T1/T2 , g(x)=ln(x)/(x-1)
 C****      g(x) is replaced by a rational function
 C****           (a+bx+cxx+dxxx+cx**4)/(e+fx+gxx)
 C****      approx.error <1.E-6 for x between .9 and 1.7
 C****
-!@sum   THBAR calculates mean temperature in the vertical
-!@auth  Gary Russell, Jean Lerner
-!@ver   1.0
       IMPLICIT NONE
 !@var A,B,C,D,E,F,G   expansion coefficients for THBAR
       REAL*8, PARAMETER :: A=113.4977618974100d0
@@ -30,9 +33,9 @@ C****
       END
 
       FUNCTION QSAT (TM,QL,PR)
-!@sum   QSAT calculates saturation vapour mixing ratio
-!@auth  Gary Russell
-!@ver   1.0
+!@sum  QSAT calculates saturation vapour mixing ratio
+!@auth Gary Russell
+!@ver  1.0
       USE CONSTANT, only : mrat,rvap,tf
       IMPLICIT NONE
 !@var A,B,C   expansion coefficients for QSAT
@@ -51,9 +54,9 @@ C**** QL = 0.5*(QL(0)+QL(t))
       END
 
       FUNCTION DQSATDT (TM,QL)
-!@sum   DQSATDT calculates change of sat. vapour mixing ratio with temp.
-!@auth  Gary Russell
-!@ver   1.0
+!@sum  DQSATDT calculates change of sat. vapour mixing ratio with temp.
+!@auth Gary Russell
+!@ver  1.0
 C**** Note that d(qsat)/dt = qsat * ql * c / T*T
 C**** Only the factor of qsat is given here
       USE CONSTANT, only : rvap
@@ -105,12 +108,12 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
       BET=B(1)
       U(1)=R(1)/BET
       DO J=2,N
-         GAM(J)=C(J-1)/BET
-         BET=B(J)-A(J)*GAM(J)
-         U(J)=(R(J)-A(J)*U(J-1))/BET
+        GAM(J)=C(J-1)/BET
+        BET=B(J)-A(J)*GAM(J)
+        U(J)=(R(J)-A(J)*U(J-1))/BET
       END DO
       DO J=N-1,1,-1
-         U(J)=U(J)-GAM(J+1)*U(J+1)
+        U(J)=U(J)-GAM(J+1)*U(J+1)
       END DO
       RETURN
       END
@@ -147,26 +150,23 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 
       IF (IUNIT0+NUNIT.gt.IUNITMX)
      *     STOP "Maximum file number reached"
-
 C**** Set unit number
       IUNIT = IUNIT0 + NUNIT
 C**** Open file
       IF (QBIN) THEN
-         OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
-     *        STATUS="OLD",ERR=10)
+        OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
+     *       STATUS="OLD",ERR=10)
       ELSE
-         OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
-     *        STATUS="OLD",ERR=10)
+        OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
+     *       STATUS="OLD",ERR=10)
       END IF
 C**** set NAME for error tracking purposes
       NAME (IUNIT) = FILENM
 C**** increment no of files
       NUNIT = NUNIT + 1
-
       RETURN
  10   WRITE(6,*) "Error opening file ",TRIM(FILENM)
       STOP 'FILE OPENING ERROR IN GETUNIT'
-
       END SUBROUTINE GETUNIT
 
       SUBROUTINE GETUNITS(FILENM,IUNIT,QBIN,NREQ)
@@ -190,25 +190,23 @@ C**** increment no of files
 
       DO I=1,NREQ
 C**** Set unit number
-         IUNIT(I) = IUNIT0 + NUNIT
+        IUNIT(I) = IUNIT0 + NUNIT
 C**** Open file
-         IF (QBIN(I)) THEN
-            OPEN(IUNIT(I),FILE=FILENM(I),FORM="UNFORMATTED",
-     *           STATUS="OLD",ERR=10)
-         ELSE
-            OPEN(IUNIT(I),FILE=FILENM(I),FORM="FORMATTED",
-     *           STATUS="OLD",ERR=10)
-         END IF
+        IF (QBIN(I)) THEN
+          OPEN(IUNIT(I),FILE=FILENM(I),FORM="UNFORMATTED",
+     *         STATUS="OLD",ERR=10)
+        ELSE
+          OPEN(IUNIT(I),FILE=FILENM(I),FORM="FORMATTED",
+     *         STATUS="OLD",ERR=10)
+        END IF
 C**** set NAME for error tracking purposes
-         WRITE(NAME(IUNIT(I)),'(A8,I2)') FILENM(1:8),I
+        WRITE(NAME(IUNIT(I)),'(A8,I2)') FILENM(1:8),I
 C**** increment no of files
-         NUNIT = NUNIT + 1
+        NUNIT = NUNIT + 1
       END DO
-
       RETURN
  10   WRITE(6,*) "Error opening file ",TRIM(FILENM(I))
       STOP 'FILE OPENING ERROR IN GETUNITS'
-
       END SUBROUTINE GETUNITS
 
       SUBROUTINE CLOSEUNITS
@@ -219,7 +217,7 @@ C**** increment no of files
       INTEGER IUNIT
 
       DO IUNIT=IUNIT0,IUNIT0+NUNIT-1
-         CLOSE(IUNIT)
+        CLOSE(IUNIT)
       END DO
 
       RETURN
@@ -242,7 +240,7 @@ C**** increment no of files
       READ (IUNIT,ERR=910,END=920) AIN
 C**** do transfer backwards in case AOUT and AIN are same workspace
       DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
+        AOUT(N)=AIN(N)
       END DO
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
@@ -271,7 +269,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       READ (IUNIT,ERR=910,END=920) M,(X,N=1,NSKIP),AIN
 C**** do transfer backwards in case AOUT and AIN are same workspace
       DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
+        AOUT(N)=AIN(N)
       END DO
       WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
       RETURN
@@ -299,12 +297,12 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       CHARACTER*80 TITLE        !@var  TITLE  title of file record
 
       DO N=1,IPOS-1
-         READ (IUNIT,END=920)
+        READ (IUNIT,END=920)
       END DO
       READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),AIN
 C**** do transfer backwards in case AOUT and AIN are same workspace
       DO N=LENGTH,1,-1
-         AOUT(N)=AIN(N)
+        AOUT(N)=AIN(N)
       END DO
       WRITE(6,*) "Read from file ",TRIM(NAME(IUNIT)),": ",TRIM(TITLE)
       RETURN
@@ -313,4 +311,3 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
   920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
       STOP 'NO DATA TO READ'
       END
-
