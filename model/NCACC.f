@@ -13,7 +13,6 @@ c f90 -c -64 NCACC.f
       integer ::
      &     lon_did,lat_did,lonb_did,latb_did,sig_did,sige_did,
      &     str_levid,plm_did,ple_did,ntype_did
-      integer :: nwav_dag_id ! wave
 
       character(len=20) :: var_name
       double precision, dimension(jm,ntype) :: aj_tmp
@@ -198,8 +197,7 @@ c wave power
 c-----------------------------------------------------------------------
       status = nf_def_dim(ncid, 'RE_AND_IM', RE_AND_IM, dimids(1))
       status = nf_def_dim(ncid, 'Max12hr_sequ', Max12hr_sequ, dimids(2))
-      status = nf_def_dim(ncid, 'NWAV_DAG', NWAV_DAG, nwav_dag_id)
-      dimids(3)=nwav_dag_id
+      status = nf_def_dim(ncid, 'NWAV_DAG', NWAV_DAG, dimids(3))
       call ncdefarr(wave_name,wave_lname,wave_units,
      &     ncid,kwp,nf_real,3,dimids)
 c-----------------------------------------------------------------------
@@ -230,7 +228,7 @@ c ajlsp_[dse,lht,mom]
 c-----------------------------------------------------------------------
       dimids(1)=lat_did
       dimids(2)=sig_did
-      dimids(3)=nwav_dag_id + 1
+      status = nf_def_dim(ncid,'ZERO_TO_NWAV_DAG',1+NWAV_DAG,dimids(3))
       call ncdefarr(ajlsp_name,ajlsp_lname,ajlsp_units,
      &     ncid,kajlsp,nf_real,3,dimids)
 
