@@ -585,6 +585,8 @@ c     To compute the drag coefficient,Stanton number and Dalton number
 !@var dzh(j)  z(j+1)-z(j)
 !@var dbl PBL height (m)
 !@var n number of vertical subgrid main layers
+
+      USE CONSTANT, only : by3
       implicit none
 
       integer, intent(in) :: n   !@var n  array dimension
@@ -608,11 +610,11 @@ c     To compute the drag coefficient,Stanton number and Dalton number
         zeta=zhat(i)/lmonin
         ! Nakanishi (2001)
         if(zeta.ge.1.) then
-          ls=kz/3.7
+          ls=kz/3.7d0
         elseif(zeta.ge.0.) then
-          ls=kz/(1.+2.7*zeta)
+          ls=kz/(1.+2.7d0*zeta)
         else
-          ls=kz*(1.-100.*zeta)**0.2
+          ls=kz*(1.-100.*zeta)**0.2d0
         endif
         if (t(i+1).gt.t(i)) then
           an2=2.*grav*(t(i+1)-t(i))/((t(i+1)+t(i))*dzh(i))
@@ -621,14 +623,13 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           if(zeta.ge.0.) then
              lb=qturb/an
           else
-             qty=(ustar/((-kappa*lmonin*l0**2)**(1./3.)*an))**0.5
+             qty=(ustar/((-kappa*lmonin*l0*l0)**by3*an))**0.5d0
              lb=qturb*(1.+5.*qty)/an
           endif
         else
           lb=1.d30
         endif
         lscale(i)=l0*ls*lb/(l0*ls+l0*lb+ls*lb)
-c       if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
       return
@@ -678,7 +679,7 @@ c       if (ustar.le.0.02d0) then
           z0q=nuq/ustar + 1.3d-4
           if (z0q.gt.0.92444d0) z0q=0.92444d0
 c         else
-c         r0q=(ustar*z0m/nu)**0.25
+c         r0q=(ustar*z0m/nu)**0.25d0
 c         z0h=7.4*z0m*exp(-2.4604d0*r0q)
 c         z0q=7.4*z0m*exp(-2.2524d0*r0q)
 c         if (ustar.lt.0.2d0) then
@@ -724,8 +725,8 @@ c *********************************************************************
         else
 c *********************************************************************
 c  Here the atmosphere is unstable with respect to the ground:
-        xms  =    (1.-gamamu*zgsbyl)**0.25
-        xm0  =    (1.-gamamu*z0mbyl)**0.25
+        xms  =    (1.-gamamu*zgsbyl)**0.25d0
+        xm0  =    (1.-gamamu*z0mbyl)**0.25d0
         xhs  =sqrt(1.-gamahu*zgsbyl)
         xh0  =sqrt(1.-gamahu*z0hbyl)
         xqs  =sqrt(1.-gamahu*zgsbyl)
@@ -808,8 +809,8 @@ c *********************************************************************
         else
 c *********************************************************************
 c  Here the atmosphere is unstable with respect to the ground:
-        xm   =    (1.-gamamu*  zbyl)**0.25
-        xm0  =    (1.-gamamu*z0mbyl)**0.25
+        xm   =    (1.-gamamu*  zbyl)**0.25d0
+        xm0  =    (1.-gamamu*z0mbyl)**0.25d0
         xh   =sqrt(1.-gamahu*  zbyl)
         xh0  =sqrt(1.-gamahu*z0hbyl)
         xq   =sqrt(1.-gamahu*  zbyl)
@@ -994,50 +995,51 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       g7=       .643d0
       g8=       .547d0
 c
-      d1=(7*g4/3+g8)/g5
-      d2=(g3**2-g2**2/3)-1./(4*g5**2)*(g6**2-g7**2)
-      d3=g4/(3*g5**2)*(4*g4+3*g8)
-      d4=g4/(3*g5**2)*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))
-     &   +g8/g5*(g3**2-g2**2/3)
-      d5=-1./(4*g5**2)*(g3**2-g2**2/3)*(g6**2-g7**2)
-      s0=g1/2
-      s1=-g4/(3*g5**2)*(g6+g7)+2*g4/(3*g5)*(g1-g2/3-g3)+g1/(2*g5)*g8
-      s2=-g1/(8*g5**2)*(g6**2-g7**2)
-      s4=2/(3*g5)
-      s5=2*g4/(3*g5**2)
-      s6=2/(3*g5)*(g3**2-g2**2/3)-g1/(2*g5)*(g3-g2/3)
+      d1=(7.*g4/3+g8)/g5
+      d2=(g3**2-g2**2/3.)-1./(4.*g5**2)*(g6**2-g7**2)
+      d3=g4/(3.*g5**2)*(4.*g4+3.*g8)
+      d4=g4/(3.*g5**2)*(g2*g6-3.*g3*g7-g5*(g2**2-g3**2))
+     &   +g8/g5*(g3**2-g2**2/3.)
+      d5=-1./(4.*g5**2)*(g3**2-g2**2/3)*(g6**2-g7**2)
+      s0=g1/2.
+      s1=-g4/(3.*g5**2)*(g6+g7)+2.*g4/(3.*g5)*(g1-g2/3.-g3)
+     &   +g1/(2.*g5)*g8
+      s2=-g1/(8.*g5**2)*(g6**2-g7**2)
+      s4=2./(3.*g5)
+      s5=2.*g4/(3.*g5**2)
+      s6=2./(3.*g5)*(g3**2-g2**2/3)-g1/(2.*g5)*(g3-g2/3.)
      &   +g1/(4*g5**2)*(g6-g7)
 
 c     find rimax:
 
       c1=s5+2*d3
       c2=s1-s6-2*d4
-      c3=-s2+2*d5
-      c4=s4+2*d1
-      c5=-s0+2*d2
+      c3=-s2+2.*d5
+      c4=s4+2.*d1
+      c5=-s0+2.*d2
 
-      rimax=(c2+sqrt(c2**2-4*c1*c3))/(2*c1)
+      rimax=(c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       rimax=int(rimax*1000.)/1000.
 
 c     find ghmin,ghmax,gmmax0:
 
-      del=(s4+2*d1)**2-8*(s5+2*d3)
-      ghmin=(-s4-2*d1+sqrt(del))/(2*(s5+2*d3))
+      del=(s4+2.*d1)**2-8.*(s5+2.*d3)
+      ghmin=(-s4-2.*d1+sqrt(del))/(2.*(s5+2.*d3))
       ghmin=int(ghmin*10000.)/10000.
       ghmax=(b1*0.53d0)**2
       gmmax0=(b1*0.34d0)**2  ! not in use yet
 
       ! for level 3 model only:
-      g0=2.d0/3
-      d1_3=(7*g4/3)/g5
+      g0=2./3.
+      d1_3=(7.*g4/3.)/g5
       d2_3=d2
-      d3_3=g4/(3*g5**2)*(4*g4)
-      d4_3=g4/(3*g5**2)*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))
+      d3_3=g4/(3.*g5**2)*(4.*g4)
+      d4_3=g4/(3.*g5**2)*(g2*g6-3*g3*g7-g5*(g2**2-g3**2))
       d5_3=d5
       s0_3=s0
-      s1_3=-g4/(3*g5**2)*(g6+g7)+2*g4/(3*g5)*(g1-g2/3-g3)
+      s1_3=-g4/(3.*g5**2)*(g6+g7)+2.*g4/(3.*g5)*(g1-g2/3.-g3)
       s2_3=s2
-      s3_3=g0*g4/g5*(g3+g2/3+1/(2*g5)*(g6+g7))
+      s3_3=g0*g4/g5*(g3+g2/3.+1./(2.*g5)*(g6+g7))
       s4_3=s4
       s5_3=s5
       s6_3=s6
@@ -1118,7 +1120,7 @@ c     at edge: e,lscale,km,kh,gm,gh
         if(gh.gt.ghmax) gh=ghmax
         gmmax=(1+d1*gh+d3*gh*gh)/(d2+d4*gh)
         if(gm.gt.gmmax) gm=gmmax
-        den=1+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
+        den=1.+d1*gh+d2*gm+d3*gh*gh+d4*gh*gm+d5*gm*gm
         sm=(s0+s1*gh+s2*gm)/den
         sh=(s4+s5*gh+s6*gm)/den
         sq=sh
@@ -1187,8 +1189,8 @@ c       ke(j)=sq*lscale(j)*qturb, qturb=sqrt(2.*e(j))
 c
       do j=2,n-2
           qturb=sqrt(2.*e(j))
-          sub(j)=-dtime*0.5*(ke(j)+ke(j-1))/(dzh(j)*dz(j))
-          sup(j)=-dtime*0.5*(ke(j)+ke(j+1))/(dzh(j)*dz(j+1))
+          sub(j)=-dtime*0.5d0*(ke(j)+ke(j-1))/(dzh(j)*dz(j))
+          sup(j)=-dtime*0.5d0*(ke(j)+ke(j+1))/(dzh(j)*dz(j+1))
           dia(j)=1.-(sub(j)+sup(j))+dtime*2*qturb/(b1*lscale(j))
           an2=2*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
           dudz=(u(j+1)-u(j))/dzh(j)
@@ -1199,7 +1201,7 @@ c
 
       dia(1)=1.
       sup(1)=0.
-      rhs(1)=0.5*b123*ustar*ustar
+      rhs(1)=0.5d0*b123*ustar*ustar
 
       j=n-1
       an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
@@ -1219,7 +1221,7 @@ c
       endif
       sub(n-1)=0.
       dia(n-1)=1.
-      rhs(n-1)=max(0.5*(B1*lscale(j))**2*as2/max(gm,teeny),teeny)
+      rhs(n-1)=max(0.5d0*(B1*lscale(j))**2*as2/max(gm,teeny),teeny)
 
 c     sub(n-1)=-1.
 c     dia(n-1)=1.
@@ -1788,7 +1790,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
           tmp=bb*bb-4.*aa*cc
           gm=(-bb-sqrt(tmp))/(2.*aa)
         endif
-        e(i)=0.5*(B1*lscale(i))**2*as2/max(gm,teeny)
+        e(i)=0.5d0*(B1*lscale(i))**2*as2/max(gm,teeny)
         e(i)=min(max(e(i),teeny),emax)
       end do
 
@@ -1878,8 +1880,8 @@ c Initialization for iteration:
       usurf=0.4d0*sqrt(utop*utop+vtop*vtop)
       u(1)=usurf*cos(psi)
       v(1)=usurf*sin(psi)
-      t(1)=tgrnd-0.5*(tgrnd-ttop)
-      q(1)=qgrnd-0.5*(qgrnd-qtop)
+      t(1)=tgrnd-0.5d0*(tgrnd-ttop)
+      q(1)=qgrnd-0.5d0*(qgrnd-qtop)
       e(1)=1.d-3
         usave(1)=u(1)
         vsave(1)=v(1)
@@ -2083,8 +2085,8 @@ c  set the wind magnitude to that given by similarity theory:
           if (lmonin.gt.0.) then
             dpsim=-gamams*(zbyl-z0byl)
             else
-            x  = (1.-gamamu* zbyl)**0.25
-            x0 = (1.-gamamu*z0byl)**0.25
+            x  = (1.-gamamu* zbyl)**0.25d0
+            x0 = (1.-gamamu*z0byl)**0.25d0
             dpsim=log((1.+x )*(1.+x )*(1.+x *x )/
      2               ((1.+x0)*(1.+x0)*(1.+x0*x0)))-
      3            2.*(atan(x)-atan(x0))
