@@ -3960,14 +3960,14 @@ c
       name_dd(k)='SSPREC'
       units_dd(k)='0.01 mm/day'
       scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
-      lname_dd(k)='SS P*100'
+      lname_dd(k)=' SSP*100'
 c
       k=k+1
       IDD_MCP=k
       name_dd(k)='MCPREC'
       units_dd(k)='0.01 mm/day'
       scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
-      lname_dd(k)='MC P*100'
+      lname_dd(k)=' MCP*100'
 
       return
       end subroutine diurn_defs
