@@ -52,6 +52,7 @@ C****
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,j5nuv
      *     ,j5suv,j5s,j5n,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
+     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300
      *     ,ij_q300,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs
      *     ,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst
      *     ,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq,il_veq,il_weq,il_teq
@@ -93,9 +94,9 @@ C****
      &     PDN,PE,PEQ,PEQM1,PEQM2,PHIRI,PIBYIM,PIJ,PITIJ,PITMN,
      *     PKE,PL,PRQ1,PRT,PU4I,PUP,PUV4I,PV4I,PVTHP,
      *     QLH,ROSSX,SDMN,SDPU,SMALL,SP,SP2,SS,T4,THETA,THGM,THMN,TPIL,
-     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI
+     *     TZL,UAMAX,UMN,UPE,VPE,X,Z4,THI,TIJK,QIJK
       LOGICAL qpress,q500
-      INTEGER nT,nQ
+      INTEGER nT,nQ,nRH
       REAL*8 QSAT
 
       CALL GETTIME(MBEGIN)
@@ -185,6 +186,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG
      *         *ZATMO(I,J)/TSAVG(I,J))**GBYRB-P1000)
+          AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
+     *        PMID(1,I,J))
         END DO
         APJ(J,1)=APJ(J,1)+PI(J)
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
@@ -201,14 +204,14 @@ C**** Use masking for 850 mb temp/humidity
           q500=.false.
           SELECT CASE (NINT(PMB(K)))
           CASE (850)            ! 850 mb
-            nT = IJ_T850 ; nQ = IJ_Q850 ; qpress = .true.
+            nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
             if (pmb(k).gt.pedn(l-1,i,j)) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
           CASE (500)            ! 500 mb
-            nT = IJ_T500 ; nQ = IJ_Q500 ; qpress = .true. 
+            nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
             q500 = .true.
           CASE (300)            ! 300 mb
-            nT = IJ_T300 ; nQ = IJ_Q300 ; qpress = .true.
+            nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
           END SELECT
 C**** calculate geopotential heights + temperatures
           IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
@@ -216,7 +219,7 @@ C**** calculate geopotential heights + temperatures
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
      *           *GRAV)
-            IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF
+            IF (qpress) TIJK=(TX(I,J,L)-TF
      *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
             IF (q500) Z500(I,J)=(PHI(I,J,L)
      *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
@@ -224,12 +227,16 @@ C**** calculate geopotential heights + temperatures
           ELSE
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-            IF (qpress) AIJ(I,J,nT)=AIJ(I,J,nT)+(TX(I,J,L)-TF)
+            IF (qpress) TIJK=TX(I,J,L)-TF
             if (q500) Z500(I,J)=(PHI(I,J,L)
      *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
           END IF
-          if (qpress) AIJ(I,J,nQ)=AIJ(I,J,nQ)+(Q(I,J,L)+
-     *         (Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL))
+          if (qpress) then
+            QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
+            AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
+            AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
+            AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+          end if
 C****
           IF (K.LT.KGZ_max) THEN
             K=K+1
@@ -2522,7 +2529,7 @@ C****
 
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
-        select case (namedd(k)) 
+        select case (namedd(k))
         case ("SLP")      ! sea level pressure
           do j=1,jm
           do i=1,im
@@ -2543,7 +2550,7 @@ C**** depending on namedd string choose what variables to output
         end select
         call writei(iu_subdd(k),itime,data,im*jm)
       end do
-c**** 
+c****
       return
       end subroutine get_subdd
 
@@ -2700,7 +2707,7 @@ C****       should be in the driver module for the relevant physics
 
 C**** Set up atmospheric component conservation diagnostics
       CONPT=CONPT0
-      CONPT(4)="SURF+TURB" 
+      CONPT(4)="SURF+TURB"
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, T, F, T, F, F/)
       CALL SET_CON(QCON,CONPT,"MASS    ","(KG/M^2)       ",
@@ -2789,7 +2796,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       TACC=0.
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
-      call reset_icdiag       ! ice dynamic diags if required 
+      call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return
 

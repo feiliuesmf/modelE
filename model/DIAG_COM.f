@@ -45,7 +45,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, DIMENSION(JM,LM_REQ,KASJL) :: ASJL
 
 !@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER :: KAIJ=160 , KAIJX=KAIJ+100
+      INTEGER, PARAMETER :: KAIJ=170 , KAIJX=KAIJ+100
 !@var AIJ latitude/longitude diagnostics
       REAL*8, DIMENSION(IM,JM,KAIJ) :: AIJ
 
@@ -302,6 +302,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
      *     IJ_PHI0p07, IJ_PHI0p03, IJ_T850, IJ_T500, IJ_T300, IJ_Q850,
      *     IJ_Q500, IJ_Q300, IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
+     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300,
      *     IJ_TRNFP0, IJ_SRTR, IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
      *     IJ_RUNE, IJ_TS1, IJ_RUNLI, IJ_WS, IJ_TS, IJ_US, IJ_VS,
@@ -314,7 +315,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
-     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR,
+     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, 
      *     IJ_LKON, IJ_LKOFF, IJ_PTROP, IJ_TSI, IJ_SSI1, IJ_SSI2,
      *     IJ_SMFX, IJ_MSU2, IJ_MSU2R, IJ_MSU3, IJ_MSU4, IJ_MLTP,
      *     IJ_FRMP, IJ_P850

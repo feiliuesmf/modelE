@@ -1068,6 +1068,42 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
+      IJ_RH1 = k !
+      lname_ij(k) = 'LAYER 1 RELATIVE HUMIDITY'
+      units_ij(k) = '%'
+      name_ij(k) = 'RH1'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct  
+c
+      k=k+1
+      IJ_RH300 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 300mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'RH300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH500 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'RH500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH850 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 850mb x P850'
+      units_ij(k) = '%'
+      name_ij(k) = 'RH850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1 !
       IJ_PMCCLD = k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
       lname_ij(k) = 'CONVECTIVE CLOUD COVER'
       units_ij(k) = '%'
