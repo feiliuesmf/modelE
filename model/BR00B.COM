@@ -24,17 +24,18 @@ C     INPUT DATA  (i,j) dependent
      F             ,PLB(LX),HLB(LX),TLB(LX),TLT(LX),TLM(LX)
      G             ,ULGAS(LX,12),SHL(LX),RHL(LX),TRACER(LX,8)
      H             ,TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX),CLDEPS(LX)
-     I          ,POCEAN,PEARTH,POICE,PLICE,AGESN(3),SNOWE,SNOWOI,SNOWLI
-     J             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
+     I             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,AGESN(3),SNOWE
+     J             ,SNOWOI,SNOWLI,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      L             ,COSZ,PVT(11),BXA(7),PRNB(6,4),PRNX(6,4),SRBXAL(15,2)
-     X             ,hsn,hin,hmp,fmp,flags, LS1_loc, snow_frac(2)
+     X             ,hsn,hin,hmp,fmp,flags, LS1_loc, snow_frac(2),lkdepth
 !@var LS1_loc local tropopause level
 C**** Additional info passed for new prescription of sea ice albedo
 !@var hsn depth of snow (m)
 !@var hin depth of ice (m)
 !@var hmp depth of melt pond (m)
 !@var fmp fraction of melt pond area
-      REAL*8 :: hsn,hin,hmp,fmp
+!@var lkdepth lake depth (m)
+      REAL*8 :: hsn,hin,hmp,fmp,lkdepth
 !@var flags true is snow is wet
       LOGICAL*4 :: flags
 C$OMP  THREADPRIVATE(/RADCOM_local/)

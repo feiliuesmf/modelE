@@ -12633,7 +12633,7 @@ C**** config data
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
-     *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,
+     *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,PLAKE,LKDEPTH,
      *     TGO,TGOI,TGE,TGLI,TSL,HIN,FLAGS,FMP,HSN,HMP,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
 C**** output
@@ -12754,6 +12754,19 @@ C
           XOCVN(L)=XOCNIR
         END DO
       ENDIF
+
+C**** For lakes increase albedo if lakes are very shallow
+C**** This is a fix to prevent lakes from overheating when they
+C**** are not allowed to evaporate away. We assume that departing
+C**** lakes would leave bare soil behind.
+      if (PLAKE.gt.0 .and. lkdepth.lt.1.) then  ! < 1m
+        DO L=1,6
+          BOCVN(L)=(BOCVN(L)*(lkdepth-0.4d0)+
+     *         (1.-lkdepth)*ALBVNH(1,L,1))/0.6d0
+          XOCVN(L)=(XOCVN(L)*(lkdepth-0.4d0)+
+     *         (1.-lkdepth)*ALBVNH(1,L,1))/0.6d0
+        END DO
+      end if
 C
       X=1.D0/(1.D0+WMAG)
       AV=(-.0147087D0*X*X+.0292266D0*X-.0081079D0)*EOCTRA

@@ -497,10 +497,10 @@ C     INPUT DATA         ! not (i,j) dependent
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON, PLB ,TLB,TLM ,SHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
-     &             ,POCEAN,PEARTH,POICE,PLICE,COSZ,PVT
+     &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI
-     &             ,hsn,hin,hmp,fmp,flags,LS1_loc,snow_frac
+     &             ,hsn,hin,hmp,fmp,flags,LS1_loc,snow_frac,lkdepth
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -533,7 +533,7 @@ C     OUTPUT DATA
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij
       USE LANDICE_COM, only : snowli_com=>snowli
-      USE LAKES_COM, only : flake
+      USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp
       IMPLICIT NONE
 C
@@ -702,6 +702,7 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       PLAND=FLAND(I,J)
       POICE=RSI(I,J)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
+      PLAKE=FLAKE(I,J)
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
 C****
@@ -915,6 +916,10 @@ C**** set up parameters for new sea ice and snow albedo
       else
         hin=0. ; flags=.FALSE. ; fmp=0. ; hmp=0.
       endif
+C**** set up new lake depth parameter to incr. albedo for shallow lakes
+      if (plake.gt.0) then
+        lkdepth = MWL(I,J)/(RHOW*PLAKE*DXYP(J))
+      end if
 C****
       if (kradia .le. 0) then
         WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
