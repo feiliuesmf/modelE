@@ -38,8 +38,8 @@
 
       CONTAINS
 
-      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,PRCP,ENRGP,RUN0,DIFS,EDIFS
-     *     ,ERUN2,QFIXR)
+      SUBROUTINE PREC_SI(SNOW,MSI2,HSIL,TSIL,PRCP,ENRGP,TFO,RUN0,FMOC
+     *     ,FHOC,QFIXR)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
 !@ver  1.0
@@ -60,17 +60,20 @@
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL
 !@var TSIL temperature of ice layers (J/m^2) (DIAGNOSTIC ONLY)
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
-!@var DIFS  upward ice mass into layer 2  (kg/m^2)
-!@var EDIFS energy of ice mass DIFS (J/m^2)
-!@var ERUN2 implied energy flux at base to keep fixed ice mass (J/m^2)
-      REAL*8, INTENT(OUT) :: DIFS, EDIFS, ERUN2
+!@var TFO temperature of freezing of water below ice (C) 
+      REAL*8, INTENT(IN) :: TFO
+!@var FHOC implied energy flux at base to keep fixed ice mass (J/m^2)
+      REAL*8, INTENT(OUT) :: FHOC
+!@var FMOC  implied ice mass flux at base to keep fixed ice (kg/m^2)
+      REAL*8, INTENT(OUT) :: FMOC
 !@var RUN0 runoff from ice (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0
       REAL*8 :: BYMSI2, FMSI1, FMSI2, FHSI1, FHSI2, FHSI3, CMPRS, SNWF,
-     *     FHSI2U, MELT1, RAIN, FREZ1, MSI1
+     *     MELT1, RAIN, FREZ1, MSI1
 
 C**** initialize fluxes
-      RUN0=0. ; FMSI2=0. ; FHSI1=0 ; FHSI2=0. ; FHSI3=0. ; FHSI2U=0.
+      RUN0=0. ; FMSI2=0. ; FHSI1=0 ; FHSI2=0. ; FHSI3=0. ;
+      FMOC=0. ; FHOC=0.
 C**** reciprocal of ice thickness for efficiency
       BYMSI2=1./MSI2
       MSI1=SNOW+ACE1I
@@ -100,7 +103,7 @@ C**** RAIN MELTS ALL SNOW AND SOME ICE
       FMSI2 = MSI1-ACE1I-MELT1 ! < 0.(upward ice mass flux)
 C     FMSI1 = XSI(1)*(MSI1-ACE1I)-MELT1 ! < 0.(melted snow/ice mass)
       FHSI1 = HSIL(2)*((XSI(1)/XSI(2))*FMSI2-MELT1)/MSI1 !  upw heat flx
-      FHSI2U= HSIL(3)*FMSI2*BYXSI(3)*BYMSI2 !  upward heat flux -> lyr 2
+      FHSI2 = HSIL(3)*FMSI2*BYXSI(3)*BYMSI2 !  upward heat flux -> lyr 2
       FHSI3 = HSIL(4)*FMSI2*BYMSI2 !  upward heat flux into layer 3
       MSI1 = ACE1I ! Keep the first layer ice mass constant ACE1I
       GO TO 210
@@ -171,24 +174,25 @@ C     FMSI1 = XSI(2)*PRCP+XSI(1)*FMSI2 ! > 0.(downward ice mass flux)
       MSI1 = 0.9d0*SNOMAX+ACE1I ! first layer ice mass
       END IF
   210 CONTINUE
-C**** Save fluxes for diagnostic output
-      DIFS  = FMSI2
-      EDIFS = FHSI2+FHSI2U
-      ERUN2 = HSIL(3)*FMSI2*BYXSI(3)*BYMSI2
-
 C**** Adjust amounts resulting from fluxes.
-C**** Note that the flux into layer two is seperated into up and down
-C**** components so that the code is valid for fixed sea ice runs also
       SNOW = MAX(0d0,MSI1-ACE1I)         ! snow mass
       HSIL(1) = HSIL(1)- FHSI1
       HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-
-      IF (.not. QFIXR) THEN     ! ADVECT ICE for predicted ice
+      HSIL(3) = HSIL(3)+(FHSI2-FHSI3)
+      IF (QFIXR) THEN           ! Calc. implicit fluxes for fixed ice
+        FMOC = FMSI2
+        IF (FMOC.gt.0) THEN
+          FHOC = FMOC*HSIL(4)/(MSI2*XSI(4))
+        ELSE
+          FHOC = FMOC*(SHI*TFO-LHM)
+        END IF
+        HSIL(4) = HSIL(4)+FHSI3-FHOC*XSI(4)
+        HSIL(3) = HSIL(3)-FHOC*XSI(3)
+      ELSE                      ! ADVECT ICE for predicted ice
         MSI2 = MSI2+FMSI2       ! 2nd layer sea ice mass (kg/m^2)
-        HSIL(2) = HSIL(2)- FHSI2U     ! flux associated with upw advec
-        HSIL(3) = HSIL(3)+(FHSI2U+FHSI2-FHSI3)
-        HSIL(4) = HSIL(4)+ FHSI3
+        HSIL(4) = HSIL(4)+FHSI3
       END IF
+
       TSIL(1) = (HSIL(1)/(XSI(1)*MSI1)+LHM)*BYSHI ! ice temperature L=1
       TSIL(2) = (HSIL(2)/(XSI(2)*MSI1)+LHM)*BYSHI ! ice temperature L=2
       TSIL(3) = (HSIL(3)/(XSI(3)*MSI2)+LHM)*BYSHI ! ice temperature L=3
@@ -198,8 +202,7 @@ C**** components so that the code is valid for fixed sea ice runs also
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,HSIL,MSI2,F0DT,F1DT,EVAP
-     *     ,SROX,TGW,RUN0,DIFSI,EDIFSI,DIFS,EDIFS,FO,QFIXR
-     *     ,QFLUXLIM,FLUXLIM)
+     *     ,SROX,TFO,RUN0,FMOC,FHOC,FO,QFIXR,QFLUXLIM,FLUXLIM)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
 !@ver  1.0
@@ -223,24 +226,25 @@ C**** components so that the code is valid for fixed sea ice runs also
       LOGICAL,INTENT(IN) :: QFIXR, QFLUXLIM
 !@var FLUXLIM limit of water-ice flux if QFLUXLIM is true 
       REAL*8, INTENT(IN) :: FLUXLIM
-!@var TGW temperature of water below ice (C)
-      REAL*8, INTENT(IN) :: TGW
+!@var TFO freezing temperature of water below ice (C)
+      REAL*8, INTENT(IN) :: TFO
 
       REAL*8, INTENT(IN) :: ROICE
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL
       REAL*8, INTENT(INOUT) :: SNOW, MSI2
       REAL*8, DIMENSION(LMI) :: TSIL
-      REAL*8, INTENT(OUT) :: EDIFSI, FO, RUN0, DIFSI, DIFS, EDIFS
-      REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, DEW, CMPRS
+      REAL*8, INTENT(OUT) :: FO, RUN0, FMOC, FHOC
+      REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
+      REAl*8 DEW, CMPRS, DEW1, DEW2, EVAP1
       REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8 HC1, HC2, HC3, HC4, HICE2
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
 C**** Initiallise output
-      FO=0. ; RUN0=0.  ; DIFSI=0. ; EDIFSI=0.
-      DIFS=0. ; EDIFS=0. 
+      FO=0. ; RUN0=0.  ; FMOC=0. ; FHOC=0.
 
       IF (ROICE .EQ. 0.) RETURN
-      FMSI2=0 ; FHSI2=0 ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
+      FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
+      FHSI1=0. ; FHSI2=0. ; FHSI3=0.  
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
 C**** Calculate solar fractions
@@ -275,7 +279,7 @@ C****          temperature derivative from F4 diffusive flux
 C**** EXPLCIIT DIFFUSIVE FLUXES
 CEXP  F2 = dF2dTI*(TSIL(2)-TSIL(3))+SROX(1)*FSRI(2)
 CEXP  F3 = dF3dTI*(TSIL(3)-TSIL(4))+SROX(1)*FSRI(3)
-CEXP  FO = dF4dTI*(TSIL(4)-TGW)    +SROX(1)*FSRI(4)
+CEXP  FO = dF4dTI*(TSIL(4)-TFO)    +SROX(1)*FSRI(4)
 C**** DIFFUSIVE FLUXES FROM PARTIALLY IMPLICIT METHOD
 c      F1DT=(dF1dTI*(HC1*(TSIL(1)-TSIL(2))+ALPHA*F0DT)
 c     *    +HC1*SROX(1)*FSRI(1))/(HC1+ALPHA*dF1dTI) ! already calculated 
@@ -283,7 +287,7 @@ c     *    +HC1*SROX(1)*FSRI(1))/(HC1+ALPHA*dF1dTI) ! already calculated
      *     /(HC2+ALPHA*dF2dTI)    
       F3=(dF3dTI*(HC3*(TSIL(3)-TSIL(4))+ALPHA*F2)+HC3*SROX(1)*FSRI(3))/
      *     (HC3+ALPHA*dF3dTI)    
-      FO=(dF4dTI*(HC4*(TSIL(4)-TGW)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
+      FO=(dF4dTI*(HC4*(TSIL(4)-TFO)+ALPHA*F3)+HC4*SROX(1)*FSRI(4))/
      *     (HC4+ALPHA*dF4dTI)
       SROX(2) = SROX(1)*FSRI(4)
 C**** limit flux if necessary
@@ -293,201 +297,100 @@ C**** limit flux if necessary
       HSIL(2) = HSIL(2)+(F1DT-F2)
       HSIL(3) = HSIL(3)+(F2-F3)
       HSIL(4) = HSIL(4)+(F3-FO)
-      DEW = -EVAP ! dew to the surface
-      IF (HSIL(1)/LHM+XSI(1)*MSI1+DEW .LE. 0.) GO TO 160 ! -> freezing
-C**** FLUXES HEAT UP L(1) TO FREEZING POINT AND MELT SOME SNOW AND ICE
-      MELT1 = HSIL(1)/LHM+XSI(1)*MSI1+DEW ! melting + dew to layer 1
-C**** EVAPORATION FROM THE SURFACE
-      IF (DEW .GT. 0.) GO TO 140 ! go to the dew case
-C**** DEW IS EVAPORATION NOW
-C**** EVAPORATION REDUCES SNOW OR ICE, MELT1>0.
-      IF (MSI1-ACE1I+DEW .GT. MELT1) GO TO 130
-C**** ALL SNOW AND SOME ICE EVAPORATE AND MELT
-C**** ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
-      FMSI1 = XSI(1)*(MSI1-ACE1I)+DEW-MELT1 ! < 0.
-C*            upward mass flux from layer 2 into layer 1
-      FMSI2 = MSI1-ACE1I+DEW-MELT1 ! < 0.
-C*            upward mass flux from layer 3 into layer 2
-      FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! energy of ice mass FMSI1
-      FHSI2 = HSIL(3)*FMSI2*BYXSI(3)/MSI2 ! energy of ice mass FMSI2
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      SNOW = 0. ! all snow evaporates and melts
-      IF (QFIXR) GO TO 370
-      GO TO 170
-  130 CONTINUE
-C**** EVAPORATION AND MELTING REDUCE JUST SNOW AMOUNT
-C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
-      FMSI2 = MIN(dSNdML*MELT1, MSI1-ACE1I+DEW-MELT1) ! > 0.
-      FMSI1 = XSI(1)*FMSI2+XSI(2)*(DEW-MELT1)
-      IF (FMSI1 .LT. 0.) FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! upward
-      IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 2
-      FHSI2 = HSIL(2)*FMSI2*BYXSI(2)/MSI1 ! downward from L=2 -> L=3
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      MSI1 = MSI1+DEW-MELT1-FMSI2 ! kg/m^2
-      SNOW = MSI1-ACE1I
-      IF (QFIXR) GO TO 370
-      GO TO 210
-  140 CONTINUE
-C**** DEW INCREASES ICE AMOUNT,  MELT1 > 0.
-      IF (MSI1-ACE1I .GT. MELT1) GO TO 150
-C**** ALL SNOW AND SOME ICE MELT
-      FMSI1 = XSI(1)*(MSI1-ACE1I)+DEW-MELT1 ! upward into layer 1
-      FMSI2 = MSI1-ACE1I+DEW-MELT1
-      SNOW = 0.
-      IF (FMSI2 .LE. 0.) THEN ! (if melting is greater than dew)
-C****ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
-        FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! upward from L=2 -> L=1
-        FHSI2 = HSIL(3)*FMSI2*BYXSI(3)/MSI2 ! upward from L=3 -> L=2
-        HSIL(1) = HSIL(1)-FHSI1
-        HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-        IF (QFIXR) GO TO 370
-        GO TO 170
-      ENDIF
-C**** ICE ADVECTION IS DOWNWARD INTO LAYER 3 FROM LAYER 2
-C**** (if dew is greater than melting)
-      IF (FMSI1 .LT. 0.) FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! upward
-      IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 2
-      FHSI2 = HSIL(2)*FMSI2*BYXSI(2)/MSI1 ! downward from L=2 -> L=3
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      MSI1 = ACE1I
-      SNOW = 0.
-      IF (QFIXR) GO TO 370
-      GO TO 210
-  150 CONTINUE
-C**** MELTING REDUCES SNOW AMOUNT
-C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
-      CMPRS = MIN(dSNdML*MELT1, MSI1-ACE1I-MELT1) ! > 0.
-      FMSI1 = DEW+XSI(1)*CMPRS-XSI(2)*MELT1
-      FMSI2 = DEW+CMPRS ! > 0. downward into layer 3 from layer 2
-      IF (FMSI1 .LT. 0.) FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! upward
-      IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 3
-      FHSI2 = HSIL(2)*FMSI2*BYXSI(2)/MSI1 ! downw energy flux into L=3
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      MSI1 = MSI1-MELT1-CMPRS ! new mass of the first physical layer
-      SNOW = MSI1-ACE1I ! new snow mass after melting and compression
-      IF (QFIXR) GO TO 370
-      GO TO 210
-  160 CONTINUE
-C**** THE FIRST LAYER IS BELOW FREEZING
-C**** NO SNOW OR ICE MELTS IN LAYER 1
-      IF (DEW .GT. 0.) GO TO 200 ! go to the dew case
-      IF (MSI1-ACE1I+DEW .GE. 0.) GO TO 190
-C**** ALL SNOW AND SOME ICE EVAPORATE
-C**** ICE ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
-      FMSI1 = XSI(1)*(MSI1-ACE1I)+DEW ! < 0. upward into layer 1
-      FMSI2 = MSI1-ACE1I+DEW ! < 0. upward into layer 2 from layer 3
-      FHSI1 = HSIL(2)*FMSI1*BYXSI(2)/MSI1 ! upward energy flux into L=1
-      FHSI2 = HSIL(3)*FMSI2*BYXSI(3)/MSI2 ! upward energy flux into L=2
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      SNOW = 0. ! all snow evaporated
-      IF (QFIXR) GO TO 370
-  170 CONTINUE
-      MSI1 = ACE1I
-      IF (HSIL(4)/LHM+XSI(4)*MSI2 .LE. 0.) GO TO 180 ! -> freezing case
-C**** FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
-      MELT4 = HSIL(4)/LHM+XSI(4)*MSI2 ! > 0. melted ice from layer 4
-      FMSI3 = XSI(4)*FMSI2+XSI(3)*MELT4
-      IF (FMSI3 .LE. 0.) FHSI3 = -LHM*FMSI3 ! upward into layer 3
-      IF (FMSI3 .GT. 0.) FHSI3 = HSIL(3)*FMSI3*BYXSI(3)/MSI2 ! downward
-      HSIL(3) = HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4) = HSIL(4)+FHSI3
-      MSI2 = MSI2+FMSI2-MELT4 ! new ice mass of physical layer 2
-      GO TO 230
-  180 CONTINUE
-C**** NO ICE MELTS IN LAYER 4
-C     FMSI3 = XSI(4)*FMSI2 ! upward mass flux into layer 3 from layer 4
-      FHSI3 = HSIL(4)*FMSI2/MSI2 ! upward energy flux into layer 3
-      HSIL(3) = HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4) = HSIL(4)+FHSI3
-      MSI2 = MSI2+FMSI2
-      GO TO 230
-  190 CONTINUE
-C**** JUST SOME SNOW EVAPORATES
-C**** NO ADVECTION BETWEEN LAYER 2 AND 3
-C     FMSI1 = XSI(2)*DEW ! < 0. upward mass flux into layer 1
-C     FMSI2 = 0. ! no ice advection between layers 2 and 3
-      FHSI1 = HSIL(2)*DEW/MSI1 ! upward energy flux into layer 1
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+FHSI1
-      MSI1 = MSI1+DEW ! new ice mass of the first physical layer
-      SNOW = MSI1-ACE1I ! new snow mass
-      IF (QFIXR) GO TO 370
-      IF (HSIL(4)/LHM+XSI(4)*MSI2 .LE. 0.) GO TO 230 ! -> freezing case
-C**** FLUXES HEAT LAYER 4 TO FREEZING POINT AND MELT SOME ICE
-      MELT4 = HSIL(4)/LHM+XSI(4)*MSI2 ! melted ice from layer 4
-C     FMSI3 = XSI(3)*MELT4 ! > 0. downward mass flux into layer 4
-      FHSI3 = HSIL(3)*MELT4/MSI2 ! downward heat flux into layer 4
-      HSIL(3) = HSIL(3)-FHSI3
-      HSIL(4) = HSIL(4)+FHSI3
-      MSI2 = MSI2-MELT4 ! new ice mass of the second physical layer
-      GO TO 230
-  200 CONTINUE
-C**** DEW INCREASES ICE AMOUNT, ADVECT ICE DOWNWARD
-C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
-C     FMSI1 = DEW ! > 0. downward mass flux into layer 2
-      FMSI2 = DEW ! > 0. downward mass flux into layer 3
-      FHSI1 = HSIL(1)*FMSI2/(XSI(1)*MSI1+DEW) ! downward heat flux
-      FHSI2 = HSIL(2)*FMSI2*BYXSI(2)/MSI1 ! downward heat flux into L=3
-      HSIL(1) = HSIL(1)-FHSI1
-      HSIL(2) = HSIL(2)+(FHSI1-FHSI2)
-      IF (QFIXR) GO TO 370
-  210 CONTINUE
-      IF (HSIL(4)/LHM+XSI(4)*MSI2 .GT. 0.) THEN
-C**** FLUXES HEAT UP L(2) TO FREEZING POINT AND MELT SOME ICE
-        MELT4 = HSIL(4)/LHM+XSI(4)*MSI2 ! melted ice from layer 4
-C     FMSI3 = XSI(4)*FMSI2+XSI(3)*MELT4 ! > 0. downward into layer 4
-        FHSI3 = HSIL(3)*((XSI(4)/XSI(3))*FMSI2+MELT4)/MSI2 ! downward
-        HSIL(3) = HSIL(3)+(FHSI2-FHSI3)
-        HSIL(4) = HSIL(4)+FHSI3
-        MSI2 = MSI2+FMSI2-MELT4 ! new ice mass of physical layer 2
-      ELSE
-C**** NO ICE MELTS IN LAYER 4
-C     FMSI3 = XSI(4)*FMSI2 ! > 0. downward mass flux into layer 4
-        FHSI3 = HSIL(3)*(XSI(4)/XSI(3))*FMSI2/MSI2 ! downward heat flux
-        HSIL(3) = HSIL(3)+(FHSI2-FHSI3)
-        HSIL(4) = HSIL(4)+FHSI3
-        MSI2 = MSI2+FMSI2
+
+      DEW = -EVAP ! dew/evap to the surface
+      EVAP1= MAX(0d0,EVAP)  ! positive evaporation
+
+C**** Add DEW directly to ice (which can be in either layer)
+C**** DEW1 adds to layer 1, DEW2 adds to layer 2
+C**** Calculate melting in first two thermal layers
+C**** SNMELT is the melting that is applied to the snow first
+      IF (SNOW*XSI(1).gt.XSI(2)*ACE1I) THEN ! first layer is all snow
+        DEW1 = -EVAP1           ! <0 i.e. evaporation from snow
+        DEW2 =  MAX(0d0,DEW)    ! >0 i.e. dew to second layer ice
+        MELT1 = MAX(0d0,HSIL(1)/LHM+XSI(1)*MSI1+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)/LHM+XSI(2)*MSI1+DEW2)
+        SNMELT=MELT1+MELT2   
+      ELSE  ! first layer is snow and some ice
+        DEW1 = DEW   ! all fluxes to first layer
+        DEW2 = 0.
+        MELT1 = MAX(0d0,HSIL(1)/LHM+XSI(1)*MSI1+DEW1)
+        MELT2 = MAX(0d0,HSIL(2)/LHM+XSI(2)*MSI1)
+        SNMELT=MELT1
       END IF
- 230  CONTINUE
-C**** Check for internal melting: Layer 3
-c      IF (HSIL(3)/LHM+XSI(3)*MSI2.GT.0) THEN
-c        MELT3 =  HSIL(3)/LHM+XSI(3)*MSI2 ! melt ice from layer 3
-cc     FMSI3 = -XSI(4)*MELT3   ! upward mass flux from layer 4   
-c        FHSI3 = -HSIL(4)*MELT3/MSI2 ! upward heat flux into layer 3
-c        HSIL(3) = HSIL(3)-FHSI3 
-c        HSIL(4) = HSIL(4)+FHSI3
-c        MSI2 = MSI2 - MELT3
-c      END IF
- 370  CONTINUE
-C**** Check for internal melting: Layer 2
-c      IF (HSIL(2)/LHM+XSI(2)*MSI1.GT.0) THEN
-c        MELT2 =  HSIL(2)/LHM+XSI(2)*MSI1 ! melt ice from layer 2
-cc     FMSI2 = -MELT2   ! upward mass flux from layer 3   
-c        FHSI2 = -HSIL(3)*MELT2/(MSI2*XSI(3)) ! upward heat flux into layer 2
-c        HSIL(2) = HSIL(2)-FHSI2 
-cc     FMSI3 = -XSI(4)*MELT2   ! upward mass flux from layer 4   
-c        IF (.not. QFIXR) THEN
-c          FHSI3 = HSIL(4)*MELT2/MSI2 ! upward heat flux into layer 3
-c          HSIL(3) = HSIL(3)-FHSI3+FHSI2 
-c          HSIL(4) = HSIL(4)+FHSI3
-c          MSI2 = MSI2 - MELT2
-c        END IF
-c      END IF        
-C**** save output diagnostics
-      DIFS  = FMSI2 ! <0 upward ice mass into layer 2
-      EDIFS = FHSI2 ! energy of diffused ice mass DIFS
-      DIFSI = ROICE*DIFS
-      EDIFSI= ROICE*EDIFS
-      RUN0 = MELT1+MELT2+MELT3+MELT4 ! water mass to the ocean (kg/m^2)
+
+C**** Check for melting in levels 3 and 4
+      MELT3 = MAX(0d0,HSIL(3)/LHM+XSI(3)*MSI2) 
+      MELT4 = MAX(0d0,HSIL(4)/LHM+XSI(4)*MSI2) 
+
+C**** CMPRS is amount of snow turned to ice during melting
+C**** Calculate remaining snow and necessary mass flux using
+C**** SNOW =SNOW -       SNMELT        + DEW1 - CMPRS
+C**** ACE1I=ACE1I-(MELT1+MELT2-SNMELT) + DEW2 + CMPRS - FMSI2
+C****
+      IF (SNOW.GT.SNMELT+EVAP1) THEN ! some snow remains
+        CMPRS = MIN(dSNdML*SNMELT, SNOW-EVAP1-SNMELT) ! > 0.
+        DSNOW = - (SNMELT+EVAP1+CMPRS)
+      ELSE ! all snow and some ice melts
+        CMPRS = 0.
+        DSNOW = -SNOW
+      END IF
+C**** Mass fluxes required to keep first layer ice = ACE1I 
+      FMSI2 = -DSNOW+DEW-MELT1-MELT2 ! either up or down
+      FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1-CMPRS
+
+C***** Calculate consequential heat flux between layers
+      IF (FMSI1.gt.0) THEN ! downward flux to thermal layer 2
+        FHSI1 = FMSI1*HSIL(1)/(XSI(1)*MSI1+DEW1-MELT1)
+      ELSE                 ! upward flux
+        FHSI1 = FMSI1*HSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
+      END IF
+      IF (FMSI2.gt.0) THEN ! downward flux to thermal layer 3
+        FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
+      ELSE                 ! upward flux
+        FHSI2 = FMSI2*HSIL(3)/(XSI(3)*MSI2-MELT3)
+      END IF
+
+C**** Calculate mass/heat flux at base if required
+      IF (QFIXR) THEN ! fixed sea ice, calculate implicit base fluxes
+        FMSI4 = FMSI2 - MELT3 - MELT4 
+        IF (FMSI4.gt.0) THEN ! downward flux to ocean
+          FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2-MELT4)
+        ELSE ! upward flux, at freezing point of ocean
+          FHSI4 = FMSI4*(SHI*TFO-LHM)
+        END IF
+      ELSE   ! coupled models allow MSI2 to melt
+        FMSI4 = 0. 
+        FHSI4 = 0.
+      END IF
+
+C**** Calculate mass/heat flux between layers 3 and 4
+      FMSI3 = XSI(3)*(FMSI4+MELT4) + XSI(4)*(FMSI2-MELT3) 
+      IF (FMSI3.gt.0) THEN ! downward flux to layer 4
+        FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-MELT3)
+      ELSE                 ! upward flux
+        FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-MELT4)
+      END IF
+
+C**** Apply fluxes
+      HSIL(1)=HSIL(1)- FHSI1
+      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
+      HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
+      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+      SNOW = MAX(0d0,SNOW+DSNOW)
+      MSI1 = ACE1I+ SNOW
+C**** MSI2 = MSI2 -(MELT3+MELT4)+(FMSI2-FMSI4)
+      IF (.not. QFIXR) MSI2=MSI2-(MELT3+MELT4)+FMSI2
+
+C**** Calculate output diagnostics
+      RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
+      FMOC = FMSI4                    ! implicit mass flux 
+      FHOC = FHSI4                    ! implicit heat flux
+C****
       RETURN
       END SUBROUTINE SEA_ICE
 
-      SUBROUTINE ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,DIFSI,EDIFSI,ENRGFO
+      SUBROUTINE ADDICE (SNOW,ROICE,HSIL,MSI2,TSIL,ENRGFO
      *     ,ACEFO,ACE2F,ENRGFI,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell/Gavin Schmidt
@@ -508,13 +411,10 @@ C**** save output diagnostics
       REAL*8, INTENT(INOUT) :: ROICE, SNOW, MSI2
       REAL*8, INTENT(INOUT), DIMENSION(LMI) :: HSIL
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
-      REAL*8, INTENT(OUT) :: EDIFSI, DIFSI
 
       REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
-      REAL*8 DIFS1
 
-      EDIFSI=0. ; DIFSI=0. 
       MSI1=SNOW+ACE1I
       IF (.not. QFIXR) THEN
       IF (ROICE.LE.0. .and. ACEFO.gt.0) THEN
@@ -572,7 +472,7 @@ C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
       END IF
   270 CONTINUE
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=FLEAD*(RHOI/(ACE1I+MSI2)-BYZICX)
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2))   ! -BYZICX) sometime -ve!
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN 
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
@@ -585,16 +485,13 @@ C     FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
       HSIL(4) = HSIL(4)+(FHSI3-FHSI4)
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
 C     SNOW = SNOW   ! snow thickness is conserved
-      DIFS1 = DRI*ACE1I/ROICE
-      EDIFSI = ROICE*(HSIL(1)+HSIL(2))*(DIFS1/MSI1)*0.5
-      DIFSI = ROICE*DIFS1
       ROICE = ROICEN
 C**** 
       END IF
 C**** 
       END IF
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-4) => rsi=(1-OPNOCN))
-      OPNOCN=FLEAD*(RHOI/(ACE1I+MSI2)-BYZICX)
+      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ACE1I+MSI2))    ! -BYZICX)
       IF (ROICE.gt.(1.-OPNOCN-1d-4)) THEN
         ROICEN = 1.-OPNOCN
         DRSI = ROICEN-ROICE ! > 0
@@ -776,7 +673,7 @@ C**** Check for reasonable values for ice variables
             IF (L.le.2) TICE = (HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
      *           +LHM)/SHI
             IF (L.gt.2) TICE = (HSI(L,I,J)/(XSI(L)*MSI(I,J))+LHM)/SHI
-            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
+            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-8.or.TICE.lt.-80.) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
 c              QCHECKI = .TRUE.

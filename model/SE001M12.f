@@ -249,20 +249,20 @@ C****
       ACE2=MSI(I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       SOLAR(2,I,J) = 0.
-c      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
+      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
-c      IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
-c        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN 
+      IF (SRHEAT.gt.0) THEN ! don't bother if there is no sun
+        IF (ACE1I*XSI(1).gt.SNOW*XSI(2)) THEN 
 C**** first thermal layer is snow and ice
-c          HICE = (SNOW/RHOS) + (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI   
-c        ELSE ! all snow			   
-c          HICE = (ACE1I+SNOW)*XSI(1)/RHOS				   
-c        END IF
-c        FSRI(1) = EXP(-KEXT*HICE)
-c        FSRI(2) = EXP(-KEXT*(ACE1I*BYRHOI+SNOW/RHOS))
-c      ELSE
+          HICE = (SNOW/RHOS) + (ACE1I-XSI(2)*(SNOW+ACE1I))*BYRHOI   
+        ELSE ! all snow			   
+          HICE = (ACE1I+SNOW)*XSI(1)/RHOS				   
+        END IF
+        FSRI(1) = EXP(-KEXT*HICE)
+        FSRI(2) = EXP(-KEXT*(ACE1I*BYRHOI+SNOW/RHOS))
+      ELSE
         FSRI(1:2) = 0
-c      END IF
+      END IF
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       Z2=ACE2/RHOI
       Z2BY4L=Z2/(4.*ALAMI)
