@@ -9,7 +9,7 @@
 
       CONTAINS
 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
 !@calls RAN
@@ -69,7 +69,7 @@
       MNOW = MCLOCK()
       RETURN
       END SUBROUTINE GETTIME
-#elif defined( MACHINE_Linux )
+#elif defined( MACHINE_Linux ) || defined(MACHINE_MAC)
       SUBROUTINE GETTIME (MNOW)
 !@sum  GETTIME returns current CPU time
 !@auth Gary Russell
@@ -102,7 +102,7 @@
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: code !@var code return code set by user
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
       call exit(code) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
       call exit_(code)
@@ -119,7 +119,7 @@
 !@ver  1.0 (SGI,IBM,Linux,DEC)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit 
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
       call flush(unit) !!! should check if it works for Absoft and DEC
 #elif defined( MACHINE_IBM )
       call flush_(unit)
@@ -139,7 +139,7 @@
       INTEGER, INTENT(IN) :: sig
 !@var prog handler subroutine for given signal
       EXTERNAL prog
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC)
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) || defined(MACHINE_MAC)
       call signal( sig, prog, -1 ) 
 #elif defined( MACHINE_IBM )
       call signal( sig, prog )

@@ -235,6 +235,25 @@ F90_VERSION = $(shell $(F90) -version 2>&1)
 endif
 
 
+## MAC OS with the Absoft PROfortran compiler
+ifeq ($(UNAME),Darwin)
+MACHINE = MAC
+COMPILER = Absoft
+F90 = f90
+CPP = /usr/bin/cpp -P -traditional
+FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend -h
+CPPFLAGS = -DMACHINE_MAC
+FFLAGS = -O2
+FFLAGSF = -O2 -f free
+LFLAGS = -lf90math -lV77 -lU77
+# the following switch adds extra debugging
+ifeq ($(COMPILE_WITH_TRAPS),YES)
+FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
+LFLAGS += -lefence
+endif
+endif
+
+
 # end of machine - specific options
 
 #
