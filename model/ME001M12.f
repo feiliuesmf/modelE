@@ -154,7 +154,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
          TDIURN(I,J,6)=-1000.
       TDIURN(I,J,7)=-1000.
       TDIURN(I,J,8)=-1000.
-         PEARTH=FDATA(I,J,2)*(1.-FDATA(I,J,3))
+         PEARTH=FEARTH(I,J)
          IF (PEARTH.GT.0.) GO TO 297
          TSFREZ(I,J,1)=365.
          TSFREZ(I,J,2)=365.
@@ -539,7 +539,7 @@ C****
 
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE.
       COMMON/RDATA/ROUGHL(IM,JM)
-      COMMON /FLAKE/ FLAKE(IM,JM)
+
       CHARACTER*8 RECORD(10),NLREC*80,TITREG*80,NAMREG(23)
       COMMON/TNKREG/TITREG,NAMREG,KREG
       REAL*4 TAU4,TAUY4,XX4
@@ -887,25 +887,24 @@ C**** CALCULATE DSIG AND DSIGO
       DO 710 L=1,LM-1
   710 DSIGO(L)=SIG(L)-SIG(L+1)
 C*
-C***  READ IN LAKE FRACTION DATA
-C*
-      CALL READT (26,0,FDATA(1,1,2),IM*JM,FDATA(1,1,2),2)
-      DO J = 1,JM
-        DO I = 1,IM
-          FLAKE(I,J) = FDATA(I,J,2)
-        END DO
-      END DO
-C**** READ IN FDATA: PHIS(ZATM*GRAV), PLAND(FGD+FGDI), RLICE(FGDI/PL)
-      CALL READT (26,0,FDATA(1,1,2),IM*JM,FDATA(1,1,2),1)
-      CALL READT (26,0,FDATA(1,1,3),IM*JM,FDATA(1,1,3),1)
-      DO 762 J=1,JM
-      DO 762 I=1,IM
-      FDATA(I,J,2)=FDATA(I,J,2)+FDATA(I,J,3)
-  762 FDATA(I,J,3)=FDATA(I,J,3)/(FDATA(I,J,2)+1.D-20)
-      CALL READT (26,0,FDATA(1,1,1),IM*JM,FDATA(1,1,1),1)
-      DO 763 J=1,JM
-      DO 763 I=1,IM
-  763 FDATA(I,J,1)=FDATA(I,J,1)*GRAV
+C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
+C*       Ocean fraction
+      CALL READT (26,0,FOCEAN,IM*JM,FOCEAN,1)
+C*       Lake fraction
+      CALL READT (26,0,FLAKE,IM*JM,FLAKE,1)
+C*       Earth fraction (land not incl. land ice)
+      CALL READT (26,0,FEARTH,IM*JM,FEARTH,1)
+C*       Land ice fraction  
+      CALL READT (26,0,FLICE,IM*JM,FLICE,1)
+C*       Calculate land fraction (incl. land ice)
+      FLAND = FEARTH + FLICE
+C*       adjust Land ice fraction to be fraction only over land
+c      FLICE = (FLICE/(FLAND+1.D-20))  !!!DONT !!!!
+C*       Atmospheric topography
+      CALL READT (26,0,ZATMO,IM*JM,ZATMO,1)
+C*       adjust to give geopotential height
+      ZATMO = ZATMO*GRAV
+
       REWIND 26
       if(iniPBL) call pblini
 C!!!! Added 09/07/95 -rar-
@@ -918,8 +917,8 @@ C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
         DO 764 J=1,JM
         DO 764 I=1,IM
         IF(GDATA(I,J,1).GE.-1.) GO TO 764
-        FDATA(I,J,3)=1.-FDATA(I,J,2)*(1.-FDATA(I,J,3))
-        FDATA(I,J,2)=1.
+        FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
+        FLAND(I,J)=1.
         WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
   764   CONTINUE
       END IF
@@ -933,7 +932,7 @@ C****
 C     READ (25) SDATA
       CALL DREAD (25,SDATA,IM*JM*(11*NGM+1),SDATA)
       REWIND 25
-      CALL GHINIT (FDATA,VDATA,DT*NDYN/NSURF,UNUSED)
+      CALL GHINIT (FEARTH,VDATA,DT*NDYN/NSURF,UNUSED)
 C**** Recompute GHDATA if necessary (new soils data)
       IF (redoGH) THEN
         JDAY=1+MOD(NINT(TAU/24.),365)
@@ -942,7 +941,7 @@ C**** Recompute GHDATA if necessary (new soils data)
         RHOW=1000.
         DO 930 J=1,JM
         DO 930 I=1,IM
-        PEARTH=FDATA(I,J,2)*(1.-FDATA(I,J,3))
+        PEARTH=FEARTH(I,J)
         IF(PEARTH.LE.0.) THEN
           DO 910 L=1,4*NGM+5
   910     GHDATA(I,J,L)=0.
@@ -1340,7 +1339,8 @@ C**** THIS SUBROUTINE CALCULATES UPDATED COLUMN PRESSURES AS
 C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,ptrunc,mrch,fdata,odata,gdata,u,v,t,q
+     &     , only : im,jm,lm,ptrunc,mrch,zatmo,fland,flice,odata,gdata,u
+     *     ,v,t,q
       USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION P(IM,JM)
@@ -1351,10 +1351,12 @@ C****
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       PA(1,1)=P(1,1)+(DT1*PIT(1,1)/DXYP(1)+PTRUNC)
          IF (PA(1,1).GT.1150.) WRITE(6,991) 1,1,MRCH,P(1,1),PA(1,1),
-     *     (FDATA(1,1,K),K=1,22),(T(1,1,L),Q(1,1,L),L=1,LM)
+     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
+     *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
       PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)/DXYP(JM)+PTRUNC)
          IF (PA(1,JM).GT.1150.) WRITE(6,991) 1,JM,MRCH,P(1,JM),PA(1,JM),
-     *     (FDATA(1,JM,K),K=1,22),(T(1,JM,L),Q(1,JM,L),L=1,LM)
+     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
+     *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
       DO 2424 I=2,IM
       PA(I,1)=PA(1,1)
  2424 PA(I,JM)=PA(1,JM)
@@ -1362,7 +1364,8 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
       DO 2426 I=1,IM
       PA(I,J)=P(I,J)+(DT1*PIT(I,J)/DXYP(J)+PTRUNC)
          IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
-     *     (FDATA(I,J,K),K=1,22),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),
+     *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
+     *     ,(GDATA(1,1,K),K=1,16),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),
      *     U(I,J+1,L),V(I-1,J,L),V(I,J,L),V(I-1,J+1,L),V(I,J+1,L),
      *     T(I,J,L),Q(I,J,L),L=1,LM)
  2426 CONTINUE
@@ -1556,7 +1559,7 @@ C**** THIS SUBROUTINE ADDS TO MOMENTUM THE TENDENCIES DETERMINED BY
 C**** THE PRESSURE GRADIENT FORCE
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,rgas,kapa,sige,psf,ptop,ls1,fdata,dsig,sig,
+     &     , only : im,jm,lm,rgas,kapa,sige,psf,ptop,ls1,zatmo,dsig,sig,
      &              mrch,modd5k
       USE GEOM
       USE CLOUDS, only : GZ
@@ -1598,7 +1601,7 @@ C****
       PIJ=P(I,J)
       PDN=PIJ+PTOP
       PKDN=EXPBYK(PDN)
-      PHIDN=FDATA(I,J,1)
+      PHIDN=ZATMO(I,J)
 C**** LOOP OVER THE LAYERS
       DO 310 L=1,LM
       IF(L.LE.LS1-1) GO TO 290
@@ -1796,7 +1799,7 @@ C****
       DO 120 I=1,IM
          PSUMO(J)=PSUMO(J)+P(I,J)
          POLD(I,J)=P(I,J)      ! Save old pressure
-      Y(I,J)=(1.+BBYG*FDATA(I,J,1)/BLDATA(I,J,2))**GBYRB
+      Y(I,J)=(1.+BBYG*ZATMO(I,J)/BLDATA(I,J,2))**GBYRB
   120 X(I,J)=(P(I,J)+PTOP)*Y(I,J)
       CALL SHAP1D (8)
       DO 150 J=2,JM-1
@@ -2039,7 +2042,7 @@ C****
       COMMON/OOBS/DM(IM,JM),    AOST(IM,JM),EOST1(IM,JM),EOST0(IM,JM),
      *  BOST(IM,JM),COST(IM,JM),ARSI(IM,JM),ERSI1(IM,JM),ERSI0(IM,JM),
      *  BRSI(IM,JM),CRSI(IM,JM),KRSI(IM,JM)
-      COMMON /FLAKE/ FLAKE(IM,JM)
+
 C****
 C**** OOBS AOST     monthly Average Ocean Surface Temperature
 C****      BOST     1st order Moment of Ocean Surface Temperature
@@ -2112,7 +2115,7 @@ C****
       SINDAY=SIN(TWOPI/EDPERY*JDAY)
       DO 270 J=1,JM
         DO 260 I=1,IM
-          PEARTH=FDATA(I,J,2)*(1.-FDATA(I,J,3))
+          PEARTH=FEARTH(I,J)
           WFCS(I,J)=24.
           IF (PEARTH.LE.0.) GO TO 260
           CALL GHINIJ(I,J,WFC1)
@@ -2189,7 +2192,7 @@ C**** Calculate OST, RSI and MSI for current day
       IMAX=IM
       IF(J.eq.1 .or. J.eq.JM)  IMAX=1
       DO 450 I=1,IMAX
-      IF(FDATA(I,J,2).GE.1.)  GO TO 450
+      IF(FLAND(I,J).GE.1.)  GO TO 450
       IF (KOCEAN.EQ.1 .AND. FLAKE(I,J).LE.0.) GO TO 450
 C**** OST always uses quadratic fit
       IF(KOCEAN.EQ.0) ODATA(I,J,1) = AOST(I,J) + BOST(I,J)*TIME +
@@ -2289,7 +2292,7 @@ C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       DO 610 J=1,JM
       DO 610 I=1,IM
       Z1O(I,J)=X1*Z1O(I,J)+X2*XZO(I,J)
-      IF (ODATA(I,J,2)*(1.-FDATA(I,J,2)).LE.0.) GO TO 610
+      IF (ODATA(I,J,2)*(1.-FLAND(I,J)).LE.0.) GO TO 610
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
       Z1OMIN=1. +  .09166+.001*(GDATA(I,J,1)+ODATA(I,J,3))
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
@@ -2298,10 +2301,10 @@ C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
       Z1O(I,J)=Z1OMIN
   605 IF (Z1OMIN.LE.Z12O(I,J)) GO TO 610
 C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
-      PLICE=FDATA(I,J,2)*FDATA(I,J,3)
-      PLICEN=1.-FDATA(I,J,2)*(1.-FDATA(I,J,3))
-      POICE=(1.-FDATA(I,J,2))*ODATA(I,J,2)
-      POCEAN=(1.-FDATA(I,J,2))*(1.-ODATA(I,J,2))
+      PLICE=FLICE(I,J)
+      PLICEN=1.-FEARTH(I,J)
+      POICE=(1.-FLAND(I,J))*ODATA(I,J,2)
+      POCEAN=(1.-FLAND(I,J))*(1.-ODATA(I,J,2))
       GDATA(I,J,12)=(GDATA(I,J,12)*PLICE+GDATA(I,J,1)*POICE)/PLICEN
       GDATA(I,J,13)=(GDATA(I,J,13)*PLICE+
      *  (GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2)*POICE+
@@ -2309,8 +2312,8 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       GDATA(I,J,14)=(GDATA(I,J,14)*PLICE+
      *  (GDATA(I,J,15)*XSI3+GDATA(I,J,16)*XSI4)*POICE+
      *  (LHM+SHW*ODATA(I,J,1))*POCEAN/SHI)/PLICEN
-      FDATA(I,J,2)=1.
-      FDATA(I,J,3)=PLICEN
+      FLAND(I,J)=1.
+      FLICE(I,J)=PLICEN
 C**** MARK THE POINT FOR RESTART PURPOSES
       GDATA(I,J,1)=-10000.-GDATA(I,J,1)
 C**** Transfer PBL-quantities
@@ -2390,7 +2393,7 @@ C****
       IMAX=IM
       IF ((J.EQ.1).OR.(J.EQ.JM)) IMAX=1
       DO 110 I=1,IMAX
-      PEARTH=FDATA(I,J,2)*(1.-FDATA(I,J,3))
+      PEARTH=FEARTH(I,J)
       IF (PEARTH.LE.0.) GO TO 110
 C-    IF (GDATA(I,J,2).GE.0..AND.GDATA(I,J,2)*GDATA(I,J,4).LE.0.)GOTO 50
 C-    WRITE (6,901) N,I,J,TAU,PEARTH,'SNW ',(GDATA(I,J,K),K=2,6)

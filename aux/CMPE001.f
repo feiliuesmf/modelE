@@ -88,10 +88,10 @@ C****
       ERRQ=COMP8 ('QMOM  ',IM,JM,9*LM   ,QMOM1 ,QMOM2 ) .or. ERRQ
       ERRQ=COMP8 ('RADN  ',IM,JM,9+2*LM ,RADN1 ,RADN2 ) .or. ERRQ
 
-      if(errq) then
-      write(6,*) 'errors in prognostic vars: not checking diagnostics'
+c      if(errq) then
+c      write(6,*) 'errors in prognostic vars: not checking diagnostics'
 c only check diagnostics if no prognostic errors
-      else
+c      else
       DAGPOS=1
       ERRQ=COMP8 ('ABCJ  ',JM,94,3  ,DIAG1(DAGPOS),DIAG2(DAGPOS))
       DAGPOS=DAGPOS+JM*94*3
@@ -131,7 +131,7 @@ c only check diagnostics if no prognostic errors
       DAGPOS=DAGPOS+JM*LM*10*3
       ERRQ=COMP8 ('TSFREZ',IM,JM,2      ,TSFREZ1,TSFREZ2)
       ERRQ=COMP8 ('TDIURN',IM,JM,KTD    ,TDIURN1,TDIURN2)
-      endif
+c      endif
 
       STOP
 C****

@@ -2385,10 +2385,10 @@ c -------------------------------------------------------------
       call pgrads1   !   added 6/19/00
       do j=1,jm
         do i=1,im
-          pland=fdata(i,j,2)
+          pland=fland(i,j)
           pwater=1.-pland
-          plice=fdata(i,j,3)*pland
-          psoil=pland-plice
+          plice=flice(i,j)
+          psoil=fearth(i,j)
           poice=odata(i,j,2)*pwater
           pocean=pwater-poice
           tgvdat(i,j,1)=odata(i,j,1) +273.16
@@ -2696,12 +2696,12 @@ c         at the surface:
           dpx=100.*(p(index1,j)-p(index2,j))
 
           dpdxr0(i,j)=0.5*dpx/(dxp(j)*rho1)+0.5*
-     2               (FDATA(index1,j,1)-FDATA(index2,j,1))/dxp(j)
+     2               (ZATMO(index1,j)-ZATMO(index2,j))/dxp(j)
 
           dpy=100.*(p(i,j+1)-p(i,j-1))
 
           dpdyr0(i,j)=0.5*dpy/(dyp(j)*rho1)+0.5*
-     2               (FDATA(i,j+1,1)-FDATA(i,j-1,1))/dyp(j)
+     2               (ZATMO(i,j+1)-ZATMO(i,j-1))/dyp(j)
 
        end do
       end do
@@ -2748,26 +2748,26 @@ c     at the surface:
       dpdxr0(1, 1)=0.25*(p(iq1  ,   2)-p(iq3  ,   2)+
      2                  p(iq1+1,   2)-p(iq3+1,   2))*100./
      3                 (dypsp*rho1)+
-     4            0.125*(FDATA(iq1  ,   2,1)-FDATA(iq3  ,   2,1)+
-     5                  FDATA(iq1+1,   2,1)-FDATA(iq3+1,   2,1))/dypsp
+     4            0.125*(ZATMO(iq1  ,   2)-ZATMO(iq3  ,   2)+
+     5                   ZATMO(iq1+1,   2)-ZATMO(iq3+1,   2))/dypsp
       dpdyr0(1, 1)=0.25*(p(    1,   2)-p(iq2  ,   2)+
      2                  p(    2,   2)-p(iq2+1,   2))*100./
      3                 (dypsp*rho1)+
-     4            0.125*(FDATA(    1,   2,1)-FDATA(iq2  ,   2,1)+
-     5                  FDATA(    2,   2,1)-FDATA(iq2+1,   2,1))/dypsp
+     4            0.125*(ZATMO(    1,   2)-ZATMO(iq2  ,   2)+
+     5                   ZATMO(    2,   2)-ZATMO(iq2+1,   2))/dypsp
 
 
 
       dpdxr0(1,jm)=0.25*(p(iq1  ,jm-1)-p(iq3  ,jm-1)+
      2                  p(iq1+1,jm-1)-p(iq3+1,jm-1))*100./
      3                 (dypnp*rhojm)+
-     4            0.125*(FDATA(iq1  ,jm-1,1)-FDATA(iq3  ,jm-1,1)+
-     5                  FDATA(iq1+1,jm-1,1)-FDATA(iq3+1,jm-1,1))/dypnp
+     4            0.125*(ZATMO(iq1  ,jm-1)-ZATMO(iq3  ,jm-1)+
+     5                   ZATMO(iq1+1,jm-1)-ZATMO(iq3+1,jm-1))/dypnp
       dpdyr0(1,jm)=0.25*(p(iq2  ,jm-1)-p(    1,jm-1)+
      2                  p(iq2+1,jm-1)-p(    2,jm-1))*100./
      3                 (dypnp*rhojm)+
-     4            0.125*(FDATA(iq2  ,jm-1,1)-FDATA(    1,jm-1,1)+
-     5                  FDATA(iq2+1,jm-1,1)-FDATA(    2,jm-1,1))/dypnp
+     4            0.125*(ZATMO(iq2  ,jm-1)-ZATMO(    1,jm-1)+
+     5                   ZATMO(iq2+1,jm-1)-ZATMO(    2,jm-1))/dypnp
 
       return
       end subroutine pgrads1
@@ -2782,7 +2782,7 @@ c      real*8 expbyk
       integer i,j,iter  !@var i,j,iter loop variable 
       real*8 p1,p1k,pij,t1,z1
 
-c     note: FDATA(I,J,1) is the geopotential height (9.81*zatm)
+c     note: ZATMO(I,J) is the geopotential height (9.81*zatm)
 c
 c     for GCM main level 1:
       do j=2,jm-1
@@ -2792,7 +2792,7 @@ c     for GCM main level 1:
           p1k=pk(1,i,j)      !expbyk(p1)
           t1=t(i,j,1)*p1k
           z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-          phi(i,j)=grav*z1+FDATA(I,J,1)
+          phi(i,j)=grav*z1+ZATMO(I,J)
         end do
       end do
       i=1
@@ -2802,7 +2802,7 @@ c     for GCM main level 1:
       p1k=pk(1,i,j)           !expbyk(p1)
       t1=t(i,j,1)*p1k
       z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+FDATA(I,J,1)
+      phi(i,j)=grav*z1+ZATMO(I,J)
 
       j=jm
       pij=p(i,j)
@@ -2810,7 +2810,7 @@ c     for GCM main level 1:
       p1k=pk(1,i,j)           !expbyk(p1)
       t1=t(i,j,1)*p1k
       z1=zgs+0.5*dsig(1)*rgas*t1*pij/(p1*grav)
-      phi(i,j)=grav*z1+FDATA(I,J,1)
+      phi(i,j)=grav*z1+ZATMO(I,J)
       return
       end subroutine geopot
 
