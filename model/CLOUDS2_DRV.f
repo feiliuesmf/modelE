@@ -77,6 +77,9 @@
      *     ,nlsw,nlsi,nmcw,nmci
      *     ,oldcdo,oldcdl,smfpml
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     *     ,prebar1
+#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
      *     ,ltropo,dke
@@ -91,6 +94,9 @@
       use tracer_sources, only : avg_modPT
 #endif
       USE FILEMANAGER, only: openunit,closeunit
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      USE tracers_dust,ONLY : prelay
+#endif
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
@@ -511,6 +517,9 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
 #endif
 C**** ACCUMULATE PRECIP
         PRCP=PRCPMC*100.*BYGRAV
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        precnvl(1)=precnvl(1)+prcpmc*bygrav
+#endif
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
         IF (TPRCP.gt.0) THEN
@@ -726,6 +735,14 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
 
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
       PRCP=PRCP+PRCPSS*100.*BYGRAV
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      DO l=1,lm
+         prelay(i,j,l)=((prebar1(l)*DTsrc*100.+precnvl(l)*100.)+
+     &   (prebar1(l+1)*DTsrc*100.+precnvl(l+1)*100.))/2.
+      END DO
+#endif
+
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
 C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
       IF (LHP(1).ne.LHS) THEN

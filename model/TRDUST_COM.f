@@ -89,7 +89,7 @@
       INTEGER,PARAMETER :: lim=294,ljm=244,lkm=9
       REAL*8 :: curint(Im,Jm),table(lim,ljm,lkm),x1(lim),x2(ljm),x3(lkm)
       REAL*8 :: wsubtke_com(Im,Jm),wsubwd_com(Im,Jm),wsubwm_com(Im,Jm)
-      REAL*8 :: prelay(im,jm,Lm),prebar1(Lm)
+      REAL*8 :: prelay(im,jm,Lm)
 !@var d_dust Prescribed daily dust emissions
       REAL*8 :: d_dust(Im,Jm,Ntm_dust,JDperY)
 #endif

@@ -195,6 +195,10 @@ C**** output variables
       REAL*8 AIRXL,PRHEAT
 !@var RNDSSL stored random number sequences
       REAL*8  RNDSSL(3,LM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+!@var prebar1 copy of variable prebar
+      REAL*8 prebar1(Lm+1)
+#endif
 CCOMP  does not work yet:
 CCOMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,PLE,PL,PLK,AIRM,BYAM,ETAL
 CCOMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
@@ -220,6 +224,9 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,FSUB,FCONV,FSSL,FMCL
 #ifdef CLD_AER_CDNC
      *  ,NLSW,NLSI,NMCW,NMCI
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     *  ,prebar1
 #endif
      *  ,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
@@ -2412,6 +2419,9 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         END IF
         WMX(L)=0.
       END IF
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      prebar1(l)=prebar(l)
+#endif
 C**** set phase of condensation for next box down
       PREICE(L)=0.
       IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)
