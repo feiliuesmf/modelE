@@ -27,7 +27,6 @@
       CHARACTER aDATE*14
       CHARACTER*8 :: LABSSW       ! old_ssw ???
       external stop_model
-
 C****
 C**** INITIALIZATIONS
 C****
@@ -59,9 +58,10 @@ C****
 #endif
          CALL exit_rc (13)  ! no output files are affected
       END IF
-      WRITE (3) 'XXXXXXXX'        ! old_ssw ???
-      CLOSE (3)                   ! old_ssw ???
-ccc   call sys_signal( 15, stop_model )  ! new_ssw ???
+      open(3,file='sswOnOff',form='FORMATTED',status='REPLACE')
+      write (3,'(A8)') '___ON___'
+      close (3)
+      call sys_signal( 15, stop_model )  ! works only on single CPU
          MSTART=MNOW
          DO M=1,NTIMEACC
            MSTART= MSTART-TIMING(M)
@@ -417,10 +417,14 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
-      IF (MOD(Itime,Nssw).eq.0) READ (3,END=210) LABSSW ! old_ssw ???
-  210 CLOSE (3)                                         ! old_ssw ???
-      IF (LABSSW.ne.'XXXXXXXX') THEN                    ! old_ssw ???
-ccc   if (MOD(Itime,Nssw).eq.0 .and. stop_on) then      ! new_ssw ???
+      IF (MOD(Itime,Nssw).eq.0) then
+        LABSSW = '___OFF__'
+        open(3,file='sswOnOff',form='FORMATTED',status='OLD',err=210)
+        read (3,'(A8)',end=210) LABSSW
+        close (3)
+ 210    continue
+      endif
+      IF (LABSSW.ne.'___ON___' .or. stop_on) THEN
 C**** FLAG TO TERMINATE RUN WAS TURNED ON (GOOD OLE SENSE SWITCH 6)
          WRITE (6,'("0SENSE SWITCH 6 HAS BEEN TURNED ON.")')
          EXIT
