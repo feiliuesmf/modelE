@@ -5,6 +5,7 @@
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
+      use DOMAIN_DECOMP, only : GRID, GET
       use veg_drv, only : cosday,sinday
       implicit none
       private
@@ -16,9 +17,6 @@
       !real*8 cosday,sinday
       !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
       real*8 adlmass          ! accumulator for dleafmass in daily_earth
-
-!@var gdeep keeps average (2:n) values of temperature, water and ice
-      real*8, dimension(im,jm,3) :: gdeep
 
       real*8 spgsn !@var spgsn specific gravity of snow
 !@dbparam snow_cover_coef coefficient for topography variance in
@@ -102,7 +100,7 @@ c****
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
      *     ,runoe,erunoe,gtemp,precss
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
+      use ghycom, only : gdeep,wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
@@ -187,6 +185,14 @@ c**** snowbv  1  snow depth over bare soil (m)
 c****         2  snow depth over vegetated soil (m)
 c****
 
+C****   define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
       dtsurf=dtsrc/nisurf
       zs1co=.5*dsig(1)*rgas/grav
 
@@ -244,7 +250,7 @@ c****
 !$OMP*   )
 !$OMP*   SCHEDULE(DYNAMIC,2)
 
-      loop_j: do j=1,jm
+      loop_j: do j=J_0,J_1
       hemi=1.
       if(j.le.jm/2) hemi=-1.
 c**** conditions at the south/north pole
@@ -856,7 +862,7 @@ c**** quantities accumulated for surface type tables in diagj
       end do loop_j
 !$OMP  END PARALLEL DO
 
-      DO 825 J=1,JM
+      DO 825 J=J_0,J_1
       DO 825 I=1,IMAXJ(J)
          IF(FEARTH(I,J).LE.0.0)  GO TO 825
          JR=JREG(I,J)
@@ -945,6 +951,14 @@ c**** 11*ngm+1           sl
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
 
+C****	define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
       conpt(4)="EARTH"
@@ -999,7 +1013,7 @@ c spgsn is the specific gravity of snow
 
 c**** check whether ground hydrology data exist at this point.
       ghy_data_missing = .false.
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
             if ( top_index_ij(i,j).eq.-1. ) then
@@ -1052,7 +1066,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
         cosday=cos(twopi/edpery*jday)
         sinday=sin(twopi/edpery*jday)
 
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           pearth=fearth(i,j)
           if(pearth.le.0.) then
@@ -1098,7 +1112,7 @@ c**** copy soils prognostic quantities to model variables
         write (*,*) 'ground hydrology data was made from ground data'
       end if
 c**** set gtemp array
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
@@ -1108,7 +1122,7 @@ c**** set gtemp array
 
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
           if (fearth(i,j).le.0.d0) cycle
           fb=afb(i,j) ; fv=1.-fb
@@ -1137,10 +1151,13 @@ ccc still not quite correct (assumes fw=1)
       end do
 #endif
 
+C GISS-ESMF EXCEPTIONAL CASE
+C-BMP Global sum on evap_max_ij
+
 ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
 ccc to something more appropriate
       if ( sum(evap_max_ij(:,:)) > im*jm-1.d0 ) then ! old default
-        do j=1,jm
+        do j=J_0,J_1
           do i=1,im
             if ( fearth(i,j) .le. 0.d0 ) cycle
             qg_ij(i,j) = qsat(tearth(i,j)+tf,lhe,pedn(1,i,j))
@@ -1157,7 +1174,7 @@ ccc!!! this should be done only when restarting from an old
 ccc!!! restart file (without snow model data)
 
       if (inisnow) then
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,im
           pearth=fearth(i,j)
           if(pearth.le.0.) then
@@ -1202,7 +1219,7 @@ c****     copy soils prognostic quantities to model variables
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       fr_snow_rad_ij(:,:,:) = 0.d0
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,im
           if ( fearth(i,j) > 0.d0 ) then
             do ibv=1,2
@@ -1226,10 +1243,18 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       logical, intent(in) :: reset_prognostic
       integer i,j
 
+C****	define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 ccc ugly, should fix later
       call reset_veg_to_defaults( reset_prognostic )
 
-      do j=1,jm
+      do j=J_0,J_1
       do i=1,im
 
       dz_ij(i,j,1:ngm)= (/  0.99999964d-01,  0.17254400d+00,
@@ -1554,16 +1579,30 @@ c**** wtr2av - water in layers 2 to ngm, kg/m+2
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
 
+C****	define local grid
+      integer I_0, I_1
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
 c**** check for nan/inf in earth data
-      call check3(wbare ,ngm  ,im,jm,subr,'wb')
-      call check3(wvege ,ngm+1,im,jm,subr,'wv')
-      call check3(htbare,ngm+1,im,jm,subr,'hb')
-      call check3(htvege,ngm+1,im,jm,subr,'hv')
-      call check3(snowbv,2    ,im,jm,subr,'sn')
+      call check3(wbare(1:ngm,I_0:I_1,J_0:J_1) ,ngm  ,
+     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wb')
+      call check3(wvege(0:ngm,I_0:I_1,J_0:J_1) ,ngm+1,
+     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'wv')
+      call check3(htbare(0:ngm,I_0:I_1,J_0:J_1),ngm+1,
+     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hb')
+      call check3(htvege(0:ngm,I_0:I_1,J_0:J_1),ngm+1,
+     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'hv')
+      call check3(snowbv(1:ngm,I_0:I_1,J_0:J_1),2    ,
+     *                 (I_1-I_0+1),(J_1-J_0+1),subr,'sn')
 
 c**** check for reasonable temperatures over earth
       x=1.001
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0.) then
             tgl=tearth(i,j)
@@ -1608,6 +1647,14 @@ c**** check for reasonable temperatures over earth
       integer northsouth,iv  !nyk
       logical, intent(in) :: end_of_day
 
+C****	define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       if(crops_yr.eq.0) call updveg(jyear,.true.)
       if(cond_scheme.eq.2) call updsur (0,jday)
@@ -1616,7 +1663,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
 c****
       cosday=cos(twopi/edpery*jday)
       sinday=sin(twopi/edpery*jday)
-      do j=1,jm
+      do j=J_0,J_1
         if(j.le.jm/2) then      !nyk added northsouth
           northsouth=1.d0       !southern hemisphere
         else
@@ -1673,7 +1720,7 @@ c****
       end do
 
       if (end_of_day) then
-        do j=1,jm
+        do j=J_0,J_1
         do i=1,imaxj(j)
 c****
 c**** increase snow age depending on snoage_def
@@ -1724,7 +1771,7 @@ c****
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-     *     ,fr_snow_ij,fr_snow_rad_ij
+     *     ,fr_snow_ij,fr_snow_rad_ij, gdeep
       use veg_com, only : afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
@@ -1737,7 +1784,15 @@ c****
      *     ,pearth,enrgp,scove
       integer i,j,jr,k
 
-      do j=1,jm
+C****	define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      do j=J_0,J_1
       do i=1,imaxj(j)
       pearth=fearth(i,j)
       jr=jreg(i,j)
@@ -1810,11 +1865,22 @@ c****
       use veg_com, only : afb
       implicit none
 !@var waterg zonal ground water (kg/m^2)
-      real*8, dimension(jm) :: waterg
+      real*8, dimension(grid%j_strt:grid%j_stop) :: waterg
       integer i,j,n
       real*8 wij,fb
 
-      do j=1,jm
+C****	define local grid
+      integer :: J_0, J_1
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      do j=J_0,J_1
         waterg(j)=0
         do i=1,imaxj(j)
           if (fearth(i,j).gt.0) then
@@ -1827,8 +1893,8 @@ c****
           end if
         end do
       end do
-      waterg(1) =fim*waterg(1)
-      waterg(jm)=fim*waterg(jm)
+      if (HAVE_SOUTH_POLE) waterg(1) =fim*waterg(1)
+      if (HAVE_NORTH_POLE) waterg(jm)=fim*waterg(jm)
 c****
       end subroutine conserv_wtg
 
@@ -1843,11 +1909,22 @@ c****
       use veg_com, only : afb
       implicit none
 !@var heatg zonal ground heat (J/m^2)
-      real*8, dimension(jm) :: heatg
+      real*8, dimension(grid%j_strt:grid%j_stop) :: heatg
       integer i,j
       real*8 hij,fb,fv
 
-      do j=1,jm
+C****	define local grid
+      integer J_0, J_1
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      do j=J_0,J_1
         heatg(j)=0
         do i=1,imaxj(j)
           if (fearth(i,j).le.0) cycle
@@ -1860,8 +1937,8 @@ c****
           heatg(j)=heatg(j)+fearth(i,j)*hij
         end do
       end do
-      heatg(1) =fim*heatg(1)
-      heatg(jm)=fim*heatg(jm)
+      if (HAVE_SOUTH_POLE) heatg(1) =fim*heatg(1)
+      if (HAVE_NORTH_POLE) heatg(jm)=fim*heatg(jm)
 c****
 ccc debugging ...
 ccc      print *,'conserv_htg energy ',
@@ -1877,6 +1954,7 @@ ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
       use model_com, only : im,jm,fearth
+      use DOMAIN_DECOMP, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use sle001, only : ngm
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,dz_ij
@@ -1891,7 +1969,15 @@ ccc of the 'surface' to check water conservation
       real*8 fb,fv
 ccc enrgy check not implemented yet ...
 
-      do j=1,jm
+C****	define local grid
+      integer J_0, J_1
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+
+      do j=J_0,J_1
         do i=1,imaxj(j)
           if ( fearth(i,j) <= 0.d0 ) cycle
 
@@ -1916,7 +2002,7 @@ ccc just checking ...
         return
       endif
 
-      do j=1,jm
+      do j=J_0,J_1
         do i=1,imaxj(j)
 
           !print *,'fearth = ', i, j, fearth(i,j)
