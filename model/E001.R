@@ -33,8 +33,8 @@ POUT                                ! post-processing output
 Data input files:
 AIC=DEC1958.rsfB394M12.modelE.12 ! initial conditions (atm. and ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp.  not needed if ocn prescribed
-! OCNML=Z1O.B4X5.cor         ! mixed layer depth not needed if ocn prescribed
-! MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp. not needed if ocn prescribed
+OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
+MLMAX=Z1OMAX.B4X5.250M.cor ! ann max mix.l.dp.,needed for post-processing only
 OSST=OST4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S VEG=V72X46.1.cor
