@@ -319,7 +319,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX,KRHAER, TRRDRY,KRHTRA
+     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA
       USE RADNCB, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O,h2ostratx
@@ -330,7 +330,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE DAGCOM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_AEROSOLS_Koch
       USE TRACER_COM
-#endif      
+#endif
       IMPLICIT NONE
 
       INTEGER J,L,LR,MADVEL,LONR,LATR
@@ -373,7 +373,6 @@ C**** sync radiation parameters from input
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
       call sync_param( "aermix", aermix , 13 )
-      call sync_param( "kRHaer", kRHaer , 4  )
       call sync_param( "O3_yr", O3_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "KSOLAR", KSOLAR )
@@ -520,8 +519,7 @@ caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
 C**** The last 2 entries are used to scale the other 2 aerosol types:
 C**** 7. Dust aerosols, 8. Volcanic aerosols
-C**** Particle size of the first 4 groups has RelHum dependence: 
-C**** default: kRHaer(1->4)=1:use model RH (-1:use RH=70%; 0:use RH=0%)
+C**** Particle sizes of the first 4 groups have RelHum dependence
 
 C**** To add up to 8 further aerosols:
 C****  1) set NTRACE to the number of extra aerosol fields
@@ -630,7 +628,7 @@ C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_ozone
 C     INPUT DATA  (i,j) dependent
-     &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL, ltopcl
+     &             ,JLAT,ILON,nl,nlp, PLB ,TLB,TLM ,SHL,RHL, ltopcl
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
@@ -785,6 +783,7 @@ C****   Find arrays derived from P : PEdn and PK (forcing experiments)
           pij=p(i,j)
           if(l.ge.ls1) pij=psfmpt
           pedn(l,i,j) = SIGE(L)*PIJ+PTOP
+          pmid(l,i,j) = .5d0*(pedn(l,i,j)+pedn(l+1,i,j))
           pk(l,i,j)   = (SIG(L)*PIJ+PTOP)**KAPA
         end do ; end do ; end do
       end if
@@ -1080,6 +1079,7 @@ C---- shl(L)=Q(I,J,L)        ! already defined
           KCKERR=KCKERR+1
           shl(l)=0.
         end if
+        RHL(L) = shl(L)/QSAT(TLm(L),LHE,PMID(L,I,J))
         do k=1,4
           kdeliq(L,k)=kliq(L,k,i,j)
         end do
@@ -1088,7 +1088,7 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #ifdef TRACERS_AEROSOLS_Koch
-C**** loop over tracers that are passed to radiation. 
+C**** loop over tracers that are passed to radiation.
 C**** Two special cases for black carbon and organic carbon where
 C**** more than one tracer is lumped together for radiation purposes
       do n=1,NTRACE
@@ -1097,7 +1097,7 @@ C**** more than one tracer is lumped together for radiation purposes
           case ("OCB")
             TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
      *           trm(i,j,l,n_OCIA))*BYDXYP(J)
-          case ("BCII") 
+          case ("BCII")
             TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYDXYP(J)
           case default
             TRACER(L,n)=trm(i,j,l,NTRIX(n))*BYDXYP(J)
@@ -1117,6 +1117,8 @@ CCC     STOP 'In Radia: RQT out of range'
         TLm(LM+K)=RQT(K,I,J)
         PLB(LM+k+1) = PLB0(k)
         shl(LM+k)    = shl0(k)
+        RHL(LM+k) = shl(LM+k)/QSAT(TLm(LM+k),LHE,
+     *                                .5d0*(PLB(LM+k)+PLB(LM+k+1)) )
         tauwc(LM+k) = 0.
         tauic(LM+k) = 0.
         sizewc(LM+k)= 0.
@@ -1187,7 +1189,7 @@ C****
       FSTOPX(:)=1. ; FTTOPX(:)=1.     ! defaults
       use_tracer_ozone = 0 ! by default use climatological ozone
 C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
-C**** This is set from the rundeck. 
+C**** This is set from the rundeck.
       LFRC=LM+LM_REQ+1          ! TOA
       if (rad_forc_lev.gt.0) LFRC=LTROPO(I,J) ! TROPOPAUSE
 C**** The calculation of the forcing is slightly different.
@@ -1203,10 +1205,10 @@ C**** Aerosols:
         do n=1,NTRACE
           IF (trname(NTRIX(n)).eq."seasalt1") CYCLE ! not for seasalt1
           FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
-C**** Warning: small bit of hardcoding assumes that seasalt1 is 
+C**** Warning: small bit of hardcoding assumes that seasalt1 is
 C**** one before seasalt2 in NTRACE array
           IF (trname(NTRIX(n)).eq."seasalt2") THEN ! add seasalt1 to seasalt2
-            FSTOPX(n-1)=1-onoff ; FTTOPX(n-1)=1-onoff 
+            FSTOPX(n-1)=1-onoff ; FTTOPX(n-1)=1-onoff
           END IF
           CALL RCOMPX
           SNFST(NTRIX(n),I,J)=SRNFLB(LFRC)
@@ -1300,7 +1302,7 @@ C****
         TRHRS(LR,I,J)=-TRFCRL(LM+LR)
       END DO
 C**** Save fluxes at four levels surface, P0, P1, LTROPO
-      SNFS(1,I,J)=SRNFLB(1)     ! Surface 
+      SNFS(1,I,J)=SRNFLB(1)     ! Surface
       TNFS(1,I,J)=TRNFLB(1)
       SNFS(2,I,J)=SRNFLB(LM+1)  ! P1
       TNFS(2,I,J)=TRNFLB(LM+1)

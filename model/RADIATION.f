@@ -288,8 +288,8 @@ C----------------
 
 !@var SHL,RHL       layer specific,relative humidity (1)
       real*8 :: SHL(LX),RHL(LX)
-!@var       KEEPRH  if 0, RHL is computed from SHL, else SHL from RHL
-      integer :: KEEPRH=0       ! control param
+!@var KEEPRH  if 0: find RH from SH, 1: find SH from RH, 2: keep both
+      integer :: KEEPRH=2       ! control param
 !@var KDELIQ Flag for dry(0) or wet(1) air deliquescence
       integer :: KDELIQ(LX,4)
 !@var KRHDTK if 1, RHlevel for deliquescence is temperature dependent
@@ -577,7 +577,7 @@ C--------------------------------------    have to deal  1 point in time
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 = (/
-     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+     *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
      *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
      *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
      *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
@@ -587,7 +587,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
 
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
       real*8, parameter, dimension(10) :: PLBA09=(/
-     *   984.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
+     *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
 C     Layer  1    2    3    4    5    6    7    8    9
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
@@ -662,8 +662,8 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 !icb                 FVEG11(72,46,11),FOLGIZ(72,46,9)
 
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
-!@var KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
-      integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
+!nu   KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
+!nu   integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SSalt,NO3,OC
 !@var KRHTRA(8) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
       integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
       real*8 ::
@@ -868,7 +868,7 @@ C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
      *  REFDRY=(/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 1.000,1.000/)
 
-     * ,REFWET=(/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 1.000,1.000/)
+!nu  * ,REFWET=(/0.272, 1.808, 0.398, 0.318, 0.100, 0.100, 1.000,1.000/)
 
      * ,DRYM2G=(/4.667, 0.866, 4.448, 5.017, 9.000, 9.000, 1.000,1.000/)
 
@@ -877,7 +877,7 @@ CKoch   DRYM2G=(/5.000, 2.866, 8.000, 8.000, 9.000, 9.000, 1.000,1.000/)
 !nu     RHTMAG=(/1.788, 3.310, 1.756, 1.163, 1.000, 1.000, 1.000,1.000/)
 !nu alt RHTMAG=(/1.982, 3.042, 1.708, 1.033, 1.000, 1.000, 1.000,1.000/)
 !old *  WETM2G=(/8.345, 2.866, 7.811, 5.836, 9.000, 9.000, 1.000,1.000/)
-     * ,WETM2G=(/9.250, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
+!nu  * ,WETM2G=(/9.250, 2.634, 7.598, 5.180, 9.000, 9.000, 1.000,1.000/)
      * ,Q55DRY=(/2.191, 2.499, 3.069, 3.010, 1.560, 1.560, 1.000,1.000/)
 
      * ,DENAER=(/1.760, 2.165, 1.725, 1.500, 1.300, 1.300, 2.000,2.000/)
@@ -2304,7 +2304,7 @@ C**** The data statements below are only used if  MADO3M > -1
       INTEGER :: IFILE=11            ! not used in GCM runs
 
 !!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
-!!!  *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+!!!  *      1010d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
 !!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
 !!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
 !!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
@@ -2870,9 +2870,9 @@ C                -----------------------------------------------------
       PL(L)=(PLB(L)+PLB(L+1))*0.5D0
   300 CONTINUE
 
+      IF(KEEPRH.EQ.2) GO TO 313
       IF(KEEPRH.EQ.1) GO TO 311
       DO 310 L=1,NL
-      U0GAS(L,1)=1268.75D0*DPL(L)*SHL(L)/(1.D0-SHL(L))
       EQ=PL(L)*SHL(L)/(0.662D0+0.378D0*SHL(L))
       ES=10.D0**(9.4051D0-2353.D0/TLM(L))
       RHL(L)=EQ/ES
@@ -2882,10 +2882,10 @@ C                -----------------------------------------------------
       DO 312 L=1,NL
       ES=10.D0**(9.4051D0-2353.D0/TLM(L))
       SHL(L)=0.622D0*(RHL(L)*ES)/(PL(L)-0.378D0*(RHL(L)*ES))
-      U0GAS(L,1)=1268.75D0*DPL(L)*SHL(L)/(1.D0-SHL(L))
   312 CONTINUE
   313 CONTINUE
       DO 314 L=1,NL
+      U0GAS(L,1)=1268.75D0*DPL(L)*SHL(L)/(1.D0-SHL(L))
 Cc*** Adjust ALL water levels
 cc    ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
 c**** Only adjust stratospheric water levels (above LS1_loc)
@@ -3284,7 +3284,7 @@ C                        -----------------------------------------------
 
 !nu   DIMENSION ATAU09(9)
 cc    DIMENSION PLBA09(10)          !       Aerosol data pressure levels
-cc    DATA PLBA09/984.,934.,854.,720.,550.,390.,255.,150.,70.,10./
+cc    DATA PLBA09/1010.,934.,854.,720.,550.,390.,255.,150.,70.,10./
       real*8, parameter, dimension(4) ::
 C              Crystallization RH               Deliquescence RH
      *  RHC=(/.38d0,.47d0,.28d0,.38d0/), RHD=(/.80d0,.75d0,.62d0,.80d0/)
@@ -3306,11 +3306,11 @@ C     ------------------------------------------------------------------
       IF(MADAER.LE.0) GO TO 150
       DO 110 NA=1,4
       AREFF=REFDRY(NA)
-      IF(KRHAER(NA).LT.0) AREFF=REFWET(NA)
+!nu   IF(KRHAER(NA).LT.0) AREFF=REFWET(NA)
       CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
       DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
-      IF(KRHAER(NA).LT.0) DRYM2G(NA)=WETM2G(NA)
+!nu   IF(KRHAER(NA).LT.0) DRYM2G(NA)=WETM2G(NA)
       RHINFO(1,1,NA)=0.D0                                     !  Rel Hum
       RHINFO(1,2,NA)=1.D0                                     !  TAUFAC
       RHINFO(1,3,NA)=AREFF                                    !  AerSize
@@ -3351,7 +3351,7 @@ C     ------------------------------------------------------------------
 
       KDREAD=71           !  Over-write dry coefficients if KRHAER(NA)=1
       DO 140 NA=1,4
-      IF(KRHAER(NA).GT.0) THEN
+!nu   IF(KRHAER(NA).GT.0) THEN
       CALL SETREL(REFDRY(NA),NA ,kdread
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
@@ -3359,7 +3359,7 @@ C     ------------------------------------------------------------------
      D      ,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      E      ,TRHQAB(1,1,NA)
      F      ,RHINFO(1,1,NA))
-      ENDIF
+!nu   ENDIF
   140 CONTINUE
 
   150 CONTINUE

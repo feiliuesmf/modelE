@@ -121,7 +121,7 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 U00ice=.60      ! U00ice up => nethtz0 down (alb down); goals: nethtz0=0,plan.alb=30%
-U00wtrX=1.33    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
+U00wtrX=1.34    ! U00wtrX+.01=>nethtz0+.5   (alb down);        for global annual mean
 !        U00wtrX=1.25    ! use with 1880 atmosphere/ocean
 !1979    U00wtrX=1.22    ! use with 1979 atmosphere/ocean
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
