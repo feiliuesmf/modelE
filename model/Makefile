@@ -135,8 +135,8 @@ endif
 	@echo '---------    executable $(RUN).exe was created       ---------'
 	@echo '--------------------------------------------------------------'
 
-gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(OBJS)
-	ar cr $(RUN).a $(OBJS)
+gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(OBJS) NCACC.o
+	ar cr $(RUN).a $(OBJS) NCACC.o
 	@if [ ! -d $(BIN_DIR) ]; then mkdir $(BIN_DIR); fi
 	mv $(RUN).a $(BIN_DIR)
 
