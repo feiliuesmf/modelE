@@ -6,6 +6,8 @@
 
    if [[ $# -le 0 ]] ; then
       echo "Usage: runE [-q] RUNID"
+      echo "Restart the run RUNID"
+      echo "Use '-q' if you don't want to save the printout (.PRT file)."
       exit; fi
 
    while [[ $1 = -* ]] ; do OPTS="$OPTS $1"; shift; done

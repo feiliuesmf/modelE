@@ -1,6 +1,19 @@
 #!/bin/ksh
-CMRUNDIR='/u/cmrun'
-if [[ $# -gt 0 ]] then cd $CMRUNDIR/$1 ; fi
-if [[ ! -s fort.3 ]] ; then echo 'no action' ; exit ; fi
 
-echo 'YYYYYYYYYYYYYYYYYYYY' > fort.3
+## defaults
+  CMRUNDIR='/u/cmrun'
+  if [[ -f ~/.modelErc ]]; then . ~/.modelErc; fi
+
+  if [[ $# -ne 1 ]] ; then
+      echo "Usage: sswE RUNID"
+      echo "Stops the model run RUNID"
+      exit; fi
+  RUNID=$1
+
+  if [[ ! -d $CMRUNDIR/$RUNID ]] ; then
+      echo "Run directory not found: $CMRUNDIR/$RUNID"
+      exit ; fi
+
+  cd "$CMRUNDIR/$RUNID"
+  echo "___OFF__" > sswOnOff
+  echo "Set the switch to OFF position. Please wait for $RUNID to stop."
