@@ -51,8 +51,6 @@ C**** Calculate latitudes
 C**** Open output files
 c      IF(QDIAG) call open_oij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
-
-
 C**** lat/lon diagnostics
       WRITE (6,*)
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
@@ -169,21 +167,23 @@ c      CALL WRITED (NAMEL(K),XLABEL,OUTMON,OUTYR)
       END DO
 C****
 C**** Calculate zonally averaged global Northward ocean heat transport
-C****
+C**** (Including GM component)
       DO J=1,JM-1
         OHT(J)=0.
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OHT(J)=OHT(J)+OIJL(I,J,L,IJL_GFLX+1)
+            OHT(J)=OHT(J)+OIJL(I,J,L,IJL_GFLX+1)+OIJL(I,J,L,IJL_GGMFL+1)
           END DO
         END DO
         OHT(J)=1.E-15*OHT(J)/(IDACC(1)*DTS)
       END DO
-      TITLE = "Northward ocean heat transports (PW)  Run "//XLABEL(1:6)
+      WRITE (6,*)
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      TITLE = "Northward ocean heat transports (PW)"
       WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
       WRITE(6,*) TITLE
-      WRITE(6,'(71I5)') (JLAT(J),J=1,JM-1)
-      WRITE(6,'(71F5.2)') (OHT(J),J=1,JM-1)
+      WRITE(6,'(71I6)') (JLAT(J),J=1,JM-1)
+      WRITE(6,'(71F6.2)') (OHT(J),J=1,JM-1)
 C****
 C**** East-West or North-South Salt Flux (10^6 kg/s)
 C****
