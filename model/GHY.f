@@ -1588,7 +1588,7 @@ ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       use vegetation, only: update_veg_locals
 
-      real*8 dtm,tb0,tc0,dtr
+      real*8 dtm,tb0,tc0,dtr,tot_w1
       integer limit,nit
       real*8 dum1, dum2
       limit=300   ! 200 increase to avoid a few more stops
@@ -1711,6 +1711,21 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
         call update_veg_locals(evap_tot(2), rho, rhow, ch, vsm,qs)
 
+#ifdef TRACERS_WATER
+C**** finalise surface tracer concentration here        
+        tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
+     &       + wsn(1,1)*fr_snow(1) )
+     &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2)) 
+     &       + wsn(1,2)*fm*fr_snow(2) )
+        if ( tot_w1 > 1.d-30 ) then
+          atr_g(:ntg) =         ! instantaneous
+     &         ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
+     &         + tr_wsn(:ntg,1,1) ) !*fr_snow(1)
+     &         + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))
+     &         + tr_wsn(:ntg,1,2)*fm ) ) / !*fr_snow(2)
+     &         (rhow * tot_w1)  ! * dts
+        endif
+#endif
 
       enddo
 
@@ -1780,18 +1795,19 @@ ccc   accumulate tracer fluxes
      &     + ( tr_evap(:ntg,1)*fb + tr_evap(:ntg,2)*fv )*dts
       atr_rnff(:ntg) = atr_rnff(:ntg)
      &     + ( tr_rnff(:ntg,1)*fb + tr_rnff(:ntg,2)*fv )*dts
-      tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
-     &     + wsn(1,1)*fr_snow(1) )
-     &     + fv*( w(0,2)*(1.d0-fm*fr_snow(2))*fw0  !! remove fw ?
-     &     + wsn(1,2)*fm*fr_snow(2) )
-      if ( tot_w1 > 1.d-30 ) then
-        atr_g(:ntg) = atr_g(:ntg) +
-     &       ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
-     &       + tr_wsn(:ntg,1,1)*fr_snow(1) )
-     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))*fw0 !! remove fw?
-     &       + tr_wsn(:ntg,1,2)*fm*fr_snow(2) ) ) /
-     &       tot_w1 * dts
-      endif
+C**** no point in setting this here since fm will change before end
+c      tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
+c     &     + wsn(1,1)*fr_snow(1) )
+c     &     + fv*( w(0,2)*(1.d0-fm*fr_snow(2))   ! *fw0  !! remove fw ?
+c     &     + wsn(1,2)*fm*fr_snow(2) )
+c      if ( tot_w1 > 1.d-30 ) then
+c        atr_g(:ntg) =           ! instantaneous       ! atr_g(:ntg) +
+c     &       ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
+c     &       + tr_wsn(:ntg,1,1) )          !*fr_snow(1)
+c     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2)) ! *fw0 !! remove fw?
+c     &       + tr_wsn(:ntg,1,2)*fm ) ) /       !*fr_snow(2)
+c     &       (rhow * tot_w1)                            ! * dts
+c      endif
 cddd      print  '(a,100(e12.4))','tr_evap_err',
 cddd     &     ( tr_evap(1,1)*fb + tr_evap(1,2)*fv )/1000.d0 -
 cddd     &     ( evap_tot(1)*fb + evap_tot(2)*fv ),
@@ -2678,6 +2694,7 @@ ccc snow
               call check_wc(tr_wsnc(1,i,ibv))
               tr_wsn(:m,i-1,ibv) = tr_wsn(:m,i-1,ibv)
      &             - tr_wsnc(:m,i-1,ibv)*flux_dt
+              wsni(i-1,ibv) = wsni(i-1,ibv) + flux_dt   ! extra?
             endif
           enddo
           ! sweep up
@@ -2694,6 +2711,7 @@ ccc snow
               call check_wc(tr_wsnc(1,i,ibv))
               tr_wsn(:m,i+1,ibv) = tr_wsn(:m,i+1,ibv)
      &             - tr_wsnc(:m,i+1,ibv)*flux_dt
+              wsni(i+1,ibv) = wsni(i+1,ibv) - flux_dt   ! extra?
             endif
           enddo
           flux_dt = flmlt(ibv)*fr_snow(ibv)*dts

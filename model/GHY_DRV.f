@@ -456,6 +456,7 @@ C       tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
       end do
 #endif
+
       call pbl(i,j,itype,ptype)
 c****
       cdm = cmgs(i,j,itype)
@@ -654,7 +655,7 @@ ccc accumulate tracer evaporation and runoff
         !trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + aevap  !*rhow
         trunoe(n,i,j) = trunoe(n,i,j) + atr_rnff(nx)
         !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
-        gtracer(n,itype,i,j) = atr_g(nx)/dtsurf
+        gtracer(n,itype,i,j) = atr_g(nx)   ! /dtsurf
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       atr_evap(nx)/dtsurf *dxyp(j)*ptype
       enddo
@@ -1109,21 +1110,26 @@ ccc still not quite correct (assumes fw=1)
         do i=1,im
           if (fearth(i,j).le.0.d0) cycle
           fb=afb(i,j) ; fv=1.-fb
-          fm=1.d0-exp(-snowbv(2,i,j)/(avh(i,j)*spgsn + 1d-12))
+          fm=1.d0-exp(-snowbv(2,i,j)/((avh(i,j)*spgsn) + 1d-12))
+          if ( fm < 1.d-3 ) fm=0.d0          
           wsoil_tot=fb*( wbare(1,i,j)*(1.d0-fr_snow_ij(1,i,j))
      &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
-     &     + fv*( wvege(0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))*1.d0
+     &     + fv*( wvege(0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
      &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
           do n=1,ntm
             if (itime_tr0(n).gt.itime) cycle
             if ( .not. needtrs(n) ) cycle
             ! should also restrict to TYPE=nWATER ?
+            if ( wsoil_tot > 1.d-30 ) then
             gtracer(n,4,i,j) = (
      &           fb*( tr_wbare(n,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
-     &           + tr_wsn_ij(n,1,1,i,j)*fr_snow_ij(1,i,j) )
+     &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
      &           + fv*( tr_wvege(n,0,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
-     &           + tr_wsn_ij(n,1,2,i,j)*fm*fr_snow_ij(2,i,j) ) )
+     &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
      &           /(rhow*wsoil_tot)
+            else
+              gtracer(n,4,i,j) = 0.
+            end if
           enddo
         end do
       end do
