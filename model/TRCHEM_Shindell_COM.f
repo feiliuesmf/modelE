@@ -76,11 +76,14 @@ C
 !@param dlogp 10.d0**(-2./16.)
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the COaltIN array 
+!@param LCH4alt number of levels in the CH4altIN array
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
+!@param PCH4alt pressures at LCH4alt levels
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & JCOlat =   19,
+     & LCH4alt=    4,
      & p_1   =     2,
      & p_2   =   111,
      & p_3   =   200,
@@ -177,6 +180,8 @@ C
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
+      REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = (/
+     & 100.d0, 32.d0, 3.2d0, 0.23d0/)
 C  
 C    These should really be defined in the run deck:
       LOGICAL, PARAMETER :: luselb            = .false.,
@@ -309,10 +314,13 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var O3DLJI_clim model ozone to radiation (climatological)
 !@var COlat carbon monoxide latitude distribution for init cond (ppbv)
 !@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
+!@var CH4altINT tropical strat adjustments to CH4 (LCH4alt levels)
+!@var CH4altINX xtra-tropical strat adjustments to CH4 LCH4alt levels)
 !@var COalt adjustments of COlat by altitude (unitless,LM levels)
+!@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
+!@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
 !@var CH4FACT, FACTJ,r179m2v for setting CH4 ICs and strat distribution
 !@var BYFJM = 1/JM
-!@var avg67 average of lev 6 and 7 CH4 (used for IC and strat)
 !@var mass2vol local array to convert between mass and volume units.
 !@var bymass2vol local array to convert between mass and volume units.
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
@@ -345,7 +353,15 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MDOFM cumulative days at end of each month
 !@var OxIC initial conditions for Ox in KG read from file (Jan 1st?)
 !@var corrOx correction factor to tweak inital Ox in stratosphere 
-      INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT, 
+!@var L75P first model level above nominal 75 hPa
+!@var L75M first model level below nominal 75 hPa
+!@var F75P interpolation coeff. of higher altitude value (units ln(P))
+!@var F75M interpolation coeff. of lower altitude value (units ln(P))
+!@var L569P first model level above nominal 569 hPa
+!@var L569M first model level below nominal 569 hPa
+!@var F569P interpolation coeff. of higher altitude value (units ln(P))
+!@var F569M interpolation coeff. of lower altitude value (units ln(P))
+      INTEGER nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M, 
      & lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,
      & NWWW,NK,nlbatm,NCFASTJ                                 
       INTEGER, DIMENSION(n_fam)        :: nfam = (/27,30,0,0/) ! why 4?
@@ -369,7 +385,8 @@ C
      & prod_sulf,DT2,wprod_sulf,dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,
      & changeAldehyde,changeAlkenes,changeIsoprene,changeHCHO,
      & wprodHCHO,changeAlkylNit,changeHNO3,changeNOx,changeN2O5,
-     & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor
+     & wprodCO,rlossN,rprodN,ratioN,pfactor,bypfactor,F75P,F75M,
+     & F569P,F569M
       REAL*8, DIMENSION(JM,4,12)       :: corrOx ! JM,(L=12,15),month
       REAL*8, DIMENSION(n_spc,LM)      :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
@@ -420,7 +437,11 @@ C Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14 :
      *     (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,1d0,1d0,1d0
      *     ,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,.25d0,.4d0,
      *     2.5d0,12d0,60d0/)
-      REAL*8, DIMENSION(LM)            :: COalt
+      REAL*8, DIMENSION(LCH4alt), PARAMETER ::   
+     *     CH4altINT =(/1.620d0,1.460d0,0.812d0,0.230d0/),
+     *     CH4altINX =(/1.700d0,1.130d0,0.473d0,0.202d0/)    
+           ! drew changed 1.440 to 1.700 above...                                
+      REAL*8, DIMENSION(LM)            :: COalt,CH4altT,CH4altX
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ
@@ -439,7 +460,6 @@ C [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9:
       REAL*8, DIMENSION(NTM)            :: mass2vol,bymass2vol
       REAL*8, DIMENSION(IM,JM,LM,ntm)   :: change
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
-      REAL*8, DIMENSION(IM,(JM-3)/3)    :: avg67 
 C     
       LOGICAL                         fam,prnrts,prnchg,prnls      
 C      
