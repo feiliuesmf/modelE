@@ -23,9 +23,10 @@ RADNCB PE001M12 RE001               ! radiation modules
 DAGCOM DE001M12 DEFACC DAGPRT       ! diagnostics
 const FFT72 UTILDBL RAND~           ! utilities
 POUT                                ! for post-processing
+PARAM PARSER
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.9
+AIC=DEC1958.rsfB394M12.modelE.10
 OIC=OIC4X5LD.Z12.CLEV94.DEC01S  ! ocean initial conditions
 OFTAB=OFTABLE_NEW               ! ocean function table  
 AVR=AVR4X5LD.Z12                ! ocean filter
@@ -46,19 +47,32 @@ RADN9=solar.lean99.uvflux
 RADNA=o3trend.1951-2050
 RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
+TOP_INDEX=top_index_72x46.ij
 
 Label and Namelist:
 E001B (new modelE based on B402A - coupled version)
 R=00BG/B
+
+&&PARAMETERS
+IYEAR0=1950
+CO2=-6.
+XCDLM=.0005,.00005
+PTOP=150.,    ! from defaults: PSF=984., LS1=9,
+PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.
+KOCEAN=1
+U00wtr=.50
+U00ice=.50
+
+DT=450.,        ! from default: DTsrc=3600.,
+NSLP=0          ! saving SLP 12hrly,VFLXO daily,acc+rsf
+Kvflxo=0
+KCOPY=2
+! saving SLP 12hrly,VFLXO daily,acc+rsf
+&&END_PARAMETERS
+
  &INPUTZ
-   IYEAR0=1950, CO2=-6., XCDLM=.0005,.00005,
-   PTOP=150.,    ! from defaults: PSF=984., LS1=9,
-   PLTOP=934.,854.,720.,550.,390., 285.,210.,150.,100.,60.,30.,10.,
-   KOCEAN=1,           U00wtr=.50, U00ice=.50,
    YEARI=1950,MONTHI=1,DATEI=1,HOURE=0,
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    YEARE=1950,MONTHE=2,
-   DT=450.,        ! from default: DTsrc=3600.,
-   NSLP=0,Kvflxo=0,KCOPY=2,    ! saving SLP 12hrly,VFLXO daily,acc+rsf
    ISTART=7,YEARE=1950,MONTHE=1,HOURE=1,
  &END
