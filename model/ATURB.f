@@ -42,9 +42,9 @@
       real*8, dimension(im,jm) :: uflux_ucell,vflux_ucell
 
       integer, parameter :: mout=0,itest=52,jtest=33,itmax=2
-      real*8, parameter :: tol=1.e-4,qmin=1.e-12,p00=1000.d0
+      real*8, parameter :: tol=1.d-4,qmin=1.d-12,p00=1000.d0
       integer, save :: ifirst=1
-      real*8, save :: p1000k=1.
+      real*8, save :: p1000k=1.d0
       real*8 :: uflx,vflx,tflx,qflx,pijgcm,pl,rvx
       real*8 :: temp0,ps,ustar2,dbll,reserv,test,check
       integer :: loc,icount
@@ -56,7 +56,7 @@
       endif
 
       if(.not. vt_on) then
-          rvx=0.
+          rvx=0.d0
       else
           rvx=deltx
       endif
@@ -65,7 +65,7 @@
       do l=1,lm
         do j=1,jm
           do i=1,im
-            t_virtual(i,j,l)=t(i,j,l)*(1.+RVX*Q(i,j,l))
+            t_virtual(i,j,l)=t(i,j,l)*(1.d0+RVX*Q(i,j,l))
           end do
         end do
       end do
@@ -85,7 +85,7 @@ c     integrate T,Q equations at tcells
             uij(l)=u_tcell(i,j,l)
             vij(l)=v_tcell(i,j,l)
             tij(l)=t_virtual(i,j,l)*p1000k  !virtual,potential temp.
-            pij(l)=100.*(plij(l,i,j)*sig(l)+ptop)
+            pij(l)=100.d0*(plij(l,i,j)*sig(l)+ptop)
             qij(l)=q(i,j,l)
             eij(l)=egcm(i,j,l)
             rhoeij(l)=rhoe(i,j,l)
@@ -133,17 +133,17 @@ c     integrate T,Q equations at tcells
             call diff_tq(q0ij,qij,kh,dzij,dzeij,
      2                   rhoij,rhoeij,qflx,dtime,lm)
 
-            test=0.
+            test=0.d0
             icount=0
             do l=2,lm-1
               check=abs(ttest(l)-tij(l))
-              if (check.gt.0.) then
+              if (check.gt.0.d0) then
                 test=test+check/abs(ttest(l)+tij(l))
                 icount=icount+1
               endif
             end do
 c           test=test/float(lm-2)
-            test=test/(float(icount)+1.e-40)
+            test=test/(float(icount)+1.d-40)
             if (test.lt.tol) exit
 
 300       continue
@@ -151,7 +151,7 @@ c           test=test/float(lm-2)
           do l=1,lm
             t_virtual(i,j,l)=tij(l)/p1000k
             q(i,j,l)=max(qij(l),qmin)
-            t(i,j,l)=t_virtual(i,j,l)/(1.+RVX*Q(i,j,l))
+            t(i,j,l)=t_virtual(i,j,l)/(1.d0+RVX*Q(i,j,l))
             egcm(i,j,l)=eij(l)
             km_gcm(i,j,l)=km(l)
           end do
@@ -160,12 +160,12 @@ c
 c         Write out diagnostics if at the correct grid point:
 c
           if (mout.eq.1.and.(i.eq.itest).and.(j.eq.jtest)) then
-            ps=100.*(p(i,j)+ptop)
+            ps=100.d0*(p(i,j)+ptop)
             do l=1,lm
               if (l.ge.ls1) then
-                peij(l)=100.*((psf-ptop)*sige(l)+ptop)
+                peij(l)=100.d0*((psf-ptop)*sige(l)+ptop)
               else
-                peij(l)=100.*(p(i,j)*sige(l)+ptop)
+                peij(l)=100.d0*(p(i,j)*sige(l)+ptop)
               endif
             end do
             call dout(uij,vij,tij,pij,peij,qij,eij,dzij,dzeij,
@@ -317,14 +317,15 @@ c
      3              (sig(l+1)-sig(l))
             dz(i,j,l)    =-(rgas/grav)*temp1e*log(pl1/pl)
             dzedge(i,j,l)=-(rgas/grav)*temp0 *log(pl1e/ple)
-            rhoe(i,j,l+1)=100.*pl1e/(temp1e*rgas)
-            rho(i,j,l)=100.*pl/(temp0*rgas)
+            rhoe(i,j,l+1)=100.d0*pl1e/(temp1e*rgas)
+            rho(i,j,l)=100.d0*pl/(temp0*rgas)
 
             if(l.eq.1) then
-              rhoe(i,j,1)=100.*ple/(tsavg(i,j)*(1.+RVX*qsavg(i,j))*rgas)
+              rhoe(i,j,1)=100.d0*ple/(tsavg(i,j)*
+     2                    (1.d0+RVX*qsavg(i,j))*rgas)
             endif
             if(l.eq.lm-1) then
-              rho(i,j,lm)=100.*pl1/(temp1*rgas)
+              rho(i,j,lm)=100.d0*pl1/(temp1*rgas)
             endif
           end do
         end do
@@ -389,7 +390,7 @@ c
 
 c     Fields on main vertical grid:
 
-      z=(rgas/grav)*0.5*(tsurf+t(1))*log(ps/pres(1))+10.
+      z=(rgas/grav)*0.5d0*(tsurf+t(1))*log(ps/pres(1))+10.d0
       Write (67,1000) itest,jtest,reserv,ps,uflx,vflx,tflx,qflx
       do l=1,n-1
         utotal=sqrt(u(l)*u(l)+v(l)*v(l))
@@ -414,20 +415,20 @@ c Fields on secondary vertical grid:
 c
       write (67,3000)
       l=1
-      zedge=10.
-      qturb=sqrt(2.*e(l))
+      zedge=10.d0
+      qturb=sqrt(2.d0*e(l))
       dq=q(1)-q0(1)
       write (67,2100) l,zedge,prese(l),dzedge(l),dq,
      2                lscale(l),e(l),qturb
-      zedge=10.+dzedge(1)
+      zedge=10.d0+dzedge(1)
       do l=2,n-1
-        qturb=sqrt(2.*e(l))
+        qturb=sqrt(2.d0*e(l))
         dq=q(l)-q0(l)
         write (67,2000) l,zedge,prese(l),dzedge(l),km(l),kh(l),dq,
      2                  gm(l),gh(l),lscale(l),e(l),qturb
         zedge=zedge+dzedge(l)
       end do
-      qturb=sqrt(2.*e(n))
+      qturb=sqrt(2.d0*e(n))
       dq=q(n)-q0(n)
       write (67,2500) n,zedge,prese(n),km(n),kh(n),dq,
      2                gm(n),gh(n),lscale(n),e(n),qturb
@@ -435,12 +436,12 @@ c
 c
 c Fluxes on the secondary grid:
 c
-      zedge=10.
+      zedge=10.d0
       write (67,4000)
       do l=2,n
         zedge=zedge+dzedge(l-1)
         dtdz=(t(l)-t(l-1))/dz(l-1)
-        galpha=grav*2./(t(l)+t(l-1))
+        galpha=grav*2.d0/(t(l)+t(l-1))
         dqdz =(q(l)-q(l-1))/dz(l-1)
         an2=galpha*dtdz
         dudz=(u(l)-u(l-1))/dz(l-1)
@@ -453,7 +454,7 @@ c
         ri=an2/as2
         sigmat=km(l)/kh(l)
         rif=ri/sigmat
-        reserv2=0.
+        reserv2=0.d0
         write (67,2000) l,zedge,uf,hf,qf,dmdz,dtdz,dqdz,
      2                  ri,rif,sigmat,reserv2
       end do
@@ -538,7 +539,7 @@ c
       do j=2,n-1
           sub(j)=-dtime*km(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
           sup(j)=-dtime*km(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
-          dia(j)=1.-(sub(j)+sup(j))
+          dia(j)=1.d0-(sub(j)+sup(j))
           rhs(j)=u0(j)
           rhs1(j)=v0(j)
       end do
@@ -556,7 +557,7 @@ c     mass
 c     from the above, the following follow
 c
       alpha=dtime*km(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
-      dia(1)=1.+alpha
+      dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=u0(1)
       rhs1(1)=v0(1)
@@ -565,8 +566,8 @@ c     rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
 c
 c     Upper boundary conditions: U,V not changed by turbulence
 c
-      sub(n)=0.
-      dia(n)=1.
+      sub(n)=0.d0
+      dia(n)=1.d0
       rhs(n)=u0(n)
       rhs1(n)=v0(n)
 c
@@ -609,7 +610,7 @@ c
       do j=2,n-1
           sub(j)=-dtime*khq(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
           sup(j)=-dtime*khq(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
-          dia(j)=1.-(sub(j)+sup(j))
+          dia(j)=1.d0-(sub(j)+sup(j))
           rhs(j)=tq0(j)
       end do
 c
@@ -626,15 +627,15 @@ c     mass
 c     from the above, the following follow
 c
       alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
-      dia(1)=1.+alpha
+      dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=tq0(1)
 c     rhs(1)=tq0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*sflx
 c
 c     Upper boundary conditions: T,Q not changed by turbulence
 c
-      sub(n)=0.
-      dia(n)=1.
+      sub(n)=0.d0
+      dia(n)=1.d0
       rhs(n)=tq0(n)
 c
       call tridiag(sub,dia,sup,rhs,tq,n)
@@ -680,25 +681,25 @@ c
       real*8 :: qturb,tmp,an2,dudz,dvdz,as2
       integer :: j  !@var j loop variable
 
-      real*8, parameter :: emin=5.e-5,emax=2.
+      real*8, parameter :: emin=5.d-5,emax=2.d0
 c
 c     sub(j)*e_jm1_kp1+dia(j)*e_j_kp1+sup(j)*e_jp1_kp1 = rhs(j)
 c     note: the j on the leftmost refers to the secondary grid
 c       dxi/dz(j)=dxi/(z(j)-z(j-1))==dxi/dz(j-1)
 c       dxi/dz(j-1/2)=dxi/(zedge(j)-zedge(j-1))==dxi/dzedge(j-1)
 c       dxi/dz(j+1/2)=dxi/(zedge(j+1)-zedge(j))==dxi/dzedge(j)
-c       p1(j-1/2)=0.5*(ke(j)+ke(j-1))
-c       p1(j+1/2)=0.5*(ke(j)+ke(j+1))
-c       ke(j)=sq*lscale(j)*qturb, qturb=sqrt(2.*e(j))
+c       p1(j-1/2)=0.5d0*(ke(j)+ke(j-1))
+c       p1(j+1/2)=0.5d0*(ke(j)+ke(j+1))
+c       ke(j)=sq*lscale(j)*qturb, qturb=sqrt(2.d0*e(j))
 c
       do j=2,n-1
-          qturb=sqrt(2.*e(j))
+          qturb=sqrt(2.d0*e(j))
           tmp=rho(j-1)/rhoe(j)
-          sub(j)=-dtime*0.5*(ke(j)+ke(j-1))/(dz(j-1)*dzedge(j-1))*tmp
+          sub(j)=-dtime*0.5d0*(ke(j)+ke(j-1))/(dz(j-1)*dzedge(j-1))*tmp
           tmp=rho(j)/rhoe(j)
-          sup(j)=-dtime*0.5*(ke(j)+ke(j+1))/(dz(j-1)*dzedge(j))*tmp
-          dia(j)=1.-(sub(j)+sup(j))+dtime*2*qturb/(b1*lscale(j))
-          an2=grav*2./(t(j)+t(j-1))*(t(j)-t(j-1))/dz(j-1)
+          sup(j)=-dtime*0.5d0*(ke(j)+ke(j+1))/(dz(j-1)*dzedge(j))*tmp
+          dia(j)=1.d0-(sub(j)+sup(j))+dtime*2*qturb/(b1*lscale(j))
+          an2=grav*2.d0/(t(j)+t(j-1))*(t(j)-t(j-1))/dz(j-1)
           dudz=(u(j)-u(j-1))/dz(j-1)
           dvdz=(v(j)-v(j-1))/dz(j-1)
           as2=dudz*dudz+dvdz*dvdz
@@ -707,13 +708,13 @@ c
 c
 c     Boundary conditions:
 c
-      dia(1)=1.
-      sup(1)=0.
-      rhs(1)=0.5*b123*ustar2
+      dia(1)=1.d0
+      sup(1)=0.d0
+      rhs(1)=0.5d0*b123*ustar2
 c
-      sub(n)=-1.
-      dia(n)=1.
-      rhs(n)=0.
+      sub(n)=-1.d0
+      dia(n)=1.d0
+      rhs(n)=0.d0
 c
       call tridiag(sub,dia,sup,rhs,e,n)
 c
@@ -750,7 +751,7 @@ c
       real*8, dimension(n-1), intent(in) :: dz,dzedge
 
       real*8, dimension(n) :: zedge
-      real*8, parameter :: alpha0=0.2,emin=5.e-5,emax=2.
+      real*8, parameter :: alpha0=0.2d0,emin=5.d-5,emax=2.d0
       real*8 :: dudz,dvdz,as2,lmax2
       real*8 :: sum1,sum2,qi,qim1,l0,l1,kz,an2,lmax
       integer :: i  !@var i loop variable
@@ -763,11 +764,11 @@ c
 c     integration of monotonically tabulated function by
 c     trapezoidal rule
  
-      sum1=0.
-      sum2=0.
+      sum1=0.d0
+      sum2=0.d0
       do i=2,n
-        qi=sqrt(2.*e(i))
-        qim1=sqrt(2.*e(i-1))
+        qi=sqrt(2.d0*e(i))
+        qim1=sqrt(2.d0*e(i-1))
         sum1=sum1+.5d0*dzedge(i-1)*(qi+qim1)*rho(i-1)
         sum2=sum2+.5d0*dzedge(i-1)*(qi*zedge(i)+qim1*zedge(i-1))
      &           *rho(i-1)
@@ -781,12 +782,12 @@ c     trapezoidal rule
         kz=kappa*zedge(i)
         l1=l0*kz/(l0+kz)
         if (t(i).gt.t(i-1)) then
-          an2=grav*0.00367d0*(t(i)-t(i-1))/dz(i-1)
+          an2=grav*2.d0/(t(i)+t(i-1))*(t(i)-t(i-1))/dz(i-1)
           dudz=(u(i)-u(i-1))/dz(i-1)
           dvdz=(v(i)-v(i-1))/dz(i-1)
           as2=dudz*dudz+dvdz*dvdz
-          lmax  =0.53*sqrt(2.*e(i)/(an2+1.e-40))
-          lmax2 =1.95*sqrt(2.*e(i)/(as2+1.e-40))
+          lmax  =0.53d0*sqrt(2.d0*e(i)/(an2+1.d-40))
+          lmax2 =1.95d0*sqrt(2.d0*e(i)/(as2+1.d-40))
           lmax=min(lmax,lmax2)
           if (l1.gt.lmax) l1=lmax
         endif
@@ -847,18 +848,18 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, intent(out) :: dbll
 
       ! 0.2*lscale*qturb \approx 0.02*e*tau, because b1/2 \approx 10
-      real*8, parameter ::  sq=0.02
+      real*8, parameter ::  sq=0.02d0
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,ghi,gmi,gmmax
       real*8 :: sm,sh,taue,e_lpbl,e_main_i
       integer :: i  !@var i loop variable
 
       do i=2,n
-        an2=grav*2./(t(i)+t(i-1))*(t(i)-t(i-1))/dz(i-1)
+        an2=grav*2.d0/(t(i)+t(i-1))*(t(i)-t(i-1))/dz(i-1)
         dudz=(u(i)-u(i-1))/dz(i-1)
         dvdz=(v(i)-v(i-1))/dz(i-1)
         as2=dudz*dudz+dvdz*dvdz
         ell=lscale(i)
-        qturb=sqrt(2.*e(i))
+        qturb=sqrt(2.d0*e(i))
         tau=B1*ell/qturb
         ghi=tau*tau*an2
         gmi=tau*tau*as2
@@ -877,16 +878,16 @@ c     at edge: e,lscale,km,kh,gm,gh
         gm(i)=gmi
         gh(i)=ghi
       end do
-      ke(1)=b1/sqrt(2.)*lscale(1)*sqrt(e(1))*sq
+      ke(1)=b1/sqrt(2.d0)*lscale(1)*sqrt(e(1))*sq
       do i=1,n-1
-        ke(i)=0.5*(ke(i)+ke(i+1))
+        ke(i)=0.5d0*(ke(i)+ke(i+1))
       end do
 
 c     find the pbl top (at main level lpbl)
 
-      e_lpbl=0.1*e(1) ! if e(main i) < e_lpbl, i is the pbl top
+      e_lpbl=0.1d0*e(1) ! if e(main i) < e_lpbl, i is the pbl top
       do i=1,n-1
-        e_main_i = 0.5*(e(i)+e(i+1))
+        e_main_i = 0.5d0*(e(i)+e(i+1))
         dbll=i        ! dbll is real*8
         if (e_main_i.lt.e_lpbl) exit
       end do
@@ -922,27 +923,27 @@ c     find the pbl top (at main level lpbl)
           endif
 
           do l=1,lm
-            u_tcell(i,j,l)=0.25*(u(im1,j+1,l)+u(i,j+1,l)
+            u_tcell(i,j,l)=0.25d0*(u(im1,j+1,l)+u(i,j+1,l)
      2                          +u(im1,j,l)+u(i,j,l))
-            v_tcell(i,j,l)=0.25*(v(im1,j+1,l)+v(i,j+1,l)
+            v_tcell(i,j,l)=0.25d0*(v(im1,j+1,l)+v(i,j+1,l)
      2                          +v(im1,j,l)+v(i,j,l))
           end do
         end do
       end do
 
       ! for j=1 (south pole) and j=jm (north pole)
-      iq1=nint(0.25*im)+1
-      iq2=nint(0.50*im)+1
-      iq3=nint(0.75*im)+1
+      iq1=nint(0.25d0*im)+1
+      iq2=nint(0.50d0*im)+1
+      iq3=nint(0.75d0*im)+1
       do l=1,lm
-            u_tcell(1,1,l)=0.25*(u(1,2,l)-u(iq2,2,l)
-     2                          +v(iq1,2,l)-v(iq3,2,l))
-            u_tcell(1,jm,l)=0.25*(u(1,jm,l)-u(iq2,jm,l)
-     2                          -v(iq1,jm,l)+v(iq3,jm,l))
-            v_tcell(1,1,l)=0.25*(v(1,2,l)-v(iq2,2,l)
-     2                          -u(iq1,2,l)+u(iq3,2,l))
-            v_tcell(1,jm,l)=0.25*(v(1,jm,l)-v(iq2,jm,l)
-     2                          +u(iq1,jm,l)-u(iq3,jm,l))
+            u_tcell(1,1,l)=0.25d0*(u(1,2,l)-u(iq2,2,l)
+     2                            +v(iq1,2,l)-v(iq3,2,l))
+            u_tcell(1,jm,l)=0.25d0*(u(1,jm,l)-u(iq2,jm,l)
+     2                             -v(iq1,jm,l)+v(iq3,jm,l))
+            v_tcell(1,1,l)=0.25d0*(v(1,2,l)-v(iq2,2,l)
+     2                            -u(iq1,2,l)+u(iq3,2,l))
+            v_tcell(1,jm,l)=0.25d0*(v(1,jm,l)-v(iq2,jm,l)
+     2                             +u(iq1,jm,l)-u(iq3,jm,l))
       end do
 
       return
@@ -972,7 +973,7 @@ c     find the pbl top (at main level lpbl)
              ip1=i+1
           endif
           do l=1,lm
-            t_ucell(i,j,l)=0.25*(t(i,j,l)+t(ip1,j,l)
+            t_ucell(i,j,l)=0.25d0*(t(i,j,l)+t(ip1,j,l)
      2                         + t(i,j-1,l)+t(ip1,j-1,l))
           end do
         end do
