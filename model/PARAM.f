@@ -56,11 +56,11 @@
 !@+       unchanged and only new parameters are added.
 !@+
 !@+   Read FAQ's for the full description.
-!@+ 
+!@+
 !@+               CHANGE LOG:
-!@+ 04/18/02 added 3 bytes to ParamStr so that its size is divisible by 4
-!@+ (needed for portability SGI,LINUX <-> IBM,COMPAQ). Header renamed
-!@+ to "PARAM02 "
+!@+ 04/18/02 added 3 bytes to ParamStr so that its size is
+!@+ divisible by 4 (needed for portability SGI,LINUX <-> IBM,COMPAQ).
+!@+ Header renamed to "PARAM02 "
 
       implicit none
       save
@@ -750,7 +750,7 @@
 
       if ( lnum_param < 1 ) return   ! no parameters in the records
 
-      ! this is a hack to fix the big/little endian conversion if 
+      ! this is a hack to fix the big/little endian conversion if
       ! the compiler missed it
       if ( LParams(1)%dim > 65536 .or. LParams(1)%dim < 0 ) then
         print *, 'WARNING: PARAM: wrong format in LParams - converting'
@@ -779,14 +779,16 @@
       return
  10   print *, 'PARAM: Error reading, unit = ', kunit
       stop 'PARAM: Error reading'
+#ifndef MACHINE_DEC
       end subroutine read_param
-
 
       subroutine write_param( kunit )
       implicit none
       integer, intent(in) :: kunit
       integer n
-
+#else
+      entry      write_param( kunit )
+#endif
       write (MODULE_HEADER(9:80),'(i10,a)')
      *  num_param,' is the current number of parameters in database DB'
 
@@ -798,13 +800,12 @@
       enddo
 #endif
 
-      write( kunit, err=10 ) MODULE_HEADER,
+      write( kunit, err=20 ) MODULE_HEADER,
      *     num_param, num_rparam, num_iparam, num_cparam,
      *     ( Params(n), n=1,min(num_param,MAX_PARAMS) ),
      *     ( Rdata(n), n=1,min(num_rparam,MAX_RPARAMS) ),
      *     ( Idata(n), n=1,min(num_iparam,MAX_IPARAMS) ),
      *     ( Cdata(n), n=1,min(num_cparam,MAX_CPARAMS) )
-      return
 
 #ifdef MACHINE_DEC
       ! and back to little-endian ...
@@ -813,11 +814,11 @@
         call swap_bytes_4( LParams(n)%dim,  1 )
       enddo
 #endif
+      return
 
- 10   print *, 'PARAM: Error writing, unit = ', kunit
+ 20   print *, 'PARAM: Error writing, unit = ', kunit
       stop 'PARAM: Error writing'
-      end subroutine write_param
-
+      end subroutine ! write_param
 
       subroutine print_param1( kunit )
       implicit none
@@ -918,8 +919,8 @@
       enddo
       end subroutine lowcase
 
-!**** the code below is included for compatibility with older versions ****
-!**** it can be removed later when not needed any more                 ****
+!**** the code below is included for compatibility with older     ****
+!**** versions; it may be removed later when not needed any more  ****
 
       subroutine read_param_comp01( kunit, ovrwrt )
       implicit none
@@ -1012,11 +1013,4 @@
         value(n) = a
       enddo
       end subroutine swap_bytes_4
-
-
-
-
-
-
-
 
