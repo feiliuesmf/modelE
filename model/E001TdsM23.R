@@ -113,6 +113,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 !-----------------------------------------------
@@ -186,7 +187,7 @@ CMC = 0.0000003
 
 KOCEAN=0
 U00ice  = .60  ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
-! u00wtrx = 1.4  ! 1880 conditions 
+! u00wtrx = 1.4  ! 1880 conditions
 u00wtrx = 1.2    ! 1980 conditions (NEEDS TO BE VERIFIED!)
 
 cond_scheme=2  ! more elaborate conduction scheme (GHY, Nancy Kiang)
@@ -212,7 +213,7 @@ KCOPY=2         ! saving acc + rsf
 isccp_diags=0
 
 ! choose tropopause for chemistry purposes: 0=LTROPO(I,J), 1=LS1-1:
-which_trop=0 
+which_trop=0
 
 ! for setting fixed methane value for chemistry:
 fix_CH4_chemistry=0
@@ -242,6 +243,10 @@ s0_day=182
 volc_yr=1979
 volc_day=182
 aero_yr=1979
+od_cdncx=0.        ! don't include 1st indirect effect
+cc_cdncx=0.0036    ! include 2nd indirect effect
+albsn_yr=1979
+dalbsnX=.015
 o3_yr=1979
 &&END_PARAMETERS
 

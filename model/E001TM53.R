@@ -83,6 +83,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
 CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9

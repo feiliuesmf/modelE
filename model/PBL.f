@@ -731,10 +731,10 @@ cgav  use constant, only :: nu=>visc_air_kin
 
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
      *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
-     *     ,lzgsbyz0h,lzgsbyz0q,X,nu_smooth,fac_rough
+     *     ,lzgsbyz0h,lzgsbyz0q,X !nu ,nu_smooth,fac_rough
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
-      nu_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
-      fac_rough(X) = -7.3d0*kappa*sqrt(X)
+!nu   nu_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
+!nu   fac_rough(X) = -7.3d0*kappa*sqrt(X)
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************

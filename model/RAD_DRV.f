@@ -327,6 +327,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr
       USE CLOUDS_COM, only : llow
       USE DAGCOM, only : iwrite,jwrite,itwrite
@@ -374,6 +375,8 @@ C**** sync radiation parameters from input
       call sync_param( "volc_yr", volc_yr )
       call sync_param( "volc_day", volc_day )
       call sync_param( "aero_yr", aero_yr )
+      call sync_param( "dALBsnX", dALBsnX )
+      call sync_param( "albsn_yr", albsn_yr )
       call sync_param( "aermix", aermix , 13 )
       call sync_param( "FS8OPX", FS8OPX , 8 )
       call sync_param( "FT8OPX", FT8OPX , 8 )
@@ -660,6 +663,7 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call closeunit(iu)
         end if
       end if
+      call updBCd(1990) ; depoBC_1990 = depoBC
 C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE                ! not used in GCM
@@ -722,7 +726,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
+     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC
 C     OUTPUT DATA
@@ -737,6 +741,7 @@ C     OUTPUT DATA
      *     ,O3_rad_save,O3_tracer_save,rad_interact_tr,kliq,RHfix
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl
+     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -776,7 +781,7 @@ C     OUTPUT DATA
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,taulim
+      REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
 !$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
@@ -906,10 +911,32 @@ C     Update time dependent radiative parameters each day
           FULGAS(9)=FULGAS(9)*CFC12X
           FULGAS(11)=FULGAS(11)*XGHGX
         end if
+        if (albsn_yr.eq.0) then
+          call updBCd (JYEAR)
+        else
+          call updBCd (albsn_yr)
+        end if
       end if
 C*********************************************************
       JDLAST=JDAY
       S0=S0X*S00WM2*RATLS0/RSDIST
+
+c**** find scaling factors for surface albedo reduction
+      sumda=im*dxyp(1)+im*dxyp(jm)*rsi(1,jm)
+      tauda=im*dxyp(1)*depobc_1990(1,1) +
+     *      im*dxyp(jm)*rsi(1,jm)*depobc_1990(1,46)
+      do j=2,jm-1
+         JLAT=INT(1.+(J-1.)*45./(JM-1.)+.5)
+         do i=1,im
+           ILON=INT(.5+(I-.5)*72./IM+.5)
+           fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
+           if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
+           sumda = sumda + dxyp(j)*fsnow
+           tauda = tauda + dxyp(j)*fsnow*depobc_1990(ilon,jlat)
+         end do
+      end do
+      xdalbs=-dalbsnX*sumda/tauda
+      IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
 
       if(kradia.le.0) then
       IF (QCHECK) THEN
@@ -1258,6 +1285,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
+      dALBsn = xdalbs*depobc(ilon,jlat)
       if (poice.gt.0.) then
         zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
@@ -2405,3 +2433,68 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
       dCDNC = (1-pland)*(cdnc(1)-cdnc0(1))+pland *(cdnc(2)-cdnc0(2))
       return
       end subroutine dCDNC_EST
+
+      subroutine updBCd (year)
+!@sum  reads appropriate Black Carbon deposition data if necessary
+!@auth R. Ruedy
+!@ver  1.0
+      USE FILEMANAGER
+      USE RADNCB, only : depoBC
+      implicit none
+      integer, intent(in)   :: year
+
+      integer,parameter :: imr=72,jmr=46
+      real*8  BCdep1(imr,jmr),BCdep2(imr,jmr),wt   ! to limit i/o
+
+      integer :: iu,year1,year2,year0,yearL=-2,year_old=-1
+      save       iu,year1,year2,year0,yearL,   year_old,BCdep1,BCdep2
+
+      character*80 title
+      real*4 BCdep4(imr,jmr)
+
+C**** check whether update is needed
+      if (year.eq.year_old) return
+      if (year_old.eq.yearL.and.year.gt.yearL) return
+      if (year_old.eq.year0.and.year.lt.year0) return
+
+      call openunit('BC_dep',iu,.true.,.true.)
+
+      if (year_old.lt.0) then
+C****   read whole input file and find range: year0->yearL
+   10   read(iu,end=20) title
+        read(title,*) yearL
+        go to 10
+      end if
+
+   20 rewind (iu)
+      read(iu) title,BCdep4
+      read(title,*) year0
+      BCdep1=BCdep4 ; BCdep2=BCdep4 ; year2=year0 ; year1=year0
+      if (year.le.year1)              year2=year+1
+
+      do while (year2.lt.year .and. year2.ne.yearL)
+         year1 = year2 ; BCdep1 = BCdep2
+         read (iu) title,BCdep4
+         read(title,*) year2
+         BCdep2 = BCdep4
+      end do
+
+      if(year.le.year1) then
+        wt = 0.
+      else if (year.ge.yearL) then
+        wt = 1.
+      else
+        wt = (year-year1)/(real(year2-year1,kind=8))
+      end if
+
+      write(6,*) 'Using BCdep data from year',year1+wt*(year2-year1)
+      call closeunit(iu)
+
+C**** Set the Black Carbon deposition array
+      depoBC(:,:) = BCdep1(:,:) + wt*(BCdep2(:,:)-BCdep1(:,:))
+
+      year_old = year
+
+      return
+      end subroutine updBCd
+

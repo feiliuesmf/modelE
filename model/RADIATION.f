@@ -297,7 +297,7 @@ C----------------
       integer :: KRHDTK=1    !  control parameter
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
-      real*8 :: SRBALB(6),SRXALB(6)
+      real*8 :: SRBALB(6),SRXALB(6),dalbsn ! prescr change in snowalbedo
 !@var       KEEPAL  if 0, SRBALB,SRXALB are computed in SET/GETSUR
       integer :: KEEPAL=0       ! control param
 !@dbparm    KSIALB  sea ice albedo computation flag: 0=Hansen 1=Lacis
@@ -348,7 +348,7 @@ C----------------
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
      A              PLB,HLB,TLB,TLT,TLM,ULGAS
      B             ,TAUWC,TAUIC,SIZEWC,SIZEIC,CLDEPS
-     C             ,SHL,RHL,TRACER,SRBALB,SRXALB
+     C             ,SHL,RHL,TRACER,SRBALB,SRXALB,dalbsn
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
      F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,O3_IN
@@ -11595,7 +11595,7 @@ C**** input from radiation
 C**** input from driver
      *     AGESN,ILON,JLAT,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      *     TGO,TGOI,TGE,TGLI,TSL,ZOICE,FLAGS,FMP,ZSNWOI,zmp,
-     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,
+     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
 C**** output
      *     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,BGFEMD,BGFEMT,
      *     DTRUFG,FTRUFG
@@ -11826,7 +11826,11 @@ c**** obtained using the vegetation masking.
       DO L=1,6
         XEAVN(L)=BEAVN(L)
       END DO
-      DO L=1,6
+      DO L=1,2
+        BEAVN(L)=BEAVN(L)+max(0.,BSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+        XEAVN(L)=XEAVN(L)+max(0.,XSNVN(L)*(1.D0-EXPSNE)+dalbsn/L)
+      END DO
+      DO L=3,6
         BEAVN(L)=BEAVN(L)+BSNVN(L)*(1.D0-EXPSNE)
         XEAVN(L)=XEAVN(L)+XSNVN(L)*(1.D0-EXPSNE)
       END DO
@@ -11951,6 +11955,12 @@ C**** set zenith angle dependence
           XOIVN(1:6)=BOIVN(1:6)
         END IF
         EXPSNO=1.-patchy
+
+c**** Reduce the Ocean Ice albedo by dalbsn
+        DO L=1,2
+          BOIVN(L) = max(0.,BOIVN(L)+dalbsn/L)
+          XOIVN(L) = max(0.,XOIVN(L)+dalbsn/L)
+        END DO
       end if  !  KSIALB.ne.1:  Schramm/Hansen
 C*
       ITOI=TGOI
@@ -12026,7 +12036,13 @@ C**** zenith angle dependence if required
           XLIVN(L)=BLIVN(L)
         END IF
       END DO
-C
+
+c**** Reduce the Land Ice albedo by dalbsn
+      DO L=1,2
+        BLIVN(L) = max(0.,BLIVN(L)+dalbsn/L)
+        XLIVN(L) = max(0.,XLIVN(L)+dalbsn/L)
+      END DO
+
       ITLI=TGLI
       WTLI=TGLI-ITLI
       ITLI=ITLI-ITPFT0

@@ -93,6 +93,7 @@ O3file_09=mar2004_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2004_o3timetrend_46x49x2412_1850_2050
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
+BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
 
@@ -143,6 +144,11 @@ ghg_day=182
 volc_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
 volc_day=182
 aero_yr=1880                                       ! =1979 , also change OSST,SICE,U00wtrX
+od_cdncx=0.        ! don't include 1st indirect effect
+cc_cdncx=0.0036    ! include 2nd indirect effect
+albsn_yr=1880
+dalbsnX=.015
+o3_yr=1880
 o3_yr=1880                                         ! =1979 , also change OSST,SICE,U00wtrX
 
 ! parameters that control the Shapiro filter

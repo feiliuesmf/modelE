@@ -71,6 +71,10 @@ C**** exactly the same as the default values.
       INTEGER :: Ikliq = -1  !  get kliq-array from restart file
 !@dbparam RHfix const.rel.humidity passed to radiation for aeros. tests
       REAL*8 :: RHfix = -1.  !  pass the current model rel.humidity
+!@dbparam dalbsnX global coeff for snow alb change by black carbon depos
+      REAL*8 ::  dalbsnX = 0.
+!@dbparam albsn_yr year of blk carb depos used for snow alb. reduction
+      INTEGER ::  albsn_yr = 1951
 
 !     variables related to aerosol indirect effects:
 !     (CDNC=cloud droplet number concentration)
@@ -112,6 +116,8 @@ C**** exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day
       REAL*8 :: RSDIST,SIND,COSD
+!@var depoBC,depoBC_1990 observed black carbon deposition (curr,1990)
+      REAL*8, DIMENSION(72,46) :: depoBC,depoBC_1990  ! rad.grid
 !@var ALB is SRNFLB(1)/(SRDFLB(1)+1.D-20),PLAVIS,PLANIR,ALBVIS,ALBNIR,
 !@+       SRRVIS,SRRNIR,SRAVIS,SRANIR (see RADIATION)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: ALB
