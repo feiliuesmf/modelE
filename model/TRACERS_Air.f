@@ -2597,8 +2597,8 @@ C         AM=kg/m2, and DXYP=m2
           END DO
           END DO
           trmom(:,:,:,:,n) = 0.
-#endif
           J2=0
+#endif
 
         case ('PAN')
           do l=1,lm; do j=1,jm; do i=1,im
