@@ -12710,29 +12710,6 @@ C
       LATHEM=1
       IF(JLAT.GT.JNORTH) LATHEM=2
 C
-C                                              -------------------------
-C                                              Snow Albedo Specification
-C                                              -------------------------
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      XSNVIS=BSNVIS
-      XSNNIR=BSNNIR
-      BSNVN(1)=BSNVIS
-      XSNVN(1)=XSNVIS
-      DO L=2,6
-        BSNVN(L)=BSNNIR
-        XSNVN(L)=XSNNIR
-      END DO
-      IF(KVEGA6.GT.0) THEN
-        DO L=1,6
-          FSNAGE=1.D0
-          IF(L.GT.2) FSNAGE=2.0D0/L
-          BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-          XSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
-        END DO
-      ENDIF
-C
       EXPSNE=1.D0 ; EXPSNO=1.D0 ;  EXPSNL=1.D0
 C
       DO K=1,NKBAND
@@ -12778,13 +12755,11 @@ C
       XOCVIS=XOCVIS*(1.D0-FRFOAM)+FRFOAM*AVFOAM
       BOCNIR=BOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
       XOCNIR=XOCNIR*(1.D0-FRFOAM)+FRFOAM*ANFOAM
-      IF(KVEGA6.GT.0) THEN
-      BOCVN(1)=BOCVIS
-      XOCVN(1)=XOCVIS
-      DO L=2,6
-        BOCVN(L)=BOCNIR
-        XOCVN(L)=XOCNIR
-      END DO
+      IF(KVEGA6.GT.0) THEN      ! fill in higher bands 
+        DO L=3,6                ! 1/2 already equivalenced 
+          BOCVN(L)=BOCNIR
+          XOCVN(L)=XOCNIR
+        END DO
       ENDIF
 C
       X=1.D0/(1.D0+WMAG)
@@ -12817,6 +12792,27 @@ C
         BGFEMT(K)=BGFEMT(K)+POCEAN*BOC
       END DO
       DTRUFG(1)=0.5D0*(BOCP-BOCM)
+C
+  400 CONTINUE
+      IF(PEARTH.LT.1.D-04) GO TO 500
+C
+C                                         ------------------------------
+C                                         Land Snow Albedo Specification
+C                                         ------------------------------
+      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
+      IF(KVEGA6.LE.0) THEN      ! 2 band
+        BSNVIS=ASNVIS+ASNAGE
+        BSNNIR=ASNNIR+ASNAGE
+        XSNVIS=BSNVIS
+        XSNNIR=BSNNIR
+      ELSE                      ! 6 band
+        DO L=1,6
+          FSNAGE=1.D0
+          IF(L.GT.2) FSNAGE=2.0D0/L
+          BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+        END DO
+        XSNVN(1:6)=BSNVN(1:6)
+      ENDIF
 C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
 C                                          -----------------------------
@@ -12826,11 +12822,9 @@ c**** bare/vegetated soil. It is computed in GHY_DRV.f in accordance
 c**** with the surface topography.
 c**** The final snow cover is minimum of snow_frac and the snow fraction
 c**** obtained using the vegetation masking.
-  400 CONTINUE
-      IF(KVEGA6.LE.0) THEN                                      ! 2-band
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
-      IF(PEARTH.LT.1.D-04) GO TO 500
+      IF(KVEGA6.LE.0) THEN                                      ! 2-band
       IF(SNOWE .LE.1.D-04) THEN
         BEAVIS=PVT(1)*ALBVNH(1,1,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
         BEANIR=PVT(1)*ALBVNH(1,2,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
@@ -12875,9 +12869,6 @@ c**** obtained using the vegetation masking.
       XNVEGE=BNVEGE
 C
       ELSE                                                      ! 6-band
-      DSFRAC=PVT(1)+PVT(10)
-      VGFRAC=1.D0-DSFRAC
-      IF(PEARTH.LT.1.D-04) GO TO 500
       IF(SNOWE .LE.1.D-04) THEN
         DO L=1,6
           BEAVN(L)=PVT(1)*ALBVNH(1,L,LATHEM)*(1.D0-0.5D0*WEARTH*WETSRA)
@@ -12955,11 +12946,12 @@ C
       END DO
       DTRUFG(2)=0.5D0*(BEAP-BEAM)
 C
+  500 CONTINUE
+      IF(POICE.LT.1.D-04) GO TO 600
+C
 C                                         ------------------------------
 C                                         Ocean Ice Albedo Specification
 C                                         ------------------------------
-  500 CONTINUE
-      IF(POICE.LT.1.D-04) GO TO 600
       IF(KVEGA6.EQ.0 .or. KVEGA6.eq.3) then
 C**** This albedo specification comes from Schramm et al 96 (4 spectral
 C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
@@ -13063,13 +13055,28 @@ C**** create a composite NIR value.
 C**** end of Schramm's version
       else
 C**** original version
+
       EXPSNO=EXP(-SNOWOI/DMOICE)
+C**** Set snow albedo over sea ice
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
+      IF(KVEGA6.LE.0) THEN      ! 2 band
+        BSNVIS=ASNVIS+ASNAGE
+        BSNNIR=ASNNIR+ASNAGE
+        XSNVIS=BSNVIS
+        XSNNIR=BSNNIR
+      ELSE                      ! 6 band
+        DO L=1,6
+          FSNAGE=1.D0
+          IF(L.GT.2) FSNAGE=2.0D0/L
+          BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+        END DO
+        XSNVN(1:6)=BSNVN(1:6)
+      ENDIF
+
+C**** set ice albedo
+      IF (KVEGA6.le.0) THEN     ! 2 band
       BOIVIS=AOIVIS*EXPSNO+BSNVIS*(1.D0-EXPSNO)
       BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
-
 c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
 c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
       if (kvega6.lt.-2) then
@@ -13085,11 +13092,11 @@ c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
 c**** End of puddling section
       XOIVIS=BOIVIS
       XOINIR=BOINIR
-      IF(KVEGA6.GT.0) THEN
-      DO L=1,6
-        BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
-        XOIVN(L)=BOIVN(L)
-      END DO
+      ELSE
+        DO L=1,6
+          BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
+          XOIVN(L)=BOIVN(L)
+        END DO
       ENDIF
       ENDIF                     ! end of pre-Schramm version
 C
@@ -13119,53 +13126,56 @@ C
         BGFEMT(K)=BGFEMT(K)+POICE*BOI
       END DO
       DTRUFG(3)=0.5D0*(BOIP-BOIM)
+C
+  600 CONTINUE
+      IF(PLICE.LT.1.E-04) GO TO 700
 C                                          -----------------------------
 C                                          Land Ice Albedo Specification
 C                                          -----------------------------
-  600 CONTINUE
-      IF(PLICE.LT.1.E-04) GO TO 700
-      EXPSNL=EXP(-SNOWLI/DMLICE)
+C**** Set snow albedo over land ice
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(3))
-      BSNVIS=ASNVIS+ASNAGE
-      BSNNIR=ASNNIR+ASNAGE
-      BLIVIS=ALIVIS*EXPSNL+BSNVIS*(1.D0-EXPSNL)
-      BLINIR=ALINIR*EXPSNL+BSNNIR*(1.D0-EXPSNL)
-C****
+      IF(KVEGA6.LE.0) THEN      ! 2 band
+        BSNVIS=ASNVIS+ASNAGE
+        BSNNIR=ASNNIR+ASNAGE
+        XSNVIS=BSNVIS
+        XSNNIR=BSNNIR
+      ELSE                      ! 6 band
+        DO L=1,6
+          FSNAGE=1.D0
+          IF(L.GT.2) FSNAGE=2.0D0/L
+          BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+        END DO
+        XSNVN(1:6)=BSNVN(1:6)
+      ENDIF
+
+      EXPSNL=EXP(-SNOWLI/DMLICE)
+      IF (KVEGA6.le.0) THEN     ! 2 band
+        BLIVIS=ALIVIS*EXPSNL+BSNVIS*(1.D0-EXPSNL)
+        BLINIR=ALINIR*EXPSNL+BSNNIR*(1.D0-EXPSNL)
+      ELSE                      ! 6-band
+        DO L=1,6
+          BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
+        END DO
+      END IF
+C**** For KVEGA6 != 1 or -1:
 C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
 C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
 C****
-      if (kvega6.ne.-1) then
+      if (abs(kvega6).ne.1) then
       IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
         AMEAN=.8
         BLIVIS=.95
         BLINIR=(AMEAN-.57*BLIVIS)/.43
-      END IF
-      end if
-C****
-      XLIVIS=BLIVIS
-      XLINIR=BLINIR
-      IF(KVEGA6.GT.0) THEN                             ! 6-band
-      DO L=1,6
-        BLIVN(L)=ALIALB(L)*EXPSNL+BSNVN(L)*(1.D0-EXPSNL)
-        XLIVN(L)=BLIVN(L)
-      END DO
-C****
-C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
-C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
-C****
-      if (kvega6.gt.2) then
-        IF( JLAT.LT.NINT(MLAT46/6.) .OR.
-     *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-          BLIVN(1)=BLIVIS
-          XLIVN(1)=XLIVIS
-          DO L=2,6
+        IF (KVEGA6.gt.0) THEN   ! 6 band
+          DO L=3,6  ! fill in higher bands
             BLIVN(L)=BLINIR
-            XLIVN(L)=XLINIR
           END DO
         END IF
+      END IF
       end if
-      END IF                                          ! end 6-band
+C
+      XLIVN(1:6)=BLIVN(1:6)
 C
       ITLI=TGLI
       WTLI=TGLI-ITLI
