@@ -1527,7 +1527,7 @@ c
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: JDAY, JHOUR, IM, JM
+      USE MODEL_COM, only: itime, IM, JM, DTsrc, nday
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       IMPLICIT NONE
@@ -1556,9 +1556,9 @@ C
       VLON = 180. - REAL((I-1)*DX)
 C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:
-      TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
-      ! better: TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc  
-      P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
+!orig:TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
+      TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc  ! Reto's fix 
+      P1 = 15.*(TIMEC/DTsrc - VLON/15. - 12.)
       FACT = (TIMEC/86400. - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
       P3 = VLAT
