@@ -6017,8 +6017,6 @@ C****
       INTEGER :: J_0, J_1, J_0H, J_1H
       REAL*8, ALLOCATABLE :: tmp(:,:)
 
-      CALL CHECKSUMj(GRID, CONSRV_loc, __LINE__,__FILE__)
-
       CALL PACK_DATAj(GRID, AJ_loc,  AJ)
       CALL PACK_DATAj(GRID, APJ_loc, APJ)
       CALL PACK_DATAj(GRID, AJK_loc, AJK)
@@ -6036,7 +6034,6 @@ C****
       CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
       CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
       CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
-      CALL CHECKSUM(grid, TAIJS, __LINE__,__FILE__)
 #endif
       
 ! Now the external arrays
@@ -6084,7 +6081,6 @@ C****
       USE TRDIAG_COM, only : TCONSRV,TCONSRV_loc
 #endif
       USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
-      USE DOMAIN_DECOMP, ONLY : CHECKSUMj
       IMPLICIT NONE
 
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc,local=.false.)
@@ -6106,7 +6102,6 @@ C****
       CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc,local=.false.)
 #endif
 
-      CALL CHECKSUMj(GRID, CONSRV_loc, __LINE__,__FILE__)
 
       END SUBROUTINE DIAG_SCATTER
 
