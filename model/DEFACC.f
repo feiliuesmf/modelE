@@ -2623,7 +2623,7 @@ c
 
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
-      use MODEL_COM, only : fim,dtsrc,nidyn,byim
+      use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag
       use GEOM, only : dlon
       use DAGCOM
       implicit none
@@ -2722,6 +2722,8 @@ c
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
+      if (DO_GWDRAG) then
+
       k=k+1
       jl_gwFirst = k   ! The next consecutive 9 are Gravity Wave Diags
       jl_dumtndrg = k
@@ -2812,24 +2814,8 @@ c Last of the Gravity Wave JL's
       scale_jl(k) = 1./(FIM*DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = 2
-c
-      k=k+1
-      jl_sscld = k
-      sname_jl(k) = 'sscld' !
-      lname_jl(k) = 'SUPER SATURATION CLOUD COVER' !'PCLD*P (SS)'
-      units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
-      ia_jl(k) = ia_rad
-      jgrid_jl(k) = 1
-c
-      k=k+1
-      jl_mccld = k
-      sname_jl(k) = 'mccld' !
-      lname_jl(k) = 'MOIST CONVECTIVE CLOUD COVER' !'PCLD*P (MC)'
-      units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
-      ia_jl(k) = ia_rad
-      jgrid_jl(k) = 1
+
+C**** Some extra GWDRAG related diags
 c
       k=k+1
       jl_sdifcoef = k
@@ -2852,6 +2838,26 @@ c
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
       jgrid_jl(k) = 2
+
+      end if
+c
+      k=k+1
+      jl_sscld = k
+      sname_jl(k) = 'sscld' !
+      lname_jl(k) = 'SUPER SATURATION CLOUD COVER' !'PCLD*P (SS)'
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*BYIM
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_mccld = k
+      sname_jl(k) = 'mccld' !
+      lname_jl(k) = 'MOIST CONVECTIVE CLOUD COVER' !'PCLD*P (MC)'
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*BYIM
+      ia_jl(k) = ia_rad
+      jgrid_jl(k) = 1
 c
       k=k+1
       jl_dtdtsdrg = k
