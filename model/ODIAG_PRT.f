@@ -120,6 +120,7 @@ C****
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
       REAL*8, DIMENSION(LMO,NMST) :: AS
+c for now we are assuming that igrid=jgrid in arguments to pout_ij
       INTEGER I,J,K,L,NS,N,KB,IJGRID,IP1,k1,KK
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
       INTEGER :: LMINEF=1, LMAXEF=LMO, KVMF(3) = (/ 3, 6, 9/),
@@ -166,7 +167,7 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
 C**** Ocean Salinity (per mil)
@@ -190,7 +191,7 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 #ifdef TRACERS_OCEAN
 C****
@@ -226,7 +227,7 @@ C**** Loop over layers
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
       END DO
 #endif      
@@ -260,7 +261,7 @@ C****
       IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       TITLE(51:80)=XLB
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
 
       K=IJL_MFV
       LNAME="NORTH-SOUTH VELOCITY"
@@ -286,7 +287,7 @@ C****
       IF(LMINMF.lt.LMAXMF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINMF," -"
      *     ,LMAXMF
       TITLE(51:80)=XLB
-      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2.)
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
 C****
 C**** Vertical Mass Flux (10^-2 kg/s*m^2)
 C****
@@ -307,7 +308,7 @@ c     IF(KVMF(K).le.0)  GO TO 370
         WRITE (TITLE(40:47),'(A5,I3)') "Level",L
         WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
 C**** East-West or North-South Heat Flux (10^15 W)
@@ -342,7 +343,7 @@ c      IF(.not.QL(K))  GO TO 440
         IF(LMINEF.lt.LMAXEF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINEF,
      *       " -",LMAXEF
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
 C**** East-West or North-South Salt Flux (10^6 kg/s)
@@ -377,7 +378,7 @@ c      IF(.not.QL(K))  GO TO 540
         IF(LMINSF.lt.LMAXSF) WRITE (LNAME(39:46),'(I3,A2,I3)') LMINSF,
      *       " -",LMAXSF
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
 C**** Gent-McWilliams fluxes (10^-2 kg/s*m)
@@ -421,7 +422,7 @@ C****
           WRITE (TITLE(40:47),'(A5,I3)') "Level",L
           WRITE (LNAME(40:47),'(A5,I3)') "Level",L
           TITLE(51:80)=XLB
-          CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID)
+          CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
         END DO
       END DO
 C****
@@ -445,7 +446,7 @@ C****
         WRITE (TITLE(40:47),'(A5,I3)') "Level",L
         WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
       
       DO K=1,3 
@@ -466,7 +467,7 @@ C****
         WRITE (TITLE(40:47),'(A5,I3)') "Level",L
         WRITE (LNAME(40:47),'(A5,I3)') "Level",L
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2)
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 C****
 C**** Simple scaled OIJ diagnostics
@@ -496,7 +497,7 @@ C****
         TITLE=trim(LNAME)//" ("//trim(UNITS_OIJ(K))//") "
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME_OIJ(K),LNAME_OIJ(K),UNITS_OIJ(K),Q,QJ
-     *       ,QSUM,IJGRID_OIJ(K))
+     *       ,QSUM,IJGRID_OIJ(K),IJGRID_OIJ(K))
 
       END DO
 
@@ -515,7 +516,7 @@ C****
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
       IF (QDIAG) CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,SFIJM,QJ,QSUM
-     *     ,IJGRID)
+     *     ,IJGRID,IJGRID)
 C****
 C**** Calculate Salt Stream Function and write it
 C****

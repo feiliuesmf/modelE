@@ -433,8 +433,8 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, dimension(kaij) :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
       integer, dimension(kaij) :: ia_ij
-!@var jgrid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaij) :: jgrid_ij
+!@var [ij]grid_ij 1=primary grid  2=secondary grid
+      integer, dimension(kaij) :: igrid_ij,jgrid_ij
 
 !@var JL_xxx names for JL diagnostic indices
       INTEGER ::

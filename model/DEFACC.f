@@ -800,6 +800,7 @@ c
          units_ij(k) = 'unused'
          ia_ij(k) = ia_src
          scale_ij(k) = 1.
+         igrid_ij(k) = 1
          jgrid_ij(k) = 1
          iw_ij(k) = iw_all
          ir_ij(k) = ir_pct

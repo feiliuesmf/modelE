@@ -64,7 +64,8 @@ C**** set dimensions
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS,XIJ,XJ,XSUM,IJGRID)
+      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS,XIJ,XJ,XSUM,
+     &     IGRID,JGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -84,8 +85,8 @@ C**** set dimensions
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
 !@var XSUM global sum/mean of output field
       REAL*8, INTENT(IN) :: XSUM
-!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
-      INTEGER, INTENT(IN) :: IJGRID
+!@var IGRID,JGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IGRID,JGRID
 
       WRITE(iu_ij) TITLE,REAL(XIJ,KIND=4),REAL(XJ,KIND=4),
      *             REAL(XSUM,KIND=4)

@@ -1551,7 +1551,7 @@ C****
         TITLE=trim(LNAME)//" ("//trim(UNITS_ICIJ(K))//") "
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME_ICIJ(K),LNAME_ICIJ(K),UNITS_ICIJ(K),Q
-     *       ,QJ,QSUM,IJGRID_ICIJ(K))
+     *       ,QJ,QSUM,IJGRID_ICIJ(K),IJGRID_ICIJ(K)) ! assume igrid=jgrid
 
       END DO
 
@@ -1576,7 +1576,8 @@ C**** Name and scale are tracer dependent
         UNITS=unit_string(ntrocn(n),UNITS_TICIJ(K))
         TITLE=trim(LNAME)//" ("//trim(UNITS)//")"
         TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID_TICIJ(K))
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,
+     &       IJGRID_TICIJ(K),IJGRID_TICIJ(K)) ! assume igrid=jgrid
       END DO
       END DO
 #endif

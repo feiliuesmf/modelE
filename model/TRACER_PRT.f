@@ -1215,8 +1215,9 @@ c**** Find, then display the appropriate array
      *         ,lname(n),units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call maptxt(smap,smapj,gm,irange(n),title,line,kcolmn,nlines)
+c assuming igrid=jgrid for now
           if(qdiag) call pout_ij(title//xlb,name(n),lname(n),units(n),
-     *                            smap,smapj,gm,jgrid)
+     *                            smap,smapj,gm,jgrid,jgrid)
           Qk(n) = .false.
         end if
 c**** copy virtual half-page to paper if appropriate
@@ -1236,7 +1237,7 @@ C**** produce binary files of remaining fields if appropriate
      *         ,lname(n),units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call pout_ij(title//xlb,name,lname(n),units(n),smap,smapj,gm
-     *         ,jgrid)
+     *         ,jgrid,jgrid) ! assuming igrid=jgrid for now
         end if
       end do
       if(qdiag) call close_ij

@@ -3326,7 +3326,8 @@ c Check the count
       END SUBROUTINE IJ_TITLEX
 
 
-      subroutine IJ_MAPk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
+      subroutine IJ_MAPk (k,smap,smapj,gm,igrid,jgrid,irange,
+     &     name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
 !+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
       USE CONSTANT, only :
@@ -3344,7 +3345,7 @@ c Check the count
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap
       REAL*8, DIMENSION(JM) :: smapj
       integer, intent(in) :: k
-      integer i,j,l,k1,k2,iwt,jgrid,irange,n1,n2
+      integer i,j,l,k1,k2,iwt,igrid,jgrid,irange,n1,n2
       character(len=30) name,units
       character(len=80) lname
       real*8 :: gm,nh,sh, off, byiacc, scalek
@@ -3363,6 +3364,7 @@ c**** the standard cases: aij(.,.,k) or aij(.,.,k)/aij(.,.,k1)
       if (k .le. kaij) then
         name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
         iwt = iw_ij(k) ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
+        igrid = igrid_ij(k)
 c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
         off = 0.
         k1 = index(lname_ij(k),'  - ')
@@ -3689,7 +3691,8 @@ c**** find hemispheric and global means
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
       logical qIij
-      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,jgrid,irange,iu_Iij,koff
+      INTEGER ::   I,J,K,L,M,N,kcolmn,nlines,igrid,jgrid,irange,
+     &     iu_Iij,koff
 
       REAL*8 ::
      &     DAYS,ZNDE16,ZS,DPTI,PVTI,gm,
@@ -3831,11 +3834,12 @@ c**** print header lines
 c**** Find, then display the appropriate array
         k = Iord(n)
         if (k .gt. 0 .and. Qk(k)) then
-          call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
+          call ij_mapk (k,smap,smapj,gm,igrid,jgrid,irange,name,lname,
+     &          units)
           title=trim(lname)//' ('//trim(units)//')'
           call maptxt(smap,smapj,gm,irange,title,line,kcolmn,nlines)
           if(qdiag) call pout_ij(title//xlb,name,lname,units,
-     *                            smap,smapj,gm,jgrid)
+     *                            smap,smapj,gm,igrid,jgrid)
           Qk(k) = .false.
         end if
 c**** copy virtual half-page to paper if appropriate
@@ -3850,11 +3854,12 @@ C**** Print out full-page digital maps
       do n=nmaplets+1,nmaplets+nmaps
         k = Iord(n)
       if (k.le.0 .or. .not.Qk(k)) cycle
-        call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
+        call ij_mapk (k,smap,smapj,gm,igrid,jgrid,irange,name,lname,
+     &     units)
         title=trim(lname)//' ('//trim(units)//')'
         call ijmap (title//xlb,smap,smapj,jgrid)
         if(qdiag) call pout_ij(title//xlb,name,lname,units,smap,smapj,
-     *                          gm,jgrid)
+     *                          gm,igrid,jgrid)
         Qk(k) = .false.
       end do
 
@@ -3862,9 +3867,11 @@ C**** Print out full-page digital maps
 C**** produce binary files of remaining fields if appropriate
       do k=1,kaijx
         if (Qk(k)) then
-          call ij_mapk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
+          call ij_mapk (k,smap,smapj,gm,igrid,jgrid,irange,name,lname,
+     &          units)
           title=trim(lname)//' ('//trim(units)//')'
-          call pout_ij(title//xlb,name,lname,units,smap,smapj,gm,jgrid)
+          call pout_ij(title//xlb,name,lname,units,smap,smapj,gm,
+     &         igrid,jgrid)
         end if
       end do
       call close_ij

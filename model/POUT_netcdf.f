@@ -407,7 +407,8 @@ C**** set dimensions
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS_IN,XIJ,XJ,XSUM,IJGRID)
+      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS_IN,XIJ,XJ,XSUM,
+     &     IGRID,JGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth M. Kelley
 !@ver  1.0
@@ -427,8 +428,8 @@ C**** set dimensions
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
 !@var XSUM global sum/mean of output field
       REAL*8, INTENT(IN) :: XSUM
-!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
-      INTEGER, INTENT(IN) :: IJGRID
+!@var IGRID,JGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IGRID,JGRID
 
       character(len=30) :: lon_name,lat_name
 
@@ -436,10 +437,10 @@ C**** set dimensions
 
 ! (re)set shape of output array
       ndims_out = 2
-      if(ijgrid.eq.1) then
+      if(jgrid.eq.1) then
          lon_name='longitude'
          lat_name='latitude'
-      else if(ijgrid.eq.2) then
+      else if(jgrid.eq.2) then
          lon_name='lonb'
          lat_name='latb'
       else
@@ -453,7 +454,7 @@ C**** set dimensions
       units=units_in
       real_att_name='glb_mean'
       real_att(1)=xsum
-      if(ijgrid.eq.1) then
+      if(jgrid.eq.1) then
          call wrtdarr(xij(1,1))
       else
          call wrtdarr(xij(1,2)) ! ignore first latitude row
