@@ -2528,8 +2528,8 @@ C****
 !@+                    LCLD, MCLD, HCLD
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
-      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb
-      USE MODEL_COM, only : p,ptop,zatmo
+      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf
+      USE MODEL_COM, only : p,ptop,zatmo,dtsrc
       USE GEOM, only : imaxj
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
@@ -2542,19 +2542,19 @@ C****
 C**** depending on namedd string choose what variables to output
       do k=1,kdd
         select case (namedd(k))
-        case ("SLP")      ! sea level pressure
+        case ("SLP")      ! sea level pressure (mb)
           do j=1,jm
           do i=1,imaxj(j)
             data(i,j)=(p(i,j)+ptop)*(1.+bbyg*zatmo(i,j)/tsavg(i,j))
      *           **gbyrb
           end do
           end do
-        case ("SAT")      ! surf. air temp
-          data=tsavg
-        case ("QS")       ! surf humidity
+        case ("SAT")      ! surf. air temp (C)
+          data=tsavg-tf
+        case ("QS")       ! surf humidity (kg/kg)
           data=qsavg
-        case ("PREC")     ! precip
-          data=prec
+        case ("PREC")     ! precip (mm/day)
+          data=sday*prec/dtsrc
         case ("Z500")     ! 500mb geopotential height
           data=z500
         case ("RH850")    ! 850mb relative humidity (wrt water)
@@ -2563,7 +2563,7 @@ C**** depending on namedd string choose what variables to output
           data=rh_inst(:,:,2)
         case ("RH300")    ! 300mb relative humidity (wrt water)
           data=rh_inst(:,:,3)
-        case ("LCLD")     ! low level cloud cover
+        case ("LCLD")     ! low level cloud cover (%)
           data=0.
           do j=1,jm
             do i=1,imaxj(j)
@@ -2573,7 +2573,7 @@ C**** depending on namedd string choose what variables to output
               data(i,j)=data(i,j)*100./real(llow,kind=8)
             end do
           end do
-        case ("MCLD")         ! mid level cloud cover
+        case ("MCLD")     ! mid level cloud cover (%)
           data=0.
           do j=1,jm
             do i=1,imaxj(j)
@@ -2583,7 +2583,7 @@ C**** depending on namedd string choose what variables to output
               data(i,j)=data(i,j)*100./real(lmid-llow,kind=8)
             end do
           end do
-        case ("HCLD")         ! high level cloud cover
+        case ("HCLD")     ! high level cloud cover (%)
           data=0.
           do j=1,jm
             do i=1,imaxj(j)
