@@ -110,7 +110,7 @@ C**** Antarctica
         END DO
       END DO
       IF (NOC.ne.NGRID) THEN
-        WRITE(*,*) "Landmask has changed: Please correct NGRID to ",N,
+        WRITE(*,*) "Landmask has changed: Please correct NGRID to ",NOC,
      *      " in init_LI"
         call stop_model("init_LI: Landmask error 1",255)
       END IF
@@ -262,7 +262,7 @@ c       AREG(JR,J_ERUN )=AREG(JR,J_ERUN )+ERUN0*PLICE*DXYPJ ! (Tg=0)
       USE DAGCOM, only : aj,areg,aij,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,aj,areg,jreg,j_rvrd,j_ervr,ij_mrvr,ij_ervr
+     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr
       USE LANDICE_COM, only : snowli,tlandi
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trli0
