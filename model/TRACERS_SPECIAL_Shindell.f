@@ -587,10 +587,10 @@ c          RNOx_lgt is gN/min added per grid box (lightning NOx):
            goto 1502
  1505    continue
  1510    continue    
-C        save tracer 3D source. convert from gN/min to kgN/s/m2 :
+C        save tracer 3D source. convert from gN/min to kgN/s :
          DO L=1,LS1+1
            tr3Dsource(I,J,L,nLightning,n_NOx) = 
-     &     SRCLIGHT(L)*pmin2psec*BYDXYP(J)
+     &     SRCLIGHT(L)*pmin2psec*1.d-3
          END DO
       END DO ! I
       END DO ! J
