@@ -50,6 +50,11 @@ C**** Set-able variables
       REAL*8 :: U00ice = .7d0       ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
       REAL*8 :: HRMAX = 1000.d0     ! default (m)
+!@dbparam RWCldOX multiplies part.size of water clouds over ocean
+      REAL*8 :: RWCldOX=1.d0
+!@dbparam RICldX multiplies part.size of ice clouds at 1000mb
+!@+       RICldX changes linearly to 1 as p->0mb
+      REAL*8 :: RICldX=1.d0 , xRICld
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -350,6 +355,7 @@ C**** EVAPORATION AND PRECIPITATION ARE COMPUTED AT THE END OF THIS
 C**** CYCLE.  THE WHOLE PROCESS MAY BE REPEATED FROM A NEW LOWEST
 C**** UNSTABLE LEVEL.
 C****
+      xRIcld = .001d0*(RICldX-1.d0)
       ierr=0 ; lerr=0
       LMCMIN=0
       LMCMAX=0
@@ -366,7 +372,7 @@ C**** initiallise arrays of computed ouput
       PRCPMC=0.
       SVTP=0
       TPSAV=0
-      CSIZEL=10.    !  effective droplet radius in stem of convection
+      CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
 #ifdef TRACERS_WATER
       trsvwml = 0.
       TRPRCP = 0.
@@ -1234,9 +1240,9 @@ C**** CALCULATE OPTICAL THICKNESS
      *           WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
             IF(WTEM.LT.1.d-10) WTEM=1.d-10
             IF(SVLATL(L).EQ.LHE)  THEN
-               RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+               RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
              ELSE
-               RCLD=25.0*(WTEM/4.2d-3)**BY3
+               RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
             CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
@@ -1401,6 +1407,7 @@ C****
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 C**** THE LIQUID WATER CONTENT IS PREDICTED
 C****
+      xRIcld = .001d0*(RICldX-1.d0)
       IERR=0
 C****
       PRCPSS=0.
@@ -1614,9 +1621,9 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
      *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
-            RCLD=1d-6*(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+            RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
           ELSE
-            RCLD=25.d-6*(WTEM/4.2d-3)**BY3
+            RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
           CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
@@ -2023,11 +2030,11 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
      *       WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
         IF(WTEM.LT.1d-10) WTEM=1.d-10
         IF(LHX.EQ.LHE) THEN
-          RCLD=(10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
+          RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
           QHEATC=(QHEAT(L)+CAREA(L)*(EC(L)+ER(L)))/LHX
           IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
         ELSE
-          RCLD=25.0*(WTEM/4.2d-3)**BY3
+          RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
         ENDIF
         RCLDE=RCLD/BYBR
         CSIZEL(L)=RCLDE

@@ -899,7 +899,7 @@ C**** and save changes in KE for addition as heat later
       USE MODEL_COM, only : dtsrc,ls1,sige,lm,psfmpt,ptop,plbot,jm
       USE GEOM, only : lat_dg
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
-     *  ,HRMAX,ISC,lp50
+     *  ,HRMAX,ISC,lp50,RICldX,RWCldOX
       USE CLOUDS_COM, only : llow,lmid,lhi
       USE DAGCOM, only : nisccp,isccp_reg
       USE PARAM
@@ -912,6 +912,8 @@ C**** and save changes in KE for addition as heat later
       call sync_param( 'U00ice', U00ice )
       call sync_param( "LMCM", LMCM )
       call sync_param( "HRMAX", HRMAX )
+      call sync_param( "RICldX", RICldX )
+      call sync_param( "RWCldOX", RWCldOX )
       call sync_param( "ISC", ISC)
 
       IF(LMCM.LT.0) LMCM = LS1-1

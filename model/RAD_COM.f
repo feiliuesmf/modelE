@@ -57,8 +57,6 @@ C**** exactly the same as ther default values.
       INTEGER :: S0_yr = 1951 , S0_day = 182
 !@dbparam CO2X carbon dioxide multiplication factor
       REAL*8 :: CO2X = 1.
-!@dbparam OptDwX,OptDiX mult. factor for water,ice cloud optical depth
-      REAL*8 :: OptDwX = 1. , OptDiX = 1.
 !@dbparam GHG_yr,GHG_day obs.date of well-mixed GHgases (if 0: time var)
       INTEGER :: GHG_yr = 1951 , GHG_day = 182
 !@dbparam CH4X methane  multiplication factor

@@ -291,7 +291,6 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
      *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
-     *     ,OptDwX,OptDiX
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -320,8 +319,6 @@ C**** sync radiation parameters from input
       call sync_param( "CH4X", CH4X )
       call sync_param( "H2OstratX", H2OstratX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
-      call sync_param( "OptDwX", OptDwX )
-      call sync_param( "OptDiX", OptDiX )
       call sync_param( "S0_yr", S0_yr )
       call sync_param( "ghg_yr", ghg_yr )
       call sync_param( "ghg_day", ghg_day )
@@ -508,7 +505,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRAVIS ,SRRNIR ,SRANIR
      &          ,BTEMPW
       USE RADNCB, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,lm_req
-     *     ,coe,PLB0,shl0,tchg,ALB,OptDwX,OptDiX
+     *     ,coe,PLB0,shl0,tchg,ALB             
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi
@@ -758,26 +755,26 @@ C**** Determine large scale and moist convective cloud cover for radia
           TOTCLD(L)=1.
           AJL(J,L,JL_TOTCLD)=AJL(J,L,JL_TOTCLD)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
-            SIZEWC(L)=CSIZMC(L,I,J)/OptDwX
-            SIZEIC(L)=CSIZMC(L,I,J)/OptDiX
+            SIZEWC(L)=CSIZMC(L,I,J)      
+            SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUMCL*OptDwX
+              TAUWC(L)=TAUMCL      
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUMCL*OptDiX
+              TAUIC(L)=TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF
           ELSE
-            SIZEWC(L)=CSIZSS(L,I,J)/OptDwX
-            SIZEIC(L)=CSIZSS(L,I,J)/OptDiX
+            SIZEWC(L)=CSIZSS(L,I,J)      
+            SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
-              TAUWC(L)=TAUSSL*OptDwX
+              TAUWC(L)=TAUSSL      
               OPTDW=OPTDW+TAUWC(L)
               AJL(j,l,jl_wcld)=AJL(j,l,jl_wcld)+1.
             ELSE
-              TAUIC(L)=TAUSSL*OptDiX
+              TAUIC(L)=TAUSSL
               OPTDI=OPTDI+TAUIC(L)
               AJL(j,l,jl_icld)=AJL(j,l,jl_icld)+1.
             END IF

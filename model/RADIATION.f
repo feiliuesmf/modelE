@@ -3176,13 +3176,14 @@ C                         Specification of  FULGAS  Scaled Gas Amounts
 C                         --------------------------------------------
 C
       DO 230 L=1,NL0
-C**** Only adjust stratospheric water levels (above LS1_loc)
-C     ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      IF (L.lt.LS1_loc) THEN
-        ULGAS(L,1)=U0GAS(L,1)
-      ELSE
-        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      END IF
+C**** Adjust all water levels 
+      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+cc*** Only adjust stratospheric water levels (above LS1_loc)
+cc    IF (L.lt.LS1_loc) THEN
+cc      ULGAS(L,1)=U0GAS(L,1)
+cc    ELSE
+cc      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+cc    END IF
 C****
       ULGAS(L,3)=U0GAS(L,3)*FULGAS(3)
 !obso ULGAS(L,5)=U0GAS(L,5)*FULGAS(5)
@@ -3268,13 +3269,14 @@ C
   312 CONTINUE
   313 CONTINUE
       DO 314 L=1,NL
-C**** Only adjust stratospheric water levels (above LS1_loc)
-C     ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      IF (L.lt.LS1_loc) THEN
-        ULGAS(L,1)=U0GAS(L,1)
-      ELSE
-        ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
-      END IF
+C**** Adjust ALL water levels
+      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+cc*** Only adjust stratospheric water levels (above LS1_loc)
+cc    IF (L.lt.LS1_loc) THEN
+cc      ULGAS(L,1)=U0GAS(L,1)
+cc    ELSE
+cc      ULGAS(L,1)=U0GAS(L,1)*FULGAS(1)
+cc    END IF
 C****
   314 CONTINUE
 C
@@ -12689,7 +12691,9 @@ C     -----------------------------------------------------------------
 C
 C-----------------------------------------------------------------------
 C     Select albedo computations and fixups using KVEGA6
-C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, puddling  (SI2000)
+C     KVEGA6=-5  2-band albedo, Antarc/Greenl alb=.8, we puddling:SI95
+C     KVEGA6=-4  2-band albedo, Antarc/Greenl alb=.8, ws puddling:R00BF
+C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, wk puddling:R00BG
 C     KVEGA6=-2  2-band albedo, Antarc/Greenl alb=.8, no puddling
 C     KVEGA6=-1  2-band albedo - no 'fixups'
 C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8
@@ -13034,12 +13038,12 @@ c**** combined sea ice albedo
         albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
 C**** Zenith angle dependence for dry snow only
         albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
-C**** Uncomment code below for zenith angle dependence for all types 
+C**** Uncomment code below for zenith angle dependence for all types
 C**** based on Dickinson (1981)
 C****          a = a1                                   cosz>0.5
 C****              a1 + (1-a1)*0.5 * (3/(1+4*cosz) -1) 0<cosz<.5
 C**** ==> a_diff = 0.84 a1 + 0.16 (integrating over cosz)
-C**** ==> a1= (a_diff-0.16)/0.84 
+C**** ==> a1= (a_diff-0.16)/0.84
 c        if (cosz.gt.0.5) then
 c          albtr(1:4) = (albtf(1:4)-0.16d0)/0.84d0
 c        else
@@ -13049,13 +13053,13 @@ c        end if
 
         IF(KVEGA6.GT.0) THEN
 C**** 6 band albedo: map 4 Schramm wavelength intervals to 6 GISS ones
-C**** Band#  range  %solar(grnd)  range   %solar(grnd)  band# 
-C****  (1)  250-690  (49.3%)   -->  300-770    (58.5%) (1) 
-C****  (2) 690-1190  (34.9%)   -->  770-860     (8.6%) (2) 
-C****                          -->  860-1250   (19.5%) (3) 
-C****  (3) 1190-2380 (14.8%)   --> 1250-1500    (3.8%) (4) 
-C****                          --> 1500-2200    (7.6%) (5) 
-C****  (4) 2380-4000 (1.0%)    --> 2200-4000    (2.0%) (6) 
+C**** Band#  range  %solar(grnd)  range   %solar(grnd)  band#
+C****  (1)  250-690  (49.3%)   -->  300-770    (58.5%) (1)
+C****  (2) 690-1190  (34.9%)   -->  770-860     (8.6%) (2)
+C****                          -->  860-1250   (19.5%) (3)
+C****  (3) 1190-2380 (14.8%)   --> 1250-1500    (3.8%) (4)
+C****                          --> 1500-2200    (7.6%) (5)
+C****  (4) 2380-4000 (1.0%)    --> 2200-4000    (2.0%) (6)
 C**** Adjust weighting to force same broadband albedo
           BOIVN(1)=albtf(1)*.493d0/.585d0
           XOIVN(1)=albtr(1)*.493d0/.585d0
@@ -13102,7 +13106,7 @@ C**** set ice albedo
       BOINIR=AOINIR*EXPSNO+BSNNIR*(1.D0-EXPSNO)
 c**** Puddlings: weak in both Hemispheres, i.e. if Ts > 0C, then
 c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
-      if (kvega6.lt.-2) then
+      if (kvega6.eq.-3) then
         IF(TSL.GT.273.16d0) THEN
           BOIVIS=.3d0           !   Ts > 10C
           BOINIR=.15d0
@@ -13111,17 +13115,32 @@ c**** set albedos indep. of snow to .3/.15 up to .55/.3 as Ts grows
             BOINIR=AOINIR-(TSL-273.16d0)*.1d0*(AOINIR-.15d0)
           END IF
         END IF
+c**** Puddlings: weak in NH, strong (or extreme) in SH
+      else if (kvega6.le.-4) then
+        if (jlat.gt.mlat46/2) then    ! NH weak puddling
+          IF(TSL.GT.273.16d0) THEN
+            BOIVIS=.3d0                                         ! Ts>10C
+            BOINIR=.15d0
+            IF(TSL.LT.283.16d0) THEN
+              BOIVIS=AOIVIS-(TSL-273.16d0)*.1d0*(AOIVIS-.30d0) !0<Ts<10C
+              BOINIR=AOINIR-(TSL-273.16d0)*.1d0*(AOINIR-.15d0)
+            END IF
+          END IF
+        else if (tgoi.gt.273.06.or.kvega6.eq.-5) then ! SH strong puddl
+          BOIVIS=.25d0
+          BOINIR=.1d0
+        end if
       end if
 c**** End of puddling section
       XOIVIS=BOIVIS
       XOINIR=BOINIR
-      ELSE
-        DO L=1,6
+      ELSE                      ! end of 2-band original version
+        DO L=1,6                !        6-band original version
           BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
           XOIVN(L)=BOIVN(L)
         END DO
       ENDIF
-      ENDIF                     ! end of pre-Schramm version
+      endif                     ! end of original version
 C
       ITOI=TGOI
       WTOI=TGOI-ITOI
