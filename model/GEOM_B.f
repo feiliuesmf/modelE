@@ -89,14 +89,11 @@ C**** some B-grid conservation quantities
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAVPO,DLAT_DG
 
-C**** latitudinal spacing depends on whether you have a half-box at
-C**** the poles or even spacing. Currently only assume a half box
-C**** for the JM=46 case (could also be used for 'real' 8x10)
-      IF (JM.eq.46) THEN        ! .or. J.eq.24)  ! half box at pole
-        DLAT_DG=180./(JM-1)
-      ELSE                      ! even spacing
-        DLAT_DG=180./JM
-      END IF
+C**** latitudinal spacing depends on whether you have even spacing or
+C**** a partial box at the pole
+      DLAT_DG=180./JM                     ! even spacing (default)
+      IF (JM.eq.46) DLAT_DG=180./(JM-1)   ! 1/2 box at pole for 4x5
+cc    IF (JM.eq.24) DLAT_DG=180./(JM-1.5) ! 1/4 box at pole, 'real' 8x10
       DLAT=DLAT_DG*radian
       LAT(1)  = -.25*TWOPI
       LAT(JM) = -LAT(1)
