@@ -18,9 +18,17 @@ C****        OHT - OTSPEC.RB150.M250D
 C****      OHTLP - line plottable zonal northward heat transports
 C****     RSFNEW - augmented restart file
 C****
+!AOO use statements added for domain_decomp and dynamics to pull in
+!AOO dynamically allocated arrays:  part 1 of 3
+      use domain_decomp, only : init_decomp, grid, finish_decomp
+!!    use dynamics, only : init_dynamics
+!!    use model_com, only : ioread
+      use model_com, only : im,jm,init_model_com
+!!    use somtq_com, only: init_smomtq
+!AOO end of part 1 of 3
       USE PARAM
       USE CONSTANT, only : twopi,sday,rhows
-      USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun
+      USE MODEL_COM, only: lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
       USE DAGCOM, only : oa,koa
@@ -74,6 +82,12 @@ C****
 C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
+!AOO calls to init routines for dynamically allocated arrays:part 2 of 3
+      call init_decomp(im,jm)
+!!    call init_dynamics(grid)
+      call init_model_com(grid)
+!!    call init_smomtq(grid)
+!AOO end of part 2 of 3
       call getarg(1,RunID )
       call getarg(2,title0)
       read(title0,*) first_month
@@ -323,6 +337,9 @@ C**** Output aplot format file of ocean heat transports
 
       call closeunit(iu_OHTLP)
       WRITE(0,*) ' NORMAL END'
+!AOO not sure if this is needed, but just in case ...  part 3 of 3
+      call finish_decomp()
+!AOO end of part 3 of 3
 
       STOP
  555  write (*,*) ' Reached end of file ',file_name

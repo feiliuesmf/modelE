@@ -17,6 +17,14 @@ C****        MLMAX = annual maximal mixed layer depths
 C****        TOPO = topography
 C****        SNOW = daily snow amounts (from vertflux)
 C****
+!AOO use statements added for domain_decomp and dynamics to pull in
+!AOO dynamically allocated arrays: part 1 of 3
+      use domain_decomp, only : init_decomp, grid, finish_decomp
+!!    use dynamics, only : init_dynamics
+!!    use model_com, only : ioread
+      use model_com, only : im,jm,init_model_com
+!!    use somtq_com, only: init_smomtq
+!AOO                        end of part 1 of 3
       USE STATIC_OCEAN
       USE SEAICE, only : ace1i,ac2oim
       USE SEAICE_COM, only : snowi,msi,ssi
@@ -29,6 +37,12 @@ C****
       real*8 z1ox(im,jm),z12o_max
       CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
+!AOO calls to init routines for dynamically allocated arrays:part 2 of 3
+      call init_decomp(im,jm)
+!!    call init_dynamics(grid)
+      call init_model_com(grid)
+!!    call init_smomtq(grid)
+!AOO end of part 2 of 3
       call getarg(1,title)
       read (title,*) months
       call getarg(2,title)
@@ -85,7 +99,7 @@ C**** initialise sea ice mass etc.
 C****
 C**** Loop over days of the year
 C****
-      jday = JDendOfM(months-1)   
+      jday = JDendOfM(months-1)
       do m = months, months+11
         month = 1 + mod(m-1,12)
         last_day = month_day(month)
@@ -151,6 +165,9 @@ C****
       TITLE = ' Z12O = DEPTH OF BOTTOM OF SECOND LAYER (M)'
       CALL MAP1(IM,JM,IH,TITLE,SNGL(Z12O),SNGL(FOCEAN),1.,0.,0)
 
+!AOO not sure if this is needed, but just in case ... part 3 of 3
+      call finish_decomp()
+!AOO end of part 3 of 3
       STOP
 C****
   940 FORMAT ('0Z1O, TG2O and TG12O written on unit 2,',
