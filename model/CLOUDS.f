@@ -1337,8 +1337,9 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
      *     ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1
      *     ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2
      *     ,WMNEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,XY,RCLD,FCOND,HDEPx
-     *     ,PRATW,PRATM
-!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variables
+     *     ,PRATW,PRATM,SMN12,SMO12
+!@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATW,PRATM dummy variabls
+!@var SMN12,SMO12 dummy variables
 !@var AIRMR
 !@var CBF enhancing factor for precip conversion
 !@var CK ratio of cloud top jumps in moist static energy and total water
@@ -1870,10 +1871,10 @@ C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****
       DO L=LP50-1,1,-1
-        SM(L)=TH(L)*AIRM(L)*PLK(L)
+        SM(L)=TH(L)*AIRM(L)  ! *PLK(L)
         QM(L)=QL(L)*AIRM(L)
         WMXM(L)=WMX(L)*AIRM(L)
-        SM(L+1)=TH(L+1)*AIRM(L+1)*PLK(L+1)
+        SM(L+1)=TH(L+1)*AIRM(L+1) ! *PLK(L+1)
         QM(L+1)=QL(L+1)*AIRM(L+1)
         WMXM(L+1)=WMX(L+1)*AIRM(L+1)
         TOLD=TL(L)
@@ -1911,6 +1912,7 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
         SMO2=SM(L+1)
         QMO2=QM(L+1)
         WMO2=WMXM(L+1)
+        SMO12=SMO1*PLK(L)+SMO2*PLK(L+1)
         DO K=1,KMAX
           UMO1(K)=UM(K,L)
           VMO1(K)=VM(K,L)
@@ -1955,21 +1957,24 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
           IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX) EXIT
         END DO
 C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
-        TH(L)=SMN1*BYAM(L)/PLK(L)
+        SMN12=SMN1*PLK(L)+SMN2*PLK(L+1)
+        SMN1=SMN1-(SMN12-SMO12)*AIRM(L)/((AIRM(L)+AIRM(L+1))*PLK(L))
+        SMN2=SMN2-(SMN12-SMO12)*AIRM(L+1)/((AIRM(L)+AIRM(L+1))*PLK(L+1))
+        TH(L)=SMN1*BYAM(L) ! /PLK(L)
         TL(L)=TH(L)*PLK(L)
         QL(L)=QMN1*BYAM(L)
         LHX=SVLHXL(L)
         RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
         WMX(L)=WMN1*BYAM(L)
-        TH(L+1)=SMN2*BYAM(L+1)/PLK(L+1)
+        TH(L+1)=SMN2*BYAM(L+1) ! /PLK(L+1)
         QL(L+1)=QMN2*BYAM(L+1)
         WMX(L+1)=WMN2*BYAM(L+1)
 C**** need to scale SM moments for conservation purposes
-        SMOM(:,L)=SMOM(:,L)*PLK(L)
-        SMOM(:,L+1)=SMOM(:,L+1)*PLK(L+1)
+C       SMOM(:,L)=SMOM(:,L)*PLK(L)
+C       SMOM(:,L+1)=SMOM(:,L+1)*PLK(L+1)
         CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
-        SMOM(:,L)=SMOM(:,L)/PLK(L)
-        SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
+C       SMOM(:,L)=SMOM(:,L)/PLK(L)
+C       SMOM(:,L+1)=SMOM(:,L+1)/PLK(L+1)
 C****
         CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
 #ifdef TRACERS_ON
