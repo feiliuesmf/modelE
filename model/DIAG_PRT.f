@@ -3826,6 +3826,10 @@ C**** Fill in maplet indices for gravity wave diagnostics
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
       end do
 
+C**** include PBL Height
+        iord(kmaplets+1:kmaplets+1) = (/ij_pblht/)
+        kmaplets=kmaplets+1
+
 C**** Fill in maplet indices for geoptential heights and thickness T's
       koff = kmaplets+iDO_GWDRAG
       do k=1,kgz_max-1

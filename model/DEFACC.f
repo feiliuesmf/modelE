@@ -2547,7 +2547,16 @@ c
       name_ij(k) = 'optdi'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-
+c
+      k=k+1 !
+      IJ_PBLHT   = k !
+      lname_ij(k) = 'PBL HEIGHT'
+      units_ij(k) = 'M'
+      name_ij(k) = 'pblht'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
+c
       if (k .gt. kaij) then
         write (6,*) 'ij_defs: Increase kaij=',kaij,' to at least ',k
         call stop_model( 'kaij too small', 255 )
