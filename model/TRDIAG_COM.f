@@ -252,7 +252,7 @@ C**** include some extra troposphere only ones
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
       INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
-      character(len=20), dimension(ktcon,ntmxcon) ::
+      character(len=30), dimension(ktcon,ntmxcon) ::
      &   name_tconsrv,units_tconsrv
       character(len=80), dimension(ktcon,ntmxcon) :: lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
@@ -321,6 +321,10 @@ C----------------------------------------------------
       INTEGER, INTENT(IN) :: ITR
 !@var CONPTS conservation diag points for special tracer diags
       CHARACTER*16, INTENT(IN), DIMENSION(ntcons) :: CONPTS
+!@var CONPTS_sname like CONPTS but without spaces
+      CHARACTER*16, DIMENSION(ntcons) :: CONPTS_sname
+!@var CONPT0_sname like CONPT0 but without spaces
+      CHARACTER*10, DIMENSION(npts) :: CONPT0_sname
       CHARACTER*11 CHGSTR
       INTEGER NI,NM,NS,N,k
 
@@ -329,6 +333,22 @@ C**** remove spaces in NAME_CON for netcdf names
       do k=1,len_trim(NAME_CON)
         if (sname(k:k).eq." ") sname(k:k)="_"
       end do
+
+C**** remove spaces, invalid characters in CONPTS, CONPT0 for netcdf names
+      conpts_sname = conpts
+      do n=1,ntcons
+      do k=1,len_trim(conpts_sname(n))
+         if (conpts_sname(n)(k:k).eq." ") conpts_sname(n)(k:k)="_"
+         if (conpts_sname(n)(k:k).eq."+") conpts_sname(n)(k:k)="_"
+      enddo
+      enddo
+      conpt0_sname = conpt0
+      do n=1,npts
+      do k=1,len_trim(conpt0_sname(n))
+         if (conpt0_sname(n)(k:k).eq." ") conpt0_sname(n)(k:k)="_"
+         if (conpt0_sname(n)(k:k).eq."+") conpt0_sname(n)(k:k)="_"
+      enddo
+      enddo
 C****
       NI=1
       NOFMT(1,itr) = NI
@@ -352,13 +372,13 @@ C****
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *         CONPT0(N-1)
             name_tconsrv(NM,itr) =
-     *           "chg_"//trim(sname)//"_"//TRIM(CONPT0(N-1)(1:3))
+     *           "chg_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
           else
             IF (.not. QSUM(N)) CHGSTR="     DELTA "
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *           CONPTs(N-npts-1)
             name_tconsrv(NM,itr) =
-     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs(N-npts-1)(1:3))
+     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
           end if
           lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
           units_tconsrv(NM,itr) = SUM_UNIT
