@@ -732,10 +732,10 @@ c     alpha=dtime*km(2)*rhoebydz(2)*bydzerho(1)
 c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
-      rhs(1)=u0(1)
-      rhs1(1)=v0(1)
-c     rhs(1)=u0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*uflx
-c     rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
+c     rhs(1)=u0(1)
+c     rhs1(1)=v0(1)
+      rhs(1)=u0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*uflx
+      rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
 c
 c     Upper boundary conditions:
 c
@@ -818,9 +818,9 @@ c     alpha=dtime*kh(2)*rhoebydz(2)*bydzerho(1)
 c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
-      rhs(1)=t0(1)
+c     rhs(1)=t0(1)
 c     rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*gc(2)
-c     rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*(gc(2)+tflx)
+      rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*(gc(2)+tflx)
 c
 c     Upper boundary conditions:
 c
@@ -897,8 +897,8 @@ c     alpha=dtime*kq(2)*rhoebydz(2)*bydzerho(1)
 c     alpha=0.d0
       dia(1)=1.d0+alpha
       sup(1)=-alpha
-      rhs(1)=q0(1)
-c     rhs(1)=q0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*qflx
+c     rhs(1)=q0(1)
+      rhs(1)=q0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*qflx
 c
 c     Upper boundary conditions:
 c
