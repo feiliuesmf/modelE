@@ -9,10 +9,10 @@
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
 !@ver  1.0
-#ifdef TRACERS_ON
+C                 
       USE QUSDEF, only: nmom
       USE MODEL_COM, only: im,jm,lm
-#endif
+C      
       IMPLICIT NONE
       SAVE
 
