@@ -210,10 +210,12 @@ C-----------------------------------------
 !@+          constant pressure levels are used above PTOPTR mb
       real*8 :: PTOPTR = 150.d0
 
-!@var MRELAY if not 0, gases and aerosols are always repartitioned
-!@var KEEP10, RO3COL, NO3COL may be used to modify this repartitioning
-!@+   if NO3COL=1, column amount of O3 is reset to RO3COL
+!@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
+!@+   KEEP10, RO3COL, NO3COL may be used to modify this repartitioning:
+!@+           if NO3COL=1, column amount of O3 is reset to RO3COL
+!@+   (for OFF-line use if number of layers is time-dependent)
       integer :: MRELAY=0, KEEP10=0, NO3COL=0 ; real*8 :: RO3COL=1.
+
 !@var PLB12L Vert. Layering for tropospheric aerosols/dust (reference)
       real*8, parameter, dimension(13) :: PLB12L=(/
      *  984.,934.,854.,720.,550.,390.,285.,255.,150.,100., 60.,30.,10./)
@@ -223,7 +225,7 @@ C-------------------------------------------
 C     Grid parameters: Horizontal resolution
 C-------------------------------------------
 
-!@var MLAT46,MLON72 horizontal grid dimensions the radiation assumes
+!@var MLAT46,MLON72 horizontal grid dimensions referred to in this model
 !@+   The Radiation Model utilizes Data with 72x46 (lon,lat) resolution.
 !@+               For GCM resolution other than 72x46, set JLAT and ILON
 !@+               to appropriately Sample  (rather than interpolate) the
@@ -268,29 +270,29 @@ C----------------
 !@var TLm           mean layer temperature (K)
 !@var TLb,TLt       bottom,top layer temperature (K) - computed from TLm
 !@+                 except if TLGRAD<0 ; TLGRAD,PTLISO control T-profile
-!@var TLGRAD           0<TLGRAD<1 controls T-profile within a layer, but
-!@var PTLISO           tlt=tlb=tlm above PTLISO mb independent of TLGRAD
+!@var       TLGRAD     0<TLGRAD<1 controls T-profile within a layer, but
+!@var       PTLISO     tlt=tlb=tlm above PTLISO mb independent of TLGRAD
           real*8 :: TLGRAD=1.,  PTLISO=2.5d0             ! control param
 
-!@var ULGAS,U0GAS   gas amounts: current,reference values (???)
+!@var ULGAS,U0GAS   gas amounts: current,reference values (from setgas)
 !@var TAUWC,TAUIC   opt.depth of water,ice cloud layer (1)
 !@var SIZEWC,SIZEIC particle size of water,ice clouds (micron)
 !@var CLDEPS        cloud heterogeneity; is computed using KCLDEP,EPSCON
-!@var EPSCON        cldeps=EPSCON if KCLDEP=1
-!@var KCLDEP        KCLDEP=0->CLDEPS=0, 1->=EPSCON, 2->as is, 3,4->isccp
+!@var       EPSCON  cldeps=EPSCON if KCLDEP=1
+!@var       KCLDEP  KCLDEP=0->CLDEPS=0, 1->=EPSCON, 2->as is, 3,4->isccp
           real*8 :: EPSCON=0. ; integer :: KCLDEP=4      ! control param
 
 !@var SHL,RHL       layer specific,relative humidity (1)
-!@var KEEPRH        if 0, RHL is computed from SHL, else SHL from RHL
+!@var       KEEPRH  if 0, RHL is computed from SHL, else SHL from RHL
          integer :: KEEPRH=0                             ! control param
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
-!@var KEEPAL        if 0, SRBALB,SRXALB are computed in SET/GETSUR
+!@var       KEEPAL  if 0, SRBALB,SRXALB are computed in SET/GETSUR
          integer :: KEEPAL=0                             ! control param
-!@var KVEGA6        if >0: 6 spectral bands used for albedos, else: 2
+!@dbparm    KVEGA6  if >0: 6 spectral bands used for albedos, else: 2
 !@+                 also controls sea ice albedo scheme: 1,-1 Lacis
 !@+                 2,-2 Lacis+fixup, 0,3 Schramm, <-2 puddles, 4 Hansen
-         integer :: KVEGA6=4
+         integer :: KVEGA6=4                             ! control param
 !@var PVT           frac. of surf.type (bareBrite+veg*8+bareDark+ocn)(1)
 !@var AGESN         age of snow    (over soil,oice,land ice) (days)
 !@var SNOWE,SNOWLI  amount of snow (over soil,land ice)   (kg/m^2)
@@ -298,6 +300,7 @@ C----------------
 !@var WEARTH        soil wetness (1)
 !@var WMAG          wind speed (m/s)
 !@var POCEAN        fraction of box covered by ocean or lake  (1)
+!@var PLAKE         fraction of box covered by lake           (1)
 !@var PEARTH        fraction of box covered by soil           (1)
 !@var POICE         fraction of box covered by ocean/lakeice  (1)
 !@var PLICE         fraction of box covered by glacial ice    (1)
@@ -403,7 +406,7 @@ C----------------
 
       real*8 ::                      !  Temp data used by WRITER, WRITET
      A           SRCQPI(6,15),TRCQPI(33,15),
-     B           TRAQAB(33,11),TRBQAB(33, 9),TRCQAB(33,15),TRDQAB(33,25)
+     B           TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
       integer :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------
@@ -492,7 +495,7 @@ C--------------------------------------
 !@+   MADBAK   if 1          Adds background aerosols
 !     ------------------------------------------------------------------
       integer :: MADO3M=1,MADAER=1,MADDST=1,MADVOL=1,MADEPS=1,MADLUV=1
-      integer :: MADGHG=1,MADSUR=1,MADBAK=0 !   MADSUR for OFF-line only
+      integer :: MADGHG=1,MADSUR=0,MADBAK=0 ! MADSUR=1 for OFF-line only
 
 !     ------------------------------------------------------time control
 !@var KYEARx,KJDAYx if both are 0   : data are updated to current yr/day
@@ -3537,38 +3540,38 @@ C****
   345 CONTINUE
       ENDIF
 
-      IF(MRELAY.GT.0) THEN
-      IF(NO3COL.GT.0) THEN
-      SUMCOL=0.D0
-      DO 410 L=1,NL0
-      SUMCOL=SUMCOL+U0GAS(L,3)
-  410 CONTINUE
-      DO 420 L=1,NL0
-      ULGAS(L,3)=U0GAS(L,3)*RO3COL/SUMCOL
-  420 CONTINUE
-      ENDIF
-      DO 450 K=2,12
-      IF(K.EQ.10.AND.KEEP10.GT.0) GO TO 450
-      DO 430 L=1,NL0
-      UGAS0(L)=ULGAS(L,K)
-  430 CONTINUE
-      CALL REPART(UGAS0,PLB0,NL1,UGASR,PLB,NLP)
-      DO 440 L=1,NL
-      ULGAS(L,K)=UGASR(L)
-  440 CONTINUE
-  450 CONTINUE
-      IF(KEEP10.GT.0) THEN
-      IF(KEEP10.LT.10) THEN
-      DO 460 L=1,NL
-      ULGAS(L,KEEP10)=ULGAS(L,10)
-  460 CONTINUE
-      ENDIF
-      IF(KEEP10.GT.10) THEN
-      DO 470 L=1,NL
-      ULGAS(L,KEEP10-10)=ULGAS(L,KEEP10-10)+ULGAS(L,10)
-  470 CONTINUE
-      ENDIF
-      ENDIF
+      IF(MRELAY.GT.0) THEN          ! for offline use only if NL changes
+        IF(NO3COL.GT.0) THEN        ! rescale ozone to col.amount RO3COL
+          SUMCOL=0.D0
+          DO L=1,NL0
+          SUMCOL=SUMCOL+U0GAS(L,3)
+          END DO
+          DO L=1,NL0
+          ULGAS(L,3)=U0GAS(L,3)*RO3COL/SUMCOL
+          END DO
+        ENDIF
+        DO 450 K=2,12                      ! repartition to new layering
+          IF(K.EQ.10.AND.KEEP10.GT.0) GO TO 450
+          DO L=1,NL0
+          UGAS0(L)=ULGAS(L,K)
+          END DO
+          CALL REPART(UGAS0,PLB0,NL1,UGASR,PLB,NLP)
+          DO L=1,NL
+          ULGAS(L,K)=UGASR(L)
+          END DO
+  450   CONTINUE
+        IF(KEEP10.GT.0) THEN
+          IF(KEEP10.LT.10) THEN
+            DO L=1,NL
+            ULGAS(L,KEEP10)=ULGAS(L,10)
+            END DO
+          ENDIF
+          IF(KEEP10.GT.10) THEN
+            DO L=1,NL
+            ULGAS(L,KEEP10-10)=ULGAS(L,KEEP10-10)+ULGAS(L,10)
+            END DO
+          ENDIF
+        ENDIF
       ENDIF
 
 C-----------------
@@ -3873,7 +3876,7 @@ C     ------------------------------------------------------------------
 C                            Option to repartition aerosol optical depth
 C                                  for nonstandard GCM vertical layering
 C                                  -------------------------------------
-      IF(MRELAY.GT.0) THEN
+      IF(MRELAY.GT.0) THEN         ! for offline use only if NL changes
       DO 240 K=1,6
       DO 220 L=1,NL0
       AERX1(L)=QAERO(L,K)
@@ -3883,7 +3886,6 @@ C                                  -------------------------------------
       CALL REPART(AERX1,PLB0,NL0,AERX2,PLB,NLP)
       CALL REPART(AERS1,PLB0,NL0,AERS2,PLB,NLP)
       CALL REPART(AERG1,PLB0,NL0,AERG2,PLB,NLP)
-
 
       DO 230 L=1,NL
       SRAEXT(L,K)=AERX2(L)
@@ -4789,13 +4791,13 @@ C                      ------------------------------------------------
       HLATTF(K)=HTFLAT(JLAT,K)
   310 CONTINUE
       CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NLP)
-ccc   LHPMAX=0       ! not used
-ccc   LHPMIN=NL      ! not used
-      DO 320 L=1,NL
-      N=NLP-L
-ccc   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
-ccc   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
-  320 CONTINUE
+!nu   LHPMAX=0       ! not used
+!nu   LHPMIN=NL      ! not used
+!nu   DO L=1,NL
+!nu   N=NLP-L
+!nu   IF(HTPROF(L).GE.HTPLIM) LHPMAX=L
+!nu   IF(HTPROF(N).GE.HTPLIM) LHPMIN=N
+!nu   END DO 
       SUMHTF=1.D-10
       DO 330 L=1,NL
       IF(HTPROF(L).LT.HTPLIM) HTPROF(L)=0.D0
@@ -5861,6 +5863,7 @@ C     ------------------------------------------------------------------
       TLB(L)=TLM(L)
   120 CONTINUE
   130 CONTINUE
+      TLB(NLP)=TLT(NL)
 
 C     ------------------------------------------------------------------
 C                   WEIGHT ASSIGNMENTS FOR PLANCK FUNCTION INTERPOLATION
@@ -6337,7 +6340,7 @@ C       ----------------------------------------------------------------
 
 C**** Window region and spectr. integrated total flux diagnostics
       PFW=max( 1.0001d-2, 10.D0*TRUFTW )
-      IF(PFW.GT.629.999d0) PFW=629.999d0
+      IF(PFW.GT.719.999d0) PFW=719.999d0
       IPF=PFW
       IF(IPF.LT.10) GO TO 330
       DPF=PFW-IPF
@@ -6367,7 +6370,7 @@ C     IF(IPF.GT.899) IPF=899
       TOTLZT(II)=TKPFT(IPF)+DPF*(TKPFT(IPF+1)-TKPFT(IPF))
 
       PFW=max( 1.0001d-2, 10.D0*WINDZF(II) )
-      IF(PFW.GT.629.999d0) PFW=629.999d0
+      IF(PFW.GT.719.999d0) PFW=719.999d0
       IPF=PFW
       IF(IPF.LT.10) GO TO 360
       DPF=PFW-IPF
@@ -9035,10 +9038,10 @@ C
      +        '   AEROSOL   BCI     OCI     SUI     SEA     SUN '
      +        ,'    ANT     OCN     OCB     BCB     SSB         '/
      +        '   SIZE ',10F8.1)
- 6451 FORMAT('  K  SRAQEX')
+ 6451 FORMAT('  K  SRBQEX')
  6452 FORMAT(I3,6X,15F8.5)
- 6453 FORMAT('  K  SRAQSC')
- 6454 FORMAT('  K  SRAQCB')
+ 6453 FORMAT('  K  SRBQSC')
+ 6454 FORMAT('  K  SRBQCB')
  6455 FORMAT('  K  ',2A3)
  6456 FORMAT(' ')
 C
@@ -11795,7 +11798,7 @@ C     -------------------
       use SURF_ALBEDO
       use RADPAR, only:
 C**** config data
-     *     MLAT46,jnorth,KEEPAL,KVEGA6,snoage_fac_max,KZSNOW,
+     *     MLAT46,jnorth,KEEPAL,KVEGA6,snoage_fac_max,KZSNOW,MADSUR,
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
@@ -11867,10 +11870,13 @@ C     KVEGA6= 1  6-band albedo - no 'fixups'
 C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
 C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
 C     KVEGA6= 4  6-band Hansen oi.alb, Antarc/Greenl alb=.8
-C
+
+C     For offline use: if MADSUR=1 get vegetation fractions from ij-map
+      if(MADSUR.eq.1) call getveg(ilon,jlat)
+
 C           Get Albedo, Thermal Flux, Flux Derivative for each Surf Type
 C           ------------------------------------------------------------
-C
+
       JH=1
       IF(JLAT.GT.JNORTH) JH=2
       KKZSNO=KZSNOW
@@ -11896,7 +11902,7 @@ C
       ANSCUM=0.D0
 C
       BOCVN=0. ; BEAVN=0. ; BOIVN=0. ; BLIVN=0.
-      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0.
+      XOCVN=0. ; XEAVN=0. ; XOIVN=0. ; XLIVN=0. ; BXA=0.
 C
 C                                             --------------------------
 C                                             Ocean Albedo Specification

@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum RAD_DRV contains drivers for the radiation related routines
 !@ver  1.0
 !@cont COSZ0, init_RAD, RADIA
@@ -124,7 +126,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
         COSZ(1:IM,J)=0.
       END IF
   500 CONTINUE
-      RETURN 
+      RETURN
 C****
 C****
       ENTRY COSZS (ROT1,ROT2,COSZ,COSZA)
@@ -273,7 +275,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
         COSZA(1:IM,J)=0.
       END IF
   900 CONTINUE
-      RETURN 
+      RETURN
       END
 
       SUBROUTINE init_RAD
@@ -303,7 +305,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE DAGCOM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
 
-      INTEGER J,L,LR,MADVEL
+      INTEGER J,L,LR,MADVEL,LONR,LATR
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -481,8 +483,9 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
-      entry setatm
-      return
+      ENTRY SETATM        ! dummy routines
+      ENTRY GETVEG(LONR,LATR)
+      RETURN
       END SUBROUTINE init_RAD
 
       SUBROUTINE RADIA
@@ -541,6 +544,12 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp
+#ifdef TRACERS_DRYDEP
+      USE tracers_DRYDEP, only: CFRAC,trdrydep_rad
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: RCLOUDFJ,SALBFJ
+#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -588,11 +597,18 @@ C**** Calculate mean cosine of zenith angle for the current physics step
         iend = 1
         it = itime-1           ! make sure, at least 1 record is read
         do while (mod(itime-it,8760).ne.0)
-          read(iu_rad,end=10,err=10) it,T,RQT,TsAvg,QR,P,CLDinfo
-     *     ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
-     *     ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
-     *     ,fr_snow_rad_ij,mwl     ! ,flake (if time-dep)
-     *     ,srhra,trhra,iy  ! original output data (for adj.frc. only)
+C****   input data:          WARNINGS
+C****        1 - any changes here also go in later (look for 'iu_rad')
+C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
+          read(iu_rad,end=10,err=10) it,T,RQT,TsAvg    ! LM+LM_REQ+1+
+     *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
+     *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+     *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
+     *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
+     *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+C****   output data: really needed only if kradia=2
+     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)}
+C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
           if (qcheck) write(6,*) 'reading RADfile at Itime',Itime,it,iy
         end do
         iend = 0
@@ -736,7 +752,7 @@ C****
         shl(L)=QSS
         IF(FSS(L,I,J)*CLDSAV(L,I,J).LT.1.)
      *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/
-     *              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
+     /              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
         TAUSSL=0.
         TAUMCL=0.
@@ -797,6 +813,12 @@ C**** Determine large scale and moist convective cloud cover for radia
           AJL(j,l,jl_wcsiz)=AJL(j,l,jl_wcsiz)+sizewc(l)*tauwc(l)
           AJL(j,l,jl_icsiz)=AJL(j,l,jl_icsiz)+sizeic(l)*tauic(l)
         END IF
+#ifdef TRACERS_SPECIAL_Shindell
+        RCLOUDFJ(L,I,J)=TAUWC(L)+TAUIC(L)
+#endif
+#ifdef TRACERS_DRYDEP
+        CFRAC(I,J) = CFRAC(I,J) + CLDSS(L,I,J) + CLDMC(L,I,J)
+#endif
       END DO
 C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
@@ -1019,6 +1041,12 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
+#ifdef TRACERS_DRYDEP
+      trdrydep_rad(I,J)=SRDFLB(1) ! save solar flux at surface
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      SALBFJ(I,J)=ALB(I,J,1)    ! save surface albedo for chemistry
+#endif
       FSRDIR(I,J)=SRXVIS                  ! added by adf
 C**** Save clear sky/tropopause diagnostics here
         AIJ(I,J,IJ_CLR_SRINCG)=AIJ(I,J,IJ_CLR_SRINCG)+
@@ -1075,18 +1103,21 @@ C****
 !$OMP  END DO
 !$OMP  END PARALLEL
 CcOMP  END PARALLEL DO
-      if(kradia.gt.0) return 
+      if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
      &     call stop_model('In Radia: Temperature out of range',11)
       IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
 C     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',11)
 C**** save all input data to disk if kradia<0
-      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo
-     *  ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
-     *  ,snowi,snowli_com,snowe_com,snoage,fmp_com,flag_dsws,ltropo
-     *  ,fr_snow_rad_ij,mwl        ! ,flake (if time-dep)
-     *  ,SRHRA,TRHRA,itime
+      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg ! LM+LM_REQ+1+
+     *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
+     *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
+     *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
+     *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
+     *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
+C****   output data: really needed only if kradia=2
+     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****
@@ -1230,7 +1261,7 @@ C**** daily diagnostics
      *       S0*COSZ1(IJDD(1,KR),IJDD(2,KR))
       END DO
 
-      RETURN 
+      RETURN
       END
 
       SUBROUTINE GHGHST(iu)
@@ -1268,7 +1299,7 @@ C**** daily diagnostics
    20 continue
       if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) write(6,'(1x,a80)') title
       write(*,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
-      return 
+      return
       end SUBROUTINE GHGHST
 
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
@@ -1361,7 +1392,7 @@ C**** for extrapolations, only use half the slope
           end do
         end do
       end do
-      return 
+      return
       end subroutine getqma
 
       SUBROUTINE ORBPAR (YEAR, ECCEN,OBLIQ,OMEGVP)
@@ -1683,7 +1714,7 @@ C****
       IF(OMEGVP.lt.0.)  OMEGVP = OMEGVP + TWOPI
       OMEGVP = OMEGVP/PI180  ! for output in degrees
 C****
-      RETURN 
+      RETURN
       END SUBROUTINE ORBPAR
 
       SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)
@@ -1776,7 +1807,7 @@ C     SUNY = -SIN(TA+OMEGA)*COS(DOBLIQ)
 C     LAMBDA = DATAN2(SUNY,SUNX)-GREENW
 C     LAMBDA = DMOD(LAMBDA,2.*PI)
 C****
-      RETURN 
+      RETURN
       END SUBROUTINE ORBIT
 
 
@@ -1800,7 +1831,7 @@ C****
       real*4 crop4(im,jm)
 
 C**** check whether update is needed
-      if (year.eq.year_old) return 
+      if (year.eq.year_old) return
 
 C**** first iteration actions:
       if (year_old.lt.0) then
@@ -1847,6 +1878,6 @@ C**** Modify the vegetation fractions
 
       year_old = year
 
-      return 
+      return
       end subroutine updveg
 

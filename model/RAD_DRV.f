@@ -305,7 +305,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE DAGCOM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
 
-      INTEGER J,L,LR,MADVEL
+      INTEGER J,L,LR,MADVEL,LONR,LATR
       REAL*8 COEX,SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
      *     ,pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -483,7 +483,8 @@ C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
       if(jwrite.gt.1500) call writet (6,itwrite,iwrite,jwrite,1,0)
 C****
-      ENTRY SETATM
+      ENTRY SETATM        ! dummy routines
+      ENTRY GETVEG(LONR,LATR)
       RETURN
       END SUBROUTINE init_RAD
 
