@@ -17,8 +17,11 @@ ALIAS_LIST = CMPE001 qc
 help:
 	$(MAKE) -C $(MODEL_DIR) help
 
-mkrun:
+rundeck:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
+
+# alias for backwards compatibility
+mkrun: rundeck     
 
 gcm $(BIN_DIR)/$(RUN).exe:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
@@ -37,12 +40,15 @@ clean vclean:
 	$(MAKE) -C $(MODEL_DIR) $@
 	$(MAKE) -C $(AUX_DIR) $@
 
-mkexe:  $(BIN_DIR)/$(RUN).exe
+exe:  $(BIN_DIR)/$(RUN).exe
 	@if [ ! -s /u/cmrun/$(RUN)/I ] ; then \
 	echo 'directory /u/cmrun/$(RUN) or input files inside it are missing';\
 	echo 'you should make "setup" first'; \
 	exit 1; fi
 	mv -f $(BIN_DIR)/$(RUN).exe /u/cmrun/$(RUN)/
+
+# alias for backwards compatibility
+mkexe:  exe
 
 newstart:
 	@if [ "$(RUN)" = "" ]; then \
