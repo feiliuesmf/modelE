@@ -230,30 +230,33 @@ c     &  AJK,AIJK,AIJL,AJLSP
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER,TSFREZ,AJ,AREG,APJ,AJL,
+        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,
      *       ASJL,AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
-     *       AJK,AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
+     *       AJK,AIJK,AIJL,AJLSP,TDIURN,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
-        WRITE (kunit,err=10) MODULE_HEADER,SNGL(TSFREZ),SNGL(AJ),
+        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,SNGL(TSFREZ),SNGL(AJ),
      *     SNGL(AREG),SNGL(APJ),SNGL(AJL),
      *     SNGL(ASJL),SNGL(AIJ),SNGL(AIL),SNGL(AIJG),SNGL(ENERGY),
      *     SNGL(CONSRV),SNGL(SPECA),SNGL(ATPE),SNGL(ADAILY),SNGL(WAVE),
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
-     *     KEYNR,it
+     *     it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
-        WRITE (kunit,err=10) it,TSFREZ,KEYNR,it
+        WRITE (kunit,err=10) MODULE_HEADER,KEYNR,TSFREZ,it
       CASE (ioread)           ! input from restart file
-        READ (kunit,err=10) HEADER,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
+        READ (kunit,err=10) HEADER,KEYNR,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
      *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
-     *       AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
+     *       AIJK,AIJL,AJLSP,TDIURN,it
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-      CASE (Irsfic)      ! reduced input from end-of-month restart file
-        READ (kunit,err=10) it
-      CASE (irerun)      ! full input from end-of-month restart file
-        READ (kunit,err=10) it,TSFREZ,KEYNR,it
+      CASE (Irsfic)      ! no diag-info at beginning of new run needed
+      CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
+        READ (kunit,err=10) HEADER,KEYNR,TSFREZ  ! 'it' is not read in
+        IF (HEADER.NE.MODULE_HEADER) THEN
+          PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
+          GO TO 10
+        END IF
       END SELECT
 
       RETURN

@@ -314,7 +314,7 @@ C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
 C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           OPEN (30,FILE=CDATE//'.acc'//LABEL1(1:LLAB1),
      *         FORM='UNFORMATTED')
-          call io_model(30,Itime,iowrite_single,ioerr)
+          call io_label(30,Itime,iowrite,ioerr)
           call io_diags(30,Itime,iowrite_single,ioerr)
           CLOSE (30)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
@@ -1182,8 +1182,9 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 C**** Particular values may produce variations in indiv. i/o routines
 
 C**** Calls to individual i/o routines
-      call io_model  (kunit,it,iaction,ioerr)
+      call io_label  (kunit,it,iaction,ioerr)
       it1=it
+      call io_model  (kunit,iaction,ioerr)
       call io_ocean  (kunit,iaction,ioerr)
       call io_lakes  (kunit,iaction,ioerr)
       call io_seaice (kunit,iaction,ioerr)

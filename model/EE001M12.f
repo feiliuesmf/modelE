@@ -567,6 +567,7 @@ C READ SOILS PARAMETERS
       CLOSE (iu_SOIL)
 C
       ONE=1.
+      igcm = 0
 C****
 C**** INITIALIZE CONSTANTS
 C****
@@ -805,10 +806,10 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
 C**** Set conservation diagnostics for ground water mass and energy
 c      QCON=(/ F, F, F, F, T, F, F, F, T/)
 c      CALL SET_CON(QCON,"GRND WTR","(10**6 KG/M^2)  ",
-c     *     "(10**2 KG/S/M^2)",1d-6,1d-2)      
+c     *     "(10**2 KG/S/M^2)",1d-6,1d-2)
 c      QCON=(/ F, F, F, F, T, F, F, F, T/)
 c      CALL SET_CON(QCON,"GRND HT ","(10**8 J/M^2)   ",
-c     *     "(10**3 J/S/M^2) ",1d-8,1d-3)      
+c     *     "(10**3 J/S/M^2) ",1d-8,1d-3)
 
 
       RETURN
@@ -825,9 +826,10 @@ C**** WFCAP - WATER FIELD CAPACITY OF TOP SOIL LAYER, M
 C****
       USE GHYCOM, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
       USE SLE001, only : dz,qk,ngm,imt,ng,zb,zc,fr,spgsn,q,sl,xklh0
-     *     ,fb,fv,snowm,vh,alai,alaic,alaie,cost,sint,rs,prs,id,n
+     *     ,fb,fv,snowm,vh,alai,alaic,alaie,cost,sint,rs,prs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shcap,shw,shtpr,htprs,pr
      *     ,htpr
+      USE snow_model, only : i_earth,j_earth
       IMPLICIT NONE
       INTEGER I0,J0
       REAL*8 WFCAP
@@ -835,7 +837,9 @@ C****
       REAL*8 AA,ONE
 
       ONE=1.
-      ID=I0*100+J0
+      IJdebug=I0*100+J0
+      i_earth = I0
+      j_earth = J0
 C**** SET UP LAYERS
       DZ(1:NGM)=DZ_IJ(I0,J0,1:NGM)
       Q(1:IMT,1:NGM)=Q_IJ(I0,J0,1:IMT,1:NGM)
@@ -997,8 +1001,8 @@ C**** COMPUTE HT (HEAT W/M+2)
  6        HT(L,IBV)=TP(L,IBV)*(SHC(L,IBV)+W(L,IBV)*SHW)
         END DO
       END DO
-      IF(ID.EQ.0)THEN
-       WRITE(99,*)'GHINHT ID CHECK',ID
+      IF(IJdebug.EQ.0)THEN
+       WRITE(99,*)'GHINHT ID CHECK',IJdebug
        WRITE(99,*)'TG1,TG2',TG1,TG2
        WRITE(99,*)'TP',TP
        WRITE(99,*)'HT',HT
@@ -1226,7 +1230,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAP*PEARTH
         AIJ(I,J,IJ_EVAPE)=AIJ(I,J,IJ_EVAPE)+EVAP
       END IF
-C**** 
+C****
       DO K=1,4
         AIJG(I,J,K)=AIJG(I,J,K)+GHDATA(I,J,K)
       END DO
@@ -1241,7 +1245,7 @@ C****
       END SUBROUTINE GROUND_E
 
       SUBROUTINE conserv_WTG(WATERG)
-!@sum  conserv_WTG calculates zonal ground water 
+!@sum  conserv_WTG calculates zonal ground water
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : rhow

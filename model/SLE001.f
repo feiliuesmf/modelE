@@ -142,7 +142,7 @@ C**** INCLUDE FILE FOR SOILS45
 ccc   WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
       INTEGER IBV,ICHN,IDAY,IHOUR,ITH,ITR,J1,J2,JCM,L
      *     ,LADAY,LIMIT,LL,MMAX,NINTEG,NIT,IV,JC,K,M
-      INTEGER NGM,NG,IMT
+      INTEGER NGM,NG,IMT,IGCM
       PARAMETER (NGM=6,NG=NGM+1,IMT=5)
       real*8 PR,HTPR,PRS,HTPRS,W(0:NGM,2),HT(0:NGM,2)
      & ,SNOWD(2),WS(0:NGM,2),TP(0:NGM,2),FICE(0:NGM,2),HOUR,COST,SINT
@@ -151,7 +151,7 @@ ccc   WHO PUT I, J INTO GLOBAL VARIABLES !!???!!!%&*%
      & ,AEVAPB,ARUNS,ARUNU,AERUNS,AERUNU,ADIFS,AEDIFS,AEPC,AEPB,AEPP
      & ,AFHG,AF0DT,AF1DT,CNC,ZW(2),FD,FW,FM,VH,ALAIE,TBCS,TCS
      & ,SNOWM
-      integer  ID,IGCM
+      integer  IJdebug
       REAL*8 THETA(0:NG,2),THETS(0:NG,2),F(0:NG,2)
      &     ,FH(0:NG,2),ZB(NG),ZC(NG),ZHTB,SB(33),SHW,SHI,FSN,ELH,SDSTNC
      &     ,SHV,SHC(0:NG,2),ALAMW,ALAMI,ALAMA,ALAMSN,ALAMBR,ALAMS(IMT-1)
@@ -696,7 +696,7 @@ c     & /(FB*BETAB*CNA+FV*BETAV*CNA+XL+1.d-12)
  70   CONTINUE
 C     LOOP BACK UNTIL QS CONVERGED
       IF(ITR.GE.60)THEN
-        WRITE(99,*)'QSBAL:1',ID,ITR,QS,QSO
+        WRITE(99,*)'QSBAL:1',IJdebug,ITR,QS,QSO
         WRITE(99,*)'QSBAL:2',FB,BETAB,CNA,QB
         WRITE(99,*)'QSBAL:3',FV,BETAV,QC,XL
         WRITE(99,*)'QSBAL:4',EVAP(1),EVAP(2),EPB,EPC
@@ -1311,12 +1311,9 @@ ccc Should be removed when program is rewritten in a more clean way...
       THRM(1)=STBO*(TP(1,1)+TFRZ)**4
       THRM(2)=STBO*(TP(0,2)+TFRZ)**4
 C****
-      if( ID .eq. 633200 ) then
-         write(98,*) 'TP= ', TP(1,1), TP(0,2), TP(1,2)
-      endif
       IF(TP(1,1).GT.100.d0.OR.TP(0,2).GT.100.d0)THEN
       WRITE(99,*)'RETP TP BOUNDS ERROR'
-      WRITE(99,*)'ID',ID
+      WRITE(99,*)'IJdebug',IJdebug
       CALL RETH
       CALL HYDRA
       CALL OUTW(1)
@@ -1355,9 +1352,6 @@ C**** RETP,RETH,FL,FLG,RUNOFF,SINK,SINKH,FLLMT,FLH,FLHG.
 C**** ALSO USES SURF WITH ITS REQUIRED VARIABLES.
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-ccc  i_earth, j_earth used for debugging - remove later
-      integer i_earth, j_earth
-      common /earth_debug/ i_earth, j_earth
 
       ZERO=0.d0
       LIMIT=200
@@ -1690,7 +1684,7 @@ C      IF(IBV.EQ.2)DTM6=DTM
 C     ENDIF
       end do
       IF(DTM.LT.1.d0)THEN
-       WRITE(99,*) '*********** GDTM: ID,FB,FV',ID,FB,FV
+       WRITE(99,*) '*********** GDTM: IJdebug,FB,FV',IJdebug,FB,FV
        WRITE(99,*)'DTM',DTM1,DTM2,DTM3,DTM4
        WRITE(99,*)'XK2',XK2
        WRITE(99,*)'AK2',AK2
@@ -1743,7 +1737,7 @@ C**** SOILS28   Common block     9/25/90
 C     PRINT 1001
       WRITE(ICHN,1000)
       WRITE(ICHN,*)'GENERAL QUANTITIES (BARE SOIL OR VEGETATION)'
-      WRITE(ICHN,*)'ID,DTS',ID,DTS
+      WRITE(ICHN,*)'IJ,DTS',IJdebug,DTS
 CC    WRITE(ICHN,1021)
       WRITE(ICHN,1045)
       WRITE(ICHN,1023)'DAY= ',IDAY,'PR= ',PR,'TS= ',TS-TFRZ,'U1= ',U1,
@@ -1875,7 +1869,7 @@ C**** FIND NON-SATURATED LAYER
       L=1
    20 CONTINUE
 C**** RETRIEVE MATRIC POTENTIAL
-C     WRITE(6,*) 'ID,N,L,HMAT,IBV,XK(L,IBV)',ID,N,L,HMAT,IBV,XK(L,IBV)
+C     WRITE(6,*)'IJ,N,L,HMAT,IBV,XKl,ibv',IJdebug,N,L,HMAT,IBV,XK(L,IBV)
       HMAT=H(L,IBV)-ZC(L)
 C**** CALCULATE DENOMINATOR, AND KEEP ZW ABOVE ZB(L+1)
       IF(XK(L,IBV).LE.1d-20) THEN

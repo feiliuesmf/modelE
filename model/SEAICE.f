@@ -476,12 +476,15 @@ C**** save output diagnostics
       IF (.not.QFIXR .and. ROICE.LE.0. .and. ACEFO.gt.0) THEN
         ROICE=ACEFO/(ACE1I+AC2OIM)
         SNOW=0.
-        TSIL=(ENRGFO/ACEFO + LHM)*BYSHI
+C****   TSIL=(ENRGFO/ACEFO + LHM)*BYSHI ! but hsi is primary var.
         HSIL(1) = (ENRGFO/ACEFO)*XSI(1)*ACE1I
         HSIL(2) = (ENRGFO/ACEFO)*XSI(2)*ACE1I
         HSIL(3) = (ENRGFO/ACEFO)*XSI(3)*AC2OIM
         HSIL(4) = (ENRGFO/ACEFO)*XSI(4)*AC2OIM
+        MSI1=ACE1I
         MSI2=AC2OIM
+        TSIL(1:2)=(HSIL(1:2)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+        TSIL(3:4)=(HSIL(3:4)/(XSI(3:4)*MSI2)+LHM)*BYSHI
         RETURN
       END IF
 C****
@@ -505,9 +508,10 @@ C**** NEW ICE IS FORMED BELOW OLD SEA ICE
   240 CONTINUE
 C**** NEW ICE IS FORMED BELOW OLD SEA ICE AND ON OPEN OCEAN
       DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-      MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACE2F))/(ROICE+DRSI) ! layer 2
       SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
+      MSI1 = SNOW + ACE1I ! mass of layer 1
+C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
+      MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACE2F))/(ROICE+DRSI) ! layer 2
       HSIL(1) = ((1.-ROICE)*ENRGFO*YSI(1)+ROICE*HSIL(1))/(ROICE+DRSI)
       HSIL(2) = ((1.-ROICE)*ENRGFO*YSI(2)+ROICE*HSIL(2))/(ROICE+DRSI)
       HSIL(3) = ((1.-ROICE)*ENRGFO*YSI(3)+ROICE*(HSIL(3)-FHSI3))/
@@ -523,9 +527,10 @@ C**** NO NEW ICE IS FORMED UNDERNEATH THE OLD ONE
   260 CONTINUE
 C**** NEW ICE IS FORMED ON THE OPEN OCEAN
       DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
-      MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
-      MSI2 = (DRSI*AC2OIM+ROICE*MSI2)/(ROICE+DRSI) ! layer 2
       SNOW = SNOW*ROICE/(ROICE+DRSI) ! redistributed over old and new
+      MSI1 = SNOW + ACE1I ! mass of layer 1
+C**** MSI1 = (DRSI*ACE1I+ROICE*MSI1)/(ROICE+DRSI) ! mass of layer 1
+      MSI2 = (DRSI*AC2OIM+ROICE*MSI2)/(ROICE+DRSI) ! layer 2
       HSIL(1) = ((1.-ROICE)*ENRGFO*YSI(1)+ROICE*HSIL(1))/(ROICE+DRSI)
       HSIL(2) = ((1.-ROICE)*ENRGFO*YSI(2)+ROICE*HSIL(2))/(ROICE+DRSI)
       HSIL(3) = ((1.-ROICE)*ENRGFO*YSI(3)+ROICE*HSIL(3))/(ROICE+DRSI)
@@ -560,7 +565,7 @@ C     SNOW = SNOW   ! snow thickness is conserved
 C**** RESAVE PROGNOSTIC QUANTITIES
   360 CONTINUE
   370 CONTINUE
-C**** Calculate temperatures for diagnostics only
+C**** Calculate temperatures for diagnostics and radiation
       TSIL(1) = (HSIL(1)/(XSI(1)*MSI1) +LHM)*BYSHI ! temperature layer 1
       TSIL(2) = (HSIL(2)/(XSI(2)*MSI1) +LHM)*BYSHI ! temperature layer 2
       TSIL(3) = (HSIL(3)/(XSI(3)*MSI2) +LHM)*BYSHI ! temperature layer 3

@@ -95,13 +95,13 @@ C**** (Simplified) Calendar Related Terms
 
 C**** IO read/write flags used by the io_xyz routines
 !@param IOWRITE Flag used for writing normal restart files
-!@param IOWRITE_SINGLE Flag used for writing out in single precision
-!@param IOWRITE_MON Flag used for writing out monthly rsf file
-!@param IOREAD Flag used for reading in normal restart files
-!@param IRSFIC Flag used for reading in a restart file I.C.
-!@param IRERUN Flag used for reading in a restart file I.C. for rerun
-      INTEGER, PARAMETER :: iowrite=-1,ioread=1,iowrite_single=-2
-     *     ,iowrite_mon=-3,irsfic=2,irerun=3
+!@param IOWRITE_SINGLE Flag used for saving diags in single precision
+!@param IOWRITE_MON Flag used for saving restart part only (no diags)
+!@param IOREAD Flag used for reading in (composite) restart files
+!@param IRSFIC Flag used for reading in restart part to start NEW run
+!@param IRERUN Flag used for reading in restart part to extend OLD run
+      INTEGER, PARAMETER :: ioread=1,irsfic=2,irerun=3,
+     *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
 
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
@@ -123,8 +123,8 @@ C**** Define surface types (mostly used for weighting diagnostics)
 
       END MODULE E001M12_COM
 
-      SUBROUTINE io_model(kunit,it,iaction,ioerr)
-!@sum  io_model reads and writes model variables to file
+      SUBROUTINE io_label(kunit,it,iaction,ioerr)
+!@sum  io_model reads and writes label/parameters to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM
@@ -134,8 +134,6 @@ C**** Define surface types (mostly used for weighting diagnostics)
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*8 :: HEADER, MODULE_HEADER = "E001M12"
 !@var itime input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
 !@var JC1 dummy array
@@ -149,28 +147,50 @@ C**** Possible additions to this file: FTYPE, (remove rsi from seaice?)
 C****  size of common block arrays (and/or should we be explicit?)
 C****  timing info as named array?
       SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON) ! output to end-of-month restart file
+      CASE (:IOWRITE) ! output to end-of-month restart file
         WRITE (kunit,err=10) it,JC,CLABEL,RC
-C**** need a blank line to fool 'qrsfnt' etc.
+C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         WRITE (kunit,err=10)
-        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
-      CASE (IOWRITE_SINGLE)   ! output to single precision ACC file
-        WRITE (kunit,err=10) it,JC,CLABEL,SNGL(RC)
       CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) it,JC1,CLABEL1,RC1
+C**** need a blank line to fool 'qrsfnt' etc. (to be dropped soon)
         READ (kunit,err=10)
+        SELECT CASE (IACTION)   ! set model common according to iaction
+        CASE (ioread)       ! use parameters and label from restart file
+          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
+        CASE (IRSFIC)       ! use defaults, rundeck label => do nothing
+        CASE (IRERUN)       ! use params from rsfile, label from rundec
+          JC=JC1 ; RC=RC1   
+        END SELECT ! namelist parameters may still be changed in rundeck
+      END SELECT
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_label
+
+      SUBROUTINE io_model(kunit,iaction,ioerr)
+!@sum  io_model reads and writes model variables to file
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE E001M12_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*8 :: HEADER, MODULE_HEADER = "E001M12"
+
+      SELECT CASE (IACTION)
+      CASE (:IOWRITE) ! output to end-of-month restart file
+        WRITE (kunit,err=10) MODULE_HEADER,U,V,T,P,Q,WM
+      CASE (IOREAD:)          ! input from restart file
         READ (kunit,err=10) HEADER,U,V,T,P,Q,WM
         IF (HEADER.ne.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-        SELECT CASE (IACTION)   ! set model common according to iaction
-        CASE (ioread)         ! normal restart
-          JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
-        CASE (IRSFIC)        ! start from old restart file => do nothing
-        CASE (IRERUN) ! rerun or extension
-          JC=JC1 ; RC=RC1
-        END SELECT
       END SELECT
       RETURN
  10   IOERR=1

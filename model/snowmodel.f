@@ -1,6 +1,6 @@
 ! this file is a result of conversion from a .F code which was using
 ! preprocessing instructions, so some spacing or comments may look odd
-! I will fix it later after we decide if we are going to use
+! I will fix it later after we decide if we are going to use 
 ! preprocessing instructions or not - I.A.
 
       MODULE SNOW_MODEL
@@ -20,7 +20,7 @@
       IMPLICIT NONE
       PRIVATE
 
-      PUBLIC snow_adv
+      PUBLIC snow_adv,i_earth, j_earth
 
 ccc physical parameters
       real*8, parameter :: rho_fresh_snow =  150.d0 ! (kg m-3)
@@ -38,6 +38,7 @@ ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
 
 ccc channels for debug output:
       integer, save :: DEB_CH = 0
+      integer i_earth, j_earth
 
       CONTAINS
 
@@ -204,8 +205,6 @@ ccc output:
 ccc data arrays
       real*8 dz(nl+1), wsn(nl), hsn(nl)
 
-      common /earth_debug/ i_earth, j_earth
-      integer i_earth, j_earth
 
       COMMON /SOILIN/ PR_i,PRS_i,HTPR_i,HTPRS_i,
      &  PRES_i,TS_i,QS_i,  CH_i,VSM_i,RHO_i,
@@ -290,8 +289,6 @@ ccc main parameters: layer thickness, water equivalent, heat content
       integer have_snow, n, nlo
 
 ccc common for debug
-      common /earth_debug/ i_earth, j_earth
-      integer i_earth, j_earth
 
 ccc!!!  check if lat_evap shoud be replaced by heat of sublimation
 
