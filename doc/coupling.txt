@@ -107,18 +107,21 @@ SSS(I,J) : surface salinity on atmospheric grid. This is used to
   freezing point there.
 
 MLHC(I,J) : Mixed layer heat capacity (J/m^2 C) on the atmospheric
-  grid. This is used to estimate an implicit mixed layer
-  temperature. This should correspond to the depth of the ocean over
-  which the surface fluxes are spread (not necessarily the actual mixed
-  layer). (NOT CURRENTLY USED)
+  grid. This is used to estimate an implicit mixed layer temperature 
+  (NOT YET USED) and for calculating the maximum heat available 
+  for laterally melting ice. This should correspond to the depth of the 
+  ocean over which the surface fluxes are spread (not necessarily the actual 
+  mixed layer).
 
 OGEOZA (ocean geopotential height) (m^2/s^2)
   The sea surface height field is required for computing the ice
   dynamics. If a rigid lid is being used, an assumption of geostrophy
-  can be used instead to estimate the field.
+  can be used instead to estimate the field. This is the height of the 
+  ocean without considering any displacement due to sea ice.
 
 UOSURF(I,J), VOSURF(I,J): (ocean surface currents) (m/s)
-  The sea surface velocities are only required in the ice dynamics. As
+  The sea surface velocities are required in the ice dynamics, and 
+  optionally in the atmosphere-ocean surface stress calculation. As
   a first step, these velocities are on the atmospheric C-grid. If
   higher resolution ice dynamics are required, the grid for these will
   change (but so will the ICEDYN_DRV.f code).
