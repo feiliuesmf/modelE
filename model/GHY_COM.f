@@ -15,41 +15,46 @@
       SAVE
 C bare/veg not in merged array because WBARE does not contain
 C 0 index for legacy reasons
-      REAL*8, DIMENSION(  NGM,IM,JM) :: WBARE
-      REAL*8, DIMENSION(0:NGM,IM,JM) :: WVEGE
-      REAL*8, DIMENSION(0:NGM,IM,JM) :: HTBARE
-      REAL*8, DIMENSION(0:NGM,IM,JM) :: HTVEGE
-      REAL*8, DIMENSION(2,IM,JM) :: SNOWBV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WBARE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WVEGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTBARE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HTVEGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWBV
 
+C GISS-ESMF EXCEPTIONAL CASE
+C-BMP Should be allocatable, but not sure about common block
       REAL*8, DIMENSION(IM,JM,NGM) :: DZ_IJ
-      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ,QK_IJ
+      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: Q_IJ
+      REAL*8, DIMENSION(IM,JM,IMT,NGM) :: QK_IJ
       REAL*8, DIMENSION(IM,JM) :: SL_IJ
 C this common only for purpose of reading its contents from a
 C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
-
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
-      INTEGER, DIMENSION(2,IM,JM)     :: NSN_IJ
-      INTEGER, DIMENSION(2,IM,JM)     :: ISN_IJ
-      REAL*8, DIMENSION(NLSN,2,IM,JM) :: DZSN_IJ
-      REAL*8, DIMENSION(NLSN,2,IM,JM) :: WSN_IJ
-      REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN_IJ
-      REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_IJ
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:)     :: NSN_IJ
+      INTEGER, ALLOCATABLE, DIMENSION(:,:,:)     :: ISN_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DZSN_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: WSN_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: HSN_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)      :: FR_SNOW_IJ
 ccc FR_SNOW_RAD_IJ is snow fraction for albedo computations
 ccc actually it should be the same as FR_SNOW_IJ but currently the snow
 ccc model can't handle fractional cover for thick snow (will fix later)
-      REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_RAD_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)      :: FR_SNOW_RAD_IJ
 C**** Canopy temperature (C)
-      REAL*8, DIMENSION(IM,JM)      :: CANOPY_TEMP_IJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)      :: CANOPY_TEMP_IJ
 C**** replacements for GDATA
-      REAL*8, DIMENSION(IM,JM) :: SNOWE
-      REAL*8, DIMENSION(IM,JM) :: TEARTH
-      REAL*8, DIMENSION(IM,JM) :: WEARTH
-      REAL*8, DIMENSION(IM,JM) :: AIEARTH
-      REAL*8, DIMENSION(3,IM,JM) :: SNOAGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TEARTH
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: WEARTH
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIEARTH
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
+
+!@var GDEEP keeps average (2:n) values of temperature, water and ice
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GDEEP
 
 !@dbparam snoage_def determines how snowage is calculated:
 !@+       = 0     independent of temperature
@@ -57,19 +62,19 @@ C**** replacements for GDATA
       integer :: snoage_def = 0
 
 ccc topmodel input data and standard deviation of the elevation
-      REAL*8, DIMENSION(IM,JM) :: TOP_INDEX_IJ, top_dev_ij
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TOP_INDEX_IJ, top_dev_ij
 
 ccc evaporation limits from previous time step
-      real*8, dimension(IM,JM) :: evap_max_ij=1., fr_sat_ij=1.,
-     &     qg_ij = 0.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: evap_max_ij, fr_sat_ij,
+     &     qg_ij
 
 #ifdef TRACERS_WATER_OLD
 !@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
-      REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TRBARE
-      REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TRVEGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRBARE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRVEGE
 C**** What is the prognostic variable for snow here?
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
-      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV
 #endif
 #ifdef TRACERS_WATER
 ccc new tracers
@@ -77,15 +82,94 @@ ccc new tracers
 !@var TR_WBARE tracers in bare soil fraction (kg/m^2)
 !@var TR_WVEGE tracers in vegetated soil fraction (kg/m^2)
 !@var TR_WSN_IJ tracer amount in snow (multiplied by fr_snow) (kg/m^2)
-      REAL*8, DIMENSION(NTM,  NGM,IM,JM) :: TR_WBARE = 0.d0
-      REAL*8, DIMENSION(NTM,0:NGM,IM,JM) :: TR_WVEGE = 0.d0
-      REAL*8, DIMENSION(NTM,NLSN,2,IM,JM) :: TR_WSN_IJ = 0.d0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WBARE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TR_WVEGE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TR_WSN_IJ
 ccc TRSNOWBV is not used
 !@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
-      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRSNOWBV0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
 #endif
 
       END MODULE GHYCOM
+
+      SUBROUTINE ALLOC_GHY_COM(grid)
+!@sum  To allocate arrays whose sizes now need to be determined at
+!@+    run time
+!@auth NCCS (Goddard) Development Team
+!@ver  1.0
+      USE GHYCOM
+      USE DOMAIN_DECOMP, ONLY : DYN_GRID, GET
+      IMPLICIT NONE
+      TYPE (DYN_GRID), INTENT(IN) :: grid
+
+      INTEGER :: J_1H, J_0H
+      INTEGER :: IER
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ALLOCATE(     WBARE(  NGM,IM,J_0H:J_1H),
+     *               WVEGE(0:NGM,IM,J_0H:J_1H),
+     *              HTBARE(0:NGM,IM,J_0H:J_1H),
+     *              HTVEGE(0:NGM,IM,J_0H:J_1H),
+     *              SNOWBV(    2,IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(      NSN_IJ(     2,IM,J_0H:J_1H),
+     *               ISN_IJ(     2,IM,J_0H:J_1H),
+     *              DZSN_IJ(NLSN,2,IM,J_0H:J_1H),
+     *               WSN_IJ(NLSN,2,IM,J_0H:J_1H),
+     *               HSN_IJ(NLSN,2,IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(         FR_SNOW_IJ(2,IM,J_0H:J_1H),
+     *              FR_SNOW_RAD_IJ(2,IM,J_0H:J_1H),
+     *              CANOPY_TEMP_IJ(  IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(      SNOWE(  IM,J_0H:J_1H),
+     *              TEARTH(  IM,J_0H:J_1H),
+     *              WEARTH(  IM,J_0H:J_1H),
+     *             AIEARTH(  IM,J_0H:J_1H),
+     *              SNOAGE(3,IM,J_0H:J_1H),
+     *         STAT=IER)
+
+      ALLOCATE(     GDEEP(IM,J_0H:J_1H,3),
+     *         STAT=IER)
+
+        ALLOCATE(    TOP_INDEX_IJ(IM,J_0H:J_1H),
+     *                 top_dev_ij(IM,J_0H:J_1H),
+     *                evap_max_ij(IM,J_0H:J_1H),
+     *                  fr_sat_ij(IM,J_0H:J_1H),
+     *                      qg_ij(IM,J_0H:J_1H),
+     *           STAT=IER)
+
+C**** Initialize evaporation limits
+      evap_max_ij(:,J_0H:J_1H)=1.
+      fr_sat_ij(:,J_0H:J_1H)=1.
+      qg_ij(:,J_0H:J_1H)=0.
+
+#ifdef TRACERS_WATER_OLD
+      ALLOCATE(     TRBARE(NTM,  NGM,IM,J_0H:J_1H),
+     *              TRVEGE(NTM,0:NGM,IM,J_0H:J_1H),
+     *            TRSNOWBV(NTM,    2,IM,J_0H:J_1H),
+     *         STAT=IER)
+#endif
+#ifdef TRACERS_WATER
+      ALLOCATE(     TR_WBARE(NTM,  NGM,IM,J_0H:J_1H),
+     *              TR_WVEGE(NTM,0:NGM,IM,J_0H:J_1H),
+     *             TR_WSN_IJ(NTM,NLSN,2,IM,J_0H:J_1H),
+     *             TRSNOWBV0(NTM,2,IM,J_0H:J_1H),
+     *         STAT=IER)
+C**** Initialize to zero
+      TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
+      TR_WVEGE(:,:,:,J_0H:J_1H)=0.d0
+      TR_WSN_IJ(:,:,:,:,J_0H:J_1H)=0.d0
+#endif
+
+      END SUBROUTINE ALLOC_GHY_COM
 
       SUBROUTINE io_earth(kunit,iaction,ioerr)
 !@sum  io_earth reads and writes ground data to file
