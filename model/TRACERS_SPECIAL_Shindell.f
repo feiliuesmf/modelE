@@ -19,12 +19,12 @@
      &                      Lsulf       =23 ! not LM
       REAL*8, PARAMETER :: correct_CO_ind=520./410.
 c
-!@var CH4_src           CH4 surface sources and sinks (kg/s)
-!@var CO_src             CO surface sources and sinks (kg/s)
-!@var Alkenes_src   Alkenes surface sources and sinks (kg/s)
-!@var Paraffin_src Paraffin surface sources and sinks (kg/s)
-!@var NOx_src           NOx surface sources and sinks (kg/s)
-!@var Isoprene_src ISoprene surface sources and sinks (kg/s)
+!@var CH4_src           CH4 surface sources and sinks (kg/m2/s)
+!@var CO_src             CO surface sources and sinks (kg/m2/s)
+!@var Alkenes_src   Alkenes surface sources and sinks (kg/m2/s)
+!@var Paraffin_src Paraffin surface sources and sinks (kg/m2/s)
+!@var NOx_src           NOx surface sources and sinks (kg/m2/s)
+!@var Isoprene_src ISoprene surface sources and sinks (kg/m2/s)
 c
 c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       integer, parameter :: nch4src     = 14,
