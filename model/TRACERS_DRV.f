@@ -3348,7 +3348,7 @@ c BCI longwave radiative forcing
 #endif
       case ('BCB')
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Biomass source'
@@ -3522,7 +3522,7 @@ c OC clear sky longwave radiative forcing
 #endif
       case ('OCB')
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_3Dsource(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Biomass source'
@@ -3644,7 +3644,7 @@ c put in production of SO4 from gas phase
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 gas phase source'
         sname_ijts(k) = 'SO4_gas_phase_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 from industrial emissions
@@ -3654,7 +3654,7 @@ c SO4 from industrial emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in loss of SO4 from heter chem
@@ -3675,7 +3675,7 @@ c put in source of SO4 from aqueous chem
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 aqueous chem source'
         sname_ijts(k) = 'SO4_aq_chem_source'
-        ijts_power(k) = -10.
+        ijts_power(k) = -15.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 optical thickness
