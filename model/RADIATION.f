@@ -329,6 +329,10 @@ C----------------
       REAL*8    :: zsnwoi,zoice,zmp,fmp,zlake,snow_frac(2)
 !@var TRACER array to add up to 8 additional aerosol species
       real*8    :: TRACER(LX,8)
+!@var FTRACER scales optional aerosols
+      real*8    :: FTRACER(8) =
+C             TR1   TR2   TR3   TR4   TR5   TR6   TR7   TR8
+     *     (/ 0d0,  0d0,  0d0,  0d0,  0d0,  0d0,  0d0,  0d0/)
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -337,7 +341,7 @@ C----------------
      C             ,SHL,RHL,TRACER,SRBALB,SRXALB
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
-     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ
+     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FTRACER
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON,NL,NLP, LS1_loc,flags
@@ -738,14 +742,11 @@ C      H2O CO2  O3  O2 NO2 N2O CH4 F11 F12 N2C CFC11+ CFC12+ SO2
 C        1   2   3   4   5   6   7   8   9  10    11     12   13
      +   1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,   1.,    1.,  0./)
 
-!@var FGOLDH scales back ground aerosols for Glb Ocn Land Desert Haze
-      real*8, dimension(5+8) ::
+!@var FGOLDH scales background aerosols for Glb Ocn Land Desert Haze
+      real*8, dimension(5) ::
 C               GLOBAL  OCEAN   LAND  DESERT    HAZE
 C                    1      2      3       4       5
-     +   FGOLDH=(/ 1d0, .68d0, .32d0, 1.d-20, 1.d-20,
-C                  TR1    TR2    TR3     TR4     TR5   TR6   TR7   TR8
-C                    6      7      8       9      10    11    12    13
-     +             0d0,   0d0,   0d0,    0d0,    0d0,  0d0,  0d0,  0d0/)
+     +   FGOLDH=(/ 1d0, .68d0, .32d0, 1.d-20, 1.d-20 /)
 
 !@var FSXAER,FTXAER scales solar,thermal opt.depth for var. aerosols:
 !@+          1: total 2:background 3: AClim? 4:dust 5:volcanic
@@ -1923,8 +1924,9 @@ C--------------------------------
 
 
 C--------------------------------
-      IF(MADBAK.GT.0) THEN ; CALL GETBAK
-       ELSE ; SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0. ; END IF
+      SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0. 
+      IF(MADBAK.GT.0) CALL GETBAK
+
       IF(MADAER.GT.0) THEN ; CALL GETAER
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
       IF(MADDST.GT.0) THEN ; CALL GETDST
@@ -3299,7 +3301,7 @@ C                                                              ---------
   200 CONTINUE
       DO 203 L=1,NL0
       DO 202 K=1,33
-      SUMABS=1.D-20
+      SUMABS=0.
       DO 201 J=1,5
       SUMABS=SUMABS+TGOLDH(J)*TRAX(L,K,J)
   201 CONTINUE
@@ -3315,17 +3317,19 @@ C                                                                -------
   210 CONTINUE
       DO 212 K=1,6
       DO 212 L=1,NL0
-      EXTSUM=1.D-20
-      SCTSUM=1.D-30
+      EXTSUM=0.   !  1.D-20
+      SCTSUM=0.   !  1.D-30
       COSSUM=0.D0
       DO 211 J=1,5
       EXTSUM=EXTSUM+SGOLDH(J)*SRAX(L,K,J)
       SCTSUM=SCTSUM+SGOLDH(J)*SRAS(L,K,J)
       COSSUM=COSSUM+SGOLDH(J)*SRAS(L,K,J)*SRAC(L,K,J)
   211 CONTINUE
-      SRBEXT(L,K)=EXTSUM
-      SRBSCT(L,K)=SCTSUM
-      SRBGCB(L,K)=COSSUM/SCTSUM
+      IF (EXTSUM.gt.0) SRBEXT(L,K)=EXTSUM
+      IF (SCTSUM.gt.0) THEN
+        SRBSCT(L,K)=SCTSUM
+        SRBGCB(L,K)=COSSUM/SCTSUM
+      END IF
   212 CONTINUE
 
 
@@ -3369,12 +3373,11 @@ C     ------------------------------------------------------------------
       IF(NTRACE.GT.0) THEN
 
       DO 303 JJ=1,NTRACE
-      J=5+JJ
       I=ITR(JJ)
 C                                                              (Thermal)
 C                                                              ---------
       DO 302 K=1,33
-      SUMEXT=FGOLDH(J)*(TRAQEX(K,I)-TRAQSC(K,I))
+      SUMEXT=FTRACER(JJ)*(TRAQEX(K,I)-TRAQSC(K,I))
       DO 301 L=1,NL
       TRBALK(L,K)=TRBALK(L,K)+SUMEXT*TRACER(L,JJ)
   301 CONTINUE
@@ -3389,18 +3392,17 @@ C                                                                -------
       SCTSUM=SRBSCT(L,K)
       COSSUM=SRBGCB(L,K)*SRBSCT(L,K)
       DO 304 JJ=1,NTRACE
-      J=5+JJ
       I=ITR(JJ)
       SRAQX=SRAQEX(K,I)
       SRAQS=SRAQSC(K,I)
       IF(SRAQS.GT.SRAQX) SRAQS=SRAQX
-      EXTSUM=EXTSUM+FGOLDH(J)*TRACER(L,JJ)*SRAQX
-      SCTSUM=SCTSUM+FGOLDH(J)*TRACER(L,JJ)*SRAQS
-      COSSUM=COSSUM+FGOLDH(J)*TRACER(L,JJ)*SRAQCB(K,I)*SRAQS
+      EXTSUM=EXTSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQX
+      SCTSUM=SCTSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQS
+      COSSUM=COSSUM+FTRACER(JJ)*TRACER(L,JJ)*SRAQCB(K,I)*SRAQS
   304 CONTINUE
       SRBEXT(L,K)=EXTSUM
       SRBSCT(L,K)=SCTSUM
-      SRBGCB(L,K)=COSSUM/SCTSUM
+      IF (SCTSUM.gt.0) SRBGCB(L,K)=COSSUM/SCTSUM
   305 CONTINUE
       ENDIF
 
@@ -8027,7 +8029,7 @@ C     IF(KGASSR.GT.0)
 C    +WRITE(KW,6104) (FULGAS(I+9),I=1,2),(FULGAS(I+9),I=4,9)
 C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
       WRITE(KW,6105) PPMCO2,PPMN2O,PPMCH4,PPMF11,PPMF12,PPMY11,PPMZ12
-     +             ,(FGOLDH(I),I=6,9),PPMV80(2),(PPMV80(I),I=6,9)
+     +             ,(FTRACER(I),I=1,4),PPMV80(2),(PPMV80(I),I=6,9)
      +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
       WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,KZSNOW,KCLDEM,NTRACE
      +             ,FSAAER,FTTAER,MADO3M,KCLDEP,NL
@@ -11682,12 +11684,13 @@ C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they
 C**** are not allowed to evaporate away. We assume that departing
 C**** lakes would leave bare soil behind.
+C**** Reduce effect by a half...
       if (PLAKE.gt.0 .and. zlake.lt.1.) then  ! < 1m
         DO L=1,6
           BOCVN(L)=(BOCVN(L)*(zlake-0.4d0)+
-     *         (1.-zlake)*ALBVNH(1,L,1))/0.6d0
+     *         (1.-zlake)*0.5*ALBVNH(1,L,1))/0.6d0
           XOCVN(L)=(XOCVN(L)*(zlake-0.4d0)+
-     *         (1.-zlake)*ALBVNH(1,L,1))/0.6d0
+     *         (1.-zlake)*0.5*ALBVNH(1,L,1))/0.6d0
         END DO
       end if
 C

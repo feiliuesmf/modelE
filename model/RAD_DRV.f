@@ -317,8 +317,8 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
      *     ,FSXAER,FTXAER     ! scaling (on/off) for default aerosols
-     *     ,ITR,NTRACE,FGOLDH ! turning on options for extra aerosols
-     *     ,FSAERO,FTAERO,MADBAK
+     *     ,ITR,NTRACE        ! turning on options for extra aerosols
+     *     ,FSAERO,FTAERO,MADBAK,FGOLDH
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -492,15 +492,14 @@ C****    from the following:
 C****   1 ? ,2 seasalt (2um), 3 sulfate (0.3 um), 4 sulfate (1 um),
 C****   5 ?, 6 ?, 7 dust (0.5 um), 8 dust (2 um), 9 dust (8 um),
 C****   10 BC (0.1 um) 11 BC (0.5 um)
-C****  3) Use FGOLDH(6:NTRACE+5) to turn them on
+C****  3) Use FTRACER(1:NTRACE) to turn them on in RADIA
 C****  4) MAKBAK=1 gets to SETBAK where extra tracers are added
 C**** however then we need to set FGOLDH(1-5)=0 in order to
 C**** avoid the addition of background aerosols in GETBAK
 C****
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
-caer   FGOLDH(5+1:5+NTRACE) = (/ 0.,0.,0.,0. 0.,0.,0.,0./)
-caer   MADBAK=0
+caer   MADBAK=1
 caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 
 #ifdef TRACERS_AEROSOLS_Koch
@@ -508,8 +507,7 @@ caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
         FSAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
         FTAERO = (/1., 1., 0., 0., 0., 0., 1., 1., 1., 1./)
       end if
-      NTRACE = 2
-      FGOLDH(5+1:5+NTRACE) = (/ 1.,1./) ! superseded in RADIA
+      NTRACE=2
       MADBAK=1
       FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 c tracer 1 is sulfate, tracer 2 is seasalt
@@ -576,7 +574,6 @@ C****
      &  , only : writer,rcompx,rcompt ! routines
      &          ,lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-     *          ,fgoldh
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
 C     INPUT DATA  (i,j) dependent
@@ -586,7 +583,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE
+     *             ,TRACER,NTRACE,FTRACER
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
@@ -660,7 +657,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,icc1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,DXYPJ,SRNFLG,X,OPNSKY,CSZ2,tauup,taudn
-     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi
+     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
      *     ,QR(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 QSAT
@@ -1102,28 +1099,46 @@ C****
       END DO
       WMAG=WSAVG(I,J)
 C****
-#ifdef TRACERS_AEROSOLS_Koch
-c here we turn off the online tracer one by one in order to calculate
-c sulfate radiative forcing
-      FGOLDH(6)=0.d0
-      CALL RCOMPX
-      SNFST(N_SO4,I,J)=SRNFLB(4+LM)
-      TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-      FGOLDH(6)=1.d0
-c seasalt forcing
-      FGOLDH(7)=0.d0
-      CALL RCOMPX
-      SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
-      TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-      FGOLDH(7)=1.d0
-#endif
-C**** Depending on rundeck variable allow full radiative interaction
-C**** or not. If no radiatively active tracers are defined, nothing
-C**** changes. Currently this works for aerosols, but should be extended
+C**** Radiative interaction and forcing diagnostics:
+C**** If no radiatively active tracers are defined, nothing changes. 
+C**** Currently this works for aerosols, but should be extended
 C**** to cope with trace gases.
 C**** Possibly different values >0 could do different things
-      if (rad_interact_tr.eq.0 .and. NTRACE.gt.0)
-     *     FGOLDH(6:5+NTRACE)=0.
+#ifdef TRACERS_AEROSOLS_Koch
+C**** The calculation of the forcing is slightly different.
+C**** depending on whether full radiative interaction is turned on
+C**** or not. 
+      FTRACER(:)=0.
+      if (rad_interact_tr.eq.0 .and. NTRACE.gt.0) then
+                                ! Turn ON each tracer in turn
+C**** Sulfate forcing
+        FTRACER(1)=1.d0         ! turn on sulfate
+        CALL RCOMPX
+        SNFST(N_SO4,I,J)=SRNFLB(4+LM)
+        TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+        FTRACER(1)=0.d0
+C**** seasalt forcing
+        FTRACER(2)=1.d0         ! turn on seasalt
+        CALL RCOMPX
+        SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
+        TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+        FTRACER(2)=0.d0
+      else                      ! Turn OFF each tracer in turn
+        FTRACER(1:NTRACE)=1.
+C**** Sulfate forcing
+        FTRACER(1)=0.d0         ! turn off sulfate
+        CALL RCOMPX
+        SNFST(N_SO4,I,J)=SRNFLB(4+LM)
+        TNFST(N_SO4,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+        FTRACER(1)=1.d0
+c seasalt forcing
+        FTRACER(2)=0.d0         ! turn off seasalt
+        CALL RCOMPX
+        SNFST(N_seasalt1,I,J)=SRNFLB(4+LM)
+        TNFST(N_seasalt1,I,J)=TRNFLB(4+LM)-TRNFLB(1)
+        FTRACER(2)=1.d0
+      end if
+#endif
 C*****************************************************
 C     Main RADIATIVE computations, SOLAR and THERMAL
       CALL RCOMPX
@@ -1382,13 +1397,17 @@ C****
          AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(4,I,J)*CSZ2)
 #ifdef TRACERS_ON
 C**** Generic diagnostics for radiative forcing calculations
+C**** Depending on whether tracers radiative interaction is turned on,
+C**** diagnostic sign changes
+         rsign=1.
+         if (rad_interact_tr.gt.0) rsign=-1.
          do n=1,ntm
 c shortwave forcing
            if (ijts_fc(1,n).gt.0) taijs(i,j,ijts_fc(1,n))=taijs(i,j
-     *          ,ijts_fc(1,n))+(SNFS(4,I,J)-SNFST(N,I,J))*CSZ2
+     *          ,ijts_fc(1,n))+rsign*(SNFST(N,I,J)-SNFS(4,I,J))*CSZ2
 c longwave forcing
            if (ijts_fc(2,n).gt.0) taijs(i,j,ijts_fc(2,n))=taijs(i,j
-     *          ,ijts_fc(2,n))-(TNFS(4,I,J)-TNFST(N,I,J))
+     *          ,ijts_fc(2,n))-rsign*(TNFST(N,I,J)-TNFS(4,I,J))
          end do
 #endif
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
