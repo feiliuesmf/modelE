@@ -5,7 +5,7 @@
 !@+  turbulence model developed at GISS, 2000.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@ver  1.0 (from diffB347D6M20)
-!@cont diffus,getdz,dout,diff_uv,diff_tq,diff_e
+!@cont diffus,getdz,dout,diff_uv,diff_t,diff_q,diff_e
 !@cont lgcm,kgcm,ave_uv_to_tcell,ave_to_ucell
 !@var u 3d west-east wind component
 !@var v 3d south-north wind component
@@ -35,7 +35,7 @@
       real*8, dimension(lm) :: uij,vij,tij,pij,qij,eij
       real*8, dimension(lm) :: u0ij,v0ij,t0ij,q0ij,e0ij
       real*8, dimension(lm) :: rhoebydz,bydzerho
-      real*8, dimension(lm) :: km,kh,ke,lscale,gm,gh,rhoij,rhoeij
+      real*8, dimension(lm) :: km,kh,kq,ke,lscale,gm,gh,rhoij,rhoeij
       real*8, dimension(lm) :: dzij,dzeij
       real*8, dimension(im,jm,lm) :: uold
       real*8, dimension(lm,im,jm) :: rho,rhoe
@@ -115,12 +115,12 @@ c     integrate T,Q equations at tcells
           qflx  =qflux(i,j)
 
           call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
-          call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
+          call kgcm(km,kh,kq,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
           call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,dzij,dzeij
      2         ,rhoij,rhoeij,dtime,ustar2,lm)
-          call diff_tq(t0ij,tij,kh,dzij,dzeij,
+          call diff_t(t0ij,tij,kh,dzij,dzeij,
      2                 rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
-          call diff_tq(q0ij,qij,kh,dzij,dzeij,
+          call diff_q(q0ij,qij,kq,dzij,dzeij,
      2                 rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
 
           do 300 iter=1,itmax
@@ -130,12 +130,12 @@ c     integrate T,Q equations at tcells
             end do
 
             call lgcm(lscale,uij,vij,tij,eij,dzij,dzeij,rhoij,lm)
-            call kgcm(km,kh,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
+            call kgcm(km,kh,kq,ke,gm,gh,uij,vij,tij,eij,lscale,dzij,lm)
             call diff_e(e0ij,eij,km,kh,ke,lscale,uij,vij,tij,dzij,dzeij
      2           ,rhoij,rhoeij,dtime,ustar2,lm)
-            call diff_tq(t0ij,tij,kh,dzij,dzeij
+            call diff_t(t0ij,tij,kh,dzij,dzeij
      2           ,rhoij,rhoeij,rhoebydz,bydzerho,tflx,dtime,lm)
-            call diff_tq(q0ij,qij,kh,dzij,dzeij
+            call diff_q(q0ij,qij,kq,dzij,dzeij
      2           ,rhoij,rhoeij,rhoebydz,bydzerho,qflx,dtime,lm)
             call find_pbl_top(eij,dbll,lm)
 
@@ -177,7 +177,7 @@ c
             end do
             call dout(uij,vij,tij,pij,peij,qij,eij,dzij,dzeij,
      2                rhoij,rhoeij,u0ij,v0ij,t0ij,q0ij,
-     3                km,kh,ke,gm,gh,lscale,reserv,tsavg(i,j),
+     3                km,kh,kq,ke,gm,gh,lscale,reserv,tsavg(i,j),
      4                uflx,vflx,tflx,qflx,itest,jtest,lm)
           endif
 
@@ -346,7 +346,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
       subroutine dout(u,v,t,pres,prese,q,e,dz,dzedge,
      2                rho,rhoe,u0,v0,t0,q0,
-     3                km,kh,ke,gm,gh,lscale,reserv,tsurf,
+     3                km,kh,kq,ke,gm,gh,lscale,reserv,tsurf,
      4                uflx,vflx,tflx,qflx,itest,jtest,n)
 !@sum dout writes out diagnostics at i=itest, j=jtest
 !@auth  Ye Cheng/G. Hartke
@@ -363,7 +363,8 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 !@var pres 1-d pressure at z
 !@var prese 1-d pressure at zedge
 !@var km turbulent viscosity for u and v equations
-!@var kh turbulent conductivity for t and q equations
+!@var kh turbulent diffusivity for t
+!@var kq turbulent diffusivity for q
 !@var ke turbulent diffusivity for e equation
 !@var gm normalized velocity gradient, tau**2*as2
 !@var gh normalized temperature gradient, tau**2*an2
@@ -389,7 +390,7 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       integer, intent(in) :: n,itest,jtest
       real*8, dimension(n), intent(in) :: u,v,t,pres,prese,q,e
       real*8, dimension(n), intent(in) :: rho,rhoe,u0,v0,t0,q0
-      real*8, dimension(n), intent(in) :: km,kh,ke,gm,gh,lscale
+      real*8, dimension(n), intent(in) :: km,kh,kq,ke,gm,gh,lscale
       real*8, dimension(n), intent(in) :: dz,dzedge
       real*8, intent(in) :: reserv,tsurf
       real*8, intent(in) :: uflx,vflx,tflx,qflx
@@ -542,7 +543,7 @@ c     sub(j)*u_jm1_kp1+dia(j)*u_j_kp1+sup(j)*u_jp1_kp1 = rhs(j)
 c     sub(j)*v_jm1_kp1+dia(j)*v_j_kp1+sup(j)*v_jp1_kp1 = rhs1(j)
 c     note: j refers to the layer middle
 c     except for km(j), which is defined on the layer edge
-c     similarly in subroutine diff_tq
+c     similarly in subroutine diff_t, diff_q
 c
       do j=2,n-1
 c         sub(j)=-dtime*km(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
@@ -597,45 +598,44 @@ c
       return
       end subroutine diff_uv
 
-      subroutine diff_tq(tq0,tq,khq,dz,dzedge,rho,rhoe
-     2                   ,rhoebydz,bydzerho,sflx,dtime,n)
-!@sum diff_tq integrates differential eqns for t and q (tridiag. method)
+      subroutine diff_t(t0,t,kh,dz,dzedge,rho,rhoe
+     2                   ,rhoebydz,bydzerho,tflx,dtime,n)
+!@sum diff_t integrates differential eqns for t (tridiag. method)
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
-!@var tq z-profle of potential temperature T or relative humidity Q
-!@var tq0 z-profle of T or Q at previous time step
-!@var khq z-profile of turbulent diffusivity Kh or Kq
+!@var t z-profle of potential temperature T
+!@var t0 z-profle of T at previous time step
+!@var kh z-profile of heat diffusivity
 !@var dz(i) z(i+1)-z(i)
 !@var dzedge(i) zedge(i+1)-zedge(i)
 !@var rho z-profile of density at z
 !@var rhoe z-profile of density at zedge
-!@var sflx heat flux -wt or humidity flux -wq at surface, zedge(1)
+!@var tflx heat flux -wt at surface, zedge(1)
 !@var dtime time step
 !@var n number of vertical main layers
 
       implicit none
 
       integer, intent(in) :: n
-      real*8, dimension(n), intent(in) :: tq0,khq,rho,rhoe
+      real*8, dimension(n), intent(in) :: t0,kh,rho,rhoe
      2        ,rhoebydz,bydzerho
-      real*8, dimension(n), intent(inout) :: tq
+      real*8, dimension(n), intent(inout) :: t
       real*8, dimension(n), intent(in) :: dz,dzedge
-      real*8, intent(in) :: sflx,dtime
+      real*8, intent(in) :: tflx,dtime
 
       real*8, dimension(n) :: sub,dia,sup,rhs
       real*8 :: alpha
       integer :: j  !@var j loop variable
-c
-c     tq = t or q; khq = kh or kq
-c     sub(j)*tq_jm1_kp1+dia(j)*tq_j_kp1+sup(j)*tq_jp1_kp1 = rhs(j)
-c
+
+c     sub(j)*t_jm1_kp1+dia(j)*t_j_kp1+sup(j)*t_jp1_kp1 = rhs(j)
+
       do j=2,n-1
-c         sub(j)=-dtime*khq(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
-c         sup(j)=-dtime*khq(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
-          sub(j)=-dtime*khq(j)*rhoebydz(j)*bydzerho(j)
-          sup(j)=-dtime*khq(j+1)*rhoebydz(j+1)*bydzerho(j)
+c         sub(j)=-dtime*kh(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
+c         sup(j)=-dtime*kh(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+          sub(j)=-dtime*kh(j)*rhoebydz(j)*bydzerho(j)
+          sup(j)=-dtime*kh(j+1)*rhoebydz(j+1)*bydzerho(j)
           dia(j)=1.d0-(sub(j)+sup(j))
-          rhs(j)=tq0(j)
+          rhs(j)=t0(j)
       end do
 c
 c     Lower boundary conditions:
@@ -650,12 +650,12 @@ c     in addition, rho(1) and rhoe(2) are in place to balance the
 c     mass
 c     from the above, the following follow
 c
-c     alpha=dtime*khq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
-      alpha=dtime*khq(2)*rhoebydz(2)*bydzerho(1)
+c     alpha=dtime*kh(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      alpha=dtime*kh(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
-      rhs(1)=tq0(1)
-c     rhs(1)=tq0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*sflx
+      rhs(1)=t0(1)
+c     rhs(1)=t0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*tflx
 c
 c     Upper boundary conditions:
 c
@@ -665,16 +665,94 @@ c     d/dz wt = (wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
 c     wt(n)=-kh(n)*(T(n)-T(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
 c     wt(n+1)=0
 c
-c     alpha=dtime*khq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
-      alpha=dtime*khq(n)*rhoebydz(n)*bydzerho(n)
+c     alpha=dtime*kh(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      alpha=dtime*kh(n)*rhoebydz(n)*bydzerho(n)
       sub(n)=-alpha
       dia(n)=1.d0+alpha
-      rhs(n)=tq0(n)
+      rhs(n)=t0(n)
 c
-      call tridiag(sub,dia,sup,rhs,tq,n)
+      call tridiag(sub,dia,sup,rhs,t,n)
 c
       return
-      end subroutine diff_tq
+      end subroutine diff_t
+
+      subroutine diff_q(q0,q,kq,dz,dzedge,rho,rhoe
+     2                   ,rhoebydz,bydzerho,qflx,dtime,n)
+!@sum diff_q integrates differential eqns for q (tridiag. method)
+!@auth  Ye Cheng/G. Hartke
+!@ver   1.0
+!@var q z-profle of relative humidity Q
+!@var q0 z-profle of Q at previous time step
+!@var kq z-profile of moisture diffusivity
+!@var dz(i) z(i+1)-z(i)
+!@var dzedge(i) zedge(i+1)-zedge(i)
+!@var rho z-profile of density at z
+!@var rhoe z-profile of density at zedge
+!@var qflx heat flux -wt or humidity flux -wq at surface, zedge(1)
+!@var dtime time step
+!@var n number of vertical main layers
+
+      implicit none
+
+      integer, intent(in) :: n
+      real*8, dimension(n), intent(in) :: q0,kq,rho,rhoe
+     2        ,rhoebydz,bydzerho
+      real*8, dimension(n), intent(inout) :: q
+      real*8, dimension(n), intent(in) :: dz,dzedge
+      real*8, intent(in) :: qflx,dtime
+
+      real*8, dimension(n) :: sub,dia,sup,rhs
+      real*8 :: alpha
+      integer :: j  !@var j loop variable
+
+c     sub(j)*q_jm1_kp1+dia(j)*q_j_kp1+sup(j)*q_jp1_kp1 = rhs(j)
+
+      do j=2,n-1
+c         sub(j)=-dtime*kq(j)/(dz(j-1)*dzedge(j)*rho(j))*rhoe(j)
+c         sup(j)=-dtime*kq(j+1)/(dz(j)*dzedge(j)*rho(j))*rhoe(j+1)
+          sub(j)=-dtime*kq(j)*rhoebydz(j)*bydzerho(j)
+          sup(j)=-dtime*kq(j+1)*rhoebydz(j+1)*bydzerho(j)
+          dia(j)=1.d0-(sub(j)+sup(j))
+          rhs(j)=q0(j)
+      end do
+c
+c     Lower boundary conditions:
+c     d/dt T = -d/dz wt where
+c     d/dt T = (T(1)-T0(1))/dtime
+c     d/dz wt = (wt(2)-wt(1))/dze(1), dze(1)=ze(2)-ze(1)
+c     wt(2)=-kh(2)*(T(2)-T(1))/dz(1), dz(1)=z(2)-z(1)
+c     wt(1)=-tflx
+c     if T at first gcm layer has been updated, then tflx=0
+c     this is for T, similarly for Q
+c     in addition, rho(1) and rhoe(2) are in place to balance the
+c     mass
+c     from the above, the following follow
+c
+c     alpha=dtime*kq(2)/(dzedge(1)*dz(1)*rho(1))*rhoe(2)
+      alpha=dtime*kq(2)*rhoebydz(2)*bydzerho(1)
+      dia(1)=1.d0+alpha
+      sup(1)=-alpha
+      rhs(1)=q0(1)
+c     rhs(1)=q0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*qflx
+c
+c     Upper boundary conditions:
+c
+c     d/dt T = -d/dz wt where
+c     d/dt T = (T(n)-T0(n))/dtime
+c     d/dz wt = (wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
+c     wt(n)=-kh(n)*(T(n)-T(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
+c     wt(n+1)=0
+c
+c     alpha=dtime*kq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      alpha=dtime*kq(n)*rhoebydz(n)*bydzerho(n)
+      sub(n)=-alpha
+      dia(n)=1.d0+alpha
+      rhs(n)=q0(n)
+c
+      call tridiag(sub,dia,sup,rhs,q,n)
+c
+      return
+      end subroutine diff_q
 
       subroutine diff_e(e0,e,km,kh,ke,lscale,u,v,t,dz,dzedge
      2          ,rho,rhoe,dtime,ustar2,n)
@@ -826,7 +904,7 @@ c     trapezoidal rule
       end subroutine lgcm
 
 
-      subroutine kgcm(km,kh,ke,gm,gh,u,v,t,e,lscale,dz,n)
+      subroutine kgcm(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dz,n)
 c
 c     Grids:
 c
@@ -869,10 +947,10 @@ c     at edge: e,lscale,km,kh,gm,gh
       integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n), intent(in) :: u,v,t,e,lscale
       real*8, dimension(n), intent(in) :: dz
-      real*8, dimension(n), intent(out) :: km,kh,ke,gm,gh
+      real*8, dimension(n), intent(out) :: km,kh,kq,ke,gm,gh
 
       ! note e *tau = b1/2 *lscale * qturb
-      real*8, parameter ::  sq=0.02d0
+      real*8, parameter ::  sq=0.1d0
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,ghi,gmi,gmmax
       real*8 :: sm,sh,taue,e_lpbl,e_main_i
       integer :: i  !@var i loop variable
@@ -896,9 +974,14 @@ c     at edge: e,lscale,km,kh,gm,gh
         sm=(s0+s1*ghi+s2*gmi)/den
         sh=(s4+s5*ghi+s6*gmi)/den
         taue=tau*e(i)
-        km(i)=min(max(taue*sm,1.5d-5),100.d0)
-        kh(i)=min(max(taue*sh,2.5d-5),100.d0)
-        ke(i)=min(max(taue*sq,1.5d-5),100.d0)
+        km(i)=max(taue*sm,1.5d-5)
+        kh(i)=max(taue*sh,2.5d-5)
+        kq(i)=kh(i)
+        ke(i)=max(taue*sq,1.5d-5)
+c       km(i)=min(max(taue*sm,1.5d-5),100.d0)
+c       kh(i)=min(max(taue*sh,2.5d-5),100.d0)
+c       kq(i)=2.*kh(i)
+c       ke(i)=min(max(taue*sq,1.5d-5),100.d0)
         gm(i)=gmi
         gh(i)=ghi
       end do

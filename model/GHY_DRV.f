@@ -84,10 +84,10 @@ c****
       common /workls/prcss
 c**** interface to pbl
       real*8 zs1,tgv,tkv,qg,hemi,dtsurf,us,vs,ws,tsv,qsrf,psi,dbl,edvisc
-     *     ,eds1,ppbl,ug,vg,wg,zmix
+     *     ,eds1,kq,ppbl,ug,vg,wg,zmix
       logical pole
       common /pblpar/zs1,tgv,tkv,qg,hemi,dtsurf,pole
-      common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,
+      common /pblout/us,vs,ws,tsv,qsrf,psi,dbl,edvisc,eds1,kq,
      *     ppbl,ug,vg,wg,zmix
 
       real*8 qsat

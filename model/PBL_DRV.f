@@ -67,16 +67,16 @@ C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
 C
 
-      REAL*8 KMSURF,KHSURF
+      REAL*8 KMSURF,KHSURF,KQSURF
       LOGICAL POLE
 
       REAL*8 ZS1,TGV,TKV,QG,HEMI,DTSURF
-      REAL*8 US,VS,WS,TSV,QS,PSI,DBL,KM,KH,USTAR,PPBL,
+      REAL*8 US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,USTAR,PPBL,
      2               CM,CH,CQ,UG,VG,WG,ZMIX, TS
 
       COMMON /PBLPAR/ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
 
-      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,PPBL,
+      COMMON /PBLOUT/US,VS,WS,TSV,QS,PSI,DBL,KM,KH,KQ,PPBL,
      2               UG,VG,WG,ZMIX
 
       REAL*8, PARAMETER ::  EPSLON=1.D-20
@@ -214,10 +214,10 @@ C *********************************************************************
 
 c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
-      call advanc(us,vs,tsv,qs,kmsurf,khsurf,ustar,ug,vg,cm,ch,cq,
-     2            z0m,z0h,z0q,coriol,utop,vtop,ttop,qtop,tgrnd,
-     3            qgrnd,zgs,ztop,zmix,dtsurf,ufluxs,vfluxs,
-     4            tfluxs,qfluxs,i,j,itype)
+      call advanc(us,vs,tsv,qs,kmsurf,khsurf,kqsurf,
+     2     ustar,ug,vg,cm,ch,cq,z0m,z0h,z0q,coriol,
+     3     utop,vtop,ttop,qtop,tgrnd,qgrnd,zgs,ztop,zmix,dtsurf,
+     4     ufluxs,vfluxs,tfluxs,qfluxs,i,j,itype)
 
       uabl(:,i,j,itype)=uij(:)
       vabl(:,i,j,itype)=vij(:)
@@ -234,6 +234,7 @@ c1003 format(a,4(1pe14.4))
       wg    =sqrt(ug*ug+vg*vg)
       km    =kmsurf
       kh    =khsurf
+      kq    =kqsurf
       psitop=atan2(vg,ug+epslon)
       psisrf=atan2(vs,us+epslon)
       psi   =psisrf-psitop
