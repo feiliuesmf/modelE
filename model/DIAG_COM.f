@@ -385,13 +385,13 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER :: isccp_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
-      REAL*8, DIMENSION(KAIJX) :: SCALE_IJ             ! KAIJ -> KAIJX OK?
+      REAL*8, DIMENSION(KAIJ) :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=30), dimension(kaijx) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=80), dimension(kaijx) :: lname_ij
 !@var IW_IJ weighting indices for IJ diagnostics
-      integer, dimension(kaijx) :: iw_ij
+      integer, dimension(kaij) :: iw_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter :: nwts_ij = 7
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -400,11 +400,11 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
 !@var IR_IJ range indices for IJ diagnostics
-      integer, dimension(kaijx) :: ir_ij
+      integer, dimension(kaij) :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      integer, dimension(kaijx) :: ia_ij
+      integer, dimension(kaij) :: ia_ij
 !@var jgrid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaijx) :: jgrid_ij
+      integer, dimension(kaij) :: jgrid_ij
 
 !@var JL_xxx names for JL diagnostic indices
       INTEGER ::
@@ -551,7 +551,6 @@ c idacc-indices of various processes
       IMPLICIT NONE
       REAL*4, save :: ACCS(KACC)
       REAL*4 TSFREZS(IM,JM,KTSF),AFLXS(LM+LM_REQ+1,IM,JM,5)
-c???  add a couple of lines to replace ACCS and avoid 'COMMON BLOCK'
       integer monac1(12),i_ida,i_xtra
 !@var Kcomb counts acc-files as they are added up
       INTEGER, SAVE :: Kcomb=0
@@ -616,18 +615,12 @@ C**** The regular model (Kradia le 0)
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc,ACC,
-c??? *     idacc,AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,SPECA,ATPE,
-c??? *     ADIURN,WAVE,AJK,AIJK
      *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,
      *     REAL(TSFREZ,KIND=4),idacc,REAL(ACC,KIND=4),
-c??? *     idacc,REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),REAL(AJL,KIND=4),
-c??? *     REAL(ASJL,KIND=4),REAL(AIJ,KIND=4),REAL(AIL,KIND=4),REAL(ENERGY,KIND=4),
-c??? *     REAL(CONSRV,KIND=4),REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),REAL(WAVE,KIND=4),
-c??? *     REAL(AJK,KIND=4),REAL(AIJK,KIND=4),
      *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '
@@ -635,8 +628,6 @@ c??? *     REAL(AJK,KIND=4),REAL(AIJK,KIND=4),
       CASE (ioread)           ! input from restart file
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *      idacc, ACC,
-c??? *      idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,
-c??? *      CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,
      *      TDIURN,OA,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER

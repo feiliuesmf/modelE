@@ -191,7 +191,7 @@ C**** weighting functions for surface types
 !@var NDERN how many of the derived arrays go in
 !@var NDMAX max number of derived array place holders
       INTEGER, PARAMETER :: NDMAX=2
-      INTEGER, DIMENSION(NDMAX), PARAMETER :: ! currently only two points
+      INTEGER, DIMENSION(NDMAX), PARAMETER :: ! currently only 2 points
      *     NDERN = (/10, 1/)    ! 10 rad/alb diags and 1 cld diag
       CHARACTER*20, DIMENSION(NDMAX), PARAMETER ::
      *     DERPOS = (/'inc_sw','totcld'/)
@@ -2846,7 +2846,8 @@ c          if (n .gt. 13) n = (n+123)/10
       END MODULE BDIJ
 
       SUBROUTINE IJ_TITLEX
-!@sum  IJ_TITLEX titles etc for composite ij output
+!@sum  IJ_TITLEX defines name,lname,units for composite ij output
+!@+    the remaining attributes (value,wt,grid,range) are set in ij_MAPk
 !@auth G. Schmidt/M. Kelley
 !@ver  1.0
       USE BDIJ
@@ -2957,11 +2958,20 @@ c Check the count
         stop 'IJ_TITLES: kaijx too small'
       end if
 
+      do k1 = k+1,kaijx
+        write(name_ij(k1),'(a3,i3.3)') 'AIJ',k1
+        lname_ij(k1) = 'unused'
+        units_ij(k1) = 'unused'
+      end do
+
+      return
+
       END SUBROUTINE IJ_TITLEX
 
 
       subroutine IJ_MAPk (k,smap,smapj,gm,jgrid,irange,name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
+!+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
       USE DAGCOM
       USE CONSTANT, only :
      &     grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef,teeny
