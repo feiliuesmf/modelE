@@ -589,7 +589,7 @@ C****
      *     ,mchem
 #endif
 #endif
-      USE DAGCOM, only : acc_period,monacc,kacc,jreg,titreg,namreg
+      USE DAGCOM, only : acc_period,monacc,jreg,titreg,namreg
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
@@ -1283,7 +1283,6 @@ C****
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
-      WRITE (6,'(A14,2I8)') "KACC=",KACC
       WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
       WRITE (6,*) "PLbot=",PLbot
 C****

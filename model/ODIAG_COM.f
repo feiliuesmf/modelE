@@ -12,9 +12,7 @@
       USE DAGCOM, only : npts  ! needed for conservation diags
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8,
-     *     KACCO=IM*JM*KOIJ + IM*JM*LMO*KOIJL + LMO*KOL + LMO*NMST
-     *     *KOLNST
+      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -104,7 +102,7 @@ C****
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
 
-      write(TR_MODULE_HEADER(lhead+1:80),'(a19,i2,a1,i2,a9,i4,a4)') 
+      write(TR_MODULE_HEADER(lhead+1:80),'(a19,i2,a1,i2,a9,i4,a4)')
      *     'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
      *     LMO*NMST*KOLNST*NTM,'),it'
 #endif
@@ -298,7 +296,7 @@ c
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass
       CONPT=CONPT0
-      CONPT(8)="OCN PHYS" 
+      CONPT(8)="OCN PHYS"
       QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
       CALL SET_CON(QCON,CONPT,"OCN MASS","(10**2 KG/M^2) ",
      *     "(10**-8 KG/SM^2)",1d-2,1d8,icon_OMS)
@@ -340,7 +338,7 @@ C****
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum  ! needed for plug-play compatibility
 
-      OIJ=0. ; OIJL=0. ; OL=0. ; OLNST=0. 
+      OIJ=0. ; OIJL=0. ; OL=0. ; OLNST=0.
 
 #ifdef TRACERS_OCEAN
       TOIJL=0. ; TLNST = 0.

@@ -13,10 +13,10 @@
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,itime,wm
       USE GEOM, only: imaxj,bydxyp
-      USE SOMTQ_COM, only: mz  
-      USE TRACER_COM 
-      USE TRACER_DIAG_COM 
-      USE DYNAMICS, only: am,byam 
+      USE SOMTQ_COM, only: mz
+      USE TRACER_COM
+      USE TRACER_DIAG_COM
+      USE DYNAMICS, only: am,byam
       implicit none
 
       integer i,j,l,k,n
@@ -39,7 +39,7 @@ C**** Average concentration; surface concentration; total mass
       do i=1,im
         tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
-        taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS 
+        taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
@@ -106,7 +106,7 @@ C**** Calculate current value TOTAL
         ni=nofmt(1,nt)
 c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(:,nm,nt) = 
+          tconsrv(:,nm,nt) =
      &    tconsrv(:,nm,nt)+(total(:)-tconsrv(:,ni,nt))  !do 1,jm
         end if
 C**** Save current value in TCONSRV(NI)
@@ -237,7 +237,7 @@ C**** Calculate areas
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF (QDIAG) 
+      IF (QDIAG)
      *     call open_jc(trim(acc_period)//'.jc'//XLABEL(1:LRUNID),
      *     jm,lat_dg)
 C****
@@ -297,7 +297,7 @@ C**** LOOP OVER HEMISPHERES
      *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
-C**** PRODUCE TABLES 
+C**** PRODUCE TABLES
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
@@ -329,7 +329,7 @@ C****
       IMPLICIT NONE
       SAVE
 !@param names of derived JLt/JLs tracer output fields
-      INTEGER jlnt_nt_eddy,jlnt_vt_eddy  
+      INTEGER jlnt_nt_eddy,jlnt_vt_eddy
       END MODULE BDjlt
 
 
@@ -378,7 +378,7 @@ C**** Construct UNITS string for output
 
 
       SUBROUTINE DIAGJLT
-!@sum DIAGJLT controls calls to the pressure/lat print routine for 
+!@sum DIAGJLT controls calls to the pressure/lat print routine for
 !@+      tracers
 !@auth J. Lerner
 !@calls open_jl, JLt_TITLEX, JLMAP_t
@@ -441,7 +441,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
-          a(j,l)=undef 
+          a(j,l)=undef
         end if
       end do
       end do
@@ -486,13 +486,13 @@ C****
       if (to_per_mil(n).gt.0) then
 C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         scalet = 1.
-        jtpow = 0. 
+        jtpow = 0.
         do l=1,lm
         do j=1,jm
         if (tajln(j,l,k,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
         else
-          a(j,l)=undef 
+          a(j,l)=undef
         end if
         end do
         end do
@@ -551,7 +551,7 @@ C****
 C****
 C**** Convective Processes
 C****
-C**** MOIST CONVECTION 
+C**** MOIST CONVECTION
       k = jlnt_mc
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
@@ -577,7 +577,7 @@ C****
 C**** JL Specials (incl. Sources and sinks)
 C****
       do k=1,ktajls
-        if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr" 
+        if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr"
      *       .or. lname_jls(k).eq."unused") cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,tajls(1
@@ -631,7 +631,7 @@ C**** ratios : Be7/Pb210 and Be10/Be7
         scalet = 1.
         jtpow = 0.
 C*** ratio Be10/Be7
-        k=jlnt_conc 
+        k=jlnt_conc
         do l=1,lm
           do j=1,jm
             if (tajln(j,l,k,n_Be7).gt.0) then
@@ -645,10 +645,10 @@ C*** ratio Be10/Be7
         sname="be10be7"
         units=" "
         CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
-     *       ,jgrid_jlq(k)) 
+     *       ,jgrid_jlq(k))
 
 C*** ratio Be7/Pb210
-        k=jlnt_conc  
+        k=jlnt_conc
         do l=1,lm
           do j=1,jm
             if (tajln(j,l,k,n_Pb210).gt.0) then
@@ -667,7 +667,7 @@ C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
         units="mBq/mBq"        !be sure this is 1/scalet
         scalet = 1.d0;
         CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
-     *       ,jgrid_jlq(k))  
+     *       ,jgrid_jlq(k))
       end if
 
 #endif
@@ -683,7 +683,7 @@ C****
         scalet = 1.
         jtpow = 0.
 
-C**** Concentration in water vapour        
+C**** Concentration in water vapour
         k=jlnt_conc
         do l=1,lm
           do j=1,jm
@@ -694,7 +694,7 @@ C**** Concentration in water vapour
      *             -1.)
               a(j,l)=dD-8.*d18O
             else
-              a(j,l)=undef 
+              a(j,l)=undef
             end if
           end do
         end do
@@ -702,7 +702,7 @@ C**** Concentration in water vapour
         sname="dexcess"
         units="per mil"
         CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
-     *       ,jgrid_jlq(k)) 
+     *       ,jgrid_jlq(k))
 
 C**** Concentration in cloud water
         k=jlnt_cldh2o
@@ -715,7 +715,7 @@ C**** Concentration in cloud water
      *             -1.)
               a(j,l)=dD-8.*d18O
             else
-              a(j,l)=undef 
+              a(j,l)=undef
             end if
           end do
         end do
@@ -723,7 +723,7 @@ C**** Concentration in cloud water
         sname="dexcess_cldh2o"
         units="per mil"
         CALL JLMAP_t (lname,sname,units,plm,a,scalet,ones,ones,lm,2
-     *       ,jgrid_jlq(k)) 
+     *       ,jgrid_jlq(k))
 
       end if
 #endif
@@ -744,10 +744,10 @@ C****    HEMISPHERIC AND GLOBAL NUMBERS ARE SUMMATIONS.
 C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
 C**** JG INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
-C**** NUMBERS ABOVE 
+C**** NUMBERS ABOVE
 C****
       USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
-     *     ,xlabel,dsig,sige 
+     *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DAGCOM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
       IMPLICIT NONE
@@ -811,7 +811,7 @@ C****
       FLATJ = AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
          XJL(J,L) = FLATJ
       MLAT(J) = NINT(MAX(-1d5,MIN(FLATJ,1d5))) ! prevent integer overflow
-      IF (JWT.EQ.1) THEN     
+      IF (JWT.EQ.1) THEN
         ASUM(J) = ASUM(J)+FLATJ  !!!!most
       ELSE
         ASUM(J) = ASUM(J)+FLATJ*DSIG(L)/SDSIG  !!!! concentration
@@ -907,7 +907,7 @@ C****
 
       if (kdiag(8).ge.1) return
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF(QDIAG)call open_ij(trim(acc_period)//'.ijt'//XLABEL(1:LRUNID) 
+      IF(QDIAG)call open_ij(trim(acc_period)//'.ijt'//XLABEL(1:LRUNID)
      *     ,im,jm)
 
 c**** always skip unused fields
@@ -932,8 +932,8 @@ C**** Fill in maplet indices for tracer concentrations
         iord(k) = l
         nt(k) = n
         ijtype(k) = 1
-        name(k) = sname_ijt(l,n) 
-        lname(k) = lname_ijt(l,n) 
+        name(k) = sname_ijt(l,n)
+        lname(k) = lname_ijt(l,n)
         units(k) = units_ijt(l,n)
         irange(k) = ir_ijt(n)
         iacc(k) = ia_ijt
@@ -1018,7 +1018,7 @@ C**** Fill in maplet indices for sources and sinks
       end do
 
 #ifdef TRACERS_COSMO
-      if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then 
+      if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then
 C**** Be10/Be7
         k=k+1
         ijtype(k) = 3 !perform a ratio
@@ -1030,7 +1030,7 @@ C**** Be10/Be7
         iord(k) = 1
         aij1(:,:,k) = taijn(:,:,tij_surf,n_Be10) !set as numerator
         aij2(:,:,k) = taijn(:,:,tij_surf,n_Be7) !set as denom
-        scale(k) = 1. 
+        scale(k) = 1.
 C**** Be7/Pb210
         k=k+1
         ijtype(k) = 3 !perform a ratio
@@ -1040,7 +1040,7 @@ C**** Be7/Pb210
         irange(k) = ir_0_180
         iacc(k) = ia_srf
         iord(k) = 2
-        scale(k) = 1.d0 ! should be 1/units  
+        scale(k) = 1.d0 ! should be 1/units
         aij1(:,:,k) = taijn(:,:,tij_surf,n_Be7) !numerator
 C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
         aij1(:,:,k)=aij1(:,:,k)*trdecay(n_Be7)*tr_mm(n_Pb210)
@@ -1130,7 +1130,7 @@ c**** Find, then display the appropriate array
         if (Iord(n) .gt. 0 .and. Qk(n)) then
           call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
      *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
-     *         ,lname(n),units(n)) 
+     *         ,lname(n),units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call maptxt(smap,smapj,gm,irange(n),title,line,kcolmn,nlines)
           if(qdiag) call pout_ij(title//xlb,name(n),lname(n),units(n),
@@ -1151,7 +1151,7 @@ C**** produce binary files of remaining fields if appropriate
         if (Qk(n)) then
           call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
      *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
-     *         ,lname(n),units(n)) 
+     *         ,lname(n),units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call pout_ij(title//xlb,name,lname(n),units(n),smap,smapj,gm
      *         ,jgrid)
@@ -1237,60 +1237,4 @@ c**** Find final field and zonal, global, and hemispheric means
      *             smap,smapj,gm,nh,sh)                    ! out
       return
       end subroutine ijt_mapk
-
-#ifdef TRACERS_ON
-      SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
-!@sum  io_trdiag reads and writes tracer diagnostics arrays to file
-!@auth Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irerun,ioread_single,lhead
-      USE TRACER_DIAG_COM, only: tacc,ktacc
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRdiag01"
-!@var it input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
-!@var TACC4(KTACC) dummy array for reading diagnostics files
-      REAL*4 TACC4(KTACC)
-
-      write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
-     *   'R8 TACC(',ktacc,'),it'
-
-      SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
-        WRITE (kunit,err=10) MODULE_HEADER, TACC,it
-      CASE (IOWRITE_SINGLE)    ! output to acc file
-        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        WRITE (kunit,err=10) MODULE_HEADER, REAL(TACC,KIND=4),it
-      CASE (IOREAD:)          ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (ioread_single)    ! accumulate diagnostic files
-          READ (kunit,err=10) HEADER,TACC4
-          TACC = TACC+TACC4     ! accumulate diagnostics
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          END IF
-        CASE (ioread)  ! restarts
-          READ (kunit,err=10) HEADER, TACC,it
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-            GO TO 10
-          end IF
-        END SELECT
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_trdiag
-#endif
 

@@ -656,23 +656,23 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 1000  format(3(4x,a,i4))
 1001  format(9(1pe14.4))
 1100  format(2(4x,a,1pe14.4))
-1500  format (1h ,' l',1x,
+1500  format ('  l',1x,
      1            '     z     ',1x,
      2            '     p     ',1x,'     dz    ',1x,'     u     ',1x,
      3            '     v     ',1x,'     t     ',1x,'     q     ',1x,
      4            '    ke     ',1x,'    gc_ew ',1x,'   gc_w2t ',1x,
      5            '   gc_wt2  ',/)
-2000  format (1h ,i2,1x,1pe11.4,9(1x,1pe11.4),1x,1pe10.3)
-2100  format (1h ,i2,2(1x,1pe11.4),24x,1x,11x,36x,2(1x,1pe11.4),
+2000  format (' ',i2,1x,1pe11.4,9(1x,1pe11.4),1x,1pe10.3)
+2100  format (' ',i2,2(1x,1pe11.4),24x,1x,11x,36x,2(1x,1pe11.4)
      2           ,1x,1pe10.3)
-2500  format (1h ,i2,2(1x,1pe11.4),12x,7(1x,1pe11.4),1x,1pe10.3)
-3000  format (1h ,' l',1x,
+2500  format (' ',i2,2(1x,1pe11.4),12x,7(1x,1pe11.4),1x,1pe10.3)
+3000  format ('  l',1x,
      2            '  z (edge) ',1x,
      2            '  p (edge) ',1x,'   gc_wt   ',1x,' -kh*dtdz  ',1x,
      3            '     kh    ',1x,'    kt2    ',1x,'     gm    ',1x,
      4            '     gh    ',1x,'   lscale  ',1x,'     e     ',1x,
      5            '     t2    ',/)
-4000  format (1h ,' l',1x,
+4000  format ('  l',1x,
      2            '  z (edge) ',1x,
      3            '    uflux  ',1x,'    hflux  ',1x,'    qflux  ',1x,
      4            '     dmdz  ',1x,'    dtdz   ',1x,'    dqdz   ',1x,

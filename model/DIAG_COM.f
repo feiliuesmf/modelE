@@ -14,6 +14,7 @@ C**** Accumulating_period information
       CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
 !@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 
+!!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER :: KAJ=80
@@ -206,21 +207,7 @@ C**** Instantaneous constant pressure level fields
 !@var T_inst saved instantaneous temperature(at PMB levels)
       REAL*8, DIMENSION(KGZ,IM,JM) :: Z_inst,RH_inst,T_inst
 
-!@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
-     *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
-     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
-     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
-     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
-
-      COMMON /ACCUM/ AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,
-     &  ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,
-     &  AJK,AIJK,AISCCP,HDIURN
-      REAL*8, DIMENSION(KACC) :: ACC
       REAL*8, DIMENSION(LM+LM_REQ+1,IM,JM,5) :: AFLX_ST
-      EQUIVALENCE (ACC,AJ,AFLX_ST)
 
 !@param KTSF number of freezing temperature diagnostics
       integer, parameter :: ktsf=4
@@ -599,9 +586,27 @@ c idacc-indices of various processes
      *    ,Kradia
       USE DAGCOM
       IMPLICIT NONE
-      REAL*4, save :: ACCS(KACC)
-      REAL*4 TSFREZS(IM,JM,KTSF),AFLXS(LM+LM_REQ+1,IM,JM,5)
-      integer monac1(12),i_ida,i_xtra
+
+!@param KACC total number of diagnostic elements
+      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ + JM*KAPJ
+     *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
+     *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
+     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
+     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
+     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+     *     + (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
+!@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
+      REAL*4 AJ4(JM,KAJ,NTYPE),AREG4(NREG,KAJ),APJ4(JM,KAPJ)
+      REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
+      REAL*4 AIL4(IM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
+      REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
+      REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(HR_IN_DAY,NDIUVAR,NDIUPT)
+      REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
+      REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
+      REAL*4 AISCCP4(ntau,npres,nisccp)
+      REAL*4 HDIURN4(HR_IN_MONTH+4,NDIUVAR,NDIUPT)
+      REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
+      integer monac1(12),i_ida,i_xtra,it_check
 !@var Kcomb counts acc-files as they are added up
       INTEGER, SAVE :: Kcomb=0
 
@@ -637,8 +642,8 @@ c idacc-indices of various processes
             GO TO 10
           END IF
         CASE (IOREAD_SINGLE)      !
-          READ (kunit,err=10) HEADER,idac1(2),AFLXS,monac1
-          AFLX_ST=AFLX_ST+AFLXS
+          READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
+          AFLX_ST=AFLX_ST+AFLX4
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
         END SELECT
@@ -662,32 +667,49 @@ C**** The regular model (Kradia le 0)
         write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
      *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc,ACC,
+     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
      *     TDIURN,OA,it
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
-        WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,
-     *     REAL(TSFREZ,KIND=4),idacc,REAL(ACC,KIND=4),
+        WRITE (kunit,err=10) MODULE_HEADER,
+     *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
+     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),REAL(APJ,KIND=4),
+     *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),REAL(AIJ,KIND=4),
+     *     REAL(AIL,KIND=4),REAL(ENERGY,KIND=4),REAL(CONSRV,KIND=4),
+     *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
+     *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),REAL(AIJK,KIND=4),
+     *     REAL(AISCCP,KIND=4),REAL(HDIURN,KIND=4),
      *     monacc,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
         MODULE_HEADER(i_ida:80) = ',it '
         WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
       CASE (ioread)           ! input from restart file
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *      idacc, ACC,
-     *      TDIURN,OA,it
+     *     idacc, AJ,AREG,APJ,AJL,ASJL,AIJ,AIL,ENERGY,CONSRV,
+     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,HDIURN,
+     *     TDIURN,OA,it
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
         END IF
       CASE (IOREAD_SINGLE)      !
-        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZS,
-     *      idac1,ACCS,
-     *      monac1
-!**** Here we could check the dimensions written into HEADER  ??????
-        TSFREZ=TSFREZS
-        ACC=ACC+ACCS
+        READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
+     *     idac1, AJ4,AREG4,APJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4,CONSRV4,
+     *     SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,HDIURN4,
+     *     monac1,it_check
+        if(it.ne.it_check) then
+          PRINT*,"io_diags: compare aj,aj4, ... dimensions"
+          GO TO 10 ! or should that be just a warning ??
+        end if
+        TSFREZ=TSFREZ4
+        AJ=AJ+AJ4 ; AREG=AREG+AREG4 ; APJ=APJ+APJ4 ; AJL=AJL+AJL4
+        ASJL=ASJL+ASJL4 ; AIJ=AIJ+AIJ4 ; AIL=AIL+AIL4
+        ENERGY=ENERGY+ENERGY4 ; CONSRV=CONSRV+CONSRV4
+        SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
+        WAVE=WAVE+WAVE4 ; AJK=AJK+AJK4 ; AIJK=AIJK+AIJK4
+        AISCCP=AISCCP+AISCCP4 ; HDIURN=HDIURN+HDIURN4
         IDACC = IDACC + IDAC1
 !@var idacc(5) is the length of a time series (daily energy history).
 !****   If combining acc-files, rather than concatenating these series,

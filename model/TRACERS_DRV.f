@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-!@sum  TRACERS_DRV: tracer-dependent routines for air/water mass 
+!@sum  TRACERS_DRV: tracer-dependent routines for air/water mass
 !@+    and ocean tracers
 !@+    Routines included:
 !@+      Those that MUST EXIST for all tracers:
@@ -172,7 +172,7 @@ C**** Define individual tracer characteristics
       case ('N2O')
       n_N2O = n
           ntm_power(n) = -9
-          tr_mm(n) = 44.d0 
+          tr_mm(n) = 44.d0
 #ifdef TRACERS_SPECIAL_Lerner
           ntsurfsrc(n) = 1
           n_MPtable(n) = 1
@@ -297,7 +297,7 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
-      n_Ox = n    
+      n_Ox = n
           call openunit('Ox_IC',iu_data,.true.,.true.)
           read (iu_data) title,OxICIN
           call closeunit(iu_data)
@@ -434,8 +434,8 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
           ntsurfsrc(n) = 2 ! industrial + biomass burning
           tr_mm(n) = 28.01d0
 C         Interpolate CO altitude-dependence to model resolution:
-          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt,.true.) 
-      
+          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt,.true.)
+
       case ('PAN')
       n_PAN = n
           ntm_power(n) = -11
@@ -480,10 +480,10 @@ C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
 C + 5.1% Ketones(3.6C)) = 4.95 C
 C This number wasn't adjusted when the vegetation source was added.
 
-#ifdef regional_Ox_tracers 
+#ifdef regional_Ox_tracers
       case ('OxREG1')
-      n_OxREG1 = n    
-          ntemp= ntemp+1 
+      n_OxREG1 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -498,8 +498,8 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
       case ('OxREG2')
-      n_OxREG2 = n    
-          ntemp= ntemp+1 
+      n_OxREG2 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -514,8 +514,8 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
       case ('OxREG3')
-      n_OxREG3 = n    
-          ntemp= ntemp+1 
+      n_OxREG3 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -530,8 +530,8 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=2000.d0 ! intentionally large
 
       case ('OxREG4')
-      n_OxREG4 = n    
-          ntemp= ntemp+1 
+      n_OxREG4 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -546,8 +546,8 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=710.d0
 
       case ('OxREG5')
-      n_OxREG5 = n    
-          ntemp= ntemp+1 
+      n_OxREG5 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -562,14 +562,14 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=710.d0
 
       case ('OxREG6')
-      n_OxREG6 = n    
-          ntemp= ntemp+1 
+      n_OxREG6 = n
+          ntemp= ntemp+1
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
           F0(n) = 1.8d0
           HSTAR(n) = 1.d-2
-#endif 
+#endif
           regOx_n(ntemp)=-30.d0
           regOx_s(ntemp)=-90.d0
           regOx_w(ntemp)=-180.d0
@@ -578,13 +578,13 @@ C This number wasn't adjusted when the vegetation source was added.
           regOx_b(ntemp)=710.d0
 #endif
 #endif
- 
+
       case ('DMS')
       n_DMS = n
           ntm_power(n) = -12
 ! the ocean source of DMS is actually interactive and therefore should
 ! not count for ntsurfsrc....
-          ntsurfsrc(n) = 0   ! ocean DMS concentration 
+          ntsurfsrc(n) = 0   ! ocean DMS concentration
           ntisurfsrc(n)=1.
           tr_mm(n) = 62.
           needtrs(n)=.true.
@@ -663,7 +663,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
       case ('seasalt1')
       n_seasalt1 = n
-          ntsurfsrc(n) = 0   ! ocean bubbles 
+          ntsurfsrc(n) = 0   ! ocean bubbles
           ntisurfsrc(n)=1.
           ntm_power(n) = -10
           tr_mm(n) = 75. !Na x 3.256
@@ -673,7 +673,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_wd_TYPE(n) = nPART
       case ('seasalt2')
       n_seasalt2 = n
-          ntsurfsrc(n) = 0   ! ocean bubbles 
+          ntsurfsrc(n) = 0   ! ocean bubbles
           ntisurfsrc(n)=1.
           ntm_power(n) = -9
           tr_mm(n) = 75. !Na x 3.256
@@ -714,7 +714,7 @@ C**** Tracers that are soluble or are scavenged or are water => wet dep
      *     then
         dowetdep(n)=.true.
       end if
-#endif 
+#endif
 #ifdef TRACERS_DRYDEP
 C**** If tracers are particles or have non-zero HSTAR or F0 do dry dep:
 C**** Any tracers that dry deposits needs the surface concentration:
@@ -731,11 +731,11 @@ C**** Any tracers that dry deposits needs the surface concentration:
 C**** Define the conversion from mass to volume units here so it is not
 C**** done each hour:
       mass2vol(n)  =mair/TR_MM(n)
-      bymass2vol(n)=TR_MM(n)/mair  
+      bymass2vol(n)=TR_MM(n)/mair
 #endif
 
       end do
-      
+
 
 #ifdef TRACERS_ON
 C**** Tracer sources and sinks
@@ -1502,7 +1502,7 @@ C
         lname_jls(k) = 'SGSWSP TKE'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
-        jls_power(k) =0 
+        jls_power(k) =0
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
@@ -1512,7 +1512,7 @@ C
         lname_jls(k) = 'SGSWSP Wet Conv'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
-        jls_power(k) =0 
+        jls_power(k) =0
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
@@ -1522,7 +1522,7 @@ C
         lname_jls(k) = 'SGSWSP Dry Conv'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
-        jls_power(k) =0 
+        jls_power(k) =0
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
@@ -1532,7 +1532,7 @@ C
         lname_jls(k) = 'DMS SGSWP-old/old'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
-        jls_power(k) =0 
+        jls_power(k) =0
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'%')
 
@@ -1652,7 +1652,7 @@ c heterogeneous source of SO4
         sname_jls(k) = 'heterogeneous_source_of'//trname(n)
         lname_jls(k) = 'Heterogenous Chemical source of SO4'
         jls_ltop(k) = LM
-        jls_power(k) = -3 
+        jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifdef TRACERS_AEROSOLS_Koch
 c convective cloud phase source of SO4
@@ -1695,7 +1695,7 @@ c cosmogenic source from file
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
         lname_jls(k) = 'Be7 cosmogenic src'
-        jls_ltop(k) = lm 
+        jls_ltop(k) = lm
         jls_power(k) = -13.   !may need changing around
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c radioactive decay
@@ -1818,7 +1818,7 @@ c photolysis rate
         jls_ltop(k) = 1
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-	
+
 c gravitational settling of ss1
         k = k + 1
         jls_grav(n) = k
@@ -1827,7 +1827,7 @@ c gravitational settling of ss1
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-	
+
        case ('seasalt2')
         k = k + 1
         jls_isrc(1,n) = k
@@ -1836,14 +1836,14 @@ c gravitational settling of ss1
         jls_ltop(k) = 1
         jls_power(k) =1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-	
+
 c gravitational settling of ss2
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of'//trname(n)
         lname_jls(k) = 'Gravitational Settling of seasalt2'
         jls_ltop(k) = LM
-        jls_power(k) =0 
+        jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 #ifdef TRACERS_DUST
@@ -1900,7 +1900,7 @@ C**** Checks
 
       end do
 
-C**** Additional Special JL diagnostics 
+C**** Additional Special JL diagnostics
 C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_SPECIAL_Shindell
         k = k + 1
@@ -1919,16 +1919,16 @@ c
         lname_jls(k) = 'H2O mixing ratio (weighted by daylight)'
         jls_ltop(k)  = LTOP
         jwt_jls(k) = 2
-        jls_power(k) = -4. 
+        jls_power(k) = -4.
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'parts/vol')
 c
         k = k + 1
         jls_day=k
-        sname_jls(k) = 'daylight'   ! not output 
+        sname_jls(k) = 'daylight'   ! not output
         lname_jls(k) = 'Daylight weighting'
         jls_ltop(k)  = 1
-        jls_power(k) = 0. 
+        jls_power(k) = 0.
         scale_jls(k) = 100.*byim
         units_jls(k) = unit_string(jls_power(k),'%')
 c
@@ -1937,7 +1937,7 @@ c
         sname_jls(k) = 'N2O5_sulf'
         lname_jls(k) = 'N2O5 sulfate sink'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -2. 
+        jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifdef regional_Ox_tracers
 c
@@ -1945,8 +1945,8 @@ c
         jls_Oxloss=k
         sname_jls(k) = 'Ox_loss'
         lname_jls(k) = 'Ox chemical loss'
-        jls_ltop(k)  = LTOP 
-        jls_power(k) = -2. 
+        jls_ltop(k)  = LTOP
+        jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
 c
         k = k + 1
@@ -1954,7 +1954,7 @@ c
         sname_jls(k) = 'Ox_prod'
         lname_jls(k) = 'Ox chemical production'
         jls_ltop(k)  = LTOP
-        jls_power(k) = -2. 
+        jls_power(k) = -2.
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3/s')
 #endif
 #endif
@@ -1967,7 +1967,7 @@ c Oxidants
         lname_jls(k) = 'OH Concentration'
         jls_ltop(k) = LM
         jls_power(k) =5
-        scale_jls(k) =byim 
+        scale_jls(k) =byim
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
         k = k + 1
@@ -1976,7 +1976,7 @@ c Oxidants
         lname_jls(k) = 'HO2 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =7
-        scale_jls(k) =byim 
+        scale_jls(k) =byim
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
         k = k + 1
@@ -1985,10 +1985,10 @@ c Oxidants
         lname_jls(k) = 'NO3 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =5
-        scale_jls(k) =byim 
+        scale_jls(k) =byim
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif
-        
+
       if (k.gt. ktajls) then
         write (6,*)
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
@@ -2183,7 +2183,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif   
+#endif
       k = k + 1
         ijts_3Dsource(nLightning,n) = k
         ijts_index(k) = n
@@ -2241,7 +2241,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
+#endif
 
       case ('CH4')
       k = k + 1
@@ -2390,7 +2390,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
+#endif
 #else
       k = k + 1
         ijts_3Dsource(1,n) = k
@@ -2410,8 +2410,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
-        
+#endif
+
       case ('O3')
       k = k + 1
         ijts_3Dsource(1,n) = k
@@ -2470,7 +2470,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
+#endif
 
       case ('Alkenes')
       k = k+1
@@ -2519,7 +2519,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
+#endif
 
       case ('Paraffin')
       k = k+1
@@ -2568,7 +2568,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif    
+#endif
 
       case ('ClOx','BrOx','HCl','HOCl','ClONO2',
      &      'HBr','HOBr','BrONO2','CFC')
@@ -2604,8 +2604,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif  
-        
+#endif
+
       case ('DMS')
         k = k + 1
         ijts_isrc(1,n) = k
@@ -2743,31 +2743,31 @@ c put in loss of SO4 from heter chem
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-c SO4 optical thickness 
+c SO4 optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !? 
+        ia_ijts(k) = ia_rad   !?
         lname_ijts(k) = 'SO4 optical thickness'
         sname_ijts(k) = 'TAU'
         ijts_power(k) = -4.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
-c SO4 shortwave radiative forcing 
+c SO4 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !? 
+        ia_ijts(k) = ia_rad   !?
         lname_ijts(k) = 'SO4 SW radiative forcing'
         sname_ijts(k) = 'SWRF'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-c SO4 longwave radiative forcing 
+c SO4 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !? 
+        ia_ijts(k) = ia_rad   !?
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'LWRF'
         ijts_power(k) = -2.
@@ -2841,7 +2841,7 @@ c source of Pb210 from Rn222 decay
         ijts_power(k) = -8.
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-	
+
       case ('seasalt1')
         k = k + 1
         ijts_isrc(1,n) = k
@@ -2853,32 +2853,32 @@ c source of Pb210 from Rn222 decay
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-c ss1 optical thickness 
+c ss1 optical thickness
         k = k + 1
         ijts_tau(n) = k
         write(6,*) 'tau scale',k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad   !? 
+        ia_ijts(k) = ia_rad   !?
         lname_ijts(k) = 'ss1 optical thickness'
         sname_ijts(k) = 'TAU'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
-c SS shortwave radiative forcing 
+c SS shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad  !? 
+        ia_ijts(k) = ia_rad  !?
         lname_ijts(k) = 'SS SW radiative forcing'
         sname_ijts(k) = 'SWRF'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-c SS longwave radiative forcing 
+c SS longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_rad  !? 
+        ia_ijts(k) = ia_rad  !?
         lname_ijts(k) = 'SS LW radiative forcing'
         sname_ijts(k) = 'LWRF'
         ijts_power(k) = -2.
@@ -2896,11 +2896,11 @@ c SS longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-c ss2 optical thickness 
+c ss2 optical thickness
         k = k + 1
         ijts_tau(n) = k
         ijts_index(k) = n
-        ia_ijts(k) = ia_src   !? 
+        ia_ijts(k) = ia_src   !?
         lname_ijts(k) = 'ss2 optical thickness'
         sname_ijts(k) = 'TAU'
         ijts_power(k) = -2.
@@ -2950,8 +2950,8 @@ c ss2 optical thickness
 
       end select
       end do
-      
-C**** Additional Special IJ diagnostics 
+
+C**** Additional Special IJ diagnostics
 C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_SPECIAL_Shindell
       k = k+1
@@ -3839,7 +3839,7 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Be7')
-      itcon_3Dsrc(1,N) =13      
+      itcon_3Dsrc(1,N) =13
       qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
       qsum(itcon_3Dsrc(1,N)) = .true.
       itcon_grav(n) =14
@@ -3860,7 +3860,7 @@ C**** set some defaults
 #endif
       itcon_decay(n) = 18
       qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
-      qsum(itcon_decay(n)) = .true.     
+      qsum(itcon_decay(n)) = .true.
 
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
@@ -3868,7 +3868,7 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Be10')
-      itcon_3Dsrc(1,N) =13      
+      itcon_3Dsrc(1,N) =13
       qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
       qsum(itcon_3Dsrc(1,N)) = .true.
       itcon_grav(n) =14
@@ -3894,7 +3894,7 @@ C**** set some defaults
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('Pb210')
-      itcon_3Dsrc(1,N) =13      
+      itcon_3Dsrc(1,N) =13
       qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
       qsum(itcon_3Dsrc(1,N)) = .true.
       itcon_grav(n) =14
@@ -3950,7 +3950,7 @@ C**** set some defaults
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
-           
+
       case ('seasalt1')
       itcon_grav(n) = 13
       qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
@@ -3972,7 +3972,7 @@ C**** set some defaults
      *     sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
       qcon(13:) = .false.  ! reset to defaults for next tracer
       qsum(13:) = .false.  ! reset to defaults for next tracer
-      
+
       case ('seasalt2')
       itcon_grav(n) = 13
       qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
@@ -4013,12 +4013,11 @@ c      qsum(itcon_ss(n)) = .false.
        end do
 
 C**** print out total tracer diagnostic array size
-      WRITE (6,'(A14,2I8)') "KTACC=",KTACC
-C      
+C
 #ifdef TRACERS_DRYDEP
 C Read landuse parameters and coefficients for tracer dry deposition:
       CALL RDLAND
-      CALL RDDRYCF 
+      CALL RDDRYCF
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
@@ -4070,7 +4069,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM 
+      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM
      &  ,COalt,JCOlat,OxIC
 #ifdef SHINDELL_STRAT_CHEM
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt
@@ -4369,7 +4368,7 @@ c**** earth
         case ('OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
           trm(:,:,:,n)=trm(:,:,:,n_Ox)*byNregOx
 #endif
-        
+
         case ('NOx')
           do l=1,lm; do j=1,jm; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
@@ -4386,21 +4385,21 @@ c**** earth
 
         case ('BrOx')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = 
+            trm(i,j,l,n) =
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*BrOxalt
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 
         case ('HCl')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = 
+            trm(i,j,l,n) =
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*HClalt
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
 
         case ('ClONO2')
           do l=1,lm; do j=1,jm; do i=1,im
-            trm(i,j,l,n) = 
+            trm(i,j,l,n) =
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClONO2alt
           end do; end do; end do
           trmom(:,:,:,:,n) = 0.d0
@@ -4597,18 +4596,18 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
 c read in DMS source
       call openunit('DMS_SEA',mon_unit,.false.)
-      DO 8 mm =1,12   
-      READ(mon_unit,*) mont 
+      DO 8 mm =1,12
+      READ(mon_unit,*) mont
       do ir=1,9999
       read(mon_unit,901) ii,jj,dmsconc,dmstx,dmstx,dmstx,
-     * dmstx,dmstx  
+     * dmstx,dmstx
 c I'm not using the moments
-      IF (II.EQ.0) GO TO 8     
+      IF (II.EQ.0) GO TO 8
       dmsinput(ii,jj,mm)=dmsconc
       end do
-  8   CONTINUE  
-        call closeunit(mon_unit)                       
- 901  FORMAT(3X,2(I4),E11.3,5F9.2)  
+  8   CONTINUE
+        call closeunit(mon_unit)
+ 901  FORMAT(3X,2(I4),E11.3,5F9.2)
 #endif
       end subroutine tracer_IC
 
@@ -4707,8 +4706,8 @@ C         (lightning called from tracer_3Dsource)
         case ('Paraffin')
           call read_Paraffin_sources(n,iact)
         case ('N2O5')
-          if (COUPLED_CHEM.eq.1) then 
-          tr3Dsource(:,:,:,:,n) = 0. 
+          if (COUPLED_CHEM.eq.1) then
+          tr3Dsource(:,:,:,:,n) = 0.
           else
           tr3Dsource(:,:,:,:,n) = 0.
           call get_sulfate_N2O5 !not applied directly;used in chemistry.
@@ -5083,7 +5082,7 @@ C****
 c cosmogenic src
         do l=1,lm; do j=1,jm; do i=1,im
           tr3Dsource(i,j,l,1,n) = be7_src_param * am(l,i,j) *
-     *         be7_src_3d(i,j,l) 
+     *         be7_src_3d(i,j,l)
         end do; end do; end do
         call apply_tracer_3Dsource(1,n)
 C****
@@ -5112,13 +5111,13 @@ C****
        call apply_tracer_3Dsource(3,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(4,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_SO4)  ! SO4 chem source
-       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source      
+       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
 
        call heter
        call apply_tracer_3Dsource(5,n_SO2) ! SO2 het chem sink
        call apply_tracer_3Dsource(2,n_SO4) ! SO4 het chem source
-       call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink 
+       call apply_tracer_3Dsource(3,n_H2O2_s) ! H2O2 het chem sink
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5127,7 +5126,7 @@ C (Note: using this method, tracer moments are changed just like they
 C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
-      CALL TIMER (MNOW,MTRACE) 
+      CALL TIMER (MNOW,MTRACE)
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
       call get_lightning_NOx
@@ -5139,7 +5138,7 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(:,:,:,nStratwrite,1:ntm_chem) = 0.
 #endif
 C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
-           
+
       CALL masterchem ! does chemistry and stratospheric over-writing.
                       ! tr3Dsource defined within, for both processes
 
@@ -5151,7 +5150,7 @@ C**** Apply chemistry and stratosphere overwrite changes:
         call apply_tracer_3Dsource(nStratwrite,n)
 #endif
       end do
-      CALL TIMER (MNOW,MCHEM) 
+      CALL TIMER (MNOW,MCHEM)
 #endif
 
 #ifdef TRACERS_DUST
@@ -5297,7 +5296,7 @@ C**** this is a parameterisation from Georg Hoffmann
           else
             fq = fq0
           end if
-#else 
+#else
           fq = fq0
 #endif
         CASE(nPART)                           ! particulate tracer

@@ -51,7 +51,7 @@ C**** Variables passed from DIAGA to DIAGB
       REAL*8, DIMENSION(JM,LM) :: TJL0
 
 C**** Variables used in DIAG5 calculations
-!@var FCUVA,FCUVB fourier coefficients for velocities 
+!@var FCUVA,FCUVB fourier coefficients for velocities
       REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
 
 C**** Some local constants
@@ -1157,7 +1157,7 @@ C**** ACCUMULATE ALL VERTICAL WINDS
       DO 558 I=1,IM
       DO KR=1,NDIUPT
          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-C**** Warning:     This diagnostic has 3 flaws   (?)
+C**** Warning:     This diagnostic has 3 flaws : (?)
 C****          1 - It assumes that DTsrc=1hr, (DTsrc=3600.)
 C****          2 - since DTdaa-Ndaa*DTsrc=2*DTdyn rather than 0,
 C****              some hours are skipped once in a while
@@ -2440,7 +2440,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
       INTEGER :: LmaxSUBDD = LM
-     
+
       contains
 
       subroutine init_subdd(aDATE)
@@ -2646,7 +2646,7 @@ C**** simple diags
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
-          data=qflux1*lhe 
+          data=qflux1*lhe
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
         case ("SWD")           ! solar downward flux at surface (W/m^2)
@@ -2835,7 +2835,7 @@ C**** write out
 #endif
         end select
       end do
-c**** 
+c****
       return
       end subroutine get_subdd
 
@@ -2931,7 +2931,7 @@ C**** From DIAGA:
       LDNA(1)=1
       LUPA(LM)=LM
 
-C**** From DIAGB      
+C**** From DIAGB
       PM(1)=1200.
       DO L=2,LM+1
         PL(L)=PSFMPT*SIGE(L)+PTOP
@@ -2946,7 +2946,7 @@ C**** From DIAG7A
       L850=LM
       L300=LM
       L50=LM
-      DO L=LM-1,1,-1 
+      DO L=LM-1,1,-1
         PLE_tmp=.25*(SIGE(L)+2.*SIGE(L+1)+SIGE(L+2))*PSFMPT+PTOP
         IF (PLE_tmp.LT.850.) L850=L
         IF (PLE_tmp.LT.300.) L300=L
@@ -3127,7 +3127,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       USE DAGCOM
       USE PARAM
 #ifdef TRACERS_ON
-      USE TRACER_DIAG_COM, only: TACC
+      USE TRACER_DIAG_COM, only: TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
 #endif
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
@@ -3146,7 +3146,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
       AJK=0   ; AIJK=0 ; HDIURN=0
       AISCCP=0
 #ifdef TRACERS_ON
-      TACC=0.
+      TAIJLN=0 ; TAIJN=0 ; TAIJS=0 ; TAJLN=0 ; TAJLS=0 ; TCONSRV=0
 #endif
       call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required

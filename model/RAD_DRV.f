@@ -310,7 +310,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
      *     ,kradia
       USE GEOM, only : dlat,lat_dg
       USE RADPAR, only : rcomp1,writer,writet       ! routines
-     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR       
+     &     ,FULGAS ,PTLISO ,KTREND ,NL ,NLP, PLB, PTOPTR
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
      *     ,KYEARS,KJDAYS,MADLUV, KYEARG,KJDAYG,MADGHG
      *     ,KYEARO,KJDAYO,MADO3M, KYEARA,KJDAYA,MADAER
@@ -471,16 +471,16 @@ C**** Aerosols:
 C**** Currently there are five different default aerosol controls
 C****   1: total 2:background 3: AClim 4:dust 5:volcanic
 C**** By adjusting FSXAER,FTXAER you can remove the default
-C**** aerosols and replace them with your version if required 
-C**** (through TRACER in RADIA). 
+C**** aerosols and replace them with your version if required
+C**** (through TRACER in RADIA).
 C**** FSXAER is for the shortwave, FTXAER is for the longwave
-caer   FSXAER = (/ 1.,1.,1.,1.,1. /)     
-caer   FTXAER = (/ 1.,1.,1.,1.,1. /)     
+caer   FSXAER = (/ 1.,1.,1.,1.,1. /)
+caer   FTXAER = (/ 1.,1.,1.,1.,1. /)
 
 C**** There are 10 aerosol subtypes for AClim:
 C**** 1. Industrial BC, 2. Industrial OC, 3. Industrial sulfate
 C**** 4. seasalt, 5. Natural sulfate, 6. nitrate (set = natural so4),
-C**** 7. Natural OC, 8. Biomass OC, 9. Biomass BC, 10. background seasalt (?)
+C**** 7. Natural OC, 8. Biomass OC, 9. Biomass BC, 10. other bkgrd aeros
 C**** so use FSAERO and FTAERO to zero out particular subtypes:
 caer  FSAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
 caer  FTAERO = (/1., 1., 1., 1., 1., 1., 1., 1., 1., 1./)
@@ -491,7 +491,7 @@ C****  2) ITR defines which set of Mie parameters get used, choose
 C****    from the following:
 C****   1 ? ,2 seasalt (2um), 3 sulfate (0.3 um), 4 sulfate (1 um),
 C****   5 ?, 6 ?, 7 dust (0.5 um), 8 dust (2 um), 9 dust (8 um),
-C****   10 BC (0.1 um) 11 BC (0.5 um) 
+C****   10 BC (0.1 um) 11 BC (0.5 um)
 C****  3) Use FGOLDH(6:NTRACE+5) to turn them on
 C****  4) MAKBAK=1 gets to SETBAK where extra tracers are added
 C**** however then we need to set FGOLDH(1-5)=0 in order to
@@ -510,12 +510,12 @@ caer   FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
       end if
       NTRACE = 2
       FGOLDH(5+1:5+NTRACE) = (/ 1.,1./) ! superseded in RADIA
-      MADBAK=1   
+      MADBAK=1
       FGOLDH(1:5)=(/0.,0.,0.,0.,0./)
 c tracer 1 is sulfate, tracer 2 is seasalt
       ITR = (/ 3,2,0,0, 0,0,0,0 /)
 #endif
-  
+
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -646,11 +646,11 @@ C     INPUT DATA   partly (i,j) dependent, partly global
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but without specific tracers for
 !@+   radiative forcing calculations
-      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFST,TNFST
       INTEGER N
 #endif
-      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: 
+      REAL*8, DIMENSION(LM_REQ,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRS,SRHRS
       REAL*8, DIMENSION(0:LM+LM_REQ,IM,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -704,18 +704,20 @@ C**** Calculate mean cosine of zenith angle for the current physics step
         iend = 1
         it = itime-1           ! make sure, at least 1 record is read
         do while (mod(itime-it,8760).ne.0)
+          read(iu_rad,end=10,err=10) it
 C****   input data:          WARNINGS
 C****        1 - any changes here also go in later (look for 'iu_rad')
 C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
-          read(iu_rad,end=10,err=10) it,T,RQT,TsAvg    ! LM+LM_REQ+1+
+     *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
      *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
 C****   output data: really needed only if kradia=2
-     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)}
+     *     ,srhra,trhra                                ! 2(LM+LM_REQ+1)}
 C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 23) => RAD_COM.f
+     *     ,iy
           if (qcheck) write(6,*) 'reading RADfile at Itime',Itime,it,iy
         end do
         iend = 0
@@ -1116,9 +1118,9 @@ c seasalt forcing
       FGOLDH(7)=1.d0
 #endif
 C**** Depending on rundeck variable allow full radiative interaction
-C**** or not. If no radiatively active tracers are defined, nothing 
+C**** or not. If no radiatively active tracers are defined, nothing
 C**** changes. Currently this works for aerosols, but should be extended
-C**** to cope with trace gases. 
+C**** to cope with trace gases.
 C**** Possibly different values >0 could do different things
       if (rad_interact_tr.eq.0 .and. NTRACE.gt.0)
      *     FGOLDH(6:5+NTRACE)=0.
@@ -1263,14 +1265,16 @@ C**** Stop if temperatures were out of range
       IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
       IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
-      if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg ! LM+LM_REQ+1+
+      if (kradia.lt.0) write(iu_rad) itime
+     *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
      *     ,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm)   ! 4+
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl ! (,flake if time-dep)  ! 2+1+       (1+)
 C****   output data: really needed only if kradia=2
-     *     ,srhra,trhra,iy                             ! 2(LM+LM_REQ+1)
+     *     ,srhra,trhra                                ! 2(LM+LM_REQ+1)
+     *     ,itime
 C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C****

@@ -33,6 +33,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr
       REAL*8, DIMENSION(NTM) :: MMR_to_VMR
 
+!!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
       real*8, dimension(im,jm,lm,ntm) :: taijln
@@ -141,7 +142,7 @@ C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
 #ifdef TRACERS_WATER
-      INTEGER, PARAMETER :: ktajl=10 
+      INTEGER, PARAMETER :: ktajl=10
 #else
       INTEGER, PARAMETER :: ktajl=9
 #endif
@@ -273,16 +274,6 @@ C**** include some extra troposphere only ones
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_dd
 #endif
-C----------------------------------------------------
-!@param KTACC total number of tracer diagnostic words
-!@var TACC: Contains all tracer diagnostic accumulations
-      INTEGER, PARAMETER ::
-     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
-     *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
-      COMMON /TACCUM/ TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV
-      REAL*8, DIMENSION(KTACC) :: TACC
-      EQUIVALENCE (TACC,TAIJLN)
-C----------------------------------------------------
 #endif
       END MODULE TRACER_DIAG_COM
 
@@ -425,3 +416,78 @@ C****
       END SUBROUTINE set_tcon
 
 #endif
+#ifdef TRACERS_ON
+      SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
+!@sum  io_trdiag reads and writes tracer diagnostics arrays to file
+!@auth Jean Lerner
+!@ver  1.0
+      USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
+     *     ,irerun,ioread_single,lhead
+      USE TRACER_DIAG_COM
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var HEADER Character string label for individual records
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRdiag01"
+!@var it input/ouput value of hour
+      INTEGER, INTENT(INOUT) :: it
+      INTEGER it_check ! =it if all diag. TA..4 were kept up-to-date
+!@param KTACC total number of tracer diagnostic words
+      INTEGER, PARAMETER ::
+     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
+     *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
+!@var TA..4(...) dummy arrays for reading diagnostics files
+      REAL*4 TAIJLN4(im,jm,lm,ntm),TAIJN4(im,jm,ktaij,ntm)
+      REAL*4 TAIJS4(IM,JM,ktaijs),TAJLN4(JM,LM,ktajlx,NTM)
+      REAL*4 TAJLS4(JM,LM,ktajls),TCONSRV4(JM,ktcon,ntmxcon)
+
+      write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
+     *   'R8 TACC(',ktacc,'),it'
+
+      SELECT CASE (IACTION)
+      CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
+        WRITE (kunit,err=10) MODULE_HEADER,
+     *                         TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV,it
+      CASE (IOWRITE_SINGLE)    ! output to acc file
+        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+        WRITE (kunit,err=10) MODULE_HEADER,
+     *     REAL(TAIJLN,KIND=4),REAL(TAIJN,KIND=4),REAL(TAIJS,KIND=4),
+     *     REAL(TAJLN,KIND=4),REAL(TAJLS,KIND=4),REAL(TCONSRV,KIND=4),it
+      CASE (IOREAD:)          ! input from restart file
+        SELECT CASE (IACTION)
+        CASE (ioread_single)    ! accumulate diagnostic files
+          READ (kunit,err=10) HEADER,
+     *       TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
+          if (it.ne.it_check) then
+            PRINT*,"io_trdiag: compare TAIJLN,TAIJLN4, ... dimensions"
+            go to 10  ! or should this be just a warning ??
+          end if
+C****     Accumulate diagnostics (converting back to real*8)
+          TAIJLN = TAIJLN+TAIJLN4 ; TAIJN = TAIJN+TAIJN4
+          TAIJS  = TAIJS+TAIJS4   ; TAJLN = TAJLN+TAJLN4
+          TAJLS  = TAJLS+TAJLS4   ; TCONSRV = TCONSRV+TCONSRV4
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER
+     *           ,MODULE_HEADER
+            GO TO 10
+          END IF
+        CASE (ioread)  ! restarts
+          READ (kunit,err=10) HEADER,
+     *                         TAIJLN,TAIJN,TAIJS,TAJLN,TAJLS,TCONSRV,it
+          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+            PRINT*,"Discrepancy in module version ",HEADER
+     *           ,MODULE_HEADER
+            GO TO 10
+          end IF
+        END SELECT
+      END SELECT
+
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_trdiag
+#endif
+

@@ -1,4 +1,5 @@
       MODULE ICEDYN
+      integer :: imic=0
       contains
       subroutine alloc_icedyn(grid)
       use DOMAIN_DECOMP, only : DYN_GRID
@@ -8,6 +9,10 @@
       END MODULE ICEDYN
 
       MODULE ICEDYN_COM
+      integer :: kticij=0
+      real*8,dimension(2) :: rsix=0,rsiy=0,usi=0,vsi=0
+      real*8,dimension(2) :: USIDT=0,VSIDT=0,RSISAVE=0
+      real*8,dimension(2) :: icij=0,ticij=0
       contains
       subroutine alloc_icedyn_com(grid)
       use DOMAIN_DECOMP, only : DYN_GRID
