@@ -1451,8 +1451,7 @@ C
       INTEGER, INTENT(IN) :: LMAX,LFRZ,I,J
       INTEGER lmax_temp
       REAL*8 HTCON,HTFRZ,flash,th,th2,th3,th4,zlt,CG
-C     REAL*8, PARAMETER :: tune_land=3.5d0, tune_ocean=5.2d0
-      REAL*8,PARAMETER::tune_land=2.6d0,tune_ocean=3.9d0,tune_NOx=0.67d0
+      REAL*8,PARAMETER::tune_land=2.2d0,tune_ocean=3.9d0,tune_NOx=0.67d0
 C
 c The folowing simple algorithm calculates the lightning
 c frequency in each gridbox using the moist convective cloud
