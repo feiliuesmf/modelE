@@ -2499,6 +2499,7 @@ C****
           keyct=1 ; KEYNR=0
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
+          write(6,*) XLABEL
           call openunit(acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
      *         ,iu_ACC,.true.,.false.)
           call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)

@@ -18,7 +18,8 @@
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var IT1 hour for correct reading check
-      INTEGER IT1
+!@var ITM maximum hour for post-processing 
+      INTEGER IT1,itm
 
       ioerr=-1
       rewind kunit
@@ -27,7 +28,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 C**** Particular values may produce variations in indiv. i/o routines
 
 C**** Calls to individual i/o routines
-      call io_label  (kunit,it,iaction,ioerr)
+      call io_label  (kunit,it,itm,iaction,ioerr)
       it1=it
       if (Kradia.gt.0) then
         if (Kradia.gt.1 .and. iaction.ne.ioread_single .and.
@@ -68,6 +69,9 @@ C**** Calls to individual i/o routines
       if (ioerr.eq.1) WRITE(6,*) "I/O ERROR IN RESTART FILE: KUNIT="
      *     ,kunit
       close (kunit)
+
+C**** return maximum time
+      it=itm
 
       RETURN
       END SUBROUTINE io_rsf

@@ -251,7 +251,7 @@ C****
       RETURN
       END SUBROUTINE TIMEOUT
 
-      SUBROUTINE io_label(kunit,it,iaction,ioerr)
+      SUBROUTINE io_label(kunit,it,itm,iaction,ioerr)
 !@sum  io_label reads and writes label/parameters to file
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -264,8 +264,9 @@ C****
       INTEGER iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-!@var itime input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
+!@var it input/ouput value of hour
+!@var itm maximum hour returned (different from it if post-processing)
+      INTEGER, INTENT(INOUT) :: it,itm
 !@var LABEL2 content of record 2
       CHARACTER*80 :: LABEL2
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
@@ -321,11 +322,11 @@ C**** use doc-record to check the basic model parameters
 C**** keep track of min/max time over the combined diagnostic period
           if (it.gt.ITmax)                   ITmax = it
           if (ITmin.lt.0 .or. it01.lt.ITmin) ITmin = it01
-          it = ITmax
           itime0 = ITmin
 
         END SELECT
       END SELECT
+      itm = max(it,ITmax)
       RETURN
  10   IOERR=1
       RETURN
