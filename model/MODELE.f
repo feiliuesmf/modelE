@@ -594,6 +594,8 @@ C****
       SIG(:)  = (sige(1:lm)+sige(2:lm+1))*0.5d0
       DSIG(:) =  sige(1:lm)-sige(2:lm+1)
       byDSIG  =  1./DSIG
+C**** CALCULATE SPHERICAL GEOMETRY
+      CALL GEOM_B
 C****
 C**** default settings for prog. variables etc
 C****
@@ -1101,10 +1103,8 @@ C**** Set julian date information
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
 C****
-C**** COMPUTE GRID RELATED VARIABLES AND READ IN TIME-INDEPENDENT ARRAYS
+C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
-C**** CALCULATE SPHERICAL GEOMETRY
-      CALL GEOM_B
       if (Kradia.le.0) then   !  full model
         CALL CALC_AMPK(LM)
 

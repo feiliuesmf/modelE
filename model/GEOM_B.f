@@ -3,13 +3,13 @@
 !@auth Original development team
 !@ver  1.0 (B grid version)
 !@cont GEOM_B
-      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY
+      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
       USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
       IMPLICIT NONE
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
-C**** vertices of the A grid
-C**** Polar boxes have different latitudinal size and are treated
+C**** vertices of the A grid (Note: first velocity point is J=2)
+C**** Polar boxes can have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
       SAVE
 !@param  DLON grid spacing in longitude (deg)
@@ -17,7 +17,7 @@ C**** as though they were 1/IM of their actual area
 C**** For the wonderland model set DLON=DLON/3
 c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@param  DLAT grid spacing in latitude (deg)
-      REAL*8  :: DLAT    !=.5*TWOPI/(JM-1)
+      REAL*8  :: DLAT
 !@param  FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
 !@var  J1U index of southernmost latitude (currently 2, later 1)
@@ -82,16 +82,22 @@ C**** some B-grid conservation quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
-c      USE MODEL_COM
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
-      REAL*8  :: RAVPO
+      REAL*8  :: RAVPO,DLAT_DG
 
-c      DLON=TWOPI*BYIM
-      DLAT=.5*TWOPI/(JM-1)
+C**** latitudinal spacing depends on whether you have a half-box at
+C**** the poles or even spacing. Currently only assume a half box
+C**** for the JM=46 case (could also be used for 'real' 8x10)
+      IF (JM.eq.46) THEN        ! .or. J.eq.24)  ! half box at pole
+        DLAT_DG=180./(JM-1)
+      ELSE                      ! even spacing
+        DLAT_DG=180./JM
+      END IF
+      DLAT=DLAT_DG*radian
       LAT(1)  = -.25*TWOPI
       LAT(JM) = -LAT(1)
       SINP(1)  = -1.
@@ -101,19 +107,19 @@ c      DLON=TWOPI*BYIM
       DXP(1)  = 0.
       DXP(JM) = 0.
       DO J=2,JM-1
-         LAT(J)  = DLAT*(J-FJEQ)
-         SINP(J) = SIN(LAT(J))
-         COSP(J) = COS(LAT(J))
-         DXP(J)  = RADIUS*DLON*COSP(J)
+        LAT(J)  = DLAT*(J-FJEQ)
+        SINP(J) = SIN(LAT(J))
+        COSP(J) = COS(LAT(J))
+        DXP(J)  = RADIUS*DLON*COSP(J)
       END DO
       BYDXP(2:JM-1) = 1.D0/DXP(2:JM-1)
       DO J=2,JM
-         COSV(J) = .5*(COSP(J-1)+COSP(J))
-         DXV(J)  = .5*(DXP(J-1)+DXP(J))
-         DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
+        COSV(J) = .5*(COSP(J-1)+COSP(J))
+        DXV(J)  = .5*(DXP(J-1)+DXP(J))
+        DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
       END DO
-      DYP(1)  = .5*DYV(2)
-      DYP(JM) = .5*DYV(JM)
+      DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
+      DYP(JM) = RADIUS*(LAT(JM)-LAT(JM-1)-0.5*DLAT)
       DXYP(1) = .5*DXV(2)*DYP(1)
       BYDXYP(1) = 1./DXYP(1)
       DXYP(JM)= .5*DXV(JM)*DYP(JM)
@@ -124,12 +130,12 @@ c      DLON=TWOPI*BYIM
       DXYN(JM) = 0.
       AREAG = DXYP(1)+DXYP(JM)
       DO J=2,JM-1
-         DYP(J)  = .5*(DYV(J)+DYV(J+1))
-         DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
-         BYDXYP(J) = 1./DXYP(J)
-         DXYS(J) = .5*DXYP(J)
-         DXYN(J) = .5*DXYP(J)
-         AREAG = AREAG+DXYP(J)
+        DYP(J)  = .5*(DYV(J)+DYV(J+1))
+        DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
+        BYDXYP(J) = 1./DXYP(J)
+        DXYS(J) = .5*DXYP(J)
+        DXYN(J) = .5*DXYP(J)
+        AREAG = AREAG+DXYP(J)
       END DO
       BYDYP(:) = 1.D0/DYP(:)
       AREAG = AREAG*FIM
@@ -138,24 +144,28 @@ c      DLON=TWOPI*BYIM
       RAVPN(JM) = 0.
       RAPVN(JM) = 0.
       DO J=2,JM
-         DXYV(J) = DXYN(J-1)+DXYS(J)
-         BYDXYV(J) = 1./DXYV(J)
-         RAPVS(J)   = .5*DXYS(J)/DXYV(J)
-         RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
-         RAVPS(J)   = .5*DXYS(J)/DXYP(J)
-         RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
+        DXYV(J) = DXYN(J-1)+DXYS(J)
+        BYDXYV(J) = 1./DXYV(J)
+        RAPVS(J)   = .5*DXYS(J)/DXYV(J)
+        RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
+        RAVPS(J)   = .5*DXYS(J)/DXYP(J)
+        RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
 C**** LONGITUDES (degrees); used in ILMAP
       LON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
       LON_DG(1,2) = -180.+360./    FLOAT(IM)
       DO I=2,IM
-         LON_DG(I,1) = LON_DG(I-1,1)+360./FLOAT(IM)
-         LON_DG(I,2) = LON_DG(I-1,2)+360./FLOAT(IM)
+        LON_DG(I,1) = LON_DG(I-1,1)+360./FLOAT(IM)
+        LON_DG(I,2) = LON_DG(I-1,2)+360./FLOAT(IM)
       END DO
 C**** LATITUDES (degrees); used extensively in the diagn. print routines
-      DO J=1,JM
-        LAT_DG(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
-        LAT_DG(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
+      LAT_DG(1,1:2)=-90.
+      LAT_DG(JM,1)=90.
+      DO J=2,JM-1
+        LAT_DG(J,1)=DLAT_DG*(J-FJEQ)    ! primary (tracer) latitudes
+      END DO
+      DO J=2,JM
+        LAT_DG(J,2)=DLAT_DG*(J-JM/2-1)  ! secondary (velocity) latitudes
       END DO
 C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
       JMHALF= JM/2
@@ -176,7 +186,7 @@ c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
       FCOR(JM) = -FCOR(1)
       DO J=2,JM-1
-         FCOR(J) = OMEGA*(DXV(J)*DXV(J)-DXV(J+1)*DXV(J+1))/DLON
+        FCOR(J) = OMEGA*(DXV(J)*DXV(J)-DXV(J+1)*DXV(J+1))/DLON
       END DO
 
 C**** Set indexes and scalings for the influence of A grid points on
@@ -184,53 +194,53 @@ C**** adjacent velocity points
 
 C**** Calculate relative directions of polar box to nearby U,V points
       DO I=1,IM
-         SINIV(I)=SIN((I-1)*DLON)
-         COSIV(I)=COS((I-1)*TWOPI*BYIM)  ! DLON)
-         LON(I)=DLON*(I-.5)
-         SINIP(I)=SIN(LON(I))
-         COSIP(I)=COS(LON(I))
+        SINIV(I)=SIN((I-1)*DLON)
+        COSIV(I)=COS((I-1)*TWOPI*BYIM) ! DLON)
+        LON(I)=DLON*(I-.5)
+        SINIP(I)=SIN(LON(I))
+        COSIP(I)=COS(LON(I))
       END DO
 
 C**** Conditions at the poles
       DO J=1,JM,JM-1
-         IF(J.EQ.1) THEN
-            JVPO=2
-            RAVPO=2.*RAPVN(1)
-         ELSE
-            JVPO=JM
-            RAVPO=2.*RAPVS(JM)
-         END IF
-         KMAXJ(J)=IM
-         IMAXJ(J)=1
-         RAVJ(1:KMAXJ(J),J)=RAVPO
-         RAPJ(1:KMAXJ(J),J)=BYIM
-         IDJJ(1:KMAXJ(J),J)=JVPO
-         DO K=1,KMAXJ(J)
-            IDIJ(K,1:IM,J)=K
-         END DO
+        IF(J.EQ.1) THEN
+          JVPO=2
+          RAVPO=2.*RAPVN(1)
+        ELSE
+          JVPO=JM
+          RAVPO=2.*RAPVS(JM)
+        END IF
+        KMAXJ(J)=IM
+        IMAXJ(J)=1
+        RAVJ(1:KMAXJ(J),J)=RAVPO
+        RAPJ(1:KMAXJ(J),J)=BYIM
+        IDJJ(1:KMAXJ(J),J)=JVPO
+        DO K=1,KMAXJ(J)
+          IDIJ(K,1:IM,J)=K
+        END DO
       END DO
 C**** Conditions at non-polar points
       DO J=2,JM-1
-         KMAXJ(J)=4
-         IMAXJ(J)=IM
-         DO K=1,2
-            RAVJ(K,J)=RAPVS(J)
-            RAPJ(K,J)=RAVPS(J)     ! = .25
-            IDJJ(K,J)=J
-            RAVJ(K+2,J)=RAPVN(J)
-            RAPJ(K+2,J)=RAVPN(J)   ! = .25
-            IDJJ(K+2,J)=J+1
-         END DO
-         IM1=IM
-         DO I=1,IM
-            IDIJ(1,I,J)=IM1
-            IDIJ(2,I,J)=I
-            IDIJ(3,I,J)=IM1
-            IDIJ(4,I,J)=I
-            IM1=I
-         END DO
+        KMAXJ(J)=4
+        IMAXJ(J)=IM
+        DO K=1,2
+          RAVJ(K,J)=RAPVS(J)
+          RAPJ(K,J)=RAVPS(J)    ! = .25
+          IDJJ(K,J)=J
+          RAVJ(K+2,J)=RAPVN(J)
+          RAPJ(K+2,J)=RAVPN(J)  ! = .25
+          IDJJ(K+2,J)=J+1
+        END DO
+        IM1=IM
+        DO I=1,IM
+          IDIJ(1,I,J)=IM1
+          IDIJ(2,I,J)=I
+          IDIJ(3,I,J)=IM1
+          IDIJ(4,I,J)=I
+          IM1=I
+        END DO
       END DO
-
+      
       RETURN
       END SUBROUTINE GEOM_B
 
