@@ -800,7 +800,7 @@ C**** Apply net river flow to continental reservoirs
 C****
       DO J=2,JM-1
         DO I=1,IM
-          IF(FLAND(I,J).gt.0.) THEN
+          IF(FLAND(I,J)+FLAKE(I,J).gt.0.) THEN
             MWL(I,J) = MWL(I,J) +  FLOW(I,J)
             GML(I,J) = GML(I,J) + EFLOW(I,J)
 #ifdef TRACERS_WATER
@@ -1482,7 +1482,7 @@ C****
       DO J=1,JM
         LKM(J)=0.
         DO I=1,IMAXJ(J)
-          IF (FLAND(I,J).gt.0) LKM(J)=LKM(J)+MWL(I,J)
+          IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKM(J)=LKM(J)+MWL(I,J)
         END DO
         LKM(J)=LKM(J)*BYDXYP(J)
       END DO
@@ -1508,7 +1508,7 @@ C****
       DO J=1,JM
         LKE(J)=0.
         DO I=1,IMAXJ(J)
-          IF (FLAND(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)
+          IF (FLAND(I,J)+FLAKE(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)
 c     *         +ZATMO(I,J)*MWL(I,J)
         END DO
         LKE(J)=LKE(J)*BYDXYP(J)
