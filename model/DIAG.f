@@ -3243,7 +3243,7 @@ C**** simple diags
           data=qsavg
         case ("PREC")           ! precip (mm/day)
 c          data=sday*prec/dtsrc
-          data=sday*P_acc/dtsrc ! use accumulated value over Nsubdd steps
+          data=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
@@ -3280,9 +3280,17 @@ c          data=sday*prec/dtsrc
             end do
           end do
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
-          do j=J_0,J_1
+          do j=J_0,J_1     ! sum up all cooling rates + surface emission
             do i=1,imaxj(j)
-              data(i,j)=-TRHR(LM,I,J)
+              POCEAN=(.1-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              PEARTH=FEARTH(I,J)
+              PLANDI=FLICE(I,J)
+              data(i,j)=-SUM(TRHR(1:LM,I,J))+
+     *             STBO*(POCEAN*(GTEMP(1,1,I,J)+TF)**4+
+     *             POICE *(GTEMP(1,2,I,J)+TF)**4+
+     *             PLANDI*(GTEMP(1,3,I,J)+TF)**4+
+     *             PEARTH*(GTEMP(1,4,I,J)+TF)**4)
             end do
           end do
         case ("ICEF")           ! ice fraction over open water (%)
