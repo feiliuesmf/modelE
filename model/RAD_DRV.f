@@ -538,6 +538,7 @@ C     OUTPUT DATA
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHYCOM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij
+      USE VEG_COM, only : vdata
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : gtemp

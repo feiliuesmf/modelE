@@ -3634,11 +3634,12 @@ c**** find hemispheric and global means
       USE CONSTANT, only : sha,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
-     &     FLAND,FLICE,FEARTH,FOCEAN,vdata,
+     &     FLAND,FLICE,FEARTH,FOCEAN,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
+      USE VEG_COM, only : vdata
       USE DAGCOM
       USE BDIJ
 

@@ -5,14 +5,15 @@
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
       use model_com, only : im,jm
+      use veg_drv, only : cosday,sinday
       implicit none
       private
       save
 
-      public daily_earth, ground_e, init_gh,upd_gh, earth, conserv_wtg
+      public daily_earth, ground_e, init_gh, earth, conserv_wtg
      $     ,conserv_htg
 
-      real*8 cosday,sinday
+      !real*8 cosday,sinday
       real*8 cosdaym1, sindaym1                !nyk TEMPORARY for jday-1
       real*8 adlmass          ! accumulator for dleafmass in daily_earth
 
@@ -57,8 +58,9 @@ c****
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
      &    nlsn,nsn,dzsn,wsn,hsn,fr_snow
      &     ,ghy_debug
-     &    ,fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin,Qfn ! added by adf, nyk
-     &    ,cond_scheme  !nyk
+!veg     &    ,fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin,Qfn ! added by adf, nyk
+!veg     &    ,cond_scheme  !nyk
+     &     ,Qfn
 #ifdef TRACERS_WATER
      &     ,tr_w,tr_wsn,trpr,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
 #endif
@@ -102,16 +104,21 @@ c****
      *     ,runoe,erunoe,gtemp,precss
       use ghycom, only : wbare,wvege,htbare,htvege,snowbv,
      &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
-     *     snowe,tearth,wearth,aiearth,afb,
+     *     snowe,tearth,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
-     *     ,Cint,Qfol  ! added by adf
-     &     ,aalbveg    ! nyk
 #ifdef TRACERS_WATER
      &     ,tr_wbare,tr_wvege,tr_wsn_ij
 #endif
 !#ifdef TRACERS_WATER
 !     *     ,trvege,trbare,trsnowbv
 !#endif
+      use veg_com, only : afb
+     &     ,Cint,Qfol           ! added by adf
+     &     ,aalbveg    ! nyk
+      use vegetation, only :
+     &     fdir,parinc,vegalbedo,sbeta,Ci,Qf,Cin     ! added by adf, nyk
+     &    ,cond_scheme  !nyk
+     &    ,veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_vsm=>vsm
       USE SOCPBL, only : dtsurf         ! zgs,     ! global
      &     ,zs1,tgv,tkv,qg_sat,hemi,pole     ! rest local
      &     ,us,vs,ws,wsm,wsh,tsv,qsrf,psi,dbl    ! ,edvisc=>kms
@@ -475,10 +482,14 @@ c***********************************************************************
 c****
 c  define extra variables to be passed in surfc:
       pres  =ps
+      veg_pres = ps
       rho   =rhosrf
       vsm   =ws
+      veg_vsm = ws
       ch    =cdh
+      veg_ch = cdh
       srht  =srheat
+      veg_srht = srheat
       trht  =trheat
 !----------------------------------------------------------------------!
       if (cond_scheme.eq.2) then  !new conductance scheme
@@ -919,27 +930,29 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
-      use constant, only : twopi,rhow,edpery,sha,lhe,tf,one
-      use model_com, only : fearth,vdata,itime,nday,jeq,jyear
+      use constant, only : twopi,rhow,edpery,sha,lhe,tf
+      use model_com, only : fearth,itime,nday,jeq,jyear
       use dagcom, only : npts,icon_wtg,icon_htg,conpt0
       use sle001
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
       use fluxes, only : gtracer
+      use veg_com, only : afb,avh
 #endif
       use fluxes, only : gtemp
       use ghycom
       use dynamics, only : pedn
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
-      use surf_albedo, only: albvnh  !nyk
+      use veg_drv, only : init_vegetation
+      use veg_com, only : vdata
 
       implicit none
 
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
       logical, intent(in) :: redogh, inisnow
-      integer iu_soil,iu_top_index,iu_veg
+      integer iu_soil,iu_top_index
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
@@ -956,61 +969,6 @@ c**** modifications needed for split of bare soils into 2 types
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot,fm
 #endif
-      real*8, parameter :: alamax(8) =
-     $     (/ 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0/)
-      real*8, parameter :: alamin(8) =
-     $     (/ 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0/)
-
-      real*8, parameter :: aroot(8) =
-     $     (/ 12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0/)
-      real*8, parameter :: broot(8) =
-     $     (/  1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0/)
-      real*8, parameter :: rsar(8) =
-     $     (/100d0, 100d0, 200d0, 200d0, 200d0, 300d0,250d0, 125d0/)
-      real*8, parameter :: vhght(8) =
-     $     (/0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0/)
-! Mean canopy nitrogen (nmv; g/m2) and Rubisco factors (nfv) for each
-! vegetation type (adf)
-      real*8, parameter :: nmv(8) =
-     $     (/1.6d0,0.82d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,0.82d0/)
-      real*8, parameter :: nfv(8) =
-     $     (/1.4d0,1.5d0 ,1.3d0 ,1.3d0 ,1.5d0 ,0.9d0,1.1d0,1.5d0 /)
-      integer, parameter :: laday(8) =
-     $     (/ 196,  196,  196,  196,  196,  196,  196,  196/)
-      real*8, parameter :: can_w_coef(8) =
-     &     (/ 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4, 1.d-4 /)
-
-! Specific leaf areas (sleafa, kg[C]/m2) (adf, nyk)
-! Values below 1/(m2/kg) to get kg/m2 for multiplying.
-! Sources: White, M.A., et.al. (2000), Earth Interactions, 4:1-85.
-!          Leonardos,E.D.,et.al.(2003), Physiologia Plantarum, 117:521+.
-!               From winter wheat grown at 20 C (20 m2/kg[dry mass])
-!                                      and  5 C (13 m2/kg[dry mass])
-!          Francesco Tubiello, personal communication, crop 18-20 m2/kg.
-      real*8, parameter :: sleafa(8) =
-     $     1./(/30.5d0,49.0d0,30.5d0,40.5d0,32.0d0,8.2d0,32.0d0,18.0d0/)
-
-c****             tundr grass shrub trees decid evrgr rainf crops
-c****
-c**** laday(veg type, lat belt) = day of peak lai
-c old peak lai:  2nd line is for latitudes < 23.5 deg
-c****    1  temperate latitudes
-c****    2  non-temperate latitudes
-c     data  laday/ 196,  196,  196,  196,  196,  196,  105,  196/
-c     data  laday/ 196,  288,  288,  288,  288,  196,  105,  288/
-c****
-c**** contents of ala(k,i,j),  lai coefficients
-c****   1  average leaf area index
-c****   2  real amplitude of leaf area index
-c****   3  imaginary amplitude of leaf area index
-c****
-c**** contents of almass(i,j),  leaf mass
-c****      leaf mass = ala*sleafa = kg[C]/ground area
-c****
-c**** contents of acs(k,i,j),  cs coefficients
-c****   1  average stomatal conductance
-c****   2  real amplitude of stomatal conductance
-c****   3  imaginary amplitude of stomatal conductance
 c****
 c**** contents of sdata(i,j,k):
 c****       1 -   ngm   dz(ngm)
@@ -1021,9 +979,6 @@ c**** 11*ngm+1           sl
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
-ccc temporary code: dumping land surface data
-cddd      integer :: i_def=20, j_def=33
-      integer :: northsouth  !1=south, 2=north hemisphere
 
 c**** set conservation diagnostics for ground water mass and energy
       conpt=conpt0
@@ -1044,28 +999,11 @@ c**** read rundeck parameters
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "ghy_default_data", ghy_default_data )
-      call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
-      call sync_param( "crops_yr", crops_yr)
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
-c**** read in vegetation data set: vdata
-        call openunit("VEG",iu_VEG,.true.,.true.)
-        do k=1,10               !  11 ????
-          call readt (iu_VEG,0,vdata(1,1,K),im*jm,vdata(1,1,k),1)
-        end do
-c**** zero-out vdata(11) until it is properly read in
-        vdata(:,:,11) = 0.
-        call closeunit(iu_VEG)
-C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
-      if(crops_yr.eq.0) call updveg(jyear,.false.)
-      if(crops_yr.gt.0) call updveg(crops_yr,.false.)
 
-        if (istart.le.2) then ! initialize foliage arrays (adf)
-          Cint(:,:)=0.0127D0  ! internal CO2
-          Qfol(:,:)=3.D-6     ! surface mixing ratio
-        end if
-        if (istart.le.0) return ! avoid reading unneeded files
+        !!!if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
         call dread (iu_SOIL,dz_ij,im*jm*(11*ngm+1),dz_ij)
@@ -1081,71 +1019,16 @@ c**** read topmodel parameters
         else   ! do not reset ghy prognostic variables
           call reset_gh_to_defaults( .false. )
         endif
-        if (istart.le.0) return
+        !!!if (istart.le.0) return
       endif
 
-ccc temporary code: dump all land surface data here
-cddd      print 7,'**** land surface data here ****'
-cddd      print 7,'vdata(i,j,1:11)= ', vdata( i_def, j_def, 1:11 )
-cddd      print 7,'dz_ij(i,j,1:ngm)= ', dz_ij( i_def, j_def, 1:ngm )
-cddd      print 7,'q_ij(i,j,1:imt,1:ngm)= ',
-cddd     &     q_ij( i_def, j_def, 1:imt, 1:ngm )
-cddd      print 7,'qk_ij(i,j,1:imt,1:ngm)= ',
-cddd     &     qk_ij( i_def, j_def, 1:imt, 1:ngm )
-cddd      print 7,'sl_ij(i,j)= ', sl_ij( i_def, j_def )
-cddd      print 7,'top_index_ij(i,j)= ', top_index_ij( i_def, j_def )
-cddd      print 7,'top_dev_ij(i,j)= ', top_dev_ij( i_def, j_def )
-cddd
-cddd      print 7,'snowe(i,j)=', snowe(i_def,j_def)
-cddd      print 7,'tearth(i,j)=', tearth(i_def,j_def)
-cddd      print 7,'wearth(i,j)=', wearth(i_def,j_def)
-cddd      print 7,'aiearth(i,j)=', aiearth(i_def,j_def)
-cddd      print 7,'wbare(:,i,j) =',  wbare(:,i_def,j_def)
-cddd      print 7,'wvege(:,i,j) =',  wvege(:,i_def,j_def)
-cddd      print 7,'htbare(:,i,j)=',  htbare(:,i_def,j_def)
-cddd      print 7,'htvege(:,i,j)=',  htvege(:,i_def,j_def)
-cddd      print 7,'snowbv(:,i,j)=',  snowbv(:,i_def,j_def)
-cddd      print 7,'**** land surface data end ****'
-cddd
-cddd 7    format( '      ', a, '(/', 100(d16.8,','), '/)' )
+
+      if (istart.le.0) return
 c****
 c**** initialize constants
 c****
 c**** time step for ground hydrology
       dt=dtsurf
-c**** units are mks
-c**** water quantities are density times usual values in mks
-c**** to get volumetric units
-c**** 1m water = 1000 kg m-2; 1m3 water = 1000 kg
-c fsn is the heat of fusion
-c      fsn= lhm * rhow
-c elh is the heat of vaporization
-c      elh= lhe * rhow
-c the sh's are the specific heat capacaties
-c      shw= shw_const * rhow
-c      shi= shi_const * rhow
-c      sha= sha_const
-c      shv=1911.
-c the alam's are the heat conductivities
-c      alamw=.573345d0
-c      alami=2.1762d0
-c      alama=.025d0
-ccc alamsn is not used
-c      alamsn=0.088d0
-c      alambr=2.9d0
-c      alams(1)=8.8d0
-c      alams(2)=2.9d0
-c      alams(3)=2.9d0
-c      alams(4)=.25d0
-c hw is the wilting point in meters
-c      hw=-100
-c zhtb is depth for combining heat layers for stability
-ccc looks like zhtb is not used
-c      if(q(4,1).lt..01)then
-c      zhtb=6.
-c      else
-c      zhtb=6.
-cc     endif
 c spgsn is the specific gravity of snow
       spgsn=.1d0
 
@@ -1154,10 +1037,6 @@ c**** check whether ground hydrology data exist at this point.
       do j=1,jm
         do i=1,im
           if (fearth(i,j).gt.0) then
-            if ( sum(vdata(i,j,1:10)).eq.0 ) then
-              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:10)
-              ghy_data_missing = .true.
-            end if
             if ( top_index_ij(i,j).eq.-1. ) then
               print *,"No top_index data: i,j=",i,j,top_index_ij(i,j)
               ghy_data_missing = .true.
@@ -1181,115 +1060,15 @@ c**** check whether ground hydrology data exist at this point.
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
       endif
+
+ccc read and initialize vegetation here
+      call init_vegetation(redogh,istart)
+
+      ! no need to continue computations for postprocessing
+      if (istart.le.0) return 
+
       call hl0
 
-      entry upd_gh(redogh,inisnow) ! need to redo if vdata changes
-c****
-c**** set the global arrays  ala, acs, afb, afr, anm, anf
-c****
-      ala(:,:,:)=0.
-      acs(:,:,:)=0.
-      avh(:,:)=0.
-      afb(:,:)=0.
-      afr(:,:,:)=0.
-      acs(1,:,:)=.01d0
-      anm(:,:)=0.0D0            ! Global mean canopy N array (adf)
-      anf(:,:)=0.0D0            ! Global Rubisco factors (adf)
-      almass(:,:,:)=0.0D0       ! Global leaf mass at a time, nyk
-!rar  aalbveg(:,:)=0.08D0 ! no need, it is set in daily_earth 
-      can_w_capacity(:,:) = 0.d0
-
-      do j=1,jm
-        if(j.le.jm/2) then
-          northsouth=1.d0  !southern hemisphere
-        else
-          northsouth=2.d0  !northern hemisphere
-        end if
-        do i=1,im
-          pearth=fearth(i,j)
-          afb(i,j)=vdata(i,j,1)+vdata(i,j,10)
-          if(afb(i,j).gt..999) afb(i,j)=1.
-          if(pearth.le.0..or.afb(i,j).ge.1.) cycle
-c**** calculate lai, cs coefficicents
-          sfv=0.d0
-          sla0=0.
-          slre=0.
-          slim=0.
-          almass0=0.  !nyk
-          almassre=0. !nyk
-          almassim=0. !nyk
-          scs0=0.
-          scsre=0.
-          scsim=0.
-          svh=0.
-          snm=0. ! adf
-          snf=0. ! adf
-          cwc_sum = 0.d0
-          do iv=1,8
-            phase=twopi*laday(iv)/365.
-            if(j.lt.jeq) phase=phase+twopi/2.
-            fv=vdata(i,j,iv+1)
-            sfv=sfv+fv
-            svh=svh+fv*vhght(iv)
-            snm=snm+fv*nmv(iv) ! adf
-            snf=snf+fv*nfv(iv) ! adf
-            dif=(alamax(iv) - alamin(iv))
-            sla0=sla0+fv*(alamax(iv) + alamin(iv))
-            slre=slre+fv*dif*cos(phase)
-            slim=slim+fv*dif*sin(phase)
-            !nyk-------------
-            !almaxmin = almaxmin + sleafa(iv)*fv*(alamax(iv)-alamin(iv))
-            almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) - alamin(iv))
-            !almass0 = almass0 + sleafa(iv)*fv*(alamax(iv) + alamin(iv))
-            !almassre = almassre + sleafa(iv)*fv*dif*cos(phase)
-            !almassim = almassim + sleafa(iv)*fv*dif*sin(phase)
-            !----------------
-            scs0=scs0+fv*(alamax(iv) + alamin(iv))/rsar(iv)
-            scsre=scsre+fv*dif*cos(phase)/rsar(iv)
-            scsim=scsim+fv*dif*sin(phase)/rsar(iv)
-            cwc_sum = cwc_sum + fv*can_w_coef(iv)
-          end do
-          ala(1,i,j)=.5/sfv*sla0
-          ala(2,i,j)=.5/sfv*slre
-          ala(3,i,j)=.5/sfv*slim
-          acs(1,i,j)=.5/sfv*scs0
-          acs(2,i,j)=.5/sfv*scsre
-          acs(3,i,j)=.5/sfv*scsim
-          avh(i,j)=svh/sfv
-          can_w_capacity(i,j) = cwc_sum/sfv
-          anm(i,j)=snm/sfv ! adf
-          anf(i,j)=snf/sfv ! adf
-          almass(1,i,j) = almass0   !This just computes total growth for
-          almass(2,i,j) = 0.   ! year via difference between max and min
-          almass(3,i,j) = 0.
-          !almass(1,i,j)= 0.5/sfv*almass0 !nyk
-          !almass(2,i,j)= 0.5/sfv*almassre !nyk
-          !almass(3,i,j)= 0.5/sfv*almassim !nyk
-
-c**** calculate root fraction afr averaged over vegetation types
-          do n=1,ngm
-            dz(n)=dz_ij(i,j,n)
-            if(dz(n).le.0.) go to 320
-          end do
- 320      n=n-1
-          do iv=1,8
-            fv=vdata(i,j,iv+1)
-            z=0.
-            frup=0.
-            do l=1,n
-              z=z+dz(l)
-              frdn=aroot(iv)*z**broot(iv)
-              frdn=min(frdn,one)
-              if(l.eq.n)frdn=1.
-              afr(l,i,j) = afr(l,i,j) + fv*(frdn-frup)
-              frup=frdn
-            end do
-          end do
-          do l=1,n
-            afr(l,i,j) = afr(l,i,j)/(1.-afb(i,j))
-          end do
-        end do
-      end do
 c****
 c      print *,' '
 c      print *,'soils parameters'
@@ -1318,8 +1097,6 @@ c**** recompute ground hydrology data if necessary (new soils data)
             htbare(:,i,j)=0.
             htvege(:,i,j)=0.
             snowbv(:,i,j)=0.
-            Cint(i,j)=0.0127D0 ! Internal foliage CO2(adf)
-            Qfol(i,j)=3.D-6    ! Foliage surface mixing ratio (adf)
 
           else
 ccc   ??? remove next 5 lines? -check the old version
@@ -1360,23 +1137,6 @@ c**** set gtemp array
         do i=1,im
           if (fearth(i,j).gt.0) then
             gtemp(1,4,i,j)=tearth(i,j)
-cddd#ifdef TRACERS_WATER_OLD
-cdddC**** Quick and dirty calculation of water tracer amounts to find
-cdddC**** gtracer. Should be replaced with proper calculation sometime
-cdddC**** Calculate mean tracer ratio
-cddd            fb=afb(i,j) ; fv=1.-fb
-cddd            wsoil_tot=snowbv(1,i,j)*fb+snowbv(2,i,j)*fv+
-cddd     *           sum(wbare(1:ngm,i,j))*fb+sum(wvege(0:ngm,i,j))*fv
-cddd            trsoil_tot = 0
-cddd            do n=1,ntm
-cddd              if(itime_tr0(n).le.itime) then
-cddd                trsoil_tot=trsoil_tot+trsnowbv(n,1,i,j)*fb
-cddd     *             +trsnowbv(n,2,i,j)*fv+sum(trbare(n,1:ngm,i,j))*fb
-cddd     *               +sum(trvege(n,0:ngm,i,j))*fv
-cddd                gtracer(n,4,i,j)=trsoil_tot/(rhow*wsoil_tot)
-cddd              end if
-cddd            end do
-cddd#endif
           end if
         end do
       end do
@@ -1490,18 +1250,18 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
 
       subroutine reset_gh_to_defaults( reset_prognostic )
-      use model_com, only: vdata
+      !use model_com, only: vdata
       use ghycom
+      use veg_drv, only : reset_veg_to_defaults
       logical, intent(in) :: reset_prognostic
       integer i,j
+
+ccc ugly, should fix later
+      call reset_veg_to_defaults( reset_prognostic )
 
       do j=1,jm
       do i=1,im
 
-      vdata(i,j,1:11)= (/  0.00000000d+00,  0.00000000d+00,
-     &     0.00000000d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.62451148d+00,  0.00000000d+00,  0.00000000d+00,
-     &     0.37548852d+00,  0.00000000d+00,  0.00000000d+00 /)
       dz_ij(i,j,1:ngm)= (/  0.99999964d-01,  0.17254400d+00,
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
      &     0.15293264d+01 /)
@@ -1569,37 +1329,33 @@ c**** snowm - snow masking depth
 c**** wfcap - water field capacity of top soil layer, m
 c****
       use snow_model, only : i_earth,j_earth
-      use sle001, only : dz,qk,ngm,imt,ng,zb,zc,fr,q,sl,xklh0 !spgsn,
-     *     ,fb,fv,snowm,alaie,rs,prs,ijdebug,n !alaic,vh,
+      use sle001, only : dz,qk,ngm,imt,ng,zb,zc,q,sl,xklh0 !spgsn,
+     *     ,fb,fv,prs,ijdebug,n
      *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
      *     ,htpr
      *     ,top_index,top_stdev
-     *     ,nm,nf,alai,vh ! added by adf
-      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij,avh,afr,afb,ala,acs
-     *     ,top_index_ij,top_dev_ij,can_w_capacity
+      use ghycom, only : dz_ij,sl_ij,q_ij,qk_ij
+     *     ,top_index_ij,top_dev_ij
+      use veg_drv, only : veg_set_cell
+      use veg_com, only : avh,afr,afb,ala,acs,can_w_capacity
      *     ,anm,anf ! added by adf
 !     *     ,aalbveg ! nyk
-      use model_com, only:  vdata, jm !nyk
-!      use surf_albedo, only: albvnh  !nyk
 
       implicit none
       integer i0,j0
       real*8 wfcap
       integer l,ibv,k,i
-      real*8 aa,one
-!      real*8 aalbveg0, sfv  !nyk
-!      integer northsouth,iv  !nyk
-!----------------------------------------------------------------------!
-! adf
-!      real*8 alaic,vh,shtpr,alai
       real*8 alaic,shtpr
 !----------------------------------------------------------------------!
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
-      one=1.
       ijdebug=i0*1000+j0
       i_earth = i0
       j_earth = j0
+
+ccc setting vegetation
+      call veg_set_cell(i0,j0)
+
 
 ccc passing topmodel parameters
       top_index = top_index_ij(i0, j0)
@@ -1610,14 +1366,18 @@ c**** set up layers
       qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
       sl=sl_ij(i0,j0)
 
+
       do n=1,ngm
         if(dz(n).le.0.) go to 21
       end do
    21 n=n-1
+   !  print *,'>>>>>> n= ', n
+      !n = ngm
       if(n.le.0) then
          write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
          call stop_model('stopped in GHY_DRV.f',255)
       end if
+
 c**** calculate the boundaries, based on the thicknesses.
       zb(1)=0.
       do l=1,n
@@ -1627,58 +1387,10 @@ c**** calculate the layer centers, based on the boundaries.
       do l=1,n
         zc(l)=.5*(zb(l)+zb(l+1))
       end do
-c**** fr: root fraction in layer l  (1=fr(1)+fr(2)+...+fr(n))
-      do l=1,n
-        fr(l)=afr(l,i0,j0)
-      end do
-c**** vh: vegetation height
-      vh=avh(i0,j0)
-      nm=anm(i0,j0) ! mean canopy nitrogen (g/m2) (adf)
-      nf=anf(i0,j0) ! canopy nitrogen factor (adf)
-      snowm=vh*spgsn
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       fb=afb(i0,j0)
       fv=1.-fb
-c**** alai: leaf area index
-      alai=ala(1,i0,j0)+cosday*ala(2,i0,j0)+sinday*ala(3,i0,j0)
-      alai=max(alai,one)
 
-      alaic=5.0
-      alaie=alaic*(1.-exp(-alai/alaic))
-c**** rs: minimum stomatal resistance
-      rs=alai/(acs(1,i0,j0)+cosday*acs(2,i0,j0)+sinday*acs(3,i0,j0))
-c???  cnc=alai/rs   redefined before being used (qsbal,cond)
-
-      !---------------------------------------------------------
-      !nyk vegetation albedo.  Only really updated daily, but have to
-      !get it initialized somewhere after ALBVNH is calculated.
-      !ALBVNH is unfortunately set *after* ground hydr is initialized.
-      !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
-!      aalbveg0=0.d0               !nyk
-!      sfv=0.d0
-!      if (j0.le.jm/2) then
-!
-!       northsouth=1.d0         !southern hemisphere
-!      else
-!        northsouth=2.d0         !northern hemisphere
-!      end if
-!      do iv=1,8
-!        aalbveg0 = aalbveg0 + fv*(ALBVNH(iv+1,1,northsouth))
-!        sfv = sfv + fv
-!      end do
-!      aalbveg(i0,j0) = aalbveg0/sfv
-!      write (99,*) 'aalbveg ghinij', aalbveg(i0,j0) !nyk
-      !---------------------------------------------------------
-
-c
-cw    write(6,*)'n=',n,'  r=',r
-cw    write(6,91)
-cw 91 format(1x,5x,'zb',5x,'zc',5x,'dz'/1x,21('-'))
-cw    do 95 l=1,n
-cw 95 write(6,100)zb(l),zc(l),dz(l)
-cw    write(6,100)zb(n+1)
-cw100 format(1x,3f7.3)
-cw    write(6,*)
 c****
       do ibv=1,2
         do l=1,n
@@ -1691,7 +1403,7 @@ c****
           ws(l,ibv)=thets(l,ibv)*dz(l)
         end do
       end do
-      ws(0,2)=.0001d0*alai
+!veg      ws(0,2)=.0001d0*alai
 !!!      ws(0,2)=can_w_capacity(i0,j0)*alai
       wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
 c****
@@ -1708,8 +1420,8 @@ c****
       end do
 c****
 c shc(0,2) is the heat capacity of the canopy
-      aa=ala(1,i0,j0)
-      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
+!veg      aa=ala(1,i0,j0)
+!veg      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
 c****
 c htpr is the heat of precipitation.
 c shtpr is the specific heat of precipitation.
@@ -1911,13 +1623,13 @@ c**** check for reasonable temperatures over earth
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,jyear,fearth,wfcs
-     *     ,vdata !nyk
+      use veg_com, only : vdata                 !nyk
       use geom, only : imaxj
       use dagcom, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghycom, only : snoage, snoage_def
-     *     ,almass,aalbveg       !nyk
-      use sle001, only: crops_yr,cond_scheme !nyk
+      use veg_com, only : almass,aalbveg       !nyk
+      use vegetation, only: crops_yr,cond_scheme !nyk
       use surf_albedo, only: albvnh  !nyk
 
 
@@ -2044,7 +1756,8 @@ c****
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-     *     ,fr_snow_ij,afb,fr_snow_rad_ij
+     *     ,fr_snow_ij,fr_snow_rad_ij
+      use veg_com, only : afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g28
@@ -2125,7 +1838,8 @@ c****
       use model_com, only : fim,fearth
       use geom, only : imaxj
       use sle001, only : ngm
-      use ghycom, only : wbare,wvege,afb,snowbv
+      use ghycom, only : wbare,wvege,snowbv
+      use veg_com, only : afb
       implicit none
 !@var waterg zonal ground water (kg/m^2)
       real*8, dimension(jm) :: waterg
@@ -2157,7 +1871,8 @@ c****
       use model_com, only : fim,fearth
       use geom, only : imaxj, dxyp
       use sle001, only : ngm
-      use ghycom, only : htbare,htvege,afb,fr_snow_ij,nsn_ij,hsn_ij
+      use ghycom, only : htbare,htvege,fr_snow_ij,nsn_ij,hsn_ij
+      use veg_com, only : afb
       implicit none
 !@var heatg zonal ground heat (J/m^2)
       real*8, dimension(jm) :: heatg
@@ -2196,7 +1911,8 @@ ccc of the 'surface' to check water conservation
       use model_com, only : im,jm,fearth
       use fluxes, only : prec,evapor,runoe
       use sle001, only : ngm
-      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,afb,dz_ij
+      use ghycom, only : wbare,wvege,htbare,htvege,snowbv,dz_ij
+      use veg_com, only : afb
       implicit none
       integer flag
       real*8 total_water(im,jm), error_water
@@ -2253,77 +1969,4 @@ ccc just checking ...
       end do
 
       end subroutine check_ghy_conservation
-
-      subroutine updveg (year,reset_veg)
-!@sum  reads appropriate crops data and updates the vegetation file
-!@auth R. Ruedy
-!@ver  1.0
-      USE FILEMANAGER
-      USE MODEL_COM, only : im,jm,vdata
-      USE GEOM, only : imaxj
-      use soil_drv, only : upd_gh
-      implicit none
-      integer, intent(in) :: year
-      logical, intent(in) :: reset_veg
-
-      real*8 wt,crop(im,jm),crops         ! temporary vars
-
-      integer :: year1,year2,year_old=-1, iu, i,j,k
-      real*8 vdata0(im,jm,11),crop1(im,jm),crop2(im,jm)  ! to limit i/o
-      save   year1,year2,year_old,vdata0,crop1,crop2,iu  ! to limit i/o
-
-      character*80 title
-      real*4 crop4(im,jm)
-
-C**** check whether update is needed
-      if (year.eq.year_old) return
-
-C**** first iteration actions:
-      if (year_old.lt.0) then
-C****     check whether a no-crops vege-file was used
-        do j=2,jm-1
-        do i=1,im
-           if(vdata(i,j,9).gt.0.)
-     *     call stop_model('updveg: use no_crops_VEG_file',255)
-        end do
-        end do
-C****     open and read input file
-        call openunit('CROPS',iu,.true.,.true.)
-        read(iu) title,crop4
-        read(title,*) year1
-        crop1=crop4 ; crop2=crop4 ; year2=year1
-        if (year1.ge.year)          year2=year+1
-C****     save orig. (no-crop) vdata to preserve restart-independence
-        vdata0 = vdata
-      end if
-
-      wt=0.
-      do while (year2.lt.year)
-         year1 = year2 ; crop1 = crop2
-         read (iu,end=10) title,crop4
-         read(title,*) year2
-         crop2 = crop4
-      end do
-      wt = (year-year1)/(real(year2-year1,kind=8))
-   10 continue
-      write(6,*) 'Using crops data from year',year1+wt*(year2-year1)
-
-C**** Modify the vegetation fractions
-      do j=1,jm
-      do i=1,imaxj(j)
-         if (crop1(i,j).ge.0.) then
-            crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
-            do k=1,11
-              vdata(i,j,k) = vdata0(i,j,k)*(1.-crops)
-            end do
-              vdata(i,j,9) = crops
-         end if
-      end do
-      end do
-      if(reset_veg) call upd_gh(.false.,.false.)
-
-      year_old = year
-
-      return
-      end subroutine updveg
 

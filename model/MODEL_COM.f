@@ -140,8 +140,6 @@ C**** slightly larger, to sample all points within the cycle
       REAL*8, DIMENSION(IM,JM) :: ZATMO,HLAKE,
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
      *     FLAND,FOCEAN,FLICE,FLAKE0,FEARTH
-!@var VDATA(:,:,k)  fraction of gridbox of veg.type k=1-11
-      REAL*8, DIMENSION(IM,JM,11) :: VDATA
 !@var WFCS water field capacity of first ground layer (kg/m2)  ???
       REAL*8, DIMENSION(IM,JM) :: WFCS
 

@@ -9,6 +9,11 @@
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+#define VEGETATION_OLD
+#ifdef VEGETATION_OLD
+      use veg_com, only : Cint, Qfol
+#endif
+
       IMPLICIT NONE
       SAVE
 C bare/veg not in merged array because WBARE does not contain
@@ -27,6 +32,7 @@ C file opened in fortran unformatted sequential access mode
 C containing its contents in a contiguous real*4 block
       COMMON/SDATA/ DZ_IJ,Q_IJ,QK_IJ,SL_IJ
 
+#ifdef VEGETATION_OLD_1
 !----------------------------------------------------------------------!
 ! adf
 !@var Cint Internal foliage CO2 concentration (mol/m3)
@@ -43,6 +49,9 @@ C containing its contents in a contiguous real*4 block
 ! adf
       REAL*8, DIMENSION(IM,JM) :: ANM,ANF
 !----------------------------------------------------------------------!
+#endif
+
+
 
 ccc the following arrays contain prognostic variables for the snow model
 ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
@@ -169,13 +178,18 @@ ccc TRSNOWBV is not used
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wbare,wvege,htbare,htvege
-     *       ,snowbv,Cint,Qfol
+     *       ,snowbv
+#ifdef VEGETATION_OLD
+     &       ,Cint,Qfol
+#endif
 #ifdef TRACERS_WATER
         WRITE (kunit,err=10) TRMODULE_HEADER,TR_WBARE,TR_WVEGE,TRSNOWBV0
 #endif
       CASE (IOREAD:)            ! input from restart file
-        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv,
-     *     Cint,Qfol
+        READ (kunit,err=10) HEADER,wbare,wvege,htbare,htvege,snowbv
+#ifdef VEGETATION_OLD
+     *     ,Cint,Qfol
+#endif
         IF (HEADER(1:lhead).NE.MODULE_HEADER(1:lhead)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10
