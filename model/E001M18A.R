@@ -40,7 +40,7 @@ POUT                                ! post-processing output
 
 Data input files:
 AIC=AIC.RES_M18A.D771201   ! initial conditions (atm.)
-GIC=GIC.E005gasA.1DEC1956x ! initial conditions (ground)
+GIC=GIC.rsfB357M12.1DEC1956 ! initial conditions (ground)
 ! OHT=OTSPEC.RunIDM12.M250D  ! hor.heat transp. for q-flux ocn
 OCNML=Z1O.B4X5.cor         ! mixed layer depth,needed for post-processing only
 OSST=OST4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological ocean (1 yr of data)
