@@ -28,7 +28,7 @@ variables?, and what are all those 'd0' doing?
 3) How was it done?
 4) How does it work?
 5) So what are the actual interfaces?
-
+6) Any examples?
 
 ===========================================================================
 
@@ -435,7 +435,7 @@ database and there will be no need to call "set_param". So this
 subroutines can be used if one wants to keep a dynamic variable in
 the database (so that it is automatically saved to the restart file).
 
-Reading/writing functions:
+Reading/writing subroutines:
 
   read_param( kunit, ovrwrt )
     - reads the parameter database from the unit <kunit>
@@ -450,6 +450,36 @@ Reading/writing functions:
            that are already in the database. If .false. then those 
            parameters which are already in the database are left unchanged
            and only new parameters are added.
+
+Other useful subroutines:
+
+  print_param( kunit )
+    - does formatted output to the unit <kunit> in a way similar 
+      to namelist
+
+  The argument:
+  kunit  - integer, inetnt(in) - the unit number corresponding to the 
+           file to which we want print the database
+
+  query_param( n, name, dim, ptype )
+     - returns the the information about the parameter by its number
+       in the database <n>. It returns 'EMPTY' in the <name> if 
+       parameter with such <n> doesn't exist (i.e. if <n> is bigger
+       then the number of parameters)
+
+  The arguments:
+  n     - integer, intent(in) - the number if the parameter in the 
+          database
+  name  - character*(*), intent(out) - the name of the parameter. It is
+          always converted to the low case. It returns 'EMPTY' (upper
+          case) if <n> doesn't correspond to any parameter
+  dim   - integer, intent(out) - returns the dimension of the parameter
+          (i.e. <dim> = 1 for scalars, <dim> > 1 for arrays)
+  ptype - character*1, intent(out) - returns the type of the parameter:
+          'i' - for integer
+          'r' - for real*8
+          'c' - for character
+
 
 Parser subroutine:
 
@@ -466,3 +496,47 @@ This subroutine is actually located in a separate module PARSER, but
 it seemed logical to describe it here.
 
 
+6) Any examples?
+
+Here is an example of typical usage of "query_param". One should keep
+in mind that though "get_param" is a generic interface one should
+call it with the arguments of correct type to extract the information.
+That's why one needs to use "select case" below.
+
+      subroutine ex_param
+      ! this is an example subroutine which shows how to loop
+      ! over all parameters in the database
+      ! it does the same thing as print_param
+      USE PARAM
+      integer, parameter :: MAXDIM=64
+      character*32 name
+      integer n, dim
+      character*1 ptype
+      integer ic(MAXDIM)
+      real*8 rc(MAXDIM)
+      character*16 cc(MAXDIM)
+      
+      n = 1
+      print *, 'printing parameter database'
+      do
+        call query_param( n, name, dim, ptype )
+        if ( name == 'EMPTY' ) exit
+        if ( dim > MAXDIM ) then
+          print *, 'dim of param ',name,' is > MAXDIM'
+          stop 'MAXDIM too small'
+        endif
+        select case( ptype )
+        case ('i')  !integer
+          call get_param( name, ic, dim )
+          print *, name, ( ic(i), i=1, dim )
+        case ('r')  !integer
+          call get_param( name, rc, dim )
+          print *, name, ( rc(i), i=1, dim )
+        case ('c')  !integer
+          call get_param( name, cc, dim )
+          print *, name, ( cc(i), i=1, dim )
+        end select
+        n = n + 1
+      enddo
+
+      end subroutine ex_param
