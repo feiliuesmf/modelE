@@ -1527,7 +1527,7 @@ c
 c
 C**** GLOBAL parameters and variables:  
 C
-      USE MODEL_COM, only: JDAY, JHOUR, IM, JM
+      USE MODEL_COM, only: IM,JM,nday,Itime,DTsrc 
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       IMPLICIT NONE
@@ -1547,7 +1547,7 @@ C
       REAL*8, INTENT(OUT) :: tempsza
       INTEGER, INTENT(IN) :: I,J
       INTEGER DX,DY
-      
+
       DX   = NINT(360./REAL(IM))
       DY   = NINT(180./REAL(JM))       
       vlat = -90. + REAL((J-1)*DY)
@@ -1556,8 +1556,10 @@ C
       VLON = 180. - REAL((I-1)*DX)
 C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:
-      TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
-      ! better: TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc  
+!old  TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
+      TIMEC = (mod(itime,365*nday) + nday + 0.5)*DTsrc  
+      if(DTsrc.ne.3600.)call stop_model
+     &('DTsrc has changed. Please check on get_sza subroutine',255)
       P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
       FACT = (TIMEC/86400. - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
