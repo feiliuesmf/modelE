@@ -4,37 +4,62 @@
 !     END MODULE CLOUD_DROP_PRED
 
       SUBROUTINE GET_CDNC(L,LHX,WCONST,WMUI,AIRM,WMX,DXYPJ,
-     *FCLD,CAREA,CLDSAVL,DSGL,SMFPML,OLDCDO,OLDCDL,DSU,CDNL1,CDNO1)
+     *FCLD,CAREA,CLDSAVL,DSS,SMFPML,OLDCDO,OLDCDL,
+     *DSU,CDNL1,CDNO1)
       USE CLOUDS_COM
       USE TRACER_COM
       USE CONSTANT,only:mb2kg,LHE,LHS
       IMPLICIT NONE
-      real*8 CAREA,CLDSAVL,AIRM,WMX,DSGL,
+      real*8 CAREA,CLDSAVL,AIRM,WMX,
      * SMFPML,OLDCDO,OLDCDL
 
-      real*8 EXPL,EXPO,SSM7,SSM8,SSM1,WCDNO,WCDNL,CDNO0,CDNL0,
+      real*8,dimension(9)::DSS,DSU
+      real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,amass,tams,smalphaf
-     *,FCLD,DSU,WCONST,LHX,WMUI,DXYPJ
-      integer L
+     *,FCLD,WCONST,LHX,WMUI,DXYPJ
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
+      
+      integer L,n
+      do n = 1,9
+        DSU(n)=0                         
+      end do
+
+!stop "CLD_AEROSOLS_MENON"
+
 
 !add in terms for AMASS from other program to get aerosol mass conc.
       amass=AIRM*mb2kg*DXYPJ  
       tams=1.d0/amass*1.292d0
-      DSU =(1.d9*DSGL)*tams          
+      do n = 1,9
+         DSU(n) =1.d9*DSS(n)*tams
+c        if(DSU(n).gt.90.d0)write(6,*)"MASS",DSU(n),n,l,tams,DSS(n)
+      enddo
+
 C** use CTEI effect for CDNC as in Menon et al. 2002 JAS
       smalphaf=(1.d0+ 2.d0*SMFPML)*0.5d0 
 C** Converting aerosol mass to number
-      SSM1=DSU/1769.d0
-      SSM7=SSM1/(0.004189d0*(.050d0**3.d0))
-      SSM8=SSM1/(0.004189d0*(.085d0**3.d0))
-      IF(SSM7.le.100.d0) SSM7=100.d0
-      IF(SSM8.le.50.d0) SSM8=50.d0
-C** Here we use Gultepe's paramet for CDNC = f(Na)
-      EXPL=(298.d0*log10(SSM7))-595.d0
-      EXPO=(162.d0*log10(SSM8))-273.d0
+      SSM1=DSU(1)/1769.d0                       !sulfate
 
-      IF (EXPO.LT.10.d0) EXPO=10.0d0
-      IF (EXPL.LT.10.d0) EXPL=10.0d0
+      SSM2=(DSU(2)/2169.)/(0.004189*(.44**3.))  !seasalt 0.1-1 um range
+      SSM3=(DSU(3)/2169.)/(0.004189*(1.7**3.))  !seasalt 1-4 um range    
+
+      SSM4=((1.0d0*DSU(4))+(1.0d0*DSU(6)))/1000.d0   !OCI and BCI aged use 100% & 100% 
+      SSM5=((0.8d0*DSU(5))+(0.6d0*DSU(7)))/1000.d0   !OCB and BCB      use 80%  & 60%
+   
+      SSMAL=SSM1+SSM4+SSM5
+      SSMAO=SSMAL+SSM2!+SSM3   !add in larger size when including TKE effects
+
+      SSML=SSMAL/(0.004189d0*(.050d0**3.d0))
+      SSMO=SSMAO/(0.004189d0*(.085d0**3.d0))
+
+      IF(SSML.le.100.d0) SSML=100.d0
+      IF(SSMO.le.50.d0) SSMO=50.d0
+C** Here we use Gultepe's paramet for CDNC = f(Na)
+      EXPL=(298.d0*log10(SSML))-595.d0
+      EXPO=(162.d0*log10(SSMO))-273.d0
+
+      IF (EXPO.LT.10.d0) EXPO=10.d0
+      IF (EXPL.LT.10.d0) EXPL=10.d0
       WCDNO= EXPO*smalphaf
       WCDNL= EXPL*smalphaf
       CDNL0=OLDCDL   !term initialised to 10. CLOUDS_DRV                  
@@ -64,12 +89,14 @@ C** If previous time step is cloudy then depending on cld frac change
 
       IF (CDNL1.le.10.d0) CDNL1=10.d0
       IF (CDNO1.le.10.d0) CDNO1=10.d0
-!     if(CDNL1.gt.1000.d0) 
-!    *write(6,*) "CDNC1st",CDNL1,DSU,smalphaf,L
+!     if(CDNL1.gt.1400.d0.or.CDNO1.gt.1400.d0) 
+!    *write(6,*) "Nc1st",CDNL1,CDNO1,DSU(1),DSU(2),DSU(3),DSU(4),DSU(5),
+!    *DSU(6),DSU(7),L,SSML,SSMO
 
       RETURN
       
       END SUBROUTINE GET_CDNC 
+
 
       SUBROUTINE GET_QAUT(L,TL,FCLD,WMX,SCDNCW,RHO,QCRIT,QAUT)
       USE TRACER_COM
@@ -90,7 +117,7 @@ C     using Qcrit for QAUT
      * ((WMX/(FCLD+1.d-20))**(7.d0/3.d0)))/
      * (dynvis*((SCDNCW*1.d09)**(1.d0/3.d0)))
 
-c     if(QAUT.eq.0.) write(6,*)"QCR",QAUT,SCDNCW,WMX(L),l
+      if(QAUT.le.0.) write(6,*)"QCR",QAUT,SCDNCW,WMX,l
 
       RETURN
     
@@ -104,21 +131,35 @@ c     if(QAUT.eq.0.) write(6,*)"QCR",QAUT,SCDNCW,WMX(L),l
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
      *,SMFPML,OLDCDO,OLDCDL
-      real*8 EXPL,EXPO,SSM7,SSM8,SSM1,WCDNO,WCDNL,CDNO0,CDNL0,
-     *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,smalfaf,FCLD,DSU
+      real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
+     *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,smalfaf,FCLD
      *,LHX,WMUI,WCONST
+      real*8,dimension(9)::DSU
+
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
        integer L
 
       smalfaf=(1.d0+ 2.d0*SMFPML)*0.5d0   !SMFPM was 3D
 C** Converting aerosol mass to number
-      SSM1=DSU/1769.d0
-      SSM7=SSM1/(0.004189d0*(.050d0**3.d0))
-      SSM8=SSM1/(0.004189d0*(.085d0**3.d0))
-      IF(SSM7.le.100.d0) SSM7=100.d0
-      IF(SSM8.le.50.d0) SSM8=50.d0
+      SSM1=DSU(1)/1769.d0                       !sulfate
+
+      SSM2=(DSU(2)/2169.)/(0.004189*(.44**3.))  !seasalt 0.1-1 um range
+      SSM3=(DSU(3)/2169.)/(0.004189*(1.7**3.))  !seasalt 1-4 um range    
+
+      SSM4=((1.0d0*DSU(4))+(1.0d0*DSU(6)))/1000.d0   !OCI and BCI aged use 100% & 100% 
+      SSM5=((0.8d0*DSU(5))+(0.6d0*DSU(7)))/1000.d0   !OCB and BCB      use 80%  & 60%
+   
+      SSMAL=SSM1+SSM4+SSM5
+      SSMAO=SSMAL+SSM2!+SSM3   !add in larger size when including TKE effects
+
+      SSML=SSMAL/(0.004189d0*(.050d0**3.d0))
+      SSMO=SSMAO/(0.004189d0*(.085d0**3.d0))
+
+      IF(SSML.le.100.d0) SSML=100.d0
+      IF(SSMO.le.50.d0) SSMO=50.d0
 C** Here we use Gultepe's paramet for CDNC = f(Na)
-      EXPL=(298.d0*log10(SSM7))-595.d0
-      EXPO=(162.d0*log10(SSM8))-273.d0
+      EXPL=(298.d0*log10(SSML))-595.d0
+      EXPO=(162.d0*log10(SSMO))-273.d0
 
       IF (EXPO.LT.10.d0) EXPO=10.d0
       IF (EXPL.LT.10.d0) EXPL=10.d0
@@ -148,8 +189,9 @@ C** If previous time step is cloudy then depending on cld frac change
         CDNL1 = (((CDNL0*CCLD0)+(WCDNL*DCLD))/CCLD1) - dfn*CDNL0
         CDNO1 = (((CDNO0*CCLD0)+(WCDNO*DCLD))/CCLD1) - dfn*CDNO0
       endif
-!     if (CDNL1.gt.1000.) 
-!    *write(6,*) "CDNCUPD",CDNL1,DSU,smalfaf
+c     if(CDNL1.gt.1400.d0.or.CDNO1.gt.1400.d0) 
+c    *write(6,*) "Nc2nd",CDNL1,CDNO1,DSU(1),DSU(2),DSU(3),DSU(4),DSU(5),
+c    *DSU(6),DSU(7),L,SSML,SSMO
       IF (CDNL1.le.10.d0) CDNL1=10.d0
       IF (CDNO1.le.10.d0) CDNO1=10.d0
 
