@@ -864,7 +864,7 @@ C$OMP  THREADPRIVATE(/GRIDS_99/)
       real*8, dimension(n),intent(in) :: z
       real*8, dimension(n),intent(inout) :: t
       real*8, intent(in) :: ttop, tgrnd
-      real*8, intent(out) :: lmonin
+      real*8, intent(inout) :: lmonin
 
       real*8 tsurf
       integer i  !@var i loop variable

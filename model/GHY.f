@@ -785,7 +785,7 @@ c**** soils28   common block     9/25/90
       real*8 evap_max(2)
 ccc   added declarations for local vars:
       real*8 qm1dt, xkf, tbs1, tcs1, qcv, qcs, epcs
-      real*8 cna,dd,ed,qso,rho3,xl
+      real*8 cna,dd,ed,qso,rho3,xl  
       integer ibv,l,itr
       real*8 qc
 
@@ -931,7 +931,7 @@ c     loop back until qs converged
       if(itr.ge.60)then
         write(99,*)'qsbal:1',ijdebug,itr,qs,qso
         write(99,*)'qsbal:2',fb,betab,cna,qb
-        write(99,*)'qsbal:3',fv,betav,qc,xl
+        write(99,*)'qsbal:3',fv,betav,qc   !   ,xl  currently not set
         write(99,*)'qsbal:4',evap(1),evap(2),epb,epc
         write(99,*)'qsbal:5',evapw,evapd,ed,pr
         write(99,*)'qsbal:6',w(0,2),qm1dt,dt,cnc

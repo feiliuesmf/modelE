@@ -569,7 +569,7 @@ C****
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE PBLCOM
-     &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
+     &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm
       USE DAGCOM, only : acc_period,monacc,kacc,tsfrez,kdiag,jreg
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qdiag,oa
@@ -889,7 +889,7 @@ C**** Initialize surface friction velocity
         DO ITYPE=1,4
         DO J=1,JM
         DO I=1,IM
-          USTAR(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
+          USTAR_pbl(I,J,ITYPE)=WSAVG(I,J)*SQRT(CDM)
         END DO
         END DO
         END DO

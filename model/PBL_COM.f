@@ -40,10 +40,10 @@
 !@var USAVG     COMPOSITE SURFACE U WIND
 !@var VSAVG     COMPOSITE SURFACE V WIND
 !@var TAUAVG    COMPOSITE SURFACE MOMENTUM TRANSFER (TAU)
-!@var USTAR     friction velocity (sqrt of srfc mom flux) (m/s)
+!@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
       REAL*8, dimension(im,jm) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,tgvavg,qgavg
-      REAL*8, dimension(im,jm,4) :: ustar
+      REAL*8, dimension(im,jm,4) :: ustar_pbl
 
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
       real*8, dimension(lm,im,jm) :: egcm,t2gcm
@@ -132,10 +132,10 @@
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,wsavg,tsavg,qsavg,dclev
-     *       ,usavg,vsavg,tauavg,ustar,egcm,tgvavg,qgavg
+     *       ,usavg,vsavg,tauavg,ustar_pbl,egcm,tgvavg,qgavg
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,wsavg,tsavg,qsavg,dclev,usavg
-     *       ,vsavg,tauavg,ustar,egcm,tgvavg,qgavg
+     *       ,vsavg,tauavg,ustar_pbl,egcm,tgvavg,qgavg
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
           PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
           GO TO 10

@@ -38,7 +38,7 @@ C          ,UG,VG,WG,ZMIX
       USE DYNAMICS, only : pmid,pk,pedn
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE GEOM, only : idij,idjj,kmaxj,rapj,cosiv,siniv,sinp
-      USE PBLCOM, ustar_type=>ustar
+      USE PBLCOM
       USE SOCPBL, only : uij=>u,vij=>v,tij=>t,qij=>q,eij=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
@@ -92,7 +92,7 @@ C  DETERMINE THE VERTICAL LEVEL CORRESPONDING TO THE HEIGHT OF THE PBL:
 C   WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT KNOW THE
 C   INDEX OF THE LAYER.
 C
-        USTAR=USTAR_TYPE(I,J,ITYPE)
+        USTAR=USTAR_PBL(I,J,ITYPE)
         DBL=0.3*USTAR/OMEGA2
         if (dbl.le.ztop) then
 C THE VERTICAL LEVEL FOR WHICH WG IS COMPUTED IS THE FIRST:
@@ -246,7 +246,7 @@ c1003 format(a,4(1pe14.4))
       psitop=atan2(vg,ug+teeny)
       psisrf=atan2(vs,us+teeny)
       psi   =psisrf-psitop
-      ustar_type(i,j,itype)=ustar
+      ustar_pbl(i,j,itype)=ustar
 C ******************************************************************
       TS=TSV/(1.+QS*deltx)
       WSAVG(I,J)=WSAVG(I,J)+WS*PTYPE
@@ -282,7 +282,7 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : idij,idjj,imaxj,kmaxj,rapj,cosiv,siniv,sinp
-      USE PBLCOM, ustar_type=>ustar
+      USE PBLCOM
       USE SOCPBL, only : npbl=>n,zgs,bgrid,inits,ccoeff0
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
@@ -432,7 +432,7 @@ c ******************************************************************
             end do
 
             ipbl(i,j,itype)=1
-            ustar_type(i,j,itype)=ustar
+            ustar_pbl(i,j,itype)=ustar
 
  200      end do
         end do
@@ -481,7 +481,7 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl,ustar_type=>ustar
+     *     ,ipbl,ustar_pbl
 #ifdef TRACERS_ON
      *     ,trabl
 #endif
@@ -512,7 +512,7 @@ c ******* itype=1: Ocean
               cmgs(i,j,1)=cmgs(i,j,2)
               chgs(i,j,1)=chgs(i,j,2)
               cqgs(i,j,1)=cqgs(i,j,2)
-              ustar_type(i,j,1)=ustar_type(i,j,2)
+              ustar_pbl(i,j,1)=ustar_pbl(i,j,2)
             endif
           endif
 
@@ -537,7 +537,7 @@ c ******* itype=2: Ocean ice
               cmgs(i,j,2)=cmgs(i,j,1)
               chgs(i,j,2)=chgs(i,j,1)
               cqgs(i,j,2)=cqgs(i,j,1)
-              ustar_type(i,j,2)=ustar_type(i,j,1)
+              ustar_pbl(i,j,2)=ustar_pbl(i,j,1)
             endif
           endif
 
@@ -562,7 +562,7 @@ c ******* itype=3: Land ice
               cmgs(i,j,3)=cmgs(i,j,4)
               chgs(i,j,3)=chgs(i,j,4)
               cqgs(i,j,3)=cqgs(i,j,4)
-              ustar_type(i,j,3)=ustar_type(i,j,4)
+              ustar_pbl(i,j,3)=ustar_pbl(i,j,4)
             endif
           endif
 
@@ -587,7 +587,7 @@ c ******* itype=4: Land
               cmgs(i,j,4)=cmgs(i,j,3)
               chgs(i,j,4)=chgs(i,j,3)
               cqgs(i,j,4)=cqgs(i,j,3)
-              ustar_type(i,j,4)=ustar_type(i,j,3)
+              ustar_pbl(i,j,4)=ustar_pbl(i,j,3)
             endif
           endif
 
@@ -664,7 +664,7 @@ c    2      2.4772d0)*x + 1.44509d0
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     *     ,ustar,uflux,vflux,tflux,qflux,tgvavg,qgavg
+     *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -678,7 +678,7 @@ C**** Check for NaN/INF in boundary layer data
       CALL CHECK3(usavg,IM,JM,1,SUBR,'usavg')
       CALL CHECK3(vsavg,IM,JM,1,SUBR,'vsavg')
       CALL CHECK3(tauavg,IM,JM,1,SUBR,'tauavg')
-      CALL CHECK3(ustar,IM,JM,4,SUBR,'ustar')
+      CALL CHECK3(ustar_pbl,IM,JM,4,SUBR,'ustar')
 
       CALL CHECK3(uflux,IM,JM,1,SUBR,'uflux')
       CALL CHECK3(vflux,IM,JM,1,SUBR,'vflux')

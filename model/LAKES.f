@@ -72,7 +72,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
 #ifdef TRACERS_SPECIAL_O18
       REAL*8 fracls
       INTEGER N
-#endif      
+#endif
 #endif
       REAL*8 ENRGF1, ACEF1, ENRGF2, ACEF2, FHO, FHI, FH0, FH1, FH2, FSR2
       REAL*8 ENRGI, ENRGI2, ENRGO, ENRGO2, RUNO, RUNI, TLK2, DM2, DH2
@@ -95,7 +95,7 @@ C**** Calculate heat and mass fluxes to lake
       do n=1,ntm
         FRAC(n)=fracls(trname(n)) ! fractionation when freezing
       end do
-#endif      
+#endif
 #endif
 
 C**** Bring up mass from second layer if required/allowed
@@ -696,7 +696,7 @@ C**** accumulate river runoff diags (moved from ground)
                 AJ(JD,J_ERVR,ITOICE)=AJ(JD,J_ERVR,ITOICE) +
      *               POICE*DGM*BYDXYP(JD)
                 AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               DGM*FOCEAN(ID,JD)*BYDXYP(JD) 
+     *               DGM*FOCEAN(ID,JD)*BYDXYP(JD)
               END IF
               JR=JREG(ID,JD)
               AREG(JR,J_RVRD)=AREG(JR,J_RVRD)+DMM
@@ -804,7 +804,7 @@ C**** accumulate some diagnostics
         AJ(1,J_RVRD,ITLAKE)=AJ(1,J_RVRD,ITLAKE)+ FLOW(1,1)*BYDXYP(1)
         AJ(1,J_ERVR,ITLAKE)=AJ(1,J_ERVR,ITLAKE)+EFLOW(1,1)*BYDXYP(1)
       END IF
-      
+
       CALL PRINTLK("RV")
 C**** Set FTYPE array for lakes
       DO J=1,JM
@@ -906,7 +906,7 @@ C****
       USE LAKES_COM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
-#endif      
+#endif
       IMPLICIT NONE
 
       INTEGER I,J,N !@var I,J loop variables
@@ -915,7 +915,7 @@ C****
 #ifdef TRACERS_WATER
       integer :: imax,jmax
       real*8 relerr,errmax
-#endif      
+#endif
 
 C**** Check for NaN/INF in lake data
       CALL CHECK3(MWL,IM,JM,1,SUBR,'mwl')
@@ -960,7 +960,7 @@ C**** Check total lake mass (<10%, >10x orig depth)
 C**** Check conservation of water tracers in lake
       do n=1,ntm
         if (trname(n).eq.'Water') then
-          errmax = 0. ; imax=1 ; jmax=1 
+          errmax = 0. ; imax=1 ; jmax=1
           do j=1,jm
           do i=1,imaxj(j)
             if (flake(i,j).gt.0) then
@@ -1226,9 +1226,8 @@ C****
      *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
 #endif
       USE SEAICE_COM, only : rsi
-      USE PBLCOM, only : ustar
       USE DAGCOM, only : aj,areg,jreg,j_imelt,j_hmelt,j_wtr1,j_wtr2
-     *     ,j_run,j_erun 
+     *     ,j_run,j_erun
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
