@@ -41,10 +41,14 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-C**** decide on AEROSOM or standard emissions 
+C**** decide on AEROCOM or standard emissions 
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions  
       call sync_param("imPI",imPI)
+#endif
+#ifdef TRACERS_DUST
+C**** decide on AEROCOM or interactive emissions 
+      CALL sync_param('imDUST',imDUST)
 #endif
 
 C**** Get factor to convert from mass mixing ratio to volume mr

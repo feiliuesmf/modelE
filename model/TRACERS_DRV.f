@@ -5271,7 +5271,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      *  ,q,wm,flice,fearth
 #endif
 #ifdef TRACERS_DUST
-     &     ,JMperY
+     &     ,JMperY,JDperY
 #endif
       USE DOMAIN_DECOMP, only : GRID, GET
       USE SOMTQ_COM, only : qmom,mz,mzz
@@ -5282,6 +5282,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef regional_Ox_tracers
      *   ,NregOx,n_Ox
+#endif
+#ifdef TRACERS_DUST
+     &   ,imDUST
 #endif
 #ifdef TRACERS_WATER
      *  ,trwm,trw0,tr_wd_TYPE,nWATER
@@ -5323,7 +5326,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef TRACERS_DUST
       USE tracers_dust,ONLY : hbaij,dryhr,frclay,frsilt,vtrsh,ers_data,
-     &   gin_data,table,x1,x2,x3,lim,ljm,lkm
+     &   gin_data,table,x1,x2,x3,lim,ljm,lkm,d_dust
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -5355,8 +5358,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       REAL*8 byNregOx
 #endif
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       include 'netcdf.inc'
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
       integer start(3),count(3),status,ncidu,id1
       REAL*8 dmsconc
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,m,mmm,ll
@@ -5364,6 +5369,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef TRACERS_DUST
       INTEGER :: io_data,k
+      INTEGER startd(3),countd(3),statusd
+      INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
+      REAL*4 :: work(IM,JM)
       LOGICAL,SAVE :: ifirst=.TRUE.
 #endif
 
@@ -6092,82 +6100,130 @@ c convert from month to second. dxyp??
 #endif
 #ifdef TRACERS_DUST
       IF (ifirst) THEN
-        hbaij=0D0
+c     prescribed AEROCOM dust emissions
+        IF (imDust == 1) THEN
+          statusd=NF_OPEN('dust_bin1',NCNOWRIT,ncidd1)
+          statusd=NF_OPEN('dust_bin2',NCNOWRIT,ncidd2)
+          statusd=NF_OPEN('dust_bin3',NCNOWRIT,ncidd3)
+          statusd=NF_OPEN('dust_bin4',NCNOWRIT,ncidd4)
+
+          statusd=NF_INQ_VARID(ncidd1,'dust',idd1)
+          statusd=NF_INQ_VARID(ncidd2,'dust',idd2)
+          statusd=NF_INQ_VARID(ncidd3,'dust',idd3)
+          statusd=NF_INQ_VARID(ncidd4,'dust',idd4)
+
+          startd(1)=1
+          startd(2)=1
+
+          countd(1)=Im
+          countd(2)=Jm
+          countd(3)=1
+
+          DO k=1,JDperY
+
+            IF (k > 59) THEN
+              startd(3)=k+1
+            ELSE
+              startd(3)=k
+            END IF
+
+            statusd=NF_GET_VARA_REAL(ncidd1,idd1,startd,countd,work)
+            d_dust(:,:,1,k)=DBLE(work(:,:))
+            statusd=NF_GET_VARA_REAL(ncidd2,idd2,startd,countd,work)
+            d_dust(:,:,2,k)=DBLE(work(:,:))
+            statusd=NF_GET_VARA_REAL(ncidd3,idd3,startd,countd,work)
+            d_dust(:,:,3,k)=DBLE(work(:,:))
+            statusd=NF_GET_VARA_REAL(ncidd4,idd4,startd,countd,work)
+            d_dust(:,:,4,k)=DBLE(work(:,:))
+
+          END DO
+
+          statusd=NF_CLOSE('dust_bin1',NCNOWRIT,ncidd1)
+          statusd=NF_CLOSE('dust_bin2',NCNOWRIT,ncidd2)
+          statusd=NF_CLOSE('dust_bin3',NCNOWRIT,ncidd3)
+          statusd=NF_CLOSE('dust_bin4',NCNOWRIT,ncidd4)
+
+        ELSE IF (imDUST == 0) THEN
+c     interactive dust emissions
+          hbaij=0D0
 c**** Read input: threshold speed
-        CALL openunit('VTRSH',io_data,.true.,.true.)
-        READ (io_data) vtrsh
-        CALL closeunit(io_data)
+          CALL openunit('VTRSH',io_data,.true.,.true.)
+          READ (io_data) vtrsh
+          CALL closeunit(io_data)
 c**** Read input: fraction clay
-        CALL openunit('FRCLAY',io_data,.true.,.true.)
-        READ (io_data) frclay
-        CALL closeunit(io_data)
+          CALL openunit('FRCLAY',io_data,.true.,.true.)
+          READ (io_data) frclay
+          CALL closeunit(io_data)
 c**** Read input: fraction silt
-        CALL openunit('FRSILT',io_data,.true.,.true.)
-        READ (io_data) frsilt
-        CALL closeunit(io_data)
+          CALL openunit('FRSILT',io_data,.true.,.true.)
+          READ (io_data) frsilt
+          CALL closeunit(io_data)
 c**** Read input: prec-evap data
-        CALL openunit('DRYHR',io_data,.true.,.true.)
-        READ (io_data) dryhr
-        CALL closeunit(io_data)
+          CALL openunit('DRYHR',io_data,.true.,.true.)
+          READ (io_data) dryhr
+          CALL closeunit(io_data)
 c**** Read input: ERS data
-        call openunit('ERS',io_data,.true.,.true.)
-        DO k=1,JMperY
-          READ(io_data) ((ers_data(i,j,k),i=1,im),j=1,jm)
-        END DO
-        call closeunit(io_data)
+          call openunit('ERS',io_data,.true.,.true.)
+          DO k=1,JMperY
+            READ(io_data) ((ers_data(i,j,k),i=1,im),j=1,jm)
+          END DO
+          call closeunit(io_data)
 c**** Read input: GINOUX data
-        call openunit('GIN',io_data,.true.,.true.)
-        read (io_data) gin_data
-        call closeunit(io_data)
+          call openunit('GIN',io_data,.true.,.true.)
+          read (io_data) gin_data
+          call closeunit(io_data)
 c**** Read input: EMISSION LOOKUP TABLE data
-        call openunit('LKTAB',io_data,.true.,.true.)
-        DO k=1,lkm
-          READ(io_data) ((table(i,j,k),i=1,lim),j=1,ljm)
-        END DO
-        call closeunit(io_data)
-        do k=1,lkm
-          x3(k)=5.d0+1.d0*k
-        enddo
+          call openunit('LKTAB',io_data,.true.,.true.)
+          DO k=1,lkm
+            READ(io_data) ((table(i,j,k),i=1,lim),j=1,ljm)
+          END DO
+          call closeunit(io_data)
+          do k=1,lkm
+            x3(k)=5.d0+1.d0*k
+          enddo
 
-
-        do j=1,ljm
-          if (j.le.5) then
-            x2(j)=.001d0*j
-          endif
-          if (j.gt.5.and.j.le.104) then
-            x2(j)=0.005d0*j-0.02d0
-          endif
-          if (j.gt.104.and.j.le.194) then
-            x2(j)=0.05d0*j-4.7d0
-          endif
-          if (j.gt.194) then
-            x2(j)=0.5d0*j-92.d0
-          endif
-        enddo
-        do i=1,lim
-          if (i.le.51) then
-            x1(i)=.0001d0*(i-1)
-          endif
-          if (i.gt.51.and.i.le.59) then
-            x1(i)=0.005d0*i-.25d0
-          endif
-          if (i.gt.59.and.i.le.258) then
-            x1(i)=0.05d0*i-2.95d0
-          endif
-          if (i.gt.258.and.i.le.278) then
-            x1(i)=0.5d0*i-119.5d0
-          endif
-          if (i.gt.278) then
-            x1(i)=1.d0*i-259.d0
-          endif
-        enddo
+          do j=1,ljm
+            if (j.le.5) then
+              x2(j)=.001d0*j
+            endif
+            if (j.gt.5.and.j.le.104) then
+              x2(j)=0.005d0*j-0.02d0
+            endif
+            if (j.gt.104.and.j.le.194) then
+              x2(j)=0.05d0*j-4.7d0
+            endif
+            if (j.gt.194) then
+              x2(j)=0.5d0*j-92.d0
+            endif
+          enddo
+          do i=1,lim
+            if (i.le.51) then
+              x1(i)=.0001d0*(i-1)
+            endif
+            if (i.gt.51.and.i.le.59) then
+              x1(i)=0.005d0*i-.25d0
+            endif
+            if (i.gt.59.and.i.le.258) then
+              x1(i)=0.05d0*i-2.95d0
+            endif
+            if (i.gt.258.and.i.le.278) then
+              x1(i)=0.5d0*i-119.5d0
+            endif
+            if (i.gt.278) then
+              x1(i)=1.d0*i-259.d0
+            endif
+          enddo
 
 #ifdef TRACERS_DUST_MINERAL8
-        CALL openunit('MINFR',io_data,.true.,.true.)
-        CALL closeunit(io_data)
+          CALL openunit('MINFR',io_data,.true.,.true.)
+          CALL closeunit(io_data)
 #endif
+        ELSE
+          CALL stop_model
+     &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
+        END IF
         ifirst=.FALSE.
-      ENDIF
+      END IF
 
 #endif
 

@@ -272,6 +272,10 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
 #endif
+#ifdef TRACERS_DUST
+!@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
+      INTEGER :: imDUST=0
+#endif
 #ifdef TRACERS_ON
 !@var NTM_POWER: Power of 10 associated with each tracer (for printing)
       integer, dimension(ntm) :: ntm_power

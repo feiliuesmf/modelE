@@ -4,7 +4,8 @@
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs,itime
+      USE model_com,ONLY : dtsrc,nisurf,jmon,wfcs
+      USE tracer_com,ONLY : imDUST
       USE fluxes,ONLY : prec,pprec,pevap
       USE ghycom,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : curint,dryhr,ers_data,hbaij,lim,ljm,qdust,
@@ -22,6 +23,8 @@
       REAL*8 :: sigma,ans,dy
       REAL*8 :: soilvtrsh,workij1,workij2
 
+      IF (imDUST == 0) THEN
+
 #ifndef DUST_EMISSION_EXTERN
 
 #ifdef TRACERS_DUST_CUB_SAH
@@ -35,12 +38,6 @@ c     than threshold dryhr to permit dust emission
         ricntd(i,j)=ricntd(i,j)+Dtsrc/3600./nisurf
         IF (ricntd(i,j) >= dryhr(i,j) .AND. dryhr(i,j) /= 0) THEN
           pmei=.TRUE.
-c          WRITE(*,*)
-c     &     'In dust_emission_constraints: itime,i,j,dryhr,ricntd,pmei:',
-c     &         itime,i,j,dryhr(i,j),ricntd(i,j),pmei
-c          WRITE(*,*)
-c     &'In dust_emission_constraints: itime,i,j,itype,prec,pprec,pevap:',
-c     &         itime,i,j,itype,prec(i,j),pprec(i,j),pevap(i,j,itype)
         ELSE
           pmei=.FALSE.
         END IF
@@ -51,9 +48,6 @@ c     &         itime,i,j,itype,prec(i,j),pprec(i,j),pevap(i,j,itype)
 
       IF (pmei .AND. snowe(i,j) <= 1 .AND. vtrsh(i,j) > 0. .AND.
      &     wsm > vtrsh(i,j)) THEN
-c        WRITE(*,*) 'In dust_emission_constraints: itime,i,j,itype,',
-c     &       'snowe,vtrsh,wsm:',itime,i,j,itype,snowe(i,j),vtrsh(i,j),
-c     &       wsm
         qdust(i,j)=.TRUE.
       ELSE
         qdust(i,j)=.FALSE.
@@ -72,10 +66,6 @@ c     &       wsm
         soilwet=(WEARTH(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
         if (soilwet.gt.1.) soilwet=1.d0
         soilvtrsh=8.d0*(exp(0.25d0*soilwet))
-
-c        WRITE(*,*) 'In dust_emission_contraints: itime,i,j,wearth,',
-c     &       'aiearth,wfcs,soilwet:',itime,i,j,wearth(i,j),aiearth(i,j),
-c     &       wfcs(i,j),soilwet
 
         curint(i,j)=0.d0
         workij1=0.d0
@@ -122,9 +112,7 @@ c     only over 5% of the area.
             curint(i,j)=0D0
           endif
         endif
-c        WRITE(*,*) 'In dust_emission_contraints: itime,i,j,sigma,',
-c     &       'soilvtrsh,wsm,curint:',itime,i,j,sigma,soilvtrsh,wsm,
-c     &       curint(i,j)
+
       END IF
 #endif
 #else
@@ -136,29 +124,43 @@ c     &       curint(i,j)
       END IF
       
 #endif
+
+      ELSE IF (imDUST == 1) THEN
+        IF (itype == 4) THEN
+          qdust(i,j)=.TRUE.
+        ELSE
+          qdust(i,j)=.FALSE.
+        END IF
+      END IF
+
 #endif
 
       RETURN
       END SUBROUTINE dust_emission_constraints
 
-      SUBROUTINE local_dust_emission(i,j,n,wsm,dsrcflx)
+      SUBROUTINE local_dust_emission(i,j,n,wsm,ptype,dsrcflx)
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #ifdef TRACERS_DUST
-      USE model_com,ONLY : itime
-      USE tracer_com,ONLY : trname
+      USE constant,ONLY : sday
+      USE model_com,ONLY : jday
+      USE geom,ONLY : dxyp
+      USE tracer_com,ONLY : trname,imDUST
       USE tracers_dust,ONLY : curint,fracn,frclay,frsilt,gin_data,qdust,
-     &     uplfac,vtrsh
+     &     uplfac,vtrsh,d_dust
 
 #ifndef DUST_EMISSION_EXTERN
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: i,j,n
-      REAL*8,INTENT(IN) :: wsm
+      REAL*8,INTENT(IN) :: ptype,wsm
       REAL*8,INTENT(OUT) :: dsrcflx
 
       REAL*8 :: frtrac
+
+      IF (imDUST == 0) THEN
+c     Interactive dust emission
 
       IF (.NOT. qdust(i,j)) THEN
         dsrcflx=0D0
@@ -177,22 +179,28 @@ c     &       curint(i,j)
         CASE ('Silt1','Silt2','Silt3')
           frtrac=frsilt(i,j)
         END SELECT
-c        WRITE(*,*) 'In local_dust_emission: itime,i,j,n,uplfac(n),',
-c     &       'frtrac,fracn(n),wsm,vtrsh:',itime,i,j,n,uplfac(n),frtrac,
-c     &       fracn(n),wsm,vtrsh(i,j)
+
         dsrcflx=Uplfac(n)*frtrac*Fracn(n)*(wsm-vtrsh(i,j))*wsm**2
 
 #else ! default case
-c        WRITE(*,*) 'In local_dust_emission: itime,i,j,n,uplfac(n),',
-c     &       'fracn(n),gin_data:',itime,i,j,n,uplfac(n),fracn(n),
-c     &       gin_data(i,j)
+
         dsrcflx=Uplfac(n)*Fracn(n)*gin_data(i,j)*curint(i,j)
 #endif
 #endif
-c        WRITE(*,*)
-c     &       'In local_dust_emission: itime,i,j,n,dsrcflx:',itime,i,j,n,
-c     &       dsrcflx
+
       END IF
+
+      ELSE IF (imDUST == 1) THEN
+c     prescribed AEROCOM dust emission
+
+      IF (.NOT. qdust(i,j)) THEN
+        dsrcflx=0D0
+      ELSE
+        dsrcflx=d_dust(i,j,n,jday)/Sday/dxyp(j)/ptype
+      END IF
+
+      END IF
+
 #endif
 #endif
             
