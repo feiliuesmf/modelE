@@ -359,13 +359,13 @@ c     QCHECKL = .TRUE.
 !@auth L. Nazarenko
 !@ver  1.0
       USE CONSTANT, only : rhoi
-      USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN,ITime,ITimeI
-      USE GEOM, only : IMAXJ
-!      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
-      USE LAKES_COM, only : T50
-      USE OCEAN, only : DM
-      USE SEAICE_COM, only : RSI,MSI
-      USE SEAICE, only : Z1I
+      USE E001M12_COM, only : im,jm,flake,kocean,itime,itimei
+      USE GEOM, only : imaxj
+!      USE LAKES, only : zimin,zimax,t_ice,t_noice,bydtmp
+      USE LAKES_COM, only : t50
+      USE OCEAN, only : dm
+      USE SEAICE_COM, only : rsi,msi,tsi,snowi
+      USE SEAICE, only : z1i
       IMPLICIT NONE
       REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
       INTEGER I,J,K,IMAX,IEND
@@ -387,11 +387,8 @@ c     QCHECKL = .TRUE.
             RSI(I,J)=RSINEW
             MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
             IF (RSINEW.LE.0.) THEN
-              GDATA(I,J,1)=0.
-              GDATA(I,J,3)=0.
-              GDATA(I,J,7)=0.
-              GDATA(I,J,15)=0.
-              GDATA(I,J,16)=0.
+              SNOWI(I,J)=0.
+              TSI(1:4,I,J)=0.
             END IF
           END IF
         END DO
@@ -405,13 +402,13 @@ c     QCHECKL = .TRUE.
 !@auth Original Development team
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,fland,flice,flake,kocean,gdata
+      USE E001M12_COM, only : im,jm,fland,flice,flake,kocean
       USE GEOM, only : imaxj,dxyp
       USE CLD01_COM_E001, only : prec,tprec,eprec
       USE FLUXES, only : runosi,runoli
       USE OCEAN, only : oa,tocean,z1o
       USE SEAICE, only : ace1i
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : mwl,gml
       USE DAGCOM, only : aj,cj,aij,j_eprcp,ij_f0oc,j_run2,j_dwtr2
       IMPLICIT NONE
@@ -449,7 +446,7 @@ C**** This is here for continuity only
           TGW=TOCEAN(1,I,J)
           WTRO=Z1O(I,J)*RHOW
           RUN0=RUNOSI(I,J)
-          SNOW=GDATA(I,J,1)
+          SNOW=SNOWI(I,J)
           SMSI=MSI(I,J)+ACE1I+SNOW
           RUN4=PRCP
           ERUN4=RUN4*TGW*SHW
@@ -482,12 +479,12 @@ C****
 !@ver  1.0
 !@calls 
       USE CONSTANT, only : twopi,rhow,shw,edpery
-      USE E001M12_COM, only : im,jm,flake,flice,kocean,gdata,fland
+      USE E001M12_COM, only : im,jm,flake,flice,kocean,fland
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi,
      *     runoli
       USE OCEAN, only : oa,tocean,z1o,tfo,osourc
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,cj,aij,areg,jreg,j_eprcp,ij_f0oc,j_run2
@@ -525,7 +522,7 @@ C****
         TGW  =TOCEAN(1,I,J)
         EVAP =EVAPOR(I,J,1)
         EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
-        SMSI =MSI(I,J)+ACE1I+GDATA(I,J,1)
+        SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
         RUN0=RUNOSI(I,J)        ! includes ACE2M term 
                                 ! + RUN0LI ?

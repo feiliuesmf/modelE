@@ -4,14 +4,15 @@
 !@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,vflx_OCEAN,daily_OCEAN
       USE CONSTANT, only : lhm,rhow,rhoi,shw,shi,by12
-      USE E001M12_COM, only : im,jm,lm,gdata,focean,flake,fland,fearth
+      USE E001M12_COM, only : im,jm,lm,focean,flake,fland,fearth
      *     ,flice,kocean,Itime,jmon,jdate,jday,JDendOfM,JDmidOfM
       USE PBLCOM
      &     , only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,
      *     cq=>cqgs,ipbl
       USE GEOM
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,tsi,snowi
       USE SEAICE, only : xsi1,xsi2,xsi3,xsi4,ace1i,z1i
+      USE LANDICE_COM, only : snowli,tlandi
 
       IMPLICIT NONE
 !@param LMOM number of layers for deep ocean diffusion
@@ -32,6 +33,8 @@
 
 !@var Z1O ocean mixed layer depth
       REAL*8, SAVE,DIMENSION(IM,JM) :: Z1O
+!@var Z1OOLD previous ocean mixed layer depth
+      REAL*8, SAVE,DIMENSION(IM,JM) :: Z1OOLD
 !@var Z12O annual maximum ocean mixed layer depth
       REAL*8, SAVE,DIMENSION(IM,JM) :: Z12O
 
@@ -54,8 +57,6 @@
       IMPLICIT NONE
       INTEGER I,J,IMAX
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
-      REAL*8 Z1OOLD
-      COMMON/WORK2/Z1OOLD(IM,JM)
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
@@ -65,10 +66,8 @@ C****        3  OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)
 C****     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
 C****     MSI   OCEAN ICE AMOUNT OF SECOND LAYER (KG/M**2)
 C****
-C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
-C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
-C****        7  OCEAN ICE TEMPERATURE OF SECOND LAYER (C)
-C****
+C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
+C**** TSI(1:2)  OCEAN ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
@@ -78,7 +77,7 @@ C****
           IF (FLAND(I,J).GE.1.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
-          WTR1O=RHOW*Z1O(I,J)-RSI(I,J)*(GDATA(I,J,1)
+          WTR1O=RHOW*Z1O(I,J)-RSI(I,J)*(SNOWI(I,J)
      *         +ACE1I+MSI(I,J))
           DWTRO=RHOW*(Z1O(I,J)-Z1OOLD(I,J))
           WTR2O=RHOW*(Z12O(I,J)-Z1O(I,J))
@@ -110,8 +109,6 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
       IMPLICIT NONE
 
-      REAL*8 Z1OOLD
-      COMMON/WORK2/Z1OOLD(IM,JM)
       REAL*8 XZO(IM,JM),XZN(IM,JM)
       INTEGER, INTENT(IN) :: IDOZ1O
 
@@ -241,21 +238,15 @@ c        RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
 c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
           IF (RSI(I,J).LE.0.) THEN
-            GDATA(I,J,1)=0.
-            GDATA(I,J,3)=0.
-            GDATA(I,J,7)=0.
-            GDATA(I,J,15)=0.
-            GDATA(I,J,16)=0.
+            SNOWI(I,J)=0.
+            TSI(1:4,I,J)=0.
           END IF
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE
       DO I=2,IM
-        GDATA(I,JM,1)=GDATA(1,JM,1)
-        GDATA(I,JM,3)=GDATA(1,JM,3)
-        GDATA(I,JM,7)=GDATA(1,JM,7)
-        GDATA(I,JM,15)=GDATA(1,JM,15)
-        GDATA(I,JM,16)=GDATA(1,JM,16)
+        SNOWI(I,JM)=SNOWI(1,JM)
+        TSI(1:4,I,JM)=TSI(1:4,1,JM)
         TOCEAN(1,I,JM)=TOCEAN(1,1,JM)
         RSI(I,JM)=RSI(1,JM)
         MSI(I,JM)=MSI(1,JM)
@@ -307,7 +298,7 @@ C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
 
       IF (RSI(I,J)*FOCEAN(I,J).le.0) CYCLE
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-      Z1OMIN=1.+(RHOI*Z1I+GDATA(I,J,1)+MSI(I,J))/RHOW
+      Z1OMIN=1.+(RHOI*Z1I+SNOWI(I,J)+MSI(I,J))/RHOW
       IF (Z1O(I,J).GE.Z1OMIN) GO TO 605
       WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN
   602 FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,2F10.3)
@@ -318,17 +309,17 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       PLICEN=1.-FEARTH(I,J)
       POICE=FOCEAN(I,J)*RSI(I,J)
       POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
-      GDATA(I,J,12)=(GDATA(I,J,12)*PLICE+GDATA(I,J,1)*POICE)/PLICEN
-      GDATA(I,J,13)=(GDATA(I,J,13)*PLICE+
-     *  (GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2)*POICE+
+      SNOWLI(I,J)=(SNOWLI(I,J)*PLICE+SNOWI(I,J)*POICE)/PLICEN
+      TLANDI(1,I,J)=(TLANDI(1,I,J)*PLICE+
+     *  (TSI(1,I,J)*XSI1+TSI(2,I,J)*XSI2)*POICE+
      *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
-      GDATA(I,J,14)=(GDATA(I,J,14)*PLICE+
-     *  (GDATA(I,J,15)*XSI3+GDATA(I,J,16)*XSI4)*POICE+
+      TLANDI(2,I,J)=(TLANDI(2,I,J)*PLICE+
+     *  (TSI(3,I,J)*XSI3+TSI(4,I,J)*XSI4)*POICE+
      *  (LHM+SHW*TOCEAN(1,I,J))*POCEAN/SHI)/PLICEN
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
 C**** MARK THE POINT FOR RESTART PURPOSES
-      GDATA(I,J,1)=-10000.-GDATA(I,J,1)
+      SNOWI(I,J)=-10000.-SNOWI(I,J)
 C**** Transfer PBL-quantities
       ipbl(i,j,1)=0
       ipbl(i,j,2)=0
@@ -454,8 +445,9 @@ C**** Check for NaN/INF in ocean data
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fland,flice,gdata,kocean
+      USE E001M12_COM, only : im,jm,fland,flice,kocean
       USE OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice,iu_ocnml
+      USE SEAICE_COM, only : snowi
       USE FILEMANAGER
       IMPLICIT NONE
 !@var iu_OHT,iu_MLMAX unit numbers for reading in input files
@@ -484,11 +476,11 @@ C**** read in ocean max mix layer depth
       CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
       CLOSE (iu_MLMAX)
 
-C**** IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
+C**** IF SNOWI(I,J)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
 C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
       DO J=1,JM
         DO I=1,IM
-          IF(GDATA(I,J,1).GE.-1.) CYCLE
+          IF(SNOWI(I,J).GE.-1.) CYCLE
           FLICE(I,J)=1-FLAND(I,J)+FLICE(I,J)
           FLAND(I,J)=1.
           WRITE(6,'(2I3,'' OCEAN WAS CHANGED TO LAND ICE'')') I,J
@@ -503,10 +495,10 @@ C**** BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,kocean,focean,gdata
+      USE E001M12_COM, only : im,jm,kocean,focean
       USE OCEAN, only : tocean,ostruc,oclim,tfo,z1O
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,tsi,snowi
       USE SEAICE, only : simelt,ace1i
       USE GEOM, only : imaxj
       IMPLICIT NONE
@@ -541,12 +533,12 @@ C**** (MELTING POINT OF ICE)
             IF (TGW.LE.0.) CYCLE
             ROICE=RSI(I,J)
             MSI2=MSI(I,J)
-            SNOW=GDATA(I,J,1)   ! snow mass
+            SNOW=SNOWI(I,J)   ! snow mass
             MSI1 = SNOW + ACE1I
-            TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
-            TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
-            TG3 = GDATA(I,J,15) ! third layer sea ice temperature
-            TG4 = GDATA(I,J,16) ! fourth layer sea ice temperature
+            TG1 = TSI(1,I,J)  ! first layer sea ice temperature
+            TG2 = TSI(2,I,J)  ! second layer sea ice temperature
+            TG3 = TSI(3,I,J)  ! third layer sea ice temperature
+            TG4 = TSI(4,I,J)  ! fourth layer sea ice temperature
             PWATER = FOCEAN(I,J) ! ocean fraction
             ACE = SNOW + ACE1I + MSI2
             WTRO=Z1O(I,J)*RHOW
@@ -560,19 +552,16 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             IF (ROICE.le.0.) THEN
               RSI(I,J)=0.
               MSI(I,J)=0.
-              GDATA(I,J,1)=0.
-              GDATA(I,J,3)=0.
-              GDATA(I,J,7)=0.
-              GDATA(I,J,15)=0.
-              GDATA(I,J,16)=0.
+              SNOWI(I,J)=0.
+              TSI(1:4,I,J)=0.
             ELSE
               RSI(I,J)=ROICE
               MSI(I,J)=MSI2
-              GDATA(I,J,1)=SNOW
-              GDATA(I,J,3)=TG1
-              GDATA(I,J,7)=TG2
-              GDATA(I,J,15)=TG3
-              GDATA(I,J,16)=TG4
+              SNOWI(I,J)=SNOW
+              TSI(1,I,J)=TG1
+              TSI(2,I,J)=TG2
+              TSI(3,I,J)=TG3
+              TSI(4,I,J)=TG4
             END IF
           END DO
         END DO
@@ -585,10 +574,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 !@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : RHOI
-      USE E001M12_COM, only : IM,JM,GDATA
-      USE OCEAN, only : OA
-      USE SEAICE, only : Z1I,XSI1,XSI2,XSI3,XSI4
+      USE E001M12_COM, only : im,jm
+      USE OCEAN, only : oa
+      USE SEAICE, only : ace1i,xsi1,xsi2,xsi3,xsi4
+      USE SEAICE_COM, only : tsi,snowi
       IMPLICIT NONE
       INTEGER I,J
 C****
@@ -609,9 +598,9 @@ C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
 C****
       DO J=1,JM
          DO I=1,IM
-            OA(I,J,1)=Z1I*RHOI+GDATA(I,J,1)
-            OA(I,J,2)=GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2
-            OA(I,J,3)=GDATA(I,J,15)*XSI3+GDATA(I,J,16)*XSI4
+            OA(I,J,1)=ACE1I+SNOWI(I,J)
+            OA(I,J,2)=TSI(1,I,J)*XSI1+TSI(2,I,J)*XSI2
+            OA(I,J,3)=TSI(3,I,J)*XSI3+TSI(4,I,J)*XSI4
          END DO
       END DO
 
@@ -655,12 +644,12 @@ C****
 !@ver  1.0
 !@calls 
       USE CONSTANT, only : rhow,shw
-      USE E001M12_COM, only : im,jm,focean,kocean,gdata,fland
+      USE E001M12_COM, only : im,jm,focean,kocean,fland
       USE GEOM, only : imaxj,dxyp
       USE CLD01_COM_E001, only : prec,eprec
       USE FLUXES, only : runosi
       USE OCEAN, only : oa,tocean,z1o
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE DAGCOM, only : aj,cj,aij,j_eprcp,ij_f0oc,j_run2,j_dwtr2
       IMPLICIT NONE
@@ -687,7 +676,7 @@ C****
           TGW=TOCEAN(1,I,J)
           WTRO=Z1O(I,J)*RHOW
           RUN0=RUNOSI(I,J)
-          SNOW=GDATA(I,J,1)
+          SNOW=SNOWI(I,J)
           SMSI=MSI(I,J)+ACE1I+SNOW
           RUN4=PRCP
           ERUN4=RUN4*TGW*SHW
@@ -719,11 +708,11 @@ C****
 !@ver  1.0
 !@calls 
       USE CONSTANT, only : twopi,rhow,shw,edpery
-      USE E001M12_COM, only : im,jm,focean,kocean,gdata,fland,jday,dtsrc
+      USE E001M12_COM, only : im,jm,focean,kocean,fland,jday,dtsrc
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi, erunosi, e0,e1,evapor, dmsi,dhsi
       USE OCEAN, only : oa,tocean,z1o,ota,otb,otc,tfo,osourc
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi
       USE SEAICE, only : ace1i
       USE DAGCOM, only : aj,cj,aij,areg,jreg,j_eprcp,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_omlt,j_erun2,j_imelt
@@ -762,7 +751,7 @@ C****
         TGW  =TOCEAN(1,I,J)
         EVAP =EVAPOR(I,J,1)
         EVAPI=EVAPOR(I,J,2)     ! evaporation/dew at the ice surface (kg/m^2)
-        SMSI =MSI(I,J)+ACE1I+GDATA(I,J,1)
+        SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
         RUN0=RUNOSI(I,J)        ! includes ACE2M term
         F2DT=ERUNOSI(I,J)

@@ -452,7 +452,7 @@ C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE CONSTANT, only : grav,kapa,sday
-      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,gdata,fearth,fland
+      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake,flice,hlake,zatmo,sig,dsig,sige,dsigo
      *     ,bydsig,xlabel,jc,rc,clabel,namd6,ijd6,niprnt,nmonav
      *     ,skipse,keyct,mfiltr,irand,psf,ptop
@@ -464,8 +464,7 @@ C****
      *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b
-      USE GHYCOM
-     &  , only : ghdata
+      USE GHYCOM, only : ghdata,snowe,snoage,tearth,wearth,aiearth
       USE RANDOM
       USE RADNCB, only : rqt,s0x,co2,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav,
@@ -476,8 +475,9 @@ C****
      &  ,titreg,namreg,hr_in_day,iwrite,jwrite,itwrite,qcheck
       USE DYNAMICS, only : filter,calc_ampk
       USE OCEAN, only : tocean,oa
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : rsi,snowi,tsi
       USE LAKES_COM, only : t50
+      USE LANDICE_COM, only : snowli,tlandi
       USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
@@ -611,8 +611,15 @@ C**** Set flag to initialise pbl and snow variables
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
 C**** GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
         call getunit("GIC",iu_GIC,.true.,.true.)
-        READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
-     *       ,JM),RSI
+c        READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
+c     *       ,JM),RSI
+        READ(iu_GIC,ERR=830) SNOWI,SNOWE,
+     *       ((TSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
+     *       ((TSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
+     *       (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
+     *       (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
+     *       (((TSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
+     *       GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
         CLOSE (iu_GIC)
       END IF
 C****
@@ -947,7 +954,7 @@ C****
   810 WRITE (6,'(A,2F11.2)')
      *  '0EOF ON AIC.  ISTART=', ISTART
       STOP 'ERROR: End-of-file on AIC'
-  830 WRITE(6,*) 'READ ERROR FOR GIC: GDATA,GHDATA'
+  830 WRITE(6,*) 'READ ERROR FOR GIC'
       STOP 'READ ERROR FOR GIC'
   850 WRITE (6,'(A)')
      *  '0ERRORS ON BOTH RESTART DATA SETS. TERMINATE THIS JOB'
@@ -967,7 +974,8 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : orbit
-      USE E001M12_COM
+      USE E001M12_COM, only : im,jm,p,itime,itimei,ptop,psf,ls1,jday
+     *     ,iyear0,nday,jdpery,jyear,jmon,jdendofm,jdate,amon,amonth
       USE GEOM, only : areag,dxyp
       USE DYNAMICS, only : calc_ampk
       USE RADNCB, only : RSDIST,COSD,SIND
@@ -1043,7 +1051,6 @@ C**** Check all prog. arrays for Non-numbers
          CALL CHECK3(Q,IM,JM,LM,SUBR,'q ')
          CALL CHECK3(P,IM,JM,1,SUBR,'p ')
          CALL CHECK3(WM,IM,JM,LM,SUBR,'wm')
-         CALL CHECK3(GDATA,IM,JM,16,SUBR,'gd')
 C**** Check PBL arrays
          CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
@@ -1122,7 +1129,7 @@ C**** Calls to individual i/o routines
       call io_earth  (kunit,iaction,ioerr)
       call io_soils  (kunit,iaction,ioerr)
       call io_snow   (kunit,iaction,ioerr)
-c      call io_landice(kunit,iaction,ioerr)
+      call io_landice(kunit,iaction,ioerr)
       call io_bldat  (kunit,iaction,ioerr)
       call io_pbl    (kunit,iaction,ioerr)
       call io_clouds (kunit,iaction,ioerr)

@@ -677,10 +677,8 @@ c      REAL*8, DIMENSION(LMI,IM,JM) :: HSI
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-c         WRITE (kunit,err=10) MODULE_HEADER,RSI,HSI,SNOW,MSI
          WRITE (kunit,err=10) MODULE_HEADER,RSI,TSI,SNOWI,MSI
       CASE (IOREAD:)            ! input from restart file
-c         READ (kunit,err=10) HEADER,RSI,HSI,SNOW,MSI
          READ (kunit,err=10) HEADER,RSI,TSI,SNOWI,MSI
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
@@ -698,7 +696,7 @@ c         READ (kunit,err=10) HEADER,RSI,HSI,SNOW,MSI
 !@auth Original Development Team
 !@ver  1.0
       USE E001M12_COM
-      USE SEAICE_COM, only : RSI,MSI
+      USE SEAICE_COM, only : rsi,msi,tsi,snowi
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -707,5 +705,7 @@ c         READ (kunit,err=10) HEADER,RSI,HSI,SNOW,MSI
 C**** Check for NaN/INF in ice data
       CALL CHECK3(RSI,IM,JM,1,SUBR,'rsi')
       CALL CHECK3(MSI,IM,JM,1,SUBR,'msi')
+      CALL CHECK3(TSI,4,IM,JM,SUBR,'tsi')
+      CALL CHECK3(SNOWI,IM,JM,1,SUBR,'sni')
 
       END SUBROUTINE CHECKI

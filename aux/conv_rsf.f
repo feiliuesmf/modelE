@@ -5,22 +5,23 @@ C**** f90 -o conv_rsf conv_rsf.o *.o -O2 -64 -mips4 -static \
 C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
-      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,gdata,jc,rc,clabel
+      USE E001M12_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
      *     ,iowrite_mon 
       USE SOMTQ_COM
-      USE GHYCOM, only : ghdata
+      USE GHYCOM, only : ghdata,snowe,tearth,wearth,aiearth,snoage
       USE RADNCB, only : rqt,lm_req
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
      *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar
       USE OCEAN, only : tocean,oa,z1o
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,tsi,snowi
+      USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : t50
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60
       INTEGER IARGC,iu_AIC,I,J,L,N,ioerr
-      REAL*8 TAUX   ! ? temporary for compatibility only
+      REAL*8 TAUX,X   ! ? temporary for compatibility only
       INTEGER ItimeX
 
       IF (IARGC().lt.2) THEN
@@ -39,7 +40,12 @@ C**** must be compiled after the model
      *     U,V,T,P,Q,
      2     ((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI,MSI,
      *     (((TOCEAN(L,I,J),I=1,IM),J=1,JM),L=2,3),
-     *     GDATA,GHDATA,
+     *     SNOWI,SNOWE,
+     *     ((TSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
+     *     ((TSI(2,I,J),I=1,IM),J=1,JM),((X,I=1,IM),J=1,JM),
+     *     (((SNOAGE(L,I,J),I=1,IM),J=1,JM),L=1,3),SNOWLI,
+     *     (((TLANDI(L,I,J),I=1,IM),J=1,JM),L=1,2),
+     *     (((TSI(L,I,J),I=1,IM),J=1,JM),L=3,4),GHDATA,
      *     wsavg,tsavg,qsavg,dclev,Z1O,usavg,vsavg,tauavg,ustar,
      *     uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
      A     (((TTOLD(L,I,J),I=1,IM),J=1,JM),L=1,LM),

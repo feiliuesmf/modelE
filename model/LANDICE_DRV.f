@@ -8,11 +8,11 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECLI
-      USE E001M12_COM, only : im,jm,flice,gdata  ! temp
+      USE E001M12_COM, only : im,jm,flice
       USE GEOM, only : imaxj,dxyp
       USE CLD01_COM_E001, only : prec,tprec,eprec
       USE FLUXES, only : runoli
-c      USE LANDICE_COM, only : snowli,tlandi  ! soon
+      USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : precli
       USE DAGCOM, only : bj,areg,aij,jreg,
      *     ij_f0li,ij_f1li,ij_erun2,ij_runli,j_eprcp,j_difs
@@ -36,18 +36,18 @@ c      USE LANDICE_COM, only : snowli,tlandi  ! soon
         TPRCP=TPREC(I,J)
         EPRCP=EPREC(1,I,J)      ! assuming liquid water
         ENRGP=EPREC(2,I,J)      ! including latent heat
-        SNOW=GDATA(I,J,12)
-        TG1=GDATA(I,J,13)
-        TG2=GDATA(I,J,14)
+        SNOW=SNOWLI(I,J)
+        TG1=TLANDI(1,I,J)
+        TG2=TLANDI(2,I,J)
         BJ(J,J_EPRCP)=BJ(J,J_EPRCP)+ENRGP*PLICE
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
         
         CALL PRECLI(SNOW,TG1,TG2,PRCP,EPRCP,TPRCP,EDIFS,DIFS,ERUN2,RUN0)
         
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
-        GDATA(I,J,12)=SNOW
-        GDATA(I,J,13)=TG1
-        GDATA(I,J,14)=TG2
+        SNOWLI(I,J)=SNOW
+        TLANDI(1,I,J)=TG1
+        TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
 C**** ACCUMULATE DIAGNOSTICS
         BJ(J,J_DIFS) =BJ(J,J_DIFS) +DIFS *PLICE
@@ -71,10 +71,10 @@ C       BJ(J,J_ERUN1)=BJ(J,J_ERUN1)+ERUN0*PLICE ! land ice (Tg=0)
 !@auth Original Development team
 !@ver  1.0
 !@calls LNDICE
-      USE E001M12_COM, only : im,jm,flice,gdata  ! temp
+      USE E001M12_COM, only : im,jm,flice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli
-c      USE LANDICE_COM, only : snowli,tlandi  ! soon
+      USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : lndice,ace1li,ace2li
       USE DAGCOM, only : bj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
      *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_difs,j_wtr1
@@ -95,9 +95,9 @@ c      USE LANDICE_COM, only : snowli,tlandi  ! soon
       RUNOLI(I,J)=0.
       IF (PLICE.gt.0) THEN
 
-        SNOW=GDATA(I,J,12)
-        TG1=GDATA(I,J,13)
-        TG2=GDATA(I,J,14)
+        SNOW=SNOWLI(I,J)
+        TG1=TLANDI(1,I,J)
+        TG2=TLANDI(2,I,J)
         F0DT=E0(I,J,3)
         F1DT=E1(I,J,3)
         EVAP=EVAPOR(I,J,3)
@@ -107,9 +107,9 @@ c      USE LANDICE_COM, only : snowli,tlandi  ! soon
         CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0)
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
-        GDATA(I,J,12)=SNOW
-        GDATA(I,J,13)=TG1
-        GDATA(I,J,14)=TG2
+        SNOWLI(I,J)=SNOW
+        TLANDI(1,I,J)=TG1
+        TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
 C**** ACCUMULATE DIAGNOSTICS
         BJ(J,J_TG1)  =BJ(J,J_TG1)  +TG1  *PLICE

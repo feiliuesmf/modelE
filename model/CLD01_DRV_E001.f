@@ -6,7 +6,7 @@
 
       USE CONSTANT, only : bygrav,lhm
       USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig,DTsrc
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001
@@ -25,6 +25,7 @@
      *     ,ij_neth,j_eprcp,j_prcpmc,j_prcpss
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
+      USE GHYCOM, only : snoage
 
       IMPLICIT NONE
 
@@ -34,7 +35,7 @@
       REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR
+      INTEGER IMAX,JR,KR,ITYPE
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP
@@ -208,11 +209,11 @@ C**** PRECIPITATION DIAGNOSTICS
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
 
-      IF(TPREC(I,J).GE.0.) PRCP=0.
-C**** MODIFY SNOW AGES AFTER SNOW FALL
-      GDATA(I,J,9)=GDATA(I,J,9)*EXP(-PRCP)
-      GDATA(I,J,10)=GDATA(I,J,10)*EXP(-PRCP)
-      GDATA(I,J,11)=GDATA(I,J,11)*EXP(-PRCP)
+      IF(TPREC(I,J).LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
+        DO ITYPE=1,3
+          SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
+        END DO
+      END IF
 
 C**** WRITE TO GLOBAL ARRAYS
       DO L=1,LM

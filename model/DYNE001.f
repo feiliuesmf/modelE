@@ -6,8 +6,7 @@
 !@cont ADVECM,ADVECV,AFLUX,PGF,SHAP1D,AVRX,FILTER,FLTRUV,CALC_AMPK
 
       USE E001M12_COM, only : im,jm,lm,imh,sig,sige,dsig,psf,ptop,ls1,u
-     *     ,v,t,q,p,wm,mfiltr,zatmo,fim,mrch,fland,flice
-     *     ,gdata,modd5k,psfmpt,bydsig,byim
+     *     ,v,t,q,p,wm,mfiltr,zatmo,fim,mrch,modd5k,psfmpt,bydsig,byim
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega,
      *     bbyg,gbyrb,bykapa,bykapap1,bykapap2
       USE SOMTQ_COM, only : tmom,qmom

@@ -20,7 +20,7 @@ C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
       USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
-     *     ,idacc,dsig,jday,gdata,ndasf,jeq,fland,flice
+     *     ,idacc,dsig,jday,ndasf,jeq,fland,flice
      *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,sini,cosi
@@ -34,8 +34,9 @@ C****
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,z1e,z2li,hc1li
+      USE LANDICE_COM, only : tlandi,snowli
       USE OCEAN, only : tocean,oa,tfo
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
       IMPLICIT NONE
@@ -118,11 +119,11 @@ C****
 C**** ZERO OUT ENERGY AND EVAPORATION FOR GROUND AND INITIALIZE TGRND
       DO J=1,JM
         DO I=1,IM
-          TGRND(I,J,2)=GDATA(I,J,3)
-          TGRND(I,J,3)=GDATA(I,J,13)
+          TGRND(I,J,2)=TSI   (1,I,J)
+          TGRND(I,J,3)=TLANDI(1,I,J)
 C         TGRND(I,J,4)=GDATA(I,J,4)
-          TGRN2(I,J,2) = GDATA(I,J,7)
-          TGRN2(I,J,3) = GDATA(I,J,14)
+          TGRN2(I,J,2)=TSI   (2,I,J)
+          TGRN2(I,J,3)=TLANDI(2,I,J)
         END DO
       END DO
 C*
@@ -272,7 +273,7 @@ C****
       ITYPE=2
       PTYPE=POICE
       NGRNDZ=1    ! NIgrnd>1 currently not an option
-      SNOW=GDATA(I,J,1)
+      SNOW=SNOWI(I,J)
       TG1=TGRND(I,J,2)
       TG2=TGRN2(I,J,2)
       ACE2=MSI(I,J)
@@ -304,9 +305,9 @@ C**** LAND ICE
 C****
       ITYPE=3
       PTYPE=PLICE
-      SNOW=GDATA(I,J,12)
+      SNOW=SNOWLI(I,J)
       TG1=TGRND(I,J,3)
-      TG2=GDATA(I,J,14)
+      TG2=TLANDI(2,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
       CDTERM=TG2

@@ -277,7 +277,9 @@ c -------------------------------------------------------------
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek
       USE OCEAN, only : tocean
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : rsi,tsi
+      USE GHYCOM, only : tearth
+      USE LANDICE_COM, only : tlandi
       USE FILEMANAGER
 
       IMPLICIT NONE
@@ -321,11 +323,11 @@ C things to be done regardless of inipbl
           pocean=pwater-poice
           tgvdat(i,j,1)=tocean(1,i,j) +273.16
           if (pocean.le.0.) tgvdat(i,j,1)=0.
-          tgvdat(i,j,2)=gdata(i,j,3) +273.16
+          tgvdat(i,j,2)=tsi(1,i,j)    +273.16
           if (poice.le.0.)  tgvdat(i,j,2)=0.
-          tgvdat(i,j,3)=gdata(i,j,13)+273.16
+          tgvdat(i,j,3)=tlandi(1,i,j) +273.16
           if (plice.le.0.)  tgvdat(i,j,3)=0.
-          tgvdat(i,j,4)=gdata(i,j,4) +273.16
+          tgvdat(i,j,4)=tearth(i,j)   +273.16
           if (psoil.le.0.)  tgvdat(i,j,4)=0.
         end do
       end do

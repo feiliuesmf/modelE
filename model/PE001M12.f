@@ -341,7 +341,10 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE OCEAN, only : tocean
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : rsi,snowi,tsi
+      USE GHYCOM, only : snowe_com=>snowe,snoage,tearth,
+     *     wearth_com=>wearth,aiearth
+      USE LANDICE_COM, only : snowli_com=>snowli,tlandi
       USE FILEMANAGER
 
       IMPLICIT NONE
@@ -651,18 +654,18 @@ C****
         TL(LM+K)=RQT(K,I,J)
       END DO
       COSZ=COSZA(I,J)
-      TGO=TOCEAN(1,I,J)+TF
-      TGOI=GDATA(I,J,3)+TF
-      TGLI=GDATA(I,J,13)+TF
-      TGE=GDATA(I,J,4)+TF
+      TGO =TOCEAN(1,I,J)+TF
+      TGOI=TSI   (1,I,J)+TF
+      TGLI=TLANDI(1,I,J)+TF
+      TGE =TEARTH(  I,J)+TF
       TS=TSAVG(I,J)
-      SNOWOI=GDATA(I,J,1)
-      SNOWLI=GDATA(I,J,12)
-      SNOWE=GDATA(I,J,2)
-      AGESN(1)=GDATA(I,J,11)    ! land
-      AGESN(2)=GDATA(I,J,9)     ! ocean ice
-      AGESN(3)=GDATA(I,J,10)    ! land ice
-      WEARTH=(GDATA(I,J,5)+GDATA(I,J,6))/(WFCS(I,J)+1.D-20)
+      SNOWOI=SNOWI(I,J)
+      SNOWLI=SNOWLI_COM(I,J)
+      SNOWE=SNOWE_COM(I,J)
+      AGESN(1)=SNOAGE(3,I,J)    ! land    ! why are these numbers so confusing?
+      AGESN(2)=SNOAGE(1,I,J)    ! ocean ice
+      AGESN(3)=SNOAGE(2,I,J)    ! land ice
+      WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       DO K=1,11
         PVT(K)=VDATA(I,J,K)
       END DO
@@ -1012,8 +1015,9 @@ C**** THIS SUBROUTINE PUTS A DRAG ON THE WINDS ON THE TOP LAYER OF
 C**** THE ATMOSPHERE
 C****
       USE CONSTANT, only : grav,rgas
-      USE E001M12_COM
-      USE GEOM
+      USE E001M12_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
+     *     ,bydsig,itime
+c      USE GEOM
       USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag
       USE DYNAMICS, only : pk
       IMPLICIT NONE

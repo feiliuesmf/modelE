@@ -9,12 +9,13 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shw,shi,edpery
-      USE E001M12_COM, only : im,jm,lm,t,p,q,gdata,DTsrc,NIsurf,dsig
+      USE E001M12_COM, only : im,jm,lm,t,p,q,DTsrc,NIsurf,dsig
      *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
-     &    NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ,HSN_IJ,FR_SNOW_IJ
+     &     nsn_ij,isn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij,
+     *     snowe,tearth,wearth,aiearth
       USE SLE001
      &    , only : reth,retp,advnc,
      &    NGM,
@@ -80,17 +81,14 @@ C**** Interface to PBL
 C****
 C**** FEARTH    SOIL COVERED LAND FRACTION (1)
 C****
-C**** GDATA  1  OCEAN ICE SNOW AMOUNT (KG/M**2)
-C****        2  EARTH SNOW AMOUNT (KG/M**2)
-C****        3  OCEAN ICE TEMPERATURE OF FIRST LAYER (C)
+C**** SNOWI     OCEAN ICE SNOW AMOUNT (KG/M**2)
+C**** SNOWE     EARTH SNOW AMOUNT (KG/M**2)
+C**** TSI(1:2)  OCEAN ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
 C****        4  EARTH TEMPERATURE OF FIRST LAYER (C)
 C****        5  EARTH WATER OF FIRST LAYER (KG/M**2)
 C****        6  EARTH ICE OF FIRST LAYER (KG/M**2)
-C****        7  OCEAN ICE TEMPERATURE OF SECOND LAYER (C)
-C****        8  currently unused
-C****       12  LAND ICE SNOW AMOUNT (KG/M**2)
-C****       13  LAND ICE TEMPERATURE OF FIRST LAYER (C)
-C****       14  LAND ICE TEMPERATURE OF SECOND LAYER (C)
+C**** SNOWLI      LAND ICE SNOW AMOUNT (KG/M**2)
+C**** TLANDI(1:2) LAND ICE TEMPERATURE OF FIRST/SECOND LAYER (C)
 C****
 C**** GHDATA
 C****      1-6  WATER OF BARE SOIL LAYER 1-6 (M)
@@ -343,13 +341,13 @@ ccc copy snow variables back to storage
       AIJG(I,J,26)=AIJG(I,J,26)+BETAV/NIsurf
       AIJG(I,J,27)=AIJG(I,J,27)+BETAT/NIsurf
           TRHDT=TRHEAT*DTSURF-ATRG
-C     FOR RADIATION FIND COMPOSITE VALUES  GDATA 2 4 5 6
+C     FOR RADIATION FIND COMPOSITE VALUES OVER EARTH
 C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
-      GDATA(I,J,2)=1000.*(SNOWD(1)*FB+SNOWD(2)*FV)
-      GDATA(I,J,4)=TG1
-      GDATA(I,J,5)=1000.*( FB*GW(1,1)*(1.-FICE(1,1)) +
+      SNOWE(I,J)=1000.*(SNOWD(1)*FB+SNOWD(2)*FV)
+      TEARTH(I,J)=TG1
+      WEARTH(I,J)=1000.*( FB*GW(1,1)*(1.-FICE(1,1)) +
      +  FV*(GW(1,2)*(1.-FICE(1,2))+GW(0,2)*(1.-FICE(0,2))) )
-      GDATA(I,J,6)=1000.*(FB*(GW(1,1)*FICE(1,1)-SNOWD(1)) +
+      AIEARTH(I,J)=1000.*(FB*(GW(1,1)*FICE(1,1)-SNOWD(1)) +
      +  FV*(GW(1,2)*FICE(1,2)+GW(0,2)*FICE(0,2)-SNOWD(2)) )
             CALL RETP2 (TG2AV,WTR2AV,ACE2AV)
             GDEEP(I,J,1)=TG2AV
@@ -521,7 +519,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopi,rhow,edpery,sha,shw_const=>shw,
      *     shi_const=>shi,lhe,lhm
-      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,Itime,Nday,jeq
+      USE E001M12_COM, only : im,jm,fearth,vdata,Itime,Nday,jeq
       USE GHYCOM
       USE SLE001, sinday=>sint,cosday=>cost
       USE FILEMANAGER
@@ -713,13 +711,16 @@ ccc??? remove next 5 lines? -check the old version
 C****     COMPUTE SOIL HEAT CAPACITY AND GROUND WATER SATURATION GWS
           CALL GHINIJ (I,J,WFC1)
 C****     FILL IN SOILS COMMON BLOCKS
-          SNOWDP=GDATA(I,J,2)/RHOW
-          WTR1=GDATA(I,J,5)
-          ACE1=GDATA(I,J,6)
-          TG1 =GDATA(I,J,4)
-          WTR2=GDATA(I,J,9)
-          ACE2=GDATA(I,J,10)
-          TG2 =GDATA(I,J,8)
+          SNOWDP=SNOWE(I,J)/RHOW
+          WTR1=WEARTH(I,J)
+          ACE1=AIEARTH(I,J)
+          TG1 =TEARTH(I,J)
+          WTR2=WTR1
+          ACE2=ACE1
+          TG2 =TG1
+c          WTR2=GDATA(I,J,9)   ! this cannot be right
+c          ACE2=GDATA(I,J,10)
+c          TG2 =GDATA(I,J,8)
           CALL GHINHT (SNOWDP, TG1,TG2, WTR1,WTR2, ACE1,ACE2)
 
 C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
@@ -1039,12 +1040,12 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
       END SUBROUTINE RETP2
 
       SUBROUTINE CHECKE(SUBR)
-!@sum  CHECKE Checks whether gdata are reasonable over earth
+!@sum  CHECKE Checks whether arrays are reasonable over earth
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth,gdata,ITime,wfcs
+      USE E001M12_COM, only : im,jm,fearth,ITime,wfcs
       USE GEOM, only : imaxj
-      USE GHYCOM, only : ghdata
+      USE GHYCOM, only : ghdata,tearth,wearth,aiearth,snowe
       IMPLICIT NONE
 
       REAL*8 X,TGL,WTRL,ACEL
@@ -1061,14 +1062,14 @@ C**** Check for reasonable temperatures over earth
         IMAX=IMAXJ(J)
         DO I=1,IMAX
           IF (FEARTH(I,J).GT.0.) THEN
-            TGL=GDATA(I,J,4)
-            WTRL=GDATA(I,J,5)
-            ACEL=GDATA(I,J,6)
+            TGL=TEARTH(I,J)
+            WTRL=WEARTH(I,J)
+            ACEL=AIEARTH(I,J)
             IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,ITime
-     *           ,FEARTH(I,J),'TG1 ',(GDATA(I,J,K),K=2,6)
+     *           ,FEARTH(I,J),'TG1 ',SNOWE(I,J),TGL,WTRL,ACEL
             IF (WTRL.LT.0..OR.ACEL.LT.0..OR.(WTRL+ACEL).GT.X*WFCS(I
      *           ,J)) WRITE(6,901) SUBR,I,J,ITime,FEARTH(I,J),'WTR '
-     *           ,(GDATA(I,J,K),K=2,6),WFCS(I,J)
+     *           ,SNOWE(I,J),TGL,WTRL,ACEL,WFCS(I,J)
           END IF
         END DO
       END DO
@@ -1084,15 +1085,16 @@ C**** Check for reasonable temperatures over earth
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,twopi,edpery
-      USE E001M12_COM, only : im,jm,gdata,NDAY,NIsurf,jday,fearth,wfcs
+      USE E001M12_COM, only : im,jm,NDAY,NIsurf,jday,fearth,wfcs
       USE GEOM, only : imaxj
       USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx
       USE SLE001
      &  , only : cosday=>cost, sinday=>sint
+      USE GHYCOM, only : snoage
       IMPLICIT NONE
       REAL*8 TSAVG,WFC1
-      INTEGER I,J,IMAX
+      INTEGER I,J,IMAX,ITYPE
       INTEGER, INTENT(IN) :: IEND  !@var IEND 1 if at end of day
 C****
 C**** FIND LEAF-AREA INDEX & WATER FIELD CAPACITY FOR GROUND LAYER 1
@@ -1116,9 +1118,9 @@ C****
         DO J=1,JM
           IMAX=IMAXJ(J)
           DO I=1,IMAX
-            GDATA(I,J,9)=1.+.98*GDATA(I,J,9)
-            GDATA(I,J,10)=1.+.98*GDATA(I,J,10)
-            GDATA(I,J,11)=1.+.98*GDATA(I,J,11)
+            DO ITYPE=1,3
+              SNOAGE(ITYPE,I,J)=1.+.98*SNOAGE(ITYPE,I,J)
+            END DO
             TSAVG=TDIURN(I,J,5)/(NDAY*NIsurf)
             IF(32.+1.8*TSAVG.LT.65.)
      *           AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)+(33.-1.8*TSAVG)
@@ -1168,9 +1170,9 @@ C****
 !@sum  GROUND_E driver for applying surface fluxes to land fraction
 !@auth Original Development team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth,gdata  ! temp
+      USE E001M12_COM, only : im,jm,fearth
       USE GEOM, only : imaxj,dxyp
-      USE GHYCOM, only : ghdata
+      USE GHYCOM, only : ghdata, snowe, tearth,wearth,aiearth
       USE DAGCOM, only : bj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_tg2,j_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_f2dt,j_f1dt,j_evap,aijg
@@ -1191,10 +1193,10 @@ C****
       JR=JREG(I,J)
       IF (PEARTH.gt.0) THEN
 
-        SNOW=GDATA(I,J,2)
-        TG1=GDATA(I,J,4)
-        WTR1=GDATA(I,J,5)
-        ACE1=GDATA(I,J,6)
+        SNOW=SNOWE(I,J)
+        TG1 = TEARTH(I,J)
+        WTR1= WEARTH(I,J)
+        ACE1=AIEARTH(I,J)
         TG2=GDEEP(I,J,1)
         WTR2=GDEEP(I,J,2)
         ACE2=GDEEP(I,J,3)

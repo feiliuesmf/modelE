@@ -8,11 +8,11 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls PRECSI
-      USE E001M12_COM, only : im,jm,fland,kocean,gdata !temp
+      USE E001M12_COM, only : im,jm,fland,kocean
       USE GEOM, only : imaxj,dxyp
       USE CLD01_COM_E001, only : prec,tprec,eprec
       USE FLUXES, only : runosi
-      USE SEAICE_COM, only : rsi,msi   !,hsi soon
+      USE SEAICE_COM, only : rsi,msi,snowi,tsi   !,hsi soon
       USE SEAICE, only : prec_si, ace1i
       USE DAGCOM, only : cj,areg,aij,jreg,
      *     ij_f0oi,ij_erun2,j_eprcp,j_difs
@@ -36,15 +36,15 @@
 
         TPRCP=TPREC(I,J)
         ENRGP=EPREC(2,I,J)      ! including latent heat
-        SNOW=GDATA(I,J,1)
+        SNOW=SNOWI(I,J)
         MSI2=MSI(I,J)
         CJ(J,J_EPRCP)=CJ(J,J_EPRCP)+ENRGP*POICE
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 
-        TG1 = GDATA(I,J,3)      ! first layer sea ice temperature
-        TG2 = GDATA(I,J,7)      ! second layer sea ice temperature
-        TG3 = GDATA(I,J,15)     ! third layer sea ice temperature
-        TG4 = GDATA(I,J,16)     ! fourth layer sea ice temperature
+        TG1 = TSI(1,I,J)      ! first layer sea ice temperature
+        TG2 = TSI(2,I,J)      ! second layer sea ice temperature
+        TG3 = TSI(3,I,J)      ! third layer sea ice temperature
+        TG4 = TSI(4,I,J)      ! fourth layer sea ice temperature
         QFIXR = .TRUE.
         IF (KOCEAN.eq.1) QFIXR=.FALSE.
 c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
@@ -54,15 +54,15 @@ C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
         CALL PREC_SI(SNOW,MSI2,TG1,TG2,TG3,TG4,PRCP,ENRGP
      *       ,RUN0,DIFS,EDIFS,ERUN2,QFIXR)
         
-        IF (.not. QFIXR) THEN
-          MSI(I,J)=MSI2
-          GDATA(I,J,15)=TG3
-          GDATA(I,J,16)=TG4
-        END IF
-        GDATA(I,J,1)=SNOW
-        GDATA(I,J,3)=TG1
-        GDATA(I,J,7)=TG2
+        SNOWI(I,J)=SNOW
         RUNOSI(I,J) =RUN0
+        TSI(1,I,J)=TG1
+        TSI(2,I,J)=TG2
+        IF (.not. QFIXR) THEN
+          TSI(3,I,J)=TG3
+          TSI(4,I,J)=TG4
+          MSI(I,J)=MSI2
+        END IF
         
 C**** ACCUMULATE DIAGNOSTICS
         IF (QFIXR) THEN
@@ -87,11 +87,11 @@ C****
 !@ver  1.0
 !@calls SEA_ICE
       USE CONSTANT, only : lhm,byshi
-      USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,gdata,focean
+      USE E001M12_COM, only : im,jm,dtsrc,fland,kocean,focean
      *     ,flake
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : sea_ice,ace1i,xsi1,xsi2,xsi3,xsi4
       USE OCEAN, only : tocean
       USE LAKES_COM, only : tlake
@@ -121,12 +121,12 @@ C****
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layers (J/m^2)
         EVAP=EVAPOR(I,J,2)  ! evaporation/dew at the ice surface (kg/m^2)
-        SNOW= GDATA(I,J,1)  ! snow mass (kg/m^2)
+        SNOW= SNOWI(I,J)  ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
-        TG1 = GDATA(I,J,3)  ! first layer sea ice temperature
-        TG2 = GDATA(I,J,7)  ! second layer sea ice temperature
-        TG3 = GDATA(I,J,15) ! third layer sea ice temperature
-        TG4 = GDATA(I,J,16) ! fourth layer sea ice temperature
+        TG1 = TSI(1,I,J)  ! first layer sea ice temperature
+        TG2 = TSI(2,I,J)  ! second layer sea ice temperature
+        TG3 = TSI(3,I,J)  ! third layer sea ice temperature
+        TG4 = TSI(4,I,J)  ! fourth layer sea ice temperature
         TGW = TOCEAN(1,I,J) ! ocean temperature
 c        TGW = TLAKE(I,J) ! lake temperature
 
@@ -144,11 +144,11 @@ c       IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
      *       ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
         
 C**** RESAVE PROGNOSTIC QUANTITIES
-        GDATA(I,J,1) =SNOW
-        GDATA(I,J,3) =HSI1  !TG1
-        GDATA(I,J,7) =HSI2  !TG2
-        GDATA(I,J,15)=HSI3  !TG3
-        GDATA(I,J,16)=HSI4  !TG4
+        SNOWI(I,J) =SNOW
+        TSI(1,I,J) =HSI1  !TG1   ! this is a temporary reassignment for 
+        TSI(2,I,J) =HSI2  !TG2   ! bytewise compatible-ness in GROUND routines
+        TSI(3,I,J) =HSI3  !TG3
+        TSI(4,I,J) =HSI4  !TG4
         IF (.not. QFIXR) THEN
           MSI(I,J) = MSI2
         END IF
@@ -187,10 +187,10 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls SEA_ICE
-      USE E001M12_COM, only : im,jm,focean,flake,kocean,gdata
+      USE E001M12_COM, only : im,jm,focean,flake,kocean
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi
-      USE SEAICE_COM, only : rsi,msi
+      USE SEAICE_COM, only : rsi,msi,snowi,tsi
       USE SEAICE, only : ace1i,addice
       USE DAGCOM, only : cj,areg,aij,jreg,j_difs,j_tg1,j_tg2,j_rsi
      *     ,j_ace1,j_ace2,j_snow,j_edifs,ij_tg1,j_rsi
@@ -215,13 +215,13 @@ c      USE LAKES, only : tfl, fleadlk
       JR=JREG(I,J)
       IF (PWATER.gt.0) THEN
         
-        SNOW= GDATA(I,J,1)      ! snow mass (kg/m^2)
+        SNOW= SNOWI(I,J)      ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
-c        update HSI...
-        HSI1 = GDATA(I,J,3)      ! first layer sea ice temperature
-        HSI2 = GDATA(I,J,7)      ! second layer sea ice temperature
-        HSI3 = GDATA(I,J,15)     ! third layer sea ice temperature
-        HSI4 = GDATA(I,J,16)     ! fourth layer sea ice temperature
+c        update HSI... (temporary assignment)
+        HSI1 = TSI(1,I,J)      ! first layer sea ice temperature
+        HSI2 = TSI(2,I,J)      ! second layer sea ice temperature
+        HSI3 = TSI(3,I,J)      ! third layer sea ice temperature
+        HSI4 = TSI(4,I,J)      ! fourth layer sea ice temperature
 
         ACEFO=DMSI(1,I,J)
         ACE2F=DMSI(2,I,J)
@@ -238,11 +238,11 @@ c        update HSI...
      *       ,FLEADOC,QFIXR,QCMPR)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
-        GDATA(I,J,1) =SNOW
-        GDATA(I,J,3) =TG1
-        GDATA(I,J,7) =TG2
-        GDATA(I,J,15)=TG3
-        GDATA(I,J,16)=TG4
+        SNOWI(I,J) =SNOW
+        TSI(1,I,J) =TG1
+        TSI(2,I,J) =TG2
+        TSI(3,I,J) =TG3
+        TSI(4,I,J) =TG4
         IF (.not. QFIXR) THEN
           RSI(I,J)=ROICE
           MSI(I,J)=MSI2

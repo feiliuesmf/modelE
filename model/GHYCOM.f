@@ -38,6 +38,7 @@ ccc ( ISN can be eliminated later, since FR_SNOW contains similar info )
       REAL*8, DIMENSION(NLSN,2,IM,JM) :: HSN_IJ
       REAL*8, DIMENSION(2,IM,JM)      :: FR_SNOW_IJ
 C**** replacements for GDATA
+      REAL*8, DIMENSION(IM,JM) :: SNOWE
       REAL*8, DIMENSION(IM,JM) :: TEARTH
       REAL*8, DIMENSION(IM,JM) :: WEARTH
       REAL*8, DIMENSION(IM,JM) :: AIEARTH
@@ -49,7 +50,7 @@ C**** replacements for GDATA
 !@sum  io_earth reads and writes ground data to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,gdata
+      USE E001M12_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 
@@ -62,11 +63,10 @@ C**** replacements for GDATA
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
-c       WRITE (kunit,err=10) MODULE_HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
-         WRITE (kunit,err=10) MODULE_HEADER,GDATA
+        WRITE (kunit,err=10) MODULE_HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
+     *       ,SNOAGE
       CASE (IOREAD:)            ! input from restart file
-c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
-        READ (kunit,err=10) HEADER,GDATA
+        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH,SNOAGE
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
@@ -82,7 +82,7 @@ c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
 !@sum  io_soils reads and writes soil arrays to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,gdata
+      USE E001M12_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 
@@ -114,7 +114,7 @@ c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
 !@sum  io_snow reads and writes snow model arrays to file 
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,gdata
+      USE E001M12_COM, only : ioread,iowrite
       USE GHYCOM
       IMPLICIT NONE
 
@@ -128,10 +128,10 @@ c        READ (kunit,err=10) HEADER,TEARTH,WEARTH,AIEARTH,SNOWE
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         WRITE (kunit,err=10) MODULE_HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ ! ,SNOAGE
+     *       ,HSN_IJ,FR_SNOW_IJ 
       CASE (IOREAD:)            ! input from restart file
         READ (kunit,err=10) HEADER,NSN_IJ,ISN_IJ,DZSN_IJ,WSN_IJ
-     *       ,HSN_IJ,FR_SNOW_IJ ! ,SNOAGE
+     *       ,HSN_IJ,FR_SNOW_IJ 
         IF (HEADER.NE.MODULE_HEADER) THEN
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10

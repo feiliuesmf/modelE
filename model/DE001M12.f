@@ -355,22 +355,22 @@ C****
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag,
      &     sig,sige,dsig,dsigo,
-     &     zatmo,fland,flice,fearth, gdata,WM
-      USE DYNAMICS, only : pk
+     &     zatmo,fland,flice,fearth,WM
       USE GEOM, only :
      &     AREAG,COSP,DLAT,DXV,DXYN,DXYP,DXYS,
      &     DXYV,DYP,FCOR,IMAXJ,RAVPN,RAVPS,SINP
-
-      USE RADNCB, only : rqt,lm_req
-      USE PBLCOM, only : tsavg
       USE DAGPCOM
       USE DAGCOM, only : aj,bj,cj,areg,jreg,apj,ajl,asjl,ail,
      &     aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq,ij_pvq,
      &     ij_rsit,ij_rsnw,ij_slp,ij_snow,ij_t850,ij_ujet,ij_vjet,j_tx1,
      *     j_rsnow,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,
      *     j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc
-
-      USE SEAICE_COM, only : rsi
+      USE DYNAMICS, only : pk
+      USE SEAICE_COM, only : snowi,rsi
+      USE GHYCOM, only : snowe
+      USE RADNCB, only : rqt,lm_req
+      USE PBLCOM, only : tsavg
+      USE LANDICE_COM, only : snowli
 
       IMPLICIT NONE
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q
@@ -543,20 +543,20 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
       CT1=CT1+(TX(I,J,1)-273.16)*POICE
       AREG(JR,J_TX1)=AREG(JR,J_TX1)+(TX(I,J,1)-273.16)*DXYPJ
       SCOVL=0.
-      IF (GDATA(I,J,2).GT.0.) SCOVL=PEARTH
-      IF (GDATA(I,J,12).GT.0.) SCOVL=SCOVL+PLICE
+      IF (SNOWE(I,J).GT.0.) SCOVL=PEARTH
+      IF (SNOWLI(I,J).GT.0.) SCOVL=SCOVL+PLICE
       BSCOV=BSCOV+SCOVL
       SCOVOI=0.
-      IF (GDATA(I,J,1).GT.0.) SCOVOI=POICE
+      IF (SNOWI(I,J).GT.0.) SCOVOI=POICE
       CSCOV=CSCOV+SCOVOI
       AREG(JR,J_RSNOW)=AREG(JR,J_RSNOW)+(SCOVL+SCOVOI)*DXYPJ
       PI(J)=PI(J)+P(I,J)
       AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+(SCOVOI+SCOVL)
-      AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+(GDATA(I,J,1)*POICE+GDATA(I,J,2)
-     *     *PEARTH+GDATA(I,J,12)*PLICE)
+      AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+(SNOWI(I,J)*POICE+SNOWE(I,J)
+     *     *PEARTH+SNOWLI(I,J)*PLICE)
       AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
       PSNOW=0.
-      IF (GDATA(I,J,2).GT.0.) PSNOW=PEARTH
+      IF (SNOWE(I,J).GT.0.) PSNOW=PEARTH
       AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE+PLICE+PSNOW
       AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+((P(I,J)+PTOP)*(1.+BBYG*ZATMO(I,J)
      *     /TSAVG(I,J))**GBYRB-P1000)
