@@ -1866,24 +1866,6 @@ cfree name_ij(k) = 'SMTMOM'
 cfree ia_ij(k) = ia_src
 cfree scale_ij(k) = 1./DTsrc
 c
-      k=k+1 !  'AIJ088'
-      IJ_FPEU = k ! EAST-WEST POT. ENTHALPY FLUX (W)   /3600.*1 DY
-      lname_ij(k) = 'EAST-WEST POTENTIAL ENTHALPY FLUX'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'FPEU'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10/DTsrc
-      ir_ij(k) = ir_m38_106
-c
-      k=k+1 !  'AIJ089'
-      IJ_FPEV = k ! NORTH-SOUTH POT. ENTHALPY FLUX (W) /3600.*1 DY
-      lname_ij(k) = 'NORTH-SOUTH POTENTIAL ENTHALPY FLUX'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'FPEV'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10/DTsrc
-      ir_ij(k) = ir_m38_106
-c
       k=k+1 !  'AIJ090'
       IJ_FMU  = k ! EAST-WEST MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
       lname_ij(k) = 'EAST-WEST MASS FLUX'
@@ -1900,24 +1882,6 @@ c
       name_ij(k) = 'FMV'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
-c
-      k=k+1 !  'AIJ092'
-      IJ_FQU = k ! EAST-WEST WATER VAPOR FLUX (KG/S)   /3600.*1 DY
-      lname_ij(k) = 'EAST-WEST WATER VAPOR FLUX'
-      units_ij(k) = '10^6 kg/s'
-      name_ij(k) = 'FQU'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-6/DTsrc
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !  'AIJ093'
-      IJ_FQV = k ! NORTH-SOUTH WATER VAPOR FLUX (KG/S) /3600.*1 DY
-      lname_ij(k) = 'NORTH-SOUTH WATER VAPOR FLUX'
-      units_ij(k) = '10^6 kg/s'
-      name_ij(k) = 'FQV'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-6/DTsrc
-      ir_ij(k) = ir_m80_28
 c
       k=k+1 !  'AIJ094'
       IJ_FGZU = k ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
@@ -2599,7 +2563,7 @@ c
 
 
       subroutine jl_defs
-      use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius
+      use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
       use MODEL_COM, only : fim,dtsrc,nidyn,byim
       use GEOM, only : dlon
       use DAGCOM
@@ -3010,6 +2974,44 @@ c
       units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_zmfntlh = k
+      sname_jl(k) = 'jl_zmf_nt_lh'    ! used in DIAGJK but not printed
+      lname_jl(k) = 'MEAN MERIDIONAL NORTHWARD TRANS. OF LATENT HEAT'
+      units_jl(k) = 'W/mb'
+      pow_jl(k) = 9
+      scale_jl(k) = 100.*bygrav*LHE*XWON*fim/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
+c
+      k=k+1
+      jl_totntlh = k
+      sname_jl(k) = 'jl_tot_nt_lh'
+      lname_jl(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
+      units_jl(k) = 'W/mb'
+      pow_jl(k) = 10
+      scale_jl(k) = 100.*bygrav*LHE*XWON*fim/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 2
+c
+      k=k+1
+      jl_zmfvtlh = k     ! used in DIAGJK but not printed
+      sname_jl(k) = 'jl_zmf_vt_lh' 
+      lname_jl(k) = 'MEAN MERIDIONAL VERTICAL TRANS. OF LATENT HEAT'
+      units_jl(k) = 'W/m^2'
+      scale_jl(k) = 100.*BYGRAV*LHE*XWON*byim/DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_totvtlh = k
+      sname_jl(k) = 'jl_tot_vt_lh'
+      lname_jl(k) = 'TOTAL VERTICAL TRANSPORT OF LATENT HEAT'
+      units_jl(k) = 'W/m^2'
+      scale_jl(k) = 100.*BYGRAV*LHE*XWON*byim/DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c

@@ -93,7 +93,7 @@ C**** write restart information alternatingly onto 2 disk files
          call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(KDISK,Itime,iowrite,ioerr)
          WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
-     *     ' Restart file written on fort.',KDISK,'Year',
+     *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
          KDISK=3-KDISK
          CALL TIMER (MNOW,MELSE)
@@ -127,6 +127,7 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
+      CALL QDYNAM  ! Advection of Q by average fluxes
 C****
 C**** Calculate tropopause level and pressure
 C****
@@ -380,7 +381,7 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(KDISK,Itime,iowrite,ioerr)
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
-     *  ' Restart file written on fort.',KDISK,'Year',JYEAR,
+     *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
      *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
@@ -812,9 +813,6 @@ C****        perturbation is at most 1 degree C
       END IF
 C**** Close "AIC" here if it was opened
       IF (ISTART.gt.1) call closeunit(iu_AIC)
-C**** Sending parameters which had just been set to the DB
-      ! the following lines overwrite rundeck parameters
-      ! the following are NON-rundeck parameters
 
       WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
@@ -1073,8 +1071,8 @@ C****
       STOP 'INPUT: ERRORS ON BOTH RESTART FILES'
   890 WRITE (6,'(A,I5)') '0INCORRECT VALUE OF ISTART',ISTART
       STOP 'INPUT: ISTART-SPECIFICATION INVALID'
-  900 write (6,*) 'Incompatible NAMELIST parameters'
-      stop 'Incompatible NAMELIST parameters'
+  900 write (6,*) 'Error in NAMELIST parameters'
+      stop 'Error in NAMELIST parameters'
       END SUBROUTINE INPUT
 
       SUBROUTINE DAILY(IEND)

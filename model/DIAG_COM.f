@@ -303,8 +303,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
-     *     IJ_EMTMOM, IJ_SMTMOM, IJ_FPEU, IJ_FPEV, IJ_FMU, IJ_FMV,
-     *     IJ_FQU, IJ_FQV, IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SDRAG,
+     *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV,
+     *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SDRAG,
      *     IJ_LKON, IJ_LKOFF, IJ_PTROP, IJ_TSI, IJ_SSI1, IJ_SSI2,IJ_SMFX
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER :: IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
@@ -344,15 +344,13 @@ C****      names, indices, units, idacc-numbers, etc.
 
 !@var JL_xxx names for JL diagnostic indices
       INTEGER ::
-     &     JL_FREE01,JL_FREE02,JL_FREE03,JL_FREE04
-     &    ,JL_FREE05,JL_FREE06,JL_FREE07,JL_mcmflx
-     &    ,JL_srhr,JL_trcr,JL_sshr,JL_trbhr
-     &    ,JL_mchr,JL_FREE14,JL_FREE15,JL_ape
+     &     JL_mcmflx,JL_srhr,JL_trcr,JL_sshr,JL_trbhr,JL_mchr
+     &    ,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,JL_ape
      &    ,JL_dtdyn,JL_dudfmdrg,JL_totcld,JL_dumtndrg
      &    ,JL_dushrdrg,JL_dumcdrgm10,JL_dumcdrgp10,JL_dumcdrgm40
      &    ,JL_dumcdrgp40,JL_dumcdrgm20,JL_dumcdrgp20,JL_sscld
-     &    ,JL_mccld,JL_FREE30,JL_sdifcoef,JL_dudtsdif,JL_gwFirst
-     &    ,JL_dtdtsdrg,JL_FREE34,JL_FREE35,JL_epflxv
+     &    ,JL_mccld,JL_sdifcoef,JL_dudtsdif,JL_gwFirst
+     &    ,JL_dtdtsdrg,JL_epflxv
      &    ,JL_epflxn,JL_damdc,JL_dammc,JL_40
      &    ,JL_uepac,JL_vepac,JL_wepac,JL_uwpac
      &    ,JL_vwpac,JL_wwpac,JL_47,JL_zmfntmom

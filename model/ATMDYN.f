@@ -6,20 +6,18 @@
 !@ver  1.0
       USE CONSTANT, only : by3
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag
+     *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1,lsdrag,byim
       USE GEOM, only : dyv,dxv
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : ptold,pu,pv,pit,sd,phi,dut,dvt
      &    ,pua,pva,sda,ps,mb
-      USE DAGCOM, only : aij,ij_fpeu,ij_fpev,ij_fqu,ij_fqv,ij_fmv,ij_fmu
-     *     ,ij_fgzu,ij_fgzv
+      USE DAGCOM, only : aij,ij_fmv,ij_fmu,ij_fgzu,ij_fgzv
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: PRAT
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT,TT,TZ,TZT,MA
       REAL*8, DIMENSION(IM,JM,LM) :: UX,VX,PIJL
-      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
-     *          FWVU(IM,JM),FWVV(IM,JM)
+      REAL*8 PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM)
 
       REAL*8 DTFS,DTLF,PP,UU,VV
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -36,7 +34,7 @@ C**** Initialize mass fluxes used by tracers and Q
       PUA(:,:,:) = 0.
       PVA(:,:,:) = 0.
       SDA(:,:,:) = 0.
-C**** Leap-frog re-initialization: IF (NS.LT.NIdyn) 
+C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
       UX(:,:,:)  = U(:,:,:)
       UT(:,:,:)  = U(:,:,:)
@@ -99,22 +97,14 @@ C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
          PVA(:,:,:)=PVA(:,:,:)+PV(:,:,:) 
          SDA(:,:,1:LM-1)=SDA(:,:,1:LM-1)+SD(:,:,1:LM-1)
 C**** ADVECT Q AND T
-         FPEU(:,:) = 0.
-         FPEV(:,:) = 0.
       TT(:,:,:) = T(:,:,:)
       TZT(:,:,:)= TZ(:,:,:)
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
-         AIJ(:,:,IJ_FPEU) = AIJ(:,:,IJ_FPEU)+FPEU(:,:)
-         AIJ(:,:,IJ_FPEV) = AIJ(:,:,IJ_FPEV)+FPEV(:,:)
-         FWVU(:,:) = 0.
-         FWVV(:,:) = 0.
 !     save z-moment of temperature in contiguous memory for later
       tz(:,:,:) = tmom(mz,:,:,:) 
-      call calc_amp(pc,ma)
-      CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
-         AIJ(:,:,IJ_FQU)  = AIJ(:,:,IJ_FQU )+FWVU(:,:)
-         AIJ(:,:,IJ_FQV)  = AIJ(:,:,IJ_FQV )+FWVV(:,:)
+!     call calc_amp(pc,ma)
+!     CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE. ,FWVU,FWVV)
       CALL VDIFF (P,U,V,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
@@ -164,13 +154,67 @@ C**** Scale WM mixing ratios to conserve liquid water
       END SUBROUTINE DYNAM
 
 
-#ifdef TRACERS_ON
-      SUBROUTINE TDYNAM
-!@sum  TDYNAM is the driver to integrate tracer dynamic terms
+      SUBROUTINE QDYNAM
+!@sum  QDYNAM is the driver to integrate dynamic terms by the method
+!@+          of pre-computing Courant limits using mean fluxes
+!@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
 !@auth J. Lerner
 !@ver  1.0
-      USE MODEL_COM, only: itime,dt
-      USE TRACER_COM
+      USE MODEL_COM, only : im,jm,lm,q,dt,byim
+      USE SOMTQ_COM, only : tmom,qmom
+      USE DAGCOM, only: ajl,jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
+      USE DYNAMICS, only: ps,mb
+      USE TRACER_ADV, only: 
+     *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
+      IMPLICIT NONE
+      REAL*8 DTLF,byncyc,byma
+      INTEGER I,J,L   !@var I,J,L loop variables
+
+      DTLF=2.*DT
+      CALL CALC_AMP(PS,MB)
+      CALL AADVQ0 (DTLF)  ! uses the fluxes pua,pva,sda from DYNAM
+C****
+C**** convert from concentration to mass units
+C****
+      DO L=1,LM
+      DO J=1,JM
+      DO I=1,IM
+        Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
+      enddo; enddo; enddo
+C**** ADVECT
+        sfbm = 0.; sbm = 0.; sbf = 0.
+        sfcm = 0.; scm = 0.; scf = 0.
+      CALL AADVQ (Q,QMOM, .TRUE. ,'q       ')
+        byncyc = 1./ncyc
+        AJL(:,:,jl_totntlh) = AJL(:,:,jl_totntlh) + sbf(:,:)
+        AJL(:,:,jl_zmfntlh) = AJL(:,:,jl_zmfntlh)
+     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+        AJL(:,:,jl_totvtlh) = AJL(:,:,jl_totvtlh) + scf(:,:)
+        AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
+     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+C****
+C**** convert from mass to concentration units
+C****
+      DO L=1,LM
+      DO J=1,JM
+      DO I=1,IM
+        BYMA = 1.D0/MB(I,J,L)
+        Q(I,J,L)=Q(I,J,L)*BYMA
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
+      enddo; enddo; enddo
+
+      RETURN
+      END SUBROUTINE QDYNAM
+
+
+#ifdef TRACERS_ON
+      SUBROUTINE TrDYNAM
+!@sum  TrDYNAM is the driver to integrate tracer dynamic terms
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only: im,jm,lm,itime,dt,byim
+      USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE DYNAMICS, only: ps,mb
       USE TRACER_ADV
       USE TRACER_DIAG_COM, only:
@@ -196,7 +240,7 @@ C**** Scale WM mixing ratios to conserve liquid water
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
       ENDDO
       RETURN
-      END SUBROUTINE TDYNAM
+      END SUBROUTINE TrDYNAM
 #endif
 
 

@@ -542,7 +542,7 @@ C****
       IMPLICIT NONE
 
 !@param names of derived jk/jl output fields
-      INTEGER :: jl_rad_cool,jk_dudt_econv,
+      INTEGER :: jl_rad_cool,jk_dudt_econv,jl_nt_lh_e,jl_vt_lh_e,
      *  jk_psi_cp,jk_dudt_epdiv,jk_stdev_dp,
      *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
      *  jl_epflx_div,jk_vt_dse_e,jk_vt_lh_eddy,jk_vt_se_eddy,
@@ -564,7 +564,7 @@ C****
 !@auth G. Schmidt/M. Kelley/J. Lerner
 !@ver  1.0
       USE CONSTANT, only : sday,bygrav,sha,lhe
-      USE MODEL_COM, only : byim
+      USE MODEL_COM, only : byim,DTsrc
       USE BDjkjl
       USE DAGCOM
       IMPLICIT NONE
@@ -642,6 +642,22 @@ c
       sname_jl(k) = 'dudt_sumdrg' !AJL(18+20-27)
       lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
       units_jl(k) = '10**-6 m/s^2'
+      k = k + 1
+      jl_nt_lh_e = k
+      sname_jl(k) = 'nt_lh_eddy'        ; jgrid_jl(k) = 2
+      lname_jl(k) = 'N. TRANSPORT OF LATENT HEAT BY EDDIES'
+      units_jl(k) = 'W/mb'
+      scale_jl(k) = 100.*bygrav*xwon*lhe*fim/DTsrc
+      pow_jl(k) = 10
+      ia_jl(k) = ia_src
+      k = k + 1
+      jl_vt_lh_e = k
+      sname_jl(k) = 'vt_lh_eddy'        ; jgrid_jl(k) = 1
+      lname_jl(k) = 'V. TRANSPORT OF LATENT HEAT BY EDDIES'
+      units_jl(k) = 'W/m^2'
+      scale_jl(k) = 100.*bygrav*xwon*lhe*byim/DTsrc
+      pow_jl(k) = 0
+      ia_jl(k) = ia_src
 
 c Check the count
       if (k .gt. KAJLx) then
@@ -800,6 +816,13 @@ c
       lname_jk(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
       units_jk(k) = 'W/mb'
       scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
+      pow_jk(k) = 10
+      k = k + 1
+      jk_nt_lh_se = k
+      sname_jk(k) = 'nt_lh_stand_eddy'        ; jgrid_jk(k) = 2
+      lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
+      units_jk(k) = 'W/mb'
+      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
       pow_jk(k) = 9
       k = k + 1
       jk_nt_see = k                           ; jgrid_jk(k) = 2
@@ -877,13 +900,6 @@ c      units_jk(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_jk(k) = '1/(m*s)'
       scale_jk(k) = 1.
       pow_jk(k) = -12
-      k = k + 1
-      jk_nt_lh_se = k
-      sname_jk(k) = 'nt_lh_stand_eddy'        ; jgrid_jk(k) = 2
-      lname_jk(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
-      units_jk(k) = 'W/mb'
-      scale_jk(k) = .25*lhe*XWON*FIM*100.*BYGRAV
-      pow_jk(k) = 9
       k = k + 1
       jk_wstar = k                            ; jgrid_jk(k) = 1
       sname_jk(k) = 'wstar'
@@ -994,6 +1010,13 @@ c      BYDXYP(J)=1./DXYP(J)
       DO 50 J=2,JM
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
+      DO J=1,JM
+        BYP(J)=IDACC(4)/(APJ(J,1)+1.D-20)
+        BYPV(J)=IDACC(4)/(.25*APJ(J,2)+1.D-20)
+      ENDDO
+      BYPPO(:) = BYP(:)
+      BYPPO(1 ) = BYP(1 )*BYIM
+      BYPPO(JM) = BYP(JM)*BYIM
       LINECT=65
       WRITE (6,901)
       BYIADA=1./(IDACC(4)+1.D-20)
@@ -1277,6 +1300,20 @@ C**** Individual wave transports commented out. (gas - 05/2001)
       CALL JKMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
      &     PLM,BX,SCALET,DXV,ONES,KM,2,JGRID_jk(n))
 C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
+C**** New way!  
+      n = jl_nt_lh_e
+      dx = 0.
+      DX(2:jm,:)=AJL(2:jm,:,Jl_TOTNTLH)-AJL(2:jm,:,Jl_ZMFNTLH)
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
+     &     PLM,DX,SCALET,bypv,BYDSIG,lm,2,JGRID_jl(n))
+      n = jl_totntlh
+      SCALET = SCALE_jl(n)/idacc(ia_jl(n))
+      CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
+     &     PLM,Ajl(1,1,n),SCALET,bypv,BYDSIG,lm,2,JGRID_jl(n))
+C**** NORTHWARD TRANSPORT OF LATENT HEAT BY STAND. EDDY, EDDIES AND TOTA
+C**** Old Way!  NOTE:  AX is needed later
+      dx=0.
       DO 240 K=1,KM
       DO 240 J=2,JM
       DX(J,K)=AJK(J,K,JK_TOTNTLH)-AJK(J,K,JK_ZMFNTLH)
@@ -1391,6 +1428,19 @@ C**** VERTICAL TRANSPORT OF DRY STATIC ENERGY BY EDDIES AND TOTAL
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PM,AJK(1,1,n),SCALET,BYDAPO,ONES,KM-1,2,JGRID_JK(n))
 C**** VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES AND TOTAL
+C**** New way! 
+      n = jl_vt_lh_e
+      dx = 0.
+      DX(:,1:lm-1)=AJL(:,1:lm-1,Jl_totvtlh)-AJL(:,1:lm-1,Jl_zmfvtlh)
+      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
+     &     PM,DX,SCALET,BYDAPO,ONES,lm-1,2,JGRID_jl(n))
+      n = jl_totvtlh
+      SCALET = SCALE_jl(n)/idacc(ia_jl(n))
+      CALL jlMAP(LNAME_jl(n),SNAME_jl(n),UNITS_jl(n),POW_jl(n),
+     &     PM,Ajl(1,1,n),SCALET,BYDAPO,ONES,lm-1,2,JGRID_jl(n))
+C**** VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES AND TOTAL
+C**** Old way! 
       n = jk_vt_lh_eddy
       SCALET = SCALE_JK(n)/IDACC(IA_JK(n))
       CALL JLMAP(LNAME_jk(n),SNAME_jk(n),UNITS_JK(n),POW_JK(n),
@@ -1758,13 +1808,6 @@ C****
 C**** RADIATION, CONDENSATION AND CONVECTION
 C****
 C**** SOLAR AND THERMAL RADIATION HEATING
-      DO J=1,JM ! temporary redefinition of byp
-        BYP(J)=IDACC(4)/(APJ(J,1)+1.D-20)
-        BYPV(J)=IDACC(4)/(.25*APJ(J,2)+1.D-20)
-      ENDDO
-      BYPPO(:) = BYP(:)
-      BYPPO(1 ) = BYP(1 )*BYIM
-      BYPPO(JM) = BYP(JM)*BYIM
       n = JL_SRHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       SCALES = scale_sjl(3)/idacc(ia_sjl(3))
@@ -2540,7 +2583,7 @@ C****
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
 
       COMMON/D7COM/TITLE
-      CHARACTER*64 TITLE(12)
+      CHARACTER*66 TITLE(12)
 
       DOUBLE PRECISION, DIMENSION(12) :: SCALET
       DATA SCALET/1.,1., .1,1., .1,1., 4*1.D-3,1.D-4,1.D-5/
