@@ -87,13 +87,24 @@ C     BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE
 C****  albedo = asnalb+snowage*snowage_fac so these numbers are the min
       real*8, parameter ::
 C                       VIS  NIR1 NIR2 NIR3 NIR4 NIR5    NIR
-     *     ASNALB(7)=(/0.600,0.55,0.55,0.30,0.10,0.05,  0.350/),
-     *     AOIALB(7)=(/0.550,0.50,0.45,0.25,0.10,0.05,  0.300/),
-     *     ALIALB(7)=(/0.600,0.55,0.50,0.30,0.10,0.05,  0.350/),
+     *     ASNALB(7)=(/0.6d0, 0.55d0,0.55d0,0.3d0,0.1d0,0.05d0,0.35d0/),
+     *     AOIALB(7)=(/0.55d0,0.5d0,0.45d0,0.25d0,0.1d0,0.05d0,0.3d0/),
+     *     ALIALB(7)=(/0.6d0, 0.55d0,0.5d0,0.3d0,0.1d0,0.05d0, 0.35d0/),
 C**** shorthand for the 2 band version
      *     ASNVIS=ASNALB(1), ASNNIR=ASNALB(7),
      *     AOIVIS=AOIALB(1), AOINIR=AOIALB(7),
      *     ALIVIS=ALIALB(1), ALINIR=ALIALB(7)
+
+C**** variables that control original snow aging calculation
+!@var AGEXPF exponent in snowage calculation depends on hemi/surf type
+!@var ALBDIF difference in albedo as function of snowage
+      REAL*8, PARAMETER, DIMENSION(3,2) ::
+     *     AGEXPF = RESHAPE( (/
+C          SH EA   SH OC   SH LI   NH EA   NH OC   NH LI
+     *     0.2d0,  0.2d0,  0.2d0,  0.2d0,  0.2d0,  0.2d0 /), (/3,2/) ),
+     *     ALBDIF = RESHAPE( (/
+C          SH EA   SH OC   SH LI   NH EA   NH OC   NH LI
+     *     0.35d0, 0.35d0, 0.35d0, 0.35d0, 0.35d0, 0.35d0/), (/3,2/) )
 
 !@var DMOICE, DMLICE masking depth for snow on ice and land ice
       real*8, parameter :: DMOICE = 10., DMLICE = 10.
@@ -130,7 +141,7 @@ C                     AGSNOW  AGLICE  AGROCK  AGVEG
 
 !@var AVSCAT,ANSCAT,AVFOAM,ANFOAM for ocean albedo calc
       real*8, parameter ::
-     *     AVSCAT=0.0156, ANSCAT=0.0000, AVFOAM=0.2197, ANFOAM=0.1514
+     *     AVSCAT=0.0156d0, ANSCAT=0d0, AVFOAM=0.2197d0, ANFOAM=0.1514d0
 
 C**** miscellaneous constants
       real*8, parameter ::
@@ -151,6 +162,19 @@ C**** JNORTH is set at the beginning and saved
 !@var JNORTH latitude index defining northern hemisphere
       integer :: JNORTH = 0
 
+!@var GZSNOW asymmetry parameter for snow over three types
+!@+   from Wiscombe and Warren (1980) JAS
+!@+   Note this is used for ice + melt-ponds as well.
+      REAL*8, PARAMETER, DIMENSION(7,3,2) :: GZSNOW = RESHAPE( (/
+C           VIS     NIR1    NIR2     NIR3     NIR4     NIR5    NIRT
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0, ! SH EA
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0, !    OI
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0, !    LI
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0, ! NH EA
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0, !    OI
+     *     0.95d0, 0.94d0, 0.905d0, 0.896d0, 0.894d0, 0.89d0, 0.91d0  !    LI
+     *     /), (/7,3,2/) )
+
       END MODULE SURF_ALBEDO
 
       MODULE RE001
@@ -161,6 +185,8 @@ C**** JNORTH is set at the beginning and saved
       REAL*4 yr1S0,yr2S0
 !@dbparm snoage_fac_max  max snow age reducing-factor for sea ice albedo
       REAL*8 :: snoage_fac_max=.5d0
+!@dbparm kzsnow =1 for snow/ice albedo zenith angle depend. (default=0)
+      INTEGER :: kzsnow=0
       INTEGER :: NL=15,NLP=16,JYEAR=1980,JDAY=1
       SAVE
 
@@ -828,7 +854,7 @@ CF    OPEN (NRFU,FILE=RFILEN,FORM='UNFORMATTED',STATUS='OLD')
 cg    OPEN (NRFU,FORM='UNFORMATTED',STATUS='OLD')             ! CF
       READ (NRFU) GTAU,TGDATA
 cg    CLOSE(NRFU)
-      IF(KANORM.GT.1.or.KCNORM.GT.1)  CALL SETGTS
+      IF(KANORM.GT.1.or.KCNORM.GT.1.or.KZSNOW.gt.0)  CALL SETGTS
 C
 C
 C-----------------------------------------------------------------------
@@ -12631,7 +12657,7 @@ C     -------------------
       use SURF_ALBEDO
       use RE001, only:
 C**** config data
-     *     MLAT46,KEEPAL,KVEGA6,snoage_fac_max,
+     *     MLAT46,KEEPAL,KVEGA6,snoage_fac_max,KZSNOW,
 C**** input from radiation
      *     COSZ,PLANCK,ITNEXT,ITPFT0,
 C**** input from driver
@@ -12647,7 +12673,7 @@ C**** output
      *     ,WMI,FRFOAM,AV,BV,WTOC,BOCM,BOCP,TRAPOC,BOCM1,BOCP1,BOC
      *     ,DSFRAC,VGFRAC,SEAVIS,SEANIR,VTFRAC,WTEA,BEAM,BEAP,TRAPEA
      *     ,BEAM1,BEAP1,BEA,WTOI,BOIM,BOIP,TRAPOI,BOIM1,BOIP1,BOI,AMEAN
-     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI
+     *     ,WTLI,BLIM,BLIP,BGF,TRAPLI,BLIM1,BLIP1,BLI,KKZSNO
 
 C**** local variables for albedos for each surface type
       real*8 BOCVIS,BEAVIS,BOIVIS,BLIVIS,BOCNIR,BEANIR,BOINIR,BLINIR,
@@ -12706,6 +12732,8 @@ C           ------------------------------------------------------------
 C
       LATHEM=1
       IF(JLAT.GT.JNORTH) LATHEM=2
+      KKZSNO=KZSNOW
+      IF(COSZ.LT.0.001) KKZSNO=0
 C
       EXPSNE=1.D0 ; EXPSNO=1.D0 ;  EXPSNL=1.D0
 C
@@ -12809,20 +12837,32 @@ C
 C                                         ------------------------------
 C                                         Land Snow Albedo Specification
 C                                         ------------------------------
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(1))
+      ASNAGE=ALBDIF(1,LATHEM)*EXP(-AGEXPF(1,LATHEM)*AGESN(1))
       IF(KVEGA6.LE.0) THEN      ! 2 band
         BSNVIS=ASNVIS+ASNAGE
         BSNNIR=ASNNIR+ASNAGE
-        XSNVIS=BSNVIS
-        XSNNIR=BSNNIR
+C**** Set zenith angle dependence if required
+        IF (KKZSNO.GT.0) THEN
+          CALL RXSNOW(BSNVIS,COSZ,GZSNOW(1,1,LATHEM),XSNVIS)
+          CALL RXSNOW(BSNNIR,COSZ,GZSNOW(7,1,LATHEM),XSNNIR)
+        ELSE
+          XSNVIS=BSNVIS
+          XSNNIR=BSNNIR
+        END IF
       ELSE                      ! 6 band
         DO L=1,6
           FSNAGE=1.D0
           IF(L.GT.2) FSNAGE=2.0D0/L
           BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
+C**** Set zenith angle dependence if required
+          IF (KKZSNO.GT.0) THEN
+            CALL RXSNOW(BSNVN(L),COSZ,GZSNOW(L,1,LATHEM),XSNVN(L))
+          ELSE
+            XSNVN(L)=BSNVN(L)
+          END IF
         END DO
-        XSNVN(1:6)=BSNVN(1:6)
       ENDIF
+
 C                                          -----------------------------
 C                                          Soil/Veg Albedo Specification
 C                                          -----------------------------
@@ -13036,10 +13076,15 @@ C**** Melt ponds:
         almp(4)=.03d0
 c**** combined sea ice albedo
         albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
+C**** The zenith angle dependence from Schramm is only used is KKSNOW
+C**** is zero. This only includes dry snow. Otherwise, Andy's
+C**** calculation is used for all surface types (dry/wet snow, ice,
+C**** meltponds) 
+
 C**** Zenith angle dependence for dry snow only
         albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
 C**** Uncomment code below for zenith angle dependence for all types
-C**** based on Dickinson (1981)
+C**** based on Dickinson (1981) (only possible if KKSNOW=0)
 C****          a = a1                                   cosz>0.5
 C****              a1 + (1-a1)*0.5 * (3/(1+4*cosz) -1) 0<cosz<.5
 C**** ==> a_diff = 0.84 a1 + 0.16 (integrating over cosz)
@@ -13062,21 +13107,36 @@ C****                          --> 1500-2200    (7.6%) (5)
 C****  (4) 2380-4000 (1.0%)    --> 2200-4000    (2.0%) (6)
 C**** Adjust weighting to force same broadband albedo
           BOIVN(1)=albtf(1)*.493d0/.585d0
-          XOIVN(1)=albtr(1)*.493d0/.585d0
           BOIVN(2:3)=albtf(2)*.349d0/.281d0
-          XOIVN(2:3)=albtr(2)*.349d0/.281d0
           BOIVN(4:5)=albtf(3)*.148d0/.114d0
-          XOIVN(4:5)=albtr(3)*.148d0/.114d0
           BOIVN(6)=albtf(4)*.01d0/.02d0
-          XOIVN(6)=albtr(4)*.01d0/.02d0
+
+C**** set zenith angle dependence if required
+          IF (KKZSNO.GT.0) THEN
+            DO L=1,6
+              CALL RXSNOW(BOIVN(L),COSZ,GZSNOW(L,2,LATHEM),XOIVN(L))
+            END DO
+          ELSE ! use Schramm values (only for dry snow)
+            XOIVN(1)=albtr(1)*.493d0/.585d0
+            XOIVN(2:3)=albtr(2)*.349d0/.281d0
+            XOIVN(4:5)=albtr(3)*.148d0/.114d0
+            XOIVN(6)=albtr(4)*.01d0/.02d0
+          END IF
         ELSE
 C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
 C**** create a composite NIR value.
 C**** Adjust weighting to force same broadband albedo
           BOIVIS=albtf(1)*.493d0/.585d0
-          XOIVIS=albtr(1)*.493d0/.585d0
           BOINIR=(.349d0*albtf(2)+.148d0*albtf(3)+.01d0*albtf(4))/.415d0
-          XOINIR=(.349d0*albtr(2)+.148d0*albtr(3)+.01d0*albtr(4))/.415d0
+C**** set zenith angle dependence if required
+          IF (KKZSNO.GT.0) THEN
+            CALL RXSNOW(BOIVIS,COSZ,GZSNOW(1,2,LATHEM),XOIVIS)
+            CALL RXSNOW(BOINIR,COSZ,GZSNOW(7,2,LATHEM),XOINIR)
+          ELSE ! use Schramm values (only calculated for dry snow)
+            XOIVIS=albtr(1)*.493d0/.585d0
+            XOINIR=(.349d0*albtr(2)+.148d0*albtr(3)+.01d0*albtr(4))/
+     *           .415d0
+          END IF
         END IF
         EXPSNO=1.-patchy
 C**** end of Schramm's version
@@ -13085,19 +13145,16 @@ C**** original version
 
       EXPSNO=EXP(-SNOWOI/DMOICE)
 C**** Set snow albedo over sea ice
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
+      ASNAGE=ALBDIF(2,LATHEM)*EXP(-AGEXPF(2,LATHEM)*AGESN(2))
       IF(KVEGA6.LE.0) THEN      ! 2 band
         BSNVIS=ASNVIS+ASNAGE
         BSNNIR=ASNNIR+ASNAGE
-        XSNVIS=BSNVIS
-        XSNNIR=BSNNIR
       ELSE                      ! 6 band
         DO L=1,6
           FSNAGE=1.D0
           IF(L.GT.2) FSNAGE=2.0D0/L
           BSNVN(L)=ASNALB(L)+ASNAGE*FSNAGE
         END DO
-        XSNVN(1:6)=BSNVN(1:6)
       ENDIF
 
 C**** set ice albedo
@@ -13132,12 +13189,24 @@ c**** Puddlings: weak in NH, strong (or extreme) in SH
         end if
       end if
 c**** End of puddling section
-      XOIVIS=BOIVIS
-      XOINIR=BOINIR
+
+C**** Set zenith angle dependence if required
+        IF (KKZSNO.GT.0) THEN
+          CALL RXSNOW(BOIVIS,COSZ,GZSNOW(1,2,LATHEM),XOIVIS)
+          CALL RXSNOW(BOINIR,COSZ,GZSNOW(7,2,LATHEM),XOINIR)
+        ELSE
+          XOIVIS=BOIVIS
+          XOINIR=BOINIR
+        END IF
       ELSE                      ! end of 2-band original version
         DO L=1,6                !        6-band original version
           BOIVN(L)=AOIALB(L)*EXPSNO+BSNVN(L)*(1.D0-EXPSNO)
-          XOIVN(L)=BOIVN(L)
+C**** Set zenith angle dependence if required
+          IF (KKZSNO.GT.0) THEN
+            CALL RXSNOW(BOIVN(L),COSZ,GZSNOW(L,2,LATHEM),XOIVN(L))
+          ELSE
+            XOIVN(L)=BOIVN(L)
+          END IF
         END DO
       ENDIF
       endif                     ! end of original version
@@ -13175,7 +13244,7 @@ C                                          -----------------------------
 C                                          Land Ice Albedo Specification
 C                                          -----------------------------
 C**** Set snow albedo over land ice
-      ASNAGE=0.35D0*EXP(-0.2D0*AGESN(3))
+      ASNAGE=ALBDIF(3,LATHEM)*EXP(-AGEXPF(3,LATHEM)*AGESN(3))
       IF(KVEGA6.LE.0) THEN      ! 2 band
         BSNVIS=ASNVIS+ASNAGE
         BSNNIR=ASNNIR+ASNAGE
@@ -13201,14 +13270,14 @@ C**** Set snow albedo over land ice
       END IF
 C**** For KVEGA6 != 1 or -1:
 C**** Specify the Albedo for Antarctica and Greenland: vis.alb = 95%
-C**** and mean albedo=80%, i.e. AMEAN = .57*BLIVIS+.43*BLINIR = .80
+C**** and mean albedo=80%, i.e. AMEAN = .585*BLIVIS+.415*BLINIR = .80
 C****
       if (abs(kvega6).ne.1) then
       IF( JLAT.LT.NINT(MLAT46/6.) .OR.
      *   (JLAT.LT.45.AND.JLAT.GT.38.AND.ILON.LT.33.AND.ILON.GT.23)) THEN
-        AMEAN=.8
-        BLIVIS=.95
-        BLINIR=(AMEAN-.57*BLIVIS)/.43
+        AMEAN=.8d0
+        BLIVIS=.95d0
+        BLINIR=(AMEAN-.585d0*BLIVIS)/.415d0
         IF (KVEGA6.gt.0) THEN   ! 6 band
           DO L=3,6  ! fill in higher bands
             BLIVN(L)=BLINIR
@@ -13216,8 +13285,25 @@ C****
         END IF
       END IF
       end if
-C
-      XLIVN(1:6)=BLIVN(1:6)
+
+C**** zenith angle dependence if required
+      IF (KVEGA6.le.0) THEN     ! 2 band
+        IF (KKZSNO.GT.0) THEN
+          CALL RXSNOW(BLIVIS,COSZ,GZSNOW(1,3,LATHEM),XLIVIS)
+          CALL RXSNOW(BLINIR,COSZ,GZSNOW(7,3,LATHEM),XLINIR)
+        ELSE
+          XLIVIS=BLIVIS
+          XLINIR=BLINIR
+        END IF
+      ELSE  ! 6 band
+        DO L=1,6
+          IF (KKZSNO.GT.0) THEN
+            CALL RXSNOW(BLIVN(L),COSZ,GZSNOW(L,3,LATHEM),XLIVN(L))
+          ELSE
+            XLIVN(L)=BLIVN(L)
+          END IF
+        END DO
+      END IF
 C
       ITLI=TGLI
       WTLI=TGLI-ITLI
@@ -13305,4 +13391,86 @@ C
 C
       RETURN
       END SUBROUTINE GETSUR
+
+      SUBROUTINE RXSNOW(RBSNO,XCOSZ,GGSNO,RXSNO)
+!@sum RXSNOW calculate zenith angle dependence for snow/ice albedo
+!@auth A. Lacis (modified by G. Schmidt)
+      USE RE001, only : gtsalb,sgpgxg
+      IMPLICIT NONE
+!@var RBSNO diffuse albedo
+      REAL*8, INTENT(IN) :: RBSNO
+!@var XCOSZ zenith angle
+      REAL*8, INTENT(IN) :: XCOSZ
+!@var GGSNO Asymmetry parameter for snow
+      REAL*8, INTENT(IN) :: GGSNO
+!@var RXSNO direct albedo
+      REAL*8, INTENT(OUT) :: RXSNO
+      INTEGER NDBLS,NN
+      REAL*8 XXG,XXT,GGSN,RBSN,FRTOP,TAU,TAUSN,GPFF,PR,PT,DBLS,SECZ,XANB
+     *     ,XANX,TANB,TANX,RASB,RASX,BNORM,XNORM,RARB,RARX,XATB,DENOM,DB
+     *     ,DX,UB,UX,DRBRAT,RBBOUT
+
+      IF(RBSNO.LT.0.05D0) THEN
+        RXSNO=RBSNO
+        RETURN
+      ENDIF
+      call sys_flush(6)
+      XXG=0.D0
+      XXT=0.D0
+      GGSN=GGSNO
+      IF(GGSNO.GT.0.9D0) GGSN=0.9D0
+      RBSN=RBSNO
+      FRTOP=1.D0
+      IF(RBSNO.GT.0.5D0) THEN
+        RBSN=0.5D0
+        FRTOP=((1.D0-RBSNO)/0.5D0)**2
+      ENDIF
+
+      CALL GTSALB(XXG,XXT,RBBOUT,RBSN,GGSN,TAUSN,2)
+      CALL SGPGXG(XCOSZ,TAUSN,GGSN,GPFF)
+      PR=1.D0-GPFF
+      PT=1.D0+GPFF
+      DBLS=10.D0+1.44269D0*LOG(TAUSN)
+      NDBLS=DBLS
+      TAU=TAUSN/2**NDBLS
+C     Set optically thin limit values of R,T,X using PI0 renormalization
+C     ------------------------------------------------------------------
+C
+      SECZ=1.D0/XCOSZ
+      XANB=EXP(-TAU-TAU)
+      XANX=EXP(-TAU*SECZ)
+      TANB=PT*XANB
+      XXT=(SECZ-2.D0)*TAU
+      TANX=PT*SECZ
+     +    *(.5D0+XXT*(.25D0+XXT*(.0833333D0+XXT*(.0208333D0+XXT))))*XANX
+      RASB=PR*(1.D0-TAU*(2.D0-2.66667D0*TAU*(1.D0-TAU)))
+      XXT=(SECZ+2.D0)*TAU
+      RASX=PR*SECZ
+     +    *(.5D0-XXT*(.25D0-XXT*(.0833333D0-XXT*(.0208333D0-XXT))))
+      BNORM=(1.D0-XANB)/(RASB+TANB)
+      XNORM=(1.D0-XANX)/(RASX+TANX)
+      RASB=RASB*BNORM
+      RASX=RASX*XNORM
+      TANB=TANB*BNORM
+      TANX=TANX*XNORM
+      DO NN=1,NDBLS
+        RARB=RASB*RASB
+        RARX=XANX*RASX
+        XATB=XANB+TANB
+        DENOM=1.D0-RARB
+        DB=(TANB+XANB*RARB)/DENOM
+        DX=(TANX+RARX*RASB)/DENOM
+        UB=RASB*(XANB+DB)
+        UX=RARX+RASB*DX
+        RASB=RASB+XATB*UB
+        RASX=RASX+XATB*UX
+        TANB=XANB*TANB+XATB*DB
+        TANX=XANX*TANX+XATB*DX
+        XANB=XANB*XANB
+        XANX=XANX*XANX
+      END DO
+      DRBRAT=RASX/RBSN-1.D0
+      RXSNO=RBSNO*(1.D0+DRBRAT*FRTOP)
+      RETURN
+      END
 

@@ -289,7 +289,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE GEOM, only : dlat,lat_dg
       USE RE001, only : setnew,rcomp1,writer,writet      ! routines
      &     ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP, PLB, PTOPTR
-     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max
+     *     ,KCLDEM,KVEGA6,MOZONE,KSOLAR, SHL, snoage_fac_max, KZSNOW
       USE RADNCB, only : s0x,co2x,ch4x,h2ostratx,s0_yr,s0_day
      *     ,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,lm_req,coe,sinj,cosj,H2ObyCH4,dH2O
@@ -330,6 +330,7 @@ C**** sync radiation parameters from input
       call sync_param( "MOZONE", MOZONE )
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KVEGA6", KVEGA6 )
+      call sync_param( "KZSNOW", KZSNOW )
       call sync_param( "calc_orb_par", calc_orb_par )
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
       call sync_param( "snoage_fac_max", snoage_fac_max )
