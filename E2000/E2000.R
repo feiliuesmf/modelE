@@ -34,7 +34,7 @@ LANDICE LANDICE_DRV                 ! land ice modules
 OCEAN OCNML                         ! ocean modules
 ICEDYN_DRV ICEDYN
 SNOW                                ! snow model
-RAD_COM RAD_DRV_rnd RADIATIONn          ! radiation modules
+RAD_COM RAD_DRV_rnd RADIATION          ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST_SI2000 FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
@@ -116,6 +116,6 @@ nrad=1
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0,
-   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0, 
+   YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,HOURE=12,
  &END
