@@ -748,6 +748,7 @@ C**** Save initial (currently permanent and global) Q in rad.layers
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
       if(volc_yr.eq.-2000) then ! create some future volcanos
+         if(JYEAR.LE.2000) KYEARV=JYEAR
          if(JYEAR.GT.2000) KYEARV=JYEAR-50
          if(JYEAR.GT.2050) KYEARV=JYEAR-150
       end if
