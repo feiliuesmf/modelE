@@ -90,14 +90,15 @@ c****
      &     ,n_clay
 #endif
       use tracer_diag_com, only : taijn,tij_surf
+     *  ,taijs,ijts_isrc,jls_isrc,tajls
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,jls_source,tajls,tij_soil
+     *     ,tij_evap,tij_grnd,jls_source,tij_soil
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #ifdef TRACERS_DUST
-     &     ,ijts_source,taijs,nDustEmij,nDustEmjl
+     &     ,ijts_source,nDustEmij,nDustEmjl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
@@ -140,6 +141,9 @@ c****
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,dep_vel,gs_vel
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *     ,DMS_flux, ss1_flux, ss2_flux
 #endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -735,6 +739,31 @@ ccc accumulate tracer dry deposition
           dtr_dd(j,n,2)=dtr_dd(j,n,2)-ptype*rtsdt*dxyp(j)* gs_vel(n)
         end if
       end do
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      DO nx=1,ntx
+        n=ntix(nx)
+        select case (trname(n))
+        case ('DMS')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+DMS_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &         DMS_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         DMS_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt1')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss1_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss1_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss1_flux*dxyp(j)*ptype*dtsurf
+        case ('seasalt2')
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+ss2_flux*dxyp(j)*ptype
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) -
+     &         ss2_flux*dxyp(j)*ptype*dtsurf
+          tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
+     *         ss2_flux*dxyp(j)*ptype*dtsurf
+        end select
+      END DO
 #endif
 #ifdef TRACERS_DUST
 ccc dust emission from earth
