@@ -57,9 +57,8 @@ c      enddo
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
       USE resolution, ONLY : Im,Jm
       USE model_com,ONLY : Dtsrc,fearth
-      USE qusdef,ONLY : mz
       USE fluxes,ONLY : prec,evapor,trsrfflx
-      USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
+      USE tracer_com,ONLY : n_clay,Ntm_dust,trm
       USE tracer_diag_com,ONLY : ijts_source,jls_source,taijs,tajls
       USE geom,ONLY : dxyp
       USE ghycom,ONLY : snowe !earth snow amount
@@ -146,7 +145,6 @@ c        WRITE(*,*) 'naij,najl:',naij,najl
             IF (trsrfflx(i,j,n1) > 0.) THEN
               workijn=trsrfflx(i,j,n1)*Dtsrc
               trm(i,j,1,n1)=trm(i,j,1,n1)+workijn
-              trmom(mz,i,j,1,n1)=trmom(mz,i,j,1,n1)-workijn
 
               taijs(i,j,naij)=taijs(i,j,naij)+workijn
             END IF
@@ -222,7 +220,6 @@ c     dsrcflx  dust source flux for Ntm_dust tracers [kg/s]
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : Dtsrc
-      USE qusdef,ONLY : mx,my,mz
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
       USE tracer_diag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
@@ -274,9 +271,7 @@ c**** Wet Deposition
               trsrfflx(i,j,n1)=trsrfflx(i,j,n1)+
      &             tr3Dsource(i,j,l,nDustWet3Djl,n1)
               trm(i,j,l,n1)=trm(i,j,l,n1)*(1.-y)
-              trmom(mx,i,j,l,n1)=trmom(mx,i,j,l,n1)*(1.-y)
-              trmom(my,i,j,l,n1)=trmom(my,i,j,l,n1)*(1.-y)
-              trmom(mz,i,j,l,n1)=trmom(mz,i,j,l,n1)*(1.-y)
+              trmom(:,i,j,l,n1)=trmom(:,i,j,l,n1)*(1.-y)
             END DO
           END DO
         END DO
@@ -302,7 +297,7 @@ c**** Wet Deposition
       USE CONSTANT,ONLY : visc_air,grav
       USE resolution,ONLY : Jm,Lm
       USE MODEL_COM,ONLY: Dtsrc
-      USE qusdef,ONLY : mz
+      USE qusdef,ONLY : zmoms
       USE fluxes,ONLY : tr3Dsource,trgrdep
       USE TRACER_COM,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
       USE TRACER_DIAG_COM, only : ijts_source,jls_3Dsource,taijs,tajls
@@ -336,14 +331,13 @@ c     &       trgrdep(n1,:,:)
           stokefac2=stokefac2*Dtsrc
           trm(:,:,l,n1)=(1-stokefac1)*trm(:,:,l,n1)+
      &         stokefac2*trm(:,:,l+1,n1)
-          trmom(mz,:,:,l,n1)=(1-stokefac1)*trmom(mz,:,:,l,n1)+stokefac2*
-     &         trmom(mz,:,:,l+1,n1)
+          trmom(zmoms,:,:,l,n1)=(1-stokefac1)*trmom(zmoms,:,:,l,n1)
         END DO
         stokefac1=stokevdt(n)/zld(Lm)
         tr3Dsource(:,:,Lm,nDustGrav3Djl,n1)=stokefac1*trm(:,:,Lm,n1)
         stokefac1=stokefac1*Dtsrc
         trm(:,:,Lm,n1)=(1-stokefac1)*trm(:,:,Lm,n1)
-        trmom(mz,:,:,Lm,n1)=(1-stokefac1)*trmom(mz,:,:,Lm,n1)
+        trmom(zmoms,:,:,Lm,n1)=(1-stokefac1)*trmom(zmoms,:,:,Lm,n1)
       END DO
 
       DO n=1,Ntm_dust
@@ -404,7 +398,6 @@ c      WRITE(*,*) 'stokevdt:',stokevdt
 c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
       USE resolution,ONLY : Jm
       USE MODEL_COM, only: dtsrc
-      USE qusdef,ONLY : mz
       USE fluxes,ONLY : trsrfflx
       USE tracer_com, ONLY : n_clay,Ntm_dust,trm,trmom
       USE TRACER_DIAG_COM, only : ijts_source,jls_source,taijs,tajls
@@ -421,7 +414,7 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
         IF (dratio > 1.) dratio=1.
         trsrfflx(:,:,n1)=dratio*trm(:,:,1,n1)/Dtsrc
         trm(:,:,1,n1)=(1-dratio)*trm(:,:,1,n1)
-        trmom(mz,:,:,1,n1)=(1-dratio)*trmom(mz,:,:,1,n1)
+        trmom(:,:,:,1,n1)=(1-dratio)*trmom(:,:,:,1,n1)
 
         naij=ijts_source(nDustTurbij,n1)
         taijs(:,:,naij)=taijs(:,:,naij)+dratio*trm(:,:,1,n1)
