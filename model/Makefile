@@ -173,7 +173,7 @@ endif
 	mv $(RUN).exe $(BIN_DIR)
 	@echo '--------------------------------------------------------------'
 	@echo '---------       GCM successfuly compiled             ---------'
-	@echo '---------    executable $(RUN).exe was created       ---------'
+	@echo '---------    executable $(RUN).exe was created     ---------'
 	@echo '--------------------------------------------------------------'
 
 gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJS) NCACC.o
@@ -184,7 +184,7 @@ gcmlib $(BIN_DIR)/$(RUN).a: $(RUNDECK) $(MODS) $(OBJS) NCACC.o
 
 # Setup the gcm
 setup:  $(BIN_DIR)/$(RUN).exe
-	@echo '---------        Starting setup for $(RUN)           ---------'
+	@echo '---------        Starting setup for $(RUN)         ---------'
 	@echo '--------------------------------------------------------------'
 	@$(SETUP) $(RUN)
 
