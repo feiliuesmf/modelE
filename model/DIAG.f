@@ -366,7 +366,7 @@ C****
       USE GEOM, only : areag,cosp,dlat,dxv,dxyn,dxyp,dxys,dxyv,dyp,fcor
      *     ,imaxj,ravpn,ravps,sinp,bydxyv
       USE DAGCOM, only : aj,areg,jreg,apj,ajl,asjl,ail,j50n,j70n,J5NUV
-     *     ,J5SUV,J5S,J5N,aij,ij_dtdp,ij_pev,ij_phi1k,ij_pres,ij_puq
+     *     ,J5SUV,J5S,J5N,aij,ij_dtdp,ij_dsev,ij_phi1k,ij_pres,ij_puq
      *     ,ij_pvq,ij_slp,ij_t850,ij_ujet,ij_vjet,j_tx1,j_tx,j_qp
      *     ,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst,j_rictr,j_rostr,j_ltro
      *     ,j_ricst,j_rosst,j_lstr,j_gamm,j_gam,j_gamc,lstr,il_ueq
@@ -848,7 +848,7 @@ C     PZV16I=PZV16I+P4*Z4*V(I,J,L)
 C     Q4=Q(I,J-1,L)+Q(IP1,J-1,L)+Q(I,J,L)+Q(IP1,J,L)
 C     PQ16I=PQ16I+P4*Q4
 C     PQV16I=PQV16I+P4*Q4*V(I,J,L)
-      AIJ(I,J,IJ_PEV)=AIJ(I,J,IJ_PEV)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)
+      AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)
      *     *DXV(J)
       SP2=P(IP1,J-1)+P(IP1,J)
       IF(L.GE.LS1) SP2=2.*PSFMPT

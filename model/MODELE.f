@@ -1031,7 +1031,6 @@ C****
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
       CALL init_RAD
-      IF (KDIAG(2).EQ.9.AND.KDIAG(3).LT.9) KDIAG(2)=8
       WRITE (6,INPUTZ)
       call print_param( 6 )
       WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)

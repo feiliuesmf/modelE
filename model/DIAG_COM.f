@@ -263,7 +263,7 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER :: IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850,IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
-     *     IJ_PHI30,IJ_T850,IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_PEV,
+     *     IJ_PHI30,IJ_T850,IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
      *     IJ_TRNFP0, IJ_SRTR,IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1,IJ_RSIT, IJ_TDSL, IJ_DTDP, IJ_RUNE, IJ_TS1,
      *     IJ_RUNLI, IJ_WS,IJ_TS, IJ_US, IJ_VS, IJ_SLP,IJ_UJET, IJ_VJET,
@@ -292,8 +292,21 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(kaij) :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=80), dimension(kaij) :: lname_ij
+!@var IW_IJ weighting indices for IJ diagnostics
+      integer, dimension(kaij) :: iw_ij
+!@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
+      integer, parameter :: nwts_ij = 7
+!@var wt_ij various weight-arrays use in ij-diagnostics
+      real*8, dimension(im,jm,nwts_ij) :: wt_ij
+!@var IW_xxx index for weight-array
+      integer, parameter :: iw_all=1 , iw_ocn=2 , iw_lake=3,
+     *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7
+!@var IR_IJ range indices for IJ diagnostics
+      integer, dimension(kaij) :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
       integer, dimension(kaij) :: ia_ij
+!@var jgrid_ij 1=primary grid  2=secondary grid
+      integer, dimension(kaij) :: jgrid_ij
 
 !@var NAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajl) :: name_jl

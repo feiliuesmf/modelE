@@ -41,7 +41,7 @@ C**** have to wait.
 !@var units string containing units of current output field
       character(len=30) :: units='' ! is reset to '' after each write
 !@var long_name description of current output field
-      character(len=80) :: long_name='' ! is reset to '' after each write
+      character(len=80) :: long_name='' ! is set to '' after each write
 
 !@param ndfmax maximum number of allowed dimensions in output file
       integer, parameter :: ndfmax=100
@@ -63,15 +63,15 @@ C**** have to wait.
 !@var real_att value(s) of real attribute to write to output file
       real, dimension(real_att_max_size) :: real_att = missing
 
-c netcdf library will convert prog_dtype to disk_dtype 
+c netcdf library will convert prog_dtype to disk_dtype
 c these are the defaults for converting GCM real*8 to real*4 on disk
 !@var disk_dtype data type to write to output file
-      integer :: disk_dtype = nf_real ! is reset to this after each write
+      integer :: disk_dtype = nf_real ! is set to this after each write
 !@var prog_dtype data type of array being written to disk
-      integer :: prog_dtype = nf_double  ! is reset to this after each write
+      integer :: prog_dtype = nf_double ! set to this after each write
 
       contains
-      
+
       subroutine open_out
       status_out = nf_create (trim(outfile), nf_clobber, out_fid)
       if(status_out.ne.nf_noerr) then
@@ -327,23 +327,27 @@ c restore defaults
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM,IJGRID)
+      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS_IN,XIJ,XJ,XSUM,IJGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : IM,JM
       USE DAGCOM, only : iu_ij
       USE NCOUT
-      USE BDIJ, title_ij=>title,units_ij=>units,
-     &          lname_ij=>lname,sname_ij=>sname
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
-!@var XIJ lat/lon output field 
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS*50
+!@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
-!@var XJ lat sum/mean of output field 
+!@var XJ lat sum/mean of output field
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
-!@var XSUM global sum/mean of output field 
+!@var XSUM global sum/mean of output field
       REAL*8, INTENT(IN) :: XSUM
 !@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
       INTEGER, INTENT(IN) :: IJGRID
@@ -365,9 +369,9 @@ c restore defaults
       call set_dim_out(lon_name,1)
       call set_dim_out(lat_name,2)
 
-      var_name=sname_ij(nt_ij)
-      long_name=lname_ij(nt_ij)
-      units=units_ij(nt_ij)
+      var_name=sname
+      long_name=lname
+      units=units_in
       real_att_name='glb_mean'
       real_att(1)=xsum
       if(ijgrid.eq.1) then
@@ -466,7 +470,7 @@ c restore defaults
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
-!@var XJL output field 
+!@var XJL output field
 !@+       (J1:JM,1:KLMAX) is field
 !@+       (JM+1:JM+3,1:KLMAX) are global/NH/SH average over L
 !@+       (J1:JM+3,LM+LM_REQ+1) are averages over J
@@ -474,10 +478,10 @@ c restore defaults
       REAL*8, DIMENSION(JM,LM+LM_REQ) :: XJL0
       REAL*8, DIMENSION(JM-1,LM+LM_REQ) :: XJL0B
 !@var PM pressure levels (MB)
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 
       character(len=30) :: var_name,dim_name
-      
+
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER J,L
 
@@ -613,24 +617,24 @@ c restore defaults
 !@var KLMAX max level to output
 !@var ISHIFT flag for secondary grid
       INTEGER, INTENT(IN) :: KLMAX,ISHIFT
-!@var XIL output field 
+!@var XIL output field
       REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
 !@var PM pressure levels (MB)
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
 !@var ASUM vertical mean/sum
-      REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM 
-!@var GSUM total sum/mean 
+      REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM
+!@var GSUM total sum/mean
       REAL*8, INTENT(IN) :: GSUM
-!@var ZONAL zonal sum/mean 
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL 
-      
+!@var ZONAL zonal sum/mean
+      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL
+
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER I,L
 
       character(len=30) :: var_name,dim_name
       character(len=20), intent(in) :: sname,unit
       character(len=80), intent(in) :: lname
-      
+
 ! (re)set shape of output arrays
       ndims_out = 2
 
@@ -835,11 +839,11 @@ c
       CHARACTER, INTENT(IN) :: LNAME*50
 !@var UNITS units of field
       CHARACTER, INTENT(IN) :: UNITS_IN*50
-!@var XIJK lat/lon/height output field 
+!@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
-!@var XJK lat sum/mean of output field 
+!@var XJK lat sum/mean of output field
       REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
-!@var XK global sum/mean of output field 
+!@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 
       integer :: nvars, status

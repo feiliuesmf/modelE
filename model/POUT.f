@@ -35,7 +35,7 @@ C**** have to wait.
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM,IJGRID)
+      subroutine POUT_IJ(TITLE,SNAME,LNAME,UNITS,XIJ,XJ,XSUM,IJGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -44,6 +44,12 @@ C**** have to wait.
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
+!@var SNAME short name of field
+      CHARACTER, INTENT(IN) :: SNAME*30
+!@var LNAME long name of field
+      CHARACTER, INTENT(IN) :: LNAME*50
+!@var UNITS units of field
+      CHARACTER, INTENT(IN) :: UNITS*50
 !@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
 !@var XJ lat sum/mean of output field
