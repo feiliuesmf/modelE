@@ -377,7 +377,6 @@ C**** tracers are now passive, so use 'upstream' concentration
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance):
         CALL get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar)
-c       if (itype.eq.1) write(6,*)'drydep', ilong,jlat,lmonin,dbl,ustar
 C  
 C       I am resetting trsf & trcnst here because the TRACERS_WATER
 C       Gavin's code section above needs to be fixed to not operate on
