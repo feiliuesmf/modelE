@@ -25,12 +25,17 @@ help:
 	$(MAKE) -C $(MODEL_DIR) help
 
 rundeck:
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
+	-a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	echo 'name $(RUN) is already used by somebody else'; \
+	echo 'please choose a unique one'; exit 1; fi
 	@if [ -s $(DECKS_REPOSITORY)/$(RUN).R -a $(OVERWRITE) != YES ];\
 	then echo '$(RUN).R already exists in repository'; \
 	echo 'use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
-	cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
+	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
+	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
 
 # alias for backwards compatibility
 mkrun: rundeck     
@@ -39,9 +44,14 @@ gcm $(BIN_DIR)/$(RUN).exe:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 setup: gcm
-	@echo '------- Loooks like it was compiled OK -----------------------'
-	@echo '------- Saving Rundeck and other info to global repository ---'
+	@echo '---------       Loooks like it was compiled OK       ---------'
+	@echo '----- Saving Rundeck and other info to global repository -----'
+	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R \
+	-a ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	echo 'name $(RUN) is already used by somebody else'; \
+	echo 'please choose a unique one'; exit 1; fi
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
+	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R
 	@echo '### Information below describes your run. Do not delete! ###'\
 	>> $(DECKS_REPOSITORY)/$(RUN).R
 	@date >> $(DECKS_REPOSITORY)/$(RUN).R
@@ -51,7 +61,8 @@ setup: gcm
 	>> $(DECKS_REPOSITORY)/$(RUN).R; else \
 	echo 'CVS Repository: MAIN Branch' \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; fi
-	@echo '--------- Starting setup for $(RUN) --------------------------'
+	@echo '---------        Starting setup for $(RUN)           ---------'
+	@echo '--------------------------------------------------------------'
 	@$(SETUP) $(RUN)
 
 aux:
@@ -68,6 +79,9 @@ clean vclean:
 	$(MAKE) -C $(AUX_DIR) $@
 
 exe:  $(BIN_DIR)/$(RUN).exe
+	@if [ ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
+	echo 'Either you didn''t run setup yet or the rundeck name $(RUN)'; \
+	echo 'belongs to somebody else'; echo 'please check'; exit 1; fi
 	@if [ ! -s /u/cmrun/$(RUN)/I ] ; then \
 	echo 'directory /u/cmrun/$(RUN) or input files inside it are missing';\
 	echo 'you should make "setup" first'; \
