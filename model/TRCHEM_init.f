@@ -1,7 +1,7 @@
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on ds3ch4_chem_init_M23)
+!@ver  1.0 (based on cheminit0C5_M23p2, but not parallel)
 !@calls jplrts,phtlst,inphot,wave,reactn
 c
 C**** GLOBAL parameters and variables:
@@ -597,11 +597,8 @@ C
       INTEGER, INTENT(IN) :: NJ1
       INTEGER i,j,k,iw,jj,nqqq,NJVAL2
 C
-      DO J=1,NS
-        DO K=1,3
-          TQQ(K,J) = 0.d0
-        ENDDO
-      ENDDO
+      TQQ = 0.d0
+
 C------read in-------spectral data------------------------------------
       READ(NJ1,'(A)') TITLE0
       WRITE(6,'(1X,A)') TITLE0
@@ -650,12 +647,8 @@ c---Pressure dependencies
       read(NJ1,'(A)') TITLE0
 c
 c---Zero index arrays
-      do j=1,jppj
-        jind(j)=0
-      enddo
-      do j=1,NJVAL
-        jpdep(j)=0
-      enddo
+      jind=0
+      jpdep=0
 c
 C---Set mapping index
       do j=1,NJVAL
@@ -684,7 +677,6 @@ C---Read aerosol phase functions:
       write(6,*)'Title0 is',Title0
       write(6,*)'NAA is',NAA
       DO J=1,NAA
-
         READ(NJ1,'(A5,I3,I2,14F5.0)') title_aer_pf(J),JJ,NK,
      $            (WAAFASTJ(K,J),QAAFASTJ(K,J),K=1,NK)
         DO K=1,NK
