@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n
+      INTEGER I,J,L,K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,n,istart
       INTEGER iu_VFLXO,iu_SLP,iu_ACC,iu_RSF,iu_ODA
       INTEGER :: MDUM = 0
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
@@ -33,7 +33,7 @@ C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
 
-      CALL INPUT
+      CALL INPUT (istart)
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -72,6 +72,7 @@ C**** INITIALIZE TIME PARAMETERS
          MODD5K=1000
 
       CALL DAILY(.false.)                  ! not end_of_day
+      if (istart.le.9) call reset_diag(0)
       if (Kradia.le.0) then
         CALL daily_EARTH(.false.)          ! not end_of_day
         CALL daily_OCEAN(.false.)          ! not end_of_day
@@ -546,7 +547,7 @@ C****
       end subroutine init_Model
 
 
-      SUBROUTINE INPUT
+      SUBROUTINE INPUT (istart)
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
@@ -592,7 +593,7 @@ C****
      *             HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
 !@nlparam ISTART  postprocessing(-1)/start(1-8)/restart(>8)  option
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
-     *             ISTART=10, IRANDI=0
+     *             ISTART, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
       REAL*4 XX4
       INTEGER Itime1,Itime2,ItimeX,IhrX,iargc
@@ -610,6 +611,10 @@ C****
      *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
+C****
+C**** Default setting for ISTART : restart from latest save-file (10)
+C****
+      ISTART=10
 C****
 C**** default settings for prog. variables etc
 C****
@@ -759,8 +764,6 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
      *     ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
         STOP 'INPUT: Improper start date or base year Iyear1'
       END IF
-C**** Initialize accumulation arrays and accumulation start time
-      call reset_diag(0)
 C**** Check the vertical layering defined in RES_ (is sige(ls1)=0 ?)
       IF (SIGE(LS1).ne.0.) then
         write(6,*) 'bad vertical layering: ls1,sige(ls1)',ls1,sige(ls1)
@@ -966,8 +969,7 @@ C***********************************************************************
 C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****        mainly used for REPEATS and delayed EXTENSIONS
-      CASE (1:9)                      !  diag.arrays are not read in ...
-        call reset_diag(0)            !  ... but reset to 0
+      CASE (1:9)                      !  diag.arrays are not read in
         call openunit("AIC",iu_AIC,.true.,.true.)
         if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
         if(istart.le.8) then         !  initial start of rad.forcing run
@@ -1306,7 +1308,7 @@ C**** Add water to relevant tracers as well
           do n=1,ntm
             if (itime_tr0(n).gt.itime) then
               select case (tr_wd_type(n))
-              case (nWater)     ! water: add CH4-sourced water to tracers
+              case (nWater)    ! water: add CH4-sourced water to tracers
                 trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*ghgam(3,iy)
      *               *dH2O(j,l)*dxyp(j)
               end select
