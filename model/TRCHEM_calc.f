@@ -18,7 +18,7 @@ C
      &                            ,LAT_DG,LON_DG
 #endif
       USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls,
-     &                           taijs,ijs_NO3,ijs_OH,ijs_HO2 !ijs_OxL1
+     &                           taijs,ijs_OH,ijs_HO2 !ijs_OxL1
 #ifdef regional_Ox_tracers
      &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss
 #endif
@@ -1226,8 +1226,6 @@ C**** special diags not associated with a particular tracer
            TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
            TAIJS(I,J,ijs_OH(L))=TAIJS(I,J,ijs_OH(L))+y(nOH,L)
          end if
-         if (y(nNO3,L).gt.0.d0 .and. y(nNO3,L).lt.1.d20)
-     &   TAIJS(I,J,ijs_NO3(L))=TAIJS(I,J,ijs_NO3(L))+y(nNO3,L)
          if (y(nHO2,L).gt.0.d0 .and. y(nHO2,L).lt.1.d20)
      &   TAIJS(I,J,ijs_HO2(L))=TAIJS(I,J,ijs_HO2(L))+y(nHO2,L)
          TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
