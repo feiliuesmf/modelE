@@ -994,3 +994,132 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
       END DO
       RETURN
       END
+
+      SUBROUTINE CALC_TROP
+!@sum  CALC_TROP (to calculate tropopause height and layer)
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm,t
+      USE GEOM, only : imaxj
+      USE DAGCOM, only : aij, aj
+      USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
+      IMPLICIT NONE
+      INTEGER I,J,L
+      REAL*8, DIMENSION(LM) :: TL
+
+C**** Find WMO Definition of Tropopause to Nearest L
+      do j=1,jm
+      do i=1,imaxj(j)
+        do l=1,lm
+          TL(L)=T(I,J,L)*PK(L,I,J)
+        end do
+        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J))
+      end do
+      end do
+      END SUBROUTINE CALC_TROP
+
+      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp)
+!@sum  tropwmo calculates tropopasue height according to WMO formula
+!@auth D. Nodorp/T. Reichler/C. Land
+!@+    GISS Modifications by Jean Lerner/Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : klev=>lm
+      USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
+      implicit none
+
+      real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
+      real*8, intent(out) :: ptropo
+      integer, intent(out) :: ltropp
+      real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
+      real*8 zplimb, zplimt, zgwmo, zdeltaz, zptph, zp2km, zag, zbg,
+     *     zasum,zaquer, zfaktor,zptf
+      integer iplimb,iplimt, jk, jj, kcount
+      logical ldtdz
+
+c      zkappa = 0.286
+c      zzkap=1./zkappa
+c      zfaktor = (-1.)*g/rd  ! -9.81/287.0
+      zfaktor = -GRAV/RGAS              ! 9.81/287.0
+      zgwmo  = -0.002d0
+      zdeltaz = 2000.0
+      iplimb=4
+      iplimt=klev
+c****
+c****  2. Calculate the height of the tropopause
+c****  -----------------------------------------
+       ptropo  = -999.0
+       zplimb=papm1(iplimb)
+       zplimt=papm1(iplimt)
+c****
+c****  2.1 compute dt/dz
+c****  -----------------
+c****       ztm  lineare Interpolation in p**kappa
+c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
+
+      do jk=iplimb+1,iplimt-1
+        zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
+
+        zpm(jk)=zpmk(jk)**zzkap      ! p mitte
+
+        za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
+        zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
+
+        ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
+        zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
+      end do
+
+c****
+c****  2.2 First test: valid dt/dz ?
+c****  -----------------------------
+c****
+      do 1000 jk=iplimb+1,iplimt-1
+
+        if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
+     &       zpm(jk).le.zplimb) then ! zpm not too low
+          ltropp = jk
+c****
+c****  2.3 dtdz is valid > something in German
+c****  ----------------------------------------
+c****    1.lineare in p^kappa (= Dieters neue Methode)
+
+          zag = (zdtdz(jk)-zdtdz(jk+1))/
+     &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
+          zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
+          if(((zgwmo-zbg)/zag).lt.0.) then
+            zptf=0.
+          else
+            zptf=1.
+          end if
+          zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
+          ldtdz=zdtdz(jk+1).lt.zgwmo
+          if(.not.ldtdz) zptph=zpm(jk)
+c****
+c****  2.4 2nd test: dt/dz above 2km must not be lower than -2K/km
+c****  -----------------------------------------------------------
+c****
+          zp2km = zptph + zdeltaz*zpm(jk)
+     &         / ztm(jk)*zfaktor ! p at ptph + 2km
+          zasum = 0.0           ! zdtdz above
+          kcount = 0            ! number of levels above
+c****
+c****  2.5 Test until pm < p2km
+c****  --------------------------
+c****
+          do jj=jk,iplimt-1
+            if(zpm(jj).gt.zptph) cycle ! doesn't happen
+            if(zpm(jj).lt.zp2km) goto 2000 ! ptropo valid
+            zasum = zasum+zdtdz(jj)
+            kcount = kcount+1
+            zaquer = zasum/float(kcount) ! dt/dz mean
+            if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
+                                          ! discard it
+          end do                ! test next level
+          goto 2000
+        endif
+ 1000 continue                  ! next level
+ 2000 continue
+
+      ptropo = papm1(ltropp)
+c****
+      return
+      end subroutine tropwmo

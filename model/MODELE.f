@@ -127,6 +127,10 @@ C****
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
       CALL DYNAM
+C****
+C**** Calculate tropopause level and pressure
+C****
+      CALL CALC_TROP
 
 C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL

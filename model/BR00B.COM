@@ -1,5 +1,8 @@
+C     ALERT!!! LX=57 is for a 53-layer model (i.e., LX=LM+4)
+C     If LX is changed, need to change data statements in 
+C     BLOCK DATA RADPAR that initialize PLB and HLB
       IMPLICIT REAL*8(A-H,O-Z)
-      PARAMETER (LX=40,LMOX=12*(1998-1881),MO3X=12*(2050-1950) )
+      PARAMETER (LX=57,LMOX=12*(1998-1881),MO3X=12*(2050-1950) )
       REAL*4 TROAER,VDBCSU,TDUST,EPLMHC,UVLEAN   ! ,FVEG11,FOLGIZ     
       REAL*4 ATAU98,SIZE98,HTF498,O3CLIM         !  only for offline use
       CHARACTER*80 ATITLE,VTITLE,DTITLE,TITLE

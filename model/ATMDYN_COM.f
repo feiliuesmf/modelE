@@ -24,6 +24,10 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, DIMENSION(LM+1,IM,JM) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
       REAL*8, DIMENSION(IM,JM) :: SQRTP
+!@var  PTROPO  Pressure at mid point of tropopause level (mb)
+      REAL*8, DIMENSION(IM,JM) :: PTROPO
+!@var  LTROPO  Tropopause layer
+      INTEGER, DIMENSION(IM,JM) :: LTROPO
 
 C**** module should own dynam variables used by other routines
 !@var PTOLD pressure at beginning of dynamic time step (for clouds)
