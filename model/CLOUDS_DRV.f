@@ -905,19 +905,18 @@ C**** Save the conservation quantities for tracers
       end do
 #ifdef TRACERS_AEROSOLS_Koch
       if (jhour.eq.23) then
-        if (ifirst) then
-          call openunit("CLD_SO4",iuc_s,.true.,.false.)
-          ifirst=.false.
-        endif
-        if ((jyear.eq.1950.and.jmon.eq.12).or.
-     *       (jyear.eq.1951.and.jmon.le.11)) then
-          write(iuc_s) jyear,jmon,jdate,
-     *         (SNGL(a_sulf(I,1)),I=1,IM*JM),
-     *         (SNGL(cc_sulf(I,1)),I=1,IM*JM)
-        endif
-c     call closeunit(iuc_s)
-        a_sulf(:,:)=0.
-        cc_sulf(:,:)=0.
+       if (ifirst) then
+       call openunit("CLD_SO4",iuc_s,.true.,.false.)
+       ifirst=.false.
+       endif
+       if (jyear.eq.1950.and.jmon.ge.3.and.jmon.le.5) then
+       write(iuc_s) jyear,jmon,jdate,
+     *(SNGL(a_sulf(I,1)),I=1,IM*JM),
+     *(SNGL(cc_sulf(I,1)),I=1,IM*JM)
+       endif
+c      call closeunit(iuc_s)
+       a_sulf(:,:)=0.
+       cc_sulf(:,:)=0.
       endif
 #endif
 #endif
