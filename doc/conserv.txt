@@ -1,0 +1,156 @@
+
+Conservation quantities and calculations:
+
+This document explains the identities that should be observed in the
+model as a check of water mass, energy and salt conservation. Note
+that these identities may be affected by round-off errors in the PRT
+tables. Also, due to the 5 hour default timestep for the radiation,
+the average radiation diagnostics will not be accurate unless the
+number of hours run is divisible by 5 (=NRAD).
+
+First side of equations come from "Conservation Quantities".
+Second side of equations come from "Budgets".
+
+Conservation of Salt
+--------------------
+
+Ocean Ice salt: SUM OF CHANGES OF OICE SLT (10^-12 kg/s/m^2) =
+Oceans: [Salt Run + Salt Melt] * ocean surf fraction / 0.0000864
+
+For coupled models:
+
+Ocean Ice salt: SUM OF CHANGES OF OICE SLT (10^-12 kg/s/m^2) =
+Ocean salt: SUM OF CHANGES OF OCN SALT (10^-9 kg/s/m^2) * 0.001
+
+Conservation of Water mass fluxes
+---------------------------------
+0  =  Global: RIVER DISCH  
+
+(Note that the Global: HT RIVER DISCH will not be zero because of the
+potential energy gain of rivers moving downhill (in general)). 
+
+0 = Global: WATER RUNOFF 
+
+Conservation of Water Vapor in Atmosphere
+-----------------------------------------
+
+Atmosphere: Change of ATM WAT by DYNAMICS (10^-8 kg/s*m^2)  =  0
+
+Atmosphere: Change of ATM WAT by CONDENSATN (10^-8 kg/s*m^2)  =
+Global: - [Precip] / .000864
+
+Atmosphere: Change of ATM WAT by SURFACE (10^-8 kg/s*m^2)  =
+Global: - [Evapor] / .000864
+
+
+Conservation of Water in Ground
+-------------------------------
+
+Ground: Change of GRND WAT by EARTH (10^-9 kg/s*m^2)  =
+LAND: [Precip - Evap - Water Runoff] * 0.2565 / .0000864
+
+Conservation of Ice in Glacial Ice
+----------------------------------
+
+Glacial Ic: Precp - Evap - Water Runoff - Dwn Imp = 0.
+
+Conservation of Ice over OCEANS and LAKES
+-----------------------------------------
+
+For either Ocean or Lake ice:
+
+Ice: SUM CHANGES OF ICE MASS (10^-9 kg/s*m^2) = 
+ ( Ice covered: [Precip - Evap] * ice covered frac
+  - total Oceans/Lakes: [Ice Melt + Dwn Impl Wt Flx] * total ocean/lake frac )
+ / 0.0000864 
+
+Ocean Ice: CHANGE OF OICE MASS BY ADVECT (10^-8 kg/s*m^2)  =  0
+
+Conservation of Water in Lakes
+------------------------------
+
+Note: lake variables are in in J/m^2, kg/^2 over the whole globe.
+
+Lakes: Change of LAK MASS by RIVERS (10^-9 kg/s/m^2) * 0.0000864
+  = Lakes: [Rvr Disch] * lake fraction 
+  = - Oceans: [Rvr Disch] * ocean fraction 
+
+Lakes: SUM Changes of LAK MASS (10^-9 kg/s/m^2) * 0.0000864
+  = ( Open Lake: [Precip - Evap] * open lake fraction +
+      Lakes: [-Water Runoff + Ice Melt + Rvr Disch] * lake fraction ) 
+
+Conservation of Liquid Ocean Mass (coupled models)
+--------------------------------------------------
+
+1) Qflux model:
+
+Ocean: [Precip + Rvr Disch - Evap - Dwn Imp] = 0.
+
+2) Russell coupled model:
+
+Ocean: Change of OCN MASS by OCN PHYS (10^-8 kg/s*m^2)  =  0
+Ocean: Change of OCN MASS by OCN DYNAM (10^-8 kg/s*m^2)  =  0
+
+Ocean: Sum of Changes of OCN MASS (10^-8 kg/s*m^2)  =
+ (  Open Ocean: [Precip - Evap] * open ocean frac
+ + Total Ocean: [Rvr Disch + Ice melt] * total ocean frac)/ .000864
+
+
+Conservation of Energy fluxes
+-----------------------------
+0 = Global: HEAT RUNOFF
+
+Conservation of Total Potential Energy in Atmosphere
+----------------------------------------------------
+
+Atmosphere: Change of TPE by Radiation (10^-2 W/m^2) / 100  =
+Global: [SW ABS BY ATMOS + NET LW AT P0 - NET LW AT Z0]
+
+Atmosphere: Change of TPE by Surface Inter (10^-2 W/m^2) / 100  =
+Global: - [SENSBL HEAT FLX]
+
+
+Conservation of Energy in Ground
+--------------------------------
+Ground: Change of GRND ENRG by EARTH (10^-3 W/m^2) =
+Ground: NET HT CNV GRND * earth fraction * 1000
+
+**** Not sure if ground energy diagnostic is correct for this *****
+
+Conservation of Energy in Lakes
+-------------------------------
+
+Lakes: Change of LAK ENRG by RIVERS (10^-3 W/M^2) * 0.001
+  = Lakes: [Ht Rvr Disch] * lake fraction
+  = - Oceans: [Ht Rvr Disch] * ocean fraction 
+    + Global: [Ht Rvr Disch]
+
+(need global correction to account for net potential energy added)
+
+Lakes: SUM Changes of LAK ENRG (10^8 W) * 0.01 / Area  
+  = Open Lake: [Net Heat at Z0] * open lake fraction 
+    +  Lakes: [Ht Rvr Disch - Ht Runoff + Ht Ice Melt] * lake fraction 
+
+
+Conservation of Potential Enthalpy by Liquid Ocean (coupled model)
+------------------------------------------------------------------
+Ocean: Change of OCN HEAT by OCN DYNAM = 0.
+
+Ocean: Change of OCN HEAT by Precipitation (10^-2 W/m^2) / 100  =
+Open Ocean: [Precip Heat Flx] * open ocean frac
+
+Ocean: Change of OCN HEAT by SURF OCN FLX (10^-2 W/m^2) / 100  =
+  Open Ocean: [Net Heat At Z0] * open ocean frac + 
+  Ocean: [Ht Rvr Disch + Ht Ice Melt ] * ocean frac
+
+
+Conservation of Ocean/Lake Ice Energy
+-------------------------------------
+
+Ocean Ice: Change of OICE ENRG by ADVEC (10^-3 W/m^2) = 0
+
+Lake/Ocean Ice: SUM CHANGES OF ICE ENRG (10^-3 W/m^2) / 1000 = 
+ ( Ice covered: [Net Heat At Z0] * ice covered frac
+  - total Oceans/Lakes: [Ht Ice Melt + Dwn Impl Ht Flx] * total ocean/lake frac)
+
+
