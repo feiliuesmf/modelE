@@ -30,6 +30,8 @@ variables?, and what are all those 'd0' doing?
 5) So what are the actual interfaces?
 6) Any examples?
 
+          3. FAQs about Preprocessing instructions.
+
 ===========================================================================
 
 1) Why does GISS use the line number format for fortran files?
@@ -541,3 +543,135 @@ That's why one needs to use "select case" below.
       enddo
 
       end subroutine ex_param
+
+
+          3. FAQs about Preprocessing instructions.
+
+1) What is preprocessing?
+
+Preprocessor is a program that runs before the actual compiler starts
+and does certain editing to the source code according to preprocessing
+instructions. All preprocessing instructions start with # in the 
+first column.
+The most typical example of preprocessor usage in Fortran code would
+be:
+     ...............
+     some fortran code
+     ...............
+#ifdef OPTION_A
+     ...............
+     fortran code specific for OPTION_A
+     ..............
+#endif
+     ..............
+     more fortran code
+     ..............
+
+In the above example the code between "#ifdef OPTION_A" and "#endif"
+will be taken into account only if the name "OPTION_A" was defined
+(with the instruction "#define OPTION_A") somewhere earlier in the
+file. Otherwise it will be treated as commented out. So preprocessor
+allows optionally include/exclude certain parts of the code.
+There are also other useful preprocessing commands, like name substitution.
+Though with name substitutions one should be very careful in fixed format
+Fortran, since it is easy to create a line which after substitutions will 
+be longer then 72 characters.
+The following is a list of typical preprocessing instructions:
+#define
+#undef
+#include
+#ifdef
+#ifndef
+#if
+#else
+#endif
+SGI manual pages provide good explanations to those instructions.
+On SGI type "man cpp".
+
+2) How to set up global preprocessing options in a rundeck?
+
+Your rundeck may contain an optional block which starts with a line:
+
+Preprocessor Options
+
+and ends with a line:
+
+End Preprocessor Options
+
+Everything between those lines is treated as a set of preprocessing
+definitions and will be included into corresponding source files.
+Here is a simple example of preprocessing block:
+
+Preprocessor Options
+#define TRACERS_ON                  ! include tracers code
+End Preprocessor Options
+
+It defines the name "TRACERS_ON". The text which starts from '!' is 
+considered as comment and is ignored. Trailing spaces and empty lines
+are also ignored.
+
+
+3) How to use global preprocessing options in a source file?
+
+If you want to use global preprocessing options in a certain source
+file you should include a line:
+
+#include "rundeck_opts.h"
+
+at the very beginning of such file. Otherwise all global preprocessing
+names will stay undefined (compiler will not give any warnings about it).
+A typical use of a preprocessing option would be:
+
+#include "rundeck_opts.h"
+     ..........
+     some code
+#ifdef TRACERS_ON
+     some tracers code here
+#endif
+     some code
+
+The code between "#ifdef TRACERS_ON" and "#endif" will be included only
+when global name TRACERS_ON is defined in a rundeck. Otherwise this code 
+will be ignored by the compiler.
+
+
+4) How does it work?
+
+When the Makefile starts to compile the model it reads the global 
+preprocessing options block from the rundeck and compares it to the 
+contents of the file "rundeck_opts.h". If they are identical the
+file "rundeck_opts.h" is left unchanged. Otherwise it is overwritten
+with the new preprocessing block.
+File "rundeck_opts.h" should be included into each source file which
+wants to use global preprocessing options. This is done by putting 
+a line
+
+#include "rundeck_opts.h"
+
+in the beginning of the source file. Note that one should use CPP 
+include (i.e. #include , which starts from the first position), and
+not the Fortran include.
+When the Makefile checks dependencies it takes into account dependency
+on "rundeck_opts.h", so that when "rundeck_opts.h" is changed all 
+files which "#include" it are automatically recompiled.
+
+*) Any recommendations on usage?
+
+There is an understanding that global preprocessing options should be
+used only when there is no other convenient way to reach the same goal.
+One should keep in mind that once the global preprocessing block in
+a rundeck is changed, all files that include "rundeck_opts.h" will be
+recompiled which most probably will force the recompile of the entire
+model. So one should limit such options to those which would not change
+too often from rundeck to rundeck.
+This functionality is introduced mainly for the options which are global
+(i.e. used in many source files at the same time) and which need to be
+documented (that's why this block is in a rundeck). Typical example
+would be an option which controls inclusion of tracers code into the
+model (as in example above).
+There is also a general convention that the names defined by preprocessor
+are constructed of capital letters only with '_' introduced for readability,
+like: "USE_OPTION_A" . I suggest that we observe it. This helps to 
+distinguish them from the rest of the code which is usually in lower case.
+And yes, names used by preprocessor are case-sensitive (unlike names 
+in Fortran).
