@@ -25,7 +25,7 @@ C****
       REAL*8, PARAMETER :: G=299.9994728900967d0
       REAL*8 :: Q,AL                 !@var Q,AL   working variables
       REAL*8, INTENT(IN) :: X,Y      !@var X,Y    input temperatures
-      REAl*8 :: THBAR                !@var THBAR  averaged temperature
+      REAL*8 :: THBAR                !@var THBAR  averaged temperature
       Q=X/Y
       AL=(A+Q*(B+Q*(C+Q*(D+Q))))/(E+Q*(F+G*Q))
       THBAR=X*AL

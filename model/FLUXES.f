@@ -47,8 +47,10 @@ C**** surface energy fluxes defined over type
 
 C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere for each type (kg/m s) 
+!@+   On atmospheric A grid (tracer point)
       REAL*8, DIMENSION(IM,JM,NSTYPE) :: DMUA,DMVA
 !@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
+!@+   On atmospheric C grid 
       REAL*8, DIMENSION(IM,JM) :: DMUI,DMVI
 !@var UI2rho Ustar*2*rho ice-ocean friction velocity on atmospheric grid
       REAL*8, DIMENSION(IM,JM) :: UI2rho

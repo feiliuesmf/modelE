@@ -31,7 +31,7 @@
 !@var QCROSS true if cross terms should be calculated
       LOGICAL, PARAMETER :: QCROSS = .NOT. (ARAI.eq.1d0) ! i.e..FALSE.
 !@var AMU = Visbeck scheme scaling parameter (1)
-      REAl*8, PARAMETER :: AMU = 0.13d0
+      REAL*8, PARAMETER :: AMU = 0.13d0
 !@var SLIM = Upper limit of isopycnal slopes (stability parameter)
       REAL*8, PARAMETER :: SLIM=2d-3, BYSLIM=1./SLIM
 
