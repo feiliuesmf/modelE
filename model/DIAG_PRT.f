@@ -2013,6 +2013,55 @@ C**** Weighted average cloud sizes
       n=JL_CSIZSS
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+#ifdef CLD_AER_CDNC
+C**** Weighted average warm cloud droplet number
+      SCALET = 1.
+      DO L=1,LM
+      DO J=1,JM
+        IF (AJL(J,L,JL_CLDMC).gt.0) THEN
+          AX(J,L) = AJL(J,L,JL_CNUMWM)/AJL(J,L,JL_CLDMC)
+        ELSE
+          AX(J,L) = 0.
+        END IF
+        IF (AJL(J,L,JL_CLDSS).gt.0) THEN
+          BX(J,L) = AJL(J,L,JL_CNUMWS)/AJL(J,L,JL_CLDSS)
+!         write(6,*)"DIAG",BX(J,L),L,AJL(J,L,JL_CNUMWS),
+!    &   AJL(J,L,JL_CLDSS),AX(J,L),AJL(J,L,JL_CNUMWM),
+!    &   AJL(J,L,JL_CLDMC),J
+        ELSE
+          BX(J,L) = 0.
+        END IF
+      END DO
+      END DO
+      n=JL_CNUMWM
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+      n=JL_CNUMWS
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+C**** Weighted average cold cloud droplet number
+      SCALET = 1.
+      DO L=1,LM
+      DO J=1,JM
+        IF (AJL(J,L,JL_CLDMC).gt.0) THEN
+          AX(J,L) = AJL(J,L,JL_CNUMIM)/AJL(J,L,JL_CLDMC)
+        ELSE
+          AX(J,L) = 0.
+        END IF
+        IF (AJL(J,L,JL_CLDSS).gt.0) THEN
+          BX(J,L) = AJL(J,L,JL_CNUMIS)/AJL(J,L,JL_CLDSS)
+        ELSE
+          BX(J,L) = 0.
+        END IF
+      END DO
+      END DO
+      n=JL_CNUMIM
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+      n=JL_CNUMIS
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+#endif
 C**** this output is not required (very similar to jl_sscld etc.)
 c       n=JL_CLDMC
 c       SCALET = scale_jl(n)/idacc(ia_jl(n))
