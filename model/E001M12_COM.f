@@ -5,7 +5,7 @@ C**** COMMON BLOCK    4x5 deg Model  - Real*8 - VDATA:10->11+1
 
 C**** TO CHANGE THE GRID, MODIFY THE NEXT LINE ONLY
       INTEGER, PARAMETER :: IM=72,JM=46,LM=12, IMH=IM/2
-      integer, parameter :: lmom = 9 ! for deep ocean diffusion  
+      integer, parameter :: lmom = 9 ! for deep ocean diffusion
 C**** IM,JM,LM LIMITED TO 72,46,36 RESPECTIVELY BY RADCOM & SIGmas
 
 C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
@@ -25,7 +25,7 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
      *  NRAD,NSURF,NGRND,NFILTR,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
      *  IYEAR,IDAY,IDAY0,JYEAR,JYEAR0,  JDAY,JDATE,JDATE0,NSTEP,MRCH,
-     *  KTACC0,IDUM   ,NDZERO    ,NDPRNT    ,  IJD6     ,IDACC    
+     *  KTACC0,IDUM   ,NDZERO    ,NDPRNT    ,  IJD6     ,IDACC
 
 ! handle for referring to integer parameters
       INTEGER, DIMENSION(100) :: JC
@@ -45,7 +45,7 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
      *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
      *  CCMCX,U00,S0X,CO2,SRCOR,        PTOP,PSF,PSDRAG,PTRUNC,
      *  XCDNST,XINT,                    SKIPSE,USESLP,USEP,USET,FIM,
-     *  RSDIST,SIND,COSD,       SIG    ,SIGE    ,TAUTR0   ,RDM2    
+     *  RSDIST,SIND,COSD,       SIG    ,SIGE    ,TAUTR0   ,RDM2
 
 ! handle for referring to real parameters
       DOUBLE PRECISION, DIMENSION(161) :: RC
@@ -86,14 +86,14 @@ c      INTEGER irw    !@var irw   read or write flag
 c      INTEGER, PARAMETER :: iwrite=1,iread=2
 c      CHARACTER*20 HEADER,MODULE_HEADER
 c      DATA MODULE_HEADER/"E001M12"
-c 
+c
 c      select case (irw)
 c      case (iwrite)
-c         write(iunit) TAU,MODULE_HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q 
+c         write(iunit) TAU,MODULE_HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q
 c      case (iread)
-c         read(iunit) TAU,HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q 
+c         read(iunit) TAU,HEADER,JC,CLABEL,RC,KEYNR,U,V,T,P,Q
 c         if (HEADER.ne.MODULE_HEADER)
-c     &      print*, "Discrepency in module version",HEADER,MODULE_HEADER
+c     &      print*,"Discrepancy in module version",HEADER,MODULE_HEADER
 c      end select
 c
 c      RETURN
