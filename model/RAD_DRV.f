@@ -400,9 +400,10 @@ C**** New options (currently not used)
 !!!   KVEGA6=-3  ! 2-band albedo, Antarc/Greenl alb=.8, puddling :SI2000
 !!!   KVEGA6=-2  ! 2-band albedo, Antarc/Greenl alb=.8, no puddling
 !!!   KVEGA6=-1  ! 2-band albedo - no 'fixups'
-!!!   KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
+!!!   KVEGA6= 0  ! Schramm oi.alb, Antarc/Greenl alb=.8
 !!!   KVEGA6= 1  ! 6-band albedo - no 'fixups'
 !!!   KVEGA6= 2  ! 6-band albedo, Antarc/Greenl alb=.8, no puddling
+!!!   KVEGA6= 3  ! 6-band Schramm oi.alb, Antarc/Greenl alb=.8
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -836,6 +837,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
+c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       hsn=snowoi/rhos
       if (poice.gt.0.) then

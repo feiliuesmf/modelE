@@ -5224,10 +5224,8 @@ C                     1       2       3       4
 C                   WINTER  SPRING  SUMMER  AUTUMN
 CCC   DATA SEASON/  15.00,  105.0,  196.0,  288.0/
 C
-      REAL*8 almp1,almp2,almp3,almp4,alvisf,alvisr,alnirf,alnirr,als1d
-     *     ,als2d,als3d,als4d,als1f,als2f,als3f,als4f,patchy,als1,als2
-     *     ,als3,als4,ali1,ali2,ali3,ali4
-
+      REAL*8 almp(4),alsd(4),alsf(4),patchy,ali(4),albtf(4),albtr(4)
+     *     ,snfac(4)
 C
 C     -----------------------------------------------------------------
 C     Solar:     Ocean Albedo Dependence on Zenith Angle and Wind Speed
@@ -5305,9 +5303,10 @@ C     Select albedo computations and fixups using KVEGA6
 C     KVEGA6=-3  2-band albedo, Antarc/Greenl alb=.8, puddling  (SI2000)
 C     KVEGA6=-2  2-band albedo, Antarc/Greenl alb=.8, no puddling
 C     KVEGA6=-1  2-band albedo - no 'fixups'
-C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6= 0  Schramm oi.alb, Antarc/Greenl alb=.8
 C     KVEGA6= 1  6-band albedo - no 'fixups'
 C     KVEGA6= 2  6-band albedo, Antarc/Greenl alb=.8, no puddling
+C     KVEGA6= 3  6-band Schramm oi.alb, Antarc/Greenl alb=.8
 C
 C                     Define Vegetation Fractions for ILON,JLAT grid box
 C                     --------------------------------------------------
@@ -5571,81 +5570,99 @@ C                                         Ocean Ice Albedo Specification
 C                                         ------------------------------
   500 CONTINUE
       IF(POICE.LT.1.D-04) GO TO 600
-      IF(KVEGA6.EQ.0) then
-C**** This albedo specification comes from Schramm et al 96
-C**** Actually uses 4 spectral bands, but we calculate a
-C**** weighted average for the two bands used in this code.
-       if(hin.gt.0. .and. hin.lt.1.)then
-         ali1=.76d0+.14d0*log(hin)
-         ali2=.247d0+.029d0*log(hin)
-         ali3=.055d0
-         ali4=.036d0
-       elseif (hin.ge.1. .and. hin.lt.2.) then
-         ali1=.77d0+.018d0*(hin-1)
-         ali2=.247d0+.196d0*(hin-1)
-         ali3=.055d0
-         ali4=.036d0
-       elseif (hin.ge.2.) then
-         ali1=.778d0
-         ali2=.443d0
-         ali3=.055d0
-         ali4=.036d0
-       endif
-       alvisf=ali1
-       alvisr=alvisf
-       alnirf=(.33d0*ali2+.14d0*ali3+.01d0*ali4)/.48d0
-       alnirr=alnirf
-       if(hsn.ge.0.02d0)then
-         if(flags)then  ! wet snow
-             als1=.871d0
-             als2=.702d0
-             als3=.079d0
-             als4=.001d0
-           if(hsn.ge.0.1d0)then
-             patchy=1d0
-           else
-             patchy=hsn/(hsn+0.02d0)
-           endif
-           alvisf=alvisf*(1.-patchy)+als1*patchy
-           alvisr=alvisf
-           alnirf=alnirf*(1.-patchy)+
-     *       (.33d0*als2+.14d0*als3+.01d0*als4)/.48d0*patchy
-           alnirr=alnirf
-         else         ! dry snow
-           als1d=.98d0-.008d0*cosz
-           als2d=.902d0-.116d0*cosz
-           als3d=.384d0-.222d0*cosz
-           als4d=.053d0-.0047d0*cosz
-           als1f=.975d0
-           als2f=.832d0
-           als3f=.25d0
-           als4f=.025d0
-           alvisf=als1f
-           alvisr=als1d
-           alnirf=(.33d0*als2f+.14d0*als3f+.01d0*als4f)/.48d0
-           alnirr=(.33d0*als2d+.14d0*als3d+.01d0*als4d)/.48d0
-         endif
-       endif
-C**** Melt ponds
-       almp1=.15d0+exp(-8.1d0*hmp-.47d0)
-       almp2=.054d0+exp(-31.8d0*hmp-.94d0)
-       almp3=.033d0+exp(-2.6d0*hmp-3.82d0)
-       almp4=.03d0
+      IF(KVEGA6.EQ.0 .or. KVEGA6.eq.3) then
+C**** This albedo specification comes from Schramm et al 96 (4 spectral
+C**** bands). Depending on KVEGA6 we either average to 2 or 6 bands
+C**** Bare ice:
+        if(hin.gt.0. .and. hin.lt.1.)then
+          ali(1)=.76d0+.14d0*log(hin)
+          ali(2)=.247d0+.029d0*log(hin)
+          ali(3)=.055d0
+          ali(4)=.036d0
+        elseif (hin.ge.1. .and. hin.lt.2.) then
+          ali(1)=.77d0+.018d0*(hin-1)
+          ali(2)=.247d0+.196d0*(hin-1)
+          ali(3)=.055d0
+          ali(4)=.036d0
+        elseif (hin.ge.2.) then
+          ali(1)=.778d0
+          ali(2)=.443d0
+          ali(3)=.055d0
+          ali(4)=.036d0
+        endif
+        albtf(1:4)=ali(1:4)
+        albtr(1:4)=ali(1:4)
+C**** Snow:
+        if(hsn.gt.0.)then
+          if(hsn.ge.0.1d0)then
+            patchy=1d0
+          else
+            patchy=hsn/0.1d0 
+          endif
+          if(flags)then         ! wet snow
+            alsf(1)=.871d0
+            alsf(2)=.702d0
+            alsf(3)=.079d0
+            alsf(4)=.001d0
+            alsd(1:4)=alsf(1:4)
+          else                  ! dry snow
+            alsf(1)=.975d0
+            alsf(2)=.832d0
+            alsf(3)=.25d0
+            alsf(4)=.025d0
+            alsd(1)=.98d0-.008d0*cosz
+            alsd(2)=.902d0-.116d0*cosz
+            alsd(3)=.384d0-.222d0*cosz
+            alsd(4)=.053d0-.0047d0*cosz
+C**** consider snow age for dry snow (not yet fully tested)
+cC**** As dry snow ages it moves towards wet snow value (Who knows?)
+c            snfac(1)=.104d0 ; snfac(2)=.130d0  
+c            snfac(3)=.171d0 ; snfac(4)=.024d0
+c            ASNAGE=EXP(-0.2D0*AGESN(2))-1.
+c            alsf(1:4)=alsf(1:4)+snfac(1:4)*ASNAGE
+c            alsd(1:4)=alsd(1:4)+snfac(1:4)*ASNAGE
+          endif
+          albtf(1:4)=albtf(1:4)*(1.-patchy)+alsf(1:4)*patchy
+          albtr(1:4)=albtr(1:4)*(1.-patchy)+alsd(1:4)*patchy
+        endif
+C**** Melt ponds:
+        almp(1)=.15d0+exp(-8.1d0*hmp-.47d0)
+        almp(2)=.054d0+exp(-31.8d0*hmp-.94d0)
+        almp(3)=.033d0+exp(-2.6d0*hmp-3.82d0)
+        almp(4)=.03d0
 c**** combined sea ice albedo
-       alvisf=alvisf*(1.-fmp)+almp1*fmp
-       alvisr=alvisr*(1.-fmp)+almp1*fmp
-       alnirf=alnirf*(1.-fmp)+
-     *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
-       alnirr=alnirr*(1.-fmp)+
-     *  (.33d0*almp2+.14d0*almp3+.01d0*almp4)/.48d0*fmp
-c****
-      BOIVIS=alvisf
-      BOINIR=alnirf
-      XOIVIS=alvisr
-      XOINIR=alnirr
-      end if                       !  end of Schramm's version
+        albtf(1:4)=albtf(1:4)*(1.-fmp)+almp(1:4)*fmp
+        albtr(1:4)=albtr(1:4)*(1.-fmp)+almp(1:4)*fmp
+
+        IF(KVEGA6.GT.0) THEN
+C**** 6 band albedo: take 4 Schramm wavelength intervals, map to GISS ones
+C****  (1)  250-690    -->  330-770  (1) 
+C****  (2) 690-1190    -->  770-860   (2)
+C****                  -->  860-1250  (3)
+C****  (3) 1190-2380   --> 1250-1500  (4) 
+C****                  --> 1500-2200  (5) 
+C****  (4) 2380-4000   --> 2200-4400  (6) 
+          BOIVN(1)=albtf(1)
+          XOIVN(1)=albtr(1)
+          BOIVN(2:3)=albtf(2)
+          XOIVN(2:3)=albtr(2)
+          BOIVN(4:5)=albtf(3)
+          XOIVN(4:5)=albtr(3)
+          BOIVN(6)=albtf(4)
+          XOIVN(6)=albtr(4)
+        ELSE
+C**** 2 band albedo: weight the 3 NIR bands by the solar irradiance to
+C**** create a composite NIR value.
+          BOIVIS=albtf(1)
+          XOIVIS=albtr(1)
+          BOINIR=(.33d0*albtf(2)+.14d0*albtf(3)+.01d0*albtf(4))/.48d0
+          XOINIR=(.33d0*albtr(2)+.14d0*albtr(3)+.01d0*albtr(4))/.48d0
+        END IF
+        EXPSNO=1.-patchy
+C**** end of Schramm's version
+      else        
+C**** original version
       EXPSNO=EXP(-SNOWOI/DMOICE)
-      IF(KVEGA6.ne.0) then         !  original version
       ASNAGE=0.35D0*EXP(-0.2D0*AGESN(2))
       BSNVIS=ASNVIS+ASNAGE
       BSNNIR=ASNNIR+ASNAGE
@@ -5673,7 +5690,7 @@ c**** End of puddling section
       XOIVN(L)=BOIVN(L)
   501 CONTINUE
       ENDIF
-      ENDIF                        ! end of pre-Schramm version
+      ENDIF                     ! end of pre-Schramm version
 C
       ITOI=TGOI
       WTOI=TGOI-ITOI
