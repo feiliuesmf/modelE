@@ -116,7 +116,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
       IMPLICIT NONE
-      
+
       REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       INTEGER, INTENT(IN) :: IEND
 
@@ -204,7 +204,7 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
           BRSI(I,J)=0.
           CRSI(I,J)=0.          ! extreme cases
           KRSI(I,J)=0           ! ice constant
-          IF(ARSI(I,J).LE.0. .or. ARSI(I,J).GT.1.) CYCLE
+          IF(ARSI(I,J).LE.0. .or. ARSI(I,J).GE.1.) CYCLE
           BRSI(I,J)=ERSI1(I,J)-ERSI0(I,J) ! quadratic fit
           CRSI(I,J)=3.*(ERSI1(I,J)+ERSI0(I,J)) - 6.*ARSI(I,J)
           IF(ABS(CRSI(I,J)) .GT. ABS(BRSI(I,J))) THEN ! linear fits
@@ -259,7 +259,7 @@ C**** RSI uses quadratic fit
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
             END SELECT
             MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
-C**** adjust enthalpy and salt so that temperature/salinity remain constant
+C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J)=SSI(3:4,I,J)*(MSINEW/MSI(I,J))
             IF (IEND.eq.1) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
