@@ -15,9 +15,10 @@
 !@var itest/jtest longitude/latitude at which dout may be called
 !@var call_diag logical variable whether dout is called
 
-      USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny
+      USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
       USE MODEL_COM, only :
-     *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime
+     *     im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
+     *     ,pmtop
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
@@ -60,7 +61,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
       real*8 :: uflx,vflx,tvflx,qflx,tvs
      &   ,ustar2,t0ijl,tijl,rak,alpha1,ustar
      &   ,flux_bot,flux_top,x_surf
-     &   ,wstar,dbl,lmonin
+     &   ,wstar,dbl,lmonin,tpe0,tpe1,ediff
       integer :: idik,idjk,ldbl,kmax,
      &    i,j,l,k,n,iter !@i,j,l,k,n,iter loop variable
 #ifdef TRACERS_ON
@@ -120,7 +121,8 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,uw,vw,
-!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl
+!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
+!$OMP*   tpe0,tpe1,ediff
 #ifdef TRACERS_ON
 !$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
 #endif
@@ -334,7 +336,19 @@ cc          call diff_mom(trmomij)
           call find_pbl_top(e,ze,dbl,ldbl,lm)
           dclev(i,j)=real(ldbl)
 
+C**** calculate possible energy loss
+          tpe0=-tflux1(i,j)*dtime*sha
+          tpe1=0.
           do l=1,lm
+            tpe0=tpe0+t_3d(i,j,l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg    
+            tpe1=tpe1+t(l)*pk(l,i,j)*pdsig(l,i,j)*sha*mb2kg/(1.d0+deltx
+     *           *q(l))
+          end do
+          ediff=(tpe1-tpe0)/((psf-pmtop)*sha*mb2kg)        ! C
+
+          do l=1,lm
+C**** correct virt pot t for energy error
+            t(l) = t(l) - ediff*(1.d0+deltx*q(l))/pk(l,i,j)
             ! update 3-d t,q,e and km
             t0ijl=t_3d(i,j,l)
             tijl=t(l)/(1.d0+deltx*q(l))
