@@ -274,7 +274,7 @@ ccc data for tracers
 #ifdef TRACERS_WATER
 ccc should be passed from elsewhere
 !@var ntgm maximal number of tracers that can by passesd to HGY
-      integer, parameter, public :: ntgm = 1
+      integer, parameter, public :: ntgm = 3
 !@var ntg actual number of tracers passed to ground hydrology
       integer, public :: ntg
 !@var trpr flux of tracers in precipitation (?/m^2 s)
@@ -2631,15 +2631,15 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
       do ibv=1,2
         do i=1,n
           if ( tr_w(1,i,ibv) < 0.d0 ) then
-            print *,'EEEEG ', tr_w(1,i,ibv), ibv, i
+c            print *,'EEEEG ', tr_w(1,i,ibv), ibv, i
             !call abort
             tr_w(1,i,ibv) = 0.d0
           endif
         enddo
         do i=1,nlsn
           if ( tr_wsn(1,i,ibv) < 0.d0 ) then
-            print *,'EEEES ', tr_wsn(1,i,ibv),
-     &           ibv, i, flmlt(ibv), fr_snow(ibv)
+c            print *,'EEEES ', tr_wsn(1,i,ibv),
+c     &           ibv, i, flmlt(ibv), fr_snow(ibv)
             tr_wsn(1,i,ibv) = 0.d0
           endif
         enddo
