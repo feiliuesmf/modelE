@@ -1321,6 +1321,25 @@ C****
 C**** WORK01  FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
+
+C**** Regularise ice concentration gradients to prevent advection errors
+      DO J=2,JM-1
+      DO I=1,IM
+        IF (RSI(I,J).gt.1d-4) THEN
+          IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =1d0-RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =    RSI(I,J)
+          IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
+          IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
+          IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
+        ELSE
+          RSIX(I,J) = 0.  ; RSIY(I,J) = 0.
+        END IF
+      END DO
+      END DO
+
 C**** set up local MSH array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:6) = HEAT, MHS(7:10)=SALT
       MHS(1,:,:) = ACE1I + SNOWI
@@ -1414,9 +1433,6 @@ C**** VSIDT(J-1)=0, VSIDT(J)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(J)*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0-FAW(J)*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)<0.
   240 IF(VSIDT(I,J))  260,250,270
 C**** VSIDT(J-1)<0, VSIDT(J)=0.
@@ -1424,9 +1440,6 @@ C**** VSIDT(J-1)<0, VSIDT(J)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(J-1)*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(J-1)*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J)?0.
   260 ASI = RSI(I,J)*DXYP(J) + ( FASI(J-1)- FASI(J))
       DO 265 K=1,NTRICE
@@ -1446,9 +1459,6 @@ C**** VSIDT(J-1)<0, VSIDT(J)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0+(FAW(J-1)-FAW(J))*BYDXYP(J))
       RSIY(I,J) = RSIY(I,J)*(1d0+(FAW(J-1)-FAW(J))*BYDXYP(J))**2
       GO TO 310
-C      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
-C      GO TO 330
 C**** VSIDT(J-1)>0.
   280 IF(VSIDT(I,J).ne.0.)  GO TO 260
 C**** VSIDT(J-1)>0, VSIDT(J)=0.
@@ -1573,9 +1583,6 @@ C**** USIDT(IM1)=0, USIDT(I)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I)*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I)*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)<0.
   540 IF(USIDT(I,J))  560,550,570
 C**** USIDT(IM1)<0, USIDT(I)=0.
@@ -1583,9 +1590,6 @@ C**** USIDT(IM1)<0, USIDT(I)=0.
       RSIX(I,J) = RSIX(I,J)*(1d0+FAW(IM1)*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(IM1)*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I)?0.
   560 ASI = RSI(I,J)*DXYP(J) + (FASI(IM1)- FASI(I))
       DO 565 K=1,NTRICE
@@ -1605,9 +1609,6 @@ C**** USIDT(IM1)<0, USIDT(I)>0.
       RSIX(I,J) = RSIX(I,J)*(1d0+(FAW(IM1)-FAW(I))*BYDXYP(J))**2
       RSIY(I,J) = RSIY(I,J)*(1d0+(FAW(IM1)-FAW(I))*BYDXYP(J))
       GO TO 610
-C      IF(RSI(I,J)-RSIY(I,J).lt.0.)  RSIY(I,J) =  RSI(I,J)
-C      IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) = -RSI(I,J)
-C      GO TO 630
 C**** USIDT(IM1)>0.
   580 IF(USIDT(I,J).ne.0.)  GO TO 560
 C**** USIDT(IM1)>0, USIDT(I)=0.
@@ -1758,4 +1759,21 @@ C****
       RETURN
       END SUBROUTINE IT2AT
 
+      SUBROUTINE init_icedyn(iniOCEAN)
+!@sum  init_STRAITS initializes strait variables
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE ICEDYN, only : RSIX,RSIY,USI,VSI
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: iniOCEAN
 
+C**** Initiallise ice dynamic variables if ocean model starts
+      if (iniOCEAN) THEN
+        RSIX=0.
+        RSIY=0.
+        USI=0.
+        VSI=0.
+      end if
+
+      RETURN
+      END SUBROUTINE init_icedyn

@@ -316,6 +316,9 @@ C**** Initiallise geopotential field (needed by KPP)
 
       END IF
 
+C**** Initialize dynamic ice variables
+      call init_icedyn(iniOCEAN)
+
 C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
 
