@@ -32,7 +32,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1958.rsfB394M12.modelE.15 ! initial conditions (atm. and ground)
+AIC=DEC1958.rsfB394M12.modelE.16 ! initial conditions (atm. and ground)
 ! GIC=GIC.E005gasA.1DEC1956 ! initial ground conditions (needed if ISTART=2)
 ! OSST/SICE: data rec. start with an integer M, where
 !     M=1 means Jan of the year mentioned in the file names (here 1950)

@@ -33,7 +33,7 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=DEC1986.rsfB436TM23.modelE.15
+AIC=DEC1986.rsfB436TM23.modelE.16
 ! OHT=OTSPEC.RB399AM12.M250D ! not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 MLMAX=Z1OMAX.B4X5.250M.cor ! needed only for postprocessing

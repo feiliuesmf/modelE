@@ -520,7 +520,7 @@ C****
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE PARSER
-      USE CONSTANT, only : grav,kapa,sday,shi,lhm
+      USE CONSTANT, only : grav,kapa,sday,shi,lhm,by3
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth,fland
      *     ,focean,flake0,flice,hlake,zatmo,sig,dsig,sige,kradia
      *     ,bydsig,xlabel,lrunid,nmonav,qcheck,irand,psf,ptop
@@ -846,7 +846,7 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
 C**** initialize egcm to be used in ATURB.f
           DO L=1,LM
             egcm(l,i,j)=egcm_init_max/(float(l)**2)
-            w2gcm(l,i,j)=1.d0/3.d0*egcm(l,i,j)
+            w2gcm(l,i,j)=egcm(l,i,j)*by3
           END DO
         END DO
         END DO
