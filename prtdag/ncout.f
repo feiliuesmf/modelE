@@ -8,7 +8,7 @@
      &     outfile
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
-     &    ,ndims_out,dimids_out
+     &    ,ndims_out,dimids_out,file_dimlens
      &    ,units,long_name,missing
 
       character(len=80) :: outfile
@@ -82,7 +82,8 @@
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
       character(len=20) :: var_name
-      real :: var
+      real :: var(1)
+      integer :: var_nelems,n
       status_out = nf_redef(out_fid)
       status_out=nf_def_var(out_fid,trim(var_name),nf_real,
      &     ndims_out,dimids_out,varid_out)
@@ -92,8 +93,15 @@
       if(len_trim(long_name).gt.0) status_out =
      &     nf_put_att_text(out_fid,varid_out,
      &     'long_name',len_trim(long_name),long_name)
-      status_out = nf_put_att_real(out_fid,varid_out,'missing_value',
-     &     nf_float,1,missing)
+c define missing value attribute only if there are missing values
+      var_nelems = product(file_dimlens(dimids_out(1:ndims_out)))
+      do n=1,var_nelems
+         if(var(n).eq.missing) then
+            status_out = nf_put_att_real(out_fid,varid_out,
+     &           'missing_value',nf_float,1,missing)
+            exit
+         endif
+      enddo
       status_out = nf_enddef(out_fid)
       status_out = nf_put_var_real(out_fid,varid_out,var)
       units=''
