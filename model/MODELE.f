@@ -168,7 +168,7 @@ C**** calculate some dynamic variables for the PBL
       CALL PGRAD_PBL
 
          CALL CHECKT ('DYNAM ')
-         CALL TIMER (MNOW,MELSE)
+         CALL TIMER (MNOW,MSURF)
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
@@ -185,6 +185,7 @@ C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
 C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       CALL MELT_SI
          CALL UPDTYPE
+         CALL TIMER (MNOW,MSURF)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE ')
@@ -222,6 +223,7 @@ C**** Calculate non-interactive tracer surface sources and sinks
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
          CALL CHECKT ('SURFCE')
+         CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
 C**** CALCULATE ICE DYNAMICS
       CALL DYNSI
@@ -240,11 +242,9 @@ C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
-         CALL TIMER (MNOW,MSURF)
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
       CALL OCEANS
          CALL CHECKT ('OCEANS')
-         CALL TIMER (MNOW,MSURF)
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
          CALL CHECKT ('FORMSI')
@@ -252,6 +252,7 @@ C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL ATM_DIFFUS (2,LM-1,dtsrc)
          CALL CHECKT ('DRYCNV')
+         CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (9)
 C**** ADVECT ICE
       CALL ADVSI
@@ -535,7 +536,7 @@ C****
      *     ,iyear1,itime,itimei,itimee
      *     ,ls1,psfmpt,pstrat,idacc,jyear,jmon,jday,jdate,jhour
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0,ioread,irerun
-     *     ,ioread_single,irsfic,irsficnt,iowrite_single
+     *     ,ioread_single,irsfic,irsficnt,iowrite_single,ioreadnt
      *     ,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0,Jhour0
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : geom_b,imaxj
@@ -768,10 +769,10 @@ C**** Read in ground initial conditions
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
         read(iu_GIC)  ! ignore first line (ocean ic done in init_OCEAN)
-        call io_seaice (iu_GIC,ioread,ioerr)
-        call io_earth  (iu_GIC,ioread,ioerr)
-        call io_soils  (iu_GIC,ioread,ioerr)
-        call io_landice(iu_GIC,ioread,ioerr)
+        call io_seaice (iu_GIC,ioreadnt,ioerr)
+        call io_earth  (iu_GIC,ioreadnt,ioerr)
+        call io_soils  (iu_GIC,ioreadnt,ioerr)
+        call io_landice(iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)

@@ -46,6 +46,17 @@ c--------------------------------------------------------------
      &    , only : nmom
       implicit none
       !
+!@var s      mean tracer amount (kg or J)
+!@var smom   qus tracer moments (kg or J)
+!@var f      tracer flux (diagnostic output) (kg or J)
+!@var fmom   tracer moment flux (diagnostic output) (kg or J)
+!@var mass   mass field (kg)
+!@var dm     mass flux (kg)
+!@var nx     length of 1D vector
+!@var qlimit true if negative tracer is to be avoided
+!@var stride spacing in s array between elements of relevant 1D array
+!@var dir    direction switch (equals one of xdir ydir or zdir)
+!@var ierr, nerr error codes
       integer, intent(in) :: nx,stride
       logical, intent(in) :: qlimit
       REAL*8, dimension(nx) :: dm, f

@@ -549,7 +549,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FILEMANAGER
       USE PARAM
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
-     *     ,fearth,iyear1,ioread
+     *     ,fearth,iyear1,ioreadnt
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -572,7 +572,7 @@ C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2 .and. istart.gt.0) then
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
-        call io_ocean (iu_GIC,ioread,ioerr)
+        call io_ocean (iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
