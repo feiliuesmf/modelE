@@ -37,7 +37,7 @@ C****
       USE LANDICE_COM, only : tlandi,snowli
       USE OCEAN, only : tocean,oa,tfo
       USE SEAICE_COM, only : rsi,msi,snowi,tsi
-      USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
+      USE SEAICE, only : xsi,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
       USE FLUXES, only : dth1,dq1,du1,dv1,e0,e1,evapor
       IMPLICIT NONE
 
@@ -291,8 +291,8 @@ C*
       MSI1 = SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
       MSI2 = ACE2 ! second (physical) layer ice mass (kg/m^2)
       dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
-      HCG1 = SHI*XSI1*MSI1 ! heat capacity of first layer ice (J/C*m^2)
-      HCG2 = SHI*XSI2*MSI1 ! heat capacity of second layer ice
+      HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of first layer ice (J/C*m^2)
+      HCG2 = SHI*XSI(2)*MSI1 ! heat capacity of second layer ice
       GO TO 3000
 C****
  2400 IF (PLICE.LE.0.) then

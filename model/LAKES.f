@@ -388,7 +388,7 @@ c     QCHECKL = .TRUE.
             MSI(I,J)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
             IF (RSINEW.LE.0.) THEN
               SNOWI(I,J)=0.
-              TSI(1:4,I,J)=0.
+              TSI(:,I,J)=0.
             END IF
           END IF
         END DO
