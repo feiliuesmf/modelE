@@ -22,7 +22,7 @@ C****
       USE E001M12_COM
       USE GEOM
       USE CLD01_COM_E001, only : PREC,TPREC
-      USE DAGCOM  !, only : aj,bj,cj,dj,aij,jreg
+      USE DAGCOM  !, only : aj,bj,cj,rj,aij,jreg
       USE OCEAN, only : ODATA,OA,Z1O,ACE1I,PREC_SI,PREC_OC 
       IMPLICIT NONE
       REAL*8 MSI1, MSI2
@@ -261,9 +261,9 @@ C****
 C****
 C**** ACCUMULATE DIAGNOSTICS (ocean, ocean ice, land ice only)
 C****
-  940    DJ(JR,39)=DJ(JR,39)+ENRGP*DXYPJ
-         DJ(JR,45)=DJ(JR,45)+DIFSS*DXYPJ  ! ocn/land ice contribution
-         DJ(JR,54)=DJ(JR,54)+RUN0S*DXYPJ
+  940    RJ(JR,39)=RJ(JR,39)+ENRGP*DXYPJ
+         RJ(JR,45)=RJ(JR,45)+DIFSS*DXYPJ  ! ocn/land ice contribution
+         RJ(JR,54)=RJ(JR,54)+RUN0S*DXYPJ
          AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PREC(I,J)
          AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
   960 CONTINUE
@@ -615,7 +615,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE CLD01_COM_E001, only : TAUSS,TAUMC,SVLHX,RHSAV,SVLAT,CLDSAV,
      *     CLDSS,CLDMC,CSIZE
       USE PBLCOM, only : wsavg,tsavg
-      USE DAGCOM  !, only : aj,bj,cj,dj,jreg,aij,ail,ajl,asjl,adaily,
+      USE DAGCOM  !, only : aj,bj,cj,rj,jreg,aij,ail,ajl,asjl,adaily,
 !     *     iwrite,jwrite,itwrite
       USE DYNAMICS, only : pk,pedn
       USE OCEAN, only : odata
@@ -847,21 +847,21 @@ C****
          AJ(J,57)=AJ(J,57)+CSS*POCEAN
          BJ(J,57)=BJ(J,57)+CSS*PLAND
          CJ(J,57)=CJ(J,57)+CSS*POICE
-         DJ(JR,57)=DJ(JR,57)+CSS*DXYP(J)
+         RJ(JR,57)=RJ(JR,57)+CSS*DXYP(J)
          AJ(J,58)=AJ(J,58)+CMC*POCEAN
          BJ(J,58)=BJ(J,58)+CMC*PLAND
          CJ(J,58)=CJ(J,58)+CMC*POICE
-         DJ(JR,58)=DJ(JR,58)+CMC*DXYP(J)
+         RJ(JR,58)=RJ(JR,58)+CMC*DXYP(J)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AJ(J,80)=AJ(J,80)+DEPTH*POCEAN
          BJ(J,80)=BJ(J,80)+DEPTH*PLAND
          CJ(J,80)=CJ(J,80)+DEPTH*POICE
-         DJ(JR,80)=DJ(JR,80)+DEPTH*DXYP(J)
+         RJ(JR,80)=RJ(JR,80)+DEPTH*DXYP(J)
          CLDCV=CMC+CSS-CMC*CSS
          AJ(J,59)=AJ(J,59)+CLDCV*POCEAN
          BJ(J,59)=BJ(J,59)+CLDCV*PLAND
          CJ(J,59)=CJ(J,59)+CLDCV*POICE
-         DJ(JR,59)=DJ(JR,59)+CLDCV*DXYP(J)
+         RJ(JR,59)=RJ(JR,59)+CLDCV*DXYP(J)
          AIJ(I,J,IJ_CLDCV)=AIJ(I,J,IJ_CLDCV)+CLDCV
          DO 250 L=1,LLOW
          IF (TOTCLD(L).NE.1.) GO TO 250
@@ -1042,45 +1042,45 @@ C****
          AJ(J,1)=AJ(J,1)+(S0*COSZ)*POCEAN
          BJ(J,1)=BJ(J,1)+(S0*COSZ)*PLAND
          CJ(J,1)=CJ(J,1)+(S0*COSZ)*POICE
-         DJ(JR,1)=DJ(JR,1)+(S0*COSZ)*DXYPJ
+         RJ(JR,1)=RJ(JR,1)+(S0*COSZ)*DXYPJ
          AJ(J,2)=AJ(J,2)+(SNFS(I,J,4)*COSZ)*POCEAN
          BJ(J,2)=BJ(J,2)+(SNFS(I,J,4)*COSZ)*PLAND
          CJ(J,2)=CJ(J,2)+(SNFS(I,J,4)*COSZ)*POICE
-         DJ(JR,2)=DJ(JR,2)+(SNFS(I,J,4)*COSZ)*DXYPJ
+         RJ(JR,2)=RJ(JR,2)+(SNFS(I,J,4)*COSZ)*DXYPJ
          ASNFS1=ASNFS1+(SNFS(I,J,1)*COSZ)*POCEAN
          BSNFS1=BSNFS1+(SNFS(I,J,1)*COSZ)*PLAND
          CSNFS1=CSNFS1+(SNFS(I,J,1)*COSZ)*POICE
-         DJ(JR,3)=DJ(JR,3)+(SNFS(I,J,1)*COSZ)*DXYPJ
+         RJ(JR,3)=RJ(JR,3)+(SNFS(I,J,1)*COSZ)*DXYPJ
          AJ(J,5)=AJ(J,5)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*POCEAN
          BJ(J,5)=BJ(J,5)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*PLAND
          CJ(J,5)=CJ(J,5)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*POICE
-         DJ(JR,5)=DJ(JR,5)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
+         RJ(JR,5)=RJ(JR,5)+(SRHR(I,J,1)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
          AJ(J,6)=AJ(J,6)+(FSF(I,J,1)*COSZ)*POCEAN
          SRNFLG=FSF(I,J,3)*FLICE(I,J)+FSF(I,J,4)*(PLAND-FLICE(I,J))
          BJ(J,6)=BJ(J,6)+(SRNFLG*COSZ)
          CJ(J,6)=CJ(J,6)+(FSF(I,J,2)*COSZ)*POICE
-         DJ(JR,6)=DJ(JR,6)+(SRHR(I,J,1)*COSZ)*DXYPJ
+         RJ(JR,6)=RJ(JR,6)+(SRHR(I,J,1)*COSZ)*DXYPJ
          AJ(J,55)=AJ(J,55)+BTMPW(I,J)*POCEAN
          BJ(J,55)=BJ(J,55)+BTMPW(I,J)*PLAND
          CJ(J,55)=CJ(J,55)+BTMPW(I,J)*POICE
-         DJ(JR,55)=DJ(JR,55)+BTMPW(I,J)*DXYPJ
+         RJ(JR,55)=RJ(JR,55)+BTMPW(I,J)*DXYPJ
          AJ(J,67)=AJ(J,67)+TRINCG(I,J)*POCEAN
          BJ(J,67)=BJ(J,67)+TRINCG(I,J)*PLAND
          CJ(J,67)=CJ(J,67)+TRINCG(I,J)*POICE
-         DJ(JR,67)=DJ(JR,67)+TRINCG(I,J)*DXYPJ
+         RJ(JR,67)=RJ(JR,67)+TRINCG(I,J)*DXYPJ
          AJ(J,70)=AJ(J,70)-TNFS(I,J,4)*POCEAN
          BJ(J,70)=BJ(J,70)-TNFS(I,J,4)*PLAND
          CJ(J,70)=CJ(J,70)-TNFS(I,J,4)*POICE
-         DJ(JR,70)=DJ(JR,70)-TNFS(I,J,4)*DXYPJ
+         RJ(JR,70)=RJ(JR,70)-TNFS(I,J,4)*DXYPJ
          ATNFS1=ATNFS1-TNFS(I,J,1)*POCEAN
          BTNFS1=BTNFS1-TNFS(I,J,1)*PLAND
          CTNFS1=CTNFS1-TNFS(I,J,1)*POICE
-         DJ(JR,71)=DJ(JR,71)-TNFS(I,J,1)*DXYPJ
+         RJ(JR,71)=RJ(JR,71)-TNFS(I,J,1)*DXYPJ
          DO 760 K=2,9
          AJ(J,K+70)=AJ(J,K+70)+(S0*COSZ)*ALB(I,J,K)*POCEAN
          BJ(J,K+70)=BJ(J,K+70)+(S0*COSZ)*ALB(I,J,K)*PLAND
          CJ(J,K+70)=CJ(J,K+70)+(S0*COSZ)*ALB(I,J,K)*POICE
-  760    DJ(JR,K+70)=DJ(JR,K+70)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
+  760    RJ(JR,K+70)=RJ(JR,K+70)+(S0*COSZ)*ALB(I,J,K)*DXYPJ
          AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(I,J,4)
          AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(I,J,4)*COSZ)
          AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ)
@@ -1159,7 +1159,7 @@ C****
       USE GEOM
       USE PBLCOM, only : tsavg
       USE GHYCOM, only : ghdata
-      USE DAGCOM  !, only : aj,bj,cj,dj,aij,jreg
+      USE DAGCOM  !, only : aj,bj,cj,rj,aij,jreg
       USE OCEAN, only : ODATA,XSI1,XSI2,XSI3,XSI4,Z1I
      *     ,Z1O,Z2OIM,ACE1I,AC2OIM,OTA,OTB,OTC,T50, SEA_ICE 
       IMPLICIT NONE
@@ -1521,16 +1521,16 @@ C**** ACCUMULATE DIAGNOSTICS
 C****
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
   940    IF (JR.EQ.24) GO TO 950
-         DJ(JR,17)=DJ(JR,17)+TG2S*DXYPJ
-         DJ(JR,18)=DJ(JR,18)+TG1S*DXYPJ
-         DJ(JR,30)=DJ(JR,30)+POICE*DXYPJ
-         DJ(JR,45)=DJ(JR,45)+DIFSS*DXYPJ ! ocn/land ice contribution
-         DJ(JR,49)=DJ(JR,49)+WTR1S*DXYPJ
-         DJ(JR,50)=DJ(JR,50)+ACE1S*DXYPJ
-         DJ(JR,51)=DJ(JR,51)+WTR2S*DXYPJ
-         DJ(JR,52)=DJ(JR,52)+ACE2S*DXYPJ
-         DJ(JR,53)=DJ(JR,53)+SNOWS*DXYPJ
-         DJ(JR,54)=DJ(JR,54)+RUN0S*DXYPJ
+         RJ(JR,17)=RJ(JR,17)+TG2S*DXYPJ
+         RJ(JR,18)=RJ(JR,18)+TG1S*DXYPJ
+         RJ(JR,30)=RJ(JR,30)+POICE*DXYPJ
+         RJ(JR,45)=RJ(JR,45)+DIFSS*DXYPJ ! ocn/land ice contribution
+         RJ(JR,49)=RJ(JR,49)+WTR1S*DXYPJ
+         RJ(JR,50)=RJ(JR,50)+ACE1S*DXYPJ
+         RJ(JR,51)=RJ(JR,51)+WTR2S*DXYPJ
+         RJ(JR,52)=RJ(JR,52)+ACE2S*DXYPJ
+         RJ(JR,53)=RJ(JR,53)+SNOWS*DXYPJ
+         RJ(JR,54)=RJ(JR,54)+RUN0S*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
   950    AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAPS
          AIJ(I,J,IJ_TG1) =AIJ(I,J,IJ_TG1)+TG1S

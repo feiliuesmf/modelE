@@ -33,6 +33,8 @@ C**** some B-grid conseravtion quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
 !@var  AREAG global integral of area (m^2)
       REAL*8 :: AREAG
+!@var  WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
+      DOUBLE PRECISION, DIMENSION(JM,2,2) :: WTJ
 
 !@var  DXYV area of grid box around a velocity point (m^2)
       REAL*8, DIMENSION(JM) :: DXYV
@@ -78,7 +80,7 @@ c      USE E001M12_COM
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
-      INTEGER :: JVPO
+      INTEGER :: JVPO,JMHALF
       REAL*8  :: RAPO
 
       DLON=TWOPI/IM
@@ -131,7 +133,7 @@ c      USE E001M12_COM
          RAVPS(J)   = .5*DXYS(J)/DXYP(J)
          RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
       END DO
-C**** LONGITUDES (degrees); used in ILMAP and elsewhere
+C**** LONGITUDES (degrees); used in ILMAP
       LON(1,1) = -180.+360./(2.*FLOAT(IM))
       LON(1,2) = -180.+360./    FLOAT(IM)  
       DO I=2,IM
@@ -143,6 +145,18 @@ C**** LATITUDES (degrees); used extensively in the diagnostic print routines
         JLAT(J,1)=INT(.5+(J-1.0)*180./(JM-1))-90
         JLAT(J,2)=INT(.5+(J-1.5)*180./(JM-1))-90
       END DO
+C**** WTJ: area weighting for JKMAP, JLMAP hemispheres
+      JMHALF= JM/2
+      DO J=1,JM
+        WTJ(J,1,1)=1.
+        WTJ(J,2,1)=2.*FIM*DXYP(J)/AREAG
+      END DO
+      DO J=2,JM
+        WTJ(J,1,2)=1.
+        WTJ(J,2,2)=2.*FIM*DXYV(J)/AREAG
+      END DO
+      WTJ(JMHALF+1,1,2)=.5
+      WTJ(JMHALF+1,2,2)=WTJ(JMHALF+1,2,2)/2.
 C**** CALCULATE CORIOLIS PARAMETER
 c      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
       FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)

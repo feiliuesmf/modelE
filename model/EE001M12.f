@@ -32,7 +32,7 @@ C****
       USE CLD01_COM_E001, only : PREC,TPREC
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs,tsavg,qsavg
       USE SOCPBL, only : zgs
-      USE DAGCOM  !, only : aijg,aij,tsfrez,tdiurn,bj,dj,adaily,jreg
+      USE DAGCOM  !, only : aijg,aij,tsfrez,tdiurn,bj,rj,adaily,jreg
       USE DYNAMICS, only : pmid,pk,pek,pedn
 
       IMPLICIT NONE
@@ -427,17 +427,17 @@ C**** ACCUMULATE DIAGNOSTICS
 C****
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          IF(JR.EQ.24) GO TO 5700
-         DJ(JR,9)=DJ(JR,9)+TRHDTS*DXYPJ
-         DJ(JR,13)=DJ(JR,13)+SHDTS*DXYPJ
-         DJ(JR,14)=DJ(JR,14)+EVHDTS*DXYPJ
-         DJ(JR,19)=DJ(JR,19)+EVAPS*DXYPJ
-         DJ(JR,40)=DJ(JR,40)+AERUNS*PEARTH*DXYPJ
-         DJ(JR,45)=DJ(JR,45)+DIFS*PEARTH*DXYPJ
-         DJ(JR,47)=DJ(JR,47)+ARUNU*PEARTH*DXYPJ
-         DJ(JR,48)=DJ(JR,48)+AERUNU*PEARTH*DXYPJ
-         DJ(JR,54)=DJ(JR,54)+ARUNS*PEARTH*DXYPJ
+         RJ(JR,9)=RJ(JR,9)+TRHDTS*DXYPJ
+         RJ(JR,13)=RJ(JR,13)+SHDTS*DXYPJ
+         RJ(JR,14)=RJ(JR,14)+EVHDTS*DXYPJ
+         RJ(JR,19)=RJ(JR,19)+EVAPS*DXYPJ
+         RJ(JR,40)=RJ(JR,40)+AERUNS*PEARTH*DXYPJ
+         RJ(JR,45)=RJ(JR,45)+DIFS*PEARTH*DXYPJ
+         RJ(JR,47)=RJ(JR,47)+ARUNU*PEARTH*DXYPJ
+         RJ(JR,48)=RJ(JR,48)+AERUNU*PEARTH*DXYPJ
+         RJ(JR,54)=RJ(JR,54)+ARUNS*PEARTH*DXYPJ
          IF(MODDSF.NE.0) GO TO 5700
-         DJ(JR,23)=DJ(JR,23)+(TSS-TFS)*DXYPJ
+         RJ(JR,23)=RJ(JR,23)+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
  5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
          AIJ(I,J,IJ_BETA)=AIJ(I,J,IJ_BETA)+BETAD/NSURF

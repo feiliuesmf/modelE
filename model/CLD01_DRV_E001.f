@@ -21,7 +21,7 @@
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj55,bydtcn,condse_loc
       USE PBLCOM, only : tsavg
-      USE DAGCOM  !, only : aj,bj,cj,dj,aij,ajl,ail,adaily,jreg
+      USE DAGCOM  !, only : aj,bj,cj,rj,aij,ajl,ail,adaily,jreg
       USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold
       USE OCEAN, only : odata
 
@@ -159,7 +159,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          AJ(J,62)=AJ(J,62)+PRCPMC*(1.-FLAND(I,J))*(1.-ODATA(I,J,2))
          BJ(J,62)=BJ(J,62)+PRCPMC*FLAND(I,J)
          CJ(J,62)=CJ(J,62)+PRCPMC*ODATA(I,J,2)*(1.-FLAND(I,J))
-         DJ(JR,62)=DJ(JR,62)+PRCPMC*DXYP(J)
+         RJ(JR,62)=RJ(JR,62)+PRCPMC*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPMC
@@ -197,7 +197,7 @@ C**** Accumulate diagnostics of CONDSE
          AJ(J,61)=AJ(J,61)+PRCPSS*(1.-FLAND(I,J))*(1.-ODATA(I,J,2))
          BJ(J,61)=BJ(J,61)+PRCPSS*FLAND(I,J)
          CJ(J,61)=CJ(J,61)+PRCPSS*ODATA(I,J,2)*(1.-FLAND(I,J))
-         DJ(JR,61)=DJ(JR,61)+PRCPSS*DXYP(J)
+         RJ(JR,61)=RJ(JR,61)+PRCPSS*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPSS

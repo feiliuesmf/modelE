@@ -15,11 +15,11 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
 !@var NREG number of regions for budget diagnostics 
       INTEGER, PARAMETER :: NREG=24
-!@var DJ regional budget diagnostics
-      DOUBLE PRECISION, DIMENSION(NREG,KAJ) :: DJ
-!@var TITREG,NAMREG title and names of regions for DJ diagnostics
+!@var RJ regional budget diagnostics
+      DOUBLE PRECISION, DIMENSION(NREG,KAJ) :: RJ
+!@var TITREG,NAMREG title and names of regions for RJ diagnostics
       CHARACTER*4 TITREG*80,NAMREG(2,23)
-!@var JREH lat/lon array defining regions for DJ diagnostics
+!@var JREH lat/lon array defining regions for RJ diagnostics
       INTEGER, DIMENSION(IM,JM) :: JREG
 
 !@var KAPJ number of zonal pressure diagnostics 
@@ -126,7 +126,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     + RE_AND_IM*N12HRS_IN_31DAY*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK + IM*JM*LM*KAIJL + JM*LM*NWAV_DAG*KAJLSP
 
-      COMMON /ACCUM/ AJ,BJ,CJ,DJ,APJ,AJL,ASJL,AIJ,AIL,
+      COMMON /ACCUM/ AJ,BJ,CJ,RJ,APJ,AJL,ASJL,AIJ,AIL,
      &  AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,
      &  AJK,AIJK,AIJL,AJLSP
 
