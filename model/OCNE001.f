@@ -341,7 +341,7 @@ C**** Read in climatological ocean mixed layer depths efficiently
       END IF
       CALL READT (iu_OCNML,0,XZN,IM*JM,XZN,1)
  530  JDLAST=JDAY
-      REWIND iu_OCNML
+                    
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
       FRAC = DBLE(JDmidOFM(IMON)-JDAY)/(JDmidOFM(IMON)-JDmidOFM(IMON-1))
       DO J=1,JM
