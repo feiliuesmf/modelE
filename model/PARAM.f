@@ -43,7 +43,7 @@
 !@+     name - character*(*) - the name of the parameter which is a
 !@+       character string no longer than 32 bytes
 !@+     value - a scalar variable or a linear array of type: integer,
-!@+       real*8,character*1 to character*64
+!@+       real*8,character*1 to character*128
 !@+     dim - integer - dimension of an array; omit 'dim' for scalars
 !@+     opt - character*1 - an optional "option" (opt='o' means
 !@+       "overwrite")
@@ -75,7 +75,7 @@
       integer, parameter :: MAX_IPARAMS = 256
       integer, parameter :: MAX_CPARAMS = 64
       integer, parameter :: MAX_NAME_LEN = 32
-      integer, parameter :: MAX_CHAR_LEN = 64
+      integer, parameter :: MAX_CHAR_LEN = 128
 
       character*80 :: MODULE_HEADER='PARAM02 '
 
@@ -860,11 +860,11 @@
      $         write( kunit, '(20x,8g16.6)' )
      $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         case ('c')
-          write( kunit, '(1x,a16,a3,8a64)' )
+          write( kunit, '(1x,a16,a3,8a128)' )
      $         Params(n)%name, ' = ',
      $        ( Cdata(Params(n)%indx+i), i=0,min(Params(n)%dim,nf)-1 )
           if ( Params(n)%dim > nf )
-     $         write( kunit, '(20x,8a64)' )
+     $         write( kunit, '(20x,8a128)' )
      $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-nf-1 )
         end select
       enddo

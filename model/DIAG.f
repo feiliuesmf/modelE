@@ -2435,7 +2435,7 @@ C****
       INTEGER, DIMENSION(kddmax) :: iu_subdd
 !@dbparam subdd string contains variables to save for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*64 :: subdd = "SLP"
+      CHARACTER*128 :: subdd = "SLP"
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
@@ -2561,7 +2561,7 @@ C****
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD) hours.
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
-!@+                    QLAT, QSEN, SWDN, SWUP, LWDN, STAUX, STAUY,
+!@+                    QLAT, QSEN, SWD, SWU, LWD, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*, W*  (on any model level)
@@ -2649,18 +2649,18 @@ C**** simple diags
           data=qflux1*lhe 
         case ("QSEN")           ! sensible heat flux (W/m^2)
           data=tflux1*sha
-        case ("SWDN")           ! solar downward flux at surface (W/m^2)
+        case ("SWD")           ! solar downward flux at surface (W/m^2)
           data=srdn
-        case ("SWUP")     ! solar upward flux at surface (W/m^2)
+        case ("SWU")     ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           data=srdn*salb
-        case ("LWDN")     ! thermal downward flux at surface (W/m^2)
+        case ("LWD")     ! thermal downward flux at surface (W/m^2)
           data=TRHR(0,:,:)
         case ("ICEF")           ! ice fraction over open water (%)
           data=RSI*100.
-        case ("STAUX")          ! E-W surface stress (N/m^2)
+        case ("STX")          ! E-W surface stress (N/m^2)
           data=uflux1
-        case ("STAUY")          ! N-S surface stress (N/m^2)
+        case ("STY")          ! N-S surface stress (N/m^2)
           data=vflux1
         case ("LCLD")           ! low level cloud cover (%)
           data=0.               ! Warning: these can be greater >100!
