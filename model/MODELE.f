@@ -29,14 +29,17 @@
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       external sig_stop_model
-      LOGICAL :: qcrestart
+C**** Command line options
+      LOGICAL :: qcrestart=.false.
+      CHARACTER*32 :: ifile='Iinput'
+
 
         call init_decomp(grid,im,jm)
         call alloc_drv()
 C****
 C**** Processing command line options
 C****
-      call read_options( qcrestart )
+      call read_options( qcrestart, ifile )
       if ( qcrestart ) then
         call print_restart_info
         call stop_model("Terminated normally: printed restart info",13)
@@ -46,7 +49,7 @@ C**** INITIALIZATIONS
 C****
          CALL TIMER (MNOW,MDUM)
 
-      CALL INPUT (istart)
+      CALL INPUT (istart,ifile)
 C****
 C**** If run is already done, just produce diagnostic printout
 C****
@@ -576,7 +579,7 @@ C****
       end subroutine init_Model
 
 
-      SUBROUTINE INPUT (istart)
+      SUBROUTINE INPUT (istart,ifile)
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
@@ -617,8 +620,9 @@ C****
       USE FLUXES, only : gtemp   ! tmp. fix
       USE SOIL_DRV, only: init_gh
       IMPLICIT NONE
+      CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
-      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF
+      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF,iu_IFILE
       INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
@@ -711,8 +715,9 @@ C****
 C****
 C**** Print Header and Label (2 lines) from rundeck
 C****
+      call openunit(ifile,iu_IFILE,.false.,.true.)
       WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
-      READ(5,'(A80)') XLABEL(1:80),NLREC
+      READ(iu_IFILE,'(A80)') XLABEL(1:80),NLREC
       NOFF=0
       IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
@@ -764,10 +769,11 @@ C**** Print and Copy Namelist parameter changes to disk so they may be
 C**** read in repeatedly. Then read them in to overwrite the defaults
 C****
       DO WHILE (NLREC(1:5).NE.' &END')
-        READ  (5,'    (A80)') NLREC
+        READ  (iu_IFILE,'    (A80)') NLREC
         WRITE (6,'(35X,A80)') NLREC
         WRITE (8,'(A)') NLREC
       END DO
+      call closeunit(iu_IFILE)
       REWIND 8
 C****
 C**** Read parameters from the rundeck to the database
@@ -1510,30 +1516,35 @@ C**** check tracers
       END SUBROUTINE CHECKT
 
 
-      subroutine read_options( qcrestart )
+      subroutine read_options( qcrestart, ifile )
 !@sum reads options from the command line (for now only one option)
 !@auth I. Aleinov
 !@ver 1.0
 !@var qcrestart true if "-r" is present
-      logical, intent(out) :: qcrestart
+      logical, intent(inout) :: qcrestart
+      character(*),intent(inout)  :: ifile
       integer n, nargs
-      character*80 arg
-
-      qcrestart = .false.
+      character*80 arg,arg1
 
       nargs = iargc()
-      do n=1,nargs
+      n=1
+      do while( n <= nargs )
         call getarg(n,arg)
         if ( arg(1:1) .ne. '-' ) exit  ! end of options
         select case (arg)
         case ("-r")
           qcrestart = .true.
+        case ("-i")
+          n=n+1
+          call getarg(n,arg1)
+          ifile=arg1
         ! new options can be included here
         case default
           print *,'Unknown option specified: ', arg
           print *,'Aborting...'
           call stop_model("Unknown option on a command line",255)
         end select
+        n=n+1
       enddo
 
       return
