@@ -1,3 +1,345 @@
+      MODULE BDJ
+C****
+C**** TITLES/UNITS FOR SUBROUTINE DIAGJ
+C****
+      integer, parameter :: nj_out=79
+
+c no checks whether total length of lname+units exceeds length of title
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(nj_out) :: SNAME
+
+      integer, dimension(nj_out) :: nt_j ! tells pout_j which output field
+c nstype_out=number of output surf types, iotype=current output surf type
+      integer :: nstype_out,iotype
+      END MODULE BDJ
+
+      SUBROUTINE J_TITLES
+      USE BDJ
+      IMPLICIT NONE
+      INTEGER :: K
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'inc_sw'
+      lname(k) = 'INC SW'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sw_abs_p0'
+      lname(k) = 'SW ABS BELOW P0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sw_abs_p1'
+      lname(k) = 'SW ABS BELOW P1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sw_abs_atm'
+      lname(k) = 'SW ABS BY ATMOS'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sw_inc_z0'
+      lname(k) = 'SW INC ON Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sw_abs_z0'
+      lname(k) = 'SW ABS AT Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_lw_p0'
+      lname(k) = 'NET LW AT P0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_lw_p1'
+      lname(k) = 'NET LW AT P1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_lw_z0'
+      lname(k) = 'NET LW AT Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_rad_p0'
+      lname(k) = 'NET RAD AT P0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_rad_p1'
+      lname(k) = 'NET RAD AT P1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_rad_z0'
+      lname(k) = 'NET RAD AT Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'snsht_flx'
+      lname(k) = 'SENSBL HEAT FLX'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'evht_flx'
+      lname(k) = 'EVAPOR HEAT FLX'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_cond_z1z2'
+      lname(k) = 'CONDC AT -Z1-Z2'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'net_ht_z1'
+      lname(k) = 'NET HEAT AT -Z1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'tg2'
+      lname(k) = 'TG2'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 'tg1'
+      lname(k) = 'TG1'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 'evap'
+      lname(k) = 'EVAPOR'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'prec'
+      lname(k) = 'PRECIP'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'tair'
+      lname(k) = 'T AIR'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 't1'
+      lname(k) = 'T1'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 'tsurf'
+      lname(k) = 'T SURF'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 'sstab_strat'
+      lname(k) = 'STAT STB(STRAT)'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'sstab_trop'
+      lname(k) = 'STAT STB(TROPO)'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'rich_num_strat'
+      lname(k) = 'RICH NUM(STRAT)'
+      units(k) = '1'
+      k = k + 1
+      sname(k) = 'rich_num_trop'
+      lname(k) = 'RICH NUM(TROPO)'
+      units(k) = '1'
+      k = k + 1
+      sname(k) = 'ross_num_strat'
+      lname(k) = 'ROSS NUM(STRAT)'
+      units(k) = '1'
+      k = k + 1
+      sname(k) = 'ross_num_trop'
+      lname(k) = 'ROSS NUM(TROPO)'
+      units(k) = '1'
+      k = k + 1
+      sname(k) = 'ocn_lak_ice_frac'
+      lname(k) = 'OC/LK ICE COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'snow_cover'
+      lname(k) = 'SNOW COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'sw_correc'
+      lname(k) = 'SW CORRECTION'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ocn_ht_trans'
+      lname(k) = 'OCEAN TRANSPORT'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'tg3'
+      lname(k) = 'TG3'
+      units(k) = '.1 C'
+      k = k + 1
+      sname(k) = 'dtdlat_strat'
+      lname(k) = 'DT/DLAT(STRAT)'
+      units(k) = 'deg C/deg lat'
+      k = k + 1
+      sname(k) = 'dtdlat_trop'
+      lname(k) = 'DT/DLAT(TROPO)'
+      units(k) = 'deg C/deg lat'
+      k = k + 1
+      sname(k) = 'ross_radius_strat'
+      lname(k) = 'L(STRAT)'
+      units(k) = '10**5 m'
+      k = k + 1
+      sname(k) = 'ross_radius_trop'
+      lname(k) = 'L(TROP)'
+      units(k) = '10**5 m'
+      k = k + 1
+      sname(k) = 'prec_ht_flx'
+      lname(k) = 'PRECIP HEAT FLX'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_runoff_z0'
+      lname(k) = 'HEAT RUNOFF Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_wtr_difs_z1'
+      lname(k) = 'HT WTR DIFS -Z1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_cond_z1'
+      lname(k) = 'CONDUCTN AT -Z1'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_ice_z1z2'
+      lname(k) = 'ICE ENRG -Z1-Z2'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'nt_ht_z0'
+      lname(k) = 'NET HEAT AT Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'h2o_difs_z1'
+      lname(k) = 'H2O DIFS AT -Z1'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'ice_thru_z1z2'
+      lname(k) = 'ICE THRU -Z1-Z2'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'h2o_runoff_mld'
+      lname(k) = 'WATR RUNOFF MLD'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'ht_runoff_mld'
+      lname(k) = 'HEAT RUNOFF MLD'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'wat_g1'
+      lname(k) = 'WATER IN G1'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'ice_g1'
+      lname(k) = 'ICE IN G1'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'wat_g2'
+      lname(k) = 'WATER IN G2'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'ice_g2'
+      lname(k) = 'ICE IN G2'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'snowdp'
+      lname(k) = 'SNOW DEPTH'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'wat_runoff_z0'
+      lname(k) = 'WATER RUNOFF Z0'
+      units(k) = '?'
+      k = k + 1
+      sname(k) = 'btemp_window'
+      lname(k) = 'LW WINDOW BTEMP'
+      units(k) = 'deg C'
+      k = k + 1
+      sname(k) = 'net_ht_z1z2'
+      lname(k) = 'NET HEAT -Z1-Z2'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'sscld'
+      lname(k) = 'TOT SUP SAT CLD'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'mccld'
+      lname(k) = 'TOT MST CNV CLD'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'totcld'
+      lname(k) = 'TOTAL CLD COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'mc_clddp'
+      lname(k) = 'MC CLD DPTH'
+      units(k) = 'MB'
+      k = k + 1
+      sname(k) = 'ssprec'
+      lname(k) = 'SS PRECIP'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'mcprec'
+      lname(k) = 'MC PRECIP'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'atmh2o'
+      lname(k) = 'H2O OF ATM'
+      units(k) = 'MM'
+      k = k + 1
+      sname(k) = 'lapse_rate'
+      lname(k) = 'GAM'
+      units(k) = 'K/KM'
+      k = k + 1
+      sname(k) = 'lapse_rate_m'
+      lname(k) = 'GAMM'
+      units(k) = 'K/KM'
+      k = k + 1
+      sname(k) = 'lapse_rate_c'
+      lname(k) = 'GAMC'
+      units(k) = 'K/KM'
+      k = k + 1
+      sname(k) = 'lw_inc_z0'
+      lname(k) = 'LW INC ON Z0'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'ht_thermocline'
+      lname(k) = 'HT INTO THRMOCL'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'surf_type_frac'
+      lname(k) = 'SURF TYPE FRACT'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'plan_alb'
+      lname(k) = 'PLANETARY ALBDO'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'plan_alb_vis'
+      lname(k) = 'PLAN ALB VISUAL'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'plan_alb_nir'
+      lname(k) = 'PLAN ALB NEARIR'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'surf_alb'
+      lname(k) = 'SURFACE G ALBDO'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'surf_alb_vis'
+      lname(k) = 'SURF ALB VISUAL'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'surf_alb_nir'
+      lname(k) = 'SURF ALB NEARIR'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'atm_alb_vis'
+      lname(k) = 'ATMO ALB VISUAL'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'atm_alb_nir'
+      lname(k) = 'ATMO ALB NEARIR'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'atm_abs_vis'
+      lname(k) = 'ATMO ABS VISUAL'
+      units(k) = 'WT/M**2'
+      k = k + 1
+      sname(k) = 'atm_abs_nir'
+      lname(k) = 'ATMO ABS NEARIR'
+      units(k) = 'WT/M**2'
+
+      RETURN
+      END SUBROUTINE J_TITLES
       SUBROUTINE DIAGJ
 C****
 C**** THIS SUBROUTINE PRODUCES AREA WEIGHTED STATISTICS OF
@@ -106,7 +448,8 @@ c      USE PRTCOM, only :
      &     j_hsurf,j_trhdt,j_trnfp1,j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,
      &     j_rhdt,j_hz1,j_edifs,j_f1dt,j_prcp,j_prcpss,j_prcpmc,j_hz0,
      &     j_shdt,j_evhdt,j_eprcp,j_erun1,j_hz2,j_f2dt,j_erun2,j_type
-
+      USE BDJ, only :
+     &     nt_j,nstype_out,iotype
       IMPLICIT NONE
       SAVE
       DOUBLE PRECISION, DIMENSION(JM) ::
@@ -202,6 +545,8 @@ c     *     (/NTYPE_OUT+1,NTYPE/) )
       IF (IFIRST.EQ.1) THEN
       IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
+      nstype_out = ntype_out+1 ! must do this before calling open_j
+      call j_titles
       KD1M=69  ! was 68, now includes J_TYPE diagnostic
       INC=1+(JM-1)/24
       JMHALF=JM/2
@@ -255,6 +600,7 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       SCALE(68)=2.E3*4185./SDAY
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      iotype = 0
       IF (QCHECK) call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID))
 
 C**** CALCULATE THE DERIVED QUANTITIES
@@ -347,6 +693,7 @@ C**** Save BUDG for full output
       BUDG(JM+2,K)=FHEM(2)
       BUDG(JM+3,K)=FGLOB
       TITLEO(K)=TITLE(N)
+      NT_J(K)=N
 c     GO TO (350,350,350,350,350,350,  350,350,350,350,350,350,
 c    *       350,350,348,348,350,350,  345,345,350,350,350,350,
 c    *       340,350,350,345,345,350,  350,340,348,350,350,350,
@@ -405,6 +752,7 @@ C**** Save BUDG for full output
       BUDG(JM+2,KA+KD1M)=FHEM(2)
       BUDG(JM+3,KA+KD1M)=FGLOB
       TITLEO(KA+KD1M)=TITLE(KA)
+      NT_J(KA+KD1M)=KA+KD1M
       WRITE (6,912) TITLEA(KA),FGLOB,FHEM(2),FHEM(1),
      *     (MLAT(J),J=JM,INC,-INC)
       END DO
@@ -412,6 +760,7 @@ C**** Save BUDG for full output
       END DO
       WRITE (6,903) (NINT(LAT_DG(J,1)),J=JM,INC,-INC)
       WRITE (6,905)
+      iotype = iotype + 1
       IF (QCHECK) CALL POUT_J(TITLEO,BUDG,KD1M+10,TERRAIN(M))
       IF (KDIAG(1).GT.1) RETURN
       END DO
@@ -482,79 +831,213 @@ C****
   918 FORMAT ('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))
       END SUBROUTINE DIAGJ
 
-      BLOCK DATA BDJK
+      MODULE BDJK
 C****
-C**** TITLES FOR SUBROUTINE DIAGJK
+C**** TITLES/UNITS FOR SUBROUTINE DIAGJK
 C****
-      COMMON/DJKTTL/TITLE1,TITLE2,TITLE3,TITLE4,TITLE5
-      CHARACTER*64 TITLE1(12)
-      DATA TITLE1/
-C****                                                              1-12
-     1'TEMPERATURE (DEGREES CENTIGRADE)                               ',
-     *'HEIGHT (HUNDREDS OF METERS)                                    ',
-     3'SPECIFIC HUMIDITY (10**-5 KG H2O/KG AIR)                       ',
-     *'RELATIVE HUMIDITY (PERCENT)                                    ',
-     *'ZONAL WIND (U COMPONENT) (TENTHS OF METERS/SECOND)             ',
-     6'MERIDIONAL WIND (V COMPONENT) (HUNDREDTHS OF METERS/SECOND)    ',
-     *'                                                               ',
-     *'                                                               ',
-     9'BAROCLINIC EDDY KINETIC ENERGY GEN. (10**-1 WATTS/M**2/SIGMA)  ',
-     A'NORTH. TRANS. OF EDDY Q-G POT. VORTICITY  (10**-6 M/S**2)      ',
-     1'P-K BY EDDY PRESSURE GRADIENT FORCE  (10**-1 W/M**2/UNIT SIGMA ',
-     2'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL (.1 WATTS/M**2/DSIGMA)'/
-      CHARACTER*64 TITLE2(8)
-      DATA TITLE2/
-C****                                                             13-20
-     3'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES (10**14 WATTS/DSIGMA) ',
-     4'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY (10 WATTS/M**2/DSIGMA)',
-     *'                                                               ',
-     *'                                                               ',
-     7'STANDING EDDY KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)    ',
-     8'EDDY KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)             ',
-     9'TOTAL KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)            ',
-     *'                                                               '/
-      CHARACTER*64 TITLE3(8)
-      DATA TITLE3/
-C****                                                             21-28
-     1'POTENTIAL TEMPERATURE (DEGREES KELVIN)                          '
-     *,
-     2'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES (10**14 W/DSIG)'
-     *,
-     *'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES (10**14 WATTS/DSIG)'
-     *,
-     4'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY (10**15 WATTS/DSIG) '
-     *,
-     5'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES (10**13 WATTS/DSIG)'
-     *,
-     6'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT (10**14 WATTS/UNIT SIG)'
-     *,
-     7'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES (10**14 WATTS/DSIGMA)'
-     *,
-     8'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY (10**15 WATTS/DSIGMA)'
-     */
-      CHARACTER*64 TITLE4(8)
-      DATA TITLE4/
-C****                                                             29-36
-     9'                                                               ',
-     A'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY (10**12 WATTS/DSIG)',
-     1'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES (10**18 J/DSIG)',
-     2'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES (10**18 JOULES/DSIGMA)',
-     3'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM (10**19 JOULES/DSIG)',
-     4'NORTHWARD WAVE ENERGY FLUX  (10**11 JOULES/METER/UNIT SIGMA)   ',
-     5'VERTICAL WAVE ENERGY FLUX  (10**11 JOULES/METER)               ',
-     6'DIVERGENCE OF THE WAVE ENERGY FLUX  (10**-5 M/S**2)            '/
-      CHARACTER*64 TITLE5(8)
-      DATA TITLE5/
-C****                                                             37-44
-     7'REFRACTION INDEX FOR WAVE NUMBER 1  (10**-8 PER METER**2)      ',
-     8'REFRACTION INDEX FOR WAVE NUMBER 2  (10**-8 PER METER**2)      ',
-     9'REFRACTION INDEX FOR WAVE NUMBER 3  (10**-8 PER METER**2)      ',
-     O'REFRACTION INDEX FOR WAVE NUMBER 6  (10**-8 PER METER**2)      ',
-     1'REFRACTION INDEX FOR WAVE NUMBER 9  (10**-8 PER METER**2)      ',
-     2'Q-G POT. VORTICITY CHANGE OVER LATITUDES (10**-12 1/(SEC-M))   ',
-     *'TOTAL CLOUD WATER CONTENT (10**-6 KG/KG)                       ',
-     4'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES(10**13 WATTS/DSIG)'/
-      END BLOCK DATA BDJK
+      integer, parameter :: njk_out=44
+      CHARACTER(LEN=64), DIMENSION(njk_out) :: TITLE
+c no checks whether total length of lname+units exceeds length of title
+      CHARACTER(LEN=50), DIMENSION(njk_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(njk_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(njk_out) :: SNAME
+
+      logical :: in_jkmap ! flag telling pout_jl to use jk titles
+      integer :: nt_jk ! index telling pout_jl which title to use
+      END MODULE BDJK
+
+      SUBROUTINE JK_TITLES
+      USE BDJK
+      IMPLICIT NONE
+      INTEGER K
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'temp'
+      lname(k) = 'TEMPERATURE'
+      units(k) = 'DEGREES CENTIGRADE'
+      k = k + 1
+      sname(k) = 'height'
+      lname(k) = 'HEIGHT'
+      units(k) = 'HUNDREDS OF METERS'
+      k = k + 1
+      sname(k) = 'q'
+      lname(k) = 'SPECIFIC HUMIDITY'
+      units(k) = '10**-5 KG H2O/KG AIR'
+      k = k + 1
+      sname(k) = 'rh'
+      lname(k) = 'RELATIVE HUMIDITY'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'u'
+      lname(k) = 'ZONAL WIND (U COMPONENT)'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v'
+      lname(k) = 'MERIDIONAL WIND (V COMPONENT)'
+      units(k) = 'HUNDREDTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'baroc_eddy_ke_gen'
+      lname(k) = 'BAROCLINIC EDDY KINETIC ENERGY GEN.'
+      units(k) = '10**-1 WATTS/M**2/SIGMA'
+      k = k + 1
+      sname(k) = 'nt_eddy_qgpv'
+      lname(k) = 'NORTH. TRANS. OF EDDY Q-G POT. VORTICITY'
+      units(k) = '10**-6 M/S**2'
+      k = k + 1
+      sname(k) = 'p2k_eddy_pgf'
+      lname(k) = 'P-K BY EDDY PRESSURE GRADIENT FORCE'
+      units(k) = '10**-1 W/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'dyn_conv_eddy_geop'
+      lname(k) = 'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL'
+      units(k) = '.1 WATTS/M**2/DSIGMA'
+      k = k + 1
+      sname(k) = 'nt_sheat_eddy'
+      lname(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
+      units(k) = '10**14 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = 'dyn_conv_dse'
+      lname(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
+      units(k) = '10 WATTS/M**2/DSIGMA'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'stand_eddy_ke'
+      lname(k) = 'STANDING EDDY KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'eddy_ke'
+      lname(k) = 'EDDY KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'tot_ke'
+      lname(k) = 'TOTAL KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'pot_temp'
+      lname(k) = 'POTENTIAL TEMPERATURE'
+      units(k) = 'DEGREES KELVIN'
+      k = k + 1
+      sname(k) = 'nt_dse_stand_eddy'
+      lname(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
+      units(k) = '10**14 W/DSIG'
+      k = k + 1
+      sname(k) = 'nt_dse_eddy'
+      lname(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_nt_dse'
+      lname(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
+      units(k) = '10**15 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'nt_lh_eddy'
+      lname(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_nt_lh'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
+      units(k) = '10**14 WATTS/UNIT SIG'
+      k = k + 1
+      sname(k) = 'nt_se_eddy'
+      lname(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
+      units(k) = '10**14 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = 'tot_nt_se'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
+      units(k) = '10**15 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'tot_nt_ke'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
+      units(k) = '10**12 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'nt_am_stand_eddy'
+      lname(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES'
+      units(k) = '10**18 J/DSIG'
+      k = k + 1
+      sname(k) = 'nt_am_eddy'
+      lname(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES'
+      units(k) = '10**18 JOULES/DSIGMA'
+      k = k + 1
+      sname(k) = 'tot_nt_am'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM'
+      units(k) = '10**19 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'we_flx_nor'
+      lname(k) = 'NORTHWARD WAVE ENERGY FLUX'
+      units(k) = '10**11 JOULES/METER/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'we_flx_vert'
+      lname(k) = 'VERTICAL WAVE ENERGY FLUX'
+      units(k) = '10**11 JOULES/METER'
+      k = k + 1
+      sname(k) = 'we_flx_div'
+      lname(k) = 'DIVERGENCE OF THE WAVE ENERGY FLUX'
+      units(k) = '10**-5 M/S**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave1'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave2'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave3'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave6'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave9'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'del_qgpv'
+      lname(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
+      units(k) = '10**-12 1/(SEC-M)'
+      k = k + 1
+      sname(k) = 'cldh2o'
+      lname(k) = 'TOTAL CLOUD WATER CONTENT'
+      units(k) = '10**-6 KG/KG'
+      k = k + 1
+      sname(k) = 'nt_lh_stand_eddy'
+      lname(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
+      units(k) = '10**13 WATTS/DSIG'
+
+c create titles by concatenating long names with units
+      do k=1,njk_out
+         title(k)=''
+         if(lname(k).ne.'')
+     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
+      enddo
+      RETURN
+      END SUBROUTINE JK_TITLES
 
       SUBROUTINE DIAGJK
 c      USE PRTCOM, only :
@@ -618,6 +1101,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
+      call jk_titles
+      call jl_titles
+
       IF (KDIAG(2).GE.8) GO TO 120
       XWON=TWOPI/(DLON*FIM)
       LMP1=LM+1
@@ -1217,6 +1703,8 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ
+      USE BDJK, only :
+     &     title,in_jkmap,nt_jk
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MLAT
@@ -1241,8 +1729,7 @@ C**** TEMPERATURE: TRANSFORMED ADVECTION
       DOUBLE PRECISION, DIMENSION(LM_REQ) :: SCALLR
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PM
 
-      COMMON/DJKTTL/TITLE(1)
-      CHARACTER*4 DASH,WORD(4),TITLE*64
+      CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L ,ksx,klmax
@@ -1321,9 +1808,11 @@ C     IF (NT.GE.80.AND.NT.LE.87) RETURN
          XJL(JM+1,LM+LM_REQ+1)=AGLOB     ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE(NT)//XLB
+         in_jkmap=.true.
+         nt_jk=nt
          IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PM,CLAT
      *        ,CPRES)
-
+         in_jkmap=.false.
 c         WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
 c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
 c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PM(L)),L=1,KLMAX),1.,1.,
@@ -1377,256 +1866,661 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JKMAP
 
-      BLOCK DATA BDJL
+      MODULE BDJL
 C****
-C**** TITLES FOR SUBROUTINE DIAGJL
+C**** TITLES/UNITS FOR SUBROUTINE DIAGJL
 C****
-      COMMON/DJLTTL/
-     *  TITLE1,TITLE2,TITLE3,TITLE4,TITLE5,TITLE6,TITLE7,
-     *  TITLE8,TITLE9,TITLEA,TITLEB,TITLEC,TITLED,TITLEE,
-     *  TITLEF,TITLEG,TITLEH
-      CHARACTER*64 TITLE1(13)
-      DATA TITLE1/
-C****                                                              1-13
-     1'ZONAL WIND CHANGE BY STRATOSPHERIC DRAG  (10**-6 M S-2)        ',
-     2'HEIGHT (HUNDREDS OF METERS)                                    ',
-     3'SPECIFIC HUMIDITY (10**-5 KG H2O/KG AIR)                       ',
-     4'RELATIVE HUMIDITY (PERCENT)                                    ',
-     5'ZONAL WIND (U COMPONENT) (TENTHS OF METERS/SECOND)             ',
-     6'MERIDIONAL WIND (V COMPONENT) (HUNDREDTHS OF METERS/SECOND)    ',
-     7'STREAM FUNCTION (10**9 KILOGRAMS/SECOND)                       ',
-     8'VERTICAL VELOCITY (10**-5 MILLIBARS/SECOND)                    ',
-     9'BAROCLINIC EDDY KINETIC ENERGY GEN. (10**-1 WATTS/M**2/SIGMA)  ',
-     A'VERTICAL MASS EXCHANGE FROM MOIST CONVECTION (10**9 KG/SECOND) ',
-     B'SOLAR RADIATION HEATING RATE (HUNDREDTHS OF DEGREES KELVIN/DAY)',
-C    *   'EES KELVIN/DAY)',
-     C'THERMAL RADIATION COOLING RATE (HUNDREDTHS OF DEGREES K/DAY)   ',
-     D'TOTAL RADIATION COOLING RATE (10**13 WATTS/UNIT SIGMA)         '/
-      CHARACTER*64 TITLE2(8)
-      DATA TITLE2/
-C****                                                             14-21
-     1'HEATING BY LARGE SCALE CONDENSATION (10**13 WATTS/UNIT SIGMA)',
-     2'HEATING BY DRY CONVECTION (10**13 WATTS/UNIT SIGMA)          ',
-     6'CHANGE OF LATENT HEAT BY DRY CONV.  (10**14 W/UNIT SIGMA)    ',
-     4'STANDING EDDY KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)  ',
-     5'EDDY KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)           ',
-     6'TOTAL KINETIC ENERGY (10**4 JOULES/M**2/UNIT SIGMA)          ',
-     7'AVAILABLE POTENTIAL ENERGY (10**5 JOULES/M**2/UNIT SIGMA)    ',
-     8'POTENTIAL TEMPERATURE (DEGREES KELVIN)                       '/
-      CHARACTER*64 TITLE3(7)
-      DATA TITLE3/
-C****                                                             22-28
-     2'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES (10**14 W/DSIG)'
-     *,
-     3'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES (10**14 WATTS/DSIG)'
-     *,
-     4'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY (10**15 WATTS/DSIG) '
-     *,
-     5'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES (10**13 WATTS/DSIG)'
-     *,
-     5'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT (10**14 WATTS/UNIT SIG)'
-     *,
-     6'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES (10**14 WATTS/DSIGMA)'
-     *,
-     9'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY (10**15 WATTS/DSIGMA)'
-     *     /
-      CHARACTER*64 TITLE4(5)
-      DATA TITLE4/
-C****                                                             29-33
-     9'NORTH. TRANSPORT OF KINETIC ENERGY BY EDDIES (10**12 WATTS/DSIG)'
-     *,
-     *'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY (10**12 WATTS/DSIG) '
-     *,
-     1'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES (10**18 J/DSIG) '
-     *,
-     2'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES (10**18 JOULES/DSIGMA) '
-     *,
-     *'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM (10**19 JOULES/DSIG) '
-     *     /
-      CHARACTER*64 TITLE5(6)
-      DATA TITLE5/
-C****                                                             34-39
-     4'VERT. TRANS. OFDRY STATIC ENERGY BY EDDIES (10**12 WATTS)      ',
-     5'TOT. LARGE SCALE VERT. TRANS. OF DRY STAT. ENER. (10**14 WATTS)',
-     6'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (10**12 WATTS)     ',
-     7'TOTAL LARGE SCALE VERT. TRANS. OF LATENT HEAT (10**13 WATTS)   ',
-     8'VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (10**13 WATTS)   ',
-     9'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY (10**14 WATTS) '/
-      CHARACTER*64 TITLE6(4)
-      DATA TITLE6/
-C****                                                             40-43
-     *'DU/DT   TOTAL CHANGE  (10**-6 M/S/S)                 CP        ',
-     1'TOTAL LARGE SCALE VERT. TRANS. OF KINETIC ENERGY (10**11 WATTS)',
-     2'VERT. TRANS. OFANG. MOMENTUM BY EDDIES (10**16JOULES)          ',
-     3'TOTAL LARGE SCALE VERT. TRANS. OF ANG. MOMENTUM (10**18 JOULES)'/
-      CHARACTER*64 TITLE7(9)
-      DATA TITLE7/
-C****                                                             44-52
-     4'CHANGE OF ANG. MOMENTUM BY DRY CONVEC (10**18 JOULE/UNIT SIGMA)',
-     5'CHANGE OF ANG. MOMENTUM BY MOIST CONV (10**18 JOULE/UNIT SIGMA)',
-     6'CHANGE OF ANG. MOMENTUM BY DIFFUSION (10**18 JOULES/UNIT SIGMA)',
-     7'U WIND AVERAGED OVER I,EAST PACIFIC (TENTHS OF METERS/SECOND)',
-     8'V WIND AVERAGED OVER EAST PACIFIC (TENTHS OF METERS/SECOND)',
-     9'VERTICAL VELOCITY FOR EAST PACIFIC (10**-5 METERS/SECOND)',
-     A'U WIND AVERAGED OVER I=WEST PACIFIC (TENTHS OF METERS/SECOND)',
-     B'V WIND AVERAGED OVER I=WEST PACIFIC (TENTHS OF METERS/SECOND)',
-     C'VERTICAL VELOCITY FOR WEST PACIFIC (10**-5 METERS/SECOND)'/
-      CHARACTER*64 TITLE8(8)
-      DATA TITLE8/
-C****                                                             53-60
-c    3'POTENTIAL VORTICITY (10**-6 K/(MB-S))                          ',
-     3'DU/DT BY SDRAG (10**-6 M S-2)                                  ',
-     4'NORTHWARD TRANSPORT OF Q-G POT. VORTICITY  (10**18 JOULES/DSIG)',
-     1'P-K BY EDDY PRESSURE GRADIENT FORCE  (10**-1 W/M**2/UNIT SIGMA)',
-     6'Q-G POT. VORTICITY CHANGE OVER LATITUDES (10**-12 1/(SEC-M))   ',
-     7'TRANSFORMED STREAM FUNCTION  (10**9 KILOGRAMS/SECOND)          ',
-     8'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL (.1 WATTS/M**2/DSIGMA)',
-     *'DU/DT BY MEAN ADVECTION  (10**-6 M/S/S)              CP        ',
-     *'DU/DT BY EDDY CONVERGENCE  (10**-6 M/S/S)            CP        '/
-      CHARACTER*64 TITLE9(12)
-      DATA TITLE9/
-C****                                                             61-72
-     1'STREAM FUNCTION (10**9 KILOGRAMS/SECOND)             CP  ',
-     2'VERTICAL VELOCITY (10**-5 MILLIBARS/SECOND)              ',
-     3'POTENTIAL VORTICITY (10**-6 K/(MB-S))                CP  ',
-     4'DU/DT BY TRANSFORMED ADVECTION  (10**-6 M/S/S)       CP  ',
-     5'DU/DT BY ELIASSEN-PALM DIVERGENCE  (10**-6 M/S/S)    CP  ',
-     6'DTEMP/DT   TOTAL CHANGE  (10**-1 DEG-K/DAY)          CP  ',
-     7'DTEMP/DT BY MEAN ADVECTION  (10**-1 DEG-K/DAY)       CP  ',
-     8'STANDARD DEVIATION OF PRESSURE DIFFERENCES  (MB)         ',
-     9'DTEMP/DT BY EDDY CONVERGENCE  (10**-1 DEG-K/DAY)     CP  ',
-     O'DTEMP/DT BY TRANSFORMED ADVECTION (10**-1 DEG-K/DAY) CP  ',
-     1'REFRACTION INDEX FOR WAVE NUMBER 1  (10**-8 PER METER**2)',
-     2'REFRACTION INDEX FOR WAVE NUMBER 2  (10**-8 PER METER**2)'/
-      CHARACTER*64 TITLEA(11)
-      DATA TITLEA/
-C****                                                             73-83
-     3'REFRACTION INDEX FOR WAVE NUMBER 3  (10**-8 PER METER**2)  ',
-     4'REFRACTION INDEX FOR WAVE NUMBER 6  (10**-8 PER METER**2)  ',
-     5'REFRACTION INDEX FOR WAVE NUMBER 9  (10**-8 PER METER**2)  ',
-     6'                                                           ',
-     7'TOTAL CLOUD COVER (PERCENT)                                ',
-     8'SUPER SATURATION CLOUD COVER (PERCENT)                     ',
-     9'MOIST CONVECTIVE CLOUD COVER (PERCENT)                     ',
-     O'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1 (METERS)',
-     1'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2 (METERS)',
-     2'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3 (METERS)',
-     3'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4 (METERS)'/
-      CHARACTER*64 TITLEB(9)
-      DATA TITLEB/
-C****                                                             84-92
-     4'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1 (DEG WEST LONG) ',
-     5'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2 (DEG WEST LONG) ',
-     6'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3 (DEG WEST LONG) ',
-     7'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4 (DEG WEST LONG) ',
-     8'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES (10**14 WATTS/DSIGMA) ',
-C    9'TOTAL NORTHWARD TRANSPORT OF SENSIBLE HEAT (10**15 WATTS/DSIGMA)'
-C    *,
-     9'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE             CP        ',
-     O'VERT. TRANS. OF GEOPOTENTIAL ENERGY BY EDDIES (10**12 WATTS)   ',
-C    1'TOTAL LARGE SCALE VERT. TRANS. OF GEOPOTEN. ENER. (10**14 WATTS)'
-C    *,
-     1'PRESSURE DIFFERENCES  (MB)                           CP        ',
-     2'SUBGRID SCALE TEMPERATURE DEVIATION (HUNDREDTHS OF DEGREES KEL)'
-     */
-      CHARACTER*64 TITLEC(6)
-      DATA TITLEC/
-C****                                                             93-98
-     3'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY (10 WATTS/M**2/DSIGMA)',
-     4'DIVERGENCE OF THE ELIASSEN-PALM FLUX (10**17 JOULES/UNIT SIGMA)',
-     5'NORTHWARD ELIASSEN-PALM FLUX (10**17 JOULES/UNIT SIGMA)',
-     6'VERTICAL ELIASSEN-PALM FLUX (10**17 JOULES) ',
-     7'TOTAL DRYING BY MOIST CONVECTION (Q2)        10*14 WATTS/DSIG) ',
-     8'TOTAL HEATING BY MOIST CONVECTION (Q1)      (10*14 WATTS/DSIG) '/
-      CHARACTER*64 TITLED(8)
-      DATA TITLED/
-C****                                                            99-106
-     1'VERT. TRANS. OF GEOPOTENTIAL ENERGY BY EDDIES (10**12 WATTS)  CP'
-     *,
-     2'VERT. TRANS. OF DRY STATIC ENERGY BY EDDIES (10**12 WATTS)    CP'
-     *,
-     3'TOTAL LGE SCALE VERT. TRANS. OF DRY STAT. ENER. (10**14 WATTS)CP'
-     *,
-     4'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (10**12 WATTS)    CP'
-     *,
-     5'TOTAL LARGE SCALE VERT. TRANS. OF LATENT HEAT (10**13 WATTS)  CP'
-     *,
-     6'VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (10**13 WATTS)  CP'
-     *,
-     7'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY (10**14 WATTS)CP'
-     *,
-     8'TRANSFORMED STREAM FUNCTION  (10**9 KG/SEC)                   CP'
-     *     /
-      CHARACTER*64 TITLEE(8)
-      DATA TITLEE/
-C****                                                           107-114
-     7'VERT. TRANSPORT OF POTENTIAL VORTICITY (10**4 KG-DEG K/MB/S/S)CP'
-     *,
-     8'VERT. TRANS. OF POT. VORT. BY EDDIES (10**4 KG-DEG K/MB/S/S)  CP'
-     *,
-     9'                                                                '
-     *,
-     A'TOTAL LGE SCALE VERT. TRANS. OF KINETIC ENERGY (10**11 WATTS) CP'
-     *,
-     5'VERT. TRANS. OF ANG. MOMENTUM BY EDDIES (10**16 JOULES)       CP'
-     *,
-     6'TOTAL LGE SCALE VERT. TRANS. OF ANG. MOMENTUM (10**18 JOULES) CP'
-     *,
-     7'VERTICAL ELIASSEN-PALM FLUX (10**11 JOULES/METER)             CP'
-     *,
-     E'                                                                '
-     *     /
-      CHARACTER*64 TITLEF(14)
-      DATA TITLEF/
-C****                                                            115-128
-     5'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #1(10**14 WATTS/DSIG)',
-     6'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #2(10**14 WATTS/DSIG)',
-     7'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #3(10**14 WATTS/DSIG)',
-     8'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #4(10**14 WATTS/DSIG)',
-     9'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #5(10**14 WATTS/DSIG)',
-     O'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #1(10**14 WATTS/DSIG)',
-     1'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #2(10**14 WATTS/DSIG)',
-     2'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #3(10**14 WATTS/DSIG)',
-     3'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #4(10**14 WATTS/DSIG)',
-     4'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #5(10**14 WATTS/DSIG)',
-     5'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #6(10**14 WATTS/DSIG)',
-     6'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #7(10**14 WATTS/DSIG)',
-     7'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #8(10**14 WATTS/DSIG)',
-     8'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #9(10**14 WATTS/DSIG)'/
-      CHARACTER*64 TITLEG(14)
-      DATA TITLEG/
-     9'STAND. N. TRANS. OF LATENT HEAT, WAVE #1 (10**13 WATTS/DSIG)   ',
-     O'STAND. N. TRANS. OF LATENT HEAT, WAVE #2 (10**13 WATTS/DSIG)   ',
-     1'STAND. N. TRANS. OF LATENT HEAT, WAVE #3 (10**13 WATTS/DSIG)   ',
-     2'STAND. N. TRANS. OF LATENT HEAT, WAVE #4 (10**13 WATTS/DSIG)   ',
-     3'STAND. N. TRANS. OF LATENT HEAT, WAVE #5 (10**13 WATTS/DSIG)   ',
-     4'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #1 (10**13 WATTS/DSIG)',
-     5'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #2 (10**13 WATTS/DSIG)',
-     6'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #3 (10**13 WATTS/DSIG)',
-     7'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #4 (10**13 WATTS/DSIG)',
-     8'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #5 (10**13 WATTS/DSIG)',
-     9'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #6 (10**13 WATTS/DSIG)',
-     O'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #7 (10**13 WATTS/DSIG)',
-     1'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #8 (10**13 WATTS/DSIG)',
-     2'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #9 (10**13 WATTS/DSIG)'/
-      CHARACTER*64 TITLEH(14)
-      DATA TITLEH/
-C****                                                            143-156
-     3'STAND. N. TRANS. OF ANG. MOMENT., WAVE #1 (10**18 JOULES/DSIG)',
-     4'STAND. N. TRANS. OF ANG. MOMENT., WAVE #2 (10**18 JOULES/DSIG)',
-     5'STAND. N. TRANS. OF ANG. MOMENT., WAVE #3 (10**18 JOULES/DSIG)',
-     6'STAND. N. TRANS. OF ANG. MOMENT., WAVE #4 (10**18 JOULES/DSIG)',
-     7'STAND. N. TRANS. OF ANG. MOMENT., WAVE #5 (10**18 JOULES/DSIG)',
-     8'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #1 (10**18 JOULES/DS)  ',
-     9'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #2 (10**18 JOULES/DS)  ',
-     O'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #3 (10**18 JOULES/DS)  ',
-     1'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #4 (10**18 JOULES/DS)  ',
-     2'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #5 (10**18 JOULES/DS)  ',
-     3'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #6 (10**18 JOULES/DS)  ',
-     4'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #7 (10**18 JOULES/DS)  ',
-     5'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #8 (10**18 JOULES/DS)  ',
-     6'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #9 (10**18 JOULES/DS)  '/
-      END BLOCK DATA BDJL
+      integer, parameter :: njl_out=156
+      CHARACTER(LEN=64), DIMENSION(njl_out) :: TITLE
+      CHARACTER(LEN=50), DIMENSION(njl_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(njl_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(njl_out) :: SNAME
+
+      logical :: in_jlmap ! flag telling pout_jl to use jl titles
+      integer :: nt_jl ! index telling pout_jl which title to use
+      END MODULE BDJL
+
+      SUBROUTINE JL_TITLES
+      USE BDJL
+      IMPLICIT NONE
+      INTEGER :: K
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'del_u_sdrag'
+      lname(k) = 'ZONAL WIND CHANGE BY STRATOSPHERIC DRAG'
+      units(k) = '10**-6 M S-2'
+      k = k + 1
+      sname(k) = 'height_jl'
+      lname(k) = 'HEIGHT'
+      units(k) = 'HUNDREDS OF METERS'
+      k = k + 1
+      sname(k) = 'q_jl'
+      lname(k) = 'SPECIFIC HUMIDITY'
+      units(k) = '10**-5 KG H2O/KG AIR'
+      k = k + 1
+      sname(k) = 'rh_jl'
+      lname(k) = 'RELATIVE HUMIDITY'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'u_jl'
+      lname(k) = 'ZONAL WIND (U COMPONENT)'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v_jl'
+      lname(k) = 'MERIDIONAL WIND (V COMPONENT)'
+      units(k) = 'HUNDREDTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'psi'
+      lname(k) = 'STREAM FUNCTION'
+      units(k) = '10**9 KILOGRAMS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel'
+      lname(k) = 'VERTICAL VELOCITY'
+      units(k) = '10**-5 MILLIBARS/SECOND'
+      k = k + 1
+      sname(k) = 'baroc_eddy_ke_gen_jl'
+      lname(k) = 'BAROCLINIC EDDY KINETIC ENERGY GEN.'
+      units(k) = '10**-1 WATTS/M**2/SIGMA'
+      k = k + 1
+      sname(k) = 'mc_mflx'
+      lname(k) = 'VERTICAL MASS EXCHANGE FROM MOIST CONVECTION'
+      units(k) = '10**9 KG/SECOND'
+      k = k + 1
+      sname(k) = 'srad_heat'
+      lname(k) = 'SOLAR RADIATION HEATING RATE'
+      units(k) = 'HUNDREDTHS OF DEGREES KELVIN/DAY'
+      k = k + 1
+      sname(k) = 'trad_cool'
+      lname(k) = 'THERMAL RADIATION COOLING RATE'
+      units(k) = 'HUNDREDTHS OF DEGREES K/DAY'
+      k = k + 1
+      sname(k) = 'rad_cool'
+      lname(k) = 'TOTAL RADIATION COOLING RATE'
+      units(k) = '10**13 WATTS/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'lscond_heat'
+      lname(k) = 'HEATING BY LARGE SCALE CONDENSATION'
+      units(k) = '10**13 WATTS/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'dconv_heat'
+      lname(k) = 'HEATING BY DRY CONVECTION'
+      units(k) = '10**13 WATTS/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'dconv_dry'
+      lname(k) = 'CHANGE OF LATENT HEAT BY DRY CONV.'
+      units(k) = '10**14 W/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'stand_eddy_ke'
+      lname(k) = 'STANDING EDDY KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'eddy_ke'
+      lname(k) = 'EDDY KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'tot_ke'
+      lname(k) = 'TOTAL KINETIC ENERGY'
+      units(k) = '10**4 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'avail_pe'
+      lname(k) = 'AVAILABLE POTENTIAL ENERGY'
+      units(k) = '10**5 JOULES/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'pot_temp'
+      lname(k) = 'POTENTIAL TEMPERATURE'
+      units(k) = 'DEGREES KELVIN'
+      k = k + 1
+      sname(k) = 'nt_dse_stand_eddy'
+      lname(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
+      units(k) = '10**14 W/DSIG'
+      k = k + 1
+      sname(k) = 'nt_dse_eddy'
+      lname(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_nt_dse'
+      lname(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
+      units(k) = '10**15 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'nt_lh_eddy'
+      lname(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_nt_lh'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
+      units(k) = '10**14 WATTS/UNIT SIG'
+      k = k + 1
+      sname(k) = 'nt_se_eddy'
+      lname(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
+      units(k) = '10**14 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = 'tot_nt_se'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
+      units(k) = '10**15 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = 'nt_ke_eddy'
+      lname(k) = 'NORTH. TRANSPORT OF KINETIC ENERGY BY EDDIES'
+      units(k) = '10**12 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_nt_ke'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
+      units(k) = '10**12 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'nt_am_stand_eddy'
+      lname(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY STAND. EDDIES'
+      units(k) = '10**18 J/DSIG'
+      k = k + 1
+      sname(k) = 'nt_am_eddy'
+      lname(k) = 'NORTH. TRANS. OF ANG. MOMENTUM BY EDDIES'
+      units(k) = '10**18 JOULES/DSIGMA'
+      k = k + 1
+      sname(k) = 'tot_nt_am'
+      lname(k) = 'TOTAL NORTHWARD TRANSPORT OF ANG. MOMENTUM'
+      units(k) = '10**19 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'vt_dse_eddy'
+      lname(k) = 'VERT. TRANS. OFDRY STATIC ENERGY BY EDDIES'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_dse'
+      lname(k) = 'TOT. LARGE SCALE VERT. TRANS. OF DRY STAT. ENER.'
+      units(k) = '10**14 WATTS'
+      k = k + 1
+      sname(k) = 'vt_lh_eddy'
+      lname(k) = 'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_lh'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF LATENT HEAT'
+      units(k) = '10**13 WATTS'
+      k = k + 1
+      sname(k) = 'vt_se_eddy'
+      lname(k) = 'VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES'
+      units(k) = '10**13 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_se'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY'
+      units(k) = '10**14 WATTS'
+      k = k + 1
+      sname(k) = 'tot_dudt'
+      lname(k) = 'DU/DT   TOTAL CHANGE (CP)'
+      units(k) = '10**-6 M/S/S'
+      k = k + 1
+      sname(k) = 'tot_vt_ke'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF KINETIC ENERGY'
+      units(k) = '10**11 WATTS'
+      k = k + 1
+      sname(k) = 'vt_am_eddy'
+      lname(k) = 'VERT. TRANS. OFANG. MOMENTUM BY EDDIES'
+      units(k) = '10**16JOULES'
+      k = k + 1
+      sname(k) = 'tot_vt_am'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF ANG. MOMENTUM'
+      units(k) = '10**18 JOULES'
+      k = k + 1
+      sname(k) = 'del_am_dc'
+      lname(k) = 'CHANGE OF ANG. MOMENTUM BY DRY CONVEC'
+      units(k) = '10**18 JOULE/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'del_am_mc'
+      lname(k) = 'CHANGE OF ANG. MOMENTUM BY MOIST CONV'
+      units(k) = '10**18 JOULE/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'del_am_diff'
+      lname(k) = 'CHANGE OF ANG. MOMENTUM BY DIFFUSION'
+      units(k) = '10**18 JOULES/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'u_epac'
+      lname(k) = 'U WIND AVERAGED OVER I,EAST PACIFIC'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v_epac'
+      lname(k) = 'V WIND AVERAGED OVER EAST PACIFIC'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel_epac'
+      lname(k) = 'VERTICAL VELOCITY FOR EAST PACIFIC'
+      units(k) = '10**-5 METERS/SECOND'
+      k = k + 1
+      sname(k) = 'u_wpac'
+      lname(k) = 'U WIND AVERAGED OVER I=WEST PACIFIC'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v_wpac'
+      lname(k) = 'V WIND AVERAGED OVER I=WEST PACIFIC'
+      units(k) = 'TENTHS OF METERS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel_wpac'
+      lname(k) = 'VERTICAL VELOCITY FOR WEST PACIFIC'
+      units(k) = '10**-5 METERS/SECOND'
+      k = k + 1
+      sname(k) = 'dudt_sdrag'
+      lname(k) = 'DU/DT BY SDRAG'
+      units(k) = '10**-6 M S-2'
+      k = k + 1
+      sname(k) = 'nt_qgpv'
+      lname(k) = 'NORTHWARD TRANSPORT OF Q-G POT. VORTICITY'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'p2k_eddy_pgf'
+      lname(k) = 'P-K BY EDDY PRESSURE GRADIENT FORCE'
+      units(k) = '10**-1 W/M**2/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'del_qgpv'
+      lname(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
+      units(k) = '10**-12 1/(SEC-M)'
+      k = k + 1
+      sname(k) = 'psi_tem'
+      lname(k) = 'TRANSFORMED STREAM FUNCTION'
+      units(k) = '10**9 KILOGRAMS/SECOND'
+      k = k + 1
+      sname(k) = 'dyn_conv_eddy_geopot'
+      lname(k) = 'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL'
+      units(k) = '.1 WATTS/M**2/DSIGMA'
+      k = k + 1
+      sname(k) = 'dudt_mean_advec'
+      lname(k) = 'DU/DT BY MEAN ADVECTION (CP)'
+      units(k) = '10**-6 M/S/S'
+      k = k + 1
+      sname(k) = 'dudt_eddy_conv'
+      lname(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
+      units(k) = '10**-6 M/S/S'
+      k = k + 1
+      sname(k) = 'psi_cp'
+      lname(k) = 'STREAM FUNCTION (CP)'
+      units(k) = '10**9 KILOGRAMS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel'
+      lname(k) = 'VERTICAL VELOCITY'
+      units(k) = '10**-5 MILLIBARS/SECOND'
+      k = k + 1
+      sname(k) = 'pot_vort'
+      lname(k) = 'POTENTIAL VORTICITY (CP)'
+      units(k) = '10**-6 K/(MB-S)'
+      k = k + 1
+      sname(k) = 'dudt_advec_tem'
+      lname(k) = 'DU/DT BY TRANSFORMED ADVECTION (CP)'
+      units(k) = '10**-6 M/S/S'
+      k = k + 1
+      sname(k) = 'dudt_epdiv'
+      lname(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE (CP)'
+      units(k) = '10**-6 M/S/S'
+      k = k + 1
+      sname(k) = 'dtempdt'
+      lname(k) = 'DTEMP/DT   TOTAL CHANGE (CP)'
+      units(k) = '10**-1 DEG-K/DAY'
+      k = k + 1
+      sname(k) = 'dtempdt_mean_advec'
+      lname(k) = 'DTEMP/DT BY MEAN ADVECTION (CP)'
+      units(k) = '10**-1 DEG-K/DAY'
+      k = k + 1
+      sname(k) = 'stdev_dp'
+      lname(k) = 'STANDARD DEVIATION OF PRESSURE DIFFERENCES'
+      units(k) = 'MB'
+      k = k + 1
+      sname(k) = 'dtempdt_eddy_conv'
+      lname(k) = 'DTEMP/DT BY EDDY CONVERGENCE (CP)'
+      units(k) = '10**-1 DEG-K/DAY'
+      k = k + 1
+      sname(k) = 'dtempdt_advec_tem'
+      lname(k) = 'DTEMP/DT BY TRANSFORMED ADVECTION (CP)'
+      units(k) = '10**-1 DEG-K/DAY'
+      k = k + 1
+      sname(k) = 'refr_ind_wave1'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave2'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave3'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave6'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = 'refr_ind_wave9'
+      lname(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
+      units(k) = '10**-8 PER METER**2'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'totcld'
+      lname(k) = 'TOTAL CLOUD COVER'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'sscld'
+      lname(k) = 'SUPER SATURATION CLOUD COVER'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'mccld'
+      lname(k) = 'MOIST CONVECTIVE CLOUD COVER'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'phi_amp_wave1'
+      lname(k) = 'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units(k) = 'METERS'
+      k = k + 1
+      sname(k) = 'phi_amp_wave2'
+      lname(k) = 'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units(k) = 'METERS'
+      k = k + 1
+      sname(k) = 'phi_amp_wave3'
+      lname(k) = 'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units(k) = 'METERS'
+      k = k + 1
+      sname(k) = 'phi_amp_wave4'
+      lname(k) = 'AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units(k) = 'METERS'
+      k = k + 1
+      sname(k) = 'phi_phase_wave1'
+      lname(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname(k) = 'phi_phase_wave2'
+      lname(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname(k) = 'phi_phase_wave3'
+      lname(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname(k) = 'phi_phase_wave4'
+      lname(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname(k) = 'nt_sensht_eddy'
+      lname(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
+      units(k) = '10**14 WATTS/DSIGMA'
+      k = k + 1
+      sname(k) = 'npts_avg'
+      lname(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE (CP)'
+      units(k) = '1'
+      k = k + 1
+      sname(k) = 'vt_geopot_eddy'
+      lname(k) = 'VERT. TRANS. OF GEOPOTENTIAL ENERGY BY EDDIES'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'dp_cp'
+      lname(k) = 'PRESSURE DIFFERENCES (CP)'
+      units(k) = 'MB'
+      k = k + 1
+      sname(k) = 'dt_subgrid'
+      lname(k) = 'SUBGRID SCALE TEMPERATURE DEVIATION'
+      units(k) = 'HUNDREDTHS OF DEGREES KEL'
+      k = k + 1
+      sname(k) = 'dyn_conv_dse'
+      lname(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
+      units(k) = '10 WATTS/M**2/DSIGMA'
+      k = k + 1
+      sname(k) = 'epflx_div'
+      lname(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
+      units(k) = '10**17 JOULES/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'epflx_north'
+      lname(k) = 'NORTHWARD ELIASSEN-PALM FLUX'
+      units(k) = '10**17 JOULES/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'epflx_vert'
+      lname(k) = 'VERTICAL ELIASSEN-PALM FLUX'
+      units(k) = '10**17 JOULES'
+      k = k + 1
+      sname(k) = 'tot_dry_mc'
+      lname(k) = 'TOTAL DRYING BY MOIST CONVECTION (Q2)'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'tot_ht_mc'
+      lname(k) = 'TOTAL HEATING BY MOIST CONVECTION (Q1)'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'vt_geopot_eddy'
+      lname(k) = 'VERT. TRANS. OF GEOPOTENTIAL ENERGY BY EDDIES (CP)'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'vt_dse_eddy'
+      lname(k) = 'VERT. TRANS. OF DRY STATIC ENERGY BY EDDIES (CP)'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_dse'
+      lname(k) = 'TOTAL LGE SCALE VERT. TRANS. OF DRY STAT. ENER. (CP)'
+      units(k) = '10**14 WATTS'
+      k = k + 1
+      sname(k) = 'vt_lh_eddy'
+      lname(k) = 'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (CP)'
+      units(k) = '10**12 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_lh'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF LATENT HEAT (CP)'
+      units(k) = '10**13 WATTS'
+      k = k + 1
+      sname(k) = 'vt_se_eddy'
+      lname(k) = 'VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (CP)'
+      units(k) = '10**13 WATTS'
+      k = k + 1
+      sname(k) = 'tot_vt_se'
+      lname(k) = 'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENERGY (CP)'
+      units(k) = '10**14 WATTS'
+      k = k + 1
+      sname(k) = 'psi_tem'
+      lname(k) = 'TRANSFORMED STREAM FUNCTION (CP)'
+      units(k) = '10**9 KG/SEC'
+      k = k + 1
+      sname(k) = 'vt_pv'
+      lname(k) = 'VERT. TRANSPORT OF POTENTIAL VORTICITY (CP)'
+      units(k) = '10**4 KG-DEG K/MB/S/S'
+      k = k + 1
+      sname(k) = 'vt_pv_eddy'
+      lname(k) = 'VERT. TRANS. OF POT. VORT. BY EDDIES (CP)'
+      units(k) = '10**4 KG-DEG K/MB/S/S'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'tot_vt_ke'
+      lname(k) = 'TOTAL LGE SCALE VERT. TRANS. OF KINETIC ENERGY (CP)'
+      units(k) = '10**11 WATTS'
+      k = k + 1
+      sname(k) = 'vt_am_eddy'
+      lname(k) = 'VERT. TRANS. OF ANG. MOMENTUM BY EDDIES (CP)'
+      units(k) = '10**16 JOULES'
+      k = k + 1
+      sname(k) = 'tot_vt_am'
+      lname(k) = 'TOTAL LGE SCALE VERT. TRANS. OF ANG. MOMENTUM (CP)'
+      units(k) = '10**18 JOULES'
+      k = k + 1
+      sname(k) = 'epflx_vert_cp'
+      lname(k) = 'VERTICAL ELIASSEN-PALM FLUX (CP)'
+      units(k) = '10**11 JOULES/METER'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse_wave1'
+      lname(k) = 'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #1'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse_wave2'
+      lname(k) = 'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #2'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse_wave3'
+      lname(k) = 'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #3'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse_wave4'
+      lname(k) = 'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #4'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse_wave5'
+      lname(k) = 'STAND. N. TRANS.OF D. STATIC ENERGY, WAVE #5'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave1'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #1'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave2'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #2'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave3'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #3'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave4'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #4'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave5'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #5'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave6'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #6'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave7'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #7'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave8'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #8'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse_wave9'
+      lname(k) = 'TRNSNT N. TRANS.OF D. STATIC ENERGY, WAVE #9'
+      units(k) = '10**14 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_lh_wave1'
+      lname(k) = 'STAND. N. TRANS. OF LATENT HEAT, WAVE #1'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_lh_wave2'
+      lname(k) = 'STAND. N. TRANS. OF LATENT HEAT, WAVE #2'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_lh_wave3'
+      lname(k) = 'STAND. N. TRANS. OF LATENT HEAT, WAVE #3'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_lh_wave4'
+      lname(k) = 'STAND. N. TRANS. OF LATENT HEAT, WAVE #4'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_lh_wave5'
+      lname(k) = 'STAND. N. TRANS. OF LATENT HEAT, WAVE #5'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave1'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #1'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave2'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #2'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave3'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #3'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave4'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #4'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave5'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #5'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave6'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #6'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave7'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #7'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave8'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #8'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_lh_wave9'
+      lname(k) = 'TRANSIENT N. TRANS. OF LATENT HEAT, WAVE #9'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_am_wave1'
+      lname(k) = 'STAND. N. TRANS. OF ANG. MOMENT., WAVE #1'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_am_wave2'
+      lname(k) = 'STAND. N. TRANS. OF ANG. MOMENT., WAVE #2'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_am_wave3'
+      lname(k) = 'STAND. N. TRANS. OF ANG. MOMENT., WAVE #3'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_am_wave4'
+      lname(k) = 'STAND. N. TRANS. OF ANG. MOMENT., WAVE #4'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_am_wave5'
+      lname(k) = 'STAND. N. TRANS. OF ANG. MOMENT., WAVE #5'
+      units(k) = '10**18 JOULES/DSIG'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave1'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #1'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave2'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #2'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave3'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #3'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave4'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #4'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave5'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #5'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave6'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #6'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave7'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #7'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave8'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #8'
+      units(k) = '10**18 JOULES/DS'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_am_wave9'
+      lname(k) = 'TRNSNT N. TRANS. OF ANG. MOMENT., WAVE #9'
+      units(k) = '10**18 JOULES/DS'
+
+c create titles by concatenating long names with units
+      do k=1,njl_out
+         title(k)=''
+         if(lname(k).ne.'')
+     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
+      enddo
+
+      RETURN
+      END SUBROUTINE JL_TITLES
 
       SUBROUTINE DIAGJL
 c      USE PRTCOM, only :
@@ -1903,6 +2797,8 @@ C****
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
      &     LAT_DG,WTJ
+      USE BDJL, only :
+     &     title,in_jlmap,nt_jl
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MLAT
@@ -1921,8 +2817,7 @@ C****
       DOUBLE PRECISION, DIMENSION(LM_REQ) :: SCALLR
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PL
 
-      COMMON/DJLTTL/TITLE(1)
-      CHARACTER*4 DASH,WORD(4),TITLE*64
+      CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
       INTEGER :: IWORD,J,J0,JH,JHEMI,K,L  ,ksx,klmax
@@ -1992,9 +2887,11 @@ C        IF (NT.EQ.5) CALL KEYJLJ (L,FLAT)
          XJL(JM+1,LM+LM_REQ+1)=GSUM      ! GLOBAL
          XLB=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
          TITLEO=TITLE(NT)//XLB
+         in_jlmap=.true.
+         nt_jl=nt
          IF(QCHECK) CALL POUT_JL(TITLEO,J1,KLMAX,XJL,PL,CLAT
      *        ,CPRES)
-
+         in_jlmap=.false.
 c         IF(QCHECK) WRITE (iu_jl) TITLE(NT),XLB,JM-J1+1,KLMAX,1,1,
 c     *     ((XJL(J,L),J=J1,JM),L=1,KLMAX),
 c     *     (SNGL(LAT_DG(J,J1)),J=J1,JM),(SNGL(PL(L)),L=1,KLMAX),1.,1.,
@@ -2048,34 +2945,100 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JLMAP
 
-      BLOCK DATA BDIL
+      MODULE BDIL
 C****
-C**** TITLES FOR SUBROUTINE DIAGIL
+C**** TITLES/UNITS FOR SUBROUTINE DIAGIL
 C****
-      COMMON/DILTTL/TITLE1,TITLE2
-      CHARACTER*64 TITLE1(8)
-      DATA TITLE1/
-C****                                                              1-8
-     1'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG (METERS/SECOND)',
-     2'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG (METERS/SECOND)',
-     3'VERTICAL VELOCITY AROUND +/- 5 DEG (10**-4 METERS/SECOND)',
-     4'TEMPERATURE AROUND +/- 5 DEG (DEGREES CENTIGRADE)',
-     5'RELATIVE HUMIDITY AROUND +/- 5 DEG (PERCENT) ',
-     6'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG (10**13 WATTS/DSIG)',
-     7'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG (10**13 WATTS/DSIG)',
-     8'                                                              '/
-      CHARACTER*64 TITLE2(8)
-      DATA TITLE2/
-C****                                                              9-16
-     9'VERTICAL VELOCITY AT 50 N (10**-4 METERS/SECOND)         ',
-     O'TEMPERATURE AT 50 N (DEGREES CENTIGRADE)                 ',
-     1'TOTAL RADIATIVE COOLING AT 50 N (10**13 WATTS/UNIT SIGMA)',
-     2'ZONAL WIND AT 50 N (METERS/SECOND)                       ',
-     3'VERTICAL VELOCITY AT 70 N (10**-4 METERS/SECOND)         ',
-     4'TEMPERATURE AT 70 N (DEGREES CENTIGRADE)                 ',
-     5'TOTAL RADIATIVE COOLING AT 70 N (10**13 WATTS/UNIT SIGMA)',
-     6'ZONAL WIND AT 70 N (METERS/SECOND)                       '/
-      END BLOCK DATA BDIL
+      integer, parameter :: nil_out=16
+      CHARACTER(LEN=64), DIMENSION(nil_out) :: TITLE
+      CHARACTER(LEN=50), DIMENSION(nil_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(nil_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(nil_out) :: SNAME
+
+      integer :: nt_il ! tells pout_il which title to use
+      END MODULE BDIL
+
+      SUBROUTINE IL_TITLES
+      USE BDIL
+      IMPLICIT NONE
+      INTEGER :: K
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'u_equator'
+      lname(k) = 'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG'
+      units(k) = 'METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v_equator'
+      lname(k) = 'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG'
+      units(k) = 'METERS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel_equator'
+      lname(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
+      units(k) = '10**-4 METERS/SECOND'
+      k = k + 1
+      sname(k) = 'temp_equator'
+      lname(k) = 'TEMPERATURE AROUND +/- 5 DEG'
+      units(k) = 'DEGREES CENTIGRADE'
+      k = k + 1
+      sname(k) = 'rh_equator'
+      lname(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG'
+      units(k) = 'PERCENT'
+      k = k + 1
+      sname(k) = 'mcheat_equator'
+      lname(k) = 'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = 'rad_cool_equator'
+      lname(k) = 'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG'
+      units(k) = '10**13 WATTS/DSIG'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = 'vvel_50N'
+      lname(k) = 'VERTICAL VELOCITY AT 50 N'
+      units(k) = '10**-4 METERS/SECOND'
+      k = k + 1
+      sname(k) = 'temp_50N'
+      lname(k) = 'TEMPERATURE AT 50 N'
+      units(k) = 'DEGREES CENTIGRADE'
+      k = k + 1
+      sname(k) = 'rad_cool_50N'
+      lname(k) = 'TOTAL RADIATIVE COOLING AT 50 N'
+      units(k) = '10**13 WATTS/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'u_50N'
+      lname(k) = 'ZONAL WIND AT 50 N'
+      units(k) = 'METERS/SECOND'
+      k = k + 1
+      sname(k) = 'vvel_70N'
+      lname(k) = 'VERTICAL VELOCITY AT 70 N'
+      units(k) = '10**-4 METERS/SECOND'
+      k = k + 1
+      sname(k) = 'temp_70N'
+      lname(k) = 'TEMPERATURE AT 70 N'
+      units(k) = 'DEGREES CENTIGRADE'
+      k = k + 1
+      sname(k) = 'rad_cool_70N'
+      lname(k) = 'TOTAL RADIATIVE COOLING AT 70 N'
+      units(k) = '10**13 WATTS/UNIT SIGMA'
+      k = k + 1
+      sname(k) = 'u_70N'
+      lname(k) = 'ZONAL WIND AT 70 N'
+      units(k) = 'METERS/SECOND'
+
+c create titles by concatenating long names with units
+      do k=1,nil_out
+         title(k)=''
+         if(lname(k).ne.'')
+     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
+      enddo
+
+      return
+      END SUBROUTINE IL_TITLES
 
       SUBROUTINE DIAGIL
       USE CONSTANT, only : grav,rgas,sha,bygrav
@@ -2084,13 +3047,12 @@ C****                                                              9-16
       USE GEOM, only :  areag,dxyp,dxyv
       USE DAGPCOM, only : plm,ple
       USE DAGCOM, only : ail,lm_req,j50n,j70n,acc_period, qcheck
-
+      USE BDIL, only :
+     &     title,nt_il
       IMPLICIT NONE
 
       INTEGER :: LINECT,JMHALF,INC
       COMMON/DILCOM/LINECT,JMHALF,INC
-      CHARACTER TITLE*64
-      COMMON/DILTTL/TITLE(1)
       DOUBLE PRECISION, DIMENSION(LM) :: ONES
       DOUBLE PRECISION, DIMENSION(LM+LM_REQ) :: PL
       INTEGER :: J,L,K
@@ -2106,6 +3068,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_il(trim(acc_period)//'.il'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
+      call il_titles
       INC=1+(JM-1)/24
       JMHALF=JM/2
       DO 20 L=1,LM
@@ -2133,6 +3096,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SIL(16)=BYIADA/2.
 
       DO K=1,K_PIL
+      nt_il = k
       SELECT CASE (CASEIL(K))
       CASE DEFAULT
       CASE (1)  ! Centered in L; secondary grid; hor. mean; vert. sum
@@ -2464,84 +3428,26 @@ C**FREQUENCY BAND AVERAGE
       RETURN
       END SUBROUTINE MEM
 
-      BLOCK DATA BDIJ
+      MODULE BDIJ
 C****
-C**** TITLES, LEGENDS AND CHARACTERS FOR DIAGIJ
+C**** TITLES/UNITS FOR SUBROUTINE DIAGIJ
 C****
-      COMMON/DIJCOM/TITLE1(3,6),TITLE2(3,6),TITLE3(3,6),TITLE4(6)
+      integer, parameter :: nij_out=67
+      CHARACTER(LEN=48), DIMENSION(nij_out) :: TITLE
+c no checks whether total length of lname+units exceeds length of title
+      CHARACTER(LEN=50), DIMENSION(nij_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(nij_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(nij_out) :: SNAME
+
+      integer :: nt_ij ! tells pout_ij which output field
+
+      END MODULE BDIJ
+
+      BLOCK DATA BDIJX
+C****
+C**** LEGENDS AND CHARACTERS FOR DIAGIJ
+C****
       COMMON/DIJCOMX/LEGND1(10),LEGND2(14),ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
-C****
-      CHARACTER*32 TITLE1
-      DATA TITLE1/
-     1   'TOPOGRAPHY (METERS)            ',
-     *   'LAND COVERAGE (%)              ',
-     *   'OCEAN ICE COVERAGE (%)         ',
-     *   'SNOW COVERAGE (%)              ',
-     *   'SNOW DEPTH (MM H2O)            ',
-     *   'SNOW AND ICE COVERAGE (%)      ',
-C
-     7   'PRECIPITATION (MM/DAY)         ',
-     *   'EVAPORATION (MM/DAY)           ',
-     *   'SENSIBLE HEAT FLUX (WATTS/M**2)',
-     *   'GROUND WETNESS (%)             ',
-     *   'GROUND RUNOFF (MM/DAY)         ',
-     *   'GROUND TEMPERATURE (DEGREES C) ',
-C
-     3   'SURFACE WIND SPEED (METERS/SEC)',
-     *   'JET SPEED (METERS/SEC)         ',
-     *   'SURF WIND SPEED FROM U,V (M/S) ',
-     *   'MTN WAVE MOM. FLUX (D/CM**2)   ',
-     *   'JET DIRECTION (CW NOR)         ',
-     *   'SURFACE WIND DIRECTION (CW NOR)'/
-      CHARACTER*32 TITLE2
-      DATA TITLE2/
-     9   'TOTAL CLOUD COVER (%)           ',
-     *   'CONVECTIVE CLOUD COVER (%)      ',
-     *   'CLOUD TOP PRESSURE (MB)         ',
-     *   'LOW LEVEL CLOUDINESS (%)        ',
-     *   'MIDDLE LEVEL CLOUDINESS (%)     ',
-     *   'HIGH LEVEL CLOUDINESS (%)       ',
-C
-     5   'NET RAD. OF PLANET (WATTS/M**2) ',
-     *   'NET RADIATION AT Z0 (WATTS/M**2)',
-     *   'BRIGHTNESS TEMP THRU WNDW(DEG C)',
-     *   'PLANETARY ALBEDO (%)            ',
-     *   'GROUND ALBEDO (%)               ',
-     *   'VISUAL ALBEDO (%)               ',
-C
-     1   'NET THRML RADIATION (WATTS/M**2)',
-     *   'NET HEAT AT Z0 (WATTS/M**2)     ',
-     *   'TROP STATIC STABILITY (DEG K/KM)',
-     *   'TOTAL NT DRY STAT ENR(10**14 WT)',
-     *   'NT DRY STAT ENR BY ST ED(E14 WT)',
-     *   'NT DRY STAT ENR BY TR ED(E14 WT)'/
-      CHARACTER*32 TITLE3
-      DATA TITLE3/
-     7   '850 MB HEIGHT (METERS-1500)    ',
-     *   '700 MB HEIGHT (METERS-3000)    ',
-     *   '500 MB HEIGHT (METERS-5600)    ',
-     *   '300 MB HEIGHT (METERS-9500)    ',
-     *   '100 MB HEIGHT (METERS-16400)   ',
-     *   ' 30 MB HEIGHT (METERS-24000)   ',
-C
-     3   'THICKNESS TEMPERATURE 1000-850 ',
-     *   'THICKNESS TEMPERATURE 850-700  ',
-     *   'THICKNESS TEMPERATURE 700-500  ',
-     *   'THICKNESS TEMPERATURE 500-300  ',
-     *   'THICKNESS TEMPERATURE 300-100  ',
-     *   'THICKNESS TEMPERATURE 100-30   ',
-C
-     9   'TOTAL EARTH WATER (KG/M**2)    ',
-     *   'LIQUID WATER PATH  (.1 KG/M**2)',
-     *   'DEEP CONV CLOUD FREQUENCY (%)  ',
-     *   'SHALLOW CONV CLOUD FREQUENCY(%)',
-     *   'DEEP CONVECTIVE CLOUD COVER (%)',
-     *   'SHALLOW CONVECTIVE CLOUD COVER '/
-      CHARACTER*32 TITLE4
-      DATA TITLE4/
-     5   'DU/DT BY SDRAG (10**-6 M S-2)  ',
-     * 4*'                               ',
-     *   '                               '/
 C****
       CHARACTER*40 LEGND1
       DATA LEGND1/
@@ -2581,7 +3487,295 @@ C****
       DATA CCHAR/'-9876543210ABCDEFGHIJKLMNOPQRSTUVWXYZ+'/
       DATA DCHAR/' 0ABCDEFGHIJKLMNOPQRSTUVWXYZ3456789+*'/
       DATA ECHAR/'-ZYXWVUTSRQPONMLKJIHGFEDCBA0123456789+'/
-      END BLOCK DATA BDIJ
+
+      END BLOCK DATA BDIJX
+
+      SUBROUTINE IJ_TITLES
+      USE BDIJ
+      IMPLICIT NONE
+      INTEGER :: k,row,col
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'topog'
+      lname(k) = 'TOPOGRAPHY'
+      units(k) = 'METERS'
+      k = k + 1
+      sname(k) = 'frac_land'
+      lname(k) = 'LAND COVERAGE'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'frac_ocnice'
+      lname(k) = 'OCEAN ICE COVERAGE'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'frac_snow'
+      lname(k) = 'SNOW COVERAGE'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'snowdp'
+      lname(k) = 'SNOW DEPTH'
+      units(k) = 'MM H2O'
+      k = k + 1
+      sname(k) = 'frac_snow_and_ice'
+      lname(k) = 'SNOW AND ICE COVERAGE'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'prec'
+      lname(k) = 'PRECIPITATION'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'evap'
+      lname(k) = 'EVAPORATION'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'snsht_flx'
+      lname(k) = 'SENSIBLE HEAT FLUX'
+      units(k) = 'WATTS/M**2'
+      k = k + 1
+      sname(k) = 'grnd_wetness'
+      lname(k) = 'GROUND WETNESS'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'grnd_runoff'
+      lname(k) = 'GROUND RUNOFF'
+      units(k) = 'MM/DAY'
+      k = k + 1
+      sname(k) = 'grnd_temp'
+      lname(k) = 'GROUND TEMPERATURE'
+      units(k) = 'DEGREES C'
+      k = k + 1
+      sname(k) = 'srf_wspeed'
+      lname(k) = 'SURFACE WIND SPEED'
+      units(k) = 'METERS/SEC'
+      k = k + 1
+      sname(k) = 'jet_speed'
+      lname(k) = 'JET SPEED'
+      units(k) = 'METERS/SEC'
+      k = k + 1
+      sname(k) = 'srf_wspeed_bgrid'
+      lname(k) = 'SURF WIND SPEED FROM U,V'
+      units(k) = 'M/S'
+      k = k + 1
+      sname(k) = 'mtn_wave_mom_flx'
+      lname(k) = 'MTN WAVE MOM. FLUX'
+      units(k) = 'D/CM**2'
+      k = k + 1
+      sname(k) = 'jet_dir'
+      lname(k) = 'JET DIRECTION'
+      units(k) = 'CW NOR'
+      k = k + 1
+      sname(k) = 'srf_wind_dir'
+      lname(k) = 'SURFACE WIND DIRECTION'
+      units(k) = 'CW NOR'
+      k = k + 1
+      sname(k) = 'totcld'
+      lname(k) = 'TOTAL CLOUD COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'mccld'
+      lname(k) = 'CONVECTIVE CLOUD COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'pcldtop'
+      lname(k) = 'CLOUD TOP PRESSURE'
+      units(k) = 'MB'
+      k = k + 1
+      sname(k) = 'pcld_low'
+      lname(k) = 'LOW LEVEL CLOUDINESS'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'pcld_mid'
+      lname(k) = 'MIDDLE LEVEL CLOUDINESS'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'pcld_hi'
+      lname(k) = 'HIGH LEVEL CLOUDINESS'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'net_rad_planet'
+      lname(k) = 'NET RAD. OF PLANET'
+      units(k) = 'WATTS/M**2'
+      k = k + 1
+      sname(k) = 'net_rad_z0'
+      lname(k) = 'NET RADIATION AT Z0'
+      units(k) = 'WATTS/M**2'
+      k = k + 1
+      sname(k) = 'btemp_wndw'
+      lname(k) = 'BRIGHTNESS TEMP THRU WNDW'
+      units(k) = 'DEG C'
+      k = k + 1
+      sname(k) = 'plan_alb'
+      lname(k) = 'PLANETARY ALBEDO'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'grnd_alb'
+      lname(k) = 'GROUND ALBEDO'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'vis_alb'
+      lname(k) = 'VISUAL ALBEDO'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'net_thrml_rad'
+      lname(k) = 'NET THRML RADIATION'
+      units(k) = 'WATTS/M**2'
+      k = k + 1
+      sname(k) = 'net_ht_z0'
+      lname(k) = 'NET HEAT AT Z0'
+      units(k) = 'WATTS/M**2'
+      k = k + 1
+      sname(k) = 'trop_st_stab'
+      lname(k) = 'TROP STATIC STABILITY'
+      units(k) = 'DEG K/KM'
+      k = k + 1
+      sname(k) = 'tot_nt_dse'
+      lname(k) = 'TOTAL NT DRY STAT ENR'
+      units(k) = '10**14 WT'
+      k = k + 1
+      sname(k) = 'stand_eddy_nt_dse'
+      lname(k) = 'NT DRY STAT ENR BY ST ED'
+      units(k) = 'E14 WT'
+      k = k + 1
+      sname(k) = 'trans_eddy_nt_dse'
+      lname(k) = 'NT DRY STAT ENR BY TR ED'
+      units(k) = 'E14 WT'
+      k = k + 1
+      sname(k) = 'z850'
+      lname(k) = '850 MB HEIGHT'
+      units(k) = 'METERS-1500'
+      k = k + 1
+      sname(k) = 'z700'
+      lname(k) = '700 MB HEIGHT'
+      units(k) = 'METERS-3000'
+      k = k + 1
+      sname(k) = 'z500'
+      lname(k) = '500 MB HEIGHT'
+      units(k) = 'METERS-5600'
+      k = k + 1
+      sname(k) = 'z300'
+      lname(k) = '300 MB HEIGHT'
+      units(k) = 'METERS-9500'
+      k = k + 1
+      sname(k) = 'z100'
+      lname(k) = '100 MB HEIGHT'
+      units(k) = 'METERS-16400'
+      k = k + 1
+      sname(k) = 'z030'
+      lname(k) = ' 30 MB HEIGHT'
+      units(k) = 'METERS-24000'
+      k = k + 1
+      sname(k) = 'dztemp_1000-850'
+      lname(k) = 'THICKNESS TEMP 1000-850'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'dztemp_850-700'
+      lname(k) = 'THICKNESS TEMP 850-700'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'dztemp_700-500'
+      lname(k) = 'THICKNESS TEMP 700-500'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'dztemp_500-300'
+      lname(k) = 'THICKNESS TEMP 500-300'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'dztemp_300-100'
+      lname(k) = 'THICKNESS TEMP 300-100'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'dztemp_100-030'
+      lname(k) = 'THICKNESS TEMP 100-30'
+      units(k) = 'C'
+      k = k + 1
+      sname(k) = 'grndh2o'
+      lname(k) = 'TOTAL EARTH WATER'
+      units(k) = 'KG/M**2'
+      k = k + 1
+      sname(k) = 'cld_wat_path'
+      lname(k) = 'LIQUID WATER PATH '
+      units(k) = '.1 KG/M**2'
+      k = k + 1
+      sname(k) = 'dcfreq'
+      lname(k) = 'DEEP CONV CLOUD FREQUENCY'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'scfreq'
+      lname(k) = 'SHALLOW CONV CLOUD FREQUENCY'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'dccld'
+      lname(k) = 'DEEP CONVECTIVE CLOUD COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'sccld'
+      lname(k) = 'SHALLOW CONVECTIVE CLOUD COVER'
+      units(k) = '%'
+      k = k + 1
+      sname(k) = 'dudt_sdrag'
+      lname(k) = 'DU/DT BY SDRAG'
+      units(k) = '10**-6 M S-2'
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+      k = k + 1
+      sname(k) = ''
+      lname(k) = ''
+      units(k) = ''
+c imported from ijmap
+      k = k + 1
+      sname(k) = 'slp'
+      lname(k) = 'SEA LEVEL PRESSURE'
+      units(k) = 'MB-1000'
+      k = k + 1
+      sname(k) = 'tsurf'
+      lname(k) = 'SURFACE TEMPERATURE'
+      units(k) = 'DEGREES C'
+      k = k + 1
+      sname(k) = 'z850_instant'
+      lname(k) = 'INSTANTANEOUS 850 MB HEIGHTS'
+      units(k) = 'DEKAMETERS-100'
+      k = k + 1
+      sname(k) = 'slp_using_t1'
+      lname(k) = 'SEA LEVEL PRESSURE (USING T1)'
+      units(k) = 'MB-1000'
+      k = k + 1
+      sname(k) = 'tsurf_using_t1'
+      lname(k) = 'SURFACE TEMPERATURE (LAPSE RATE FROM T1)'
+      units(k) = 'DEG C'
+c imported from sijmap
+      k = k + 1
+      sname(k) = 'usurf'
+      lname(k) = 'U COMP. OF SURFACE AIR WIND'
+      units(k) = 'm/s'
+      k = k + 1
+      sname(k) = 'vsurf'
+      lname(k) = 'V COMP. OF SURFACE AIR WIND'
+      units(k) = 'm/s'
+      k = k + 1
+      sname(k) = 'taumag'
+      lname(k) = 'MAG OF COMP. MOM. SURF. DRAG'
+      units(k) = 'kg/m*s**2'
+      k = k + 1
+      sname(k) = 'tauus'
+      lname(k) = 'U COMP. OF MOM. SRF DRAG'
+      units(k) = 'kg/m*S**2'
+      k = k + 1
+      sname(k) = 'tauvs'
+      lname(k) = 'V COMP. OF MOM. SRF DRAG'
+      units(k) = 'kg/m*S**2'
+
+c create titles by concatenating long names with units
+      do k=1,nij_out
+         title(k)=''
+         if(lname(k).ne.'')
+     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
+      enddo
+
+      END SUBROUTINE IJ_TITLES
 
       SUBROUTINE DIAGIJ
 C****
@@ -2667,6 +3861,8 @@ C****
       USE DAGCOM, only :
      &     ajk,kdiag,aij,kaij,aijk,tsfrez,ia_ij,
      &     IJ_PEV,IJ_TRNFP0,IJ_SRNFP0,IJ_SLP,IJ_TS !not a generic subr.
+      USE BDIJ, only :
+     &     title,nt_ij
       IMPLICIT NONE
 
       DOUBLE PRECISION, DIMENSION(IM,JM,2) :: ENDE16
@@ -2675,12 +3871,11 @@ C****
       DOUBLE PRECISION, DIMENSION(3) :: FLAT,FNH,FGLOBE,GNUM,GDEN
       REAL*8, DIMENSION(IM,JM,3) :: SMAP
       REAL*8, DIMENSION(JM,3) :: SMAPJ
-      CHARACTER XLB*48
+      CHARACTER XLB*32
 
-      COMMON/DIJCOM/TITLE(3,19)
       COMMON/DIJCOMX/LEGEND(10,24),ACHAR(38),BCHAR(23),
      *  CCHAR(38),DCHAR(37),ECHAR(38)
-      CHARACTER*4 LEGEND,TITLE*32
+      CHARACTER*4 LEGEND
       CHARACTER*1 ACHAR,BCHAR,CCHAR,DCHAR,ECHAR
 C**** ACHAR/ ,0,1,...,8,9,A,B,...,Y,Z,+/
 C**** BCHAR/ ,0,1,...,8,9,A,B,...,K,X/
@@ -2713,6 +3908,7 @@ C**** IA now set from DEFACC
      *  .05,2.0,.2,.2,.2,.2,  .05,5*0./
       INTEGER, DIMENSION(KAIJ) :: JGRID
       DATA JGRID/19*1,2, 18*1,2*2, 40*1, 5*1,2*2,13*1/
+      INTEGER, DIMENSION(3) :: JGRID_THIS_ROW ! for green sheet gymnastics
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: PMB=(/
      &     1000.,850.,700.,500.,300.,100.,30. /)
       DOUBLE PRECISION, DIMENSION(7), PARAMETER :: GHT=(/
@@ -2720,7 +3916,7 @@ C**** IA now set from DEFACC
       DOUBLE PRECISION, PARAMETER :: P1000=1000.
 
       INTEGER ::
-     &     I,IFRSTP,ILINE,INC,IQ1,IQ2,IQ3,J,K,  kxlb,
+     &     I,IFRSTP,ILINE,INC,IQ1,IQ2,IQ3,J,K,
      &     KC,KCOLMN,KPAGE,KR,KROW,KT,L,LASTP,M,N,NDEX,NDEX2,KM
 
       DOUBLE PRECISION ::
@@ -2732,11 +3928,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QCHECK) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID))
 
 C**** INITIALIZE CERTAIN QUANTITIES
-      KXLB = INDEX(XLABEL(1:11),'(')-1
-      IF(KXLB.le.0) KXLB = 10
-      XLB = ' '
-      XLB(39:38+KXLB) = XLABEL(1:KXLB)
-      XLB(25:37)=acc_period(1:3)//' '//acc_period(4:12)
+      call ij_titles
+      XLB=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
       INC=1+(JM-1)/24
       ILINE=36*INC
       IQ1=1+IM/(4*INC)
@@ -2824,7 +4017,8 @@ C****
       DO 610 KROW=1,2
       IF (KPAGE.EQ.LASTP .AND. KROW.EQ.2) GO TO 610
       KR=2*(KPAGE-1)+KROW
-      WRITE (6,903) (TITLE(K,KR),K=1,3)
+c      WRITE (6,903) (TITLE(K,KR),K=1,3)
+      WRITE (6,903) (TITLE(3*(KR-1)+K)(1:32),K=1,3)
       DO 200 KCOLMN=1,3
       FNH(KCOLMN)=0.
       FGLOBE(KCOLMN)=0.
@@ -3048,6 +4242,7 @@ C**** PALMER DROUGHT INDEX
   500 FLAT(KCOLMN)=FLATK*BYIM
       DAREA=DXYP(J)
       IF (JGRID(NDEX).EQ.2) DAREA=DXYV(J)
+      JGRID_THIS_ROW(KCOLMN) = JGRID(NDEX)
       IF (J.GE.JEQ) FNH(KCOLMN)=FNH(KCOLMN)+FLAT(KCOLMN)*DAREA
   505 FGLOBE(KCOLMN)=FGLOBE(KCOLMN)+FLAT(KCOLMN)*DAREA
 CB       DIJMAP(IM+1,J,K)=FLAT(KCOLMN)
@@ -3102,8 +4297,10 @@ CB       DIJMPG(KCOLMN,KROW,KPAGE)=FGLOBE(KCOLMN)
      *  (LEGEND(KT,ILEG(3,KR)),KT=1,9)
       IF(QCHECK) THEN
         DO KC=1,3
-          IF(TITLE(KC,KR).ne.' ') CALL POUT_IJ(TITLE(KC,KR)//XLB,
-     *         SMAP(1,1,KC),SMAPJ(1,KC),FGLOBE(KC))
+          nt_ij = 3*(KR-1)+KC
+          IF(TITLE(3*(KR-1)+KC).ne.' ')
+     &          CALL POUT_IJ(TITLE(3*(KR-1)+KC)//XLB,
+     *          SMAP(1,1,KC),SMAPJ(1,KC),FGLOBE(KC),JGRID_THIS_ROW(KC))
 c     *        WRITE(iu_ij) TITLE(KC,KR),XLB,((SMAP(I,J,KC),I=1,IM),
 c     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
             END DO
@@ -3113,13 +4310,18 @@ c     *               J=1,JM),(SMAPJ(J,KC),J=1,JM),SNGL(FGLOBE(KC))
 C****
 C**** PRODUCE FULL PAGE I,J MAPS
 C****
-      CALL IJMAP (1,AIJ(1,1,IJ_SLP),BYIADA)
+      nt_ij = 58
+      CALL IJMAP (TITLE(nt_ij),AIJ(1,1,IJ_SLP),BYIADA)
       BYIACN=1./(IDACC(3)+1.D-20)
-      CALL IJMAP (2,AIJ(1,1,IJ_TS),BYIACN)
-C     CALL IJMAP (4,AIJ(1,1,IJ_SLP1),BYIADA)
-C     CALL IJMAP (5,AIJ(1,1,IJ_TS1),BYIADA)
-         IF(QCHECK) CALL SIJMAP
-      if(qcheck) call close_ij
+      nt_ij = 59
+      CALL IJMAP (TITLE(nt_ij),AIJ(1,1,IJ_TS),BYIACN)
+C     CALL IJMAP (TITLE(61),AIJ(1,1,IJ_SLP1),BYIADA)
+C     CALL IJMAP (TITLE(62),AIJ(1,1,IJ_TS1),BYIADA)
+      IF(QCHECK) THEN
+         CALL SIJMAP
+         call close_ij
+         CALL IJKMAP
+      ENDIF
       RETURN
 C****
   901 FORMAT ('1',A)
@@ -3136,34 +4338,24 @@ C****
   917 FORMAT (1X,I5,1X,36A1,I8,1X,36A1,I8,1X,36A1)
       END SUBROUTINE DIAGIJ
 
-      SUBROUTINE IJMAP (NT,ARRAY,BYIACC)
+      SUBROUTINE IJMAP (TITLE,ARRAY,BYIACC)
       USE DAGCOM, only : QCHECK,acc_period,iu_ij
       USE MODEL_COM, only :
      &     im,jm,BYIM,FLAND,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,Itime,Itime0,XLABEL
+     &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
       IMPLICIT NONE
 
-      INTEGER :: NT,KXLB
       DOUBLE PRECISION :: BYIACC
       DOUBLE PRECISION, DIMENSION(IM,JM) :: ARRAY
+      CHARACTER*48 TITLE
 
-
-      CHARACTER*1 IDX(12),BLANK,TITLE(5)*48,xlb*32
+      CHARACTER*1 IDX(12),BLANK,xlb*32
       CHARACTER(LEN=3), DIMENSION(IM) :: LINE
       CHARACTER(LEN=9) :: AVG
       DATA IDX/'0','1','2','3','4','5','6','7','8','9','-','*'/
       DATA BLANK/' '/
-      DATA TITLE/
-C****
-C**** THIS SUBROUTINE PRODUCES NUMERICAL LATITUDE BY LONGITUDE MAPS OF
-C****
-     *  'SEA LEVEL PRESSURE (MB-1000) ',
-     *  'SURFACE TEMPERATURE (DEGREES C) ',
-     *  'INSTANTANEOUS 850 MB HEIGHTS (DEKAMETERS-100)',
-     *  'SEA LEVEL PRESSURE (MB-1000)  (USING T1)',
-     *  'SURFACE TEMPERATURE (DEG C)  (LAPSE RATE FROM T1'/
 
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
@@ -3174,11 +4366,7 @@ C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
 c      BYIM=1./IM
-      KXLB = INDEX(XLABEL(1:11),'(')-1
-      IF(KXLB.le.0) KXLB = 10
-      XLB = ' '
-      XLB(8:20)=acc_period(1:3)//' '//acc_period(4:12)
-      XLB(23:22+KXLB) = XLABEL(1:KXLB)
+      XLB=acc_period(1:3)//' '//acc_period(4:12)//' '//XLABEL(1:LRUNID)
       INC=(IM+35)/36
       LD=360/IM
       DO 40 I=1,IM
@@ -3189,7 +4377,7 @@ c      BYIM=1./IM
       WRITE(6,901)XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
      *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
-      WRITE(6,900) TITLE(NT)
+      WRITE(6,900) TITLE
       WRITE (6,910) (LINE(I),I=1,IM,INC),AVG
       WRITE(6,940)
       WRITE(6,940)
@@ -3235,8 +4423,8 @@ C     WRITE (6,925) (LINE(I),I=1,IM,INC)
       WRITE (6,925) (LINE(I),I=1,IM,INC)
   300 IF (JM.LE.24) WRITE (6,940)
       WRITE (6,930) (LON_DG(I,1),I=1,IM,INC*2)
-         IF(QCHECK) CALL POUT_IJ(TITLE(NT)//XLB,SMAP,SMAPJ,-1.D30)
-c                   WRITE(iu_ij) TITLE(NT),XLB,SMAP,SMAPJ,-1.E30
+         IF(QCHECK) CALL POUT_IJ(TITLE//XLB,SMAP,SMAPJ,-1.D30,1)
+c                   WRITE(iu_ij) TITLE,XLB,SMAP,SMAPJ,-1.E30
       RETURN
 C****
   900 FORMAT('0',45X,A48)
@@ -4090,22 +5278,18 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 C****
 C**** CALCULATE EXTRA QUANTITIES FOR SAVING
 C****
-      USE CONSTANT, only :
-     &     grav,sha
       USE MODEL_COM, only :
-     &     im,jm,lm,
-     &     IDACC,PSF,PTOP,SIG,PSFMPT,
-     &     AMON0,JYEAR0,
-     &     BYIM,XLABEL
+     &     im,jm,IDACC,BYIM,XLABEL
       USE DAGCOM, only :
-     &     ajk,kdiag,aij,kaij,aijk,tsfrez,acc_period,iu_ij,
+     &     aij,acc_period,
      &     IJ_US,IJ_VS,IJ_TAUS,IJ_TAUUS,IJ_TAUVS !not a generic subr.
+      USE BDIJ, only :
+     &     title,nt_ij
       IMPLICIT NONE
 
-      CHARACTER XLB*24,TITLEX*56
-      REAL*8 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat,press,dp
-      CHARACTER*4 CPRESS(LM)
-      INTEGER i,j,l,kxlb,ni
+      CHARACTER XLB*32
+      REAL*8 SMAP(IM,JM),SMAPJ(JM),UNDEF,flat
+      INTEGER i,j,kxlb
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
@@ -4116,7 +5300,6 @@ C****
       XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
       XLB(15:14+KXLB) = XLABEL(1:KXLB)
 C****
-      TITLEX = 'U COMPONENT OF COMPOSITE SURFACE AIR WIND  (m/s)'
       DO J=1,JM
       FLAT = 0.
       DO I=1,IM
@@ -4125,9 +5308,9 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+      nt_ij=63
+      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
 c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      TITLEX = 'V COMPONENT OF COMPOSITE SURFACE AIR WIND  (m/s)'
       DO J=1,JM
       FLAT = 0.
       DO I=1,IM
@@ -4136,10 +5319,10 @@ c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+      nt_ij=64
+      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
 c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
 C****
-      TITLEX = 'MAG OF COMPOSITE MOMENTUM SURFACE DRAG  (kg/m*s**2)'
       DO J=1,JM
       FLAT = 0.
       DO I=1,IM
@@ -4148,9 +5331,9 @@ C****
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+      nt_ij=65
+      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
 c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      TITLEX = 'U COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
       DO J=1,JM
       FLAT = 0.
       DO I=1,IM
@@ -4159,9 +5342,9 @@ c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+      nt_ij=66
+      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
 c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
-      TITLEX = 'V COMPON OF COMPOSITE MOMENTUM SRF DRAG (kg/m*S**2)'
       DO J=1,JM
       FLAT = 0.
       DO I=1,IM
@@ -4170,8 +5353,101 @@ c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
       END DO
       SMAPJ(J) = FLAT*byIM
       END DO
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
+      nt_ij=67
+      CALL POUT_IJ(TITLE(nt_ij)//XLB,SMAP,SMAPJ,UNDEF,1)
 c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      RETURN
+      END SUBROUTINE SIJMAP
+
+      MODULE BDIJK
+C****
+C**** TITLES/UNITS FOR SUBROUTINE IJKMAP
+C****
+      integer, parameter :: nijk_out=5
+      CHARACTER(LEN=48), DIMENSION(nijk_out) :: TITLE
+c no checks whether total length of lname+units exceeds length of title
+      CHARACTER(LEN=50), DIMENSION(nijk_out) :: UNITS
+      CHARACTER(LEN=50), DIMENSION(nijk_out) :: LNAME
+      CHARACTER(LEN=30), DIMENSION(nijk_out) :: SNAME
+
+      integer :: nt_ijk ! tells pout_ijk which output field
+
+      END MODULE BDIJK
+
+      SUBROUTINE IJK_TITLES
+      USE BDIJK
+      IMPLICIT NONE
+      INTEGER :: K
+c
+      k = 0
+c
+      k = k + 1
+      sname(k) = 'u'
+      lname(k) = 'ZONAL WIND (U COMPONENT)'
+      units(k) = 'METERS/SECOND'
+      k = k + 1
+      sname(k) = 'v'
+      lname(k) = 'MERIDIONAL WIND (V COMPONENT)'
+      units(k) = 'METERS/SECOND'
+      k = k + 1
+      sname(k) = 'temp'
+      lname(k) = 'TEMPERATURE'
+      units(k) = 'deg C'
+      k = k + 1
+      sname(k) = 'q'
+      lname(k) = 'SPECIFIC HUMIDITY'
+      units(k) = '10**-5'
+      k = k + 1
+      sname(k) = 'height'
+      lname(k) = 'HEIGHT'
+      units(k) = 'm'
+
+c create titles by concatenating long names with units
+      do k=1,nijk_out
+         title(k)=''
+         if(lname(k).ne.'')
+     &        title(k) = trim(lname(k))//' ('//trim(units(k))//')'
+      enddo
+
+      return
+      END SUBROUTINE IJK_TITLES
+
+      SUBROUTINE IJKMAP
+C****
+C**** CALCULATE 3-D output fields on B-grid
+C****
+      USE CONSTANT, only :
+     &     grav,sha
+      USE MODEL_COM, only :
+     &     im,jm,lm,
+     &     PTOP,SIG,PSFMPT,XLABEL,LRUNID
+      USE DAGCOM, only :
+     &     aijk,acc_period
+      USE BDIJK, only :
+     &     nt_ijk
+      IMPLICIT NONE
+
+      CHARACTER XLB*24,TITLEX*56
+      CHARACTER*80 TITLEL(LM)
+      REAL*8 SMAP(IM,JM-1,LM),SMAPJK(JM-1,LM),SMAPK(LM)
+      REAL*8 UNDEF,flat,press,dp
+      CHARACTER*4 CPRESS(LM)
+      INTEGER i,j,l,kxlb,ni
+
+C**** OPEN PLOTTABLE OUTPUT FILE
+      call open_ijk(trim(acc_period)//'.ijk'//XLABEL(1:LRUNID))
+
+C****
+C**** INITIALIZE CERTAIN QUANTITIES
+C****
+      call ijk_titles
+      UNDEF = -1.E30
+      SMAPK(:) = UNDEF
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
+      XLB(15:14+KXLB) = XLABEL(1:KXLB)
 C****
 C**** Complete 3D-field titles  and select fields
 C****
@@ -4186,123 +5462,151 @@ C****
 C****
       TITLEX = '     U-WIND           at        mb (m/s, UV G)'
       DO 715 L=1,LM
-      DO 710 I=1,IM*JM
-      DP=AIJK(I,1,L,4)
-      SMAP(I,1) = UNDEF
-      IF(DP.GT.0.) SMAP(I,1) = AIJK(I,1,L,1)/DP
-  710 CONTINUE
-      DO J=1,JM
-        SMAPJ(J) = UNDEF
+
+      DO J=1,JM-1
+      DO I=1,IM
+      DP=AIJK(I,J+1,L,4)
+      SMAP(I,J,L) = UNDEF
+      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,1)/DP
+      ENDDO
+      ENDDO
+
+      DO J=1,JM-1
+        SMAPJK(J,L) = UNDEF
         NI = 0
         FLAT = 0.
         DO I=1,IM
-        IF (SMAP(I,J).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J)
+        IF (SMAP(I,J,L).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J,L)
           NI = NI+1
         END IF
         END DO
-        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEL(L) = TITLEX//XLB
   715 CONTINUE
+      nt_ijk = 1
+      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
 C****
       TITLEX = '     V-WIND           at        mb (m/s, UV G)'
       DO 725 L=1,LM
-      DO 720 I=1,IM*JM
-      DP=AIJK(I,1,L,4)
-      SMAP(I,1) = UNDEF
-      IF(DP.GT.0.) SMAP(I,1) = AIJK(I,1,L,2)/DP
-  720 CONTINUE
-      DO J=1,JM
-        SMAPJ(J) = UNDEF
+
+      DO J=1,JM-1
+      DO I=1,IM
+      DP=AIJK(I,J+1,L,4)
+      SMAP(I,J,L) = UNDEF
+      IF(DP.GT.0.) SMAP(I,J,L) = AIJK(I,J+1,L,2)/DP
+      ENDDO
+      ENDDO
+
+      DO J=1,JM-1
+        SMAPJK(J,L) = UNDEF
         NI = 0
         FLAT = 0.
         DO I=1,IM
-        IF (SMAP(I,J).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J)
+        IF (SMAP(I,J,L).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J,L)
           NI = NI+1
         END IF
         END DO
-        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEL(L) = TITLEX//XLB
   725 CONTINUE
+      nt_ijk = 2
+      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
 C****
       TITLEX = '     TEMPERATURE      at        mb (C, UV Grid)'
       DO 735 L=1,LM
-      DO 730 I=1,IM*JM
-      DP=AIJK(I,1,L,4)
-      SMAP(I,1) = UNDEF
-      IF(DP.GT.0.) SMAP(I,1) = (.25*AIJK(I,1,L,5)/DP - 273.16)
-  730 CONTINUE
-      DO J=1,JM
-        SMAPJ(J) = UNDEF
+
+      DO J=1,JM-1
+      DO I=1,IM
+      DP=AIJK(I,J+1,L,4)
+      SMAP(I,J,L) = UNDEF
+      IF(DP.GT.0.) SMAP(I,J,L) = (.25*AIJK(I,J+1,L,5)/DP - 273.16)
+      ENDDO
+      ENDDO
+
+      DO J=1,JM-1
+        SMAPJK(J,L) = UNDEF
         NI = 0
         FLAT = 0.
         DO I=1,IM
-        IF (SMAP(I,J).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J)
+        IF (SMAP(I,J,L).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J,L)
           NI = NI+1
         END IF
         END DO
-        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEL(L) = TITLEX//XLB
   735 CONTINUE
+      nt_ijk = 3
+      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
 C****
       TITLEX = '    SPECIFIC HUMIDITY at        mb (10**-5, UV G)'
       DO 745 L=1,LM
-      DO 740 I=1,IM*JM
-      DP=AIJK(I,1,L,4)
-      SMAP(I,1) = UNDEF
-      IF(DP.GT.0.) SMAP(I,1) = .25*1.E5*AIJK(I,1,L,6)/DP
-  740 CONTINUE
-      DO J=1,JM
-        SMAPJ(J) = UNDEF
+
+      DO J=1,JM-1
+      DO I=1,IM
+      DP=AIJK(I,J+1,L,4)
+      SMAP(I,J,L) = UNDEF
+      IF(DP.GT.0.) SMAP(I,J,L) = .25*1.E5*AIJK(I,J+1,L,6)/DP
+      ENDDO
+      ENDDO
+
+      DO J=1,JM-1
+        SMAPJK(J,L) = UNDEF
         NI = 0
         FLAT = 0.
         DO I=1,IM
-        IF (SMAP(I,J).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J)
+        IF (SMAP(I,J,L).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J,L)
           NI = NI+1
         END IF
         END DO
-        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEL(L) = TITLEX//XLB
   745 CONTINUE
+      nt_ijk = 4
+      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
 C****
       TITLEX = '       HEIGHT         at        mb (m, UV Grid)'
       DO 755 L=1,LM
-      DO 750 I=1,IM*JM
-      DP=AIJK(I,1,L,4)
-      SMAP(I,1) = UNDEF
-      IF(DP.GT.0.) SMAP(I,1) = .25*(AIJK(I,1,L,3)-
-     *   SHA*AIJK(I,1,L,5))/(GRAV*DP)
-  750 CONTINUE
-      DO J=1,JM
-        SMAPJ(J) = UNDEF
+
+      DO J=1,JM-1
+      DO I=1,IM
+      DP=AIJK(I,J+1,L,4)
+      SMAP(I,J,L) = UNDEF
+      IF(DP.GT.0.) SMAP(I,J,L) = .25*(AIJK(I,J+1,L,3)-
+     *   SHA*AIJK(I,J+1,L,5))/(GRAV*DP)
+      ENDDO
+      ENDDO
+
+      DO J=1,JM-1
+        SMAPJK(J,L) = UNDEF
         NI = 0
         FLAT = 0.
         DO I=1,IM
-        IF (SMAP(I,J).NE.UNDEF) THEN
-          FLAT = FLAT+SMAP(I,J)
+        IF (SMAP(I,J,L).NE.UNDEF) THEN
+          FLAT = FLAT+SMAP(I,J,L)
           NI = NI+1
         END IF
         END DO
-        IF (NI.GT.0) SMAPJ(J) = FLAT/NI
+        IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
       END DO
       WRITE(TITLEX(27:30),'(A)') CPRESS(L)
-      CALL POUT_IJ(TITLEX//XLB,SMAP,SMAPJ,UNDEF)
-c      WRITE(iu_ij) TITLEX,XLB,SMAP,SMAPJ,UNDEF
+      TITLEL(L) = TITLEX//XLB
   755 CONTINUE
+      nt_ijk = 5
+      CALL POUT_IJK(TITLEL,SMAP,SMAPJK,SMAPK)
+
+      call close_ijk
+
       RETURN
-      END SUBROUTINE SIJMAP
+      END SUBROUTINE IJKMAP

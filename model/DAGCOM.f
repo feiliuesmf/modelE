@@ -8,7 +8,7 @@
       IMPLICIT NONE
       SAVE
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
-      INTEGER iu_ij,iu_jl,iu_il,iu_j
+      INTEGER iu_ij,iu_jl,iu_il,iu_j,iu_ijk
 C**** Accumulating_period information
 !ny   INTEGER, PARAMETER :: NSAMPL  !@var NSAMPL # of sampling schemes
 !ny   INTEGER, DIMENSION(nsampl) :: IDACC   !@var IDACC acc-counters

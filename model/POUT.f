@@ -35,7 +35,7 @@ C**** have to wait.
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM)
+      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM,IJGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -50,6 +50,8 @@ C**** have to wait.
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
 !@var XSUM global sum/mean of output field 
       REAL*8, INTENT(IN) :: XSUM
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
 
       WRITE(iu_ij) TITLE,SNGL(XIJ),SNGL(XJ),SNGL(XSUM)
       return
@@ -248,3 +250,55 @@ C**** output hemispheric and global means
       return
       end
 
+      subroutine open_ijk(filename)
+!@sum  OPEN_IJK opens the lat-lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_ijk
+      USE FILEMANAGER
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+
+      call openunit(filename,iu_ijk,.true.,.false.)
+      return
+      end subroutine open_ijk
+
+      subroutine close_ijk
+!@sum  CLOSE_IJK closes the lat-lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_ijk
+      USE FILEMANAGER
+      IMPLICIT NONE
+      call closeunit(iu_ijk)
+      return
+      end subroutine close_ijk
+
+      subroutine POUT_IJK(TITLE,XIJK,XJK,XK)
+!@sum  POUT_IJK outputs lat-lon-height binary records
+!@auth M. Kelley
+!@ver  1.0
+      USE MODEL_COM, only : IM,JM,LM
+      USE DAGCOM, only : iu_ijk
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var XIJK lat/lon/height output field 
+      REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
+!@var XJK lat sum/mean of output field 
+      REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
+!@var XK global sum/mean of output field 
+      REAL*8, DIMENSION(LM), INTENT(IN) :: XK
+
+      INTEGER :: I,K
+
+      DO K=1,LM
+         WRITE(iu_ijk) TITLE(K),
+c fill in missing first row for GISS format (should put in missing value)
+     &        ((0.,i=1,im)),SNGL(XIJK(:,:,K)),
+     &        0.           , SNGL(XJK(:,K)),
+     &        SNGL(XK(K))
+      ENDDO
+      return
+      end

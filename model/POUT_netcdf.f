@@ -11,6 +11,8 @@ C**** Note: it would be nice to amalgamate IL and JL, but that will
 C**** have to wait.
 
       module ncout
+      use MODEL_COM, only : xlabel,lrunid
+      use DAGCOM, only : acc_period
       implicit none
 
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
@@ -47,6 +49,13 @@ C**** have to wait.
          write(6,*) 'cannot create: '//trim(outfile)
          stop
       endif
+c-----------------------------------------------------------------------
+c write global header
+c-----------------------------------------------------------------------
+      status_out=nf_put_att_text(out_fid,nf_global,'run_name',
+     &     lrunid,xlabel)
+      status_out=nf_put_att_text(out_fid,nf_global,'acc_period',
+     &     len_trim(acc_period),acc_period)
       return
       end subroutine open_out
 
@@ -94,10 +103,16 @@ C**** have to wait.
       use ncout
       implicit none
       include '/usr/local/netcdf-3.4/include/netcdf.inc'
-      character(len=20) :: var_name
+      character(len=30) :: var_name
       double precision :: var(1)
       integer :: var_nelems,n
       status_out = nf_redef(out_fid)
+c check to make sure that variable isn't already defined in output file
+      if(nf_inq_varid(out_fid,trim(var_name),varid_out)
+     &                 .eq.nf_noerr) then
+         write(6,*) 'wrtarr: variable already defined: ',trim(var_name)
+         stop
+      endif
       status_out=nf_def_var(out_fid,trim(var_name),nf_real,
      &     ndims_out,dimids_out,varid_out)
       if(len_trim(units).gt.0) status_out =
@@ -122,6 +137,77 @@ c define missing value attribute only if there are missing values
       return
       end subroutine wrtarr
 
+      subroutine wrtarrn(var_name,var,outer_pos)
+c this subroutine is like wrtarr, but writes the outer_pos-th element
+c of an arbitrarily shaped array.  when outer_pos=1, it defines the
+c array as well.  the first call to it for a particular array MUST have
+c outer_pos=1, otherwise it stops.
+      use ncout
+      implicit none
+      include '/usr/local/netcdf-3.4/include/netcdf.inc'
+      character(len=30) :: var_name
+      double precision :: var(1)
+      integer :: outer_pos
+      integer :: var_nelems,n
+      integer, dimension(7) :: srt,cnt
+
+      if(ndims_out.lt.2) stop 'wrtarrn: invalid ndims_out'
+      if(outer_pos.le.0 .or.
+     &     outer_pos.gt.file_dimlens(dimids_out(ndims_out))) then
+         write(6,*) 'wrtarrn: invalid outer_pos'
+         stop
+      endif
+c define the variable if outer_pos is 1
+      if(outer_pos.eq.1) then
+
+      status_out = nf_redef(out_fid)
+c check to make sure that variable isn't already defined in output file
+      if(nf_inq_varid(out_fid,trim(var_name),varid_out)
+     &                 .eq.nf_noerr) then
+         write(6,*) 'wrtarrn: variable already defined: ',trim(var_name)
+         stop
+      endif
+      status_out=nf_def_var(out_fid,trim(var_name),nf_real,
+     &     ndims_out,dimids_out,varid_out)
+      if(len_trim(units).gt.0) status_out =
+     &     nf_put_att_text(out_fid,varid_out,
+     &     'units',len_trim(units),units)
+      if(len_trim(long_name).gt.0) status_out =
+     &     nf_put_att_text(out_fid,varid_out,
+     &     'long_name',len_trim(long_name),long_name)
+c define missing value attribute only if there are missing values
+      var_nelems = product(file_dimlens(dimids_out(1:ndims_out)))
+      do n=1,var_nelems
+         if(var(n).eq.missing) then
+            status_out = nf_put_att_real(out_fid,varid_out,
+     &           'missing_value',nf_float,1,missing)
+            exit
+         endif
+      enddo
+      status_out = nf_enddef(out_fid)
+
+      else
+c check to make sure that variable is already defined in output file
+      if(nf_inq_varid(out_fid,trim(var_name),varid_out)
+     &                 .ne.nf_noerr) then
+         write(6,*) 'wrtarrn: variable not yet defined: ',trim(var_name)
+         stop
+      endif
+
+      endif
+
+      srt(1:ndims_out-1) = 1
+      srt(ndims_out) = outer_pos
+      do n=1,ndims_out-1
+         cnt(n) = file_dimlens(dimids_out(n))
+      enddo
+      cnt(ndims_out) = 1
+      status_out = nf_put_vara_double(out_fid,varid_out,srt,cnt,var)
+      units=''
+      long_name=''
+      return
+      end subroutine wrtarrn
+
       subroutine open_ij(filename)
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
@@ -134,7 +220,7 @@ c define missing value attribute only if there are missing values
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
 
       outfile = filename
 
@@ -144,6 +230,8 @@ c define missing value attribute only if there are missing values
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='latitude'; call def_dim_out(dim_name,jm)
+      dim_name='lonb'; call def_dim_out(dim_name,im)
+      dim_name='latb'; call def_dim_out(dim_name,jm-1)
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
@@ -152,6 +240,12 @@ c define missing value attribute only if there are missing values
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
       var_name='latitude';call wrtarr(var_name,lat_dg(1,1))
+      dim_name='lonb'; call set_dim_out(dim_name,1)
+      units='degrees_east'
+      var_name='lonb'; call wrtarr(var_name,lon_dg(1,2))
+      dim_name='latb'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latb'; call wrtarr(var_name,lat_dg(2,2))
 
       return
       end subroutine open_ij
@@ -170,15 +264,16 @@ c define missing value attribute only if there are missing values
       return
       end subroutine close_ij
 
-      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM)
+      subroutine POUT_IJ(TITLE,XIJ,XJ,XSUM,IJGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : IM,JM
       USE DAGCOM, only : iu_ij
       USE NCOUT
+      USE BDIJ, title_ij=>title,units_ij=>units,
+     &          lname_ij=>lname,sname_ij=>sname
       IMPLICIT NONE
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var XIJ lat/lon output field 
@@ -187,20 +282,35 @@ c define missing value attribute only if there are missing values
       REAL*8, DIMENSION(JM), INTENT(IN) :: XJ
 !@var XSUM global sum/mean of output field 
       REAL*8, INTENT(IN) :: XSUM
+!@var IJGRID = 1 for primary lat-lon grid, 2 for secondary lat-lon grid
+      INTEGER, INTENT(IN) :: IJGRID
+
       integer :: nvars, status
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,lon_name,lat_name
 
-! set shape of output array
+! (re)set shape of output array
       ndims_out = 2
-      dim_name='longitude'; call set_dim_out(dim_name,1)
-      dim_name='latitude'; call set_dim_out(dim_name,2)
+      if(ijgrid.eq.1) then
+         lon_name='longitude'
+         lat_name='latitude'
+      else if(ijgrid.eq.2) then
+         lon_name='lonb'
+         lat_name='latb'
+      else
+         stop 'pout_ij: unrecognized grid'
+      endif
+      call set_dim_out(lon_name,1)
+      call set_dim_out(lat_name,2)
 
-C numerical naming convention for now
-      status = nf_inq_nvars(out_fid, nvars)
-      var_name=' '
-      write(var_name,'(a3,i3.3)') 'IJ_',nvars
-      long_name=title
-      call wrtarr(var_name,xij)
+      var_name=sname_ij(nt_ij)
+      long_name=lname_ij(nt_ij)
+      units=units_ij(nt_ij)
+
+      if(ijgrid.eq.1) then
+         call wrtarr(var_name,xij(1,1))
+      else
+         call wrtarr(var_name,xij(1,2)) ! ignore first latitude row
+      endif
       return
       end
 
@@ -216,7 +326,7 @@ C numerical naming convention for now
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
 
       outfile = filename
       call open_out
@@ -276,12 +386,14 @@ C numerical naming convention for now
 !@auth M. Kelley
 !@ver  1.0
       USE MODEL_COM, only : JM,LM,LS1
-      USE GEOM, only : lat_dg
       USE DAGCOM, only : lm_req,iu_jl
       USE DAGPCOM, only : plm,ple,ple_dn
       USE NCOUT
+      USE BDJL, title_jl=>title,units_jl=>units,
+     &          lname_jl=>lname,sname_jl=>sname
+      USE BDJK, title_jk=>title,units_jk=>units,
+     &          lname_jk=>lname,sname_jk=>sname
       IMPLICIT NONE
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var KLMAX max level to output
@@ -297,8 +409,7 @@ C numerical naming convention for now
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM 
 
-      integer :: nvars, status
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
       
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER J,L
@@ -334,11 +445,17 @@ C numerical naming convention for now
       endif
       call set_dim_out(dim_name,2)
 
-C numerical naming convention for now
-      status = nf_inq_nvars(out_fid, nvars)
-      var_name=' '
-      write(var_name,'(a3,i3.3)') 'JL_',nvars
-      long_name=title
+      if(in_jlmap) then
+         var_name=sname_jl(nt_jl)
+         long_name=lname_jl(nt_jl)
+         units=units_jl(nt_jl)
+      else if(in_jkmap) then
+         var_name=sname_jk(nt_jk)
+         long_name=lname_jk(nt_jk)
+         units=units_jk(nt_jk)
+      else
+         stop 'pout_jl: unknown output list'
+      endif
 
       if(j1.eq.1) then
          xjl0(1:jm,1:klmax) = xjl(1:jm,1:klmax)
@@ -363,7 +480,7 @@ C numerical naming convention for now
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
 
       outfile = filename
       call open_out
@@ -428,8 +545,9 @@ C numerical naming convention for now
       USE DAGCOM, only : lm_req,iu_il
       USE DAGPCOM, only : plm,ple,ple_dn
       USE NCOUT
+      USE BDIL, title_il=>title,units_il=>units,
+     &          lname_il=>lname,sname_il=>sname
       IMPLICIT NONE
-      include '/usr/local/netcdf-3.4/include/netcdf.inc'
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var KLMAX max level to output
@@ -449,8 +567,7 @@ C numerical naming convention for now
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER I,L
 
-      integer :: nvars, status
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
       
 ! (re)set shape of output arrays
       ndims_out = 2
@@ -480,11 +597,9 @@ C numerical naming convention for now
       endif
       call set_dim_out(dim_name,2)
 
-C numerical naming convention for now
-      status = nf_inq_nvars(out_fid, nvars)
-      var_name=' '
-      write(var_name,'(a3,i3.3)') 'IL_',nvars
-      long_name=title
+      var_name=sname_il(nt_il)
+      long_name=lname_il(nt_il)
+      units=units_il(nt_il)
 
       call wrtarr(var_name,xil)
 
@@ -499,16 +614,18 @@ C numerical naming convention for now
       USE GEOM, only : lat_dg
       USE DAGCOM, only : iu_j
       USE NCOUT
+      USE BDJ, only : nstype_out
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
-      character(len=20) :: var_name,dim_name
+      character(len=30) :: var_name,dim_name
 
       outfile = filename
       call open_out
       iu_j = out_fid
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
+      dim_name='stype'; call def_dim_out(dim_name,nstype_out)
 
       ndims_out = 1
       dim_name='latitude'; call set_dim_out(dim_name,1)
@@ -540,6 +657,8 @@ C numerical naming convention for now
       USE DAGCOM, only : KAJ,iu_j
       USE GEOM, only : lat_dg
       USE NCOUT
+      USE BDJ, units_j=>units,
+     &         lname_j=>lname,sname_j=>sname
       IMPLICIT NONE
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16, INTENT(IN) :: TERRAIN
@@ -547,40 +666,113 @@ C numerical naming convention for now
       INTEGER, INTENT(IN) :: KMAX
       INTEGER K,N,J
 
-      character(len=20) :: dim_name
-      character(len=32) :: var_name
-      character(len=16) :: terr_name
+      character(len=30) :: var_name,dim_name
 
 ! set shape of output array
-      ndims_out = 1
+      ndims_out = 2
       dim_name='latitude'; call set_dim_out(dim_name,1)
-
-C**** remove blanks, parentheses from TERRAIN
-      terr_name=terrain
-      if (terr_name(16:16).eq.'(' .or. terr_name(16:16).eq.')')
-     &     terr_name(16:16)=' '
-      do n=15,1,-1
-         if (terr_name(n:n).eq.'(' .or. terr_name(n:n).eq.')')
-     &        terr_name(n:15)=terr_name(n+1:16)
-      end do
-      do n=1,len_trim(terr_name)
-         if(terr_name(n:n).eq.' ') cycle
-         terr_name(1:16-n+1)=terr_name(n:16)
-         exit
-      enddo
-      do n=1,len_trim(terr_name)
-         if (terr_name(n:n).eq.' ') terr_name(n:n)='_'
-      end do
+      dim_name='stype'; call set_dim_out(dim_name,2)
 
       DO K=1,KMAX
-C numerical naming convention for now
-        var_name=' '
-        write(var_name,'(a2,i3.3)') 'J_',k
-        var_name=trim(terr_name)//'_'//var_name
-        long_name(1:16)=title(k)
-        call wrtarr(var_name,budg(1,k))
+c        var_name=trim(terr_name)//'_'//trim(sname_j(nt_j(k)))
+        var_name=sname_j(nt_j(k))
+        long_name=lname_j(nt_j(k))
+        units=units_j(nt_j(k))
+        call wrtarrn(var_name,budg(1,k),iotype)
       END DO
 
       return
       end
 
+      subroutine open_ijk(filename)
+!@sum  OPEN_IJK opens the lat-lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm
+      USE GEOM, only : lon_dg,lat_dg
+      USE DAGCOM, only : iu_ijk
+      use DAGPCOM, only : plm
+      USE NCOUT
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!
+      character(len=30) :: var_name,dim_name
+
+      outfile = filename
+
+! define output file
+      call open_out
+      iu_ijk = out_fid
+
+      dim_name='longitude'; call def_dim_out(dim_name,im)
+      dim_name='latitude'; call def_dim_out(dim_name,jm-1)
+      dim_name='p'; call def_dim_out(dim_name,lm)
+
+      ndims_out = 1
+      dim_name='longitude'; call set_dim_out(dim_name,1)
+      units='degrees_east'
+      var_name='longitude';call wrtarr(var_name,lon_dg(1,2))
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latitude';call wrtarr(var_name,lat_dg(2,2))
+      dim_name='p'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='p'; call wrtarr(var_name,plm)
+
+      return
+      end subroutine open_ijk
+
+      subroutine close_ijk
+!@sum  OPEN_IJK closes the lat-lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE DAGCOM, only : iu_ijk
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_ijk
+      call close_out
+
+      return
+      end subroutine close_ijk
+
+      subroutine POUT_IJK(TITLE,XIJK,XJK,XK)
+!@sum  POUT_IJK output lat-lon-height binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE MODEL_COM, only : IM,JM,LM
+      USE DAGCOM, only : iu_ijk
+      USE NCOUT
+      USE BDIJK, title_ijk=>title,units_ijk=>units,
+     &           lname_ijk=>lname,sname_ijk=>sname
+      IMPLICIT NONE
+!@var TITLE 80 byte title including description and averaging period
+      CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
+!@var XIJK lat/lon/height output field 
+      REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
+!@var XJK lat sum/mean of output field 
+      REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
+!@var XK global sum/mean of output field 
+      REAL*8, DIMENSION(LM), INTENT(IN) :: XK
+
+      integer :: nvars, status
+      character(len=30) :: var_name,dim_name
+
+! (re)set shape of output array
+      ndims_out = 3
+
+      dim_name = 'longitude'
+      call set_dim_out(dim_name,1)
+      dim_name = 'latitude'
+      call set_dim_out(dim_name,2)
+      dim_name = 'p'
+      call set_dim_out(dim_name,3)
+
+      var_name=sname_ijk(nt_ijk)
+      long_name=lname_ijk(nt_ijk)
+      units=units_ijk(nt_ijk)
+
+      call wrtarr(var_name,xijk)
+      return
+      end
