@@ -292,7 +292,7 @@ sub find_mods {
     foreach $modname (keys %{$self->{'uses'}}) {
 	if ($main::cray || $main::parasoft) {
 	    if ($file = $main::mod_files{$modname}) {
-                $base = &main::basename($file, @main::suffixes);
+                $base = (&main::fileparse($file, @main::suffixes))[0];
 		$file = $base . "." . $main::obj_ext;
 		push(@module_files, $file);
 	    } else {
@@ -312,7 +312,7 @@ sub print {
     my $compile_string = "\t" . '$(CFT) $(FFLAGS) -c';
     my($base, $object, $modname, $flag, $target, $ftarget);
 
-    $base = &main::basename($source, @main::suffixes);
+    $base = (&main::fileparse($source, @main::suffixes))[0];
     $target = $base . "." . $main::obj_ext;
     if ($main::stupid) {
 	$ftarget = $base . "." . $main::ext;
@@ -396,7 +396,7 @@ package main;
 if ($] < 5.000) { die "Need perl 5.000 or newer\n"; }
 use File::Basename;
 use Getopt::Long;
-@suffixes = qw( .c .C .cc .cxx .cpp .f .F .fcm .FCM .f90 .F90 .for);
+@suffixes = qw( \.c \.C \.cc \.cxx \.cpp \.f \.F \.fcm \.FCM \.f90 \.F90 \.for);
 
 GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
 		       || die "problem in GetOptions";
