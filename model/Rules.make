@@ -162,10 +162,12 @@ FORCE:
 	@touch .timestamp
 ifeq ($(COMPILER),Absoft)
 	cp $*.f $*.F
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.F  $(COMP_OUTPUT)
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.F \
+	  $(COMP_OUTPUT)
 	rm -f $*.F
 else
-	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $*.f  $(COMP_OUTPUT)
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(RFLAGS) $*.f \
+	  $(COMP_OUTPUT)
 endif
 	-@if [ `ls | grep ".mod" | tail -1` ] ; then for i in *.mod; \
 	  do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then \

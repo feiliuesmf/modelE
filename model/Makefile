@@ -104,11 +104,23 @@ sinclude ~/.modelErc
 
 ifneq ($(MAKECMDGOALS),rundeck)
 ifeq ($(shell [ -s $(RUNDECK) ] && echo yes),yes)
-OBJ_LIST = $(shell [ -s $(RUNDECK) ] && perl \
+
+# extracting the list of objects (including options) from the rundeck
+OBJ_LIST_O = $(shell [ -s $(RUNDECK) ] && perl \
 	-e 'while(<> !~ /^Object +modules/ ){};' \
 	-e 'while(($$_=<>) !~ /(^Data +input)|(^ *$$)/)' \
 	-e '{chop; s/ *(!.*)*$$//; print " $$_";}' \
 	< $(RUNDECK))
+
+# stripping options from OBJ_LIST_O
+OBJ_LIST = $(shell perl \
+	-e '$$_="$(OBJ_LIST_O)"; s/\|[^|]*\|//g; print;' \
+	)
+
+# RFLAGS returns rundeck options for the current object (i.e. for $*)
+RFLAGS = $(shell perl \
+	-e '$$_="$(OBJ_LIST_O)"; m/\b$* *\|([^|]*)\|/; print " $$1";' \
+	)
 
 sinclude $(DEPENDFILE)
 FSRCS = $(OBJ_LIST:=.f)
