@@ -210,10 +210,11 @@ c  internals:
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
-      integer, parameter :: iprint=0,jprint=33  ! set iprint>0 to debug
+      integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
+     *       ,usave1,vsave1,tsave1,qsave1             
       real*8, dimension(n-1) :: lscale,zhat,dzh,xihat,km,kh,kq,ke,gm,gh
-     *     ,esave
+     *     ,esave,esave1
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
 !@var  u  local due east component of wind
@@ -244,8 +245,15 @@ C**** end special threadprivate common block
 #ifdef TRACERS_ON
       trsave(:,1:ntx)=tr(:,1:ntx)
 #endif
-
+      do i=1,n-1
+        usave1(i)=usave(i)
+        vsave1(i)=vsave(i)
+        tsave1(i)=tsave(i)
+        qsave1(i)=qsave(i)
+        esave1(i)=esave(i)
+      end do
       ustar0=0.
+
       do iter=1,itmax
 
         call getl(e,u,v,t,zhat,dzh,lscale,dbl,n)
@@ -257,6 +265,7 @@ C**** end special threadprivate common block
         kqsave=kq
         cqsave=cq
 #endif
+
         call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
@@ -287,21 +296,22 @@ C**** end special threadprivate common block
           endif
         endif
 
+        test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+
         do i=1,n-1
-          u(i)=w*usave(i)+(1.-w)*u(i)
-          v(i)=w*vsave(i)+(1.-w)*v(i)
-          t(i)=w*tsave(i)+(1.-w)*t(i)
-          q(i)=w*qsave(i)+(1.-w)*q(i)
-          e(i)=w*esave(i)+(1.-w)*e(i)
-          usave(i)=u(i)
-          vsave(i)=v(i)
-          tsave(i)=t(i)
-          qsave(i)=q(i)
-          esave(i)=e(i)
+          u(i)=w*usave1(i)+(1.-w)*u(i)
+          v(i)=w*vsave1(i)+(1.-w)*v(i)
+          t(i)=w*tsave1(i)+(1.-w)*t(i)
+          q(i)=w*qsave1(i)+(1.-w)*q(i)
+          e(i)=w*esave1(i)+(1.-w)*e(i)
+          usave1(i)=u(i)
+          vsave1(i)=v(i)
+          tsave1(i)=t(i)
+          qsave1(i)=q(i)
+          esave1(i)=e(i)
         end do
 
-        test=abs((ustar-ustar0)/(ustar+ustar0))
-        if (test.lt.tol) exit
         ustar0=ustar
 
       end do
@@ -487,6 +497,7 @@ c     To compute the drag coefficient,Stanton number and Dalton number
           lmax  =0.53d0*sqrt(2.*e(i)/max(an2,teeny))
           if (lscale(i).gt.lmax) lscale(i)=lmax
         endif
+        if (lscale(i).lt.0.5*kappa*zhat(i)) lscale(i)=0.5*kappa*zhat(i)
       end do
 
       return
@@ -1688,7 +1699,7 @@ c       rhs1(i)=-coriol*(u(i)-ug)
      *     ,wstar3fac,wstar3,wstar2h,usurfq,usurfh
       integer, save :: iter_count=0
       integer, parameter ::  itmax=100
-      integer, parameter ::  iprint=0,jprint=33 ! set iprint>0 to debug
+      integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 
@@ -1786,6 +1797,9 @@ c Initialization for iteration:
         call tcheck(q,qgrnd,n)
         call ucheck(u,v,z,ustar,lmonin,z0m,hemi,psi0,psi1,n)
 
+        test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
+        if (test.lt.tol) exit
+
         call level2(e,u,v,t,lscale,dzh,n)
 
         do i=1,n-1
@@ -1800,9 +1814,6 @@ c Initialization for iteration:
           qsave(i)=q(i)
           esave(i)=e(i)
         end do
-
-        test=abs((ustar-ustar0)/(ustar+ustar0))
-        if (test.lt.tol) exit
         ustar0=ustar
 
       end do
