@@ -622,12 +622,11 @@ C**** set units
       return
       end subroutine close_il
 
-      subroutine POUT_IL(TITLE,sname,lname,unit,ISHIFT,KLMAX,XIL,PM,CX
-     *     ,CY,ASUM,GSUM,ZONAL)
+      subroutine POUT_IL(TITLE,sname,lname,unit,I1,ISHIFT,KLMAX,XIL
+     *     ,PM,CX,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth M. Kelley
 !@ver  1.0
-      USE MODEL_COM, only : LS1
       USE GEOM, only : lon_dg
       USE DAGCOM, only : plm,ple,ple_dn
       USE NCOUT
@@ -636,7 +635,8 @@ C**** set units
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var KLMAX max level to output
 !@var ISHIFT flag for secondary grid
-      INTEGER, INTENT(IN) :: KLMAX,ISHIFT
+ !@var I1 coordinate index associated with first long. (for wrap-around)
+     INTEGER, INTENT(IN) :: KLMAX,ISHIFT,I1
 !@var XIL output field
       REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
 !@var PM pressure levels (MB)
@@ -650,7 +650,7 @@ C**** set units
 
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER I,L
-
+      REAL*8 XTEMP(IM,LM+LM_REQ+1)
       character(len=30) :: var_name,dim_name
       character(len=20), intent(in) :: sname,unit
       character(len=80), intent(in) :: lname
@@ -658,6 +658,13 @@ C**** set units
 ! (re)set shape of output arrays
       ndims_out = 2
 
+C**** Note that coordinates cannot be wrapped around as a function I1,
+C**** therefore shift array back to standard order.
+      if (i1.gt.0) then
+        xtemp=xil
+        xil(1:i1-1,:) = xtemp(im-i1+2:im,:)
+        xil(i1:im,:) = xtemp(1:im-i1+1,:)
+      end if
       if(ishift.eq.1) then
          dim_name='longitude'
       else if(ishift.eq.2) then

@@ -197,7 +197,7 @@ C**** set units
       return
       end subroutine close_il
 
-      subroutine POUT_IL(TITLE,sname,lname,unit,ISHIFT,KLMAX,XIL
+      subroutine POUT_IL(TITLE,sname,lname,unit,I1,ISHIFT,KLMAX,XIL
      *     ,PM,CX,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth Gavin Schmidt
@@ -209,7 +209,8 @@ C**** set units
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var KLMAX max level to output
 !@var ISHIFT flag for secondary grid
-      INTEGER, INTENT(IN) :: KLMAX,ISHIFT
+!@var I1 coordinate index associated with first long. (for wrap-around)
+      INTEGER, INTENT(IN) :: KLMAX,ISHIFT,I1
 !@var XIL output field
       REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(IN) :: XIL
 !@var PM pressure levels (MB)
@@ -228,7 +229,10 @@ C**** set units
       REAL*8 XCOOR(IM)
       INTEGER I,L
 
-      XCOOR(1:IM) = LON_DG(1:IM,ISHIFT)
+C**** Allow for the possibility of wrap-around arrays
+      XCOOR(1:IM-I1+1) = LON_DG(I1:IM,ISHIFT)
+      IF (I1.gt.1) XCOOR(IM-I1+2:IM) = LON_DG(1:I1-1,ISHIFT)
+
       WRITE (iu_il) TITLE,IM,KLMAX,1,1,
      *     ((SNGL(XIL(I,L)),I=1,IM),L=1,KLMAX),(SNGL(XCOOR(I)),I=1,IM)
      *     ,(SNGL(PM(L)),L=1,KLMAX),0.,0.,CX,CY,CBLANK,CBLANK,'NASAGISS'

@@ -2455,7 +2455,7 @@ C**** Output for post-processing
       CWORD=WORD(JWT)           ! pads out to 8 characters
       XLB=TITLE
       XLB(65:80)=' '//acc_period(1:3)//' '//acc_period(4:12)//'  '
-      IF(QDIAG) CALL POUT_IL(XLB,sname,lname,unit,ISHIFT,LMAX,XIL
+      IF(QDIAG) CALL POUT_IL(XLB,sname,lname,unit,1,ISHIFT,LMAX,XIL
      *     ,PL,CLAT,CPRES,ASUM,GSUM,ZONAL)
       RETURN
 C****
