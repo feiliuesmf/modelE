@@ -1410,7 +1410,7 @@ C**** initialise vertical arrays
 C****
 C**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
 C****
-      DO 304 L=LM,1,-1
+      DO L=LM,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
       OLDLHX=SVLHXL(L)
@@ -1622,8 +1622,8 @@ C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
         TRPRICE(:,L+1)=0.
 #endif
       END IF
-      PREICE(L)=PREICE(L+1)-AIRM(L)*ER(L)*CAREA(L)*PREICE(L+1)/
-     *          (GRAV*LHX*PREBAR(L+1)+teeny)
+      PREICE(L)=MAX(0d0,PREICE(L+1)-AIRM(L)*ER(L)*CAREA(L)*PREICE(L+1)/ 
+     *          (GRAV*LHX*PREBAR(L+1)+teeny))
       IF(LHX.EQ.LHS) PREICE(L)=PREICE(L)+AIRM(L)*PREP(L)*BYGRAV
       PREBAR(L)=MAX(0d0,PREBAR(L+1)+
      *          AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV)
@@ -1645,9 +1645,9 @@ C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
 C**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
       FPR=0.
-      IF (WMX(L).gt.teeny) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
+      IF (WMX(L).gt.0.) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
       FER=0.
-      IF (PREBAR(L+1).gt.teeny) FER=CAREA(L)*ER(L)*AIRM(L)/(
+      IF (PREBAR(L+1).gt.0.) FER=CAREA(L)*ER(L)*AIRM(L)/(
      *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
       FER=MIN(1d0,FER)
       FPR=MIN(1d0,FPR)
@@ -1655,11 +1655,11 @@ C**** Only Calculate fractional changes of Q to W
 #endif
       FQTOW=0.                                                ! Q->CLW
       IF (QHEAT(L)+CAREA(L)*ER(L).gt.0) THEN
-        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.teeny) FQTOW=(QHEAT(L)
+        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L)
      *       +CAREA(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)*ER(L))
 #ifdef TRACERS_WATER
       ELSE
-        IF (WMX(L)-PREP(L)*DTsrc.gt.teeny) FWTOQ=-(QHEAT(L)+CAREA(L)
+        IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L)+CAREA(L)
      *       *ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
         FWTOQ=MIN(1d0,FWTOQ)
 #endif
@@ -1714,12 +1714,14 @@ c ---------------------- apply fluxes ------------------------
         TRWML(N,L) = TRWML(N,L)     - DTPRT                 + DTQWT
         TM(L,N)    = TM(L,N)                + DTERT - DTWRT - DTQWT
         TRPRBAR(N,L)=TRPRBAR(N,L+1) + DTPRT - DTERT + DTWRT
+        IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
 c
         TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT)
 #ifdef TRACERS_SPECIAL_O18
 C**** need seperate accounting for liquid/solid precip
         TRPRICE(N,L) = TRPRICE(N,L+1) - DTERTICE
         IF (LHX.EQ.LHS) TRPRICE(N,L) = TRPRICE(N,L) + DTPRT
+        IF (PREICE(L).eq.0) TRPRICE(N,L)=0.  ! remove round off error
 C**** Isotopic equilibration of the CLW and water vapour
         IF (TL(L).gt.TF) THEN  ! only if above freezing
           CALL ISOEQUIL(NTIX(N),TL(L),QL(L),WMX(L),TM(L,N),TRWML(N,L)
@@ -1807,7 +1809,8 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       LHXUP=LHX
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)
-  304    AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
+         AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
+      END DO  ! end of loop over L
 C****
 C**** CLOUD-TOP ENTRAINMENT INSTABILITY
 C****

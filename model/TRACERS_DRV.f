@@ -3220,7 +3220,7 @@ C**** calculate condensate in equilibrium with source vapour
               alph=1./fracvs(tdegc,trname(ntix(n)))
 C**** kinetic fractionation can occur as a function of supersaturation
 C**** this is a parameterisation from Georg Hoffmann
-              supsat=1d0-4d-3*tdegc
+              supsat=1d0-8d-3*tdegc
               if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *             ,trname(ntix(n)))
             end if
@@ -3393,11 +3393,11 @@ C**** below clouds kinetic effects with evap into unsaturated air
             alph=fracvs(tdegc,trname(ntix(n)))
           end if
           if (fq0.ne.1.) then
-c           if (fq0.lt.0.9) then ! approximate
+           if (fq0.lt.0.9) then ! approximate
               fq = alph * fq0
-c           else ! calculate actual rayleigh curve (necessary?)
-c             fq = 1. - (1.-fq0)**alph
-c           end if
+           else ! calculate actual rayleigh curve
+             fq = 1. - (1.-fq0)**alph
+           end if
           else
             fq = fq0
           end if
