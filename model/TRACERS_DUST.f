@@ -311,19 +311,19 @@ c**** Wet Deposition
 !@sum  Computes dust gravitational deposition
 
 #ifdef TRACERS_DUST
-      USE CONSTANT,ONLY : visc_air,grav
+      USE constant,ONLY : visc_air,grav
       USE resolution,ONLY : Im,Jm,Lm
-      USE MODEL_COM,ONLY : Dtsrc
+      USE model_com,ONLY : Dtsrc
       USE geom, ONLY : dxyp,bydxyp
       USE qusdef,ONLY : zmoms
       USE fluxes,ONLY : tr3Dsource
-      USE TRACER_COM,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
-      USE TRACER_DIAG_COM, only : jls_grav,jls_3Dsource,taijn,
+      USE tracer_com,ONLY : n_clay,Ntm_dust,trpdens,trm,trmom
+      USE tracer_diag_com,ONLY : jls_grav,jls_3Dsource,taijn,
      &     tajls
 #ifdef TRACERS_DRYDEP
      &     ,tij_gsdep
 #endif
-      USE tracers_dust_com, only: zld,dradius,nDustGrav3Djl
+      USE tracers_dust_com,ONLY : zld,dradius,nDustGrav3Djl
 
       IMPLICIT NONE
 
@@ -331,6 +331,10 @@ c**** Wet Deposition
       REAL*8,DIMENSION(Ntm_dust) :: stokevdt
       REAL*8 :: stokefac1,stokefac2
       REAL*8 :: work(Im,Jm,Ntm_dust)
+
+      IF (Lm .NE. 12)
+     &     CALL stop_model
+     & ('Stopped in dust_grav: Wrong vertical resolution (.ne. 12)',255)
 
 #ifdef TRACERS_DUST_MINERAL8
       CALL stoke_mindust8(stokevdt)
@@ -440,16 +444,18 @@ c*****dry deposition (turbulent mixing) 1cm/s (Giorgi (86), JGR)
       USE fluxes,ONLY : trsrfflx
       USE tracer_com, ONLY : n_clay,Ntm_dust,trm,trmom
       USE TRACER_DIAG_COM, only : ijts_source,jls_source,taijs,tajls
-      USE tracers_dust_com, only: zld,nDustTurbij,nDustTurbjl
+      USE tracers_dust_com, only: nDustTurbij,nDustTurbjl
 
       IMPLICIT NONE
 
+!param Thickness of first layer [m]
+      REAL,PARAMETER :: Zld1=400.
       INTEGER :: j,n,n1,naij,najl
       REAL*8 :: dratio
 
       DO n=1,Ntm_dust
         n1=n_clay+n-1
-        dratio=0.001D0*dtsrc/zld(1)
+        dratio=0.001D0*dtsrc/Zld1
         IF (dratio > 1.) dratio=1.
         trsrfflx(:,:,n1)=dratio*trm(:,:,1,n1)/Dtsrc
         trm(:,:,1,n1)=(1-dratio)*trm(:,:,1,n1)

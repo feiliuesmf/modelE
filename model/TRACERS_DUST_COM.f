@@ -27,7 +27,7 @@
 !@param Z scavenging ratio for wet deposition of dust      
       REAL*8,PARAMETER :: Z=700.
 !@param Zld assumed thickness of layers [m]
-      REAL*8,PARAMETER :: Zld(Lm)=(/400.,800.,1400.,2100.,2600.,2200.,
+      REAL*8,PARAMETER :: Zld(12)=(/400.,800.,1400.,2100.,2600.,2200.,
      .     2000.,2100.,2300.,2700.,3300.,4300./)
 !@param dradius soil dust particle radius [m]
       REAL*8,PARAMETER :: Dradius(Ntm_dust)=(/0.75D-06,2.2D-06,4.4D-06,
