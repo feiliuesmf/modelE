@@ -594,13 +594,15 @@ c DMM is number density of air in molecules/cm3
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
 c       bciage=4.3D-6*trm(i,j,l,n) !used this first        
-        bciage=1.0D-6*trm(i,j,l,n)
+c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
+        bciage=1.0D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
 c       ociage=7.3D-6*trm(i,j,l,n)       !used this first 
-        ociage=3.6D-6*trm(i,j,l,n)
+c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
+        ociage=3.D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
         tr3Dsource(i,j,l,1,n_OCIA)=ociage        
 
@@ -1003,7 +1005,7 @@ c
       real*8, parameter :: rk=6.357d14    !1/(M*M*s)
       real*8, parameter :: ea=3.95d4 !J/mol
       REAL*8,  INTENT(IN) :: fcloud,temp,wa_vol,wmxtr,LHX
-      real*8 tm(lm,ntm), tmcl(ntm,lm), airm(lm)
+      real*8 tm(lm,ntm), tmcl(ntm), airm(lm)
 c     REAL*8,  INTENT(OUT)::
       real*8 sulfin(ntm),sulfout(ntm),tr_left(ntm)
      *  ,sulfinc(ntm)
@@ -1047,7 +1049,7 @@ c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)
       pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
-c again all except tmcl(n,l)
+c again all except tmcl(n)
       trdr(is)=mair*ppas/tr_mm(is)/amass*bygasc
      *    /temp*1.D-3  !M/kg
 c dissolved moles
@@ -1072,7 +1074,7 @@ c the following is from Phil:
 c      reduction in partial pressure as species dissolves
       henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
-c all except tmcl(n,l)
+c all except tmcl(n)
       trdr(ih)=mair*ppas/tr_mm(ih)
      *    /amass*bygasc/temp*1.D-3  !M/kg
 c dissolved moles
@@ -1127,7 +1129,7 @@ c can't be more than moles going in:
        is4=ntix(n)
 !       is4x=n
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
-     *  +dso4d*tmcl(isx,l)*tmcl(ihx,l)) !kg
+     *  +dso4d*tmcl(isx)*tmcl(ihx)) !kg
 
        dt_sulf(is4) = dt_sulf(is4) + sulfout(is4)
 
@@ -1136,7 +1138,7 @@ c can't be more than moles going in:
        isx=n
 ! is ih/ihx set here, then why isn't is/isx?
        sulfin(is)=-dso4g*tm(l,ihx)*tr_mm(is)/1000. !dimnless
-       sulfinc(is)=-dso4d*tmcl(ihx,l)*tr_mm(is)/1000.
+       sulfinc(is)=-dso4d*tmcl(ihx)*tr_mm(is)/1000.
        sulfinc(is)=max(-1d0,sulfinc(is))
        sulfin(is)=max(-1d0,sulfin(is))
        tr_left(isx)=0.
@@ -1155,7 +1157,7 @@ c can't be more than moles going in:
        ih=ntix(n)
        ihx=n
        sulfin(ih)=-dso4g*tm(l,isx)*tr_mm(ih)/1000.
-       sulfinc(ih)=-dso4d*tmcl(isx,l)*tr_mm(ih)/1000.
+       sulfinc(ih)=-dso4d*tmcl(isx)*tr_mm(ih)/1000.
        sulfinc(ih)=max(-1d0,sulfinc(ih))
        sulfin(ih)=max(-1d0,sulfin(ih))
        tr_left(ihx)=0.

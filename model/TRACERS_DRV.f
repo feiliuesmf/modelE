@@ -6069,7 +6069,7 @@ C         (lightning called from tracer_3Dsource)
       end do
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-       if (COUPLED_CHEM.ne.1) call get_O3_offline
+c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 #endif
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
@@ -6750,22 +6750,23 @@ C**** this is a parameterisation from Georg Hoffmann
         CASE(nPART)                           ! particulate tracer
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO)
-          if(LHX.EQ.LHE.and.fq0.gt.0.) then
 c only dissolve if the cloud has grown
            CLDINC=CLDSAVT-FCLOUD 
-           if (CLDINC.gt.0.) then
+          if (fq0.gt.0.and.CLDINC.gt.0.) then 
+          if(LHX.EQ.LHE) then !liquid cloud
             fq = fq_aer(NTIX(N))*CLDINC
-           else
-            fq=0.
+           else ! ice cloud - small dissolution
+            fq = fq_aer(NTIX(N))*CLDINC*0.05d0
            endif
+          endif
 c complete dissolution in convective clouds
 c with double dissolution if partially soluble
-            if (TR_CONV) then
-               fq=1.d0
-               if (fq_aer(ntix(n)).lt.1.d0) then
+          if (TR_CONV) then
+           if (LHX.EQ.LHE) then !liquid cloud
                fq=(1.d0+fq_aer(ntix(n)))/2.d0
-               endif
-            endif
+           else
+               fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+           endif
           endif
           if (FCLOUD.LT.1.D-16) fq=0.d0
           if (fq.ge.1.d0) fq=0.9999
@@ -6839,7 +6840,7 @@ c
 
 
       SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq
-     * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRCOND,THLAW,pl,ntix)
+     * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRPR,THLAW,pl,ntix)
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -6868,9 +6869,9 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: N,L,ntix(ntm)
       REAL*8, INTENT(OUT):: FQ,THLAW
       REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
-     *  TM(LM,NTM),TRCOND(NTM,LM),pl
+     *  TM(LM,NTM),pl
       REAL*8, PARAMETER :: rc_wash = 1.D-1, BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac, RKD
+      REAL*8 Ppas, tfac, ssfac, RKD, TRPR(ntm)
 C
       thlaw=0.
       SELECT CASE(tr_wd_TYPE(NTIX(N)))
@@ -6886,7 +6887,7 @@ C
               RKD=tr_RKD(NTIX(N))
             END IF
             ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
-            thlaw=(ssfac*tm(l,NTIX(N))-TRCOND(NTIX(N),L))
+            thlaw=(ssfac*tm(l,NTIX(N))-TRPR(NTIX(N)))
      *            /(1.D0+ssfac)
             if (thlaw.lt.0.) thlaw=0.d0
             if (thlaw.gt.tm(l,NTIX(N))) thlaw=tm(l,NTIX(N))

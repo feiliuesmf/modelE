@@ -976,7 +976,8 @@ C**** CONDENSING TRACERS
 
       END DO
       CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
-     *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND,AIRM,LHX,
+     *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
+     *     AIRM,LHX,
      *     DT_SULF_MC(1,L))
 #endif
       DO N=1,NTX
@@ -1400,7 +1401,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
 #ifdef TRACERS_AEROSOLS_Koch
         WA_VOL= precip_mm*DXYPJ
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
-     *       SULFINC,SULFOUT,TR_LEFT,TM,TRCOND,AIRM,LHX,
+     *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L))
 #endif
         DO N=1,NTX
@@ -1410,7 +1411,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
       if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 402
       if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto 402
 
-          TRCOND(N,L)=TRCOND(N,L)*(1.+SULFINC(N))
+          TRPRCP(N)=TRPRCP(N)*(1.+SULFINC(N))
           TM(L,N)=TM(L,N)*(1.+SULFIN(N))
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *(1.+SULFIN(N))
           TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
@@ -1423,8 +1424,8 @@ C**** WASHOUT of TRACERS BELOW CLOUD
 cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRCOND,THLAW,pl(l),ntix)
-          TRCOND(N,L) = FWASHT*TM(L,N)+TRCOND(N,L)+THLAW
+     *         ,TNX,LHX,WMXTR,FPLUME,L,TM,TRPRCP,THLAW,pl(l),ntix)
+          TRPRCP(N) = FWASHT*TM(L,N)+TRPRCP(N)+THLAW
           IF (TM(L,N).GT.teeny) THEN
             TMFAC=THLAW/TM(L,N)
           ELSE
@@ -2155,8 +2156,8 @@ c CLDSAVT is current FCLD
         WA_VOL=precip_mm*DXYPJ
       ENDIF
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
-     *     ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX
-     *     ,DT_SULF_SS(1,L))
+     * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
+     *  ,DT_SULF_SS(1,L))
       DO N=1,NTX
       select case (trname(ntix(n)))
       case('SO2','SO4','H2O2_s','H2O2')
@@ -2211,7 +2212,7 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,TEMP,LHX,WMXTR,CLDSAVT,L,TM,TRPRBAR,THWASH,pl(l),ntix) !washout
+     *     ,TEMP,LHX,WMXTR,CLDSAVT,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
@@ -2294,7 +2295,7 @@ cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #ifdef TRACERS_AEROSOLS_Koch
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
-     *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML,AIRM,LHX,
+     *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L))
 #endif
       DO N=1,NTX
