@@ -1,17 +1,25 @@
 .SUFFIXES:
 .PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc
 
-# DECKS_REPOSITORY - a directory for permanenet storage of run info 
-DECKS_REPOSITORY = /u/cmrun/modelE/decks
-# OVERWRITE - can "gmake rundeck" overwrite files already in repository
-OVERWRITE = NO
-
+# modelE directory structure
 MODEL_E_ROOT = ..
 MODEL_DIR = $(MODEL_E_ROOT)/model
 AUX_DIR = $(MODEL_E_ROOT)/aux
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
+
+HOMEDIR = $(wildcard ~)
+MODELERC = $(HOMEDIR)/.modelErc
+# getting options from configuration files
+# default modelE configuration file:
+include $(SCRIPTS_DIR)/modelErc
+# configuration file with user-defined options:
+sinclude $(MODELERC)
+
+ifeq ($(VERBOSE_OUTPUT),NO)
+  MAKEFLAGS=-s
+endif
 
 SETUP = $(SCRIPTS_DIR)/setup_e
 
@@ -86,11 +94,12 @@ exe:  $(BIN_DIR)/$(RUN).exe
 	@if [ ! -O $(DECKS_REPOSITORY)/$(RUN).R ]; then \
 	echo 'Either you didn''t run setup yet or the rundeck name $(RUN)'; \
 	echo 'belongs to somebody else'; echo 'please check'; exit 1; fi
-	@if [ ! -s /u/cmrun/$(RUN)/I ] ; then \
-	echo 'directory /u/cmrun/$(RUN) or input files inside it are missing';\
+	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \
+	echo \
+	  'directory $(CMRUNDIR)/$(RUN) or input files inside it are missing';\
 	echo 'you should make "setup" first'; \
 	exit 1; fi
-	mv -f $(BIN_DIR)/$(RUN).exe /u/cmrun/$(RUN)/
+	mv -f $(BIN_DIR)/$(RUN).exe $(CMRUNDIR)/$(RUN)/
 	@echo 'adding corresponding info to rundeck repository'
 	@perl -e "while(<>){ if(/^### Information/){exit;} print; }" \
 	<$(DECKS_REPOSITORY)/$(RUN).R  >$(DECKS_REPOSITORY)/$(RUN).R.tmp
@@ -112,7 +121,7 @@ newstart:
 	@if [ "$(RUN)" = "" ]; then \
 	echo 'You should specify run name on a command line (i.e. RUN=...)'; \
 	exit 1; fi
-	rm -i /u/cmrun/$(RUN)/*
+	rm -i $(CMRUNDIR)/$(RUN)/*
 
 alias: aux
 	for i in $(ALIAS_LIST); do ln -sf $(BIN_DIR)/$$i .; done
@@ -123,4 +132,11 @@ unalias:
 htmldoc:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
-# DO NOT DELETE THIS LINE - used by make depend
+config configure:
+	@if [ -f $(MODELERC) -a $(OVERWRITE) != YES ]; then \
+	echo '~/.modelErc already exists, use OVERWRITE=YES to overwrite'; \
+	exit 1; fi
+	@cp -f $(SCRIPTS_DIR)/modelErc $(MODELERC)
+	@echo '$(MODELERC) created.'
+	@echo 'You may want to edit it manually to customize the options.'
+
