@@ -44,14 +44,14 @@ C**** check for arguments
         TOT = TOT + TIMING(N)
       END DO
       IF (Itime-Itime0.gt.0) THEN
-        FACT = 24./(6000*(Itime-Itime0))  
+        FACT = 24./(6000*(Itime-Itime0))
       ELSE
         FACT = 0.
       END IF
       IF (QCMIN) THEN ! output in minutes
         FAC = FACT
-      ELSE            ! output in percentages 
-        FAC = 100./TOT 
+      ELSE            ! output in percentages
+        FAC = 100./TOT
       END IF
       IF (TOT.gt.0) THEN
         WRITE (6,906) FACT*TOT,(TIMESTR(N),FAC*TIMING(N),N=1,3)
@@ -91,7 +91,7 @@ c       write (6,*) "IDACC = ",(IDACC(I),I=1,12)
   860 continue
       write(6,*) "Error reading file ", FILEIN
       STOP
- 900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A)
+ 900  FORMAT (I10,1X,I2,'/',I2.2,'/',I4.4,' hr',I2,2X,A)
  906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
  907  FORMAT (10(22X,3(X,A12,F5.1) / ))
       end
