@@ -346,10 +346,7 @@ c for sulfur chemistry
      *     ,SUMDP,DDRUP,EDRAFT
      *     ,TOLD,TOLD1,TEMWM,TEM,WTEM,WCONST,WORK
      *     ,FCONV_tmp,FSUB_tmp,FSSL_tmp
-     *     , MNdO,MNdL,MCDNCW   !Menon
-#ifdef CLD_AER_CDNC
-     *     ,MCDNCI
-#endif
+     *     ,MNdO,MNdL,MCDNCW,MCDNCI
 !@var TERM1 contribution to non-entraining convective cloud
 !@var FMP0 non-entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
@@ -392,9 +389,7 @@ c for sulfur chemistry
 !@var QSATC saturation vapor mixing ratio
 !@var QSATMP plume's saturation vapor mixing ratio
 !@var RCLD,RCLDE cloud particle's radius, effective radius
-#ifdef CLD_AER_CDNC
 !@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
-#endif
 !@var SLH LHX/SHA
 !@var EDRAFT entrainment into downdrafts
 !@var TOLD,TOLD1 old temperatures
@@ -1530,19 +1525,13 @@ C**   Set CDNC for moist conv. clds (const at present)
               MNdL=174.d0
               MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
               MCDNCI=0           ! default
-
 !              RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
-               RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
-
-             ELSE
-               RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-
-#ifdef CLD_AER_CDNC   !set Reff for moist conv. clds
-               MCDNCI=0.06d0
+              RCLD=RWCLDOX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
+            ELSE
+              RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
+              MCDNCI=0.06d0
 !              RCLD= 100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
-               MCDNCW=0          ! default
-#endif
-
+              MCDNCW=0          ! default
             END IF
             RCLDE=RCLD/BYBR   !  effective droplet radius in anvil
             CSIZEL(L)=RCLDE   !  effective droplet radius in anvil
