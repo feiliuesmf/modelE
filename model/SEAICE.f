@@ -410,7 +410,7 @@ C**** tracer melt is calculated using fresh water concentration
 
 C**** Mass fluxes required to keep first layer ice = ACE1I
       FMSI2 = -DSNOW+DEW-MELT1-MELT2 ! either up or down
-      FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1-CMPRS
+      FMSI1 = -XSI(1)*DSNOW+DEW1-MELT1
 
 C**** Check for melting in levels 3 and 4
       MELT3 = MAX(0d0,HSIL(3)*BYLHM+XSI(3)*MSI2)
