@@ -476,7 +476,6 @@ C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
         if (1.-fr3d.le.1d-16) trm(i,j,l,n) = 0.
         tajls(j,l,najl)=tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
-        taijs(i,j,naij)=taijs(i,j,naij)+tr3Dsource(i,j,l,ns,n)*dtsrc
         taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
 !$OMP END PARALLEL DO
