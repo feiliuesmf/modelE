@@ -1817,6 +1817,28 @@ C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,BYP,ONES,LM,2,JGRID_JL(n))
+C**** Weighted average cloud sizes
+      SCALET = 1.
+      DO L=1,LM
+      DO J=1,JM
+        IF (AJL(J,L,JL_CLDMC).gt.0) THEN
+          AX(J,L) = AJL(J,L,JL_CSIZMC)/AJL(J,L,JL_CLDMC)
+        ELSE
+          AX(J,L) = 0.
+        END IF
+        IF (AJL(J,L,JL_CLDSS).gt.0) THEN
+          BX(J,L) = AJL(J,L,JL_CSIZSS)/AJL(J,L,JL_CLDSS)
+        ELSE
+          BX(J,L) = 0.
+        END IF
+      END DO
+      END DO
+      n=JL_CSIZMC
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
+      n=JL_CSIZSS
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C****
 C**** ENERGY
 C****

@@ -3000,6 +3000,43 @@ c
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
+      k=k+1
+      jl_cldmc= k
+      sname_jl(k) = 'cldmc'   ! no output
+      lname_jl(k) = 'MOIST CONVECTIVE CLOUD FRACTION' ! from cloud scheme
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_cldss= k
+      sname_jl(k) = 'cldss'  ! no output
+      lname_jl(k) = 'LARGE-SCALE CLOUD FRACTION' ! from cloud scheme
+      units_jl(k) = '%'
+      scale_jl(k) = 100.*byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_csizmc= k
+      sname_jl(k) = 'csizmc'
+      lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE' 
+      units_jl(k) = 'micron'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_csizss= k
+      sname_jl(k) = 'csizss'
+      lname_jl(k) = 'LARGE-SCALE EFFECTIVE CLOUD PARTICLE SIZE'
+      units_jl(k) = 'micron'
+      scale_jl(k) = byim
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+
       if (k .gt. kajl) then
         write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k
         call stop_model( 'kajl too small', 255 )

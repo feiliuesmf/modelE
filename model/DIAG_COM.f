@@ -35,7 +35,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
       REAL*8, DIMENSION(JM,KAPJ) :: APJ
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER :: KAJL=50+KEP, KAJLX=KAJL+50
+      INTEGER, PARAMETER :: KAJL=54+KEP, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
       REAL*8, DIMENSION(JM,LM,KAJL) :: AJL
 
@@ -420,6 +420,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_dammc,jl_40,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac
      *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
      *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
+     *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
       character(len=30), dimension(kajlx) :: sname_jl

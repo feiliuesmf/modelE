@@ -23,7 +23,8 @@
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,
      &     jl_mchphas,jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,
      *     ij_ctpi,ij_taui,ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,
-     *     ij_sstabx,isccp_diags,ndiupt
+     *     ij_sstabx,isccp_diags,ndiupt,jl_cldmc,jl_cldss,jl_csizmc
+     *     ,jl_csizss
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM
 #ifdef TRACERS_WATER
@@ -362,6 +363,8 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
           AJL(J,L,JL_MCDRY)=AJL(J,L,JL_MCDRY)+
      &         (DQCOND(L)-DGDQM(L))*BYDSIG(L)
           AJL(J,L,JL_MCMFLX)=AJL(J,L,JL_MCMFLX)+MCFLX(L)
+          AJL(J,L,JL_CLDMC) =AJL(J,L,JL_CLDMC) +CLDMCL(L)
+          AJL(J,L,JL_CSIZMC)=AJL(J,L,JL_CSIZMC)+CSIZEL(L)*CLDMCL(L)
         END DO
         DO IT=1,NTYPE
           AJ(J,J_PRCPMC,IT)=AJ(J,J_PRCPMC,IT)+PRCPMC*FTYPE(IT,I,J)
@@ -671,6 +674,8 @@ C**** between kinds of rain in the ground hydrology.
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+SSHR(L)
         AJL(J,L,JL_MCLDHT)=AJL(J,L,JL_MCLDHT)+DCTEI(L)
         AJL(J,L,JL_RHE)=AJL(J,L,JL_RHE)+RH1(L)
+        AJL(J,L,JL_CLDSS) =AJL(J,L,JL_CLDSS) +CLDSSL(L)
+        AJL(J,L,JL_CSIZSS)=AJL(J,L,JL_CSIZSS)+CSIZEL(L)*CLDSSL(L)
 
         T(I,J,L)=TH(L)
         Q(I,J,L)=QL(L)
