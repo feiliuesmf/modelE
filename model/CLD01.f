@@ -5,7 +5,7 @@
 !@cont MSTCNV_loc,CONDSE_loc
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     !,by3,tf,bytf,rvap,bygrav
-      USE E001M12_COM, only : IM,LM,TAU,TAUI,BYDSIG
+      USE E001M12_COM, only : IM,LM,TAU,BYDSIG
       USE RANDOM
       IMPLICIT NONE
       SAVE
@@ -1159,8 +1159,6 @@ C**** COMPUTE RELATIVE HUMIDITY
       RH1(L)=QL(L)/QSATE
       IF(TL(L).LT.238.16) RH1(L)=QL(L)/(QSATE*RHW)
       END IF
-C**** THIS LINE MUST GO! (but will change results)
-      IF(TAU-TAUI.LE..001) RH(L)=QL(L)/QSATL(L)
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
       HCHANG=0.
       IF(LHX.EQ.LHS) THEN
