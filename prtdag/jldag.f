@@ -198,7 +198,7 @@ c****
       acc_name='AJL11'; call getacc(acc_name,ax)
       scale=IDACC(4)*BYIACN*SDAY/DTsrc
       call scale2d(ax,scale,byp,ones,jm,ls1-1)
-      scale=scale*byim/(psf-ptop)
+      scale=byim*BYIACN*SDAY/(DTsrc*(psf-ptop))
       call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='cdheat'; call wrtarr(var_name,ax)
 c****
@@ -206,7 +206,7 @@ c****
       acc_name='AJL12'; call getacc(acc_name,ax)
       scale=IDACC(4)*BYIACN*SDAY/DTsrc
       call scale2d(ax,scale,byp,ones,jm,ls1-1)
-      scale=scale*byim/(psf-ptop)
+      scale=byim*BYIACN*SDAY/(DTsrc*(psf-ptop))
       call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='dcheat'; call wrtarr(var_name,ax)
 c****
@@ -220,7 +220,7 @@ c****
       acc_name='AJL56'; call getacc(acc_name,ax)
       scale=IDACC(4)*BYIACN*SDAY/DTsrc
       call scale2d(ax,scale,byp,ones,jm,ls1-1)
-      scale=scale*byim/(psf-ptop)
+      scale=byim*BYIACN*SDAY/(DTsrc*(psf-ptop))
       call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='mcheat'; call wrtarr(var_name,ax)
 c****
@@ -228,7 +228,7 @@ c****
       acc_name='AJL57'; call getacc(acc_name,ax)
       scale=IDACC(4)*BYIACN*SDAY/DTsrc
       call scale2d(ax,scale,byp,ones,jm,ls1-1)
-      scale=scale*byim/(psf-ptop)
+      scale=byim*BYIACN*SDAY/(DTsrc*(psf-ptop))
       call scale2d(ax(1,ls1),scale,ones,ones,jm,lm-ls1+1)
       var_name='mcdry'; call wrtarr(var_name,ax)
 c****

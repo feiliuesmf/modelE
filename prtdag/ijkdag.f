@@ -11,8 +11,8 @@ C****
       real, dimension(:), allocatable :: dxyp,dxv,dyp
       real, dimension(:,:,:), allocatable :: arrn,arrb,arrb2,dpb
       character(len=20) :: var_name,acc_name,dim_name
-      integer :: i,j,l,im1
-
+      integer :: i,j,l,im1,ip1
+      real :: dpaccg
       call getarg(0,cmd_str)
       nargs = iargc()
       if(nargs.ne.2) then
@@ -151,7 +151,22 @@ c**** calculate polar vertical winds
          arrn(:,jm,l) = arrn(:,jm,l+1) -
      &        dxv(jm)*sum(arrb2(:,jm-1,l+1))/(float(im)*dxyp(jm))
       enddo
-      arrn = arrn*(-1.e5*idacc(12)/idacc(4))
+      arrn = arrn*(-1.e5/idacc(4))
+      do l=1,lm
+         dpaccg=idacc(4)*(ple_gcm(l)-ple_gcm(l+1))
+         do j=2,jm
+            i=im
+            do ip1=1,im
+               if(dpb(i,j,l).lt.dpaccg) then
+                  arrn(i  ,j-1,l) = missing
+                  arrn(i  ,j  ,l) = missing
+                  arrn(ip1,j-1,l) = missing
+                  arrn(ip1,j  ,l) = missing
+               endif
+               i=ip1
+            enddo
+         enddo
+      enddo
       var_name='omega'; call wrtarr(var_name,arrn)
 
       call close_acc

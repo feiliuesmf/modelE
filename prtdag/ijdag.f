@@ -217,12 +217,12 @@ C****
 
 ! RUN1 OVER EARTH units = 'mm/day'
       acc_name='RUNE'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='rune'; call wrtarr(var_name,acc)
 
 ! RUN1 OVER LAND ICE units = 'mm/day'
       acc_name='RUNLI'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='runli'; call wrtarr(var_name,acc)
 
 ! ACCUMULATED SURFACE WIND SPEED units = 'm/s'
@@ -322,7 +322,7 @@ C****
 
 ! UNDERGROUND RUNOFF units = 'mm/day'
       acc_name='ARUNU'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='arunu'; call wrtarr(var_name,acc)
 
 ! 18*(DEL(TG)/DEL(TS)-1) units = 'unknown'
@@ -362,22 +362,22 @@ C****
 
 ! EVAP*POCEAN units = 'mm/day'
       acc_name='EVAPO'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='evapo'; call wrtarr(var_name,acc)
 
 ! EVAP*POICE units = 'mm/day'
       acc_name='EVAPI'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='evapi'; call wrtarr(var_name,acc)
 
 ! EVAP OVER LAND ICE units = 'mm/day'
       acc_name='EVAPLI'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='evapli'; call wrtarr(var_name,acc)
 
 ! EVAP OVER EARTH units = 'mm/day'
       acc_name='EVAPE'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='evape'; call wrtarr(var_name,acc)
 
 ! F0DT*POCEAN, NET HEAT AT Z0 units = 'J/m^2'
@@ -407,7 +407,7 @@ C****
 
 ! SNOW FALL (H2O EQUIV) units = 'mm/day'
       acc_name='SNWF'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='snwf'; call wrtarr(var_name,acc)
 
 ! SURF AIR TEMP OVER LAND ICE units = 'degC'
@@ -452,7 +452,7 @@ C****
 
 ! POTENTIAL EVAPORATION units = 'mm/day'
       acc_name='PEVAP'; call getacc(acc_name,acc)
-      acc(:,:) = acc(:,:)/idacc(ia)
+      acc(:,:) = acc(:,:)/dtday
       var_name='pevap'; call wrtarr(var_name,acc)
 
 ! MAX TS OVER EARTH FOR CURRENT DAY units = 'K'
@@ -484,6 +484,25 @@ C****
       acc_name='SCNVFRQ'; call getacc(acc_name,acc)
       acc(:,:) = acc(:,:)/idacc(ia)
       var_name='scnvfrq'; call wrtarr(var_name,acc)
+
+! albedos
+      acc_name='SRNFP0'; call getacc(acc_name,acc)
+      acc_name='SRINCP0'; call getacc(acc_name,acc2)
+      where(acc2.gt.0.)
+         acc(:,:) = 1.-acc(:,:)/acc2(:,:)
+      elsewhere
+         acc(:,:) = missing
+      end where
+      var_name='palb'; call wrtarr(var_name,acc)
+
+      acc_name='SRNFG'; call getacc(acc_name,acc)
+      acc_name='SRINCG'; call getacc(acc_name,acc2)
+      where(acc2.gt.0.)
+         acc(:,:) = 1.-acc(:,:)/acc2(:,:)
+      elsewhere
+         acc(:,:) = missing
+      end where
+      var_name='galb'; call wrtarr(var_name,acc)
 
       call close_acc
       call close_out

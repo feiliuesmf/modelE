@@ -112,7 +112,8 @@ c  AJ69
       acc_name='PTYPE'; call getaj(acc_name,acc,accsum,jm,wtype,ntype)
       scale = 1. / idacc(ia)
       sptype = accsum*scale
-      fj = sptype/im
+      fj = sptype
+      fj(2:jm-1) = fj(2:jm-1)/im
       call wrtarr(var_name,fj)
 c grid areas
       var_name='area'
