@@ -35,7 +35,7 @@
    nproc=1  ; nptxt=''
    if echo $2 | grep '^[0-9][0-9]*$' > /dev/null ; then
    nproc=$2 ; nptxt="using up to $nproc processors" ; fi
-#   export MP_SET_NUMTHREADS=$nproc
+   export MP_SET_NUMTHREADS=$nproc
 
    cd "$CMRUNDIR/$RUNID"
    nohup nice -19 ./$RUNID $OPTS &
