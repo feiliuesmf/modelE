@@ -492,7 +492,7 @@ c Aerosol chemistry
       real*8 rk4,ek4,r4,d4
       real*8, DIMENSION(IM,JM,LM):: dms_dens,so2_dens,so4_dens
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,d44
+     *       ,d41,d42,d43,d44,d45,d46
 #endif
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
@@ -516,6 +516,8 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_H2O2_s)=0. ! H2O2 chem source
         tr3Dsource(:,:,l,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_HETCHEM
+        tr3Dsource(:,:,l,1,n_SO4_s1) =0. ! SO4 on seasalt1
+        tr3Dsource(:,:,l,1,n_SO4_s2) =0. ! SO4 on seasalt2
         tr3Dsource(:,:,l,1,n_SO4_d1) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d2) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
@@ -572,6 +574,8 @@ c      endif
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST
+c calculation of heterogeneous reaction rates: SO2 on seasalt
+      CALL SULFSEAS 
 #endif
       dtt=dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
@@ -715,11 +719,16 @@ c     *  PPRES,RK4,EK4,R4,D4,ohmc
        d42 = exp(-rxts2(i,j,l)*dtsrc)     
        d43 = exp(-rxts3(i,j,l)*dtsrc)     
        d44 = exp(-rxts4(i,j,l)*dtsrc)     
+       d45 = exp(-rxtss1(i,j,l)*dtsrc)     
+       d46 = exp(-rxtss2(i,j,l)*dtsrc)    
        tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
      .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+ 
+     .                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
+     .                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
  
 #else
        tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
@@ -755,6 +764,18 @@ c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
      *             tr_mm(n_so2)*(1.d0-d44)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_s1')
+c sulfate production from SO2 on seasalt1
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d45)*trm(i,j,l,n_so2)/dtsrc
+
+       case ('SO4_s2')
+c sulfate production from SO2 on seasalt2
+
+       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d46)*trm(i,j,l,n_so2)/dtsrc
 
 #endif
         case('SO4')
