@@ -14,57 +14,54 @@
 ##   - PROBLEM: $retc does not take STOP nn as the correct return code. Fixed
 ##   - changed files from numbers to names
 ##
-CMRUN="/u/cmrun"     ## these should be set outside (Makefile?)
-EXECDIR="/u/exec"    ## should these program be part of the distribution?
-                      ## ie. $EXECDIR/prt  chop  runpm
-SAVEDISK="/raid1"
+    ## these should be set outside (Makefile?)
+    ## should these program be part of the distribution?
+    ## ie. $EXECDIR/prt  chop  runpm
+## default settings
+   CMRUNDIR="/u/cmrun"
+   EXECDIR="/u/exec"
+   SAVEDISK="/raid1"
+   $GCMSEARCHPATH="/u/cmrun"
 
+## if ~/.modelErc is present get settings from there
    if [[ -f ~/.modelErc ]]; then
      echo "Using settings from ~/.modelErc"
      . ~/.modelErc
-     CMRUN=$CMRUNDIR
-     else
+   else
      echo "~/.modelErc is not present. Using default settings."
-     fi
-   echo CMRUN = $CMRUN
+   fi
+   echo CMRUNDIR = $CMRUNDIR
    echo GCMSEARCHPATH = $GCMSEARCHPATH
    echo SAVEDISK = $SAVEDISK
 
-   # df /raid1 /raid2 /raid3 /raid4 > /dev/null #do we need this?
    job=$( basename $0 )
-   if [[ $# -eq 0 ]]
-   then echo "Usage: $job runID disk Noprt|Prt       (09/19/97)" ;
-        echo "       defaults: disk=/raid1_if_avail_else/gcm2 Noprt" ;
-        exit; fi
-   if ps -ef | grep $1'[.]exe' > /dev/null
-   then echo "$1 is already running" ;  exit ; fi
-## the following lines commented out as non-portable
-   #if rsh Ra ps -ef | grep $1'[.]exe' > /dev/null
-   #then echo "$1 is already running on Ra" ;  exit ; fi
-   #if rsh Poncho ps -ef | grep $1'[.]exe' > /dev/null
-   #then echo "$1 is already running on Poncho" ;  exit ; fi
+   if [[ $# -eq 0 ]]; then
+     echo "Usage: $job runID"; exit; 
+   fi
+   RUNID=$1
+   RFILE=$1.R
+   LOCKFILE=$SAVEDISK/$RUNID/lock
+  BLANK=' '
+  p=`pwd`
+  Xdisk=$SAVEDISK
+  CMRUN=$CMRUNDIR
+
+## check if this run is already running
+   if [[ -f $LOCKFILE ]]; then
+     echo "            **********************                "
+     echo "$1 seems to be already running in $SAVEDISK/$RUNID"
+     echo "If you think it is an error, then most probably this"
+     echo "task was interrupted in an unusual way. Please check."
+     echo "Then remove the lock file:"
+     echo "$LOCKFILE"
+     echo "and restart the setup."
+     echo "            **********************                "
+     exit 1
+   fi
 
 ## Use arg1 to create the run-directory
-   p=`pwd`  # use current directory to avoid conflicts with main code
-            # gas 06/00 originally  p= $CMRUN ;
-   cd $p ; RUNID=$1 ;  RFILE=$1.R ; BLANK=' ';
    if [[ ! -s $RFILE ]];
    then  echo File does not exist: $RFILE;  exit 1;  fi
-
-## Use arg2 to find the disk to save rsf,acc etc files as /HOSTS/.....
-   wkst=$(whereami) ;  # Name of machine in /HOSTS
-   pfxH=/HOSTS/$wkst
-   if [[ $wkst = '' ]] ; then pfxH='' ; fi ; # if whereami doesn't work
-   Xdisk=$SAVEDISK ; if [[ $# -gt 1 ]] ; then Xdisk=$2 ; fi
-   if [[ $Xdisk != /* ]]; then Xdisk=/$Xdisk ; fi  ; # add / if needed
-   if [[ ! -w $Xdisk ]] ; then echo "$Xdisk not available" ; exit ; fi
-   if [[ -L $pfxH$Xdisk ]] ; then Xdisk=$pfxH$Xdisk ; fi ; # add /HOSTS/
-   if [[ ! -d $Xdisk ]]                                  ; # if possible
-   then echo "$Xdisk not found - please specify a save_disk"
-        echo "Usage: $job $1 save_disk(full path)" ; exit ; fi
-
-## arg3 is the Hard Copy Option
-   PRT=${3:-'No_HardCopy'}
 
    echo "setting up run $1  PrintOption=$PRT ($job 9/19/97)"
    echo "output files are saved in $Xdisk/$1"
@@ -72,8 +69,6 @@ SAVEDISK="/raid1"
 ## Create the proper environment
    #  export XLFRTEOPTS=namelist=old:nlwidth=133
    umask 002
-## Make RFILE the standard input
-   exec < $RFILE
 
 ## Create the directory (symbolic link) ./RUNID if necessary
    if [[ ! -d $Xdisk/$RUNID ]]; then mkdir $Xdisk/$RUNID; fi
@@ -98,10 +93,14 @@ SAVEDISK="/raid1"
 
    echo "0Run $RUNID"  > $RUNID/$RUNID.PRT
 
-## Move executable from current directory to $p/$RUNID
-   if [[ ! -f "$RUNID"_bin/$RUNID.exe ]] ; then echo $RUNID.exe not found; exit 1; fi
+## Move executable from current directory to $RUNID
+   if [[ ! -f "$RUNID"_bin/$RUNID.exe ]] ; then 
+     echo $RUNID.exe not found; exit 1; fi
 
-   mv -f "$RUNID"_bin/$RUNID.exe $p/$RUNID/$RUNID.exe
+   mv -f "$RUNID"_bin/$RUNID.exe $RUNID/$RUNID.exe
+
+## Make RFILE the standard input
+   exec < $RFILE
 
 ## Read RFILE until "Data input files:" is encountered
    read VAR1 VAR2 VAR3
@@ -133,8 +132,8 @@ SAVEDISK="/raid1"
       do if [[ $i = '!'* ]] ; then break ; fi
          n=${i%%'='*}
          t=${i##*'='}
-         DIRS="$p/$RUNID $p Ra:/raid1 Ipcc2:/gcm1 Ra:/raid4 Ra:$CMRUN"
          if [[ -a $GCMSEARCHPATH'/'$t ]] ; then pt=$GCMSEARCHPATH'/'$t
+### can I remove all the rest of these dirs ?
          elif [[ -a $t ]] ; then pt=$t
          elif [[ -a $p'/'$t ]] ; then pt=$p'/'$t
          elif [[ -a '/HOSTS/Ra'$CMRUN/$t ]]
@@ -163,6 +162,8 @@ SAVEDISK="/raid1"
    done
    echo 'chmod ugo+rw * 2> /dev/null' >> ${RUNID}uln
    echo 'export PAGESIZE_DATA=64 PAGESIZE_STACK=64' >> ${RUNID}ln
+   echo 'touch lock' >> ${RUNID}ln
+   echo 'rm -f lock' >> ${RUNID}uln
 
 ## Copy Label and Namelist to RUNID.I.
    if [[ -a I ]] then rm I ; fi
@@ -209,6 +210,8 @@ SAVEDISK="/raid1"
    awk '{ print length($0) }' *.PRT | sort -n  | tail -1 | read width
    if [[ $width -gt 140 ]] ; then $EXECDIR/chop ${RUNID}.PRT > /dev/null
       mv ${RUNID}.PRT.chop ${RUNID}.PRT ; fi
+
+### Can we leave only either "$RUNID" or "E" ?
 
 ## Prepare for restart
 ## create executable script file E
