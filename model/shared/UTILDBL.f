@@ -171,7 +171,7 @@ C**** correct argument in DQSATDT is the actual QL at TM i.e. QL=QL(TM)
 
 C**** set default options
       form = "FORMATTED"
-      status = "REPLACE"
+      status = "UNKNOWN"
 C**** parse options
       if( present(qbin) .and. qbin ) form = "UNFORMATTED"
       if( present(qold) .and. qold ) status = "OLD"
