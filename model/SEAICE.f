@@ -193,8 +193,9 @@ c         ACE1I = ACE1I + FREZI + CMPRS
 c       ACE1I = ACE1I - MELTI + FREZI
 #ifdef TRACERS_WATER
         TRSNOW(:) = TRPRCP(:)*SNWF/PRCP
+        TRICE(:)  = TRSIL(:,1) + TRPRCP(:)*FREZI/PRCP
         TRMELTI(:)= (MELTI-SMELTI)*TRICE(:)/(XSI(2)*MSI1-SICE)
-        TRICE(:)  = TRSIL(:,1) + TRPRCP(:)*FREZI/PRCP - TRMELTI(:)
+        TRICE(:)  = TRICE(:) - TRMELTI(:)
         TRRMF(:)  = TRPRCP(:)*(1.-(SNWF+FREZI)/PRCP)
         TRCMPRS(:) = 0.
         TRMELTS(:) = 0.
