@@ -179,10 +179,10 @@ C**** parse options
       call findunit( iunit )
 
 #ifdef CONVERT_BIGENDIAN
-      open( iunit, FILE=filename, FORM=form, STATUS=status, RECL=1024,
+      open( iunit, FILE=filename, FORM=form, STATUS=status,
      *     CONVERT='BIG_ENDIAN', ERR=10 )
 #else
-      open( iunit, FILE=filename, FORM=form, STATUS=status, RECL=1024,
+      open( iunit, FILE=filename, FORM=form, STATUS=status,
      *     ERR=10 )
 #endif
 

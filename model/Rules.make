@@ -112,7 +112,8 @@ FMAKEDEP = perl $(SCRIPTS_DIR)/sfmakedepend
 # ibm compiler doesn't understand "-D" . Have to use "-WF,-D..."
 CPPFLAGS =
 FFLAGS = -O2 -qfixed -qsuffix=cpp=f -qmaxmem=16384 -WF,-DMACHINE_IBM
-LFLAGS = -O2
+# one may need to add -bmaxstack:0x1000000 if rusns out of stack
+LFLAGS = -O2 -bmaxdata:0x10000000 
 endif
 
 # DEC Alpha - specific options here

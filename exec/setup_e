@@ -149,7 +149,14 @@
       fi
    done
    echo 'chmod ugo+rw * 2> /dev/null' >> ${RUNID}uln
-   echo 'export PAGESIZE_DATA=64 PAGESIZE_STACK=64' >> ${RUNID}ln
+
+## Architecture-dependent settings
+   case `uname` in
+     IRIX64 )
+            echo 'export PAGESIZE_DATA=64 PAGESIZE_STACK=64' >> ${RUNID}ln ;;
+     AIX )
+            echo 'export NAMELIST=OLD' >> ${RUNID}ln ;;
+   esac
 
 ## Copy Label and Namelist to RUNID.I.
    if [[ -a I ]] then rm I ; fi
@@ -164,15 +171,7 @@
    read LINE
    echo "$LINE" >> I
 ## remaining lines need a leading blank
-   read LINE
-   until [[ $? -ne 0 ]]
-   do for i in $LINE    ## strip out comments
-      do if [[ $i = '!'* ]] ; then break ; fi
-       echo -n " $i" >> I
-      done
-      echo >> I
-      read LINE
-   done
+   while read LINE; do echo " ${LINE%%!*}" >> I ; done
 
 ## Run the 1st hour then clean up
    echo " starting the execution "
