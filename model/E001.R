@@ -81,11 +81,9 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 KOCEAN=0
 xCDpbl=1.       ! tune surface mom.drag to get reas. SLP (990mb at 65S)
-U00ice=.60      ! then tune this to get ann.alb near 30% (range: .4-.6)
-HRMAX=300.      ! then tune this to get rad.balance (net heat zo=0 over ocn)
-! HRMAX=800.      ! seems to work for atm.composition of 1979
-! HRMAX=500.      ! if atm.composition of 1880 is used
-! HRMAX=700.      ! if atm.composition of 1951 is used
+U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
+U00wtrX=.80     ! U00wtrX up => nethtz0 up   (alb down)           global mean)
+HRMAX=300.      ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%
 
 RWCLDOX=1.5  !  wtr cld particle size *3/2 over ocean
 RICLDX=.3333 !  ice cld particle size * 1(at 0mb)->1/3(at 1000mb)
@@ -104,13 +102,13 @@ SUBDD='SLP'     ! save SLP at sub-daily frequency
 NSUBDD=12       ! saving sub-daily diags 12hrly
 Kvflxo=1        ! saving VFLXO (daily)
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1   ! use =0 to speed up model
-nda5d=1         ! use =7 to speed up model
-nda5s=1         ! use =7 to speed up model
+isccp_diags=1   ! use =0 to save cpu time
+nda5d=1         ! use =7 to save cpu time
+nda5s=1         ! use =7 to save cpu time
 ! if the params below change, you may have to adjust HRMAX
-s0_yr=1979      ! INcrease of HRMAX DEcreases net heat at z0
-ghg_yr=1979     !             (and INcreases the plan. albedo)
-ghg_day=182     ! DEcrease of U00ice has the same effect
+s0_yr=1979
+ghg_yr=1979
+ghg_day=182
 s0_day=182
 volc_yr=1979
 volc_day=182
