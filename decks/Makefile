@@ -24,7 +24,7 @@ endif
 
 # SETUP = $(SCRIPTS_DIR)/setup_e
 
-RUNSRC = E001
+RUNSRC = E1M20
 
 ALIAS_LIST = CMPE001 qc
 
