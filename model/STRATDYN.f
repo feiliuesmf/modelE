@@ -1201,7 +1201,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE CLOUDS_COM, only :: airx,lmc
+      USE CLOUDS_COM, only : airx,lmc
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
