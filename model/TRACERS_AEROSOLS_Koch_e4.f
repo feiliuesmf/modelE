@@ -491,11 +491,11 @@ c Aerosol chemistry
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8, DIMENSION(IM,JM,LM):: dms_dens,so2_dens,so4_dens
+      real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
+     * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
      *       ,d41,d42,d43,d44,d45,d46
 #endif
-      real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
-     * r5,d5,dmssink
       real*8 bciage,ociage
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itopen,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl
@@ -715,23 +715,22 @@ c     IF (I.EQ.30.AND.J.EQ.30.and.L.EQ.2) WRITE(6,*)'msulf',TE,DMM,
 c     *  PPRES,RK4,EK4,R4,D4,ohmc
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
-       d41 = exp(-rxts1(i,j,l)*dtsrc)     
-       d42 = exp(-rxts2(i,j,l)*dtsrc)     
-       d43 = exp(-rxts3(i,j,l)*dtsrc)     
-       d44 = exp(-rxts4(i,j,l)*dtsrc)     
-       d45 = exp(-rxtss1(i,j,l)*dtsrc)     
-       d46 = exp(-rxtss2(i,j,l)*dtsrc)    
-       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
- 
-     .                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
+        d41 = exp(-rxts1(i,j,l)*dtsrc)     
+        d42 = exp(-rxts2(i,j,l)*dtsrc)     
+        d43 = exp(-rxts3(i,j,l)*dtsrc)     
+        d44 = exp(-rxts4(i,j,l)*dtsrc)     
+        d45 = exp(-rxtss1(i,j,l)*dtsrc)     
+        d46 = exp(-rxtss2(i,j,l)*dtsrc)    
+       tr3Dsource(i,j,l,5,n) = (-trm(i,j,l,n)*(1.d0-d4)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d41)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d44)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d45)/dtsrc)
+     *                       + ( -trm(i,j,l,n)*(1.d0-d46)/dtsrc)
  
 #else
-       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(i,j,l,5,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc
 #endif         
           
 c diagnostics to save oxidant fields
