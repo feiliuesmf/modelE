@@ -252,12 +252,12 @@ c    3      ls1,im,jm,lm,loc)
 c
 c     Grids:
 c
-c                j+1 - - - - - - - - - - - - -
-c                    -------------------------  j+1
-C     (main)     j   - - - - - - - - - - - - -
-c                    -------------------------  j     (edge)
-c                j-1 - - - - - - - - - - - - -
-c                    -------------------------  j-1
+c                l+1 - - - - - - - - - - - - -
+c                    -------------------------  l+1
+C     (main)     l   - - - - - - - - - - - - -
+c                    -------------------------  l     (edge)
+c                l-1 - - - - - - - - - - - - -
+c                    -------------------------  l-1
 c                2   - - - - - - - - - - - - -
 c                    -------------------------    2
 c                1   - - - - - - - - - - - - -
@@ -317,8 +317,10 @@ c
      3              (sig(l+1)-sig(l))
             dz(i,j,l)    =-(rgas/grav)*temp1e*log(pl1/pl)
             dzedge(i,j,l)=-(rgas/grav)*temp0 *log(pl1e/ple)
-            rhoe(i,j,l+1)=100.d0*pl1e/(temp1e*rgas)
-            rho(i,j,l)=100.d0*pl/(temp0*rgas)
+c           rhoe(i,j,l+1)=100.d0*pl1e/(temp1e*rgas)
+c           rho(i,j,l)=100.d0*pl/(temp0*rgas)
+            rhoe(i,j,l+1)=100.d0*(pl-pl1)/(grav*dz(i,j,l))
+            rho(i,j,l)=100.d0*(ple-pl1e)/(grav*dzedge(i,j,l))
 
             if(l.eq.1) then
               rhoe(i,j,1)=100.d0*ple/(tsavg(i,j)*
@@ -545,6 +547,7 @@ c
       end do
 c
 c     Lower boundary conditions:
+c
 c     d/dt U = -d/dz uw where
 c     d/dt U = (u(1)-u0(1))/dtime
 c     d/dz uw = (uw(2)-uw(1))/dze(1), dze(1)=ze(2)-ze(1)
@@ -564,10 +567,17 @@ c
 c     rhs(1)=u0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*uflx
 c     rhs1(1)=v0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*vflx
 c
-c     Upper boundary conditions: U,V not changed by turbulence
+c     Upper boundary conditions:
 c
-      sub(n)=0.d0
-      dia(n)=1.d0
+c     d/dt U = -d/dz uw where
+c     d/dt U = (u(n)-u0(n))/dtime
+c     d/dz uw = (uw(n+1)-uw(n))/dze(n), dze(n)=ze(n+1)-ze(n)
+c     uw(n)=-km(n)*(u(n)-u(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
+c     uw(n+1)=0 
+c
+      alpha=dtime*km(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      sub(n)=-alpha
+      dia(n)=1.d0+alpha
       rhs(n)=u0(n)
       rhs1(n)=v0(n)
 c
@@ -632,10 +642,17 @@ c
       rhs(1)=tq0(1)
 c     rhs(1)=tq0(1)-dtime/(dzedge(1)*rho(1))*rhoe(1)*sflx
 c
-c     Upper boundary conditions: T,Q not changed by turbulence
+c     Upper boundary conditions:
 c
-      sub(n)=0.d0
-      dia(n)=1.d0
+c     d/dt T = -d/dz wt where
+c     d/dt T = (T(n)-T0(n))/dtime
+c     d/dz wt = (wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
+c     wt(n)=-kh(n)*(T(n)-T(n-1))/dz(n-1), dz(n-1)=z(n)-z(n-1)
+c     wt(n+1)=0 
+c
+      alpha=dtime*khq(n)/(dzedge(n)*dz(n-1)*rho(n))*rhoe(n)
+      sub(n)=-alpha
+      dia(n)=1.d0+alpha
       rhs(n)=tq0(n)
 c
       call tridiag(sub,dia,sup,rhs,tq,n)
