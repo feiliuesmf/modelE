@@ -53,20 +53,20 @@ $(BIN_DIR)/RMS: RMS.f $(GCMLIB)
 	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
 
 $(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_rsf.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_strat_rsf: conv_strat_rsf.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_strat_rsf.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
 $(BIN_DIR)/rsf2gic: rsf2gic.o $(GCMLIB)
-	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^
+	$(F90) $(FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
 conv_gic.o: $(GCMLIB)
 
