@@ -14,11 +14,11 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
       INTEGER :: IUNIT
       INTEGER :: K,L
       LOGICAL :: EX
-      INTEGER :: IT
+      INTEGER :: IT,ioerr
       REAL :: DUMMY4
       CHARACTER(len=8) :: MODULE_HEADER
       integer :: k01,k02,k03,k04,k05,k06,k07,k08,k09,k10,
-     &           k11,k12,k13,k14,k15,k16,k17,k18,k19   
+     &           k11,k12,k13,k14,k15,k16,k17,k18,k19
       real ::
      &     aj_odd,areg_odd,apj_odd,ajl_odd,asjl_odd,aij_odd,
      &     ail_odd,energy_odd,consrv_odd,speca_odd,
@@ -39,9 +39,15 @@ c             /usr/local/netcdf-3.4/lib64/libnetcdf.a -o acc2nc
       call getarg(2,outfile)
 C****
 C**** READ THE SINGLE-PRECISION ACC FILE
-C**** the ugly code is necessary bc no ioread_single option,
-C**** and the acc arrays no longer stored adjacent in a common block
+C****
 
+      iunit=30
+      open(iunit,file=accfile,form='unformatted')
+      call io_rsf(iunit,it,ioread_single,ioerr)
+      if (ioerr.eq.-1) go to 840
+      close(iunit)
+
+C**** Convert ACC single to double precision
 
       k01 = size(aj)
       k02 = size(areg)
@@ -62,34 +68,6 @@ C**** and the acc arrays no longer stored adjacent in a common block
       k18 = size(ajlsp)
       k19 = size(tsfrez)
 
-      iunit=30
-      open(iunit,file=accfile,form='unformatted')
-      read(iunit,err=840,end=850) it,jc,
-     &     xlabel,namd6,amon,amon0,rc
-      read(iunit) ! temporary blank record
-      read(iunit,err=840,end=850) module_header,keynr,
-     &     (tsfrez(k,1,1) ,k=1,k19/2) ,(tsfrez_odd ,k=1,mod(k19,2)),
-     &     (aj(k,1,1)     ,k=1,k01/2) ,(aj_odd     ,k=1,mod(k01,2)),
-     &     (areg(k,1)     ,k=1,k02/2) ,(areg_odd   ,k=1,mod(k02,2)),
-     &     (apj(k,1)      ,k=1,k03/2) ,(apj_odd    ,k=1,mod(k03,2)),
-     &     (ajl(k,1,1)    ,k=1,k04/2) ,(ajl_odd    ,k=1,mod(k04,2)),
-     &     (asjl(k,1,1)   ,k=1,k05/2) ,(asjl_odd   ,k=1,mod(k05,2)),
-     &     (aij(k,1,1)    ,k=1,k06/2) ,(aij_odd    ,k=1,mod(k06,2)),
-     &     (ail(k,1,1)    ,k=1,k07/2) ,(ail_odd    ,k=1,mod(k07,2)),
-     &     (energy(k,1)   ,k=1,k09/2) ,(energy_odd ,k=1,mod(k09,2)),
-     &     (consrv(k,1)   ,k=1,k10/2) ,(consrv_odd ,k=1,mod(k10,2)),
-     &     (speca(k,1,1)  ,k=1,k11/2) ,(speca_odd  ,k=1,mod(k11,2)),
-     &     (atpe(k,1)     ,k=1,k12/2) ,(atpe_odd   ,k=1,mod(k12,2)),
-     &     (adaily(k,1,1) ,k=1,k13/2) ,(adaily_odd ,k=1,mod(k13,2)),
-     &     (wave(k,1,1,1) ,k=1,k14/2) ,(wave_odd   ,k=1,mod(k14,2)),
-     &     (ajk(k,1,1)    ,k=1,k15/2) ,(ajk_odd    ,k=1,mod(k15,2)),
-     &     (aijk(k,1,1,1) ,k=1,k16/2) ,(aijk_odd   ,k=1,mod(k16,2)),
-     &     (aijl(k,1,1,1) ,k=1,k17/2) ,(aijl_odd   ,k=1,mod(k17,2)),
-     &     (ajlsp(k,1,1,1),k=1,k18/2) ,(ajlsp_odd  ,k=1,mod(k18,2)),
-     &     it
-      close(iunit)
-
-C**** Convert ACC single to double precision
       call CNV428(aj      ,aj_odd      ,k01)
       call CNV428(areg    ,areg_odd    ,k02)
       call CNV428(apj     ,apj_odd     ,k03)
@@ -118,13 +96,13 @@ C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP OR PARAMETER CONFLICTS
 C****
   840 WRITE(6,*) 'READ ERROR ON RESTART FILE TAPE'
-      IF(IM.NE.JC(1).OR.JM.NE.JC(2).OR.LM.NE.JC(3)) then
-         WRITE(6,*) 'IM,JM,LM mismatch: ',IM,JM,LM,' vs ',JC(1:3)
-      ENDIF
-      IF(KACC.NE.JC(5)) WRITE(6,*) 'KACC mismatch: ',KACC,' vs ',JC(5)
+c     IF(IM.NE.JC(1).OR.JM.NE.JC(2).OR.LM.NE.JC(3)) then
+c        WRITE(6,*) 'IM,JM,LM mismatch: ',IM,JM,LM,' vs ',JC(1:3)
+c     ENDIF
+c     IF(KACC.NE.JC(5)) WRITE(6,*) 'KACC mismatch: ',KACC,' vs ',JC(5)
       STOP 3
-  850 WRITE(6,'('' END OF TAPE REACHED...LAST TAU ON TAPE '',I6)')IT
-      STOP 3
+c 850 WRITE(6,'('' END OF TAPE REACHED...LAST TAU ON TAPE '',I6)')IT
+c     STOP 3
 
       end program acc2nc
 

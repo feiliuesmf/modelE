@@ -103,7 +103,7 @@ c    *     "DIR/fort.[12] are opened"
   860 continue
       write(6,*) "Error reading file ", FILEIN
       STOP
- 900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A50)
+ 900  FORMAT (I10,1X,I2,'/',I2,'/',I4,' hr',I2,2X,A)
  906  FORMAT (' TIME',F7.2,' (MINUTES)',3(X,A12,F5.1))
  907  FORMAT (10(22X,3(X,A12,F5.1) / ))
       end

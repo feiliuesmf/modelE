@@ -1,12 +1,12 @@
       program convert_rsf_files
-C**** convert rsf files from model II' (B399) format to modelE format 
+C**** convert rsf files from model II' (B399) format to modelE format
 C**** compile with: gmake conv_rsf.o
 C**** f90 -o conv_rsf conv_rsf.o *.o -O2 -64 -mips4 -static \
 C****                      -OPT:reorg_comm=off -w2 -listing
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
       USE CONSTANT, only : lhm,shi
-      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,jc,rc,clabel
+      USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,xlabel
      *     ,iowrite_mon,focean,airx,lmc
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
@@ -23,14 +23,14 @@ C**** must be compiled after the model
       USE LANDICE_COM, only : tlandi,snowli
       USE LAKES_COM, only : flake
       IMPLICIT NONE
-      CHARACTER infile*60, outfile*60
-      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO
-      REAL*8 TAUX,X
+      CHARACTER infile*60, outfile*60               ,clabel*156
+      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO    ,jc(100)
+      REAL*8 TAUX,X                                 ,rc(169)
       REAL*8 MSI1
       INTEGER ItimeX
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5
-      
+
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
         PRINT*,"conv_rsf filename output_file"
@@ -70,13 +70,14 @@ C**** must be compiled after the model
      *    (((LMC(l,i,j),i=1,IM),J=1,JM),L=1,2)
       CLOSE (iu_AIC)
 
+      XLABEL=CLABEL(1:132)
       ItimeX=NINT(TAUX)
-      print*,ItimeX
+      print*,ItimeX,XLABEL
 
 C**** read in FLAKE/FOCEAN data
       iu_TOPO=10
       OPEN(iu_TOPO,FILE="/u/cmrun/Z72X46N.cor4",FORM="UNFORMATTED"
-     *     ,STATUS="OLD") 
+     *     ,STATUS="OLD")
       CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
       CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
       close (iu_TOPO)
@@ -110,7 +111,7 @@ C**** and initialize sea ice salinity to 3.2 ppt (0 in snow and lake ice).
             IF (FOCEAN(I,J).gt.0) THEN
               HSI(1:2,I,J) = (SHI*TFO-LHM)*XSI(1:2)*ACE1I
               HSI(3:4,I,J) = (SHI*TFO-LHM)*XSI(3:4)*AC2OIM
-              SSI(1:2,I,J)=SSI0 * ACE1I  * XSI(1:2) 
+              SSI(1:2,I,J)=SSI0 * ACE1I  * XSI(1:2)
               SSI(3:4,I,J)=SSI0 * AC2OIM * XSI(3:4)
             ELSE
               HSI(1:2,I,J) = -LHM*XSI(1:2)*ACE1I
@@ -148,4 +149,4 @@ C**** initialize TSFREZ to defaults
  800  print*,"Error reading in file"
  810  print*,"Error reading in file"
       stop
-      end 
+      end
