@@ -175,7 +175,7 @@ nda5s=1         ! use =7 to save cpu time
 
 itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,
 to_volume_MixRat=1,1,1,1,1,1,1,1,1   ! for tracer printout
-&&&END_PARAMETERS
+&&END_PARAMETERS
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
