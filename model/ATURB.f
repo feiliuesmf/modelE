@@ -278,7 +278,7 @@ cc        call diff_mom(tmomij)
           do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wq_nl(l+1)-rhoe(l)*wq_nl(l))
      &              *bydzerho(l)
-C****         check on physicality of non-local fluxes....
+C**** check on physicality of non-local fluxes....
               if ( p4(l)*dtime+q0(l).lt.0 ) then
                 p4(l)=-q(l)/dtime
                 wq_nl(l+1)=(q0(l)/(dtime*bydzerho(l))+rhoe(l)
@@ -286,7 +286,14 @@ C****         check on physicality of non-local fluxes....
               end if
           end do
           flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
+C**** fix first layer for rare tracer problems
+C**** Does this ever happen for q? (put this in just in case)
+            if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=-q0(1)/(dtime*bydzerho(1))
+              wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
+            end if
           flux_top=0.
+
           call de_solver_main(q,q0,kh,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.true.)
           do l=1,lm
@@ -312,7 +319,13 @@ C**** check on physicality of non-local fluxes....
               end if
             end do
             flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
+C**** fix first layer for rare tracer problems
+            if ( tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=-tr0ij(1,n)/(dtime*bydzerho(1))
+              wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
+            end if
             flux_top=0.
+
             call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,t_qlimit(n))
 cc          call diff_mom(trmomij)
