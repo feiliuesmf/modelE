@@ -6,11 +6,13 @@ MODEL_DIR = $(MODEL_E_ROOT)/model
 AUX_DIR = $(MODEL_E_ROOT)/aux
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
-BIN_DIR = $(DECKS_DIR)/$(RUN).bin
+BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 SETUP = $(SCRIPTS_DIR)/setup_e
 
 RUNSRC = E001
+
+ALIAS_LIST = CMPE001 qc
 
 help:
 	$(MAKE) -C $(MODEL_DIR) help
@@ -44,4 +46,10 @@ newstart:
 	echo 'You should specify run name on a command line (i.e. RUN=...)'; \
 	exit 1; fi
 	rm -i /u/cmrun/$(RUN)/*
+
+alias: aux
+	for i in $(ALIAS_LIST); do ln -sf $(BIN_DIR)/$$i .; done
+
+unalias:
+	for i in $(ALIAS_LIST); do rm -f $$i; done
 

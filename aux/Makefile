@@ -15,7 +15,7 @@ RUN     =
 RUNDECK = $(DECKS_DIR)/$(RUN).R
 
 OBJ_DIR = .
-BIN_DIR = $(DECKS_DIR)/$(RUN).bin
+BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 GCMLIB = $(BIN_DIR)/$(RUN).a
 

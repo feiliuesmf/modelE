@@ -68,7 +68,7 @@ RUNDECKSRC = $(MODEL_DIR)/$(RUNSRC).R
 RUNDECK = $(DECKS_DIR)/$(RUN).R
 
 OBJ_DIR = .
-BIN_DIR = $(DECKS_DIR)/$(RUN).bin
+BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
 DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
