@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  TRACERS_O18 water isotope specific routines and functions
 !@auth Gavin Schmidt
 
@@ -142,6 +144,7 @@ C****
       RETURN
       END FUNCTION FRACLK
 
+#ifdef TRACERS_SPECIAL_O18
       SUBROUTINE ISOEQUIL(N,TEMP,QMV,QML,TRMV,TRML)
 !@sum ISOEQUIL equilibrates isotopes in vapour and liquid/solid reservoirs
 !@auth Gavin Schmidt/Georg Hoffmann
@@ -155,7 +158,6 @@ C****
 !@var TRMV,TRML vapour and liquid tracer mass (kg or kg/m^2)
       REAL*8, INTENT(INOUT) :: TRMV,TRML
       REAL*8 TDEGC,ZALPH,ZDELEQU,ZXFAC,FRACVL,FRACVS
-      INTEGER N
 
       SELECT CASE(tr_wd_TYPE(N))
         CASE(nWATER)
@@ -176,3 +178,4 @@ C****
       RETURN
 C****
       END SUBROUTINE ISOEQUIL
+#endif
