@@ -883,6 +883,7 @@ c Check the count
          do kk = 1,k
            write (iu_Ijk,'(i3,1x,a)') kk,lname_jk(kk)
          end do
+         call closeunit(iu_Ijk)
       else if(kdiag(2).gt.0) then
          Qk=.false.
    30    read (iu_Ijk,'(a)',end=40) line
@@ -893,8 +894,8 @@ c Check the count
          do kk=1,KAJKx
            if(.not.Qk(kk)) sname_jk(kk)='skip'
          end do
+         call closeunit(iu_Ijk)
        end if
-       call closeunit(iu_Ijk)
 
       RETURN
       END SUBROUTINE JKJL_TITLEX
