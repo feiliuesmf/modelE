@@ -905,14 +905,31 @@ C**** set dimensions
 !@var UNITS units of field
       CHARACTER, INTENT(IN) :: UNITS_IN*50
 !@var XIJK lat/lon/height output field
-      REAL*8, DIMENSION(IM,JM-1,LM), INTENT(IN) :: XIJK
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: XIJK
 !@var XJK lat sum/mean of output field
-      REAL*8, DIMENSION(JM-1,LM), INTENT(IN) :: XJK
+      REAL*8, DIMENSION(JM,LM), INTENT(INOUT) :: XJK
 !@var XK global sum/mean of output field
       REAL*8, DIMENSION(LM), INTENT(IN) :: XK
 
       integer :: nvars, status
       character(len=30) :: var_name,dim_name
+
+      integer :: j,l,jpack,lpack
+
+c pack first-j-empty :,jm,lm array to memory-contiguous :,jm-1,lm array
+      lpack = 1
+      jpack = 0
+      do l=1,lm
+      do j=2,jm
+         jpack = jpack + 1
+         if(jpack.gt.jm) then
+            jpack = 1
+            lpack = lpack + 1
+         endif
+         xijk(:,jpack,lpack) = xijk(:,j,l)
+         xjk(jpack,lpack) = xjk(j,l)
+      enddo
+      enddo
 
 ! (re)set shape of output array
       ndims_out = 3
@@ -929,6 +946,22 @@ C**** set dimensions
       units=units_in
 
       call wrtarr(var_name,xijk)
+
+c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
+      lpack = 1 + ((jm-1)*lm)/jm
+      jpack = (jm-1)*lm - (lpack-1)*jm
+      do l=lm,1,-1
+      do j=2,jm
+         xijk(:,j,l) = xijk(:,jpack,lpack)
+         xjk(j,l) = xjk(jpack,lpack)
+         jpack = jpack - 1
+         if(jpack.lt.1) then
+            jpack = jm
+            lpack = lpack - 1
+         endif
+      enddo
+      enddo
+
       return
       end
 
