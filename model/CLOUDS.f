@@ -1945,8 +1945,6 @@ C**** mix cloud liquid water tracers as well
          UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
          VM(K,L+1)=VM(K,L+1)+(VMN2(K)-VMO2(K))*RA(K)
       ENDDO
-         QNEW=QL(L)
-         QNEWU=QL(L+1)
 C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
       QL(L+1)=QL(L+1)+WMX(L+1)
       TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/PLK(L+1)
@@ -1963,6 +1961,8 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
       CLDSSL(L)=1.-CAREA(L)
       TNEW=TL(L)
       TNEWU=TL(L+1)
+         QNEW=QL(L)
+         QNEWU=QL(L+1)
          HCNDSS=HCNDSS+(TNEW-TOLD)*AIRM(L)+(TNEWU-TOLDU)*AIRM(L+1)
          AJ11(L)=AJ11(L)+(TNEW-TOLD)*AIRM(L)
          AJ11(L+1)=AJ11(L+1)+(TNEWU-TOLDU)*AIRM(L+1)

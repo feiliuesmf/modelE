@@ -1074,7 +1074,7 @@ c
       name_ij(k) = 'RH1'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct  
+      ir_ij(k) = ir_pct
 c
       k=k+1
       IJ_RH300 = k
@@ -1836,14 +1836,14 @@ c
       lname_ij(k) = 'LAST ICE-FREE DAY (SH-58,NH-242) x LKICE'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKONDAY'
-      ia_ij(k) = ia_inst 
+      ia_ij(k) = ia_inst
 c
       k=k+1 !
       IJ_LKOFF = k
       lname_ij(k) = 'LAST ICED-UP DAY (SH-58,NH-242) x LKICE'
       units_ij(k) = 'JULIAN DAY'
       name_ij(k) = 'LKOFFDAY'
-      ia_ij(k) = ia_inst 
+      ia_ij(k) = ia_inst
 c
       k=k+1 !
       IJ_LKICE = k
@@ -2907,7 +2907,7 @@ c
       k=k+1
       jl_mcldht = k
       sname_jl(k) = 'moist_lat' !
-      lname_jl(k) = 'CHANGE OF LATENT HEAT BY MOIST CONV.'
+      lname_jl(k) = 'CHANGE OF LATENT HEAT BY CTEI'
       units_jl(k) = 'W/(m^2*mb)'
       pow_jl(k) = -2
       scale_jl(k) = 100.*BYGRAV*SHA/DTsrc
