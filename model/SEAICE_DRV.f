@@ -12,7 +12,7 @@
 !@calls seaice:prec_si
       USE CONSTANT, only : byshi,lhm,teeny,rhoi,grav
       USE MODEL_COM, only : im,jm,fland,kocean,itoice,itlkice,focean
-     *     ,jday,itocean,itlake,p,ptop
+     *     ,jday,p,ptop
       USE GEOM, only : imaxj,dxyp,bydxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress
 #ifdef TRACERS_WATER
@@ -33,7 +33,7 @@
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
 #endif
-      INTEGER I,J,JR,ITYPE,N,ITYPEO
+      INTEGER I,J,JR,ITYPE,N
       LOGICAL WETSNOW
 
       DO J=1,JM
@@ -46,10 +46,8 @@
 
         IF (FOCEAN(I,J).gt.0) THEN
           ITYPE=ITOICE
-          ITYPEO=ITOCEAN
         ELSE
           ITYPE=ITLKICE
-          ITYPEO=ITLAKE
         END IF
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
@@ -102,17 +100,13 @@ C**** set gtemp array
 #endif
 
 C**** Accumulate diagnostics for ice fraction
-        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)-RUN0 *POICE
-        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)-SRUN0*POICE
-c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ERUN *POICE  ! ==0
-C**** Accumulate diagnostics for water fraction
-        AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+RUN0 *POICE
-        AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)+SRUN0*POICE
-c       AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)+ERUN *POICE ! ==0
+        AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+RUN0 *POICE
+        AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+SRUN0*POICE
+c       AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)+ERUN *POICE  ! ==0
 C**** Accumulate regional diagnostics
-        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)-RUN0 *POICE*DXYP(J)
-        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-SRUN0*POICE*DXYP(J)
-c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ERUN *POICE*DXYP(J) ! ==0
+        AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+RUN0 *POICE*DXYP(J)
+        AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+SRUN0*POICE*DXYP(J)
+c       AREG(JR,J_HMELT)=AREG(JR,J_HMELT)+ERUN *POICE*DXYP(J) ! ==0
 
       END IF
 
@@ -261,6 +255,7 @@ C****
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice,jhour
+     *     ,itocean,itlake
       USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE SEAICE, only : simelt,tfrez
@@ -281,7 +276,7 @@ C****
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
-      INTEGER I,J,ITYPE,JR
+      INTEGER I,J,ITYPE,JR,ITYPEO
 
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
@@ -303,9 +298,11 @@ C**** now include lat melt for lakes and any RSI < 1
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
               ITYPE =ITOICE
+              ITYPEO=ITOCEAN
               TFO = tfrez(sss(i,j))
             ELSE
               ITYPE =ITLKICE
+              ITYPEO=ITLAKE
               TFO = 0.
             END IF
             Tm=GTEMP(1,1,I,J)
@@ -324,12 +321,18 @@ C**** now include lat melt for lakes and any RSI < 1
      *           ,ENRGUSED,RUN0,SALT)
 
 C**** accumulate diagnostics
-            AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED
-            AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT
-            AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+    RUN0
-            AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*DXYP(J)
-            AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*DXYP(J)
-            AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*DXYP(J)
+           AJ(J,J_HMELT,ITYPE)=AJ(J,J_HMELT,ITYPE)-ENRGUSED*ROICE*PWATER
+           AJ(J,J_SMELT,ITYPE)=AJ(J,J_SMELT,ITYPE)+    SALT*ROICE*PWATER
+           AJ(J,J_IMELT,ITYPE)=AJ(J,J_IMELT,ITYPE)+    RUN0*ROICE*PWATER
+           AJ(J,J_HMELT,ITYPEO)=AJ(J,J_HMELT,ITYPEO)-ENRGUSED*(1.-ROICE)
+     *          *PWATER
+           AJ(J,J_SMELT,ITYPEO)=AJ(J,J_SMELT,ITYPEO)+    SALT*(1.-ROICE)
+     *          *PWATER
+           AJ(J,J_IMELT,ITYPEO)=AJ(J,J_IMELT,ITYPEO)+    RUN0*(1.-ROICE)
+     *          *PWATER
+           AREG(JR,J_HMELT)=AREG(JR,J_HMELT)-ENRGUSED*PWATER*DXYP(J)
+           AREG(JR,J_SMELT)=AREG(JR,J_SMELT)+    SALT*PWATER*DXYP(J)
+           AREG(JR,J_IMELT)=AREG(JR,J_IMELT)+    RUN0*PWATER*DXYP(J)
 C**** Update prognostic sea ice variables
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -616,6 +619,7 @@ C**** regional diagnostics
         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
      *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
+
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
@@ -737,8 +741,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-      USE DAGCOM, only : npts,icon_MSI,icon_HSI,icon_SSI,title_con
-     *     ,conpt0
+      USE DAGCOM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
+     *     ,icon_LHSI,title_con,conpt0
       USE PARAM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
@@ -800,27 +804,34 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       CONPT(5)="THERMO"    ; CONPT(6)="ADVECT"
       CONPT(8)="OCN FORM"
       QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"ICE MASS","(KG/M^2)        ",
-     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_MSI)
+      CALL SET_CON(QCON,CONPT,"OICE MAS","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_OMSI)
       QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"ICE ENRG","(10**6 J/M^2)   ",
-     *     "(10**-3 J/S M^2)",1d-6,1d3,icon_HSI)
+      CALL SET_CON(QCON,CONPT,"OICE ENR","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_OHSI)
       QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"ICE SALT","(10**-3 KG/M^2) ",
-     *     "(10**-9 KG/SM^2)",1d3,1d9,icon_SSI)
+      CALL SET_CON(QCON,CONPT,"OICE SLT","(10**-3 KG/M^2) ",
+     *     "(10**-12KG/SM^2)",1d3,1d12,icon_OSSI)
+      CONPT(8)="LK FORM"
+      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LKICE MS","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_LMSI)
+      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LKICE EN","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_LHSI)
 C****
       END SUBROUTINE init_ice
 
-      SUBROUTINE conserv_MSI(ICE)
-!@sum  conserv_MSI calculates total amount of snow and ice over water
+      SUBROUTINE conserv_OMSI(ICE)
+!@sum  conserv_MSI calculates total amount of snow and ice over ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,fland
+      USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
-!@var ICE total snow and ice mass (kg/m^2)
+!@var ICE total ocean snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(JM) :: ICE
       INTEGER I,J
 
@@ -828,31 +839,31 @@ C****
         ICE(J)=0
         DO I=1,IMAXJ(J)
           ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
-     *         *(1.-FLAND(I,J))
+     *         *FOCEAN(I,J)
         END DO
       END DO
       ICE(1) =FIM*ICE(1)
       ICE(JM)=FIM*ICE(JM)
       RETURN
 C****
-      END SUBROUTINE conserv_MSI
+      END SUBROUTINE conserv_OMSI
 
-      SUBROUTINE conserv_HSI(EICE)
-!@sum  conserv_HSI calculates total ice energy over water
+      SUBROUTINE conserv_OHSI(EICE)
+!@sum  conserv_HSI calculates total ice energy over ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,fland
+      USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       IMPLICIT NONE
-!@var EICE total snow and ice energy (J/m^2)
+!@var EICE total ocean snow and ice energy (J/m^2)
       REAL*8, DIMENSION(JM) :: EICE
       INTEGER I,J
 
       DO J=1,JM
         EICE(J)=0
         DO I=1,IMAXJ(J)
-          EICE(J)=EICE(J)+RSI(I,J)*(1.-FLAND(I,J))*
+          EICE(J)=EICE(J)+RSI(I,J)*FOCEAN(I,J)*
      *         (HSI(1,I,J)+HSI(2,I,J)+HSI(3,I,J)+HSI(4,I,J))
         END DO
       END DO
@@ -860,9 +871,9 @@ C****
       EICE(JM)=FIM*EICE(JM)
       RETURN
 C****
-      END SUBROUTINE conserv_HSI
+      END SUBROUTINE conserv_OHSI
 
-      SUBROUTINE conserv_SSI(SALT)
+      SUBROUTINE conserv_OSSI(SALT)
 !@sum  conserv_SSI calculates total amount of salt in ocean ice
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -888,7 +899,60 @@ C****
       SALT(JM)=FIM*SALT(JM)
       RETURN
 C****
-      END SUBROUTINE conserv_SSI
+      END SUBROUTINE conserv_OSSI
+
+      SUBROUTINE conserv_LMSI(ICE)
+!@sum  conserv_MSI calculates total amount of snow and ice over lakes
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,fim
+      USE GEOM, only : imaxj
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi
+      USE LAKES_COM, only : flake
+      IMPLICIT NONE
+!@var ICE total lake snow and ice mass (kg/m^2)
+      REAL*8, DIMENSION(JM) :: ICE
+      INTEGER I,J
+
+      DO J=1,JM
+        ICE(J)=0
+        DO I=1,IMAXJ(J)
+          ICE(J)=ICE(J)+RSI(I,J)*(MSI(I,J)+ACE1I+SNOWI(I,J))
+     *         *FLAKE(I,J)
+        END DO
+      END DO
+      ICE(1) =FIM*ICE(1)
+      ICE(JM)=FIM*ICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_LMSI
+
+      SUBROUTINE conserv_LHSI(EICE)
+!@sum  conserv_HSI calculates total ice energy over lakes
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,fim
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : rsi,hsi
+      USE LAKES_COM, only : flake
+      IMPLICIT NONE
+!@var EICE total lake snow and ice energy (J/m^2)
+      REAL*8, DIMENSION(JM) :: EICE
+      INTEGER I,J
+
+      DO J=1,JM
+        EICE(J)=0
+        DO I=1,IMAXJ(J)
+          EICE(J)=EICE(J)+RSI(I,J)*FLAKE(I,J)*
+     *         (HSI(1,I,J)+HSI(2,I,J)+HSI(3,I,J)+HSI(4,I,J))
+        END DO
+      END DO
+      EICE(1) =FIM*EICE(1)
+      EICE(JM)=FIM*EICE(JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_LHSI
 
       SUBROUTINE daily_ice
 !@sum daily_ice performs ice processes that are needed everyday

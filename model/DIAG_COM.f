@@ -73,9 +73,9 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER :: NQUANT=18
+      INTEGER, PARAMETER :: NQUANT=20
 !@param KCON number of conservation diagnostics
-      INTEGER, PARAMETER :: KCON=130
+      INTEGER, PARAMETER :: KCON=150
 !@var CONSRV conservation diagnostics
       REAL*8, DIMENSION(JM,KCON) :: CONSRV
 !@var SCALE_CON scales for conservation diagnostics
@@ -89,8 +89,8 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
-     *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_MSI
-     *     ,icon_HSI,icon_SSI
+     *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OMSI
+     *     ,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI
 !@var KCMX actual number of conservation diagnostics
       INTEGER :: KCMX = 25 ! take up first 25 indexes for special cases
 !@var CONPT0 default titles for each point where conserv diags. are done

@@ -305,7 +305,7 @@ C**** Oceanic kinetic energy
 C**** Oceanic potential enthalpy (heat)
       QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
       CALL SET_CON(QCON,CONPT,"OCN HEAT","(10**6 J/M^2)  ",
-     *     "(10**-2 KG/SM^2)",1d-6,1d2,icon_OCE)
+     *     "(10**-2 W/M^2)  ",1d-6,1d2,icon_OCE)
 C**** Oceanic salt mass
       QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
       CALL SET_CON(QCON,CONPT,"OCN SALT","(10 KG/M^2)    ",

@@ -1630,7 +1630,7 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 #endif
       USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
-     *     ,icon_MSI,icon_HSI,icon_SSI,title_con
+     *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
@@ -1651,8 +1651,8 @@ C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
-     *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE
-     *     ,conserv_MSI,conserv_HSI,conserv_SSI
+     *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
+     *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI 
       REAL*8 MNOW
       INTEGER NT
 
@@ -1678,10 +1678,14 @@ C**** LAKE MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_LKM,icon_LKM)
       CALL conserv_DIAG(M,conserv_LKE,icon_LKE)
 
-C**** SEAICE MASS, ENERGY, SALT
-      CALL conserv_DIAG(M,conserv_MSI,icon_MSI)
-      CALL conserv_DIAG(M,conserv_HSI,icon_HSI)
-      CALL conserv_DIAG(M,conserv_SSI,icon_SSI)
+C**** OCEAN ICE MASS, ENERGY, SALT
+      CALL conserv_DIAG(M,conserv_OMSI,icon_OMSI)
+      CALL conserv_DIAG(M,conserv_OHSI,icon_OHSI)
+      CALL conserv_DIAG(M,conserv_OSSI,icon_OSSI)
+
+C**** LAKE ICE MASS, ENERGY
+      CALL conserv_DIAG(M,conserv_LMSI,icon_LMSI)
+      CALL conserv_DIAG(M,conserv_LHSI,icon_LHSI)
 
 C**** GROUND WATER AND ENERGY
       CALL conserv_DIAG(M,conserv_WTG,icon_WTG)

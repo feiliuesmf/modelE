@@ -619,14 +619,14 @@ C****
 
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
-      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
+      CONPT(4)="PREC+LAT M"
       CONPT(5)="SURFACE"   ; CONPT(8)="RIVERS"
-      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"LAK MASS","(10**10 KG)     ",
-     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)
-      QCON=(/ F, F, T, T, T, T, F, F, T, F, F/)
-      CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**14 J)      ",
-     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)
+      QCON=(/ F, F, F, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LAK MASS","(KG/M^2)      ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_LKM)
+      QCON=(/ F, F, F, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**3 J/M^2) ",
+     *     "(10**-3 W/M^2)  ",1d-3,1d3,icon_LKE)
 
       RETURN
 C****
@@ -1207,8 +1207,7 @@ C****
      *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
 #endif
       USE SEAICE_COM, only : rsi
-      USE DAGCOM, only : aj,areg,jreg,j_imelt,j_hmelt,j_wtr1,j_wtr2
-     *     ,j_run,j_erun
+      USE DAGCOM, only : aj,areg,jreg,j_wtr1,j_wtr2,j_run,j_erun
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -1435,46 +1434,53 @@ C****
       END  SUBROUTINE PRINTLK
 
       SUBROUTINE conserv_LKM(LKM)
-!@sum  conserv_LKM calculates total lake mass
+!@sum  conserv_LKM calculates zonal lake mass
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE GEOM, only : imaxj
+      USE MODEL_COM, only : im,jm,fland,fearth,fim
+      USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : mwl
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: LKM
       INTEGER :: I,J
 C****
-C**** LAKE MASS (kg)
+C**** LAKE MASS (kg/m^2)
 C****
       DO J=1,JM
         LKM(J)=0.
         DO I=1,IMAXJ(J)
-          LKM(J)=LKM(J)+MWL(I,J)
+          IF (FLAND(I,J).gt.0) LKM(J)=LKM(J)+MWL(I,J)
         END DO
+        LKM(J)=LKM(J)*BYDXYP(J)
       END DO
+      LKM(1) =FIM*LKM(1)
+      LKM(JM)=FIM*LKM(JM)
       RETURN
       END SUBROUTINE conserv_LKM
 
       SUBROUTINE conserv_LKE(LKE)
-!@sum  conserv_LKE calculates total lake energy
+!@sum  conserv_LKE calculates zonal lake energy
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : grav
-      USE MODEL_COM, only : im,jm,zatmo
-      USE GEOM, only : imaxj
+      USE MODEL_COM, only : im,jm,zatmo,fim,fland,fearth
+      USE GEOM, only : imaxj,bydxyp
       USE LAKES_COM, only : gml,mwl
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: LKE
       INTEGER :: I,J
+      REAL*8 AREA
 C****
-C**** LAKE ENERGY (J) (includes potential energy)
+C**** LAKE ENERGY (J/m^2) (includes potential energy)
 C****
       DO J=1,JM
         LKE(J)=0.
         DO I=1,IMAXJ(J)
-          LKE(J)=LKE(J)+GML(I,J)+ZATMO(I,J)*MWL(I,J)
+          IF (FLAND(I,J).gt.0) LKE(J)=LKE(J)+GML(I,J)+
+     *         ZATMO(I,J)*MWL(I,J)
         END DO
+        LKE(J)=LKE(J)*BYDXYP(J)
       END DO
+      LKE(1) =FIM*LKE(1)
+      LKE(JM)=FIM*LKE(JM)
       RETURN
       END SUBROUTINE conserv_LKE
