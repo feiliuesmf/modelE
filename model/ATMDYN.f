@@ -696,23 +696,29 @@ C****
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-      DO 120 J=2,JM-1
-         PSUMO(J)=0.
-      DO 120 I=1,IM
-         PSUMO(J)=PSUMO(J)+P(I,J)
-         POLD(I,J)=P(I,J)      ! Save old pressure
-      Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
-  120 X(I,J)=(P(I,J)+PTOP)*Y(I,J)
+      DO J=2,JM-1
+        PSUMO(J)=0.
+        DO I=1,IM
+          PSUMO(J)=PSUMO(J)+P(I,J)
+          POLD(I,J)=P(I,J)      ! Save old pressure
+          Y(I,J)=(1.+BBYG*ZATMO(I,J)/TSAVG(I,J))**GBYRB
+          X(I,J)=(P(I,J)+PTOP)*Y(I,J)
+        END DO
+      END DO
       CALL SHAP1D (8,X)
-      DO 150 J=2,JM-1
-         PSUMN=0.
-      DO 140 I=1,IM
-      P(I,J)=X(I,J)/Y(I,J)-PTOP
-  140 PSUMN=PSUMN+P(I,J)
-         PDIF=(PSUMN-PSUMO(J))*BYIM
-      DO 145 I=1,IM
-  145    P(I,J)=P(I,J)-PDIF
-  150 CONTINUE
+      DO J=2,JM-1
+        PSUMN=0.
+        DO I=1,IM
+          P(I,J)=X(I,J)/Y(I,J)-PTOP
+C**** reduce large variations (mainly due to topography)
+          P(I,J)=MIN(MAX(P(I,J),0.99d0*POLD(I,J)),1.01d0*POLD(I,J))
+          PSUMN=PSUMN+P(I,J)
+        END DO
+        PDIF=(PSUMN-PSUMO(J))*BYIM
+        DO I=1,IM
+          P(I,J)=P(I,J)-PDIF
+        END DO
+      END DO
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO J=2,JM-1
         DO I=1,IM
@@ -720,15 +726,17 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
         END DO
       END DO
       DO L=1,LS1-1
-        DO J=2,JM-1
-          DO I=1,IM
-             Q(I,J,L)=  Q(I,J,L)*PRAT(I,J)
-             QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
-             T(I,J,L)=  T(I,J,L)*PRAT(I,J)
-             TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
-             WM(I,J,L)= WM(I,J,L)*PRAT(I,J)
-          END DO
-        END DO
+      DO J=2,JM-1
+      DO I=1,IM
+         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
+         T(I,J,L)= T(I,J,L)*PRAT(I,J)
+        WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+        IF (PRAT(I,J).lt.1.) THEN
+          QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
+          TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
+        END IF
+      END DO
+      END DO
       END DO
 #ifdef TRACERS_ON
 C**** In general, only an air tracer is affected by the filter
