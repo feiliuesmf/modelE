@@ -1,4 +1,33 @@
-Changes from modelE-2-3 to modelE-2-3-5
+Changes from modelE-2-3-4+ to modelE1 (or 3.0) 
+==============================================
+
+- big expansion of tracer coding 
+
+- relative humidity sensitivity of aerosol optical thickness
+
+- new cloud micro-physics
+
+- better separation of convective and stratiform cloud
+
+- more interactions between tracer fields and radiation
+
+- NUDGING facility for trying to reproduce field experiments
+
+- full use of atmospheric turbulence 
+
+- improved historical fields for ozone, aerosols
+
+- new conductance scheme for evapo-transpiration
+
+- extended sub-daily diagnostics
+
+- new diag Hdirun for time series of all fields over last month for
+  selected grid boxes
+
+- option to run with smaller physics time step 
+
+
+Changes from modelE-2-3 to modelE-2-3-4+
 =======================================
 
 - new conductance scheme option for land surface

@@ -9,7 +9,7 @@ IRANDI       seed for rand.number sequence to perturb init.conditions          0
 ISTART       type-of-start flag   1-8 starts, >8 continuations                10
 ITWRITE      controls # pages of radiative debug output                        0
 IWRITE,      if JWRITE<1500 get rad.info for box (Iwrite,Jwrite)               0
-   JWRITE    if JWRITE>1500 get forcing info for years Iwrite->Jwrite          0
+JWRITE       if JWRITE>1500 get forcing info for years Iwrite->Jwrite          0
 IYEAR1       base year for internal clock ("Itime=0"="1/1/Iyear1,hr 0")   =YEARI
 KDIAG        controls amount of diagnostic printout (0=full->9=none)      12*0,9
 QDIAG        controls whether binary diagn. files are created (ij,jl..)  .false.

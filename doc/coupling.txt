@@ -207,7 +207,7 @@ flux (note that TRPREC is the exception).
 Input:	TRPREC(NTM,IM,JM) (kg), TREVAPOR(NTM,NSTYPE,IM,JM) (kg/m^2),
 	TRUNPSI(NTM,IM,JM) (kg/m^2), TRUNOSI(NTM,IM,JM) (kg/m^2),
 	TRFLOWO(NTM,IM,JM) (kg), TRMELTI(NTM,IM,JM) (kg), 
-	TRGMELT(NTM,IM,JM) (kg)
+	TRGMELT(NTM,IM,JM) (kg), TRDRYDEP(NTM,NSTYPE,IM,JM) (kg/m^2)
 
 Output: DTRSI(NTM,IM,JM,2) (kg/m^2) tracer amount in formed ice
 
@@ -215,10 +215,9 @@ Needed field on AGCM grid:
 	GTRACER(NTM,NSTYPE,IM,JM) ground tracer concentration
 
 Additionally, there are some tracer fluxes which are not currently
-coupled: TRGRDEP (tracer flux due to graviational settling), TRDRYDEP
-(tracer flux due to dry deposition at the surface), and trsource some
-non-interactive fluxes. Depending on the tracer and application, some
-or all of these fluxes should probably be accounted for in the ocean.
+coupled: pratcularly trsource for some non-interactive
+fluxes. Depending on the tracer and application, some or all of these
+fluxes should probably be accounted for in the ocean.
 
 
 
