@@ -259,6 +259,7 @@ foreach $name ( keys %db_modules ) {
 	#print "VAR::: $var_name\n";
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
+	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
 	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
 	#print HTM "<dd>$db_vars{$var_name}{sum}<BR>\n";
@@ -327,6 +328,7 @@ foreach $name ( keys %db_subs ) {
 	#print "VAR::: $var_name\n";
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
+	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
 	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
 	print HTM "<dd>";
@@ -559,6 +561,7 @@ sub htm_prt_vars { # print list of variables
 	}
 	if ( $db_vars{$var_name}{decl} =~ /parameter/i ) { $color = "#008800" }
 	else { $color = "#880000" }
+	if ( ! $db_vars_used{$var_name} ) { $color = "#ff0000" }
 	print HTM "<dt><font color=$color><B>$var</B></font>";
 	print HTM " : <code>$db_vars{$var_name}{decl}</code><BR>\n";
 	print HTM "<dd>";
@@ -867,7 +870,7 @@ sub parse_file {
 	if ( /^\s*end\s+module\b/i ) { #end module
 	    $current_module = "";
 	}
-	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program|entry)\s+(\w+)/i ) {
+	if ( /^\s*(subroutine|(?:$some_decl\s+)?function|program)\s+(\w+)/i ) {
 	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
@@ -877,7 +880,7 @@ sub parse_file {
 		#push @{$db_modules{"\@GLOBAL"}{subs}}, $current_sub;
 	    }
 	}
-	if ( /^\s*end\s+(subroutine|function|program|entry)\b/i 
+	if ( /^\s*end\s+(subroutine|function|program)\b/i 
 	     || /^\s*end\s*$/i ) {
 	    $current_sub = "";
 	}
@@ -949,6 +952,7 @@ sub parse_fort_str {
 		#print "VAR:  $cvar   ::: $var_val\n";
 	    }
 	    $var_name = "$current_module:$current_sub:$var";
+	    $db_vars_declared{$var_name} = 1;
 	    $db_vars{$var_name}{decl} .= ",$var_type";
 	    if ( $dim ) { $db_vars{$var_name}{decl} .= ",dimension$dim"; }
 	    $db_vars{$var_name}{value} = $var_val;
@@ -975,11 +979,34 @@ sub parse_fort_str {
     }
 
     # subroutine/function declaration
-    if ( $fstr =~ /^\s*(subroutine|function|entry)/i ) {
+    if ( $fstr =~ /^\s*(subroutine|function)/i ) {
 	my $decl = lc($fstr);
 	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
 	$decl =~ s/\s*,\s*/, /g;
 	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
+	return;
+    }
+
+    # skip common blocks
+    if ( $fstr =~ /^\s*(common)/i ) { 
+	return;
+    }
+  
+#!!! experimental code
+# check for unused variables (very primitive check)
+    $tmp_fstr = $fstr;
+    $tmp_fstr =~ s/\".*?\"//g; $tmp_fstr =~ s/\'.*?\'//g;
+    foreach $var ( split /\W+/, $tmp_fstr ) {
+	$var =~ tr/A-Z/a-z/;
+	$var_name = "$current_module:$current_sub:$var";
+	if ( $db_vars_declared{$var_name} ) {
+	    $db_vars_used{$var_name} = 1;
+	} else {
+	    $var_name = "$current_module\:\:$var";
+	    if ( $db_vars_declared{$var_name} ) {
+		$db_vars_used{$var_name} = 1;
+	    }
+	}
     }
 }
 
@@ -1005,7 +1032,7 @@ while ($filename = shift) {
         #print "FUCTTION:: $function\n";
         $print_header = 1;
       }
-      if ( $str =~ /^\s*(subroutine|function|program|entry)\s+(\w+)/i ) {
+      if ( $str =~ /^\s*(subroutine|function|program)\s+(\w+)/i ) {
         $function = $2;
         #print "FUCTTION:: $function\n";
         $print_header = 1;
