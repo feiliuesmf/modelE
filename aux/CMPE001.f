@@ -322,12 +322,12 @@ C****
 c     write(0,*) i,j,l,I2(I,J,L),I1(I,J,L)
       IF (I2(I,J,L)*I1(I,J,L).EQ.0 .AND. I2(I,J,L)+I1(I,J,L).NE.0
      *        .and. I2(I,J,L).NE.I1(I,J,L)) THEN
-c        WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L)
+         WRITE (6,901) I,J,L,I1(I,J,L),I2(I,J,L)
          NP = NP+1
          IF(NP.GE.10)  RETURN
       ELSE
          DIF = ABS(I2(I,J,L)-I1(I,J,L)) / (ABS(I1(I,J,L)) + 1.D-30)
-          IF (DIF.NE.0.) PRINT*,I,J,L,DIF
+c        IF (DIF.NE.0.) PRINT*,I,J,L,DIF
          IF(DIF.NE.0.) ICNT = ICNT + 1
          IF(DIF.LE.DIFMAX)  GO TO 10
          DIFMAX = DIF
