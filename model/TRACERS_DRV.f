@@ -1566,6 +1566,7 @@ C**** (not necessary associated with a particular tracer)
         sname_jls(k) = 'OH_conc'
         lname_jls(k) = 'OH concentration'
         jls_ltop(k)  = LS1-1
+        jwt_jls(k) = 2
         jls_power(k) = 5.
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
@@ -1573,11 +1574,21 @@ c
         k = k + 1
         jls_H2Omr=k
         sname_jls(k) = 'H2O_mr'
-        lname_jls(k) = 'H2O mixing ratio'
+        lname_jls(k) = 'H2O mixing ratio (weighted by daylight)'
         jls_ltop(k)  = LS1-1
+        jwt_jls(k) = 2
         jls_power(k) = -4. 
         scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'parts/vol')
+c
+        k = k + 1
+        jls_day=k
+        sname_jls(k) = 'daylight'   ! not output 
+        lname_jls(k) = 'Daylight weighting'
+        jls_ltop(k)  = 1
+        jls_power(k) = 0. 
+        scale_jls(k) = 100.*byim
+        units_jls(k) = unit_string(jls_power(k),'%')
 c
         k = k + 1
         jls_N2O5sulf=k

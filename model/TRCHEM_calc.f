@@ -9,7 +9,7 @@ C
       USE MODEL_COM, only       : im,jm,lm,ls1
       USE DYNAMICS, only        : am, byam
       USE GEOM, only            : BYDXYP,dxyp
-      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,tajls
+      USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls
 CCC  &                            ,ijs_OxL1,taijs
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
@@ -602,6 +602,7 @@ C**** special diags not associated with a particular tracer
      &   TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
          TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
       END DO
+      TAJLS(J,1,jls_day)=TAJLS(J,1,jls_day)+1. 
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)

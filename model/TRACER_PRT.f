@@ -343,7 +343,7 @@ C**** Construct UNITS string for output
 C****
 C**** THIS ROUTINE PRODUCES LATITUDE BY LAYER TABLES OF TRACERS
 C****
-      USE CONSTANT, only : undef
+      USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid,psfmpt
      &   ,sige,ptop
       USE GEOM, only: bydxyp,dxyp,lat_dg
@@ -358,7 +358,7 @@ C****
       REAL*8, DIMENSION(JM,LM) :: A
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
-      INTEGER :: J,L,N,K,jtpow
+      INTEGER :: J,L,N,K,jtpow,kw
 #ifdef TRACERS_SPECIAL_O18
       INTEGER :: n1,n2
       CHARACTER :: lname*80,sname*30,units*50
@@ -377,7 +377,7 @@ C****
       do l=1,lm
         pm(l)=psfmpt*sige(l+1)+ptop
       end do
-      onespo(:)  = 1.d0
+      onespo(2:jm-1)  = 1.d0
       onespo(1)  = fim
       onespo(jm) = fim
       ones(:) = 1.d0
@@ -518,10 +518,26 @@ C****
 C**** JL Specials (incl. Sources and sinks)
 C****
       do k=1,ktajls
+        if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr")
+     *       cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,tajls(1
-     *       ,1,k),scalet,ones,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
+     *     ,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
       end do
+
+#ifdef TRACERS_SPECIAL_Shindell
+C**** some special JL diags for chemistry
+      k=jls_H2Omr
+      kw=jls_day
+      scalet = scale_jls(k)*10.**(-jls_power(k))
+      do l=1,lm
+        do j=1,jm
+          a(j,l)=tajls(j,l,k)/(tajls(j,1,kw)+teeny)
+        end do
+      end do
+      CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,a,scalet
+     *     ,ones,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))
+#endif
 
 #ifdef TRACERS_SPECIAL_O18
 C****

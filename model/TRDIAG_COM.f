@@ -149,8 +149,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@parm ktajls number of source/sink TAJLS tracer diagnostics;
 #ifdef TRACERS_SPECIAL_Shindell
 !@var jls_XXX index for diags not specific to a certain tracer
-      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf
-      INTEGER, PARAMETER :: ktajls=61
+      INTEGER jls_OHcon,jls_H2Omr,jls_N2O5sulf,jls_day
+      INTEGER, PARAMETER :: ktajls=62
 #else
       INTEGER, PARAMETER :: ktajls=34
 #endif
