@@ -11,19 +11,17 @@
 #endif
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,bydxypo,mdyno,msgso
-     *     ,ratoc,imaxj,focean,ogeoz,ogeoz_sv
+     *     ,ogeoz,ogeoz_sv
       USE ODIAG, only : oijl,oij,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx
      *     ,ijl_sflx,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl,ij_ssh
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_conc,toijl_tflx,toijl_gmfl
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE SEAICE, only : ace1i
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
-      INTEGER NS,I,J,L,mnow,n
+      INTEGER NS,L,mnow,n
 C****
 C**** Integrate Ocean Dynamics terms
 C****
@@ -45,7 +43,12 @@ C**** Calculate vertical diffusion
          CALL TIMER (MNOW,MSGSO)
 
       IDACC(11) = IDACC(11) + 1
-      SMU = 0. ; SMV = 0. ; SMW = 0.
+
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO L=1,LMO
+        SMU(:,:,L) = 0. ; SMV(:,:,L) = 0. ; SMW(:,:,L) = 0.
+      END DO
+!$OMP END PARALLEL DO
 
       CALL OVTOM (MMI,UM0,VM0)
       CALL OPGF0
@@ -87,9 +90,13 @@ C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
       CALL OMTOV (MM0,UM0,VM0)
       NS=NS-1
       IF(NS.GT.1)  GO TO 420
-        OIJL(:,:,:,IJL_MFU) = OIJL(:,:,:,IJL_MFU) + SMU
-        OIJL(:,:,:,IJL_MFV) = OIJL(:,:,:,IJL_MFV) + SMV
-        OIJL(:,:,:,IJL_MFW) = OIJL(:,:,:,IJL_MFW) + SMW
+!$OMP PARALLEL DO  PRIVATE(L)
+      DO L=1,LMO
+        OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
+        OIJL(:,:,L,IJL_MFV) = OIJL(:,:,L,IJL_MFV) + SMV(:,:,L)
+        OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
+      END DO
+!$OMP END PARALLEL DO
 C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.,OIJL(1,1,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.,OIJL(1,1,1,IJL_SFLX))
@@ -100,25 +107,23 @@ C**** Advection of Potential Enthalpy and Salt
       END DO
 #endif
         CALL CHECKO ('OADVT ')
+!$OMP PARALLEL DO PRIVATE(L)
         DO L=1,LMO
-        DO J=1,JM
-        DO I=1,IM
-          OIJL(I,J,L,IJL_MO)  = OIJL(I,J,L,IJL_MO) +  MO(I,J,L)
-          OIJL(I,J,L,IJL_G0M) = OIJL(I,J,L,IJL_G0M) + G0M(I,J,L)
-          OIJL(I,J,L,IJL_S0M) = OIJL(I,J,L,IJL_S0M) + S0M(I,J,L)
+          OIJL(:,:,L,IJL_MO)  = OIJL(:,:,L,IJL_MO) +  MO(:,:,L)
+          OIJL(:,:,L,IJL_G0M) = OIJL(:,:,L,IJL_G0M) + G0M(:,:,L)
+          OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
         END DO
-        END DO
-        END DO
-        DO J=1,JM
-        DO I=1,IM
-          OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
-        END DO
-        END DO
+!$OMP END PARALLEL DO
+        OIJ(:,:,IJ_SSH) = OIJ(:,:,IJ_SSH) + OGEOZ(:,:)
 
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
-          TOIJL(:,:,:,TOIJL_CONC,N)=TOIJL(:,:,:,TOIJL_CONC,N)
-     *         +TRMO(:,:,:,N)
+!$OMP PARALLEL DO PRIVATE(L)
+          DO L=1,LMO
+            TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
+     *           +TRMO(:,:,L,N)
+          END DO
+!$OMP END PARALLEL DO
         END DO
 #endif
         CALL TIMER (MNOW,MDYNO)
@@ -480,15 +485,15 @@ C****
       END SUBROUTINE io_ocdyn
 
       SUBROUTINE CHECKO(SUBR)
-!@sum  CHECKO Checks whether Ocean are reasonable
+!@sum  CHECKO Checks whether Ocean variables are reasonable
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only : ntm, trname
+      USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
-      USE SEAICE_COM, only : msi,rsi
+      USE SEAICE_COM, only : rsi
       USE OCEAN
       IMPLICIT NONE
       REAL*8 SALIM,GO1,SO1,relerr,errmax
@@ -547,8 +552,7 @@ C**** Check all ocean currents
 C**** Check first layer ocean mass
           IF(MO(I,J,1).lt.2000. .or. MO(I,J,1).gt.20000.) THEN
             IF (I.eq.47.and.(J.eq.33.or.J.eq.34)) GOTO 230 ! not Caspian
-            WRITE (6,*) 'After ',SUBR,': I,J,MO,MSI2=',I,J,MO(I,J,1
-     *           ),MSI(I,J),RSI(I,J)
+            WRITE (6,*) 'After ',SUBR,': I,J,MO=',I,J,MO(I,J,1)
             QCHECKO=.TRUE.
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
@@ -569,8 +573,24 @@ C**** Check ocean salinity in each eighth box for the first layer
       END DO
 
 #ifdef TRACERS_OCEAN
-C**** Check conservation of water tracers in ocean
       do n=1,ntm
+C**** Check for negative tracers
+        if (t_qlimit(n)) then
+        do l=1,lmo
+        do j=1,jm
+        do i=1,imaxj(j)
+          if (l.le.lmm(i,j)) then
+            if (trmo(i,j,l,n).lt.0) then
+              write(6,*) "Neg Tracer in ocean after ",subr,i,j,l,
+     *             trname(n),trmo(i,j,l,n)
+              QCHECKT=.true.
+            end if
+          end if
+        end do
+        end do
+        end do
+        end if
+C**** Check conservation of water tracers in ocean
         if (trname(n).eq.'Water') then
           errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
           do l=1,lmo
@@ -3095,19 +3115,13 @@ C**** Done!
 #ifdef TRACERS_OCEAN
      *     ,trmo
 #endif
-      USE SEAICE, only : ace1i, xsi
-      USE SEAICE_COM, only : rsi,hsi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi
-#endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-
       IMPLICIT NONE
       INTEGER I,J
-      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO,MSI1
+      REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO
 C****
 C**** Note that currently everything is on same grid
 C****
@@ -3130,11 +3144,7 @@ C****
             OGEOZA(I,J)=0.5*(OGEOZ(I,J)+OGEOZ_SV(I,J))
             UOSURF(I,J)=UO(I,J,1)
             VOSURF(I,J)=VO(I,J,1)
-C**** set GTEMP array for ice as well (possibly changed by STADVI)
-            MSI1=SNOWI(I,J)+ACE1I
-            GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
 #ifdef TRACERS_WATER
-            GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J)-
      *           S0M(I,J,1))
@@ -3149,24 +3159,24 @@ C**** do poles
       IF (FOCEAN(1,JM).gt.0) THEN
         VOSURF(1,JM)=0.
         DO I=2,IM
-          GTEMP(:,1:2,I,JM)=GTEMP(:,1:2,1,JM)
+          GTEMP(:,1,I,JM)=GTEMP(:,1,1,JM)
           SSS(I,JM)=SSS(1,JM)
           MLHC(I,JM)=MLHC(1,JM)
           UOSURF(I,JM)=UOSURF(1,JM)
           VOSURF(I,JM)=0.
           OGEOZA(I,JM)=OGEOZA(1,JM)
 #ifdef TRACERS_WATER
-          GTRACER(:,1:2,I,JM)=GTRACER(:,1:2,1,JM)
+          GTRACER(:,1,I,JM)=GTRACER(:,1,1,JM)
 #endif
         END DO
       END IF
 c     IF (FOCEAN(1,1).gt.0) THEN
 c       DO I=2,IM
-c         GTEMP(:,1:2,I,1)=GTEMP(:,1:2,1,1)
+c         GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
 c         SSS(I,1)=SSS(1,1)
 c         MLHC(I,1)=MLHC(1,1)
 #ifdef TRACERS_WATER
-c         GTRACER(:,1:2,I,1)=GTRACER(:,1:2,1,1)
+c         GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
 c       END DO
 c     END IF
