@@ -227,6 +227,7 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
 
       end SUBROUTINE set_generic_tracer_diags
 
+
       SUBROUTINE apply_tracer_source(dtsurf)
 !@sum apply_tracer_source adds non-interactive surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
@@ -292,6 +293,7 @@ C****
       RETURN
       END SUBROUTINE apply_tracer_source
 
+
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
@@ -340,6 +342,7 @@ C**** Atmospheric decay
 C****
       return
       end subroutine tdecay
+
 
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers 
@@ -410,6 +413,56 @@ C**** Calculate height differences using geopotential
 C****
       return
       end subroutine trgrav
+
+
+      SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data)
+!@sum Read in monthly sources and interpolate to current day
+!@+   Calling routine must have the two lines:
+!@+      data jdlast /0/
+!@+      save jdlast
+!@+   Input: iu, the fileUnit#; jdlast
+!@+   Output: interpolated data array
+!@auth Jean Lerner and others
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      implicit none
+      real*8 frac
+      real*8 tlca(im,jm),tlcb(im,jm),data(im,jm)
+      integer imon,iu,jdlast
+
+      if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
+        imon=1          ! imon=January
+        if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
+          call readt(iu,0,tlca,im*jm,tlca,12)
+          rewind iu
+        else            ! JDAY is in Jan 16 to Dec 16, get first month
+  120     imon=imon+1
+          if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
+          call readt(iu,0,tlca,im*jm,tlca,imon-1)
+          if (imon.eq.13)  rewind iu
+        end if
+      else              ! Do we need to read in second month?
+        if (jday.ne.jdlast+1) then ! Check that data is read in daily
+          if (jday.ne.1 .OR. jdlast.ne.365) then
+            write(6,*)
+     *      'Incorrect values in Tracer Source:JDAY,JDLAST=',JDAY,JDLAST
+            stop
+          end if
+          imon=imon-12  ! New year
+          go to 130
+        end if
+        if (jday.le.idofm(imon)) go to 130
+        imon=imon+1     ! read in new month of data
+        tlca(:,:) = tlcb(:,:)
+        if (imon.eq.13) rewind iu
+      end if
+      call readt(iu,0,tlcb,im*jm,tlcb,1)
+  130 continue
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      data(:,:) = tlca(:,:)*frac + tlcb(:,:)*(1.-frac)
+      return
+      end subroutine read_monthly_sources
+
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether tracer variables are reasonable

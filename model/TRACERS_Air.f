@@ -308,6 +308,7 @@ C**** print out total tracer diagnostic array size
       return
       end subroutine init_tracer
 
+
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
@@ -388,11 +389,6 @@ C**** Initialise pbl profile if necessary
 C****
       end subroutine tracer_IC
 
-      MODULE CO2_SOURCES
-      USE TRACER_COM
-!@var co2_src C02 surface sources and sinks (kg/s)
-      real*8 co2_src(im,jm,6)
-      END MODULE CO2_SOURCES
 
       subroutine daily_tracer(iact)
 !@sum daily_tracer is called once a day for tracers
@@ -408,12 +404,24 @@ C****  at any time
 
 C**** Tracer specific call for CO2
       do n=1,ntm
-        if (trname(n).eq."CO2") call read_CO2_sources(n,iact)
+        if (trname(n).eq."CO2") then
+          call read_CO2_sources(n,iact)
+          exit
+        end if
       end do
 
       return
 C****
       end subroutine daily_tracer
+
+
+      MODULE CO2_SOURCES
+      USE TRACER_COM
+!@var co2_src C02 surface sources and sinks (kg/s)
+      integer, parameter :: nco2src=6
+      real*8 co2_src(im,jm,nco2src)
+      END MODULE CO2_SOURCES
+
 
       subroutine read_CO2_sources(nt,iact)
 !@sum reads in CO2 sources and sinks
@@ -422,33 +430,31 @@ C****
 C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,DTsrc,JDperY,im,jm,idofm=>JDmidOfM
+      USE MODEL_COM, only: itime,jday,JDperY,im,jm
       USE CONSTANT, only: sday
       USE FILEMANAGER, only : openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
-      use CO2_SOURCES, only: src=>co2_src
+      use CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
       implicit none
       character*80 title
       logical :: ifirst=.true.
-      data jdlast /0/
-      real*8 tlca(im,jm,2),tlcb(im,jm,2)  ! for 2 monthly sources
-      real*8 adj(6)
+      real*8 adj(nsrc)
 c     data adj/1.038,1.,1.,5.33,1.,1.749/          ! c
       data adj/3.81d0,3.67d0,3.67d0,19.54d0,3.67d0,6.42d0/     ! co2
-      integer ann_units(4),mon_units(2)
-      character*12 :: ann_files(4) = (/'CO2_FOS_FUEL','CO2_FERT    ',
-     *   'CO2_REGROWTH','CO2_LAND_USE'/)
-      logical :: ann_bins(4)=(/.true.,.true.,.true.,.true./)
-      character*9 :: mon_files(2) = (/'CO2_VEG  ','CO2_OCEAN'/)
-      logical :: mon_bins(2)=(/.true.,.true./)
-      real*8 frac
-      integer i,j,nt,iact,imon,iu,iumf,iuml,ioff,k,jdlast
+!@var nanns,nmons: number of annual and monthly input files
+      integer, parameter :: nanns=4,nmons=2
+      integer ann_units(nanns),mon_units(nmons)
+      character*12 :: ann_files(nanns) = 
+     *  (/'CO2_FOS_FUEL','CO2_FERT    ','CO2_REGROWTH','CO2_LAND_USE'/)
+      logical :: ann_bins(nanns)=(/.true.,.true.,.true.,.true./)
+      character*9 :: mon_files(nmons) = (/'CO2_VEG  ','CO2_OCEAN'/)
+      logical :: mon_bins(nmons)=(/.true.,.true./)
+      real*8 tlca(im,jm,nmons),tlcb(im,jm,nmons)  ! for monthly sources
+      integer i,j,nt,iact,iu,k,jdlast
+      data jdlast /0/
       save ifirst,jdlast,tlca,tlcb
 
       if (itime.lt.itime_tr0(nt)) return
- !    write(0,*) ' debugging traces iact,jday=',iact,jday,jdlast,ifirst
- !    write(6,*) ' debugging traces iact,jday=',iact,jday,jdlast,ifirst
- !    call sys_flush(6)
 C****
 C**** Annual Sources and sink
 C**** Apply adjustment factors to bring sources into balance
@@ -456,83 +462,37 @@ C**** Annual sources are in KG C/M2/Y
 C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
-        call openunits(ann_files,ann_units,ann_bins,4)
+        call openunits(ann_files,ann_units,ann_bins,nanns)
         k = 0
-        do iu = ann_units(1),ann_units(4)
+        do iu = ann_units(1),ann_units(nanns)
           k = k+1
           call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
-        call closeunits(ann_units,4)
+        call closeunits(ann_units,nanns)
       endif
 C****
 C**** Monthly sources are interpolated to the current day
 C****
+C**** Also, Apply adjustment factors to bring sources into balance
+C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
       if (iact.eq.1 .and. .not.ifirst) return
       ifirst = .false.
-      call openunits(mon_files,mon_units,mon_bins,2)
-      iumf = mon_units(1)
-      iuml = mon_units(2)
-      if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
-        imon=1          ! imon=January
-        if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
-          ioff = 0
-          do iu=iumf,iuml
-          ioff = ioff+1
-          call readt(iu,0,tlca(1,1,ioff),im*jm,tlca(1,1,ioff),12)
-          rewind iu
-          end do
-        else            ! JDAY is in Jan 16 to Dec 16, get first month
-  120     imon=imon+1
-          if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
-          ioff = 0
-          do iu=iumf,iuml
-          ioff = ioff+1
-          call readt(iu,0,tlca(1,1,ioff),im*jm,tlca(1,1,ioff),imon-1)
-          if (imon.eq.13)  rewind iu
-          end do
-        end if
-      else              ! Do we need to read in second month?
-        if (jday.ne.jdlast+1) then ! Check that data is read in daily
-          if (jday.ne.1 .OR. jdlast.ne.365) then
-            write(6,*)
-     *      'Incorrect values in TSRC: JDAY,JDLAST=',JDAY,JDLAST
-            stop
-          end if
-          imon=imon-12  ! New year
-          go to 130
-        end if
-        if (jday.le.idofm(imon)) go to 130
-        imon=imon+1     ! read in new month of data
-        tlca(:,:,:) = tlcb(:,:,:)
-        if (imon.eq.13)  then
-          do iu=iumf,iuml
-            rewind iu
-          end do
-        end if
-      end if
-      ioff = 0
-      do iu=iumf,iuml
-        ioff = ioff+1
-        call readt(iu,0,tlcb(1,1,ioff),im*jm,tlcb(1,1,ioff),1)
-      end do
-  130 jdlast=jday
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      do k=5,6
-        src(:,:,k) = tlca(:,:,k-4)*frac + tlcb(:,:,k-4)*(1.-frac)
-      end do
-      write(6,*) trname(nt),'Sources interpolated to current day',frac
-      call closeunits(mon_units,2)
-C****
-C**** Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-C****
-      do k=5,6
+      call openunits(mon_files,mon_units,mon_bins,nmons)
+      j = 0
+      do k=nanns+1,nsrc
+        j = j+1
+        call read_monthly_sources(mon_units(j),jdlast,
+     *    tlca(1,1,j),tlcb(1,1,j),src(1,1,k))
         src(:,:,k) = src(:,:,k)*adj(k)
       end do
+      jdlast = jday
+      write(6,*) trname(nt),'Sources interpolated to current day'
+      call closeunits(mon_units,nmons)
+C****
       return
       end subroutine read_CO2_sources
+
 
       SUBROUTINE set_tracer_source
 !@sum tracer_source calculates non-interactive sources for tracers
