@@ -298,9 +298,9 @@ c**** adjust canopy conductance for incoming solar radiation
 !----------------------------------------------------------------------!
 ! Transmission of shortwave radiation through canopy.
 ! Diffuse shortwave in canopy (umol/m[ground]2/s).
-        transdf=fdir*(1.0D0-rhor)*kdf*exp(-kdf*alai)
+        transdf=(1-fdir)*(1.0D0-rhor)*kdf*exp(-kdf*alai)
 ! Direct shortwave in canopy (umol/m[ground]2/s).
-        transdr=(1-fdir)*(1.0D0-rhor)*temp*kbl*exp(-temp*kbl*alai)
+        transdr=fdir*(1.0D0-rhor)*temp*kbl*exp(-temp*kbl*alai)
 ! Direct shortwave that remains direct (umol/m[ground]2/s).
         transdrdr=transdr*(1.0D0-sigma)*kbl*exp(-temp*kbl*alai)
 ! Shortwave penetrating shaded foliage (umol/m[foliage]2/s).
