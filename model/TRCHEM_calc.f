@@ -18,9 +18,9 @@ C
      &                            ,LAT_DG,LON_DG
 #endif
       USE TRACER_DIAG_COM, only : jls_OHcon,jls_H2Omr,jls_day,tajls
-CCC  &                            ,ijs_OxL1,taijs
+C    &                            ! ,ijs_OxL1
 #ifdef regional_Ox_tracers
-     &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss,TAJLS,TAIJS
+     &  ,jls_Oxloss,jls_Oxprod,ijs_Oxprod,ijs_Oxloss
 #endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
@@ -681,7 +681,7 @@ c
            TAJLS(J,L,jls_Oxprod)=TAJLS(J,L,jls_Oxprod)+prod(igas,L)
            TAJLS(J,L,jls_Oxloss)=TAJLS(J,L,jls_Oxloss)+dest(igas,L)
            TAIJS(I,J,ijs_Oxprod)=TAIJS(I,J,ijs_Oxprod)+prod(igas,L)
-           TAIJS(I,J,ijs_Oxloss)=TAIJS(I,J,ijs_Oxloss)+prod(igas,L)
+           TAIJS(I,J,ijs_Oxloss)=TAIJS(I,J,ijs_Oxloss)+dest(igas,L)
          end if 
 #endif    
 c        Set N2O5 to equilibrium when necessary (near ground,
@@ -1227,6 +1227,7 @@ C**** special diags not associated with a particular tracer
          TAJLS(J,L,jls_H2Omr)=TAJLS(J,L,jls_H2Omr)+(y(nH2O,L)/y(nM,L))
       END DO
       TAJLS(J,1,jls_day)=TAJLS(J,1,jls_day)+1.d0 
+CCCC  need to save 3D OH here too...
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)
