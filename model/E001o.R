@@ -61,7 +61,7 @@ RADNB=o3WangJacob.1890.1979
 RADNE=topcld.trscat8
 GHG=GHG.1850-2050.Mar2002
 dH2O=dH2O_by_CH4
-TOP_INDEX=top_index_72x46.ij
+TOP_INDEX=top_index_72x46.ij.ext
 
 Label and Namelist:
 E001o (new modelE based on B402A - coupled version)
@@ -86,5 +86,5 @@ isccp_diags=1
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
                        !  from default: IYEAR1=YEARI
    YEARE=1950,MONTHE=2,
-   ISTART=7,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=6,IRANDI=0, YEARE=1950,MONTHE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
