@@ -579,7 +579,7 @@ c****
         do i=1,im
           pearth=fearth(i,j)
 c**** check whether data exist at this point. We should use a
-c**** nearest neighbour apporximation. 
+c**** nearest neighbour apporximation.
 c**** In the meantime, use arbitrary point 10,40 (TEMPORARY FIX)
           if (pearth.gt.0) then
             if (sum(vdata(i,j,1:10)).eq.0) then
@@ -595,7 +595,7 @@ c**** or these
               print*,"No topo data: i,j=",i,j,top_index_ij(i,j)
               top_index_ij(i,j)=top_index_ij(10,40)
             end if
-            if (sum(dz_ij(i,j,1:ngm)).eq.0 
+            if (sum(dz_ij(i,j,1:ngm)).eq.0
      &                .or. wbare(1,i,j) < 1.d-10) then
               print*,"No soil data: i,j=",i,j,dz_ij(i,j,1:ngm),wbare(1,i
      *             ,j)
@@ -839,7 +839,7 @@ c****
       real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
 
       one=1.
-      ijdebug=i0*100+j0
+      ijdebug=i0*1000+j0
       i_earth = i0
       j_earth = j0
 

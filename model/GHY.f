@@ -706,8 +706,8 @@ c     loop back until qs converged
       endif
       if(itr.ge.64)then
         call outw(0)
-        call abort
-        stop 'qsbal'
+        ! call abort
+        stop 'qsbal: too many iterations - see soil_outw and fort.99'
       endif
       itr=itr+1
       if(abs(qso-qs).gt.eps)go to 10
@@ -1025,7 +1025,10 @@ ccc    this is how much water we can take from layer l
           if( l .gt. 1) f(l,ibv) = f(l,ibv) - rnf(ibv)
           rnf(ibv) = rnf(ibv) + min( -rnf(ibv), dflux )
 ccc    rnff always >= 0, use it first to compensate rnf<0
-          if ( rnff(l,ibv) .lt. 0.d0 ) call abort ! just to be sure
+          if ( rnff(l,ibv) .lt. 0.d0 ) then ! call abort just to be sure
+            print *, 'underground runoff < 0'
+            stop 'fllmt: negative underground runoff'
+          end if
           drnf = min( -rnf(ibv), rnff(l,ibv) )
           rnf(ibv) = rnf(ibv) + drnf
           rnff(l,ibv) = rnff(l,ibv) - drnf
@@ -1035,7 +1038,8 @@ ccc    rnff always >= 0, use it first to compensate rnf<0
 ccc    check if rnf==0 up to machine accuracy
         if ( rnf(ibv) .lt. -1d-12 ) then
           print *, 'fllmt: rnf<0, ibv=',ibv,rnf(ibv)
-          call abort   ! couldn't redistribute rnf<0 : evap is too big ?
+          ! call abort; couldn't redistribute rnf<0 : evap is too big ?
+            stop 'fllmt: negative runoff'
         endif
 ccc    if -1d-12 < rnf < 0. put it to 0 to avoid possible problems
 ccc    actually for ground hydrology it is not necessary
@@ -1079,7 +1083,7 @@ c**** soils28   common block     9/25/90
 
       subroutine xklh
 c**** evaluates the heat conductivity between layers
-c**** uses the method of devries.
+c**** uses the method of DeVries.
 c**** input:
 c**** zb - soil layer boundaries, m
 c**** zc - soil layer centers, m
@@ -1123,7 +1127,7 @@ c     xw,xi,xa are the volume fractions.  don't count snow in soil lyr 1
      &         + xb*hcwtb*alambr
           xden=xw*hcwtw+xi*hcwti+xa*hcwta+xsh(l,ibv)+xb*hcwtb
           xkh(l,ibv)=xnum/xden
-          if ( xkh(l,ibv) .lt. 0.d0 ) call abort()
+          if ( xkh(l,ibv) .lt. 0.d0 ) stop 'xklh: heat conductivity<0' 
         end do
       end do
 c     get the average conductivity between layers
@@ -1355,8 +1359,8 @@ c****
       call reth
       call hydra
       call outw(1)
-      call abort
-      stop 'tp'
+      ! call abort
+      stop 'retp: tground > 100C - see soil_outw and fort.99'
       endif
       return
       end subroutine retp
@@ -1446,8 +1450,8 @@ ccc   call outgh
       write(99,*)'dtr,dtm,dts',dtr,dtm,dts
       write(99,*)'tb0,tc0',tb0,tc0
       call outw(2)
-      call abort
-      stop 'advnc'
+      ! call abort
+      stop 'advnc: time step too short - see soil_outw and fort.99'
       end subroutine advnc
 
       subroutine accm
@@ -1674,7 +1678,7 @@ c**** first calculate timestep for water movement in soil.
       dtm=sgmm/(dldz2+1d-12)
       if(q(4,1).gt.0.d0)dtm=min(dtm,t450)
       dtm1=dtm
-      if ( dtm .lt. 0.d0 ) call abort()
+      if ( dtm .lt. 0.d0 ) stop 'gdtm: dt1_ghy<0' ! call abort()
 c****
 c**** next calculate timestep for heat movement in soil.
       do ibv=1,2
@@ -1686,7 +1690,7 @@ c**** next calculate timestep for heat movement in soil.
         end do
       end do
       dtm2=dtm
-      if ( dtm .lt. 0.d0 ) call abort()
+      if ( dtm .lt. 0.d0 ) stop 'gdtm: dt2_ghy<0' ! call abort()
 c****
 c**** finally, calculate max time step for top layer bare soil
 c**** and canopy interaction with surface layer.
@@ -1739,7 +1743,7 @@ c****
 
 
       subroutine outw(i)
-c**** prints theta values at time step i
+c**** prints current state of soil for one grid box
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
       use filemanager, only: openunit
@@ -1748,21 +1752,21 @@ c**** soils28   common block     9/25/90
       integer, save :: ichn = 0
       call wtab
       if( ichn == 0 ) call openunit("soil_outw", ichn)
-      scnds=i*dt  !??? doesn't make any sense
-      day=int(scnds/86400.d0)
-      iday=day
-      hour=int((scnds-86400.d0*day)/86400.d0)
-      ihour=hour
+c     scnds=i*dt  !??? doesn't make any sense
+c     day=int(scnds/86400.d0)
+c     iday=day
+c     hour=int((scnds-86400.d0*day)/86400.d0)
+c     ihour=hour
 c     print 1001
       write(ichn,1000)
       write(ichn,*)'general quantities (bare soil or vegetation)'
-      write(ichn,*)'ij,dts',ijdebug,dts
+      write(ichn,*)'dts,tag',dts,i,' after qsbal(0),retp(1),advnc(2)'
 cc    write(ichn,1021)
       write(ichn,1045)
-      write(ichn,1023)'day= ',iday,'pr= ',pr,'ts= ',ts-tfrz,
+      write(ichn,1023)'i= ',ijdebug/1000,'pr= ',pr,'ts= ',ts-tfrz,
      *     'q1= ',q1
-      write(ichn,1023)'hour= ',ihour,'snowf= ',snowf,'tg= ',tg-tfrz,
-     *     'qs= ',qs
+      write(ichn,1023)'j= ',mod(ijdebug,1000),
+     *     'snowf= ',snowf,'tg= ',tg-tfrz,'qs= ',qs
       write(ichn,1043)'t1= ',t1-tfrz,'vg= ',vg,'ch= ',ch
       write(ichn,1044)'vsm= ',vsm
       write(ichn,1022)
@@ -2062,7 +2066,7 @@ ccc better check it
           write(99,*) 'snowd corrected: old=', snowd(ibv)
           snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
           write(99,*) '                 new=', snowd(ibv)
-          if ( snowd(ibv) .lt. -0.001d0 ) call abort
+          if ( snowd(ibv) .lt. -0.001d0 ) stop 'set_snow: neg. snow'   
           if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
        endif
 

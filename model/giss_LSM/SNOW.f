@@ -177,8 +177,8 @@ ccc the following is just for check
           if ( fract.lt.-EPS .or. fract.gt.1.d0+EPS ) then
             print *, 'internal error 3 in snow_redistr'
             print *, 'fract= ', fract
-            call abort
-            stop 251
+            ! call abort
+            stop 'snow_redistr: error 3' ! stop 251
             endif
         wsn(n) = wsn(n) - fract*wsno(no)*fract_cover_ratio
         hsn(n) = hsn(n) - fract*hsno(no)*fract_cover_ratio
@@ -190,8 +190,8 @@ ccc the following is just for check
           if ( abs(fract).gt.EPS ) then
             print *,'internal error 1 in snow_redistr'
             print *, 'fract= ', fract
-            call abort
-            stop 251
+            ! call abort
+            stop 'snow_redistr: error 1' ! stop 251
             endif
           endif
         enddo
@@ -265,7 +265,7 @@ ccc for debug
       if ( abs(total_energy) .gt. 1.d0 ) then
         print*, "total energy error",i_earth, j_earth,total_energy,
      *       heat_to_ground,radiation_out*dt
-         stop 'total energy error' ! call abort
+         stop 'snow_adv: total energy error' ! call abort
        end if
 ccc   just for debug:
 ccc      water_to_ground =  pr
@@ -327,7 +327,7 @@ c!!!  this is for debugging
             print*,"wsn error 1",i_earth, j_earth,n,wsn(n),
      *       wsn(n)/dz(n)*rho_water
      *           ,rho_fresh_snow
-            stop 'wsn error 1' ! call abort
+            stop 'snow_adv_1: wsn error 1' ! call abort
           end if
           endif
         enddo
@@ -341,7 +341,7 @@ ccc the following if should be removed if it works ok with thicker snow
         if( nl .ne. 1 ) then
           print *, 'OOPS: nl= ',nl,' fract_cover= ',fract_cover
      &              ,'dz= ', dz
-          stop 251
+          stop 'snow_adv_1: impossible' ! 251
           endif
         fract_cover = dz(1)/MIN_SNOW_THICKNESS
 ccc        if( fract_cover .lt. EPS ) then
@@ -426,7 +426,7 @@ c!!!  this is for debugging
      &      .lt.rho_fresh_snow) then
           print*,"wsn error 2",i_earth, j_earth,n,wsn(n),(wsn(n)+
      *       water_down+evaporation*dt)/dz(n)*rho_water,rho_fresh_snow
-          stop 'wsn error 2' ! call abort
+          stop 'snow_adv_1: wsn error 2' ! call abort
         end if
       enddo
 
@@ -443,7 +443,7 @@ c!!!  this is for debugging
           print*,"wsn error 3",i_earth, j_earth,n,wsn(n),
      *    wsn(n)/dz(n)*rho_water
      *         ,rho_fresh_snow
-          stop 'wsn error 3' ! call abort
+          stop 'snow_adv_1: wsn error 3' ! call abort
         end if
       enddo
 
@@ -490,7 +490,7 @@ ccc compute temperature of the layers (and amount of ice)
       do n=1,nl
         if ( hsn(n) .gt. 0.d0 ) then
           print *, 'OOPS, No snow in layer ', n
-          stop 251
+          stop 'snow_adv_1: empty snow layer found (1)' ! 251
         else if ( hsn(n) .gt. -wsn(n)*lat_fusion ) then
           tsn(n) = 0.d0
           isn(n) = -hsn(n)/lat_fusion
@@ -557,7 +557,7 @@ c!!!  this is for debugging
           print*,"wsn error 4",i_earth, j_earth,n,wsn(n),
      *    wsn(n)/dz(n)*rho_water
      *         ,rho_fresh_snow
-          stop 'wsn error 4' ! call abort
+          stop 'snow_adv_1: wsn error 4' ! call abort
         end if
       enddo
 
@@ -607,7 +607,7 @@ ccc compute temperature of the layers
       do n=1,nl
         if ( hsn(n) .gt. 0.d0 ) then
           print *, 'OOPS, No snow in layer ', n
-          stop 251
+          stop 'snow_adv_1: empty snow layer found (2)' ! 251
         else if ( hsn(n) .gt. -wsn(n)*lat_fusion ) then
           tsn(n) = 0.d0
         else
@@ -643,7 +643,7 @@ c!!!  this is for debugging
           print*,"wsn error 5",i_earth, j_earth,n,wsn(n),
      *    wsn(n)/dz(n)*rho_water
      *         ,rho_fresh_snow
-          stop 'wsn error 5' ! call abort
+          stop 'snow_adv_1: wsn error 5' ! call abort
         end if
       enddo
 
@@ -659,7 +659,7 @@ ccc      if(tsn(1).lt.-120.d0) call abort
 c!!! this is for debugging
       if(tsn(1).lt.-120.d0) then
         print*,"tsn error",i_earth, j_earth,1,tsn(1:nl)
-        stop 'tsn error' ! call abort
+        stop 'snow_adv_1: tsn error' ! call abort
       end if
 
       retcode = 0
