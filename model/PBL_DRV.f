@@ -57,7 +57,7 @@ C**** Tracer input/output common block
 #endif
 
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
-      REAL*8 ttop,qtop,tgrnd,qgrnd,utop,vtop,ufluxs,vfluxs
+      REAL*8 ttop,qtop,tgrndv,qgrnd,utop,vtop,ufluxs,vfluxs
      *     ,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 
@@ -145,7 +145,7 @@ C *********************************************************************
       coriol=sinp(j)*omega2
       ttop=tkv
       qtop=q(i,j,1)
-      tgrnd=tgv
+      tgrndv=tgv
       qgrnd=qg
 
       utop=0. ; vtop=0. ;  ug=0. ; vg=0.
@@ -196,7 +196,7 @@ C *********************************************************************
 c     write(67,1003) "p-gradients: ",dpdxrij,dpdyrij,dpdxr0ij,dpdyr0ij
 c1003 format(a,4(1pe14.4))
       call advanc(
-     3     coriol,utop,vtop,ttop,qtop,tgrnd,qgrnd,evap_max,fr_sat,
+     3     coriol,utop,vtop,ttop,qtop,tgrndv,qgrnd,evap_max,fr_sat,
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,
 #endif
@@ -243,6 +243,9 @@ C ******************************************************************
       tflux(I,J)=tflux(I,J)+tfluxs*PTYPE
       qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
 
+      tgvAVG(I,J)=tgvAVG(I,J)+tgv*PTYPE
+      qgAVG(I,J)=qgAVG(I,J)+qg*PTYPE
+
       RETURN
       END SUBROUTINE PBL
 
@@ -285,7 +288,7 @@ c -------------------------------------------------------------
       integer :: itype  !@var itype surface type
       integer i,j,k,iter,lpbl !@var i,j,k,iter loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,
-     *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd
+     *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
       real*8 qsat
 
@@ -339,8 +342,8 @@ C things to be done regardless of inipbl
           coriol=sinp(j)*omega2
 
           do i=1,imaxj(j)
-            tgrnd=tgvdat(i,j,itype)
-            if (tgrnd.eq.0.) then
+            tgrndv=tgvdat(i,j,itype)
+            if (tgrndv.eq.0.) then
               ipbl(i,j,itype)=0
               go to 200
             endif
@@ -348,7 +351,7 @@ C things to be done regardless of inipbl
             pij=p(i,j)
             ps=pedn(1,i,j)    !pij+ptop
             psk=pek(1,i,j)    !expbyk(ps)
-            qgrnd=qsat(tgrnd,elhx,ps)
+            qgrnd=qsat(tgrndv,elhx,ps)
 
             utop = 0. ;  vtop = 0.
             if (j.eq.1) then
@@ -392,7 +395,7 @@ c ******************************************************************
             dpdxr0ij = DPDX_BY_RHO_0(i,j)
             dpdyr0ij = DPDY_BY_RHO_0(i,j)
 
-            call inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
+            call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,bgrid,ustar,
      3                 ilong,jlat,itype)
             cmgs(i,j,itype)=cm
@@ -612,7 +615,7 @@ c ----------------------------------------------------------------------
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     *     ,ustar,uflux,vflux,tflux,qflux
+     *     ,ustar,uflux,vflux,tflux,qflux,tgvavg,qgavg
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -632,6 +635,9 @@ C**** Check for NaN/INF in boundary layer data
       CALL CHECK3(vflux,IM,JM,1,SUBR,'vflux')
       CALL CHECK3(tflux,IM,JM,1,SUBR,'tflux')
       CALL CHECK3(qflux,IM,JM,1,SUBR,'qflux')
+
+      CALL CHECK3(tgvavg,IM,JM,1,SUBR,'tgvavg')
+      CALL CHECK3(qgavg,IM,JM,1,SUBR,'qgavg')
 
       END SUBROUTINE CHECKPBL
 

@@ -19,7 +19,7 @@
       USE RADNCB, only : trhr,fsf,cosz1
       USE PBLCOM, only : ipbl,cmgs,chgs,cqgs
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux
+     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg
 C**** Interface to PBL
       USE SOCPBL, only : zgs,ZS1,TGV,TKV,QG,HEMI,DTSURF,POLE
      &     ,US,VS,WS,WSH,WSQ,TSV,QS,PSI,DBL,KMS,KHS,KQS,PPBL
@@ -139,6 +139,8 @@ C****
       USAVG(I,J)=0.
       VSAVG(I,J)=0.
       TAUAVG(I,J)=0.
+      TGVAVG(I,J)=0.
+      QGAVG(I,J)=0.
 
       ! initialize fluxes before calling PBL subroutine
       uflux(I,J)=0.
