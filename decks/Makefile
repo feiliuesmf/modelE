@@ -45,7 +45,7 @@ rundeck:
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
 	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
 
-gcm $(BIN_DIR)/$(RUN).exe:
+gcm $(BIN_DIR)/$(RUN).exe depend:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 setup: gcm
