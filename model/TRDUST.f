@@ -38,12 +38,6 @@ c     than threshold dryhr to permit dust emission
         ricntd(i,j)=ricntd(i,j)+Dtsrc/3600./nisurf
         IF (ricntd(i,j) >= dryhr(i,j) .AND. dryhr(i,j) /= 0) THEN
           pmei=.TRUE.
-c          WRITE(*,*)
-c     &     'In dust_emission_constraints: itime,i,j,dryhr,ricntd,pmei:',
-c     &         itime,i,j,dryhr(i,j),ricntd(i,j),pmei
-c          WRITE(*,*)
-c     &'In dust_emission_constraints: itime,i,j,itype,prec,pprec,pevap:',
-c     &         itime,i,j,itype,prec(i,j),pprec(i,j),pevap(i,j,itype)
         ELSE
           pmei=.FALSE.
         END IF
@@ -138,6 +132,7 @@ c     only over 5% of the area.
           qdust(i,j)=.FALSE.
         END IF
       END IF
+
 #endif
 
       RETURN
@@ -266,7 +261,7 @@ c     prescribed AEROCOM dust emission
 
 #endif
 #endif
-           
+            
       RETURN
       END SUBROUTINE local_dust_emission
 

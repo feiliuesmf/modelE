@@ -42,8 +42,8 @@ c      enddo
       USE tracers_dust,ONLY : dryhr,frclay,frsilt,hbaij,ricntd,vtrsh,
      &     ers_data,gin_data,wsubtke=>wsubtke_com,wsubwd=>wsubwd_com,
      &     wsubwm=>wsubwm_com
-      USE tracer_diag_com,ONLY : nDustEmij,nDustEmjl
-      USE ghycom,ONLY : wearth,aiearth
+      USE trdiag_com,ONLY : nDustEmij,nDustEmjl
+      USE ghy_com,ONLY : wearth,aiearth
 
       IMPLICIT NONE
 
@@ -352,7 +352,8 @@ c     &       sigma,vtrshij,wsavgij,workij
       USE fluxes,ONLY : prec,trsrfflx,tr3Dsource
       USE tracer_com,ONLY : n_clay,Ntm_dust,trm,trmom
       USE trdiag_com,ONLY : ijts_source,jls_3Dsource,taijs,tajls
-      USE tracers_dust_com,ONLY : Z,nDustWetij,nDustWet3Djl,prelay
+      USE tracers_dust_com,ONLY : Z
+      USE tracers_dust,ONLY : nDustWetij,nDustWet3Djl,prelay
       USE CLOUDS_COM, ONLY : cldmc,cldss
       USE DYNAMICS, ONLY : gz
 

@@ -6,7 +6,7 @@
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
-      USE model_com,ONLY : JMperY
+      USE model_com,ONLY : JMperY,JDperY
       USE tracer_com,ONLY : Ntm_dust
 
       IMPLICIT NONE
@@ -25,8 +25,8 @@
       REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
 #else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9/)
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9/)
 #endif
 #else
 #ifdef TRACERS_MINERALS
@@ -36,10 +36,10 @@
      &     52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,52.D-9,
      &     52.D-9/)
 #else !default case
-      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,2.7D-9,
-     &     2.7D-9/)
+      REAL*8,PARAMETER :: Uplfac(Ntm_dust)=(/2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,2.2D-9,
+     &     2.2D-9/)
 #endif
 #endif
 #endif
@@ -54,7 +54,7 @@
 #ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.17D0,By4,By4,By4/)
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,By4,By4,By4/)
 #endif
 #else
 #ifdef TRACERS_MINERALS
@@ -63,7 +63,7 @@
       REAL*8 :: Fracn(Ntm_dust)=(/By6,By6,By6,By6,By6,By8,By8,By8,By8,
      &     By8,By8,By8,By8,By8,By8,By8,By8,By8,By8,By8/)
 #else !default case
-      REAL*8 :: Fracn(Ntm_dust)=(/0.17D0,0.17D0,0.17D0,0.17D0,0.17D0,
+      REAL*8 :: Fracn(Ntm_dust)=(/0.18D0,0.18D0,0.18D0,0.18D0,0.18D0,
      &     By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4,By4/)
 #endif
 #endif
@@ -89,7 +89,7 @@
       INTEGER,PARAMETER :: lim=294,ljm=244,lkm=9
       REAL*8 :: curint(Im,Jm),table(lim,ljm,lkm),x1(lim),x2(ljm),x3(lkm)
       REAL*8 :: wsubtke_com(Im,Jm),wsubwd_com(Im,Jm),wsubwm_com(Im,Jm)
-      REAL*8 :: prelay(im,jm,Lm),prebar1(Lm)
+      REAL*8 :: prelay(im,jm,Lm)
 !@var d_dust Prescribed daily dust emissions
       REAL*8 :: d_dust(Im,Jm,Ntm_dust,JDperY)
 #endif
