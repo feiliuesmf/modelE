@@ -3,7 +3,7 @@ E001gas.R GISS Model E                                 gas 06/00
 E001: new modelE (based on B402A)
 
 Object modules: (in order of decreasing priority)
-E001M12_COM SOMTQ_COM               ! model modules  
+E001M12_COM SOMTQ_COM GEOM_B        ! model modules  
 ME001M12 QUSEM12                    ! daily dyn,Filt adv/avrx (2d ord mom.)
 CE001M12 SUBSIDEM12 PE001M12        ! mstcnv,condse phys(no surfce)
 SE001M12 EE001M12   PBLE001  SLE001 ! surfce and its subr

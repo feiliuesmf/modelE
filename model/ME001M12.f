@@ -15,6 +15,7 @@ C**** f90 changes
 *****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE GEOM
       USE SLE001
      &   , only : ghdata
       USE RANDOM
@@ -451,62 +452,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       IF (KSS6.EQ.1) STOP 12
       STOP 13
       END
-      SUBROUTINE GEOM
-C**** CALCULATE SPHERICAL GEOMETRY
-      USE E001M12_COM
-      IMPLICIT REAL*8 (A-H,O-Z)
-      DATA EDPERD/1./,EDPERY/365./
-
-      LAT(1)  = -.25*TWOPI
-      LAT(JM) = -LAT(1)
-      SINP(1)  = -1.
-      SINP(JM) = 1.
-      COSP(1)  = 0.
-      COSP(JM) = 0.
-      DXP(1)  = 0.
-      DXP(JM) = 0.
-      FJEQ = .5*(1+JM)
-      DO 620 J=2,JM-1
-      LAT(J)  = DLAT*(J-FJEQ)
-      SINP(J) = SIN(LAT(J))
-      COSP(J) = COS(LAT(J))
-  620 DXP(J)  = RADIUS*DLON*COSP(J)
-      DO 640 J=2,JM
-      COSV(J) = .5*(COSP(J-1)+COSP(J))
-      DXV(J)  = .5*(DXP(J-1)+DXP(J))
-  640 DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
-      DYP(1)  = .5*DYV(2)
-      DYP(JM) = .5*DYV(JM)
-      DXYP(1) = .5*DXV(2)*DYP(1)
-      DXYP(JM)= .5*DXV(JM)*DYP(JM)
-      DXYS(1)  = 0.
-      DXYS(JM) = DXYP(JM)
-      DXYN(1)  = DXYP(1)
-      DXYN(JM) = 0.
-      AREAG = DXYP(1)+DXYP(JM)
-      DO 660 J=2,JM-1
-      DYP(J)  = .5*(DYV(J)+DYV(J+1))
-      DXYP(J) = .5*(DXV(J)+DXV(J+1))*DYP(J)
-      DXYS(J) = .5*DXYP(J)
-      DXYN(J) = .5*DXYP(J)
-  660 AREAG = AREAG+DXYP(J)
-      AREAG = AREAG*FIM
-      RAVPS(1)  = 0.
-      RAVPN(JM) = 0.
-      DO 680 J=2,JM
-      DXYV(J) = DXYN(J-1)+DXYS(J)
-      RAPVS(J)   = .5*DXYS(J)/DXYV(J)
-      RAPVN(J-1) = .5*DXYN(J-1)/DXYV(J)
-      RAVPS(J)   = .5*DXYS(J)/DXYP(J)
-  680 RAVPN(J-1) = .5*DXYN(J-1)/DXYP(J-1)
-C**** CALCULATE CORIOLIS PARAMETER
-      OMEGA = TWOPI*(EDPERD+EDPERY)/(EDPERD*EDPERY*SDAY)
-      FCOR(1)  = -RADIUS*OMEGA*.5*COSP(2)*DXV(2)
-      FCOR(JM) = -FCOR(1)
-      DO 690 J=2,JM-1
-  690 FCOR(J) = OMEGA*(DXV(J)*DXV(J)-DXV(J+1)*DXV(J+1))/DLON
-      RETURN
-      END
 
       BLOCK DATA BDINP
 C****
@@ -576,6 +521,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE GEOM
       USE SLE001
      &  , only : ngm,sinday=>sint,cosday=>cost,gw=>w,ghdata,sdata,
      &           ghinit,ghinij,ghinht
@@ -648,9 +594,6 @@ CSGI  READ (NLREC,INPUTZ)
       REWIND 8
       IF (ISTART.GE.10) GO TO 90
 C**** SET STRICTLY DEPENDENT QUANTITIES
-      DLON=TWOPI/IM
-      IF (JM.EQ.24.AND.IM.EQ.12) DLON=DLON/3.
-      DLAT=.5*TWOPI/(JM-1)
       JMM1=JM-1
       FIM=IM
       LMM1=LM-1
@@ -937,7 +880,7 @@ C****
   605 KEYNR(K,1)=0
   610 CONTINUE
 C**** CALCULATE SPHERICAL GEOMETRY
-      CALL GEOM
+      CALL GEOM_B
 C**** CALCULATE DSIG AND DSIGO
       DO 700 L=1,LM
   700 DSIG(L)=SIGE(L)-SIGE(L+1)
@@ -1094,6 +1037,7 @@ C**** INTEGRATE DYNAMIC TERMS
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE GEOM
       USE CLOUDS, only : PTOLD,WM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK6/UT(IM,JM,LM),VT(IM,JM,LM),
@@ -1101,9 +1045,7 @@ C****
       COMMON/WORK2/UX(IM,JM,LM),VX(IM,JM,LM)
       DIMENSION PA(IM,JM),PB(IM,JM),PC(IM,JM),FPEU(IM,JM),FPEV(IM,JM),
      *          FWVU(IM,JM),FWVV(IM,JM)
-c      COMMON/CLDCOM/TTOLD(IM,JM,LM),QTOLD(IM,JM,LM),PTOLD(IM,JM),
-c     *  WM(IM,JM,LM),SVLHX(IM,JM,LM),RHSAV(IM,JM,LM),PBLTOP(IM,JM)
-c     *  ,SVWMX(IM,JM,LM),SVLAT(IM,JM,LM),CLDSAV(IM,JM,LM)
+
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
       COMMON/WORK3/PHI(IM,JM,LM)
 
@@ -1260,7 +1202,8 @@ C**** AND VERTICAL AIR MASS FLUXES AS DETERMINED BY U, V AND P.
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,psf,ptop,ls1,dyp,dsig,dxv,fim
+     &     , only : im,jm,lm,psf,ptop,ls1,dsig,fim
+      USE GEOM
       USE CLOUDS, only : SD_CLOUDS  ! tmp fix for CLOUDS module
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),P(IM,JM) ! p is just workspace
@@ -1397,7 +1340,8 @@ C**** THIS SUBROUTINE CALCULATES UPDATED COLUMN PRESSURES AS
 C**** DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES.
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,dxyp,ptrunc,mrch,fdata,odata,gdata,u,v,t,q
+     &     , only : im,jm,lm,ptrunc,mrch,fdata,odata,gdata,u,v,t,q
+      USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION P(IM,JM)
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1)
@@ -1439,8 +1383,9 @@ C**** THIS SUBROUTINE ADVECTS MOMENTUM (INCLUDING THE CORIOLIS FORCE)
 C**** AS DETERMINED BY DT1 AND THE CURRENT AIR MASS FLUXES
 C****
       USE E001M12_COM
-     &     , only : im,jm,lm,mrch,modd5k,rgas,kapa,dxyp,psf,ptop,ls1,
-     &              dsig,ravpn,ravps,dxv,lmm1,fcor, dxyn,dxys,dxyv
+     &     , only : im,jm,lm,mrch,modd5k,rgas,kapa,psf,ptop,ls1,
+     &              dsig,lmm1
+      USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),P(IM,JM)
       COMMON/WORK1/PIT(IM,JM),SD(IM,JM,LM-1),PU(IM,JM,LM),PV(IM,JM,LM)
@@ -1612,7 +1557,8 @@ C**** THE PRESSURE GRADIENT FORCE
 C****
       USE E001M12_COM
      &     , only : im,jm,lm,rgas,kapa,sige,psf,ptop,ls1,fdata,dsig,sig,
-     &              dxv,dyv,mrch,modd5k,dxyp,dxyv
+     &              mrch,modd5k
+      USE GEOM
       USE CLOUDS, only : GZ
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM),T(IM,JM,LM),P(IM,JM)
@@ -1788,6 +1734,7 @@ C**** GRADIENTS NEAR THE POLES TO HELP AVOID COMPUTATIONAL INSTABILITY.
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
 C****
       USE E001M12_COM
+      USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION X(IM,JM),SM(IMH,JM),DRAT(JM),NMIN(JM)
       COMMON/AVRXX/BYSN(IMH),AN(0:IMH),BN(0:IMH)
@@ -1830,6 +1777,7 @@ C****        3  SMOOTH P AND T
 C****
       USE E001M12_COM
       USE SOMTQ_COM
+      USE GEOM
       USE CLOUDS, only : WM
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/WORK2/X(IM,JM),XS(IM),Y(IM,JM)
@@ -1930,6 +1878,7 @@ C**** THE SMALLEST SCALES.
 C**********************************************************************
       USE E001M12_COM
      &     , only : im,jm,lm
+      USE GEOM
       IMPLICIT REAL*8 (A-H,O-Z)
       DIMENSION U(IM,JM,LM),V(IM,JM,LM)
       DIMENSION X(IM),Y(0:JM+1),F2D(IM,JM)
@@ -2078,6 +2027,7 @@ C**** THIS SUBROUTINE PERFORMS THOSE FUNCTIONS OF THE PROGRAM WHICH
 C**** TAKE PLACE AT THE BEGINNING OF A NEW DAY.
 C****
       USE E001M12_COM
+      USE GEOM
       USE SLE001
      &  , only : ghinij, cosday=>cost, sinday=>sint
       USE SOCPBL

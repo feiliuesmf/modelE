@@ -733,7 +733,9 @@ c *********************************************************************
      *     cmin=smin*smin
 
       real*8 r0q,beta,zgsbyl,z0mbyl,z0hbyl,z0qbyl,cmn,chn,cqn,dpsim
-     *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq
+     *     ,dpsih,dpsiq,xms,xm0,xhs,xh0,xqs,xq0,dm,dh,dq,lzgsbyz0m
+     *     ,lzgsbyz0h,lzgsbyz0q
+
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
@@ -765,9 +767,12 @@ c    empirical evidence suggests:
 c *********************************************************************
       endif
 
-      cmn=kappa*kappa/(log(zgs/z0m)**2)
-      chn=kappa*kappa/(log(zgs/z0m)*log(zgs/z0h))
-      cqn=kappa*kappa/(log(zgs/z0m)*log(zgs/z0q))
+      lzgsbyz0m = log(zgs/z0m)
+      lzgsbyz0h = log(zgs/z0h)
+      lzgsbyz0q = log(zgs/z0q)
+      cmn=kappa*kappa/(lzgsbyz0m**2)
+      chn=kappa*kappa/(lzgsbyz0m*lzgsbyz0h)
+      cqn=kappa*kappa/(lzgsbyz0m*lzgsbyz0q)
 
       zgsbyl=zgs/lmonin
       z0mbyl=z0m/lmonin
@@ -783,8 +788,8 @@ c *********************************************************************
 c *********************************************************************
 c  Here the atmosphere is stable with respect to the ground:
         dpsim=-gamams*(zgsbyl-z0mbyl)
-        dpsih= sigma1*log(zgs/z0h)-sigma*gamahs*(zgsbyl-z0hbyl)
-        dpsiq= sigma1*log(zgs/z0q)-sigma*gamahs*(zgsbyl-z0qbyl)
+        dpsih= sigma1*lzgsbyz0h-sigma*gamahs*(zgsbyl-z0hbyl)
+        dpsiq= sigma1*lzgsbyz0q-sigma*gamahs*(zgsbyl-z0qbyl)
 c *********************************************************************
         else
 c *********************************************************************
@@ -798,8 +803,8 @@ c  Here the atmosphere is unstable with respect to the ground:
         dpsim=log((1.+xms)*(1.+xms)*(1.+xms*xms)/
      2           ((1.+xm0)*(1.+xm0)*(1.+xm0*xm0)))-
      3        2.*(atan(xms)-atan(xm0))
-        dpsih=sigma1*log(zgs/z0h)+2.*sigma*log((1.+xhs)/(1.+xh0))
-        dpsiq=sigma1*log(zgs/z0q)+2.*sigma*log((1.+xqs)/(1.+xq0))
+        dpsih=sigma1*lzgsbyz0h+2.*sigma*log((1.+xhs)/(1.+xh0))
+        dpsiq=sigma1*lzgsbyz0q+2.*sigma*log((1.+xqs)/(1.+xq0))
 c *********************************************************************
       endif
 
@@ -838,7 +843,7 @@ c *********************************************************************
       real*8 :: u,t,q,z,ustar,tstar,qstar,
      2                 z0m,z0h,z0q,lmonin,tg,qg
       real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
-     *     ,xq,xq0
+     *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
 
 c  Inputs:
 c     z      = height above ground at which soln is being computed (m)
@@ -862,7 +867,9 @@ c *********************************************************************
       z0mbyl=z0m/lmonin
       z0hbyl=z0h/lmonin
       z0qbyl=z0q/lmonin
-
+      lzbyz0m=log(z/z0m)
+      lzbyz0h=log(z/z0h)
+      lzbyz0q=log(z/z0q)
 c *********************************************************************
 c  Now compute DPSI, which is the difference in the psi functions
 c    computed at zgs and the relevant roughness height:
@@ -872,8 +879,8 @@ c *********************************************************************
 c *********************************************************************
 c  Here the atmosphere is stable with respect to the ground:
         dpsim=-gamams*(zbyl-z0mbyl)
-        dpsih= sigma1*log(z/z0h)-sigma*gamahs*(zbyl-z0hbyl)
-        dpsiq= sigma1*log(z/z0q)-sigma*gamahs*(zbyl-z0qbyl)
+        dpsih= sigma1*lzbyz0h-sigma*gamahs*(zbyl-z0hbyl)
+        dpsiq= sigma1*lzbyz0q-sigma*gamahs*(zbyl-z0qbyl)
 c *********************************************************************
         else
 c *********************************************************************
@@ -887,14 +894,14 @@ c  Here the atmosphere is unstable with respect to the ground:
         dpsim=log((1.+xm )*(1.+xm )*(1.+xm *xm )/
      2           ((1.+xm0)*(1.+xm0)*(1.+xm0*xm0)))-
      3        2.*(atan(xm )-atan(xm0))
-        dpsih=sigma1*log(z/z0h)+2.*sigma*log((1.+xh)/(1.+xh0))
-        dpsiq=sigma1*log(z/z0q)+2.*sigma*log((1.+xq)/(1.+xq0))
+        dpsih=sigma1*lzbyz0h+2.*sigma*log((1.+xh)/(1.+xh0))
+        dpsiq=sigma1*lzbyz0q+2.*sigma*log((1.+xq)/(1.+xq0))
 c *********************************************************************
       endif
 
-      u=   (ustar/kappa)*(log(z/z0m)-dpsim)
-      t=tg+(tstar/kappa)*(log(z/z0h)-dpsih)
-      q=qg+(qstar/kappa)*(log(z/z0q)-dpsiq)
+      u=   (ustar/kappa)*(lzbyz0m-dpsim)
+      t=tg+(tstar/kappa)*(lzbyz0h-dpsih)
+      q=qg+(qstar/kappa)*(lzbyz0q-dpsiq)
 
       return
       end subroutine simil
@@ -969,8 +976,8 @@ c ----------------------------------------------------------------------
       real*8 xi(n),xihat(n-1)
       real*8 dz(n),dzh(n-1)
       real*8 z1,zn,bgrid
-      real*8 z1pass,znpass,b,xipass
-      common /grids_99/z1pass,znpass,b,xipass
+      real*8 z1pass,znpass,b,xipass,lznbyz1
+      common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       real*8, external :: fgrid
       integer i,j,iter  !@var i,j,iter loop variable 
       real*8 dxi,zmin,zmax,dxidz,dxidzh
@@ -990,11 +997,12 @@ c      real*8 zbrent
       xi(n)=zn
       z(1)=z1
 
-      dxidz=1.+bgrid*((zn-z1)/z1-log(zn/z1))
+      lznbyz1 = log(zn/z1)
+      dxidz=1.+bgrid*((zn-z1)/z1-lznbyz1)
       dz(1)=dxi/dxidz
       xipass=xihat(1)
       zhat(1)=zbrent(fgrid,zmin,zmax,tolz)
-      dxidzh=1.+bgrid*((zn-z1)/zhat(1)-log(zn/z1))
+      dxidzh=1.+bgrid*((zn-z1)/zhat(1)-lznbyz1)
       dzh(1)=dxi/dxidzh
 
       do i=2,n-1
@@ -1002,13 +1010,13 @@ c      real*8 zbrent
         z(i)=zbrent(fgrid,zmin,zmax,tolz)
         xipass=xihat(i)
         zhat(i)=zbrent(fgrid,zmin,zmax,tolz)
-        dxidz=1.+bgrid*((zn-z1)/z(i)-log(zn/z1))
-        dxidzh=1.+bgrid*((zn-z1)/zhat(i)-log(zn/z1))
+        dxidz=1.+bgrid*((zn-z1)/z(i)-lznbyz1)
+        dxidzh=1.+bgrid*((zn-z1)/zhat(i)-lznbyz1)
         dz(i)=dxi/dxidz
         dzh(i)=dxi/dxidzh
       end do
       z(n)=zn
-      dxidz=1.+bgrid*((zn-z1)/zn-log(zn/z1))
+      dxidz=1.+bgrid*((zn-z1)/zn-lznbyz1)
       dz(n)=dxi/dxidz
 
       return
@@ -2646,6 +2654,7 @@ c ******* itype=4: Land
 
       subroutine pgrads1
       USE E001M12_COM
+      USE GEOM, only : dyp,dxp
       USE SOCPBL, only : dpdxr,dpdyr,phi,dpdxr0,dpdyr0,iq1,iq2,iq3
       IMPLICIT NONE
 
@@ -2812,10 +2821,10 @@ c     for GCM main level 1:
       implicit none
       real*8, intent(in) :: z
       real*8 fgrid
-      real*8 z1,zn,bgrid,xi
-      common /grids_99/z1,zn,bgrid,xi
+      real*8 z1,zn,bgrid,xi,lznbyz1
+      common /grids_99/z1,zn,bgrid,xi,lznbyz1
 
-      fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*log(zn/z1))-xi
+      fgrid=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       return
       end function fgrid
 

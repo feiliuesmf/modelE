@@ -14,6 +14,7 @@ C**** Subsid only works on non-plume portion of column (properly!)
       USE E001M12_COM
       USE SOMTQ_COM
       USE RANDOM
+      USE GEOM
       IMPLICIT NONE
 
       REAL*8, SAVE :: SD_CLOUDS,PREC,TPREC,TAUSS,TAUMC,UC,VC,PRECSS
@@ -134,9 +135,8 @@ C**** Subsid only works on non-plume portion of column (properly!)
       INTEGER, SAVE :: IFIRST = 1
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER IHOUR,IMAX,ITYPE,KMAX,JVPO,IM1,JR,KR
-      LOGICAL POLE
-      REAL*8 RAPO
+      INTEGER IHOUR,IMAX,ITYPE,KMAX,IM1,JR,KR
+
       REAL*8 THBAR   !,EXPBYK
 C****
       IDACC(1)=IDACC(1)+1
@@ -206,32 +206,9 @@ C****
 C**** MAIN J LOOP
 C****
       DO 810 J=1,JM
-      IF (J.EQ.1 .OR. J.EQ.JM) THEN
-C**** CONDITIONS AT THE POLES
-      POLE=.TRUE.
-      IMAX=1
-      IF(J.EQ.1) THEN
-        JVPO=2
-        RAPO=2.*RAPVN(1)
-      ELSE
-        JVPO=JM
-        RAPO=2.*RAPVS(JM)
-      END IF
-      KMAX=2*IM
-      DO 88 I=1,IM
-      RA(I)=RAPO
-      RA(I+IM)=RAPO
-      ID(I)=I+(JVPO-1)*IM
-   88 ID(I+IM)=I+(JVPO-1)*IM+IM*JM*LM
-      ELSE
-C**** CONDITIONS AT NON-POLAR POINTS
-      POLE=.FALSE.
-      IMAX=IM
-      KMAX=8
-      DO 100 K=1,4
-      RA(K)=RAPVS(J)
-  100 RA(K+4)=RAPVN(J)
-      END IF
+
+      KMAX=KMAXJ(J)
+      IMAX=IMAXJ(J)
 C****
 C**** MAIN I LOOP
 C****
@@ -248,22 +225,16 @@ C****
       POCEAN=(1.-PLAND)-POICE
       PLICE=FDATA(I,J,3)*PLAND
       PEARTH=PLAND-PLICE
-      IF(.NOT. POLE) THEN
-      ID(1)=IM1+(J-1)*IM
-      ID(2)=ID(1)+IM*JM*LM
-      ID(3)=I+(J-1)*IM
-      ID(4)=ID(3)+IM*JM*LM
-      ID(5)=IM1+J*IM
-      ID(6)=ID(5)+IM*JM*LM
-      ID(7)=I+J*IM
-      ID(8)=ID(7)+IM*JM*LM
-      END IF
+
+      DO K=1,KMAX
+         RA(K)=RAIJ(K,I,J)
+         ID(K)=IDIJ(K,I,J)
+      END DO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PIJ=P(I,J)
       DO 150 L=1,LM
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-c      PL(L)=SIG(L)*PIJ+PTOP
-c      PLE(L)=SIGE(L)*PIJ+PTOP
+
       PL(L) =PMID(L,I,J)
       PLE(L)=PEDN(L,I,J)
       PLK(L)=PK(L,I,J)
@@ -305,8 +276,9 @@ c      QL(L)=Q(I,J,L)
       SM1(L)=SM(L)
       QM1(L)=QM(L)
 C**** SURROUNDING WINDS
-      DO 120 K=1,KMAX
-  120 UM(K,L)=UC(ID(K),1,L)*AIRM(L)
+      DO K=1,KMAX
+         UM(K,L)=UC(ID(K),1,L)*AIRM(L)
+      END DO
   150 CONTINUE
       ETAL(LM)=ETAL(LM-1)
 c      PLE(LM+1)=PTOP+(PSF-PTOP)*SIGE(LM+1)
@@ -491,9 +463,10 @@ C     FPLUM0=FMP1*BYAM(LMIN)
       DQZZMR(LMIN)=-QZZMOLD(LMIN)*FPLUME
       DQYZMR(LMIN)=-QYZMOLD(LMIN)*FPLUME
       DQZXMR(LMIN)=-QZXMOLD(LMIN)*FPLUME
-      DO 210 K=1,KMAX
-      UMP(K)=UM(K,LMIN)*FPLUME
-  210 DUM(K,LMIN)=-UMP(K)
+      DO K=1,KMAX
+         UMP(K)=UM(K,LMIN)*FPLUME
+         DUM(K,LMIN)=-UMP(K)
+      END DO
 C****
 C**** RAISE THE PLUME TO THE TOP OF CONVECTION AND CALCULATE
 C**** ENTRAINMENT, CONDENSATION, AND SECONDARY MIXING
@@ -538,8 +511,9 @@ C****
       SMPO =SMP
       QMPO =QMP
       MPO = MPLUME
-      DO 245 K=1,KMAX
-  245 UMPO(K)=UMP(K)
+      DO K=1,KMAX
+         UMPO(K)=UMP(K)
+      END DO
 C     IF(MPLUME.GT.AIRM(L)) THEN
       IF(MPLUME.GT..95*AIRM(L)) THEN
 C     DELTA=(MPLUME-AIRM(L))/MPLUME
@@ -548,8 +522,9 @@ C     DELTA=(MPLUME-AIRM(L))/MPLUME
       QMP = QMP  *(1.-DELTA)
 C     MPLUME=AIRM(L)
       MPLUME=.95*AIRM(L)
-      DO 250 K=1,KMAX
-  250 UMP(K)=UMP(K)-UMP(K)*DELTA
+      DO K=1,KMAX
+         UMP(K)=UMP(K)-UMP(K)*DELTA
+      END DO
       END IF
 C****
 C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
@@ -594,8 +569,9 @@ c      QMP = QMP *(1.-DELTA)     ! already set above
       QXXMP=QXXMP*(1.-DELTA)
       QYYMP=QYYMP*(1.-DELTA)
       QXYMP=QXYMP*(1.-DELTA)
-      DO 265 K=1,KMAX
-  265 DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA
+      DO K=1,KMAX
+        DUM(K,L-1)=DUM(K,L-1)+UMPO(K)*DELTA
+      END DO
 C****
 C**** ENTRAINMENT
 C****
@@ -644,10 +620,11 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       QXXMP=QXXMP+QXXM(L)*FENTRA
       QYYMP=QYYMP+QYYM(L)*FENTRA
       QXYMP=QXYMP+QXYM(L)*FENTRA
-      DO 286 K=1,KMAX
-      TEMP=UC(ID(K),1,L)*EPLUME
-      UMP(K)=UMP(K)+TEMP
-  286 DUM(K,L)=DUM(K,L)-TEMP
+      DO K=1,KMAX
+         TEMP=UC(ID(K),1,L)*EPLUME
+         UMP(K)=UMP(K)+TEMP
+         DUM(K,L)=DUM(K,L)-TEMP
+      END DO
       END IF
 C****
 C**** CHECK THE DOWNDRAFT POSSIBILITY
@@ -715,10 +692,11 @@ C     IF(DMMIX.LT.1.E-10) GO TO 291
       DQXYMR(L)=DQXYMR(L) - QXYM(L)*FDDL
       DQYZMR(L)=DQYZMR(L) - QYZM(L)*FDDL
       DQZXMR(L)=DQZXMR(L) - QZXM(L)*FDDL
-      DO 295 K=1,KMAX
-      UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*UC(ID(K),1,L))
-      UMP(K)=UMP(K)*FLEFT
-  295 DUM(K,L)=DUM(K,L)-.5*DDRAFT*UC(ID(K),1,L)
+      DO K=1,KMAX
+         UMDN(K)=.5*(ETADN*UMP(K)+DDRAFT*UC(ID(K),1,L))
+         UMP(K)=UMP(K)*FLEFT
+         DUM(K,L)=DUM(K,L)-.5*DDRAFT*UC(ID(K),1,L)
+      END DO
 c         TMIX=SMIX*PLK(L)
 c         HMIX=SHA*TMIX+LHE*QMIX
 c         TENV=SUP*PLK(L)
@@ -798,8 +776,9 @@ C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       DQYYM(LMAX)=DQYYM(LMAX) + QYYMPMAX
       DQXYM(LMAX)=DQXYM(LMAX) + QXYMPMAX
       CCM(LMAX)=0.
-      DO 342 K=1,KMAX
-  342 DUM(K,LMAX)=DUM(K,LMAX)+UMP(K)
+      DO K=1,KMAX
+         DUM(K,LMAX)=DUM(K,LMAX)+UMP(K)
+      END DO
       CDHM=0.
       IF(MINLVL.GT.LMIN) MINLVL=LMIN
       IF(MAXLVL.LT.LMAX) MAXLVL=LMAX
@@ -872,8 +851,9 @@ c     *  I5,7E12.4)
       DQXXM(LMIN)=DQXXM(LMIN) + QXXMDN
       DQYYM(LMIN)=DQYYM(LMIN) + QYYMDN
       DQXYM(LMIN)=DQXYM(LMIN) + QXYMDN
-      DO 349 K=1,KMAX
-  349 DUM(K,LMIN)=DUM(K,LMIN)+UMDN(K)
+      DO K=1,KMAX
+         DUM(K,LMIN)=DUM(K,LMIN)+UMDN(K)
+      END DO
       DM(LMIN)=DM(LMIN)+DDRAFT
       END IF
 C****
@@ -912,8 +892,9 @@ c   *           COND(L))
 c       AJ57(L)=AJ57(L)+SLHE*(-ALPHA*QM(L)+BETA*QM(L+1)+DQM(L))
 c     SM(L)=SM(L)*(1.-ALPHA)+BETA*SM(L+1)+DSM(L)
 c     QM(L)=QM(L)*(1.-ALPHA)+BETA*QM(L+1)+DQM(L)
-      DO 350 K=1,KMAX
-  350 UM(K,L)=UM(K,L)+(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L))*RA(K)
+      DO K=1,KMAX
+        UM(K,L)=UM(K,L)+(-ALPHA*UM(K,L)+BETA*UM(K,L+1)+DUM(K,L))*RA(K)
+      END DO
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       DO L = LMIN,LMAX
@@ -1167,9 +1148,11 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          END IF
   620    CONTINUE
 C**** UPDATE THE MODEL WINDS
-      DO 650 L=LMCMIN,LMCMAX
-      DO 650 K=1,KMAX
-  650 U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
+      DO L=LMCMIN,LMCMAX
+         DO K=1,KMAX
+            U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
+         END DO
+      END DO
 C**** UPDATE MODEL TEMPERATURE, SPECIFIC HUMIDITY AND PRECIPITATION
 C**** CAL. OPTICAL THICKNESS
       PREC(I,J)=PRCPMC*100.*BYGRAV
@@ -1296,9 +1279,8 @@ C**** ADD IN CHANGE OF ANG. MOMENTUM BY MOIST CONVECTION FOR DIAGNOSTIC
       LOGICAL BANDF
 
       INTEGER I,J,K,L,N  !@var I,J,K,L,N loop variables
-      INTEGER IHOUR,IMAX,ITYPE,KMAX,JVPO,IM1,JR,KR
-      LOGICAL POLE
-      REAL*8 RAPO
+      INTEGER IHOUR,IMAX,ITYPE,KMAX,IM1,JR,KR
+
       REAL*8 THBAR
 
 C**** SAVE UC AND VC
@@ -1312,32 +1294,9 @@ C**** MAIN J LOOP
 C****
          IHOUR=1.5+TOFDAY
       DO 710 J=1,JM
-      IF (J.EQ.1 .OR. J.EQ.JM) THEN
-C**** CONDITIONS AT THE POLES
-      POLE=.TRUE.
-      IMAX=1
-      IF(J.EQ.1) THEN
-        JVPO=2
-        RAPO=2.*RAPVN(1)
-      ELSE
-        JVPO=JM
-        RAPO=2.*RAPVS(JM)
-      END IF
-      KMAX=2*IM
-      DO 88 I=1,IM
-      RA(I)=RAPO
-      RA(I+IM)=RAPO
-      ID(I)=I+(JVPO-1)*IM
-   88 ID(I+IM)=I+(JVPO-1)*IM+IM*JM*LM
-      ELSE
-C**** CONDITIONS AT NON-POLAR POINTS
-      POLE=.FALSE.
-      IMAX=IM
-      KMAX=8
-      DO 100 K=1,4
-      RA(K)=RAPVS(J)
-  100 RA(K+4)=RAPVN(J)
-      END IF
+
+      KMAX=KMAXJ(J)
+      IMAX=IMAXJ(J)
 C****
 C**** MAIN I LOOP
 C****
@@ -1355,16 +1314,11 @@ C****
       PLICE=FDATA(I,J,3)*PLAND
       PEARTH=PLAND-PLICE
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
-      IF(.NOT. POLE) THEN
-      ID(1)=IM1+(J-1)*IM
-      ID(2)=ID(1)+IM*JM*LM
-      ID(3)=I+(J-1)*IM
-      ID(4)=ID(3)+IM*JM*LM
-      ID(5)=IM1+J*IM
-      ID(6)=ID(5)+IM*JM*LM
-      ID(7)=I+J*IM
-      ID(8)=ID(7)+IM*JM*LM
-      END IF
+
+      DO K=1,KMAX
+         RA(K)=RAIJ(K,I,J)
+         ID(K)=IDIJ(K,I,J)
+      END DO
 C**** DETERMINE THE TOP OF PBL, LPBL
       LPBL=1
 C     DO 160 L=1,2
@@ -1375,8 +1329,7 @@ C 161 LPBL1=LPBL+1
       SLH=LHE*BYSHA
       DO 180 L=1,LM
       IF(L.EQ.LS1) PIJ=PSF-PTOP
-c      PL(L)=SIG(L)*PIJ+PTOP
-c      PLE(L)=SIGE(L)*PIJ+PTOP
+
       PL(L) =PMID(L,I,J)
       PLE(L)=PEDN(L,I,J)
       PLK(L)=PK(L,I,J)
@@ -1431,8 +1384,9 @@ C****
       PREBAR(L)=0.
       QHEAT(L)=0.
 C**** SURROUNDING WINDS
-      DO 250 K=1,KMAX
-  250 UM(K,L)=UC(ID(K),1,L)*AIRM(L)
+      DO K=1,KMAX
+         UM(K,L)=UC(ID(K),1,L)*AIRM(L)
+      END DO
   226 CONTINUE
       DQUP=0.
       LHXUP=LHE
@@ -1766,9 +1720,10 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
       SMO2=SM(L+1)
       QMO2=QM(L+1)
       WMO2=WMXM(L+1)
-      DO 316 K=1,KMAX
-      UMO1(K)=UM(K,L)
-  316 UMO2(K)=UM(K,L+1)
+      DO K=1,KMAX
+         UMO1(K)=UM(K,L)
+         UMO2(K)=UM(K,L+1)
+      END DO
       FPLUME=FPMAX
       DFX=FPMAX
       DO 320 ITER=1,9
@@ -1821,11 +1776,12 @@ C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
      *     FMASS*AIRMR,FMIX,FRAT,LM)
       CALL CTMIX (QM,QXM,QYM,QZM,QXXM,QXYM,QYYM,QYZM,QZZM,QZXM,L,
      *     FMASS*AIRMR,FMIX,FRAT,LM)
-      DO 381 K=1,KMAX
-      UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
-      UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
-      UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
-  381 UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
+      DO K=1,KMAX
+         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
+         UMN2(K)=(UMO2(K)*(1.-FRAT)+FMIX*UMO1(K))
+         UM(K,L)=UM(K,L)+(UMN1(K)-UMO1(K))*RA(K)
+         UM(K,L+1)=UM(K,L+1)+(UMN2(K)-UMO2(K))*RA(K)
+      END DO
          QNEW=QL(L)
          QNEWU=QL(L+1)
 C**** RE-EVAPORATION OF LWC IN THE UPPER LAYER
@@ -1941,9 +1897,11 @@ C**** update moment changes
   530 WM(I,J,L)=WMX(L)
          AIJ(I,J,81)=AIJ(I,J,81)+WMSUM
 C**** UPDATE MODEL WINDS
-      DO 600 L=1,LM
-      DO 600 K=1,KMAX
-  600 U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
+      DO L=1,LM
+         DO K=1,KMAX
+            U(ID(K),1,L)=U(ID(K),1,L)+(UM(K,L)*BYAM(L)-UC(ID(K),1,L))
+         END DO
+      END DO
   700 IM1=I
 C**** END OF MAIN LOOP FOR INDEX I
   710 CONTINUE

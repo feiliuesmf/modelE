@@ -8,6 +8,7 @@ C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE E001M12_COM
+      USE GEOM
       USE SLE001
      &    , only : ghdata,reth,retp,retp2,advnc,ghinij,
      &    NGM,
@@ -31,7 +32,7 @@ C****
 
       COMMON /WORK1d/COSZ1(IM,JM),DTH1(IM,JM),DQ1(IM,JM)
       COMMON/WORK2/UT(IM,JM,LM),VT(IM,JM,LM),DU1(IM,JM),
-     *  DV1(IM,JM),RA(8),ID(8),UMS(8)
+     *  DV1(IM,JM)
       COMMON/WORK3/E0(IM,JM,4),E1(IM,JM,4),EVAPOR(IM,JM,4),
      *  TGRND(IM,JM,4),BLTEMP(IM,JM,8)
          COMMON/oldDAG/GDEEP(IM,JM,3)
@@ -94,9 +95,7 @@ C**** ROUGHL    LOG(30./ROUGHNESS LENGTH) (LOGARITHM TO BASE 10)
 C****
       IF(IFIRST.EQ.0) GO TO 30
       IFIRST=0
-c      IQ1=IM/4+1
-c      IQ2=IM/2+1
-c      IQ3=3*IM/4+1
+
       DTSURF=NDYN*DT/NSURF
       DTCNDS=NDYN*DT
          DTSRCE=DT*NDYN
@@ -121,25 +120,18 @@ C****
       DO 7000 J=1,JM
       HEMI=1.
       IF(J.LE.JM/2) HEMI=-1.
+      IMAX=IMAXJ(J)
       POLE=.FALSE.
-      IF(J.EQ.1) THEN
 C**** CONDITIONS AT THE SOUTH POLE
-        POLE=.TRUE.
-        IMAX=1
-        JVPO=2
-        RAPO=2.*RAPVN(1)
-        GO TO 100
+      IF(J.EQ.1) THEN
+         POLE = .TRUE.
+         JVPO=2
       ENDIF
-      IF(J.EQ.JM) THEN
 C**** CONDITIONS AT THE NORTH POLE
-        POLE=.TRUE.
-        IMAX=1
-        JVPO=JM
-        RAPO=2.*RAPVS(JM)
-        GO TO 100
+      IF(J.EQ.JM) THEN
+         POLE=.TRUE.
+         JVPO=JM
       ENDIF
-      POLE=.FALSE.
-      IMAX=IM
 C**** ZERO OUT SURFACE DIAGNOSTICS WHICH WILL BE SUMMED OVER LONGITUDE
   100    BTRHDT=0.
          BSHDT=0.
@@ -164,10 +156,10 @@ C****
       PEARTH=PLAND-PLICE
       PSOIL=PEARTH
       PIJ=P(I,J)
-      PS=PEDN(1,I,J)    ! PIJ+PTOP
-      PSK=PEK(1,I,J)    ! EXPBYK(PS)
-      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
-      P1K=PK(1,I,J)     ! EXPBYK(P1)
+      PS=PEDN(1,I,J)
+      PSK=PEK(1,I,J)
+      P1=PMID(1,I,J)
+      P1K=PK(1,I,J)
       TH1=T(I,J,1)
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*RVX)
@@ -255,7 +247,7 @@ C****
 C**** BOUNDARY LAYER INTERACTION
 C****
  3000 ZS1=ZS1CO*TKV*PIJ/PS
-      P1=SIG(1)*PIJ+PTOP
+      P1=PMID(1,I,J)    ! SIG(1)*PIJ+PTOP
 C**** LOOP OVER GROUND TIME STEPS
       TG=TG1+TF
       ELHX=LHE

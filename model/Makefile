@@ -9,7 +9,7 @@ RUN	= E001
 EXECDIR = /u/cmrun/modelE/exec
 LIBS	= -L/u/cmrun -lGCM -lgP 
 # Model common blocks 
-COM	= E001M12_COM.o SOMTQ_COM.o
+COM	= E001M12_COM.o SOMTQ_COM.o GEOM_B.o
 SCOM    = soils45.COM 
 RCOM    = BR00B.COM
 
