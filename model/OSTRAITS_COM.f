@@ -27,6 +27,7 @@ C****  9  Hormuz         47,30 ES    49,29 WN     2   100000  ! 50000
 C**** 10  Malacca        56,25 EN    58,24 WS     3    50000
 C**** 11  Korea          62,32 EN    63,33 WS     4   170000
 C**** 12  Soya-kaikyo    64,34 EN    65,35 WS     2    40000
+C**** 12alt Tsugaru      64,34 EN    66,34 WS     4    20000
 C****
       INTEGER, PARAMETER :: NMST=12  !@param NMST no. of ocean straits
 !@var MMST mass of water in strait (kg)
@@ -43,15 +44,17 @@ C****
      *     WIST = (/  2d4,   5d3, 2.5d4, 3.5d4,   6d4, 6d3,
      *              2.5d5, 2.5d4,   1d5,   5d4, 1.7d5, 4d4/)
 
-!@var XST,YST
+!@var XST,YST local coordinates [-1,1] for strait entry/exit points
       REAL*8, DIMENSION(NMST,2) :: XST = RESHAPE( (/
-     *     0d0  ,6d-1, 6d-1,  1d0,  1d0, 0d0, 6d-1, 6d-1,  1d0,6d-1,
-     *     0d0  ,6d-1,  0d0,-8d-1,-8d-1, 0d0,-6d-1,-8d-1,-8d-1,-1d0,
-     *     -7d-1,-1d0,-6d-1,-1d0 /), (/NMST,2/) ),
+     *     0d0  , 6d-1, 6d-1,  1d0,  1d0,  0d0, 6d-1, 6d-1,  1d0, 6d-1,
+     *     0d0  , 6d-1,
+     *     0d0  ,-8d-1,-8d-1,  0d0,-6d-1,-8d-1,-8d-1, -1d0,-7d-1, -1d0,
+     *     -6d-1, -1d0 /), (/NMST,2/) ),
      *     YST = RESHAPE( (/
-     *     -1d0,8d-1, 8d-1,  0d0,  0d0, 1d0,-8d-1,-8d-1, 0d0,-8d-1,
-     *      1d0,8d-1,  1d0,-6d-1,-6d-1,-1d0,-8d-1,-6d-1,6d-1,  0d0,
-     *     7d-1, 0d0,-8d-1,  0d0 /), (/NMST,2/) )
+     *     -1d0 , 8d-1, 8d-1,  0d0,  0d0,  1d0,-8d-1,-8d-1,  0d0,-8d-1,
+     *      1d0 , 8d-1,
+     *      1d0 ,-6d-1,-6d-1, -1d0,-8d-1,-6d-1, 6d-1,  0d0, 7d-1,  0d0,
+     *     -8d-1,  0d0 /), (/NMST,2/) )
 
 !@var IST,JST i,j coordinates of ends of straits
       INTEGER, DIMENSION(NMST,2) ::
