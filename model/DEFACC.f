@@ -2098,8 +2098,8 @@ c
       name_ij(k) = 'bs_tlay1' !
       lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
@@ -2108,8 +2108,8 @@ c
       name_ij(k) = 'bs_tlay2' !
       lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
@@ -2118,8 +2118,8 @@ c
       name_ij(k) = 'bs_tlay6' !
       lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_bare
       ir_ij(k) = ir_m80_28
 c
@@ -2185,8 +2185,8 @@ c
       name_ij(k) = 'can_temp' !
       lname_ij(k) = 'CANOPY TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2195,8 +2195,8 @@ c
       name_ij(k) = 'vs_tlay1' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2205,8 +2205,8 @@ c
       name_ij(k) = 'vs_tlay2' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2215,8 +2215,8 @@ c
       name_ij(k) = 'vs_tlay6' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       iw_ij(k) = iw_veg
       ir_ij(k) = ir_m80_28
 c
@@ -2225,8 +2225,8 @@ c
       name_ij(k) = 'wtbl_depth' !
       lname_ij(k) = 'AVERAGE WATER TABLE DEPTH'
       units_ij(k) = 'm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = -1./NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = -1.
       iw_ij(k) = iw_soil
       ir_ij(k) = ir_0_3_15
 c
