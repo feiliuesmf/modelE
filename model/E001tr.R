@@ -19,8 +19,10 @@ PARAM PARSER                        ! parameter database
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
-TRACER_COM TRACERS                  ! trace gases (depend on individual tracers)
-TRACER_PRT                          ! tracer diagnostic printout
+! pick one of the next two lines
+TRACER_COM TRACERS_Air              ! air mass tracers
+! TRACER_Water_COM TRACERS_Water    ! water mass tracers
+TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS CLOUDS_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils

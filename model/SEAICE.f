@@ -1151,7 +1151,7 @@ C**** albedo calculations
 !@var TRSI tracer amount in sea ice (kg/m^2)
       REAL*8, DIMENSION(NTM,LMI,IM,JM) :: TRSI
 !@var TRSI0 default tracer conc. in sea ice (kg/m^2)
-      REAL*8, DIMENSION(NTM) :: TRSI0
+      REAL*8, DIMENSION(NTM) :: TRSI0 = 1.
 #endif
 
       END MODULE SEAICE_COM

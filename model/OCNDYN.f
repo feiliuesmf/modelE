@@ -8,7 +8,7 @@
       USE MODEL_COM, only : idacc,modd5s,p,psf
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
-     *     ,ratoc,imaxj
+     *     ,ratoc,imaxj,focean
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
       USE OCEAN_DYN, only : mmi,smu,smv,smw
@@ -92,7 +92,7 @@ C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.,OIJL(1,1,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.,OIJL(1,1,1,IJL_SFLX))
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM                                               
+      DO N=1,NTM
         CALL OADVT(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
      *             TZMO(1,1,1,N),DTOLF,.TRUE.,TOIJL(1,1,1,2,N))
       END DO        
@@ -172,7 +172,7 @@ C****
      *     ,iu_TOPO
       REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
-      REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ,RAO
+      REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
 C****
 C**** set up time steps from atmospheric model
@@ -352,6 +352,11 @@ C**** Initialize solar radiation penetration arrays
 C**** Initialize ocean diagnostics
       call init_ODIAG
 
+#ifdef TRACERS_OCEAN
+C**** Initialize ocean tracers
+      call init_tr_ocean......????
+#endif
+
 C**** Set atmospheric surface variables
       CALL TOC2SST
 
@@ -372,9 +377,18 @@ C****
       USE CONSTANT, only : by3,shw
       USE MODEL_COM, only : ftype,itoice,itocean
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,imaxj,dxypo
+#ifdef TRACERS_OCEAN
+     *     ,trmo
+#endif
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
       USE SEAICE, only : simelt
       USE FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+#endif
       USE ICEDYN, only : rsix,rsiy
 c      USE DAGCOM, only : aij,IJ_TGO2
       IMPLICIT NONE
@@ -382,6 +396,10 @@ c      USE DAGCOM, only : aij,IJ_TGO2
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 ROICE,TGW,GO1,SO1,MSI2,SNOW,ENRGW,ENRGUSED,RUN0,TFO,SALT
       REAL*8 TFREZS,TEMGS,GFREZS
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
+      REAL*8, DIMENSION(NTM) :: TRUN0
+#endif
       INTEGER, INTENT(IN) :: IEND
       INTEGER I,J
 
@@ -410,17 +428,32 @@ C**** Calculate freezing temperature (on atmos. grid)
             SNOW=SNOWI(I,J)     ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             SSIL(:)= SSI(:,I,J) ! sea ice salt
-            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
-     *           ,ENRGUSED,RUN0,SALT)
+#ifdef TRACERS_WATER
+            TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice 
+#endif
+
+            CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL,
+#ifdef TRACERS_WATER
+     *           TRSIL,TRUN0,
+#endif
+     *           ENRGUSED,RUN0,SALT)
 C**** RESAVE PROGNOSTIC QUANTITIES
             G0M(I,J,1)=G0M(I,J,1) - ENRGUSED*DXYPO(J)
             MO(I,J,1)= MO(I,J,1) + RUN0
             S0M(I,J,1)=S0M(I,J,1) + SALT    *DXYPO(J)
+#ifdef TRACERS_OCEAN
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+TRUN0(:)*DXYPO(J)
+            GTRACER(:,1,I,J)=TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
+#endif
             RSI(I,J)=ROICE
             MSI(I,J)=MSI2
             SNOWI(I,J)=SNOW
             HSI(:,I,J)=HSIL(:)
             SSI(:,I,J)=SSIL(:)
+#ifdef TRACERS_WATER
+            TRSI(:,:,I,J)=TRSIL(:,:)
+            GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+#endif
 C**** limit RSIX/Y
             IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =     RSI(I,J)
             IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) =    -RSI(I,J)
@@ -559,11 +592,13 @@ C**** Check for varaibles out of bounds
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).gt.0.) THEN
 C**** Check potential specific enthalpy of first layer over open ocean
-          GO1 = G0M(I,J,1)/(MO(I,J,1)*DXYPO(J))
+          DO L=1,LMO
+          GO1 = G0M(I,J,L)/(MO(I,J,L)*DXYPO(J))
           IF(GO1.lt.-10000. .or. GO1.gt.200000.) THEN
-            WRITE (6,*) 'After ',SUBR,': I,J,GO1=',I,J,GO1
+            WRITE (6,*) 'After ',SUBR,': I,J,L,GO=',I,J,L,GO1
             QCHECKO=.TRUE.
           END IF
+          END DO
 C**** Check all ocean currents
           DO L = 1,LMO
             IF(ABS(UO(I,J,L)).gt.7. .or. ABS(VO(I,J,L)).gt.5) THEN
@@ -2153,29 +2188,34 @@ C****
 C**** Surface stress is applied to U component
 C****
       I=IM
-      DO 10 J=2,JM-1
-      DO 10 IP1=1,IM
-      IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
-     *  (DMUA(I,J,1) + DMUA(IP1,J,1) + 2d0*DMUI(I,J)) /
-     *  (  MO(I,J,1) +   MO(IP1,J,1))
-   10 I=IP1
+      DO J=2,JM-1
+      DO IP1=1,IM
+        IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
+     *       (DMUA(I,J,1) + DMUA(IP1,J,1) + 2d0*DMUI(I,J)) /
+     *       (  MO(I,J,1) +   MO(IP1,J,1))
+        I=IP1
+      END DO
+      END DO
       UO(1,JM,1) = UO(1,JM,1)*(1d0 - DMUA(2,JM,1)/MO(1,JM,1))
 C****
 C**** Surface stress is applied to V component
 C****
-      DO 20 J=2,JM-2
-      DO 20 I=1,IM
-   20 IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
+      DO J=2,JM-2
+      DO I=1,IM
+        IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
      *       (DMVA(I,J  ,1)*DXYNO(J) + DMVA(I,J+1,1)*DXYSO(J+1)
      *       +2d0*DMVI(I,J)*DXYVO(J))
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
+      END DO
+      END DO
 C**** Surface stress is applied to V component at the North Pole
-      DO 30 I=1,IM
-   30 VO(I,JM-1,1) = VO(I,JM-1,1) +
+      DO I=1,IM
+        VO(I,JM-1,1) = VO(I,JM-1,1) +
      *       (DMVA(I,JM-1,1)*DXYNO(JM-1)+
      *       (DMVA(1,JM,1)*COSIC(I) - DMUA(1,JM,1)*SINIC(I))*DXYSO(JM)
      *       + 2d0*DMVI(I,JM-1)*DXYVO(JM-1)) /
      *  (MO(I,JM-1,1)*DXYNO(JM-1) + MO(I,JM,1)*DXYSO(JM))
+      END DO
       RETURN
       END SUBROUTINE OSTRES
 
@@ -2186,38 +2226,45 @@ C**** Surface stress is applied to V component at the North Pole
       USE MODEL_COM, only : itocean,itoice
       USE GEOM, only : dxyp,bydxyp
       USE OCEAN, only : im,jm,mo,g0m,s0m,focean,gzmo,imaxj,dxypo,bydxypo
-     *     ,lmo,lmm
+     *     ,lmo,lmm,ratoc,rocat
+#ifdef TRACERS_OCEAN
+     *     trmo,ntm
+#endif
       USE FLUXES, only : solar,e0,evapor,dmsi,dhsi,dssi,runosi,erunosi
      *     ,flowo,eflowo,srunosi
+#ifdef TRACERS_OCEAN
+     *     trflowo,trevapor,dtrsi,trunosi,gtracer
+#endif
       USE SEAICE_COM, only : rsi
       USE DAGCOM, only : aj,aij,areg,j_evap,j_type,ij_evap,ij_evapo
      *     ,j_erun2,j_imelt,j_tg1,j_tg2,ij_tgo,ij_tg1,ij_f0oc,jreg
       IMPLICIT NONE
       INTEGER I,J,IMAX,JR
-      REAL*8 DXYPJ,BYDXYPJ,RAO,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
+      REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
      *     ,MO1,SO1,FSICE,DMOO,DMOI,DEOO,DEOI,GZML(LMO),TGW,TGW2,TEMGS
-     *     ,SRUNI,DSOO,DSOI,ROA
+     *     ,SRUNI,DSOO,DSOI
+#ifdef TRACERS_OCEAN
+      REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1
+#endif
 C****
 C**** Add surface source of fresh water and heat
 C****
       DO J=2,JM
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
-        RAO=DXYP(J)*BYDXYPJ
-        ROA=DXYPO(J)*BYDXYP(J)
       DO I=1,IMAXJ(J)
       IF(FOCEAN(I,J).gt.0.) THEN
         FSICE = RSI(I,J)
 C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = FLOWO(I,J)*(1.-FSICE)*BYDXYPJ-RAO*EVAPOR(I,J,1)
-        RUNI = FLOWO(I,J)*    FSICE *BYDXYPJ+RAO*RUNOSI(I,J)
-        ERUNO=EFLOWO(I,J)*(1.-FSICE)*BYDXYPJ+RAO*E0(I,J,1)
-        ERUNI=EFLOWO(I,J)*    FSICE *BYDXYPJ+RAO*ERUNOSI(I,J)
-        SRUNI= RAO*SRUNOSI(I,J)
+        RUNO = FLOWO(I,J)*(1.-FSICE)*BYDXYPJ-RATOC(J)*EVAPOR(I,J,1)
+        RUNI = FLOWO(I,J)*    FSICE *BYDXYPJ+RATOC(J)*RUNOSI(I,J)
+        ERUNO=EFLOWO(I,J)*(1.-FSICE)*BYDXYPJ+RATOC(J)*E0(I,J,1)
+        ERUNI=EFLOWO(I,J)*    FSICE *BYDXYPJ+RATOC(J)*ERUNOSI(I,J)
+        SRUNI= RATOC(J)*SRUNOSI(I,J)
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
-        SROX(1)=SOLAR(1,I,J)*RAO ! open water
-        SROX(2)=SOLAR(3,I,J)*RAO ! through ice
+        SROX(1)=SOLAR(1,I,J)*RATOC(J) ! open water
+        SROX(2)=SOLAR(3,I,J)*RATOC(J) ! through ice
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
         TGW = TEMGS(G0M(I,J,1)/(MO1*DXYPJ),S0M(I,J,1)/(MO1*DXYPJ))
@@ -2228,10 +2275,11 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
           TGW2=TGW
         END IF
 #ifdef TRACERS_OCEAN
-        DO N=1,NTM
-        TRUNO(N)=TRFLOWO(I,J,N)*(1.-FSICE)*BYDXYPJ-RAO*TEVAPOR(I,J,N,1)
-        TRUNI(N)=TRFLOWO(I,J,N)*    FSICE *BYDXYPJ+RAO*TRUNOSI(I,J,N)
-        END DO
+        TRO1(:) = TRMO(I,J,1,:)
+        TRUNO(:)=TRFLOWO(:,I,J)*(1.-FSICE)*BYDXYPJ-
+     *       RATOC(J)*TEVAPOR(:,1,I,J)
+        TRUNI(:)=TRFLOWO(:,I,J)*    FSICE *BYDXYPJ+
+     *       RATOC(J)*TRUNOSI(:,I,J)
 #endif
 
 C**** Diagnostics on atmospheric grid
@@ -2253,8 +2301,11 @@ C**** Diagnostics on atmospheric grid
           AIJ(I,J,IJ_F0OC) =AIJ(I,J,IJ_F0OC) +    E0(I,J,1)*(1.-FSICE)
 
         CALL OSOURC(FSICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
-     *         ,RUNI,ERUNO,ERUNI,SRUNI,SROX,DMOO,DEOO,DMOI,DEOI,DSOO
-     *         ,DSOI)
+     *         ,RUNI,ERUNO,ERUNI,SRUNI,SROX,
+#ifdef TRACERS_OCEAN
+     *         TRO1,TRUNO,TRUNI,DTROO,DTROI,
+#endif
+     *         DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 
 C**** update ocean variables
           MO(I,J,1) = MO1
@@ -2263,23 +2314,32 @@ C**** update ocean variables
         GZMO(I,J,:) = GZML(:)
 
 C**** Store mass and energy fluxes for formation of sea ice
-        DMSI(1,I,J)=DMOO*ROA
-        DMSI(2,I,J)=DMOI*ROA
-        DHSI(1,I,J)=DEOO*ROA
-        DHSI(2,I,J)=DEOI*ROA
-        DSSI(1,I,J)=DSOO*ROA
-        DSSI(2,I,J)=DSOI*ROA
+        DMSI(1,I,J)=DMOO*ROCAT(J)
+        DMSI(2,I,J)=DMOI*ROCAT(J)
+        DHSI(1,I,J)=DEOO*ROCAT(J)
+        DHSI(2,I,J)=DEOI*ROCAT(J)
+        DSSI(1,I,J)=DSOO*ROCAT(J)
+        DSSI(2,I,J)=DSOI*ROCAT(J)
+#ifdef TRACERS_OCEAN
+        TRMO(I,J,1,:) = TRO1(:)
+        DTRSI(:,1,I,J)=DTROO(:)*ROCAT(J)
+        DTRSI(:,2,I,J)=DTROI(:)*ROCAT(J)
+#endif
 
 C**** diagnostics on the atmospheric grid
 c         AJ(J,J_RUN2 ,ITOCEAN)=AJ(J,J_RUN2 ,ITOCEAN)+RUN4O *POCEAN
 c         AJ(J,J_DWTR2,ITOCEAN)=AJ(J,J_DWTR2,ITOCEAN)+ERUN4O*POCEAN
-        AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-DEOO*ROA*(1.-FSICE)
-        AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-DMOO*ROA*(1.-FSICE)
+        AJ(J,J_ERUN2,ITOCEAN)=AJ(J,J_ERUN2,ITOCEAN)-
+     *       DEOO*ROCAT(J)*(1.-FSICE)
+        AJ(J,J_IMELT,ITOCEAN)=AJ(J,J_IMELT,ITOCEAN)-
+     *       DMOO*ROCAT(J)*(1.-FSICE)
 C**** Ice-covered ocean diagnostics
 c         AJ(J,J_RUN2 ,ITOICE)=AJ(J,J_RUN2 ,ITOICE)+RUN4I *POICE
 c         AJ(J,J_DWTR2,ITOICE)=AJ(J,J_DWTR2,ITOICE)+ERUN4I*POICE
-          AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-DEOI*ROA*FSICE
-          AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-DMOI*ROA*FSICE
+        AJ(J,J_ERUN2,ITOICE)=AJ(J,J_ERUN2,ITOICE)-
+     *       DEOI*ROCAT(J)*FSICE
+        AJ(J,J_IMELT,ITOICE)=AJ(J,J_IMELT,ITOICE)-
+     *       DMOI*ROCAT(J)*FSICE
         END IF
       END DO
       END DO
@@ -2868,9 +2928,19 @@ C**** Done!
       USE CONSTANT, only : byshi,lhm
       USE MODEL_COM, only : ftype,itocean,itoice
       USE OCEAN, only : im,jm,g0m,s0m,mo,dxypo,focean,lmm
+#ifdef TRACERS_OCEAN
+     *     trmo
+#endif
       USE SEAICE_COM, only : rsi,hsi,snowi
+#ifdef TRACERS_OCEAN
+     *     trsi
+#endif
       USE SEAICE, only : ace1i, xsi
       USE FLUXES, only : gtemp, sss, mlhc
+#ifdef TRACERS_OCEAN
+     *     gtracer
+#endif
+
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TEMGS,shcgs,GO,SO,GO2,SO2,TO,MSI1
@@ -2897,6 +2967,10 @@ c            GTEMP(2,1,I,J)= TO
 C**** set GTEMP array for ice as well (possibly changed by STADVI)
             MSI1=SNOWI(I,J)+ACE1I
             GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
+#ifdef TRACERS_OCEAN
+            GTRACER(:,1,I,J) = TRMO(I,J,1,:)/(MO(I,J,1)*DXYPO(J))
+            GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1)
+#endif
           END IF
         END DO
       END DO
@@ -3080,6 +3154,9 @@ C****
 !@ver  1.0
       USE CONSTANT, only : lhm
       USE OCEAN, only : im,jm,lmo,g0m,s0m,mo,ze,focean,bydxypo
+#ifdef TRACERS_OCEAN
+     *     trmo,trglac
+#endif
       IMPLICIT NONE
 !@var ACCPDA total accumulation per day for Antarctica (kg/day)
 !@var ACCPDG total accumulation per day for Greenland (kg/day)
@@ -3118,6 +3195,9 @@ C**** that is proportional to the depth of the column
      *             .IMU2) THEN
                 MO(I,J,L)  =  MO(I,J,L) + DMM
                 G0M(I,J,L) = G0M(I,J,L) - DGM
+#ifdef TRACERS_OCEAN
+                TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM
+#endif
               END IF
             END IF
           END DO
@@ -3137,6 +3217,9 @@ C**** this accumulation is again distributed as above
           DMM = BYDXYPO(J)*ACCPMG*(ZE(L)-ZE(L-1))
           MO(I,J,L)  =  MO(I,J,L) + DMM
           G0M(I,J,L) = G0M(I,J,L) - DGM
+#ifdef TRACERS_OCEAN
+          TRMO(I,J,L,:)=TRMO(I,J,L,:)+trglac(:)*DMM
+#endif
         END DO
       END DO
 C****

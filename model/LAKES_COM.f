@@ -24,8 +24,8 @@
       REAL*8, DIMENSION(IM,JM) :: TANLK
 
 #ifdef TRACERS_WATER
-!@var TRLAKE tracer amount in lake (kg)      
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRLAKE
+!@var TRLAKE tracer amount in each lake level (kg)      
+      REAL*8, DIMENSION(NTM,2,IM,JM) :: TRLAKE
 #endif
 
       END MODULE LAKES_COM
@@ -47,7 +47,7 @@
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRLAK01"
 
       write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a7,i3,a)')'R8 dim(',NTM,',im,jm):TRLAKE'
+     *     ,'(a7,i3,a)')'R8 dim(',NTM,',2,im,jm):TRLAKE'
 #endif
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):MixLD,MWtr,Tlk,Enth'

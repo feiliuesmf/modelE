@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE STATIC_OCEAN
 !@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux and
 !@+    fixed SST runs
@@ -13,6 +15,9 @@
      *     ,cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
+#ifdef TRACERS_WATER
+     *     ,trsi,trsi0,ntm
+#endif
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp
@@ -261,6 +266,9 @@ C**** RSI uses quadratic fit
 C**** adjust enthalpy and salt so temperature/salinity remain constant
             HSI(3:4,I,J)=HSI(3:4,I,J)*(MSINEW/MSI(I,J))
             SSI(3:4,I,J)=SSI(3:4,I,J)*(MSINEW/MSI(I,J))
+#ifdef TRACERS_WATER
+            TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
+#endif
             IF (IEND.eq.1) AIJ(I,J,IJ_SMFX)=AIJ(I,J,IJ_SMFX)+
      *           (SNOWI(I,J)+ACE1I)*(RSINEW-RSI(I,J))+
      *           RSINEW*MSINEW-RSI(I,J)*MSI(I,J)
@@ -282,6 +290,12 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               HSI(3:4,I,J)=(SHI*TFO-LHM)*XSI(3:4)*AC2OIM
               SSI(1:2,I,J)=SSI0*XSI(1:2)*ACE1I
               SSI(3:4,I,J)=SSI0*XSI(3:4)*AC2OIM
+#ifdef TRACERS_WATER
+              DO N=1,NTM
+                TRSI(N,1:2,I,J)=TRSI0(N)*XSI(3:4)*ACE1I
+                TRSI(N,3:4,I,J)=TRSI0(N)*XSI(3:4)*AC2OIM
+              END DO
+#endif
               SNOWI(I,J)=0.
               GTEMP(1:2,2,I,J)=TFO
             END IF
@@ -612,15 +626,25 @@ C****
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DAGCOM, only : aij,ij_toc2,ij_tgo2
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-      USE SEAICE, only : simelt,ace1i,lmi
+#ifdef TRACERS_WATER
+     *     ,trsi,ntm
+#endif
+      USE SEAICE, only : simelt,ace1i,lmi,xsi
       USE GEOM, only : imaxj
       USE FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+#endif
       IMPLICIT NONE
       INTEGER I,J,IEND,IMAX
 !@var FDAILY fraction of energy available to be used for melting
       REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,TGW,WTRO,ENRGUSED,ANGLE,RUN0,SALT
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
+      REAL*8, DIMENSION(NTM) :: TRUN0
+#endif
 
 C**** update ocean related climatologies
       CALL OCLIM(IEND)
@@ -662,8 +686,14 @@ C**** Only melting of ocean ice (not lakes)
               SNOW=SNOWI(I,J)   ! snow mass
               HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
               SSIL(:)= SSI(:,I,J) ! sea ice salt
+#ifdef TRACERS_WATER
+              TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice 
+#endif
               WTRO=Z1O(I,J)*RHOW
               CALL SIMELT(ROICE,SNOW,MSI2,HSIL,SSIL,FOCEAN(I,J),TFO,TSIL
+#ifdef TRACERS_WATER
+     *             ,TRSIL,TRUN0
+#endif
      *             ,ENRGUSED,RUN0,SALT)
 C**** RUN0, SALT not needed for Qflux ocean
 C**** RESAVE PROGNOSTIC QUANTITIES
@@ -674,6 +704,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES
               SNOWI(I,J)=SNOW
               HSI(:,I,J)=HSIL(:)
               SSI(:,I,J)=SSIL(:)
+#ifdef TRACERS_WATER
+              TRSI(:,:,I,J)=TRSIL(:,:)
+              GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I))
+#endif
 C**** set ftype/gtemp arrays
               FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
               FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE ,I,J)
@@ -768,9 +802,15 @@ C****
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
      *     flowo,eflowo,gtemp, fmsi_io, fhsi_io, fssi_io
+#ifdef TRACERS_WATER
+     *     ,dtrsi
+#endif
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,tfo,osourc,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE SEAICE_COM, only : rsi,msi,snowi
+#ifdef TRACERS_WATER
+     *     ,trsi0
+#endif
       USE SEAICE, only : ace1i,ssi0
       USE DAGCOM, only : aj,aij,areg,jreg,ij_f0oc,j_run2
      *     ,j_dwtr2,j_tg1,j_tg2,j_evap,j_oht,j_tg3,j_erun2,j_imelt
@@ -867,6 +907,10 @@ C**** Store mass and energy fluxes for formation of sea ice
           DHSI(2,I,J)=ENRGFI
           DSSI(1,I,J)=SSI0*ACEFO   ! assume constant mean salinity
           DSSI(2,I,J)=SSI0*ACE2F
+#ifdef TRACERS_WATER
+          DTRSI(:,1,I,J)=TRSI0(:)*ACEFO  ! assume const mean tracer conc
+          DTRSI(:,2,I,J)=TRSI0(:)*ACE2F
+#endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
 

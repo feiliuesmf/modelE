@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !@sum  LANDICE_DRV contains drivers for LANDICE related routines
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -8,15 +10,31 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,flice
+      USE LANDICE, only: ace1li,ace2li
       USE LANDICE_COM, only : tlandi,snowli
+#ifdef TRACERS_WATER
+     *     ,trsnowli,trlndi
+#endif
       USE FLUXES, only : gtemp
+#ifdef TRACERS_WATER
+     *     ,gtracer
+#endif
       IMPLICIT NONE
       INTEGER I,J
 
 C**** set GTEMP array for landice
       DO J=1,JM
         DO I=1,IM
-          IF (FLICE(I,J).gt.0) GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+          IF (FLICE(I,J).gt.0) THEN
+            GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+#ifdef TRACERS_WATER
+            IF (SNOWLI(I,J).gt.0) THEN
+              GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
+            ELSE
+              GTRACER(:,3,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
+            END IF
+#endif
+          END IF
         END DO
       END DO
 C****
@@ -29,16 +47,34 @@ C****
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
       USE GEOM, only : imaxj,dxyp
-      USE FLUXES, only : runoli,prec,eprec
+      USE FLUXES, only : runoli,prec,eprec,gtemp
+#ifdef TRACERS_WATER
+     *     ,trunoli,trprec,gtracer
+#endif
+      USE LANDICE, only: ace1li,ace2li
       USE LANDICE_COM, only : snowli,tlandi
+#ifdef TRACERS_WATER
+     *     ,trsnowli,trlndi,ntm
+#endif
       USE LANDICE, only : precli
       USE DAGCOM, only : aj,areg,aij,jreg,
      *     ij_f0li,ij_f1li,ij_erun2,ij_runli,j_difs
      *     ,j_run1,j_edifs,j_erun2,j_imelt,j_type
-      USE FLUXES, only : gtemp
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPJ
+#ifdef TRACERS_WATER
+!@var TRSNOW tracer amount in snow (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRSNOW
+!@var TRLI tracer amount in land ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRLI
+!@var TRPRCP tracer amount in precip (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRPRCP
+!@var TRUN0 tracer runoff from ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRUN0
+!@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRDIFS
+#endif
       INTEGER I,J,IMAX,JR
 
       DO J=1,JM
@@ -49,16 +85,27 @@ C****
       PRCP=PREC(I,J)
       JR=JREG(I,J)
       RUNOLI(I,J)=0
+#ifdef TRACERS_WATER
+      TRUNOLI(:,I,J)=0.
+#endif
       IF (PLICE.gt.0) THEN
 
         ENRGP=EPREC(I,J)      ! energy of precipitation
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
-
+#ifdef TRACERS_WATER
+        TRLI(:)=TRLNDI(:,I,J)
+        TRSNOW(:)=TRSNOWLI(:,I,J)
+        TRPRCP(:)=TRPREC(:,I,J)
+#endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
 
-        CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0)
+        CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,
+#ifdef TRACERS_WATER
+     *       TRSNOW,TRLI,TRPRCP,TRDIFS,TRUN0,
+#endif
+     *       EDIFS,DIFS,ERUN2,RUN0)
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J)=SNOW
@@ -66,6 +113,17 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+#ifdef TRACERS_WATER
+        TRLNDI(:,I,J)=TRLI(:)
+        TRSNOWLI(:,I,J)=TRSNOW(:)
+        TRUNOLI(:,I,J)=TRUN0(:)
+c       TRDIFS(:)     !  diagnostic?
+        IF (SNOW.gt.0) THEN
+          GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
+        ELSE
+          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+        END IF
+#endif
 C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_DIFS, ITLANDI)=AJ(J,J_DIFS, ITLANDI)+DIFS *PLICE
         AJ(J,J_RUN1, ITLANDI)=AJ(J,J_RUN1, ITLANDI)+RUN0 *PLICE
@@ -93,6 +151,9 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runoli
       USE LANDICE_COM, only : snowli,tlandi
+#ifdef TRACERS_WATER
+     *     ,ntm,trsnowli,trlndi
+#endif
       USE LANDICE, only : lndice,ace1li,ace2li
       USE DAGCOM, only : aj,areg,aij,jreg,ij_evap,ij_f0li,ij_evapli
      *     ,ij_runli,ij_f1li,ij_erun2,ij_tg1,j_tg2,j_tg1,j_difs,j_wtr1
@@ -100,10 +161,25 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
      *     ,j_erun2,j_imelt,j_run2,j_evap,j_rsnow,ij_rsnw
      *     ,ij_rsit,ij_snow
       USE FLUXES, only : e0,e1,evapor,gtemp
+#ifdef TRACERS_WATER
+     *     ,trunoli,trevapor,gtracer
+#endif
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPJ
      *     ,SCOVLI
+#ifdef TRACERS_WATER
+!@var TRSNOW tracer amount in snow (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRSNOW
+!@var TRLI tracer amount in land ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRLI
+!@var TREVAP tracer amount in evaporation (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TREVAP
+!@var TRUN0 tracer runoff from ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRUN0
+!@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
+      REAL*8, DIMENSION(NTM) :: TRDIFS
+#endif
       INTEGER I,J,IMAX,JR
 
       DO J=1,JM
@@ -123,8 +199,17 @@ C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         EVAP=EVAPOR(I,J,3)
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+F0DT
         AIJ(I,J,IJ_EVAPLI)=AIJ(I,J,IJ_EVAPLI)+EVAP
+#ifdef TRACERS_WATER
+        TRLI(:)=TRLNDI(:,I,J)
+        TRSNOW(:)=TRSNOWLI(:,I,J)
+        TREVAP(:)=TREVAPOR(:,I,J,3)
+#endif
 
-        CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0)
+        CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,
+#ifdef TRACERS_WATER
+     *     TRSNOW,TRLI,TREVAP,TRDIFS,TRUN0,
+#endif
+     *     EDIFS,DIFS,RUN0)
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J)=SNOW
@@ -132,6 +217,17 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+#ifdef TRACERS_WATER
+        TRLNDI(:,I,J)=TRLI(:)
+        TRSNOWLI(:,I,J)=TRSNOW(:)
+        TRUNOLI(:,I,J)=TRUN0(:)
+c       TRDIFS(:)     !  diagnostic?
+        IF (SNOW.gt.0) THEN
+          GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
+        ELSE
+          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+        END IF
+#endif
 C**** ACCUMULATE DIAGNOSTICS
         SCOVLI=0
         IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
