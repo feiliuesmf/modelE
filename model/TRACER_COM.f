@@ -233,6 +233,12 @@ C****
       real*8, dimension(ntm) :: tr_DHD
 !@var fq_aer fraction of aerosol that condenses
       real*8 fq_aer(ntm)
+!@param nChemistry index for tracer chemistry 3D source
+!@param nStratwrite index for tracer stratosphic overwrite 3D source
+!@param nLightning index for tracer lightning 3D source
+!@param nAircraft index for tracer aircraft 3D source
+      INTEGER, PARAMETER :: nChemistry  = 1, nStratwrite = 2,
+     &                      nLightning  = 3, nAircraft   = 4
 
 #ifdef TRACERS_WATER   
 !@param nWD_TYPES number of tracer types for wetdep purposes  
