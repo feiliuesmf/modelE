@@ -245,6 +245,7 @@ C**** sea ice melt and iceberg/glacial melt.
        !:,:,I,J array
        ALLOCATE( GTEMP( 2 , NSTYPE, I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
+       GTEMP=0.   ! initialize at 0
 
 !TRACERS_ON**********************
 
@@ -252,6 +253,7 @@ C**** sea ice melt and iceberg/glacial melt.
       !(I,J,:,:)  array
       ALLOCATE(trsource (I_0H:I_1H,J_0H:J_1H,ntsurfsrcmax,NTM)
      &  ,STAT = IER)
+      trsource = 0.
 
       !(I,J,:) arrays
       ALLOCATE( trsrfflx( I_0H:I_1H , J_0H:J_1H , NTM    ),

@@ -4238,36 +4238,8 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
         case ('SF6')
           ! defaults ok
 
-        case ('Be7')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
-            end do; end do; end do
-
-        case ('Be10')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
-          end do; end do; end do
-
-        case ('Pb210')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
-            trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
-          end do; end do; end do
-
-        case ('Rn222')
-          do l=1,lm
-            do j=J_0,J_1
-              trm(:,j,l,n) = am(l,:,j)*dxyp(j)*1.d-22
-          end do; end do
-          if (HAVE_SOUTH_POLE) then
-             do i=2,im
-                trm(i,1,:,n) =  trm(1,1,:,n) !poles
-             enddo
-          endif
-          if (HAVE_NORTH_POLE) then
-             do i=2,im
-                trm(i,jm,:,n) = trm(1,jm,:,n) !poles
-             enddo
-          endif
+        case ('Be7', 'Be10', 'Pb210', 'Rn222')
+          ! defaults ok
 
         case ('CO2')
           call openunit('CO2_IC',iu_data,.true.,.true.)

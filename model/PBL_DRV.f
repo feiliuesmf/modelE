@@ -408,14 +408,26 @@ C**** fix roughness length for ocean ice that turned to land ice
         psoil=fearth(i,j)
         poice=rsi(i,j)*pwater
         pocean=pwater-poice
-        tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
-        if (pocean.le.0.) tgvdat(i,j,1)=0.
-        tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
-        if (poice.le.0.)  tgvdat(i,j,2)=0.
-        tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
-        if (plice.le.0.)  tgvdat(i,j,3)=0.
-        tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
-        if (psoil.le.0.)  tgvdat(i,j,4)=0.
+        if (pocean.le.0.) then
+          tgvdat(i,j,1)=0.
+        else
+          tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
+        end if
+        if (poice.le.0.) then
+          tgvdat(i,j,2)=0.
+        else
+          tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
+        end if
+        if (plice.le.0.) then
+          tgvdat(i,j,3)=0.
+        else
+          tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
+        end if
+        if (psoil.le.0.) then
+          tgvdat(i,j,4)=0.
+        else
+          tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
+        end if
       end do
       end do
 

@@ -2356,7 +2356,7 @@ C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
       FLATJ=ARQX(J,L)*SCALER*SCALJR(J)*SCALLR(L)
          XJL(J,L+KMAX) = FLATJ
 c      FLATJ=FLATJ*PRTFAC
-      MLAT(J)=NINT(FLATJ)
+      MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLATJ)))
   240 AHEM(JHEMI)=AHEM(JHEMI)+FLATJ*WTJ(J,JWT,J1)
   250 FGLOB=FGLOB+AHEM(JHEMI)/JWT
          XJL(JM+3,L+KMAX)=AHEM(1)   ! SOUTHERN HEM
@@ -2480,7 +2480,7 @@ C****
          XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
          XJL(JM+1,L)=FGLOB     ! GLOBAL
       WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),
-     &        (NINT(FLAT(J)),J=JM,J1,-INC)
+     &        (NINT(MIN(1d5,MAX(-1d5,FLAT(J)))),J=JM,J1,-INC)
          CALL KEYNRL (SNAME,L,FLAT)
       HSUM(1)=HSUM(1)+FHEM(1)*SUMFAC*DSIG(L)/SDSIG
       HSUM(2)=HSUM(2)+FHEM(2)*SUMFAC*DSIG(L)/SDSIG
@@ -2545,7 +2545,7 @@ c      FLAT(J)=FLAT(J)*PRTFAC
          XJL(JM+2,L+LMAX)=FHEM(2)   ! NORTHERN HEM
          XJL(JM+1,L+LMAX)=FGLOB     ! GLOBAL
   230 WRITE (6,902) PL(L+LM),FGLOB,FHEM(2),FHEM(1),
-     *  (NINT(FLAT(J)),J=JM,J1,-INC)
+     *  (NINT(MIN(1d5,MAX(-1d5,FLAT(J)))),J=JM,J1,-INC)
       GO TO 100
   901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
   902 FORMAT (1X,F8.3,3F8.1,1X,24I4)
@@ -2658,7 +2658,7 @@ C****
          XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
          XJL(JM+1,L)=FGLOB     ! GLOBAL
       WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),
-     &        (NINT(FLAT(J)),J=JM,J1,-INC)
+     &        (NINT(MIN(1d5,MAX(-1d5,FLAT(J)))),J=JM,J1,-INC)
          CALL KEYNRL (SNAME,L,FLAT)
   140 CONTINUE
       WRITE (6,905) (DASH,J=J1,JM,INC)
@@ -2788,7 +2788,7 @@ C****
         DO I=1,IM
           FLON=AX(I,L)*SCALEL(L)
           XIL(I,L)=FLON
-          MLON(I)=NINT(FLON)
+          MLON(I)=NINT(MIN(1d5,MAX(-1d5,FLON)))
           ASUM(I)=ASUM(I)+FLON*DSIG(L)/SDSIG
           FGLOB=FGLOB+FLON
         END DO
@@ -3938,10 +3938,12 @@ c**** zonal mean
         val=0.
         if (smapj(j) .ne. undef) val = smapj(j)
         if (kcol.eq.1) then
-          if (ifm.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(val)
+          if (ifm.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(min(1d5,max(
+     *         -1d5,val)))
           if (ifm.eq.2) write(line(k)(nz1:nz2),'(f5.1)') val
         else
-          if (ifm.eq.1) write(line(k)(nz1:nz2),'(i7)') nint(val)
+          if (ifm.eq.1) write(line(k)(nz1:nz2),'(i7)') nint(min(1d5,max(
+     *         -1d5,val)))
           if (ifm.eq.2) write(line(k)(nz1:nz2),'(f7.1)') val
         end if
 c**** mark selected longitudes for each selected latitude
@@ -3968,8 +3970,10 @@ c**** below map, show global mean and mark each quarter with a '+'
           if (kcol.eq.1) write(line(k)(nz1:nz2),'(a)') "Undef"
           if (kcol.gt.1) write(line(k)(nz1:nz2),'(a)') "  Undef"
         else
-          if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(gm)
-          if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(gm)
+          if (kcol.eq.1) write(line(k)(nz1:nz2),'(i5)') nint(min(1d5
+     *         ,max(-1d5,gm)))
+          if (kcol.gt.1) write(line(k)(nz1:nz2),'(i7)') nint(min(1d5
+     *         ,max(-1d5,gm)))
         end if
       end if
       do k1 = n1,n2,im/(4*inci)
