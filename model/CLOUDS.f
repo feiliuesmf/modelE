@@ -2345,8 +2345,6 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         WMX(L+1)=0.
 #ifdef TRACERS_WATER
         TM(L+1,1:NTX)=TM(L+1,1:NTX)+TRWML(1:NTX,L+1)
-       do n=1,ntx
-       end do
         TRWML(1:NTX,L+1)=0.
 #endif
         IF(RH(L).LE.1.) CAREA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
