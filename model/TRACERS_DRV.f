@@ -259,6 +259,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trglac(n) = 0.
 #endif
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
       n_Ox = n
 c         read stratospheric correction from files:
@@ -402,6 +403,7 @@ C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
 C + 5.1% Ketones(3.6C)) = 4.95 C
 C
 C This number wasn't adjusted when the vegetation source was added.
+#endif
  
 #ifdef TRACERS_AEROSOLS_Koch
       case ('DMS')
@@ -1568,7 +1570,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LS1-1
         jwt_jls(k) = 2
         jls_power(k) = 5.
-        scale_jls(k) = 1.
+        scale_jls(k) = byim
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
 c
         k = k + 1
