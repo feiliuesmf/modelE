@@ -501,17 +501,17 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
       RETURN
       END
 
-      SUBROUTINE GHINIT (DTSURF,IUNIT,redoGH)
+      SUBROUTINE GHINIT (DTSURF,redoGH)
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopix=>twopi,rhow,edpery
       USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau,jeq
       USE GHYCOM
-      USE SLE001
-     &  , sinday=>sint,cosday=>cost
+      USE SLE001, sinday=>sint,cosday=>cost
+      USE FILEMANAGER
       IMPLICIT NONE
 
       REAL*8 DTSURF
-      INTEGER IUNIT
+      INTEGER iu_SOIL
       INTEGER JDAY
       REAL*8 SNOWDP,WTR1,WTR2,ACE1,ACE2,TG1,TG2
       LOGICAL redoGH
@@ -541,8 +541,9 @@ C**** 6*NGM+1 - 11*NGM   QK(IS,NGM)
 C**** 11*NGM+1           SL
 C
 C READ SOILS PARAMETERS
-      CALL DREAD (IUNIT,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
-      REWIND IUNIT
+      call getunit("SOIL",iu_SOIL,.TRUE.)
+      CALL DREAD (iu_SOIL,DZ_IJ,IM*JM*(11*NGM+1),DZ_IJ)
+      CLOSE (iu_SOIL)
 C
       ONE=1.
    10 CONTINUE

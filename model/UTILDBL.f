@@ -176,3 +176,105 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END
 
+      MODULE FILEMANAGER
+!@sum  FILEMANAGER keeps data concerning the files and unit numbers
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+
+!@param IUNIT0 starting unit for GCM files
+      INTEGER, PARAMETER :: IUNIT0 = 50
+!@var NUNIT number of already opened files (initially zero)
+      INTEGER, SAVE :: NUNIT = 0 
+
+      CONTAINS
+
+      SUBROUTINE GETUNIT(FILENM,IUNIT,QBIN)
+!@sum  GETUNIT sets a unit number for a requested file and opens it
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var IUNIT unit number for file in current request
+      INTEGER, INTENT(OUT) :: IUNIT
+!@var FILENAME name of file to open
+      CHARACTER*(*), INTENT(IN) :: FILENM
+!@var QBIN true if binary file is to be opened (UNFORMATTED)
+      LOGICAL, INTENT(IN) :: QBIN
+
+      IF (IUNIT0+NUNIT.gt.200) STOP "Maximum file number reached"
+
+C**** Set unit number
+      IUNIT = IUNIT0 + NUNIT
+C**** Open file
+      IF (QBIN) THEN
+         OPEN(IUNIT,FILE=FILENM,FORM="UNFORMATTED",
+     *        STATUS="OLD",ERR=10)
+      ELSE
+         OPEN(IUNIT,FILE=FILENM,FORM="FORMATTED",
+     *        STATUS="OLD",ERR=10)
+      END IF
+C**** increment no of files      
+      NUNIT = NUNIT + 1
+
+      RETURN
+ 10   WRITE(6,*) "Error opening file ",TRIM(FILENM)
+      STOP 'FILE OPENING ERROR IN GETUNIT'
+
+      END SUBROUTINE GETUNIT
+
+      SUBROUTINE GETUNITS(FILENM,IUNIT,QBIN,NREQ)
+!@sum  GETUNITS sets unit number for requested files and opens them
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+
+!@var NREQ number of file unit numbers requested
+      INTEGER, INTENT(IN) :: NREQ
+!@var IUNIT unit numbers for files in current request
+      INTEGER, INTENT(OUT), DIMENSION(*) :: IUNIT
+!@var FILENAME name of file to open
+      CHARACTER*(*), INTENT(IN), DIMENSION(*) :: FILENM
+!@var QBIN true if binary file is to be opened (UNFORMATTED)
+      LOGICAL, INTENT(IN), DIMENSION(*) :: QBIN
+      INTEGER I !@var I loop variable
+
+      IF (IUNIT0+NUNIT+NREQ-1.gt.200) STOP "Maximum file number reached"
+
+      DO I=1,NREQ 
+C**** Set unit number
+         IUNIT(I) = IUNIT0 + NUNIT
+C**** Open file
+         IF (QBIN(I)) THEN
+            OPEN(IUNIT(I),FILE=FILENM(I),FORM="UNFORMATTED",
+     *           STATUS="OLD",ERR=10)
+         ELSE
+            OPEN(IUNIT(I),FILE=FILENM(I),FORM="FORMATTED",
+     *           STATUS="OLD",ERR=10)
+         END IF
+C**** increment no of files      
+         NUNIT = NUNIT + 1
+      END DO
+
+      RETURN
+ 10   WRITE(6,*) "Error opening file ",TRIM(FILENM(I))
+      STOP 'FILE OPENING ERROR IN GETUNITS'
+
+      END SUBROUTINE GETUNITS
+
+      SUBROUTINE CLOSEUNITS
+!@sum  CLOSEUNIT closes all previously opened files
+!@auth Gavin Schmidt
+!@ver  1.0
+      IMPLICIT NONE
+      INTEGER IUNIT
+
+      DO IUNIT=IUNIT0,IUNIT0+NUNIT-1
+         CLOSE(IUNIT)
+      END DO
+
+      RETURN
+      END SUBROUTINE CLOSEUNITS
+
+      END MODULE FILEMANAGER
+

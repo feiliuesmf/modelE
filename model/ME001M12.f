@@ -453,8 +453,12 @@ C****
       USE DAGCOM, only : aj,kacc,tsfrez,tdiurn,kdiag,keynr,jreg
      &  ,TITREG,NAMREG,iwrite,jwrite,itwrite,qcheck
       USE OCEAN, only : odata,OA,T50
+      USE FILEMANAGER, only : getunit
 
       IMPLICIT NONE
+!@var iu_AIC,iu_TOPO,iu_GIC,iu_REG unit numbers for input files
+      INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_VEG
+
       INTEGER I,J,L,K,KLAST,IUNIT2,IUNIT1,IUNIT,KDISK0,ITYPE,IM1,KTACC
      *     ,IR,IREC,NOFF,NDIFS,ISTART,ioread,ioerr
       REAL*8 TIJL,X,TAU2,TAUX,TAUY,TAU1,RDSIG,CDM,SNOAGE,TEMP
@@ -483,10 +487,10 @@ C****
 
       ioread=1
       ISTART=10
-C**** READ SPECIAL REGIONS FROM UNIT 29 - IF AVAILABLE
-      REWIND 29
-      READ(29) TITREG,JREG,NAMREG
-      WRITE(6,*) ' read REGIONS from unit 29: ',TITREG
+C**** READ SPECIAL REGIONS FROM UNIT 29 
+      call getunit("REG",iu_REG,.TRUE.)
+      READ(iu_REG) TITREG,JREG,NAMREG
+      WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
 
       KDIAG(1:12)=0
 C**** INITIALIZE ADVECTION TERMS FOR SECOND ORDER MOMENTS
@@ -518,6 +522,10 @@ CSGI  READ (NLREC,INPUTZ)
       REWIND 8
       READ (8,NML=INPUTZ)
       REWIND 8
+
+C**** get unit for atmospheric initial conditions
+      call getunit("AIC",iu_AIC,.TRUE.)
+
       IF (ISTART.GE.10) GO TO 90
 C**** SET STRICTLY DEPENDENT QUANTITIES
       LMM1=LM-1
@@ -557,30 +565,31 @@ C****
       GO TO 210
 CALT  DEFINE GDATA(1->14),GHDATA(1->4*NGM+5) AND GO TO 220
 C****
-C**** INITIALIZE A RUN FROM ATMOSPHERIC CONDITIONS ON UNIT 9 AND
-C**** GROUND CONDITIONS (traditional) ON UNIT 7, ISTART=2
+C**** INITIALIZE A RUN FROM ATMOSPHERIC CONDITIONS AND
+C**** GROUND CONDITIONS, ISTART=2
 C****
-  200 CALL READT (9,0,P,IM*JM,P,1)                     ! Psurf
+  200 CALL READT (iu_AIC,0,P,IM*JM,P,1)             ! Psurf
       DO I=1,IM*JM
       P(I,1)=P(I,1)-PTOP                               ! Psurf -> P
       END DO
       DO L=1,LM
-      CALL READT (9,0,U(1,1,L),IM*JM,U(1,1,L),1)       ! U
+      CALL READT (iu_AIC,0,U(1,1,L),IM*JM,U(1,1,L),1) ! U
       END DO
       DO L=1,LM
-      CALL READT (9,0,V(1,1,L),IM*JM,V(1,1,L),1)       ! V
+      CALL READT (iu_AIC,0,V(1,1,L),IM*JM,V(1,1,L),1) ! V
       END DO
       DO L=1,LM
-      CALL READT (9,0,T(1,1,L),IM*JM,T(1,1,L),1)       ! Temperature
+      CALL READT (iu_AIC,0,T(1,1,L),IM*JM,T(1,1,L),1) ! Temperature
       END DO
       DO L=1,LM
-      CALL READT (9,0,Q(1,1,L),IM*JM,Q(1,1,L),1)       ! Q
+      CALL READT (iu_AIC,0,Q(1,1,L),IM*JM,Q(1,1,L),1) ! Q
       END DO
-      CALL READT (9,0,TSAVG(1,1),IM*JM,TSAVG(1,1),1)  ! Tsurf
-      REWIND 9
+      CALL READT (iu_AIC,0,TSAVG(1,1),IM*JM,TSAVG(1,1),1)  ! Tsurf
+      CLOSE (iu_AIC)
 C**** new: GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
-  210 READ(7,ERR=830) GDATA,GHDATA,(ODATA(I,1,1),I=1,IM*JM*2)
-      REWIND 7
+  210 call getunit("GIC",iu_GIC,.TRUE.)
+      READ(iu_GIC,ERR=830) GDATA,GHDATA,(ODATA(I,1,1),I=1,IM*JM*2)
+      CLOSE (iu_GIC)
 C**** Check whether a proper TAUI is given - initialize TAU=model time
   220 IF(TAUI.LT.0.) THEN
          WRITE(6,*) 'PLEASE SET TAUI IN THE RUNDECK'
@@ -661,23 +670,25 @@ C**** INITIALIZE TSFREZ
 CALT  GO TO 327       ! possibility to make tracer slopes more realistic
       GO TO 350
 C****
-C**** INITIALIZE RUN FROM PREVIOUS MODEL OUTPUT ON UNIT 9, ISTART=3-8
+C**** INITIALIZE RUN FROM PREVIOUS MODEL OUTPUT, ISTART=3-8
 C**** ISTART=3-4  IC-file looks like restart file (same # of prog.var)
 C****     ISTART=3: C ARRAY IS BUILT UP FROM DEFAULTS AND NAMELIST
-  300 READ (9,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,U,V,T,P,Q,
+ 300  READ (iu_AIC,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,
+     *     U,V,T,P,Q,
      2  ODATA,GDATA,GHDATA,BLDATA,
      *   uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
      3  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      4  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      5  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
      6  RQT,T50
+      CLOSE (iu_AIC)
       GO TO 398
 C****     ISTART=4: C ARRAY IS COPIED FROM INPUT DATA EXCEPT FOR XLABEL
 C**** USE ISTART=4 TO START FROM THIS RUN'S .rsf FILE
 C****                                                               ****
 C**** Use ISTART=4 for reruns and extensions, NOT to start new runs ****
 C***********************************************************************
-  320 READ(9,ERR=800)TAUX,JC,CLABEL1,RC,KEYNR,U,V,T,P,Q,ODATA,
+ 320  READ(iu_AIC,ERR=800)TAUX,JC,CLABEL1,RC,KEYNR,U,V,T,P,Q,ODATA,
      *  GDATA,GHDATA,BLDATA,
      *  uabl,vabl,tabl,qabl,eabl,cm,ch,cq,ipbl,
      2  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
@@ -686,22 +697,25 @@ C***********************************************************************
      *  T50,RQT,SRHR,TRHR,FSF,TSFREZ
       CLABEL(133:156)=CLABEL1(133:156)
       JC(32:37)=0
+      CLOSE (iu_AIC)
       GO TO 399
 C**** ISTART=5-9; ICfile looks different from restart file
 C**** ISTART=5; initial start from run B140 (snow ages not yet in GDATA)
-  322 READ (9,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,U,V,T,P,Q,
-     2  ODATA,GDATA,GHDATA,BLDATA,
+ 322  READ (iu_AIC,ERR=800,END=810) TAUX,JC1,CLABEL1,RC1,KEYNR,
+     2  U,V,T,P,Q,ODATA,GDATA,GHDATA,BLDATA,
      3  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      4  TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
      5  QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
      6  RQT,SRHR,TRHR,TSFREZ,SNOAGE
+      close (iu_AIC)
       redoGH=.TRUE.
       GO TO 350
 C**** ISTART=6 ; start from run B120 (no QUS, only 1 snow age)
-  325 READ(9,ERR=800)TAUX,JC1,CLABEL1,RC1,KEYNR,U,V,T,P,Q,ODATA,
+ 325  READ(iu_AIC,ERR=800)TAUX,JC1,CLABEL1,RC1,KEYNR,U,V,T,P,Q,ODATA,
      *  GDATA,GHDATA,BLDATA,
      2  TTOLD,QTOLD,SVLHX,RHSAV,WM,CLDSAV,
      *  RQT,SRHR,TRHR,TSFREZ
+      CLOSE (iu_AIC)
       DO J=1,JM
          DO I=1,IM
             SNOAGE(I,J,1)=GDATA(I,J,11)
@@ -826,38 +840,36 @@ C**** CALCULATE DSIG AND DSIGO
       END DO
 
 C***  READ IN LANDMASKS AND TOPOGRAPHIC DATA
-      CALL READT (26,0,FOCEAN,IM*JM,FOCEAN,1)  ! Ocean fraction
-      CALL READT (26,0,FLAKE,IM*JM,FLAKE,1)    ! Lake fraction
-      CALL READT (26,0,FEARTH,IM*JM,FEARTH,1)  ! Earth fraction (no LI)
-      CALL READT (26,0,FLICE,IM*JM,FLICE,1)    ! Land ice fraction  
-      FLAND = FEARTH + FLICE                   ! Land fraction
+      call getunit("TOPO",iu_TOPO,.TRUE.)
+      
+      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1)   ! Lake fraction
+      CALL READT (iu_TOPO,0,FEARTH,IM*JM,FEARTH,1) ! Earth fraction (no LI)
+      CALL READT (iu_TOPO,0,FLICE,IM*JM,FLICE,1)   ! Land ice fraction  
+      FLAND = FEARTH + FLICE                       ! Land fraction
 C**** DON'T  adjust Land ice fraction to be fraction only over land
 c      FLICE = (FLICE/(FLAND+1.D-20))
-      CALL READT (26,0,ZATMO,IM*JM,ZATMO,1)    ! Topography
-      ZATMO = ZATMO*GRAV                       ! Geopotential
-      REWIND 26
-c
-      iunit=19 ! file containing roughness length data
-      call pblini(iniPBL,iunit)
+      CALL READT (iu_TOPO,0,ZATMO,IM*JM,ZATMO,1)   ! Topography
+      ZATMO = ZATMO*GRAV                           ! Geopotential
+      REWIND iu_TOPO
 
-      IF(KOCEAN.GT.0) THEN
-C read in ocean heat transports and max. mixed layer depths
-        IUNIT1=12
-        IUNIT2=14
-        CALL OHT_INIT(IUNIT1,IUNIT2)
-      END IF
+C**** Init pbl (and read in file containing roughness length data)
+      call pblini(iniPBL)
+
+C**** read in ocean heat transports and max. mixed layer depths 
+      IF(KOCEAN.EQ.1) CALL OHT_INIT
 
 C**** READ IN VEGETATION DATA SET: VDATA AND VADATA
+      call getunit("VEG",iu_VEG,.TRUE.)
       DO K=1,11
-         CALL READT (23,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
+         CALL READT (iu_VEG,0,VDATA(1,1,K),IM*JM,VDATA(1,1,K),1)
       END DO
-      REWIND 23
+      CLOSE (iu_VEG)
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS
 C**** Recompute GHDATA if redoGH (new soils data)
 C****
-      IUNIT=25 ! file containing soil types/parameters
-      CALL GHINIT (DT*NDYN/NSURF,IUNIT,redoGH)
+      CALL GHINIT (DT*NDYN/NSURF,redoGH)
       IF (redoGH) THEN
         WRITE (*,*) 'GHDATA WAS MADE FROM GDATA'
 C****   Copy Snow age info into GDATA array
@@ -895,13 +907,13 @@ C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
 C****
   800 WRITE (6,'(A,I4)')
-     *  '0ERROR ENCOUNTERED READING I.C. ON UNIT 9.  ISTART=', ISTART
-      STOP 'READ ERROR FOR I.C. ON UNIT 9'
+     *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART
+      STOP 'READ ERROR FOR AIC'
   810 WRITE (6,'(A,2F11.2)')
-     *  '0EOF ON UNIT 9.  LATER I.C. NEEDED. TAUP,TAUX=', TAUP,TAUX
-      STOP 'ERROR: ALL TAUS<TAUP ON I.C. FILE ON UNIT 9'
-  830 WRITE(6,*) 'READ ERROR ON UNIT 7: GDATA,GHDATA'
-      STOP 'READ ERROR ON UNIT 7'
+     *  '0EOF ON AIC.  LATER I.C. NEEDED. TAUP,TAUX=', TAUP,TAUX
+      STOP 'ERROR: ALL TAUS<TAUP ON I.C. FILE FOR AIC'
+  830 WRITE(6,*) 'READ ERROR FOR GIC: GDATA,GHDATA'
+      STOP 'READ ERROR FOR GIC'
   840 IF (3-KDISK.EQ.KLAST) GO TO 850
       REWIND KDISK
       KLAST=KDISK

@@ -619,6 +619,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 !     *     iwrite,jwrite,itwrite
       USE DYNAMICS, only : pk,pedn
       USE OCEAN, only : odata
+      USE FILEMANAGER
 
       IMPLICIT NONE
 
@@ -641,6 +642,16 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       REAL*8 DTCNDS,COEX,CO2REF,ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS
      *     ,CMC,DEPTH,QSS,TAUSSL,TAUMCL,ELHX,CLDCV,DXYPJ,ASRHR,ATRHR
      *     ,ASNFS1,BSNFS1,CSNFS1,ATNFS1,BTNFS1,CTNFS1,SRNFLG,X
+!@var NRFUN indices of unit numbers for radiation routines
+      INTEGER NRFUN(14),IU
+!@var RUNSTR names of files for radiation routines
+      CHARACTER*5 :: RUNSTR(14) = (/"RADN1","RADN2","RADN3",
+     *     "RADN4","RADN5","RADN6","RADN7","RADN8",
+     *     "RADN9","RADNA","RADNB","RADNC","RADND",
+     *     "RADNE"/)
+!@var QBIN true if files for radiation routines are binary
+      LOGICAL :: QBIN(14) = (/.T.,.T.,.F.,.F.,.T.,.T.,.T.,.T.,.F.,.T.,
+     *     .T.,.T.,.T.,.T./)
 C****
 C**** FLAND     LAND COVERAGE (1)
 C**** FLICE     LAND ICE COVERAGE (1)
@@ -705,7 +716,12 @@ C**** New options (currently not used)
       KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme  -  KCLDEM
       KVEGA6=0  ! 0:2-band 1:6-band veg.albedo            -  KVEGA6
       MADVEL=123456         ! suppress reading i-th time series by i->0
-      CALL RCOMP1 (MADVEL)  ! 1=O3 2=TrAer 3=Dust 4=VAer 5=Clds 6=SoUV
+C**** set up unit numbers for 14 radiation input files
+      DO IU=1,14
+         IF (IU.EQ.12.OR.IU.EQ.13) CYCLE    ! not used in GCM
+         call getunit(RUNSTR(IU),NRFUN(IU),QBIN(IU))   
+      END DO
+      CALL RCOMP1 (MADVEL,NRFUN) ! 1=O3 2=TrAer 3=Dust 4=VAer 5=Clds 6=SoUV
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
          CALL WRITER (6,0)

@@ -258,7 +258,7 @@ C ******************************************************************
       RETURN
       END SUBROUTINE PBL
 
-      subroutine pblini(inipbl,iunit)
+      subroutine pblini(inipbl)
 c -------------------------------------------------------------
 c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
@@ -277,12 +277,14 @@ c -------------------------------------------------------------
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
       USE DYNAMICS, only : pmid,pk,pedn,pek
       USE OCEAN, only : odata
+      USE FILEMANAGER
 
       IMPLICIT NONE
 
-c@var inipbl whether to init prog vars
+!@var inipbl whether to init prog vars
       logical, intent(in) :: inipbl
-      integer, intent(in) :: iunit
+!@var iu_CDN unit number for roughness length input file
+      integer :: iu_CDN
 
       real*8, parameter :: ohmega=7.292e-5,rvx=0.
 
@@ -299,8 +301,10 @@ c@var inipbl whether to init prog vars
       qsat(tm,pm,qlh)=3.797915*exp(qlh*(7.93252d-6-2.166847d-3/tm))/pm
 
 C things to be done regardless of inipbl
-      call readt (iunit,0,roughl,im*jm,roughl,1)
-      rewind iunit
+      call getunit("CDN",iu_CDN,.TRUE.)
+      call readt (iu_CDN,0,roughl,im*jm,roughl,1)
+      close (iu_CDN)
+
       call ccoeff0
       call getb(zgs,ztop,bgrid)
 

@@ -417,7 +417,7 @@ C
       RETURN
       END SUBROUTINE SETNEW
 
-      SUBROUTINE RCOMP1(MADVEL)
+      SUBROUTINE RCOMP1(MADVEL,NRFUN)
 C
       !INCLUDE 'BR00B.COM'
 C
@@ -478,9 +478,12 @@ C
      +             10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 90.0/
 C
 C
+c     NRFUN is now set as an argument from calling routine so that unit
+c     numbers can be set automatically
       DIMENSION NRFUN(14)
+c
 C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
-      DATA NRFUN/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
+c      DATA NRFUN/71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84/
 C
 C       LPATH1 = Character Length of Path Leader of Input Data File Path
 C       ----------------------------------------------------------------

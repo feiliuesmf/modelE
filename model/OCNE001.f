@@ -13,7 +13,7 @@
       USE GEOM
 
       IMPLICIT NONE
-
+      SAVE
       integer, parameter :: lmom = 9 ! for deep ocean diffusion
       REAL*8, SAVE,DIMENSION(IM,JM,12) :: OA
 c      COMMON/WORKO/OA(IM,JM,12)
@@ -56,6 +56,9 @@ c      REAL*8, DIMENSION(IM,JM,LMSI) :: HSI
 
       REAL*8, DIMENSION(IM,JM) :: T50
       INTEGER KLAKE
+!@var iu_OSST,iu_SICE,iu_OCNML unit numbers for climatologies
+      INTEGER iu_OSST,iu_SICE,iu_OCNML
+
       CONTAINS
 
       SUBROUTINE OSTRUC
@@ -276,8 +279,8 @@ C**** READ IN OBSERVED OCEAN DATA
 C****    READ IN LAST MONTH'S END-OF-MONTH DATA
          LSTMON=MONTH-1
          IF(LSTMON.EQ.0) LSTMON=12
-         CALL READT (15,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
-         CALL READT (17,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
+         CALL READT (iu_OSST,IM*JM,EOST0,IM*JM,EOST0,LSTMON)
+         CALL READT (iu_SICE,IM*JM,ERSI0,IM*JM,ERSI0,LSTMON)
       ELSE
 C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
          DO 320 I=1,IM*JM
@@ -287,12 +290,12 @@ C****    COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       MONTHO=MONTH
       IF (MONTH.EQ.1) THEN
-         REWIND 15
-         REWIND 17
-         READ (17)         ! skip over DM-record
+         REWIND iu_OSST
+         REWIND iu_SICE
+         READ (iu_SICE)         ! skip over DM-record
       END IF
-      CALL READT (15,0,AOST,2*IM*JM,AOST,1) ! READS AOST,EOST1
-      CALL READT (17,0,ARSI,2*IM*JM,ARSI,1) ! READS ARSI,ERSI1
+      CALL READT (iu_OSST,0,AOST,2*IM*JM,AOST,1) ! READS AOST,EOST1
+      CALL READT (iu_SICE,0,ARSI,2*IM*JM,ARSI,1) ! READS ARSI,ERSI1
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       DO 330 J=1,JM
       IMAX=IMAXJ(J)
@@ -441,17 +444,17 @@ C**** READ IN TWO MONTHS OF OCEAN DATA
       GO TO 530
   520 IF (JDAY.LE.350) GO TO 550
       MD=JDATE-16
-  530 CALL READT (13,0,XZO,IM*JM,XZO,1)
+  530 CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,1)
       MDMAX=31
 C     DO 540 MX=1,10
 C 540 READ (13) M
-      CALL READT (13,0,Z1O,IM*JM,Z1O,11)
+      CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,11)
       GO TO 600
 C 550 DO 560 MX=1,12
-  550 CALL READT (13,0,Z1O,IM*JM,Z1O,MONTH-1)
+  550 CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,MONTH-1)
 C     IF (M.EQ.MONTH) GO TO 570
       IF (JDATE.LT.16) GO TO 580
-      IF (MONTH.GT.1) CALL READT (13,0,Z1O,IM*JM,Z1O,1)
+      IF (MONTH.GT.1) CALL READT (iu_OCNML,0,Z1O,IM*JM,Z1O,1)
 C     STOP 'OCEAN FILE ERROR: MLD NOT FOUND FOR CURRENT MONTH'
   570 IF (JDATE.EQ.16) GO TO 601
       MDMAX=JDOFM(MONTH+1)-JDOFM(MONTH)
@@ -459,7 +462,7 @@ C     STOP 'OCEAN FILE ERROR: MLD NOT FOUND FOR CURRENT MONTH'
       GO TO 590
   580 MDMAX=JDOFM(MONTH)-JDOFM(MONTH-1)
       MD=MDMAX+JDATE-16
-  590 CALL READT (13,0,XZO,IM*JM,XZO,1)
+  590 CALL READT (iu_OCNML,0,XZO,IM*JM,XZO,1)
 C**** INTERPOLATE OCEAN DATA TO CURRENT DAY
   600 X1=DFLOAT(MDMAX-MD)/MDMAX
   601 X2=1.-X1
@@ -531,9 +534,14 @@ C**** SET MARKER INDICATING BLDATA(.,.,5)=Z1O
 !@sum  OCLIM0 reads in mixed layer depths at the start
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST/fixed lakes)
+      USE FILEMANAGER
       IMPLICIT NONE
+C**** set up unit numbers for ocean climatologies
+      call getunit("OSST",iu_OSST,.TRUE.)
+      call getunit("SICE",iu_SICE,.TRUE.)
+      IF (KOCEAN.eq.1) call getunit("OCNML",iu_OCNML,.TRUE.)
 
-      CALL READT (17,0,DM,IM*JM,DM,1)
+      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
 
       RETURN
       END SUBROUTINE OCLIM0
@@ -1479,24 +1487,30 @@ C**** Check for NaN/INF in ocean data
 
       END SUBROUTINE CHECKO
 
-      SUBROUTINE OHT_INIT(IUNIT_OHT,IUNIT_MLMAX)
+      SUBROUTINE OHT_INIT
 !@sum READ IN OCEAN HEAT TRANSPORTS AND MAXIMUM MIXED LAYER
 !@sum DEPTHS FOR PREDICTED OCEAN RUNS
 !@auth Original Development Team
 !@ver  1.0
-! reads ocean heat transport coefficients from IUNIT_OHT
-! reads ocean max mix layer depth from IUNIT_MLMAX
       USE E001M12_COM, only : im,jm,fland,flice,gdata
       USE OCEAN, only : OTA,OTB,OTC,Z12O
+      USE FILEMANAGER
+
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: IUNIT_OHT,IUNIT_MLMAX
+!@var iu_OHT,iu_MLMAX unit numbers for reading in input files
+      INTEGER :: iu_OHT,iu_MLMAX
       INTEGER :: I,J
-C
-      READ (IUNIT_OHT) OTA,OTB,OTC
-      REWIND IUNIT_OHT
-C
-      CALL READT (IUNIT_MLMAX,0,Z12O,IM*JM,Z12O,1)
-      REWIND IUNIT_MLMAX
+
+C**** read ocean heat transport coefficients
+      call getunit("OHT",iu_OHT,.TRUE.)
+      READ (iu_OHT) OTA,OTB,OTC
+      CLOSE (iu_OHT)
+
+C**** read ocean max mix layer depth
+      call getunit("MLMAX",iu_MLMAX,.TRUE.)
+      CALL READT (iu_MLMAX,0,Z12O,IM*JM,Z12O,1)
+      CLOSE (iu_MLMAX)
+
 C****   IF GDATA(I,J,1)<0, THE OCEAN PART WAS CHANGED TO LAND ICE
 C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
       DO J=1,JM

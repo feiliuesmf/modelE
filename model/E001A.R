@@ -17,23 +17,25 @@ DE001M12  FFT72  UTILDBL            ! diag,utilities
 POUT                                ! for post-processing
 
 Data input files:
-9=DEC1958.rsfB394M12
-12=OTSPEC.RB399AM12.M250D 13=Z1O.B4X5.cor 14=Z1OMAX.B4X5.250M.cor ! ocn data
-15=OST4X5.B.1946-55avg.Hadl1.1 17=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
-19=CD4X500S 23=V72X46.1.cor 25=S4X50093 26=Z72X46N.cor4 ! bdy.cond
-29=REG4X5           ! special regions-diag
-71=sgpgxg.table8    ! rad.tables
-72=kdist33.tautabs4 
-73=miescatpar.abcdv 
-74=o3Prather1979-80.London1957-70
-75=trop8aer.tau5090 
-76=dust8.tau9x8x13  
-77=STRATAER.VOL.1950-2000.Jul99
-78=cloud.epsilon4.72x46
-79=solar.lean99.uvflux
-80=o3trend.1951-2050  
-81=o3WangJacob.1890.1979
-84=topcld.trscat8
+AIC=DEC1958.rsfB394M12
+OHT=OTSPEC.RB399AM12.M250D OCNML=Z1O.B4X5.cor 
+MLMAX=Z1OMAX.B4X5.250M.cor ! ocn data
+OSST=OST4X5.B.1946-55avg.Hadl1.1 SICE=SICE4X5.B.1946-55avg.Hadl1.1 ! ocn
+CDN=CD4X500S VEG=V72X46.1.cor 
+SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond
+REG=REG4X5           ! special regions-diag
+RADN1=sgpgxg.table8    ! rad.tables
+RADN2=kdist33.tautabs4 
+RADN3=miescatpar.abcdv 
+RADN4=o3Prather1979-80.London1957-70
+RADN5=trop8aer.tau5090 
+RADN6=dust8.tau9x8x13  
+RADN7=STRATAER.VOL.1950-2000.Jul99
+RADN8=cloud.epsilon4.72x46
+RADN9=solar.lean99.uvflux
+RADNA=o3trend.1951-2050  
+RADNB=o3WangJacob.1890.1979
+RADNE=topcld.trscat8
 
 Label and Namelist:
 E001A (new modelE based on B402A)
