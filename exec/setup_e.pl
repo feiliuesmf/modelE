@@ -255,7 +255,7 @@ print <<`EOC`;
     fi
     rm -f error_message 2> /dev/null
     ./"$runID"ln
-    ./"$runID".exe < I >> ${runID}.PRT
+    ./"$runID".exe -i I >> ${runID}.PRT
     rc=\$?
     rm -f AIC GIC OIC
     ./"$runID"uln
@@ -311,7 +311,7 @@ print RUNID <<EOF;
     touch lock
     rm -f error_message 2> /dev/null
     ./${runID}ln
-    ./${runID}.exe < \$IFILE > \$PRTFILE
+    ./${runID}.exe -i \$IFILE > \$PRTFILE
     rc=\$?
     ./${runID}uln
     rm -f lock

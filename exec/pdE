@@ -35,7 +35,15 @@ fi
 
 rm -f error_message
 do_uln=0 ; if [ ! -L TOPO ] ; then $RUNDIR/${runID}ln ; do_uln=1 ; fi
-$RUNDIR/${runID}.exe $* < Ipd > pd.PRT
+$RUNDIR/${runID}.exe -i Ipd $* < Ipd > pd.PRT
+# hack to process older runs (which don't support -i)
+rc=$?
+if [ $rc -eq 255 ] ; then 
+  if [ "`cat error_message`" = ' Unknown option on a command line' ] ; then
+    rm -f error_message
+    $RUNDIR/${runID}.exe $* < Ipd > pd.PRT
+  fi
+fi
    if [ ${do_uln} -eq 1 ] ; then $RUNDIR/${runID}uln ; fi
 if [ -s error_message ] ; then cat error_message ; fi
 if [ $# -gt 1 ] ; then tail -2 pd.PRT ; fi
