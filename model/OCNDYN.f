@@ -2568,9 +2568,9 @@ C****
      *     ,trmo,dxypo
 #endif
       USE SEAICE_COM, only : rsia=>rsi
+      USE DAGCOM, only : jreg,areg,aj,j_imelt,j_smelt,j_hmelt
       USE FLUXES, only : runpsia=>runpsi,srunpsia=>srunpsi,preca=>prec
      *     ,epreca=>eprec
-      USE DAGCOM, only : jreg,areg,aj,j_imelt,j_smelt,j_hmelt
 #ifdef TRACERS_OCEAN
      *     ,trpreca=>trprec,trunpsia=>trunpsi
       USE TRACER_COM, only : ntm

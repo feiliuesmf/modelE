@@ -1661,9 +1661,9 @@ C****
         TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) + 
      *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA 
         IF (NSIGT+30.gt.EXPONENT(TXMO(I,J,L,N))) TXMO(I,J,L,N) = 
-     *     SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+     *       SCALE(REAL(NINT(SCALE(TXMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         IF (NSIGT+30.gt.EXPONENT(TYMO(I,J,L,N))) TYMO(I,J,L,N) = 
-     *     SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
+     *       SCALE(REAL(NINT(SCALE(TYMO(I,J,L,N),-NSIGT)),KIND=8),NSIGT)
         TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
      *                  TZML(L,N,1,2) + TZML(L,N,1,1) 
       END DO
@@ -1959,7 +1959,7 @@ C****
         NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42 + 3
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
         IF (NSIGT+30.gt.EXPONENT(TXMST(L,N,ITR))) TXMST(L,N,ITR) = 
-     *       SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
+     *      SCALE(REAL(NINT(SCALE(TXMST(L,N,ITR),-NSIGT)),KIND=8),NSIGT)
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
       END DO
 #endif

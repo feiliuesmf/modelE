@@ -13,9 +13,9 @@
       CHARACTER, INTENT(IN) :: trname*8
       INTEGER, PARAMETER :: NTSPM=4
       REAL*8, PARAMETER ::
-     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6,  0d0 /),
-     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 0d0 /),
-     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 1d0 /)
+     *     A(NTSPM) = (/  0d0, -3.75d-7, -6.375d-6, -6.875d-6  /),
+     *     B(NTSPM) = (/  0d0,  1.025d-4, 1.2475d-3, 1.7d-3    /),
+     *     C(NTSPM) = (/  1d0,  0.9884d0, 0.9001d0 , 0.86975d0 /)
 !@var ITR   species number of tracer
 C****       1: Fresh Water 2: o18 3: Deu  4: Tritium
       INTEGER ITR

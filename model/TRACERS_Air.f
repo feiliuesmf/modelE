@@ -1107,7 +1107,7 @@ C**** print out total tracer diagnostic array size
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
-      USE MODEL_COM, only: itime,im,jm,lm
+      USE MODEL_COM, only: itime,im,jm,lm,ls1
 #ifdef TRACERS_WATER
      *  ,q,wm,flice,fearth
       USE SOMTQ_COM, only : qmom
@@ -1229,11 +1229,13 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('CH4')
           trmom(:,:,:,:,n) = 0.
+#ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
           do j=1,jm                          
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*CH4ic(j,l)*0.552d-9
           enddo; enddo
+#endif
 
         case ('O3')
           trmom(:,:,:,:,n) = 0.
