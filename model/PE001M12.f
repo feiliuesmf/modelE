@@ -2,7 +2,7 @@ C**** PE001M12 E001M12 SOMTQ PB395M12
 C**** OPT(3)
 C**** semi-random cloud overlap (+snow age updates+computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
-C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLE(LS1)=PTOP)
+C**** Constant pressure at L=LS1 and above (SIGE(LS1)=0., PLB(LS1)=PTOP)
 C**** Using 5 harmonics for horizontal ocean heat transport, thinner ice
 C**** Routines included:  PRECIP, COSZ0, RADIA,
 C****                     GROUND, DRYCNV, SDRAG
@@ -595,7 +595,7 @@ C****
      &             ,lx
      &             ,FULGAS ,PTLISO ,KTREND ,LMR=>NL ,LMRP=>NLP
 C     INPUT DATA
-     &             ,PLE=>PLB ,TL=>TLM ,QL=>SHL
+     &             ,PLB ,TL=>TLM ,QL=>SHL
      &             ,TAUWC ,TAUIC ,SIZEWC ,SIZEIC
      &             ,POCEAN,PEARTH,POICE,PLICE,AGESN,SNOWE,SNOWOI,SNOWLI
      &             ,TGO,TGE,TGOI,TGLI,TS=>TSL,WS=>WMAG,WEARTH,PTOPTR
@@ -687,15 +687,15 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       COEX=.01*GRAV*KAPA/RGAS
       DO L=1,LM
          COE(L)=DTCNDS*COEX/DSIG(L)
-         PLE(L)=SIGE(L)*(PSF-PTOP)+PTOP
+         PLB(L)=SIGE(L)*(PSF-PTOP)+PTOP
       END DO
-      PLE(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
-      PLE(LM+2)=.5*PLE(LM+1)
-      PLE(LMR)=.2*PLE(LM+1)
-      PLE(LMR+1)=1.D-5
+      PLB(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
+      PLB(LM+2)=.5*PLB(LM+1)
+      PLB(LMR)=.2*PLB(LM+1)
+      PLB(LMR+1)=1.D-5
       PTOPTR=PTOP ! top of sigma-coord.system
       DO 40 LR=LM+1,LMR
-   40 COE(LR)=DT*NRAD*COEX/(PLE(LR)-PLE(LR+1))
+   40 COE(LR)=DT*NRAD*COEX/(PLB(LR)-PLB(LR+1))
       PTLISO=15.
       IF(CO2.LT.0.) KTREND=-NINT(CO2)
 C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
@@ -732,12 +732,12 @@ c         JEQ=1+JM/2
 C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
          DO 43 L=1,LM
          LLOW=L
-         IF (.5*(PLE(L+1)+PLE(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
+         IF (.5*(PLB(L+1)+PLB(L+2)).LT.750.) GO TO 44 ! was 786. 4/16/97
    43    CONTINUE
    44    LMID1=LLOW+1
          DO 45 L=LMID1,LM
          LMID=L
-         IF (.5*(PLE(L+1)+PLE(L+2)).LT.430.) GO TO 46
+         IF (.5*(PLB(L+1)+PLB(L+2)).LT.430.) GO TO 46
    45    CONTINUE
    46    LHI1=LMID+1
          LHI=LM
@@ -916,19 +916,13 @@ C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
-      PIJ=P(I,J)
       DO 340 L=1,LM
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-c      PLE(L)=SIGE(L)*PIJ+PTOP
-      PLE(L)=PEDN(L,I,J)
+      PLB(L)=PEDN(L,I,J)
 C**** TEMPERATURES
-C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
          WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,L,TL(L)
          STOP 4255
       END IF
-C**** MOISTURE VARIABLES
-C---- QL(L)=Q(I,J,L)        ! already defined
   340 CONTINUE
 C****
 C**** RADIATION, SOLAR AND THERMAL
