@@ -1181,6 +1181,7 @@ C**** diagnostics
           SM(L)=SM(L)-SLH*DQEVP/PLK(L)
           COND(L)=COND(L)-DQEVP*FMC1
           TAUMCL(L)=TAUMCL(L)-DQEVP*FMC1
+          IF(TAUMCL(L).LT.0.) TAUMCL(L)=0.   ! remove round off error
           CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
           EVPSUM=EVPSUM+DQEVP*SLH
         END IF
