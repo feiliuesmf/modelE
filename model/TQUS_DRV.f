@@ -768,7 +768,7 @@ C$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
       enddo      ! while(courmax.gt.1.)
 C**** Correct air mass
       m(i,j,:) = ml(:)
-      NSTEPZ(I+JM*(J-1)) = NSTEP
+      NSTEPZ(I+IM*(J-1)) = NSTEP
 c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
 c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
       END DO
