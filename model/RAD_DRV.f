@@ -562,7 +562,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       LOGICAL NO_CLOUD_ABOVE
 C
       REAL*8  RDSS(LM,IM,JM),RDMC(IM,JM), AREGIJ(7,IM,JM)
-      INTEGER ICKERR,JCKERR
+      INTEGER ICKERR,JCKERR,KCKERR
 C
 C****
 C**** FLAND     LAND COVERAGE (1)
@@ -685,13 +685,14 @@ C**** MAIN J LOOP
 C****
       ICKERR=0
       JCKERR=0
+      KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IT, J, K,KR, L,LR,icc1, OPNSKY, CSZ2, PLAND,
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADCOM_hybrid/)
 !$OMP*   SHARED(ITWRITE)
 !$OMP    DO SCHEDULE(DYNAMIC,2)
-!$OMP*   REDUCTION(+:ICKERR,JCKERR)
+!$OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
       DO 600 J=1,JM
       NL=LM+LM_REQ ; NLP=NL+1   ! radiation allows var. # of layers
 C**** Radiation input files use a 72x46 grid independent of IM and JM
@@ -870,8 +871,9 @@ CCC       STOP 'In Radia: Temperature out of range'
 C**** MOISTURE VARIABLES
 C---- shl(L)=Q(I,J,L)        ! already defined
         if(shl(l).lt.0.) then
-          WRITE(99,*) 'In Radia: Time,I,J,L,QL<0',ITime,I,J,L,shl(L)
-          JCKERR=JCKERR+1
+          WRITE(0,*)'In Radia: Time,I,J,L,QL<0',ITime,I,J,L,shl(L),'->0'
+          KCKERR=KCKERR+1
+          shl(l)=0.
         end if
       END DO
 C**** Radiative Equilibrium Layer data
@@ -1074,7 +1076,7 @@ C**** Stop if temperatures were out of range
       IF(ICKERR.GT.0)
      &     call stop_model('In Radia: Temperature out of range',11)
       IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
-
+C     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',11)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime,T,RQT,TsAvg,QR,P,CLDinfo
      *  ,rsi,msi,(((GTEMP(1,k,i,j),k=1,4),i=1,im),j=1,jm),wsoil,wsavg
