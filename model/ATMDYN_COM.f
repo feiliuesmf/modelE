@@ -61,6 +61,8 @@ C**** module should own dynam variables used by other routines
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
       REAL*8, DIMENSION(IM,JM,LM) :: DKE
+!@var WSAVE vertical velocity (m/s)
+      REAL*8, DIMENSION(IM,JM,LM) :: WSAVE
 
       END MODULE DYNAMICS
 
