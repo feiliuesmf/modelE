@@ -21,7 +21,7 @@ ccc working variables:
 ccc corresponding variables in Samarskii book:
 ccc  x(0) = beta(1)   f(0) = alpha(1)
 
-      if ( abs(c(0)) .lt. EPS ) 
+      if ( abs(c(0)) .lt. EPS )
      &   call error_abort('sweep3diag: zero denominator  ',30)
       x(0) = f(0)/c(0)
       if ( n .lt. 2 ) return

@@ -5,7 +5,7 @@
 !@cont MSTCNV,LSCOND
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
      *     ,by3,tf,bytf,rvap,bygrav
-      USE E001M12_COM, only : IM,LM,TAU
+      USE E001M12_COM, only : IM,LM,Itime,DTsrc
       USE RANDOM
       IMPLICIT NONE
       SAVE
@@ -21,8 +21,8 @@ c      REAL*8, PARAMETER :: BYGRAV=1.d0/GRAV !@param BYGRAV = 1/grav
       REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD
 
-      REAL*8 :: DTCNDS,BYBR,SLHE,SLHS
-     *     ,BYDTCN,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
+      REAL*8 :: BYBR,SLHE,SLHS
+     *     ,BYDTsrc,AXCONS,BXCONS,DTPERD,AGESNX,DQDTX,XMASS
 
 C**** Set-able variables from NAMELIST
 !@var LMCM max level for originating MC plumes (set in init_CLD)
@@ -170,7 +170,7 @@ C**** initiallise arrays of computed ouput
       CLDDEPIJ=0
       PRCPMC=0.
       SVTP=0
-      CSIZEL=10.              !  effective droplet radius in stem 
+      CSIZEL=10.              !  effective droplet radius in stem
 C**** zero out diagnostics
          AJ8 =0.
          AJ13=0.
@@ -766,7 +766,7 @@ C**** simple upwind scheme for momentum
       DO 380 L=LMIN,LMAX
       CLDM=CCM(L)
       IF(L.LT.LDRAFT.AND.ETADN.GT.1.E-10) CLDM=CCM(L)-DDRAFT
-      IF(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTCNDS)
+      IF(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
       BETA=CLDM*BYAM(L+1)
 c         FCDH=0.
 c         IF(L.EQ.LMAX) FCDH=CDHSUM-(CDHSUM-CDHDRT)*.5*ETADN+CDHM
@@ -1032,7 +1032,7 @@ C**** CALCULATE OPTICAL THICKNESS
       END SUBROUTINE MSTCNV
 
       SUBROUTINE LSCOND(I0,J0)
-!@sum  CONDSE_LOC column physics of large scale condensation
+!@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,THBAR
@@ -1124,12 +1124,12 @@ C**** DETERMINE THE PHASE MOISTURE CONDENSES TO
 C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       BANDF=.FALSE.
       LHX= LHE
-      PMI=PREICE(L+1)*DTCNDS
+      PMI=PREICE(L+1)*DTsrc
       PML=WMX(L)*AIRM(L)*BYGRAV
       PRATIO=PMI/(PML+1.E-20)
       IF(PRATIO.GT.10.) PRATIO=10.
       CBF=1.+1.*EXP(-((TL(L)-258.16d0)/10.)**2)
-      CBFC0=.5*CM0*CBF*DTCNDS
+      CBFC0=.5*CM0*CBF*DTsrc
       PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
       FUNIO=1.-EXP(-((TL(L)-269.16d0)/15.)**2)
       FUNIL=1.-EXP(-((TL(L)-263.16d0)/15.)**2)
@@ -1173,7 +1173,7 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       SVLHXL(L)=LHX
       TL(L)=TL(L)+HCHANG/SHA
       TH(L)=TL(L)/PLK(L)
-      ATH(L)=(TH(L)-TTOLDL(L))*BYDTCN
+      ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
 C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
       RH00(L)=U00wtr
@@ -1204,8 +1204,8 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(BANDF) CM1=CM0*CBF
       IF(LHX.EQ.LHS) CM1=CM0
       CM=CM1*(1.-1./EXP(TEM*TEM))+1.*100.*(PREBAR(L+1)+
-     *   PRECNVL(L+1)*BYDTCN)
-      IF(CM.GT.BYDTCN) CM=BYDTCN
+     *   PRECNVL(L+1)*BYDTsrc)
+      IF(CM.GT.BYDTsrc) CM=BYDTsrc
       PREP(L)=WMX(L)*CM
       END IF
 C**** FORM CLOUDS ONLY IF RH GT RH00
@@ -1240,9 +1240,9 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
       CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
       CK2=1000.*RVAP*TL(L)/(2.4d-3*QSATL(L)*PL(L)/.622d0)
       TEVAP=1000.*(CK1+CK2)*RCLD*RCLD
-      WMX1=WMX(L)-PREP(L)*DTCNDS
+      WMX1=WMX(L)-PREP(L)*DTsrc
       ECRATE=(1.-RHF(L))/(TEVAP*FCLD+1.E-20)
-      IF(ECRATE.GT.BYDTCN) ECRATE=BYDTCN
+      IF(ECRATE.GT.BYDTsrc) ECRATE=BYDTsrc
       EC(L)=WMX1*ECRATE*LHX
       END IF
 C**** COMPUTE NET LATENT HEATING DUE TO STRATIFORM CLOUD PHASE CHANGE,
@@ -1253,15 +1253,15 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
 C     IF(RH1(L).GT.1.) DRHDT=0.
       QHEAT(L)=(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
       DWDT=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
-      WMNEW =WMX(L)+DWDT*DTCNDS
+      WMNEW =WMX(L)+DWDT*DTsrc
       IF(WMNEW.LT.0.) THEN
       WMNEW=0.
-      QHEAT(L)=(-WMX(L)*BYDTCN+PREP(L))*LHX-CAREA(L)*ER(L)
+      QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CAREA(L)*ER(L)
       END IF
       GO TO 230
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
   220 Q1=0.
-      IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTCN
+      IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
       ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GRAV*BYAM(L)
       IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
      *  ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GRAV*BYAM(L)
@@ -1281,33 +1281,33 @@ C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       PREBAR(L)=PREBAR(L+1)+
      *          AIRM(L)*(PREP(L)-ER(L)*CAREA(L)/LHX)*BYGRAV
 C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
-      QNEW =QL(L)-DTCNDS*QHEAT(L)/LHX
+      QNEW =QL(L)-DTsrc*QHEAT(L)/LHX
       IF(QNEW.LT.0.) THEN
       QNEW=0.
-      QHEAT(L)=QL(L)*LHX*BYDTCN
+      QHEAT(L)=QL(L)*LHX*BYDTsrc
       DWDT1=QHEAT(L)/LHX-PREP(L)+CAREA(L)*ER(L)/LHX
-      WMNEW=WMX(L)+DWDT1*DTCNDS
+      WMNEW=WMX(L)+DWDT1*DTsrc
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
       IF(WMNEW.LT.0.) THEN
-        WRITE(99,'(F10.0,3I4,A,D14.5,A)')
-     *   TAU,I0,J0,L,' CONDSE:H2O<0',WMNEW,' ->0'
+        WRITE(99,'(I10,3I4,A,D14.5,A)')
+     *   Itime,I0,J0,L,' CONDSE:H2O<0',WMNEW,' ->0'
         WMNEW=0.
       END IF
       END IF
 C**** Only Calculate fractional changes of Q to W
 c      FPR=0.
-c      IF (WMX(L).gt.1d-20) FPR=PREP(L)*DTCNDS/WMX(L)          ! CLW->P
+c      IF (WMX(L).gt.1d-20) FPR=PREP(L)*DTsrc/WMX(L)          ! CLW->P
 c      FER=0.
 c      IF (PREBAR(L+1).gt.1d-20) FER=CAREA(L)*ER(L)*AIRM(L)/(
 c     *     GRAV*LHX*PREBAR(L+1))                              ! P->Q
       FQTOW=0.                                                ! Q->CLW
 c      FWTOQ=0.                                                ! CLW->Q
       IF (QHEAT(L)+CAREA(L)*ER(L).gt.0) THEN
-        IF (LHX*QL(L)+DTCNDS*CAREA(L)*ER(L).gt.1d-20) FQTOW=(QHEAT(L)
-     *       +CAREA(L)*ER(L))*DTCNDS/(LHX*QL(L)+DTCNDS*CAREA(L)*ER(L))
+        IF (LHX*QL(L)+DTsrc*CAREA(L)*ER(L).gt.1d-20) FQTOW=(QHEAT(L)
+     *       +CAREA(L)*ER(L))*DTsrc/(LHX*QL(L)+DTsrc*CAREA(L)*ER(L))
 c      ELSE
-c        IF (WMX(L)-PREP(L)*DTCNDS.gt.1d-20) FWTOQ=-(QHEAT(L)+CAREA(L)
-c     *       *ER(L))*DTCNDS/(LHX*(WMX(L)-PREP(L)*DTCNDS))
+c        IF (WMX(L)-PREP(L)*DTsrc.gt.1d-20) FWTOQ=-(QHEAT(L)+CAREA(L)
+c     *       *ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
       END IF
       QL(L)=QNEW
 C**** adjust gradients down if Q decreases
@@ -1321,7 +1321,7 @@ C**** adjust gradients down if Q decreases
       QZZM(L)=QZZM(L)*(1.-FQTOW)
       QZXM(L)=QZXM(L)*(1.-FQTOW)
       WMX(L)=WMNEW
-      TL(L)=TL(L)+DTCNDS*(QHEAT(L)-HPHASE)/SHA
+      TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/SHA
       TH(L)=TL(L)/PLK(L)
       TNEW=TL(L)
       QSATC=QSAT(TL(L),LHX,PL(L))
@@ -1359,7 +1359,7 @@ C**** adjust gradients down if Q decreases
       END IF
       IF(RH(L).LE.RHF(L)) THEN
 C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
-      PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTCN
+      PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
       WMX(L)=0.
       END IF
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
@@ -1405,7 +1405,7 @@ C     DO 310 L=1,LM
       SIGK=0.
       IF(CKR.GT.CKM) GO TO 382
       IF(CK.GT.CKR) SIGK=1d-3*((CK-CKR)/(CKM-CKR+1.E-20))**5.
-      EXPST=EXP(-SIGK*DTCNDS)
+      EXPST=EXP(-SIGK*DTsrc)
       IF(L.LE.1) CKIJ=EXPST
       DSEC=DWM*TL(L)/BETA
 C     DSEC=.53*SLHE*DWM
@@ -1538,7 +1538,7 @@ C    *  WTEM=1.E5*WCONST*1.E-3*PL(L)/(TL(L)*RGAS)
       TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+1.E-20)
       IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
   388    IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM
-      PRCPSS=PREBAR(1)*GRAV*DTCNDS
+      PRCPSS=PREBAR(1)*GRAV*DTsrc
 
 C**** CALCULATE OPTICAL THICKNESS
       DO L=1,LM
@@ -1559,6 +1559,7 @@ C**** CALCULATE OPTICAL THICKNESS
   526 CONTINUE
       IF(WMX(L).LE.0.) SVLHXL(L)=0.
       END DO
+
 
       RETURN
       END SUBROUTINE LSCOND

@@ -3,11 +3,8 @@ C**** COMMON BLOCK    4x5 deg Model  - Real*8 - VDATA:10->11+1
 
       MODULE E001M12_COM
 
-C**** TO CHANGE THE GRID, MODIFY THE NEXT LINE ONLY
-C**** IM,JM,LM LIMITED TO 72,46,36 RESPECTIVELY BY RADCOM & SIGmas
-
-!@var IM,JM longituidinal and latitudinal number of grid boxes
-!@var LM number of vertical levels
+!@var IM,JM longitudinal and latitudinal number of grid boxes
+!@var LM number of vertical levels (limited to 40 by BR00B.COM)
       INTEGER, PARAMETER :: IM=72,JM=46,LM=12
 
 !@var IMH half the number of latitudinal boxes
@@ -21,22 +18,23 @@ C**** IM,JM,LM LIMITED TO 72,46,36 RESPECTIVELY BY RADCOM & SIGmas
 
 C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
       INTEGER ::
-     *       IM0,JM0,LM0,JMM1x,LMM1x,    LS1,LTMx,LBLMx,LMCMx,LSSMx,
-     *  KOCEAN,KDISK,KEYCT,KACC0,KCOPY,  IRAND,IJRAx,MFILTR,NDYN,NCNDS,
-     *  NRAD,NSURF,NGRND,NFILTR,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
+     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
+     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Noht,Nslp,NIdyn,
+     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
-     *  IYEAR,IDAY,IDAY0,JYEAR,JYEAR0,  JDAY,JDATE,JDATE0,NSTEP,MRCH,
-     *  KTACC0,MONTH
-      INTEGER, DIMENSION(2) :: IDUM
+     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
+     *  NSSW,NSTEP,MRCH
+      INTEGER                  IDUM
       INTEGER, DIMENSION(13) :: NDZERO,NDPRNT
       INTEGER, DIMENSION(2,4) :: IJD6
       INTEGER, DIMENSION(12) :: IDACC
-      COMMON /IPARMB/IM0,JM0,LM0,JMM1x,LMM1x,LS1,LTMx,LBLMx,LMCMx,LSSMx,
-     *  KOCEAN,KDISK,KEYCT,KACC0,KCOPY,  IRAND,IJRAx,MFILTR,NDYN,NCNDS,
-     *  NRAD,NSURF,NGRND,NFILTR,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
+      COMMON /IPARMB/
+     *  IM0,JM0,LM0,LS1,KACC0,        KTACC0,Itime,ItimeI,ItimeE,Itime0,
+     *  KOCEAN,KDISK,KEYCT,KCOPY,IRAND,  MFILTR,Ndisk,Noht,Nslp,NIdyn,
+     *  NRAD,NIsurf,NFILTR,NDAY,NDAA,   NDA5D,NDA5K,NDA5S,NDA4,NDASF,
      *  MLAST,MDYN,MCNDS,MRAD,MSURF,    MDIAG,MELSE,MODRD,MODD5K,MODD5S,
-     *  IYEAR,IDAY,IDAY0,JYEAR,JYEAR0,  JDAY,JDATE,JDATE0,NSTEP,MRCH,
-     *  KTACC0,MONTH,IDUM   ,NDZERO    ,NDPRNT    ,  IJD6     ,IDACC
+     *  IYEAR0,JYEAR,JYEAR0,JMON,JMON0, JDATE,JDATE0,JHOUR,JHOUR0,JDAY,
+     *  NSSW,NSTEP,MRCH,   IDUM   ,NDZERO,NDPRNT    ,  IJD6     ,IDACC
 
 ! handle for referring to integer parameters
       INTEGER, DIMENSION(100) :: JC
@@ -44,33 +42,29 @@ C**** THERE ARE 100 INTEGER PARAMETERS IN COMMON (JC-ARRAY)
 
 C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
       DOUBLE PRECISION ::
-     *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  PTOP,PSF,PSDRAG,PTRUNC,XINT,
-     *  SKIPSE,USESLP,USEP,USET,    RSDIST,SIND,COSD
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
+     *  RSDIST,SIND,COSD 
+      DOUBLE PRECISION, DIMENSION(4+12) :: TAUTR0  ! to keep sig fixed?
       DOUBLE PRECISION, DIMENSION(LM) :: SIG
       DOUBLE PRECISION, DIMENSION(LM+1) :: SIGE
-      DOUBLE PRECISION, DIMENSION(4) :: TAUTR0
-      DOUBLE PRECISION, DIMENSION(161-29-2*LM) :: RDM2
+      DOUBLE PRECISION, DIMENSION(161-29-2*LM) :: RDM2 
 !@var PSFMPT,PSTRAT derived pressure constants
-      REAL*8 :: PSFMPT,PSTRAT
       COMMON /RPARMB/
-     *  TAU,TAU0,TOFDAY,TOFDY0,DT,      TAUP,TAUI,TAUE,TAUT,TAUO,
-     *  PTOP,PSF,PSDRAG,PTRUNC,XINT,    SKIPSE,USESLP,USEP,USET,
-     *  RSDIST,SIND,COSD,SIG,SIGE,      TAUTR0,PSFMPT,PSTRAT,RDM2
+     *  DTsrc,DT,  PTOP,PSF,PSFMPT,PSTRAT,PSDRAG,  PTRUNC,SKIPSE,
+     *  RSDIST,SIND,COSD,        TAUTR0,SIG,SIGE,  RDM2   ! S0, ??
 
 !@var RC handle for referring to real parameters
       DOUBLE PRECISION, DIMENSION(161) :: RC
-      EQUIVALENCE (RC,TAU)
+      EQUIVALENCE (RC,DTsrc)
 
-      CHARACTER*4 NAMD6,JMONTH,JMNTH0
+      CHARACTER*4 NAMD6,AMON,AMON0
       CHARACTER*132 XLABEL
-      COMMON /TEXT/ XLABEL,NAMD6(4),JMONTH,JMNTH0
+      COMMON /TEXT/ XLABEL,NAMD6(4),AMON,AMON0
 
 !@var LABEL1,CLABEL,XLABEL handles for referring to text parameters
       CHARACTER LABEL1*16
       CHARACTER CLABEL*156
       EQUIVALENCE (CLABEL,XLABEL,LABEL1)
-
       DOUBLE PRECISION, DIMENSION(IM,JM) :: FLAND,FOCEAN,FLICE,FLAKE
      *     ,FEARTH,ZATMO,HLAKE
 
@@ -87,6 +81,20 @@ C**** THERE ARE 161 REAL NUMBERS IN COMMON (RC-ARRAY)
 !@var XCDLM.  SDRAG ~XCDLM(1)+XCDLM(2)*wind_magnitude
       DOUBLE PRECISION, DIMENSION(2) :: XCDLM
 
+C**** (Simplified) Calendar Related Terms
+!@VAR JDperY,JMperY    number of days,months per year
+!@VAR JDendOfM(0:12)   last Julian day in month
+!@VAR JDmidOfM(0:13)   middle Julian day in month
+      INTEGER, PARAMETER :: JDPERY = 365, JMPERY = 12
+      INTEGER :: JDendOfM(0:JMPERY) = (
+     *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
+      INTEGER :: JDmidOfM(0:JMPERY+1) = (
+     *     /-15,16,47,75,106,136,167,197,228,259,289,320,350,381/)
+!@VAR AMONTH   (3-4 letter) names for months
+      CHARACTER*4 :: AMONTH(0:12) = (/'IC  ',
+     *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
+     *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
+
 !@var Q_GISS,Q_HDF,Q_PRT,Q_NETCDF are switches for post-processing
       LOGICAL Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
       COMMON /Q_PP/Q_GISS,Q_HDF,Q_PRT,Q_NETCDF
@@ -96,7 +104,7 @@ C**** Main model prognostic variables
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var WM cloud liquid water amount (kg water/kg air)
-!@var P surface pressure (hecto-Pascals - PTOP) 
+!@var P surface pressure (hecto-Pascals - PTOP)
 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: U,V,T,Q,WM
       DOUBLE PRECISION, DIMENSION(IM,JM) :: P

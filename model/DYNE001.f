@@ -204,11 +204,11 @@ C****
       REAL*8 DT1
 
 C**** COMPUTE PA, THE NEW SURFACE PRESSURE
-      PA(1,1)=P(1,1)+(DT1*PIT(1,1)*BYDXYP(1)+PTRUNC)
+      PA(1,1)=P(1,1)+(DT1*PIT(1,1)*BYDXYP(1))   !  +PTRUNC)
          IF (PA(1,1).GT.1150.) WRITE(6,991) 1,1,MRCH,P(1,1),PA(1,1),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
-      PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)*BYDXYP(JM)+PTRUNC)
+      PA(1,JM)=P(1,JM)+(DT1*PIT(1,JM)*BYDXYP(JM))  !  +PTRUNC)
          IF (PA(1,JM).GT.1150.) WRITE(6,991) 1,JM,MRCH,P(1,JM),PA(1,JM),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(T(1,1,L),Q(1,1,L),L=1,LM)
@@ -217,7 +217,7 @@ C**** COMPUTE PA, THE NEW SURFACE PRESSURE
  2424 PA(I,JM)=PA(1,JM)
       DO 2426 J=2,JM-1
       DO 2426 I=1,IM
-      PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J)+PTRUNC)
+      PA(I,J)=P(I,J)+(DT1*PIT(I,J)*BYDXYP(J))   !  +PTRUNC)
          IF (PA(I,J).GT.1150.) WRITE (6,990) I,J,MRCH,P(I,J),PA(I,J),
      *     ZATMO(1,1),FLAND(1,1),FLICE(1,1),(ODATA(1,1,K),K=1,5)
      *     ,(GDATA(1,1,K),K=1,16),(U(I-1,J,L),U(I,J,L),U(I-1,J+1,L),
@@ -684,7 +684,7 @@ c      GBYRB=GRAV/(RGAS*.0065)
       DO 150 J=2,JM-1
          PSUMN=0.
       DO 140 I=1,IM
-      P(I,J)=X(I,J)/Y(I,J)-PTOP+PTRUNC
+      P(I,J)=X(I,J)/Y(I,J)-PTOP   !  +PTRUNC
   140 PSUMN=PSUMN+P(I,J)
          PDIF=(PSUMN-PSUMO(J))*BYIM
       DO 145 I=1,IM
@@ -922,10 +922,10 @@ C**** Note that only layers LS1 and below vary as a function of surface
 C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
 
-C**** Fill in polar boxes 
+C**** Fill in polar boxes
       P(2:IM,1) = P(1,1)
       P(2:IM,JM)= P(1,JM)
-    
+
       DO J=1,JM
          DO I=1,IM
             DO L=1,LS1-1
@@ -966,7 +966,7 @@ C****
 C**** INTEGRATE DYNAMIC TERMS
 C****
       USE CONSTANT, only : by3
-      USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,ndyn,dt,MODD5K
+      USE E001M12_COM, only : im,jm,lm,u,v,t,p,q,wm,dsig,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,psfmpt,ls1
       USE GEOM, only : dyp,dxv,dxyp
       USE SOMTQ_COM
@@ -992,9 +992,9 @@ C****
 
       REAL*8 DTFS,DTLF,PP,UU,VV
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
-      INTEGER NS,NDYNO
+      INTEGER NS    !? ,NIdynO
 
-      NDYNO=MOD(NDYN,2)
+!?    NIdynO=MOD(NIdyn,2)   ! NIdyn odd is currently not an option
       DTFS=DT*2./3.
       DTLF=2.*DT
       DO J=1,JM
@@ -1027,7 +1027,7 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL ADVECV (P,UX,VX,PB,U,V,P,DTFS)
       CALL PGF (UX,VX,PB,U,V,T,TZ,P,DTFS)
       CALL FLTRUV(UX,VX)
-      IF (NDYNO.EQ.1) GO TO 320
+!?    IF (NIdynO.EQ.1) GO TO 320
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
@@ -1038,9 +1038,9 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL FLTRUV(UT,VT)
       GO TO 360
 C**** INITIAL BACKWARD STEP IS EVEN, Q = Q + DT*F(QX)
-  320 NS=1
-         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
-      MRCH=1
+!?320 NS=1
+!?       MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
+!?    MRCH=1
 C     CALL DYNAM (U,V,T,P,Q,UX,VX,TX,PX,QT,DT)
 CD       DIAGA SHOULD BE CALLED HERE BUT THEN ARRAYS MUST BE CHANGED
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
@@ -1057,7 +1057,7 @@ C**** LOAD PB TO PA
   341 PA(I,J)=PB(I,J)
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
-         MODD5K=MOD(NSTEP+NS-NDYN+NDA5K,NDA5K)
+         MODD5K=MOD(NSTEP+NS-NIdyn+NDA5K*NIdyn+2,NDA5K*NIdyn+2)
       MRCH=2
 C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL AFLUX (UT,VT,PA)
@@ -1127,11 +1127,11 @@ C**** LOAD P TO PC
       DO 371 J=1,JM
       DO 371 I=1,IM
   371 PC(I,J)=P(I,J)
-         IF (MOD(NSTEP+NS-NDYN+NDAA,NDAA).LT.MRCH) THEN
+         IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA (UT,VT,TT,PB,Q,PIT,SD)
            CALL DIAGB (UT,VT,TT,PB,Q,WMT,DUT,DVT)
          ENDIF
-      IF (NS.LT.NDYN) GO TO 340
+      IF (NS.LT.NIdyn) GO TO 340
 C**** Scale WM mixing ratios to conserve liquid water
       DO J=1,JM
         DO I=1,IM

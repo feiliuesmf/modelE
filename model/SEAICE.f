@@ -1,7 +1,7 @@
       MODULE SEAICE
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
-!@ver  1.0 
+!@ver  1.0
 !@cont PREC_SI,SEA_ICE.
 
       USE CONSTANT, only : lhm,rhoi,rhow,shi,shw
@@ -34,8 +34,8 @@
       REAL*8, DIMENSION(IM,JM) :: RSI
 !@var MSI thickness of ice second layer (layer 1=const) (kg/m^2)
       REAL*8, DIMENSION(IM,JM) :: MSI
-!@var LMI number of temperature layers in ice 
-      INTEGER, PARAMETER :: LMI = 4 
+!@var LMI number of temperature layers in ice
+      INTEGER, PARAMETER :: LMI = 4
 !@var TSI temperature of the each ice layer (C)
       REAL*8, DIMENSION(IM,JM,LMI) :: TSI
 !@var HSI enthaply of each ice layer (J/m^2) (will replace TSI)
@@ -51,13 +51,13 @@ c      REAL*8, DIMENSION(IM,JM,LMI) :: HSI
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: SNOMAX=100.0, dSNdRN=0.
-      REAL*8 SNOW, MSI1, MSI2, MELT1 
+      REAL*8 SNOW, MSI1, MSI2, MELT1
       REAL*8 TPRCP, EPRE, EPRCP, PRCP, RAIN, FREZ1
-      REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4, 
+      REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4,
      *       FMSI1, FMSI2, FHSI1, FHSI2, FHSI3, H2, CMPRS
-      REAL*8 DIFS, EDIFS, ERUN2 ! for diagnostics 
+      REAL*8 DIFS, EDIFS, ERUN2 ! for diagnostics
       REAL*8 RUN0 ! runoff for ocean/lake
-      REAL*8 HC_1 
+      REAL*8 HC_1
 !@var QFIXR true if RSI and MSI2 are fixed (ie. for a fixed SST run)
       LOGICAL QFIXR
 
@@ -256,7 +256,7 @@ C**** ADVECT ICE (usually downwards)
       TG4 = (HSI4/(XSI4*MSI2)+LHM)/SHI ! fourth layer ice temperature
       MSI2 = MSI2+FMSI2 ! second layer sea ice mass (kg/m^2)
 
-      RETURN 
+      RETURN
       END SUBROUTINE PREC_SI
 
       SUBROUTINE SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
@@ -268,30 +268,30 @@ C**** ADVECT ICE (usually downwards)
 
       IMPLICIT NONE
 
-      REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML =0. 
+      REAL*8, PARAMETER :: ALPHA = 1.0, dSNdML =0.
       REAL*8,  INTENT(IN) :: DTSRCE
 !@var F0DT heat flux on the ice top surface (W/m^2)
       REAL*8,  INTENT(IN) :: F0DT
 !@var F1DT heat flux between the 1st and 2nd ice layers (W/m^2)
       REAL*8,  INTENT(IN) :: F1DT
 !@var EVAP evaporation/dew on the top ice surface (kg/m^2)
-      REAL*8,  INTENT(IN) :: EVAP 
-!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+      REAL*8,  INTENT(IN) :: EVAP
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
 
-      REAL*8 ROICE, SNOW, MSI1, MSI2, ACE2M, MELT1, MELT4, DEW, CMPRS 
-      REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4, 
-     *       FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4  
+      REAL*8 ROICE, SNOW, MSI1, MSI2, ACE2M, MELT1, MELT4, DEW, CMPRS
+      REAL*8 TG1, TG2, TG3, TG4, HSI1, HSI2, HSI3, HSI4,
+     *       FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
 !@var TGW mixed layer temp.(C)
       REAL*8 TGW
-      REAL*8 HC1, HC2, HC3, HC4 
+      REAL*8 HC1, HC2, HC3, HC4
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
-      REAL*8, INTENT(OUT) :: EDIFSI, F2DT, RUN0, DIFSI, DIFS, EDIFS 
-C**** Initiallise output 
+      REAL*8, INTENT(OUT) :: EDIFSI, F2DT, RUN0, DIFSI, DIFS, EDIFS
+C**** Initiallise output
       F2DT=0. ; RUN0=0.  ; DIFSI=0. ; EDIFSI=0.
-      DIFS=0. ; EDIFS=0. ; ACE2M=0.  
+      DIFS=0. ; EDIFS=0. ; ACE2M=0.
 
-      IF (ROICE .EQ. 0.) RETURN 
+      IF (ROICE .EQ. 0.) RETURN
       FMSI2=0 ; FHSI2=0 ; MELT1=0. ; MELT4=0.
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
@@ -301,14 +301,14 @@ C**** CONVERT SEA ICE TEMPERATURE INTO ENTHALPY MINUS LATENT HEAT
       HSI3 = (SHI*TG3-LHM)*XSI3*MSI2 ! J/m^2
       HSI4 = (SHI*TG4-LHM)*XSI4*MSI2 ! J/m^2
 C****
-C**** OCEAN ICE, CALCULATE TG1 AND 
+C**** OCEAN ICE, CALCULATE TG1 AND
 C****
       HC1 = SHI*XSI1*MSI1 ! heat capacity of ice layer 1 (J/(degC*m^2))
       HC2 = SHI*XSI2*MSI1 ! heat capacity of ice layer 2 (J/(degC*m^2))
       HC3 = SHI*XSI3*MSI2 ! heat capacity of ice layer 3 (J/(degC*m^2))
       HC4 = SHI*XSI4*MSI2 ! heat capacity of ice layer 4 (J/(degC*m^2))
 C**** CALCULATE AND APPLY DIFFUSIVE AND SURFACE ENERGY FLUXES
-c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS) ! for non-Q-flux      
+c      dF1dTI = 2.*DTSRCE/(ACE1I*BYRLI+SNOW*BYRLS) ! for non-Q-flux
       dF2dTI = ALAMI*RHOI*DTSRCE/(0.5*XSI2*MSI1+0.5*XSI3*MSI2)
 C****          temperature derivative from F2 diffusive flux
       dF3dTI = ALAMI*RHOI*DTSRCE*2./MSI2
@@ -319,10 +319,10 @@ CEXP  F2 = dF2dTI*(TG2-TG3) ! the diffusive
 CEXP  F3 = dF3dTI*(TG3-TG4) ! fluxes from
 CEXP  F4 = dF4dTI*(TG4-TGW) ! explicit method
 C**** DIFFUSIVE FLUXES FROM IMPLICIT METHOD
-c      F1 = dF1dTI*(HC1*(TG1-TG2)+ALPHA*F0DT)/                       
-c     A     (HC1+ALPHA*dF1dTI)   ! for a non-Q-flux ocean model          
-c      F2 = dF2dTI*(HC2*(TG2-TG3)+ALPHA*F1)/                         
-c     A     (HC2+ALPHA*dF2dTI) ! for a non-Q-flux ocean model       
+c      F1 = dF1dTI*(HC1*(TG1-TG2)+ALPHA*F0DT)/
+c     A     (HC1+ALPHA*dF1dTI)   ! for a non-Q-flux ocean model
+c      F2 = dF2dTI*(HC2*(TG2-TG3)+ALPHA*F1)/
+c     A     (HC2+ALPHA*dF2dTI) ! for a non-Q-flux ocean model
 
       F2 = dF2dTI*(HC2*(TG2-TG3)+ALPHA*F1DT)/
      A     (HC2+ALPHA*dF2dTI)
@@ -363,7 +363,7 @@ C**** ICE ADVECTION IS DOWNWARD FROM LAYER 2 INTO LAYER 3
       FMSI1 = XSI1*FMSI2+XSI2*(DEW-MELT1)
       IF (FMSI1 .LT. 0.) FHSI1 = HSI2*FMSI1*BYXSI2/MSI1 ! upward
       IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 2
-      FHSI2 = HSI2*FMSI2*BYXSI2/MSI1 ! downward from layer 2 into layer 3
+      FHSI2 = HSI2*FMSI2*BYXSI2/MSI1 ! downward from layer 2 -> layer 3
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = MSI1+DEW-MELT1-FMSI2 ! kg/m^2
@@ -379,8 +379,8 @@ C**** ALL SNOW AND SOME ICE MELT
       SNOW = 0.
       IF (FMSI2 .LE. 0.) THEN ! (if melting is greater than dew)
 C****ADVECTION IS UPWARD INTO LAYER 2 FROM LAYER 3
-        FHSI1 = HSI2*FMSI1*BYXSI2/MSI1 ! upward into layer 1 from layer 2
-        FHSI2 = HSI3*FMSI2*BYXSI3/MSI2 ! upward into layer 2 from layer 3
+        FHSI1 = HSI2*FMSI1*BYXSI2/MSI1 ! upward -> layer 1 from layer 2
+        FHSI2 = HSI3*FMSI2*BYXSI3/MSI2 ! upward -> layer 2 from layer 3
         HSI1 = HSI1-FHSI1
         HSI2 = HSI2+(FHSI1-FHSI2)
         IF (.not.QFIXR) GO TO 170
@@ -390,7 +390,7 @@ C**** ICE ADVECTION IS DOWNWARD INTO LAYER 3 FROM LAYER 2
 C**** (if dew is greater than melting)
       IF (FMSI1 .LT. 0.) FHSI1 = HSI2*FMSI1*BYXSI2/MSI1 ! upward
       IF (FMSI1 .GE. 0.) FHSI1 = -LHM*FMSI1 ! downward into layer 2
-      FHSI2 = HSI2*FMSI2*BYXSI2/MSI1 ! downward into layer 3 from layer 2
+      FHSI2 = HSI2*FMSI2*BYXSI2/MSI1 ! downward -> layer 3 from layer 2
       HSI1 = HSI1-FHSI1
       HSI2 = HSI2+(FHSI1-FHSI2)
       MSI1 = ACE1I
@@ -502,8 +502,8 @@ C**** save output diagnostics
       EDIFSI= ROICE*EDIFS
       ACE2M = MELT4             ! melted ice at the bottom
       RUN0 = MELT1 ! water mass that flows to the ocean (kg/m^2)
-      RETURN 
-      END SUBROUTINE SEA_ICE 
+      RETURN
+      END SUBROUTINE SEA_ICE
 
       SUBROUTINE ADDICE (SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2,HSI1,HSI2
      *     ,HSI3,HSI4,DIFSI,EDIFSI,ENRGFO,ACEFO,ACE2F,ENRGFI,TFW,FLEAD
@@ -515,11 +515,11 @@ C**** save output diagnostics
 
       REAL*8, PARAMETER :: YSI1 = XSI1*ACE1I/(ACE1I+AC2OIM),
      *                     YSI2 = XSI2*ACE1I/(ACE1I+AC2OIM),
-     *                     YSI3 = XSI3*AC2OIM/(ACE1I+AC2OIM), 
+     *                     YSI3 = XSI3*AC2OIM/(ACE1I+AC2OIM),
      *                     YSI4 = XSI4*AC2OIM/(ACE1I+AC2OIM)
-      REAL*8, PARAMETER :: Z2OIX = 4.9, 
-     *                     BYZICX=1./(Z1I+Z2OIX) 
-!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)     
+      REAL*8, PARAMETER :: Z2OIX = 4.9,
+     *                     BYZICX=1./(Z1I+Z2OIX)
+!@var QFIXR  true if RSI and MSI2 are fixed (ie. for fixed SST run)
       LOGICAL, INTENT(IN) :: QFIXR
 !@var QCMPR  true if ice should be compressed due to leads etc.
       LOGICAL, INTENT(IN) :: QCMPR
@@ -530,8 +530,8 @@ C**** save output diagnostics
 
       REAL*8 ROICE, ROICEN, OPNOCN, SNOW, MSI1, MSI2, DRSI, DRI
       REAL*8, INTENT(OUT) :: TG1, TG2, TG3, TG4
-      REAL*8, INTENT(INOUT) :: HSI1, HSI2, HSI3, HSI4 
-      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4  
+      REAL*8, INTENT(INOUT) :: HSI1, HSI2, HSI3, HSI4
+      REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
       REAL*8, INTENT(IN) ::  ENRGFI, ENRGFO, ACEFO, ACE2F
       REAL*8, INTENT(INOUT) :: EDIFSI, DIFSI
       REAL*8 DIFS1
@@ -611,7 +611,7 @@ C     FMSI3 = XSI3*FMSI4 ! < 0. upward ice mass flux into layer 3
       HSI3 = HSI3-FHSI3
       HSI4 = HSI4+(FHSI3-FHSI4)
       MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
-C     SNOW = SNOW   ! snow thickness is conserved 
+C     SNOW = SNOW   ! snow thickness is conserved
       DIFS1 = DRI*ACE1I/ROICE
       EDIFSI = EDIFSI+ROICE*(HSI1+HSI2)*(DIFS1/MSI1)*0.5
       DIFSI = DIFSI+ROICE*DIFS1
@@ -625,19 +625,19 @@ C**** RESAVE PROGNOSTIC QUANTITIES
       TG3 = (HSI3/(XSI3*MSI2) +LHM)/SHI ! temperature of layer 3
       TG4 = (HSI4/(XSI4*MSI2) +LHM)/SHI ! temperature of layer 4
 
-      RETURN 
-      END SUBROUTINE ADDICE 
+      RETURN
+      END SUBROUTINE ADDICE
 
       SUBROUTINE SIMELT(ROICE,SNOW,MSI1,MSI2,ACE,TG1,TG2,TG3,TG4,TGW
      *     ,WTRO,ENRGW,PWATER,ENRGUSED)
 !@sum  SIMELT melts sea ice if surrounding water is warm
 !@auth Original Development Team
-!@ver  1.0 
+!@ver  1.0
       IMPLICIT NONE
 !@var ENRGUSED energy used to melt ice (J/m^2)
-      REAL*8, INTENT(OUT) :: ENRGUSED 
+      REAL*8, INTENT(OUT) :: ENRGUSED
 !@var ENRGW energy available to melt ice (J/m^2)
-      REAL*8, INTENT(IN) :: ENRGW 
+      REAL*8, INTENT(IN) :: ENRGW
       REAL*8 MSI1, MSI2, MELT,DRSI,ROICEN,FHSI4,FHSI3,ACE
       REAL*8 E_SIDE,E_BOTTOM,GAMMA,H_C,H_ICE,PWATER,POICE
      *     ,WTRO,ENRGI,HSI4,HSI3,HSI2,HSI1,TG1,TG2,TG3,TG4

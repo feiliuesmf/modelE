@@ -1,5 +1,5 @@
       MODULE RADNCB
-      
+
       USE E001M12_COM, only : im,jm,lm
 
       IMPLICIT NONE

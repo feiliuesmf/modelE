@@ -4,9 +4,9 @@
 !@ver  1.0 (based on LB265)
       USE E001M12_COM, only : IM,JM
       IMPLICIT NONE
-      
-C**** 
-C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J), 
+
+C****
+C**** Changes from Model III: MO -> MWL (kg), G0M -> GML (J),
 C****    GZM -> TLAKE (deg C),  RSI -> RLI (fract),
 C****    MSI -> MLI (kg/m^2), HSI -> HLI (J/m^2)
 C****
@@ -17,14 +17,14 @@ C****
 !@var BYXLI1,BYXLI2,BYXLI3,BYXLI4 reciprocals of XLIx
       REAL*8, PARAMETER :: BYXLI1=1./XLI1, BYXLI2=1./XLI2,
      *                     BYXLI3=1./XLI3, BYXLI4=1./XLI4
-!@var KDIREC directions for river flow 
+!@var KDIREC directions for river flow
 !**** (0 no flow, 1-8 anti-clockwise from top RH corner
 !@var IDPOLE,JDPOLE special directions for south pole flow
       INTEGER KDIREC(IM,JM),IDPOLE,JDPOLE
 !@var RATE rate of river flow downslope (m/s)
 !@var DHORZ horizontal distance to downstream box (m)
       REAL*8, DIMENSION(IM,JM) :: RATE,DHORZ
-!@var FLOWO,EFLOWO runoff and energy of runoff into ocean 
+!@var FLOWO,EFLOWO runoff and energy of runoff into ocean
       REAL*8, DIMENSION(IM,JM) :: FLOWO,EFLOWO
 
       END MODULE LAKES
@@ -34,7 +34,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : shi,lhm
-      USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dt,flice,hlake
+      USE E001M12_COM, only : im,jm,gdata,flake,zatmo,dtsrc,flice,hlake
      *     ,kocean
       USE OCEAN, only : odata
       USE SEAICE, only : ace1i
@@ -42,17 +42,17 @@ C****
       USE LAKES
       USE LAKES_COM
       USE FILEMANAGER
-      
+
       IMPLICIT NONE
       LOGICAL inilake
       REAL*8 HLI1,HLI2,HLI3,HLI4
 !@var I,J,I72,IU,JU,ID,JD,IMAX loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,IMAX 
+      INTEGER I,J,I72,IU,JU,ID,JD,IMAX
       INTEGER iu_RVR
       INTEGER*4 IFLOW(IM,JM),JFLOW(IM,JM)
       CHARACTER TITLEI*80, CDIREC(IM,JM)*1
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1
-C**** 
+C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
 C****         TLAKE      Temperature of lake surface (C)
@@ -61,7 +61,7 @@ C****         MLI      Mass of sea ice (kg/m**2)
 C****         HLI      Heat including latent of sea ice (J/m**2)
 C****         HLAKE    Lake sill depth (m)
 C****
-C**** FIXDCB  FLAKE    Lake fraction (1)  
+C**** FIXDCB  FLAKE    Lake fraction (1)
 C****
 
 C**** Always set lake ice extent consistent with T50
@@ -201,11 +201,11 @@ C****
             SPEED = SPEED0*DZDH/DZDH1
             IF(SPEED.lt.SPMIN)  SPEED = SPMIN
             IF(SPEED.gt.SPMAX)  SPEED = SPMAX
-            RATE(IU,JU) = DT*SPEED/DHORZ(IU,JU)
+            RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
           END IF
         END DO
       END DO
-C**** 
+C****
 C**** Set runoff temperature of glacial ice to be 0 (C)
 C****
       DO J=1,JM
@@ -230,20 +230,20 @@ C**** RIVERF transports lake water from each GCM grid box to its
 C**** downstream neighbor according to the river direction file.
 C****
       USE CONSTANT, only : shi,lhm,grav,shw
-      USE E001M12_COM, only : im,jm,flake,dt,focean,zatmo,hlake
+      USE E001M12_COM, only : im,jm,flake,focean,zatmo,hlake
       USE GEOM, only : dxyp
       USE LAKES
       USE LAKES_COM
       USE DAGCOM, only : aij,ij_ervr,ij_mrvr
-     
+
       IMPLICIT NONE
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
 c      REAL*8 XK(8),YK(8)
-c      DATA XK/.707107d0,0.,-.707107d0,-1.,-.707107d0, 0., .707107d0,1./,
-c     *     YK/.707107d0,1., .707107d0, 0.,-.707107d0,-1.,-.707107d0,0./
+c      DATA XK/.707107d0,0.,-.707107d0,-1.,-.707107d0, 0., .707107d0,1./
+c     *    ,YK/.707107d0,1., .707107d0, 0.,-.707107d0,-1.,-.707107d0,0./
       REAL*8 MWLSILL,DMM,DGM
       REAL*8, DIMENSION(IM,JM) :: FLOW,EFLOW
 C****
@@ -330,7 +330,7 @@ C****
       MWL(1,1) = MWL(1,1) +  FLOW(1,1)
       GML(1,1) = GML(1,1) + EFLOW(1,1)
       RETURN
-C**** 
+C****
       END SUBROUTINE RIVERF
 
       SUBROUTINE CHECKL (SUBRN)
@@ -345,7 +345,7 @@ C****
       USE LAKES_COM
 
       IMPLICIT NONE
-      
+
       INTEGER I,J !@var I,J loop variables
       CHARACTER*6 SUBRN
       LOGICAL QCHECKL
@@ -391,29 +391,29 @@ c     QCHECKL = .TRUE.
 !@auth L. Nazarenko
 !@ver  1.0
       USE CONSTANT, only : rhoi
-      USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN,TAU,TAUI,DT
+      USE E001M12_COM, only : IM,JM,FLAKE,GDATA,KOCEAN,ITime,ITimeI
       USE GEOM, only : IMAXJ
-!      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
+!      USE LAKES, only : ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
       USE LAKES_COM, only : T50
       USE OCEAN, only : ODATA,DM
       USE SEAICE, only : Z1I
       IMPLICIT NONE
-      REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,DRSIDT
+      REAL*8  ZIMIN,ZIMAX,T_ICE,T_NOICE,byDTMP
       INTEGER I,J,K,IMAX,IEND
       REAL*8 RSINEW
 
       IF (KOCEAN.eq.0) RETURN
-      IF (IEND.eq.0 .and. TAU.GT.TAUI+DT/7200.) RETURN
+      IF (IEND.eq.0 .and. ITime.gt.ITimeI) RETURN
       ZIMIN=.5     ! minimum lake ice thickness
       ZIMAX=2.     ! maximum lake ice thickness
       T_ICE = -8.  ! surface air temperature for 100% ice cover
       T_NOICE = 0. ! surface air temperature for no ice cover
-      DRSIDT = 1./(T_ICE-T_NOICE)
+      byDTMP = 1./(T_ICE-T_NOICE)
       DO J=1,JM
         IMAX=IMAXJ(J)
         DO I=1,IMAX
           IF (FLAKE(I,J) .GT. 0.) THEN ! linear fit for -8< T50 <0
-            RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*DRSIDT))
+            RSINEW = MIN(1d0,MAX(0d0,(T50(I,J)-T_NOICE)*byDTMP))
             ODATA(I,J,2)=RSINEW
             ODATA(I,J,3)=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
             IF (RSINEW.LE.0.) THEN

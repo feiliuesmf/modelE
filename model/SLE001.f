@@ -863,7 +863,7 @@ C USE PRECIPITATION THAT INCLUDES SMOW MELT
       IF(PTMP(IBV).GT.0.)THEN
       PRFAC=(XINFC(IBV)-PTMPS(IBV))*PRFR/PTMP(IBV)
        IF(PRFAC.GE.0.)THEN
-ccc!! next line is different in new and old versions 
+ccc!! next line is different in new and old versions
 ccc!! I suppose some of them has a bug - check later
         IF(PRFAC.LT.30.000) RNF(IBV)=RNF(IBV)+PTMP(IBV)*EXP(-PRFAC)
        ELSE
@@ -1358,7 +1358,7 @@ ccc variables for snow model from common block
       integer i_earth, j_earth
       common /earth_debug/ i_earth, j_earth
       real*8 DZG1
-      real*8 h_tot_b,w_tot_b,h_tot_v,w_tot_v ! -for debugging - remove later
+      real*8 h_tot_b,w_tot_b,h_tot_v,w_tot_v ! -debugging - remove later
       integer kk  ! -used for debuggiing
 C
 C
@@ -2017,7 +2017,7 @@ C**** CAN BE LOADED BEFORE SOILS MODULE TO BE USED INSTEAD OF
 C**** SOILS MODEL VERSION, WHICH IS BLANK.
 C****
 C**** VALUES OF SOIL QUANTITIES CAN BE STORED AFTER EACH TIMESTEP
-C**** GCM TAU CAN BE EXAMINED, AS WELL AS GCM ID TO DETERMINE
+C**** GCM (I)TIME CAN BE EXAMINED, AS WELL AS GCM ID TO DETERMINE
 C**** WHETHER TO PRINT OUT.
       RETURN
       END SUBROUTINE OUTGH
@@ -2142,7 +2142,7 @@ c!!! should pass ground properties to snow_adv
       FHSNG(1) = FHSNG(1)/DT
 ccc hack to remove FLMLT < 0
       if ( FLMLT(1) < 0. ) then
-         EPOT(1) = EPOT(1) + FLMLT(1) 
+         EPOT(1) = EPOT(1) + FLMLT(1)
          FLMLT(1) = 0.
       endif
 c!! fix this later
@@ -2199,7 +2199,7 @@ c    & THRMSN(2),TSNT,RHOSNT,CVSNT,XKSNT,FISNT,HESNT,ISN(2))
       FHSNG(2) = FHSNG(2)/DT
 ccc hack to remove FLMLT < 0
       if ( FLMLT(2) < 0. ) then
-         EPOT(2) = EPOT(2) + FLMLT(2) 
+         EPOT(2) = EPOT(2) + FLMLT(2)
          FLMLT(2) = 0.
       endif
 c!! fix this later

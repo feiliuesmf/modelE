@@ -1,6 +1,6 @@
 ! this file is a result of conversion from a .F code which was using
 ! preprocessing instructions, so some spacing or comments may look odd
-! I will fix it later after we decide if we are going to use 
+! I will fix it later after we decide if we are going to use
 ! preprocessing instructions or not - I.A.
 
       MODULE SNOW_MODEL
@@ -9,7 +9,7 @@
 !@ver  1.0
       IMPLICIT NONE
       PRIVATE
-      
+
       real*8, parameter :: EPS = 1.d-8  ! was 1.e-12
       integer, parameter :: MAX_NL = 16
       real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
@@ -23,7 +23,7 @@
 
 
 
-      
+
 
 
       subroutine pass_water( wsn, hsn, dz, nl,
@@ -58,7 +58,7 @@ ccc pass extra water to the lower layers
           hsn(n) = 0.
           dz(n) = 0.
           pass_water_flag = 1
-        else if ( hsn(n) .gt. -wsn(n)*lat_fusion ) then !/* some melted */
+        else if (hsn(n).gt.-wsn(n)*lat_fusion) then !/* some melted */
           ice = -hsn(n)/lat_fusion
           free_water = wsn(n) - ice
 c!!!                may be ice*max_fract_water ??
@@ -95,7 +95,7 @@ c!!!                may be ice*max_fract_water ??
         total_dz = total_dz + dzo(n)
         enddo
 
-      fract_cover_new = 
+      fract_cover_new =
      &          min( 1.d0, total_dz*fract_cover/MIN_SNOW_THICKNESS )
 
       if( fract_cover_new .lt. MIN_FRACT_COVER ) then
@@ -112,7 +112,7 @@ c!!!                may be ice*max_fract_water ??
 
       if ( total_dz .gt. MIN_SNOW_THICKNESS*6.d0 ) then
         nl = 3
-      else 
+      else
         nl = 1
         endif
 
@@ -121,7 +121,7 @@ c!!      nl = 1
 
       if ( total_dz .gt. 0.16d0 .and. nl.gt.1 ) then
         dz(1) = 0.05d0   ! trying thinner upper layer
-c!!        dz(1) = 0.10d0  
+c!!        dz(1) = 0.10d0
         ddz = (total_dz-dz(1))/(nl-1)
         do n=2,nl
           dz(n) = ddz
@@ -172,7 +172,7 @@ ccc the following is just for check
           endif
         enddo
 
-      fract_cover = fract_cover_new      
+      fract_cover = fract_cover_new
       return
       end subroutine snow_redistr
 
@@ -199,7 +199,7 @@ ccc data arrays
       common /earth_debug/ i_earth, j_earth
       integer i_earth, j_earth
 
-      COMMON /SOILIN/ PR_i,PRS_i,HTPR_i,HTPRS_i,  
+      COMMON /SOILIN/ PR_i,PRS_i,HTPR_i,HTPRS_i,
      &  PRES_i,TS_i,QS_i,  CH_i,VSM_i,RHO_i,
      *  SRHT_i,TRHT_i,COST_i,SINT_i,EDDY_i,Q1_i,QM1_i,Z1_i,ZS_i,
      &  IGCM_i
@@ -211,7 +211,7 @@ ccc data arrays
 ccc for debug
       real*8 total_energy, lat_evap
       integer i, retcode
-      common /snowmodel_debug/ hsn_old, dz_old, fract_cover_old, 
+      common /snowmodel_debug/ hsn_old, dz_old, fract_cover_old,
      &     wsn_old, retcode
       real*8 hsn_old, dz_old, fract_cover_old, wsn_old
 
@@ -238,14 +238,14 @@ ccc for debug
       do i=1,nl
          total_energy = total_energy + hsn(i)*fract_cover
          enddo
-      total_energy = total_energy - 
+      total_energy = total_energy -
      &    (srht+trht-snht-lat_evap*evaporation+htpr)*dt
       total_energy = total_energy + heat_to_ground + radiation_out*dt
       if ( abs(total_energy) .gt. 1.d0 ) call abort
- 
+
 
 ccc   just for debug:
-ccc      water_to_ground =  pr 
+ccc      water_to_ground =  pr
 ccc      heat_to_ground = (srht+trht)*dt
 
 
@@ -253,10 +253,10 @@ ccc      heat_to_ground = (srht+trht)*dt
       return
       end subroutine snow_adv
 
- 
+
 
       subroutine snow_adv_1(dz, wsn, hsn, nl,
-     &    srht, trht, snht, htpr, evaporation, pr, dt, 
+     &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground, fract_cover,
      &    tsn_surf, water_to_ground, heat_to_ground,
      &    radiation_out, snsh_dt, evap_dt, retcode )
@@ -287,7 +287,7 @@ ccc main parameters: layer thickness, water equivalent, heat content
       real*8 water_down, heat_down, fresh_snow, rho_snow, flux_in
       real*8 mass_layer, mass_above, scale_rho
       real*8 fract_cover_old, flux_in_deriv, flux_corr
-      real*8 delta_tsn_impl     ! shift of temperature due to implicit method
+      real*8 delta_tsn_impl ! shft of temperature due to implicit method
       integer have_snow, n, nlo
 
 ccc common for debug
@@ -299,7 +299,7 @@ ccc common for debug
 ccc setting constants
       lat_fusion =      334.d3 * 1000.d0  !/* J m-3 */
       lat_evap =        2.5d9    !/* J m-3  */
-c!!      lat_evap =        2.834d9  !/* -  replaced by heat of sublimation */
+c!!      lat_evap =   2.834d9  !/* -  replaced by heat of sublimation */
       max_fract_water = .055d0
       rho_water =       1000.d0  !/* kg m-3 */
       rho_fresh_snow =  150.d0   !/* kg m-3 */
@@ -317,14 +317,14 @@ c!!!  thi is for debugging
       do n=1,nl
         if(fract_cover .gt. EPS) then
           if(wsn(n).gt.EPS .and.
-     &       wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort 
+     &       wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
           endif
         enddo
 
 
 ccc the following lines fix the problem with initial call
 ccc with fract_cover==1 and dz(1)<MIN_SNOW_THICKNESS
-      if( fract_cover .ge. 1.-EPS 
+      if( fract_cover .ge. 1.-EPS
      &    .and. dz(1) .lt. MIN_SNOW_THICKNESS ) then
         if( nl .ne. 1 ) then
           print *, 'OOPS: nl= ',nl,' fract_cover= ',fract_cover
@@ -340,7 +340,7 @@ c!!!  use fract_cover == 1 for debug only !!!!
           water_to_ground = wsn(1)
           dz(1) = 0.d0
           hsn(1) = 0.d0
-          wsn(1) = 0.d0  
+          wsn(1) = 0.d0
           else
           dz(1) = MIN_SNOW_THICKNESS
           hsn(1) = hsn(1)/fract_cover
@@ -360,10 +360,10 @@ ccc !!! insert evaporation into computation of the amount of fresh snow
       if(fresh_snow.lt.0.d0) fresh_snow = 0.d0
 
       if( fract_cover .lt. MIN_FRACT_COVER .and.
-     & fresh_snow .lt. MIN_SNOW_THICKNESS*MIN_FRACT_COVER) then !/* no snow.. */
+     & fresh_snow.lt.MIN_SNOW_THICKNESS*MIN_FRACT_COVER) then ! no snow 
         fract_cover = 0.d0
         tsn_surf = t_ground
-        heat_to_ground = heat_to_ground 
+        heat_to_ground = heat_to_ground
      &      +(srht+trht-sigma*(tsn_surf+tfrz)**4
      &      -lat_evap*evaporation-snht+htpr)*dt
         radiation_out = sigma*(tsn_surf+tfrz)**4
@@ -372,17 +372,17 @@ ccc !!! insert evaporation into computation of the amount of fresh snow
         return
       endif
 
-      if ( fract_cover.lt.1.d0 .and. 
+      if ( fract_cover.lt.1.d0 .and.
      &   fresh_snow .lt. MIN_SNOW_THICKNESS*(1.-fract_cover) ) then
 ccc partial cover
 
         hsn(1) = hsn(1)*fract_cover
         wsn(1) = wsn(1)*fract_cover
-        fract_cover = 
-     &           (dz(1)*fract_cover + fresh_snow)/MIN_SNOW_THICKNESS      
+        fract_cover =
+     &           (dz(1)*fract_cover + fresh_snow)/MIN_SNOW_THICKNESS
         if (fract_cover.gt.1. .or. fract_cover.lt.EPS) then
           write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
-          write(DEB_CH,*) dz(1), fresh_snow 
+          write(DEB_CH,*) dz(1), fresh_snow
           if ( fract_cover.gt.1. ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS
         endif
@@ -397,7 +397,7 @@ ccc all precipitation falls on the snow
       else
 ccc full cover
         hsn(1) = hsn(1)*fract_cover
-        wsn(1) = wsn(1)*fract_cover 
+        wsn(1) = wsn(1)*fract_cover
         dz(1) = dz(1)*fract_cover
         fract_cover = 1.d0
         dz(1) = dz(1) + fresh_snow
@@ -408,13 +408,13 @@ ccc full cover
 
 
 
-        
+
 ccc !!! subtract evaporation somewhere here
       water_down = water_down  - evaporation*dt
 c!!      heat_down = heat_down - lat_evap*evaporation*dt
 
 
-      water_to_ground = water_to_ground - 
+      water_to_ground = water_to_ground -
      &                  evaporation*dt*(1.d0-fract_cover)
 
 
@@ -422,7 +422,7 @@ c!!      heat_down = heat_down - lat_evap*evaporation*dt
 c!!!  thi is for debugging
       do n=1,nl
         if((wsn(n)+water_down+evaporation*dt)/dz(n)*rho_water+EPS
-     &      .lt.rho_fresh_snow) 
+     &      .lt.rho_fresh_snow)
      &            call abort
       enddo
 
@@ -434,8 +434,8 @@ c!!!  thi is for debugging
 
 c!!!  thi is for debugging
       do n=1,nl
-        if(wsn(n).gt.EPS .and. 
-     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort 
+        if(wsn(n).gt.EPS .and.
+     &     wsn(n)/dz(n)*rho_water+EPS.lt.rho_fresh_snow) call abort
       enddo
 
 
@@ -458,7 +458,7 @@ ccc      if ( fract_cover.lt.EPS ) then   !/* no snow left ... */
 c!!! disable fractional cover for debugging
       if ( fract_cover.lt.MIN_FRACT_COVER ) then   !/* debudgging !!!*/
         tsn_surf = t_ground
-        heat_to_ground = heat_to_ground + 
+        heat_to_ground = heat_to_ground +
      &       ( srht+trht-sigma*(tsn_surf+tfrz)**4
      &      -lat_evap*evaporation-snht )*dt
         radiation_out = sigma*(tsn_surf+tfrz)**4
@@ -498,13 +498,13 @@ c      if(tsn(1).lt.-120.) call abort
 
 ccc compute incomming heat flux (from atm.)
 ccc include all fluxes except htpr (which is already included)
-      flux_in =  
+      flux_in =
      &      srht
      &      +trht - sigma*(tsn(1)+tfrz)**4
      &      -lat_evap*evaporation
      &      -snht
 
-      flux_in_deriv = 
+      flux_in_deriv =
      &     -4.*sigma*(tsn(1)+tfrz)**3 - lat_evap*evap_dt - snsh_dt
 
 ccc      heat_to_ground = heat_to_ground + flux_in*dt*(1.d0-fract_cover)
@@ -521,8 +521,8 @@ ccc      heat_to_ground = heat_to_ground + flux_in*dt*(1.d0-fract_cover)
 
 ccc solve heat equation
 
-      call heat_eq( 
-     &     dz, tsn, hsn, csn, ksn, nl, 
+      call heat_eq(
+     &     dz, tsn, hsn, csn, ksn, nl,
      &     flux_in, flux_in_deriv, flux_corr, dt )
 
       heat_to_ground = heat_to_ground + flux_in*dt*fract_cover
@@ -531,12 +531,12 @@ ccc now redistribute extra flux proportionallly to input derivatives
 ccc snht_out_cor, delta_tsn_impl
       delta_tsn_impl = flux_corr / flux_in_deriv
 ccc      radiation_out = radiation_out - flux_corr*fract_cover
-      radiation_out = radiation_out - 
+      radiation_out = radiation_out -
      &     (-4.*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl*fract_cover
       snht = snht + snsh_dt * delta_tsn_impl * fract_cover
       evaporation = evaporation + evap_dt * delta_tsn_impl * fract_cover
 
-ccc and now remove (add) water due to extra evaporation. 
+ccc and now remove (add) water due to extra evaporation.
 c!!! this may make wsn(1) negative, the only way I see now to prevent it
 c!!! is to keep minimal thickness of snow big enough
 
@@ -616,7 +616,7 @@ ccc repack the layers
           mass_layer = wsn(n)*rho_water
           mass_above = mass_above + .5 * mass_layer
           scale_rho = .5d-7 * 9.8 * mass_above
-     &     * exp(14.643 - 4000./(tsn(n)+tfrz) 
+     &     * exp(14.643 - 4000./(tsn(n)+tfrz)
      &                  - .02 * mass_layer/dz(n))
      &     * dt
           scale_rho = 1. + scale_rho
@@ -627,7 +627,7 @@ ccc repack the layers
         endif
       enddo
 
-      
+
       tsn_surf = tsn(1)
 
 c!!!  thi is for debugging
@@ -649,13 +649,13 @@ c!!! this is for debugging
       retcode = 0
       return
       end subroutine snow_adv_1
-      
 
 
 
 
-      subroutine heat_eq( 
-     &     dz, tsn, hsn, csn, ksn, nl, 
+
+      subroutine heat_eq(
+     &     dz, tsn, hsn, csn, ksn, nl,
      &     flux_in, flux_in_deriv, flux_corr, dt)
       implicit none
       integer nl
@@ -702,7 +702,7 @@ ccc equation for upper snow layer
         a(n) = 1. + right*eta(n) - dt_to_cdz*flux_in_deriv*gamma
         b(n) = 0.
         c(n) = -right*eta(n+1)
-        f(n) = tsn(n)*( 1. - right*(1.-eta(n)) 
+        f(n) = tsn(n)*( 1. - right*(1.-eta(n))
      &                  - dt_to_cdz*flux_in_deriv*gamma )
      &         + tsn(n+1)*right*(1.-eta(n+1))
      &         + dt_to_cdz * flux_in
@@ -731,11 +731,11 @@ ccc flux_corr is the energy wich should be returned to the atmosphere
 
         syst_flux_err = flux_in_deriv*( tnew(1) - 0. )*gamma
         ! if ( iter/=2 .and. tnew(1)>0. .and. flux_in_deriv<0. ) then
-        ! back to 77 :-L 
-        if ( iter.ne.2 .and. 
+        ! back to 77 :-L
+        if ( iter.ne.2 .and.
      &         tnew(1).gt.0. .and. flux_in_deriv.lt.0. ) then
           syst_flux_err = flux_in_deriv*( tnew(1) - 0. )*gamma
-          gamma = (1. - syst_flux_err/flux_corr) *gamma 
+          gamma = (1. - syst_flux_err/flux_corr) *gamma
         else
           ! exit
           ! back to 77 :-L

@@ -19,9 +19,9 @@ C**** SURFACE SPECIFIC HUMIDITY, AND SURFACE WIND COMPONENTS.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,rvap,stbo,bygrav,by6
-      USE E001M12_COM, only : im,jm,lm,fim,dt,nsurf,nstep,ndyn,u,v,t,p,q
-     *     ,idacc,dsig,jday,gdata,tofday,ndasf,iday,jeq,fland,flice
-     *     ,fearth,ngrnd,modrd,ijd6,tau,sige,byim
+      USE E001M12_COM, only : im,jm,lm,fim,DTsrc,NIsurf,u,v,t,p,q
+     *     ,idacc,dsig,jday,gdata,ndasf,jeq,fland,flice
+     *     ,fearth,nday,modrd,ijd6,ITime,JHOUR,sige,byim
       USE SOMTQ_COM, only : tx,ty,tz,txx,tyy,tzz,txy,tzx,tyz,qx,qy,qz
      *     ,qxx,qyy,qzz,qxy,qzx,qyz
       USE GEOM, only : dxyp,imaxj,kmaxj,raj,idij,idjj,rapvn,rapvs,sini
@@ -36,14 +36,14 @@ C****
      *     ,ij_tauvs,ij_qs,j_tsrf,j_evap,j_evhdt,j_shdt,j_trhdt
       USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE LANDICE, only : hc2li,hc1de,z1e,z2li,hc1li
-      USE OCEAN, only : odata,oa,tfo
+      USE OCEAN, only : oa,odata,tfo
       USE SEAICE, only : xsi1,xsi2,z1i,ace1i,hc1i,alami,byrli,byrls,rhos
 
       IMPLICIT NONE
 
-      INTEGER I,J,L,K,IM1,IP1,LMAX,KR,JR,IHOUR,NS,NSTEPS,MODDSF,MODD6
+      INTEGER I,J,L,K,IM1,IP1,LMAX,KR,JR,NS,NSTEPS,MODDSF,MODD6
      *     ,KMAX,IMAX,ITYPE,NGRNDZ,NG
-      REAL*8 DTSRCE,ATRHDT,BTRHDT
+      REAL*8 ATRHDT,BTRHDT
      *     ,CTRHDT,ASHDT,BSHDT,CSHDT,AEVHDT,BEVHDT,CEVHDT,ATS,BTS,CTS
      *     ,PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1,P1K,H0M1,HZM1,PGK,HS,PKDN
      *     ,DXYPJ,BETAS,EVHDTS,CDMS,CDHS,DGSS,EDS1S,PPBLS,EVAPS,DBLS
@@ -114,9 +114,8 @@ C****       14  LAND ICE TEMPERATURE OF SECOND LAYER (C)
 C****       15  OCEAN ICE TEMPERATURE OF THIRD LAYER (C)
 C****       16  OCEAN ICE TEMPERATURE OF FOURTH LAYER (C)
 C****
-      NSTEPS=NSURF*NSTEP/NDYN
-      DTSURF=NDYN*DT/NSURF
-      DTSRCE=DT*NDYN
+      NSTEPS=NIsurf*ITime
+      DTSURF=DTsrc/NIsurf
 
       ZS1CO=.5*DSIG(1)*RGAS*BYGRAV
 
@@ -131,21 +130,20 @@ C         TGRND(I,J,4)=GDATA(I,J,4)
           TGRN2(I,J,2) = GDATA(I,J,7)
           TGRN2(I,J,3) = GDATA(I,J,14)
         END DO
-      END DO   
+      END DO
 C*
 C**** Zero out fluxes summed over type
-      E0=0. ; E1=0. ; EVAPOR=0. 
+      E0=0. ; E1=0. ; EVAPOR=0.
 
-         IHOUR=1.5+TOFDAY
       call pgrads1
 C****
-C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NSURF TIMES EVERY HOUR
+C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NIsurf TIMES EVERY HOUR
 C****
-      DO NS=1,NSURF
-         MODDSF=MOD(NSTEPS+NS-1,NDASF)
+      DO NS=1,NIsurf
+         MODDSF=MOD(NSTEPS+NS-1,NDASF*NIsurf+1)
          IF(MODDSF.EQ.0) IDACC(3)=IDACC(3)+1
-         MODD6=MOD(IDAY+NS,NSURF)
-         TIMEZ=JDAY+(TOFDAY+(NS-1.)/NSURF)/24.
+         MODD6=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
+         TIMEZ=JDAY+(MOD(Itime,nday)+(NS-1.)/NIsurf)/NDAY ! -1 ??
          IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
 C**** ZERO OUT LAYER 1 WIND INCREMENTS
       DTH1=0. ;  DQ1 =0. ;  DU1=0. ; DV1=0.
@@ -279,7 +277,7 @@ C**** OCEAN ICE
 C****
       ITYPE=2
       PTYPE=POICE
-      NGRNDZ=NGRND
+      NGRNDZ=1    ! NIgrnd>1 currently not an option
       SNOW=GDATA(I,J,1)
       TG1=TGRND(I,J,2)
       TG2=TGRN2(I,J,2)
@@ -306,7 +304,7 @@ C****
         ipbl(i,j,3)=0.
         GO TO 5000
       endif
-      NGRNDZ=NGRND
+      NGRNDZ=1    ! NIgrnd>1 currently not an option
 C****
 C**** LAND ICE
 C****
@@ -538,7 +536,7 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
  5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
          IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
-     *        /DTSRCE
+     *        /DTSRC
          AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
          AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
          IF(MODDSF.NE.0) GO TO 5800
@@ -554,39 +552,39 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAG6
  5800    IF(MODD6.EQ.0) THEN
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(IHOUR,6,KR)=ADAILY(IHOUR,6,KR)+PS
-               ADAILY(IHOUR,7,KR)=ADAILY(IHOUR,7,KR)+PSK*T(I,J,5)
-               ADAILY(IHOUR,8,KR)=ADAILY(IHOUR,8,KR)+PSK*T(I,J,4)
-               ADAILY(IHOUR,9,KR)=ADAILY(IHOUR,9,KR)+PSK*T(I,J,3)
-               ADAILY(IHOUR,10,KR)=ADAILY(IHOUR,10,KR)+PSK*T(I,J,2)
-               ADAILY(IHOUR,11,KR)=ADAILY(IHOUR,11,KR)+PSK*T(I,J,1)
-               ADAILY(IHOUR,12,KR)=ADAILY(IHOUR,12,KR)+TSS
-               ADAILY(IHOUR,13,KR)=ADAILY(IHOUR,13,KR)+(TG1S+TFS)
-               ADAILY(IHOUR,14,KR)=ADAILY(IHOUR,14,KR)+Q(I,J,5)
-               ADAILY(IHOUR,15,KR)=ADAILY(IHOUR,15,KR)+Q(I,J,4)
-               ADAILY(IHOUR,16,KR)=ADAILY(IHOUR,16,KR)+Q(I,J,3)
-               ADAILY(IHOUR,17,KR)=ADAILY(IHOUR,17,KR)+Q(I,J,2)
-               ADAILY(IHOUR,18,KR)=ADAILY(IHOUR,18,KR)+Q1
-               ADAILY(IHOUR,19,KR)=ADAILY(IHOUR,19,KR)+QSS
-               ADAILY(IHOUR,20,KR)=ADAILY(IHOUR,20,KR)+QGS
-               ADAILY(IHOUR,28,KR)=ADAILY(IHOUR,28,KR)+SRHDTS
-               ADAILY(IHOUR,29,KR)=ADAILY(IHOUR,29,KR)+TRHDTS
-               ADAILY(IHOUR,30,KR)=ADAILY(IHOUR,30,KR)+SHDTS
-               ADAILY(IHOUR,31,KR)=ADAILY(IHOUR,31,KR)+EVHDTS
-               ADAILY(IHOUR,32,KR)=ADAILY(IHOUR,32,KR)
+               ADAILY(JHOUR+1,6,KR)=ADAILY(JHOUR+1,6,KR)+PS  ! ???
+               ADAILY(JHOUR+1,7,KR)=ADAILY(JHOUR+1,7,KR)+PSK*T(I,J,5)
+               ADAILY(JHOUR+1,8,KR)=ADAILY(JHOUR+1,8,KR)+PSK*T(I,J,4)
+               ADAILY(JHOUR+1,9,KR)=ADAILY(JHOUR+1,9,KR)+PSK*T(I,J,3)
+               ADAILY(JHOUR+1,10,KR)=ADAILY(JHOUR+1,10,KR)+PSK*T(I,J,2)
+               ADAILY(JHOUR+1,11,KR)=ADAILY(JHOUR+1,11,KR)+PSK*T(I,J,1)
+               ADAILY(JHOUR+1,12,KR)=ADAILY(JHOUR+1,12,KR)+TSS
+               ADAILY(JHOUR+1,13,KR)=ADAILY(JHOUR+1,13,KR)+(TG1S+TFS)
+               ADAILY(JHOUR+1,14,KR)=ADAILY(JHOUR+1,14,KR)+Q(I,J,5)
+               ADAILY(JHOUR+1,15,KR)=ADAILY(JHOUR+1,15,KR)+Q(I,J,4)
+               ADAILY(JHOUR+1,16,KR)=ADAILY(JHOUR+1,16,KR)+Q(I,J,3)
+               ADAILY(JHOUR+1,17,KR)=ADAILY(JHOUR+1,17,KR)+Q(I,J,2)
+               ADAILY(JHOUR+1,18,KR)=ADAILY(JHOUR+1,18,KR)+Q1
+               ADAILY(JHOUR+1,19,KR)=ADAILY(JHOUR+1,19,KR)+QSS
+               ADAILY(JHOUR+1,20,KR)=ADAILY(JHOUR+1,20,KR)+QGS
+               ADAILY(JHOUR+1,28,KR)=ADAILY(JHOUR+1,28,KR)+SRHDTS
+               ADAILY(JHOUR+1,29,KR)=ADAILY(JHOUR+1,29,KR)+TRHDTS
+               ADAILY(JHOUR+1,30,KR)=ADAILY(JHOUR+1,30,KR)+SHDTS
+               ADAILY(JHOUR+1,31,KR)=ADAILY(JHOUR+1,31,KR)+EVHDTS
+               ADAILY(JHOUR+1,32,KR)=ADAILY(JHOUR+1,32,KR)
      *              +(SRHDTS+TRHDTS+SHDTS+EVHDTS)
-               ADAILY(IHOUR,33,KR)=ADAILY(IHOUR,33,KR)+UGS
-               ADAILY(IHOUR,34,KR)=ADAILY(IHOUR,34,KR)+VGS
-               ADAILY(IHOUR,35,KR)=ADAILY(IHOUR,35,KR)+WGS
-               ADAILY(IHOUR,36,KR)=ADAILY(IHOUR,36,KR)+USS
-               ADAILY(IHOUR,37,KR)=ADAILY(IHOUR,37,KR)+VSS
-               ADAILY(IHOUR,38,KR)=ADAILY(IHOUR,38,KR)+WSS
-               ADAILY(IHOUR,42,KR)=ADAILY(IHOUR,42,KR)+CDMS
-               ADAILY(IHOUR,43,KR)=ADAILY(IHOUR,43,KR)+CDHS
-               ADAILY(IHOUR,44,KR)=ADAILY(IHOUR,44,KR)+DGSS
-               ADAILY(IHOUR,45,KR)=ADAILY(IHOUR,45,KR)+EDS1S
-               ADAILY(IHOUR,46,KR)=ADAILY(IHOUR,46,KR)+DBLS
-               ADAILY(IHOUR,50,KR)=ADAILY(IHOUR,50,KR)+EVAPS
+               ADAILY(JHOUR+1,33,KR)=ADAILY(JHOUR+1,33,KR)+UGS
+               ADAILY(JHOUR+1,34,KR)=ADAILY(JHOUR+1,34,KR)+VGS
+               ADAILY(JHOUR+1,35,KR)=ADAILY(JHOUR+1,35,KR)+WGS
+               ADAILY(JHOUR+1,36,KR)=ADAILY(JHOUR+1,36,KR)+USS
+               ADAILY(JHOUR+1,37,KR)=ADAILY(JHOUR+1,37,KR)+VSS
+               ADAILY(JHOUR+1,38,KR)=ADAILY(JHOUR+1,38,KR)+WSS
+               ADAILY(JHOUR+1,42,KR)=ADAILY(JHOUR+1,42,KR)+CDMS
+               ADAILY(JHOUR+1,43,KR)=ADAILY(JHOUR+1,43,KR)+CDHS
+               ADAILY(JHOUR+1,44,KR)=ADAILY(JHOUR+1,44,KR)+DGSS
+               ADAILY(JHOUR+1,45,KR)=ADAILY(JHOUR+1,45,KR)+EDS1S
+               ADAILY(JHOUR+1,46,KR)=ADAILY(JHOUR+1,46,KR)+DBLS
+               ADAILY(JHOUR+1,50,KR)=ADAILY(JHOUR+1,50,KR)+EVAPS
             END IF
          END DO
        END IF
@@ -642,7 +640,7 @@ C****
            QZ(I,J,1)= QZ(I,J,1)*(1.-FQEVAP) ! should be set from PBL
           QZZ(I,J,1)=QZZ(I,J,1)*(1.-FQEVAP) ! should be set from PBL
           IF (Q(I,J,1).LT.qmin) THEN
-             WRITE (99,*) TAU,I,J,' Q1:',Q(I,J,1),'-> 0',DQ1(I,J)
+             WRITE(99,*) ITime,'I,J:',I,J,' Q1:',Q(I,J,1),'->0',DQ1(I,J)
              Q(I,J,1)=qmin
              QX(I,J,1)=0.
              QY(I,J,1)=0.
@@ -674,7 +672,7 @@ C**** Polar boxes
           END DO
         END DO
       END DO
-C**** non polar boxes      
+C**** non polar boxes
       DO J=2,JM-1
         IMAX=IMAXJ(J)
         KMAX=KMAXJ(J)
@@ -806,8 +804,8 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
  8400   IF(MODD6.EQ.0) THEN
         DO KR=1,4
           IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-            ADAILY(IHOUR,47,KR)=ADAILY(IHOUR,47,KR)+1.
-            ADAILY(IHOUR,48,KR)=ADAILY(IHOUR,48,KR)+LMAX
+            ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
+            ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)+LMAX
           END IF
         END DO
       END IF

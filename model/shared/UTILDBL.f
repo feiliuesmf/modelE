@@ -1,4 +1,4 @@
-    
+  
       FUNCTION THBAR (X,Y)
 C****
 C**** TH-mean used for vertical differencing (Arakawa)
@@ -37,8 +37,8 @@ C****
       IMPLICIT NONE
 !@var A,B,C   expansion coefficients for QSAT
       REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
-      REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6  
-      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3 
+      REAL*8, PARAMETER :: B= 1./(RVAP*TF)   !7.93252d-6
+      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
       REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
@@ -51,12 +51,12 @@ C****
 !@sum   DQSATDT calculates change of sat. vapour mixing ratio with temp.
 !@auth  Gary Russell
 !@ver   1.0
-C**** Note that d(qsat)/dt = qsat * ql * c / T*T  
+C**** Note that d(qsat)/dt = qsat * ql * c / T*T
 C**** Only the factor of qsat is given here
       USE CONSTANT, only : rvap
       IMPLICIT NONE
 !@var C expansion coefficient for QSAT
-      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3 
+      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
       REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
       REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
       REAL*8 :: DQSATDT         !@var DQSATDT d(qsat)/dT factor only.
@@ -284,8 +284,8 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
 !@ver   1.0
       USE FILEMANAGER, only : NAME !@var NAME name of record being read
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: IUNIT             !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: NSKIP !@var  NSKIP  no. of chars. to skip
+      INTEGER, INTENT(IN) :: IUNIT        !@var  IUNIT  file unit number
+      INTEGER, INTENT(IN) :: NSKIP    !@var  NSKIP  no. of R*4's to skip
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
       INTEGER, INTENT(IN) :: IPOS  !@var  IPOS   no. of recs. to advance
       REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array

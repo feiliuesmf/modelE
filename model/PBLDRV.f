@@ -275,7 +275,7 @@ c -------------------------------------------------------------
      & ,  uinit=>u,vinit=>v,tinit=>t,qinit=>q,einit=>e
      &     ,dpdxrij=>dpdxr,dpdyrij=>dpdyr
      &     ,dpdxr0ij=>dpdxr0,dpdyr0ij=>dpdyr0
-      USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE DYNAMICS, only : pmid,pk,pedn,pek  
       USE OCEAN, only : odata
       USE FILEMANAGER
 
@@ -291,9 +291,9 @@ c -------------------------------------------------------------
       integer :: ilong  !@var ilong  longitude identifier
       integer :: jlat   !@var jlat  latitude identifier
       real*8 tgvdat(im,jm,4)
-      
+
       integer :: itype  !@var itype surface type
-      integer i,j,iter,imax,im1,jvpo,lpbl !@var i,j,iter loop variable 
+      integer i,j,iter,imax,im1,jvpo,lpbl !@var i,j,iter loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,pi,radian,
      *     ztop,elhx,coriol,tgrnd,pij,ps,psk,qgrnd,hemi
      *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
@@ -477,7 +477,7 @@ c ----------------------------------------------------------------------
       USE PBLCOM, only : npbl=>n,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
      *     ,ipbl,ustar_type=>ustar
       IMPLICIT NONE
-      integer i,j,iter,lpbl,imax  !@var i,j,iter,lpbl loop variable 
+      integer i,j,iter,lpbl,imax  !@var i,j,iter,lpbl loop variable
 
       do j=1,jm
         if ((j.eq.1).or.(j.eq.jm)) then
@@ -589,7 +589,7 @@ c ******* itype=4: Land
       USE DYNAMICS, only : pmid,pk,pedn
       IMPLICIT NONE
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 p1k,t1,pij,rho1,dpx,dpy,dypsp,dypnp,rhojm,p1
       integer index1,index2
 c      real*8 expbyk
@@ -713,7 +713,7 @@ c     at the surface:
 
 c      real*8 expbyk
 
-      integer i,j,iter  !@var i,j,iter loop variable 
+      integer i,j,iter  !@var i,j,iter loop variable
       real*8 p1,p1k,pij,t1,z1
 
 c     note: ZATMO(I,J) is the geopotential height (9.81*zatm)

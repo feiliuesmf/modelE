@@ -628,9 +628,9 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
 c      REAl*8 STBO
 c      DATA STBO/.567257D-7/
       INTEGER :: IFIRST = 1, JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,INCHM,J50N,J70N,LLOW,LMID
+      INTEGER I,J,L,K,KR,LR,JYFIX,JDFIX,MADVEL,J50N,J70N,LLOW,LMID
      *     ,LHI,IHOUR,IMAX,IM1,JR,IH,INCH,LMID1,LHI1,JK
-      REAL*8 DTCNDS,COEX,CO2REF,ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS
+      REAL*8 COEX,CO2REF,ROT1,ROT2,PLAND,PIJ,RANDSS,RANDMC,CSS
      *     ,CMC,DEPTH,QSS,TAUSSL,TAUMCL,ELHX,CLDCV,DXYPJ,ASRHR,ATRHR
      *     ,ASNFS1,BSNFS1,CSNFS1,ATNFS1,BTNFS1,CTNFS1,SRNFLG,X
 !@var NRFUN indices of unit numbers for radiation routines
@@ -671,13 +671,12 @@ C****
       IF (IFIRST.NE.1) GO TO 50
       IFIRST=0
       CALL COSZ0
-      DTCNDS=NCNDS*DT
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       LMR=LM+3
       LMRP=LMR+1
       COEX=.01*GRAV*KAPA/RGAS
       DO L=1,LM
-         COE(L)=DTCNDS*COEX/DSIG(L)
+         COE(L)=DTsrc*COEX/DSIG(L)
          PLE(L)=SIGE(L)*PSFMPT+PTOP
       END DO
       PLE(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
@@ -686,13 +685,13 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       PLE(LMR+1)=1.D-5
       PTOPTR=PTOP ! top of sigma-coord.system
       DO 40 LR=LM+1,LMR
-   40 COE(LR)=DT*NRAD*COEX/(PLE(LR)-PLE(LR+1))
+   40 COE(LR)=DTsrc*NRAD*COEX/(PLE(LR)-PLE(LR+1))
       PTLISO=15.
       IF(CO2.LT.0.) KTREND=-NINT(CO2)
 C**** Default: time-dependent So/GHG/O3/Trop-Aeros/Dust/Volc-Aeros
 C****     For control runs e.g. with Jul 1,1951 atmosphere use
           JYFIX=1951
-          JDFIX=182   !  Julian date (if JDFIX=0, annual cycle is used)
+          JDFIX=182   !  Julian day (if JDFIX=0, annual cycle is used)
         CALL SETNEW(11,JYFIX,JDFIX, 1,0,0.D0) ! fix sol.const. - KSOLAR
         CALL SETNEW( 2,JYFIX,JDFIX, 0,0,0.D0) ! fix GHG (trend KTREND)
         CALL SETNEW(13,0    ,0    , 0,0,0.D0) ! no GHG-resets - MADGAS
@@ -716,7 +715,6 @@ C**** set up unit numbers for 14 radiation input files
       CO2REF=FULGAS(2)
       IF(CO2.GE.0.) FULGAS(2)=CO2REF*CO2
          CALL WRITER (6,0)
-         INCHM=NRAD/NDYN
 c         JEQ=1+JM/2
          J50N=(50.+90.)*(JM-1)/180.+1.5
          J70N=(70.+90.)*(JM-1)/180.+1.5
@@ -738,16 +736,16 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 C**** Calculate mean cosine of zenith angle for the current physics step
    50 CONTINUE
-      ROT1=TWOPI*TOFDAY/24.
-      ROT2=ROT1+TWOPI*DTCNDS/SDAY
+      ROT1=(TWOPI*MOD(ITIME,NDAY))/NDAY  ! MOD(ITIME,NDAY)*TWOPI/NDAY ??
+      ROT2=ROT1+TWOPI*DTsrc/SDAY
       CALL COSZT (ROT1,ROT2,COSZ1)
-         IHOUR=1.5+TOFDAY
+         IHOUR=1+JHOUR
       IF (MODRD.NE.0) GO TO 900
 C****
 C**** Interface with radiation routines, done only every NRAD time steps
 C****
 C**** Calculate mean cosine of zenith angle for the full radiation step
-      ROT2=ROT1+TWOPI*NRAD*DT/SDAY
+      ROT2=ROT1+TWOPI*NRAD*DTsrc/SDAY
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
 C****
 C**** COMPUTE EARTH ALBEDOS AND OTHER PARAMETERS FOR BEGINNING OF DAY
@@ -877,7 +875,7 @@ C****
   285    DO KR=1,NDLYPT
             IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                IH=IHOUR
-               DO INCH=1,INCHM
+               DO INCH=1,NRAD
                   IF (IH.GT.24) IH=IH-24
                   ADAILY(IH,21,KR)=ADAILY(IH,21,KR)+TOTCLD(6)
                   ADAILY(IH,22,KR)=ADAILY(IH,22,KR)+TOTCLD(5)
@@ -909,7 +907,7 @@ C**** EVEN PRESSURES
 C**** TEMPERATURES
 C---- TL(L)=T(I,J,L)*PK(L,I,J)     ! already defined
       IF(TL(L).LT.130..OR.TL(L).GT.370.) THEN
-         WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,L,TL(L)
+         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TL(L)
          STOP 'In Radia: Temperature out of range'
       END IF
 C**** MOISTURE VARIABLES
@@ -920,7 +918,7 @@ C**** RADIATION, SOLAR AND THERMAL
 C****
       DO 420 K=1,LM_REQ
       IF(RQT(I,J,K).LT.130..OR.RQT(I,J,K).GT.370.) THEN
-         WRITE(99,*) 'In Radia: TAU,I,J,L,TL',TAU,I,J,LM+K,RQT(I,J,K)
+         WRITE(99,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(I,J,K)
          STOP 'In Radia: RQT out of range'
       END IF
   420 TL(LM+K)=RQT(I,J,K)
@@ -1012,7 +1010,7 @@ C****
          DO KR=1,NDLYPT
             IF (I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
                IH=IHOUR
-               DO INCH=1,INCHM
+               DO INCH=1,NRAD
                   IF (IH.GT.24) IH=IH-24
                   ADAILY(IH,2,KR)=ADAILY(IH,2,KR)+(1.-SNFS(I,J,4)/S0)
                   ADAILY(IH,3,KR)=ADAILY(IH,3,KR)+(1.-ALB(I,J,1))
@@ -1159,7 +1157,7 @@ C****
       COMMON/oldDAG/GDEEP
 
       INTEGER I,J,L,KR,JR,IMAX,K
-      REAL*8 FACT_T50,FACT_TSAVG,DTSRCE
+      REAL*8 FACT_T50,FACT_TSAVG
      *     ,DIFFUS,ANGLE,SINANG,SN2ANG,SN3ANG,SN4ANG,COSANG,CS2ANG
      *     ,CS3ANG,CS4ANG,BF1DT,CF1DT,AOTDT,COTDT,AEFO,CEFI,BEDIFS
      *     ,CEDIFS,BERUN0,CF2DT,BERUN2,CERUN2,AERUN4,CERUN4,ATG1,BTG1
@@ -1215,8 +1213,7 @@ C*
         END DO
       END DO
 
-      DTSRCE=NDYN*DT
-      DIFFUS=DTSRCE/SDAY
+      DIFFUS=DTSRC/SDAY
       ANGLE=TWOPI*JDAY/365.
       SINANG=SIN(ANGLE)
       SN2ANG=SIN(2*ANGLE)
@@ -1322,7 +1319,7 @@ C****
         WTRO=Z1O(I,J)*RHOW
         F0DT=E0(I,J,1)
            AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+F0DT*POCEAN
-        OTDT=DTSRCE*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
+        OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
      *          +OTA(I,J,3)*SN3ANG+OTB(I,J,3)*CS3ANG
      *          +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *          +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
@@ -1360,8 +1357,8 @@ C***  CALL SEA ICE SUBROUTINE
 c     IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
 
       IF (KOCEAN .EQ. 1) THEN
-        WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixed layer mass below ice (kg/m^2)
-        EIW0=WTRI0*TGW*SHW      ! energy of mixed layer below ice (J/m^2)
+        WTRI0=WTRO-(SNOW+ACE1I+MSI2) ! mixd layr mass below ice (kg/m^2)
+        EIW0=WTRI0*TGW*SHW     ! energy of mixed layer below ice (J/m^2)
         WTRW0=WTRO-ROICE*(SNOW+ACE1I+MSI2)
         ENRGW0=WTRW0*TGW*SHW
         RUN4=-EVAP
@@ -1369,12 +1366,12 @@ c     IF (FLAKE(I,J).gt.0) QFIXR=.FALSE.   ! will soon be implemented
         ERUN4=TGW*RUN4*SHW
       END IF
 
-      CALL SEA_ICE(DTSRCE,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
+      CALL SEA_ICE(DTSRC,SNOW,ROICE,TG1,TG2,TG3,TG4,MSI1,MSI2
      *     ,F0DT,F1DT,EVAP,HSI1,HSI2,HSI3,HSI4,TGW,RUN0
      *     ,DIFSI,EDIFSI,DIFS,EDIFS,ACE2M,F2DT,QFIXR)
 
       IF (KOCEAN.EQ.1) WTRW0 = (WTRW0+ROICE*RUN0)+ROICE*ACE2M
-      ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.  
+      ACEFO=0 ; ACE2F=0. ; ENRGFO=0. ; ENRGFI=0.
       IF (.not.QFIXR) CALL OSOURC (ROICE,MSI1,MSI2,TGW,WTRO,EIW0
      *       ,OTDT,ENRGO,ERUN4,ENRGFO,ACEFO,ACE2F,WTRW0,ENRGW0,ENRGFI
      *       ,F2DT,TFO)
@@ -1609,14 +1606,13 @@ C****
       LOGICAL POLE
       INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
 
-      REAL*8 RVX,DTSRCE,DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS,TXS,TYS,TXXS,TYYS
+      REAL*8 RVX,DOK,PIJBOT,PIJ,PKMS,THPKMS,QMS,TXS,TYS,TXXS,TYYS
      *     ,TXYS,QXS,QYS,QXXS,QYYS,QXYS,TVMS,THETA,RDP,THM
 
       RVX=0.
 C**** LOAD U,V INTO UT,VT.  UT,VT WILL BE FIXED DURING DRY CONVECTION
 C****   WHILE U,V WILL BE UPDATED.
 
-      DTSRCE=DT*NDYN
       DO 50 L=1,LM
       DO 50 J=2,JM
       DO 50 I=1,IM
@@ -1776,10 +1772,10 @@ C****
       RHO=(PIJU*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
       CDN=XCDLM(1)+XCDLM(2)*WL
          AIJ(I,J,IJ_WLM)=AIJ(I,J,IJ_WLM)+WL
-      X=NDYN*DT*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
+      X=DTsrc*RHO*CDN*WL*GRAV*BYDSIG(L)*BYPIJU
       IF(X.GT.1) THEN
-        write(99,*) 'SDRAG: TAU,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)',
-     *   TAU,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L),
+        write(99,*) 'SDRAG: ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L)',
+     *   ITime,I,J,PIJU,X,RHO,CDN,U(I,J,L),V(I,J,L),
      *   ' If problem persists, winds are too high! ',
      *   'Try setting XCDLM smaller.'
         X=1.

@@ -4,7 +4,7 @@
 !@ver  1.0
       USE CONSTANT, only : lhm,rhoi,shi
       IMPLICIT NONE
-      
+
       REAL*8, PARAMETER :: Z1E=.1, Z2LI=2.9
 !@var ACE1LI ice mass first layer (kg/m^2)
       REAL*8, PARAMETER :: ACE1LI = Z1E*RHOI

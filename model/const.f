@@ -7,7 +7,7 @@
 C**** Note that there are often two definitions used here: the one that
 C**** is current and the 'standard' definition to which we will move.
 C**** Note also some non-double precision numbers, temporarily for
-C**** consistency 
+C**** consistency
 
 C**** Conventions: 'by' implies reciprocal, 'rt' implies square root
 
@@ -34,15 +34,15 @@ C**** Numerical constants
 
 C**** Physical constants
 
-!@param stbo Stefan-Boltzmann constant (W/m^2 K^4) 
+!@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
       real*8,parameter :: stbo =5.67051d-8 !current best estimate
 c      real*8,parameter :: stbo = 5.67032e-8
 
 !@param lhe   latent heat of evap at 0 C (J/kg)
-c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C) 
-      real*8,parameter :: lhe = 2.5d6  
+c**** lhe(T) = 2.5008d6 - 2.3d3 T (in C)
+      real*8,parameter :: lhe = 2.5d6
 !@param lhm   latent heat of melt at 0 C (J/kg)
-c**** lhm(T) = 334590 + 2.05d3 T (in C) 
+c**** lhm(T) = 334590 + 2.05d3 T (in C)
       real*8,parameter :: lhm = 3.34d5
 !@param lhs  latent heat of sublimation at 0 C (J/kg)
       real*8,parameter :: lhs = lhe+lhm
@@ -59,18 +59,18 @@ c**** lhm(T) = 334590 + 2.05d3 T (in C)
 
 !@param shw heat capacity of water (at 20 C) (4185 J/kg C)
       real*8,parameter :: shw  = 4185.
-!@param byshw 1/shw 
+!@param byshw 1/shw
       real*8,parameter :: byshw = 1d0/shw
 
 !@param shi heat capacity of pure ice (at 0 C) (2060 J/kg C)
       real*8,parameter :: shi  = 2060.
-!@param byshi 1/shi 
+!@param byshi 1/shi
       real*8,parameter :: byshi = 1d0/shi
 
-c**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol 
+c**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol
 c**** For values of CO2 much larger than present day (> 4x conc)
 c**** the molecular weight of dry air M_A could change.
-c**** Assume that M_O2 = 31.9988 and M_CO2 = 44.00995 
+c**** Assume that M_O2 = 31.9988 and M_CO2 = 44.00995
 c**** and current percentages 20.946% and 0.0350% (US Stand. Atm.)
 c**** Assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
 c**** where n is multiple of present day CO2 conc (350 ppm)
@@ -79,13 +79,13 @@ c**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
 !@param gasc  gas constant (8.314510 J/mol K)
       real*8,parameter :: gasc = 8.314510d0
 !@param mair molecular weight of dry air (28.9655 g/mol)
-      real*8,parameter :: mair = 28.9655d0 
+      real*8,parameter :: mair = 28.9655d0
 !@param rgas gas constant (287.05 J/K kg)
       real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
 c      real*8,parameter :: rgas = 287.
 
-!@param mwat molecular weight of water vapour 
-      real*8,parameter :: mwat = 18.015d0 
+!@param mwat molecular weight of water vapour
+      real*8,parameter :: mwat = 18.015d0
 !@param rvap  gas constant for water vapour (461.5 J/K kg)
 c**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
       real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
@@ -97,31 +97,31 @@ c      real*8,parameter :: rvap = 461.5
 !@param srat ratio of specific heats of air and vapour (1.401)
       real*8,parameter :: srat = 1.401d0
 !@param kapa ideal gas law exponent  (.2862)
-c**** kapa = (g-1)/g where g=1.401 = c_p/c_v 
+c**** kapa = (g-1)/g where g=1.401 = c_p/c_v
       real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
 c      real*8,parameter :: kapa = .286d0
 !@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
       real*8,parameter :: bykapa = 1./kapa
       real*8,parameter :: bykapap1 = 1./(kapa+1.)
       real*8,parameter :: bykapap2 = 1./(kapa+2.)
- 
+
 !@param sha specific heat of dry air (rgas/kapa J/kg C)
       real*8,parameter :: sha = rgas/kapa
-!@param bysha 1/sha 
+!@param bysha 1/sha
       real*8,parameter :: bysha = 1./sha
 
 !@param shv specific heat of vapour (J/kg C)
 c**** shv is currently assumed to be zero to aid energy conservation in
 c**** the atmosphere. Once the heat content associated with water
 c**** vapour is included, this can be set to the standard value
-c     real*8,parameter :: shv = sha/srat 
+c     real*8,parameter :: shv = sha/srat
       real*8,parameter :: shv = 0.
 
 C**** Useful conversion factors
 
 !@param pa2mb,mb2pa conversion from Pascals to milli-bars
       real*8,parameter :: pa2mb = 1d-2, mb2pa = 1d2
-!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm 
+!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
       real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
 C**** Astronomical constants
@@ -145,7 +145,7 @@ c**** radius of spherical earth, same volume = 6371000 m
 !@param grav gravitaional accelaration (9.80665 m/s^2)
 c**** SI reference gravity (at 45 deg) = 9.80665
       real*8,parameter :: grav = 9.80665d0
-!@param bygrav 1/grav 
+!@param bygrav 1/grav
       real*8,parameter :: bygrav = 1d0/grav
 
 C**** variables for extrapolating surface pressure to sea level)
@@ -155,7 +155,7 @@ C**** variables for extrapolating surface pressure to sea level)
       real*8, parameter :: bbyg = bmoist*bygrav
 !@param GBYRB grav divided by rgas and bmoist
       real*8, parameter :: gbyrb = grav/(rgas*bmoist)
-  
+
       CONTAINS
 
       SUBROUTINE ORBIT (OBLIQ,ECCN,OMEGT,DAY,SDIST,SIND,COSD,LAMBDA)

@@ -1,13 +1,12 @@
       SUBROUTINE CONDSE
-!@sum   MSTCNV driver for moist convction
-!@sum   CONDSE driver for large-scale condensation
+!@sum   CONDSE driver for moist convection AND large-scale condensation
 !@auth  M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
-!@calls MSTCNV_loc
+!@calls MSTCNV and LSCOND
 
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,kapa,sha,bysha
-      USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,tofday,fearth
-     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig
+      USE E001M12_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
+     *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,gdata,sig,DTsrc
       USE SOMTQ_COM
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,raj,idij,idjj
       USE CLD01_COM_E001
@@ -19,7 +18,7 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,mstcnv
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
-     *     prcpss,hcndss,aj55,bydtcn,lscond
+     *     prcpss,hcndss,aj55,BYDTsrc,lscond
       USE PBLCOM, only : tsavg
       USE DAGCOM, only : aj,bj,cj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,j_prcpmc,j_prcpss
@@ -34,7 +33,7 @@
       REAL*8,  PARAMETER :: ENTCON = .2d0  !@param ENTCON  ???
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IHOUR,IMAX,JR,KR
+      INTEGER IMAX,JR,KR
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
       REAL*8 :: HCNDMC,PRCP
@@ -42,7 +41,6 @@
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
       VC=V
-         IHOUR=1.5+TOFDAY
 C****
 C**** MAIN J LOOP
 C****
@@ -106,7 +104,7 @@ c      QL(L)=Q(I,J,L)
          TTOLDL(L)=TTOLD(I,J,L)
          CLDSAVL(L)=CLDSAV(I,J,L)
          RH(L)=RHSAV(I,J,L)
-         DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTCN
+         DPDT(L)=SIG(L)*(P(I,J)-PTOLD(I,J))*BYDTsrc
          IF(L.GE.LS1) DPDT(L)=0.
   150 CONTINUE
       ETAL(LM)=ETAL(LM-1)
@@ -156,11 +154,11 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
          AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPMC
-               ADAILY(IHOUR,5,KR)=ADAILY(IHOUR,5,KR)+HCNDMC
-               ADAILY(IHOUR,63,KR)=ADAILY(IHOUR,63,KR)+PRCPMC
-               ADAILY(IHOUR,51,KR)=ADAILY(IHOUR,51,KR)+CLDDEPIJ
-               ADAILY(IHOUR,52,KR)=ADAILY(IHOUR,52,KR)+CLDSLWIJ
+               ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPMC
+               ADAILY(JHOUR+1,5,KR)=ADAILY(JHOUR+1,5,KR)+HCNDMC
+               ADAILY(JHOUR+1,63,KR)=ADAILY(JHOUR+1,63,KR)+PRCPMC
+               ADAILY(JHOUR+1,51,KR)=ADAILY(JHOUR+1,51,KR)+CLDDEPIJ
+               ADAILY(JHOUR+1,52,KR)=ADAILY(JHOUR+1,52,KR)+CLDSLWIJ
             END IF
          END DO
 
@@ -180,7 +178,7 @@ C****
          TH(L)=T(I,J,L)
          QL(L)=Q(I,J,L)
          WMX(L)=WML(L)+SVWMXL(L)
-         AQ(L)=(QL(L)-QTOLD(I,J,L))*BYDTCN
+         AQ(L)=(QL(L)-QTOLD(I,J,L))*BYDTsrc
       END DO
 
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
@@ -197,9 +195,9 @@ C**** Accumulate diagnostics of CONDSE
          AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          DO KR=1,4
             IF(I.EQ.IJD6(1,KR).AND.J.EQ.IJD6(2,KR)) THEN
-               ADAILY(IHOUR,49,KR)=ADAILY(IHOUR,49,KR)+PRCPSS
-               ADAILY(IHOUR,5,KR)=ADAILY(IHOUR,5,KR)+HCNDSS
-               ADAILY(IHOUR,62,KR)=ADAILY(IHOUR,62,KR)+PRCPSS
+               ADAILY(JHOUR+1,49,KR)=ADAILY(JHOUR+1,49,KR)+PRCPSS
+               ADAILY(JHOUR+1,5,KR)=ADAILY(JHOUR+1,5,KR)+HCNDSS
+               ADAILY(JHOUR+1,62,KR)=ADAILY(JHOUR+1,62,KR)+PRCPSS
             END IF
          END DO
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
@@ -283,23 +281,22 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : rgas,grav,lhe,lhs,kapa,bysha,sday  !,by3
-      USE E001M12_COM, only : dt,ncnds,LS1
+      USE E001M12_COM, only : DTsrc,LS1
       USE CLD01
 
       IMPLICIT NONE
 
       LMCM = LS1-1
-      DTCNDS=NCNDS*DT
-      BYDTCN=1./DTCNDS
+      BYDTsrc=1./DTsrc
 
       BXCONS=.622d0/RGAS
       AXCONS=LOG(6.1071D0)
-      XMASS=0.1d0*DTCNDS*GRAV
+      XMASS=0.1d0*DTsrc*GRAV
       BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**BY3
       SLHE=LHE*BYSHA
       SLHS=LHS*BYSHA
       DQDTX=.622d0*LHE/RGAS
-      DTPERD=DTCNDS/SDAY
+      DTPERD=DTsrc/SDAY
       AGESNX=1.-DTPERD/50.
 
       END SUBROUTINE init_CLD

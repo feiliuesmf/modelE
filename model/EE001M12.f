@@ -9,8 +9,8 @@ C**** evaporation, thermal radiation, and momentum drag.
 C****
       USE CONSTANT, only : grav,rgas,kapa,sday,lhm,lhe,lhs,twopi,omega
      *     ,sha,tf,rhow,rhoi,shv,shw,shi,edpery
-      USE E001M12_COM, only : im,jm,lm,t,p,q,gdata,ndyn,dt,nsurf,dsig
-     *     ,jday,tofday,tau,jeq,fearth,modrd,ijd6
+      USE E001M12_COM, only : im,jm,lm,t,p,q,gdata,DTsrc,NIsurf,dsig
+     *     ,jday,JHOUR,NDAY,ITime,jeq,fearth,modrd,ijd6
       USE GEOM, only : imaxj,dxyp
       USE RADNCB, only : trhr,fsf,cosz1
       USE GHYCOM, only : wbare,wvege,htbare,htvege,snowbv,
@@ -39,7 +39,7 @@ C****
      *     ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0,
      *     ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus,
      *     ij_tauus, ij_tauvs, ij_qs, j_edifs, j_trhdt, j_shdt, j_evhdt,
-     *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf 
+     *     j_evap, j_erun1, j_difs, j_run2, j_dwtr2, j_run1, j_tsrf
       USE DYNAMICS, only : pmid,pk,pek,pedn,pdsig
       USE LAKES_COM, only : mwl,gml
 
@@ -54,7 +54,7 @@ C****
      *     ,RTAUVS,RTAUUS,RTAUS,TAUS,WSS,TSS,QSS,USS,VSS,RHOSRF,RMBYA
      *     ,TFS,TH1,THV1,P1K,PSK,TS,PS,PIJ,PSOIL,PEARTH,WARMER,BRUN0
      *     ,BERUN0,BDIFS,BEDIFS,BTS,BEVHDT,BRUNU,BERUNU,BSHDT,BTRHDT
-     *     ,TIMEZ,SPRING,ZS1CO,RVX,DTSRCE,DTCNDS,QLH,PM,TM,QSAT
+     *     ,TIMEZ,SPRING,ZS1CO,RVX,QLH,PM,TM,QSAT
 
       REAL*8, DIMENSION(IM,JM) :: DTH1,DQ1,DU1,DV1
       COMMON /WORK1d/DTH1,DQ1
@@ -104,23 +104,21 @@ C****       28  SNOW DEPTH OVER BARE SOIL (M)
 C****       29  SNOW DEPTH OVER VEGETATED SOIL (M)
 C****
 
-      DTSURF=NDYN*DT/NSURF
-      DTCNDS=NDYN*DT
-      DTSRCE=DT*NDYN
+      DTSURF=DTsrc/NISURF
       RVX=0.
       ZS1CO=.5*DSIG(1)*RGAS/GRAV
 
          SPRING=-1.
          IF((JDAY.GE.32).AND.(JDAY.LE.212)) SPRING=1.
-         IHOUR=1.5+TOFDAY
+         IHOUR=1+JHOUR
 C        COSDAY=COS(TWOPI*JDAY/EDPERY)
 C        SINDAY=SIN(TWOPI*JDAY/EDPERY)
 C****
-C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NSURF TIMES EVERY HOUR
+C**** OUTSIDE LOOP OVER TIME STEPS, EXECUTED NISURF TIMES EVERY HOUR
 C****
-         TIMEZ=JDAY+(TOFDAY+(NS-1.)/NSURF)/24.
+         TIMEZ=JDAY+(MOD(ITime,NDAY)+(NS-1.)/NISURF)/NDAY  ! -1 ??
          IF(JDAY.LE.31) TIMEZ=TIMEZ+365.
-         GHOUR=TAU+(NS-1.)/NSURF
+         GHOUR=(ITime+(NS-1.)/NISURF) ! *(24./NDAY)
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -234,10 +232,10 @@ C     NGRNDZ=NGRND HAS TO BE 1
 c      ZGS=10.
       ITYPE=4
       PTYPE=PEARTH
-      PR=PREC(I,J)/(DTCNDS*RHOW)
-      PRS=PRCSS(I,J)/(DTCNDS*RHOW)
+      PR=PREC(I,J)/(DTsrc*RHOW)
+      PRS=PRCSS(I,J)/(DTsrc*RHOW)
       HTPR=0.
-      IF(TPREC(I,J).LT.0.) HTPR=-LHM*PREC(I,J)/DTCNDS
+      IF(TPREC(I,J).LT.0.) HTPR=-LHM*PREC(I,J)/DTsrc
 c      DO 2410 L=1,4*NGM+5
 c 2410 GW(L,1)=GHDATA(I,J,L)
       GW(1:NGM,1) = WBARE(I,J,1:NGM)
@@ -247,7 +245,7 @@ c 2410 GW(L,1)=GHDATA(I,J,L)
       SNOWD(1:2) = SNOWBV(I,J,1:2)
 ccc extracting snow variables
       NSN(1:2)          = NSN_IJ    (I, J, 1:2)
-      ISN(1:2)          = ISN_IJ    (I, J, 1:2) 
+      ISN(1:2)          = ISN_IJ    (I, J, 1:2)
       DZSN(1:NLSN, 1:2) = DZSN_IJ   (I, J, 1:NLSN, 1:2)
       WSN(1:NLSN, 1:2)  = WSN_IJ    (I, J, 1:NLSN, 1:2)
       HSN(1:NLSN, 1:2)  = HSN_IJ    (I, J, 1:NLSN, 1:2)
@@ -332,11 +330,11 @@ ccc copy snow variables back to storage
       HSN_IJ    (I, J, 1:NLSN, 1:2) = HSN(1:NLSN,1:2)
       FR_SNOW_IJ(I, J, 1:2)         = FR_SNOW(1:2)
 
-      AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NSURF
-      AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NSURF
-      AIJG(I,J,11)=AIJG(I,J,11)+BETA/NSURF
-      AIJG(I,J,12)=AIJG(I,J,12)+ACNA/NSURF
-      AIJG(I,J,13)=AIJG(I,J,13)+ACNC/NSURF
+      AIJG(I,J, 5)=AIJG(I,J, 5)+BETAB/NIsurf
+      AIJG(I,J, 6)=AIJG(I,J, 6)+BETAP/NIsurf
+      AIJG(I,J,11)=AIJG(I,J,11)+BETA/NIsurf
+      AIJG(I,J,12)=AIJG(I,J,12)+ACNA/NIsurf
+      AIJG(I,J,13)=AIJG(I,J,13)+ACNC/NIsurf
       AIJG(I,J,14)=AIJG(I,J,14)+AEPP
       AIJG(I,J,15)=AIJG(I,J,15)+TP(1,1)
       AIJG(I,J,16)=AIJG(I,J,16)+TP(2,1)
@@ -349,8 +347,8 @@ ccc copy snow variables back to storage
       AIJG(I,J,23)=AIJG(I,J,23)+TP(2,2)
       AIJG(I,J,24)=AIJG(I,J,24)+TP(3,2)
       AIJG(I,J,25)=AIJG(I,J,25)+FB*ZW(1)+FV*ZW(2)
-      AIJG(I,J,26)=AIJG(I,J,26)+BETAV/NSURF
-      AIJG(I,J,27)=AIJG(I,J,27)+BETAT/NSURF
+      AIJG(I,J,26)=AIJG(I,J,26)+BETAV/NIsurf
+      AIJG(I,J,27)=AIJG(I,J,27)+BETAT/NIsurf
           TRHDT=TRHEAT*DTSURF-ATRG
 C     FOR RADIATION FIND COMPOSITE VALUES  GDATA 2 4 5 6
 C           FOR DIAGNOSTIC PURPOSES ALSO COMPUTE GDEEP 1 2 3
@@ -465,9 +463,9 @@ C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
          AREG(JR,J_TSRF )=AREG(JR,J_TSRF )+(TSS-TFS)*DXYPJ
 C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
  5700    AIJ(I,J,IJ_SHDT)=AIJ(I,J,IJ_SHDT)+SHDTS
-         AIJ(I,J,IJ_BETA)=AIJ(I,J,IJ_BETA)+BETAD/NSURF
+         AIJ(I,J,IJ_BETA)=AIJ(I,J,IJ_BETA)+BETAD/NIsurf
          IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDTS
-     *        /DTSRCE
+     *        /DTSRC
          AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHDTS+TRHDTS)
          AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHDTS+TRHDTS+SHDTS+EVHDTS)
          IF(MODDSF.NE.0) GO TO 5800
@@ -529,7 +527,7 @@ C**** QUANTITIES ACCUMULATED FOR SURFACE TYPE TABLES IN DIAGJ
       SUBROUTINE init_GH(DTSURF,redoGH,iniSNOW)
 C**** Modifications needed for split of bare soils into 2 types
       USE CONSTANT, only : twopix=>twopi,rhow,edpery
-      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,tau,jeq
+      USE E001M12_COM, only : im,jm,fearth,vdata,gdata,Itime,Nday,jeq
       USE GHYCOM
       USE SLE001, sinday=>sint,cosday=>cost
       USE FILEMANAGER
@@ -695,7 +693,7 @@ C****
 C code transplanted from subroutine INPUT
 C**** Recompute GHDATA if necessary (new soils data)
       IF (redoGH) THEN
-        JDAY=1+MOD(NINT(TAU/24.),365)
+        JDAY=1+MOD(ITime/NDAY,365)  
         COSDAY=COS(TWOPIx/EDPERY*JDAY)
         SINDAY=SIN(TWOPIx/EDPERY*JDAY)
 
@@ -742,7 +740,7 @@ C****     COPY SOILS PROGNOSTIC QUANTITIES TO EXTENDED GHDATA
       END IF
 
 ccc   some extra code from snowmodel GHINIT
-      SO_%ROSMP = 8.  ! no idea what this number means, but it is used 
+      SO_%ROSMP = 8.  ! no idea what this number means, but it is used
                       ! in computation of RUNOFF
 
 ccc   init snow here
@@ -763,7 +761,7 @@ ccc!!! restart file (without snow model data)
             HSN_IJ(I,J,:,:)   = 0.
             FR_SNOW_IJ(I,J,:) = 0.
           ELSE
-            JDAY=1+MOD(NINT(TAU/24.),365)
+            JDAY=1+MOD(ITime/NDAY,365)
             COSDAY=COS(TWOPIx/EDPERY*JDAY)
             SINDAY=SIN(TWOPIx/EDPERY*JDAY)
 
@@ -1050,7 +1048,7 @@ C**** WTR2AV - WATER IN LAYERS 2 TO NGM, KG/M+2
 !@sum  CHECKE Checks whether gdata are reasonable over earth
 !@auth Original Development Team
 !@ver  1.0
-      USE E001M12_COM, only : im,jm,fearth,gdata,tau,wfcs
+      USE E001M12_COM, only : im,jm,fearth,gdata,ITime,wfcs
       USE GEOM, only : imaxj
       USE GHYCOM, only : ghdata
       IMPLICIT NONE
@@ -1072,17 +1070,17 @@ C**** Check for reasonable temperatures over earth
             TGL=GDATA(I,J,4)
             WTRL=GDATA(I,J,5)
             ACEL=GDATA(I,J,6)
-            IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,TAU
+            IF ((TGL+60.)*(60.-TGL).LE.0.) WRITE (6,901) SUBR,I,J,ITime
      *           ,FEARTH(I,J),'TG1 ',(GDATA(I,J,K),K=2,6)
             IF (WTRL.LT.0..OR.ACEL.LT.0..OR.(WTRL+ACEL).GT.X*WFCS(I
-     *           ,J)) WRITE(6,901) SUBR,I,J,TAU,FEARTH(I,J),'WTR '
+     *           ,J)) WRITE(6,901) SUBR,I,J,ITime,FEARTH(I,J),'WTR '
      *           ,(GDATA(I,J,K),K=2,6),WFCS(I,J)
           END IF
         END DO
       END DO
 
       RETURN
- 901  FORMAT ('0GDATA OFF, SUBR,I,J,TAU,PEARTH,',A7,2I4,F14.1,F5.2,1X
+ 901  FORMAT ('0GDATA OFF, SUBR,I,J,I-Time,PEARTH,',A7,2I4,I10,F5.2,1X
      *     ,A4/' SNW,x,TG1,WTR1,ICE1, WFC1 ',6F12.4)
 
       END SUBROUTINE CHECKE
@@ -1092,7 +1090,7 @@ C**** Check for reasonable temperatures over earth
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : rhow,twopi,edpery
-      USE E001M12_COM, only : im,jm,gdata,nsurf,jday,fearth,wfcs
+      USE E001M12_COM, only : im,jm,gdata,NDAY,NIsurf,jday,fearth,wfcs
       USE GEOM, only : imaxj
       USE DAGCOM, only : aij,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
      *     ,ij_tdsl,ij_tmnmx
@@ -1127,7 +1125,7 @@ C****
             GDATA(I,J,9)=1.+.98*GDATA(I,J,9)
             GDATA(I,J,10)=1.+.98*GDATA(I,J,10)
             GDATA(I,J,11)=1.+.98*GDATA(I,J,11)
-            TSAVG=TDIURN(I,J,5)/(24.*NSURF)
+            TSAVG=TDIURN(I,J,5)/(NDAY*NIsurf)
             IF(32.+1.8*TSAVG.LT.65.)
      *           AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)+(33.-1.8*TSAVG)
             AIJ(I,J,IJ_DTGDTS)=AIJ(I,J,IJ_DTGDTS)+18.*((TDIURN(I,J,2)-
