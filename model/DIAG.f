@@ -2988,6 +2988,9 @@ C**** write out
                 data=v(:,:,kp)
               case ("W")
                 data=wsave(:,:,kp) ! vertical velocity
+C**** fix polar values for W only (calculated on tracer points)
+                data(2:im,1) =data(1,1)
+                data(2:im,jm)=data(1,jm)
               end select
 C**** write out
               call writei(iu_subdd(kunit),itime,data,im*jm)
@@ -3010,6 +3013,9 @@ C**** get model level
                 data=v(:,:,l)
               case ("W")        ! W velocity
                 data=wsave(:,:,l)
+C**** fix polar values for W only (calculated on tracer points)
+                data(2:im,1) =data(1,1)
+                data(2:im,jm)=data(1,jm)
               end select
               call writei(iu_subdd(kunit),itime,data,im*jm)
               cycle
