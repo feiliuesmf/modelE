@@ -260,8 +260,7 @@ C**** 3D Tracer sources and sinks
 C**** Tracer independent radioactive decay at end of day
       CALL TDECAY
 C**** Calculate 3D tracers sources and sinks
-      call set_tracer_3Dsource
-      call apply_tracer_3Dsource(dtsrc)
+      call tracer_3Dsource
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (MNOW,MTRACE)
