@@ -14,7 +14,7 @@ RES_C12                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP                       ! domain decomposition
+DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q

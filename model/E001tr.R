@@ -10,7 +10,7 @@ sealevel pressure filter applied every hour
 6-band oice albedo; Hogstrom(1984) pbl drag
 Note: Many of these choices may be changed using the PARAMETERs below.
 Further Note: This has been extended to 23 layers and some plug and play
-options are different to provide a wider test suite for testing. (i.e. 
+options are different to provide a wider test suite for testing. (i.e.
 4th order momentum, dummy ice dynamics and ATRUB instead of DRYCNV).
 
 Preprocessor Options
@@ -24,7 +24,7 @@ RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP                       ! domain decomposition
+DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN4TH          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -52,7 +52,6 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
-ALLOC_DRV                           ! allocate global distributed arrays
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs

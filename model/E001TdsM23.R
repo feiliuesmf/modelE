@@ -32,7 +32,7 @@ RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP                       ! domain decomposition
+DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -69,12 +69,12 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M23.D771201 
+AIC=AIC.RES_M23.D771201
 GIC=GIC.rsfB357M12.1DEC1956.1.ext
 ! AIC=DEC1981.rsfB396M23_AIC_2.3.3
 ! OHT=OTSPEC.RB399AM12.M250D   !  not needed if KOCEAN=0
 OCNML=Z1O.B4X5.cor ! needed for post-processing only
-OSST=OST4X5.B.1990-99avg.Hadl1.1 
+OSST=OST4X5.B.1990-99avg.Hadl1.1
 SICE=SICE4X5.B.1990-99avg.Hadl1.1
 CDN=CD4X500S VEG=V72X46.1.cor2
 SOIL=S4X50093 TOPO=Z72X46N.cor4 ! bdy.cond

@@ -17,7 +17,7 @@ RES_M12                             ! horiz/vert resolution, 4x5deg, 12 layers -
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP                       ! domain decomposition
+DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
@@ -39,7 +39,6 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output
-ALLOC_DRV                           ! allocate global distributed arrays
 
 Data input files:
     ! the first group of files is specific to prescribed ocean runs
