@@ -989,9 +989,9 @@ c The units are grams of Nitrogen per minute:
 
       RNOx_lgt(i,j)=15611.*(CG + 0.1*(flash-CG))
 
-C If flash is indeed in flashes/min, accumulate it in flashes/s/m2:
-       TAIJS(I,J,ijs_flash)=TAIJS(I,J,ijs_flash) + flash*BYDXYP(J)/60.
-       TAIJS(I,J,ijs_CtoG) =TAIJS(I,J,ijs_CtoG)  +    CG*BYDXYP(J)/60.
+C If flash is indeed in flashes/min, accumulate it in flashes/m2:
+       TAIJS(I,J,ijs_flash)=TAIJS(I,J,ijs_flash) + flash*BYDXYP(J)*6.d1
+       TAIJS(I,J,ijs_CtoG) =TAIJS(I,J,ijs_CtoG)  +    CG*BYDXYP(J)*6.d1
 
       END SUBROUTINE calc_lightning
 c
