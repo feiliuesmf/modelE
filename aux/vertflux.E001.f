@@ -13,7 +13,7 @@ C****               SRCOR = SRCOR-line for rundeck
 C****               SNOW  = SNOW depth information
 C****
       USE STATIC_OCEAN
-      USE DAGCOM, only : OA
+      USE DAGCOM, only : oa,koa
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
       USE FLUXES, only : sss,fwsim
@@ -55,6 +55,9 @@ C****       9  TRHDT  (for ocean ice, integrated over the day)
 C****      10  SHDT   (for ocean ice, integrated over the day)
 C****      11  EVHDT  (for ocean ice, integrated over the day)
 C****      12  SRHDT  (for ocean ice, integrated over the day)
+C****
+C**** Extra array needed for dealing with advected ice
+C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
       call getarg(1,RunID )
       call getarg(2,title0)
@@ -109,7 +112,7 @@ C****
           call openunit(file_name,iu_VFLX,.true.,.true.)
           last_day = month_day(month)
           do kday = 1,last_day
-            call READi (iu_VFLX, itime,OA,itime1,IM*JM*12*2,iok)
+            call READi (iu_VFLX, itime,OA,itime1,IM*JM*koa*2,iok)
             if(iok.gt.0) go to 555
             jmon = month
             jdate = kday
@@ -127,6 +130,7 @@ C****
                 VF = OA(I,J,4)
      *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8))
      *               + RSI(I,J)*(OA(I,J,9)+OA(I,J,10)+OA(I,J,11))
+     *               + OA(I,J,13)
                 ASR(I,J)      = ASR(I,J)      + VFSR
                 AVFXSR(I,J)   = AVFXSR(I,J)   + VF
               END DO

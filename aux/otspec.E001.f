@@ -23,7 +23,7 @@ C****
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
-      USE DAGCOM, only : OA
+      USE DAGCOM, only : oa,koa
       USE SEAICE_COM, only : rsi,snowi,msi,ssi
       USE SEAICE, only : ace1i,ac2oim
       USE FLUXES, only : sss
@@ -70,6 +70,9 @@ C****       9  TRHDT  (for ocean ice, integrated over the day)
 C****      10  SHDT   (for ocean ice, integrated over the day)
 C****      11  EVHDT  (for ocean ice, integrated over the day)
 C****      12  SRHDT  (for ocean ice, integrated over the day)
+C****
+C**** Extra array needed for dealing with advected ice
+C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
       call getarg(1,RunID )
       call getarg(2,title0)
@@ -169,7 +172,7 @@ C****
               SINDAY(K) = DSIN(K*ARG)
             END DO
 C*
-            call READi (iu_VFLX, itime,OA,itime1,IM*JM*12*2,iok)
+            call READi (iu_VFLX, itime,OA,itime1,IM*JM*KOA*2,iok)
             if(iok.gt.0) go to 555
 C**** Interpolate daily ocean data from the monthly climatology
 C*
@@ -201,6 +204,7 @@ C****
      *               + (1.-RSI(I,J))*(OA(I,J,6)+OA(I,J,7)+OA(I,J,8)
      *               +XCORR*OA(I,J,5))+ RSI(I,J)*(OA(I,J,9)+OA(I,J,10)
      *               +OA(I,J,11)+XCORR*OA(I,J,12))
+     *               +OA(I,J,13)
 C*
                 OE = RSI(I,J)*OA(I,J,3)
      *               + ((Z1O(I,J)*RHOW-OA(I,J,2))*TOCEAN(1,I,J)+
