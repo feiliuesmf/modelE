@@ -284,8 +284,9 @@ C****
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
 C**** add fluxes to oceans/lakes.
-      IF (Jhour.eq.0) THEN
-        DT=SDAY    ! if called more frequently this should change
+cc      IF (Jhour.eq.0) THEN
+cc        DT=SDAY    ! if called more frequently this should change
+        DT=DTsrc    ! now do this every hour
         DO J=1,JM
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -356,12 +357,12 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
         END DO
         END DO
-      ELSE
-        MELTI=0. ; EMELTI=0. ; SMELTI=0.
-#ifdef TRACERS_WATER
-        TRMELTI=0.
-#endif
-      END IF
+cc      ELSE
+cc        MELTI=0. ; EMELTI=0. ; SMELTI=0.
+cc#ifdef TRACERS_WATER
+cc        TRMELTI=0.
+cc#endif
+cc      END IF
 C****
       RETURN
       END SUBROUTINE MELT_SI

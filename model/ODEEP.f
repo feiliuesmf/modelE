@@ -351,6 +351,8 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+      LOGICAL QCHECKO
+      INTEGER I,J
 
 C**** Check for NaN/INF in ocean data
       CALL CHECK3(TOCEAN,3 ,IM,JM,SUBR,'toc')
@@ -358,6 +360,19 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TG3M  ,12,IM,JM,SUBR,'tg3m')
       CALL CHECK3(STG3  ,IM,JM,1 ,SUBR,'stg3')
       CALL CHECK3(RTGO,LMOM,IM,JM,SUBR,'rtgo')
+
+      QCHECKO = .FALSE.
+C**** Check for reasonable values for ocean variables
+      DO J=1,JM
+        DO I=1,IM
+          IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN 
+            WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J) 
+            QCHECKO = .TRUE.
+          END IF
+       END DO
+      END DO
+      IF (QCHECKO) 
+     *     call stop_model("CHECKO: Ocean variables out of bounds",255)  
 
       END SUBROUTINE CHECKO
 

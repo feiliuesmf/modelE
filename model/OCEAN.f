@@ -399,7 +399,7 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
       Z1O(I,J)=min( z12o(i,j) , FRAC*XZO(I,J)+(1.-FRAC)*XZN(I,J) )
 
       IF (RSI(I,J)*FOCEAN(I,J).GT.0) THEN
-        Z1OMIN=1.+FWSIM(I,J)/RHOWS
+        Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
           WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
@@ -919,7 +919,7 @@ C****
           ERUN4 = TGW*SHW*RUN4
 C**** Ensure that we don't run out of ocean if ice gets too thick
           IF (POICE.GT.0) THEN
-            Z1OMIN=1.+FWSIM(I,J)/RHOWS
+            Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
             IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
               WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
