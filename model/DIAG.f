@@ -2453,6 +2453,9 @@ C****
       USE FILEMANAGER, only : openunit, closeunits
       USE DAGCOM, only : kgz_max,pmname
       USE PARAM
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_COM, only : n_Ox,trm,tr_mm
+#endif
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags
@@ -2470,6 +2473,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd = "SLP"
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
+      
 
       contains
 
@@ -2478,7 +2482,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      character*10 name
+      character*11 name
       integer :: i,j,k,kunit,kk
 
       call sync_param( "subdd" ,subdd)
@@ -2507,7 +2511,8 @@ C**** open units and position
 C**** Some names have more than one unit associated (i.e. "ZALL")
         kunit=0
         do k=1,kdd
-          if (namedd(k)(2:4).eq."ALL") then
+          if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
+     *         "ALL") then
             select case (namedd(k)(1:1))
             case ("U", "V")     ! velocities on model layers
               do kk=1,lm
@@ -2527,6 +2532,19 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
      *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
                 call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
               end do
+#ifdef TRACERS_SPECIAL_Shindell
+            case ("O")  ! Ox tracer
+              do kk=1,lm
+                kunit=kunit+1
+                if (kk.lt.10) then
+                  write(name,'(A2,I1,A7)') namedd(k)(1:2),kk,aDATE(1:7)
+                else
+                  write(name,'(A2,I2,A7)') namedd(k)(1:2),kk,aDATE(1:7)
+                end if
+                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+                call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
+              end do
+#endif
             end select
           else                  ! single file per name
             kunit=kunit+1
@@ -2553,7 +2571,8 @@ C**** close and re-open units
         call closeunits ( iu_SUBDD, kddunit )
         kunit=0
         do k=1,kdd
-          if (namedd(k)(2:4).eq."ALL") then
+          if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
+     *         "ALL") then
             select case (namedd(k)(1:1))
             case ("U", "V")     ! velocities on model layers
               do kk=1,lm
@@ -2571,6 +2590,18 @@ C**** close and re-open units
                 call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
      *               aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
               end do
+#ifdef TRACERS_SPECIAL_Shindell
+            case ("O")  ! Ox tracer
+              do kk=1,lm
+                kunit=kunit+1
+                if (kk.lt.10) then
+                  write(name,'(A2,I1,A7)') namedd(k)(1:2),kk,aDATE(1:7)
+                else
+                  write(name,'(A2,I2,A7)') namedd(k)(1:2),kk,aDATE(1:7)
+                end if
+                call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+              end do
+#endif
             end select
           else                  ! single file per name
             kunit=kunit+1
@@ -2589,14 +2620,15 @@ C****
 !@+   Current options: SLP, SAT, PREC, QS, LCLD, MCLD, HCLD, TROP
 !@+                    Z*, R*, T*  (on any fixed pressure level)
 !@+                    U*, V*      (on any model level)
+!@+                    Ox*         (on any model level with chemistry)
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
-      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf
+      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair
       USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,dxyp
       USE PBLCOM, only : tsavg,qsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc
-      USE DYNAMICS, only : ptropo
+      USE DYNAMICS, only : ptropo,am
       USE FLUXES, only : prec
       USE DAGCOM, only : z_inst,rh_inst,t_inst,kgz_max,pmname
       IMPLICIT NONE
@@ -2713,9 +2745,9 @@ C**** write out
             do kp=1,lm
               kunit=kunit+1
               select case (namedd(k)(1:1))
-              case ("U")        ! geopotential heights
+              case ("U")        ! E-W velocity
                 data=u(:,:,kp)
-              case ("V")        ! relative humidity (wrt water)
+              case ("V")        ! N-S velocity
                 data=v(:,:,kp)
               end select
 C**** fix polar values
@@ -2745,9 +2777,52 @@ C**** get model level
               cycle
             end if
           end do
+#ifdef TRACERS_SPECIAL_Shindell
+        case ("O")        ! Ox ozone tracer (ppmv)
+          if (namedd(k)(3:5) .eq. "ALL") then
+            do kp=1,lm
+              kunit=kunit+1
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=1d6*trm(i,j,kp,n_Ox)*mair/
+     *                 (tr_mm(n_Ox)*am(kp,i,j)*dxyp(j))
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+            end do
+            cycle
+          end if
+C**** get model level
+          do l=1,lm
+            if (l.lt.10) then
+              write(namel,'(I1)') l
+            else
+              write(namel,'(I2)') l
+            end if
+            if (trim(namedd(k)(3:6)) .eq. trim(namel)) then
+              kunit=kunit+1
+              do j=1,jm
+                do i=1,imaxj(j)
+                  data(i,j)=1d6*trm(i,j,l,n_Ox)*mair/
+     *                 (tr_mm(n_Ox)*am(l,i,j)*dxyp(j))
+                end do
+              end do
+C**** fix polar values
+              data(2:im,1) =data(1,1)
+              data(2:im,jm)=data(1,jm)
+C**** write out
+              call writei(iu_subdd(kunit),itime,data,im*jm)
+              cycle
+            end if
+          end do
+#endif
         end select
       end do
-c****
+c**** 
       return
       end subroutine get_subdd
 
