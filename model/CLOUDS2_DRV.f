@@ -568,7 +568,10 @@ C**** TRACERS: Use only the active ones
      *         + trsvwml(nx,l)
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
-      if (debug .and. nx.eq.1) print*,"drv1",i,l,tm(l,nx),trsvwml(nx,l)
+      if (debug .and. nx.eq.1) print*,"drv1",i,l,tm(l,nx)
+#ifdef TRACERS_WATER
+     &     ,trsvwml(nx,l)
+#endif
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
           tmomsv(:,l,nx) = tmom(:,l,nx)
           tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only
