@@ -798,8 +798,9 @@ C***********************************************************************
       if (istart.le.0) then
         call reset_diag(1)
         monacc = 0
-        do k=1,iargc()
-          call getarg(k,filenm)
+        do
+          call nextarg(filenm, 0)
+          if ( filenm == "" ) exit ! end of args
           call openunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
           call closeunit(iu_AIC)
@@ -1516,6 +1517,26 @@ C**** check tracers
       END SUBROUTINE CHECKT
 
 
+      subroutine nextarg( arg, opt )
+      character(*), intent(out) :: arg
+      integer, intent(in) :: opt
+      integer, save :: count = 1
+      if ( count > iargc() ) then
+        arg=""
+        return
+      endif
+      call getarg( count, arg )
+      !if ( present(opt) ) then
+        if ( opt == 1 .and. arg(1:1) .ne. '-' ) then
+          arg=""
+          return
+        endif
+      !endif
+      count = count + 1
+      return
+      end
+
+
       subroutine read_options( qcrestart, ifile )
 !@sum reads options from the command line (for now only one option)
 !@auth I. Aleinov
@@ -1523,20 +1544,17 @@ C**** check tracers
 !@var qcrestart true if "-r" is present
       logical, intent(inout) :: qcrestart
       character(*),intent(inout)  :: ifile
-      integer n, nargs
       character*80 arg,arg1
 
-      nargs = iargc()
-      n=1
-      do while( n <= nargs )
-        call getarg(n,arg)
-        if ( arg(1:1) .ne. '-' ) exit  ! end of options
+      do
+        call nextarg( arg, 1 )
+        if ( arg == "" ) exit          ! end of args
         select case (arg)
         case ("-r")
           qcrestart = .true.
         case ("-i")
           n=n+1
-          call getarg(n,arg1)
+          call nextarg( arg1, 0 )
           ifile=arg1
         ! new options can be included here
         case default
@@ -1544,7 +1562,6 @@ C**** check tracers
           print *,'Aborting...'
           call stop_model("Unknown option on a command line",255)
         end select
-        n=n+1
       enddo
 
       return
@@ -1580,4 +1597,3 @@ C**** check tracers
 
       return
       end subroutine print_restart_info
-
