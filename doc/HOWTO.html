@@ -289,6 +289,18 @@ multi-processing on a distributed memory platform (such as a Beowlf
 cluster). For machines that share a number of processors per board, 
 the OpenMP directives will work up to that number of processors.</p>
 
+<p> Many GCM subroutines declare temporary arrays which, in FORTRAN, reside in
+a part of the computer's memory known in computer parlance as the "stack."
+It is essential that a user's stack size be large enough to accomodate these
+arrays; a minimum value of 8192 kilobytes is recommended, with stack requirements
+increasing with model resolution.
+Default stack sizes vary among different computing environments, but
+can be easily adjusted.  Unfortunately this parameter must be
+explicitly set by the user rather than by the GCM setup scripts.
+Stack size is set by commands native to a user's $SHELL;
+for example, a <tt>bash</tt> user would type <tt>ulimit -s 32768</tt> to get a stack
+size of 32768 kb. </p>
+
 <hr>
 
 <h3><A name="part1">Part I: Basic user tasks</a></h3>

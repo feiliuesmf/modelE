@@ -37,6 +37,7 @@ amend the response to make it clearer or more complete.</P>
   <LI><A HREF="#Q1_12"> Don't revision control systems (rcs or cvs)
        provide equal functionality?</A>
   <LI><A HREF="#Q1_13">Will the update system ever change? </A>
+  <LI><A HREF="#Q1_14">The model core dumps!</A>
 </OL>
 
 <H3><A HREF="#Q2">2. FAQs about the Parameter database</A></H3>
@@ -333,6 +334,25 @@ system that have made it much more useful for precisely the functions
 that rcs/cvs does not cover. However, for the new modelE code that
 was built directly in CVS, it will probably not be re-introduced.
 </P>
+
+<P><A NAME="Q1_14"><b>14) The model core dumps!</b></a></P>
+<p>
+This problem can arise from a multitude of causes; only the most
+common ones unrelated to (heretofore undetected) programming errors
+can be outlined here.</p>
+
+<ul>
+<li>
+The disk on which your simulation is running has filled up.
+</li>
+<li>
+If you are running a model version known to work in a computing environment
+other than yours, check that your "stack" is large enough.
+See the stacksize discussion of the
+<a href="HOWTO.html/#part0_3">System Requirements</a> section for
+details.  Linux systems in particular have small stack defaults.
+</li>
+</ul>
 
 <hr>
 
