@@ -111,6 +111,7 @@
         cmgs(:,J_0:J_1,:) = cmgs_g(:,J_0:J_1,:)
         chgs(:,J_0:J_1,:) = chgs_g(:,J_0:J_1,:)
         cqgs(:,J_0:J_1,:) = cqgs_g(:,J_0:J_1,:)
+        ipbl(:,J_0:J_1,:) = ipbl_g(:,J_0:J_1,:)
         CALL CHECKSUM(grid,cmgs,__LINE__,__FILE__//'::cmgs')
 
         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
