@@ -26,8 +26,10 @@
       REAL*8, PARAMETER :: ALAMI=2.1762d0, ALAMS=0.35d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
-!@param KEXT extinction coefficient for light in sea ice (1/m)
-      REAL*8, PARAMETER :: KEXT = 1.5d0
+!@param KIEXT extinction coefficient for light in sea ice (1/m)
+      REAL*8, PARAMETER :: KIEXT = 1.5d0
+!@param KSEXT extinction coefficient for light in snow (1/m)
+      REAL*8, PARAMETER :: KSEXT = 15d0
 !@var FLEADOC lead fraction for ocean ice (%)
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
@@ -77,7 +79,7 @@
 !@var SALT salt in runoff from ice (kg/m^2)
       REAL*8, INTENT(OUT) :: RUN0, SALT
       REAL*8 :: BYMSI2, FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3,
-     *     FHSI4, CMPRS, SNWF, MELT1, RAIN, FREZ1, MSI1, FSSI1, FSSI2,
+     *     FHSI4, CMPRS, SNWF, MELT1, RAIN, FREZ1, MSI1, FSSI2,
      *     FSSI3, FSSI4, SMELT1, DSNOW, SS12
 
 C**** reciprocal of ice thickness for efficiency
@@ -236,9 +238,9 @@ C**** Diagnostics for output
       REAL*8, INTENT(OUT) :: FO, RUN0, SMELT, FMOC, FHOC, FSOC
       REAL*8 MSI1, MELT1, MELT2, MELT3, MELT4, SNMELT, DSNOW
       REAL*8 DEW, CMPRS, DEW1, DEW2, EVAP1
-      REAL*8 SMELT12,SMELT3,SMELT4,SALTI, FSSI1, FSSI2, FSSI3, FSSI4
+      REAL*8 SMELT12,SMELT3,SMELT4,SALTI, FSSI2, FSSI3, FSSI4, SS12
       REAL*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4
-      REAL*8 HC1, HC2, HC3, HC4, HICE2
+      REAL*8 HC1, HC2, HC3, HC4, HICE, HSNOW
       REAL*8 dF1dTI, dF2dTI, dF3dTI, dF4dTI, F1, F2, F3
 C**** Initiallise output
       FO=0. ; RUN0=0.  ; SMELT=0. ; FMOC=0. ; FHOC=0. ; FSOC=0.
@@ -247,16 +249,16 @@ C**** Initiallise output
       FMSI2=0. ; MELT1=0. ; MELT2=0. ; MELT3=0. ; MELT4=0.
       FHSI1=0. ; FHSI2=0. ; FHSI3=0.  
       SMELT12=0; SMELT3=0.; SMELT4=0.
-      FSSI1=0. ; FSSI2=0. ; FSSI3=0.  
+      FSSI2=0. ; FSSI3=0.  
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
 C**** Calculate solar fractions
       IF (SROX(1).gt.0) THEN
-c       FSRI(1) = EXP(-KEXT*HICE1)  ! included in F1DT
-        HICE2=ACE1I*BYRHOI+SNOW/RHOS
-        FSRI(2) = EXP(-KEXT*HICE2)
-        FSRI(3) = EXP(-KEXT*(HICE2+MSI2*XSI(3)*BYRHOI))
-        FSRI(4) = EXP(-KEXT*(HICE2+MSI2*BYRHOI))
+        HICE =ACE1I*BYRHOI
+        HSNOW=SNOW/RHOS
+        FSRI(2) = EXP(-KSEXT*HSNOW-KIEXT*HICE)
+        FSRI(3) = FSRI(2)*EXP(-KIEXT*MSI2*XSI(3)*BYRHOI)
+        FSRI(4) = FSRI(2)*EXP(-KIEXT*MSI2*BYRHOI)
       ELSE
         FSRI = 0.
       END IF
@@ -332,9 +334,11 @@ C****
       IF (SNOW.GT.SNMELT+EVAP1) THEN ! some snow remains
         CMPRS = MIN(dSNdML*SNMELT, SNOW-EVAP1-SNMELT) ! > 0.
         DSNOW = - (SNMELT+EVAP1+CMPRS)
+        SMELT12=(MELT1+MELT2-SNMELT)*SALTI/ACE1I
       ELSE ! all snow and some ice melts
         CMPRS = 0.
         DSNOW = -SNOW
+        SMELT12=(MELT1+MELT2-SNOW-EVAP1)*SALTI/ACE1I
       END IF
 C**** Mass fluxes required to keep first layer ice = ACE1I 
       FMSI2 = -DSNOW+DEW-MELT1-MELT2 ! either up or down
@@ -355,11 +359,9 @@ C***** Calculate consequential heat flux between layers
       IF (FMSI2.gt.0) THEN ! downward flux to thermal layer 3
         FHSI2 = FMSI2*HSIL(2)/(XSI(2)*MSI1+DEW2-MELT2)
         FSSI2 = FMSI2*SALTI/ACE1I
-        SMELT12 = 0.
       ELSE                 ! upward flux
         FHSI2  = FMSI2*HSIL(3)/(XSI(3)*MSI2-MELT3)
         FSSI2  = FMSI2*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
-        SMELT12=-FMSI2*(SSIL(1)+SSIL(2))/ACE1I
       END IF
 
 C**** Calculate mass/heat flux at base if required
@@ -367,7 +369,7 @@ C**** Calculate mass/heat flux at base if required
         FMSI4 = FMSI2 - MELT3 - MELT4 
         IF (FMSI4.gt.0) THEN ! downward flux to ocean
           FHSI4 = FMSI4*HSIL(4)/(XSI(4)*MSI2-MELT4)
-          FSSI4 = FMSI4*SSIL(4)/(XSI(4)*MSI2-MELT4)
+          FSSI4 = FMSI4*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4)
         ELSE ! upward flux, at freezing point of ocean
           FHSI4 = FMSI4*(SHI*TFO-LHM)
           FSSI4 = FMSI4*SSI0
@@ -382,25 +384,33 @@ C**** Calculate mass/heat flux between layers 3 and 4
       FMSI3 = XSI(3)*(FMSI4+MELT4) + XSI(4)*(FMSI2-MELT3) 
       IF (FMSI3.gt.0) THEN ! downward flux to layer 4
         FHSI3 = FMSI3*HSIL(3)/(XSI(3)*MSI2-MELT3)
-        FSSI3 = FMSI3*SSIL(3)/(XSI(3)*MSI2-MELT3)
+        FSSI3 = FMSI3*(SSIL(3)-SMELT3)/(XSI(3)*MSI2-MELT3)
       ELSE                 ! upward flux
         FHSI3 = FMSI3*HSIL(4)/(XSI(4)*MSI2-MELT4)
-        FSSI3 = FMSI3*SSIL(4)/(XSI(4)*MSI2-MELT4)
+        FSSI3 = FMSI3*(SSIL(4)-SMELT4)/(XSI(4)*MSI2-MELT4)
       END IF
 
 C**** Apply fluxes
-      HSIL(1)=HSIL(1)- FHSI1
-      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
-      HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
-      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
-      SSIL(1)=SSIL(1)- FSSI1
-      SSIL(2)=SSIL(2)+(FSSI1-FSSI2)
-      SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
-      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
       SNOW = MAX(0d0,SNOW+DSNOW)
       MSI1 = ACE1I+ SNOW
 C**** MSI2 = MSI2 -(MELT3+MELT4)+(FMSI2-FMSI4)
       IF (.not. QFIXR) MSI2=MSI2-(MELT3+MELT4)+FMSI2
+
+      HSIL(1)=HSIL(1)- FHSI1
+      HSIL(2)=HSIL(2)+(FHSI1-FHSI2)
+      HSIL(3)=HSIL(3)+(FHSI2-FHSI3)
+      HSIL(4)=HSIL(4)+(FHSI3-FHSI4)
+
+C**** salinity is evenly shared over ice portion
+      SS12=(SSIL(1)+SSIL(2))-FSSI2
+      IF (SNOW*XSI(2).gt.XSI(1)*ACE1I) THEN ! first layer is all snow
+        SSIL(1)=0.
+      ELSE
+        SSIL(1)=SS12*(XSI(1)*ACE1I-SNOW*XSI(2))/ACE1I
+      END IF
+      SSIL(2)=SS12-SSIL(1)
+      SSIL(3)=SSIL(3)+(FSSI2-FSSI3)
+      SSIL(4)=SSIL(4)+(FSSI3-FSSI4)
 
 C**** Calculate output diagnostics
       RUN0 = MELT1+MELT2+MELT3+MELT4  ! mass flux to ocean
@@ -435,7 +445,7 @@ C****
       REAL*8, INTENT(OUT), DIMENSION(LMI) :: TSIL
 
       REAl*8 FMSI1, FMSI2, FMSI3, FMSI4, FHSI1, FHSI2, FHSI3, FHSI4,
-     *     FSSI1, FSSI2, FSSI3, FSSI4
+     *     FSSI2, FSSI3, FSSI4
       REAL*8 ROICEN, OPNOCN, DRSI, DRI, MSI1
 
       MSI1=SNOW+ACE1I
