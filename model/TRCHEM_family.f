@@ -403,7 +403,8 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  LM,ls1
+      USE DYNAMICS, only: LTROPO
+      USE MODEL_COM, only :  LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
@@ -422,7 +423,7 @@ C**** Local parameters and variables and arguments:
       integer L
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      do L=LTROPO(I,J),lmax  !  LS1,lmax
 
 c      full ClOxfam code from offline photochemistry
 c       goto 10
@@ -452,14 +453,14 @@ c      calculating Cl amount, otherwise ignore
        D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
        F=(rr(53,L)*y(nOH,L)*y(n_HOCl,L)+rr(55,L)*y(nO,L)*
      *   y(n_HOCl,L)+rr(65,L)*y(n_ClONO2,L)*y(nO,L)+rr(93,L)*
-     *   y(nCl2O2,L)*y(nM,L)*2)/y(n_ClOx,L)
+     *   y(nCl2O2,L)*y(nM,L)*2.d0)/y(n_ClOx,L)
        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
-     *   y(nBrO,L)+2*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
+     *   y(nBrO,L)+2.d0*rr(102,L)*y(nClO,L)+rr(103,L)*y(nNO2,L)
        Q=rr(56,L)*y(nOH,L)
        V=C-D
        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
-     *   y(n_HCl,L)+
-     *   2*ss(18,L,i,j)*y(nCl2,L)+2*ss(20,L,i,j)*y(nCl2O2,L)+
+     *   y(n_HCl,L)+ 2.d0*
+     *   ss(18,L,i,j)*y(nCl2,L)+2.d0*ss(20,L,i,j)*y(nCl2O2,L)+
      *   ss(21,L,i,j)*y(n_HOCl,L)+ss(22,L,i,j)*y(n_ClONO2,L)
        X=X/y(n_ClOx,L)
        YY=rr(57,L)*y(n_HOCl,L)+rr(58,L)*y(n_H2O2,L)+rr(59,L)*
@@ -613,7 +614,7 @@ c
 c
 C**** GLOBAL parameters and variables:
 c
-      USE MODEL_COM, only :  ls1
+      USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
      &    nBrO,ss,nHO2,nNO2,pBrOx
@@ -626,7 +627,7 @@ C**** Local parameters and variables and arguments:
       integer L
       integer, intent(IN) :: lmax,I,J
 
-      do L=LS1,lmax
+      do L=LTROPO(I,J),lmax  ! LS1,lmax
          a=y(nO3,L)*rr(70,L)+y(nOClO,L)*rr(74,L)
          b=y(nO,L)*rr(69,L)+y(nNO,L)*rr(71,L)+y(nClO,L)*
      *   (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*
