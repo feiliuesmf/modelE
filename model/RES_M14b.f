@@ -11,7 +11,7 @@
 !@var IM,JM longitudinal and latitudinal number of grid boxes
 !@var LM number of vertical levels
 !@var LS1 Layers LS1->LM: constant pressure levels, L<LS1: sigma levels
-      INTEGER, PARAMETER :: IM=72,JM=46,LM=12, LS1=11
+      INTEGER, PARAMETER :: IM=72,JM=46,LM=14, LS1=11
 
 !@var PSF,PMTOP global mean surface, model top pressure  (mb)
 !@var PTOP pressure at interface level sigma/const press coord syst (mb)
