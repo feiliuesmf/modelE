@@ -61,6 +61,25 @@ C****
       integer mtrace
 
 #ifdef TRACERS_WATER
+!@param nWD_TYPES number of tracer types for wetdep purposes
+!@param nGAS   index for wetdep tracer type = gas
+!@param nPART  index for wetdep tracer type = particle/aerosol
+!@param nWATER index for wetdep tracer type = water (original condense method)
+      integer, parameter :: nWD_TYPES=3, nGAS=1, nPART=2, nWATER=3
+!@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
+      integer, parameter, dimension (ntm) :: tr_wd_TYPE=
+     *     (/    nGAS, nGAS, nGAS, nGAS  /)
+!@var tr_RKD: Henry's Law coefficient (JOULE/mole !)
+      real*8, parameter, dimension (ntm) :: tr_RKD=
+     *     (/   0.d0, 0.d0, 0.d0, 0.d0 /)
+!@var tr_DHD: coefficient of temperature-dependence term of Henry's
+!@+   Law coefficient (joule/mole !)
+      real*8, parameter, dimension (ntm) :: tr_DHD=
+     *     (/   0.d0 , 0.d0, 0.d0 , 0.d0 /)
+!@param tr_evap_fact fraction of re-evaporation by tracer type
+C note, tr_evap_fact is not dimensioned as NTM:
+      REAL*8, parameter, dimension (nWD_TYPES) :: tr_evap_fact=
+     *     (/1.d0, 0.5d0,  1.d0/)
 !@var TRWM tracer in cloud liquid water amount (kg)
       real*8, dimension(im,jm,lm,ntm) :: trwm
 !@var TRW0 default tracer concentration in water (kg/kg)
