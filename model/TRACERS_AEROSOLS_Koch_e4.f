@@ -23,7 +23,7 @@
 c note that tno3,tno3r had dimension (im,jm,lm,12) for Wang source
       real*8, DIMENSION(IM,JM,LM):: ohr,dho2r,perjr,
      *   tno3r,oh,dho2,perj,tno3
-      real*8, DIMENSION(IM,JM,ntm):: aer_tau
+      real*8, DIMENSION(IM,JM,LM,ntm):: aer_tau
       END MODULE AEROSOL_SOURCES
 
       subroutine read_SO2_source(nt,iact)
@@ -1069,18 +1069,19 @@ c diagnostic
      *     trname,ntm,trm
       USE MODEL_COM, only: im,jm,lm
       USE CLOUDS_COM, only:rhsav
-      USE GEOM, only: imaxj,dxyp
+      USE GEOM, only: imaxj
       USE AEROSOL_SOURCES, only: aer_tau
+      USE TRACER_DIAG_COM, only : taijs,ijts_tau   
 
       IMPLICIT NONE
-      integer i,j,l,n,najl
+      integer i,j,l,n,naijs
       real*8 rhh,tf
 c For now we are using the hydrated extinction efficiencies
 c   from Chin et al 2002. 
 c No need to divide by dxyp here because it is done in TRACER_PRT
+      DO L=1,LM
       DO J=1,JM  
       DO I=1,IMAXJ(J)
-      DO L=1,LM
       rhh=rhsav(l,i,j)*100.d0
       DO N=1,NTM
        select case (trname(n))
@@ -1110,8 +1111,10 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else 
        tf=36.
        endif
-       aer_tau(i,j,n)=aer_tau(i,j,n)
-     *    +trm(i,j,l,n)*1000.*tf
+       aer_tau(i,j,l,n)=
+     *    trm(i,j,l,n)*1000.*tf
+       naijs=ijts_tau(n)
+       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        case ('seasalt1')
        if (rhh.le.10.) then
        tf=1.
@@ -1138,8 +1141,10 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else
        tf=20.
        endif
-       aer_tau(i,j,n)=aer_tau(i,j,n)
-     *     +trm(i,j,l,n)*1000.*tf
+       aer_tau(i,j,l,n)=
+     *     trm(i,j,l,n)*1000.*tf
+       naijs=ijts_tau(n)
+       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        case ('seasalt2')
       if (rhh.le.10.) then
        tf=0.1
@@ -1164,8 +1169,10 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else
        tf=2.5
        endif
-       aer_tau(i,j,n)=aer_tau(i,j,n)
-     *     +trm(i,j,l,n)*1000.*tf
+       aer_tau(i,j,l,n)=
+     *     trm(i,j,l,n)*1000.*tf
+       naijs=ijts_tau(n)
+       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
        end select
       END DO
       END DO
