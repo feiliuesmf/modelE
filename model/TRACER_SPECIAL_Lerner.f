@@ -501,7 +501,6 @@ c start at top layer and continue to lowest layer for strat. chem
         LR = LM+1-L
         DO 320 J = 1,JM
             if (tlT0M(j,lr,5) == 0.) then
-             !write(*,*) 'skipping linoz',j,l,lr
               go to 320
             end if
           do 310 i=1,imaxj(j)
@@ -919,7 +918,7 @@ C****
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       PARAMETER (kmw=60)
-      REAL*4 CO2W(37,0:30) ! ,AMASS(IM,JM)
+      REAL*4 CO2W(37,0:30)
       real*8 p(0:60),CO2JK(JM,0:kmw),CO2IJL(IM,JM,LM)
       CHARACTER*80 TITLE
       integer i,j,jw,k,l,n,iu_in,iu_out,kmw
@@ -991,9 +990,7 @@ C****
       PDN = PUP
   430 CDN = CUP
   440 CONTINUE
-C****
 C**** Scale data to proper units (10**-18 kg 14CO2/kg air)
-C****
       CO2IJL(:,:,:) = CO2IJL(:,:,:)*4.82d0*(14.+16.*2.)/29.029d0
       RETURN
 C****
@@ -1057,7 +1054,7 @@ C**** interpolate horizontally  foldlm-->fnew
   500 continue
       call closeunit(in_file)
       rewind (interp_file)
-      write(*,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
+      write(6,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
 C**** confirmation check at i=1 for last tau
       if (checkfile) then
         do j=1,jmo;  rlat(j) = j;  end do
@@ -1091,7 +1088,7 @@ C****    But what WOULD be correct???
 
       step = -1.
       aout(1) = ain(1)
-      if (debug) write(*,*)'data in:',(ain(l),l=1,lm_old)
+      if (debug) write(6,*)'data in:',(ain(l),l=1,lm_old)
 
       do 190 l=2,ltopx
       pint = pnew(l)
@@ -1108,11 +1105,11 @@ C****    But what WOULD be correct???
       dist = (pint-pltop)/(plbot-pltop) !distance from upper boundary
       aout(l) = ain(lbot)*dist+ain(ltop)*(1.-dist)
       if (.not.(aout(l).gt.0..or.aout(l).le.0.)) aout(l) = 0.
-      if (debug) write(*,*)l,lbot,ltop,pint,plbot,pltop,
+      if (debug) write(6,*)l,lbot,ltop,pint,plbot,pltop,
      *  ain(lbot),ain(ltop),aout(l)
   190 continue
       aout(ltopx) = ain(lm_old)   !!! fudgy
-      if (debug)write(*,*) 'data out',(aout(l),l=1,lm_new)
+      if (debug)write(6,*) 'data out',(aout(l),l=1,lm_new)
       return
       end subroutine v_int
 
@@ -1257,5 +1254,127 @@ C****
       RETURN
       end subroutine LHNTR
       end module lhntr_com
+
+
+      SUBROUTINE get_wofsy_gas_IC(cgas,gasjl)
+C**** Input data are from Wofsy
+C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
+      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,jmon0
+      USE DYNAMICS, only: pedn
+      USE FILEMANAGER, only: openunit,closeunit
+      implicit none
+      integer j,jw,k,kstart,l,n,iu,kmw
+      integer, parameter :: kmw=200
+      real*4 GASX(3,62),xj,t
+      REAL*8 GASW(3,62),GASJK(JM,0:kmw),GASJL(JM,lm),P(0:kmw),
+     *  pup,cup,pdn,cdn,psum,csum,psurf,w,zk,scale
+      CHARACTER*80 card,titlew,dfile*24
+      character*(*) cgas
+
+C****
+C**** Read in GAS concentrations from Wofsy
+C**** Data are in jm latitudinal bands, lm layers, km time periods
+C**** lat: 1=tropics +/-15, 2=N mid/high, 3=S Mid./high 
+C**** Data start at 14 km, end at 45 km and are at edges.  Center
+C**** of lowest box is at 14.5 km.  There are 28 undefined boxes below,
+C**** and 62 defined ones from 14 km up.
+C****
+      dfile = trim(cgas)//'_IC'
+      call openunit(dfile,iu,.false.,.true.)
+C**** skip over lines at top
+      do n=1,11
+        read(iu,'(a)') card
+      end do
+C**** There are 73 time periods at 5-day intervals
+      kstart = nint((jmon0-1.)*73./12.+1.)
+C**** process
+      do k=1,kstart
+        read(iu,*) xj,t,(GASx(2,l),l=1,62) !tropics
+        read(iu,*) xj,t,(GASx(3,l),l=1,62) !north
+        read(iu,*) xj,t,(GASx(1,l),l=1,62) !south
+      end do
+      write(6,'(a,i3,2f9.2)') ' Read Wofsy data at month', jmon0,xj,t
+      call closeunit(iu)
+C**** Scale to a particular value (in this case, 1)
+      scale = 1.
+      if (trim(cgas) == 'CH4') then
+        scale = 1.
+      else if (trim(cgas) == 'CO2') then
+        scale = 334./GASx(1,1)
+      end if
+      GASW = GASx*scale
+C****
+C**** Interpolate data GASW to GASJK on GCM latitudes
+C****
+C**** Below 14 km set all equal
+      GASJK(:,0:28) = GASW(1,1)
+C**** Keep step function except at two transition points (+/1 15 deg)
+      DO 210 K=29,90
+      do j=1,19
+        GASJK(J,     K) = GASW(1,K-28)
+        GASJK(JM+1-j,K) = GASW(3,K-28)
+      end do
+        GASJK(21:26,K)  = GASW(2,K-28)
+      DO J=20,27,7
+        W = 1. + (J-1)*2./(JM-1)
+        JW=W
+        GASJK(J,K) = GASW(JW,K-28)*(JW+1-W) + GASW(JW+1,K-28)*(W-JW)
+      END DO
+  210 continue
+C**** Above, extend
+      do j=1,jm
+        GASJK(j,91:kmw) = GASJK(j,90)
+      end do
+C**** Calculate data pressure levels (Pa)
+C**** z* in km (=7 ln (1000/p)
+      zk = 0.
+      DO 120 K=0,kmw
+      P(K) = 1000.*exp(-ZK/7.)
+      ZK = zk+.5
+  120 continue
+C****
+C**** Interpoate GASJ to GASJL on GCM grid boxes conserving vertical
+C**** means
+C****
+      GASJL = 0.
+      DO 440 J=1,JM
+      PDN = pedn(1,1,j)
+      psurf = psf
+      CDN = GASJK(J,0)
+      K=1
+      DO 430 L=1,lm
+      PSUM = 0.
+      CSUM = 0.
+      if (l.eq.ls1) psurf = psf
+      PUP  = (psurf-ptop)*SIGE(L+1)+ptop
+  410 IF(P(K).LE.PUP)  GO TO 420
+      PSUM = PSUM +  PDN-P(K)
+      CSUM = CSUM + (PDN-P(K))*(CDN+GASJK(J,K))/2.
+      PDN  = P(K)
+      CDN  = GASJK(J,K)
+      K=K+1
+      if (k.gt.kmw) stop ' Please incrase kmw in get_wofsy_gas_IC'
+      GO TO 410
+C****
+  420 CUP  = GASJK(J,K) + (GASJK(J,K-1)-GASJK(J,K))*(PUP-P(K))/
+     /       (P(K-1)-P(K))
+      PSUM = PSUM +  PDN-PUP
+      CSUM = CSUM + (PDN-PUP)*(CDN+CUP)/2.
+      GASJL(J,L) = CSUM/PSUM
+      PDN = PUP
+      CDN = CUP
+  430 continue
+  440 CONTINUE
+C****
+C**** Write GAS concentration on GCM grid boxes to disk (to check)
+C****
+      call openunit('CH4check',iu,.true.)
+      TITLEW = 
+     * 'Wolfsy CH4 1995 CONCENTRATION January 1 for 23 layers'
+      WRITE (iu) TITLEW,GASJL
+      call closeunit(iu)
+
+      RETURN
+      END SUBROUTINE get_wofsy_gas_IC
 #endif
 #endif

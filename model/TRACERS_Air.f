@@ -1142,7 +1142,8 @@ C**** print out total tracer diagnostic array size
       CHARACTER*80 title
       REAL*8 CFC11ic,ic14CO2(im,jm,lm),conv
       REAL*8 :: trinit =1., tmominit=0.
-      REAL*4 CO2ic(im,jm,lm),N2Oic(jm,lm),CH4ic(jm,lm)
+      REAL*4 CO2ic(im,jm,lm),N2Oic(jm,lm)
+      REAL*8 CH4ic(jm,lm)
       EQUIVALENCE (CO2ic,N2Oic,ic14CO2,CH4ic)
 
       do n=1,ntm
@@ -1228,10 +1229,7 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('CH4')
           trmom(:,:,:,:,n) = 0.
-          call openunit('CH4_IC',iu_data,.true.,.true.)
-          read (iu_data) title,CH4ic
-          call closeunit(iu_data)
-          write(6,*) title,' read from CH4_ic'
+          call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
           do j=1,jm                          
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*CH4ic(j,l)*0.552d-9
