@@ -6,7 +6,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
 
-      USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs
+      USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
@@ -75,7 +75,6 @@
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
-      REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
       INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600
@@ -295,8 +294,9 @@ C**** SURROUNDING WINDS
         END DO
       END DO
 
-C**** SET PRECIPITATION AND LATENT HEAT
-      PREC(I,J)=0.
+C**** INITIALISE PRECIPITATION AND LATENT HEAT
+      PRCP=0.
+      EPRCP=0.
       TPRCP=T(I,J,1)*PK(1,I,J)-TF
 #ifdef TRACERS_WATER
       TRPREC(:,I,J) = 0.
@@ -360,8 +360,21 @@ CCC     AREG(JR,J_PRCPMC)=AREG(JR,J_PRCPMC)+PRCPMC*DXYP(J)
           END IF
         END DO
 
-C**** WRITE TO SOME GLOBAL ARRAYS
-        PREC(I,J)=PRCPMC*100.*BYGRAV
+C**** ACCUMULATE PRECIP
+        PRCP=PRCPMC*100.*BYGRAV
+C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
+C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
+        IF (TPRCP.gt.0) THEN
+C         EPRCP=PRCP*TPRCP*SHW
+          EPRCP=0.
+          ENRGP=EPRCP
+        ELSE
+C         EPRCP=PRCP*TPRCP*SHI
+          EPRCP=0.
+          ENRGP=EPRCP-PRCP*LHM
+          AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
+        END IF
+
         DO L=1,LMCMAX
           T(I,J,L)=  SM(L)*BYAM(L)
           Q(I,J,L)=  QM(L)*BYAM(L)
@@ -408,32 +421,32 @@ C****
 C****
 C**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
 C****
-      IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5D0) THEN
+      IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5) THEN
         CSC=0.D0
         LP600=LM
         LP850=LM
         DO L=2,LM
           IF(L.GT.LP600) EXIT
-          IF(PL(L).LT.600.D0) THEN
+          IF(PL(L).LT.600.) THEN
             LP600=L
-            IF(600.D0-PL(L).GT.PL(L-1)-600.D0) LP600=L-1
+            IF(600.-PL(L).GT.PL(L-1)-600.) LP600=L-1
           ENDIF
         ENDDO
         DO L=2,LM
           IF(L.GT.LP850) EXIT
-          IF(PL(L).LT.850.D0) THEN
+          IF(PL(L).LT.850.) THEN
             LP850=L
-            IF(850.D0-PL(L).GT.PL(L-1)-850.D0) LP850=L-1
+            IF(850.-PL(L).GT.PL(L-1)-850.) LP850=L-1
           ENDIF
         ENDDO
-        IF(SDL(LP600)+SDL(LP600+1).GT.0.D0) THEN
+        IF(SDL(LP600)+SDL(LP600+1).GT.0.) THEN
           DIFT=TL(LP850)-TGV/(1.+DELTX*QG)
           CSC=.031D0*DIFT+.623D0
-          IF(CSC.LT.0.D0) CSC=0.D0
+          IF(CSC.LT.0.) CSC=0.
         ENDIF
         CLDMCL(1)=CLDMCL(1)+CSC
-        IF(CSC.GT.0.D0) TAUMCL(1)=AIRM(1)*.08D0
-        IF(CLDMCL(1).GT.1.D0) CLDMCL(1)=1.D0
+        IF(CSC.GT.0.) TAUMCL(1)=AIRM(1)*.08D0
+        IF(CLDMCL(1).GT.1.) CLDMCL(1)=1.
 C     IF(CSC.GT.0.) WRITE (6,*) I,J,DCL,TL(LP850),TGV/(1.+DELTX*QG),CSC
       ENDIF
 
@@ -488,8 +501,8 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
         RI2=(GRAV*ALPHA2*DTDZ)/(DUDZ*DUDZ+DVDZ*DVDZ)
 C       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
       ENDIF
-C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
+C**** LARGE-SCALE CLOUDS AND PRECIPITATION
       CALL LSCOND(IERR,WMERR,LERR)
 
 C**** Error reports
@@ -512,21 +525,20 @@ CCC      AREG(JR,J_PRCPSS)=AREG(JR,J_PRCPSS)+PRCPSS*DXYP(J)
          END DO
 
 C**** TOTAL PRECIPITATION AND AGE OF SNOW
-      PREC(I,J)=PREC(I,J)+PRCPSS*100.*BYGRAV
-      PRCP=PREC(I,J)
-      PRECSS(I,J)=PRCPSS*100.*BYGRAV
+      PRCP=PRCP+PRCPSS*100.*BYGRAV
 C**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
-      IF (TPRCP.GE.0.) THEN
-C       EPRCP=PRCP*TPRCP*SHW
+C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
+      IF (TPRCP.gt.0) THEN
+C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
         EPRCP=0.
-        ENRGP=EPRCP
+        ENRGP=ENRGP+EPRCP
       ELSE
-C       EPRCP=PRCP*TPRCP*SHI
+C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHI
         EPRCP=0.
-        ENRGP=EPRCP-PRCP*LHM
-        AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
+        ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
+        AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
       END IF
-      EPREC(I,J)=ENRGP  ! energy of precipitation
+
 C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           AJ(J,J_EPRCP,IT)=AJ(J,J_EPRCP,IT)+ENRGP*FTYPE(IT,I,J)
@@ -630,6 +642,12 @@ C**** WRITE TO GLOBAL ARRAYS
       RHSAV(:,I,J)=RH(:)
       TTOLD(:,I,J)=TH(:)
       QTOLD(:,I,J)=QL(:)
+
+      PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
+      EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
+C**** The PRECSS array is only used if a distinction is being made 
+C**** between kinds of rain in the ground hydrology.
+      PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
 
       DO L=1,LM
         AJL(J,L,JL_SSHR)=AJL(J,L,JL_SSHR)+AJ11(L)
