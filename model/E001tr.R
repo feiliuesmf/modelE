@@ -2,27 +2,31 @@ E001tr.R GISS Model E with sample tracers               jal 10/01
 
 E001tr: ModelE 2.3.4+ (based on B402A with sample tracers)
  Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, Water
-modelE with 12 lyrs, top at 10 mb - 1979 atmosphere/ocean
+modelE with 23 lyrs, top at 85km - 1979 atmosphere/ocean
 no gravity wave drag;     uses dry convection (rather than turbulence)
 Sdrag: weak linear strat. drag in top layer, near poles down to 20 mb
        lost ang.mom is added in below 150 mb
 sealevel pressure filter applied every hour
 6-band oice albedo; Hogstrom(1984) pbl drag
 Note: Many of these choices may be changed using the PARAMETERs below.
+Further Note: This has been extended to 23 layers and some plug and play
+options are different to provide a wider test suite for testing. (i.e. 
+4th order momentum, dummy ice dynamics and ATRUB instead of DRYCNV).
 
 Preprocessor Options
 #define TRACERS_ON          ! include tracers code
 #define TRACERS_SPECIAL_Lerner ! also activate TRACER_SPECIAL_Lerner in Obj.modules !!
-!#define TRACERS_WATER      ! include water tracers code
+#define TRACERS_WATER      ! include water tracers code
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M12                             ! horiz/vert resolution
+RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 DOMAIN_DECOMP                       ! domain decomposition
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
+ATMDYN_COM ATMDYN MOMEN4TH          ! atmospheric dynamics
+STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code
@@ -36,12 +40,12 @@ GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ! pick exactly one of the next 2 choices ATURB or DRYCNV
-! ATURB                               ! turbulence in whole atmosphere
-DRYCNV                              ! drycnv
+ATURB                               ! turbulence in whole atmosphere
+! DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN  ! or: ICEDYN_DUM ! dynamic ice modules
+ICEDYN_DUM  ! or ICEDYN_DRV ICEDYN  ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
@@ -51,7 +55,7 @@ POUT                                ! post-processing output
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
-AIC=AIC.RES_M12.D771201           ! initial conditions (atm.)
+AIC=AIC.RES_M23.D771201           ! initial conditions (atm.)
 GIC=GIC.rsfB357M12.1DEC1956.1.ext ! initial conditions (ground)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
@@ -129,11 +133,15 @@ ocn_cycl=1      ! =0 for ann.varying prescr. ocean
 
 ! parameters usually not changed when switching to q-flux ocean:
 
-X_SDRAG=.00025,.000025  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=0.      ! constant SDRAG above PTOP=150mb
-P_sdrag=0.      ! linear SDRAG only in top layer (except near poles)
-! PP_sdrag=20.  ! linear SDRAG above PP_sdrag mb near poles
-ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+X_SDRAG=.00025,.000025  ! used for lin. sdrag above P_SDRAG mb
+C_SDRAG=0.     ! no constant sdrag
+P_SDRAG=.1     ! lin. sdrag above .1mb (top 2 layers) except near poles
+PP_SDRAG=1.    ! lin. sdrag above 1.mb near poles (top 4 layers)
+ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000035 !the default is 15d-6
+PCONPEN=500.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000003
 
 xCDpbl=1.
 U00ice=.60      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
@@ -158,11 +166,13 @@ volc_day=182
 aero_yr=1979
 o3_yr=1979
 
-DT_UVfilter=450.  ! usually same as DT (below)
+dt_UVfilter=180.  ! usually same as DT (below)
 
 ! parameters that may have to be changed in emergencies:
-DT=450.         ! from default: DTsrc=3600.,
-NIsurf=2        ! increase as layer 1 gets thinner
+LMCM=16              ! max level of moist convection
+XCDNST=300.,10000.   ! strat. gw drag parameters
+DT=180.,             ! from default: DTsrc=3600.,
+NIsurf=4,            ! number of surface time steps
 
 ! parameters that affect at most diagn. output:
 Ndisk=24        ! use =240 on halem
@@ -173,8 +183,8 @@ isccp_diags=0   ! use =0 to save cpu time
 nda5d=1         ! use =7 to save cpu time
 nda5s=1         ! use =7 to save cpu time
 
-itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,
-to_volume_MixRat=1,1,1,1,1,1,1,1,1   ! for tracer printout
+itime_tr0=8016,8016,8016,8016,8016,8016,15696,8016,8016,8016,
+to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 &&END_PARAMETERS
 
  &INPUTZ
