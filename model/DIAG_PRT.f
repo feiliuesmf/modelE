@@ -3083,10 +3083,10 @@ c**** find smap,smapj  from the numerators and denominators
           wt   = wt   + aden(i,j)*wtij(i,j)
           if (aden(i,j)*wtij(i,j).ne.0.) smap(i,j)=anum(i,j)/aden(i,j)
         end do
+        if (isumz.eq.1) wt = 1.
         znumh(jhemi) = znumh(jhemi) + sumj*wtj(j,isumg,jgrid)
         zdenh(jhemi) = zdenh(jhemi) +   wt*wtj(j,isumg,jgrid)
         if (wt .gt. 0.) smapj(j) = sumj/wt
-        if (isumz.eq.1) smapj(j) = sumj
       end do
       end do
 c**** find hemispheric and global means
