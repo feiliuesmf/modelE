@@ -32,7 +32,7 @@ c******************   TRACERS             ******************************
      &     ,n_clayilli
 #endif
       use trdiag_com, only : taijn=>taijn_loc,tij_surf
-     *  ,taijs,ijts_isrc,jls_isrc,tajls=>tajls_loc
+     *  ,taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil
 #endif
@@ -604,9 +604,7 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 C**** halo update u and v for distributed parallelization
-       call checksum   (grid, U, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, U, from=NORTH)
-       call checksum   (grid, V, __LINE__, __FILE__,STGR=.true.)
        call halo_update(grid, V, from=NORTH)
 
        adiurn_part = 0
