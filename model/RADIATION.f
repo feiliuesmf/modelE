@@ -339,7 +339,7 @@ C----------------
 !@var use_tracer_ozone =0 normal case, =1 means that
 !@+   RCOMPX will use O3_IN(L) for U0GAS(L,3) for GCM levels
       real*8, dimension(lx) :: O3_IN
-      integer use_tracer_ozone   
+      integer use_tracer_ozone
       LOGICAL*4 :: flags
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
@@ -662,11 +662,10 @@ C***  alternate sources to get WSOLAR,FSOLAR:
 !icb                 FVEG11(72,46,11),FOLGIZ(72,46,9)
 
 C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
-!@var KRHAER(4) 0/1=off/on flag to make aeros.sizes humidity dependent
-!@+             if 0: dry sizes are used, if <0: 70% rel.hum is assumed
-      integer, dimension(4) :: KRHAER=(/1,1,1,1/) ! SO4,SeaSalt,Nitr,org
-!@var KRHTRA(8) 0/1=off/on flag to make tracer aeros.sizes humidity dep.
-      integer, dimension(8) :: KRHTRA=(/1,1,1,1,1,1,1,1/)
+!@var KRHAER(4) -1/0/1 flag to base aeros.sizes on 70%/0%/model rel.humi
+      integer, dimension(4) :: KRHAER=(/-1,-1,-1,-1/) ! SO4,SSalt,NO3,OC
+!@var KRHTRA(8) 0/1 to base tracer aeros.sizes on fixed/model rel.humid
+      integer, dimension(8) :: KRHTRA=(/0,0,0,0,0,0,0,0/)
       real*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
      B              ,TRHQAB(33,190,4),RHINFO(190,9,4),A6JDAY(9,6,72,46)
@@ -3402,7 +3401,7 @@ C**** Optional Tracer aerosols initializations
       KDREAD=71           !  Over-write dry coefficients if KRHTRA(NT)=1
       DO NT=1,NTRACE
       NA=ITR(NT)
-      IF(KRHTRA(NT).GT.0) THEN
+      IF(KRHTRA(NT).GT.0.AND.NA.LE.4) THEN
       CALL SETREL(REFDRY(NT),NA,KDREAD
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
@@ -12643,7 +12642,7 @@ C                      1      SO4  Sulfate                            1
 C                      2      SEA  Sea Salt                           2
 C                      3      NO3  Nitrate                            3
 C                                  Pure Water                         4
-C                      4      ORG  Organinc                           5
+C                      4      ORG  Organic Carbon                     5
 C     ------------------------------------------------------------------
 
       character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'

@@ -516,8 +516,9 @@ caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
 C**** The last 2 entries are used to scale the other 2 aerosol types:
 C**** 7. Dust aerosols, 8. Volcanic aerosols
-C**** Particle size of the first 4 groups has RelHum dependence; if
-C**** KRHaer(1->4)=1 the model RH is used; 0 uses RH=0%, -1 uses RH=70%
+C**** Particle size of the first 4 groups has RelHum dependence:  
+C???? Because that scheme is not safe yet, the default is kRHaer(:)=-1
+C**** if kRHaer(1->4)=-1 use RH=70%; if =0 use RH=0%, if =1 use model RH
 
 C**** To add up to 8 further aerosols:
 C****  1) set NTRACE to the number of extra aerosol fields
