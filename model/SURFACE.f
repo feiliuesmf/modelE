@@ -675,7 +675,7 @@ C**** Diurnal cycle of temperature diagnostics
 C****
 C**** Apply tracer surface sources and sinks
 C****
-      call apply_tracer_source(dtsurf)
+      call apply_tracer_1Dsource(dtsurf)
 #endif
 c****
 c**** apply earth fluxes to the first layer of the atmosphere

@@ -229,8 +229,9 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
       end SUBROUTINE set_generic_tracer_diags
 
 
-      SUBROUTINE apply_tracer_source(dtstep)
-!@sum apply_tracer_source adds non-interactive surface sources to tracers
+      SUBROUTINE apply_tracer_1Dsource(dtstep)
+!@sum apply_tracer_1Dsource adds non-interactive surface sources 
+!@+       to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only : jm
       USE GEOM, only : imaxj
@@ -292,7 +293,7 @@ C**** modify vertical moments
       end do
 C****
       RETURN
-      END SUBROUTINE apply_tracer_source
+      END SUBROUTINE apply_tracer_1Dsource
 
 
       SUBROUTINE apply_tracer_3Dsource(dtstep)
