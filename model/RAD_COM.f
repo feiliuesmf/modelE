@@ -88,7 +88,7 @@ C**** exactly the same as the default values.
 !@dbparam H2OstratX stratospheric water vapour multiplication factor
       REAL*8 :: H2OstratX = 1.
 !@dbparam H2ObyCH4 if not 0: add CH4 produced H2O into layers 1->LM
-      REAL*8 :: H2ObyCH4 = 0.
+      REAL*8 :: H2ObyCH4 = 1.
 !@var dH2O  zonal H2O-prod.rate in kg/m^2/ppm_CH4/second in layer L
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: dH2O
 !@var RSDIST,SIND,COSD orbit related variables computed once a day

@@ -12658,7 +12658,7 @@ C     Local variables
 
       real*8    R633NR(890),XNR(31),Q633NR(890,31),G633NR(890,31)
       real*8    Q880M1(890),G880M1(890),Q880M0(890),G880M0(890)
-      real*8    Q880N1(890),Q880N0(890),R550NR(890)
+      real*8    Q880N1(890),Q880N0(890),R550NR(890),SMOOTH(890)
       real*8    RR0RHX(190),XNRRHX(190),QRH633(190),GRH633(190)
       real*8    XXMF(190),XXRH(190),XRR0(190)
       real*8    XXNR(190),XROA(190),DNRX(190)
@@ -12672,7 +12672,7 @@ C     Local variables
      F         ,TR2QEX(33),TR2QSC(33),TR2QCB(33)
      G         ,TR3QEX(33),TR3QSC(33),TR3QCB(33)
      H         ,TR4QEX(33),TR4QSC(33),TR4QCB(33)
-     I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33),SMOOTH(890)
+     I         ,TRHQEX(33),TRHQSC(33),TRHQCB(33)
 
       integer, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
 
