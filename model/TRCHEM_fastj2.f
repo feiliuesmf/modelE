@@ -199,7 +199,7 @@ c
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0
       do L=1,LM
-        odcol(L) = RCLOUDFJ(nslon,nslat,L)
+        odcol(L) = RCLOUDFJ(L,nslon,nslat)
         odsum = odsum + odcol(L)
       enddo
       if(odsum.gt.odmax) then
@@ -415,8 +415,9 @@ C**** Local parameters and variables and arguments:
       REAL*8 WAVE
       REAL*8 XSECO2,XSECO3 ! >>> FUNCTIONS <<<
 C
+      AVGF(:) = 0.d0   ! JPNL
       DO K=NW1,NW2
-       FFF(K,:) = 0.d0 ! J=1,JPNL
+       FFF(K,:) = 0.d0 ! JPNL
       ENDDO
 C        
 C---Calculate spherical weighting functions
