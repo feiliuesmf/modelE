@@ -1022,6 +1022,10 @@ c****     copy soils prognostic quantities to model variables
            htbare(0:ngm,i,j) = ht(0:ngm,1)
            htvege(0:ngm,i,j) = ht(0:ngm,2)
            snowbv(1:2,i,j)   = snowd(1:2)
+C**** also compute evap_limits
+           if (iniSNOW) then
+             call evap_limits(.false.,evap_max_ij(i,j), fr_sat_ij(i,j))
+           end if
         end if
       end do
       end do
@@ -1097,11 +1101,11 @@ ccc!!! restart file (without snow model data)
             fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
 
 c****     copy soils prognostic quantities to model variables
-              wbare(1:ngm,i,j) = w(1:ngm,1)
-              wvege(0:ngm,i,j) = w(0:ngm,2)
-             htbare(0:ngm,i,j) = ht(0:ngm,1)
-             htvege(0:ngm,i,j) = ht(0:ngm,2)
-             snowbv(1:2,i,j)   = snowd(1:2)
+             wbare(1:ngm,i,j) = w(1:ngm,1)
+             wvege(0:ngm,i,j) = w(0:ngm,2)
+            htbare(0:ngm,i,j) = ht(0:ngm,1)
+            htvege(0:ngm,i,j) = ht(0:ngm,2)
+            snowbv(1:2,i,j)   = snowd(1:2)
 
           end if
         end do

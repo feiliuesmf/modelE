@@ -100,7 +100,7 @@ c****
 
 ccc alai used in printout only
 
-      use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero
+      use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
       implicit none
       save
 
@@ -605,7 +605,7 @@ ccc   local variables
 
 c     cna is the conductance of the atmosphere
       cna=ch*vsm
-      rho3=.001d0*rho ! i.e divide by rho_water to get flux in m/s
+      rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
 
 ccc !!! it's a hack should call it somewhere else !!!
       !call hydra
