@@ -834,7 +834,7 @@ C****
      *     ,itoice
       USE GEOM, only : imaxj,dxyp
       USE FLUXES, only : runosi,erunosi,e0,e1,evapor,dmsi,dhsi,dssi,
-     *     flowo,eflowo,gtemp, fmsi_io, fhsi_io, fssi_io
+     *     flowo,eflowo,gtemp
 #ifdef TRACERS_WATER
      *     ,dtrsi
 #endif
@@ -874,9 +874,9 @@ C**** output from OSOURC
           F0DT =E0(I,J,1)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
-          RUN0=RUNOSI(I,J) + FMSI_IO(I,J) ! includes ACE2M + basal term
-          F2DT=ERUNOSI(I,J)+ FHSI_IO(I,J)
-c         SALT=SRUNOSI(I,J)+FSSI_IO(I,J)
+          RUN0=RUNOSI(I,J)  ! includes ACE2M + basal term
+          F2DT=ERUNOSI(I,J)
+c         SALT=SRUNOSI(I,J)
 C**** get river runoff
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
