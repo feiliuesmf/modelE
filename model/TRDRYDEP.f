@@ -830,7 +830,11 @@ c
         END DO
       ELSE
         IF (JDAY.EQ.STARTDAY(JMON)) THEN
-          ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
+          IF (JMON.lt.JMperY) THEN
+            ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
+          ELSE
+            ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
+          END IF
           byrITD = 1.E0/REAL(ITD)
           CALL READLAI
           DO J=1,JM
