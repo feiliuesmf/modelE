@@ -288,6 +288,7 @@ C*****************************************************************
 c     
        do L=1,LS1-1 ! (troposphere)
          pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+         bypfactor=1.D0/pfactor
          RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.
 C        Calculate sulfate sink, and cap it at 50% of N2O5:
          wprod_sulf=0.25*DT2*sulfate(I,J,L)
@@ -435,38 +436,68 @@ c          tempJLS(J,L,n_N2O5)=tempJLS(J,L,n_N2O5)+change(I,J,L,n_N2O5)
 c          I need to make sure that the identical diagnostics are in 
 c          effect being done in the modelE version...' GSF 2/02
 C  
+C Note: there is a lower limit of 1 placed on the resulting tracer mass
+C from the following changes. This is to prevent negative tracer mass:
+C
 C -- HCHO --
 c        Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO
          change(I,J,L,n_HCHO)=changeHCHO*pfactor*bymass2vol(n_HCHO)
          if(-change(I,J,L,n_HCHO).gt.trm(I,J,L,n_HCHO))then
            change(I,J,L,n_HCHO)=-.95*trm(I,J,L,n_HCHO)
-           changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)/pfactor
+           changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
          endif         
+         IF((trm(i,j,l,n_HCHO)+change(i,j,l,n_HCHO)).lt.1.) THEN
+           change(i,j,l,n_HCHO) = 1. - trm(i,j,l,n_HCHO)
+           changeHCHO=change(I,J,L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
+         ENDIF
          wprodHCHO=changeHCHO   
 C -- CO --
          change(I,J,L,n_CO)=gprodHNO3*bymass2vol(n_CO)
+         IF((trm(i,j,l,n_CO)+change(i,j,l,n_CO)).lt.1.)
+     &   change(i,j,l,n_CO) = 1. - trm(i,j,l,n_CO)
          wprodCO=gwprodHNO3   ! <<< note
 C -- HNO3 --  (HNO3 from gas and het phase rxns )      
          change(I,J,L,n_HNO3)=changeHNO3*pfactor*bymass2vol(n_HNO3)
+         IF((trm(i,j,l,n_HNO3)+change(i,j,l,n_HNO3)).lt.1.) THEN
+           change(i,j,l,n_HNO3) = 1. - trm(i,j,l,n_HNO3)  
+           changeHNO3=change(I,J,L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
+         END IF       
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
          change(I,J,L,n_N2O5)=changeN2O5*pfactor*bymass2vol(n_N2O5)
-c        >> Lower limit on N2O5 of 1.0 <<
-         IF((trm(i,j,l,n_N2O5)+change(i,j,l,n_N2O5)).lt.1.)
-     &   change(i,j,l,n_N2O5) = 1. - trm(i,j,l,n_N2O5) 
+         IF((trm(i,j,l,n_N2O5)+change(i,j,l,n_N2O5)).lt.1.) THEN
+           change(i,j,l,n_N2O5) = 1. - trm(i,j,l,n_N2O5) 
+           changeN2O5=change(I,J,L,n_N2O5)*mass2vol(n_N2O5)*bypfactor
+         END IF
 c -- NOx --   (NOx from gas phase rxns)
          change(I,J,L,n_NOx)=changeNOx*pfactor*bymass2vol(n_NOx)
-c        >> Lower limit on NOx of 1.0 <<
-         IF((trm(i,j,l,n_NOx)+change(i,j,l,n_NOx)).lt.1.)
-     &   change(i,j,l,n_NOx) = 1. - trm(i,j,l,n_NOx)     
+         IF((trm(i,j,l,n_NOx)+change(i,j,l,n_NOx)).lt.1.) THEN
+           change(i,j,l,n_NOx) = 1. - trm(i,j,l,n_NOx)  
+           changeNOx=change(I,J,L,n_NOx)*mass2vol(n_NOx)*bypfactor
+         END IF   
 C -- Alkenes --  (Alkenes from gas phase rxns)
          change(I,J,L,n_Alkenes)=
      &   changeAlkenes*pfactor*bymass2vol(n_Alkenes)
+         IF((trm(i,j,l,n_Alkenes)+change(i,j,l,n_Alkenes)).lt.1.)THEN
+           change(i,j,l,n_Alkenes) = 1. - trm(i,j,l,n_Alkenes) 
+           changeAlkenes=change(I,J,L,n_Alkenes)*mass2vol(n_Alkenes)
+     &     *bypfactor
+         END IF
 c -- Isoprene -- (Isoprene from gas phase rxns)
          change(I,J,L,n_Isoprene)=
-     &   changeIsoprene*pfactor*bymass2vol(n_Isoprene)       
+     &   changeIsoprene*pfactor*bymass2vol(n_Isoprene)   
+         IF((trm(i,j,l,n_Isoprene)+change(i,j,l,n_Isoprene)).lt.1.)THEN
+           change(i,j,l,n_Isoprene) = 1. - trm(i,j,l,n_Isoprene)   
+           changeIsoprene=change(I,J,L,n_Isoprene)*mass2vol(n_Isoprene)
+     &     *bypfactor 
+         END IF
 c -- AlkylNit -- (AlkylNit from gas phase rxns)
          change(I,J,L,n_AlkylNit)=
-     &   changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)    
+     &   changeAlkylNit*pfactor*bymass2vol(n_AlkylNit)  
+         IF((trm(i,j,l,n_AlkylNit)+change(i,j,l,n_AlkylNit)).lt.1.)THEN        
+           change(i,j,l,n_AlkylNit) = 1. - trm(i,j,l,n_AlkylNit)
+           changeAlkylNit=change(I,J,L,n_AlkylNit)*mass2vol(n_AlkylNit)
+     &     *bypfactor
+         END IF
 C
 c Some More Chemistry Diagnostics:
          if(prnchg.and.J.eq.jprn.and.I.eq.iprn.and.L.eq.lprn)then
