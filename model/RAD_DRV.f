@@ -807,12 +807,8 @@ C**** Determine large scale and moist convective cloud cover for radia
         END IF
 C**** save some radiation/cloud fields for wider use
         RCLD(L,I,J)=TAUWC(L)+TAUIC(L)
-C**** Note this is cloud-computed total fraction (ie. complete blocking)
-C**** Is this really what is required?
-        CFRAC(I,J) = CFRAC(I,J) + CLDSS(L,I,J) + CLDMC(L,I,J)
-c        CFRAC(I,J) = MAX(CFRAC(I,J),MAX(CSS,CMC))  instead?
       END DO
-c   or even    CFRAC(I,J) = CLDCV ?
+      CFRAC(I,J) = CLDCV    ! cloud fraction consistent with radiation
 C**** effective cloud cover diagnostics
          OPNSKY=1.-CLDCV
          DO IT=1,NTYPE
