@@ -620,7 +620,8 @@ C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
 C**** Note: LMC1 was defined in CB245M31 as LMAX+1
         LMC1=.5+(LMC(2,I,J-1)*AIRX(I,J-1)+LMC(2,IP1,J-1)*AIRX(IP1,J-1)+
      *       LMC(2,I,J)*AIRX(I,J)+LMC(2,IP1,J)*AIRX(IP1,J))/(AIRX4+ ERR)
-        IF (LMC1.LE.4) GO TO 200
+C**** Do nothing for shallow convection (below 800 mb)
+        IF (PLE(LMC1-1).gt.800.) GO TO 200
         NMX=4
         CLDDEP=PIJ*(SIGE(LMC0)-SIGE(LMC1))
         FPLUME=AIRXS/(DXYV(J)*CLDDEP)
@@ -650,7 +651,8 @@ C**** Note: LMC1 was defined in CB245M31 as LMAX+1
         LD(4)=10
         WT(3)=WTX
         WT(4)=WTX
-        IF (LMC1.GT.9.AND. QGWDEF.eq.1) THEN
+C**** If convection is penetrating (i.e. above 400mb) do second set
+        IF (PLE(LMC1).LT.400. .AND. NM.GE.8) THEN
           NMX=8
           DO N=3,NMX
             WT(N)=WTX
