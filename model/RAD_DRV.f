@@ -556,6 +556,8 @@ c tracer 1 is sulfate, tracers 2 and 3 are seasalt
 C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX=(/ n_sO4,n_seasalt1,n_seasalt2,n_OCIA,n_BCIA,n_BCB,0,0/)
+C**** If some tracers are not being used reduce NTRACE accordingly
+      NTRACE = min(NTRACE,sum(sign(1,ntrix),mask=ntrix>0))
 #endif
 
       if (ktrend.ne.0) then

@@ -327,10 +327,14 @@ C**** initialise source arrays
         tr3Dsource(:,:,l,1,n_SO4_d3) =0. ! SO4 on dust
         tr3Dsource(:,:,l,1,n_SO4_d4) =0. ! SO4 on dust
 #endif
-        tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
-        tr3Dsource(:,:,l,1,n_BCIA)=0. ! BCIA source
-        tr3Dsource(:,:,l,1,n_OCII)=0. ! OCII sink
-        tr3Dsource(:,:,l,1,n_OCIA)=0. ! OCIA source
+        if (n_BCII.gt.0) then
+          tr3Dsource(:,:,l,1,n_BCII)=0. ! BCII sink
+          tr3Dsource(:,:,l,1,n_BCIA)=0. ! BCIA source
+        end if
+        if (n_OCII.gt.0) then
+          tr3Dsource(:,:,l,1,n_OCII)=0. ! OCII sink
+          tr3Dsource(:,:,l,1,n_OCIA)=0. ! OCIA source
+        end if
       end do
 !$OMP END PARALLEL DO
 
