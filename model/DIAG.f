@@ -3069,7 +3069,7 @@ c****
 
       end module subdaily
 
-      SUBROUTINE init_DIAG(ISTART)
+      SUBROUTINE init_DIAG(ISTART,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -3087,8 +3087,9 @@ c****
       USE PARAM
       USE FILEMANAGER
       IMPLICIT NONE
-      INTEGER I,J,L,K,KL,iargc,ioerr,months,years,mswitch,ldate,iu_AIC
-     *     ,ISTART,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
+      integer, intent(in) :: ISTART,num_acc_files
+      INTEGER I,J,L,K,KL,ioerr,months,years,mswitch,ldate,iu_AIC
+     *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
       REAL*8 PLE_tmp
       CHARACTER FILENM*100
       CHARACTER CONPT(NPTS)*10
@@ -3122,8 +3123,8 @@ c****
           call stop_model( 'non-consecutive period', 255 )
         end if
         call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
-        if (iargc().gt.1) then  ! save the summed acc-file
-          write(6,*) iargc(),' files are summed up'
+        if (num_acc_files.gt.1) then  ! save the summed acc-file
+          write(6,*) num_acc_files,' files are summed up'
           keyct=1 ; KEYNR=0
           XLABEL(128:132)='     '
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)

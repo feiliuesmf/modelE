@@ -623,7 +623,8 @@ C****
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_GIC,iu_REG,iu_RSF,iu_IFILE
-      INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr
+!@var num_acc_files number of acc files for diag postprocessing
+      INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
@@ -653,6 +654,7 @@ C****
 C**** Default setting for ISTART : restart from latest save-file (10)
 C****
       ISTART=10
+      num_acc_files=0
 C****
 C**** Set dependent vertical resolution variables
 C****
@@ -807,6 +809,7 @@ C***********************************************************************
           call openunit(filenm,iu_AIC,.true.,.true.)
           call io_rsf(iu_AIC,itime,ioread_single,ioerr)
           call closeunit(iu_AIC)
+          num_acc_files = num_acc_files + 1
         end do
         GO TO 500
       end if
@@ -1291,7 +1294,7 @@ C****
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
         if(istart.gt.0) CALL init_RAD
-        if(istart.lt.0) CALL init_DIAG(ISTART)
+        if(istart.lt.0) CALL init_DIAG(ISTART,num_acc_files)
         WRITE (6,INPUTZ)
         call print_param( 6 )
         WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
@@ -1316,7 +1319,7 @@ C****
       if(istart.gt.0) CALL RINIT (IRAND)
       CALL FFT0 (IM)
       CALL init_CLD
-      CALL init_DIAG(ISTART)
+      CALL init_DIAG(ISTART,num_acc_files)
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(im,jm,lm)
       if(istart.gt.0) CALL init_MOM
@@ -1521,7 +1524,9 @@ C**** check tracers
 
 
       subroutine nextarg( arg, opt )
+      implicit none
       character(*), intent(out) :: arg
+      integer, external :: iargc
       integer, intent(in) :: opt
       integer, save :: count = 1
       if ( count > iargc() ) then
@@ -1544,6 +1549,7 @@ C**** check tracers
 !@sum reads options from the command line (for now only one option)
 !@auth I. Aleinov
 !@ver 1.0
+      implicit none
 !@var qcrestart true if "-r" is present
       logical, intent(inout) :: qcrestart
       character(*),intent(inout)  :: ifile
@@ -1556,7 +1562,6 @@ C**** check tracers
         case ("-r")
           qcrestart = .true.
         case ("-i")
-          n=n+1
           call nextarg( arg1, 0 )
           ifile=arg1
         ! new options can be included here
@@ -1577,6 +1582,7 @@ C**** check tracers
 !@ver 1.0
       USE MODEL_COM
       USE FILEMANAGER, only : openunit,closeunit
+      implicit none
       integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
       integer :: iu_rsf
 
