@@ -8,7 +8,7 @@ C**** Changes for constant pressure above LS1
 C**** FQU,FQV for additional diagnostics
 C**** Routines included: AADVT, AADVTX, AADVTY, AADVTZ
       SUBROUTINE AADVT (PC,P,RM,RXM,RYM,RZM,RXXM,RYYM,RZZM,RXYM,RZXM,
-     *                  RYZM,  DXYP,DSIG,PSMPTP,LS1,DT,QLIMIT,FQU,FQV)
+     *                  RYZM,  DXYP,DSIG,PSFMPT,LS1,DT,QLIMIT,FQU,FQV)
 C****
 C**** AADVT advects tracers using the Quadradic Upstream Scheme.
 C****
@@ -28,7 +28,7 @@ C****
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: P
-      REAL*8, INTENT(IN) :: PSMPTP
+      REAL*8, INTENT(IN) :: PSFMPT
       REAL*8, INTENT(IN) :: DT
       REAL*8, INTENT(OUT) :: FQU,FQV
       INTEGER, INTENT(IN) :: LS1
@@ -67,7 +67,7 @@ C****
       DO 220 L=LS1,LM
       DO 220 J=1,JM
       DO 220 I=1,IM
-  220 MA(I,J,L)=PSMPTP*DXYP(J)*DSIG(L)
+  220 MA(I,J,L)=PSFMPT*DXYP(J)*DSIG(L)
       DO 300 L=1,LM
       DO 300 J=1,JM
       DO 300 I=1,IM
@@ -136,8 +136,8 @@ c    *     ,DXYP(J),CHECK
 c     DO 345 L=LS1,LM
 c     DO 345 J=1,JM
 c     DO 345 I=1,IM
-c     CHECK=PSMPTP-MA(I,J,L)/DSIG(L)/DXYP(J)
-c 345 IF(ABS(CHECK).GT..01)WRITE(6,9000)I,J,L,MA(I,J,L),PSMPTP,DSIG(L)
+c     CHECK=PSFMPT-MA(I,J,L)/DSIG(L)/DXYP(J)
+c 345 IF(ABS(CHECK).GT..01)WRITE(6,9000)I,J,L,MA(I,J,L),PSFMPT,DSIG(L)
 c    *     ,DXYP(J),CHECK
  9000 FORMAT(' MA DIFFERS FROM P*DSIG*DXYP BY TOO MUCH',3I3,5E11.3)
       RETURN

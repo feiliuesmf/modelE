@@ -406,7 +406,7 @@ C****
      &     BQ,BSCOV,BSS,BT1,BTX,BYDXYV,BYSDSG,CDTDL,
      &     CQ,CSCOV,CSS,CT1,CTX,DLNP,DLNP12,DLNP23,
      &     DLNS,DP,DS,DT2,DTHDP,DU,DUDP,DUDX,DV,
-     &     DXYPJ,ELX,EPSLON,ESEPS,EXPBYK,FPHI,GAMC,GAMD,
+     &     DXYPJ,ELX,EPSLON,ESEPS,FPHI,GAMC,GAMD,
      &     GAMM,GAMX,GBYRB,GMEANL,P1,P4,P4I,
      &     PDN,PE,PEARTH,PEQ,PEQM1,PEQM2,PHIRI,
      &     PIBYIM,PIJ,PITIJ,PITMN,PKE,PL,PLAND,PLICE,
@@ -431,7 +431,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       L=LM+1
     3 L=L-1
       IF (L.EQ.1) GO TO 4
-      IF (.25*(SIGE(L-1)+2*SIGE(L)+SIGE(L+1))*(PSF-PTOP)+PTOP.LT.250.)
+      IF (.25*(SIGE(L-1)+2*SIGE(L)+SIGE(L+1))*PSFMPT+PTOP.LT.250.)
      *   GO TO 3
     4 JET=L
       WRITE (6,888) JET
@@ -469,8 +469,8 @@ c      SHA=RGAS/KAPA
       DO 20 L=1,LM
    20 D2SIG(L)=SIG(LUPA(L))-SIG(LDNA(L))
       DO 30 L=LS1,LM
-   30 PKS(L)=(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
-      PSMPT4=4.*(PSF-PTOP)
+   30 PKS(L)=(SIG(L)*PSFMPT+PTOP)**KAPA
+      PSMPT4=4.*PSFMPT
    50 CONTINUE
 C****
 C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
@@ -483,9 +483,9 @@ C****
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
 C****
       DO 80 L=1,LS1-1
-      PK(L,1,1)=EXPBYK(SIG(L)*P(1,1)+PTOP)
+      PK(L,1,1)=(SIG(L)*P(1,1)+PTOP)**KAPA
       TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-      PK(L,1,JM)=EXPBYK(SIG(L)*P(1,JM)+PTOP)
+      PK(L,1,JM)=(SIG(L)*P(1,JM)+PTOP)**KAPA
       TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
       DO 70 I=2,IM
       T(I,1,L)=T(1,1,L)
@@ -496,7 +496,7 @@ C****
    70 TX(I,JM,L)=TX(1,JM,L)
       DO 80 J=2,JM-1
       DO 80 I=1,IM
-      PK(L,I,J)=EXPBYK(SIG(L)*P(I,J)+PTOP)
+      PK(L,I,J)=(SIG(L)*P(I,J)+PTOP)**KAPA
    80 TX(I,J,L)=T(I,J,L)*PK(L,I,J)
       DO 83 L=LS1,LM
       DO 82 I=2,IM
@@ -591,7 +591,7 @@ C**** GEOPOTENTIALS CALCULATED FOR EACH LAYER
   152 PHI(I,J,1)=ZATMO(I,J)+RGAS*TX(I,J,1)*LOG((PIJ+PTOP)/P1)
       PHI(I,J,2)=PHI(I,J,1)+RGAS*.5*(TX(I,J,1)+TX(I,J,2))*LOG(P1/PUP)
   154 DO 160 L=3,LM
-      IF(L.GE.LS1) PIJ=PSF-PTOP
+      IF(L.GE.LS1) PIJ=PSFMPT
       PDN=PUP
       PUP=SIG(L)*PIJ+PTOP
       IF (ABS(TX(I,J,L)-TX(I,J,L-1)).LT.EPSLON) GO TO 156
@@ -612,7 +612,7 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
       K=1
       L=1
   172 L=L+1
-      IF(L.GE.LS1) PIJ=PSF-PTOP
+      IF(L.GE.LS1) PIJ=PSFMPT
       PDN=PL
       PL=SIG(L)*PIJ+PTOP
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
@@ -657,7 +657,7 @@ C     RHPI=0.
       POICE=ODATA(I,J,2)*(1.-PLAND)
       POCEAN=(1.-PLAND)-POICE
       PIJ=P(I,J)
-      IF(L.GE.LS1) PIJ=PSF-PTOP
+      IF(L.GE.LS1) PIJ=PSFMPT
       ATX=ATX+(TX(I,J,L)-273.16)*POCEAN
       BTX=BTX+(TX(I,J,L)-273.16)*PLAND
       CTX=CTX+(TX(I,J,L)-273.16)*POICE
@@ -780,7 +780,7 @@ C****
       PHIRI=0.
       DO 480 I=1,IMAX
   480 PHIRI=PHIRI+(PHI(I,J,LM)+RGAS*.5*(TX(I,J,LM)+RQT(I,J,1))
-     *  *LOG((SIG(LM)*(PSF-PTOP)+PTOP)/PRQ1))
+     *  *LOG((SIG(LM)*PSFMPT+PTOP)/PRQ1))
       ASJL(J,1,2)=ASJL(J,1,2)+PHIRI
       PHIRI=PHIRI+RGAS*.5*(TRI(1)+TRI(2))*DLNP12
       ASJL(J,2,2)=ASJL(J,2,2)+PHIRI
@@ -846,7 +846,7 @@ CNOST IF (LS1.GT.LM) GO TO 551    NEEDED FOR RUNS WITHOUT A STRATOSPHERE
   536 CONTINUE
       DO 540 J=2,JM-1
       PIBYIM=PI(J)*BYIM
-      DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LM)*(PSF-PTOP)+PTOP))
+      DLNP=LOG((SIG(LS1-1)*PIBYIM+PTOP)/(SIG(LM)*PSFMPT+PTOP))
       DLNS=LOG(SPI(J,LM)/SPI(J,LS1-1))
       DS=SPI(J,LM)-SPI(J,LS1-1)
       EL(J)=SQRT(DLNS/DLNP)
@@ -927,7 +927,7 @@ C****
       DO 601 L=LS1,LM
       DO 601 J=2,JM-1
       DO 601 IP1=1,IM
-         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+2.*(PSF-PTOP)*(U(I,J,L)+U(I,J+1
+         AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+2.*PSFMPT*(U(I,J,L)+U(I,J+1
      *        ,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)
   601 I=IP1
 C****
@@ -978,7 +978,7 @@ C     PQV16I=PQV16I+P4*Q4*V(I,J,L)
       AIJ(I,J,IJ_PEV)=AIJ(I,J,IJ_PEV)+P4*(SHA*T4+Z4)*V(I,J,L)*DSIG(L)
      *     *DXV(J)
       SP2=P(IP1,J-1)+P(IP1,J)
-      IF(L.GE.LS1) SP2=2.*(PSF-PTOP)
+      IF(L.GE.LS1) SP2=2.*PSFMPT
       AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+SP2
      *  *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
   620 I=IP1
@@ -1017,11 +1017,11 @@ C     SDQ2I=0.
       DO 650 I=1,IMAX
 C     SDI=SDI+SD(I,J,L)
       PIJ=P(I,J)
-      IF(L.GE.LS1-1) PIJ=PSF-PTOP
+      IF(L.GE.LS1-1) PIJ=PSFMPT
 c      PE=PEDN(L+1,I,J)  ! SIGE(L+1)*PIJ+PTOP
-c      PKE=PEK(L+1,I,J)  ! EXPBYK(PE)
+c      PKE=PEK(L+1,I,J)  ! PE**KAPA
       PE=SIGE(L+1)*PIJ+PTOP
-      PKE=EXPBYK(PE)
+      PKE=PE**KAPA
       THETA=THBAR(T(I,J,L+1),T(I,J,L))
       W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
 C     PHIE(I,J,L)=PHI(I,J,L)+SHA*THETA*(PK(L,I,J)-PKE)
@@ -1180,7 +1180,7 @@ C****
       DO 785 J=J5S,J5N
       DO 785 I=1,IM
       PIJ=P(I,J)
-      IF(L.GE.LS1) PIJ=PSF-PTOP
+      IF(L.GE.LS1) PIJ=PSFMPT
       AIL(I,L,1)=AIL(I,L,1)+U(I,J,L)
       AIL(I,L,2)=AIL(I,L,2)+V(I,J,L)
       AIL(I,L,4)=AIL(I,L,4)+(TX(I,J,L)-273.16)
@@ -1244,7 +1244,7 @@ C**** NORTHWARD TRANSPORT
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
       DO 866 I=1,IM
       SP=PSEC(I)
-      IF(L.GE.LS1) SP=PSF-PTOP
+      IF(L.GE.LS1) SP=PSFMPT
   866 FPHI=FPHI+SP*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
      *   -U(I,J,L)+UMN)
   868 AJL(J,L,37)=AJL(J,L,37)+FPHI
@@ -1280,8 +1280,8 @@ C**** VERTICAL TRANSPORT
       VPE=V(IM1,J,L)+V(IM1,J+1,L)+V(I,J,L)+V(I,J+1,L)+
      *    V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
       DP=DSIGO(L)*P(I,J)
-      IF(L.GE.LS1) DP=DSIGO(L)*(PSF-PTOP)
-      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(LS1-1)-(PSF-PTOP)*SIG(LS1)
+      IF(L.GE.LS1) DP=DSIGO(L)*PSFMPT
+      IF(L.EQ.LS1-1) DP=P(I,J)*SIG(LS1-1)-PSFMPT*SIG(LS1)
       PVTHP=PVTHP+DP*VPE*(T(I,J,L)+T(I,J,L+1)-THMN)
       PITIJ=PIT(I,J)
       IF(L.GE.LS1-1) PITIJ=0.
@@ -1382,7 +1382,7 @@ C****   6  4*DP4*Q4 (100 PA)  (UV GRID)
 C****
       USE CONSTANT, only : lhe,omega,sha
       USE E001M12_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,
+     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,psf,ptop,psfmpt,
      &     mdyn,mdiag, ndyn,ndaa, skipse,
      &     sig,sige,dsig, tofday, ijd6
       USE GEOM, only :
@@ -1446,10 +1446,10 @@ c      SHA=RGAS/KAPA
       KMM1=KM-1
       PM(1)=1200.
       DO 20 L=2,LM+1
-      PL(L)=(PSF-PTOP)*SIGE(L)+PTOP
-   20 PM(L)=(PSF-PTOP)*SIGE(L)+PTOP
+      PL(L)=PSFMPT*SIGE(L)+PTOP
+   20 PM(L)=PSFMPT*SIGE(L)+PTOP
       DO 30 L=1,LM
-      PLO(L)=(PSF-PTOP)*SIG(L)+PTOP
+      PLO(L)=PSFMPT*SIG(L)+PTOP
    30 PMO(L)=.5*(PM(L)+PM(L+1))
    50 CONTINUE
 C****
@@ -1470,7 +1470,7 @@ C****
       DO 160 I=1,IMAX
 C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
       SP=P(I,J)
-      IF(K.GE.LS1) SP=PSF-PTOP
+      IF(K.GE.LS1) SP=PSFMPT
       PS=SP+PTOP
       IF (PM(K+1).GE.PS) GO TO 160
       L=1
@@ -1586,14 +1586,14 @@ C****
       DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
   275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
       DO 276 L=LS1,LM
-      DUT(I,J,L)=DUT(I,J,L)/((PSF-PTOP)*DXYV(J)*DSIG(L))
-  276 DVT(I,J,L)=DVT(I,J,L)/((PSF-PTOP)*DXYV(J)*DSIG(L))
+      DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
+  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
   280 I=IP1
 C**** ACCUMULATE AIJL ARRAYS
       PZM=PZM/FIM
       DO 285 L=1,LM
       I=IM
-      IF(L.EQ.LS1) PZM=PSF-PTOP
+      IF(L.EQ.LS1) PZM=PSFMPT
       DELP=PZM*DSIG(L)
       DO 284 IP1=1,IM
       PT4L=DELP*(TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L))
@@ -2304,7 +2304,7 @@ C****  53  SNOW DEPTH (KG/M**2)
 C****  31  SNOW COVER (10**-2)
 C**68  30  OCEAN ICE COVER (10**-2)
 C****
-      USE CONSTANT, only : grav,rgas,sday,twopi,omega
+      USE CONSTANT, only : grav,rgas,sday,twopi,omega,kapa
       USE E001M12_COM,
      &     only : im,jm,lm,fim,
      &     DT,FLAND,IDACC,IDAY,IDAY0,JDATE,JDATE0,JMNTH0,JMONTH,
@@ -2374,8 +2374,6 @@ C**** IA: 1 CONDENSATION, 2 RADIATION, 3 SURFACE, 4 DIAGA, 0 UNUSED
      *  100.,2*1.,10.,2*100.,  6*1.,  6*1.,  6*1.,  2*1.,3*100.,1.,
      *  6*1., 6*1., 22*1./
 
-
-      DOUBLE PRECISION :: EXPBYK ! external
       DOUBLE PRECISION ::
      &     A1BYA2,A2BYA1,AMULT,BYA1,BYIACC,DTCNDS,DTSRCE,
      &     FGLOB,GSUM,GSUM2,GWT,HSUM,HSUM2,HWT,QDEN,QJ,QNUM,
@@ -2418,7 +2416,7 @@ C**** INITIALIZE CERTAIN QUANTITIES  (KD1M LE 69)
       SCALE(16)=1./DTSRCE
       SCALE(19)=SDAY/DTSRCE
       SCALE(20)=100.*SDAY/(DTCNDS*GRAV)
-      SCALE(24)=1.D3*GRAV*EXPBYK(P1000)
+      SCALE(24)=1.D3*GRAV*(P1000**KAPA)
       SCALE(25)=SCALE(24)
       SCALE(26)=16.*RGAS
       SCALE(27)=16.*RGAS
@@ -2742,8 +2740,13 @@ C****                                                             37-44
       USE CONSTANT, only : grav,rgas,kapa,sday,lhe,twopi,omega,sha
       USE E001M12_COM, only : im,jm,lm,fim,
      &     BYIM,DSIG,DT,IDACC,IMH,LS1,NCNDS,NDAA,
+<<<<<<< DE001M12.f
+     &     PSF,PTOP,PSFMPT,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
+      USE GEOM, only :  
+=======
      &     PSF,PTOP,SIG,SIGE,SKIPSE,TOFDAY,TOFDY0
       USE GEOM, only :
+>>>>>>> 1.45
      &     AREAG,BYDXYP,COSP,COSV,DLON,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
       USE DAGPCOM
       USE RADNCB, only : LM_REQ
@@ -2779,7 +2782,6 @@ C****                                                             37-44
       INTEGER ::
      &     I,J,J0,J1,JH,JHEMI,K,K1,KDN,KM,KMM1,KUP,L,LMP1,LR,M,N
 
-      DOUBLE PRECISION :: EXPBYK ! external
       DOUBLE PRECISION ::
      &     BY100G,BYDP2,BYDPK,
      &     BYFSQ,BYIACN,BYIADA,BYIARD,BYIMDA,BYN,
@@ -2803,11 +2805,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
 c      BYIM=1./FIM
       BY100G=.01/GRAV
 c      SHA=RGAS/KAPA
-      P1000K=EXPBYK(P1000)
+      P1000K=P1000**KAPA
       DO 30 L=1,LM
       PKM(L)=PLM(L)**KAPA
-      PME(L)=(PSF-PTOP)*SIGE(L)+PTOP
-   30 PM(L)=(PSF-PTOP)*SIGE(L+1)+PTOP
+      PME(L)=PSFMPT*SIGE(L)+PTOP
+   30 PM(L)=PSFMPT*SIGE(L+1)+PTOP
       BYDPS(1)=1./(.5*PMTOP)
       BYDPS(2)=1./(.3*PMTOP)
       BYDPS(3)=1./(.2*PMTOP)
@@ -3803,7 +3805,6 @@ C****                                                            143-156
      &     PMB=(/999.9,850.,700.,500.,300.,100.,30./)
       DOUBLE PRECISION, PARAMETER :: P1000=1000.
 
-      DOUBLE PRECISION :: EXPBYK ! external
       INTEGER :: J,K,KM,L,LDN,LS,LUP,N
 
       DOUBLE PRECISION ::
@@ -3819,7 +3820,7 @@ c      BYIM=1./FIM
       BY100G=.01/GRAV
 c      SHA=RGAS/KAPA
       DTCNDS=NCNDS*DT
-      P1000K=EXPBYK(P1000)
+      P1000K=P1000**KAPA
       KM=0
       DO 5 K=1,7
       IF (PMTOP.GT.PMB(K)) GO TO 6
@@ -4393,7 +4394,7 @@ C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav
       USE E001M12_COM, only : im,imh,jm,lm,
-     &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,SIG,SIGE,U,V
+     &     IDACC,JEQ,LS1,MDIAG,P,PSF,PTOP,PSFMPT,SIG,SIGE,U,V
       USE DAGCOM, only : wave,N12HRS_IN_31DAY
       IMPLICIT NONE
 
@@ -4434,7 +4435,7 @@ C      JEQ=1+JM/2
       L50=LM
       DO 10 L=2,LM
       LX=LM+1-L
-      PLE=.25*(SIGE(LX)+2.*SIGE(LX+1)+SIGE(LX+2))*(PSF-PTOP)+PTOP
+      PLE=.25*(SIGE(LX)+2.*SIGE(LX+1)+SIGE(LX+2))*PSFMPT+PTOP
       IF (PLE.LT.850.) L850=LX
       IF (PLE.LT.300.) L300=LX
    10 IF (PLE.LT.50.) L50=LX
@@ -4466,7 +4467,7 @@ C      JEQ=1+JM/2
       L=1
       PL=SIG(1)*P(I,J50N)+PTOP
   130 L=L+1
-      IF(L.GE.LS1) PIJ50N=PSF-PTOP
+      IF(L.GE.LS1) PIJ50N=PSFMPT
       PLM1=PL
       PL=SIG(L)*PIJ50N+PTOP
       IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
@@ -4885,7 +4886,7 @@ C****  85  SHALLOW CONVECTIVE CLOUD FREQUENCY (%)
 C****  83  DEEP CONVECTIVE CLOUD COVER (%)
 C****  82  SHALLOW CONVECTIVE CLOUD COVER (%)
 C****
-      USE CONSTANT, only : grav,rgas,sday,twopi,sha
+      USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa
       USE E001M12_COM, only : im,jm,lm,fim,
      &     BYIM,DT,FLAND,IDACC,IDAY,IDAY0,JDATE,JDATE0,JEQ,
      &     JMNTH0,JMONTH,JYEAR,JYEAR0,NCNDS,NDYN,SKIPSE,TAU,
@@ -4944,7 +4945,6 @@ C**** ECHAR/-,Z,Y,...,B,A,0,1,...,8,9,+/
      &     I,IFRSTP,IHOUR,IHOUR0,ILINE,INC,IQ1,IQ2,IQ3,J,K,
      &     KC,KCOLMN,KPAGE,KR,KROW,KT,L,LASTP,M,N,NDEX,NDEX2,NDIAG,KM
 
-      DOUBLE PRECISION :: EXPBYK ! external
       DOUBLE PRECISION ::
      &     A,BYIACC,BYIACN,BYIADA,DAREA,DTCNDS,DTSRCE,
      &     FDEN,FLATK,FNUM,PLAND,TAUDIF,ZNDE16,ZS,DPTI,PVTI,
@@ -4972,7 +4972,7 @@ c      BYIM=1./FIM
       SCALE(16)=1E3/GRAV
       SCALE(26)=1./DTSRCE
       SCALE(32)=1./DTSRCE
-      SCALE(33)=1.D3*GRAV*EXPBYK(P1000)
+      SCALE(33)=1.D3*GRAV*(P1000**KAPA)
       SCALE(34)=6.25E-14/GRAV
       SCALE(35)=SCALE(34)
       SCALE(36)=SCALE(34)
@@ -6124,7 +6124,7 @@ C****
       USE CONSTANT, only : kapa,sha
       USE E001M12_COM, only : im,imh,jm,lm,fim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,MDYN,
-     &     P,PSF,PTOP,SIG,T,U,V,ZATMO
+     &     P,PSF,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS
       USE DAGCOM, only : speca,atpe,nspher,kspeca
       USE DYNAMICS, only : sqrtp,pk
@@ -6160,7 +6160,7 @@ C****
 
       IF(IFIRST.NE.1) GO TO 50
       IFIRST=0
-      SQRTPG = SQRT(PSF-PTOP)
+      SQRTPG = SQRT(PSFMPT)
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
       IJL2=IM*JM*LM*2
@@ -6840,7 +6840,8 @@ C****
       USE CONSTANT, only : twopi
       USE E001M12_COM, only : jm,lm,
      &     DT,IDAY,IDAY0,JDATE,JDATE0,JEQ,JMNTH0,JMONTH,JYEAR,JYEAR0,
-     &     KEYCT,NDYN,PSF,PTOP,SIG,TAU,TAU0,TAUI,TOFDAY,TOFDY0,XLABEL
+     &     KEYCT,NDYN,PSF,PTOP,SIG,TAU,TAU0,TAUI,TOFDAY,TOFDY0,XLABEL,
+     &     PSFMPT
       USE GEOM, only : DLAT,DXYP,JLAT
       USE DAGCOM, only : keynr,nehist,nkeynr
       IMPLICIT NONE
@@ -6933,7 +6934,7 @@ C****
 C**** JET STREAMS
       IF (L.LT.LM) GO TO 220
       DO 216 LL=1,LM
-      IF ((PSF-PTOP)*SIG(LL)+PTOP.LT.200.) GO TO 218
+      IF (PSFMPT*SIG(LL)+PTOP.LT.200.) GO TO 218
   216 CONTINUE
   218 LMAX=LL-1
   220 IF (L.GT.LMAX) RETURN

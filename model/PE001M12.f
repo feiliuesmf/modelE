@@ -632,7 +632,7 @@ c    &             ,FSAERO ,FTAERO ,VDGAER ,SSBTAU ,PIAERO
       USE PBLCOM, only : wsavg,tsavg
       USE DAGCOM  !, only : aj,bj,cj,areg,jreg,aij,ail,ajl,asjl,adaily,
 !     *     iwrite,jwrite,itwrite
-      USE DYNAMICS, only : pk,pedn
+      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig
       USE OCEAN, only : odata
       USE FILEMANAGER
 
@@ -702,9 +702,9 @@ C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
       COEX=.01*GRAV*KAPA/RGAS
       DO L=1,LM
          COE(L)=DTCNDS*COEX/DSIG(L)
-         PLE(L)=SIGE(L)*(PSF-PTOP)+PTOP
+         PLE(L)=SIGE(L)*PSFMPT+PTOP
       END DO
-      PLE(LM+1)=SIGE(LM+1)*(PSF-PTOP)+PTOP
+      PLE(LM+1)=SIGE(LM+1)*PSFMPT+PTOP
       PLE(LM+2)=.5*PLE(LM+1)
       PLE(LMR)=.2*PLE(LM+1)
       PLE(LMR+1)=1.D-5
@@ -799,7 +799,6 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
       POCEAN=(1.-PLAND)-POICE
       PLICE=FLICE(I,J)
       PEARTH=FEARTH(I,J)
-      PIJ=P(I,J)
 C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
@@ -809,7 +808,7 @@ C****
          CMC=0.
          DEPTH=0.
       DO 240 L=1,LM
-      IF(L.EQ.LS1)  PIJ=PSF-PTOP
+      PIJ=PLIJ(L,I,J)
       QSS=Q(I,J,L)/(RHSAV(I,J,L)+1.D-20)
       QL(L)=QSS
       IF(CLDSAV(I,J,L).LT.1.)
@@ -833,12 +832,12 @@ C****
          CMC=1.
          AJL(J,L,29)=AJL(J,L,29)+CMC
          TOTCLD(L)=1.
-         DEPTH=DEPTH+PIJ*DSIG(L)
+         DEPTH=DEPTH+PDSIG(L,I,J)
       IF(TAUMC(I,J,L).LE.TAUSSL) GO TO 230
       TAUMCL=TAUMC(I,J,L)
       ELHX=LHE
       IF(TL(L).LE.TF) ELHX=LHS
-      QL(L)=QSAT(TL(L),SIG(L)*PIJ+PTOP,ELHX)
+      QL(L)=QSAT(TL(L),PMID(L,I,J),ELHX)
   230    AJL(J,L,19)=AJL(J,L,19)+TOTCLD(L)
       IF(TAUSSL+TAUMCL.GT.0.) THEN
          IF(TAUMCL.GT.TAUSSL) THEN
@@ -858,7 +857,6 @@ C****
          END IF
       END IF
   240 CONTINUE
-         PIJ=P(I,J)
          AJ(J,57)=AJ(J,57)+CSS*POCEAN
          BJ(J,57)=BJ(J,57)+CSS*PLAND
          CJ(J,57)=CJ(J,57)+CSS*POICE
@@ -894,9 +892,8 @@ C****
          GO TO 275
   270    CONTINUE
   275    CONTINUE
-         PIJ=PSF-PTOP
          DO 280 L=LM,1,-1
-         IF(L.EQ.LS1-1) PIJ=P(I,J)
+         PIJ=PLIJ(L,I,J)
          IF (TOTCLD(L).NE.1.) GO TO 280
          AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+SIGE(L+1)*PIJ+PTOP
          GO TO 285
@@ -1135,21 +1132,12 @@ C****
 C****
 C**** Update other temperatures every physics time step
 C****
-  900 DO L=1,LS1-1
+  900 DO L=1,Lm
          DO J=1,JM
             IMAX=IMAXJ(J)
             DO I=1,IMAX
                T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1)
-     *              )*COE(L)/(P(I,J)*PK(L,I,J))
-            END DO
-         END DO
-      END DO
-      DO L=LS1,LM
-         DO J=1,JM
-            IMAX=IMAXJ(J)
-            DO I=1,IMAX
-               T(I,J,L)=T(I,J,L)+(SRHR(I,J,L+1)*COSZ1(I,J)+TRHR(I,J,L+1)
-     *              )*COE(L)/((PSF-PTOP)*PK(L,I,J))
+     *              )*COE(L)/(PLIJ(L,I,J)*PK(L,I,J))
             END DO
          END DO
       END DO
@@ -1631,7 +1619,7 @@ C****
       USE GEOM
       USE SOMTQ_COM
       USE DAGCOM !, only : ajl
-      USE DYNAMICS, only : pk,PDSIG
+      USE DYNAMICS, only : pk,PDSIG,plij
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM,LM) :: UT,VT
@@ -1681,12 +1669,10 @@ C****
      *   T(I,J,LMIN+1)*(1.+Q(I,J,LMIN+1)*RVX)) GO TO 130
 C**** MIX HEAT AND MOISTURE THROUGHOUT THE UNSTABLE LAYERS
 C**** MIX THROUGH TWO LOWER LAYERS
-      PIJBOT=P(I,J)
-      IF(LMIN.GE.LS1) PIJBOT=PSF-PTOP
-      DP(LMIN)=PIJBOT*DSIG(LMIN)
-      PIJ=PIJBOT
-      IF(LMIN+1.EQ.LS1) PIJ=PSF-PTOP
-      DP(LMIN+1)=PIJ*DSIG(LMIN+1)
+      PIJBOT=PLIJ(LMIN,I,J)
+      DP(LMIN)=PDSIG(LMIN,I,J)
+      PIJ=PLIJ(LMIN+1,I,J)
+      DP(LMIN+1)=PDSIG(LMIN+1,I,J)
       PKMS=PK(LMIN,I,J)*DP(LMIN)+PK(LMIN+1,I,J)*DP(LMIN+1)
       THPKMS=T(I,J,LMIN)*(PK(LMIN,I,J)*DP(LMIN))
      *  +T(I,J,LMIN+1)*(PK(LMIN+1,I,J)*DP(LMIN+1))
@@ -1715,8 +1701,8 @@ C**** sum moments to mix over unstable layers
 C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       DO 140 L=LMIN+2,LM
       IF (THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 160
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-      DP(L)=PIJ*DSIG(L)
+      PIJ=PLIJ(L,I,J)
+      DP(L)=PDSIG(L,I,J)
       PKMS=PKMS+(PK(L,I,J)*DP(L))
       THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*DP(L))
       QMS=QMS+Q(I,J,L)*DP(L)
@@ -1737,10 +1723,8 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       RDP=1./(PIJBOT*SIGE(LMIN)-PIJ*SIGE(LMAX+1))
       THM=THPKMS/PKMS
       QMS=QMS*RDP
-      PIJ=P(I,J)
       DO 180 L=LMIN,LMAX
-      IF(L.GE.LS1) PIJ=PSF-PTOP
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PIJ
+         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
          AJL(J,L,55)=AJL(J,L,55)+(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
       T(I,J,L)=THM
        TX(I,J,L) = TXS/PKMS
@@ -1766,9 +1750,7 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
 C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       UMS(1:KMAX)=0.
       VMS(1:KMAX)=0.
-      PIJ=P(I,J)
       DO L=LMIN,LMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
          DO K=1,KMAX
             UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*DP(L)
             VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*DP(L)
@@ -1776,9 +1758,7 @@ C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
       ENDDO
       UMS(1:KMAX)=UMS(1:KMAX)*RDP
       VMS(1:KMAX)=VMS(1:KMAX)*RDP
-      PIJ=P(I,J)
       DO L=LMIN,LMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
          DO K=1,KMAX
             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
      &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
@@ -1786,7 +1766,7 @@ C**** MIX MOMENTUM THROUGHOUT UNSTABLE LAYERS
      &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
 c the following line gives bytewise different ajl
             AJL(IDJ(K),L,38)=AJL(IDJ(K),L,38)
-     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PIJ*RA(K)
+     &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
          ENDDO
       ENDDO
       GO TO 130
@@ -1819,7 +1799,7 @@ C****
       DO 100 J=2,JM
       I=IM
       DO 100 IP1=1,IM
-      PIJU=PSF-PTOP
+      PIJU=PSFMPT
       WLM=SQRT(U(I,J,LM)*U(I,J,LM)+V(I,J,LM)*V(I,J,LM))
       RHO=(PIJU*SIGE(LM+1)+PTOP)/(RGAS*T(I,J,LM)*PK(LM,I,J))
       CDN=XCDLM(1)+XCDLM(2)*WLM

@@ -72,7 +72,7 @@ C****
       L=LM
       DO 70 J=1,JM
       DO 70 I=1,IM
-   70 P(I,J)=PSF-PTOP
+   70 P(I,J)=PSFMPT
 C****
  2150 IF(L.EQ.LS1-1) THEN
       DO 80 J=1,JM
@@ -263,7 +263,7 @@ C****
 c      JMM2=JM-2
 c      IJL2=IM*JM*LM*2
       DO 10 J=2,JM
-   10 SMASS(J)=(PSF-PTOP)*DXYV(J)
+   10 SMASS(J)=PSFMPT*DXYV(J)
 
    50 CONTINUE
       DT2=DT1/2.
@@ -450,14 +450,17 @@ C****
       REAL*8 KAPAP1,KAPAP2,SZ(IM,JM,LM),DT4,DT1,PSMPT2
       REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
       REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDUX,RFDU,PHIDN
-      REAL*8 EXPBYK
+<<<<<<< DYNE001.f
+      INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX  loop variables
+=======
       INTEGER I,J,L,IM1,IP1,IMAX  !@var I,J,IP1,IM1,L,IMAX loop variab.
+>>>>>>> 1.10
 C****
       KAPAP1=KAPA+1.
       DT4=DT1/4.
       KAPAP2=KAPA+2.
       DO 10 L=1,LM+1
-   10 PKE(L)=(SIGE(L)*(PSF-PTOP)+PTOP)**KAPA
+   10 PKE(L)=(SIGE(L)*PSFMPT+PTOP)**KAPA
       PSMPT2=2.*PSFMPT
 C****
 C**** VERTICAL DIFFERENCING
@@ -471,7 +474,7 @@ C****
       DO 330 I=1,IMAX
       PIJ=P(I,J)
       PDN=PIJ+PTOP
-      PKDN=EXPBYK(PDN)
+      PKDN=PDN**KAPA
       PHIDN=ZATMO(I,J)
 C**** LOOP OVER THE LAYERS
       DO 310 L=1,LM
@@ -494,7 +497,7 @@ C**** LOOP OVER THE LAYERS
       TZBYDP=2.*SZ(I,J,L)/DP
       X=T(I,J,L)+TZBYDP*P0
       PUP=SIGE(L+1)*PIJ+PTOP
-      PKUP=EXPBYK(PUP)
+      PKUP=PUP**KAPA
       PKPUP=PKUP*PUP
       PKPPUP=PKPUP*PUP
 C**** CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
@@ -914,61 +917,45 @@ C****
       IMPLICIT NONE
       INTEGER :: I,J,IMAX,L  !@var I,J,IMAX,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
-      REAL*8 EXPBYK
 
 C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
 C**** Note that only layers LS1 and below vary as a function of surface
 C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
 
+C**** Fill in polar boxes 
+      P(2:IM,1) = P(1,1)
+      P(2:IM,JM)= P(1,JM)
+    
       DO J=1,JM
-         IMAX=IMAXJ(J)
-         DO I=1,IMAX
+         DO I=1,IM
             DO L=1,LS1-1
                PLIJ(L,I,J) = P(I,J)
                PDSIG(L,I,J) = P(I,J)*DSIG(L)
                PMID(L,I,J) = SIG(L)*P(I,J)+PTOP
-               PK  (L,I,J) = EXPBYK(PMID(L,I,J))
+               PK  (L,I,J) = PMID(L,I,J)**KAPA
                PEDN(L,I,J) = SIGE(L)*P(I,J)+PTOP
-               PEK (L,I,J) = EXPBYK(PEDN(L,I,J))
+               PEK (L,I,J) = PEDN(L,I,J)**KAPA
 c               AM  (L,I,J) = P(I,J)*DSIG(L)*1d2*BYGRAV
 c               BYAM(L,I,J) = 1./AM(L,I,J)
             END DO
             DO L=LS1,LMAX
                PLIJ(L,I,J) = PSFMPT
                PDSIG(L,I,J) = PSFMPT*DSIG(L)
-               PMID(L,I,J) = SIG(L)*(PSF-PTOP)+PTOP
-               PK  (L,I,J) = EXPBYK(PMID(L,I,J))
-               PEDN(L,I,J) = SIGE(L)*(PSF-PTOP)+PTOP
-               PEK (L,I,J) = EXPBYK(PEDN(L,I,J))
-c               AM  (L,I,J) = (PSF-PTOP)*DSIG(L)*1d2*BYGRAV
+               PMID(L,I,J) = SIG(L)*PSFMPT+PTOP
+               PK  (L,I,J) = PMID(L,I,J)**KAPA
+               PEDN(L,I,J) = SIGE(L)*PSFMPT+PTOP
+               PEK (L,I,J) = PEDN(L,I,J)**KAPA
+c               AM  (L,I,J) = PSFMPT*DSIG(L)*1d2*BYGRAV
 c               BYAM(L,I,J) = 1./AM(L,I,J)
             END DO
             IF (LMAX.eq.LM) THEN
-               PEDN(LM+1,I,J) = SIGE(LM+1)*(PSF-PTOP)+PTOP
-               PEK (LM+1,I,J) = EXPBYK(PEDN(LM+1,I,J))
+               PEDN(LM+1,I,J) = SIGE(LM+1)*PSFMPT+PTOP
+               PEK (LM+1,I,J) = PEDN(LM+1,I,J)**KAPA
             END IF
             SQRTP(I,J) = SQRT(P(I,J))
          END DO
       END DO
-
-C**** Fill in polar boxes (necessary?)
-      DO L=1,LMAX
-         PMID(L,2:IM, 1)=PMID(L,1, 1)
-         PMID(L,2:IM,JM)=PMID(L,1,JM)
-         PK(L,2:IM, 1)=PK(L,1, 1)
-         PK(L,2:IM,JM)=PK(L,1,JM)
-         PEDN(L,2:IM, 1)=PEDN(L,1, 1)
-         PEDN(L,2:IM,JM)=PEDN(L,1,JM)
-         PEK(L,2:IM, 1)=PEK(L,1, 1)
-         PEK(L,2:IM,JM)=PEK(L,1,JM)
-c         AM(L,2:IM, 1)=AM(L,1, 1)
-c         AM(L,2:IM,JM)=AM(L,1,JM)
-c         BYAM(L,2:IM, 1)=BYAM(L,1, 1)
-c         BYAM(L,2:IM,JM)=BYAM(L,1,JM)
-      END DO
-      SQRTP(2:IM, 1)=SQRTP(1, 1)
-      SQRTP(2:IM,JM)=SQRTP(1,JM)
 
       RETURN
       END SUBROUTINE CALC_AMPK
@@ -1085,9 +1072,9 @@ C     DO 352 L=1,LM
       TT(I,J,L)=T(I,J,L)
   352 TZT(I,J,L)=TZ(I,J,L)
       CALL AADVT (PC,P,T,TX,TY,TZ,TXX,TYY,TZZ,TXY,TZX,TYZ,
-     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.FALSE.,FPEU,FPEV)
+     *            DXYP,DSIG,PSFMPT,LS1,DTLF,.FALSE.,FPEU,FPEV)
       CALL AADVT (PC,P,Q,QX,QY,QZ,QXX,QYY,QZZ,QXY,QZX,QYZ,
-     *            DXYP,DSIG,PSF-PTOP,LS1,DTLF,.TRUE.,FWVU,FWVV)
+     *            DXYP,DSIG,PSFMPT,LS1,DTLF,.TRUE.,FWVU,FWVV)
       DO 354 J=1,JM
       DO 354 I=1,IM
       PC(I,J)=0.5*(P(I,J)+PC(I,J))

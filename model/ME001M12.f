@@ -466,7 +466,6 @@ C****
      *     ,IR,IREC,NOFF,NDIFS,ISTART,ioread,ioerr
       REAL*8 TIJL,X,TAU2,TAUX,TAUY,TAU1,RDSIG,CDM,SNOAGE,TEMP
 
-      REAL*8 EXPBYK
       INTEGER JC1(100)
       REAL*8 RC1(161)
       CHARACTER*4 RUNID
@@ -635,7 +634,7 @@ C**** REPLACE TEMPERATURE BY POTENTIAL TEMPERATURE
          RHSAV(I,J,L)=.85
          CLDSAV(I,J,L)=0.
          SVLHX(I,J,L)=0.
-         T(I,J,L)=T(I,J,L)/EXPBYK(SIG(L)*P(I,J)+PTOP)
+         T(I,J,L)=T(I,J,L)/(SIG(L)*P(I,J)+PTOP)**KAPA
       END DO
       DO L=LS1,LM
          RHSAV(I,J,L)=.85
@@ -892,8 +891,8 @@ C****   Perturb the Initial Temperatures by at most 1 degree C
         DO L=1,LM
            DO J=1,JM
               DO I=1,IM
-                 TIJL=T(I,J,L)*EXPBYK(P(I,J)*SIG(L)+PTOP)-1.+2*RANDU(X)
-                 T(I,J,L)=TIJL/EXPBYK(P(I,J)*SIG(L)+PTOP)
+                 TIJL=T(I,J,L)*(P(I,J)*SIG(L)+PTOP)**KAPA-1.+2*RANDU(X)
+                 T(I,J,L)=TIJL/(P(I,J)*SIG(L)+PTOP)**KAPA
               END DO
            END DO
         END DO

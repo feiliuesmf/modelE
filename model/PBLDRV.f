@@ -168,7 +168,7 @@ C**********************************************************************
 
 C *********************************************************************
       ppbl=pedn(l,i,j)      ! sige(l)*pij+ptop
-c      if (l.gt.ls1) ppbl=sige(l)*(psf-ptop)+ptop
+c      if (l.gt.ls1) ppbl=sige(l)*psfmpt+ptop
 c      phi=radian*(float(j-1)*180./float(jm-1)-90.)
       coriol=sin(radian*(float(j-1)*180./float(jm-1)-90.))*omega2
       ttop=tkv
@@ -777,7 +777,7 @@ c    bgrid = The parameter that determines the strength of the log
 c            term in the log-linear gridding scheme.
 c ----------------------------------------------------------------------
       USE CONSTANT, only : rgas
-      USE E001M12_COM, only : sige,psf,ptop
+      USE E001M12_COM, only : sige,psf,ptop,psfmpt
       USE SOCPBL, only : grav ! for now
       IMPLICIT NONE
 
@@ -786,7 +786,7 @@ c ----------------------------------------------------------------------
       real*8 theta,z1,x
 
       theta=269.0727251
-      z1=zgs+0.5*(1.-sige(2))*(psf-ptop)*rgas*theta/(grav*psf)
+      z1=zgs+0.5*(1.-sige(2))*psfmpt*rgas*theta/(grav*psf)
       x=z1/100.
       ztop=z1
       bgrid=0.177427*x**4 - 1.0504*x**3 + 2.34169*x**2 -

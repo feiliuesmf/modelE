@@ -27,7 +27,7 @@ C****
      &     ,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
       USE SOCPBL, only : omega2,zgs
       USE DAGCOM  !, only : aij,tdiurn,aj,bj,cj,areg,ajl,adaily,jreg
-      USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE DYNAMICS, only : pmid,pk,pedn,pek,pdsig,plij
       USE OCEAN, only : OA,ODATA,XSI1,XSI2,Z1I,ACE1I,TFO
 
       IMPLICIT NONE
@@ -241,7 +241,7 @@ C****
       Q1=Q(I,J,1)
       THV1=TH1*(1.+Q1*RVX)
          TFS=TF*PXSOIL
-      RMBYA=100.*PIJ*DSIG(1)/GRAV
+      RMBYA=100.*PDSIG(1,I,J)/GRAV
 C*
 C      THZ1 = TZ(I,J,1) ! vertical gradient of potential temperature
 C      QZ1 = QZ(I,J,1) ! vertical gradient of specific humidity
@@ -789,26 +789,26 @@ C**** MIX HEAT AND MOISTURE THROUGHOUT THE BOUNDARY LAYER
       QYYS =(QYY(I,J,1)*DSIG(1) + QYY(I,J,2)*DSIG(2))*PIJ
       QXYS =(QXY(I,J,1)*DSIG(1) + QXY(I,J,2)*DSIG(2))*PIJ
       TVMS=(T(I,J,1)*(1.+Q(I,J,1)*RVX)*(PK(1,I,J)*DSIG(1))
-     *    +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
+     *     +T(I,J,2)*(1.+Q(I,J,2)*RVX)*(PK(2,I,J)*DSIG(2)))*PIJ
       THETA=TVMS/PKMS
 C**** MIX THROUGH SUMSEQUENT LAYERS
       DO 8140 L=3,LM
       IF(THETA.LT.T(I,J,L)*(1.+Q(I,J,L)*RVX)) GO TO 8160
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-      PKMS=PKMS+(PK(L,I,J)*(DSIG(L)*PIJ))
-      THPKMS=THPKMS+T(I,J,L)*(PK(L,I,J)*(DSIG(L)*PIJ))
-       TXS =  TXS +  TX(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
-       TYS =  TYS +  TY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
-      TXXS = TXXS + TXX(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
-      TYYS = TYYS + TYY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
-      TXYS = TXYS + TXY(I,J,L)*(PK(L,I,J)*DSIG(L))*PIJ
-      QMS=QMS+Q(I,J,L)*(DSIG(L)*PIJ)
-       QXS =  QXS +  QX(I,J,L)*(DSIG(L)*PIJ)
-       QYS =  QYS +  QY(I,J,L)*(DSIG(L)*PIJ)
-      QXXS = QXXS + QXX(I,J,L)*(DSIG(L)*PIJ)
-      QYYS = QYYS + QYY(I,J,L)*(DSIG(L)*PIJ)
-      QXYS = QXYS + QXY(I,J,L)*(DSIG(L)*PIJ)
-      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*(DSIG(L)*PIJ))
+      PIJ=PLIJ(L,I,J)
+      PKMS=PKMS+(PK(L,I,J)*PDSIG(L,I,J))
+      THPKMS=THPKMS+  T(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+       TXS =  TXS +  TX(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+       TYS =  TYS +  TY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+      TXXS = TXXS + TXX(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+      TYYS = TYYS + TYY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+      TXYS = TXYS + TXY(I,J,L)*(PK(L,I,J)*PDSIG(L,I,J))
+      QMS=    QMS +   Q(I,J,L)*PDSIG(L,I,J)
+       QXS =  QXS +  QX(I,J,L)*PDSIG(L,I,J)
+       QYS =  QYS +  QY(I,J,L)*PDSIG(L,I,J)
+      QXXS = QXXS + QXX(I,J,L)*PDSIG(L,I,J)
+      QYYS = QYYS + QYY(I,J,L)*PDSIG(L,I,J)
+      QXYS = QXYS + QXY(I,J,L)*PDSIG(L,I,J)
+      TVMS=TVMS+T(I,J,L)*(1.+Q(I,J,L)*RVX)*(PK(L,I,J)*PDSIG(L,I,J))
  8140 THETA=TVMS/PKMS
       L=LM+1
  8160 LMAX=L-1
@@ -816,10 +816,8 @@ C**** MIX THROUGH SUMSEQUENT LAYERS
       THM=THPKMS/PKMS
       QMS=QMS*RDP
       DCLEV(I,J)=LMAX
-      PIJ=P(I,J)
       DO 8180 L=1,LMAX
-      IF(L.EQ.LS1) PIJ=(PSF-PTOP)
-         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PIJ
+         AJL(J,L,12)=AJL(J,L,12)+(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
       T(I,J,L)=THM
        TX(I,J,L) = TXS/PKMS
        TY(I,J,L) = TYS/PKMS
@@ -844,19 +842,16 @@ C**** MIX THROUGH SUMSEQUENT LAYERS
 C**** MIX MOMENTUM THROUGHOUT THE BOUNDARY LAYER
       UMS(1:KMAX)=0.
       VMS(1:KMAX)=0.
-      PIJ=P(I,J)
       DO L=1,LMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
          DO K=1,KMAX
-            UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*PIJ*DSIG(L)
-            VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*PIJ*DSIG(L)
+            UMS(K)=UMS(K)+UT(IDI(K),IDJ(K),L)*PDSIG(L,I,J)
+            VMS(K)=VMS(K)+VT(IDI(K),IDJ(K),L)*PDSIG(L,I,J)
          ENDDO
       ENDDO
       UMS(1:KMAX)=UMS(1:KMAX)*RDP
       VMS(1:KMAX)=VMS(1:KMAX)*RDP
-      PIJ=P(I,J)
       DO L=1,LMAX
-         IF(L.EQ.LS1) PIJ=PSF-PTOP
+         PIJ=PLIJ(L,I,J)
          DO K=1,KMAX
             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
      &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)

@@ -36,7 +36,7 @@
       INTEGER IHOUR,IMAX,JR,KR
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID 
 
-      REAL*8 :: HCNDMC,PIJ,PRCP
+      REAL*8 :: HCNDMC,PRCP
 C****
       IDACC(1)=IDACC(1)+1
 
@@ -71,14 +71,11 @@ C****
          IDJ(K)=IDJJ(K,J)
       END DO
 C**** PRESSURES, AND PRESSURE TO THE KAPA
-      PIJ=P(I,J)
       DO 150 L=1,LM
-      IF(L.EQ.LS1) PIJ=PSF-PTOP
-
       PL(L) =PMID(L,I,J)
       PLE(L)=PEDN(L,I,J)
       PLK(L)=PK(L,I,J)
-      AIRM(L)=PIJ*DSIG(L)
+      AIRM(L)=PDSIG(L,I,J)
       BYAM(L)=1./AIRM(L)
       IF(L.LE.LM-2) ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*
      *     1.d-3*BYGRAV

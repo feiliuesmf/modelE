@@ -29,17 +29,6 @@ C****
       RETURN
       END
 
-      FUNCTION EXPBYK (X)
-!@sum   EXPBYK exponentiates pressure by KAPA
-!@auth  Compiler development made original version obsolete
-!@ver   1.0
-      USE CONSTANT, only : kapa
-      IMPLICIT NONE
-      REAL*8, INTENT(IN) :: X      !@var X          input pressure
-      REAL*8 :: EXPBYK             !@var EXPBYK     output P^KAPA
-      EXPBYK=X**KAPA
-      RETURN
-      END
 
       FUNCTION QSAT_NEW (TM,QL,PR)
 !@sum   QSAT calculates saturation vapour mixing ratio
