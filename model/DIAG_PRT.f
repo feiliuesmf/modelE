@@ -1003,6 +1003,9 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_jl(trim(acc_period)//'.jk'//XLABEL(1:LRUNID)
      *     ,jm,lm,lm_req,lat_dg)
 
+C**** avoid printing out diagnostics that are not yet defined
+      if (IDACC(ia_dga).eq.0) RETURN
+
 C**** INITIALIZE CERTAIN QUANTITIES
       call JKJL_TITLEX
 
@@ -1036,15 +1039,15 @@ c      BYDXYP(J)=1./DXYP(J)
       DXCOSV(J)=DXV(J)*COSV(J)
    50 CONTINUE
       DO J=1,JM
-        BYP(J)=IDACC(4)/(APJ(J,1)+teeny)
-        BYPV(J)=IDACC(4)/(.25*APJ(J,2)+teeny)
+        BYP(J)=IDACC(ia_dga)/(APJ(J,1)+teeny)
+        BYPV(J)=IDACC(ia_dga)/(.25*APJ(J,2)+teeny)
       ENDDO
       BYPPO(:) = BYP(:)
       BYPPO(1 ) = BYP(1 )*BYIM
       BYPPO(JM) = BYP(JM)*BYIM
       LINECT=65
       WRITE (6,901)
-      BYIADA=1./(IDACC(4)+teeny)
+      BYIADA=1./(IDACC(ia_dga)+teeny)
       BYIMDA=BYIADA*BYIM
       DO J=1,JM
         PJ(J,1)=0
@@ -1105,7 +1108,7 @@ C****
       DO 70 J=2,JM
       KDN=1
       DO 70 K=1,KM
-      CX(J,K)=FIM*IDACC(4)
+      CX(J,K)=FIM*IDACC(ia_dga)
       AX(J,K)=AJK(J,K,JK_SHETH)/(AJK(J,K,JK_DPB)+teeny)
       KUP=K+1
       IF (K.EQ.KM) KUP=KM
@@ -1689,8 +1692,8 @@ C****
 C**** CHANGE OF THE MEAN FIELDS OF WIND AND TEMPERATURE
 C****
 C**** WIND: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
-      IF (IDACC(4).LE.1) GO TO 730
-      SCALET = 1./((IDACC(4)-1)*(DTsrc*NDAA+DT+DT))
+      IF (IDACC(ia_dga).LE.1) GO TO 730
+      SCALET = 1./((IDACC(ia_dga)-1)*(DTsrc*NDAA+DT+DT))
       n = JK_TOTDUDT
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n))
@@ -1786,8 +1789,8 @@ C**** DU/DT BY SDRAG
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
-      IF (IDACC(4).GT.1) then
-      SCALET = SDAY/((IDACC(4)-1)*(DTsrc*NDAA+DT+DT))
+      IF (IDACC(ia_dga).GT.1) then
+      SCALET = SDAY/((IDACC(ia_dga)-1)*(DTsrc*NDAA+DT+DT))
       n = JK_TOTDTDT
       CALL JLMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PLM,AJK(1,1,n),SCALET,ONES,PKM,KM,2,JGRID_JK(n))
@@ -2820,7 +2823,7 @@ C**** THIS ENTRY PRINTS THE TABLES
 C****
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
-      USE DAGCOM, only : qdiag,
+      USE DAGCOM, only : qdiag,ia_12hr,ia_inst,
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
       IMPLICIT NONE
 
@@ -2850,12 +2853,12 @@ C****
      &     M,MMAXP1,N,NMAX,NS,NUA,NX
 
       NMAX=NWAV_DAG
-      IDACC9=IDACC(9)
+      IDACC9=IDACC(ia_12hr)
       IF (IDACC9.LE.MMAX) RETURN
 C**** PATCH NEEDED IF SEVERAL RESTART FILES WERE ACCUMULATED
-      IF (IDACC(12).LE.1) GO TO 320
+      IF (IDACC(ia_inst).LE.1) GO TO 320
       IDACC9=Min12HR_sequ           ! in case a February was included
-      BYIA12=1./IDACC(12)
+      BYIA12=1./IDACC(ia_inst)
       WAVE(:,:,:,:)=WAVE(:,:,:,:)*BYIA12
   320 CONTINUE
       IF (IDACC9.GT.Max12HR_sequ) IDACC9=Max12HR_sequ
@@ -4085,7 +4088,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
      &     areag,dlon,dxyp,dxyv,LAT_DG
       USE DAGCOM, only :
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
-     *     inc=>incj,xwon
+     *     inc=>incj,xwon,ia_inst
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -4099,7 +4102,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if 0 < kdiag(3) < 8
       INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jv1,jvm,jx,n
       REAL*8 :: aglob,ahem,feq,fnh,fsh,days
 C**** CALCULATE SCALING FACTORS
-      IF (IDACC(12).LT.1) IDACC(12)=1
+      IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
 C**** CALCULATE SUMMED QUANTITIES
 C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
       DO J=1,JM
@@ -4108,7 +4111,7 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
             CONSRV(J,N)=0.
           ELSEIF (NSUM_CON(N).gt.0) THEN
             CONSRV(J,NSUM_CON(N))=CONSRV(J,NSUM_CON(N))+CONSRV(J,N)
-     *           *SCALE_CON(N)*IDACC(12)/(IDACC(IA_CON(N))+1d-20)
+     *           *SCALE_CON(N)*IDACC(ia_inst)/(IDACC(IA_CON(N))+1d-20)
           END IF
         END DO
       END DO
@@ -4225,7 +4228,8 @@ C****
       USE GEOM, only : DLON,DXYV
       USE DAGCOM, only :
      &     speca,atpe,ajk,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
-     &    ,JK_DPB,xwon
+     &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
+     *     ,ia_inst
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: X
@@ -4254,7 +4258,7 @@ C****
       REAL*8 :: FACTOR,FNM
 
       NM=1+IM/2
-      IF (IDACC(12).LT.1) IDACC(12)=1
+      IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
       J45N=2.+.75*(JM-1.)
 C****
 C**** STANDING KINETIC ENERGY
@@ -4286,26 +4290,26 @@ C****
   769 CONTINUE
   770 CONTINUE
 C****
-  600 SCALET(1)=100.D-17/(GRAV*IDACC(4)+teeny)
-      SCALET(19)=100.D-17/(GRAV*IDACC(12))
+  600 SCALET(1)=100.D-17/(GRAV*IDACC(ia_dga)+teeny)
+      SCALET(19)=100.D-17/(GRAV*IDACC(ia_inst))
       SCALET(20)=SCALET(19)*RGAS
-      SCALET(2)=SCALET(19)*IDACC(12)/(IDACC(7)+teeny)
+      SCALET(2)=SCALET(19)*IDACC(ia_inst)/(IDACC(ia_d5d)+teeny)
       SCALET(3)=SCALET(2)*RGAS
-      SCALET(4)=100.D-12/(GRAV*DT*IDACC(6)+teeny)
+      SCALET(4)=100.D-12/(GRAV*DT*IDACC(ia_d5f)+teeny)
       SCALET(5)=SCALET(4)
       SCALET(6)=SCALET(4)
-      SCALET(7)=100.D-12/(GRAV*DT*(IDACC(7)+teeny))
+      SCALET(7)=100.D-12/(GRAV*DT*(IDACC(ia_d5d)+teeny))
       SCALET(8)=SCALET(7)*RGAS
-      SCALET(9)=100.D-12/(GRAV*DT*(IDACC(8)+teeny))
+      SCALET(9)=100.D-12/(GRAV*DT*(IDACC(ia_d5s)+teeny))
       SCALET(10)=SCALET(9)*RGAS
       SCALET(11)=SCALET(10)
       SCALET(12)=SCALET(9)
       SCALET(13)=SCALET(10)
-      SCALET(14)=100.D-12/(GRAV*DT*(IDACC(10)+teeny))
+      SCALET(14)=100.D-12/(GRAV*DT*(IDACC(ia_filt)+teeny))
       SCALET(15)=SCALET(14)*RGAS
-      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(9)+teeny))
+      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(ia_12hr)+teeny))
       SCALET(17)=SCALET(16)*RGAS
-      SCALET(18)=100.D-17/(GRAV*IDACC(4)+teeny)
+      SCALET(18)=100.D-17/(GRAV*IDACC(ia_dga)+teeny)
       DO 605 K=1,KSPECA
   605 SCALET(K)=XWON*SCALET(K)
       IUNITJ=17
@@ -4381,6 +4385,7 @@ C****
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DAGCOM, only :   kdiag,qdiag,acc_period,units_dd,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
+     *     ,ia_12hr
       IMPLICIT NONE
 
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
@@ -4390,7 +4395,7 @@ C****
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
 C****
-      NDAYS=IDACC(9)/2
+      NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
       BYIDAC=1./NDAYS
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
@@ -4464,7 +4469,7 @@ C****
       USE GEOM, only :
      &     DLON
       USE DAGCOM, only :
-     &     energy,ned,nehist,hist_days,xwon
+     &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a
       IMPLICIT NONE
 
       REAL*8, DIMENSION(2) :: FAC
@@ -4477,9 +4482,9 @@ C****
      &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0,KS,KN,KSPHER
       REAL*8 :: TOFDYX
 
-      IDACC5=IDACC(5)
+      IDACC5=IDACC(ia_d4a)
       IF (IDACC5.LE.0) RETURN
-      IF (IDACC(12).LT.1) IDACC(12)=1
+      IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
       SCALET(1)=100.D-18*BYGRAV
       SCALET(2)=SCALET(1)
       SCALET(3)=SCALET(1)
@@ -4492,7 +4497,7 @@ c     SCALET(5)=.5*SCALET(1)
       SCALET(9)=SCALET(7)
       SCALET(10)=SCALET(7)
       DO K=1,NED
-        SCALET(K)=XWON*SCALET(K)/IDACC(12)
+        SCALET(K)=XWON*SCALET(K)/IDACC(ia_inst)
       END DO
 C****
       DO K0=1,MIN(1+ISTRAT,2)
