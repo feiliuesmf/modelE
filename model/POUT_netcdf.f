@@ -28,11 +28,12 @@ C**** have to wait.
      &    ,units,long_name,missing,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,im_data
-     &    ,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
+     &    ,iu_ijk,iu_il,iu_j,iu_jc,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
      &    ,def_missing,srt,cnt,write_whole_array
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
+     &     ,iu_jc
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
 !@var im_data inner dimension of arrays passed to pout_*
 !     it will differ from im because of array padding to hold means, etc.
@@ -1292,10 +1293,82 @@ c      var_name='hour';call wrtdarr(hours)
       return
       end subroutine POUT_hdiurn
 
-C**** Dummy entries to allow POUT_netcdf to compile with tracers
-C**** Should be fixed soon!
-      subroutine pout_jc
-      entry open_jc
-      entry close_jc
+      subroutine open_jc(filename,jm_gcm,lat_dg_gcm)
+!@sum  OPEN_jc opens the conservation quantity binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+!@var FILENAME output file name
+      CHARACTER*(*), INTENT(IN) :: filename
+!@var JM_GCM dimensions for j output
+      INTEGER, INTENT(IN) :: jm_gcm
+!@var lat_dg_gcm latitude of mid points of grid boxs (deg)
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+
+      character(len=30) :: dim_name
+
+      outfile = trim(filename)//".nc"
+      call open_out
+      iu_jc = out_fid
+
+C**** set dimensions
+      jm=jm_gcm
+      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+
+      dim_name='latitude'; call def_dim_out(dim_name,jm)
+
+      ndims_out = 1
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+      units='degrees_north'
+      var_name='latitude';call wrtdarr(lat_dg(1,1))
+
+      return
+      end subroutine open_jc
+
+      subroutine close_jc
+!@sum  OPEN_J closes the latitudinal binary output file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+
+      out_fid = iu_jc
+      call close_out
+
+      return
+      end subroutine close_jc
+
+      subroutine POUT_jc(TITLE,SNAME,LNAME,UNITS_IN,cnslat,KMAX)
+!@sum  POUT_JC output zonal conservation binary file
+!@auth M. Kelley
+!@ver  1.0
+      USE NCOUT
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: KMAX
+      CHARACTER*38, DIMENSION(kmax),INTENT(INOUT) :: TITLE
+!@var LNAME,SNAME,UNITS dummy strings
+      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: LNAME
+      CHARACTER*30, DIMENSION(kmax),INTENT(IN) :: SNAME
+      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: UNITS_IN
+      REAL*8, DIMENSION(JM+3,kmax), INTENT(IN) :: cnslat
+      INTEGER :: K
+      character(len=30) :: dim_name
+
+      out_fid = iu_jc
+
+! (re)set shape of output array
+      ndims_out = 1
+      dim_name='latitude'; call set_dim_out(dim_name,1)
+
+      DO K=1,KMAX
+        var_name=sname(k)
+        long_name=lname(k)
+        units=units_in(k)
+        real_att_name='sh-nh-g_sums-means'
+        real_att(1:3)=cnslat(jm+1:jm+3,k)
+        call wrtdarr(cnslat(1,k))
+      END DO
+
       return
       end subroutine pout_jc
