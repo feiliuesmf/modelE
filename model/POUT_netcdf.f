@@ -437,14 +437,19 @@ C**** set dimensions
 
 ! (re)set shape of output array
       ndims_out = 2
-      if(jgrid.eq.1) then
+      if(igrid.eq.1) then
          lon_name='longitude'
+      else if(igrid.eq.2) then
+         lon_name='lonb'
+      else
+         call stop_model('pout_ij: unrecognized lon grid',255)
+      endif
+      if(jgrid.eq.1) then
          lat_name='latitude'
       else if(jgrid.eq.2) then
-         lon_name='lonb'
          lat_name='latb'
       else
-         call stop_model('pout_ij: unrecognized grid',255)
+         call stop_model('pout_ij: unrecognized lat grid',255)
       endif
       call set_dim_out(lon_name,1)
       call set_dim_out(lat_name,2)
