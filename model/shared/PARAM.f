@@ -779,24 +779,22 @@
       return
  10   print *, 'PARAM: Error reading, unit = ', kunit
       stop 'PARAM: Error reading'
-#ifndef MACHINE_DEC
       end subroutine read_param
+
 
       subroutine write_param( kunit )
       implicit none
       integer, intent(in) :: kunit
       integer n
-#else
-      entry      write_param( kunit )
-#endif
+
       write (MODULE_HEADER(9:80),'(i10,a)')
      *  num_param,' is the current number of parameters in database DB'
 
 #ifdef MACHINE_DEC
       ! converting it manually to big-endian for COMPAQ compiler
       do n=1,lnum_param
-        call swap_bytes_4( LParams(n)%indx, 1 )
-        call swap_bytes_4( LParams(n)%dim,  1 )
+        call swap_bytes_4( Params(n)%indx, 1 )
+        call swap_bytes_4( Params(n)%dim,  1 )
       enddo
 #endif
 
@@ -810,15 +808,15 @@
 #ifdef MACHINE_DEC
       ! and back to little-endian ...
       do n=1,lnum_param
-        call swap_bytes_4( LParams(n)%indx, 1 )
-        call swap_bytes_4( LParams(n)%dim,  1 )
+        call swap_bytes_4( Params(n)%indx, 1 )
+        call swap_bytes_4( Params(n)%dim,  1 )
       enddo
 #endif
       return
 
  20   print *, 'PARAM: Error writing, unit = ', kunit
       stop 'PARAM: Error writing'
-      end subroutine ! write_param
+      end subroutine write_param
 
       subroutine print_param1( kunit )
       implicit none
