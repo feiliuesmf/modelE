@@ -64,23 +64,32 @@ C**** Calculate heat and mass fluxes to lake
       ENRGI = F2DT           ! under ice
       RUNO  =-EVAPO
       RUNI  = RUN0 
-C**** Bring up mass from second layer if required
-      IF (MLAKE(1)+RUNO.lt.MINMLD*RHOW) THEN
+C**** Bring up mass from second layer if required/allowed
+      IF (MLAKE(1)+RUNO.lt.MINMLD*RHOW.and.MLAKE(2).gt.0) THEN
         DM2 = MIN(MLAKE(2),MINMLD*RHOW-(MLAKE(1)+RUNO))
-        DH2 = DM2*ELAKE(2)/(MLAKE(2)+1d-20)
+        DH2 = DM2*(ELAKE(2)+(1.-ROICE)*ENRGO2)/MLAKE(2)
       ELSE
         DM2 = 0.
         DH2 = 0.
+      END IF
+
+C**** Apply fluxes to 2nd layer
+      IF (DM2.lt.MLAKE(2)) THEN
+        MLAKE(2)=MLAKE(2) - DM2
+        ELAKE(2)=ELAKE(2) - DH2 + (1.-ROICE)*ENRGO2
+      ELSE
+        MLAKE(2)=0.
+        ELAKE(2)=0.
       END IF
 
       E2O = 0. ; E2I = 0.
 
 C**** Calculate energy in mixed layer (open ocean)
       IF (ROICE.LT.1d0) THEN
-        FHO=ELAKE(1)+ENRGO+DH2-(MLAKE(1)+RUNO+DM2)*TFL*SHW 
+        FHO=ELAKE(1)+ENRGO+DH2-(MLAKE(1)+DM2+RUNO)*TFL*SHW 
         IF (FHO.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFO =FHO/(TFL*(SHI-SHW)-LHM)
-          ACEFO =MIN(ACEFO,MAX(MLAKE(1)+RUNO+DM2-MINMLD*RHOW,0d0))
+          ACEFO =MIN(ACEFO,MAX(MLAKE(1)+DM2+RUNO-MINMLD*RHOW,0d0))
           ENRGFO=ACEFO*(TFL*SHI-LHM)
           E2O=FHO-ENRGFO
         END IF
@@ -88,21 +97,19 @@ C**** Calculate energy in mixed layer (open ocean)
    
       IF (ROICE.GT.0) THEN
 C**** Calculate energy in mixed layer (under ice)
-        FHI=ELAKE(1)+ENRGI-(MLAKE(1)+RUNI)*TFL*SHW 
+        FHI=ELAKE(1)+DH2+ENRGI-(MLAKE(1)+DM2+RUNI)*TFL*SHW 
         IF (FHI.LT.0) THEN ! FLUXES COOL WATER TO FREEZING, FORM ICE
           ACEFI =FHI/(TFL*(SHI-SHW)-LHM)
-          ACEFI =MIN(ACEFI,MAX(MLAKE(1)+RUNI-MINMLD*RHOW,0d0))
+          ACEFI =MIN(ACEFI,MAX(MLAKE(1)+DM2+RUNI-MINMLD*RHOW,0d0))
           ENRGFI=ACEFI*(TFL*SHI-LHM)
           E2I=FHI-ENRGFI
         END IF
       END IF
 
-C**** Update variables
-      MLAKE(1)=MLAKE(1)+(1.-ROICE)*(RUNO  +DM2-ACEFO)+ROICE*(RUNI-ACEFI)
-      MLAKE(2)=MLAKE(2)+(1.-ROICE)*(      -DM2      )
-      ELAKE(1)=ELAKE(1)+(1.-ROICE)*(ENRGO +DH2-ENRGFO)+
-     *                                              ROICE*(ENRGI-ENRGFI)
-      ELAKE(2)=ELAKE(2)+(1.-ROICE)*(ENRGO2-DH2)
+C**** Update first layer variables
+      MLAKE(1)=MLAKE(1)+DM2+(1.-ROICE)*(RUNO -ACEFO)+ROICE*(RUNI-ACEFI)
+      ELAKE(1)=ELAKE(1)+DH2+(1.-ROICE)*(ENRGO-ENRGFO)+
+     *                                             ROICE*(ENRGI-ENRGFI)
 
       ACEF1=0. ; ACEF2=0. ; ENRGF1=0. ; ENRGF2=0.
 C**** Take remaining energy and start to freeze second layer
@@ -128,9 +135,9 @@ C**** limit freezing if lake is between 50 and 20cm depth
           ELAKE(1)=ELAKE(1)-ENRGF1
           MLAKE(1)=MLAKE(1)-ACEF1
           FH0     =ELAKE(1)-MLAKE(1)*TFL*SHW 
-          IF (FH0.lt.0) THEN    ! maximum amount of lake frozen, cool ice
+          IF (FH0.lt.-1d-10) THEN ! max. amount of lake frozen, cool ice
             PRINT*,"Minimum lake level reached: rsi,mlake,elake",i0,j0
-     *           ,roice,mlake(1)/rhow,elake(1),fh0
+     *           ,roice,mlake(1)/rhow,elake(1)
             ENRGF1  =ENRGF1+FH0
             ELAKE(1)=MLAKE(1)*TFL*SHW
           END IF
@@ -684,6 +691,8 @@ C****
       USE DAGCOM, only : tsfrez,tf_lkon,tf_lkoff,aij,ij_lkon,ij_lkoff
       IMPLICIT NONE
       INTEGER IEND,IMAX,I,J,L
+!@var FDAILY fraction of energy available to be used for melting 
+      REAL*8 :: FDAILY = BY3
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGW,ENRGUSED,ANGLE,RUN0
 
@@ -725,19 +734,20 @@ C**** Melt lake ice if energy is available in mixed layer
           IF (FLAKE(I,J)*RSI(I,J) .GT. 0.) THEN
 C**** REDUCE ICE EXTENT IF LAKE TEMPERATURE IS GREATER THAN ZERO
 C**** (MELTING POINT OF ICE)
-            IF (TLAKE(I,J).GT.0.) THEN
+C**** Also remove ice fractions less than 0.0001
+            IF (TLAKE(I,J).GT.0. .or. RSI(I,J).lt.1d-4) THEN
               ROICE=RSI(I,J)
               MSI2 =MSI(I,J)
               SNOW =SNOWI(I,J)   ! snow mass
               HSIL =HSI(:,I,J) ! sea ice enthalpy
 C**** energy of water available for melting
-              ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW
+              ENRGW=TLAKE(I,J)*MLDLK(I,J)*SHW*RHOW*FDAILY
               CALL SIMELT(ROICE,SNOW,MSI2,HSIL,TSIL,ENRGW,ENRGUSED,RUN0)
 C**** RESAVE PROGNOSTIC QUANTITIES
               GML(I,J)=GML(I,J)-FLAKE(I,J)*DXYP(J)*ENRGUSED
               MWL(I,J)=MWL(I,J)+FLAKE(I,J)*DXYP(J)*RUN0
               MLDLK(I,J)=MLDLK(I,J)+RUN0/RHOW
-              TLAKE(I,J)=(ENRGW-ENRGUSED)/(MLDLK(I,J)*SHW*RHOW)
+              TLAKE(I,J)=TLAKE(I,J)-ENRGUSED/(MLDLK(I,J)*SHW*RHOW)
               RSI(I,J)=ROICE
               MSI(I,J)=MSI2
               SNOWI(I,J)=SNOW
@@ -918,6 +928,12 @@ C**** calculate kg/m^2, J/m^2 from saved variables
         MLAKE(2)=MAX(MWL(I,J)/(FLAKE(I,J)*DXYPJ)-MLAKE(1),0d0)
         ELAKE(1)=TLK1*SHW*MLAKE(1)
         ELAKE(2)=GML(I,J)/(FLAKE(I,J)*DXYPJ)-ELAKE(1)
+        IF (MLAKE(2).lt.1d-10) THEN
+          MLAKE(2)=0.
+          ELAKE(2)=0.
+        END IF
+C**** Limit FSR2 in the case of thin second layer
+        FSR2=MIN(FSR2,MLAKE(2)/(MLAKE(1)+MLAKE(2)))
         
         AJ(J,J_TG1, ITLAKE) =AJ(J,J_TG1, ITLAKE) +TLK1 *POLAKE
         AJ(J,J_EVAP,ITLAKE) =AJ(J,J_EVAP,ITLAKE) +EVAPO*POLAKE
