@@ -1,3 +1,19 @@
+Changes from modelE-2-3 to modelE-2-3-5
+=======================================
+
+- new conductance scheme option for land surface
+
+- preliminary incorporation of wet and dry deposition for gases and
+  aerosols
+
+- angular momentum conservation for UV filter and GW drag
+
+- better modularisation of snow model
+
+- improved option for sea ice albedo (Hansen)
+
+- minor bug fixes and diagnostic improvements
+
 Major changes from version modelE-2-1 to modelE-2-3
 ===================================================
 
