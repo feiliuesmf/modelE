@@ -391,7 +391,7 @@ ccc partial cover
         if (fract_cover.gt.1.d0 .or. fract_cover.lt.EPS) then
           if ( DEB_CH == 0 )
      $         call openunit("snow_debug", DEB_CH, .false., .false.)
-          write(DEB_CH,*) 'EROOR: fract_cover= ', fract_cover
+          write(DEB_CH,*) 'ERORR: fract_cover= ', fract_cover
           write(DEB_CH,*) dz(1), fresh_snow
           if ( fract_cover.gt.1.d0 ) fract_cover = 1.d0
           if ( fract_cover.lt.EPS ) fract_cover = EPS
@@ -572,7 +572,7 @@ ccc      water_down = 0.d0
       water_to_ground = water_to_ground + water_down*fract_cover
 
 ccc update dz
-      do n=1,n
+      do n=1,nl
         if( hsn(n).gt.0.d0 .or. isn(n).lt.EPS ) then
           dz(n) = 0.d0
         else if( hsn(n) .gt. -wsn(n)*lat_fusion ) then
