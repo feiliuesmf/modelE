@@ -19,7 +19,7 @@ C****      OHTLP - line plottable zonal northward heat transports
 C****     RSFNEW - augmented restart file
 C****
       USE PARAM
-      USE CONSTANT, only : twopi,sday
+      USE CONSTANT, only : twopi,sday,rhows
       USE MODEL_COM, only: im,jm,lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
@@ -207,8 +207,8 @@ C****
      *               +OA(I,J,13)
 C*
                 OE = RSI(I,J)*OA(I,J,3)
-     *               + ((Z1O(I,J)*RHOW-OA(I,J,2))*TOCEAN(1,I,J)+
-     *               (Z12O(I,J)-Z1O(I,J))*RHOW*TOCEAN(2,I,J))*SHW
+     *               + ((Z1O(I,J)*RHOWS-OA(I,J,2))*TOCEAN(1,I,J)+
+     *               (Z12O(I,J)-Z1O(I,J))*RHOWS*TOCEAN(2,I,J))*SHW
 C*
 C**** Accumulate the spectral coefficients
 C*
