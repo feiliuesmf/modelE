@@ -2654,9 +2654,6 @@ c
       implicit none
       real*8 :: bydj,bydjuv,daeq
       integer :: k,j,kk
-      integer j_0,j_1
-
-      call get(grid, j_strt=j_0, j_stop=j_1)
 c
       do k=1,kail
          write(name_il(k),'(a3,i3.3)') 'AIL',k
