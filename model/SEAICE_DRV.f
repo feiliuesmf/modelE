@@ -63,7 +63,6 @@
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
-c        debug=i.eq.2.and.j.eq.4
         CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0,
 #ifdef TRACERS_WATER
      *       TRSIL,TRPRCP,TRUN0,
@@ -531,6 +530,7 @@ C****
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:addice
+      USE CONSTANT, only : lhm,byshi
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
       USE GEOM, only : imaxj,dxyp
@@ -540,7 +540,7 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx
-      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi
+      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
@@ -563,6 +563,7 @@ C****
       LOGICAL QFIXR
       INTEGER I,J,JR,ITYPE,ITYPEO,N
 
+      debug=.false.
       DO J=1,JM
       DO I=1,IMAXJ(J)
       PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -623,7 +624,7 @@ C**** regional diagnostics
         AREG(JR,J_SMELT)=AREG(JR,J_SMELT)-
      *       (SALTO *POCEAN+SALTI *POICE)*DXYP(J)
 
-
+c        debug=i.eq.20.and.j.eq.37
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
 #ifdef TRACERS_WATER
@@ -736,7 +737,7 @@ C****
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm,shi,rhow
-      USE MODEL_COM, only : im,jm,kocean,focean
+      USE MODEL_COM, only : im,jm,kocean,focean,flake0
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
      *     ,lmi
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
@@ -766,6 +767,12 @@ C**** Adjust degree of lateral melt by changing silmfac
 C**** Default is 2.5d-8, but could be changed by a factor of 2.
       call sync_param("silmfac",silmfac)
 
+C**** clean up ice fraction that is possibly incorrect in I.C.
+      DO J=1,JM
+      DO I=1,IM
+        IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
+      END DO
+      END DO
       IF (KOCEAN.EQ.0.and.iniOCEAN) THEN
 C****   set defaults for no ice case
         DO J=1,JM
