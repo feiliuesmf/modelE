@@ -982,3 +982,37 @@ C**** Check for reasonable temperatures over earth
      *     ,A4/' SNW,x,TG1,WTR1,ICE1, WFC1 ',6F12.4)
 
       END SUBROUTINE CHECKE
+
+      SUBROUTINE daily_SNOW
+!@sum  daily_SNOW updates the snow ages every day
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM, only : IM,JM,GDATA,NSURF
+      USE GEOM, only : IMAXJ
+      USE DAGCOM, only : AIJ,TDIURN,IJ_STRNGTS,IJ_DTGDTS,IJ_TMAXE
+     *     ,IJ_TDSL,IJ_TMNMX
+      IMPLICIT NONE
+      REAL*8 TSAVG
+      INTEGER I,J,IMAX
+
+C**** INCREASE SNOW AGE EACH DAY (independent of Ts)
+      DO J=1,JM
+         IMAX=IMAXJ(J)
+         DO I=1,IMAX
+            GDATA(I,J,9)=1.+.98*GDATA(I,J,9)
+            GDATA(I,J,10)=1.+.98*GDATA(I,J,10)
+            GDATA(I,J,11)=1.+.98*GDATA(I,J,11)
+            TSAVG=TDIURN(I,J,5)/(24.*NSURF)
+            IF(32.+1.8*TSAVG.LT.65.)
+     *           AIJ(I,J,IJ_STRNGTS)=AIJ(I,J,IJ_STRNGTS)+(33.-1.8*TSAVG)
+            AIJ(I,J,IJ_DTGDTS)=AIJ(I,J,IJ_DTGDTS)+18.*((TDIURN(I,J,2)-
+     *           TDIURN(I,J,1))/(TDIURN(I,J,4)-TDIURN(I,J,3)+1.D-20)-1.)
+         AIJ(I,J,IJ_TDSL)=AIJ(I,J,IJ_TDSL)+(TDIURN(I,J,4)-TDIURN(I,J,3))
+            AIJ(I,J,IJ_TMAXE)=AIJ(I,J,IJ_TMAXE)+(TDIURN(I,J,4)-273.16)
+            IF (TDIURN(I,J,6).LT.AIJ(I,J,IJ_TMNMX))
+     *           AIJ(I,J,IJ_TMNMX)=TDIURN(I,J,6)
+         END DO
+      END DO
+
+      RETURN
+      END SUBROUTINE daily_SNOW

@@ -7214,9 +7214,10 @@ C****
       END SUBROUTINE DIAG10
 
       SUBROUTINE init_DIAG
-!@sum  init_DIAG initiallises the diagnostics array meta-information
+!@sum  init_DIAG initiallises the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0  
+      USE E001M12_COM
       USE DAGCOM
       IMPLICIT NONE
 
@@ -7425,72 +7426,88 @@ C**** NAME_IJ(IJ_TS1)    = "TS1"    ; IA_IJ(IJ_TS1) = 4
       NAME_IJ(IJ_FGZU)   = "FGZU"   ; IA_IJ(IJ_FGZU) = 1
       NAME_IJ(IJ_FGZV)   = "FGZV"   ; IA_IJ(IJ_FGZV) = 1
 
+C**** Ensure that diagnostics are reset at the beginning of the run
+      IF (TAU.le.TAUI) THEN 
+         CALL reset_DIAG
+         CALL daily_DIAG
+      END IF
+
       RETURN
       END SUBROUTINE init_DIAG
 
+      SUBROUTINE reset_DIAG
+!@sum  reset_DIAG resets/initiallises diagnostics
+!@auth Original Development Team
+!@ver  1.0  
+      USE E001M12_COM
+      USE DAGCOM
+      IMPLICIT NONE
 
-c      SUBROUTINE monthly_DIAG
-c!@sum  monthly_DIAG initiallises the diagnostics at beginning of month
-c!@auth Original Development Team
-c!@ver  1.0  
-c      USE DAGCOM
-c      IMPLICIT NONE
-c
-c      DO K=1,13
-c         IF (JDAY.EQ.NDZERO(K)) GO TO 260
-c      END DO
-c      GO TO 290
-c 260  TAU0=TAU
-c      IDAY0=IDAY
-c      TOFDY0=TOFDAY
-c      JDATE0=JDATE
-c      JMNTH0=JMONTH
-c      JYEAR0=JYEAR
-c
-c      IDACC(1:10)=0
-c      DO K=1,KACC
-c         AJ(K,1)=0.
-c      END DO
-c      DO J=1,JM
-c         DO I=1,IM
-c            AIJ(I,J,IJ_TMNMX)=1000.
-c         END DO
-c      END DO
-cC**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-c 290  IF (JDAY.EQ.32) THEN
-c         DO J=1+JM/2,JM
-c            DO I=1,IM
-c               TSFREZ(I,J,1)=JDAY
-c            END DO
-c         END DO
-c         DO J=1,JM/2
-c            DO I=1,IM
-c               TSFREZ(I,J,2)=JDAY
-c            END DO
-c         END DO
-c      ELSEIF (JDAY.EQ.213) THEN
-c         DO J=1,JM/2
-c            DO I=1,IM 
-c              TSFREZ(I,J,1)=JDAY
-c            END DO
-c         END DO
-c      END IF
-cC**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
-c      DO J=1,JM
-c         DO I=1,IM
-c            TDIURN(I,J,1)= 1000.
-c            TDIURN(I,J,2)=-1000.
-c            TDIURN(I,J,3)= 1000.
-c            TDIURN(I,J,4)=-1000.
-c            TDIURN(I,J,5)=    0.
-c            TDIURN(I,J,6)=-1000.
-c            TDIURN(I,J,7)=-1000.
-c            TDIURN(I,J,8)=-1000.
-c            IF (FEARTH(I,J).LE.0.) THEN
-c               TSFREZ(I,J,1)=365.
-c               TSFREZ(I,J,2)=365.
-c            END IF
-c         END DO
-c      END DO
-c         
-c      END SUBROUTINE monthly_DIAG
+      INTEGER K,I,J
+
+      TAU0=TAU
+      IDAY0=IDAY
+      TOFDY0=TOFDAY
+      JDATE0=JDATE
+      JMNTH0=JMONTH
+      JYEAR0=JYEAR
+      
+      IDACC(1:10)=0
+      DO K=1,KACC
+         AJ(K,1)=0.
+      END DO
+      DO J=1,JM
+         DO I=1,IM
+            AIJ(I,J,IJ_TMNMX)=1000.
+         END DO
+      END DO
+      RETURN
+      END SUBROUTINE reset_DIAG
+
+      SUBROUTINE daily_DIAG
+!@sum  daily_DIAG resets diagnostics at beginning of each day
+!@auth Original Development Team
+!@ver  1.0  
+      USE E001M12_COM
+      USE DAGCOM
+      IMPLICIT NONE
+
+      INTEGER I,J
+C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
+      IF (JDAY.EQ.32) THEN
+         DO J=1+JM/2,JM
+            DO I=1,IM
+               TSFREZ(I,J,1)=JDAY
+            END DO
+         END DO
+         DO J=1,JM/2
+            DO I=1,IM
+               TSFREZ(I,J,2)=JDAY
+            END DO
+         END DO
+      ELSEIF (JDAY.EQ.213) THEN
+         DO J=1,JM/2
+            DO I=1,IM 
+              TSFREZ(I,J,1)=JDAY
+            END DO
+         END DO
+      END IF
+C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
+      DO J=1,JM
+         DO I=1,IM
+            TDIURN(I,J,1)= 1000.
+            TDIURN(I,J,2)=-1000.
+            TDIURN(I,J,3)= 1000.
+            TDIURN(I,J,4)=-1000.
+            TDIURN(I,J,5)=    0.
+            TDIURN(I,J,6)=-1000.
+            TDIURN(I,J,7)=-1000.
+            TDIURN(I,J,8)=-1000.
+            IF (FEARTH(I,J).LE.0.) THEN
+               TSFREZ(I,J,1)=365.
+               TSFREZ(I,J,2)=365.
+            END IF
+         END DO
+      END DO
+         
+      END SUBROUTINE daily_DIAG

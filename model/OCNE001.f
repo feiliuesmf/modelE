@@ -1509,6 +1509,66 @@ C****   BECAUSE THE OCEAN ICE REACHED THE MAX MIXED LAYER DEPTH
       ENDDO
       END SUBROUTINE OHT_INIT
 
+      SUBROUTINE daily_OCEAN
+!@sum  daily_OCEAN performs the daily tasks for the ocean module
+!@auth Original Development Team
+!@ver  1.0
+      USE E001M12_COM, only : IM,JM,KOCEAN
+      USE OCEAN, only : ODATA,OSTRUC
+      USE DAGCOM, only : AIJ, IJ_ODATA4,IJ_TGO2
+      IMPLICIT NONE
+      INTEGER I,J
+
+      IF (KOCEAN.EQ.1) THEN
+         DO J=1,JM
+            DO I=1,IM
+               AIJ(I,J,IJ_ODATA4)=AIJ(I,J,IJ_ODATA4)+ODATA(I,J,4)
+               AIJ(I,J,IJ_TGO2)=AIJ(I,J,IJ_TGO2)+ODATA(I,J,5)
+            END DO
+         END DO
+C**** RESTRUCTURE THE OCEAN LAYERS AND ELIMINATE SMALL ICE BERGS
+         CALL OSTRUC
+      END IF
+
+      RETURN
+      END
+
+      SUBROUTINE uset_OCEAN
+!@sum  uset_OCEAN saves quantities for OHT calculations
+!@auth Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : RHOI
+      USE E001M12_COM, only : IM,JM,GDATA
+      USE OCEAN, only : OA,Z1I,XSI1,XSI2,XSI3,XSI4
+      IMPLICIT NONE
+      INTEGER I,J
+C****
+C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
+C****
+C****       1  ACE1I+SNOWOI  (INSTANTANEOUS AT NOON GMT)
+C****       2  TG1OI  (INSTANTANEOUS AT NOON GMT)
+C****       3  TG2OI  (INSTANTANEOUS AT NOON GMT)
+C****       4  ENRGP  (INTEGRATED OVER THE DAY)
+C****       5  SRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       6  TRHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       7  SHDT   (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       8  EVHDT  (FOR OCEAN, INTEGRATED OVER THE DAY)
+C****       9  TRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      10  SHDT   (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      11  EVHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****      12  SRHDT  (FOR OCEAN ICE, INTEGRATED OVER THE DAY)
+C****
+      DO J=1,JM
+         DO I=1,IM
+            OA(I,J,1)=Z1I*RHOI+GDATA(I,J,1)
+            OA(I,J,2)=GDATA(I,J,3)*XSI1+GDATA(I,J,7)*XSI2
+            OA(I,J,3)=GDATA(I,J,15)*XSI3+GDATA(I,J,16)*XSI4
+         END DO
+      END DO
+
+      RETURN
+      END
+
 c      MODULE SEAICE
 c!@sum  SEAICE contains all the sea ice related subroutines
 c!@auth Original Development Team
