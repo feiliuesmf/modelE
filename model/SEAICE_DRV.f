@@ -329,17 +329,24 @@ C****
 !@ver  1.0
       USE CONSTANT, only : byshi,lhm 
       USE E001M12_COM, only : im,jm
-      USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
-      USE SEAICE, only : xsi,ace1i
+      USE SEAICE, only : xsi,ace1i,ac2oim
       USE FLUXES, only : gtemp
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 MSI1
 
-C**** set GTEMP array for ice
       DO J=1,JM
-        DO I=1,IMAXJ(J)
+        DO I=1,IM
+C**** set defaults for no ice case 
+          IF (RSI(I,J).eq.0) THEN
+            MSI1        =ACE1I
+            MSI(I,J)    =AC2OIM
+            SNOWI(I,J)  =0.
+            HSI(1:2,I,J)=-LHM*XSI(1:2)*MSI1
+            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
+          END IF
+C**** set GTEMP array for ice
           MSI1=SNOWI(I,J)+ACE1I
           GTEMP(1:2,2,I,J)=(HSI(1:2,I,J)/(XSI(1:2)*MSI1)+LHM)*BYSHI
         END DO

@@ -12,7 +12,7 @@
      *     cq=>cqgs,ipbl
       USE GEOM
       USE SEAICE_COM, only : rsi,msi,hsi,snowi
-      USE SEAICE, only : xsi,ace1i,z1i
+      USE SEAICE, only : xsi,ace1i,z1i,ac2oim
       USE LANDICE_COM, only : snowli,tlandi
       USE LAKES_COM, only : tlake,tfl
       USE FLUXES, only : gtemp
@@ -278,6 +278,8 @@ c        RSI(I,J)=RSI(I,J)*(1.-.06d0*(BYZICE-0.2d0))
 c     END IF
 C**** ZERO OUT SNOWOI, TG1OI, TG2OI IF THERE IS NO OCEAN ICE
           IF (RSI(I,J).LE.0.) THEN
+            HSI(1:2,I,J)=-LHM*XSI(1:2)*ACE1I
+            HSI(3:4,I,J)=-LHM*XSI(3:4)*AC2OIM
             SNOWI(I,J)=0.
             GTEMP(1:2,2,I,J)=0.
           END IF
@@ -637,17 +639,10 @@ C**** (MELTING POINT OF ICE)
 C**** RESAVE PROGNOSTIC QUANTITIES
             TGW=(ENRGW-ENRGUSED)/(WTRO*SHW)
             TOCEAN(1,I,J)=TGW
-            IF (ROICE.le.0.) THEN
-              RSI(I,J)=0.
-              MSI(I,J)=0.
-              SNOWI(I,J)=0.
-c              HSI(:,I,J)=0.
-            ELSE
-              RSI(I,J)=ROICE
-              MSI(I,J)=MSI2
-              SNOWI(I,J)=SNOW
-              HSI(:,I,J)=HSIL(:)
-            END IF
+            RSI(I,J)=ROICE
+            MSI(I,J)=MSI2
+            SNOWI(I,J)=SNOW
+            HSI(:,I,J)=HSIL(:)
 C**** set ftype/gtemp arrays
             FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)*(1.-RSI(I,J))
             FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*    RSI(I,J)
