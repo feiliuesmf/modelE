@@ -295,13 +295,13 @@ FORCE:
 %.mod: 
 	@echo $(ECHO_FLAGS) checking $@: \\c
 #	@echo 'called rule for $@, depends on $^ built from: '`cat $@.sig`
-#	@if [ "$<empty" = "empty" ]; then \
-#	echo "No dependency for $@ : ";\
-#	echo "Unsupported architecture or Makefile error";\
-#	exit 1; fi
-	@if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
+	@if [ "$<empty" = "empty" ]; then \
+	echo "No dependency for $@ : assuming it is a system module";\
+	else \
+	if [ ! -s $@.sig ] || [ "`cat $@.sig`" != "$<" ]; then \
 	echo "  dependencies for $@ have changed - recompiling"; \
-	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi
+	rm -f $<; $(MAKE) $< RUN=$(RUN); else echo '  ok'; fi ; \
+	fi
 
 # Standard fortran
 # .timestemp is a hack to set proper times on .o and .mod
