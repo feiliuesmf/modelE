@@ -641,3 +641,196 @@ C****
       END SUBROUTINE set_tracer_source
 
 #endif
+
+#ifdef TRACERS_WATER
+C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------------
+
+      SUBROUTINE GET_COND_FACTOR(L,N,WMXTR,FCLOUD,FQ0,fq)
+!@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
+!@+    within or below convective or large-scale clouds. Gas 
+!@+    condensation uses Henry's Law if not freezing.
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
+c
+C**** GLOBAL parameters and variables:
+      USE CLOUDS, only: PL, TL, NTIX
+      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
+      USE CONSTANT, only: TF, BYGASC, MAIR
+c      
+      IMPLICIT NONE
+c      
+C**** Local parameters and variables and arguments:
+c
+!@param BY298K unknown meaning for now (assumed= 1./298K)
+!@var Ppas pressure at current altitude (in Pascal=kg/s2/m) 
+!@var TFAC exponential coeffiecient of tracer condensation temperature
+!@+   dependence (mole/joule)
+!@var FCLOUD fraction of cloud available for tracer condensation
+!@var SSFAC dummy variable (assumed units= kg water?)
+!@var FQ            fraction of tracer that goes into condensate
+!@var FQ0 [default] fraction of tracer that goes into condensate
+!@var L index for altitude loop
+!@var N index for tracer number loop
+!@var WMXTR mixing ratio of water available for tracer condensation ( )?
+!@var RKD dummy variable (= tr_RKD*EXP[ ])
+      REAL*8, PARAMETER :: BY298K=3.3557D-3
+      REAL*8 Ppas, tfac, ssfac, RKD
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR
+      REAL*8,  INTENT(OUT):: fq
+      INTEGER, INTENT(IN) :: L, N
+c
+C**** CALCULATE the fraction of tracer mass that becomes condensate:
+c
+      SELECT CASE(tr_wd_TYPE(NTIX(N)))                 
+        CASE(nGAS)                                  ! gas tracer
+          fq = 0.D0                                   ! frozen case
+          IF(TL(L).ge.TF) THEN                        ! if not frozen then: 
+            Ppas = PL(L)*1.D2                         ! pressure to pascals
+            tfac = (1.D0/TL(L) - BY298K)*BYGASC
+            IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
+              RKD=tr_RKD(NTIX(N))*DEXP(-tr_DHD(NTIX(N))*tfac)
+            ELSE  
+              RKD=tr_RKD(NTIX(N))
+            END IF
+c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TL(L)*FCLOUD)
+c           ssfac=RKD*GASC*TL(L)*clwc   ! Henry's Law
+            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/FCLOUD
+            fq=ssfac / (1.D0 + ssfac)
+          END IF
+        CASE(nWATER)                                ! water tracer
+          fq = FQ0                                  
+        CASE(nPART)                                 ! particulate tracer
+          fq = 0.D0                                   ! temporarily zero.
+c NOTE 1: Dorothy has some code that will be put here to condense 
+c aerosols. GSF 1/4/02
+c
+c NOTE 2:  Really, any aerosol 'formation', (meaning the production of
+c an aerosol tracer due to cloud chemistry, or any flux among tracers),
+c should be done elsewhere, like in a chemistry section of the model.
+c But if it is impossible to supply that section with the variables
+c needed from the wet deposition code, then the aerosol formation code
+c should probably go here... If you add this, please make appropriate
+c changes in the subroutine's name/summary above. GSF 1/4/02. 
+        CASE DEFAULT                                ! error
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in SCAVENGE_TRACER'            
+      END SELECT
+c      
+      RETURN
+      END SUBROUTINE GET_COND_FACTOR
+
+
+      SUBROUTINE GET_PREC_FACTOR(N,BELOW_CLOUD,CM,FCLD,FQ0,fq)
+!@sum  GET_PREC_FACTOR calculation of the precipitation scavenging fraction
+!@+    for tracers WITHIN large scale clouds. Current version uses the
+!@+    first order removal rate based on [Giorgi and Chameides, 1986], for
+!@+    gaseous and particulate tracers. 
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 RAINOUT subroutine)
+c
+C**** GLOBAL parameters and variables:
+      USE CLOUDS, only: NTIX
+      USE MODEL_COM, only: dtsrc
+      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE
+c
+      IMPLICIT NONE
+c      
+C**** Local parameters and variables and arguments:
+!@var FQ            tracer fraction scavenged into precipitation
+!@var FQ0 [default] tracer fraction scavenged into precipitation
+!@var FCLD cloud fraction
+!@var N index for tracer number loop
+!@var CM conversion rate for large cloud water content
+!@var BELOW_CLOUD logical- is the current level below cloud?
+      LOGICAL, INTENT(IN) :: BELOW_CLOUD
+      INTEGER, INTENT(IN) :: N
+      REAL*8,  INTENT(IN) :: FQ0, FCLD, CM
+      REAL*8,  INTENT(OUT):: FQ
+c
+      SELECT CASE(tr_wd_TYPE(NTIX(N)))                 
+        CASE(nGAS)                                ! gas
+          IF(BELOW_CLOUD) THEN
+            fq = 0.D0
+          ELSE
+c           minus preserves FPRT sign convention in LSCOND
+            fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+          END IF
+        CASE(nWATER)                              ! water/original method
+          fq = FQ0                               
+        CASE(nPART)                               ! aerosols
+          IF(BELOW_CLOUD) THEN
+            fq = 0.D0
+          ELSE
+c           minus preserves FPRT sign convention in LSCOND
+            fq = -(CM*DTsrc*(EXP(-CM*DTsrc)- 1.0)*FCLD)
+          END IF
+        CASE DEFAULT                              ! error
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in GET_FPRT'                              
+      END SELECT
+c
+      RETURN
+      END SUBROUTINE GET_PREC_FACTOR
+
+
+      SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq)
+!@sum  GET_WASH_FACTOR calculation of the fraction of tracer 
+!@+    scavanged by precipitation below convective clouds ("washout"). 
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
+c
+C**** GLOBAL parameters and variables:
+      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE
+      USE CLOUDS, only: NTIX
+c
+      IMPLICIT NONE
+c 
+C**** Local parameters and variables and arguments:
+!@var FQ fraction of tracer scavenged by below-cloud precipitation
+!@param rc_wash aerosol washout rate constant (mm-1)
+!@var PREC precipitation amount from layer above for washout (mm)
+!@var b_beta_DT precipitating grid box fraction from lowest percipitating
+!@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
+!@var N index for tracer number loop
+      INTEGER, INTENT(IN) :: N
+      REAL*8, INTENT(OUT):: FQ
+      REAL*8, INTENT(IN) :: PREC, b_beta_DT
+      REAL*8, PARAMETER :: rc_wash = 1.D-1
+C
+      SELECT CASE(tr_wd_TYPE(NTIX(N)))                 
+        CASE(nGAS)                                ! gas
+          fq = 0.D0
+        CASE(nWATER)                              ! water/original method
+          fq = 0.D0                              
+        CASE(nPART)                               ! aerosols
+          fq = b_beta_DT*(DEXP(-PREC*rc_wash)-1.)
+        CASE DEFAULT                              ! error
+          STOP 'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER'                              
+      END SELECT   
+c      
+      RETURN
+      END SUBROUTINE GET_WASH_FACTOR
+
+
+      SUBROUTINE GET_EVAP_FACTOR(N,FQ0,fq)
+!@sum  GET_EVAP_FACTOR calculation of the evaporation fraction for tracers.
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
+c
+C**** GLOBAL parameters and variables:
+      USE CLOUDS, only: NTIX
+      USE TRACER_COM, only: tr_evap_fact, tr_wd_TYPE
+c
+      IMPLICIT NONE
+c      
+C**** Local parameters and variables and arguments:
+!@var FQ            fraction of tracer evaporated
+!@var FQ0 [default] fraction of tracer evaporated
+!@var N index for tracer number loop
+      INTEGER, INTENT(IN) :: N
+      REAL*8,  INTENT(OUT):: FQ
+      REAL*8,  INTENT(IN) :: FQ0
+c
+      fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+c
+      RETURN
+      END SUBROUTINE GET_EVAP_FACTOR 
+#endif
