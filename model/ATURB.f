@@ -1026,8 +1026,9 @@ c       ke(j)=min(max(taue*se,kemin),kmax)
         vw(j)=-km(j)*dvdz(j)
         wt(j)=-kh(j)*dtdz(j)+gc_wt(j)
         wq(j)=-kq(j)*dqdz(j)+gc_wq(j)
-        w2(j)=twoby3*e(j)+tauj*(c7*(
+        w2j=twoby3*e(j)+tauj*(c7*(
      2    dudz(j)*uw(j)+dvdz(j)*vw(j))+c8*g_alpha(j)*wt(j))
+        w2(j)=max(0.24d0*e(j),w2j) ! Mellor-Yamada 1982
       enddo
       if(level.eq.25) then
         do j=1,n

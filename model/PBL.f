@@ -423,6 +423,7 @@ C**** tracers are now passive, so use 'upstream' concentration
       !@var w2_1 the vertical component of e at GCM layer 1
       w2_1=twoby3*e(n-1)-tau*by3
      &     *((3*g3-g2)*km(n-1)*as2+4.*g4*kh(n-1)*an2)
+      w2_1=max(0.24d0*e(n-1),w2_1) ! Mellor-Yamada 1982
 
 c     call check1(ustar,1,ilong,jlat,2)
 
