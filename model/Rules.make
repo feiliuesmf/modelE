@@ -43,6 +43,7 @@ FMAKEDEP = $(NO_COMMAND)
 F =  $(NO_COMMAND)
 U = $(NO_COMMAND)
 SETUP = $(SCRIPTS_DIR)/setup_e
+SETUP_GFDL = $(SCRIPTS_DIR)/setup_gfdl
 CPP = $(NO_COMMAND)
 MACHINE = not_specified
 COMPILER = not_specified
