@@ -576,13 +576,13 @@ c*** tracer masses & slopes are now updated in apply_tracer_3Dsource ***
       do igas=1,ntm
        do L=1,maxl
         if(change(I,J,L,igas).gt.1.E20) then
-           WRITE(6,*)'>>change set to 0 in chemstep: I,J,L,igas,change'
+           WRITE(99,*)'change set to 0 in chemstep: I,J,L,igas,change'
      &    ,I,J,L,igas,change(I,J,L,igas)
            change(I,J,L,igas) = 0.
         endif
         if(-change(I,J,L,igas).gt.trm(I,J,L,igas)) THEN
           if(prnchg)
-     &    WRITE(6,*)'>>change .gt. mass, so use 95%: I,J,L,igas,change'
+     &    WRITE(99,*)'change .gt. mass, so use 95%: I,J,L,igas,change'
      &    ,I,J,L,igas,change(I,J,L,igas)
           change(I,J,L,igas) = -0.95*trm(I,J,L,igas)
         endif
