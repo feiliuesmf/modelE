@@ -33,7 +33,7 @@ C**** Interface to PBL
 #ifdef TRACERS_ON
      *     ,trtop,trs,trsfac,trconstflx,ntx,ntix
 #ifdef TRACERS_WATER
-     *     ,tr_evap_max
+     *     ,tr_evap_max,psurf,trhr0
 #endif
 #endif
       USE DAGCOM, only : oa,aij,tdiurn,aj,areg,adiurn,ndiupt,jreg
@@ -383,19 +383,13 @@ C**** Set surface boundary conditions for tracers depending on whether
 C**** they are water or another type of tracer
 #ifdef TRACERS_WATER
         tr_evap_max(nx)=1.
+        psurf=PS
+        trhr0 = TRHR(0,I,J)
 C**** The select is used to distinguish water from gases or particle
 !!!        select case (tr_wd_TYPE(n))
 !!!        case (nWATER)
         if ( tr_wd_TYPE(n) == nWATER ) then
-#ifdef TRACERS_SPECIAL_O18
-          if (ITYPE.eq.1) then   ! liquid water => fractionation
-        trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT*FRACVL(TG1,trname(n))
-          else   ! ice, no fractionation
-            trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
-          end if
-#else
-            trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
-#endif
+          trgrnd(nx)=gtracer(n,itype,i,j)*QG_SAT
 C**** trsfac and trconstflx are multiplied by cq*wsh in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
@@ -549,7 +543,8 @@ C****
           IF (ITYPE.EQ.1) THEN  ! OCEAN
 C**** do calculation implicitly for TQS
 #ifdef TRACERS_SPECIAL_O18
-            TEV=-RCDQWS*(trs(nx)-trgrnd(nx))*FRACLK(WSM,trname(n))
+            TEV=-RCDQWS*(trs(nx)-trgrnd(nx)*
+     *           fracvl(tg1,trname(n)))*FRACLK(WSM,trname(n))
             dTEVdTQS =-RCDQWS*FRACLK(WSM,trname(n))
 #else
             TEV=-RCDQWS*(trs(nx)-trgrnd(nx))

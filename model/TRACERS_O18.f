@@ -129,7 +129,7 @@ C****
 
       FUNCTION FRACLK(WS,trname)
 !@sum FRACLK calculates the liquid/vapor kinetic fractionation factor
-!@+          from either (Merlivat and Jouzel,1972) or as a constant
+!@+          from either (Merlivat and Jouzel,1979) or as a constant
 !@auth Gavin Schmidt
       IMPLICIT NONE
 !@var WS surface wind speed (m/s)

@@ -15,11 +15,12 @@ c     input data:
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
 #ifdef TRACERS_WATER
-      real*8, dimension(ntm) :: tr_evap_max(ntm)
+      real*8, dimension(ntm) :: tr_evap_max
+      real*8 :: psurf, trhr0
 #endif
       common/pbl_loc/evap_max,fr_sat,uocean,vocean
 #ifdef TRACERS_WATER
-     *     ,tr_evap_max
+     *     ,tr_evap_max,psurf,trhr0
 #endif
 
 !$OMP  THREADPRIVATE (/pbl_loc/)
@@ -186,7 +187,7 @@ C        roughness lengths from Brutsaert for rough surfaces
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,
+     *     tr_evap_max,psurf,trhr0,
 #endif
 #endif
      4     ztop,dtsurf,ufluxs,vfluxs,tfluxs,qfluxs,

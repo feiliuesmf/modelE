@@ -10,7 +10,7 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,omega,pi,radian,bygrav,teeny,deltx,tf
-     &                     ,by3
+     &                     ,by3,shv,sha,shw,lhe,stbo,rhow,rgas
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trname
 #endif
@@ -117,7 +117,7 @@ CCC      real*8 :: bgrid
 #ifdef TRACERS_ON
      *     trs,trtop,trsfac,trconstflx,ntx,ntix,
 #ifdef TRACERS_WATER
-     *     tr_evap_max,
+     *     tr_evap_max,psurf,trhr0,
 #endif
 #endif
      4     ztop,dtime,ufluxs,vfluxs,tfluxs,qfluxs,
@@ -168,6 +168,8 @@ c   output:
 !@var  ntix index of tracers used in pbl
 #ifdef TRACERS_WATER
 !@var  tr_evap_max max amount of possible tracer evaporation
+!@var  psurf surface pressure
+!@var  trhr0 incident long wave radiation 
 #endif
 #endif
 c  internals:
@@ -200,8 +202,9 @@ c  internals:
       integer itr
 #ifdef TRACERS_WATER
       real*8, intent(in), dimension(ntm) :: tr_evap_max
+      real*8, intent(in) :: psurf,trhr0
 #ifdef TRACERS_SPECIAL_O18
-      real*8 fk,fraclk,fracvl,fracvs,tg1,frac
+      real*8 fk,fraclk,fracvl,fracvs,tg1,tg,frac,qnet,rhosrf
 #endif
 #endif
 #endif
@@ -299,6 +302,7 @@ C**** end special threadprivate common block
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
 
+        if (iter.lt.itmax) then
         do i=1,n-1
           u(i)=w*usave1(i)+(1.-w)*u(i)
           v(i)=w*vsave1(i)+(1.-w)*v(i)
@@ -311,7 +315,7 @@ C**** end special threadprivate common block
           qsave1(i)=q(i)
           esave1(i)=e(i)
         end do
-
+        end if
         ustar0=ustar
 
       end do
@@ -332,16 +336,26 @@ C**** Tracers need to multiply trsfac and trconstflx by cq*Usurf
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotope tracers have different fractionations dependent on
 C**** type and direction of flux
+        tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
+        tg =tg1+tf
         select case (itype)
         case (1)                ! ocean: kinetic fractionation
+C**** Adjustment to ocean temperature based on Cappa et al, 2003
+C**** need: constants shv,sha,shw,lhe,stbo,rhow,rgas
+c        RHOSRF=100.*psurf/(RGAS*t(1))
+c        qnet = (LHE+tg1*SHV)*cqsave*wsh*RHOSRF*(q(1)-qgrnd) + 
+c     *       SHA*ch*wsh*RHOSRF*(t(1)-tg) + trhr0-STBO*(tg*tg)*(tg*tg)
+c        tg1 = tg1 - qnet/(0.009d0*ustar*shw*rhow)
+c        print*,ilong,jlat,qnet/(0.009d0*ustar*shw*rhow),(LHE+tg1*SHV)
+c     *       *cqsave*wsh*RHOSRF*(q(1)-qgrnd),SHA*ch*wsh*RHOSRF*(t(1)-tg)
+c     *       ,trhr0,STBO*(tg*tg)*(tg*tg)
           fk = fraclk(wsm,trname(ntix(itr)))
-          trcnst = trcnst * fk
+          trcnst = trcnst * fk * fracvl(tg1,trname(ntix(itr)))
           trsf = trsf * fk
         case (2:4)              ! other types
 C**** tracers are now passive, so use 'upstream' concentration
           if (q(1)-qgrnd.gt.0.) then  ! dew
             trcnst = 0.
-            tg1 =tgrnd/(1.+qgrnd*deltx)-tf ! re-calculate ground T (C)
             if (tg1.gt.0) then
               frac=fracvl(tg1,trname(ntix(itr)))
             else
