@@ -407,7 +407,7 @@ C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
           Z1O(I,J)=Z1OMIN
           IF (Z1O(I,J).GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
-C****       lose the excess mass to the deep ocean   
+C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
             MSINEW=MSI(I,J)*(1.-RHOW*(Z1O(I,J)-Z12O(I,J))/(FWSIM(I,J)
      *           -ACE1I-SNOWI(I,J)))
@@ -909,7 +909,7 @@ C**** with wind stress dependence
           if (rsi(i,j)*focean(i,j).gt.0) then
             ustar1= SQRT(SQRT(DMUA(I,J,2)**2+DMVA(I,J,2)**2)/(RSI(i,j)
      *           *focean(i,j)*DTSRC*RHOW))
-            UI2rho(I,J)=rhow*(oi_ustar0*min(1d0,1d3*ustar1))**2
+            UI2rho(I,J)=rhow*(oi_ustar0*max(1d0,1d3*ustar1))**2
           end if
         END DO
         END DO

@@ -283,7 +283,7 @@ C****
 
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
-C**** add fluxes to oceans/lakes. 
+C**** add fluxes to oceans/lakes.
       IF (Jhour.eq.0) THEN
         DT=SDAY    ! if called more frequently this should change
         DO J=1,JM
@@ -540,7 +540,7 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx
-      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug,xsi
+      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug     
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
