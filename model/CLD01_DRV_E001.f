@@ -4,43 +4,46 @@
 !@ver   1.0 (taken from CB265)
 !@calls MSTCNV and LSCOND
 
-      USE CONSTANT, only : bygrav,lhm
+      USE CONSTANT, only : bygrav,lhm,rgas,grav,kapa
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,ijd6,sig,DTsrc,ftype
-     *     ,ntype,itime
+     *     ,ntype,itime,fim
       USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : bydxyp,dxyp,imaxj,kmaxj,ravj,idij,idjj
       USE CLD01_COM_E001, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      *     ,pbltop,tauss,taumc,cldss,cldmc,csizmc,csizss
       USE CLD01, only : kmax,ra,pl,ple,plk
      *     ,airm,byam,etal,sm,smomij=>smom,qm,qmomij=>qmom
-     *     ,tl,aj13
+     *     ,tl,ri1,ri2,aj13
      *     ,aj50,aj51,aj52,aj57,aj8,aj11,wml,sdl,u_0,v_0,um,vm,tf
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-     *     ,mstcnv
+     *     ,mstcnv,qs,us,vs,dcl
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,lpbl,taussl,cldssl,cldsavl,
      *     prcpss,hcndss,aj55,BYDTsrc,lscond
-      USE PBLCOM, only : tsavg
+      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,dclev
       USE DAGCOM, only : aj,areg,aij,ajl,ail,adaily,jreg,ij_pscld
      *     ,ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec
      *     ,ij_neth,j_eprcp,j_prcpmc,j_prcpss
-      USE DYNAMICS, only : pk,pmid,pedn,sd_clouds,gz,ptold,pdsig
+      USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig
       USE SEAICE_COM, only : rsi
       USE GHYCOM, only : snoage
       USE FLUXES, only : prec,eprec,precss
 
       IMPLICIT NONE
 
-!@var UC,VC velocity work arrays
+!@var UC,VC,UZM,VZM velocity work arrays
       REAL*8, DIMENSION(IM,JM,LM) :: UC,VC
+      REAL*8, DIMENSION(2,LM) :: UZM,VZM
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
+      REAL*8,  PARAMETER :: DELTX=.608d0
 
       INTEGER I,J,K,L  !@var I,J,K,L loop variables
-      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR
+      INTEGER IMAX,JR,KR,ITYPE,IT,LERR,IERR,IM1
 !@var IMAX maximum number of zonal grid points used
+!@var IM1 IM-1
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -48,17 +51,39 @@
 !@var LERR,IERR dummy variables
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
-      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR
+      REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,THV1
+      REAL*8 :: DH12,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV2
+      REAL*8 :: DH1S,BYDH1S,BYDH12
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipipation
 !@var TPRCP temperature of precip  (deg. C)
 !@var EPRCP sensible heat of precip
 !@var ENRGP energy of precip
-!@var WMERR dummy variable
+!@var WMERR DH12,BYDH12,DH1S,BYDH1S,THV1,THV2 dummy variables
+!@var ALPHA1,ALPHA2,DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS dummy variables
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
       VC=V
+C**** COMPUTE ZONAL MEAN U AND V AT POLES
+      DO L=1,LM
+       UZM(1,L)=0.
+       UZM(2,L)=0.
+       VZM(1,L)=0.
+       VZM(2,L)=0.
+      ENDDO
+      DO L=1,LM
+       DO I=1,IM
+        UZM(1,L)=UZM(1,L)+U(I,2,L)
+        UZM(2,L)=UZM(2,L)+U(I,JM,L)
+        VZM(1,L)=VZM(1,L)+V(I,2,L)
+        VZM(2,L)=VZM(2,L)+V(I,JM,L)
+       ENDDO
+       UZM(1,L)=UZM(1,L)/FIM
+       UZM(2,L)=UZM(2,L)/FIM
+       VZM(1,L)=VZM(1,L)/FIM
+       VZM(2,L)=VZM(2,L)/FIM
+      ENDDO
 C****
 C**** MAIN J LOOP
 C****
@@ -69,6 +94,7 @@ C****
 C****
 C**** MAIN I LOOP
 C****
+      IM1=IM
       DO I=1,IMAX
          JR=JREG(I,J)
 C****
@@ -76,6 +102,10 @@ C**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS
 C****
       PEARTH=FEARTH(I,J)
       TS=TSAVG(I,J)
+      QS=QSAVG(I,J)
+      US=USAVG(I,J)
+      VS=VSAVG(I,J)
+      DCL=DCLEV(I,J)
       LPBL=1
 
       DO K=1,KMAX
@@ -180,6 +210,51 @@ C****
          AQ(L)=(QL(L)-QTOLD(L,I,J))*BYDTsrc
       END DO
 
+C**** COMPUTE RICHARDSON NUMBER
+      IF(DCL.LE.1) THEN
+        THSV=TS*(1.+DELTX*QS)/PEK(1,I,J)
+        THV1=TH(1)*(1.+DELTX*QL(1))
+        THV2=TH(2)*(1.+DELTX*QL(2))
+        ALPHA1=2./(TH(1)+TS/PEK(1,I,J))
+        ALPHA2=2./(TH(1)+TH(2))
+        DH1S=(PLE(1)-PL(1))*TL(1)*RGAS/(GRAV*PL(1))
+        BYDH1S=1./DH1S
+        DH12=(GZ(I,J,2)-GZ(I,J,1))/GRAV
+        BYDH12=1./DH12
+        DTDZS=(THV1-THSV)*BYDH1S
+        DTDZ=(THV2-THV1)*BYDH12
+        IF (J.EQ.1) THEN
+          DUDZ=(UZM(1,2)-UZM(1,1))*BYDH12
+          DVDZ=(VZM(1,2)-VZM(1,1))*BYDH12
+          DUDZS=(UZM(1,1)-US)*BYDH1S
+          DVDZS=(VZM(1,1)-VS)*BYDH1S
+        ENDIF
+        IF (J.EQ.JM) THEN
+          DUDZ=(UZM(2,2)-UZM(2,1))*BYDH12
+          DVDZ=(VZM(2,2)-VZM(2,1))*BYDH12
+          DUDZS=(UZM(2,1)-US)*BYDH1S
+          DVDZS=(VZM(2,1)-VS)*BYDH1S
+        ENDIF
+        IF(J.GT.1.AND.J.LT.JM) THEN
+          DUDZ=(U(IDI(1),IDJ(1),2)+U(IDI(2),IDJ(2),2)+
+     *         U(IDI(3),IDJ(3),2)+U(IDI(4),IDJ(4),2)-
+     *         U(IDI(1),IDJ(1),1)-U(IDI(2),IDJ(2),1)-
+     *         U(IDI(3),IDJ(3),1)-U(IDI(4),IDJ(4),1))*.25*BYDH12
+          DVDZ=(V(IDI(1),IDJ(1),2)+V(IDI(2),IDJ(2),2)+
+     *         V(IDI(3),IDJ(3),2)+V(IDI(4),IDJ(4),2)-
+     *         V(IDI(1),IDJ(1),1)-V(IDI(2),IDJ(2),1)-
+     *         V(IDI(3),IDJ(3),1)-V(IDI(4),IDJ(4),1))*.25*BYDH12
+          DUDZS=(U(IDI(1),IDJ(1),1)+U(IDI(2),IDJ(2),1)+
+     *         U(IDI(3),IDJ(3),1)+U(IDI(4),IDJ(4),1)-
+     *         4.*US)*.25*BYDH1S
+          DVDZS=(V(IDI(1),IDJ(1),1)+V(IDI(2),IDJ(2),1)+
+     *         V(IDI(3),IDJ(3),1)+V(IDI(4),IDJ(4),1)-
+     *         4.*VS)*.25*BYDH1S
+        ENDIF
+        RI1=(GRAV*ALPHA1*DTDZS)/(DUDZS*DUDZS+DVDZS*DVDZS)
+        RI2=(GRAV*ALPHA2*DTDZ)/(DUDZ*DUDZ+DVDZ*DVDZ)
+C       WRITE (6,*)'I,J,TS,THSV,THV1,RI1,RI2=',I,J,TS,THSV,THV1,RI1,RI2
+      ENDIF
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
 
       CALL LSCOND(IERR,WMERR,LERR)
@@ -265,6 +340,7 @@ C**** UPDATE MODEL WINDS
          ENDDO
       ENDDO
 
+      IM1=I
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
       END DO
