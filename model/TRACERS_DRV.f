@@ -4080,7 +4080,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      &     ,wsn_ij,nsn_ij,fr_snow_ij
       USE FLUXES, only : gtracer
 #endif
-      USE GEOM, only: dxyp,bydxyp
+      USE GEOM, only: dxyp,bydxyp,lat_dg
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl
 #ifdef TRACERS_WATER
@@ -4150,9 +4150,20 @@ C****
       do n=1,ntm
       if (itime.eq.itime_tr0(n)) then
 
+C**** set some defaults for air mass tracers
+      trm(:,J_0:J_1,:,n) = 0.
+      trmom(:,:,J_0:J_1,:,n) = 0.
+
 #ifdef TRACERS_WATER
-C**** set default atmospheric liquid water amount to 0 for most tracers
-      trwm(:,:,:,n)=0.
+C**** set some defaults for water tracers
+      trwm(:,J_0:J_1,:,n)=0.
+      trlake(n,:,:,J_0:J_1)=0.
+      trsi(n,:,:,J_0:J_1)=0.
+      trlndi(n,:,J_0:J_1)=0.
+      trsnowli(n,:,J_0:J_1)=0.
+      tr_wbare(n,:,:,J_0:J_1)=0.
+      tr_wvege(n,:,:,J_0:J_1)=0.
+      tr_wsn_ij(n,:,:,:,J_0:J_1)=0.
 #endif
       select case (trname(n))
 
@@ -4175,29 +4186,24 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
                 trm(i,jm,:,n) = trm(1,jm,:,n) !poles
              enddo
           endif
-          trmom(:,:,:,:,n) = 0.
 
         case ('SF6')
-          trm(:,:,:,n) = 0.
-          trmom(:,:,:,:,n) = 0.
+          ! defaults ok
 
         case ('Be7')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
             end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case ('Be10')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case ('Pb210')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case ('Rn222')
           do l=1,lm
@@ -4214,11 +4220,8 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
                 trm(i,jm,:,n) = trm(1,jm,:,n) !poles
              enddo
           endif
-          trmom(:,:,:,:,n) = 0.
 
         case ('CO2')
-          trm(:,:,:,n) = 0.
-          trmom(:,:,:,:,n) = 0.
           call openunit('CO2_IC',iu_data,.true.,.true.)
           read (iu_data) title,co2ic
           call closeunit(iu_data)
@@ -4230,7 +4233,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 
         case ('N2O')
 #ifdef TRACERS_SPECIAL_Lerner
-          trmom(:,:,:,:,n) = 0.
           call openunit('N2O_IC',iu_data,.true.,.true.)
           read (iu_data) title,N2Oic     ! unit is PPMM/(M*DXYP)
           call closeunit(iu_data)
@@ -4244,11 +4246,9 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 #endif
 
         case ('CFC11')   !!! should start April 1
-          trmom(:,:,:,:,n) = 0.
           CFC11ic = 268.D-12*136.5/29.029    !268 PPTV
           do l=1,lm
           do j=J_0,J_1
@@ -4256,7 +4256,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
           enddo; enddo
 
         case ('14CO2')   !!! this tracer is supposed to start 10/16
-          trmom(:,:,:,:,n) = 0.
 #ifdef TRACERS_SPECIAL_Lerner
           call get_14CO2_IC(ic14CO2)
           do l=1,lm         !ppmv==>ppmm
@@ -4266,7 +4265,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 #endif
 
         case ('CH4')
-          trmom(:,:,:,:,n) = 0.
 #ifdef TRACERS_SPECIAL_Shindell
           call get_CH4_IC ! defines trm(:,:,:,n_CH4) within
 #endif
@@ -4279,7 +4277,6 @@ c          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
 #endif
 
         case ('O3')
-          trmom(:,:,:,:,n) = 0.
           do l=1,lm
           do j=J_0,J_1
             trm(:,j,l,n) = am(l,:,j)*dxyp(j)*20.d-9*tr_mm(n)/mair
@@ -4347,10 +4344,9 @@ c     tmominit = 0.
         endif
         if (trname(n).eq."HTO") then ! initialise bomb source
           do l=ls1-1,ls1+1      ! strat. source
-C GISS-ESMF EXCEPTIONAL CASE
-c   Must redefine lat range to account for decomposed domains
-            do j=35,37          ! lat 44 N - 56 N
-              trm(:,j,l,n)= q(:,j,l)*am(l,:,j)*dxyp(j)*1d10*1d-18
+            do j=J_0,J_1   ! lat 44 N - 56 N
+              if (nint(lat_dg(j,1)).ge.44 .and. nint(lat_dg(j,1)).le.56)
+     *             trm(:,j,l,n)= q(:,j,l)*am(l,:,j)*dxyp(j)*1d10*1d-18
             end do
           end do
         end if
@@ -4423,18 +4419,16 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(I,J,L,n) = OxIC(I,J,L)
           end do   ; end do   ; end do
-          trmom(:,:,:,:,n) = 0.
 #endif
 #ifdef regional_Ox_tracers
         case ('OxREG1','OxREG2','OxREG3','OxREG4','OxREG5','OxREG6')
-          trm(:,:,:,n)=trm(:,:,:,n_Ox)*byNregOx
+          trm(:,J_0:J_1,:,n)=trm(:,J_0:J_1,:,n_Ox)*byNregOx
 #endif
 
         case ('NOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
         case ('ClOx')
@@ -4442,65 +4436,55 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClOxalt(l)
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('BrOx')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*BrOxalt(l)
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('HCl')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*HClalt(l)
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('ClONO2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = 
      &      am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11*ClONO2alt(l)
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 #endif
 
         case ('N2O5')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('HNO3')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-10
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*5.d-10
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('CH3OOH')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('HCHO')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('HO2NO2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*1.d-12
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
 #ifdef TRACERS_SPECIAL_Shindell
         case('CO')
@@ -4515,7 +4499,6 @@ C         AM=kg/m2, and DXYP=m2:
             END DO
           END DO
           END DO
-          trmom(:,:,:,:,n) = 0.d0
           J2=0
 #endif
 
@@ -4523,37 +4506,31 @@ C         AM=kg/m2, and DXYP=m2:
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('Isoprene')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('AlkylNit')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*2.d-10
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case('Alkenes')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*4.d-10
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case('Paraffin')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-10
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('CFC')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -4563,7 +4540,6 @@ C         AM=kg/m2, and DXYP=m2:
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-13
             end if
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case ('HOCl')
           do l=1,lm; do j=J_0,J_1; do i=1,im
@@ -4573,54 +4549,45 @@ C         AM=kg/m2, and DXYP=m2:
               trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*1.d-11
             end if
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.d0
 
         case('DMS')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-13
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('MSA')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('SO2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('SO4')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('H2O2_s')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('seasalt1')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
         case('seasalt2')
           do l=1,lm; do j=J_0,J_1; do i=1,im
             trm(i,j,l,n) = am(l,i,j)*dxyp(j)*TR_MM(n)*bymair*5.d-14
           end do; end do; end do
-          trmom(:,:,:,:,n) = 0.
 
 #ifdef TRACERS_DUST
         CASE('Clay','Silt1','Silt2','Silt3')
-          trm(:,:,:,n)=0d0
-          trmom(:,:,:,:,n)=0d0
+          ! defaults ok
 #endif
 
       end select
@@ -4681,6 +4648,7 @@ c I'm not using the moments
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only: jmon,itime,coupled_chem
+      USE DOMAIN_DECOMP, only : grid, get
       USE TRACER_COM, only: ntm,trname,itime_tr0,nLightning,nAircraft
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACER_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
@@ -4692,6 +4660,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
       IMPLICIT NONE
       INTEGER n,iact,last_month
       data last_month/-1/
+      INTEGER J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (iact.eq.0) then
@@ -4753,7 +4726,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         select case (trname(n))
         case ('NOx')
-          tr3Dsource(:,:,:,nAircraft,n)  = 0.
+          tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
           call get_aircraft_NOx
           call      read_NOx_sources(n,iact)
 C         (lightning called from tracer_3Dsource)
@@ -4769,9 +4742,9 @@ C         (lightning called from tracer_3Dsource)
           call read_Paraffin_sources(n,iact)
         case ('N2O5')
           if (COUPLED_CHEM.eq.1) then
-          tr3Dsource(:,:,:,:,n) = 0.
+          tr3Dsource(:,J_0:J_1,:,:,n) = 0.
           else
-          tr3Dsource(:,:,:,:,n) = 0.
+          tr3Dsource(:,J_0:J_1,:,:,n) = 0.
           call get_sulfate_N2O5 !not applied directly;used in chemistry.
           endif
         end select
@@ -4803,7 +4776,7 @@ C**** at the start of any day
      *  ,dtsrc
       USE DOMAIN_DECOMP, only : GRID, GET
 
-      USE GEOM, only: dxyp,areag
+      USE GEOM, only: dxyp,areag,lat_dg
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -4864,6 +4837,9 @@ C         Make sure index KY=1 in year that tracer turns on
 
 C GISS-ESMF EXCEPTIONAL CASE
 c   Several regions defined need to be addressed with domain decomposition
+c     We can use lat_dg to distinguish regions in resolution independent
+c     manner (also lon_dg for the i index), but we get a 'gather' for
+c     the area sums (sarea).
 
 C**** Source over United States and Canada
         source = .37d0*anngas*steppy
@@ -4873,10 +4849,13 @@ C**** Source over United States and Canada
             sarea = sarea + dxyp(j)*fearth(i,j)
           enddo
         enddo
-        do j=31,35
-          do i=12,22
-            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
-          enddo
+        do j=J_0,J_1     ! 31,35
+          if (nint(lat_dg(j,1)).ge.28 .and. nint(lat_dg(j,1)).le.48)
+     *         then
+            do i=12,22
+              trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+            enddo
+          end if
         enddo
 C**** Source over Europe and Russia
         source = .37d0*anngas*steppy
@@ -4886,10 +4865,13 @@ C**** Source over Europe and Russia
             sarea = sarea + dxyp(j)*fearth(i,j)
           enddo
         enddo
-        do j=33,39
+        do j=J_0,J_1     ! 33,39
+          if (nint(lat_dg(j,1)).ge.36 .and. nint(lat_dg(j,1)).le.64)
+     *         then
           do i=35,45
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
+          end if
         enddo
 C**** Source over Far East
         source = .13d0*anngas*steppy
@@ -4899,10 +4881,13 @@ C**** Source over Far East
             sarea = sarea + dxyp(j)*fearth(i,j)
           enddo
         enddo
-        do j=29,34
+        do j=J_0,J_1     ! 29,34
+          if (nint(lat_dg(j,1)).ge.20 .and. nint(lat_dg(j,1)).le.44)
+     *         then
           do i=61,66
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
+          end if
         enddo
 C**** Source over Middle East
         source = .05d0*anngas*steppy
@@ -4912,17 +4897,25 @@ C**** Source over Middle East
             sarea = sarea + dxyp(j)*fearth(i,j)
           enddo
         enddo
-        do j=28,32
+        do j=J_0,J_1     ! 28,32
+          if (nint(lat_dg(j,1)).ge.16 .and. nint(lat_dg(j,1)).le.36)
+     *         then
           do i=43,51
             trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
           enddo
+          end if
         enddo
 C**** Source over South America
         source = .04d0*anngas*steppy
+c        do j=J_0,J_1   ! example coding
+c        if (nint(lat_dg(j,1)).ge.-24 .and. nint(lat_dg(j,1)).le.-20)
+c     *         then
         i=27; j=18
         trsource(i,j,1,n) = 0.5*source
         i=28; j=18
         trsource(i,j,1,n) = 0.5*source
+c        end if
+c        end do
 C**** Source over South Africa
         source = .02d0*anngas*steppy
         i=42; j=17
@@ -4936,7 +4929,7 @@ C****
 C**** Surface Sources for Radon-222
 C****
       case ('Rn222')
-        trsource(:,:,:,n)=0
+        trsource(:,J_0:J_1,:,n)=0
 C**** ground source
         steppd = 1./sday
         do j=J_0,J_1
@@ -4991,7 +4984,7 @@ C****   this results in a sink
 C****
       case ('14CO2')
       tmon = (itime-itime_tr0(n))*jmpery/(hrday*jdpery)  !(12./8760.)
-      trsource(:,:,1,n) = 0.
+      trsource(:,J_0:J_1,1,n) = 0.
       do j=J_0,J_1
          if (j <= jm/2) then
             do i=1,im
@@ -5016,7 +5009,7 @@ C****
 C**** No non-interactive surface sources of Water
 C****
       case ('Water')
-        trsource(:,:,:,n)=0
+        trsource(:,J_0:J_1,:,n)=0
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('CO')
@@ -5122,7 +5115,7 @@ C**** All sources are saved as kg/s
 #ifdef TRACERS_SPECIAL_Lerner
 C****
       case ('CH4')
-      tr3Dsource(:,:,:,:,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Trop_chem_CH4(1,n)
       call apply_tracer_3Dsource(1,n)
       call Strat_chem_Prather(2,n)
@@ -5130,7 +5123,7 @@ C****
 cc      call DIAGTCA(itcon_3Dsrc(2,n),n)
 C****
       case ('O3')
-      tr3Dsource(:,:,:,:,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Trop_chem_O3(1,n)
       call apply_tracer_3Dsource(1,n)
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
@@ -5139,13 +5132,13 @@ cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 cc      call DIAGTCA(itcon_3Dsrc(2,n),n)
 C****
       case ('N2O')
-      tr3Dsource(:,:,:,:,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
       call apply_tracer_3Dsource(1,n,.FALSE.)
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
 C****
       case ('CFC11')
-      tr3Dsource(:,:,:,:,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
       call apply_tracer_3Dsource(1,n,.FALSE.)
 cc      call DIAGTCA(itcon_3Dsrc(1,n),n)
@@ -5154,7 +5147,7 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       case ('SO2')
 C**** two 3D sources (aircraft and volcanos) read in from files
-        tr3Dsource(:,:,:,1:2,n) = so2_src_3d(:,:,:,1:2)
+        tr3Dsource(:,J_0:J_1,:,1:2,n) = so2_src_3d(:,J_0:J_1,:,1:2)
         call apply_tracer_3Dsource(1,n) ! volcanos
         call apply_tracer_3Dsource(2,n) ! aircraft
 c      call apply_SO2_3Dsrc
@@ -5211,14 +5204,14 @@ C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (MNOW,MTRACE)
       call apply_tracer_3Dsource(nAircraft,n_NOx)
-      tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
+      tr3Dsource(:,J_0:J_1,:,nLightning,n_NOx) = 0.
       call get_lightning_NOx
       call apply_tracer_3Dsource(nLightning,n_NOx)
 c
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
-      tr3Dsource(:,:,:,nChemistry,1:ntm_chem)  = 0.
+      tr3Dsource(:,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.
 #ifndef SHINDELL_STRAT_CHEM
-      tr3Dsource(:,:,:,nStratwrite,1:ntm_chem) = 0.
+      tr3Dsource(:,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.
 #endif
 C**** Call the model CHEMISTRY and STRATOSPHERE OVERWRITE:
 
