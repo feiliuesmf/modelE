@@ -12,7 +12,7 @@
 !@+    tom_BUV,tom_B
 !@var lbase_min/max levels through which to apply turbulence (dummy)
 !@var dtime time step
-!@var qmin minimum value of specific humidity 
+!@var qmin minimum value of specific humidity
 !@var itest longitude at which to call dout
 !@var jtest latitude at which to call dout
 !@var call_diag logical variable whether dout is called
@@ -21,8 +21,9 @@
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,p,itime
       USE CONSTANT, only : grav,deltx,lhe,sha
+      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
-     *     ,e_3d=>egcm,t2_3d=>t2gcm,uflux1,vflux1,tflux1,qflux1
+     *     ,e_3d=>egcm,t2_3d=>t2gcm
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,bydxyp,dxyp
       USE DAGCOM, only : ajl,jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
       USE SOCPBL, only : g0,g5,g6,g7,b1,b123,b2,prt,kappa,zgs
@@ -45,13 +46,13 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       logical, parameter :: non_local=.false.,call_diag=.false.
       integer, SAVE :: ifirst=0
 
-      real*8, dimension(lm) :: u,v,t,q,e,t2,u0,v0,t0,q0,e0,t20 
+      real*8, dimension(lm) :: u,v,t,q,e,t2,u0,v0,t0,q0,e0,t20
      &    ,tau,dudz,dvdz,dtdz,dqdz,g_alpha,as2,an2
      &    ,rhoebydz,bydzerho,rho,rhoe,dz,dze,gm,gh
      &    ,km,kh,kq,ke,kt2,kwt,gc_wt,gc_wq,gc_ew,gc_w2t,gc_wt2
      &    ,lscale,qturb,p2,p3,p4,rhobydze,bydzrhoe,uw,vw,wt,wt0
      &    ,w2,gc_wq,gc_wt_by_t2,wq,wq0
-         
+
       real*8, dimension(lm,im,jm) :: u_3d_old,rho_3d,rhoe_3d,dz_3d
      &    ,dze_3d,u_3d_agrid,v_3d_agrid,t_3d_virtual,km_3d,km_3d_bgrid
      &    ,dz_3d_bgrid,dze_3d_bgrid,rho_3d_bgrid,rhoe_3d_bgrid
@@ -75,8 +76,8 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       real*8, dimension(ntm) :: trflx
 #endif
 
-      ! Note that lbase_min/max are here for backwards compatibility with
-      ! original drycnv. They are only used to determine where the
+      ! Note that lbase_min/max are here for backwards compatibility
+      ! with original drycnv. They are only used to determine where the
       ! routine has been called from.
 
       if (lbase_min.eq.2) return       ! quit if called from main
@@ -90,7 +91,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
       !  convert input T to virtual T
       do j=1,jm
         do i=1,imaxj(j)
-          !@var tvsurf(i,j) surface virtual temperature 
+          !@var tvsurf(i,j) surface virtual temperature
           !@var tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
           tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
           do l=1,lm
@@ -107,7 +108,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 
       call getdz(t_3d_virtual,p,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &    ,im,jm,lm)
- 
+
       loop_j_tq: do j=1,jm
         loop_i_tq: do i=1,imaxj(j)
 
@@ -118,7 +119,7 @@ cc      real*8, dimension(nmom,lm,ntm) :: trmomij
             t(l)=t_3d_virtual(l,i,j)
             q(l)=q_3d(i,j,l)
 cc            qmomij(:,l)=qmom(:,i,j,l)
-cc            tmomij(:,l)=tmom(:,i,j,l) ! vertical gradients should virtual ?
+cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
             if(q(l).lt.qmin) q(l)=qmin
             e(l)=e_3d(l,i,j) !e_3d was called egcM
             t2(l)=t2_3d(l,i,j)
@@ -152,7 +153,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           tvs=tvsurf(i,j)/pek(1,i,j)
           uflx=uflux1(i,j)/rhoe_3d(1,i,j)
           vflx=vflux1(i,j)/rhoe_3d(1,i,j)
-          tflx=tflux1(i,j)/(rhoe_3d(1,i,j)*pek(1,i,j)) !referenced at 1 mb
+          tflx=tflux1(i,j)/(rhoe_3d(1,i,j)*pek(1,i,j)) !reference: 1 mb
           qflx=qflux1(i,j)/rhoe_3d(1,i,j)
           ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
@@ -169,7 +170,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           ustar2=ustar*ustar
           alpha1=atan2(vflx,uflx)
 
-          ! calculate z-derivatives at the surface 
+          ! calculate z-derivatives at the surface
 
           ! @var zgs height of surface layer (m), imported from SOCPBL
           thes=tflx*prt/ustar
@@ -223,7 +224,7 @@ cc                trmomij(:,l,n)=trmom(:,i,j,l,n)
           end do
 
           if(level.eq.3) then
-          
+
               ! integrate differential eqn for t2
               do l=2,lm-1
                   dgcdz=(gc_wt2(l)-gc_wt2(l-1))/dz(l-1)
@@ -235,7 +236,7 @@ c                 p4(l)=-2.d0*wt(l)*dtdz(l)-dgcdz
               x_surf=tflx*tflx*b2*prt/(ustar2*b1**(1.d0/3.))
               call de_solver_edge(t2,t20,kt2,p2,p3,p4,
      &        rhobydze,bydzrhoe,x_surf,dtime,lm)
-    
+
 c         elseif(level.eq.31) then
 
 c             ! integrate differential eqn for wt
@@ -292,7 +293,7 @@ cc        call diff_mom(trmomij)
             end if
           end do
 #endif
-         
+
           !@var dbll PBL top layer number counted from below, real*8
           call find_pbl_top(e,dbll,lm)
           dclev(i,j)=dbll
@@ -549,8 +550,8 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
 
       implicit none
 
-      real*8, dimension(n), intent(in) :: 
-     &   u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha, 
+      real*8, dimension(n), intent(in) ::
+     &   u,v,t,q,e,t2,dz,dze,dudz,dvdz,as2,dtdz,g_alpha,
      &   an2,dqdz,rho,rhoe,km,kh,kq,ke,kt2,gc_wt,gc_wq,
      &   gc_ew,gc_w2t,gc_wt2,gm,gh,lscale
       real*8, intent(in) :: tvs,uflx,vflx,tflx,qflx
@@ -587,9 +588,9 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       write (67,2500) l,z,p(n),u(n),v(n),t(n)*pk(n,i,j),q(n),
      2                0.,0.,0.,0.
       write (67,*)
- 
+
       ! Fields on secondary vertical grid:
- 
+
       write (67,3000)
       l=1
       ze=10.d0
@@ -602,9 +603,9 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
         ze=ze+dze(l)
       end do
       write (67,*)
- 
+
       ! Fluxes on the secondary grid:
- 
+
       ze=10.d0
       write (67,4000)
       do l=2,n
@@ -619,12 +620,12 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
         write (67,2000) l,ze,uf,hf,qf,dmdz,dtdz(l)*pek(l,i,j),
      2                  dqdz(l),ri,rif,sigmat,gc_wq(l)
       end do
- 
+
       write (67,*) "------------"
       write (67,*)
 
       return
-  
+
 1000  format(3(4x,a,i4))
 1001  format(9(1pe14.4))
 1100  format(2(4x,a,1pe14.4))
@@ -656,8 +657,8 @@ c             rho(lm,i,j)=100.d0*pl1/(temp1*rgas)
       subroutine de_solver_main(x,x0,p1,p2,p3,p4,
      &    rhoebydz,bydzerho,flux_bot,flux_top,dtime,n)
 !@sum differential eqn solver for x using tridiagonal method
-!@+   d/dt x = d/dz (P1 d/dz x) - P2 d/dz x - P3 x + P4 
-!@+   where p2=0 and x is at the main grid 
+!@+   d/dt x = d/dz (P1 d/dz x) - P2 d/dz x - P3 x + P4
+!@+   where p2=0 and x is at the main grid
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var x the unknown to be solved (at main drid)
@@ -692,7 +693,7 @@ c     except p1(j) which is defined on the edge grid
           dia(j)=1.d0-(sub(j)+sup(j))+dtime*p3(j)
           rhs(j)=x0(j)+dtime*p4(j)
       end do
- 
+
 c     Lower boundary conditions(x=T) :
 c     d/dt T = -d/dz wt where
 c     d/dt T = (T(1)-T0(1))/dtime
@@ -706,9 +707,9 @@ c     rhoebydz and bydzerho are in place to balance mass flux
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=x0(1)-dtime*bydzerho(1)*flux_bot
- 
+
 c     Upper boundary conditions:
- 
+
 c     d/dt T = -d/dz wt where
 c     d/dt T = (T(n)-T0(n))/dtime
 c     -d/dz wt = -(wt(n+1)-wt(n))/dze(n), dze(n)=ze(n+1)-ze(n)
@@ -720,7 +721,7 @@ c     flux_top=rhoe(n)*flux_top
       sub(n)=-alpha
       dia(n)=1.d0+alpha
       rhs(n)=x0(n)+dtime*bydzerho(n)*flux_top
- 
+
       call tridiag(sub,dia,sup,rhs,x,n)
 
       return
@@ -729,8 +730,8 @@ c     flux_top=rhoe(n)*flux_top
       subroutine de_solver_edge(x,x0,p1,p2,p3,p4,
      &    rhobydze,bydzrhoe,x_surf,dtime,n)
 !@sum differential eqn solver for x using tridiagonal method
-!@+   d/dt x = d/dz (P1 d/dz x) - P2 d/dz x - P3 x + P4 
-!@+   where p2=0 and x is at the edge grid 
+!@+   d/dt x = d/dz (P1 d/dz x) - P2 d/dz x - P3 x + P4
+!@+   where p2=0 and x is at the edge grid
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 !@var x the unknown to be solved (at edge drid)
@@ -765,17 +766,17 @@ c     except p1(j) which is defined on the main grid
           dia(j)=1.d0-(sub(j)+sup(j))+dtime*p3(j)
           rhs(j)=x0(j)+dtime*p4(j)
       end do
- 
+
 c     Boundary conditions:
- 
+
       dia(1)=1.d0
       sup(1)=0.d0
       rhs(1)=x_surf
- 
+
       sub(n)=-1.d0
       dia(n)=1.d0
       rhs(n)=0.d0
- 
+
       call tridiag(sub,dia,sup,rhs,x,n)
 c
       do j=1,n
@@ -904,7 +905,7 @@ c     at edge: e,lscale,km,kh,gm,gh
      &    ,sm,sh,sq,taue,e_lpbl
      &    ,kh_canuto,c8,sig,sw,tpj,tpjm1,tppj,w3pj,taupj,m
      &    ,g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,dtdzj
-     &    ,uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz 
+     &    ,uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz
      &    ,duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,ke0
      &    ,x,dedz,aa,bb,cc,ghmin3,bydz,tmp,sq_by_sh
       integer :: j  !@var j loop variable
@@ -982,13 +983,13 @@ c         ghmin3=int(ghmin3*10000.)/10000.
           sm=(s0_3+s1_3*ghj+s2_3*gmj+s3_3*tmp)*byden
           sh=(s4_3+s5_3*ghj+s6_3*gmj)*byden
           gc_wt_by_t2(j)=c11*(1+c2*ghj+c3*gmj)*byden*g_alpha(j)*tauj
-          gc_wt(j)=gc_wt_by_t2(j)*t2(j) ! used in d.e. for T 
+          gc_wt(j)=gc_wt_by_t2(j)*t2(j) ! used in d.e. for T
 c         gc_wq(j)=gc_wt(j)*dqdz(j)/(dtdz(j)+teeny) ! used in d.e. for Q
 c         gc_wq(j)=-gc_wt_by_t2(j)*prt*tauj*wt(j)*dqdz(j)
           gc_wq(j)=0.d0
-          gc_ew(j)=0.d0  		! used in d.e. for e
-          gc_wt2(j)=0.d0		! used in d.e. for t2
-          gc_w2t(j)=0.d0 		! used in d.e. for wt
+          gc_ew(j)=0.d0               ! used in d.e. for e
+          gc_wt2(j)=0.d0              ! used in d.e. for t2
+          gc_w2t(j)=0.d0              ! used in d.e. for wt
 
 c         when e and wt are solved prognostically
 c         ref: /u/acyxc/papers/2ndOrder/2001/uiujhi_2001_wt
@@ -1066,7 +1067,7 @@ c         if(an2j.lt.0.d0) tauj=tauj/(1.d0-0.04d0*an2j*tauj*tauj)
           dt2dz=(t2(j+1)-t2(j))*bydz
           dedz=(e(j+1)-e(j))*bydz
 c         dedz=0.5d0*(du2dz+dv2dz+dw2dz)
-   
+
           call tom_BUV(g_alphaj,tauj,dudzj,dvdzj,as2j,an2j,
      &      uwj,vwj,w2j,wtj,du2dz,dv2dz,dw2dz,
      &      duvdz,duwdz,dvwdz,dutdz,dvtdz,dwtdz,dt2dz,
@@ -1272,8 +1273,8 @@ c     non polar boxes
      &   du2dz,dv2dz,dw2dz,duvdz,duwdz,dvwdz,dutdz0,dvtdz0,dwtdz0,
      &   dt2dz0,Ke,gc_ew)
 c
-c      q2w  = - Ke*dq2dz + gc_q2w    
-c      ew  = - Ke*dedz + gc_ew, gc_ew = gc_q2w/2    
+c      q2w  = - Ke*dq2dz + gc_q2w
+c      ew  = - Ke*dedz + gc_ew, gc_ew = gc_q2w/2
 c output of 3m_eqns,3m_solve_sb0,3m_solve_sb0_more,more2,more3,more31,
 c more32, more33 on kirk:/u/acyxc/papers/third/3m_publication
 c tau=q2/epsilon=B1*ell/q, ell->0.4*z for small z (height)
@@ -1284,10 +1285,10 @@ c
       implicit none
 
       real*8, intent(in) :: ga,tau,dudz,dvdz,as2,an2,uw,vw,w2
-     &     ,du2dz,dv2dz,dw2dz,duvdz,duwdz,dvwdz 
-     &     ,wt0,dutdz0,dvtdz0,dwtdz0,dt2dz0 
+     &     ,du2dz,dv2dz,dw2dz,duvdz,duwdz,dvwdz
+     &     ,wt0,dutdz0,dvtdz0,dwtdz0,dt2dz0
       real*8, intent(out) :: Ke,gc_ew
-     
+
       real*8, parameter :: c=1.d0/8.d0
       real*8, SAVE :: c0,c1,c2,c3,c4,c5,c6,c7,c8,c9
      &    ,c10,c11,c12,c13,c14,c15
@@ -1345,7 +1346,7 @@ c
           c25   = 6*c**2*(321*c+209)
           c26   = 9*c**4*(57*c+31)
           c27   = 108*c**4*(3*c+2)
-    
+
           d0 = 7500*(5*c+3)**2
           d1 = 3750*c**3*(23*c+18)
           d2 = 250*c*(5*c+3)*(292*c**2+237*c+9)
@@ -1365,7 +1366,7 @@ c
       b3 = c9+c10*S2+(c11+c12*S2)*N2+(c13+c14*S2)*N2**2+c15*N2**3
       b4 = c16+c17*S2+(c18+c19*S2)*N2+(c20+c21*S2)*N2**2+c22*N2**3
       b5 = c23 + c24*S2 + (c25 + c26*S2)*N2 + c27*N2**2
-      D = (d0 + d1*S2) + (d2 + d3*S2)*N2 + (d4 + d5*S2)*N2**2 + 
+      D = (d0 + d1*S2) + (d2 + d3*S2)*N2 + (d4 + d5*S2)*N2**2 +
      &    (d6 + d7*S2)*N2**3 + d8*N2**4
 
       m1 = n0*(n1*c*(3*U*uw+V*vw)+b1*(5*w2+2*c*wt))
@@ -1384,13 +1385,13 @@ c
       M10 = 2*c*(n0*c0*(U*uw+V*vw)-6*c*b5*(5*w2+wt))
 
 c     Num=m1*du2dz+m2*dv2dz+m3*dw2dz+m4*duvdz+m5*duwdz+
-c         m6*dvwdz+m7*dutdz+m8*dvtdz+m9*dwtdz+m10*dt2dz 
+c         m6*dvwdz+m7*dutdz+m8*dvtdz+m9*dwtdz+m10*dt2dz
 c        =m1*(du2dz-dq2dz/3)+m2*(dv2dz-dq2dz/3)+m3*(dw2dz-dq2dz/3)
 c        +m4*duvdz+m5*duwdz+m6*dvwdz+m7*dutdz+m8*dvtdz
-c        +m9*dwtdz+m10*dt2dz+(m1+m2+m3)/3*dq2dz 
+c        +m9*dwtdz+m10*dt2dz+(m1+m2+m3)/3*dq2dz
 c     q2w = tau*c/(2*D)*Num
-c         = - Ke*dq2dz + gc_q2w    
-c     ew  = - Ke*dedz + gc_ew , where gc_ew=1/2*gc_q2w  
+c         = - Ke*dq2dz + gc_q2w
+c     ew  = - Ke*dedz + gc_ew , where gc_ew=1/2*gc_q2w
       Ke=-tau*c/(6*D)*(m1+m2+m3)
       gc_q2w=tau*c/(2*D)*
      & (m1*(du2dz-dq2dz*by3)+m2*(dv2dz-dq2dz*by3)+m3*(dw2dz-dq2dz*by3)
@@ -1406,7 +1407,7 @@ c     ew=-Ke*dedz+gc_ew
      2  Ke,Kwt,Kt2,gc_ew,gc_w2t,gc_wt2)
 c
 c     algebraic third moment expressions in terms of
-c     first and second moments with pure bouynacy 
+c     first and second moments with pure bouynacy
 c     c is adjustable from 1/5 to 1/9
 c     input:
 c         tau = 2*TKE/epsilon
@@ -1417,7 +1418,7 @@ c     output:
 c         Ke,Kwt,Kt2 diffusivities
 c         gc_ew,gc_w2t,gc_wt2 the rest of the tom expressions
 c         ew = -Ke*d/dz e + gc_ew
-c         w2t = -Kwt*d/dz <wt> + gc_w2t 
+c         w2t = -Kwt*d/dz <wt> + gc_w2t
 c         wt2 = -Kt2*d/dz <t2> + gc_wt2
 c     date:
 c         12-06-01
@@ -1427,7 +1428,7 @@ c       3rdm_eqns,3rdm_solve_B,3rdm_solve_B_more,test_tom_B.f
 c
       implicit none
 
-      real*8, parameter :: c=1.d0/8.d0 
+      real*8, parameter :: c=1.d0/8.d0
       real*8, intent(in) :: ga,tau,x,w2,wt0,dw2dz,dwtdz0,dt2dz0,dedz
       real*8, intent(out) :: Ke,Kwt,Kt2,gc_ew,gc_w2t,gc_wt2
 
@@ -1441,7 +1442,7 @@ c
       integer, save :: ifirst=0
 
 c     wt    == g*alpha*tau*<wt>, dimension of <w2>
-c     dwtdz == g*alpha*tau*d<wt>/dz, dimension of d<w2>/dz 
+c     dwtdz == g*alpha*tau*d<wt>/dz, dimension of d<w2>/dz
 c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
       tmp=ga*tau
       wt=wt0*tmp
@@ -1457,7 +1458,7 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         d1 = 25*c*(345*c+216*c**3+656*c**2+27)
         d2 = 15*c**3*(132*c**2+36+115*c)
         d3 = 81*c**5
-  
+
         a0 = -2250*c*(2*c+1)
         a1 = -75*c**2*(52*c+9)/2.
         a2 = -675*c**5
@@ -1472,14 +1473,14 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         a11 = -270*c**5
         a12 = -369*c**3
         a13 = -81*c**5
- 
+
         a14 = -2250*c*(2*c+1)
         a15 = -75./2*c**2*(9+72*c**2+88*c)
         a16 = -405./2*c**4
         a17 = -900*c**2*(2*c+1)
         a18 = -15*c**3*(9+72*c**2+88*c)
         a19 = -81*c**5
-  
+
         b0 = 3375*c**2*(2*c+1)*(c+1)
         b1 = 675./4*c**3*(8*c**2+7*c+3)
         b2 = 405./4*c**5
@@ -1496,7 +1497,7 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         b13 = -2250*c**3*(2*c+1)
         b14 = -675./2*c**4
         b15 = 2./5*c
-   
+
         c0 = -3375*c**3*(c+1)
         c1 = -675*c**5
         c2 = 750*c**2*(5*c+3)
@@ -1512,12 +1513,12 @@ c     dt2dz == (g*alpha*tau)**2*d<t2>/dz, dimension of d<w2>/dz
         c12 = 900*c**5
 
       endif
- 
+
       X2=x*x
       tau_by_Den = tau/(d0+d1*x+d2*x2+d3*x2*x)
- 
+
 c ew:
- 
+
       A_W2 = a0+a1*x+a2*x2
       A_wt = a3+a4*x
       B_w2 = a5+a6*x+a7*x2
@@ -1526,7 +1527,7 @@ c ew:
       C_wt = a12+a13*x
       D_w2 = a14+a15*x+a16*x2
       D_wt = a17+a18*x+a19*x2
- 
+
 c     Ke = -tau_by_Den*(D_w2*w2+D_wt*wt)
 c     ew = tau_by_Den*
 c    &  ((A_w2*w2+A_wt*wt)*dw2dz+(B_w2*w2+B_wt*wt)*dwtdz
@@ -1543,7 +1544,7 @@ c     Ke=-tau_by_Den*(D_w2*w2+D_wt*wt+twoby3*(A_w2*w2+A_wt*wt))
      &  +(C_w2*w2+C_wt*wt)*dt2dz)
 c     ew=-Ke*dedz+gc_ew
 
-c w2t: 
+c w2t:
 
 c     A_w2 = (b0+b1*x+b2*x2)*x
 c     A_wt = b3+b4*x+b5*x2
@@ -1562,18 +1563,18 @@ c     gc_w2t = gc_w2t/tmp
 cc    w2t = -Kwt*dwtdz0 + gc_w2t
       Kwt=0.
       gc_w2t=0.
- 
+
 c wt2:
 
       A_w2 = (c0+c1*x)*x2
-      A_wt = (c2+c3*x)*x 
+      A_wt = (c2+c3*x)*x
       B_w2 = (c4+c5*x)*x
       B_wt = c6+c7*x+c8*x2
       C_w2 = c9*B_wt
       C_wt = c10*B_wt
       D_w2 = c11*x2
       D_wt = c12*x2
- 
+
       Kt2 = -tau_by_Den*(C_w2*w2+C_wt*wt)
       gc_wt2 = tau_by_Den*
      &  ((A_w2*w2+A_wt*wt)*dw2dz+(B_w2*w2+B_wt*wt)*dwtdz
