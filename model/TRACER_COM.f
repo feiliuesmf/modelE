@@ -191,10 +191,11 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
 
 #else
 #ifdef TRACERS_AEROSOLS_Koch
-      integer, parameter :: ntm=7
+      integer, parameter :: ntm=13
       character*8, parameter :: trname(ntm)=(/
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
-     *    'seasalt1','seasalt2'/)
+     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+     *    'OCII    ','OCIA    ','OCB     '/)
 #else
 #ifdef TRACERS_DUST
 !@var Ntm_dust number of dust tracers
@@ -252,6 +253,8 @@ C starting with OxREG1 to facilitate loops. Also, Ox must be tracer.
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
      *     n_SO4_d3=0, n_SO4_d4=0,
+     *     n_BCII,  n_BCIA,  n_BCB,
+     *     n_OCII,  n_OCIA,  n_OCB,
      *     n_OxREG1=0,n_OxREG2=0,n_OxREG3=0,
      *     n_OxREG4=0,n_OxREG5=0,n_OxREG6=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0
@@ -339,7 +342,7 @@ C****
 !@param tr_evap_fact fraction of re-evaporation by tracer type
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
-     *     (/1.d0, 0.5d0,  1.d0/)
+     *     (/1.d0, 1.0d0,  1.d0/)
 !@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation 
       real*8, dimension(ntm) :: tr_H2ObyCH4
 !@var dowetdep true if tracer has some form of wet deposition
