@@ -217,30 +217,23 @@ c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday
-c     USE MODEL_COM, only: focean,jmon
       USE MODEL_COM, only: jmon
-      USE TRACER_COM
-      USE SEAICE_COM, only:rsi
-c     USE PBLCOM, only: wsavg
       USE AEROSOL_SOURCES, only: DMSinput
       implicit none
-      REAL*8 akw,erate,f_ice_free
-c    *  foc
+      REAL*8 akw,erate
       real*8, INTENT(OUT) :: DMS_flux
       real*8, INTENT(IN) :: swind
       integer, INTENT(IN) :: itype,i,j
-
-       DMS_flux=0
+      
+      DMS_flux=0
       if (itype.eq.1) then
-       erate=0.d0
-c        foc=focean(i,j) !fraction of gridbox with water
-         f_ice_free=1.-rsi(i,j)
+        erate=0.d0
 c Nightingale et al
-      akw = 0.23d0*swind*swind + 0.1d0 * swind
-      akw = akw * 0.24d0
-      erate=akw*dmsinput(i,j,jmon)*1.d-9*62.d0  !*tr_mm(nt)
-     *  /sday*f_ice_free   !*foc  
-      DMS_flux=erate  ! units are kg/m2/s               
+        akw = 0.23d0*swind*swind + 0.1d0 * swind
+        akw = akw * 0.24d0
+        erate=akw*dmsinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
+     *       /sday
+        DMS_flux=erate          ! units are kg/m2/s               
       endif
 c 
       return
@@ -250,31 +243,23 @@ c
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
-c     USE MODEL_COM, only: focean
-      USE TRACER_COM
-      USE SEAICE_COM, only:rsi
-c     USE PBLCOM, only: wsavg
       implicit none
-      REAL*8 swind,erate,f_ice_free !,foc
+      REAL*8 swind,erate
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
 c
-       ss=0.
-       if (itype.eq.1) then
-       erate=0.d0
-c      swind=wsavg(i,j)  !m/s
-c      foc=focean(i,j) !fraction of gridbox with water
-       f_ice_free=1.-rsi(i,j)
-c Monahan 1971, bubble source, important for small (<10um)
-c      particles
-       erate= 1.373 * swind**(3.41)*f_ice_free ! * foc 
-      if (ibin.eq.1) then
-      ss=erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
-      else 
-      ss=erate*7.78d-14 ! supermicron (1. < r_d < 4.)
-      endif
-c units are kg salt/m2/s
+      ss=0.
+      if (itype.eq.1) then
+        erate=0.d0
+c Monahan 1971, bubble source, important for small (<10um) particles
+        erate= 1.373d0 * swind**(3.41d0)
+        if (ibin.eq.1) then
+          ss=erate*2.11d-14     ! submicron (0.1 < r_d < 1.)
+        else 
+          ss=erate*7.78d-14     ! supermicron (1. < r_d < 4.)
+        endif
+c     units are kg salt/m2/s
       endif
       return
       end subroutine read_seasalt_sources
@@ -1113,10 +1098,8 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else 
        tf=36.
        endif
-       aer_tau(i,j,l,n)=
-     *    trm(i,j,l,n)*1000.*tf/dxyp(j)
-       naijs=ijts_tau(n)
-       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
+       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
+
        case ('seasalt1')
        if (rhh.le.10.) then
        tf=1.
@@ -1143,13 +1126,10 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else
        tf=20.
        endif
-       aer_tau(i,j,l,n)=
-     * trm(i,j,l,n)*1000.*tf/dxyp(j)
-       naijs=ijts_tau(n)
-       taijs(i,j,naijs)=taijs(i,j,naijs)
-     *  +aer_tau(i,j,l,n)
+       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
+
        case ('seasalt2')
-      if (rhh.le.10.) then
+       if (rhh.le.10.) then
        tf=0.1
        else if (rhh.le.30.) then
        tf=.2
@@ -1172,15 +1152,19 @@ c No need to divide by dxyp here because it is done in TRACER_PRT
        else 
        tf=2.5
        endif
-       aer_tau(i,j,l,n)=
-     *     trm(i,j,l,n)*1000.*tf/dxyp(j)
-       naijs=ijts_tau(n)
-       taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
+       aer_tau(i,j,l,n)=trm(i,j,l,n)*1000.*tf/dxyp(j)
+
        end select
+C**** diagnostics
+       if (ijts_tau(n).gt.0) then
+         naijs=ijts_tau(n)
+         taijs(i,j,naijs)=taijs(i,j,naijs)+aer_tau(i,j,l,n)
+       end if
       END DO
       END DO
       END DO
       END DO
+
 c     write(6,*) 'AER_TAU',jhour,
 c    * ijts_tau(4),idacc(ia_ijts(ijts_tau(4))),idacc(1)
 c     write(6,*) aer_tau(54,14,1,4),aer_tau(20,20,2,6)
