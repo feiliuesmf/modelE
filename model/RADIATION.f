@@ -667,9 +667,9 @@ C            RADMAD8_RELHUM_AERDATA     (user SETAER,SETREL)    radfileH
       integer, dimension(ITRMAX) :: KRHTRA= 1
       real*8 ::
      A               SRHQEX(6,190,4),SRHQSC(6,190,4),SRHQCB( 6,190,4)
-     B              ,TRHQAB(33,190,4),RHINFO(190,9,4),A6JDAY(9,6,72,46)
+     B              ,TRHQAB(33,190,4),RHINFO(190,15,4),A6JDAY(9,6,72,46)
      C   ,SRTQEX(6,190,ITRMAX),SRTQSC(6,190,ITRMAX),SRTQCB(6,190,ITRMAX)
-     D   ,TRTQAB(33,190,ITRMAX),RTINFO(190,9,ITRMAX)
+     D   ,TRTQAB(33,190,ITRMAX),RTINFO(190,15,ITRMAX)
 !new
 !new  save TSOIL,TVEGE                  (not implemented)
 !nu   DIMENSION PI0TRA(11)
@@ -3354,7 +3354,7 @@ C     ------------------------------------------------------------------
       CALL SETREL(REFDRY(NA),NA ,kdread
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
-     C           ,REFU22,Q55U22
+     C           ,REFU22,Q55U22,FRSULF
      D      ,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
      E      ,TRHQAB(1,1,NA)
      F      ,RHINFO(1,1,NA))
@@ -3404,7 +3404,7 @@ C**** Optional Tracer aerosols initializations
       CALL SETREL(TRRDRY(NT),NA,KDREAD
      A           ,SRUQEX,SRUQSC,SRUQCB
      B           ,TRUQEX,TRUQSC,TRUQCB
-     C           ,REFU22,Q55U22
+     C           ,REFU22,Q55U22,FRSULF
      D      ,SRTQEX(1,1,NT),SRTQSC(1,1,NT),SRTQCB(1,1,NT)
      E      ,TRTQAB(1,1,NT)
      F      ,RTINFO(1,1,NT))
@@ -4142,7 +4142,7 @@ C                                  H2SO4 Thermal Contribution in TRVALK
 C                                  ------------------------------------
       DO 420 K=1,33
       DO 410 L=1,NL
-      TRVALK(L,K)=HTPROF(L)*AVH2S(K)*FTXTAU
+      TRVALK(L,K)=HTPROF(L)*AVH2S(K)*FTXTAU*FT8OPX(8)
   410 CONTINUE
   420 CONTINUE
 
@@ -4151,8 +4151,8 @@ C                      ------------------------------------------------
 
       DO 440 K=1,6
       DO 430 L=1,NL
-      SRVEXT(L,K)=QVH2S(K)*HTPROF(L)*FSXTAU
-      SRVSCT(L,K)=SVH2S(K)*HTPROF(L)*FSXTAU*PIVMAX
+      SRVEXT(L,K)=QVH2S(K)*HTPROF(L)*FSXTAU*FS8OPX(8)
+      SRVSCT(L,K)=SVH2S(K)*HTPROF(L)*FSXTAU*PIVMAX*FS8OPX(8)
       SRVGCB(L,K)=GVH2S(K)
   430 CONTINUE
   440 CONTINUE
@@ -4700,6 +4700,12 @@ C                             XTRUP,XTU0,XTRDN,XTD0,CXUCO2,CXUO3
 C     TAUGAS OUTPUT DATA IS:  TRGXLK,XTRU,XTRD
 C     ----------------------------------------------------------
 
+C     To achieve an acceptable amount of forcing, the thermal effects of
+C     CO2,CH4,CFC11,CFC12,CFC.. are scaled by xxgas: H2O    CO2   O3
+      REAL*8, PARAMETER, dimension(13) :: xxgas = (/ 1d0, .75d0, 1d0,
+C        O2  NO2  N2O    CH4     F11     F12  N2C    F11+  F12+  SO2
+     *  1d0, 1d0, 1d0, .65d0,  1.5d0,  1.1d0, 1d0, 1.5d0,  1d0, 1d0/)
+
       INTEGER, PARAMETER :: NTX=8, NPX=19, NGUX=1008, NPUX=19, NPU2=14,
      *     NPU=5
       REAL*8, PARAMETER :: TLOX=181.d0, DTX=23.d0, P0=1013.25d0
@@ -4774,11 +4780,11 @@ C              ---------------------------------------------------------
       UCH4=1.D-10
       UN2O=1.D-10
       DO 120 IP=1,NL
-      UH2O=UH2O+ULGAS(IP,1)
-      UCO2=UCO2+ULGAS(IP,2)
-      UO3=UO3+ULGAS(IP,3)
-      UCH4=UCH4+ULGAS(IP,7)
-      UN2O=UN2O+ULGAS(IP,6)
+      UH2O=UH2O+ULGAS(IP,1)*xxgas(1)
+      UCO2=UCO2+ULGAS(IP,2)*xxgas(2)
+      UO3=UO3+ULGAS(IP,3)*xxgas(3)
+      UCH4=UCH4+ULGAS(IP,7)*xxgas(7)
+      UN2O=UN2O+ULGAS(IP,6)*xxgas(6)
   120 CONTINUE
       UH2OL=LOG10(UH2O)
       UCO2L=LOG10(UCO2)
@@ -4941,8 +4947,8 @@ C              ---------------------------------------------------------
       DO 500 IGAS=1,20
       IF(MLGAS(IGAS).LT.1) GO TO 500
       NG = NGX(KGX(IGAS))
-      UGAS = ULGAS(IP,IGASX(IGAS))
-      IF(IGAS.EQ.16.OR.IGAS.EQ.17) UGAS=UGAS+ULGAS(IP,11) ! +'other'CFCs
+      UGAS = ULGAS(IP,IGASX(IGAS))*xxgas(igasx(igas))
+      IF(IGAS.EQ.16.OR.IGAS.EQ.17) UGAS=UGAS+ULGAS(IP,11)*xxgas(11)
       KK=IG1X(KGX(IGAS))
 C                       Apply absorber scaling for H2O in CO2 & O3 bands
 C                       ------------------------------------------------
@@ -5177,12 +5183,12 @@ C                               ----------------------------------------
 
       IF(MLGAS(16).EQ.1.OR.MLGAS(17).EQ.1) THEN
       XK=WTB*(XKCFCW(ITX2,1)-XKCFCW(ITX1,1))+XKCFCW(ITX1,1)
-      TAU11=XK*(ULGAS(IP,8)+ULGAS(IP,11))   ! add 'other' CFCs to CFC11
+      TAU11=XK*(ULGAS(IP,8)*xxgas(8)+ULGAS(IP,11)*xxgas(11))
       TRGXLK(IP,1)=TRGXLK(IP,1)+TAU11
       ENDIF
       IF(MLGAS(18).EQ.1.OR.MLGAS(19).EQ.1) THEN
       XK=WTB*(XKCFCW(ITX2,2)-XKCFCW(ITX1,2))+XKCFCW(ITX1,2)
-      TAU12=XK*ULGAS(IP,9)
+      TAU12=XK*ULGAS(IP,9)*xxgas(9)
       TRGXLK(IP,1)=TRGXLK(IP,1)+TAU12
       ENDIF
   600 CONTINUE
@@ -8240,7 +8246,7 @@ C     WRITE(KW,6422)
   405 TAU55=TAU55+AGOLDH(I,J)*FGOLDH(J)
       WRITE(KW,6423) J,FGOLDH(J),TAU55
   406 SUM=SUM+TAU55
-      WRITE(KW,6424) SUM
+      WRITE(KW,6438) SUM
       WRITE(KW,6424) BCOLX,ACOLX,DCOLX,VCOLX,TCOLX
       DO 407 I=1,8
       WRITE(KW,6425)
@@ -8290,7 +8296,7 @@ C                                ------------------------------------
   415 TAU55=TAU55+AGOLDH(I,J)*FGOLDH(J)
       WRITE(KW,6423) J,FGOLDH(J),TAU55
   416 SUM=SUM+TAU55
-      WRITE(KW,6424) SUM
+      WRITE(KW,6438) SUM
       DO 417 I=1,2
       WRITE(KW,6425)
   417 CONTINUE
@@ -12620,7 +12626,7 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
       SUBROUTINE SETREL(REFF0,NAER,KDREAD           !  input parameters
      A                 ,SRUQEX,SRUQSC,SRUQCB        !  SW input ( 6,110)
      B                 ,TRUQEX,TRUQSC,TRUQCB        !  LW input (33,110)
-     C                 ,REFU22,Q55U22               !  RQ input    (110)
+     C                 ,REFU22,Q55U22,FRSULF        !  RQ input    (110)
                                                     !     SETREL  output
      D                 ,SRHQEX,SRHQSC,SRHQCB,TRHQAB !  3(6,190),(33,190)
      E                 ,RHDATA)                     !  RH info   (190,9)
@@ -12630,9 +12636,9 @@ C                  IF(KXTRAP.EQ.2)  (2 Edge Point Linear Extrapolation)
 
       real*8 REFF0,SRUQEX( 6,110),SRUQSC( 6,110),SRUQCB( 6,110)
      A            ,TRUQEX(33,110),TRUQSC(33,110),TRUQCB(33,110)
-     B            ,REFU22(110),Q55U22(110)
+     B            ,REFU22(110),Q55U22(110),FRSULF(8)
       real*8 SRHQEX(6,190),SRHQSC(6,190),SRHQCB( 6,190)
-     A            ,TRHQAB(33,190),RHDATA(190,9)
+     A            ,TRHQAB(33,190),RHDATA(190,15)
 
 C     ------------------------------------------------------------------
 C     REFF0  = Effective radius for dry aerosol seed size (in microns)
@@ -12644,31 +12650,60 @@ C                      1      SO4  Sulfate                            1
 C                      2      SEA  Sea Salt                           2
 C                      3      NO3  Nitrate                            3
 C                                  Pure Water                         4
-C                      4      ORG  Organic Carbon                     5
+C                      4      ORG  Organic                            5
 C     ------------------------------------------------------------------
 
       character*40, save :: dtfile='oct2003.relhum.nr.Q633G633.table'
       logical, parameter :: qbinary=.false.  ; logical qexist
 
+C     Output variables (RHDATA/RHINFO)
+
+      REAL*8    RHRHRH(190),RHTAUF(190),RHREFF(190)
+     A         ,RHWGM2(190),RHDGM2(190),RHTGM2(190)
+     B         ,RHXMFX(190),RHDENS(190),RHQ550(190)
+     C         ,TAUM2G(190),XNRRHX(190),ANBCM2(190)
+     D         ,COSBAR(190),PIZERO(190),ANGSTR(190),RHINFO(190,15)
+
+      EQUIVALENCE (RHINFO(1, 1),RHRHRH(1)),(RHINFO(1, 2),RHTAUF(1))
+      EQUIVALENCE (RHINFO(1, 3),RHREFF(1)),(RHINFO(1, 4),RHWGM2(1))
+      EQUIVALENCE (RHINFO(1, 5),RHDGM2(1)),(RHINFO(1, 6),RHTGM2(1))
+      EQUIVALENCE (RHINFO(1, 7),RHXMFX(1)),(RHINFO(1, 8),RHDENS(1))
+      EQUIVALENCE (RHINFO(1, 9),RHQ550(1)),(RHINFO(1,10),TAUM2G(1))
+      EQUIVALENCE (RHINFO(1,11),XNRRHX(1)),(RHINFO(1,12),ANBCM2(1))
+      EQUIVALENCE (RHINFO(1,13),COSBAR(1)),(RHINFO(1,14),PIZERO(1))
+      EQUIVALENCE (RHINFO(1,15),ANGSTR(1))
+
+C     ------------------------------------------------------------------
+C     RHDATA/    Local
+C     RHINFO   Variable                   Description
+C     ------   --------   ----------------------------------------------
+C        1      RHRHRH    Relative humidity index RH (DO 110  0.0-0.999)
+C        2      RHTAUF    Dry TAU multiplication factor due to RH effect
+C        3      RHREFF    RH dependent effective radius
+C        4      RHWGM2    Liquid water content (g/m2) per unit (dry) TAU
+C        5      RHDGM2    Dry mass density     (g/m2) per unit (dry) TAU
+C        6      RHTGM2    Total mass density   (g/m2) per unit (dry) TAU
+C        7      RHXMFX    Dry mass fraction X of total aerosol mass
+C        8      RHDENS    RH dependent density (g/cm3)
+C        9      RHQ550    RH dependent Mie extinction efficiency (550nm)
+C       10      TAUM2G    RH dependent TAU factor  (m2/g) of dry aerosol
+C       11      XNRRHX    RH dependent real refractive index
+C       12      ANBCM2    Aerosol Number density (Billion)/cm2
+C       13      COSBAR    RH dependent Mie asymmetry parameter (visible)
+C       14      PIZERO    RH dependent single scattering albedo(visible)
+C       15      ANGSTR    Angstrom exponent = -(1-SRHQEX(5)/(0.55-0.815)
+C     ------------------------------------------------------------------
+
+
 C     Local variables
 
-      real*8    RHRHRH(190),RHTAUF(190),RHREFF(190)
-     A         ,RHWGM2(190),RHDGM2(190),RHTGM2(190)
-     B         ,RHXMFX(190),RHDENS(190),RHQ550(190),RHINFO(190,9)
-      EQUIVALENCE (RHINFO(1,1),RHRHRH(1)),(RHINFO(1,2),RHTAUF(1))
-      EQUIVALENCE (RHINFO(1,3),RHREFF(1)),(RHINFO(1,4),RHWGM2(1))
-      EQUIVALENCE (RHINFO(1,5),RHDGM2(1)),(RHINFO(1,6),RHTGM2(1))
-      EQUIVALENCE (RHINFO(1,7),RHXMFX(1)),(RHINFO(1,8),RHDENS(1))
-      EQUIVALENCE (RHINFO(1,9),RHQ550(1))
+      REAL*8    R633NR(890),XNR(31),Q633NR(890,31),G633NR(890,31)
+      REAL*8    Q880M1(890),G880M1(890),Q880M0(890),G880M0(890)
+      REAL*8    Q880N1(890),Q880N0(890),R550NR(890),SMOOTH(890)
+      REAL*8    RR0RHX(190),QRH633(190),GRH633(190),DNRX(190)
 
-      real*8    R633NR(890),XNR(31),Q633NR(890,31),G633NR(890,31)
-      real*8    Q880M1(890),G880M1(890),Q880M0(890),G880M0(890)
-      real*8    Q880N1(890),Q880N0(890),R550NR(890),SMOOTH(890)
-      real*8    RR0RHX(190),XNRRHX(190),QRH633(190),GRH633(190)
-      real*8    XXMF(190),XXRH(190),XRR0(190)
-      real*8    XXNR(190),XROA(190),DNRX(190)
 
-      real*8    QXAERN(33),QSAERN(33),QGAERN(33)
+      REAL*8    QXAERN(33),QSAERN(33),QGAERN(33)
      A         ,SR1QEX( 6),SR1QSC( 6),SR1QCB( 6)
      B         ,SR2QEX( 6),SR2QSC( 6),SR2QCB( 6)
      C         ,SR3QEX( 6),SR3QSC( 6),SR3QCB( 6)
@@ -12681,8 +12716,8 @@ C     Local variables
 
       integer, parameter, dimension(4) :: NRHCRY=(/38,47,28,38/)
 
-!nu   CHARACTER*8 AERTYP(4)
-!nu   DATA AERTYP/'Sulfate ','SeaSalt ','Nitrate ','Organic '/
+      CHARACTER*8 AERTYP(4)
+      DATA AERTYP/'Sulfate ','SeaSalt ','Nitrate ','Organic '/
 
 C     ------------------------------------------------------------------
 C     Hygroscopic aerosols (Sulfate,SeaSalt,Nitrate) physical properties
@@ -12694,18 +12729,24 @@ C     ------------------------------------------------------------------
 
 C     functions
 
-      real*8 AWSO4,ROSO4,BXSO4,RXSO4,DRWSO4,DRDSO4
-      real*8 AWSEA,ROSEA,BXSEA,RXSEA,DRWSEA,DRDSEA,RRSEA,VVSEA,GXSEA
-      real*8 AWNO3,RONO3,BXNO3,R1NO3,R2NO3, DRXNO3
+      REAL*8 AWSO4,DWSO4,ROSO4,BXSO4,RXSO4,DRWSO4,DRDSO4
+      REAL*8 AWSEA,DWSEA,ROSEA,BXSEA,RXSEA,DRWSEA,DRDSEA
+      REAL*8 RRSEA,VVSEA,GXSEA
+      REAL*8 AWNO3,DWNO3,RONO3,BXNO3,R1NO3,R2NO3, DRXNO3
+      REAL*8 AWOCX,DWOCX,ROOCX,BXOCX,RXOCX,DRWOCX,DRDOCX
 
+      !        Sulfate parametric formulas from Tang & Munkelwitz(94,96)
       AWSO4(X)=1.D0-0.2715*X+0.3113*X**2-2.336*X**3+1.412*X**4    ! TM94
+      DWSO4(X)=    -0.2715D0+0.6226*X   -7.008*X**2+5.648*X**3
       ROSO4(X)=0.9971D0+5.92D-01*X-5.036D-02*X**2+1.024D-02*X**3  ! TM94
       BXSO4(X)=(1.D0/X*1.760D0/ROSO4(X))**(1.D0/3.D0)             ! TM96
       RXSO4(X)=1.3330+0.16730*X-0.0395*X**2                       ! TM91
       DRWSO4(RH)=1.002146-0.00149*RH+0.001*RH/(1.0+0.911*RH**10)
       DRDSO4(RH)=1.002503     ! ratio of wet & dry nr(0.550) / nr(0.633)
 
+      !        SeaSalt parametric formulas from Tang & Munkelwitz(94,96)
       AWSEA(X)=1.0D0-0.6366*X+0.8624*X**2-11.58*X**3+15.18*X**4   ! TM96
+      DWSEA(X)=     -0.6366D0+1.7248*X   -34.74*X**2+60.72*X**3
       ROSEA(X)=0.9971+0.741*X-0.3741*X**2+2.252*X**3-2.060*X**4   ! TM96
       BXSEA(X)=(1.D0/X*2.165D0/ROSEA(X))**(1.D0/3.D0)
       RRSEA(X)=3.70958+(8.95-3.70958)/(1.D0+(1.0-X)/X*58.448/18.0)
@@ -12715,13 +12756,24 @@ C     functions
       DRWSEA(RH)=1.00212-0.001625*RH+0.00131*RH/(1.0+0.928*RH**3)
       DRDSEA(RH)=1.003007     ! ratio of wet & dry nr(0.550) / nr(0.633)
 
+      !        Nitrate parametric formulas from Tang & Munkelwitz(94,96)
       AWNO3(X)=1.D0-3.65D-01*X-9.155D-02*X**2-2.826D-01*X**3      ! TM96
+      DWNO3(X)=    -3.65D-01  -18.31D-02*X   -8.478D-01*X**3
       RONO3(X)=0.9971D0+4.05D-01*X+9.0D-02*X**2                   ! TM96
       BXNO3(X)=(1.D0/X*1.725D0/RONO3(X))**(1.D0/3.D0)             ! TM96
       R1NO3(X)=1.3330+0.119D0*X          !  (X<0.205)              TWM81
       R2NO3(X)=1.3285+0.145D0*X          !  (X>0.205)              TWM81
       DRXNO3(RH)=1.001179     ! ratio of wet & dry nr(0.550) / nr(0.633)
 
+      !        Organic Carbon - adapted from Sulfate parametric formulas
+      !        yields growth factor G=1.1 at RH=0.84 Virkkula et al 1999
+      AWOCX(X)=AWSO4(X)**0.5D0
+      DWOCX(X)=0.5D0/AWSO4(X)**0.5D0*DWSO4(X)
+      ROOCX(X)=ROSO4(X)*(1.0-X*(1.760-1.650)/1.760)
+      BXOCX(X)=BXSO4(X)**0.3D0
+      RXOCX(X)=1.3330+(RXSO4(X)-1.3330)*1.33
+      DRWOCX(RH)=1.00253-0.00198*RH+0.00184*RH/(1.0+0.656*RH**1.1)
+      DRDOCX(RH)=1.00253
 
 C     ------------------------------------------------------------------
 C     Q,G Mie data (879x31) at 0.633 microns, use 31 points to cover the
@@ -12738,6 +12790,7 @@ C
 C     The last two intervals are constructed to accommodate transitions
 C     between the (3) segments using 4-point Cubic Spline interpolation
 C     ------------------------------------------------------------------
+
 
       inquire (file=dtfile,exist=qexist)
       if(.not.qexist) dtfile='RH_QG_Mie  ' ! generic name used by GCM
@@ -12805,11 +12858,9 @@ C     ------------------------------------------------------------------
   108 CONTINUE
   109 CONTINUE
 
-C         Set dry mass fraction XXMF and relative humidity RHRHRH scales
-C         --------------------------------------------------------------
+C                                     Set relative humidity RHRHRH scale
+C                                     ----------------------------------
       DO 110 I=1,190
-      XXMF(I)=1.D0-(I-1)/100.D0
-      IF(I.GT.91)  XXMF(I)=0.10D0-(I-91)/1000.D0
       RHRHRH(I)=(I-1)/100.D0
       IF(I.GT.91) RHRHRH(I)=0.90D0+(I-91)/1000.D0
   110 CONTINUE
@@ -12841,50 +12892,59 @@ C         --------------------------------------------------------------
       IF(NAER.EQ.4) THEN       !    Dry Organic refrac index and density
       XNRRHX(I)=1.526          !                  (representative value)
       RHDENS(I)=1.5            !                  (representative value)
-      IF(I.LT.NRHN1) DNRX(I)=DRDSO4(RHI)
-      IF(I.GE.NRHN1) DNRX(I)=DRWSO4(RHI)
+      IF(I.LT.NRHN1) DNRX(I)=DRDOCX(RHI)
+      IF(I.GE.NRHN1) DNRX(I)=DRWOCX(RHI)
       ENDIF
   111 CONTINUE
-      DO 112 I=1,190
-      X=XXMF(I)
-      IF(NAER.EQ.1) THEN          !       RH dependent Sulfate X,R,NR,RO
-      XXRH(I)=AWSO4(X)
-      XRR0(I)=BXSO4(X)
-      XXNR(I)=RXSO4(X)
-      XROA(I)=ROSO4(X)
-      ENDIF
-      IF(NAER.EQ.2) THEN          !       RH dependent SeaSalt X,R,NR,RO
-      XXRH(I)=AWSEA(X)
-      XRR0(I)=BXSEA(X)
-      XXNR(I)=RXSEA(X)
-      XROA(I)=ROSEA(X)
-      IF(I.LT.NRHN1) XXRH(I)=I/1000.0
-      ENDIF
-      IF(NAER.EQ.3) THEN          !       RH dependent Nitrate X,R,NR,RO
-      XXRH(I)=AWNO3(X)
-      XRR0(I)=BXNO3(X)
-      XXNR(I)=R1NO3(X)
-      XROA(I)=RONO3(X)
-      IF(X.GT.0.205) XXNR(I)=R2NO3(X)
-      ENDIF
-      IF(NAER.EQ.4) THEN          !       RH dependent Organic X,R,NR,RO
-      XXRH(I)=AWSO4(X)**0.50      !       (to yield growth factor G=1.1)
-      XRR0(I)=BXSO4(X)**0.30      !       (at RH=84 Virkkula et al 1999)
-      XXNR(I)=RXSO4(X)
-      XROA(I)=ROSO4(X)*(1.0-X*(1.760-1.650)/1.760)
-      ENDIF
-  112 CONTINUE
 
 C            Invert X, RO, BX, RX functions of (X) to be functions of RH
 C            -----------------------------------------------------------
-      DO 113 I=NRHN1,190
-      RHI=RHRHRH(I)
-      CALL SPLINE(XXRH,XRR0,190,RHI,RR0RHX(I),1.D0,1.D0,1)
-      CALL SPLINE(XXRH,XXNR,190,RHI,XNRRHX(I),1.D0,1.D0,1)
-      CALL SPLINE(XXRH,XXMF,190,RHI,RHXMFX(I),1.D0,1.D0,1)
-      CALL SPLINE(XXRH,XROA,190,RHI,RHDENS(I),1.D0,1.D0,1)
-      RHDENS(I)=MAX(RHDENS(I),1.D0)
+      I=191
+      FF=1.D0
+      XX=0.D0
+      IF(NAER.EQ.1) GI=DWSO4(XX)
+      IF(NAER.EQ.2) GI=DWSEA(XX)
+      IF(NAER.EQ.3) GI=DWNO3(XX)
+      IF(NAER.EQ.4) GI=DWOCX(XX)
+  112 I=I-1
+      FI=RHRHRH(I)
+      DO 113 K=1,5
+      XI=XX-(FF-FI)/GI
+      IF(NAER.EQ.1) FF=AWSO4(XI)
+      IF(NAER.EQ.2) FF=AWSEA(XI)
+      IF(NAER.EQ.3) FF=AWNO3(XI)
+      IF(NAER.EQ.4) FF=AWOCX(XI)
+      IF(I.GT.0) THEN
+      ENDIF
+      XX=XI
+      IF(NAER.EQ.1) GI=DWSO4(XX)
+      IF(NAER.EQ.2) GI=DWSEA(XX)
+      IF(NAER.EQ.3) GI=DWNO3(XX)
+      IF(NAER.EQ.4) GI=DWOCX(XX)
   113 CONTINUE
+      RHXMFX(I)=XX
+      IF(NAER.EQ.1) THEN          !       RH dependent Sulfate X,R,NR,RO
+      RHDENS(I)=ROSO4(XX)
+      RR0RHX(I)=BXSO4(XX)
+      XNRRHX(I)=RXSO4(XX)
+      ENDIF
+      IF(NAER.EQ.2) THEN          !       RH dependent SeaSalt X,R,NR,RO
+      RHDENS(I)=ROSEA(XX)
+      RR0RHX(I)=BXSEA(XX)
+      XNRRHX(I)=RXSEA(XX)
+      ENDIF
+      IF(NAER.EQ.3) THEN          !       RH dependent Nitrate X,R,NR,RO
+      RHDENS(I)=RONO3(XX)
+      RR0RHX(I)=BXNO3(XX)
+      XNRRHX(I)=R1NO3(XX)
+      IF(XX.GT.0.205D0) XNRRHX(I)=R2NO3(XX)
+      ENDIF
+      IF(NAER.EQ.4) THEN          !       RH dependent Organic X,R,NR,RO
+      RHDENS(I)=ROOCX(XX)
+      RR0RHX(I)=BXOCX(XX)
+      XNRRHX(I)=RXOCX(XX)
+      ENDIF
+      IF(I.GT.NRHN1) GO TO 112
 
 C     ------------------------------------------------------------------
 C     Find Qdry(r),gdry(r) from Q(m,r),g(m,r) maps for each aerosol type
@@ -12992,28 +13052,25 @@ C     ------------------------------------------------------------------
   117 CONTINUE
 
 C        Aerosol liquid water content is in kg/m2 per unit optical depth
-C                with the aerosol effective radius expressed in microns.
-C                -------------------------------------------------------
+C     of dry aerosol with aerosol effective radius expressed in microns.
+C     ------------------------------------------------------------------
+
       DO 118 I=1,190
-      RHTAUF(I)=(RHQ550(I)/Q55DRY)*RR0RHX(I)**2 ! if input data are adj.
+      RHTAUF(I)=(RHQ550(I)/Q55DRY)*RR0RHX(I)**2
       AERMAS=1.33333333D0*RHREFF(I)*RHDENS(I)/RHQ550(I)*RHTAUF(I)
       RHTGM2(I)=AERMAS
-      RHDGM2(I)=RHTGM2(1)
+      RHDGM2(I)=AERMAS*RHXMFX(I)
+      IF(NAER.EQ.4) RHDGM2(I)=RHTGM2(1)
       RHWGM2(I)=RHTGM2(I)-RHDGM2(I)
+      TAUM2G(I)=0.75D0/RHDENS(1)/RHREFF(1)*RHQ550(1)*RHTAUF(I)
+      ANBCM2(I)=TAUM2G(I)/(1.5080*RHQ550(I)*RHREFF(I)**2)
   118 CONTINUE
-
-      DO 120 N=1,9
-      DO 119 I=1,190
-      RHDATA(I,N)=RHINFO(I,N)
-  119 CONTINUE
-  120 CONTINUE
 
 C     Determination of RH dependent Mie scattering tables for GCM input.
 C     Find equivalent aersol dry sizes (RD1,RD2) and wet sizes (RW1,RW2)
 C     and corresponding weights to match the RH dependent Q(r) and g(r).
 C     Fits made to form: QRH=X*[Y*QD1+(1-Y)*QD2]+(1-X)*[Z*WD1+(1-Z)*WD2]
 C     ------------------------------------------------------------------
-      RFAC=1.25                                !   Spectral range factor
       J1=MAXWET
       JHIMAX=881-MAXWET
       K1=MAXDRY
@@ -13036,8 +13093,6 @@ C     ------------------------------------------------------------------
       CALL SPLINV(R633NR(J1),Q880M0(J1),JHIMAX,RW2,QW2,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M0,880,RW1,GW1,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M0,880,RW2,GW2,1.D0,1.D0,1)
-      CALL SPLINE(R633NR,Q880M0,880,RW1*RFAC,PW1,1.D0,1.D0,1)
-      CALL SPLINE(R633NR,Q880M0,880,RW2*RFAC,PW2,1.D0,1.D0,1)
       IF(I.GE.NRHN1.AND.QRH.GT.QQWMAX) THEN
       QD1=QQWMAX+(QRH-QQWMAX)/XFDRY ! QD1 such that  QRH=X*QD1+(1-X)*QW1
       QD2=2.3D0                     ! 2 dry sizes are used if QD1>QQWMAX
@@ -13046,30 +13101,19 @@ C     ------------------------------------------------------------------
       CALL SPLINV(R633NR(K1),Q880M1(K1),KHIMAX,RD2,QD2,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M1,880,RD1,GD1,1.D0,1.D0,1)
       CALL SPLINE(R633NR,G880M1,880,RD2,GD2,1.D0,1.D0,1)
-      RRHFAC=RRH*RFAC
-      CALL SPLINE(RHREFF(NRHN1),QRH633(NRHN1),NP,RRHFAC,PRH,1.D0,1.D0,1)
-      CALL SPLINE(R633NR,Q880M1,880,RD1*RFAC,PD1,1.D0,1.D0,1)
-      CALL SPLINE(R633NR,Q880M1,880,RD2*RFAC,PD2,1.D0,1.D0,1)
 
       IF(I.LT.NRHN1) THEN         !          Pure dry aerosol region (1)
       WTX=1.D0
       WTY=1.D0
       IF(REFF0.GT.RQDMAX) WTY=0.D0
       WTZ=1.D0
-      ELSE            !         Dry/wet weighted average regions (2)-(6)
-      IF(QRH.LE.QQWMAX.AND.REFFI.LT.RW1) THEN
-      IF(QRH.LT.2.2D0) THEN     !          Small-size aerosol region (2)
+      ELSE            !         Dry/wet weighted average regions (2)-(4)
+      IF(QRH.LE.QQWMAX.AND.REFFI.LT.RW1) THEN  !   Small-size region (2)
       WTZ=1.D0
       WTY=1.D0
       WTX=(GRH-GW1)/(GD1-GW1)
-      ELSE                       !      Moderate-size aerosol region (3)
-      WTZ=1.D0
-      WTY=((PD2-PW1)*(GRH-GW1)-(PRH-PW1)*(GD2-GW1))
-     +   /((PRH-PW1)*(GD1-GD2)-(PD1-PD2)*(GRH-GW1))
-      WTX=(GRH-GW1)/(WTY*(GD1-GD2)+(GD2-GW1))
       ENDIF
-      ENDIF
-      IF(QRH.GT.QQWMAX) THEN       !      Medium-size aerosol region (4)
+      IF(QRH.GT.QQWMAX) THEN                   !  Medium-size region (3)
 C     Fit form: QRH=X*(Y*QD1+(1-Y)*QD2)+(1-X)*QWmax & QRH=/QD1=/QD2=/QW1
       WTZ=1.D0
       WTY=((GRH-GD2)*QRH*QD2+(GD2-GW1)*QD2*QW1+(GW1-GRH)*QRH*QW1)
@@ -13077,16 +13121,13 @@ C     Fit form: QRH=X*(Y*QD1+(1-Y)*QD2)+(1-X)*QWmax & QRH=/QD1=/QD2=/QW1
      +    +(GD2-GW1)*QD2*QW1)
       WTX=(QRH-QW1)/(WTY*(QD1-QD2)+(QD2-QW1))
       ENDIF
-      IF(QRH.LE.QQWMAX.AND.REFFI.GT.RW1) THEN   !  Large size region (5)
+      IF(QRH.LE.QQWMAX.AND.REFFI.GT.RW1) THEN   !  Large size region (4)
       WTY=0.D0
-      WTZ=((PD2-PW2)*(GRH-GW2)-(PRH-PW2)*(GD2-GW2))
-     +   /((PW2-PW1)*(GD2-GRH)+(PRH-PD2)*(GW2-GW1))
-      IF(WTZ.GT.1.D0) WTZ=1.D0
-      IF(WTZ.LT.0.D0) WTZ=0.D0
-      WTX=((GRH-GW2)+WTZ*(GW2-GW1))/((GD2-GW2)+WTZ*(GW2-GW1))
+      WTZ=0.D0
+      WTX=(GRH-GW2)/(GD2-GW2)
       ENDIF
       ENDIF
-      IF(REFFI.GT.RQWMAX.AND.RHRHI.GT.0.995) THEN   ! High RH region (6)
+      IF(REFFI.GT.RQWMAX.AND.RHRHI.GT.0.995) THEN   ! High RH region (5)
       WTY=0.D0
       WTX=XFDRY
       WTZ=((GRH-GW2)-(GD2-GW2)*WTX)/((1.D0-WTX)*(GW1-GW2))
@@ -13137,9 +13178,12 @@ C     ------------------------------------------------------------------
       DO 122 K=1,6                            !   SW dry sizes RD1 & RD2
       DO 121 N=1,22
       NN=N0+N
-      QXAERN(N)=SRUQEX(K,NN)
-      QSAERN(N)=SRUQSC(K,NN)
-      QGAERN(N)=SRUQCB(K,NN)
+      WTS=FRSULF(NAER)
+      WTA=1.D0-WTS
+      QXAERN(N)=SRUQEX(K,NN)*WTA+SRUQEX(K,N)*WTS
+      QSAERN(N)=SRUQSC(K,NN)*WTA+SRUQSC(K,N)*WTS
+      QGAERX=SRUQCB(K,NN)*SRUQSC(K,NN)*WTA+SRUQCB(K,N)*SRUQSC(K,N)*WTS
+      QGAERN(N)=QGAERX/QSAERN(N)
   121 CONTINUE
       CALL SPLINE(REFU22,QXAERN,22,RD1,SR1QEX(K),1.D0,1.D0,1)
       CALL SPLINE(REFU22,QSAERN,22,RD1,SR1QSC(K),1.D0,1.D0,1)
@@ -13152,9 +13196,12 @@ C     ------------------------------------------------------------------
       DO 124 K=1,33                           !   LW dry sizes RD1 & RD2
       DO 123 N=1,22
       NN=N0+N
-      QXAERN(N)=TRUQEX(K,NN)
-      QSAERN(N)=TRUQSC(K,NN)
-      QGAERN(N)=TRUQCB(K,NN)
+      WTS=FRSULF(NAER)
+      WTA=1.D0-WTS
+      QXAERN(N)=TRUQEX(K,NN)*WTA+TRUQEX(K,N)*WTS
+      QSAERN(N)=TRUQSC(K,NN)*WTA+TRUQSC(K,N)*WTS
+      QGAERX=TRUQCB(K,NN)*TRUQSC(K,NN)*WTA+TRUQCB(K,N)*TRUQSC(K,N)*WTS
+      QGAERN(N)=QGAERX/(QSAERN(N)+1d-10)
   123 CONTINUE
       CALL SPLINE(REFU22,QXAERN,22,RD1,TR1QEX(K),1.D0,1.D0,1)
       CALL SPLINE(REFU22,QSAERN,22,RD1,TR1QSC(K),1.D0,1.D0,1)
@@ -13200,7 +13247,7 @@ C     ------------------------------------------------------------------
       CALL SPLINE(REFU22,Q55U22(N1),22,RW1,Q55RH3,1.D0,1.D0,1)
       CALL SPLINE(REFU22,Q55U22(N1),22,RW2,Q55RH4,1.D0,1.D0,1)
 
-                        !       Weighted GCM SW Mie cattering parameters
+                        !      Weighted GCM SW Mie scattering parameters
       DO 129 K=1,6
       SRHQEX(K,I)=W1*SR1QEX(K)+W2*SR2QEX(K)+W3*SR3QEX(K)+W4*SR4QEX(K)
       SRHQSC(K,I)=W1*SR1QSC(K)+W2*SR2QSC(K)+W3*SR3QSC(K)+W4*SR4QSC(K)
@@ -13208,7 +13255,7 @@ C     ------------------------------------------------------------------
      +           +W3*SR3QCB(K)*SR3QSC(K)+W4*SR4QCB(K)*SR4QSC(K)
       SRHQCB(K,I)=QSCQCB/SRHQSC(K,I)
   129 CONTINUE
-                        !       Weighted GCM LW Mie cattering parameters
+                        !      Weighted GCM LW Mie scattering parameters
       DO 130 K=1,33
       TRHQEX(K)=W1*TR1QEX(K)+W2*TR2QEX(K)+W3*TR3QEX(K)+W4*TR4QEX(K)
       TRHQSC(K)=W1*TR1QSC(K)+W2*TR2QSC(K)+W3*TR3QSC(K)+W4*TR4QSC(K)
@@ -13218,17 +13265,30 @@ C     ------------------------------------------------------------------
       TRHQAB(K,I)=TRHQEX(K)-TRHQSC(K)
   130 CONTINUE
 
-!dbug Diagnostic variables  (not required for SETREL output)
-!dbug QGFIT4=VD1*GD1*QD1+VD2*GD2*QD2+VW1*GW1*QW1+VW2*GW2*QW2
-!dbug Q63FIT=VD1*QD1+VD2*QD2+VW1*QW1+VW2*QW2
-!dbug G63FIT=QGFIT4/Q63FIT
-!dbug Q63RAT=QRH633(I)/QRH633(1)
-!dbug TAUF63=Q63RAT*RR0RHX(I)**2   !TAUF63 close to RHTAUF but not equal
-!dbug GRATIO=GRH633(I)/G63FIT      !633nm weighted G-fit  equal to unity
-!dbug Q55RH4=W1*Q55RH1+W2*Q55RH2+W3*Q55RH3+W4*Q55RH4   !  Weighted Q-fit
-!dbug QRATIO=Q55RH4/RHQ550(I) ! only close to unity due to coarse interp
+      COSBAR(I)=SRHQCB(6,I)
+      PIZERO(I)=SRHQSC(6,I)/SRHQEX(6,I)
+      ANGSTR(I)=-(1.D0-SRHQEX(5,I))/(0.550D0-0.815D0)
 
+C              Transfer EQUIVALENCEd SETREL output information to RHDATA
+      DO 139 J=1,15
+      RHDATA(I,J)=RHINFO(I,J)
+  139 CONTINUE
   140 CONTINUE
+
+C                                                      Diagnostic output
+      DO 150 I=1,190
+      IF(I.EQ.  1) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I.EQ. 82) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I.EQ.137) WRITE(99,6000) AERTYP(NAER),NAER,REFF0
+      IF(I.LT.27) GO TO 150
+      WRITE(99,6100) I,(RHINFO(I,N),N=1,15)
+     +                ,SRHQEX(6,I),SRHQEX(5,I),SRHQEX(1,I),TRHQAB(1,I)
+ 6100 FORMAT(I3,F5.3,18F8.4)
+  150 CONTINUE
+ 6000 FORMAT(T90,A8,'  NAER=',I2,'   REFF0=',F5.2/
+     +      /'      RH  RHTAUF  RHREFF  RHWGM2  RHDGM2  RHTGM2  RHXMFX'
+     +      ,'  RHDENS  RHQ550  TAUM2G  XNRRHX  ANBCM2  COSBAR  PIZERO'
+     +      ,'  ANGSTR SRHQEX6 SRHQEX5 SRHQEX1 TRHQAB1')
 
       RETURN
       END SUBROUTINE SETREL

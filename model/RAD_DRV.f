@@ -514,13 +514,14 @@ C****   1    2    3    4    5    6    7    8    9   10   11   12   13
 C****  SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
 C**** using the following default scaling/tuning factors  AERMIX(1-13)
 C****  1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9
-C**** The 8 groups are:
-C**** 1. Sulfate (industr and natural), 2. seasalt, 3. Nitrate
-C**** 4. Organic Carbons, 5. Industrial Black Carbon(BC), 6. Biomass BC
+C**** The 8 groups are (adding dust and volcanic aerosols as 7. and 8.)
+C**** 1. Sulfates (industr and natural), 2. Sea Salt, 3. Nitrates
+C**** 4. Organic Carbons, 5. industr Black Carbons(BC), 6. Biomass BC
 C**** 7. Dust aerosols, 8. Volcanic aerosols
 C**** use FS8OPX and FT8OPX to enhance the optical effect; defaults:
 caer  FS8OPX = (/1., 1., 1., 1., 2., 2.,    1.   ,   1./)     solar
 caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
+!!!!! Note: FS|T8OPX(7-8) makes FS|TXAER(4-5) redundant.
 C**** Particle sizes of the first 4 groups have RelHum dependence
 
 C**** To add up to 8 further aerosols:
@@ -1255,7 +1256,7 @@ C**** Ozone:
       CALL RCOMPX
       SNFST(1,n_Ox,I,J)=SRNFLB(1)  ! surface
       TNFST(1,n_Ox,I,J)=TRNFLB(1)
-      SNFST(2,n_Ox,I,J)=SRNFLB(LFRC) 
+      SNFST(2,n_Ox,I,J)=SRNFLB(LFRC)
       TNFST(2,n_Ox,I,J)=TRNFLB(LFRC)
       use_tracer_ozone=onoff
 #endif
