@@ -154,8 +154,8 @@ DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT (bel
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
+DTsrc=1800.     ! cannot be changed after a run has been started
 ! parameters that may have to be changed in emergencies:
-DTsrc=1800.,
 DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 

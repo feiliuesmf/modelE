@@ -634,10 +634,10 @@ C****
 !@var num_acc_files number of acc files for diag postprocessing
       INTEGER I,J,L,K,ITYPE,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
-!@nlparam HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
+!@nlparam TIMEE,HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
-     *             HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
+     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
 !@nlparam ISTART  postprocessing(-1)/start(1-8)/restart(>8)  option
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
      *             ISTART, IRANDI=0
@@ -654,7 +654,7 @@ C****
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
-     *     ,IHOURE, HOURE,DATEE,MONTHE,YEARE,IYEAR1
+     *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
 
@@ -850,7 +850,7 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (Iyear1.lt.0) Iyear1 = yearI
       IhrI = HourI +
      +  HR_IN_DAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
-      ITimeI = IhrI*NDAY/24  !  internal clock counts DTsrc-steps
+      ITimeI = IhrI*NDAY/HR_IN_DAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
         WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
@@ -1179,10 +1179,11 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      IF (yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
-     *    JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY + HourE )*NDAY/24
+      if(timee.lt.0) timee=houre*nday/HR_IN_DAY
+      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
+     *  JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY )*NDAY/HR_IN_DAY + TIMEE
 C**** Alternate (old) way of specifying end time
-      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/24
+      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/HR_IN_DAY
 
 C**** Recompute dtsrc,dt making NIdyn=dtsrc/dt(dyn) a multiple of 2
 C****
