@@ -185,7 +185,8 @@
       use somtq_com, only: init_smomtq
 !!$$      use fluxes, only : init_fluxes
       use clouds_com, only : init_clouds_com
-      use icedyn,     only : init_icedyn_alloc => init_icedyn
+      use icedyn,     only : alloc_icedyn
+      use icedyn_com, only : alloc_icedyn_com
 !ccc  modules with data to compare
       use model_com, only : u,v,t,q,p
 #ifdef CHECK_OCEAN
@@ -271,7 +272,8 @@
       call init_smomtq(grid)
 !!$$      call init_fluxes(grid)
       call init_clouds_com(grid)
-      call init_icedyn_alloc(grid)
+      call alloc_icedyn(grid)
+      call alloc_icedyn_com(grid)
 
 !C****
 !C**** Read ReStartFiles

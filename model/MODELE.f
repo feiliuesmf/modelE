@@ -21,6 +21,7 @@
 c$$$      USE FLUXES, only : init_fluxes
       USE CLOUDS_COM, only : init_clouds_com
       USE ICEDYN,     only : alloc_icedyn
+      USE ICEDYN_COM, only : alloc_icedyn_com
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -42,6 +43,7 @@ c$$$      USE FLUXES, only : init_fluxes
 c$$$        call init_fluxes(grid)
         call init_clouds_com(grid)
         call alloc_icedyn(grid)
+        call alloc_icedyn_com(grid)
 C****
 C**** Processing command line options
 C****

@@ -15,14 +15,17 @@
 C**** variables used in advection (on ICE grid)
 !@var RSIX,RSIY first order moments for seaice concentration
 !@var USI,VSI east-west, and north-south sea ice velocities (m/s)
-      REAL*8, DIMENSION(IMIC,JMIC) :: RSIX,RSIY,USI,VSI
+!     REAL*8, DIMENSION(IMIC,JMIC) :: RSIX,RSIY,USI,VSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSIX,RSIY,USI,VSI
 
 !@var USIDT,VSIDT sea ice fluxes, saved for advection (m)
-      REAL*8, DIMENSION(IMIC,JMIC) :: USIDT,VSIDT
+!     REAL*8, DIMENSION(IMIC,JMIC) :: USIDT,VSIDT
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: USIDT,VSIDT
 
 C**** Needed for ADVSI (on ATM grid)
 !@var RSISAVE saved value of sea ice concentration before DYNSI
-      REAL*8, DIMENSION(IM,JM) :: RSISAVE
+!     REAL*8, DIMENSION(IM,JM) :: RSISAVE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSISAVE
 
 C**** Ice advection diagnostics
       INTEGER, PARAMETER :: KICIJ=12
@@ -30,7 +33,8 @@ C**** Ice advection diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_MUSI,IJ_MVSI
      *     ,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_RSI
 !@var ICIJ lat-lon ice dynamic diagnostics (on atm grid)
-      REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ
+!     REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ
 !@var lname_icij Long names for ICIJ diagnostics
       CHARACTER*50, DIMENSION(KICIJ) :: LNAME_ICIJ
 !@var sname_icij Short names for ICIJ diagnostics
@@ -47,7 +51,8 @@ C**** Ice advection diagnostics
 !@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
 !@var TICIJ  lat/lon ice dynamic tracer diagnostics
-      REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ
+!     REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)  :: TICIJ
 !@var ticij_xxx indices for TICIJ diags
       INTEGER :: tICIJ_tusi,tICIJ_tvsi
 !@var lname_ticij Long names for TICIJ diagnostics
@@ -63,8 +68,61 @@ C**** Ice advection diagnostics
 !@var ijgrid_ticij Grid descriptor for TICIJ diagnostics
       INTEGER, DIMENSION(KTICIJ) :: IJGRID_TICIJ
 #endif
+      PRIVATE :: init
+      LOGICAL :: init=.false.
+
+      CONTAINS
+
+      SUBROUTINE ALLOC_ICEDYN_COM(grid)
+!@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module.
+!@auth Rosalinda de Fainchtein
+
+      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : DYN_GRID
+
+      INTEGER :: J_1H    , J_0H
+      INTEGER :: J_1H_MIC, J_0H_MIC
+      INTEGER :: IER
+      TYPE(DYN_GRID) :: grid, grid_MIC
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+!*** For now set grid_MIC to be the same as grid
+!    This is consistent with the current status of the code for parallelization
+!    along latitude (j) 
+      grid_MIC =grid
+      CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
+      CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+
+      ALLOCATE( RSIX(IMIC, J_0H_MIC:J_1H_MIC),
+     &          RSIY(IMIC, J_0H_MIC:J_1H_MIC),
+     &           USI(IMIC, J_0H_MIC:J_1H_MIC),
+     &           VSI(IMIC, J_0H_MIC:J_1H_MIC),
+     &     STAT = IER)
+
+      ALLOCATE( USIDT(IMIC, J_0H_MIC:J_1H_MIC),
+     &          VSIDT(IMIC, J_0H_MIC:J_1H_MIC),
+     &     STAT = IER)
+
+      ALLOCATE( RSISAVE(IM, J_0H:J_1H),
+     &     STAT = IER)
+
+      ALLOCATE(  ICIJ(IMIC, J_0H_MIC:J_1H_MIC, KICIJ),
+     &     STAT = IER)
+
+#ifdef TRACERS_WATER
+      ALLOCATE( TICIJ(IMIC, J_0H_MIC:J_1H_MIC, KTICIJ, NTM),
+     &     STAT = IER)
+#endif
+
+      return
+      END SUBROUTINE ALLOC_ICEDYN_COM
 
       END MODULE ICEDYN_COM
+
 
       SUBROUTINE io_icedyn(kunit,iaction,ioerr)
 !@sum  io_icedyn reads and writes dynamic ice arrays to file
