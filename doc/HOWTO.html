@@ -41,8 +41,14 @@ in adding functionality or diagnostics.</P>
   <LI><A HREF="#part1_1"> HOW-TO setup and run the GISS GCM</A>
      <OL>
        <LI> <A HREF="#part1_1a"> How to select a rundeck name </A>
-       <LI> <A HREF="#part1_1b"> How to interact with CVS to make sure
-     the run is reproducible</A>
+       <LI> <A HREF="#part1_1b"> How to compile the model </A>
+       <LI> <A HREF="#part1_1c"> How to interact with CVS to make sure
+       the run is reproducible</A>
+       <LI> <A HREF="#part1_1d"> How to run the model </A>
+       <LI> <A HREF="#part1_1e"> How to run the model on multiple 
+       processors</A> 
+       <LI> <A HREF="#part1_1f"> How to specify individual compilation
+       options for certain files</A>
      </OL>
   <LI><A HREF="#part1_2"> HOW-TO set rundeck parameters</A>
      <OL>
@@ -310,6 +316,8 @@ following naming convention: </p>
 connection between runs E034xxx and E034yyy, since the numbers now
 refer to the run sequence, rather than the model version sequence.</em></p>
 
+   <LI> <A name="part1_1b"><b> How to compile the model </b></A>
+
 <p> Once a rundeck name has been chosen (for example E001xyz), the
 rundeck will be created using
 
@@ -355,7 +363,7 @@ the first hour (or specifically the first source time step).
 If this runs successfully there will be a message saying so. Likewise
 if there is a problem.</p>
 
-   <LI> <A name="part1_1b"><b> How to interact with CVS to make sure
+   <LI> <A name="part1_1c"><b> How to interact with CVS to make sure
      the run is reproducible</b></A>
 <p>
 
@@ -382,7 +390,7 @@ along with full CVS information on what was actually compiled. To
 retrieve this exact code, it is sufficient to know the time the run
 was compiled, and the CVS branch that the user was on.</p>
 
- </ol>
+   <LI> <A name="part1_1d"><b> How to run the model </b></A>
 
 <p> Once a successful 'setup' is done, use the command
 <pre>
@@ -407,6 +415,56 @@ the run directory. Then 'runE E001xyz' will pick up from where you
 stopped previously, but with the new code. Any changes to the CVS
 information between the initial setup and the new code will be
 recorded in the central rundeck repository.</p>
+
+   <LI> <A name="part1_1e"><b> How to run the model on multiple 
+       processors</b></A>
+
+<p>ModelE uses OpenMP application program interface. It consists in a set
+of instructions (starting with <tt>C$OMP</tt>) which tell the compiler
+how to parallelize the code. To be able to run the model on multiple
+processors one has to compile it with enabled OpenMP. This is done by
+appending <tt>MP=YES</tt> to the compile line, i.e.
+<pre>
+  gmake gcm RUN=E001xyz MP=YES
+</pre>
+It is important to keep in mind that one can't mix OpenMP and non-OpenMP
+object files. This means that one has to do <tt>gmake vclean</tt> each
+time when switching between OpenMP and non-OpenMP compilations. The 
+option <tt>MP=YES</tt> can be set in <tt>~/.modelErc</tt> file (see 
+<A HREF="#part0_2"> Part 0.2</A>).
+In that case one can skip it on the command line.</p>
+<p> The OpenMP model is being run the same way as non-OpenMP model, except
+that one has to specify the number of processors as a second argument
+to <tt>runE</tt>. For instance if one wants to run the model E001xyz on
+4 processors one starts it with 
+<pre>
+  runE E001xyz 4
+</pre>
+
+   <LI> <A name="part1_1f"><b> How to specify individual compilation
+       options for certain files </b></A>
+
+<p>In some circumstances you may need to specify individual compilation 
+options for certain files. For example, you may want to compile some
+files with debugging information or with <tt>REAL*8</tt> for default 
+reals etc. This can be done inside the rundeck by adding all necessary
+options in vertical slashes (<tt>||</tt>) right after the name of the file.
+All options specified between the slashes will be appended to the 
+compile line during compilation. For instance, the following line in
+the rundeck
+<pre>
+  GHY_COM GHY_DRV|-g| GHY|-g -r8|
+</pre>
+will tell gmake to compile <tt>GHY_COM.f</tt> with default options, compile 
+<tt>GHY_DRV.f</tt> with debugging information and compile <tt>GHY.f</tt>
+with debugging information and with default reals set to <tt>REAL*8</tt>.</p>
+
+<p>One should keep in mind that changing an option inside the rundeck
+doesn't force automatic recompilation. One needs to 'touch' corresponding
+source files to tell gmake that they need to be recompiled.
+
+ </ol>
+
 
 <p><A name="part1_2"><b>2) HOW-TO set rundeck parameters</b></a></p>
 
@@ -788,6 +846,30 @@ Makefile. </p>
 in the modelE/doc directory can be uploaded to the main repository.
 Please contact one of the developers if you have some changes that you
 would like to commit.</p>
+
+<p><A name="part1_14"><b>14) HOW-TO keep up-to-date with the latest 
+releases of the model</b></a></p>
+
+<p> From time to time relatively stable versions of the model will be 
+&quot;released&quot;, i.e. that they will be marked and assigned some 
+specific name, or &quot;tag&quot; by which they can be checked out from CVS. 
+The typical name for such released versions will be &quot;modelE-x-y&quot;,
+where x and y are some numbers. It is recommended that those who are
+not involved into active development on the main trunk of the CVS use
+only these &quot;released&quot; versions. </p>
+
+<p> If you are currently working on your private branch and want to upgrade
+the model to a new release, you can do it automatically, provided that for
+your previous update you also used a &quot;released&quot; version. To 
+upgrade your model to the release modelE-a-b go to <tt>decks</tt> directory
+and execute
+<pre>
+    gmake update RELEASE=modelE-a-b
+</pre>
+This will merge into your branch all the changes which were introduced into
+the model since your last update until the release modelE-a-b. Automatic
+update doesn't mean automatic resolution of all conflicts. If such arise
+they have to be checked and fixed manually.</p>
 
 <hr>
 
@@ -1478,7 +1560,7 @@ an already frozen version, but that upgrading to a new frozen version
 is impractical for some reason. Thus we will make an offshoot of the
 previously frozen version that only contains the fixes. This is done
 by checking out the latest frozen version (as outlined in <a
-href="#part1_1>Part I</a>). Use a branch name such as
+href="#part1_1">Part I</a>). Use a branch name such as
 <tt>update-x</tt>. Once you are on the branch, make the fixes that you
 require and commit them. Then, declare a revision (with a suitable
 revision name).</b>
