@@ -1,12 +1,14 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE ODYNAM
 !@sum  ODYNAM integrate ocean dynamics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : grav
-      USE MODEL_COM, only : idacc,modd5s,p,psf,ptop
-      USE GEOM, only : imaxj,dxyp
+      USE MODEL_COM, only : idacc,modd5s,p,psf
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo,
      *     symo,szmo,dts,dtofs,dto,dtolf,opress,bydxypo,mdyno,msgso
+     *     ,ratoc,imaxj
       USE ODIAG, only : oijl,ijl_mo,ijl_g0m,ijl_s0m,ijl_gflx,ijl_sflx,
      *     ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
       USE OCEAN_DYN, only : mmi,smu,smv,smw
@@ -16,18 +18,20 @@
       REAL*8, DIMENSION(IM,JM,LMO) :: MM0=0,MM1=0,MMX=0,UM0=0,VM0=0,
      *     UM1=0,VM1=0
       INTEGER NS,I,J,L,mnow
-      REAL*8 RAO
 C****
 C**** Integrate Ocean Dynamics terms
 C****
-C**** Calculate pressure at ocean surface (and scale for areas)
+C**** Calculate pressure anomaly at ocean surface (and scale for areas)
+C**** Updated using latest sea ice 
       DO J=1,JM
-        RAO=DXYP(J)*BYDXYPO(J)
         DO I=1,IMAXJ(J)
-          OPRESS(I,J) = RAO*(100.*(P(I,J)-PSF)+RSI(I,J)
-     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) !  ?????
+          OPRESS(I,J) = RATOC(J)*(100.*(P(I,J)-PSF)+RSI(I,J)
+     *         *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV) 
         END DO
       END DO
+      OPRESS(2:IM,1)  = OPRESS(1,1)
+      OPRESS(2:IM,JM) = OPRESS(1,JM)
+
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
@@ -87,6 +91,12 @@ C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
 C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.,OIJL(1,1,1,IJL_GFLX))
       CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.,OIJL(1,1,1,IJL_SFLX))
+#ifdef TRACERS_OCEAN
+      DO N = 1,NTM                                               
+        CALL OADVT(TRMO(1,1,1,N),TXMO(1,1,1,N),TYMO(1,1,1,N),
+     *             TZMO(1,1,1,N),DTOLF,.TRUE.,TOIJL(1,1,1,2,N))
+      END DO        
+#endif                                               
         CALL CHECKO ('OADVT ')
         DO L=1,LMO
         DO J=1,JM
@@ -97,6 +107,14 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
         END DO
         END DO
+#ifdef TRACERS_OCEAN
+        DO ITR=1,NTM
+          DO I=1,IM*JM*LMO
+            TOIJL(I,1,1,TOIJL_CONC,ITR)=TOIJL(I,1,1,TOIJL_CONC,ITR)
+     *           +TRMO(I,1,1,ITR)
+          END DO
+        END DO
+#endif
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S.EQ.0) CALL DIAGCA (11)
@@ -107,6 +125,12 @@ C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,OIJL(1,1,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,OIJL(1,1,1,IJL_SGMFL))
+#ifdef TRACERS_OCEAN
+      DO ITR = 1,NTM                                                
+        CALL GMFEXP(TRMO(1,1,1,ITR),TXMO(1,1,1,ITR),TYMO(1,1,1,ITR),
+     *              TZMO(1,1,1,ITR),TOIJL(1,1,1,TOIJL_GMFL)                                
+      END DO                                                        
+#endif
         CALL CHECKO ('GMDIFF')
         IF (MODD5S.EQ.0) CALL DIAGCA (12)
 C****
@@ -132,12 +156,12 @@ C****
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : twopi,radius,by3
+      USE CONSTANT, only : twopi,radius,by3,grav
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : im,jm,lmo,focean,ze1,zerat,sigeo,dsigo,sigo,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
-     *     ,ndyno
+     *     ,ndyno,opress,imaxj,bydxypo
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE FILEMANAGER, only : openunit,closeunit
       USE SW2OCEAN, only : init_solar
@@ -148,7 +172,7 @@ C****
      *     ,iu_TOPO
       REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
-      REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
+      REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ,RAO
       LOGICAL, INTENT(IN) :: iniOCEAN
 C****
 C**** set up time steps from atmospheric model
@@ -1364,6 +1388,8 @@ C        DH(2:IM, 1,L) =  DH(1,IM,L)
         PHI(2:IM,JM,L) = PHI(1,JM,L)
          DH(2:IM,JM,L) =  DH(1,JM,L)
       END DO
+C      OGEOZ(2:IM, 1) = OGEOZ(1,1)
+      OGEOZ(2:IM,JM) = OGEOZ(1,JM)
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
@@ -2062,8 +2088,14 @@ C**** Reduce West-East gradient of tracers
       DO 120 IP1=1,IM
       LMIN = MIN(LMM(IM1,J),LMM(IP1,J)) + 1
       DO 110 L=LMIN,LMM(I,J)
-      GXMO(I,J,L) = GXMO(I,J,L)*REDUCE
-  110 SXMO(I,J,L) = SXMO(I,J,L)*REDUCE
+        GXMO(I,J,L) = GXMO(I,J,L)*REDUCE
+        SXMO(I,J,L) = SXMO(I,J,L)*REDUCE
+#ifdef TRACERS_OCEAN
+        DO ITR = 1,NTM
+          TXMO(I,J,L,ITR) = TXMO(I,J,L,ITR) *REDUCE
+        END DO
+#endif
+ 110  CONTINUE
       IM1=I
   120 I=IP1
 C**** Reduce South-North gradient of tracers
@@ -2071,8 +2103,14 @@ C**** Reduce South-North gradient of tracers
       DO 220 I=1,IM
       LMIN = MIN(LMM(I,J-1),LMM(I,J+1)) + 1
       DO 210 L=LMIN,LMM(I,J)
-      GYMO(I,J,L) = GYMO(I,J,L)*REDUCE
-  210 SYMO(I,J,L) = SYMO(I,J,L)*REDUCE
+        GYMO(I,J,L) = GYMO(I,J,L)*REDUCE
+        SYMO(I,J,L) = SYMO(I,J,L)*REDUCE
+#ifdef TRACERS_OCEAN
+        DO ITR = 1,NTM
+          TYMO(I,J,L,ITR) = TYMO(I,J,L,ITR) *REDUCE
+        END DO
+#endif
+ 210  CONTINUE
   220 CONTINUE
       RETURN
       END SUBROUTINE OCOAST
@@ -2172,6 +2210,12 @@ C**** set mass and energy fluxes (incl. river/sea ice runoff + basal flux)
         ELSE
           TGW2=TGW
         END IF
+#ifdef TRACERS_OCEAN
+        DO N=1,NTM
+        TRUNO(N)=TRFLOWO(I,J,N)*(1.-FSICE)*BYDXYPJ-RAO*TEVAPOR(I,J,N,1)
+        TRUNI(N)=TRFLOWO(I,J,N)*    FSICE *BYDXYPJ+RAO*TRUNOSI(I,J,N)
+        END DO
+#endif
 
 C**** Diagnostics on atmospheric grid
           AJ(J,J_TG1, ITOCEAN)=AJ(J,J_TG1, ITOCEAN)+TGW *(1.-FSICE)
@@ -2258,6 +2302,11 @@ C****
       MOO  = MO + RUNO
       GMOO = G0ML(1)*BYDXYPJ + ERUNO
       SMOO = S0M*BYDXYPJ
+#ifdef TRACERS_OCEAN
+      DO N = 1,NTM   
+        TMOO(N) = TRMO(N)*BYDXYPJ+TRUNO(N)
+      END DO
+#endif
 C**** Remove insolation from layer 1 that goes to lower layers
       IF (LSR.gt.1) GMOO = GMOO - SROX(1)*FSR(2)
 
@@ -2339,6 +2388,11 @@ C**** of fluxes is necessary anyway
           RUNPSI (I,J)=RUNPSIA (I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           SRUNPSI(I,J)=SRUNPSIA(I,J)*DXYP(J)*BYDXYPO(J)  ! kg/m^2
           RSI    (I,J)=RSIA    (I,J)
+#ifdef TRACERS_OCEAN
+          DO N=1,NTM
+            TRPREC(N,I,J)=TRPRECA(N,I,J)*DXYP(J)*BYDXYPO(J) 
+          END DO
+#endif
         END DO
       END DO
 C****
@@ -2349,6 +2403,11 @@ C****
      *           RSI(I,J)*RUNPSI(I,J)
             G0M(I,J,1)=G0M(I,J,1) + (1d0-RSI(I,J))*EPREC(I,J)
             S0M(I,J,1)=S0M(I,J,1) + (1d0-RSI(I,J))*SRUNPSI(I,J)
+#ifdef TRACERS_OCEAN
+            DO N = 1,NTM
+              TRMO(I,J,1,N)=TRMO(I,J,1,N)+(1d0-RSI(I,J))*TRPREC(N,I,J)
+            END DO
+#endif
           END IF
         END DO
       END DO

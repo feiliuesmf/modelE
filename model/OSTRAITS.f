@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE STPGF
 !@sum  STPGF calculates pressure gradient force through strait
 !@auth Gary Russell
@@ -84,6 +86,13 @@ C****
      *     G0M,GXMO,GYMO,GZMO,OLNST(L,N,LN_GFLX))
       CALL STADVT (N,L,AM,MM1,MM2,S0MST(L,N),SXMST(L,N),SZMST(L,N),
      *     S0M,SXMO,SYMO,SZMO,OLNST(L,N,LN_SFLX))
+#ifdef TRACERS_OCEAN
+      DO ITR = 1,NTM
+        CALL STADVT (N,L,AM,MM1,MM2,T0MST(L,N,ITR),TXMST(L,N,ITR),
+     *       TZMST(L,N,ITR),TRMO(1,1,1,ITR),TXMO(1,1,1,ITR),
+     *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR))
+      END DO
+#endif                                               
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
       MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM

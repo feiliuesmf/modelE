@@ -889,10 +889,11 @@ C**** Note that MSI includes the mass of salt in sea ice
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : lhm,shi
+      USE CONSTANT, only : lhm,shi,rhow
       USE MODEL_COM
       USE SEAICE, only : lmi,xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
+      USE FLUXES, only : UI2rho
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -924,7 +925,8 @@ C**** Check for reasonable values for ice variables
             IF (L.gt.2) TICE = (HSI(L,I,J)/(XSI(L)*MSI(I,J))+LHM)/SHI
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-4.or.TICE.lt.-80.) THEN
               WRITE(6,*) 'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,HSI(:,I
-     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
+     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J),sqrt(UI2RHO(I,J)
+     *             /rhow)
 c              QCHECKI = .TRUE.
             END IF
           END DO

@@ -109,10 +109,9 @@ C**** Ice lowest layer conditions
 C**** for the Salinity thermodynamics case (or something similar)
 c             Ti = TICE(HSI(LMI,I,J),SSI(LMI,I,J),XSI(LMI)*MSI(I,J))
               IF (KOCEAN.eq.1) THEN
-                Ustar = MIN(5d-4,SQRT(UI2rho(I,J)/RHOW))
+                Ustar = MAX(5d-4,SQRT(UI2rho(I,J)/RHOW))
                 Sm = SSS(I,J)
                 mlsh = MLHC(I,J)
-
                 call iceocean(Ti,Si,Tm,Sm,dh,Ustar,Coriol,dtsrc
      *               ,mlsh,mflux,sflux,hflux) !,mfluxmax)
               ELSE ! for fixed SST assume freezing temp at base,implicit
