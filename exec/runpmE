@@ -11,8 +11,7 @@ $modelerc = (getpwuid($>))[7]."/.modelErc";
 if ( -f $modelerc ) {
   open MODELERC, $modelerc or die "can't open $modelerc";
   while(<MODELERC>) {
-    last if /abc/;
-    ($CMRUNDIR = $1) if /^ *CMRUNDIR *= *(\S+)/;
+    $CMRUNDIR = $1 if /^ *CMRUNDIR *= *(\S+)/;
     $EXECDIR = $1 if /^ *EXECDIR *= *(\S+)/;
   }
   close MODELERC;
