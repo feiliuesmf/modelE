@@ -1532,12 +1532,13 @@ C**** functions
 !@param COEFT coefficient used in computing PRATM
 !@param COESIG coefficient for equ. 23 of Del Genio et al. (1996)
 !@param COEEC coefficient for computing cloud evaporation
+!@param ERP exponential power for computing ER
 C**** Adjust COEFT and COEFM to change proportion of super-cooled rain
 C**** to snow. Increasing COEFT reduces temperature range of super
 C**** -cooled rain, increasing COEFM enhances probability of snow.
       REAL*8, PARAMETER :: CM00=1.d-4, AIRM0=100.d0, GbyAIRM0=GRAV/AIRM0
       REAL*8, PARAMETER :: HEFOLD=500.,COEFM=10.,COEFT=2.5
-      REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.
+      REAL*8, PARAMETER :: COESIG=1d-3,COEEC=1000.,ERP=2.
       REAL*8, DIMENSION(IM) :: UMO1,UMO2,UMN1,UMN2 !@var dummy variables
       REAL*8, DIMENSION(IM) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
@@ -1894,12 +1895,12 @@ C****
 C**** COMPUTE EVAPORATION OF RAIN WATER, ER
         RHN=MIN(RH(L),RHF(L))
         IF(WMX(L).GT.0.)  THEN
-          ER(L)=(1.-RHN)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+          ER(L)=(1.-RHN)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ELSE                    !  WMX(l).le.0.
           IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)  THEN
-            ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+            ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
           ELSE
-            ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+            ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
           END IF
         END IF
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
@@ -1940,9 +1941,9 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
       ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
         IF(WMX(L).GT.0.) PREP(L)=WMX(L)*BYDTsrc
-        ER(L)=(1.-RH(L))*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+        ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         IF(PREICE(L+1).GT.0..AND.TL(L).LT.TF)
-     *       ER(L)=(1.-RHI)*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
+     *       ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
         QHEAT(L)=-CAREA(L)*FSSL(L)*ER(L)
         WMNEW=0.
