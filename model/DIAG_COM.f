@@ -355,7 +355,7 @@ c idacc-indices of various processes
       integer, parameter ::
      &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
      *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_ocn=11,
-     *     ia_nmo=12
+     *     ia_inst=12
 
 
       END MODULE DAGCOM
@@ -431,7 +431,7 @@ c??? *      CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,AIJK,AIJL,AJLSP,
         READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZS,
      *      idac1,ACCS,
 c??? *  add a couple of lines to avoid 'COMMON BLOCK'
-     *      monac1  
+     *      monac1
 !**** Here we could check the dimensions written into HEADER  ??????
         TSFREZ=TSFREZS
         ACC=ACC+ACCS
