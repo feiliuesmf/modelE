@@ -43,9 +43,6 @@
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,dowetdep
 #endif
-#ifdef TRACERS_HETCHEM
-     *     , n_SO4_d1, n_SO4_d2, n_SO4_d3, n_SO4_d4
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE LIGHTNING, only : RNOx_lgt
 #endif
