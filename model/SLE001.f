@@ -24,7 +24,7 @@ C**** DEFINE NEW DIAGNOSTICS
 C**** ZERO OUT DIAGNOSTICS AT START OF ADVNC
 C**** END OF CHANGES FOR PILPS
 C**** Modified for 2 TYPES of BARE SOILS
-C**** 
+C****
 C**** soils62 soils45 soils45          CDFXA 04/27/95
 C**** Same as soils45 but with snowmelt subroutine SNMLT changed
 C**** to melt snow before 1st layer ground ice.
@@ -99,7 +99,7 @@ C**** SOILS30 6/4/92
 C**** 1) USES ACTUAL FINAL SNOW DEPTH IN FLUX LIMIT CALCULATIONS,
 C**** INSTEAD OF UPPER AND LOWER LIMITS.  FIXES SPURIOUS DRYING
 C**** OF FIRST LAYER.
-C**** 
+C****
       MODULE SLE001
 
       USE CONSTANT, only : stbo,tfrz=>tf,sha,lhe
@@ -311,9 +311,9 @@ C**** SOILS28   Common block     9/25/90
 C     SOLVE FOR H USING BISECTION
 C     WE ASSUME THAT IF J1.LT.J2 THEN HLM(J1).GT.HLM(J2)
 C     AND THM(J1,I).GT.THM(J2,I).
-C     
+C
 C     ALGDEL=ALOG(1.d0+ALPH0)
-C     
+C
       integer I,J
       ZERO=0.d0
       XKUD=2.78d-5
@@ -503,11 +503,11 @@ C**** F - FLUXES BETWEEN LAYERS, M S-1
 C**** XINFC - INFILTRATION CAPACITY, M S-1
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
-C**** 
+C****
       DO IBV=1,2
         F(N+1,IBV)=0.d0
       end do
-C**** 
+C****
       DO IBV=1,2
         DO L=2,N
           F(L,IBV)=-XK(L,IBV)*(H(L-1,IBV)-H(L,IBV))/(ZC(L-1)-ZC(L))
@@ -548,7 +548,7 @@ C**** EVAPW - EVAPORATION FROM WET CANOPY, M S-1, INCLUDING FROM SNOW
 C**** EVAPD - EVAPORATION FROM DRY CANOPY, M S-1
 C**** EVAPS - EVAPORATION FROM SNOW FROM CANOPY, M S-1
 C**** BETAD - DRY CANOPY BETA, BASED ON ROOTS
-C**** 
+C****
 C**** USES: COND
 ccc   INCLUDE './soils101.COM'
 ccc   PARAMETER (STBO=5.67032d-8)
@@ -576,7 +576,7 @@ C     CNA IS THE CONDUCTANCE OF THE ATMOSPHERE
       CNA=CH*VSM
       RHO3=.001d0*RHO
       IF(IGCM.GE.0 .AND. IGCM.LE.3) XL=EDDY/(Z1-ZS)
-C     
+C
 C     MODIFY TBS AND TCS IN THE PRESENCE OF SNOW TO STABILIZE INTERFACE
 c     XKF=(149.85d0/SQRT(DTS))/(2.d0*SHA*RHO*CNA
 c     & +8.d0*STBO*(MAX(TBS,TCS)+TFRZ)**3)
@@ -1028,7 +1028,7 @@ C**** OUTPUT:
 C**** FH - CORRECTED HEAT FLUXES
 C**** PARAMETER:
 C**** DTPL - THE MAX TEMPERATURE CHANGE IN A TIME STEP
-C**** 
+C****
 C**** ADD EXCESS FLUX TO FLUX OF LAYER BELOW
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
@@ -1066,11 +1066,11 @@ C**** DTS - THE CURRENT TIME STEP
 C**** OUTPUT:
 C**** XKH(L,IBV) - HEAT CONDUCTIVITIES IN EACH OF THE SOIL LAYERS
 C**** XKHM(L,IBV) - AVERAGE HEAT CONDUCTIVITY BETWEEN LAYER L AND L-1
-C**** 
+C****
 ccc   INCLUDE 'soils45.COM'
 C**** SOILS28   Common block     9/25/90
 c     DIMENSION XSHA(NG,2),XSH(NG,2),GABC(3),HCWT(IMT-1)
-C     
+C
 C     CALCULATE WITH CHANGING GA FOR AIR. GA IS THE DEPOLARIZATION
 C     FACTOR FOR AIR, CALCULATED BY LINEAR INTERPOLATION FROM .333d0
 C     AT SATURATION TO .035 AT 0 WATER, FOLLOWING DEVRIES.
@@ -1080,7 +1080,7 @@ C     AT SATURATION TO .035 AT 0 WATER, FOLLOWING DEVRIES.
           GAA=.298d0*THETA(L,IBV)/(THETS(L,IBV)+1d-6)+.035d0
           GCA=1.d0-2.d0*GAA
           HCWTA=(2.d0/(1.d0+BA*GAA)+1.d0/(1.d0+BA*GCA))/3.d0
-C     XW,XI,XA ARE THE VOLUME FRACTIONS.  DON'T COUNT SNOW IN SOIL LAYER 1
+C     XW,XI,XA ARE THE VOLUME FRACTIONS.  DON'T COUNT SNOW IN SOIL LYR 1
           XW=W(L,IBV)*(1.d0-FICE(L,IBV))/DZ(L)
           XI=W(L,IBV)*FICE(L,IBV)/DZ(L)
           XA=(THETS(L,IBV)-THETA(L,IBV))
@@ -1432,7 +1432,7 @@ C**** RETH, AND HYDRA.
 C**** Need fix for negative energy because rain sometimes runs off
 C**** frozen ground without freezing
       IF (DERUN.lt.0) DERUN=0.
-C**** 
+C****
       AERUNS=AERUNS+DERUN
       ADIFS=ADIFS-DTS*(F(2,1)*FB+F(2,2)*FV)
       DEDIFS=F(2,1)*TP(2,1)
@@ -1532,11 +1532,11 @@ c      T0=TS-TFRZ
 c      EDELT=100.d0*PRES*(QSAT(TS,LHE,PRES)-QS)/0.622d0
 c      GAMMA=SHA*100.d0*PRES/(0.622d0*EL0)
 c      IF(1.8d0*T0+48.0d0 .LT. 0.d0) THEN
-c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0+0.000019d0*1.8d0)
-c     *       *100.0d0
+c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0
+c     *       +0.000019d0*1.8d0)*100.0d0
 c      ELSE
-c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0-0.000019d0*1.8d0)
-c     *       *100.0d0
+c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0
+c     *       -0.000019d0*1.8d0)*100.0d0
 c      END IF
 c      EPEN=(DELT*H0+CPFAC*EDELT)/(EL0*(DELT+GAMMA))
       QSATS=QSAT(TS,LHE,PRES)
@@ -1619,11 +1619,11 @@ ccc         DIMENSION BETAS(2)
 C**** replaced with standard function
 c      T0=TS-TFRZ
 c      IF(1.8d0*T0+48.0d0 .LT. 0.d0) THEN
-c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0+0.000019d0*1.8d0)
-c     *       *100.0d0
+c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0
+c     *       +0.000019d0*1.8d0)*100.0d0
 c      ELSE
-c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0-0.000019d0*1.8d0)
-c     *       *100.0d0
+c         DELT=33.8639d0*(8.d0*0.00738d0*(0.00738d0*T0+0.8072d0)**7.d0
+c     *       -0.000019d0*1.8d0)*100.0d0
 c      END IF
 c      DQDT=.622d0*DELT/(100.d0*PRES)
       DQDT=DQSATDT(TS,PRES)*QSAT(TS,LHE,PRES)

@@ -19,7 +19,7 @@ C**** (0 no flow, 1-8 anti-clockwise from top RH corner
       INTEGER IFLOW(IM,JM),JFLOW(IM,JM)
       INTEGER, PARAMETER :: NRVR = 42 !@param Number of specified rivers
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
-      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH 
+      INTEGER, DIMENSION(NRVR) :: IRVRMTH,JRVRMTH
 
       END MODULE LAKES
 
@@ -106,7 +106,7 @@ C**** Create integral direction array KDIREC from CDIREC
         IF(KDIREC(I,J).lt.0 .or. KDIREC(I,J).gt.8)  KDIREC(I,J) = 0
 C**** Check for specified river mouths
         IF (ICHAR(CDIREC(I,J)).GE.65 .AND. ICHAR(CDIREC(I,J)).LE.90)
-     *       THEN 
+     *       THEN
           INM=INM+1
           IRVRMTH(INM)=I
           JRVRMTH(INM)=J
@@ -203,10 +203,10 @@ C****
 C**** Set conservation diagnostics for Lake mass and energy
       QCON=(/ F, F, F, T, T, T, F, F, T/)
       CALL SET_CON(QCON,"LAK MASS","(10**10 KG)      ",
-     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)      
+     *     "(10**3 KG/S)    ",1d-10,1d-3,icon_LKM)
       QCON=(/ F, F, F, T, T, T, F, F, T/)
       CALL SET_CON(QCON,"LAK ENRG","(10**14 J)       ",
-     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)      
+     *     "(10**8 J/S)     ",1d-14,1d-8,icon_LKE)
 
       RETURN
 C****
@@ -253,7 +253,7 @@ C**** Only overflow if lake mass is above sill height (HLAKE (m))
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*DXYP(JU)
             IF(MWL(IU,JU).gt.MWLSILL) THEN
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
-C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)   ! if well mixed 
+C             DGM = GML(IU,JU)*DMM/MWL(IU,JU)   ! if well mixed
               DGM = TLAKE(IU,JU)*DMM*SHW        ! surface only flow
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
@@ -329,7 +329,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow
       USE E001M12_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
-     *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday 
+     *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday
       USE DAGCOM, only : aij,ij_mrvr
       USE LAKES, only : irvrmth,jrvrmth,nrvr
       IMPLICIT NONE
@@ -351,7 +351,7 @@ C****
       WRITE(6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR
      *     ,ITIME,DAYS
 C**** convert kg to km^3/mon
-      SCALERVR = 2.628d-2/(RHOW*DTSRC) 
+      SCALERVR = 2.628d-2/(RHOW*DTSRC)
       DO INM=1,NRVR,6
         DO I=1,6
           RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
@@ -508,8 +508,8 @@ C**** set ftype arrays
         END IF
 
         RUN0 =POLAKE*PRCP  + PLKICE* RUNOSI(I,J) + PLICE* RUNOLI(I,J)
-        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNOSI(I,J) + PLICE*ERUNOLI(I,J) = 0
-        
+        ERUN0=POLAKE*ENRGP ! PLKICE*ERUNOSI(I,J)+PLICE*ERUNOLI(I,J)=0
+
         MWL(I,J) = MWL(I,J) +  RUN0*DXYP(J)
         GML(I,J) = GML(I,J) + ERUN0*DXYP(J)
 
@@ -528,7 +528,7 @@ C**** This is here for continuity only
             WTRW =WTRO
           ELSE
             WTRW0=WTRO -ROICE*SMSI
-            ENRGW=WTRW0*TGW*SHW + (1.-ROICE)*ENRGP - ERUN4   
+            ENRGW=WTRW0*TGW*SHW + (1.-ROICE)*ENRGP - ERUN4
             WTRW =WTRW0+ROICE*(RUN0-RUN4)
           END IF
           TGW=ENRGW/(WTRW*SHW)
@@ -550,7 +550,7 @@ C****
 !@sum  GROUND_LK driver for applying surface fluxes to lake fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls 
+!@calls
       USE CONSTANT, only : twopi,rhow,shw,edpery,tf
       USE E001M12_COM, only : im,jm,flake,flice,kocean,fland,hlake
      *     ,fearth,itlake,itlkice
@@ -568,13 +568,13 @@ C****
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POLAKE, PLKICE, PEARTH, PLICE, DXYPJ
-C**** prognostic varaibles 
+C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
-C**** fluxes 
+C**** fluxes
       REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0,
      *     RUNLI, RUNE, ERUNE
 C**** output from OSOURC
-      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI 
+      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI
 
       REAL*8, PARAMETER :: FACT_T50  =1.-1./(24.*50.),
      *                     FACT_TSAVG=1./(24.*50.)
@@ -610,11 +610,11 @@ C**** Add land ice and surface runoff to lake variables
 
         TGW  =TLAKE(I,J)
         EVAPO=EVAPOR(I,J,1)
-        EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
+        EVAPI=EVAPOR(I,J,2) ! evaporation/dew at the ice surfce (kg/m^2)
         F0DT =E0(I,J,1)
         SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
-        RUN0=RUNOSI(I,J)        ! includes ACE2M term 
+        RUN0=RUNOSI(I,J)        ! includes ACE2M term
         F2DT=ERUNOSI(I,J)
 
         AJ(J,J_TG1 ,ITLAKE) =AJ(J,J_TG1 ,ITLAKE) +TGW  *POLAKE
@@ -626,17 +626,17 @@ C**** get ice-ocean fluxes from sea ice routine
         AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POLAKE
         AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POLAKE
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POLAKE
-        
+
         MWL(I,J) = MWL(I,J) - EVAPO*POLAKE*DXYPJ
         GML(I,J) = GML(I,J) + F0DT *POLAKE*DXYPJ
 
         IF (KOCEAN .EQ. 1) THEN
-          WTRO=HLAKE(I,J)*RHOW  
+          WTRO=HLAKE(I,J)*RHOW
 
           OTDT=0.
           RVRRUN=0.
           RVRERUN=0.
-C**** Calculate the amount of ice formation            
+C**** Calculate the amount of ice formation
             CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,F0DT,F2DT,RVRRUN
      *           ,RVRERUN,EVAPO,EVAPI,TFL,RUN4O,ERUN4O,RUN4I,ERUN4I
      *           ,ENRGFO,ACEFO,ACE2F,ENRGFI)
@@ -644,7 +644,7 @@ C**** Calculate the amount of ice formation
 C**** Resave prognostic variables
           TLAKE(I,J)=TGW
           GTEMP(1,1,I,J)=TLAKE(I,J)
-C**** Open lake diagnostics 
+C**** Open lake diagnostics
           AJ(J,J_TG2,  ITLAKE)=AJ(J,J_TG2,  ITLAKE)+TLAKE(I,J)*POLAKE
           AJ(J,J_RUN2, ITLAKE)=AJ(J,J_RUN2, ITLAKE)+RUN4O     *POLAKE
           AJ(J,J_OMLT, ITLAKE)=AJ(J,J_OMLT, ITLAKE)+TLAKE(I,J)*POLAKE

@@ -132,7 +132,7 @@ C NEHIST = (TROPO/STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       DOUBLE PRECISION,
      &     DIMENSION(RE_AND_IM,N12HRS_IN_31DAY,NWAV_DAG,KWP) :: WAVE
 
-!@param KACC total number of diagnostic elements 
+!@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + NREG*KAJ
      *     + JM*KAPJ + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + IM*JM*KAIJG + NEHIST*HIST_DAYS + JM*KCON +
@@ -214,7 +214,7 @@ c     &  AJK,AIJK,AIJL,AJLSP
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,iowrite_single,irestart,
+      USE E001M12_COM, only : ioread,iowrite,iowrite_single,
      *     irsfic,irerun,iowrite_mon
       USE DAGCOM
       IMPLICIT NONE
@@ -241,8 +241,8 @@ c     &  AJK,AIJK,AIJL,AJLSP
      *     SNGL(AJK),SNGL(AIJK),SNGL(AIJL),SNGL(AJLSP),SNGL(TDIURN),
      *     KEYNR,it
       CASE (IOWRITE_MON)        ! output to end-of-month restart file
-        WRITE (kunit,err=10) it
-      CASE (Irestart)           ! input from restart file
+        WRITE (kunit,err=10) it,TSFREZ,KEYNR,it
+      CASE (ioread)           ! input from restart file
         READ (kunit,err=10) HEADER,TSFREZ,AJ,AREG,APJ,AJL,ASJL,
      *       AIJ,AIL,AIJG,ENERGY,CONSRV,SPECA,ATPE,ADAILY,WAVE,AJK,
      *       AIJK,AIJL,AJLSP,TDIURN,KEYNR,it
@@ -250,8 +250,10 @@ c     &  AJK,AIJK,AIJL,AJLSP
           PRINT*,"Discrepancy in module version",HEADER,MODULE_HEADER
           GO TO 10
         END IF
-      CASE (Irsfic,irerun)      ! input from end-of-month restart file
+      CASE (Irsfic)      ! reduced input from end-of-month restart file
         READ (kunit,err=10) it
+      CASE (irerun)      ! full input from end-of-month restart file
+        READ (kunit,err=10) it,TSFREZ,KEYNR,it
       END SELECT
 
       RETURN

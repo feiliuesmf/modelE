@@ -252,7 +252,7 @@ C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
               RSINEW = 1.       !  T0 < TIME < T1
             END IF
 C**** RSI uses quadratic fit
-          CASE (0)  
+          CASE (0)
             RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
           END SELECT
           RSI(I,J)=RSINEW
@@ -371,8 +371,8 @@ C**** ICE DEPTH+1>MAX MIXED LAYER DEPTH : CHANGE OCEAN TO LAND ICE
       FLAND(I,J)=1.
       FLICE(I,J)=PLICEN
       FOCEAN(I,J)=0.
-C**** set ftype/gtemp array. Summation is necessary for cases where Earth
-C**** and Land Ice are lumped together
+C**** set ftype/gtemp array. Summation is necessary for cases where
+C**** Earth and Land Ice are lumped together
       FTYPE(ITOICE ,I,J)=0.
       FTYPE(ITOCEAN,I,J)=0.
       FTYPE(ITLANDI,I,J)=0.
@@ -445,7 +445,7 @@ C**** Calculate extra mass flux to ocean, balanced by deep removal
       ERUN4I=RUN4I*TGW*SHW !                              (under ice)
 
 C**** Calculate heat fluxes to ocean
-      ENRGO  = F0DT+OTDT+RVRERUN-ERUN4O ! in open water  
+      ENRGO  = F0DT+OTDT+RVRERUN-ERUN4O ! in open water
       ENRGIW = F2DT+OTDT+RVRERUN-ERUN4I ! under ice
 
 C**** Calculate energy in mixed layer (open ocean)
@@ -483,7 +483,7 @@ C**** AND CHECK WHETHER NEW ICE MUST BE FORMED
       EFIW = WTRI1*TFW*SHW ! freezing energy of ocean mass WTRI1
       IF (EIW0+ENRGIW .LE. EFIW) THEN ! freezing case
 C**** FLUXES WOULD COOL TGW TO FREEZING POINT AND FREEZE SOME MORE ICE
-        ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM) 
+        ACE2F = (EIW0+ENRGIW-EFIW)/(TFW*(SHI-SHW)-LHM)
         ENRGFI = ACE2F*(TFW*SHI-LHM) ! energy of frozen ice
       END IF
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
@@ -674,7 +674,7 @@ C**** set gtemp array for ocean temperature
         END IF
       END DO
       END DO
-C**** 
+C****
       RETURN
       END SUBROUTINE daily_OCEAN
 
@@ -714,7 +714,7 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls 
+!@calls
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,focean,kocean,itocean,itoice
       USE GEOM, only : imaxj,dxyp
@@ -750,7 +750,7 @@ C****
             SMSI=MSI(I,J)+ACE1I+SNOW
             RUN4=PRCP
             ERUN4=RUN4*TGW*SHW
-            
+
             IF (POICE.LE.0.) THEN
               ENRGW=TGW*WTRO*SHW + ENRGP - ERUN4
               WTRW =WTRO
@@ -778,7 +778,7 @@ C****
 !@sum  GROUND_OC driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
 !@ver  1.0
-!@calls 
+!@calls
       USE CONSTANT, only : rhow,shw
       USE E001M12_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
@@ -795,12 +795,12 @@ C****
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 POCEAN, POICE, DXYPJ
-C**** prognostic varaibles 
+C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
-C**** fluxes 
+C**** fluxes
       REAL*8 EVAPO, EVAPI, F2DT, F0DT, OTDT, RVRRUN, RVRERUN, RUN0
 C**** output from OSOURC
-      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI 
+      REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACE2F, ENRGFI
 
       INTEGER I,J,IMAX,JR
 
@@ -816,13 +816,13 @@ C**** output from OSOURC
 
           TGW  =TOCEAN(1,I,J)
           EVAPO=EVAPOR(I,J,1)
-          EVAPI=EVAPOR(I,J,2)   ! evaporation/dew at the ice surface (kg/m^2)
+          EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
           F0DT =E0(I,J,1)
           SMSI =MSI(I,J)+ACE1I+SNOWI(I,J)
 C**** get ice-ocean fluxes from sea ice routine
           RUN0=RUNOSI(I,J) ! includes ACE2M
           F2DT=ERUNOSI(I,J)
-C**** get river runoff 
+C**** get river runoff
           RVRRUN = FLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           RVRERUN=EFLOWO(I,J)/(FOCEAN(I,J)*DXYPJ)
           OA(I,J,4)=OA(I,J,4)+RVRERUN    ! add to surface energy budget
@@ -836,7 +836,7 @@ C**** get river runoff
           AIJ(I,J,IJ_TG1)  =AIJ(I,J,IJ_TG1)  +TGW  *POCEAN
           AIJ(I,J,IJ_EVAP) =AIJ(I,J,IJ_EVAP) +EVAPO*POCEAN
           AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAPO*POCEAN
-          
+
           IF (KOCEAN .EQ. 1) THEN
             WTRO=Z1O(I,J)*RHOW
             OTDT=DTSRC*(OTA(I,J,4)*SN4ANG+OTB(I,J,4)*CS4ANG
@@ -844,14 +844,14 @@ C**** get river runoff
      *           +OTA(I,J,2)*SN2ANG+OTB(I,J,2)*CS2ANG
      *           +OTA(I,J,1)*SINANG+OTB(I,J,1)*COSANG+OTC(I,J))
 
-C**** Calculate the amount of ice formation            
+C**** Calculate the amount of ice formation
             CALL OSOURC (ROICE,SMSI,TGW,WTRO,OTDT,RUN0,F0DT,F2DT,RVRRUN
      *           ,RVRERUN,EVAPO,EVAPI,TFO,RUN4O,ERUN4O,RUN4I,ERUN4I
      *           ,ENRGFO,ACEFO,ACE2F,ENRGFI)
 
 C**** Resave prognostic variables
             TOCEAN(1,I,J)=TGW
-C**** Open Ocean diagnostics 
+C**** Open Ocean diagnostics
             AJ(J,J_TG2  ,ITOCEAN)=AJ(J,J_TG2  ,ITOCEAN)+TOCEAN(2,I,J)
      *           *POCEAN
             AJ(J,J_OHT  ,ITOCEAN)=AJ(J,J_OHT  ,ITOCEAN)+OTDT  *POCEAN
@@ -875,7 +875,7 @@ C**** Ice-covered ocean diagnostics
             AJ(J,J_TG2,ITOCEAN)  =AJ(J,J_TG2,ITOCEAN)  +TGW   *POCEAN
             IF (JR.ne.24) AREG(JR,J_TG2)=AREG(JR,J_TG2)+TGW*POCEAN*DXYPJ
           END IF
-        
+
 C**** Store mass and energy fluxes for formation of sea ice
           DMSI(1,I,J)=ACEFO
           DMSI(2,I,J)=ACE2F
@@ -883,7 +883,7 @@ C**** Store mass and energy fluxes for formation of sea ice
           DHSI(2,I,J)=ENRGFI
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          
+
         END IF
       END DO
       END DO
@@ -901,7 +901,7 @@ C****
 c      USE OCEAN_COM, only : dz,rtgo
       USE GEOM, only : imaxj
       IMPLICIT NONE
-!@var OCEANE zonal ocean energy (J/M^2)      
+!@var OCEANE zonal ocean energy (J/M^2)
       REAL*8, DIMENSION(JM) :: OCEANE
       INTEGER I,J
 
@@ -932,7 +932,7 @@ C**** CALL ODIFS ! before OSTRUC
 C**** Add RTGO to acc file
 c    *    (((SNGL(RTGO(L,I,J)),L=2,lmom),I=1,IM),J=1,JM)
 C**** INITIALIZE DEEP OCEAN ARRAYS
-c      STG3=0. ; DTG3=0 ; RTGO=0 
+c      STG3=0. ; DTG3=0 ; RTGO=0
 C**** TG3M must be set from a previous ML run?
 
 
@@ -946,9 +946,9 @@ C**** TG3M must be set from a previous ML run?
 
 !@var TG3M Monthly accumulation of temperatures at base of mixed layer
       REAL*8, DIMENSION(IM,JM,12) :: TG3M
-!@var RTGO Temperature anomaly in thermocline  
+!@var RTGO Temperature anomaly in thermocline
       REAL*8, DIMENSION(LMOM,IM,JM) :: RTGO
-!@var STG3 accumulated temperature at base of mixed layer 
+!@var STG3 accumulated temperature at base of mixed layer
       REAL*8, DIMENSION(IM,JM) :: STG3
 !@var DTG3 accumulated temperature diff. from initial monthly values
       REAL*8, DIMENSION(IM,JM) :: DTG3
@@ -990,8 +990,8 @@ C****
       REAL*8, PARAMETER :: PERDAY=1./365d0
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
       REAL*8, PARAMETER :: ALPHA=.5d0
-!@param FAC geometric factor for ocean layers so that total depth is 1000m
-C**** NOTE: This assumes tha LMOM is 9. For any different nuber of
+!@param FAC ratio of adjacent deep ocean layers so total depth is 1000m
+C**** NOTE: This assumes that LMOM is 9. For any different number of
 C**** layers, the equation 1000=(1-x^(LMOM-1))/(1-x) should be solved.
       REAL*8, PARAMETER :: FAC=1.705357255658901d0
       DATA IFIRST/1/
@@ -1001,7 +1001,7 @@ C****
       IF (IFIRST.EQ.1) THEN
         CALL getunit("EDDY",iu_EDDY,.TRUE.,.TRUE.)
         CALL READT (iu_EDDY,0,EDO,IM*JM,EDO,1)
-C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT FIRST LAYER THICKNESS 
+C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT LAYER 1 THICKNESS
         DZ(2)=10.
         DZO(1)=0.5*DZ(2)   ! 10./SQRT(FAC)
         BYDZO(1)=1./DZO(1)
@@ -1082,7 +1082,7 @@ C**** Set first layer thickness
 !@var DZ the depth of the layers (m)
 !@var BYDZO is the inverse of depth between layer centers (1/m)
       REAL*8, INTENT(IN) :: DZ(LMIJ),BYDZO(LMIJ-1)
-!@var R tracer concentration 
+!@var R tracer concentration
       REAL*8, INTENT(INOUT) :: R(LMIJ)
 
       REAL*8 AM(LMIJ),BM(LMIJ),CM(LMIJ),DM(LMIJ)

@@ -166,7 +166,7 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
          CALL CHECKT ('SURFCE')
-C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE 
+C**** APPLY SURFACE FLUXES TO SEA/LAKE/LAND ICE
       CALL GROUND_SI
       CALL GROUND_LI
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
@@ -476,7 +476,7 @@ C****
      *     ,nisurf,nrad,nidyn,nday,dt,dtsrc,kdisk
      *     ,iyear0,itime,itimei,itimee,Kvflxo,nslp,ndisk,nssw,kcopy
      *     ,kocean,ls1,psfmpt,pstrat,kacc0,ktacc0,idacc,im0,jm0,lm0
-     *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,irestart,irerun
+     *     ,vdata,amonth,jdendofm,jdpery,amon,amon0,ioread,irerun
      *     ,irsfic,mdyn,mcnds,mrad,msurf,mdiag,melse,ftype,itearth
      *     ,itlandi
       USE SOMTQ_COM, only : tmom,qmom
@@ -632,8 +632,8 @@ C**** GDATA(8) UNUSED,GDATA(9-11) SNOW AGE OVER OCN.ICE,L.ICE,EARTH
 c        READ(iu_GIC,ERR=830) GDATA,GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1
 c     *       ,JM),RSI
 C**** Note that these HSI are temperatures (not enthalpy) but we need
-C**** MSI to be able to convert them. For KOCEAN=0 this initialisation 
-C**** is overridden by OCLIM (but not for lakes!), for KOCEAN=1 this 
+C**** MSI to be able to convert them. For KOCEAN=0 this initialisation
+C**** is overridden by OCLIM (but not for lakes!), for KOCEAN=1 this
 C**** should not be used.
         READ(iu_GIC,ERR=830) SNOWI,SNOWE,
      *       ((HSI(1,I,J),I=1,IM),J=1,JM),TEARTH,WEARTH,AIEARTH,
@@ -643,7 +643,7 @@ C**** should not be used.
      *       (((HSI(L,I,J),I=1,IM),J=1,JM),L=3,4),
      *       GHDATA,((TOCEAN(1,I,J),I=1,IM),J=1,JM),RSI
         CLOSE (iu_GIC)
-C**** define defaults: (this should not be here, but be set in an 
+C**** define defaults: (this should not be here, but be set in an
 C**** updated GIC file). Use AC2OIM instead of MSI.
         DO J=1,JM
         DO I=1,IM
@@ -769,7 +769,7 @@ C****
 C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
-      CASE (8)  ! no need to read SRHR,TRHR,FSF.TSFREZ,diag.arrays
+      CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf(iu_AIC,ItimeX,irsfic,ioerr)
         CLOSE (iu_AIC)
         HOURX=ItimeX*24/NDAY  ! works only if DTsrc is same in both runs
@@ -855,14 +855,14 @@ C**** was used WITHOUT PROBLEMS (since then - in case of trouble - we
 C**** can go back to the earlier file). In all other cases we want to
 C**** first overwrite the other (potentially bad) file. (The most likely
 C**** reason not to use ISTART=10 is trouble with the other file.)
-      call io_rsf(KDISK0,ItimeX,irestart,ioerr)
+      call io_rsf(KDISK0,ItimeX,ioread,ioerr)
       if (ioerr.eq.1) then    ! try the other restart file
          rewind kdisk0
          KDISK=3-KDISK0
          WRITE (6,'(A,I1,A,I1)')
      *     ' Read Error on fort.',kdisk0,' trying fort.',kdisk
          KDISK0=KDISK
-         call io_rsf(KDISK0,ItimeX,irestart,ioerr)
+         call io_rsf(KDISK0,ItimeX,ioread,ioerr)
          if (ioerr.eq.1) go to 850
          IF (istart.eq.10) KDISK0=3-KDISK
       end if
@@ -961,7 +961,7 @@ C****
       ZATMO = ZATMO*GRAV                           ! Geopotential
       CALL READT (iu_TOPO,0,HLAKE,IM*JM,HLAKE,2)   ! Lake Depths
       REWIND iu_TOPO
-C**** Initialize ice 
+C**** Initialize ice
       CALL init_ice
 C**** Initialise lake variables (including river directions)
       CALL init_LAKES(inilake)

@@ -4,7 +4,7 @@
 !@cont init_LI,PRECIP_LI,GROUND_LI
 
       SUBROUTINE init_LI
-!@sum  init_ice initialises landice arrays 
+!@sum  init_ice initialises landice arrays
 !@auth Original Development Team
 !@ver  1.0
       USE E001M12_COM, only : im,jm
@@ -50,15 +50,15 @@ C****
       JR=JREG(I,J)
       RUNOLI(I,J)=0
       IF (PLICE.gt.0) THEN
-        
+
         ENRGP=EPREC(I,J)      ! energy of precipitation
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP
-        
+
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0)
-        
+
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J)=SNOW
         TLANDI(1,I,J)=TG1
@@ -72,7 +72,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AJ(J,J_IMELT,ITLANDI)=AJ(J,J_IMELT,ITLANDI)+DIFS *PLICE
         AJ(J,J_EDIFS,ITLANDI)=AJ(J,J_EDIFS,ITLANDI)+EDIFS*PLICE
         AJ(J,J_ERUN2,ITLANDI)=AJ(J,J_ERUN2,ITLANDI)+ERUN2*PLICE
-C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! land ice (Tg=0)
+C       AJ(J,J_ERUN1,ITLANDI)=AJ(J,J_ERUN1,ITLANDI)+ERUN0*PLICE ! (Tg=0)
         AREG(JR,J_DIFS)=AREG(JR,J_DIFS)+DIFS*PLICE*DXYPJ
         AREG(JR,J_RUN1)=AREG(JR,J_RUN1)+RUN0*PLICE*DXYPJ
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS
@@ -154,7 +154,7 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS+F1DT
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS
-C**** 
+C****
       END IF
       END DO
       END DO

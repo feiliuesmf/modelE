@@ -128,7 +128,7 @@ C**** CALCULATE TG2
       END MODULE LANDICE_COM
 
       SUBROUTINE io_landice(kunit,iaction,ioerr)
-!@sum  io_diag reads and writes diagnostics to file 
+!@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
 !@ver  1.0
       USE E001M12_COM, only : ioread,iowrite

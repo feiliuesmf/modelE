@@ -150,9 +150,9 @@ C****
       POICE=RSI(I,J)*PWATER
       POCEAN=PWATER-POICE
       POC =FOCEAN(I,J)*(1.-RSI(I,J))
-      POI =FOCEAN(I,J)*    RSI(I,J) 
+      POI =FOCEAN(I,J)*    RSI(I,J)
       PLK = FLAKE(I,J)*(1.-RSI(I,J))
-      PLKI= FLAKE(I,J)*    RSI(I,J) 
+      PLKI= FLAKE(I,J)*    RSI(I,J)
       PXSOIL=POCEAN+POICE+PLICE
       PIJ=P(I,J)
       PS=PEDN(1,I,J)    ! PIJ+PTOP
@@ -255,7 +255,7 @@ C*
       MSI1 = SNOW+ACE1I ! snow and first layer ice mass (kg/m^2)
       MSI2 = ACE2 ! second (physical) layer ice mass (kg/m^2)
       dF1dTG = 2./(ACE1I*BYRLI+SNOW*BYRLS)
-      HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of first layer ice (J/C*m^2)
+      HCG1 = SHI*XSI(1)*MSI1 ! heat capacity of top ice layer (J/C*m^2)
       HCG2 = SHI*XSI(2)*MSI1 ! heat capacity of second layer ice
       GO TO 3000
 C****
@@ -638,7 +638,7 @@ C****
       IF(MODD6.EQ.0) THEN
         DO KR=1,4
 C**** CHECK IF DRY CONV HAS HAPPENED FOR THIS DIAGNOSTIC
-          IF(DCLEV(IJD6(1,KR),IJD6(2,KR)).GT.1.) THEN 
+          IF(DCLEV(IJD6(1,KR),IJD6(2,KR)).GT.1.) THEN
             ADAILY(JHOUR+1,47,KR)=ADAILY(JHOUR+1,47,KR)+1.
             ADAILY(JHOUR+1,48,KR)=ADAILY(JHOUR+1,48,KR)
      *           +DCLEV(IJD6(1,KR),IJD6(2,KR))

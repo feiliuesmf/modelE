@@ -2246,7 +2246,7 @@ c     *     '  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)'/)
 C**** old version
 c      CHARACTER*16 :: TERRAIN(0:NTYPE_OUT) = (/'    (GLOBAL)',
 c     *     '      (LAND)','     (OCEAN)',' (OCEAN ICE)'/)
-C**** possible expanded version (including composites) 
+C**** possible expanded version (including composites)
       CHARACTER*16, DIMENSION(0:NTYPE_OUT) :: TERRAIN = (/
      *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
      *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
@@ -2448,8 +2448,6 @@ C**** Sum over types
           END DO
           QJ=QJ*SCALE(N)
           WTX=WTX*IACC
-c      QJ=(AJ(J,N,1)*WT(1,M)+AJ(J,N,2)*WT(2,M)+AJ(J,N,3)*WT(3,M))*SCALE(N)
-c      WTX=(SPTYPE(1,J)*WT(1,M)+SPTYPE(2,J)*WT(2,M)+SPTYPE(3,J)*WTC(3,M))*IACC
           FLAT(J)=QJ/(WTX+1.D-20)
           MLAT(J)=NINT(FLAT(J))
           HSUM=HSUM+QJ*DXYP(J)*(FIM+1.-S1(J))
@@ -5393,7 +5391,7 @@ C****   6  AFTER LAND SURFACE (INCL. RIVER RUNOFF)
 C****   7  AFTER FULL SURFACE INTERACTION
 C****   8  AFTER STRATOSPHERIC DRAG
 C****   9  AFTER FILTER
-C****  10  AFTER DAILY 
+C****  10  AFTER DAILY
 C****
       REAL*8, EXTERNAL :: conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM
@@ -5418,7 +5416,7 @@ C**** ATMOSPHERIC TOTAL WATER MASS
 C**** LAKE MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_LKM,icon_LKM)
       CALL conserv_DIAG(M,conserv_LKE,icon_LKE)
-C**** 
+C****
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG9A
@@ -5484,10 +5482,10 @@ C****
           CONSRV(J,13)=CONSRV(J,13)+RKEIL*mb2kg
         END DO
       ELSE
-C**** 
+C****
 C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY CORIOLIS AND
 C**** PRESSURE GRADIENT FORCES
-C**** 
+C****
         DO J=2,JM
           DUTIL=0.
           RKEIL=0.
@@ -5505,7 +5503,7 @@ C****
           CONSRV(J,2*M+10)=CONSRV(J,2*M+10)+RKEIL*mb2kg
         END DO
       END IF
-C**** 
+C****
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAG9D
@@ -5537,10 +5535,10 @@ C****
       DOUBLE PRECISION :: aglob,ahem,feq,fnh,fsh,days
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(12).LT.1) IDACC(12)=1
-C**** CALCULATE SUMMED QUANTITIES 
+C**** CALCULATE SUMMED QUANTITIES
 C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
       DO J=1,JM
-        DO N=KCON,1,-1 
+        DO N=KCON,1,-1
           IF (NSUM_CON(N).eq.0) THEN
             CONSRV(J,N)=0.
           ELSEIF (NSUM_CON(N).gt.0) THEN
@@ -5671,7 +5669,7 @@ C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
 C**** no calculation is done.
 C**** NOFM(1,ICON) is the index for the instantaneous value.
       IF (NOFM(M,ICON).gt.0) THEN
-C**** Calculate current value TOTAL 
+C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
         NM=NOFM(M,ICON)
         NI=NOFM(1,ICON)
@@ -5734,7 +5732,7 @@ C****
      *       +FIM*PSTRAT*DXYV(J))+.5*UMIL)*COSV(J)*RADIUS*mb2kg
       END DO
       RETURN
-C**** 
+C****
       END SUBROUTINE conserv_AM
 
       SUBROUTINE conserv_KE(RKE)
@@ -5749,7 +5747,7 @@ C****
       REAL*8, DIMENSION(JM) :: RKE
       INTEGER :: I,IMAX,IP1,J,L
       DOUBLE PRECISION :: RKEI,RKEIL
-C**** 
+C****
 C**** KINETIC ENERGY
 C****
       RKE(1)=0.
@@ -5774,7 +5772,7 @@ C****
         RKE(J)=RKEIL*mb2kg
       END DO
       RETURN
-C**** 
+C****
       END SUBROUTINE conserv_KE
 
       SUBROUTINE conserv_MS(RMASS)
@@ -5786,7 +5784,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(JM) :: RMASS
       INTEGER :: I,J
-C**** 
+C****
 C**** MASS
 C****
       RMASS(1) =FIM*(P(1,1) +PSTRAT)*mb2kg
@@ -5799,7 +5797,7 @@ C****
         RMASS(J)=RMASS(J)*mb2kg
       END DO
       RETURN
-C**** 
+C****
       END SUBROUTINE conserv_MS
 
       SUBROUTINE conserv_PE(TPE)
@@ -5815,9 +5813,9 @@ C****
       REAL*8, DIMENSION(JM) :: TPE
       INTEGER :: I,IMAX,J,L
       DOUBLE PRECISION :: TPEI,TPEIL,SGEOI
-C**** 
+C****
 C**** TOTAL POTENTIAL ENERGY (J/m^2)
-C**** 
+C****
  400  DO J=1,JM
         IMAX=IMAXJ(J)
         TPEIL=0.
@@ -5841,7 +5839,7 @@ C****
       TPE(1)=FIM*TPE(1)
       TPE(JM)=FIM*TPE(JM)
       RETURN
-C**** 
+C****
       END SUBROUTINE conserv_PE
 
       SUBROUTINE conserv_WM(WATER)
@@ -5856,9 +5854,9 @@ C****
 
       REAL*8, DIMENSION(JM) :: WATER
       INTEGER :: I,IMAX,J,L
-C**** 
+C****
 C**** TOTAL WATER MASS (kg/m^2)
-C**** 
+C****
       DO J=1,JM
         IMAX=IMAXJ(J)
         WATER(J) = 0.
@@ -5873,7 +5871,7 @@ C****
           END DO
         END DO
       END DO
-      WATER(1) = FIM*WATER(1) 
+      WATER(1) = FIM*WATER(1)
       WATER(JM)= FIM*WATER(JM)
       RETURN
 C****
@@ -7392,7 +7390,7 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
       NSUM_CON(1:23) = (/-1, 4, 4,0,-1,11,11,11,11,11,0,
      *                   -1,15,15,0,-1,23,23,23,23,23,23,0/)
       IA_CON(1:23) = (/12,6,6,6,6,7,8,8,10, 9,12,
-     *                 12,6,6,6,6,7,8,8, 8,10, 9,12/) 
+     *                 12,6,6,6,6,7,8,8, 8,10, 9,12/)
       SCALE_CON(1)              = 1d-9
       SCALE_CON((/2,3,5,6,7,8/))= 1d-2/DTSRC
       SCALE_CON((/4,11,15,23/)) = 1.
@@ -7430,22 +7428,22 @@ C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
 C**** To add a new conservation diagnostic:
 C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
 C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
-C****       set up scales, titles, etc. The icon_XX index must be 
+C****       set up scales, titles, etc. The icon_XX index must be
 C****       declared in DAGCOM.f for the time being
-C**** QCON denotes when the conservation diags should be done 
+C**** QCON denotes when the conservation diags should be done
 C**** 1:NPTS ==> DYN, COND, RAD, PREC, LAND, SURF, STRAT, FILTER, DAILY
 C****  iii) Write a conserv_XYZ routine that returns the zonal average
-C****       of your quantity 
+C****       of your quantity
 C****   iv) Add a line to DIAG9A that calls conserv_DIAG (declared
 C****       as external)
-C****    v) Note that the conserv_XYZ routine, and call to SET_CON 
+C****    v) Note that the conserv_XYZ routine, and call to SET_CON
 C****       should be in the driver module for the relevant physics
 
 C**** Set up atmospheric component conservation diagnostics
 C**** Atmospheric mass
       QCON=(/ T, F, F, F, F, F, F, T, T/)
       CALL SET_CON(QCON,"MASS    ","(KG/M**2)       ",
-     *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)      
+     *     "(10^-8 KG/S/M^2)",1d0,1d8,icon_MS)
 C**** Atmospheric total potential energy
       QCON=(/ T, T, T, F, F, T, F, T, T /)
       CALL SET_CON(QCON,"TPE     ","(10**5 J/M**2)  ",
@@ -7453,7 +7451,7 @@ C**** Atmospheric total potential energy
 C**** Atmospheric water mass
       QCON=(/ T, T, F, F, F, T, F, F, T/)
       CALL SET_CON(QCON,"WATER   ","(10**-2 KG/M**2)",
-     *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)      
+     *     "(10^-8 KG/S/M^2)",1d2,1d8,icon_WM)
 
       RETURN
       END SUBROUTINE init_DIAG
@@ -7548,7 +7546,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
 !@var INST_SC scale for instantaneous value
       REAL*8, INTENT(IN) :: INST_SC
-!@var CHNG_SC scale for changes 
+!@var CHNG_SC scale for changes
       REAL*8, INTENT(IN) :: CHNG_SC
 !@var NAME_CON name of conservation quantity
       CHARACTER*8, INTENT(IN) :: NAME_CON
@@ -7568,34 +7566,34 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       INTEGER, SAVE :: KC = 23  ! take up first 23 indexes
 
       NQ=NQ+1
-      IF (NQ.gt.NQUANT) THEN 
+      IF (NQ.gt.NQUANT) THEN
         WRITE(6,*) "Number of conserved quantities larger than NQUANT"
      *       ,NQUANT,NQ
         STOP "Change NQUANT in diagnostic common block"
       END IF
       NI=KC+1
-      NOFM(1,NQ) = NI 
+      NOFM(1,NQ) = NI
       TITLE_CON(NI) = "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
       SCALE_CON(NI) = INST_SC
       IA_CON(NI) = 12
       NM=NI
       DO N=1,NPTS
         IF (QCON(N)) THEN
-          NM = NM + 1 
-          NOFM(N+1,NQ) = NM 
+          NM = NM + 1
+          NOFM(N+1,NQ) = NM
           TITLE_CON(NM) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
      *         CONPT(N)
           SELECT CASE (N)
-          CASE (1)    
+          CASE (1)
             SCALE_CON(NM) = CHNG_SC/DTSRC
             IA_CON(NM) = 7
-          CASE (2:7)    
+          CASE (2:7)
             SCALE_CON(NM) = CHNG_SC/DTSRC
             IA_CON(NM) = 8
-          CASE (8)      
+          CASE (8)
             SCALE_CON(NM) = CHNG_SC/(NFILTR*DTSRC)
             IA_CON(NM) = 10
-          CASE (9)      
+          CASE (9)
             SCALE_CON(NM) = CHNG_SC*2./SDAY
             IA_CON(NM) = 9
           END SELECT
@@ -7607,12 +7605,12 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       TITLE_CON(NS) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
       SCALE_CON(NS) = 1.
       IA_CON(NS) = 12
-      NSUM_CON(NI) = -1 
-      NSUM_CON(NI+1:NS-1) = NS 
-      NSUM_CON(NS) = 0 
+      NSUM_CON(NI) = -1
+      NSUM_CON(NI+1:NS-1) = NS
+      NSUM_CON(NS) = 0
       KC=NS
       ICON=NQ
-      IF (KC.gt.KCON) THEN 
+      IF (KC.gt.KCON) THEN
         WRITE(6,*) "KCON not large enough for extra conservation diags"
      *       ,KCON,KC
          STOP "Change KCON in diagnostic common block"

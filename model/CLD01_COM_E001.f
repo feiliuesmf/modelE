@@ -36,10 +36,10 @@ C**** variables saved for radiation calculations
       END MODULE CLD01_COM_E001
 
       SUBROUTINE io_clouds(kunit,iaction,ioerr)
-!@sum  io_clouds reads and writes cloud arrays to file 
+!@sum  io_clouds reads and writes cloud arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,irestart,irsfic,irerun
+      USE E001M12_COM, only : ioread,iowrite,irsfic,irerun
       USE CLD01_COM_E001
       IMPLICIT NONE
 
@@ -59,7 +59,7 @@ C**** variables saved for radiation calculations
      *     QTOLD,SVLHX,RHSAV,CLDSAV
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE  (IACTION)
-        CASE (IRESTART,IRERUN) ! input for restart, rerun or extension
+        CASE (ioread,IRERUN) ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,U00wtr,U00ice,LMCM,TTOLD,QTOLD
      *         ,SVLHX,RHSAV,CLDSAV
         CASE (IRSFIC)           ! start from old restart file

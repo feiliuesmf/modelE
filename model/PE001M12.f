@@ -652,8 +652,8 @@ C****
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
       SNOWE=SNOWE_COM(I,J)
-      AGESN(1)=SNOAGE(3,I,J)    ! land    ! why are these numbers so confusing?
-      AGESN(2)=SNOAGE(1,I,J)    ! ocean ice
+      AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
+      AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
       WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
       DO K=1,11
@@ -752,7 +752,7 @@ C****
          AREG(JR,J_SRNFP1)=AREG(JR,J_SRNFP1)+(SNFS(1,I,J)*COSZ)*DXYPJ
          AREG(JR,J_SRINCG)=AREG(JR,J_SRINCG)+
      *     (SRHR(1,I,J)*COSZ/(ALB(I,J,1)+1.D-20))*DXYPJ
-C**** Note: this is confusing because the types for radiation are a subset
+C**** Note: confusing because the types for radiation are a subset
          AJ(J,J_SRNFG,ITOCEAN)=AJ(J,J_SRNFG,ITOCEAN)+(FSF(1,I,J)*COSZ)
      *        *FOCEAN(I,J)*(1.-RSI(I,J))
          AJ(J,J_SRNFG,ITLAKE) =AJ(J,J_SRNFG,ITLAKE) +(FSF(1,I,J)*COSZ)

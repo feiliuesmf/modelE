@@ -686,15 +686,15 @@ c ----------------------------------------------------------------------
       dxidz=1.+bgrid*((zn-z1)/z1-lznbyz1)
       dz(1)=dxi/dxidz
       xipass=xihat(1)
-      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz) !zbrent(fgrid,zmin,zmax,tolz)
+      zhat(1)=rtsafe(fgrid2,zmin,zmax,tolz)     !zbrent(fgrid,zmin, ...)
       dxidzh=1.+bgrid*((zn-z1)/zhat(1)-lznbyz1)
       dzh(1)=dxi/dxidzh
 
       do i=2,n-1
         xipass=xi(i)
-        z(i)=rtsafe(fgrid2,zmin,zmax,tolz)  !zbrent(fgrid,zmin,zmax,tolz)
+        z(i)=rtsafe(fgrid2,zmin,zmax,tolz)      !zbrent(fgrid,zmin, ...)
         xipass=xihat(i)
-        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz) !zbrent(fgrid,zmin,zmax,tolz)
+        zhat(i)=rtsafe(fgrid2,zmin,zmax,tolz)   !zbrent(fgrid,zmin, ...)
         dxidz=1.+bgrid*((zn-z1)/z(i)-lznbyz1)
         dxidzh=1.+bgrid*((zn-z1)/zhat(i)-lznbyz1)
         dz(i)=dxi/dxidz

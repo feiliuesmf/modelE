@@ -94,14 +94,14 @@ C**** (Simplified) Calendar Related Terms
      *           Q_PRT =.FALSE.,Q_NETCDF=.FALSE.
 
 C**** IO read/write flags used by the io_xyz routines
-!@param IOWRITE,IOREAD Flags set for writing or reading files
+!@param IOWRITE Flag used for writing normal restart files
 !@param IOWRITE_SINGLE Flag used for writing out in single precision
 !@param IOWRITE_MON Flag used for writing out monthly rsf file
-!@param IRESTART Flag used for reading in normal restart files
+!@param IOREAD Flag used for reading in normal restart files
 !@param IRSFIC Flag used for reading in a restart file I.C.
 !@param IRERUN Flag used for reading in a restart file I.C. for rerun
       INTEGER, PARAMETER :: iowrite=-1,ioread=1,iowrite_single=-2
-     *     ,iowrite_mon=-3,irestart=1,irsfic=2,irerun=3
+     *     ,iowrite_mon=-3,irsfic=2,irerun=3
 
 C**** Main model prognostic variables
 !@var U,V east-west, and north-south velocities (m/s)
@@ -165,7 +165,7 @@ C**** need a blank line to fool 'qrsfnt' etc.
           GO TO 10
         END IF
         SELECT CASE (IACTION)   ! set model common according to iaction
-        CASE (IRESTART)         ! normal restart
+        CASE (ioread)         ! normal restart
           JC=JC1 ; CLABEL=CLABEL1 ; RC=RC1
         CASE (IRSFIC)        ! start from old restart file => do nothing
         CASE (IRERUN) ! rerun or extension

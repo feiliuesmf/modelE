@@ -4,12 +4,12 @@
 !@ver  1.0
       USE E001M12_COM, only : im,jm,lm
       USE RE001, only : S0
-!@var S0 solar constant needs to be saved between calls to radiation 
+!@var S0 solar constant needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
 
 !@var LM_REQ Extra number of radiative equilibrium layers
-      INTEGER, PARAMETER :: LM_REQ=3 
+      INTEGER, PARAMETER :: LM_REQ=3
 !@var RQT Radiative equilibrium temperatures above model top
       DOUBLE PRECISION, DIMENSION(LM_REQ,IM,JM) :: RQT
 !@var SRHR Solar radition absorbed every hour (W/m^2)
@@ -24,15 +24,15 @@
 !@var CO2 carbon dioxide multiplication factor (set-able in NAMELIST)
       REAL*8 :: CO2 = 1.
 !@var RSDIST,SIND,COSD orbit related variables
-      REAl*8 :: RSDIST,SIND,COSD 
+      REAl*8 :: RSDIST,SIND,COSD
 
       END MODULE RADNCB
 
       SUBROUTINE io_rad(kunit,iaction,ioerr)
-!@sum  io_rad reads and writes radiation arrays to file 
+!@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE E001M12_COM, only : ioread,iowrite,irestart,irsfic,irerun
+      USE E001M12_COM, only : ioread,iowrite,irsfic,irerun
       USE RADNCB
       IMPLICIT NONE
 
@@ -51,7 +51,7 @@
      *     RQT,SRHR,TRHR,FSF
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
-        CASE (IRESTART,IRERUN)  ! input for restart, rerun or extension
+        CASE (ioread,IRERUN)  ! input for restart, rerun or extension
           READ (kunit,err=10) HEADER,S0,S0X,CO2,RSDIST,SIND,COSD,
      *       RQT,SRHR,TRHR,FSF
         CASE (IRSFIC)           ! start from old restart file
