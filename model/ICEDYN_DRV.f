@@ -78,7 +78,7 @@ C**** Ice advection diagnostics
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
 
-      write(MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a)')
+      write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
      *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
 
       SELECT CASE (IACTION)
@@ -125,10 +125,10 @@ C****
       REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
-      write(TR_MODULE_HEADER(lhead+1:80),'(a9,i2,a1,i2,a1,i2,a1,i2,a4)')
+      write(TR_MODULE_HEADER(lhead+1:80),'(a9,i3,a1,i3,a1,i2,a1,i2,a4)')
      *     'R8 Ticij(',imic,',',jmic,',',kticij,',',ntm,'),it'
 #endif
-      write(MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a1,i2,a4)')
+      write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
      *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 
       SELECT CASE (IACTION)
