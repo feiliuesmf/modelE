@@ -267,7 +267,7 @@ C---- CTM layers LM down
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
-      USE MODEL_COM, only: im,jm,lm,byim,jyear,jhour,jday,itime
+      USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime
       USE DOMAIN_DECOMP, only: GRID, GET
       USE GEOM, only: imaxj
       USE DYNAMICS, only: ltropo
@@ -298,7 +298,7 @@ C**** Create interpolated table for this resolution
       end if
 C**** Read chemical loss rate dataset (5-day frequency)
       if (mod(jday,5).gt.0 .and. .not.ifirst) go to 550
-      if (jhour.ne.0 .and. .not.ifirst) go to 550
+      if (mod(itime,nday).ne.0 .and. .not.ifirst) go to 550
       ifirst = .false.
   510 continue
       read (FRQfile,end=515) taux,frqlos
@@ -1528,7 +1528,7 @@ C****
      *          tltzzm(J_0H:J_1H,lm,n_MPtable_max),
      *          STAT=IER )
 
-      ALLOCATE(	 CH4_src(im,J_0H:J_1H,nch4src),
+      ALLOCATE(  CH4_src(im,J_0H:J_1H,nch4src),
      *           CO2_src(im,J_0H:J_1H,nco2src),
      *           STAT=IER )
 
@@ -1552,7 +1552,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(	 TLT0M(J_0H:J_1H,lm,nctable),
+      ALLOCATE(  TLT0M(J_0H:J_1H,lm,nctable),
      *           TLTZM(J_0H:J_1H,lm,nctable),
      *          TLTZZM(J_0H:J_1H,lm,nctable),
      *          STAT=IER )

@@ -464,8 +464,7 @@ C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
       KYEARE=0       ; KJDAYE=0 ;       MADEPS=1   !cloud Epsln - KCLDEP
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
-C**** New options (currently not used)
-      KCLDEM=0  ! 0:old 1:new LW cloud scattering scheme
+      KCLDEM=1                  ! 0:old 1:new LW cloud scattering scheme
 
 C**** Aerosols:
 C**** Currently there are five different default aerosol controls
@@ -501,7 +500,7 @@ C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
 C****
 C****  3) Use FSTOPX/FTTOPX(1:NTRACE) to scale them in RADIA
 C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
-C****       have to be reset for each grid box to allow for the way it 
+C****       have to be reset for each grid box to allow for the way it
 C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
 caer   NTRACE = 0.
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
@@ -1156,10 +1155,10 @@ c seasalt forcing
       if(rad_interact_tr.gt.0)then
         O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
         use_tracer_ozone = 0 ! first, call with climatological ozone
-        CALL RCOMPX  
+        CALL RCOMPX
         SNFST(n_Ox,I,J)=SRNFLB(4+LM)
         TNFST(n_Ox,I,J)=TRNFLB(4+LM)-TRNFLB(1)
-        use_tracer_ozone = 1 ! for main call, use calculated ozone 
+        use_tracer_ozone = 1 ! for main call, use calculated ozone
       end if
 #endif
 C*****************************************************

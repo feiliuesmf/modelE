@@ -38,7 +38,7 @@
       INTEGER I,J,JR,ITYPE,N
       LOGICAL WETSNOW
       integer :: J_0, J_1
-C**** 
+C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
@@ -163,7 +163,7 @@ C****
 #endif
 #endif
       integer :: J_0, J_1
-C**** 
+C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
@@ -265,8 +265,8 @@ C****
 !@ver  1.0
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday
-      USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice,jhour
-     *     ,itocean,itlake,dtsrc
+      USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
+     *     ,itocean,itlake,dtsrc                               ! ,nday
       USE GEOM, only : dxyp,imaxj
       USE DAGCOM, only : aj,j_imelt,j_hmelt,j_smelt,areg,jreg
       USE SEAICE, only : simelt,tfrez
@@ -300,9 +300,9 @@ C****
 C**** CALCULATE LATERAL MELT ONCE A DAY (ALSO ELIMINATE SMALL AMOUNTS)
 C**** We could put this in daily but it then we need an extra routine to
 C**** add fluxes to oceans/lakes.
-cc      IF (Jhour.eq.0) THEN
+cc      IF (MOD(ITIME,NDAY).eq.0) THEN
 cc        DT=SDAY    ! if called more frequently this should change
-        DT=DTsrc    ! now do this every hour
+        DT=DTsrc    ! now do this every physics time step
         DO J=J_0, J_1
         DO I=1,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
@@ -331,7 +331,7 @@ C**** now include lat melt for lakes and any RSI < 1
             SNOW=SNOWI(I,J)     ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
             SSIL(:)= SSI(:,I,J) ! sea ice salt
-            ENRGMAX= MAX(Tm-TFO,0d0)*MLHC(I,J) ! max energy for melt 
+            ENRGMAX= MAX(Tm-TFO,0d0)*MLHC(I,J) ! max energy for melt
 #ifdef TRACERS_WATER
             TRSIL(:,:)=TRSI(:,:,I,J) ! tracer content of sea ice
 #endif
@@ -594,7 +594,7 @@ C****
       USE DAGCOM, only : aj,areg,aij,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx
-      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug     
+      USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm

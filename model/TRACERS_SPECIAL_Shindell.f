@@ -12,7 +12,7 @@
 !@param Laircr the number of layers of aircraft data read from file
 !@param Lsulf the number of layers of sulfate SA data read from file
 !@param correct_CO_ind correction factor Lee put in for industrial CO
-      INTEGER, PARAMETER :: 
+      INTEGER, PARAMETER ::
      &                      Laircr      =19,
      &                      Lsulf       =23 ! not LM
       REAL*8, PARAMETER :: correct_CO_ind=520./410.
@@ -45,8 +45,8 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
      & Isoprene_src(im,jm,nIsoprenesrc),NOx_src(im,jm,nNOxsrc)
 #endif
       END MODULE TRACER_SOURCES
-      
-      
+
+
       MODULE LIGHTNING
 !@sum  LIGHTNING_COM model variables lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
@@ -56,7 +56,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
 
       IMPLICIT NONE
       SAVE
-      
+
 !@var JN J at 30 N
 !@var JS J at 30 S
 !@var I dummy
@@ -67,7 +67,7 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       REAL*8, DIMENSION(IM,JM) :: RNOx_lgt
       REAL*8, DIMENSION(LM) :: SRCLIGHT
 #endif
-      
+
 !@var HGT Pickering vertical lightning distributions (1998)
       REAL*8 HGT(2,2,16)
       DATA (HGT(1,1,I),I=1,16)/8.2,1.9,2.1,1.6,1.1,1.6,3.0,5.8,
@@ -77,11 +77,11 @@ c SHOULD PROBABLY USE ntsurfsrc( ) instead of these ...
       DATA (HGT(2,1,I),I=1,16)/20.1,2.3,0.8,1.5,3.4,5.3,3.6,3.8,
      &    5.4,6.6,8.3,9.6,12.8,10.0,6.2,0.3/
       DATA (HGT(2,2,I),I=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
-     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
- 
-      END MODULE LIGHTNING 
-      
-          
+     & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/
+
+      END MODULE LIGHTNING
+
+
 #ifdef TRACERS_ON
 #ifdef EDGAR_HYDE_SOURCES
 !
@@ -110,9 +110,9 @@ C**** Monthly sources are interpolated each day
       data adj/4*-1.d30, 0.999d0, 1.194d0, 3.5997d-5, 17.330d-4,
      & 5.3558d-5, 0.9818d0, 5*-1.d30/
       INTEGER :: EHorJEAN(nsrc) = (/1,1,1,1,2,2,2,2,2,2,1,1,1,1,1/)
-      real*8 ann_conv(2),mon_conv(2)!1=edgar-hyde conversion, 2=Jean's 
+      real*8 ann_conv(2),mon_conv(2)!1=edgar-hyde conversion, 2=Jean's
       real*8 byDTsrc
-C     
+C
 C    K=1    Animals (edgar hyde annual)
 C    K=2    Fossil Fuel Combustion (edgar hyde annual)
 C    K=3    Landfills (edgar hyde annual)
@@ -130,7 +130,7 @@ C    K=11   agricultural waste burning
 C    K=12   deforestation
 C    K=13   savannah burning
 C    K=14   biofuel production, transformation, combustion
-C    K=15   agricultural land activities     
+C    K=15   agricultural land activities
 !@var nanns,nmons: number of annual and monthly input files
       integer, parameter :: nanns=9,nmons=6
       integer ann_units(nanns-3),mon_units(nmons)
@@ -181,7 +181,7 @@ C****
           do j=1,jm
             ann_conv(1)=bydxyp(j)*byDTsrc ! EH
             src(:,j,k) = focean(:,j)*ann_conv(EHorJEAN(k))
-            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)            
+            if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
           end do
           k = k+1
           do j=1,jm
@@ -191,7 +191,7 @@ C****
           end do
           k = k+1
           do j=1,jm
-            ann_conv(1)=bydxyp(j)*byDTsrc ! EH         
+            ann_conv(1)=bydxyp(j)*byDTsrc ! EH
             src(:,j,k) = fearth(:,j)*ann_conv(EHorJEAN(k))
             if(adjust(k)) src(:,j,k) = src(:,j,k)*adj(k)
           end do
@@ -230,7 +230,7 @@ C****
 C**** Also, increase the wetlands + tundra CH4 emissions:
 C****
       src(:,:,kwet)=2.2d0*src(:,:,kwet)
-C  
+C
       return
       end subroutine read_CH4_sources
 
@@ -248,7 +248,7 @@ C**** Monthly sources are interpolated each day
       USE FILEMANAGER, only: openunit,closeunit, openunits,closeunits
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>CO_src,nsrc=>nCOsrc,correct_CO_ind
-      
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -418,7 +418,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
-      
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -567,19 +567,19 @@ C****
      *  tlca(1,1,jj),tlcb(1,1,jj),src(1,1,k),frac,imon(jj))
         do j=1,jm
           src(:,j,k) = src(:,j,k)*BYDXYP(j)*byDTsrc
-        end do 
+        end do
       end do
       jdlast = jday
       write(6,*) trname(nt),'Sources interpolated to current day',frac
       call sys_flush(6)
 C****
       return
-      end subroutine read_NOx_sources   
+      end subroutine read_NOx_sources
 !
 #else
 !
 !end of edgar-hyde sources. normal model sources follow:
-!  
+!
       subroutine read_CH4_sources(nt,iact)
 !@sum reads in CH4 surface sources and sinks
 !@auth Jean Lerner
@@ -674,7 +674,7 @@ C****
 C**** Also, increase the wetlands + tundra CH4 emissions:
 C****
       src(:,:,kwet)=2.2d0*src(:,:,kwet)
-C  
+C
       return
       end subroutine read_CH4_sources
 
@@ -758,7 +758,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Alkenes_src,nsrc=>nAlkenessrc
-   
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -832,7 +832,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Paraffin_src,nsrc=>nParaffinsrc
-     
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -956,7 +956,7 @@ C****
       call sys_flush(6)
 C****
       return
-      end subroutine read_NOx_sources   
+      end subroutine read_NOx_sources
 #endif
 
 
@@ -972,7 +972,7 @@ C**** Monthly sources are interpolated each day
       USE GEOM, only: BYDXYP
       USE TRACER_COM, only: itime_tr0,trname
       use TRACER_SOURCES, only: src=>Isoprene_src,nsrc=>nIsoprenesrc
-     
+
       implicit none
       character*80 title
       logical :: ifirst=.true.
@@ -1092,10 +1092,10 @@ c          RNOx_lgt is gN/min added per grid box (lightning NOx):
            ENDIF
            goto 1502
  1505    continue
- 1510    continue    
+ 1510    continue
 C        save tracer 3D source. convert from gN/min to kgN/s :
          DO L=1,LEVTROP
-           tr3Dsource(I,J,L,nLightning,n_NOx) = 
+           tr3Dsource(I,J,L,nLightning,n_NOx) =
      &     SRCLIGHT(L)*pmin2psec*1.d-3
          END DO
          DO L=LEVTROP+1,LM
@@ -1104,7 +1104,7 @@ C        save tracer 3D source. convert from gN/min to kgN/s :
          END DO
       END DO                    ! I
       END DO ! J
-         
+
 C
       END SUBROUTINE get_lightning_NOx
 c
@@ -1227,9 +1227,9 @@ c
       integer, parameter :: nanns=0,nmons=1
       integer ann_units(nanns),mon_units(nmons),imon(nmons)
       integer i,j,iu,k,l
-      integer      :: jdlast=0  
+      integer      :: jdlast=0
       logical :: ifirst=.true.
-      character*80 title   
+      character*80 title
       character*10 :: mon_files(nmons) = (/'SULFATE_SA'/)
       logical      :: mon_bins(nmons)=(/.true./) ! binary file?
       real*8 tlca(im,jm,Lsulf,nmons),tlcb(im,jm,Lsulf,nmons),frac
@@ -1253,11 +1253,11 @@ C
       end do
       jdlast = jday
       write(6,*) 'Sulfate surface area interpolated to current day',frac
-      call sys_flush(6) 
+      call sys_flush(6)
 C====
 C====   Place sulfate onto model levels ("sulfate" array to be used in
 C====   the chemistry):
-C====              
+C====
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       do k=nanns+1,1; DO J=1,JM; DO I=1,IM
         DO L=1,Lsulf
@@ -1266,8 +1266,8 @@ C====
         call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
         DO L=1,LM
           sulfate(I,J,L)=srcLout(L)
-        ENDDO         
-      end do        ; END DO   ; END DO     
+        ENDDO
+      end do        ; END DO   ; END DO
 C
       return
       END SUBROUTINE get_sulfate_N2O5
@@ -1404,7 +1404,7 @@ c     mixing ratios to 1.79 (observed):
         ELSE IF((J.GT.JS).AND.(J.LE.JN)) THEN           ! tropics
           CH4INIT=CH4INIT*CH4altT(L)
         END IF
-        do i=1,im  
+        do i=1,im
           trm(i,j,l,n_CH4)= am(L,I,J)*CH4INIT
         end do ! i
       end do   ! j
@@ -1412,11 +1412,11 @@ c     mixing ratios to 1.79 (observed):
 C
       RETURN
       end subroutine get_CH4_IC
-C  
-C     
+C
+C
       SUBROUTINE calc_lightning(I,J,LMAX,LFRZ)
 !@sum calc_lightning to calculate lightning flash amount and cloud-
-!@+   to-ground amount, based on cloud top height. WARNING: this 
+!@+   to-ground amount, based on cloud top height. WARNING: this
 !@+   routine is apparently resolution dependant.  See the comments.
 !@auth Colin Price (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on CB436Tds3M23)
@@ -1500,7 +1500,7 @@ c than 5.5km and less than 14km.
       th2=th*th
       th3=th2*th
       th4=th3*th
-      zlt = 0.021d0*th4 - 0.648d0*th3 + 7.493d0*th2 
+      zlt = 0.021d0*th4 - 0.648d0*th3 + 7.493d0*th2
      &    - 36.544d0*th + 63.088d0
       CG=flash/(1.+zlt)
 
@@ -1519,13 +1519,13 @@ c
 c
       SUBROUTINE get_sza(I,J,tempsza)
 !@sum get_sza calculates the solar angle.  The intention is
-!@+   that this routine will only be used when the COSZ1 from the 
+!@+   that this routine will only be used when the COSZ1 from the
 !@+   radiation code is < 0, i.e. SZA > 90 deg.
 !@auth Greg Faluvegi, based on the Harvard CTM routine SCALERAD
 !@ver 1.0
 
 c
-C**** GLOBAL parameters and variables:  
+C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: JDAY, JHOUR, IM, JM
       USE CONSTANT, only: PI, radian
@@ -1538,7 +1538,7 @@ C
 !@var DX degree width of a model grid cell (360/IM)
 !@var DY degree width of a model grid cell ~(180/JM)
 !@var tempsza the solar zenith angle, returned in degrees
-!@var P1,P2,P3 ? angles needed to compute COS(SZA) in degrees    
+!@var P1,P2,P3 ? angles needed to compute COS(SZA) in degrees
 !@var VLAT,VLOM latitude and longitude in degrees
 !@var current julian time in seconds
 !@var FACT,temp are temp variables
@@ -1547,9 +1547,9 @@ C
       REAL*8, INTENT(OUT) :: tempsza
       INTEGER, INTENT(IN) :: I,J
       INTEGER DX,DY
-      
+
       DX   = NINT(360./REAL(IM))
-      DY   = NINT(180./REAL(JM))       
+      DY   = NINT(180./REAL(JM))
       vlat = -90. + REAL((J-1)*DY)
       if (J.eq.1)  vlat= -90. + 0.5*REAL(DY)
       if (j.eq.JM) vlat=  90. - 0.5*REAL(DY)
@@ -1557,6 +1557,7 @@ C
 C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:
       TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
+      ! better: TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc  
       P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
       FACT = (TIMEC/86400. - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
@@ -1595,15 +1596,15 @@ C
       INTEGER, INTENT(IN)                 :: LIN, LOUT
       REAL*8, INTENT(IN), DIMENSION(LIN)  :: PIN, AIN
       REAL*8, INTENT(IN),DIMENSION(LOUT)  :: POUT
-      REAL*8, INTENT(OUT),DIMENSION(LOUT) :: AOUT 
+      REAL*8, INTENT(OUT),DIMENSION(LOUT) :: AOUT
       REAL*8, DIMENSION(LIN)              :: LNPIN
-      REAL*8, DIMENSION(LOUT)             :: LNPOUT       
+      REAL*8, DIMENSION(LOUT)             :: LNPOUT
       INTEGER L1,L2
       REAL*8 slope
-C      
+C
       LNPIN(:) = LOG(PIN(:))                   ! take natural log
       LNPOUT(:)= LOG(POUT(:))                  ! of pressures
-C      
+C
       DO L1=1,LOUT
        IF (LNPOUT(L1).gt.LNPIN(1)) THEN        ! extrapolate
          slope=(AIN(2)-AIN(1))/(LNPIN(2)-LNPIN(1))
@@ -1617,19 +1618,19 @@ C
            AOUT(L1)=AIN(L2)
          ELSE IF(LNPOUT(L1).eq.LNPIN(L2+1)) THEN
            AOUT(L1)=AIN(L2+1)
-         ELSE IF(LNPOUT(L1).lt.LNPIN(L2) .and. 
+         ELSE IF(LNPOUT(L1).lt.LNPIN(L2) .and.
      &   LNPOUT(L1).gt.LNPIN(L2+1)) THEN
-           AOUT(L1)=(AIN(L2)*(LNPIN(L2+1)-LNPOUT(L1)) 
+           AOUT(L1)=(AIN(L2)*(LNPIN(L2+1)-LNPOUT(L1))
      &     +AIN(L2+1)*(LNPOUT(L1)-LNPIN(L2)))/(LNPIN(L2+1)-LNPIN(L2))
          END IF
         END DO
        END IF
-      END DO          
-C      
+      END DO
+C
 C If necessary: limit interpolated array to positive numbers:
 C
-      IF(min_zero)AOUT(:)=MAX(0.d0,AOUT(:)) 
-C           
+      IF(min_zero)AOUT(:)=MAX(0.d0,AOUT(:))
+C
       RETURN
       END SUBROUTINE LOGPINT
 C
@@ -1638,7 +1639,7 @@ C
       SUBROUTINE special_layers_init
 !@sum special_layers_init determined special altitude levels that
 !@+ are important to Drew Shindell's tracer code.  This is done to
-!@+ so that hardcoded levels are not needed when switching 
+!@+ so that hardcoded levels are not needed when switching
 !@+ vertical resolutions.
 !@auth Greg Faluvegi
 !@ver 1.0
@@ -1658,12 +1659,12 @@ C
 !@var log569 natural log of 569 hPa
       REAL*8 log75,log569
       REAL*8, DIMENSION(LM) :: LOGP
-      INTEGER L      
-c      
+      INTEGER L
+c
       LOGP(:)=LOG(SIG(:)*(PSF-PTOP)+PTOP)
       log75=LOG(75.d0)
       log569=LOG(569.d0)
-c 
+c
       DO L=1,LM-1
         IF(LOGP(L).gt.log75 .and. LOGP(L+1).lt.log75) THEN
           L75P=L+1 ! these are for FACT1 variable in strat overwrite
@@ -1677,8 +1678,8 @@ c
           F569P=(log569-LOGP(L569M))/(LOGP(L569P)-LOGP(L569M))
           F569M=(LOGP(L569P)-log569)/(LOGP(L569P)-LOGP(L569M))
         END IF
-      END DO    
-c      
+      END DO
+c
       RETURN
       END SUBROUTINE special_layers_init
 #endif

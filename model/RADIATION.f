@@ -292,6 +292,8 @@ C----------------
       integer :: KEEPRH=0       ! control param
 !@var KDELIQ Flag for dry(0) or wet(1) air deliquescence
       integer :: KDELIQ(LX,4)
+!@var KRHDTK if 1, RHlevel for deliquescence is temperature dependent
+      integer :: KRHDTK=1    !  control parameter
 
 !@var SRBALB,SRXALB diffuse,direct surface albedo (1); see KEEPAL
       real*8 :: SRBALB(6),SRXALB(6)
@@ -573,12 +575,12 @@ C--------------------------------------    have to deal  1 point in time
       COMMON/O3JCOM/O3JDAY
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       REAL*8, PARAMETER, DIMENSION(NLO3+1) :: PLBO3 = (/
-     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0, 
-     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0, 
-     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0, 
-     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0, 
-     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1, 
-     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2, 
+     *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+     *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
+     *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
+     *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
+     *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
+     *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
      *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
@@ -2300,12 +2302,12 @@ C**** The data statements below are only used if  MADO3M > -1
       INTEGER :: IFILE=11            ! not used in GCM runs
 
 !!!   REAL*8 :: PLBO3(NLO3+1) = (/ ! could be read off the titles
-!!!  *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0, 
-!!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0, 
-!!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0, 
-!!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0, 
-!!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1, 
-!!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2, 
+!!!  *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
+!!!  *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
+!!!  *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
+!!!  *       10.d0,  7.d0,  5.d0,  4.d0,  3.d0,  2.d0,  1.5d0,
+!!!  *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
+!!!  *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
 !!!  *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
 C**** LJTTRO(jm)    could be computed from PLBO3
       DATA LJTTRO/6*6,7*7,20*8,7*7,6*6/           !   Top of troposphere
@@ -3295,7 +3297,7 @@ C          Set size SEA (NA=2) = SeaSalt aerosol  (Nominal dry Reff=1.0)
 C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
 C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
-      REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55
+      REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8          TTAULX(LX,8),   SRBGQL
       INTEGER K,L,NA,N,NRH,M,KDREAD,NT
 
@@ -3427,7 +3429,9 @@ C-----------------
       ENDIF
       DO 220 NA=1,4
       IF(KDELIQ(L,NA).EQ.0) THEN
-      IF(RHL(L).GT.RHD(NA)) KDELIQ(L,NA)=1
+      RHDNA=RHD(NA)
+      IF(KRHDTK.eq.1) RHDNA=RHDTNA(TLM(L),NA)
+      IF(RHL(L).GT.RHDNA)   KDELIQ(L,NA)=1
       ELSE
       IF(RHL(L).LT.RHC(NA)) KDELIQ(L,NA)=0
       ENDIF
@@ -13183,3 +13187,23 @@ C     ------------------------------------------------------------------
 
       RETURN
       END SUBROUTINE SETREL
+
+      REAL*8 FUNCTION RHDTNA(TK,NA)
+      IMPLICIT NONE
+
+      integer, intent(in) :: NA
+      real*8,  intent(in) :: TK
+C     functions
+      real*8 RHDSO4,RHDSEA,RHDNO3,RHDOCX
+
+      RHDSO4(TK)=MIN(1.D0,0.80D0*EXP( 25.D0*(298.0D0-TK)/(298.0D0*TK)))
+      RHDSEA(TK)=MIN(1.D0,0.75D0*EXP( 80.D0*(298.0D0-TK)/(298.0D0*TK)))
+      RHDNO3(TK)=MIN(1.D0,0.62D0*EXP(852.D0*(298.0D0-TK)/(298.0D0*TK)))
+      RHDOCX(TK)=MIN(1.D0,0.80D0*EXP( 25.D0*(298.0D0-TK)/(298.0D0*TK)))
+
+      IF(NA.EQ.1) RHDTNA=RHDSO4(TK)
+      IF(NA.EQ.2) RHDTNA=RHDSEA(TK)
+      IF(NA.EQ.3) RHDTNA=RHDNO3(TK)
+      IF(NA.EQ.4) RHDTNA=RHDOCX(TK)
+      RETURN
+      END  FUNCTION RHDTNA

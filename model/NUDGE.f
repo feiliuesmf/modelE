@@ -1,8 +1,8 @@
 c *****************************************************************
       MODULE NUDGE_COM
 !@sum  NUDGE_COM contains all the nudging related variables
-!@auth 
-!@ver  
+!@auth
+!@ver
       USE MODEL_COM, only : im,jm,lm
 c      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
@@ -14,9 +14,9 @@ c      REAL*4, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) :: U2,V2
       REAL*4, DIMENSION(IM,JM,LM) :: U2,V2
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid,step_rea=1,zirk=0
-!@var tau nuding time interpoltation
-      INTEGER :: tau
-!@param  nlevnc vertical levels of NCEP data  
+!@var tau nudging time interpolation
+      INTEGER :: tau    ! should probably be: real*8 :: tau
+!@param  nlevnc vertical levels of NCEP data
       INTEGER, PARAMETER :: nlevnc =17
 !@param  anudgeu anudgev relaxation constant
       REAL*8 :: anudgeu = 0., anudgev = 0.
@@ -28,7 +28,7 @@ c------------------------------------------------------------------
 c******************************************************************
 !@sum  Nudging of the horizontal wind comonents to reanalysis data sets
 !@auth Susanne
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP, only : grid
       USE NUDGE_COM, only : U1,V1,U2,V2,tau,anudgeu,anudgev
@@ -69,10 +69,10 @@ c             print*, ' A L P H A ', alphau, alphav,anudgeu,anudgev
          do j= J_0SG, J_1SG
          do i=1,im
             a=(1.-tau)*u1(i,j,l)+tau*u2(i,j,l)         !time interpolation
-c            ugcm(i,j,l)=alphau*ugcm(i,j,l)+(1-alphau)*a 
+c            ugcm(i,j,l)=alphau*ugcm(i,j,l)+(1-alphau)*a
             ugcm(i,j,l) =(ugcm(i,j,l)+ a * alphau)/ (1+alphau) !nudging
             a=(1.-tau)*v1(i,j,l)+tau*v2(i,j,l)         !time interpolation
-c            vgcm(i,j,l)=alphav*vgcm(i,j,l)+(1-alphav)*a 
+c            vgcm(i,j,l)=alphav*vgcm(i,j,l)+(1-alphav)*a
             vgcm(i,j,l) =(vgcm(i,j,l)+ a * alphav)/ (1+alphav) !nudging
          enddo
          enddo
@@ -87,15 +87,15 @@ c******************************************************************
 c(UNDG,VNDG)
 !@sum  Nudging of the horizontal wind comonents to reanalysis data sets
 !@auth Susanne
-!@ver  
-      USE MODEL_COM, only : im,jm,lm,jhour,jday
+!@ver
+      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday
       USE NUDGE_COM
       IMPLICIT NONE
       include 'netcdf.inc'
       INTEGER i
       integer start(4),count(4),status
 C-----------------------------------------------------------------------
-      if (jday.eq.1.and.jhour.eq.0) then
+      if (jday.eq.1.and.mod(itime,nday).eq..0) then
             zirk = zirk + 1
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -107,49 +107,49 @@ c -----------------------------------------------------------------
 
             status=NF_OPEN('u1.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v1.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.3) then
             status=NF_CLOSE('u1.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v1.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u2.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v2.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.4) then
             status=NF_CLOSE('u2.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v2.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u3.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v3.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.5) then
             status=NF_CLOSE('u3.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v3.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u4.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v4.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.6) then
             status=NF_CLOSE('u4.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v4.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u5.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v5.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.7) then
             status=NF_CLOSE('u5.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v5.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u6.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v6.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
       if(zirk.eq.8) then
             status=NF_CLOSE('u6.nc',NCNOWRIT,ncidu)
             status=NF_CLOSE('v6.nc',NCNOWRIT,ncidv)
 
             status=NF_OPEN('u7.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v7.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
 
       if(zirk.eq.9) then
             status=NF_CLOSE('u7.nc',NCNOWRIT,ncidu)
@@ -157,7 +157,7 @@ c -----------------------------------------------------------------
 
             status=NF_OPEN('u8.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v8.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
 
       if(zirk.eq.10) then
             status=NF_CLOSE('u8.nc',NCNOWRIT,ncidu)
@@ -165,7 +165,7 @@ c -----------------------------------------------------------------
 
             status=NF_OPEN('u9.nc',NCNOWRIT,ncidu)
             status=NF_OPEN('v9.nc',NCNOWRIT,ncidv)
-      endif     
+      endif
 
           step_rea = 0
             status=NF_INQ_VARID(ncidu,'uwnd',uid)
@@ -174,7 +174,7 @@ c -----------------------------------------------------------------
       endif
 
 C-----------------------------------------------------------------------
-      if (jhour.eq.0.or.jhour.eq.6.or.jhour.eq.12.or.jhour.eq.18) then
+      if (mod(itime,nday/4).eq.0) then
            v1(:,:,:) = v2(:,:,:)
            u1(:,:,:) = u2(:,:,:)
            step_rea=step_rea+1
@@ -183,23 +183,24 @@ C-----------------------------------------------------------------------
       endif
 
 C-----------------------------------------------------------------------
-      tau = jhour
-      if(tau.gt.6) tau = tau - 6.
-      if(tau.gt.6) tau = tau - 6.
-      if(tau.gt.6) tau = tau - 6.
-        tau=tau/6.  !time interpolation
-      if(tau.eq.1.) tau = 0.  
+!     tau = jhour                           ! since tau is an integer,
+!     if(tau.gt.6) tau = tau - 6.           ! this code makes tau
+!     if(tau.gt.6) tau = tau - 6.           ! always 0 
+!     if(tau.gt.6) tau = tau - 6.           ! Don't you want tau to go
+!       tau=tau/6.  !time interpolation     ! from 0 to 1 as hour goes
+!     if(tau.eq.1.) tau = 0.                ! from 0 to 6, 6 to 12, ...
+       tau = mod(itime,nday/4)/float(nday/4)
 
       RETURN
       END SUBROUTINE NUDGE_PREP
 
-   
+
 c -----------------------------------------------------------------
       SUBROUTINE READ_ANA(UN,VN,timestep)
 c******************************************************************
 !@sum  read in analysis data sets
 !@auth Susanne Bauer
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE NUDGE_COM, only : nlevnc,ncidu,ncidv,uid,vid,plid
       USE DOMAIN_DECOMP, only : grid
@@ -244,12 +245,12 @@ c -----------------------------------------------------------------
 c**********************************************************
 !@sum  vertical interpolation
 !@auth Susanne Bauer
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE DYNAMICS, only : PMID  ! Pressure at mid point of box (mb)
       USE DOMAIN_DECOMP, only : grid
        IMPLICIT NONE
-c 
+c
 c ==============
 
        INTEGER lmo ! vertical dimensions of input
@@ -284,7 +285,7 @@ C****
               else if (pmid(ln,i,j).le.po(lmo)) then
                  varn(i,j,ln) =  varo(i,j-1,lmo)
               else
-                 do lo=1,lmo-1 
+                 do lo=1,lmo-1
                     if ( (pmid(ln,i,j).le.po(lo)).and.
      &                 (pmid(ln,i,j).gt.po(lo+1)) )then
                        coef=(pmid(ln,i,j)-po(lo))
@@ -292,7 +293,7 @@ C****
                        varn(i,j,ln)=varo(i,j-1,lo)
      &                 +coef*(varo(i,j-1,lo+1)-varo(i,j-1,lo))
                     end if
-                 enddo           
+                 enddo
               endif
            enddo
 
@@ -306,7 +307,7 @@ c------------------------------------------------------------------
 c******************************************************************
 !@sum  Initialization for Nudging
 !@auth Susanne
-!@ver  
+!@ver
       USE MODEL_COM, only : im,jm,lm
       USE NUDGE_COM
       USE PARAM
