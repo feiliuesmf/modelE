@@ -1298,4 +1298,4 @@ C**** Should be fixed soon!
       entry open_jc
       entry close_jc
       return
-      end subrouinte pout_jc
+      end subroutine pout_jc
