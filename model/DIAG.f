@@ -1,6 +1,6 @@
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lenrer/R. Reto/M. Kelley
-!@ver  1.0 
+!@ver  1.0
 
       MODULE DAGPCOM
 !@sum  DAGCOMP Diagnostic model variables used in the printouts
@@ -3064,7 +3064,7 @@ C****
           write(6,*) 'non-consecutive period:',monacc
           stop 'non-consecutive period'
         end if
-        call aPERIOD (JMON0,JYEAR0,months,moff, years,acc_period,Ldate)
+        call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
         if (iargc().gt.1) then  ! save the summed acc-file
           write(6,*) iargc(),' files are summed up'
           keyct=1 ; KEYNR=0
