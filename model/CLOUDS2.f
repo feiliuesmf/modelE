@@ -639,7 +639,7 @@ C**** adjust MPLUME to take account of restricted area of subsidence
 C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
       MPLUME=MIN( MPLUME/FMC1,
      *   AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny) )
-      IF(MPLUME.LE..001*AIRM(L)) GO TO 570
+      IF(MPLUME.LE..001*AIRM(LMIN)) GO TO 570
       FPLUME=MPLUME*BYAM(LMIN)
       SMP  =  SMOLD(LMIN)*FPLUME
       SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
