@@ -10,7 +10,7 @@ C**** must be compiled after the model
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
       USE SOMTQ_COM
       USE GHYCOM, only : snowe,tearth,wearth,aiearth,snoage,wbare,wvege
-     *     ,htbare,htvege,snowbv,ngm
+     *     ,htbare,htvege,snowbv,ngm,evap_max_ij,fr_sat_ij,qg_ij
       USE RADNCB, only : rqt,lm_req
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
       USE DAGCOM, only : keynr,tsfrez
@@ -147,6 +147,11 @@ c     the subroutine diffus.
 C**** initialize TSFREZ to defaults
       TSFREZ(:,:,1:2)=365.
       TSFREZ(:,:,3:4)=-999.
+
+C**** set default values for evaporation limiting arrays
+      evap_max_ij(:,:) = 1.d0
+      fr_sat_ij(:,:) = 1.d0
+      qg_ij(:,:) = 0.d0
 
 c??   OPEN(iu_AIC,FILE=trim(outfile),
 c??  *     FORM="UNFORMATTED",STATUS="UNKNOWN")
