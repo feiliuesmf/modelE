@@ -17,13 +17,13 @@
       USE DYNAMICS, only : pk,pdsig,plij,pek
       USE MODEL_COM, only :
      *      im,jm,lm,sig,sige,u,v,t,q,p
-      USE CONSTANT, only : grav,kapa,deltx,lhe,sha
+      USE CONSTANT, only : grav,deltx,lhe,sha
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux,egcm
      *     ,t2gcm,uflux1,vflux1,tflux1,qflux1
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj
       USE DAGCOM, only : ajl,
      &     jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
-      USE SOCPBL, only : b2,prt,kappa,nlevel
+      USE SOCPBL, only : b2,prt,kappa,zgs,nlevel
 
       IMPLICIT NONE
 
@@ -49,10 +49,15 @@
       real*8, dimension(im,jm) :: tvsurf,uflux_bgrid,vflux_bgrid
 
       real*8 :: uflx,vflx,tflx,qflx,tvs
-      real*8 :: ustar2,dbll,reserv,t0ijl,rak,alpha1,thes,ustar
+      real*8 :: ustar2,dbll,reserv,t0ijl,rak,alpha1,thes,ustar,qs
       integer :: imax,kmax,idik,idjk
       integer :: i,j,l,k,iter !@i,j,l,k loop variable
       
+cccc
+c     real*8, save :: p1000k
+c     REAL*8,save, DIMENSION(IM,JM,4) :: sum=0.
+c     integer, save :: n_save=0
+cccccc
       ! Note that lbase_min/max are here for backwards compatibility with
       ! original drycnv. They are only used to determine where the
       ! routine has been called from.
@@ -62,6 +67,8 @@
       !  convert input T to virtual T
       do j=1,jm
         do i=1,imaxj(j)
+            !@var tvsurf(i,j) surface virtual temperature 
+            !@var tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
           tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
           do l=1,lm
             ! t_virtual is virtual potential temp. referenced at 1 mb
@@ -133,6 +140,7 @@ c           t20ij(l)=t2ij(l)
           vflx=vflux1(i,j)/rhoe(1,i,j)
           tflx=tflux1(i,j)/(rhoe(1,i,j)*pek(1,i,j)) !referenced at 1 mb
           qflx=qflux1(i,j)/rhoe(1,i,j)
+          ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx
 
@@ -146,16 +154,18 @@ c           write(99,1001) "qflux: ", qflux(i,j),qflx,qflux(i,j)/qflx
 c           write(99,*) 
 c         endif
 
-          ustar2=sqrt(uflx*uflx+vflx*vflx)
-          ustar=sqrt(ustar2)
+          ustar=(uflx*uflx+vflx*vflx)**(0.25d0)
+          ustar2=ustar*ustar
           alpha1=atan2(vflx,uflx)
 
           ! calculate z-derivatives at the surface 
+          ! @var zgs height of surface layer (m), imported from SOCPBL
           thes=tflx*prt/ustar
-          dudz(1)=ustar/(kappa*10.d0)*cos(alpha1)
-          dvdz(1)=ustar/(kappa*10.d0)*sin(alpha1)
-          dtdz(1)=thes/(kappa*10.d0)
-          dqdz(1)=qflx*prt/(ustar*kappa*10.d0)
+          qs=qflx*prt/ustar
+          dudz(1)=ustar/(kappa*zgs)*cos(alpha1)
+          dvdz(1)=ustar/(kappa*zgs)*sin(alpha1)
+          dtdz(1)=thes/(kappa*zgs)
+          dqdz(1)=qs/(kappa*zgs)
           g_alpha(1)=grav/tvs
           !@var an2 brunt-vassala frequency
           !@var as2 shear number squared
@@ -175,7 +185,7 @@ c         endif
      2         dzij,dzeij,dudz,dvdz,as2,dtdz,g_alpha,an2,
      3         rhoij,rhoeij,ustar2,dtime,lm)
 
-          ! integrate eqn for T.K.E, e.
+          ! integrate eqn for turb. virt. pot. temp. variance t2
 c         if(nlevel.eq.3) call diff_t2(t20ij,t2ij,eij,kh,kt2,gc,gc_t2,
 c    2      lscale,tij,dtdz,dzij,dzeij,rhoij,rhoeij,
 c    3      ustar2,tflx,dtime,lm)
@@ -319,13 +329,33 @@ cccc end testing:
       ENDDO
 
  1001 format(a,3(1pe14.4))
+
+cccccc testing 9-6-01
+c     p1000k=1000.**0.2862d0
+c     n_save=n_save+1
+c     rewind(71)
+c     do i=1,im
+c     do j=1,jm
+c       do l=1,4
+c         sum(i,j,l)=sum(i,j,l)+t(i,j,l)*p1000k*
+c    &               (1.+0.6078d0*q(i,j,l))
+c       end do
+c       write(71,1011) n_save,i,j,
+c    &                 sum(i,j,1)/n_save,sum(i,j,2)/n_save,
+c    &                 sum(i,j,3)/n_save,sum(i,j,4)/n_save
+c     end do
+c     end do
+c1011 format(3(2x,i4),2x,,9(1pe14.6))
+c
+cccccc end testing
+
       return
       end subroutine diffus
 
       subroutine getdz(tv,p,dz,dzedge,rho,rhoe,tvsurf,im,jm,lm)
 !@sum  getdz computes the 3d finite difference dz and dzedge
 !@+    as well as the 3d density rho and rhoe
-!@+    called at the primary cells (t-cells)
+!@+    called at the primary grid (A-grid)
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var  dz(l,i,j) z(l+1,i,j) - z(l,i,j)
@@ -335,7 +365,6 @@ cccc end testing:
 !@var  temp0 virtual temperature (K) at (i,j) and SIG(l)
 !@var  temp1 virtual temperature (K) at (i,j) and SIG(l+1)
 !@var  temp1e average of temp0 and temp1
-!@var  tsavg(i,j) COMPOSITE SURFACE AIR TEMPERATURE (K)
 
 c
 c     Grids:
@@ -359,7 +388,7 @@ c
 c     at main: u,v,tv,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
 c
-      USE CONSTANT, only : grav,rgas,kapa
+      USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pmid,pk,pedn
       implicit none
