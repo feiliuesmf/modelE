@@ -4166,7 +4166,8 @@ C                                 -------------------------------------
       INTEGER, SAVE :: LATVOL = 0
 
       real*8, parameter :: htplim=1.d-3
-      INTEGER, SAVE :: FSXTAU,FTXTAU,NJ25,NJJM
+      REAL*8, SAVE :: FSXTAU,FTXTAU
+      INTEGER, SAVE :: NJ25,NJJM
       INTEGER, INTENT(IN) :: JYEARV,JDAYVA
       INTEGER J,L,MI,MJ,K
       REAL*8 XYYEAR,XYI,WMI,WMJ,SUM,SUMHTF,SIZVOL
