@@ -653,7 +653,9 @@ C****
           dtr_dd(j,n)=dtr_dd(j,n)+tdd
         end if
 #endif          
+#ifdef TRACERS_WATER
       END DO
+#endif
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
