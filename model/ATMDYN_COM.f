@@ -43,6 +43,7 @@ C**** module should own dynam variables used by other routines
 
       DOUBLE PRECISION, DIMENSION(IM,JM,LM) :: PU,PV,CONV
       DOUBLE PRECISION, DIMENSION(IM,JM,LM-1) :: SD
+!@var PIT  pressure tendency (mb m^2/s)
       DOUBLE PRECISION, DIMENSION(IM,JM) :: PIT
       EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
       EQUIVALENCE (PIT(1,1),CONV(1,1,1))

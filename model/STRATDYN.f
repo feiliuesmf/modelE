@@ -1,12 +1,10 @@
 !@sum  STRATDYN stratospheric only routines
-!@auth Bob Suozzo/Jean Lerner
+!@auth Bob Suozzo/Jean Lerner/Gavin Schmidt
 !@ver  1.0
 
-C**** This module now compiles, but I can't check the results.
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
 C****  ii) PK type variables should be done in dynamics and used here
-C**** iii) check that LSHR,L500,LD2 are consistent for other resolutions
 
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
@@ -148,7 +146,7 @@ C**** define wave number array EK for GWDRAG
       END SUBROUTINE init_GWDRAG
 
 
-      SUBROUTINE VDIFF (P,U,V,T,DT1)
+      SUBROUTINE VDIFF (P,U,V,UT,VT,T,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
@@ -162,20 +160,21 @@ C****
      *     ,sige,mrch
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj
+      USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
       USE DAGCOM, only : ajl,jl_dudtsdif
       USE STRAT, only : defrm,pk
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
       REAL*8, DIMENSION(IM,JM,LM+1) :: VKEDDY
-      REAL*8, DIMENSION(IM,JM,LM) :: RHO
+      REAL*8, DIMENSION(IM,JM,LM) :: RHO, DUT, DVT
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
       REAL*8, DIMENSION(LDIFM) :: AIRM,AM,AL,AU,B,DU,DV,DTEMP,DQ
       REAL*8, DIMENSION(LDIFM+1) :: TE,PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
      *     ,LMEDGE,LHEDGE
       REAL*8, PARAMETER :: MU=1.
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: U,V,T
+      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS
@@ -218,29 +217,32 @@ C**** Get Vertical Diffusion Coefficient for this timestep
 C****
 C**** U,V Diffusion
 C****
+      DUT=0 ; DVT=0.
       DO 300 J=2,JM
       I=IM
       DO 300 IP1=1,IM
 C     IF(DEFRM(I,J).LE.25.E-6) GO TO 300
 C**** Surface values are used for F(0)
-      PIJ      =.25*(P(I,J-1) + P(IP1,J-1) + P(I,J) + P(IP1,J))
-      PL(0)    =(PIJ+PTOP)
-      UL(0)    =.25*(USURF(I  ,J-1) + USURF(IP1,J-1) +
-     *               USURF(I  ,J)   + USURF(IP1,J))
-      VL(0)    =.25*(VSURF(I  ,J-1) + VSURF(IP1,J-1) +
-     *               VSURF(I  ,J  ) + VSURF(IP1,J  ))
-      TPHYS    =.25*(TSURF(I  ,J-1) + TSURF(IP1,J-1) +
-     *               TSURF(I  ,J)   + TSURF(IP1,J))
-      TL(0)    =TPHYS*PL(0)**KAPA
-      RHOL(0)  =  PL(0)/(RGAS*TPHYS)
-      DO 200 L=1,MIN(LDIFM+1,LM)
-      IF (L.GE.LS1) PIJ=PSFMPT
-      PL(L)   =PIJ*SIG(L)+PTOP
-      UL(L)   =U(I,J,L)
-      VL(L)   =V(I,J,L)
-      RHOL(L) =.25*(RHO(I,J-1,L)+RHO(IP1,J-1,L)+RHO(I,J,L)+RHO(IP1,J,L))
-      PLE(L)  =PIJ*SIGE(L)+PTOP
-  200 CONTINUE
+C**** Note area weighting for four point means 
+      PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
+      PL(0)=(PIJ+PTOP)
+      UL(0)=(USURF(I  ,J-1) + USURF(IP1,J-1))*RAPVN(J-1) +
+     *      (USURF(I  ,J)   + USURF(IP1,J  ))*RAPVS(J)
+      VL(0)=(VSURF(I  ,J-1) + VSURF(IP1,J-1))*RAPVN(J-1) +
+     *      (VSURF(I  ,J  ) + VSURF(IP1,J  ))*RAPVS(J)
+      TPHYS=(TSURF(I  ,J-1) + TSURF(IP1,J-1))*RAPVN(J-1) +
+     *      (TSURF(I  ,J)   + TSURF(IP1,J  ))*RAPVS(J)
+      TL(0)=TPHYS*PL(0)**KAPA
+      RHOL(0)=PL(0)/(RGAS*TPHYS)
+      DO L=1,MIN(LDIFM+1,LM)
+        IF (L.GE.LS1) PIJ=PSFMPT
+        PL(L)=PIJ*SIG(L)+PTOP
+        UL(L)=U(I,J,L)
+        VL(L)=V(I,J,L)
+        RHOL(L)=(RHO(I,J-1,L)+RHO(IP1,J-1,L))*RAPVN(J-1)+
+     *          (RHO(I,J  ,L)+RHO(IP1,J  ,L))*RAPVS(J)
+        PLE(L)=PIJ*SIGE(L)+PTOP
+      END DO
 C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
       IF (L.EQ.LM+1) THEN
          PL(L)   =PIJ*SIGE(L)+PTOP
@@ -249,63 +251,51 @@ C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
          RHOL(L) =RHOL(L-1)
          PLE(L)  =PIJ*SIGE(L)+PTOP
        ENDIF
-      DO 220 L=1,LDIFM
-  220 AIRM(L)    =PLE(L)-PLE(L+1)
-      DO 230 L=1,LDIFM+1
-      KMEDGE(L)=VKEDDY(I,J,L)
-      KHEDGE(L)=VKEDDY(I,J,L)
-  230 DPE(L)     =PL(L-1)-PL(L)
-C**** RHOE is obtained from average of T (=P/RHO)
-      DO 240 L=1,LDIFM+1
-  240 RHOE(L)=2.*PLE(L)*RHOL(L-1)*RHOL(L)/
-     *           (PL(L-1)*RHOL(L)+PL(L)*RHOL(L-1))
-C**** Calculate diffusive flux and number of timesteps NDT
-      CALL DFUSEF (DPE,RHOE,KMEDGE,G2DT,DFLX,NDT,LDIFM)
-      DO 290 N=1,NDT
-C**** dq/dt by diffusion as tridiagonal matrix
-      CALL DFUSEQ(AIRM,DFLX,UL(0),MU,
-     *            AM,AL,AU,B,LDIFM)
-      CALL TRIDIAG(Al,Am,AU,B,DU,LDIFM)
-      CALL DFUSEQ(AIRM,DFLX,VL(0),MU,
-     *            AM,AL,AU,B,LDIFM)
-      CALL TRIDIAG(Al,Am,AU,B,DV,LDIFM)
-C**** Update model winds
-      IF (MRCH.GT.0) THEN
-         DO L=1,LM
-           AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
-         END DO
-      ENDIF
-      DO L=1,LM
-        U(I,J,L) = U(I,J,L) + DU(L)
-        V(I,J,L) = V(I,J,L) + DV(L)
+      DO L=1,LDIFM
+        AIRM(L)  =PLE(L)-PLE(L+1)
       END DO
-  290 CONTINUE
+      DO L=1,LDIFM+1
+        KMEDGE(L)=VKEDDY(I,J,L)
+        KHEDGE(L)=VKEDDY(I,J,L)
+        DPE(L)   =PL(L-1)-PL(L)
+      END DO
+C**** RHOE is obtained from average of T (=P/RHO)
+      DO L=1,LDIFM+1
+        RHOE(L)=2.*PLE(L)*RHOL(L-1)*RHOL(L)/
+     *       (PL(L-1)*RHOL(L)+PL(L)*RHOL(L-1))
+      END DO
+C**** Calculate diffusive flux and number of timesteps NDT
+      DO L=1,LDIFM+1
+        DFLX(L)=G2DT*RHOE(L)**2*KMEDGE(L)/DPE(L)
+      END DO
+      NDT=1
+
+      DO N=1,NDT
+C**** dq/dt by diffusion as tridiagonal matrix
+        CALL DFUSEQ(AIRM,DFLX,UL(0),MU,AM,AL,AU,B,LDIFM)
+        CALL TRIDIAG(Al,Am,AU,B,DU,LDIFM)
+        CALL DFUSEQ(AIRM,DFLX,VL(0),MU,AM,AL,AU,B,LDIFM)
+        CALL TRIDIAG(Al,Am,AU,B,DV,LDIFM)
+C**** Update model winds
+        IF (MRCH.GT.0) THEN
+          DO L=1,LM
+            AJL(J,L,JL_DUDTSDIF) = AJL(J,L,JL_DUDTSDIF) + DU(L)
+          END DO
+        ENDIF
+        DO L=1,LM
+          DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
+          DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
+          U(I,J,L) = U(I,J,L) + DU(L)
+          V(I,J,L) = V(I,J,L) + DV(L)
+        END DO
+      END DO
   300 I=IP1
+C**** conservation diagnostic 
+      IF (MRCH.gt.0) CALL DIAGCD (6,UT,VT,DUT,DVT,DT1)
 
       RETURN
 C****
       END SUBROUTINE VDIFF
-
-      SUBROUTINE DFUSEF(DPE,RHOE,DEDGE,G2DT,DFLX,NDT,LM)
-!@sum  DFUSEF calculate diffusive flux
-!@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: LM
-      INTEGER, INTENT(OUT) :: NDT
-      REAL*8, INTENT(OUT), DIMENSION(LM+1) :: DFLX
-      REAL*8, INTENT(IN), DIMENSION(LM+1) :: DPE,RHOE,DEDGE
-      REAL*8, INTENT(IN) :: G2DT
-      REAL*8, PARAMETER :: EPS = .3d0
-      INTEGER L
-
-      DO L=1,LM+1
-        DFLX(L)=G2DT*RHOE(L)**2*DEDGE(L)/DPE(L)
-      END DO
-      NDT=1
-      RETURN
-C****
-      END SUBROUTINE DFUSEF
 
       SUBROUTINE DFUSEQ(AIRM,DFLX,F,MU,AM,AL,AU,B,LM)
 !@sum  DFUSEQ calculate tridiagonal terms
@@ -389,7 +379,7 @@ C****
       END SUBROUTINE GETVK
 
 
-      SUBROUTINE GWDRAG (P,U,V,T,SZ,DT1)
+      SUBROUTINE GWDRAG (P,U,V,UT,VT,T,SZ,DT1)
 !@sum  GWDRAG puts a momentum drag in the stratosphere
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
@@ -439,6 +429,7 @@ C**** Do I need to put the common decalaration here also?
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
 !@var CLDHT is height of cloud = 8000*LOG(P(cloud bottom)/P(cloud top)
       REAL*8, INTENT(INOUT), DIMENSION(IM,JM,LM) :: T,U,V,SZ
+      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: UT,VT
       REAL*8, INTENT(IN), DIMENSION(IM,JM) :: P
       REAL*8, INTENT(IN) :: DT1
       REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.
@@ -447,12 +438,11 @@ C**** Do I need to put the common decalaration here also?
 !@var ROTK should this be set from CONSTANT?
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK
 
-      REAL*8 DKE(IM,JM,LM),PLE(LM+1),PL(LM),DP(LM),TL(LM),THL(LM),
-     *     RHO(LM),BVF(LM),WL(LM),UL(LM),VL(LM),DL(LM),DUT(LM),DVT(LM),
-     *     MUB(LM+1,NM),MU(NM),UR(NM),VR(NM),DQT(LM),DTT(LM),
-     *     RDI(LM),DFTL(LM),DFM(LM),DFR(LM),WMC(LM),
-     *     RA(4),VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM),
-     *     WT(NM),UEDGE(LM),VEDGE(LM),BYFACS(LM),CN(LM)
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT3,DVT3,DKE
+      REAL*8, DIMENSION(LM) :: PL,DP,TL,THL,RHO,BVF,WL,UL,VL,DL,DUT,DVT,
+     *     DQT,DTT,RDI,DFTL,DFM,DFR,WMC,UEDGE,VEDGE,BYFACS,CN
+      REAL*8 MUB(LM+1,NM),PLE(LM+1),MU(NM),UR(NM),VR(NM),WT(NM),RA(4)
+     *     ,VARXS(IM),VARXN(IM),VARYS(IM),VARYN(IM)
       DATA CN(1)/0./
       REAL*8, SAVE :: GRAVS,G2DT,DTHR,BYDT1,VARMIN
       INTEGER, SAVE :: IFIRST=1
@@ -515,7 +505,7 @@ C****
 C**** DEFORMATION
 C****
       IF(MRCH.EQ.0)  CALL DEFORM (P,U,V)
-      DKE(:,:,:)=0.
+      DKE(:,:,:)=0. ; DUT3=0. ; DVT3=0.
 C****
 C**** BEGINNING OF OUTER LOOP OVER I,J
 C****
@@ -543,7 +533,7 @@ C**** CALCULATE VERTICAL ARRAYS
 C****
       PIJ=(P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)+(P(I,J)+P(IP1,J))*RAPVS(J)
       SP=PIJ
-      DO 110 L=1,LM
+      DO L=1,LM
       IF (L.GE.LS1) PIJ=PSFMPT
       TL(L)=.25*(PK(I,J-1,L)*T(I,J-1,L)+PK(IP1,J-1,L)*T(IP1,J-1,L)+
      *  PK(I,J,L)*T(I,J,L)+PK(IP1,J,L)*T(IP1,J,L))
@@ -566,7 +556,7 @@ CRAD  RDI(L)=960.*960./(TL(L)*TL(L))*EXP(-960./TL(L))
       UL(L)=U(I,J,L)
       VL(L)=V(I,J,L)
       WL(L)=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
-  110 CONTINUE
+      END DO
       PLE(LM+1)=PIJ*SIGE(LM+1)+PTOP
       PIJ=SP
 C****
@@ -743,18 +733,18 @@ C**** INCIDENT FLUX FOR MTN WAVES
       IF (MU(1).LT.MUB(LN,1)) MU(1)=MUB(LN,1)
       IF (LN.LE.LM.AND.BVF(LN).LT.1.E-5) MU(1)=0.
 C**** INCIDENT FLUX FOR SHR AND MC WAVES
-      DO 250 N=2,NM
-      LN=LD(N)
-      IF (LN.GT.LM) GO TO 250
-      IF (MU(N).LT.MUB(LN,N)) MU(N)=MUB(LN,N)
-  250 CONTINUE
+      DO N=2,NM
+        LN=LD(N)
+        IF (LN.GT.LM) CYCLE
+        IF (MU(N).LT.MUB(LN,N)) MU(N)=MUB(LN,N)
+      END DO
 C**** LOCATE LDRAG - LOWEST LAYER TO APPLY DRAG
       LDRAG=LM+1
       DO N=1,NM
         IF (MU(N).LE.-ERR) LDRAG=MIN(LD(N),LDRAG)
       END DO
 C**** DIAGNOSTICS
-         IF (MRCH.NE.2) GO TO 251
+         IF (MRCH.EQ.2) THEN
          AIJ(I,J,IJ_GW1)=AIJ(I,J,IJ_GW1)+MU(9)*UR(9)*DTHR
          AIJ(I,J,IJ_GW2)=AIJ(I,J,IJ_GW2)+MU(1)*UR(1)*DTHR  *WT(1)
          AIJ(I,J,IJ_GW3)=AIJ(I,J,IJ_GW3)+MU(2)*UR(2)*DTHR
@@ -763,10 +753,11 @@ C**** DIAGNOSTICS
          AIJ(I,J,IJ_GW6)=AIJ(I,J,IJ_GW6)+MU(5)*UR(5)*DTHR  *WT(5)
          AIJ(I,J,IJ_GW7)=AIJ(I,J,IJ_GW7)+CN(2)*UR(2)*DTHR
          AIJ(I,J,IJ_GW8)=AIJ(I,J,IJ_GW8)+USRC*DTHR
+         END IF
 C****
 C**** CALCULATE THE DRAG
 C****
-  251 IF (LDRAG.GT.LM) GO TO 500
+      IF (LDRAG.GT.LM) GO TO 500
       DO 400 N=1,NM
       IF (LD(N).GT.LM) GO TO 400
       LD1=LD(N)
@@ -811,10 +802,10 @@ C**** MECHANICAL (TURBULENT) DRAG
       DFM(L)=MUR-MU(N)
   300 CONTINUE
 C**** LIMIT THE CONVERGENCE TO XLIMIT*(U-C)
-  320 DO 350 L=LTOP,LD1,-1
+  320 DO L=LTOP,LD1,-1
       DFT=DFR(L)+DFM(L)
       DFMAX=-XLIMIT*WMC(L)*DP(L)*BYDT1
-      IF (DFT.GE.DFMAX) GO TO 350
+      IF (DFT.GE.DFMAX) CYCLE
       EXCESS=DFT-DFMAX
       ALFA=DFM(L)/DFT
       DFR(L)=DFR(L)-EXCESS*(1.-ALFA)
@@ -823,7 +814,7 @@ C**** LIMIT THE CONVERGENCE TO XLIMIT*(U-C)
         DFR(L-1)=DFR(L-1)+EXCESS*(1.-ALFA)
         DFM(L-1)=DFM(L-1)+EXCESS*ALFA
       ENDIF
-  350 CONTINUE
+      END DO
 C**** COMBINE MECHANICAL AND RADIATIVE DRAG
       DO L=LD1,LTOP
         DFTL(L)=DFM(L)+DFR(L)
@@ -839,22 +830,23 @@ C 370 CONTINUE
 C**** CALCULATE DIFFUSION COEFFICIENT AND ADD DRAG TO THE WINDS
 C**** (DEFORMATION DIFFUSION IS * XDIFF)
       XDIFF=1.
-      DO 390 L=LD1,LTOP
-      DL(L)=DL(L)+ABS(DFM(L)*WMC(L))*XDIFF*WT(N)
-      DFT=DFTL(L)
-      DWT=DFT*DT1/DP(L)
-      IF (DFT.GT.-ERR) GO TO 390
+      DO L=LD1,LTOP
+        DL(L)=DL(L)+ABS(DFM(L)*WMC(L))*XDIFF*WT(N)
+        DFT=DFTL(L)
+        DWT=DFT*DT1/DP(L)
+        IF (DFT.GT.-ERR) CYCLE
 C**** SHEAR AND MOUNTAIN ORIENTATION
-      DUTN=DWT*UR(N)*WT(N)
-      DUT(L)=DUT(L)+DUTN
-      DVT(L)=DVT(L)+DWT*VR(N)
-      IF (MRCH.NE.2) GO TO 390
-        IF (N.LT.9) THEN
-         AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
-        ELSE
-         AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN  !JL_DUDFMDRG
-        ENDIF
-  390 CONTINUE
+        DUTN=DWT*UR(N)*WT(N)
+        DUT(L)=DUT(L)+DUTN
+        DVT(L)=DVT(L)+DWT*VR(N)
+        IF (MRCH.EQ.2) THEN
+          IF (N.LT.9) THEN
+            AJL(J,L,N+JL_gwFirst)=AJL(J,L,N+JL_gwFirst)+DUTN
+          ELSE
+            AJL(J,L,JL_gwFirst)=AJL(J,L,JL_gwFirst)+DUTN !JL_DUDFMDRG
+          ENDIF
+        END IF
+      END DO
   400 CONTINUE
 C****
 C**** MOMENTUM DIFFUSION   (DOUBLED)
@@ -864,7 +856,7 @@ C****    (limited to XLIMIT per timestep)
       YDN=0.
       FLUXUD=0.
       FLUXVD=0.
-      DO 430 L=LDRAG,LM
+      DO L=LDRAG,LM
       PUP=PL(L)
       MUP=DP(L)
       YUP=G2DT*RHO(L)*RHO(L)*DL(L)/(DP(L)*BVF(L)*BVF(L))
@@ -887,64 +879,70 @@ C    *      AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
       YDN=YUP
       MDN=MUP
       PDN=PUP
-  430 CONTINUE
+      END DO
 C**** DIFFUSION IN THE TOP LAYER COMES ONLY FROM BELOW.
       DUT(LM)=DUT(LM)-FLUXUD/MDN
       DVT(LM)=DVT(LM)-FLUXVD/MDN
-C****    ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
-         IF (MRCH.EQ.2) THEN
+
+C**** ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
+      IF (MRCH.EQ.2) THEN
 C        AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
-         DO 440 L=LDRAG,LM
-  440    AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
-     &           DL(L)/(BVF(L)*BVF(L))*DTHR
-         ENDIF
+        DO L=LDRAG,LM
+          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
+     &         DL(L)/(BVF(L)*BVF(L))*DTHR
+        END DO
 C****
 C**** Save KE change and diffusion coefficient on A-grid
 C****
-      IF (MRCH.NE.2) GO TO 470
-      DO K=1,2
-        IO(2*K-1)=I
-        IO(2*K)=IP1
-      END DO
-      IF (J.EQ.2) THEN
-        IO(1)=1
-        IO(2)=1
-      END IF
-      IF (J.EQ.JM) THEN
-        IO(3)=1
-        IO(4)=1
-      END IF
-      DO L=LDRAG-1,LM
-        DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
-     *       (U(I,J,L)**2+V(I,J,L)**2))
-        DO K=1,4
-          IA=IO(K)
-          JA=JO(K)
-          DKE(IA,JA,L)=DKE(IA,JA,L) + RA(K)*DKEX
+        DO K=1,2
+          IO(2*K-1)=I
+          IO(2*K)=IP1
         END DO
-      END DO
+        IF (J.EQ.2) THEN
+          IO(1)=1
+          IO(2)=1
+        END IF
+        IF (J.EQ.JM) THEN
+          IO(3)=1
+          IO(4)=1
+        END IF
+        DO L=LDRAG-1,LM
+          DKEX=.5*(((DUT(L)+U(I,J,L))**2+(DVT(L)+V(I,J,L))**2)-
+     *         (U(I,J,L)**2+V(I,J,L)**2))
+          DO K=1,4
+            IA=IO(K)
+            JA=JO(K)
+            DKE(IA,JA,L)=DKE(IA,JA,L) + RA(K)*DKEX
+          END DO
+          DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
+          DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
+        END DO
+      END IF
 C****
 C**** UPDATE THE U AND V WINDS
 C****
-  470 DO L=LDRAG-1,LM
+      DO L=LDRAG-1,LM
         U(I,J,L)=U(I,J,L)+DUT(L)
         V(I,J,L)=V(I,J,L)+DVT(L)
       END DO
 C**** END OF LOOP OVER I,J
   500 I=IP1
-      IF (MRCH.NE.2) RETURN
 C****
+      IF (MRCH.EQ.2) THEN
+C**** conservation diagnostic 
+        CALL DIAGCD (6,UT,VT,DUT3,DVT3,DT1)
 C**** PUT THE KINETIC ENERGY BACK IN AS HEAT
+        DO L=LDRAG-1,LM
+          DO J=1,JM
+            DO I=1,IMAXJ(J)
+              T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
+              AJL(J,L,JL_dtdtsdrg)=AJL(J,L,JL_dtdtsdrg)-
+     &             DKE(I,J,L)/(SHA*PK(I,J,L))
+            END DO
+          END DO
+        END DO
+      END IF
 C****
-      DO L=LDRAG-1,LM
-      DO J=1,JM
-      DO I=1,IMAXJ(J)
-        T(I,J,L)=T(I,J,L)-DKE(I,J,L)/(SHA*PK(I,J,L))
-        AJL(J,L,JL_dtdtsdrg)=AJL(J,L,JL_dtdtsdrg)-
-     &       DKE(I,J,L)/(SHA*PK(I,J,L))
-      END DO
-      END DO
-      END DO
       RETURN
   911 FORMAT ('0TOPOGRAPHY VARIANCE    J=',I6,' :')
   912 FORMAT (1X,1P,12E11.1)

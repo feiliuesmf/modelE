@@ -117,7 +117,7 @@ C****
   310 I=IP1
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (1,DT1,U,V,DUT,DVT,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (1,U,V,DUT,DVT,DT1,PIT)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
@@ -158,14 +158,14 @@ C**** Set the Coriolis term to zero at the Poles:
   430 CONTINUE
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
-         IF(MRCH.GT.0) CALL DIAGCD (2,DT1,U,V,DUT,DVT,PIT)
+         IF(MRCH.GT.0) CALL DIAGCD (2,U,V,DUT,DVT,DT1)
       DO L=1,LM
       DO J=2,JM
       DO I=1,IM
         UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)
         VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)
-        DUT(I,J,L)=0.
-        DVT(I,J,L)=0.
+        DUT(I,J,L)=0.  ! necessary?
+        DVT(I,J,L)=0.  ! necessary?
       END DO
       END DO
       END DO

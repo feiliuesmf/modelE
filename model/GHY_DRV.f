@@ -663,11 +663,11 @@ c**** 11*ngm+1           sl
 c**** set conservation diagnostics for ground water mass and energy
       qcon=(/ .false., .false., .false., .false., .false., .true.
      $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"grnd wtr","(kg/m^2)        ",
+      call set_con(qcon,"GRND WTR","(kg/m^2)        ",
      *     "(10^-9 kg/s/m^2)",1d0,1d9,icon_wtg)
       qcon=(/ .false., .false., .false., .false., .false., .true.
      $     , .false., .false., .true., .false., .false./)
-      call set_con(qcon,"grnd eng","(10**6 J/m^2)   ",
+      call set_con(qcon,"GRND ENG","(10**6 J/m^2)   ",
      *     "(10^-3 J/s/m^2) ",1d-6,1d3,icon_htg)
 
 c read in vegetation data set: vdata

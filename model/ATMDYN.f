@@ -51,22 +51,22 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL CALC_PIJL(LM,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
-      CALL GWDRAG (PB,UX,VX,T,TZ,DTFS)   ! strat
-      CALL VDIFF (PB,UX,VX,T,DTFS)       ! strat
+      CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS)   ! strat
+      CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      CALL FLTRUV(UX,VX)
+      CALL FLTRUV(UX,VX,U,V)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL CALC_PIJL(LS1-1,PB,PIJL)
       CALL AFLUX (UX,VX,PIJL)
       CALL ADVECM (P,PA,DT)
-      CALL GWDRAG (PA,UT,VT,T,TZ,DT)   ! strat
-      CALL VDIFF (PA,UT,VT,T,DT)       ! strat
+      CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT)   ! strat
+      CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
-      CALL FLTRUV(UT,VT)
+      CALL FLTRUV(UT,VT,UX,VX)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
@@ -74,11 +74,11 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL CALC_PIJL(LS1-1,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
-      CALL GWDRAG (PB,UT,VT,T,TZ,DTLF)   ! strat
-      CALL VDIFF (PB,UT,VT,T,DTLF)       ! strat
+      CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF)   ! strat
+      CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
-      CALL FLTRUV(UT,VT)
+      CALL FLTRUV(UT,VT,U,V)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
@@ -88,7 +88,7 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL CALC_PIJL(LS1-1,PA,PIJL)
       CALL AFLUX (UT,VT,PIJL)
       CALL ADVECM (PC,P,DTLF)
-      CALL GWDRAG (P,U,V,T,TZ,DTLF)   ! strat
+      CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
@@ -103,7 +103,7 @@ C**** ADVECT Q AND T
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
       tz(:,:,:) = tmom(mz,:,:,:)
-      CALL VDIFF (P,U,V,T,DTLF)          ! strat
+      CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
       TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
@@ -128,10 +128,10 @@ C**** ADVECT Q AND T
          END DO
          END DO
          END DO
-      CALL FLTRUV(U,V)
+      CALL CALC_AMPK(LS1-1)
+      CALL FLTRUV(U,V,UT,VT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
-           CALL CALC_AMPK(LS1-1)
            CALL DIAGA
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
@@ -139,7 +139,7 @@ C**** ADVECT Q AND T
 C**** Restart after 8 steps due to divergence of solutions
 C**** STRATOSPHERIC MOMENTUM DRAG must be called at least once
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
-      CALL CALC_AMPK(LS1-1)
+c      CALL CALC_AMPK(LS1-1)
       CALL SDRAG (LSDRAG,DT*(NS-NSOLD))
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
@@ -241,6 +241,12 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
 
       SUBROUTINE AFLUX (U,V,PIJL)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
+!@+    Input: U,V velocities, PIJL pressure
+!@+    Output: PIT  pressure tendency (mb m^2/s)
+!@+            SD   sigma dot (mb m^2/s)
+!@+            PU,PV horizontal mass fluxes (mb m^2/s)
+!@+            CONV  horizontal mass convergence (mb m^2/s)
+!@+            SPA   
 !@auth Original development team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt,dsig,bydsig,byim
@@ -249,9 +255,10 @@ C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
       USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
       IMPLICIT NONE
 C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
-      REAL*8 U(IM,JM,LM),V(IM,JM,LM)
+!@var U,V input velocities (m/s)
+!@var PIJL input 3-D pressure field (mb) (no DSIG)
+      REAL*8, INTENT(IN), DIMENSION(IM,JM,LM) :: U,V,PIJL
       REAL*8, DIMENSION(IM) :: DUMMYS,DUMMYN
-      REAL*8 PIJL(IM,JM,LM)
       INTEGER I,J,L,IP1,IM1
       REAL*8 PUS,PUN,PVS,PVN,PBS,PBN,SDNP,SDSP
       REAL*8 WT
@@ -574,7 +581,7 @@ C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C**** CALL DIAGNOSTICS
       IF(MRCH.GT.0) THEN
          IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
-         IF(MODD5K.LT.MRCH) CALL DIAGCD (3,DT1,U,V,DUT,DVT,PIT)
+         CALL DIAGCD (3,U,V,DUT,DVT,DT1)
       ENDIF
 C****
 C****
@@ -769,12 +776,14 @@ C****
       END SUBROUTINE FILTER
 
 
-      SUBROUTINE FLTRUV(U,V)
+      SUBROUTINE FLTRUV(U,V,UT,VT)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
 !@ver  1.0
 !@calls SHAP1D
-      USE MODEL_COM, only : im,jm,lm,byim
+      USE MODEL_COM, only : im,jm,lm,byim,mrch
+      USE GEOM, only : dxyn,dxys
+      USE DYNAMICS, only : pdsig
 C**********************************************************************
 C**** FILTERING IS DONE IN BOTH DIMENSIONS WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
@@ -782,11 +791,14 @@ C**** THE SMALLEST SCALES.
 C**********************************************************************
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: U,V
-      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM)
+      REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: UT,VT
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT,USAVE,VSAVE
+      REAL*8 X(IM),Y(0:JM+1),F2D(IM,JM),DT1,DP
+      REAL*8 :: DT1=0.
       LOGICAL*4, SAVE :: QFILY,QFILX,QFIL2D
       INTEGER, SAVE :: NSHAP,ISIGN
       REAL*8, SAVE :: by4toN
-      INTEGER I,J,L,N  !@var I,J,L,N  loop variables
+      INTEGER I,J,L,N,IP1  !@var I,J,L,N  loop variables
       REAL*8 Y4TO8,YJ,YJM1,X1,XI,XIM1, BY16
       INTEGER,SAVE :: IFIRST = 1
       PARAMETER (BY16=1./16.)
@@ -801,6 +813,10 @@ C        CALL FFT0(IM)
          ISIGN  = (-1.0)**(NSHAP-1)
          by4toN  = 1./(4.**NSHAP)
       ENDIF
+C**** 
+      IF (MRCH.eq.2) THEN
+        USAVE=U ; VSAVE=V
+      END IF
 C****
 C**** Filtering in east-west direction
 C****
@@ -860,7 +876,7 @@ C**** Filter V component of momentum
 C****
 C**** Filtering in north-south direction
 C****
-      IF(.NOT.QFILY) GOTO 651
+      IF(QFILY) THEN
       Y4TO8 = 1./(4.**NSHAP)
 C**** Filter U component of momentum
       DO 650 L=1,LM
@@ -900,8 +916,24 @@ C**** Filter V component of momentum
       DO 640 J=1,JM-1
   640 V(I,J,L) = V(I,J,L) + ISIGN*Y(J)*Y4TO8
   650 CONTINUE
+      END IF
 C****
-  651 RETURN
+      IF (MRCH.eq.2) THEN
+        DO L=1,LM
+        DO J=2,JM
+        I=IM
+        DO IP1=1,IM
+          DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
+     *           +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+          DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP
+          DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP
+          I=IP1
+        END DO
+        END DO
+        END DO
+        CALL DIAGCD(5,UT,VT,DUT,DVT,DT1)
+      END IF
+      RETURN
       END SUBROUTINE FLTRUV
 
 
@@ -1111,10 +1143,10 @@ C****
 !@ver  1.0
       USE CONSTANT, only : grav,rgas
       USE MODEL_COM, only : im,jm,lm,psfmpt,u,v,sige,ptop,t,xcdlm
-     *     ,bydsig,itime
-      USE GEOM, only : cosv
+     *     ,bydsig,itime,dtsrc
+      USE GEOM, only : cosv,dxyn,dxys
       USE DAGCOM, only : aij, ij_wlm,ajl,ij_sdrag,jl_dudtsdrg
-      USE DYNAMICS, only : pk
+      USE DYNAMICS, only : pk,pdsig
       IMPLICIT NONE
 
 !@var DT1 time step (s)
@@ -1124,14 +1156,18 @@ C**** Normally 1 mb and up (inclusive)
 C**** Note that this low level is only applied at the pole, elsewhere
 C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
       INTEGER, INTENT(IN) :: LMIN
-      REAL*8 WL,RHO,CDN,X,BYPIJU
-      INTEGER I,J,L
+      REAL*8 WL,RHO,CDN,X,BYPIJU,DP
+!@var DUT,DVT change in momentum (mb m^3/s)
+      REAL*8, DIMENSION(IM,JM,LM) :: DUT,DVT
+      INTEGER I,J,L,IP1
 
       BYPIJU=1./PSFMPT
+      DUT=0. ; DVT=0.
       DO L=LMIN,LM
       DO J=2,JM
       IF (COSV(J).LE..15.OR.L.GE.LM-1) THEN
-      DO I=1,IM
+      I=IM
+      DO IP1=1,IM
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         RHO=(PSFMPT*SIGE(L+1)+PTOP)/(RGAS*T(I,J,L)*PK(L,I,J))
         CDN=XCDLM(1)+XCDLM(2)*WL
@@ -1144,17 +1180,25 @@ C**** only top two layers are done (unless LMIN=LM i.e. only top layer)
      *         ,'Try setting XCDLM smaller.'
           X=1.
         END IF
+C**** adjust diags for possible difference between DT1 and DTSRC
         AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
         AIJ(I,J,IJ_SDRAG)=AIJ(I,J,IJ_SDRAG)-U(I,J,L)*X
+        DP=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
+     *         +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
+        DUT(I,J,L)=-X*U(I,J,L)*DP
+        DVT(I,J,L)=-X*V(I,J,L)*DP
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
+        I=IP1
       END DO
       END IF
       END DO
       END DO
+C**** conservation diagnostic 
+C**** (technically we should use U,V from before but this is ok)
+      CALL DIAGCD (4,U,V,DUT,DVT,DT1)
       RETURN
       END
-
 
       SUBROUTINE CALC_TROP
 !@sum  CALC_TROP (to calculate tropopause height and layer)

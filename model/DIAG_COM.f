@@ -83,11 +83,11 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var NOFM indices for CONSRV array
       INTEGER, DIMENSION(NPTS+1,NQUANT) :: NOFM
 !@var icon_xx indexes for conservation quantities
-      INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,icon_LKE
-     *     ,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_MSI,icon_HSI
-     *     ,icon_SSI
+      INTEGER icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
+     *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_MSI
+     *     ,icon_HSI,icon_SSI
 !@var KCMX actual number of conservation diagnostics
-      INTEGER :: KCMX = 23 ! take up first 23 indexes for special cases
+      INTEGER :: KCMX = 25 ! take up first 25 indexes for special cases
 !@var CONPT titles for each point at which conservation diags. are done
       CHARACTER*10, DIMENSION(NPTS) :: CONPT = (/
      *     "DYNAMICS  ","CONDENSATN","RADIATION ","PRECIPITAT",

@@ -2103,9 +2103,9 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : mdiag,itime
-      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM
-     *     ,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_MSI
-     *     ,icon_HSI,icon_SSI,title_con
+      USE DAGCOM, only : icon_AM,icon_KE,icon_MS,icon_TPE,icon_TSE
+     *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
+     *     ,icon_MSI,icon_HSI,icon_SSI,title_con
       USE SOIL_DRV, only: conserv_WTG,conserv_HTG
 #ifdef TRACERS_ON 
       USE TRACER_COM, only: itime_tr0,ntm
@@ -2180,7 +2180,7 @@ C****
       END SUBROUTINE DIAGCA
 
 
-      SUBROUTINE DIAGCD (M,DT1,UX,VX,DUT,DVT,PIT)
+      SUBROUTINE DIAGCD (M,UX,VX,DUT,DVT,DT1,PIT)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
@@ -2195,6 +2195,9 @@ C**** THE PARAMETER M INDICATES WHEN DIAGCD IS BEING CALLED
 C**** M=1  AFTER ADVECTION IN DYNAMICS
 C****   2  AFTER CORIOLIS FORCE IN DYNAMICS
 C****   3  AFTER PRESSURE GRADIENT FORCE IN DYNAMICS
+C****   4  AFTER STRATOS DRAG IN DYNAMICS
+C****   5  AFTER FLTRUV IN DYNAMICS
+C****   6  AFTER GRAVITY WAVE DRAG IN DYNAMICS
 C****
 !@var M index denoting from where DIAGCD is called
       INTEGER, INTENT(IN) :: M
@@ -2205,64 +2208,54 @@ C****
 !@var DUT,DVT current momentum changes
       DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM,LM) :: DUT,DVT
 !@var PIT current pressure tendency
-      DOUBLE PRECISION, INTENT(IN), DIMENSION(IM,JM) :: PIT
+      DOUBLE PRECISION, INTENT(IN), OPTIONAL, DIMENSION(IM,JM) :: PIT
       DOUBLE PRECISION, DIMENSION(JM) :: PI
-      INTEGER :: I,J,L,MBEGIN
+      INTEGER :: I,J,L,MBEGIN,N,IP1
+      LOGICAL dopit
       DOUBLE PRECISION :: DUTI,DUTIL,RKEI,RKEIL
+      INTEGER, DIMENSION(6) ::
+     *     NAMOFM=(/2,3,4,5,6,7/), NKEOFM=(/14,15,16,17,18,19/)
 
       CALL GETTIME(MBEGIN)
 C****
-C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY ADVECTION
+C**** PRESSURE TENDENCY FOR CHANGE BY ADVECTION
 C****
-      IF (M.eq.1) THEN
+      IF (M.eq.1) THEN 
+        dopit=.true.
         PI(1)=FIM*PIT(1,1)
         PI(JM)=FIM*PIT(1,JM)
         DO J=2,JM-1
-          PI(J)=0.
-          DO I=1,IM
-            PI(J)=PI(J)+PIT(I,J)
-          END DO
-        END DO
-        DO J=2,JM
-          DUTIL=0.
-          RKEIL=0.
-          DO L=1,LM
-            DUTI=0.
-            RKEI=0.
-            DO I=1,IM
-              DUTI=DUTI+DUT(I,J,L)
-              RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
-            END DO
-            DUTIL=DUTIL+DUTI
-            RKEIL=RKEIL+RKEI
-          END DO
-          CONSRV(J,2)=CONSRV(J,2)+(DUTIL+DT1*RADIUS*OMEGA*COSV(J)*
-     *         (PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J)))*COSV(J)*RADIUS*mb2kg
-          CONSRV(J,13)=CONSRV(J,13)+RKEIL*mb2kg
+          PI(J)=SUM(PIT(:,J))
         END DO
       ELSE
-C****
-C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY CORIOLIS AND
-C**** PRESSURE GRADIENT FORCES
-C****
-        DO J=2,JM
-          DUTIL=0.
-          RKEIL=0.
-          DO L=1,LM
-            DUTI=0.
-            RKEI=0.
-            DO I=1,IM
-              DUTI=DUTI+DUT(I,J,L)
-              RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
-            END DO
-            DUTIL=DUTIL+DUTI
-            RKEIL=RKEIL+RKEI
-          END DO
-          CONSRV(J,2*M-1)=CONSRV(J,2*M-1)+DUTIL*COSV(J)*RADIUS*mb2kg
-          CONSRV(J,2*M+10)=CONSRV(J,2*M+10)+RKEIL*mb2kg
-        END DO
+        PI=0.
+        dopit=.false.
       END IF
 C****
+C**** CHANGE OF ANGULAR MOMENTUM AND KINETIC ENERGY BY VARIOUS
+C**** PROCESSES IN DYNAMICS
+C****
+      DO J=2,JM
+        DUTIL=0.
+        RKEIL=0.
+        DO L=1,LM
+          DUTI=0.
+          RKEI=0.
+          DO I=1,IM
+            DUTI=DUTI+DUT(I,J,L)
+            RKEI=RKEI+(UX(I,J,L)*DUT(I,J,L)+VX(I,J,L)*DVT(I,J,L))
+          END DO
+          DUTIL=DUTIL+DUTI
+          RKEIL=RKEIL+RKEI
+        END DO
+        N=NAMOFM(M)
+        if (dopit) DUTIL=DUTIL+2.*DT1*RADIUS*OMEGA*COSV(J)*
+     *       (PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J))
+        CONSRV(J,N)=CONSRV(J,N)+DUTIL*COSV(J)*RADIUS*mb2kg
+        N=NKEOFM(M)
+        CONSRV(J,N)=CONSRV(J,N)+RKEIL*mb2kg
+      END DO
+C**** 
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGCD
@@ -2392,7 +2385,7 @@ C****
           END DO
           RKEIL=RKEIL+RKEI*DSIG(L)
         END DO
-        RKE(J)=RKEIL*mb2kg
+        RKE(J)=0.25*RKEIL*mb2kg
       END DO
       RETURN
 C****
@@ -2465,7 +2458,6 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_PE
-
 
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
@@ -3020,61 +3012,63 @@ C**** Initialize certain arrays used by more than one print routine
       p1000k=1000.0**kapa
 
 C**** Initialize conservation diagnostics
-C**** NCON=1:23 are special cases: Angular momentum and kinetic energy
+C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
       icon_AM=1
-      NOFM(:,icon_AM) = (/  1, 6, 0, 0, 0, 0, 7, 8, 9,10, 0, 0/)
+      NOFM(:,icon_AM) = (/  1, 8, 0, 0, 0, 0, 9,10, 0,11, 0, 0/)
       icon_KE=2
-      NOFM(:,icon_KE) = (/ 12,17,18, 0, 0, 0,19,20,21,22, 0, 0/)
-      NSUM_CON(1:23) = (/-1, 4, 4, 0,-1,11,11,11,11,11, 0,
-     *                   -1,15,15, 0,-1,23,23,23,23,23,23, 0/)
-      IA_CON(1:23) =   (/12, 6, 6,12, 6, 7, 8,10, 8, 9,12,
-     *                   12, 6, 6,12, 6, 7, 8, 8,10, 8, 9,12/)
+      NOFM(:,icon_KE) = (/ 13,20,21, 0, 0, 0,22,23, 0,24, 0, 0/)
+      NSUM_CON(1:25) = (/-1,-1,-1,-1,-1,-1,-1,12,12,12,12, 0,
+     *                   -1,-1,-1,-1,-1,-1,-1,25,25,25,25,25, 0/)
+      IA_CON(1:25) =   (/12, 1, 1, 1, 1, 1, 1, 7, 8,10, 9,12,
+     *                   12, 1, 1, 1, 1, 1, 1, 7, 8, 8,10, 9,12/)
       SCALE_CON(1)              = 1d-9
-      SCALE_CON((/2,3,5,6,7,9/))= 1d-2/DTSRC
-      SCALE_CON((/4,11,15,23/)) = 1.
-      SCALE_CON(8)              = 1d-2/(NFILTR*DTSRC)
-      SCALE_CON(10)             = 2d-2/SDAY
-      SCALE_CON(12)             = 25d-5
-      SCALE_CON((/13,14,16/))   = 1d3 /DTSRC
-      SCALE_CON((/17,18,19,21/))= 25d1/DTSRC
-      SCALE_CON(20)             = 25d1/(NFILTR*DTSRC)
-      SCALE_CON(22)             = 50d1/SDAY
-      TITLE_CON(1:23) = (/
+      SCALE_CON((/2,3,4,5,6,7,8,9/))= 1d-2/DTSRC
+      SCALE_CON(10)              = 1d-2/(NFILTR*DTSRC)
+      SCALE_CON(11)             = 2d-2/SDAY
+      SCALE_CON((/12,25/))      = 1.
+      SCALE_CON(13)             = 1d-3
+      SCALE_CON((/14,15,16,17,18,19,20,21,22/)) = 1d3/DTSRC
+      SCALE_CON(23)             = 1d3/(NFILTR*DTSRC)
+      SCALE_CON(24)             = 2d3/SDAY
+      TITLE_CON(1:25) = (/
      *  ' INSTANTANE AM (10**9 J*S/M**2) ',
-     *  ' CHANGE OF AM BY ADVECTION      ',
-     *  ' CHANGE OF AM BY CORIOLIS FORCE ',
-     *  ' CHANGE OF AM BY ADVEC + COR    ',
-     *  ' CHANGE OF AM BY PRESSURE GRAD  ',
+     *  '     DELTA AM BY ADVECTION      ',
+     *  '     DELTA AM BY CORIOLIS FORCE ',
+     *  '     DELTA AM BY PRESSURE GRAD  ',
+     *  '     DELTA AM BY STRATOS DRAG   ',
+     *  '     DELTA AM BY UV FILTER      ',
+     *  '     DELTA AM BY GW DRAG        ',
      *  ' CHANGE OF AM BY DYNAMICS       ',
      *  ' CHANGE OF AM BY SURF FRIC+TURB ',
      *  ' CHANGE OF AM BY FILTER         ',
-     *  ' CHANGE OF AM BY STRATOS DRAG   ',
      *  ' CHANGE OF AM BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**2 J/M**2)  ',
      *  '0INSTANTANEOUS KE (10**3 J/M**2)',
-     *  ' CHANGE OF KE BY ADVECTION      ',
-     *  ' CHANGE OF KE BY CORIOLIS FORCE ',
-     *  ' CHANGE OF KE BY ADVEC + COR    ',
-     *  ' CHANGE OF KE BY PRESSURE GRAD  ',
+     *  '     DELTA KE BY ADVECTION      ',
+     *  '     DELTA KE BY CORIOLIS FORCE ',
+     *  '     DELTA KE BY PRESSURE GRAD  ',
+     *  '     DELTA KE BY STRATOS DRAG   ',
+     *  '     DELTA KE BY UV FILTER      ',
+     *  '     DELTA KE BY GW DRAG        ',
      *  ' CHANGE OF KE BY DYNAMICS       ',
      *  ' CHANGE OF KE BY MOIST CONVEC   ',
      *  ' CHANGE OF KE BY SURF + DC/TURB ',
      *  ' CHANGE OF KE BY FILTER         ',
-     *  ' CHANGE OF KE BY STRATOS DRAG   ',
      *  ' CHANGE OF KE BY DAILY RESTOR   ',
      *  ' SUM OF CHANGES (10**-3 W/M**2) '/)
-      name_consrv(1:23) = (/
-     *     'inst_AM   ','chg_AM_ADV','chg_AM_COR','chg_AM_ADV',
-     *     'chg_AM_PRE','chg_AM_DYN','chg_AM_SUR','chg_AM_FIL',
-     *     'chg_AM_STR','chg_AM_DAI','sum_chg_AM',
-     *     'inst_KE   ','chg_KE_ADV','chg_KE_COR','chg_KE_ADV',
-     *     'chg_KE_PRE','chg_KE_DYN','chg_KE_MOI','chg_KE_SUR',
-     *     'chg_KE_FIL','chg_KE_STR','chg_KE_DAI','sum_chg_KE'/)
+      name_consrv(1:25) = (/
+     *     'inst_AM   ','del_AM_ADV','del_AM_COR','del_AM_PRE',
+     *     'del_AM_STR','del_AM_UVF','del_AM_GWD','chg_AM_DYN'
+     *     ,'chg_AM_SUR','chg_AM_FIL','chg_AM_DAI','sum_chg_AM'
+     *     ,'inst_KE   ','del_KE_ADV','del_KE_COR','del_KE_PRE'
+     *     ,'del_KE_STR','del_KE_UVF','del_KE_GWD','chg_KE_DYN'
+     *     ,'chg_KE_MOI','chg_KE_SUR','del_KE_FIL','chg_KE_DAI'
+     *     ,'sum_chg_KE'/)
       units_consrv(1)    ="10**9 J*S/M**2"
-      units_consrv(2:11) ="10**2 J/M**2"
-      units_consrv(12)   ="10**3 J/M**2"
-      units_consrv(13:23)="10**-3 W/M**2"
-      lname_consrv(1:23)=TITLE_CON(1:23)
+      units_consrv(2:12) ="10**2 J/M**2"
+      units_consrv(13)   ="10**3 J/M**2"
+      units_consrv(14:24)="10**-3 W/M**2"
+      lname_consrv(1:25)=TITLE_CON(1:25)
 C**** To add a new conservation diagnostic:
 C****    i) Add 1 to NQUANT, and increase KCON in DAGCOM.f
 C****   ii) Set up a QCON, and call SET_CON to allocate array numbers,
