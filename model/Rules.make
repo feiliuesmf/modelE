@@ -37,7 +37,7 @@ endif
 # starting machine - specific options
 #
 
-NO_COMMAND = @echo Requested target is not supported on $(UNAME); exit 1;
+NO_COMMAND = echo Requested target is not supported on $(UNAME); exit 1;
 F90 = $(NO_COMMAND)
 FMAKEDEP = $(NO_COMMAND)
 F =  $(NO_COMMAND)
