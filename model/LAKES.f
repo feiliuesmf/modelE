@@ -428,8 +428,6 @@ c     *           /((MWL(I,J)-MLDLK(I,J)*RHOW*FLAKE(I,J)*DXYP(J))*SHW)
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
-          ELSE
-            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
 #endif
           END IF
         END DO
@@ -496,16 +494,18 @@ C****
           CASE (1)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
+            DHORZ(I,J) = SQRT(DXV(J+1)*DXV(J+1)+DYV(J+1)*DYV(J+1))
+                                ! SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
             IF(I.eq.IM)  IFLOW(I,J) = 1
           CASE (2)
             IFLOW(I,J) = I
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = DYV(J)
+            DHORZ(I,J) = DYV(J+1)   ! DYV(J)
           CASE (3)
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J+1
-            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
+            DHORZ(I,J) = SQRT(DXV(J+1)*DXV(J+1)+DYV(J+1)*DYV(J+1))
+                                ! SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
             IF(I.eq.1)  IFLOW(I,J) = IM
           CASE (4)
             IFLOW(I,J) = I-1
@@ -515,16 +515,18 @@ C****
           CASE (5)
             IFLOW(I,J) = I-1
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
+            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
+                                ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
             IF(I.eq.1)  IFLOW(I,J) = IM
           CASE (6)
             IFLOW(I,J) = I
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = DYV(J-1)
+            DHORZ(I,J) = DYV(J)    ! DYV(J-1)
           CASE (7)
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J-1
-            DHORZ(I,J) = SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
+            DHORZ(I,J) = SQRT(DXV(J)*DXV(J)+DYV(J)*DYV(J))
+                                ! SQRT(DXV(J-1)*DXV(J-1)+DYV(J-1)*DYV(J-1))
             IF(I.eq.IM)  IFLOW(I,J) = 1
           CASE (8)
             IFLOW(I,J) = I+1
@@ -541,7 +543,7 @@ C**** South Pole is a special case
           JDPOLE     = 2
           IFLOW(1,1) = I
           JFLOW(1,1) = 2
-          DHORZ(1,1) = DYV(1)
+          DHORZ(1,1) = DYV(2)    ! DYV(1)
         END IF
         IF(KDIREC(I,2).eq.6)  THEN
           IFLOW(I,2) = 1
@@ -642,7 +644,11 @@ c              END IF
               FLOW(IU,JU) =  FLOW(IU,JU) - DMM
               EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
-              DTM(:) = DMM*GTRACER(:,1,IU,JU)
+              if (flake(iu,ju).gt.0) then
+                DTM(:) = DMM*GTRACER(:,1,IU,JU)
+              else
+                DTM(:) = DMM*TRLAKE(:,1,IU,JU)/(MWL(IU,JU)+teeny)
+              end if
               TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
               TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
      *             *BYDXYP(JD)
@@ -689,8 +695,11 @@ c        END IF
         FLOW(1,1) =  FLOW(1,1) - DMM
         EFLOW(1,1) = EFLOW(1,1) - DGM
 #ifdef TRACERS_WATER
-        DTM(:) = DMM*TRLAKE(:,1,1,1)/
-     *       (MLDLK(1,1)*RHOW*FLAKE(1,1)*DXYP(1))
+        if (flake(iu,ju).gt.0) then
+          DTM(:) = DMM*GTRACER(:,1,1,1)
+        else
+          DTM(:) = DMM*TRLAKE(:,1,1,1)/(MWL(1,1)+teeny)
+        end if
         TRFLOW(:,1,1) = TRFLOW(:,1,1) - DTM(:)
         TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:)=TAIJN(IDPOLE,JDPOLE,TIJ_RVR,:) +
      *       DTM(:)*BYDXYP(JDPOLE)
@@ -783,8 +792,6 @@ C**** Set FTYPE array for lakes
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *DXYP(J))
-          ELSE
-            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
 #endif
           END IF
         END DO
@@ -1175,9 +1182,6 @@ c       AJ(J,J_HMELT,ITLKICE)=AJ(J,J_HMELT,ITLKICE)+PLKICE*ERUNPSI(I,J)
      *         *RSI(I,J)
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
-#ifdef TRACERS_WATER
-          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
-#endif
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
           AJ(J,J_RUN,ITLAKE) =AJ(J,J_RUN,ITLAKE)-PLICE*RUNOLI(I,J)
@@ -1274,9 +1278,6 @@ C**** calculate flux over whole box
      *         RSI(I,J)
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
-#ifdef TRACERS_WATER
-          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MWL(I,J)+teeny)
-#endif
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
           AJ(J,J_RUN,ITLAKE)=AJ(J,J_RUN,ITLAKE)-
