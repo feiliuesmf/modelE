@@ -2744,10 +2744,9 @@ C**** Tracer specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('NOx')
           tr3Dsource(:,:,:,nAircraft,n)  = 0.
-          tr3Dsource(:,:,:,nLightning,n) = 0.
           call get_aircraft_NOx
-          call get_lightning_NOx
           call      read_NOx_sources(n,iact)
+C         (lightning called from tracer_3Dsource)
         case ('CO')
           call       read_CO_sources(n,iact)
         case ('CH4')
@@ -3097,6 +3096,8 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 4/24/02)
 c
       call apply_tracer_3Dsource(nAircraft,n_NOx)
+      tr3Dsource(:,:,:,nLightning,n_NOx) = 0.
+      call get_lightning_NOx
       call apply_tracer_3Dsource(nLightning,n_NOx)
 c
 C**** Make sure that these 3D sources for all tracers start at 0.:
