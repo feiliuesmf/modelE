@@ -870,6 +870,7 @@ c can't be more than moles going in:
    
  333  RETURN
       END SUBROUTINE GET_SULFATE
+
       SUBROUTINE HETER
 !@sum heterogeneous production of sulfate
 !@auth Dorothy Koch
@@ -949,7 +950,7 @@ c
 
       if (coupled_chem.eq.0) then
       if (trm(i,j,l,n_so2).lt.teeny.or.
-     *  trm(i,j,l,n_h2o2).lt.teeny.or.tv.lt.teeny) then 
+     *  trm(i,j,l,n_h2o2_s).lt.teeny.or.tv.lt.teeny) then 
       go to 88
       endif
       endif

@@ -577,16 +577,14 @@ C****
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers 
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : visc_air,grav
+      USE CONSTANT, only : visc_air,grav,by3
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo
       USE GEOM, only : imaxj,bydxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius,trpdens
-#ifdef TRACERS_AEROSOLS_Koch
-     * ,trname
+     *     ,trname
       USE CLOUDS_COM, only: rhsav
-#endif
       USE TRACER_DIAG_COM, only : tajls,jls_grav,itcon_grav
 #ifdef TRACERS_DRYDEP
      *     ,taijn,tij_drydep
@@ -600,7 +598,7 @@ C****
       integer n,najl,i,j,l
 #ifdef TRACERS_AEROSOLS_Koch
       real*8, parameter :: c1=0.7674d0, c2=3.079d0, c3=2.573d-11,
-     * c4=-1.424d0
+     *     c4=-1.424d0
       real*8 r_h,den_h,rh
 #endif
 
@@ -621,50 +619,40 @@ C**** Gravitational settling
           do j=1,jm
           do i=1,imaxj(j)
             told(i,j,l)=trm(i,j,l,n)
-c need to hydrate the sea salt before determining settling	    
 #ifdef TRACERS_AEROSOLS_Koch
-      rh=rhsav(l,i,j)
-      if (rhsav(l,i,j).le.0) rh=0.01
-      if (rhsav(l,i,j).ge.1.) rh=0.99
-      select case (trname(n))
-      case ('seasalt1')
+c need to hydrate the sea salt before determining settling	    
+            if (trname(n).eq.'seasalt1' .or. trname(n).eq.'seasalt2')
+     *           then
+              rh=max(0.01d0,min(rhsav(l,i,j),0.99d0))
 c hydrated radius
-      r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
-     * + (trradius(n))**(3.d0))**(0.33333d0)
+              r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
+     *             + trradius(n)**3)**by3
 c hydrated density
-      den_h=((r_h**3.d0 - trradius(n)**3.d0)*1000.d0 
-     * + trradius(n)**3.d0*trpdens(n))/r_h**3.d0
-      stokevdt(n)=dtsrc*2.d0*grav*den_h*r_h**2.d0/(9.d0*visc_air)
-      case ('seasalt2')
-c hydrated radius
-      r_h=(c1*trradius(n)**(c2)/(c3*trradius(n)**(c4)-log10(rh))
-     * + (trradius(n))**(3.d0))**(0.33333d0)
-c hydrated density
-      den_h=((r_h**3.d0 - trradius(n)**3.d0)*1000.d0 
-     * + trradius(n)**3.d0*trpdens(n))/r_h**3.d0
-      stokevdt(n)=dtsrc*2.d0*grav*den_h*r_h**2.d0/(9.d0*visc_air)
-      end select
+              den_h=((r_h**3 - trradius(n)**3)*1000.d0 
+     *             + trradius(n)**3*trpdens(n))/r_h**3
+              stokevdt(n)=dtsrc*2.*grav*den_h*r_h**2/(9.*visc_air)
+            end if
 #endif
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
 C**** should this operate in the first layer? Surely dry dep is dominant?
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
-              trgrdep(i,j,n)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
+              trgrdep(n,i,j)=fgrfluxd*trm(i,j,l,n)*bydxyp(j)
 #ifdef TRACERS_DRYDEP
 C**** maybe this should be a separate diag (or not be done at all?)
               taijn(i,j,tij_drydep,n) = taijn(i,j,tij_drydep,n) +
-     *             trgrdep(i,j,n)
+     *             trgrdep(n,i,j)
 #endif
             else               ! above layer 1
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-gz(i,j,l-1))
             end if
             if (l.lt.lm) then  ! below top layer
               fgrfluxu=stokevdt(n)*grav/(gz(i,j,l+1)-gz(i,j,l))
+              trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
+     *                   + trm(i,j,l+1,n)*    fgrfluxu
             else               ! top layer
-              fgrfluxu=0.
+              trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
             end if
-            trm(i,j,l,n)=trm(i,j,l  ,n)*(1.-fgrfluxd)
-     *                 + trm(i,j,l+1,n)*    fgrfluxu
             trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
           end do
           end do
