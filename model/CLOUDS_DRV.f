@@ -190,7 +190,8 @@ C$OMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 C$OMP*  HCNDMC, I,ITYPE,IT,ITAU, IDI,IDJ,
 C$OMP*  ITROP,IERR, J,JERR, K,KR, L,LERR, NBOX, PRCP,PFULL,PHALF,
 C$OMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
-C$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR)
+C$OMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT, WMERR,
+C$OMP*  LP600,LP850,CSC,DIFT)
 C$OMP*    SCHEDULE(DYNAMIC,2)
 C
       DO J=1,JM
@@ -409,7 +410,7 @@ C****
        CSC=0.D0
        IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5D0) THEN
          LP600=LM
-         LP850=LM                                 
+         LP850=LM
          DO L=2,LM
           IF(L.GT.LP600) EXIT
           IF(PL(L).LT.600.D0) THEN
@@ -832,7 +833,7 @@ C$OMP  END PARALLEL DO
       USE CONSTANT, only : grav,by3
       USE MODEL_COM, only : dtsrc,ls1
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtr,U00ice
-     *  ,HRMAX,ISC      
+     *  ,HRMAX,ISC
       USE PARAM
 
       IMPLICIT NONE
