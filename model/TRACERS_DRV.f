@@ -17,7 +17,7 @@
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,ls1
 #ifdef TRACERS_SPECIAL_Shindell
-     & ,ptop,psf,sig,lm
+     & ,ptop,psf,sig,lm,jm
 #endif
       USE DAGCOM, only: ia_src,ia_12hr,ir_log2,npts
       USE TRACER_COM
@@ -38,7 +38,8 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
      & mass2vol,bymass2vol,CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     & CH4altX,CH4altT
+     & CH4altX,CH4altT,corrOxIN,corrOx,LcorrOx,PcorrOx
+      USE FILEMANAGER, only: openunit,closeunit
 #endif
       implicit none
       integer :: l,k,n
@@ -57,7 +58,12 @@
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var PRES local nominal pressure for verticle interpolations
-      REAL*8, DIMENSION(LM) :: PRES
+!@var iu_data unit number
+!@var title header read in from file
+      REAL*8, DIMENSION(LM) :: PRES,tempOx2
+      REAL*8, DIMENSION(LcorrOx) :: tempOx1
+      integer iu_data,m,j
+      character*80 title
 #endif
 
 C**** Set defaults for tracer attributes (all dimensioned ntm)
@@ -255,6 +261,23 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
       case ('Ox')
       n_Ox = n
+c         read stratospheric correction from files:
+          call openunit('Ox_corr',iu_data,.true.,.true.)
+          read (iu_data) title,corrOxIN
+          call closeunit(iu_data)
+          write(6,*) title,' read from Ox_corr'
+          DO m=1,12; DO j=1,jm
+           tempOx1(:)=CorrOxIN(J,:,M)
+           CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
+     &                  tempOx2,.true.)
+           CorrOx(J,:,M)=tempOx2(:)
+           END DO   ; END DO
+C          Only alter Ox between 150 and 30 hPa (lower strat):
+           DO L=1,LM
+             IF(PRES(L).lt.30.d0.or.PRES(L).gt.150.d0) 
+     &       corrOx(:,L,:)=1.0d0
+           END DO
+c          
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
@@ -3015,8 +3038,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
       USE FILEMANAGER, only: openunit,closeunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:OxIC,O3MULT,COlat,MDOFM 
-     &  ,corrOx,COalt,JCOlat
+      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM 
+     &  ,corrOx,COalt,JCOlat,O3DLJI,O3DLJI_clim
+      USE RADPAR, only: O3DLJ
 #endif
       IMPLICIT NONE
       INTEGER i,n,l,j,iu_data,ipbl,it,lr
@@ -3263,36 +3287,23 @@ c**** earth
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('Ox')
-c         read ICs and stratospheric correction from files:
-          call openunit('Ox_IC',iu_data,.true.,.true.)
-          read (iu_data) title,OxIC
-          call closeunit(iu_data)
-          write(6,*) title, 'read from Ox_IC'
-          call openunit('Ox_corr',iu_data,.true.,.true.)
-          read (iu_data) title,corrOx
-          call closeunit(iu_data)
-          write(6,*) title,' read from Ox_corr'
-
+          do i=1,im; DO l=1,lm
+            O3DLJI(L,:,I)=O3DLJ(L,:)
+          end do   ; end do
+          O3DLJI_clim(:,:,:)=O3DLJI(:,:,:)
           imonth= 1
           DO i=2,12
             IF((JDAY.LE.MDOFM(i)).AND.(JDAY.GT.MDOFM(i-1))) THEN
               imonth=i
-              GOTO 216
+              EXIT     
             END IF
           END DO
- 216      WRITE(6,*) 'Use month ',imonth,' Ox correction.'
-C
+          WRITE(6,*) 'Use month ',imonth,' Ox correction.'
 C         Place initial conditions into tracer mass array:
-          trm(:,:,:,n) = OxIC(:,:,:)
-
-C         Apply the model-dependant stratospheric Ox corrections:
-          DO L=12,15 ! <<<< WARNING: HARDCODE, GSF <<<<
-          DO J=1,JM
-          DO I=1,IM
-            trm(i,j,l,n)=trm(i,j,l,n)*corrOx(J,L-11,imonth)
-          END DO
-          END DO
-          END DO
+          DO L=1,LM; DO I=1,IM
+            trm(I,:,L,n) = 
+     &      O3DLJI(L,:,I)*DXYP(:)*O3MULT*corrOx(:,L,imonth)
+          END DO   ; END DO
           trmom(:,:,:,:,n) = 0.
           J2=0
 #endif
@@ -3465,7 +3476,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRACER_SOURCES, only: nLightning, nAircraft
-      USE TRCHEM_Shindell_COM,only:OxIC,corrOx
 #endif
       IMPLICIT NONE
       INTEGER n,iact,last_month
