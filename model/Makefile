@@ -108,7 +108,7 @@ endif
 ifeq ($(UNAME),Linux)
 MACHINE = Linux
 F90 = f90
-FMAKEDEP = $(SCRIPTDIR)/sfmakedep_gnu -m vo
+FMAKEDEP = $(SCRIPTDIR)/sfmakedepend -m vo
 FFLAGS = -O2
 LFLAGS = -O2
 endif
@@ -192,7 +192,7 @@ mkrun $(RUN).R:
 
 # Extract list of object files from the rundeck $(RUN).R
 # and create dependencies
-depend $(DEPENDFILE):  $(RUN).R
+depend $(DEPENDFILE):  $(RUN).R $(FSRCS)
 	@echo '-------- Dependecies are out of date or do not exist ---------'
 	@echo '---------         regenerating them                  ---------'
 	@perl -e 'print "OBJ_LIST = "; while(<> !~ /^Object +modules/ ){};' \
