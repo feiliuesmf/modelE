@@ -51,7 +51,7 @@ c****
      &    abetap,abetab,abeta,
      &    acna,acnc,agpp,
      &    aevap,aevapw,aevapd,aevapb,
-     &    aruns,arunu,aeruns,aerunu,
+     &    aruns,arunu,aeruns,aerunu,aflmlt,
      &    aepc,aepb,aepp,af0dt,af1dt,zw,tbcs,
      &    qm1,qs,
      &    pres,rho,ts,vsm,ch,srht,trht, !cd,snht,
@@ -77,7 +77,7 @@ c****
      *     ,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs,idd_qg,idd_swg
      *     ,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg,idd_wg,idd_us
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
-     *     ,idd_ev,tf_day1,tf_last,ndiupt
+     *     ,idd_ev,tf_day1,tf_last,ndiupt,ij_aflmlt
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
 #ifdef TRACERS_DRYDEP
@@ -774,6 +774,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
+      aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt
 
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
@@ -1812,12 +1813,13 @@ c****
       use model_com, only : fearth,itearth
       use geom, only : imaxj,dxyp
       use ghycom, only : snowe, tearth,wearth,aiearth,wbare,wvege,snowbv
-     *     ,fr_snow_ij,fr_snow_rad_ij, gdeep
+     *     ,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij
       use veg_com, only : afb
       use dagcom, only : aj,areg,aij,jreg,ij_evap,ij_f0e,ij_evape
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
+     $     ,ij_zsnow
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
@@ -1892,6 +1894,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_g10)=aij(i,j,ij_g10)+wvege(6,i,j)        
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
+        aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
+     &       ( afb(i,j)*fr_snow_ij(1,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
+     &       + (1.-afb(i,j))*fr_snow_ij(2,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
       end if
 c****
       end do

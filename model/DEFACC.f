@@ -1388,6 +1388,16 @@ c
       ir_ij(k) = ir_m1_3
 c
       k=k+1 !
+      IJ_AFLMLT = k ! snow melt water  (KG/m**2 /s)                1 PG
+      lname_ij(k) = 'SNOW MELT FLUX'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'snow_melt'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_m1_3
+c
+      k=k+1 !
       IJ_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
       lname_ij(k) = 'SURFACE RUNOFF OVER LAND ICE'
       units_ij(k) = 'mm/day'
@@ -1577,6 +1587,16 @@ c
       lname_ij(k) = 'WATER IN UPPER EARTH LAYER' ! includes ice
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'gwtr1'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      iw_ij(k) = iw_soil
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_ZSNOW = k ! snow thickness
+      lname_ij(k) = 'LAND SNOW THICKNESS'
+      units_ij(k) = 'm'
+      name_ij(k) = 'zsnow'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
       iw_ij(k) = iw_soil

@@ -149,7 +149,7 @@ ccc   main accumulators
 
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
-     &      , agpp
+     &      , agpp,aflmlt
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -1837,6 +1837,8 @@ ccc   main fluxes which should conserve water/energy
       end do
 ccc   end of main fluxes
 ccc   the rest of the fluxes (mostly for diagnostics)
+      aflmlt = aflmlt + ( fb*(flmlt(1)*fr_snow(1)+flmlt_scale(1))
+     $     + fv*(flmlt(2)*fr_snow(2)+flmlt_scale(2)) )*dts
       aevapw = aevapw + evapvw*fw*(1.d0-fr_snow(2)*fm)*fv*dts
       aevapd = aevapd + evapvd*fd*(1.d0-fr_snow(2)*fm)*fv*dts
       aevapb = aevapb + evapb*(1.d0-fr_snow(1))*fb*dts
@@ -1887,6 +1889,7 @@ c penman evaporation.  should be called once after
 c accumulations are collected.
       aruns=rhow*aruns
       arunu=rhow*arunu
+      aflmlt=rhow*aflmlt
       aevapw=rhow*aevapw
       aevapd=rhow*aevapd
       aevapb=rhow*aevapb
@@ -1923,6 +1926,7 @@ c zero out accumulations
       aeruns=0.d0
       arunu=0.d0
       aerunu=0.d0
+      aflmlt=0.d0
 
       abetad=0.d0 ! not accumulated : do we need it?  YES
       abetav=0.d0 ! not accumulated : do we need it?
