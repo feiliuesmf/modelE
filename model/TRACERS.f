@@ -315,8 +315,8 @@ C**** Tracers dry deposition flux.
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_dry_dep'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Dry Deposition'
-        units_tij(k,n)=unit_string(ijtm_power(n)-9,'kg/m^2/s')
-        scale_tij(k,n)=10.**(-ijtm_power(n)+9)/REAL(NIsurf,KIND=8)
+        units_tij(k,n)=unit_string(ijtc_power(n),'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n))/REAL(NIsurf,KIND=8)
       end if
 #endif
       end do
@@ -553,6 +553,7 @@ C**** Gravitional settling
             told(i,j,l)=trm(i,j,l,n)
 C**** Calculate height differences using geopotential
             if (l.eq.1) then   ! layer 1 calc
+C**** should this operate in the first layer? Surely dry dep is dominant?
               fgrfluxd=stokevdt(n)*grav/(gz(i,j,l)-zatmo(i,j))
               trgrdep(i,j,n)=fgrfluxd*trm(i,j,l,n)
             else               ! above layer 1
@@ -573,7 +574,8 @@ C**** Calculate height differences using geopotential
           najl = jls_grav(n)
           do l=1,lm
           do j=1,jm
-          tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(:,j,l,n)-told(:,j,l))
+            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(1:imaxj(j),j,l,n)
+     *           -told(1:imaxj(j),j,l))
           enddo 
           enddo
           call DIAGTCA(itcon_grav(n),n)

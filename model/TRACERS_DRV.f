@@ -1395,6 +1395,14 @@ c put in chemical production of MSA
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of MSA
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of MSA'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
 c put in chemical production of SO2
@@ -1523,6 +1531,14 @@ c industrial source
         lname_jls(k) = 'SO4 industrial source'
         jls_ltop(k) = 1
         jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of SO4
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of'//trname(n)
+        lname_jls(k) = 'Gravitational Settling of SO4'
+        jls_ltop(k) = LM
+        jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
         case ('H2O2_s')
@@ -2848,18 +2864,21 @@ C**** First 12 are standard for all tracers and GCM
       itcon_3Dsrc(1,N) = 13
       qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
       qsum(itcon_3Dsrc(1,N)) = .true.
+      itcon_grav(n) = 14
+      qcon(itcon_grav(n)) = .true.; conpts(2) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
 #ifdef TRACERS_WATER
-      itcon_mc(n) = 14
-      qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+      itcon_mc(n) = 15
+      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) = 15
-      qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+      itcon_ss(n) = 16
+      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
-        itcon_dd(n)=16
-        qcon(itcon_dd(n)) = .true. ; conpts(4) = 'DRY DEP'
+        itcon_dd(n)=17
+        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
@@ -2912,29 +2931,32 @@ C**** First 12 are standard for all tracers and GCM
       qsum(13:) = .false.  ! reset to defaults for next tracer
 
       case ('SO4')
-      itcon_3Dsrc(1,N) = 13
-      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+      itcon_grav(n) = 13
+      qcon(itcon_grav(n)) = .true.; conpts(1) = 'SETTLING'
+      qsum(itcon_grav(n)) = .true.
+      itcon_3Dsrc(1,N) = 14
+      qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Gas phase src'
       qsum(itcon_3Dsrc(1,N)) = .true.
-      itcon_surf(1,N) = 14
-      qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+      itcon_surf(1,N) = 15
+      qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
       qsum(itcon_surf(1,N)) = .false.
 #ifdef TRACERS_WATER
-      itcon_mc(n) =15
-      qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+      itcon_mc(n) =16
+      qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
       qsum(itcon_mc(n)) = .false.
-      itcon_ss(n) =16
-      qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+      itcon_ss(n) =17
+      qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
       qsum(itcon_ss(n)) = .false.
 #endif
 #ifdef TRACERS_DRYDEP
       if(dodrydep(n)) then
-        itcon_dd(n)=17
-        qcon(itcon_dd(n)) = .true. ; conpts(5) = 'DRY DEP'
+        itcon_dd(n)=18
+        qcon(itcon_dd(n)) = .true. ; conpts(6) = 'DRY DEP'
         qsum(itcon_dd(n)) = .false.
       end if
 #endif
-      itcon_3Dsrc(2,N) = 18
-      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(6) = 'Heter src'
+      itcon_3Dsrc(2,N) = 19
+      qcon(itcon_3Dsrc(2,N)) = .true.; conpts(7) = 'Heter src'
       qsum(itcon_3Dsrc(2,N)) = .true.
 
       CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),

@@ -520,8 +520,8 @@ C****
 C**** JL Specials (incl. Sources and sinks)
 C****
       do k=1,ktajls
-        if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr")
-     *       cycle
+        if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr" 
+     *       .or. lname_jls(k).eq."unused") cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,tajls(1
      *     ,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k),jgrid_jls(k))

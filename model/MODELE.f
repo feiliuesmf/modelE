@@ -284,7 +284,9 @@ C**** SEA LEVEL PRESSURE FILTER
       END IF
 #ifdef TRACERS_ON
 C**** 3D Tracer sources and sinks
-C**** Tracer independent radioactive decay at end of day
+C**** Tracer gravitational settling for aerosols
+      CALL TRGRAV
+C**** Tracer radioactive decay (and possible source)
       CALL TDECAY
 C**** Calculate 3D tracers sources and sinks
       call tracer_3Dsource
