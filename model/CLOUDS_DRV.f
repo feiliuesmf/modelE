@@ -4,7 +4,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
 
-      USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe
+      USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR,fearth
      *     ,ls1,psf,ptop,dsig,bydsig,jeq,fland,sig,DTsrc,ftype
      *     ,ntype,itime,fim,airx,lmc,focean,fland,flice
@@ -55,7 +55,7 @@
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
 !@var IT index for surface types
-!@var LERR,IERR error reporting 
+!@var LERR,IERR error reporting
       INTEGER :: LERR=0, IERR=0
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
 
@@ -78,7 +78,7 @@ C**** parameters and variables for isccp diags
       real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
       real*8 fq_isccp(ntau,npres),ctp,tauopt,sumcld
       integer itau,ipres,itrop,nbox
-C**** 
+C****
 
 C**** SAVE UC AND VC, AND ZERO OUT CLDSS AND CLDMC
       UC=U
@@ -181,7 +181,7 @@ C**** MOIST CONVECTION
       CALL MSTCNV(IERR,LERR)
 
 C**** Error reports
-      if (ierr.gt.0) then  
+      if (ierr.gt.0) then
         write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
         if (ierr.eq.2) stop "Subsid error: abs(c) > 1"
       end if
@@ -351,9 +351,9 @@ C**** Calculate ISCCP cloud diagnostics if required
           if(conv(l) .gt. 1.) then
             conv(l)=1.
           endif
-          
-          dtau_s(l)=taussl(LM+1-L) 
-          dtau_c(l)=taumcl(LM+1-L)  
+
+          dtau_s(l)=taussl(LM+1-L)
+          dtau_c(l)=taumcl(LM+1-L)
           pfull(l)=pl(LM+1-L)*100.
           phalf(l)=ple(LM+2-L)*100.
           at(l)=tl(LM+1-L)  ! in situ temperature
@@ -363,15 +363,18 @@ c          skt=tf+tg1(i,j)
           skt=tf + (focean(i,j)+flake(i,j))*(1.-rsi(i,j))*gtemp(1,1,i,j)
      *         + (focean(i,j)+flake(i,j))*rsi(i,j)*gtemp(1,2,i,j)
      *         + flice(i,j)*gtemp(1,3,i,j)+fearth(i,j)*gtemp(1,4,i,j)
-          if(svlhxl(LM+1-L) .eq. lhe ) then   ! water cloud
-            dem_s(l)=1.-exp(-taussl(LM+1-L)*bywc)  
-            dem_c(l)=1.-exp(-taumcl(LM+1-L)*bywc)  
-          else                                     ! ice cloud
-            dem_s(l)=1.-exp(-taussl(LM+1-L)*byic)  
-            dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)  
-          endif
-          
-          qv(l)=ql(LM+1-L)  
+          dem_s(l)=0.
+          dem_c(l)=0.
+          if(svlhxl(LM+1-L) .eq. lhe )   ! large-scale water cloud
+     *      dem_s(l)=1.-exp(-taussl(LM+1-L)*bywc)
+          if(svlatl(LM+1-L) .eq. lhe )   ! convective water cloud
+     *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*bywc)
+          if(svlhxl(LM+1-L) .eq. lhs )   ! large-scale ice cloud
+     *      dem_s(l)=1.-exp(-taussl(LM+1-L)*byic)
+          if(svlatl(LM+1-L) .eq. lhs )   ! convective ice cloud
+     *      dem_c(l)=1.-exp(-taumcl(LM+1-L)*byic)
+
+          qv(l)=ql(LM+1-L)
         end do
         phalf(lm+1)=ple(1)*100.
         itrop = LM+1-LTROPO(I,J)
@@ -379,15 +382,15 @@ c          skt=tf+tg1(i,j)
         call ISCCP_CLOUD_TYPES(pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox)
-          
+
 C**** set ISCCP diagnostics
         if (nbox.gt.0) then
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
           AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
-          AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1. 
+          AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
         end if
 C**** note LOW CLOUDS:       ipres=6,7, MID-LEVEL CLOUDS: ipres=4,5 ,
-C****      HIGH CLOUDS:      ipres=1,2,3 
+C****      HIGH CLOUDS:      ipres=1,2,3
 C**** Sum over itau=2,ntau (itau=1 is no cloud)
         do itau=2,ntau
           AIJ(I,J,IJ_LCLDI)= AIJ(I,J,IJ_LCLDI) + fq_isccp(itau,6)
