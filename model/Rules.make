@@ -43,7 +43,7 @@ F       = $(SCRIPTDIR)/fco2_90
 U	= $(SCRIPTDIR)/uco2_f90
 SETUP	= $(SCRIPTDIR)/setup_e
 LIBS	= -L/u/cmrun -lGCM -lgP 
-FFLAGS = -O2 -64 -mips4 -static -OPT:reorg_comm=off -w2 
+FFLAGS = -cpp -O2 -64 -mips4 -static -OPT:reorg_comm=off -w2 
 LFLAGS = -64 -O2 -mips4 -static -lfastm -mp -OPT:reorg_common=OFF -Wl,-woff,134 -Wl,-woff,15
 endif
 
@@ -95,7 +95,7 @@ endif
 
 %.o: %.F
 	@touch .timestamp
-	$(F90) -cpp -c $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
+	$(F90) -c $(FFLAGS) $(EXTRA_FFLAGS) $<  $(COMP_OUTPUT)
 	-@if [ -s *.mod ] ; then for i in *.mod; do if [ ! -s $$i.sig ] || [ $$i -nt $$i.sig ] ; then echo $@ > $$i.sig; fi; done; fi
 	@touch -r .timestamp $@
 ifdef COMP_OUTPUT

@@ -688,9 +688,10 @@ ccc by implicit scheme when tsn(1) == 0 C
 ccc (of course one has to use preprocessing to do it ...)
 ccc it is enabled by default
 
-      !/*#ifdef DO_EXPLIC_0*/
+#define DO_EXPLIC_0
+#ifdef DO_EXPLIC_0
       do iter=1,itermax
-      !/*#endif*/
+#endif
 ccc equation for upper snow layer
         n = 1
         dt_to_cdz = dt/(csn(n)*dz(n))
@@ -725,7 +726,7 @@ c        call sweep3diag(b, c, a, f, tnew, nl)
 ccc flux_corr is the energy wich should be returned to the atmosphere
         flux_corr = flux_in_deriv*( tnew(1) - tsn(1) )*gamma
 
-        !/*#ifdef DO_EXPLIC_0*/
+#ifdef DO_EXPLIC_0
         syst_flux_err = flux_in_deriv*( tnew(1) - 0.d0 )*gamma
         ! if ( iter/=2 .and. tnew(1)>0.d0 .and. flux_in_deriv<0.d0 ) then
         ! back to 77 :-L
@@ -740,7 +741,7 @@ ccc flux_corr is the energy wich should be returned to the atmosphere
         endif
       enddo
  77   continue
-      !/*#endif*/
+#endif
 
       do n=1,nl
         hsn(n) = hsn(n) + (tnew(n)-tsn(n))*csn(n)*dz(n)
