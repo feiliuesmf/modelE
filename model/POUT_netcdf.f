@@ -1291,3 +1291,11 @@ c      var_name='hour';call wrtdarr(hours)
 
       return
       end subroutine POUT_hdiurn
+
+C**** Dummy entries to allow POUT_netcdf to compile with tracers
+C**** Should be fixed soon!
+      subroutine pout_jc
+      entry open_jc
+      entry close_jc
+      return
+      end subrouinte pout_jc
