@@ -7,6 +7,7 @@ C****
 C**** This subroutine calculates surface fluxes of sensible heat,
 C**** evaporation, thermal radiation, and momentum drag.
 C****
+      IMPLICIT REAL*8 (A-H,O-Z)
       INCLUDE 'E001M12.COM'
       COMMON U,V,T,P,Q
       COMMON/WORK1/CONV(IM,JM,LM),PK(IM,JM,LM),PREC(IM,JM),
