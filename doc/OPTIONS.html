@@ -136,6 +136,9 @@ FFT144: Suitable for IM=144 models
 
 <li> Tracers <P>
 
+<ul> 
+
+<li> General Tracers <p>
 <p>
 Tracers are implemented through a combination of 'plug and play' and user 
 routines.  Some tracer code is embedded in the main model through the use 
@@ -183,6 +186,26 @@ itime_tr0: the model time at which each tracer 'turns on'.</pre>
 <p> Note that tracer code involving the ocean needs the OCN_TRACER
 module, in addtion to those specified above.  </p>
 
+<li> Regional Tracers <p>
+
+The preprocessor directive <code>#regional_Ox_tracers</code> will turn on tracers
+which can be defined by a geographic domain.  In the present implementation, 
+there are 6 regional Ox tracers (named OxREG1, ... OxREG6), which interact
+with the Drew Shindell chemistry if #TRACERS_SPECIAL_Shindell is turned on
+as well. Therefore Ox should also be a tracer and should be defined before
+the regional tracers. The number of regional Ox tracers is controlled by
+the NregOx parameter in TRACER_COM, and their 3D geographic regions are
+defined in TRACERS_DRV, by setting the varaibles:
+<pre>
+regOx_n = northern limit in degrees
+regOx_s = southern limit in degrees
+regOx_w = western limit in degrees
+regOx_e = eastern limit in degrees
+regOx_b = bottom limit in hPa
+regOx_t = top limit in hPa
+</pre>
+
+</ul>
 </ul>
 </BODY>
 </HTML>
