@@ -1407,7 +1407,8 @@ C****
       USE DAGCOM, only : aj,j_h2och4
       USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM
       IMPLICIT NONE
-      REAL*8 DELTAP,PBAR,SPRESS,SMASS,LAM,xCH4
+      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4
+      REAL*8 :: SPRESS(grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_WATER
@@ -1442,12 +1443,13 @@ C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
       SMASS=0.
       DO J=J_0,J_1
-        SPRESS=0.
+        SPRESS(J)=0.
         DO I=1,IM
-          SPRESS=SPRESS+P(I,J)
+          SPRESS(J)=SPRESS(J)+P(I,J)
         END DO
-        SMASS=SMASS+SPRESS*DXYP(J)
+        SPRESS(J) = SPRESS(J) * DXYP(J)
       END DO
+      CALL GLOBALSUM(grid, SPRESS, SMASS, ALL=.TRUE.)
       PBAR=SMASS/AREAG+PTOP
 C**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
 C****   except if it was just done (restart from itime=itimei)
