@@ -223,7 +223,8 @@ c     dsrcflx  dust source flux for Ntm tracers [kg/s]
       IMPLICIT NONE
 
       INTEGER :: i,j,l,n,naij,najl
-      REAL*8,DIMENSION(jm) :: lwdep,h
+      INTEGER,DIMENSION(Jm) :: lwdep
+      REAL*8,DIMENSION(jm) :: h
       REAL*8 :: y
 
 c**** wet deposition with rain from external file
