@@ -930,7 +930,7 @@ c**** modifications needed for split of bare soils into 2 types
       integer jday
       real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
-      integer i, j, k, ibv
+      integer i, j, ibv
       real*8 wfc1
       real*8 dif,frdn,frup,pearth,phase,scs0,scsim,scsre,sfv,sla0
       real*8 almass0, almassre, almassim  !nyk
