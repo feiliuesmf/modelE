@@ -842,7 +842,7 @@ C**** save plume temperature after possible condensation
         QMP=QMPT
       END IF
       COND(L)=DQSUM
-      CONDMU=100.*COND(L)*BYAM(L)*PL(L)*AIRM(L)/(CCM(L-1)*TL(L)*RGAS)
+      CONDMU=100.*COND(L)*PL(L)/(MPLUME*TL(L)*RGAS)
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0/(CONDMU+teeny))**.25
